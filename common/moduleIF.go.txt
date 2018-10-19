@@ -1,0 +1,75 @@
+type P2P interface {
+	Listen(addr string) error
+	Join(addrs []string) error // if it's a empty slice, start a new chain
+
+	BroadCast(msg Message) error
+	SendTo(msg Message, to RemoteEndpoint) error
+
+	CloseConnection(c Connection) // gracefully close a connection
+	KillConnection(c Connection) // force kill a connection, discard all pending msg
+
+	Shutdown()
+}
+
+type Consensus interface {
+	CurrentProducer() Account // if it's us, call Produce
+	ActiveProducer() []Account // returns a list of accounts that actively produce blocks
+
+	Produce() error // produce new block, possible implementation: Producer.Produce()
+	ValidateBlock(b *Block) bool // returns true if b is direct successor of any fork chain
+	AddBlock(b *Block) error // add b to the block fork DB, called if ValidateBlock returns true
+	RemoveBlock(bh BlockHash) // remove a block and its successor from the block fork DB
+	ForkRoot(fork1, fork2 *Block) BlockHash // returns the common accesstor of two forks
+
+	applyBlock(b Block) error // apply the state change, called if b is the head block of the longest chain
+	revertBlock(height int) error // undo state change
+}
+
+type Producer interface {
+	Produce() (*Block, error)
+}
+
+/********************
+asset : int64
+chain_id_type: uint8
+sha256: "crypto/sha256"
+account_name : [2]uint64
+time: "time"
+uint256: "math/big"
+checksum_type: ripemd160->sha256
+signature private_key public_key: "crypto/ecdsa" "crypto/elliptic"
+			pub_key, priv_key <==> string: "crypto/x509" "encoding/pem"
+
+					func encode(privateKey *ecdsa.PrivateKey, publicKey *ecdsa.PublicKey) (string, string) {
+						x509Encoded, _ := x509.MarshalECPrivateKey(privateKey)
+						pemEncoded := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: x509Encoded})
+
+						x509EncodedPub, _ := x509.MarshalPKIXPublicKey(publicKey)
+						pemEncodedPub := pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: x509EncodedPub})
+
+						return string(pemEncoded), string(pemEncodedPub)
+					}
+
+					func decode(pemEncoded string, pemEncodedPub string) (*ecdsa.PrivateKey, *ecdsa.PublicKey) {
+						block, _ := pem.Decode([]byte(pemEncoded))
+						x509Encoded := block.Bytes
+						privateKey, _ := x509.ParseECPrivateKey(x509Encoded)
+
+						blockPub, _ := pem.Decode([]byte(pemEncodedPub))
+						x509EncodedPub := blockPub.Bytes
+						genericPublicKey, _ := x509.ParsePKIXPublicKey(x509EncodedPub)
+						publicKey := genericPublicKey.(*ecdsa.PublicKey)
+
+						return privateKey, publicKey
+					}			
+
+merkle_tree: "github.com/cbergoon/merkletree"
+
+block_header
+signed_block_heder
+signed_block
+block_log
+transaction
+operation
+transaction_receipt
+********************/
