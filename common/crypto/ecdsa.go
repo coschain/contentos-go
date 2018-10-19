@@ -4,7 +4,6 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
-	"crypto/sha256"
 	"crypto/x509"
 	"encoding/asn1"
 	"encoding/pem"
@@ -64,6 +63,7 @@ func (spk *SigPubKey) ToString() (string, error) {
 }
 
 // Verify verifies the sig against the digest
+// NOTE that digest has to be a sha256
 func (spk *SigPubKey) Verify(digest, sig []byte) bool {
 	var ecdsaSig ecdsaSignature
 	asn1.Unmarshal(sig, &ecdsaSig)
@@ -93,5 +93,20 @@ func ConstructKeyFromString(keyStr string) (*SigPrivKey, error) {
 
 	return &SigPrivKey{
 		p: privateKey,
+	}, nil
+}
+
+// ConstructPubKeyFromString create a public key from string
+func ConstructPubKeyFromString(pubKeyStr string) (*SigPubKey, error) {
+	blockPub, _ := pem.Decode([]byte(pubKeyStr))
+	x509EncodedPub := blockPub.Bytes
+	genericPublicKey, err := x509.ParsePKIXPublicKey(x509EncodedPub)
+	if err != nil {
+		return nil, err
+	}
+	publicKey := genericPublicKey.(*ecdsa.PublicKey)
+
+	return &SigPubKey{
+		p: publicKey,
 	}, nil
 }
