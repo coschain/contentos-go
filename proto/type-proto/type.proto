@@ -1,0 +1,76 @@
+syntax = "proto3";
+
+package prototype;
+
+message uint128{
+    uint64 hi = 1;
+    uint64 lo = 2;
+}
+
+message namex{
+    uint128 value = 1;
+}
+
+message safe64{
+    int64 value = 1;
+}
+
+message asset{
+    safe64 amount = 1;
+    uint64 symbol = 2;
+}
+
+message public_key_data{
+    bytes elems_ = 1;
+}
+
+message public_key_type{
+    message binary_key {
+        uint32 check = 1;
+        public_key_data data = 2;
+    }
+    public_key_data key_data = 1;
+}
+
+message kv_account_auth{
+    namex key = 1;
+    uint32 value = 2;
+}
+
+message kv_key_auth{
+    public_key_type key = 1;
+    uint32 value = 2;
+}
+
+message authority{
+    enum classification{
+         owner   = 0;
+         active  = 1;
+         key     = 2;
+         posting = 3;
+    }
+    classification cf = 1;
+    uint32 weight_threshold = 2;
+    repeated kv_account_auth account_auths = 3;
+    repeated kv_key_auth key_auths = 4;
+    //map<namex, uint32> account_auths = 2;
+    // map<public_key_type, uint32> key_auths = 3;
+}
+
+message account_create_operation{
+    asset fee = 1;
+    namex creator = 2;
+    namex new_account_name = 3;
+    authority owner = 4;
+    authority active = 5;
+    authority posting = 6;
+    public_key_type memo_key = 7;
+    string json_metadata = 8;
+}
+
+message transfer_operation{
+    namex from = 1;
+    namex to = 2;
+    asset amount = 3;
+    string memo = 4;
+}
