@@ -12,8 +12,12 @@ func TestBlockLog(t *testing.T) {
 	if err != nil {
 		t.Error(err.Error())
 	}
+	blog.Remove(home)
 	err = blog.Open(home)
 	if err != nil {
 		t.Error(err.Error())
 	}
+
+	var psb PhonySignedBlock
+	blog.Append(&psb)
 }

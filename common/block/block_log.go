@@ -1,14 +1,15 @@
 package block
 
 import (
-	//"contentos-go/common/block"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"os"
 )
 
 const indexSize = 8
 const blockLenSize = 4
+const maxPayloadLen = 1024 * 1024 * 256
 
 /*BLog is an external append only log of the blocks. Blocks should only be written
  * to the log after they irreverisble as the log is append only. There is a secondary
@@ -78,6 +79,66 @@ func (bl *BLog) Open(dir string) (err error) {
 	}
 
 	return
+}
+
+// Remove remove log and index file
+func (bl *BLog) Remove(dir string) {
+	os.Remove(dir + "/block.bin")
+	os.Remove(dir + "/block.index")
+}
+
+// Append appends a SignedBlock to the BLog
+func (bl *BLog) Append(sb SignedBlock) error {
+	logFileOffset, _ := bl.logFile.Seek(0, 2)
+	bl.indexFile.Seek(0, 2)
+	// TODO: check index cnt and sb block num
+
+	payload := sb.Marshall()
+	if len(payload) > maxPayloadLen {
+		return errors.New("BLog Append: SignedBlock too big")
+	}
+
+	// append payload len to log file
+	lenByte := make([]byte, blockLenSize)
+	binary.LittleEndian.PutUint32(lenByte, uint32(len(payload)))
+	length, err := bl.logFile.Write(lenByte)
+	if err != nil {
+		return fmt.Errorf("BLOG Append: %s", err.Error())
+	}
+	if length != blockLenSize {
+		return errors.New("BLog Append: write blockLenSize size mismatch")
+	}
+
+	// append payload to log file
+	length, err = bl.logFile.Write(payload)
+	if err != nil {
+		return fmt.Errorf("BLOG Append: %s", err.Error())
+	}
+	if length != len(payload) {
+		return errors.New("BLog Append: write payload size mismatch")
+	}
+
+	// append index to log file
+	indexByte := make([]byte, indexSize)
+	binary.LittleEndian.PutUint64(indexByte, uint64(logFileOffset))
+	length, err = bl.logFile.Write(indexByte)
+	if err != nil {
+		return err
+	}
+	if length != indexSize {
+		return errors.New("BLog Append: write index size mismatch")
+	}
+
+	// append index to index file
+	length, err = bl.indexFile.Write(indexByte)
+	if err != nil {
+		return err
+	}
+	if length != indexSize {
+		return errors.New("BLog Append: write index size mismatch")
+	}
+
+	return nil
 }
 
 func (bl *BLog) reindex() (err error) {

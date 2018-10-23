@@ -1,6 +1,8 @@
 package block
 
 import (
+	"strconv"
+
 	"contentos-go/common/marshall"
 )
 
@@ -9,12 +11,17 @@ type SignedBlock interface {
 }
 
 type PhonySignedBlock struct {
+	payload []byte
 }
+
+var cnt int
 
 func (psb *PhonySignedBlock) Marshall() []byte {
-	return []byte("hello")
+	cnt++
+	return []byte("hello" + strconv.Itoa(cnt))
 }
 
-func (psb *PhonySignedBlock) Unmarshall() error {
+func (psb *PhonySignedBlock) Unmarshall(b []byte) error {
+	psb.payload = b
 	return nil
 }
