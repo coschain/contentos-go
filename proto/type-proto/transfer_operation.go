@@ -1,5 +1,5 @@
 package prototype
 
-func (this *TransferOperation) validate() {
+func (this *TransferOperation) Validate() {
 
 }

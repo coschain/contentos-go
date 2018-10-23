@@ -1,5 +1,5 @@
 package prototype
 
-func (this *AccountCreateOperation) validate() {
+func (this *AccountCreateOperation) Validate() {
 
 }

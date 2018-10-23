@@ -1,5 +1,7 @@
 package commoninterface
 
+import "contentos-go/proto/type-proto"
+
 type admin_type int
 
 const (
@@ -12,7 +14,7 @@ type account_admin_pair struct {
 	AdminType admin_type
 }
 
-type base_operation interface {
+type BaseOperation interface {
 	/*	get_required_authorities(*[]prototype.Authority)
 		get_required_active_authorities(*map[prototype.Namex]bool)
 		get_required_posting_authorities(*map[prototype.Namex]bool)
@@ -20,5 +22,5 @@ type base_operation interface {
 		get_required_admin(*[]account_admin_pair)
 		is_virtual()
 	*/
-	validate()
+	Validate()
 }
