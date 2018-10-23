@@ -88,4 +88,67 @@ func main() {
 	proto.Unmarshal(readData, acop2)
 
 	fmt.Println(acop2)
+
+	// transaction
+	trx := &prototype.Transaction{
+		RefBlockNum:    1,
+		RefBlockPrefix: 2,
+	}
+
+	acopTrx := &prototype.Operation_Acop{}
+	acopTrx.Acop = acop
+
+	topTrx := &prototype.Operation_Top{}
+	topTrx.Top = top
+
+	op1 := &prototype.Operation{Op: acopTrx}
+	op2 := &prototype.Operation{Op: topTrx}
+	trx.Operations = append(trx.Operations, op1)
+	trx.Operations = append(trx.Operations, op2)
+
+	for _, elem := range trx.Operations {
+		switch x := elem.Op.(type) {
+		case *prototype.Operation_Acop:
+			fmt.Println("Operation_Acop---> ", x)
+		case *prototype.Operation_Top:
+			fmt.Println("Operation_Top---> ", x)
+		case nil:
+			fmt.Println("not set")
+		default:
+			fmt.Println("Op has unexpected type")
+		}
+	}
+
+	trxdata, err := proto.Marshal(trx)
+	if err != nil {
+		panic(err)
+	}
+
+	fp, _ = os.Create("trx.serialization")
+	len, err = fp.Write(trxdata)
+	fmt.Printf("wrote %d bytes\n", len)
+	fp.Sync()
+
+	readData = make([]byte, len)
+	f, err = os.Open("trx.serialization")
+	readLen, err = f.Read(readData)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("read %d bytes\n", readLen)
+
+	trxNew := &prototype.Transaction{}
+	proto.Unmarshal(readData, trxNew)
+	for _, elem := range trxNew.Operations {
+		switch x := elem.Op.(type) {
+		case *prototype.Operation_Acop:
+			fmt.Println("Operation_Acop---> ", x)
+		case *prototype.Operation_Top:
+			fmt.Println("Operation_Top---> ", x)
+		case nil:
+			fmt.Println("not set")
+		default:
+			fmt.Println("Op has unexpected type")
+		}
+	}
 }

@@ -77,3 +77,19 @@ message transfer_operation{
     asset amount = 3;
     string memo = 4;
 }
+
+message operation{
+    oneof op{
+        account_create_operation acop = 1;
+        transfer_operation top = 2;
+    }
+}
+
+// transaction
+message transaction{
+    uint32 ref_block_num = 1;
+    uint32 ref_block_prefix = 2;
+    //time
+    repeated operation operations = 3;
+    //extensions
+}
