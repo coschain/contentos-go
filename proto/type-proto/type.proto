@@ -57,6 +57,9 @@ message authority{
     // map<public_key_type, uint32> key_auths = 3;
 }
 
+
+// operations
+
 message account_create_operation{
     asset fee = 1;
     namex creator = 2;
