@@ -17,11 +17,16 @@ type PhonySignedBlock struct {
 var cnt int
 
 func (psb *PhonySignedBlock) Marshall() []byte {
+	psb.payload = []byte("hello" + strconv.Itoa(cnt))
 	cnt++
-	return []byte("hello" + strconv.Itoa(cnt))
+	return psb.payload
 }
 
 func (psb *PhonySignedBlock) Unmarshall(b []byte) error {
 	psb.payload = b
 	return nil
+}
+
+func (psb *PhonySignedBlock) Data() string {
+	return string(psb.payload)
 }

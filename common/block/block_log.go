@@ -101,41 +101,67 @@ func (bl *BLog) Append(sb SignedBlock) error {
 	// append payload len to log file
 	lenByte := make([]byte, blockLenSize)
 	binary.LittleEndian.PutUint32(lenByte, uint32(len(payload)))
-	length, err := bl.logFile.Write(lenByte)
+	_, err := bl.logFile.Write(lenByte)
 	if err != nil {
 		return fmt.Errorf("BLOG Append: %s", err.Error())
-	}
-	if length != blockLenSize {
-		return errors.New("BLog Append: write blockLenSize size mismatch")
 	}
 
 	// append payload to log file
-	length, err = bl.logFile.Write(payload)
+	_, err = bl.logFile.Write(payload)
 	if err != nil {
 		return fmt.Errorf("BLOG Append: %s", err.Error())
-	}
-	if length != len(payload) {
-		return errors.New("BLog Append: write payload size mismatch")
 	}
 
 	// append index to log file
 	indexByte := make([]byte, indexSize)
 	binary.LittleEndian.PutUint64(indexByte, uint64(logFileOffset))
-	length, err = bl.logFile.Write(indexByte)
+	_, err = bl.logFile.Write(indexByte)
 	if err != nil {
 		return err
-	}
-	if length != indexSize {
-		return errors.New("BLog Append: write index size mismatch")
 	}
 
 	// append index to index file
-	length, err = bl.indexFile.Write(indexByte)
+	_, err = bl.indexFile.Write(indexByte)
 	if err != nil {
 		return err
 	}
-	if length != indexSize {
-		return errors.New("BLog Append: write index size mismatch")
+
+	return nil
+}
+
+// ReadBlock read a block at blockNum, blockNum start at 0
+func (bl *BLog) ReadBlock(sb SignedBlock, blockNum int64) error {
+	indexOffset := blockNum * indexSize
+	// read index
+	indexByte := make([]byte, indexSize)
+	_, err := bl.indexFile.ReadAt(indexByte, indexOffset)
+	if err != nil {
+		return fmt.Errorf("BLOG ReadBlock: %s", err.Error())
+	}
+	offset := binary.LittleEndian.Uint64(indexByte)
+	return bl.readBlock(sb, int64(offset))
+}
+
+func (bl *BLog) readBlock(sb SignedBlock, idx int64) error {
+	// read payload len
+	payloadLenByte := make([]byte, blockLenSize)
+	var payloadLen uint32
+	_, err := bl.logFile.ReadAt(payloadLenByte, idx)
+	if err != nil {
+		return fmt.Errorf("BLOG readBlock: %s", err.Error())
+	}
+	payloadLen = binary.LittleEndian.Uint32(payloadLenByte)
+
+	// read payload
+	payloadByte := make([]byte, payloadLen)
+	_, err = bl.logFile.ReadAt(payloadByte, idx+blockLenSize)
+	if err != nil {
+		return err
+	}
+
+	err = sb.Unmarshall(payloadByte)
+	if err != nil {
+		return fmt.Errorf("BLOG readBlock: %s", err.Error())
 	}
 
 	return nil
@@ -158,45 +184,32 @@ func (bl *BLog) reindex() (err error) {
 	}
 
 	for offset < end {
-		var length int
 		// read payload len
 		payloadLenByte := make([]byte, blockLenSize)
 		var payloadLen uint32
-		length, err = bl.logFile.Read(payloadLenByte)
+		_, err = bl.logFile.Read(payloadLenByte)
 		if err != nil {
 			return err
-		}
-		if length != blockLenSize {
-			return errors.New("wrong blockLen size")
 		}
 		payloadLen = binary.LittleEndian.Uint32(payloadLenByte)
 
 		// read payload
 		payloadByte := make([]byte, payloadLen)
-		length, err = bl.logFile.Read(payloadByte)
+		_, err = bl.logFile.Read(payloadByte)
 		if err != nil {
 			return err
-		}
-		if uint32(length) != payloadLen {
-			return errors.New("wrong payloadLen size")
 		}
 
 		// read index
-		length, err = bl.logFile.Read(indexByte)
+		_, err = bl.logFile.Read(indexByte)
 		if err != nil {
 			return err
-		}
-		if uint32(length) != payloadLen {
-			return errors.New("wrong index size")
 		}
 
 		// append index to indexFile
-		length, err = bl.indexFile.Write(indexByte)
+		_, err = bl.indexFile.Write(indexByte)
 		if err != nil {
 			return err
-		}
-		if length != indexSize {
-			return errors.New("wrong index size")
 		}
 
 		offset = int64(binary.LittleEndian.Uint32(indexByte))
@@ -212,12 +225,9 @@ func (bl *BLog) readLastIndex(indexByte []byte, isLogFile bool) (int64, error) {
 		file = bl.indexFile
 	}
 	file.Seek(-indexSize, 2)
-	length, err := file.Read(indexByte)
+	_, err := file.Read(indexByte)
 	if err != nil {
 		return 0, err
-	}
-	if length != indexSize {
-		return 0, errors.New("wrong last index size")
 	}
 	return int64(binary.LittleEndian.Uint64(indexByte)), nil
 }
