@@ -5,7 +5,7 @@ import (
 )
 
 type SignedBlock interface {
-	marshall.Marshall
+	marshall.Marshaller
 }
 
 type PhonySignedBlock struct {
