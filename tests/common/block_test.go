@@ -21,29 +21,29 @@ func TestBlockLog(t *testing.T) {
 		t.Error(err.Error())
 	}
 
-	var psb PhonySignedBlock
-	psb.Set("hello0")
-	err = blog.Append(&psb)
+	var msb MockSignedBlock
+	msb.Set("hello0")
+	err = blog.Append(&msb)
 	if err != nil {
 		t.Error(err.Error())
 	}
-	psb.Set("hello1")
-	err = blog.Append(&psb)
+	msb.Set("hello1")
+	err = blog.Append(&msb)
 	if err != nil {
 		t.Error(err.Error())
 	}
-	err = blog.ReadBlock(&psb, 0)
+	err = blog.ReadBlock(&msb, 0)
 	if err != nil {
 		t.Error(err.Error())
 	}
-	if strings.Compare(psb.Data(), "hello0") != 0 {
-		t.Error("Expect hello0 while got: ", psb.Data())
+	if strings.Compare(msb.Data(), "hello0") != 0 {
+		t.Error("Expect hello0 while got: ", msb.Data())
 	}
-	err = blog.ReadBlock(&psb, 1)
+	err = blog.ReadBlock(&msb, 1)
 	if err != nil {
 		t.Error(err.Error())
 	}
-	if strings.Compare(psb.Data(), "hello1") != 0 {
-		t.Error("Expect hello1 while got: ", psb.Data())
+	if strings.Compare(msb.Data(), "hello1") != 0 {
+		t.Error("Expect hello1 while got: ", msb.Data())
 	}
 }
