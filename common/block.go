@@ -6,9 +6,15 @@ type Marshaller interface {
 	Unmarshall([]byte) error
 }
 
-// BlockID ...
+// BlockID is a sha256 byte array, the first 2 byte is
+// replaced by the block number
 type BlockID struct {
 	data [32]byte
+}
+
+// BlockHeader ...
+type BlockHeader interface {
+	Previous() BlockID
 }
 
 // SignedBlockHeader ...
@@ -18,6 +24,7 @@ type SignedBlockHeader interface {
 
 // SignedBlock ...
 type SignedBlock interface {
+	BlockHeader
 	SignedBlockHeader
 	Marshaller
 }

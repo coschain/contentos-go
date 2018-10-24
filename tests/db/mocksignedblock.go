@@ -28,3 +28,7 @@ func (msb *MockSignedBlock) Data() string {
 func (msb *MockSignedBlock) Id() common.BlockID {
 	return common.BlockID{}
 }
+
+func (msb *MockSignedBlock) Previous() common.BlockID {
+	return common.BlockID{}
+}
