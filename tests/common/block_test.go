@@ -1,14 +1,16 @@
-package block
+package common
 
 import (
 	"strings"
 	"testing"
 
 	"github.com/mitchellh/go-homedir"
+
+	"contentos-go/common/block"
 )
 
 func TestBlockLog(t *testing.T) {
-	var blog BLog
+	var blog block.BLog
 	home, err := homedir.Dir()
 	if err != nil {
 		t.Error(err.Error())
@@ -20,10 +22,12 @@ func TestBlockLog(t *testing.T) {
 	}
 
 	var psb PhonySignedBlock
+	psb.Set("hello0")
 	err = blog.Append(&psb)
 	if err != nil {
 		t.Error(err.Error())
 	}
+	psb.Set("hello1")
 	err = blog.Append(&psb)
 	if err != nil {
 		t.Error(err.Error())
