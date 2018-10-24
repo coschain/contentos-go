@@ -1,10 +1,12 @@
-package block
+package blocklog
 
 import (
 	"encoding/binary"
 	"errors"
 	"fmt"
 	"os"
+
+	"contentos-go/common/block"
 )
 
 const indexSize = 8
@@ -87,15 +89,15 @@ func (bl *BLog) Remove(dir string) {
 	os.Remove(dir + "/block.index")
 }
 
-// Append appends a SignedBlock to the BLog
-func (bl *BLog) Append(sb SignedBlock) error {
+// Append appends a block.SignedBlock to the BLog
+func (bl *BLog) Append(sb block.SignedBlock) error {
 	logFileOffset, _ := bl.logFile.Seek(0, 2)
 	bl.indexFile.Seek(0, 2)
 	// TODO: check index cnt and sb block num
 
 	payload := sb.Marshall()
 	if len(payload) > maxPayloadLen {
-		return errors.New("BLog Append: SignedBlock too big")
+		return errors.New("BLog Append: block.SignedBlock too big")
 	}
 
 	// append payload len to log file
@@ -130,7 +132,7 @@ func (bl *BLog) Append(sb SignedBlock) error {
 }
 
 // ReadBlock read a block at blockNum, blockNum start at 0
-func (bl *BLog) ReadBlock(sb SignedBlock, blockNum int64) error {
+func (bl *BLog) ReadBlock(sb block.SignedBlock, blockNum int64) error {
 	indexOffset := blockNum * indexSize
 	// read index
 	indexByte := make([]byte, indexSize)
@@ -142,7 +144,7 @@ func (bl *BLog) ReadBlock(sb SignedBlock, blockNum int64) error {
 	return bl.readBlock(sb, int64(offset))
 }
 
-func (bl *BLog) readBlock(sb SignedBlock, idx int64) error {
+func (bl *BLog) readBlock(sb block.SignedBlock, idx int64) error {
 	// read payload len
 	payloadLenByte := make([]byte, blockLenSize)
 	var payloadLen uint32

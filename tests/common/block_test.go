@@ -6,11 +6,11 @@ import (
 
 	"github.com/mitchellh/go-homedir"
 
-	"contentos-go/common/block"
+	"contentos-go/db/blocklog"
 )
 
 func TestBlockLog(t *testing.T) {
-	var blog block.BLog
+	var blog blocklog.BLog
 	home, err := homedir.Dir()
 	if err != nil {
 		t.Error(err.Error())
