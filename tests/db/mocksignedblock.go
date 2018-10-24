@@ -1,5 +1,7 @@
 package db
 
+import "contentos-go/common"
+
 type MockSignedBlock struct {
 	payload []byte
 }
@@ -21,4 +23,8 @@ func (msb *MockSignedBlock) Set(data string) {
 
 func (msb *MockSignedBlock) Data() string {
 	return string(msb.payload)
+}
+
+func (msb *MockSignedBlock) Id() common.BlockID {
+	return common.BlockID{}
 }
