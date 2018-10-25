@@ -57,6 +57,17 @@ message authority{
     // map<public_key_type, uint32> key_auths = 3;
 }
 
+message time_point_sec{
+    uint32 utc_seconds = 1;
+}
+
+message signature_type{
+    bytes sig = 1;
+}
+
+message sha256{
+    bytes hash = 1;
+}
 
 // operations
 
@@ -89,7 +100,43 @@ message operation{
 message transaction{
     uint32 ref_block_num = 1;
     uint32 ref_block_prefix = 2;
-    //time
-    repeated operation operations = 3;
-    //extensions
+    time_point_sec expiration = 3
+    repeated operation operations = 4;
+}
+
+message signed_transaction{
+    transaction trx = 1;
+    repeated signature_type signatures = 2;
+}
+
+message transaction_invoice{
+    uint32 status = 1;
+    bool vm_error = 2;
+    uint32 vm_error_code = 3;
+    string vm_error_msg = 4;
+    uint64 gas_usage = 5;
+    string vm_console = 6;
+}
+
+message transaction_wrapper{
+    signed_transaction sig_trx = 1;
+    transaction_invoice invoice = 2;
+}
+
+// block
+message block_header{
+    sha256 previous = 1;
+    time_point_sec timestamp = 2;
+    string witness = 3;
+    sha256 transaction_merkle_root = 4;
+}
+
+message signed_block_header{
+    block_header header = 1;
+    signature_type witness_signature = 2;
+}
+
+message signed_block{
+    signed_block_header signed_header = 1;
+    repeated transaction_wrapper transactions = 2;
 }

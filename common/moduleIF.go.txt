@@ -68,8 +68,8 @@ merkle_tree: "github.com/cbergoon/merkletree"
 block_header
 signed_block_heder
 signed_block
-block_log
+block_log // no need serialization
 transaction
 operation
-transaction_receipt
+transaction_wraper
 ********************/
