@@ -7,7 +7,7 @@ message uint128{
     uint64 lo = 2;
 }
 
-message namex{
+message account_name{
     uint128 value = 1;
 }
 
@@ -15,9 +15,12 @@ message safe64{
     int64 value = 1;
 }
 
-message asset{
+message coin{
     safe64 amount = 1;
-    uint64 symbol = 2;
+}
+
+message vest{
+    safe64 amount = 1;
 }
 
 message public_key_data{
@@ -33,7 +36,7 @@ message public_key_type{
 }
 
 message kv_account_auth{
-    namex key = 1;
+    account_name key = 1;
     uint32 value = 2;
 }
 
@@ -67,76 +70,4 @@ message signature_type{
 
 message sha256{
     bytes hash = 1;
-}
-
-// operations
-
-message account_create_operation{
-    asset fee = 1;
-    namex creator = 2;
-    namex new_account_name = 3;
-    authority owner = 4;
-    authority active = 5;
-    authority posting = 6;
-    public_key_type memo_key = 7;
-    string json_metadata = 8;
-}
-
-message transfer_operation{
-    namex from = 1;
-    namex to = 2;
-    asset amount = 3;
-    string memo = 4;
-}
-
-message operation{
-    oneof op{
-        account_create_operation acop = 1;
-        transfer_operation top = 2;
-    }
-}
-
-// transaction
-message transaction{
-    uint32 ref_block_num = 1;
-    uint32 ref_block_prefix = 2;
-    time_point_sec expiration = 3
-    repeated operation operations = 4;
-}
-
-message signed_transaction{
-    transaction trx = 1;
-    repeated signature_type signatures = 2;
-}
-
-message transaction_invoice{
-    uint32 status = 1;
-    bool vm_error = 2;
-    uint32 vm_error_code = 3;
-    string vm_error_msg = 4;
-    uint64 gas_usage = 5;
-    string vm_console = 6;
-}
-
-message transaction_wrapper{
-    signed_transaction sig_trx = 1;
-    transaction_invoice invoice = 2;
-}
-
-// block
-message block_header{
-    sha256 previous = 1;
-    time_point_sec timestamp = 2;
-    string witness = 3;
-    sha256 transaction_merkle_root = 4;
-}
-
-message signed_block_header{
-    block_header header = 1;
-    signature_type witness_signature = 2;
-}
-
-message signed_block{
-    signed_block_header signed_header = 1;
-    repeated transaction_wrapper transactions = 2;
 }

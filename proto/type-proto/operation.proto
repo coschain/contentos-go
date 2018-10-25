@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package prototype;
+
+import "type.proto";
+
+
+message account_create_operation{
+    coin fee = 1;
+    account_name creator = 2;
+    account_name new_account_name = 3;
+    authority owner = 4;
+    authority active = 5;
+    authority posting = 6;
+    public_key_type memo_key = 7;
+    string json_metadata = 8;
+}
+
+message transfer_operation{
+    account_name from = 1;
+    account_name to = 2;
+    coin amount = 3;
+    string memo = 4;
+}
