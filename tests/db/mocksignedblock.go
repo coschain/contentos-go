@@ -1,12 +1,12 @@
 package db
 
-import "contentos-go/common"
+import (
+	"github.com/coschain/contentos-go/common"
+)
 
 type MockSignedBlock struct {
 	payload []byte
 }
-
-var cnt int
 
 func (msb *MockSignedBlock) Marshall() []byte {
 	return msb.payload

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"contentos-go/common"
+	"github.com/coschain/contentos-go/common"
 )
 
 const indexSize = 8

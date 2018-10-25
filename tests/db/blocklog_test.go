@@ -4,9 +4,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/coschain/contentos-go/db/blocklog"
 	"github.com/mitchellh/go-homedir"
-
-	"contentos-go/db/blocklog"
 )
 
 func TestBlockLog(t *testing.T) {

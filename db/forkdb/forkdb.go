@@ -1,7 +1,7 @@
 package forkdb
 
 import (
-	"contentos-go/common"
+	"github.com/coschain/contentos-go/common"
 )
 
 const maxSize = 1024
