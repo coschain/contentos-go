@@ -10,7 +10,7 @@ const (
 )
 
 type account_admin_pair struct {
-	Name      prototype.Namex
+	Name      prototype.AccountName
 	AdminType admin_type
 }
 

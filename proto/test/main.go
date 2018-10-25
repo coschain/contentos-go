@@ -12,15 +12,15 @@ func main() {
 
 	// AccountCreateOperation
 	acop := &prototype.AccountCreateOperation{
-		Fee:            &prototype.Asset{Amount: &prototype.Safe64{Value: 1}, Symbol: 2},
-		Creator:        &prototype.Namex{Value: &prototype.Uint128{Hi: 11, Lo: 12}},
-		NewAccountName: &prototype.Namex{Value: &prototype.Uint128{Hi: 11, Lo: 12}},
+		Fee:            &prototype.Coin{Amount: &prototype.Safe64{Value: 1}},
+		Creator:        &prototype.AccountName{Value: &prototype.Uint128{Hi: 11, Lo: 12}},
+		NewAccountName: &prototype.AccountName{Value: &prototype.Uint128{Hi: 11, Lo: 12}},
 		Owner: &prototype.Authority{
 			Cf:              prototype.Authority_active,
 			WeightThreshold: 1,
 			AccountAuths: []*prototype.KvAccountAuth{
 				&prototype.KvAccountAuth{
-					Key:   &prototype.Namex{Value: &prototype.Uint128{Hi: 111, Lo: 112}},
+					Key:   &prototype.AccountName{Value: &prototype.Uint128{Hi: 111, Lo: 112}},
 					Value: 3,
 				},
 			},
@@ -39,9 +39,9 @@ func main() {
 
 	// TransferOperation
 	top := &prototype.TransferOperation{
-		From:   &prototype.Namex{Value: &prototype.Uint128{Hi: 11, Lo: 12}},
-		To:     &prototype.Namex{Value: &prototype.Uint128{Hi: 11, Lo: 12}},
-		Amount: &prototype.Asset{Amount: &prototype.Safe64{Value: 100}, Symbol: 2},
+		From:   &prototype.AccountName{Value: &prototype.Uint128{Hi: 11, Lo: 12}},
+		To:     &prototype.AccountName{Value: &prototype.Uint128{Hi: 11, Lo: 12}},
+		Amount: &prototype.Coin{Amount: &prototype.Safe64{Value: 100}},
 		Memo:   "this is transfer",
 	}
 
