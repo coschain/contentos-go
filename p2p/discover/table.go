@@ -1,19 +1,3 @@
-// Copyright 2015 The contentos-go Authors
-// This file is part of the contentos-go library.
-//
-// The contentos-go library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The contentos-go library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the contentos-go library. If not, see <http://www.gnu.org/licenses/>.
-
 // Package discover implements the Node Discovery Protocol.
 //
 // The Node Discovery protocol provides a way to find RLPx nodes that
@@ -32,10 +16,10 @@ import (
 	"sync"
 	"time"
 
-	"contentos-go/common"
-	"contentos-go/crypto"
-	"contentos-go/log"
-	"contentos-go/p2p/netutil"
+	"github.com/coschain/contentos-go/p2p/depend/common"
+	"github.com/coschain/contentos-go/p2p/depend/crypto"
+	"github.com/coschain/contentos-go/p2p/depend/log"
+	"github.com/coschain/contentos-go/p2p/netutil"
 )
 
 const (

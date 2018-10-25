@@ -1,19 +1,3 @@
-// Copyright 2015 The contentos-go Authors
-// This file is part of the contentos-go library.
-//
-// The contentos-go library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The contentos-go library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the contentos-go library. If not, see <http://www.gnu.org/licenses/>.
-
 package enr
 
 import (
@@ -21,10 +5,10 @@ import (
 	"fmt"
 	"sync"
 
-	"contentos-go/common/math"
-	"contentos-go/crypto"
-	"contentos-go/crypto/sha3"
-	"contentos-go/rlp"
+	"github.com/coschain/contentos-go/p2p/depend/common/math"
+	"github.com/coschain/contentos-go/p2p/depend/crypto"
+	"github.com/coschain/contentos-go/p2p/depend/crypto/sha3"
+	"github.com/coschain/contentos-go/p2p/depend/rlp"
 )
 
 // Registry of known identity schemes.
