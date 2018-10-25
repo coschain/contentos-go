@@ -9,8 +9,9 @@ const maxSize = 1024
 // DB ...
 type DB struct {
 	//committed common.BlockID
-	start uint64
-	head  common.BlockID
+	start  uint64
+	offset uint64
+	head   common.BlockID
 
 	list     [][]common.BlockID
 	branches map[common.BlockID]common.SignedBlock
@@ -22,7 +23,7 @@ type DB struct {
 // NewDB ...
 func NewDB() *DB {
 	return &DB{
-		list:     make([][]common.BlockID, maxSize+1),
+		list:     make([][]common.BlockID, maxSize*2+1),
 		branches: make(map[common.BlockID]common.SignedBlock),
 		detached: make(map[common.BlockID]common.SignedBlock),
 	}
@@ -62,19 +63,19 @@ func (db *DB) PushBlock(b common.SignedBlock) common.SignedBlock {
 	if num > db.head.BlockNum()+1 || num < db.start {
 		return db.branches[db.head]
 	}
-	db.list[num-db.start] = append(db.list[num-db.start], id)
+	db.list[num-db.start+db.offset] = append(db.list[num-db.start+db.offset], id)
 	db.branches[id] = b
 	prev := b.Previous()
 	if _, ok := db.branches[prev]; !ok {
 		db.detached[prev] = b
 	} else {
-		db.pushNext(id)
+		db.pushDetached(id)
 	}
 	db.tryNewHead(id)
 	return db.branches[db.head]
 }
 
-func (db *DB) pushNext(id common.BlockID) {
+func (db *DB) pushDetached(id common.BlockID) {
 	ok := true
 	var b common.SignedBlock
 	for ok {
@@ -88,14 +89,31 @@ func (db *DB) pushNext(id common.BlockID) {
 }
 
 func (db *DB) tryNewHead(id common.BlockID) {
-	if id.BlockNum() > db.head.BlockNum() {
+	curNum := id.BlockNum()
+	if curNum > db.head.BlockNum() {
 		db.head = id
-		db.purge()
+		if curNum-db.start >= maxSize {
+			db.start++
+			db.offset++
+		}
+		if db.offset >= maxSize {
+			db.purge()
+		}
 	}
 }
 
 func (db *DB) purge() {
+	var cnt uint64
+	for cnt = 0; cnt < db.offset; cnt++ {
+		for i := range db.list[cnt] {
+			delete(db.branches, db.list[cnt][i])
+			delete(db.detached, db.list[cnt][i])
+		}
+	}
 
+	newList := make([][]common.BlockID, maxSize*2+1)
+	copy(newList, db.list[db.offset:])
+	db.list = newList
 }
 
 // Head returns the head block of the longest chain, returns nil
