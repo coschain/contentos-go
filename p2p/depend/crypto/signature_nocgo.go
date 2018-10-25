@@ -1,5 +1,6 @@
 package crypto
 
+/*
 import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
@@ -97,3 +98,4 @@ func CompressPubkey(pubkey *ecdsa.PublicKey) []byte {
 func S256() elliptic.Curve {
 	return btcec.S256()
 }
+*/

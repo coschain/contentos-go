@@ -336,7 +336,7 @@ func (t *dialTask) dial(srv *Server, dest *discover.Node) error {
 	}
 
 	//mfd := newMeteredConn(fd, false)
-	mfd = fd
+	mfd := fd
 
 	return srv.SetupConn(mfd, t.flags, dest)
 }

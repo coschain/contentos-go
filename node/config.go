@@ -19,9 +19,6 @@ type Config struct {
 	// Version should be set to the version number of the program.
 	Version string `toml:"-"`
 
-	// configuration of p2p networking
-	P2P p2p.Config
-
 	// DataDir is the root folder that store data and configs
 	DataDir string
 
@@ -33,6 +30,9 @@ type Config struct {
 
 	// Logger is a custom logger
 	Logger log.Logger `toml:",omitempty"`
+
+	// Configuration of peer-to-peer networking.
+	P2P p2p.Config
 }
 
 // DB returns the path to the discovery database.

@@ -15,9 +15,11 @@ import (
 	"github.com/coschain/contentos-go/p2p/depend/event"
 	"github.com/coschain/contentos-go/p2p/depend/log"
 	"github.com/coschain/contentos-go/p2p/discover"
-	"github.com/coschain/contentos-go/p2p/discv5"
+	//"github.com/coschain/contentos-go/p2p/discv5"
 	"github.com/coschain/contentos-go/p2p/nat"
 	"github.com/coschain/contentos-go/p2p/netutil"
+
+	"github.com/coschain/contentos-go/p2p/depend/crypto"
 )
 
 const (
@@ -76,7 +78,8 @@ type Config struct {
 	// BootstrapNodesV5 are used to establish connectivity
 	// with the rest of the network using the V5 discovery
 	// protocol.
-	BootstrapNodesV5 []*discv5.Node `toml:",omitempty"`
+
+	//BootstrapNodesV5 []*discv5.Node `toml:",omitempty"`
 
 	// Static nodes are used as pre-configured connections which are always
 	// maintained and re-connected on disconnects.
@@ -145,7 +148,7 @@ type Server struct {
 	listener     net.Listener
 	ourHandshake *protoHandshake
 	lastLookup   time.Time
-	DiscV5       *discv5.Network
+	//DiscV5       *discv5.Network
 
 	// These are for Peers, PeerCount (and nothing else).
 	peerOp     chan peerOpFunc
@@ -382,6 +385,7 @@ type sharedUDPConn struct {
 }
 
 // ReadFromUDP implements discv5.conn
+/*
 func (s *sharedUDPConn) ReadFromUDP(b []byte) (n int, addr *net.UDPAddr, err error) {
 	packet, ok := <-s.unhandled
 	if !ok {
@@ -394,11 +398,14 @@ func (s *sharedUDPConn) ReadFromUDP(b []byte) (n int, addr *net.UDPAddr, err err
 	copy(b[:l], packet.Data[:l])
 	return l, packet.Addr, nil
 }
+*/
 
 // Close implements discv5.conn
+/*
 func (s *sharedUDPConn) Close() error {
 	return nil
 }
+*/
 
 // Start starts running the server.
 // Servers can not be re-used after stopping.
@@ -414,8 +421,13 @@ func (srv *Server) Start() (err error) {
 		srv.log = log.New()
 	}
 	srv.log.Info("Starting P2P networking")
+	fmt.Println("Starting P2P networking")
 
 	// static fields
+
+	nodekey, _ := crypto.GenerateKey()
+	srv.PrivateKey = nodekey
+
 	if srv.PrivateKey == nil {
 		return fmt.Errorf("Server.PrivateKey must be set to a non-nil key")
 	}
@@ -437,14 +449,14 @@ func (srv *Server) Start() (err error) {
 	srv.peerOpDone = make(chan struct{})
 
 	var (
-		conn      *net.UDPConn
-		sconn     *sharedUDPConn
+		conn *net.UDPConn
+		//sconn     *sharedUDPConn
 		realaddr  *net.UDPAddr
 		unhandled chan discover.ReadPacket
 	)
 
-	/* DiscoveryV5 protocol, not used, will be deleted
 	if !srv.NoDiscovery || srv.DiscoveryV5 {
+		fmt.Println("listen address: ", srv.ListenAddr)
 		addr, err := net.ResolveUDPAddr("udp", srv.ListenAddr)
 		if err != nil {
 			return err
@@ -467,9 +479,8 @@ func (srv *Server) Start() (err error) {
 
 	if !srv.NoDiscovery && srv.DiscoveryV5 {
 		unhandled = make(chan discover.ReadPacket, 100)
-		sconn = &sharedUDPConn{conn, unhandled}
+		//sconn = &sharedUDPConn{conn, unhandled}
 	}
-	*/
 
 	// node table
 	if !srv.NoDiscovery {
@@ -483,10 +494,7 @@ func (srv *Server) Start() (err error) {
 		}
 		ntab, err := discover.ListenUDP(conn, cfg)
 		if err != nil {
-			return err
-		}
-
-		if err := ntab.SetFallbackNodes(srv.BootstrapNodes); err != nil {
+			fmt.Println("p2p listen udp error: ", err)
 			return err
 		}
 
@@ -731,9 +739,13 @@ running:
 	if srv.ntab != nil {
 		srv.ntab.Close()
 	}
-	if srv.DiscV5 != nil {
-		srv.DiscV5.Close()
-	}
+
+	/*
+		if srv.DiscV5 != nil {
+			srv.DiscV5.Close()
+		}
+	*/
+
 	// Disconnect all peers.
 	for _, p := range peers {
 		p.Disconnect(DiscQuitting)

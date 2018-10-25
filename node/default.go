@@ -13,9 +13,9 @@ const (
 	DefaultHTTPPort = 8123
 )
 
+// DefaultConfig contains reasonable default settings.
 var DefaultNodeConfig = Config{
 	DataDir:  DefaultDataDir(),
-	HTTPHost: DefaultHTTPHost,
 	HTTPPort: DefaultHTTPPort,
 	P2P: p2p.Config{
 		ListenAddr: ":30303",

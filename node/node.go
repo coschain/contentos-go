@@ -10,6 +10,8 @@ import (
 	"reflect"
 	"strings"
 	"sync"
+
+	"fmt"
 )
 
 // Node is a container and manager of services
@@ -112,6 +114,7 @@ func (n *Node) Start() error {
 	}
 
 	if err := running.Start(); err != nil {
+		fmt.Println("start p2p error: ", err)
 		return ErrNodeRunning
 	}
 
