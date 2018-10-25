@@ -1,5 +1,9 @@
 package main
 
-func main()  {
-	
+const (
+	clientIdentifier = "cosd"
+)
+
+func main() {
+
 }
