@@ -2,9 +2,8 @@ package node
 
 import (
 	"fmt"
-	"log"
-	"os"
-
+	"github.com/coschain/contentos-go/p2p"
+	log "github.com/inconshreveable/log15"
 	"path/filepath"
 	"runtime"
 )
@@ -19,6 +18,9 @@ type Config struct {
 
 	// Version should be set to the version number of the program.
 	Version string `toml:"-"`
+
+	// configuration of p2p networking
+	P2P p2p.Config
 
 	// DataDir is the root folder that store data and configs
 	DataDir string
@@ -58,11 +60,7 @@ func (c *Config) HTTPEndpoint() string {
 
 func (c *Config) name() string {
 	if c.Name == "" {
-		program := filepath.Base(os.Args[0])
-		if program == "" {
-			panic("empty executable name, set Config.Name")
-		}
-		return program
+		panic("empty node name, set Config.Name")
 	}
 	return c.Name
 }

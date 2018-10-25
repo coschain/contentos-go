@@ -2,9 +2,9 @@ package node
 
 import (
 	"errors"
+	"github.com/coschain/contentos-go/external/flock"
 	"github.com/coschain/contentos-go/p2p"
-	"github.com/coschain/contentos-go/util/flock"
-	"log"
+	log "github.com/inconshreveable/log15"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -47,8 +47,12 @@ func New(conf *Config) (*Node, error) {
 	if strings.ContainsAny(conf.Name, `/\`) {
 		return nil, errors.New(`Config.Name must not contain '/' or '\'`)
 	}
+	if conf.Logger == nil {
+		conf.Logger = log.New()
+	}
 	return &Node{
 		config:       conf,
+		serviceFuncs: []ServiceConstructor{},
 		httpEndpoint: conf.HTTPEndpoint(),
 		log:          conf.Logger,
 	}, nil
@@ -77,6 +81,9 @@ func (n *Node) Start() error {
 		return err
 	}
 
+	// which confs should be assigned to p2p configuration
+	n.serverConfig = n.config.P2P
+
 	running := &p2p.Server{Config: n.serverConfig}
 	services := make(map[reflect.Type]Service)
 	for _, constructor := range n.serviceFuncs {
@@ -85,7 +92,9 @@ func (n *Node) Start() error {
 			services: make(map[reflect.Type]Service),
 		}
 
-		// copy
+		// Services have order dependence: As two services A and B, the former does not know the latter，
+		// and vice verse
+		// Or should every service know all of others?
 		for kind, n := range services {
 			ctx.services[kind] = n
 		}
@@ -107,7 +116,7 @@ func (n *Node) Start() error {
 	}
 
 	// Start each of the services
-	started := []reflect.Type{}
+	var started []reflect.Type
 	for kind, service := range services {
 		if err := service.Start(running); err != nil {
 			for _, kind := range started {
@@ -118,6 +127,15 @@ func (n *Node) Start() error {
 			return err
 		}
 		started = append(started, kind)
+	}
+
+	// start http server
+	if err := n.startHTTP(n.config.HTTPEndpoint()); err != nil {
+		for _, kind := range started {
+			services[kind].Stop()
+		}
+		running.Stop()
+		return err
 	}
 
 	n.services = services
@@ -146,6 +164,14 @@ func (n *Node) openDataDir() error {
 	return nil
 }
 
+// should keep pace with eth even the way of router?
+func (n *Node) startHTTP(endpoint string) error {
+	return nil
+}
+
+func (n *Node) stopHTTP() {
+}
+
 func (n *Node) Stop() error {
 	n.lock.Lock()
 	defer n.lock.Unlock()
@@ -153,6 +179,8 @@ func (n *Node) Stop() error {
 	if n.server == nil {
 		return ErrNodeStopped
 	}
+
+	n.stopHTTP()
 
 	failure := &StopError{
 		Services: make(map[reflect.Type]error),
@@ -169,7 +197,7 @@ func (n *Node) Stop() error {
 
 	if n.instanceDirLock != nil {
 		if err := n.instanceDirLock.Release(); err != nil {
-			n.log.Fatal("Can't release datadir lock", "err", err)
+			n.log.Error("Can't release datadir lock", "err", err)
 		}
 		n.instanceDirLock = nil
 	}
