@@ -254,3 +254,7 @@ func (n *Node) Service(service interface{}) error {
 	}
 	return ErrServiceUnknown
 }
+
+func (n *Node) String() string {
+	return n.config.Version
+}
