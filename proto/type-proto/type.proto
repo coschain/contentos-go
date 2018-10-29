@@ -11,6 +11,10 @@ message account_name{
     uint128 value = 1;
 }
 
+message chain_id{
+    uint32 value = 1;
+}
+
 message safe64{
     int64 value = 1;
 }

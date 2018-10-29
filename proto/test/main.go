@@ -1,12 +1,14 @@
 package main
 
-import "fmt"
-import "os"
+import (
+	"fmt"
+	"os"
 
-import "github.com/gogo/protobuf/proto"
+	"github.com/gogo/protobuf/proto"
 
-import "contentos-go/proto/type-proto"
-import "contentos-go/proto/common-interface"
+	"github.com/coschain/contentos-go/proto/type-proto"
+	"github.com/coschain/contentos-go/proto/common-interface"
+)
 
 func main() {
 

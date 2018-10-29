@@ -1,6 +1,8 @@
 package commoninterface
 
-import "contentos-go/proto/type-proto"
+import (
+	"github.com/coschain/contentos-go/proto/type-proto"
+)
 
 type admin_type int
 
