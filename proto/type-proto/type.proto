@@ -27,16 +27,12 @@ message vest{
     safe64 amount = 1;
 }
 
-message public_key_data{
-    bytes elems_ = 1;
+message public_key_type{
+    bytes data = 1;
 }
 
-message public_key_type{
-    message binary_key {
-        uint32 check = 1;
-        public_key_data data = 2;
-    }
-    public_key_data key_data = 1;
+message private_key_type{
+    bytes data = 1;
 }
 
 message kv_account_auth{

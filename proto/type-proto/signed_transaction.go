@@ -8,14 +8,30 @@ import (
 	"errors"
 )
 
-func (p* SignedTransaction) ExportPubKey( cid ChainId) ([]byte, error) {
+func (p* SignedTransaction) ExportPubKeys( cid ChainId) ( []*PublicKeyType, error) {
 	buf, err := p.GetTrxHash(cid)
 
 	if err != nil{
 		return nil, errors.New("sha256 error")
 	}
 
-	return secp256k1.RecoverPubkey( buf, p.Signatures[0].Sig )
+	if len(p.Signatures) == 0{
+		return nil, errors.New("no signatures")
+	}
+
+	result := make([]*PublicKeyType, len(p.Signatures) )
+
+	for index, sig := range p.Signatures{
+		buffer , err := secp256k1.RecoverPubkey( buf, sig.Sig )
+
+		if err != nil{
+			return nil, errors.New("recover error")
+		}
+
+		result[index] = PublicKeyFromBytes(buffer)
+	}
+
+	return result, nil
 }
 
 func (p *SignedTransaction) Validate( cid ChainId ) bool {
@@ -23,7 +39,7 @@ func (p *SignedTransaction) Validate( cid ChainId ) bool {
 }
 
 
-func (p *SignedTransaction) VerifySig(pubKey []byte, cid ChainId ) bool {
+func (p *SignedTransaction) VerifySig( pubKey *PublicKeyType, cid ChainId ) bool {
 
 	buf, err := p.GetTrxHash(cid)
 
@@ -31,9 +47,13 @@ func (p *SignedTransaction) VerifySig(pubKey []byte, cid ChainId ) bool {
 		return false
 	}
 
-	res := secp256k1.VerifySignature( pubKey, buf, p.Signatures[0].Sig[0:64] )
+	for _, sig := range p.Signatures{
+		 if secp256k1.VerifySignature( pubKey.Data , buf, sig.Sig[0:64] ){
+		 	return true
+		 }
+	}
 
-	return res
+	return false
 }
 
 func (p *SignedTransaction) GetTrxHash(cid ChainId ) ([]byte, error)  {
@@ -59,7 +79,7 @@ func (p *SignedTransaction) GetTrxHash(cid ChainId ) ([]byte, error)  {
 }
 
 
-func (p *SignedTransaction) Sign(secKey []byte, cid ChainId ) []byte {
+func (p *SignedTransaction) Sign(secKey *PrivateKeyType, cid ChainId ) []byte {
 
 	buf, err := p.GetTrxHash(cid)
 
@@ -67,7 +87,7 @@ func (p *SignedTransaction) Sign(secKey []byte, cid ChainId ) []byte {
 		return nil
 	}
 
-	res, err := secp256k1.Sign(buf,secKey)
+	res, err := secp256k1.Sign(buf,secKey.Data)
 
 	if err != nil{
 		return nil

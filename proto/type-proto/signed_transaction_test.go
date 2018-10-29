@@ -3,7 +3,6 @@ package prototype
 import "testing"
 import (
 	"fmt"
-	"github.com/coschain/contentos-go/p2p/depend/crypto"
 )
 
 func makeOp() *TransferOperation {
@@ -19,20 +18,27 @@ func makeOp() *TransferOperation {
 
 func TestVerifySig(t *testing.T) {
 
-	sigKey, err := crypto.GenerateKey()
+	sigKey, err := GenerateNewKey()
 
 	if err != nil{
 		fmt.Println("GenerateKey error")
+		t.FailNow()
 		return
 	}
 
-	pubKey := crypto.FromECDSAPub( &sigKey.PublicKey )
+	pubKey, err := sigKey.PubKey()
 
-	fmt.Println("ecc gen priv Key: ", len(crypto.FromECDSA(sigKey)), crypto.FromECDSA(sigKey) )
-	fmt.Println("ecc gen pub Key: ", len(pubKey), pubKey )
+	if err != nil{
+		t.FailNow()
+		return
+	}
+
+	fmt.Println("ecc gen priv Key: ", len(sigKey.Data), sigKey.Data )
+	fmt.Println("ecc gen pub Key: ", len(pubKey.Data), pubKey.Data )
 
 
 	cid := ChainId{ Value:0 }
+
 	strx := new(SignedTransaction)
 
 	strx.Trx = new(Transaction)
@@ -40,19 +46,30 @@ func TestVerifySig(t *testing.T) {
 	strx.Trx.RefBlockPrefix		= 1
 	strx.Trx.Expiration			= &TimePointSec{UtcSeconds:10}
 
-	top := &Operation_Top{ Top: makeOp() }
-	op1 := &Operation{ Op : top }
-	strx.Trx.Operations = append( strx.Trx.Operations, op1 )
+	strx.Trx.AddOperation( makeOp() )
 
-	res := strx.Sign( crypto.FromECDSA(sigKey) , cid)
+	res := strx.Sign( sigKey , cid)
 
 	strx.Signatures = append(strx.Signatures, &SignatureType{ Sig:res } )
 
 	fmt.Println("sign result: ", res, ": len: ", len(res) )
 
-	fmt.Println( "VerifySig result: ", strx.VerifySig( pubKey , cid ) )
 
+	if !strx.VerifySig( pubKey , cid ){
+		t.FailNow()
+		return
+	}
+	fmt.Println( "VerifySig result success" )
 
-	expPubKey , _ := strx.ExportPubKey( cid)
-	fmt.Println( "Export PubKey: ", expPubKey )
+	expPubKeys , err := strx.ExportPubKeys(cid)
+
+	if err != nil{
+		fmt.Println( "ExportPubKeys failed" )
+		t.FailNow()
+		return
+	}
+
+	for _, expPubKey := range expPubKeys{
+		fmt.Println( "Export PubKeys: ", expPubKey )
+	}
 }
