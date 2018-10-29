@@ -2,22 +2,21 @@ package main
 
 import (
 	"fmt"
+	"github.com/coschain/contentos-go/cmd/cosd/commands"
 	"github.com/coschain/contentos-go/node"
 	"github.com/spf13/viper"
+	"path/filepath"
 
 	"os"
 )
 
-const (
-	clientIdentifier = "cosd"
-)
-
 func makeConfig() (*node.Node, node.Config) {
 	cfg := node.DefaultNodeConfig
-	cfg.Name = clientIdentifier
+	cfg.Name = commands.ClientIdentifier
 	viper.SetConfigName("config")
 	viper.SetConfigType("toml")
-	viper.AddConfigPath(cfg.DataDir)
+	confdir := filepath.Join(cfg.DataDir, cfg.Name)
+	viper.AddConfigPath(confdir)
 	err := viper.ReadInConfig()
 	if err == nil {
 		viper.Unmarshal(&cfg)

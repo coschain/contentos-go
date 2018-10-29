@@ -3,36 +3,29 @@ package main
 import (
 	"fmt"
 	"github.com/coschain/contentos-go/cmd/cosd/commands"
-
-	//log "github.com/inconshreveable/log15"
 	"github.com/spf13/cobra"
 	"os"
-	//"os/signal"
-	//"syscall"
 )
 
-// NO OTHER CONFIG HERE EXCEPT NODE CONFIG
+// NO OTHER CONFIGS HERE EXCEPT NODE CONFIG
 func cmdRunNode(cmd *cobra.Command, args []string) {
 	// _ is cfg as below process has't used
 	node, _ := makeConfig()
-	//if err := node.Start(); err != nil {
-	//	fmt.Println("Fatal: ", err)
-	//	os.Exit(1)
-	//}
+	if err := node.Start(); err != nil {
+		fmt.Println("Fatal: ", err)
+		os.Exit(1)
+	}
 	//
-	//node.Wait()
-	fmt.Println(node.String())
+	node.Wait()
 
-	/*
-		go func() {
-			sigc := make(chan os.Signal, 1)
-			signal.Notify(sigc, syscall.SIGINT, syscall.SIGTERM)
-			defer signal.Stop(sigc)
-			<-sigc
-			log.Info("Got interrupt, shutting down...")
-			go node.Stop()
-		}()
-	*/
+	//go func() {
+	//	sigc := make(chan os.Signal, 1)
+	//	signal.Notify(sigc, syscall.SIGINT, syscall.SIGTERM)
+	//	defer signal.Stop(sigc)
+	//	<-sigc
+	//	log.Info("Got interrupt, shutting down...")
+	//	go node.Stop()
+	//}()
 }
 
 // cosd is the main entry point into the system if no special subcommand is pointed

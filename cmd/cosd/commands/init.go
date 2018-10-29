@@ -18,7 +18,7 @@ var InitCmd = &cobra.Command{
 func cmdInitConf(cmd *cobra.Command, args []string) {
 	var err error
 	cfg := node.DefaultNodeConfig
-	cfg.Name = clientIdentifier
+	cfg.Name = ClientIdentifier
 	confdir := filepath.Join(cfg.DataDir, cfg.Name)
 	if _, err = os.Stat(confdir); os.IsNotExist(err) {
 		if err = os.MkdirAll(confdir, 0700); err != nil {
@@ -26,7 +26,7 @@ func cmdInitConf(cmd *cobra.Command, args []string) {
 			os.Exit(1)
 		}
 	}
-	err = config.WriteConfigFile(confdir, "config.toml", cfg, 0600)
+	err = config.WriteNodeConfigFile(confdir, "config.toml", cfg, 0600)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)

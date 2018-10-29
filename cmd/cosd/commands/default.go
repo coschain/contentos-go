@@ -1,5 +1,5 @@
 package commands
 
 const (
-	clientIdentifier = "cosd"
+	ClientIdentifier = "cosd"
 )
