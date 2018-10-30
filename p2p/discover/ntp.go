@@ -9,7 +9,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/coschain/contentos-go/p2p/depend/log"
+	log "github.com/inconshreveable/log15"
 )
 
 const (

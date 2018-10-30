@@ -11,9 +11,9 @@ import (
 
 	"github.com/coschain/contentos-go/p2p/depend/common/mclock"
 	"github.com/coschain/contentos-go/p2p/depend/event"
-	"github.com/coschain/contentos-go/p2p/depend/log"
 	"github.com/coschain/contentos-go/p2p/depend/rlp"
 	"github.com/coschain/contentos-go/p2p/discover"
+	log "github.com/inconshreveable/log15"
 )
 
 var (
@@ -332,16 +332,19 @@ func (p *Peer) startProtocols(writeStart <-chan struct{}, writeErr chan<- error)
 		if p.events != nil {
 			rw = newMsgEventer(rw, p.events, p.ID(), proto.Name)
 		}
-		p.log.Trace(fmt.Sprintf("Starting protocol %s/%d", proto.Name, proto.Version))
+		//p.log.Trace(fmt.Sprintf("Starting protocol %s/%d", proto.Name, proto.Version))
+		p.log.Info(fmt.Sprintf("Starting protocol %s/%d", proto.Name, proto.Version))
 
 		// every protocol starts a goroutine, call his Run function
 		go func() {
 			err := proto.Run(p, rw)
 			if err == nil {
-				p.log.Trace(fmt.Sprintf("Protocol %s/%d returned", proto.Name, proto.Version))
+				//p.log.Trace(fmt.Sprintf("Protocol %s/%d returned", proto.Name, proto.Version))
+				p.log.Info(fmt.Sprintf("Protocol %s/%d returned", proto.Name, proto.Version))
 				err = errProtocolReturned
 			} else if err != io.EOF {
-				p.log.Trace(fmt.Sprintf("Protocol %s/%d failed", proto.Name, proto.Version), "err", err)
+				//p.log.Trace(fmt.Sprintf("Protocol %s/%d failed", proto.Name, proto.Version), "err", err)
+				p.log.Info(fmt.Sprintf("Protocol %s/%d failed", proto.Name, proto.Version), "err", err)
 			}
 			p.protoErr <- err
 			p.wg.Done()

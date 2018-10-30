@@ -18,8 +18,8 @@ import (
 
 	"github.com/coschain/contentos-go/p2p/depend/common"
 	"github.com/coschain/contentos-go/p2p/depend/crypto"
-	"github.com/coschain/contentos-go/p2p/depend/log"
 	"github.com/coschain/contentos-go/p2p/netutil"
+	log "github.com/inconshreveable/log15"
 )
 
 const (
@@ -305,9 +305,11 @@ func (tab *Table) findnode(n *Node, targetID NodeID, reply chan<- []*Node) {
 	if err != nil || len(r) == 0 {
 		fails++
 		tab.db.updateFindFails(n.ID, fails)
-		log.Trace("Findnode failed", "id", n.ID, "failcount", fails, "err", err)
+		//log.Trace("Findnode failed", "id", n.ID, "failcount", fails, "err", err)
+		log.Info("Findnode failed", "id", n.ID, "failcount", fails, "err", err)
 		if fails >= maxFindnodeFailures {
-			log.Trace("Too many findnode failures, dropping", "id", n.ID, "failcount", fails)
+			//log.Trace("Too many findnode failures, dropping", "id", n.ID, "failcount", fails)
+			log.Info("Too many findnode failures, dropping", "id", n.ID, "failcount", fails)
 			tab.delete(n)
 		}
 	} else if fails > 0 {
@@ -450,16 +452,19 @@ func (tab *Table) doRevalidate(done chan<- struct{}) {
 	b := tab.buckets[bi]
 	if err == nil {
 		// The node responded, move it to the front.
-		log.Trace("Revalidated node", "b", bi, "id", last.ID)
+		//log.Trace("Revalidated node", "b", bi, "id", last.ID)
+		log.Info("Revalidated node", "b", bi, "id", last.ID)
 		b.bump(last)
 		return
 	}
 	// No reply received, pick a replacement or delete the node if there aren't
 	// any replacements.
 	if r := tab.replace(b, last); r != nil {
-		log.Trace("Replaced dead node", "b", bi, "id", last.ID, "ip", last.IP, "r", r.ID, "rip", r.IP)
+		//log.Trace("Replaced dead node", "b", bi, "id", last.ID, "ip", last.IP, "r", r.ID, "rip", r.IP)
+		log.Info("Replaced dead node", "b", bi, "id", last.ID, "ip", last.IP, "r", r.ID, "rip", r.IP)
 	} else {
-		log.Trace("Removed dead node", "b", bi, "id", last.ID, "ip", last.IP)
+		//log.Trace("Removed dead node", "b", bi, "id", last.ID, "ip", last.IP)
+		log.Info("Removed dead node", "b", bi, "id", last.ID, "ip", last.IP)
 	}
 }
 
