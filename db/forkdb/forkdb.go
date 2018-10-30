@@ -35,6 +35,11 @@ func NewDB() *DB {
 	}
 }
 
+// TotalBlockNum returns the total number of blocks contained in the DB
+func (db *DB) TotalBlockNum() int {
+	return len(db.branches)
+}
+
 // Remove removes a block
 func (db *DB) Remove(id common.BlockID) {
 	num := id.BlockNum()
@@ -257,12 +262,14 @@ func (db *DB) FetchBlockFromMainBranch(num uint64) (common.SignedBlock, error) {
 	return ret, nil
 }
 
-func (db *DB) fetchBlocksSince(id common.BlockID) ([]common.SignedBlock, []common.BlockID, error) {
+// FetchBlocksSince fetches the main branch starting from id
+func (db *DB) FetchBlocksSince(id common.BlockID) ([]common.SignedBlock, []common.BlockID, error) {
 	length := db.head.BlockNum() - id.BlockNum() + 1
 	list := make([]common.SignedBlock, length)
 	list1 := make([]common.BlockID, length)
 	cur := db.head
-	for idx := length - 1; idx >= 0; idx-- {
+	var idx int
+	for idx = int(length - 1); idx >= 0; idx-- {
 		b, err := db.FetchBlock(cur)
 		if err != nil {
 			return nil, nil, err
@@ -282,7 +289,7 @@ func (db *DB) fetchBlocksSince(id common.BlockID) ([]common.SignedBlock, []commo
 // other branches, sets id as the start block. It should be regularly
 // called when a block is commited to save ram.
 func (db *DB) Commit(id common.BlockID) {
-	_, ids, err := db.fetchBlocksSince(id)
+	_, ids, err := db.FetchBlocksSince(id)
 	if err != nil {
 		return
 	}
