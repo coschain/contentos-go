@@ -7,8 +7,8 @@ import (
 
 func makeOp() *TransferOperation {
 	top := &TransferOperation{
-		From:   &AccountName{Value: &Uint128{Hi: 11, Lo: 12}},
-		To:     &AccountName{Value: &Uint128{Hi: 11, Lo: 12}},
+		From:   &AccountName{Value: "alice"},
+		To:     &AccountName{Value: "bob"},
 		Amount: &Coin{Amount: &Safe64{Value: 100}},
 		Memo:   "this is transfer",
 	}

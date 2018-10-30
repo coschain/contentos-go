@@ -2,8 +2,6 @@ package prototype
 
 import (
 	"bytes"
-	"github.com/coschain/contentos-go/p2p/depend/crypto"
-	"crypto/ecdsa"
 	"crypto/sha256"
 	"math/big"
 	"github.com/itchyny/base58-go"
@@ -62,11 +60,6 @@ func PublicKeyFromWIF( encoded string ) (*PublicKeyType, error) {
 func (m *PublicKeyType) Equal(other *PublicKeyType) bool {
 	return bytes.Equal(m.Data, other.Data)
 }
-
-func (m *PublicKeyType) ToECDSA() (*ecdsa.PublicKey, error) {
-	return crypto.UnmarshalPubkey( m.Data )
-}
-
 
 func (m *PublicKeyType) ToWIF() string  {
 	return fmt.Sprintf( "%s%s", constants.COIN_SYMBOL, m.ToBase58() )

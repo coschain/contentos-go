@@ -15,23 +15,21 @@ func main() {
 	// AccountCreateOperation
 	acop := &prototype.AccountCreateOperation{
 		Fee:            &prototype.Coin{Amount: &prototype.Safe64{Value: 1}},
-		Creator:        &prototype.AccountName{Value: &prototype.Uint128{Hi: 11, Lo: 12}},
-		NewAccountName: &prototype.AccountName{Value: &prototype.Uint128{Hi: 11, Lo: 12}},
+		Creator:        &prototype.AccountName{Value: "alice"},
+		NewAccountName: &prototype.AccountName{Value: "alice"},
 		Owner: &prototype.Authority{
 			Cf:              prototype.Authority_active,
 			WeightThreshold: 1,
 			AccountAuths: []*prototype.KvAccountAuth{
 				&prototype.KvAccountAuth{
-					Key:   &prototype.AccountName{Value: &prototype.Uint128{Hi: 111, Lo: 112}},
+					Key:   &prototype.AccountName{Value: "alice"},
 					Value: 3,
 				},
 			},
 			KeyAuths: []*prototype.KvKeyAuth{
 				&prototype.KvKeyAuth{
 					Key: &prototype.PublicKeyType{
-						KeyData: &prototype.PublicKeyData{
-							Elems_: []byte{0},
-						},
+							Data: []byte{0},
 					},
 					Value: 23,
 				},
@@ -41,8 +39,8 @@ func main() {
 
 	// TransferOperation
 	top := &prototype.TransferOperation{
-		From:   &prototype.AccountName{Value: &prototype.Uint128{Hi: 11, Lo: 12}},
-		To:     &prototype.AccountName{Value: &prototype.Uint128{Hi: 11, Lo: 12}},
+		From:   &prototype.AccountName{Value: "alice"},
+		To:     &prototype.AccountName{Value: "alice"},
 		Amount: &prototype.Coin{Amount: &prototype.Safe64{Value: 100}},
 		Memo:   "this is transfer",
 	}
@@ -97,11 +95,11 @@ func main() {
 		RefBlockPrefix: 2,
 	}
 
-	acopTrx := &prototype.Operation_Acop{}
-	acopTrx.Acop = acop
+	acopTrx := &prototype.Operation_Op1{}
+	acopTrx.Op1 = acop
 
-	topTrx := &prototype.Operation_Top{}
-	topTrx.Top = top
+	topTrx := &prototype.Operation_Op2{}
+	topTrx.Op2 = top
 
 	op1 := &prototype.Operation{Op: acopTrx}
 	op2 := &prototype.Operation{Op: topTrx}
@@ -110,10 +108,10 @@ func main() {
 
 	for _, elem := range trx.Operations {
 		switch x := elem.Op.(type) {
-		case *prototype.Operation_Acop:
-			fmt.Println("Operation_Acop---> ", x)
-		case *prototype.Operation_Top:
-			fmt.Println("Operation_Top---> ", x)
+		case *prototype.Operation_Op1:
+			fmt.Println("Operation_Op1---> ", x)
+		case *prototype.Operation_Op2:
+			fmt.Println("Operation_Op2---> ", x)
 		case nil:
 			fmt.Println("not set")
 		default:
@@ -143,10 +141,10 @@ func main() {
 	proto.Unmarshal(readData, trxNew)
 	for _, elem := range trxNew.Operations {
 		switch x := elem.Op.(type) {
-		case *prototype.Operation_Acop:
-			fmt.Println("Operation_Acop---> ", x)
-		case *prototype.Operation_Top:
-			fmt.Println("Operation_Top---> ", x)
+		case *prototype.Operation_Op1:
+			fmt.Println("Operation_Op1---> ", x)
+		case *prototype.Operation_Op2:
+			fmt.Println("Operation_Op2---> ", x)
 		case nil:
 			fmt.Println("not set")
 		default:

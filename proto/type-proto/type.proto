@@ -8,7 +8,7 @@ message uint128{
 }
 
 message account_name{
-    uint128 value = 1;
+    string value = 1;
 }
 
 message chain_id{
