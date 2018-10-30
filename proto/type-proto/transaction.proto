@@ -7,8 +7,8 @@ import "operation.proto";
 
 message operation{
     oneof op{
-        account_create_operation acop = 1;
-        transfer_operation top = 2;
+        account_create_operation op1 = 1;
+        transfer_operation op2 = 2;
     }
 }
 

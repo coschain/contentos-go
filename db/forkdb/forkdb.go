@@ -20,16 +20,24 @@ type DB struct {
 	branches map[common.BlockID]common.SignedBlock
 
 	// previous BlockID ===> SignedBlock
-	detached map[common.BlockID]common.SignedBlock
+	detachedLink map[common.BlockID]common.SignedBlock
+
+	//detached map[common.BlockID]common.SignedBlock
 }
 
 // NewDB ...
 func NewDB() *DB {
 	return &DB{
-		list:     make([][]common.BlockID, maxSize*2+1),
-		branches: make(map[common.BlockID]common.SignedBlock),
-		detached: make(map[common.BlockID]common.SignedBlock),
+		list:         make([][]common.BlockID, maxSize*2+1),
+		branches:     make(map[common.BlockID]common.SignedBlock),
+		detachedLink: make(map[common.BlockID]common.SignedBlock),
+		//detached:     make(map[common.BlockID]common.SignedBlock),
 	}
+}
+
+// TotalBlockNum returns the total number of blocks contained in the DB
+func (db *DB) TotalBlockNum() int {
+	return len(db.branches)
 }
 
 // Remove removes a block
@@ -39,7 +47,8 @@ func (db *DB) Remove(id common.BlockID) {
 		return
 	}
 	delete(db.branches, id)
-	delete(db.detached, id)
+	delete(db.detachedLink, id)
+	//delete(db.detached, id)
 	idx := num - db.start + db.offset
 	for i := range db.list[idx] {
 		if db.list[idx][i] == id {
@@ -61,6 +70,9 @@ func (db *DB) FetchBlock(id common.BlockID) (common.SignedBlock, error) {
 
 // FetchBlockByNum fetches a block corresponding to the block num
 func (db *DB) FetchBlockByNum(num uint64) []common.SignedBlock {
+	if num < db.start || num > db.head.BlockNum() {
+		return nil
+	}
 	list := db.list[num-db.start+db.offset]
 	ret := make([]common.SignedBlock, len(list))
 	for i := range list {
@@ -79,6 +91,7 @@ func (db *DB) PushBlock(b common.SignedBlock) common.SignedBlock {
 		db.head = id
 		db.start = num
 		db.list[0] = append(db.list[0], db.head)
+		db.branches[id] = b
 		return b
 	}
 
@@ -90,14 +103,15 @@ func (db *DB) PushBlock(b common.SignedBlock) common.SignedBlock {
 		return db.branches[db.head]
 	}
 	db.list[num-db.start+db.offset] = append(db.list[num-db.start+db.offset], id)
-	db.branches[id] = b
 	prev := b.Previous()
 	if _, ok := db.branches[prev]; !ok {
-		db.detached[prev] = b
+		db.detachedLink[prev] = b
+		//db.detached[id] = b
 	} else {
+		db.branches[id] = b
+		db.tryNewHead(id)
 		db.pushDetached(id)
 	}
-	db.tryNewHead(id)
 	return db.branches[db.head]
 }
 
@@ -105,10 +119,11 @@ func (db *DB) pushDetached(id common.BlockID) {
 	ok := true
 	var b common.SignedBlock
 	for ok {
-		b, ok = db.detached[id]
+		b, ok = db.detachedLink[id]
 		if ok {
-			delete(db.detached, id)
+			delete(db.detachedLink, id)
 			id = b.Id()
+			db.branches[id] = b
 			db.tryNewHead(id)
 		}
 	}
@@ -133,7 +148,7 @@ func (db *DB) purge() {
 	for cnt = 0; cnt < db.offset; cnt++ {
 		for i := range db.list[cnt] {
 			delete(db.branches, db.list[cnt][i])
-			delete(db.detached, db.list[cnt][i])
+			delete(db.detachedLink, db.list[cnt][i])
 		}
 	}
 
@@ -247,12 +262,14 @@ func (db *DB) FetchBlockFromMainBranch(num uint64) (common.SignedBlock, error) {
 	return ret, nil
 }
 
-func (db *DB) fetchBlocksSince(id common.BlockID) ([]common.SignedBlock, []common.BlockID, error) {
+// FetchBlocksSince fetches the main branch starting from id
+func (db *DB) FetchBlocksSince(id common.BlockID) ([]common.SignedBlock, []common.BlockID, error) {
 	length := db.head.BlockNum() - id.BlockNum() + 1
 	list := make([]common.SignedBlock, length)
 	list1 := make([]common.BlockID, length)
 	cur := db.head
-	for idx := length - 1; idx >= 0; idx-- {
+	var idx int
+	for idx = int(length - 1); idx >= 0; idx-- {
 		b, err := db.FetchBlock(cur)
 		if err != nil {
 			return nil, nil, err
@@ -272,7 +289,7 @@ func (db *DB) fetchBlocksSince(id common.BlockID) ([]common.SignedBlock, []commo
 // other branches, sets id as the start block. It should be regularly
 // called when a block is commited to save ram.
 func (db *DB) Commit(id common.BlockID) {
-	_, ids, err := db.fetchBlocksSince(id)
+	_, ids, err := db.FetchBlocksSince(id)
 	if err != nil {
 		return
 	}

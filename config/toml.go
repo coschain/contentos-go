@@ -17,22 +17,18 @@ const DefaultConfigTemplate = `# This is a TOML config file.
 [node]
 
 DataDir = ""
-HttpHost = ""
-HttpPort = 8123
+HTTPHost = "{{ .HTTPHost }}"
+HTTPPort = {{ .HTTPPort }}
 
 [p2p]
 
-MaxPeers = 25
-NoDiscovery = false
-DiscoveryV5Addr = ":30304"
-BootstrapNodes = []
+MaxPeers = {{ .P2P.MaxPeers }}
 StaticNodes = []
 TrustedNodes = []
-ListenAddr = ":30303"
-EnableMsgEvents = false
+ListenAddr = "{{ .P2P.ListenAddr }}"
 `
 
-func WriteConfigFile(configDirPath string, configName string, config node.Config, mode os.FileMode) error {
+func WriteNodeConfigFile(configDirPath string, configName string, config node.Config, mode os.FileMode) error {
 	var buffer bytes.Buffer
 	var err error
 

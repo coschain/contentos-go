@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/coschain/contentos-go/p2p/depend/log"
+	log "github.com/inconshreveable/log15"
 	"github.com/jackpal/go-nat-pmp"
 )
 
@@ -101,7 +101,8 @@ func Map(m Interface, c chan struct{}, protocol string, extport, intport int, na
 				return
 			}
 		case <-refresh.C:
-			log.Trace("Refreshing port mapping")
+			//log.Trace("Refreshing port mapping")
+			log.Info("Refreshing port mapping")
 			if err := m.AddMapping(protocol, extport, intport, name, mapTimeout); err != nil {
 				log.Debug("Couldn't add port mapping", "err", err)
 			}

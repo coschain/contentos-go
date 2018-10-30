@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/coschain/contentos-go/p2p/depend/crypto"
-	"github.com/coschain/contentos-go/p2p/depend/log"
 	"github.com/coschain/contentos-go/p2p/depend/rlp"
+	log "github.com/inconshreveable/log15"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/syndtr/goleveldb/leveldb/iterator"

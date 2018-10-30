@@ -1,5 +1,7 @@
 package commands
 
 const (
-	clientIdentifier = "cosd"
+	ClientIdentifier = "cosd"
 )
+
+var cfgName string

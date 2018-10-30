@@ -2,7 +2,6 @@ package node
 
 import (
 	"errors"
-	"github.com/coschain/contentos-go/external/flock"
 	"github.com/coschain/contentos-go/p2p"
 	log "github.com/inconshreveable/log15"
 	"os"
@@ -18,9 +17,8 @@ import (
 type Node struct {
 	config *Config
 
-	instanceDirLock flock.Releaser // prevent concurrency
-	serverConfig    p2p.Config
-	server          *p2p.Server // running p2p network
+	serverConfig p2p.Config
+	server       *p2p.Server // running p2p network
 
 	services     map[reflect.Type]Service // Currently running nodes
 	serviceFuncs []ServiceConstructor     // node constructors
@@ -155,15 +153,11 @@ func (n *Node) openDataDir() error {
 	}
 
 	confdir := filepath.Join(n.config.DataDir, n.config.name())
-	if err := os.MkdirAll(confdir, 0700); err != nil {
+	if _, err := os.Stat(confdir); os.IsNotExist(err) {
+		fmt.Printf("fatal: not be initialized (do `init` first)\n")
 		return err
 	}
 
-	release, _, err := flock.New(filepath.Join(confdir, "LOCK"))
-	if err != nil {
-		return convertFileLockError(err)
-	}
-	n.instanceDirLock = release
 	return nil
 }
 
@@ -197,13 +191,6 @@ func (n *Node) Stop() error {
 	n.server.Stop()
 	n.services = nil
 	n.server = nil
-
-	if n.instanceDirLock != nil {
-		if err := n.instanceDirLock.Release(); err != nil {
-			n.log.Error("Can't release datadir lock", "err", err)
-		}
-		n.instanceDirLock = nil
-	}
 
 	close(n.stop)
 
@@ -253,8 +240,4 @@ func (n *Node) Service(service interface{}) error {
 		return nil
 	}
 	return ErrServiceUnknown
-}
-
-func (n *Node) String() string {
-	return n.config.Version
 }

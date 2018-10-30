@@ -21,12 +21,12 @@ func TestBlockLog(t *testing.T) {
 	}
 
 	var msb MockSignedBlock
-	msb.Set("hello0")
+	msb.Payload = []byte("hello0")
 	err = blog.Append(&msb)
 	if err != nil {
 		t.Error(err.Error())
 	}
-	msb.Set("hello1")
+	msb.Payload = []byte("hello1")
 	err = blog.Append(&msb)
 	if err != nil {
 		t.Error(err.Error())
