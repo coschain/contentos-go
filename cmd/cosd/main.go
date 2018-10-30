@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	"github.com/coschain/contentos-go/cmd/cosd/commands"
+	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/node"
-	"github.com/ethereum/go-ethereum/cmd/utils"
 	log "github.com/inconshreveable/log15"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -31,7 +31,7 @@ func makeNode() (*node.Node, node.Config) {
 	if cfg.DataDir != "" {
 		dir, err := filepath.Abs(cfg.DataDir)
 		if err != nil {
-			utils.Fatalf("DataDir in cfg cannot be converted to absolute path")
+			common.Fatalf("DataDir in cfg cannot be converted to absolute path")
 		}
 		cfg.DataDir = dir
 	}
@@ -49,7 +49,7 @@ func cmdStartNode(cmd *cobra.Command, args []string) {
 	// _ is cfg as below process has't used
 	app, _ := makeNode()
 	if err := app.Start(); err != nil {
-		utils.Fatalf("start node failed, err: %v\n", err)
+		common.Fatalf("start node failed, err: %v\n", err)
 	}
 
 	go func() {
@@ -73,7 +73,7 @@ var rootCmd = &cobra.Command{
 }
 
 func addCommands() {
-	rootCmd.AddCommand(commands.InitCmd)
+	rootCmd.AddCommand(commands.InitCmd())
 }
 
 func main() {
