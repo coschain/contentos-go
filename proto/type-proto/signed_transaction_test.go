@@ -36,6 +36,34 @@ func TestVerifySig(t *testing.T) {
 	fmt.Println("ecc gen priv Key: ", len(sigKey.Data), sigKey.Data )
 	fmt.Println("ecc gen pub Key: ", len(pubKey.Data), pubKey.Data )
 
+	strPrivWIF := sigKey.ToWIF()
+	fmt.Println("PrivateKeyWIF:", strPrivWIF )
+	sigKey2, err := PrivateKeyFromWIF(strPrivWIF)
+	if err != nil {
+		fmt.Println(err)
+		t.FailNow()
+		return
+	}
+	if !sigKey.Equal(sigKey2) {
+		fmt.Println("error wif convert")
+		t.FailNow()
+		return
+	}
+
+	strPubWIF := pubKey.ToWIF()
+	fmt.Println("PublicKeyWIF:", strPubWIF )
+	pubKey2, err := PublicKeyFromWIF(strPubWIF)
+
+	if err != nil {
+		fmt.Println(err)
+		t.FailNow()
+		return
+	}
+	if !pubKey.Equal(pubKey2) {
+		fmt.Println("error wif convert")
+		t.FailNow()
+		return
+	}
 
 	cid := ChainId{ Value:0 }
 
@@ -70,6 +98,6 @@ func TestVerifySig(t *testing.T) {
 	}
 
 	for _, expPubKey := range expPubKeys{
-		fmt.Println( "Export PubKeys: ", expPubKey )
+		fmt.Println( "Export PubKeys: ", expPubKey.ToWIF() )
 	}
 }

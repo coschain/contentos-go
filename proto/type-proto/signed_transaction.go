@@ -6,6 +6,7 @@ import (
 	cmn "github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/p2p/depend/crypto/secp256k1"
 	"errors"
+	"github.com/coschain/contentos-go/p2p/depend/crypto"
 )
 
 func (p* SignedTransaction) ExportPubKeys( cid ChainId) ( []*PublicKeyType, error) {
@@ -28,7 +29,12 @@ func (p* SignedTransaction) ExportPubKeys( cid ChainId) ( []*PublicKeyType, erro
 			return nil, errors.New("recover error")
 		}
 
-		result[index] = PublicKeyFromBytes(buffer)
+		ecPubKey , err := crypto.UnmarshalPubkey(buffer)
+		if err != nil{
+			return nil, errors.New("recover error")
+		}
+
+		result[index] = PublicKeyFromBytes(secp256k1.CompressPubkey( ecPubKey.X, ecPubKey.Y ))
 	}
 
 	return result, nil
