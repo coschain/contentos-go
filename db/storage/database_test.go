@@ -149,3 +149,16 @@ func TestLevelDatabase(t *testing.T) {
 
 	dbTest(t, db)
 }
+
+func TestNamespace(t *testing.T) {
+	db := NewMemoryDatabase()
+	defer db.Close()
+
+	alice := NewNamespace(db, "alice")
+	defer alice.Close()
+	dbTest(t, alice)
+
+	bob := NewNamespace(db, "bob")
+	defer bob.Close()
+	dbTest(t, bob)
+}
