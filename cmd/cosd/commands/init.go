@@ -9,8 +9,6 @@ import (
 	"path/filepath"
 )
 
-var cfgName string
-
 var InitCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "init",
@@ -22,6 +20,7 @@ var InitCmd = func() *cobra.Command {
 }
 
 func initConf(cmd *cobra.Command, args []string) {
+	_, _ = cmd, args
 	var err error
 	cfg := node.DefaultNodeConfig
 	if cfgName == "" {
