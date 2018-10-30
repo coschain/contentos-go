@@ -23,6 +23,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"math/big"
 )
 
 
@@ -225,6 +226,21 @@ func EncodeOpeEncoder(value OpeEncoder) ([]byte, error) {
 	return value.OpeEncode()
 }
 
+// Encode a big integer
+func EncodeBigInt(value big.Int) ([]byte, error) {
+	data := value.Bytes()
+	size, _ := EncodeUint32(uint32(len(data)))
+	sign := uint8(1)
+	data = bytes.Join([][]byte{ {sign}, size, data}, []byte{})
+	if value.Cmp(big.NewInt(0)) < 0 {
+		for i:=1; i < len(data); i++ {
+			data[i] ^= 0xff
+		}
+		data[0] = 0
+	}
+	return data, nil
+}
+
 
 var opeEncoderInterfaceType = reflect.TypeOf((*OpeEncoder)(nil)).Elem()
 
@@ -264,6 +280,8 @@ func Encode(value interface{}) ([]byte, error) {
 		return EncodeString(value.(string))
 	case []byte:
 		return EncodeBytes(value.([]byte))
+	case big.Int:
+		return EncodeBigInt(value.(big.Int))
 	}
 
 	rv := reflect.ValueOf(value)

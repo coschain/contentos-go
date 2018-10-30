@@ -3,6 +3,7 @@ package encoding
 import (
 	"testing"
 	"fmt"
+	"math/big"
 )
 
 func hexStr(t *testing.T, v interface{}) string {
@@ -83,6 +84,8 @@ func TestEncode(t *testing.T) {
 	requireNoError(t, []string {"alice", "bob", "charlie"})
 
 	requireNoError(t, &student {"alice", 18, 100})
+	requireNoError(t, big.NewInt(4545454544545))
+	requireNoError(t, big.NewInt(-4545454544545))
 
 	requireError(t, nil)
 	requireError(t, map[int]int {1:10, 2:20})
@@ -118,4 +121,7 @@ func TestEncode(t *testing.T) {
 		{"b", 18, 100},
 		{"alice", 18, 100},
 	})
+	assertLess(t, big.NewInt(22495445), big.NewInt(4522495445))
+	assertLess(t, big.NewInt(-4522495445), big.NewInt(-22495445))
+	assertLess(t, big.NewInt(-232), big.NewInt(9))
 }
