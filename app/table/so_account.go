@@ -2,6 +2,7 @@ package table
 
 
 import (
+	"fmt"
 	"github.com/coschain/contentos-go/common/encoding"
 	base "github.com/coschain/contentos-go/proto/type-proto"
 	"github.com/coschain/contentos-go/db/storage"
@@ -9,7 +10,8 @@ import (
 )
 
 var (
-	markTable = []byte { 0x0, 0x1 }
+	mainTable 			= []byte { 0x0, 0x1 }
+	createdTimeTable 	= []byte { 0x0, 0x2 }
 )
 
 type SoAccountWrap struct {
@@ -55,7 +57,55 @@ func (s *SoAccountWrap) CreateAccount( sa *SoAccount) bool {
 
 	err = s.dba.Put(keyBuf, resBuf)
 
-	return err == nil
+	if err != nil{
+		return false
+	}
+
+	// update secondary keys
+	if !s.insertSubKeyCreatedTime(sa){
+		return false
+	}
+
+	return true
+}
+
+func (s *SoAccountWrap) deleteSubKeyCreatedTime( sa *SoAccount) bool {
+	val := SKeyAccountByCreatedTime{}
+
+	val.Name 			= sa.Name
+	val.CreatedTime		= sa.CreatedTime
+
+	key, err := encoding.Encode( &val )
+
+	if err != nil {
+		return false
+	}
+
+	return s.dba.Delete( key ) == nil
+
+}
+
+func (s *SoAccountWrap) insertSubKeyCreatedTime( sa *SoAccount) bool {
+	val := SKeyAccountByCreatedTime{}
+
+	val.Name 			= sa.Name
+	val.CreatedTime		= sa.CreatedTime
+
+	buf, err := proto.Marshal(&val)
+
+	if err != nil {
+		return false
+	}
+
+	key, err := encoding.Encode( &val )
+
+	if err != nil {
+		return false
+	}
+
+	fmt.Println("insertSubKeyCreatedTime: ", key)
+	return s.dba.Put( key, buf) == nil
+
 }
 
 func (s *SoAccountWrap) RemoveAccount() bool {
@@ -98,15 +148,21 @@ func (s *SoAccountWrap) ModifyCreatedTime( p base.TimePointSec) bool {
 	if sa == nil{
 		return false
 	}
+
+	if !s.deleteSubKeyCreatedTime( sa ){
+		return false
+	}
 	sa.CreatedTime = &p
 
-	return s.update(sa)
+	if !s.update(sa) {
+		return false
+	}
+
+	return s.insertSubKeyCreatedTime(sa)
 }
 
 func (s *SoAccountWrap) ModifyPubKey( p base.PublicKeyType) bool {
 
-	// modify primary key value
-	// modify second key
 	sa := s.getAccount()
 
 	if sa == nil{
@@ -115,6 +171,90 @@ func (s *SoAccountWrap) ModifyPubKey( p base.PublicKeyType) bool {
 	sa.PubKey = &p
 
 	return s.update(sa)
+}
+
+func (m *SKeyAccountByCreatedTime) OpeEncode() ([]byte, error) {
+
+	mainBuf, err := encoding.Encode(m.Name)
+	if err != nil {
+		return nil, err
+	}
+	subBuf, err := encoding.Encode(m.CreatedTime)
+	if err != nil {
+		return nil, err
+	}
+
+	return append( append(createdTimeTable, subBuf...), mainBuf...), nil
+}
+
+
+type SListAccountByCreatedTime struct {
+	Dba    storage.Database
+}
+
+func (s *SListAccountByCreatedTime) GetMainVal( iterator storage.Iterator ) *base.AccountName {
+	if iterator == nil || !iterator.Valid() {
+		return nil
+	}
+
+	val , err := iterator.Value()
+
+	if err != nil{
+		return nil
+	}
+
+	res := &SKeyAccountByCreatedTime{}
+	err = proto.Unmarshal( val, res )
+
+	if err != nil {
+		return nil
+	}
+
+	return res.Name
+}
+
+func (s *SListAccountByCreatedTime) GetSubVal( iterator storage.Iterator ) *base.TimePointSec {
+	if iterator == nil || !iterator.Valid() {
+		return nil
+	}
+
+	val , err := iterator.Value()
+
+	if err != nil{
+		return nil
+	}
+
+	res := &SKeyAccountByCreatedTime{}
+	err = proto.Unmarshal( val, res )
+
+	if err != nil {
+		return nil
+	}
+
+	return res.CreatedTime
+}
+
+func (s *SListAccountByCreatedTime) DoList( start base.TimePointSec, end base.TimePointSec ) storage.Iterator {
+
+	startBuf, err := encoding.Encode( &start )
+	if err != nil {
+		return nil
+	}
+
+	endBuf, err := encoding.Encode( &end )
+	if err != nil {
+		return nil
+	}
+
+	bufStartkey := append( createdTimeTable, startBuf...)
+	bufEndkey   := append( createdTimeTable, endBuf...)
+
+	//fmt.Println("find start: ", bufStartkey)
+	//fmt.Println("find start: ", bufEndkey)
+
+	iter := s.Dba.NewIterator(bufStartkey, bufEndkey)
+
+	return iter
 }
 
 func (s *SoAccountWrap) ModifyCreator( p base.AccountName) bool {
@@ -174,5 +314,5 @@ func (s* SoAccountWrap) encodeMainKey() ([]byte, error) {
 		return nil, err
 	}
 
-	return append(markTable,res...), nil
+	return append(mainTable,res...), nil
 }

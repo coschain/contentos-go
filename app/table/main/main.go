@@ -2,44 +2,64 @@ package main
 
 import (
 	"fmt"
-	"time"
-	base "github.com/coschain/contentos-go/proto/type-proto"
-	"github.com/coschain/contentos-go/db/storage"
 	"github.com/coschain/contentos-go/app/table"
-
+	"github.com/coschain/contentos-go/db/storage"
+	base "github.com/coschain/contentos-go/proto/type-proto"
 )
 
 
 func main() {
+	//db, _ := storage.NewLevelDatabase("/Users/yykingking/abc123.db")
 	db := storage.NewMemoryDatabase()
+
 	defer db.Close()
 
-	acc  := &base.AccountName{ Value:"yykingking" }
-	wrap := table.NewSoAccountWrap( db, acc)
+	for index := 0; index < 10; index ++{
+		acc  := base.MakeAccountName(fmt.Sprintf("TUser%d", index))
+		wrap := table.NewSoAccountWrap( db, acc)
+		newAcc := &table.SoAccount{}
+		newAcc.CreatedTime = base.MakeTimeSecondPoint( uint32(10 + index) )
+		newAcc.Creator	= base.MakeAccountName(fmt.Sprintf("Jack%d", index))
+		newAcc.PubKey  = base.MakePublicKeyType(nil)
+		newAcc.Name		= acc
 
-	fmt.Println( "CheckExist0:" , wrap.CheckExist() )
-
-	newAcc := &table.SoAccount{}
-
-	newAcc.CreatedTime = &base.TimePointSec{ UtcSeconds:0 }
-	newAcc.Creator	= &base.AccountName{ Value:"Jack" }
-	newAcc.PubKey  = &base.PublicKeyType{ Data:nil }
-
-	fmt.Println( "CreateAccount:" , 	wrap.CreateAccount(newAcc) )
-
-
-	fmt.Println( "CheckExist1:" , wrap.CheckExist() )
-
-	fmt.Println( "GetAccountCreator:" , wrap.GetAccountCreator() )
-
-
-	begin:= time.Now().UnixNano()
-	for index := 0; index <= 1000000; index++ {
-		_ = wrap.GetAccountCreator()
-		_ = wrap.GetAccountCreatedTime()
-
+		wrap.CreateAccount(newAcc)
 	}
-	cost := (time.Now().UnixNano() - begin) / 1000000.0
 
-	fmt.Println("Cost time average: ", cost, " ns")
+
+	{
+		lwrap := table.SListAccountByCreatedTime{ db }
+		iter := lwrap.DoList( *base.MakeTimeSecondPoint( 10), *base.MakeTimeSecondPoint(14) )
+		if iter != nil {
+			for iter.Next() {
+				fmt.Println( "iter sub:", lwrap.GetSubVal(iter) )
+				fmt.Println( "iter main:", lwrap.GetMainVal(iter) )
+			}
+		}
+	}
+
+
+	// modify
+
+	{
+		acc  := base.MakeAccountName("TUser2")
+		wrap := table.NewSoAccountWrap( db, acc)
+
+		if wrap.CheckExist() {
+			oldTime := wrap.GetAccountCreatedTime()
+			oldTime.UtcSeconds += 10
+			fmt.Println( "modify : ", wrap.ModifyCreatedTime( *oldTime ) )
+		}
+	}
+
+	{
+		lwrap := table.SListAccountByCreatedTime{ db }
+		iter := lwrap.DoList( *base.MakeTimeSecondPoint( 10), *base.MakeTimeSecondPoint(14) )
+		if iter != nil {
+			for iter.Next() {
+				fmt.Println( "iter2 sub:", lwrap.GetSubVal(iter) )
+				fmt.Println( "iter2 main:", lwrap.GetMainVal(iter) )
+			}
+		}
+	}
 }

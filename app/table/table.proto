@@ -11,6 +11,17 @@ message so_account {
     prototype.public_key_type     pub_key             = 4;
 }
 
+message s_key_account_by_created_time{
+    prototype.time_point_sec      created_time        = 1;
+    prototype.account_name        name                = 2;
+}
+
+message so_key_account {
+    prototype.public_key_type     pub_key             = 1;
+    int32                         type                = 2;
+    prototype.account_name        name                = 3;
+}
+
 
 message so_post {
     uint32                        idx                 = 1;
