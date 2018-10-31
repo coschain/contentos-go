@@ -37,3 +37,11 @@ type SignedBlockIF interface {
 	SignedBlockHeaderIF
 	Marshaller
 }
+
+type TransactionIF interface {
+	Validate() bool
+}
+
+type SignedTransactionIF interface {
+	TransactionIF
+}
