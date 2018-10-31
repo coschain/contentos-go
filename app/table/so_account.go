@@ -2,47 +2,177 @@ package table
 
 
 import (
+	"github.com/coschain/contentos-go/common/encoding"
 	base "github.com/coschain/contentos-go/proto/type-proto"
 	"github.com/coschain/contentos-go/db/storage"
-
+	"github.com/gogo/protobuf/proto"
 )
-func SoFetchAccountByName( dba *storage.Database, name *base.AccountName) *SoAccount {
-	return nil
+
+var (
+	markTable = []byte { 0x0, 0x1 }
+)
+
+type SoAccountWrap struct {
+	dba 		storage.Database
+	mainKey 	*base.AccountName
 }
 
+func NewSoAccountWrap(dba storage.Database, key *base.AccountName) *SoAccountWrap{
+	result := &SoAccountWrap{ dba, key}
+	return result
+}
 
-func SoCreateAccount( dba *storage.Database, sa *SoAccount) bool {
+func (s *SoAccountWrap) CheckExist() bool {
+	keyBuf, err := s.encodeMainKey()
+	if err != nil {
+		return false
+	}
+
+	res, err := s.dba.Has( keyBuf )
+	if err != nil {
+		return false
+	}
+
+	return res
+}
+
+func (s *SoAccountWrap) CreateAccount( sa *SoAccount) bool {
+
+	if sa == nil{
+		return false
+	}
+
+	keyBuf ,err := s.encodeMainKey()
+
+	if err != nil {
+		return false
+	}
+
+	resBuf ,err := proto.Marshal( sa )
+	if err != nil {
+		return false
+	}
+
+	err = s.dba.Put(keyBuf, resBuf)
+
+	return err == nil
+}
+
+func (s *SoAccountWrap) RemoveAccount() bool {
 	return true
 }
 
-func (m *SoAccount) ModifyName(dba *storage.Database, name base.AccountName) bool {
-	return true
+func (s *SoAccountWrap) GetAccountName() *base.AccountName {
+	res := s.getAccount()
+
+	if res == nil{
+		return nil
+	}
+	return res.Name
 }
 
-func (m *SoAccount) ModifyCreatedTime(dba *storage.Database, name base.TimePointSec) bool {
+func (s *SoAccountWrap) GetAccountCreatedTime() *base.TimePointSec {
+	res := s.getAccount()
+
+	if res == nil{
+		return nil
+	}
+	return res.CreatedTime
+}
+
+func (s *SoAccountWrap) GetAccountCreator() *base.AccountName {
+	res := s.getAccount()
+
+	if res == nil{
+		return nil
+	}
+	return res.Creator
+}
+
+func (s *SoAccountWrap) ModifyCreatedTime( p base.TimePointSec) bool {
 
 	// modify primary key value
 	// modify second key
-	return true
+	sa := s.getAccount()
+
+	if sa == nil{
+		return false
+	}
+	sa.CreatedTime = &p
+
+	return s.update(sa)
 }
 
-func (m *SoAccount) ModifyPubKey(dba *storage.Database, name base.PublicKeyType) bool {
+func (s *SoAccountWrap) ModifyPubKey( p base.PublicKeyType) bool {
 
 	// modify primary key value
 	// modify second key
-	return true
+	sa := s.getAccount()
+
+	if sa == nil{
+		return false
+	}
+	sa.PubKey = &p
+
+	return s.update(sa)
 }
 
-func (m *SoAccount) ModifyCreator(dba *storage.Database, name base.AccountName) bool {
+func (s *SoAccountWrap) ModifyCreator( p base.AccountName) bool {
 
 	// modify primary key value
 	// modify secondary key
-	return true
+
+	sa := s.getAccount()
+
+	if sa == nil{
+		return false
+	}
+	sa.Creator = &p
+
+	return s.update(sa)
 }
 
-func (m *SoAccount) RemoveSelf(dba *storage.Database) bool {
 
-	// remove primary key value
-	// remove all secondary key
-	return true
+func (s *SoAccountWrap) update( sa *SoAccount) bool {
+	buf, err := proto.Marshal(sa)
+	if err != nil {
+		return false
+	}
+
+	keyBuf ,err := s.encodeMainKey()
+	if err != nil {
+		return false
+	}
+
+	return s.dba.Put( keyBuf, buf) == nil
+}
+
+func (s *SoAccountWrap) getAccount() *SoAccount  {
+	keyBuf ,err := s.encodeMainKey()
+
+	if err != nil {
+		return nil
+	}
+
+	resBuf, err := s.dba.Get( keyBuf )
+
+	if err != nil {
+		return nil
+	}
+
+	res := &SoAccount{}
+	if proto.Unmarshal( resBuf, res) != nil{
+		return nil
+	}
+	return res
+}
+
+func (s* SoAccountWrap) encodeMainKey() ([]byte, error) {
+	res, err := encoding.Encode(s.mainKey)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return append(markTable,res...), nil
 }
