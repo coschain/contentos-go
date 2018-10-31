@@ -109,7 +109,23 @@ func (s *SoAccountWrap) insertSubKeyCreatedTime( sa *SoAccount) bool {
 }
 
 func (s *SoAccountWrap) RemoveAccount() bool {
-	return true
+
+	sa := s.getAccount()
+
+	if sa == nil{
+		return false
+	}
+
+	s.deleteSubKeyCreatedTime(sa)
+
+
+	keyBuf ,err := s.encodeMainKey()
+
+	if err != nil {
+		return false
+	}
+
+	return s.dba.Delete(keyBuf) == nil
 }
 
 func (s *SoAccountWrap) GetAccountName() *base.AccountName {
@@ -141,8 +157,6 @@ func (s *SoAccountWrap) GetAccountCreator() *base.AccountName {
 
 func (s *SoAccountWrap) ModifyCreatedTime( p base.TimePointSec) bool {
 
-	// modify primary key value
-	// modify second key
 	sa := s.getAccount()
 
 	if sa == nil{

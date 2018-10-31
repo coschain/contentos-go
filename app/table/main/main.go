@@ -62,4 +62,23 @@ func main() {
 			}
 		}
 	}
+
+	{
+		acc  := base.MakeAccountName("TUser3")
+		wrap := table.NewSoAccountWrap( db, acc)
+
+		if wrap.CheckExist() {
+			fmt.Println( "modify : ", wrap.RemoveAccount() )
+		}
+	}
+	{
+		lwrap := table.SListAccountByCreatedTime{ db }
+		iter := lwrap.DoList( *base.MakeTimeSecondPoint( 10), *base.MakeTimeSecondPoint(14) )
+		if iter != nil {
+			for iter.Next() {
+				fmt.Println( "iter3 sub:", lwrap.GetSubVal(iter) )
+				fmt.Println( "iter4 main:", lwrap.GetMainVal(iter) )
+			}
+		}
+	}
 }
