@@ -35,19 +35,19 @@ func (c *Controller) GenerateBlock(key *prototype.PrivateKeyType) *prototype.Sig
 }
 
 func (c *Controller) NotifyOpPostExecute(on *prototype.OperationNotification) {
-	c.noticer.Publish(constants.NOTICE_OP_POST, *on)
+	c.noticer.Publish(constants.NOTICE_OP_POST, on)
 }
 
 func (c *Controller) NotifyOpPreExecute(on *prototype.OperationNotification) {
-	c.noticer.Publish(constants.NOTICE_OP_PRE, *on)
+	c.noticer.Publish(constants.NOTICE_OP_PRE, on)
 }
 
 func (c *Controller) NotifyTrxPreExecute(trx *prototype.SignedTransaction) {
-	c.noticer.Publish(constants.NOTICE_TRX_PRE, *trx)
+	c.noticer.Publish(constants.NOTICE_TRX_PRE, trx)
 }
 
 func (c *Controller) NotifyTrxPostExecute(trx *prototype.SignedTransaction) {
-	c.noticer.Publish(constants.NOTICE_TRX_POST, *trx)
+	c.noticer.Publish(constants.NOTICE_TRX_POST, trx)
 }
 
 // calculate reward for creator and witness
