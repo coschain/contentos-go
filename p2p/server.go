@@ -420,11 +420,11 @@ func (srv *Server) Start() (err error) {
 	/*
 		srv.log = srv.Config.Logger
 		if srv.log == nil {
-			fmt.Println("f;qdjfkqwhfkqwhgfkqwjgkqwehgkw;l")
 			srv.log = log.New()
 		}
 	*/
 
+	// set p2p log file
 	fileName := "p2p.log"
 	logFile, err := os.Create(fileName)
 	if err != nil {
@@ -434,17 +434,18 @@ func (srv *Server) Start() (err error) {
 	srv.log = log.New()
 	srv.log.SetHandler(log.StreamHandler(logFile, log.JsonFormat()))
 
-	srv.log.Info("Starting P2P networking")
-	fmt.Println("Starting P2P networking")
 
-	// static fields
-
+	// generate private key
 	nodekey, _ := crypto.GenerateKey()
 	srv.PrivateKey = nodekey
 
+	// set seed node
 	str := "enode://75535ebac1f5b2a644edb134dbe91c6c288353be1a5301864edae529630b35c5ff0c0ae9e07b2bcdef578c3ac1b72b2cda105c061c2c77067f1fd8ec54d852b7@127.0.0.1:30303"
 	peer := discover.MustParseNode(str)
 	srv.BootstrapNodes = append(srv.BootstrapNodes, peer)
+
+	srv.log.Info("Starting P2P networking")
+	fmt.Println("Starting P2P networking")
 
 	if srv.PrivateKey == nil {
 		return fmt.Errorf("Server.PrivateKey must be set to a non-nil key")

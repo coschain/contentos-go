@@ -90,7 +90,7 @@ func (bl *BLog) Remove(dir string) {
 }
 
 // Append appends a common.SignedBlock to the BLog
-func (bl *BLog) Append(sb common.SignedBlock) error {
+func (bl *BLog) Append(sb common.SignedBlockIF) error {
 	logFileOffset, _ := bl.logFile.Seek(0, 2)
 	bl.indexFile.Seek(0, 2)
 	// TODO: check index cnt and sb block num
@@ -132,7 +132,7 @@ func (bl *BLog) Append(sb common.SignedBlock) error {
 }
 
 // ReadBlock read a block at blockNum, blockNum start at 0
-func (bl *BLog) ReadBlock(sb common.SignedBlock, blockNum int64) error {
+func (bl *BLog) ReadBlock(sb common.SignedBlockIF, blockNum int64) error {
 	indexOffset := blockNum * indexSize
 	// read index
 	indexByte := make([]byte, indexSize)
@@ -144,7 +144,7 @@ func (bl *BLog) ReadBlock(sb common.SignedBlock, blockNum int64) error {
 	return bl.readBlock(sb, int64(offset))
 }
 
-func (bl *BLog) readBlock(sb common.SignedBlock, idx int64) error {
+func (bl *BLog) readBlock(sb common.SignedBlockIF, idx int64) error {
 	// read payload len
 	payloadLenByte := make([]byte, blockLenSize)
 	var payloadLen uint32

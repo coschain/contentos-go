@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package table;
+
+import "github.com/coschain/contentos-go/proto/type-proto/type.proto";
+
+message so_account {
+    prototype.account_name        name                = 1;
+    prototype.time_point_sec      created_time        = 2;
+    prototype.account_name        creator             = 3;
+    prototype.public_key_type     pub_key             = 4;
+}
+
+message s_key_account_by_created_time{
+    prototype.time_point_sec      created_time        = 1;
+    prototype.account_name        name                = 2;
+}
+
+message so_key_account {
+    prototype.public_key_type     pub_key             = 1;
+    int32                         type                = 2;
+    prototype.account_name        name                = 3;
+}
+
+
+message so_post {
+    uint32                        idx                 = 1;
+    prototype.account_name        name                = 2;
+    prototype.time_point_sec      post_time           = 3;
+    string                        content             = 4;
+    uint32                        like_count          = 5;
+}

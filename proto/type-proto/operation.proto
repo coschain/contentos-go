@@ -22,3 +22,30 @@ message transfer_operation{
     coin amount = 3;
     string memo = 4;
 }
+
+message transfer_to_vesting_operation{
+    account_name from = 1;
+    account_name to = 2;
+    coin amount = 3;
+}
+
+message vote_operation{
+    account_name voter = 1;
+    account_name author = 2;
+    string permlink = 3;
+    int32 weight = 4;
+}
+
+message witness_update_operation{
+    account_name owner = 1;
+    string url = 2;
+    public_key_type block_signing_key = 3;
+    chain_properties  props = 4;
+    coin fee = 5;
+}
+
+message follow_operation{
+    account_name follower = 1;
+    account_name following = 2;
+    map<string, bool> what = 3;
+}

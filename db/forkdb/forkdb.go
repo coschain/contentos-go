@@ -17,21 +17,21 @@ type DB struct {
 	head   common.BlockID
 
 	list     [][]common.BlockID
-	branches map[common.BlockID]common.SignedBlock
+	branches map[common.BlockID]common.SignedBlockIF
 
-	// previous BlockID ===> SignedBlock
-	detachedLink map[common.BlockID]common.SignedBlock
+	// previous BlockID ===> SignedBlockIF
+	detachedLink map[common.BlockID]common.SignedBlockIF
 
-	//detached map[common.BlockID]common.SignedBlock
+	//detached map[common.BlockID]common.SignedBlockIF
 }
 
 // NewDB ...
 func NewDB() *DB {
 	return &DB{
 		list:         make([][]common.BlockID, maxSize*2+1),
-		branches:     make(map[common.BlockID]common.SignedBlock),
-		detachedLink: make(map[common.BlockID]common.SignedBlock),
-		//detached:     make(map[common.BlockID]common.SignedBlock),
+		branches:     make(map[common.BlockID]common.SignedBlockIF),
+		detachedLink: make(map[common.BlockID]common.SignedBlockIF),
+		//detached:     make(map[common.BlockID]common.SignedBlockIF),
 	}
 }
 
@@ -60,7 +60,7 @@ func (db *DB) Remove(id common.BlockID) {
 }
 
 // FetchBlock fetches a block corresponding to id
-func (db *DB) FetchBlock(id common.BlockID) (common.SignedBlock, error) {
+func (db *DB) FetchBlock(id common.BlockID) (common.SignedBlockIF, error) {
 	b, ok := db.branches[id]
 	if ok {
 		return b, nil
@@ -69,12 +69,12 @@ func (db *DB) FetchBlock(id common.BlockID) (common.SignedBlock, error) {
 }
 
 // FetchBlockByNum fetches a block corresponding to the block num
-func (db *DB) FetchBlockByNum(num uint64) []common.SignedBlock {
+func (db *DB) FetchBlockByNum(num uint64) []common.SignedBlockIF {
 	if num < db.start || num > db.head.BlockNum() {
 		return nil
 	}
 	list := db.list[num-db.start+db.offset]
-	ret := make([]common.SignedBlock, len(list))
+	ret := make([]common.SignedBlockIF, len(list))
 	for i := range list {
 		b, _ := db.branches[list[i]]
 		ret[i] = b
@@ -84,7 +84,7 @@ func (db *DB) FetchBlockByNum(num uint64) []common.SignedBlock {
 
 // PushBlock adds a block. If any of the forkchain has more than
 // maxSize blocks, purge will be triggered.
-func (db *DB) PushBlock(b common.SignedBlock) common.SignedBlock {
+func (db *DB) PushBlock(b common.SignedBlockIF) common.SignedBlockIF {
 	id := b.Id()
 	num := id.BlockNum()
 	if len(db.branches) == 0 {
@@ -117,7 +117,7 @@ func (db *DB) PushBlock(b common.SignedBlock) common.SignedBlock {
 
 func (db *DB) pushDetached(id common.BlockID) {
 	ok := true
-	var b common.SignedBlock
+	var b common.SignedBlockIF
 	for ok {
 		b, ok = db.detachedLink[id]
 		if ok {
@@ -159,7 +159,7 @@ func (db *DB) purge() {
 
 // Head returns the head block of the longest chain, returns nil
 // if the db is empty
-func (db *DB) Head() common.SignedBlock {
+func (db *DB) Head() common.SignedBlockIF {
 	if len(db.branches) == 0 {
 		return nil
 	}
@@ -172,7 +172,7 @@ func (db *DB) Head() common.SignedBlock {
 // occurs, hence the main branch and the fork branch has a common ancestor
 // that should NEVER be poped, which also means the main branch cannot be
 // poped empty
-func (db *DB) Pop() common.SignedBlock {
+func (db *DB) Pop() common.SignedBlockIF {
 	ret := db.branches[db.head]
 	db.head = ret.Previous()
 	if _, ok := db.branches[db.head]; !ok {
@@ -242,13 +242,13 @@ func (db *DB) getPrevID(id common.BlockID) (common.BlockID, error) {
 }
 
 // FetchBlockFromMainBranch returns the num'th block on main branch
-func (db *DB) FetchBlockFromMainBranch(num uint64) (common.SignedBlock, error) {
+func (db *DB) FetchBlockFromMainBranch(num uint64) (common.SignedBlockIF, error) {
 	headNum := db.head.BlockNum()
 	if num > headNum || num < db.start {
 		return nil, errors.New("[ForkDB] num out of scope")
 	}
 
-	var ret common.SignedBlock
+	var ret common.SignedBlockIF
 	var err error
 	cur := db.head
 	for headNum >= num {
@@ -263,9 +263,9 @@ func (db *DB) FetchBlockFromMainBranch(num uint64) (common.SignedBlock, error) {
 }
 
 // FetchBlocksSince fetches the main branch starting from id
-func (db *DB) FetchBlocksSince(id common.BlockID) ([]common.SignedBlock, []common.BlockID, error) {
+func (db *DB) FetchBlocksSince(id common.BlockID) ([]common.SignedBlockIF, []common.BlockID, error) {
 	length := db.head.BlockNum() - id.BlockNum() + 1
-	list := make([]common.SignedBlock, length)
+	list := make([]common.SignedBlockIF, length)
 	list1 := make([]common.BlockID, length)
 	cur := db.head
 	var idx int

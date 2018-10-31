@@ -71,3 +71,8 @@ message signature_type{
 message sha256{
     bytes hash = 1;
 }
+
+message chain_properties{
+    coin account_creation_fee = 1;
+    uint32 maximum_block_size = 2;
+}
