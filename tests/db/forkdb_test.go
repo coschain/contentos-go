@@ -1,23 +1,15 @@
 package db
 
 import (
-	"fmt"
-	"runtime"
 	"testing"
 
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/db/forkdb"
+	"github.com/stretchr/testify/assert"
 )
 
-func requireEqual(t *testing.T, a interface{}, b interface{}) {
-	_, _, line, _ := runtime.Caller(1)
-	errStr := fmt.Sprintf("requireEqual: %d", line)
-	if a != b {
-		t.Error(errStr)
-	}
-}
-
 func TestForkDB(t *testing.T) {
+	assert := assert.New(t)
 	var p common.BlockID
 	msb0 := &MockSignedBlock{
 		Payload: []byte("hello0"),
@@ -26,9 +18,7 @@ func TestForkDB(t *testing.T) {
 	}
 	db := forkdb.NewDB()
 	b := db.PushBlock(msb0)
-	if b != msb0 {
-		t.Error("wrong head")
-	}
+	assert.Equal(b, msb0, "wrong head")
 
 	prevID := msb0.Id()
 	msb1 := &MockSignedBlock{
@@ -52,20 +42,20 @@ func TestForkDB(t *testing.T) {
 	}
 
 	b = db.PushBlock(msb1)
-	requireEqual(t, b, msb1)
-	requireEqual(t, 2, db.TotalBlockNum())
+	assert.Equal(b, msb1, "wrong head")
+	assert.Equal(2, db.TotalBlockNum(), "wrong total block number")
 
 	b = db.PushBlock(msb3)
-	requireEqual(t, b, msb1)
-	requireEqual(t, 2, db.TotalBlockNum())
+	assert.Equal(b, msb1, "wrong head")
+	assert.Equal(2, db.TotalBlockNum(), "wrong total block number")
 
 	b = db.PushBlock(msb2)
-	requireEqual(t, b, msb2)
-	requireEqual(t, 3, db.TotalBlockNum())
+	assert.Equal(b, msb2, "wrong head")
+	assert.Equal(3, db.TotalBlockNum(), "wrong total block number")
 
 	b = db.PushBlock(msb3)
-	requireEqual(t, b, msb3)
-	requireEqual(t, 4, db.TotalBlockNum())
+	assert.Equal(b, msb3, "wrong head")
+	assert.Equal(4, db.TotalBlockNum(), "wrong total block number")
 
 	prevID = msb0.Id()
 	msb1_1 := &MockSignedBlock{
@@ -103,20 +93,20 @@ func TestForkDB(t *testing.T) {
 	// }
 
 	b = db.PushBlock(msb1_1)
-	requireEqual(t, b, msb3)
-	requireEqual(t, 5, db.TotalBlockNum())
+	assert.Equal(b, msb3, "wrong head")
+	assert.Equal(5, db.TotalBlockNum(), "wrong total block number")
 
 	b = db.PushBlock(msb1_3)
-	requireEqual(t, b, msb3)
-	requireEqual(t, 5, db.TotalBlockNum())
+	assert.Equal(b, msb3, "wrong head")
+	assert.Equal(5, db.TotalBlockNum(), "wrong total block number")
 
 	b = db.PushBlock(msb1_4)
-	requireEqual(t, b, msb3)
-	requireEqual(t, 5, db.TotalBlockNum())
+	assert.Equal(b, msb3, "wrong head")
+	assert.Equal(5, db.TotalBlockNum(), "wrong total block number")
 
 	b = db.PushBlock(msb1_2)
-	requireEqual(t, b, msb1_4)
-	requireEqual(t, 8, db.TotalBlockNum())
+	assert.Equal(b, msb1_4, "wrong head")
+	assert.Equal(8, db.TotalBlockNum(), "wrong total block number")
 
 	var fullBranch [2][]common.BlockID
 	fullBranch[0] = append(fullBranch[0], msb3.Id(), msb2.Id(), msb1.Id(), msb0.Id())
@@ -125,24 +115,24 @@ func TestForkDB(t *testing.T) {
 	if err != nil {
 		t.Error("FetchBranch failed")
 	}
-	requireEqual(t, len(fullBranch[0]), len(fetchedBranch[0]))
-	requireEqual(t, len(fullBranch[1]), len(fetchedBranch[1]))
+	assert.Equal(len(fullBranch[0]), len(fetchedBranch[0]), "len of branch0 mismatch")
+	assert.Equal(len(fullBranch[1]), len(fetchedBranch[1]), "len of branch1 mismatch")
 	for i := 0; i < len(fullBranch[0]); i++ {
-		requireEqual(t, fullBranch[0][i], fetchedBranch[0][i])
+		assert.Equal(fullBranch[0][i], fetchedBranch[0][i], "block id mismatch")
 		//fmt.Printf("fullBranch[0][%d] = %x, fetchedBranch[0][%d] = %x\n", i, fullBranch[0][i], i, fetchedBranch[0][i])
 	}
 	for i := 0; i < len(fullBranch[1]); i++ {
-		requireEqual(t, fullBranch[1][i], fetchedBranch[1][i])
+		assert.Equal(fullBranch[1][i], fetchedBranch[1][i], "block id mismatch")
 	}
 
 	fetchedBranch, err = db.FetchBranch(msb0.Id(), msb1_3.Id())
-	requireEqual(t, 1, len(fetchedBranch[0]))
-	requireEqual(t, 4, len(fetchedBranch[1]))
+	assert.Equal(1, len(fetchedBranch[0]), "len of branch0 mismatch")
+	assert.Equal(4, len(fetchedBranch[1]), "len of branch1 mismatch")
 	for i := 0; i < 1; i++ {
-		requireEqual(t, msb0.Id(), fetchedBranch[0][i])
+		assert.Equal(msb0.Id(), fetchedBranch[0][i])
 	}
 	for i := 0; i < 4; i++ {
-		requireEqual(t, fullBranch[1][i+1], fetchedBranch[1][i])
+		assert.Equal(fullBranch[1][i+1], fetchedBranch[1][i])
 	}
 
 	prevID = msb1_2.Id()
@@ -152,15 +142,15 @@ func TestForkDB(t *testing.T) {
 		Prev:    prevID,
 	}
 	b = db.PushBlock(msb2_3)
-	requireEqual(t, b, msb1_4)
-	requireEqual(t, 9, db.TotalBlockNum())
+	assert.Equal(b, msb1_4)
+	assert.Equal(9, db.TotalBlockNum())
 
 	var afterCommit []common.BlockID
 	afterCommit = append(afterCommit, msb1_2.Id(), msb1_3.Id(), msb1_4.Id())
 	db.Commit(msb1_2.Id())
 	_, ids, err := db.FetchBlocksSince(msb1_2.Id())
 	for i := 0; i < len(ids); i++ {
-		requireEqual(t, afterCommit[i], ids[i])
+		assert.Equal(afterCommit[i], ids[i])
 	}
-	requireEqual(t, 3, db.TotalBlockNum())
+	assert.Equal(3, db.TotalBlockNum())
 }
