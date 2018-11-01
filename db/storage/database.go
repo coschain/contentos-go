@@ -79,3 +79,18 @@ type Database interface {
 	DatabaseBatcher
 	Close()
 }
+
+// interface for transaction feature
+type Transactional interface {
+	// start a new transaction session
+	BeginTransaction()
+
+	// end current transaction session, commit or discard changes
+	EndTransaction(commit bool) error
+}
+
+// interface for databases that support transactions
+type TrxDatabase interface {
+	Transactional
+	Database
+}
