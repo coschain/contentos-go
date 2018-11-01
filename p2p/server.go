@@ -434,7 +434,6 @@ func (srv *Server) Start() (err error) {
 	srv.log = log.New()
 	srv.log.SetHandler(log.StreamHandler(logFile, log.JsonFormat()))
 
-
 	// generate private key
 	nodekey, _ := crypto.GenerateKey()
 	srv.PrivateKey = nodekey

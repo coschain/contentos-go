@@ -2,22 +2,22 @@ package prototype
 
 import (
 	"bytes"
-	"github.com/coschain/contentos-go/p2p/depend/crypto"
 	"crypto/ecdsa"
 	"crypto/sha256"
-	"math/big"
-	"github.com/itchyny/base58-go"
 	"errors"
+	"github.com/coschain/contentos-go/p2p/depend/crypto"
 	"github.com/coschain/contentos-go/p2p/depend/crypto/secp256k1"
+	"github.com/itchyny/base58-go"
+	"math/big"
 )
 
-func PrivateKeyFromECDSA( key *ecdsa.PrivateKey ) *PrivateKeyType {
+func PrivateKeyFromECDSA(key *ecdsa.PrivateKey) *PrivateKeyType {
 	result := new(PrivateKeyType)
 	result.Data = crypto.FromECDSA(key)
 	return result
 }
 
-func PrivateKeyFromWIF( encoded string ) (*PrivateKeyType, error) {
+func PrivateKeyFromWIF(encoded string) (*PrivateKeyType, error) {
 	if encoded == "" {
 		return nil, errors.New("invalid address 1")
 	}
@@ -39,7 +39,7 @@ func PrivateKeyFromWIF( encoded string ) (*PrivateKeyType, error) {
 	temp := sha256.Sum256(buf[:len(buf)-4])
 	temps := sha256.Sum256(temp[:])
 
-	if !bytes.Equal( temps[0:4], buf[len(buf)-4:] ){
+	if !bytes.Equal(temps[0:4], buf[len(buf)-4:]) {
 		return nil, errors.New("invalid address 4")
 	}
 
@@ -49,14 +49,14 @@ func PrivateKeyFromWIF( encoded string ) (*PrivateKeyType, error) {
 func GenerateNewKey() (*PrivateKeyType, error) {
 	sigRawKey, err := crypto.GenerateKey()
 
-	if err != nil{
+	if err != nil {
 		return nil, err
 	}
 
 	return PrivateKeyFromECDSA(sigRawKey), nil
 }
 
-func PrivateKeyFromBytes( buffer []byte ) *PrivateKeyType {
+func PrivateKeyFromBytes(buffer []byte) *PrivateKeyType {
 	result := new(PrivateKeyType)
 	result.Data = buffer
 	return result
@@ -70,17 +70,17 @@ func (m *PrivateKeyType) ToECDSA() (*ecdsa.PrivateKey, error) {
 	return crypto.ToECDSA(m.Data)
 }
 
-func (m *PrivateKeyType) PubKey() (*PublicKeyType, error)  {
+func (m *PrivateKeyType) PubKey() (*PublicKeyType, error) {
 
-	sigRaw, err := crypto.ToECDSA( m.Data )
-	if err != nil{
+	sigRaw, err := crypto.ToECDSA(m.Data)
+	if err != nil {
 		return nil, err
 	}
-	buf := secp256k1.CompressPubkey( sigRaw.PublicKey.X, sigRaw.PublicKey.Y )
-	return PublicKeyFromBytes( buf ), nil
+	buf := secp256k1.CompressPubkey(sigRaw.PublicKey.X, sigRaw.PublicKey.Y)
+	return PublicKeyFromBytes(buf), nil
 }
 
-func (m *PrivateKeyType) ToWIF() string  {
+func (m *PrivateKeyType) ToWIF() string {
 	return m.ToBase58()
 }
 

@@ -18,14 +18,13 @@ package encoding
 //
 
 import (
-	"reflect"
 	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
 	"math/big"
+	"reflect"
 )
-
 
 // User types must implement OpeEncoder interface if they decide to support OPE.
 // Encode(value) will call OpeEncode() if the given value type implemented OpeEncoder interface.
@@ -70,7 +69,7 @@ func encodeFloat(value interface{}) ([]byte, error) {
 				break
 			}
 		}
-		if isZero = isZero && (data[0] & 0x7f) == 0; isZero {
+		if isZero = isZero && (data[0]&0x7f) == 0; isZero {
 			data[0] = 0
 		}
 
@@ -85,7 +84,7 @@ func encodeFloat(value interface{}) ([]byte, error) {
 	return data, err
 }
 
-const host32bit = ^uint(0) >> 32 == 0
+const host32bit = ^uint(0)>>32 == 0
 
 // Encode a signed integer
 func EncodeInt(value int) ([]byte, error) {
@@ -203,9 +202,9 @@ func EncodeSlice(value []interface{}, fixedElemSize bool) ([]byte, error) {
 	var err error
 	var d, sep []byte
 	if fixedElemSize {
-		sep = []byte {}
+		sep = []byte{}
 	} else {
-		sep = []byte {0, 0}
+		sep = []byte{0, 0}
 	}
 	for i, c := range value {
 		if d, err = Encode(c); err != nil {
@@ -231,16 +230,15 @@ func EncodeBigInt(value big.Int) ([]byte, error) {
 	data := value.Bytes()
 	size, _ := EncodeUint32(uint32(len(data)))
 	sign := uint8(1)
-	data = bytes.Join([][]byte{ {sign}, size, data}, []byte{})
+	data = bytes.Join([][]byte{{sign}, size, data}, []byte{})
 	if value.Cmp(big.NewInt(0)) < 0 {
-		for i:=1; i < len(data); i++ {
+		for i := 1; i < len(data); i++ {
 			data[i] ^= 0xff
 		}
 		data[0] = 0
 	}
 	return data, nil
 }
-
 
 var opeEncoderInterfaceType = reflect.TypeOf((*OpeEncoder)(nil)).Elem()
 
@@ -312,7 +310,7 @@ func Encode(value interface{}) ([]byte, error) {
 		case reflect.Bool, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
 			reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
 			reflect.Uintptr, reflect.Float32, reflect.Float64:
-				fixedElementSize = true
+			fixedElementSize = true
 		}
 
 		return EncodeSlice(elements, fixedElementSize)

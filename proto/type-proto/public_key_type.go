@@ -3,22 +3,21 @@ package prototype
 import (
 	"bytes"
 	"crypto/sha256"
-	"math/big"
-	"github.com/itchyny/base58-go"
+	"errors"
 	"fmt"
 	"github.com/coschain/contentos-go/common/constants"
-	"errors"
+	"github.com/itchyny/base58-go"
+	"math/big"
 	"strings"
 )
 
-
-func PublicKeyFromBytes( buffer []byte ) *PublicKeyType {
+func PublicKeyFromBytes(buffer []byte) *PublicKeyType {
 	result := new(PublicKeyType)
 	result.Data = buffer
 	return result
 }
 
-func PublicKeyFromWIF( encoded string ) (*PublicKeyType, error) {
+func PublicKeyFromWIF(encoded string) (*PublicKeyType, error) {
 	if encoded == "" {
 		return nil, errors.New("invalid address 1")
 	}
@@ -27,7 +26,7 @@ func PublicKeyFromWIF( encoded string ) (*PublicKeyType, error) {
 		return nil, errors.New("invalid address 2")
 	}
 
-	if !strings.HasPrefix( encoded, constants.COIN_SYMBOL ){
+	if !strings.HasPrefix(encoded, constants.COIN_SYMBOL) {
 		return nil, errors.New("invalid address 3")
 	}
 
@@ -50,7 +49,7 @@ func PublicKeyFromWIF( encoded string ) (*PublicKeyType, error) {
 	temp := sha256.Sum256(buf[:len(buf)-4])
 	temps := sha256.Sum256(temp[:])
 
-	if !bytes.Equal( temps[0:4], buf[len(buf)-4:] ){
+	if !bytes.Equal(temps[0:4], buf[len(buf)-4:]) {
 		return nil, errors.New("invalid address 6")
 	}
 
@@ -61,8 +60,8 @@ func (m *PublicKeyType) Equal(other *PublicKeyType) bool {
 	return bytes.Equal(m.Data, other.Data)
 }
 
-func (m *PublicKeyType) ToWIF() string  {
-	return fmt.Sprintf( "%s%s", constants.COIN_SYMBOL, m.ToBase58() )
+func (m *PublicKeyType) ToWIF() string {
+	return fmt.Sprintf("%s%s", constants.COIN_SYMBOL, m.ToBase58())
 }
 
 // ToBase58 returns base58 encoded address string

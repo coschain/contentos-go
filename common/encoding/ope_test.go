@@ -1,9 +1,9 @@
 package encoding
 
 import (
-	"testing"
 	"fmt"
 	"math/big"
+	"testing"
 )
 
 func hexStr(t *testing.T, v interface{}) string {
@@ -33,8 +33,8 @@ func requireNoError(t *testing.T, v interface{}) {
 }
 
 type student struct {
-	name string
-	age int
+	name  string
+	age   int
 	score float32
 }
 
@@ -43,8 +43,8 @@ func (s *student) OpeEncode() ([]byte, error) {
 }
 
 type foo struct {
-	name string
-	age int
+	name  string
+	age   int
 	score float32
 }
 
@@ -67,29 +67,29 @@ func TestEncode(t *testing.T) {
 	requireNoError(t, "hello world")
 	requireNoError(t, []byte("hello world"))
 
-	requireNoError(t, []bool {true, false, true, true, false})
-	requireNoError(t, []int {0, -3, 2, 89, 900, 74, -2})
-	requireNoError(t, []int8 {0, -3, 2, 89, 9, 74, -2})
-	requireNoError(t, []int16 {0, -3, 2, 89, 900, 74, -2})
-	requireNoError(t, []int32 {0, -3, 2, 89, 900, 74, -2})
-	requireNoError(t, []int64 {0, -3, 2, 89, 900, 74, -2})
-	requireNoError(t, []uint {0, 11, 22, 33, 44, 55, 66})
-	requireNoError(t, []uint8 {0, 11, 22, 33, 44, 55, 66})
-	requireNoError(t, []uint16 {0, 11, 22, 33, 44, 55, 66})
-	requireNoError(t, []uint32 {0, 11, 22, 33, 44, 55, 66})
-	requireNoError(t, []uint64 {0, 11, 22, 33, 44, 55, 66})
-	requireNoError(t, []uintptr {0, 11, 22, 33, 44, 55, 66})
-	requireNoError(t, []float32 {-2.3, 0.0, 7.2, 99.5, 1e20, -5e-7})
-	requireNoError(t, []float64 {-2.3, 0.0, 7.2, 99.5, 1e20, -5e-7})
-	requireNoError(t, []string {"alice", "bob", "charlie"})
+	requireNoError(t, []bool{true, false, true, true, false})
+	requireNoError(t, []int{0, -3, 2, 89, 900, 74, -2})
+	requireNoError(t, []int8{0, -3, 2, 89, 9, 74, -2})
+	requireNoError(t, []int16{0, -3, 2, 89, 900, 74, -2})
+	requireNoError(t, []int32{0, -3, 2, 89, 900, 74, -2})
+	requireNoError(t, []int64{0, -3, 2, 89, 900, 74, -2})
+	requireNoError(t, []uint{0, 11, 22, 33, 44, 55, 66})
+	requireNoError(t, []uint8{0, 11, 22, 33, 44, 55, 66})
+	requireNoError(t, []uint16{0, 11, 22, 33, 44, 55, 66})
+	requireNoError(t, []uint32{0, 11, 22, 33, 44, 55, 66})
+	requireNoError(t, []uint64{0, 11, 22, 33, 44, 55, 66})
+	requireNoError(t, []uintptr{0, 11, 22, 33, 44, 55, 66})
+	requireNoError(t, []float32{-2.3, 0.0, 7.2, 99.5, 1e20, -5e-7})
+	requireNoError(t, []float64{-2.3, 0.0, 7.2, 99.5, 1e20, -5e-7})
+	requireNoError(t, []string{"alice", "bob", "charlie"})
 
-	requireNoError(t, &student {"alice", 18, 100})
+	requireNoError(t, &student{"alice", 18, 100})
 	requireNoError(t, big.NewInt(4545454544545))
 	requireNoError(t, big.NewInt(-4545454544545))
 
 	requireError(t, nil)
-	requireError(t, map[int]int {1:10, 2:20})
-	requireError(t, &foo {"alice", 18, 100})
+	requireError(t, map[int]int{1: 10, 2: 20})
+	requireError(t, &foo{"alice", 18, 100})
 
 	assertLess(t, int8(-2), int8(0))
 	assertLess(t, int8(-120), int8(-23))
@@ -109,13 +109,13 @@ func TestEncode(t *testing.T) {
 	assertLess(t, "alice", "alice's mom")
 	assertLess(t, []string{"1", "2"}, []string{"1", "2", "3"})
 	assertLess(t, []string{"alice", ""}, []string{"alice", "bob"})
-	assertLess(t, &student {"alice", 18, 100}, &student {"bob", 17, 80})
-	assertLess(t, [](*student) {
+	assertLess(t, &student{"alice", 18, 100}, &student{"bob", 17, 80})
+	assertLess(t, [](*student){
 		{"alice", 18, 100},
 		{"alice12", 18, 100},
 		{"alice2", 18, 100},
 		{"alice343", 18, 100},
-	}, []*student {
+	}, []*student{
 		{"alice", 18, 100},
 		{"alice12", 18, 100},
 		{"b", 18, 100},

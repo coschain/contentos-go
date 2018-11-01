@@ -11,16 +11,15 @@ package storage
 import (
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/errors"
-	"github.com/syndtr/goleveldb/leveldb/util"
-	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/syndtr/goleveldb/leveldb/filter"
+	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/syndtr/goleveldb/leveldb/opt"
+	"github.com/syndtr/goleveldb/leveldb/util"
 )
-
 
 type LevelDatabase struct {
 	file string
-	db *leveldb.DB
+	db   *leveldb.DB
 }
 
 // create a database
@@ -35,8 +34,8 @@ func NewLevelDatabase(file string) (*LevelDatabase, error) {
 		return nil, err
 	}
 	return &LevelDatabase{
-		file:  file,
-		db:  db,
+		file: file,
+		db:   db,
 	}, nil
 }
 
@@ -91,14 +90,13 @@ func (db *LevelDatabase) Delete(key []byte) error {
 //
 
 func (db *LevelDatabase) NewIterator(start []byte, limit []byte) Iterator {
-	it := db.db.NewIterator(&util.Range{ Start: start, Limit: limit}, nil)
-	return &LevelDatabaseIterator {it}
+	it := db.db.NewIterator(&util.Range{Start: start, Limit: limit}, nil)
+	return &LevelDatabaseIterator{it}
 }
 
 func (db *LevelDatabase) DeleteIterator(it Iterator) {
 	it.(*LevelDatabaseIterator).it.Release()
 }
-
 
 //
 // Iterator implementation
@@ -142,7 +140,7 @@ func (it *LevelDatabaseIterator) Next() bool {
 
 // create a batch which can pack DatabasePutter & DatabaseDeleter operations and execute them atomically
 func (db *LevelDatabase) NewBatch() Batch {
-	return &LevelDatabaseBatch { db:db.db, b:new(leveldb.Batch) }
+	return &LevelDatabaseBatch{db: db.db, b: new(leveldb.Batch)}
 }
 
 // release a Batch

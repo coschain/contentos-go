@@ -6,19 +6,19 @@ package storage
 //
 
 import (
-	"sync"
 	"errors"
 	"github.com/coschain/contentos-go/common"
 	"sort"
+	"sync"
 )
 
 type MemoryDatabase struct {
-	db map[string][]byte
+	db   map[string][]byte
 	lock sync.RWMutex
 }
 
 func NewMemoryDatabase() *MemoryDatabase {
-	return &MemoryDatabase{ db: make(map[string][]byte) }
+	return &MemoryDatabase{db: make(map[string][]byte)}
 }
 
 func (db *MemoryDatabase) Close() {
@@ -88,7 +88,7 @@ func (db *MemoryDatabase) NewIterator(start []byte, limit []byte) Iterator {
 	if start != nil {
 		startStr = string(start)
 	}
-	if (limit != nil) {
+	if limit != nil {
 		limitStr = string(limit)
 	}
 
@@ -107,7 +107,7 @@ func (db *MemoryDatabase) NewIterator(start []byte, limit []byte) Iterator {
 	}
 	sort.Strings(keys)
 
-	return &MemoryDatabaseIterator{ db:db, keys:keys, index:-1 }
+	return &MemoryDatabaseIterator{db: db, keys: keys, index: -1}
 }
 
 func (db *MemoryDatabase) DeleteIterator(it Iterator) {
@@ -119,8 +119,8 @@ func (db *MemoryDatabase) DeleteIterator(it Iterator) {
 //
 
 type MemoryDatabaseIterator struct {
-	db *MemoryDatabase
-	keys []string
+	db    *MemoryDatabase
+	keys  []string
 	index int
 }
 
@@ -161,14 +161,13 @@ func (it *MemoryDatabaseIterator) Next() bool {
 	return false
 }
 
-
 //
 // DatabaseBatcher implementation
 //
 
 // create a batch which can pack DatabasePutter & DatabaseDeleter operations and execute them atomically
 func (db *MemoryDatabase) NewBatch() Batch {
-	return &MemoryDatabaseBatch { db:db }
+	return &MemoryDatabaseBatch{db: db}
 }
 
 // release a Batch
@@ -182,7 +181,7 @@ func (db *MemoryDatabase) DeleteBatch(b Batch) {
 
 type kvpair struct {
 	key, value []byte
-	deleted bool
+	deleted    bool
 }
 
 type MemoryDatabaseBatch struct {
@@ -211,11 +210,11 @@ func (b *MemoryDatabaseBatch) Reset() {
 }
 
 func (b *MemoryDatabaseBatch) Put(key []byte, value []byte) error {
-	b.op = append(b.op, kvpair{ common.CopyBytes(key), common.CopyBytes(value), false })
+	b.op = append(b.op, kvpair{common.CopyBytes(key), common.CopyBytes(value), false})
 	return nil
 }
 
 func (b *MemoryDatabaseBatch) Delete(key []byte) error {
-	b.op = append(b.op, kvpair{ common.CopyBytes(key), nil, true })
+	b.op = append(b.op, kvpair{common.CopyBytes(key), nil, true})
 	return nil
 }

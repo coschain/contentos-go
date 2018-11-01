@@ -9,18 +9,18 @@ package storage
 import "github.com/coschain/contentos-go/common"
 
 type namespace struct {
-	db Database
-	name string
+	db     Database
+	name   string
 	prefix []byte
-	bound []byte
+	bound  []byte
 }
 
 func NewNamespace(db Database, name string) Database {
 	return &namespace{
-		db:db,
-		name:name,
-		prefix:append([]byte(name), 0),
-		bound:append([]byte(name), 1),
+		db:     db,
+		name:   name,
+		prefix: append([]byte(name), 0),
+		bound:  append([]byte(name), 1),
 	}
 }
 
@@ -129,21 +129,19 @@ func (it *nsIterator) Next() bool {
 	return it.it.Next()
 }
 
-
 //
 // DatabaseBatcher implementation
 //
 
 // create a batch which can pack DatabasePutter & DatabaseDeleter operations and execute them atomically
 func (ns *namespace) NewBatch() Batch {
-	return &nsBatch{ t: ns, b: ns.db.NewBatch() }
+	return &nsBatch{t: ns, b: ns.db.NewBatch()}
 }
 
 // release a Batch
 func (ns *namespace) DeleteBatch(b Batch) {
 	ns.db.DeleteBatch(b)
 }
-
 
 //
 // Batch implementation

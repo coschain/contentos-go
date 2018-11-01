@@ -1,0 +1,212 @@
+syntax = "proto3";
+
+import "google/api/annotations.proto";
+import "github.com/coschain/contentos-go/proto/type-proto/type.proto";
+import "github.com/coschain/contentos-go/proto/type-proto/transaction.proto";
+
+
+package grpctype;
+
+/*
+
+1. get_account_by_name
+	name
+	coin
+	vest
+	public_keys
+	created_time
+
+2. get_follower_list_by_name
+3. get_following_list_by_name
+4. get_witness_list
+5. get_post_list_by_created
+6. get_replay_by_post_id
+7. get_block_transactions_by_num
+8. get_trx_by_id
+9. broadcast_trx
+
+*/
+
+// protoc -I/usr/local/include -I. -I$GOPATH/src -I$GOPATH/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis --go_out=plugins=grpc:. grpc.proto
+
+service ApiService {
+    rpc GetAccountByName (GetAccountByNameRequest) returns (AccountResponse) {
+        option (google.api.http) = {
+            post: "/v1/user/get_account_by_name"
+            body: "*"
+        };
+    }
+
+    rpc GetFollowerListByName (GetFollowerListByNameRequest) returns (GetFollowerListByNameResponse) {
+        option (google.api.http) = {
+            post: "/v1/user/get_follower_list_by_name"
+            body: "*"
+        };
+    }
+
+    rpc GetFollowingListByName (GetFollowingListByNameRequest) returns (GetFollowingListByNameResponse) {
+        option (google.api.http) = {
+            post: "/v1/user/get_following_list_by_name"
+            body: "*"
+        };
+    }
+
+    rpc GetWitnessList (GetWitnessListRequest) returns (GetWitnessListResponse) {
+        option (google.api.http) = {
+            get: "/v1/user/get_witness_list"
+            body: "*"
+        };
+    }
+
+    rpc GetPostListByCreated (GetPostListByCreatedRequest) returns (GetPostListByCreatedResponse) {
+        option (google.api.http) = {
+            post: "/v1/post/get_post_list_by_created"
+            body: "*"
+        };
+    }
+
+    rpc GetReplayListByPostId (GetReplayListByPostIdRequest) returns (GetReplayListByPostIdResponse) {
+        option (google.api.http) = {
+            post: "/v1/post/get_replay_list_by_post_id"
+            body: "*"
+        };
+    }
+
+    rpc GetBlockTransactionsByNum (GetBlockTransactionsByNumRequest) returns (GetBlockTransactionsByNumResponse) {
+        option (google.api.http) = {
+            post: "/v1/trx/get_block_transactions_by_num"
+            body: "*"
+        };
+    }
+
+    rpc GetTrxById (GetTrxByIdRequest) returns (GetTrxByIdResponse) {
+        option (google.api.http) = {
+            post: "/v1/trx/get_trx_by_id"
+            body: "*"
+        };
+    }
+
+    rpc BroadcastTrx (BroadcastTrxRequest) returns (BroadcastTrxResponse) {
+        option (google.api.http) = {
+            post: "/v1/trx/broadcast_trx"
+            body: "*"
+        };
+    }
+}
+
+message GetAccountByNameRequest {
+    prototype.account_name account_name = 1;
+}
+
+message AccountResponse {
+    prototype.account_name account_name = 1;
+    prototype.coin coin = 2;
+    prototype.vest vest = 3;
+    repeated prototype.public_key_type public_keys = 4;
+    prototype.time_point_sec created_time = 5;
+}
+
+message GetFollowerListByNameRequest {
+    prototype.account_name account_name = 1;
+    uint32 page = 2;
+    uint32 size = 3;
+}
+
+message GetFollowerListByNameResponse {
+    repeated AccountResponse follower_list = 1;
+}
+
+message GetFollowingListByNameRequest {
+    prototype.account_name account_name = 1;
+    uint32 page = 2;
+    uint32 size = 3;
+}
+
+message GetFollowingListByNameResponse {
+    repeated AccountResponse following_list = 1;
+}
+
+message WitnessResponse {
+    prototype.account_name account_name = 1;
+    prototype.time_point_sec created = 2;
+    string url = 3;
+    prototype.public_key_type signing_key = 4;
+    uint32 schedule_type = 5;
+}
+
+message GetWitnessListRequest {
+    uint32 page = 1;
+    uint32 size = 2;
+}
+
+message GetWitnessListResponse {
+    repeated WitnessResponse witness_list = 1;
+}
+
+message PostResponse {
+    uint32                        idx                 = 1;
+    prototype.account_name        name                = 2;
+    prototype.time_point_sec      post_time           = 3;
+    string                        content             = 4;
+    uint32                        like_count          = 5;
+}
+
+message GetPostListByCreatedRequest {
+    prototype.account_name account_name = 1;
+    uint32 page = 2;
+    uint32 size = 3;
+}
+
+message GetPostListByCreatedResponse {
+    repeated PostResponse post_list = 1;
+}
+
+message GetReplayListByPostIdRequest {
+    uint32 post_id = 1;
+}
+
+message GetReplayListByPostIdResponse {
+    repeated PostResponse replay_list = 1;
+}
+
+message GetBlockTransactionsByNumRequest {
+    uint32 block_num = 1;
+    uint32 page = 2;
+    uint32 size = 3;
+}
+
+message GetBlockTransactionsByNumResponse {
+    repeated prototype.signed_transaction transactions = 1;
+}
+
+message GetTrxByIdRequest {
+    uint64 trx_id = 1;
+}
+
+message GetTrxByIdResponse {
+    prototype.transaction trx = 1;
+}
+
+message BroadcastTrxRequest {
+    prototype.signed_transaction transaction = 1;
+}
+
+message BroadcastTrxResponse {
+    uint32 status = 1;
+    string msg = 2;
+}
+
+// Request message of non params.
+message NonParamsRequest {
+}
+
+// Response message of Call rpc.
+message CallResponse {
+    // result of smart contract method call.
+    string result = 1;
+    //execute error
+    string execute_err = 2;
+    //estimate gas used
+    string estimate_gas = 3;
+}
+

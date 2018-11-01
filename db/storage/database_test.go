@@ -1,12 +1,12 @@
 package storage
 
 import (
-	"testing"
 	"bytes"
-	"math/rand"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"path/filepath"
+	"testing"
 )
 
 func requireSuccessGet(t *testing.T, db Database, key []byte, correctValue []byte) {

@@ -22,23 +22,22 @@ func (m *Coin) OpeEncode() ([]byte, error) {
 	return m.Amount.OpeEncode()
 }
 
-func MakeSafe64( value int64) *Safe64  {
-	return &Safe64{ Value:value}
+func MakeSafe64(value int64) *Safe64 {
+	return &Safe64{Value: value}
 }
 
-func MakeTimeSecondPoint( value uint32) *TimePointSec  {
-	return &TimePointSec{ UtcSeconds:value}
+func MakeTimeSecondPoint(value uint32) *TimePointSec {
+	return &TimePointSec{UtcSeconds: value}
 }
 
-
-func MakeAccountName( value string) *AccountName  {
-	return &AccountName{ Value:value}
+func MakeAccountName(value string) *AccountName {
+	return &AccountName{Value: value}
 }
 
-func MakeCoin( value int64) *Coin  {
-	return &Coin{ Amount:MakeSafe64(value) }
+func MakeCoin(value int64) *Coin {
+	return &Coin{Amount: MakeSafe64(value)}
 }
 
-func MakePublicKeyType( buf []byte) *PublicKeyType  {
-	return PublicKeyFromBytes( buf)
+func MakePublicKeyType(buf []byte) *PublicKeyType {
+	return PublicKeyFromBytes(buf)
 }

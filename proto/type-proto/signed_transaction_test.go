@@ -20,7 +20,7 @@ func TestVerifySig(t *testing.T) {
 
 	sigKey, err := GenerateNewKey()
 
-	if err != nil{
+	if err != nil {
 		fmt.Println("GenerateKey error")
 		t.FailNow()
 		return
@@ -28,16 +28,16 @@ func TestVerifySig(t *testing.T) {
 
 	pubKey, err := sigKey.PubKey()
 
-	if err != nil{
+	if err != nil {
 		t.FailNow()
 		return
 	}
 
-	fmt.Println("ecc gen priv Key: ", len(sigKey.Data), sigKey.Data )
-	fmt.Println("ecc gen pub Key: ", len(pubKey.Data), pubKey.Data )
+	fmt.Println("ecc gen priv Key: ", len(sigKey.Data), sigKey.Data)
+	fmt.Println("ecc gen pub Key: ", len(pubKey.Data), pubKey.Data)
 
 	strPrivWIF := sigKey.ToWIF()
-	fmt.Println("PrivateKeyWIF:", strPrivWIF )
+	fmt.Println("PrivateKeyWIF:", strPrivWIF)
 	sigKey2, err := PrivateKeyFromWIF(strPrivWIF)
 	if err != nil {
 		fmt.Println(err)
@@ -51,7 +51,7 @@ func TestVerifySig(t *testing.T) {
 	}
 
 	strPubWIF := pubKey.ToWIF()
-	fmt.Println("PublicKeyWIF:", strPubWIF )
+	fmt.Println("PublicKeyWIF:", strPubWIF)
 	pubKey2, err := PublicKeyFromWIF(strPubWIF)
 
 	if err != nil {
@@ -65,39 +65,38 @@ func TestVerifySig(t *testing.T) {
 		return
 	}
 
-	cid := ChainId{ Value:0 }
+	cid := ChainId{Value: 0}
 
 	strx := new(SignedTransaction)
 
 	strx.Trx = new(Transaction)
-	strx.Trx.RefBlockNum 		= 1
-	strx.Trx.RefBlockPrefix		= 1
-	strx.Trx.Expiration			= &TimePointSec{UtcSeconds:10}
+	strx.Trx.RefBlockNum = 1
+	strx.Trx.RefBlockPrefix = 1
+	strx.Trx.Expiration = &TimePointSec{UtcSeconds: 10}
 
-	strx.Trx.AddOperation( makeOp() )
+	strx.Trx.AddOperation(makeOp())
 
-	res := strx.Sign( sigKey , cid)
+	res := strx.Sign(sigKey, cid)
 
-	strx.Signatures = append(strx.Signatures, &SignatureType{ Sig:res } )
+	strx.Signatures = append(strx.Signatures, &SignatureType{Sig: res})
 
-	fmt.Println("sign result: ", res, ": len: ", len(res) )
+	fmt.Println("sign result: ", res, ": len: ", len(res))
 
-
-	if !strx.VerifySig( pubKey , cid ){
+	if !strx.VerifySig(pubKey, cid) {
 		t.FailNow()
 		return
 	}
-	fmt.Println( "VerifySig result success" )
+	fmt.Println("VerifySig result success")
 
-	expPubKeys , err := strx.ExportPubKeys(cid)
+	expPubKeys, err := strx.ExportPubKeys(cid)
 
-	if err != nil{
-		fmt.Println( "ExportPubKeys failed" )
+	if err != nil {
+		fmt.Println("ExportPubKeys failed")
 		t.FailNow()
 		return
 	}
 
-	for _, expPubKey := range expPubKeys{
-		fmt.Println( "Export PubKeys: ", expPubKey.ToWIF() )
+	for _, expPubKey := range expPubKeys {
+		fmt.Println("Export PubKeys: ", expPubKey.ToWIF())
 	}
 }
