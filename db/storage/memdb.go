@@ -2,7 +2,6 @@ package storage
 
 //
 // This file implements Database interface based on map[string][]byte.
-// Use MemoryDatabase for debugging only.
 //
 
 import (
