@@ -3,11 +3,11 @@ package prototype
 import (
 	"bytes"
 	"crypto/sha256"
-	"math/big"
-	"github.com/itchyny/base58-go"
+	"errors"
 	"fmt"
 	"github.com/coschain/contentos-go/common/constants"
-	"errors"
+	"github.com/itchyny/base58-go"
+	"math/big"
 	"strings"
 )
 
@@ -75,4 +75,30 @@ func (m *PublicKeyType) ToBase58() string {
 	bi := new(big.Int).SetBytes(data).String()
 	encoded, _ := base58.BitcoinEncoding.Encode([]byte(bi))
 	return string(encoded)
+}
+
+
+func (m *PublicKeyType) MarshalJSON() ([]byte, error) {
+	val := fmt.Sprintf("\"%s\"", m.ToWIF())
+	return []byte( val ), nil
+}
+
+func (m *PublicKeyType) UnmarshalJSON(input []byte) error {
+
+	if len(input) < 2{
+		return errors.New("public key length error")
+	}
+	if input[0] != '"'{
+		return errors.New("public key error")
+	}
+	if input[ len(input)-1 ] != '"'{
+		return errors.New("public key error")
+	}
+
+	res ,err := PublicKeyFromWIF( string( input[1:len(input)-1] ))
+	if err != nil{
+		return err
+	}
+	m.Data = res.Data
+	return nil
 }

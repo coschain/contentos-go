@@ -2,6 +2,7 @@ package prototype
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/coschain/contentos-go/p2p/depend/crypto"
 	"crypto/ecdsa"
 	"crypto/sha256"
@@ -94,4 +95,32 @@ func (m *PrivateKeyType) ToBase58() string {
 	bi := new(big.Int).SetBytes(data).String()
 	encoded, _ := base58.BitcoinEncoding.Encode([]byte(bi))
 	return string(encoded)
+}
+
+
+
+
+func (m *PrivateKeyType) MarshalJSON() ([]byte, error) {
+	val := fmt.Sprintf("\"%s\"", m.ToWIF())
+	return []byte( val ), nil
+}
+
+func (m *PrivateKeyType) UnmarshalJSON(input []byte) error {
+
+	if len(input) < 2{
+		return errors.New("private key length error")
+	}
+	if input[0] != '"'{
+		return errors.New("private key error")
+	}
+	if input[ len(input)-1 ] != '"'{
+		return errors.New("private key error")
+	}
+
+	res ,err := PrivateKeyFromWIF( string( input[1:len(input)-1] ))
+	if err != nil{
+		return err
+	}
+	m.Data = res.Data
+	return nil
 }
