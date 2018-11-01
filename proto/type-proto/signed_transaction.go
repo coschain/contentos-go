@@ -40,8 +40,7 @@ func (p *SignedTransaction) ExportPubKeys(cid ChainId) ([]*PublicKeyType, error)
 	return result, nil
 }
 
-func (p *SignedTransaction) Validate(cid ChainId) bool {
-	return true
+func (p *SignedTransaction) Validate() {
 }
 
 func (p *SignedTransaction) VerifySig(pubKey *PublicKeyType, cid ChainId) bool {
@@ -98,4 +97,27 @@ func (p *SignedTransaction) Sign(secKey *PrivateKeyType, cid ChainId) []byte {
 	}
 
 	return res
+}
+
+func (p *SignedTransaction) Id() (*Sha256, error) {
+	buf, err := proto.Marshal(p.Trx)
+	if err != nil {
+		return nil, err
+	}
+	h := sha256.New()
+	h.Reset()
+	h.Write(buf)
+	bs := h.Sum(nil)
+	if bs == nil {
+		return nil, errors.New("sha256 error")
+	}
+	id := &Sha256{Hash: bs}
+	return id, nil
+}
+
+func (p *SignedTransaction) verifyAuthority(cid ChainId) {
+	/*	pubkeys, err := p.ExportPubKeys(cid)
+		if err != nil {
+			panic(err)
+		}*/
 }

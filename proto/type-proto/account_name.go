@@ -1,5 +1,5 @@
 package prototype
 
-func (this *AccountName) Empty() bool {
-	return this.Value == ""
+func (a *AccountName) Empty() bool {
+	return a.Value == ""
 }
