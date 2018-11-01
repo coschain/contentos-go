@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"fmt"
+	"github.com/coschain/contentos-go/rpc/pb"
 	"net"
 
 	"google.golang.org/grpc"
@@ -19,6 +20,10 @@ type GRPCServer struct {
 func NewGRPCServer() *GRPCServer {
 	rpc := grpc.NewServer(grpc.MaxRecvMsgSize(4096))
 	srv := &GRPCServer{rpcServer:rpc}
+
+	api := &APIService{server:srv}
+	grpctype.RegisterApiServiceServer(rpc, api)
+
 	return srv
 }
 
