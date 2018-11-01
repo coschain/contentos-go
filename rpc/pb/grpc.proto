@@ -4,30 +4,13 @@ import "google/api/annotations.proto";
 import "github.com/coschain/contentos-go/proto/type-proto/type.proto";
 import "github.com/coschain/contentos-go/proto/type-proto/transaction.proto";
 
-
 package grpctype;
 
 /*
 
-1. get_account_by_name
-	name
-	coin
-	vest
-	public_keys
-	created_time
-
-2. get_follower_list_by_name
-3. get_following_list_by_name
-4. get_witness_list
-5. get_post_list_by_created
-6. get_replay_by_post_id
-7. get_block_transactions_by_num
-8. get_trx_by_id
-9. broadcast_trx
+protoc -I/usr/local/include -I. -I$GOPATH/src -I$GOPATH/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis --go_out=plugins=grpc:. grpc.proto
 
 */
-
-// protoc -I/usr/local/include -I. -I$GOPATH/src -I$GOPATH/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis --go_out=plugins=grpc:. grpc.proto
 
 service ApiService {
     rpc GetAccountByName (GetAccountByNameRequest) returns (AccountResponse) {
