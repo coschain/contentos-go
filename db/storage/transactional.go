@@ -26,7 +26,8 @@ type inTrxDB struct {
 	mem *MemoryDatabase
 	changes []writeOp
 	removals map[string]bool
-	lock sync.RWMutex
+	lock sync.RWMutex				// for internal struct data
+	dblock sync.RWMutex				// for database operations
 }
 
 func (db *inTrxDB) Close() {
@@ -58,24 +59,34 @@ func (db *inTrxDB) commit() {
 }
 
 func (db *inTrxDB) Has(key []byte) (bool, error) {
-	db.lock.RLock()
-	defer db.lock.RUnlock()
+	db.dblock.RLock()
+	defer db.dblock.RUnlock()
 
 	// memory db first, then underlying db
 	found, err := db.mem.Has(key)
 	if !found {
+		db.lock.RLock()
+		defer db.lock.RUnlock()
+
+		// if the key was deleted, just return false
+		if _, deleted := db.removals[string(key)]; deleted {
+			return false, err
+		}
 		found, err = db.db.Has(key)
 	}
 	return found, err
 }
 
 func (db *inTrxDB) Get(key []byte) ([]byte, error) {
-	db.lock.RLock()
-	defer db.lock.RUnlock()
+	db.dblock.RLock()
+	defer db.dblock.RUnlock()
 
 	// memory db first, then underlying db
 	data, err := db.mem.Get(key)
 	if data == nil {
+		db.lock.RLock()
+		defer db.lock.RUnlock()
+
 		// if the key was deleted, just return a not-found error
 		if _, deleted := db.removals[string(key)]; deleted {
 			return nil, err
@@ -87,12 +98,15 @@ func (db *inTrxDB) Get(key []byte) ([]byte, error) {
 }
 
 func (db *inTrxDB) Put(key []byte, value []byte) error {
-	db.lock.Lock()
-	defer db.lock.Unlock()
+	db.dblock.Lock()
+	defer db.dblock.Unlock()
 
 	// write to mem db only
 	err := db.mem.Put(key, value)
 	if err == nil {
+		db.lock.Lock()
+		defer db.lock.Unlock()
+
 		// remember this operation
 		db.changes = append(db.changes, writeOp{
 			key:   common.CopyBytes(key),
@@ -105,12 +119,15 @@ func (db *inTrxDB) Put(key []byte, value []byte) error {
 }
 
 func (db *inTrxDB) Delete(key []byte) error {
-	db.lock.Lock()
-	defer db.lock.Unlock()
+	db.dblock.Lock()
+	defer db.dblock.Unlock()
 
 	// write to mem db only
 	err := db.mem.Delete(key)
 	if err == nil {
+		db.lock.Lock()
+		defer db.lock.Unlock()
+
 		// remember this operation
 		db.changes = append(db.changes, writeOp{
 			key:   common.CopyBytes(key),
@@ -186,8 +203,8 @@ func (it *inTrxIterator) Value() ([]byte, error) {
 func advanceIterItem(item *inTrxIteratorItem) (moved bool) {
 	moved = false
 	for !item.end {
-		err := item.it.Next()
-		if err {
+		ok := item.it.Next()
+		if !ok {
 			// we can't move the iterator any more. it has reached the end.
 			item.end = true
 			item.k, item.v = nil, nil
@@ -274,9 +291,6 @@ type inTrxDBBatch struct {
 }
 
 func (b *inTrxDBBatch) Write() error {
-	b.db.lock.Lock()
-	defer b.db.lock.Unlock()
-
 	for _, op := range b.changes {
 		if op.del {
 			b.db.Delete(op.key)
@@ -315,7 +329,8 @@ func (b *inTrxDBBatch) Delete(key []byte) error {
 //
 type TransactionalDatabase struct {
 	db Database					// underlying db
-	dirtyRead bool				// dirty-read
+	dirtyRead bool				// dirty-read, true: read from top-most trx, false: read from underlying db
+	dirtyWrite bool				// dirty-write, true: write to top-most trx, false: write to underlying db
 	trx []*inTrxDB				// current transaction stack
 	lock *sync.RWMutex			// the lock
 }
@@ -325,8 +340,37 @@ func NewTransactionalDatabase(db Database, dirtyRead bool) *TransactionalDatabas
 	return &TransactionalDatabase{
 		db: db,
 		dirtyRead: dirtyRead,
+		dirtyWrite: true,
 		lock: new(sync.RWMutex),
 	}
+}
+
+// get the top-most transaction db
+func (db *TransactionalDatabase) topTrx() *inTrxDB {
+	if trxCount := len(db.trx); trxCount > 0 {
+		return db.trx[trxCount - 1]
+	}
+	return nil
+}
+
+func (db *TransactionalDatabase) dbSelect(preferTopTrx bool) Database {
+	selected := db.db
+	if preferTopTrx {
+		if topTrx := db.topTrx(); topTrx != nil {
+			selected = topTrx
+		}
+	}
+	return selected
+}
+
+// the Database interface for reading
+func (db *TransactionalDatabase) readerDB() Database {
+	return db.dbSelect(db.dirtyRead)
+}
+
+// the Database interface for writing
+func (db *TransactionalDatabase) writerDB() Database {
+	return db.dbSelect(db.dirtyWrite)
 }
 
 // start a transaction session
@@ -370,42 +414,17 @@ func (db *TransactionalDatabase) EndTransaction(commit bool) error {
 	return nil
 }
 
-// get the top-most transaction db
-func (db *TransactionalDatabase) topTrx() *inTrxDB {
-	if trxCount := len(db.trx); trxCount > 0 {
-		return db.trx[trxCount - 1]
-	}
-	return nil
-}
 
-// the Database interface for reading
-func (db *TransactionalDatabase) readerDB() Database {
-	if db.dirtyRead {
-		// when dirty read enabled, read from the top-most transaction db
-		if topTrx := db.topTrx(); topTrx != nil {
-			return topTrx
-		}
-	}
-	return db.db
-}
-
-// the Database interface for writing
-func (db *TransactionalDatabase) writerDB() Database {
-	// write to the top-most transaction db, if there's one
-	if topTrx := db.topTrx(); topTrx != nil {
-		return topTrx
-	}
-	return db.db
-}
 
 // return an Database Interface with no support for dirty-read.
 func (db *TransactionalDatabase) cleanRead() *TransactionalDatabase {
-	if !db.dirtyRead {
+	if !db.dirtyRead && !db.dirtyWrite {
 		return db
 	}
 	return &TransactionalDatabase{
 		db: db.db,
 		dirtyRead: false,
+		dirtyWrite: false,
 		lock: db.lock,
 	}
 }
