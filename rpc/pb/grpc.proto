@@ -7,9 +7,8 @@ import "github.com/coschain/contentos-go/proto/type-proto/transaction.proto";
 package grpctype;
 
 /*
-
+compile:
 protoc -I/usr/local/include -I. -I$GOPATH/src -I$GOPATH/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis --go_out=plugins=grpc:. grpc.proto
-
 */
 
 service ApiService {

@@ -20,7 +20,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/viper v1.2.1
-	github.com/stretchr/testify v1.2.2 // indirect
+	github.com/stretchr/testify v1.2.2
 	github.com/syndtr/goleveldb v0.0.0-20181012014443-6b91fda63f2e
 	golang.org/x/net v0.0.0-20181011144130-49bb7cea24b1
 	google.golang.org/genproto v0.0.0-20180817151627-c66870c02cf8
