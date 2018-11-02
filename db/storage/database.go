@@ -94,3 +94,50 @@ type TrxDatabase interface {
 	Transactional
 	Database
 }
+
+// interface for revertible feature
+type Revertible interface {
+	// get current revision
+	GetRevision() uint64
+
+	// revert to the given revision
+	// you can only revert to a revision that is less than or equal to current revision.
+	// after reverted to revision r, r will be the current revision.
+	RevertToRevision(r uint64) error
+
+	// rebase to the given revision
+	// after rebased to revision r, r will be the minimal revision you can revert to.
+	RebaseToRevision(r uint64) error
+}
+
+// interface for databases that support reversion
+type RevDatabase interface {
+	Revertible
+	Database
+}
+
+// interface for databases that support reversion and revision tagging
+type TagRevertible interface {
+	Revertible
+
+	// tag a revision
+	TagRevision(r uint64, tag string) error
+
+	// get revision of a tag
+	GetTagRevision(tag string) (uint64, error)
+
+	// get tag of a revision
+	GetRevisionTag(r uint64) string
+
+	// revert to a revision by its tag
+	RevertToTag(tag string) error
+
+	// rebase to a revision by its tag
+	RebaseToTag(tag string) error
+}
+
+// interface for databases that support reversion and revision tagging
+type TagRevDatabase interface {
+	TagRevertible
+	Database
+}

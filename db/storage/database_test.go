@@ -311,3 +311,79 @@ func TestLevelDBTrxFeatureNoDirtyRead(t *testing.T) {
 
 	dbTestTransactionFeature(t, tdb, false)
 }
+
+func TestRevertibleDatabase(t *testing.T) {
+	dir, err := ioutil.TempDir("", "lvldb")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(dir)
+
+	fn := filepath.Join(dir, randomString(8))
+	db, err := NewLevelDatabase(fn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	rdb := NewRevertibleDatabase(db)
+	defer rdb.Close()
+
+	dbTest(t, rdb)
+}
+
+func doTestRevertFeature(t *testing.T, db TagRevDatabase) {
+	requireSuccessPut(t, db, []byte("key_one"), []byte("value_one"))
+	requireSuccessGet(t, db, []byte("key_one"), []byte("value_one"))
+	r1 := db.GetRevision()
+	db.TagRevision(r1, "tag1")
+	requireSuccessPut(t, db, []byte("key_two"), []byte("value_two"))
+	requireSuccessPut(t, db, []byte("key_one"), []byte("value_one_changed"))
+	b := db.NewBatch()
+	b.Put([]byte("key_three"), []byte("value_three"))
+	b.Write()
+	if db.RevertToTag("unknown_tag") == nil {
+		t.Fatalf("reverted to unknown tag")
+	}
+	db.RevertToTag("tag1")
+	requireErrorGet(t, db, []byte("key_two"))
+	requireErrorGet(t, db, []byte("key_three"))
+	requireSuccessGet(t, db, []byte("key_one"), []byte("value_one"))
+
+	requireSuccessPut(t, db, []byte("key_two"), []byte("value_two"))
+	r2 := db.GetRevision()
+	db.TagRevision(r2, "tag2")
+	requireSuccessPut(t, db, []byte("key_three"), []byte("value_three"))
+	db.RebaseToRevision(r2)
+	err := db.RevertToRevision(r1)
+	if err == nil {
+		t.Fatalf("reverted to a revision before base")
+	}
+	if db.RevertToTag("tag1") == nil {
+		t.Fatalf("reverted to discarded tag")
+	}
+	db.RevertToRevision(r2)
+	requireSuccessGet(t, db, []byte("key_two"), []byte("value_two"))
+	requireErrorGet(t, db, []byte("key_three"))
+	requireSuccessGet(t, db, []byte("key_one"), []byte("value_one"))
+}
+
+func TestRevertibleDatabaseFeature(t *testing.T) {
+	dir, err := ioutil.TempDir("", "lvldb")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(dir)
+
+	fn := filepath.Join(dir, randomString(8))
+	db, err := NewLevelDatabase(fn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	rdb := NewRevertibleDatabase(db)
+	defer rdb.Close()
+
+	doTestRevertFeature(t, rdb)
+}
