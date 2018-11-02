@@ -4,6 +4,9 @@ require (
 	github.com/BurntSushi/toml v0.3.1 // indirect
 	github.com/aristanetworks/goarista v0.0.0-20181002214814-33151c4543a7
 	github.com/asaskevich/EventBus v0.0.0-20180315140547-d46933a94f05
+	github.com/chzyer/logex v1.1.10 // indirect
+	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e
+	github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/gogo/protobuf v1.1.1
 	github.com/golang/protobuf v1.2.0
@@ -20,6 +23,9 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/viper v1.2.1
-	github.com/stretchr/testify v1.2.2 // indirect
+	github.com/stretchr/testify v1.2.2
 	github.com/syndtr/goleveldb v0.0.0-20181012014443-6b91fda63f2e
+	golang.org/x/net v0.0.0-20181011144130-49bb7cea24b1
+	google.golang.org/genproto v0.0.0-20181101192439-c830210a61df
+	google.golang.org/grpc v1.16.0
 )
