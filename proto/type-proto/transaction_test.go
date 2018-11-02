@@ -22,8 +22,8 @@ func Test_Serialize(t *testing.T) {
 			WeightThreshold: 1,
 			AccountAuths: []*KvAccountAuth{
 				&KvAccountAuth{
-					Key:   &AccountName{Value: "alice"},
-					Value: 3,
+					Key:    &AccountName{Value: "alice"},
+					Weight: 3,
 				},
 			},
 			KeyAuths: []*KvKeyAuth{
@@ -31,7 +31,7 @@ func Test_Serialize(t *testing.T) {
 					Key: &PublicKeyType{
 						Data: []byte{0},
 					},
-					Value: 23,
+					Weight: 23,
 				},
 			},
 		},
