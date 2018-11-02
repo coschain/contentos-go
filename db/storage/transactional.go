@@ -11,12 +11,6 @@ import (
 	"errors"
 )
 
-// defines a database writing operation (put or delete)
-type writeOp struct {
-	key, value []byte
-	del bool
-}
-
 //
 // inTrxDB represents a temporary Database bound with an uncommitted transaction,
 // where changes are stored in memory, but not committed to underlying database until commit() is called.
@@ -44,10 +38,10 @@ func (db *inTrxDB) commit() {
 	if len(db.changes) > 0 {
 		b := db.db.NewBatch()
 		for _, op := range db.changes {
-			if op.del {
-				b.Delete(op.key)
+			if op.Del {
+				b.Delete(op.Key)
 			} else {
-				b.Put(op.key, op.value)
+				b.Put(op.Key, op.Value)
 			}
 		}
 		b.Write()
@@ -109,9 +103,9 @@ func (db *inTrxDB) Put(key []byte, value []byte) error {
 
 		// remember this operation
 		db.changes = append(db.changes, writeOp{
-			key:   common.CopyBytes(key),
-			value: common.CopyBytes(value),
-			del:   false,
+			Key:   common.CopyBytes(key),
+			Value: common.CopyBytes(value),
+			Del:   false,
 		})
 		delete(db.removals, string(key))
 	}
@@ -130,9 +124,9 @@ func (db *inTrxDB) Delete(key []byte) error {
 
 		// remember this operation
 		db.changes = append(db.changes, writeOp{
-			key:   common.CopyBytes(key),
-			value: nil,
-			del:   true,
+			Key:   common.CopyBytes(key),
+			Value: nil,
+			Del:   true,
 		})
 		db.removals[string(key)] = true
 	}
@@ -292,10 +286,10 @@ type inTrxDBBatch struct {
 
 func (b *inTrxDBBatch) Write() error {
 	for _, op := range b.changes {
-		if op.del {
-			b.db.Delete(op.key)
+		if op.Del {
+			b.db.Delete(op.Key)
 		} else {
-			b.db.Put(op.key, op.value)
+			b.db.Put(op.Key, op.Value)
 		}
 	}
 	return nil
@@ -307,18 +301,18 @@ func (b *inTrxDBBatch) Reset() {
 
 func (b *inTrxDBBatch) Put(key []byte, value []byte) error {
 	b.changes = append(b.changes, writeOp{
-		key:   common.CopyBytes(key),
-		value: common.CopyBytes(value),
-		del:   false,
+		Key:   common.CopyBytes(key),
+		Value: common.CopyBytes(value),
+		Del:   false,
 	})
 	return nil
 }
 
 func (b *inTrxDBBatch) Delete(key []byte) error {
 	b.changes = append(b.changes, writeOp{
-		key:   common.CopyBytes(key),
-		value: nil,
-		del:   true,
+		Key:   common.CopyBytes(key),
+		Value: nil,
+		Del:   true,
 	})
 	return nil
 }
