@@ -30,8 +30,7 @@ func main() {
 		iter := lwrap.DoList(*base.MakeTimeSecondPoint(10), *base.MakeTimeSecondPoint(14))
 		if iter != nil {
 			for iter.Next() {
-				fmt.Println("iter sub:", lwrap.GetSubVal(iter))
-				fmt.Println("iter main:", lwrap.GetMainVal(iter))
+				fmt.Println("iter1:" , lwrap.GetMainVal(iter), " - ",lwrap.GetSubVal(iter))
 			}
 		}
 	}
@@ -45,7 +44,7 @@ func main() {
 		if wrap.CheckExist() {
 			oldTime := wrap.GetAccountCreatedTime()
 			oldTime.UtcSeconds += 10
-			fmt.Println("modify : ", wrap.ModifyCreatedTime(*oldTime))
+			fmt.Println("modify : ", wrap.MdAccountCreatedTime(*oldTime))
 		}
 	}
 
@@ -54,8 +53,7 @@ func main() {
 		iter := lwrap.DoList(*base.MakeTimeSecondPoint(10), *base.MakeTimeSecondPoint(14))
 		if iter != nil {
 			for iter.Next() {
-				fmt.Println("iter2 sub:", lwrap.GetSubVal(iter))
-				fmt.Println("iter2 main:", lwrap.GetMainVal(iter))
+				fmt.Println("iter2:" , lwrap.GetMainVal(iter), " - ",lwrap.GetSubVal(iter))
 			}
 		}
 	}
@@ -65,7 +63,7 @@ func main() {
 		wrap := table.NewSoAccountWrap(db, acc)
 
 		if wrap.CheckExist() {
-			fmt.Println("modify : ", wrap.RemoveAccount())
+			fmt.Println("remove : ", wrap.RemoveAccount())
 		}
 	}
 	{
@@ -73,8 +71,7 @@ func main() {
 		iter := lwrap.DoList(*base.MakeTimeSecondPoint(10), *base.MakeTimeSecondPoint(14))
 		if iter != nil {
 			for iter.Next() {
-				fmt.Println("iter3 sub:", lwrap.GetSubVal(iter))
-				fmt.Println("iter4 main:", lwrap.GetMainVal(iter))
+				fmt.Println("iter3:" , lwrap.GetMainVal(iter), " - ",lwrap.GetSubVal(iter))
 			}
 		}
 	}

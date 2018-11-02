@@ -9,26 +9,26 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	mainTable        = []byte{0x1, 0x0}
+	mainTable        = []byte{0x2, 0x0}
 
-	CreatedTimeTable = []byte{0x1, 1 + 0x0 }
+	NameTable = []byte{0x2, 1 + 0x0 }
 
-	PubKeyTable = []byte{0x1, 1 + 0x1 }
+	PostTimeTable = []byte{0x2, 1 + 0x1 }
 
 )
 
 ////////////// SECTION Wrap Define ///////////////
-type SoAccountWrap struct {
+type SoPostWrap struct {
 	dba 		storage.Database
-	mainKey 	*base.AccountName
+	mainKey 	*uint32
 }
 
-func NewSoAccountWrap(dba storage.Database, key *base.AccountName) *SoAccountWrap{
-	result := &SoAccountWrap{ dba, key}
+func NewSoPostWrap(dba storage.Database, key *uint32) *SoAccountWrap{
+	result := &SoPostWrap{ dba, key}
 	return result
 }
 
-func (s *SoAccountWrap) CheckExist() bool {
+func (s *SoPostWrap) CheckExist() bool {
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
 		return false
@@ -42,7 +42,7 @@ func (s *SoAccountWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoAccountWrap) CreateAccount(sa *SoAccount) bool {
+func (s *SoPostWrap) CreatePost(sa *SoPost) bool {
 
 	if sa == nil {
 		return false
@@ -67,11 +67,11 @@ func (s *SoAccountWrap) CreateAccount(sa *SoAccount) bool {
 
 	// update secondary keys
 
-	if !s.insertSubKeyCreatedTime(sa) {
+	if !s.insertSubKeyName(sa) {
 		return false
 	}
 
-	if !s.insertSubKeyPubKey(sa) {
+	if !s.insertSubKeyPostTime(sa) {
 		return false
 	}
 
@@ -82,11 +82,11 @@ func (s *SoAccountWrap) CreateAccount(sa *SoAccount) bool {
 ////////////// SECTION SubKeys delete/insert ///////////////
 
 
-func (s *SoAccountWrap) deleteSubKeyCreatedTime(sa *SoAccount) bool {
-	val := SKeyAccountByCreatedTime{}
+func (s *SoPostWrap) deleteSubKeyName(sa *SoPost) bool {
+	val := SKeyPostByName{}
 
-	val.CreatedTime = sa.CreatedTime
 	val.Name = sa.Name
+	val.Idx = sa.Idx
 
 	key, err := encoding.Encode(&val)
 
@@ -98,11 +98,11 @@ func (s *SoAccountWrap) deleteSubKeyCreatedTime(sa *SoAccount) bool {
 }
 
 
-func (s *SoAccountWrap) insertSubKeyCreatedTime(sa *SoAccount) bool {
-	val := SKeyAccountByCreatedTime{}
+func (s *SoPostWrap) insertSubKeyName(sa *SoPost) bool {
+	val := SKeyPostByName{}
 
+	val.Idx = sa.Idx
 	val.Name = sa.Name
-	val.CreatedTime = sa.CreatedTime
 
 	buf, err := proto.Marshal(&val)
 
@@ -120,11 +120,11 @@ func (s *SoAccountWrap) insertSubKeyCreatedTime(sa *SoAccount) bool {
 }
 
 
-func (s *SoAccountWrap) deleteSubKeyPubKey(sa *SoAccount) bool {
-	val := SKeyAccountByPubKey{}
+func (s *SoPostWrap) deleteSubKeyPostTime(sa *SoPost) bool {
+	val := SKeyPostByPostTime{}
 
-	val.PubKey = sa.PubKey
-	val.Name = sa.Name
+	val.PostTime = sa.PostTime
+	val.Idx = sa.Idx
 
 	key, err := encoding.Encode(&val)
 
@@ -136,11 +136,11 @@ func (s *SoAccountWrap) deleteSubKeyPubKey(sa *SoAccount) bool {
 }
 
 
-func (s *SoAccountWrap) insertSubKeyPubKey(sa *SoAccount) bool {
-	val := SKeyAccountByPubKey{}
+func (s *SoPostWrap) insertSubKeyPostTime(sa *SoPost) bool {
+	val := SKeyPostByPostTime{}
 
-	val.Name = sa.Name
-	val.PubKey = sa.PubKey
+	val.Idx = sa.Idx
+	val.PostTime = sa.PostTime
 
 	buf, err := proto.Marshal(&val)
 
@@ -160,20 +160,20 @@ func (s *SoAccountWrap) insertSubKeyPubKey(sa *SoAccount) bool {
 
 
 
-func (s *SoAccountWrap) RemoveAccount() bool {
+func (s *SoPostWrap) RemovePost() bool {
 
-	sa := s.getAccount()
+	sa := s.getPost()
 
 	if sa == nil {
 		return false
 	}
 
 
-	if !s.deleteSubKeyCreatedTime(sa) {
+	if !s.deleteSubKeyName(sa) {
 		return false
 	}
 
-	if !s.deleteSubKeyPubKey(sa) {
+	if !s.deleteSubKeyPostTime(sa) {
 		return false
 	}
 
@@ -190,63 +190,19 @@ func (s *SoAccountWrap) RemoveAccount() bool {
 ////////////// SECTION Members Get/Modify ///////////////
 
 
-func (s *SoAccountWrap) GetAccountCreatedTime() *base.TimePointSec {
-	res := s.getAccount()
+func (s *SoPostWrap) GetPostContent() *string {
+	res := s.getPost()
 
 	if res == nil {
 		return nil
 	}
-	return res.CreatedTime
+	return res.Content
 }
 
 
-func (s *SoAccountWrap) MdAccountCreatedTime(p base.TimePointSec) bool {
+func (s *SoPostWrap) MdPostContent(p string) bool {
 
-	sa := s.getAccount()
-
-	if sa == nil {
-		return false
-	}
-
-
-
-	if !s.deleteSubKeyCreatedTime(sa) {
-		return false
-	}
-
-
-
-
-	sa.CreatedTime = &p
-	if !s.update(sa) {
-		return false
-	}
-
-
-	if !s.insertSubKeyCreatedTime(sa) {
-		return false
-	}
-
-
-
-
-	return true
-}
-
-
-func (s *SoAccountWrap) GetAccountCreator() *base.AccountName {
-	res := s.getAccount()
-
-	if res == nil {
-		return nil
-	}
-	return res.Creator
-}
-
-
-func (s *SoAccountWrap) MdAccountCreator(p base.AccountName) bool {
-
-	sa := s.getAccount()
+	sa := s.getPost()
 
 	if sa == nil {
 		return false
@@ -257,7 +213,7 @@ func (s *SoAccountWrap) MdAccountCreator(p base.AccountName) bool {
 
 
 
-	sa.Creator = &p
+	sa.Content = &p
 	if !s.update(sa) {
 		return false
 	}
@@ -270,19 +226,19 @@ func (s *SoAccountWrap) MdAccountCreator(p base.AccountName) bool {
 }
 
 
-func (s *SoAccountWrap) GetAccountPubKey() *base.PublicKeyType {
-	res := s.getAccount()
+func (s *SoPostWrap) GetPostLikeCount() *uint32 {
+	res := s.getPost()
 
 	if res == nil {
 		return nil
 	}
-	return res.PubKey
+	return res.LikeCount
 }
 
 
-func (s *SoAccountWrap) MdAccountPubKey(p base.PublicKeyType) bool {
+func (s *SoPostWrap) MdPostLikeCount(p uint32) bool {
 
-	sa := s.getAccount()
+	sa := s.getPost()
 
 	if sa == nil {
 		return false
@@ -292,12 +248,8 @@ func (s *SoAccountWrap) MdAccountPubKey(p base.PublicKeyType) bool {
 
 
 
-	if !s.deleteSubKeyPubKey(sa) {
-		return false
-	}
 
-
-	sa.PubKey = &p
+	sa.LikeCount = &p
 	if !s.update(sa) {
 		return false
 	}
@@ -305,7 +257,91 @@ func (s *SoAccountWrap) MdAccountPubKey(p base.PublicKeyType) bool {
 
 
 
-	if !s.insertSubKeyPubKey(sa) {
+
+	return true
+}
+
+
+func (s *SoPostWrap) GetPostName() *base.AccountName {
+	res := s.getPost()
+
+	if res == nil {
+		return nil
+	}
+	return res.Name
+}
+
+
+func (s *SoPostWrap) MdPostName(p base.AccountName) bool {
+
+	sa := s.getPost()
+
+	if sa == nil {
+		return false
+	}
+
+
+
+	if !s.deleteSubKeyName(sa) {
+		return false
+	}
+
+
+
+
+	sa.Name = &p
+	if !s.update(sa) {
+		return false
+	}
+
+
+	if !s.insertSubKeyName(sa) {
+		return false
+	}
+
+
+
+
+	return true
+}
+
+
+func (s *SoPostWrap) GetPostPostTime() *base.TimePointSec {
+	res := s.getPost()
+
+	if res == nil {
+		return nil
+	}
+	return res.PostTime
+}
+
+
+func (s *SoPostWrap) MdPostPostTime(p base.TimePointSec) bool {
+
+	sa := s.getPost()
+
+	if sa == nil {
+		return false
+	}
+
+
+
+
+
+	if !s.deleteSubKeyPostTime(sa) {
+		return false
+	}
+
+
+	sa.PostTime = &p
+	if !s.update(sa) {
+		return false
+	}
+
+
+
+
+	if !s.insertSubKeyPostTime(sa) {
 		return false
 	}
 
@@ -319,25 +355,25 @@ func (s *SoAccountWrap) MdAccountPubKey(p base.PublicKeyType) bool {
 
 ////////////// SECTION List Keys ///////////////
 
-func (m *SKeyAccountByCreatedTime) OpeEncode() ([]byte, error) {
+func (m *SKeyPostByName) OpeEncode() ([]byte, error) {
 
-	mainBuf, err := encoding.Encode(m.Name)
+	mainBuf, err := encoding.Encode(m.Idx)
 	if err != nil {
 		return nil, err
 	}
-	subBuf, err := encoding.Encode(m.CreatedTime)
+	subBuf, err := encoding.Encode(m.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	return append(append(CreatedTimeTable, subBuf...), mainBuf...), nil
+	return append(append(NameTable, subBuf...), mainBuf...), nil
 }
 
-type SListAccountByCreatedTime struct {
+type SListPostByName struct {
 	Dba storage.Database
 }
 
-func (s *SListAccountByCreatedTime) GetMainVal(iterator storage.Iterator) *base.AccountName {
+func (s *SListPostByName) GetMainVal(iterator storage.Iterator) *uint32 {
 	if iterator == nil || !iterator.Valid() {
 		return nil
 	}
@@ -348,7 +384,28 @@ func (s *SListAccountByCreatedTime) GetMainVal(iterator storage.Iterator) *base.
 		return nil
 	}
 
-	res := &SKeyAccountByCreatedTime{}
+	res := &SKeyPostByName{}
+	err = proto.Unmarshal(val, res)
+
+	if err != nil {
+		return nil
+	}
+
+	return res.Idx
+}
+
+func (s *SListPostByName) GetSubVal(iterator storage.Iterator) *base.AccountName {
+	if iterator == nil || !iterator.Valid() {
+		return nil
+	}
+
+	val, err := iterator.Value()
+
+	if err != nil {
+		return nil
+	}
+
+	res := &SKeyPostByName{}
 	err = proto.Unmarshal(val, res)
 
 	if err != nil {
@@ -358,28 +415,7 @@ func (s *SListAccountByCreatedTime) GetMainVal(iterator storage.Iterator) *base.
 	return res.Name
 }
 
-func (s *SListAccountByCreatedTime) GetSubVal(iterator storage.Iterator) *base.TimePointSec {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
-
-	res := &SKeyAccountByCreatedTime{}
-	err = proto.Unmarshal(val, res)
-
-	if err != nil {
-		return nil
-	}
-
-	return res.CreatedTime
-}
-
-func (s *SListAccountByCreatedTime) DoList(start base.TimePointSec, end base.TimePointSec) storage.Iterator {
+func (s *SListPostByName) DoList(start base.AccountName, end base.AccountName) storage.Iterator {
 
 	startBuf, err := encoding.Encode(&start)
 	if err != nil {
@@ -391,8 +427,8 @@ func (s *SListAccountByCreatedTime) DoList(start base.TimePointSec, end base.Tim
 		return nil
 	}
 
-	bufStartkey := append(CreatedTimeTable, startBuf...)
-	bufEndkey := append(CreatedTimeTable, endBuf...)
+	bufStartkey := append(NameTable, startBuf...)
+	bufEndkey := append(NameTable, endBuf...)
 
 	iter := s.Dba.NewIterator(bufStartkey, bufEndkey)
 
@@ -402,25 +438,25 @@ func (s *SListAccountByCreatedTime) DoList(start base.TimePointSec, end base.Tim
 
 ////////////// SECTION List Keys ///////////////
 
-func (m *SKeyAccountByPubKey) OpeEncode() ([]byte, error) {
+func (m *SKeyPostByPostTime) OpeEncode() ([]byte, error) {
 
-	mainBuf, err := encoding.Encode(m.Name)
+	mainBuf, err := encoding.Encode(m.Idx)
 	if err != nil {
 		return nil, err
 	}
-	subBuf, err := encoding.Encode(m.PubKey)
+	subBuf, err := encoding.Encode(m.PostTime)
 	if err != nil {
 		return nil, err
 	}
 
-	return append(append(PubKeyTable, subBuf...), mainBuf...), nil
+	return append(append(PostTimeTable, subBuf...), mainBuf...), nil
 }
 
-type SListAccountByPubKey struct {
+type SListPostByPostTime struct {
 	Dba storage.Database
 }
 
-func (s *SListAccountByPubKey) GetMainVal(iterator storage.Iterator) *base.AccountName {
+func (s *SListPostByPostTime) GetMainVal(iterator storage.Iterator) *uint32 {
 	if iterator == nil || !iterator.Valid() {
 		return nil
 	}
@@ -431,17 +467,17 @@ func (s *SListAccountByPubKey) GetMainVal(iterator storage.Iterator) *base.Accou
 		return nil
 	}
 
-	res := &SKeyAccountByPubKey{}
+	res := &SKeyPostByPostTime{}
 	err = proto.Unmarshal(val, res)
 
 	if err != nil {
 		return nil
 	}
 
-	return res.Name
+	return res.Idx
 }
 
-func (s *SListAccountByPubKey) GetSubVal(iterator storage.Iterator) *base.PublicKeyType {
+func (s *SListPostByPostTime) GetSubVal(iterator storage.Iterator) *base.TimePointSec {
 	if iterator == nil || !iterator.Valid() {
 		return nil
 	}
@@ -452,17 +488,17 @@ func (s *SListAccountByPubKey) GetSubVal(iterator storage.Iterator) *base.Public
 		return nil
 	}
 
-	res := &SKeyAccountByPubKey{}
+	res := &SKeyPostByPostTime{}
 	err = proto.Unmarshal(val, res)
 
 	if err != nil {
 		return nil
 	}
 
-	return res.PubKey
+	return res.PostTime
 }
 
-func (s *SListAccountByPubKey) DoList(start base.PublicKeyType, end base.PublicKeyType) storage.Iterator {
+func (s *SListPostByPostTime) DoList(start base.TimePointSec, end base.TimePointSec) storage.Iterator {
 
 	startBuf, err := encoding.Encode(&start)
 	if err != nil {
@@ -474,8 +510,8 @@ func (s *SListAccountByPubKey) DoList(start base.PublicKeyType, end base.PublicK
 		return nil
 	}
 
-	bufStartkey := append(PubKeyTable, startBuf...)
-	bufEndkey := append(PubKeyTable, endBuf...)
+	bufStartkey := append(PostTimeTable, startBuf...)
+	bufEndkey := append(PostTimeTable, endBuf...)
 
 	iter := s.Dba.NewIterator(bufStartkey, bufEndkey)
 
@@ -486,7 +522,7 @@ func (s *SListAccountByPubKey) DoList(start base.PublicKeyType, end base.PublicK
 
 /////////////// SECTION Private function ////////////////
 
-func (s *SoAccountWrap) update(sa *SoAccount) bool {
+func (s *SoPostWrap) update(sa *SoPost) bool {
 	buf, err := proto.Marshal(sa)
 	if err != nil {
 		return false
@@ -500,7 +536,7 @@ func (s *SoAccountWrap) update(sa *SoAccount) bool {
 	return s.dba.Put(keyBuf, buf) == nil
 }
 
-func (s *SoAccountWrap) getAccount() *SoAccount {
+func (s *SoPostWrap) getPost() *SoPost {
 	keyBuf, err := s.encodeMainKey()
 
 	if err != nil {
@@ -513,14 +549,14 @@ func (s *SoAccountWrap) getAccount() *SoAccount {
 		return nil
 	}
 
-	res := &SoAccount{}
+	res := &SoPost{}
 	if proto.Unmarshal(resBuf, res) != nil {
 		return nil
 	}
 	return res
 }
 
-func (s *SoAccountWrap) encodeMainKey() ([]byte, error) {
+func (s *SoPostWrap) encodeMainKey() ([]byte, error) {
 	res, err := encoding.Encode(s.mainKey)
 
 	if err != nil {
@@ -529,4 +565,3 @@ func (s *SoAccountWrap) encodeMainKey() ([]byte, error) {
 
 	return append(mainTable, res...), nil
 }
-

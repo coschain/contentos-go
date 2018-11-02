@@ -16,10 +16,9 @@ message s_key_account_by_created_time{
     prototype.account_name        name                = 2;
 }
 
-message so_key_account {
+message s_key_account_by_pub_key{
     prototype.public_key_type     pub_key             = 1;
-    int32                         type                = 2;
-    prototype.account_name        name                = 3;
+    prototype.account_name        name                = 2;
 }
 
 
@@ -29,4 +28,14 @@ message so_post {
     prototype.time_point_sec      post_time           = 3;
     string                        content             = 4;
     uint32                        like_count          = 5;
+}
+
+message s_key_post_by_name {
+    prototype.account_name        name                = 1;
+    uint32                        idx                 = 2;
+}
+
+message s_key_post_by_post_time {
+    prototype.time_point_sec      post_time           = 1;
+    uint32                        idx                 = 2;
 }
