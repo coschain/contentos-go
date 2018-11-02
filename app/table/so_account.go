@@ -270,9 +270,6 @@ func (s *SListAccountByCreatedTime) DoList(start base.TimePointSec, end base.Tim
 
 func (s *SoAccountWrap) ModifyCreator(p base.AccountName) bool {
 
-	// modify primary key value
-	// modify secondary key
-
 	sa := s.getAccount()
 
 	if sa == nil {
