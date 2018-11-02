@@ -2,21 +2,25 @@ package consensus
 
 import (
 	"github.com/coschain/contentos-go/common"
-	"github.com/coschain/contentos-go/proto/type-proto"
+	//"github.com/coschain/contentos-go/proto/type-proto"
 )
 
-type Consensus interface {
+type ConsensusIF interface {
 	// CurrentProducer returns current producer
-	CurrentProducer() prototype.AccountName
+	CurrentProducer() ProducerIF
 	// ActiveProducers returns a list of accounts that actively produce blocks
-	ActiveProducers() []prototype.AccountName
+	ActiveProducers() []ProducerIF
 
+	// Start starts the consensus process
+	Start()
+	// Stop stops the consensus process
+	Stop()
 	// GenerateBlock generates a new block, possible implementation: Producer.Produce()
 	GenerateBlock() error
 	// PushTransaction accepts the trx if and only if
 	// 1. it's valid
 	// 2. the current node is a producer
-	PushTransaction()
+	PushTransaction(trx common.SignedTransactionIF)
 	// ValidateBlock returns true if b is direct successor of any fork chain
 	ValidateBlock(b common.SignedBlockIF) bool
 	// AddBlock adds b to the block fork DB, called if ValidateBlock returns true
@@ -32,6 +36,6 @@ type Consensus interface {
 	revertBlock(height int) error
 }
 
-type Producer interface {
+type ProducerIF interface {
 	Produce() (common.SignedBlockIF, error)
 }
