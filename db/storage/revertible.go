@@ -111,13 +111,15 @@ func (db *RevertibleDatabase) RevertToRevision(r uint64) error {
 		k, _ := it.Key()
 		v, _ := it.Value()
 		if k != nil && v != nil {
-			op := decodeWriteOp(v)
-			if op != nil {
+			opSlice := decodeWriteOpSlice(v)
+			if opSlice != nil {
 				b.Delete(k)
-				if op.Del {
-					b.Delete(op.Key)
-				} else {
-					b.Put(op.Key, op.Value)
+				for _, op := range opSlice {
+					if op.Del {
+						b.Delete(op.Key)
+					} else {
+						b.Put(op.Key, op.Value)
+					}
 				}
 
 			} else {
@@ -212,9 +214,9 @@ func (db *RevertibleDatabase) put(key []byte, value []byte) error {
 
 	oldValue, err := db.db.Get(key)
 	if err != nil {
-		b.Put(keyOfReversionOp(db.rev.Current), encodeWriteOp(writeOp{key, nil, true}))
+		b.Put(keyOfReversionOp(db.rev.Current), encodeWriteOpSlice([]writeOp{{key, nil, true}}))
 	} else {
-		b.Put(keyOfReversionOp(db.rev.Current), encodeWriteOp(writeOp{key, oldValue, false}))
+		b.Put(keyOfReversionOp(db.rev.Current), encodeWriteOpSlice([]writeOp{{key, oldValue, false}}))
 	}
 	b.Put([]byte(key_rev_num), encodeRevNumber(revNumber{ db.rev.Current + 1, db.rev.Base }))
 
@@ -237,7 +239,7 @@ func (db *RevertibleDatabase) delete(key []byte) error {
 	if err == nil {
 		b := db.db.NewBatch()
 		b.Delete(key)
-		b.Put(keyOfReversionOp(db.rev.Current), encodeWriteOp(writeOp{key, oldValue, false}))
+		b.Put(keyOfReversionOp(db.rev.Current), encodeWriteOpSlice([]writeOp{{key, oldValue, false}}))
 		b.Put([]byte(key_rev_num), encodeRevNumber(revNumber{ db.rev.Current + 1, db.rev.Base }))
 
 		if err = b.Write(); err == nil {
