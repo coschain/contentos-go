@@ -8,7 +8,6 @@ import (
 	"github.com/coschain/contentos-go/p2p"
 	"github.com/coschain/contentos-go/rpc/pb"
 	"os"
-
 	"testing"
 )
 
@@ -46,6 +45,22 @@ func TestGRPCApi_GetAccountByName(t *testing.T) {
 		t.Logf("GetAccountByName detail: %s", resp.AccountName)
 	}
 }
+
+//func TestGRPCApi_GetAccountByName_Http(t *testing.T) {
+//	v := url.Values{}
+//	v.Set("account_name.value", "Jack")
+//	body := ioutil.NopCloser(strings.NewReader(v.Encode()))
+//	client := &http.Client{}
+//	req, _ := http.NewRequest("POST", "http://127.0.0.1:8888/v1/user/get_account_by_name", body)
+//
+//	req.Header.Set("Content-Type", "application/x-www-form-urlencoded; param=value")
+//	fmt.Printf("%+v\n", req)
+//
+//	resp, err := client.Do(req)
+//	defer resp.Body.Close()
+//	data, _ := ioutil.ReadAll(resp.Body)
+//	fmt.Println(string(data), err)
+//}
 
 func TestGPRCApi_GetFollowerListByName(t *testing.T) {
 	req := &grpcpb.GetFollowerListByNameRequest{}

@@ -11,6 +11,7 @@ require (
 	github.com/gogo/protobuf v1.1.1
 	github.com/golang/protobuf v1.2.0
 	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db
+	github.com/grpc-ecosystem/grpc-gateway v1.5.1
 	github.com/huin/goupnp v1.0.0
 	github.com/inconshreveable/log15 v0.0.0-20180818164646-67afb5ed74ec
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
@@ -20,7 +21,8 @@ require (
 	github.com/mattn/go-isatty v0.0.4 // indirect
 	github.com/mitchellh/go-homedir v1.0.0
 	github.com/onsi/gomega v1.4.2 // indirect
-	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/rs/cors v1.6.0
+	github.com/sirupsen/logrus v1.2.0 // indirect
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/viper v1.2.1
 	github.com/stretchr/testify v1.2.2

@@ -1,8 +1,8 @@
 syntax = "proto3";
 
 import "google/api/annotations.proto";
-import "common/type-proto/type.proto";
-import "common/type-proto/transaction.proto";
+import "github.com/coschain/contentos-go/common/prototype/type.proto";
+import "github.com/coschain/contentos-go/common/prototype/transaction.proto";
 
 package grpcpb;
 
@@ -27,6 +27,7 @@ go get -u github.com/golang/protobuf/protoc-gen-go
 
 compile:
 protoc -I/usr/local/include -I. -I$GOPATH/src -I$GOPATH/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis --go_out=plugins=grpc:. grpc.proto
+protoc -I/usr/local/include -I. -I$GOPATH/src -I$GOPATH/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis --grpc-gateway_out=logtostderr=true:. grpc.proto
 */
 
 service ApiService {
@@ -54,7 +55,6 @@ service ApiService {
     rpc GetWitnessList (GetWitnessListRequest) returns (GetWitnessListResponse) {
         option (google.api.http) = {
             get: "/v1/user/get_witness_list"
-            body: "*"
         };
     }
 
