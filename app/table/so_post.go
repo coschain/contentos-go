@@ -9,7 +9,7 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	mainTable        = []byte{0x2, 0x0}
+	postTable        = []byte{0x2, 0x0}
 
 	NameTable = []byte{0x2, 1 + 0x0 }
 
@@ -23,7 +23,7 @@ type SoPostWrap struct {
 	mainKey 	*uint32
 }
 
-func NewSoPostWrap(dba storage.Database, key *uint32) *SoAccountWrap{
+func NewSoPostWrap(dba storage.Database, key *uint32) *SoPostWrap{
 	result := &SoPostWrap{ dba, key}
 	return result
 }
@@ -173,6 +173,7 @@ func (s *SoPostWrap) RemovePost() bool {
 		return false
 	}
 
+
 	if !s.deleteSubKeyPostTime(sa) {
 		return false
 	}
@@ -190,11 +191,11 @@ func (s *SoPostWrap) RemovePost() bool {
 ////////////// SECTION Members Get/Modify ///////////////
 
 
-func (s *SoPostWrap) GetPostContent() *string {
+func (s *SoPostWrap) GetPostContent() string {
 	res := s.getPost()
 
 	if res == nil {
-		return nil
+		return ""
 	}
 	return res.Content
 }
@@ -213,7 +214,7 @@ func (s *SoPostWrap) MdPostContent(p string) bool {
 
 
 
-	sa.Content = &p
+	sa.Content = p
 	if !s.update(sa) {
 		return false
 	}
@@ -226,11 +227,11 @@ func (s *SoPostWrap) MdPostContent(p string) bool {
 }
 
 
-func (s *SoPostWrap) GetPostLikeCount() *uint32 {
+func (s *SoPostWrap) GetPostLikeCount() uint32 {
 	res := s.getPost()
 
 	if res == nil {
-		return nil
+		return 0
 	}
 	return res.LikeCount
 }
@@ -249,7 +250,7 @@ func (s *SoPostWrap) MdPostLikeCount(p uint32) bool {
 
 
 
-	sa.LikeCount = &p
+	sa.LikeCount = p
 	if !s.update(sa) {
 		return false
 	}
@@ -391,7 +392,7 @@ func (s *SListPostByName) GetMainVal(iterator storage.Iterator) *uint32 {
 		return nil
 	}
 
-	return res.Idx
+	return &res.Idx
 }
 
 func (s *SListPostByName) GetSubVal(iterator storage.Iterator) *base.AccountName {
@@ -474,7 +475,7 @@ func (s *SListPostByPostTime) GetMainVal(iterator storage.Iterator) *uint32 {
 		return nil
 	}
 
-	return res.Idx
+	return &res.Idx
 }
 
 func (s *SListPostByPostTime) GetSubVal(iterator storage.Iterator) *base.TimePointSec {
@@ -563,5 +564,5 @@ func (s *SoPostWrap) encodeMainKey() ([]byte, error) {
 		return nil, err
 	}
 
-	return append(mainTable, res...), nil
+	return append(postTable, res...), nil
 }
