@@ -6,6 +6,7 @@ package prototype
 import proto "github.com/golang/protobuf/proto"
 import fmt "fmt"
 import math "math"
+import type_proto "github.com/coschain/contentos-go/proto/type-proto"
 
 import io "io"
 
@@ -21,24 +22,24 @@ var _ = math.Inf
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
 type AccountCreateOperation struct {
-	Fee                  *Coin          `protobuf:"bytes,1,opt,name=fee" json:"fee,omitempty"`
-	Creator              *AccountName   `protobuf:"bytes,2,opt,name=creator" json:"creator,omitempty"`
-	NewAccountName       *AccountName   `protobuf:"bytes,3,opt,name=new_account_name,json=newAccountName" json:"new_account_name,omitempty"`
-	Owner                *Authority     `protobuf:"bytes,4,opt,name=owner" json:"owner,omitempty"`
-	Active               *Authority     `protobuf:"bytes,5,opt,name=active" json:"active,omitempty"`
-	Posting              *Authority     `protobuf:"bytes,6,opt,name=posting" json:"posting,omitempty"`
-	MemoKey              *PublicKeyType `protobuf:"bytes,7,opt,name=memo_key,json=memoKey" json:"memo_key,omitempty"`
-	JsonMetadata         string         `protobuf:"bytes,8,opt,name=json_metadata,json=jsonMetadata,proto3" json:"json_metadata,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
-	XXX_unrecognized     []byte         `json:"-"`
-	XXX_sizecache        int32          `json:"-"`
+	Fee                  *type_proto.Coin          `protobuf:"bytes,1,opt,name=fee" json:"fee,omitempty"`
+	Creator              *type_proto.AccountName   `protobuf:"bytes,2,opt,name=creator" json:"creator,omitempty"`
+	NewAccountName       *type_proto.AccountName   `protobuf:"bytes,3,opt,name=new_account_name,json=newAccountName" json:"new_account_name,omitempty"`
+	Owner                *type_proto.Authority     `protobuf:"bytes,4,opt,name=owner" json:"owner,omitempty"`
+	Active               *type_proto.Authority     `protobuf:"bytes,5,opt,name=active" json:"active,omitempty"`
+	Posting              *type_proto.Authority     `protobuf:"bytes,6,opt,name=posting" json:"posting,omitempty"`
+	MemoKey              *type_proto.PublicKeyType `protobuf:"bytes,7,opt,name=memo_key,json=memoKey" json:"memo_key,omitempty"`
+	JsonMetadata         string                    `protobuf:"bytes,8,opt,name=json_metadata,json=jsonMetadata,proto3" json:"json_metadata,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}                  `json:"-"`
+	XXX_unrecognized     []byte                    `json:"-"`
+	XXX_sizecache        int32                     `json:"-"`
 }
 
 func (m *AccountCreateOperation) Reset()         { *m = AccountCreateOperation{} }
 func (m *AccountCreateOperation) String() string { return proto.CompactTextString(m) }
 func (*AccountCreateOperation) ProtoMessage()    {}
 func (*AccountCreateOperation) Descriptor() ([]byte, []int) {
-	return fileDescriptor_operation_81fb1dcb397c54db, []int{0}
+	return fileDescriptor_operation_27a862cb872ea0dd, []int{0}
 }
 func (m *AccountCreateOperation) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -67,49 +68,49 @@ func (m *AccountCreateOperation) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_AccountCreateOperation proto.InternalMessageInfo
 
-func (m *AccountCreateOperation) GetFee() *Coin {
+func (m *AccountCreateOperation) GetFee() *type_proto.Coin {
 	if m != nil {
 		return m.Fee
 	}
 	return nil
 }
 
-func (m *AccountCreateOperation) GetCreator() *AccountName {
+func (m *AccountCreateOperation) GetCreator() *type_proto.AccountName {
 	if m != nil {
 		return m.Creator
 	}
 	return nil
 }
 
-func (m *AccountCreateOperation) GetNewAccountName() *AccountName {
+func (m *AccountCreateOperation) GetNewAccountName() *type_proto.AccountName {
 	if m != nil {
 		return m.NewAccountName
 	}
 	return nil
 }
 
-func (m *AccountCreateOperation) GetOwner() *Authority {
+func (m *AccountCreateOperation) GetOwner() *type_proto.Authority {
 	if m != nil {
 		return m.Owner
 	}
 	return nil
 }
 
-func (m *AccountCreateOperation) GetActive() *Authority {
+func (m *AccountCreateOperation) GetActive() *type_proto.Authority {
 	if m != nil {
 		return m.Active
 	}
 	return nil
 }
 
-func (m *AccountCreateOperation) GetPosting() *Authority {
+func (m *AccountCreateOperation) GetPosting() *type_proto.Authority {
 	if m != nil {
 		return m.Posting
 	}
 	return nil
 }
 
-func (m *AccountCreateOperation) GetMemoKey() *PublicKeyType {
+func (m *AccountCreateOperation) GetMemoKey() *type_proto.PublicKeyType {
 	if m != nil {
 		return m.MemoKey
 	}
@@ -124,20 +125,20 @@ func (m *AccountCreateOperation) GetJsonMetadata() string {
 }
 
 type TransferOperation struct {
-	From                 *AccountName `protobuf:"bytes,1,opt,name=from" json:"from,omitempty"`
-	To                   *AccountName `protobuf:"bytes,2,opt,name=to" json:"to,omitempty"`
-	Amount               *Coin        `protobuf:"bytes,3,opt,name=amount" json:"amount,omitempty"`
-	Memo                 string       `protobuf:"bytes,4,opt,name=memo,proto3" json:"memo,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}     `json:"-"`
-	XXX_unrecognized     []byte       `json:"-"`
-	XXX_sizecache        int32        `json:"-"`
+	From                 *type_proto.AccountName `protobuf:"bytes,1,opt,name=from" json:"from,omitempty"`
+	To                   *type_proto.AccountName `protobuf:"bytes,2,opt,name=to" json:"to,omitempty"`
+	Amount               *type_proto.Coin        `protobuf:"bytes,3,opt,name=amount" json:"amount,omitempty"`
+	Memo                 string                  `protobuf:"bytes,4,opt,name=memo,proto3" json:"memo,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}                `json:"-"`
+	XXX_unrecognized     []byte                  `json:"-"`
+	XXX_sizecache        int32                   `json:"-"`
 }
 
 func (m *TransferOperation) Reset()         { *m = TransferOperation{} }
 func (m *TransferOperation) String() string { return proto.CompactTextString(m) }
 func (*TransferOperation) ProtoMessage()    {}
 func (*TransferOperation) Descriptor() ([]byte, []int) {
-	return fileDescriptor_operation_81fb1dcb397c54db, []int{1}
+	return fileDescriptor_operation_27a862cb872ea0dd, []int{1}
 }
 func (m *TransferOperation) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -166,21 +167,21 @@ func (m *TransferOperation) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_TransferOperation proto.InternalMessageInfo
 
-func (m *TransferOperation) GetFrom() *AccountName {
+func (m *TransferOperation) GetFrom() *type_proto.AccountName {
 	if m != nil {
 		return m.From
 	}
 	return nil
 }
 
-func (m *TransferOperation) GetTo() *AccountName {
+func (m *TransferOperation) GetTo() *type_proto.AccountName {
 	if m != nil {
 		return m.To
 	}
 	return nil
 }
 
-func (m *TransferOperation) GetAmount() *Coin {
+func (m *TransferOperation) GetAmount() *type_proto.Coin {
 	if m != nil {
 		return m.Amount
 	}
@@ -195,19 +196,19 @@ func (m *TransferOperation) GetMemo() string {
 }
 
 type TransferToVestingOperation struct {
-	From                 *AccountName `protobuf:"bytes,1,opt,name=from" json:"from,omitempty"`
-	To                   *AccountName `protobuf:"bytes,2,opt,name=to" json:"to,omitempty"`
-	Amount               *Coin        `protobuf:"bytes,3,opt,name=amount" json:"amount,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}     `json:"-"`
-	XXX_unrecognized     []byte       `json:"-"`
-	XXX_sizecache        int32        `json:"-"`
+	From                 *type_proto.AccountName `protobuf:"bytes,1,opt,name=from" json:"from,omitempty"`
+	To                   *type_proto.AccountName `protobuf:"bytes,2,opt,name=to" json:"to,omitempty"`
+	Amount               *type_proto.Coin        `protobuf:"bytes,3,opt,name=amount" json:"amount,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}                `json:"-"`
+	XXX_unrecognized     []byte                  `json:"-"`
+	XXX_sizecache        int32                   `json:"-"`
 }
 
 func (m *TransferToVestingOperation) Reset()         { *m = TransferToVestingOperation{} }
 func (m *TransferToVestingOperation) String() string { return proto.CompactTextString(m) }
 func (*TransferToVestingOperation) ProtoMessage()    {}
 func (*TransferToVestingOperation) Descriptor() ([]byte, []int) {
-	return fileDescriptor_operation_81fb1dcb397c54db, []int{2}
+	return fileDescriptor_operation_27a862cb872ea0dd, []int{2}
 }
 func (m *TransferToVestingOperation) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -236,21 +237,21 @@ func (m *TransferToVestingOperation) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_TransferToVestingOperation proto.InternalMessageInfo
 
-func (m *TransferToVestingOperation) GetFrom() *AccountName {
+func (m *TransferToVestingOperation) GetFrom() *type_proto.AccountName {
 	if m != nil {
 		return m.From
 	}
 	return nil
 }
 
-func (m *TransferToVestingOperation) GetTo() *AccountName {
+func (m *TransferToVestingOperation) GetTo() *type_proto.AccountName {
 	if m != nil {
 		return m.To
 	}
 	return nil
 }
 
-func (m *TransferToVestingOperation) GetAmount() *Coin {
+func (m *TransferToVestingOperation) GetAmount() *type_proto.Coin {
 	if m != nil {
 		return m.Amount
 	}
@@ -258,20 +259,20 @@ func (m *TransferToVestingOperation) GetAmount() *Coin {
 }
 
 type VoteOperation struct {
-	Voter                *AccountName `protobuf:"bytes,1,opt,name=voter" json:"voter,omitempty"`
-	Author               *AccountName `protobuf:"bytes,2,opt,name=author" json:"author,omitempty"`
-	Permlink             string       `protobuf:"bytes,3,opt,name=permlink,proto3" json:"permlink,omitempty"`
-	Weight               int32        `protobuf:"varint,4,opt,name=weight,proto3" json:"weight,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}     `json:"-"`
-	XXX_unrecognized     []byte       `json:"-"`
-	XXX_sizecache        int32        `json:"-"`
+	Voter                *type_proto.AccountName `protobuf:"bytes,1,opt,name=voter" json:"voter,omitempty"`
+	Author               *type_proto.AccountName `protobuf:"bytes,2,opt,name=author" json:"author,omitempty"`
+	Permlink             string                  `protobuf:"bytes,3,opt,name=permlink,proto3" json:"permlink,omitempty"`
+	Weight               int32                   `protobuf:"varint,4,opt,name=weight,proto3" json:"weight,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}                `json:"-"`
+	XXX_unrecognized     []byte                  `json:"-"`
+	XXX_sizecache        int32                   `json:"-"`
 }
 
 func (m *VoteOperation) Reset()         { *m = VoteOperation{} }
 func (m *VoteOperation) String() string { return proto.CompactTextString(m) }
 func (*VoteOperation) ProtoMessage()    {}
 func (*VoteOperation) Descriptor() ([]byte, []int) {
-	return fileDescriptor_operation_81fb1dcb397c54db, []int{3}
+	return fileDescriptor_operation_27a862cb872ea0dd, []int{3}
 }
 func (m *VoteOperation) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -300,14 +301,14 @@ func (m *VoteOperation) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_VoteOperation proto.InternalMessageInfo
 
-func (m *VoteOperation) GetVoter() *AccountName {
+func (m *VoteOperation) GetVoter() *type_proto.AccountName {
 	if m != nil {
 		return m.Voter
 	}
 	return nil
 }
 
-func (m *VoteOperation) GetAuthor() *AccountName {
+func (m *VoteOperation) GetAuthor() *type_proto.AccountName {
 	if m != nil {
 		return m.Author
 	}
@@ -329,21 +330,21 @@ func (m *VoteOperation) GetWeight() int32 {
 }
 
 type WitnessUpdateOperation struct {
-	Owner                *AccountName     `protobuf:"bytes,1,opt,name=owner" json:"owner,omitempty"`
-	Url                  string           `protobuf:"bytes,2,opt,name=url,proto3" json:"url,omitempty"`
-	BlockSigningKey      *PublicKeyType   `protobuf:"bytes,3,opt,name=block_signing_key,json=blockSigningKey" json:"block_signing_key,omitempty"`
-	Props                *ChainProperties `protobuf:"bytes,4,opt,name=props" json:"props,omitempty"`
-	Fee                  *Coin            `protobuf:"bytes,5,opt,name=fee" json:"fee,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}         `json:"-"`
-	XXX_unrecognized     []byte           `json:"-"`
-	XXX_sizecache        int32            `json:"-"`
+	Owner                *type_proto.AccountName     `protobuf:"bytes,1,opt,name=owner" json:"owner,omitempty"`
+	Url                  string                      `protobuf:"bytes,2,opt,name=url,proto3" json:"url,omitempty"`
+	BlockSigningKey      *type_proto.PublicKeyType   `protobuf:"bytes,3,opt,name=block_signing_key,json=blockSigningKey" json:"block_signing_key,omitempty"`
+	Props                *type_proto.ChainProperties `protobuf:"bytes,4,opt,name=props" json:"props,omitempty"`
+	Fee                  *type_proto.Coin            `protobuf:"bytes,5,opt,name=fee" json:"fee,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}                    `json:"-"`
+	XXX_unrecognized     []byte                      `json:"-"`
+	XXX_sizecache        int32                       `json:"-"`
 }
 
 func (m *WitnessUpdateOperation) Reset()         { *m = WitnessUpdateOperation{} }
 func (m *WitnessUpdateOperation) String() string { return proto.CompactTextString(m) }
 func (*WitnessUpdateOperation) ProtoMessage()    {}
 func (*WitnessUpdateOperation) Descriptor() ([]byte, []int) {
-	return fileDescriptor_operation_81fb1dcb397c54db, []int{4}
+	return fileDescriptor_operation_27a862cb872ea0dd, []int{4}
 }
 func (m *WitnessUpdateOperation) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -372,7 +373,7 @@ func (m *WitnessUpdateOperation) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_WitnessUpdateOperation proto.InternalMessageInfo
 
-func (m *WitnessUpdateOperation) GetOwner() *AccountName {
+func (m *WitnessUpdateOperation) GetOwner() *type_proto.AccountName {
 	if m != nil {
 		return m.Owner
 	}
@@ -386,21 +387,21 @@ func (m *WitnessUpdateOperation) GetUrl() string {
 	return ""
 }
 
-func (m *WitnessUpdateOperation) GetBlockSigningKey() *PublicKeyType {
+func (m *WitnessUpdateOperation) GetBlockSigningKey() *type_proto.PublicKeyType {
 	if m != nil {
 		return m.BlockSigningKey
 	}
 	return nil
 }
 
-func (m *WitnessUpdateOperation) GetProps() *ChainProperties {
+func (m *WitnessUpdateOperation) GetProps() *type_proto.ChainProperties {
 	if m != nil {
 		return m.Props
 	}
 	return nil
 }
 
-func (m *WitnessUpdateOperation) GetFee() *Coin {
+func (m *WitnessUpdateOperation) GetFee() *type_proto.Coin {
 	if m != nil {
 		return m.Fee
 	}
@@ -408,19 +409,19 @@ func (m *WitnessUpdateOperation) GetFee() *Coin {
 }
 
 type FollowOperation struct {
-	Follower             *AccountName    `protobuf:"bytes,1,opt,name=follower" json:"follower,omitempty"`
-	Following            *AccountName    `protobuf:"bytes,2,opt,name=following" json:"following,omitempty"`
-	What                 map[string]bool `protobuf:"bytes,3,rep,name=what" json:"what,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"`
-	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
-	XXX_unrecognized     []byte          `json:"-"`
-	XXX_sizecache        int32           `json:"-"`
+	Follower             *type_proto.AccountName `protobuf:"bytes,1,opt,name=follower" json:"follower,omitempty"`
+	Following            *type_proto.AccountName `protobuf:"bytes,2,opt,name=following" json:"following,omitempty"`
+	What                 map[string]bool         `protobuf:"bytes,3,rep,name=what" json:"what,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"`
+	XXX_NoUnkeyedLiteral struct{}                `json:"-"`
+	XXX_unrecognized     []byte                  `json:"-"`
+	XXX_sizecache        int32                   `json:"-"`
 }
 
 func (m *FollowOperation) Reset()         { *m = FollowOperation{} }
 func (m *FollowOperation) String() string { return proto.CompactTextString(m) }
 func (*FollowOperation) ProtoMessage()    {}
 func (*FollowOperation) Descriptor() ([]byte, []int) {
-	return fileDescriptor_operation_81fb1dcb397c54db, []int{5}
+	return fileDescriptor_operation_27a862cb872ea0dd, []int{5}
 }
 func (m *FollowOperation) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -449,14 +450,14 @@ func (m *FollowOperation) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_FollowOperation proto.InternalMessageInfo
 
-func (m *FollowOperation) GetFollower() *AccountName {
+func (m *FollowOperation) GetFollower() *type_proto.AccountName {
 	if m != nil {
 		return m.Follower
 	}
 	return nil
 }
 
-func (m *FollowOperation) GetFollowing() *AccountName {
+func (m *FollowOperation) GetFollowing() *type_proto.AccountName {
 	if m != nil {
 		return m.Following
 	}
@@ -875,9 +876,6 @@ func encodeVarintOperation(dAtA []byte, offset int, v uint64) int {
 	return offset + 1
 }
 func (m *AccountCreateOperation) Size() (n int) {
-	if m == nil {
-		return 0
-	}
 	var l int
 	_ = l
 	if m.Fee != nil {
@@ -919,9 +917,6 @@ func (m *AccountCreateOperation) Size() (n int) {
 }
 
 func (m *TransferOperation) Size() (n int) {
-	if m == nil {
-		return 0
-	}
 	var l int
 	_ = l
 	if m.From != nil {
@@ -947,9 +942,6 @@ func (m *TransferOperation) Size() (n int) {
 }
 
 func (m *TransferToVestingOperation) Size() (n int) {
-	if m == nil {
-		return 0
-	}
 	var l int
 	_ = l
 	if m.From != nil {
@@ -971,9 +963,6 @@ func (m *TransferToVestingOperation) Size() (n int) {
 }
 
 func (m *VoteOperation) Size() (n int) {
-	if m == nil {
-		return 0
-	}
 	var l int
 	_ = l
 	if m.Voter != nil {
@@ -998,9 +987,6 @@ func (m *VoteOperation) Size() (n int) {
 }
 
 func (m *WitnessUpdateOperation) Size() (n int) {
-	if m == nil {
-		return 0
-	}
 	var l int
 	_ = l
 	if m.Owner != nil {
@@ -1030,9 +1016,6 @@ func (m *WitnessUpdateOperation) Size() (n int) {
 }
 
 func (m *FollowOperation) Size() (n int) {
-	if m == nil {
-		return 0
-	}
 	var l int
 	_ = l
 	if m.Follower != nil {
@@ -1126,7 +1109,7 @@ func (m *AccountCreateOperation) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Fee == nil {
-				m.Fee = &Coin{}
+				m.Fee = &type_proto.Coin{}
 			}
 			if err := m.Fee.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -1159,7 +1142,7 @@ func (m *AccountCreateOperation) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Creator == nil {
-				m.Creator = &AccountName{}
+				m.Creator = &type_proto.AccountName{}
 			}
 			if err := m.Creator.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -1192,7 +1175,7 @@ func (m *AccountCreateOperation) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.NewAccountName == nil {
-				m.NewAccountName = &AccountName{}
+				m.NewAccountName = &type_proto.AccountName{}
 			}
 			if err := m.NewAccountName.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -1225,7 +1208,7 @@ func (m *AccountCreateOperation) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Owner == nil {
-				m.Owner = &Authority{}
+				m.Owner = &type_proto.Authority{}
 			}
 			if err := m.Owner.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -1258,7 +1241,7 @@ func (m *AccountCreateOperation) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Active == nil {
-				m.Active = &Authority{}
+				m.Active = &type_proto.Authority{}
 			}
 			if err := m.Active.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -1291,7 +1274,7 @@ func (m *AccountCreateOperation) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Posting == nil {
-				m.Posting = &Authority{}
+				m.Posting = &type_proto.Authority{}
 			}
 			if err := m.Posting.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -1324,7 +1307,7 @@ func (m *AccountCreateOperation) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.MemoKey == nil {
-				m.MemoKey = &PublicKeyType{}
+				m.MemoKey = &type_proto.PublicKeyType{}
 			}
 			if err := m.MemoKey.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -1437,7 +1420,7 @@ func (m *TransferOperation) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.From == nil {
-				m.From = &AccountName{}
+				m.From = &type_proto.AccountName{}
 			}
 			if err := m.From.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -1470,7 +1453,7 @@ func (m *TransferOperation) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.To == nil {
-				m.To = &AccountName{}
+				m.To = &type_proto.AccountName{}
 			}
 			if err := m.To.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -1503,7 +1486,7 @@ func (m *TransferOperation) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Amount == nil {
-				m.Amount = &Coin{}
+				m.Amount = &type_proto.Coin{}
 			}
 			if err := m.Amount.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -1616,7 +1599,7 @@ func (m *TransferToVestingOperation) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.From == nil {
-				m.From = &AccountName{}
+				m.From = &type_proto.AccountName{}
 			}
 			if err := m.From.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -1649,7 +1632,7 @@ func (m *TransferToVestingOperation) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.To == nil {
-				m.To = &AccountName{}
+				m.To = &type_proto.AccountName{}
 			}
 			if err := m.To.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -1682,7 +1665,7 @@ func (m *TransferToVestingOperation) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Amount == nil {
-				m.Amount = &Coin{}
+				m.Amount = &type_proto.Coin{}
 			}
 			if err := m.Amount.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -1766,7 +1749,7 @@ func (m *VoteOperation) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Voter == nil {
-				m.Voter = &AccountName{}
+				m.Voter = &type_proto.AccountName{}
 			}
 			if err := m.Voter.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -1799,7 +1782,7 @@ func (m *VoteOperation) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Author == nil {
-				m.Author = &AccountName{}
+				m.Author = &type_proto.AccountName{}
 			}
 			if err := m.Author.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -1931,7 +1914,7 @@ func (m *WitnessUpdateOperation) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Owner == nil {
-				m.Owner = &AccountName{}
+				m.Owner = &type_proto.AccountName{}
 			}
 			if err := m.Owner.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -1993,7 +1976,7 @@ func (m *WitnessUpdateOperation) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.BlockSigningKey == nil {
-				m.BlockSigningKey = &PublicKeyType{}
+				m.BlockSigningKey = &type_proto.PublicKeyType{}
 			}
 			if err := m.BlockSigningKey.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -2026,7 +2009,7 @@ func (m *WitnessUpdateOperation) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Props == nil {
-				m.Props = &ChainProperties{}
+				m.Props = &type_proto.ChainProperties{}
 			}
 			if err := m.Props.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -2059,7 +2042,7 @@ func (m *WitnessUpdateOperation) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Fee == nil {
-				m.Fee = &Coin{}
+				m.Fee = &type_proto.Coin{}
 			}
 			if err := m.Fee.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -2143,7 +2126,7 @@ func (m *FollowOperation) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Follower == nil {
-				m.Follower = &AccountName{}
+				m.Follower = &type_proto.AccountName{}
 			}
 			if err := m.Follower.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -2176,7 +2159,7 @@ func (m *FollowOperation) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Following == nil {
-				m.Following = &AccountName{}
+				m.Following = &type_proto.AccountName{}
 			}
 			if err := m.Following.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -2418,47 +2401,48 @@ var (
 	ErrIntOverflowOperation   = fmt.Errorf("proto: integer overflow")
 )
 
-func init() { proto.RegisterFile("operation.proto", fileDescriptor_operation_81fb1dcb397c54db) }
+func init() { proto.RegisterFile("operation.proto", fileDescriptor_operation_27a862cb872ea0dd) }
 
-var fileDescriptor_operation_81fb1dcb397c54db = []byte{
-	// 609 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xcc, 0x54, 0xcd, 0x6e, 0xd3, 0x4c,
-	0x14, 0xfd, 0x26, 0x89, 0x93, 0xf8, 0xf6, 0xa3, 0x0d, 0xa3, 0x0a, 0xac, 0x20, 0xa2, 0x12, 0x84,
-	0x5a, 0xf1, 0x13, 0xd4, 0x56, 0x15, 0x3f, 0xbb, 0x22, 0xc1, 0x06, 0xc1, 0xc2, 0x2c, 0x58, 0x5a,
-	0x53, 0xf7, 0xa6, 0x19, 0x62, 0xcf, 0x58, 0xe3, 0x49, 0xac, 0xbc, 0x09, 0x6c, 0x58, 0x21, 0xf1,
-	0x2a, 0x2c, 0x79, 0x04, 0x54, 0xde, 0x80, 0x1d, 0x3b, 0x34, 0x33, 0x4e, 0x30, 0x45, 0x8d, 0xb7,
-	0x6c, 0x92, 0x99, 0x7b, 0xcf, 0xb1, 0xcf, 0x9c, 0x73, 0x3d, 0xb0, 0x25, 0x33, 0x54, 0x4c, 0x73,
-	0x29, 0x46, 0x99, 0x92, 0x5a, 0x52, 0xdf, 0xfe, 0xe9, 0x45, 0x86, 0x7d, 0x30, 0xbf, 0xae, 0x3c,
-	0xfc, 0xd0, 0x84, 0x80, 0xc5, 0xb1, 0x9c, 0x09, 0x1d, 0xc5, 0x0a, 0x99, 0xc6, 0x68, 0xc5, 0xa4,
-	0xb7, 0xa0, 0x39, 0x46, 0x0c, 0xc8, 0x0e, 0xd9, 0xdb, 0x38, 0xd8, 0x1a, 0xad, 0x9e, 0x30, 0x8a,
-	0x25, 0x17, 0xa1, 0xe9, 0xd1, 0x7d, 0xe8, 0x58, 0x9a, 0x54, 0x41, 0xc3, 0xc2, 0xae, 0x57, 0x60,
-	0xcb, 0x07, 0x0b, 0x96, 0x62, 0xb8, 0xc4, 0xd1, 0x63, 0xe8, 0x09, 0x2c, 0xa2, 0x6a, 0x33, 0x68,
-	0xae, 0xe7, 0x6e, 0x0a, 0x2c, 0x8e, 0x5d, 0xe1, 0x35, 0x4b, 0x91, 0xde, 0x05, 0x4f, 0x16, 0x02,
-	0x55, 0xd0, 0xb2, 0xbc, 0xed, 0x2a, 0x6f, 0xa6, 0x27, 0x52, 0x71, 0xbd, 0x08, 0x1d, 0x84, 0xde,
-	0x87, 0x36, 0x8b, 0x35, 0x9f, 0x63, 0xe0, 0xad, 0x01, 0x97, 0x18, 0x3a, 0x82, 0x4e, 0x26, 0x73,
-	0xcd, 0xc5, 0x59, 0xd0, 0x5e, 0x03, 0x5f, 0x82, 0xe8, 0x11, 0x74, 0x53, 0x4c, 0x65, 0x34, 0xc5,
-	0x45, 0xd0, 0xb1, 0x84, 0x7e, 0x85, 0x90, 0xcd, 0x4e, 0x12, 0x1e, 0x9b, 0x66, 0x64, 0xf6, 0x61,
-	0xc7, 0x60, 0x5f, 0xe2, 0x82, 0xde, 0x86, 0x2b, 0xef, 0x72, 0x29, 0xa2, 0x14, 0x35, 0x3b, 0x65,
-	0x9a, 0x05, 0xdd, 0x1d, 0xb2, 0xe7, 0x87, 0xff, 0x9b, 0xe2, 0xab, 0xb2, 0x36, 0xfc, 0x4c, 0x80,
-	0x6a, 0xc5, 0x44, 0x3e, 0x46, 0x55, 0x49, 0xe5, 0x1e, 0xb4, 0xc6, 0x4a, 0xa6, 0x65, 0x2c, 0x97,
-	0x7a, 0x66, 0x41, 0x74, 0x17, 0x1a, 0x5a, 0xd6, 0x45, 0xd3, 0xd0, 0x92, 0xee, 0x42, 0x9b, 0xa5,
-	0xa6, 0x54, 0x66, 0xf1, 0x57, 0xdc, 0x65, 0x9b, 0x52, 0x68, 0x99, 0x53, 0x58, 0xeb, 0xfd, 0xd0,
-	0xae, 0x87, 0x1f, 0x09, 0xdc, 0x5c, 0x29, 0xd5, 0x32, 0x9a, 0xa3, 0x75, 0xe7, 0x9f, 0x11, 0x3d,
-	0xfc, 0x44, 0x60, 0x73, 0x2e, 0xff, 0x18, 0xee, 0x07, 0xe0, 0x99, 0x8a, 0xaa, 0x93, 0xe4, 0x50,
-	0xf4, 0x21, 0xb4, 0x5d, 0xfc, 0x75, 0xba, 0x4a, 0x18, 0xed, 0x43, 0x37, 0x43, 0x95, 0x26, 0x5c,
-	0x4c, 0xad, 0x3a, 0x3f, 0x5c, 0xed, 0xe9, 0x35, 0x68, 0x17, 0xc8, 0xcf, 0x26, 0xda, 0xba, 0xe8,
-	0x85, 0xe5, 0x6e, 0xf8, 0x93, 0x40, 0x50, 0x70, 0x2d, 0x30, 0xcf, 0xa3, 0x59, 0x76, 0xca, 0x2e,
-	0x0a, 0x76, 0x43, 0x5f, 0x27, 0xd8, 0xcd, 0x7d, 0x0f, 0x9a, 0x33, 0x95, 0x58, 0xb5, 0x7e, 0x68,
-	0x96, 0xf4, 0x05, 0x5c, 0x3d, 0x49, 0x64, 0x3c, 0x8d, 0x72, 0x7e, 0x26, 0x4c, 0x3c, 0x66, 0x68,
-	0x9b, 0xb5, 0x43, 0xbb, 0x65, 0x49, 0x6f, 0x1c, 0xc7, 0x0c, 0xef, 0x3e, 0x78, 0x99, 0x92, 0x59,
-	0x5e, 0x7e, 0x7d, 0x37, 0xaa, 0xa6, 0x4f, 0x18, 0x17, 0x91, 0xe9, 0xa2, 0xd2, 0x1c, 0xf3, 0xd0,
-	0x21, 0x97, 0x37, 0x89, 0x77, 0xf9, 0x4d, 0x32, 0xfc, 0x41, 0xa0, 0x37, 0x96, 0x49, 0x22, 0x8b,
-	0xca, 0x99, 0x0f, 0xa1, 0xeb, 0x6a, 0xf5, 0xc7, 0x5e, 0x01, 0xe9, 0x11, 0xf8, 0x6e, 0x6d, 0xbe,
-	0xe2, 0x9a, 0xb4, 0x7e, 0x23, 0xe9, 0x13, 0x68, 0x15, 0x13, 0x66, 0x46, 0xa9, 0xb9, 0xb7, 0x71,
-	0x70, 0xa7, 0xc2, 0xb8, 0x28, 0x6b, 0xf4, 0x76, 0xc2, 0xf4, 0x73, 0xa1, 0xd5, 0x22, 0xb4, 0x94,
-	0xfe, 0x23, 0xf0, 0x57, 0x25, 0x63, 0xbc, 0x31, 0x96, 0x38, 0xe3, 0xa7, 0xb8, 0xa0, 0xdb, 0xe0,
-	0xcd, 0x59, 0x32, 0x43, 0x2b, 0xa6, 0x1b, 0xba, 0xcd, 0xd3, 0xc6, 0x63, 0xf2, 0xac, 0xf7, 0xe5,
-	0x7c, 0x40, 0xbe, 0x9e, 0x0f, 0xc8, 0xb7, 0xf3, 0x01, 0x79, 0xff, 0x7d, 0xf0, 0xdf, 0x49, 0xdb,
-	0xbe, 0xf6, 0xf0, 0x57, 0x00, 0x00, 0x00, 0xff, 0xff, 0x9f, 0x75, 0x89, 0xc7, 0xc1, 0x05, 0x00,
-	0x00,
+var fileDescriptor_operation_27a862cb872ea0dd = []byte{
+	// 640 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xcc, 0x94, 0xcf, 0x6e, 0xd3, 0x4e,
+	0x10, 0xc7, 0x7f, 0xce, 0x7f, 0x4f, 0x7f, 0xb4, 0x61, 0x55, 0x81, 0x15, 0x44, 0x54, 0x82, 0x50,
+	0x2b, 0xa0, 0x89, 0xda, 0xaa, 0xe2, 0x8f, 0xb8, 0x14, 0x09, 0x2e, 0x08, 0x0e, 0xe6, 0xc0, 0xd1,
+	0xda, 0xb8, 0x93, 0xc4, 0xc4, 0xde, 0xb1, 0xd6, 0xeb, 0x58, 0x79, 0x13, 0xb8, 0x70, 0x42, 0xe2,
+	0x55, 0x38, 0xf2, 0x08, 0xa8, 0xbc, 0x01, 0x37, 0x6e, 0x68, 0xd7, 0x4e, 0x6a, 0x8a, 0x5a, 0x5f,
+	0x39, 0x65, 0x77, 0xe6, 0xf3, 0xcd, 0x7e, 0x77, 0x66, 0xbc, 0xb0, 0x45, 0x31, 0x4a, 0xae, 0x02,
+	0x12, 0xc3, 0x58, 0x92, 0x22, 0x66, 0x9b, 0x1f, 0xb5, 0x8c, 0xb1, 0xf7, 0x6c, 0x1a, 0xa8, 0x59,
+	0x3a, 0x1e, 0xfa, 0x14, 0x8d, 0x7c, 0x4a, 0xfc, 0x19, 0x0f, 0xc4, 0xc8, 0x27, 0xa1, 0x50, 0x28,
+	0x4a, 0xf6, 0xa7, 0x34, 0x32, 0xec, 0x48, 0xc3, 0xfb, 0xe7, 0xcb, 0xfc, 0x8f, 0x06, 0x1f, 0xeb,
+	0xe0, 0x70, 0xdf, 0xa7, 0x54, 0x28, 0xcf, 0x97, 0xc8, 0x15, 0x7a, 0xeb, 0xb3, 0xd8, 0x1d, 0xa8,
+	0x4f, 0x10, 0x1d, 0x6b, 0xc7, 0xda, 0xdb, 0x38, 0xdc, 0x1a, 0xae, 0xcf, 0x1c, 0xfa, 0x14, 0x08,
+	0x57, 0xe7, 0xd8, 0x01, 0xb4, 0x8d, 0x8c, 0xa4, 0x53, 0x33, 0xd8, 0xcd, 0x12, 0xb6, 0xfa, 0x63,
+	0xc1, 0x23, 0x74, 0x57, 0x1c, 0x3b, 0x81, 0xae, 0xc0, 0xcc, 0x2b, 0x27, 0x9d, 0xfa, 0xd5, 0xda,
+	0x4d, 0x81, 0xd9, 0x49, 0x1e, 0x78, 0xc3, 0x23, 0x64, 0xf7, 0xa1, 0x49, 0x99, 0x40, 0xe9, 0x34,
+	0x8c, 0x6e, 0xbb, 0xac, 0x4b, 0xd5, 0x8c, 0x64, 0xa0, 0x96, 0x6e, 0x8e, 0xb0, 0x87, 0xd0, 0xe2,
+	0xbe, 0x0a, 0x16, 0xe8, 0x34, 0xaf, 0x80, 0x0b, 0x86, 0x0d, 0xa1, 0x1d, 0x53, 0xa2, 0x02, 0x31,
+	0x75, 0x5a, 0x57, 0xe0, 0x2b, 0x88, 0x1d, 0x43, 0x27, 0xc2, 0x88, 0xbc, 0x39, 0x2e, 0x9d, 0xb6,
+	0x11, 0xf4, 0x4a, 0x82, 0x38, 0x1d, 0x87, 0x81, 0xaf, 0x93, 0x9e, 0xde, 0xbb, 0x6d, 0xcd, 0xbe,
+	0xc2, 0x25, 0xbb, 0x0b, 0xd7, 0xde, 0x27, 0x24, 0xbc, 0x08, 0x15, 0x3f, 0xe5, 0x8a, 0x3b, 0x9d,
+	0x1d, 0x6b, 0xcf, 0x76, 0xff, 0xd7, 0xc1, 0xd7, 0x45, 0x6c, 0xf0, 0xc5, 0x02, 0xa6, 0x24, 0x17,
+	0xc9, 0x04, 0x65, 0xa9, 0x2b, 0x0f, 0xa0, 0x31, 0x91, 0x14, 0x15, 0x6d, 0xb9, 0xb4, 0x66, 0x06,
+	0x62, 0xbb, 0x50, 0x53, 0x54, 0xd5, 0x9a, 0x9a, 0x22, 0xb6, 0x0b, 0x2d, 0x1e, 0xe9, 0x50, 0xd1,
+	0x8b, 0xbf, 0xda, 0x5d, 0xa4, 0x19, 0x83, 0x86, 0xbe, 0x85, 0x29, 0xbd, 0xed, 0x9a, 0xf5, 0xe0,
+	0x93, 0x05, 0xb7, 0xd7, 0x4e, 0x15, 0x79, 0x0b, 0x34, 0xd5, 0xf9, 0x67, 0x4c, 0x0f, 0x3e, 0x5b,
+	0xb0, 0xb9, 0xa0, 0x3f, 0x86, 0x7b, 0x1f, 0x9a, 0x3a, 0x22, 0xab, 0x2c, 0xe5, 0x14, 0x1b, 0x41,
+	0x2b, 0x6f, 0x7f, 0x95, 0xaf, 0x02, 0x63, 0x3d, 0xe8, 0xc4, 0x28, 0xa3, 0x30, 0x10, 0x73, 0xe3,
+	0xce, 0x76, 0xd7, 0x7b, 0x76, 0x03, 0x5a, 0x19, 0x06, 0xd3, 0x99, 0x32, 0x55, 0x6c, 0xba, 0xc5,
+	0x6e, 0xf0, 0xcb, 0x02, 0x27, 0x0b, 0x94, 0xc0, 0x24, 0xf1, 0xd2, 0xf8, 0x94, 0x5f, 0x34, 0x9c,
+	0x0f, 0x7d, 0x95, 0xe1, 0x7c, 0xee, 0xbb, 0x50, 0x4f, 0x65, 0x68, 0xdc, 0xda, 0xae, 0x5e, 0xb2,
+	0x97, 0x70, 0x7d, 0x1c, 0x92, 0x3f, 0xf7, 0x92, 0x60, 0x2a, 0x74, 0x7b, 0xf4, 0xd0, 0xd6, 0x2b,
+	0x87, 0x76, 0xcb, 0x88, 0xde, 0xe6, 0x1a, 0x3d, 0xbc, 0x07, 0xd0, 0x8c, 0x25, 0xc5, 0x49, 0xf1,
+	0xf5, 0xdd, 0x2a, 0x17, 0x5d, 0xbf, 0x3e, 0x9e, 0xce, 0xa2, 0x54, 0x01, 0x26, 0x6e, 0x4e, 0xae,
+	0x5e, 0x92, 0xe6, 0xe5, 0x2f, 0xc9, 0xe0, 0xa7, 0x05, 0xdd, 0x09, 0x85, 0x21, 0x65, 0xa5, 0x3b,
+	0x1f, 0x41, 0x27, 0x8f, 0x55, 0x5f, 0x7b, 0x0d, 0xb2, 0x63, 0xb0, 0xf3, 0xb5, 0xfe, 0x8a, 0x2b,
+	0xba, 0x75, 0x4e, 0xb2, 0x27, 0xd0, 0xc8, 0x66, 0x5c, 0x8f, 0x52, 0x7d, 0x6f, 0xe3, 0xf0, 0x5e,
+	0x49, 0x71, 0xd1, 0xd6, 0xf0, 0xdd, 0x8c, 0xab, 0x17, 0x42, 0xc9, 0xa5, 0x6b, 0x24, 0xbd, 0x47,
+	0x60, 0xaf, 0x43, 0xba, 0xf0, 0xba, 0xb0, 0x56, 0x5e, 0xf8, 0x39, 0x2e, 0xd9, 0x36, 0x34, 0x17,
+	0x3c, 0x4c, 0xd1, 0x98, 0xe9, 0xb8, 0xf9, 0xe6, 0x69, 0xed, 0xb1, 0xf5, 0xbc, 0xfb, 0xf5, 0xac,
+	0x6f, 0x7d, 0x3b, 0xeb, 0x5b, 0xdf, 0xcf, 0xfa, 0xd6, 0x87, 0x1f, 0xfd, 0xff, 0xc6, 0x2d, 0x73,
+	0xec, 0xd1, 0xef, 0x00, 0x00, 0x00, 0xff, 0xff, 0x7e, 0x72, 0x21, 0xc3, 0xf3, 0x05, 0x00, 0x00,
 }

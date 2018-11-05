@@ -1307,9 +1307,6 @@ func encodeVarintType(dAtA []byte, offset int, v uint64) int {
 	return offset + 1
 }
 func (m *Uint128) Size() (n int) {
-	if m == nil {
-		return 0
-	}
 	var l int
 	_ = l
 	if m.Hi != 0 {
@@ -1325,9 +1322,6 @@ func (m *Uint128) Size() (n int) {
 }
 
 func (m *AccountName) Size() (n int) {
-	if m == nil {
-		return 0
-	}
 	var l int
 	_ = l
 	l = len(m.Value)
@@ -1341,9 +1335,6 @@ func (m *AccountName) Size() (n int) {
 }
 
 func (m *ChainId) Size() (n int) {
-	if m == nil {
-		return 0
-	}
 	var l int
 	_ = l
 	if m.Value != 0 {
@@ -1356,9 +1347,6 @@ func (m *ChainId) Size() (n int) {
 }
 
 func (m *Safe64) Size() (n int) {
-	if m == nil {
-		return 0
-	}
 	var l int
 	_ = l
 	if m.Value != 0 {
@@ -1371,9 +1359,6 @@ func (m *Safe64) Size() (n int) {
 }
 
 func (m *Coin) Size() (n int) {
-	if m == nil {
-		return 0
-	}
 	var l int
 	_ = l
 	if m.Amount != nil {
@@ -1387,9 +1372,6 @@ func (m *Coin) Size() (n int) {
 }
 
 func (m *Vest) Size() (n int) {
-	if m == nil {
-		return 0
-	}
 	var l int
 	_ = l
 	if m.Amount != nil {
@@ -1403,9 +1385,6 @@ func (m *Vest) Size() (n int) {
 }
 
 func (m *PublicKeyType) Size() (n int) {
-	if m == nil {
-		return 0
-	}
 	var l int
 	_ = l
 	l = len(m.Data)
@@ -1419,9 +1398,6 @@ func (m *PublicKeyType) Size() (n int) {
 }
 
 func (m *PrivateKeyType) Size() (n int) {
-	if m == nil {
-		return 0
-	}
 	var l int
 	_ = l
 	l = len(m.Data)
@@ -1435,9 +1411,6 @@ func (m *PrivateKeyType) Size() (n int) {
 }
 
 func (m *KvAccountAuth) Size() (n int) {
-	if m == nil {
-		return 0
-	}
 	var l int
 	_ = l
 	if m.Name != nil {
@@ -1454,9 +1427,6 @@ func (m *KvAccountAuth) Size() (n int) {
 }
 
 func (m *KvKeyAuth) Size() (n int) {
-	if m == nil {
-		return 0
-	}
 	var l int
 	_ = l
 	if m.Key != nil {
@@ -1473,9 +1443,6 @@ func (m *KvKeyAuth) Size() (n int) {
 }
 
 func (m *Authority) Size() (n int) {
-	if m == nil {
-		return 0
-	}
 	var l int
 	_ = l
 	if m.Cf != 0 {
@@ -1503,9 +1470,6 @@ func (m *Authority) Size() (n int) {
 }
 
 func (m *TimePointSec) Size() (n int) {
-	if m == nil {
-		return 0
-	}
 	var l int
 	_ = l
 	if m.UtcSeconds != 0 {
@@ -1518,9 +1482,6 @@ func (m *TimePointSec) Size() (n int) {
 }
 
 func (m *SignatureType) Size() (n int) {
-	if m == nil {
-		return 0
-	}
 	var l int
 	_ = l
 	l = len(m.Sig)
@@ -1534,9 +1495,6 @@ func (m *SignatureType) Size() (n int) {
 }
 
 func (m *Sha256) Size() (n int) {
-	if m == nil {
-		return 0
-	}
 	var l int
 	_ = l
 	l = len(m.Hash)
@@ -1550,9 +1508,6 @@ func (m *Sha256) Size() (n int) {
 }
 
 func (m *ChainProperties) Size() (n int) {
-	if m == nil {
-		return 0
-	}
 	var l int
 	_ = l
 	if m.AccountCreationFee != nil {
