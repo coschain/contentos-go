@@ -22,7 +22,7 @@ func Test_Serialize(t *testing.T) {
 			WeightThreshold: 1,
 			AccountAuths: []*KvAccountAuth{
 				&KvAccountAuth{
-					Key:    &AccountName{Value: "alice"},
+					Name:    &AccountName{Value: "alice"},
 					Weight: 3,
 				},
 			},

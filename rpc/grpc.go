@@ -1,7 +1,7 @@
 package rpc
 
 import (
-	"github.com/coschain/contentos-go/common/type-proto"
+	"github.com/coschain/contentos-go/common/prototype"
 	"github.com/coschain/contentos-go/rpc/pb"
 	context "golang.org/x/net/context"
 )

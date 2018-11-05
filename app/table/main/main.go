@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/db/storage"
-	base "github.com/coschain/contentos-go/common/type-proto"
+	base "github.com/coschain/contentos-go/common/prototype"
 )
 
 func main() {

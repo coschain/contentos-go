@@ -3,7 +3,7 @@ package app
 import (
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/common/constants"
-	"github.com/coschain/contentos-go/common/type-proto"
+	"github.com/coschain/contentos-go/common/prototype"
 )
 
 type skipFlag uint32

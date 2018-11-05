@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package table;
 
-import "common/type-proto/type.proto";
+import "common/prototype/type.proto";
 
 message so_account {
     prototype.account_name        name                = 1;
