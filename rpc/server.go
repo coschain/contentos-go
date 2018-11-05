@@ -22,7 +22,7 @@ func NewGRPCServer() *GRPCServer {
 	srv := &GRPCServer{rpcServer:rpc}
 
 	api := &APIService{server:srv}
-	grpctype.RegisterApiServiceServer(rpc, api)
+	grpcpb.RegisterApiServiceServer(rpc, api)
 
 	return srv
 }

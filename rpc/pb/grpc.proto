@@ -4,9 +4,27 @@ import "google/api/annotations.proto";
 import "github.com/coschain/contentos-go/proto/type-proto/type.proto";
 import "github.com/coschain/contentos-go/proto/type-proto/transaction.proto";
 
-package grpctype;
+package grpcpb;
 
 /*
+Installation
+First you need to install ProtocolBuffers 3.0.0 or later.
+
+mkdir tmp
+cd tmp
+git clone https://github.com/google/protobuf
+cd protobuf
+./autogen.sh
+./configure
+make
+make check
+sudo make install
+Then, go get -u as usual the following packages:
+
+go get -u github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
+go get -u github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger
+go get -u github.com/golang/protobuf/protoc-gen-go
+
 compile:
 protoc -I/usr/local/include -I. -I$GOPATH/src -I$GOPATH/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis --go_out=plugins=grpc:. grpc.proto
 */

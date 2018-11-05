@@ -7,43 +7,42 @@ import (
 )
 
 type APIService struct {
-	server *GRPCServer
+	server RPCServer
 }
 
-func (as *APIService) GetAccountByName(ctx context.Context, req *grpctype.GetAccountByNameRequest) (*grpctype.AccountResponse, error) {
-	account := &grpctype.AccountResponse{AccountName: &prototype.AccountName{Value: "Jack"}}
+func (as *APIService) GetAccountByName(ctx context.Context, req *grpcpb.GetAccountByNameRequest) (*grpcpb.AccountResponse, error) {
+	account := &grpcpb.AccountResponse{AccountName: &prototype.AccountName{Value: "Jack'name value"}}
 	return account, nil
 }
 
-func (as *APIService) GetFollowerListByName(ctx context.Context, req *grpctype.GetFollowerListByNameRequest) (*grpctype.GetFollowerListByNameResponse, error) {
-	return nil, nil
+func (as *APIService) GetFollowerListByName(ctx context.Context, req *grpcpb.GetFollowerListByNameRequest) (*grpcpb.GetFollowerListByNameResponse, error) {
+	return &grpcpb.GetFollowerListByNameResponse{}, nil
 }
 
-func (as *APIService) GetFollowingListByName(ctx context.Context, req *grpctype.GetFollowingListByNameRequest) (*grpctype.GetFollowingListByNameResponse, error) {
-	return nil, nil
+func (as *APIService) GetFollowingListByName(ctx context.Context, req *grpcpb.GetFollowingListByNameRequest) (*grpcpb.GetFollowingListByNameResponse, error) {
+	return &grpcpb.GetFollowingListByNameResponse{}, nil
 }
 
-func (as *APIService) GetWitnessList(ctx context.Context, req *grpctype.GetWitnessListRequest) (*grpctype.GetWitnessListResponse, error) {
-	return nil, nil
+func (as *APIService) GetWitnessList(ctx context.Context, req *grpcpb.GetWitnessListRequest) (*grpcpb.GetWitnessListResponse, error) {
+	return &grpcpb.GetWitnessListResponse{}, nil
 }
 
-func (as *APIService) GetPostListByCreated(ctx context.Context, req *grpctype.GetPostListByCreatedRequest) (*grpctype.GetPostListByCreatedResponse, error) {
-	return nil, nil
+func (as *APIService) GetPostListByCreated(ctx context.Context, req *grpcpb.GetPostListByCreatedRequest) (*grpcpb.GetPostListByCreatedResponse, error) {
+	return &grpcpb.GetPostListByCreatedResponse{}, nil
 }
 
-func (as *APIService) GetReplayListByPostId(ctx context.Context, req *grpctype.GetReplayListByPostIdRequest) (*grpctype.GetReplayListByPostIdResponse, error) {
-	return nil, nil
+func (as *APIService) GetReplayListByPostId(ctx context.Context, req *grpcpb.GetReplayListByPostIdRequest) (*grpcpb.GetReplayListByPostIdResponse, error) {
+	return &grpcpb.GetReplayListByPostIdResponse{}, nil
 }
 
-func (as *APIService) GetBlockTransactionsByNum(ctx context.Context, req *grpctype.GetBlockTransactionsByNumRequest) (*grpctype.GetBlockTransactionsByNumResponse, error) {
-	return nil, nil
+func (as *APIService) GetBlockTransactionsByNum(ctx context.Context, req *grpcpb.GetBlockTransactionsByNumRequest) (*grpcpb.GetBlockTransactionsByNumResponse, error) {
+	return &grpcpb.GetBlockTransactionsByNumResponse{}, nil
 }
 
-func (as *APIService) GetTrxById(ctx context.Context, req *grpctype.GetTrxByIdRequest) (*grpctype.GetTrxByIdResponse, error) {
-	return nil, nil
+func (as *APIService) GetTrxById(ctx context.Context, req *grpcpb.GetTrxByIdRequest) (*grpcpb.GetTrxByIdResponse, error) {
+	return &grpcpb.GetTrxByIdResponse{}, nil
 }
 
-func (as *APIService) BroadcastTrx(ctx context.Context, req *grpctype.BroadcastTrxRequest) (*grpctype.BroadcastTrxResponse, error) {
-	return nil, nil
+func (as *APIService) BroadcastTrx(ctx context.Context, req *grpcpb.BroadcastTrxRequest) (*grpcpb.BroadcastTrxResponse, error) {
+	return &grpcpb.BroadcastTrxResponse{}, nil
 }
-
