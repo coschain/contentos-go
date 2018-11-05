@@ -12,9 +12,6 @@ import (
 var rootCmd = &cobra.Command{
 	Use:   "wallet",
 	Short: "wallet is a key-pair storage",
-	//Run: func(cmd *cobra.Command, args []string) {
-	//	runShell()
-	//},
 }
 
 func pcFromCommands(parent readline.PrefixCompleterInterface, c *cobra.Command) {
