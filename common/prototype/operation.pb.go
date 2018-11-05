@@ -6,7 +6,7 @@ package prototype
 import proto "github.com/golang/protobuf/proto"
 import fmt "fmt"
 import math "math"
-import type_proto "github.com/coschain/contentos-go/proto/type-proto"
+import type_proto "github.com/coschain/contentos-go/common/type-proto"
 
 import io "io"
 

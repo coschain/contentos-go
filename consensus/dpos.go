@@ -3,7 +3,7 @@ package consensus
 import (
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/db/forkdb"
-	"github.com/coschain/contentos-go/proto/type-proto"
+	"github.com/coschain/contentos-go/common/type-proto"
 )
 
 type Producer struct {

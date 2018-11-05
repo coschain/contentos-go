@@ -3,7 +3,7 @@ package rpc
 import (
 	"context"
 	"fmt"
-	type_proto "github.com/coschain/contentos-go/proto/type-proto"
+	type_proto "github.com/coschain/contentos-go/common/type-proto"
 	"github.com/coschain/contentos-go/rpc/pb"
 	"os"
 

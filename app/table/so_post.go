@@ -3,7 +3,7 @@ package table
 import (
 	"github.com/coschain/contentos-go/common/encoding"
 	"github.com/coschain/contentos-go/db/storage"
-	base "github.com/coschain/contentos-go/proto/type-proto"
+	base "github.com/coschain/contentos-go/common/type-proto"
 	"github.com/gogo/protobuf/proto"
 )
 

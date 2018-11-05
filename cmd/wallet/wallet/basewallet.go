@@ -6,7 +6,7 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
-	"github.com/coschain/contentos-go/proto/type-proto"
+	"github.com/coschain/contentos-go/common/type-proto"
 	"io"
 	"io/ioutil"
 	"os"

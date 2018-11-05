@@ -1,8 +1,8 @@
 syntax = "proto3";
 
 import "google/api/annotations.proto";
-import "github.com/coschain/contentos-go/proto/type-proto/type.proto";
-import "github.com/coschain/contentos-go/proto/type-proto/transaction.proto";
+import "common/type-proto/type.proto";
+import "common/type-proto/transaction.proto";
 
 package grpcpb;
 

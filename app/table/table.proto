@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package table;
 
-import "github.com/coschain/contentos-go/proto/type-proto/type.proto";
+import "common/type-proto/type.proto";
 
 message so_account {
     prototype.account_name        name                = 1;

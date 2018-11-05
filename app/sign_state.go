@@ -2,7 +2,7 @@ package app
 
 import (
 	"bytes"
-	"github.com/coschain/contentos-go/proto/type-proto"
+	"github.com/coschain/contentos-go/common/type-proto"
 )
 
 type authorityType uint16
