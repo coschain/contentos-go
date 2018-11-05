@@ -476,6 +476,7 @@ func (srv *Server) Start() (err error) {
 	if !srv.NoDiscovery || srv.DiscoveryV5 {
 		fmt.Println("listen address: ", srv.ListenAddr)
 		addr, err := net.ResolveUDPAddr("udp", srv.ListenAddr)
+		fmt.Println("after resolve udp listen address, IP: ", addr.IP, " Port: ", addr.Port)
 		if err != nil {
 			return err
 		}
@@ -484,8 +485,10 @@ func (srv *Server) Start() (err error) {
 			return err
 		}
 		realaddr = conn.LocalAddr().(*net.UDPAddr)
+		fmt.Println("after listen UDP", realaddr)
 		if srv.NAT != nil {
 			if !realaddr.IP.IsLoopback() {
+				fmt.Println("it is not a loopback address...")
 				go nat.Map(srv.NAT, srv.quit, "udp", realaddr.Port, realaddr.Port, "contentos discovery")
 			}
 			// TODO: react to external IP changes over time.
@@ -737,6 +740,11 @@ running:
 				if p.Inbound() {
 					inboundCount++
 				}
+
+				fmt.Println("Active peers:")
+				for k, _ := range peers {
+					fmt.Println("NodeID: ", k, "Peer: ", c.fd.RemoteAddr().Network(), " ", c.fd.RemoteAddr().String())
+				}
 			}
 			// The dialer logic relies on the assumption that
 			// dial tasks complete after the peer has been added or
@@ -915,6 +923,7 @@ func (srv *Server) setupConn(c *conn, flags connFlag, dialDest *discover.Node) e
 		return errServerStopped
 	}
 	// Run the encryption handshake.
+	// Establish encrypted channel
 	var err error
 	if c.id, err = c.doEncHandshake(srv.PrivateKey, dialDest); err != nil {
 		//srv.log.Trace("Failed RLPx handshake", "addr", c.fd.RemoteAddr(), "conn", c.flags, "err", err)
