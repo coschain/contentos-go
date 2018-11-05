@@ -3,7 +3,9 @@ package rpc
 import (
 	"context"
 	"fmt"
-	type_proto "github.com/coschain/contentos-go/common/prototype"
+	"github.com/coschain/contentos-go/common/prototype"
+	"github.com/coschain/contentos-go/node"
+	"github.com/coschain/contentos-go/p2p"
 	"github.com/coschain/contentos-go/rpc/pb"
 	"os"
 
@@ -13,8 +15,8 @@ import (
 var asc grpcpb.ApiServiceClient
 
 func TestMain(m *testing.M) {
-	gs := NewGRPCServer()
-	err := gs.Start()
+	gs := NewGRPCServer(&node.ServiceContext{})
+	err := gs.Start(&p2p.Server{})
 	if err != nil {
 		fmt.Print(err)
 	}
@@ -35,7 +37,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestGRPCApi_GetAccountByName(t *testing.T) {
-	req := &grpcpb.GetAccountByNameRequest{AccountName: &type_proto.AccountName{Value: "Jack"}}
+	req := &grpcpb.GetAccountByNameRequest{AccountName: &prototype.AccountName{Value: "Jack"}}
 	resp := &grpcpb.AccountResponse{}
 	resp, err := asc.GetAccountByName(context.Background(), req)
 	if err != nil {
