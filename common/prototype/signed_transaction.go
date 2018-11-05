@@ -52,6 +52,7 @@ func (p *SignedTransaction) VerifySig(pubKey *PublicKeyType, cid ChainId) bool {
 	}
 
 	for _, sig := range p.Signatures {
+		// TODO last bits verify ??
 		if secp256k1.VerifySignature(pubKey.Data, buf, sig.Sig[0:64]) {
 			return true
 		}
@@ -90,6 +91,7 @@ func (p *SignedTransaction) Sign(secKey *PrivateKeyType, cid ChainId) []byte {
 		return nil
 	}
 
+	// TODO canonical check
 	res, err := secp256k1.Sign(buf, secKey.Data)
 
 	if err != nil {
