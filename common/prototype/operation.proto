@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package prototype;
 
-import "common/type-proto/type.proto";
+import "common/prototype/type.proto";
 
 
 message account_create_operation{

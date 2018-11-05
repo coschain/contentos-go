@@ -2,8 +2,8 @@ syntax = "proto3";
 
 package prototype;
 
-import "common/type-proto/type.proto";
-import "common/type-proto/operation.proto";
+import "common/prototype/type.proto";
+import "common/prototype/operation.proto";
 
 message operation{
     oneof op{
