@@ -14,12 +14,6 @@ func testNodeConfig() Config {
 func TestNodeLifeCycle(t *testing.T) {
 	cfg := testNodeConfig()
 	stack, err := New(&cfg)
-	//stack.Register(func(ctx *ServiceContext) (Service, error) {
-	//	return timer.New(ctx)
-	//})
-	//stack.Register(func(ctx *ServiceContext) (Service, error) {
-	//	return printer.New(ctx)
-	//})
 	if err != nil {
 		t.Fatalf("failed to create node: %v", err)
 	}
@@ -27,4 +21,11 @@ func TestNodeLifeCycle(t *testing.T) {
 	if err := stack.Start(); err != nil {
 		t.Fatalf("failed to start node: %v", err)
 	}
+	if err := stack.Restart(); err != nil {
+		t.Fatalf("failed to restart node: %v", err)
+	}
+	if err := stack.Stop(); err != nil {
+		t.Fatalf("failed to stop node: %v", err)
+	}
+
 }
