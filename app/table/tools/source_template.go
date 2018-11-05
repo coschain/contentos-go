@@ -336,7 +336,6 @@ package main
 //
 //	fPath := "./tml/"
 //	if isExist, _ := JudgeFileIsExist(fPath); !isExist {
-//		//文件夹不存在,创建文件夹
 //		if err := os.Mkdir(fPath, os.ModePerm); err != nil {
 //			log.Fatalf("create folder fail,the error is:%s", err)
 //			return
@@ -348,7 +347,6 @@ package main
 //	var fPtr *os.File
 //	isExist, _ := JudgeFileIsExist(fileName)
 //	if !isExist {
-//		//.go文件不存在,创建文件
 //		if f, err := os.Create(fileName); err != nil {
 //			log.Fatalf("create detail go file fail,error:%s", err)
 //			return
@@ -356,14 +354,12 @@ package main
 //			fPtr = f
 //		}
 //	} else {
-//		//文件已经存在则重新写入
 //		if f, _ := os.OpenFile(fileName, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, os.ModePerm); f != nil {
 //			fPtr = f
 //		}
 //	}
 //
 //	if fPtr == nil {
-//		//获取文件句柄失败
 //		log.Fatal("File pointer is empty \n")
 //		return
 //	}
@@ -420,7 +416,7 @@ package main
 //	})
 //}
 
-///* 判断文件是否存在 */
+
 //func JudgeFileIsExist(fPath string) (bool, error) {
 //	if fPath == "" {
 //		return false, errors.New("the file path is empty")

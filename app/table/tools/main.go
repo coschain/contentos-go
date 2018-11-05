@@ -23,6 +23,7 @@ type PropList struct {
 	VarType		string
 	VarName		string
 	BMainKey	bool
+	BSeckey     bool
 	BUnique		bool
 	BSort		bool
 	Index		uint32
@@ -35,35 +36,35 @@ func (p *PropList) ToString() string{
 }
 
 func (p *PropList) Parse(info []string, index uint32) bool {
-	return true
 	p.VarType	= info[0]
 	p.VarName	= info[1]
-	res, err	:= strconv.ParseBool(info[2])
+	res, err := strconv.ParseBool(strings.Replace(info[2]," ","",-1))
 	if err != nil{
 		return false
 	}
 	p.BMainKey = res
+    p.BSeckey = !res
 
-	res, err	= strconv.ParseBool(info[3])
-	if err != nil{
+	resUni, errUni  := strconv.ParseBool(strings.Replace(info[3]," ","",-1))
+	if errUni != nil{
 		return false
 	}
-	p.BUnique	= res
+	p.BUnique	= resUni
 
-	res, err	= strconv.ParseBool(info[4])
-	if err != nil{
+	resSort, errSort	:= strconv.ParseBool(strings.Replace(info[4]," ","",-1))
+	if errSort != nil{
 		return false
 	}
-	p.BSort		= res
+	p.BSort		= resSort
 
 	p.Index		= index
 
-	if index == 1 && !p.BMainKey{
-		return false
-	}
-	if index > 1 && p.BMainKey{
-		return false
-	}
+	//if index == 1 && !p.BMainKey{
+	//	return false
+	//}
+	//if index > 1 && p.BMainKey{
+	//	return false
+	//}
 
 	return true
 }
@@ -122,7 +123,6 @@ func ProcessCSVFile(fileName string, name string) bool {
 			fmt.Println("parse line error:", line )
 			panic( nil )
 		}
-
 		indexPb++
 		props = append(props, *pList)
 	}
@@ -136,11 +136,13 @@ func ProcessCSVFile(fileName string, name string) bool {
 	fmt.Println(res)
 
 
-	pList := []PropList{{VarName:"name",VarType:"string",Index:1}}
-	tInfo := TableInfo{"so_"+name, pList}
+	tInfo := TableInfo{name, props}
 
 
-	createPbFile(tInfo)
+	 cRes,_ := WriteDataToFile(tInfo)
+	 if cRes {
+	 	//create go file
+	 }
 
 	return true
 }
@@ -161,8 +163,8 @@ func main(){
 }
 
 
-/* 生成pb结构文件 */
-func createPbFile(tInfo TableInfo) (bool, error) {
+/* writte tmplate content into go and proto file */
+func WriteDataToFile(tInfo TableInfo) (bool, error) {
 	var err error = nil
 	if tpl := createPbTpl(tInfo); tpl != "" {
 		if isExist, _ := JudgeFileIsExist("./tml"); !isExist {
@@ -172,8 +174,7 @@ func createPbFile(tInfo TableInfo) (bool, error) {
 			 		return false,err
 			 }
 			}
-		fName := "./tml/" + tInfo.Name + ".proto"
-		fmt.Printf("the proto fileName:%s",fName)
+		fName := "./tml/" + "so_"+tInfo.Name + ".proto"
 		if fPtr := createFile(fName); fPtr != nil {
 			tmpName := tInfo.Name + "probo"
 			t := template.New(tmpName)
@@ -195,47 +196,79 @@ func createPbFile(tInfo TableInfo) (bool, error) {
 	return false,err
 }
 
-/* 根据csv表结构创建pb对应的结构的模板 */
+/* create pb template */
 func createPbTpl(t TableInfo) string  {
 	if len(t.PList) > 0 {
-		return `
+		tpl := ""
+		tpl =  `
 syntax = "proto3";
 
 package table;
 
-import "github.com/coschain/contentos-go/proto/type-proto/type.proto";
+import (
+	type_proto "github.com/coschain/contentos-go/proto/type-proto"
+	proto "github.com/golang/protobuf/proto"
+)
 
 message {{.Name}} {
 	{{range $k,$v := .PList}}
        {{.VarType}}   {{.VarName}}     =      {{.Index}};
 	{{end}}  
-} 
+}
 `
+		tpl = fmt.Sprintf("%s%s",tpl,createKeyTpl(t))
+		return tpl
 	}
 	return ""
 }
 
+func createKeyTpl(t TableInfo) string {
+	tpl := ""
+	if len(t.PList) > 0 {
+		var secKeyList = make([]PropList,0)
+		mKeyType , mKeyName := "",""
+		for _,v := range t.PList {
+			if v.BMainKey {
+				mKeyType = v.VarType
+				mKeyName = v.VarName
+			}else if v.BSeckey {
+				secKeyList = append(secKeyList,v)
+			}
+		}
+		sec := len(secKeyList)
+		if len(secKeyList) > 0 && mKeyType != "" && mKeyName != ""{
+			for _,v := range secKeyList {
 
-/* 生成对应的本地文件 */
+				tempTpl := fmt.Sprintf("\nmessage so_key_%s_%s {\n",
+					strings.Replace(t.Name," ","",-1),
+					strings.Replace(v.VarName," ","",-1))
+				tempTpl = fmt.Sprintf("%s\t\t%s\t%s\t=\t%d;\n\t\t%s\t%s\t=\t%d;\n}\n",tempTpl, v.VarType, v.VarName,1, mKeyType, mKeyName,2)
+				tpl += fmt.Sprintf("%s",tempTpl)
+			}
+		}
+	}
+	return tpl
+}
+
+/* create detail file */
 func createFile(fileName string) *os.File {
 	var fPtr *os.File
 	isExist, _ := JudgeFileIsExist(fileName)
 	if !isExist {
-		//.go文件不存在,创建文件
+		//create file
 		if f, err := os.Create(fileName); err != nil {
 			log.Fatalf("create detail go file fail,error:%s", err)
 		} else {
 			fPtr = f
 		}
 	} else {
-		//文件已经存在则重新写入
+		//rewrite the file
 		if f, _ := os.OpenFile(fileName, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, os.ModePerm); f != nil {
 			fPtr = f
 		}
 	}
 
 	if fPtr == nil {
-		//获取文件句柄失败
 		log.Fatal("File pointer is empty \n")
 
 	}
@@ -244,7 +277,7 @@ func createFile(fileName string) *os.File {
 }
 
 
-/* 判断文件是否存在 */
+/* judge if the file exists */
 func JudgeFileIsExist(fPath string) (bool, error) {
 	if fPath == "" {
 		return false, errors.New("the file path is empty")
