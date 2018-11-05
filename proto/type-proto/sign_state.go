@@ -1,26 +1,25 @@
-package app
+package prototype
 
 import (
 	"bytes"
-	"github.com/coschain/contentos-go/common/prototype"
 )
 
-type authorityType uint16
+type AuthorityType uint16
 
 const (
-	posting authorityType = iota
-	active  authorityType = iota
-	owner   authorityType = iota
+	Posting AuthorityType = iota
+	Active  AuthorityType = iota
+	Owner   AuthorityType = iota
 )
 
 type SignState struct {
 	// PublicKeyType can not use as key in map
-	trxCarryedPubs []prototype.PublicKeyType
+	trxCarryedPubs []*PublicKeyType
 	approved       map[string]bool
 	max_recursion  uint32
 }
 
-func (s *SignState) checkPub(key *prototype.PublicKeyType) bool {
+func (s *SignState) checkPub(key *PublicKeyType) bool {
 	for _, k := range s.trxCarryedPubs {
 		if bytes.Equal(key.Data, k.Data) {
 			return true
@@ -29,7 +28,7 @@ func (s *SignState) checkPub(key *prototype.PublicKeyType) bool {
 	return false
 }
 
-func (s *SignState) CheckAuthority(name string, depth uint32, at authorityType) bool {
+func (s *SignState) CheckAuthorityByName(name string, depth uint32, at AuthorityType) bool {
 	// a speed up cache
 	if _, ok := s.approved[name]; ok {
 		return true
@@ -37,8 +36,12 @@ func (s *SignState) CheckAuthority(name string, depth uint32, at authorityType) 
 	// a speed up cache
 	auth, err := s.getAuthority(name, at)
 	if err != nil {
-		panic("")
+		panic("getAuthority failed:")
 	}
+	return s.CheckAuthority(auth,0, at)
+}
+
+func (s *SignState) CheckAuthority(auth *Authority, depth uint32, at AuthorityType) bool {
 
 	var total_weight uint32 = 0
 	for _, k := range auth.KeyAuths {
@@ -56,7 +59,11 @@ func (s *SignState) CheckAuthority(name string, depth uint32, at authorityType) 
 			if depth == s.max_recursion {
 				continue
 			}
-			if s.CheckAuthority(a.Name.Value, depth+1, at) {
+			auth, err := s.getAuthority(username, at)
+			if err != nil {
+				panic("getAuthority failed:")
+			}
+			if s.CheckAuthority(auth, depth+1, at) {
 				s.approved[username] = true
 				total_weight += a.Weight
 				if total_weight >= auth.WeightThreshold {
@@ -75,12 +82,17 @@ func (s *SignState) CheckAuthority(name string, depth uint32, at authorityType) 
 	return total_weight >= auth.WeightThreshold
 }
 
-func (s *SignState) getAuthority(name string, at authorityType) (*prototype.Authority, error) {
+func (s *SignState) Init(pubs []*PublicKeyType,maxDepth uint32) {
+	 copy(s.trxCarryedPubs,pubs)
+	 s.max_recursion = maxDepth
+}
+
+func (s *SignState) getAuthority(name string, at AuthorityType) (*Authority, error) {
 	// read Authority struct from DB
 	switch at {
-	case posting:
-	case active:
-	case owner:
+	case Posting:
+	case Active:
+	case Owner:
 	default:
 	}
 	return nil, nil

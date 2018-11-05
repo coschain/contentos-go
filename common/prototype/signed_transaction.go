@@ -117,9 +117,66 @@ func (p *SignedTransaction) Id() (*Sha256, error) {
 	return id, nil
 }
 
-func (p *SignedTransaction) verifyAuthority(cid ChainId) {
-	/*	pubkeys, err := p.ExportPubKeys(cid)
-		if err != nil {
-			panic(err)
-		}*/
+func verifyAuthority(ops []*Operation, trxPubs []*PublicKeyType, max_recursion_depth uint32) {
+	required_active := map[string]bool{}
+	required_posting := map[string]bool{}
+	required_owner := map[string]bool{}
+	other := []Authority{}
+
+	for _,op := range ops {
+		baseOp := getBaseOp(op)
+
+		baseOp.GetAuthorities(&other)
+		baseOp.GetRequiredPosting(&required_posting)
+		baseOp.GetRequiredActive(&required_active)
+		baseOp.GetRequiredOwner(&required_owner)
+	}
+
+	if len(required_posting) > 0 {
+		if len(required_active) > 0 || len(required_owner) > 0 || len(other) > 0 {
+			panic("can not combinme posing authority with others")
+		}
+		s := SignState{}
+		s.Init(trxPubs,max_recursion_depth)
+		for k,_ := range required_posting {
+			if !s.CheckAuthorityByName(k,0,Posting) &&
+				!s.CheckAuthorityByName(k,0,Active) &&
+				!s.CheckAuthorityByName(k,0,Owner) {
+				panic("check posting authority failed")
+			}
+		}
+		return
+	}
+
+	s := SignState{}
+	s.Init(trxPubs,max_recursion_depth)
+	for _,auth := range other {
+		if !s.CheckAuthority(&auth,0,Active) {
+			panic("missing authority")
+		}
+	}
+
+	for k,_ := range required_active {
+		if !s.CheckAuthorityByName(k,0,Active) &&
+			!s.CheckAuthorityByName(k,0,Owner) {
+			panic("check active authority failed")
+		}
+	}
+
+	for k,_ := range required_owner {
+		if !s.CheckAuthorityByName(k,0,Owner) {
+			panic("check active authority failed")
+		}
+	}
+}
+
+func getBaseOp(op *Operation) BaseOperation {
+	switch t := op.Op.(type) {
+	case *Operation_Op1:
+		return BaseOperation(t.Op1)
+	case *Operation_Op2:
+		return BaseOperation(t.Op2)
+	default:
+		return nil
+	}
 }
