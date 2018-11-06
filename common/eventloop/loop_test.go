@@ -23,8 +23,8 @@ func TestEventLoop(t *testing.T) {
 			fmt.Println("Send Low")
 		})
 
-		ev.PostHighPri(func() {
-			fmt.Println("Execute High")
+		ev.Post(func() {
+			fmt.Println("Execute Low")
 		})
 		ev.PostHighPri(func() {
 			fmt.Println("Execute High")
@@ -32,10 +32,6 @@ func TestEventLoop(t *testing.T) {
 
 		ev.SendHighPri(func() {
 			fmt.Println("Send High")
-		})
-
-		ev.PostHighPri(func() {
-			fmt.Println("Execute High")
 		})
 
 		time.Sleep(time.Second)
