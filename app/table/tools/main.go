@@ -23,7 +23,6 @@ type PropList struct {
 	VarType		string
 	VarName		string
 	BMainKey	bool
-	BSeckey     bool
 	BUnique		bool
 	BSort		bool
 	Index		uint32
@@ -45,12 +44,6 @@ func (p *PropList) Parse(info []string, index uint32) bool {
 		return false
 	}
 	p.BMainKey = res
-
-	resSecKey,errSecKey := strconv.ParseBool(strings.Replace(info[5]," ", "", -1))
-    if errSecKey != nil {
-    	return false
-	}
-	p.BSeckey = resSecKey
 
 	resUni, errUni  := strconv.ParseBool(strings.Replace(info[3]," ","",-1))
 	if errUni != nil{
@@ -249,14 +242,14 @@ func createKeyTpl(t TableInfo) string {
 			if v.BMainKey {
 				mKeyType = v.VarType
 				mKeyName = v.VarName
-			}else if v.BSeckey {
+			}else if v.BSort {
 				secKeyList = append(secKeyList,v)
 			}
 		}
 		if len(secKeyList) > 0 && mKeyType != "" && mKeyName != ""{
 			for _,v := range secKeyList {
 
-				tempTpl := fmt.Sprintf("\nmessage so_key_%s_by_%s {\n",
+				tempTpl := fmt.Sprintf("\nmessage so_list_%s_by_%s {\n",
 					strings.Replace(t.Name," ","",-1),
 					strings.Replace(v.VarName," ","",-1))
 				tempTpl = fmt.Sprintf("%s\t\t%s\t%s\t=\t%d;\n\t\t%s\t%s\t=\t%d;\n}\n",tempTpl, v.VarType, v.VarName,1, mKeyType, mKeyName,2)

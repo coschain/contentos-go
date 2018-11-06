@@ -2,8 +2,8 @@ package table
 
 import (
 	"github.com/coschain/contentos-go/common/encoding"
-	"github.com/coschain/contentos-go/db/storage"
 	base "github.com/coschain/contentos-go/common/prototype"
+	"github.com/coschain/contentos-go/db/storage"
 	"github.com/gogo/protobuf/proto"
 )
 
@@ -65,7 +65,7 @@ func (s *SoAccountWrap) CreateAccount(sa *SoAccount) bool {
 		return false
 	}
 
-	// update secondary keys
+	// update sort list keys
 
 	if !s.insertSubKeyCreatedTime(sa) {
 		return false
@@ -529,4 +529,6 @@ func (s *SoAccountWrap) encodeMainKey() ([]byte, error) {
 
 	return append(mainTable, res...), nil
 }
+
+
 

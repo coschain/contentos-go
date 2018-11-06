@@ -20,6 +20,7 @@ type Params struct {
 	LKeys				[]string
 	MemberKeyMap		map[string]string
 	LKeyWithType		map[string]string
+	UniqueFieldMap      map[string]string
 	TBMask				string
 
 }
@@ -115,7 +116,7 @@ func (s *So{{.ClsName}}Wrap) Create{{.ClsName}}(sa *So{{.ClsName}}) bool {
 
 {{range $k1, $v1 := .LKeys}}
 func (s *So{{$.ClsName}}Wrap) deleteSubKey{{$v1}}(sa *So{{$.ClsName}}) bool {
-	val := SoKey{{$.ClsName}}By{{$v1}}{}
+	val := SoList{{$.ClsName}}By{{$v1}}{}
 
 	val.{{$v1}} = sa.{{$v1}}
 	val.{{UperFirstChar $.MainKeyName}} = sa.{{UperFirstChar $.MainKeyName}}
@@ -131,7 +132,7 @@ func (s *So{{$.ClsName}}Wrap) deleteSubKey{{$v1}}(sa *So{{$.ClsName}}) bool {
 
 
 func (s *So{{$.ClsName}}Wrap) insertSubKey{{$v1}}(sa *So{{$.ClsName}}) bool {
-	val := SoKey{{$.ClsName}}By{{$v1}}{}
+	val := SoList{{$.ClsName}}By{{$v1}}{}
 
 	val.{{UperFirstChar $.MainKeyName}} = sa.{{UperFirstChar $.MainKeyName}}
 	val.{{UperFirstChar $v1}} = sa.{{UperFirstChar $v1}}
@@ -180,6 +181,7 @@ func (s *So{{.ClsName}}Wrap) Remove{{.ClsName}}() bool {
 ////////////// SECTION Members Get/Modify ///////////////
 
 {{range $k1, $v1 := .MemberKeyMap}}
+
 func (s *So{{$.ClsName}}Wrap) Get{{$.ClsName}}{{formateStr $k1}}() *{{$v1}} {
 	res := s.get{{$.ClsName}}()
 
@@ -219,13 +221,29 @@ func (s *So{{$.ClsName}}Wrap) Md{{$.ClsName}}{{formateStr $k1}}(p {{$v1}}) bool 
 	return true
 }
 
+func QueryAccount{{$.ClsName}}{{formateStr $k1}}(dba storage.Database, {{LowerFirstChar $k1}} {{$v1}}) []*So{{$.ClsName}} {
+	var arry []*So{{$.ClsName}}
+	iter := dba.NewIterator(nil, nil)
+	for iter.Next() {
+		res, err := iter.Value()
+		if err != nil {
+			pbMsg := &So{{$.ClsName}}{}
+			if proto.Unmarshal(res, pbMsg) != nil && pbMsg.{{$k1}} == {{LowerFirstChar $k1}} {
+				arry = append(arry,pbMsg)
+			}
+		}
+	}
+	return arry
+
+}
+
 {{end}}
 
 
 {{range $v, $k := .LKeyWithType}}
 ////////////// SECTION List Keys ///////////////
 
-func (m *SoKey{{$.ClsName}}By{{$v}}) OpeEncode() ([]byte, error) {
+func (m *SoList{{$.ClsName}}By{{$v}}) OpeEncode() ([]byte, error) {
 
 	mainBuf, err := encoding.Encode(m.{{UperFirstChar $.MainKeyName}})
 	if err != nil {
@@ -254,7 +272,7 @@ func (s *SList{{$.ClsName}}By{{$v}}) GetMainVal(iterator storage.Iterator) *{{$.
 		return nil
 	}
 
-	res := &SoKey{{$.ClsName}}By{{$v}}{}
+	res := &SoList{{$.ClsName}}By{{$v}}{}
 	err = proto.Unmarshal(val, res)
 
 	if err != nil {
@@ -275,7 +293,7 @@ func (s *SList{{$.ClsName}}By{{$v}}) GetSubVal(iterator storage.Iterator) *{{$k}
 		return nil
 	}
 
-	res := &SoKey{{$.ClsName}}By{{$v}}{}
+	res := &SoList{{$.ClsName}}By{{$v}}{}
 	err = proto.Unmarshal(val, res)
 
 	if err != nil {
@@ -353,10 +371,29 @@ func (s *So{{$.ClsName}}Wrap) encodeMainKey() ([]byte, error) {
 	return append({{.ClsName}}Table, res...), nil
 }
 
+/////////////// SECTION Unique Query ////////////////
+{{range $k,$v := $.UniqueFieldMap}}
+   func UniqueQuery{{$.ClsName}}{{formateStr $k}}(dba storage.Database, {{$k}} {{$v}}) *So{{$.ClsName}} {
+     iter := dba.NewIterator(nil,nil)
+	for iter.Next() {
+		res,err := iter.Value()
+		if err != nil {
+			pbMsg := &So{{$.ClsName}}{}
+			if proto.Unmarshal(res, pbMsg) != nil && pbMsg.{{$k}} == {{$k}} {
+				return pbMsg
+			}
+		}
+	}
+	return nil
+  }
+{{end}}
+
 `
 	fName := TmlFolder + "so_"+ tIfno.Name + ".go"
 	if fPtr := CreateFile(fName); fPtr != nil {
-		funcMapUper := template.FuncMap{"UperFirstChar": UperFirstChar,"formateStr":formateStr}
+		funcMapUper := template.FuncMap{"UperFirstChar": UperFirstChar,
+		"formateStr":formateStr,
+		"LowerFirstChar": LowerFirstChar}
 		t := template.New("layout.html")
 		t  = t.Funcs(funcMapUper)
 		t.Parse(tmpl)
@@ -381,18 +418,23 @@ func createParamsFromTableInfo(tInfo TableInfo) Params {
 	para.LKeys = []string{}
 	para.LKeyWithType = make(map[string]string)
 	para.MemberKeyMap = make(map[string]string)
+	para.UniqueFieldMap = make(map[string]string)
 	for _,v := range tInfo.PList {
 		fType :=  strings.Replace(v.VarType," ", "", -1)
 		fName :=  strings.Replace(v.VarName," ", "", -1)
 		if v.BMainKey {
 			para.MainKeyName = fName
 			para.MainKeyType =  fType
-		}else if v.BSeckey {
-			para.LKeys = append(para.LKeys,formateStr(fName))
-			para.LKeyWithType[formateStr(fName)] = fType
-		}else if v.BUnique {
-			para.MemberKeyMap[fName] = fType
+		}else {
+			if v.BSort {
+				para.LKeys = append(para.LKeys,formateStr(fName))
+				para.LKeyWithType[formateStr(fName)] = fType
+			}
 		}
+		if v.BUnique {
+            para.UniqueFieldMap[formateStr(fName)] = fType
+		}
+		para.MemberKeyMap[formateStr(fName)] = fType
 	}
 	return para
 }
@@ -401,6 +443,13 @@ func createParamsFromTableInfo(tInfo TableInfo) Params {
 func UperFirstChar(str string) string {
 	for i, v := range str {
 		return string(unicode.ToUpper(v)) + str[i+1:]
+	}
+	return str
+}
+
+func LowerFirstChar(str string) string {
+	for i, v := range str {
+		return string(unicode.ToLower(v)) + str[i+1:]
 	}
 	return str
 }
@@ -421,3 +470,4 @@ func formateStr(str string) string  {
 	}
 	return formStr
 }
+
