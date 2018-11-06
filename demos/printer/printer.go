@@ -1,6 +1,7 @@
 package printer
 
 import (
+	"fmt"
 	"github.com/coschain/contentos-go/demos/itimer"
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/p2p"
@@ -9,7 +10,6 @@ import (
 )
 
 type Printer struct {
-	timer  itimer.ITimer
 	ticker *time.Ticker
 	ctx    *node.ServiceContext
 }
@@ -18,17 +18,25 @@ func New(ctx *node.ServiceContext) (*Printer, error) {
 	return &Printer{ctx: ctx}, nil
 }
 
-func (t *Printer) Start(server *p2p.Server) error {
+func (t *Printer) getTimer() (itimer.ITimer, error) {
 	s, err := t.ctx.Service("timer")
 	if err != nil {
-		log.Error("Service serviceTimer error : %v", err)
+		log.Error(fmt.Sprintf("Service serviceTimer error : %v", err))
+		return nil, err
+	}
+	timer := s.(itimer.ITimer)
+	return timer, nil
+}
+
+func (t *Printer) Start(server *p2p.Server) error {
+	timer, err := t.getTimer()
+	if err != nil {
 		return err
 	}
-	t.timer = s.(itimer.ITimer)
 	t.ticker = time.NewTicker(500 * time.Millisecond)
 	go func() {
-		for _ = range t.ticker.C {
-			log.Info(t.timer.GetCurrent())
+		for range t.ticker.C {
+			log.Info(timer.GetCurrent())
 		}
 	}()
 	return nil
