@@ -25,6 +25,7 @@ type Controller struct {
 	_pending_tx   []*prototype.TransactionWrapper
 	_isProducing  bool
 	_currentTrxId *prototype.Sha256
+	_current_op_in_trx uint16
 }
 
 func (c *Controller) Start() {
@@ -108,10 +109,21 @@ func (c *Controller) processBlock() {
 }
 
 func (c *Controller) _applyTransaction(trxWrp *prototype.TransactionWrapper) {
+	defer func(){
+		if err := recover(); err != nil {
+			trxWrp.Invoice.Status = 500
+			panic("_applyTransaction failed")
+		} else {
+			trxWrp.Invoice.Status = 200
+			return
+		}
+	}()
+
 	trx := trxWrp.SigTrx
 	var err error
 	c._currentTrxId, err = trx.Id()
 	if err != nil {
+		panic("get trx id failed")
 	}
 
 	trx.Validate()
@@ -119,6 +131,42 @@ func (c *Controller) _applyTransaction(trxWrp *prototype.TransactionWrapper) {
 	// @ trx duplicate check
 
 	if c.skip&skip_transaction_signatures == 0 {
+		tmpChainId := prototype.ChainId{Value:0}
+		trx.VerifyAuthority(tmpChainId,2)
+		// @ check_admin
+	}
 
+	// @ TaPos and expired check
+
+	// @ insert trx into DB unique table
+
+	c.NotifyTrxPreExecute(trx)
+
+	// process operation
+	c._current_op_in_trx = 0
+	for _,op := range trx.Trx.Operations {
+		c.applyOperation(op)
+		c._current_op_in_trx++
+	}
+
+	c._currentTrxId = &prototype.Sha256{}
+}
+
+func (c *Controller) applyOperation(op *prototype.Operation){
+	n := &prototype.OperationNotification{Op:op}
+	c.NotifyOpPreExecute(n)
+	eva := getEvaluator(op)
+	eva.Apply(op)
+	c.NotifyOpPostExecute(n)
+}
+
+func getEvaluator(op *prototype.Operation) BaseEvaluator{
+	switch op.Op.(type) {
+	case *prototype.Operation_Op1:
+		return BaseEvaluator(&AccountCreateEvaluator{})
+	case *prototype.Operation_Op2:
+		return BaseEvaluator(&TransferEvaluator{})
+	default:
+		panic("no matchable evaluator")
 	}
 }

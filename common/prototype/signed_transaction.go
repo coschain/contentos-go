@@ -117,6 +117,14 @@ func (p *SignedTransaction) Id() (*Sha256, error) {
 	return id, nil
 }
 
+func (p *SignedTransaction) VerifyAuthority(cid ChainId,max_recursion_depth uint32) {
+	pubs,err := p.ExportPubKeys(cid)
+	if err != nil {
+		panic(err)
+	}
+	verifyAuthority(p.Trx.Operations,pubs,max_recursion_depth)
+}
+
 func verifyAuthority(ops []*Operation, trxPubs []*PublicKeyType, max_recursion_depth uint32) {
 	required_active := map[string]bool{}
 	required_posting := map[string]bool{}
