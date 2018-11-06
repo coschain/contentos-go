@@ -29,6 +29,8 @@ type PropList struct {
 	Index		uint32
 }
 
+var TmlFolder = "./app/table/tools/tml/"
+
 
 func (p *PropList) ToString() string{
 	s := fmt.Sprintf("\t%s\t%s = %d;\n", p.VarType, p.VarName, p.Index)
@@ -128,27 +130,42 @@ func ProcessCSVFile(fileName string, name string) bool {
 	}
 
 
-	var res = ExtractPropListToPB( props, "so_"+name )
-	fmt.Println(res)
-
-
-	res = ExtractPropListToGoFile( props, "so_"+name )
-	fmt.Println(res)
+	//var res = ExtractPropListToPB( props, "so_"+name )
+	//fmt.Println(res)
+	//
+	//
+	//res = ExtractPropListToGoFile( props, "so_"+name )
+	//fmt.Println(res)
 
 
 	tInfo := TableInfo{name, props}
 
 
-	 cRes,_ := WriteDataToFile(tInfo)
-	 if cRes {
-	 	//create go file
+	 wRes,_ := WritePbTplToFile(tInfo)
+	 if wRes {
+	 	//auto create pb.go file
+	 	 cmd := exec.Command("protoc","-I./",
+			 "--go_out=./",
+			 TmlFolder+"so_"+name+".proto")
+		 err := cmd.Start()
+		 if err == nil {
+		 	//create detail go file (include update insert delete functions)
+			 cRes,cErr := CreateGoFile(tInfo)
+			 if !cRes {
+				 log.Printf("create go file fail,name prefix is %s , error is %s \n",tInfo.Name,cErr)
+			 }
+		 }else {
+			 log.Printf("create pb file fail,cmd error is %s\n",err)
+		 }
 	 }
+
+
 
 	return true
 }
 
 func main(){
-	var dirName string = "./table/table-define"
+	var dirName string = "./app/table/table-define"
 	pthSep := string(os.PathSeparator)
 	fmt.Println(pthSep)
 	files, _ := ioutil.ReadDir(dirName)
@@ -163,34 +180,33 @@ func main(){
 }
 
 
-/* writte tmplate content into go and proto file */
-func WriteDataToFile(tInfo TableInfo) (bool, error) {
+/* writte tmplate content into proto file */
+func WritePbTplToFile(tInfo TableInfo) (bool, error) {
 	var err error = nil
 	if tpl := createPbTpl(tInfo); tpl != "" {
-		if isExist, _ := JudgeFileIsExist("./tml"); !isExist {
+		if isExist, _ := JudgeFileIsExist(TmlFolder); !isExist {
 			//文件夹不存在,创建文件夹
-			if err := os.Mkdir("./tml", os.ModePerm); err != nil {
-					log.Fatalf("create folder fail,the error is:%s", err)
+			if err := os.Mkdir(TmlFolder, os.ModePerm); err != nil {
+					log.Printf("create folder fail,the error is:%s \n", err)
 			 		return false,err
 			 }
 			}
-		fName := "./tml/" + "so_"+tInfo.Name + ".proto"
-		if fPtr := createFile(fName); fPtr != nil {
-			tmpName := tInfo.Name + "probo"
-			t := template.New(tmpName)
+		fName := TmlFolder + "so_"+tInfo.Name + ".proto"
+		if fPtr := CreateFile(fName); fPtr != nil {
+			t := template.New("layout.html")
 			t.Parse(tpl)
 			t.Execute(fPtr,tInfo)
 			cmd := exec.Command("goimports", "-w", fName)
-			cmd.Run()
+			cmd.Start()
 			defer fPtr.Close()
 			return true,nil
 		}else {
 			err = errors.New("get file ptr fail")
-			log.Fatalf("get file ptr fail")
+			log.Println("get file ptr fail")
 		}
 	}else{
 		err = errors.New("create tpl fail")
-		log.Fatalf("create tpl fail")
+		log.Println("create tpl fail")
 	}
 
 	return false,err
@@ -205,12 +221,9 @@ syntax = "proto3";
 
 package table;
 
-import (
-	type_proto "github.com/coschain/contentos-go/proto/type-proto"
-	proto "github.com/golang/protobuf/proto"
-)
+import "common/prototype/type.proto";
 
-message {{.Name}} {
+message so_{{.Name}} {
 	{{range $k,$v := .PList}}
        {{.VarType}}   {{.VarName}}     =      {{.Index}};
 	{{end}}  
@@ -235,11 +248,10 @@ func createKeyTpl(t TableInfo) string {
 				secKeyList = append(secKeyList,v)
 			}
 		}
-		sec := len(secKeyList)
 		if len(secKeyList) > 0 && mKeyType != "" && mKeyName != ""{
 			for _,v := range secKeyList {
 
-				tempTpl := fmt.Sprintf("\nmessage so_key_%s_%s {\n",
+				tempTpl := fmt.Sprintf("\nmessage so_key_%s_by_%s {\n",
 					strings.Replace(t.Name," ","",-1),
 					strings.Replace(v.VarName," ","",-1))
 				tempTpl = fmt.Sprintf("%s\t\t%s\t%s\t=\t%d;\n\t\t%s\t%s\t=\t%d;\n}\n",tempTpl, v.VarType, v.VarName,1, mKeyType, mKeyName,2)
@@ -251,13 +263,13 @@ func createKeyTpl(t TableInfo) string {
 }
 
 /* create detail file */
-func createFile(fileName string) *os.File {
+func CreateFile(fileName string) *os.File {
 	var fPtr *os.File
 	isExist, _ := JudgeFileIsExist(fileName)
 	if !isExist {
 		//create file
 		if f, err := os.Create(fileName); err != nil {
-			log.Fatalf("create detail go file fail,error:%s", err)
+			log.Printf("create detail go file fail,error:%s\n", err)
 		} else {
 			fPtr = f
 		}

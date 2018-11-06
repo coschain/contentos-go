@@ -1,9 +1,9 @@
-类型                      ,属性名         ,是否主key,是否提供唯一查询,是否支持排序
-prototype.account_name  ,owner       ,1     ,1       ,0
-prototype.time_point_sec,post_time   ,0     ,0       ,1
-string                  ,title       ,0     ,0       ,0
-int64                   ,like_count  ,0     ,1       ,0
-int64                   ,idx         ,0     ,1       ,0
-int64                   ,replay_count,0     ,0       ,1
-string                  ,content     ,0     ,0       ,0
-string                  ,tagList     ,0     ,0       ,0
+类型                      ,属性名         ,是否主key,是否提供唯一查询,是否支持排序,是否secondary key
+prototype.account_name  ,owner       ,1,1,0,0
+prototype.time_point_sec,post_time   ,0,0,1,1
+string                  ,title       ,0,0,0,0
+int64                   ,like_count  ,0,1,0,0
+int64                   ,idx         ,0,1,0,1
+int64                   ,replay_count,0,0,1,0
+string                  ,content     ,0,0,0,0
+string                  ,tagList     ,0,0,0,0

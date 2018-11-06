@@ -1,6 +1,6 @@
-类型                       ,属性名         ,是否主key,是否提供唯一查询,是否支持排序
-prototype.account_name   ,name        ,1     ,1       ,0
-prototype.time_point_sec ,created_time,0     ,0       ,1
-prototype.account_name   ,creator     ,0     ,0       ,0
-prototype.public_key_type,pub_key     ,0     ,1       ,0
-int64                    ,idx         ,0     ,1       ,0
+类型                       ,属性名         ,是否主key,是否提供唯一查询,是否支持排序,是否secondary key
+prototype.account_name   ,name        ,1,1,0,0
+prototype.time_point_sec ,created_time,0,0,1,1
+prototype.account_name   ,creator     ,0,0,0,0
+prototype.public_key_type,pub_key     ,0,1,0,1
+int64                    ,idx         ,0,1,0,0
