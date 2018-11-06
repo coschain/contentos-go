@@ -19,10 +19,8 @@ type Node struct {
 	serverConfig p2p.Config
 	server       *p2p.Server // running p2p network
 
-	//services     map[reflect.Type]Service // Currently running nodes
-	services map[string]Service
-	//serviceFuncs []ServiceConstructor     // node constructors
-	serviceFuncs []NamedServiceConstructor
+	services     map[string]Service
+	serviceFuncs []NamedServiceConstructor // registered services store into this slice
 
 	httpEndpoint string // HTTP endpoint(host + port) to listen at
 
@@ -57,8 +55,7 @@ func New(conf *Config) (*Node, error) {
 		conf.Logger = log.New()
 	}
 	return &Node{
-		config: conf,
-		//serviceFuncs: []ServiceConstructor{},
+		config:       conf,
 		serviceFuncs: []NamedServiceConstructor{},
 		httpEndpoint: conf.HTTPEndpoint(),
 		log:          conf.Logger,
@@ -72,7 +69,6 @@ func (n *Node) Register(name string, constructor ServiceConstructor) error {
 	if n.server != nil {
 		return ErrNodeRunning
 	}
-	//n.serviceFuncs = append(n.serviceFuncs, constructor)
 	n.serviceFuncs = append(n.serviceFuncs, NamedServiceConstructor{name: name, constructor: constructor})
 	return nil
 }
@@ -93,24 +89,16 @@ func (n *Node) Start() error {
 	n.serverConfig = n.config.P2P
 
 	running := &p2p.Server{Config: n.serverConfig}
-	//services := make(map[reflect.Type]Service)
+
 	services := make(map[string]Service)
 
 	for _, namedConstructor := range n.serviceFuncs {
 		ctx := &ServiceContext{
 			config: n.config,
-			//services: make(map[reflect.Type]Service),
+			// to support services to share, the list of services pass by reference
 			services: services,
 		}
 
-		// Services have order dependence: As two services A and B, the former does not know the latter，
-		// and vice verse
-		// Or should every service know all of others?
-		//for kind, n := range services {
-		//	//ctx.services[kind] = n
-		//	ctx.services[kind] = n
-		//}
-		//ctx.services = services
 		name := namedConstructor.name
 		constructor := namedConstructor.constructor
 
@@ -118,17 +106,10 @@ func (n *Node) Start() error {
 		if err != nil {
 			return err
 		}
-		//kind := reflect.TypeOf(service)
-		//kind := reflect.TypeOf(service).String()
-		//if _, exists := services[kind]; exists {
-		//	return &DuplicateServiceError{Kind: kind}
-		//}
-		//services[kind] = service
 		if _, exists := services[name]; exists {
 			return &DuplicateServiceError{Kind: name}
 		}
 		services[name] = service
-
 	}
 
 	if err := running.Start(); err != nil {
@@ -136,8 +117,6 @@ func (n *Node) Start() error {
 		return ErrNodeRunning
 	}
 
-	// Start each of the services
-	//var started []reflect.Type
 	var started []string
 	for kind, service := range services {
 		if err := service.Start(running); err != nil {
@@ -200,9 +179,6 @@ func (n *Node) Stop() error {
 
 	n.stopHTTP()
 
-	//failure := &StopError{
-	//	Services: make(map[reflect.Type]error),
-	//}
 	failure := &StopError{
 		Services: make(map[string]error),
 	}
@@ -257,13 +233,6 @@ func (n *Node) Service(serviceName string) (interface{}, error) {
 		return nil, ErrNodeStopped
 	}
 
-	// Otherwise try to find the service to return
-	//element := reflect.ValueOf(service).Elem()
-	//if running, ok := n.services[element.Type().String()]; ok {
-	//	element.Set(reflect.ValueOf(running))
-	//	return nil
-	//}
-	//return ErrServiceUnknown
 	if running, ok := n.services[serviceName]; ok {
 		return running, nil
 	}

@@ -10,10 +10,10 @@ fi
 # Create fake Go workspace if it doesn't exist yet.
 workspace="$PWD/build/_workspace"
 root="$PWD"
-ethdir="$workspace/src/github.com/coschain"
-if [ ! -L "$ethdir/contentos-go" ]; then
-    mkdir -p "$ethdir"
-    cd "$ethdir"
+cosdir="$workspace/src/github.com/coschain"
+if [ ! -L "$cosdir/contentos-go" ]; then
+    mkdir -p "$cosdir"
+    cd "$cosdir"
     ln -s ../../../../../. contentos-go
     cd "$root"
 fi
@@ -23,8 +23,8 @@ GOPATH="$workspace"
 export GOPATH
 
 # Run the command inside the workspace.
-cd "$ethdir/contentos-go"
-PWD="$ethdir/contentos-go"
+cd "$cosdir/contentos-go"
+PWD="$cosdir/contentos-go"
 
 # Launch the arguments with the configured environment.
 exec "$@"
