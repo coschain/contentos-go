@@ -41,12 +41,12 @@ func (gs *GRPCServer) Start(server *p2p.Server) error {
 func (gs *GRPCServer) start(add string) error {
 	listener, err := net.Listen("tcp", add)
 	if err != nil {
-		fmt.Print("listener success")
+		fmt.Print("listener failure")
 	}
 
 	go func() {
 		if err := gs.rpcServer.Serve(listener); err != nil {
-			fmt.Print("rpcServer success")
+			fmt.Print("rpcServer failure")
 		}
 	}()
 
@@ -61,7 +61,7 @@ func (gs *GRPCServer) Stop() error {
 func (gs *GRPCServer) RunGateway() error {
 	go func() {
 		if err := Run(); err != nil {
-			fmt.Print("RunGateway error")
+			fmt.Print("RunGateway failure")
 		}
 	}()
 	return nil

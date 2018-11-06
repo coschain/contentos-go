@@ -64,12 +64,12 @@ func TestGPRCApi_GetFollowerListByName(t *testing.T) {
 	}
 }
 
-func TestGRPCApi_GetAccountByName_Http(t *testing.T) {
+func TestHTTPApi_GetAccountByName(t *testing.T) {
 	postValue := "{\"account_name\": {\"value\":\"jack's test info\"}}"
 	http_client("POST", "http://127.0.0.1:8080/v1/user/get_account_by_name", postValue)
 }
 
-func TestGPRCApi_GetWitnessList_Http(t *testing.T) {
+func TestHTTPApi_GetWitnessList(t *testing.T) {
 	http_client("GET", "http://127.0.0.1:8080/v1/user/get_witness_list?page=1&size=5", "")
 }
 
