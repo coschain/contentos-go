@@ -31,14 +31,15 @@ func Run() error {
 	opts := []grpc.DialOption{grpc.WithInsecure(),
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(MaxGateWayRecvMsgSize))}
 
-	echoEndpoint := flag.String("rpc", "127.0.0.1:8888", "")
+	endpoint := flag.String("rpc", "127.0.0.1:8888", "")
 
-	grpcpb.RegisterApiServiceHandlerFromEndpoint(ctx, mux, *echoEndpoint, opts)
+	grpcpb.RegisterApiServiceHandlerFromEndpoint(ctx, mux, *endpoint, opts)
 
-	err := http.ListenAndServe("127.0.0.1:8888", allowCORS(mux))
+	err := http.ListenAndServe("127.0.0.1:8080", allowCORS(mux))
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 

@@ -11,7 +11,7 @@ type APIService struct {
 }
 
 func (as *APIService) GetAccountByName(ctx context.Context, req *grpcpb.GetAccountByNameRequest) (*grpcpb.AccountResponse, error) {
-	account := &grpcpb.AccountResponse{AccountName: &prototype.AccountName{Value: "Jack'name value"}}
+	account := &grpcpb.AccountResponse{AccountName: &prototype.AccountName{Value: req.AccountName.Value}}
 	return account, nil
 }
 
@@ -24,7 +24,8 @@ func (as *APIService) GetFollowingListByName(ctx context.Context, req *grpcpb.Ge
 }
 
 func (as *APIService) GetWitnessList(ctx context.Context, req *grpcpb.GetWitnessListRequest) (*grpcpb.GetWitnessListResponse, error) {
-	return &grpcpb.GetWitnessListResponse{}, nil
+
+	return &grpcpb.GetWitnessListResponse{WitnessList: []*grpcpb.WitnessResponse{&grpcpb.WitnessResponse{Url: "test url", ScheduleType: req.Page}}}, nil
 }
 
 func (as *APIService) GetPostListByCreated(ctx context.Context, req *grpcpb.GetPostListByCreatedRequest) (*grpcpb.GetPostListByCreatedResponse, error) {

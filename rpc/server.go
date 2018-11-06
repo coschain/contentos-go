@@ -13,6 +13,7 @@ import (
 type RPCServer interface {
 	Start(server *p2p.Server) error
 	Stop() error
+	RunGateway() error
 }
 
 type GRPCServer struct {
@@ -54,5 +55,14 @@ func (gs *GRPCServer) start(add string) error {
 
 func (gs *GRPCServer) Stop() error {
 	gs.rpcServer.Stop()
+	return nil
+}
+
+func (gs *GRPCServer) RunGateway() error {
+	go func() {
+		if err := Run(); err != nil {
+			fmt.Print("RunGateway error")
+		}
+	}()
 	return nil
 }
