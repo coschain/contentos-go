@@ -3,7 +3,7 @@ package node
 import (
 	"errors"
 	"fmt"
-	"reflect"
+	//"reflect"
 	"syscall"
 )
 
@@ -17,7 +17,8 @@ var (
 )
 
 type DuplicateServiceError struct {
-	Kind reflect.Type
+	//Kind reflect.Type
+	Kind string
 }
 
 func (e *DuplicateServiceError) Error() string {
@@ -33,9 +34,13 @@ func convertFileLockError(err error) error {
 
 // StopError is returned if a Node fails to stop either any of its registered
 // services or itself.
+//type StopError struct {
+//	Server   error
+//	Services map[reflect.Type]error
+//}
 type StopError struct {
 	Server   error
-	Services map[reflect.Type]error
+	Services map[string]error
 }
 
 // Error generates a textual representation of the stop error.

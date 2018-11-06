@@ -3,6 +3,8 @@ package commands
 import (
 	"fmt"
 	"github.com/coschain/contentos-go/common"
+	"github.com/coschain/contentos-go/demos/printer"
+	"github.com/coschain/contentos-go/demos/timer"
 	"github.com/coschain/contentos-go/node"
 	log "github.com/inconshreveable/log15"
 	"github.com/spf13/cobra"
@@ -68,6 +70,12 @@ func startNode(cmd *cobra.Command, args []string) {
 	//app.Register(func(ctx *node.ServiceContext) (node.Service, error) {
 	//	return printer.New(ctx)
 	//})
+	app.Register("timer", func(ctx *node.ServiceContext) (node.Service, error) {
+		return timer.New(ctx)
+	})
+	app.Register("printer", func(ctx *node.ServiceContext) (node.Service, error) {
+		return printer.New(ctx)
+	})
 	if err := app.Start(); err != nil {
 		common.Fatalf("start node failed, err: %v\n", err)
 	}

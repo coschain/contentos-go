@@ -6,7 +6,6 @@ import (
 	log "github.com/inconshreveable/log15"
 	"os"
 	"path/filepath"
-	"reflect"
 	"strings"
 	"sync"
 
@@ -20,8 +19,10 @@ type Node struct {
 	serverConfig p2p.Config
 	server       *p2p.Server // running p2p network
 
-	services     map[reflect.Type]Service // Currently running nodes
-	serviceFuncs []ServiceConstructor     // node constructors
+	//services     map[reflect.Type]Service // Currently running nodes
+	services map[string]Service
+	//serviceFuncs []ServiceConstructor     // node constructors
+	serviceFuncs []NamedServiceConstructor
 
 	httpEndpoint string // HTTP endpoint(host + port) to listen at
 
@@ -29,6 +30,11 @@ type Node struct {
 	lock sync.RWMutex
 
 	log log.Logger
+}
+
+type NamedServiceConstructor struct {
+	name        string
+	constructor ServiceConstructor
 }
 
 func New(conf *Config) (*Node, error) {
@@ -51,21 +57,23 @@ func New(conf *Config) (*Node, error) {
 		conf.Logger = log.New()
 	}
 	return &Node{
-		config:       conf,
-		serviceFuncs: []ServiceConstructor{},
+		config: conf,
+		//serviceFuncs: []ServiceConstructor{},
+		serviceFuncs: []NamedServiceConstructor{},
 		httpEndpoint: conf.HTTPEndpoint(),
 		log:          conf.Logger,
 	}, nil
 }
 
-func (n *Node) Register(constructor ServiceConstructor) error {
+func (n *Node) Register(name string, constructor ServiceConstructor) error {
 	n.lock.Lock()
 	defer n.lock.Unlock()
 
 	if n.server != nil {
 		return ErrNodeRunning
 	}
-	n.serviceFuncs = append(n.serviceFuncs, constructor)
+	//n.serviceFuncs = append(n.serviceFuncs, constructor)
+	n.serviceFuncs = append(n.serviceFuncs, NamedServiceConstructor{name: name, constructor: constructor})
 	return nil
 }
 
@@ -85,29 +93,41 @@ func (n *Node) Start() error {
 	n.serverConfig = n.config.P2P
 
 	running := &p2p.Server{Config: n.serverConfig}
-	services := make(map[reflect.Type]Service)
-	for _, constructor := range n.serviceFuncs {
+	//services := make(map[reflect.Type]Service)
+	services := make(map[string]Service)
+
+	for _, namedConstructor := range n.serviceFuncs {
 		ctx := &ServiceContext{
-			config:   n.config,
-			services: make(map[reflect.Type]Service),
+			config: n.config,
+			//services: make(map[reflect.Type]Service),
+			services: services,
 		}
 
 		// Services have order dependence: As two services A and B, the former does not know the latter，
 		// and vice verse
 		// Or should every service know all of others?
-		for kind, n := range services {
-			ctx.services[kind] = n
-		}
+		//for kind, n := range services {
+		//	//ctx.services[kind] = n
+		//	ctx.services[kind] = n
+		//}
+		//ctx.services = services
+		name := namedConstructor.name
+		constructor := namedConstructor.constructor
 
 		service, err := constructor(ctx)
 		if err != nil {
 			return err
 		}
-		kind := reflect.TypeOf(service)
-		if _, exists := services[kind]; exists {
-			return &DuplicateServiceError{Kind: kind}
+		//kind := reflect.TypeOf(service)
+		//kind := reflect.TypeOf(service).String()
+		//if _, exists := services[kind]; exists {
+		//	return &DuplicateServiceError{Kind: kind}
+		//}
+		//services[kind] = service
+		if _, exists := services[name]; exists {
+			return &DuplicateServiceError{Kind: name}
 		}
-		services[kind] = service
+		services[name] = service
 
 	}
 
@@ -117,7 +137,8 @@ func (n *Node) Start() error {
 	}
 
 	// Start each of the services
-	var started []reflect.Type
+	//var started []reflect.Type
+	var started []string
 	for kind, service := range services {
 		if err := service.Start(running); err != nil {
 			for _, kind := range started {
@@ -179,8 +200,11 @@ func (n *Node) Stop() error {
 
 	n.stopHTTP()
 
+	//failure := &StopError{
+	//	Services: make(map[reflect.Type]error),
+	//}
 	failure := &StopError{
-		Services: make(map[reflect.Type]error),
+		Services: make(map[string]error),
 	}
 
 	for kind, service := range n.services {
@@ -225,19 +249,23 @@ func (n *Node) Restart() error {
 	return nil
 }
 
-func (n *Node) Service(service interface{}) error {
+func (n *Node) Service(serviceName string) (interface{}, error) {
 	n.lock.RLock()
 	defer n.lock.RUnlock()
 
 	if n.server == nil {
-		return ErrNodeStopped
+		return nil, ErrNodeStopped
 	}
 
 	// Otherwise try to find the service to return
-	element := reflect.ValueOf(service).Elem()
-	if running, ok := n.services[element.Type()]; ok {
-		element.Set(reflect.ValueOf(running))
-		return nil
+	//element := reflect.ValueOf(service).Elem()
+	//if running, ok := n.services[element.Type().String()]; ok {
+	//	element.Set(reflect.ValueOf(running))
+	//	return nil
+	//}
+	//return ErrServiceUnknown
+	if running, ok := n.services[serviceName]; ok {
+		return running, nil
 	}
-	return ErrServiceUnknown
+	return nil, ErrServiceUnknown
 }
