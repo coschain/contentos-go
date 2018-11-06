@@ -390,7 +390,6 @@ func createParamsFromTableInfo(tInfo TableInfo) Params {
 		}else if v.BSeckey {
 			para.LKeys = append(para.LKeys,formateStr(fName))
 			para.LKeyWithType[formateStr(fName)] = fType
-			para.MemberKeyMap[fName] = fType
 		}else if v.BUnique {
 			para.MemberKeyMap[fName] = fType
 		}

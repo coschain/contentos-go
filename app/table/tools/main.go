@@ -45,7 +45,12 @@ func (p *PropList) Parse(info []string, index uint32) bool {
 		return false
 	}
 	p.BMainKey = res
-    p.BSeckey = !res
+
+	resSecKey,errSecKey := strconv.ParseBool(strings.Replace(info[5]," ", "", -1))
+    if errSecKey != nil {
+    	return false
+	}
+	p.BSeckey = resSecKey
 
 	resUni, errUni  := strconv.ParseBool(strings.Replace(info[3]," ","",-1))
 	if errUni != nil{
@@ -61,12 +66,12 @@ func (p *PropList) Parse(info []string, index uint32) bool {
 
 	p.Index		= index
 
-	//if index == 1 && !p.BMainKey{
-	//	return false
-	//}
-	//if index > 1 && p.BMainKey{
-	//	return false
-	//}
+	if index == 1 && !p.BMainKey{
+		return false
+	}
+	if index > 1 && p.BMainKey{
+		return false
+	}
 
 	return true
 }
