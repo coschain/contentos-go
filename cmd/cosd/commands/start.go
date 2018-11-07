@@ -69,7 +69,7 @@ func startNode(cmd *cobra.Command, args []string) {
 	//app.Register("printer", func(ctx *node.ServiceContext) (node.Service, error) {
 	//	return printer.New(ctx)
 	//})
-	app.Register(func(ctx *node.ServiceContext) (node.Service, error) {
+	app.Register("cos", func(ctx *node.ServiceContext) (node.Service, error) {
 		return cos.New(ctx)
 	})
 	if err := app.Start(); err != nil {
