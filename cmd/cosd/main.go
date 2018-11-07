@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/coschain/cobra"
 	"github.com/coschain/contentos-go/cmd/cosd/commands"
-	"github.com/spf13/cobra"
 	"os"
 )
 

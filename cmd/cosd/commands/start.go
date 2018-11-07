@@ -2,11 +2,11 @@ package commands
 
 import (
 	"fmt"
+	"github.com/coschain/cobra"
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/p2p/cos"
 	log "github.com/inconshreveable/log15"
-	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"os"
 	"os/signal"
