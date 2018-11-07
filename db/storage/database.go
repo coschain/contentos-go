@@ -157,3 +157,23 @@ type TagRevDatabase interface {
 	TagRevertible
 	Database
 }
+
+
+// interface for key->database mapping policy for a group of databases
+type DatabaseDispatcher interface {
+	// return members of database group.
+	// members must be fixed once the DatabaseDispatcher object is created
+	MemberDatabases() []Database
+
+	// return the index number of the mapped member database
+	DatabaseForKey(key []byte) int
+
+	// return databases who possibly contains keys from given range
+	DatabasesForKeyRange(start []byte, limit []byte) []int
+}
+
+// interface for a logical database consisting of a group of databases
+type DatabaseGroup interface {
+	DatabaseDispatcher
+	Database
+}
