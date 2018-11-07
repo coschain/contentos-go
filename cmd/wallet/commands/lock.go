@@ -6,23 +6,23 @@ import (
 	"github.com/coschain/contentos-go/cmd/wallet/wallet"
 )
 
-var LoadCmd = func() *cobra.Command {
+var LockCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "load",
-		Short: "load a created account",
-		Run:   loadAccount,
+		Use:   "lock",
+		Short: "lock a account",
+		Run:   lockAccount,
 	}
 	return cmd
 }
 
-func loadAccount(cmd *cobra.Command, args []string) {
+func lockAccount(cmd *cobra.Command, args []string) {
 	o := cmd.Context["wallet"]
 	w := o.(*wallet.BaseWallet)
 	name := args[0]
-	err := w.Load(name)
+	err := w.Lock(name)
 	if err != nil {
 		fmt.Println(fmt.Sprintf("error: %v\n", err))
 		return
 	}
-	fmt.Println(fmt.Sprintf("load account %s success", name))
+	fmt.Println(fmt.Sprintf("unlock account %s success", name))
 }

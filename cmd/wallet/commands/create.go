@@ -22,7 +22,7 @@ func createAccount(cmd *cobra.Command, args []string) {
 	passphrase := args[1]
 	err := w.Create(name, passphrase)
 	if err != nil {
-		fmt.Printf("error: %v\n", err)
+		fmt.Println(fmt.Sprintf("error: %v\n", err))
 		return
 	}
 	fmt.Println(fmt.Sprintf("create account %s success", name))

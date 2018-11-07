@@ -161,7 +161,7 @@ func (w *BaseWallet) Create(name, passphrase string) error {
 	}
 	w.locked[name] = encrypt_account
 	w.unlocked[name] = priv_account
-	w.Seal(encrypt_account)
+	w.seal(encrypt_account)
 	return nil
 }
 
@@ -247,7 +247,7 @@ func (w *BaseWallet) IsLocked(name string) (bool, error) {
 
 }
 
-func (w *BaseWallet) Seal(account *EncryptAccount) error {
+func (w *BaseWallet) seal(account *EncryptAccount) error {
 	w.mu.RLock()
 	defer w.mu.RUnlock()
 	name := account.Name
@@ -263,4 +263,30 @@ func (w *BaseWallet) Seal(account *EncryptAccount) error {
 	}
 	err = ioutil.WriteFile(path, keyjson, 0600)
 	return nil
+}
+
+func (w *BaseWallet) List() []string {
+	var lines []string
+	for k, _ := range w.locked {
+		if _, ok := w.unlocked[k]; ok {
+			lines = append(lines, fmt.Sprintf("account:%12s | status: unlocked", k))
+		} else {
+			lines = append(lines, fmt.Sprintf("account:%12s | status:   locked", k))
+		}
+	}
+	return lines
+}
+
+func (w *BaseWallet) Info(name string) string {
+	if acc, ok := w.locked[name]; !ok {
+		return fmt.Sprintf("unknown account: %s", name)
+	} else {
+		content := fmt.Sprintf("account: %s\npub_key: %s\n", acc.Name, acc.PubKey)
+		if _, ok = w.unlocked[name]; ok {
+			content += fmt.Sprintf("status: unlocked")
+		} else {
+			content += fmt.Sprintf("status: locked")
+		}
+		return content
+	}
 }
