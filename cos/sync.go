@@ -8,7 +8,6 @@ import (
 	"github.com/coschain/contentos-go/common/prototype"
 	"github.com/coschain/contentos-go/p2p/depend/common"
 	"github.com/coschain/contentos-go/p2p/discover"
-	log "github.com/inconshreveable/log15"
 )
 
 const (
@@ -184,10 +183,7 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 	//if err := pm.downloader.Synchronise(peer.id, pHead, pTd, mode); err != nil {
 	//	return
 	//}
-	if atomic.LoadUint32(&pm.fastSync) == 1 {
-		log.Info("Fast sync complete, auto disabling")
-		atomic.StoreUint32(&pm.fastSync, 0)
-	}
+
 	atomic.StoreUint32(&pm.acceptTxs, 1) // Mark initial sync done
 	//if head := pm.blockchain.CurrentBlock(); head.NumberU64() > 0 {
 	//	// We've completed a sync cycle, notify all peers of new state. This path is

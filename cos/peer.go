@@ -183,9 +183,9 @@ func (p *peer) MarkTransaction(hash common.Hash) {
 // SendTransactions sends transactions to the peer and includes the hashes
 // in its transaction hash set for future reference.
 func (p *peer) SendTransactions(txs []*prototype.Transaction) error {
-	//for _, tx := range txs {
-	//	p.knownTxs.Add(tx.Hash())
-	//}
+	for _, tx := range txs {
+		p.knownTxs.Add(tx.Hash())
+	}
 	return p2p.Send(p.rw, TxMsg, txs)
 }
 
@@ -193,10 +193,10 @@ func (p *peer) SendTransactions(txs []*prototype.Transaction) error {
 // peer. If the peer's broadcast queue is full, the event is silently dropped.
 func (p *peer) AsyncSendTransactions(txs []*prototype.Transaction) {
 	select {
-	//case p.queuedTxs <- txs:
-	//	for _, tx := range txs {
-	//		p.knownTxs.Add(tx.Hash())
-	//	}
+	case p.queuedTxs <- txs:
+		for _, tx := range txs {
+			p.knownTxs.Add(tx.Hash())
+		}
 	default:
 		p.Log().Debug("Dropping transaction propagation", "count", len(txs))
 	}

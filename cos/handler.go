@@ -50,7 +50,6 @@ func errResp(code errCode, format string, v ...interface{}) error {
 type ProtocolManager struct {
 	networkID uint64
 
-	fastSync  uint32 // Flag whether fast sync is enabled (gets disabled if we already have blocks)
 	acceptTxs uint32 // Flag whether we're considered synchronised (enables transaction processing)
 
 	txpool      txPool
@@ -65,7 +64,7 @@ type ProtocolManager struct {
 	SubProtocols []p2p.Protocol
 
 	eventMux      *event.TypeMux
-	//txsCh         chan core.NewTxsEvent
+	txsCh         chan NewTxsEvent
 	txsSub        event.Subscription
 	minedBlockSub *event.TypeMuxSubscription
 
@@ -97,21 +96,10 @@ func NewProtocolManager(mode downloader.SyncMode, networkID uint64, txpool txPoo
 		txsyncCh:    make(chan *txsync),
 		quitSync:    make(chan struct{}),
 	}
-	// Figure out whether to allow fast sync or not
-	//if mode == downloader.FastSync && blockchain.CurrentBlock().NumberU64() > 0 {
-	//	log.Warn("Blockchain not empty, fast sync disabled")
-	//	mode = downloader.FullSync
-	//}
-	if mode == downloader.FastSync {
-		manager.fastSync = uint32(1)
-	}
+
 	// Initiate a sub-protocol for every implemented version we can handle
 	manager.SubProtocols = make([]p2p.Protocol, 0, len(ProtocolVersions))
 	for i, version := range ProtocolVersions {
-		// Skip protocol version if incompatible with the mode of operation
-		if mode == downloader.FastSync && version < eth63 {
-			continue
-		}
 		// Compatible; initialise the sub-protocol
 		version := version // Closure for the run
 		manager.SubProtocols = append(manager.SubProtocols, p2p.Protocol{
@@ -145,7 +133,6 @@ func NewProtocolManager(mode downloader.SyncMode, networkID uint64, txpool txPoo
 	}
 	// Construct the different synchronisation mechanisms
 	//manager.downloader = downloader.New(mode, chaindb, manager.eventMux, blockchain, nil, manager.removePeer)
-	//manager.downloader = downloader.New(mode, manager.eventMux, blockchain, nil, manager.removePeer)
 
 	//validator := func(header *prototype.BlockHeader) error {
 	//	return engine.VerifyHeader(blockchain, header, true)
@@ -153,12 +140,8 @@ func NewProtocolManager(mode downloader.SyncMode, networkID uint64, txpool txPoo
 	//heighter := func() uint64 {
 	//	return blockchain.CurrentBlock().NumberU64()
 	//}
+
 	//inserter := func(blocks []*prototype.SignedBlock) (int, error) {
-	//	// If fast sync is running, deny importing weird blocks
-	//	if atomic.LoadUint32(&manager.fastSync) == 1 {
-	//		log.Warn("Discarded bad propagated block", "number", blocks[0].Id().BlockNum(), "hash", blocks[0].Hash())
-	//		return 0, nil
-	//	}
 	//	atomic.StoreUint32(&manager.acceptTxs, 1) // Mark initial sync done on any fetcher import
 	//	return manager.blockchain.InsertChain(blocks)
 	//}
@@ -190,8 +173,8 @@ func (pm *ProtocolManager) Start(maxPeers int) {
 	pm.maxPeers = maxPeers
 
 	// broadcast transactions
-	//pm.txsCh = make(chan core.NewTxsEvent, txChanSize)
-	//pm.txsSub = pm.txpool.SubscribeNewTxsEvent(pm.txsCh)
+	pm.txsCh = make(chan NewTxsEvent, txChanSize)
+	pm.txsSub = pm.txpool.SubscribeNewTxsEvent(pm.txsCh)
 	go pm.txBroadcastLoop()
 
 	// broadcast mined blocks
@@ -250,6 +233,7 @@ func (pm *ProtocolManager) handle(p *peer) error {
 		//number  = head.Number.Uint64()
 		//td      = pm.blockchain.GetTd(hash, number)
 	)
+
 	//if err := p.Handshake(pm.networkID, td, hash, genesis.Hash()); err != nil {
 	//	p.Log().Debug("Contentos handshake failed", "err", err)
 	//	return err
@@ -257,6 +241,7 @@ func (pm *ProtocolManager) handle(p *peer) error {
 	//if rw, ok := p.rw.(*meteredMsgReadWriter); ok {
 	//	rw.Init(p.version)
 	//}
+
 	// Register the peer locally
 	if err := pm.peers.Register(p); err != nil {
 		p.Log().Error("Contentos peer registration failed", "err", err)
@@ -272,25 +257,6 @@ func (pm *ProtocolManager) handle(p *peer) error {
 	// after this will be sent via broadcasts.
 	pm.syncTransactions(p)
 
-	// If we're DAO hard-fork aware, validate any remote peer with regard to the hard-fork
-	//if daoBlock := pm.chainconfig.DAOForkBlock; daoBlock != nil {
-	//	// Request the peer's DAO fork header for extra-data validation
-	//	if err := p.RequestHeadersByNumber(daoBlock.Uint64(), 1, 0, false); err != nil {
-	//		return err
-	//	}
-	//	// Start a timer to disconnect if the peer doesn't reply in time
-	//	p.forkDrop = time.AfterFunc(daoChallengeTimeout, func() {
-	//		p.Log().Debug("Timed out DAO fork-check, dropping")
-	//		pm.removePeer(p.id)
-	//	})
-	//	// Make sure it's cleaned up if the peer dies off
-	//	defer func() {
-	//		if p.forkDrop != nil {
-	//			p.forkDrop.Stop()
-	//			p.forkDrop = nil
-	//		}
-	//	}()
-	//}
 	// main loop. handle incoming messages.
 	for {
 		if err := pm.handleMsg(p); err != nil {
@@ -515,7 +481,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		//	}
 		//}
 
-	case p.version >= eth63 && msg.Code == GetNodeDataMsg:
+	case msg.Code == GetNodeDataMsg:
 		// Decode the retrieval message
 		msgStream := rlp.NewStream(msg.Payload, uint64(msg.Size))
 		if _, err := msgStream.List(); err != nil {
@@ -542,7 +508,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		}
 		return p.SendNodeData(data)
 
-	case p.version >= eth63 && msg.Code == NodeDataMsg:
+	case msg.Code == NodeDataMsg:
 		// A batch of node state data arrived to one of our previous requests
 		var data [][]byte
 		if err := msg.Decode(&data); err != nil {
@@ -553,7 +519,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			log.Debug("Failed to deliver node state data", "err", err)
 		}
 
-	case p.version >= eth63 && msg.Code == GetReceiptsMsg:
+	case msg.Code == GetReceiptsMsg:
 		// Decode the retrieval message
 		msgStream := rlp.NewStream(msg.Payload, uint64(msg.Size))
 		if _, err := msgStream.List(); err != nil {
@@ -591,7 +557,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		}
 		return p.SendReceiptsRLP(receipts)
 
-	case p.version >= eth63 && msg.Code == ReceiptsMsg:
+	case msg.Code == ReceiptsMsg:
 		// A batch of receipts arrived to one of our previous requests
 		var receipts [][]*prototype.TransactionInvoice
 		if err := msg.Decode(&receipts); err != nil {
@@ -669,9 +635,10 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			if tx == nil {
 				return errResp(ErrDecode, "transaction %d is nil", i)
 			}
-			//p.MarkTransaction(tx.Hash())
+			p.MarkTransaction(tx.Hash())
 		}
 		pm.txpool.AddRemotes(txs)
+		fmt.Println("Receive a trx success, RefBlockPrefix: ", txs[0].RefBlockPrefix, " RefBlockNum: ", txs[0].RefBlockNum)
 
 	default:
 		return errResp(ErrInvalidMsgCode, "%v", msg.Code)
@@ -718,17 +685,20 @@ func (pm *ProtocolManager) BroadcastTxs(txs []*prototype.Transaction) {
 	var txset = make(map[*peer][]*prototype.Transaction)
 
 	// Broadcast transactions to a batch of peers not knowing about it
-	//for _, tx := range txs {
-	//	peers := pm.peers.PeersWithoutTx(tx.Hash())
-	//	for _, peer := range peers {
-	//		txset[peer] = append(txset[peer], tx)
-	//	}
-	//	//log.Trace("Broadcast transaction", "hash", tx.Hash(), "recipients", len(peers))
-	//	log.Info("Broadcast transaction", "hash", tx.Hash(), "recipients", len(peers))
-	//}
+	for _, tx := range txs {
+		tx.RefBlockNum = 88888
+		tx.RefBlockPrefix = 12345
+		peers := pm.peers.PeersWithoutTx(tx.Hash())
+		for _, peer := range peers {
+			txset[peer] = append(txset[peer], tx)
+		}
+		//log.Trace("Broadcast transaction", "hash", tx.Hash(), "recipients", len(peers))
+		log.Info("Broadcast transaction", "hash", tx.Hash(), "recipients", len(peers))
+	}
 	// FIXME include this again: peers = peers[:int(math.Sqrt(float64(len(peers))))]
 	for peer, txs := range txset {
 		peer.AsyncSendTransactions(txs)
+		fmt.Println("Send a trx success, RefBlockPrefix: ", txs[0].RefBlockPrefix, " RefBlockNum: ", txs[0].RefBlockNum)
 	}
 }
 
@@ -748,8 +718,8 @@ func (pm *ProtocolManager) minedBroadcastLoop() {
 func (pm *ProtocolManager) txBroadcastLoop() {
 	for {
 		select {
-		//case event := <-pm.txsCh:
-		//	pm.BroadcastTxs(event.Txs)
+		case event := <-pm.txsCh:
+			pm.BroadcastTxs(event.Txs)
 
 		// Err() channel will be closed when unsubscribing.
 		case <-pm.txsSub.Err():

@@ -1,5 +1,10 @@
 package prototype
 
+import (
+	"crypto/sha256"
+	"github.com/gogo/protobuf/proto"
+)
+
 func (m *Transaction) set_expiration(time int) {
 }
 
@@ -19,4 +24,10 @@ func (m *Transaction) AddOperation(op interface{}) {
 		panic("error op type")
 	}
 	m.Operations = append(m.Operations, res)
+}
+
+func (m *Transaction) Hash() (hash [Size]byte) {
+	data, _ := proto.Marshal(m)
+	hash = sha256.Sum256(data)
+	return
 }

@@ -3,6 +3,7 @@ package cos
 import (
 	"github.com/coschain/contentos-go/common/prototype"
 	"github.com/coschain/contentos-go/p2p/depend/common"
+	"github.com/coschain/contentos-go/p2p/depend/event"
 	"sync"
 )
 
@@ -10,7 +11,14 @@ type TxPoolConfig struct {
 }
 
 type TxPool struct {
-	mu sync.RWMutex
+	mu           sync.RWMutex
+	scope        event.SubscriptionScope
+	txFeed       event.Feed
+}
+
+// NewTxsEvent is posted when a batch of transactions enter the transaction pool.
+type NewTxsEvent struct{
+	Txs []*prototype.Transaction
 }
 
 func NewTxPool() *TxPool {
@@ -48,4 +56,10 @@ func (pool *TxPool) Pending() (map[common.Address][]*prototype.Transaction, erro
 
 	pending := make(map[common.Address][]*prototype.Transaction)
 	return pending, nil
+}
+
+// SubscribeNewTxsEvent registers a subscription of NewTxsEvent and
+// starts sending event to the given channel.
+func (pool *TxPool) SubscribeNewTxsEvent(ch chan<- NewTxsEvent) event.Subscription {
+	return pool.scope.Track(pool.txFeed.Subscribe(ch))
 }
