@@ -17,7 +17,7 @@ type BlockID struct {
 }
 
 // BlockNum returns the block num
-func (bid *BlockID) BlockNum() uint64 {
+func (bid BlockID) BlockNum() uint64 {
 	return binary.LittleEndian.Uint64(bid.Data[:8])
 }
 

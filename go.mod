@@ -7,6 +7,7 @@ require (
 	github.com/chzyer/logex v1.1.10 // indirect
 	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e
 	github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1 // indirect
+	github.com/deckarep/golang-set v1.7.1
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/gogo/protobuf v1.1.1
 	github.com/golang/protobuf v1.2.0
@@ -30,4 +31,5 @@ require (
 	golang.org/x/net v0.0.0-20181011144130-49bb7cea24b1
 	google.golang.org/genproto v0.0.0-20181101192439-c830210a61df
 	google.golang.org/grpc v1.16.0
+	gopkg.in/karalabe/cookiejar.v2 v2.0.0-20150724131613-8dcd6a7f4951
 )
