@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"log"
 	"os/exec"
+	"reflect"
 	"strings"
 	"unicode"
 )
@@ -48,19 +49,22 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	{{.ClsName}}Table        = []byte{0x{{$.TBMask}}, 0x0}
+	{{.ClsName}}Table        = []byte("{{.ClsName}}Table")
 {{range $k, $v := .LKeys}}
-	{{$.ClsName}}{{$v}}Table = []byte{0x{{$.TBMask}}, 1 + 0x{{$k}} }
+	{{$.ClsName}}{{rValueFormStr $v}}Table = []byte("{{$.ClsName}}{{rValueFormStr $v}}Table")
+{{end}}
+{{range $k, $v := .UniqueFieldMap}}
+	{{$.ClsName}}{{rValueFormStr $k}}Table = []byte("{{$.ClsName}}{{rValueFormStr $k}}Table")
 {{end}}
 )
 
 ////////////// SECTION Wrap Define ///////////////
 type So{{.ClsName}}Wrap struct {
 	dba 		storage.Database
-	mainKey 	*{{.MainKeyType}}
+	mainKey 	*{{formateStr .MainKeyType}}
 }
 
-func NewSo{{.ClsName}}Wrap(dba storage.Database, key *{{.MainKeyType}}) *So{{.ClsName}}Wrap{
+func NewSo{{.ClsName}}Wrap(dba storage.Database, key *{{formateStr .MainKeyType}}) *So{{.ClsName}}Wrap{
 	result := &So{{.ClsName}}Wrap{ dba, key}
 	return result
 }
@@ -75,7 +79,7 @@ func (s *So{{.ClsName}}Wrap) CheckExist() bool {
 	if err != nil {
 		return false
 	}
-
+    
 	return res
 }
 
@@ -102,20 +106,27 @@ func (s *So{{.ClsName}}Wrap) Create{{.ClsName}}(sa *So{{.ClsName}}) bool {
 		return false
 	}
 
-	// update secondary keys
+	// update sort list keys
 	{{range $k, $v := .LKeys}}
-	if !s.insertSubKey{{$v}}(sa) {
+	if !s.insertSList{{$v}}(sa) {
 		return false
 	}
 	{{end}}
-
+  
+    //update unique list
+    {{range $k, $v := .UniqueFieldMap}}
+	if !s.insertUnique{{rValueFormStr $k}}(sa) {
+		return false
+	}
+	{{end}}
+    
 	return true
 }
 
 ////////////// SECTION LKeys delete/insert ///////////////
 
 {{range $k1, $v1 := .LKeys}}
-func (s *So{{$.ClsName}}Wrap) deleteSubKey{{$v1}}(sa *So{{$.ClsName}}) bool {
+func (s *So{{$.ClsName}}Wrap) deleteSList{{$v1}}(sa *So{{$.ClsName}}) bool {
 	val := SoList{{$.ClsName}}By{{$v1}}{}
 
 	val.{{$v1}} = sa.{{$v1}}
@@ -131,7 +142,7 @@ func (s *So{{$.ClsName}}Wrap) deleteSubKey{{$v1}}(sa *So{{$.ClsName}}) bool {
 }
 
 
-func (s *So{{$.ClsName}}Wrap) insertSubKey{{$v1}}(sa *So{{$.ClsName}}) bool {
+func (s *So{{$.ClsName}}Wrap) insertSList{{$v1}}(sa *So{{$.ClsName}}) bool {
 	val := SoList{{$.ClsName}}By{{$v1}}{}
 
 	val.{{UperFirstChar $.MainKeyName}} = sa.{{UperFirstChar $.MainKeyName}}
@@ -163,12 +174,20 @@ func (s *So{{.ClsName}}Wrap) Remove{{.ClsName}}() bool {
 		return false
 	}
 
+    //delete sort list key
 	{{range $k, $v := .LKeys}}
-	if !s.deleteSubKey{{$v}}(sa) {
+	if !s.deleteSList{{$v}}(sa) {
 		return false
 	}
 	{{end}}
-
+   
+    //delete unique list
+    {{range $k, $v := .UniqueFieldMap}}
+	if !s.deleteUnique{{rValueFormStr $k}}(sa) {
+		return false
+	}
+	{{end}}
+    
 	keyBuf, err := s.encodeMainKey()
 
 	if err != nil {
@@ -182,17 +201,25 @@ func (s *So{{.ClsName}}Wrap) Remove{{.ClsName}}() bool {
 
 {{range $k1, $v1 := .MemberKeyMap}}
 
-func (s *So{{$.ClsName}}Wrap) Get{{$.ClsName}}{{formateStr $k1}}() *{{$v1}} {
+func (s *So{{$.ClsName}}Wrap) Get{{rValueFormStr $k1}}() *{{formateStr $v1}} {
 	res := s.get{{$.ClsName}}()
 
 	if res == nil {
 		return nil
 	}
-	return &res.{{formateStr $k1}}
+{{$baseType := (DetermineBaseType $v1) }}
+{{if $baseType}} 
+return &res.{{rValueFormStr $k1}}
+{{end}}
+{{if not $baseType}} 
+return res.{{rValueFormStr $k1}}
+{{end}}
+
 }
 
+{{if ne $k1 $.MainKeyName}}
 
-func (s *So{{$.ClsName}}Wrap) Md{{$.ClsName}}{{formateStr $k1}}(p {{$v1}}) bool {
+func (s *So{{$.ClsName}}Wrap) Md{{rValueFormStr $k1}}(p {{formateStr $v1}}) bool {
 
 	sa := s.get{{$.ClsName}}()
 
@@ -202,43 +229,51 @@ func (s *So{{$.ClsName}}Wrap) Md{{$.ClsName}}{{formateStr $k1}}(p {{$v1}}) bool 
 
 	{{range $k2, $v2 := $.LKeys}}
 		{{if eq $v2 $k1 }}
-	if !s.deleteSubKey{{$k1}}(sa) {
+	if !s.deleteSList{{$k1}}(sa) {
 		return false
 	}
 		{{end}}
 	{{end}}
-	sa.{{formateStr $k1}} = p
+
+   {{range $k3, $v3 := $.UniqueFieldMap}}
+		{{if eq $k3 $k1 }}
+	if !s.deleteUnique{{rValueFormStr $k3}}(sa) {
+		return false
+	}
+		{{end}}
+	{{end}}
+   {{if $baseType}} 
+     sa.{{rValueFormStr $k1}} = p
+   {{end}}
+   {{if not $baseType}} 
+     sa.{{rValueFormStr $k1}} = &p
+   {{end}}
+	
 	if !s.update(sa) {
 		return false
 	}
     {{range $k2, $v2 := $.LKeys}}
       {{if eq $v2 $k1 }}
-	   if !s.insertSubKey{{$k1}}(sa) {
+    if !s.insertSList{{$k1}}(sa) {
 		return false
-	   }
+    }
        {{end}}
     {{end}}
+     
+     
+    {{range $k3, $v3 := $.UniqueFieldMap}}
+		{{if eq $k3 $k1 }}
+    if !s.insertUnique{{rValueFormStr $k3}}(sa) {
+		return false
+    }
+		{{end}}
+	{{end}}
 	return true
-}
-
-func QueryAccount{{$.ClsName}}{{formateStr $k1}}(dba storage.Database, {{LowerFirstChar $k1}} {{$v1}}) []*So{{$.ClsName}} {
-	var arry []*So{{$.ClsName}}
-	iter := dba.NewIterator(nil, nil)
-	for iter.Next() {
-		res, err := iter.Value()
-		if err != nil {
-			pbMsg := &So{{$.ClsName}}{}
-			if proto.Unmarshal(res, pbMsg) != nil && pbMsg.{{$k1}} == {{LowerFirstChar $k1}} {
-				arry = append(arry,pbMsg)
-			}
-		}
-	}
-	return arry
-
 }
 
 {{end}}
 
+{{end}}
 
 {{range $v, $k := .LKeyWithType}}
 ////////////// SECTION List Keys ///////////////
@@ -261,7 +296,7 @@ type SList{{$.ClsName}}By{{$v}} struct {
 	Dba storage.Database
 }
 
-func (s *SList{{$.ClsName}}By{{$v}}) GetMainVal(iterator storage.Iterator) *{{$.MainKeyType}} {
+func (s *SList{{$.ClsName}}By{{$v}}) GetMainVal(iterator storage.Iterator) *{{formateStr $.MainKeyType}} {
 	if iterator == nil || !iterator.Valid() {
 		return nil
 	}
@@ -279,10 +314,17 @@ func (s *SList{{$.ClsName}}By{{$v}}) GetMainVal(iterator storage.Iterator) *{{$.
 		return nil
 	}
 
-	return &res.{{UperFirstChar $.MainKeyName}}
+    {{$baseType := (DetermineBaseType $.MainKeyType) }}
+   {{if $baseType}} 
+     return &res.{{rValueFormStr $.MainKeyName}}
+   {{end}}
+   {{if not $baseType}} 
+   return res.{{rValueFormStr $.MainKeyName}}
+   {{end}}
+
 }
 
-func (s *SList{{$.ClsName}}By{{$v}}) GetSubVal(iterator storage.Iterator) *{{$k}} {
+func (s *SList{{$.ClsName}}By{{$v}}) GetSubVal(iterator storage.Iterator) *{{formateStr $k}} {
 	if iterator == nil || !iterator.Valid() {
 		return nil
 	}
@@ -299,11 +341,16 @@ func (s *SList{{$.ClsName}}By{{$v}}) GetSubVal(iterator storage.Iterator) *{{$k}
 	if err != nil {
 		return nil
 	}
-
-	return &res.{{UperFirstChar $v}}
+    {{$baseType := (DetermineBaseType $k) }}
+   {{if $baseType}} 
+     return &res.{{rValueFormStr $v}}
+   {{end}}
+   {{if not $baseType}} 
+   return res.{{rValueFormStr $v}}
+   {{end}}
 }
 
-func (s *SList{{$.ClsName}}By{{$v}}) DoList(start {{$k}}, end {{$k}}) storage.Iterator {
+func (s *SList{{$.ClsName}}By{{$v}}) DoList(start {{formateStr $k}}, end {{formateStr $k}}) storage.Iterator {
 
 	startBuf, err := encoding.Encode(&start)
 	if err != nil {
@@ -371,21 +418,92 @@ func (s *So{{$.ClsName}}Wrap) encodeMainKey() ([]byte, error) {
 	return append({{.ClsName}}Table, res...), nil
 }
 
-/////////////// SECTION Unique Query ////////////////
-{{range $k,$v := $.UniqueFieldMap}}
-   func UniqueQuery{{$.ClsName}}{{formateStr $k}}(dba storage.Database, {{$k}} {{$v}}) *So{{$.ClsName}} {
-     iter := dba.NewIterator(nil,nil)
-	for iter.Next() {
-		res,err := iter.Value()
-		if err != nil {
-			pbMsg := &So{{$.ClsName}}{}
-			if proto.Unmarshal(res, pbMsg) != nil && pbMsg.{{$k}} == {{$k}} {
-				return pbMsg
-			}
-		}
+////////////// Unique Query delete/insert ///////////////
+{{range $k, $v := .UniqueFieldMap}}
+
+func (s *So{{$.ClsName}}Wrap) deleteUnique{{rValueFormStr $k}}(sa *So{{$.ClsName}}) bool {
+	val := SoUnique{{$.ClsName}}By{{rValueFormStr $k}}{}
+
+	val.{{rValueFormStr $k}} = sa.{{rValueFormStr $k}}
+	val.{{UperFirstChar $.MainKeyName}} = sa.{{UperFirstChar $.MainKeyName}}
+
+	key, err := encoding.Encode(&val)
+
+	if err != nil {
+		return false
 	}
-	return nil
-  }
+
+	return s.dba.Delete(append({{$.ClsName}}{{rValueFormStr $k}}Table,key...)) == nil
+}
+
+
+func (s *So{{$.ClsName}}Wrap) insertUnique{{rValueFormStr $k}}(sa *So{{$.ClsName}}) bool {
+    uniWap  := SUnique{{$.ClsName}}By{{rValueFormStr $k}}{}
+   {{$baseType := (DetermineBaseType $v) }}
+   {{if $baseType}} 
+   	res := uniWap.UniQuery{{rValueFormStr $k}}(&sa.{{UperFirstChar $k}})
+   {{end}}
+   {{if not $baseType}} 
+   	res := uniWap.UniQuery{{rValueFormStr $k}}(sa.{{UperFirstChar $k}})
+   {{end}}
+	if res != nil {
+		//the unique key is already exist
+		return false
+	}
+ 
+    val := SoUnique{{$.ClsName}}By{{rValueFormStr $k}}{}
+
+	val.{{UperFirstChar $.MainKeyName}} = sa.{{UperFirstChar $.MainKeyName}}
+	val.{{UperFirstChar $k}} = sa.{{UperFirstChar $k}}
+    
+	buf, err := proto.Marshal(&val)
+
+	if err != nil {
+		return false
+	}
+
+	key, err := encoding.Encode(&val)
+
+	if err != nil {
+		return false
+	}
+	return s.dba.Put(append({{$.ClsName}}{{rValueFormStr $k}}Table,key...), buf) == nil
+
+}
+
+type SUnique{{$.ClsName}}By{{rValueFormStr $k}} struct {
+	Dba storage.Database
+}
+
+func (s *SUnique{{$.ClsName}}By{{rValueFormStr $k}}) UniQuery{{rValueFormStr $k}}(start *{{formateStr $v}}) *So{{$.ClsName}}Wrap{
+
+   startBuf, err := encoding.Encode(start)
+	if err != nil {
+		return nil
+	}
+
+	bufStartkey := append({{$.ClsName}}{{rValueFormStr $k}}Table, startBuf...)
+	bufEndkey := bufStartkey
+
+	iter := s.Dba.NewIterator(bufStartkey, bufEndkey)
+    
+    val, err := iter.Value()
+
+	if err != nil {
+		return nil
+	}
+
+	res := &SoUnique{{$.ClsName}}By{{rValueFormStr $k}}{}
+	err = proto.Unmarshal(val, res)
+
+	if err != nil {
+		return nil
+	}
+    wrap := NewSo{{$.ClsName}}Wrap(s.Dba,res.{{UperFirstChar $.MainKeyName}})
+    
+	return wrap	
+}
+
 {{end}}
 
 `
@@ -393,7 +511,10 @@ func (s *So{{$.ClsName}}Wrap) encodeMainKey() ([]byte, error) {
 	if fPtr := CreateFile(fName); fPtr != nil {
 		funcMapUper := template.FuncMap{"UperFirstChar": UperFirstChar,
 		"formateStr":formateStr,
-		"LowerFirstChar": LowerFirstChar}
+		"LowerFirstChar": LowerFirstChar,
+		"rValueFormStr":rValueFormStr,
+		"convertToStr":convertToStr,
+		"DetermineBaseType":DetermineBaseType}
 		t := template.New("layout.html")
 		t  = t.Funcs(funcMapUper)
 		t.Parse(tmpl)
@@ -457,17 +578,80 @@ func LowerFirstChar(str string) string {
 func formateStr(str string) string  {
 	formStr := ""
 	if str != "" {
-		strArry := strings.Split(str, "_")
-		if len(strArry) > 0 {
-			for k,_ := range strArry {
-				v := strArry[k]
-				formStr += UperFirstChar(v)
+            if strings.Contains(str, ".") {
+				arry := strings.Split(str, ".")
+            	for k,v := range arry {
+					if k != 0 {
+						formStr += "."
+						formStr += ConvertToPbForm(strings.Split(v, "_"))
+					}else {
+						formStr +=  v
+					}
+				}
+			}else if strings.Contains(str,"_"){
+
+				formStr = ConvertToPbForm(strings.Split(str, "_"))
+			}else {
+				formStr = str
 			}
-		}else {
-			formStr = UperFirstChar(str)
 		}
 
+	return formStr
+}
+
+func rValueFormStr(str string) string {
+	formStr := ""
+	if str != "" {
+		formStr = ConvertToPbForm(strings.Split(str,"_"))
 	}
 	return formStr
 }
 
+func ConvertToPbForm(arry []string) string {
+	formStr := ""
+	for _,v := range arry {
+		formStr += UperFirstChar(v)
+	}
+	return formStr
+}
+
+func JudgeIsPtr(t interface{}) bool {
+	if reflect.TypeOf(t).Kind().String() == reflect.Ptr.String() {
+		return true
+	}
+	return false
+}
+
+func convertToStr(t interface{}) string {
+	res := fmt.Sprintf("%s",t)
+	return res
+}
+
+func DetermineBaseType(str string) bool {
+	switch str {
+	    case "string":
+	 	  return true
+	 	case "uint8":
+	 		return true
+		case "uint16":
+			return true
+		case "uint32":
+			return true
+		case "uint64":
+			return true
+		case "int8":
+			return true
+		case "int16":
+			return true
+		case "int32":
+			return true
+		case "int64":
+			return true
+		case "int":
+			return true
+		case "float32":
+			return true
+		case "float64":
+	}
+	return false
+}

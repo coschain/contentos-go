@@ -6,4 +6,4 @@ int64                   ,like_count  ,0,1,0
 int64                   ,idx         ,0,1,0
 int64                   ,replay_count,0,0,1
 string                  ,content     ,0,0,0
-string                  ,tagList     ,0,0,0
+string                  ,taglist     ,0,0,0

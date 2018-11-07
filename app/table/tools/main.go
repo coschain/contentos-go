@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"unicode"
 )
 
 type TableInfo struct {
@@ -28,7 +29,7 @@ type PropList struct {
 	Index		uint32
 }
 
-var TmlFolder = "./app/table/tools/tml/"
+var TmlFolder = "./app/table/"
 
 
 func (p *PropList) ToString() string{
@@ -37,8 +38,14 @@ func (p *PropList) ToString() string{
 }
 
 func (p *PropList) Parse(info []string, index uint32) bool {
+	name := info[1]
+	if CheckUpperLetter(name) {
+		//the field name can't contain uppercase letters
+		log.Printf("the field %s contain upper letters \n",name)
+		return false
+	}
 	p.VarType	= info[0]
-	p.VarName	= info[1]
+	p.VarName	= name
 	res, err := strconv.ParseBool(strings.Replace(info[2]," ","",-1))
 	if err != nil{
 		return false
@@ -237,6 +244,7 @@ func createKeyTpl(t TableInfo) string {
 	tpl := ""
 	if len(t.PList) > 0 {
 		var secKeyList = make([]PropList,0)
+		var uniList = make([]PropList,0)
 		mKeyType , mKeyName := "",""
 		for _,v := range t.PList {
 			if v.BMainKey {
@@ -245,6 +253,9 @@ func createKeyTpl(t TableInfo) string {
 			}else if v.BSort {
 				secKeyList = append(secKeyList,v)
 			}
+			if v.BUnique {
+				uniList = append(uniList,v)
+			}
 		}
 		if len(secKeyList) > 0 && mKeyType != "" && mKeyName != ""{
 			for _,v := range secKeyList {
@@ -252,7 +263,25 @@ func createKeyTpl(t TableInfo) string {
 				tempTpl := fmt.Sprintf("\nmessage so_list_%s_by_%s {\n",
 					strings.Replace(t.Name," ","",-1),
 					strings.Replace(v.VarName," ","",-1))
-				tempTpl = fmt.Sprintf("%s\t\t%s\t%s\t=\t%d;\n\t\t%s\t%s\t=\t%d;\n}\n",tempTpl, v.VarType, v.VarName,1, mKeyType, mKeyName,2)
+				tempTpl = fmt.Sprintf("%s\t\t%s\t%s\t=\t%d;\n\t\t%s\t%s\t=\t%d;\n}\n",
+					tempTpl, v.VarType, v.VarName,1, mKeyType, mKeyName,2)
+				tpl += fmt.Sprintf("%s",tempTpl)
+			}
+		}
+
+		if len(uniList) > 0 && mKeyType != "" && mKeyName != ""{
+			for _,v := range uniList {
+
+				tempTpl := fmt.Sprintf("\nmessage so_unique_%s_by_%s {\n",
+					strings.Replace(t.Name," ","",-1),
+					strings.Replace(v.VarName," ","",-1))
+				if !v.BMainKey {
+					tempTpl = fmt.Sprintf("%s\t\t%s\t%s\t=\t%d;\n\t\t%s\t%s\t=\t%d;\n}\n",
+						tempTpl, v.VarType, v.VarName,1, mKeyType, mKeyName,2)
+				}else {
+					tempTpl = fmt.Sprintf("%s\t\t%s\t%s\t=\t%d;\n}\n",
+						tempTpl, mKeyType, mKeyName,2)
+				}
 				tpl += fmt.Sprintf("%s",tempTpl)
 			}
 		}
@@ -299,4 +328,16 @@ func JudgeFileIsExist(fPath string) (bool, error) {
 		return true, err
 	}
 	return false, err
+}
+
+/* check the string is contain Upper letters */
+func CheckUpperLetter(str string) bool {
+	if str != "" {
+       for _,v := range str {
+       	  if unicode.IsUpper(v) {
+       	  	 return true
+		  }
+	   }
+	}
+	return false
 }
