@@ -21,7 +21,6 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		SyncMode                downloader.SyncMode
 		LightServ               int  `toml:",omitempty"`
 		LightPeers              int  `toml:",omitempty"`
-		SkipBcVersionCheck      bool `toml:"-"`
 		DatabaseHandles         int  `toml:"-"`
 		DatabaseCache           int
 		Etherbase               common.Address `toml:",omitempty"`
@@ -39,7 +38,6 @@ func (c Config) MarshalTOML() (interface{}, error) {
 	enc.SyncMode = c.SyncMode
 	enc.LightServ = c.LightServ
 	enc.LightPeers = c.LightPeers
-	enc.SkipBcVersionCheck = c.SkipBcVersionCheck
 	enc.DatabaseHandles = c.DatabaseHandles
 	enc.DatabaseCache = c.DatabaseCache
 	enc.Etherbase = c.Etherbase
@@ -61,7 +59,6 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		SyncMode                *downloader.SyncMode
 		LightServ               *int  `toml:",omitempty"`
 		LightPeers              *int  `toml:",omitempty"`
-		SkipBcVersionCheck      *bool `toml:"-"`
 		DatabaseHandles         *int  `toml:"-"`
 		DatabaseCache           *int
 		Etherbase               *common.Address `toml:",omitempty"`
@@ -91,9 +88,6 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	}
 	if dec.LightPeers != nil {
 		c.LightPeers = *dec.LightPeers
-	}
-	if dec.SkipBcVersionCheck != nil {
-		c.SkipBcVersionCheck = *dec.SkipBcVersionCheck
 	}
 	if dec.DatabaseHandles != nil {
 		c.DatabaseHandles = *dec.DatabaseHandles

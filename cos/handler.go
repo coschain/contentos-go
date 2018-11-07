@@ -83,11 +83,11 @@ type ProtocolManager struct {
 // NewProtocolManager returns a new Contentos sub protocol manager. The Contentos sub protocol manages peers capable
 // with the Contentos network.
 //func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, networkID uint64, mux *event.TypeMux, txpool txPool, blockchain *core.BlockChain, chaindb ethdb.Database) (*ProtocolManager, error) {
-func NewProtocolManager(mode downloader.SyncMode, networkID uint64, mux *event.TypeMux, txpool txPool) (*ProtocolManager, error) {
+func NewProtocolManager(mode downloader.SyncMode, networkID uint64, txpool txPool) (*ProtocolManager, error) {
 	// Create the protocol manager with the base fields
 	manager := &ProtocolManager{
 		networkID:   networkID,
-		eventMux:    mux,
+		//eventMux:    mux,
 		txpool:      txpool,
 		//blockchain:  blockchain,
 		//chainconfig: config,
