@@ -6,7 +6,6 @@ import (
 	"html/template"
 	"log"
 	"os/exec"
-	"reflect"
 	"strings"
 	"unicode"
 )
@@ -132,7 +131,7 @@ func (s *So{{$.ClsName}}Wrap) delSortKey{{$v1}}(sa *So{{$.ClsName}}) bool {
 	val.{{$v1}} = sa.{{$v1}}
 	val.{{UperFirstChar $.MainKeyName}} = sa.{{UperFirstChar $.MainKeyName}}
 
-	key, err := encoding.Encode(&val)
+	key, err := val.OpeEncode()
 
 	if err != nil {
 		return false
@@ -154,7 +153,7 @@ func (s *So{{$.ClsName}}Wrap) insertSortKey{{$v1}}(sa *So{{$.ClsName}}) bool {
 		return false
 	}
 
-	key, err := encoding.Encode(&val)
+	key, err := val.OpeEncode()
 
 	if err != nil {
 		return false
@@ -207,7 +206,7 @@ func (s *So{{$.ClsName}}Wrap) Get{{rValueFormStr $k1}}() *{{formateStr $v1}} {
 	if res == nil {
 		return nil
 	}
-{{$baseType := (DetermineBaseType $v1) }}
+{{$baseType := (DetectBaseType $v1) }}
 {{if $baseType}} 
 return &res.{{rValueFormStr $k1}}
 {{end}}
@@ -227,11 +226,11 @@ func (s *So{{$.ClsName}}Wrap) Md{{rValueFormStr $k1}}(p {{formateStr $v1}}) bool
 		return false
 	}
 
-    {{range $k3, $v3 := $.UniqueFieldMap}}
-		{{if eq $k3 $k1 }}
-    //judge the unique value is exist
-    uniWrap  := SUnique{{$.ClsName}}By{{rValueFormStr $k3}}{}
-   {{$baseType := (DetermineBaseType $v3) }}
+    {{range $k2, $v2 := $.UniqueFieldMap}}
+		{{if eq $k2 $k1 }}
+    //judge the unique value if is exist
+    uniWrap  := UniWrap{{$.ClsName}}By{{rValueFormStr $k2}}{}
+   {{$baseType := (DetectBaseType $v2) }}
    {{if $baseType}} 
    	res := uniWrap.UniQuery{{rValueFormStr $k1}}(&sa.{{UperFirstChar $k1}})
    {{end}}
@@ -242,15 +241,15 @@ func (s *So{{$.ClsName}}Wrap) Md{{rValueFormStr $k1}}(p {{formateStr $v1}}) bool
 		//the unique value to be modified is already exist
 		return false
 	}
-	if !s.delUniKey{{rValueFormStr $k3}}(sa) {
+	if !s.delUniKey{{rValueFormStr $k2}}(sa) {
 		return false
 	}
 		{{end}}
 	{{end}}
     
 
-	{{range $k2, $v2 := $.LKeys}}
-		{{if eq $v2 $k1 }}
+	{{range $k3, $v3 := $.LKeys}}
+		{{if eq $v3 $k1 }}
 	if !s.delSortKey{{$k1}}(sa) {
 		return false
 	}
@@ -267,8 +266,8 @@ func (s *So{{$.ClsName}}Wrap) Md{{rValueFormStr $k1}}(p {{formateStr $v1}}) bool
 	if !s.update(sa) {
 		return false
 	}
-    {{range $k2, $v2 := $.LKeys}}
-      {{if eq $v2 $k1 }}
+    {{range $k4, $v4 := $.LKeys}}
+      {{if eq $v4 $k1 }}
     if !s.insertSortKey{{$k1}}(sa) {
 		return false
     }
@@ -276,9 +275,9 @@ func (s *So{{$.ClsName}}Wrap) Md{{rValueFormStr $k1}}(p {{formateStr $v1}}) bool
     {{end}}
      
      
-    {{range $k3, $v3 := $.UniqueFieldMap}}
-		{{if eq $k3 $k1 }}
-    if !s.insertUniKey{{rValueFormStr $k3}}(sa) {
+    {{range $k5, $v5 := $.UniqueFieldMap}}
+		{{if eq $k5 $k1 }}
+    if !s.insertUniKey{{rValueFormStr $k5}}(sa) {
 		return false
     }
 		{{end}}
@@ -329,7 +328,7 @@ func (s *SList{{$.ClsName}}By{{$v}}) GetMainVal(iterator storage.Iterator) *{{fo
 		return nil
 	}
 
-    {{$baseType := (DetermineBaseType $.MainKeyType) }}
+    {{$baseType := (DetectBaseType $.MainKeyType) }}
    {{if $baseType}} 
      return &res.{{rValueFormStr $.MainKeyName}}
    {{end}}
@@ -356,7 +355,7 @@ func (s *SList{{$.ClsName}}By{{$v}}) GetSubVal(iterator storage.Iterator) *{{for
 	if err != nil {
 		return nil
 	}
-    {{$baseType := (DetermineBaseType $k) }}
+    {{$baseType := (DetectBaseType $k) }}
    {{if $baseType}} 
      return &res.{{rValueFormStr $v}}
    {{end}}
@@ -365,7 +364,7 @@ func (s *SList{{$.ClsName}}By{{$v}}) GetSubVal(iterator storage.Iterator) *{{for
    {{end}}
 }
 
-func (s *SList{{$.ClsName}}By{{$v}}) DoList(start {{formateStr $k}}, end {{formateStr $k}}) storage.Iterator {
+func (s *SList{{$.ClsName}}By{{$v}}) QueryList(start {{formateStr $k}}, end {{formateStr $k}}) storage.Iterator {
 
 	startBuf, err := encoding.Encode(&start)
 	if err != nil {
@@ -453,8 +452,8 @@ func (s *So{{$.ClsName}}Wrap) delUniKey{{rValueFormStr $k}}(sa *So{{$.ClsName}})
 
 
 func (s *So{{$.ClsName}}Wrap) insertUniKey{{rValueFormStr $k}}(sa *So{{$.ClsName}}) bool {
-    uniWrap  := SUnique{{$.ClsName}}By{{rValueFormStr $k}}{}
-   {{$baseType := (DetermineBaseType $v) }}
+    uniWrap  := UniWrap{{$.ClsName}}By{{rValueFormStr $k}}{}
+   {{$baseType := (DetectBaseType $v) }}
    {{if $baseType}} 
    	res := uniWrap.UniQuery{{rValueFormStr $k}}(&sa.{{UperFirstChar $k}})
    {{end}}
@@ -486,11 +485,11 @@ func (s *So{{$.ClsName}}Wrap) insertUniKey{{rValueFormStr $k}}(sa *So{{$.ClsName
 
 }
 
-type SUnique{{$.ClsName}}By{{rValueFormStr $k}} struct {
+type UniWrap{{$.ClsName}}By{{rValueFormStr $k}} struct {
 	Dba storage.Database
 }
 
-func (s *SUnique{{$.ClsName}}By{{rValueFormStr $k}}) UniQuery{{rValueFormStr $k}}(start *{{formateStr $v}}) *So{{$.ClsName}}Wrap{
+func (s *UniWrap{{$.ClsName}}By{{rValueFormStr $k}}) UniQuery{{rValueFormStr $k}}(start *{{formateStr $v}}) *So{{$.ClsName}}Wrap{
 
    startBuf, err := encoding.Encode(start)
 	if err != nil {
@@ -528,8 +527,7 @@ func (s *SUnique{{$.ClsName}}By{{rValueFormStr $k}}) UniQuery{{rValueFormStr $k}
 		"formateStr":formateStr,
 		"LowerFirstChar": LowerFirstChar,
 		"rValueFormStr":rValueFormStr,
-		"convertToStr":convertToStr,
-		"DetermineBaseType":DetermineBaseType}
+		"DetectBaseType":DetectBaseType}
 		t := template.New("layout.html")
 		t  = t.Funcs(funcMapUper)
 		t.Parse(tmpl)
@@ -630,19 +628,7 @@ func ConvertToPbForm(arry []string) string {
 	return formStr
 }
 
-func JudgeIsPtr(t interface{}) bool {
-	if reflect.TypeOf(t).Kind().String() == reflect.Ptr.String() {
-		return true
-	}
-	return false
-}
-
-func convertToStr(t interface{}) string {
-	res := fmt.Sprintf("%s",t)
-	return res
-}
-
-func DetermineBaseType(str string) bool {
+func DetectBaseType(str string) bool {
 	switch str {
 	    case "string":
 	 	  return true
