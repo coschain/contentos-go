@@ -108,14 +108,14 @@ func (s *So{{.ClsName}}Wrap) Create{{.ClsName}}(sa *So{{.ClsName}}) bool {
 
 	// update sort list keys
 	{{range $k, $v := .LKeys}}
-	if !s.insertSList{{$v}}(sa) {
+	if !s.insertSortKey{{$v}}(sa) {
 		return false
 	}
 	{{end}}
   
     //update unique list
     {{range $k, $v := .UniqueFieldMap}}
-	if !s.insertUnique{{rValueFormStr $k}}(sa) {
+	if !s.insertUniKey{{rValueFormStr $k}}(sa) {
 		return false
 	}
 	{{end}}
@@ -126,7 +126,7 @@ func (s *So{{.ClsName}}Wrap) Create{{.ClsName}}(sa *So{{.ClsName}}) bool {
 ////////////// SECTION LKeys delete/insert ///////////////
 
 {{range $k1, $v1 := .LKeys}}
-func (s *So{{$.ClsName}}Wrap) deleteSList{{$v1}}(sa *So{{$.ClsName}}) bool {
+func (s *So{{$.ClsName}}Wrap) delSortKey{{$v1}}(sa *So{{$.ClsName}}) bool {
 	val := SoList{{$.ClsName}}By{{$v1}}{}
 
 	val.{{$v1}} = sa.{{$v1}}
@@ -142,7 +142,7 @@ func (s *So{{$.ClsName}}Wrap) deleteSList{{$v1}}(sa *So{{$.ClsName}}) bool {
 }
 
 
-func (s *So{{$.ClsName}}Wrap) insertSList{{$v1}}(sa *So{{$.ClsName}}) bool {
+func (s *So{{$.ClsName}}Wrap) insertSortKey{{$v1}}(sa *So{{$.ClsName}}) bool {
 	val := SoList{{$.ClsName}}By{{$v1}}{}
 
 	val.{{UperFirstChar $.MainKeyName}} = sa.{{UperFirstChar $.MainKeyName}}
@@ -176,14 +176,14 @@ func (s *So{{.ClsName}}Wrap) Remove{{.ClsName}}() bool {
 
     //delete sort list key
 	{{range $k, $v := .LKeys}}
-	if !s.deleteSList{{$v}}(sa) {
+	if !s.delSortKey{{$v}}(sa) {
 		return false
 	}
 	{{end}}
    
     //delete unique list
     {{range $k, $v := .UniqueFieldMap}}
-	if !s.deleteUnique{{rValueFormStr $k}}(sa) {
+	if !s.delUniKey{{rValueFormStr $k}}(sa) {
 		return false
 	}
 	{{end}}
@@ -227,21 +227,36 @@ func (s *So{{$.ClsName}}Wrap) Md{{rValueFormStr $k1}}(p {{formateStr $v1}}) bool
 		return false
 	}
 
+    {{range $k3, $v3 := $.UniqueFieldMap}}
+		{{if eq $k3 $k1 }}
+    //judge the unique value is exist
+    uniWrap  := SUnique{{$.ClsName}}By{{rValueFormStr $k3}}{}
+   {{$baseType := (DetermineBaseType $v3) }}
+   {{if $baseType}} 
+   	res := uniWrap.UniQuery{{rValueFormStr $k1}}(&sa.{{UperFirstChar $k1}})
+   {{end}}
+   {{if not $baseType}} 
+   	res := uniWrap.UniQuery{{rValueFormStr $k1}}(sa.{{UperFirstChar $k1}})
+   {{end}}
+	if res != nil {
+		//the unique value to be modified is already exist
+		return false
+	}
+	if !s.delUniKey{{rValueFormStr $k3}}(sa) {
+		return false
+	}
+		{{end}}
+	{{end}}
+    
+
 	{{range $k2, $v2 := $.LKeys}}
 		{{if eq $v2 $k1 }}
-	if !s.deleteSList{{$k1}}(sa) {
+	if !s.delSortKey{{$k1}}(sa) {
 		return false
 	}
 		{{end}}
 	{{end}}
 
-   {{range $k3, $v3 := $.UniqueFieldMap}}
-		{{if eq $k3 $k1 }}
-	if !s.deleteUnique{{rValueFormStr $k3}}(sa) {
-		return false
-	}
-		{{end}}
-	{{end}}
    {{if $baseType}} 
      sa.{{rValueFormStr $k1}} = p
    {{end}}
@@ -254,7 +269,7 @@ func (s *So{{$.ClsName}}Wrap) Md{{rValueFormStr $k1}}(p {{formateStr $v1}}) bool
 	}
     {{range $k2, $v2 := $.LKeys}}
       {{if eq $v2 $k1 }}
-    if !s.insertSList{{$k1}}(sa) {
+    if !s.insertSortKey{{$k1}}(sa) {
 		return false
     }
        {{end}}
@@ -263,7 +278,7 @@ func (s *So{{$.ClsName}}Wrap) Md{{rValueFormStr $k1}}(p {{formateStr $v1}}) bool
      
     {{range $k3, $v3 := $.UniqueFieldMap}}
 		{{if eq $k3 $k1 }}
-    if !s.insertUnique{{rValueFormStr $k3}}(sa) {
+    if !s.insertUniKey{{rValueFormStr $k3}}(sa) {
 		return false
     }
 		{{end}}
@@ -418,10 +433,10 @@ func (s *So{{$.ClsName}}Wrap) encodeMainKey() ([]byte, error) {
 	return append({{.ClsName}}Table, res...), nil
 }
 
-////////////// Unique Query delete/insert ///////////////
+////////////// Unique Query delete/insert/query ///////////////
 {{range $k, $v := .UniqueFieldMap}}
 
-func (s *So{{$.ClsName}}Wrap) deleteUnique{{rValueFormStr $k}}(sa *So{{$.ClsName}}) bool {
+func (s *So{{$.ClsName}}Wrap) delUniKey{{rValueFormStr $k}}(sa *So{{$.ClsName}}) bool {
 	val := SoUnique{{$.ClsName}}By{{rValueFormStr $k}}{}
 
 	val.{{rValueFormStr $k}} = sa.{{rValueFormStr $k}}
@@ -437,14 +452,14 @@ func (s *So{{$.ClsName}}Wrap) deleteUnique{{rValueFormStr $k}}(sa *So{{$.ClsName
 }
 
 
-func (s *So{{$.ClsName}}Wrap) insertUnique{{rValueFormStr $k}}(sa *So{{$.ClsName}}) bool {
-    uniWap  := SUnique{{$.ClsName}}By{{rValueFormStr $k}}{}
+func (s *So{{$.ClsName}}Wrap) insertUniKey{{rValueFormStr $k}}(sa *So{{$.ClsName}}) bool {
+    uniWrap  := SUnique{{$.ClsName}}By{{rValueFormStr $k}}{}
    {{$baseType := (DetermineBaseType $v) }}
    {{if $baseType}} 
-   	res := uniWap.UniQuery{{rValueFormStr $k}}(&sa.{{UperFirstChar $k}})
+   	res := uniWrap.UniQuery{{rValueFormStr $k}}(&sa.{{UperFirstChar $k}})
    {{end}}
    {{if not $baseType}} 
-   	res := uniWap.UniQuery{{rValueFormStr $k}}(sa.{{UperFirstChar $k}})
+   	res := uniWrap.UniQuery{{rValueFormStr $k}}(sa.{{UperFirstChar $k}})
    {{end}}
 	if res != nil {
 		//the unique key is already exist

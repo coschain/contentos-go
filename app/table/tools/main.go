@@ -230,7 +230,7 @@ import "common/prototype/type.proto";
 
 message so_{{.Name}} {
 	{{range $k,$v := .PList}}
-       {{.VarType}}   {{.VarName}}     =      {{.Index}};
+    {{.VarType}}   {{.VarName}}     =      {{.Index}};
 	{{end}}  
 }
 `
@@ -243,7 +243,7 @@ message so_{{.Name}} {
 func createKeyTpl(t TableInfo) string {
 	tpl := ""
 	if len(t.PList) > 0 {
-		var secKeyList = make([]PropList,0)
+		var sortList = make([]PropList,0)
 		var uniList = make([]PropList,0)
 		mKeyType , mKeyName := "",""
 		for _,v := range t.PList {
@@ -251,41 +251,58 @@ func createKeyTpl(t TableInfo) string {
 				mKeyType = v.VarType
 				mKeyName = v.VarName
 			}else if v.BSort {
-				secKeyList = append(secKeyList,v)
+				sortList = append(sortList,v)
 			}
 			if v.BUnique {
 				uniList = append(uniList,v)
 			}
 		}
-		if len(secKeyList) > 0 && mKeyType != "" && mKeyName != ""{
-			for _,v := range secKeyList {
-
-				tempTpl := fmt.Sprintf("\nmessage so_list_%s_by_%s {\n",
+		mKeyPro := PropList{VarName:mKeyName,VarType:mKeyType}
+		if len(sortList) > 0 && mKeyType != "" && mKeyName != ""{
+			for _,v := range sortList {
+				msgName :=  fmt.Sprintf("\nmessage so_list_%s_by_%s {\n",
 					strings.Replace(t.Name," ","",-1),
 					strings.Replace(v.VarName," ","",-1))
-				tempTpl = fmt.Sprintf("%s\t\t%s\t%s\t=\t%d;\n\t\t%s\t%s\t=\t%d;\n}\n",
-					tempTpl, v.VarType, v.VarName,1, mKeyType, mKeyName,2)
-				tpl += fmt.Sprintf("%s",tempTpl)
+				tempTpl := creSubTabMsgTpl(v,msgName,mKeyPro)
+				if tempTpl != "" {
+					tpl += tempTpl
+				}
 			}
 		}
 
 		if len(uniList) > 0 && mKeyType != "" && mKeyName != ""{
 			for _,v := range uniList {
-
-				tempTpl := fmt.Sprintf("\nmessage so_unique_%s_by_%s {\n",
+				tempTpl := ""
+				msgName :=  fmt.Sprintf("\nmessage so_unique_%s_by_%s {\n",
 					strings.Replace(t.Name," ","",-1),
 					strings.Replace(v.VarName," ","",-1))
 				if !v.BMainKey {
-					tempTpl = fmt.Sprintf("%s\t\t%s\t%s\t=\t%d;\n\t\t%s\t%s\t=\t%d;\n}\n",
-						tempTpl, v.VarType, v.VarName,1, mKeyType, mKeyName,2)
+					tempTpl = creSubTabMsgTpl(v,msgName,mKeyPro)
 				}else {
-					tempTpl = fmt.Sprintf("%s\t\t%s\t%s\t=\t%d;\n}\n",
-						tempTpl, mKeyType, mKeyName,2)
+					tempTpl = creSubTabMsgTpl(v,msgName,PropList{})
 				}
-				tpl += fmt.Sprintf("%s",tempTpl)
+				if tempTpl != "" {
+					tpl += tempTpl
+				}
 			}
 		}
 	}
+	return tpl
+}
+
+func creSubTabMsgTpl(pro PropList, msgName string, mKeyPro PropList) string {
+	 tpl := ""
+	 if msgName != "" {
+		 pro.Index = 1
+		 tpl = fmt.Sprintf("\n%s",msgName)
+		 tpl = fmt.Sprintf("%s%s", tpl, pro.ToString())
+		 if mKeyPro.VarType != "" && mKeyPro.VarName != "" {
+			 mKeyPro.Index = 2
+		 	tpl = fmt.Sprintf("%s%s", tpl, mKeyPro.ToString())
+		 }
+		 tpl += "}\n"
+	 }
+
 	return tpl
 }
 
