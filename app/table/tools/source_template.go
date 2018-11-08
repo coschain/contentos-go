@@ -50,20 +50,20 @@ import (
 var (
 	{{.ClsName}}Table        = []byte("{{.ClsName}}Table")
 {{range $k, $v := .LKeys}}
-	{{$.ClsName}}{{rValueFormStr $v}}Table = []byte("{{$.ClsName}}{{rValueFormStr $v}}Table")
+	{{$.ClsName}}{{$v}}Table = []byte("{{$.ClsName}}{{$v}}Table")
 {{end}}
 {{range $k, $v := .UniqueFieldMap}}
-	{{$.ClsName}}{{rValueFormStr $k}}Table = []byte("{{$.ClsName}}{{rValueFormStr $k}}Table")
+	{{$.ClsName}}{{$k}}Table = []byte("{{$.ClsName}}{{$k}}Table")
 {{end}}
 )
 
 ////////////// SECTION Wrap Define ///////////////
 type So{{.ClsName}}Wrap struct {
 	dba 		storage.Database
-	mainKey 	*{{formateStr .MainKeyType}}
+	mainKey 	*{{formatStr .MainKeyType}}
 }
 
-func NewSo{{.ClsName}}Wrap(dba storage.Database, key *{{formateStr .MainKeyType}}) *So{{.ClsName}}Wrap{
+func NewSo{{.ClsName}}Wrap(dba storage.Database, key *{{formatStr .MainKeyType}}) *So{{.ClsName}}Wrap{
 	result := &So{{.ClsName}}Wrap{ dba, key}
 	return result
 }
@@ -114,7 +114,7 @@ func (s *So{{.ClsName}}Wrap) Create{{.ClsName}}(sa *So{{.ClsName}}) bool {
   
     //update unique list
     {{range $k, $v := .UniqueFieldMap}}
-	if !s.insertUniKey{{rValueFormStr $k}}(sa) {
+	if !s.insertUniKey{{$k}}(sa) {
 		return false
 	}
 	{{end}}
@@ -182,7 +182,7 @@ func (s *So{{.ClsName}}Wrap) Remove{{.ClsName}}() bool {
    
     //delete unique list
     {{range $k, $v := .UniqueFieldMap}}
-	if !s.delUniKey{{rValueFormStr $k}}(sa) {
+	if !s.delUniKey{{$k}}(sa) {
 		return false
 	}
 	{{end}}
@@ -200,7 +200,7 @@ func (s *So{{.ClsName}}Wrap) Remove{{.ClsName}}() bool {
 
 {{range $k1, $v1 := .MemberKeyMap}}
 
-func (s *So{{$.ClsName}}Wrap) Get{{rValueFormStr $k1}}() *{{formateStr $v1}} {
+func (s *So{{$.ClsName}}Wrap) Get{{$k1}}() *{{formatStr $v1}} {
 	res := s.get{{$.ClsName}}()
 
 	if res == nil {
@@ -208,17 +208,17 @@ func (s *So{{$.ClsName}}Wrap) Get{{rValueFormStr $k1}}() *{{formateStr $v1}} {
 	}
 {{$baseType := (DetectBaseType $v1) }}
 {{if $baseType}} 
-return &res.{{rValueFormStr $k1}}
+return &res.{{$k1}}
 {{end}}
 {{if not $baseType}} 
-return res.{{rValueFormStr $k1}}
+return res.{{$k1}}
 {{end}}
 
 }
 
 {{if ne $k1 $.MainKeyName}}
 
-func (s *So{{$.ClsName}}Wrap) Md{{rValueFormStr $k1}}(p {{formateStr $v1}}) bool {
+func (s *So{{$.ClsName}}Wrap) Md{{$k1}}(p {{formatStr $v1}}) bool {
 
 	sa := s.get{{$.ClsName}}()
 
@@ -229,19 +229,19 @@ func (s *So{{$.ClsName}}Wrap) Md{{rValueFormStr $k1}}(p {{formateStr $v1}}) bool
     {{range $k2, $v2 := $.UniqueFieldMap}}
 		{{if eq $k2 $k1 }}
     //judge the unique value if is exist
-    uniWrap  := Uni{{$.ClsName}}{{rValueFormStr $k2}}Wrap{}
+    uniWrap  := Uni{{$.ClsName}}{{$k2}}Wrap{}
    {{$baseType := (DetectBaseType $v2) }}
    {{if $baseType}} 
-   	res := uniWrap.UniQuery{{rValueFormStr $k1}}(&sa.{{UperFirstChar $k1}})
+   	res := uniWrap.UniQuery{{$k1}}(&sa.{{UperFirstChar $k1}})
    {{end}}
    {{if not $baseType}} 
-   	res := uniWrap.UniQuery{{rValueFormStr $k1}}(sa.{{UperFirstChar $k1}})
+   	res := uniWrap.UniQuery{{$k1}}(sa.{{UperFirstChar $k1}})
    {{end}}
 	if res != nil {
 		//the unique value to be modified is already exist
 		return false
 	}
-	if !s.delUniKey{{rValueFormStr $k2}}(sa) {
+	if !s.delUniKey{{$k2}}(sa) {
 		return false
 	}
 		{{end}}
@@ -257,10 +257,10 @@ func (s *So{{$.ClsName}}Wrap) Md{{rValueFormStr $k1}}(p {{formateStr $v1}}) bool
 	{{end}}
 
    {{if $baseType}} 
-     sa.{{rValueFormStr $k1}} = p
+     sa.{{$k1}} = p
    {{end}}
    {{if not $baseType}} 
-     sa.{{rValueFormStr $k1}} = &p
+     sa.{{$k1}} = &p
    {{end}}
 	
 	if !s.update(sa) {
@@ -277,7 +277,7 @@ func (s *So{{$.ClsName}}Wrap) Md{{rValueFormStr $k1}}(p {{formateStr $v1}}) bool
      
     {{range $k5, $v5 := $.UniqueFieldMap}}
 		{{if eq $k5 $k1 }}
-    if !s.insertUniKey{{rValueFormStr $k5}}(sa) {
+    if !s.insertUniKey{{$k5}}(sa) {
 		return false
     }
 		{{end}}
@@ -310,7 +310,7 @@ type S{{$.ClsName}}{{$v}}Wrap struct {
 	Dba storage.Database
 }
 
-func (s *S{{$.ClsName}}{{$v}}Wrap) GetMainVal(iterator storage.Iterator) *{{formateStr $.MainKeyType}} {
+func (s *S{{$.ClsName}}{{$v}}Wrap) GetMainVal(iterator storage.Iterator) *{{formatStr $.MainKeyType}} {
 	if iterator == nil || !iterator.Valid() {
 		return nil
 	}
@@ -330,15 +330,15 @@ func (s *S{{$.ClsName}}{{$v}}Wrap) GetMainVal(iterator storage.Iterator) *{{form
 
     {{$baseType := (DetectBaseType $.MainKeyType) }}
    {{if $baseType}} 
-     return &res.{{rValueFormStr $.MainKeyName}}
+     return &res.{{$.MainKeyName}}
    {{end}}
    {{if not $baseType}} 
-   return res.{{rValueFormStr $.MainKeyName}}
+   return res.{{$.MainKeyName}}
    {{end}}
 
 }
 
-func (s *S{{$.ClsName}}{{$v}}Wrap) GetSubVal(iterator storage.Iterator) *{{formateStr $k}} {
+func (s *S{{$.ClsName}}{{$v}}Wrap) GetSubVal(iterator storage.Iterator) *{{formatStr $k}} {
 	if iterator == nil || !iterator.Valid() {
 		return nil
 	}
@@ -357,14 +357,14 @@ func (s *S{{$.ClsName}}{{$v}}Wrap) GetSubVal(iterator storage.Iterator) *{{forma
 	}
     {{$baseType := (DetectBaseType $k) }}
    {{if $baseType}} 
-     return &res.{{rValueFormStr $v}}
+     return &res.{{ $v}}
    {{end}}
    {{if not $baseType}} 
-   return res.{{rValueFormStr $v}}
+   return res.{{$v}}
    {{end}}
 }
 
-func (s *S{{$.ClsName}}{{$v}}Wrap) QueryList(start {{formateStr $k}}, end {{formateStr $k}}) storage.Iterator {
+func (s *S{{$.ClsName}}{{$v}}Wrap) QueryList(start {{formatStr $k}}, end {{formatStr $k}}) storage.Iterator {
 
 	startBuf, err := encoding.Encode(&start)
 	if err != nil {
@@ -435,10 +435,10 @@ func (s *So{{$.ClsName}}Wrap) encodeMainKey() ([]byte, error) {
 ////////////// Unique Query delete/insert/query ///////////////
 {{range $k, $v := .UniqueFieldMap}}
 
-func (s *So{{$.ClsName}}Wrap) delUniKey{{rValueFormStr $k}}(sa *So{{$.ClsName}}) bool {
-	val := SoUnique{{$.ClsName}}By{{rValueFormStr $k}}{}
+func (s *So{{$.ClsName}}Wrap) delUniKey{{$k}}(sa *So{{$.ClsName}}) bool {
+	val := SoUnique{{$.ClsName}}By{{$k}}{}
 
-	val.{{rValueFormStr $k}} = sa.{{rValueFormStr $k}}
+	val.{{$k}} = sa.{{$k}}
 	val.{{UperFirstChar $.MainKeyName}} = sa.{{UperFirstChar $.MainKeyName}}
 
 	key, err := encoding.Encode(&val)
@@ -447,25 +447,25 @@ func (s *So{{$.ClsName}}Wrap) delUniKey{{rValueFormStr $k}}(sa *So{{$.ClsName}})
 		return false
 	}
 
-	return s.dba.Delete(append({{$.ClsName}}{{rValueFormStr $k}}Table,key...)) == nil
+	return s.dba.Delete(append({{$.ClsName}}{{$k}}Table,key...)) == nil
 }
 
 
-func (s *So{{$.ClsName}}Wrap) insertUniKey{{rValueFormStr $k}}(sa *So{{$.ClsName}}) bool {
-    uniWrap  := Uni{{$.ClsName}}{{rValueFormStr $k}}Wrap{}
+func (s *So{{$.ClsName}}Wrap) insertUniKey{{$k}}(sa *So{{$.ClsName}}) bool {
+    uniWrap  := Uni{{$.ClsName}}{{$k}}Wrap{}
    {{$baseType := (DetectBaseType $v) }}
    {{if $baseType}} 
-   	res := uniWrap.UniQuery{{rValueFormStr $k}}(&sa.{{UperFirstChar $k}})
+   	res := uniWrap.UniQuery{{$k}}(&sa.{{UperFirstChar $k}})
    {{end}}
    {{if not $baseType}} 
-   	res := uniWrap.UniQuery{{rValueFormStr $k}}(sa.{{UperFirstChar $k}})
+   	res := uniWrap.UniQuery{{$k}}(sa.{{UperFirstChar $k}})
    {{end}}
 	if res != nil {
 		//the unique key is already exist
 		return false
 	}
  
-    val := SoUnique{{$.ClsName}}By{{rValueFormStr $k}}{}
+    val := SoUnique{{$.ClsName}}By{{$k}}{}
 
 	val.{{UperFirstChar $.MainKeyName}} = sa.{{UperFirstChar $.MainKeyName}}
 	val.{{UperFirstChar $k}} = sa.{{UperFirstChar $k}}
@@ -481,22 +481,22 @@ func (s *So{{$.ClsName}}Wrap) insertUniKey{{rValueFormStr $k}}(sa *So{{$.ClsName
 	if err != nil {
 		return false
 	}
-	return s.dba.Put(append({{$.ClsName}}{{rValueFormStr $k}}Table,key...), buf) == nil
+	return s.dba.Put(append({{$.ClsName}}{{$k}}Table,key...), buf) == nil
 
 }
 
-type Uni{{$.ClsName}}{{rValueFormStr $k}}Wrap struct {
+type Uni{{$.ClsName}}{{$k}}Wrap struct {
 	Dba storage.Database
 }
 
-func (s *Uni{{$.ClsName}}{{rValueFormStr $k}}Wrap) UniQuery{{rValueFormStr $k}}(start *{{formateStr $v}}) *So{{$.ClsName}}Wrap{
+func (s *Uni{{$.ClsName}}{{$k}}Wrap) UniQuery{{$k}}(start *{{formatStr $v}}) *So{{$.ClsName}}Wrap{
 
    startBuf, err := encoding.Encode(start)
 	if err != nil {
 		return nil
 	}
 
-	bufStartkey := append({{$.ClsName}}{{rValueFormStr $k}}Table, startBuf...)
+	bufStartkey := append({{$.ClsName}}{{$k}}Table, startBuf...)
 	bufEndkey := bufStartkey
 
 	iter := s.Dba.NewIterator(bufStartkey, bufEndkey)
@@ -507,7 +507,7 @@ func (s *Uni{{$.ClsName}}{{rValueFormStr $k}}Wrap) UniQuery{{rValueFormStr $k}}(
 		return nil
 	}
 
-	res := &SoUnique{{$.ClsName}}By{{rValueFormStr $k}}{}
+	res := &SoUnique{{$.ClsName}}By{{$k}}{}
 	err = proto.Unmarshal(val, res)
 
 	if err != nil {
@@ -523,10 +523,9 @@ func (s *Uni{{$.ClsName}}{{rValueFormStr $k}}Wrap) UniQuery{{rValueFormStr $k}}(
 `
 	fName := TmlFolder + "so_"+ tIfno.Name + ".go"
 	if fPtr := CreateFile(fName); fPtr != nil {
-		funcMapUper := template.FuncMap{"UperFirstChar": UperFirstChar,
-		"formateStr":formateStr,
+		funcMapUper := template.FuncMap{"UperFirstChar": UpperFirstChar,
+		"formatStr":formatStr,
 		"LowerFirstChar": LowerFirstChar,
-		"rValueFormStr":rValueFormStr,
 		"DetectBaseType":DetectBaseType}
 		t := template.New("layout.html")
 		t  = t.Funcs(funcMapUper)
@@ -546,7 +545,7 @@ func (s *Uni{{$.ClsName}}{{rValueFormStr $k}}Wrap) UniQuery{{rValueFormStr $k}}(
 
 func createParamsFromTableInfo(tInfo TableInfo) Params {
 	para := Params{}
-	para.ClsName = UperFirstChar(tInfo.Name)
+	para.ClsName = UpperFirstChar(tInfo.Name)
 	para.TBMask = fmt.Sprintf("%d",tbMask)
 	tbMask ++
 	para.LKeys = []string{}
@@ -557,30 +556,31 @@ func createParamsFromTableInfo(tInfo TableInfo) Params {
 		fType :=  strings.Replace(v.VarType," ", "", -1)
 		fName :=  strings.Replace(v.VarName," ", "", -1)
 		if v.BMainKey {
-			para.MainKeyName = fName
-			para.MainKeyType =  fType
+			para.MainKeyName = rValueFormStr(fName)
+			para.MainKeyType =  formatStr(fType)
 		}else {
 			if v.BSort {
-				para.LKeys = append(para.LKeys,formateStr(fName))
-				para.LKeyWithType[formateStr(fName)] = fType
+				para.LKeys = append(para.LKeys,rValueFormStr(fName))
+				para.LKeyWithType[rValueFormStr(fName)] = formatStr(fType)
 			}
 		}
 		if v.BUnique {
-            para.UniqueFieldMap[formateStr(fName)] = fType
+            para.UniqueFieldMap[rValueFormStr(fName)] = formatStr(fType)
 		}
-		para.MemberKeyMap[formateStr(fName)] = fType
+		para.MemberKeyMap[rValueFormStr(fName)] = formatStr(fType)
 	}
 	return para
 }
 
-/* upercase first character of string */
-func UperFirstChar(str string) string {
+/* uppercase first character of string */
+func UpperFirstChar(str string) string {
 	for i, v := range str {
 		return string(unicode.ToUpper(v)) + str[i+1:]
 	}
 	return str
 }
 
+/* lowercase first character of string */
 func LowerFirstChar(str string) string {
 	for i, v := range str {
 		return string(unicode.ToLower(v)) + str[i+1:]
@@ -588,7 +588,8 @@ func LowerFirstChar(str string) string {
 	return str
 }
 
-func formateStr(str string) string  {
+/*  formate params of function in pb tool template, remove the "_" meanWhile uppercase words beside "_"*/
+func formatStr(str string) string  {
 	formStr := ""
 	if str != "" {
             if strings.Contains(str, ".") {
@@ -612,6 +613,7 @@ func formateStr(str string) string  {
 	return formStr
 }
 
+/* the return value format of Pb struct format(the first Charater is upper case) */
 func rValueFormStr(str string) string {
 	formStr := ""
 	if str != "" {
@@ -623,11 +625,12 @@ func rValueFormStr(str string) string {
 func ConvertToPbForm(arry []string) string {
 	formStr := ""
 	for _,v := range arry {
-		formStr += UperFirstChar(v)
+		formStr += UpperFirstChar(v)
 	}
 	return formStr
 }
 
+/* detect if is basic data type*/
 func DetectBaseType(str string) bool {
 	switch str {
 	    case "string":

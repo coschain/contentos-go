@@ -190,7 +190,7 @@ func WritePbTplToFile(tInfo TableInfo) (bool, error) {
 	var err error = nil
 	if tpl := createPbTpl(tInfo); tpl != "" {
 		if isExist, _ := JudgeFileIsExist(TmlFolder); !isExist {
-			//文件夹不存在,创建文件夹
+			//folder is not exist,create new folder
 			if err := os.Mkdir(TmlFolder, os.ModePerm); err != nil {
 					log.Printf("create folder fail,the error is:%s \n", err)
 			 		return false,err
