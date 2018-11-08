@@ -229,7 +229,7 @@ func (s *So{{$.ClsName}}Wrap) Md{{rValueFormStr $k1}}(p {{formateStr $v1}}) bool
     {{range $k2, $v2 := $.UniqueFieldMap}}
 		{{if eq $k2 $k1 }}
     //judge the unique value if is exist
-    uniWrap  := UniWrap{{$.ClsName}}By{{rValueFormStr $k2}}{}
+    uniWrap  := Uni{{$.ClsName}}{{rValueFormStr $k2}}Wrap{}
    {{$baseType := (DetectBaseType $v2) }}
    {{if $baseType}} 
    	res := uniWrap.UniQuery{{rValueFormStr $k1}}(&sa.{{UperFirstChar $k1}})
@@ -306,11 +306,11 @@ func (m *SoList{{$.ClsName}}By{{$v}}) OpeEncode() ([]byte, error) {
 	return append(append({{$.ClsName}}{{$v}}Table, subBuf...), mainBuf...), nil
 }
 
-type SList{{$.ClsName}}By{{$v}} struct {
+type S{{$.ClsName}}{{$v}}Wrap struct {
 	Dba storage.Database
 }
 
-func (s *SList{{$.ClsName}}By{{$v}}) GetMainVal(iterator storage.Iterator) *{{formateStr $.MainKeyType}} {
+func (s *S{{$.ClsName}}{{$v}}Wrap) GetMainVal(iterator storage.Iterator) *{{formateStr $.MainKeyType}} {
 	if iterator == nil || !iterator.Valid() {
 		return nil
 	}
@@ -338,7 +338,7 @@ func (s *SList{{$.ClsName}}By{{$v}}) GetMainVal(iterator storage.Iterator) *{{fo
 
 }
 
-func (s *SList{{$.ClsName}}By{{$v}}) GetSubVal(iterator storage.Iterator) *{{formateStr $k}} {
+func (s *S{{$.ClsName}}{{$v}}Wrap) GetSubVal(iterator storage.Iterator) *{{formateStr $k}} {
 	if iterator == nil || !iterator.Valid() {
 		return nil
 	}
@@ -364,7 +364,7 @@ func (s *SList{{$.ClsName}}By{{$v}}) GetSubVal(iterator storage.Iterator) *{{for
    {{end}}
 }
 
-func (s *SList{{$.ClsName}}By{{$v}}) QueryList(start {{formateStr $k}}, end {{formateStr $k}}) storage.Iterator {
+func (s *S{{$.ClsName}}{{$v}}Wrap) QueryList(start {{formateStr $k}}, end {{formateStr $k}}) storage.Iterator {
 
 	startBuf, err := encoding.Encode(&start)
 	if err != nil {
@@ -452,7 +452,7 @@ func (s *So{{$.ClsName}}Wrap) delUniKey{{rValueFormStr $k}}(sa *So{{$.ClsName}})
 
 
 func (s *So{{$.ClsName}}Wrap) insertUniKey{{rValueFormStr $k}}(sa *So{{$.ClsName}}) bool {
-    uniWrap  := UniWrap{{$.ClsName}}By{{rValueFormStr $k}}{}
+    uniWrap  := Uni{{$.ClsName}}{{rValueFormStr $k}}Wrap{}
    {{$baseType := (DetectBaseType $v) }}
    {{if $baseType}} 
    	res := uniWrap.UniQuery{{rValueFormStr $k}}(&sa.{{UperFirstChar $k}})
@@ -485,11 +485,11 @@ func (s *So{{$.ClsName}}Wrap) insertUniKey{{rValueFormStr $k}}(sa *So{{$.ClsName
 
 }
 
-type UniWrap{{$.ClsName}}By{{rValueFormStr $k}} struct {
+type Uni{{$.ClsName}}{{rValueFormStr $k}}Wrap struct {
 	Dba storage.Database
 }
 
-func (s *UniWrap{{$.ClsName}}By{{rValueFormStr $k}}) UniQuery{{rValueFormStr $k}}(start *{{formateStr $v}}) *So{{$.ClsName}}Wrap{
+func (s *Uni{{$.ClsName}}{{rValueFormStr $k}}Wrap) UniQuery{{rValueFormStr $k}}(start *{{formateStr $v}}) *So{{$.ClsName}}Wrap{
 
    startBuf, err := encoding.Encode(start)
 	if err != nil {
