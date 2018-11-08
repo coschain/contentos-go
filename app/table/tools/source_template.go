@@ -491,7 +491,14 @@ func (s *Uni{{$.ClsName}}{{$k}}Wrap) UniQuery{{$k}}(start *{{formatStr $v}}) *So
 	if err != nil {
 		return nil
 	}
-    wrap := NewSo{{$.ClsName}}Wrap(s.Dba,res.{{UperFirstChar $.MainKeyName}})
+   {{ $baseType := (DetectBaseType $.MainKeyType) -}}
+   {{- if $baseType -}} 
+   wrap := NewSo{{$.ClsName}}Wrap(s.Dba,&res.{{UperFirstChar $.MainKeyName}})
+   {{- end -}}
+   {{if not $baseType -}} 
+   wrap := NewSo{{$.ClsName}}Wrap(s.Dba,res.{{UperFirstChar $.MainKeyName}})
+   {{end }}
+    
 	return wrap	
 }
 
