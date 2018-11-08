@@ -318,3 +318,24 @@ func Encode(value interface{}) ([]byte, error) {
 
 	return nil, errors.New(fmt.Sprintf("ope: cannot encode values of type %T", value))
 }
+
+//
+// A simple wrapper for reversed order encoding
+//
+// Encode() & EncodeXXX() preserve the dictionary order, while
+// Complement(Encode()) & Complement(EncodeXXX()) preserve the *reversed* dictionary order.
+//
+func Complement(enc []byte, errs ...error) ([]byte, error) {
+	var err error
+	if len(errs) > 0 {
+		err = errs[0]
+	}
+	if err == nil && enc != nil {
+		c := make([]byte, len(enc))
+		for i, b := range enc {
+			c[i] = ^b
+		}
+		return c, nil
+	}
+	return enc, err
+}
