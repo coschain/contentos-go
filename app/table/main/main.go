@@ -84,8 +84,8 @@ func main() {
 	  --------------------------*/
      //1.create the sort wrap for property which is surpport sort (E.g postTime)
 	 tSortWrap := table.SDemoPostTimeWrap{}
-	 //2.start query data of range
-	 iter := tSortWrap.QueryList(20120820, 2013999)
+	 //2.start query data of range(if sType Greater than 0 sort by reverse order，otherwise sort by order)
+	 iter := tSortWrap.QueryList(20120820, 2013999, 0)
 	 //we can get the main key and sub key by the returned iterator
 	 if iter != nil {
 	 	for iter.Next() {
