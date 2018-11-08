@@ -93,14 +93,11 @@ func (s *So{{.ClsName}}Wrap) Create{{.ClsName}}(sa *So{{.ClsName}}) bool {
 	if err != nil {
 		return false
 	}
-
 	resBuf, err := proto.Marshal(sa)
 	if err != nil {
 		return false
 	}
-
 	err = s.dba.Put(keyBuf, resBuf)
-
 	if err != nil {
 		return false
 	}
@@ -113,7 +110,7 @@ func (s *So{{.ClsName}}Wrap) Create{{.ClsName}}(sa *So{{.ClsName}}) bool {
 	{{end}}
   
     //update unique list
-    {{range $k, $v := .UniqueFieldMap}}
+    {{range $k, $v := .UniqueFieldMap -}}
 	if !s.insertUniKey{{$k}}(sa) {
 		return false
 	}
@@ -143,18 +140,13 @@ func (s *So{{$.ClsName}}Wrap) delSortKey{{$v1}}(sa *So{{$.ClsName}}) bool {
 
 func (s *So{{$.ClsName}}Wrap) insertSortKey{{$v1}}(sa *So{{$.ClsName}}) bool {
 	val := SoList{{$.ClsName}}By{{$v1}}{}
-
 	val.{{UperFirstChar $.MainKeyName}} = sa.{{UperFirstChar $.MainKeyName}}
 	val.{{UperFirstChar $v1}} = sa.{{UperFirstChar $v1}}
-
 	buf, err := proto.Marshal(&val)
-
 	if err != nil {
 		return false
 	}
-
 	key, err := val.OpeEncode()
-
 	if err != nil {
 		return false
 	}
@@ -198,22 +190,20 @@ func (s *So{{.ClsName}}Wrap) Remove{{.ClsName}}() bool {
 
 ////////////// SECTION Members Get/Modify ///////////////
 
-{{range $k1, $v1 := .MemberKeyMap}}
+{{range $k1, $v1 := .MemberKeyMap -}}
 
 func (s *So{{$.ClsName}}Wrap) Get{{$k1}}() *{{formatStr $v1}} {
 	res := s.get{{$.ClsName}}()
-
 	if res == nil {
 		return nil
 	}
-{{$baseType := (DetectBaseType $v1) }}
-{{if $baseType}} 
+{{$baseType := (DetectBaseType $v1) -}}
+{{if $baseType -}} 
 return &res.{{$k1}}
-{{end}}
+{{end -}}
 {{if not $baseType}} 
-return res.{{$k1}}
-{{end}}
-
+   return res.{{$k1}}
+{{end -}}
 }
 
 {{if ne $k1 $.MainKeyName}}
@@ -225,18 +215,17 @@ func (s *So{{$.ClsName}}Wrap) Md{{$k1}}(p {{formatStr $v1}}) bool {
 	if sa == nil {
 		return false
 	}
-
-    {{range $k2, $v2 := $.UniqueFieldMap}}
-		{{if eq $k2 $k1 }}
+    {{- range $k2, $v2 := $.UniqueFieldMap -}}
+      {{- if eq $k2 $k1 }}
     //judge the unique value if is exist
     uniWrap  := Uni{{$.ClsName}}{{$k2}}Wrap{}
-   {{$baseType := (DetectBaseType $v2) }}
-   {{if $baseType}} 
+   {{ $baseType := (DetectBaseType $v2) -}}
+   {{- if $baseType -}} 
    	res := uniWrap.UniQuery{{$k1}}(&sa.{{UperFirstChar $k1}})
-   {{end}}
-   {{if not $baseType}} 
+   {{- end -}}
+   {{if not $baseType -}} 
    	res := uniWrap.UniQuery{{$k1}}(sa.{{UperFirstChar $k1}})
-   {{end}}
+   {{end }}
 	if res != nil {
 		//the unique value to be modified is already exist
 		return false
@@ -244,10 +233,8 @@ func (s *So{{$.ClsName}}Wrap) Md{{$k1}}(p {{formatStr $v1}}) bool {
 	if !s.delUniKey{{$k2}}(sa) {
 		return false
 	}
-		{{end}}
-	{{end}}
-    
-
+    {{end}}
+	  {{end}}
 	{{range $k3, $v3 := $.LKeys}}
 		{{if eq $v3 $k1 }}
 	if !s.delSortKey{{$k1}}(sa) {
@@ -255,26 +242,23 @@ func (s *So{{$.ClsName}}Wrap) Md{{$k1}}(p {{formatStr $v1}}) bool {
 	}
 		{{end}}
 	{{end}}
-
    {{if $baseType}} 
      sa.{{$k1}} = p
    {{end}}
-   {{if not $baseType}} 
+   {{if not $baseType -}} 
      sa.{{$k1}} = &p
-   {{end}}
-	
+   {{- end}}
 	if !s.update(sa) {
 		return false
 	}
-    {{range $k4, $v4 := $.LKeys}}
-      {{if eq $v4 $k1 }}
+    {{range $k4, $v4 := $.LKeys -}}
+      {{- if eq $v4 $k1 }}
     if !s.insertSortKey{{$k1}}(sa) {
 		return false
     }
        {{end}}
     {{end}}
-     
-     
+
     {{range $k5, $v5 := $.UniqueFieldMap}}
 		{{if eq $k5 $k1 }}
     if !s.insertUniKey{{$k5}}(sa) {
@@ -495,26 +479,19 @@ func (s *Uni{{$.ClsName}}{{$k}}Wrap) UniQuery{{$k}}(start *{{formatStr $v}}) *So
 	if err != nil {
 		return nil
 	}
-
 	bufStartkey := append({{$.ClsName}}{{$k}}Table, startBuf...)
 	bufEndkey := bufStartkey
-
 	iter := s.Dba.NewIterator(bufStartkey, bufEndkey)
-    
     val, err := iter.Value()
-
 	if err != nil {
 		return nil
 	}
-
 	res := &SoUnique{{$.ClsName}}By{{$k}}{}
 	err = proto.Unmarshal(val, res)
-
 	if err != nil {
 		return nil
 	}
     wrap := NewSo{{$.ClsName}}Wrap(s.Dba,res.{{UperFirstChar $.MainKeyName}})
-    
 	return wrap	
 }
 
