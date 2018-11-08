@@ -183,6 +183,35 @@ func TestTransactionalDatabase(t *testing.T) {
 	dbTest(t, tdb)
 }
 
+func TestDatabaseGroup(t *testing.T) {
+	dir, err := ioutil.TempDir("", "lvldb")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(dir)
+
+	fn := filepath.Join(dir, randomString(8))
+	db1, err := NewLevelDatabase(fn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db1.Close()
+
+	db2 := NewMemoryDatabase()
+	defer db2.Close()
+
+	db3 := NewMemoryDatabase()
+	defer db3.Close()
+
+	db4 := NewMemoryDatabase()
+	defer db4.Close()
+
+	g := NewSimpleDatabaseGroup(NewKeyHashDispatcher([]Database{db1, db2, db3, db4}))
+	defer g.Close()
+
+	dbTest(t, g)
+}
+
 func dbTestTransactionFeature(t *testing.T, db TrxDatabase, dirtyRead bool) {
 	requireSuccessPut(t, db, []byte("key_one"), []byte("value_one"))
 	requireSuccessPut(t, db, []byte("key_two"), []byte("value_two"))

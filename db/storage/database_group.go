@@ -19,7 +19,7 @@ type KeyHashDispatcher struct {
 }
 
 func NewKeyHashDispatcher(databases []Database) *KeyHashDispatcher {
-	dbs := make([]Database, len(databases))
+	dbs := make([]Database, 0, len(databases))
 	for _, db := range databases {
 		dbs = append(dbs, db)
 	}
@@ -179,18 +179,20 @@ func (it *sdgIterator) Next() bool {
 	var wg sync.WaitGroup
 	wg.Add(len(it.items))
 	for i := range it.items {
-		go func() {
+		go func(idx int) {
 			defer wg.Done()
 
-			item := &(it.items[i])
+			item := &(it.items[idx])
 			if !item.end {
 				if item.key == nil {
-					item.key, _ = it.Key()
-					item.val, _ = it.Value()
+					if item.it.Next() {
+						item.key, _ = item.it.Key()
+						item.val, _ = item.it.Value()
+					}
 				}
-				item.end = item.key != nil
+				item.end = item.key == nil
 			}
-		}()
+		}(i)
 	}
 	wg.Wait()
 
@@ -307,12 +309,12 @@ func (b *sdgBatch) Write() error {
 	var wg sync.WaitGroup
 	wg.Add(len(result))
 	for idx, batches := range dbBatches {
-		go func() {
+		go func(idx int, batch Batch) {
 			defer wg.Done()
-			if err := batches[0].Write(); err == nil {
+			if err := batch.Write(); err == nil {
 				result[idx] = true
 			}
-		}()
+		}(idx, batches[0])
 	}
 	wg.Wait()
 
@@ -330,12 +332,12 @@ func (b *sdgBatch) Write() error {
 		// we have to revert succeeded ones so that atomicity keeps
 		wg.Add(len(result))
 		for idx, batches := range dbBatches {
-			go func() {
+			go func(idx int, rbatch Batch) {
 				defer wg.Done()
 				if result[idx] {
-					batches[1].Write()
+					rbatch.Write()
 				}
-			}()
+			}(idx, batches[1])
 		}
 		wg.Wait()
 		err = errors.New("some of databases failed batch writing")
