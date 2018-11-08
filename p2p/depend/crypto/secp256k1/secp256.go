@@ -47,6 +47,7 @@ var (
 
 // Sign creates a recoverable ECDSA signature.
 // The produced signature is in the 65-byte [R || S || V] format where V is 0 or 1.
+// In theory, V can also be 2 or 3. The extremely low probability (~ 3.7e-39) makes it never happen.
 //
 // The caller is responsible for ensuring that msg cannot be chosen
 // directly by an attacker. It is usually preferable to use a cryptographic

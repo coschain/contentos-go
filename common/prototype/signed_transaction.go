@@ -52,7 +52,10 @@ func (p *SignedTransaction) VerifySig(pubKey *PublicKeyType, cid ChainId) bool {
 	}
 
 	for _, sig := range p.Signatures {
-		// TODO last bits verify ??
+		//
+		// sig.Sig[64] is the recovery id, which is useful only in case of public key recovery.
+		// it's not needed by standard ECDSA verification.
+		//
 		if secp256k1.VerifySignature(pubKey.Data, buf, sig.Sig[0:64]) {
 			return true
 		}
@@ -91,7 +94,12 @@ func (p *SignedTransaction) Sign(secKey *PrivateKeyType, cid ChainId) []byte {
 		return nil
 	}
 
-	// TODO canonical check
+	//
+	// signatures produced by secp256k1.Sign() are immune to malleability attacks.
+	//
+	// secp256k1_ecdsa_sig_sign() ensures the "Low S values in signatures", which was specified in
+	// https://github.com/bitcoin/bips/blob/master/bip-0062.mediawiki#low-s-values-in-signatures
+	//
 	res, err := secp256k1.Sign(buf, secKey.Data)
 
 	if err != nil {
