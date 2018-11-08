@@ -3,8 +3,9 @@ package commands
 import (
 	"fmt"
 	"github.com/coschain/contentos-go/common"
-	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/cos"
+	"github.com/coschain/contentos-go/node"
+	"github.com/coschain/contentos-go/rpc"
 	log "github.com/inconshreveable/log15"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -71,6 +72,9 @@ func startNode(cmd *cobra.Command, args []string) {
 	//})
 	app.Register("cos", func(ctx *node.ServiceContext) (node.Service, error) {
 		return cos.New(ctx)
+	})
+	app.Register("grpc", func(ctx *node.ServiceContext) (node.Service, error) {
+		return rpc.NewGRPCServer(ctx)
 	})
 	if err := app.Start(); err != nil {
 		common.Fatalf("start node failed, err: %v\n", err)

@@ -20,14 +20,14 @@ type GRPCServer struct {
 	rpcServer *grpc.Server
 }
 
-func NewGRPCServer(ctx *node.ServiceContext) *GRPCServer {
+func NewGRPCServer(ctx *node.ServiceContext) (*GRPCServer, error) {
 	rpc := grpc.NewServer(grpc.MaxRecvMsgSize(4096))
 	srv := &GRPCServer{rpcServer: rpc}
 
 	api := &APIService{server: srv}
 	grpcpb.RegisterApiServiceServer(rpc, api)
 
-	return srv
+	return srv, nil
 }
 
 func (gs *GRPCServer) Start(server *p2p.Server) error {

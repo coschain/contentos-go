@@ -17,7 +17,7 @@ import (
 var asc grpcpb.ApiServiceClient
 
 func TestMain(m *testing.M) {
-	gs := NewGRPCServer(&node.ServiceContext{})
+	gs, _ := NewGRPCServer(&node.ServiceContext{})
 	err := gs.Start(&p2p.Server{})
 	if err != nil {
 		fmt.Print(err)

@@ -61,7 +61,7 @@ func allowCORS(h http.Handler) http.Handler {
 		select {
 		case httpCh <- true:
 			defer func() { <-httpCh }()
-			if len([]string{}) == 0 {
+			if len([]string{"*"}) == 0 {
 				h.ServeHTTP(w, r)
 			} else {
 				c.Handler(h).ServeHTTP(w, r)
