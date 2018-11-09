@@ -3,9 +3,13 @@ package app
 import (
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/common/constants"
+	"github.com/coschain/contentos-go/common/eventloop"
 	"github.com/coschain/contentos-go/common/prototype"
 	"github.com/coschain/contentos-go/db/storage"
 	"bytes"
+	"github.com/coschain/contentos-go/iservices"
+	"github.com/coschain/contentos-go/node"
+	"github.com/coschain/contentos-go/p2p"
 )
 
 type skipFlag uint32
@@ -17,9 +21,13 @@ const (
 )
 
 type Controller struct {
+	iservices.IController
 	// lock for db write
 	// pending_trx_list
 	// DB Manager
+	ctx *node.ServiceContext
+	evLoop *eventloop.EventLoop
+
 	db      *AppDBLayer
 	noticer EventBus.Bus
 	skip    skipFlag
@@ -34,12 +42,24 @@ type Controller struct {
 
 }
 
-func (c *Controller) Start() {
-
+// service constructor
+func NewController(ctx *node.ServiceContext) (*Controller, error) {
+	return &Controller{ ctx: ctx}, nil
 }
 
-func (c *Controller) Stop() {
+func (c *Controller) Start(server *p2p.Server) error {
+	c.evLoop 	= server.EvLoop
+	c.noticer 	= server.EvBus
 
+	go func() {
+		c.evLoop.Run()
+	}()
+	return nil
+}
+
+func (c *Controller) Stop() error {
+	c.evLoop.Stop()
+	return nil
 }
 
 func (c *Controller) setProducing(b bool) {

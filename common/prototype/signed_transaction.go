@@ -4,8 +4,8 @@ import (
 	"crypto/sha256"
 	"errors"
 	cmn "github.com/coschain/contentos-go/common"
-	"github.com/coschain/contentos-go/p2p/depend/crypto"
-	"github.com/coschain/contentos-go/p2p/depend/crypto/secp256k1"
+	"github.com/coschain/contentos-go/common/crypto"
+	"github.com/coschain/contentos-go/common/crypto/secp256k1"
 	"github.com/gogo/protobuf/proto"
 )
 

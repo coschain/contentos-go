@@ -1,13 +1,17 @@
 package rpc
 
 import (
+	"fmt"
+	"github.com/coschain/contentos-go/common/eventloop"
 	"github.com/coschain/contentos-go/common/prototype"
 	"github.com/coschain/contentos-go/rpc/pb"
 	context "golang.org/x/net/context"
+	"github.com/coschain/contentos-go/iservices"
 )
 
 type APIService struct {
-	server RPCServer
+	ctrl 		iservices.IController
+	mainLoop 	*eventloop.EventLoop
 }
 
 func (as *APIService) GetAccountByName(ctx context.Context, req *grpcpb.GetAccountByNameRequest) (*grpcpb.AccountResponse, error) {
@@ -45,5 +49,12 @@ func (as *APIService) GetTrxById(ctx context.Context, req *grpcpb.GetTrxByIdRequ
 }
 
 func (as *APIService) BroadcastTrx(ctx context.Context, req *grpcpb.BroadcastTrxRequest) (*grpcpb.BroadcastTrxResponse, error) {
+
+	var result *prototype.TransactionInvoice = nil
+	as.mainLoop.Send(func() {
+		result = as.ctrl.PushTrx(req.GetTransaction())
+		fmt.Println("BroadcastTrx Result:", result)
+	})
+
 	return &grpcpb.BroadcastTrxResponse{}, nil
 }

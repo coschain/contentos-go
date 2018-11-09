@@ -3,13 +3,13 @@ package prototype
 import (
 	"bytes"
 	"fmt"
-	"github.com/coschain/contentos-go/p2p/depend/crypto"
+	"github.com/coschain/contentos-go/common/crypto"
 	"crypto/ecdsa"
 	"crypto/sha256"
 	"math/big"
 	"github.com/itchyny/base58-go"
 	"errors"
-	"github.com/coschain/contentos-go/p2p/depend/crypto/secp256k1"
+	"github.com/coschain/contentos-go/common/crypto/secp256k1"
 )
 
 func PrivateKeyFromECDSA( key *ecdsa.PrivateKey ) *PrivateKeyType {

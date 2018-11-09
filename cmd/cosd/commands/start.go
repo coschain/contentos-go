@@ -3,10 +3,15 @@ package commands
 import (
 	"fmt"
 	"github.com/coschain/cobra"
+	ctrl "github.com/coschain/contentos-go/app"
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/demos/printer"
 	"github.com/coschain/contentos-go/demos/timer"
 	"github.com/coschain/contentos-go/node"
+	"github.com/coschain/contentos-go/db/storage"
+	"github.com/coschain/contentos-go/iservices"
+	"github.com/coschain/contentos-go/node"
+	"github.com/coschain/contentos-go/rpc"
 	log "github.com/inconshreveable/log15"
 	"github.com/spf13/viper"
 	"os"
@@ -69,7 +74,24 @@ func startNode(cmd *cobra.Command, args []string) {
 	})
 	app.Register("printer", func(ctx *node.ServiceContext) (node.Service, error) {
 		return printer.New(ctx)
+	//app.Register("timer", func(ctx *node.ServiceContext) (node.Service, error) {
+	//	return timer.New(ctx)
+	//})
+
+	app.Register(iservices.CTRL_SERVER_NAME, func(ctx *node.ServiceContext) (node.Service, error) {
+		return ctrl.NewController(ctx)
 	})
+
+	app.Register(iservices.RPC_SERVER_NAME, func(ctx *node.ServiceContext) (node.Service, error) {
+		return rpc.NewGRPCServer(ctx)
+	})
+
+	app.Register(iservices.DB_SERVER_NAME, func(ctx *node.ServiceContext) (node.Service, error) {
+		return storage.New(ctx, "./db/")
+	})
+	//app.Register("cos", func(ctx *node.ServiceContext) (node.Service, error) {
+	//	return cos.New(ctx)
+	//})
 	if err := app.Start(); err != nil {
 		common.Fatalf("start node failed, err: %v\n", err)
 	}
@@ -82,5 +104,6 @@ func startNode(cmd *cobra.Command, args []string) {
 		log.Info("Got interrupt, shutting down...")
 		go app.Stop()
 	}()
+
 	app.Wait()
 }

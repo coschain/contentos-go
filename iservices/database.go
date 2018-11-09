@@ -4,6 +4,7 @@ package iservices
 // This file defines interfaces of Database service.
 //
 
+var DB_SERVER_NAME = "db"
 
 //
 // Interface for key iterator

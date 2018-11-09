@@ -42,7 +42,7 @@ import (
 	"fmt"
 	"hash"
 
-	ethcrypto "github.com/coschain/contentos-go/p2p/depend/crypto"
+	ethcrypto "github.com/coschain/contentos-go/common/crypto"
 )
 
 var (

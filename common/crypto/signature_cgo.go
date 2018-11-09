@@ -4,9 +4,9 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"fmt"
+	"github.com/coschain/contentos-go/common/crypto/secp256k1"
 
-	"github.com/coschain/contentos-go/p2p/depend/common/math"
-	"github.com/coschain/contentos-go/p2p/depend/crypto/secp256k1"
+	"github.com/coschain/contentos-go/common/math"
 )
 
 // Ecrecover returns the uncompressed public key that created the given signature.

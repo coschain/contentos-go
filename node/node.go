@@ -2,6 +2,9 @@ package node
 
 import (
 	"errors"
+	"github.com/asaskevich/EventBus"
+	"github.com/coschain/contentos-go/common/eventloop"
+	"github.com/coschain/contentos-go/p2p"
 	log "github.com/inconshreveable/log15"
 	"os"
 	"path/filepath"
@@ -73,6 +76,13 @@ func (n *Node) Start() error {
 	if err := n.openDataDir(); err != nil {
 		return err
 	}
+
+	// which confs should be assigned to p2p configuration
+	n.serverConfig = n.config.P2P
+
+	running := &p2p.Server{Config: n.serverConfig,
+					EvBus:EventBus.New(),
+					EvLoop:eventloop.NewEventLoop() }
 
 	services := make(map[string]Service)
 
