@@ -2,6 +2,7 @@ module github.com/coschain/contentos-go
 
 require (
 	github.com/BurntSushi/toml v0.3.1 // indirect
+	github.com/Workiva/go-datastructures v1.0.50 // indirect
 	github.com/aristanetworks/goarista v0.0.0-20181002214814-33151c4543a7
 	github.com/asaskevich/EventBus v0.0.0-20180315140547-d46933a94f05
 	github.com/chzyer/logex v1.1.10 // indirect
@@ -9,11 +10,13 @@ require (
 	github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1 // indirect
 	github.com/coschain/cobra v0.0.0-20181106130408-77bf516f51a1
 	github.com/deckarep/golang-set v1.7.1
+	github.com/emirpasic/gods v1.12.0 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/gogo/protobuf v1.1.1
 	github.com/golang/protobuf v1.2.0
 	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db
 	github.com/grpc-ecosystem/grpc-gateway v1.5.1
+	github.com/hashicorp/golang-lru v0.5.0
 	github.com/huin/goupnp v1.0.0
 	github.com/inconshreveable/log15 v0.0.0-20180818164646-67afb5ed74ec
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
@@ -23,11 +26,15 @@ require (
 	github.com/mattn/go-isatty v0.0.4 // indirect
 	github.com/mitchellh/go-homedir v1.0.0
 	github.com/onsi/gomega v1.4.2 // indirect
+	github.com/ontio/ontology-crypto v1.0.2
+	github.com/ontio/ontology-eventbus v0.9.1
+	github.com/orcaman/concurrent-map v0.0.0-20180723183937-b28018939af9 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rs/cors v1.6.0
 	github.com/spf13/viper v1.2.1
 	github.com/stretchr/testify v1.2.2
 	github.com/syndtr/goleveldb v0.0.0-20181012014443-6b91fda63f2e
+	golang.org/x/crypto v0.0.0-20181106171534-e4dc69e5b2fd
 	golang.org/x/net v0.0.0-20181011144130-49bb7cea24b1
 	google.golang.org/genproto v0.0.0-20181101192439-c830210a61df
 	google.golang.org/grpc v1.16.0

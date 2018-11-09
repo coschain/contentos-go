@@ -120,6 +120,9 @@ func MaxSharedKeyLength(pub *PublicKey) int {
 // ECDH key agreement method used to establish secret keys for encryption.
 func (prv *PrivateKey) GenerateShared(pub *PublicKey, skLen, macLen int) (sk []byte, err error) {
 	if prv.PublicKey.Curve != pub.Curve {
+		fmt.Println("generate key error here")
+		fmt.Println("prv.PublicKey.Curve：%+v", prv.PublicKey.Curve.Params())
+		fmt.Println("pub.Curve: %+v", pub.Curve.Params())
 		return nil, ErrInvalidCurve
 	}
 	if skLen+macLen > MaxSharedKeyLength(pub) {
@@ -294,6 +297,7 @@ func Encrypt(rand io.Reader, pub *PublicKey, m, s1, s2 []byte) (ct []byte, err e
 // Decrypt decrypts an ECIES ciphertext.
 func (prv *PrivateKey) Decrypt(c, s1, s2 []byte) (m []byte, err error) {
 	if len(c) == 0 {
+		fmt.Println("error 1")
 		return nil, ErrInvalidMessage
 	}
 	params := prv.PublicKey.Params
@@ -315,7 +319,11 @@ func (prv *PrivateKey) Decrypt(c, s1, s2 []byte) (m []byte, err error) {
 	switch c[0] {
 	case 2, 3, 4:
 		rLen = (prv.PublicKey.Curve.Params().BitSize + 7) / 4
+		fmt.Println("rLen value: ", rLen)
+		fmt.Println("length of c: ", len(c))
+		fmt.Println("rLen + hLen + 1: ", rLen + hLen + 1)
 		if len(c) < (rLen + hLen + 1) {
+			fmt.Println("error 2")
 			err = ErrInvalidMessage
 			return
 		}
@@ -335,9 +343,11 @@ func (prv *PrivateKey) Decrypt(c, s1, s2 []byte) (m []byte, err error) {
 		return
 	}
 	if !R.Curve.IsOnCurve(R.X, R.Y) {
+		fmt.Println("decode curve error here")
 		err = ErrInvalidCurve
 		return
 	}
+	fmt.Printf("in Decrypt func %+v\n", R.Curve.Params())
 
 	z, err := prv.GenerateShared(R, params.KeyLen, params.KeyLen)
 	if err != nil {
@@ -357,6 +367,13 @@ func (prv *PrivateKey) Decrypt(c, s1, s2 []byte) (m []byte, err error) {
 
 	d := messageTag(params.Hash, Km, c[mStart:mEnd], s2)
 	if subtle.ConstantTimeCompare(c[mEnd:], d) != 1 {
+		fmt.Println("error 3")
+		fmt.Println("hLen value: ", hLen)
+		fmt.Println("mEnd value: ", mEnd)
+		fmt.Println("length of c[mEnd:]: ", len(c[mEnd:]))
+		fmt.Println("length of d: ", len(d))
+		fmt.Println("c[mEnd:]: ", c[mEnd:] )
+		fmt.Println("d: ", d)
 		err = ErrInvalidMessage
 		return
 	}
