@@ -3,16 +3,19 @@ package main
 import (
 	"fmt"
 	"github.com/coschain/contentos-go/app/table"
-	"github.com/coschain/contentos-go/db/storage"
 	"github.com/coschain/contentos-go/common/prototype"
+	"github.com/coschain/contentos-go/db/storage"
 	"log"
 )
 
 func main() {
 	//db, _ := storage.NewLevelDatabase("/Users/yykingking/abc123.db")
-	db := storage.NewMemoryDatabase()
-
-	defer db.Close()
+	db,err := storage.NewDatabase("./demo/demo.db")
+	if err != nil {
+		return
+	}
+	db.Start(nil)
+	//defer db.Close()
 
 	//1.create the table wrap
 	//we can use the type  which is contained in another created pb struct,
@@ -151,5 +154,6 @@ func main() {
 	  	 	fmt.Println("remove the table data faile")
 		 }
 	  }
-	
+
+	 db.Close()
 }

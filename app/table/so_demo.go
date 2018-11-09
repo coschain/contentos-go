@@ -3,11 +3,11 @@
 package table
 
 import (
-	"bytes"
 	"github.com/coschain/contentos-go/common/encoding"
 	"github.com/coschain/contentos-go/db/storage"
      "github.com/coschain/contentos-go/common/prototype"
 	 "github.com/gogo/protobuf/proto"
+     "github.com/coschain/contentos-go/iservices"
 )
 
 ////////////// SECTION Prefix Mark ///////////////
@@ -31,11 +31,11 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoDemoWrap struct {
-	dba 		storage.Database
+	dba 		iservices.IDatabaseService
 	mainKey 	*prototype.AccountName
 }
 
-func NewSoDemoWrap(dba storage.Database, key *prototype.AccountName) *SoDemoWrap{
+func NewSoDemoWrap(dba iservices.IDatabaseService, key *prototype.AccountName) *SoDemoWrap{
 	result := &SoDemoWrap{ dba, key}
 	return result
 }
@@ -677,7 +677,7 @@ func (m *SoListDemoByPostTime) OpeEncode() ([]byte, []byte,error) {
 }
 
 type SDemoPostTimeWrap struct {
-	Dba storage.Database
+	Dba iservices.IDatabaseService
 }
 
 func (s *SDemoPostTimeWrap) GetMainVal(iterator storage.Iterator) *prototype.AccountName {
@@ -786,7 +786,7 @@ func (m *SoListDemoByReplayCount) OpeEncode() ([]byte, []byte,error) {
 }
 
 type SDemoReplayCountWrap struct {
-	Dba storage.Database
+	Dba iservices.IDatabaseService
 }
 
 func (s *SDemoReplayCountWrap) GetMainVal(iterator storage.Iterator) *prototype.AccountName {
@@ -973,7 +973,7 @@ func (s *SoDemoWrap) insertUniKeyIdx(sa *SoDemo) bool {
 }
 
 type UniDemoIdxWrap struct {
-	Dba storage.Database
+	Dba iservices.IDatabaseService
 }
 
 func (s *UniDemoIdxWrap) UniQueryIdx(start *int64) *SoDemoWrap{
@@ -1052,7 +1052,7 @@ func (s *SoDemoWrap) insertUniKeyLikeCount(sa *SoDemo) bool {
 }
 
 type UniDemoLikeCountWrap struct {
-	Dba storage.Database
+	Dba iservices.IDatabaseService
 }
 
 func (s *UniDemoLikeCountWrap) UniQueryLikeCount(start *int64) *SoDemoWrap{
@@ -1131,7 +1131,7 @@ func (s *SoDemoWrap) insertUniKeyOwner(sa *SoDemo) bool {
 }
 
 type UniDemoOwnerWrap struct {
-	Dba storage.Database
+	Dba iservices.IDatabaseService
 }
 
 func (s *UniDemoOwnerWrap) UniQueryOwner(start *prototype.AccountName) *SoDemoWrap{

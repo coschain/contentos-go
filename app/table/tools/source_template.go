@@ -44,6 +44,7 @@ import (
 	"github.com/coschain/contentos-go/db/storage"
      "github.com/coschain/contentos-go/common/prototype"
 	 "github.com/gogo/protobuf/proto"
+     "github.com/coschain/contentos-go/iservices"
 )
 
 ////////////// SECTION Prefix Mark ///////////////
@@ -60,11 +61,11 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type So{{.ClsName}}Wrap struct {
-	dba 		storage.Database
+	dba 		iservices.IDatabaseService
 	mainKey 	*{{formatStr .MainKeyType}}
 }
 
-func NewSo{{.ClsName}}Wrap(dba storage.Database, key *{{formatStr .MainKeyType}}) *So{{.ClsName}}Wrap{
+func NewSo{{.ClsName}}Wrap(dba iservices.IDatabaseService, key *{{formatStr .MainKeyType}}) *So{{.ClsName}}Wrap{
 	result := &So{{.ClsName}}Wrap{ dba, key}
 	return result
 }
@@ -319,7 +320,7 @@ func (m *SoList{{$.ClsName}}By{{$v}}) OpeEncode() ([]byte, []byte,error) {
 }
 
 type S{{$.ClsName}}{{$v}}Wrap struct {
-	Dba storage.Database
+	Dba iservices.IDatabaseService
 }
 
 func (s *S{{$.ClsName}}{{$v}}Wrap) GetMainVal(iterator storage.Iterator) *{{formatStr $.MainKeyType}} {
@@ -512,7 +513,7 @@ func (s *So{{$.ClsName}}Wrap) insertUniKey{{$k}}(sa *So{{$.ClsName}}) bool {
 }
 
 type Uni{{$.ClsName}}{{$k}}Wrap struct {
-	Dba storage.Database
+	Dba iservices.IDatabaseService
 }
 
 func (s *Uni{{$.ClsName}}{{$k}}Wrap) UniQuery{{$k}}(start *{{formatStr $v}}) *So{{$.ClsName}}Wrap{
