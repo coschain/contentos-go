@@ -12,6 +12,7 @@ import (
 	"github.com/coschain/contentos-go/common"
 	"errors"
 	"bytes"
+	"sync/atomic"
 )
 
 type KeyHashDispatcher struct {
@@ -52,6 +53,7 @@ func (dp *KeyHashDispatcher) DatabasesForKeyRange(start []byte, limit []byte) []
 // the database group
 type SimpleDatabaseGroup struct {
 	dp DatabaseDispatcher			// key dispatching policy
+	crashed int32					// non-zero if the group should stop service due to fatal errors
 	lock sync.RWMutex				// lock for db operations
 }
 
@@ -61,6 +63,10 @@ func NewSimpleDatabaseGroup(dp DatabaseDispatcher) *SimpleDatabaseGroup {
 	} else {
 		return nil
 	}
+}
+
+func (g *SimpleDatabaseGroup) Crashed() bool {
+	return atomic.LoadInt32(&g.crashed) != 0
 }
 
 func (g *SimpleDatabaseGroup) Close() {
@@ -88,12 +94,20 @@ func (g *SimpleDatabaseGroup) Has(key []byte) (bool, error) {
 	g.lock.RLock()
 	defer g.lock.RUnlock()
 
+	if g.Crashed() {
+		return false, errors.New("database group out of service due to fatal errors")
+	}
+
 	return g.dbForKey(key).Has(key)
 }
 
 func (g *SimpleDatabaseGroup) Get(key []byte) ([]byte, error) {
 	g.lock.RLock()
 	defer g.lock.RUnlock()
+
+	if g.Crashed() {
+		return nil, errors.New("database group out of service due to fatal errors")
+	}
 
 	return g.dbForKey(key).Get(key)
 }
@@ -102,6 +116,10 @@ func (g *SimpleDatabaseGroup) Put(key []byte, value []byte) error {
 	g.lock.Lock()
 	defer g.lock.Unlock()
 
+	if g.Crashed() {
+		return errors.New("database group out of service due to fatal errors")
+	}
+
 	return g.dbForKey(key).Put(key, value)
 }
 
@@ -109,12 +127,20 @@ func (g *SimpleDatabaseGroup) Delete(key []byte) error {
 	g.lock.Lock()
 	defer g.lock.Unlock()
 
+	if g.Crashed() {
+		return errors.New("database group out of service due to fatal errors")
+	}
+
 	return g.dbForKey(key).Delete(key)
 }
 
 func (g *SimpleDatabaseGroup) NewIterator(start []byte, limit []byte) Iterator {
 	g.lock.RLock()
 	defer g.lock.RUnlock()
+
+	if g.Crashed() {
+		return nil
+	}
 
 	indices := g.dp.DatabasesForKeyRange(start, limit)
 	var items []sdgIteratorItem
@@ -214,6 +240,9 @@ func (it *sdgIterator) Next() bool {
 }
 
 func (g *SimpleDatabaseGroup) NewBatch() Batch {
+	if g.Crashed() {
+		return nil
+	}
 	return &sdgBatch{
 		g: g,
 		ops: make(map[int][]writeOp),
@@ -335,12 +364,29 @@ func (b *sdgBatch) Write() error {
 			go func(idx int, rbatch Batch) {
 				defer wg.Done()
 				if result[idx] {
-					rbatch.Write()
+					if err := rbatch.Write(); err == nil {
+						result[idx] = false
+					}
 				}
 			}(idx, batches[1])
 		}
 		wg.Wait()
-		err = errors.New("some of databases failed batch writing")
+
+		// check if all reversions successfully done
+		var fataldb []int
+		for idx, r := range result {
+			if r {
+				fataldb = append(fataldb, idx)
+			}
+		}
+		if len(fataldb) == 0 {
+			err = errors.New("some of databases failed batch writing")
+		} else {
+			// this is really really bad. some member databases are out of service.
+			// unrecoverable atomicity violation makes database group totally crashed.
+			err = errors.New(fmt.Sprintf("FATAL: Atomicity violation due to failed recoveries on databases %v", fataldb))
+			atomic.StoreInt32(&b.g.crashed, 1)
+		}
 	}
 
 	// release member batches
