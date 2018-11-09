@@ -15,10 +15,12 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 )
 
 const (
-	PasswordLength int = 32
+	PasswordLength    int   = 32
+	ExpirationSeconds int64 = 5 * 60
 )
 
 type BaseWallet struct {
@@ -29,6 +31,8 @@ type BaseWallet struct {
 	unlocked map[string]*PrivAccount
 
 	locked map[string]*EncryptAccount
+
+	ticker *time.Ticker
 
 	mu sync.RWMutex
 }
@@ -94,6 +98,24 @@ func DecryptData(cipherdata, passphrase, iv []byte) ([]byte, error) {
 	stream := cipher.NewCTR(block, iv)
 	stream.XORKeyStream(data, cipherdata)
 	return data, nil
+}
+
+func (w *BaseWallet) Start() error {
+	w.mu.RLock()
+	defer w.mu.RUnlock()
+	w.ticker = time.NewTicker(1 * time.Minute)
+	go func() {
+		for range w.ticker.C {
+			current := time.Now().Unix()
+			for k, v := range w.unlocked {
+				if v.Expire < current {
+					delete(w.unlocked, k)
+					fmt.Println(fmt.Sprintf("%s expired", k))
+				}
+			}
+		}
+	}()
+	return nil
 }
 
 func (w *BaseWallet) Name() string {
@@ -228,7 +250,8 @@ func (w *BaseWallet) Unlock(name, passphrase string) error {
 		if err != nil {
 			return err
 		}
-		acc := &PrivAccount{Account{Name: name, PubKey: encrypt_acc.PubKey}, string(priv_key)}
+		expiredTime := time.Now().Unix() + ExpirationSeconds
+		acc := &PrivAccount{Account{Name: name, PubKey: encrypt_acc.PubKey}, string(priv_key), expiredTime}
 		w.unlocked[name] = acc
 		return nil
 	}
@@ -245,6 +268,14 @@ func (w *BaseWallet) IsLocked(name string) (bool, error) {
 		return false, &UnknownLockedAccountError{Name: name}
 	}
 
+}
+
+func (w *BaseWallet) updateAccountExpiredTime(name string) {
+	w.mu.RLock()
+	defer w.mu.RUnlock()
+	if acc, ok := w.unlocked[name]; ok {
+		acc.Expire = time.Now().Unix() + ExpirationSeconds
+	}
 }
 
 func (w *BaseWallet) seal(account *EncryptAccount) error {
@@ -267,7 +298,7 @@ func (w *BaseWallet) seal(account *EncryptAccount) error {
 
 func (w *BaseWallet) List() []string {
 	var lines []string
-	for k, _ := range w.locked {
+	for k := range w.locked {
 		if _, ok := w.unlocked[k]; ok {
 			lines = append(lines, fmt.Sprintf("account:%12s | status: unlocked", k))
 		} else {
@@ -289,4 +320,9 @@ func (w *BaseWallet) Info(name string) string {
 		}
 		return content
 	}
+}
+
+func (w *BaseWallet) Close() {
+	w.ticker.Stop()
+	os.Exit(0)
 }

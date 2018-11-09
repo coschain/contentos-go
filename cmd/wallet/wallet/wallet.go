@@ -17,7 +17,7 @@ type Wallet interface {
 
 	Info(name string) string
 
-	Close() error
+	Close()
 
 	IsLocked(name string) (bool, error)
 

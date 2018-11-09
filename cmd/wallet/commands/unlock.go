@@ -10,14 +10,14 @@ var UnlockCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "unlock",
 		Short: "unlock a account",
-		Run:   unlockAccount,
+		Run:   unlock,
 	}
 	return cmd
 }
 
-func unlockAccount(cmd *cobra.Command, args []string) {
+func unlock(cmd *cobra.Command, args []string) {
 	o := cmd.Context["wallet"]
-	w := o.(*wallet.BaseWallet)
+	w := o.(wallet.Wallet)
 	name := args[0]
 	passphrase := args[1]
 	err := w.Unlock(name, passphrase)

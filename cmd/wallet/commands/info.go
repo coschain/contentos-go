@@ -17,7 +17,7 @@ var InfoCmd = func() *cobra.Command {
 
 func info(cmd *cobra.Command, args []string) {
 	o := cmd.Context["wallet"]
-	w := o.(*wallet.BaseWallet)
+	w := o.(wallet.Wallet)
 	name := args[0]
 	content := w.Info(name)
 	fmt.Println(content)

@@ -1,6 +1,8 @@
 package table
 
 import (
+	"bytes"
+
 	"github.com/coschain/contentos-go/common/encoding"
 	"github.com/coschain/contentos-go/db/storage"
 	"github.com/gogo/protobuf/proto"
@@ -10,9 +12,11 @@ import (
 var (
 	DemoTable = []byte("DemoTable")
 
-	DemoPostTimeTable = []byte("DemoPostTimeTable")
+	DemoPostTimeTable       = []byte("DemoPostTimeTable")
+	DemoPostTimeRevOrdTable = []byte("DemoPostTimeRevOrdTable")
 
-	DemoReplayCountTable = []byte("DemoReplayCountTable")
+	DemoReplayCountTable       = []byte("DemoReplayCountTable")
+	DemoReplayCountRevOrdTable = []byte("DemoReplayCountRevOrdTable")
 
 	DemoIdxTable = []byte("DemoIdxTable")
 
@@ -98,13 +102,23 @@ func (s *SoDemoWrap) delSortKeyPostTime(sa *SoDemo) bool {
 	val.PostTime = sa.PostTime
 	val.Owner = sa.Owner
 
-	key, err := val.OpeEncode()
-
+	subBuf, err := encoding.Encode(sa.PostTime)
 	if err != nil {
 		return false
 	}
-
-	return s.dba.Delete(key) == nil
+	ordKey := append(DemoPostTimeTable, subBuf...)
+	revOrdBuf := append(DemoPostTimeRevOrdTable, subBuf...)
+	revOrdKey, revErr := encoding.Complement(revOrdBuf, err)
+	if revErr != nil {
+		return false
+	}
+	ordErr := s.dba.Delete(ordKey)
+	revOrdErr := s.dba.Delete(revOrdKey)
+	if ordErr == nil && revOrdErr == nil {
+		return true
+	} else {
+		return false
+	}
 }
 
 func (s *SoDemoWrap) insertSortKeyPostTime(sa *SoDemo) bool {
@@ -115,12 +129,24 @@ func (s *SoDemoWrap) insertSortKeyPostTime(sa *SoDemo) bool {
 	if err != nil {
 		return false
 	}
-	key, err := val.OpeEncode()
+
+	subBuf, err := encoding.Encode(sa.PostTime)
 	if err != nil {
 		return false
 	}
-	return s.dba.Put(key, buf) == nil
-
+	ordKey := append(DemoPostTimeTable, subBuf...)
+	revOrdBuf := append(DemoPostTimeRevOrdTable, subBuf...)
+	revOrdKey, revErr := encoding.Complement(revOrdBuf, err)
+	if revErr != nil {
+		return false
+	}
+	ordErr := s.dba.Put(ordKey, buf)
+	revOrdErr := s.dba.Put(revOrdKey, buf)
+	if ordErr == nil && revOrdErr == nil {
+		return true
+	} else {
+		return false
+	}
 }
 
 func (s *SoDemoWrap) delSortKeyReplayCount(sa *SoDemo) bool {
@@ -129,13 +155,23 @@ func (s *SoDemoWrap) delSortKeyReplayCount(sa *SoDemo) bool {
 	val.ReplayCount = sa.ReplayCount
 	val.Owner = sa.Owner
 
-	key, err := val.OpeEncode()
-
+	subBuf, err := encoding.Encode(sa.ReplayCount)
 	if err != nil {
 		return false
 	}
-
-	return s.dba.Delete(key) == nil
+	ordKey := append(DemoReplayCountTable, subBuf...)
+	revOrdBuf := append(DemoReplayCountRevOrdTable, subBuf...)
+	revOrdKey, revErr := encoding.Complement(revOrdBuf, err)
+	if revErr != nil {
+		return false
+	}
+	ordErr := s.dba.Delete(ordKey)
+	revOrdErr := s.dba.Delete(revOrdKey)
+	if ordErr == nil && revOrdErr == nil {
+		return true
+	} else {
+		return false
+	}
 }
 
 func (s *SoDemoWrap) insertSortKeyReplayCount(sa *SoDemo) bool {
@@ -146,12 +182,24 @@ func (s *SoDemoWrap) insertSortKeyReplayCount(sa *SoDemo) bool {
 	if err != nil {
 		return false
 	}
-	key, err := val.OpeEncode()
+
+	subBuf, err := encoding.Encode(sa.ReplayCount)
 	if err != nil {
 		return false
 	}
-	return s.dba.Put(key, buf) == nil
-
+	ordKey := append(DemoReplayCountTable, subBuf...)
+	revOrdBuf := append(DemoReplayCountRevOrdTable, subBuf...)
+	revOrdKey, revErr := encoding.Complement(revOrdBuf, err)
+	if revErr != nil {
+		return false
+	}
+	ordErr := s.dba.Put(ordKey, buf)
+	revOrdErr := s.dba.Put(revOrdKey, buf)
+	if ordErr == nil && revOrdErr == nil {
+		return true
+	} else {
+		return false
+	}
 }
 
 ////////////// SECTION LKeys delete/insert //////////////
@@ -429,18 +477,23 @@ func (s *SoDemoWrap) MdTitle(p string) bool {
 
 ////////////// SECTION List Keys ///////////////
 
-func (m *SoListDemoByPostTime) OpeEncode() ([]byte, error) {
+func (m *SoListDemoByPostTime) OpeEncode() ([]byte, []byte, error) {
 
 	mainBuf, err := encoding.Encode(m.Owner)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	subBuf, err := encoding.Encode(m.PostTime)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-
-	return append(append(DemoPostTimeTable, subBuf...), mainBuf...), nil
+	ordKey := append(append(DemoPostTimeTable, subBuf...), mainBuf...)
+	revOrdBuf := append(append(DemoPostTimeRevOrdTable, subBuf...), mainBuf...)
+	revSubKey, revErr := encoding.Complement(revOrdBuf, err)
+	if revErr != nil {
+		return nil, nil, revErr
+	}
+	return ordKey, revSubKey, nil
 }
 
 type SDemoPostTimeWrap struct {
@@ -492,22 +545,22 @@ func (s *SDemoPostTimeWrap) GetSubVal(iterator storage.Iterator) *uint32 {
 }
 
 //Query by sort
-//sType 0:  sort by order  1:sort by reverse order
-func (s *SDemoPostTimeWrap) QueryList(start uint32, end uint32, sType int) storage.Iterator {
+//sort by reverse order: the encoded value of start greater than end
+//sort by order: the encoded value of start less or equal  end
+func (s *SDemoPostTimeWrap) QueryList(start uint32, end uint32) storage.Iterator {
 
 	startBuf, err := encoding.Encode(&start)
 	if err != nil {
 		return nil
 	}
-
 	endBuf, err := encoding.Encode(&end)
 	if err != nil {
 		return nil
 	}
-
 	bufStartkey := append(DemoPostTimeTable, startBuf...)
 	bufEndkey := append(DemoPostTimeTable, endBuf...)
-	if sType > 0 {
+	if bytes.Compare(startBuf, endBuf) > 1 {
+		//reverse order
 		rBufStart, rErr := encoding.Complement(bufStartkey, err)
 		if rErr != nil {
 			return nil
@@ -526,18 +579,23 @@ func (s *SDemoPostTimeWrap) QueryList(start uint32, end uint32, sType int) stora
 
 ////////////// SECTION List Keys ///////////////
 
-func (m *SoListDemoByReplayCount) OpeEncode() ([]byte, error) {
+func (m *SoListDemoByReplayCount) OpeEncode() ([]byte, []byte, error) {
 
 	mainBuf, err := encoding.Encode(m.Owner)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	subBuf, err := encoding.Encode(m.ReplayCount)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-
-	return append(append(DemoReplayCountTable, subBuf...), mainBuf...), nil
+	ordKey := append(append(DemoReplayCountTable, subBuf...), mainBuf...)
+	revOrdBuf := append(append(DemoReplayCountRevOrdTable, subBuf...), mainBuf...)
+	revSubKey, revErr := encoding.Complement(revOrdBuf, err)
+	if revErr != nil {
+		return nil, nil, revErr
+	}
+	return ordKey, revSubKey, nil
 }
 
 type SDemoReplayCountWrap struct {
@@ -589,22 +647,22 @@ func (s *SDemoReplayCountWrap) GetSubVal(iterator storage.Iterator) *int64 {
 }
 
 //Query by sort
-//sType 0:  sort by order  1:sort by reverse order
-func (s *SDemoReplayCountWrap) QueryList(start int64, end int64, sType int) storage.Iterator {
+//sort by reverse order: the encoded value of start greater than end
+//sort by order: the encoded value of start less or equal  end
+func (s *SDemoReplayCountWrap) QueryList(start int64, end int64) storage.Iterator {
 
 	startBuf, err := encoding.Encode(&start)
 	if err != nil {
 		return nil
 	}
-
 	endBuf, err := encoding.Encode(&end)
 	if err != nil {
 		return nil
 	}
-
 	bufStartkey := append(DemoReplayCountTable, startBuf...)
 	bufEndkey := append(DemoReplayCountTable, endBuf...)
-	if sType > 0 {
+	if bytes.Compare(startBuf, endBuf) > 1 {
+		//reverse order
 		rBufStart, rErr := encoding.Complement(bufStartkey, err)
 		if rErr != nil {
 			return nil
@@ -675,7 +733,7 @@ func (s *SoDemoWrap) delUniKeyIdx(sa *SoDemo) bool {
 	val.Idx = sa.Idx
 	val.Owner = sa.Owner
 
-	key, err := encoding.Encode(&val)
+	key, err := encoding.Encode(sa.Idx)
 
 	if err != nil {
 		return false
@@ -705,7 +763,7 @@ func (s *SoDemoWrap) insertUniKeyIdx(sa *SoDemo) bool {
 		return false
 	}
 
-	key, err := encoding.Encode(&val)
+	key, err := encoding.Encode(sa.Idx)
 
 	if err != nil {
 		return false
@@ -747,7 +805,7 @@ func (s *SoDemoWrap) delUniKeyLikeCount(sa *SoDemo) bool {
 	val.LikeCount = sa.LikeCount
 	val.Owner = sa.Owner
 
-	key, err := encoding.Encode(&val)
+	key, err := encoding.Encode(sa.LikeCount)
 
 	if err != nil {
 		return false
@@ -777,7 +835,7 @@ func (s *SoDemoWrap) insertUniKeyLikeCount(sa *SoDemo) bool {
 		return false
 	}
 
-	key, err := encoding.Encode(&val)
+	key, err := encoding.Encode(sa.LikeCount)
 
 	if err != nil {
 		return false
@@ -819,7 +877,7 @@ func (s *SoDemoWrap) delUniKeyOwner(sa *SoDemo) bool {
 	val.Owner = sa.Owner
 	val.Owner = sa.Owner
 
-	key, err := encoding.Encode(&val)
+	key, err := encoding.Encode(sa.Owner)
 
 	if err != nil {
 		return false
@@ -849,7 +907,7 @@ func (s *SoDemoWrap) insertUniKeyOwner(sa *SoDemo) bool {
 		return false
 	}
 
-	key, err := encoding.Encode(&val)
+	key, err := encoding.Encode(sa.Owner)
 
 	if err != nil {
 		return false

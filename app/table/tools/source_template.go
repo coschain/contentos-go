@@ -51,6 +51,7 @@ var (
 	{{.ClsName}}Table        = []byte("{{.ClsName}}Table")
 {{range $k, $v := .LKeys}}
 	{{$.ClsName}}{{$v}}Table = []byte("{{$.ClsName}}{{$v}}Table")
+    {{$.ClsName}}{{$v}}RevOrdTable = []byte("{{$.ClsName}}{{$v}}RevOrdTable")
 {{end}}
 {{range $k, $v := .UniqueFieldMap}}
 	{{$.ClsName}}{{$k}}Table = []byte("{{$.ClsName}}{{$k}}Table")
@@ -128,13 +129,23 @@ func (s *So{{$.ClsName}}Wrap) delSortKey{{$v1}}(sa *So{{$.ClsName}}) bool {
 	val.{{$v1}} = sa.{{$v1}}
 	val.{{UperFirstChar $.MainKeyName}} = sa.{{UperFirstChar $.MainKeyName}}
 
-	key, err := val.OpeEncode()
-
+    subBuf, err := encoding.Encode(sa.{{UperFirstChar $v1}})
 	if err != nil {
 		return false
 	}
-
-	return s.dba.Delete(key) == nil
+    ordKey := append({{$.ClsName}}{{$v1}}Table, subBuf...)
+    revOrdBuf := append({{$.ClsName}}{{$v1}}RevOrdTable, subBuf...)
+    revOrdKey,revErr := encoding.Complement(revOrdBuf,err)
+    if revErr != nil {
+       return false
+    }
+    ordErr := s.dba.Delete(ordKey)
+    revOrdErr := s.dba.Delete(revOrdKey)
+    if ordErr == nil && revOrdErr == nil {
+        return true 
+    }else {
+        return false
+    }
 }
 
 
@@ -146,12 +157,24 @@ func (s *So{{$.ClsName}}Wrap) insertSortKey{{$v1}}(sa *So{{$.ClsName}}) bool {
 	if err != nil {
 		return false
 	}
-	key, err := val.OpeEncode()
+    
+    subBuf, err := encoding.Encode(sa.{{UperFirstChar $v1}})
 	if err != nil {
 		return false
 	}
-	return s.dba.Put(key, buf) == nil
-
+    ordKey := append({{$.ClsName}}{{$v1}}Table, subBuf...)
+    revOrdBuf := append({{$.ClsName}}{{$v1}}RevOrdTable, subBuf...)
+    revOrdKey,revErr := encoding.Complement(revOrdBuf,err)
+    if revErr != nil {
+       return false
+    }
+    ordErr :=  s.dba.Put(ordKey, buf) 
+    revOrdErr := s.dba.Put(revOrdKey, buf)
+    if ordErr == nil && revOrdErr == nil {
+        return true 
+    }else {
+        return false
+    }
 }
 
 {{end}}
@@ -276,18 +299,23 @@ func (s *So{{$.ClsName}}Wrap) Md{{$k1}}(p {{formatStr $v1}}) bool {
 {{range $v, $k := .LKeyWithType}}
 ////////////// SECTION List Keys ///////////////
 
-func (m *SoList{{$.ClsName}}By{{$v}}) OpeEncode() ([]byte, error) {
+func (m *SoList{{$.ClsName}}By{{$v}}) OpeEncode() ([]byte, []byte,error) {
 
 	mainBuf, err := encoding.Encode(m.{{UperFirstChar $.MainKeyName}})
 	if err != nil {
-		return nil, err
+		return nil,nil,err
 	}
 	subBuf, err := encoding.Encode(m.{{$v}})
 	if err != nil {
-		return nil, err
+		return nil,nil,err
 	}
-
-	return append(append({{$.ClsName}}{{$v}}Table, subBuf...), mainBuf...), nil
+   ordKey := append(append({{$.ClsName}}{{$v}}Table, subBuf...), mainBuf...)
+   revOrdBuf := append(append({{$.ClsName}}{{$v}}RevOrdTable, subBuf...), mainBuf...)
+   revSubKey,revErr := encoding.Complement(revOrdBuf,err)
+   if revErr != nil {
+      return nil,nil,revErr
+   }
+   return ordKey,revSubKey,nil
 }
 
 type S{{$.ClsName}}{{$v}}Wrap struct {
@@ -349,22 +377,22 @@ func (s *S{{$.ClsName}}{{$v}}Wrap) GetSubVal(iterator storage.Iterator) *{{forma
 }
 
 //Query by sort 
-//sType 0:  sort by order  1:sort by reverse order
-func (s *S{{$.ClsName}}{{$v}}Wrap) QueryList(start {{formatStr $k}}, end {{formatStr $k}}, sType int) storage.Iterator {
+//sort by reverse order: the encoded value of start greater than end 
+//sort by order: the encoded value of start less or equal  end 
+func (s *S{{$.ClsName}}{{$v}}Wrap) QueryList(start {{formatStr $k}}, end {{formatStr $k}}) storage.Iterator {
 
 	startBuf, err := encoding.Encode(&start)
 	if err != nil {
 		return nil
 	}
-
 	endBuf, err := encoding.Encode(&end)
 	if err != nil {
 		return nil
 	}
-    
-	bufStartkey := append({{$.ClsName}}{{$v}}Table, startBuf...)
+    bufStartkey := append({{$.ClsName}}{{$v}}Table, startBuf...)
 	bufEndkey := append({{$.ClsName}}{{$v}}Table, endBuf...)
-    if sType > 0 {
+    if bytes.Compare(startBuf,endBuf) > 1 {
+       //reverse order 
        rBufStart,rErr := encoding.Complement(bufStartkey, err)
        if rErr != nil {
        	return nil
@@ -375,10 +403,10 @@ func (s *S{{$.ClsName}}{{$v}}Wrap) QueryList(start {{formatStr $k}}, end {{forma
 		}
        iter := s.Dba.NewIterator(rBufStart, rBufEnd)
        return iter
-	}else {
-		iter := s.Dba.NewIterator(bufStartkey, bufEndkey)
+    }else {
+       iter := s.Dba.NewIterator(bufStartkey, bufEndkey)
 		return iter
-	}
+    }
 }
 
 {{end}}
@@ -438,7 +466,7 @@ func (s *So{{$.ClsName}}Wrap) delUniKey{{$k}}(sa *So{{$.ClsName}}) bool {
 	val.{{$k}} = sa.{{$k}}
 	val.{{UperFirstChar $.MainKeyName}} = sa.{{UperFirstChar $.MainKeyName}}
 
-	key, err := encoding.Encode(&val)
+	key, err := encoding.Encode(sa.{{UperFirstChar $k}})
 
 	if err != nil {
 		return false
@@ -464,6 +492,7 @@ func (s *So{{$.ClsName}}Wrap) insertUniKey{{$k}}(sa *So{{$.ClsName}}) bool {
  
     val := SoUnique{{$.ClsName}}By{{$k}}{}
 
+    
 	val.{{UperFirstChar $.MainKeyName}} = sa.{{UperFirstChar $.MainKeyName}}
 	val.{{UperFirstChar $k}} = sa.{{UperFirstChar $k}}
     
@@ -473,7 +502,7 @@ func (s *So{{$.ClsName}}Wrap) insertUniKey{{$k}}(sa *So{{$.ClsName}}) bool {
 		return false
 	}
 
-	key, err := encoding.Encode(&val)
+	key, err := encoding.Encode(sa.{{UperFirstChar $k}})
 
 	if err != nil {
 		return false

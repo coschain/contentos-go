@@ -10,14 +10,14 @@ var LoadCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "load",
 		Short: "load a created account",
-		Run:   loadAccount,
+		Run:   load,
 	}
 	return cmd
 }
 
-func loadAccount(cmd *cobra.Command, args []string) {
+func load(cmd *cobra.Command, args []string) {
 	o := cmd.Context["wallet"]
-	w := o.(*wallet.BaseWallet)
+	w := o.(wallet.Wallet)
 	name := args[0]
 	err := w.Load(name)
 	if err != nil {

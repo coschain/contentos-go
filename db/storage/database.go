@@ -38,11 +38,17 @@ type DatabaseScanner interface {
 	DeleteIterator(it Iterator)
 }
 
-// interface for key iterator
-// Iterator is *NOT* thread safe. you *cannot* share the same Iterator among concurrent routines.
-// but routines are free to create their own iterators by calling NewIterator().
-// an Iterator represents the static view (snapshot) of the database at the time it was created.
-// later changes to the database must not affect the iterator.
+//
+// Interface for key iterator
+// Iterator is *NOT* thread safe. you *cannot* share the same iterator among concurrent routines.
+// but routines are safe to create and use their own iterators by calling NewIterator().
+//
+// An iterator represents the static view (snapshot) of the database at the time the iterator was created.
+// Later changes to the database will not affect the iteration.
+//
+// Iterators is the same concept as "cursors" in DBMS docs. More specifically, our iterators are forward-only,
+// read-only and static "cursors".
+//
 type Iterator interface {
 	// check if the iterator is a valid position, i.e. safe to call other methods
 	Valid() bool

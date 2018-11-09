@@ -10,6 +10,7 @@ type Account struct {
 type PrivAccount struct {
 	Account
 	PrivKey string
+	Expire  int64
 }
 
 type EncryptAccount struct {
