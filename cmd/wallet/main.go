@@ -25,12 +25,21 @@ func pcFromCommands(parent readline.PrefixCompleterInterface, c *cobra.Command) 
 	}
 }
 
+func flatten(c *cobra.Command, cmds *[]*cobra.Command) {
+	for _, child := range c.Commands() {
+		*cmds = append(*cmds, child)
+		if len(child.Commands()) > 0 {
+			flatten(child, cmds)
+		}
+	}
+	return
+}
+
 func runShell() {
 	completer := readline.NewPrefixCompleter()
 	for _, child := range rootCmd.Commands() {
 		pcFromCommands(completer, child)
 	}
-
 	shell, err := readline.NewEx(&readline.Config{
 		Prompt:       "> ",
 		AutoComplete: completer,
@@ -85,6 +94,7 @@ func addCommands() {
 	rootCmd.AddCommand(commands.ListCmd())
 	rootCmd.AddCommand(commands.InfoCmd())
 	rootCmd.AddCommand(commands.CloseCmd())
+	rootCmd.AddCommand(commands.AccountCmd())
 }
 
 func init() {
@@ -94,10 +104,11 @@ func init() {
 	localWallet := wallet.NewBaseWallet("default", DefaultDataDir())
 	localWallet.Start()
 	rootCmd.SetContext("wallet", localWallet)
-	for _, cmd := range rootCmd.Commands() {
+	cmds := []*cobra.Command{}
+	flatten(rootCmd, &cmds)
+	for _, cmd := range cmds {
 		cmd.Context = rootCmd.Context
 	}
-
 	rootCmd.Run = func(cmd *cobra.Command, args []string) {
 		runShell()
 	}
