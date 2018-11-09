@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/db/storage"
-	base "github.com/coschain/contentos-go/common/prototype"
+	"log"
 )
 
 func main() {
@@ -13,66 +13,122 @@ func main() {
 
 	defer db.Close()
 
-	for index := 0; index < 10; index++ {
-		acc := base.MakeAccountName(fmt.Sprintf("TUser%d", index))
-		wrap := table.NewSoAccountWrap(db, acc)
-		newAcc := &table.SoAccount{}
-		newAcc.CreatedTime = base.MakeTimeSecondPoint(uint32(10 + index))
-		newAcc.Creator = base.MakeAccountName(fmt.Sprintf("Jack%d", index))
-		newAcc.PubKey = base.MakePublicKeyType(nil)
-		newAcc.Name = acc
-
-		wrap.CreateAccount(newAcc)
+	//1.create the table wrap
+	mKey := "pbTool"
+	wrap := table.NewSoDemoWrap(db, &mKey)
+	if wrap == nil {
+		//crreate fail , the db already contain table with current mainKey
+		log.Println("crreate fail , the db already contain table with current mainKey")
+		return
 	}
 
-	{
-		lwrap := table.SListAccountByCreatedTime{db}
-		iter := lwrap.DoList(*base.MakeTimeSecondPoint(10), *base.MakeTimeSecondPoint(14))
-		if iter != nil {
-			for iter.Next() {
-				fmt.Println("iter1:" , lwrap.GetMainVal(iter), " - ",lwrap.GetSubVal(iter))
+	//2.create the pb struct
+	data := table.SoDemo{
+	 	Owner:"pbTool",
+	 	Title:"hello",
+	 	Content:"test the pb tool",
+	 	Idx: 1000,
+	 	LikeCount:1,
+	 	Taglist:"#NBA",
+	 	ReplayCount:100,
+	 }
+
+	 //3.save table data to db
+	 res := wrap.CreateDemo(&data)
+	 if !res {
+	 	 log.Fatalln("create new table of Demo faile")
+		 return
+	 }
+
+	 /*
+	   --------------------------
+	   Get Property（the GetXXX function  return the point of value）
+	   --------------------------*/
+
+	 //get title
+	 tPtr := wrap.GetTitle()
+	 if tPtr != nil {
+		 fmt.Printf("the title is %s \n",*tPtr)
+	 }else {
+		 fmt.Printf("get title fail")
+	 }
+
+	 //get content
+	 cPtr := wrap.GetContent()
+	if cPtr != nil {
+		fmt.Printf("the content is %s \n",*cPtr)
+	}else {
+		log.Printf("modify tilte fail")
+	}
+	//modify title
+	tMdRes := wrap.MdContent("hello world")
+	if !tMdRes {
+		log.Println("modify tilte fail")
+	}
+
+
+	/*
+	  --------------------------
+	   Modify property value
+	  --------------------------*/
+
+	//modify content
+	cMdRes := wrap.MdContent("test md the content")
+	if !cMdRes {
+		log.Printf("modify content fail")
+	}
+
+	/*
+	  --------------------------
+	   Sort Query List
+	  --------------------------*/
+     //1.create the sort wrap for property which is surpport sort (E.g postTime)
+	 tSortWrap := table.SDemoPostTimeWrap{}
+	 //2.start query data of range
+	 iter := tSortWrap.QueryList(20120820, 2013999)
+	 //we can get the main key and sub key by the returned iterator
+	 if iter != nil {
+	 	for iter.Next() {
+			//get the mainkey value (GetMainVal return the ptr of value)
+			mKeyPtr := tSortWrap.GetMainVal(iter)
+			if mKeyPtr == nil {
+				fmt.Println("get main key fail")
+			}
+			//get subKey value (the postTime value)
+			mSubPtr := tSortWrap.GetMainVal(iter)
+			if mSubPtr == nil {
+				fmt.Println("get postTime fail")
 			}
 		}
-	}
 
-	// modify
+	 }else {
+	 	log.Println("there is no data exist in range")
+	 }
 
-	{
-		acc := base.MakeAccountName("TUser2")
-		wrap := table.NewSoAccountWrap(db, acc)
 
-		if wrap.CheckExist() {
-			oldTime := wrap.GetAccountCreatedTime()
-			oldTime.UtcSeconds += 10
-			fmt.Println("modify : ", wrap.MdAccountCreatedTime(*oldTime))
-		}
-	}
 
-	{
-		lwrap := table.SListAccountByCreatedTime{db}
-		iter := lwrap.DoList(*base.MakeTimeSecondPoint(10), *base.MakeTimeSecondPoint(14))
-		if iter != nil {
-			for iter.Next() {
-				fmt.Println("iter2:" , lwrap.GetMainVal(iter), " - ",lwrap.GetSubVal(iter))
-			}
-		}
-	}
+	/*
+	 --------------------------
+	  unique Query List (only support query the property which is flag unique)
+	 --------------------------*/
+	 //1.create the uni wrap of property which is need unique query
+	 var idx int64 = 100
+	 uniWrap := table.UniDemoIdxWrap{}
+	 //2.use UniQueryXX func to query data meanWhile return the table wrap
+	  dWrap := uniWrap.UniQueryIdx(&idx)
+	  t := dWrap.GetTitle()
+	  fmt.Printf("the title of index is %s",t)
 
-	{
-		acc := base.MakeAccountName("TUser3")
-		wrap := table.NewSoAccountWrap(db, acc)
 
-		if wrap.CheckExist() {
-			fmt.Println("remove : ", wrap.RemoveAccount())
-		}
-	}
-	{
-		lwrap := table.SListAccountByCreatedTime{db}
-		iter := lwrap.DoList(*base.MakeTimeSecondPoint(10), *base.MakeTimeSecondPoint(14))
-		if iter != nil {
-			for iter.Next() {
-				fmt.Println("iter3:" , lwrap.GetMainVal(iter), " - ",lwrap.GetSubVal(iter))
-			}
-		}
-	}
+	  /*
+	    remove tabale data from db
+	  */
+	  isExsit := wrap.CheckExist()
+	  if isExsit {
+	  	 res := wrap.RemoveDemo()
+	  	 if !res {
+	  	 	fmt.Println("remove the table data faile")
+		 }
+	  }
+	
 }

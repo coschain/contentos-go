@@ -4,6 +4,8 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"github.com/coschain/contentos-go/common/prototype"
@@ -13,6 +15,10 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+)
+
+const (
+	PasswordLength int = 32
 )
 
 type BaseWallet struct {
@@ -27,15 +33,43 @@ type BaseWallet struct {
 	mu sync.RWMutex
 }
 
-//func NewBaseWallet() *BaseWallet {
-//	return &BaseWallet{
-//		name: "default",
-//		unlocked: make(map[string]*PrivAccount),
-//		locked: make(map[string]*EncryptAccount),
-//	}
-//}
+func NewBaseWallet(name string, path string) *BaseWallet {
+	return &BaseWallet{
+		name:     name,
+		unlocked: make(map[string]*PrivAccount),
+		locked:   make(map[string]*EncryptAccount),
+		dirPath:  path,
+	}
+}
 
-func EncryptData(data, key []byte) ([]byte, []byte, error) {
+func selectAESAlgorithm(length int) string {
+	switch length {
+	case 16:
+		return "AES-128"
+	case 24:
+		return "AES-192"
+	case 32:
+		return "AES-256"
+	default:
+		break
+	}
+	return "UNKNOWN"
+}
+
+func hashPassphraseToFixLength(input []byte) []byte {
+	sha_256 := sha256.New()
+	sha_256.Write(input)
+	result := sha_256.Sum(nil)
+	return result[:PasswordLength]
+}
+
+func generateFilename(name string) string {
+	filename := fmt.Sprintf("COS-KEYJSON-%s.json", name)
+	return filename
+}
+
+func EncryptData(data, passphrase []byte) ([]byte, []byte, error) {
+	key := hashPassphraseToFixLength(passphrase)
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return []byte{}, []byte{}, err
@@ -50,12 +84,10 @@ func EncryptData(data, key []byte) ([]byte, []byte, error) {
 	return cipherdata, iv, nil
 }
 
-func DecryptData(cipherdata, key, iv []byte) ([]byte, error) {
+func DecryptData(cipherdata, passphrase, iv []byte) ([]byte, error) {
+	key := hashPassphraseToFixLength(passphrase)
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		return []byte{}, err
-	}
-	if (len(cipherdata) % aes.BlockSize) != 0 {
 		return []byte{}, err
 	}
 	data := make([]byte, len(cipherdata))
@@ -114,11 +146,14 @@ func (w *BaseWallet) Create(name, passphrase string) error {
 	privKeyStr := privKey.ToWIF()
 	pubKeyStr := pubKey.ToWIF()
 	cipher_data, iv, err := EncryptData([]byte(privKeyStr), []byte(passphrase))
+	cipher_text := base64.StdEncoding.EncodeToString(cipher_data)
+	iv_text := base64.StdEncoding.EncodeToString(iv)
 	encrypt_account := &EncryptAccount{
-		Account: Account{Name: name, PubKey: pubKeyStr},
-		Cipher:  string(cipher_data),
-		Iv:      string(iv),
-		Version: 1,
+		Account:    Account{Name: name, PubKey: pubKeyStr},
+		Cipher:     selectAESAlgorithm(PasswordLength),
+		CipherText: cipher_text,
+		Iv:         iv_text,
+		Version:    1,
 	}
 	priv_account := &PrivAccount{
 		Account: Account{Name: name, PubKey: pubKeyStr},
@@ -126,7 +161,7 @@ func (w *BaseWallet) Create(name, passphrase string) error {
 	}
 	w.locked[name] = encrypt_account
 	w.unlocked[name] = priv_account
-	w.Seal(encrypt_account)
+	w.seal(encrypt_account)
 	return nil
 }
 
@@ -139,13 +174,13 @@ func (w *BaseWallet) Load(name string) error {
 	if strings.HasSuffix(name, ".json") {
 		filename = name
 	} else {
-		filename = name + ".json"
+		filename = generateFilename(name)
 	}
 	path := filepath.Join(w.dirPath, filename)
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return err
 	}
-	accjson, err := ioutil.ReadFile(filename)
+	accjson, err := ioutil.ReadFile(path)
 	if err != nil {
 		return err
 	}
@@ -181,8 +216,14 @@ func (w *BaseWallet) Unlock(name, passphrase string) error {
 		return &UnknownLockedAccountError{Name: name}
 	} else {
 		key := []byte(passphrase)
-		iv := []byte(encrypt_acc.Iv)
-		cipher_data := []byte(encrypt_acc.CipherText)
+		iv, err := base64.StdEncoding.DecodeString(encrypt_acc.Iv)
+		if err != nil {
+			return err
+		}
+		cipher_data, err := base64.StdEncoding.DecodeString(encrypt_acc.CipherText)
+		if err != nil {
+			return err
+		}
 		priv_key, err := DecryptData(cipher_data, key, iv)
 		if err != nil {
 			return err
@@ -206,7 +247,7 @@ func (w *BaseWallet) IsLocked(name string) (bool, error) {
 
 }
 
-func (w *BaseWallet) Seal(account *EncryptAccount) error {
+func (w *BaseWallet) seal(account *EncryptAccount) error {
 	w.mu.RLock()
 	defer w.mu.RUnlock()
 	name := account.Name
@@ -214,7 +255,7 @@ func (w *BaseWallet) Seal(account *EncryptAccount) error {
 	// I knew there is a problem when user create a pair key but using a name which have been occupied.
 	// fixme
 
-	filename := fmt.Sprintf("COS-KEYJSON-%s.json", name)
+	filename := generateFilename(name)
 	path := filepath.Join(w.dirPath, filename)
 	keyjson, err := json.Marshal(account)
 	if err != nil {
@@ -222,4 +263,30 @@ func (w *BaseWallet) Seal(account *EncryptAccount) error {
 	}
 	err = ioutil.WriteFile(path, keyjson, 0600)
 	return nil
+}
+
+func (w *BaseWallet) List() []string {
+	var lines []string
+	for k, _ := range w.locked {
+		if _, ok := w.unlocked[k]; ok {
+			lines = append(lines, fmt.Sprintf("account:%12s | status: unlocked", k))
+		} else {
+			lines = append(lines, fmt.Sprintf("account:%12s | status:   locked", k))
+		}
+	}
+	return lines
+}
+
+func (w *BaseWallet) Info(name string) string {
+	if acc, ok := w.locked[name]; !ok {
+		return fmt.Sprintf("unknown account: %s", name)
+	} else {
+		content := fmt.Sprintf("account: %s\npub_key: %s\n", acc.Name, acc.PubKey)
+		if _, ok = w.unlocked[name]; ok {
+			content += fmt.Sprintf("status: unlocked")
+		} else {
+			content += fmt.Sprintf("status: locked")
+		}
+		return content
+	}
 }

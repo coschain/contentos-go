@@ -4,6 +4,8 @@ import (
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/common/prototype"
+	"github.com/coschain/contentos-go/db/storage"
+	"bytes"
 )
 
 type skipFlag uint32
@@ -26,6 +28,10 @@ type Controller struct {
 	_isProducing  bool
 	_currentTrxId *prototype.Sha256
 	_current_op_in_trx uint16
+
+	revertDb *storage.RevertibleDatabase
+	transactionDb *storage.TransactionalDatabase
+
 }
 
 func (c *Controller) Start() {
@@ -42,8 +48,10 @@ func (c *Controller) setProducing(b bool) {
 
 func (c *Controller) PushTrx(trx *prototype.SignedTransaction) *prototype.TransactionInvoice {
 	// this function may be cross routines ? use channel or lock ?
+	oldSkip := c.skip
 	defer func() {
 		c.setProducing(false)
+		c.skip = oldSkip
 	}()
 
 	// @ check maximum_block_size
@@ -55,18 +63,27 @@ func (c *Controller) PushTrx(trx *prototype.SignedTransaction) *prototype.Transa
 func (c *Controller) _pushTrx(trx *prototype.SignedTransaction) *prototype.TransactionInvoice {
 	defer func() {
 		// @ undo sub session
+		if err := recover(); err != nil {
+			c.transactionDb.EndTransaction(false)
+			panic(err)
+		}
 	}()
 	// @ start a new undo session when first transaction come after push block
+	if len(c._pending_tx) == 0 {
+		c.transactionDb.BeginTransaction()
+	}
 
 	trxWrp := &prototype.TransactionWrapper{}
 	trxWrp.SigTrx = trx
 
 	// @ start a sub undo session for applyTransaction
+	c.transactionDb.BeginTransaction()
 
 	c._applyTransaction(trxWrp)
 	c._pending_tx = append(c._pending_tx, trxWrp)
 
 	// @ commit sub session
+	c.transactionDb.EndTransaction(true)
 
 	c.NotifyTrxPending(trx)
 	return trxWrp.Invoice
@@ -168,5 +185,25 @@ func getEvaluator(op *prototype.Operation) BaseEvaluator{
 		return BaseEvaluator(&TransferEvaluator{})
 	default:
 		panic("no matchable evaluator")
+	}
+}
+
+func (c *Controller) applyBlock(blk *prototype.SignedBlock) {
+	oldFlag := c.skip
+	defer func(){
+		c.skip = oldFlag
+	}()
+
+	c._applyBlock(blk)
+
+	// @ tps update
+}
+
+func (c *Controller) _applyBlock(blk *prototype.SignedBlock) {
+	//nextBlockNum := blk.Id().BlockNum()
+
+	root := blk.CalculateMerkleRoot()
+	if !bytes.Equal(root.Data[:], blk.SignedHeader.Header.TransactionMerkleRoot.Hash) {
+		panic("Merkle check failed")
 	}
 }

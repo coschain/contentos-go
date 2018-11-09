@@ -3,9 +3,12 @@ package main
 import (
 	"fmt"
 	"github.com/chzyer/readline"
+	"github.com/coschain/cobra"
 	"github.com/coschain/contentos-go/cmd/wallet/commands"
-	"github.com/spf13/cobra"
+	"github.com/coschain/contentos-go/cmd/wallet/wallet"
 	"os"
+	"os/user"
+	"path/filepath"
 	"strings"
 )
 
@@ -49,17 +52,51 @@ shell_loop:
 			shell.Terminal.Write([]byte(err.Error()))
 		}
 		cmd.ParseFlags(flags)
+		//cmd.Context = rootCmd.Context
 		cmd.Run(cmd, flags)
 	}
 
 }
 
+func DefaultDataDir() string {
+	home := homeDir()
+	if home != "" {
+		return filepath.Join(home, ".coschain")
+	}
+	return ""
+}
+
+func homeDir() string {
+	if home := os.Getenv("HOME"); home != "" {
+		return home
+	}
+	if usr, err := user.Current(); err == nil {
+		return usr.HomeDir
+	}
+	return ""
+}
+
 func addCommands() {
-	rootCmd.AddCommand(commands.InitCmd())
+	rootCmd.AddCommand(commands.CreateCmd())
+	rootCmd.AddCommand(commands.LoadCmd())
+	rootCmd.AddCommand(commands.UnlockCmd())
+	rootCmd.AddCommand(commands.LockCmd())
+	rootCmd.AddCommand(commands.IsLockedCmd())
+	rootCmd.AddCommand(commands.ListCmd())
+	rootCmd.AddCommand(commands.InfoCmd())
 }
 
 func init() {
+
 	addCommands()
+
+	localWallet := wallet.NewBaseWallet("default", DefaultDataDir())
+
+	rootCmd.SetContext("wallet", localWallet)
+	for _, cmd := range rootCmd.Commands() {
+		cmd.Context = rootCmd.Context
+	}
+
 	rootCmd.Run = func(cmd *cobra.Command, args []string) {
 		runShell()
 	}

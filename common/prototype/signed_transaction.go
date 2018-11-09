@@ -117,6 +117,22 @@ func (p *SignedTransaction) Id() (*Sha256, error) {
 	return id, nil
 }
 
+func (p *SignedTransaction) MerkleDigest() (*Sha256, error) {
+	buf, err := proto.Marshal(p)
+	if err != nil {
+		return nil, err
+	}
+	h := sha256.New()
+	h.Reset()
+	h.Write(buf)
+	bs := h.Sum(nil)
+	if bs == nil {
+		return nil, errors.New("sha256 error")
+	}
+	id := &Sha256{Hash: bs}
+	return id, nil
+}
+
 func (p *SignedTransaction) VerifyAuthority(cid ChainId,max_recursion_depth uint32) {
 	pubs,err := p.ExportPubKeys(cid)
 	if err != nil {

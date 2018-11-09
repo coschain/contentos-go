@@ -7,6 +7,7 @@ require (
 	github.com/chzyer/logex v1.1.10 // indirect
 	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e
 	github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1 // indirect
+	github.com/coschain/cobra v0.0.0-20181106130408-77bf516f51a1
 	github.com/deckarep/golang-set v1.7.1
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/gogo/protobuf v1.1.1
@@ -22,9 +23,8 @@ require (
 	github.com/mattn/go-isatty v0.0.4 // indirect
 	github.com/mitchellh/go-homedir v1.0.0
 	github.com/onsi/gomega v1.4.2 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rs/cors v1.6.0
-	github.com/sirupsen/logrus v1.2.0 // indirect
-	github.com/spf13/cobra v0.0.3
 	github.com/spf13/viper v1.2.1
 	github.com/stretchr/testify v1.2.2
 	github.com/syndtr/goleveldb v0.0.0-20181012014443-6b91fda63f2e

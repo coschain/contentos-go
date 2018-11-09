@@ -13,6 +13,10 @@ type Wallet interface {
 
 	Unlock(name, passphrase string) error
 
+	List() []string
+
+	Info(name string) string
+
 	Close() error
 
 	IsLocked(name string) (bool, error)

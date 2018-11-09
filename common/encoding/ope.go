@@ -10,7 +10,7 @@ package encoding
 // Order preserving is the only requirement for OPE algorithms. When a data type has a primary key combined
 // by some fields, it's safe to encode primary key only. So that OPE can be data loss.
 //
-// Here we present a OPE method for integers, floats, strings, slices and custom user types,
+// Here we present an OPE method for integers, floats, strings, slices and custom user types,
 // 1, numbers: big-endian memory bytes with some bit flips
 // 2, strings: memory bytes are ok
 // 3, user types: OpeEncoder interface must be implemented
@@ -242,7 +242,7 @@ func EncodeBigInt(value big.Int) ([]byte, error) {
 
 var opeEncoderInterfaceType = reflect.TypeOf((*OpeEncoder)(nil)).Elem()
 
-// Encode a reflected value
+// Encode a value
 func Encode(value interface{}) ([]byte, error) {
 	// basic data types
 	switch value.(type) {
@@ -317,4 +317,25 @@ func Encode(value interface{}) ([]byte, error) {
 	}
 
 	return nil, errors.New(fmt.Sprintf("ope: cannot encode values of type %T", value))
+}
+
+//
+// A simple wrapper for reversed order encoding
+//
+// Encode() & EncodeXXX() preserve the dictionary order, while
+// Complement(Encode()) & Complement(EncodeXXX()) preserve the *reversed* dictionary order.
+//
+func Complement(enc []byte, errs ...error) ([]byte, error) {
+	var err error
+	if len(errs) > 0 {
+		err = errs[0]
+	}
+	if err == nil && enc != nil {
+		c := make([]byte, len(enc))
+		for i, b := range enc {
+			c[i] = ^b
+		}
+		return c, nil
+	}
+	return enc, err
 }

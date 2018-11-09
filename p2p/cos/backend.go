@@ -11,7 +11,7 @@ import (
 
 	"github.com/coschain/contentos-go/p2p/depend/common"
 	//"github.com/ethereum/go-ethereum/core/vm"
-	"github.com/coschain/contentos-go/cos/downloader"
+	"github.com/coschain/contentos-go/p2p/cos/downloader"
 	//"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/coschain/contentos-go/p2p/depend/event"
 	log "github.com/inconshreveable/log15"

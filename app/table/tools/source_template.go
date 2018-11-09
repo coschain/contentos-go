@@ -48,19 +48,22 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	{{.ClsName}}Table        = []byte{0x{{$.TBMask}}, 0x0}
+	{{.ClsName}}Table        = []byte("{{.ClsName}}Table")
 {{range $k, $v := .LKeys}}
-	{{$.ClsName}}{{$v}}Table = []byte{0x{{$.TBMask}}, 1 + 0x{{$k}} }
+	{{$.ClsName}}{{$v}}Table = []byte("{{$.ClsName}}{{$v}}Table")
+{{end}}
+{{range $k, $v := .UniqueFieldMap}}
+	{{$.ClsName}}{{$k}}Table = []byte("{{$.ClsName}}{{$k}}Table")
 {{end}}
 )
 
 ////////////// SECTION Wrap Define ///////////////
 type So{{.ClsName}}Wrap struct {
 	dba 		storage.Database
-	mainKey 	*{{.MainKeyType}}
+	mainKey 	*{{formatStr .MainKeyType}}
 }
 
-func NewSo{{.ClsName}}Wrap(dba storage.Database, key *{{.MainKeyType}}) *So{{.ClsName}}Wrap{
+func NewSo{{.ClsName}}Wrap(dba storage.Database, key *{{formatStr .MainKeyType}}) *So{{.ClsName}}Wrap{
 	result := &So{{.ClsName}}Wrap{ dba, key}
 	return result
 }
@@ -75,7 +78,7 @@ func (s *So{{.ClsName}}Wrap) CheckExist() bool {
 	if err != nil {
 		return false
 	}
-
+    
 	return res
 }
 
@@ -90,38 +93,42 @@ func (s *So{{.ClsName}}Wrap) Create{{.ClsName}}(sa *So{{.ClsName}}) bool {
 	if err != nil {
 		return false
 	}
-
 	resBuf, err := proto.Marshal(sa)
 	if err != nil {
 		return false
 	}
-
 	err = s.dba.Put(keyBuf, resBuf)
-
 	if err != nil {
 		return false
 	}
 
-	// update secondary keys
+	// update sort list keys
 	{{range $k, $v := .LKeys}}
-	if !s.insertSubKey{{$v}}(sa) {
+	if !s.insertSortKey{{$v}}(sa) {
 		return false
 	}
 	{{end}}
-
+  
+    //update unique list
+    {{range $k, $v := .UniqueFieldMap -}}
+	if !s.insertUniKey{{$k}}(sa) {
+		return false
+	}
+	{{end}}
+    
 	return true
 }
 
 ////////////// SECTION LKeys delete/insert ///////////////
 
 {{range $k1, $v1 := .LKeys}}
-func (s *So{{$.ClsName}}Wrap) deleteSubKey{{$v1}}(sa *So{{$.ClsName}}) bool {
+func (s *So{{$.ClsName}}Wrap) delSortKey{{$v1}}(sa *So{{$.ClsName}}) bool {
 	val := SoList{{$.ClsName}}By{{$v1}}{}
 
 	val.{{$v1}} = sa.{{$v1}}
 	val.{{UperFirstChar $.MainKeyName}} = sa.{{UperFirstChar $.MainKeyName}}
 
-	key, err := encoding.Encode(&val)
+	key, err := val.OpeEncode()
 
 	if err != nil {
 		return false
@@ -131,20 +138,15 @@ func (s *So{{$.ClsName}}Wrap) deleteSubKey{{$v1}}(sa *So{{$.ClsName}}) bool {
 }
 
 
-func (s *So{{$.ClsName}}Wrap) insertSubKey{{$v1}}(sa *So{{$.ClsName}}) bool {
+func (s *So{{$.ClsName}}Wrap) insertSortKey{{$v1}}(sa *So{{$.ClsName}}) bool {
 	val := SoList{{$.ClsName}}By{{$v1}}{}
-
 	val.{{UperFirstChar $.MainKeyName}} = sa.{{UperFirstChar $.MainKeyName}}
 	val.{{UperFirstChar $v1}} = sa.{{UperFirstChar $v1}}
-
 	buf, err := proto.Marshal(&val)
-
 	if err != nil {
 		return false
 	}
-
-	key, err := encoding.Encode(&val)
-
+	key, err := val.OpeEncode()
 	if err != nil {
 		return false
 	}
@@ -163,12 +165,20 @@ func (s *So{{.ClsName}}Wrap) Remove{{.ClsName}}() bool {
 		return false
 	}
 
+    //delete sort list key
 	{{range $k, $v := .LKeys}}
-	if !s.deleteSubKey{{$v}}(sa) {
+	if !s.delSortKey{{$v}}(sa) {
 		return false
 	}
 	{{end}}
-
+   
+    //delete unique list
+    {{range $k, $v := .UniqueFieldMap}}
+	if !s.delUniKey{{$k}}(sa) {
+		return false
+	}
+	{{end}}
+    
 	keyBuf, err := s.encodeMainKey()
 
 	if err != nil {
@@ -180,65 +190,88 @@ func (s *So{{.ClsName}}Wrap) Remove{{.ClsName}}() bool {
 
 ////////////// SECTION Members Get/Modify ///////////////
 
-{{range $k1, $v1 := .MemberKeyMap}}
+{{range $k1, $v1 := .MemberKeyMap -}}
 
-func (s *So{{$.ClsName}}Wrap) Get{{$.ClsName}}{{formateStr $k1}}() *{{$v1}} {
+func (s *So{{$.ClsName}}Wrap) Get{{$k1}}() *{{formatStr $v1}} {
 	res := s.get{{$.ClsName}}()
-
 	if res == nil {
 		return nil
 	}
-	return &res.{{formateStr $k1}}
+{{$baseType := (DetectBaseType $v1) -}}
+{{if $baseType -}} 
+return &res.{{$k1}}
+{{end -}}
+{{if not $baseType}} 
+   return res.{{$k1}}
+{{end -}}
 }
 
+{{if ne $k1 $.MainKeyName}}
 
-func (s *So{{$.ClsName}}Wrap) Md{{$.ClsName}}{{formateStr $k1}}(p {{$v1}}) bool {
+func (s *So{{$.ClsName}}Wrap) Md{{$k1}}(p {{formatStr $v1}}) bool {
 
 	sa := s.get{{$.ClsName}}()
 
 	if sa == nil {
 		return false
 	}
-
-	{{range $k2, $v2 := $.LKeys}}
-		{{if eq $v2 $k1 }}
-	if !s.deleteSubKey{{$k1}}(sa) {
+    {{- range $k2, $v2 := $.UniqueFieldMap -}}
+      {{- if eq $k2 $k1 }}
+    //judge the unique value if is exist
+    uniWrap  := Uni{{$.ClsName}}{{$k2}}Wrap{}
+   {{ $baseType := (DetectBaseType $v2) -}}
+   {{- if $baseType -}} 
+   	res := uniWrap.UniQuery{{$k1}}(&sa.{{UperFirstChar $k1}})
+   {{- end -}}
+   {{if not $baseType -}} 
+   	res := uniWrap.UniQuery{{$k1}}(sa.{{UperFirstChar $k1}})
+   {{end }}
+	if res != nil {
+		//the unique value to be modified is already exist
+		return false
+	}
+	if !s.delUniKey{{$k2}}(sa) {
+		return false
+	}
+    {{end}}
+	  {{end}}
+	{{range $k3, $v3 := $.LKeys}}
+		{{if eq $v3 $k1 }}
+	if !s.delSortKey{{$k1}}(sa) {
 		return false
 	}
 		{{end}}
 	{{end}}
-	sa.{{formateStr $k1}} = p
+   {{if $baseType}} 
+     sa.{{$k1}} = p
+   {{end}}
+   {{if not $baseType -}} 
+     sa.{{$k1}} = &p
+   {{- end}}
 	if !s.update(sa) {
 		return false
 	}
-    {{range $k2, $v2 := $.LKeys}}
-      {{if eq $v2 $k1 }}
-	   if !s.insertSubKey{{$k1}}(sa) {
+    {{range $k4, $v4 := $.LKeys -}}
+      {{- if eq $v4 $k1 }}
+    if !s.insertSortKey{{$k1}}(sa) {
 		return false
-	   }
+    }
        {{end}}
     {{end}}
+
+    {{range $k5, $v5 := $.UniqueFieldMap}}
+		{{if eq $k5 $k1 }}
+    if !s.insertUniKey{{$k5}}(sa) {
+		return false
+    }
+		{{end}}
+	{{end}}
 	return true
-}
-
-func QueryAccount{{$.ClsName}}{{formateStr $k1}}(dba storage.Database, {{LowerFirstChar $k1}} {{$v1}}) []*So{{$.ClsName}} {
-	var arry []*So{{$.ClsName}}
-	iter := dba.NewIterator(nil, nil)
-	for iter.Next() {
-		res, err := iter.Value()
-		if err != nil {
-			pbMsg := &So{{$.ClsName}}{}
-			if proto.Unmarshal(res, pbMsg) != nil && pbMsg.{{$k1}} == {{LowerFirstChar $k1}} {
-				arry = append(arry,pbMsg)
-			}
-		}
-	}
-	return arry
-
 }
 
 {{end}}
 
+{{end}}
 
 {{range $v, $k := .LKeyWithType}}
 ////////////// SECTION List Keys ///////////////
@@ -257,11 +290,11 @@ func (m *SoList{{$.ClsName}}By{{$v}}) OpeEncode() ([]byte, error) {
 	return append(append({{$.ClsName}}{{$v}}Table, subBuf...), mainBuf...), nil
 }
 
-type SList{{$.ClsName}}By{{$v}} struct {
+type S{{$.ClsName}}{{$v}}Wrap struct {
 	Dba storage.Database
 }
 
-func (s *SList{{$.ClsName}}By{{$v}}) GetMainVal(iterator storage.Iterator) *{{$.MainKeyType}} {
+func (s *S{{$.ClsName}}{{$v}}Wrap) GetMainVal(iterator storage.Iterator) *{{formatStr $.MainKeyType}} {
 	if iterator == nil || !iterator.Valid() {
 		return nil
 	}
@@ -279,10 +312,17 @@ func (s *SList{{$.ClsName}}By{{$v}}) GetMainVal(iterator storage.Iterator) *{{$.
 		return nil
 	}
 
-	return &res.{{UperFirstChar $.MainKeyName}}
+    {{$baseType := (DetectBaseType $.MainKeyType) }}
+   {{if $baseType}} 
+     return &res.{{$.MainKeyName}}
+   {{end}}
+   {{if not $baseType}} 
+   return res.{{$.MainKeyName}}
+   {{end}}
+
 }
 
-func (s *SList{{$.ClsName}}By{{$v}}) GetSubVal(iterator storage.Iterator) *{{$k}} {
+func (s *S{{$.ClsName}}{{$v}}Wrap) GetSubVal(iterator storage.Iterator) *{{formatStr $k}} {
 	if iterator == nil || !iterator.Valid() {
 		return nil
 	}
@@ -299,11 +339,16 @@ func (s *SList{{$.ClsName}}By{{$v}}) GetSubVal(iterator storage.Iterator) *{{$k}
 	if err != nil {
 		return nil
 	}
-
-	return &res.{{UperFirstChar $v}}
+    {{$baseType := (DetectBaseType $k) }}
+   {{if $baseType}} 
+     return &res.{{ $v}}
+   {{end}}
+   {{if not $baseType}} 
+   return res.{{$v}}
+   {{end}}
 }
 
-func (s *SList{{$.ClsName}}By{{$v}}) DoList(start {{$k}}, end {{$k}}) storage.Iterator {
+func (s *S{{$.ClsName}}{{$v}}Wrap) QueryList(start {{formatStr $k}}, end {{formatStr $k}}) storage.Iterator {
 
 	startBuf, err := encoding.Encode(&start)
 	if err != nil {
@@ -371,29 +416,101 @@ func (s *So{{$.ClsName}}Wrap) encodeMainKey() ([]byte, error) {
 	return append({{.ClsName}}Table, res...), nil
 }
 
-/////////////// SECTION Unique Query ////////////////
-{{range $k,$v := $.UniqueFieldMap}}
-   func UniqueQuery{{$.ClsName}}{{formateStr $k}}(dba storage.Database, {{$k}} {{$v}}) *So{{$.ClsName}} {
-     iter := dba.NewIterator(nil,nil)
-	for iter.Next() {
-		res,err := iter.Value()
-		if err != nil {
-			pbMsg := &So{{$.ClsName}}{}
-			if proto.Unmarshal(res, pbMsg) != nil && pbMsg.{{$k}} == {{$k}} {
-				return pbMsg
-			}
-		}
+////////////// Unique Query delete/insert/query ///////////////
+{{range $k, $v := .UniqueFieldMap}}
+
+func (s *So{{$.ClsName}}Wrap) delUniKey{{$k}}(sa *So{{$.ClsName}}) bool {
+	val := SoUnique{{$.ClsName}}By{{$k}}{}
+
+	val.{{$k}} = sa.{{$k}}
+	val.{{UperFirstChar $.MainKeyName}} = sa.{{UperFirstChar $.MainKeyName}}
+
+	key, err := encoding.Encode(&val)
+
+	if err != nil {
+		return false
 	}
-	return nil
-  }
+
+	return s.dba.Delete(append({{$.ClsName}}{{$k}}Table,key...)) == nil
+}
+
+
+func (s *So{{$.ClsName}}Wrap) insertUniKey{{$k}}(sa *So{{$.ClsName}}) bool {
+    uniWrap  := Uni{{$.ClsName}}{{$k}}Wrap{}
+   {{$baseType := (DetectBaseType $v) }}
+   {{if $baseType}} 
+   	res := uniWrap.UniQuery{{$k}}(&sa.{{UperFirstChar $k}})
+   {{end}}
+   {{if not $baseType}} 
+   	res := uniWrap.UniQuery{{$k}}(sa.{{UperFirstChar $k}})
+   {{end}}
+	if res != nil {
+		//the unique key is already exist
+		return false
+	}
+ 
+    val := SoUnique{{$.ClsName}}By{{$k}}{}
+
+	val.{{UperFirstChar $.MainKeyName}} = sa.{{UperFirstChar $.MainKeyName}}
+	val.{{UperFirstChar $k}} = sa.{{UperFirstChar $k}}
+    
+	buf, err := proto.Marshal(&val)
+
+	if err != nil {
+		return false
+	}
+
+	key, err := encoding.Encode(&val)
+
+	if err != nil {
+		return false
+	}
+	return s.dba.Put(append({{$.ClsName}}{{$k}}Table,key...), buf) == nil
+
+}
+
+type Uni{{$.ClsName}}{{$k}}Wrap struct {
+	Dba storage.Database
+}
+
+func (s *Uni{{$.ClsName}}{{$k}}Wrap) UniQuery{{$k}}(start *{{formatStr $v}}) *So{{$.ClsName}}Wrap{
+
+   startBuf, err := encoding.Encode(start)
+	if err != nil {
+		return nil
+	}
+	bufStartkey := append({{$.ClsName}}{{$k}}Table, startBuf...)
+	bufEndkey := bufStartkey
+	iter := s.Dba.NewIterator(bufStartkey, bufEndkey)
+    val, err := iter.Value()
+	if err != nil {
+		return nil
+	}
+	res := &SoUnique{{$.ClsName}}By{{$k}}{}
+	err = proto.Unmarshal(val, res)
+	if err != nil {
+		return nil
+	}
+   {{ $baseType := (DetectBaseType $.MainKeyType) -}}
+   {{- if $baseType -}} 
+   wrap := NewSo{{$.ClsName}}Wrap(s.Dba,&res.{{UperFirstChar $.MainKeyName}})
+   {{- end -}}
+   {{if not $baseType -}} 
+   wrap := NewSo{{$.ClsName}}Wrap(s.Dba,res.{{UperFirstChar $.MainKeyName}})
+   {{end }}
+    
+	return wrap	
+}
+
 {{end}}
 
 `
 	fName := TmlFolder + "so_"+ tIfno.Name + ".go"
 	if fPtr := CreateFile(fName); fPtr != nil {
-		funcMapUper := template.FuncMap{"UperFirstChar": UperFirstChar,
-		"formateStr":formateStr,
-		"LowerFirstChar": LowerFirstChar}
+		funcMapUper := template.FuncMap{"UperFirstChar": UpperFirstChar,
+		"formatStr":formatStr,
+		"LowerFirstChar": LowerFirstChar,
+		"DetectBaseType":DetectBaseType}
 		t := template.New("layout.html")
 		t  = t.Funcs(funcMapUper)
 		t.Parse(tmpl)
@@ -412,7 +529,7 @@ func (s *So{{$.ClsName}}Wrap) encodeMainKey() ([]byte, error) {
 
 func createParamsFromTableInfo(tInfo TableInfo) Params {
 	para := Params{}
-	para.ClsName = UperFirstChar(tInfo.Name)
+	para.ClsName = UpperFirstChar(tInfo.Name)
 	para.TBMask = fmt.Sprintf("%d",tbMask)
 	tbMask ++
 	para.LKeys = []string{}
@@ -423,30 +540,31 @@ func createParamsFromTableInfo(tInfo TableInfo) Params {
 		fType :=  strings.Replace(v.VarType," ", "", -1)
 		fName :=  strings.Replace(v.VarName," ", "", -1)
 		if v.BMainKey {
-			para.MainKeyName = fName
-			para.MainKeyType =  fType
+			para.MainKeyName = rValueFormStr(fName)
+			para.MainKeyType =  formatStr(fType)
 		}else {
 			if v.BSort {
-				para.LKeys = append(para.LKeys,formateStr(fName))
-				para.LKeyWithType[formateStr(fName)] = fType
+				para.LKeys = append(para.LKeys,rValueFormStr(fName))
+				para.LKeyWithType[rValueFormStr(fName)] = formatStr(fType)
 			}
 		}
 		if v.BUnique {
-            para.UniqueFieldMap[formateStr(fName)] = fType
+            para.UniqueFieldMap[rValueFormStr(fName)] = formatStr(fType)
 		}
-		para.MemberKeyMap[formateStr(fName)] = fType
+		para.MemberKeyMap[rValueFormStr(fName)] = formatStr(fType)
 	}
 	return para
 }
 
-/* upercase first character of string */
-func UperFirstChar(str string) string {
+/* uppercase first character of string */
+func UpperFirstChar(str string) string {
 	for i, v := range str {
 		return string(unicode.ToUpper(v)) + str[i+1:]
 	}
 	return str
 }
 
+/* lowercase first character of string */
 func LowerFirstChar(str string) string {
 	for i, v := range str {
 		return string(unicode.ToLower(v)) + str[i+1:]
@@ -454,20 +572,74 @@ func LowerFirstChar(str string) string {
 	return str
 }
 
-func formateStr(str string) string  {
+/*  formate params of function in pb tool template, remove the "_" meanWhile uppercase words beside "_"*/
+func formatStr(str string) string  {
 	formStr := ""
 	if str != "" {
-		strArry := strings.Split(str, "_")
-		if len(strArry) > 0 {
-			for k,_ := range strArry {
-				v := strArry[k]
-				formStr += UperFirstChar(v)
+            if strings.Contains(str, ".") {
+				arry := strings.Split(str, ".")
+            	for k,v := range arry {
+					if k != 0 {
+						formStr += "."
+						formStr += ConvertToPbForm(strings.Split(v, "_"))
+					}else {
+						formStr +=  v
+					}
+				}
+			}else if strings.Contains(str,"_"){
+
+				formStr = ConvertToPbForm(strings.Split(str, "_"))
+			}else {
+				formStr = str
 			}
-		}else {
-			formStr = UperFirstChar(str)
 		}
 
+	return formStr
+}
+
+/* the return value format of Pb struct format(the first Charater is upper case) */
+func rValueFormStr(str string) string {
+	formStr := ""
+	if str != "" {
+		formStr = ConvertToPbForm(strings.Split(str,"_"))
 	}
 	return formStr
 }
 
+func ConvertToPbForm(arry []string) string {
+	formStr := ""
+	for _,v := range arry {
+		formStr += UpperFirstChar(v)
+	}
+	return formStr
+}
+
+/* detect if is basic data type*/
+func DetectBaseType(str string) bool {
+	switch str {
+	    case "string":
+	 	  return true
+	 	case "uint8":
+	 		return true
+		case "uint16":
+			return true
+		case "uint32":
+			return true
+		case "uint64":
+			return true
+		case "int8":
+			return true
+		case "int16":
+			return true
+		case "int32":
+			return true
+		case "int64":
+			return true
+		case "int":
+			return true
+		case "float32":
+			return true
+		case "float64":
+	}
+	return false
+}

@@ -1,18 +1,22 @@
 package storage
 
 // interface for insertion and updating
+// methods must be thread safe
 type DatabasePutter interface {
 	// insert a new key-value pair, or update the value if the given key already exists
 	Put(key []byte, value []byte) error
 }
 
 // interface for deletion
+// methods must be thread safe
 type DatabaseDeleter interface {
 	// delete the given key and its value
+	// if the given key does not exist, just return nil, indicating a successful deletion without doing anything.
 	Delete(key []byte) error
 }
 
 // interface for key & value query
+// methods must be thread safe
 type DatabaseGetter interface {
 	// check existence of the given key
 	Has(key []byte) (bool, error)
@@ -22,6 +26,7 @@ type DatabaseGetter interface {
 }
 
 // interface for key-space range scan
+// methods must be thread safe
 type DatabaseScanner interface {
 	// create an iterator containing keys from [start, limit)
 	// returned iterator points before the first key of given range
@@ -34,6 +39,10 @@ type DatabaseScanner interface {
 }
 
 // interface for key iterator
+// Iterator is *NOT* thread safe. you *cannot* share the same Iterator among concurrent routines.
+// but routines are free to create their own iterators by calling NewIterator().
+// an Iterator represents the static view (snapshot) of the database at the time it was created.
+// later changes to the database must not affect the iterator.
 type Iterator interface {
 	// check if the iterator is a valid position, i.e. safe to call other methods
 	Valid() bool
@@ -50,6 +59,7 @@ type Iterator interface {
 }
 
 // interface for transactional execution of multiple writes
+// methods must be thread safe
 type DatabaseBatcher interface {
 	// create a batch which can pack DatabasePutter & DatabaseDeleter operations and execute them atomically
 	NewBatch() Batch
@@ -59,6 +69,8 @@ type DatabaseBatcher interface {
 }
 
 // interface for transaction executor
+// methods must be thread safe
+// write operations must be executed atomically
 type Batch interface {
 	DatabasePutter
 	DatabaseDeleter
@@ -71,6 +83,7 @@ type Batch interface {
 }
 
 // interface for full functional database
+// methods must be thread safe
 type Database interface {
 	DatabaseGetter
 	DatabasePutter
@@ -81,6 +94,8 @@ type Database interface {
 }
 
 // interface for transaction feature
+// methods must be thread safe
+// transaction sessions can be nested. BeginTransaction()/EndTransaction() must be paired.
 type Transactional interface {
 	// start a new transaction session
 	BeginTransaction()
@@ -96,6 +111,7 @@ type TrxDatabase interface {
 }
 
 // interface for revertible feature
+// methods must be thread safe
 type Revertible interface {
 	// get current revision
 	GetRevision() uint64
@@ -139,5 +155,25 @@ type TagRevertible interface {
 // interface for databases that support reversion and revision tagging
 type TagRevDatabase interface {
 	TagRevertible
+	Database
+}
+
+
+// interface for key->database mapping policy for a group of databases
+type DatabaseDispatcher interface {
+	// return members of database group.
+	// members must be fixed once the DatabaseDispatcher object is created
+	MemberDatabases() []Database
+
+	// return the index number of the mapped member database
+	DatabaseForKey(key []byte) int
+
+	// return databases who possibly contains keys from given range
+	DatabasesForKeyRange(start []byte, limit []byte) []int
+}
+
+// interface for a logical database consisting of a group of databases
+type DatabaseGroup interface {
+	DatabaseDispatcher
 	Database
 }

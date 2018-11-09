@@ -9,7 +9,7 @@ import (
 	"github.com/coschain/contentos-go/p2p/depend/common/hexutil"
 	//"github.com/ethereum/go-ethereum/consensus/ethash"
 	//"github.com/ethereum/go-ethereum/core"
-	"github.com/coschain/contentos-go/cos/downloader"
+	"github.com/coschain/contentos-go/p2p/cos/downloader"
 )
 
 var _ = (*configMarshaling)(nil)

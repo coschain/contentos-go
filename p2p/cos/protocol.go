@@ -2,6 +2,7 @@ package cos
 
 import (
 	"fmt"
+	"github.com/coschain/contentos-go/p2p/depend/event"
 	"io"
 	"math/big"
 
@@ -14,18 +15,17 @@ import (
 
 // Constants to match up protocol versions and messages
 const (
-	eth62 = 62
-	eth63 = 63
+	cos = 88
 )
 
 // ProtocolName is the official short name of the protocol used during capability negotiation.
-var ProtocolName = "eth"
+var ProtocolName = "cos"
 
 // ProtocolVersions are the upported versions of the eth protocol (first is primary).
-var ProtocolVersions = []uint{eth63, eth62}
+var ProtocolVersions = []uint{cos}
 
 // ProtocolLengths are the number of implemented message corresponding to different protocol versions.
-var ProtocolLengths = []uint64{17, 8}
+var ProtocolLengths = []uint64{17}
 
 const ProtocolMaxMsgSize = 10 * 1024 * 1024 // Maximum cap on the size of a protocol message
 
@@ -89,7 +89,7 @@ type txPool interface {
 
 	// SubscribeNewTxsEvent should return an event subscription of
 	// NewTxsEvent and send events to the given channel.
-	//SubscribeNewTxsEvent(chan<- core.NewTxsEvent) event.Subscription
+	SubscribeNewTxsEvent(chan<- NewTxsEvent) event.Subscription
 }
 
 // statusData is the network packet for the status message.
