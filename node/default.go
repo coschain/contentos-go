@@ -1,8 +1,7 @@
 package node
 
 import (
-	"github.com/coschain/contentos-go/p2p"
-	"github.com/coschain/contentos-go/p2p/nat"
+	"github.com/coschain/contentos-go/iservices/service-configs"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -18,10 +17,8 @@ var DefaultNodeConfig = Config{
 	DataDir:  DefaultDataDir(),
 	HTTPHost: DefaultHTTPHost,
 	HTTPPort: DefaultHTTPPort,
-	P2P: p2p.Config{
-		ListenAddr: ":30303",
-		MaxPeers:   25,
-		NAT:        nat.Any(),
+	Timer: service_configs.TimerConfig{
+		Interval: 500,
 	},
 }
 
