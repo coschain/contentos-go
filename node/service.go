@@ -1,9 +1,5 @@
 package node
 
-import (
-	"github.com/coschain/contentos-go/p2p"
-)
-
 type ServiceContext struct {
 	config   *Config
 	services map[string]Service
@@ -20,10 +16,15 @@ func (ctx *ServiceContext) Service(name string) (interface{}, error) {
 	return nil, ErrServiceUnknown
 }
 
+func (ctx *ServiceContext) Config() Config {
+	return *ctx.config
+}
+
 type ServiceConstructor func(ctx *ServiceContext) (Service, error)
 
 type Service interface {
-	Start(server *p2p.Server) error
+	//Start(server *p2p.Server) error
+	Start() error
 
 	// stop all goroutines belonging to the service,
 	// blocking until all of them are terminated.

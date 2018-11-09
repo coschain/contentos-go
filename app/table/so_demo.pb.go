@@ -4,7 +4,7 @@
 package table
 
 import (
-	_ "common/prototype"
+	prototype "common/prototype"
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
 	math "math"
@@ -22,17 +22,17 @@ var _ = math.Inf
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
 type SoDemo struct {
-	Owner                string   `protobuf:"bytes,1,opt,name=owner,proto3" json:"owner,omitempty"`
-	PostTime             uint32   `protobuf:"varint,2,opt,name=post_time,json=postTime,proto3" json:"post_time,omitempty"`
-	Title                string   `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
-	LikeCount            int64    `protobuf:"varint,4,opt,name=like_count,json=likeCount,proto3" json:"like_count,omitempty"`
-	Idx                  int64    `protobuf:"varint,5,opt,name=idx,proto3" json:"idx,omitempty"`
-	ReplayCount          int64    `protobuf:"varint,6,opt,name=replay_count,json=replayCount,proto3" json:"replay_count,omitempty"`
-	Content              string   `protobuf:"bytes,7,opt,name=content,proto3" json:"content,omitempty"`
-	Taglist              string   `protobuf:"bytes,8,opt,name=taglist,proto3" json:"taglist,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Owner                *prototype.AccountName  `protobuf:"bytes,1,opt,name=owner,proto3" json:"owner,omitempty"`
+	PostTime             *prototype.TimePointSec `protobuf:"bytes,2,opt,name=post_time,json=postTime,proto3" json:"post_time,omitempty"`
+	Title                string                  `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
+	LikeCount            int64                   `protobuf:"varint,4,opt,name=like_count,json=likeCount,proto3" json:"like_count,omitempty"`
+	Idx                  int64                   `protobuf:"varint,5,opt,name=idx,proto3" json:"idx,omitempty"`
+	ReplayCount          int64                   `protobuf:"varint,6,opt,name=replay_count,json=replayCount,proto3" json:"replay_count,omitempty"`
+	Content              string                  `protobuf:"bytes,7,opt,name=content,proto3" json:"content,omitempty"`
+	Taglist              string                  `protobuf:"bytes,8,opt,name=taglist,proto3" json:"taglist,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}                `json:"-"`
+	XXX_unrecognized     []byte                  `json:"-"`
+	XXX_sizecache        int32                   `json:"-"`
 }
 
 func (m *SoDemo) Reset()         { *m = SoDemo{} }
@@ -60,18 +60,18 @@ func (m *SoDemo) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_SoDemo proto.InternalMessageInfo
 
-func (m *SoDemo) GetOwner() string {
+func (m *SoDemo) GetOwner() *prototype.AccountName {
 	if m != nil {
 		return m.Owner
 	}
-	return ""
+	return nil
 }
 
-func (m *SoDemo) GetPostTime() uint32 {
+func (m *SoDemo) GetPostTime() *prototype.TimePointSec {
 	if m != nil {
 		return m.PostTime
 	}
-	return 0
+	return nil
 }
 
 func (m *SoDemo) GetTitle() string {
@@ -117,11 +117,11 @@ func (m *SoDemo) GetTaglist() string {
 }
 
 type SoListDemoByPostTime struct {
-	PostTime             uint32   `protobuf:"varint,1,opt,name=post_time,json=postTime,proto3" json:"post_time,omitempty"`
-	Owner                string   `protobuf:"bytes,2,opt,name=owner,proto3" json:"owner,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	PostTime             *prototype.TimePointSec `protobuf:"bytes,1,opt,name=post_time,json=postTime,proto3" json:"post_time,omitempty"`
+	Owner                *prototype.AccountName  `protobuf:"bytes,2,opt,name=owner,proto3" json:"owner,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}                `json:"-"`
+	XXX_unrecognized     []byte                  `json:"-"`
+	XXX_sizecache        int32                   `json:"-"`
 }
 
 func (m *SoListDemoByPostTime) Reset()         { *m = SoListDemoByPostTime{} }
@@ -149,26 +149,26 @@ func (m *SoListDemoByPostTime) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_SoListDemoByPostTime proto.InternalMessageInfo
 
-func (m *SoListDemoByPostTime) GetPostTime() uint32 {
+func (m *SoListDemoByPostTime) GetPostTime() *prototype.TimePointSec {
 	if m != nil {
 		return m.PostTime
 	}
-	return 0
+	return nil
 }
 
-func (m *SoListDemoByPostTime) GetOwner() string {
+func (m *SoListDemoByPostTime) GetOwner() *prototype.AccountName {
 	if m != nil {
 		return m.Owner
 	}
-	return ""
+	return nil
 }
 
 type SoListDemoByReplayCount struct {
-	ReplayCount          int64    `protobuf:"varint,1,opt,name=replay_count,json=replayCount,proto3" json:"replay_count,omitempty"`
-	Owner                string   `protobuf:"bytes,2,opt,name=owner,proto3" json:"owner,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	ReplayCount          int64                  `protobuf:"varint,1,opt,name=replay_count,json=replayCount,proto3" json:"replay_count,omitempty"`
+	Owner                *prototype.AccountName `protobuf:"bytes,2,opt,name=owner,proto3" json:"owner,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}               `json:"-"`
+	XXX_unrecognized     []byte                 `json:"-"`
+	XXX_sizecache        int32                  `json:"-"`
 }
 
 func (m *SoListDemoByReplayCount) Reset()         { *m = SoListDemoByReplayCount{} }
@@ -203,18 +203,18 @@ func (m *SoListDemoByReplayCount) GetReplayCount() int64 {
 	return 0
 }
 
-func (m *SoListDemoByReplayCount) GetOwner() string {
+func (m *SoListDemoByReplayCount) GetOwner() *prototype.AccountName {
 	if m != nil {
 		return m.Owner
 	}
-	return ""
+	return nil
 }
 
 type SoUniqueDemoByOwner struct {
-	Owner                string   `protobuf:"bytes,1,opt,name=owner,proto3" json:"owner,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Owner                *prototype.AccountName `protobuf:"bytes,1,opt,name=owner,proto3" json:"owner,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}               `json:"-"`
+	XXX_unrecognized     []byte                 `json:"-"`
+	XXX_sizecache        int32                  `json:"-"`
 }
 
 func (m *SoUniqueDemoByOwner) Reset()         { *m = SoUniqueDemoByOwner{} }
@@ -242,19 +242,19 @@ func (m *SoUniqueDemoByOwner) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_SoUniqueDemoByOwner proto.InternalMessageInfo
 
-func (m *SoUniqueDemoByOwner) GetOwner() string {
+func (m *SoUniqueDemoByOwner) GetOwner() *prototype.AccountName {
 	if m != nil {
 		return m.Owner
 	}
-	return ""
+	return nil
 }
 
 type SoUniqueDemoByLikeCount struct {
-	LikeCount            int64    `protobuf:"varint,1,opt,name=like_count,json=likeCount,proto3" json:"like_count,omitempty"`
-	Owner                string   `protobuf:"bytes,2,opt,name=owner,proto3" json:"owner,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	LikeCount            int64                  `protobuf:"varint,1,opt,name=like_count,json=likeCount,proto3" json:"like_count,omitempty"`
+	Owner                *prototype.AccountName `protobuf:"bytes,2,opt,name=owner,proto3" json:"owner,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}               `json:"-"`
+	XXX_unrecognized     []byte                 `json:"-"`
+	XXX_sizecache        int32                  `json:"-"`
 }
 
 func (m *SoUniqueDemoByLikeCount) Reset()         { *m = SoUniqueDemoByLikeCount{} }
@@ -289,19 +289,19 @@ func (m *SoUniqueDemoByLikeCount) GetLikeCount() int64 {
 	return 0
 }
 
-func (m *SoUniqueDemoByLikeCount) GetOwner() string {
+func (m *SoUniqueDemoByLikeCount) GetOwner() *prototype.AccountName {
 	if m != nil {
 		return m.Owner
 	}
-	return ""
+	return nil
 }
 
 type SoUniqueDemoByIdx struct {
-	Idx                  int64    `protobuf:"varint,1,opt,name=idx,proto3" json:"idx,omitempty"`
-	Owner                string   `protobuf:"bytes,2,opt,name=owner,proto3" json:"owner,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Idx                  int64                  `protobuf:"varint,1,opt,name=idx,proto3" json:"idx,omitempty"`
+	Owner                *prototype.AccountName `protobuf:"bytes,2,opt,name=owner,proto3" json:"owner,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}               `json:"-"`
+	XXX_unrecognized     []byte                 `json:"-"`
+	XXX_sizecache        int32                  `json:"-"`
 }
 
 func (m *SoUniqueDemoByIdx) Reset()         { *m = SoUniqueDemoByIdx{} }
@@ -336,11 +336,11 @@ func (m *SoUniqueDemoByIdx) GetIdx() int64 {
 	return 0
 }
 
-func (m *SoUniqueDemoByIdx) GetOwner() string {
+func (m *SoUniqueDemoByIdx) GetOwner() *prototype.AccountName {
 	if m != nil {
 		return m.Owner
 	}
-	return ""
+	return nil
 }
 
 func init() {
@@ -355,25 +355,27 @@ func init() {
 func init() { proto.RegisterFile("app/table/so_demo.proto", fileDescriptor_c9e5111d02436852) }
 
 var fileDescriptor_c9e5111d02436852 = []byte{
-	// 313 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x6c, 0x52, 0xcd, 0x4e, 0xf3, 0x30,
-	0x10, 0x94, 0xdb, 0xaf, 0x7f, 0xfb, 0x81, 0x84, 0x2c, 0x50, 0x0d, 0x05, 0xa9, 0xe4, 0xd4, 0x13,
-	0x39, 0xf0, 0x00, 0x1c, 0xb8, 0x73, 0x28, 0x48, 0x1c, 0xad, 0x24, 0xb5, 0x90, 0x45, 0xe2, 0x35,
-	0xc9, 0x46, 0x90, 0x57, 0xe5, 0x69, 0x90, 0xed, 0xd0, 0x96, 0x24, 0x97, 0x68, 0x77, 0x36, 0x33,
-	0xd9, 0xd9, 0x09, 0x2c, 0x13, 0x6b, 0x63, 0x4a, 0xd2, 0x5c, 0xc5, 0x15, 0xca, 0x9d, 0x2a, 0xf0,
-	0xce, 0x96, 0x48, 0xc8, 0x27, 0x1e, 0xbc, 0x5a, 0x65, 0x58, 0x14, 0x68, 0x62, 0x0f, 0x52, 0x63,
-	0x55, 0xec, 0x1e, 0xe1, 0x9d, 0xe8, 0x9b, 0xc1, 0xac, 0x65, 0xf1, 0x73, 0x98, 0xe0, 0xa7, 0x51,
-	0xa5, 0x60, 0x6b, 0xb6, 0x59, 0x6c, 0x43, 0xc3, 0x57, 0xb0, 0xb0, 0x58, 0x91, 0x24, 0x5d, 0x28,
-	0x31, 0x5a, 0xb3, 0xcd, 0xe9, 0x76, 0xee, 0x80, 0x17, 0x5d, 0x28, 0x47, 0x21, 0x4d, 0xb9, 0x12,
-	0xe3, 0x40, 0xf1, 0x0d, 0xbf, 0x01, 0xc8, 0xf5, 0xbb, 0x92, 0x19, 0xd6, 0x86, 0xc4, 0xbf, 0x35,
-	0xdb, 0x8c, 0xb7, 0x0b, 0x87, 0x3c, 0x3a, 0x80, 0x9f, 0xc1, 0x58, 0xef, 0xbe, 0xc4, 0xc4, 0xe3,
-	0xae, 0xe4, 0xb7, 0x70, 0x52, 0x2a, 0x9b, 0x27, 0x4d, 0x4b, 0x99, 0xfa, 0xd1, 0xff, 0x80, 0x05,
-	0x92, 0x80, 0x59, 0x86, 0x86, 0x94, 0x21, 0x31, 0xf3, 0xdf, 0xfa, 0x6d, 0xdd, 0x84, 0x92, 0xb7,
-	0x5c, 0x57, 0x24, 0xe6, 0x61, 0xd2, 0xb6, 0xd1, 0x13, 0x5c, 0x56, 0x28, 0x5d, 0xe9, 0x0d, 0xca,
-	0xb4, 0x91, 0x7b, 0x2b, 0x7f, 0x7d, 0xb1, 0xbe, 0xaf, 0x70, 0x8a, 0xd1, 0xd1, 0x29, 0xa2, 0x57,
-	0xb8, 0xee, 0xea, 0x1d, 0xaf, 0xdd, 0xb3, 0xc1, 0xfa, 0x36, 0x86, 0x85, 0x63, 0x58, 0x56, 0x28,
-	0x6b, 0xa3, 0x3f, 0x6a, 0xb5, 0x97, 0x0e, 0xe7, 0x1f, 0x0c, 0x25, 0x7a, 0xf6, 0x9b, 0x74, 0x08,
-	0x87, 0x9b, 0x77, 0x12, 0x60, 0xdd, 0x04, 0x86, 0xb7, 0x78, 0x80, 0x8b, 0xbe, 0xa8, 0x8b, 0xa7,
-	0x0d, 0x8c, 0x1d, 0x02, 0x1b, 0x14, 0x48, 0xa7, 0xfe, 0x9f, 0xba, 0xff, 0x09, 0x00, 0x00, 0xff,
-	0xff, 0xc2, 0xcb, 0x12, 0x4c, 0x92, 0x02, 0x00, 0x00,
+	// 346 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x52, 0xcb, 0x4e, 0xeb, 0x30,
+	0x10, 0x95, 0xdb, 0x9b, 0x3e, 0xa6, 0x77, 0x71, 0x65, 0x5d, 0x54, 0x97, 0x87, 0x54, 0xb2, 0xea,
+	0x86, 0x46, 0x02, 0x89, 0x1f, 0x60, 0xc3, 0x3a, 0x62, 0xc1, 0xce, 0x4a, 0x53, 0x0b, 0x59, 0x24,
+	0x1e, 0xd3, 0x4c, 0x05, 0xdd, 0xf2, 0x01, 0x7c, 0x33, 0xb2, 0x1d, 0xd2, 0x92, 0x6e, 0x9a, 0x4d,
+	0x94, 0x39, 0x33, 0xc7, 0x67, 0xce, 0xcc, 0xc0, 0x34, 0xb3, 0x36, 0xa1, 0x6c, 0x55, 0xa8, 0xa4,
+	0x42, 0xb9, 0x56, 0x25, 0x2e, 0xed, 0x06, 0x09, 0x79, 0xe4, 0xc1, 0xf3, 0x8b, 0x1c, 0xcb, 0x12,
+	0x4d, 0xe2, 0x41, 0xda, 0x59, 0x95, 0xb8, 0x4f, 0xa8, 0x89, 0xbf, 0x7a, 0x30, 0xac, 0x59, 0xfc,
+	0x06, 0x22, 0x7c, 0x37, 0x6a, 0x23, 0xd8, 0x9c, 0x2d, 0x26, 0xb7, 0xd3, 0x65, 0xc3, 0x58, 0x66,
+	0x79, 0x8e, 0x5b, 0x43, 0xd2, 0x64, 0xa5, 0x4a, 0x43, 0x15, 0xbf, 0x87, 0xb1, 0xc5, 0x8a, 0x24,
+	0xe9, 0x52, 0x89, 0x9e, 0xa7, 0xcc, 0x0e, 0x28, 0x0e, 0x96, 0x16, 0xb5, 0x21, 0x59, 0xa9, 0x3c,
+	0x1d, 0xb9, 0xda, 0x27, 0x5d, 0x2a, 0xfe, 0x1f, 0x22, 0xd2, 0x54, 0x28, 0xd1, 0x9f, 0xb3, 0xc5,
+	0x38, 0x0d, 0x01, 0xbf, 0x02, 0x28, 0xf4, 0xab, 0x92, 0x5e, 0x47, 0xfc, 0x99, 0xb3, 0x45, 0x3f,
+	0x1d, 0x3b, 0xe4, 0xc1, 0x01, 0xfc, 0x1f, 0xf4, 0xf5, 0xfa, 0x43, 0x44, 0x1e, 0x77, 0xbf, 0xfc,
+	0x1a, 0xfe, 0x6e, 0x94, 0x2d, 0xb2, 0x5d, 0x4d, 0x19, 0xf8, 0xd4, 0x24, 0x60, 0x81, 0x24, 0x60,
+	0x98, 0xa3, 0x21, 0x65, 0x48, 0x0c, 0xbd, 0xd6, 0x4f, 0xe8, 0x32, 0x94, 0xbd, 0x14, 0xba, 0x22,
+	0x31, 0x0a, 0x99, 0x3a, 0x8c, 0x3f, 0x19, 0xcc, 0x2a, 0x94, 0xee, 0xdf, 0x4f, 0x45, 0xae, 0x76,
+	0xb2, 0xb1, 0xf9, 0xdb, 0x33, 0x3b, 0xdd, 0x73, 0x33, 0xda, 0xde, 0x29, 0xa3, 0x8d, 0x2d, 0x5c,
+	0xb6, 0x7b, 0x38, 0xf4, 0x7a, 0xe4, 0x9d, 0x1d, 0x7b, 0xef, 0xa8, 0xf8, 0x08, 0xd3, 0x0a, 0xe5,
+	0xd6, 0xe8, 0xb7, 0xad, 0x6a, 0x34, 0xc3, 0x9e, 0xbb, 0x9d, 0x45, 0x5c, 0xf8, 0xde, 0x5b, 0x2f,
+	0xed, 0x57, 0xdb, 0x5a, 0x34, 0x6b, 0x2f, 0xba, 0x63, 0xdf, 0xcf, 0x70, 0x76, 0xac, 0xe6, 0xce,
+	0xa3, 0x3e, 0x18, 0xb6, 0x3f, 0x98, 0x6e, 0x2f, 0xaf, 0x06, 0x3e, 0x7d, 0xf7, 0x1d, 0x00, 0x00,
+	0xff, 0xff, 0xf8, 0x4c, 0xcf, 0xab, 0x5f, 0x03, 0x00, 0x00,
 }

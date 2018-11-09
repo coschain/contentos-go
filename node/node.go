@@ -2,7 +2,6 @@ package node
 
 import (
 	"errors"
-	"github.com/coschain/contentos-go/p2p"
 	log "github.com/inconshreveable/log15"
 	"os"
 	"path/filepath"
@@ -15,9 +14,6 @@ import (
 // Node is a container and manager of services
 type Node struct {
 	config *Config
-
-	serverConfig p2p.Config
-	server       *p2p.Server // running p2p network
 
 	services     map[string]Service
 	serviceFuncs []NamedServiceConstructor // registered services store into this slice
@@ -66,9 +62,6 @@ func (n *Node) Register(name string, constructor ServiceConstructor) error {
 	n.lock.Lock()
 	defer n.lock.Unlock()
 
-	if n.server != nil {
-		return ErrNodeRunning
-	}
 	n.serviceFuncs = append(n.serviceFuncs, NamedServiceConstructor{name: name, constructor: constructor})
 	return nil
 }
@@ -77,18 +70,9 @@ func (n *Node) Start() error {
 	n.lock.Lock()
 	defer n.lock.Unlock()
 
-	if n.server != nil {
-		return ErrNodeRunning
-	}
-
 	if err := n.openDataDir(); err != nil {
 		return err
 	}
-
-	// which confs should be assigned to p2p configuration
-	n.serverConfig = n.config.P2P
-
-	running := &p2p.Server{Config: n.serverConfig}
 
 	services := make(map[string]Service)
 
@@ -112,18 +96,12 @@ func (n *Node) Start() error {
 		services[name] = service
 	}
 
-	if err := running.Start(); err != nil {
-		fmt.Println("start p2p error: ", err)
-		return ErrNodeRunning
-	}
-
 	var started []string
 	for kind, service := range services {
-		if err := service.Start(running); err != nil {
+		if err := service.Start(); err != nil {
 			for _, kind := range started {
 				services[kind].Stop()
 			}
-			running.Stop()
 
 			return err
 		}
@@ -135,12 +113,10 @@ func (n *Node) Start() error {
 		for _, kind := range started {
 			services[kind].Stop()
 		}
-		running.Stop()
 		return err
 	}
 
 	n.services = services
-	n.server = running
 	n.stop = make(chan struct{})
 
 	return nil
@@ -173,10 +149,6 @@ func (n *Node) Stop() error {
 	n.lock.Lock()
 	defer n.lock.Unlock()
 
-	if n.server == nil {
-		return ErrNodeStopped
-	}
-
 	n.stopHTTP()
 
 	failure := &StopError{
@@ -188,9 +160,7 @@ func (n *Node) Stop() error {
 			failure.Services[kind] = err
 		}
 	}
-	n.server.Stop()
 	n.services = nil
-	n.server = nil
 
 	close(n.stop)
 
@@ -203,10 +173,6 @@ func (n *Node) Stop() error {
 
 func (n *Node) Wait() {
 	n.lock.RLock()
-	if n.server == nil {
-		n.lock.RUnlock()
-		return
-	}
 
 	stop := n.stop
 	n.lock.RUnlock()
@@ -228,10 +194,6 @@ func (n *Node) Restart() error {
 func (n *Node) Service(serviceName string) (interface{}, error) {
 	n.lock.RLock()
 	defer n.lock.RUnlock()
-
-	if n.server == nil {
-		return nil, ErrNodeStopped
-	}
 
 	if running, ok := n.services[serviceName]; ok {
 		return running, nil

@@ -2,7 +2,7 @@ package node
 
 import (
 	"fmt"
-	"github.com/coschain/contentos-go/p2p"
+	"github.com/coschain/contentos-go/iservices/service-configs"
 	log "github.com/inconshreveable/log15"
 	"path/filepath"
 	"runtime"
@@ -19,7 +19,7 @@ type Config struct {
 	// Version should be set to the version number of the program.
 	Version string `toml:"-"`
 
-	// DataDir is the root folder that store data and configs
+	// DataDir is the root folder that store data and service-configs
 	DataDir string
 
 	// HTTPHost is the host interface on which to start the HTTP RPC server.
@@ -31,8 +31,9 @@ type Config struct {
 	// Logger is a custom logger
 	Logger log.Logger `toml:",omitempty"`
 
-	// Configuration of peer-to-peer networking.
-	P2P p2p.Config
+	// Timer configuration
+
+	Timer service_configs.TimerConfig
 }
 
 // DB returns the path to the discovery database.

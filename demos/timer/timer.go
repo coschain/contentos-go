@@ -3,8 +3,8 @@ package timer
 import (
 	"fmt"
 	"github.com/coschain/contentos-go/iservices"
+	"github.com/coschain/contentos-go/iservices/service-configs"
 	"github.com/coschain/contentos-go/node"
-	"github.com/coschain/contentos-go/p2p"
 	log "github.com/inconshreveable/log15"
 	"time"
 )
@@ -13,10 +13,12 @@ type Timer struct {
 	currentTime time.Time
 	ticker      *time.Ticker
 	ctx         *node.ServiceContext
+	interval    int
 }
 
-func New(ctx *node.ServiceContext) (*Timer, error) {
-	return &Timer{ctx: ctx}, nil
+func New(ctx *node.ServiceContext, config service_configs.TimerConfig) (*Timer, error) {
+	interval := config.Interval
+	return &Timer{ctx: ctx, interval: interval}, nil
 }
 
 func (t *Timer) getPrinter() (iservices.IPrinter, error) {
@@ -29,12 +31,12 @@ func (t *Timer) getPrinter() (iservices.IPrinter, error) {
 	return printer, nil
 }
 
-func (t *Timer) Start(server *p2p.Server) error {
+func (t *Timer) Start() error {
 	printer, err := t.getPrinter()
 	if err != nil {
 		return err
 	}
-	t.ticker = time.NewTicker(500 * time.Millisecond)
+	t.ticker = time.NewTicker(time.Duration(t.interval) * time.Millisecond)
 	go func() {
 		for range t.ticker.C {
 			log.Info(printer.GetCurrent())

@@ -20,12 +20,9 @@ DataDir = ""
 HTTPHost = "{{ .HTTPHost }}"
 HTTPPort = {{ .HTTPPort }}
 
-[p2p]
+[timer]
 
-MaxPeers = {{ .P2P.MaxPeers }}
-StaticNodes = []
-TrustedNodes = []
-ListenAddr = "{{ .P2P.ListenAddr }}"
+Interval = {{ .Timer.Interval }}
 `
 
 func WriteNodeConfigFile(configDirPath string, configName string, config node.Config, mode os.FileMode) error {

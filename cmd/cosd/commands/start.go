@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"github.com/coschain/cobra"
 	"github.com/coschain/contentos-go/common"
+	"github.com/coschain/contentos-go/demos/printer"
+	"github.com/coschain/contentos-go/demos/timer"
 	"github.com/coschain/contentos-go/node"
-	"github.com/coschain/contentos-go/p2p/cos"
 	log "github.com/inconshreveable/log15"
 	"github.com/spf13/viper"
 	"os"
@@ -63,14 +64,11 @@ func startNode(cmd *cobra.Command, args []string) {
 	// _ is cfg as below process has't used
 	_, _ = cmd, args
 	app, _ := makeNode()
-	//app.Register("timer", func(ctx *node.ServiceContext) (node.Service, error) {
-	//	return timer.New(ctx)
-	//})
-	//app.Register("printer", func(ctx *node.ServiceContext) (node.Service, error) {
-	//	return printer.New(ctx)
-	//})
-	app.Register("cos", func(ctx *node.ServiceContext) (node.Service, error) {
-		return cos.New(ctx)
+	app.Register("timer", func(ctx *node.ServiceContext) (node.Service, error) {
+		return timer.New(ctx, ctx.Config().Timer)
+	})
+	app.Register("printer", func(ctx *node.ServiceContext) (node.Service, error) {
+		return printer.New(ctx)
 	})
 	if err := app.Start(); err != nil {
 		common.Fatalf("start node failed, err: %v\n", err)

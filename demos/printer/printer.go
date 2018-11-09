@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
-	"github.com/coschain/contentos-go/p2p"
 	log "github.com/inconshreveable/log15"
 	"time"
 )
@@ -28,7 +27,7 @@ func (t *Printer) getTimer() (iservices.ITimer, error) {
 	return timer, nil
 }
 
-func (t *Printer) Start(server *p2p.Server) error {
+func (t *Printer) Start() error {
 	timer, err := t.getTimer()
 	if err != nil {
 		return err
