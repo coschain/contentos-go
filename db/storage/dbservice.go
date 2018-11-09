@@ -7,7 +7,7 @@ package storage
 // nested transactions and data reversion.
 //
 // New() creates a service instance of type DatabaseService.
-// DatabaseService implements both node.Service and commoninterface.IDatabaseService interfaces.
+// DatabaseService implements both node.Service and iservices.IDatabaseService interfaces.
 // the former is for service management, and the latter is for real function uses.
 //
 
@@ -16,6 +16,7 @@ import (
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/p2p"
 	"fmt"
+	"github.com/coschain/contentos-go/iservices"
 )
 
 // the service type
@@ -138,19 +139,19 @@ func (s *DatabaseService) Delete(key []byte) error {
 	return s.tdb.Delete(key)
 }
 
-func (s *DatabaseService) NewIterator(start []byte, limit []byte) Iterator {
+func (s *DatabaseService) NewIterator(start []byte, limit []byte) iservices.IDatabaseIterator {
 	return s.tdb.NewIterator(start, limit)
 }
 
-func (s *DatabaseService) DeleteIterator(it Iterator) {
+func (s *DatabaseService) DeleteIterator(it iservices.IDatabaseIterator) {
 	s.tdb.DeleteIterator(it)
 }
 
-func (s *DatabaseService) NewBatch() Batch {
+func (s *DatabaseService) NewBatch() iservices.IDatabaseBatch {
 	return s.tdb.NewBatch()
 }
 
-func (s *DatabaseService) DeleteBatch(b Batch) {
+func (s *DatabaseService) DeleteBatch(b iservices.IDatabaseBatch) {
 	s.tdb.DeleteBatch(b)
 }
 
