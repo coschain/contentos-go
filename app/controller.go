@@ -49,15 +49,10 @@ func NewController(ctx *node.ServiceContext) (*Controller, error) {
 func (c *Controller) Start(node *node.Node) error {
 	c.evLoop 	= node.MainLoop
 	c.noticer 	= node.EvBus
-
-	go func() {
-		c.evLoop.Run()
-	}()
 	return nil
 }
 
 func (c *Controller) Stop() error {
-	c.evLoop.Stop()
 	return nil
 }
 

@@ -23,9 +23,7 @@ type Node struct {
 	services     map[string]Service
 	serviceFuncs []NamedServiceConstructor // registered services store into this slice
 
-	httpEndpoint string // HTTP endpoint(host + port) to listen at
-
-	stop chan struct{}
+	//stop chan struct{}
 	lock sync.RWMutex
 
 	log log.Logger
@@ -58,7 +56,6 @@ func New(conf *Config) (*Node, error) {
 	return &Node{
 		config:       conf,
 		serviceFuncs: []NamedServiceConstructor{},
-		httpEndpoint: conf.HTTPEndpoint(),
 		log:          conf.Logger,
 	}, nil
 }
@@ -118,16 +115,7 @@ func (n *Node) Start() error {
 		started = append(started, kind)
 	}
 
-	// start http server
-	if err := n.startHTTP(n.config.HTTPEndpoint()); err != nil {
-		for _, kind := range started {
-			services[kind].Stop()
-		}
-		return err
-	}
-
 	n.services = services
-	n.stop = make(chan struct{})
 
 	return nil
 
@@ -147,19 +135,12 @@ func (n *Node) openDataDir() error {
 	return nil
 }
 
-// should keep pace with eth even the way of router?
-func (n *Node) startHTTP(endpoint string) error {
-	return nil
-}
-
-func (n *Node) stopHTTP() {
-}
 
 func (n *Node) Stop() error {
 	n.lock.Lock()
 	defer n.lock.Unlock()
 
-	n.stopHTTP()
+	n.MainLoop.Stop()
 
 	failure := &StopError{
 		Services: make(map[string]error),
@@ -172,8 +153,6 @@ func (n *Node) Stop() error {
 	}
 	n.services = nil
 
-	close(n.stop)
-
 	if len(failure.Services) > 0 {
 		return failure
 	}
@@ -182,11 +161,7 @@ func (n *Node) Stop() error {
 }
 
 func (n *Node) Wait() {
-	n.lock.RLock()
-
-	stop := n.stop
-	n.lock.RUnlock()
-	<-stop
+	n.MainLoop.Run()
 }
 
 func (n *Node) Restart() error {
