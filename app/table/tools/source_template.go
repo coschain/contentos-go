@@ -557,7 +557,7 @@ func (s *Uni{{$.ClsName}}{{$k}}Wrap) UniQuery{{$k}}(start *{{formatStr $v}}) *So
 		t  = t.Funcs(funcMapUper)
 		t.Parse(tmpl)
 		t.Execute(fPtr,createParamsFromTableInfo(tIfno))
-		cmd := exec.Command("goimports", "-w", fName)
+		cmd := exec.Command("goimports", "-I./","-I./../../../","-w=./", fName)
 		cmd.Start()
 		defer fPtr.Close()
 		return true,nil

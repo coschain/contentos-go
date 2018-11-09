@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/db/storage"
+	"github.com/coschain/contentos-go/common/prototype"
 	"log"
 )
 
@@ -99,7 +100,7 @@ func main() {
 				fmt.Println("get main key fail")
 			}
 			//get subKey value (the postTime value)
-			mSubPtr := tSortWrap.GetMainVal(iter)
+			mSubPtr := tSortWrap.GetSubVal(iter)
 			if mSubPtr == nil {
 				fmt.Println("get postTime fail")
 			}

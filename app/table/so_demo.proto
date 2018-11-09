@@ -3,7 +3,7 @@ syntax = "proto3";
 
 package table;
 
-import "common/prototype/type.proto";
+import "github.com/coschain/contentos-go/common/prototype/type.proto";
 
 message so_demo {
 	

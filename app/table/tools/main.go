@@ -202,7 +202,7 @@ func WritePbTplToFile(tInfo TableInfo) (bool, error) {
 			t := template.New("layout.html")
 			t.Parse(tpl)
 			t.Execute(fPtr,tInfo)
-			cmd := exec.Command("goimports", "-w", fName)
+			cmd := exec.Command("goimports", "-I./","-I./../../../","-w=./", fName)
 			cmd.Start()
 			defer fPtr.Close()
 			return true,nil
