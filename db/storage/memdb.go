@@ -83,6 +83,8 @@ func (db *MemoryDatabase) NewIterator(start []byte, limit []byte) Iterator {
 	defer db.lock.RUnlock()
 
 	keys := []string{}
+	data := make(map[string][]byte)
+
 	var startStr, limitStr string
 	if start != nil {
 		startStr = string(start)
@@ -102,11 +104,12 @@ func (db *MemoryDatabase) NewIterator(start []byte, limit []byte) Iterator {
 				continue
 			}
 		}
-		keys = append(keys, k[:])
+		keys = append(keys, k)
+		data[k] = common.CopyBytes(db.db[k])
 	}
 	sort.Strings(keys)
 
-	return &MemoryDatabaseIterator{ db:db, keys:keys, index:-1 }
+	return &memoryDatabaseIterator{ db: db, keys:keys, data:data, index:-1 }
 }
 
 func (db *MemoryDatabase) DeleteIterator(it Iterator) {
@@ -117,19 +120,20 @@ func (db *MemoryDatabase) DeleteIterator(it Iterator) {
 // Iterator implementation
 //
 
-type MemoryDatabaseIterator struct {
+type memoryDatabaseIterator struct {
 	db *MemoryDatabase
 	keys []string
+	data map[string][]byte
 	index int
 }
 
 // check if the iterator is a valid position, i.e. safe to call other methods
-func (it *MemoryDatabaseIterator) Valid() bool {
+func (it *memoryDatabaseIterator) Valid() bool {
 	return it.index >= 0 && it.index < len(it.keys)
 }
 
 // query the key of current position
-func (it *MemoryDatabaseIterator) Key() ([]byte, error) {
+func (it *memoryDatabaseIterator) Key() ([]byte, error) {
 	if !it.Valid() {
 		return nil, errors.New("invalid iterator")
 	}
@@ -137,21 +141,21 @@ func (it *MemoryDatabaseIterator) Key() ([]byte, error) {
 }
 
 // query the value of current position
-func (it *MemoryDatabaseIterator) Value() ([]byte, error) {
+func (it *memoryDatabaseIterator) Value() ([]byte, error) {
 	if !it.Valid() {
 		return nil, errors.New("invalid iterator")
 	}
 	it.db.lock.RLock()
 	defer it.db.lock.RUnlock()
 
-	if v, ok := it.db.db[it.keys[it.index]]; ok {
+	if v, ok := it.data[it.keys[it.index]]; ok {
 		return common.CopyBytes(v), nil
 	}
 	return nil, errors.New("not found")
 }
 
 // move to the next position
-func (it *MemoryDatabaseIterator) Next() bool {
+func (it *memoryDatabaseIterator) Next() bool {
 	nextIdx := it.index + 1
 	if nextIdx >= 0 && nextIdx < len(it.keys) {
 		it.index = nextIdx
@@ -167,7 +171,7 @@ func (it *MemoryDatabaseIterator) Next() bool {
 
 // create a batch which can pack DatabasePutter & DatabaseDeleter operations and execute them atomically
 func (db *MemoryDatabase) NewBatch() Batch {
-	return &MemoryDatabaseBatch { db:db }
+	return &memoryDatabaseBatch{ db: db }
 }
 
 // release a Batch
@@ -179,13 +183,13 @@ func (db *MemoryDatabase) DeleteBatch(b Batch) {
 // Batch implementation
 //
 
-type MemoryDatabaseBatch struct {
+type memoryDatabaseBatch struct {
 	db *MemoryDatabase
 	op []writeOp
 }
 
 // execute all batched operations
-func (b *MemoryDatabaseBatch) Write() error {
+func (b *memoryDatabaseBatch) Write() error {
 	b.db.lock.Lock()
 	defer b.db.lock.Unlock()
 
@@ -200,16 +204,16 @@ func (b *MemoryDatabaseBatch) Write() error {
 }
 
 // reset the batch to empty
-func (b *MemoryDatabaseBatch) Reset() {
+func (b *memoryDatabaseBatch) Reset() {
 	b.op = b.op[:0]
 }
 
-func (b *MemoryDatabaseBatch) Put(key []byte, value []byte) error {
+func (b *memoryDatabaseBatch) Put(key []byte, value []byte) error {
 	b.op = append(b.op, writeOp{ common.CopyBytes(key), common.CopyBytes(value), false })
 	return nil
 }
 
-func (b *MemoryDatabaseBatch) Delete(key []byte) error {
+func (b *memoryDatabaseBatch) Delete(key []byte) error {
 	b.op = append(b.op, writeOp{ common.CopyBytes(key), nil, true })
 	return nil
 }
