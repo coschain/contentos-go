@@ -13,9 +13,9 @@ import (
 	"os"
 
 	"github.com/coschain/contentos-go/p2p/depend/common"
-	"github.com/coschain/contentos-go/p2p/depend/common/math"
+	"github.com/coschain/contentos-go/p2p/depend/tmp/common/math"
 	"github.com/coschain/contentos-go/p2p/depend/crypto/sha3"
-	"github.com/coschain/contentos-go/p2p/depend/rlp"
+	"github.com/coschain/contentos-go/p2p/depend/tmp/rlp"
 )
 
 var (
