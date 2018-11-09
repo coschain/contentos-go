@@ -20,7 +20,7 @@ func TestMain(m *testing.M) {
 	//logging.Init("logs	", "debug", 0)
 
 	gs, _ := NewGRPCServer(&node.ServiceContext{})
-	err := gs.Start()
+	err := gs.Start(&node.Node{})
 	if err != nil {
 		fmt.Print(err)
 	}
