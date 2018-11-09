@@ -14,8 +14,11 @@ func main() {
 	defer db.Close()
 
 	//1.create the table wrap
-	mKey := "pbTool"
-	wrap := table.NewSoDemoWrap(db, &mKey)
+	//we can use the type  which is contained in another created pb struct,
+	// such as "prototype.account_name" in AccountName 、prototype.time_point_sec
+	//MakeXXX func can create a pb struct
+	mKey := prototype.MakeAccountName("pbTool")
+	wrap := table.NewSoDemoWrap(db, mKey)
 	if wrap == nil {
 		//crreate fail , the db already contain table with current mainKey
 		log.Println("crreate fail , the db already contain table with current mainKey")
@@ -24,7 +27,7 @@ func main() {
 
 	//2.create the pb struct
 	data := table.SoDemo{
-	 	Owner:"pbTool",
+	 	Owner:mKey,
 	 	Title:"hello",
 	 	Content:"test the pb tool",
 	 	Idx: 1000,
@@ -69,24 +72,24 @@ func main() {
 
 	/*
 	  --------------------------
-	   Modify property value
+	   Modify property value (******can't modify the mainkey)
 	  --------------------------*/
-
 	//modify content
 	cMdRes := wrap.MdContent("test md the content")
 	if !cMdRes {
 		log.Printf("modify content fail")
 	}
 
-	/*
-	  --------------------------
+
+	/*--------------------------
 	   Sort Query List
 	  --------------------------*/
      //1.create the sort wrap for property which is surpport sort (E.g postTime)
 	 tSortWrap := table.SDemoPostTimeWrap{}
 	tSortWrap.Dba = db
 	 //2.start query data of range(if start graeater than sort by reverse order，otherwise sort by order)
-	 iter := tSortWrap.QueryList(20120820, 2013999)
+	 iter := tSortWrap.QueryList(*prototype.MakeTimeSecondPoint(20136666),
+	 	*prototype.MakeTimeSecondPoint(2013999))
 	 //we can get the main key and sub key by the returned iterator
 	 if iter != nil {
 	 	for iter.Next() {
@@ -106,7 +109,15 @@ func main() {
 	 	log.Println("there is no data exist in range")
 	 }
 
-
+     //query single value but not a range,start and end set the same value
+	iter1 := tSortWrap.QueryList(*prototype.MakeTimeSecondPoint(20136666),
+		*prototype.MakeTimeSecondPoint(20136666))
+	if iter1 != nil {
+		mKeyPtr := tSortWrap.GetMainVal(iter1)
+		if mKeyPtr == nil {
+			fmt.Println("get main key fail")
+		}
+	}
 
 	/*
 	 --------------------------
@@ -120,10 +131,18 @@ func main() {
 	  t := dWrap.GetTitle()
 	  fmt.Printf("the title of index is %s",*t)
 
+	  //unique query mainkey(E.g query owner)
+	   mUniWrap := table.UniDemoOwnerWrap{}
+	   //
+	   wrap1 := mUniWrap.UniQueryOwner(prototype.MakeAccountName("test"))
+	   if wrap1 != nil {
+	   	  fmt.Printf("owner is test,the idx is %s",*wrap1.GetIdx())
+	   }
 
 	  /*
 	    remove tabale data from db
 	  */
+	  //judge the table of current mainKey if is exist
 	  isExsit := wrap.CheckExist()
 	  if isExsit {
 	  	 res := wrap.RemoveDemo()

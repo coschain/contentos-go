@@ -4,6 +4,7 @@ import (
 	"bytes"
 
 	"github.com/coschain/contentos-go/common/encoding"
+	"github.com/coschain/contentos-go/common/prototype"
 	"github.com/coschain/contentos-go/db/storage"
 	"github.com/gogo/protobuf/proto"
 )
@@ -28,10 +29,10 @@ var (
 ////////////// SECTION Wrap Define ///////////////
 type SoDemoWrap struct {
 	dba     storage.Database
-	mainKey *string
+	mainKey *prototype.AccountName
 }
 
-func NewSoDemoWrap(dba storage.Database, key *string) *SoDemoWrap {
+func NewSoDemoWrap(dba storage.Database, key *prototype.AccountName) *SoDemoWrap {
 	result := &SoDemoWrap{dba, key}
 	return result
 }
@@ -351,23 +352,25 @@ func (s *SoDemoWrap) MdLikeCount(p int64) bool {
 	return true
 }
 
-func (s *SoDemoWrap) GetOwner() *string {
+func (s *SoDemoWrap) GetOwner() *prototype.AccountName {
 	res := s.getDemo()
 	if res == nil {
 		return nil
 	}
-	return &res.Owner
+
+	return res.Owner
 }
 
-func (s *SoDemoWrap) GetPostTime() *uint32 {
+func (s *SoDemoWrap) GetPostTime() *prototype.TimePointSec {
 	res := s.getDemo()
 	if res == nil {
 		return nil
 	}
-	return &res.PostTime
+
+	return res.PostTime
 }
 
-func (s *SoDemoWrap) MdPostTime(p uint32) bool {
+func (s *SoDemoWrap) MdPostTime(p prototype.TimePointSec) bool {
 
 	sa := s.getDemo()
 
@@ -379,8 +382,7 @@ func (s *SoDemoWrap) MdPostTime(p uint32) bool {
 		return false
 	}
 
-	sa.PostTime = p
-
+	sa.PostTime = &p
 	if !s.update(sa) {
 		return false
 	}
@@ -500,7 +502,7 @@ type SDemoPostTimeWrap struct {
 	Dba storage.Database
 }
 
-func (s *SDemoPostTimeWrap) GetMainVal(iterator storage.Iterator) *string {
+func (s *SDemoPostTimeWrap) GetMainVal(iterator storage.Iterator) *prototype.AccountName {
 	if iterator == nil || !iterator.Valid() {
 		return nil
 	}
@@ -518,11 +520,11 @@ func (s *SDemoPostTimeWrap) GetMainVal(iterator storage.Iterator) *string {
 		return nil
 	}
 
-	return &res.Owner
+	return res.Owner
 
 }
 
-func (s *SDemoPostTimeWrap) GetSubVal(iterator storage.Iterator) *uint32 {
+func (s *SDemoPostTimeWrap) GetSubVal(iterator storage.Iterator) *prototype.TimePointSec {
 	if iterator == nil || !iterator.Valid() {
 		return nil
 	}
@@ -540,14 +542,14 @@ func (s *SDemoPostTimeWrap) GetSubVal(iterator storage.Iterator) *uint32 {
 		return nil
 	}
 
-	return &res.PostTime
+	return res.PostTime
 
 }
 
 //Query by sort
 //sort by reverse order: the encoded value of start greater than end
 //sort by order: the encoded value of start less or equal  end
-func (s *SDemoPostTimeWrap) QueryList(start uint32, end uint32) storage.Iterator {
+func (s *SDemoPostTimeWrap) QueryList(start prototype.TimePointSec, end prototype.TimePointSec) storage.Iterator {
 
 	startBuf, err := encoding.Encode(&start)
 	if err != nil {
@@ -602,7 +604,7 @@ type SDemoReplayCountWrap struct {
 	Dba storage.Database
 }
 
-func (s *SDemoReplayCountWrap) GetMainVal(iterator storage.Iterator) *string {
+func (s *SDemoReplayCountWrap) GetMainVal(iterator storage.Iterator) *prototype.AccountName {
 	if iterator == nil || !iterator.Valid() {
 		return nil
 	}
@@ -620,7 +622,7 @@ func (s *SDemoReplayCountWrap) GetMainVal(iterator storage.Iterator) *string {
 		return nil
 	}
 
-	return &res.Owner
+	return res.Owner
 
 }
 
@@ -794,7 +796,7 @@ func (s *UniDemoIdxWrap) UniQueryIdx(start *int64) *SoDemoWrap {
 	if err != nil {
 		return nil
 	}
-	wrap := NewSoDemoWrap(s.Dba, &res.Owner)
+	wrap := NewSoDemoWrap(s.Dba, res.Owner)
 
 	return wrap
 }
@@ -866,7 +868,7 @@ func (s *UniDemoLikeCountWrap) UniQueryLikeCount(start *int64) *SoDemoWrap {
 	if err != nil {
 		return nil
 	}
-	wrap := NewSoDemoWrap(s.Dba, &res.Owner)
+	wrap := NewSoDemoWrap(s.Dba, res.Owner)
 
 	return wrap
 }
@@ -889,7 +891,7 @@ func (s *SoDemoWrap) delUniKeyOwner(sa *SoDemo) bool {
 func (s *SoDemoWrap) insertUniKeyOwner(sa *SoDemo) bool {
 	uniWrap := UniDemoOwnerWrap{}
 
-	res := uniWrap.UniQueryOwner(&sa.Owner)
+	res := uniWrap.UniQueryOwner(sa.Owner)
 
 	if res != nil {
 		//the unique key is already exist
@@ -920,7 +922,7 @@ type UniDemoOwnerWrap struct {
 	Dba storage.Database
 }
 
-func (s *UniDemoOwnerWrap) UniQueryOwner(start *string) *SoDemoWrap {
+func (s *UniDemoOwnerWrap) UniQueryOwner(start *prototype.AccountName) *SoDemoWrap {
 
 	startBuf, err := encoding.Encode(start)
 	if err != nil {
@@ -938,7 +940,7 @@ func (s *UniDemoOwnerWrap) UniQueryOwner(start *string) *SoDemoWrap {
 	if err != nil {
 		return nil
 	}
-	wrap := NewSoDemoWrap(s.Dba, &res.Owner)
+	wrap := NewSoDemoWrap(s.Dba, res.Owner)
 
 	return wrap
 }

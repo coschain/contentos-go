@@ -1,9 +1,9 @@
-type     ,pName       ,mKey,unique,sort
-string   ,owner       ,1    ,1     ,0
-uint32   ,post_time   ,0    ,0     ,1
-string   ,title       ,0    ,0     ,0
-int64    ,like_count  ,0    ,1     ,0
-int64    ,idx         ,0    ,1     ,0
-int64    ,replay_count,0    ,0     ,1
-string   ,content     ,0    ,0     ,0
-string   ,taglist     ,0    ,0     ,0
+type                       ,pName       ,mKey,unique,sort
+prototype.account_name     ,owner       ,1    ,1     ,0
+prototype.time_point_sec   ,post_time   ,0    ,0     ,1
+string                     ,title       ,0    ,0     ,0
+int64                      ,like_count  ,0    ,1     ,0
+int64                      ,idx         ,0    ,1     ,0
+int64                      ,replay_count,0    ,0     ,1
+string                     ,content     ,0    ,0     ,0
+string                     ,taglist     ,0    ,0     ,0
