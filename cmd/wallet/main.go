@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/chzyer/readline"
 	"github.com/coschain/cobra"
 	"github.com/coschain/contentos-go/cmd/wallet/commands"
@@ -25,14 +24,11 @@ func pcFromCommands(parent readline.PrefixCompleterInterface, c *cobra.Command) 
 	}
 }
 
-func flatten(c *cobra.Command, cmds *[]*cobra.Command) {
+func inheritContext(c *cobra.Command) {
 	for _, child := range c.Commands() {
-		*cmds = append(*cmds, child)
-		if len(child.Commands()) > 0 {
-			flatten(child, cmds)
-		}
+		child.Context = c.Context
+		inheritContext(child)
 	}
-	return
 }
 
 func runShell() {
@@ -61,7 +57,6 @@ shell_loop:
 			shell.Terminal.Write([]byte(err.Error()))
 		}
 		cmd.ParseFlags(flags)
-		//cmd.Context = rootCmd.Context
 		cmd.Run(cmd, flags)
 	}
 
@@ -104,11 +99,7 @@ func init() {
 	localWallet := wallet.NewBaseWallet("default", DefaultDataDir())
 	localWallet.Start()
 	rootCmd.SetContext("wallet", localWallet)
-	cmds := []*cobra.Command{}
-	flatten(rootCmd, &cmds)
-	for _, cmd := range cmds {
-		cmd.Context = rootCmd.Context
-	}
+	inheritContext(rootCmd)
 	rootCmd.Run = func(cmd *cobra.Command, args []string) {
 		runShell()
 	}
@@ -116,7 +107,6 @@ func init() {
 
 func main() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
 		os.Exit(1)
 	}
 }
