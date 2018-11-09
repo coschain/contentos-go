@@ -7,7 +7,7 @@ package storage
 // nested transactions and data reversion.
 //
 // New() creates a service instance of type DatabaseService.
-// DatabaseService implements both node.Service and IDatabaseService interfaces.
+// DatabaseService implements both node.Service and commoninterface.IDatabaseService interfaces.
 // the former is for service management, and the latter is for real function uses.
 //
 
@@ -17,13 +17,6 @@ import (
 	"github.com/coschain/contentos-go/p2p"
 	"fmt"
 )
-
-// service interface
-type IDatabaseService interface {
-	TagRevertible
-	Transactional
-	Database
-}
 
 // the service type
 type DatabaseService struct {
