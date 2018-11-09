@@ -1,12 +1,14 @@
 package iservices
 
-import "github.com/coschain/contentos-go/p2p"
+import (
+	"github.com/coschain/contentos-go/node"
+)
 
 
 var RPC_SERVER_NAME = "rpc"
 
 type RPCServer interface {
-	Start(server *p2p.Server) error
+	Start(config *node.Config) error
 	Stop() error
 	RunGateway() error
 }

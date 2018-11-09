@@ -4,7 +4,6 @@ import (
 	"github.com/coschain/contentos-go/common/logging"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
-	"github.com/coschain/contentos-go/p2p"
 	"github.com/coschain/contentos-go/rpc/pb"
 	"net"
 
@@ -30,7 +29,7 @@ func NewGRPCServer(ctx *node.ServiceContext) (*GRPCServer, error) {
 	return srv, nil
 }
 
-func (gs *GRPCServer) Start(server *p2p.Server) error {
+func (gs *GRPCServer) Start(node *node.Node) error {
 
 	s, err := gs.ctx.Service( iservices.CTRL_SERVER_NAME )
 
@@ -38,7 +37,7 @@ func (gs *GRPCServer) Start(server *p2p.Server) error {
 		return err
 	}
 	gs.api.ctrl = s.(iservices.IController)
-	gs.api.mainLoop = server.EvLoop
+	gs.api.mainLoop = node.MainLoop
 
 	err = gs.start("127.0.0.1:8888")
 	if err != nil {

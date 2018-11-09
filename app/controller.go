@@ -1,15 +1,14 @@
 package app
 
 import (
+	"bytes"
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/common/eventloop"
 	"github.com/coschain/contentos-go/common/prototype"
 	"github.com/coschain/contentos-go/db/storage"
-	"bytes"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
-	"github.com/coschain/contentos-go/p2p"
 )
 
 type skipFlag uint32
@@ -47,9 +46,9 @@ func NewController(ctx *node.ServiceContext) (*Controller, error) {
 	return &Controller{ ctx: ctx}, nil
 }
 
-func (c *Controller) Start(server *p2p.Server) error {
-	c.evLoop 	= server.EvLoop
-	c.noticer 	= server.EvBus
+func (c *Controller) Start(node *node.Node) error {
+	c.evLoop 	= node.MainLoop
+	c.noticer 	= node.EvBus
 
 	go func() {
 		c.evLoop.Run()

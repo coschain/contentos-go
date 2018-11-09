@@ -23,8 +23,7 @@ func (ctx *ServiceContext) Config() Config {
 type ServiceConstructor func(ctx *ServiceContext) (Service, error)
 
 type Service interface {
-	//Start(server *p2p.Server) error
-	Start() error
+	Start(node *Node) error
 
 	// stop all goroutines belonging to the service,
 	// blocking until all of them are terminated.

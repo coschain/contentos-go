@@ -4,7 +4,6 @@ import (
 	"errors"
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/common/eventloop"
-	"github.com/coschain/contentos-go/p2p"
 	log "github.com/inconshreveable/log15"
 	"os"
 	"path/filepath"
@@ -17,6 +16,9 @@ import (
 // Node is a container and manager of services
 type Node struct {
 	config *Config
+
+	MainLoop 	*eventloop.EventLoop
+	EvBus 		EventBus.Bus
 
 	services     map[string]Service
 	serviceFuncs []NamedServiceConstructor // registered services store into this slice
@@ -78,11 +80,9 @@ func (n *Node) Start() error {
 	}
 
 	// which confs should be assigned to p2p configuration
-	n.serverConfig = n.config.P2P
 
-	running := &p2p.Server{Config: n.serverConfig,
-					EvBus:EventBus.New(),
-					EvLoop:eventloop.NewEventLoop() }
+	n.MainLoop 	= eventloop.NewEventLoop()
+	n.EvBus		= EventBus.New()
 
 	services := make(map[string]Service)
 
@@ -108,7 +108,7 @@ func (n *Node) Start() error {
 
 	var started []string
 	for kind, service := range services {
-		if err := service.Start(); err != nil {
+		if err := service.Start(n); err != nil {
 			for _, kind := range started {
 				services[kind].Stop()
 			}

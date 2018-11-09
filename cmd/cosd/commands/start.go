@@ -10,7 +10,6 @@ import (
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/db/storage"
 	"github.com/coschain/contentos-go/iservices"
-	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/rpc"
 	log "github.com/inconshreveable/log15"
 	"github.com/spf13/viper"
@@ -74,9 +73,7 @@ func startNode(cmd *cobra.Command, args []string) {
 	})
 	app.Register("printer", func(ctx *node.ServiceContext) (node.Service, error) {
 		return printer.New(ctx)
-	//app.Register("timer", func(ctx *node.ServiceContext) (node.Service, error) {
-	//	return timer.New(ctx)
-	//})
+	})
 
 	app.Register(iservices.CTRL_SERVER_NAME, func(ctx *node.ServiceContext) (node.Service, error) {
 		return ctrl.NewController(ctx)

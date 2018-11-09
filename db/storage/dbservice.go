@@ -13,10 +13,9 @@ package storage
 
 import (
 	"errors"
-	"github.com/coschain/contentos-go/node"
-	"github.com/coschain/contentos-go/p2p"
 	"fmt"
 	"github.com/coschain/contentos-go/iservices"
+	"github.com/coschain/contentos-go/node"
 )
 
 // the service type
@@ -44,7 +43,7 @@ func New(ctx *node.ServiceContext, dbPath string) (*DatabaseService, error) {
 // implementation of Service interface
 //
 
-func (s *DatabaseService) Start(server *p2p.Server) error {
+func (s *DatabaseService) Start(node *node.Node) error {
 	db, err := NewLevelDatabase(s.path)
 	if err != nil {
 		return errors.New(fmt.Sprintf("failed to open or create leveldb at %s", s.path))
