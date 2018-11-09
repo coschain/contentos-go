@@ -20,7 +20,6 @@ import (
 
 // the service type
 type DatabaseService struct {
-	ctx *node.ServiceContext
 	path string
 	db *LevelDatabase
 	rdb *RevertibleDatabase
@@ -36,8 +35,16 @@ func New(ctx *node.ServiceContext, dbPath string) (*DatabaseService, error) {
 	if len(path) == 0 {
 		return nil, errors.New("cannot resolve database path")
 	}
-	return &DatabaseService{ ctx: ctx, path: path  }, nil
+	return &DatabaseService{ path: path  }, nil
 }
+
+func NewDatabase(dbPath string) (*DatabaseService, error) {
+	if len(dbPath) == 0 {
+		return nil, errors.New("invalid parameter")
+	}
+	return &DatabaseService{ path: dbPath  }, nil
+}
+
 
 //
 // implementation of Service interface
