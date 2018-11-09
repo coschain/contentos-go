@@ -7,7 +7,6 @@ import (
 	"github.com/coschain/contentos-go/common/logging"
 	"github.com/coschain/contentos-go/common/prototype"
 	"github.com/coschain/contentos-go/node"
-	"github.com/coschain/contentos-go/p2p"
 	"github.com/coschain/contentos-go/rpc/pb"
 	"io/ioutil"
 	"net/http"
@@ -21,7 +20,7 @@ func TestMain(m *testing.M) {
 	//logging.Init("logs	", "debug", 0)
 
 	gs, _ := NewGRPCServer(&node.ServiceContext{})
-	err := gs.Start(&p2p.Server{})
+	err := gs.Start()
 	if err != nil {
 		fmt.Print(err)
 	}
