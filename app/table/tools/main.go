@@ -150,6 +150,7 @@ func ProcessCSVFile(fileName string, name string) bool {
 	 if wRes {
 	 	//auto create pb.go file
 	 	 cmd := exec.Command("protoc","-I./",
+			 "-I./../../../",
 			 "--go_out=./",
 			 TmlFolder+"so_"+name+".proto")
 		 err := cmd.Start()
@@ -226,7 +227,7 @@ syntax = "proto3";
 
 package table;
 
-import "common/prototype/type.proto";
+import "github.com/coschain/contentos-go/common/prototype/type.proto";
 
 message so_{{.Name}} {
 	{{range $k,$v := .PList}}
