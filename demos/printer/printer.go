@@ -2,7 +2,7 @@ package printer
 
 import (
 	"fmt"
-	"github.com/coschain/contentos-go/demos/itimer"
+	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/p2p"
 	log "github.com/inconshreveable/log15"
@@ -18,13 +18,13 @@ func New(ctx *node.ServiceContext) (*Printer, error) {
 	return &Printer{ctx: ctx}, nil
 }
 
-func (t *Printer) getTimer() (itimer.ITimer, error) {
+func (t *Printer) getTimer() (iservices.ITimer, error) {
 	s, err := t.ctx.Service("timer")
 	if err != nil {
 		log.Error(fmt.Sprintf("Service serviceTimer error : %v", err))
 		return nil, err
 	}
-	timer := s.(itimer.ITimer)
+	timer := s.(iservices.ITimer)
 	return timer, nil
 }
 

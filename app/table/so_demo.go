@@ -491,7 +491,9 @@ func (s *SDemoPostTimeWrap) GetSubVal(iterator storage.Iterator) *uint32 {
 
 }
 
-func (s *SDemoPostTimeWrap) QueryList(start uint32, end uint32) storage.Iterator {
+//Query by sort
+//sType 0:  sort by order  1:sort by reverse order
+func (s *SDemoPostTimeWrap) QueryList(start uint32, end uint32, sType int) storage.Iterator {
 
 	startBuf, err := encoding.Encode(&start)
 	if err != nil {
@@ -505,10 +507,21 @@ func (s *SDemoPostTimeWrap) QueryList(start uint32, end uint32) storage.Iterator
 
 	bufStartkey := append(DemoPostTimeTable, startBuf...)
 	bufEndkey := append(DemoPostTimeTable, endBuf...)
-
-	iter := s.Dba.NewIterator(bufStartkey, bufEndkey)
-
-	return iter
+	if sType > 0 {
+		rBufStart, rErr := encoding.Complement(bufStartkey, err)
+		if rErr != nil {
+			return nil
+		}
+		rBufEnd, rErr := encoding.Complement(bufEndkey, err)
+		if rErr != nil {
+			return nil
+		}
+		iter := s.Dba.NewIterator(rBufStart, rBufEnd)
+		return iter
+	} else {
+		iter := s.Dba.NewIterator(bufStartkey, bufEndkey)
+		return iter
+	}
 }
 
 ////////////// SECTION List Keys ///////////////
@@ -575,7 +588,9 @@ func (s *SDemoReplayCountWrap) GetSubVal(iterator storage.Iterator) *int64 {
 
 }
 
-func (s *SDemoReplayCountWrap) QueryList(start int64, end int64) storage.Iterator {
+//Query by sort
+//sType 0:  sort by order  1:sort by reverse order
+func (s *SDemoReplayCountWrap) QueryList(start int64, end int64, sType int) storage.Iterator {
 
 	startBuf, err := encoding.Encode(&start)
 	if err != nil {
@@ -589,10 +604,21 @@ func (s *SDemoReplayCountWrap) QueryList(start int64, end int64) storage.Iterato
 
 	bufStartkey := append(DemoReplayCountTable, startBuf...)
 	bufEndkey := append(DemoReplayCountTable, endBuf...)
-
-	iter := s.Dba.NewIterator(bufStartkey, bufEndkey)
-
-	return iter
+	if sType > 0 {
+		rBufStart, rErr := encoding.Complement(bufStartkey, err)
+		if rErr != nil {
+			return nil
+		}
+		rBufEnd, rErr := encoding.Complement(bufEndkey, err)
+		if rErr != nil {
+			return nil
+		}
+		iter := s.Dba.NewIterator(rBufStart, rBufEnd)
+		return iter
+	} else {
+		iter := s.Dba.NewIterator(bufStartkey, bufEndkey)
+		return iter
+	}
 }
 
 /////////////// SECTION Private function ////////////////

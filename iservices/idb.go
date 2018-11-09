@@ -1,4 +1,4 @@
-package itimer
+package iservices
 
 type ITimer interface {
 	GetCurrent() string

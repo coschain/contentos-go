@@ -348,7 +348,9 @@ func (s *S{{$.ClsName}}{{$v}}Wrap) GetSubVal(iterator storage.Iterator) *{{forma
    {{end}}
 }
 
-func (s *S{{$.ClsName}}{{$v}}Wrap) QueryList(start {{formatStr $k}}, end {{formatStr $k}}) storage.Iterator {
+//Query by sort 
+//sType 0:  sort by order  1:sort by reverse order
+func (s *S{{$.ClsName}}{{$v}}Wrap) QueryList(start {{formatStr $k}}, end {{formatStr $k}}, sType int) storage.Iterator {
 
 	startBuf, err := encoding.Encode(&start)
 	if err != nil {
@@ -359,13 +361,24 @@ func (s *S{{$.ClsName}}{{$v}}Wrap) QueryList(start {{formatStr $k}}, end {{forma
 	if err != nil {
 		return nil
 	}
-
+    
 	bufStartkey := append({{$.ClsName}}{{$v}}Table, startBuf...)
 	bufEndkey := append({{$.ClsName}}{{$v}}Table, endBuf...)
-
-	iter := s.Dba.NewIterator(bufStartkey, bufEndkey)
-
-	return iter
+    if sType > 0 {
+       rBufStart,rErr := encoding.Complement(bufStartkey, err)
+       if rErr != nil {
+       	return nil
+	   }
+       rBufEnd,rErr := encoding.Complement(bufEndkey, err)
+		if rErr != nil {
+			return nil
+		}
+       iter := s.Dba.NewIterator(rBufStart, rBufEnd)
+       return iter
+	}else {
+		iter := s.Dba.NewIterator(bufStartkey, bufEndkey)
+		return iter
+	}
 }
 
 {{end}}
