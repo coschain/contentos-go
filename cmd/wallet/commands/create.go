@@ -10,14 +10,14 @@ var CreateCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create",
 		Short: "create a new account",
-		Run:   createAccount,
+		Run:   create,
 	}
 	return cmd
 }
 
-func createAccount(cmd *cobra.Command, args []string) {
+func create(cmd *cobra.Command, args []string) {
 	o := cmd.Context["wallet"]
-	w := o.(*wallet.BaseWallet)
+	w := o.(wallet.Wallet)
 	name := args[0]
 	passphrase := args[1]
 	err := w.Create(name, passphrase)

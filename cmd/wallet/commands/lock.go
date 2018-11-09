@@ -10,14 +10,14 @@ var LockCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "lock",
 		Short: "lock a account",
-		Run:   lockAccount,
+		Run:   lock,
 	}
 	return cmd
 }
 
-func lockAccount(cmd *cobra.Command, args []string) {
+func lock(cmd *cobra.Command, args []string) {
 	o := cmd.Context["wallet"]
-	w := o.(*wallet.BaseWallet)
+	w := o.(wallet.Wallet)
 	name := args[0]
 	err := w.Lock(name)
 	if err != nil {

@@ -84,6 +84,7 @@ func addCommands() {
 	rootCmd.AddCommand(commands.IsLockedCmd())
 	rootCmd.AddCommand(commands.ListCmd())
 	rootCmd.AddCommand(commands.InfoCmd())
+	rootCmd.AddCommand(commands.CloseCmd())
 }
 
 func init() {
@@ -91,7 +92,7 @@ func init() {
 	addCommands()
 
 	localWallet := wallet.NewBaseWallet("default", DefaultDataDir())
-
+	localWallet.Start()
 	rootCmd.SetContext("wallet", localWallet)
 	for _, cmd := range rootCmd.Commands() {
 		cmd.Context = rootCmd.Context

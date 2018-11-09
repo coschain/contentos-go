@@ -10,14 +10,15 @@ var ListCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "list all accounts",
-		Run:   listAccounts,
+		Run:   list,
 	}
 	return cmd
 }
 
-func listAccounts(cmd *cobra.Command, args []string) {
+func list(cmd *cobra.Command, args []string) {
+	_ = args
 	o := cmd.Context["wallet"]
-	w := o.(*wallet.BaseWallet)
+	w := o.(wallet.Wallet)
 	lines := w.List()
 	for _, line := range lines {
 		fmt.Println(line)
