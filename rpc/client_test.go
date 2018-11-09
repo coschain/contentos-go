@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/coschain/contentos-go/common/logging"
 	"github.com/coschain/contentos-go/common/prototype"
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/p2p"
@@ -17,6 +18,8 @@ import (
 var asc grpcpb.ApiServiceClient
 
 func TestMain(m *testing.M) {
+	//logging.Init("logs	", "debug", 0)
+
 	gs, _ := NewGRPCServer(&node.ServiceContext{})
 	err := gs.Start(&p2p.Server{})
 	if err != nil {
@@ -39,6 +42,7 @@ func TestMain(m *testing.M) {
 
 	exitCode := m.Run()
 	asc = nil
+
 	os.Exit(exitCode)
 }
 
@@ -87,7 +91,7 @@ func http_client(rtype, url, reqJson string) error {
 	}
 	defer resp.Body.Close()
 	body, _ := ioutil.ReadAll(resp.Body)
-	fmt.Println("response Body:", string(body))
+	logging.CLog().Println("response Body:", string(body))
 
 	return nil
 }

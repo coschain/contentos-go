@@ -1,7 +1,7 @@
 package rpc
 
 import (
-	"fmt"
+	"github.com/coschain/contentos-go/common/logging"
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/p2p"
 	"github.com/coschain/contentos-go/rpc/pb"
@@ -38,15 +38,17 @@ func (gs *GRPCServer) Start(server *p2p.Server) error {
 	return nil
 }
 
-func (gs *GRPCServer) start(add string) error {
-	listener, err := net.Listen("tcp", add)
+func (gs *GRPCServer) start(addr string) error {
+	listener, err := net.Listen("tcp", addr)
 	if err != nil {
-		fmt.Print("listener failure")
+		logging.VLog().Errorf("grpc listener addr: [%s] failure", addr)
 	}
 
 	go func() {
 		if err := gs.rpcServer.Serve(listener); err != nil {
-			fmt.Print("rpcServer failure")
+			logging.VLog().Error("rpc server start failure")
+		} else {
+			logging.VLog().Info("rpc server start failure")
 		}
 	}()
 
@@ -61,7 +63,9 @@ func (gs *GRPCServer) Stop() error {
 func (gs *GRPCServer) RunGateway() error {
 	go func() {
 		if err := Run(); err != nil {
-			fmt.Print("RunGateway failure")
+			logging.VLog().Error("rpc gateway start failure")
+		} else {
+			logging.VLog().Info("rpc gateway start failure")
 		}
 	}()
 	return nil

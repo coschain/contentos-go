@@ -4,9 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"flag"
+	"github.com/coschain/contentos-go/common/logging"
 	"github.com/coschain/contentos-go/rpc/pb"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/rs/cors"
+	"github.com/sirupsen/logrus"
+
 	//"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -97,16 +100,16 @@ func errorHandler(ctx context.Context, _ *runtime.ServeMux, marshaler runtime.Ma
 	if jErr != nil {
 		jsonFallback, tmpErr := json.Marshal(errorBody{Err: fallback})
 		if tmpErr != nil {
-			//logging.VLog().WithFields(logrus.Fields{
-			//	"error":        tmpErr,
-			//	"jsonFallback": jsonFallback,
-			//}).Debug("Failed to marshal fallback msg")
+			logging.VLog().WithFields(logrus.Fields{
+				"error":        tmpErr,
+				"jsonFallback": jsonFallback,
+			}).Debug("Failed to marshal fallback msg")
 		}
 		_, tmpErr = w.Write(jsonFallback)
 		if tmpErr != nil {
-			//logging.VLog().WithFields(logrus.Fields{
-			//	"error": tmpErr,
-			//}).Debug("Failed to write fallback msg")
+			logging.VLog().WithFields(logrus.Fields{
+				"error": tmpErr,
+			}).Debug("Failed to write fallback msg")
 		}
 	}
 }
