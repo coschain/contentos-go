@@ -557,9 +557,10 @@ func AddrHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args 
 
 // InvHandle handles the inventory message(block,
 // transaction and consensus) from peer.
-//func InvHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
-//	log.Trace("[p2p]receive inv message", data.Addr, data.Id)
-//	var inv = data.Payload.(*msgTypes.Inv)
+func InvHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
+	log.Trace("[p2p]receive inv message", data.Addr, data.Id)
+	var inv = data.Payload.(*msgTypes.Inv)
+	log.Info("reveive hash", inv.P.Blk)
 //
 //	remotePeer := p2p.GetPeer(data.Id)
 //	if remotePeer == nil {
@@ -625,7 +626,7 @@ func AddrHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args 
 //		log.Warn("[p2p]receive unknown inventory message")
 //	}
 //
-//}
+}
 
 // DisconnectHandle handles the disconnect events
 func DisconnectHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {

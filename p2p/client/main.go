@@ -2,18 +2,20 @@ package main
 
 import (
 	"fmt"
-	"github.com/coschain/contentos-go/p2p/message/msg_pack"
+	"time"
+//	"github.com/coschain/contentos-go/p2p/message/msg_pack"
 
 	"github.com/coschain/contentos-go/p2p/depend/common/log"
+	conn "github.com/coschain/contentos-go/p2p/depend/common"
 	"github.com/coschain/contentos-go/p2p/common"
-	"github.com/coschain/contentos-go/p2p/depend/core/types"
+//	"github.com/coschain/contentos-go/p2p/depend/core/types"
 	myp2p "github.com/coschain/contentos-go/p2p"
 )
 
 var ch chan int
 
 func init() {
-	log.InitLog(log.InfoLog)
+	log.InitLog(log.DebugLog)
 	fmt.Println("Start test the netserver...")
 
 }
@@ -28,13 +30,20 @@ func main() {
 		fmt.Println("Start p2p error: ", err)
 	}
 
+	time.Sleep(28 * time.Second)
+
 	for i:=0;i<10;i++ {
-		var trx types.Transaction
-		trx.GasLimit = uint64(2 * i + 6)
-		trx.GasPrice = uint64(3 * i + 8)
-		msg := msgpack.NewTxn(&trx)
-		p2p.Xmit(msg)
-		log.Info("Successfully broadcast a transaction, trx.GasLimit: ", trx.GasLimit, " trx.GasPrice: ", trx.GasPrice)
+		var tmp conn.Uint256
+		tmp[0] = 8
+		tmp[1] = 88
+		tmp[2] = 188
+		p2p.Xmit(tmp)
+//		var trx types.Transaction
+//		trx.GasLimit = uint64(2 * i + 6)
+//		trx.GasPrice = uint64(3 * i + 8)
+//		msg := msgpack.NewTxn(&trx)
+//		p2p.Xmit(msg)
+//		log.Info("Successfully broadcast a transaction, trx.GasLimit: ", trx.GasLimit, " trx.GasPrice: ", trx.GasPrice)
 	}
 
 	if p2p.GetVersion() != common.PROTOCOL_VERSION {

@@ -86,12 +86,12 @@ func GetNetworkName(id uint32) string {
 
 var PolarisConfig = &GenesisConfig{
 	SeedList: []string{
-		"127.0.0.1:20338"},
+		"10.66.108.138:20338"},
 }
 
 var MainNetConfig = &GenesisConfig{
 	SeedList: []string{
-		"127.0.0.1:20338"},
+		"10.66.108.138:20338"},
 }
 
 var DefConfig = NewOntologyConfig()
