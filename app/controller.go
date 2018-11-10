@@ -10,6 +10,7 @@ import (
 	"github.com/coschain/contentos-go/db/storage"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
+	"time"
 )
 
 type skipFlag uint32
@@ -28,7 +29,7 @@ type Controller struct {
 	ctx    *node.ServiceContext
 	evLoop *eventloop.EventLoop
 
-	db      storage.IDatabaseService
+	db      iservices.IDatabaseService
 	noticer EventBus.Bus
 	skip    skipFlag
 
@@ -173,6 +174,24 @@ func (c *Controller) _applyTransaction(trxWrp *prototype.TransactionWrapper) {
 
 	// @ TaPos and expired check
 	//if headBlockNum() > 0
+	uniWrap := table.UniBlockSummaryObjectIdWrap{}
+	idWrap := uniWrap.UniQueryId(&trx.Trx.RefBlockNum)
+	if !idWrap.CheckExist() {
+		panic("no refBlockNum founded")
+	} else {
+		blockId := idWrap.GetBlockId()
+		summaryId := uint32(blockId.Hash[1])
+		if trx.Trx.RefBlockPrefix != summaryId {
+			panic("transaction tapos failed")
+		}
+	}
+	// get head time
+	if trx.Trx.Expiration.UtcSeconds > uint32(time.Now().Second()+30) {
+		panic("transaction expiration too long")
+	}
+	if uint32(time.Now().Second()) > trx.Trx.Expiration.UtcSeconds {
+		panic("transaction has expired")
+	}
 
 	// insert trx into DB unique table
 	obj := &table.SoTransactionObject{}
@@ -240,4 +259,8 @@ func (c *Controller) InitGenesis() {
 		obj.Id = i
 		wrap.CreateBlockSummaryObject(obj)
 	}
+}
+
+func (c *Controller) CreateVesting() *prototype.Vest {
+
 }

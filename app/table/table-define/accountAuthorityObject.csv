@@ -1,0 +1,6 @@
+类型                       ,属性名         ,是否主key,是否提供唯一查询,是否支持排序
+prototype.account_name   ,account              ,1,1,0
+prototype.authority      ,owner               ,0,0,0
+prototype.authority      ,active              ,0,0,0
+prototype.authority      ,posting             ,0,0,0
+prototype.time_point_sec ,last_owner_update   ,0,0,0
