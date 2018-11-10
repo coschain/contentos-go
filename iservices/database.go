@@ -137,4 +137,17 @@ type IDatabaseService interface {
 
 	// rebase to a revision by its tag
 	RebaseToTag(tag string) error
+
+
+	//
+	// delete-all feature
+	//
+
+	// delete everything. make all data gone and unrecoverable.
+	// service will stop and restart if already started.
+	//
+	// this method is *NOT* thread safe. caller *MUST* guarantee that,
+	// - all iterators released by DeleteIterator() before calling DeleteAll()
+	// - no service calls before successful return of DeleteAll()
+	DeleteAll() error
 }

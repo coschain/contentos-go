@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
+	"os"
 )
 
 // the service type
@@ -166,4 +167,21 @@ func (s *DatabaseService) Close() {
 	s.rdb.Close()
 	s.db.Close()
 	s.db, s.rdb, s.tdb = nil, nil, nil
+}
+
+func (s *DatabaseService) DeleteAll() error {
+	var err error
+	restart := false
+	if s.db != nil {
+		err = s.Stop()
+		restart = true
+	}
+	if err != nil {
+		return err
+	}
+	err = os.RemoveAll(s.path)
+	if err == nil && restart {
+		err = s.Start(nil)
+	}
+	return err
 }
