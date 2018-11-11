@@ -3,6 +3,7 @@
 package table
 
 import (
+	"bytes"
 	"github.com/coschain/contentos-go/common/encoding"
 	"github.com/coschain/contentos-go/db/storage"
      "github.com/coschain/contentos-go/common/prototype"
