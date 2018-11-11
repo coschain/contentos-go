@@ -3,13 +3,12 @@ package main
 import (
 	"fmt"
 	"github.com/coschain/contentos-go/common/prototype"
-	"github.com/coschain/contentos-go/p2p/message/msg_pack"
+//	"github.com/coschain/contentos-go/p2p/message/msg_pack"
 	"time"
-	//	"github.com/coschain/contentos-go/p2p/message/msg_pack"
 
 	myp2p "github.com/coschain/contentos-go/p2p"
 	"github.com/coschain/contentos-go/p2p/common"
-	conn "github.com/coschain/contentos-go/p2p/depend/common"
+//	conn "github.com/coschain/contentos-go/p2p/depend/common"
 	"github.com/coschain/contentos-go/p2p/depend/common/log"
 )
 
@@ -35,16 +34,18 @@ func main() {
 
 	for i:=0;i<1;i++ {
 		// Broadcast conn.Uint256
-		var tmp conn.Uint256
-		tmp[0] = 8
-		tmp[1] = 88
-		tmp[2] = 188
-		p2p.Xmit(tmp)
+//		var tmp conn.Uint256
+//		tmp[0] = 8
+//		tmp[1] = 88
+//		tmp[2] = 188
+//		p2p.Xmit(tmp)
 
 
 		var trx prototype.SignedTransaction
-		msg := msgpack.NewTxn(&trx)
-		p2p.Xmit(msg)
+		//trx.Trx.RefBlockNum = 1
+		//trx.Trx.RefBlockPrefix = 2
+		//msg := msgpack.NewTxn(&trx)
+		p2p.Xmit(&trx)
 	}
 
 	if p2p.GetVersion() != common.PROTOCOL_VERSION {
