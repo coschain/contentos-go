@@ -8,6 +8,7 @@ import (
 	"github.com/coschain/contentos-go/rpc"
 	"github.com/coschain/contentos-go/app"
 	"eth/swarm/storage"
+	"fmt"
 )
 
 // cosd is the main entry point into the system if no special subcommand is pointed
@@ -33,7 +34,7 @@ func main() {
 
 	// register service ...
 	cosNode.Register("db",func(ctx *node.ServiceContext) (node.Service, error) {
-		return storage.New(ctx)
+		return storage.New(ctx,"")
 	})
 	cosNode.Register("rpc", func(ctx *node.ServiceContext) (node.Service, error) {
 		return rpc.NewGRPCServer(ctx)

@@ -4,6 +4,8 @@ import (
 	"bytes"
 )
 
+type AuthorityGetter func(string) *Authority
+
 type AuthorityType uint16
 
 const (
@@ -17,6 +19,9 @@ type SignState struct {
 	trxCarryedPubs []*PublicKeyType
 	approved       map[string]bool
 	max_recursion  uint32
+	PostingGetter AuthorityGetter
+	ActiveGetter AuthorityGetter
+	OwnerGetter AuthorityGetter
 }
 
 func (s *SignState) checkPub(key *PublicKeyType) bool {
@@ -34,10 +39,7 @@ func (s *SignState) CheckAuthorityByName(name string, depth uint32, at Authority
 		return true
 	}
 	// a speed up cache
-	auth, err := s.getAuthority(name, at)
-	if err != nil {
-		panic("getAuthority failed:")
-	}
+	auth := s.getAuthority(name, at)
 	return s.CheckAuthority(auth,0, at)
 }
 
@@ -59,10 +61,7 @@ func (s *SignState) CheckAuthority(auth *Authority, depth uint32, at AuthorityTy
 			if depth == s.max_recursion {
 				continue
 			}
-			auth, err := s.getAuthority(username, at)
-			if err != nil {
-				panic("getAuthority failed:")
-			}
+			auth := s.getAuthority(username, at)
 			if s.CheckAuthority(auth, depth+1, at) {
 				s.approved[username] = true
 				total_weight += a.Weight
@@ -82,18 +81,24 @@ func (s *SignState) CheckAuthority(auth *Authority, depth uint32, at AuthorityTy
 	return total_weight >= auth.WeightThreshold
 }
 
-func (s *SignState) Init(pubs []*PublicKeyType,maxDepth uint32) {
+func (s *SignState) Init(pubs []*PublicKeyType,maxDepth uint32,posting AuthorityGetter,active AuthorityGetter,owner AuthorityGetter) {
 	 copy(s.trxCarryedPubs,pubs)
 	 s.max_recursion = maxDepth
+	 s.PostingGetter = posting
+	 s.ActiveGetter = active
+	 s.OwnerGetter = owner
 }
 
-func (s *SignState) getAuthority(name string, at AuthorityType) (*Authority, error) {
+func (s *SignState) getAuthority(name string, at AuthorityType) *Authority {
 	// read Authority struct from DB
 	switch at {
 	case Posting:
+		return s.PostingGetter(name)
 	case Active:
+		return s.ActiveGetter(name)
 	case Owner:
+		return s.OwnerGetter(name)
 	default:
 	}
-	return nil, nil
+	return nil
 }

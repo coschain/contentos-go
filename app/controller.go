@@ -7,7 +7,6 @@ import (
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/common/eventloop"
 	"github.com/coschain/contentos-go/common/prototype"
-	"github.com/coschain/contentos-go/db/storage"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
 	"time"
@@ -37,9 +36,15 @@ type Controller struct {
 	_isProducing       bool
 	_currentTrxId      *prototype.Sha256
 	_current_op_in_trx uint16
+}
 
-	revertDb      *storage.RevertibleDatabase
-	transactionDb *storage.TransactionalDatabase
+func (c *Controller) getDb() (iservices.IDatabaseService,error) {
+	s, err := c.ctx.Service("db")
+	if err != nil {
+		return nil, err
+	}
+	db := s.(iservices.IDatabaseService)
+	return db, nil
 }
 
 // service constructor
@@ -48,6 +53,11 @@ func NewController(ctx *node.ServiceContext) (*Controller, error) {
 }
 
 func (c *Controller) Start(node *node.Node) error {
+	db,err := c.getDb()
+	if err != nil {
+		return err
+	}
+	c.db = db
 	c.evLoop = node.MainLoop
 	c.noticer = node.EvBus
 	return nil
@@ -79,26 +89,26 @@ func (c *Controller) _pushTrx(trx *prototype.SignedTransaction) *prototype.Trans
 	defer func() {
 		// @ undo sub session
 		if err := recover(); err != nil {
-			c.transactionDb.EndTransaction(false)
+			c.db.EndTransaction(false)
 			panic(err)
 		}
 	}()
-	// @ start a new undo session when first transaction come after push block
+	// start a new undo session when first transaction come after push block
 	if len(c._pending_tx) == 0 {
-		c.transactionDb.BeginTransaction()
+		c.db.BeginTransaction()
 	}
 
 	trxWrp := &prototype.TransactionWrapper{}
 	trxWrp.SigTrx = trx
 
-	// @ start a sub undo session for applyTransaction
-	c.transactionDb.BeginTransaction()
+	// start a sub undo session for applyTransaction
+	c.db.BeginTransaction()
 
 	c._applyTransaction(trxWrp)
 	c._pending_tx = append(c._pending_tx, trxWrp)
 
-	// @ commit sub session
-	c.transactionDb.EndTransaction(true)
+	// commit sub session
+	c.db.EndTransaction(true)
 
 	c.NotifyTrxPending(trx)
 	return trxWrp.Invoice
@@ -167,30 +177,62 @@ func (c *Controller) _applyTransaction(trxWrp *prototype.TransactionWrapper) {
 	}
 
 	if c.skip&skip_transaction_signatures == 0 {
+		postingGetter := func(name string) *prototype.Authority {
+			account := &prototype.AccountName{Value:name}
+			authWrap := table.NewSoAccountAuthorityObjectWrap(c.db,account)
+			auth := authWrap.GetPosting()
+			if auth == nil {
+				panic("no posting auth")
+			}
+			return auth
+		}
+		activeGetter := func(name string) *prototype.Authority {
+			account := &prototype.AccountName{Value:name}
+			authWrap := table.NewSoAccountAuthorityObjectWrap(c.db,account)
+			auth := authWrap.GetPosting()
+			if auth == nil {
+				panic("no posting auth")
+			}
+			return auth
+		}
+		ownerGetter := func(name string) *prototype.Authority {
+			account := &prototype.AccountName{Value:name}
+			authWrap := table.NewSoAccountAuthorityObjectWrap(c.db,account)
+			auth := authWrap.GetPosting()
+			if auth == nil {
+				panic("no posting auth")
+			}
+			return auth
+		}
+
 		tmpChainId := prototype.ChainId{Value: 0}
-		trx.VerifyAuthority(tmpChainId, 2)
+		trx.VerifyAuthority(tmpChainId, 2,postingGetter,activeGetter,ownerGetter)
 		// @ check_admin
 	}
 
-	// @ TaPos and expired check
-	//if headBlockNum() > 0
-	uniWrap := table.UniBlockSummaryObjectIdWrap{}
-	idWrap := uniWrap.UniQueryId(&trx.Trx.RefBlockNum)
-	if !idWrap.CheckExist() {
-		panic("no refBlockNum founded")
-	} else {
-		blockId := idWrap.GetBlockId()
-		summaryId := uint32(blockId.Hash[1])
-		if trx.Trx.RefBlockPrefix != summaryId {
-			panic("transaction tapos failed")
+	// TaPos and expired check
+	var i int32 = 0
+	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db,&i)
+	blockNum := dgpWrap.GetHeadBlockNumber()
+	if *blockNum > 0 {
+		uniWrap := table.UniBlockSummaryObjectIdWrap{}
+		idWrap := uniWrap.UniQueryId(&trx.Trx.RefBlockNum)
+		if !idWrap.CheckExist() {
+			panic("no refBlockNum founded")
+		} else {
+			blockId := idWrap.GetBlockId()
+			summaryId := uint32(blockId.Hash[1])
+			if trx.Trx.RefBlockPrefix != summaryId {
+				panic("transaction tapos failed")
+			}
 		}
-	}
-	// get head time
-	if trx.Trx.Expiration.UtcSeconds > uint32(time.Now().Second()+30) {
-		panic("transaction expiration too long")
-	}
-	if uint32(time.Now().Second()) > trx.Trx.Expiration.UtcSeconds {
-		panic("transaction has expired")
+		// get head time
+		if trx.Trx.Expiration.UtcSeconds > uint32(time.Now().Second()+30) {
+			panic("transaction expiration too long")
+		}
+		if uint32(time.Now().Second()) > trx.Trx.Expiration.UtcSeconds {
+			panic("transaction has expired")
+		}
 	}
 
 	// insert trx into DB unique table
@@ -253,7 +295,7 @@ func (c *Controller) _applyBlock(blk *prototype.SignedBlock) {
 }
 
 func (c *Controller) InitGenesis() {
-	for i := int32(0); i < 0x10000; i++ {
+	for i := uint32(0); i < 0x10000; i++ {
 		wrap := table.NewSoBlockSummaryObjectWrap(c.db, &i)
 		obj := &table.SoBlockSummaryObject{}
 		obj.Id = i
@@ -262,5 +304,33 @@ func (c *Controller) InitGenesis() {
 }
 
 func (c *Controller) CreateVesting() *prototype.Vest {
+	return nil
+}
 
+func (c *Controller) SubBalance(accountName *prototype.AccountName, cos *prototype.Coin) {
+	accountWrap := table.NewSoAccountWrap(c.db,accountName)
+	originBalance := accountWrap.GetBalance()
+	originBalance.Amount.Value -= cos.Amount.Value
+	accountWrap.MdBalance(*originBalance)
+
+	// dynamic glaobal properties
+	var i int32 = 0
+	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db,&i)
+	originTotal := dgpWrap.GetTotalCos()
+	originTotal.Amount.Value -= cos.Amount.Value
+	dgpWrap.MdTotalCos(*originTotal)
+}
+
+func (c *Controller) AddBalance(accountName *prototype.AccountName, cos *prototype.Coin) {
+	accountWrap := table.NewSoAccountWrap(c.db,accountName)
+	originBalance := accountWrap.GetBalance()
+	originBalance.Amount.Value += cos.Amount.Value
+	accountWrap.MdBalance(*originBalance)
+
+	// dynamic glaobal properties
+	var i int32 = 0
+	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db,&i)
+	originTotal := dgpWrap.GetTotalCos()
+	originTotal.Amount.Value += cos.Amount.Value
+	dgpWrap.MdTotalCos(*originTotal)
 }

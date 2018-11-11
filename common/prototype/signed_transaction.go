@@ -141,15 +141,15 @@ func (p *SignedTransaction) MerkleDigest() (*Sha256, error) {
 	return id, nil
 }
 
-func (p *SignedTransaction) VerifyAuthority(cid ChainId,max_recursion_depth uint32) {
+func (p *SignedTransaction) VerifyAuthority(cid ChainId,max_recursion_depth uint32,posting AuthorityGetter,active AuthorityGetter,owner AuthorityGetter) {
 	pubs,err := p.ExportPubKeys(cid)
 	if err != nil {
 		panic(err)
 	}
-	verifyAuthority(p.Trx.Operations,pubs,max_recursion_depth)
+	verifyAuthority(p.Trx.Operations,pubs,max_recursion_depth,posting,active,owner)
 }
 
-func verifyAuthority(ops []*Operation, trxPubs []*PublicKeyType, max_recursion_depth uint32) {
+func verifyAuthority(ops []*Operation, trxPubs []*PublicKeyType, max_recursion_depth uint32,posting AuthorityGetter,active AuthorityGetter,owner AuthorityGetter) {
 	required_active := map[string]bool{}
 	required_posting := map[string]bool{}
 	required_owner := map[string]bool{}
@@ -169,7 +169,7 @@ func verifyAuthority(ops []*Operation, trxPubs []*PublicKeyType, max_recursion_d
 			panic("can not combinme posing authority with others")
 		}
 		s := SignState{}
-		s.Init(trxPubs,max_recursion_depth)
+		s.Init(trxPubs,max_recursion_depth,posting,active,owner)
 		for k,_ := range required_posting {
 			if !s.CheckAuthorityByName(k,0,Posting) &&
 				!s.CheckAuthorityByName(k,0,Active) &&
@@ -181,7 +181,7 @@ func verifyAuthority(ops []*Operation, trxPubs []*PublicKeyType, max_recursion_d
 	}
 
 	s := SignState{}
-	s.Init(trxPubs,max_recursion_depth)
+	s.Init(trxPubs,max_recursion_depth,posting,active,owner)
 	for _,auth := range other {
 		if !s.CheckAuthority(&auth,0,Active) {
 			panic("missing authority")
