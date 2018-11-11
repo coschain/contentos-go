@@ -25,9 +25,10 @@ type PropList struct {
 	VarName		string
 	BMainKey	bool
 	BUnique		bool
-	BSort		bool
+	SortType    int   //0 不支持排序 1:支持正序 2:支持倒序 3:支持正序和倒序
 	Index		uint32
 }
+
 
 var TmlFolder = "./app/table/"
 
@@ -62,7 +63,21 @@ func (p *PropList) Parse(info []string, index uint32) bool {
 	if errSort != nil{
 		return false
 	}
-	p.BSort		= resSort
+	resRevSort,errRevSort := strconv.ParseBool(strings.Replace(info[5]," ","",-1))
+	if errRevSort != nil {
+		return false
+	}
+	p.SortType = 0
+	if resSort && resRevSort {
+		//support sort by order and reverse order
+		p.SortType = 3
+	}else if resSort {
+		//support sort by order
+		p.SortType = 1
+	}else if resRevSort {
+		//support sort by reverse order
+		p.SortType = 2
+	}
 
 	p.Index		= index
 
@@ -251,7 +266,7 @@ func createKeyTpl(t TableInfo) string {
 			if v.BMainKey {
 				mKeyType = v.VarType
 				mKeyName = v.VarName
-			}else if v.BSort {
+			}else if v.SortType > 0 {
 				sortList = append(sortList,v)
 			}
 			if v.BUnique {
