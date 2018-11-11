@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/coschain/contentos-go/p2p/depend/common"
 	"github.com/coschain/contentos-go/p2p/depend/common/constants"
 	"github.com/coschain/contentos-go/p2p/depend/common/serialization"
 	"github.com/coschain/contentos-go/p2p/depend/core/program"
+	"github.com/ontio/ontology-crypto/keypair"
 )
 
 const MAX_TX_SIZE = 1024 * 1024 // The max size of a transaction to prevent DOS attacks

@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"errors"
 	cmn "github.com/coschain/contentos-go/common"
+	"github.com/coschain/contentos-go/p2p/depend/common"
 	"github.com/coschain/contentos-go/common/crypto"
 	"github.com/coschain/contentos-go/common/crypto/secp256k1"
 	"github.com/gogo/protobuf/proto"
@@ -211,4 +212,22 @@ func getBaseOp(op *Operation) BaseOperation {
 	default:
 		return nil
 	}
+}
+
+
+
+func (p *SignedTransaction) Serialization(sink *common.ZeroCopySink) error {
+	data, _ := proto.Marshal(p)
+	sink.WriteBytes(data)
+	return nil
+}
+
+func (tx *SignedTransaction) Deserialization(source *common.ZeroCopySource) error {
+	tmp := &SignedTransaction{}
+	err := proto.Unmarshal(source.Data(), tmp)
+	if err != nil {
+		return err
+	}
+	tx = tmp
+	return nil
 }

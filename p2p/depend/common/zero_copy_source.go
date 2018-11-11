@@ -22,6 +22,10 @@ func (self *ZeroCopySource) Len() uint64 {
 	return length - self.off
 }
 
+func (self *ZeroCopySource) Data() []byte {
+	return self.s
+}
+
 func (self *ZeroCopySource) Pos() uint64 {
 	return self.off
 }

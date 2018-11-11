@@ -1,13 +1,14 @@
 package msgpack
 
 import (
+	"github.com/coschain/contentos-go/common/prototype"
 	"time"
 
+	msgCommon "github.com/coschain/contentos-go/p2p/common"
 	"github.com/coschain/contentos-go/p2p/depend/common"
 	"github.com/coschain/contentos-go/p2p/depend/common/config"
 	"github.com/coschain/contentos-go/p2p/depend/common/log"
 	ct "github.com/coschain/contentos-go/p2p/depend/core/types"
-	msgCommon "github.com/coschain/contentos-go/p2p/common"
 	mt "github.com/coschain/contentos-go/p2p/message/types"
 	p2pnet "github.com/coschain/contentos-go/p2p/net/protocol"
 )
@@ -112,7 +113,7 @@ func NewPongMsg(height uint64) *mt.Pong {
 }
 
 //Transaction package
-func NewTxn(txn *ct.Transaction) mt.Message {
+func NewTxn(txn *prototype.SignedTransaction) mt.Message {
 	log.Trace()
 	var trn mt.Trn
 	trn.Txn = txn

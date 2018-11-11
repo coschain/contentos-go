@@ -26,6 +26,8 @@ import (
 	"github.com/coschain/contentos-go/p2p/net/netserver"
 	p2pnet "github.com/coschain/contentos-go/p2p/net/protocol"
 	"github.com/coschain/contentos-go/p2p/peer"
+
+	"github.com/coschain/contentos-go/common/prototype"
 )
 
 //P2PServer control all network activities
@@ -128,9 +130,9 @@ func (this *P2PServer) Xmit(message interface{}) error {
 	var msg msgtypes.Message
 	isConsensus := false
 	switch message.(type) {
-	case *types.Transaction:
+	case *prototype.SignedTransaction:
 		log.Debug("[p2p]TX transaction message")
-		txn := message.(*types.Transaction)
+		txn := message.(*prototype.SignedTransaction)
 		msg = msgpack.NewTxn(txn)
 	case *types.Block:
 		log.Debug("[p2p]TX block message")

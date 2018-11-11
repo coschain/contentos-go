@@ -1,14 +1,14 @@
 package types
 
 import (
-	comm "github.com/coschain/contentos-go/p2p/depend/common"
-	"github.com/coschain/contentos-go/p2p/depend/core/types"
+	"github.com/coschain/contentos-go/common/prototype"
 	"github.com/coschain/contentos-go/p2p/common"
+	comm "github.com/coschain/contentos-go/p2p/depend/common"
 )
 
 // Transaction message
 type Trn struct {
-	Txn *types.Transaction
+	Txn *prototype.SignedTransaction
 }
 
 //Serialize message payload
@@ -22,7 +22,7 @@ func (this *Trn) CmdType() string {
 
 //Deserialize message payload
 func (this *Trn) Deserialization(source *comm.ZeroCopySource) error {
-	tx := &types.Transaction{}
+	tx := &prototype.SignedTransaction{}
 	err := tx.Deserialization(source)
 	if err != nil {
 		return err
