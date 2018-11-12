@@ -23,7 +23,7 @@ func main() {
 	*/
 
 	//db, _ := storage.NewLevelDatabase("/Users/yykingking/abc123.db")
-	db,err := storage.NewDatabase("./demo/demo.db")
+	db,err := storage.NewDatabase("./demos/pbTool.db")
 	if err != nil {
 		return
 	}

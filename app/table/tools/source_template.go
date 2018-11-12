@@ -49,7 +49,6 @@ package table
 
 import (
 	"github.com/coschain/contentos-go/common/encoding"
-	"github.com/coschain/contentos-go/db/storage"
      "github.com/coschain/contentos-go/common/prototype"
 	 "github.com/gogo/protobuf/proto"
      "github.com/coschain/contentos-go/iservices"
@@ -331,7 +330,7 @@ type S{{$.ClsName}}{{$v.PName}}Wrap struct {
 	Dba iservices.IDatabaseService
 }
 
-func (s *S{{$.ClsName}}{{$v.PName}}Wrap) GetMainVal(iterator storage.Iterator) *{{formatStr $.MainKeyType}} {
+func (s *S{{$.ClsName}}{{$v.PName}}Wrap) GetMainVal(iterator iservices.IDatabaseIterator) *{{formatStr $.MainKeyType}} {
 	if iterator == nil || !iterator.Valid() {
 		return nil
 	}
@@ -357,7 +356,7 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) GetMainVal(iterator storage.Iterator) *
 
 }
 
-func (s *S{{$.ClsName}}{{$v.PName}}Wrap) GetSubVal(iterator storage.Iterator) *{{formatStr $v.PType}} {
+func (s *S{{$.ClsName}}{{$v.PName}}Wrap) GetSubVal(iterator iservices.IDatabaseIterator) *{{formatStr $v.PType}} {
 	if iterator == nil || !iterator.Valid() {
 		return nil
 	}
@@ -409,7 +408,7 @@ func (m *SoList{{$.ClsName}}By{{$v.PName}}) EncodeRevSortKey() ([]byte,error) {
 }
 
 //Query sort by order 
-func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByOrder(start {{formatStr $v.PType}}, end {{formatStr $v.PType}}) storage.Iterator {
+func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByOrder(start {{formatStr $v.PType}}, end {{formatStr $v.PType}}) iservices.IDatabaseIterator {
 
 	startBuf, err := encoding.Encode(&start)
 	if err != nil {
@@ -431,7 +430,7 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByOrder(start {{formatStr $v.P
 }
 {{if or (eq $v.SType 2) (eq $v.SType 3) -}}
 //Query sort by reverse order 
-func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByRevOrder(start {{formatStr $v.PType}}, end {{formatStr $v.PType}}) storage.Iterator {
+func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByRevOrder(start {{formatStr $v.PType}}, end {{formatStr $v.PType}}) iservices.IDatabaseIterator {
 
 	startBuf, err := encoding.Encode(&start)
 	if err != nil {

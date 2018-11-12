@@ -5,7 +5,6 @@ package table
 import (
 	"bytes"
 	"github.com/coschain/contentos-go/common/encoding"
-	"github.com/coschain/contentos-go/db/storage"
      "github.com/coschain/contentos-go/common/prototype"
 	 "github.com/gogo/protobuf/proto"
      "github.com/coschain/contentos-go/iservices"
@@ -571,7 +570,7 @@ type SDemoPostTimeWrap struct {
 	Dba iservices.IDatabaseService
 }
 
-func (s *SDemoPostTimeWrap) GetMainVal(iterator storage.Iterator) *prototype.AccountName {
+func (s *SDemoPostTimeWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.AccountName {
 	if iterator == nil || !iterator.Valid() {
 		return nil
 	}
@@ -593,7 +592,7 @@ func (s *SDemoPostTimeWrap) GetMainVal(iterator storage.Iterator) *prototype.Acc
 
 }
 
-func (s *SDemoPostTimeWrap) GetSubVal(iterator storage.Iterator) *prototype.TimePointSec {
+func (s *SDemoPostTimeWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.TimePointSec {
 	if iterator == nil || !iterator.Valid() {
 		return nil
 	}
@@ -643,7 +642,7 @@ func (m *SoListDemoByPostTime) EncodeRevSortKey() ([]byte,error) {
 }
 
 //Query sort by order 
-func (s *SDemoPostTimeWrap) QueryListByOrder(start prototype.TimePointSec, end prototype.TimePointSec) storage.Iterator {
+func (s *SDemoPostTimeWrap) QueryListByOrder(start prototype.TimePointSec, end prototype.TimePointSec) iservices.IDatabaseIterator {
 
 	startBuf, err := encoding.Encode(&start)
 	if err != nil {
@@ -664,7 +663,7 @@ func (s *SDemoPostTimeWrap) QueryListByOrder(start prototype.TimePointSec, end p
     
 }
 //Query sort by reverse order 
-func (s *SDemoPostTimeWrap) QueryListByRevOrder(start prototype.TimePointSec, end prototype.TimePointSec) storage.Iterator {
+func (s *SDemoPostTimeWrap) QueryListByRevOrder(start prototype.TimePointSec, end prototype.TimePointSec) iservices.IDatabaseIterator {
 
 	startBuf, err := encoding.Encode(&start)
 	if err != nil {
@@ -697,7 +696,7 @@ type SDemoLikeCountWrap struct {
 	Dba iservices.IDatabaseService
 }
 
-func (s *SDemoLikeCountWrap) GetMainVal(iterator storage.Iterator) *prototype.AccountName {
+func (s *SDemoLikeCountWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.AccountName {
 	if iterator == nil || !iterator.Valid() {
 		return nil
 	}
@@ -719,7 +718,7 @@ func (s *SDemoLikeCountWrap) GetMainVal(iterator storage.Iterator) *prototype.Ac
 
 }
 
-func (s *SDemoLikeCountWrap) GetSubVal(iterator storage.Iterator) *int64 {
+func (s *SDemoLikeCountWrap) GetSubVal(iterator iservices.IDatabaseIterator) *int64 {
 	if iterator == nil || !iterator.Valid() {
 		return nil
 	}
@@ -769,7 +768,7 @@ func (m *SoListDemoByLikeCount) EncodeRevSortKey() ([]byte,error) {
 }
 
 //Query sort by order 
-func (s *SDemoLikeCountWrap) QueryListByOrder(start int64, end int64) storage.Iterator {
+func (s *SDemoLikeCountWrap) QueryListByOrder(start int64, end int64) iservices.IDatabaseIterator {
 
 	startBuf, err := encoding.Encode(&start)
 	if err != nil {
@@ -790,7 +789,7 @@ func (s *SDemoLikeCountWrap) QueryListByOrder(start int64, end int64) storage.It
     
 }
 //Query sort by reverse order 
-func (s *SDemoLikeCountWrap) QueryListByRevOrder(start int64, end int64) storage.Iterator {
+func (s *SDemoLikeCountWrap) QueryListByRevOrder(start int64, end int64) iservices.IDatabaseIterator {
 
 	startBuf, err := encoding.Encode(&start)
 	if err != nil {
@@ -823,7 +822,7 @@ type SDemoIdxWrap struct {
 	Dba iservices.IDatabaseService
 }
 
-func (s *SDemoIdxWrap) GetMainVal(iterator storage.Iterator) *prototype.AccountName {
+func (s *SDemoIdxWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.AccountName {
 	if iterator == nil || !iterator.Valid() {
 		return nil
 	}
@@ -845,7 +844,7 @@ func (s *SDemoIdxWrap) GetMainVal(iterator storage.Iterator) *prototype.AccountN
 
 }
 
-func (s *SDemoIdxWrap) GetSubVal(iterator storage.Iterator) *int64 {
+func (s *SDemoIdxWrap) GetSubVal(iterator iservices.IDatabaseIterator) *int64 {
 	if iterator == nil || !iterator.Valid() {
 		return nil
 	}
@@ -895,7 +894,7 @@ func (m *SoListDemoByIdx) EncodeRevSortKey() ([]byte,error) {
 }
 
 //Query sort by order 
-func (s *SDemoIdxWrap) QueryListByOrder(start int64, end int64) storage.Iterator {
+func (s *SDemoIdxWrap) QueryListByOrder(start int64, end int64) iservices.IDatabaseIterator {
 
 	startBuf, err := encoding.Encode(&start)
 	if err != nil {
@@ -916,7 +915,7 @@ func (s *SDemoIdxWrap) QueryListByOrder(start int64, end int64) storage.Iterator
     
 }
 //Query sort by reverse order 
-func (s *SDemoIdxWrap) QueryListByRevOrder(start int64, end int64) storage.Iterator {
+func (s *SDemoIdxWrap) QueryListByRevOrder(start int64, end int64) iservices.IDatabaseIterator {
 
 	startBuf, err := encoding.Encode(&start)
 	if err != nil {
@@ -949,7 +948,7 @@ type SDemoReplayCountWrap struct {
 	Dba iservices.IDatabaseService
 }
 
-func (s *SDemoReplayCountWrap) GetMainVal(iterator storage.Iterator) *prototype.AccountName {
+func (s *SDemoReplayCountWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.AccountName {
 	if iterator == nil || !iterator.Valid() {
 		return nil
 	}
@@ -971,7 +970,7 @@ func (s *SDemoReplayCountWrap) GetMainVal(iterator storage.Iterator) *prototype.
 
 }
 
-func (s *SDemoReplayCountWrap) GetSubVal(iterator storage.Iterator) *int64 {
+func (s *SDemoReplayCountWrap) GetSubVal(iterator iservices.IDatabaseIterator) *int64 {
 	if iterator == nil || !iterator.Valid() {
 		return nil
 	}
@@ -1021,7 +1020,7 @@ func (m *SoListDemoByReplayCount) EncodeRevSortKey() ([]byte,error) {
 }
 
 //Query sort by order 
-func (s *SDemoReplayCountWrap) QueryListByOrder(start int64, end int64) storage.Iterator {
+func (s *SDemoReplayCountWrap) QueryListByOrder(start int64, end int64) iservices.IDatabaseIterator {
 
 	startBuf, err := encoding.Encode(&start)
 	if err != nil {

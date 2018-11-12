@@ -214,7 +214,7 @@ func (c *Controller) _applyTransaction(trxWrp *prototype.TransactionWrapper) {
 	var i int32 = 0
 	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db,&i)
 	blockNum := dgpWrap.GetHeadBlockNumber()
-	if *blockNum > 0 {
+	if blockNum > 0 {
 		uniWrap := table.UniBlockSummaryObjectIdWrap{}
 		idWrap := uniWrap.UniQueryId(&trx.Trx.RefBlockNum)
 		if !idWrap.CheckExist() {
