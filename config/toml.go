@@ -23,6 +23,12 @@ HTTPPort = {{ .HTTPPort }}
 [timer]
 
 Interval = {{ .Timer.Interval }}
+
+[rpc]
+
+RPCListeners  {{ .RPCListeners }}
+HTTPLiseners  {{ .HTTPLiseners }}
+HTTPCors      {{ .HTTPCors }}
 `
 
 func WriteNodeConfigFile(configDirPath string, configName string, config node.Config, mode os.FileMode) error {
