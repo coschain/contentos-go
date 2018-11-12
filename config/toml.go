@@ -14,21 +14,17 @@ var configTemplate *template.Template
 const DefaultConfigTemplate = `# This is a TOML config file. 
 # For more information, see https://github.com/toml-lang/toml
 
-[node]
-
-DataDir = ""
-HTTPHost = "{{ .HTTPHost }}"
-HTTPPort = {{ .HTTPPort }}
+DataDir = "{{ .DataDir }}"
 
 [timer]
 
 Interval = {{ .Timer.Interval }}
 
-[rpc]
+[grpc]
 
-RPCListeners  {{ .RPCListeners }}
-HTTPLiseners  {{ .HTTPLiseners }}
-HTTPCors      {{ .HTTPCors }}
+RPCListeners = "{{ .GRPC.RPCListeners }}"
+HTTPLiseners = "{{ .GRPC.HTTPLiseners }}"
+HTTPCors = [] 
 `
 
 func WriteNodeConfigFile(configDirPath string, configName string, config node.Config, mode os.FileMode) error {

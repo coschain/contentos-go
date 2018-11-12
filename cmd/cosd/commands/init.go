@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/coschain/cobra"
 	"github.com/coschain/contentos-go/config"
-	"github.com/coschain/contentos-go/node"
 	"os"
 	"path/filepath"
 )
@@ -22,7 +21,7 @@ var InitCmd = func() *cobra.Command {
 func initConf(cmd *cobra.Command, args []string) {
 	_, _ = cmd, args
 	var err error
-	cfg := node.DefaultNodeConfig
+	cfg := config.DefaultNodeConfig
 	if cfgName == "" {
 		cfg.Name = ClientIdentifier
 	} else {

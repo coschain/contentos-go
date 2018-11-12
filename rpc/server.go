@@ -3,6 +3,7 @@ package rpc
 import (
 	"github.com/coschain/contentos-go/common/logging"
 	"github.com/coschain/contentos-go/iservices"
+	"github.com/coschain/contentos-go/iservices/service-configs"
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/rpc/pb"
 	"net"
@@ -14,16 +15,17 @@ type GRPCServer struct {
 	rpcServer *grpc.Server
 	ctx       *node.ServiceContext
 	api       *APIService
+	config    *service_configs.GRPCConfig
 }
 
-func NewGRPCServer(ctx *node.ServiceContext) (*GRPCServer, error) {
+func NewGRPCServer(ctx *node.ServiceContext, config service_configs.GRPCConfig) (*GRPCServer, error) {
 	rpc := grpc.NewServer(grpc.MaxRecvMsgSize(4096))
 
 	api := &APIService{}
 
 	grpcpb.RegisterApiServiceServer(rpc, api)
 
-	srv := &GRPCServer{rpcServer: rpc, ctx: ctx, api: api}
+	srv := &GRPCServer{rpcServer: rpc, ctx: ctx, api: api, config: &config}
 
 	return srv, nil
 }
@@ -48,7 +50,7 @@ func (gs *GRPCServer) Start(node *node.Node) error {
 
 	gs.api.mainLoop = node.MainLoop
 
-	err = gs.start("127.0.0.1:8888")
+	err = gs.start(gs.config.RPCListeners)
 	if err != nil {
 		return err
 	}

@@ -4,11 +4,6 @@ import (
 	"github.com/coschain/cobra"
 	"github.com/coschain/contentos-go/cmd/cosd/commands"
 	"os"
-	"github.com/coschain/contentos-go/node"
-	"github.com/coschain/contentos-go/rpc"
-	"github.com/coschain/contentos-go/app"
-	"eth/swarm/storage"
-	"fmt"
 )
 
 // cosd is the main entry point into the system if no special subcommand is pointed
@@ -29,28 +24,4 @@ func main() {
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
-
-	cosNode := initNode()
-
-	// register service ...
-	cosNode.Register("db",func(ctx *node.ServiceContext) (node.Service, error) {
-		return storage.New(ctx,"")
-	})
-	cosNode.Register("rpc", func(ctx *node.ServiceContext) (node.Service, error) {
-		return rpc.NewGRPCServer(ctx)
-	})
-	cosNode.Register("controller", func(ctx *node.ServiceContext) (node.Service, error) {
-		return app.NewController(ctx)
-	})
-}
-
-func initNode() *node.Node {
-	cfg := node.DefaultNodeConfig
-	cfg.Name = commands.ClientIdentifier
-	node, err := node.New(&cfg)
-	if err != nil {
-		fmt.Println("Fatal: ", err)
-		os.Exit(1)
-	}
-	return node
 }

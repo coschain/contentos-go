@@ -5,11 +5,12 @@ import (
 	"github.com/coschain/cobra"
 	ctrl "github.com/coschain/contentos-go/app"
 	"github.com/coschain/contentos-go/common"
+	"github.com/coschain/contentos-go/config"
+	"github.com/coschain/contentos-go/db/storage"
 	"github.com/coschain/contentos-go/demos/printer"
 	"github.com/coschain/contentos-go/demos/timer"
-	"github.com/coschain/contentos-go/node"
-	"github.com/coschain/contentos-go/db/storage"
 	"github.com/coschain/contentos-go/iservices"
+	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/rpc"
 	log "github.com/inconshreveable/log15"
 	"github.com/spf13/viper"
@@ -30,7 +31,7 @@ var StartCmd = func() *cobra.Command {
 }
 
 func makeNode() (*node.Node, node.Config) {
-	cfg := node.DefaultNodeConfig
+	var cfg node.Config
 	if cfgName == "" {
 		cfg.Name = ClientIdentifier
 	} else {
@@ -38,7 +39,7 @@ func makeNode() (*node.Node, node.Config) {
 	}
 	viper.SetConfigName("config")
 	viper.SetConfigType("toml")
-	confdir := filepath.Join(cfg.DataDir, cfg.Name)
+	confdir := filepath.Join(config.DefaultDataDir(), cfg.Name)
 	viper.AddConfigPath(confdir)
 	err := viper.ReadInConfig()
 	if err == nil {
@@ -80,7 +81,7 @@ func startNode(cmd *cobra.Command, args []string) {
 	})
 
 	app.Register(iservices.RPC_SERVER_NAME, func(ctx *node.ServiceContext) (node.Service, error) {
-		return rpc.NewGRPCServer(ctx)
+		return rpc.NewGRPCServer(ctx, ctx.Config().GRPC)
 	})
 
 	app.Register(iservices.DB_SERVER_NAME, func(ctx *node.ServiceContext) (node.Service, error) {

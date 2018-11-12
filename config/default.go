@@ -1,24 +1,27 @@
-package node
+package config
 
 import (
 	"github.com/coschain/contentos-go/iservices/service-configs"
+	"github.com/coschain/contentos-go/node"
 	"os"
 	"os/user"
 	"path/filepath"
 )
 
 const (
-	DefaultHTTPHost = "localhost"
-	DefaultHTTPPort = 8123
+	DefaultRPCEndPoint  = "localhost:8888"
+	DefaultHTTPEndPoint = "localhost:8080"
 )
 
 // DefaultConfig contains reasonable default settings.
-var DefaultNodeConfig = Config{
-	DataDir:  DefaultDataDir(),
-	HTTPHost: DefaultHTTPHost,
-	HTTPPort: DefaultHTTPPort,
+var DefaultNodeConfig = node.Config{
+	DataDir: DefaultDataDir(),
 	Timer: service_configs.TimerConfig{
 		Interval: 500,
+	},
+	GRPC: service_configs.GRPCConfig{
+		RPCListeners: DefaultRPCEndPoint,
+		HTTPLiseners: DefaultHTTPEndPoint,
 	},
 }
 

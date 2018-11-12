@@ -1,7 +1,6 @@
 package node
 
 import (
-	"fmt"
 	"github.com/coschain/contentos-go/iservices/service-configs"
 	log "github.com/inconshreveable/log15"
 	"path/filepath"
@@ -20,7 +19,7 @@ type Config struct {
 	Version string `toml:"-"`
 
 	// DataDir is the root folder that store data and service-configs
-	DataDir string
+	DataDir string `toml:"-"`
 
 	// HTTPHost is the host interface on which to start the HTTP RPC server.
 	HTTPHost string `toml:",omitempty"`
@@ -34,6 +33,8 @@ type Config struct {
 	// Timer configuration
 
 	Timer service_configs.TimerConfig
+
+	GRPC service_configs.GRPCConfig
 }
 
 // DB returns the path to the discovery database.
@@ -42,15 +43,6 @@ func (c *Config) NodeDB() string {
 		return ""
 	}
 	return c.ResolvePath(datadirDatabase)
-}
-
-// HTTPEndpoint resolves an HTTP endpoint based on the configured host interface
-// and port parameters.
-func (c *Config) HTTPEndpoint() string {
-	if c.HTTPHost == "" {
-		return ""
-	}
-	return fmt.Sprintf("%s:%d", c.HTTPHost, c.HTTPPort)
 }
 
 //// DefaultHTTPEndpoint returns the HTTP endpoint used by default.
