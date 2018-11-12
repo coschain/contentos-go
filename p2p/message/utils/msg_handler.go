@@ -189,7 +189,7 @@ func TransactionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID
 	var trn = data.Payload.(*msg.BroadcastSigTrx)
 
 	log.Info("receive a trx")
-	fmt.Printf("data:   +%v", trn)
+	fmt.Printf("data:   +%v\n", trn)
 
 	//actor.AddTransaction(trn.Txn)
 	//log.Trace("[p2p]receive Transaction message hash", trn.Txn.Hash())

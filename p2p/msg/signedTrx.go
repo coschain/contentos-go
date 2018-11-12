@@ -24,6 +24,6 @@ func (this *BroadcastSigTrx) Deserialization(source *comm.ZeroCopySource) error 
 	if err != nil {
 		return err
 	}
-	this = &tmp
+	*this = tmp
 	return nil
 }
