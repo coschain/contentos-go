@@ -21,9 +21,9 @@ func TestMain(m *testing.M) {
 	//logging.Init("logs	", "debug", 0)
 
 	config := service_configs.GRPCConfig{
-		RPCListeners: "localhost:8888",
-		HTTPLiseners: "localhost:8080",
-		HTTPCors:     []string{"*"},
+		RPCListen:  "127.0.0.1:8888",
+		HTTPListen: "127.0.0.1:8080",
+		HTTPCors:   []string{"*"},
 	}
 
 	gs, _ := NewGRPCServer(&node.ServiceContext{}, config)
@@ -37,7 +37,7 @@ func TestMain(m *testing.M) {
 	}
 	defer gs.Stop()
 
-	conn, err := Dial(gs.config.RPCListeners)
+	conn, err := Dial(gs.config.RPCListen)
 	if err != nil {
 		fmt.Print(err)
 	}

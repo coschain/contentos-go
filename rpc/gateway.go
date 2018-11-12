@@ -35,11 +35,11 @@ func Run(config *service_configs.GRPCConfig) error {
 	opts := []grpc.DialOption{grpc.WithInsecure(),
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(MaxGateWayRecvMsgSize))}
 
-	endpoint := flag.String(GRPCEndpointName, config.RPCListeners, GRPCEndpointUsage)
+	endpoint := flag.String(GRPCEndpointName, config.RPCListen, GRPCEndpointUsage)
 
 	grpcpb.RegisterApiServiceHandlerFromEndpoint(ctx, mux, *endpoint, opts)
 
-	err := http.ListenAndServe(config.HTTPLiseners, allowCORS(mux, config))
+	err := http.ListenAndServe(config.HTTPListen, allowCORS(mux, config))
 	if err != nil {
 		return err
 	}

@@ -55,7 +55,7 @@ func (gs *GRPCServer) Start(node *node.Node) error {
 
 	gs.api.mainLoop = node.MainLoop
 
-	err = gs.start(gs.config.RPCListeners)
+	err = gs.start(gs.config.RPCListen)
 	if err != nil {
 		return err
 	} else {

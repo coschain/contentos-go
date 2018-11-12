@@ -22,8 +22,8 @@ Interval = "{{ .Timer.Interval }}"
 
 [grpc]
 
-RPCListeners = "{{ .GRPC.RPCListeners }}"
-HTTPLiseners = "{{ .GRPC.HTTPLiseners }}"
+RPCListen = "{{ .GRPC.RPCListen }}"
+HTTPListen = "{{ .GRPC.HTTPListen }}"
 HTTPCors = "{{ .GRPC.HTTPCors }}"
 `
 

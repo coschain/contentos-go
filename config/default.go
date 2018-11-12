@@ -20,9 +20,9 @@ var DefaultNodeConfig = node.Config{
 		Interval: 500,
 	},
 	GRPC: service_configs.GRPCConfig{
-		RPCListeners: DefaultRPCEndPoint,
-		HTTPLiseners: DefaultHTTPEndPoint,
-		HTTPCors:     []string{"*"},
+		RPCListen:  DefaultRPCEndPoint,
+		HTTPListen: DefaultHTTPEndPoint,
+		HTTPCors:   []string{"*"},
 	},
 }
 
