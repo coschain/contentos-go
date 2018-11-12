@@ -420,10 +420,6 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByOrder(start {{formatStr $v.P
 	}
     bufStartkey := append({{$.ClsName}}{{$v.PName}}Table, startBuf...)
 	bufEndkey := append({{$.ClsName}}{{$v.PName}}Table, endBuf...)
-    if bytes.Compare(startBuf,endBuf) > 0 {
-       //reverse order
-       return nil
-    }
     iter := s.Dba.NewIterator(bufStartkey, bufEndkey)
     return iter
     
@@ -442,10 +438,7 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByRevOrder(start {{formatStr $
 	}
     bufStartkey := append({{$.ClsName}}{{$v.PName}}RevOrdTable, startBuf...)
 	bufEndkey := append({{$.ClsName}}{{$v.PName}}RevOrdTable, endBuf...)
-     if 1 > bytes.Compare(startBuf,endBuf) {
-       //order
-       return nil
-    }
+
     rBufStart,rErr := encoding.Complement(bufStartkey, err)
     if rErr != nil {
        return nil

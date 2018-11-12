@@ -3,7 +3,6 @@
 package table
 
 import (
-	"bytes"
 	"github.com/coschain/contentos-go/common/encoding"
      "github.com/coschain/contentos-go/common/prototype"
 	 "github.com/gogo/protobuf/proto"
@@ -654,10 +653,6 @@ func (s *SDemoPostTimeWrap) QueryListByOrder(start prototype.TimePointSec, end p
 	}
     bufStartkey := append(DemoPostTimeTable, startBuf...)
 	bufEndkey := append(DemoPostTimeTable, endBuf...)
-    if bytes.Compare(startBuf,endBuf) > 0 {
-       //reverse order
-       return nil
-    }
     iter := s.Dba.NewIterator(bufStartkey, bufEndkey)
     return iter
     
@@ -675,10 +670,7 @@ func (s *SDemoPostTimeWrap) QueryListByRevOrder(start prototype.TimePointSec, en
 	}
     bufStartkey := append(DemoPostTimeRevOrdTable, startBuf...)
 	bufEndkey := append(DemoPostTimeRevOrdTable, endBuf...)
-     if 1 > bytes.Compare(startBuf,endBuf) {
-       //order
-       return nil
-    }
+
     rBufStart,rErr := encoding.Complement(bufStartkey, err)
     if rErr != nil {
        return nil
@@ -780,10 +772,6 @@ func (s *SDemoLikeCountWrap) QueryListByOrder(start int64, end int64) iservices.
 	}
     bufStartkey := append(DemoLikeCountTable, startBuf...)
 	bufEndkey := append(DemoLikeCountTable, endBuf...)
-    if bytes.Compare(startBuf,endBuf) > 0 {
-       //reverse order
-       return nil
-    }
     iter := s.Dba.NewIterator(bufStartkey, bufEndkey)
     return iter
     
@@ -801,10 +789,7 @@ func (s *SDemoLikeCountWrap) QueryListByRevOrder(start int64, end int64) iservic
 	}
     bufStartkey := append(DemoLikeCountRevOrdTable, startBuf...)
 	bufEndkey := append(DemoLikeCountRevOrdTable, endBuf...)
-     if 1 > bytes.Compare(startBuf,endBuf) {
-       //order
-       return nil
-    }
+
     rBufStart,rErr := encoding.Complement(bufStartkey, err)
     if rErr != nil {
        return nil
@@ -906,10 +891,6 @@ func (s *SDemoIdxWrap) QueryListByOrder(start int64, end int64) iservices.IDatab
 	}
     bufStartkey := append(DemoIdxTable, startBuf...)
 	bufEndkey := append(DemoIdxTable, endBuf...)
-    if bytes.Compare(startBuf,endBuf) > 0 {
-       //reverse order
-       return nil
-    }
     iter := s.Dba.NewIterator(bufStartkey, bufEndkey)
     return iter
     
@@ -927,10 +908,7 @@ func (s *SDemoIdxWrap) QueryListByRevOrder(start int64, end int64) iservices.IDa
 	}
     bufStartkey := append(DemoIdxRevOrdTable, startBuf...)
 	bufEndkey := append(DemoIdxRevOrdTable, endBuf...)
-     if 1 > bytes.Compare(startBuf,endBuf) {
-       //order
-       return nil
-    }
+
     rBufStart,rErr := encoding.Complement(bufStartkey, err)
     if rErr != nil {
        return nil
@@ -1032,10 +1010,6 @@ func (s *SDemoReplayCountWrap) QueryListByOrder(start int64, end int64) iservice
 	}
     bufStartkey := append(DemoReplayCountTable, startBuf...)
 	bufEndkey := append(DemoReplayCountTable, endBuf...)
-    if bytes.Compare(startBuf,endBuf) > 0 {
-       //reverse order
-       return nil
-    }
     iter := s.Dba.NewIterator(bufStartkey, bufEndkey)
     return iter
     
