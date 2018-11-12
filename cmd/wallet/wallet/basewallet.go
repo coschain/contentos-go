@@ -122,11 +122,28 @@ func (w *BaseWallet) Name() string {
 	return w.name
 }
 
+func (w *BaseWallet) ChainAccount(localName string) string {
+	if acc, ok := w.locked[localName]; ok {
+		return acc.ChainAccount
+	} else {
+		return "UNKNOWN"
+	}
+}
+
+func (w *BaseWallet) SetChainAccount(localName, accountName string) error {
+	if acc, ok := w.locked[localName]; ok {
+		acc.ChainAccount = accountName
+		return nil
+	} else {
+		return AccountNotFound{LocalName: localName}
+	}
+}
+
 func (w *BaseWallet) Path() string {
 	return w.dirPath
 }
 
-func (w *BaseWallet) LoadDir() error {
+func (w *BaseWallet) LoadAll() error {
 	w.mu.RLock()
 	defer w.mu.RUnlock()
 	var err error
@@ -171,14 +188,14 @@ func (w *BaseWallet) Create(name, passphrase string) error {
 	cipher_text := base64.StdEncoding.EncodeToString(cipher_data)
 	iv_text := base64.StdEncoding.EncodeToString(iv)
 	encrypt_account := &EncryptAccount{
-		Account:    Account{Name: name, PubKey: pubKeyStr},
+		Account:    Account{Name: name, PubKey: pubKeyStr, ChainAccount: ""},
 		Cipher:     selectAESAlgorithm(PasswordLength),
 		CipherText: cipher_text,
 		Iv:         iv_text,
 		Version:    1,
 	}
 	priv_account := &PrivAccount{
-		Account: Account{Name: name, PubKey: pubKeyStr},
+		Account: Account{Name: name, PubKey: pubKeyStr, ChainAccount: encrypt_account.ChainAccount},
 		PrivKey: privKeyStr,
 	}
 	w.locked[name] = encrypt_account
@@ -251,7 +268,8 @@ func (w *BaseWallet) Unlock(name, passphrase string) error {
 			return err
 		}
 		expiredTime := time.Now().Unix() + ExpirationSeconds
-		acc := &PrivAccount{Account{Name: name, PubKey: encrypt_acc.PubKey}, string(priv_key), expiredTime}
+		acc := &PrivAccount{Account{Name: name, PubKey: encrypt_acc.PubKey, ChainAccount: encrypt_acc.ChainAccount},
+			string(priv_key), expiredTime}
 		w.unlocked[name] = acc
 		return nil
 	}

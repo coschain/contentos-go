@@ -3,6 +3,10 @@ package wallet
 type Wallet interface {
 	Name() string
 
+	SetChainAccount(localName, chainAccountName string) error
+
+	ChainAccount(localName string) string
+
 	Path() string
 
 	Create(name, passphrase string) error

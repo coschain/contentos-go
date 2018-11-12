@@ -3,8 +3,9 @@ package wallet
 // As a expediency until further implement
 
 type Account struct {
-	Name   string
-	PubKey string
+	Name         string
+	PubKey       string
+	ChainAccount string
 }
 
 type PrivAccount struct {

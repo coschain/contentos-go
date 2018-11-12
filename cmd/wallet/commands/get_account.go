@@ -1,9 +1,11 @@
 package commands
 
 import (
+	"context"
 	"fmt"
 	"github.com/coschain/cobra"
-	"github.com/coschain/contentos-go/cmd/wallet/wallet"
+	"github.com/coschain/contentos-go/common/prototype"
+	"github.com/coschain/contentos-go/rpc/pb"
 )
 
 var AccountCmd = func() *cobra.Command {
@@ -24,7 +26,16 @@ var AccountCmd = func() *cobra.Command {
 
 func getAccount(cmd *cobra.Command, args []string) {
 	_ = args
-	o := cmd.Context["wallet"]
-	_ = o.(wallet.Wallet)
-	fmt.Println("get account")
+	//w := cmd.Context["wallet"]
+	//mywallet := w.(*wallet.BaseWallet)
+	c := cmd.Context["rpcclient"]
+	client := c.(grpcpb.ApiServiceClient)
+	name := args[0]
+	req := &grpcpb.GetAccountByNameRequest{AccountName: &prototype.AccountName{Value: name}}
+	resp, err := client.GetAccountByName(context.Background(), req)
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println(fmt.Sprintf("GetAccountByName detail: %s", resp.AccountName))
+	}
 }

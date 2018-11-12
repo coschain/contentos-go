@@ -5,6 +5,8 @@ import (
 	"github.com/coschain/cobra"
 	"github.com/coschain/contentos-go/cmd/wallet/commands"
 	"github.com/coschain/contentos-go/cmd/wallet/wallet"
+	"github.com/coschain/contentos-go/rpc"
+	"github.com/coschain/contentos-go/rpc/pb"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -93,19 +95,27 @@ func addCommands() {
 }
 
 func init() {
-
 	addCommands()
-
-	localWallet := wallet.NewBaseWallet("default", DefaultDataDir())
-	localWallet.Start()
-	rootCmd.SetContext("wallet", localWallet)
-	inheritContext(rootCmd)
 	rootCmd.Run = func(cmd *cobra.Command, args []string) {
 		runShell()
 	}
 }
 
 func main() {
+	localWallet := wallet.NewBaseWallet("default", DefaultDataDir())
+	localWallet.Start()
+	rootCmd.SetContext("wallet", localWallet)
+	defer localWallet.Close()
+
+	conn, err := rpc.Dial("localhost:8888")
+	defer conn.Close()
+	if err != nil {
+		rootCmd.SetContext("rpcclient", nil)
+	} else {
+		rootCmd.SetContext("rpcclient", grpcpb.NewApiServiceClient(conn))
+	}
+
+	inheritContext(rootCmd)
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}

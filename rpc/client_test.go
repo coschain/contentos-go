@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/coschain/contentos-go/common/logging"
 	"github.com/coschain/contentos-go/common/prototype"
+	"github.com/coschain/contentos-go/iservices/service-configs"
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/rpc/pb"
 	"io/ioutil"
@@ -19,7 +20,8 @@ var asc grpcpb.ApiServiceClient
 func TestMain(m *testing.M) {
 	//logging.Init("logs	", "debug", 0)
 
-	gs, _ := NewGRPCServer(&node.ServiceContext{})
+	gs, _ := NewGRPCServer(&node.ServiceContext{},
+		service_configs.GRPCConfig{RPCListeners: "localhost:8888", HTTPLiseners: "localhost:8080"})
 	err := gs.Start(&node.Node{})
 	if err != nil {
 		fmt.Print(err)
