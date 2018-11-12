@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"github.com/coschain/contentos-go/common/logging"
+	"github.com/coschain/contentos-go/iservices/service-configs"
 	"github.com/coschain/contentos-go/rpc/pb"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/rs/cors"
@@ -19,9 +20,11 @@ const (
 	DefaultHTTPLimit = 128
 	// MaxGateWayRecvMsgSize Deafult max message size  gateway's grpc client can receive
 	MaxGateWayRecvMsgSize = 64 * 1024 * 1024
+	GRPCEndpointName      = "rpc"
+	GRPCEndpointUsage     = ""
 )
 
-func Run() error {
+func Run(config *service_configs.GRPCConfig) error {
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -32,11 +35,11 @@ func Run() error {
 	opts := []grpc.DialOption{grpc.WithInsecure(),
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(MaxGateWayRecvMsgSize))}
 
-	endpoint := flag.String("rpc", "127.0.0.1:8888", "")
+	endpoint := flag.String(GRPCEndpointName, config.RPCListeners, GRPCEndpointUsage)
 
 	grpcpb.RegisterApiServiceHandlerFromEndpoint(ctx, mux, *endpoint, opts)
 
-	err := http.ListenAndServe("127.0.0.1:8080", allowCORS(mux))
+	err := http.ListenAndServe(config.HTTPLiseners, allowCORS(mux, config))
 	if err != nil {
 		return err
 	}
@@ -44,9 +47,9 @@ func Run() error {
 	return nil
 }
 
-func allowCORS(h http.Handler) http.Handler {
+func allowCORS(h http.Handler, config *service_configs.GRPCConfig) http.Handler {
 	httpLimit := 128
-	if httpLimit == 0 {
+	if httpLimit == config.HTTPLimit {
 		httpLimit = DefaultHTTPLimit
 	}
 	httpCh := make(chan bool, httpLimit)
@@ -54,7 +57,7 @@ func allowCORS(h http.Handler) http.Handler {
 	c := cors.New(cors.Options{
 		AllowedHeaders: []string{"Content-Type", "Accept"},
 		AllowedMethods: []string{"GET", "HEAD", "POST", "PUT", "DELETE"},
-		AllowedOrigins: []string{"*"},
+		AllowedOrigins: config.HTTPCors,
 		MaxAge:         600,
 	})
 
@@ -62,7 +65,7 @@ func allowCORS(h http.Handler) http.Handler {
 		select {
 		case httpCh <- true:
 			defer func() { <-httpCh }()
-			if len([]string{"*"}) == 0 {
+			if len(config.HTTPCors) == 0 {
 				h.ServeHTTP(w, r)
 			} else {
 				c.Handler(h).ServeHTTP(w, r)

@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	DefaultRPCEndPoint  = "localhost:8888"
-	DefaultHTTPEndPoint = "localhost:8080"
+	DefaultRPCEndPoint  = "127.0.0.1:8888"
+	DefaultHTTPEndPoint = "127.0.0.1:8080"
 )
 
 // DefaultConfig contains reasonable default settings.
@@ -22,6 +22,7 @@ var DefaultNodeConfig = node.Config{
 	GRPC: service_configs.GRPCConfig{
 		RPCListeners: DefaultRPCEndPoint,
 		HTTPLiseners: DefaultHTTPEndPoint,
+		HTTPCors:     []string{"*"},
 	},
 }
 

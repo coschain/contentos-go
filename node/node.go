@@ -17,8 +17,8 @@ import (
 type Node struct {
 	config *Config
 
-	MainLoop 	*eventloop.EventLoop
-	EvBus 		EventBus.Bus
+	MainLoop *eventloop.EventLoop
+	EvBus    EventBus.Bus
 
 	services     map[string]Service
 	serviceFuncs []NamedServiceConstructor // registered services store into this slice
@@ -78,8 +78,8 @@ func (n *Node) Start() error {
 
 	// which confs should be assigned to p2p configuration
 
-	n.MainLoop 	= eventloop.NewEventLoop()
-	n.EvBus		= EventBus.New()
+	n.MainLoop = eventloop.NewEventLoop()
+	n.EvBus = EventBus.New()
 
 	services := make(map[string]Service)
 
@@ -134,7 +134,6 @@ func (n *Node) openDataDir() error {
 
 	return nil
 }
-
 
 func (n *Node) Stop() error {
 	n.lock.Lock()

@@ -11,6 +11,11 @@ import (
 	"google.golang.org/grpc"
 )
 
+const (
+	GRPCMaxRecvMsgSize = 4096
+	GRPCServerType     = "tcp"
+)
+
 type GRPCServer struct {
 	rpcServer *grpc.Server
 	ctx       *node.ServiceContext
@@ -19,7 +24,7 @@ type GRPCServer struct {
 }
 
 func NewGRPCServer(ctx *node.ServiceContext, config service_configs.GRPCConfig) (*GRPCServer, error) {
-	rpc := grpc.NewServer(grpc.MaxRecvMsgSize(4096))
+	rpc := grpc.NewServer(grpc.MaxRecvMsgSize(GRPCMaxRecvMsgSize))
 
 	api := &APIService{}
 
@@ -53,12 +58,14 @@ func (gs *GRPCServer) Start(node *node.Node) error {
 	err = gs.start(gs.config.RPCListeners)
 	if err != nil {
 		return err
+	} else {
+		logging.CLog().Info("GPRC server start ...")
 	}
 	return nil
 }
 
 func (gs *GRPCServer) start(addr string) error {
-	listener, err := net.Listen("tcp", addr)
+	listener, err := net.Listen(GRPCServerType, addr)
 	if err != nil {
 		logging.VLog().Errorf("grpc listener addr: [%s] failure", addr)
 	}
@@ -81,7 +88,7 @@ func (gs *GRPCServer) Stop() error {
 
 func (gs *GRPCServer) RunGateway() error {
 	go func() {
-		if err := Run(); err != nil {
+		if err := Run(gs.config); err != nil {
 			logging.VLog().Error("rpc gateway start failure")
 		} else {
 			logging.VLog().Info("rpc gateway start failure")

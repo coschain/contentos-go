@@ -18,13 +18,13 @@ DataDir = "{{ .DataDir }}"
 
 [timer]
 
-Interval = {{ .Timer.Interval }}
+Interval = "{{ .Timer.Interval }}"
 
 [grpc]
 
 RPCListeners = "{{ .GRPC.RPCListeners }}"
 HTTPLiseners = "{{ .GRPC.HTTPLiseners }}"
-HTTPCors = [] 
+HTTPCors = "{{ .GRPC.HTTPCors }}"
 `
 
 func WriteNodeConfigFile(configDirPath string, configName string, config node.Config, mode os.FileMode) error {
