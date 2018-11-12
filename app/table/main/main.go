@@ -51,6 +51,7 @@ func main() {
 	 	LikeCount:1,
 	 	Taglist:"#NBA",
 	 	ReplayCount:100,
+		PostTime:prototype.MakeTimeSecondPoint(20120401),
 	 }
 
 	 //3.save table data to db
@@ -105,8 +106,8 @@ func main() {
 	 tSortWrap := table.SDemoPostTimeWrap{}
 	tSortWrap.Dba = db
 	 //2.start query data of range(sort by order)
-	 iter := tSortWrap.QueryListByOrder(*prototype.MakeTimeSecondPoint(20136666),
-	 	*prototype.MakeTimeSecondPoint(20136688))
+	 iter := tSortWrap.QueryListByOrder(*prototype.MakeTimeSecondPoint(20120401),
+	 	*prototype.MakeTimeSecondPoint(20120401))
 	 //we can get the main key and sub key by the returned iterator
 	 //if query by order the start value can't greater than end value
 	 if iter != nil {
@@ -115,6 +116,8 @@ func main() {
 			mKeyPtr := tSortWrap.GetMainVal(iter)
 			if mKeyPtr == nil {
 				fmt.Println("get main key fail")
+			}else {
+				fmt.Printf("the main key is %s in range \n",mKeyPtr.Value)
 			}
 			//get subKey value (the postTime value)
 			mSubPtr := tSortWrap.GetSubVal(iter)
@@ -124,7 +127,7 @@ func main() {
 		}
 
 	 }else {
-	 	log.Println("there is no data exist in range")
+	 	fmt.Println("there is no data exist in range")
 	 }
 	 //query by reverse order
 	iter1 := tSortWrap.QueryListByOrder(*prototype.MakeTimeSecondPoint(20136688),
@@ -144,7 +147,7 @@ func main() {
 		}
 
 	}else {
-		log.Println("there is no data exist in range")
+		fmt.Println("there is no data exist in range1")
 	}
 
      //query single value but not a range,start and end set the same value
@@ -162,20 +165,27 @@ func main() {
 	  unique Query List (only support query the property which is flag unique)
 	 --------------------------*/
 	 //1.create the uni wrap of property which is need unique query
-	 var idx int64 = 100
+	 var idx int64 = 1000
+	 //create the UniXXXWrap
 	 uniWrap := table.UniDemoIdxWrap{}
+	 //set the dataBase to UniXXXWrap
+	 uniWrap.Dba = db
 	 //2.use UniQueryXX func to query data meanWhile return the table wrap
-	  dWrap := uniWrap.UniQueryIdx(&idx)
-	  title := dWrap.GetTitle()
-	  fmt.Printf("the title of index is %s",title)
+	 dWrap := uniWrap.UniQueryIdx(&idx)
+	 if dWrap == nil {
+	 	fmt.Printf("uni query fail")
+	 }else {
+		 title := dWrap.GetTitle()
+		 fmt.Printf("the title of index is %s",title)
+	 }
 
-	  //unique query mainkey(E.g query owner)
-	   mUniWrap := table.UniDemoOwnerWrap{}
-	   //
-	   wrap1 := mUniWrap.UniQueryOwner(prototype.MakeAccountName("test"))
-	   if wrap1 != nil {
-	   	  fmt.Printf("owner is test,the idx is %d",wrap1.GetIdx())
-	   }
+	//unique query mainkey(E.g query owner)
+	mUniWrap := table.UniDemoOwnerWrap{}
+	mUniWrap.Dba = db
+	wrap1 := mUniWrap.UniQueryOwner(prototype.MakeAccountName("test"))
+	if wrap1 != nil {
+		fmt.Printf("owner is test,the idx is %d",wrap1.GetIdx())
+	}
 
 	  /*
 	    remove tabale data from db
@@ -185,7 +195,7 @@ func main() {
 	  if isExsit {
 	  	 res := wrap.RemoveDemo()
 	  	 if !res {
-	  	 	fmt.Println("remove the table data faile")
+	  	 	fmt.Println("remove the table data fail")
 		 }
 	  }
 

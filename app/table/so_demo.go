@@ -1108,6 +1108,7 @@ func (s *SoDemoWrap) delUniKeyIdx(sa *SoDemo) bool {
 
 func (s *SoDemoWrap) insertUniKeyIdx(sa *SoDemo) bool {
     uniWrap  := UniDemoIdxWrap{}
+     uniWrap.Dba = s.dba
    
     
    	res := uniWrap.UniQueryIdx(&sa.Idx)
@@ -1187,6 +1188,7 @@ func (s *SoDemoWrap) delUniKeyLikeCount(sa *SoDemo) bool {
 
 func (s *SoDemoWrap) insertUniKeyLikeCount(sa *SoDemo) bool {
     uniWrap  := UniDemoLikeCountWrap{}
+     uniWrap.Dba = s.dba
    
     
    	res := uniWrap.UniQueryLikeCount(&sa.LikeCount)
@@ -1266,6 +1268,7 @@ func (s *SoDemoWrap) delUniKeyOwner(sa *SoDemo) bool {
 
 func (s *SoDemoWrap) insertUniKeyOwner(sa *SoDemo) bool {
     uniWrap  := UniDemoOwnerWrap{}
+     uniWrap.Dba = s.dba
    
    
     

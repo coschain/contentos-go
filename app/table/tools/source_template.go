@@ -528,6 +528,7 @@ func (s *So{{$.ClsName}}Wrap) delUniKey{{$k}}(sa *So{{$.ClsName}}) bool {
 
 func (s *So{{$.ClsName}}Wrap) insertUniKey{{$k}}(sa *So{{$.ClsName}}) bool {
     uniWrap  := Uni{{$.ClsName}}{{$k}}Wrap{}
+     uniWrap.Dba = s.dba
    {{$baseType := (DetectBaseType $v) }}
    {{if $baseType}} 
    	res := uniWrap.UniQuery{{$k}}(&sa.{{UperFirstChar $k}})
