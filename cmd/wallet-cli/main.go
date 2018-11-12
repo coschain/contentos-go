@@ -3,8 +3,8 @@ package main
 import (
 	"github.com/chzyer/readline"
 	"github.com/coschain/cobra"
-	"github.com/coschain/contentos-go/cmd/wallet/commands"
-	"github.com/coschain/contentos-go/cmd/wallet/wallet"
+	"github.com/coschain/contentos-go/cmd/wallet-cli/commands"
+	"github.com/coschain/contentos-go/cmd/wallet-cli/wallet"
 	"github.com/coschain/contentos-go/rpc"
 	"github.com/coschain/contentos-go/rpc/pb"
 	"os"
@@ -14,8 +14,8 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "wallet",
-	Short: "wallet is a key-pair storage",
+	Use:   "wallet-cli",
+	Short: "wallet-cli is a key-pair storage",
 }
 
 func pcFromCommands(parent readline.PrefixCompleterInterface, c *cobra.Command) {
@@ -104,7 +104,7 @@ func init() {
 func main() {
 	localWallet := wallet.NewBaseWallet("default", DefaultDataDir())
 	localWallet.Start()
-	rootCmd.SetContext("wallet", localWallet)
+	rootCmd.SetContext("wallet-cli", localWallet)
 	defer localWallet.Close()
 
 	conn, err := rpc.Dial("localhost:8888")

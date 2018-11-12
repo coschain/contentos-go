@@ -26,8 +26,8 @@ var AccountCmd = func() *cobra.Command {
 
 func getAccount(cmd *cobra.Command, args []string) {
 	_ = args
-	//w := cmd.Context["wallet"]
-	//mywallet := w.(*wallet.BaseWallet)
+	//w := cmd.Context["wallet-cli"]
+	//mywallet := w.(*wallet-cli.BaseWallet)
 	c := cmd.Context["rpcclient"]
 	client := c.(grpcpb.ApiServiceClient)
 	name := args[0]

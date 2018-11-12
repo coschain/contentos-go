@@ -47,7 +47,7 @@ func GetConfirmedPassword() ([]byte, error) {
 	return first, nil
 }
 
-// GetPassword gets node's wallet password from command line or user input
+// GetPassword gets node's wallet-cli password from command line or user input
 func GetAccountPassword() ([]byte, error) {
 	var passwd []byte
 	var err error
