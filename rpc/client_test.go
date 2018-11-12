@@ -20,8 +20,13 @@ var asc grpcpb.ApiServiceClient
 func TestMain(m *testing.M) {
 	//logging.Init("logs	", "debug", 0)
 
-	gs, _ := NewGRPCServer(&node.ServiceContext{},
-		service_configs.GRPCConfig{RPCListeners: "localhost:8888", HTTPLiseners: "localhost:8080"})
+	config := service_configs.GRPCConfig{
+		RPCListeners: "localhost:8888",
+		HTTPLiseners: "localhost:8080",
+		HTTPCors:     []string{"*"},
+	}
+
+	gs, _ := NewGRPCServer(&node.ServiceContext{}, config)
 	err := gs.Start(&node.Node{})
 	if err != nil {
 		fmt.Print(err)
@@ -32,8 +37,7 @@ func TestMain(m *testing.M) {
 	}
 	defer gs.Stop()
 
-	addr := fmt.Sprintf("127.0.0.1:%d", uint32(8888))
-	conn, err := Dial(addr)
+	conn, err := Dial(gs.config.RPCListeners)
 	if err != nil {
 		fmt.Print(err)
 	}
