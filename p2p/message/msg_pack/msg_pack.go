@@ -1,7 +1,7 @@
 package msgpack
 
 import (
-	"github.com/coschain/contentos-go/common/prototype"
+	"github.com/coschain/contentos-go/prototype"
 	"time"
 
 	msgCommon "github.com/coschain/contentos-go/p2p/common"

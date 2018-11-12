@@ -49,7 +49,7 @@ package table
 
 import (
 	"github.com/coschain/contentos-go/common/encoding"
-     "github.com/coschain/contentos-go/common/prototype"
+     "github.com/coschain/contentos-go/prototype"
 	 "github.com/gogo/protobuf/proto"
      "github.com/coschain/contentos-go/iservices"
 )

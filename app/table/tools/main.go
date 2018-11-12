@@ -242,7 +242,7 @@ syntax = "proto3";
 
 package table;
 
-import "github.com/coschain/contentos-go/common/prototype/type.proto";
+import "github.com/coschain/contentos-go/prototype/type.proto";
 
 message so_{{.Name}} {
 	{{range $k,$v := .PList}}

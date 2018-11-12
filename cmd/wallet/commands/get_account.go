@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/coschain/cobra"
-	"github.com/coschain/contentos-go/common/prototype"
+	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/rpc/pb"
 )
 

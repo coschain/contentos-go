@@ -5,7 +5,7 @@ package grpcpb
 
 import (
 	fmt "fmt"
-	prototype "github.com/coschain/contentos-go/common/prototype"
+	prototype "github.com/coschain/contentos-go/prototype"
 	proto "github.com/golang/protobuf/proto"
 	context "golang.org/x/net/context"
 	_ "google.golang.org/genproto/googleapis/api/annotations"

@@ -1,7 +1,7 @@
 package types
 
 import (
-	"github.com/coschain/contentos-go/common/prototype"
+	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/p2p/common"
 	comm "github.com/coschain/contentos-go/p2p/depend/common"
 )

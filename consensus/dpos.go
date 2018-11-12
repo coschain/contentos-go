@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/coschain/contentos-go/common"
-	"github.com/coschain/contentos-go/common/prototype"
+	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/config"
 	"github.com/coschain/contentos-go/db/forkdb"
 )
@@ -73,7 +73,7 @@ func (d *DPoS) start() {
 			}
 			b, err := d.GenerateBlock()
 			if err != nil {
-				d.AddBlock(b)
+				d.PushBlock(b)
 				// TODO: broadcast block
 			}
 		}
@@ -138,7 +138,7 @@ func (d *DPoS) PushBlock(b common.ISignedBlock) error {
 		return err
 	}
 
-	if bytes.Equal(b.GetSignee().Data, d.Producers[d.activeNum-1].PubKey.Data) {
+	if bytes.Equal(b.GetSignee().(*prototype.PublicKeyType).Data, d.Producers[d.activeNum-1].PubKey.Data) {
 		d.shuffle()
 	}
 	return nil

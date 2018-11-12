@@ -3,7 +3,7 @@ package rpc
 import (
 	"fmt"
 	"github.com/coschain/contentos-go/common/eventloop"
-	"github.com/coschain/contentos-go/common/prototype"
+	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/rpc/pb"
 	context "golang.org/x/net/context"

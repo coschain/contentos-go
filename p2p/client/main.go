@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/coschain/contentos-go/common/prototype"
+	"github.com/coschain/contentos-go/prototype"
 //	"github.com/coschain/contentos-go/p2p/message/msg_pack"
 	"time"
 

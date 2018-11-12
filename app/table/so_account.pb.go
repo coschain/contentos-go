@@ -5,7 +5,7 @@ package table
 
 import (
 	fmt "fmt"
-	prototype "github.com/coschain/contentos-go/common/prototype"
+	prototype "github.com/coschain/contentos-go/prototype"
 	proto "github.com/golang/protobuf/proto"
 	math "math"
 )

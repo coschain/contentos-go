@@ -24,18 +24,19 @@ func (bid BlockID) BlockNum() uint64 {
 // BlockHeader ...
 type IBlockHeader interface {
 	Previous() BlockID
+	Timestamp() uint32
 }
 
 // SignedBlockHeader ...
 type ISignedBlockHeader interface {
+	IBlockHeader
 	Id() BlockID
+	GetSignee() interface{}
 }
 
 // SignedBlock ...
 type ISignedBlock interface {
-	IBlockHeader
 	ISignedBlockHeader
-	GetSignee() interface{}
 	Marshaller
 }
 

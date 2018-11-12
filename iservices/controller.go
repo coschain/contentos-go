@@ -1,7 +1,7 @@
 package iservices
 
 import (
-	"github.com/coschain/contentos-go/common/prototype"
+	"github.com/coschain/contentos-go/prototype"
 )
 
 //

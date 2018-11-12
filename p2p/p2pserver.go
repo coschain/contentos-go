@@ -27,7 +27,7 @@ import (
 	p2pnet "github.com/coschain/contentos-go/p2p/net/protocol"
 	"github.com/coschain/contentos-go/p2p/peer"
 
-	"github.com/coschain/contentos-go/common/prototype"
+	"github.com/coschain/contentos-go/prototype"
 )
 
 //P2PServer control all network activities

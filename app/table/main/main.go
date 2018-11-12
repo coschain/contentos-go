@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/coschain/contentos-go/app/table"
-	"github.com/coschain/contentos-go/common/prototype"
+	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/db/storage"
 	"log"
 )

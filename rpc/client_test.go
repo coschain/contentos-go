@@ -5,7 +5,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/coschain/contentos-go/common/logging"
-	"github.com/coschain/contentos-go/common/prototype"
+	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/iservices/service-configs"
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/rpc/pb"
