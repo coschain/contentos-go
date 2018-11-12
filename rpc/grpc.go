@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"fmt"
+	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common/eventloop"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/iservices"
@@ -16,9 +17,19 @@ type APIService struct {
 }
 
 func (as *APIService) GetAccountByName(ctx context.Context, req *grpcpb.GetAccountByNameRequest) (*grpcpb.AccountResponse, error) {
-	account := &grpcpb.AccountResponse{AccountName: &prototype.AccountName{Value: req.AccountName.Value}}
 
-	return account, nil
+	accWrap := table.NewSoAccountWrap(as.db, req.AccountName)
+	acct := &grpcpb.AccountResponse{}
+
+	if accWrap.CheckExist() {
+		acct.AccountName = &prototype.AccountName{Value: accWrap.GetName().Value}
+		acct.Coin = accWrap.GetBalance()
+		acct.Vest = accWrap.GetVestingShares()
+		//acct.PublicKeys = accWrap.GetPubKey()
+		acct.CreatedTime = accWrap.GetCreatedTime()
+	}
+
+	return acct, nil
 }
 
 func (as *APIService) GetFollowerListByName(ctx context.Context, req *grpcpb.GetFollowerListByNameRequest) (*grpcpb.GetFollowerListByNameResponse, error) {

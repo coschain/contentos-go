@@ -23,5 +23,5 @@ type AccountNotFound struct {
 }
 
 func (e AccountNotFound) Error() string {
-	return fmt.Sprintf("%s is not found in wallet try to load or create", e.LocalName)
+	return fmt.Sprintf("%s is not found in wallet-cli try to load or create", e.LocalName)
 }

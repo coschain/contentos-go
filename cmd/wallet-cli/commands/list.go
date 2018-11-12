@@ -3,7 +3,7 @@ package commands
 import (
 	"fmt"
 	"github.com/coschain/cobra"
-	"github.com/coschain/contentos-go/cmd/wallet/wallet"
+	"github.com/coschain/contentos-go/cmd/wallet-cli/wallet"
 )
 
 var ListCmd = func() *cobra.Command {
@@ -17,7 +17,7 @@ var ListCmd = func() *cobra.Command {
 
 func list(cmd *cobra.Command, args []string) {
 	_ = args
-	o := cmd.Context["wallet"]
+	o := cmd.Context["wallet-cli"]
 	w := o.(wallet.Wallet)
 	lines := w.List()
 	for _, line := range lines {

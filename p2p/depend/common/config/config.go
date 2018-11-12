@@ -14,13 +14,12 @@ var Version = "" //Set value when build project
 
 const (
 	DEFAULT_CONFIG_FILE_NAME = "./config.json"
-	DEFAULT_WALLET_FILE_NAME = "./wallet.dat"
+	DEFAULT_WALLET_FILE_NAME = "./wallet-cli.dat"
 	MIN_GEN_BLOCK_TIME       = 2
 	DEFAULT_GEN_BLOCK_TIME   = 6
 	DBFT_MIN_NODE_NUM        = 4 //min node number of dbft consensus
 	SOLO_MIN_NODE_NUM        = 1 //min node number of solo consensus
 	VBFT_MIN_NODE_NUM        = 4 //min node number of vbft consensus
-
 
 	DEFAULT_LOG_LEVEL                       = log.InfoLog
 	DEFAULT_MAX_LOG_SIZE                    = 100 //MByte
@@ -103,7 +102,7 @@ type GenesisConfig struct {
 
 func NewGenesisConfig() *GenesisConfig {
 	return &GenesisConfig{
-		SeedList:      make([]string, 0),
+		SeedList: make([]string, 0),
 	}
 }
 

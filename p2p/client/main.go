@@ -8,7 +8,7 @@ import (
 
 	myp2p "github.com/coschain/contentos-go/p2p"
 	"github.com/coschain/contentos-go/p2p/common"
-//	conn "github.com/coschain/contentos-go/p2p/depend/common"
+	//	conn "github.com/coschain/contentos-go/p2p/depend/common"
 	"github.com/coschain/contentos-go/p2p/depend/common/log"
 )
 
@@ -40,12 +40,15 @@ func main() {
 //		tmp[2] = 188
 //		p2p.Xmit(tmp)
 
+		// Broadcast signedTransaction
+		trx := &prototype.Transaction{
+			RefBlockNum:    1,
+			RefBlockPrefix: 2,
+		}
 
-		var trx prototype.SignedTransaction
-		//trx.Trx.RefBlockNum = 1
-		//trx.Trx.RefBlockPrefix = 2
-		//msg := msgpack.NewTxn(&trx)
-		p2p.Xmit(&trx)
+		sigtrx := new(prototype.SignedTransaction)
+		sigtrx.Trx = trx
+		p2p.Xmit(sigtrx)
 	}
 
 	if p2p.GetVersion() != common.PROTOCOL_VERSION {

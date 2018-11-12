@@ -132,8 +132,8 @@ func (this *P2PServer) Xmit(message interface{}) error {
 	switch message.(type) {
 	case *prototype.SignedTransaction:
 		log.Debug("[p2p]TX transaction message")
-		txn := message.(*prototype.SignedTransaction)
-		msg = msgpack.NewTxn(txn)
+		sigtrx := message.(*prototype.SignedTransaction)
+		msg = msgpack.NewTxn(sigtrx)
 	case *types.Block:
 		log.Debug("[p2p]TX block message")
 		block := message.(*types.Block)

@@ -11,6 +11,7 @@ import (
 	ct "github.com/coschain/contentos-go/p2p/depend/core/types"
 	mt "github.com/coschain/contentos-go/p2p/message/types"
 	p2pnet "github.com/coschain/contentos-go/p2p/net/protocol"
+	"github.com/coschain/contentos-go/p2p/msg"
 )
 
 //Peer address package
@@ -115,8 +116,8 @@ func NewPongMsg(height uint64) *mt.Pong {
 //Transaction package
 func NewTxn(txn *prototype.SignedTransaction) mt.Message {
 	log.Trace()
-	var trn mt.Trn
-	trn.Txn = txn
+	var trn msg.BroadcastSigTrx
+	trn.SigTrx = txn
 
 	return &trn
 }

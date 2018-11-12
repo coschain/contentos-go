@@ -1,7 +1,10 @@
 package utils
 
 import (
+	"fmt"
 	"github.com/coschain/contentos-go/p2p/depend/core/types"
+	"github.com/coschain/contentos-go/p2p/msg"
+
 	//"errors"
 	//"fmt"
 	"net"
@@ -183,9 +186,10 @@ func NotFoundHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, a
 func TransactionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
 	log.Trace("[p2p]receive transaction message", data.Addr, data.Id)
 
-	//var trn = data.Payload.(*msgTypes.Trn)
+	var trn = data.Payload.(*msg.BroadcastSigTrx)
 
 	log.Info("receive a trx")
+	fmt.Printf("data:   +%v", trn)
 
 	//actor.AddTransaction(trn.Txn)
 	//log.Trace("[p2p]receive Transaction message hash", trn.Txn.Hash())
