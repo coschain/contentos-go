@@ -4,11 +4,10 @@ import (
 	"github.com/coschain/contentos-go/node"
 )
 
-
 var RPC_SERVER_NAME = "rpc"
 
 type RPCServer interface {
-	Start(config *node.Config) error
+	Start(node *node.Node) error
 	Stop() error
 	RunGateway() error
 }

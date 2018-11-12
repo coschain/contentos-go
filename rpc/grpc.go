@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"github.com/coschain/contentos-go/common/eventloop"
 	"github.com/coschain/contentos-go/common/prototype"
+	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/rpc/pb"
 	context "golang.org/x/net/context"
-	"github.com/coschain/contentos-go/iservices"
 )
 
 type APIService struct {
-	ctrl 		iservices.IController
-	mainLoop 	*eventloop.EventLoop
+	ctrl     iservices.IController
+	mainLoop *eventloop.EventLoop
 }
 
 func (as *APIService) GetAccountByName(ctx context.Context, req *grpcpb.GetAccountByNameRequest) (*grpcpb.AccountResponse, error) {

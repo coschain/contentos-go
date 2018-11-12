@@ -20,6 +20,7 @@ func NewGRPCServer(ctx *node.ServiceContext) (*GRPCServer, error) {
 	rpc := grpc.NewServer(grpc.MaxRecvMsgSize(4096))
 
 	api := &APIService{}
+
 	grpcpb.RegisterApiServiceServer(rpc, api)
 
 	srv := &GRPCServer{rpcServer: rpc, ctx: ctx, api: api}
@@ -32,10 +33,12 @@ func (gs *GRPCServer) Start(node *node.Node) error {
 	s, err := gs.ctx.Service(iservices.CTRL_SERVER_NAME)
 
 	if err != nil {
-		return err
+		// TODO Mock Test
+		//return err
+	} else {
+		gs.api.ctrl = s.(iservices.IController)
+		gs.api.mainLoop = node.MainLoop
 	}
-	gs.api.ctrl = s.(iservices.IController)
-	gs.api.mainLoop = node.MainLoop
 
 	err = gs.start("127.0.0.1:8888")
 	if err != nil {
