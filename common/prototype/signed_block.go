@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"errors"
+
 	"github.com/coschain/contentos-go/common"
 	"github.com/gogo/protobuf/proto"
 )
@@ -61,6 +62,11 @@ func (sb *SignedBlock) Hash() (hash [Size]byte) {
 	data, _ := proto.Marshal(sb)
 	hash = sha256.Sum256(data)
 	return
+}
+
+func (sb *SignedBlock) GetSignee() interface{} {
+	// TODO: get pub key
+	return nil
 }
 
 func (sbh *SignedBlockHeader) Hash() (hash [Size]byte) {

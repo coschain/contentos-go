@@ -5,37 +5,39 @@ import (
 	//"github.com/coschain/contentos-go/proto/type-proto"
 )
 
-type ConsensusIF interface {
+type IConsensus interface {
 	// CurrentProducer returns current producer
-	CurrentProducer() ProducerIF
+	CurrentProducer() IProducer
 	// ActiveProducers returns a list of accounts that actively produce blocks
-	ActiveProducers() []ProducerIF
+	ActiveProducers() []IProducer
+	// InitProducer sets the prod as the default producer, further producers
+	// should be maintained by the specific Consensus algorithm
+	InitProducer(prod string)
 
 	// Start starts the consensus process
 	Start()
 	// Stop stops the consensus process
 	Stop()
 	// GenerateBlock generates a new block, possible implementation: Producer.Produce()
-	GenerateBlock() error
+	GenerateBlock() (common.ISignedBlock, error)
 	// PushTransaction accepts the trx if and only if
 	// 1. it's valid
 	// 2. the current node is a producer
-	PushTransaction(trx common.SignedTransactionIF)
-	// ValidateBlock returns true if b is direct successor of any fork chain
-	ValidateBlock(b common.SignedBlockIF) bool
-	// AddBlock adds b to the block fork DB, called if ValidateBlock returns true
-	AddBlock(b common.SignedBlockIF) error
+	// PushTransaction(trx common.ISignedTransaction)
+
+	// PushBlock adds b to the block fork DB, called if ValidateBlock returns true
+	PushBlock(b common.ISignedBlock) error
 	// RemoveBlock removes a block and its successor from the block fork DB
 	RemoveBlock(bh common.BlockID)
 	// ForkRoot returns the common accesstor of two forks
 	ForkRoot(fork1, fork2 common.BlockID) common.BlockID
 
 	// apply the state change, called if b is the head block of the longest chain
-	applyBlock(b common.SignedBlockIF) error
+	applyBlock(b common.ISignedBlock) error
 	// undo state change
 	revertBlock(height int) error
 }
 
-type ProducerIF interface {
-	Produce() (common.SignedBlockIF, error)
+type IProducer interface {
+	Produce() (common.ISignedBlock, error)
 }

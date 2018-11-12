@@ -17,21 +17,21 @@ type DB struct {
 	head   common.BlockID
 
 	list     [][]common.BlockID
-	branches map[common.BlockID]common.SignedBlockIF
+	branches map[common.BlockID]common.ISignedBlock
 
-	// previous BlockID ===> SignedBlockIF
-	detachedLink map[common.BlockID]common.SignedBlockIF
+	// previous BlockID ===> ISignedBlock
+	detachedLink map[common.BlockID]common.ISignedBlock
 
-	//detached map[common.BlockID]common.SignedBlockIF
+	//detached map[common.BlockID]common.ISignedBlock
 }
 
 // NewDB ...
 func NewDB() *DB {
 	return &DB{
 		list:         make([][]common.BlockID, maxSize*2+1),
-		branches:     make(map[common.BlockID]common.SignedBlockIF),
-		detachedLink: make(map[common.BlockID]common.SignedBlockIF),
-		//detached:     make(map[common.BlockID]common.SignedBlockIF),
+		branches:     make(map[common.BlockID]common.ISignedBlock),
+		detachedLink: make(map[common.BlockID]common.ISignedBlock),
+		//detached:     make(map[common.BlockID]common.ISignedBlock),
 	}
 }
 
@@ -60,7 +60,7 @@ func (db *DB) Remove(id common.BlockID) {
 }
 
 // FetchBlock fetches a block corresponding to id
-func (db *DB) FetchBlock(id common.BlockID) (common.SignedBlockIF, error) {
+func (db *DB) FetchBlock(id common.BlockID) (common.ISignedBlock, error) {
 	b, ok := db.branches[id]
 	if ok {
 		return b, nil
@@ -69,12 +69,12 @@ func (db *DB) FetchBlock(id common.BlockID) (common.SignedBlockIF, error) {
 }
 
 // FetchBlockByNum fetches a block corresponding to the block num
-func (db *DB) FetchBlockByNum(num uint64) []common.SignedBlockIF {
+func (db *DB) FetchBlockByNum(num uint64) []common.ISignedBlock {
 	if num < db.start || num > db.head.BlockNum() {
 		return nil
 	}
 	list := db.list[num-db.start+db.offset]
-	ret := make([]common.SignedBlockIF, len(list))
+	ret := make([]common.ISignedBlock, len(list))
 	for i := range list {
 		b, _ := db.branches[list[i]]
 		ret[i] = b
@@ -84,8 +84,12 @@ func (db *DB) FetchBlockByNum(num uint64) []common.SignedBlockIF {
 
 // PushBlock adds a block. If any of the forkchain has more than
 // maxSize blocks, purge will be triggered.
-func (db *DB) PushBlock(b common.SignedBlockIF) common.SignedBlockIF {
+func (db *DB) PushBlock(b common.ISignedBlock) common.ISignedBlock {
 	id := b.Id()
+	if db.Illegal(id) {
+		return db.branches[db.head]
+	}
+
 	num := id.BlockNum()
 	if len(db.branches) == 0 {
 		db.head = id
@@ -117,7 +121,7 @@ func (db *DB) PushBlock(b common.SignedBlockIF) common.SignedBlockIF {
 
 func (db *DB) pushDetached(id common.BlockID) {
 	ok := true
-	var b common.SignedBlockIF
+	var b common.ISignedBlock
 	for ok {
 		b, ok = db.detachedLink[id]
 		if ok {
@@ -159,7 +163,7 @@ func (db *DB) purge() {
 
 // Head returns the head block of the longest chain, returns nil
 // if the db is empty
-func (db *DB) Head() common.SignedBlockIF {
+func (db *DB) Head() common.ISignedBlock {
 	if len(db.branches) == 0 {
 		return nil
 	}
@@ -168,11 +172,12 @@ func (db *DB) Head() common.SignedBlockIF {
 }
 
 // Pop pops the head block
-// NOTE: The only senario Pop should be called is when a fork switch
-// occurs, hence the main branch and the fork branch has a common ancestor
-// that should NEVER be poped, which also means the main branch cannot be
-// poped empty
-func (db *DB) Pop() common.SignedBlockIF {
+// NOTE: The only scenarios Pop should be called are when:
+// 1. a fork switch occurs,
+// 2. the newly appended block contains illegal transactions
+// Hence the main branch and the fork branch has a common ancestor that should NEVER
+// be popped, which also means the main branch cannot be popped empty
+func (db *DB) Pop() common.ISignedBlock {
 	ret := db.branches[db.head]
 	db.head = ret.Previous()
 	if _, ok := db.branches[db.head]; !ok {
@@ -242,13 +247,13 @@ func (db *DB) getPrevID(id common.BlockID) (common.BlockID, error) {
 }
 
 // FetchBlockFromMainBranch returns the num'th block on main branch
-func (db *DB) FetchBlockFromMainBranch(num uint64) (common.SignedBlockIF, error) {
+func (db *DB) FetchBlockFromMainBranch(num uint64) (common.ISignedBlock, error) {
 	headNum := db.head.BlockNum()
 	if num > headNum || num < db.start {
 		return nil, errors.New("[ForkDB] num out of scope")
 	}
 
-	var ret common.SignedBlockIF
+	var ret common.ISignedBlock
 	var err error
 	cur := db.head
 	for headNum >= num {
@@ -263,9 +268,9 @@ func (db *DB) FetchBlockFromMainBranch(num uint64) (common.SignedBlockIF, error)
 }
 
 // FetchBlocksSince fetches the main branch starting from id
-func (db *DB) FetchBlocksSince(id common.BlockID) ([]common.SignedBlockIF, []common.BlockID, error) {
+func (db *DB) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, []common.BlockID, error) {
 	length := db.head.BlockNum() - id.BlockNum() + 1
-	list := make([]common.SignedBlockIF, length)
+	list := make([]common.ISignedBlock, length)
 	list1 := make([]common.BlockID, length)
 	cur := db.head
 	var idx int
@@ -317,3 +322,12 @@ func (db *DB) Commit(id common.BlockID) {
 	db.start = ids[0].BlockNum()
 	db.offset = 0
 }
+
+// Illegal determines if the block has illegal transactions
+func (db *DB) Illegal(id common.BlockID) bool {
+	// TODO:
+	return false
+}
+
+// MarkAsIllegal put the block in a blacklist to prevent DDoS attack
+func (db *DB) MarkAsIllegal(id common.BlockID) {}

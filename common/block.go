@@ -22,26 +22,27 @@ func (bid BlockID) BlockNum() uint64 {
 }
 
 // BlockHeader ...
-type BlockHeaderIF interface {
+type IBlockHeader interface {
 	Previous() BlockID
 }
 
 // SignedBlockHeader ...
-type SignedBlockHeaderIF interface {
+type ISignedBlockHeader interface {
 	Id() BlockID
 }
 
 // SignedBlock ...
-type SignedBlockIF interface {
-	BlockHeaderIF
-	SignedBlockHeaderIF
+type ISignedBlock interface {
+	IBlockHeader
+	ISignedBlockHeader
+	GetSignee() interface{}
 	Marshaller
 }
 
-type TransactionIF interface {
+type ITransaction interface {
 	Validate() bool
 }
 
-type SignedTransactionIF interface {
-	TransactionIF
+type ISignedTransaction interface {
+	ITransaction
 }
