@@ -6,7 +6,7 @@ import (
 
 var RPC_SERVER_NAME = "rpc"
 
-type RPCServer interface {
+type IRPCServer interface {
 	Start(node *node.Node) error
 	Stop() error
 	RunGateway() error

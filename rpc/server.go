@@ -30,15 +30,23 @@ func NewGRPCServer(ctx *node.ServiceContext) (*GRPCServer, error) {
 
 func (gs *GRPCServer) Start(node *node.Node) error {
 
-	s, err := gs.ctx.Service(iservices.CTRL_SERVER_NAME)
-
+	ctrl, err := gs.ctx.Service(iservices.CTRL_SERVER_NAME)
 	if err != nil {
 		// TODO Mock Test
 		//return err
 	} else {
-		gs.api.ctrl = s.(iservices.IController)
-		gs.api.mainLoop = node.MainLoop
+		gs.api.ctrl = ctrl.(iservices.IController)
 	}
+
+	db, err := gs.ctx.Service(iservices.DB_SERVER_NAME)
+	if err != nil {
+		// TODO Mock Test
+		//return err
+	} else {
+		gs.api.db = db.(iservices.IDatabaseService)
+	}
+
+	gs.api.mainLoop = node.MainLoop
 
 	err = gs.start("127.0.0.1:8888")
 	if err != nil {

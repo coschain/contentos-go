@@ -12,10 +12,12 @@ import (
 type APIService struct {
 	ctrl     iservices.IController
 	mainLoop *eventloop.EventLoop
+	db       iservices.IDatabaseService
 }
 
 func (as *APIService) GetAccountByName(ctx context.Context, req *grpcpb.GetAccountByNameRequest) (*grpcpb.AccountResponse, error) {
 	account := &grpcpb.AccountResponse{AccountName: &prototype.AccountName{Value: req.AccountName.Value}}
+
 	return account, nil
 }
 
