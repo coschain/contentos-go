@@ -59,7 +59,7 @@ func (gs *GRPCServer) Start(node *node.Node) error {
 	if err != nil {
 		return err
 	} else {
-		logging.CLog().Info("GPRC server start ...")
+		logging.CLog().Infof("GPRC Server Start [ %s ]", gs.config.RPCListen)
 	}
 	return nil
 }

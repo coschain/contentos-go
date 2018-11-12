@@ -1,13 +1,13 @@
 package rpc
 
 import (
+	"context"
 	"fmt"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common/eventloop"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/rpc/pb"
-	context "golang.org/x/net/context"
 )
 
 type APIService struct {
@@ -19,7 +19,7 @@ type APIService struct {
 func (as *APIService) GetAccountByName(ctx context.Context, req *grpcpb.GetAccountByNameRequest) (*grpcpb.AccountResponse, error) {
 
 	accWrap := table.NewSoAccountWrap(as.db, req.AccountName)
-	acct := &grpcpb.AccountResponse{}
+	acct := &grpcpb.AccountResponse{AccountName: &prototype.AccountName{Value: req.AccountName.Value}}
 
 	if accWrap.CheckExist() {
 		acct.AccountName = &prototype.AccountName{Value: accWrap.GetName().Value}

@@ -7,8 +7,6 @@ import (
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/config"
 	"github.com/coschain/contentos-go/db/storage"
-	"github.com/coschain/contentos-go/demos/printer"
-	"github.com/coschain/contentos-go/demos/timer"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/rpc"
@@ -69,11 +67,15 @@ func startNode(cmd *cobra.Command, args []string) {
 	// _ is cfg as below process has't used
 	_, _ = cmd, args
 	app, _ := makeNode()
-	app.Register("timer", func(ctx *node.ServiceContext) (node.Service, error) {
-		return timer.New(ctx, ctx.Config().Timer)
-	})
-	app.Register("printer", func(ctx *node.ServiceContext) (node.Service, error) {
-		return printer.New(ctx)
+	//app.Register("timer", func(ctx *node.ServiceContext) (node.Service, error) {
+	//	return timer.New(ctx, ctx.Config().Timer)
+	//})
+	//app.Register("printer", func(ctx *node.ServiceContext) (node.Service, error) {
+	//	return printer.New(ctx)
+	//})
+
+	app.Register(iservices.DB_SERVER_NAME, func(ctx *node.ServiceContext) (node.Service, error) {
+		return storage.New(ctx, "./db/")
 	})
 
 	app.Register(iservices.CTRL_SERVER_NAME, func(ctx *node.ServiceContext) (node.Service, error) {
@@ -84,9 +86,6 @@ func startNode(cmd *cobra.Command, args []string) {
 		return rpc.NewGRPCServer(ctx, ctx.Config().GRPC)
 	})
 
-	app.Register(iservices.DB_SERVER_NAME, func(ctx *node.ServiceContext) (node.Service, error) {
-		return storage.New(ctx, "./db/")
-	})
 	//app.Register("cos", func(ctx *node.ServiceContext) (node.Service, error) {
 	//	return cos.New(ctx)
 	//})
