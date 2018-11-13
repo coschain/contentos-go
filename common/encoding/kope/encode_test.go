@@ -52,12 +52,7 @@ type foo struct {
 	name string
 }
 
-type bar struct {
-	x, y int
-	name string
-}
-
-func TestKope(t *testing.T) {
+func TestEncode(t *testing.T) {
 	// basic types
 	requireNoError(t, true)
 	requireNoError(t, false)
@@ -100,23 +95,15 @@ func TestKope(t *testing.T) {
 
 	// RegisterTypeEncoder
 	requireError(t, &foo{1,2, "alice"})
-	RegisterTypeEncoder(reflect.TypeOf((*foo)(nil)), func(value reflect.Value) ([]byte, error) {
-		ptr := value.Interface().(*foo)
-		return Encode([]interface{} {
-			ptr.x, ptr.y, ptr.name,
-		})
-	})
+	RegisterType(reflect.TypeOf((*foo)(nil)), "kope_test.foo",
+		func(value reflect.Value) ([]byte, error) {
+			ptr := value.Interface().(*foo)
+			return Encode([]interface{} {
+				ptr.x, ptr.y, ptr.name,
+			})
+		}, nil)
 	requireNoError(t, &foo{1,2, "alice"})
 
-	// RegisterTypePrimaryKeys
-	requireError(t, &bar{1,2, "alice"})
-	RegisterTypePrimaryKeys(reflect.TypeOf((*bar)(nil)), func(value reflect.Value) []interface{} {
-		ptr := value.Interface().(*bar)
-		return []interface{} {
-			ptr.x, ptr.y, ptr.name,
-		}
-	})
-	requireNoError(t, &bar{1,2, "alice"})
 
 	// order preserving
 	assertLess(t, int8(-2), int8(0))
@@ -161,26 +148,23 @@ func TestKope(t *testing.T) {
 	// Uncomplement
 	e1, _ := Encode("hello, world")
 	e2, _ := Complement(e1)
-	e3, _ := Uncomplement(e2)
+	e3, _ := Complement(e2)
 	if bytes.Compare(e1, e3) != 0 {
 		t.Fatalf("Uncomplement failed")
 	}
 
 	// DecodeSlice
-	var d [][]byte
+	var d []interface{}
 	var e []byte
 	e, _ = Encode([]int{1, 2, 3})
 	d, _ = DecodeSlice(e)
-	if fmt.Sprintf("%x", d[0]) != hexStr(t, int(1)) ||
-		fmt.Sprintf("%x", d[1]) != hexStr(t, int(2)) ||
-		fmt.Sprintf("%x", d[2]) != hexStr(t, int(3)) {
+	if d[0] != int(1) || d[1] != int(2) || d[2] != int(3) {
 		t.Fatalf("decodeSlice failed")
 	}
+
 	e, _ = Encode([]string{"one", "two", "three"})
 	d, _ = DecodeSlice(e)
-	if fmt.Sprintf("%x", d[0]) != hexStr(t, "one") ||
-		fmt.Sprintf("%x", d[1]) != hexStr(t, "two") ||
-		fmt.Sprintf("%x", d[2]) != hexStr(t, "three") {
+	if d[0] != "one" || d[1] != "two" || d[2] != "three" {
 		t.Fatalf("decodeSlice failed")
 	}
 }
