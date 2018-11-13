@@ -2,6 +2,7 @@ package consensus
 
 import (
 	"bytes"
+	"github.com/coschain/contentos-go/node"
 	"sync"
 	"time"
 
@@ -17,22 +18,24 @@ type Producer struct {
 	Weight uint32
 }
 
-func (p *Producer) Produce() (common.ISignedBlock, error) {
+func (p *Producer) Produce(timestamp uint64, prev common.BlockID) (common.ISignedBlock, error) {
 	return nil, nil
 }
 
 type DPoS struct {
 	ForkDB *forkdb.DB
 
-	Producers []*Producer
-	hostMask  []bool
-	activeNum uint64
-	producing bool
+	Producers   []*Producer
+	hostMask    []bool
+	producerIdx uint64
+	producing   bool
 
 	bootstrap bool
 
 	slot           uint64
 	currentAbsSlot uint64
+
+	//head common.ISignedBlock
 
 	stopCh chan struct{}
 	wg     sync.WaitGroup
@@ -72,8 +75,9 @@ func (d *DPoS) ActiveProducers() []*Producer {
 	return d.Producers
 }
 
-func (d *DPoS) Start() {
+func (d *DPoS) Start(node *node.Node) error {
 	go d.start()
+	return nil
 }
 
 func (d *DPoS) start() {
@@ -95,6 +99,7 @@ func (d *DPoS) start() {
 				time.Sleep(ceil.Sub(now))
 				continue
 			}
+
 			b, err := d.GenerateBlock()
 			if err != nil {
 				d.PushBlock(b)
@@ -104,14 +109,16 @@ func (d *DPoS) start() {
 	}
 }
 
-func (d *DPoS) Stop() {
+func (d *DPoS) Stop() error {
 	close(d.stopCh)
 	d.wg.Wait()
+	return nil
 }
 
 func (d *DPoS) GenerateBlock() (common.ISignedBlock, error) {
-
-	return nil, nil
+	ts := d.getSlotTime(d.slot)
+	prev := d.ForkDB.Head().Id()
+	return d.Producers[d.producerIdx].Produce(ts, prev)
 }
 
 func (d *DPoS) checkGenesis() bool {
@@ -134,6 +141,8 @@ func (d *DPoS) checkGenesis() bool {
 	return true
 }
 
+// this'll only be called by the start routine,
+// no need to lock
 func (d *DPoS) checkProducingTiming() bool {
 	now := time.Now().Round(time.Second)
 	d.slot = d.getSlotAtTime(now)
@@ -150,14 +159,15 @@ func (d *DPoS) checkProducingTiming() bool {
 func (d *DPoS) checkOurTurn() bool {
 	idx := d.getScheduledProducer(d.slot)
 	if d.hostMask[idx] == true {
+		d.producerIdx = idx
 		return true
 	}
 	return false
 }
 
-func (d *DPoS) getScheduledProducer(slot uint64) int {
-	// TODO:
-	return 0
+func (d *DPoS) getScheduledProducer(slot uint64) uint64 {
+	absSlot := (d.ForkDB.Head().Timestamp() - constants.GenesisTime) / constants.BLOCK_INTERNAL
+	return (absSlot + slot) % uint64(len(d.Producers))
 }
 
 // returns true if we're out of sync
@@ -179,7 +189,7 @@ func (d *DPoS) getSlotTime(slot uint64) uint64 {
 		return constants.GenesisTime + slot*constants.BLOCK_INTERNAL
 	}
 
-	headSlotTime := head.Timestamp()/constants.BLOCK_INTERNAL*constants.BLOCK_INTERNAL
+	headSlotTime := head.Timestamp() / constants.BLOCK_INTERNAL * constants.BLOCK_INTERNAL
 	return headSlotTime + slot*constants.BLOCK_INTERNAL
 }
 
@@ -192,7 +202,7 @@ func (d *DPoS) getSlotAtTime(t time.Time) uint64 {
 }
 
 func (d *DPoS) PushBlock(b common.ISignedBlock) error {
-	// TODO: check signee
+	// TODO: check signee & timestamp
 	head := d.ForkDB.Head()
 	newHead := d.ForkDB.PushBlock(b)
 
@@ -215,7 +225,7 @@ func (d *DPoS) PushBlock(b common.ISignedBlock) error {
 		return err
 	}
 
-	if bytes.Equal(b.GetSignee().(*prototype.PublicKeyType).Data, d.Producers[d.activeNum-1].PubKey.Data) {
+	if bytes.Equal(b.GetSignee().(*prototype.PublicKeyType).Data, d.Producers[len(d.Producers)-1].PubKey.Data) {
 		d.shuffle()
 	}
 	return nil

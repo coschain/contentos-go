@@ -131,7 +131,7 @@ func (c *Controller) PushBlock(blk *prototype.SignedBlock) {
 }
 
 func (c *Controller) GenerateBlock(accountName string, timestamp uint32,
-					 blockNum uint64, prev common.BlockID) *prototype.SignedBlock {
+					 prev common.BlockID) *prototype.SignedBlock {
 	return nil
 }
 

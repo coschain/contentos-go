@@ -16,10 +16,6 @@ type IConsensus interface {
 	// SetBootstrap determines if the current node starts a new block chain
 	SetBootstrap(b bool)
 
-	// Start starts the consensus process
-	Start()
-	// Stop stops the consensus process
-	Stop()
 	// GenerateBlock generates a new block, possible implementation: Producer.Produce()
 	GenerateBlock() (common.ISignedBlock, error)
 	// PushTransaction accepts the trx if and only if
