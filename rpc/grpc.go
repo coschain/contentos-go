@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common/eventloop"
-	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/iservices"
+	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/rpc/pb"
 )
 
@@ -33,6 +33,7 @@ func (as *APIService) GetAccountByName(ctx context.Context, req *grpcpb.GetAccou
 }
 
 func (as *APIService) GetFollowerListByName(ctx context.Context, req *grpcpb.GetFollowerListByNameRequest) (*grpcpb.GetFollowerListByNameResponse, error) {
+
 	return &grpcpb.GetFollowerListByNameResponse{}, nil
 }
 
