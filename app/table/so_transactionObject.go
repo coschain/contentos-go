@@ -247,56 +247,46 @@ func (s *STransactionObjectExpirationWrap) GetSubVal(iterator iservices.IDatabas
 }
 
 func (m *SoListTransactionObjectByExpiration) OpeEncode() ([]byte,error) {
-	mainBuf, err := encoding.Encode(m.TrxId)
-	if err != nil {
-		return nil,err
-	}
-	subBuf, err := encoding.Encode(m.Expiration)
-	if err != nil {
-		return nil,err
-	}
-   ordKey := append(append(TransactionObjectExpirationTable, subBuf...), mainBuf...)
-   return ordKey,nil
+    pre := TransactionObjectExpirationTable
+    sub := m.Expiration
+    sub1 := m.TrxId
+    kList := []interface{}{pre,sub,sub1}
+    kBuf,cErr := encoding.EncodeSlice(kList,false)
+    return kBuf,cErr
 }
 
 func (m *SoListTransactionObjectByExpiration) EncodeRevSortKey() ([]byte,error) {
-    mainBuf, err := encoding.Encode(m.TrxId)
-	if err != nil {
-		return nil,err
-	}
-	subBuf, err := encoding.Encode(m.Expiration)
-	if err != nil {
-		return nil,err
-	}
-    ordKey := append(append(TransactionObjectExpirationRevOrdTable, subBuf...), mainBuf...)
-    revKey,revRrr := encoding.Complement(ordKey, err)
-	if revRrr != nil {
-        return nil,revRrr
-	}
-    return revKey,nil
+    pre := TransactionObjectExpirationRevOrdTable
+    sub := m.Expiration
+    sub1 := m.TrxId
+    kList := []interface{}{pre,sub,sub1}
+    ordKey,cErr := encoding.EncodeSlice(kList,false)
+    revKey,revRrr := encoding.Complement(ordKey, cErr)
+    return revKey,revRrr
 }
 
 //Query sort by order 
 func (s *STransactionObjectExpirationWrap) QueryListByOrder(start prototype.TimePointSec, end prototype.TimePointSec) iservices.IDatabaseIterator {
 
-	startBuf, err := encoding.Encode(&start)
-	if err != nil {
-		return nil
-	}
-	endBuf, err := encoding.Encode(&end)
-	if err != nil {
-		return nil
-	}
-    bufStartkey := append(TransactionObjectExpirationTable, startBuf...)
-	bufEndkey := append(TransactionObjectExpirationTable, endBuf...)
-    res := bytes.Compare(bufStartkey,bufEndkey)
+    pre := TransactionObjectExpirationTable
+    skeyList := []interface{}{pre,&start}
+    sBuf,cErr := encoding.EncodeSlice(skeyList,false)
+    if cErr != nil {
+       return nil
+    }
+    eKeyList := []interface{}{pre,&end}
+    eBuf,cErr := encoding.EncodeSlice(eKeyList,false)
+    if cErr != nil {
+       return nil
+    }
+    res := bytes.Compare(sBuf,eBuf)
     if res == 0 {
-		bufEndkey = nil
+		eBuf = nil
 	}else if res == 1 {
        //reverse order
        return nil
     }
-    iter := s.Dba.NewIterator(bufStartkey, bufEndkey)
+    iter := s.Dba.NewIterator(sBuf, eBuf)
     
     return iter
 }
@@ -337,29 +327,25 @@ func (s *SoTransactionObjectWrap) getTransactionObject() *SoTransactionObject {
 }
 
 func (s *SoTransactionObjectWrap) encodeMainKey() ([]byte, error) {
-	res, err := encoding.Encode(s.mainKey)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return append(TransactionObjectTable, res...), nil
+    pre := TransactionObjectTable
+    sub := s.mainKey
+    kList := []interface{}{pre,sub}
+    kBuf,cErr := encoding.EncodeSlice(kList,false)
+    return kBuf,cErr
 }
 
 ////////////// Unique Query delete/insert/query ///////////////
 
 
 func (s *SoTransactionObjectWrap) delUniKeyTrxId(sa *SoTransactionObject) bool {
-	val := SoUniqueTransactionObjectByTrxId{}
-
-	val.TrxId = sa.TrxId
-    key, err := encoding.Encode(sa.TrxId)
-
+    pre := TransactionObjectTrxIdUniTable
+    sub := sa.TrxId
+    kList := []interface{}{pre,sub}
+    kBuf,err := encoding.EncodeSlice(kList,false)
 	if err != nil {
 		return false
 	}
-
-	return s.dba.Delete(append(TransactionObjectTrxIdUniTable,key...)) == nil
+	return s.dba.Delete(kBuf) == nil
 }
 
 
@@ -380,13 +366,15 @@ func (s *SoTransactionObjectWrap) insertUniKeyTrxId(sa *SoTransactionObject) boo
 	if err != nil {
 		return false
 	}
-
-	key, err := encoding.Encode(sa.TrxId)
-
+    
+    pre := TransactionObjectTrxIdUniTable
+    sub := sa.TrxId
+    kList := []interface{}{pre,sub}
+    kBuf,err := encoding.EncodeSlice(kList,false)
 	if err != nil {
 		return false
 	}
-	return s.dba.Put(append(TransactionObjectTrxIdUniTable,key...), buf) == nil
+	return s.dba.Put(kBuf, buf) == nil
 
 }
 
@@ -395,12 +383,9 @@ type UniTransactionObjectTrxIdWrap struct {
 }
 
 func (s *UniTransactionObjectTrxIdWrap) UniQueryTrxId(start *prototype.Sha256) *SoTransactionObjectWrap{
-
-   startBuf, err := encoding.Encode(start)
-	if err != nil {
-		return nil
-	}
-	bufStartkey := append(TransactionObjectTrxIdUniTable, startBuf...)
+    pre := TransactionObjectTrxIdUniTable
+    kList := []interface{}{pre,start}
+    bufStartkey,err := encoding.EncodeSlice(kList,false)
     val,err := s.Dba.Get(bufStartkey)
 	if err == nil {
 		res := &SoUniqueTransactionObjectByTrxId{}

@@ -196,30 +196,25 @@ func (s *SoBlockSummaryObjectWrap) getBlockSummaryObject() *SoBlockSummaryObject
 }
 
 func (s *SoBlockSummaryObjectWrap) encodeMainKey() ([]byte, error) {
-	res, err := encoding.Encode(s.mainKey)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return append(BlockSummaryObjectTable, res...), nil
+    pre := BlockSummaryObjectTable
+    sub := s.mainKey
+    kList := []interface{}{pre,sub}
+    kBuf,cErr := encoding.EncodeSlice(kList,false)
+    return kBuf,cErr
 }
 
 ////////////// Unique Query delete/insert/query ///////////////
 
 
 func (s *SoBlockSummaryObjectWrap) delUniKeyBlockId(sa *SoBlockSummaryObject) bool {
-	val := SoUniqueBlockSummaryObjectByBlockId{}
-
-	val.BlockId = sa.BlockId
-    val.Id = sa.Id
-    key, err := encoding.Encode(sa.BlockId)
-
+    pre := BlockSummaryObjectBlockIdUniTable
+    sub := sa.BlockId
+    kList := []interface{}{pre,sub}
+    kBuf,err := encoding.EncodeSlice(kList,false)
 	if err != nil {
 		return false
 	}
-
-	return s.dba.Delete(append(BlockSummaryObjectBlockIdUniTable,key...)) == nil
+	return s.dba.Delete(kBuf) == nil
 }
 
 
@@ -241,13 +236,15 @@ func (s *SoBlockSummaryObjectWrap) insertUniKeyBlockId(sa *SoBlockSummaryObject)
 	if err != nil {
 		return false
 	}
-
-	key, err := encoding.Encode(sa.BlockId)
-
+    
+    pre := BlockSummaryObjectBlockIdUniTable
+    sub := sa.BlockId
+    kList := []interface{}{pre,sub}
+    kBuf,err := encoding.EncodeSlice(kList,false)
 	if err != nil {
 		return false
 	}
-	return s.dba.Put(append(BlockSummaryObjectBlockIdUniTable,key...), buf) == nil
+	return s.dba.Put(kBuf, buf) == nil
 
 }
 
@@ -256,12 +253,9 @@ type UniBlockSummaryObjectBlockIdWrap struct {
 }
 
 func (s *UniBlockSummaryObjectBlockIdWrap) UniQueryBlockId(start *prototype.Sha256) *SoBlockSummaryObjectWrap{
-
-   startBuf, err := encoding.Encode(start)
-	if err != nil {
-		return nil
-	}
-	bufStartkey := append(BlockSummaryObjectBlockIdUniTable, startBuf...)
+    pre := BlockSummaryObjectBlockIdUniTable
+    kList := []interface{}{pre,start}
+    bufStartkey,err := encoding.EncodeSlice(kList,false)
     val,err := s.Dba.Get(bufStartkey)
 	if err == nil {
 		res := &SoUniqueBlockSummaryObjectByBlockId{}
@@ -277,16 +271,14 @@ func (s *UniBlockSummaryObjectBlockIdWrap) UniQueryBlockId(start *prototype.Sha2
 
 
 func (s *SoBlockSummaryObjectWrap) delUniKeyId(sa *SoBlockSummaryObject) bool {
-	val := SoUniqueBlockSummaryObjectById{}
-
-	val.Id = sa.Id
-    key, err := encoding.Encode(sa.Id)
-
+    pre := BlockSummaryObjectIdUniTable
+    sub := sa.Id
+    kList := []interface{}{pre,sub}
+    kBuf,err := encoding.EncodeSlice(kList,false)
 	if err != nil {
 		return false
 	}
-
-	return s.dba.Delete(append(BlockSummaryObjectIdUniTable,key...)) == nil
+	return s.dba.Delete(kBuf) == nil
 }
 
 
@@ -307,13 +299,15 @@ func (s *SoBlockSummaryObjectWrap) insertUniKeyId(sa *SoBlockSummaryObject) bool
 	if err != nil {
 		return false
 	}
-
-	key, err := encoding.Encode(sa.Id)
-
+    
+    pre := BlockSummaryObjectIdUniTable
+    sub := sa.Id
+    kList := []interface{}{pre,sub}
+    kBuf,err := encoding.EncodeSlice(kList,false)
 	if err != nil {
 		return false
 	}
-	return s.dba.Put(append(BlockSummaryObjectIdUniTable,key...), buf) == nil
+	return s.dba.Put(kBuf, buf) == nil
 
 }
 
@@ -322,12 +316,9 @@ type UniBlockSummaryObjectIdWrap struct {
 }
 
 func (s *UniBlockSummaryObjectIdWrap) UniQueryId(start *uint32) *SoBlockSummaryObjectWrap{
-
-   startBuf, err := encoding.Encode(start)
-	if err != nil {
-		return nil
-	}
-	bufStartkey := append(BlockSummaryObjectIdUniTable, startBuf...)
+    pre := BlockSummaryObjectIdUniTable
+    kList := []interface{}{pre,start}
+    bufStartkey,err := encoding.EncodeSlice(kList,false)
     val,err := s.Dba.Get(bufStartkey)
 	if err == nil {
 		res := &SoUniqueBlockSummaryObjectById{}

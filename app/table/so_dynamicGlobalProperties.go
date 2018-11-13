@@ -391,13 +391,11 @@ func (s *SoDynamicGlobalPropertiesWrap) getDynamicGlobalProperties() *SoDynamicG
 }
 
 func (s *SoDynamicGlobalPropertiesWrap) encodeMainKey() ([]byte, error) {
-	res, err := encoding.Encode(s.mainKey)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return append(DynamicGlobalPropertiesTable, res...), nil
+    pre := DynamicGlobalPropertiesTable
+    sub := s.mainKey
+    kList := []interface{}{pre,sub}
+    kBuf,cErr := encoding.EncodeSlice(kList,false)
+    return kBuf,cErr
 }
 
 ////////////// Unique Query delete/insert/query ///////////////

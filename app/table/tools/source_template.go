@@ -390,56 +390,46 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) GetSubVal(iterator iservices.IDatabaseI
 }
 
 func (m *SoList{{$.ClsName}}By{{$v.PName}}) OpeEncode() ([]byte,error) {
-	mainBuf, err := encoding.Encode(m.{{UperFirstChar $.MainKeyName}})
-	if err != nil {
-		return nil,err
-	}
-	subBuf, err := encoding.Encode(m.{{$v.PName}})
-	if err != nil {
-		return nil,err
-	}
-   ordKey := append(append({{$.ClsName}}{{$v.PName}}Table, subBuf...), mainBuf...)
-   return ordKey,nil
+    pre := {{$.ClsName}}{{$v.PName}}Table
+    sub := m.{{$v.PName}}
+    sub1 := m.{{UperFirstChar $.MainKeyName}}
+    kList := []interface{}{pre,sub,sub1}
+    kBuf,cErr := encoding.EncodeSlice(kList,false)
+    return kBuf,cErr
 }
 
 func (m *SoList{{$.ClsName}}By{{$v.PName}}) EncodeRevSortKey() ([]byte,error) {
-    mainBuf, err := encoding.Encode(m.{{UperFirstChar $.MainKeyName}})
-	if err != nil {
-		return nil,err
-	}
-	subBuf, err := encoding.Encode(m.{{$v.PName}})
-	if err != nil {
-		return nil,err
-	}
-    ordKey := append(append({{$.ClsName}}{{$v.PName}}RevOrdTable, subBuf...), mainBuf...)
-    revKey,revRrr := encoding.Complement(ordKey, err)
-	if revRrr != nil {
-        return nil,revRrr
-	}
-    return revKey,nil
+    pre := {{$.ClsName}}{{$v.PName}}RevOrdTable
+    sub := m.{{$v.PName}}
+    sub1 := m.{{UperFirstChar $.MainKeyName}}
+    kList := []interface{}{pre,sub,sub1}
+    ordKey,cErr := encoding.EncodeSlice(kList,false)
+    revKey,revRrr := encoding.Complement(ordKey, cErr)
+    return revKey,revRrr
 }
 
 //Query sort by order 
 func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByOrder(start {{formatStr $v.PType}}, end {{formatStr $v.PType}}) iservices.IDatabaseIterator {
 
-	startBuf, err := encoding.Encode(&start)
-	if err != nil {
-		return nil
-	}
-	endBuf, err := encoding.Encode(&end)
-	if err != nil {
-		return nil
-	}
-    bufStartkey := append({{$.ClsName}}{{$v.PName}}Table, startBuf...)
-	bufEndkey := append({{$.ClsName}}{{$v.PName}}Table, endBuf...)
-    res := bytes.Compare(bufStartkey,bufEndkey)
+    pre := {{$.ClsName}}{{$v.PName}}Table
+    skeyList := []interface{}{pre,&start}
+    sBuf,cErr := encoding.EncodeSlice(skeyList,false)
+    if cErr != nil {
+       return nil
+    }
+    eKeyList := []interface{}{pre,&end}
+    eBuf,cErr := encoding.EncodeSlice(eKeyList,false)
+    if cErr != nil {
+       return nil
+    }
+    res := bytes.Compare(sBuf,eBuf)
     if res == 0 {
-		bufEndkey = nil
+		eBuf = nil
 	}else if res == 1 {
        //reverse order
        return nil
     }
-    iter := s.Dba.NewIterator(bufStartkey, bufEndkey)
+    iter := s.Dba.NewIterator(sBuf, eBuf)
     
     return iter
 }
@@ -447,26 +437,26 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByOrder(start {{formatStr $v.P
 //Query sort by reverse order 
 func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByRevOrder(start {{formatStr $v.PType}}, end {{formatStr $v.PType}}) iservices.IDatabaseIterator {
 
-	startBuf, err := encoding.Encode(&start)
-	if err != nil {
-		return nil
-	}
-	endBuf, err := encoding.Encode(&end)
-	if err != nil {
-		return nil
-	}
-    bufStartkey := append({{$.ClsName}}{{$v.PName}}RevOrdTable, startBuf...)
-	bufEndkey := append({{$.ClsName}}{{$v.PName}}RevOrdTable, endBuf...)
-
-    rBufStart,rErr := encoding.Complement(bufStartkey, err)
+    pre := {{$.ClsName}}{{$v.PName}}Table
+    skeyList := []interface{}{pre,&start}
+    sBuf,cErr := encoding.EncodeSlice(skeyList,false)
+    if cErr != nil {
+       return nil
+    }
+    eKeyList := []interface{}{pre,&end}
+    eBuf,cErr := encoding.EncodeSlice(eKeyList,false)
+    if cErr != nil {
+       return nil
+    }
+    rBufStart,rErr := encoding.Complement(sBuf, cErr)
     if rErr != nil {
        return nil
     }
-    rBufEnd,rErr := encoding.Complement(bufEndkey, err)
+    rBufEnd,rErr := encoding.Complement(eBuf, cErr)
     if rErr != nil { 
         return nil
     }
-    res := bytes.Compare(rBufStart,rBufEnd)
+    res := bytes.Compare(sBuf,eBuf)
     if res == 0 {
 		rBufEnd = nil
 	}else if res == -1 {
@@ -516,32 +506,25 @@ func (s *So{{$.ClsName}}Wrap) get{{$.ClsName}}() *So{{$.ClsName}} {
 }
 
 func (s *So{{$.ClsName}}Wrap) encodeMainKey() ([]byte, error) {
-	res, err := encoding.Encode(s.mainKey)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return append({{.ClsName}}Table, res...), nil
+    pre := {{.ClsName}}Table
+    sub := s.mainKey
+    kList := []interface{}{pre,sub}
+    kBuf,cErr := encoding.EncodeSlice(kList,false)
+    return kBuf,cErr
 }
 
 ////////////// Unique Query delete/insert/query ///////////////
 {{range $k, $v := .UniqueFieldMap}}
 
 func (s *So{{$.ClsName}}Wrap) delUniKey{{$k}}(sa *So{{$.ClsName}}) bool {
-	val := SoUnique{{$.ClsName}}By{{$k}}{}
-
-	val.{{$k}} = sa.{{$k}}
-    {{if ne $.MainKeyName $k -}}
-   	val.{{UperFirstChar $.MainKeyName}} = sa.{{UperFirstChar $.MainKeyName}}
-    {{end -}}
-	key, err := encoding.Encode(sa.{{UperFirstChar $k}})
-
+    pre := {{$.ClsName}}{{$k}}UniTable
+    sub := sa.{{UperFirstChar $k}}
+    kList := []interface{}{pre,sub}
+    kBuf,err := encoding.EncodeSlice(kList,false)
 	if err != nil {
 		return false
 	}
-
-	return s.dba.Delete(append({{$.ClsName}}{{$k}}UniTable,key...)) == nil
+	return s.dba.Delete(kBuf) == nil
 }
 
 
@@ -570,13 +553,15 @@ func (s *So{{$.ClsName}}Wrap) insertUniKey{{$k}}(sa *So{{$.ClsName}}) bool {
 	if err != nil {
 		return false
 	}
-
-	key, err := encoding.Encode(sa.{{UperFirstChar $k}})
-
+    
+    pre := {{$.ClsName}}{{$k}}UniTable
+    sub := sa.{{UperFirstChar $k}}
+    kList := []interface{}{pre,sub}
+    kBuf,err := encoding.EncodeSlice(kList,false)
 	if err != nil {
 		return false
 	}
-	return s.dba.Put(append({{$.ClsName}}{{$k}}UniTable,key...), buf) == nil
+	return s.dba.Put(kBuf, buf) == nil
 
 }
 
@@ -585,12 +570,9 @@ type Uni{{$.ClsName}}{{$k}}Wrap struct {
 }
 
 func (s *Uni{{$.ClsName}}{{$k}}Wrap) UniQuery{{$k}}(start *{{formatStr $v}}) *So{{$.ClsName}}Wrap{
-
-   startBuf, err := encoding.Encode(start)
-	if err != nil {
-		return nil
-	}
-	bufStartkey := append({{$.ClsName}}{{$k}}UniTable, startBuf...)
+    pre := {{$.ClsName}}{{$k}}UniTable
+    kList := []interface{}{pre,start}
+    bufStartkey,err := encoding.EncodeSlice(kList,false)
     val,err := s.Dba.Get(bufStartkey)
 	if err == nil {
 		res := &SoUnique{{$.ClsName}}By{{$k}}{}

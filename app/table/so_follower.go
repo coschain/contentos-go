@@ -297,56 +297,46 @@ func (s *SFollowerCreateTimeWrap) GetSubVal(iterator iservices.IDatabaseIterator
 }
 
 func (m *SoListFollowerByCreateTime) OpeEncode() ([]byte,error) {
-	mainBuf, err := encoding.Encode(m.Account)
-	if err != nil {
-		return nil,err
-	}
-	subBuf, err := encoding.Encode(m.CreateTime)
-	if err != nil {
-		return nil,err
-	}
-   ordKey := append(append(FollowerCreateTimeTable, subBuf...), mainBuf...)
-   return ordKey,nil
+    pre := FollowerCreateTimeTable
+    sub := m.CreateTime
+    sub1 := m.Account
+    kList := []interface{}{pre,sub,sub1}
+    kBuf,cErr := encoding.EncodeSlice(kList,false)
+    return kBuf,cErr
 }
 
 func (m *SoListFollowerByCreateTime) EncodeRevSortKey() ([]byte,error) {
-    mainBuf, err := encoding.Encode(m.Account)
-	if err != nil {
-		return nil,err
-	}
-	subBuf, err := encoding.Encode(m.CreateTime)
-	if err != nil {
-		return nil,err
-	}
-    ordKey := append(append(FollowerCreateTimeRevOrdTable, subBuf...), mainBuf...)
-    revKey,revRrr := encoding.Complement(ordKey, err)
-	if revRrr != nil {
-        return nil,revRrr
-	}
-    return revKey,nil
+    pre := FollowerCreateTimeRevOrdTable
+    sub := m.CreateTime
+    sub1 := m.Account
+    kList := []interface{}{pre,sub,sub1}
+    ordKey,cErr := encoding.EncodeSlice(kList,false)
+    revKey,revRrr := encoding.Complement(ordKey, cErr)
+    return revKey,revRrr
 }
 
 //Query sort by order 
 func (s *SFollowerCreateTimeWrap) QueryListByOrder(start prototype.TimePointSec, end prototype.TimePointSec) iservices.IDatabaseIterator {
 
-	startBuf, err := encoding.Encode(&start)
-	if err != nil {
-		return nil
-	}
-	endBuf, err := encoding.Encode(&end)
-	if err != nil {
-		return nil
-	}
-    bufStartkey := append(FollowerCreateTimeTable, startBuf...)
-	bufEndkey := append(FollowerCreateTimeTable, endBuf...)
-    res := bytes.Compare(bufStartkey,bufEndkey)
+    pre := FollowerCreateTimeTable
+    skeyList := []interface{}{pre,&start}
+    sBuf,cErr := encoding.EncodeSlice(skeyList,false)
+    if cErr != nil {
+       return nil
+    }
+    eKeyList := []interface{}{pre,&end}
+    eBuf,cErr := encoding.EncodeSlice(eKeyList,false)
+    if cErr != nil {
+       return nil
+    }
+    res := bytes.Compare(sBuf,eBuf)
     if res == 0 {
-		bufEndkey = nil
+		eBuf = nil
 	}else if res == 1 {
        //reverse order
        return nil
     }
-    iter := s.Dba.NewIterator(bufStartkey, bufEndkey)
+    iter := s.Dba.NewIterator(sBuf, eBuf)
     
     return iter
 }
@@ -387,29 +377,25 @@ func (s *SoFollowerWrap) getFollower() *SoFollower {
 }
 
 func (s *SoFollowerWrap) encodeMainKey() ([]byte, error) {
-	res, err := encoding.Encode(s.mainKey)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return append(FollowerTable, res...), nil
+    pre := FollowerTable
+    sub := s.mainKey
+    kList := []interface{}{pre,sub}
+    kBuf,cErr := encoding.EncodeSlice(kList,false)
+    return kBuf,cErr
 }
 
 ////////////// Unique Query delete/insert/query ///////////////
 
 
 func (s *SoFollowerWrap) delUniKeyAccount(sa *SoFollower) bool {
-	val := SoUniqueFollowerByAccount{}
-
-	val.Account = sa.Account
-    key, err := encoding.Encode(sa.Account)
-
+    pre := FollowerAccountUniTable
+    sub := sa.Account
+    kList := []interface{}{pre,sub}
+    kBuf,err := encoding.EncodeSlice(kList,false)
 	if err != nil {
 		return false
 	}
-
-	return s.dba.Delete(append(FollowerAccountUniTable,key...)) == nil
+	return s.dba.Delete(kBuf) == nil
 }
 
 
@@ -430,13 +416,15 @@ func (s *SoFollowerWrap) insertUniKeyAccount(sa *SoFollower) bool {
 	if err != nil {
 		return false
 	}
-
-	key, err := encoding.Encode(sa.Account)
-
+    
+    pre := FollowerAccountUniTable
+    sub := sa.Account
+    kList := []interface{}{pre,sub}
+    kBuf,err := encoding.EncodeSlice(kList,false)
 	if err != nil {
 		return false
 	}
-	return s.dba.Put(append(FollowerAccountUniTable,key...), buf) == nil
+	return s.dba.Put(kBuf, buf) == nil
 
 }
 
@@ -445,12 +433,9 @@ type UniFollowerAccountWrap struct {
 }
 
 func (s *UniFollowerAccountWrap) UniQueryAccount(start *prototype.AccountName) *SoFollowerWrap{
-
-   startBuf, err := encoding.Encode(start)
-	if err != nil {
-		return nil
-	}
-	bufStartkey := append(FollowerAccountUniTable, startBuf...)
+    pre := FollowerAccountUniTable
+    kList := []interface{}{pre,start}
+    bufStartkey,err := encoding.EncodeSlice(kList,false)
     val,err := s.Dba.Get(bufStartkey)
 	if err == nil {
 		res := &SoUniqueFollowerByAccount{}
@@ -467,17 +452,14 @@ func (s *UniFollowerAccountWrap) UniQueryAccount(start *prototype.AccountName) *
 
 
 func (s *SoFollowerWrap) delUniKeyFollower(sa *SoFollower) bool {
-	val := SoUniqueFollowerByFollower{}
-
-	val.Follower = sa.Follower
-    val.Account = sa.Account
-    key, err := encoding.Encode(sa.Follower)
-
+    pre := FollowerFollowerUniTable
+    sub := sa.Follower
+    kList := []interface{}{pre,sub}
+    kBuf,err := encoding.EncodeSlice(kList,false)
 	if err != nil {
 		return false
 	}
-
-	return s.dba.Delete(append(FollowerFollowerUniTable,key...)) == nil
+	return s.dba.Delete(kBuf) == nil
 }
 
 
@@ -499,13 +481,15 @@ func (s *SoFollowerWrap) insertUniKeyFollower(sa *SoFollower) bool {
 	if err != nil {
 		return false
 	}
-
-	key, err := encoding.Encode(sa.Follower)
-
+    
+    pre := FollowerFollowerUniTable
+    sub := sa.Follower
+    kList := []interface{}{pre,sub}
+    kBuf,err := encoding.EncodeSlice(kList,false)
 	if err != nil {
 		return false
 	}
-	return s.dba.Put(append(FollowerFollowerUniTable,key...), buf) == nil
+	return s.dba.Put(kBuf, buf) == nil
 
 }
 
@@ -514,12 +498,9 @@ type UniFollowerFollowerWrap struct {
 }
 
 func (s *UniFollowerFollowerWrap) UniQueryFollower(start *prototype.AccountName) *SoFollowerWrap{
-
-   startBuf, err := encoding.Encode(start)
-	if err != nil {
-		return nil
-	}
-	bufStartkey := append(FollowerFollowerUniTable, startBuf...)
+    pre := FollowerFollowerUniTable
+    kList := []interface{}{pre,start}
+    bufStartkey,err := encoding.EncodeSlice(kList,false)
     val,err := s.Dba.Get(bufStartkey)
 	if err == nil {
 		res := &SoUniqueFollowerByFollower{}

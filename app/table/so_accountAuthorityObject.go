@@ -258,29 +258,25 @@ func (s *SoAccountAuthorityObjectWrap) getAccountAuthorityObject() *SoAccountAut
 }
 
 func (s *SoAccountAuthorityObjectWrap) encodeMainKey() ([]byte, error) {
-	res, err := encoding.Encode(s.mainKey)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return append(AccountAuthorityObjectTable, res...), nil
+    pre := AccountAuthorityObjectTable
+    sub := s.mainKey
+    kList := []interface{}{pre,sub}
+    kBuf,cErr := encoding.EncodeSlice(kList,false)
+    return kBuf,cErr
 }
 
 ////////////// Unique Query delete/insert/query ///////////////
 
 
 func (s *SoAccountAuthorityObjectWrap) delUniKeyAccount(sa *SoAccountAuthorityObject) bool {
-	val := SoUniqueAccountAuthorityObjectByAccount{}
-
-	val.Account = sa.Account
-    key, err := encoding.Encode(sa.Account)
-
+    pre := AccountAuthorityObjectAccountUniTable
+    sub := sa.Account
+    kList := []interface{}{pre,sub}
+    kBuf,err := encoding.EncodeSlice(kList,false)
 	if err != nil {
 		return false
 	}
-
-	return s.dba.Delete(append(AccountAuthorityObjectAccountUniTable,key...)) == nil
+	return s.dba.Delete(kBuf) == nil
 }
 
 
@@ -301,13 +297,15 @@ func (s *SoAccountAuthorityObjectWrap) insertUniKeyAccount(sa *SoAccountAuthorit
 	if err != nil {
 		return false
 	}
-
-	key, err := encoding.Encode(sa.Account)
-
+    
+    pre := AccountAuthorityObjectAccountUniTable
+    sub := sa.Account
+    kList := []interface{}{pre,sub}
+    kBuf,err := encoding.EncodeSlice(kList,false)
 	if err != nil {
 		return false
 	}
-	return s.dba.Put(append(AccountAuthorityObjectAccountUniTable,key...), buf) == nil
+	return s.dba.Put(kBuf, buf) == nil
 
 }
 
@@ -316,12 +314,9 @@ type UniAccountAuthorityObjectAccountWrap struct {
 }
 
 func (s *UniAccountAuthorityObjectAccountWrap) UniQueryAccount(start *prototype.AccountName) *SoAccountAuthorityObjectWrap{
-
-   startBuf, err := encoding.Encode(start)
-	if err != nil {
-		return nil
-	}
-	bufStartkey := append(AccountAuthorityObjectAccountUniTable, startBuf...)
+    pre := AccountAuthorityObjectAccountUniTable
+    kList := []interface{}{pre,start}
+    bufStartkey,err := encoding.EncodeSlice(kList,false)
     val,err := s.Dba.Get(bufStartkey)
 	if err == nil {
 		res := &SoUniqueAccountAuthorityObjectByAccount{}

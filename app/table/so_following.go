@@ -297,56 +297,46 @@ func (s *SFollowingCreateTimeWrap) GetSubVal(iterator iservices.IDatabaseIterato
 }
 
 func (m *SoListFollowingByCreateTime) OpeEncode() ([]byte,error) {
-	mainBuf, err := encoding.Encode(m.Account)
-	if err != nil {
-		return nil,err
-	}
-	subBuf, err := encoding.Encode(m.CreateTime)
-	if err != nil {
-		return nil,err
-	}
-   ordKey := append(append(FollowingCreateTimeTable, subBuf...), mainBuf...)
-   return ordKey,nil
+    pre := FollowingCreateTimeTable
+    sub := m.CreateTime
+    sub1 := m.Account
+    kList := []interface{}{pre,sub,sub1}
+    kBuf,cErr := encoding.EncodeSlice(kList,false)
+    return kBuf,cErr
 }
 
 func (m *SoListFollowingByCreateTime) EncodeRevSortKey() ([]byte,error) {
-    mainBuf, err := encoding.Encode(m.Account)
-	if err != nil {
-		return nil,err
-	}
-	subBuf, err := encoding.Encode(m.CreateTime)
-	if err != nil {
-		return nil,err
-	}
-    ordKey := append(append(FollowingCreateTimeRevOrdTable, subBuf...), mainBuf...)
-    revKey,revRrr := encoding.Complement(ordKey, err)
-	if revRrr != nil {
-        return nil,revRrr
-	}
-    return revKey,nil
+    pre := FollowingCreateTimeRevOrdTable
+    sub := m.CreateTime
+    sub1 := m.Account
+    kList := []interface{}{pre,sub,sub1}
+    ordKey,cErr := encoding.EncodeSlice(kList,false)
+    revKey,revRrr := encoding.Complement(ordKey, cErr)
+    return revKey,revRrr
 }
 
 //Query sort by order 
 func (s *SFollowingCreateTimeWrap) QueryListByOrder(start prototype.TimePointSec, end prototype.TimePointSec) iservices.IDatabaseIterator {
 
-	startBuf, err := encoding.Encode(&start)
-	if err != nil {
-		return nil
-	}
-	endBuf, err := encoding.Encode(&end)
-	if err != nil {
-		return nil
-	}
-    bufStartkey := append(FollowingCreateTimeTable, startBuf...)
-	bufEndkey := append(FollowingCreateTimeTable, endBuf...)
-    res := bytes.Compare(bufStartkey,bufEndkey)
+    pre := FollowingCreateTimeTable
+    skeyList := []interface{}{pre,&start}
+    sBuf,cErr := encoding.EncodeSlice(skeyList,false)
+    if cErr != nil {
+       return nil
+    }
+    eKeyList := []interface{}{pre,&end}
+    eBuf,cErr := encoding.EncodeSlice(eKeyList,false)
+    if cErr != nil {
+       return nil
+    }
+    res := bytes.Compare(sBuf,eBuf)
     if res == 0 {
-		bufEndkey = nil
+		eBuf = nil
 	}else if res == 1 {
        //reverse order
        return nil
     }
-    iter := s.Dba.NewIterator(bufStartkey, bufEndkey)
+    iter := s.Dba.NewIterator(sBuf, eBuf)
     
     return iter
 }
@@ -387,29 +377,25 @@ func (s *SoFollowingWrap) getFollowing() *SoFollowing {
 }
 
 func (s *SoFollowingWrap) encodeMainKey() ([]byte, error) {
-	res, err := encoding.Encode(s.mainKey)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return append(FollowingTable, res...), nil
+    pre := FollowingTable
+    sub := s.mainKey
+    kList := []interface{}{pre,sub}
+    kBuf,cErr := encoding.EncodeSlice(kList,false)
+    return kBuf,cErr
 }
 
 ////////////// Unique Query delete/insert/query ///////////////
 
 
 func (s *SoFollowingWrap) delUniKeyAccount(sa *SoFollowing) bool {
-	val := SoUniqueFollowingByAccount{}
-
-	val.Account = sa.Account
-    key, err := encoding.Encode(sa.Account)
-
+    pre := FollowingAccountUniTable
+    sub := sa.Account
+    kList := []interface{}{pre,sub}
+    kBuf,err := encoding.EncodeSlice(kList,false)
 	if err != nil {
 		return false
 	}
-
-	return s.dba.Delete(append(FollowingAccountUniTable,key...)) == nil
+	return s.dba.Delete(kBuf) == nil
 }
 
 
@@ -430,13 +416,15 @@ func (s *SoFollowingWrap) insertUniKeyAccount(sa *SoFollowing) bool {
 	if err != nil {
 		return false
 	}
-
-	key, err := encoding.Encode(sa.Account)
-
+    
+    pre := FollowingAccountUniTable
+    sub := sa.Account
+    kList := []interface{}{pre,sub}
+    kBuf,err := encoding.EncodeSlice(kList,false)
 	if err != nil {
 		return false
 	}
-	return s.dba.Put(append(FollowingAccountUniTable,key...), buf) == nil
+	return s.dba.Put(kBuf, buf) == nil
 
 }
 
@@ -445,12 +433,9 @@ type UniFollowingAccountWrap struct {
 }
 
 func (s *UniFollowingAccountWrap) UniQueryAccount(start *prototype.AccountName) *SoFollowingWrap{
-
-   startBuf, err := encoding.Encode(start)
-	if err != nil {
-		return nil
-	}
-	bufStartkey := append(FollowingAccountUniTable, startBuf...)
+    pre := FollowingAccountUniTable
+    kList := []interface{}{pre,start}
+    bufStartkey,err := encoding.EncodeSlice(kList,false)
     val,err := s.Dba.Get(bufStartkey)
 	if err == nil {
 		res := &SoUniqueFollowingByAccount{}
@@ -467,17 +452,14 @@ func (s *UniFollowingAccountWrap) UniQueryAccount(start *prototype.AccountName) 
 
 
 func (s *SoFollowingWrap) delUniKeyFollowing(sa *SoFollowing) bool {
-	val := SoUniqueFollowingByFollowing{}
-
-	val.Following = sa.Following
-    val.Account = sa.Account
-    key, err := encoding.Encode(sa.Following)
-
+    pre := FollowingFollowingUniTable
+    sub := sa.Following
+    kList := []interface{}{pre,sub}
+    kBuf,err := encoding.EncodeSlice(kList,false)
 	if err != nil {
 		return false
 	}
-
-	return s.dba.Delete(append(FollowingFollowingUniTable,key...)) == nil
+	return s.dba.Delete(kBuf) == nil
 }
 
 
@@ -499,13 +481,15 @@ func (s *SoFollowingWrap) insertUniKeyFollowing(sa *SoFollowing) bool {
 	if err != nil {
 		return false
 	}
-
-	key, err := encoding.Encode(sa.Following)
-
+    
+    pre := FollowingFollowingUniTable
+    sub := sa.Following
+    kList := []interface{}{pre,sub}
+    kBuf,err := encoding.EncodeSlice(kList,false)
 	if err != nil {
 		return false
 	}
-	return s.dba.Put(append(FollowingFollowingUniTable,key...), buf) == nil
+	return s.dba.Put(kBuf, buf) == nil
 
 }
 
@@ -514,12 +498,9 @@ type UniFollowingFollowingWrap struct {
 }
 
 func (s *UniFollowingFollowingWrap) UniQueryFollowing(start *prototype.AccountName) *SoFollowingWrap{
-
-   startBuf, err := encoding.Encode(start)
-	if err != nil {
-		return nil
-	}
-	bufStartkey := append(FollowingFollowingUniTable, startBuf...)
+    pre := FollowingFollowingUniTable
+    kList := []interface{}{pre,start}
+    bufStartkey,err := encoding.EncodeSlice(kList,false)
     val,err := s.Dba.Get(bufStartkey)
 	if err == nil {
 		res := &SoUniqueFollowingByFollowing{}

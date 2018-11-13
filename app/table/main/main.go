@@ -34,21 +34,23 @@ func main() {
 	//we can use the type  which is contained in another created pb struct,
 	// such as "prototype.account_name" in AccountName 、prototype.time_point_sec
 	//MakeXXX func can create a pb struct
-	mKey := prototype.MakeAccountName("pbTool")
+	mKey := prototype.MakeAccountName("myName")
 	wrap := table.NewSoDemoWrap(db, mKey)
 	if wrap == nil {
 		//crreate fail , the db already contain table with current mainKey
 		log.Println("crreate fail , the db already contain table with current mainKey")
 		return
 	}
-
+    if wrap.CheckExist() {
+    	wrap.RemoveDemo()
+	}
 	//2.create the pb struct
 	data := table.SoDemo{
 	 	Owner:mKey,
 	 	Title:"hello",
 	 	Content:"test the pb tool",
-	 	Idx: 1000,
-	 	LikeCount:1,
+	 	Idx: 1001,
+	 	LikeCount:100,
 	 	Taglist:"#NBA",
 	 	ReplayCount:100,
 		PostTime:prototype.MakeTimeSecondPoint(20120401),
@@ -158,7 +160,7 @@ func main() {
 	}else {
 		fmt.Println("there is no data exist in reverse order")
 	}
-	
+
 	//
     // //query single value but not a range,start and end set the same value
 	iter2 := tSortWrap.QueryListByOrder(*prototype.MakeTimeSecondPoint(20136666),
@@ -176,7 +178,7 @@ func main() {
 	  unique Query List (only support query the property which is flag unique)
 	 --------------------------*/
 	 //1.create the uni wrap of property which is need unique query
-	 var idx int64 = 1200
+	 var idx int64 = 1001
 	 //create the UniXXXWrap
 	 uniWrap := table.UniDemoIdxWrap{}
 	 //set the dataBase to UniXXXWrap
@@ -184,7 +186,7 @@ func main() {
 	 //2.use UniQueryXX func to query data meanWhile return the table wrap
 	 dWrap := uniWrap.UniQueryIdx(&idx)
 	 if dWrap == nil {
-	 	fmt.Printf("uni query fail")
+	 	fmt.Printf("uni query fail \n")
 	 }else {
 		 title := dWrap.GetTitle()
 		 fmt.Printf("the title of index is %s \n",title)
@@ -193,7 +195,7 @@ func main() {
 	//unique query mainkey(E.g query owner)
 	mUniWrap := table.UniDemoOwnerWrap{}
 	mUniWrap.Dba = db
-	wrap1 := mUniWrap.UniQueryOwner(prototype.MakeAccountName("pbTool"))
+	wrap1 := mUniWrap.UniQueryOwner(prototype.MakeAccountName("myName"))
 	if wrap1 != nil {
 		fmt.Printf("owner is test,the idx is %d \n",wrap1.GetIdx())
 	}

@@ -230,29 +230,25 @@ func (s *SoFollowCountWrap) getFollowCount() *SoFollowCount {
 }
 
 func (s *SoFollowCountWrap) encodeMainKey() ([]byte, error) {
-	res, err := encoding.Encode(s.mainKey)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return append(FollowCountTable, res...), nil
+    pre := FollowCountTable
+    sub := s.mainKey
+    kList := []interface{}{pre,sub}
+    kBuf,cErr := encoding.EncodeSlice(kList,false)
+    return kBuf,cErr
 }
 
 ////////////// Unique Query delete/insert/query ///////////////
 
 
 func (s *SoFollowCountWrap) delUniKeyAccount(sa *SoFollowCount) bool {
-	val := SoUniqueFollowCountByAccount{}
-
-	val.Account = sa.Account
-    key, err := encoding.Encode(sa.Account)
-
+    pre := FollowCountAccountUniTable
+    sub := sa.Account
+    kList := []interface{}{pre,sub}
+    kBuf,err := encoding.EncodeSlice(kList,false)
 	if err != nil {
 		return false
 	}
-
-	return s.dba.Delete(append(FollowCountAccountUniTable,key...)) == nil
+	return s.dba.Delete(kBuf) == nil
 }
 
 
@@ -273,13 +269,15 @@ func (s *SoFollowCountWrap) insertUniKeyAccount(sa *SoFollowCount) bool {
 	if err != nil {
 		return false
 	}
-
-	key, err := encoding.Encode(sa.Account)
-
+    
+    pre := FollowCountAccountUniTable
+    sub := sa.Account
+    kList := []interface{}{pre,sub}
+    kBuf,err := encoding.EncodeSlice(kList,false)
 	if err != nil {
 		return false
 	}
-	return s.dba.Put(append(FollowCountAccountUniTable,key...), buf) == nil
+	return s.dba.Put(kBuf, buf) == nil
 
 }
 
@@ -288,12 +286,9 @@ type UniFollowCountAccountWrap struct {
 }
 
 func (s *UniFollowCountAccountWrap) UniQueryAccount(start *prototype.AccountName) *SoFollowCountWrap{
-
-   startBuf, err := encoding.Encode(start)
-	if err != nil {
-		return nil
-	}
-	bufStartkey := append(FollowCountAccountUniTable, startBuf...)
+    pre := FollowCountAccountUniTable
+    kList := []interface{}{pre,start}
+    bufStartkey,err := encoding.EncodeSlice(kList,false)
     val,err := s.Dba.Get(bufStartkey)
 	if err == nil {
 		res := &SoUniqueFollowCountByAccount{}
