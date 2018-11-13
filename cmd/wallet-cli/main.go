@@ -43,6 +43,7 @@ func runShell() {
 		Prompt:       "> ",
 		AutoComplete: completer,
 		EOFPrompt:    "exit",
+		HistoryFile: filepath.Join(DefaultDataDir(), "cmd_input.history"),
 	})
 	if err != nil {
 		panic(err)
