@@ -29,6 +29,8 @@ type DPoS struct {
 	activeNum uint64
 	producing bool
 
+	bootstrap bool
+
 	slot           uint64
 	currentAbsSlot uint64
 
@@ -46,8 +48,12 @@ func NewDPoS() *DPoS {
 	}
 }
 
-func (d *DPoS) SetProducer(prod bool) {
+func (d *DPoS) SetProduce(prod bool) {
 	d.producing = prod
+}
+
+func (d *DPoS) SetBootstrap(b bool) {
+	d.bootstrap = b
 }
 
 func (d *DPoS) CurrentProducer() *Producer {
@@ -124,6 +130,8 @@ func (d *DPoS) checkGenesis() bool {
 		//time.Sleep(ceil.Sub(now))
 		return false
 	}
+
+	return true
 }
 
 func (d *DPoS) checkProducingTiming() bool {
@@ -163,7 +171,16 @@ func (d *DPoS) checkSync() bool {
 }
 
 func (d *DPoS) getSlotTime(slot uint64) uint64 {
-	return 0
+	if slot == 0 {
+		return 0
+	}
+	head := d.ForkDB.Head()
+	if head == nil {
+		return constants.GenesisTime + slot*constants.BLOCK_INTERNAL
+	}
+
+	headSlotTime := head.Timestamp()/constants.BLOCK_INTERNAL*constants.BLOCK_INTERNAL
+	return headSlotTime + slot*constants.BLOCK_INTERNAL
 }
 
 func (d *DPoS) getSlotAtTime(t time.Time) uint64 {

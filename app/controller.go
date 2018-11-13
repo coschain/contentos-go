@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app/table"
+	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/common/eventloop"
 	"github.com/coschain/contentos-go/prototype"
@@ -118,7 +119,8 @@ func (c *Controller) PushBlock(blk *prototype.SignedBlock) {
 
 }
 
-func (c *Controller) GenerateBlock(key *prototype.PrivateKeyType) *prototype.SignedBlock {
+func (c *Controller) GenerateBlock(accountName string, timestamp uint32,
+					 blockNum uint64, prev common.BlockID) *prototype.SignedBlock {
 	return nil
 }
 

@@ -36,7 +36,7 @@ func (msb *MockSignedBlock) GetSignee() interface{} {
 	return nil
 }
 
-func (msb *MockSignedBlock) Timestamp() uint32 {
+func (msb *MockSignedBlock) Timestamp() uint64 {
 	return 0
 }
 

@@ -13,6 +13,8 @@ type IConsensus interface {
 	ActiveProducers() []IProducer
 	// SetProduce sets the node as a block producer if prod == true
 	SetProduce(prod bool)
+	// SetBootstrap determines if the current node starts a new block chain
+	SetBootstrap(b bool)
 
 	// Start starts the consensus process
 	Start()
