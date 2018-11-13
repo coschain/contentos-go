@@ -150,6 +150,11 @@ func BlkHeaderHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, 
 func BlockHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
 	log.Trace("[p2p]receive block message from ", data.Addr, data.Id)
 
+                var block = data.Payload.(*msg.BroadcastSigBlk)
+
+                log.Info("receive a block")
+                fmt.Printf("data:   +%v\n", block)
+
 	if pid != nil {
 		var block = data.Payload.(*msg.BroadcastSigBlk)
 
