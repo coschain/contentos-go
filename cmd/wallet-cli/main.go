@@ -92,6 +92,7 @@ func addCommands() {
 	rootCmd.AddCommand(commands.InfoCmd())
 	rootCmd.AddCommand(commands.CloseCmd())
 	rootCmd.AddCommand(commands.AccountCmd())
+	rootCmd.AddCommand(commands.GenKeyPairCmd())
 }
 
 func init() {
