@@ -150,8 +150,6 @@ func MakeEmptyMessage(cmdType string) (Message, error) {
 		return &msg.BroadcastSigBlk{}, nil
 	case common.TX_TYPE:
 		return &msg.BroadcastSigTrx{}, nil
-	case common.CONSENSUS_TYPE:
-		return &Consensus{}, nil
 	case common.NOT_FOUND_TYPE:
 		return &NotFound{}, nil
 	case common.DISCONNECT_TYPE:

@@ -136,11 +136,6 @@ func (this *P2PServer) Xmit(message interface{}) error {
 		log.Debug("[p2p]TX block message")
 		block := message.(*prototype.SignedBlock)
 		msg = msgpack.NewBlock(block)
-	case *msgtypes.ConsensusPayload:
-		log.Debug("[p2p]TX consensus message")
-		consensusPayload := message.(*msgtypes.ConsensusPayload)
-		msg = msgpack.NewConsensus(consensusPayload)
-		isConsensus = true
 	default:
 		log.Warnf("[p2p]Unknown Xmit message %v , type %v", message,
 			reflect.TypeOf(message))

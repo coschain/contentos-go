@@ -12,14 +12,12 @@ import (
 	"strings"
 	"time"
 
-	lru "github.com/hashicorp/golang-lru"
+	"github.com/hashicorp/golang-lru"
 	evtActor "github.com/ontio/ontology-eventbus/actor"
 	//"github.com/coschain/contentos-go/p2p/depend/common"
 	"github.com/coschain/contentos-go/p2p/depend/common/config"
 	"github.com/coschain/contentos-go/p2p/depend/common/log"
-	//"github.com/ontio/ontology/core/ledger"
-	//"github.com/coschain/contentos-go/p2p/depend/core/types"
-	actor "github.com/coschain/contentos-go/p2p/actor/req"
+
 	msgCommon "github.com/coschain/contentos-go/p2p/common"
 	"github.com/coschain/contentos-go/p2p/message/msg_pack"
 	msgTypes "github.com/coschain/contentos-go/p2p/message/types"
@@ -166,21 +164,6 @@ func BlockHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args
 		//	Block:     block.Blk,
 		//}
 		//pid.Tell(input)
-	}
-}
-
-// ConsensusHandle handles the consensus message from peer
-func ConsensusHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
-	log.Debugf("[p2p]receive consensus message:%v,%d", data.Addr, data.Id)
-
-	if actor.ConsensusPid != nil {
-		var consensus = data.Payload.(*msgTypes.Consensus)
-		if err := consensus.Cons.Verify(); err != nil {
-			log.Warn(err)
-			return
-		}
-		consensus.Cons.PeerId = data.Id
-		actor.ConsensusPid.Tell(&consensus.Cons)
 	}
 }
 

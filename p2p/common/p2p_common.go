@@ -106,7 +106,6 @@ const (
 	GET_DATA_TYPE    = "getdata"    //req data from peer
 	BLOCK_TYPE       = "block"      //blk payload
 	TX_TYPE          = "tx"         //transaction
-	CONSENSUS_TYPE   = "consensus"  //consensus payload
 	GET_BLOCKS_TYPE  = "getblocks"  //req blks from peer
 	NOT_FOUND_TYPE   = "notfound"   //peer can`t find blk according to the hash
 	DISCONNECT_TYPE  = "disconnect" //peer disconnect info raise by link
@@ -125,11 +124,11 @@ type AppendHeaders struct {
 	Headers []*types.Header // Headers to be added to the ledger
 }
 
-type AppendBlock struct {
-	FromID    uint64       // The peer id
-	BlockSize uint32       // Block size
-	Block     *types.Block // Block to be added to the ledger
-}
+//type AppendBlock struct {
+//	FromID    uint64       // The peer id
+//	BlockSize uint32       // Block size
+//	Block     *types.Block // Block to be added to the ledger
+//}
 
 //ParseIPAddr return ip address
 func ParseIPAddr(s string) (string, error) {

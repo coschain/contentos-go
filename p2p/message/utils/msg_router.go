@@ -50,7 +50,6 @@ func (this *MessageRouter) init(p2p p2p.P2P) {
 	this.RegisterMsgHandler(msgCommon.HEADERS_TYPE, BlkHeaderHandle)
 	//this.RegisterMsgHandler(msgCommon.GET_DATA_TYPE, DataReqHandle)
 	this.RegisterMsgHandler(msgCommon.BLOCK_TYPE, BlockHandle)
-	this.RegisterMsgHandler(msgCommon.CONSENSUS_TYPE, ConsensusHandle)
 	this.RegisterMsgHandler(msgCommon.NOT_FOUND_TYPE, NotFoundHandle)
 	this.RegisterMsgHandler(msgCommon.TX_TYPE, TransactionHandle)
 	this.RegisterMsgHandler(msgCommon.DISCONNECT_TYPE, DisconnectHandle)

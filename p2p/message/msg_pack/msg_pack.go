@@ -58,16 +58,6 @@ func NewHeadersReq(curHdrHash common.Uint256) mt.Message {
 	return &h
 }
 
-////Consensus info package
-func NewConsensus(cp *mt.ConsensusPayload) mt.Message {
-	log.Trace()
-	var cons mt.Consensus
-	cons.Cons = *cp
-
-	return &cons
-}
-
-
 //NotFound package
 func NewNotFound(hash common.Uint256) mt.Message {
 	log.Trace()
