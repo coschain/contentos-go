@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package prototype;
 
+option go_package = "github.com/coschain/contentos-go/prototype";
+
 message uint128{
     uint64 hi = 1;
     uint64 lo = 2;

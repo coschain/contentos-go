@@ -2,8 +2,10 @@ syntax = "proto3";
 
 package prototype;
 
-import "github.com/coschain/contentos-go/prototype/type.proto";
-import "github.com/coschain/contentos-go/prototype/operation.proto";
+option go_package = "github.com/coschain/contentos-go/prototype";
+
+import "prototype/type.proto";
+import "prototype/operation.proto";
 
 message operation{
     oneof op{
