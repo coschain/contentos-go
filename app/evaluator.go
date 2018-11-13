@@ -4,6 +4,7 @@ import (
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/iservices"
+	"fmt"
 )
 
 type BaseEvaluator interface {
@@ -21,6 +22,14 @@ type TransferEvaluator struct{
 	control iservices.IController
 }
 
+func (ev *AccountCreateEvaluator) SetDB(db iservices.IDatabaseService){
+	ev.db = db
+}
+
+func  (ev *AccountCreateEvaluator) SetController(c iservices.IController){
+	ev.control = c
+}
+
 func (ev *AccountCreateEvaluator) Apply(operation *prototype.Operation) {
 	// write DB
 	 o,ok := operation.Op.(*prototype.Operation_Op1)
@@ -29,6 +38,8 @@ func (ev *AccountCreateEvaluator) Apply(operation *prototype.Operation) {
 	}
 	op := o.Op1
 	creatorWrap := table.NewSoAccountWrap(ev.db,op.Creator)
+	fmt.Println("1",creatorWrap)
+	fmt.Println("2",op)
 	if creatorWrap.GetBalance().Amount.Value < op.Fee.Amount.Value {
 		panic("Insufficient balance to create account.")
 	}
@@ -37,19 +48,19 @@ func (ev *AccountCreateEvaluator) Apply(operation *prototype.Operation) {
 	for _,a := range op.Owner.AccountAuths {
 		tmpAccountWrap := table.NewSoAccountWrap(ev.db,a.Name)
 		if !tmpAccountWrap.CheckExist() {
-			panic("auth account not exist")
+			panic("owner auth account not exist")
 		}
 	}
 	for _,a := range op.Active.AccountAuths {
 		tmpAccountWrap := table.NewSoAccountWrap(ev.db,a.Name)
 		if !tmpAccountWrap.CheckExist() {
-			panic("auth account not exist")
+			panic("active auth account not exist")
 		}
 	}
 	for _,a := range op.Posting.AccountAuths {
 		tmpAccountWrap := table.NewSoAccountWrap(ev.db,a.Name)
 		if !tmpAccountWrap.CheckExist() {
-			panic("auth account not exist")
+			panic("posting auth account not exist")
 		}
 	}
 
@@ -83,9 +94,9 @@ func (ev *AccountCreateEvaluator) Apply(operation *prototype.Operation) {
 	authority.LastOwnerUpdate = &prototype.TimePointSec{UtcSeconds:0}
 	authorityWrap.CreateAccountAuthorityObject(authority)
 
-	// @ create vesting
+	// create vesting
 	if op.Fee.Amount.Value > 0 {
-
+		ev.control.CreateVesting(op.NewAccountName,op.Fee)
 	}
 }
 

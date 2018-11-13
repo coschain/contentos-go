@@ -11,6 +11,7 @@ import (
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
 	"time"
+	"github.com/golang/protobuf/proto"
 )
 
 type skipFlag uint32
@@ -48,6 +49,11 @@ func (c *Controller) getDb() (iservices.IDatabaseService,error) {
 	return db, nil
 }
 
+// for easy test
+func (c *Controller) SetDB(db iservices.IDatabaseService) {
+	c.db = db
+}
+
 // service constructor
 func NewController(ctx *node.ServiceContext) (*Controller, error) {
 	return &Controller{ctx: ctx}, nil
@@ -80,7 +86,12 @@ func (c *Controller) PushTrx(trx *prototype.SignedTransaction) *prototype.Transa
 		c.skip = oldSkip
 	}()
 
-	// @ check maximum_block_size
+	// check maximum_block_size
+	var i int32 = 0
+	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db,&i)
+	if  proto.Size(trx) > int(dgpWrap.GetMaximumBlockSize() - 256) {
+		panic("transaction is too large")
+	}
 
 	c.setProducing(true)
 	return c._pushTrx(trx)
@@ -88,7 +99,7 @@ func (c *Controller) PushTrx(trx *prototype.SignedTransaction) *prototype.Transa
 
 func (c *Controller) _pushTrx(trx *prototype.SignedTransaction) *prototype.TransactionInvoice {
 	defer func() {
-		// @ undo sub session
+		// undo sub session
 		if err := recover(); err != nil {
 			c.db.EndTransaction(false)
 			panic(err)
@@ -305,8 +316,20 @@ func (c *Controller) InitGenesis() {
 	}
 }
 
-func (c *Controller) CreateVesting() *prototype.Vest {
-	return nil
+func (c *Controller) CreateVesting(accountName *prototype.AccountName, cos *prototype.Coin) *prototype.Vest {
+
+	newVesting := prototype.CosToVesting(cos)
+	creatorWrap := table.NewSoAccountWrap(c.db,accountName)
+	oldVesting := creatorWrap.GetVestingShares()
+	oldVesting.Amount.Value += newVesting.Amount.Value
+	creatorWrap.MdVestingShares(*oldVesting)
+
+	var i int32 = 0
+	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db,&i)
+	originTotal := dgpWrap.GetTotalVestingShares()
+	originTotal.Amount.Value += newVesting.Amount.Value
+	dgpWrap.MdTotalVestingShares(*originTotal)
+	return newVesting
 }
 
 func (c *Controller) SubBalance(accountName *prototype.AccountName, cos *prototype.Coin) {
