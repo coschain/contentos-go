@@ -55,19 +55,27 @@ func (gs *GRPCServer) Start(node *node.Node) error {
 
 	gs.api.mainLoop = node.MainLoop
 
-	err = gs.start(gs.config.RPCListen)
+	err = gs.startGRPC()
 	if err != nil {
 		return err
 	} else {
 		logging.CLog().Infof("GPRC Server Start [ %s ]", gs.config.RPCListen)
 	}
+
+	err = gs.startGateway()
+	if err != nil {
+		return err
+	} else {
+		logging.CLog().Infof("Gateway Server Start [ %s ]", gs.config.HTTPListen)
+	}
+
 	return nil
 }
 
-func (gs *GRPCServer) start(addr string) error {
-	listener, err := net.Listen(GRPCServerType, addr)
+func (gs *GRPCServer) startGRPC() error {
+	listener, err := net.Listen(GRPCServerType, gs.config.RPCListen)
 	if err != nil {
-		logging.VLog().Errorf("grpc listener addr: [%s] failure", addr)
+		logging.VLog().Errorf("grpc listener addr: [%s] failure", gs.config.RPCListen)
 	}
 
 	go func() {
@@ -86,7 +94,7 @@ func (gs *GRPCServer) Stop() error {
 	return nil
 }
 
-func (gs *GRPCServer) RunGateway() error {
+func (gs *GRPCServer) startGateway() error {
 	go func() {
 		if err := Run(gs.config); err != nil {
 			logging.VLog().Error("rpc gateway start failure")

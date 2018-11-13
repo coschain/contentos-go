@@ -3,7 +3,6 @@ module github.com/coschain/contentos-go
 require (
 	github.com/BurntSushi/toml v0.3.1 // indirect
 	github.com/Workiva/go-datastructures v1.0.50 // indirect
-	github.com/aristanetworks/goarista v0.0.0-20181101003910-5bb443fba8e0
 	github.com/asaskevich/EventBus v0.0.0-20180315140547-d46933a94f05
 	github.com/chzyer/logex v1.1.10 // indirect
 	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e
@@ -11,18 +10,17 @@ require (
 	github.com/coschain/cobra v0.0.0-20181106130408-77bf516f51a1
 	github.com/emirpasic/gods v1.12.0 // indirect
 	github.com/fastly/go-utils v0.0.0-20180712184237-d95a45783239 // indirect
-	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/gogo/protobuf v1.1.1
 	github.com/golang/mock v1.1.1
 	github.com/golang/protobuf v1.2.0
 	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db // indirect
-	github.com/grpc-ecosystem/grpc-gateway v1.5.1
 	github.com/hashicorp/golang-lru v0.5.0
 	github.com/howeyc/gopass v0.0.0-20170109162249-bf9dde6d0d2c
 	github.com/inconshreveable/log15 v0.0.0-20180818164646-67afb5ed74ec
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/itchyny/base58-go v0.0.0-20181013094353-56d50cf40874
+	github.com/jackami/grpc-gateway v1.5.2
 	github.com/jehiah/go-strftime v0.0.0-20171201141054-1d33003b3869 // indirect
 	github.com/jonboulle/clockwork v0.1.0 // indirect
 	github.com/lestrrat/go-envload v0.0.0-20180220120943-6ed08b54a570 // indirect

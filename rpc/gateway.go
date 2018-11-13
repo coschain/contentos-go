@@ -7,7 +7,7 @@ import (
 	"github.com/coschain/contentos-go/common/logging"
 	"github.com/coschain/contentos-go/iservices/service-configs"
 	"github.com/coschain/contentos-go/rpc/pb"
-	"github.com/grpc-ecosystem/grpc-gateway/runtime"
+	"github.com/jackami/grpc-gateway/runtime"
 	"github.com/rs/cors"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
