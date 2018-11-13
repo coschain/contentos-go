@@ -648,6 +648,9 @@ func createParamsFromTableInfo(tInfo TableInfo) Params {
 	para.SortList = make([]SortPro,0)
 	for _,v := range tInfo.PList {
 		fType :=  strings.Replace(v.VarType," ", "", -1)
+		if fType == "bytes" {
+			fType = "[]byte"
+		}
 		fName :=  strings.Replace(v.VarName," ", "", -1)
 		if v.BMainKey {
 			para.MainKeyName = rValueFormStr(fName)
@@ -755,6 +758,8 @@ func DetectBaseType(str string) bool {
 			return true
 		case "float32":
 			return true
+	    case "[]byte":
+	    	return true
 		case "float64":
 	}
 	return false

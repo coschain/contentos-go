@@ -43,6 +43,12 @@ func (p *PropList) Parse(info []string, index uint32) bool {
 		return false
 	}
 	p.VarType = info[0]
+	if strings.HasPrefix(p.VarType,"[]byte")  {
+		p.VarType = strings.Replace(p.VarType,"[]byte", "bytes",-1)
+	}
+	if strings.HasPrefix(p.VarType,"int") || strings.HasPrefix(p.VarType,"uint") {
+		p.VarType = conToInt32Str(p.VarType)
+	}
 	p.VarName = name
 	res, err := strconv.ParseBool(strings.Replace(info[2], " ", "", -1))
 	if err != nil {
@@ -365,4 +371,28 @@ func CheckUpperLetter(str string) bool {
 		}
 	}
 	return false
+}
+
+func conToInt32Str(str string) string {
+	if strings.HasPrefix(str,"int") || strings.HasPrefix(str,"uint") {
+		tmpStr := strings.Replace(str, " ","",-1)
+		reStr := ""
+		t32 := "int32"
+		t64 := "int64"
+		if strings.HasPrefix(str,"uint") {
+			t32,t64 = "uint32","uint64"
+		}
+		switch tmpStr {
+		  case t32:
+			  reStr = ""
+		  case t64:
+			  reStr = ""
+		default:
+			reStr = t32
+		}
+		if reStr != "" {
+			str = strings.Replace(str,tmpStr,reStr,-1)
+		}
+	}
+	return str
 }
