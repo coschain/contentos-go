@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/coschain/contentos-go/common"
-	"github.com/coschain/contentos-go/prototype"
-	"github.com/coschain/contentos-go/config"
+	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/db/forkdb"
+	"github.com/coschain/contentos-go/prototype"
 )
 
 type Producer struct {
@@ -22,10 +22,15 @@ func (p *Producer) Produce() (common.ISignedBlock, error) {
 }
 
 type DPoS struct {
-	ForkDB     *forkdb.DB
-	Producers  []*Producer
-	activeNum  uint32
-	currentIdx uint32
+	ForkDB *forkdb.DB
+
+	Producers []*Producer
+	hostMask  []bool
+	activeNum uint64
+	producing bool
+
+	slot           uint64
+	currentAbsSlot uint64
 
 	stopCh chan struct{}
 	wg     sync.WaitGroup
@@ -35,9 +40,14 @@ type DPoS struct {
 func NewDPoS() *DPoS {
 	return &DPoS{
 		ForkDB:    forkdb.NewDB(),
-		Producers: make([]*Producer, config.ProducerNum),
+		Producers: make([]*Producer, constants.ProducerNum),
+		hostMask:  make([]bool, constants.ProducerNum),
 		stopCh:    make(chan struct{}),
 	}
+}
+
+func (d *DPoS) SetProducer(prod bool) {
+	d.producing = prod
 }
 
 func (d *DPoS) CurrentProducer() *Producer {
@@ -68,7 +78,15 @@ func (d *DPoS) start() {
 		case <-d.stopCh:
 			break
 		default:
-			if !d.checkGenesis() || !d.checkOurTurn(){
+			if !d.producing {
+				time.Sleep(time.Second)
+				continue
+			}
+			if !d.checkGenesis() || !d.checkSync() ||
+				!d.checkProducingTiming() || !d.checkOurTurn() {
+				now := time.Now()
+				ceil := now.Add(time.Millisecond * 500).Round(time.Second)
+				time.Sleep(ceil.Sub(now))
 				continue
 			}
 			b, err := d.GenerateBlock()
@@ -92,7 +110,7 @@ func (d *DPoS) GenerateBlock() (common.ISignedBlock, error) {
 
 func (d *DPoS) checkGenesis() bool {
 	now := time.Now()
-	genesisTime := time.Unix(config.GenesisTime, 0)
+	genesisTime := time.Unix(constants.GenesisTime, 0)
 	if now.After(genesisTime) || now.Equal(genesisTime) {
 		return true
 	}
@@ -103,21 +121,63 @@ func (d *DPoS) checkGenesis() bool {
 	}
 
 	if ceil.Before(genesisTime) {
-		time.Sleep(ceil.Sub(now))
+		//time.Sleep(ceil.Sub(now))
 		return false
 	}
+}
 
-	time.Sleep(ceil.Sub(now))
+func (d *DPoS) checkProducingTiming() bool {
+	now := time.Now().Round(time.Second)
+	d.slot = d.getSlotAtTime(now)
+	if d.slot == 0 {
+		// not time yet, wait till the next block producing
+		// cycle comes
+		//nextSlotTime := d.getSlotTime(1)
+		//time.Sleep(time.Unix(int64(nextSlotTime), 0).Sub(time.Now()))
+		return false
+	}
 	return true
 }
 
 func (d *DPoS) checkOurTurn() bool {
+	idx := d.getScheduledProducer(d.slot)
+	if d.hostMask[idx] == true {
+		return true
+	}
+	return false
+}
+
+func (d *DPoS) getScheduledProducer(slot uint64) int {
+	// TODO:
+	return 0
+}
+
+// returns true if we're out of sync
+func (d *DPoS) checkSync() bool {
+	now := time.Now().Round(time.Second).Unix()
+	if d.getSlotTime(1) < uint64(now) {
+		//time.Sleep(time.Second)
+		return false
+	}
 	return true
 }
 
+func (d *DPoS) getSlotTime(slot uint64) uint64 {
+	return 0
+}
+
+func (d *DPoS) getSlotAtTime(t time.Time) uint64 {
+	nextSlotTime := d.getSlotTime(1)
+	if uint64(t.Unix()) < nextSlotTime {
+		return 0
+	}
+	return (uint64(t.Unix())-nextSlotTime)/constants.BLOCK_INTERNAL + 1
+}
+
 func (d *DPoS) PushBlock(b common.ISignedBlock) error {
+	// TODO: check signee
 	head := d.ForkDB.Head()
-	newHead :=d.ForkDB.PushBlock(b)
+	newHead := d.ForkDB.PushBlock(b)
 
 	if newHead == head {
 		// this implies that b is a:

@@ -6,13 +6,13 @@ import (
 )
 
 type IConsensus interface {
+	// NOTE: producers should be maintained by the specific Consensus algorithm
 	// CurrentProducer returns current producer
 	CurrentProducer() IProducer
 	// ActiveProducers returns a list of accounts that actively produce blocks
 	ActiveProducers() []IProducer
-	// InitProducer sets the prod as the default producer, further producers
-	// should be maintained by the specific Consensus algorithm
-	InitProducer(prod string)
+	// SetProduce sets the node as a block producer if prod == true
+	SetProduce(prod bool)
 
 	// Start starts the consensus process
 	Start()

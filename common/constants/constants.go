@@ -9,7 +9,7 @@ const (
 	COIN_SYMBOL = "COS"
 	VEST_SYMBOL = "VEST"
 
-	BLOCK_INTERNAL = 3000 // 3000 ms for one block produce
+	BLOCK_INTERNAL = 3 // 3000 ms for one block produce
 
 	NOTICE_OP_PRE      = "oppre"
 	NOTICE_OP_POST     = "oppost"
@@ -17,4 +17,8 @@ const (
 	NOTICE_TRX_POST    = "trxpost"
 	NOTICE_TRX_PENDING = "trxpending"
 	NOTICE_BLOCK_APPLY = "blockapply"
+
+ 	ProducerNum = 21
+	GenesisTime = 11111
+
 )

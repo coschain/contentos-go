@@ -36,6 +36,10 @@ func (msb *MockSignedBlock) GetSignee() interface{} {
 	return nil
 }
 
+func (msb *MockSignedBlock) Timestamp() uint32 {
+	return 0
+}
+
 func (msb *MockSignedBlock) Id() common.BlockID {
 	h := sha256.Sum256(msb.Payload)
 	binary.LittleEndian.PutUint64(h[:8], msb.Num)

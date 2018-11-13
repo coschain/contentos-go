@@ -24,7 +24,7 @@ func (bid BlockID) BlockNum() uint64 {
 // BlockHeader ...
 type IBlockHeader interface {
 	Previous() BlockID
-	Timestamp() uint32
+	Timestamp() uint64
 }
 
 // SignedBlockHeader ...
