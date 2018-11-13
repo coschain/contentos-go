@@ -17,7 +17,7 @@ var ListCmd = func() *cobra.Command {
 
 func list(cmd *cobra.Command, args []string) {
 	_ = args
-	o := cmd.Context["wallet-cli"]
+	o := cmd.Context["wallet"]
 	w := o.(wallet.Wallet)
 	lines := w.List()
 	for _, line := range lines {

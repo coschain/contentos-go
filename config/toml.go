@@ -25,6 +25,7 @@ Interval = "{{ .Timer.Interval }}"
 RPCListen = "{{ .GRPC.RPCListen }}"
 HTTPListen = "{{ .GRPC.HTTPListen }}"
 HTTPCors = "{{ .GRPC.HTTPCors }}"
+HTTPLimit = {{ .GRPC.HTTPLimit }}
 `
 
 func WriteNodeConfigFile(configDirPath string, configName string, config node.Config, mode os.FileMode) error {

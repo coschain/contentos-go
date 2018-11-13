@@ -23,6 +23,7 @@ var DefaultNodeConfig = node.Config{
 		RPCListen:  DefaultRPCEndPoint,
 		HTTPListen: DefaultHTTPEndPoint,
 		HTTPCors:   []string{"*"},
+		HTTPLimit:  100,
 	},
 }
 

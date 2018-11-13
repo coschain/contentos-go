@@ -16,7 +16,7 @@ var LockCmd = func() *cobra.Command {
 }
 
 func lock(cmd *cobra.Command, args []string) {
-	o := cmd.Context["wallet-cli"]
+	o := cmd.Context["wallet"]
 	w := o.(wallet.Wallet)
 	name := args[0]
 	err := w.Lock(name)

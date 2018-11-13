@@ -173,18 +173,34 @@ func (w *BaseWallet) LoadAll() error {
 	return nil
 }
 
-func (w *BaseWallet) Create(name, passphrase string) error {
+func (w *BaseWallet) GenerateNewKey() (string, string, error) {
 	privKey, err := prototype.GenerateNewKey()
 	if err != nil {
-		return err
+		return "", "", err
 	}
 	pubKey, err := privKey.PubKey()
 	if err != nil {
-		return err
+		return "", "", err
 	}
 	privKeyStr := privKey.ToWIF()
 	pubKeyStr := pubKey.ToWIF()
+	return pubKeyStr, privKeyStr, nil
+}
+
+func (w *BaseWallet) Create(name, passphrase, pubKeyStr, privKeyStr string) error {
+	//privKey, err := prototype.PrivateKeyFromWIF(privKeyStr)
+	//if err != nil {
+	//	return err
+	//}
+	//pubKey, err :=  privKey.PubKey()
+	//if err != nil {
+	//	return err
+	//}
+	//pubKeyStr := pubKey.ToWIF()
 	cipher_data, iv, err := EncryptData([]byte(privKeyStr), []byte(passphrase))
+	if err != nil {
+		return err
+	}
 	cipher_text := base64.StdEncoding.EncodeToString(cipher_data)
 	iv_text := base64.StdEncoding.EncodeToString(iv)
 	encrypt_account := &EncryptAccount{

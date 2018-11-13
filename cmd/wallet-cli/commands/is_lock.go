@@ -16,7 +16,7 @@ var IsLockedCmd = func() *cobra.Command {
 }
 
 func isLocked(cmd *cobra.Command, args []string) {
-	o := cmd.Context["wallet-cli"]
+	o := cmd.Context["wallet"]
 	w := o.(wallet.Wallet)
 	name := args[0]
 	l, err := w.IsLocked(name)

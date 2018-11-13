@@ -3,7 +3,7 @@ package commands
 import (
 	"fmt"
 	"github.com/coschain/cobra"
-	"github.com/coschain/contentos-go/prototype"
+	"github.com/coschain/contentos-go/cmd/wallet-cli/wallet"
 )
 
 var GenKeyPairCmd = func() *cobra.Command {
@@ -17,18 +17,14 @@ var GenKeyPairCmd = func() *cobra.Command {
 
 func genKeyPair(cmd *cobra.Command, args []string) {
 
-	priKey, err := prototype.GenerateNewKey()
-
+	w := cmd.Context["wallet"]
+	mywallet := w.(*wallet.BaseWallet)
+	pubKeyStr, privKeyStr, err := mywallet.GenerateNewKey()
 	if err != nil {
-		fmt.Println("GenerateNewKey Error: ", err)
+		fmt.Println("Generate New Key Error:", err)
+	} else {
+		fmt.Println("Public  Key: ", pubKeyStr)
+		fmt.Println("Private Key: ", privKeyStr)
 	}
-
-	pubKey, err := priKey.PubKey()
-	if err != nil {
-		fmt.Println("GeneratePubKey Error: ", err)
-	}
-
-	fmt.Println("Public  Key: ", pubKey.ToWIF() )
-	fmt.Println("Private Key: ", priKey.ToWIF() )
 
 }

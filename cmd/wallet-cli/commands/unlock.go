@@ -16,7 +16,7 @@ var UnlockCmd = func() *cobra.Command {
 }
 
 func unlock(cmd *cobra.Command, args []string) {
-	o := cmd.Context["wallet-cli"]
+	o := cmd.Context["wallet"]
 	w := o.(wallet.Wallet)
 	name := args[0]
 	passphrase := args[1]

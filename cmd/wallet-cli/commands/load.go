@@ -16,7 +16,7 @@ var LoadCmd = func() *cobra.Command {
 }
 
 func load(cmd *cobra.Command, args []string) {
-	o := cmd.Context["wallet-cli"]
+	o := cmd.Context["wallet"]
 	w := o.(wallet.Wallet)
 	name := args[0]
 	err := w.Load(name)

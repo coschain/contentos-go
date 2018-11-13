@@ -5,6 +5,7 @@ import (
 	"github.com/coschain/cobra"
 	"github.com/coschain/contentos-go/cmd/wallet-cli/commands"
 	"github.com/coschain/contentos-go/cmd/wallet-cli/wallet"
+	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/rpc"
 	"github.com/coschain/contentos-go/rpc/pb"
 	"os"
@@ -105,13 +106,13 @@ func init() {
 func main() {
 	localWallet := wallet.NewBaseWallet("default", DefaultDataDir())
 	localWallet.Start()
-	rootCmd.SetContext("wallet-cli", localWallet)
+	rootCmd.SetContext("wallet", localWallet)
 	defer localWallet.Close()
 
 	conn, err := rpc.Dial("localhost:8888")
 	defer conn.Close()
 	if err != nil {
-		rootCmd.SetContext("rpcclient", nil)
+		common.Fatalf("Chain should have been run first")
 	} else {
 		rootCmd.SetContext("rpcclient", grpcpb.NewApiServiceClient(conn))
 	}

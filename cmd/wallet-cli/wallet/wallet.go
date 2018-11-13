@@ -9,7 +9,9 @@ type Wallet interface {
 
 	Path() string
 
-	Create(name, passphrase string) error
+	GenerateNewKey() (string, string, error) // return pubKey, privKey, error
+
+	Create(name, passphrase, pubKeyStr, privKeyStr string) error
 
 	Load(name string) error
 

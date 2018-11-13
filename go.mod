@@ -11,6 +11,7 @@ require (
 	github.com/coschain/cobra v0.0.0-20181106130408-77bf516f51a1
 	github.com/emirpasic/gods v1.12.0 // indirect
 	github.com/fastly/go-utils v0.0.0-20180712184237-d95a45783239 // indirect
+	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/gogo/protobuf v1.1.1
 	github.com/golang/mock v1.1.1

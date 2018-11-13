@@ -16,7 +16,7 @@ var CloseCmd = func() *cobra.Command {
 
 func closec(cmd *cobra.Command, args []string) {
 	_ = args
-	o := cmd.Context["wallet-cli"]
+	o := cmd.Context["wallet"]
 	w := o.(wallet.Wallet)
 	w.Close()
 }
