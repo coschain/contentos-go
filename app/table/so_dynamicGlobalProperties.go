@@ -89,6 +89,34 @@ func (s *SoDynamicGlobalPropertiesWrap) RemoveDynamicGlobalProperties() bool {
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
+func (s *SoDynamicGlobalPropertiesWrap) GetCurrentSupply() *prototype.Coin {
+	res := s.getDynamicGlobalProperties()
+
+   if res == nil {
+      return nil
+      
+   }
+   return res.CurrentSupply
+}
+
+
+
+func (s *SoDynamicGlobalPropertiesWrap) MdCurrentSupply(p prototype.Coin) bool {
+	sa := s.getDynamicGlobalProperties()
+	if sa == nil {
+		return false
+	}
+	
+   
+   sa.CurrentSupply = &p
+   
+	if !s.update(sa) {
+		return false
+	}
+    
+	return true
+}
+
 func (s *SoDynamicGlobalPropertiesWrap) GetCurrentWitness() *prototype.AccountName {
 	res := s.getDynamicGlobalProperties()
 

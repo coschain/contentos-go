@@ -41,7 +41,7 @@ type Controller struct {
 }
 
 func (c *Controller) getDb() (iservices.IDatabaseService,error) {
-	s, err := c.ctx.Service("db")
+	s, err := c.ctx.Service(iservices.DB_SERVER_NAME)
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +67,17 @@ func (c *Controller) Start(node *node.Node) error {
 	c.db = db
 	c.evLoop = node.MainLoop
 	c.noticer = node.EvBus
+
+	c.open()
 	return nil
+}
+
+func (c *Controller) open() {
+	var i int32 = 0
+	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db,&i)
+	if !dgpWrap.CheckExist() {
+		c.initGenesis()
+	}
 }
 
 func (c *Controller) Stop() error {
@@ -307,7 +317,53 @@ func (c *Controller) _applyBlock(blk *prototype.SignedBlock) {
 	}
 }
 
-func (c *Controller) InitGenesis() {
+func (c *Controller) initGenesis() {
+
+	// create initminer
+	name := &prototype.AccountName{Value:constants.INIT_MINER_NAME}
+	newAccountWrap := table.NewSoAccountWrap(c.db,name)
+	newAccount := &table.SoAccount{}
+	newAccount.Name = name
+	cos := &prototype.Coin{}
+	cos.Amount.Value = constants.INIT_SUPPLY
+	newAccount.Balance = cos
+	newAccountWrap.CreateAccount(newAccount)
+
+	// create account authority
+	authorityWrap := table.NewSoAccountAuthorityObjectWrap(c.db,name)
+	authority := &table.SoAccountAuthorityObject{}
+	authority.Account = name
+	ownerAuth := &prototype.Authority{
+		WeightThreshold: 1,
+		KeyAuths: []*prototype.KvKeyAuth{
+			&prototype.KvKeyAuth{
+				Key: &prototype.PublicKeyType{
+					Data: []byte{0}, // ?
+				},
+				Weight: 1,
+			},
+		},
+	}
+	authority.Posting = ownerAuth
+	authority.Active = ownerAuth
+	authority.Owner = ownerAuth
+	authorityWrap.CreateAccountAuthorityObject(authority)
+	// @ create witness_object
+
+	// create dynamic global properties
+	var i int32 = 0
+	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db,&i)
+	dgp := &table.SoDynamicGlobalProperties{}
+	dgp.CurrentWitness = name
+	dgp.Time = &prototype.TimePointSec{UtcSeconds:constants.GENESIS_TIME}
+	// @ recent_slots_filled
+	// @ participation_count
+	dgp.CurrentSupply = cos
+	dgp.TotalCos = cos
+	dgp.MaximumBlockSize = constants.MAX_BLOCK_SIZE
+	dgpWrap.CreateDynamicGlobalProperties(dgp)
+
+	// create block summary
 	for i := uint32(0); i < 0x10000; i++ {
 		wrap := table.NewSoBlockSummaryObjectWrap(c.db, &i)
 		obj := &table.SoBlockSummaryObject{}
