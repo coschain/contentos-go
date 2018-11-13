@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/coschain/contentos-go/common/prototype"
+	"github.com/coschain/contentos-go/prototype"
 	"github.com/gogo/protobuf/proto"
 )
 

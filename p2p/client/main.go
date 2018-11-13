@@ -33,13 +33,6 @@ func main() {
 	time.Sleep(28 * time.Second)
 
 	for i:=0;i<1;i++ {
-		// Broadcast conn.Uint256
-//		var tmp conn.Uint256
-//		tmp[0] = 8
-//		tmp[1] = 88
-//		tmp[2] = 188
-//		p2p.Xmit(tmp)
-
 		// Broadcast signedTransaction
 		trx := &prototype.Transaction{
 			RefBlockNum:    1,

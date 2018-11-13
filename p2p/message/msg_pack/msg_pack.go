@@ -67,24 +67,6 @@ func NewConsensus(cp *mt.ConsensusPayload) mt.Message {
 	return &cons
 }
 
-//InvPayload
-func NewInvPayload(invType common.InventoryType, msg []common.Uint256) *mt.InvPayload {
-	log.Trace()
-	return &mt.InvPayload{
-		InvType: invType,
-		Blk:     msg,
-	}
-}
-
-//Inv request package
-func NewInv(invPayload *mt.InvPayload) mt.Message {
-	log.Trace()
-	var inv mt.Inv
-	inv.P.Blk = invPayload.Blk
-	inv.P.InvType = invPayload.InvType
-
-	return &inv
-}
 
 //NotFound package
 func NewNotFound(hash common.Uint256) mt.Message {

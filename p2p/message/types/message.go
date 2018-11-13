@@ -144,8 +144,6 @@ func MakeEmptyMessage(cmdType string) (Message, error) {
 		return &HeadersReq{}, nil
 	case common.HEADERS_TYPE:
 		return &BlkHeader{}, nil
-	case common.INV_TYPE:
-		return &Inv{}, nil
 	case common.GET_DATA_TYPE:
 		return &DataReq{}, nil
 	case common.BLOCK_TYPE:

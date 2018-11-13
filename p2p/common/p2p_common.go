@@ -103,7 +103,6 @@ const (
 	PONG_TYPE        = "pong"       //pong  recv nbr height
 	GET_HEADERS_TYPE = "getheaders" //req blk hdr
 	HEADERS_TYPE     = "headers"    //blk hdr
-	INV_TYPE         = "inv"        //inv payload
 	GET_DATA_TYPE    = "getdata"    //req data from peer
 	BLOCK_TYPE       = "block"      //blk payload
 	TX_TYPE          = "tx"         //transaction

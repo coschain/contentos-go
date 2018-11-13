@@ -18,7 +18,6 @@ import (
 	comm "github.com/coschain/contentos-go/p2p/depend/common"
 	"github.com/coschain/contentos-go/p2p/depend/common/config"
 	"github.com/coschain/contentos-go/p2p/depend/common/log"
-	//"github.com/ontio/ontology/core/ledger"
 	"github.com/coschain/contentos-go/p2p/depend/core/types"
 	"github.com/coschain/contentos-go/p2p/common"
 	msgtypes "github.com/coschain/contentos-go/p2p/message/types"
@@ -143,12 +142,6 @@ func (this *P2PServer) Xmit(message interface{}) error {
 		consensusPayload := message.(*msgtypes.ConsensusPayload)
 		msg = msgpack.NewConsensus(consensusPayload)
 		isConsensus = true
-	case comm.Uint256:
-		log.Debug("[p2p]TX block hash message")
-		hash := message.(comm.Uint256)
-		// construct inv message
-		invPayload := msgpack.NewInvPayload(comm.BLOCK, []comm.Uint256{hash})
-		msg = msgpack.NewInv(invPayload)
 	default:
 		log.Warnf("[p2p]Unknown Xmit message %v , type %v", message,
 			reflect.TypeOf(message))

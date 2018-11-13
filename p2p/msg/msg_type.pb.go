@@ -6,7 +6,7 @@ package msg
 import proto "github.com/golang/protobuf/proto"
 import fmt "fmt"
 import math "math"
-import prototype "github.com/coschain/contentos-go/common/prototype"
+import prototype "github.com/coschain/contentos-go/prototype"
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
