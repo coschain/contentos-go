@@ -409,19 +409,29 @@ func (m *SoList{{$.ClsName}}By{{$v.PName}}) EncodeRevSortKey() ([]byte,error) {
 }
 
 //Query sort by order 
-func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByOrder(start {{formatStr $v.PType}}, end {{formatStr $v.PType}}) iservices.IDatabaseIterator {
-
-    pre := {{$.ClsName}}{{$v.PName}}Table
-    skeyList := []interface{}{pre,&start}
+//start = nil  end = nil (query the db from start to end)
+//start = nil (query from start the db)
+//end = nil (query to the end of db)
+func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByOrder(start *{{$v.PType}}, end *{{$v.PType}}) iservices.IDatabaseIterator {
+    pre := {{$.ClsName}}{{$v.PName}}RevOrdTable
+    skeyList := []interface{}{pre}
+    if start != nil {
+       skeyList = append(skeyList,start)
+    }
     sBuf,cErr := encoding.EncodeSlice(skeyList,false)
     if cErr != nil {
-       return nil
+         return nil
     }
-    eKeyList := []interface{}{pre,&end}
+    
+    eKeyList := []interface{}{pre}
+    if end != nil {
+       eKeyList = append(eKeyList,end)
+    }
     eBuf,cErr := encoding.EncodeSlice(eKeyList,false)
     if cErr != nil {
        return nil
     }
+    
     res := bytes.Compare(sBuf,eBuf)
     if res == 0 {
 		eBuf = nil
@@ -435,15 +445,22 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByOrder(start {{formatStr $v.P
 }
 {{if or (eq $v.SType 2) (eq $v.SType 3) -}}
 //Query sort by reverse order 
-func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByRevOrder(start {{formatStr $v.PType}}, end {{formatStr $v.PType}}) iservices.IDatabaseIterator {
+func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByRevOrder(start *{{$v.PType}}, end *{{$v.PType}}) iservices.IDatabaseIterator {
 
     pre := {{$.ClsName}}{{$v.PName}}Table
-    skeyList := []interface{}{pre,&start}
+    skeyList := []interface{}{pre}
+    if start != nil {
+       skeyList = append(skeyList,start)
+    }
     sBuf,cErr := encoding.EncodeSlice(skeyList,false)
     if cErr != nil {
-       return nil
+         return nil
     }
-    eKeyList := []interface{}{pre,&end}
+    
+    eKeyList := []interface{}{pre}
+    if end != nil {
+       eKeyList = append(eKeyList,end)
+    }
     eBuf,cErr := encoding.EncodeSlice(eKeyList,false)
     if cErr != nil {
        return nil
@@ -601,6 +618,7 @@ func (s *Uni{{$.ClsName}}{{$k}}Wrap) UniQuery{{$k}}(start *{{formatStr $v}}) *So
 		"LowerFirstChar": LowerFirstChar,
 		"DetectBaseType":DetectBaseType,
 		"formatRTypeStr":formatRTypeStr,
+		"formateQueryParamStr":formateQueryParamStr,
 		}
 		t := template.New("layout.html")
 		t  = t.Funcs(funcMapUper)
@@ -746,6 +764,16 @@ func DetectBaseType(str string) bool {
 func formatRTypeStr(str string) string{
 	if str != "" {
 		if !DetectBaseType(str) {
+			return "*" + str
+		}
+	}
+	return str
+}
+
+/* format the type of querylist params to ptr (if the type is base data type,the type add *)*/
+func formateQueryParamStr(str string) string {
+	if str != "" {
+		if DetectBaseType(str) {
 			return "*" + str
 		}
 	}

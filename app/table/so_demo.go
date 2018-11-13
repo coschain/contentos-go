@@ -638,19 +638,29 @@ func (m *SoListDemoByPostTime) EncodeRevSortKey() ([]byte,error) {
 }
 
 //Query sort by order 
-func (s *SDemoPostTimeWrap) QueryListByOrder(start prototype.TimePointSec, end prototype.TimePointSec) iservices.IDatabaseIterator {
-
-    pre := DemoPostTimeTable
-    skeyList := []interface{}{pre,&start}
+//start = nil  end = nil (query the db from start to end)
+//start = nil (query from start the db)
+//end = nil (query to the end of db)
+func (s *SDemoPostTimeWrap) QueryListByOrder(start *prototype.TimePointSec, end *prototype.TimePointSec) iservices.IDatabaseIterator {
+    pre := DemoPostTimeRevOrdTable
+    skeyList := []interface{}{pre}
+    if start != nil {
+       skeyList = append(skeyList,start)
+    }
     sBuf,cErr := encoding.EncodeSlice(skeyList,false)
     if cErr != nil {
-       return nil
+         return nil
     }
-    eKeyList := []interface{}{pre,&end}
+    
+    eKeyList := []interface{}{pre}
+    if end != nil {
+       eKeyList = append(eKeyList,end)
+    }
     eBuf,cErr := encoding.EncodeSlice(eKeyList,false)
     if cErr != nil {
        return nil
     }
+    
     res := bytes.Compare(sBuf,eBuf)
     if res == 0 {
 		eBuf = nil
@@ -663,15 +673,22 @@ func (s *SDemoPostTimeWrap) QueryListByOrder(start prototype.TimePointSec, end p
     return iter
 }
 //Query sort by reverse order 
-func (s *SDemoPostTimeWrap) QueryListByRevOrder(start prototype.TimePointSec, end prototype.TimePointSec) iservices.IDatabaseIterator {
+func (s *SDemoPostTimeWrap) QueryListByRevOrder(start *prototype.TimePointSec, end *prototype.TimePointSec) iservices.IDatabaseIterator {
 
     pre := DemoPostTimeTable
-    skeyList := []interface{}{pre,&start}
+    skeyList := []interface{}{pre}
+    if start != nil {
+       skeyList = append(skeyList,start)
+    }
     sBuf,cErr := encoding.EncodeSlice(skeyList,false)
     if cErr != nil {
-       return nil
+         return nil
     }
-    eKeyList := []interface{}{pre,&end}
+    
+    eKeyList := []interface{}{pre}
+    if end != nil {
+       eKeyList = append(eKeyList,end)
+    }
     eBuf,cErr := encoding.EncodeSlice(eKeyList,false)
     if cErr != nil {
        return nil
@@ -773,19 +790,29 @@ func (m *SoListDemoByLikeCount) EncodeRevSortKey() ([]byte,error) {
 }
 
 //Query sort by order 
-func (s *SDemoLikeCountWrap) QueryListByOrder(start int64, end int64) iservices.IDatabaseIterator {
-
-    pre := DemoLikeCountTable
-    skeyList := []interface{}{pre,&start}
+//start = nil  end = nil (query the db from start to end)
+//start = nil (query from start the db)
+//end = nil (query to the end of db)
+func (s *SDemoLikeCountWrap) QueryListByOrder(start *int64, end *int64) iservices.IDatabaseIterator {
+    pre := DemoLikeCountRevOrdTable
+    skeyList := []interface{}{pre}
+    if start != nil {
+       skeyList = append(skeyList,start)
+    }
     sBuf,cErr := encoding.EncodeSlice(skeyList,false)
     if cErr != nil {
-       return nil
+         return nil
     }
-    eKeyList := []interface{}{pre,&end}
+    
+    eKeyList := []interface{}{pre}
+    if end != nil {
+       eKeyList = append(eKeyList,end)
+    }
     eBuf,cErr := encoding.EncodeSlice(eKeyList,false)
     if cErr != nil {
        return nil
     }
+    
     res := bytes.Compare(sBuf,eBuf)
     if res == 0 {
 		eBuf = nil
@@ -798,15 +825,22 @@ func (s *SDemoLikeCountWrap) QueryListByOrder(start int64, end int64) iservices.
     return iter
 }
 //Query sort by reverse order 
-func (s *SDemoLikeCountWrap) QueryListByRevOrder(start int64, end int64) iservices.IDatabaseIterator {
+func (s *SDemoLikeCountWrap) QueryListByRevOrder(start *int64, end *int64) iservices.IDatabaseIterator {
 
     pre := DemoLikeCountTable
-    skeyList := []interface{}{pre,&start}
+    skeyList := []interface{}{pre}
+    if start != nil {
+       skeyList = append(skeyList,start)
+    }
     sBuf,cErr := encoding.EncodeSlice(skeyList,false)
     if cErr != nil {
-       return nil
+         return nil
     }
-    eKeyList := []interface{}{pre,&end}
+    
+    eKeyList := []interface{}{pre}
+    if end != nil {
+       eKeyList = append(eKeyList,end)
+    }
     eBuf,cErr := encoding.EncodeSlice(eKeyList,false)
     if cErr != nil {
        return nil
@@ -908,19 +942,29 @@ func (m *SoListDemoByIdx) EncodeRevSortKey() ([]byte,error) {
 }
 
 //Query sort by order 
-func (s *SDemoIdxWrap) QueryListByOrder(start int64, end int64) iservices.IDatabaseIterator {
-
-    pre := DemoIdxTable
-    skeyList := []interface{}{pre,&start}
+//start = nil  end = nil (query the db from start to end)
+//start = nil (query from start the db)
+//end = nil (query to the end of db)
+func (s *SDemoIdxWrap) QueryListByOrder(start *int64, end *int64) iservices.IDatabaseIterator {
+    pre := DemoIdxRevOrdTable
+    skeyList := []interface{}{pre}
+    if start != nil {
+       skeyList = append(skeyList,start)
+    }
     sBuf,cErr := encoding.EncodeSlice(skeyList,false)
     if cErr != nil {
-       return nil
+         return nil
     }
-    eKeyList := []interface{}{pre,&end}
+    
+    eKeyList := []interface{}{pre}
+    if end != nil {
+       eKeyList = append(eKeyList,end)
+    }
     eBuf,cErr := encoding.EncodeSlice(eKeyList,false)
     if cErr != nil {
        return nil
     }
+    
     res := bytes.Compare(sBuf,eBuf)
     if res == 0 {
 		eBuf = nil
@@ -933,15 +977,22 @@ func (s *SDemoIdxWrap) QueryListByOrder(start int64, end int64) iservices.IDatab
     return iter
 }
 //Query sort by reverse order 
-func (s *SDemoIdxWrap) QueryListByRevOrder(start int64, end int64) iservices.IDatabaseIterator {
+func (s *SDemoIdxWrap) QueryListByRevOrder(start *int64, end *int64) iservices.IDatabaseIterator {
 
     pre := DemoIdxTable
-    skeyList := []interface{}{pre,&start}
+    skeyList := []interface{}{pre}
+    if start != nil {
+       skeyList = append(skeyList,start)
+    }
     sBuf,cErr := encoding.EncodeSlice(skeyList,false)
     if cErr != nil {
-       return nil
+         return nil
     }
-    eKeyList := []interface{}{pre,&end}
+    
+    eKeyList := []interface{}{pre}
+    if end != nil {
+       eKeyList = append(eKeyList,end)
+    }
     eBuf,cErr := encoding.EncodeSlice(eKeyList,false)
     if cErr != nil {
        return nil
@@ -1043,19 +1094,29 @@ func (m *SoListDemoByReplayCount) EncodeRevSortKey() ([]byte,error) {
 }
 
 //Query sort by order 
-func (s *SDemoReplayCountWrap) QueryListByOrder(start int64, end int64) iservices.IDatabaseIterator {
-
-    pre := DemoReplayCountTable
-    skeyList := []interface{}{pre,&start}
+//start = nil  end = nil (query the db from start to end)
+//start = nil (query from start the db)
+//end = nil (query to the end of db)
+func (s *SDemoReplayCountWrap) QueryListByOrder(start *int64, end *int64) iservices.IDatabaseIterator {
+    pre := DemoReplayCountRevOrdTable
+    skeyList := []interface{}{pre}
+    if start != nil {
+       skeyList = append(skeyList,start)
+    }
     sBuf,cErr := encoding.EncodeSlice(skeyList,false)
     if cErr != nil {
-       return nil
+         return nil
     }
-    eKeyList := []interface{}{pre,&end}
+    
+    eKeyList := []interface{}{pre}
+    if end != nil {
+       eKeyList = append(eKeyList,end)
+    }
     eBuf,cErr := encoding.EncodeSlice(eKeyList,false)
     if cErr != nil {
        return nil
     }
+    
     res := bytes.Compare(sBuf,eBuf)
     if res == 0 {
 		eBuf = nil

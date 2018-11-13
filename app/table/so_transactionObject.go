@@ -266,19 +266,29 @@ func (m *SoListTransactionObjectByExpiration) EncodeRevSortKey() ([]byte,error) 
 }
 
 //Query sort by order 
-func (s *STransactionObjectExpirationWrap) QueryListByOrder(start prototype.TimePointSec, end prototype.TimePointSec) iservices.IDatabaseIterator {
-
-    pre := TransactionObjectExpirationTable
-    skeyList := []interface{}{pre,&start}
+//start = nil  end = nil (query the db from start to end)
+//start = nil (query from start the db)
+//end = nil (query to the end of db)
+func (s *STransactionObjectExpirationWrap) QueryListByOrder(start *prototype.TimePointSec, end *prototype.TimePointSec) iservices.IDatabaseIterator {
+    pre := TransactionObjectExpirationRevOrdTable
+    skeyList := []interface{}{pre}
+    if start != nil {
+       skeyList = append(skeyList,start)
+    }
     sBuf,cErr := encoding.EncodeSlice(skeyList,false)
     if cErr != nil {
-       return nil
+         return nil
     }
-    eKeyList := []interface{}{pre,&end}
+    
+    eKeyList := []interface{}{pre}
+    if end != nil {
+       eKeyList = append(eKeyList,end)
+    }
     eBuf,cErr := encoding.EncodeSlice(eKeyList,false)
     if cErr != nil {
        return nil
     }
+    
     res := bytes.Compare(sBuf,eBuf)
     if res == 0 {
 		eBuf = nil

@@ -547,19 +547,29 @@ func (m *SoListAccountByCreatedTime) EncodeRevSortKey() ([]byte,error) {
 }
 
 //Query sort by order 
-func (s *SAccountCreatedTimeWrap) QueryListByOrder(start prototype.TimePointSec, end prototype.TimePointSec) iservices.IDatabaseIterator {
-
-    pre := AccountCreatedTimeTable
-    skeyList := []interface{}{pre,&start}
+//start = nil  end = nil (query the db from start to end)
+//start = nil (query from start the db)
+//end = nil (query to the end of db)
+func (s *SAccountCreatedTimeWrap) QueryListByOrder(start *prototype.TimePointSec, end *prototype.TimePointSec) iservices.IDatabaseIterator {
+    pre := AccountCreatedTimeRevOrdTable
+    skeyList := []interface{}{pre}
+    if start != nil {
+       skeyList = append(skeyList,start)
+    }
     sBuf,cErr := encoding.EncodeSlice(skeyList,false)
     if cErr != nil {
-       return nil
+         return nil
     }
-    eKeyList := []interface{}{pre,&end}
+    
+    eKeyList := []interface{}{pre}
+    if end != nil {
+       eKeyList = append(eKeyList,end)
+    }
     eBuf,cErr := encoding.EncodeSlice(eKeyList,false)
     if cErr != nil {
        return nil
     }
+    
     res := bytes.Compare(sBuf,eBuf)
     if res == 0 {
 		eBuf = nil
@@ -650,19 +660,29 @@ func (m *SoListAccountByBalance) EncodeRevSortKey() ([]byte,error) {
 }
 
 //Query sort by order 
-func (s *SAccountBalanceWrap) QueryListByOrder(start prototype.Coin, end prototype.Coin) iservices.IDatabaseIterator {
-
-    pre := AccountBalanceTable
-    skeyList := []interface{}{pre,&start}
+//start = nil  end = nil (query the db from start to end)
+//start = nil (query from start the db)
+//end = nil (query to the end of db)
+func (s *SAccountBalanceWrap) QueryListByOrder(start *prototype.Coin, end *prototype.Coin) iservices.IDatabaseIterator {
+    pre := AccountBalanceRevOrdTable
+    skeyList := []interface{}{pre}
+    if start != nil {
+       skeyList = append(skeyList,start)
+    }
     sBuf,cErr := encoding.EncodeSlice(skeyList,false)
     if cErr != nil {
-       return nil
+         return nil
     }
-    eKeyList := []interface{}{pre,&end}
+    
+    eKeyList := []interface{}{pre}
+    if end != nil {
+       eKeyList = append(eKeyList,end)
+    }
     eBuf,cErr := encoding.EncodeSlice(eKeyList,false)
     if cErr != nil {
        return nil
     }
+    
     res := bytes.Compare(sBuf,eBuf)
     if res == 0 {
 		eBuf = nil
@@ -753,19 +773,29 @@ func (m *SoListAccountByVestingShares) EncodeRevSortKey() ([]byte,error) {
 }
 
 //Query sort by order 
-func (s *SAccountVestingSharesWrap) QueryListByOrder(start prototype.Vest, end prototype.Vest) iservices.IDatabaseIterator {
-
-    pre := AccountVestingSharesTable
-    skeyList := []interface{}{pre,&start}
+//start = nil  end = nil (query the db from start to end)
+//start = nil (query from start the db)
+//end = nil (query to the end of db)
+func (s *SAccountVestingSharesWrap) QueryListByOrder(start *prototype.Vest, end *prototype.Vest) iservices.IDatabaseIterator {
+    pre := AccountVestingSharesRevOrdTable
+    skeyList := []interface{}{pre}
+    if start != nil {
+       skeyList = append(skeyList,start)
+    }
     sBuf,cErr := encoding.EncodeSlice(skeyList,false)
     if cErr != nil {
-       return nil
+         return nil
     }
-    eKeyList := []interface{}{pre,&end}
+    
+    eKeyList := []interface{}{pre}
+    if end != nil {
+       eKeyList = append(eKeyList,end)
+    }
     eBuf,cErr := encoding.EncodeSlice(eKeyList,false)
     if cErr != nil {
        return nil
     }
+    
     res := bytes.Compare(sBuf,eBuf)
     if res == 0 {
 		eBuf = nil
