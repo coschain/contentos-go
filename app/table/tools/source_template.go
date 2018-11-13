@@ -30,6 +30,7 @@ type Params struct {
 	UniqueFieldMap      map[string]string
 	TBMask				string
     SortList            []SortPro
+	SListCount          int
 }
 
 
@@ -48,7 +49,10 @@ func CreateGoFile(tIfno TableInfo) (bool,error) {
 package table
 
 import (
-	"github.com/coschain/contentos-go/common/encoding"
+     {{if ge $.SListCount 1 -}}
+     "bytes"
+     {{end -}}
+     "github.com/coschain/contentos-go/common/encoding"
      "github.com/coschain/contentos-go/prototype"
 	 "github.com/gogo/protobuf/proto"
      "github.com/coschain/contentos-go/iservices"
@@ -185,8 +189,7 @@ func (s *So{{$.ClsName}}Wrap) insertSortKey{{$v1.PName}}(sa *So{{$.ClsName}}) bo
 	if err != nil {
 		return false
 	}
-    ordKey := append({{$.ClsName}}{{$v1.PName}}Table, subBuf...)
-    ordErr :=  s.dba.Put(ordKey, buf) 
+    ordErr :=  s.dba.Put(subBuf, buf) 
     return ordErr == nil
     {{end -}}
     {{if eq $v1.SType 2 -}}
@@ -194,21 +197,18 @@ func (s *So{{$.ClsName}}Wrap) insertSortKey{{$v1.PName}}(sa *So{{$.ClsName}}) bo
 	if err != nil {
 		return false
 	}
-    revOrdKey := append({{$.ClsName}}{{$v1.PName}}RevOrdTable, subRevBuf...)
-    revOrdErr :=  s.dba.Put(revOrdKey, buf) 
+    revOrdErr :=  s.dba.Put(subRevBuf, buf) 
     return revOrdErr == nil
     {{end -}}
     {{if eq $v1.SType 3 -}}
     subBuf, err := val.OpeEncode()
     var ordErr,revOrdErr error
 	if err == nil {
-       ordKey := append({{$.ClsName}}{{$v1.PName}}Table, subBuf...)
-       ordErr =  s.dba.Put(ordKey, buf) 
+       ordErr =  s.dba.Put(subBuf, buf) 
 	}
     subRevBuf, err := val.EncodeRevSortKey()
 	if err == nil {
-		revOrdKey := append({{$.ClsName}}{{$v1.PName}}RevOrdTable, subRevBuf...)
-        revOrdErr =  s.dba.Put(revOrdKey, subRevBuf) 
+        revOrdErr =  s.dba.Put(subRevBuf, buf) 
 	}
     if ordErr == nil && revOrdErr == nil {
        return true
@@ -396,15 +396,20 @@ func (m *SoList{{$.ClsName}}By{{$v.PName}}) OpeEncode() ([]byte,error) {
 }
 
 func (m *SoList{{$.ClsName}}By{{$v.PName}}) EncodeRevSortKey() ([]byte,error) {
-     ordKey,err := m.OpeEncode()
-     if err != nil {
-        return nil,err
-     }
-     revKey,revRrr := encoding.Complement(ordKey, err) 
-     if revRrr != nil {
+    mainBuf, err := encoding.Encode(m.{{UperFirstChar $.MainKeyName}})
+	if err != nil {
+		return nil,err
+	}
+	subBuf, err := encoding.Encode(m.{{$v.PName}})
+	if err != nil {
+		return nil,err
+	}
+    ordKey := append(append({{$.ClsName}}{{$v.PName}}RevOrdTable, subBuf...), mainBuf...)
+    revKey,revRrr := encoding.Complement(ordKey, err)
+	if revRrr != nil {
         return nil,revRrr
-     }
-     return revKey,nil
+	}
+    return revKey,nil
 }
 
 //Query sort by order 
@@ -420,9 +425,16 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByOrder(start {{formatStr $v.P
 	}
     bufStartkey := append({{$.ClsName}}{{$v.PName}}Table, startBuf...)
 	bufEndkey := append({{$.ClsName}}{{$v.PName}}Table, endBuf...)
+    res := bytes.Compare(bufStartkey,bufEndkey)
+    if res == 0 {
+		bufEndkey = nil
+	}else if res == 1 {
+       //reverse order
+       return nil
+    }
     iter := s.Dba.NewIterator(bufStartkey, bufEndkey)
-    return iter
     
+    return iter
 }
 {{if or (eq $v.SType 2) (eq $v.SType 3) -}}
 //Query sort by reverse order 
@@ -446,6 +458,13 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByRevOrder(start {{formatStr $
     rBufEnd,rErr := encoding.Complement(bufEndkey, err)
     if rErr != nil { 
         return nil
+    }
+    res := bytes.Compare(rBufStart,rBufEnd)
+    if res == 0 {
+		rBufEnd = nil
+	}else if res == -1 {
+       // order
+       return nil
     }
     iter := s.Dba.NewIterator(rBufStart, rBufEnd)
     return iter
@@ -506,8 +525,9 @@ func (s *So{{$.ClsName}}Wrap) delUniKey{{$k}}(sa *So{{$.ClsName}}) bool {
 	val := SoUnique{{$.ClsName}}By{{$k}}{}
 
 	val.{{$k}} = sa.{{$k}}
-	val.{{UperFirstChar $.MainKeyName}} = sa.{{UperFirstChar $.MainKeyName}}
-
+    {{if ne $.MainKeyName $k -}}
+   	val.{{UperFirstChar $.MainKeyName}} = sa.{{UperFirstChar $.MainKeyName}}
+    {{end -}}
 	key, err := encoding.Encode(sa.{{UperFirstChar $k}})
 
 	if err != nil {
@@ -521,22 +541,21 @@ func (s *So{{$.ClsName}}Wrap) delUniKey{{$k}}(sa *So{{$.ClsName}}) bool {
 func (s *So{{$.ClsName}}Wrap) insertUniKey{{$k}}(sa *So{{$.ClsName}}) bool {
     uniWrap  := Uni{{$.ClsName}}{{$k}}Wrap{}
      uniWrap.Dba = s.dba
-   {{$baseType := (DetectBaseType $v) }}
-   {{if $baseType}} 
+   {{$baseType := (DetectBaseType $v) -}}
+   {{if $baseType -}} 
    	res := uniWrap.UniQuery{{$k}}(&sa.{{UperFirstChar $k}})
    {{end}}
-   {{if not $baseType}} 
+   {{if not $baseType -}} 
    	res := uniWrap.UniQuery{{$k}}(sa.{{UperFirstChar $k}})
-   {{end}}
+   {{end -}}
 	if res != nil {
 		//the unique key is already exist
 		return false
 	}
- 
     val := SoUnique{{$.ClsName}}By{{$k}}{}
-
-    
-	val.{{UperFirstChar $.MainKeyName}} = sa.{{UperFirstChar $.MainKeyName}}
+    {{if ne $.MainKeyName $k -}}
+   	val.{{UperFirstChar $.MainKeyName}} = sa.{{UperFirstChar $.MainKeyName}}
+    {{end -}}
 	val.{{UperFirstChar $k}} = sa.{{UperFirstChar $k}}
     
 	buf, err := proto.Marshal(&val)
@@ -565,26 +584,22 @@ func (s *Uni{{$.ClsName}}{{$k}}Wrap) UniQuery{{$k}}(start *{{formatStr $v}}) *So
 		return nil
 	}
 	bufStartkey := append({{$.ClsName}}{{$k}}UniTable, startBuf...)
-	bufEndkey := bufStartkey
-	iter := s.Dba.NewIterator(bufStartkey, bufEndkey)
-    val, err := iter.Value()
-	if err != nil {
-		return nil
+    val,err := s.Dba.Get(bufStartkey)
+	if err == nil {
+		res := &SoUnique{{$.ClsName}}By{{$k}}{}
+		rErr := proto.Unmarshal(val, res)
+		if rErr == nil {
+			{{ $baseType := (DetectBaseType $.MainKeyType) -}}
+            {{- if $baseType -}} 
+            wrap := NewSo{{$.ClsName}}Wrap(s.Dba,&res.{{UperFirstChar $.MainKeyName}})
+            {{- end -}}   
+            {{if not $baseType -}} 
+            wrap := NewSo{{$.ClsName}}Wrap(s.Dba,res.{{UperFirstChar $.MainKeyName}})
+            {{end }}
+			return wrap
+		}
 	}
-	res := &SoUnique{{$.ClsName}}By{{$k}}{}
-	err = proto.Unmarshal(val, res)
-	if err != nil {
-		return nil
-	}
-   {{ $baseType := (DetectBaseType $.MainKeyType) -}}
-   {{- if $baseType -}} 
-   wrap := NewSo{{$.ClsName}}Wrap(s.Dba,&res.{{UperFirstChar $.MainKeyName}})
-   {{- end -}}
-   {{if not $baseType -}} 
-   wrap := NewSo{{$.ClsName}}Wrap(s.Dba,res.{{UperFirstChar $.MainKeyName}})
-   {{end }}
-    
-	return wrap	
+    return nil
 }
 
 {{end}}
@@ -596,7 +611,8 @@ func (s *Uni{{$.ClsName}}{{$k}}Wrap) UniQuery{{$k}}(start *{{formatStr $v}}) *So
 		"formatStr":formatStr,
 		"LowerFirstChar": LowerFirstChar,
 		"DetectBaseType":DetectBaseType,
-		"formatRTypeStr":formatRTypeStr}
+		"formatRTypeStr":formatRTypeStr,
+		}
 		t := template.New("layout.html")
 		t  = t.Funcs(funcMapUper)
 		t.Parse(tmpl)
@@ -645,6 +661,7 @@ func createParamsFromTableInfo(tInfo TableInfo) Params {
 		}
 		para.MemberKeyMap[rValueFormStr(fName)] = formatStr(fType)
 	}
+	para.SListCount = len(para.SortList)
 	return para
 }
 

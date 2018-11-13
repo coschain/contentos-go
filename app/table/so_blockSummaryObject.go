@@ -212,9 +212,8 @@ func (s *SoBlockSummaryObjectWrap) delUniKeyBlockId(sa *SoBlockSummaryObject) bo
 	val := SoUniqueBlockSummaryObjectByBlockId{}
 
 	val.BlockId = sa.BlockId
-	val.Id = sa.Id
-
-	key, err := encoding.Encode(sa.BlockId)
+    val.Id = sa.Id
+    key, err := encoding.Encode(sa.BlockId)
 
 	if err != nil {
 		return false
@@ -228,20 +227,14 @@ func (s *SoBlockSummaryObjectWrap) insertUniKeyBlockId(sa *SoBlockSummaryObject)
     uniWrap  := UniBlockSummaryObjectBlockIdWrap{}
      uniWrap.Dba = s.dba
    
-   
-    
-   	res := uniWrap.UniQueryBlockId(sa.BlockId)
-   
-	if res != nil {
+   res := uniWrap.UniQueryBlockId(sa.BlockId)
+   if res != nil {
 		//the unique key is already exist
 		return false
 	}
- 
     val := SoUniqueBlockSummaryObjectByBlockId{}
-
-    
-	val.Id = sa.Id
-	val.BlockId = sa.BlockId
+    val.Id = sa.Id
+    val.BlockId = sa.BlockId
     
 	buf, err := proto.Marshal(&val)
 
@@ -269,20 +262,16 @@ func (s *UniBlockSummaryObjectBlockIdWrap) UniQueryBlockId(start *prototype.Sha2
 		return nil
 	}
 	bufStartkey := append(BlockSummaryObjectBlockIdUniTable, startBuf...)
-	bufEndkey := bufStartkey
-	iter := s.Dba.NewIterator(bufStartkey, bufEndkey)
-    val, err := iter.Value()
-	if err != nil {
-		return nil
+    val,err := s.Dba.Get(bufStartkey)
+	if err == nil {
+		res := &SoUniqueBlockSummaryObjectByBlockId{}
+		rErr := proto.Unmarshal(val, res)
+		if rErr == nil {
+			wrap := NewSoBlockSummaryObjectWrap(s.Dba,&res.Id)
+			return wrap
+		}
 	}
-	res := &SoUniqueBlockSummaryObjectByBlockId{}
-	err = proto.Unmarshal(val, res)
-	if err != nil {
-		return nil
-	}
-   wrap := NewSoBlockSummaryObjectWrap(s.Dba,&res.Id)
-    
-	return wrap	
+    return nil
 }
 
 
@@ -291,9 +280,7 @@ func (s *SoBlockSummaryObjectWrap) delUniKeyId(sa *SoBlockSummaryObject) bool {
 	val := SoUniqueBlockSummaryObjectById{}
 
 	val.Id = sa.Id
-	val.Id = sa.Id
-
-	key, err := encoding.Encode(sa.Id)
+    key, err := encoding.Encode(sa.Id)
 
 	if err != nil {
 		return false
@@ -306,21 +293,14 @@ func (s *SoBlockSummaryObjectWrap) delUniKeyId(sa *SoBlockSummaryObject) bool {
 func (s *SoBlockSummaryObjectWrap) insertUniKeyId(sa *SoBlockSummaryObject) bool {
     uniWrap  := UniBlockSummaryObjectIdWrap{}
      uniWrap.Dba = s.dba
+   res := uniWrap.UniQueryId(&sa.Id)
    
-    
-   	res := uniWrap.UniQueryId(&sa.Id)
-   
-   
-	if res != nil {
+   if res != nil {
 		//the unique key is already exist
 		return false
 	}
- 
     val := SoUniqueBlockSummaryObjectById{}
-
-    
-	val.Id = sa.Id
-	val.Id = sa.Id
+    val.Id = sa.Id
     
 	buf, err := proto.Marshal(&val)
 
@@ -348,20 +328,16 @@ func (s *UniBlockSummaryObjectIdWrap) UniQueryId(start *uint32) *SoBlockSummaryO
 		return nil
 	}
 	bufStartkey := append(BlockSummaryObjectIdUniTable, startBuf...)
-	bufEndkey := bufStartkey
-	iter := s.Dba.NewIterator(bufStartkey, bufEndkey)
-    val, err := iter.Value()
-	if err != nil {
-		return nil
+    val,err := s.Dba.Get(bufStartkey)
+	if err == nil {
+		res := &SoUniqueBlockSummaryObjectById{}
+		rErr := proto.Unmarshal(val, res)
+		if rErr == nil {
+			wrap := NewSoBlockSummaryObjectWrap(s.Dba,&res.Id)
+			return wrap
+		}
 	}
-	res := &SoUniqueBlockSummaryObjectById{}
-	err = proto.Unmarshal(val, res)
-	if err != nil {
-		return nil
-	}
-   wrap := NewSoBlockSummaryObjectWrap(s.Dba,&res.Id)
-    
-	return wrap	
+    return nil
 }
 
 

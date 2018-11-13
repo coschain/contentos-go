@@ -274,9 +274,7 @@ func (s *SoAccountAuthorityObjectWrap) delUniKeyAccount(sa *SoAccountAuthorityOb
 	val := SoUniqueAccountAuthorityObjectByAccount{}
 
 	val.Account = sa.Account
-	val.Account = sa.Account
-
-	key, err := encoding.Encode(sa.Account)
+    key, err := encoding.Encode(sa.Account)
 
 	if err != nil {
 		return false
@@ -290,20 +288,13 @@ func (s *SoAccountAuthorityObjectWrap) insertUniKeyAccount(sa *SoAccountAuthorit
     uniWrap  := UniAccountAuthorityObjectAccountWrap{}
      uniWrap.Dba = s.dba
    
-   
-    
-   	res := uniWrap.UniQueryAccount(sa.Account)
-   
-	if res != nil {
+   res := uniWrap.UniQueryAccount(sa.Account)
+   if res != nil {
 		//the unique key is already exist
 		return false
 	}
- 
     val := SoUniqueAccountAuthorityObjectByAccount{}
-
-    
-	val.Account = sa.Account
-	val.Account = sa.Account
+    val.Account = sa.Account
     
 	buf, err := proto.Marshal(&val)
 
@@ -331,21 +322,17 @@ func (s *UniAccountAuthorityObjectAccountWrap) UniQueryAccount(start *prototype.
 		return nil
 	}
 	bufStartkey := append(AccountAuthorityObjectAccountUniTable, startBuf...)
-	bufEndkey := bufStartkey
-	iter := s.Dba.NewIterator(bufStartkey, bufEndkey)
-    val, err := iter.Value()
-	if err != nil {
-		return nil
+    val,err := s.Dba.Get(bufStartkey)
+	if err == nil {
+		res := &SoUniqueAccountAuthorityObjectByAccount{}
+		rErr := proto.Unmarshal(val, res)
+		if rErr == nil {
+			wrap := NewSoAccountAuthorityObjectWrap(s.Dba,res.Account)
+            
+			return wrap
+		}
 	}
-	res := &SoUniqueAccountAuthorityObjectByAccount{}
-	err = proto.Unmarshal(val, res)
-	if err != nil {
-		return nil
-	}
-   wrap := NewSoAccountAuthorityObjectWrap(s.Dba,res.Account)
-   
-    
-	return wrap	
+    return nil
 }
 
 

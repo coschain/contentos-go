@@ -57,7 +57,7 @@ func main() {
 	 //3.save table data to db
 	 res := wrap.CreateDemo(&data)
 	 if !res {
-	 	 log.Fatalln("create new table of Demo faile")
+		 fmt.Println("create new table of Demo fail")
 		 return
 	 }
 
@@ -79,12 +79,12 @@ func main() {
 	if c != "" {
 		fmt.Printf("the content is %s \n",c)
 	}else {
-		log.Printf("modify tilte fail")
+		fmt.Println("modify tilte fail")
 	}
 	//modify title
 	tMdRes := wrap.MdContent("hello world")
 	if !tMdRes {
-		log.Println("modify tilte fail")
+		fmt.Println("modify tilte fail")
 	}
 
 
@@ -95,7 +95,7 @@ func main() {
 	//modify content
 	cMdRes := wrap.MdContent("test md the content")
 	if !cMdRes {
-		log.Printf("modify content fail")
+		fmt.Println("modify content fail")
 	}
 
 
@@ -107,12 +107,13 @@ func main() {
 	tSortWrap.Dba = db
 	 //2.start query data of range(sort by order)
 	 iter := tSortWrap.QueryListByOrder(*prototype.MakeTimeSecondPoint(20120401),
-	 	*prototype.MakeTimeSecondPoint(20120401))
+	 	*prototype.MakeTimeSecondPoint(20120415))
 	 //we can get the main key and sub key by the returned iterator
 	 //if query by order the start value can't greater than end value
 	 if iter != nil {
 	 	for iter.Next() {
 			//get the mainkey value (GetMainVal return the ptr of value)
+
 			mKeyPtr := tSortWrap.GetMainVal(iter)
 			if mKeyPtr == nil {
 				fmt.Println("get main key fail")
@@ -123,40 +124,46 @@ func main() {
 			mSubPtr := tSortWrap.GetSubVal(iter)
 			if mSubPtr == nil {
 				fmt.Println("get postTime fail")
+			}else {
+				fmt.Printf("the postTime is %d \n",mSubPtr.UtcSeconds)
 			}
 		}
 
 	 }else {
-	 	fmt.Println("there is no data exist in range")
+	 	fmt.Println("there is no data exist in range posttime")
 	 }
 	 //query by reverse order
-	iter1 := tSortWrap.QueryListByOrder(*prototype.MakeTimeSecondPoint(20136688),
-		*prototype.MakeTimeSecondPoint(20136666))
+	iter1 := tSortWrap.QueryListByRevOrder(*prototype.MakeTimeSecondPoint(20120415),
+		*prototype.MakeTimeSecondPoint(20120401))
 	//we can get the main key and sub key by the returned iterator
 	//if query by reverse order the start value can't less than end value
 	if iter1 != nil {
 		for iter1.Next() {
-			mKeyPtr := tSortWrap.GetMainVal(iter)
+			mKeyPtr := tSortWrap.GetMainVal(iter1)
 			if mKeyPtr == nil {
 				fmt.Println("query by reverse order get main key fail")
+			}else {
+				fmt.Printf("the main key is %s in reverse order  \n",mKeyPtr.Value)
 			}
 			mSubPtr := tSortWrap.GetSubVal(iter1)
 			if mSubPtr == nil {
 				fmt.Println("query by reverse order get postTime fail")
+			}else {
+				fmt.Printf("the postTime is %d in reverse order \n",mSubPtr.UtcSeconds)
 			}
 		}
-
 	}else {
-		fmt.Println("there is no data exist in range1")
+		fmt.Println("there is no data exist in reverse order")
 	}
-
-     //query single value but not a range,start and end set the same value
+	
+	//
+    // //query single value but not a range,start and end set the same value
 	iter2 := tSortWrap.QueryListByOrder(*prototype.MakeTimeSecondPoint(20136666),
 		*prototype.MakeTimeSecondPoint(20136666))
 	if iter2 != nil {
 		mKeyPtr := tSortWrap.GetMainVal(iter2)
 		if mKeyPtr == nil {
-			fmt.Println("get main key fail")
+			fmt.Println("get main key fail in range")
 		}
 	}
 
@@ -165,7 +172,7 @@ func main() {
 	  unique Query List (only support query the property which is flag unique)
 	 --------------------------*/
 	 //1.create the uni wrap of property which is need unique query
-	 var idx int64 = 1000
+	 var idx int64 = 1200
 	 //create the UniXXXWrap
 	 uniWrap := table.UniDemoIdxWrap{}
 	 //set the dataBase to UniXXXWrap
@@ -176,15 +183,15 @@ func main() {
 	 	fmt.Printf("uni query fail")
 	 }else {
 		 title := dWrap.GetTitle()
-		 fmt.Printf("the title of index is %s",title)
+		 fmt.Printf("the title of index is %s \n",title)
 	 }
 
 	//unique query mainkey(E.g query owner)
 	mUniWrap := table.UniDemoOwnerWrap{}
 	mUniWrap.Dba = db
-	wrap1 := mUniWrap.UniQueryOwner(prototype.MakeAccountName("test"))
+	wrap1 := mUniWrap.UniQueryOwner(prototype.MakeAccountName("pbTool"))
 	if wrap1 != nil {
-		fmt.Printf("owner is test,the idx is %d",wrap1.GetIdx())
+		fmt.Printf("owner is test,the idx is %d \n",wrap1.GetIdx())
 	}
 
 	  /*

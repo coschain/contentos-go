@@ -3,7 +3,8 @@
 package table
 
 import (
-	"github.com/coschain/contentos-go/common/encoding"
+     "bytes"
+     "github.com/coschain/contentos-go/common/encoding"
      "github.com/coschain/contentos-go/prototype"
 	 "github.com/gogo/protobuf/proto"
      "github.com/coschain/contentos-go/iservices"
@@ -140,13 +141,11 @@ func (s *SoDemoWrap) insertSortKeyPostTime(sa *SoDemo) bool {
     subBuf, err := val.OpeEncode()
     var ordErr,revOrdErr error
 	if err == nil {
-       ordKey := append(DemoPostTimeTable, subBuf...)
-       ordErr =  s.dba.Put(ordKey, buf) 
+       ordErr =  s.dba.Put(subBuf, buf) 
 	}
     subRevBuf, err := val.EncodeRevSortKey()
 	if err == nil {
-		revOrdKey := append(DemoPostTimeRevOrdTable, subRevBuf...)
-        revOrdErr =  s.dba.Put(revOrdKey, subRevBuf) 
+        revOrdErr =  s.dba.Put(subRevBuf, buf) 
 	}
     if ordErr == nil && revOrdErr == nil {
        return true
@@ -183,8 +182,7 @@ func (s *SoDemoWrap) insertSortKeyLikeCount(sa *SoDemo) bool {
 	if err != nil {
 		return false
 	}
-    revOrdKey := append(DemoLikeCountRevOrdTable, subRevBuf...)
-    revOrdErr :=  s.dba.Put(revOrdKey, buf) 
+    revOrdErr :=  s.dba.Put(subRevBuf, buf) 
     return revOrdErr == nil
     
 }
@@ -217,8 +215,7 @@ func (s *SoDemoWrap) insertSortKeyIdx(sa *SoDemo) bool {
 	if err != nil {
 		return false
 	}
-    revOrdKey := append(DemoIdxRevOrdTable, subRevBuf...)
-    revOrdErr :=  s.dba.Put(revOrdKey, buf) 
+    revOrdErr :=  s.dba.Put(subRevBuf, buf) 
     return revOrdErr == nil
     
 }
@@ -251,8 +248,7 @@ func (s *SoDemoWrap) insertSortKeyReplayCount(sa *SoDemo) bool {
 	if err != nil {
 		return false
 	}
-    ordKey := append(DemoReplayCountTable, subBuf...)
-    ordErr :=  s.dba.Put(ordKey, buf) 
+    ordErr :=  s.dba.Put(subBuf, buf) 
     return ordErr == nil
     
 }
@@ -629,15 +625,20 @@ func (m *SoListDemoByPostTime) OpeEncode() ([]byte,error) {
 }
 
 func (m *SoListDemoByPostTime) EncodeRevSortKey() ([]byte,error) {
-     ordKey,err := m.OpeEncode()
-     if err != nil {
-        return nil,err
-     }
-     revKey,revRrr := encoding.Complement(ordKey, err) 
-     if revRrr != nil {
+    mainBuf, err := encoding.Encode(m.Owner)
+	if err != nil {
+		return nil,err
+	}
+	subBuf, err := encoding.Encode(m.PostTime)
+	if err != nil {
+		return nil,err
+	}
+    ordKey := append(append(DemoPostTimeRevOrdTable, subBuf...), mainBuf...)
+    revKey,revRrr := encoding.Complement(ordKey, err)
+	if revRrr != nil {
         return nil,revRrr
-     }
-     return revKey,nil
+	}
+    return revKey,nil
 }
 
 //Query sort by order 
@@ -653,9 +654,16 @@ func (s *SDemoPostTimeWrap) QueryListByOrder(start prototype.TimePointSec, end p
 	}
     bufStartkey := append(DemoPostTimeTable, startBuf...)
 	bufEndkey := append(DemoPostTimeTable, endBuf...)
+    res := bytes.Compare(bufStartkey,bufEndkey)
+    if res == 0 {
+		bufEndkey = nil
+	}else if res == 1 {
+       //reverse order
+       return nil
+    }
     iter := s.Dba.NewIterator(bufStartkey, bufEndkey)
-    return iter
     
+    return iter
 }
 //Query sort by reverse order 
 func (s *SDemoPostTimeWrap) QueryListByRevOrder(start prototype.TimePointSec, end prototype.TimePointSec) iservices.IDatabaseIterator {
@@ -678,6 +686,13 @@ func (s *SDemoPostTimeWrap) QueryListByRevOrder(start prototype.TimePointSec, en
     rBufEnd,rErr := encoding.Complement(bufEndkey, err)
     if rErr != nil { 
         return nil
+    }
+    res := bytes.Compare(rBufStart,rBufEnd)
+    if res == 0 {
+		rBufEnd = nil
+	}else if res == -1 {
+       // order
+       return nil
     }
     iter := s.Dba.NewIterator(rBufStart, rBufEnd)
     return iter
@@ -748,15 +763,20 @@ func (m *SoListDemoByLikeCount) OpeEncode() ([]byte,error) {
 }
 
 func (m *SoListDemoByLikeCount) EncodeRevSortKey() ([]byte,error) {
-     ordKey,err := m.OpeEncode()
-     if err != nil {
-        return nil,err
-     }
-     revKey,revRrr := encoding.Complement(ordKey, err) 
-     if revRrr != nil {
+    mainBuf, err := encoding.Encode(m.Owner)
+	if err != nil {
+		return nil,err
+	}
+	subBuf, err := encoding.Encode(m.LikeCount)
+	if err != nil {
+		return nil,err
+	}
+    ordKey := append(append(DemoLikeCountRevOrdTable, subBuf...), mainBuf...)
+    revKey,revRrr := encoding.Complement(ordKey, err)
+	if revRrr != nil {
         return nil,revRrr
-     }
-     return revKey,nil
+	}
+    return revKey,nil
 }
 
 //Query sort by order 
@@ -772,9 +792,16 @@ func (s *SDemoLikeCountWrap) QueryListByOrder(start int64, end int64) iservices.
 	}
     bufStartkey := append(DemoLikeCountTable, startBuf...)
 	bufEndkey := append(DemoLikeCountTable, endBuf...)
+    res := bytes.Compare(bufStartkey,bufEndkey)
+    if res == 0 {
+		bufEndkey = nil
+	}else if res == 1 {
+       //reverse order
+       return nil
+    }
     iter := s.Dba.NewIterator(bufStartkey, bufEndkey)
-    return iter
     
+    return iter
 }
 //Query sort by reverse order 
 func (s *SDemoLikeCountWrap) QueryListByRevOrder(start int64, end int64) iservices.IDatabaseIterator {
@@ -797,6 +824,13 @@ func (s *SDemoLikeCountWrap) QueryListByRevOrder(start int64, end int64) iservic
     rBufEnd,rErr := encoding.Complement(bufEndkey, err)
     if rErr != nil { 
         return nil
+    }
+    res := bytes.Compare(rBufStart,rBufEnd)
+    if res == 0 {
+		rBufEnd = nil
+	}else if res == -1 {
+       // order
+       return nil
     }
     iter := s.Dba.NewIterator(rBufStart, rBufEnd)
     return iter
@@ -867,15 +901,20 @@ func (m *SoListDemoByIdx) OpeEncode() ([]byte,error) {
 }
 
 func (m *SoListDemoByIdx) EncodeRevSortKey() ([]byte,error) {
-     ordKey,err := m.OpeEncode()
-     if err != nil {
-        return nil,err
-     }
-     revKey,revRrr := encoding.Complement(ordKey, err) 
-     if revRrr != nil {
+    mainBuf, err := encoding.Encode(m.Owner)
+	if err != nil {
+		return nil,err
+	}
+	subBuf, err := encoding.Encode(m.Idx)
+	if err != nil {
+		return nil,err
+	}
+    ordKey := append(append(DemoIdxRevOrdTable, subBuf...), mainBuf...)
+    revKey,revRrr := encoding.Complement(ordKey, err)
+	if revRrr != nil {
         return nil,revRrr
-     }
-     return revKey,nil
+	}
+    return revKey,nil
 }
 
 //Query sort by order 
@@ -891,9 +930,16 @@ func (s *SDemoIdxWrap) QueryListByOrder(start int64, end int64) iservices.IDatab
 	}
     bufStartkey := append(DemoIdxTable, startBuf...)
 	bufEndkey := append(DemoIdxTable, endBuf...)
+    res := bytes.Compare(bufStartkey,bufEndkey)
+    if res == 0 {
+		bufEndkey = nil
+	}else if res == 1 {
+       //reverse order
+       return nil
+    }
     iter := s.Dba.NewIterator(bufStartkey, bufEndkey)
-    return iter
     
+    return iter
 }
 //Query sort by reverse order 
 func (s *SDemoIdxWrap) QueryListByRevOrder(start int64, end int64) iservices.IDatabaseIterator {
@@ -916,6 +962,13 @@ func (s *SDemoIdxWrap) QueryListByRevOrder(start int64, end int64) iservices.IDa
     rBufEnd,rErr := encoding.Complement(bufEndkey, err)
     if rErr != nil { 
         return nil
+    }
+    res := bytes.Compare(rBufStart,rBufEnd)
+    if res == 0 {
+		rBufEnd = nil
+	}else if res == -1 {
+       // order
+       return nil
     }
     iter := s.Dba.NewIterator(rBufStart, rBufEnd)
     return iter
@@ -986,15 +1039,20 @@ func (m *SoListDemoByReplayCount) OpeEncode() ([]byte,error) {
 }
 
 func (m *SoListDemoByReplayCount) EncodeRevSortKey() ([]byte,error) {
-     ordKey,err := m.OpeEncode()
-     if err != nil {
-        return nil,err
-     }
-     revKey,revRrr := encoding.Complement(ordKey, err) 
-     if revRrr != nil {
+    mainBuf, err := encoding.Encode(m.Owner)
+	if err != nil {
+		return nil,err
+	}
+	subBuf, err := encoding.Encode(m.ReplayCount)
+	if err != nil {
+		return nil,err
+	}
+    ordKey := append(append(DemoReplayCountRevOrdTable, subBuf...), mainBuf...)
+    revKey,revRrr := encoding.Complement(ordKey, err)
+	if revRrr != nil {
         return nil,revRrr
-     }
-     return revKey,nil
+	}
+    return revKey,nil
 }
 
 //Query sort by order 
@@ -1010,9 +1068,16 @@ func (s *SDemoReplayCountWrap) QueryListByOrder(start int64, end int64) iservice
 	}
     bufStartkey := append(DemoReplayCountTable, startBuf...)
 	bufEndkey := append(DemoReplayCountTable, endBuf...)
+    res := bytes.Compare(bufStartkey,bufEndkey)
+    if res == 0 {
+		bufEndkey = nil
+	}else if res == 1 {
+       //reverse order
+       return nil
+    }
     iter := s.Dba.NewIterator(bufStartkey, bufEndkey)
-    return iter
     
+    return iter
 }
 /////////////// SECTION Private function ////////////////
 
@@ -1067,9 +1132,8 @@ func (s *SoDemoWrap) delUniKeyIdx(sa *SoDemo) bool {
 	val := SoUniqueDemoByIdx{}
 
 	val.Idx = sa.Idx
-	val.Owner = sa.Owner
-
-	key, err := encoding.Encode(sa.Idx)
+    val.Owner = sa.Owner
+    key, err := encoding.Encode(sa.Idx)
 
 	if err != nil {
 		return false
@@ -1082,21 +1146,15 @@ func (s *SoDemoWrap) delUniKeyIdx(sa *SoDemo) bool {
 func (s *SoDemoWrap) insertUniKeyIdx(sa *SoDemo) bool {
     uniWrap  := UniDemoIdxWrap{}
      uniWrap.Dba = s.dba
+   res := uniWrap.UniQueryIdx(&sa.Idx)
    
-    
-   	res := uniWrap.UniQueryIdx(&sa.Idx)
-   
-   
-	if res != nil {
+   if res != nil {
 		//the unique key is already exist
 		return false
 	}
- 
     val := SoUniqueDemoByIdx{}
-
-    
-	val.Owner = sa.Owner
-	val.Idx = sa.Idx
+    val.Owner = sa.Owner
+    val.Idx = sa.Idx
     
 	buf, err := proto.Marshal(&val)
 
@@ -1124,21 +1182,17 @@ func (s *UniDemoIdxWrap) UniQueryIdx(start *int64) *SoDemoWrap{
 		return nil
 	}
 	bufStartkey := append(DemoIdxUniTable, startBuf...)
-	bufEndkey := bufStartkey
-	iter := s.Dba.NewIterator(bufStartkey, bufEndkey)
-    val, err := iter.Value()
-	if err != nil {
-		return nil
+    val,err := s.Dba.Get(bufStartkey)
+	if err == nil {
+		res := &SoUniqueDemoByIdx{}
+		rErr := proto.Unmarshal(val, res)
+		if rErr == nil {
+			wrap := NewSoDemoWrap(s.Dba,res.Owner)
+            
+			return wrap
+		}
 	}
-	res := &SoUniqueDemoByIdx{}
-	err = proto.Unmarshal(val, res)
-	if err != nil {
-		return nil
-	}
-   wrap := NewSoDemoWrap(s.Dba,res.Owner)
-   
-    
-	return wrap	
+    return nil
 }
 
 
@@ -1147,9 +1201,8 @@ func (s *SoDemoWrap) delUniKeyLikeCount(sa *SoDemo) bool {
 	val := SoUniqueDemoByLikeCount{}
 
 	val.LikeCount = sa.LikeCount
-	val.Owner = sa.Owner
-
-	key, err := encoding.Encode(sa.LikeCount)
+    val.Owner = sa.Owner
+    key, err := encoding.Encode(sa.LikeCount)
 
 	if err != nil {
 		return false
@@ -1162,21 +1215,15 @@ func (s *SoDemoWrap) delUniKeyLikeCount(sa *SoDemo) bool {
 func (s *SoDemoWrap) insertUniKeyLikeCount(sa *SoDemo) bool {
     uniWrap  := UniDemoLikeCountWrap{}
      uniWrap.Dba = s.dba
+   res := uniWrap.UniQueryLikeCount(&sa.LikeCount)
    
-    
-   	res := uniWrap.UniQueryLikeCount(&sa.LikeCount)
-   
-   
-	if res != nil {
+   if res != nil {
 		//the unique key is already exist
 		return false
 	}
- 
     val := SoUniqueDemoByLikeCount{}
-
-    
-	val.Owner = sa.Owner
-	val.LikeCount = sa.LikeCount
+    val.Owner = sa.Owner
+    val.LikeCount = sa.LikeCount
     
 	buf, err := proto.Marshal(&val)
 
@@ -1204,21 +1251,17 @@ func (s *UniDemoLikeCountWrap) UniQueryLikeCount(start *int64) *SoDemoWrap{
 		return nil
 	}
 	bufStartkey := append(DemoLikeCountUniTable, startBuf...)
-	bufEndkey := bufStartkey
-	iter := s.Dba.NewIterator(bufStartkey, bufEndkey)
-    val, err := iter.Value()
-	if err != nil {
-		return nil
+    val,err := s.Dba.Get(bufStartkey)
+	if err == nil {
+		res := &SoUniqueDemoByLikeCount{}
+		rErr := proto.Unmarshal(val, res)
+		if rErr == nil {
+			wrap := NewSoDemoWrap(s.Dba,res.Owner)
+            
+			return wrap
+		}
 	}
-	res := &SoUniqueDemoByLikeCount{}
-	err = proto.Unmarshal(val, res)
-	if err != nil {
-		return nil
-	}
-   wrap := NewSoDemoWrap(s.Dba,res.Owner)
-   
-    
-	return wrap	
+    return nil
 }
 
 
@@ -1227,9 +1270,7 @@ func (s *SoDemoWrap) delUniKeyOwner(sa *SoDemo) bool {
 	val := SoUniqueDemoByOwner{}
 
 	val.Owner = sa.Owner
-	val.Owner = sa.Owner
-
-	key, err := encoding.Encode(sa.Owner)
+    key, err := encoding.Encode(sa.Owner)
 
 	if err != nil {
 		return false
@@ -1243,20 +1284,13 @@ func (s *SoDemoWrap) insertUniKeyOwner(sa *SoDemo) bool {
     uniWrap  := UniDemoOwnerWrap{}
      uniWrap.Dba = s.dba
    
-   
-    
-   	res := uniWrap.UniQueryOwner(sa.Owner)
-   
-	if res != nil {
+   res := uniWrap.UniQueryOwner(sa.Owner)
+   if res != nil {
 		//the unique key is already exist
 		return false
 	}
- 
     val := SoUniqueDemoByOwner{}
-
-    
-	val.Owner = sa.Owner
-	val.Owner = sa.Owner
+    val.Owner = sa.Owner
     
 	buf, err := proto.Marshal(&val)
 
@@ -1284,21 +1318,17 @@ func (s *UniDemoOwnerWrap) UniQueryOwner(start *prototype.AccountName) *SoDemoWr
 		return nil
 	}
 	bufStartkey := append(DemoOwnerUniTable, startBuf...)
-	bufEndkey := bufStartkey
-	iter := s.Dba.NewIterator(bufStartkey, bufEndkey)
-    val, err := iter.Value()
-	if err != nil {
-		return nil
+    val,err := s.Dba.Get(bufStartkey)
+	if err == nil {
+		res := &SoUniqueDemoByOwner{}
+		rErr := proto.Unmarshal(val, res)
+		if rErr == nil {
+			wrap := NewSoDemoWrap(s.Dba,res.Owner)
+            
+			return wrap
+		}
 	}
-	res := &SoUniqueDemoByOwner{}
-	err = proto.Unmarshal(val, res)
-	if err != nil {
-		return nil
-	}
-   wrap := NewSoDemoWrap(s.Dba,res.Owner)
-   
-    
-	return wrap	
+    return nil
 }
 
 

@@ -3,8 +3,9 @@
 package table
 
 import (
-	"github.com/coschain/contentos-go/common/encoding"
-     "github.com/coschain/contentos-go/prototype"
+     "bytes"
+	 "github.com/coschain/contentos-go/common/encoding"
+	 "github.com/coschain/contentos-go/prototype"
 	 "github.com/gogo/protobuf/proto"
      "github.com/coschain/contentos-go/iservices"
 )
@@ -107,8 +108,7 @@ func (s *SoTransactionObjectWrap) insertSortKeyExpiration(sa *SoTransactionObjec
 	if err != nil {
 		return false
 	}
-    ordKey := append(TransactionObjectExpirationTable, subBuf...)
-    ordErr :=  s.dba.Put(ordKey, buf) 
+    ordErr :=  s.dba.Put(subBuf, buf) 
     return ordErr == nil
     
 }
@@ -253,15 +253,20 @@ func (m *SoListTransactionObjectByExpiration) OpeEncode() ([]byte,error) {
 }
 
 func (m *SoListTransactionObjectByExpiration) EncodeRevSortKey() ([]byte,error) {
-     ordKey,err := m.OpeEncode()
-     if err != nil {
-        return nil,err
-     }
-     revKey,revRrr := encoding.Complement(ordKey, err) 
-     if revRrr != nil {
+    mainBuf, err := encoding.Encode(m.TrxId)
+	if err != nil {
+		return nil,err
+	}
+	subBuf, err := encoding.Encode(m.Expiration)
+	if err != nil {
+		return nil,err
+	}
+    ordKey := append(append(TransactionObjectExpirationRevOrdTable, subBuf...), mainBuf...)
+    revKey,revRrr := encoding.Complement(ordKey, err)
+	if revRrr != nil {
         return nil,revRrr
-     }
-     return revKey,nil
+	}
+    return revKey,nil
 }
 
 //Query sort by order 
@@ -277,9 +282,16 @@ func (s *STransactionObjectExpirationWrap) QueryListByOrder(start prototype.Time
 	}
     bufStartkey := append(TransactionObjectExpirationTable, startBuf...)
 	bufEndkey := append(TransactionObjectExpirationTable, endBuf...)
+    res := bytes.Compare(bufStartkey,bufEndkey)
+    if res == 0 {
+		bufEndkey = nil
+	}else if res == 1 {
+       //reverse order
+       return nil
+    }
     iter := s.Dba.NewIterator(bufStartkey, bufEndkey)
-    return iter
     
+    return iter
 }
 /////////////// SECTION Private function ////////////////
 
@@ -334,9 +346,7 @@ func (s *SoTransactionObjectWrap) delUniKeyTrxId(sa *SoTransactionObject) bool {
 	val := SoUniqueTransactionObjectByTrxId{}
 
 	val.TrxId = sa.TrxId
-	val.TrxId = sa.TrxId
-
-	key, err := encoding.Encode(sa.TrxId)
+    key, err := encoding.Encode(sa.TrxId)
 
 	if err != nil {
 		return false
@@ -350,20 +360,13 @@ func (s *SoTransactionObjectWrap) insertUniKeyTrxId(sa *SoTransactionObject) boo
     uniWrap  := UniTransactionObjectTrxIdWrap{}
      uniWrap.Dba = s.dba
    
-   
-    
-   	res := uniWrap.UniQueryTrxId(sa.TrxId)
-   
-	if res != nil {
+   res := uniWrap.UniQueryTrxId(sa.TrxId)
+   if res != nil {
 		//the unique key is already exist
 		return false
 	}
- 
     val := SoUniqueTransactionObjectByTrxId{}
-
-    
-	val.TrxId = sa.TrxId
-	val.TrxId = sa.TrxId
+    val.TrxId = sa.TrxId
     
 	buf, err := proto.Marshal(&val)
 
@@ -391,21 +394,17 @@ func (s *UniTransactionObjectTrxIdWrap) UniQueryTrxId(start *prototype.Sha256) *
 		return nil
 	}
 	bufStartkey := append(TransactionObjectTrxIdUniTable, startBuf...)
-	bufEndkey := bufStartkey
-	iter := s.Dba.NewIterator(bufStartkey, bufEndkey)
-    val, err := iter.Value()
-	if err != nil {
-		return nil
+    val,err := s.Dba.Get(bufStartkey)
+	if err == nil {
+		res := &SoUniqueTransactionObjectByTrxId{}
+		rErr := proto.Unmarshal(val, res)
+		if rErr == nil {
+			wrap := NewSoTransactionObjectWrap(s.Dba,res.TrxId)
+            
+			return wrap
+		}
 	}
-	res := &SoUniqueTransactionObjectByTrxId{}
-	err = proto.Unmarshal(val, res)
-	if err != nil {
-		return nil
-	}
-   wrap := NewSoTransactionObjectWrap(s.Dba,res.TrxId)
-   
-    
-	return wrap	
+    return nil
 }
 
 

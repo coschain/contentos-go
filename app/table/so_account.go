@@ -3,6 +3,7 @@
 package table
 
 import (
+    "bytes"
 	"github.com/coschain/contentos-go/common/encoding"
      "github.com/coschain/contentos-go/prototype"
 	 "github.com/gogo/protobuf/proto"
@@ -127,8 +128,7 @@ func (s *SoAccountWrap) insertSortKeyCreatedTime(sa *SoAccount) bool {
 	if err != nil {
 		return false
 	}
-    ordKey := append(AccountCreatedTimeTable, subBuf...)
-    ordErr :=  s.dba.Put(ordKey, buf) 
+    ordErr :=  s.dba.Put(subBuf, buf) 
     return ordErr == nil
     
 }
@@ -161,8 +161,7 @@ func (s *SoAccountWrap) insertSortKeyBalance(sa *SoAccount) bool {
 	if err != nil {
 		return false
 	}
-    ordKey := append(AccountBalanceTable, subBuf...)
-    ordErr :=  s.dba.Put(ordKey, buf) 
+    ordErr :=  s.dba.Put(subBuf, buf) 
     return ordErr == nil
     
 }
@@ -195,8 +194,7 @@ func (s *SoAccountWrap) insertSortKeyVestingShares(sa *SoAccount) bool {
 	if err != nil {
 		return false
 	}
-    ordKey := append(AccountVestingSharesTable, subBuf...)
-    ordErr :=  s.dba.Put(ordKey, buf) 
+    ordErr :=  s.dba.Put(subBuf, buf) 
     return ordErr == nil
     
 }
@@ -536,15 +534,20 @@ func (m *SoListAccountByCreatedTime) OpeEncode() ([]byte,error) {
 }
 
 func (m *SoListAccountByCreatedTime) EncodeRevSortKey() ([]byte,error) {
-     ordKey,err := m.OpeEncode()
-     if err != nil {
-        return nil,err
-     }
-     revKey,revRrr := encoding.Complement(ordKey, err) 
-     if revRrr != nil {
+    mainBuf, err := encoding.Encode(m.Name)
+	if err != nil {
+		return nil,err
+	}
+	subBuf, err := encoding.Encode(m.CreatedTime)
+	if err != nil {
+		return nil,err
+	}
+    ordKey := append(append(AccountCreatedTimeRevOrdTable, subBuf...), mainBuf...)
+    revKey,revRrr := encoding.Complement(ordKey, err)
+	if revRrr != nil {
         return nil,revRrr
-     }
-     return revKey,nil
+	}
+    return revKey,nil
 }
 
 //Query sort by order 
@@ -560,9 +563,16 @@ func (s *SAccountCreatedTimeWrap) QueryListByOrder(start prototype.TimePointSec,
 	}
     bufStartkey := append(AccountCreatedTimeTable, startBuf...)
 	bufEndkey := append(AccountCreatedTimeTable, endBuf...)
+    res := bytes.Compare(bufStartkey,bufEndkey)
+    if res == 0 {
+		bufEndkey = nil
+	}else if res == 1 {
+       //reverse order
+       return nil
+    }
     iter := s.Dba.NewIterator(bufStartkey, bufEndkey)
-    return iter
     
+    return iter
 }
 
 ////////////// SECTION List Keys ///////////////
@@ -630,15 +640,20 @@ func (m *SoListAccountByBalance) OpeEncode() ([]byte,error) {
 }
 
 func (m *SoListAccountByBalance) EncodeRevSortKey() ([]byte,error) {
-     ordKey,err := m.OpeEncode()
-     if err != nil {
-        return nil,err
-     }
-     revKey,revRrr := encoding.Complement(ordKey, err) 
-     if revRrr != nil {
+    mainBuf, err := encoding.Encode(m.Name)
+	if err != nil {
+		return nil,err
+	}
+	subBuf, err := encoding.Encode(m.Balance)
+	if err != nil {
+		return nil,err
+	}
+    ordKey := append(append(AccountBalanceRevOrdTable, subBuf...), mainBuf...)
+    revKey,revRrr := encoding.Complement(ordKey, err)
+	if revRrr != nil {
         return nil,revRrr
-     }
-     return revKey,nil
+	}
+    return revKey,nil
 }
 
 //Query sort by order 
@@ -654,9 +669,16 @@ func (s *SAccountBalanceWrap) QueryListByOrder(start prototype.Coin, end prototy
 	}
     bufStartkey := append(AccountBalanceTable, startBuf...)
 	bufEndkey := append(AccountBalanceTable, endBuf...)
+    res := bytes.Compare(bufStartkey,bufEndkey)
+    if res == 0 {
+		bufEndkey = nil
+	}else if res == 1 {
+       //reverse order
+       return nil
+    }
     iter := s.Dba.NewIterator(bufStartkey, bufEndkey)
-    return iter
     
+    return iter
 }
 
 ////////////// SECTION List Keys ///////////////
@@ -724,15 +746,20 @@ func (m *SoListAccountByVestingShares) OpeEncode() ([]byte,error) {
 }
 
 func (m *SoListAccountByVestingShares) EncodeRevSortKey() ([]byte,error) {
-     ordKey,err := m.OpeEncode()
-     if err != nil {
-        return nil,err
-     }
-     revKey,revRrr := encoding.Complement(ordKey, err) 
-     if revRrr != nil {
+    mainBuf, err := encoding.Encode(m.Name)
+	if err != nil {
+		return nil,err
+	}
+	subBuf, err := encoding.Encode(m.VestingShares)
+	if err != nil {
+		return nil,err
+	}
+    ordKey := append(append(AccountVestingSharesRevOrdTable, subBuf...), mainBuf...)
+    revKey,revRrr := encoding.Complement(ordKey, err)
+	if revRrr != nil {
         return nil,revRrr
-     }
-     return revKey,nil
+	}
+    return revKey,nil
 }
 
 //Query sort by order 
@@ -748,9 +775,16 @@ func (s *SAccountVestingSharesWrap) QueryListByOrder(start prototype.Vest, end p
 	}
     bufStartkey := append(AccountVestingSharesTable, startBuf...)
 	bufEndkey := append(AccountVestingSharesTable, endBuf...)
+    res := bytes.Compare(bufStartkey,bufEndkey)
+    if res == 0 {
+		bufEndkey = nil
+	}else if res == 1 {
+       //reverse order
+       return nil
+    }
     iter := s.Dba.NewIterator(bufStartkey, bufEndkey)
-    return iter
     
+    return iter
 }
 /////////////// SECTION Private function ////////////////
 
@@ -805,9 +839,8 @@ func (s *SoAccountWrap) delUniKeyIdx(sa *SoAccount) bool {
 	val := SoUniqueAccountByIdx{}
 
 	val.Idx = sa.Idx
-	val.Name = sa.Name
-
-	key, err := encoding.Encode(sa.Idx)
+    val.Name = sa.Name
+    key, err := encoding.Encode(sa.Idx)
 
 	if err != nil {
 		return false
@@ -820,21 +853,15 @@ func (s *SoAccountWrap) delUniKeyIdx(sa *SoAccount) bool {
 func (s *SoAccountWrap) insertUniKeyIdx(sa *SoAccount) bool {
     uniWrap  := UniAccountIdxWrap{}
      uniWrap.Dba = s.dba
+   res := uniWrap.UniQueryIdx(&sa.Idx)
    
-    
-   	res := uniWrap.UniQueryIdx(&sa.Idx)
-   
-   
-	if res != nil {
+   if res != nil {
 		//the unique key is already exist
 		return false
 	}
- 
     val := SoUniqueAccountByIdx{}
-
-    
-	val.Name = sa.Name
-	val.Idx = sa.Idx
+    val.Name = sa.Name
+    val.Idx = sa.Idx
     
 	buf, err := proto.Marshal(&val)
 
@@ -862,21 +889,17 @@ func (s *UniAccountIdxWrap) UniQueryIdx(start *int64) *SoAccountWrap{
 		return nil
 	}
 	bufStartkey := append(AccountIdxUniTable, startBuf...)
-	bufEndkey := bufStartkey
-	iter := s.Dba.NewIterator(bufStartkey, bufEndkey)
-    val, err := iter.Value()
-	if err != nil {
-		return nil
+    val,err := s.Dba.Get(bufStartkey)
+	if err == nil {
+		res := &SoUniqueAccountByIdx{}
+		rErr := proto.Unmarshal(val, res)
+		if rErr == nil {
+			wrap := NewSoAccountWrap(s.Dba,res.Name)
+            
+			return wrap
+		}
 	}
-	res := &SoUniqueAccountByIdx{}
-	err = proto.Unmarshal(val, res)
-	if err != nil {
-		return nil
-	}
-   wrap := NewSoAccountWrap(s.Dba,res.Name)
-   
-    
-	return wrap	
+    return nil
 }
 
 
@@ -885,9 +908,7 @@ func (s *SoAccountWrap) delUniKeyName(sa *SoAccount) bool {
 	val := SoUniqueAccountByName{}
 
 	val.Name = sa.Name
-	val.Name = sa.Name
-
-	key, err := encoding.Encode(sa.Name)
+    key, err := encoding.Encode(sa.Name)
 
 	if err != nil {
 		return false
@@ -901,20 +922,13 @@ func (s *SoAccountWrap) insertUniKeyName(sa *SoAccount) bool {
     uniWrap  := UniAccountNameWrap{}
      uniWrap.Dba = s.dba
    
-   
-    
-   	res := uniWrap.UniQueryName(sa.Name)
-   
-	if res != nil {
+   res := uniWrap.UniQueryName(sa.Name)
+   if res != nil {
 		//the unique key is already exist
 		return false
 	}
- 
     val := SoUniqueAccountByName{}
-
-    
-	val.Name = sa.Name
-	val.Name = sa.Name
+    val.Name = sa.Name
     
 	buf, err := proto.Marshal(&val)
 
@@ -942,21 +956,17 @@ func (s *UniAccountNameWrap) UniQueryName(start *prototype.AccountName) *SoAccou
 		return nil
 	}
 	bufStartkey := append(AccountNameUniTable, startBuf...)
-	bufEndkey := bufStartkey
-	iter := s.Dba.NewIterator(bufStartkey, bufEndkey)
-    val, err := iter.Value()
-	if err != nil {
-		return nil
+    val,err := s.Dba.Get(bufStartkey)
+	if err == nil {
+		res := &SoUniqueAccountByName{}
+		rErr := proto.Unmarshal(val, res)
+		if rErr == nil {
+			wrap := NewSoAccountWrap(s.Dba,res.Name)
+            
+			return wrap
+		}
 	}
-	res := &SoUniqueAccountByName{}
-	err = proto.Unmarshal(val, res)
-	if err != nil {
-		return nil
-	}
-   wrap := NewSoAccountWrap(s.Dba,res.Name)
-   
-    
-	return wrap	
+    return nil
 }
 
 
@@ -965,9 +975,8 @@ func (s *SoAccountWrap) delUniKeyPubKey(sa *SoAccount) bool {
 	val := SoUniqueAccountByPubKey{}
 
 	val.PubKey = sa.PubKey
-	val.Name = sa.Name
-
-	key, err := encoding.Encode(sa.PubKey)
+    val.Name = sa.Name
+    key, err := encoding.Encode(sa.PubKey)
 
 	if err != nil {
 		return false
@@ -981,20 +990,14 @@ func (s *SoAccountWrap) insertUniKeyPubKey(sa *SoAccount) bool {
     uniWrap  := UniAccountPubKeyWrap{}
      uniWrap.Dba = s.dba
    
-   
-    
-   	res := uniWrap.UniQueryPubKey(sa.PubKey)
-   
-	if res != nil {
+   res := uniWrap.UniQueryPubKey(sa.PubKey)
+   if res != nil {
 		//the unique key is already exist
 		return false
 	}
- 
     val := SoUniqueAccountByPubKey{}
-
-    
-	val.Name = sa.Name
-	val.PubKey = sa.PubKey
+    val.Name = sa.Name
+    val.PubKey = sa.PubKey
     
 	buf, err := proto.Marshal(&val)
 
@@ -1022,21 +1025,17 @@ func (s *UniAccountPubKeyWrap) UniQueryPubKey(start *prototype.PublicKeyType) *S
 		return nil
 	}
 	bufStartkey := append(AccountPubKeyUniTable, startBuf...)
-	bufEndkey := bufStartkey
-	iter := s.Dba.NewIterator(bufStartkey, bufEndkey)
-    val, err := iter.Value()
-	if err != nil {
-		return nil
+    val,err := s.Dba.Get(bufStartkey)
+	if err == nil {
+		res := &SoUniqueAccountByPubKey{}
+		rErr := proto.Unmarshal(val, res)
+		if rErr == nil {
+			wrap := NewSoAccountWrap(s.Dba,res.Name)
+            
+			return wrap
+		}
 	}
-	res := &SoUniqueAccountByPubKey{}
-	err = proto.Unmarshal(val, res)
-	if err != nil {
-		return nil
-	}
-   wrap := NewSoAccountWrap(s.Dba,res.Name)
-   
-    
-	return wrap	
+    return nil
 }
 
 
