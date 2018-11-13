@@ -151,13 +151,16 @@ func BlockHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args
 	log.Trace("[p2p]receive block message from ", data.Addr, data.Id)
 
 	if pid != nil {
-		var block = data.Payload.(*msgTypes.Block)
-		input := &msgCommon.AppendBlock{
-			FromID:    data.Id,
-			BlockSize: data.PayloadSize,
-			Block:     block.Blk,
-		}
-		pid.Tell(input)
+		var block = data.Payload.(*msg.BroadcastSigBlk)
+
+		log.Info("receive a block")
+		fmt.Printf("data:   +%v\n", block)
+		//input := &msgCommon.AppendBlock{
+		//	FromID:    data.Id,
+		//	BlockSize: data.PayloadSize,
+		//	Block:     block.Blk,
+		//}
+		//pid.Tell(input)
 	}
 }
 

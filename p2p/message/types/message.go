@@ -147,7 +147,7 @@ func MakeEmptyMessage(cmdType string) (Message, error) {
 	case common.GET_DATA_TYPE:
 		return &DataReq{}, nil
 	case common.BLOCK_TYPE:
-		return &Block{}, nil
+		return &msg.BroadcastSigBlk{}, nil
 	case common.TX_TYPE:
 		return &msg.BroadcastSigTrx{}, nil
 	case common.CONSENSUS_TYPE:

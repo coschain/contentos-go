@@ -14,17 +14,16 @@ import (
 	"sync"
 	"time"
 
-	evtActor "github.com/ontio/ontology-eventbus/actor"
+	"github.com/coschain/contentos-go/p2p/common"
 	comm "github.com/coschain/contentos-go/p2p/depend/common"
 	"github.com/coschain/contentos-go/p2p/depend/common/config"
 	"github.com/coschain/contentos-go/p2p/depend/common/log"
-	"github.com/coschain/contentos-go/p2p/depend/core/types"
-	"github.com/coschain/contentos-go/p2p/common"
 	msgtypes "github.com/coschain/contentos-go/p2p/message/types"
 	"github.com/coschain/contentos-go/p2p/message/utils"
 	"github.com/coschain/contentos-go/p2p/net/netserver"
 	p2pnet "github.com/coschain/contentos-go/p2p/net/protocol"
 	"github.com/coschain/contentos-go/p2p/peer"
+	evtActor "github.com/ontio/ontology-eventbus/actor"
 
 	"github.com/coschain/contentos-go/prototype"
 )
@@ -133,9 +132,9 @@ func (this *P2PServer) Xmit(message interface{}) error {
 		log.Debug("[p2p]TX transaction message")
 		sigtrx := message.(*prototype.SignedTransaction)
 		msg = msgpack.NewTxn(sigtrx)
-	case *types.Block:
+	case *prototype.SignedBlock:
 		log.Debug("[p2p]TX block message")
-		block := message.(*types.Block)
+		block := message.(*prototype.SignedBlock)
 		msg = msgpack.NewBlock(block)
 	case *msgtypes.ConsensusPayload:
 		log.Debug("[p2p]TX consensus message")

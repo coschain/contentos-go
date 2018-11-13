@@ -42,6 +42,15 @@ func main() {
 		sigtrx := new(prototype.SignedTransaction)
 		sigtrx.Trx = trx
 		p2p.Xmit(sigtrx)
+
+
+		// Broadcast signedBlock
+		sigBlk := new(prototype.SignedBlock)
+		sigBlkHdr := new(prototype.SignedBlockHeader)
+		sigBlkHdr.Header = new(prototype.BlockHeader)
+		sigBlkHdr.Header.Witness = "hanyunlong"
+		sigBlk.SignedHeader = sigBlkHdr
+		p2p.Xmit(sigBlk)
 	}
 
 	if p2p.GetVersion() != common.PROTOCOL_VERSION {

@@ -31,10 +31,10 @@ func NewAddrReq() mt.Message {
 }
 
 ///block package
-func NewBlock(bk *ct.Block) mt.Message {
+func NewBlock(bk *prototype.SignedBlock) mt.Message {
 	log.Trace()
-	var blk mt.Block
-	blk.Blk = bk
+	var blk msg.BroadcastSigBlk
+	blk.SigBlk = bk
 
 	return &blk
 }

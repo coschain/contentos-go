@@ -2,8 +2,12 @@ syntax = "proto3";
 
 package msg;
 
-import "github.com/coschain/contentos-go/common/prototype/transaction.proto";
+import "github.com/coschain/contentos-go/prototype/transaction.proto";
 
 message broadcast_sig_trx {
     prototype.signed_transaction SigTrx = 1;
+}
+
+message broadcast_sig_blk {
+    prototype.signed_block SigBlk = 1;
 }
