@@ -128,7 +128,8 @@ func main() {
 				fmt.Printf("the postTime is %d \n",mSubPtr.UtcSeconds)
 			}
 		}
-
+	 	//******* we must delete the iterator after end of use,otherwise maybe cause unKnow error *******//
+	 	tSortWrap.DelIterater(iter)
 	 }else {
 	 	fmt.Println("there is no data exist in range posttime")
 	 }
@@ -152,6 +153,8 @@ func main() {
 				fmt.Printf("the postTime is %d in reverse order \n",mSubPtr.UtcSeconds)
 			}
 		}
+        //******** delete the iterator ***********//
+		tSortWrap.DelIterater(iter1)
 	}else {
 		fmt.Println("there is no data exist in reverse order")
 	}
@@ -165,6 +168,7 @@ func main() {
 		if mKeyPtr == nil {
 			fmt.Println("get main key fail in range")
 		}
+		tSortWrap.DelIterater(iter2)
 	}
 
 	/*

@@ -565,6 +565,13 @@ type SDemoPostTimeWrap struct {
 	Dba iservices.IDatabaseService
 }
 
+func (s *SDemoPostTimeWrap)DelIterater(iterator iservices.IDatabaseIterator){
+   if iterator == nil || !iterator.Valid() {
+		return 
+	}
+   s.Dba.DeleteIterator(iterator)
+}
+
 func (s *SDemoPostTimeWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.AccountName {
 	if iterator == nil || !iterator.Valid() {
 		return nil
@@ -701,6 +708,13 @@ func (s *SDemoPostTimeWrap) QueryListByRevOrder(start prototype.TimePointSec, en
 ////////////// SECTION List Keys ///////////////
 type SDemoLikeCountWrap struct {
 	Dba iservices.IDatabaseService
+}
+
+func (s *SDemoLikeCountWrap)DelIterater(iterator iservices.IDatabaseIterator){
+   if iterator == nil || !iterator.Valid() {
+		return 
+	}
+   s.Dba.DeleteIterator(iterator)
 }
 
 func (s *SDemoLikeCountWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.AccountName {
@@ -841,6 +855,13 @@ type SDemoIdxWrap struct {
 	Dba iservices.IDatabaseService
 }
 
+func (s *SDemoIdxWrap)DelIterater(iterator iservices.IDatabaseIterator){
+   if iterator == nil || !iterator.Valid() {
+		return 
+	}
+   s.Dba.DeleteIterator(iterator)
+}
+
 func (s *SDemoIdxWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.AccountName {
 	if iterator == nil || !iterator.Valid() {
 		return nil
@@ -977,6 +998,13 @@ func (s *SDemoIdxWrap) QueryListByRevOrder(start int64, end int64) iservices.IDa
 ////////////// SECTION List Keys ///////////////
 type SDemoReplayCountWrap struct {
 	Dba iservices.IDatabaseService
+}
+
+func (s *SDemoReplayCountWrap)DelIterater(iterator iservices.IDatabaseIterator){
+   if iterator == nil || !iterator.Valid() {
+		return 
+	}
+   s.Dba.DeleteIterator(iterator)
 }
 
 func (s *SDemoReplayCountWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.AccountName {

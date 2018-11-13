@@ -330,6 +330,13 @@ type S{{$.ClsName}}{{$v.PName}}Wrap struct {
 	Dba iservices.IDatabaseService
 }
 
+func (s *S{{$.ClsName}}{{$v.PName}}Wrap)DelIterater(iterator iservices.IDatabaseIterator){
+   if iterator == nil || !iterator.Valid() {
+		return 
+	}
+   s.Dba.DeleteIterator(iterator)
+}
+
 func (s *S{{$.ClsName}}{{$v.PName}}Wrap) GetMainVal(iterator iservices.IDatabaseIterator) *{{formatStr $.MainKeyType}} {
 	if iterator == nil || !iterator.Valid() {
 		return nil

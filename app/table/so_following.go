@@ -3,7 +3,8 @@
 package table
 
 import (
-	"github.com/coschain/contentos-go/common/encoding"
+     "bytes"
+     "github.com/coschain/contentos-go/common/encoding"
      "github.com/coschain/contentos-go/prototype"
 	 "github.com/gogo/protobuf/proto"
      "github.com/coschain/contentos-go/iservices"
@@ -111,8 +112,7 @@ func (s *SoFollowingWrap) insertSortKeyCreateTime(sa *SoFollowing) bool {
 	if err != nil {
 		return false
 	}
-    ordKey := append(FollowingCreateTimeTable, subBuf...)
-    ordErr :=  s.dba.Put(ordKey, buf) 
+    ordErr :=  s.dba.Put(subBuf, buf) 
     return ordErr == nil
     
 }
@@ -243,6 +243,13 @@ type SFollowingCreateTimeWrap struct {
 	Dba iservices.IDatabaseService
 }
 
+func (s *SFollowingCreateTimeWrap)DelIterater(iterator iservices.IDatabaseIterator){
+   if iterator == nil || !iterator.Valid() {
+		return 
+	}
+   s.Dba.DeleteIterator(iterator)
+}
+
 func (s *SFollowingCreateTimeWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.AccountName {
 	if iterator == nil || !iterator.Valid() {
 		return nil
@@ -303,15 +310,20 @@ func (m *SoListFollowingByCreateTime) OpeEncode() ([]byte,error) {
 }
 
 func (m *SoListFollowingByCreateTime) EncodeRevSortKey() ([]byte,error) {
-     ordKey,err := m.OpeEncode()
-     if err != nil {
-        return nil,err
-     }
-     revKey,revRrr := encoding.Complement(ordKey, err) 
-     if revRrr != nil {
+    mainBuf, err := encoding.Encode(m.Account)
+	if err != nil {
+		return nil,err
+	}
+	subBuf, err := encoding.Encode(m.CreateTime)
+	if err != nil {
+		return nil,err
+	}
+    ordKey := append(append(FollowingCreateTimeRevOrdTable, subBuf...), mainBuf...)
+    revKey,revRrr := encoding.Complement(ordKey, err)
+	if revRrr != nil {
         return nil,revRrr
-     }
-     return revKey,nil
+	}
+    return revKey,nil
 }
 
 //Query sort by order 
@@ -327,9 +339,16 @@ func (s *SFollowingCreateTimeWrap) QueryListByOrder(start prototype.TimePointSec
 	}
     bufStartkey := append(FollowingCreateTimeTable, startBuf...)
 	bufEndkey := append(FollowingCreateTimeTable, endBuf...)
+    res := bytes.Compare(bufStartkey,bufEndkey)
+    if res == 0 {
+		bufEndkey = nil
+	}else if res == 1 {
+       //reverse order
+       return nil
+    }
     iter := s.Dba.NewIterator(bufStartkey, bufEndkey)
-    return iter
     
+    return iter
 }
 /////////////// SECTION Private function ////////////////
 
@@ -384,9 +403,7 @@ func (s *SoFollowingWrap) delUniKeyAccount(sa *SoFollowing) bool {
 	val := SoUniqueFollowingByAccount{}
 
 	val.Account = sa.Account
-	val.Account = sa.Account
-
-	key, err := encoding.Encode(sa.Account)
+    key, err := encoding.Encode(sa.Account)
 
 	if err != nil {
 		return false
@@ -400,20 +417,13 @@ func (s *SoFollowingWrap) insertUniKeyAccount(sa *SoFollowing) bool {
     uniWrap  := UniFollowingAccountWrap{}
      uniWrap.Dba = s.dba
    
-   
-    
-   	res := uniWrap.UniQueryAccount(sa.Account)
-   
-	if res != nil {
+   res := uniWrap.UniQueryAccount(sa.Account)
+   if res != nil {
 		//the unique key is already exist
 		return false
 	}
- 
     val := SoUniqueFollowingByAccount{}
-
-    
-	val.Account = sa.Account
-	val.Account = sa.Account
+    val.Account = sa.Account
     
 	buf, err := proto.Marshal(&val)
 
@@ -441,21 +451,17 @@ func (s *UniFollowingAccountWrap) UniQueryAccount(start *prototype.AccountName) 
 		return nil
 	}
 	bufStartkey := append(FollowingAccountUniTable, startBuf...)
-	bufEndkey := bufStartkey
-	iter := s.Dba.NewIterator(bufStartkey, bufEndkey)
-    val, err := iter.Value()
-	if err != nil {
-		return nil
+    val,err := s.Dba.Get(bufStartkey)
+	if err == nil {
+		res := &SoUniqueFollowingByAccount{}
+		rErr := proto.Unmarshal(val, res)
+		if rErr == nil {
+			wrap := NewSoFollowingWrap(s.Dba,res.Account)
+            
+			return wrap
+		}
 	}
-	res := &SoUniqueFollowingByAccount{}
-	err = proto.Unmarshal(val, res)
-	if err != nil {
-		return nil
-	}
-   wrap := NewSoFollowingWrap(s.Dba,res.Account)
-   
-    
-	return wrap	
+    return nil
 }
 
 
@@ -464,9 +470,8 @@ func (s *SoFollowingWrap) delUniKeyFollowing(sa *SoFollowing) bool {
 	val := SoUniqueFollowingByFollowing{}
 
 	val.Following = sa.Following
-	val.Account = sa.Account
-
-	key, err := encoding.Encode(sa.Following)
+    val.Account = sa.Account
+    key, err := encoding.Encode(sa.Following)
 
 	if err != nil {
 		return false
@@ -480,20 +485,14 @@ func (s *SoFollowingWrap) insertUniKeyFollowing(sa *SoFollowing) bool {
     uniWrap  := UniFollowingFollowingWrap{}
      uniWrap.Dba = s.dba
    
-   
-    
-   	res := uniWrap.UniQueryFollowing(sa.Following)
-   
-	if res != nil {
+   res := uniWrap.UniQueryFollowing(sa.Following)
+   if res != nil {
 		//the unique key is already exist
 		return false
 	}
- 
     val := SoUniqueFollowingByFollowing{}
-
-    
-	val.Account = sa.Account
-	val.Following = sa.Following
+    val.Account = sa.Account
+    val.Following = sa.Following
     
 	buf, err := proto.Marshal(&val)
 
@@ -521,21 +520,17 @@ func (s *UniFollowingFollowingWrap) UniQueryFollowing(start *prototype.AccountNa
 		return nil
 	}
 	bufStartkey := append(FollowingFollowingUniTable, startBuf...)
-	bufEndkey := bufStartkey
-	iter := s.Dba.NewIterator(bufStartkey, bufEndkey)
-    val, err := iter.Value()
-	if err != nil {
-		return nil
+    val,err := s.Dba.Get(bufStartkey)
+	if err == nil {
+		res := &SoUniqueFollowingByFollowing{}
+		rErr := proto.Unmarshal(val, res)
+		if rErr == nil {
+			wrap := NewSoFollowingWrap(s.Dba,res.Account)
+            
+			return wrap
+		}
 	}
-	res := &SoUniqueFollowingByFollowing{}
-	err = proto.Unmarshal(val, res)
-	if err != nil {
-		return nil
-	}
-   wrap := NewSoFollowingWrap(s.Dba,res.Account)
-   
-    
-	return wrap	
+    return nil
 }
 
 

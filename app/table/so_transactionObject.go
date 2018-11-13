@@ -4,8 +4,8 @@ package table
 
 import (
      "bytes"
-	 "github.com/coschain/contentos-go/common/encoding"
-	 "github.com/coschain/contentos-go/prototype"
+     "github.com/coschain/contentos-go/common/encoding"
+     "github.com/coschain/contentos-go/prototype"
 	 "github.com/gogo/protobuf/proto"
      "github.com/coschain/contentos-go/iservices"
 )
@@ -191,6 +191,13 @@ func (s *SoTransactionObjectWrap) GetTrxId() *prototype.Sha256 {
 ////////////// SECTION List Keys ///////////////
 type STransactionObjectExpirationWrap struct {
 	Dba iservices.IDatabaseService
+}
+
+func (s *STransactionObjectExpirationWrap)DelIterater(iterator iservices.IDatabaseIterator){
+   if iterator == nil || !iterator.Valid() {
+		return 
+	}
+   s.Dba.DeleteIterator(iterator)
 }
 
 func (s *STransactionObjectExpirationWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.Sha256 {

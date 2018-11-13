@@ -3,7 +3,7 @@
 package table
 
 import (
-	"github.com/coschain/contentos-go/common/encoding"
+     "github.com/coschain/contentos-go/common/encoding"
      "github.com/coschain/contentos-go/prototype"
 	 "github.com/gogo/protobuf/proto"
      "github.com/coschain/contentos-go/iservices"
@@ -246,9 +246,7 @@ func (s *SoFollowCountWrap) delUniKeyAccount(sa *SoFollowCount) bool {
 	val := SoUniqueFollowCountByAccount{}
 
 	val.Account = sa.Account
-	val.Account = sa.Account
-
-	key, err := encoding.Encode(sa.Account)
+    key, err := encoding.Encode(sa.Account)
 
 	if err != nil {
 		return false
@@ -262,20 +260,13 @@ func (s *SoFollowCountWrap) insertUniKeyAccount(sa *SoFollowCount) bool {
     uniWrap  := UniFollowCountAccountWrap{}
      uniWrap.Dba = s.dba
    
-   
-    
-   	res := uniWrap.UniQueryAccount(sa.Account)
-   
-	if res != nil {
+   res := uniWrap.UniQueryAccount(sa.Account)
+   if res != nil {
 		//the unique key is already exist
 		return false
 	}
- 
     val := SoUniqueFollowCountByAccount{}
-
-    
-	val.Account = sa.Account
-	val.Account = sa.Account
+    val.Account = sa.Account
     
 	buf, err := proto.Marshal(&val)
 
@@ -303,21 +294,17 @@ func (s *UniFollowCountAccountWrap) UniQueryAccount(start *prototype.AccountName
 		return nil
 	}
 	bufStartkey := append(FollowCountAccountUniTable, startBuf...)
-	bufEndkey := bufStartkey
-	iter := s.Dba.NewIterator(bufStartkey, bufEndkey)
-    val, err := iter.Value()
-	if err != nil {
-		return nil
+    val,err := s.Dba.Get(bufStartkey)
+	if err == nil {
+		res := &SoUniqueFollowCountByAccount{}
+		rErr := proto.Unmarshal(val, res)
+		if rErr == nil {
+			wrap := NewSoFollowCountWrap(s.Dba,res.Account)
+            
+			return wrap
+		}
 	}
-	res := &SoUniqueFollowCountByAccount{}
-	err = proto.Unmarshal(val, res)
-	if err != nil {
-		return nil
-	}
-   wrap := NewSoFollowCountWrap(s.Dba,res.Account)
-   
-    
-	return wrap	
+    return nil
 }
 
 

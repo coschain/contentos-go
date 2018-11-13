@@ -3,8 +3,8 @@
 package table
 
 import (
-    "bytes"
-	"github.com/coschain/contentos-go/common/encoding"
+     "bytes"
+     "github.com/coschain/contentos-go/common/encoding"
      "github.com/coschain/contentos-go/prototype"
 	 "github.com/gogo/protobuf/proto"
      "github.com/coschain/contentos-go/iservices"
@@ -474,6 +474,13 @@ type SAccountCreatedTimeWrap struct {
 	Dba iservices.IDatabaseService
 }
 
+func (s *SAccountCreatedTimeWrap)DelIterater(iterator iservices.IDatabaseIterator){
+   if iterator == nil || !iterator.Valid() {
+		return 
+	}
+   s.Dba.DeleteIterator(iterator)
+}
+
 func (s *SAccountCreatedTimeWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.AccountName {
 	if iterator == nil || !iterator.Valid() {
 		return nil
@@ -580,6 +587,13 @@ type SAccountBalanceWrap struct {
 	Dba iservices.IDatabaseService
 }
 
+func (s *SAccountBalanceWrap)DelIterater(iterator iservices.IDatabaseIterator){
+   if iterator == nil || !iterator.Valid() {
+		return 
+	}
+   s.Dba.DeleteIterator(iterator)
+}
+
 func (s *SAccountBalanceWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.AccountName {
 	if iterator == nil || !iterator.Valid() {
 		return nil
@@ -684,6 +698,13 @@ func (s *SAccountBalanceWrap) QueryListByOrder(start prototype.Coin, end prototy
 ////////////// SECTION List Keys ///////////////
 type SAccountVestingSharesWrap struct {
 	Dba iservices.IDatabaseService
+}
+
+func (s *SAccountVestingSharesWrap)DelIterater(iterator iservices.IDatabaseIterator){
+   if iterator == nil || !iterator.Valid() {
+		return 
+	}
+   s.Dba.DeleteIterator(iterator)
 }
 
 func (s *SAccountVestingSharesWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.AccountName {
