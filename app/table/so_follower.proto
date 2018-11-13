@@ -3,7 +3,9 @@ syntax = "proto3";
 
 package table;
 
-import "github.com/coschain/contentos-go/prototype/type.proto";
+option go_package = "github.com/coschain/contentos-go/table";
+
+import "prototype/type.proto";
 
 message so_follower {
 	

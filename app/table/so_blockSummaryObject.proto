@@ -1,0 +1,27 @@
+
+syntax = "proto3";
+
+package table;
+
+option go_package = "github.com/coschain/contentos-go/table";
+
+import "prototype/type.proto";
+
+message so_blockSummaryObject {
+	
+    uint32                       id                  =      1;
+	
+    prototype.sha256             block_id            =      2;
+	  
+}
+
+
+message so_unique_blockSummaryObject_by_id {
+	uint32                    	id              = 1;
+}
+
+
+message so_unique_blockSummaryObject_by_block_id {
+	prototype.sha256          	block_id        = 1;
+	uint32                    	id              = 2;
+}

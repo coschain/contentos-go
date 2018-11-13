@@ -1,0 +1,61 @@
+
+syntax = "proto3";
+
+package table;
+
+option go_package = "github.com/coschain/contentos-go/table";
+
+import "prototype/type.proto";
+
+message so_account {
+	
+    prototype.account_name      name             =      1;
+	
+    prototype.time_point_sec    created_time     =      2;
+	
+    prototype.account_name      creator          =      3;
+	
+    prototype.public_key_type   pub_key          =      4;
+	
+    int64                       idx              =      5;
+	
+    prototype.coin              balance          =      6;
+	
+    prototype.vest              vesting_shares      =      7;
+	  
+}
+
+
+message so_list_account_by_created_time {
+	prototype.time_point_sec 	created_time = 1;
+	prototype.account_name   	name         = 2;
+}
+
+
+message so_list_account_by_balance {
+	prototype.coin           	balance      = 1;
+	prototype.account_name   	name         = 2;
+}
+
+
+message so_list_account_by_vesting_shares {
+	prototype.vest           	vesting_shares  = 1;
+	prototype.account_name   	name         = 2;
+}
+
+
+message so_unique_account_by_name {
+	prototype.account_name   	name         = 1;
+}
+
+
+message so_unique_account_by_pub_key {
+	prototype.public_key_type	pub_key      = 1;
+	prototype.account_name   	name         = 2;
+}
+
+
+message so_unique_account_by_idx {
+	int64                    	idx          = 1;
+	prototype.account_name   	name         = 2;
+}
