@@ -333,13 +333,12 @@ func (c *Controller) initGenesis() {
 	authorityWrap := table.NewSoAccountAuthorityObjectWrap(c.db,name)
 	authority := &table.SoAccountAuthorityObject{}
 	authority.Account = name
+	pubKey , _ := prototype.PublicKeyFromWIF(constants.INITMINER_PUBKEY)
 	ownerAuth := &prototype.Authority{
 		WeightThreshold: 1,
 		KeyAuths: []*prototype.KvKeyAuth{
 			&prototype.KvKeyAuth{
-				Key: &prototype.PublicKeyType{
-					Data: []byte{0}, // ?
-				},
+				Key: pubKey,
 				Weight: 1,
 			},
 		},
