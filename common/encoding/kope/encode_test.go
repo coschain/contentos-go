@@ -98,9 +98,7 @@ func TestEncode(t *testing.T) {
 	RegisterType(reflect.TypeOf((*foo)(nil)), "kope_test.foo",
 		func(value reflect.Value) ([]byte, error) {
 			ptr := value.Interface().(*foo)
-			return Encode([]interface{} {
-				ptr.x, ptr.y, ptr.name,
-			})
+			return Encode(ptr.x, ptr.y, ptr.name)
 		}, nil)
 	requireNoError(t, &foo{1,2, "alice"})
 

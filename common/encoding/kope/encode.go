@@ -199,8 +199,20 @@ func EncodeValue(rv reflect.Value) ([]byte, error) {
 }
 
 // Encode a value
-func Encode(value interface{}) ([]byte, error) {
+func encode(value interface{}) ([]byte, error) {
 	return EncodeValue(reflect.ValueOf(value))
+}
+
+// Encode values
+func Encode(values...interface{}) ([]byte, error) {
+	if len(values) == 0 {
+		return nil, errors.New("nothing to encode")
+	}
+	if len(values) == 1 {
+		return encode(values[0])
+	} else {
+		return encode(values)
+	}
 }
 
 func Complement(enc []byte, errs ...error) ([]byte, error) {
