@@ -331,7 +331,9 @@ func (c *Controller) initGenesis() {
 	vest := &prototype.Vest{Amount:&prototype.Safe64{Value:0}}
 	newAccount.Balance = cos
 	newAccount.VestingShares = vest
-	newAccountWrap.CreateAccount(newAccount)
+	if !newAccountWrap.CreateAccount(newAccount) {
+		panic("CreateAccount error")
+	}
 
 	// create account authority
 	authorityWrap := table.NewSoAccountAuthorityObjectWrap(c.db,name)
@@ -350,7 +352,9 @@ func (c *Controller) initGenesis() {
 	authority.Posting = ownerAuth
 	authority.Active = ownerAuth
 	authority.Owner = ownerAuth
-	authorityWrap.CreateAccountAuthorityObject(authority)
+	if !authorityWrap.CreateAccountAuthorityObject(authority) {
+		panic("CreateAccountAuthorityObject error ")
+	}
 	// @ create witness_object
 
 	// create dynamic global properties
@@ -365,14 +369,18 @@ func (c *Controller) initGenesis() {
 	dgp.TotalCos = cos
 	dgp.MaximumBlockSize = constants.MAX_BLOCK_SIZE
 	dgp.TotalVestingShares = &prototype.Vest{Amount:&prototype.Safe64{Value:0}}
-	dgpWrap.CreateDynamicGlobalProperties(dgp)
+	if !dgpWrap.CreateDynamicGlobalProperties(dgp) {
+		panic("CreateDynamicGlobalProperties error")
+	}
 
 	// create block summary
 	for i := uint32(0); i < 0x10000; i++ {
 		wrap := table.NewSoBlockSummaryObjectWrap(c.db, &i)
 		obj := &table.SoBlockSummaryObject{}
 		obj.Id = i
-		wrap.CreateBlockSummaryObject(obj)
+		if !wrap.CreateBlockSummaryObject(obj) {
+			panic("CreateBlockSummaryObject error")
+		}
 	}
 }
 

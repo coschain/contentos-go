@@ -13,7 +13,6 @@ import (
 ////////////// SECTION Prefix Mark ///////////////
 var (
 	BlockSummaryObjectTable        = []byte("BlockSummaryObjectTable")
-    BlockSummaryObjectBlockIdUniTable = []byte("BlockSummaryObjectBlockIdUniTable")
     BlockSummaryObjectIdUniTable = []byte("BlockSummaryObjectIdUniTable")
     )
 
@@ -68,10 +67,7 @@ func (s *SoBlockSummaryObjectWrap) CreateBlockSummaryObject(sa *SoBlockSummaryOb
 	
   
     //update unique list
-    if !s.insertUniKeyBlockId(sa) {
-		return false
-	}
-	if !s.insertUniKeyId(sa) {
+    if !s.insertUniKeyId(sa) {
 		return false
 	}
 	
@@ -91,10 +87,7 @@ func (s *SoBlockSummaryObjectWrap) RemoveBlockSummaryObject() bool {
     //delete sort list key
 	
     //delete unique list
-    if !s.delUniKeyBlockId(sa) {
-		return false
-	}
-	if !s.delUniKeyId(sa) {
+    if !s.delUniKeyId(sa) {
 		return false
 	}
 	
@@ -123,18 +116,6 @@ func (s *SoBlockSummaryObjectWrap) MdBlockId(p prototype.Sha256) bool {
 	if sa == nil {
 		return false
 	}
-    //judge the unique value if is exist
-    uniWrap  := UniBlockSummaryObjectBlockIdWrap{}
-   res := uniWrap.UniQueryBlockId(sa.BlockId)
-   
-	if res != nil {
-		//the unique value to be modified is already exist
-		return false
-	}
-	if !s.delUniKeyBlockId(sa) {
-		return false
-	}
-    
 	
    
    sa.BlockId = &p
@@ -143,9 +124,6 @@ func (s *SoBlockSummaryObjectWrap) MdBlockId(p prototype.Sha256) bool {
 		return false
 	}
     
-    if !s.insertUniKeyBlockId(sa) {
-		return false
-    }
 	return true
 }
 
@@ -210,70 +188,6 @@ func (s *SoBlockSummaryObjectWrap) encodeMainKey() ([]byte, error) {
 }
 
 ////////////// Unique Query delete/insert/query ///////////////
-
-
-func (s *SoBlockSummaryObjectWrap) delUniKeyBlockId(sa *SoBlockSummaryObject) bool {
-    pre := BlockSummaryObjectBlockIdUniTable
-    sub := sa.BlockId
-    kList := []interface{}{pre,sub}
-    kBuf,err := encoding.EncodeSlice(kList,false)
-	if err != nil {
-		return false
-	}
-	return s.dba.Delete(kBuf) == nil
-}
-
-
-func (s *SoBlockSummaryObjectWrap) insertUniKeyBlockId(sa *SoBlockSummaryObject) bool {
-    uniWrap  := UniBlockSummaryObjectBlockIdWrap{}
-     uniWrap.Dba = s.dba
-   
-   res := uniWrap.UniQueryBlockId(sa.BlockId)
-   if res != nil {
-		//the unique key is already exist
-		return false
-	}
-    val := SoUniqueBlockSummaryObjectByBlockId{}
-    val.Id = sa.Id
-    val.BlockId = sa.BlockId
-    
-	buf, err := proto.Marshal(&val)
-
-	if err != nil {
-		return false
-	}
-    
-    pre := BlockSummaryObjectBlockIdUniTable
-    sub := sa.BlockId
-    kList := []interface{}{pre,sub}
-    kBuf,err := encoding.EncodeSlice(kList,false)
-	if err != nil {
-		return false
-	}
-	return s.dba.Put(kBuf, buf) == nil
-
-}
-
-type UniBlockSummaryObjectBlockIdWrap struct {
-	Dba iservices.IDatabaseService
-}
-
-func (s *UniBlockSummaryObjectBlockIdWrap) UniQueryBlockId(start *prototype.Sha256) *SoBlockSummaryObjectWrap{
-    pre := BlockSummaryObjectBlockIdUniTable
-    kList := []interface{}{pre,start}
-    bufStartkey,err := encoding.EncodeSlice(kList,false)
-    val,err := s.Dba.Get(bufStartkey)
-	if err == nil {
-		res := &SoUniqueBlockSummaryObjectByBlockId{}
-		rErr := proto.Unmarshal(val, res)
-		if rErr == nil {
-			wrap := NewSoBlockSummaryObjectWrap(s.Dba,&res.Id)
-			return wrap
-		}
-	}
-    return nil
-}
-
 
 
 func (s *SoBlockSummaryObjectWrap) delUniKeyId(sa *SoBlockSummaryObject) bool {

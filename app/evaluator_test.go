@@ -6,10 +6,14 @@ import (
 	"github.com/coschain/contentos-go/db/storage"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
+	"os"
 	"testing"
 )
-
+const (
+	dbPath = "./pbTool.db"
+)
 func Test_ApplyAccountCreate(t *testing.T) {
+	os.RemoveAll(dbPath)
 	acop := &prototype.AccountCreateOperation{
 		Fee:            &prototype.Coin{Amount: &prototype.Safe64{Value: 1}},
 		Creator:        &prototype.AccountName{Value: "initminer"},
@@ -112,7 +116,7 @@ func Test_ApplyTransfer(t *testing.T) {
 }
 
 func startDB() iservices.IDatabaseService{
-	db,err := storage.NewDatabase("./pbTool.db")
+	db,err := storage.NewDatabase(dbPath)
 	if err != nil {
 		return nil
 	}
