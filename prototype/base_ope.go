@@ -22,6 +22,10 @@ func (m *Coin) OpeEncode() ([]byte, error) {
 	return m.Amount.OpeEncode()
 }
 
+func (m *Vest) OpeEncode() ([]byte, error) {
+	return m.Amount.OpeEncode()
+}
+
 func MakeSafe64(value int64) *Safe64 {
 	return &Safe64{Value: value}
 }
@@ -36,6 +40,10 @@ func MakeAccountName(value string) *AccountName {
 
 func MakeCoin(value int64) *Coin {
 	return &Coin{Amount: MakeSafe64(value)}
+}
+
+func MakeVest(value int64) *Vest {
+	return &Vest{Amount: MakeSafe64(value)}
 }
 
 func MakePublicKeyType(buf []byte) *PublicKeyType {
