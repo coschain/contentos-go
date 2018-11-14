@@ -1,12 +1,12 @@
 package app
 
 import (
-	"testing"
-	"github.com/coschain/contentos-go/prototype"
+	"fmt"
+	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/db/storage"
 	"github.com/coschain/contentos-go/iservices"
-	"github.com/coschain/contentos-go/app/table"
-	"fmt"
+	"github.com/coschain/contentos-go/prototype"
+	"testing"
 )
 
 func Test_ApplyAccountCreate(t *testing.T) {
@@ -62,6 +62,51 @@ func Test_ApplyAccountCreate(t *testing.T) {
 	accountWrap := table.NewSoAccountWrap(db,name)
 	if !accountWrap.CheckExist() {
 		t.Error("create new account failed ")
+	}
+}
+
+func Test_ApplyTransfer(t *testing.T) {
+	fmt.Println("oooo")
+	top := &prototype.TransferOperation{
+		From: &prototype.AccountName{Value:"initminer"},
+		To: &prototype.AccountName{Value:"alice"},
+		Amount: &prototype.Coin{Amount:&prototype.Safe64{Value:100},},
+	}
+
+	db := startDB()
+	defer db.Close()
+	c := startController(db)
+
+	alice := &prototype.AccountName{Value:"alice"}
+	aliceWrap := table.NewSoAccountWrap(db,alice)
+	aliceOrigin := aliceWrap.GetBalance().Amount.Value
+	fmt.Println("alice origin:",aliceOrigin)
+
+	initminer := &prototype.AccountName{Value:"initminer"}
+	minerWrap := table.NewSoAccountWrap(db,initminer)
+	initMinerOrigin := minerWrap.GetBalance().Amount.Value
+	fmt.Println("initminer origin:",initMinerOrigin)
+
+	// construct base op ...
+	op := &prototype.Operation{}
+	op2 := &prototype.Operation_Op2{}
+	op2.Op2 = top
+	op.Op = op2
+
+	ev := &TransferEvaluator{}
+	ev.SetDB(db)
+	ev.SetController(c)
+	ev.Apply(op)
+
+	// check
+	fmt.Println("alice new:",aliceWrap.GetBalance().Amount.Value)
+	if aliceWrap.GetBalance().Amount.Value != aliceOrigin + 100 {
+		t.Error("transfer op failed, receiver's balance wrong")
+	}
+
+	fmt.Println("initminer new:",minerWrap.GetBalance().Amount.Value)
+	if minerWrap.GetBalance().Amount.Value != initMinerOrigin - 100 {
+		t.Error("transfer op failed, sender's balance wrong")
 	}
 }
 

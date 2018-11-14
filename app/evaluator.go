@@ -30,6 +30,14 @@ func  (ev *AccountCreateEvaluator) SetController(c iservices.IController){
 	ev.control = c
 }
 
+func (ev *TransferEvaluator) SetDB(db iservices.IDatabaseService){
+	ev.db = db
+}
+
+func  (ev *TransferEvaluator) SetController(c iservices.IController){
+	ev.control = c
+}
+
 func (ev *AccountCreateEvaluator) Apply(operation *prototype.Operation) {
 	// write DB
 	 o,ok := operation.Op.(*prototype.Operation_Op1)
@@ -90,7 +98,9 @@ func (ev *AccountCreateEvaluator) Apply(operation *prototype.Operation) {
 	vest := &prototype.Vest{Amount:&prototype.Safe64{Value:0}}
 	newAccount.Balance = cos
 	newAccount.VestingShares = vest
-	newAccountWrap.CreateAccount(newAccount)
+	if !newAccountWrap.CreateAccount(newAccount) {
+		panic("duplicate create account object")
+	}
 
 	// create account authority
 	authorityWrap := table.NewSoAccountAuthorityObjectWrap(ev.db,op.NewAccountName)
@@ -100,7 +110,9 @@ func (ev *AccountCreateEvaluator) Apply(operation *prototype.Operation) {
 	authority.Active = op.Active
 	authority.Owner = op.Owner
 	authority.LastOwnerUpdate = &prototype.TimePointSec{UtcSeconds:0}
-	authorityWrap.CreateAccountAuthorityObject(authority)
+	if !authorityWrap.CreateAccountAuthorityObject(authority) {
+		panic("duplicate create account authority object")
+	}
 
 	// create vesting
 	if op.Fee.Amount.Value > 0 {
