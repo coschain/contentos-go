@@ -17,11 +17,9 @@ message so_account {
 	
     prototype.public_key_type   pub_key          =      4;
 	
-    int64                       idx              =      5;
+    prototype.coin              balance          =      5;
 	
-    prototype.coin              balance          =      6;
-	
-    prototype.vest              vesting_shares      =      7;
+    prototype.vest              vesting_shares      =      6;
 	  
 }
 
@@ -51,11 +49,5 @@ message so_unique_account_by_name {
 
 message so_unique_account_by_pub_key {
 	prototype.public_key_type	pub_key      = 1;
-	prototype.account_name   	name         = 2;
-}
-
-
-message so_unique_account_by_idx {
-	int64                    	idx          = 1;
 	prototype.account_name   	name         = 2;
 }
