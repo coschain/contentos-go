@@ -22,12 +22,13 @@ var _ = math.Inf
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
 type SoFollower struct {
-	Account              *prototype.AccountName  `protobuf:"bytes,1,opt,name=account,proto3" json:"account,omitempty"`
-	Follower             *prototype.AccountName  `protobuf:"bytes,2,opt,name=follower,proto3" json:"follower,omitempty"`
-	CreateTime           *prototype.TimePointSec `protobuf:"bytes,3,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}                `json:"-"`
-	XXX_unrecognized     []byte                  `json:"-"`
-	XXX_sizecache        int32                   `json:"-"`
+	Account              *prototype.AccountName   `protobuf:"bytes,1,opt,name=account,proto3" json:"account,omitempty"`
+	Follower             *prototype.AccountName   `protobuf:"bytes,2,opt,name=follower,proto3" json:"follower,omitempty"`
+	FollowerOrder        *prototype.FollowerOrder `protobuf:"bytes,3,opt,name=follower_order,json=followerOrder,proto3" json:"follower_order,omitempty"`
+	CreatedTime          *prototype.TimePointSec  `protobuf:"bytes,4,opt,name=created_time,json=createdTime,proto3" json:"created_time,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}                 `json:"-"`
+	XXX_unrecognized     []byte                   `json:"-"`
+	XXX_sizecache        int32                    `json:"-"`
 }
 
 func (m *SoFollower) Reset()         { *m = SoFollower{} }
@@ -69,54 +70,61 @@ func (m *SoFollower) GetFollower() *prototype.AccountName {
 	return nil
 }
 
-func (m *SoFollower) GetCreateTime() *prototype.TimePointSec {
+func (m *SoFollower) GetFollowerOrder() *prototype.FollowerOrder {
 	if m != nil {
-		return m.CreateTime
+		return m.FollowerOrder
 	}
 	return nil
 }
 
-type SoListFollowerByCreateTime struct {
-	CreateTime           *prototype.TimePointSec `protobuf:"bytes,1,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
-	Account              *prototype.AccountName  `protobuf:"bytes,2,opt,name=account,proto3" json:"account,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}                `json:"-"`
-	XXX_unrecognized     []byte                  `json:"-"`
-	XXX_sizecache        int32                   `json:"-"`
+func (m *SoFollower) GetCreatedTime() *prototype.TimePointSec {
+	if m != nil {
+		return m.CreatedTime
+	}
+	return nil
 }
 
-func (m *SoListFollowerByCreateTime) Reset()         { *m = SoListFollowerByCreateTime{} }
-func (m *SoListFollowerByCreateTime) String() string { return proto.CompactTextString(m) }
-func (*SoListFollowerByCreateTime) ProtoMessage()    {}
-func (*SoListFollowerByCreateTime) Descriptor() ([]byte, []int) {
+type SoListFollowerByFollowerOrder struct {
+	FollowerOrder        *prototype.FollowerOrder `protobuf:"bytes,1,opt,name=follower_order,json=followerOrder,proto3" json:"follower_order,omitempty"`
+	Account              *prototype.AccountName   `protobuf:"bytes,2,opt,name=account,proto3" json:"account,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}                 `json:"-"`
+	XXX_unrecognized     []byte                   `json:"-"`
+	XXX_sizecache        int32                    `json:"-"`
+}
+
+func (m *SoListFollowerByFollowerOrder) Reset()         { *m = SoListFollowerByFollowerOrder{} }
+func (m *SoListFollowerByFollowerOrder) String() string { return proto.CompactTextString(m) }
+func (*SoListFollowerByFollowerOrder) ProtoMessage()    {}
+func (*SoListFollowerByFollowerOrder) Descriptor() ([]byte, []int) {
 	return fileDescriptor_d122501d0783c405, []int{1}
 }
 
-func (m *SoListFollowerByCreateTime) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_SoListFollowerByCreateTime.Unmarshal(m, b)
+func (m *SoListFollowerByFollowerOrder) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SoListFollowerByFollowerOrder.Unmarshal(m, b)
 }
-func (m *SoListFollowerByCreateTime) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_SoListFollowerByCreateTime.Marshal(b, m, deterministic)
+func (m *SoListFollowerByFollowerOrder) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SoListFollowerByFollowerOrder.Marshal(b, m, deterministic)
 }
-func (m *SoListFollowerByCreateTime) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SoListFollowerByCreateTime.Merge(m, src)
+func (m *SoListFollowerByFollowerOrder) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoListFollowerByFollowerOrder.Merge(m, src)
 }
-func (m *SoListFollowerByCreateTime) XXX_Size() int {
-	return xxx_messageInfo_SoListFollowerByCreateTime.Size(m)
+func (m *SoListFollowerByFollowerOrder) XXX_Size() int {
+	return xxx_messageInfo_SoListFollowerByFollowerOrder.Size(m)
 }
-func (m *SoListFollowerByCreateTime) XXX_DiscardUnknown() {
-	xxx_messageInfo_SoListFollowerByCreateTime.DiscardUnknown(m)
+func (m *SoListFollowerByFollowerOrder) XXX_DiscardUnknown() {
+	xxx_messageInfo_SoListFollowerByFollowerOrder.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_SoListFollowerByCreateTime proto.InternalMessageInfo
+var xxx_messageInfo_SoListFollowerByFollowerOrder proto.InternalMessageInfo
 
-func (m *SoListFollowerByCreateTime) GetCreateTime() *prototype.TimePointSec {
+func (m *SoListFollowerByFollowerOrder) GetFollowerOrder() *prototype.FollowerOrder {
 	if m != nil {
-		return m.CreateTime
+		return m.FollowerOrder
 	}
 	return nil
 }
 
-func (m *SoListFollowerByCreateTime) GetAccount() *prototype.AccountName {
+func (m *SoListFollowerByFollowerOrder) GetAccount() *prototype.AccountName {
 	if m != nil {
 		return m.Account
 	}
@@ -209,32 +217,83 @@ func (m *SoUniqueFollowerByFollower) GetAccount() *prototype.AccountName {
 	return nil
 }
 
+type SoUniqueFollowerByFollowerOrder struct {
+	FollowerOrder        *prototype.FollowerOrder `protobuf:"bytes,1,opt,name=follower_order,json=followerOrder,proto3" json:"follower_order,omitempty"`
+	Account              *prototype.AccountName   `protobuf:"bytes,2,opt,name=account,proto3" json:"account,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}                 `json:"-"`
+	XXX_unrecognized     []byte                   `json:"-"`
+	XXX_sizecache        int32                    `json:"-"`
+}
+
+func (m *SoUniqueFollowerByFollowerOrder) Reset()         { *m = SoUniqueFollowerByFollowerOrder{} }
+func (m *SoUniqueFollowerByFollowerOrder) String() string { return proto.CompactTextString(m) }
+func (*SoUniqueFollowerByFollowerOrder) ProtoMessage()    {}
+func (*SoUniqueFollowerByFollowerOrder) Descriptor() ([]byte, []int) {
+	return fileDescriptor_d122501d0783c405, []int{4}
+}
+
+func (m *SoUniqueFollowerByFollowerOrder) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SoUniqueFollowerByFollowerOrder.Unmarshal(m, b)
+}
+func (m *SoUniqueFollowerByFollowerOrder) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SoUniqueFollowerByFollowerOrder.Marshal(b, m, deterministic)
+}
+func (m *SoUniqueFollowerByFollowerOrder) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoUniqueFollowerByFollowerOrder.Merge(m, src)
+}
+func (m *SoUniqueFollowerByFollowerOrder) XXX_Size() int {
+	return xxx_messageInfo_SoUniqueFollowerByFollowerOrder.Size(m)
+}
+func (m *SoUniqueFollowerByFollowerOrder) XXX_DiscardUnknown() {
+	xxx_messageInfo_SoUniqueFollowerByFollowerOrder.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SoUniqueFollowerByFollowerOrder proto.InternalMessageInfo
+
+func (m *SoUniqueFollowerByFollowerOrder) GetFollowerOrder() *prototype.FollowerOrder {
+	if m != nil {
+		return m.FollowerOrder
+	}
+	return nil
+}
+
+func (m *SoUniqueFollowerByFollowerOrder) GetAccount() *prototype.AccountName {
+	if m != nil {
+		return m.Account
+	}
+	return nil
+}
+
 func init() {
 	proto.RegisterType((*SoFollower)(nil), "table.so_follower")
-	proto.RegisterType((*SoListFollowerByCreateTime)(nil), "table.so_list_follower_by_create_time")
+	proto.RegisterType((*SoListFollowerByFollowerOrder)(nil), "table.so_list_follower_by_follower_order")
 	proto.RegisterType((*SoUniqueFollowerByAccount)(nil), "table.so_unique_follower_by_account")
 	proto.RegisterType((*SoUniqueFollowerByFollower)(nil), "table.so_unique_follower_by_follower")
+	proto.RegisterType((*SoUniqueFollowerByFollowerOrder)(nil), "table.so_unique_follower_by_follower_order")
 }
 
 func init() { proto.RegisterFile("app/table/so_follower.proto", fileDescriptor_d122501d0783c405) }
 
 var fileDescriptor_d122501d0783c405 = []byte{
-	// 272 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x92, 0xcd, 0x4a, 0xc4, 0x30,
-	0x10, 0xc7, 0xc9, 0x8a, 0x1f, 0x64, 0x6f, 0x45, 0xb0, 0x2a, 0x7e, 0xd0, 0x83, 0xec, 0xc5, 0x06,
-	0xdd, 0x9b, 0x47, 0x1f, 0xa1, 0x78, 0xf2, 0x32, 0xa4, 0x61, 0xdc, 0x0d, 0xb4, 0x99, 0xd8, 0x4c,
-	0x91, 0x7d, 0x03, 0x8f, 0xbe, 0x8a, 0x6f, 0x28, 0xdb, 0xda, 0x12, 0x45, 0x64, 0x7b, 0x29, 0x34,
-	0xf3, 0xff, 0xfd, 0x99, 0xfc, 0x88, 0x3c, 0xd7, 0xde, 0x2b, 0xd6, 0x65, 0x85, 0x2a, 0x10, 0xbc,
-	0x50, 0x55, 0xd1, 0x1b, 0x36, 0xb9, 0x6f, 0x88, 0x29, 0xd9, 0xef, 0x06, 0x67, 0xc7, 0xdd, 0x1f,
-	0x6f, 0x3c, 0xaa, 0xed, 0xa7, 0x1f, 0x66, 0x9f, 0x42, 0xce, 0x23, 0x24, 0xb9, 0x93, 0x87, 0xda,
-	0x18, 0x6a, 0x1d, 0xa7, 0xe2, 0x5a, 0x2c, 0xe6, 0xf7, 0x27, 0xf9, 0xc8, 0xe5, 0xdf, 0x13, 0x70,
-	0xba, 0xc6, 0x62, 0xc8, 0x25, 0x4b, 0x79, 0x34, 0xe0, 0xe9, 0xec, 0x7f, 0x66, 0x0c, 0x26, 0x0f,
-	0x72, 0x6e, 0x1a, 0xd4, 0x8c, 0xc0, 0xb6, 0xc6, 0x74, 0xaf, 0xe3, 0x4e, 0x23, 0x6e, 0x7b, 0x0c,
-	0x9e, 0xac, 0x63, 0x08, 0x68, 0x0a, 0xd9, 0xa7, 0x9f, 0x6c, 0x8d, 0xd9, 0x87, 0x90, 0x57, 0x81,
-	0xa0, 0xb2, 0x81, 0xc7, 0xc5, 0xa1, 0xdc, 0x40, 0x54, 0xf8, 0xbb, 0x5f, 0x4c, 0xe8, 0x8f, 0x1d,
-	0xcc, 0x76, 0x73, 0x90, 0x15, 0xf2, 0x22, 0x10, 0xb4, 0xce, 0xbe, 0xb6, 0xf8, 0x63, 0xa7, 0x41,
-	0xd2, 0x74, 0xaf, 0xd9, 0xbb, 0x90, 0x97, 0x7f, 0x97, 0x8e, 0x16, 0x63, 0xf5, 0x62, 0x57, 0xf5,
-	0xd3, 0xaf, 0xf7, 0xb8, 0x78, 0xbe, 0x59, 0x59, 0x5e, 0xb7, 0x65, 0x6e, 0xa8, 0x56, 0x86, 0x82,
-	0x59, 0x6b, 0xeb, 0x94, 0x21, 0xc7, 0xe8, 0x98, 0xc2, 0xed, 0x8a, 0xfa, 0xe7, 0x57, 0x1e, 0x74,
-	0x55, 0xcb, 0xaf, 0x00, 0x00, 0x00, 0xff, 0xff, 0x9b, 0x29, 0x4b, 0xc7, 0x92, 0x02, 0x00, 0x00,
+	// 311 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xc4, 0x53, 0x4f, 0x4b, 0xfb, 0x40,
+	0x10, 0x65, 0xfb, 0xfb, 0xf9, 0x87, 0x8d, 0x7a, 0x08, 0x82, 0x51, 0x51, 0x24, 0x88, 0xf4, 0x62,
+	0x82, 0xf6, 0xea, 0x41, 0xfc, 0x02, 0x42, 0xf0, 0xe4, 0x65, 0xd9, 0x6c, 0xc7, 0x76, 0x21, 0xd9,
+	0x89, 0xd9, 0x09, 0xd2, 0x6f, 0xe0, 0x57, 0x10, 0x3f, 0xa7, 0x77, 0x49, 0xda, 0x0d, 0x09, 0x96,
+	0xd2, 0x7a, 0xf1, 0x12, 0x32, 0x3b, 0xef, 0xcd, 0xbe, 0x79, 0x8f, 0xe5, 0xa7, 0xb2, 0x28, 0x62,
+	0x92, 0x69, 0x06, 0xb1, 0x45, 0xf1, 0x82, 0x59, 0x86, 0x6f, 0x50, 0x46, 0x45, 0x89, 0x84, 0xfe,
+	0x56, 0xd3, 0x38, 0x39, 0x6c, 0x2a, 0x9a, 0x15, 0x10, 0xd7, 0x9f, 0x79, 0x33, 0xfc, 0x62, 0xdc,
+	0xeb, 0x50, 0xfc, 0x1b, 0xbe, 0x23, 0x95, 0xc2, 0xca, 0x50, 0xc0, 0x2e, 0xd8, 0xd0, 0xbb, 0x3d,
+	0x8a, 0x5a, 0x5e, 0xb4, 0xe8, 0x08, 0x23, 0x73, 0x48, 0x1c, 0xce, 0x1f, 0xf1, 0x5d, 0x47, 0x0f,
+	0x06, 0xab, 0x39, 0x2d, 0xd0, 0xbf, 0xe7, 0x07, 0xee, 0x5f, 0x60, 0x39, 0x86, 0x32, 0xf8, 0xd7,
+	0x50, 0x8f, 0x3b, 0xd4, 0x3e, 0x20, 0xd9, 0x77, 0xf5, 0x63, 0x5d, 0xfa, 0x77, 0x7c, 0x4f, 0x95,
+	0x20, 0x09, 0xc6, 0x82, 0x74, 0x0e, 0xc1, 0xff, 0x1f, 0xfc, 0xfa, 0x58, 0x14, 0xa8, 0x0d, 0x09,
+	0x0b, 0x2a, 0xf1, 0x16, 0xf0, 0x27, 0x9d, 0x43, 0xf8, 0xc1, 0x78, 0x68, 0x51, 0x64, 0xda, 0x52,
+	0xbb, 0xbc, 0x48, 0x67, 0xa2, 0x7f, 0xe7, 0x12, 0x99, 0x6c, 0x43, 0x99, 0x1d, 0x43, 0x07, 0xeb,
+	0x19, 0x1a, 0x26, 0xfc, 0xcc, 0xa2, 0xa8, 0x8c, 0x7e, 0xad, 0xa0, 0x27, 0xce, 0x39, 0xbe, 0x79,
+	0x48, 0xe1, 0x3b, 0xe3, 0xe7, 0xcb, 0x87, 0xb6, 0x91, 0x74, 0x73, 0x64, 0xeb, 0xe6, 0xf8, 0x8b,
+	0xf5, 0x3e, 0x19, 0xbf, 0x5c, 0x2d, 0xe5, 0x0f, 0xcd, 0x7f, 0x18, 0x3e, 0x5f, 0x4d, 0x34, 0x4d,
+	0xab, 0x34, 0x52, 0x98, 0xc7, 0x0a, 0xad, 0x9a, 0x4a, 0x6d, 0x62, 0x85, 0x86, 0xc0, 0x10, 0xda,
+	0xeb, 0x09, 0xce, 0x5f, 0x5a, 0xba, 0xdd, 0x8c, 0x1a, 0x7d, 0x07, 0x00, 0x00, 0xff, 0xff, 0xff,
+	0xcc, 0xb0, 0x51, 0x7d, 0x03, 0x00, 0x00,
 }

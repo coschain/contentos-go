@@ -9,27 +9,35 @@ import "prototype/type.proto";
 
 message so_following {
 	
-    prototype.account_name        account          =      1;
+    prototype.account_name             account                 =      1;
 	
-    prototype.account_name        following        =      2;
+    prototype.account_name             following               =      2;
 	
-    prototype.time_point_sec      create_time      =      3;
+    prototype.following_order          following_order         =      3;
+	
+    prototype.time_point_sec           created_time            =      4;
 	  
 }
 
 
-message so_list_following_by_create_time {
-	prototype.time_point_sec   	create_time  = 1;
-	prototype.account_name     	account      = 2;
+message so_list_following_by_following_order {
+	prototype.following_order       	following_order     = 1;
+	prototype.account_name          	account             = 2;
 }
 
 
 message so_unique_following_by_account {
-	prototype.account_name     	account      = 1;
+	prototype.account_name          	account             = 1;
 }
 
 
 message so_unique_following_by_following {
-	prototype.account_name     	following    = 1;
-	prototype.account_name     	account      = 2;
+	prototype.account_name          	following           = 1;
+	prototype.account_name          	account             = 2;
+}
+
+
+message so_unique_following_by_following_order {
+	prototype.following_order       	following_order     = 1;
+	prototype.account_name          	account             = 2;
 }

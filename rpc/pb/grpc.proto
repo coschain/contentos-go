@@ -64,6 +64,13 @@ service ApiService {
         };
     }
 
+    rpc GetFollowCountByName (GetFollowCountByNameRequest) returns (GetFollowCountByNameResponse) {
+        option (google.api.http) = {
+            post: "/v1/user/get_follow_count_by_name"
+            body: "*"
+        };
+    }
+
     rpc GetWitnessList (GetWitnessListRequest) returns (GetWitnessListResponse) {
         option (google.api.http) = {
             get: "/v1/user/get_witness_list"
@@ -120,22 +127,31 @@ message AccountResponse {
 
 message GetFollowerListByNameRequest {
     prototype.account_name account_name = 1;
-    uint32 page = 2;
-    uint32 size = 3;
+    prototype.follower_order start = 2;
+    uint32 limit = 3;
 }
 
 message GetFollowerListByNameResponse {
-    repeated AccountResponse follower_list = 1;
+    repeated prototype.account_name follower_list = 1;
 }
 
 message GetFollowingListByNameRequest {
     prototype.account_name account_name = 1;
-    uint32 page = 2;
-    uint32 size = 3;
+    prototype.following_order start = 2;
+    uint32 limit = 3;
 }
 
 message GetFollowingListByNameResponse {
-    repeated AccountResponse following_list = 1;
+    repeated prototype.account_name following_list = 1;
+}
+
+message GetFollowCountByNameRequest {
+    prototype.account_name account_name = 1;
+}
+
+message GetFollowCountByNameResponse {
+    uint32 fer_cnt = 1;
+    uint32 fing_cnt = 2;
 }
 
 message WitnessResponse {
