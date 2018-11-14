@@ -2,7 +2,6 @@ package kope
 
 import (
 	"bytes"
-	"fmt"
 	"sort"
 	"testing"
 )
@@ -43,6 +42,7 @@ func TestKeys(t *testing.T) {
 
 	minByBlance, maxByBalance := MinKey(byBalance), MaxKey(byBalance)
 	minByBlanceDesc, maxByBalanceDesc := MinKey(byBalanceDesc), MaxKey(byBalanceDesc)
+	richPK := []string{ "alice", "bobo", "bob" }
 	for i := 0; i < len(data); i++ {
 		if bytes.Compare(byBalanceKeys[i], minByBlance) <= 0 || bytes.Compare(byBalanceKeys[i], maxByBalance) >= 0 {
 			t.Fatalf("min/max key failed")
@@ -50,10 +50,11 @@ func TestKeys(t *testing.T) {
 		if bytes.Compare(byBalanceDescKeys[i], minByBlanceDesc) <= 0 || bytes.Compare(byBalanceDescKeys[i], maxByBalanceDesc) >= 0 {
 			t.Fatalf("min/max key failed")
 		}
-		fmt.Println(byBalanceDescKeys[i])
-		fmt.Println(DecodeKey(byBalanceKeys[i]))
-		fmt.Println(DecodeKey(byBalanceDescKeys[i]))
+		if IndexedPrimaryValue(byBalanceDescKeys[i]) != richPK[i] {
+			t.Fatalf("balance_desc not ordered")
+		}
+		if IndexedPrimaryValue(byBalanceKeys[i]) != richPK[len(richPK) - i - 1] {
+			t.Fatalf("balance not ordered")
+		}
 	}
-
-
 }

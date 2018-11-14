@@ -81,24 +81,41 @@ func SingleIndexKey(prefix Key, indexKey interface{}, primaryKey interface{}, re
 func SingleIndexRange(prefix Key, indexStart interface{}, indexLimit interface{}, reversed bool) (Key, Key) {
 	start, limit := indexStart, indexLimit
 	if start == nil {
-		start = MinimalKey
+		if reversed {
+			start = MaximumKey
+		} else {
+			start = MinimalKey
+		}
 	}
 	if limit == nil {
-		limit = MaximumKey
+		if reversed {
+			limit = MinimalKey
+		} else {
+			limit = MaximumKey
+		}
 	}
-	return SingleIndexKey(prefix, start, MinimalKey, reversed), SingleIndexKey(prefix, limit, MaximumKey, reversed)
+	return SingleIndexKey(prefix, start, MinimalKey, reversed), SingleIndexKey(prefix, limit, MinimalKey, reversed)
+}
+
+func IndexedPrimaryValue(indexKey Key) interface{} {
+	if validKey(indexKey) {
+		_, _, data, err := unpack(indexKey)
+		if err == nil {
+			pos := bytes.LastIndex(data, separator)
+			if pos >= 0 {
+				data = data[pos + len(separator):]
+			}
+			if v, err := Decode(data); err == nil {
+				return v
+			}
+		}
+	}
+	return nil
 }
 
 func IndexedPrimaryKey(indexKey Key) Key {
-	if validKey(indexKey) {
-		data := indexKey[1: len(indexKey) - 2]
-		pos := bytes.LastIndex(data, separator)
-		if pos >= 0 {
-			data = data[pos + len(separator):]
-		}
-		if validKey(data) {
-			return data
-		}
+	if v := IndexedPrimaryValue(indexKey); v != nil {
+		return NewKey(v)
 	}
 	return nil
 }
