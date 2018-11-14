@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/coschain/contentos-go/common/constants"
+	"github.com/coschain/contentos-go/common/encoding"
 	"github.com/itchyny/base58-go"
 	"math/big"
 	"strings"
@@ -101,4 +102,8 @@ func (m *PublicKeyType) UnmarshalJSON(input []byte) error {
 	}
 	m.Data = res.Data
 	return nil
+}
+
+func (m *PublicKeyType) OpeEncode() ([]byte, error) {
+	return encoding.Encode(m.Data)
 }
