@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/chzyer/readline"
 	"github.com/coschain/cobra"
 	"github.com/coschain/contentos-go/cmd/wallet-cli/commands"
@@ -50,6 +51,13 @@ func runShell() {
 	}
 	defer shell.Close()
 
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Println(err)
+			runShell()
+		}
+	}()
+
 shell_loop:
 	for {
 		l, err := shell.Readline()
@@ -60,10 +68,17 @@ shell_loop:
 		if err != nil {
 			shell.Terminal.Write([]byte(err.Error()))
 		}
+
 		cmd.ParseFlags(flags)
+		if cmd.Args != nil {
+			err = cmd.Args(cmd, flags)
+			if err != nil {
+				fmt.Println(err)
+				continue
+			}
+		}
 		cmd.Run(cmd, flags)
 	}
-
 }
 
 func DefaultDataDir() string {

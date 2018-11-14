@@ -16,6 +16,7 @@ var AccountCmd = func() *cobra.Command {
 	getAccountCmd := &cobra.Command{
 		Use:   "get",
 		Short: "get account info",
+		Args:  cobra.ExactArgs(1),
 		Run:   getAccount,
 	}
 

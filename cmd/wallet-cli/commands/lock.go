@@ -10,6 +10,7 @@ var LockCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "lock",
 		Short: "lock a account",
+		Args:  cobra.ExactArgs(1),
 		Run:   lock,
 	}
 	return cmd

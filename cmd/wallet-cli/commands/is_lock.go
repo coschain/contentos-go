@@ -10,6 +10,7 @@ var IsLockedCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "locked",
 		Short: "whether a account has been locked",
+		Args:  cobra.ExactArgs(1),
 		Run:   isLocked,
 	}
 	return cmd

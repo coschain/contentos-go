@@ -10,6 +10,7 @@ var InfoCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "info",
 		Short: "display an account info",
+		Args:  cobra.ExactArgs(1),
 		Run:   info,
 	}
 	return cmd

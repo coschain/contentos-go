@@ -10,6 +10,7 @@ var LoadCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "load",
 		Short: "load a created account",
+		Args:  cobra.ExactArgs(1),
 		Run:   load,
 	}
 	return cmd

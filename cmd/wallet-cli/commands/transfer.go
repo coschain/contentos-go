@@ -12,10 +12,12 @@ import (
 
 var TransferCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "transfer",
-		Short: "transfer to another account",
-		Args:  cobra.MinimumNArgs(3),
-		Run:   transfer,
+		Use:     "transfer",
+		Short:   "transfer to another account",
+		Long:    "transfer cos to another account by name, should unlock sender first",
+		Example: "transfer alice bob 500",
+		Args:    cobra.MinimumNArgs(3),
+		Run:     transfer,
 	}
 	return cmd
 }
@@ -48,7 +50,12 @@ func transfer(cmd *cobra.Command, args []string) {
 		Amount: &prototype.Coin{Amount: &prototype.Safe64{Value: amount}},
 		Memo:   memo,
 	}
+
 	signTx, err := GenerateSignedTx([]interface{}{transfer_op}, fromAccount)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
 	resp, err := client.BroadcastTrx(context.Background(), req)
 	if err != nil {
