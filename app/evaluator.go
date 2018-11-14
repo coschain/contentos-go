@@ -1,10 +1,10 @@
 package app
 
 import (
-	"github.com/coschain/contentos-go/prototype"
+	"fmt"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/iservices"
-	"fmt"
+	"github.com/coschain/contentos-go/prototype"
 )
 
 type BaseEvaluator interface {
@@ -40,6 +40,9 @@ func (ev *AccountCreateEvaluator) Apply(operation *prototype.Operation) {
 	creatorWrap := table.NewSoAccountWrap(ev.db,op.Creator)
 	fmt.Println("1",creatorWrap)
 	fmt.Println("2",op)
+	if !creatorWrap.CheckExist() {
+		panic("creator not exist")
+	}
 	if creatorWrap.GetBalance().Amount.Value < op.Fee.Amount.Value {
 		panic("Insufficient balance to create account.")
 	}
@@ -82,6 +85,11 @@ func (ev *AccountCreateEvaluator) Apply(operation *prototype.Operation) {
 	newAccount.Name = op.NewAccountName
 	newAccount.Creator = op.Creator
 	newAccount.CreatedTime = dgpWrap.GetTime()
+	newAccount.PubKey = op.MemoKey
+	cos := &prototype.Coin{Amount:&prototype.Safe64{Value:0}}
+	vest := &prototype.Vest{Amount:&prototype.Safe64{Value:0}}
+	newAccount.Balance = cos
+	newAccount.VestingShares = vest
 	newAccountWrap.CreateAccount(newAccount)
 
 	// create account authority

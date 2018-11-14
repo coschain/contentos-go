@@ -7,11 +7,11 @@ import (
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/common/eventloop"
-	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
-	"time"
+	"github.com/coschain/contentos-go/prototype"
 	"github.com/golang/protobuf/proto"
+	"time"
 )
 
 type skipFlag uint32
@@ -68,11 +68,11 @@ func (c *Controller) Start(node *node.Node) error {
 	c.evLoop = node.MainLoop
 	c.noticer = node.EvBus
 
-	c.open()
+	c.Open()
 	return nil
 }
 
-func (c *Controller) open() {
+func (c *Controller) Open() {
 	var i int32 = 0
 	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db,&i)
 	if !dgpWrap.CheckExist() {
@@ -320,20 +320,24 @@ func (c *Controller) _applyBlock(blk *prototype.SignedBlock) {
 func (c *Controller) initGenesis() {
 
 	// create initminer
+	pubKey , _ := prototype.PublicKeyFromWIF(constants.INITMINER_PUBKEY)
 	name := &prototype.AccountName{Value:constants.INIT_MINER_NAME}
 	newAccountWrap := table.NewSoAccountWrap(c.db,name)
 	newAccount := &table.SoAccount{}
 	newAccount.Name = name
-	cos := &prototype.Coin{}
-	cos.Amount.Value = constants.INIT_SUPPLY
+	newAccount.PubKey = pubKey
+	newAccount.CreatedTime = &prototype.TimePointSec{UtcSeconds:0}
+	cos := &prototype.Coin{Amount:&prototype.Safe64{Value:constants.INIT_SUPPLY}}
+	vest := &prototype.Vest{Amount:&prototype.Safe64{Value:0}}
 	newAccount.Balance = cos
+	newAccount.VestingShares = vest
 	newAccountWrap.CreateAccount(newAccount)
 
 	// create account authority
 	authorityWrap := table.NewSoAccountAuthorityObjectWrap(c.db,name)
 	authority := &table.SoAccountAuthorityObject{}
 	authority.Account = name
-	pubKey , _ := prototype.PublicKeyFromWIF(constants.INITMINER_PUBKEY)
+
 	ownerAuth := &prototype.Authority{
 		WeightThreshold: 1,
 		KeyAuths: []*prototype.KvKeyAuth{
@@ -360,6 +364,7 @@ func (c *Controller) initGenesis() {
 	dgp.CurrentSupply = cos
 	dgp.TotalCos = cos
 	dgp.MaximumBlockSize = constants.MAX_BLOCK_SIZE
+	dgp.TotalVestingShares = &prototype.Vest{Amount:&prototype.Safe64{Value:0}}
 	dgpWrap.CreateDynamicGlobalProperties(dgp)
 
 	// create block summary

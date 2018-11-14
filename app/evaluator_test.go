@@ -32,6 +32,10 @@ func Test_ApplyAccountCreate(t *testing.T) {
 				},
 			},
 		},
+		Active: &prototype.Authority{
+		},
+		Posting: &prototype.Authority{
+		},
 	}
 	// construct base op ...
 	op := &prototype.Operation{}
@@ -40,7 +44,9 @@ func Test_ApplyAccountCreate(t *testing.T) {
 	op.Op = op1
 
 	// init context
+
 	db := startDB()
+	defer db.Close()
 	c := startController(db)
 
 	fmt.Println("db:",db)
@@ -64,12 +70,17 @@ func startDB() iservices.IDatabaseService{
 	if err != nil {
 		return nil
 	}
-	db.Start(nil)
+	err = db.Start(nil)
+	if err != nil {
+		fmt.Print(err)
+		panic("start db error")
+	}
 	return db
 }
 
 func startController(db iservices.IDatabaseService) iservices.IController{
 	c,_ := NewController(nil)
 	c.SetDB(db)
+	c.Open()
 	return c
 }
