@@ -181,7 +181,7 @@ func (d *DPoS) checkOurTurn() bool {
 }
 
 func (d *DPoS) getScheduledProducer(slot uint64) uint64 {
-	absSlot := (d.ForkDB.Head().Timestamp() - constants.GenesisTime) / constants.BLOCK_INTERNAL
+	absSlot := (d.ForkDB.Head().Timestamp() - constants.GenesisTime) / constants.BLOCK_INTERVAL
 	return (absSlot + slot) % uint64(len(d.Producers))
 }
 
@@ -201,11 +201,11 @@ func (d *DPoS) getSlotTime(slot uint64) uint64 {
 	}
 	head := d.ForkDB.Head()
 	if head == nil {
-		return constants.GenesisTime + slot*constants.BLOCK_INTERNAL
+		return constants.GenesisTime + slot*constants.BLOCK_INTERVAL
 	}
 
-	headSlotTime := head.Timestamp() / constants.BLOCK_INTERNAL * constants.BLOCK_INTERNAL
-	return headSlotTime + slot*constants.BLOCK_INTERNAL
+	headSlotTime := head.Timestamp() / constants.BLOCK_INTERVAL * constants.BLOCK_INTERVAL
+	return headSlotTime + slot*constants.BLOCK_INTERVAL
 }
 
 func (d *DPoS) getSlotAtTime(t time.Time) uint64 {
@@ -213,7 +213,7 @@ func (d *DPoS) getSlotAtTime(t time.Time) uint64 {
 	if uint64(t.Unix()) < nextSlotTime {
 		return 0
 	}
-	return (uint64(t.Unix())-nextSlotTime)/constants.BLOCK_INTERNAL + 1
+	return (uint64(t.Unix())-nextSlotTime)/constants.BLOCK_INTERVAL + 1
 }
 
 func (d *DPoS) PushBlock(b common.ISignedBlock) error {
@@ -275,7 +275,7 @@ func (d *DPoS) switchFork(old, new common.BlockID) {
 		}
 		if d.PushBlock(b) != nil {
 			errWhileSwitch = true
-			// TODO: peels of this invalid branch
+			// TODO: peels off this invalid branch to avoid flip-flop switch
 			break
 		}
 	}
