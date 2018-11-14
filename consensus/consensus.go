@@ -11,8 +11,7 @@ type IConsensus interface {
 	CurrentProducer() IProducer
 	// ActiveProducers returns a list of accounts that actively produce blocks
 	ActiveProducers() []IProducer
-	// SetProduce sets the node as a block producer if prod == true
-	SetProduce(prod bool)
+
 	// SetBootstrap determines if the current node starts a new block chain
 	SetBootstrap(b bool)
 

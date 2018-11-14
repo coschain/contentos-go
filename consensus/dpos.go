@@ -2,15 +2,21 @@ package consensus
 
 import (
 	"bytes"
-	"github.com/coschain/contentos-go/node"
 	"sync"
 	"time"
 
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/db/forkdb"
+	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/prototype"
 )
+
+func waitTilNextSec() {
+	now := time.Now()
+	ceil := now.Add(time.Millisecond * 500).Round(time.Second)
+	time.Sleep(ceil.Sub(now))
+}
 
 type Producer struct {
 	Name   string
@@ -28,7 +34,7 @@ type DPoS struct {
 	Producers   []*Producer
 	hostMask    []bool
 	producerIdx uint64
-	producing   bool
+	readyToProduce   bool
 
 	bootstrap bool
 
@@ -49,10 +55,6 @@ func NewDPoS() *DPoS {
 		hostMask:  make([]bool, constants.ProducerNum),
 		stopCh:    make(chan struct{}),
 	}
-}
-
-func (d *DPoS) SetProduce(prod bool) {
-	d.producing = prod
 }
 
 func (d *DPoS) SetBootstrap(b bool) {
@@ -88,23 +90,34 @@ func (d *DPoS) start() {
 		case <-d.stopCh:
 			break
 		default:
-			if !d.producing {
-				time.Sleep(time.Second)
+			if !d.checkGenesis() {
+				waitTilNextSec()
 				continue
 			}
-			if !d.checkGenesis() || !d.checkSync() ||
-				!d.checkProducingTiming() || !d.checkOurTurn() {
-				now := time.Now()
-				ceil := now.Add(time.Millisecond * 500).Round(time.Second)
-				time.Sleep(ceil.Sub(now))
+			if !d.readyToProduce  {
+				if d.checkSync() {
+					d.readyToProduce = true
+				} else {
+					waitTilNextSec()
+					continue
+				}
+			}
+			if !d.checkProducingTiming() || !d.checkOurTurn() {
+				waitTilNextSec()
 				continue
 			}
 
 			b, err := d.GenerateBlock()
 			if err != nil {
-				d.PushBlock(b)
-				// TODO: broadcast block
+				// TODO: log
+				continue
 			}
+			err = d.PushBlock(b)
+			if err != nil {
+				// TODO: log
+				continue
+			}
+			// TODO: broadcast block
 		}
 	}
 }
@@ -170,7 +183,7 @@ func (d *DPoS) getScheduledProducer(slot uint64) uint64 {
 	return (absSlot + slot) % uint64(len(d.Producers))
 }
 
-// returns true if we're out of sync
+// returns false if we're out of sync
 func (d *DPoS) checkSync() bool {
 	now := time.Now().Round(time.Second).Unix()
 	if d.getSlotTime(1) < uint64(now) {
