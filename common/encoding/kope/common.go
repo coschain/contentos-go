@@ -13,7 +13,7 @@ const (
 
 // type marks
 const (
-	typeInvalid			= iota
+	typeInvalid			= byte(iota)
 	typeMin
 	typeBool
 	typeInt
@@ -33,7 +33,7 @@ const (
 	typeBytes
 	typeList
 	typeCustom
-	typeMax				= typeMin ^ typeReversedFlag
+	typeMax				= ^typeMin
 
 	typeReversedFlag	= 0x80
 )
@@ -46,11 +46,11 @@ const (
 )
 
 var (
-	MinKey = &minKeyPlaceholder
-	MaxKey = &maxKeyPlaceholder
+	MinimalKey        = &minKeyPlaceholder
+	MaximumKey        = &maxKeyPlaceholder
 	minKeyPlaceholder = "I'm lesser than all real keys"
 	maxKeyPlaceholder = "I'm greater than all real keys"
-	separator = []byte{0, extSeparator}
+	separator         = []byte{0, extSeparator}
 )
 
 func pack(typ byte, ending bool, src []byte) ([]byte, error) {
@@ -79,32 +79,34 @@ func pack(typ byte, ending bool, src []byte) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func unpack(src []byte) (byte, []byte, error) {
+func unpack(src []byte) (bool, byte, []byte, error) {
 	srcLen := len(src)
+	flip := false
 	if srcLen < 1 {
-		return typeInvalid, nil, errors.New("packed data too short")
-	}
-	if bytes.HasSuffix(src, []byte{0, extEnding}) {
-		srcLen -= 2
+		return flip, typeInvalid, nil, errors.New("packed data too short")
 	}
 	data := src
-	if _, flipped := typeId(src[0]); flipped {
+	typ := data[0]
+	if typ, flip = typeId(src[0]); flip {
 		data = make([]byte, len(src))
 		for i, b := range src {
 			data[i] = ^b
 		}
+	}
+	if bytes.HasSuffix(data, []byte{0, extEnding}) {
+		srcLen -= 2
 	}
 	buf := new(bytes.Buffer)
 	lastByte := data[0]
 	for _, b := range data[1:srcLen] {
 		if !(b == extZero && lastByte == 0) {
 			if err := buf.WriteByte(b); err != nil {
-				return typeInvalid, nil, err
+				return flip, typeInvalid, nil, err
 			}
 		}
 		lastByte = b
 	}
-	return src[0], buf.Bytes(), nil
+	return flip, typ, buf.Bytes(), nil
 }
 
 func bigEndianBytes(value interface{}) ([]byte, error) {
@@ -137,7 +139,7 @@ func encodeSignedInteger(value interface{}) ([]byte, error) {
 }
 
 func decodeSignedInteger(enc []byte, valuePtr interface{}) error {
-	typ, data, err := unpack(enc)
+	_, typ, data, err := unpack(enc)
 	if err == nil {
 		if typ == typeInt8 || typ == typeInt16 || typ == typeInt32 || typ == typeInt64 || typ == typeInt {
 			e := common.CopyBytes(data)
@@ -170,7 +172,7 @@ func encodeUnsignedInteger(value interface{}) ([]byte, error) {
 }
 
 func decodeUnsignedInteger(enc []byte, valuePtr interface{}) error {
-	typ, data, err := unpack(enc)
+	_, typ, data, err := unpack(enc)
 	if err == nil {
 		if typ == typeUint8 || typ == typeUint16 || typ == typeUint32 || typ == typeUint64 || typ == typeUint || typ == typeUintptr {
 			return binary.Read(bytes.NewBuffer(data), binary.BigEndian, valuePtr)
@@ -212,7 +214,7 @@ func encodeFloat(value interface{}) ([]byte, error) {
 }
 
 func decodeFloat(enc []byte, valuePtr interface{}) error {
-	typ, data, err := unpack(enc)
+	_, typ, data, err := unpack(enc)
 	if err == nil {
 		if typ == typeFloat32 || typ == typeFloat64 {
 			e := common.CopyBytes(data)
@@ -243,9 +245,9 @@ func decodeMinMaxKey(enc []byte) (*string, error) {
 	if len(enc) == 1 {
 		switch enc[0] {
 		case typeMin:
-			return MinKey, nil
+			return MinimalKey, nil
 		case typeMax:
-			return MaxKey, nil
+			return MaximumKey, nil
 		}
 	}
 	return nil, errors.New("invalid encoded data")
@@ -256,7 +258,7 @@ func encodeSlice(encodedElements [][]byte) ([]byte, error) {
 }
 
 func decodeSlice(enc []byte) ([][]byte, error) {
-	typ, data, err := unpack(enc)
+	_, typ, data, err := unpack(enc)
 	if err == nil {
 		if typ == typeList {
 			b := 0
@@ -304,5 +306,9 @@ func flipped(data []byte, errs...error) ([]byte, error) {
 }
 
 func typeId(typ byte) (byte, bool) {
-	return typ & ^byte(typeReversedFlag), typ & typeReversedFlag != 0
+	if f := typ & typeReversedFlag != 0; f {
+		return ^typ, f
+	} else {
+		return typ, f
+	}
 }

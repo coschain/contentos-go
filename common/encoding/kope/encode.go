@@ -144,9 +144,9 @@ func EncodeValue(rv reflect.Value) ([]byte, error) {
 		}
 		if rt.Elem().Kind() == reflect.String {
 			ptr := rv.Interface().(*string)
-			if ptr == MinKey {
+			if ptr == MinimalKey {
 				return encodeMinMaxKey(true)
-			} else if ptr == MaxKey {
+			} else if ptr == MaximumKey {
 				return encodeMinMaxKey(false)
 			}
 		}

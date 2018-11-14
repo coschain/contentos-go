@@ -71,8 +71,8 @@ func TestEncode(t *testing.T) {
 	requireNoError(t, float64(2.71828e+3))
 	requireNoError(t, "hello world")
 	requireNoError(t, []byte("hello world"))
-	requireNoError(t, MinKey)
-	requireNoError(t, MaxKey)
+	requireNoError(t, MinimalKey)
+	requireNoError(t, MaximumKey)
 	requireError(t, nil)
 	requireError(t, map[int]int{1: 10, 2: 20})
 

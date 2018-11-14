@@ -37,7 +37,7 @@ func makeEncoder(enc CustomEncoderFunc, h uint64) CustomEncoderFunc {
 
 func makeDecoder(dec CustomDecoderFunc) CustomDecoderFunc {
 	return func(e []byte) (interface{}, error) {
-		typ, data, err := unpack(e)
+		_, typ, data, err := unpack(e)
 		if err == nil && typ == typeCustom && len(data) >= 8 {
 			return dec(data[8:])
 		}

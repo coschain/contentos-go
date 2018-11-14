@@ -10,6 +10,9 @@ func requireOK(t *testing.T, value interface{}, complement bool) {
 	if err != nil {
 		t.Fatalf("encoding failed: %v", err)
 	}
+	if complement {
+		enc, _ = Complement(enc)
+	}
 	dv, err := Decode(enc)
 	if err != nil {
 		t.Fatalf("decoding failed: %v", err)

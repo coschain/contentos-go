@@ -114,7 +114,7 @@ func DecodeUintPtr(enc []byte) (uintptr, error) {
 
 // Decode a bool
 func DecodeBool(enc []byte) (bool, error) {
-	typ, data, err := unpack(enc)
+	_, typ, data, err := unpack(enc)
 	if err == nil {
 		if typ == typeBool && len(data) == 1 {
 			return data[0] != 0, nil
@@ -146,7 +146,7 @@ func DecodeFloat64(enc []byte) (float64, error) {
 
 // Decode a string
 func DecodeString(enc []byte) (string, error) {
-	typ, data, err := unpack(enc)
+	_, typ, data, err := unpack(enc)
 	if err == nil {
 		if typ == typeString {
 			return string(data), nil
@@ -158,7 +158,7 @@ func DecodeString(enc []byte) (string, error) {
 
 // Decode a byte slice
 func DecodeBytes(enc []byte) ([]byte, error) {
-	typ, data, err := unpack(enc)
+	_, typ, data, err := unpack(enc)
 	if err == nil {
 		if typ == typeBytes {
 			return data, nil
