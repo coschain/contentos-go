@@ -127,7 +127,7 @@ message AccountResponse {
 
 message GetFollowerListByNameRequest {
     prototype.account_name account_name = 1;
-    prototype.follower_order start = 2;
+    prototype.follower_relation start = 2;
     uint32 limit = 3;
 }
 
@@ -137,7 +137,7 @@ message GetFollowerListByNameResponse {
 
 message GetFollowingListByNameRequest {
     prototype.account_name account_name = 1;
-    prototype.following_order start = 2;
+    prototype.following_relation start = 2;
     uint32 limit = 3;
 }
 

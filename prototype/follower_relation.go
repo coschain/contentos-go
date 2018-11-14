@@ -2,6 +2,6 @@ package prototype
 
 import "github.com/coschain/contentos-go/common/encoding"
 
-func (m *FollowerOrder) OpeEncode() ([]byte, error) {
+func (m *FollowerRelation) OpeEncode() ([]byte, error) {
 	return encoding.Encode(m.Follower)
 }

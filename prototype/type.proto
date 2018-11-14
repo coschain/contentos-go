@@ -74,13 +74,13 @@ message chain_properties{
     uint32 maximum_block_size = 2;
 }
 
-message follower_order{
+message follower_relation{
     account_name account = 1;
     time_point_sec created_time = 2;
     account_name follower = 3;
 }
 
-message following_order{
+message following_relation{
     account_name account = 1;
     time_point_sec created_time = 2;
     account_name following = 3;

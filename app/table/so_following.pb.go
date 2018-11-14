@@ -22,13 +22,10 @@ var _ = math.Inf
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
 type SoFollowing struct {
-	Account              *prototype.AccountName    `protobuf:"bytes,1,opt,name=account,proto3" json:"account,omitempty"`
-	Following            *prototype.AccountName    `protobuf:"bytes,2,opt,name=following,proto3" json:"following,omitempty"`
-	FollowingOrder       *prototype.FollowingOrder `protobuf:"bytes,3,opt,name=following_order,json=followingOrder,proto3" json:"following_order,omitempty"`
-	CreatedTime          *prototype.TimePointSec   `protobuf:"bytes,4,opt,name=created_time,json=createdTime,proto3" json:"created_time,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}                  `json:"-"`
-	XXX_unrecognized     []byte                    `json:"-"`
-	XXX_sizecache        int32                     `json:"-"`
+	FollowingInfo        *prototype.FollowingRelation `protobuf:"bytes,1,opt,name=following_info,json=followingInfo,proto3" json:"following_info,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}                     `json:"-"`
+	XXX_unrecognized     []byte                       `json:"-"`
+	XXX_sizecache        int32                        `json:"-"`
 }
 
 func (m *SoFollowing) Reset()         { *m = SoFollowing{} }
@@ -56,244 +53,71 @@ func (m *SoFollowing) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_SoFollowing proto.InternalMessageInfo
 
-func (m *SoFollowing) GetAccount() *prototype.AccountName {
+func (m *SoFollowing) GetFollowingInfo() *prototype.FollowingRelation {
 	if m != nil {
-		return m.Account
+		return m.FollowingInfo
 	}
 	return nil
 }
 
-func (m *SoFollowing) GetFollowing() *prototype.AccountName {
-	if m != nil {
-		return m.Following
-	}
-	return nil
+type SoUniqueFollowingByFollowingInfo struct {
+	FollowingInfo        *prototype.FollowingRelation `protobuf:"bytes,1,opt,name=following_info,json=followingInfo,proto3" json:"following_info,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}                     `json:"-"`
+	XXX_unrecognized     []byte                       `json:"-"`
+	XXX_sizecache        int32                        `json:"-"`
 }
 
-func (m *SoFollowing) GetFollowingOrder() *prototype.FollowingOrder {
-	if m != nil {
-		return m.FollowingOrder
-	}
-	return nil
-}
-
-func (m *SoFollowing) GetCreatedTime() *prototype.TimePointSec {
-	if m != nil {
-		return m.CreatedTime
-	}
-	return nil
-}
-
-type SoListFollowingByFollowingOrder struct {
-	FollowingOrder       *prototype.FollowingOrder `protobuf:"bytes,1,opt,name=following_order,json=followingOrder,proto3" json:"following_order,omitempty"`
-	Account              *prototype.AccountName    `protobuf:"bytes,2,opt,name=account,proto3" json:"account,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}                  `json:"-"`
-	XXX_unrecognized     []byte                    `json:"-"`
-	XXX_sizecache        int32                     `json:"-"`
-}
-
-func (m *SoListFollowingByFollowingOrder) Reset()         { *m = SoListFollowingByFollowingOrder{} }
-func (m *SoListFollowingByFollowingOrder) String() string { return proto.CompactTextString(m) }
-func (*SoListFollowingByFollowingOrder) ProtoMessage()    {}
-func (*SoListFollowingByFollowingOrder) Descriptor() ([]byte, []int) {
+func (m *SoUniqueFollowingByFollowingInfo) Reset()         { *m = SoUniqueFollowingByFollowingInfo{} }
+func (m *SoUniqueFollowingByFollowingInfo) String() string { return proto.CompactTextString(m) }
+func (*SoUniqueFollowingByFollowingInfo) ProtoMessage()    {}
+func (*SoUniqueFollowingByFollowingInfo) Descriptor() ([]byte, []int) {
 	return fileDescriptor_0f46122cc3ea918f, []int{1}
 }
 
-func (m *SoListFollowingByFollowingOrder) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_SoListFollowingByFollowingOrder.Unmarshal(m, b)
+func (m *SoUniqueFollowingByFollowingInfo) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SoUniqueFollowingByFollowingInfo.Unmarshal(m, b)
 }
-func (m *SoListFollowingByFollowingOrder) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_SoListFollowingByFollowingOrder.Marshal(b, m, deterministic)
+func (m *SoUniqueFollowingByFollowingInfo) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SoUniqueFollowingByFollowingInfo.Marshal(b, m, deterministic)
 }
-func (m *SoListFollowingByFollowingOrder) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SoListFollowingByFollowingOrder.Merge(m, src)
+func (m *SoUniqueFollowingByFollowingInfo) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoUniqueFollowingByFollowingInfo.Merge(m, src)
 }
-func (m *SoListFollowingByFollowingOrder) XXX_Size() int {
-	return xxx_messageInfo_SoListFollowingByFollowingOrder.Size(m)
+func (m *SoUniqueFollowingByFollowingInfo) XXX_Size() int {
+	return xxx_messageInfo_SoUniqueFollowingByFollowingInfo.Size(m)
 }
-func (m *SoListFollowingByFollowingOrder) XXX_DiscardUnknown() {
-	xxx_messageInfo_SoListFollowingByFollowingOrder.DiscardUnknown(m)
+func (m *SoUniqueFollowingByFollowingInfo) XXX_DiscardUnknown() {
+	xxx_messageInfo_SoUniqueFollowingByFollowingInfo.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_SoListFollowingByFollowingOrder proto.InternalMessageInfo
+var xxx_messageInfo_SoUniqueFollowingByFollowingInfo proto.InternalMessageInfo
 
-func (m *SoListFollowingByFollowingOrder) GetFollowingOrder() *prototype.FollowingOrder {
+func (m *SoUniqueFollowingByFollowingInfo) GetFollowingInfo() *prototype.FollowingRelation {
 	if m != nil {
-		return m.FollowingOrder
-	}
-	return nil
-}
-
-func (m *SoListFollowingByFollowingOrder) GetAccount() *prototype.AccountName {
-	if m != nil {
-		return m.Account
-	}
-	return nil
-}
-
-type SoUniqueFollowingByAccount struct {
-	Account              *prototype.AccountName `protobuf:"bytes,1,opt,name=account,proto3" json:"account,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}               `json:"-"`
-	XXX_unrecognized     []byte                 `json:"-"`
-	XXX_sizecache        int32                  `json:"-"`
-}
-
-func (m *SoUniqueFollowingByAccount) Reset()         { *m = SoUniqueFollowingByAccount{} }
-func (m *SoUniqueFollowingByAccount) String() string { return proto.CompactTextString(m) }
-func (*SoUniqueFollowingByAccount) ProtoMessage()    {}
-func (*SoUniqueFollowingByAccount) Descriptor() ([]byte, []int) {
-	return fileDescriptor_0f46122cc3ea918f, []int{2}
-}
-
-func (m *SoUniqueFollowingByAccount) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_SoUniqueFollowingByAccount.Unmarshal(m, b)
-}
-func (m *SoUniqueFollowingByAccount) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_SoUniqueFollowingByAccount.Marshal(b, m, deterministic)
-}
-func (m *SoUniqueFollowingByAccount) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SoUniqueFollowingByAccount.Merge(m, src)
-}
-func (m *SoUniqueFollowingByAccount) XXX_Size() int {
-	return xxx_messageInfo_SoUniqueFollowingByAccount.Size(m)
-}
-func (m *SoUniqueFollowingByAccount) XXX_DiscardUnknown() {
-	xxx_messageInfo_SoUniqueFollowingByAccount.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_SoUniqueFollowingByAccount proto.InternalMessageInfo
-
-func (m *SoUniqueFollowingByAccount) GetAccount() *prototype.AccountName {
-	if m != nil {
-		return m.Account
-	}
-	return nil
-}
-
-type SoUniqueFollowingByFollowing struct {
-	Following            *prototype.AccountName `protobuf:"bytes,1,opt,name=following,proto3" json:"following,omitempty"`
-	Account              *prototype.AccountName `protobuf:"bytes,2,opt,name=account,proto3" json:"account,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}               `json:"-"`
-	XXX_unrecognized     []byte                 `json:"-"`
-	XXX_sizecache        int32                  `json:"-"`
-}
-
-func (m *SoUniqueFollowingByFollowing) Reset()         { *m = SoUniqueFollowingByFollowing{} }
-func (m *SoUniqueFollowingByFollowing) String() string { return proto.CompactTextString(m) }
-func (*SoUniqueFollowingByFollowing) ProtoMessage()    {}
-func (*SoUniqueFollowingByFollowing) Descriptor() ([]byte, []int) {
-	return fileDescriptor_0f46122cc3ea918f, []int{3}
-}
-
-func (m *SoUniqueFollowingByFollowing) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_SoUniqueFollowingByFollowing.Unmarshal(m, b)
-}
-func (m *SoUniqueFollowingByFollowing) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_SoUniqueFollowingByFollowing.Marshal(b, m, deterministic)
-}
-func (m *SoUniqueFollowingByFollowing) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SoUniqueFollowingByFollowing.Merge(m, src)
-}
-func (m *SoUniqueFollowingByFollowing) XXX_Size() int {
-	return xxx_messageInfo_SoUniqueFollowingByFollowing.Size(m)
-}
-func (m *SoUniqueFollowingByFollowing) XXX_DiscardUnknown() {
-	xxx_messageInfo_SoUniqueFollowingByFollowing.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_SoUniqueFollowingByFollowing proto.InternalMessageInfo
-
-func (m *SoUniqueFollowingByFollowing) GetFollowing() *prototype.AccountName {
-	if m != nil {
-		return m.Following
-	}
-	return nil
-}
-
-func (m *SoUniqueFollowingByFollowing) GetAccount() *prototype.AccountName {
-	if m != nil {
-		return m.Account
-	}
-	return nil
-}
-
-type SoUniqueFollowingByFollowingOrder struct {
-	FollowingOrder       *prototype.FollowingOrder `protobuf:"bytes,1,opt,name=following_order,json=followingOrder,proto3" json:"following_order,omitempty"`
-	Account              *prototype.AccountName    `protobuf:"bytes,2,opt,name=account,proto3" json:"account,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}                  `json:"-"`
-	XXX_unrecognized     []byte                    `json:"-"`
-	XXX_sizecache        int32                     `json:"-"`
-}
-
-func (m *SoUniqueFollowingByFollowingOrder) Reset()         { *m = SoUniqueFollowingByFollowingOrder{} }
-func (m *SoUniqueFollowingByFollowingOrder) String() string { return proto.CompactTextString(m) }
-func (*SoUniqueFollowingByFollowingOrder) ProtoMessage()    {}
-func (*SoUniqueFollowingByFollowingOrder) Descriptor() ([]byte, []int) {
-	return fileDescriptor_0f46122cc3ea918f, []int{4}
-}
-
-func (m *SoUniqueFollowingByFollowingOrder) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_SoUniqueFollowingByFollowingOrder.Unmarshal(m, b)
-}
-func (m *SoUniqueFollowingByFollowingOrder) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_SoUniqueFollowingByFollowingOrder.Marshal(b, m, deterministic)
-}
-func (m *SoUniqueFollowingByFollowingOrder) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SoUniqueFollowingByFollowingOrder.Merge(m, src)
-}
-func (m *SoUniqueFollowingByFollowingOrder) XXX_Size() int {
-	return xxx_messageInfo_SoUniqueFollowingByFollowingOrder.Size(m)
-}
-func (m *SoUniqueFollowingByFollowingOrder) XXX_DiscardUnknown() {
-	xxx_messageInfo_SoUniqueFollowingByFollowingOrder.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_SoUniqueFollowingByFollowingOrder proto.InternalMessageInfo
-
-func (m *SoUniqueFollowingByFollowingOrder) GetFollowingOrder() *prototype.FollowingOrder {
-	if m != nil {
-		return m.FollowingOrder
-	}
-	return nil
-}
-
-func (m *SoUniqueFollowingByFollowingOrder) GetAccount() *prototype.AccountName {
-	if m != nil {
-		return m.Account
+		return m.FollowingInfo
 	}
 	return nil
 }
 
 func init() {
 	proto.RegisterType((*SoFollowing)(nil), "table.so_following")
-	proto.RegisterType((*SoListFollowingByFollowingOrder)(nil), "table.so_list_following_by_following_order")
-	proto.RegisterType((*SoUniqueFollowingByAccount)(nil), "table.so_unique_following_by_account")
-	proto.RegisterType((*SoUniqueFollowingByFollowing)(nil), "table.so_unique_following_by_following")
-	proto.RegisterType((*SoUniqueFollowingByFollowingOrder)(nil), "table.so_unique_following_by_following_order")
+	proto.RegisterType((*SoUniqueFollowingByFollowingInfo)(nil), "table.so_unique_following_by_following_info")
 }
 
 func init() { proto.RegisterFile("app/table/so_following.proto", fileDescriptor_0f46122cc3ea918f) }
 
 var fileDescriptor_0f46122cc3ea918f = []byte{
-	// 315 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xc4, 0x53, 0x4d, 0x4b, 0xc3, 0x40,
-	0x10, 0x65, 0xeb, 0x17, 0x6e, 0x8b, 0x42, 0x10, 0x8c, 0x45, 0xa4, 0x04, 0x29, 0xbd, 0x98, 0xa0,
-	0xe2, 0xcd, 0x93, 0xfe, 0x00, 0xa1, 0x7a, 0xf2, 0xb2, 0x6c, 0xb6, 0x63, 0xba, 0x90, 0xec, 0xc4,
-	0xec, 0x04, 0xe9, 0x7f, 0xf0, 0x37, 0x88, 0xff, 0xd3, 0x8b, 0x24, 0x6d, 0x93, 0xb4, 0xf8, 0xd1,
-	0x7a, 0xf1, 0x12, 0x98, 0x99, 0xf7, 0x5e, 0x5e, 0xde, 0x23, 0xfc, 0x58, 0xa6, 0x69, 0x40, 0x32,
-	0x8c, 0x21, 0xb0, 0x28, 0x9e, 0x30, 0x8e, 0xf1, 0x45, 0x9b, 0xc8, 0x4f, 0x33, 0x24, 0x74, 0xb6,
-	0xca, 0x4b, 0xf7, 0xa0, 0x9c, 0x68, 0x92, 0x42, 0x50, 0x3c, 0xa6, 0x47, 0xef, 0x83, 0xf1, 0x4e,
-	0x93, 0xe3, 0x9c, 0xf3, 0x1d, 0xa9, 0x14, 0xe6, 0x86, 0x5c, 0xd6, 0x63, 0x83, 0xf6, 0xc5, 0xa1,
-	0x5f, 0x11, 0xfd, 0xd9, 0x45, 0x18, 0x99, 0xc0, 0x70, 0x8e, 0x73, 0xae, 0xf8, 0x6e, 0xc5, 0x77,
-	0x5b, 0x3f, 0x93, 0x6a, 0xa4, 0x73, 0xcb, 0xf7, 0xab, 0x41, 0x60, 0x36, 0x82, 0xcc, 0xdd, 0x28,
-	0xc9, 0xdd, 0x06, 0x79, 0x09, 0x31, 0xdc, 0xab, 0x16, 0x77, 0xc5, 0xec, 0x5c, 0xf3, 0x8e, 0xca,
-	0x40, 0x12, 0x8c, 0x04, 0xe9, 0x04, 0xdc, 0xcd, 0x52, 0xe1, 0xa8, 0xa1, 0x50, 0xac, 0x45, 0x8a,
-	0xda, 0x90, 0xb0, 0xa0, 0x86, 0xed, 0x19, 0xfc, 0x41, 0x27, 0xe0, 0xbd, 0x31, 0x7e, 0x6a, 0x51,
-	0xc4, 0xda, 0x52, 0x1d, 0x81, 0x08, 0x27, 0x62, 0xe9, 0xb5, 0x5f, 0x79, 0x65, 0x6b, 0x7b, 0x6d,
-	0x44, 0xdb, 0x5a, 0x2d, 0x5a, 0xef, 0x9e, 0x9f, 0x58, 0x14, 0xb9, 0xd1, 0xcf, 0x39, 0x2c, 0x3a,
-	0x9c, 0x87, 0xbf, 0x7e, 0x5f, 0xde, 0x2b, 0xe3, 0xbd, 0x6f, 0x54, 0xeb, 0x76, 0x16, 0x4a, 0x65,
-	0x2b, 0x97, 0xfa, 0x87, 0x6f, 0x7c, 0x67, 0xbc, 0xff, 0x9b, 0x9d, 0xff, 0xad, 0xe1, 0x66, 0xf0,
-	0xd8, 0x8f, 0x34, 0x8d, 0xf3, 0xd0, 0x57, 0x98, 0x04, 0x0a, 0xad, 0x1a, 0x4b, 0x6d, 0x02, 0x85,
-	0x86, 0xc0, 0x10, 0xda, 0xb3, 0x08, 0xa7, 0xff, 0x5f, 0xb8, 0x5d, 0x4a, 0x5d, 0x7e, 0x06, 0x00,
-	0x00, 0xff, 0xff, 0x71, 0x0d, 0x0c, 0x3f, 0x93, 0x03, 0x00, 0x00,
+	// 184 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0x92, 0x49, 0x2c, 0x28, 0xd0,
+	0x2f, 0x49, 0x4c, 0xca, 0x49, 0xd5, 0x2f, 0xce, 0x8f, 0x4f, 0xcb, 0xcf, 0xc9, 0xc9, 0x2f, 0xcf,
+	0xcc, 0x4b, 0xd7, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0x05, 0xcb, 0x48, 0x89, 0x80, 0x79,
+	0x25, 0x95, 0x05, 0xa9, 0xfa, 0x20, 0x02, 0x22, 0xa9, 0x14, 0xc2, 0xc5, 0x83, 0xac, 0x45, 0xc8,
+	0x85, 0x8b, 0x0f, 0xce, 0x89, 0xcf, 0xcc, 0x4b, 0xcb, 0x97, 0x60, 0x54, 0x60, 0xd4, 0xe0, 0x36,
+	0x92, 0xd5, 0x83, 0x6b, 0xd7, 0x43, 0x28, 0x28, 0x4a, 0xcd, 0x49, 0x2c, 0xc9, 0xcc, 0xcf, 0x0b,
+	0xe2, 0x85, 0x8b, 0x79, 0xe6, 0xa5, 0xe5, 0x2b, 0xe5, 0x72, 0xa9, 0x16, 0xe7, 0xc7, 0x97, 0xe6,
+	0x65, 0x16, 0x96, 0xa6, 0x22, 0x0c, 0x8f, 0x4f, 0xaa, 0x8c, 0x47, 0x35, 0x9c, 0x3a, 0xd6, 0x39,
+	0x69, 0x44, 0xa9, 0xa5, 0x67, 0x96, 0x64, 0x94, 0x26, 0xe9, 0x25, 0xe7, 0xe7, 0xea, 0x27, 0xe7,
+	0x17, 0x27, 0x67, 0x24, 0x66, 0xe6, 0xe9, 0x27, 0xe7, 0xe7, 0x95, 0xa4, 0xe6, 0x95, 0xe4, 0x17,
+	0xeb, 0xa6, 0xe7, 0x43, 0x82, 0x27, 0x89, 0x0d, 0x6c, 0xac, 0x31, 0x20, 0x00, 0x00, 0xff, 0xff,
+	0xf3, 0xe0, 0xf5, 0x19, 0x32, 0x01, 0x00, 0x00,
 }

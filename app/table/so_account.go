@@ -808,7 +808,6 @@ func (s *SAccountVestingSharesWrap) QueryListByOrder(start *prototype.Vest, end 
     
     return iter
 }
-
 /////////////// SECTION Private function ////////////////
 
 func (s *SoAccountWrap) update(sa *SoAccount) bool {

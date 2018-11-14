@@ -1,5 +1,2 @@
-type                            ,pName          ,mKey   ,unique ,sort   ,reverseSort
-prototype.account_name          ,account        ,1      ,1      ,0      ,0
-prototype.account_name          ,follower       ,0      ,1      ,0      ,0
-prototype.follower_order        ,follower_order ,0      ,1      ,0      ,1
-prototype.time_point_sec        ,created_time   ,0      ,0      ,0      ,0
+type                                ,pName          ,mKey   ,unique ,sort   ,reverseSort
+prototype.follower_relation         ,follower_info  ,1      ,0      ,0      ,1
