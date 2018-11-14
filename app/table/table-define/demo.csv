@@ -1,5 +1,5 @@
 type                       ,pName       ,mKey,unique,sort,reverseSort
-prototype.account_name     ,owner       ,1    ,1     ,0    ,0
+prototype.account_name     ,owner       ,1    ,0     ,0    ,0
 prototype.time_point_sec   ,post_time   ,0    ,0     ,1    ,1
 string                     ,title       ,0    ,0     ,0    ,0
 int64                      ,like_count  ,0    ,1     ,0    ,1

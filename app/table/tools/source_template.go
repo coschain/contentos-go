@@ -100,7 +100,9 @@ func (s *So{{.ClsName}}Wrap) Create{{.ClsName}}(sa *So{{.ClsName}}) bool {
 	if sa == nil {
 		return false
 	}
-
+    if s.CheckExist() {
+       return false
+    }
 	keyBuf, err := s.encodeMainKey()
 
 	if err != nil {
@@ -666,7 +668,7 @@ func createParamsFromTableInfo(tInfo TableInfo) Params {
 				})
 			}
 		}
-		if v.BUnique {
+		if v.BUnique || v.BMainKey {
             para.UniqueFieldMap[rValueFormStr(fName)] = formatStr(fType)
 		}
 		para.MemberKeyMap[rValueFormStr(fName)] = formatStr(fType)

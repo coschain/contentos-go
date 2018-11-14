@@ -12,6 +12,7 @@ import (
 ////////////// SECTION Prefix Mark ///////////////
 var (
 	DynamicGlobalPropertiesTable        = []byte("DynamicGlobalPropertiesTable")
+    DynamicGlobalPropertiesIdUniTable = []byte("DynamicGlobalPropertiesIdUniTable")
     )
 
 ////////////// SECTION Wrap Define ///////////////
@@ -44,7 +45,9 @@ func (s *SoDynamicGlobalPropertiesWrap) CreateDynamicGlobalProperties(sa *SoDyna
 	if sa == nil {
 		return false
 	}
-
+    if s.CheckExist() {
+       return false
+    }
 	keyBuf, err := s.encodeMainKey()
 
 	if err != nil {
@@ -63,7 +66,10 @@ func (s *SoDynamicGlobalPropertiesWrap) CreateDynamicGlobalProperties(sa *SoDyna
 	
   
     //update unique list
-    
+    if !s.insertUniKeyId(sa) {
+		return false
+	}
+	
     
 	return true
 }
@@ -80,7 +86,10 @@ func (s *SoDynamicGlobalPropertiesWrap) RemoveDynamicGlobalProperties() bool {
     //delete sort list key
 	
     //delete unique list
-    
+    if !s.delUniKeyId(sa) {
+		return false
+	}
+	
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
 		return false
@@ -427,5 +436,68 @@ func (s *SoDynamicGlobalPropertiesWrap) encodeMainKey() ([]byte, error) {
 }
 
 ////////////// Unique Query delete/insert/query ///////////////
+
+
+func (s *SoDynamicGlobalPropertiesWrap) delUniKeyId(sa *SoDynamicGlobalProperties) bool {
+    pre := DynamicGlobalPropertiesIdUniTable
+    sub := sa.Id
+    kList := []interface{}{pre,sub}
+    kBuf,err := encoding.EncodeSlice(kList,false)
+	if err != nil {
+		return false
+	}
+	return s.dba.Delete(kBuf) == nil
+}
+
+
+func (s *SoDynamicGlobalPropertiesWrap) insertUniKeyId(sa *SoDynamicGlobalProperties) bool {
+    uniWrap  := UniDynamicGlobalPropertiesIdWrap{}
+     uniWrap.Dba = s.dba
+   res := uniWrap.UniQueryId(&sa.Id)
+   
+   if res != nil {
+		//the unique key is already exist
+		return false
+	}
+    val := SoUniqueDynamicGlobalPropertiesById{}
+    val.Id = sa.Id
+    
+	buf, err := proto.Marshal(&val)
+
+	if err != nil {
+		return false
+	}
+    
+    pre := DynamicGlobalPropertiesIdUniTable
+    sub := sa.Id
+    kList := []interface{}{pre,sub}
+    kBuf,err := encoding.EncodeSlice(kList,false)
+	if err != nil {
+		return false
+	}
+	return s.dba.Put(kBuf, buf) == nil
+
+}
+
+type UniDynamicGlobalPropertiesIdWrap struct {
+	Dba iservices.IDatabaseService
+}
+
+func (s *UniDynamicGlobalPropertiesIdWrap) UniQueryId(start *int32) *SoDynamicGlobalPropertiesWrap{
+    pre := DynamicGlobalPropertiesIdUniTable
+    kList := []interface{}{pre,start}
+    bufStartkey,err := encoding.EncodeSlice(kList,false)
+    val,err := s.Dba.Get(bufStartkey)
+	if err == nil {
+		res := &SoUniqueDynamicGlobalPropertiesById{}
+		rErr := proto.Unmarshal(val, res)
+		if rErr == nil {
+			wrap := NewSoDynamicGlobalPropertiesWrap(s.Dba,&res.Id)
+			return wrap
+		}
+	}
+    return nil
+}
+
 
 

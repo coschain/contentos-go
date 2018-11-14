@@ -46,7 +46,9 @@ func (s *SoBlockSummaryObjectWrap) CreateBlockSummaryObject(sa *SoBlockSummaryOb
 	if sa == nil {
 		return false
 	}
-
+    if s.CheckExist() {
+       return false
+    }
 	keyBuf, err := s.encodeMainKey()
 
 	if err != nil {

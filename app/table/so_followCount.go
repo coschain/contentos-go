@@ -45,7 +45,9 @@ func (s *SoFollowCountWrap) CreateFollowCount(sa *SoFollowCount) bool {
 	if sa == nil {
 		return false
 	}
-
+    if s.CheckExist() {
+       return false
+    }
 	keyBuf, err := s.encodeMainKey()
 
 	if err != nil {

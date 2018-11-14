@@ -32,3 +32,8 @@ message so_dynamicGlobalProperties {
     prototype.coin               current_supply                =      11;
 	  
 }
+
+
+message so_unique_dynamicGlobalProperties_by_id {
+	int32                     	id                        = 1;
+}

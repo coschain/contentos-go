@@ -48,7 +48,9 @@ func (s *SoTransactionObjectWrap) CreateTransactionObject(sa *SoTransactionObjec
 	if sa == nil {
 		return false
 	}
-
+    if s.CheckExist() {
+       return false
+    }
 	keyBuf, err := s.encodeMainKey()
 
 	if err != nil {

@@ -205,7 +205,7 @@ func WritePbTplToFile(tInfo TableInfo) (bool, error) {
 		if isExist, _ := JudgeFileIsExist(TmlFolder); !isExist {
 			//folder is not exist,create new folder
 			if err := os.Mkdir(TmlFolder, os.ModePerm); err != nil {
-				log.Printf("create folder fail,the error is:%s \n", err)
+				fmt.Printf("create folder fail,the error is:%s \n", err)
 				return false, err
 			}
 		}
@@ -220,11 +220,11 @@ func WritePbTplToFile(tInfo TableInfo) (bool, error) {
 			return true, nil
 		} else {
 			err = errors.New("get file ptr fail")
-			log.Println("get file ptr fail")
+			fmt.Println("get file ptr fail")
 		}
 	} else {
 		err = errors.New("create tpl fail")
-		log.Println("create tpl fail")
+		fmt.Println("create tpl fail")
 	}
 
 	return false, err
@@ -268,7 +268,7 @@ func createKeyTpl(t TableInfo) string {
 			} else if v.SortType > 0 {
 				sortList = append(sortList, v)
 			}
-			if v.BUnique {
+			if v.BUnique || v.BMainKey {
 				uniList = append(uniList, v)
 			}
 		}
