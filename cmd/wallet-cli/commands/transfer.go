@@ -48,18 +48,8 @@ func transfer(cmd *cobra.Command, args []string) {
 		Amount: &prototype.Coin{Amount: &prototype.Safe64{Value: amount}},
 		Memo:   memo,
 	}
-	tx := &prototype.Transaction{RefBlockNum: 0, RefBlockPrefix: 0, Expiration: &prototype.TimePointSec{UtcSeconds: 0}}
-	tx.AddOperation(transfer_op)
-	signTx := prototype.SignedTransaction{Trx: tx}
-	cid := prototype.ChainId{Value: 0}
-	PrivateKey, err := prototype.PrivateKeyFromWIF(fromAccount.PrivKey)
-	if err != nil {
-		fmt.Println(PrivateKey)
-		return
-	}
-	res := signTx.Sign(PrivateKey, cid)
-	signTx.Signatures = append(signTx.Signatures, &prototype.SignatureType{Sig: res})
-	req := &grpcpb.BroadcastTrxRequest{Transaction: &signTx}
+	signTx, err := GenerateSignedTx([]interface{}{transfer_op}, fromAccount)
+	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
 	resp, err := client.BroadcastTrx(context.Background(), req)
 	if err != nil {
 		fmt.Println(err)

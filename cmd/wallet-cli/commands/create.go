@@ -13,8 +13,9 @@ var CreateCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create",
 		Short: "create a new account",
-		Args:  cobra.ExactArgs(3),
-		Run:   create,
+
+		Args: cobra.ExactArgs(3),
+		Run:  create,
 	}
 	return cmd
 }
@@ -33,11 +34,6 @@ func create(cmd *cobra.Command, args []string) {
 	}
 	name := args[1]
 	passphrase := args[2]
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	creatorPrivKey, err := prototype.PrivateKeyFromWIF(creatorAccount.PrivKey)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -65,12 +61,8 @@ func create(cmd *cobra.Command, args []string) {
 			},
 		},
 	}
-	tx := &prototype.Transaction{RefBlockNum: 0, RefBlockPrefix: 0, Expiration: &prototype.TimePointSec{UtcSeconds: 0}}
-	tx.AddOperation(acop)
-	signTx := prototype.SignedTransaction{Trx: tx}
-	res := signTx.Sign(creatorPrivKey, prototype.ChainId{Value: 0})
-	signTx.Signatures = append(signTx.Signatures, &prototype.SignatureType{Sig: res})
-	req := &grpcpb.BroadcastTrxRequest{Transaction: &signTx}
+	signTx, err := GenerateSignedTx([]interface{}{acop}, creatorAccount)
+	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
 	resp, err := client.BroadcastTrx(context.Background(), req)
 	if err != nil {
 		fmt.Println(err)
