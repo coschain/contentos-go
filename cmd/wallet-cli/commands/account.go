@@ -28,13 +28,27 @@ func getAccount(cmd *cobra.Command, args []string) {
 	//w := cmd.Context["wallet-cli"]
 	//mywallet := w.(*wallet-cli.BaseWallet)
 	c := cmd.Context["rpcclient"]
-	client := c.(grpcpb.ApiServiceClient)
+	rpc := c.(grpcpb.ApiServiceClient)
 	name := args[0]
 	req := &grpcpb.GetAccountByNameRequest{AccountName: &prototype.AccountName{Value: name}}
-	resp, err := client.GetAccountByName(context.Background(), req)
+	resp, err := rpc.GetAccountByName(context.Background(), req)
 	if err != nil {
 		fmt.Println(err)
 	} else {
 		fmt.Println(fmt.Sprintf("GetAccountByName detail: %s", resp.AccountName))
+	}
+}
+
+func getFollowers(cmd *cobra.Command, args []string) {
+	c := cmd.Context["rpcclient"]
+	rpc := c.(grpcpb.ApiServiceClient)
+
+	name := args[0]
+	req := &grpcpb.GetFollowerListByNameRequest{AccountName: &prototype.AccountName{Value: name}}
+	resp, err := rpc.GetFollowerListByName(context.Background(), req)
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println(fmt.Sprintf("GetAccountByName detail: %s", resp))
 	}
 }
