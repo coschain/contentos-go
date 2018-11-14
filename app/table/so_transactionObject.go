@@ -92,8 +92,7 @@ func (s *SoTransactionObjectWrap) delSortKeyExpiration(sa *SoTransactionObject) 
 	if err != nil {
 		return false
 	}
-    ordKey := append(TransactionObjectExpirationTable, subBuf...)
-    ordErr :=  s.dba.Delete(ordKey)
+    ordErr :=  s.dba.Delete(subBuf)
     return ordErr == nil
     
 }
@@ -288,7 +287,7 @@ func (m *SoListTransactionObjectByExpiration) EncodeRevSortKey() ([]byte,error) 
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
 func (s *STransactionObjectExpirationWrap) QueryListByOrder(start *prototype.TimePointSec, end *prototype.TimePointSec) iservices.IDatabaseIterator {
-    pre := TransactionObjectExpirationRevOrdTable
+    pre := TransactionObjectExpirationTable
     skeyList := []interface{}{pre}
     if start != nil {
        skeyList = append(skeyList,start)
@@ -297,7 +296,10 @@ func (s *STransactionObjectExpirationWrap) QueryListByOrder(start *prototype.Tim
     if cErr != nil {
          return nil
     }
-    
+    if start != nil && end == nil {
+		iter := s.Dba.NewIterator(sBuf, nil)
+		return iter
+	}
     eKeyList := []interface{}{pre}
     if end != nil {
        eKeyList = append(eKeyList,end)

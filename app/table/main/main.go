@@ -53,7 +53,7 @@ func main() {
 	 	LikeCount:100,
 	 	Taglist:"#NBA",
 	 	ReplayCount:100,
-		PostTime:prototype.MakeTimeSecondPoint(20120401),
+		PostTime:creTimeSecondPoint(20120401),
 	 }
 
 	 //3.save table data to db
@@ -111,12 +111,12 @@ func main() {
 	//start = nil  end = nil (query the db from start to end)
 	//start = nil (query from start the db)
 	//end = nil (query to the end of db)
-	 iter := tSortWrap.QueryListByOrder(prototype.MakeTimeSecondPoint(20120401),
-	 	prototype.MakeTimeSecondPoint(20120415))
-	 //we can get the main key and sub key by the returned iterator
-	 //if query by order the start value can't greater than end value
-	 if iter != nil {
-	 	for iter.Next() {
+	iter := tSortWrap.QueryListByOrder(creTimeSecondPoint(20120401),
+		creTimeSecondPoint(20120415))
+	//we can get the main key and sub key by the returned iterator
+	//if query by order the start value can't greater than end value
+	if iter != nil {
+		for iter.Next() {
 			//get the mainkey value (GetMainVal return the ptr of value)
 
 			mKeyPtr := tSortWrap.GetMainVal(iter)
@@ -133,17 +133,17 @@ func main() {
 				fmt.Printf("the postTime is %d \n",mSubPtr.UtcSeconds)
 			}
 		}
-	 	//******* we must delete the iterator after end of use,otherwise maybe cause unKnow error *******//
-	 	tSortWrap.DelIterater(iter)
-	 }else {
-	 	fmt.Println("there is no data exist in range posttime")
-	 }
-	 //query by reverse order
+		//******* we must delete the iterator after end of use,otherwise maybe cause unKnow error *******//
+		tSortWrap.DelIterater(iter)
+	}else {
+		fmt.Println("there is no data exist in range posttime")
+	}
+	//query by reverse order
 	//start = nil  end = nil (query the db from start to end)
 	//start = nil (query from start the db)
 	//end = nil (query to the end of db)
-	iter1 := tSortWrap.QueryListByRevOrder(prototype.MakeTimeSecondPoint(20120415),
-		prototype.MakeTimeSecondPoint(20120401))
+	iter1 := tSortWrap.QueryListByRevOrder(creTimeSecondPoint(20120415),
+		creTimeSecondPoint(20120401))
 	//we can get the main key and sub key by the returned iterator
 	//if query by reverse order the start value can't less than end value
 	if iter1 != nil {
@@ -161,42 +161,58 @@ func main() {
 				fmt.Printf("the postTime is %d in reverse order \n",mSubPtr.UtcSeconds)
 			}
 		}
-        //******** delete the iterator ***********//
+     //******** delete the iterator ***********//
 		tSortWrap.DelIterater(iter1)
 	}else {
 		fmt.Println("there is no data exist in reverse order")
 	}
 
-	//
-    // //query single value but not a range,start and end set the same value
-	iter2 := tSortWrap.QueryListByOrder(prototype.MakeTimeSecondPoint(20136666),
-		prototype.MakeTimeSecondPoint(20136666))
+
+    //query single value but not a range,start and end set the same value
+	iter2 := tSortWrap.QueryListByOrder(creTimeSecondPoint(20136666),
+		creTimeSecondPoint(20136666))
 	if iter2 != nil {
-		mKeyPtr := tSortWrap.GetMainVal(iter2)
-		if mKeyPtr == nil {
-			fmt.Println("get main key fail in range")
+		if iter2.Next() {
+			mKeyPtr := tSortWrap.GetMainVal(iter2)
+			if mKeyPtr == nil {
+				fmt.Println("get main key fail in range")
+			}
 		}
+
 		tSortWrap.DelIterater(iter2)
 	}
 
 	//query without start
-	iter3 := tSortWrap.QueryListByOrder(nil,prototype.MakeTimeSecondPoint(20136666))
-	if iter3 != nil {
-		mKeyPtr := tSortWrap.GetMainVal(iter3)
-		if mKeyPtr == nil {
-			fmt.Println("get main key fail in range when query without start")
+	iter3 := tSortWrap.QueryListByOrder(nil,creTimeSecondPoint(20120422))
+	if iter3 != nil  {
+		for iter3.Next() {
+			mKeyPtr := tSortWrap.GetMainVal(iter3)
+			if mKeyPtr == nil {
+				fmt.Println("get main key fail in range when query without start 1111")
+			}else {
+				fmt.Printf("the main key is %s in range when query without start  \n",mKeyPtr.Value)
+			}
 		}
 		tSortWrap.DelIterater(iter3)
+	}else {
+		fmt.Println("there is no data exist without start")
 	}
 
 	//query without end
-	iter4 := tSortWrap.QueryListByOrder(nil,prototype.MakeTimeSecondPoint(20136666))
-	if iter4 != nil {
-		mKeyPtr := tSortWrap.GetMainVal(iter4)
-		if mKeyPtr == nil {
-			fmt.Println("get main key fail in range when query without end")
+	iter4 := tSortWrap.QueryListByOrder(creTimeSecondPoint(20120000),nil)
+	if iter4 != nil  {
+		for iter4.Next() {
+			mKeyPtr := tSortWrap.GetMainVal(iter4)
+			if mKeyPtr == nil {
+				fmt.Println("get main key fail in range when query without end")
+			}else {
+				fmt.Printf("the main key is %s in range when query without end \n",mKeyPtr.Value)
+			}
+			tSortWrap.DelIterater(iter4)
 		}
-		tSortWrap.DelIterater(iter4)
+
+	}else {
+		fmt.Println("there is no data in range when query without end")
 	}
 
 	//query without start and end
@@ -214,13 +230,19 @@ func main() {
 	}
 
 	//query without start and end by reverse order
-	iter6 := tSortWrap.QueryListByRevOrder(nil,prototype.MakeTimeSecondPoint(20136666))
+	iter6 := tSortWrap.QueryListByRevOrder(nil,nil)
 	if iter6 != nil {
-		mKeyPtr := tSortWrap.GetMainVal(iter6)
-		if mKeyPtr == nil {
-			fmt.Println("get main key fail in range when query without start and end by reverse sort ")
+		for iter6.Next() {
+			mKeyPtr := tSortWrap.GetMainVal(iter6)
+			if mKeyPtr == nil {
+				fmt.Println("get main key fail in range when query without start and end by reverse sort ")
+			}else {
+				fmt.Printf("the main key is %s in range when query without start and end by reverse sort \n",mKeyPtr.Value)
+			}
 		}
 		tSortWrap.DelIterater(iter6)
+	}else {
+		fmt.Println("there is no data in reverse order without start and end")
 	}
 
 	/*
@@ -263,4 +285,9 @@ func main() {
 	  }
 
 	 db.Close()
+}
+
+func creTimeSecondPoint(t uint32) *prototype.TimePointSec {
+	val := prototype.TimePointSec{UtcSeconds:t}
+	return &val
 }

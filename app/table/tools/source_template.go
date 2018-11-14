@@ -146,8 +146,7 @@ func (s *So{{$.ClsName}}Wrap) delSortKey{{$v1.PName}}(sa *So{{$.ClsName}}) bool 
 	if err != nil {
 		return false
 	}
-    ordKey := append({{$.ClsName}}{{$v1.PName}}Table, subBuf...)
-    ordErr :=  s.dba.Delete(ordKey)
+    ordErr :=  s.dba.Delete(subBuf)
     return ordErr == nil
     {{end -}}
     {{if eq $v1.SType 2 -}}
@@ -155,8 +154,7 @@ func (s *So{{$.ClsName}}Wrap) delSortKey{{$v1.PName}}(sa *So{{$.ClsName}}) bool 
 	if err != nil {
 		return false
 	}
-    revOrdKey := append({{$.ClsName}}{{$v1.PName}}RevOrdTable, subRevBuf...)
-    revOrdErr :=  s.dba.Delete(revOrdKey) 
+    revOrdErr :=  s.dba.Delete(subRevBuf) 
     return revOrdErr == nil
     {{end -}}
     {{if eq $v1.SType 3 -}}
@@ -438,7 +436,7 @@ func (m *SoList{{$.ClsName}}By{{$v.PName}}) EncodeRevSortKey() ([]byte,error) {
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
 func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByOrder(start *{{$v.PType}}, end *{{$v.PType}}) iservices.IDatabaseIterator {
-    pre := {{$.ClsName}}{{$v.PName}}RevOrdTable
+    pre := {{$.ClsName}}{{$v.PName}}Table
     skeyList := []interface{}{pre}
     if start != nil {
        skeyList = append(skeyList,start)
@@ -447,7 +445,10 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByOrder(start *{{$v.PType}}, e
     if cErr != nil {
          return nil
     }
-    
+    if start != nil && end == nil {
+		iter := s.Dba.NewIterator(sBuf, nil)
+		return iter
+	}
     eKeyList := []interface{}{pre}
     if end != nil {
        eKeyList = append(eKeyList,end)
@@ -473,38 +474,55 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByOrder(start *{{$v.PType}}, e
 //Query sort by reverse order 
 func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByRevOrder(start *{{$v.PType}}, end *{{$v.PType}}) iservices.IDatabaseIterator {
 
-    pre := {{$.ClsName}}{{$v.PName}}Table
-    skeyList := []interface{}{pre}
+    var sBuf,eBuf,rBufStart,rBufEnd []byte
+    pre := {{$.ClsName}}{{$v.PName}}RevOrdTable
     if start != nil {
-       skeyList = append(skeyList,start)
-    }
-    sBuf,cErr := encoding.EncodeSlice(skeyList,false)
-    if cErr != nil {
+       skeyList := []interface{}{pre,start}
+       buf,cErr := encoding.EncodeSlice(skeyList,false)
+       if cErr != nil {
          return nil
+       }
+       sBuf = buf
     }
     
-    eKeyList := []interface{}{pre}
     if end != nil {
-       eKeyList = append(eKeyList,end)
+       eKeyList := []interface{}{pre,end}
+       buf,err := encoding.EncodeSlice(eKeyList,false)
+       if err != nil {
+          return nil
+       }
+       eBuf = buf
+
     }
-    eBuf,cErr := encoding.EncodeSlice(eKeyList,false)
-    if cErr != nil {
-       return nil
+
+    if sBuf != nil && eBuf != nil {
+       res := bytes.Compare(sBuf,eBuf)
+       if res == -1 {
+          // order
+          return nil
+       }
+       if sBuf != nil {
+       rBuf,rErr := encoding.Complement(sBuf, nil)
+       if rErr != nil {
+          return nil
+       }
+       rBufStart = rBuf
     }
-    rBufStart,rErr := encoding.Complement(sBuf, cErr)
-    if rErr != nil {
-       return nil
+       if eBuf != nil {
+          rBuf,rErr := encoding.Complement(eBuf, nil)
+          if rErr != nil { 
+            return nil
+          }
+          rBufEnd = rBuf
+       }
     }
-    rBufEnd,rErr := encoding.Complement(eBuf, cErr)
-    if rErr != nil { 
-        return nil
-    }
-    res := bytes.Compare(sBuf,eBuf)
-    if res == 0 {
-		rBufEnd = nil
-	}else if res == -1 {
-       // order
-       return nil
+     
+       if sBuf != nil && eBuf != nil {
+          res := bytes.Compare(sBuf,eBuf)
+          if res == -1 {
+            // order
+            return nil
+        }
     }
     iter := s.Dba.NewIterator(rBufStart, rBufEnd)
     return iter

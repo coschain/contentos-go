@@ -108,8 +108,7 @@ func (s *SoAccountWrap) delSortKeyCreatedTime(sa *SoAccount) bool {
 	if err != nil {
 		return false
 	}
-    ordKey := append(AccountCreatedTimeTable, subBuf...)
-    ordErr :=  s.dba.Delete(ordKey)
+    ordErr :=  s.dba.Delete(subBuf)
     return ordErr == nil
     
 }
@@ -141,8 +140,7 @@ func (s *SoAccountWrap) delSortKeyBalance(sa *SoAccount) bool {
 	if err != nil {
 		return false
 	}
-    ordKey := append(AccountBalanceTable, subBuf...)
-    ordErr :=  s.dba.Delete(ordKey)
+    ordErr :=  s.dba.Delete(subBuf)
     return ordErr == nil
     
 }
@@ -174,8 +172,7 @@ func (s *SoAccountWrap) delSortKeyVestingShares(sa *SoAccount) bool {
 	if err != nil {
 		return false
 	}
-    ordKey := append(AccountVestingSharesTable, subBuf...)
-    ordErr :=  s.dba.Delete(ordKey)
+    ordErr :=  s.dba.Delete(subBuf)
     return ordErr == nil
     
 }
@@ -520,7 +517,7 @@ func (m *SoListAccountByCreatedTime) EncodeRevSortKey() ([]byte,error) {
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
 func (s *SAccountCreatedTimeWrap) QueryListByOrder(start *prototype.TimePointSec, end *prototype.TimePointSec) iservices.IDatabaseIterator {
-    pre := AccountCreatedTimeRevOrdTable
+    pre := AccountCreatedTimeTable
     skeyList := []interface{}{pre}
     if start != nil {
        skeyList = append(skeyList,start)
@@ -529,7 +526,10 @@ func (s *SAccountCreatedTimeWrap) QueryListByOrder(start *prototype.TimePointSec
     if cErr != nil {
          return nil
     }
-    
+    if start != nil && end == nil {
+		iter := s.Dba.NewIterator(sBuf, nil)
+		return iter
+	}
     eKeyList := []interface{}{pre}
     if end != nil {
        eKeyList = append(eKeyList,end)
@@ -649,7 +649,7 @@ func (m *SoListAccountByBalance) EncodeRevSortKey() ([]byte,error) {
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
 func (s *SAccountBalanceWrap) QueryListByOrder(start *prototype.Coin, end *prototype.Coin) iservices.IDatabaseIterator {
-    pre := AccountBalanceRevOrdTable
+    pre := AccountBalanceTable
     skeyList := []interface{}{pre}
     if start != nil {
        skeyList = append(skeyList,start)
@@ -658,7 +658,10 @@ func (s *SAccountBalanceWrap) QueryListByOrder(start *prototype.Coin, end *proto
     if cErr != nil {
          return nil
     }
-    
+    if start != nil && end == nil {
+		iter := s.Dba.NewIterator(sBuf, nil)
+		return iter
+	}
     eKeyList := []interface{}{pre}
     if end != nil {
        eKeyList = append(eKeyList,end)
@@ -778,7 +781,7 @@ func (m *SoListAccountByVestingShares) EncodeRevSortKey() ([]byte,error) {
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
 func (s *SAccountVestingSharesWrap) QueryListByOrder(start *prototype.Vest, end *prototype.Vest) iservices.IDatabaseIterator {
-    pre := AccountVestingSharesRevOrdTable
+    pre := AccountVestingSharesTable
     skeyList := []interface{}{pre}
     if start != nil {
        skeyList = append(skeyList,start)
@@ -787,7 +790,10 @@ func (s *SAccountVestingSharesWrap) QueryListByOrder(start *prototype.Vest, end 
     if cErr != nil {
          return nil
     }
-    
+    if start != nil && end == nil {
+		iter := s.Dba.NewIterator(sBuf, nil)
+		return iter
+	}
     eKeyList := []interface{}{pre}
     if end != nil {
        eKeyList = append(eKeyList,end)
