@@ -28,6 +28,11 @@ message so_demo {
 }
 
 
+message so_list_demo_by_owner {
+	prototype.account_name     	owner        = 1;
+}
+
+
 message so_list_demo_by_post_time {
 	prototype.time_point_sec   	post_time    = 1;
 	prototype.account_name     	owner        = 2;

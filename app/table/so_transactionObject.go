@@ -318,6 +318,7 @@ func (s *STransactionObjectExpirationWrap) QueryListByOrder(start *prototype.Tim
     
     return iter
 }
+
 /////////////// SECTION Private function ////////////////
 
 func (s *SoTransactionObjectWrap) update(sa *SoTransactionObject) bool {

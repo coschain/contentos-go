@@ -432,6 +432,7 @@ func (m *SoList{{$.ClsName}}By{{$v.PName}}) EncodeRevSortKey() ([]byte,error) {
     return revKey,revRrr
 }
 
+{{if or (eq $v.SType 1) (eq $v.SType 3) -}}
 //Query sort by order 
 //start = nil  end = nil (query the db from start to end)
 //start = nil (query from start the db)
@@ -467,6 +468,7 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByOrder(start *{{$v.PType}}, e
     
     return iter
 }
+{{end}}
 {{if or (eq $v.SType 2) (eq $v.SType 3) -}}
 //Query sort by reverse order 
 func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByRevOrder(start *{{$v.PType}}, end *{{$v.PType}}) iservices.IDatabaseIterator {
@@ -682,17 +684,17 @@ func createParamsFromTableInfo(tInfo TableInfo) Params {
 		if v.BMainKey {
 			para.MainKeyName = rValueFormStr(fName)
 			para.MainKeyType =  formatStr(fType)
-		}else {
-			if v.SortType > 0  {
-				para.LKeys = append(para.LKeys,rValueFormStr(fName))
-				para.LKeyWithType[rValueFormStr(fName)] = formatStr(fType)
-				para.SortList = append(para.SortList,SortPro{
-					PName:rValueFormStr(fName),
-					PType:formatStr(fType),
-					SType:v.SortType,
-				})
-			}
 		}
+		if v.SortType > 0  {
+			para.LKeys = append(para.LKeys,rValueFormStr(fName))
+			para.LKeyWithType[rValueFormStr(fName)] = formatStr(fType)
+			para.SortList = append(para.SortList,SortPro{
+				PName:rValueFormStr(fName),
+				PType:formatStr(fType),
+				SType:v.SortType,
+			})
+		}
+
 		if v.BUnique || v.BMainKey {
             para.UniqueFieldMap[rValueFormStr(fName)] = formatStr(fType)
 		}

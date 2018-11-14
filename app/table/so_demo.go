@@ -14,6 +14,8 @@ import (
 ////////////// SECTION Prefix Mark ///////////////
 var (
 	DemoTable        = []byte("DemoTable")
+    DemoOwnerTable = []byte("DemoOwnerTable")
+    DemoOwnerRevOrdTable = []byte("DemoOwnerRevOrdTable")
     DemoPostTimeTable = []byte("DemoPostTimeTable")
     DemoPostTimeRevOrdTable = []byte("DemoPostTimeRevOrdTable")
     DemoLikeCountTable = []byte("DemoLikeCountTable")
@@ -76,6 +78,10 @@ func (s *SoDemoWrap) CreateDemo(sa *SoDemo) bool {
 
 	// update sort list keys
 	
+	if !s.insertSortKeyOwner(sa) {
+		return false
+	}
+	
 	if !s.insertSortKeyPostTime(sa) {
 		return false
 	}
@@ -109,6 +115,39 @@ func (s *SoDemoWrap) CreateDemo(sa *SoDemo) bool {
 }
 
 ////////////// SECTION LKeys delete/insert ///////////////
+
+func (s *SoDemoWrap) delSortKeyOwner(sa *SoDemo) bool {
+	val := SoListDemoByOwner{}
+	val.Owner = sa.Owner
+	val.Owner = sa.Owner
+    subRevBuf, err := val.EncodeRevSortKey()
+	if err != nil {
+		return false
+	}
+    revOrdKey := append(DemoOwnerRevOrdTable, subRevBuf...)
+    revOrdErr :=  s.dba.Delete(revOrdKey) 
+    return revOrdErr == nil
+    
+}
+
+
+func (s *SoDemoWrap) insertSortKeyOwner(sa *SoDemo) bool {
+	val := SoListDemoByOwner{}
+	val.Owner = sa.Owner
+	val.Owner = sa.Owner
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return false
+	}
+    subRevBuf, err := val.EncodeRevSortKey()
+	if err != nil {
+		return false
+	}
+    revOrdErr :=  s.dba.Put(subRevBuf, buf) 
+    return revOrdErr == nil
+    
+}
+
 
 func (s *SoDemoWrap) delSortKeyPostTime(sa *SoDemo) bool {
 	val := SoListDemoByPostTime{}
@@ -265,6 +304,9 @@ func (s *SoDemoWrap) RemoveDemo() bool {
 		return false
 	}
     //delete sort list key
+	if !s.delSortKeyOwner(sa) {
+		return false
+	}
 	if !s.delSortKeyPostTime(sa) {
 		return false
 	}
@@ -564,6 +606,139 @@ func (s *SoDemoWrap) MdTitle(p string) bool {
 
 
 ////////////// SECTION List Keys ///////////////
+type SDemoOwnerWrap struct {
+	Dba iservices.IDatabaseService
+}
+
+func (s *SDemoOwnerWrap)DelIterater(iterator iservices.IDatabaseIterator){
+   if iterator == nil || !iterator.Valid() {
+		return 
+	}
+   s.Dba.DeleteIterator(iterator)
+}
+
+func (s *SDemoOwnerWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.AccountName {
+	if iterator == nil || !iterator.Valid() {
+		return nil
+	}
+	val, err := iterator.Value()
+
+	if err != nil {
+		return nil
+	}
+
+	res := &SoListDemoByOwner{}
+	err = proto.Unmarshal(val, res)
+
+	if err != nil {
+		return nil
+	}
+    
+   return res.Owner
+   
+
+}
+
+func (s *SDemoOwnerWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.AccountName {
+	if iterator == nil || !iterator.Valid() {
+		return nil
+	}
+
+	val, err := iterator.Value()
+
+	if err != nil {
+		return nil
+	}
+
+	res := &SoListDemoByOwner{}
+	err = proto.Unmarshal(val, res)
+
+	if err != nil {
+		return nil
+	}
+    
+   
+    
+   return res.Owner
+   
+}
+
+func (m *SoListDemoByOwner) OpeEncode() ([]byte,error) {
+    pre := DemoOwnerTable
+    sub := m.Owner
+    if sub == nil {
+       return nil,errors.New("the pro Owner is nil")
+    }
+    sub1 := m.Owner
+    if sub1 == nil {
+       return nil,errors.New("the mainKey Owner is nil")
+    }
+    kList := []interface{}{pre,sub,sub1}
+    kBuf,cErr := encoding.EncodeSlice(kList,false)
+    return kBuf,cErr
+}
+
+func (m *SoListDemoByOwner) EncodeRevSortKey() ([]byte,error) {
+    pre := DemoOwnerRevOrdTable
+    sub := m.Owner
+    if sub == nil {
+       return nil,errors.New("the pro Owner is nil")
+    }
+    sub1 := m.Owner
+    if sub1 == nil {
+       return nil,errors.New("the mainKey Owner is nil")
+    }
+    kList := []interface{}{pre,sub,sub1}
+    ordKey,cErr := encoding.EncodeSlice(kList,false)
+    if cErr != nil {
+       return nil,cErr
+    }
+    revKey,revRrr := encoding.Complement(ordKey, cErr)
+    return revKey,revRrr
+}
+
+
+//Query sort by reverse order 
+func (s *SDemoOwnerWrap) QueryListByRevOrder(start *prototype.AccountName, end *prototype.AccountName) iservices.IDatabaseIterator {
+
+    pre := DemoOwnerTable
+    skeyList := []interface{}{pre}
+    if start != nil {
+       skeyList = append(skeyList,start)
+    }
+    sBuf,cErr := encoding.EncodeSlice(skeyList,false)
+    if cErr != nil {
+         return nil
+    }
+    
+    eKeyList := []interface{}{pre}
+    if end != nil {
+       eKeyList = append(eKeyList,end)
+    }
+    eBuf,cErr := encoding.EncodeSlice(eKeyList,false)
+    if cErr != nil {
+       return nil
+    }
+    rBufStart,rErr := encoding.Complement(sBuf, cErr)
+    if rErr != nil {
+       return nil
+    }
+    rBufEnd,rErr := encoding.Complement(eBuf, cErr)
+    if rErr != nil { 
+        return nil
+    }
+    res := bytes.Compare(sBuf,eBuf)
+    if res == 0 {
+		rBufEnd = nil
+	}else if res == -1 {
+       // order
+       return nil
+    }
+    iter := s.Dba.NewIterator(rBufStart, rBufEnd)
+    return iter
+}
+
+////////////// SECTION List Keys ///////////////
 type SDemoPostTimeWrap struct {
 	Dba iservices.IDatabaseService
 }
@@ -690,6 +865,7 @@ func (s *SDemoPostTimeWrap) QueryListByOrder(start *prototype.TimePointSec, end 
     
     return iter
 }
+
 //Query sort by reverse order 
 func (s *SDemoPostTimeWrap) QueryListByRevOrder(start *prototype.TimePointSec, end *prototype.TimePointSec) iservices.IDatabaseIterator {
 
@@ -818,41 +994,7 @@ func (m *SoListDemoByLikeCount) EncodeRevSortKey() ([]byte,error) {
     return revKey,revRrr
 }
 
-//Query sort by order 
-//start = nil  end = nil (query the db from start to end)
-//start = nil (query from start the db)
-//end = nil (query to the end of db)
-func (s *SDemoLikeCountWrap) QueryListByOrder(start *int64, end *int64) iservices.IDatabaseIterator {
-    pre := DemoLikeCountRevOrdTable
-    skeyList := []interface{}{pre}
-    if start != nil {
-       skeyList = append(skeyList,start)
-    }
-    sBuf,cErr := encoding.EncodeSlice(skeyList,false)
-    if cErr != nil {
-         return nil
-    }
-    
-    eKeyList := []interface{}{pre}
-    if end != nil {
-       eKeyList = append(eKeyList,end)
-    }
-    eBuf,cErr := encoding.EncodeSlice(eKeyList,false)
-    if cErr != nil {
-       return nil
-    }
-    
-    res := bytes.Compare(sBuf,eBuf)
-    if res == 0 {
-		eBuf = nil
-	}else if res == 1 {
-       //reverse order
-       return nil
-    }
-    iter := s.Dba.NewIterator(sBuf, eBuf)
-    
-    return iter
-}
+
 //Query sort by reverse order 
 func (s *SDemoLikeCountWrap) QueryListByRevOrder(start *int64, end *int64) iservices.IDatabaseIterator {
 
@@ -981,41 +1123,7 @@ func (m *SoListDemoByIdx) EncodeRevSortKey() ([]byte,error) {
     return revKey,revRrr
 }
 
-//Query sort by order 
-//start = nil  end = nil (query the db from start to end)
-//start = nil (query from start the db)
-//end = nil (query to the end of db)
-func (s *SDemoIdxWrap) QueryListByOrder(start *int64, end *int64) iservices.IDatabaseIterator {
-    pre := DemoIdxRevOrdTable
-    skeyList := []interface{}{pre}
-    if start != nil {
-       skeyList = append(skeyList,start)
-    }
-    sBuf,cErr := encoding.EncodeSlice(skeyList,false)
-    if cErr != nil {
-         return nil
-    }
-    
-    eKeyList := []interface{}{pre}
-    if end != nil {
-       eKeyList = append(eKeyList,end)
-    }
-    eBuf,cErr := encoding.EncodeSlice(eKeyList,false)
-    if cErr != nil {
-       return nil
-    }
-    
-    res := bytes.Compare(sBuf,eBuf)
-    if res == 0 {
-		eBuf = nil
-	}else if res == 1 {
-       //reverse order
-       return nil
-    }
-    iter := s.Dba.NewIterator(sBuf, eBuf)
-    
-    return iter
-}
+
 //Query sort by reverse order 
 func (s *SDemoIdxWrap) QueryListByRevOrder(start *int64, end *int64) iservices.IDatabaseIterator {
 
@@ -1179,6 +1287,7 @@ func (s *SDemoReplayCountWrap) QueryListByOrder(start *int64, end *int64) iservi
     
     return iter
 }
+
 /////////////// SECTION Private function ////////////////
 
 func (s *SoDemoWrap) update(sa *SoDemo) bool {
