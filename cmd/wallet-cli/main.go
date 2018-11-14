@@ -68,14 +68,30 @@ shell_loop:
 		if err != nil {
 			shell.Terminal.Write([]byte(err.Error()))
 		}
+		cmd.InitDefaultHelpFlag()
+		cmd.InitDefaultVersionFlag()
+		err = cmd.ParseFlags(flags)
+		if err != nil {
+			fmt.Println("parse flags error")
+			continue
+		}
 
-		cmd.ParseFlags(flags)
-		if cmd.Args != nil {
-			err = cmd.Args(cmd, flags)
-			if err != nil {
-				fmt.Println(err)
-				continue
-			}
+		// If help is called, regardless of other flags, return we want help.
+		// Also say we need help if the command isn't runnable.
+		helpVal, err := cmd.Flags().GetBool("help")
+		if err != nil {
+			fmt.Println("\"help\" flag declared as non-bool. Please correct your code")
+			continue
+		}
+
+		if helpVal {
+			cmd.UsageFunc()(cmd)
+			continue
+		}
+		//cmd.ParseFlags(flags)
+		if err := cmd.ValidateArgs(flags); err != nil {
+			fmt.Println(err)
+			continue
 		}
 		cmd.Run(cmd, flags)
 	}
