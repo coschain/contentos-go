@@ -173,16 +173,15 @@ func (db *DB) Head() common.ISignedBlock {
 
 // Pop pops the head block
 // NOTE: The only scenarios Pop should be called are when:
-// 1. a fork switch occurs,
-// 2. the newly appended block contains illegal transactions
-// Hence the main branch and the fork branch has a common ancestor that should NEVER
-// be popped, which also means the main branch cannot be popped empty
+//  1.a fork switch occurs, hence the main branch and the fork
+// 	  branch has a common ancestor that should NEVER be popped,
+//    which also means the main branch cannot be popped empty
+//  2.the newly appended block contains illegal transactions
+// Popping an empty db results in undefined behaviour
 func (db *DB) Pop() common.ISignedBlock {
 	ret := db.branches[db.head]
 	db.head = ret.Previous()
-	if _, ok := db.branches[db.head]; !ok {
-		panic("[ForkDB] The main branch was poped empty")
-	}
+
 	return ret
 }
 
@@ -210,7 +209,8 @@ func (db *DB) FetchBranch(id1, id2 common.BlockID) ([2][]common.BlockID, error) 
 	}
 
 	headNum := db.head.BlockNum()
-	for tid1 != tid2 && tid1.BlockNum() <= headNum-maxSize {
+	//for tid1 != tid2 && tid1.BlockNum() <= headNum-maxSize {
+	for tid1 != tid2 && tid1.BlockNum()+maxSize > headNum {
 		ret[0] = append(ret[0], tid1)
 		ret[1] = append(ret[1], tid2)
 		tmp, err := db.FetchBlock(tid1)

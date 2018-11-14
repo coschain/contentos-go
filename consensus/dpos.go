@@ -2,6 +2,8 @@ package consensus
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -31,10 +33,10 @@ func (p *Producer) Produce(timestamp uint64, prev common.BlockID) (common.ISigne
 type DPoS struct {
 	ForkDB *forkdb.DB
 
-	Producers   []*Producer
-	hostMask    []bool
-	producerIdx uint64
-	readyToProduce   bool
+	Producers      []*Producer
+	hostMask       []bool
+	producerIdx    uint64
+	readyToProduce bool
 
 	bootstrap bool
 
@@ -94,7 +96,7 @@ func (d *DPoS) start() {
 				waitTilNextSec()
 				continue
 			}
-			if !d.readyToProduce  {
+			if !d.readyToProduce {
 				if d.checkSync() {
 					d.readyToProduce = true
 				} else {
@@ -215,7 +217,10 @@ func (d *DPoS) getSlotAtTime(t time.Time) uint64 {
 }
 
 func (d *DPoS) PushBlock(b common.ISignedBlock) error {
-	// TODO: check signee & timestamp
+	// TODO: check signee & merkle
+	if b.Timestamp() < d.getSlotTime(1) {
+		return errors.New("the timestamp of the new block is less than that of the head block")
+	}
 	head := d.ForkDB.Head()
 	newHead := d.ForkDB.PushBlock(b)
 
@@ -227,7 +232,7 @@ func (d *DPoS) PushBlock(b common.ISignedBlock) error {
 		// 4. illegal block
 		return nil
 	} else if newHead.Previous() != head.Id() {
-		// TODO: swith fork
+		d.switchFork(head.Id(), newHead.Id())
 		return nil
 	}
 
@@ -238,18 +243,57 @@ func (d *DPoS) PushBlock(b common.ISignedBlock) error {
 		return err
 	}
 
+	// TODO:
 	if bytes.Equal(b.GetSignee().(*prototype.PublicKeyType).Data, d.Producers[len(d.Producers)-1].PubKey.Data) {
 		d.shuffle()
 	}
 	return nil
 }
 
-func (d *DPoS) RemoveBlock(id common.BlockID) {
-	d.ForkDB.Remove(id)
-}
+func (d *DPoS) switchFork(old, new common.BlockID) {
+	branches, err := d.ForkDB.FetchBranch(old, new)
+	if err != nil {
+		panic(err)
+	}
+	poppedNum := len(branches[0]) - 1
+	for i := 0; i < poppedNum; i++ {
+		d.ForkDB.Pop()
+		d.popBlock()
+	}
+	if d.ForkDB.Head().Id() != branches[0][poppedNum] {
+		errStr := fmt.Sprintf("[ForkDB][switchFork] pop to root block with id: %d, num: %d",
+			d.ForkDB.Head().Id(), d.ForkDB.Head().Id().BlockNum())
+		panic(errStr)
+	}
+	appendedNum := len(branches[1]) - 1
+	errWhileSwitch := false
+	var newBranchIdx int
+	for newBranchIdx := appendedNum - 1; newBranchIdx >= 0; newBranchIdx-- {
+		b, err := d.ForkDB.FetchBlock(branches[1][newBranchIdx])
+		if err != nil {
+			panic(err)
+		}
+		if d.PushBlock(b) != nil {
+			errWhileSwitch = true
+			// TODO: peels of this invalid branch
+			break
+		}
+	}
 
-func (d *DPoS) ForkRoot(fork1, fork2 common.BlockID) common.BlockID {
-	return common.BlockID{}
+	// switch back
+	if errWhileSwitch {
+		for i := newBranchIdx + 1; i < appendedNum; i++ {
+			d.ForkDB.Pop()
+			d.popBlock()
+		}
+		for i := poppedNum - 1; i >= 0; i-- {
+			b, err := d.ForkDB.FetchBlock(branches[0][i])
+			if err != nil {
+				panic(err)
+			}
+			d.PushBlock(b)
+		}
+	}
 }
 
 func (d *DPoS) applyBlock(b common.ISignedBlock) error {
