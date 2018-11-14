@@ -3,15 +3,13 @@ package wallet
 type Wallet interface {
 	Name() string
 
-	SetChainAccount(localName, chainAccountName string) error
-
-	ChainAccount(localName string) string
-
 	Path() string
 
 	GenerateNewKey() (string, string, error) // return pubKey, privKey, error
 
 	Create(name, passphrase, pubKeyStr, privKeyStr string) error
+
+	GetUnlockedAccount(name string) (*PrivAccount, bool)
 
 	Load(name string) error
 
@@ -25,8 +23,7 @@ type Wallet interface {
 
 	Close()
 
-	IsLocked(name string) (bool, error)
+	IsLocked(name string) bool
 
-	//CheckAccountName(name string) (bool)
-
+	IsExist(name string) bool
 }

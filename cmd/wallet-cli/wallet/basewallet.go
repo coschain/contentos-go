@@ -122,23 +122,6 @@ func (w *BaseWallet) Name() string {
 	return w.name
 }
 
-func (w *BaseWallet) ChainAccount(localName string) string {
-	if acc, ok := w.locked[localName]; ok {
-		return acc.ChainAccount
-	} else {
-		return "UNKNOWN"
-	}
-}
-
-func (w *BaseWallet) SetChainAccount(localName, accountName string) error {
-	if acc, ok := w.locked[localName]; ok {
-		acc.ChainAccount = accountName
-		return nil
-	} else {
-		return AccountNotFound{LocalName: localName}
-	}
-}
-
 func (w *BaseWallet) Path() string {
 	return w.dirPath
 }
@@ -204,20 +187,25 @@ func (w *BaseWallet) Create(name, passphrase, pubKeyStr, privKeyStr string) erro
 	cipher_text := base64.StdEncoding.EncodeToString(cipher_data)
 	iv_text := base64.StdEncoding.EncodeToString(iv)
 	encrypt_account := &EncryptAccount{
-		Account:    Account{Name: name, PubKey: pubKeyStr, ChainAccount: ""},
+		Account:    Account{Name: name, PubKey: pubKeyStr},
 		Cipher:     selectAESAlgorithm(PasswordLength),
 		CipherText: cipher_text,
 		Iv:         iv_text,
 		Version:    1,
 	}
 	priv_account := &PrivAccount{
-		Account: Account{Name: name, PubKey: pubKeyStr, ChainAccount: encrypt_account.ChainAccount},
+		Account: Account{Name: name, PubKey: pubKeyStr},
 		PrivKey: privKeyStr,
 	}
 	w.locked[name] = encrypt_account
 	w.unlocked[name] = priv_account
 	w.seal(encrypt_account)
 	return nil
+}
+
+func (w *BaseWallet) GetUnlockedAccount(name string) (*PrivAccount, bool) {
+	acc, ok := w.unlocked[name]
+	return acc, ok
 }
 
 // name should not be a path
@@ -284,24 +272,21 @@ func (w *BaseWallet) Unlock(name, passphrase string) error {
 			return err
 		}
 		expiredTime := time.Now().Unix() + ExpirationSeconds
-		acc := &PrivAccount{Account{Name: name, PubKey: encrypt_acc.PubKey, ChainAccount: encrypt_acc.ChainAccount},
+		acc := &PrivAccount{Account{Name: name, PubKey: encrypt_acc.PubKey},
 			string(priv_key), expiredTime}
 		w.unlocked[name] = acc
 		return nil
 	}
 }
 
-func (w *BaseWallet) IsLocked(name string) (bool, error) {
-	if _, ok := w.unlocked[name]; ok {
-		return false, nil
-	}
+func (w *BaseWallet) IsLocked(name string) bool {
+	_, ok := w.unlocked[name]
+	return ok
+}
 
-	if _, ok := w.locked[name]; ok {
-		return true, nil
-	} else {
-		return false, &UnknownLockedAccountError{Name: name}
-	}
-
+func (w *BaseWallet) IsExist(name string) bool {
+	_, ok := w.locked[name]
+	return ok
 }
 
 func (w *BaseWallet) updateAccountExpiredTime(name string) {
