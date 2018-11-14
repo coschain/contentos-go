@@ -3,6 +3,7 @@
 package table
 
 import (
+     "errors"
      "github.com/coschain/contentos-go/common/encoding"
      "github.com/coschain/contentos-go/prototype"
 	 "github.com/gogo/protobuf/proto"
@@ -430,6 +431,9 @@ func (s *SoDynamicGlobalPropertiesWrap) getDynamicGlobalProperties() *SoDynamicG
 func (s *SoDynamicGlobalPropertiesWrap) encodeMainKey() ([]byte, error) {
     pre := DynamicGlobalPropertiesTable
     sub := s.mainKey
+    if sub == nil {
+       return nil,errors.New("the mainKey is nil")
+    }
     kList := []interface{}{pre,sub}
     kBuf,cErr := encoding.EncodeSlice(kList,false)
     return kBuf,cErr

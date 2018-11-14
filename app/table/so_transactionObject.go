@@ -4,6 +4,7 @@ package table
 
 import (
      "bytes"
+     "errors"
      "github.com/coschain/contentos-go/common/encoding"
      "github.com/coschain/contentos-go/prototype"
 	 "github.com/gogo/protobuf/proto"
@@ -251,7 +252,13 @@ func (s *STransactionObjectExpirationWrap) GetSubVal(iterator iservices.IDatabas
 func (m *SoListTransactionObjectByExpiration) OpeEncode() ([]byte,error) {
     pre := TransactionObjectExpirationTable
     sub := m.Expiration
+    if sub == nil {
+       return nil,errors.New("the pro Expiration is nil")
+    }
     sub1 := m.TrxId
+    if sub1 == nil {
+       return nil,errors.New("the mainKey Expiration is nil")
+    }
     kList := []interface{}{pre,sub,sub1}
     kBuf,cErr := encoding.EncodeSlice(kList,false)
     return kBuf,cErr
@@ -260,9 +267,18 @@ func (m *SoListTransactionObjectByExpiration) OpeEncode() ([]byte,error) {
 func (m *SoListTransactionObjectByExpiration) EncodeRevSortKey() ([]byte,error) {
     pre := TransactionObjectExpirationRevOrdTable
     sub := m.Expiration
+    if sub == nil {
+       return nil,errors.New("the pro Expiration is nil")
+    }
     sub1 := m.TrxId
+    if sub1 == nil {
+       return nil,errors.New("the mainKey Expiration is nil")
+    }
     kList := []interface{}{pre,sub,sub1}
     ordKey,cErr := encoding.EncodeSlice(kList,false)
+    if cErr != nil {
+       return nil,cErr
+    }
     revKey,revRrr := encoding.Complement(ordKey, cErr)
     return revKey,revRrr
 }
@@ -341,6 +357,9 @@ func (s *SoTransactionObjectWrap) getTransactionObject() *SoTransactionObject {
 func (s *SoTransactionObjectWrap) encodeMainKey() ([]byte, error) {
     pre := TransactionObjectTable
     sub := s.mainKey
+    if sub == nil {
+       return nil,errors.New("the mainKey is nil")
+    }
     kList := []interface{}{pre,sub}
     kBuf,cErr := encoding.EncodeSlice(kList,false)
     return kBuf,cErr

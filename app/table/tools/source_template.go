@@ -52,6 +52,7 @@ import (
      {{if ge $.SListCount 1 -}}
      "bytes"
      {{end -}}
+     "errors"
      "github.com/coschain/contentos-go/common/encoding"
      "github.com/coschain/contentos-go/prototype"
 	 "github.com/gogo/protobuf/proto"
@@ -394,7 +395,16 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) GetSubVal(iterator iservices.IDatabaseI
 func (m *SoList{{$.ClsName}}By{{$v.PName}}) OpeEncode() ([]byte,error) {
     pre := {{$.ClsName}}{{$v.PName}}Table
     sub := m.{{$v.PName}}
+    {{$baseType := (DetectBaseType $v.PType) -}}
+    {{- if not $baseType -}} 
+    if sub == nil {
+       return nil,errors.New("the pro {{$v.PName}} is nil")
+    }
+    {{- end}}
     sub1 := m.{{UperFirstChar $.MainKeyName}}
+    if sub1 == nil {
+       return nil,errors.New("the mainKey {{$v.PName}} is nil")
+    }
     kList := []interface{}{pre,sub,sub1}
     kBuf,cErr := encoding.EncodeSlice(kList,false)
     return kBuf,cErr
@@ -403,9 +413,21 @@ func (m *SoList{{$.ClsName}}By{{$v.PName}}) OpeEncode() ([]byte,error) {
 func (m *SoList{{$.ClsName}}By{{$v.PName}}) EncodeRevSortKey() ([]byte,error) {
     pre := {{$.ClsName}}{{$v.PName}}RevOrdTable
     sub := m.{{$v.PName}}
+    {{$baseType := (DetectBaseType $v.PType) -}}
+    {{- if not $baseType -}} 
+    if sub == nil {
+       return nil,errors.New("the pro {{$v.PName}} is nil")
+    }
+    {{- end}}
     sub1 := m.{{UperFirstChar $.MainKeyName}}
+    if sub1 == nil {
+       return nil,errors.New("the mainKey {{$v.PName}} is nil")
+    }
     kList := []interface{}{pre,sub,sub1}
     ordKey,cErr := encoding.EncodeSlice(kList,false)
+    if cErr != nil {
+       return nil,cErr
+    }
     revKey,revRrr := encoding.Complement(ordKey, cErr)
     return revKey,revRrr
 }
@@ -527,6 +549,9 @@ func (s *So{{$.ClsName}}Wrap) get{{$.ClsName}}() *So{{$.ClsName}} {
 func (s *So{{$.ClsName}}Wrap) encodeMainKey() ([]byte, error) {
     pre := {{.ClsName}}Table
     sub := s.mainKey
+    if sub == nil {
+       return nil,errors.New("the mainKey is nil")
+    }
     kList := []interface{}{pre,sub}
     kBuf,cErr := encoding.EncodeSlice(kList,false)
     return kBuf,cErr

@@ -4,6 +4,7 @@ package table
 
 import (
      "bytes"
+     "errors"
      "github.com/coschain/contentos-go/common/encoding"
      "github.com/coschain/contentos-go/prototype"
 	 "github.com/gogo/protobuf/proto"
@@ -301,7 +302,13 @@ func (s *SFollowerCreateTimeWrap) GetSubVal(iterator iservices.IDatabaseIterator
 func (m *SoListFollowerByCreateTime) OpeEncode() ([]byte,error) {
     pre := FollowerCreateTimeTable
     sub := m.CreateTime
+    if sub == nil {
+       return nil,errors.New("the pro CreateTime is nil")
+    }
     sub1 := m.Account
+    if sub1 == nil {
+       return nil,errors.New("the mainKey CreateTime is nil")
+    }
     kList := []interface{}{pre,sub,sub1}
     kBuf,cErr := encoding.EncodeSlice(kList,false)
     return kBuf,cErr
@@ -310,9 +317,18 @@ func (m *SoListFollowerByCreateTime) OpeEncode() ([]byte,error) {
 func (m *SoListFollowerByCreateTime) EncodeRevSortKey() ([]byte,error) {
     pre := FollowerCreateTimeRevOrdTable
     sub := m.CreateTime
+    if sub == nil {
+       return nil,errors.New("the pro CreateTime is nil")
+    }
     sub1 := m.Account
+    if sub1 == nil {
+       return nil,errors.New("the mainKey CreateTime is nil")
+    }
     kList := []interface{}{pre,sub,sub1}
     ordKey,cErr := encoding.EncodeSlice(kList,false)
+    if cErr != nil {
+       return nil,cErr
+    }
     revKey,revRrr := encoding.Complement(ordKey, cErr)
     return revKey,revRrr
 }
@@ -391,6 +407,9 @@ func (s *SoFollowerWrap) getFollower() *SoFollower {
 func (s *SoFollowerWrap) encodeMainKey() ([]byte, error) {
     pre := FollowerTable
     sub := s.mainKey
+    if sub == nil {
+       return nil,errors.New("the mainKey is nil")
+    }
     kList := []interface{}{pre,sub}
     kBuf,cErr := encoding.EncodeSlice(kList,false)
     return kBuf,cErr

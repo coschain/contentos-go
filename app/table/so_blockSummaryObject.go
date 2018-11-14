@@ -3,6 +3,7 @@
 package table
 
 import (
+     "errors"
      "github.com/coschain/contentos-go/common/encoding"
      "github.com/coschain/contentos-go/prototype"
 	 "github.com/gogo/protobuf/proto"
@@ -200,6 +201,9 @@ func (s *SoBlockSummaryObjectWrap) getBlockSummaryObject() *SoBlockSummaryObject
 func (s *SoBlockSummaryObjectWrap) encodeMainKey() ([]byte, error) {
     pre := BlockSummaryObjectTable
     sub := s.mainKey
+    if sub == nil {
+       return nil,errors.New("the mainKey is nil")
+    }
     kList := []interface{}{pre,sub}
     kBuf,cErr := encoding.EncodeSlice(kList,false)
     return kBuf,cErr

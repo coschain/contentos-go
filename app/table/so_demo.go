@@ -4,6 +4,7 @@ package table
 
 import (
      "bytes"
+     "errors"
      "github.com/coschain/contentos-go/common/encoding"
      "github.com/coschain/contentos-go/prototype"
 	 "github.com/gogo/protobuf/proto"
@@ -623,7 +624,13 @@ func (s *SDemoPostTimeWrap) GetSubVal(iterator iservices.IDatabaseIterator) *pro
 func (m *SoListDemoByPostTime) OpeEncode() ([]byte,error) {
     pre := DemoPostTimeTable
     sub := m.PostTime
+    if sub == nil {
+       return nil,errors.New("the pro PostTime is nil")
+    }
     sub1 := m.Owner
+    if sub1 == nil {
+       return nil,errors.New("the mainKey PostTime is nil")
+    }
     kList := []interface{}{pre,sub,sub1}
     kBuf,cErr := encoding.EncodeSlice(kList,false)
     return kBuf,cErr
@@ -632,9 +639,18 @@ func (m *SoListDemoByPostTime) OpeEncode() ([]byte,error) {
 func (m *SoListDemoByPostTime) EncodeRevSortKey() ([]byte,error) {
     pre := DemoPostTimeRevOrdTable
     sub := m.PostTime
+    if sub == nil {
+       return nil,errors.New("the pro PostTime is nil")
+    }
     sub1 := m.Owner
+    if sub1 == nil {
+       return nil,errors.New("the mainKey PostTime is nil")
+    }
     kList := []interface{}{pre,sub,sub1}
     ordKey,cErr := encoding.EncodeSlice(kList,false)
+    if cErr != nil {
+       return nil,cErr
+    }
     revKey,revRrr := encoding.Complement(ordKey, cErr)
     return revKey,revRrr
 }
@@ -775,7 +791,11 @@ func (s *SDemoLikeCountWrap) GetSubVal(iterator iservices.IDatabaseIterator) *in
 func (m *SoListDemoByLikeCount) OpeEncode() ([]byte,error) {
     pre := DemoLikeCountTable
     sub := m.LikeCount
+    
     sub1 := m.Owner
+    if sub1 == nil {
+       return nil,errors.New("the mainKey LikeCount is nil")
+    }
     kList := []interface{}{pre,sub,sub1}
     kBuf,cErr := encoding.EncodeSlice(kList,false)
     return kBuf,cErr
@@ -784,9 +804,16 @@ func (m *SoListDemoByLikeCount) OpeEncode() ([]byte,error) {
 func (m *SoListDemoByLikeCount) EncodeRevSortKey() ([]byte,error) {
     pre := DemoLikeCountRevOrdTable
     sub := m.LikeCount
+    
     sub1 := m.Owner
+    if sub1 == nil {
+       return nil,errors.New("the mainKey LikeCount is nil")
+    }
     kList := []interface{}{pre,sub,sub1}
     ordKey,cErr := encoding.EncodeSlice(kList,false)
+    if cErr != nil {
+       return nil,cErr
+    }
     revKey,revRrr := encoding.Complement(ordKey, cErr)
     return revKey,revRrr
 }
@@ -927,7 +954,11 @@ func (s *SDemoIdxWrap) GetSubVal(iterator iservices.IDatabaseIterator) *int64 {
 func (m *SoListDemoByIdx) OpeEncode() ([]byte,error) {
     pre := DemoIdxTable
     sub := m.Idx
+    
     sub1 := m.Owner
+    if sub1 == nil {
+       return nil,errors.New("the mainKey Idx is nil")
+    }
     kList := []interface{}{pre,sub,sub1}
     kBuf,cErr := encoding.EncodeSlice(kList,false)
     return kBuf,cErr
@@ -936,9 +967,16 @@ func (m *SoListDemoByIdx) OpeEncode() ([]byte,error) {
 func (m *SoListDemoByIdx) EncodeRevSortKey() ([]byte,error) {
     pre := DemoIdxRevOrdTable
     sub := m.Idx
+    
     sub1 := m.Owner
+    if sub1 == nil {
+       return nil,errors.New("the mainKey Idx is nil")
+    }
     kList := []interface{}{pre,sub,sub1}
     ordKey,cErr := encoding.EncodeSlice(kList,false)
+    if cErr != nil {
+       return nil,cErr
+    }
     revKey,revRrr := encoding.Complement(ordKey, cErr)
     return revKey,revRrr
 }
@@ -1079,7 +1117,11 @@ func (s *SDemoReplayCountWrap) GetSubVal(iterator iservices.IDatabaseIterator) *
 func (m *SoListDemoByReplayCount) OpeEncode() ([]byte,error) {
     pre := DemoReplayCountTable
     sub := m.ReplayCount
+    
     sub1 := m.Owner
+    if sub1 == nil {
+       return nil,errors.New("the mainKey ReplayCount is nil")
+    }
     kList := []interface{}{pre,sub,sub1}
     kBuf,cErr := encoding.EncodeSlice(kList,false)
     return kBuf,cErr
@@ -1088,9 +1130,16 @@ func (m *SoListDemoByReplayCount) OpeEncode() ([]byte,error) {
 func (m *SoListDemoByReplayCount) EncodeRevSortKey() ([]byte,error) {
     pre := DemoReplayCountRevOrdTable
     sub := m.ReplayCount
+    
     sub1 := m.Owner
+    if sub1 == nil {
+       return nil,errors.New("the mainKey ReplayCount is nil")
+    }
     kList := []interface{}{pre,sub,sub1}
     ordKey,cErr := encoding.EncodeSlice(kList,false)
+    if cErr != nil {
+       return nil,cErr
+    }
     revKey,revRrr := encoding.Complement(ordKey, cErr)
     return revKey,revRrr
 }
@@ -1169,6 +1218,9 @@ func (s *SoDemoWrap) getDemo() *SoDemo {
 func (s *SoDemoWrap) encodeMainKey() ([]byte, error) {
     pre := DemoTable
     sub := s.mainKey
+    if sub == nil {
+       return nil,errors.New("the mainKey is nil")
+    }
     kList := []interface{}{pre,sub}
     kBuf,cErr := encoding.EncodeSlice(kList,false)
     return kBuf,cErr

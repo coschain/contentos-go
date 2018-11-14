@@ -4,6 +4,7 @@ package table
 
 import (
      "bytes"
+     "errors"
      "github.com/coschain/contentos-go/common/encoding"
      "github.com/coschain/contentos-go/prototype"
 	 "github.com/gogo/protobuf/proto"
@@ -532,7 +533,13 @@ func (s *SAccountCreatedTimeWrap) GetSubVal(iterator iservices.IDatabaseIterator
 func (m *SoListAccountByCreatedTime) OpeEncode() ([]byte,error) {
     pre := AccountCreatedTimeTable
     sub := m.CreatedTime
+    if sub == nil {
+       return nil,errors.New("the pro CreatedTime is nil")
+    }
     sub1 := m.Name
+    if sub1 == nil {
+       return nil,errors.New("the mainKey CreatedTime is nil")
+    }
     kList := []interface{}{pre,sub,sub1}
     kBuf,cErr := encoding.EncodeSlice(kList,false)
     return kBuf,cErr
@@ -541,9 +548,18 @@ func (m *SoListAccountByCreatedTime) OpeEncode() ([]byte,error) {
 func (m *SoListAccountByCreatedTime) EncodeRevSortKey() ([]byte,error) {
     pre := AccountCreatedTimeRevOrdTable
     sub := m.CreatedTime
+    if sub == nil {
+       return nil,errors.New("the pro CreatedTime is nil")
+    }
     sub1 := m.Name
+    if sub1 == nil {
+       return nil,errors.New("the mainKey CreatedTime is nil")
+    }
     kList := []interface{}{pre,sub,sub1}
     ordKey,cErr := encoding.EncodeSlice(kList,false)
+    if cErr != nil {
+       return nil,cErr
+    }
     revKey,revRrr := encoding.Complement(ordKey, cErr)
     return revKey,revRrr
 }
@@ -645,7 +661,13 @@ func (s *SAccountBalanceWrap) GetSubVal(iterator iservices.IDatabaseIterator) *p
 func (m *SoListAccountByBalance) OpeEncode() ([]byte,error) {
     pre := AccountBalanceTable
     sub := m.Balance
+    if sub == nil {
+       return nil,errors.New("the pro Balance is nil")
+    }
     sub1 := m.Name
+    if sub1 == nil {
+       return nil,errors.New("the mainKey Balance is nil")
+    }
     kList := []interface{}{pre,sub,sub1}
     kBuf,cErr := encoding.EncodeSlice(kList,false)
     return kBuf,cErr
@@ -654,9 +676,18 @@ func (m *SoListAccountByBalance) OpeEncode() ([]byte,error) {
 func (m *SoListAccountByBalance) EncodeRevSortKey() ([]byte,error) {
     pre := AccountBalanceRevOrdTable
     sub := m.Balance
+    if sub == nil {
+       return nil,errors.New("the pro Balance is nil")
+    }
     sub1 := m.Name
+    if sub1 == nil {
+       return nil,errors.New("the mainKey Balance is nil")
+    }
     kList := []interface{}{pre,sub,sub1}
     ordKey,cErr := encoding.EncodeSlice(kList,false)
+    if cErr != nil {
+       return nil,cErr
+    }
     revKey,revRrr := encoding.Complement(ordKey, cErr)
     return revKey,revRrr
 }
@@ -758,7 +789,13 @@ func (s *SAccountVestingSharesWrap) GetSubVal(iterator iservices.IDatabaseIterat
 func (m *SoListAccountByVestingShares) OpeEncode() ([]byte,error) {
     pre := AccountVestingSharesTable
     sub := m.VestingShares
+    if sub == nil {
+       return nil,errors.New("the pro VestingShares is nil")
+    }
     sub1 := m.Name
+    if sub1 == nil {
+       return nil,errors.New("the mainKey VestingShares is nil")
+    }
     kList := []interface{}{pre,sub,sub1}
     kBuf,cErr := encoding.EncodeSlice(kList,false)
     return kBuf,cErr
@@ -767,9 +804,18 @@ func (m *SoListAccountByVestingShares) OpeEncode() ([]byte,error) {
 func (m *SoListAccountByVestingShares) EncodeRevSortKey() ([]byte,error) {
     pre := AccountVestingSharesRevOrdTable
     sub := m.VestingShares
+    if sub == nil {
+       return nil,errors.New("the pro VestingShares is nil")
+    }
     sub1 := m.Name
+    if sub1 == nil {
+       return nil,errors.New("the mainKey VestingShares is nil")
+    }
     kList := []interface{}{pre,sub,sub1}
     ordKey,cErr := encoding.EncodeSlice(kList,false)
+    if cErr != nil {
+       return nil,cErr
+    }
     revKey,revRrr := encoding.Complement(ordKey, cErr)
     return revKey,revRrr
 }
@@ -848,6 +894,9 @@ func (s *SoAccountWrap) getAccount() *SoAccount {
 func (s *SoAccountWrap) encodeMainKey() ([]byte, error) {
     pre := AccountTable
     sub := s.mainKey
+    if sub == nil {
+       return nil,errors.New("the mainKey is nil")
+    }
     kList := []interface{}{pre,sub}
     kBuf,cErr := encoding.EncodeSlice(kList,false)
     return kBuf,cErr
