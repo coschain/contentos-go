@@ -14,6 +14,11 @@ message so_following {
 }
 
 
+message so_list_following_by_following_info {
+	prototype.following_relation        	following_info      = 1;
+}
+
+
 message so_unique_following_by_following_info {
 	prototype.following_relation        	following_info      = 1;
 }

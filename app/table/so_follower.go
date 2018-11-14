@@ -14,20 +14,18 @@ import (
 ////////////// SECTION Prefix Mark ///////////////
 var (
 	FollowerTable        = []byte("FollowerTable")
-    FollowerFollowerOrderTable = []byte("FollowerFollowerOrderTable")
-    FollowerFollowerOrderRevOrdTable = []byte("FollowerFollowerOrderRevOrdTable")
-    FollowerAccountUniTable = []byte("FollowerAccountUniTable")
-    FollowerFollowerUniTable = []byte("FollowerFollowerUniTable")
-    FollowerFollowerOrderUniTable = []byte("FollowerFollowerOrderUniTable")
+    FollowerFollowerInfoTable = []byte("FollowerFollowerInfoTable")
+    FollowerFollowerInfoRevOrdTable = []byte("FollowerFollowerInfoRevOrdTable")
+    FollowerFollowerInfoUniTable = []byte("FollowerFollowerInfoUniTable")
     )
 
 ////////////// SECTION Wrap Define ///////////////
 type SoFollowerWrap struct {
 	dba 		iservices.IDatabaseService
-	mainKey 	*prototype.AccountName
+	mainKey 	*prototype.FollowerRelation
 }
 
-func NewSoFollowerWrap(dba iservices.IDatabaseService, key *prototype.AccountName) *SoFollowerWrap{
+func NewSoFollowerWrap(dba iservices.IDatabaseService, key *prototype.FollowerRelation) *SoFollowerWrap{
 	result := &SoFollowerWrap{ dba, key}
 	return result
 }
@@ -70,19 +68,13 @@ func (s *SoFollowerWrap) CreateFollower(sa *SoFollower) bool {
 
 	// update sort list keys
 	
-	if !s.insertSortKeyFollowerOrder(sa) {
+	if !s.insertSortKeyFollowerInfo(sa) {
 		return false
 	}
 	
   
     //update unique list
-    if !s.insertUniKeyAccount(sa) {
-		return false
-	}
-	if !s.insertUniKeyFollower(sa) {
-		return false
-	}
-	if !s.insertUniKeyFollowerOrder(sa) {
+    if !s.insertUniKeyFollowerInfo(sa) {
 		return false
 	}
 	
@@ -92,25 +84,25 @@ func (s *SoFollowerWrap) CreateFollower(sa *SoFollower) bool {
 
 ////////////// SECTION LKeys delete/insert ///////////////
 
-func (s *SoFollowerWrap) delSortKeyFollowerOrder(sa *SoFollower) bool {
-	val := SoListFollowerByFollowerOrder{}
-	val.FollowerOrder = sa.FollowerOrder
-	val.Account = sa.Account
+func (s *SoFollowerWrap) delSortKeyFollowerInfo(sa *SoFollower) bool {
+	val := SoListFollowerByFollowerInfo{}
+	val.FollowerInfo = sa.FollowerInfo
+	val.FollowerInfo = sa.FollowerInfo
     subRevBuf, err := val.EncodeRevSortKey()
 	if err != nil {
 		return false
 	}
-    revOrdKey := append(FollowerFollowerOrderRevOrdTable, subRevBuf...)
+    revOrdKey := append(FollowerFollowerInfoRevOrdTable, subRevBuf...)
     revOrdErr :=  s.dba.Delete(revOrdKey) 
     return revOrdErr == nil
     
 }
 
 
-func (s *SoFollowerWrap) insertSortKeyFollowerOrder(sa *SoFollower) bool {
-	val := SoListFollowerByFollowerOrder{}
-	val.Account = sa.Account
-	val.FollowerOrder = sa.FollowerOrder
+func (s *SoFollowerWrap) insertSortKeyFollowerInfo(sa *SoFollower) bool {
+	val := SoListFollowerByFollowerInfo{}
+	val.FollowerInfo = sa.FollowerInfo
+	val.FollowerInfo = sa.FollowerInfo
 	buf, err := proto.Marshal(&val)
 	if err != nil {
 		return false
@@ -133,18 +125,12 @@ func (s *SoFollowerWrap) RemoveFollower() bool {
 		return false
 	}
     //delete sort list key
-	if !s.delSortKeyFollowerOrder(sa) {
+	if !s.delSortKeyFollowerInfo(sa) {
 		return false
 	}
 	
     //delete unique list
-    if !s.delUniKeyAccount(sa) {
-		return false
-	}
-	if !s.delUniKeyFollower(sa) {
-		return false
-	}
-	if !s.delUniKeyFollowerOrder(sa) {
+    if !s.delUniKeyFollowerInfo(sa) {
 		return false
 	}
 	
@@ -156,154 +142,33 @@ func (s *SoFollowerWrap) RemoveFollower() bool {
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
-func (s *SoFollowerWrap) GetAccount() *prototype.AccountName {
+func (s *SoFollowerWrap) GetFollowerInfo() *prototype.FollowerRelation {
 	res := s.getFollower()
 
    if res == nil {
       return nil
       
    }
-   return res.Account
+   return res.FollowerInfo
 }
 
-
-func (s *SoFollowerWrap) GetCreatedTime() *prototype.TimePointSec {
-	res := s.getFollower()
-
-   if res == nil {
-      return nil
-      
-   }
-   return res.CreatedTime
-}
-
-
-
-func (s *SoFollowerWrap) MdCreatedTime(p prototype.TimePointSec) bool {
-	sa := s.getFollower()
-	if sa == nil {
-		return false
-	}
-	
-   
-   sa.CreatedTime = &p
-   
-	if !s.update(sa) {
-		return false
-	}
-    
-	return true
-}
-
-func (s *SoFollowerWrap) GetFollower() *prototype.AccountName {
-	res := s.getFollower()
-
-   if res == nil {
-      return nil
-      
-   }
-   return res.Follower
-}
-
-
-
-func (s *SoFollowerWrap) MdFollower(p prototype.AccountName) bool {
-	sa := s.getFollower()
-	if sa == nil {
-		return false
-	}
-    //judge the unique value if is exist
-    uniWrap  := UniFollowerFollowerWrap{}
-   res := uniWrap.UniQueryFollower(sa.Follower)
-   
-	if res != nil {
-		//the unique value to be modified is already exist
-		return false
-	}
-	if !s.delUniKeyFollower(sa) {
-		return false
-	}
-    
-	
-   
-   sa.Follower = &p
-   
-	if !s.update(sa) {
-		return false
-	}
-    
-    if !s.insertUniKeyFollower(sa) {
-		return false
-    }
-	return true
-}
-
-func (s *SoFollowerWrap) GetFollowerOrder() *prototype.FollowerOrder {
-	res := s.getFollower()
-
-   if res == nil {
-      return nil
-      
-   }
-   return res.FollowerOrder
-}
-
-
-
-func (s *SoFollowerWrap) MdFollowerOrder(p prototype.FollowerOrder) bool {
-	sa := s.getFollower()
-	if sa == nil {
-		return false
-	}
-    //judge the unique value if is exist
-    uniWrap  := UniFollowerFollowerOrderWrap{}
-   res := uniWrap.UniQueryFollowerOrder(sa.FollowerOrder)
-   
-	if res != nil {
-		//the unique value to be modified is already exist
-		return false
-	}
-	if !s.delUniKeyFollowerOrder(sa) {
-		return false
-	}
-    
-	
-	if !s.delSortKeyFollowerOrder(sa) {
-		return false
-	}
-   
-   sa.FollowerOrder = &p
-   
-	if !s.update(sa) {
-		return false
-	}
-    
-    if !s.insertSortKeyFollowerOrder(sa) {
-		return false
-    }
-       
-    if !s.insertUniKeyFollowerOrder(sa) {
-		return false
-    }
-	return true
-}
 
 
 
 
 ////////////// SECTION List Keys ///////////////
-type SFollowerFollowerOrderWrap struct {
+type SFollowerFollowerInfoWrap struct {
 	Dba iservices.IDatabaseService
 }
 
-func (s *SFollowerFollowerOrderWrap)DelIterater(iterator iservices.IDatabaseIterator){
+func (s *SFollowerFollowerInfoWrap)DelIterater(iterator iservices.IDatabaseIterator){
    if iterator == nil || !iterator.Valid() {
 		return 
 	}
    s.Dba.DeleteIterator(iterator)
 }
 
-func (s *SFollowerFollowerOrderWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.AccountName {
+func (s *SFollowerFollowerInfoWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.FollowerRelation {
 	if iterator == nil || !iterator.Valid() {
 		return nil
 	}
@@ -313,19 +178,19 @@ func (s *SFollowerFollowerOrderWrap) GetMainVal(iterator iservices.IDatabaseIter
 		return nil
 	}
 
-	res := &SoListFollowerByFollowerOrder{}
+	res := &SoListFollowerByFollowerInfo{}
 	err = proto.Unmarshal(val, res)
 
 	if err != nil {
 		return nil
 	}
     
-   return res.Account
+   return res.FollowerInfo
    
 
 }
 
-func (s *SFollowerFollowerOrderWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.FollowerOrder {
+func (s *SFollowerFollowerInfoWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.FollowerRelation {
 	if iterator == nil || !iterator.Valid() {
 		return nil
 	}
@@ -336,7 +201,7 @@ func (s *SFollowerFollowerOrderWrap) GetSubVal(iterator iservices.IDatabaseItera
 		return nil
 	}
 
-	res := &SoListFollowerByFollowerOrder{}
+	res := &SoListFollowerByFollowerInfo{}
 	err = proto.Unmarshal(val, res)
 
 	if err != nil {
@@ -345,34 +210,34 @@ func (s *SFollowerFollowerOrderWrap) GetSubVal(iterator iservices.IDatabaseItera
     
    
     
-   return res.FollowerOrder
+   return res.FollowerInfo
    
 }
 
-func (m *SoListFollowerByFollowerOrder) OpeEncode() ([]byte,error) {
-    pre := FollowerFollowerOrderTable
-    sub := m.FollowerOrder
+func (m *SoListFollowerByFollowerInfo) OpeEncode() ([]byte,error) {
+    pre := FollowerFollowerInfoTable
+    sub := m.FollowerInfo
     if sub == nil {
-       return nil,errors.New("the pro FollowerOrder is nil")
+       return nil,errors.New("the pro FollowerInfo is nil")
     }
-    sub1 := m.Account
+    sub1 := m.FollowerInfo
     if sub1 == nil {
-       return nil,errors.New("the mainKey FollowerOrder is nil")
+       return nil,errors.New("the mainKey FollowerInfo is nil")
     }
     kList := []interface{}{pre,sub,sub1}
     kBuf,cErr := encoding.EncodeSlice(kList,false)
     return kBuf,cErr
 }
 
-func (m *SoListFollowerByFollowerOrder) EncodeRevSortKey() ([]byte,error) {
-    pre := FollowerFollowerOrderRevOrdTable
-    sub := m.FollowerOrder
+func (m *SoListFollowerByFollowerInfo) EncodeRevSortKey() ([]byte,error) {
+    pre := FollowerFollowerInfoRevOrdTable
+    sub := m.FollowerInfo
     if sub == nil {
-       return nil,errors.New("the pro FollowerOrder is nil")
+       return nil,errors.New("the pro FollowerInfo is nil")
     }
-    sub1 := m.Account
+    sub1 := m.FollowerInfo
     if sub1 == nil {
-       return nil,errors.New("the mainKey FollowerOrder is nil")
+       return nil,errors.New("the mainKey FollowerInfo is nil")
     }
     kList := []interface{}{pre,sub,sub1}
     ordKey,cErr := encoding.EncodeSlice(kList,false)
@@ -385,9 +250,9 @@ func (m *SoListFollowerByFollowerOrder) EncodeRevSortKey() ([]byte,error) {
 
 
 //Query sort by reverse order 
-func (s *SFollowerFollowerOrderWrap) QueryListByRevOrder(start *prototype.FollowerOrder, end *prototype.FollowerOrder) iservices.IDatabaseIterator {
+func (s *SFollowerFollowerInfoWrap) QueryListByRevOrder(start *prototype.FollowerRelation, end *prototype.FollowerRelation) iservices.IDatabaseIterator {
 
-    pre := FollowerFollowerOrderTable
+    pre := FollowerFollowerInfoTable
     skeyList := []interface{}{pre}
     if start != nil {
        skeyList = append(skeyList,start)
@@ -473,9 +338,9 @@ func (s *SoFollowerWrap) encodeMainKey() ([]byte, error) {
 ////////////// Unique Query delete/insert/query ///////////////
 
 
-func (s *SoFollowerWrap) delUniKeyAccount(sa *SoFollower) bool {
-    pre := FollowerAccountUniTable
-    sub := sa.Account
+func (s *SoFollowerWrap) delUniKeyFollowerInfo(sa *SoFollower) bool {
+    pre := FollowerFollowerInfoUniTable
+    sub := sa.FollowerInfo
     kList := []interface{}{pre,sub}
     kBuf,err := encoding.EncodeSlice(kList,false)
 	if err != nil {
@@ -485,17 +350,17 @@ func (s *SoFollowerWrap) delUniKeyAccount(sa *SoFollower) bool {
 }
 
 
-func (s *SoFollowerWrap) insertUniKeyAccount(sa *SoFollower) bool {
-    uniWrap  := UniFollowerAccountWrap{}
+func (s *SoFollowerWrap) insertUniKeyFollowerInfo(sa *SoFollower) bool {
+    uniWrap  := UniFollowerFollowerInfoWrap{}
      uniWrap.Dba = s.dba
    
-   res := uniWrap.UniQueryAccount(sa.Account)
+   res := uniWrap.UniQueryFollowerInfo(sa.FollowerInfo)
    if res != nil {
 		//the unique key is already exist
 		return false
 	}
-    val := SoUniqueFollowerByAccount{}
-    val.Account = sa.Account
+    val := SoUniqueFollowerByFollowerInfo{}
+    val.FollowerInfo = sa.FollowerInfo
     
 	buf, err := proto.Marshal(&val)
 
@@ -503,8 +368,8 @@ func (s *SoFollowerWrap) insertUniKeyAccount(sa *SoFollower) bool {
 		return false
 	}
     
-    pre := FollowerAccountUniTable
-    sub := sa.Account
+    pre := FollowerFollowerInfoUniTable
+    sub := sa.FollowerInfo
     kList := []interface{}{pre,sub}
     kBuf,err := encoding.EncodeSlice(kList,false)
 	if err != nil {
@@ -514,150 +379,20 @@ func (s *SoFollowerWrap) insertUniKeyAccount(sa *SoFollower) bool {
 
 }
 
-type UniFollowerAccountWrap struct {
+type UniFollowerFollowerInfoWrap struct {
 	Dba iservices.IDatabaseService
 }
 
-func (s *UniFollowerAccountWrap) UniQueryAccount(start *prototype.AccountName) *SoFollowerWrap{
-    pre := FollowerAccountUniTable
+func (s *UniFollowerFollowerInfoWrap) UniQueryFollowerInfo(start *prototype.FollowerRelation) *SoFollowerWrap{
+    pre := FollowerFollowerInfoUniTable
     kList := []interface{}{pre,start}
     bufStartkey,err := encoding.EncodeSlice(kList,false)
     val,err := s.Dba.Get(bufStartkey)
 	if err == nil {
-		res := &SoUniqueFollowerByAccount{}
+		res := &SoUniqueFollowerByFollowerInfo{}
 		rErr := proto.Unmarshal(val, res)
 		if rErr == nil {
-			wrap := NewSoFollowerWrap(s.Dba,res.Account)
-            
-			return wrap
-		}
-	}
-    return nil
-}
-
-
-
-func (s *SoFollowerWrap) delUniKeyFollower(sa *SoFollower) bool {
-    pre := FollowerFollowerUniTable
-    sub := sa.Follower
-    kList := []interface{}{pre,sub}
-    kBuf,err := encoding.EncodeSlice(kList,false)
-	if err != nil {
-		return false
-	}
-	return s.dba.Delete(kBuf) == nil
-}
-
-
-func (s *SoFollowerWrap) insertUniKeyFollower(sa *SoFollower) bool {
-    uniWrap  := UniFollowerFollowerWrap{}
-     uniWrap.Dba = s.dba
-   
-   res := uniWrap.UniQueryFollower(sa.Follower)
-   if res != nil {
-		//the unique key is already exist
-		return false
-	}
-    val := SoUniqueFollowerByFollower{}
-    val.Account = sa.Account
-    val.Follower = sa.Follower
-    
-	buf, err := proto.Marshal(&val)
-
-	if err != nil {
-		return false
-	}
-    
-    pre := FollowerFollowerUniTable
-    sub := sa.Follower
-    kList := []interface{}{pre,sub}
-    kBuf,err := encoding.EncodeSlice(kList,false)
-	if err != nil {
-		return false
-	}
-	return s.dba.Put(kBuf, buf) == nil
-
-}
-
-type UniFollowerFollowerWrap struct {
-	Dba iservices.IDatabaseService
-}
-
-func (s *UniFollowerFollowerWrap) UniQueryFollower(start *prototype.AccountName) *SoFollowerWrap{
-    pre := FollowerFollowerUniTable
-    kList := []interface{}{pre,start}
-    bufStartkey,err := encoding.EncodeSlice(kList,false)
-    val,err := s.Dba.Get(bufStartkey)
-	if err == nil {
-		res := &SoUniqueFollowerByFollower{}
-		rErr := proto.Unmarshal(val, res)
-		if rErr == nil {
-			wrap := NewSoFollowerWrap(s.Dba,res.Account)
-            
-			return wrap
-		}
-	}
-    return nil
-}
-
-
-
-func (s *SoFollowerWrap) delUniKeyFollowerOrder(sa *SoFollower) bool {
-    pre := FollowerFollowerOrderUniTable
-    sub := sa.FollowerOrder
-    kList := []interface{}{pre,sub}
-    kBuf,err := encoding.EncodeSlice(kList,false)
-	if err != nil {
-		return false
-	}
-	return s.dba.Delete(kBuf) == nil
-}
-
-
-func (s *SoFollowerWrap) insertUniKeyFollowerOrder(sa *SoFollower) bool {
-    uniWrap  := UniFollowerFollowerOrderWrap{}
-     uniWrap.Dba = s.dba
-   
-   res := uniWrap.UniQueryFollowerOrder(sa.FollowerOrder)
-   if res != nil {
-		//the unique key is already exist
-		return false
-	}
-    val := SoUniqueFollowerByFollowerOrder{}
-    val.Account = sa.Account
-    val.FollowerOrder = sa.FollowerOrder
-    
-	buf, err := proto.Marshal(&val)
-
-	if err != nil {
-		return false
-	}
-    
-    pre := FollowerFollowerOrderUniTable
-    sub := sa.FollowerOrder
-    kList := []interface{}{pre,sub}
-    kBuf,err := encoding.EncodeSlice(kList,false)
-	if err != nil {
-		return false
-	}
-	return s.dba.Put(kBuf, buf) == nil
-
-}
-
-type UniFollowerFollowerOrderWrap struct {
-	Dba iservices.IDatabaseService
-}
-
-func (s *UniFollowerFollowerOrderWrap) UniQueryFollowerOrder(start *prototype.FollowerOrder) *SoFollowerWrap{
-    pre := FollowerFollowerOrderUniTable
-    kList := []interface{}{pre,start}
-    bufStartkey,err := encoding.EncodeSlice(kList,false)
-    val,err := s.Dba.Get(bufStartkey)
-	if err == nil {
-		res := &SoUniqueFollowerByFollowerOrder{}
-		rErr := proto.Unmarshal(val, res)
-		if rErr == nil {
-			wrap := NewSoFollowerWrap(s.Dba,res.Account)
+			wrap := NewSoFollowerWrap(s.Dba,res.FollowerInfo)
             
 			return wrap
 		}

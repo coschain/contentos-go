@@ -42,7 +42,7 @@ func (as *APIService) GetFollowerListByName(ctx context.Context, req *grpcpb.Get
 		limit   uint32
 	)
 
-	ferWrap := &table.SFollowerFollowerOrderWrap{Dba: as.db}
+	ferWrap := &table.SFollowerFollowerInfoWrap{Dba: as.db}
 
 	if req.Start == nil {
 		ferIter = ferWrap.QueryListByRevOrder(nil, nil)
@@ -83,7 +83,7 @@ func (as *APIService) GetFollowingListByName(ctx context.Context, req *grpcpb.Ge
 		limit    uint32
 	)
 
-	fingWrap := &table.SFollowingFollowingOrderWrap{Dba: as.db}
+	fingWrap := &table.SFollowingFollowingInfoWrap{Dba: as.db}
 
 	if req.Start == nil {
 		fingIter = fingWrap.QueryListByRevOrder(nil, nil)
