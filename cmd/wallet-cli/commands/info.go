@@ -8,11 +8,11 @@ import (
 
 var InfoCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "info",
-		Short: "display an account info",
-
-		Args: cobra.ExactArgs(1),
-		Run:  info,
+		Use:     "info",
+		Short:   "display an unlocked account's info",
+		Example: "info alice",
+		Args:    cobra.ExactArgs(1),
+		Run:     info,
 	}
 	return cmd
 }

@@ -16,7 +16,6 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "wallet-cli",
 	Short: "wallet-cli is a key-pair storage",
 }
 
@@ -127,6 +126,7 @@ func addCommands() {
 	rootCmd.AddCommand(commands.AccountCmd())
 	rootCmd.AddCommand(commands.GenKeyPairCmd())
 	rootCmd.AddCommand(commands.TransferCmd())
+	rootCmd.AddCommand(commands.VoteCmd())
 }
 
 func init() {
