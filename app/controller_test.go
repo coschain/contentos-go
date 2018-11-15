@@ -41,7 +41,7 @@ func Test_PushTrx(t *testing.T) {
 		t.Error("PublicKeyFromWIF error")
 	}
 	acop := &prototype.AccountCreateOperation{
-		Fee:            &prototype.Coin{Amount: &prototype.Safe64{Value: 1}},
+		Fee:            prototype.MakeCoin(1),
 		Creator:        &prototype.AccountName{Value: constants.COS_INIT_MINER},
 		NewAccountName: &prototype.AccountName{Value: accountName},
 		Owner: &prototype.Authority{

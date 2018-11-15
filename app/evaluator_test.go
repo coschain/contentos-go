@@ -15,7 +15,7 @@ const (
 func Test_ApplyAccountCreate(t *testing.T) {
 	clearDB()
 	acop := &prototype.AccountCreateOperation{
-		Fee:            &prototype.Coin{Amount: &prototype.Safe64{Value: 1}},
+		Fee:            prototype.MakeCoin(1),
 		Creator:        &prototype.AccountName{Value: "initminer"},
 		NewAccountName: &prototype.AccountName{Value: "alice"},
 		Owner: &prototype.Authority{
@@ -71,7 +71,7 @@ func Test_ApplyTransfer(t *testing.T) {
 	top := &prototype.TransferOperation{
 		From: &prototype.AccountName{Value:"initminer"},
 		To: &prototype.AccountName{Value:"alice"},
-		Amount: &prototype.Coin{Amount:&prototype.Safe64{Value:100},},
+		Amount: prototype.MakeCoin(100),
 	}
 
 	db := startDB()
@@ -80,12 +80,12 @@ func Test_ApplyTransfer(t *testing.T) {
 
 	alice := &prototype.AccountName{Value:"alice"}
 	aliceWrap := table.NewSoAccountWrap(db,alice)
-	aliceOrigin := aliceWrap.GetBalance().Amount.Value
+	aliceOrigin := aliceWrap.GetBalance().Value
 	fmt.Println("alice origin:",aliceOrigin)
 
 	initminer := &prototype.AccountName{Value:"initminer"}
 	minerWrap := table.NewSoAccountWrap(db,initminer)
-	initMinerOrigin := minerWrap.GetBalance().Amount.Value
+	initMinerOrigin := minerWrap.GetBalance().Value
 	fmt.Println("initminer origin:",initMinerOrigin)
 
 	// construct base op ...
@@ -100,13 +100,13 @@ func Test_ApplyTransfer(t *testing.T) {
 	ev.Apply(op)
 
 	// check
-	fmt.Println("alice new:",aliceWrap.GetBalance().Amount.Value)
-	if aliceWrap.GetBalance().Amount.Value != aliceOrigin + 100 {
+	fmt.Println("alice new:",aliceWrap.GetBalance().Value)
+	if aliceWrap.GetBalance().Value != aliceOrigin + 100 {
 		t.Error("transfer op failed, receiver's balance wrong")
 	}
 
-	fmt.Println("initminer new:",minerWrap.GetBalance().Amount.Value)
-	if minerWrap.GetBalance().Amount.Value != initMinerOrigin - 100 {
+	fmt.Println("initminer new:",minerWrap.GetBalance().Value)
+	if minerWrap.GetBalance().Value != initMinerOrigin - 100 {
 		t.Error("transfer op failed, sender's balance wrong")
 	}
 }
