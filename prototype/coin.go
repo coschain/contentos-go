@@ -1,14 +1,15 @@
 package prototype
 
+import "github.com/coschain/contentos-go/common/encoding"
 
 func (m *Coin) OpeEncode() ([]byte, error) {
-	return m.Amount.OpeEncode()
+	return encoding.Encode(m.Value)
 }
 
 func (m *Coin) NonZero() bool {
-	return m.Amount.Value != 0
+	return m.Value != 0
 }
 
-func MakeCoin(value int64) *Coin {
-	return &Coin{Amount: MakeSafe64(value)}
+func MakeCoin(value uint64) *Coin {
+	return &Coin{Value:value}
 }

@@ -31,9 +31,6 @@ func (t *TransferOperation) Validate() bool {
 	if t.Amount == nil {
 		return false
 	}
-	if t.Amount.Amount == nil {
-		return false
-	}
 	if !t.Amount.NonZero(){
 		return false
 	}

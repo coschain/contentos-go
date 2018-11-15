@@ -337,8 +337,8 @@ func (c *Controller) initGenesis() {
 	newAccount.Name = name
 	newAccount.PubKey = pubKey
 	newAccount.CreatedTime = &prototype.TimePointSec{UtcSeconds:0}
-	cos := &prototype.Coin{Amount:&prototype.Safe64{Value:constants.INIT_SUPPLY}}
-	vest := &prototype.Vest{Amount:&prototype.Safe64{Value:0}}
+	cos := prototype.MakeCoin(constants.INIT_SUPPLY)
+	vest := prototype.MakeVest(0)
 	newAccount.Balance = cos
 	newAccount.VestingShares = vest
 	if !newAccountWrap.CreateAccount(newAccount) {
@@ -378,7 +378,7 @@ func (c *Controller) initGenesis() {
 	dgp.CurrentSupply = cos
 	dgp.TotalCos = cos
 	dgp.MaximumBlockSize = constants.MAX_BLOCK_SIZE
-	dgp.TotalVestingShares = &prototype.Vest{Amount:&prototype.Safe64{Value:0}}
+	dgp.TotalVestingShares = prototype.MakeVest(0)
 	if !dgpWrap.CreateDynamicGlobalProperties(dgp) {
 		panic("CreateDynamicGlobalProperties error")
 	}
@@ -399,13 +399,13 @@ func (c *Controller) CreateVesting(accountName *prototype.AccountName, cos *prot
 	newVesting := prototype.CosToVesting(cos)
 	creatorWrap := table.NewSoAccountWrap(c.db,accountName)
 	oldVesting := creatorWrap.GetVestingShares()
-	oldVesting.Amount.Value += newVesting.Amount.Value
+	oldVesting.Value += newVesting.Value
 	creatorWrap.MdVestingShares(*oldVesting)
 
 	var i int32 = 0
 	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db,&i)
 	originTotal := dgpWrap.GetTotalVestingShares()
-	originTotal.Amount.Value += newVesting.Amount.Value
+	originTotal.Value += newVesting.Value
 	dgpWrap.MdTotalVestingShares(*originTotal)
 	return newVesting
 }
@@ -413,27 +413,27 @@ func (c *Controller) CreateVesting(accountName *prototype.AccountName, cos *prot
 func (c *Controller) SubBalance(accountName *prototype.AccountName, cos *prototype.Coin) {
 	accountWrap := table.NewSoAccountWrap(c.db,accountName)
 	originBalance := accountWrap.GetBalance()
-	originBalance.Amount.Value -= cos.Amount.Value
+	originBalance.Value -= cos.Value
 	accountWrap.MdBalance(*originBalance)
 
 	// dynamic glaobal properties
 	var i int32 = 0
 	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db,&i)
 	originTotal := dgpWrap.GetTotalCos()
-	originTotal.Amount.Value -= cos.Amount.Value
+	originTotal.Value -= cos.Value
 	dgpWrap.MdTotalCos(*originTotal)
 }
 
 func (c *Controller) AddBalance(accountName *prototype.AccountName, cos *prototype.Coin) {
 	accountWrap := table.NewSoAccountWrap(c.db,accountName)
 	originBalance := accountWrap.GetBalance()
-	originBalance.Amount.Value += cos.Amount.Value
+	originBalance.Value += cos.Value
 	accountWrap.MdBalance(*originBalance)
 
 	// dynamic glaobal properties
 	var i int32 = 0
 	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db,&i)
 	originTotal := dgpWrap.GetTotalCos()
-	originTotal.Amount.Value += cos.Amount.Value
+	originTotal.Value += cos.Value
 	dgpWrap.MdTotalCos(*originTotal)
 }

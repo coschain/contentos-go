@@ -1,13 +1,13 @@
 package prototype
 
 func CosToVesting(cos *Coin) *Vest{
-	vest := &Vest{Amount:&Safe64{}}
-	vest.Amount.Value = cos.Amount.Value
+	vest := &Vest{}
+	vest.Value = cos.Value
 	return vest
 }
 
 func VestingToCoin(vest *Vest) *Coin {
-	cos := &Coin{Amount:&Safe64{}}
-	cos.Amount.Value = vest.Amount.Value
+	cos := &Coin{}
+	cos.Value = vest.Value
 	return cos
 }

@@ -17,11 +17,11 @@ message safe64{
 }
 
 message coin{
-    safe64 amount = 1;
+    uint64 value = 1;
 }
 
 message vest{
-    safe64 amount = 1;
+    uint64 value = 1;
 }
 
 message public_key_type{

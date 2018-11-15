@@ -54,7 +54,7 @@ func (ev *AccountCreateEvaluator) Apply(operation *prototype.Operation) {
 	if !creatorWrap.CheckExist() {
 		panic("creator not exist")
 	}
-	if creatorWrap.GetBalance().Amount.Value < op.Fee.Amount.Value {
+	if creatorWrap.GetBalance().Value < op.Fee.Value {
 		panic("Insufficient balance to create account.")
 	}
 
@@ -80,14 +80,14 @@ func (ev *AccountCreateEvaluator) Apply(operation *prototype.Operation) {
 
 	// sub creator's fee
 	originBalance := creatorWrap.GetBalance()
-	originBalance.Amount.Value -= op.Fee.Amount.Value
+	originBalance.Value -= op.Fee.Value
 	creatorWrap.MdBalance(*originBalance)
 
 	// sub dynamic glaobal properties's total fee
 	var i int32 = 0
 	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(ev.db,&i)
 	originTotal := dgpWrap.GetTotalCos()
-	originTotal.Amount.Value -= op.Fee.Amount.Value
+	originTotal.Value -= op.Fee.Value
 	dgpWrap.MdTotalCos(*originTotal)
 
 	// create account
@@ -97,8 +97,8 @@ func (ev *AccountCreateEvaluator) Apply(operation *prototype.Operation) {
 	newAccount.Creator = op.Creator
 	newAccount.CreatedTime = dgpWrap.GetTime()
 	newAccount.PubKey = op.MemoKey
-	cos := &prototype.Coin{Amount:&prototype.Safe64{Value:0}}
-	vest := &prototype.Vest{Amount:&prototype.Safe64{Value:0}}
+	cos := prototype.MakeCoin(0)
+	vest := prototype.MakeVest(0)
 	newAccount.Balance = cos
 	newAccount.VestingShares = vest
 	if !newAccountWrap.CreateAccount(newAccount) {
@@ -118,7 +118,7 @@ func (ev *AccountCreateEvaluator) Apply(operation *prototype.Operation) {
 	}
 
 	// create vesting
-	if op.Fee.Amount.Value > 0 {
+	if op.Fee.Value > 0 {
 		ev.control.CreateVesting(op.NewAccountName,op.Fee)
 	}
 }
@@ -134,7 +134,7 @@ func (ev *TransferEvaluator) Apply(operation *prototype.Operation) {
 	// @ active_challenged
 
 	fromWrap := table.NewSoAccountWrap(ev.db,op.From)
-	if fromWrap.GetBalance().Amount.Value < op.Amount.Amount.Value {
+	if fromWrap.GetBalance().Value < op.Amount.Value {
 		panic("Insufficient balance to transfer.")
 	}
 
