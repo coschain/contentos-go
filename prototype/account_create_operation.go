@@ -18,6 +18,20 @@ func (a *AccountCreateOperation) GetAdmin(*[]AccountAdminPair) {
 func (a *AccountCreateOperation) IsVirtual() {
 
 }
-func (a *AccountCreateOperation) Validate() {
+func (a *AccountCreateOperation) Validate() bool {
 
+	if a == nil{
+		return false
+	}
+
+	if !a.Creator.Validate(){
+		return false
+	}
+	if !a.NewAccountName.Validate(){
+		return false
+	}
+
+	// TODO public key valid check
+
+	return true
 }

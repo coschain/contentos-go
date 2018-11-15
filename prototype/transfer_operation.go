@@ -18,6 +18,24 @@ func (t *TransferOperation) GetAdmin(*[]AccountAdminPair) {
 func (t *TransferOperation) IsVirtual() {
 
 }
-func (t *TransferOperation) Validate() {
-
+func (t *TransferOperation) Validate() bool {
+	if t == nil {
+		return false
+	}
+	if !t.From.Validate(){
+		return false
+	}
+	if !t.To.Validate(){
+		return false
+	}
+	if t.Amount == nil {
+		return false
+	}
+	if t.Amount.Amount == nil {
+		return false
+	}
+	if !t.Amount.NonZero(){
+		return false
+	}
+	return true
 }

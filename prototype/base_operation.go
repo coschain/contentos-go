@@ -20,5 +20,5 @@ type BaseOperation interface {
 	GetAdmin(*[]AccountAdminPair)
 	IsVirtual()
 
-	Validate()
+	Validate() bool
 }

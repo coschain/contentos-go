@@ -2,6 +2,7 @@ package commands
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/coschain/cobra"
 	"github.com/coschain/contentos-go/prototype"
@@ -36,7 +37,8 @@ func getAccount(cmd *cobra.Command, args []string) {
 	if err != nil {
 		fmt.Println(err)
 	} else {
-		fmt.Println(fmt.Sprintf("GetAccountByName detail: %s", resp.AccountName))
+		buf,_:=json.Marshal(resp)
+		fmt.Println(fmt.Sprintf("GetAccountByName detail: %s", string(buf)))
 	}
 }
 
@@ -50,6 +52,7 @@ func getFollowers(cmd *cobra.Command, args []string) {
 	if err != nil {
 		fmt.Println(err)
 	} else {
-		fmt.Println(fmt.Sprintf("GetAccountByName detail: %s", resp))
+		buf,_:=json.Marshal(resp)
+		fmt.Println(fmt.Sprintf("GetAccountByName detail: %s", string(buf)))
 	}
 }
