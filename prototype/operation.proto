@@ -33,21 +33,54 @@ message transfer_to_vesting_operation{
 
 message vote_operation{
     account_name voter = 1;
-    account_name author = 2;
-    string permlink = 3;
-    int32 weight = 4;
+    uint64 idx = 3;
 }
 
-message witness_update_operation{
+message bp_register_operation{
     account_name owner = 1;
     string url = 2;
-    public_key_type block_signing_key = 3;
-    chain_properties  props = 4;
-    coin fee = 5;
+    string desc = 3;
+    public_key_type block_signing_key = 4;
+    chain_properties  props = 5;
+}
+
+message bp_unregister_operation{
+    account_name owner = 1;
+}
+
+message bp_vote_operation{
+    account_name voter = 1;
+    account_name witness = 2;
+    bool cancel = 3;
 }
 
 message follow_operation{
     account_name follower = 1;
     account_name following = 2;
-    map<string, bool> what = 3;
+    bool cancel = 3;
 }
+
+
+message beneficiary_route_type{
+    account_name    name    = 1;
+    uint32          weight  = 2;
+}
+
+
+message post_operation{
+    string uuid             = 1;
+    account_name owner      = 2;
+    string title            = 3;
+    string content          = 4;
+    repeated string tags    = 5;
+    repeated beneficiary_route_type beneficiaries = 6;
+}
+
+message replay_operation{
+    string uuid             = 1;
+    account_name owner      = 2;
+    string content          = 3;
+    string parent_uuid      = 4;
+    repeated beneficiary_route_type beneficiaries = 6;
+}
+
