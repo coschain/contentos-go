@@ -87,12 +87,12 @@ shell_loop:
 			cmd.UsageFunc()(cmd)
 			continue
 		}
-		//cmd.ParseFlags(flags)
-		if err := cmd.ValidateArgs(flags); err != nil {
+		argWoFlags := cmd.Flags().Args()
+		if err := cmd.ValidateArgs(argWoFlags); err != nil {
 			fmt.Println(err)
 			continue
 		}
-		cmd.Run(cmd, flags)
+		cmd.Run(cmd, argWoFlags)
 	}
 }
 

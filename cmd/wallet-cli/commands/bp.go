@@ -22,16 +22,24 @@ var BpCmd = func() *cobra.Command {
 	registerCmd := &cobra.Command{
 		Use:   "register",
 		Short: "register as a new block-producer",
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.ExactArgs(2),
 		Run:   registerBP,
 	}
 
-	registerCmd.Flags().StringVarP(&bpUrlFlag, "url", "u", "", `import --url "http://example.com"`)
-	registerCmd.Flags().StringVarP(&bpDescFlag, "desc", "d", "", `import --desc "Hello World"`)
-	registerCmd.Flags().Int64VarP(&bpCreateAccountFee, "fee", "", 1, `import --fee 1`)
-	registerCmd.Flags().Uint32VarP(&bpBlockSize, "blocksize", "", 1024*1024, `import --blocksize 1024`)
+	registerCmd.Flags().StringVarP(&bpUrlFlag, "url", "u", "", `bp register --url "http://example.com"`)
+	registerCmd.Flags().StringVarP(&bpDescFlag, "desc", "d", "", `bp register --desc "Hello World"`)
+	registerCmd.Flags().Int64VarP(&bpCreateAccountFee, "fee", "", 1, `bp register --fee 1`)
+	registerCmd.Flags().Uint32VarP(&bpBlockSize, "blocksize", "", 1024*1024, `bp register --blocksize 1024`)
+
+	unregisterCmd := &cobra.Command{
+		Use:   "unregister",
+		Short: "unregister a block-producer",
+		Args:  cobra.ExactArgs(1),
+		Run:   unRegisterBP,
+	}
 
 	cmd.AddCommand(registerCmd)
+	cmd.AddCommand(unregisterCmd)
 
 	return cmd
 }
@@ -77,5 +85,9 @@ func registerBP(cmd *cobra.Command, args []string) {
 	} else {
 		fmt.Println(fmt.Sprintf("Result: %v", resp))
 	}
+
+}
+
+func unRegisterBP(cmd *cobra.Command, args []string) {
 
 }

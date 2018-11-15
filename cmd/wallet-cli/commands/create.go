@@ -11,11 +11,11 @@ import (
 
 var CreateCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "create",
-		Short: "create a new account",
-
-		Args: cobra.ExactArgs(3),
-		Run:  create,
+		Use:     "create",
+		Short:   "create a new account",
+		Example: "create [creator] [name] [passphrase]",
+		Args:    cobra.ExactArgs(3),
+		Run:     create,
 	}
 	return cmd
 }

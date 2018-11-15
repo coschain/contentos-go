@@ -30,14 +30,11 @@ func importAccount(cmd *cobra.Command, args []string) {
 	privKeyStr := args[1]
 	passphrase := args[2]
 	if !importForceFlag {
-		err := mywallet.Load(name)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
+		// just try to load or reload, if the name exist then we can find it in next step
+		_ = mywallet.Load(name)
 		ok := mywallet.IsExist(name)
 		if ok {
-			fmt.Println(fmt.Sprintf("the account: %s has been in your local keychain, please load it or import -f",
+			fmt.Println(fmt.Sprintf("the account: %s has been in your local keychain, please load it or you can import -f",
 				name))
 			return
 		}

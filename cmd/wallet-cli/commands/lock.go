@@ -25,5 +25,5 @@ func lock(cmd *cobra.Command, args []string) {
 		fmt.Println(fmt.Sprintf("error: %v\n", err))
 		return
 	}
-	fmt.Println(fmt.Sprintf("unlock account %s success", name))
+	fmt.Println(fmt.Sprintf("account %s success", name))
 }
