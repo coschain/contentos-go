@@ -126,7 +126,10 @@ func addCommands() {
 	rootCmd.AddCommand(commands.AccountCmd())
 	rootCmd.AddCommand(commands.GenKeyPairCmd())
 	rootCmd.AddCommand(commands.TransferCmd())
+	rootCmd.AddCommand(commands.TransferVestingCmd())
 	rootCmd.AddCommand(commands.VoteCmd())
+	rootCmd.AddCommand(commands.ImportCmd())
+	rootCmd.AddCommand(commands.BpCmd())
 }
 
 func init() {

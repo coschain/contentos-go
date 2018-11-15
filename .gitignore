@@ -15,5 +15,5 @@
 .idea
 cmd_main
 main
-wallet-cli
+# wallet-cli
 *.log

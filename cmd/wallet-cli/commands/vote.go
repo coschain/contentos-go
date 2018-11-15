@@ -27,14 +27,11 @@ func vote(cmd *cobra.Command, args []string) {
 	w := cmd.Context["wallet"]
 	mywallet := w.(*wallet.BaseWallet)
 	voter := args[0]
-	author := args[1]
-	permlink := args[2]
-	weight64, err := strconv.ParseInt(args[3], 10, 32)
+	idx, err := strconv.ParseUint(args[1], 10, 64)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	weight := int32(weight64)
 	voterAccount, ok := mywallet.GetUnlockedAccount(voter)
 	if !ok {
 		fmt.Println(fmt.Sprintf("account: %s should be loaded or created first", voter))
@@ -42,10 +39,8 @@ func vote(cmd *cobra.Command, args []string) {
 	}
 
 	vote_op := &prototype.VoteOperation{
-		Voter:    &prototype.AccountName{Value: voter},
-		Author:   &prototype.AccountName{Value: author},
-		Permlink: permlink,
-		Weight:   weight,
+		Voter: &prototype.AccountName{Value: voter},
+		Idx:   idx,
 	}
 
 	signTx, err := GenerateSignedTx([]interface{}{vote_op}, voterAccount)
