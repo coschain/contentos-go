@@ -94,6 +94,25 @@ func TestGPRCApi_GetFollowerListByName(t *testing.T) {
 	}
 }
 
+func TestGPRCApi_GetWitnessList(t *testing.T) {
+	conn, err := Dial("127.0.0.1:8888")
+	if err != nil {
+		fmt.Print(err)
+	}
+	defer conn.Close()
+
+	asc := grpcpb.NewApiServiceClient(conn)
+
+	req := &grpcpb.GetWitnessListRequest{Limit:100}
+	resp := &grpcpb.GetWitnessListResponse{}
+	resp, err = asc.GetWitnessList(context.Background(), req)
+	if err != nil {
+		t.Errorf("GetFollowerListByName failed: %x", err)
+	} else {
+		t.Logf("GetFollowerListByName detail: %s", resp.WitnessList)
+	}
+}
+
 func TestHTTPApi_GetAccountByName(t *testing.T) {
 	postValue := "{\"account_name\": {\"value\":\"jack's test info\"}}"
 	http_client("POST", "http://127.0.0.1:8080/v1/user/get_account_by_name", postValue)
