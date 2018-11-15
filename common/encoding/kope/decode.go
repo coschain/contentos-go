@@ -190,11 +190,7 @@ func DecodeMinMaxKey(enc []byte) (*string, error) {
 }
 
 func DecodeCustom(enc []byte) (interface{}, error) {
-	if codec := customCodecByEncodedBytes(enc); codec != nil {
-		return codec.decoder(enc)
-	} else {
-		return nil, errors.New("invalid encoded data")
-	}
+	return customDecode(enc)
 }
 
 func Decode(enc []byte) (interface{}, error) {

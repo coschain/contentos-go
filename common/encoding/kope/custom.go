@@ -2,7 +2,6 @@ package kope
 
 import (
 	"bytes"
-	"encoding/binary"
 	"errors"
 	"hash/crc64"
 	"reflect"
@@ -28,8 +27,8 @@ func makeEncoder(enc CustomEncoderFunc, h uint64) CustomEncoderFunc {
 	return func(rv reflect.Value) ([]byte, error) {
 		data, err := enc(rv)
 		if err == nil {
-			hashBytes, _ := bigEndianBytes(h)
-			return pack(typeCustom, true, bytes.Join([][]byte{hashBytes, data}, nil))
+			typeHash, _ := EncodeUint64(h)
+			return pack(typeCustom, true, bytes.Join([][]byte{typeHash, data}, separator))
 		}
 		return nil, err
 	}
@@ -37,11 +36,7 @@ func makeEncoder(enc CustomEncoderFunc, h uint64) CustomEncoderFunc {
 
 func makeDecoder(dec CustomDecoderFunc) CustomDecoderFunc {
 	return func(e []byte) (interface{}, error) {
-		_, typ, data, err := unpack(e)
-		if err == nil && typ == typeCustom && len(data) >= 8 {
-			return dec(data[8:])
-		}
-		return nil, errors.New("invalid encoded data")
+		return dec(e)
 	}
 }
 
@@ -64,11 +59,23 @@ func customCodecByHash(h uint64) *CustomCodec {
 	return nil
 }
 
-func customCodecByEncodedBytes(enc []byte) *CustomCodec {
-	if len(enc) < 9 || enc[0] != typeCustom {
-		return nil
+func customDecode(enc []byte) (interface{}, error) {
+	_, typ, data, err := unpack(enc)
+	if err != nil {
+		return nil, err
 	}
-	return customCodecByHash(binary.BigEndian.Uint64(enc[1:]))
+	if typ != typeCustom {
+		return nil, errors.New("invalid encoded data")
+	}
+	if pos := bytes.Index(data, separator); pos > 0 {
+		h, err := DecodeUint64(data[:pos])
+		if err == nil {
+			if codec := customCodecByHash(h); codec != nil {
+				return codec.decoder(data[pos + len(separator):])
+			}
+		}
+	}
+	return nil, errors.New("invalid encoded data")
 }
 
 func RegisterType(rt reflect.Type, name string, enc CustomEncoderFunc, dec CustomDecoderFunc) {
