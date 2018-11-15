@@ -306,7 +306,7 @@ func flipped(data []byte, errs...error) ([]byte, error) {
 }
 
 func typeId(typ byte) (byte, bool) {
-	if f := typ & typeReversedFlag != 0; f {
+	if f := (typ & typeReversedFlag) != 0; f {
 		return ^typ, f
 	} else {
 		return typ, f

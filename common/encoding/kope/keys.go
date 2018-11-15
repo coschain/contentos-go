@@ -1,6 +1,9 @@
 package kope
 
-import "bytes"
+import (
+	"bytes"
+	"reflect"
+)
 
 type Key []byte
 type Keys []Key
@@ -17,9 +20,15 @@ func (keys Keys) Swap(i, j int) {
 	keys[i], keys[j] = keys[j], keys[i]
 }
 
+var (
+	keyType = reflect.TypeOf(Key(nil))
+	keyTypePkgName = keyType.PkgPath() + "." + keyType.Name()
+	keysType = reflect.TypeOf(Keys(nil))
+	keysTypePkgName = keysType.PkgPath() + "." + keysType.Name()
+)
 
 func validKey(k Key) bool {
-	if size := len(k); size >= 3 && (k[0] & ^byte(typeReversedFlag) == typeList) {
+	if size := len(k); size >= 3 && (k[0] == typeList) {
 		return true
 	}
 	return false
@@ -57,8 +66,14 @@ func MaxKey(prefix Key) Key {
 }
 
 func ComplementKey(k Key) Key {
-	if ck, err := Complement(k); err == nil {
-		return ck
+	if validKey(k) {
+		if ck, err := Complement(k); err == nil {
+			nk := make([]byte, 0, len(ck) + 3)
+			nk = append(nk, k[0])
+			nk = append(nk, ck...)
+			nk = append(nk, k[len(k) - 2:]...)
+			return nk
+		}
 	}
 	return nil
 }
@@ -73,7 +88,7 @@ func DecodeKey(k Key) interface{} {
 func SingleIndexKey(prefix Key, indexKey interface{}, primaryKey interface{}, reversed bool) Key {
 	ik := NewKey(indexKey)
 	if reversed {
-		ik = NewKey([]byte(ComplementKey(ik)))
+		ik = ComplementKey(ik)
 	}
 	return ConcatKey(prefix, ik, NewKey(primaryKey))
 }

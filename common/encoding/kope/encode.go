@@ -186,6 +186,9 @@ func EncodeValue(rv reflect.Value) ([]byte, error) {
 		return EncodeString(rv.Interface().(string))
 	case reflect.Array, reflect.Slice:
 		if rt.Elem().Kind() == reflect.Uint8 {
+			if rt.PkgPath() + "." + rt.Name() == keyTypePkgName {
+				return []byte(rv.Interface().(Key)), nil
+			}
 			return EncodeBytes(rv.Interface().([]byte))
 		}
 		size := rv.Len()
