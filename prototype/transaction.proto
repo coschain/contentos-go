@@ -11,6 +11,14 @@ message operation{
     oneof op{
         account_create_operation op1 = 1;
         transfer_operation op2 = 2;
+        bp_register_operation op3 = 3;
+        bp_unregister_operation op4 = 4;
+        bp_vote_operation op5 = 5;
+        post_operation op6 = 6;
+        replay_operation op7 = 7;
+        follow_operation op8 = 8;
+        vote_operation op9 = 9;
+        transfer_to_vesting_operation op10 = 10;
     }
 }
 
