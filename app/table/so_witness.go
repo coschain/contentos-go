@@ -92,8 +92,7 @@ func (s *SoWitnessWrap) delSortKeyOwner(sa *SoWitness) bool {
 	if err != nil {
 		return false
 	}
-    ordKey := append(WitnessOwnerTable, subBuf...)
-    ordErr :=  s.dba.Delete(ordKey)
+    ordErr :=  s.dba.Delete(subBuf)
     return ordErr == nil
     
 }
@@ -436,10 +435,8 @@ func (s *SWitnessOwnerWrap) GetMainVal(iterator iservices.IDatabaseIterator) *pr
 	if err != nil {
 		return nil
 	}
-    
-   return res.Owner
+    return res.Owner
    
-
 }
 
 func (s *SWitnessOwnerWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.AccountName {
@@ -452,17 +449,12 @@ func (s *SWitnessOwnerWrap) GetSubVal(iterator iservices.IDatabaseIterator) *pro
 	if err != nil {
 		return nil
 	}
-
 	res := &SoListWitnessByOwner{}
 	err = proto.Unmarshal(val, res)
-
 	if err != nil {
 		return nil
 	}
-    
-   
-    
-   return res.Owner
+    return res.Owner
    
 }
 
@@ -505,7 +497,7 @@ func (m *SoListWitnessByOwner) EncodeRevSortKey() ([]byte,error) {
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
 func (s *SWitnessOwnerWrap) QueryListByOrder(start *prototype.AccountName, end *prototype.AccountName) iservices.IDatabaseIterator {
-    pre := WitnessOwnerRevOrdTable
+    pre := WitnessOwnerTable
     skeyList := []interface{}{pre}
     if start != nil {
        skeyList = append(skeyList,start)
@@ -514,7 +506,10 @@ func (s *SWitnessOwnerWrap) QueryListByOrder(start *prototype.AccountName, end *
     if cErr != nil {
          return nil
     }
-    
+    if start != nil && end == nil {
+		iter := s.Dba.NewIterator(sBuf, nil)
+		return iter
+	}
     eKeyList := []interface{}{pre}
     if end != nil {
        eKeyList = append(eKeyList,end)

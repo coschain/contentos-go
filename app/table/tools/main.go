@@ -36,6 +36,11 @@ func (p *PropList) ToString() string {
 }
 
 func (p *PropList) Parse(info []string, index uint32) bool {
+	pCount := len(info)
+	if pCount < 6 {
+		log.Printf("the column of csv is not right")
+		return false
+	}
 	name := info[1]
 	if CheckUpperLetter(name) {
 		//the field name can't contain uppercase letters
@@ -151,13 +156,6 @@ func ProcessCSVFile(fileName string, name string) bool {
 		indexPb++
 		props = append(props, *pList)
 	}
-
-	//var res = ExtractPropListToPB( props, "so_"+name )
-	//fmt.Println(res)
-	//
-	//
-	//res = ExtractPropListToGoFile( props, "so_"+name )
-	//fmt.Println(res)
 
 	tInfo := TableInfo{name, props}
 
