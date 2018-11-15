@@ -135,7 +135,7 @@ func (this *P2PServer) Xmit(message interface{}) error {
 	case *prototype.SignedBlock:
 		log.Debug("[p2p]TX block message")
 		block := message.(*prototype.SignedBlock)
-		msg = msgpack.NewBlock(block)
+		msg = msgpack.NewSigBlkHashMsg(block)
 	default:
 		log.Warnf("[p2p]Unknown Xmit message %v , type %v", message,
 			reflect.TypeOf(message))

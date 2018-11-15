@@ -140,22 +140,18 @@ func MakeEmptyMessage(cmdType string) (Message, error) {
 		return &AddrReq{}, nil
 	case common.PONG_TYPE:
 		return &Pong{}, nil
-	case common.GET_HEADERS_TYPE:
-		return &HeadersReq{}, nil
-	case common.HEADERS_TYPE:
-		return &BlkHeader{}, nil
+	case common.HASH_TYPE:
+		return &msg.HashMsg{}, nil
 	case common.GET_DATA_TYPE:
 		return &DataReq{}, nil
 	case common.BLOCK_TYPE:
-		return &msg.BroadcastSigBlk{}, nil
+		return &msg.SigBlkMsg{}, nil
 	case common.TX_TYPE:
 		return &msg.BroadcastSigTrx{}, nil
 	case common.NOT_FOUND_TYPE:
 		return &NotFound{}, nil
 	case common.DISCONNECT_TYPE:
 		return &Disconnected{}, nil
-	case common.GET_BLOCKS_TYPE:
-		return &BlocksReq{}, nil
 	default:
 		return nil, errors.New("unsupported cmd type:" + cmdType)
 	}

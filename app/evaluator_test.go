@@ -13,7 +13,7 @@ const (
 	dbPath = "./pbTool.db"
 )
 func Test_ApplyAccountCreate(t *testing.T) {
-	os.RemoveAll(dbPath)
+	clearDB()
 	acop := &prototype.AccountCreateOperation{
 		Fee:            &prototype.Coin{Amount: &prototype.Safe64{Value: 1}},
 		Creator:        &prototype.AccountName{Value: "initminer"},
@@ -54,9 +54,6 @@ func Test_ApplyAccountCreate(t *testing.T) {
 	defer db.Close()
 	c := startController(db)
 
-	fmt.Println("db:",db)
-	fmt.Println("c:",c)
-
 	ev := &AccountCreateEvaluator{}
 	ev.SetDB(db)
 	ev.SetController(c)
@@ -71,7 +68,6 @@ func Test_ApplyAccountCreate(t *testing.T) {
 }
 
 func Test_ApplyTransfer(t *testing.T) {
-	fmt.Println("oooo")
 	top := &prototype.TransferOperation{
 		From: &prototype.AccountName{Value:"initminer"},
 		To: &prototype.AccountName{Value:"alice"},
@@ -133,4 +129,8 @@ func startController(db iservices.IDatabaseService) iservices.IController{
 	c.SetDB(db)
 	c.Open()
 	return c
+}
+
+func clearDB() {
+	os.RemoveAll(dbPath)
 }

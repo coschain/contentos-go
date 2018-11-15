@@ -85,3 +85,13 @@ message following_relation{
     time_point_sec created_time = 2;
     account_name following = 3;
 }
+
+message witness_schedule_type{
+    enum witness_schedule_type{
+        top19 = 0;
+        timeshare = 1;
+        miner = 2;
+        none = 3;
+    }
+    witness_schedule_type value = 1;
+}

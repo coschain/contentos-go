@@ -2,30 +2,22 @@ package utils
 
 import (
 	"fmt"
-	"github.com/coschain/contentos-go/p2p/depend/core/types"
 	"github.com/coschain/contentos-go/p2p/msg"
-
-	//"errors"
-	//"fmt"
+	"github.com/coschain/contentos-go/prototype"
 	"net"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/hashicorp/golang-lru"
-	evtActor "github.com/ontio/ontology-eventbus/actor"
-	//"github.com/coschain/contentos-go/p2p/depend/common"
 	"github.com/coschain/contentos-go/p2p/depend/common/config"
 	"github.com/coschain/contentos-go/p2p/depend/common/log"
+	evtActor "github.com/ontio/ontology-eventbus/actor"
 
 	msgCommon "github.com/coschain/contentos-go/p2p/common"
 	"github.com/coschain/contentos-go/p2p/message/msg_pack"
 	msgTypes "github.com/coschain/contentos-go/p2p/message/types"
 	"github.com/coschain/contentos-go/p2p/net/protocol"
 )
-
-//respCache cache for some response data
-var respCache *lru.ARCCache
 
 // AddrReqHandle handles the neighbor address request from peer
 func AddrReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
@@ -56,35 +48,6 @@ func AddrReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 
 	}
 	msg := msgpack.NewAddrs(addrStr)
-	err := p2p.Send(remotePeer, msg, false)
-	if err != nil {
-		log.Warn(err)
-		return
-	}
-}
-
-// HeaderReqHandle handles the header sync req from peer
-func HeadersReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
-	log.Trace("[p2p]receive headers request message", data.Addr, data.Id)
-
-	//headersReq := data.Payload.(*msgTypes.HeadersReq)
-
-	//startHash := headersReq.HashStart
-	//stopHash := headersReq.HashEnd
-
-	//headers, err := GetHeadersFromHash(startHash, stopHash)
-	//if err != nil {
-	//	log.Warnf("get headers in HeadersReqHandle error: %s,startHash:%s,stopHash:%s", err.Error(), startHash.ToHexString(), stopHash.ToHexString())
-	//	return
-	//}
-
-	headers := []*types.Header{}
-	remotePeer := p2p.GetPeer(data.Id)
-	if remotePeer == nil {
-		log.Debugf("[p2p]remotePeer invalid in HeadersReqHandle, peer id: %d", data.Id)
-		return
-	}
-	msg := msgpack.NewHeaders(headers)
 	err := p2p.Send(remotePeer, msg, false)
 	if err != nil {
 		log.Warn(err)
@@ -131,30 +94,17 @@ func PongHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args 
 	remotePeer.SetHeight(pong.Height)
 }
 
-// BlkHeaderHandle handles the sync headers from peer
-func BlkHeaderHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
-	log.Trace("[p2p]receive block header message", data.Addr, data.Id)
-	if pid != nil {
-		var blkHeader = data.Payload.(*msgTypes.BlkHeader)
-		input := &msgCommon.AppendHeaders{
-			FromID:  data.Id,
-			Headers: blkHeader.BlkHdr,
-		}
-		pid.Tell(input)
-	}
-}
-
 // BlockHandle handles the block message from peer
 func BlockHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
 	log.Trace("[p2p]receive block message from ", data.Addr, data.Id)
 
-                var block = data.Payload.(*msg.BroadcastSigBlk)
+	var block = data.Payload.(*msg.SigBlkMsg)
 
-                log.Info("receive a block")
-                fmt.Printf("data:   +%v\n", block)
+	log.Info("receive a block")
+	fmt.Printf("data:   +%v\n", block)
 
 	if pid != nil {
-		var block = data.Payload.(*msg.BroadcastSigBlk)
+		var block = data.Payload.(*msg.SigBlkMsg)
 
 		log.Info("receive a block")
 		fmt.Printf("data:   +%v\n", block)
@@ -480,77 +430,6 @@ func AddrHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args 
 	}
 }
 
-// DataReqHandle handles the data req(block/Transaction) from peer
-//func DataReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
-//	log.Trace("[p2p]receive data req message", data.Addr, data.Id)
-//
-//	var dataReq = data.Payload.(*msgTypes.DataReq)
-//
-//	remotePeer := p2p.GetPeer(data.Id)
-//	if remotePeer == nil {
-//		log.Debug("[p2p]remotePeer invalid in DataReqHandle")
-//		return
-//	}
-//	reqType := common.InventoryType(dataReq.DataType)
-//	hash := dataReq.Hash
-//	switch reqType {
-//	case common.BLOCK:
-//		reqID := fmt.Sprintf("%x%s", reqType, hash.ToHexString())
-//		data := getRespCacheValue(reqID)
-//		var block *types.Block
-//		var err error
-//		if data != nil {
-//			switch data.(type) {
-//			case *types.Block:
-//				block = data.(*types.Block)
-//			}
-//		}
-//		if block == nil {
-//			block, err = ledger.DefLedger.GetBlockByHash(hash)
-//			if err != nil || block == nil || block.Header == nil {
-//				log.Debug("[p2p]can't get block by hash: ", hash,
-//					" ,send not found message")
-//				msg := msgpack.NewNotFound(hash)
-//				err := p2p.Send(remotePeer, msg, false)
-//				if err != nil {
-//					log.Warn(err)
-//					return
-//				}
-//				return
-//			}
-//			saveRespCache(reqID, block)
-//		}
-//		log.Debug("[p2p]block height is ", block.Header.Height,
-//			" ,hash is ", hash)
-//		msg := msgpack.NewBlock(block)
-//		err = p2p.Send(remotePeer, msg, false)
-//		if err != nil {
-//			log.Warn(err)
-//			return
-//		}
-//
-//	case common.TRANSACTION:
-//		txn, err := ledger.DefLedger.GetTransaction(hash)
-//		if err != nil {
-//			log.Debug("[p2p]Can't get transaction by hash: ",
-//				hash, " ,send not found message")
-//			msg := msgpack.NewNotFound(hash)
-//			err = p2p.Send(remotePeer, msg, false)
-//			if err != nil {
-//				log.Warn(err)
-//				return
-//			}
-//		}
-//		msg := msgpack.NewTxn(txn)
-//		err = p2p.Send(remotePeer, msg, false)
-//		if err != nil {
-//			log.Warn(err)
-//			return
-//		}
-//	}
-//}
-
-
 // DisconnectHandle handles the disconnect events
 func DisconnectHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
 	log.Debug("[p2p]receive disconnect message", data.Addr, data.Id)
@@ -575,99 +454,62 @@ func DisconnectHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID,
 	}
 }
 
-//get blk hdrs from starthash to stophash
-//func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]*types.Header, error) {
-//	var count uint32 = 0
-//	headers := []*types.Header{}
-//	var startHeight uint32
-//	var stopHeight uint32
-//	curHeight := ledger.DefLedger.GetCurrentHeaderHeight()
-//	if startHash == common.UINT256_EMPTY {
-//		if stopHash == common.UINT256_EMPTY {
-//			if curHeight > msgCommon.MAX_BLK_HDR_CNT {
-//				count = msgCommon.MAX_BLK_HDR_CNT
-//			} else {
-//				count = curHeight
-//			}
-//		} else {
-//			bkStop, err := ledger.DefLedger.GetHeaderByHash(stopHash)
-//			if err != nil || bkStop == nil {
-//				return nil, err
-//			}
-//			stopHeight = bkStop.Height
-//			count = curHeight - stopHeight
-//			if count > msgCommon.MAX_BLK_HDR_CNT {
-//				count = msgCommon.MAX_BLK_HDR_CNT
-//			}
-//		}
-//	} else {
-//		bkStart, err := ledger.DefLedger.GetHeaderByHash(startHash)
-//		if err != nil || bkStart == nil {
-//			return nil, err
-//		}
-//		startHeight = bkStart.Height
-//		if stopHash != common.UINT256_EMPTY {
-//			bkStop, err := ledger.DefLedger.GetHeaderByHash(stopHash)
-//			if err != nil || bkStop == nil {
-//				return nil, err
-//			}
-//			stopHeight = bkStop.Height
-//
-//			// avoid unsigned integer underflow
-//			if startHeight < stopHeight {
-//				return nil, errors.New("[p2p]do not have header to send")
-//			}
-//			count = startHeight - stopHeight
-//
-//			if count >= msgCommon.MAX_BLK_HDR_CNT {
-//				count = msgCommon.MAX_BLK_HDR_CNT
-//				stopHeight = startHeight - msgCommon.MAX_BLK_HDR_CNT
-//			}
-//		} else {
-//
-//			if startHeight > msgCommon.MAX_BLK_HDR_CNT {
-//				count = msgCommon.MAX_BLK_HDR_CNT
-//			} else {
-//				count = startHeight
-//			}
-//		}
-//	}
-//
-//	var i uint32
-//	for i = 1; i <= count; i++ {
-//		hash := ledger.DefLedger.GetBlockHash(stopHeight + i)
-//		hd, err := ledger.DefLedger.GetHeaderByHash(hash)
-//		if err != nil {
-//			log.Debugf("[p2p]net_server GetBlockWithHeight failed with err=%s, hash=%x,height=%d\n", err.Error(), hash, stopHeight+i)
-//			return nil, err
-//		}
-//		headers = append(headers, hd)
-//	}
-//
-//	return headers, nil
-//}
+func HashMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
+	log.Trace("[p2p]receive hash message from ", data.Addr, data.Id)
 
-//getRespCacheValue get response data from cache
-func getRespCacheValue(key string) interface{} {
-	if respCache == nil {
-		return nil
+	var msgdata = data.Payload.(*msg.HashMsg)
+	remotePeer := p2p.GetPeerFromAddr(data.Addr)
+	switch msgdata.Msgtype{
+	case msg.HashMsg_broadcast_sigblk_hash:
+		//if consensus do not has this hash
+		var reqmsg msg.HashMsg
+		reqmsg.Msgtype = msg.HashMsg_request_sigblk_by_hash
+		for _, ha := range msgdata.Value {
+			reqmsg.Value = append(reqmsg.Value, new(prototype.Sha256) )
+			idx := len(reqmsg.Value) - 1
+			*reqmsg.Value[idx] = *ha
+		}
+		err := p2p.Send(remotePeer, &reqmsg, false)
+		if err != nil {
+			log.Warn(err)
+			return
+		}
+	case msg.HashMsg_request_sigblk_by_hash:
+		fallthrough
+	case msg.HashMsg_request_hash_ack:
+		//for i, ha := range msgdata.Value {
+		//	sigblk := get sigblk from consensus by hash
+		//	msg := msgpack.NewSigBlk(sigblk)
+		//	err := p2p.Send(remotePeer, msg, false)
+		//	if err != nil {
+		//		log.Warn(err)
+		//		return
+		//	}
+		//}
+	default:
+		log.Warnf("[p2p]Unknown hash message %v", msgdata)
 	}
-	data, ok := respCache.Get(key)
-	if ok {
-		return data
-	}
-	return nil
 }
 
-//saveRespCache save response msg to cache
-func saveRespCache(key string, value interface{}) bool {
-	if respCache == nil {
-		var err error
-		respCache, err = lru.NewARC(msgCommon.MAX_RESP_CACHE_SIZE)
-		if err != nil {
-			return false
-		}
-	}
-	respCache.Add(key, value)
-	return true
+func ReqHashHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
+	log.Trace("[p2p]receive request hash message from ", data.Addr, data.Id)
+
+	//var msgdata = data.Payload.(*msg.ReqHashMsg)
+	//remote_head_blk_id := msgdata.HeadBlockId
+
+	// hashes := call consensus to get hashes
+
+	//remotePeer := p2p.GetPeerFromAddr(data.Addr)
+	//var reqmsg msg.HashMsg
+	//reqmsg.Msgtype = msg.HashMsg_request_hash_ack
+	//for _, ha := range hashes{
+	//	reqmsg.Value = append(reqmsg.Value, new(prototype.Sha256) )
+	//	idx := len(reqmsg.Value) - 1
+	//	*reqmsg.Value[idx] = *ha
+	//}
+	//err := p2p.Send(remotePeer, &reqmsg, false)
+	//if err != nil {
+	//	log.Warn(err)
+	//	return
+	//}
 }

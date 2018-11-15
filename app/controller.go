@@ -122,6 +122,7 @@ func (c *Controller) _pushTrx(trx *prototype.SignedTransaction) *prototype.Trans
 
 	trxWrp := &prototype.TransactionWrapper{}
 	trxWrp.SigTrx = trx
+	trxWrp.Invoice = &prototype.TransactionInvoice{}
 
 	// start a sub undo session for applyTransaction
 	c.db.BeginTransaction()
@@ -132,7 +133,8 @@ func (c *Controller) _pushTrx(trx *prototype.SignedTransaction) *prototype.Trans
 	// commit sub session
 	c.db.EndTransaction(true)
 
-	c.NotifyTrxPending(trx)
+	// @ not use yet
+	//c.NotifyTrxPending(trx)
 	return trxWrp.Invoice
 }
 
@@ -212,7 +214,7 @@ func (c *Controller) _applyTransaction(trxWrp *prototype.TransactionWrapper) {
 		activeGetter := func(name string) *prototype.Authority {
 			account := &prototype.AccountName{Value:name}
 			authWrap := table.NewSoAccountAuthorityObjectWrap(c.db,account)
-			auth := authWrap.GetPosting()
+			auth := authWrap.GetActive()
 			if auth == nil {
 				panic("no posting auth")
 			}
@@ -221,7 +223,7 @@ func (c *Controller) _applyTransaction(trxWrp *prototype.TransactionWrapper) {
 		ownerGetter := func(name string) *prototype.Authority {
 			account := &prototype.AccountName{Value:name}
 			authWrap := table.NewSoAccountAuthorityObjectWrap(c.db,account)
-			auth := authWrap.GetPosting()
+			auth := authWrap.GetOwner()
 			if auth == nil {
 				panic("no posting auth")
 			}
@@ -265,8 +267,8 @@ func (c *Controller) _applyTransaction(trxWrp *prototype.TransactionWrapper) {
 	if !transactionObjWrap.CreateTransactionObject(obj) {
 		panic("create transactionObject failed")
 	}
-
-	c.NotifyTrxPreExecute(trx)
+	// @ not use yet
+	//c.NotifyTrxPreExecute(trx)
 
 	// process operation
 	c._current_op_in_trx = 0
@@ -279,19 +281,27 @@ func (c *Controller) _applyTransaction(trxWrp *prototype.TransactionWrapper) {
 }
 
 func (c *Controller) applyOperation(op *prototype.Operation) {
-	n := &prototype.OperationNotification{Op: op}
-	c.NotifyOpPreExecute(n)
-	eva := getEvaluator(op)
+	// @ not use yet
+	//n := &prototype.OperationNotification{Op: op}
+//	c.NotifyOpPreExecute(n)
+	eva := c.getEvaluator(op)
 	eva.Apply(op)
-	c.NotifyOpPostExecute(n)
+	// @ not use yet
+//	c.NotifyOpPostExecute(n)
 }
 
-func getEvaluator(op *prototype.Operation) BaseEvaluator {
+func (c *Controller) getEvaluator(op *prototype.Operation) BaseEvaluator {
 	switch op.Op.(type) {
 	case *prototype.Operation_Op1:
-		return BaseEvaluator(&AccountCreateEvaluator{})
+		eva := &AccountCreateEvaluator{}
+		eva.SetController(c)
+		eva.SetDB(c.db)
+		return BaseEvaluator(eva)
 	case *prototype.Operation_Op2:
-		return BaseEvaluator(&TransferEvaluator{})
+		eva := &TransferEvaluator{}
+		eva.SetController(c)
+		eva.SetDB(c.db)
+		return BaseEvaluator(eva)
 	default:
 		panic("no matchable evaluator")
 	}

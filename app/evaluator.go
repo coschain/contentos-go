@@ -46,8 +46,11 @@ func (ev *AccountCreateEvaluator) Apply(operation *prototype.Operation) {
 	}
 	op := o.Op1
 	creatorWrap := table.NewSoAccountWrap(ev.db,op.Creator)
-	fmt.Println("1",creatorWrap)
-	fmt.Println("2",op)
+	if creatorWrap == nil {
+		panic("NewSoAccountWrap failed")
+	}
+	fmt.Println("1111",creatorWrap)
+	fmt.Println("2222",op)
 	if !creatorWrap.CheckExist() {
 		panic("creator not exist")
 	}

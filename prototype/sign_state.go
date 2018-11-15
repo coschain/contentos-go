@@ -82,7 +82,8 @@ func (s *SignState) CheckAuthority(auth *Authority, depth uint32, at AuthorityTy
 }
 
 func (s *SignState) Init(pubs []*PublicKeyType,maxDepth uint32,posting AuthorityGetter,active AuthorityGetter,owner AuthorityGetter) {
-	 copy(s.trxCarryedPubs,pubs)
+	 s.trxCarryedPubs = s.trxCarryedPubs[:0]
+	 s.trxCarryedPubs = append(s.trxCarryedPubs,pubs...)
 	 s.max_recursion = maxDepth
 	 s.PostingGetter = posting
 	 s.ActiveGetter = active

@@ -5,6 +5,7 @@ import (
 	"github.com/coschain/contentos-go/p2p/common"
 	"github.com/coschain/contentos-go/p2p/message/types"
 	"github.com/coschain/contentos-go/p2p/peer"
+	 comn "github.com/coschain/contentos-go/common"
 )
 
 //P2P represent the net interface of p2p package
@@ -47,4 +48,6 @@ type P2P interface {
 	Xmit(msg types.Message, isCons bool)
 	SetOwnAddress(addr string)
 	IsAddrFromConnecting(addr string) bool
+
+	Triggeer_sync(p *peer.Peer, current_head_blk_id comn.BlockID)
 }
