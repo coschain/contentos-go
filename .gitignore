@@ -16,3 +16,4 @@
 cmd_main
 main
 wallet-cli
+*.log
