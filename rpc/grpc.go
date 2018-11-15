@@ -132,8 +132,52 @@ func (as *APIService) GetFollowCountByName(ctx context.Context, req *grpcpb.GetF
 }
 
 func (as *APIService) GetWitnessList(ctx context.Context, req *grpcpb.GetWitnessListRequest) (*grpcpb.GetWitnessListResponse, error) {
+	var (
+		witIter iservices.IDatabaseIterator
+		witList []*grpcpb.WitnessResponse
+		i        uint32
+		limit    uint32
+	)
 
-	return &grpcpb.GetWitnessListResponse{WitnessList: []*grpcpb.WitnessResponse{&grpcpb.WitnessResponse{Url: "test url", ScheduleType: req.Page}}}, nil
+	witOrderWrap := &table.SWitnessOwnerWrap{as.db}
+
+	if req.Start == nil {
+		witIter = witOrderWrap.QueryListByOrder(nil, nil)
+	} else {
+		witIter = witOrderWrap.QueryListByOrder(req.Start, nil)
+	}
+
+	if req.Limit <= constants.RPC_PAGE_SIZE_LIMIT {
+		limit = req.Limit
+	} else {
+		limit = constants.RPC_PAGE_SIZE_LIMIT
+	}
+
+	for witIter.Next() {
+		witWrap := table.NewSoWitnessWrap(as.db, witOrderWrap.GetMainVal(witIter))
+		if witWrap.CheckExist() {
+			witList = append(witList, &grpcpb.WitnessResponse{
+				Owner:witWrap.GetOwner(),
+				WitnessScheduleType:witWrap.GetWitnessScheduleType(),
+				CreatedTime:witWrap.GetCreatedTime(),
+				Url:witWrap.GetUrl(),
+				LastConfirmedBlockNum:witWrap.GetLastConfirmedBlockNum(),
+				TotalMissed:witWrap.GetLastConfirmedBlockNum(),
+				PowWorker:witWrap.GetPowWorker(),
+				SigningKey:witWrap.GetSigningKey(),
+				LastWork:witWrap.GetLastWork(),
+				RunningVersion:witWrap.GetRunningVersion(),
+			})
+		}
+
+		i++
+
+		if i < limit {
+			break
+		}
+	}
+
+	return &grpcpb.GetWitnessListResponse{WitnessList: witList}, nil
 }
 
 func (as *APIService) GetPostListByCreated(ctx context.Context, req *grpcpb.GetPostListByCreatedRequest) (*grpcpb.GetPostListByCreatedResponse, error) {

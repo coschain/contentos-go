@@ -5,8 +5,9 @@ package prototype
 
 import (
 	fmt "fmt"
-	proto "github.com/golang/protobuf/proto"
 	math "math"
+
+	proto "github.com/golang/protobuf/proto"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -49,6 +50,37 @@ func (x AuthorityClassification) String() string {
 
 func (AuthorityClassification) EnumDescriptor() ([]byte, []int) {
 	return fileDescriptor_f1b10af7c504b1c5, []int{9, 0}
+}
+
+type WitnessScheduleTypeWitnessScheduleType int32
+
+const (
+	WitnessScheduleType_top19     WitnessScheduleTypeWitnessScheduleType = 0
+	WitnessScheduleType_timeshare WitnessScheduleTypeWitnessScheduleType = 1
+	WitnessScheduleType_miner     WitnessScheduleTypeWitnessScheduleType = 2
+	WitnessScheduleType_none      WitnessScheduleTypeWitnessScheduleType = 3
+)
+
+var WitnessScheduleTypeWitnessScheduleType_name = map[int32]string{
+	0: "top19",
+	1: "timeshare",
+	2: "miner",
+	3: "none",
+}
+
+var WitnessScheduleTypeWitnessScheduleType_value = map[string]int32{
+	"top19":     0,
+	"timeshare": 1,
+	"miner":     2,
+	"none":      3,
+}
+
+func (x WitnessScheduleTypeWitnessScheduleType) String() string {
+	return proto.EnumName(WitnessScheduleTypeWitnessScheduleType_name, int32(x))
+}
+
+func (WitnessScheduleTypeWitnessScheduleType) EnumDescriptor() ([]byte, []int) {
+	return fileDescriptor_8eaed4801c3a9059, []int{16, 0}
 }
 
 type AccountName struct {
@@ -755,8 +787,48 @@ func (m *FollowingRelation) GetFollowing() *AccountName {
 	return nil
 }
 
+type WitnessScheduleType struct {
+	Value                WitnessScheduleTypeWitnessScheduleType `protobuf:"varint,1,opt,name=value,proto3,enum=prototype.WitnessScheduleTypeWitnessScheduleType" json:"value,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}                               `json:"-"`
+	XXX_unrecognized     []byte                                 `json:"-"`
+	XXX_sizecache        int32                                  `json:"-"`
+}
+
+func (m *WitnessScheduleType) Reset()         { *m = WitnessScheduleType{} }
+func (m *WitnessScheduleType) String() string { return proto.CompactTextString(m) }
+func (*WitnessScheduleType) ProtoMessage()    {}
+func (*WitnessScheduleType) Descriptor() ([]byte, []int) {
+	return fileDescriptor_8eaed4801c3a9059, []int{16}
+}
+
+func (m *WitnessScheduleType) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_WitnessScheduleType.Unmarshal(m, b)
+}
+func (m *WitnessScheduleType) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_WitnessScheduleType.Marshal(b, m, deterministic)
+}
+func (m *WitnessScheduleType) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_WitnessScheduleType.Merge(m, src)
+}
+func (m *WitnessScheduleType) XXX_Size() int {
+	return xxx_messageInfo_WitnessScheduleType.Size(m)
+}
+func (m *WitnessScheduleType) XXX_DiscardUnknown() {
+	xxx_messageInfo_WitnessScheduleType.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_WitnessScheduleType proto.InternalMessageInfo
+
+func (m *WitnessScheduleType) GetValue() WitnessScheduleTypeWitnessScheduleType {
+	if m != nil {
+		return m.Value
+	}
+	return WitnessScheduleType_top19
+}
+
 func init() {
 	proto.RegisterEnum("prototype.AuthorityClassification", AuthorityClassification_name, AuthorityClassification_value)
+	proto.RegisterEnum("prototype.WitnessScheduleTypeWitnessScheduleType", WitnessScheduleTypeWitnessScheduleType_name, WitnessScheduleTypeWitnessScheduleType_value)
 	proto.RegisterType((*AccountName)(nil), "prototype.account_name")
 	proto.RegisterType((*ChainId)(nil), "prototype.chain_id")
 	proto.RegisterType((*Safe64)(nil), "prototype.safe64")
@@ -773,6 +845,7 @@ func init() {
 	proto.RegisterType((*ChainProperties)(nil), "prototype.chain_properties")
 	proto.RegisterType((*FollowerRelation)(nil), "prototype.follower_relation")
 	proto.RegisterType((*FollowingRelation)(nil), "prototype.following_relation")
+	proto.RegisterType((*WitnessScheduleType)(nil), "prototype.witness_schedule_type")
 }
 
 func init() { proto.RegisterFile("prototype/type.proto", fileDescriptor_f1b10af7c504b1c5) }
