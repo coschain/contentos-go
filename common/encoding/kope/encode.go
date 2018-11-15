@@ -155,41 +155,41 @@ func EncodeValue(rv reflect.Value) ([]byte, error) {
 
 	switch k {
 	case reflect.Bool:
-		return EncodeBool(rv.Interface().(bool))
+		return EncodeBool(rv.Bool())
 	case reflect.Int:
-		return EncodeInt(rv.Interface().(int))
+		return EncodeInt(int(rv.Int()))
 	case reflect.Int8:
-		return EncodeInt8(rv.Interface().(int8))
+		return EncodeInt8(int8(rv.Int()))
 	case reflect.Int16:
-		return EncodeInt16(rv.Interface().(int16))
+		return EncodeInt16(int16(rv.Int()))
 	case reflect.Int32:
-		return EncodeInt32(rv.Interface().(int32))
+		return EncodeInt32(int32(rv.Int()))
 	case reflect.Int64:
-		return EncodeInt64(rv.Interface().(int64))
+		return EncodeInt64(rv.Int())
 	case reflect.Uint:
-		return EncodeUint(rv.Interface().(uint))
+		return EncodeUint(uint(rv.Uint()))
 	case reflect.Uint8:
-		return EncodeUint8(rv.Interface().(uint8))
+		return EncodeUint8(uint8(rv.Uint()))
 	case reflect.Uint16:
-		return EncodeUint16(rv.Interface().(uint16))
+		return EncodeUint16(uint16(rv.Uint()))
 	case reflect.Uint32:
-		return EncodeUint32(rv.Interface().(uint32))
+		return EncodeUint32(uint32(rv.Uint()))
 	case reflect.Uint64:
-		return EncodeUint64(rv.Interface().(uint64))
+		return EncodeUint64(rv.Uint())
 	case reflect.Uintptr:
-		return EncodeUintPtr(rv.Interface().(uintptr))
+		return EncodeUintPtr(uintptr(rv.Uint()))
 	case reflect.Float32:
-		return EncodeFloat32(rv.Interface().(float32))
+		return EncodeFloat32(float32(rv.Float()))
 	case reflect.Float64:
-		return EncodeFloat64(rv.Interface().(float64))
+		return EncodeFloat64(rv.Float())
 	case reflect.String:
-		return EncodeString(rv.Interface().(string))
+		return EncodeString(rv.String())
 	case reflect.Array, reflect.Slice:
 		if rt.Elem().Kind() == reflect.Uint8 {
 			if rt.PkgPath() + "." + rt.Name() == keyTypePkgName {
-				return []byte(rv.Interface().(Key)), nil
+				return rv.Bytes(), nil
 			}
-			return EncodeBytes(rv.Interface().([]byte))
+			return EncodeBytes(rv.Bytes())
 		}
 		size := rv.Len()
 		elements := make([]interface{}, size)
