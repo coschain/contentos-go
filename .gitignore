@@ -15,5 +15,6 @@
 .idea
 cmd_main
 main
-# wallet-cli
 *.log
+wallet-cli
+!/cmd/wallet-cli/
