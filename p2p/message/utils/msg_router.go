@@ -46,6 +46,7 @@ func (this *MessageRouter) init(p2p p2p.P2P) {
 	this.RegisterMsgHandler(msgCommon.ADDR_TYPE, AddrHandle)
 	this.RegisterMsgHandler(msgCommon.PING_TYPE, PingHandle)
 	this.RegisterMsgHandler(msgCommon.PONG_TYPE, PongHandle)
+	this.RegisterMsgHandler(msgCommon.REQ_HASH_TYPE, ReqHashHandle)
 	this.RegisterMsgHandler(msgCommon.HASH_TYPE, HashMsgHandle)
 	this.RegisterMsgHandler(msgCommon.BLOCK_TYPE, BlockHandle)
 	this.RegisterMsgHandler(msgCommon.NOT_FOUND_TYPE, NotFoundHandle)
