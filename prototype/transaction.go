@@ -31,8 +31,8 @@ func (m *Transaction) AddOperation(op interface{}) {
 		ptr := op.(*PostOperation)
 		res.Op = &Operation_Op6{Op6: ptr}
 		break
-	case *ReplayOperation:
-		ptr := op.(*ReplayOperation)
+	case *ReplyOperation:
+		ptr := op.(*ReplyOperation)
 		res.Op = &Operation_Op7{Op7: ptr}
 		break
 	case *FollowOperation:

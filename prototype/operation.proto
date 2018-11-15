@@ -76,7 +76,7 @@ message post_operation{
     repeated beneficiary_route_type beneficiaries = 6;
 }
 
-message replay_operation{
+message reply_operation{
     string uuid             = 1;
     account_name owner      = 2;
     string content          = 3;
