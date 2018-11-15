@@ -11,7 +11,7 @@ import (
 
 var bpUrlFlag string
 var bpDescFlag string
-var bpCreateAccountFee int64
+var bpCreateAccountFee uint64
 var bpBlockSize uint32
 
 var BpCmd = func() *cobra.Command {
@@ -28,7 +28,7 @@ var BpCmd = func() *cobra.Command {
 
 	registerCmd.Flags().StringVarP(&bpUrlFlag, "url", "u", "", `bp register --url "http://example.com"`)
 	registerCmd.Flags().StringVarP(&bpDescFlag, "desc", "d", "", `bp register --desc "Hello World"`)
-	registerCmd.Flags().Int64VarP(&bpCreateAccountFee, "fee", "", 1, `bp register --fee 1`)
+	registerCmd.Flags().Uint64VarP(&bpCreateAccountFee, "fee", "", 1, `bp register --fee 1`)
 	registerCmd.Flags().Uint32VarP(&bpBlockSize, "blocksize", "", 1024*1024, `bp register --blocksize 1024`)
 
 	unregisterCmd := &cobra.Command{
@@ -68,7 +68,7 @@ func registerBP(cmd *cobra.Command, args []string) {
 		Desc:            bpDescFlag,
 		BlockSigningKey: pubKey,
 		Props: &prototype.ChainProperties{
-			AccountCreationFee: &prototype.Coin{Amount: &prototype.Safe64{Value: bpCreateAccountFee}},
+			AccountCreationFee: prototype.MakeCoin(bpCreateAccountFee),
 			MaximumBlockSize:   bpBlockSize,
 		},
 	}
