@@ -384,7 +384,7 @@ func (c *Controller) initGenesis() {
 	}
 
 	// create block summary
-	for i := uint32(0); i < 0x1; i++ {
+	for i := uint32(0); i < 0x10000; i++ {
 		wrap := table.NewSoBlockSummaryObjectWrap(c.db, &i)
 		obj := &table.SoBlockSummaryObject{}
 		obj.Id = i
