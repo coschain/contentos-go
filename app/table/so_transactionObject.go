@@ -218,10 +218,8 @@ func (s *STransactionObjectExpirationWrap) GetMainVal(iterator iservices.IDataba
 	if err != nil {
 		return nil
 	}
-    
-   return res.TrxId
+    return res.TrxId
    
-
 }
 
 func (s *STransactionObjectExpirationWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.TimePointSec {
@@ -234,17 +232,12 @@ func (s *STransactionObjectExpirationWrap) GetSubVal(iterator iservices.IDatabas
 	if err != nil {
 		return nil
 	}
-
 	res := &SoListTransactionObjectByExpiration{}
 	err = proto.Unmarshal(val, res)
-
 	if err != nil {
 		return nil
 	}
-    
-   
-    
-   return res.Expiration
+    return res.Expiration
    
 }
 

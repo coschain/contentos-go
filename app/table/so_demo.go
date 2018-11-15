@@ -629,10 +629,8 @@ func (s *SDemoOwnerWrap) GetMainVal(iterator iservices.IDatabaseIterator) *proto
 	if err != nil {
 		return nil
 	}
-    
-   return res.Owner
+    return res.Owner
    
-
 }
 
 func (s *SDemoOwnerWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.AccountName {
@@ -645,17 +643,12 @@ func (s *SDemoOwnerWrap) GetSubVal(iterator iservices.IDatabaseIterator) *protot
 	if err != nil {
 		return nil
 	}
-
 	res := &SoListDemoByOwner{}
 	err = proto.Unmarshal(val, res)
-
 	if err != nil {
 		return nil
 	}
-    
-   
-    
-   return res.Owner
+    return res.Owner
    
 }
 
@@ -731,7 +724,7 @@ func (s *SDemoOwnerWrap) QueryListByRevOrder(start *prototype.AccountName, end *
        }
        rBufStart = rBuf
     }
-       if eBuf != nil {
+    if eBuf != nil {
           rBuf,rErr := encoding.Complement(eBuf, nil)
           if rErr != nil { 
             return nil
@@ -740,7 +733,7 @@ func (s *SDemoOwnerWrap) QueryListByRevOrder(start *prototype.AccountName, end *
        }
     }
      
-       if sBuf != nil && eBuf != nil {
+    if sBuf != nil && eBuf != nil {
           res := bytes.Compare(sBuf,eBuf)
           if res == -1 {
             // order
@@ -779,10 +772,8 @@ func (s *SDemoPostTimeWrap) GetMainVal(iterator iservices.IDatabaseIterator) *pr
 	if err != nil {
 		return nil
 	}
-    
-   return res.Owner
+    return res.Owner
    
-
 }
 
 func (s *SDemoPostTimeWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.TimePointSec {
@@ -795,17 +786,12 @@ func (s *SDemoPostTimeWrap) GetSubVal(iterator iservices.IDatabaseIterator) *pro
 	if err != nil {
 		return nil
 	}
-
 	res := &SoListDemoByPostTime{}
 	err = proto.Unmarshal(val, res)
-
 	if err != nil {
 		return nil
 	}
-    
-   
-    
-   return res.PostTime
+    return res.PostTime
    
 }
 
@@ -919,7 +905,7 @@ func (s *SDemoPostTimeWrap) QueryListByRevOrder(start *prototype.TimePointSec, e
        }
        rBufStart = rBuf
     }
-       if eBuf != nil {
+    if eBuf != nil {
           rBuf,rErr := encoding.Complement(eBuf, nil)
           if rErr != nil { 
             return nil
@@ -928,7 +914,7 @@ func (s *SDemoPostTimeWrap) QueryListByRevOrder(start *prototype.TimePointSec, e
        }
     }
      
-       if sBuf != nil && eBuf != nil {
+    if sBuf != nil && eBuf != nil {
           res := bytes.Compare(sBuf,eBuf)
           if res == -1 {
             // order
@@ -967,10 +953,8 @@ func (s *SDemoLikeCountWrap) GetMainVal(iterator iservices.IDatabaseIterator) *p
 	if err != nil {
 		return nil
 	}
-    
-   return res.Owner
+    return res.Owner
    
-
 }
 
 func (s *SDemoLikeCountWrap) GetSubVal(iterator iservices.IDatabaseIterator) *int64 {
@@ -983,17 +967,12 @@ func (s *SDemoLikeCountWrap) GetSubVal(iterator iservices.IDatabaseIterator) *in
 	if err != nil {
 		return nil
 	}
-
 	res := &SoListDemoByLikeCount{}
 	err = proto.Unmarshal(val, res)
-
 	if err != nil {
 		return nil
 	}
-    
-    
-     return &res.LikeCount
-   
+    return &res.LikeCount
    
 }
 
@@ -1065,7 +1044,7 @@ func (s *SDemoLikeCountWrap) QueryListByRevOrder(start *int64, end *int64) iserv
        }
        rBufStart = rBuf
     }
-       if eBuf != nil {
+    if eBuf != nil {
           rBuf,rErr := encoding.Complement(eBuf, nil)
           if rErr != nil { 
             return nil
@@ -1074,7 +1053,7 @@ func (s *SDemoLikeCountWrap) QueryListByRevOrder(start *int64, end *int64) iserv
        }
     }
      
-       if sBuf != nil && eBuf != nil {
+    if sBuf != nil && eBuf != nil {
           res := bytes.Compare(sBuf,eBuf)
           if res == -1 {
             // order
@@ -1113,10 +1092,8 @@ func (s *SDemoIdxWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototy
 	if err != nil {
 		return nil
 	}
-    
-   return res.Owner
+    return res.Owner
    
-
 }
 
 func (s *SDemoIdxWrap) GetSubVal(iterator iservices.IDatabaseIterator) *int64 {
@@ -1129,17 +1106,12 @@ func (s *SDemoIdxWrap) GetSubVal(iterator iservices.IDatabaseIterator) *int64 {
 	if err != nil {
 		return nil
 	}
-
 	res := &SoListDemoByIdx{}
 	err = proto.Unmarshal(val, res)
-
 	if err != nil {
 		return nil
 	}
-    
-    
-     return &res.Idx
-   
+    return &res.Idx
    
 }
 
@@ -1211,7 +1183,7 @@ func (s *SDemoIdxWrap) QueryListByRevOrder(start *int64, end *int64) iservices.I
        }
        rBufStart = rBuf
     }
-       if eBuf != nil {
+    if eBuf != nil {
           rBuf,rErr := encoding.Complement(eBuf, nil)
           if rErr != nil { 
             return nil
@@ -1220,7 +1192,7 @@ func (s *SDemoIdxWrap) QueryListByRevOrder(start *int64, end *int64) iservices.I
        }
     }
      
-       if sBuf != nil && eBuf != nil {
+    if sBuf != nil && eBuf != nil {
           res := bytes.Compare(sBuf,eBuf)
           if res == -1 {
             // order
@@ -1259,10 +1231,8 @@ func (s *SDemoReplayCountWrap) GetMainVal(iterator iservices.IDatabaseIterator) 
 	if err != nil {
 		return nil
 	}
-    
-   return res.Owner
+    return res.Owner
    
-
 }
 
 func (s *SDemoReplayCountWrap) GetSubVal(iterator iservices.IDatabaseIterator) *int64 {
@@ -1275,17 +1245,12 @@ func (s *SDemoReplayCountWrap) GetSubVal(iterator iservices.IDatabaseIterator) *
 	if err != nil {
 		return nil
 	}
-
 	res := &SoListDemoByReplayCount{}
 	err = proto.Unmarshal(val, res)
-
 	if err != nil {
 		return nil
 	}
-    
-    
-     return &res.ReplayCount
-   
+    return &res.ReplayCount
    
 }
 

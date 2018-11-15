@@ -183,10 +183,8 @@ func (s *SFollowingFollowingInfoWrap) GetMainVal(iterator iservices.IDatabaseIte
 	if err != nil {
 		return nil
 	}
-    
-   return res.FollowingInfo
+    return res.FollowingInfo
    
-
 }
 
 func (s *SFollowingFollowingInfoWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.FollowingRelation {
@@ -199,17 +197,12 @@ func (s *SFollowingFollowingInfoWrap) GetSubVal(iterator iservices.IDatabaseIter
 	if err != nil {
 		return nil
 	}
-
 	res := &SoListFollowingByFollowingInfo{}
 	err = proto.Unmarshal(val, res)
-
 	if err != nil {
 		return nil
 	}
-    
-   
-    
-   return res.FollowingInfo
+    return res.FollowingInfo
    
 }
 
@@ -285,7 +278,7 @@ func (s *SFollowingFollowingInfoWrap) QueryListByRevOrder(start *prototype.Follo
        }
        rBufStart = rBuf
     }
-       if eBuf != nil {
+    if eBuf != nil {
           rBuf,rErr := encoding.Complement(eBuf, nil)
           if rErr != nil { 
             return nil
@@ -294,7 +287,7 @@ func (s *SFollowingFollowingInfoWrap) QueryListByRevOrder(start *prototype.Follo
        }
     }
      
-       if sBuf != nil && eBuf != nil {
+    if sBuf != nil && eBuf != nil {
           res := bytes.Compare(sBuf,eBuf)
           if res == -1 {
             // order

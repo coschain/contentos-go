@@ -357,11 +357,10 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) GetMainVal(iterator iservices.IDatabase
     {{$baseType := (DetectBaseType $.MainKeyType) -}}
    {{if $baseType}} 
      return &res.{{$.MainKeyName}}
-   {{end}}
+   {{end -}}
    {{if not $baseType -}} 
    return res.{{$.MainKeyName}}
    {{end}}
-
 }
 
 func (s *S{{$.ClsName}}{{$v.PName}}Wrap) GetSubVal(iterator iservices.IDatabaseIterator) *{{formatStr $v.PType}} {
@@ -374,20 +373,18 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) GetSubVal(iterator iservices.IDatabaseI
 	if err != nil {
 		return nil
 	}
-
 	res := &SoList{{$.ClsName}}By{{$v.PName}}{}
 	err = proto.Unmarshal(val, res)
-
 	if err != nil {
 		return nil
 	}
-    {{$baseType := (DetectBaseType $v.PType) }}
-   {{if $baseType}} 
+    {{$baseType := (DetectBaseType $v.PType) -}}
+   {{if $baseType -}} 
      return &res.{{ $v.PName}}
-   {{end}}
-   {{if not $baseType}} 
+   {{end -}}
+   {{if not $baseType -}} 
    return res.{{$v.PName}}
-   {{end}}
+   {{end }}
 }
 
 func (m *SoList{{$.ClsName}}By{{$v.PName}}) OpeEncode() ([]byte,error) {
@@ -508,7 +505,7 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByRevOrder(start *{{$v.PType}}
        }
        rBufStart = rBuf
     }
-       if eBuf != nil {
+    if eBuf != nil {
           rBuf,rErr := encoding.Complement(eBuf, nil)
           if rErr != nil { 
             return nil
@@ -517,7 +514,7 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByRevOrder(start *{{$v.PType}}
        }
     }
      
-       if sBuf != nil && eBuf != nil {
+    if sBuf != nil && eBuf != nil {
           res := bytes.Compare(sBuf,eBuf)
           if res == -1 {
             // order

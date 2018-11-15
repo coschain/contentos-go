@@ -448,10 +448,8 @@ func (s *SAccountCreatedTimeWrap) GetMainVal(iterator iservices.IDatabaseIterato
 	if err != nil {
 		return nil
 	}
-    
-   return res.Name
+    return res.Name
    
-
 }
 
 func (s *SAccountCreatedTimeWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.TimePointSec {
@@ -464,17 +462,12 @@ func (s *SAccountCreatedTimeWrap) GetSubVal(iterator iservices.IDatabaseIterator
 	if err != nil {
 		return nil
 	}
-
 	res := &SoListAccountByCreatedTime{}
 	err = proto.Unmarshal(val, res)
-
 	if err != nil {
 		return nil
 	}
-    
-   
-    
-   return res.CreatedTime
+    return res.CreatedTime
    
 }
 
@@ -580,10 +573,8 @@ func (s *SAccountBalanceWrap) GetMainVal(iterator iservices.IDatabaseIterator) *
 	if err != nil {
 		return nil
 	}
-    
-   return res.Name
+    return res.Name
    
-
 }
 
 func (s *SAccountBalanceWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.Coin {
@@ -596,17 +587,12 @@ func (s *SAccountBalanceWrap) GetSubVal(iterator iservices.IDatabaseIterator) *p
 	if err != nil {
 		return nil
 	}
-
 	res := &SoListAccountByBalance{}
 	err = proto.Unmarshal(val, res)
-
 	if err != nil {
 		return nil
 	}
-    
-   
-    
-   return res.Balance
+    return res.Balance
    
 }
 
@@ -712,10 +698,8 @@ func (s *SAccountVestingSharesWrap) GetMainVal(iterator iservices.IDatabaseItera
 	if err != nil {
 		return nil
 	}
-    
-   return res.Name
+    return res.Name
    
-
 }
 
 func (s *SAccountVestingSharesWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.Vest {
@@ -728,17 +712,12 @@ func (s *SAccountVestingSharesWrap) GetSubVal(iterator iservices.IDatabaseIterat
 	if err != nil {
 		return nil
 	}
-
 	res := &SoListAccountByVestingShares{}
 	err = proto.Unmarshal(val, res)
-
 	if err != nil {
 		return nil
 	}
-    
-   
-    
-   return res.VestingShares
+    return res.VestingShares
    
 }
 
