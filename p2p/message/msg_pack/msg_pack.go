@@ -8,10 +8,9 @@ import (
 	"github.com/coschain/contentos-go/p2p/depend/common"
 	"github.com/coschain/contentos-go/p2p/depend/common/config"
 	"github.com/coschain/contentos-go/p2p/depend/common/log"
-	ct "github.com/coschain/contentos-go/p2p/depend/core/types"
 	mt "github.com/coschain/contentos-go/p2p/message/types"
-	p2pnet "github.com/coschain/contentos-go/p2p/net/protocol"
 	"github.com/coschain/contentos-go/p2p/msg"
+	p2pnet "github.com/coschain/contentos-go/p2p/net/protocol"
 )
 
 //Peer address package
@@ -31,31 +30,24 @@ func NewAddrReq() mt.Message {
 }
 
 ///block package
-func NewBlock(bk *prototype.SignedBlock) mt.Message {
+func NewSigBlkHashMsg(bk *prototype.SignedBlock) mt.Message {
 	log.Trace()
-	var blk msg.BroadcastSigBlk
-	blk.SigBlk = bk
+	var blk msg.HashMsg
+	blk.Msgtype = msg.HashMsg_broadcast_sigblk_hash
+	hash := new(prototype.Sha256)
+	blockHash := bk.Hash()
+	hash.Hash = blockHash[:]
+	blk.Value = append(blk.Value, hash)
 
 	return &blk
 }
 
-//blk hdr package
-func NewHeaders(headers []*ct.Header) mt.Message {
+func NewSigBlk(bk *prototype.SignedBlock) mt.Message {
 	log.Trace()
-	var blkHdr mt.BlkHeader
-	blkHdr.BlkHdr = headers
+	var blk msg.SigBlkMsg
+	*blk.SigBlk = *bk
 
-	return &blkHdr
-}
-
-//blk hdr req package
-func NewHeadersReq(curHdrHash common.Uint256) mt.Message {
-	log.Trace()
-	var h mt.HeadersReq
-	h.Len = 1
-	h.HashEnd = curHdrHash
-
-	return &h
+	return &blk
 }
 
 //NotFound package

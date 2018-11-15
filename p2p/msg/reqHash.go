@@ -7,19 +7,19 @@ import (
 )
 
 //Serialize message payload
-func (this *SigBlkMsg) Serialization(sink *comm.ZeroCopySink) error {
+func (this *ReqHashMsg) Serialization(sink *comm.ZeroCopySink) error {
 	data, _ := proto.Marshal(this)
 	sink.WriteBytes(data)
 	return nil
 }
 
-func (this *SigBlkMsg) CmdType() string {
-	return common.BLOCK_TYPE
+func (this *ReqHashMsg) CmdType() string {
+	return common.REQ_HASH_TYPE
 }
 
 //Deserialize message payload
-func (this *SigBlkMsg) Deserialization(source *comm.ZeroCopySource) error {
-	var tmp SigBlkMsg
+func (this *ReqHashMsg) Deserialization(source *comm.ZeroCopySource) error {
+	var tmp ReqHashMsg
 	err := proto.Unmarshal(source.Data(), &tmp)
 	if err != nil {
 		return err

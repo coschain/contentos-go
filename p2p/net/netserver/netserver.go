@@ -2,6 +2,7 @@ package netserver
 
 import (
 	"errors"
+	"github.com/coschain/contentos-go/p2p/msg"
 	"math/rand"
 	"net"
 	"strings"
@@ -15,6 +16,8 @@ import (
 	"github.com/coschain/contentos-go/p2p/message/types"
 	"github.com/coschain/contentos-go/p2p/net/protocol"
 	"github.com/coschain/contentos-go/p2p/peer"
+	comn "github.com/coschain/contentos-go/common"
+	//"github.com/coschain/contentos-go/p2p/msg"
 )
 
 //NewNetServer return the net object in p2p
@@ -785,4 +788,10 @@ func (this *NetServer) SetOwnAddress(addr string) {
 		this.OwnAddress = addr
 	}
 
+}
+
+func (this *NetServer) Triggeer_sync(p *peer.Peer, current_head_blk_id comn.BlockID) {
+	reqmsg := new(msg.ReqHashMsg)
+	reqmsg.HeadBlockId = current_head_blk_id.Data[:]
+	this.Send(p, reqmsg, false)
 }
