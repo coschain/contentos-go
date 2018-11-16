@@ -188,7 +188,7 @@ func (as *APIService) GetPostListByCreated(ctx context.Context, req *grpcpb.GetP
 	return &grpcpb.GetPostListByCreatedResponse{}, nil
 }
 
-func (as *APIService) GetReplayListByPostId(ctx context.Context, req *grpcpb.GetReplyListByPostIdRequest) (*grpcpb.GetReplyListByPostIdResponse, error) {
+func (as *APIService) GetReplyListByPostId(ctx context.Context, req *grpcpb.GetReplyListByPostIdRequest) (*grpcpb.GetReplyListByPostIdResponse, error) {
 	return &grpcpb.GetReplyListByPostIdResponse{}, nil
 }
 
