@@ -45,9 +45,9 @@ func (as *APIService) GetFollowerListByName(ctx context.Context, req *grpcpb.Get
 	ferOrderWrap := &table.SFollowerFollowerInfoWrap{Dba: as.db}
 
 	if req.Start == nil {
-		ferIter = ferOrderWrap.QueryListByRevOrder(nil, nil)
+		ferIter = ferOrderWrap.QueryListByOrder(nil, nil)
 	} else {
-		ferIter = ferOrderWrap.QueryListByRevOrder(req.Start, nil)
+		ferIter = ferOrderWrap.QueryListByOrder(req.Start, nil)
 	}
 
 	if req.Limit <= constants.RPC_PAGE_SIZE_LIMIT {
@@ -57,12 +57,10 @@ func (as *APIService) GetFollowerListByName(ctx context.Context, req *grpcpb.Get
 	}
 
 	for ferIter.Next() {
-		ferOrder := ferOrderWrap.GetSubVal(ferIter)
+		ferOrder := ferOrderWrap.GetMainVal(ferIter)
 		if ferOrder != nil {
 			ferList = append(ferList, ferOrder.Follower)
-		} else {
-			ferList = append(ferList, &prototype.AccountName{})
-		}
+		} 
 
 		i++
 
@@ -86,9 +84,9 @@ func (as *APIService) GetFollowingListByName(ctx context.Context, req *grpcpb.Ge
 	fingOrderWrap := &table.SFollowingFollowingInfoWrap{Dba: as.db}
 
 	if req.Start == nil {
-		fingIter = fingOrderWrap.QueryListByRevOrder(nil, nil)
+		fingIter = fingOrderWrap.QueryListByOrder(nil, nil)
 	} else {
-		fingIter = fingOrderWrap.QueryListByRevOrder(req.Start, nil)
+		fingIter = fingOrderWrap.QueryListByOrder(req.Start, nil)
 	}
 
 	if req.Limit <= constants.RPC_PAGE_SIZE_LIMIT {
@@ -98,12 +96,10 @@ func (as *APIService) GetFollowingListByName(ctx context.Context, req *grpcpb.Ge
 	}
 
 	for fingIter.Next() {
-		ferOrder := fingOrderWrap.GetSubVal(fingIter)
-		if ferOrder != nil {
-			fingList = append(fingList, ferOrder.Following)
-		} else {
-			fingList = append(fingList, &prototype.AccountName{})
-		}
+		fingOrder := fingOrderWrap.GetMainVal(fingIter)
+		if fingOrder != nil {
+			fingList = append(fingList, fingOrder.Following)
+		} 
 
 		i++
 
@@ -112,7 +108,7 @@ func (as *APIService) GetFollowingListByName(ctx context.Context, req *grpcpb.Ge
 		}
 	}
 
-	return &grpcpb.GetFollowingListByNameResponse{}, nil
+	return &grpcpb.GetFollowingListByNameResponse{FollowingList:fingList}, nil
 }
 
 func (as *APIService) GetFollowCountByName(ctx context.Context, req *grpcpb.GetFollowCountByNameRequest) (*grpcpb.GetFollowCountByNameResponse, error) {
@@ -182,14 +178,118 @@ func (as *APIService) GetWitnessList(ctx context.Context, req *grpcpb.GetWitness
 
 func (as *APIService) GetPostListByCreated(ctx context.Context, req *grpcpb.GetPostListByCreatedRequest) (*grpcpb.GetPostListByCreatedResponse, error) {
 	var (
-
+		postIter iservices.IDatabaseIterator
+		postList []*grpcpb.PostResponse
+		i        uint32
+		limit    uint32
 	)
 
-	return &grpcpb.GetPostListByCreatedResponse{}, nil
+	postOrderWrap := &table.SPostCreatedOrderWrap{Dba:as.db}
+
+	if req.Start == nil {
+		postIter = postOrderWrap.QueryListByRevOrder(nil, nil)
+	} else {
+		postIter = postOrderWrap.QueryListByRevOrder(req.Start, nil)
+	}
+
+	if req.Limit <= constants.RPC_PAGE_SIZE_LIMIT {
+		limit = req.Limit
+	} else {
+		limit = constants.RPC_PAGE_SIZE_LIMIT
+	}
+
+	for postIter.Next() {
+		postWrap := table.NewSoPostWrap(as.db, postOrderWrap.GetMainVal(postIter))
+		if postWrap.CheckExist() {
+			postList = append(postList, &grpcpb.PostResponse{
+				PostId:postWrap.GetPostId(),
+				Category:postWrap.GetCategory(),
+				ParentAuthor:postWrap.GetAuthor(),
+				ParentPermlink:postWrap.GetPermlink(),
+				Author:postWrap.GetAuthor(),
+				Permlink:postWrap.GetPermlink(),
+				Title:postWrap.GetTitle(),
+				Body:postWrap.GetBody(),
+				JsonMetadata:postWrap.GetJsonMetadata(),
+				LastUpdate:postWrap.GetLastUpdate(),
+				Created:postWrap.GetCreated(),
+				Active:postWrap.GetActive(),
+				LastPayout:postWrap.GetLastPayout(),
+				Depth:postWrap.GetDepth(),
+				Children:postWrap.GetChildren(),
+				RootId:postWrap.GetRootId(),
+				ParentId:postWrap.GetParentId(),
+				AllowReplies:postWrap.GetAllowReplies(),
+				AllowVotes:postWrap.GetAllowVotes(),
+			})
+		}
+
+		i++
+
+		if i < limit {
+			break
+		}
+	}
+
+	return &grpcpb.GetPostListByCreatedResponse{PostList:postList}, nil
 }
 
 func (as *APIService) GetReplyListByPostId(ctx context.Context, req *grpcpb.GetReplyListByPostIdRequest) (*grpcpb.GetReplyListByPostIdResponse, error) {
-	return &grpcpb.GetReplyListByPostIdResponse{}, nil
+	var (
+		replyIter iservices.IDatabaseIterator
+		replyList []*grpcpb.PostResponse
+		i        uint32
+		limit    uint32
+	)
+
+	replyOrderWrap := &table.SPostReplyOrderWrap{Dba:as.db}
+
+	if req.Start == nil {
+		replyIter = replyOrderWrap.QueryListByRevOrder(nil, nil)
+	} else {
+		replyIter = replyOrderWrap.QueryListByRevOrder(req.Start, nil)
+	}
+
+	if req.Limit <= constants.RPC_PAGE_SIZE_LIMIT {
+		limit = req.Limit
+	} else {
+		limit = constants.RPC_PAGE_SIZE_LIMIT
+	}
+
+	for replyIter.Next() {
+		postWrap := table.NewSoPostWrap(as.db, replyOrderWrap.GetMainVal(replyIter))
+		if postWrap.CheckExist() {
+			replyList = append(replyList, &grpcpb.PostResponse{
+				PostId:postWrap.GetPostId(),
+				Category:postWrap.GetCategory(),
+				ParentAuthor:postWrap.GetAuthor(),
+				ParentPermlink:postWrap.GetPermlink(),
+				Author:postWrap.GetAuthor(),
+				Permlink:postWrap.GetPermlink(),
+				Title:postWrap.GetTitle(),
+				Body:postWrap.GetBody(),
+				JsonMetadata:postWrap.GetJsonMetadata(),
+				LastUpdate:postWrap.GetLastUpdate(),
+				Created:postWrap.GetCreated(),
+				Active:postWrap.GetActive(),
+				LastPayout:postWrap.GetLastPayout(),
+				Depth:postWrap.GetDepth(),
+				Children:postWrap.GetChildren(),
+				RootId:postWrap.GetRootId(),
+				ParentId:postWrap.GetParentId(),
+				AllowReplies:postWrap.GetAllowReplies(),
+				AllowVotes:postWrap.GetAllowVotes(),
+			})
+		}
+
+		i++
+
+		if i < limit {
+			break
+		}
+	}
+
+	return &grpcpb.GetReplyListByPostIdResponse{ReplyList:replyList}, nil
 }
 
 func (as *APIService) GetBlockTransactionsByNum(ctx context.Context, req *grpcpb.GetBlockTransactionsByNumRequest) (*grpcpb.GetBlockTransactionsByNumResponse, error) {

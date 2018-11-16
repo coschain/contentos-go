@@ -89,6 +89,24 @@ func (mr *MockApiServiceClientMockRecorder) GetFollowingListByName(ctx, in inter
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFollowingListByName", reflect.TypeOf((*MockApiServiceClient)(nil).GetFollowingListByName), varargs...)
 }
 
+// GetFollowCountByName mocks base method
+func (m *MockApiServiceClient) GetFollowCountByName(ctx context.Context, in *pb.GetFollowCountByNameRequest, opts ...grpc.CallOption) (*pb.GetFollowCountByNameResponse, error) {
+	varargs := []interface{}{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetFollowCountByName", varargs...)
+	ret0, _ := ret[0].(*pb.GetFollowCountByNameResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetFollowCountByName indicates an expected call of GetFollowCountByName
+func (mr *MockApiServiceClientMockRecorder) GetFollowCountByName(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	varargs := append([]interface{}{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFollowCountByName", reflect.TypeOf((*MockApiServiceClient)(nil).GetFollowCountByName), varargs...)
+}
+
 // GetWitnessList mocks base method
 func (m *MockApiServiceClient) GetWitnessList(ctx context.Context, in *pb.GetWitnessListRequest, opts ...grpc.CallOption) (*pb.GetWitnessListResponse, error) {
 	varargs := []interface{}{ctx, in}
@@ -125,22 +143,22 @@ func (mr *MockApiServiceClientMockRecorder) GetPostListByCreated(ctx, in interfa
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPostListByCreated", reflect.TypeOf((*MockApiServiceClient)(nil).GetPostListByCreated), varargs...)
 }
 
-// GetReplayListByPostId mocks base method
-func (m *MockApiServiceClient) GetReplayListByPostId(ctx context.Context, in *pb.GetReplayListByPostIdRequest, opts ...grpc.CallOption) (*pb.GetReplayListByPostIdResponse, error) {
+// GetReplyListByPostId mocks base method
+func (m *MockApiServiceClient) GetReplyListByPostId(ctx context.Context, in *pb.GetReplyListByPostIdRequest, opts ...grpc.CallOption) (*pb.GetReplyListByPostIdResponse, error) {
 	varargs := []interface{}{ctx, in}
 	for _, a := range opts {
 		varargs = append(varargs, a)
 	}
-	ret := m.ctrl.Call(m, "GetReplayListByPostId", varargs...)
-	ret0, _ := ret[0].(*pb.GetReplayListByPostIdResponse)
+	ret := m.ctrl.Call(m, "GetReplyListByPostId", varargs...)
+	ret0, _ := ret[0].(*pb.GetReplyListByPostIdResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetReplayListByPostId indicates an expected call of GetReplayListByPostId
-func (mr *MockApiServiceClientMockRecorder) GetReplayListByPostId(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+// GetReplyListByPostId indicates an expected call of GetReplyListByPostId
+func (mr *MockApiServiceClientMockRecorder) GetReplyListByPostId(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	varargs := append([]interface{}{ctx, in}, opts...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetReplayListByPostId", reflect.TypeOf((*MockApiServiceClient)(nil).GetReplayListByPostId), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetReplyListByPostId", reflect.TypeOf((*MockApiServiceClient)(nil).GetReplyListByPostId), varargs...)
 }
 
 // GetBlockTransactionsByNum mocks base method
@@ -259,6 +277,19 @@ func (mr *MockApiServiceServerMockRecorder) GetFollowingListByName(arg0, arg1 in
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFollowingListByName", reflect.TypeOf((*MockApiServiceServer)(nil).GetFollowingListByName), arg0, arg1)
 }
 
+// GetFollowCountByName mocks base method
+func (m *MockApiServiceServer) GetFollowCountByName(arg0 context.Context, arg1 *pb.GetFollowCountByNameRequest) (*pb.GetFollowCountByNameResponse, error) {
+	ret := m.ctrl.Call(m, "GetFollowCountByName", arg0, arg1)
+	ret0, _ := ret[0].(*pb.GetFollowCountByNameResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetFollowCountByName indicates an expected call of GetFollowCountByName
+func (mr *MockApiServiceServerMockRecorder) GetFollowCountByName(arg0, arg1 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFollowCountByName", reflect.TypeOf((*MockApiServiceServer)(nil).GetFollowCountByName), arg0, arg1)
+}
+
 // GetWitnessList mocks base method
 func (m *MockApiServiceServer) GetWitnessList(arg0 context.Context, arg1 *pb.GetWitnessListRequest) (*pb.GetWitnessListResponse, error) {
 	ret := m.ctrl.Call(m, "GetWitnessList", arg0, arg1)
@@ -285,17 +316,17 @@ func (mr *MockApiServiceServerMockRecorder) GetPostListByCreated(arg0, arg1 inte
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPostListByCreated", reflect.TypeOf((*MockApiServiceServer)(nil).GetPostListByCreated), arg0, arg1)
 }
 
-// GetReplayListByPostId mocks base method
-func (m *MockApiServiceServer) GetReplayListByPostId(arg0 context.Context, arg1 *pb.GetReplayListByPostIdRequest) (*pb.GetReplayListByPostIdResponse, error) {
-	ret := m.ctrl.Call(m, "GetReplayListByPostId", arg0, arg1)
-	ret0, _ := ret[0].(*pb.GetReplayListByPostIdResponse)
+// GetReplyListByPostId mocks base method
+func (m *MockApiServiceServer) GetReplyListByPostId(arg0 context.Context, arg1 *pb.GetReplyListByPostIdRequest) (*pb.GetReplyListByPostIdResponse, error) {
+	ret := m.ctrl.Call(m, "GetReplyListByPostId", arg0, arg1)
+	ret0, _ := ret[0].(*pb.GetReplyListByPostIdResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetReplayListByPostId indicates an expected call of GetReplayListByPostId
-func (mr *MockApiServiceServerMockRecorder) GetReplayListByPostId(arg0, arg1 interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetReplayListByPostId", reflect.TypeOf((*MockApiServiceServer)(nil).GetReplayListByPostId), arg0, arg1)
+// GetReplyListByPostId indicates an expected call of GetReplyListByPostId
+func (mr *MockApiServiceServerMockRecorder) GetReplyListByPostId(arg0, arg1 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetReplyListByPostId", reflect.TypeOf((*MockApiServiceServer)(nil).GetReplyListByPostId), arg0, arg1)
 }
 
 // GetBlockTransactionsByNum mocks base method

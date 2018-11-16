@@ -40,6 +40,7 @@ protoc -I/usr/local/include -I. -I$GOPATH/src -I$GOPATH/src/github.com/grpc-ecos
 protoc -I/usr/local/include -I. -I$GOPATH/src -I$GOPATH/src/github.com/jackami/grpc-gateway/third_party/googleapis -I$GOPATH/src/github.com/coschain/contentos-go --go_out=plugins=grpc:. grpc.proto
 protoc -I/usr/local/include -I. -I$GOPATH/src -I$GOPATH/src/github.com/jackami/grpc-gateway/third_party/googleapis -I$GOPATH/src/github.com/coschain/contentos-go --grpc-gateway_out=logtostderr=true:. grpc.proto
 
+mockgen -source=grpc.pb.go > ../mock_grpcpb/mock_grpcpb.go
 */
 
 service ApiService {
@@ -177,7 +178,6 @@ message GetWitnessListResponse {
 }
 
 message PostResponse {
-
     uint64                             post_id                 =      1;
     string                             category                =      2;
     prototype.account_name             parent_author           =      3;
@@ -202,9 +202,8 @@ message PostResponse {
 }
 
 message GetPostListByCreatedRequest {
-    prototype.account_name account_name = 1;
-    uint32 page = 2;
-    uint32 size = 3;
+    prototype.post_created_order start = 1;
+    uint32 limit = 2;
 }
 
 message GetPostListByCreatedResponse {
@@ -212,7 +211,8 @@ message GetPostListByCreatedResponse {
 }
 
 message GetReplyListByPostIdRequest {
-    uint32 post_id = 1;
+    prototype.post_reply_order start = 1;
+    uint32 limit = 2;
 }
 
 message GetReplyListByPostIdResponse {

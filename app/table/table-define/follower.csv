@@ -1,2 +1,2 @@
 type                                ,pName          ,mKey   ,unique ,sort   ,reverseSort
-prototype.follower_relation         ,follower_info  ,1      ,0      ,0      ,1
+prototype.follower_relation         ,follower_info  ,1      ,0      ,1      ,0

@@ -84,13 +84,32 @@ func TestGPRCApi_GetFollowerListByName(t *testing.T) {
 
 	asc := grpcpb.NewApiServiceClient(conn)
 
-	req := &grpcpb.GetFollowerListByNameRequest{}
+	req := &grpcpb.GetFollowerListByNameRequest{Limit:100, Start:&prototype.FollowerRelation{Account:&prototype.AccountName{Value:"Jack"}}}
 	resp := &grpcpb.GetFollowerListByNameResponse{}
 	resp, err = asc.GetFollowerListByName(context.Background(), req)
 	if err != nil {
 		t.Errorf("GetFollowerListByName failed: %x", err)
 	} else {
 		t.Logf("GetFollowerListByName detail: %s", resp.FollowerList)
+	}
+}
+
+func TestGPRCApi_GetFollowingListByName(t *testing.T) {
+	conn, err := Dial("127.0.0.1:8888")
+	if err != nil {
+		fmt.Print(err)
+	}
+	defer conn.Close()
+
+	asc := grpcpb.NewApiServiceClient(conn)
+
+	req := &grpcpb.GetFollowingListByNameRequest{Limit:100, Start:&prototype.FollowingRelation{Account:&prototype.AccountName{Value:"Jack"}}}
+	resp := &grpcpb.GetFollowingListByNameResponse{}
+	resp, err = asc.GetFollowingListByName(context.Background(), req)
+	if err != nil {
+		t.Errorf("GetFollowerListByName failed: %x", err)
+	} else {
+		t.Logf("GetFollowerListByName detail: %s", resp.FollowingList)
 	}
 }
 
@@ -110,6 +129,46 @@ func TestGPRCApi_GetWitnessList(t *testing.T) {
 		t.Errorf("GetFollowerListByName failed: %x", err)
 	} else {
 		t.Logf("GetFollowerListByName detail: %s", resp.WitnessList)
+	}
+}
+
+func TestGRPCApi_GetPostListByCreated(t *testing.T) {
+	conn, err := Dial("127.0.0.1:8888")
+	if err != nil {
+		fmt.Print(err)
+	}
+	defer conn.Close()
+
+	asc := grpcpb.NewApiServiceClient(conn)
+
+	req := &grpcpb.GetPostListByCreatedRequest{}
+	resp := &grpcpb.GetPostListByCreatedResponse{}
+
+	resp, err = asc.GetPostListByCreated(context.Background(), req)
+	if err != nil {
+		t.Errorf("GetFollowerListByName failed: %x", err)
+	} else {
+		t.Logf("GetFollowerListByName detail: %s", resp.PostList)
+	}
+}
+
+func TestGRPCApi_GetReplyListByPostId(t *testing.T) {
+	conn, err := Dial("127.0.0.1:8888")
+	if err != nil {
+		fmt.Print(err)
+	}
+	defer conn.Close()
+
+	asc := grpcpb.NewApiServiceClient(conn)
+
+	req := &grpcpb.GetReplyListByPostIdRequest{}
+	resp := &grpcpb.GetReplyListByPostIdResponse{}
+
+	resp, err = asc.GetReplyListByPostId(context.Background(), req)
+	if err != nil {
+		t.Errorf("GetFollowerListByName failed: %x", err)
+	} else {
+		t.Logf("GetFollowerListByName detail: %s", resp.ReplyList)
 	}
 }
 

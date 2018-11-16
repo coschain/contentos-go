@@ -88,12 +88,12 @@ func (s *SoFollowingWrap) delSortKeyFollowingInfo(sa *SoFollowing) bool {
 	val := SoListFollowingByFollowingInfo{}
 	val.FollowingInfo = sa.FollowingInfo
 	val.FollowingInfo = sa.FollowingInfo
-    subRevBuf, err := val.EncodeRevSortKey()
+    subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
 	}
-    revOrdErr :=  s.dba.Delete(subRevBuf) 
-    return revOrdErr == nil
+    ordErr :=  s.dba.Delete(subBuf)
+    return ordErr == nil
     
 }
 
@@ -105,12 +105,12 @@ func (s *SoFollowingWrap) insertSortKeyFollowingInfo(sa *SoFollowing) bool {
 	if err != nil {
 		return false
 	}
-    subRevBuf, err := val.EncodeRevSortKey()
+    subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
 	}
-    revOrdErr :=  s.dba.Put(subRevBuf, buf) 
-    return revOrdErr == nil
+    ordErr :=  s.dba.Put(subBuf, buf) 
+    return ordErr == nil
     
 }
 
@@ -239,63 +239,45 @@ func (m *SoListFollowingByFollowingInfo) EncodeRevSortKey() ([]byte,error) {
     return revKey,revRrr
 }
 
-
-//Query sort by reverse order 
-func (s *SFollowingFollowingInfoWrap) QueryListByRevOrder(start *prototype.FollowingRelation, end *prototype.FollowingRelation) iservices.IDatabaseIterator {
-
-    var sBuf,eBuf,rBufStart,rBufEnd []byte
-    pre := FollowingFollowingInfoRevOrdTable
+//Query sort by order 
+//start = nil  end = nil (query the db from start to end)
+//start = nil (query from start the db)
+//end = nil (query to the end of db)
+func (s *SFollowingFollowingInfoWrap) QueryListByOrder(start *prototype.FollowingRelation, end *prototype.FollowingRelation) iservices.IDatabaseIterator {
+    pre := FollowingFollowingInfoTable
+    skeyList := []interface{}{pre}
     if start != nil {
-       skeyList := []interface{}{pre,start}
-       buf,cErr := encoding.EncodeSlice(skeyList,false)
-       if cErr != nil {
+       skeyList = append(skeyList,start)
+    }
+    sBuf,cErr := encoding.EncodeSlice(skeyList,false)
+    if cErr != nil {
          return nil
-       }
-       sBuf = buf
+    }
+    if start != nil && end == nil {
+		iter := s.Dba.NewIterator(sBuf, nil)
+		return iter
+	}
+    eKeyList := []interface{}{pre}
+    if end != nil {
+       eKeyList = append(eKeyList,end)
+    }
+    eBuf,cErr := encoding.EncodeSlice(eKeyList,false)
+    if cErr != nil {
+       return nil
     }
     
-    if end != nil {
-       eKeyList := []interface{}{pre,end}
-       buf,err := encoding.EncodeSlice(eKeyList,false)
-       if err != nil {
-          return nil
-       }
-       eBuf = buf
-
+    res := bytes.Compare(sBuf,eBuf)
+    if res == 0 {
+		eBuf = nil
+	}else if res == 1 {
+       //reverse order
+       return nil
     }
-
-    if sBuf != nil && eBuf != nil {
-       res := bytes.Compare(sBuf,eBuf)
-       if res == -1 {
-          // order
-          return nil
-       }
-       if sBuf != nil {
-       rBuf,rErr := encoding.Complement(sBuf, nil)
-       if rErr != nil {
-          return nil
-       }
-       rBufStart = rBuf
-    }
-    if eBuf != nil {
-          rBuf,rErr := encoding.Complement(eBuf, nil)
-          if rErr != nil { 
-            return nil
-          }
-          rBufEnd = rBuf
-       }
-    }
-     
-    if sBuf != nil && eBuf != nil {
-          res := bytes.Compare(sBuf,eBuf)
-          if res == -1 {
-            // order
-            return nil
-        }
-    }
-    iter := s.Dba.NewIterator(rBufStart, rBufEnd)
+    iter := s.Dba.NewIterator(sBuf, eBuf)
+    
     return iter
 }
+
 /////////////// SECTION Private function ////////////////
 
 func (s *SoFollowingWrap) update(sa *SoFollowing) bool {
