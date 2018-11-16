@@ -132,8 +132,7 @@ func (s *SoDemoWrap) delSortKeyOwner(sa *SoDemo) bool {
 
 func (s *SoDemoWrap) insertSortKeyOwner(sa *SoDemo) bool {
 	val := SoListDemoByOwner{}
-	val.Owner = sa.Owner
-	val.Owner = sa.Owner
+    val.Owner = sa.Owner
 	buf, err := proto.Marshal(&val)
 	if err != nil {
 		return false
@@ -173,8 +172,8 @@ func (s *SoDemoWrap) delSortKeyPostTime(sa *SoDemo) bool {
 
 func (s *SoDemoWrap) insertSortKeyPostTime(sa *SoDemo) bool {
 	val := SoListDemoByPostTime{}
-	val.Owner = sa.Owner
-	val.PostTime = sa.PostTime
+    val.Owner = sa.Owner
+    val.PostTime = sa.PostTime
 	buf, err := proto.Marshal(&val)
 	if err != nil {
 		return false
@@ -212,8 +211,8 @@ func (s *SoDemoWrap) delSortKeyLikeCount(sa *SoDemo) bool {
 
 func (s *SoDemoWrap) insertSortKeyLikeCount(sa *SoDemo) bool {
 	val := SoListDemoByLikeCount{}
-	val.Owner = sa.Owner
-	val.LikeCount = sa.LikeCount
+    val.Owner = sa.Owner
+    val.LikeCount = sa.LikeCount
 	buf, err := proto.Marshal(&val)
 	if err != nil {
 		return false
@@ -244,8 +243,8 @@ func (s *SoDemoWrap) delSortKeyIdx(sa *SoDemo) bool {
 
 func (s *SoDemoWrap) insertSortKeyIdx(sa *SoDemo) bool {
 	val := SoListDemoByIdx{}
-	val.Owner = sa.Owner
-	val.Idx = sa.Idx
+    val.Owner = sa.Owner
+    val.Idx = sa.Idx
 	buf, err := proto.Marshal(&val)
 	if err != nil {
 		return false
@@ -276,8 +275,8 @@ func (s *SoDemoWrap) delSortKeyReplayCount(sa *SoDemo) bool {
 
 func (s *SoDemoWrap) insertSortKeyReplayCount(sa *SoDemo) bool {
 	val := SoListDemoByReplayCount{}
-	val.Owner = sa.Owner
-	val.ReplayCount = sa.ReplayCount
+    val.Owner = sa.Owner
+    val.ReplayCount = sa.ReplayCount
 	buf, err := proto.Marshal(&val)
 	if err != nil {
 		return false
@@ -660,7 +659,7 @@ func (m *SoListDemoByOwner) OpeEncode() ([]byte,error) {
     }
     sub1 := m.Owner
     if sub1 == nil {
-       return nil,errors.New("the mainKey Owner is nil")
+       return nil,errors.New("the mainkey Owner is nil")
     }
     kList := []interface{}{pre,sub,sub1}
     kBuf,cErr := encoding.EncodeSlice(kList,false)
@@ -675,7 +674,7 @@ func (m *SoListDemoByOwner) EncodeRevSortKey() ([]byte,error) {
     }
     sub1 := m.Owner
     if sub1 == nil {
-       return nil,errors.New("the mainKey Owner is nil")
+       return nil,errors.New("the mainkey Owner is nil")
     }
     kList := []interface{}{pre,sub,sub1}
     ordKey,cErr := encoding.EncodeSlice(kList,false)
@@ -803,7 +802,7 @@ func (m *SoListDemoByPostTime) OpeEncode() ([]byte,error) {
     }
     sub1 := m.Owner
     if sub1 == nil {
-       return nil,errors.New("the mainKey PostTime is nil")
+       return nil,errors.New("the mainkey Owner is nil")
     }
     kList := []interface{}{pre,sub,sub1}
     kBuf,cErr := encoding.EncodeSlice(kList,false)
@@ -818,7 +817,7 @@ func (m *SoListDemoByPostTime) EncodeRevSortKey() ([]byte,error) {
     }
     sub1 := m.Owner
     if sub1 == nil {
-       return nil,errors.New("the mainKey PostTime is nil")
+       return nil,errors.New("the mainkey Owner is nil")
     }
     kList := []interface{}{pre,sub,sub1}
     ordKey,cErr := encoding.EncodeSlice(kList,false)
@@ -982,7 +981,7 @@ func (m *SoListDemoByLikeCount) OpeEncode() ([]byte,error) {
     
     sub1 := m.Owner
     if sub1 == nil {
-       return nil,errors.New("the mainKey LikeCount is nil")
+       return nil,errors.New("the mainkey Owner is nil")
     }
     kList := []interface{}{pre,sub,sub1}
     kBuf,cErr := encoding.EncodeSlice(kList,false)
@@ -995,7 +994,7 @@ func (m *SoListDemoByLikeCount) EncodeRevSortKey() ([]byte,error) {
     
     sub1 := m.Owner
     if sub1 == nil {
-       return nil,errors.New("the mainKey LikeCount is nil")
+       return nil,errors.New("the mainkey Owner is nil")
     }
     kList := []interface{}{pre,sub,sub1}
     ordKey,cErr := encoding.EncodeSlice(kList,false)
@@ -1121,7 +1120,7 @@ func (m *SoListDemoByIdx) OpeEncode() ([]byte,error) {
     
     sub1 := m.Owner
     if sub1 == nil {
-       return nil,errors.New("the mainKey Idx is nil")
+       return nil,errors.New("the mainkey Owner is nil")
     }
     kList := []interface{}{pre,sub,sub1}
     kBuf,cErr := encoding.EncodeSlice(kList,false)
@@ -1134,7 +1133,7 @@ func (m *SoListDemoByIdx) EncodeRevSortKey() ([]byte,error) {
     
     sub1 := m.Owner
     if sub1 == nil {
-       return nil,errors.New("the mainKey Idx is nil")
+       return nil,errors.New("the mainkey Owner is nil")
     }
     kList := []interface{}{pre,sub,sub1}
     ordKey,cErr := encoding.EncodeSlice(kList,false)
@@ -1260,7 +1259,7 @@ func (m *SoListDemoByReplayCount) OpeEncode() ([]byte,error) {
     
     sub1 := m.Owner
     if sub1 == nil {
-       return nil,errors.New("the mainKey ReplayCount is nil")
+       return nil,errors.New("the mainkey Owner is nil")
     }
     kList := []interface{}{pre,sub,sub1}
     kBuf,cErr := encoding.EncodeSlice(kList,false)
@@ -1273,7 +1272,7 @@ func (m *SoListDemoByReplayCount) EncodeRevSortKey() ([]byte,error) {
     
     sub1 := m.Owner
     if sub1 == nil {
-       return nil,errors.New("the mainKey ReplayCount is nil")
+       return nil,errors.New("the mainkey Owner is nil")
     }
     kList := []interface{}{pre,sub,sub1}
     ordKey,cErr := encoding.EncodeSlice(kList,false)

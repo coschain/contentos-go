@@ -106,8 +106,8 @@ func (s *SoPostWrap) delSortKeyCreatedOrder(sa *SoPost) bool {
 
 func (s *SoPostWrap) insertSortKeyCreatedOrder(sa *SoPost) bool {
 	val := SoListPostByCreatedOrder{}
-	val.PostId = sa.PostId
-	val.CreatedOrder = sa.CreatedOrder
+    val.PostId = sa.PostId
+    val.CreatedOrder = sa.CreatedOrder
 	buf, err := proto.Marshal(&val)
 	if err != nil {
 		return false
@@ -138,8 +138,8 @@ func (s *SoPostWrap) delSortKeyReplyOrder(sa *SoPost) bool {
 
 func (s *SoPostWrap) insertSortKeyReplyOrder(sa *SoPost) bool {
 	val := SoListPostByReplyOrder{}
-	val.PostId = sa.PostId
-	val.ReplyOrder = sa.ReplyOrder
+    val.PostId = sa.PostId
+    val.ReplyOrder = sa.ReplyOrder
 	buf, err := proto.Marshal(&val)
 	if err != nil {
 		return false
@@ -829,9 +829,7 @@ func (m *SoListPostByCreatedOrder) OpeEncode() ([]byte,error) {
        return nil,errors.New("the pro CreatedOrder is nil")
     }
     sub1 := m.PostId
-    if sub1 == nil {
-       return nil,errors.New("the mainKey CreatedOrder is nil")
-    }
+    
     kList := []interface{}{pre,sub,sub1}
     kBuf,cErr := encoding.EncodeSlice(kList,false)
     return kBuf,cErr
@@ -844,9 +842,7 @@ func (m *SoListPostByCreatedOrder) EncodeRevSortKey() ([]byte,error) {
        return nil,errors.New("the pro CreatedOrder is nil")
     }
     sub1 := m.PostId
-    if sub1 == nil {
-       return nil,errors.New("the mainKey CreatedOrder is nil")
-    }
+    
     kList := []interface{}{pre,sub,sub1}
     ordKey,cErr := encoding.EncodeSlice(kList,false)
     if cErr != nil {
@@ -973,9 +969,7 @@ func (m *SoListPostByReplyOrder) OpeEncode() ([]byte,error) {
        return nil,errors.New("the pro ReplyOrder is nil")
     }
     sub1 := m.PostId
-    if sub1 == nil {
-       return nil,errors.New("the mainKey ReplyOrder is nil")
-    }
+    
     kList := []interface{}{pre,sub,sub1}
     kBuf,cErr := encoding.EncodeSlice(kList,false)
     return kBuf,cErr
@@ -988,9 +982,7 @@ func (m *SoListPostByReplyOrder) EncodeRevSortKey() ([]byte,error) {
        return nil,errors.New("the pro ReplyOrder is nil")
     }
     sub1 := m.PostId
-    if sub1 == nil {
-       return nil,errors.New("the mainKey ReplyOrder is nil")
-    }
+    
     kList := []interface{}{pre,sub,sub1}
     ordKey,cErr := encoding.EncodeSlice(kList,false)
     if cErr != nil {

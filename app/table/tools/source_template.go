@@ -179,7 +179,9 @@ func (s *So{{$.ClsName}}Wrap) delSortKey{{$v1.PName}}(sa *So{{$.ClsName}}) bool 
 
 func (s *So{{$.ClsName}}Wrap) insertSortKey{{$v1.PName}}(sa *So{{$.ClsName}}) bool {
 	val := SoList{{$.ClsName}}By{{$v1.PName}}{}
-	val.{{UperFirstChar $.MainKeyName}} = sa.{{UperFirstChar $.MainKeyName}}
+    {{if ne $.MainKeyName $v1.PName -}}
+   	val.{{UperFirstChar $.MainKeyName}} = sa.{{UperFirstChar $.MainKeyName}}
+    {{end -}}
 	val.{{UperFirstChar $v1.PName}} = sa.{{UperFirstChar $v1.PName}}
 	buf, err := proto.Marshal(&val)
 	if err != nil {
@@ -397,9 +399,12 @@ func (m *SoList{{$.ClsName}}By{{$v.PName}}) OpeEncode() ([]byte,error) {
     }
     {{- end}}
     sub1 := m.{{UperFirstChar $.MainKeyName}}
+    {{$mType := (DetectBaseType $.MainKeyType) -}}
+    {{- if not $mType -}} 
     if sub1 == nil {
-       return nil,errors.New("the mainKey {{$v.PName}} is nil")
+       return nil,errors.New("the mainkey {{$.MainKeyName}} is nil")
     }
+    {{- end}}
     kList := []interface{}{pre,sub,sub1}
     kBuf,cErr := encoding.EncodeSlice(kList,false)
     return kBuf,cErr
@@ -415,9 +420,12 @@ func (m *SoList{{$.ClsName}}By{{$v.PName}}) EncodeRevSortKey() ([]byte,error) {
     }
     {{- end}}
     sub1 := m.{{UperFirstChar $.MainKeyName}}
+    {{$mType := (DetectBaseType $.MainKeyType) -}}
+    {{- if not $mType -}} 
     if sub1 == nil {
-       return nil,errors.New("the mainKey {{$v.PName}} is nil")
+       return nil,errors.New("the mainkey {{$.MainKeyName}} is nil")
     }
+    {{- end}}
     kList := []interface{}{pre,sub,sub1}
     ordKey,cErr := encoding.EncodeSlice(kList,false)
     if cErr != nil {

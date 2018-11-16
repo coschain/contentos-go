@@ -116,8 +116,8 @@ func (s *SoAccountWrap) delSortKeyCreatedTime(sa *SoAccount) bool {
 
 func (s *SoAccountWrap) insertSortKeyCreatedTime(sa *SoAccount) bool {
 	val := SoListAccountByCreatedTime{}
-	val.Name = sa.Name
-	val.CreatedTime = sa.CreatedTime
+    val.Name = sa.Name
+    val.CreatedTime = sa.CreatedTime
 	buf, err := proto.Marshal(&val)
 	if err != nil {
 		return false
@@ -148,8 +148,8 @@ func (s *SoAccountWrap) delSortKeyBalance(sa *SoAccount) bool {
 
 func (s *SoAccountWrap) insertSortKeyBalance(sa *SoAccount) bool {
 	val := SoListAccountByBalance{}
-	val.Name = sa.Name
-	val.Balance = sa.Balance
+    val.Name = sa.Name
+    val.Balance = sa.Balance
 	buf, err := proto.Marshal(&val)
 	if err != nil {
 		return false
@@ -180,8 +180,8 @@ func (s *SoAccountWrap) delSortKeyVestingShares(sa *SoAccount) bool {
 
 func (s *SoAccountWrap) insertSortKeyVestingShares(sa *SoAccount) bool {
 	val := SoListAccountByVestingShares{}
-	val.Name = sa.Name
-	val.VestingShares = sa.VestingShares
+    val.Name = sa.Name
+    val.VestingShares = sa.VestingShares
 	buf, err := proto.Marshal(&val)
 	if err != nil {
 		return false
@@ -479,7 +479,7 @@ func (m *SoListAccountByCreatedTime) OpeEncode() ([]byte,error) {
     }
     sub1 := m.Name
     if sub1 == nil {
-       return nil,errors.New("the mainKey CreatedTime is nil")
+       return nil,errors.New("the mainkey Name is nil")
     }
     kList := []interface{}{pre,sub,sub1}
     kBuf,cErr := encoding.EncodeSlice(kList,false)
@@ -494,7 +494,7 @@ func (m *SoListAccountByCreatedTime) EncodeRevSortKey() ([]byte,error) {
     }
     sub1 := m.Name
     if sub1 == nil {
-       return nil,errors.New("the mainKey CreatedTime is nil")
+       return nil,errors.New("the mainkey Name is nil")
     }
     kList := []interface{}{pre,sub,sub1}
     ordKey,cErr := encoding.EncodeSlice(kList,false)
@@ -604,7 +604,7 @@ func (m *SoListAccountByBalance) OpeEncode() ([]byte,error) {
     }
     sub1 := m.Name
     if sub1 == nil {
-       return nil,errors.New("the mainKey Balance is nil")
+       return nil,errors.New("the mainkey Name is nil")
     }
     kList := []interface{}{pre,sub,sub1}
     kBuf,cErr := encoding.EncodeSlice(kList,false)
@@ -619,7 +619,7 @@ func (m *SoListAccountByBalance) EncodeRevSortKey() ([]byte,error) {
     }
     sub1 := m.Name
     if sub1 == nil {
-       return nil,errors.New("the mainKey Balance is nil")
+       return nil,errors.New("the mainkey Name is nil")
     }
     kList := []interface{}{pre,sub,sub1}
     ordKey,cErr := encoding.EncodeSlice(kList,false)
@@ -729,7 +729,7 @@ func (m *SoListAccountByVestingShares) OpeEncode() ([]byte,error) {
     }
     sub1 := m.Name
     if sub1 == nil {
-       return nil,errors.New("the mainKey VestingShares is nil")
+       return nil,errors.New("the mainkey Name is nil")
     }
     kList := []interface{}{pre,sub,sub1}
     kBuf,cErr := encoding.EncodeSlice(kList,false)
@@ -744,7 +744,7 @@ func (m *SoListAccountByVestingShares) EncodeRevSortKey() ([]byte,error) {
     }
     sub1 := m.Name
     if sub1 == nil {
-       return nil,errors.New("the mainKey VestingShares is nil")
+       return nil,errors.New("the mainkey Name is nil")
     }
     kList := []interface{}{pre,sub,sub1}
     ordKey,cErr := encoding.EncodeSlice(kList,false)

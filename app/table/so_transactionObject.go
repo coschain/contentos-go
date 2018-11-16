@@ -100,8 +100,8 @@ func (s *SoTransactionObjectWrap) delSortKeyExpiration(sa *SoTransactionObject) 
 
 func (s *SoTransactionObjectWrap) insertSortKeyExpiration(sa *SoTransactionObject) bool {
 	val := SoListTransactionObjectByExpiration{}
-	val.TrxId = sa.TrxId
-	val.Expiration = sa.Expiration
+    val.TrxId = sa.TrxId
+    val.Expiration = sa.Expiration
 	buf, err := proto.Marshal(&val)
 	if err != nil {
 		return false
@@ -249,7 +249,7 @@ func (m *SoListTransactionObjectByExpiration) OpeEncode() ([]byte,error) {
     }
     sub1 := m.TrxId
     if sub1 == nil {
-       return nil,errors.New("the mainKey Expiration is nil")
+       return nil,errors.New("the mainkey TrxId is nil")
     }
     kList := []interface{}{pre,sub,sub1}
     kBuf,cErr := encoding.EncodeSlice(kList,false)
@@ -264,7 +264,7 @@ func (m *SoListTransactionObjectByExpiration) EncodeRevSortKey() ([]byte,error) 
     }
     sub1 := m.TrxId
     if sub1 == nil {
-       return nil,errors.New("the mainKey Expiration is nil")
+       return nil,errors.New("the mainkey TrxId is nil")
     }
     kList := []interface{}{pre,sub,sub1}
     ordKey,cErr := encoding.EncodeSlice(kList,false)

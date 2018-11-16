@@ -100,8 +100,7 @@ func (s *SoFollowingWrap) delSortKeyFollowingInfo(sa *SoFollowing) bool {
 
 func (s *SoFollowingWrap) insertSortKeyFollowingInfo(sa *SoFollowing) bool {
 	val := SoListFollowingByFollowingInfo{}
-	val.FollowingInfo = sa.FollowingInfo
-	val.FollowingInfo = sa.FollowingInfo
+    val.FollowingInfo = sa.FollowingInfo
 	buf, err := proto.Marshal(&val)
 	if err != nil {
 		return false
@@ -214,7 +213,7 @@ func (m *SoListFollowingByFollowingInfo) OpeEncode() ([]byte,error) {
     }
     sub1 := m.FollowingInfo
     if sub1 == nil {
-       return nil,errors.New("the mainKey FollowingInfo is nil")
+       return nil,errors.New("the mainkey FollowingInfo is nil")
     }
     kList := []interface{}{pre,sub,sub1}
     kBuf,cErr := encoding.EncodeSlice(kList,false)
@@ -229,7 +228,7 @@ func (m *SoListFollowingByFollowingInfo) EncodeRevSortKey() ([]byte,error) {
     }
     sub1 := m.FollowingInfo
     if sub1 == nil {
-       return nil,errors.New("the mainKey FollowingInfo is nil")
+       return nil,errors.New("the mainkey FollowingInfo is nil")
     }
     kList := []interface{}{pre,sub,sub1}
     ordKey,cErr := encoding.EncodeSlice(kList,false)

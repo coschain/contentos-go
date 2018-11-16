@@ -100,8 +100,7 @@ func (s *SoWitnessWrap) delSortKeyOwner(sa *SoWitness) bool {
 
 func (s *SoWitnessWrap) insertSortKeyOwner(sa *SoWitness) bool {
 	val := SoListWitnessByOwner{}
-	val.Owner = sa.Owner
-	val.Owner = sa.Owner
+    val.Owner = sa.Owner
 	buf, err := proto.Marshal(&val)
 	if err != nil {
 		return false
@@ -466,7 +465,7 @@ func (m *SoListWitnessByOwner) OpeEncode() ([]byte,error) {
     }
     sub1 := m.Owner
     if sub1 == nil {
-       return nil,errors.New("the mainKey Owner is nil")
+       return nil,errors.New("the mainkey Owner is nil")
     }
     kList := []interface{}{pre,sub,sub1}
     kBuf,cErr := encoding.EncodeSlice(kList,false)
@@ -481,7 +480,7 @@ func (m *SoListWitnessByOwner) EncodeRevSortKey() ([]byte,error) {
     }
     sub1 := m.Owner
     if sub1 == nil {
-       return nil,errors.New("the mainKey Owner is nil")
+       return nil,errors.New("the mainkey Owner is nil")
     }
     kList := []interface{}{pre,sub,sub1}
     ordKey,cErr := encoding.EncodeSlice(kList,false)
