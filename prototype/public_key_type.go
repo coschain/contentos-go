@@ -104,6 +104,16 @@ func (m *PublicKeyType) UnmarshalJSON(input []byte) error {
 	return nil
 }
 
+func (m *PublicKeyType) Validate () error {
+	if m == nil{
+		return ErrNpe
+	}
+	if len(m.Data) != 33 {
+		return ErrKeyLength
+	}
+	return nil
+}
+
 func (m *PublicKeyType) OpeEncode() ([]byte, error) {
 	return encoding.Encode(m.Data)
 }

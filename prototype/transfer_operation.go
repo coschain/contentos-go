@@ -1,5 +1,7 @@
 package prototype
 
+import "github.com/pkg/errors"
+
 func (t *TransferOperation) GetAuthorities(auths *[]Authority) {
 
 }
@@ -18,21 +20,18 @@ func (t *TransferOperation) GetAdmin(*[]AccountAdminPair) {
 func (t *TransferOperation) IsVirtual() {
 
 }
-func (t *TransferOperation) Validate() bool {
+func (t *TransferOperation) Validate() error {
 	if t == nil {
-		return false
+		return ErrNpe
 	}
-	if !t.From.Validate(){
-		return false
+	if err := t.From.Validate(); err != nil{
+		return err
 	}
-	if !t.To.Validate(){
-		return false
+	if err := t.To.Validate(); err != nil{
+		return err
 	}
-	if t.Amount == nil {
-		return false
+	if t.Amount == nil || !t.Amount.NonZero() {
+		return errors.New("transfer op must has amount value")
 	}
-	if !t.Amount.NonZero(){
-		return false
-	}
-	return true
+	return nil
 }

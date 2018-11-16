@@ -34,7 +34,7 @@ require (
 	github.com/ontio/ontology-crypto v1.0.2
 	github.com/ontio/ontology-eventbus v0.9.1
 	github.com/orcaman/concurrent-map v0.0.0-20180723183937-b28018939af9 // indirect
-	github.com/pkg/errors v0.8.0 // indirect
+	github.com/pkg/errors v0.8.0
 	github.com/rifflock/lfshook v0.0.0-20180920164130-b9218ef580f5
 	github.com/rs/cors v1.6.0
 	github.com/sirupsen/logrus v1.2.0

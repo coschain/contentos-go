@@ -98,7 +98,15 @@ func (m *PrivateKeyType) ToBase58() string {
 }
 
 
-
+func (m *PrivateKeyType) Validate () error {
+	if m == nil{
+		return ErrNpe
+	}
+	if len(m.Data) != 32 {
+		return ErrKeyLength
+	}
+	return nil
+}
 
 func (m *PrivateKeyType) MarshalJSON() ([]byte, error) {
 	val := fmt.Sprintf("\"%s\"", m.ToWIF())

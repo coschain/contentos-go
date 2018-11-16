@@ -41,7 +41,24 @@ func (p *SignedTransaction) ExportPubKeys(cid ChainId) ([]*PublicKeyType, error)
 	return result, nil
 }
 
-func (p *SignedTransaction) Validate() {
+func (p *SignedTransaction) Validate() error {
+	if p == nil || p.Trx == nil || p.Signatures == nil {
+		return ErrNpe
+	}
+
+	if err := p.Trx.Validate(); err != nil {
+		return err
+	}
+
+	if len(p.Signatures) == 0 {
+		return errors.New("no signatures")
+	}
+	for _,sig := range p.Signatures{
+		if err := sig.Validate(); err != nil{
+			return err
+		}
+	}
+	return nil
 }
 
 func (p *SignedTransaction) VerifySig(pubKey *PublicKeyType, cid ChainId) bool {

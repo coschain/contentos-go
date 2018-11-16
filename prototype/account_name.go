@@ -1,6 +1,9 @@
 package prototype
 
-import "github.com/coschain/contentos-go/common/encoding"
+import (
+	"github.com/coschain/contentos-go/common/encoding"
+	"github.com/pkg/errors"
+)
 
 func (m *AccountName) Empty() bool {
 	return m.Value == ""
@@ -22,23 +25,23 @@ func isValidNameChar( c byte ) bool {
 	}
 }
 
-func (m *AccountName) Validate() bool {
+func (m *AccountName) Validate() error {
 	if m == nil {
-		return false
+		return errors.New("npe")
 	}
 
 	if len(m.Value) < 6 || len(m.Value) > 16 {
-		return false
+		return errors.New("name length invalid: " + m.Value )
 	}
 
 	buf := []byte(m.Value)
 
 	for _, val := range buf {
 		if !isValidNameChar(val){
-			return false
+			return errors.New("name contains invalid char: " + string(val) )
 		}
 	}
-	return true
+	return nil
 }
 
 func MakeAccountName(value string) *AccountName {
