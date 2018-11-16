@@ -299,6 +299,7 @@ func (s *So{{$.ClsName}}Wrap) Md{{$k1}}(p {{formatStr $v1}}) bool {
 	}
 		{{- end -}}
 	{{end}}
+   {{ $baseType := (DetectBaseType $v1) -}}
    {{if $baseType -}} 
      sa.{{$k1}} = p
    {{end}}
