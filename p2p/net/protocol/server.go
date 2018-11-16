@@ -29,7 +29,6 @@ type P2P interface {
 	GetPeer(uint64) *peer.Peer
 	SetHeight(uint64)
 	IsPeerEstablished(p *peer.Peer) bool
-	Send(p *peer.Peer, msg types.Message, isConsensus bool) error
 	GetMsgChan(isConsensus bool) chan *types.MsgPayload
 	GetPeerFromAddr(addr string) *peer.Peer
 	AddOutConnectingList(addr string) (added bool)
@@ -45,9 +44,10 @@ type P2P interface {
 	AddNbrNode(*peer.Peer)
 	DelNbrNode(id uint64) (*peer.Peer, bool)
 	NodeEstablished(uint64) bool
-	Xmit(msg types.Message, isCons bool)
 	SetOwnAddress(addr string)
 	IsAddrFromConnecting(addr string) bool
 
+	Broadcast(message interface{})
 	Triggeer_sync(p *peer.Peer, current_head_blk_id comn.BlockID)
+	Send(p *peer.Peer, msg types.Message, isConsensus bool) error
 }

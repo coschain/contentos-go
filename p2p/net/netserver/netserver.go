@@ -3,8 +3,10 @@ package netserver
 import (
 	"errors"
 	"github.com/coschain/contentos-go/p2p/msg"
+	"github.com/coschain/contentos-go/prototype"
 	"math/rand"
 	"net"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -213,9 +215,27 @@ func (this *NetServer) NodeEstablished(id uint64) bool {
 	return this.Np.NodeEstablished(id)
 }
 
-//Xmit called by actor, broadcast msg
-func (this *NetServer) Xmit(msg types.Message, isCons bool) {
-	this.Np.Broadcast(msg, isCons)
+
+func (this *NetServer) Broadcast(message interface{}) {
+	log.Debug()
+	var msg types.Message
+	isConsensus := false
+	switch message.(type) {
+	case *prototype.SignedTransaction:
+		log.Debug("[p2p]TX transaction message")
+		sigtrx := message.(*prototype.SignedTransaction)
+		msg = msgpack.NewTxn(sigtrx)
+	case *prototype.SignedBlock:
+		log.Debug("[p2p]TX block message")
+		block := message.(*prototype.SignedBlock)
+		msg = msgpack.NewSigBlkHashMsg(block)
+	default:
+		log.Warnf("[p2p]Unknown Xmit message %v , type %v", message,
+			reflect.TypeOf(message))
+		return
+	}
+
+	this.Np.Broadcast(msg, isConsensus)
 }
 
 //GetMsgChan return sync or consensus channel when msgrouter need msg input
