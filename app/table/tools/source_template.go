@@ -805,6 +805,9 @@ func DetectBaseType(str string) bool {
 	    case "[]byte":
 	    	return true
 		case "float64":
+			 return true
+	    case "bool":
+		 return true
 	}
 	return false
 }
