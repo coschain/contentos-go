@@ -16,14 +16,14 @@ type IConsensus interface {
 	SetBootstrap(b bool)
 
 	// GenerateBlock generates a new block, possible implementation: Producer.Produce()
-	GenerateBlock() (common.ISignedBlock, error)
+	// GenerateBlock() (common.ISignedBlock, error)
 	// PushTransaction accepts the trx if and only if
 	// 1. it's valid
 	// 2. the current node is a producer
-	// PushTransaction(trx common.ISignedTransaction)
+	PushTransaction(trx common.ISignedTransaction)
 
 	// PushBlock adds b to the block fork DB, called if ValidateBlock returns true
-	PushBlock(b common.ISignedBlock) error
+	PushBlock(b common.ISignedBlock)
 
 
 

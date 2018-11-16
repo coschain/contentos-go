@@ -1,7 +1,6 @@
 package consensus
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"sync"
@@ -11,7 +10,6 @@ import (
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/db/forkdb"
 	"github.com/coschain/contentos-go/node"
-	"github.com/coschain/contentos-go/prototype"
 )
 
 func waitTilNextSec() {
@@ -20,9 +18,15 @@ func waitTilNextSec() {
 	time.Sleep(ceil.Sub(now))
 }
 
+func timeToNextSec() time.Duration {
+	now := time.Now()
+	ceil := now.Add(time.Millisecond * 500).Round(time.Second)
+	return ceil.Sub(now)
+}
+
 type Producer struct {
-	Name   string
-	PubKey *prototype.PublicKeyType
+	Name string
+	//PubKey *prototype.PublicKeyType
 	Weight uint32
 }
 
@@ -37,11 +41,14 @@ type DPoS struct {
 	hostMask       []bool
 	producerIdx    uint64
 	readyToProduce bool
+	prodTimer      *time.Timer
+	trxCh          chan common.ISignedTransaction
+	blkCh          chan common.ISignedBlock
 
 	bootstrap bool
 
-	slot           uint64
-	currentAbsSlot uint64
+	slot uint64
+	//currentAbsSlot uint64
 
 	//head common.ISignedBlock
 
@@ -55,7 +62,11 @@ func NewDPoS() *DPoS {
 		ForkDB:    forkdb.NewDB(),
 		Producers: make([]*Producer, constants.ProducerNum),
 		hostMask:  make([]bool, constants.ProducerNum),
-		stopCh:    make(chan struct{}),
+		prodTimer: time.NewTimer(10 * time.Second),
+		trxCh:     make(chan common.ISignedTransaction, 5000),
+		blkCh:     make(chan common.ISignedBlock),
+
+		stopCh: make(chan struct{}),
 	}
 }
 
@@ -84,42 +95,49 @@ func (d *DPoS) Start(node *node.Node) error {
 	return nil
 }
 
+func (d *DPoS) scheduleProduce() bool {
+	if !d.checkGenesis() {
+		d.prodTimer.Reset(timeToNextSec())
+		return false
+	}
+	if !d.readyToProduce {
+		if d.checkSync() {
+			d.readyToProduce = true
+		} else {
+			d.prodTimer.Reset(timeToNextSec())
+			return false
+		}
+	}
+	if !d.checkProducingTiming() || !d.checkOurTurn() {
+		d.prodTimer.Reset(timeToNextSec())
+		return false
+	}
+	return true
+}
+
 func (d *DPoS) start() {
 	d.wg.Add(1)
 	defer d.wg.Done()
+	d.scheduleProduce()
 	for {
 		select {
 		case <-d.stopCh:
 			break
-		default:
-			if !d.checkGenesis() {
-				waitTilNextSec()
+		case b := <-d.blkCh:
+			d.pushBlock(b)
+		//case trx := <-d.trxCh:
+		// handle trx
+		case <-d.prodTimer.C:
+			if !d.scheduleProduce() {
 				continue
 			}
-			if !d.readyToProduce {
-				if d.checkSync() {
-					d.readyToProduce = true
-				} else {
-					waitTilNextSec()
-					continue
-				}
-			}
-			if !d.checkProducingTiming() || !d.checkOurTurn() {
-				waitTilNextSec()
-				continue
-			}
-
-			b, err := d.GenerateBlock()
-			if err != nil {
-				// TODO: log
-				continue
-			}
-			err = d.PushBlock(b)
+			b, err := d.generateBlock()
 			if err != nil {
 				// TODO: log
 				continue
 			}
 			// TODO: broadcast block
+			d.PushBlock(b)
 		}
 	}
 }
@@ -130,7 +148,7 @@ func (d *DPoS) Stop() error {
 	return nil
 }
 
-func (d *DPoS) GenerateBlock() (common.ISignedBlock, error) {
+func (d *DPoS) generateBlock() (common.ISignedBlock, error) {
 	ts := d.getSlotTime(d.slot)
 	prev := d.ForkDB.Head().Id()
 	return d.Producers[d.producerIdx].Produce(ts, prev)
@@ -216,7 +234,17 @@ func (d *DPoS) getSlotAtTime(t time.Time) uint64 {
 	return (uint64(t.Unix())-nextSlotTime)/constants.BLOCK_INTERVAL + 1
 }
 
-func (d *DPoS) PushBlock(b common.ISignedBlock) error {
+func (d *DPoS) PushBlock(b common.ISignedBlock) {
+	go func(blk common.ISignedBlock) {
+		d.blkCh <- b
+	}(b)
+}
+
+func (d *DPoS) PushTransaction(trx common.ISignedTransaction) {
+	d.trxCh <- trx
+}
+
+func (d *DPoS) pushBlock(b common.ISignedBlock) error {
 	// TODO: check signee & merkle
 	if b.Timestamp() < d.getSlotTime(1) {
 		return errors.New("the timestamp of the new block is less than that of the head block")
@@ -244,9 +272,9 @@ func (d *DPoS) PushBlock(b common.ISignedBlock) error {
 	}
 
 	// TODO:
-	if bytes.Equal(b.GetSignee().(*prototype.PublicKeyType).Data, d.Producers[len(d.Producers)-1].PubKey.Data) {
-		d.shuffle()
-	}
+	//if bytes.Equal(b.GetSignee().(*prototype.PublicKeyType).Data, d.Producers[len(d.Producers)-1].PubKey.Data) {
+	//	d.shuffle()
+	//}
 	return nil
 }
 
@@ -273,7 +301,7 @@ func (d *DPoS) switchFork(old, new common.BlockID) {
 		if err != nil {
 			panic(err)
 		}
-		if d.PushBlock(b) != nil {
+		if d.pushBlock(b) != nil {
 			errWhileSwitch = true
 			// TODO: peels off this invalid branch to avoid flip-flop switch
 			break
