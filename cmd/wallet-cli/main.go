@@ -130,6 +130,9 @@ func addCommands() {
 	rootCmd.AddCommand(commands.VoteCmd())
 	rootCmd.AddCommand(commands.ImportCmd())
 	rootCmd.AddCommand(commands.BpCmd())
+	rootCmd.AddCommand(commands.PostCmd())
+	rootCmd.AddCommand(commands.ReplyCmd())
+	rootCmd.AddCommand(commands.FollowCmd())
 }
 
 func init() {

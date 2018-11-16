@@ -68,7 +68,7 @@ message beneficiary_route_type{
 
 
 message post_operation{
-    string uuid             = 1;
+    uint64 uuid             = 1;
     account_name owner      = 2;
     string title            = 3;
     string content          = 4;
@@ -77,10 +77,10 @@ message post_operation{
 }
 
 message reply_operation{
-    string uuid             = 1;
+    uint64 uuid             = 1;
     account_name owner      = 2;
     string content          = 3;
-    string parent_uuid      = 4;
+    uint64 parent_uuid      = 4;
     repeated beneficiary_route_type beneficiaries = 6;
 }
 
