@@ -96,43 +96,48 @@ func (s *So{{.ClsName}}Wrap) CheckExist() bool {
 	return res
 }
 
-func (s *So{{.ClsName}}Wrap) Create{{.ClsName}}(sa *So{{.ClsName}}) bool {
+func (s *So{{.ClsName}}Wrap) Create{{.ClsName}}(f func(t *So{{.ClsName}})) error {
 
-	if sa == nil {
-		return false
-	}
+	val := &So{{.ClsName}}{}
+    f(val)
+    {{$baseType := (DetectBaseType $.MainKeyType) -}}
+    {{- if not $baseType -}} 
+    if val.{{$.MainKeyName}} == nil {
+       return errors.New("the mainkey is nil")
+    }
+    {{ end -}}
     if s.CheckExist() {
-       return false
+       return errors.New("the mainkey is already exist")
     }
 	keyBuf, err := s.encodeMainKey()
 
 	if err != nil {
-		return false
+		return err
 	}
-	resBuf, err := proto.Marshal(sa)
+	resBuf, err := proto.Marshal(val)
 	if err != nil {
-		return false
+		return err
 	}
 	err = s.dba.Put(keyBuf, resBuf)
 	if err != nil {
-		return false
+		return err
 	}
 
 	// update sort list keys
 	{{range $k, $v := .LKeys}}
-	if !s.insertSortKey{{$v}}(sa) {
-		return false
+	if !s.insertSortKey{{$v}}(val) {
+		return err
 	}
 	{{end}}
   
     //update unique list
     {{range $k, $v := .UniqueFieldMap -}}
-	if !s.insertUniKey{{$k}}(sa) {
-		return false
+	if !s.insertUniKey{{$k}}(val) {
+		return err
 	}
 	{{end}}
     
-	return true
+	return nil
 }
 
 ////////////// SECTION LKeys delete/insert ///////////////
@@ -223,54 +228,51 @@ func (s *So{{$.ClsName}}Wrap) insertSortKey{{$v1.PName}}(sa *So{{$.ClsName}}) bo
 {{end}}
 ////////////// SECTION LKeys delete/insert //////////////
 
-func (s *So{{.ClsName}}Wrap) Remove{{.ClsName}}() bool {
+func (s *So{{.ClsName}}Wrap) Remove{{.ClsName}}() error {
 	sa := s.get{{.ClsName}}()
 	if sa == nil {
-		return false
+		return errors.New("delete data fail ")
 	}
     //delete sort list key
 	{{range $k, $v := .LKeys -}}
 	if !s.delSortKey{{$v}}(sa) {
-		return false
+		return errors.New("delete the sort key {{$v}} fail")
 	}
 	{{end}}
     //delete unique list
     {{range $k, $v := .UniqueFieldMap -}}
 	if !s.delUniKey{{$k}}(sa) {
-		return false
+		return errors.New("delete the unique key {{$k}} fail")
 	}
 	{{end}}
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
-		return false
+		return err
 	}
-	return s.dba.Delete(keyBuf) == nil
+    if err := s.dba.Delete(keyBuf); err != nil {
+       return err
+    }
+	return nil
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
 {{range $k1, $v1 := .MemberKeyMap -}}
-func (s *So{{$.ClsName}}Wrap) Get{{$k1}}() {{formatRTypeStr $v1}} {
+func (s *So{{$.ClsName}}Wrap) Get{{$k1}}(v *{{formatRTypeStr $v1}}) error {
 	res := s.get{{$.ClsName}}()
 
    if res == nil {
-      {{$baseType := (DetectBaseType $v1) -}}
-      {{- if $baseType -}} 
-      var tmpValue {{$v1}} 
-      return tmpValue
-      {{- end -}}
-      {{if not $baseType -}} 
-      return nil
-      {{end}}
+      return errors.New("get table data fail")
    }
-   return res.{{$k1}}
+   *v =  res.{{$k1}}
+   return nil
 }
 
 {{if ne $k1 $.MainKeyName}}
 
-func (s *So{{$.ClsName}}Wrap) Md{{$k1}}(p {{formatStr $v1}}) bool {
+func (s *So{{$.ClsName}}Wrap) Md{{$k1}}(p {{formatStr $v1}}) error {
 	sa := s.get{{$.ClsName}}()
 	if sa == nil {
-		return false
+		return errors.New("initialization data failed")
 	}
     {{- range $k2, $v2 := $.UniqueFieldMap -}}
       {{- if eq $k2 $k1 }}
@@ -278,51 +280,52 @@ func (s *So{{$.ClsName}}Wrap) Md{{$k1}}(p {{formatStr $v1}}) bool {
     uniWrap  := Uni{{$.ClsName}}{{$k2}}Wrap{}
    {{ $baseType := (DetectBaseType $v2) -}}
    {{- if $baseType -}} 
-   	res := uniWrap.UniQuery{{$k1}}(&sa.{{UperFirstChar $k1}})
+   	err := uniWrap.UniQuery{{$k1}}(&sa.{{UperFirstChar $k1}},nil)
    {{- end -}}
    {{if not $baseType -}} 
-   	res := uniWrap.UniQuery{{$k1}}(sa.{{UperFirstChar $k1}})
+   	err := uniWrap.UniQuery{{$k1}}(sa.{{UperFirstChar $k1}},nil)
    {{end }}
-	if res != nil {
+	if err != nil {
 		//the unique value to be modified is already exist
-		return false
+		return errors.New("the unique value to be modified is already exist")
 	}
 	if !s.delUniKey{{$k2}}(sa) {
-		return false
+		return errors.New("delete the unique key {{$k2}} fail")
 	}
     {{end -}}
 	  {{end}}
 	{{range $k3, $v3 := $.LKeys -}}
 		{{if eq $v3 $k1 }}
 	if !s.delSortKey{{$k1}}(sa) {
-		return false
+		return errors.New("delete the sort key {{$k1}} fail")
 	}
 		{{- end -}}
 	{{end}}
+   {{ $baseType := (DetectBaseType $v1) -}}
    {{if $baseType -}} 
      sa.{{$k1}} = p
    {{end}}
    {{if not $baseType -}} 
      sa.{{$k1}} = &p
    {{end}}
-	if !s.update(sa) {
-		return false
+	if upErr := s.update(sa);upErr != nil {
+		return upErr
 	}
     {{range $k4, $v4 := $.LKeys -}}
       {{ if eq $v4 $k1 }}
     if !s.insertSortKey{{$k1}}(sa) {
-		return false
+		return errors.New("reinsert sort key {{$k1}} fail")
     }
        {{end -}}
     {{end}}
     {{- range $k5, $v5 := $.UniqueFieldMap -}}
 		{{if eq $k5 $k1 }}
     if !s.insertUniKey{{$k5}}(sa) {
-		return false
+		return errors.New("reinsert unique key {{$k1}} fail")
     }
 		{{- end -}}
 	{{end}}
-	return true
+	return nil
 }
 {{end}}
 {{end}}
@@ -340,53 +343,43 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap)DelIterater(iterator iservices.IDatabase
    s.Dba.DeleteIterator(iterator)
 }
 
-func (s *S{{$.ClsName}}{{$v.PName}}Wrap) GetMainVal(iterator iservices.IDatabaseIterator) *{{formatStr $.MainKeyType}} {
+func (s *S{{$.ClsName}}{{$v.PName}}Wrap) GetMainVal(iterator iservices.IDatabaseIterator,mKey *{{formatRTypeStr $.MainKeyType}}) error {
 	if iterator == nil || !iterator.Valid() {
-		return nil
+		return errors.New("the iterator is nil or invalid")
 	}
 	val, err := iterator.Value()
 
 	if err != nil {
-		return nil
+		return errors.New("the value of iterator is nil")
 	}
 
 	res := &SoList{{$.ClsName}}By{{$v.PName}}{}
 	err = proto.Unmarshal(val, res)
 
 	if err != nil {
-		return nil
+		return err
 	}
-    {{$baseType := (DetectBaseType $.MainKeyType) -}}
-   {{if $baseType}} 
-     return &res.{{$.MainKeyName}}
-   {{end -}}
-   {{if not $baseType -}} 
-   return res.{{$.MainKeyName}}
-   {{end}}
+    *mKey = res.{{$.MainKeyName}}
+    return nil
 }
 
-func (s *S{{$.ClsName}}{{$v.PName}}Wrap) GetSubVal(iterator iservices.IDatabaseIterator) *{{formatStr $v.PType}} {
+func (s *S{{$.ClsName}}{{$v.PName}}Wrap) GetSubVal(iterator iservices.IDatabaseIterator, sub *{{formatRTypeStr $v.PType}}) error {
 	if iterator == nil || !iterator.Valid() {
-		return nil
+		return errors.New("the iterator is nil or invalid")
 	}
 
 	val, err := iterator.Value()
 
 	if err != nil {
-		return nil
+		return errors.New("the value of iterator is nil")
 	}
 	res := &SoList{{$.ClsName}}By{{$v.PName}}{}
 	err = proto.Unmarshal(val, res)
 	if err != nil {
-		return nil
+		return err
 	}
-    {{$baseType := (DetectBaseType $v.PType) -}}
-   {{if $baseType -}} 
-     return &res.{{ $v.PName}}
-   {{end -}}
-   {{if not $baseType -}} 
-   return res.{{$v.PName}}
-   {{end }}
+    *sub = res.{{ $v.PName}}
+    return nil
 }
 
 func (m *SoList{{$.ClsName}}By{{$v.PName}}) OpeEncode() ([]byte,error) {
@@ -440,7 +433,7 @@ func (m *SoList{{$.ClsName}}By{{$v.PName}}) EncodeRevSortKey() ([]byte,error) {
 //start = nil  end = nil (query the db from start to end)
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
-func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByOrder(start *{{$v.PType}}, end *{{$v.PType}}) iservices.IDatabaseIterator {
+func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByOrder(start *{{$v.PType}}, end *{{$v.PType}},iter *iservices.IDatabaseIterator) error {
     pre := {{$.ClsName}}{{$v.PName}}Table
     skeyList := []interface{}{pre}
     if start != nil {
@@ -448,11 +441,11 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByOrder(start *{{$v.PType}}, e
     }
     sBuf,cErr := encoding.EncodeSlice(skeyList,false)
     if cErr != nil {
-         return nil
+         return cErr
     }
     if start != nil && end == nil {
-		iter := s.Dba.NewIterator(sBuf, nil)
-		return iter
+		*iter = s.Dba.NewIterator(sBuf, nil)
+		return nil
 	}
     eKeyList := []interface{}{pre}
     if end != nil {
@@ -460,7 +453,7 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByOrder(start *{{$v.PType}}, e
     }
     eBuf,cErr := encoding.EncodeSlice(eKeyList,false)
     if cErr != nil {
-       return nil
+       return cErr
     }
     
     res := bytes.Compare(sBuf,eBuf)
@@ -468,16 +461,16 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByOrder(start *{{$v.PType}}, e
 		eBuf = nil
 	}else if res == 1 {
        //reverse order
-       return nil
+       return errors.New("the start and end are not order")
     }
-    iter := s.Dba.NewIterator(sBuf, eBuf)
+    *iter = s.Dba.NewIterator(sBuf, eBuf)
     
-    return iter
+    return nil
 }
 {{end}}
 {{if or (eq $v.SType 2) (eq $v.SType 3) -}}
 //Query sort by reverse order 
-func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByRevOrder(start *{{$v.PType}}, end *{{$v.PType}}) iservices.IDatabaseIterator {
+func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByRevOrder(start *{{$v.PType}}, end *{{$v.PType}},iter *iservices.IDatabaseIterator) error {
 
     var sBuf,eBuf,rBufStart,rBufEnd []byte
     pre := {{$.ClsName}}{{$v.PName}}RevOrdTable
@@ -485,7 +478,7 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByRevOrder(start *{{$v.PType}}
        skeyList := []interface{}{pre,start}
        buf,cErr := encoding.EncodeSlice(skeyList,false)
        if cErr != nil {
-         return nil
+         return cErr
        }
        sBuf = buf
     }
@@ -494,7 +487,7 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByRevOrder(start *{{$v.PType}}
        eKeyList := []interface{}{pre,end}
        buf,err := encoding.EncodeSlice(eKeyList,false)
        if err != nil {
-          return nil
+          return err
        }
        eBuf = buf
 
@@ -504,51 +497,46 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByRevOrder(start *{{$v.PType}}
        res := bytes.Compare(sBuf,eBuf)
        if res == -1 {
           // order
-          return nil
+          return errors.New("the start and end are not reverse order")
        }
        if sBuf != nil {
        rBuf,rErr := encoding.Complement(sBuf, nil)
        if rErr != nil {
-          return nil
+          return rErr
        }
        rBufStart = rBuf
     }
     if eBuf != nil {
           rBuf,rErr := encoding.Complement(eBuf, nil)
           if rErr != nil { 
-            return nil
+            return rErr
           }
           rBufEnd = rBuf
        }
     }
-     
-    if sBuf != nil && eBuf != nil {
-          res := bytes.Compare(sBuf,eBuf)
-          if res == -1 {
-            // order
-            return nil
-        }
-    }
-    iter := s.Dba.NewIterator(rBufStart, rBufEnd)
-    return iter
+    *iter = s.Dba.NewIterator(rBufStart, rBufEnd)
+    return nil
 }
 {{end -}}
 {{end -}}
 
 /////////////// SECTION Private function ////////////////
 
-func (s *So{{$.ClsName}}Wrap) update(sa *So{{$.ClsName}}) bool {
+func (s *So{{$.ClsName}}Wrap) update(sa *So{{$.ClsName}}) error {
 	buf, err := proto.Marshal(sa)
 	if err != nil {
-		return false
+		return errors.New("initialization data failed")
 	}
 
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
-		return false
+		return err
 	}
-
-	return s.dba.Put(keyBuf, buf) == nil
+    pErr := s.dba.Put(keyBuf, buf)
+    if pErr != nil {
+       return pErr
+    }
+	return nil
 }
 
 func (s *So{{$.ClsName}}Wrap) get{{$.ClsName}}() *So{{$.ClsName}} {
@@ -602,12 +590,12 @@ func (s *So{{$.ClsName}}Wrap) insertUniKey{{$k}}(sa *So{{$.ClsName}}) bool {
      uniWrap.Dba = s.dba
    {{$baseType := (DetectBaseType $v) -}}
    {{if $baseType -}} 
-   	res := uniWrap.UniQuery{{$k}}(&sa.{{UperFirstChar $k}})
+   	res := uniWrap.UniQuery{{$k}}(&sa.{{UperFirstChar $k}},nil)
    {{end}}
    {{if not $baseType -}} 
-   	res := uniWrap.UniQuery{{$k}}(sa.{{UperFirstChar $k}})
+   	res := uniWrap.UniQuery{{$k}}(sa.{{UperFirstChar $k}},nil)
    {{end -}}
-	if res != nil {
+	if res == nil {
 		//the unique key is already exist
 		return false
 	}
@@ -638,7 +626,7 @@ type Uni{{$.ClsName}}{{$k}}Wrap struct {
 	Dba iservices.IDatabaseService
 }
 
-func (s *Uni{{$.ClsName}}{{$k}}Wrap) UniQuery{{$k}}(start *{{formatStr $v}}) *So{{$.ClsName}}Wrap{
+func (s *Uni{{$.ClsName}}{{$k}}Wrap) UniQuery{{$k}}(start *{{formatStr $v}},wrap *So{{$.ClsName}}Wrap) error{
     pre := {{$.ClsName}}{{$k}}UniTable
     kList := []interface{}{pre,start}
     bufStartkey,err := encoding.EncodeSlice(kList,false)
@@ -649,15 +637,17 @@ func (s *Uni{{$.ClsName}}{{$k}}Wrap) UniQuery{{$k}}(start *{{formatStr $v}}) *So
 		if rErr == nil {
 			{{ $baseType := (DetectBaseType $.MainKeyType) -}}
             {{- if $baseType -}} 
-            wrap := NewSo{{$.ClsName}}Wrap(s.Dba,&res.{{UperFirstChar $.MainKeyName}})
+            wrap.mainKey = &res.{{UperFirstChar $.MainKeyName}}
             {{- end -}}   
             {{if not $baseType -}} 
-            wrap := NewSo{{$.ClsName}}Wrap(s.Dba,res.{{UperFirstChar $.MainKeyName}})
-            {{end }}
-			return wrap
+            wrap.mainKey = res.{{UperFirstChar $.MainKeyName}}
+            {{end}}
+            wrap.dba = s.Dba
+			return nil  
 		}
+        return rErr
 	}
-    return nil
+    return err
 }
 
 {{end}}

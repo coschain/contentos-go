@@ -49,53 +49,55 @@ func (s *SoAccountWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoAccountWrap) CreateAccount(sa *SoAccount) bool {
+func (s *SoAccountWrap) CreateAccount(f func(t *SoAccount)) error {
 
-	if sa == nil {
-		return false
-	}
+	val := &SoAccount{}
+    f(val)
+    if val.Name == nil {
+       return errors.New("the mainkey is nil")
+    }
     if s.CheckExist() {
-       return false
+       return errors.New("the mainkey is already exist")
     }
 	keyBuf, err := s.encodeMainKey()
 
 	if err != nil {
-		return false
+		return err
 	}
-	resBuf, err := proto.Marshal(sa)
+	resBuf, err := proto.Marshal(val)
 	if err != nil {
-		return false
+		return err
 	}
 	err = s.dba.Put(keyBuf, resBuf)
 	if err != nil {
-		return false
+		return err
 	}
 
 	// update sort list keys
 	
-	if !s.insertSortKeyCreatedTime(sa) {
-		return false
+	if !s.insertSortKeyCreatedTime(val) {
+		return err
 	}
 	
-	if !s.insertSortKeyBalance(sa) {
-		return false
+	if !s.insertSortKeyBalance(val) {
+		return err
 	}
 	
-	if !s.insertSortKeyVestingShares(sa) {
-		return false
+	if !s.insertSortKeyVestingShares(val) {
+		return err
 	}
 	
   
     //update unique list
-    if !s.insertUniKeyName(sa) {
-		return false
+    if !s.insertUniKeyName(val) {
+		return err
 	}
-	if !s.insertUniKeyPubKey(sa) {
-		return false
+	if !s.insertUniKeyPubKey(val) {
+		return err
 	}
 	
     
-	return true
+	return nil
 }
 
 ////////////// SECTION LKeys delete/insert ///////////////
@@ -198,223 +200,226 @@ func (s *SoAccountWrap) insertSortKeyVestingShares(sa *SoAccount) bool {
 
 ////////////// SECTION LKeys delete/insert //////////////
 
-func (s *SoAccountWrap) RemoveAccount() bool {
+func (s *SoAccountWrap) RemoveAccount() error {
 	sa := s.getAccount()
 	if sa == nil {
-		return false
+		return errors.New("delete data fail ")
 	}
     //delete sort list key
 	if !s.delSortKeyCreatedTime(sa) {
-		return false
+		return errors.New("delete the sort key CreatedTime fail")
 	}
 	if !s.delSortKeyBalance(sa) {
-		return false
+		return errors.New("delete the sort key Balance fail")
 	}
 	if !s.delSortKeyVestingShares(sa) {
-		return false
+		return errors.New("delete the sort key VestingShares fail")
 	}
 	
     //delete unique list
     if !s.delUniKeyName(sa) {
-		return false
+		return errors.New("delete the unique key Name fail")
 	}
 	if !s.delUniKeyPubKey(sa) {
-		return false
+		return errors.New("delete the unique key PubKey fail")
 	}
 	
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
-		return false
+		return err
 	}
-	return s.dba.Delete(keyBuf) == nil
+    if err := s.dba.Delete(keyBuf); err != nil {
+       return err
+    }
+	return nil
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
-func (s *SoAccountWrap) GetBalance() *prototype.Coin {
+func (s *SoAccountWrap) GetBalance(v **prototype.Coin) error {
 	res := s.getAccount()
 
    if res == nil {
-      return nil
-      
+      return errors.New("get table data fail")
    }
-   return res.Balance
+   *v =  res.Balance
+   return nil
 }
 
 
 
-func (s *SoAccountWrap) MdBalance(p prototype.Coin) bool {
+func (s *SoAccountWrap) MdBalance(p prototype.Coin) error {
 	sa := s.getAccount()
 	if sa == nil {
-		return false
+		return errors.New("initialization data failed")
 	}
 	
 	if !s.delSortKeyBalance(sa) {
-		return false
+		return errors.New("delete the sort key Balance fail")
 	}
    
    sa.Balance = &p
    
-	if !s.update(sa) {
-		return false
+	if upErr := s.update(sa);upErr != nil {
+		return upErr
 	}
     
     if !s.insertSortKeyBalance(sa) {
-		return false
+		return errors.New("reinsert sort key Balance fail")
     }
        
-	return true
+	return nil
 }
 
-func (s *SoAccountWrap) GetCreatedTime() *prototype.TimePointSec {
+func (s *SoAccountWrap) GetCreatedTime(v **prototype.TimePointSec) error {
 	res := s.getAccount()
 
    if res == nil {
-      return nil
-      
+      return errors.New("get table data fail")
    }
-   return res.CreatedTime
+   *v =  res.CreatedTime
+   return nil
 }
 
 
 
-func (s *SoAccountWrap) MdCreatedTime(p prototype.TimePointSec) bool {
+func (s *SoAccountWrap) MdCreatedTime(p prototype.TimePointSec) error {
 	sa := s.getAccount()
 	if sa == nil {
-		return false
+		return errors.New("initialization data failed")
 	}
 	
 	if !s.delSortKeyCreatedTime(sa) {
-		return false
+		return errors.New("delete the sort key CreatedTime fail")
 	}
    
    sa.CreatedTime = &p
    
-	if !s.update(sa) {
-		return false
+	if upErr := s.update(sa);upErr != nil {
+		return upErr
 	}
     
     if !s.insertSortKeyCreatedTime(sa) {
-		return false
+		return errors.New("reinsert sort key CreatedTime fail")
     }
        
-	return true
+	return nil
 }
 
-func (s *SoAccountWrap) GetCreator() *prototype.AccountName {
+func (s *SoAccountWrap) GetCreator(v **prototype.AccountName) error {
 	res := s.getAccount()
 
    if res == nil {
-      return nil
-      
+      return errors.New("get table data fail")
    }
-   return res.Creator
+   *v =  res.Creator
+   return nil
 }
 
 
 
-func (s *SoAccountWrap) MdCreator(p prototype.AccountName) bool {
+func (s *SoAccountWrap) MdCreator(p prototype.AccountName) error {
 	sa := s.getAccount()
 	if sa == nil {
-		return false
+		return errors.New("initialization data failed")
 	}
 	
    
    sa.Creator = &p
    
-	if !s.update(sa) {
-		return false
+	if upErr := s.update(sa);upErr != nil {
+		return upErr
 	}
     
-	return true
+	return nil
 }
 
-func (s *SoAccountWrap) GetName() *prototype.AccountName {
+func (s *SoAccountWrap) GetName(v **prototype.AccountName) error {
 	res := s.getAccount()
 
    if res == nil {
-      return nil
-      
+      return errors.New("get table data fail")
    }
-   return res.Name
+   *v =  res.Name
+   return nil
 }
 
 
-func (s *SoAccountWrap) GetPubKey() *prototype.PublicKeyType {
+func (s *SoAccountWrap) GetPubKey(v **prototype.PublicKeyType) error {
 	res := s.getAccount()
 
    if res == nil {
-      return nil
-      
+      return errors.New("get table data fail")
    }
-   return res.PubKey
+   *v =  res.PubKey
+   return nil
 }
 
 
 
-func (s *SoAccountWrap) MdPubKey(p prototype.PublicKeyType) bool {
+func (s *SoAccountWrap) MdPubKey(p prototype.PublicKeyType) error {
 	sa := s.getAccount()
 	if sa == nil {
-		return false
+		return errors.New("initialization data failed")
 	}
     //judge the unique value if is exist
     uniWrap  := UniAccountPubKeyWrap{}
-   res := uniWrap.UniQueryPubKey(sa.PubKey)
+   err := uniWrap.UniQueryPubKey(sa.PubKey,nil)
    
-	if res != nil {
+	if err != nil {
 		//the unique value to be modified is already exist
-		return false
+		return errors.New("the unique value to be modified is already exist")
 	}
 	if !s.delUniKeyPubKey(sa) {
-		return false
+		return errors.New("delete the unique key PubKey fail")
 	}
     
 	
    
    sa.PubKey = &p
    
-	if !s.update(sa) {
-		return false
+	if upErr := s.update(sa);upErr != nil {
+		return upErr
 	}
     
     if !s.insertUniKeyPubKey(sa) {
-		return false
+		return errors.New("reinsert unique key PubKey fail")
     }
-	return true
+	return nil
 }
 
-func (s *SoAccountWrap) GetVestingShares() *prototype.Vest {
+func (s *SoAccountWrap) GetVestingShares(v **prototype.Vest) error {
 	res := s.getAccount()
 
    if res == nil {
-      return nil
-      
+      return errors.New("get table data fail")
    }
-   return res.VestingShares
+   *v =  res.VestingShares
+   return nil
 }
 
 
 
-func (s *SoAccountWrap) MdVestingShares(p prototype.Vest) bool {
+func (s *SoAccountWrap) MdVestingShares(p prototype.Vest) error {
 	sa := s.getAccount()
 	if sa == nil {
-		return false
+		return errors.New("initialization data failed")
 	}
 	
 	if !s.delSortKeyVestingShares(sa) {
-		return false
+		return errors.New("delete the sort key VestingShares fail")
 	}
    
    sa.VestingShares = &p
    
-	if !s.update(sa) {
-		return false
+	if upErr := s.update(sa);upErr != nil {
+		return upErr
 	}
     
     if !s.insertSortKeyVestingShares(sa) {
-		return false
+		return errors.New("reinsert sort key VestingShares fail")
     }
        
-	return true
+	return nil
 }
 
 
@@ -432,43 +437,43 @@ func (s *SAccountCreatedTimeWrap)DelIterater(iterator iservices.IDatabaseIterato
    s.Dba.DeleteIterator(iterator)
 }
 
-func (s *SAccountCreatedTimeWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.AccountName {
+func (s *SAccountCreatedTimeWrap) GetMainVal(iterator iservices.IDatabaseIterator,mKey **prototype.AccountName) error {
 	if iterator == nil || !iterator.Valid() {
-		return nil
+		return errors.New("the iterator is nil or invalid")
 	}
 	val, err := iterator.Value()
 
 	if err != nil {
-		return nil
+		return errors.New("the value of iterator is nil")
 	}
 
 	res := &SoListAccountByCreatedTime{}
 	err = proto.Unmarshal(val, res)
 
 	if err != nil {
-		return nil
+		return err
 	}
-    return res.Name
-   
+    *mKey = res.Name
+    return nil
 }
 
-func (s *SAccountCreatedTimeWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.TimePointSec {
+func (s *SAccountCreatedTimeWrap) GetSubVal(iterator iservices.IDatabaseIterator, sub **prototype.TimePointSec) error {
 	if iterator == nil || !iterator.Valid() {
-		return nil
+		return errors.New("the iterator is nil or invalid")
 	}
 
 	val, err := iterator.Value()
 
 	if err != nil {
-		return nil
+		return errors.New("the value of iterator is nil")
 	}
 	res := &SoListAccountByCreatedTime{}
 	err = proto.Unmarshal(val, res)
 	if err != nil {
-		return nil
+		return err
 	}
-    return res.CreatedTime
-   
+    *sub = res.CreatedTime
+    return nil
 }
 
 func (m *SoListAccountByCreatedTime) OpeEncode() ([]byte,error) {
@@ -509,7 +514,7 @@ func (m *SoListAccountByCreatedTime) EncodeRevSortKey() ([]byte,error) {
 //start = nil  end = nil (query the db from start to end)
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
-func (s *SAccountCreatedTimeWrap) QueryListByOrder(start *prototype.TimePointSec, end *prototype.TimePointSec) iservices.IDatabaseIterator {
+func (s *SAccountCreatedTimeWrap) QueryListByOrder(start *prototype.TimePointSec, end *prototype.TimePointSec,iter *iservices.IDatabaseIterator) error {
     pre := AccountCreatedTimeTable
     skeyList := []interface{}{pre}
     if start != nil {
@@ -517,11 +522,11 @@ func (s *SAccountCreatedTimeWrap) QueryListByOrder(start *prototype.TimePointSec
     }
     sBuf,cErr := encoding.EncodeSlice(skeyList,false)
     if cErr != nil {
-         return nil
+         return cErr
     }
     if start != nil && end == nil {
-		iter := s.Dba.NewIterator(sBuf, nil)
-		return iter
+		*iter = s.Dba.NewIterator(sBuf, nil)
+		return nil
 	}
     eKeyList := []interface{}{pre}
     if end != nil {
@@ -529,7 +534,7 @@ func (s *SAccountCreatedTimeWrap) QueryListByOrder(start *prototype.TimePointSec
     }
     eBuf,cErr := encoding.EncodeSlice(eKeyList,false)
     if cErr != nil {
-       return nil
+       return cErr
     }
     
     res := bytes.Compare(sBuf,eBuf)
@@ -537,11 +542,11 @@ func (s *SAccountCreatedTimeWrap) QueryListByOrder(start *prototype.TimePointSec
 		eBuf = nil
 	}else if res == 1 {
        //reverse order
-       return nil
+       return errors.New("the start and end are not order")
     }
-    iter := s.Dba.NewIterator(sBuf, eBuf)
+    *iter = s.Dba.NewIterator(sBuf, eBuf)
     
-    return iter
+    return nil
 }
 
 
@@ -557,43 +562,43 @@ func (s *SAccountBalanceWrap)DelIterater(iterator iservices.IDatabaseIterator){
    s.Dba.DeleteIterator(iterator)
 }
 
-func (s *SAccountBalanceWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.AccountName {
+func (s *SAccountBalanceWrap) GetMainVal(iterator iservices.IDatabaseIterator,mKey **prototype.AccountName) error {
 	if iterator == nil || !iterator.Valid() {
-		return nil
+		return errors.New("the iterator is nil or invalid")
 	}
 	val, err := iterator.Value()
 
 	if err != nil {
-		return nil
+		return errors.New("the value of iterator is nil")
 	}
 
 	res := &SoListAccountByBalance{}
 	err = proto.Unmarshal(val, res)
 
 	if err != nil {
-		return nil
+		return err
 	}
-    return res.Name
-   
+    *mKey = res.Name
+    return nil
 }
 
-func (s *SAccountBalanceWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.Coin {
+func (s *SAccountBalanceWrap) GetSubVal(iterator iservices.IDatabaseIterator, sub **prototype.Coin) error {
 	if iterator == nil || !iterator.Valid() {
-		return nil
+		return errors.New("the iterator is nil or invalid")
 	}
 
 	val, err := iterator.Value()
 
 	if err != nil {
-		return nil
+		return errors.New("the value of iterator is nil")
 	}
 	res := &SoListAccountByBalance{}
 	err = proto.Unmarshal(val, res)
 	if err != nil {
-		return nil
+		return err
 	}
-    return res.Balance
-   
+    *sub = res.Balance
+    return nil
 }
 
 func (m *SoListAccountByBalance) OpeEncode() ([]byte,error) {
@@ -634,7 +639,7 @@ func (m *SoListAccountByBalance) EncodeRevSortKey() ([]byte,error) {
 //start = nil  end = nil (query the db from start to end)
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
-func (s *SAccountBalanceWrap) QueryListByOrder(start *prototype.Coin, end *prototype.Coin) iservices.IDatabaseIterator {
+func (s *SAccountBalanceWrap) QueryListByOrder(start *prototype.Coin, end *prototype.Coin,iter *iservices.IDatabaseIterator) error {
     pre := AccountBalanceTable
     skeyList := []interface{}{pre}
     if start != nil {
@@ -642,11 +647,11 @@ func (s *SAccountBalanceWrap) QueryListByOrder(start *prototype.Coin, end *proto
     }
     sBuf,cErr := encoding.EncodeSlice(skeyList,false)
     if cErr != nil {
-         return nil
+         return cErr
     }
     if start != nil && end == nil {
-		iter := s.Dba.NewIterator(sBuf, nil)
-		return iter
+		*iter = s.Dba.NewIterator(sBuf, nil)
+		return nil
 	}
     eKeyList := []interface{}{pre}
     if end != nil {
@@ -654,7 +659,7 @@ func (s *SAccountBalanceWrap) QueryListByOrder(start *prototype.Coin, end *proto
     }
     eBuf,cErr := encoding.EncodeSlice(eKeyList,false)
     if cErr != nil {
-       return nil
+       return cErr
     }
     
     res := bytes.Compare(sBuf,eBuf)
@@ -662,11 +667,11 @@ func (s *SAccountBalanceWrap) QueryListByOrder(start *prototype.Coin, end *proto
 		eBuf = nil
 	}else if res == 1 {
        //reverse order
-       return nil
+       return errors.New("the start and end are not order")
     }
-    iter := s.Dba.NewIterator(sBuf, eBuf)
+    *iter = s.Dba.NewIterator(sBuf, eBuf)
     
-    return iter
+    return nil
 }
 
 
@@ -682,43 +687,43 @@ func (s *SAccountVestingSharesWrap)DelIterater(iterator iservices.IDatabaseItera
    s.Dba.DeleteIterator(iterator)
 }
 
-func (s *SAccountVestingSharesWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.AccountName {
+func (s *SAccountVestingSharesWrap) GetMainVal(iterator iservices.IDatabaseIterator,mKey **prototype.AccountName) error {
 	if iterator == nil || !iterator.Valid() {
-		return nil
+		return errors.New("the iterator is nil or invalid")
 	}
 	val, err := iterator.Value()
 
 	if err != nil {
-		return nil
+		return errors.New("the value of iterator is nil")
 	}
 
 	res := &SoListAccountByVestingShares{}
 	err = proto.Unmarshal(val, res)
 
 	if err != nil {
-		return nil
+		return err
 	}
-    return res.Name
-   
+    *mKey = res.Name
+    return nil
 }
 
-func (s *SAccountVestingSharesWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.Vest {
+func (s *SAccountVestingSharesWrap) GetSubVal(iterator iservices.IDatabaseIterator, sub **prototype.Vest) error {
 	if iterator == nil || !iterator.Valid() {
-		return nil
+		return errors.New("the iterator is nil or invalid")
 	}
 
 	val, err := iterator.Value()
 
 	if err != nil {
-		return nil
+		return errors.New("the value of iterator is nil")
 	}
 	res := &SoListAccountByVestingShares{}
 	err = proto.Unmarshal(val, res)
 	if err != nil {
-		return nil
+		return err
 	}
-    return res.VestingShares
-   
+    *sub = res.VestingShares
+    return nil
 }
 
 func (m *SoListAccountByVestingShares) OpeEncode() ([]byte,error) {
@@ -759,7 +764,7 @@ func (m *SoListAccountByVestingShares) EncodeRevSortKey() ([]byte,error) {
 //start = nil  end = nil (query the db from start to end)
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
-func (s *SAccountVestingSharesWrap) QueryListByOrder(start *prototype.Vest, end *prototype.Vest) iservices.IDatabaseIterator {
+func (s *SAccountVestingSharesWrap) QueryListByOrder(start *prototype.Vest, end *prototype.Vest,iter *iservices.IDatabaseIterator) error {
     pre := AccountVestingSharesTable
     skeyList := []interface{}{pre}
     if start != nil {
@@ -767,11 +772,11 @@ func (s *SAccountVestingSharesWrap) QueryListByOrder(start *prototype.Vest, end 
     }
     sBuf,cErr := encoding.EncodeSlice(skeyList,false)
     if cErr != nil {
-         return nil
+         return cErr
     }
     if start != nil && end == nil {
-		iter := s.Dba.NewIterator(sBuf, nil)
-		return iter
+		*iter = s.Dba.NewIterator(sBuf, nil)
+		return nil
 	}
     eKeyList := []interface{}{pre}
     if end != nil {
@@ -779,7 +784,7 @@ func (s *SAccountVestingSharesWrap) QueryListByOrder(start *prototype.Vest, end 
     }
     eBuf,cErr := encoding.EncodeSlice(eKeyList,false)
     if cErr != nil {
-       return nil
+       return cErr
     }
     
     res := bytes.Compare(sBuf,eBuf)
@@ -787,27 +792,30 @@ func (s *SAccountVestingSharesWrap) QueryListByOrder(start *prototype.Vest, end 
 		eBuf = nil
 	}else if res == 1 {
        //reverse order
-       return nil
+       return errors.New("the start and end are not order")
     }
-    iter := s.Dba.NewIterator(sBuf, eBuf)
+    *iter = s.Dba.NewIterator(sBuf, eBuf)
     
-    return iter
+    return nil
 }
 
 /////////////// SECTION Private function ////////////////
 
-func (s *SoAccountWrap) update(sa *SoAccount) bool {
+func (s *SoAccountWrap) update(sa *SoAccount) error {
 	buf, err := proto.Marshal(sa)
 	if err != nil {
-		return false
+		return errors.New("initialization data failed")
 	}
 
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
-		return false
+		return err
 	}
-
-	return s.dba.Put(keyBuf, buf) == nil
+    pErr := s.dba.Put(keyBuf, buf)
+    if pErr != nil {
+       return pErr
+    }
+	return nil
 }
 
 func (s *SoAccountWrap) getAccount() *SoAccount {
@@ -860,8 +868,8 @@ func (s *SoAccountWrap) insertUniKeyName(sa *SoAccount) bool {
     uniWrap  := UniAccountNameWrap{}
      uniWrap.Dba = s.dba
    
-   res := uniWrap.UniQueryName(sa.Name)
-   if res != nil {
+   res := uniWrap.UniQueryName(sa.Name,nil)
+   if res == nil {
 		//the unique key is already exist
 		return false
 	}
@@ -889,7 +897,7 @@ type UniAccountNameWrap struct {
 	Dba iservices.IDatabaseService
 }
 
-func (s *UniAccountNameWrap) UniQueryName(start *prototype.AccountName) *SoAccountWrap{
+func (s *UniAccountNameWrap) UniQueryName(start *prototype.AccountName,wrap *SoAccountWrap) error{
     pre := AccountNameUniTable
     kList := []interface{}{pre,start}
     bufStartkey,err := encoding.EncodeSlice(kList,false)
@@ -898,12 +906,14 @@ func (s *UniAccountNameWrap) UniQueryName(start *prototype.AccountName) *SoAccou
 		res := &SoUniqueAccountByName{}
 		rErr := proto.Unmarshal(val, res)
 		if rErr == nil {
-			wrap := NewSoAccountWrap(s.Dba,res.Name)
+			wrap.mainKey = res.Name
             
-			return wrap
+            wrap.dba = s.Dba
+			return nil  
 		}
+        return rErr
 	}
-    return nil
+    return err
 }
 
 
@@ -924,8 +934,8 @@ func (s *SoAccountWrap) insertUniKeyPubKey(sa *SoAccount) bool {
     uniWrap  := UniAccountPubKeyWrap{}
      uniWrap.Dba = s.dba
    
-   res := uniWrap.UniQueryPubKey(sa.PubKey)
-   if res != nil {
+   res := uniWrap.UniQueryPubKey(sa.PubKey,nil)
+   if res == nil {
 		//the unique key is already exist
 		return false
 	}
@@ -954,7 +964,7 @@ type UniAccountPubKeyWrap struct {
 	Dba iservices.IDatabaseService
 }
 
-func (s *UniAccountPubKeyWrap) UniQueryPubKey(start *prototype.PublicKeyType) *SoAccountWrap{
+func (s *UniAccountPubKeyWrap) UniQueryPubKey(start *prototype.PublicKeyType,wrap *SoAccountWrap) error{
     pre := AccountPubKeyUniTable
     kList := []interface{}{pre,start}
     bufStartkey,err := encoding.EncodeSlice(kList,false)
@@ -963,12 +973,14 @@ func (s *UniAccountPubKeyWrap) UniQueryPubKey(start *prototype.PublicKeyType) *S
 		res := &SoUniqueAccountByPubKey{}
 		rErr := proto.Unmarshal(val, res)
 		if rErr == nil {
-			wrap := NewSoAccountWrap(s.Dba,res.Name)
+			wrap.mainKey = res.Name
             
-			return wrap
+            wrap.dba = s.Dba
+			return nil  
 		}
+        return rErr
 	}
-    return nil
+    return err
 }
 
 

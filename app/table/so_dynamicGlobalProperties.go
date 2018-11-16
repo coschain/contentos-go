@@ -41,371 +41,376 @@ func (s *SoDynamicGlobalPropertiesWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoDynamicGlobalPropertiesWrap) CreateDynamicGlobalProperties(sa *SoDynamicGlobalProperties) bool {
+func (s *SoDynamicGlobalPropertiesWrap) CreateDynamicGlobalProperties(f func(t *SoDynamicGlobalProperties)) error {
 
-	if sa == nil {
-		return false
-	}
+	val := &SoDynamicGlobalProperties{}
+    f(val)
     if s.CheckExist() {
-       return false
+       return errors.New("the mainkey is already exist")
     }
 	keyBuf, err := s.encodeMainKey()
 
 	if err != nil {
-		return false
+		return err
 	}
-	resBuf, err := proto.Marshal(sa)
+	resBuf, err := proto.Marshal(val)
 	if err != nil {
-		return false
+		return err
 	}
 	err = s.dba.Put(keyBuf, resBuf)
 	if err != nil {
-		return false
+		return err
 	}
 
 	// update sort list keys
 	
   
     //update unique list
-    if !s.insertUniKeyId(sa) {
-		return false
+    if !s.insertUniKeyId(val) {
+		return err
 	}
 	
     
-	return true
+	return nil
 }
 
 ////////////// SECTION LKeys delete/insert ///////////////
 
 ////////////// SECTION LKeys delete/insert //////////////
 
-func (s *SoDynamicGlobalPropertiesWrap) RemoveDynamicGlobalProperties() bool {
+func (s *SoDynamicGlobalPropertiesWrap) RemoveDynamicGlobalProperties() error {
 	sa := s.getDynamicGlobalProperties()
 	if sa == nil {
-		return false
+		return errors.New("delete data fail ")
 	}
     //delete sort list key
 	
     //delete unique list
     if !s.delUniKeyId(sa) {
-		return false
+		return errors.New("delete the unique key Id fail")
 	}
 	
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
-		return false
+		return err
 	}
-	return s.dba.Delete(keyBuf) == nil
+    if err := s.dba.Delete(keyBuf); err != nil {
+       return err
+    }
+	return nil
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
-func (s *SoDynamicGlobalPropertiesWrap) GetCurrentSupply() *prototype.Coin {
+func (s *SoDynamicGlobalPropertiesWrap) GetCurrentSupply(v **prototype.Coin) error {
 	res := s.getDynamicGlobalProperties()
 
    if res == nil {
-      return nil
-      
+      return errors.New("get table data fail")
    }
-   return res.CurrentSupply
+   *v =  res.CurrentSupply
+   return nil
 }
 
 
 
-func (s *SoDynamicGlobalPropertiesWrap) MdCurrentSupply(p prototype.Coin) bool {
+func (s *SoDynamicGlobalPropertiesWrap) MdCurrentSupply(p prototype.Coin) error {
 	sa := s.getDynamicGlobalProperties()
 	if sa == nil {
-		return false
+		return errors.New("initialization data failed")
 	}
 	
    
    sa.CurrentSupply = &p
    
-	if !s.update(sa) {
-		return false
+	if upErr := s.update(sa);upErr != nil {
+		return upErr
 	}
     
-	return true
+	return nil
 }
 
-func (s *SoDynamicGlobalPropertiesWrap) GetCurrentWitness() *prototype.AccountName {
+func (s *SoDynamicGlobalPropertiesWrap) GetCurrentWitness(v **prototype.AccountName) error {
 	res := s.getDynamicGlobalProperties()
 
    if res == nil {
-      return nil
-      
+      return errors.New("get table data fail")
    }
-   return res.CurrentWitness
+   *v =  res.CurrentWitness
+   return nil
 }
 
 
 
-func (s *SoDynamicGlobalPropertiesWrap) MdCurrentWitness(p prototype.AccountName) bool {
+func (s *SoDynamicGlobalPropertiesWrap) MdCurrentWitness(p prototype.AccountName) error {
 	sa := s.getDynamicGlobalProperties()
 	if sa == nil {
-		return false
+		return errors.New("initialization data failed")
 	}
 	
    
    sa.CurrentWitness = &p
    
-	if !s.update(sa) {
-		return false
+	if upErr := s.update(sa);upErr != nil {
+		return upErr
 	}
     
-	return true
+	return nil
 }
 
-func (s *SoDynamicGlobalPropertiesWrap) GetHeadBlockId() *prototype.Sha256 {
+func (s *SoDynamicGlobalPropertiesWrap) GetHeadBlockId(v **prototype.Sha256) error {
 	res := s.getDynamicGlobalProperties()
 
    if res == nil {
-      return nil
-      
+      return errors.New("get table data fail")
    }
-   return res.HeadBlockId
+   *v =  res.HeadBlockId
+   return nil
 }
 
 
 
-func (s *SoDynamicGlobalPropertiesWrap) MdHeadBlockId(p prototype.Sha256) bool {
+func (s *SoDynamicGlobalPropertiesWrap) MdHeadBlockId(p prototype.Sha256) error {
 	sa := s.getDynamicGlobalProperties()
 	if sa == nil {
-		return false
+		return errors.New("initialization data failed")
 	}
 	
    
    sa.HeadBlockId = &p
    
-	if !s.update(sa) {
-		return false
+	if upErr := s.update(sa);upErr != nil {
+		return upErr
 	}
     
-	return true
+	return nil
 }
 
-func (s *SoDynamicGlobalPropertiesWrap) GetHeadBlockNumber() uint32 {
+func (s *SoDynamicGlobalPropertiesWrap) GetHeadBlockNumber(v *uint32) error {
 	res := s.getDynamicGlobalProperties()
 
    if res == nil {
-      var tmpValue uint32 
-      return tmpValue
+      return errors.New("get table data fail")
    }
-   return res.HeadBlockNumber
+   *v =  res.HeadBlockNumber
+   return nil
 }
 
 
 
-func (s *SoDynamicGlobalPropertiesWrap) MdHeadBlockNumber(p uint32) bool {
+func (s *SoDynamicGlobalPropertiesWrap) MdHeadBlockNumber(p uint32) error {
 	sa := s.getDynamicGlobalProperties()
 	if sa == nil {
-		return false
+		return errors.New("initialization data failed")
 	}
 	
    sa.HeadBlockNumber = p
    
    
-	if !s.update(sa) {
-		return false
+	if upErr := s.update(sa);upErr != nil {
+		return upErr
 	}
     
-	return true
+	return nil
 }
 
-func (s *SoDynamicGlobalPropertiesWrap) GetId() int32 {
+func (s *SoDynamicGlobalPropertiesWrap) GetId(v *int32) error {
 	res := s.getDynamicGlobalProperties()
 
    if res == nil {
-      var tmpValue int32 
-      return tmpValue
+      return errors.New("get table data fail")
    }
-   return res.Id
+   *v =  res.Id
+   return nil
 }
 
 
-func (s *SoDynamicGlobalPropertiesWrap) GetIrreversibleBlockNum() uint32 {
+func (s *SoDynamicGlobalPropertiesWrap) GetIrreversibleBlockNum(v *uint32) error {
 	res := s.getDynamicGlobalProperties()
 
    if res == nil {
-      var tmpValue uint32 
-      return tmpValue
+      return errors.New("get table data fail")
    }
-   return res.IrreversibleBlockNum
+   *v =  res.IrreversibleBlockNum
+   return nil
 }
 
 
 
-func (s *SoDynamicGlobalPropertiesWrap) MdIrreversibleBlockNum(p uint32) bool {
+func (s *SoDynamicGlobalPropertiesWrap) MdIrreversibleBlockNum(p uint32) error {
 	sa := s.getDynamicGlobalProperties()
 	if sa == nil {
-		return false
+		return errors.New("initialization data failed")
 	}
 	
    sa.IrreversibleBlockNum = p
    
    
-	if !s.update(sa) {
-		return false
+	if upErr := s.update(sa);upErr != nil {
+		return upErr
 	}
     
-	return true
+	return nil
 }
 
-func (s *SoDynamicGlobalPropertiesWrap) GetMaximumBlockSize() uint32 {
+func (s *SoDynamicGlobalPropertiesWrap) GetMaximumBlockSize(v *uint32) error {
 	res := s.getDynamicGlobalProperties()
 
    if res == nil {
-      var tmpValue uint32 
-      return tmpValue
+      return errors.New("get table data fail")
    }
-   return res.MaximumBlockSize
+   *v =  res.MaximumBlockSize
+   return nil
 }
 
 
 
-func (s *SoDynamicGlobalPropertiesWrap) MdMaximumBlockSize(p uint32) bool {
+func (s *SoDynamicGlobalPropertiesWrap) MdMaximumBlockSize(p uint32) error {
 	sa := s.getDynamicGlobalProperties()
 	if sa == nil {
-		return false
+		return errors.New("initialization data failed")
 	}
 	
    sa.MaximumBlockSize = p
    
    
-	if !s.update(sa) {
-		return false
+	if upErr := s.update(sa);upErr != nil {
+		return upErr
 	}
     
-	return true
+	return nil
 }
 
-func (s *SoDynamicGlobalPropertiesWrap) GetTime() *prototype.TimePointSec {
+func (s *SoDynamicGlobalPropertiesWrap) GetTime(v **prototype.TimePointSec) error {
 	res := s.getDynamicGlobalProperties()
 
    if res == nil {
-      return nil
-      
+      return errors.New("get table data fail")
    }
-   return res.Time
+   *v =  res.Time
+   return nil
 }
 
 
 
-func (s *SoDynamicGlobalPropertiesWrap) MdTime(p prototype.TimePointSec) bool {
+func (s *SoDynamicGlobalPropertiesWrap) MdTime(p prototype.TimePointSec) error {
 	sa := s.getDynamicGlobalProperties()
 	if sa == nil {
-		return false
+		return errors.New("initialization data failed")
 	}
 	
    
    sa.Time = &p
    
-	if !s.update(sa) {
-		return false
+	if upErr := s.update(sa);upErr != nil {
+		return upErr
 	}
     
-	return true
+	return nil
 }
 
-func (s *SoDynamicGlobalPropertiesWrap) GetTotalCos() *prototype.Coin {
+func (s *SoDynamicGlobalPropertiesWrap) GetTotalCos(v **prototype.Coin) error {
 	res := s.getDynamicGlobalProperties()
 
    if res == nil {
-      return nil
-      
+      return errors.New("get table data fail")
    }
-   return res.TotalCos
+   *v =  res.TotalCos
+   return nil
 }
 
 
 
-func (s *SoDynamicGlobalPropertiesWrap) MdTotalCos(p prototype.Coin) bool {
+func (s *SoDynamicGlobalPropertiesWrap) MdTotalCos(p prototype.Coin) error {
 	sa := s.getDynamicGlobalProperties()
 	if sa == nil {
-		return false
+		return errors.New("initialization data failed")
 	}
 	
    
    sa.TotalCos = &p
    
-	if !s.update(sa) {
-		return false
+	if upErr := s.update(sa);upErr != nil {
+		return upErr
 	}
     
-	return true
+	return nil
 }
 
-func (s *SoDynamicGlobalPropertiesWrap) GetTotalVestingShares() *prototype.Vest {
+func (s *SoDynamicGlobalPropertiesWrap) GetTotalVestingShares(v **prototype.Vest) error {
 	res := s.getDynamicGlobalProperties()
 
    if res == nil {
-      return nil
-      
+      return errors.New("get table data fail")
    }
-   return res.TotalVestingShares
+   *v =  res.TotalVestingShares
+   return nil
 }
 
 
 
-func (s *SoDynamicGlobalPropertiesWrap) MdTotalVestingShares(p prototype.Vest) bool {
+func (s *SoDynamicGlobalPropertiesWrap) MdTotalVestingShares(p prototype.Vest) error {
 	sa := s.getDynamicGlobalProperties()
 	if sa == nil {
-		return false
+		return errors.New("initialization data failed")
 	}
 	
    
    sa.TotalVestingShares = &p
    
-	if !s.update(sa) {
-		return false
+	if upErr := s.update(sa);upErr != nil {
+		return upErr
 	}
     
-	return true
+	return nil
 }
 
-func (s *SoDynamicGlobalPropertiesWrap) GetTps() uint32 {
+func (s *SoDynamicGlobalPropertiesWrap) GetTps(v *uint32) error {
 	res := s.getDynamicGlobalProperties()
 
    if res == nil {
-      var tmpValue uint32 
-      return tmpValue
+      return errors.New("get table data fail")
    }
-   return res.Tps
+   *v =  res.Tps
+   return nil
 }
 
 
 
-func (s *SoDynamicGlobalPropertiesWrap) MdTps(p uint32) bool {
+func (s *SoDynamicGlobalPropertiesWrap) MdTps(p uint32) error {
 	sa := s.getDynamicGlobalProperties()
 	if sa == nil {
-		return false
+		return errors.New("initialization data failed")
 	}
 	
    sa.Tps = p
    
    
-	if !s.update(sa) {
-		return false
+	if upErr := s.update(sa);upErr != nil {
+		return upErr
 	}
     
-	return true
+	return nil
 }
 
 
 
 /////////////// SECTION Private function ////////////////
 
-func (s *SoDynamicGlobalPropertiesWrap) update(sa *SoDynamicGlobalProperties) bool {
+func (s *SoDynamicGlobalPropertiesWrap) update(sa *SoDynamicGlobalProperties) error {
 	buf, err := proto.Marshal(sa)
 	if err != nil {
-		return false
+		return errors.New("initialization data failed")
 	}
 
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
-		return false
+		return err
 	}
-
-	return s.dba.Put(keyBuf, buf) == nil
+    pErr := s.dba.Put(keyBuf, buf)
+    if pErr != nil {
+       return pErr
+    }
+	return nil
 }
 
 func (s *SoDynamicGlobalPropertiesWrap) getDynamicGlobalProperties() *SoDynamicGlobalProperties {
@@ -457,9 +462,9 @@ func (s *SoDynamicGlobalPropertiesWrap) delUniKeyId(sa *SoDynamicGlobalPropertie
 func (s *SoDynamicGlobalPropertiesWrap) insertUniKeyId(sa *SoDynamicGlobalProperties) bool {
     uniWrap  := UniDynamicGlobalPropertiesIdWrap{}
      uniWrap.Dba = s.dba
-   res := uniWrap.UniQueryId(&sa.Id)
+   res := uniWrap.UniQueryId(&sa.Id,nil)
    
-   if res != nil {
+   if res == nil {
 		//the unique key is already exist
 		return false
 	}
@@ -487,7 +492,7 @@ type UniDynamicGlobalPropertiesIdWrap struct {
 	Dba iservices.IDatabaseService
 }
 
-func (s *UniDynamicGlobalPropertiesIdWrap) UniQueryId(start *int32) *SoDynamicGlobalPropertiesWrap{
+func (s *UniDynamicGlobalPropertiesIdWrap) UniQueryId(start *int32,wrap *SoDynamicGlobalPropertiesWrap) error{
     pre := DynamicGlobalPropertiesIdUniTable
     kList := []interface{}{pre,start}
     bufStartkey,err := encoding.EncodeSlice(kList,false)
@@ -496,11 +501,13 @@ func (s *UniDynamicGlobalPropertiesIdWrap) UniQueryId(start *int32) *SoDynamicGl
 		res := &SoUniqueDynamicGlobalPropertiesById{}
 		rErr := proto.Unmarshal(val, res)
 		if rErr == nil {
-			wrap := NewSoDynamicGlobalPropertiesWrap(s.Dba,&res.Id)
-			return wrap
+			wrap.mainKey = &res.Id
+            wrap.dba = s.Dba
+			return nil  
 		}
+        return rErr
 	}
-    return nil
+    return err
 }
 
 

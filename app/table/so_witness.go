@@ -44,42 +44,44 @@ func (s *SoWitnessWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoWitnessWrap) CreateWitness(sa *SoWitness) bool {
+func (s *SoWitnessWrap) CreateWitness(f func(t *SoWitness)) error {
 
-	if sa == nil {
-		return false
-	}
+	val := &SoWitness{}
+    f(val)
+    if val.Owner == nil {
+       return errors.New("the mainkey is nil")
+    }
     if s.CheckExist() {
-       return false
+       return errors.New("the mainkey is already exist")
     }
 	keyBuf, err := s.encodeMainKey()
 
 	if err != nil {
-		return false
+		return err
 	}
-	resBuf, err := proto.Marshal(sa)
+	resBuf, err := proto.Marshal(val)
 	if err != nil {
-		return false
+		return err
 	}
 	err = s.dba.Put(keyBuf, resBuf)
 	if err != nil {
-		return false
+		return err
 	}
 
 	// update sort list keys
 	
-	if !s.insertSortKeyOwner(sa) {
-		return false
+	if !s.insertSortKeyOwner(val) {
+		return err
 	}
 	
   
     //update unique list
-    if !s.insertUniKeyOwner(sa) {
-		return false
+    if !s.insertUniKeyOwner(val) {
+		return err
 	}
 	
     
-	return true
+	return nil
 }
 
 ////////////// SECTION LKeys delete/insert ///////////////
@@ -117,290 +119,293 @@ func (s *SoWitnessWrap) insertSortKeyOwner(sa *SoWitness) bool {
 
 ////////////// SECTION LKeys delete/insert //////////////
 
-func (s *SoWitnessWrap) RemoveWitness() bool {
+func (s *SoWitnessWrap) RemoveWitness() error {
 	sa := s.getWitness()
 	if sa == nil {
-		return false
+		return errors.New("delete data fail ")
 	}
     //delete sort list key
 	if !s.delSortKeyOwner(sa) {
-		return false
+		return errors.New("delete the sort key Owner fail")
 	}
 	
     //delete unique list
     if !s.delUniKeyOwner(sa) {
-		return false
+		return errors.New("delete the unique key Owner fail")
 	}
 	
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
-		return false
+		return err
 	}
-	return s.dba.Delete(keyBuf) == nil
+    if err := s.dba.Delete(keyBuf); err != nil {
+       return err
+    }
+	return nil
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
-func (s *SoWitnessWrap) GetCreatedTime() *prototype.TimePointSec {
+func (s *SoWitnessWrap) GetCreatedTime(v **prototype.TimePointSec) error {
 	res := s.getWitness()
 
    if res == nil {
-      return nil
-      
+      return errors.New("get table data fail")
    }
-   return res.CreatedTime
+   *v =  res.CreatedTime
+   return nil
 }
 
 
 
-func (s *SoWitnessWrap) MdCreatedTime(p prototype.TimePointSec) bool {
+func (s *SoWitnessWrap) MdCreatedTime(p prototype.TimePointSec) error {
 	sa := s.getWitness()
 	if sa == nil {
-		return false
+		return errors.New("initialization data failed")
 	}
 	
    
    sa.CreatedTime = &p
    
-	if !s.update(sa) {
-		return false
+	if upErr := s.update(sa);upErr != nil {
+		return upErr
 	}
     
-	return true
+	return nil
 }
 
-func (s *SoWitnessWrap) GetLastConfirmedBlockNum() uint32 {
+func (s *SoWitnessWrap) GetLastConfirmedBlockNum(v *uint32) error {
 	res := s.getWitness()
 
    if res == nil {
-      var tmpValue uint32 
-      return tmpValue
+      return errors.New("get table data fail")
    }
-   return res.LastConfirmedBlockNum
+   *v =  res.LastConfirmedBlockNum
+   return nil
 }
 
 
 
-func (s *SoWitnessWrap) MdLastConfirmedBlockNum(p uint32) bool {
+func (s *SoWitnessWrap) MdLastConfirmedBlockNum(p uint32) error {
 	sa := s.getWitness()
 	if sa == nil {
-		return false
+		return errors.New("initialization data failed")
 	}
 	
    sa.LastConfirmedBlockNum = p
    
    
-	if !s.update(sa) {
-		return false
+	if upErr := s.update(sa);upErr != nil {
+		return upErr
 	}
     
-	return true
+	return nil
 }
 
-func (s *SoWitnessWrap) GetLastWork() *prototype.Sha256 {
+func (s *SoWitnessWrap) GetLastWork(v **prototype.Sha256) error {
 	res := s.getWitness()
 
    if res == nil {
-      return nil
-      
+      return errors.New("get table data fail")
    }
-   return res.LastWork
+   *v =  res.LastWork
+   return nil
 }
 
 
 
-func (s *SoWitnessWrap) MdLastWork(p prototype.Sha256) bool {
+func (s *SoWitnessWrap) MdLastWork(p prototype.Sha256) error {
 	sa := s.getWitness()
 	if sa == nil {
-		return false
+		return errors.New("initialization data failed")
 	}
 	
    
    sa.LastWork = &p
    
-	if !s.update(sa) {
-		return false
+	if upErr := s.update(sa);upErr != nil {
+		return upErr
 	}
     
-	return true
+	return nil
 }
 
-func (s *SoWitnessWrap) GetOwner() *prototype.AccountName {
+func (s *SoWitnessWrap) GetOwner(v **prototype.AccountName) error {
 	res := s.getWitness()
 
    if res == nil {
-      return nil
-      
+      return errors.New("get table data fail")
    }
-   return res.Owner
+   *v =  res.Owner
+   return nil
 }
 
 
-func (s *SoWitnessWrap) GetPowWorker() uint32 {
+func (s *SoWitnessWrap) GetPowWorker(v *uint32) error {
 	res := s.getWitness()
 
    if res == nil {
-      var tmpValue uint32 
-      return tmpValue
+      return errors.New("get table data fail")
    }
-   return res.PowWorker
+   *v =  res.PowWorker
+   return nil
 }
 
 
 
-func (s *SoWitnessWrap) MdPowWorker(p uint32) bool {
+func (s *SoWitnessWrap) MdPowWorker(p uint32) error {
 	sa := s.getWitness()
 	if sa == nil {
-		return false
+		return errors.New("initialization data failed")
 	}
 	
    sa.PowWorker = p
    
    
-	if !s.update(sa) {
-		return false
+	if upErr := s.update(sa);upErr != nil {
+		return upErr
 	}
     
-	return true
+	return nil
 }
 
-func (s *SoWitnessWrap) GetRunningVersion() uint32 {
+func (s *SoWitnessWrap) GetRunningVersion(v *uint32) error {
 	res := s.getWitness()
 
    if res == nil {
-      var tmpValue uint32 
-      return tmpValue
+      return errors.New("get table data fail")
    }
-   return res.RunningVersion
+   *v =  res.RunningVersion
+   return nil
 }
 
 
 
-func (s *SoWitnessWrap) MdRunningVersion(p uint32) bool {
+func (s *SoWitnessWrap) MdRunningVersion(p uint32) error {
 	sa := s.getWitness()
 	if sa == nil {
-		return false
+		return errors.New("initialization data failed")
 	}
 	
    sa.RunningVersion = p
    
    
-	if !s.update(sa) {
-		return false
+	if upErr := s.update(sa);upErr != nil {
+		return upErr
 	}
     
-	return true
+	return nil
 }
 
-func (s *SoWitnessWrap) GetSigningKey() *prototype.PublicKeyType {
+func (s *SoWitnessWrap) GetSigningKey(v **prototype.PublicKeyType) error {
 	res := s.getWitness()
 
    if res == nil {
-      return nil
-      
+      return errors.New("get table data fail")
    }
-   return res.SigningKey
+   *v =  res.SigningKey
+   return nil
 }
 
 
 
-func (s *SoWitnessWrap) MdSigningKey(p prototype.PublicKeyType) bool {
+func (s *SoWitnessWrap) MdSigningKey(p prototype.PublicKeyType) error {
 	sa := s.getWitness()
 	if sa == nil {
-		return false
+		return errors.New("initialization data failed")
 	}
 	
    
    sa.SigningKey = &p
    
-	if !s.update(sa) {
-		return false
+	if upErr := s.update(sa);upErr != nil {
+		return upErr
 	}
     
-	return true
+	return nil
 }
 
-func (s *SoWitnessWrap) GetTotalMissed() uint32 {
+func (s *SoWitnessWrap) GetTotalMissed(v *uint32) error {
 	res := s.getWitness()
 
    if res == nil {
-      var tmpValue uint32 
-      return tmpValue
+      return errors.New("get table data fail")
    }
-   return res.TotalMissed
+   *v =  res.TotalMissed
+   return nil
 }
 
 
 
-func (s *SoWitnessWrap) MdTotalMissed(p uint32) bool {
+func (s *SoWitnessWrap) MdTotalMissed(p uint32) error {
 	sa := s.getWitness()
 	if sa == nil {
-		return false
+		return errors.New("initialization data failed")
 	}
 	
    sa.TotalMissed = p
    
    
-	if !s.update(sa) {
-		return false
+	if upErr := s.update(sa);upErr != nil {
+		return upErr
 	}
     
-	return true
+	return nil
 }
 
-func (s *SoWitnessWrap) GetUrl() string {
+func (s *SoWitnessWrap) GetUrl(v *string) error {
 	res := s.getWitness()
 
    if res == nil {
-      var tmpValue string 
-      return tmpValue
+      return errors.New("get table data fail")
    }
-   return res.Url
+   *v =  res.Url
+   return nil
 }
 
 
 
-func (s *SoWitnessWrap) MdUrl(p string) bool {
+func (s *SoWitnessWrap) MdUrl(p string) error {
 	sa := s.getWitness()
 	if sa == nil {
-		return false
+		return errors.New("initialization data failed")
 	}
 	
    sa.Url = p
    
    
-	if !s.update(sa) {
-		return false
+	if upErr := s.update(sa);upErr != nil {
+		return upErr
 	}
     
-	return true
+	return nil
 }
 
-func (s *SoWitnessWrap) GetWitnessScheduleType() *prototype.WitnessScheduleType {
+func (s *SoWitnessWrap) GetWitnessScheduleType(v **prototype.WitnessScheduleType) error {
 	res := s.getWitness()
 
    if res == nil {
-      return nil
-      
+      return errors.New("get table data fail")
    }
-   return res.WitnessScheduleType
+   *v =  res.WitnessScheduleType
+   return nil
 }
 
 
 
-func (s *SoWitnessWrap) MdWitnessScheduleType(p prototype.WitnessScheduleType) bool {
+func (s *SoWitnessWrap) MdWitnessScheduleType(p prototype.WitnessScheduleType) error {
 	sa := s.getWitness()
 	if sa == nil {
-		return false
+		return errors.New("initialization data failed")
 	}
 	
    
    sa.WitnessScheduleType = &p
    
-	if !s.update(sa) {
-		return false
+	if upErr := s.update(sa);upErr != nil {
+		return upErr
 	}
     
-	return true
+	return nil
 }
 
 
@@ -418,43 +423,43 @@ func (s *SWitnessOwnerWrap)DelIterater(iterator iservices.IDatabaseIterator){
    s.Dba.DeleteIterator(iterator)
 }
 
-func (s *SWitnessOwnerWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.AccountName {
+func (s *SWitnessOwnerWrap) GetMainVal(iterator iservices.IDatabaseIterator,mKey **prototype.AccountName) error {
 	if iterator == nil || !iterator.Valid() {
-		return nil
+		return errors.New("the iterator is nil or invalid")
 	}
 	val, err := iterator.Value()
 
 	if err != nil {
-		return nil
+		return errors.New("the value of iterator is nil")
 	}
 
 	res := &SoListWitnessByOwner{}
 	err = proto.Unmarshal(val, res)
 
 	if err != nil {
-		return nil
+		return err
 	}
-    return res.Owner
-   
+    *mKey = res.Owner
+    return nil
 }
 
-func (s *SWitnessOwnerWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.AccountName {
+func (s *SWitnessOwnerWrap) GetSubVal(iterator iservices.IDatabaseIterator, sub **prototype.AccountName) error {
 	if iterator == nil || !iterator.Valid() {
-		return nil
+		return errors.New("the iterator is nil or invalid")
 	}
 
 	val, err := iterator.Value()
 
 	if err != nil {
-		return nil
+		return errors.New("the value of iterator is nil")
 	}
 	res := &SoListWitnessByOwner{}
 	err = proto.Unmarshal(val, res)
 	if err != nil {
-		return nil
+		return err
 	}
-    return res.Owner
-   
+    *sub = res.Owner
+    return nil
 }
 
 func (m *SoListWitnessByOwner) OpeEncode() ([]byte,error) {
@@ -495,7 +500,7 @@ func (m *SoListWitnessByOwner) EncodeRevSortKey() ([]byte,error) {
 //start = nil  end = nil (query the db from start to end)
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
-func (s *SWitnessOwnerWrap) QueryListByOrder(start *prototype.AccountName, end *prototype.AccountName) iservices.IDatabaseIterator {
+func (s *SWitnessOwnerWrap) QueryListByOrder(start *prototype.AccountName, end *prototype.AccountName,iter *iservices.IDatabaseIterator) error {
     pre := WitnessOwnerTable
     skeyList := []interface{}{pre}
     if start != nil {
@@ -503,11 +508,11 @@ func (s *SWitnessOwnerWrap) QueryListByOrder(start *prototype.AccountName, end *
     }
     sBuf,cErr := encoding.EncodeSlice(skeyList,false)
     if cErr != nil {
-         return nil
+         return cErr
     }
     if start != nil && end == nil {
-		iter := s.Dba.NewIterator(sBuf, nil)
-		return iter
+		*iter = s.Dba.NewIterator(sBuf, nil)
+		return nil
 	}
     eKeyList := []interface{}{pre}
     if end != nil {
@@ -515,7 +520,7 @@ func (s *SWitnessOwnerWrap) QueryListByOrder(start *prototype.AccountName, end *
     }
     eBuf,cErr := encoding.EncodeSlice(eKeyList,false)
     if cErr != nil {
-       return nil
+       return cErr
     }
     
     res := bytes.Compare(sBuf,eBuf)
@@ -523,27 +528,30 @@ func (s *SWitnessOwnerWrap) QueryListByOrder(start *prototype.AccountName, end *
 		eBuf = nil
 	}else if res == 1 {
        //reverse order
-       return nil
+       return errors.New("the start and end are not order")
     }
-    iter := s.Dba.NewIterator(sBuf, eBuf)
+    *iter = s.Dba.NewIterator(sBuf, eBuf)
     
-    return iter
+    return nil
 }
 
 /////////////// SECTION Private function ////////////////
 
-func (s *SoWitnessWrap) update(sa *SoWitness) bool {
+func (s *SoWitnessWrap) update(sa *SoWitness) error {
 	buf, err := proto.Marshal(sa)
 	if err != nil {
-		return false
+		return errors.New("initialization data failed")
 	}
 
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
-		return false
+		return err
 	}
-
-	return s.dba.Put(keyBuf, buf) == nil
+    pErr := s.dba.Put(keyBuf, buf)
+    if pErr != nil {
+       return pErr
+    }
+	return nil
 }
 
 func (s *SoWitnessWrap) getWitness() *SoWitness {
@@ -596,8 +604,8 @@ func (s *SoWitnessWrap) insertUniKeyOwner(sa *SoWitness) bool {
     uniWrap  := UniWitnessOwnerWrap{}
      uniWrap.Dba = s.dba
    
-   res := uniWrap.UniQueryOwner(sa.Owner)
-   if res != nil {
+   res := uniWrap.UniQueryOwner(sa.Owner,nil)
+   if res == nil {
 		//the unique key is already exist
 		return false
 	}
@@ -625,7 +633,7 @@ type UniWitnessOwnerWrap struct {
 	Dba iservices.IDatabaseService
 }
 
-func (s *UniWitnessOwnerWrap) UniQueryOwner(start *prototype.AccountName) *SoWitnessWrap{
+func (s *UniWitnessOwnerWrap) UniQueryOwner(start *prototype.AccountName,wrap *SoWitnessWrap) error{
     pre := WitnessOwnerUniTable
     kList := []interface{}{pre,start}
     bufStartkey,err := encoding.EncodeSlice(kList,false)
@@ -634,12 +642,14 @@ func (s *UniWitnessOwnerWrap) UniQueryOwner(start *prototype.AccountName) *SoWit
 		res := &SoUniqueWitnessByOwner{}
 		rErr := proto.Unmarshal(val, res)
 		if rErr == nil {
-			wrap := NewSoWitnessWrap(s.Dba,res.Owner)
+			wrap.mainKey = res.Owner
             
-			return wrap
+            wrap.dba = s.Dba
+			return nil  
 		}
+        return rErr
 	}
-    return nil
+    return err
 }
 
 

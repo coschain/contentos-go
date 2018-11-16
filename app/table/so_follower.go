@@ -44,42 +44,44 @@ func (s *SoFollowerWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoFollowerWrap) CreateFollower(sa *SoFollower) bool {
+func (s *SoFollowerWrap) CreateFollower(f func(t *SoFollower)) error {
 
-	if sa == nil {
-		return false
-	}
+	val := &SoFollower{}
+    f(val)
+    if val.FollowerInfo == nil {
+       return errors.New("the mainkey is nil")
+    }
     if s.CheckExist() {
-       return false
+       return errors.New("the mainkey is already exist")
     }
 	keyBuf, err := s.encodeMainKey()
 
 	if err != nil {
-		return false
+		return err
 	}
-	resBuf, err := proto.Marshal(sa)
+	resBuf, err := proto.Marshal(val)
 	if err != nil {
-		return false
+		return err
 	}
 	err = s.dba.Put(keyBuf, resBuf)
 	if err != nil {
-		return false
+		return err
 	}
 
 	// update sort list keys
 	
-	if !s.insertSortKeyFollowerInfo(sa) {
-		return false
+	if !s.insertSortKeyFollowerInfo(val) {
+		return err
 	}
 	
   
     //update unique list
-    if !s.insertUniKeyFollowerInfo(sa) {
-		return false
+    if !s.insertUniKeyFollowerInfo(val) {
+		return err
 	}
 	
     
-	return true
+	return nil
 }
 
 ////////////// SECTION LKeys delete/insert ///////////////
@@ -117,37 +119,40 @@ func (s *SoFollowerWrap) insertSortKeyFollowerInfo(sa *SoFollower) bool {
 
 ////////////// SECTION LKeys delete/insert //////////////
 
-func (s *SoFollowerWrap) RemoveFollower() bool {
+func (s *SoFollowerWrap) RemoveFollower() error {
 	sa := s.getFollower()
 	if sa == nil {
-		return false
+		return errors.New("delete data fail ")
 	}
     //delete sort list key
 	if !s.delSortKeyFollowerInfo(sa) {
-		return false
+		return errors.New("delete the sort key FollowerInfo fail")
 	}
 	
     //delete unique list
     if !s.delUniKeyFollowerInfo(sa) {
-		return false
+		return errors.New("delete the unique key FollowerInfo fail")
 	}
 	
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
-		return false
+		return err
 	}
-	return s.dba.Delete(keyBuf) == nil
+    if err := s.dba.Delete(keyBuf); err != nil {
+       return err
+    }
+	return nil
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
-func (s *SoFollowerWrap) GetFollowerInfo() *prototype.FollowerRelation {
+func (s *SoFollowerWrap) GetFollowerInfo(v **prototype.FollowerRelation) error {
 	res := s.getFollower()
 
    if res == nil {
-      return nil
-      
+      return errors.New("get table data fail")
    }
-   return res.FollowerInfo
+   *v =  res.FollowerInfo
+   return nil
 }
 
 
@@ -166,43 +171,43 @@ func (s *SFollowerFollowerInfoWrap)DelIterater(iterator iservices.IDatabaseItera
    s.Dba.DeleteIterator(iterator)
 }
 
-func (s *SFollowerFollowerInfoWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.FollowerRelation {
+func (s *SFollowerFollowerInfoWrap) GetMainVal(iterator iservices.IDatabaseIterator,mKey **prototype.FollowerRelation) error {
 	if iterator == nil || !iterator.Valid() {
-		return nil
+		return errors.New("the iterator is nil or invalid")
 	}
 	val, err := iterator.Value()
 
 	if err != nil {
-		return nil
+		return errors.New("the value of iterator is nil")
 	}
 
 	res := &SoListFollowerByFollowerInfo{}
 	err = proto.Unmarshal(val, res)
 
 	if err != nil {
-		return nil
+		return err
 	}
-    return res.FollowerInfo
-   
+    *mKey = res.FollowerInfo
+    return nil
 }
 
-func (s *SFollowerFollowerInfoWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.FollowerRelation {
+func (s *SFollowerFollowerInfoWrap) GetSubVal(iterator iservices.IDatabaseIterator, sub **prototype.FollowerRelation) error {
 	if iterator == nil || !iterator.Valid() {
-		return nil
+		return errors.New("the iterator is nil or invalid")
 	}
 
 	val, err := iterator.Value()
 
 	if err != nil {
-		return nil
+		return errors.New("the value of iterator is nil")
 	}
 	res := &SoListFollowerByFollowerInfo{}
 	err = proto.Unmarshal(val, res)
 	if err != nil {
-		return nil
+		return err
 	}
-    return res.FollowerInfo
-   
+    *sub = res.FollowerInfo
+    return nil
 }
 
 func (m *SoListFollowerByFollowerInfo) OpeEncode() ([]byte,error) {
@@ -241,7 +246,7 @@ func (m *SoListFollowerByFollowerInfo) EncodeRevSortKey() ([]byte,error) {
 
 
 //Query sort by reverse order 
-func (s *SFollowerFollowerInfoWrap) QueryListByRevOrder(start *prototype.FollowerRelation, end *prototype.FollowerRelation) iservices.IDatabaseIterator {
+func (s *SFollowerFollowerInfoWrap) QueryListByRevOrder(start *prototype.FollowerRelation, end *prototype.FollowerRelation,iter *iservices.IDatabaseIterator) error {
 
     var sBuf,eBuf,rBufStart,rBufEnd []byte
     pre := FollowerFollowerInfoRevOrdTable
@@ -249,7 +254,7 @@ func (s *SFollowerFollowerInfoWrap) QueryListByRevOrder(start *prototype.Followe
        skeyList := []interface{}{pre,start}
        buf,cErr := encoding.EncodeSlice(skeyList,false)
        if cErr != nil {
-         return nil
+         return cErr
        }
        sBuf = buf
     }
@@ -258,7 +263,7 @@ func (s *SFollowerFollowerInfoWrap) QueryListByRevOrder(start *prototype.Followe
        eKeyList := []interface{}{pre,end}
        buf,err := encoding.EncodeSlice(eKeyList,false)
        if err != nil {
-          return nil
+          return err
        }
        eBuf = buf
 
@@ -268,48 +273,43 @@ func (s *SFollowerFollowerInfoWrap) QueryListByRevOrder(start *prototype.Followe
        res := bytes.Compare(sBuf,eBuf)
        if res == -1 {
           // order
-          return nil
+          return errors.New("the start and end are not reverse order")
        }
        if sBuf != nil {
        rBuf,rErr := encoding.Complement(sBuf, nil)
        if rErr != nil {
-          return nil
+          return rErr
        }
        rBufStart = rBuf
     }
     if eBuf != nil {
           rBuf,rErr := encoding.Complement(eBuf, nil)
           if rErr != nil { 
-            return nil
+            return rErr
           }
           rBufEnd = rBuf
        }
     }
-     
-    if sBuf != nil && eBuf != nil {
-          res := bytes.Compare(sBuf,eBuf)
-          if res == -1 {
-            // order
-            return nil
-        }
-    }
-    iter := s.Dba.NewIterator(rBufStart, rBufEnd)
-    return iter
+    *iter = s.Dba.NewIterator(rBufStart, rBufEnd)
+    return nil
 }
 /////////////// SECTION Private function ////////////////
 
-func (s *SoFollowerWrap) update(sa *SoFollower) bool {
+func (s *SoFollowerWrap) update(sa *SoFollower) error {
 	buf, err := proto.Marshal(sa)
 	if err != nil {
-		return false
+		return errors.New("initialization data failed")
 	}
 
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
-		return false
+		return err
 	}
-
-	return s.dba.Put(keyBuf, buf) == nil
+    pErr := s.dba.Put(keyBuf, buf)
+    if pErr != nil {
+       return pErr
+    }
+	return nil
 }
 
 func (s *SoFollowerWrap) getFollower() *SoFollower {
@@ -362,8 +362,8 @@ func (s *SoFollowerWrap) insertUniKeyFollowerInfo(sa *SoFollower) bool {
     uniWrap  := UniFollowerFollowerInfoWrap{}
      uniWrap.Dba = s.dba
    
-   res := uniWrap.UniQueryFollowerInfo(sa.FollowerInfo)
-   if res != nil {
+   res := uniWrap.UniQueryFollowerInfo(sa.FollowerInfo,nil)
+   if res == nil {
 		//the unique key is already exist
 		return false
 	}
@@ -391,7 +391,7 @@ type UniFollowerFollowerInfoWrap struct {
 	Dba iservices.IDatabaseService
 }
 
-func (s *UniFollowerFollowerInfoWrap) UniQueryFollowerInfo(start *prototype.FollowerRelation) *SoFollowerWrap{
+func (s *UniFollowerFollowerInfoWrap) UniQueryFollowerInfo(start *prototype.FollowerRelation,wrap *SoFollowerWrap) error{
     pre := FollowerFollowerInfoUniTable
     kList := []interface{}{pre,start}
     bufStartkey,err := encoding.EncodeSlice(kList,false)
@@ -400,12 +400,14 @@ func (s *UniFollowerFollowerInfoWrap) UniQueryFollowerInfo(start *prototype.Foll
 		res := &SoUniqueFollowerByFollowerInfo{}
 		rErr := proto.Unmarshal(val, res)
 		if rErr == nil {
-			wrap := NewSoFollowerWrap(s.Dba,res.FollowerInfo)
+			wrap.mainKey = res.FollowerInfo
             
-			return wrap
+            wrap.dba = s.Dba
+			return nil  
 		}
+        return rErr
 	}
-    return nil
+    return err
 }
 
 

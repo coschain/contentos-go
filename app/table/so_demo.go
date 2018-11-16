@@ -54,64 +54,66 @@ func (s *SoDemoWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoDemoWrap) CreateDemo(sa *SoDemo) bool {
+func (s *SoDemoWrap) CreateDemo(f func(t *SoDemo)) error {
 
-	if sa == nil {
-		return false
-	}
+	val := &SoDemo{}
+    f(val)
+    if val.Owner == nil {
+       return errors.New("the mainkey is nil")
+    }
     if s.CheckExist() {
-       return false
+       return errors.New("the mainkey is already exist")
     }
 	keyBuf, err := s.encodeMainKey()
 
 	if err != nil {
-		return false
+		return err
 	}
-	resBuf, err := proto.Marshal(sa)
+	resBuf, err := proto.Marshal(val)
 	if err != nil {
-		return false
+		return err
 	}
 	err = s.dba.Put(keyBuf, resBuf)
 	if err != nil {
-		return false
+		return err
 	}
 
 	// update sort list keys
 	
-	if !s.insertSortKeyOwner(sa) {
-		return false
+	if !s.insertSortKeyOwner(val) {
+		return err
 	}
 	
-	if !s.insertSortKeyPostTime(sa) {
-		return false
+	if !s.insertSortKeyPostTime(val) {
+		return err
 	}
 	
-	if !s.insertSortKeyLikeCount(sa) {
-		return false
+	if !s.insertSortKeyLikeCount(val) {
+		return err
 	}
 	
-	if !s.insertSortKeyIdx(sa) {
-		return false
+	if !s.insertSortKeyIdx(val) {
+		return err
 	}
 	
-	if !s.insertSortKeyReplayCount(sa) {
-		return false
+	if !s.insertSortKeyReplayCount(val) {
+		return err
 	}
 	
   
     //update unique list
-    if !s.insertUniKeyIdx(sa) {
-		return false
+    if !s.insertUniKeyIdx(val) {
+		return err
 	}
-	if !s.insertUniKeyLikeCount(sa) {
-		return false
+	if !s.insertUniKeyLikeCount(val) {
+		return err
 	}
-	if !s.insertUniKeyOwner(sa) {
-		return false
+	if !s.insertUniKeyOwner(val) {
+		return err
 	}
 	
     
-	return true
+	return nil
 }
 
 ////////////// SECTION LKeys delete/insert ///////////////
@@ -293,308 +295,311 @@ func (s *SoDemoWrap) insertSortKeyReplayCount(sa *SoDemo) bool {
 
 ////////////// SECTION LKeys delete/insert //////////////
 
-func (s *SoDemoWrap) RemoveDemo() bool {
+func (s *SoDemoWrap) RemoveDemo() error {
 	sa := s.getDemo()
 	if sa == nil {
-		return false
+		return errors.New("delete data fail ")
 	}
     //delete sort list key
 	if !s.delSortKeyOwner(sa) {
-		return false
+		return errors.New("delete the sort key Owner fail")
 	}
 	if !s.delSortKeyPostTime(sa) {
-		return false
+		return errors.New("delete the sort key PostTime fail")
 	}
 	if !s.delSortKeyLikeCount(sa) {
-		return false
+		return errors.New("delete the sort key LikeCount fail")
 	}
 	if !s.delSortKeyIdx(sa) {
-		return false
+		return errors.New("delete the sort key Idx fail")
 	}
 	if !s.delSortKeyReplayCount(sa) {
-		return false
+		return errors.New("delete the sort key ReplayCount fail")
 	}
 	
     //delete unique list
     if !s.delUniKeyIdx(sa) {
-		return false
+		return errors.New("delete the unique key Idx fail")
 	}
 	if !s.delUniKeyLikeCount(sa) {
-		return false
+		return errors.New("delete the unique key LikeCount fail")
 	}
 	if !s.delUniKeyOwner(sa) {
-		return false
+		return errors.New("delete the unique key Owner fail")
 	}
 	
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
-		return false
+		return err
 	}
-	return s.dba.Delete(keyBuf) == nil
+    if err := s.dba.Delete(keyBuf); err != nil {
+       return err
+    }
+	return nil
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
-func (s *SoDemoWrap) GetContent() string {
+func (s *SoDemoWrap) GetContent(v *string) error {
 	res := s.getDemo()
 
    if res == nil {
-      var tmpValue string 
-      return tmpValue
+      return errors.New("get table data fail")
    }
-   return res.Content
+   *v =  res.Content
+   return nil
 }
 
 
 
-func (s *SoDemoWrap) MdContent(p string) bool {
+func (s *SoDemoWrap) MdContent(p string) error {
 	sa := s.getDemo()
 	if sa == nil {
-		return false
+		return errors.New("initialization data failed")
 	}
 	
    sa.Content = p
    
    
-	if !s.update(sa) {
-		return false
+	if upErr := s.update(sa);upErr != nil {
+		return upErr
 	}
     
-	return true
+	return nil
 }
 
-func (s *SoDemoWrap) GetIdx() int64 {
+func (s *SoDemoWrap) GetIdx(v *int64) error {
 	res := s.getDemo()
 
    if res == nil {
-      var tmpValue int64 
-      return tmpValue
+      return errors.New("get table data fail")
    }
-   return res.Idx
+   *v =  res.Idx
+   return nil
 }
 
 
 
-func (s *SoDemoWrap) MdIdx(p int64) bool {
+func (s *SoDemoWrap) MdIdx(p int64) error {
 	sa := s.getDemo()
 	if sa == nil {
-		return false
+		return errors.New("initialization data failed")
 	}
     //judge the unique value if is exist
     uniWrap  := UniDemoIdxWrap{}
-   res := uniWrap.UniQueryIdx(&sa.Idx)
-	if res != nil {
+   err := uniWrap.UniQueryIdx(&sa.Idx,nil)
+	if err != nil {
 		//the unique value to be modified is already exist
-		return false
+		return errors.New("the unique value to be modified is already exist")
 	}
 	if !s.delUniKeyIdx(sa) {
-		return false
+		return errors.New("delete the unique key Idx fail")
 	}
     
 	
 	if !s.delSortKeyIdx(sa) {
-		return false
+		return errors.New("delete the sort key Idx fail")
 	}
    sa.Idx = p
    
    
-	if !s.update(sa) {
-		return false
+	if upErr := s.update(sa);upErr != nil {
+		return upErr
 	}
     
     if !s.insertSortKeyIdx(sa) {
-		return false
+		return errors.New("reinsert sort key Idx fail")
     }
        
     if !s.insertUniKeyIdx(sa) {
-		return false
+		return errors.New("reinsert unique key Idx fail")
     }
-	return true
+	return nil
 }
 
-func (s *SoDemoWrap) GetLikeCount() int64 {
+func (s *SoDemoWrap) GetLikeCount(v *int64) error {
 	res := s.getDemo()
 
    if res == nil {
-      var tmpValue int64 
-      return tmpValue
+      return errors.New("get table data fail")
    }
-   return res.LikeCount
+   *v =  res.LikeCount
+   return nil
 }
 
 
 
-func (s *SoDemoWrap) MdLikeCount(p int64) bool {
+func (s *SoDemoWrap) MdLikeCount(p int64) error {
 	sa := s.getDemo()
 	if sa == nil {
-		return false
+		return errors.New("initialization data failed")
 	}
     //judge the unique value if is exist
     uniWrap  := UniDemoLikeCountWrap{}
-   res := uniWrap.UniQueryLikeCount(&sa.LikeCount)
-	if res != nil {
+   err := uniWrap.UniQueryLikeCount(&sa.LikeCount,nil)
+	if err != nil {
 		//the unique value to be modified is already exist
-		return false
+		return errors.New("the unique value to be modified is already exist")
 	}
 	if !s.delUniKeyLikeCount(sa) {
-		return false
+		return errors.New("delete the unique key LikeCount fail")
 	}
     
 	
 	if !s.delSortKeyLikeCount(sa) {
-		return false
+		return errors.New("delete the sort key LikeCount fail")
 	}
    sa.LikeCount = p
    
    
-	if !s.update(sa) {
-		return false
+	if upErr := s.update(sa);upErr != nil {
+		return upErr
 	}
     
     if !s.insertSortKeyLikeCount(sa) {
-		return false
+		return errors.New("reinsert sort key LikeCount fail")
     }
        
     if !s.insertUniKeyLikeCount(sa) {
-		return false
+		return errors.New("reinsert unique key LikeCount fail")
     }
-	return true
+	return nil
 }
 
-func (s *SoDemoWrap) GetOwner() *prototype.AccountName {
+func (s *SoDemoWrap) GetOwner(v **prototype.AccountName) error {
 	res := s.getDemo()
 
    if res == nil {
-      return nil
-      
+      return errors.New("get table data fail")
    }
-   return res.Owner
+   *v =  res.Owner
+   return nil
 }
 
 
-func (s *SoDemoWrap) GetPostTime() *prototype.TimePointSec {
+func (s *SoDemoWrap) GetPostTime(v **prototype.TimePointSec) error {
 	res := s.getDemo()
 
    if res == nil {
-      return nil
-      
+      return errors.New("get table data fail")
    }
-   return res.PostTime
+   *v =  res.PostTime
+   return nil
 }
 
 
 
-func (s *SoDemoWrap) MdPostTime(p prototype.TimePointSec) bool {
+func (s *SoDemoWrap) MdPostTime(p prototype.TimePointSec) error {
 	sa := s.getDemo()
 	if sa == nil {
-		return false
+		return errors.New("initialization data failed")
 	}
 	
 	if !s.delSortKeyPostTime(sa) {
-		return false
+		return errors.New("delete the sort key PostTime fail")
 	}
    
    sa.PostTime = &p
    
-	if !s.update(sa) {
-		return false
+	if upErr := s.update(sa);upErr != nil {
+		return upErr
 	}
     
     if !s.insertSortKeyPostTime(sa) {
-		return false
+		return errors.New("reinsert sort key PostTime fail")
     }
        
-	return true
+	return nil
 }
 
-func (s *SoDemoWrap) GetReplayCount() int64 {
+func (s *SoDemoWrap) GetReplayCount(v *int64) error {
 	res := s.getDemo()
 
    if res == nil {
-      var tmpValue int64 
-      return tmpValue
+      return errors.New("get table data fail")
    }
-   return res.ReplayCount
+   *v =  res.ReplayCount
+   return nil
 }
 
 
 
-func (s *SoDemoWrap) MdReplayCount(p int64) bool {
+func (s *SoDemoWrap) MdReplayCount(p int64) error {
 	sa := s.getDemo()
 	if sa == nil {
-		return false
+		return errors.New("initialization data failed")
 	}
 	
 	if !s.delSortKeyReplayCount(sa) {
-		return false
+		return errors.New("delete the sort key ReplayCount fail")
 	}
    sa.ReplayCount = p
    
    
-	if !s.update(sa) {
-		return false
+	if upErr := s.update(sa);upErr != nil {
+		return upErr
 	}
     
     if !s.insertSortKeyReplayCount(sa) {
-		return false
+		return errors.New("reinsert sort key ReplayCount fail")
     }
        
-	return true
+	return nil
 }
 
-func (s *SoDemoWrap) GetTaglist() string {
+func (s *SoDemoWrap) GetTaglist(v *string) error {
 	res := s.getDemo()
 
    if res == nil {
-      var tmpValue string 
-      return tmpValue
+      return errors.New("get table data fail")
    }
-   return res.Taglist
+   *v =  res.Taglist
+   return nil
 }
 
 
 
-func (s *SoDemoWrap) MdTaglist(p string) bool {
+func (s *SoDemoWrap) MdTaglist(p string) error {
 	sa := s.getDemo()
 	if sa == nil {
-		return false
+		return errors.New("initialization data failed")
 	}
 	
    sa.Taglist = p
    
    
-	if !s.update(sa) {
-		return false
+	if upErr := s.update(sa);upErr != nil {
+		return upErr
 	}
     
-	return true
+	return nil
 }
 
-func (s *SoDemoWrap) GetTitle() string {
+func (s *SoDemoWrap) GetTitle(v *string) error {
 	res := s.getDemo()
 
    if res == nil {
-      var tmpValue string 
-      return tmpValue
+      return errors.New("get table data fail")
    }
-   return res.Title
+   *v =  res.Title
+   return nil
 }
 
 
 
-func (s *SoDemoWrap) MdTitle(p string) bool {
+func (s *SoDemoWrap) MdTitle(p string) error {
 	sa := s.getDemo()
 	if sa == nil {
-		return false
+		return errors.New("initialization data failed")
 	}
 	
    sa.Title = p
    
    
-	if !s.update(sa) {
-		return false
+	if upErr := s.update(sa);upErr != nil {
+		return upErr
 	}
     
-	return true
+	return nil
 }
 
 
@@ -612,43 +617,43 @@ func (s *SDemoOwnerWrap)DelIterater(iterator iservices.IDatabaseIterator){
    s.Dba.DeleteIterator(iterator)
 }
 
-func (s *SDemoOwnerWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.AccountName {
+func (s *SDemoOwnerWrap) GetMainVal(iterator iservices.IDatabaseIterator,mKey **prototype.AccountName) error {
 	if iterator == nil || !iterator.Valid() {
-		return nil
+		return errors.New("the iterator is nil or invalid")
 	}
 	val, err := iterator.Value()
 
 	if err != nil {
-		return nil
+		return errors.New("the value of iterator is nil")
 	}
 
 	res := &SoListDemoByOwner{}
 	err = proto.Unmarshal(val, res)
 
 	if err != nil {
-		return nil
+		return err
 	}
-    return res.Owner
-   
+    *mKey = res.Owner
+    return nil
 }
 
-func (s *SDemoOwnerWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.AccountName {
+func (s *SDemoOwnerWrap) GetSubVal(iterator iservices.IDatabaseIterator, sub **prototype.AccountName) error {
 	if iterator == nil || !iterator.Valid() {
-		return nil
+		return errors.New("the iterator is nil or invalid")
 	}
 
 	val, err := iterator.Value()
 
 	if err != nil {
-		return nil
+		return errors.New("the value of iterator is nil")
 	}
 	res := &SoListDemoByOwner{}
 	err = proto.Unmarshal(val, res)
 	if err != nil {
-		return nil
+		return err
 	}
-    return res.Owner
-   
+    *sub = res.Owner
+    return nil
 }
 
 func (m *SoListDemoByOwner) OpeEncode() ([]byte,error) {
@@ -687,7 +692,7 @@ func (m *SoListDemoByOwner) EncodeRevSortKey() ([]byte,error) {
 
 
 //Query sort by reverse order 
-func (s *SDemoOwnerWrap) QueryListByRevOrder(start *prototype.AccountName, end *prototype.AccountName) iservices.IDatabaseIterator {
+func (s *SDemoOwnerWrap) QueryListByRevOrder(start *prototype.AccountName, end *prototype.AccountName,iter *iservices.IDatabaseIterator) error {
 
     var sBuf,eBuf,rBufStart,rBufEnd []byte
     pre := DemoOwnerRevOrdTable
@@ -695,7 +700,7 @@ func (s *SDemoOwnerWrap) QueryListByRevOrder(start *prototype.AccountName, end *
        skeyList := []interface{}{pre,start}
        buf,cErr := encoding.EncodeSlice(skeyList,false)
        if cErr != nil {
-         return nil
+         return cErr
        }
        sBuf = buf
     }
@@ -704,7 +709,7 @@ func (s *SDemoOwnerWrap) QueryListByRevOrder(start *prototype.AccountName, end *
        eKeyList := []interface{}{pre,end}
        buf,err := encoding.EncodeSlice(eKeyList,false)
        if err != nil {
-          return nil
+          return err
        }
        eBuf = buf
 
@@ -714,33 +719,25 @@ func (s *SDemoOwnerWrap) QueryListByRevOrder(start *prototype.AccountName, end *
        res := bytes.Compare(sBuf,eBuf)
        if res == -1 {
           // order
-          return nil
+          return errors.New("the start and end are not reverse order")
        }
        if sBuf != nil {
        rBuf,rErr := encoding.Complement(sBuf, nil)
        if rErr != nil {
-          return nil
+          return rErr
        }
        rBufStart = rBuf
     }
     if eBuf != nil {
           rBuf,rErr := encoding.Complement(eBuf, nil)
           if rErr != nil { 
-            return nil
+            return rErr
           }
           rBufEnd = rBuf
        }
     }
-     
-    if sBuf != nil && eBuf != nil {
-          res := bytes.Compare(sBuf,eBuf)
-          if res == -1 {
-            // order
-            return nil
-        }
-    }
-    iter := s.Dba.NewIterator(rBufStart, rBufEnd)
-    return iter
+    *iter = s.Dba.NewIterator(rBufStart, rBufEnd)
+    return nil
 }
 
 ////////////// SECTION List Keys ///////////////
@@ -755,43 +752,43 @@ func (s *SDemoPostTimeWrap)DelIterater(iterator iservices.IDatabaseIterator){
    s.Dba.DeleteIterator(iterator)
 }
 
-func (s *SDemoPostTimeWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.AccountName {
+func (s *SDemoPostTimeWrap) GetMainVal(iterator iservices.IDatabaseIterator,mKey **prototype.AccountName) error {
 	if iterator == nil || !iterator.Valid() {
-		return nil
+		return errors.New("the iterator is nil or invalid")
 	}
 	val, err := iterator.Value()
 
 	if err != nil {
-		return nil
+		return errors.New("the value of iterator is nil")
 	}
 
 	res := &SoListDemoByPostTime{}
 	err = proto.Unmarshal(val, res)
 
 	if err != nil {
-		return nil
+		return err
 	}
-    return res.Owner
-   
+    *mKey = res.Owner
+    return nil
 }
 
-func (s *SDemoPostTimeWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.TimePointSec {
+func (s *SDemoPostTimeWrap) GetSubVal(iterator iservices.IDatabaseIterator, sub **prototype.TimePointSec) error {
 	if iterator == nil || !iterator.Valid() {
-		return nil
+		return errors.New("the iterator is nil or invalid")
 	}
 
 	val, err := iterator.Value()
 
 	if err != nil {
-		return nil
+		return errors.New("the value of iterator is nil")
 	}
 	res := &SoListDemoByPostTime{}
 	err = proto.Unmarshal(val, res)
 	if err != nil {
-		return nil
+		return err
 	}
-    return res.PostTime
-   
+    *sub = res.PostTime
+    return nil
 }
 
 func (m *SoListDemoByPostTime) OpeEncode() ([]byte,error) {
@@ -832,7 +829,7 @@ func (m *SoListDemoByPostTime) EncodeRevSortKey() ([]byte,error) {
 //start = nil  end = nil (query the db from start to end)
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
-func (s *SDemoPostTimeWrap) QueryListByOrder(start *prototype.TimePointSec, end *prototype.TimePointSec) iservices.IDatabaseIterator {
+func (s *SDemoPostTimeWrap) QueryListByOrder(start *prototype.TimePointSec, end *prototype.TimePointSec,iter *iservices.IDatabaseIterator) error {
     pre := DemoPostTimeTable
     skeyList := []interface{}{pre}
     if start != nil {
@@ -840,11 +837,11 @@ func (s *SDemoPostTimeWrap) QueryListByOrder(start *prototype.TimePointSec, end 
     }
     sBuf,cErr := encoding.EncodeSlice(skeyList,false)
     if cErr != nil {
-         return nil
+         return cErr
     }
     if start != nil && end == nil {
-		iter := s.Dba.NewIterator(sBuf, nil)
-		return iter
+		*iter = s.Dba.NewIterator(sBuf, nil)
+		return nil
 	}
     eKeyList := []interface{}{pre}
     if end != nil {
@@ -852,7 +849,7 @@ func (s *SDemoPostTimeWrap) QueryListByOrder(start *prototype.TimePointSec, end 
     }
     eBuf,cErr := encoding.EncodeSlice(eKeyList,false)
     if cErr != nil {
-       return nil
+       return cErr
     }
     
     res := bytes.Compare(sBuf,eBuf)
@@ -860,15 +857,15 @@ func (s *SDemoPostTimeWrap) QueryListByOrder(start *prototype.TimePointSec, end 
 		eBuf = nil
 	}else if res == 1 {
        //reverse order
-       return nil
+       return errors.New("the start and end are not order")
     }
-    iter := s.Dba.NewIterator(sBuf, eBuf)
+    *iter = s.Dba.NewIterator(sBuf, eBuf)
     
-    return iter
+    return nil
 }
 
 //Query sort by reverse order 
-func (s *SDemoPostTimeWrap) QueryListByRevOrder(start *prototype.TimePointSec, end *prototype.TimePointSec) iservices.IDatabaseIterator {
+func (s *SDemoPostTimeWrap) QueryListByRevOrder(start *prototype.TimePointSec, end *prototype.TimePointSec,iter *iservices.IDatabaseIterator) error {
 
     var sBuf,eBuf,rBufStart,rBufEnd []byte
     pre := DemoPostTimeRevOrdTable
@@ -876,7 +873,7 @@ func (s *SDemoPostTimeWrap) QueryListByRevOrder(start *prototype.TimePointSec, e
        skeyList := []interface{}{pre,start}
        buf,cErr := encoding.EncodeSlice(skeyList,false)
        if cErr != nil {
-         return nil
+         return cErr
        }
        sBuf = buf
     }
@@ -885,7 +882,7 @@ func (s *SDemoPostTimeWrap) QueryListByRevOrder(start *prototype.TimePointSec, e
        eKeyList := []interface{}{pre,end}
        buf,err := encoding.EncodeSlice(eKeyList,false)
        if err != nil {
-          return nil
+          return err
        }
        eBuf = buf
 
@@ -895,33 +892,25 @@ func (s *SDemoPostTimeWrap) QueryListByRevOrder(start *prototype.TimePointSec, e
        res := bytes.Compare(sBuf,eBuf)
        if res == -1 {
           // order
-          return nil
+          return errors.New("the start and end are not reverse order")
        }
        if sBuf != nil {
        rBuf,rErr := encoding.Complement(sBuf, nil)
        if rErr != nil {
-          return nil
+          return rErr
        }
        rBufStart = rBuf
     }
     if eBuf != nil {
           rBuf,rErr := encoding.Complement(eBuf, nil)
           if rErr != nil { 
-            return nil
+            return rErr
           }
           rBufEnd = rBuf
        }
     }
-     
-    if sBuf != nil && eBuf != nil {
-          res := bytes.Compare(sBuf,eBuf)
-          if res == -1 {
-            // order
-            return nil
-        }
-    }
-    iter := s.Dba.NewIterator(rBufStart, rBufEnd)
-    return iter
+    *iter = s.Dba.NewIterator(rBufStart, rBufEnd)
+    return nil
 }
 
 ////////////// SECTION List Keys ///////////////
@@ -936,43 +925,43 @@ func (s *SDemoLikeCountWrap)DelIterater(iterator iservices.IDatabaseIterator){
    s.Dba.DeleteIterator(iterator)
 }
 
-func (s *SDemoLikeCountWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.AccountName {
+func (s *SDemoLikeCountWrap) GetMainVal(iterator iservices.IDatabaseIterator,mKey **prototype.AccountName) error {
 	if iterator == nil || !iterator.Valid() {
-		return nil
+		return errors.New("the iterator is nil or invalid")
 	}
 	val, err := iterator.Value()
 
 	if err != nil {
-		return nil
+		return errors.New("the value of iterator is nil")
 	}
 
 	res := &SoListDemoByLikeCount{}
 	err = proto.Unmarshal(val, res)
 
 	if err != nil {
-		return nil
+		return err
 	}
-    return res.Owner
-   
+    *mKey = res.Owner
+    return nil
 }
 
-func (s *SDemoLikeCountWrap) GetSubVal(iterator iservices.IDatabaseIterator) *int64 {
+func (s *SDemoLikeCountWrap) GetSubVal(iterator iservices.IDatabaseIterator, sub *int64) error {
 	if iterator == nil || !iterator.Valid() {
-		return nil
+		return errors.New("the iterator is nil or invalid")
 	}
 
 	val, err := iterator.Value()
 
 	if err != nil {
-		return nil
+		return errors.New("the value of iterator is nil")
 	}
 	res := &SoListDemoByLikeCount{}
 	err = proto.Unmarshal(val, res)
 	if err != nil {
-		return nil
+		return err
 	}
-    return &res.LikeCount
-   
+    *sub = res.LikeCount
+    return nil
 }
 
 func (m *SoListDemoByLikeCount) OpeEncode() ([]byte,error) {
@@ -1007,7 +996,7 @@ func (m *SoListDemoByLikeCount) EncodeRevSortKey() ([]byte,error) {
 
 
 //Query sort by reverse order 
-func (s *SDemoLikeCountWrap) QueryListByRevOrder(start *int64, end *int64) iservices.IDatabaseIterator {
+func (s *SDemoLikeCountWrap) QueryListByRevOrder(start *int64, end *int64,iter *iservices.IDatabaseIterator) error {
 
     var sBuf,eBuf,rBufStart,rBufEnd []byte
     pre := DemoLikeCountRevOrdTable
@@ -1015,7 +1004,7 @@ func (s *SDemoLikeCountWrap) QueryListByRevOrder(start *int64, end *int64) iserv
        skeyList := []interface{}{pre,start}
        buf,cErr := encoding.EncodeSlice(skeyList,false)
        if cErr != nil {
-         return nil
+         return cErr
        }
        sBuf = buf
     }
@@ -1024,7 +1013,7 @@ func (s *SDemoLikeCountWrap) QueryListByRevOrder(start *int64, end *int64) iserv
        eKeyList := []interface{}{pre,end}
        buf,err := encoding.EncodeSlice(eKeyList,false)
        if err != nil {
-          return nil
+          return err
        }
        eBuf = buf
 
@@ -1034,33 +1023,25 @@ func (s *SDemoLikeCountWrap) QueryListByRevOrder(start *int64, end *int64) iserv
        res := bytes.Compare(sBuf,eBuf)
        if res == -1 {
           // order
-          return nil
+          return errors.New("the start and end are not reverse order")
        }
        if sBuf != nil {
        rBuf,rErr := encoding.Complement(sBuf, nil)
        if rErr != nil {
-          return nil
+          return rErr
        }
        rBufStart = rBuf
     }
     if eBuf != nil {
           rBuf,rErr := encoding.Complement(eBuf, nil)
           if rErr != nil { 
-            return nil
+            return rErr
           }
           rBufEnd = rBuf
        }
     }
-     
-    if sBuf != nil && eBuf != nil {
-          res := bytes.Compare(sBuf,eBuf)
-          if res == -1 {
-            // order
-            return nil
-        }
-    }
-    iter := s.Dba.NewIterator(rBufStart, rBufEnd)
-    return iter
+    *iter = s.Dba.NewIterator(rBufStart, rBufEnd)
+    return nil
 }
 
 ////////////// SECTION List Keys ///////////////
@@ -1075,43 +1056,43 @@ func (s *SDemoIdxWrap)DelIterater(iterator iservices.IDatabaseIterator){
    s.Dba.DeleteIterator(iterator)
 }
 
-func (s *SDemoIdxWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.AccountName {
+func (s *SDemoIdxWrap) GetMainVal(iterator iservices.IDatabaseIterator,mKey **prototype.AccountName) error {
 	if iterator == nil || !iterator.Valid() {
-		return nil
+		return errors.New("the iterator is nil or invalid")
 	}
 	val, err := iterator.Value()
 
 	if err != nil {
-		return nil
+		return errors.New("the value of iterator is nil")
 	}
 
 	res := &SoListDemoByIdx{}
 	err = proto.Unmarshal(val, res)
 
 	if err != nil {
-		return nil
+		return err
 	}
-    return res.Owner
-   
+    *mKey = res.Owner
+    return nil
 }
 
-func (s *SDemoIdxWrap) GetSubVal(iterator iservices.IDatabaseIterator) *int64 {
+func (s *SDemoIdxWrap) GetSubVal(iterator iservices.IDatabaseIterator, sub *int64) error {
 	if iterator == nil || !iterator.Valid() {
-		return nil
+		return errors.New("the iterator is nil or invalid")
 	}
 
 	val, err := iterator.Value()
 
 	if err != nil {
-		return nil
+		return errors.New("the value of iterator is nil")
 	}
 	res := &SoListDemoByIdx{}
 	err = proto.Unmarshal(val, res)
 	if err != nil {
-		return nil
+		return err
 	}
-    return &res.Idx
-   
+    *sub = res.Idx
+    return nil
 }
 
 func (m *SoListDemoByIdx) OpeEncode() ([]byte,error) {
@@ -1146,7 +1127,7 @@ func (m *SoListDemoByIdx) EncodeRevSortKey() ([]byte,error) {
 
 
 //Query sort by reverse order 
-func (s *SDemoIdxWrap) QueryListByRevOrder(start *int64, end *int64) iservices.IDatabaseIterator {
+func (s *SDemoIdxWrap) QueryListByRevOrder(start *int64, end *int64,iter *iservices.IDatabaseIterator) error {
 
     var sBuf,eBuf,rBufStart,rBufEnd []byte
     pre := DemoIdxRevOrdTable
@@ -1154,7 +1135,7 @@ func (s *SDemoIdxWrap) QueryListByRevOrder(start *int64, end *int64) iservices.I
        skeyList := []interface{}{pre,start}
        buf,cErr := encoding.EncodeSlice(skeyList,false)
        if cErr != nil {
-         return nil
+         return cErr
        }
        sBuf = buf
     }
@@ -1163,7 +1144,7 @@ func (s *SDemoIdxWrap) QueryListByRevOrder(start *int64, end *int64) iservices.I
        eKeyList := []interface{}{pre,end}
        buf,err := encoding.EncodeSlice(eKeyList,false)
        if err != nil {
-          return nil
+          return err
        }
        eBuf = buf
 
@@ -1173,33 +1154,25 @@ func (s *SDemoIdxWrap) QueryListByRevOrder(start *int64, end *int64) iservices.I
        res := bytes.Compare(sBuf,eBuf)
        if res == -1 {
           // order
-          return nil
+          return errors.New("the start and end are not reverse order")
        }
        if sBuf != nil {
        rBuf,rErr := encoding.Complement(sBuf, nil)
        if rErr != nil {
-          return nil
+          return rErr
        }
        rBufStart = rBuf
     }
     if eBuf != nil {
           rBuf,rErr := encoding.Complement(eBuf, nil)
           if rErr != nil { 
-            return nil
+            return rErr
           }
           rBufEnd = rBuf
        }
     }
-     
-    if sBuf != nil && eBuf != nil {
-          res := bytes.Compare(sBuf,eBuf)
-          if res == -1 {
-            // order
-            return nil
-        }
-    }
-    iter := s.Dba.NewIterator(rBufStart, rBufEnd)
-    return iter
+    *iter = s.Dba.NewIterator(rBufStart, rBufEnd)
+    return nil
 }
 
 ////////////// SECTION List Keys ///////////////
@@ -1214,43 +1187,43 @@ func (s *SDemoReplayCountWrap)DelIterater(iterator iservices.IDatabaseIterator){
    s.Dba.DeleteIterator(iterator)
 }
 
-func (s *SDemoReplayCountWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.AccountName {
+func (s *SDemoReplayCountWrap) GetMainVal(iterator iservices.IDatabaseIterator,mKey **prototype.AccountName) error {
 	if iterator == nil || !iterator.Valid() {
-		return nil
+		return errors.New("the iterator is nil or invalid")
 	}
 	val, err := iterator.Value()
 
 	if err != nil {
-		return nil
+		return errors.New("the value of iterator is nil")
 	}
 
 	res := &SoListDemoByReplayCount{}
 	err = proto.Unmarshal(val, res)
 
 	if err != nil {
-		return nil
+		return err
 	}
-    return res.Owner
-   
+    *mKey = res.Owner
+    return nil
 }
 
-func (s *SDemoReplayCountWrap) GetSubVal(iterator iservices.IDatabaseIterator) *int64 {
+func (s *SDemoReplayCountWrap) GetSubVal(iterator iservices.IDatabaseIterator, sub *int64) error {
 	if iterator == nil || !iterator.Valid() {
-		return nil
+		return errors.New("the iterator is nil or invalid")
 	}
 
 	val, err := iterator.Value()
 
 	if err != nil {
-		return nil
+		return errors.New("the value of iterator is nil")
 	}
 	res := &SoListDemoByReplayCount{}
 	err = proto.Unmarshal(val, res)
 	if err != nil {
-		return nil
+		return err
 	}
-    return &res.ReplayCount
-   
+    *sub = res.ReplayCount
+    return nil
 }
 
 func (m *SoListDemoByReplayCount) OpeEncode() ([]byte,error) {
@@ -1287,7 +1260,7 @@ func (m *SoListDemoByReplayCount) EncodeRevSortKey() ([]byte,error) {
 //start = nil  end = nil (query the db from start to end)
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
-func (s *SDemoReplayCountWrap) QueryListByOrder(start *int64, end *int64) iservices.IDatabaseIterator {
+func (s *SDemoReplayCountWrap) QueryListByOrder(start *int64, end *int64,iter *iservices.IDatabaseIterator) error {
     pre := DemoReplayCountTable
     skeyList := []interface{}{pre}
     if start != nil {
@@ -1295,11 +1268,11 @@ func (s *SDemoReplayCountWrap) QueryListByOrder(start *int64, end *int64) iservi
     }
     sBuf,cErr := encoding.EncodeSlice(skeyList,false)
     if cErr != nil {
-         return nil
+         return cErr
     }
     if start != nil && end == nil {
-		iter := s.Dba.NewIterator(sBuf, nil)
-		return iter
+		*iter = s.Dba.NewIterator(sBuf, nil)
+		return nil
 	}
     eKeyList := []interface{}{pre}
     if end != nil {
@@ -1307,7 +1280,7 @@ func (s *SDemoReplayCountWrap) QueryListByOrder(start *int64, end *int64) iservi
     }
     eBuf,cErr := encoding.EncodeSlice(eKeyList,false)
     if cErr != nil {
-       return nil
+       return cErr
     }
     
     res := bytes.Compare(sBuf,eBuf)
@@ -1315,27 +1288,30 @@ func (s *SDemoReplayCountWrap) QueryListByOrder(start *int64, end *int64) iservi
 		eBuf = nil
 	}else if res == 1 {
        //reverse order
-       return nil
+       return errors.New("the start and end are not order")
     }
-    iter := s.Dba.NewIterator(sBuf, eBuf)
+    *iter = s.Dba.NewIterator(sBuf, eBuf)
     
-    return iter
+    return nil
 }
 
 /////////////// SECTION Private function ////////////////
 
-func (s *SoDemoWrap) update(sa *SoDemo) bool {
+func (s *SoDemoWrap) update(sa *SoDemo) error {
 	buf, err := proto.Marshal(sa)
 	if err != nil {
-		return false
+		return errors.New("initialization data failed")
 	}
 
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
-		return false
+		return err
 	}
-
-	return s.dba.Put(keyBuf, buf) == nil
+    pErr := s.dba.Put(keyBuf, buf)
+    if pErr != nil {
+       return pErr
+    }
+	return nil
 }
 
 func (s *SoDemoWrap) getDemo() *SoDemo {
@@ -1387,9 +1363,9 @@ func (s *SoDemoWrap) delUniKeyIdx(sa *SoDemo) bool {
 func (s *SoDemoWrap) insertUniKeyIdx(sa *SoDemo) bool {
     uniWrap  := UniDemoIdxWrap{}
      uniWrap.Dba = s.dba
-   res := uniWrap.UniQueryIdx(&sa.Idx)
+   res := uniWrap.UniQueryIdx(&sa.Idx,nil)
    
-   if res != nil {
+   if res == nil {
 		//the unique key is already exist
 		return false
 	}
@@ -1418,7 +1394,7 @@ type UniDemoIdxWrap struct {
 	Dba iservices.IDatabaseService
 }
 
-func (s *UniDemoIdxWrap) UniQueryIdx(start *int64) *SoDemoWrap{
+func (s *UniDemoIdxWrap) UniQueryIdx(start *int64,wrap *SoDemoWrap) error{
     pre := DemoIdxUniTable
     kList := []interface{}{pre,start}
     bufStartkey,err := encoding.EncodeSlice(kList,false)
@@ -1427,12 +1403,14 @@ func (s *UniDemoIdxWrap) UniQueryIdx(start *int64) *SoDemoWrap{
 		res := &SoUniqueDemoByIdx{}
 		rErr := proto.Unmarshal(val, res)
 		if rErr == nil {
-			wrap := NewSoDemoWrap(s.Dba,res.Owner)
+			wrap.mainKey = res.Owner
             
-			return wrap
+            wrap.dba = s.Dba
+			return nil  
 		}
+        return rErr
 	}
-    return nil
+    return err
 }
 
 
@@ -1452,9 +1430,9 @@ func (s *SoDemoWrap) delUniKeyLikeCount(sa *SoDemo) bool {
 func (s *SoDemoWrap) insertUniKeyLikeCount(sa *SoDemo) bool {
     uniWrap  := UniDemoLikeCountWrap{}
      uniWrap.Dba = s.dba
-   res := uniWrap.UniQueryLikeCount(&sa.LikeCount)
+   res := uniWrap.UniQueryLikeCount(&sa.LikeCount,nil)
    
-   if res != nil {
+   if res == nil {
 		//the unique key is already exist
 		return false
 	}
@@ -1483,7 +1461,7 @@ type UniDemoLikeCountWrap struct {
 	Dba iservices.IDatabaseService
 }
 
-func (s *UniDemoLikeCountWrap) UniQueryLikeCount(start *int64) *SoDemoWrap{
+func (s *UniDemoLikeCountWrap) UniQueryLikeCount(start *int64,wrap *SoDemoWrap) error{
     pre := DemoLikeCountUniTable
     kList := []interface{}{pre,start}
     bufStartkey,err := encoding.EncodeSlice(kList,false)
@@ -1492,12 +1470,14 @@ func (s *UniDemoLikeCountWrap) UniQueryLikeCount(start *int64) *SoDemoWrap{
 		res := &SoUniqueDemoByLikeCount{}
 		rErr := proto.Unmarshal(val, res)
 		if rErr == nil {
-			wrap := NewSoDemoWrap(s.Dba,res.Owner)
+			wrap.mainKey = res.Owner
             
-			return wrap
+            wrap.dba = s.Dba
+			return nil  
 		}
+        return rErr
 	}
-    return nil
+    return err
 }
 
 
@@ -1518,8 +1498,8 @@ func (s *SoDemoWrap) insertUniKeyOwner(sa *SoDemo) bool {
     uniWrap  := UniDemoOwnerWrap{}
      uniWrap.Dba = s.dba
    
-   res := uniWrap.UniQueryOwner(sa.Owner)
-   if res != nil {
+   res := uniWrap.UniQueryOwner(sa.Owner,nil)
+   if res == nil {
 		//the unique key is already exist
 		return false
 	}
@@ -1547,7 +1527,7 @@ type UniDemoOwnerWrap struct {
 	Dba iservices.IDatabaseService
 }
 
-func (s *UniDemoOwnerWrap) UniQueryOwner(start *prototype.AccountName) *SoDemoWrap{
+func (s *UniDemoOwnerWrap) UniQueryOwner(start *prototype.AccountName,wrap *SoDemoWrap) error{
     pre := DemoOwnerUniTable
     kList := []interface{}{pre,start}
     bufStartkey,err := encoding.EncodeSlice(kList,false)
@@ -1556,12 +1536,14 @@ func (s *UniDemoOwnerWrap) UniQueryOwner(start *prototype.AccountName) *SoDemoWr
 		res := &SoUniqueDemoByOwner{}
 		rErr := proto.Unmarshal(val, res)
 		if rErr == nil {
-			wrap := NewSoDemoWrap(s.Dba,res.Owner)
+			wrap.mainKey = res.Owner
             
-			return wrap
+            wrap.dba = s.Dba
+			return nil  
 		}
+        return rErr
 	}
-    return nil
+    return err
 }
 
 

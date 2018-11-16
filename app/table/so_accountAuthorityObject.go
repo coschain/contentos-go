@@ -41,203 +41,211 @@ func (s *SoAccountAuthorityObjectWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoAccountAuthorityObjectWrap) CreateAccountAuthorityObject(sa *SoAccountAuthorityObject) bool {
+func (s *SoAccountAuthorityObjectWrap) CreateAccountAuthorityObject(f func(t *SoAccountAuthorityObject)) error {
 
-	if sa == nil {
-		return false
-	}
+	val := &SoAccountAuthorityObject{}
+    f(val)
+    if val.Account == nil {
+       return errors.New("the mainkey is nil")
+    }
     if s.CheckExist() {
-       return false
+       return errors.New("the mainkey is already exist")
     }
 	keyBuf, err := s.encodeMainKey()
 
 	if err != nil {
-		return false
+		return err
 	}
-	resBuf, err := proto.Marshal(sa)
+	resBuf, err := proto.Marshal(val)
 	if err != nil {
-		return false
+		return err
 	}
 	err = s.dba.Put(keyBuf, resBuf)
 	if err != nil {
-		return false
+		return err
 	}
 
 	// update sort list keys
 	
   
     //update unique list
-    if !s.insertUniKeyAccount(sa) {
-		return false
+    if !s.insertUniKeyAccount(val) {
+		return err
 	}
 	
     
-	return true
+	return nil
 }
 
 ////////////// SECTION LKeys delete/insert ///////////////
 
 ////////////// SECTION LKeys delete/insert //////////////
 
-func (s *SoAccountAuthorityObjectWrap) RemoveAccountAuthorityObject() bool {
+func (s *SoAccountAuthorityObjectWrap) RemoveAccountAuthorityObject() error {
 	sa := s.getAccountAuthorityObject()
 	if sa == nil {
-		return false
+		return errors.New("delete data fail ")
 	}
     //delete sort list key
 	
     //delete unique list
     if !s.delUniKeyAccount(sa) {
-		return false
+		return errors.New("delete the unique key Account fail")
 	}
 	
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
-		return false
+		return err
 	}
-	return s.dba.Delete(keyBuf) == nil
+    if err := s.dba.Delete(keyBuf); err != nil {
+       return err
+    }
+	return nil
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
-func (s *SoAccountAuthorityObjectWrap) GetAccount() *prototype.AccountName {
+func (s *SoAccountAuthorityObjectWrap) GetAccount(v **prototype.AccountName) error {
 	res := s.getAccountAuthorityObject()
 
    if res == nil {
-      return nil
-      
+      return errors.New("get table data fail")
    }
-   return res.Account
+   *v =  res.Account
+   return nil
 }
 
 
-func (s *SoAccountAuthorityObjectWrap) GetActive() *prototype.Authority {
+func (s *SoAccountAuthorityObjectWrap) GetActive(v **prototype.Authority) error {
 	res := s.getAccountAuthorityObject()
 
    if res == nil {
-      return nil
-      
+      return errors.New("get table data fail")
    }
-   return res.Active
+   *v =  res.Active
+   return nil
 }
 
 
 
-func (s *SoAccountAuthorityObjectWrap) MdActive(p prototype.Authority) bool {
+func (s *SoAccountAuthorityObjectWrap) MdActive(p prototype.Authority) error {
 	sa := s.getAccountAuthorityObject()
 	if sa == nil {
-		return false
+		return errors.New("initialization data failed")
 	}
 	
    
    sa.Active = &p
    
-	if !s.update(sa) {
-		return false
+	if upErr := s.update(sa);upErr != nil {
+		return upErr
 	}
     
-	return true
+	return nil
 }
 
-func (s *SoAccountAuthorityObjectWrap) GetLastOwnerUpdate() *prototype.TimePointSec {
+func (s *SoAccountAuthorityObjectWrap) GetLastOwnerUpdate(v **prototype.TimePointSec) error {
 	res := s.getAccountAuthorityObject()
 
    if res == nil {
-      return nil
-      
+      return errors.New("get table data fail")
    }
-   return res.LastOwnerUpdate
+   *v =  res.LastOwnerUpdate
+   return nil
 }
 
 
 
-func (s *SoAccountAuthorityObjectWrap) MdLastOwnerUpdate(p prototype.TimePointSec) bool {
+func (s *SoAccountAuthorityObjectWrap) MdLastOwnerUpdate(p prototype.TimePointSec) error {
 	sa := s.getAccountAuthorityObject()
 	if sa == nil {
-		return false
+		return errors.New("initialization data failed")
 	}
 	
    
    sa.LastOwnerUpdate = &p
    
-	if !s.update(sa) {
-		return false
+	if upErr := s.update(sa);upErr != nil {
+		return upErr
 	}
     
-	return true
+	return nil
 }
 
-func (s *SoAccountAuthorityObjectWrap) GetOwner() *prototype.Authority {
+func (s *SoAccountAuthorityObjectWrap) GetOwner(v **prototype.Authority) error {
 	res := s.getAccountAuthorityObject()
 
    if res == nil {
-      return nil
-      
+      return errors.New("get table data fail")
    }
-   return res.Owner
+   *v =  res.Owner
+   return nil
 }
 
 
 
-func (s *SoAccountAuthorityObjectWrap) MdOwner(p prototype.Authority) bool {
+func (s *SoAccountAuthorityObjectWrap) MdOwner(p prototype.Authority) error {
 	sa := s.getAccountAuthorityObject()
 	if sa == nil {
-		return false
+		return errors.New("initialization data failed")
 	}
 	
    
    sa.Owner = &p
    
-	if !s.update(sa) {
-		return false
+	if upErr := s.update(sa);upErr != nil {
+		return upErr
 	}
     
-	return true
+	return nil
 }
 
-func (s *SoAccountAuthorityObjectWrap) GetPosting() *prototype.Authority {
+func (s *SoAccountAuthorityObjectWrap) GetPosting(v **prototype.Authority) error {
 	res := s.getAccountAuthorityObject()
 
    if res == nil {
-      return nil
-      
+      return errors.New("get table data fail")
    }
-   return res.Posting
+   *v =  res.Posting
+   return nil
 }
 
 
 
-func (s *SoAccountAuthorityObjectWrap) MdPosting(p prototype.Authority) bool {
+func (s *SoAccountAuthorityObjectWrap) MdPosting(p prototype.Authority) error {
 	sa := s.getAccountAuthorityObject()
 	if sa == nil {
-		return false
+		return errors.New("initialization data failed")
 	}
 	
    
    sa.Posting = &p
    
-	if !s.update(sa) {
-		return false
+	if upErr := s.update(sa);upErr != nil {
+		return upErr
 	}
     
-	return true
+	return nil
 }
 
 
 
 /////////////// SECTION Private function ////////////////
 
-func (s *SoAccountAuthorityObjectWrap) update(sa *SoAccountAuthorityObject) bool {
+func (s *SoAccountAuthorityObjectWrap) update(sa *SoAccountAuthorityObject) error {
 	buf, err := proto.Marshal(sa)
 	if err != nil {
-		return false
+		return errors.New("initialization data failed")
 	}
 
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
-		return false
+		return err
 	}
-
-	return s.dba.Put(keyBuf, buf) == nil
+    pErr := s.dba.Put(keyBuf, buf)
+    if pErr != nil {
+       return pErr
+    }
+	return nil
 }
 
 func (s *SoAccountAuthorityObjectWrap) getAccountAuthorityObject() *SoAccountAuthorityObject {
@@ -290,8 +298,8 @@ func (s *SoAccountAuthorityObjectWrap) insertUniKeyAccount(sa *SoAccountAuthorit
     uniWrap  := UniAccountAuthorityObjectAccountWrap{}
      uniWrap.Dba = s.dba
    
-   res := uniWrap.UniQueryAccount(sa.Account)
-   if res != nil {
+   res := uniWrap.UniQueryAccount(sa.Account,nil)
+   if res == nil {
 		//the unique key is already exist
 		return false
 	}
@@ -319,7 +327,7 @@ type UniAccountAuthorityObjectAccountWrap struct {
 	Dba iservices.IDatabaseService
 }
 
-func (s *UniAccountAuthorityObjectAccountWrap) UniQueryAccount(start *prototype.AccountName) *SoAccountAuthorityObjectWrap{
+func (s *UniAccountAuthorityObjectAccountWrap) UniQueryAccount(start *prototype.AccountName,wrap *SoAccountAuthorityObjectWrap) error{
     pre := AccountAuthorityObjectAccountUniTable
     kList := []interface{}{pre,start}
     bufStartkey,err := encoding.EncodeSlice(kList,false)
@@ -328,12 +336,14 @@ func (s *UniAccountAuthorityObjectAccountWrap) UniQueryAccount(start *prototype.
 		res := &SoUniqueAccountAuthorityObjectByAccount{}
 		rErr := proto.Unmarshal(val, res)
 		if rErr == nil {
-			wrap := NewSoAccountAuthorityObjectWrap(s.Dba,res.Account)
+			wrap.mainKey = res.Account
             
-			return wrap
+            wrap.dba = s.Dba
+			return nil  
 		}
+        return rErr
 	}
-    return nil
+    return err
 }
 
 
