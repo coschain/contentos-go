@@ -507,7 +507,8 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByRevOrder(start *{{$v.PType}}
           // order
           return nil
        }
-       if sBuf != nil {
+    }
+    if sBuf != nil {
        rBuf,rErr := encoding.Complement(sBuf, nil)
        if rErr != nil {
           return nil
@@ -520,15 +521,6 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByRevOrder(start *{{$v.PType}}
             return nil
           }
           rBufEnd = rBuf
-       }
-    }
-     
-    if sBuf != nil && eBuf != nil {
-          res := bytes.Compare(sBuf,eBuf)
-          if res == -1 {
-            // order
-            return nil
-        }
     }
     iter := s.Dba.NewIterator(rBufStart, rBufEnd)
     return iter

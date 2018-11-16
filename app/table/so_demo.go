@@ -716,7 +716,8 @@ func (s *SDemoOwnerWrap) QueryListByRevOrder(start *prototype.AccountName, end *
           // order
           return nil
        }
-       if sBuf != nil {
+    }
+    if sBuf != nil {
        rBuf,rErr := encoding.Complement(sBuf, nil)
        if rErr != nil {
           return nil
@@ -729,15 +730,6 @@ func (s *SDemoOwnerWrap) QueryListByRevOrder(start *prototype.AccountName, end *
             return nil
           }
           rBufEnd = rBuf
-       }
-    }
-     
-    if sBuf != nil && eBuf != nil {
-          res := bytes.Compare(sBuf,eBuf)
-          if res == -1 {
-            // order
-            return nil
-        }
     }
     iter := s.Dba.NewIterator(rBufStart, rBufEnd)
     return iter
@@ -897,7 +889,8 @@ func (s *SDemoPostTimeWrap) QueryListByRevOrder(start *prototype.TimePointSec, e
           // order
           return nil
        }
-       if sBuf != nil {
+    }
+    if sBuf != nil {
        rBuf,rErr := encoding.Complement(sBuf, nil)
        if rErr != nil {
           return nil
@@ -910,15 +903,6 @@ func (s *SDemoPostTimeWrap) QueryListByRevOrder(start *prototype.TimePointSec, e
             return nil
           }
           rBufEnd = rBuf
-       }
-    }
-     
-    if sBuf != nil && eBuf != nil {
-          res := bytes.Compare(sBuf,eBuf)
-          if res == -1 {
-            // order
-            return nil
-        }
     }
     iter := s.Dba.NewIterator(rBufStart, rBufEnd)
     return iter
@@ -1036,7 +1020,8 @@ func (s *SDemoLikeCountWrap) QueryListByRevOrder(start *int64, end *int64) iserv
           // order
           return nil
        }
-       if sBuf != nil {
+    }
+    if sBuf != nil {
        rBuf,rErr := encoding.Complement(sBuf, nil)
        if rErr != nil {
           return nil
@@ -1049,15 +1034,6 @@ func (s *SDemoLikeCountWrap) QueryListByRevOrder(start *int64, end *int64) iserv
             return nil
           }
           rBufEnd = rBuf
-       }
-    }
-     
-    if sBuf != nil && eBuf != nil {
-          res := bytes.Compare(sBuf,eBuf)
-          if res == -1 {
-            // order
-            return nil
-        }
     }
     iter := s.Dba.NewIterator(rBufStart, rBufEnd)
     return iter
@@ -1175,7 +1151,8 @@ func (s *SDemoIdxWrap) QueryListByRevOrder(start *int64, end *int64) iservices.I
           // order
           return nil
        }
-       if sBuf != nil {
+    }
+    if sBuf != nil {
        rBuf,rErr := encoding.Complement(sBuf, nil)
        if rErr != nil {
           return nil
@@ -1188,15 +1165,6 @@ func (s *SDemoIdxWrap) QueryListByRevOrder(start *int64, end *int64) iservices.I
             return nil
           }
           rBufEnd = rBuf
-       }
-    }
-     
-    if sBuf != nil && eBuf != nil {
-          res := bytes.Compare(sBuf,eBuf)
-          if res == -1 {
-            // order
-            return nil
-        }
     }
     iter := s.Dba.NewIterator(rBufStart, rBufEnd)
     return iter

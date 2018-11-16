@@ -883,7 +883,8 @@ func (s *SPostCreatedOrderWrap) QueryListByRevOrder(start *prototype.PostCreated
           // order
           return nil
        }
-       if sBuf != nil {
+    }
+    if sBuf != nil {
        rBuf,rErr := encoding.Complement(sBuf, nil)
        if rErr != nil {
           return nil
@@ -896,15 +897,6 @@ func (s *SPostCreatedOrderWrap) QueryListByRevOrder(start *prototype.PostCreated
             return nil
           }
           rBufEnd = rBuf
-       }
-    }
-     
-    if sBuf != nil && eBuf != nil {
-          res := bytes.Compare(sBuf,eBuf)
-          if res == -1 {
-            // order
-            return nil
-        }
     }
     iter := s.Dba.NewIterator(rBufStart, rBufEnd)
     return iter
@@ -1023,7 +1015,8 @@ func (s *SPostReplyOrderWrap) QueryListByRevOrder(start *prototype.PostReplyOrde
           // order
           return nil
        }
-       if sBuf != nil {
+    }
+    if sBuf != nil {
        rBuf,rErr := encoding.Complement(sBuf, nil)
        if rErr != nil {
           return nil
@@ -1036,15 +1029,6 @@ func (s *SPostReplyOrderWrap) QueryListByRevOrder(start *prototype.PostReplyOrde
             return nil
           }
           rBufEnd = rBuf
-       }
-    }
-     
-    if sBuf != nil && eBuf != nil {
-          res := bytes.Compare(sBuf,eBuf)
-          if res == -1 {
-            // order
-            return nil
-        }
     }
     iter := s.Dba.NewIterator(rBufStart, rBufEnd)
     return iter
