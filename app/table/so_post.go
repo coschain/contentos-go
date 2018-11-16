@@ -210,12 +210,12 @@ func (s *SoPostWrap) MdActive(p prototype.TimePointSec) bool {
 	return true
 }
 
-func (s *SoPostWrap) GetAllowReplies() *bool {
+func (s *SoPostWrap) GetAllowReplies() bool {
 	res := s.getPost()
 
    if res == nil {
-      return nil
-      
+      var tmpValue bool 
+      return tmpValue
    }
    return res.AllowReplies
 }
@@ -228,8 +228,8 @@ func (s *SoPostWrap) MdAllowReplies(p bool) bool {
 		return false
 	}
 	
+   sa.AllowReplies = p
    
-   sa.AllowReplies = &p
    
 	if !s.update(sa) {
 		return false
@@ -238,12 +238,12 @@ func (s *SoPostWrap) MdAllowReplies(p bool) bool {
 	return true
 }
 
-func (s *SoPostWrap) GetAllowVotes() *bool {
+func (s *SoPostWrap) GetAllowVotes() bool {
 	res := s.getPost()
 
    if res == nil {
-      return nil
-      
+      var tmpValue bool 
+      return tmpValue
    }
    return res.AllowVotes
 }
@@ -256,8 +256,8 @@ func (s *SoPostWrap) MdAllowVotes(p bool) bool {
 		return false
 	}
 	
+   sa.AllowVotes = p
    
-   sa.AllowVotes = &p
    
 	if !s.update(sa) {
 		return false
