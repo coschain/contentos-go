@@ -181,6 +181,10 @@ func (as *APIService) GetWitnessList(ctx context.Context, req *grpcpb.GetWitness
 }
 
 func (as *APIService) GetPostListByCreated(ctx context.Context, req *grpcpb.GetPostListByCreatedRequest) (*grpcpb.GetPostListByCreatedResponse, error) {
+	var (
+
+	)
+
 	return &grpcpb.GetPostListByCreatedResponse{}, nil
 }
 
