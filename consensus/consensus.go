@@ -24,6 +24,16 @@ type IConsensus interface {
 
 	// PushBlock adds b to the block fork DB, called if ValidateBlock returns true
 	PushBlock(b common.ISignedBlock) error
+
+
+
+	GetHeadBlockId() (common.BlockID)
+
+	GetHashes(remote_head_id, current_head_id common.BlockID) []common.BlockID
+
+	GetBlockByHash(id common.BlockID) common.ISignedBlock
+
+	ChainHasBlock(id common.BlockID) bool
 }
 
 type IProducer interface {

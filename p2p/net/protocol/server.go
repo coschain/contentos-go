@@ -47,7 +47,12 @@ type P2P interface {
 	SetOwnAddress(addr string)
 	IsAddrFromConnecting(addr string) bool
 
+	// Broadcast sigTrx or sigBlk msg
 	Broadcast(message interface{})
+
+	// trigger sync request remote peer the block hashes we do not have
 	Triggeer_sync(p *peer.Peer, current_head_blk_id comn.BlockID)
+
+	// Send msg to specific peer
 	Send(p *peer.Peer, msg types.Message, isConsensus bool) error
 }

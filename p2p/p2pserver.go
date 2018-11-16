@@ -119,29 +119,6 @@ func (this *P2PServer) GetNeighborAddrs() []common.PeerAddr {
 	return this.Network.GetNeighborAddrs()
 }
 
-//Xmit called by other module to broadcast msg
-//func (this *P2PServer) Xmit(message interface{}) error {
-//	log.Debug()
-//	var msg msgtypes.Message
-//	isConsensus := false
-//	switch message.(type) {
-//	case *prototype.SignedTransaction:
-//		log.Debug("[p2p]TX transaction message")
-//		sigtrx := message.(*prototype.SignedTransaction)
-//		msg = msgpack.NewTxn(sigtrx)
-//	case *prototype.SignedBlock:
-//		log.Debug("[p2p]TX block message")
-//		block := message.(*prototype.SignedBlock)
-//		msg = msgpack.NewSigBlkHashMsg(block)
-//	default:
-//		log.Warnf("[p2p]Unknown Xmit message %v , type %v", message,
-//			reflect.TypeOf(message))
-//		return errors.New("[p2p]Unknown Xmit message type")
-//	}
-//	this.network.Xmit(msg, isConsensus)
-//	return nil
-//}
-
 //Send tranfer buffer to peer
 func (this *P2PServer) Send(p *peer.Peer, msg msgtypes.Message,
 	isConsensus bool) error {
