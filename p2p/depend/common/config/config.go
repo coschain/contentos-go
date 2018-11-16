@@ -13,37 +13,26 @@ import (
 var Version = "" //Set value when build project
 
 const (
-	DEFAULT_CONFIG_FILE_NAME = "./config.json"
-	DEFAULT_WALLET_FILE_NAME = "./wallet-cli.dat"
-	MIN_GEN_BLOCK_TIME       = 2
 	DEFAULT_GEN_BLOCK_TIME   = 6
 	DBFT_MIN_NODE_NUM        = 4 //min node number of dbft consensus
 	SOLO_MIN_NODE_NUM        = 1 //min node number of solo consensus
 	VBFT_MIN_NODE_NUM        = 4 //min node number of vbft consensus
 
 	DEFAULT_LOG_LEVEL                       = log.InfoLog
-	DEFAULT_MAX_LOG_SIZE                    = 100 //MByte
 	DEFAULT_NODE_PORT                       = uint(20338)
 	DEFAULT_CONSENSUS_PORT                  = uint(20339)
-	DEFAULT_RPC_PORT                        = uint(20336)
-	DEFAULT_RPC_LOCAL_PORT                  = uint(20337)
 	DEFAULT_REST_PORT                       = uint(20334)
-	DEFAULT_WS_PORT                         = uint(20335)
 	DEFAULT_MAX_CONN_IN_BOUND               = uint(1024)
 	DEFAULT_MAX_CONN_OUT_BOUND              = uint(1024)
 	DEFAULT_MAX_CONN_IN_BOUND_FOR_SINGLE_IP = uint(16)
 	DEFAULT_HTTP_INFO_PORT                  = uint(0)
 	DEFAULT_MAX_TX_IN_BLOCK                 = 60000
 	DEFAULT_MAX_SYNC_HEADER                 = 500
-	DEFAULT_ENABLE_CONSENSUS                = true
 	DEFAULT_ENABLE_EVENT_LOG                = true
-	DEFAULT_CLI_RPC_PORT                    = uint(20000)
-	DEFUALT_CLI_RPC_ADDRESS                 = "127.0.0.1"
 	DEFAULT_GAS_LIMIT                       = 20000
 	DEFAULT_GAS_PRICE                       = 500
 
 	DEFAULT_DATA_DIR      = "./Chain"
-	DEFAULT_RESERVED_FILE = "./peers.rsv"
 )
 
 const (
