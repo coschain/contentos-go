@@ -84,9 +84,9 @@ service ApiService {
         };
     }
 
-    rpc GetReplayListByPostId (GetReplayListByPostIdRequest) returns (GetReplayListByPostIdResponse) {
+    rpc GetReplyListByPostId (GetReplyListByPostIdRequest) returns (GetReplyListByPostIdResponse) {
         option (google.api.http) = {
-            post: "/v1/post/get_replay_list_by_post_id"
+            post: "/v1/post/get_reply_list_by_post_id"
             body: "*"
         };
     }
@@ -194,12 +194,12 @@ message GetPostListByCreatedResponse {
     repeated PostResponse post_list = 1;
 }
 
-message GetReplayListByPostIdRequest {
+message GetReplyListByPostIdRequest {
     uint32 post_id = 1;
 }
 
-message GetReplayListByPostIdResponse {
-    repeated PostResponse replay_list = 1;
+message GetReplyListByPostIdResponse {
+    repeated PostResponse reply_list = 1;
 }
 
 message GetBlockTransactionsByNumRequest {

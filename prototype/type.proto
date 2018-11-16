@@ -95,3 +95,15 @@ message witness_schedule_type{
     }
     witness_schedule_type value = 1;
 }
+
+message post_created_order{
+    prototype.time_point_sec last_update = 1;
+    uint64 root_id = 2;
+    uint64 post_id = 3;
+}
+
+message post_reply_order{
+    uint64 root_id = 1;
+    prototype.time_point_sec last_update = 2;
+    uint64 post_id = 3;
+}

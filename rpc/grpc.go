@@ -42,12 +42,12 @@ func (as *APIService) GetFollowerListByName(ctx context.Context, req *grpcpb.Get
 		limit   uint32
 	)
 
-	ferWrap := &table.SFollowerFollowerInfoWrap{Dba: as.db}
+	ferOrderWrap := &table.SFollowerFollowerInfoWrap{Dba: as.db}
 
 	if req.Start == nil {
-		ferIter = ferWrap.QueryListByRevOrder(nil, nil)
+		ferIter = ferOrderWrap.QueryListByRevOrder(nil, nil)
 	} else {
-		ferIter = ferWrap.QueryListByRevOrder(req.Start, nil)
+		ferIter = ferOrderWrap.QueryListByRevOrder(req.Start, nil)
 	}
 
 	if req.Limit <= constants.RPC_PAGE_SIZE_LIMIT {
@@ -57,7 +57,7 @@ func (as *APIService) GetFollowerListByName(ctx context.Context, req *grpcpb.Get
 	}
 
 	for ferIter.Next() {
-		ferOrder := ferWrap.GetSubVal(ferIter)
+		ferOrder := ferOrderWrap.GetSubVal(ferIter)
 		if ferOrder != nil {
 			ferList = append(ferList, ferOrder.Follower)
 		} else {
@@ -83,12 +83,12 @@ func (as *APIService) GetFollowingListByName(ctx context.Context, req *grpcpb.Ge
 		limit    uint32
 	)
 
-	fingWrap := &table.SFollowingFollowingInfoWrap{Dba: as.db}
+	fingOrderWrap := &table.SFollowingFollowingInfoWrap{Dba: as.db}
 
 	if req.Start == nil {
-		fingIter = fingWrap.QueryListByRevOrder(nil, nil)
+		fingIter = fingOrderWrap.QueryListByRevOrder(nil, nil)
 	} else {
-		fingIter = fingWrap.QueryListByRevOrder(req.Start, nil)
+		fingIter = fingOrderWrap.QueryListByRevOrder(req.Start, nil)
 	}
 
 	if req.Limit <= constants.RPC_PAGE_SIZE_LIMIT {
@@ -98,7 +98,7 @@ func (as *APIService) GetFollowingListByName(ctx context.Context, req *grpcpb.Ge
 	}
 
 	for fingIter.Next() {
-		ferOrder := fingWrap.GetSubVal(fingIter)
+		ferOrder := fingOrderWrap.GetSubVal(fingIter)
 		if ferOrder != nil {
 			fingList = append(fingList, ferOrder.Following)
 		} else {

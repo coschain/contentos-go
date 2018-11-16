@@ -13,8 +13,8 @@ import (
 	"net/http"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/jackami/grpc-gateway/runtime"
-	"github.com/jackami/grpc-gateway/utilities"
+	"github.com/grpc-ecosystem/grpc-gateway/runtime"
+	"github.com/grpc-ecosystem/grpc-gateway/utilities"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -110,15 +110,15 @@ func request_ApiService_GetPostListByCreated_0(ctx context.Context, marshaler ru
 
 }
 
-func request_ApiService_GetReplayListByPostId_0(ctx context.Context, marshaler runtime.Marshaler, client ApiServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq GetReplayListByPostIdRequest
+func request_ApiService_GetReplyListByPostId_0(ctx context.Context, marshaler runtime.Marshaler, client ApiServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var protoReq GetReplyListByPostIdRequest
 	var metadata runtime.ServerMetadata
 
 	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
-	msg, err := client.GetReplayListByPostId(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
+	msg, err := client.GetReplyListByPostId(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
 
 }
@@ -374,7 +374,7 @@ func RegisterApiServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux,
 
 	})
 
-	mux.Handle("POST", pattern_ApiService_GetReplayListByPostId_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle("POST", pattern_ApiService_GetReplyListByPostId_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		if cn, ok := w.(http.CloseNotifier); ok {
@@ -392,14 +392,14 @@ func RegisterApiServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux,
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_ApiService_GetReplayListByPostId_0(rctx, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_ApiService_GetReplyListByPostId_0(rctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
 
-		forward_ApiService_GetReplayListByPostId_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+		forward_ApiService_GetReplyListByPostId_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 
 	})
 
@@ -506,7 +506,7 @@ var (
 
 	pattern_ApiService_GetPostListByCreated_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "post", "get_post_list_by_created"}, ""))
 
-	pattern_ApiService_GetReplayListByPostId_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "post", "get_replay_list_by_post_id"}, ""))
+	pattern_ApiService_GetReplyListByPostId_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "post", "get_reply_list_by_post_id"}, ""))
 
 	pattern_ApiService_GetBlockTransactionsByNum_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "trx", "get_block_transactions_by_num"}, ""))
 
@@ -528,7 +528,7 @@ var (
 
 	forward_ApiService_GetPostListByCreated_0 = runtime.ForwardResponseMessage
 
-	forward_ApiService_GetReplayListByPostId_0 = runtime.ForwardResponseMessage
+	forward_ApiService_GetReplyListByPostId_0 = runtime.ForwardResponseMessage
 
 	forward_ApiService_GetBlockTransactionsByNum_0 = runtime.ForwardResponseMessage
 
