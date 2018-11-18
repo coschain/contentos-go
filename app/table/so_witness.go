@@ -152,15 +152,13 @@ func (s *SoWitnessWrap) GetCreatedTime() *prototype.TimePointSec {
 
 
 
-func (s *SoWitnessWrap) MdCreatedTime(p prototype.TimePointSec) bool {
+func (s *SoWitnessWrap) MdCreatedTime(p *prototype.TimePointSec) bool {
 	sa := s.getWitness()
 	if sa == nil {
 		return false
 	}
 	
-   
-   sa.CreatedTime = &p
-   
+    sa.CreatedTime = p
 	if !s.update(sa) {
 		return false
 	}
@@ -186,9 +184,7 @@ func (s *SoWitnessWrap) MdLastConfirmedBlockNum(p uint32) bool {
 		return false
 	}
 	
-   sa.LastConfirmedBlockNum = p
-   
-   
+    sa.LastConfirmedBlockNum = p
 	if !s.update(sa) {
 		return false
 	}
@@ -208,15 +204,13 @@ func (s *SoWitnessWrap) GetLastWork() *prototype.Sha256 {
 
 
 
-func (s *SoWitnessWrap) MdLastWork(p prototype.Sha256) bool {
+func (s *SoWitnessWrap) MdLastWork(p *prototype.Sha256) bool {
 	sa := s.getWitness()
 	if sa == nil {
 		return false
 	}
 	
-   
-   sa.LastWork = &p
-   
+    sa.LastWork = p
 	if !s.update(sa) {
 		return false
 	}
@@ -253,9 +247,7 @@ func (s *SoWitnessWrap) MdPowWorker(p uint32) bool {
 		return false
 	}
 	
-   sa.PowWorker = p
-   
-   
+    sa.PowWorker = p
 	if !s.update(sa) {
 		return false
 	}
@@ -281,9 +273,7 @@ func (s *SoWitnessWrap) MdRunningVersion(p uint32) bool {
 		return false
 	}
 	
-   sa.RunningVersion = p
-   
-   
+    sa.RunningVersion = p
 	if !s.update(sa) {
 		return false
 	}
@@ -303,15 +293,13 @@ func (s *SoWitnessWrap) GetSigningKey() *prototype.PublicKeyType {
 
 
 
-func (s *SoWitnessWrap) MdSigningKey(p prototype.PublicKeyType) bool {
+func (s *SoWitnessWrap) MdSigningKey(p *prototype.PublicKeyType) bool {
 	sa := s.getWitness()
 	if sa == nil {
 		return false
 	}
 	
-   
-   sa.SigningKey = &p
-   
+    sa.SigningKey = p
 	if !s.update(sa) {
 		return false
 	}
@@ -337,9 +325,7 @@ func (s *SoWitnessWrap) MdTotalMissed(p uint32) bool {
 		return false
 	}
 	
-   sa.TotalMissed = p
-   
-   
+    sa.TotalMissed = p
 	if !s.update(sa) {
 		return false
 	}
@@ -365,9 +351,7 @@ func (s *SoWitnessWrap) MdUrl(p string) bool {
 		return false
 	}
 	
-   sa.Url = p
-   
-   
+    sa.Url = p
 	if !s.update(sa) {
 		return false
 	}
@@ -387,15 +371,13 @@ func (s *SoWitnessWrap) GetWitnessScheduleType() *prototype.WitnessScheduleType 
 
 
 
-func (s *SoWitnessWrap) MdWitnessScheduleType(p prototype.WitnessScheduleType) bool {
+func (s *SoWitnessWrap) MdWitnessScheduleType(p *prototype.WitnessScheduleType) bool {
 	sa := s.getWitness()
 	if sa == nil {
 		return false
 	}
 	
-   
-   sa.WitnessScheduleType = &p
-   
+    sa.WitnessScheduleType = p
 	if !s.update(sa) {
 		return false
 	}

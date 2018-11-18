@@ -122,15 +122,13 @@ func (s *SoAccountAuthorityObjectWrap) GetActive() *prototype.Authority {
 
 
 
-func (s *SoAccountAuthorityObjectWrap) MdActive(p prototype.Authority) bool {
+func (s *SoAccountAuthorityObjectWrap) MdActive(p *prototype.Authority) bool {
 	sa := s.getAccountAuthorityObject()
 	if sa == nil {
 		return false
 	}
 	
-   
-   sa.Active = &p
-   
+    sa.Active = p
 	if !s.update(sa) {
 		return false
 	}
@@ -150,15 +148,13 @@ func (s *SoAccountAuthorityObjectWrap) GetLastOwnerUpdate() *prototype.TimePoint
 
 
 
-func (s *SoAccountAuthorityObjectWrap) MdLastOwnerUpdate(p prototype.TimePointSec) bool {
+func (s *SoAccountAuthorityObjectWrap) MdLastOwnerUpdate(p *prototype.TimePointSec) bool {
 	sa := s.getAccountAuthorityObject()
 	if sa == nil {
 		return false
 	}
 	
-   
-   sa.LastOwnerUpdate = &p
-   
+    sa.LastOwnerUpdate = p
 	if !s.update(sa) {
 		return false
 	}
@@ -178,15 +174,13 @@ func (s *SoAccountAuthorityObjectWrap) GetOwner() *prototype.Authority {
 
 
 
-func (s *SoAccountAuthorityObjectWrap) MdOwner(p prototype.Authority) bool {
+func (s *SoAccountAuthorityObjectWrap) MdOwner(p *prototype.Authority) bool {
 	sa := s.getAccountAuthorityObject()
 	if sa == nil {
 		return false
 	}
 	
-   
-   sa.Owner = &p
-   
+    sa.Owner = p
 	if !s.update(sa) {
 		return false
 	}
@@ -206,15 +200,13 @@ func (s *SoAccountAuthorityObjectWrap) GetPosting() *prototype.Authority {
 
 
 
-func (s *SoAccountAuthorityObjectWrap) MdPosting(p prototype.Authority) bool {
+func (s *SoAccountAuthorityObjectWrap) MdPosting(p *prototype.Authority) bool {
 	sa := s.getAccountAuthorityObject()
 	if sa == nil {
 		return false
 	}
 	
-   
-   sa.Posting = &p
-   
+    sa.Posting = p
 	if !s.update(sa) {
 		return false
 	}

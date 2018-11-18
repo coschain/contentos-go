@@ -242,7 +242,7 @@ func (s *SoAccountWrap) GetBalance() *prototype.Coin {
 
 
 
-func (s *SoAccountWrap) MdBalance(p prototype.Coin) bool {
+func (s *SoAccountWrap) MdBalance(p *prototype.Coin) bool {
 	sa := s.getAccount()
 	if sa == nil {
 		return false
@@ -251,9 +251,7 @@ func (s *SoAccountWrap) MdBalance(p prototype.Coin) bool {
 	if !s.delSortKeyBalance(sa) {
 		return false
 	}
-   
-   sa.Balance = &p
-   
+    sa.Balance = p
 	if !s.update(sa) {
 		return false
 	}
@@ -277,7 +275,7 @@ func (s *SoAccountWrap) GetCreatedTime() *prototype.TimePointSec {
 
 
 
-func (s *SoAccountWrap) MdCreatedTime(p prototype.TimePointSec) bool {
+func (s *SoAccountWrap) MdCreatedTime(p *prototype.TimePointSec) bool {
 	sa := s.getAccount()
 	if sa == nil {
 		return false
@@ -286,9 +284,7 @@ func (s *SoAccountWrap) MdCreatedTime(p prototype.TimePointSec) bool {
 	if !s.delSortKeyCreatedTime(sa) {
 		return false
 	}
-   
-   sa.CreatedTime = &p
-   
+    sa.CreatedTime = p
 	if !s.update(sa) {
 		return false
 	}
@@ -312,15 +308,13 @@ func (s *SoAccountWrap) GetCreator() *prototype.AccountName {
 
 
 
-func (s *SoAccountWrap) MdCreator(p prototype.AccountName) bool {
+func (s *SoAccountWrap) MdCreator(p *prototype.AccountName) bool {
 	sa := s.getAccount()
 	if sa == nil {
 		return false
 	}
 	
-   
-   sa.Creator = &p
-   
+    sa.Creator = p
 	if !s.update(sa) {
 		return false
 	}
@@ -351,7 +345,7 @@ func (s *SoAccountWrap) GetPubKey() *prototype.PublicKeyType {
 
 
 
-func (s *SoAccountWrap) MdPubKey(p prototype.PublicKeyType) bool {
+func (s *SoAccountWrap) MdPubKey(p *prototype.PublicKeyType) bool {
 	sa := s.getAccount()
 	if sa == nil {
 		return false
@@ -369,9 +363,7 @@ func (s *SoAccountWrap) MdPubKey(p prototype.PublicKeyType) bool {
 	}
     
 	
-   
-   sa.PubKey = &p
-   
+    sa.PubKey = p
 	if !s.update(sa) {
 		return false
 	}
@@ -394,7 +386,7 @@ func (s *SoAccountWrap) GetVestingShares() *prototype.Vest {
 
 
 
-func (s *SoAccountWrap) MdVestingShares(p prototype.Vest) bool {
+func (s *SoAccountWrap) MdVestingShares(p *prototype.Vest) bool {
 	sa := s.getAccount()
 	if sa == nil {
 		return false
@@ -403,9 +395,7 @@ func (s *SoAccountWrap) MdVestingShares(p prototype.Vest) bool {
 	if !s.delSortKeyVestingShares(sa) {
 		return false
 	}
-   
-   sa.VestingShares = &p
-   
+    sa.VestingShares = p
 	if !s.update(sa) {
 		return false
 	}

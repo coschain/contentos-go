@@ -352,9 +352,7 @@ func (s *SoDemoWrap) MdContent(p string) bool {
 		return false
 	}
 	
-   sa.Content = p
-   
-   
+    sa.Content = p
 	if !s.update(sa) {
 		return false
 	}
@@ -394,9 +392,7 @@ func (s *SoDemoWrap) MdIdx(p int64) bool {
 	if !s.delSortKeyIdx(sa) {
 		return false
 	}
-   sa.Idx = p
-   
-   
+    sa.Idx = p
 	if !s.update(sa) {
 		return false
 	}
@@ -443,9 +439,7 @@ func (s *SoDemoWrap) MdLikeCount(p int64) bool {
 	if !s.delSortKeyLikeCount(sa) {
 		return false
 	}
-   sa.LikeCount = p
-   
-   
+    sa.LikeCount = p
 	if !s.update(sa) {
 		return false
 	}
@@ -483,7 +477,7 @@ func (s *SoDemoWrap) GetPostTime() *prototype.TimePointSec {
 
 
 
-func (s *SoDemoWrap) MdPostTime(p prototype.TimePointSec) bool {
+func (s *SoDemoWrap) MdPostTime(p *prototype.TimePointSec) bool {
 	sa := s.getDemo()
 	if sa == nil {
 		return false
@@ -492,9 +486,7 @@ func (s *SoDemoWrap) MdPostTime(p prototype.TimePointSec) bool {
 	if !s.delSortKeyPostTime(sa) {
 		return false
 	}
-   
-   sa.PostTime = &p
-   
+    sa.PostTime = p
 	if !s.update(sa) {
 		return false
 	}
@@ -527,9 +519,7 @@ func (s *SoDemoWrap) MdReplayCount(p int64) bool {
 	if !s.delSortKeyReplayCount(sa) {
 		return false
 	}
-   sa.ReplayCount = p
-   
-   
+    sa.ReplayCount = p
 	if !s.update(sa) {
 		return false
 	}
@@ -559,9 +549,7 @@ func (s *SoDemoWrap) MdTaglist(p string) bool {
 		return false
 	}
 	
-   sa.Taglist = p
-   
-   
+    sa.Taglist = p
 	if !s.update(sa) {
 		return false
 	}
@@ -587,9 +575,7 @@ func (s *SoDemoWrap) MdTitle(p string) bool {
 		return false
 	}
 	
-   sa.Title = p
-   
-   
+    sa.Title = p
 	if !s.update(sa) {
 		return false
 	}

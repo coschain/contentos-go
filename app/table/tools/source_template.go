@@ -267,7 +267,7 @@ func (s *So{{$.ClsName}}Wrap) Get{{$k1}}() {{formatRTypeStr $v1}} {
 
 {{if ne $k1 $.MainKeyName}}
 
-func (s *So{{$.ClsName}}Wrap) Md{{$k1}}(p {{formatStr $v1}}) bool {
+func (s *So{{$.ClsName}}Wrap) Md{{$k1}}(p {{formatRTypeStr $v1}}) bool {
 	sa := s.get{{$.ClsName}}()
 	if sa == nil {
 		return false
@@ -299,13 +299,7 @@ func (s *So{{$.ClsName}}Wrap) Md{{$k1}}(p {{formatStr $v1}}) bool {
 	}
 		{{- end -}}
 	{{end}}
-   {{ $baseType := (DetectBaseType $v1) -}}
-   {{if $baseType -}} 
-     sa.{{$k1}} = p
-   {{end}}
-   {{if not $baseType -}} 
-     sa.{{$k1}} = &p
-   {{end}}
+    sa.{{$k1}} = p
 	if !s.update(sa) {
 		return false
 	}

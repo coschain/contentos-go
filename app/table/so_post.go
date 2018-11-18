@@ -194,15 +194,13 @@ func (s *SoPostWrap) GetActive() *prototype.TimePointSec {
 
 
 
-func (s *SoPostWrap) MdActive(p prototype.TimePointSec) bool {
+func (s *SoPostWrap) MdActive(p *prototype.TimePointSec) bool {
 	sa := s.getPost()
 	if sa == nil {
 		return false
 	}
 	
-   
-   sa.Active = &p
-   
+    sa.Active = p
 	if !s.update(sa) {
 		return false
 	}
@@ -228,9 +226,7 @@ func (s *SoPostWrap) MdAllowReplies(p bool) bool {
 		return false
 	}
 	
-   sa.AllowReplies = p
-   
-   
+    sa.AllowReplies = p
 	if !s.update(sa) {
 		return false
 	}
@@ -256,9 +252,7 @@ func (s *SoPostWrap) MdAllowVotes(p bool) bool {
 		return false
 	}
 	
-   sa.AllowVotes = p
-   
-   
+    sa.AllowVotes = p
 	if !s.update(sa) {
 		return false
 	}
@@ -278,15 +272,13 @@ func (s *SoPostWrap) GetAuthor() *prototype.AccountName {
 
 
 
-func (s *SoPostWrap) MdAuthor(p prototype.AccountName) bool {
+func (s *SoPostWrap) MdAuthor(p *prototype.AccountName) bool {
 	sa := s.getPost()
 	if sa == nil {
 		return false
 	}
 	
-   
-   sa.Author = &p
-   
+    sa.Author = p
 	if !s.update(sa) {
 		return false
 	}
@@ -312,9 +304,7 @@ func (s *SoPostWrap) MdBody(p string) bool {
 		return false
 	}
 	
-   sa.Body = p
-   
-   
+    sa.Body = p
 	if !s.update(sa) {
 		return false
 	}
@@ -340,9 +330,7 @@ func (s *SoPostWrap) MdCategory(p string) bool {
 		return false
 	}
 	
-   sa.Category = p
-   
-   
+    sa.Category = p
 	if !s.update(sa) {
 		return false
 	}
@@ -368,9 +356,7 @@ func (s *SoPostWrap) MdChildren(p uint32) bool {
 		return false
 	}
 	
-   sa.Children = p
-   
-   
+    sa.Children = p
 	if !s.update(sa) {
 		return false
 	}
@@ -390,15 +376,13 @@ func (s *SoPostWrap) GetCreated() *prototype.TimePointSec {
 
 
 
-func (s *SoPostWrap) MdCreated(p prototype.TimePointSec) bool {
+func (s *SoPostWrap) MdCreated(p *prototype.TimePointSec) bool {
 	sa := s.getPost()
 	if sa == nil {
 		return false
 	}
 	
-   
-   sa.Created = &p
-   
+    sa.Created = p
 	if !s.update(sa) {
 		return false
 	}
@@ -418,7 +402,7 @@ func (s *SoPostWrap) GetCreatedOrder() *prototype.PostCreatedOrder {
 
 
 
-func (s *SoPostWrap) MdCreatedOrder(p prototype.PostCreatedOrder) bool {
+func (s *SoPostWrap) MdCreatedOrder(p *prototype.PostCreatedOrder) bool {
 	sa := s.getPost()
 	if sa == nil {
 		return false
@@ -427,9 +411,7 @@ func (s *SoPostWrap) MdCreatedOrder(p prototype.PostCreatedOrder) bool {
 	if !s.delSortKeyCreatedOrder(sa) {
 		return false
 	}
-   
-   sa.CreatedOrder = &p
-   
+    sa.CreatedOrder = p
 	if !s.update(sa) {
 		return false
 	}
@@ -459,9 +441,7 @@ func (s *SoPostWrap) MdDepth(p uint32) bool {
 		return false
 	}
 	
-   sa.Depth = p
-   
-   
+    sa.Depth = p
 	if !s.update(sa) {
 		return false
 	}
@@ -487,9 +467,7 @@ func (s *SoPostWrap) MdJsonMetadata(p string) bool {
 		return false
 	}
 	
-   sa.JsonMetadata = p
-   
-   
+    sa.JsonMetadata = p
 	if !s.update(sa) {
 		return false
 	}
@@ -509,15 +487,13 @@ func (s *SoPostWrap) GetLastPayout() *prototype.TimePointSec {
 
 
 
-func (s *SoPostWrap) MdLastPayout(p prototype.TimePointSec) bool {
+func (s *SoPostWrap) MdLastPayout(p *prototype.TimePointSec) bool {
 	sa := s.getPost()
 	if sa == nil {
 		return false
 	}
 	
-   
-   sa.LastPayout = &p
-   
+    sa.LastPayout = p
 	if !s.update(sa) {
 		return false
 	}
@@ -537,15 +513,13 @@ func (s *SoPostWrap) GetLastUpdate() *prototype.TimePointSec {
 
 
 
-func (s *SoPostWrap) MdLastUpdate(p prototype.TimePointSec) bool {
+func (s *SoPostWrap) MdLastUpdate(p *prototype.TimePointSec) bool {
 	sa := s.getPost()
 	if sa == nil {
 		return false
 	}
 	
-   
-   sa.LastUpdate = &p
-   
+    sa.LastUpdate = p
 	if !s.update(sa) {
 		return false
 	}
@@ -565,15 +539,13 @@ func (s *SoPostWrap) GetParentAuthor() *prototype.AccountName {
 
 
 
-func (s *SoPostWrap) MdParentAuthor(p prototype.AccountName) bool {
+func (s *SoPostWrap) MdParentAuthor(p *prototype.AccountName) bool {
 	sa := s.getPost()
 	if sa == nil {
 		return false
 	}
 	
-   
-   sa.ParentAuthor = &p
-   
+    sa.ParentAuthor = p
 	if !s.update(sa) {
 		return false
 	}
@@ -599,9 +571,7 @@ func (s *SoPostWrap) MdParentId(p uint64) bool {
 		return false
 	}
 	
-   sa.ParentId = p
-   
-   
+    sa.ParentId = p
 	if !s.update(sa) {
 		return false
 	}
@@ -627,9 +597,7 @@ func (s *SoPostWrap) MdParentPermlink(p string) bool {
 		return false
 	}
 	
-   sa.ParentPermlink = p
-   
-   
+    sa.ParentPermlink = p
 	if !s.update(sa) {
 		return false
 	}
@@ -655,9 +623,7 @@ func (s *SoPostWrap) MdPermlink(p string) bool {
 		return false
 	}
 	
-   sa.Permlink = p
-   
-   
+    sa.Permlink = p
 	if !s.update(sa) {
 		return false
 	}
@@ -688,7 +654,7 @@ func (s *SoPostWrap) GetReplyOrder() *prototype.PostReplyOrder {
 
 
 
-func (s *SoPostWrap) MdReplyOrder(p prototype.PostReplyOrder) bool {
+func (s *SoPostWrap) MdReplyOrder(p *prototype.PostReplyOrder) bool {
 	sa := s.getPost()
 	if sa == nil {
 		return false
@@ -697,9 +663,7 @@ func (s *SoPostWrap) MdReplyOrder(p prototype.PostReplyOrder) bool {
 	if !s.delSortKeyReplyOrder(sa) {
 		return false
 	}
-   
-   sa.ReplyOrder = &p
-   
+    sa.ReplyOrder = p
 	if !s.update(sa) {
 		return false
 	}
@@ -729,9 +693,7 @@ func (s *SoPostWrap) MdRootId(p uint64) bool {
 		return false
 	}
 	
-   sa.RootId = p
-   
-   
+    sa.RootId = p
 	if !s.update(sa) {
 		return false
 	}
@@ -757,9 +719,7 @@ func (s *SoPostWrap) MdTitle(p string) bool {
 		return false
 	}
 	
-   sa.Title = p
-   
-   
+    sa.Title = p
 	if !s.update(sa) {
 		return false
 	}

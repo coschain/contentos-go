@@ -111,15 +111,13 @@ func (s *SoBlockSummaryObjectWrap) GetBlockId() *prototype.Sha256 {
 
 
 
-func (s *SoBlockSummaryObjectWrap) MdBlockId(p prototype.Sha256) bool {
+func (s *SoBlockSummaryObjectWrap) MdBlockId(p *prototype.Sha256) bool {
 	sa := s.getBlockSummaryObject()
 	if sa == nil {
 		return false
 	}
 	
-   
-   sa.BlockId = &p
-   
+    sa.BlockId = p
 	if !s.update(sa) {
 		return false
 	}

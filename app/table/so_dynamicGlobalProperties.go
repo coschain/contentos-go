@@ -111,15 +111,13 @@ func (s *SoDynamicGlobalPropertiesWrap) GetCurrentSupply() *prototype.Coin {
 
 
 
-func (s *SoDynamicGlobalPropertiesWrap) MdCurrentSupply(p prototype.Coin) bool {
+func (s *SoDynamicGlobalPropertiesWrap) MdCurrentSupply(p *prototype.Coin) bool {
 	sa := s.getDynamicGlobalProperties()
 	if sa == nil {
 		return false
 	}
 	
-   
-   sa.CurrentSupply = &p
-   
+    sa.CurrentSupply = p
 	if !s.update(sa) {
 		return false
 	}
@@ -139,15 +137,13 @@ func (s *SoDynamicGlobalPropertiesWrap) GetCurrentWitness() *prototype.AccountNa
 
 
 
-func (s *SoDynamicGlobalPropertiesWrap) MdCurrentWitness(p prototype.AccountName) bool {
+func (s *SoDynamicGlobalPropertiesWrap) MdCurrentWitness(p *prototype.AccountName) bool {
 	sa := s.getDynamicGlobalProperties()
 	if sa == nil {
 		return false
 	}
 	
-   
-   sa.CurrentWitness = &p
-   
+    sa.CurrentWitness = p
 	if !s.update(sa) {
 		return false
 	}
@@ -167,15 +163,13 @@ func (s *SoDynamicGlobalPropertiesWrap) GetHeadBlockId() *prototype.Sha256 {
 
 
 
-func (s *SoDynamicGlobalPropertiesWrap) MdHeadBlockId(p prototype.Sha256) bool {
+func (s *SoDynamicGlobalPropertiesWrap) MdHeadBlockId(p *prototype.Sha256) bool {
 	sa := s.getDynamicGlobalProperties()
 	if sa == nil {
 		return false
 	}
 	
-   
-   sa.HeadBlockId = &p
-   
+    sa.HeadBlockId = p
 	if !s.update(sa) {
 		return false
 	}
@@ -201,9 +195,7 @@ func (s *SoDynamicGlobalPropertiesWrap) MdHeadBlockNumber(p uint32) bool {
 		return false
 	}
 	
-   sa.HeadBlockNumber = p
-   
-   
+    sa.HeadBlockNumber = p
 	if !s.update(sa) {
 		return false
 	}
@@ -240,9 +232,7 @@ func (s *SoDynamicGlobalPropertiesWrap) MdIrreversibleBlockNum(p uint32) bool {
 		return false
 	}
 	
-   sa.IrreversibleBlockNum = p
-   
-   
+    sa.IrreversibleBlockNum = p
 	if !s.update(sa) {
 		return false
 	}
@@ -268,9 +258,7 @@ func (s *SoDynamicGlobalPropertiesWrap) MdMaximumBlockSize(p uint32) bool {
 		return false
 	}
 	
-   sa.MaximumBlockSize = p
-   
-   
+    sa.MaximumBlockSize = p
 	if !s.update(sa) {
 		return false
 	}
@@ -290,15 +278,13 @@ func (s *SoDynamicGlobalPropertiesWrap) GetTime() *prototype.TimePointSec {
 
 
 
-func (s *SoDynamicGlobalPropertiesWrap) MdTime(p prototype.TimePointSec) bool {
+func (s *SoDynamicGlobalPropertiesWrap) MdTime(p *prototype.TimePointSec) bool {
 	sa := s.getDynamicGlobalProperties()
 	if sa == nil {
 		return false
 	}
 	
-   
-   sa.Time = &p
-   
+    sa.Time = p
 	if !s.update(sa) {
 		return false
 	}
@@ -318,15 +304,13 @@ func (s *SoDynamicGlobalPropertiesWrap) GetTotalCos() *prototype.Coin {
 
 
 
-func (s *SoDynamicGlobalPropertiesWrap) MdTotalCos(p prototype.Coin) bool {
+func (s *SoDynamicGlobalPropertiesWrap) MdTotalCos(p *prototype.Coin) bool {
 	sa := s.getDynamicGlobalProperties()
 	if sa == nil {
 		return false
 	}
 	
-   
-   sa.TotalCos = &p
-   
+    sa.TotalCos = p
 	if !s.update(sa) {
 		return false
 	}
@@ -346,15 +330,13 @@ func (s *SoDynamicGlobalPropertiesWrap) GetTotalVestingShares() *prototype.Vest 
 
 
 
-func (s *SoDynamicGlobalPropertiesWrap) MdTotalVestingShares(p prototype.Vest) bool {
+func (s *SoDynamicGlobalPropertiesWrap) MdTotalVestingShares(p *prototype.Vest) bool {
 	sa := s.getDynamicGlobalProperties()
 	if sa == nil {
 		return false
 	}
 	
-   
-   sa.TotalVestingShares = &p
-   
+    sa.TotalVestingShares = p
 	if !s.update(sa) {
 		return false
 	}
@@ -380,9 +362,7 @@ func (s *SoDynamicGlobalPropertiesWrap) MdTps(p uint32) bool {
 		return false
 	}
 	
-   sa.Tps = p
-   
-   
+    sa.Tps = p
 	if !s.update(sa) {
 		return false
 	}

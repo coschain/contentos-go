@@ -153,7 +153,7 @@ func (s *SoTransactionObjectWrap) GetExpiration() *prototype.TimePointSec {
 
 
 
-func (s *SoTransactionObjectWrap) MdExpiration(p prototype.TimePointSec) bool {
+func (s *SoTransactionObjectWrap) MdExpiration(p *prototype.TimePointSec) bool {
 	sa := s.getTransactionObject()
 	if sa == nil {
 		return false
@@ -162,9 +162,7 @@ func (s *SoTransactionObjectWrap) MdExpiration(p prototype.TimePointSec) bool {
 	if !s.delSortKeyExpiration(sa) {
 		return false
 	}
-   
-   sa.Expiration = &p
-   
+    sa.Expiration = p
 	if !s.update(sa) {
 		return false
 	}

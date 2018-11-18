@@ -128,9 +128,7 @@ func (s *SoFollowCountWrap) MdFollowerCnt(p uint32) bool {
 		return false
 	}
 	
-   sa.FollowerCnt = p
-   
-   
+    sa.FollowerCnt = p
 	if !s.update(sa) {
 		return false
 	}
@@ -156,9 +154,7 @@ func (s *SoFollowCountWrap) MdFollowingCnt(p uint32) bool {
 		return false
 	}
 	
-   sa.FollowingCnt = p
-   
-   
+    sa.FollowingCnt = p
 	if !s.update(sa) {
 		return false
 	}
@@ -178,15 +174,13 @@ func (s *SoFollowCountWrap) GetUpdateTime() *prototype.TimePointSec {
 
 
 
-func (s *SoFollowCountWrap) MdUpdateTime(p prototype.TimePointSec) bool {
+func (s *SoFollowCountWrap) MdUpdateTime(p *prototype.TimePointSec) bool {
 	sa := s.getFollowCount()
 	if sa == nil {
 		return false
 	}
 	
-   
-   sa.UpdateTime = &p
-   
+    sa.UpdateTime = p
 	if !s.update(sa) {
 		return false
 	}
