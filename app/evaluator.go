@@ -1,11 +1,26 @@
 package app
 
 import (
-	"fmt"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
 )
+
+func mustNoError( err error )  {
+	if ( err != nil ){
+		panic(err)
+	}
+}
+func mustSuccess( b bool , val string)  {
+	if ( !b ){
+		panic(val)
+	}
+}
+
+type ApplyContext struct {
+	db iservices.IDatabaseService
+	control iservices.IController
+}
 
 type BaseEvaluator interface {
 	Apply(op *prototype.Operation)
@@ -13,85 +28,54 @@ type BaseEvaluator interface {
 
 
 type AccountCreateEvaluator struct{
-	db iservices.IDatabaseService
-	control iservices.IController
+	BaseEvaluator
+	ctx *ApplyContext
+	op *prototype.AccountCreateOperation
 }
 
 type TransferEvaluator struct{
-	db iservices.IDatabaseService
-	control iservices.IController
-}
-
-func (ev *AccountCreateEvaluator) SetDB(db iservices.IDatabaseService){
-	ev.db = db
-}
-
-func  (ev *AccountCreateEvaluator) SetController(c iservices.IController){
-	ev.control = c
-}
-
-func (ev *TransferEvaluator) SetDB(db iservices.IDatabaseService){
-	ev.db = db
-}
-
-func  (ev *TransferEvaluator) SetController(c iservices.IController){
-	ev.control = c
+	BaseEvaluator
+	ctx *ApplyContext
+	op *prototype.TransferOperation
 }
 
 func (ev *AccountCreateEvaluator) Apply(operation *prototype.Operation) {
-	// write DB
-	 o,ok := operation.Op.(*prototype.Operation_Op1)
-	 if !ok {
-		panic("type cast failed")
-	}
-	op := o.Op1
-	creatorWrap := table.NewSoAccountWrap(ev.db,op.Creator)
-	if creatorWrap == nil {
-		panic("NewSoAccountWrap failed")
-	}
-	fmt.Println("1111",creatorWrap)
-	fmt.Println("2222",op)
-	if !creatorWrap.CheckExist() {
-		panic("creator not exist")
-	}
-	if creatorWrap.GetBalance().Value < op.Fee.Value {
-		panic("Insufficient balance to create account.")
-	}
+	op := ev.op
+	creatorWrap := table.NewSoAccountWrap(ev.ctx.db,op.Creator)
+
+	mustSuccess( creatorWrap.CheckExist() , "creator not exist ")
+
+	mustSuccess( creatorWrap.GetBalance().Value >= op.Fee.Value , "Insufficient balance to create account.")
+
 
 	// check auth accounts
 	for _,a := range op.Owner.AccountAuths {
-		tmpAccountWrap := table.NewSoAccountWrap(ev.db,a.Name)
-		if !tmpAccountWrap.CheckExist() {
-			panic("owner auth account not exist")
-		}
+		tmpAccountWrap := table.NewSoAccountWrap(ev.ctx.db,a.Name)
+		mustSuccess( tmpAccountWrap.CheckExist(), "owner auth account not exist")
 	}
 	for _,a := range op.Active.AccountAuths {
-		tmpAccountWrap := table.NewSoAccountWrap(ev.db,a.Name)
-		if !tmpAccountWrap.CheckExist() {
-			panic("active auth account not exist")
-		}
+		tmpAccountWrap := table.NewSoAccountWrap(ev.ctx.db,a.Name)
+		mustSuccess( tmpAccountWrap.CheckExist(), "active auth account not exist")
 	}
 	for _,a := range op.Posting.AccountAuths {
-		tmpAccountWrap := table.NewSoAccountWrap(ev.db,a.Name)
-		if !tmpAccountWrap.CheckExist() {
-			panic("posting auth account not exist")
-		}
+		tmpAccountWrap := table.NewSoAccountWrap(ev.ctx.db,a.Name)
+		mustSuccess( tmpAccountWrap.CheckExist(), "posting auth account not exist")
 	}
 
 	// sub creator's fee
 	originBalance := creatorWrap.GetBalance()
 	originBalance.Value -= op.Fee.Value
-	creatorWrap.MdBalance(*originBalance)
+	creatorWrap.MdBalance(originBalance)
 
 	// sub dynamic glaobal properties's total fee
 	var i int32 = 0
-	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(ev.db,&i)
+	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(ev.ctx.db,&i)
 	originTotal := dgpWrap.GetTotalCos()
 	originTotal.Value -= op.Fee.Value
-	dgpWrap.MdTotalCos(*originTotal)
+	dgpWrap.MdTotalCos(originTotal)
 
 	// create account
-	newAccountWrap := table.NewSoAccountWrap(ev.db,op.NewAccountName)
+	newAccountWrap := table.NewSoAccountWrap(ev.ctx.db,op.NewAccountName)
 	newAccount := &table.SoAccount{}
 	newAccount.Name = op.NewAccountName
 	newAccount.Creator = op.Creator
@@ -101,43 +85,32 @@ func (ev *AccountCreateEvaluator) Apply(operation *prototype.Operation) {
 	vest := prototype.MakeVest(0)
 	newAccount.Balance = cos
 	newAccount.VestingShares = vest
-	if !newAccountWrap.CreateAccount(newAccount) {
-		panic("duplicate create account object")
-	}
+
+	mustSuccess( newAccountWrap.CreateAccount(newAccount), "duplicate create account object")
 
 	// create account authority
-	authorityWrap := table.NewSoAccountAuthorityObjectWrap(ev.db,op.NewAccountName)
+	authorityWrap := table.NewSoAccountAuthorityObjectWrap(ev.ctx.db,op.NewAccountName)
 	authority := &table.SoAccountAuthorityObject{}
 	authority.Account = op.NewAccountName
 	authority.Posting = op.Posting
 	authority.Active = op.Active
 	authority.Owner = op.Owner
 	authority.LastOwnerUpdate = &prototype.TimePointSec{UtcSeconds:0}
-	if !authorityWrap.CreateAccountAuthorityObject(authority) {
-		panic("duplicate create account authority object")
-	}
+
+	mustSuccess( authorityWrap.CreateAccountAuthorityObject(authority), "duplicate create account authority object")
 
 	// create vesting
 	if op.Fee.Value > 0 {
-		ev.control.CreateVesting(op.NewAccountName,op.Fee)
+		ev.ctx.control.CreateVesting(op.NewAccountName,op.Fee)
 	}
 }
 
 func (ev *TransferEvaluator) Apply(operation *prototype.Operation) {
-	// write DB
-	o,ok := operation.Op.(*prototype.Operation_Op2)
-	if !ok {
-		panic("type cast failed")
-	}
-	op := o.Op2
+	op := ev.op
 
 	// @ active_challenged
-
-	fromWrap := table.NewSoAccountWrap(ev.db,op.From)
-	if fromWrap.GetBalance().Value < op.Amount.Value {
-		panic("Insufficient balance to transfer.")
-	}
-
-	ev.control.SubBalance(op.From,op.Amount)
-	ev.control.AddBalance(op.To,op.Amount)
+	fromWrap := table.NewSoAccountWrap(ev.ctx.db,op.From)
+	mustSuccess( fromWrap.GetBalance().Value >= op.Amount.Value, "Insufficient balance to transfer.")
+	ev.ctx.control.SubBalance(op.From,op.Amount)
+	ev.ctx.control.AddBalance(op.To,op.Amount)
 }

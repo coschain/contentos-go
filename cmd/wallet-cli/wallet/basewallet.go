@@ -204,7 +204,7 @@ func (w *BaseWallet) Create(name, passphrase, pubKeyStr, privKeyStr string) erro
 }
 
 func (w *BaseWallet) GetUnlockedAccount(name string) (*PrivAccount, bool) {
-	w.mu.RUnlock()
+	w.mu.RLock()
 	defer w.mu.RUnlock()
 	acc, ok := w.unlocked[name]
 	// access account will update expiration time

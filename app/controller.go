@@ -291,16 +291,13 @@ func (c *Controller) applyOperation(op *prototype.Operation) {
 }
 
 func (c *Controller) getEvaluator(op *prototype.Operation) BaseEvaluator {
+	ctx := &ApplyContext{ db:c.db, control:c}
 	switch op.Op.(type) {
 	case *prototype.Operation_Op1:
-		eva := &AccountCreateEvaluator{}
-		eva.SetController(c)
-		eva.SetDB(c.db)
+		eva := &AccountCreateEvaluator{ ctx:ctx, op: op.GetOp1() }
 		return BaseEvaluator(eva)
 	case *prototype.Operation_Op2:
-		eva := &TransferEvaluator{}
-		eva.SetController(c)
-		eva.SetDB(c.db)
+		eva := &TransferEvaluator{ ctx:ctx, op: op.GetOp2() }
 		return BaseEvaluator(eva)
 	default:
 		panic("no matchable evaluator")
@@ -400,13 +397,13 @@ func (c *Controller) CreateVesting(accountName *prototype.AccountName, cos *prot
 	creatorWrap := table.NewSoAccountWrap(c.db,accountName)
 	oldVesting := creatorWrap.GetVestingShares()
 	oldVesting.Value += newVesting.Value
-	creatorWrap.MdVestingShares(*oldVesting)
+	creatorWrap.MdVestingShares(oldVesting)
 
 	var i int32 = 0
 	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db,&i)
 	originTotal := dgpWrap.GetTotalVestingShares()
 	originTotal.Value += newVesting.Value
-	dgpWrap.MdTotalVestingShares(*originTotal)
+	dgpWrap.MdTotalVestingShares(originTotal)
 	return newVesting
 }
 
@@ -414,26 +411,26 @@ func (c *Controller) SubBalance(accountName *prototype.AccountName, cos *prototy
 	accountWrap := table.NewSoAccountWrap(c.db,accountName)
 	originBalance := accountWrap.GetBalance()
 	originBalance.Value -= cos.Value
-	accountWrap.MdBalance(*originBalance)
+	accountWrap.MdBalance(originBalance)
 
 	// dynamic glaobal properties
 	var i int32 = 0
 	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db,&i)
 	originTotal := dgpWrap.GetTotalCos()
 	originTotal.Value -= cos.Value
-	dgpWrap.MdTotalCos(*originTotal)
+	dgpWrap.MdTotalCos(originTotal)
 }
 
 func (c *Controller) AddBalance(accountName *prototype.AccountName, cos *prototype.Coin) {
 	accountWrap := table.NewSoAccountWrap(c.db,accountName)
 	originBalance := accountWrap.GetBalance()
 	originBalance.Value += cos.Value
-	accountWrap.MdBalance(*originBalance)
+	accountWrap.MdBalance(originBalance)
 
 	// dynamic glaobal properties
 	var i int32 = 0
 	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db,&i)
 	originTotal := dgpWrap.GetTotalCos()
 	originTotal.Value += cos.Value
-	dgpWrap.MdTotalCos(*originTotal)
+	dgpWrap.MdTotalCos(originTotal)
 }
