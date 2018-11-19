@@ -350,6 +350,7 @@ func (c *Controller) _applyBlock(blk *prototype.SignedBlock) {
 	}
 
 	// @ validate_block_header
+	c.validateBlockHeader(blk)
 
 	c._currentBlockNum = nextBlockNum
 	c._current_trx_in_block = 0
@@ -385,6 +386,7 @@ func (c *Controller) _applyBlock(blk *prototype.SignedBlock) {
 	}
 
 	// update xxx ...
+
 }
 
 func (c *Controller) initGenesis() {
@@ -509,7 +511,25 @@ func (c *Controller) validateBlockHeader(blk *prototype.SignedBlock) {
 		panic("block time is invalid")
 	}
 
+	// witness sig check
+	witnessName := &prototype.AccountName{Value:blk.SignedHeader.Header.Witness}
+	witnessWrap := table.NewSoWitnessWrap(c.db,witnessName)
+	pubKey := witnessWrap.GetSigningKey()
+	res,err := blk.SignedHeader.ValidateSig(pubKey)
+	if !res || err != nil {
+		panic("ValidateSig error")
+	}
 
+	// witness schedule check
+	nextSlot := c.GetSlotAtTime(blk.SignedHeader.Header.Timestamp)
+	if nextSlot == 0 {
+		panic("next slot should be greater than 0")
+	}
+
+	scheduledWitness := c.GetScheduledWitness(nextSlot)
+	if witnessWrap.GetOwner().Value != scheduledWitness {
+		panic("Witness produced block at wrong time")
+	}
 }
 
 
@@ -524,4 +544,49 @@ func (c *Controller) headBlockTime() *prototype.TimePointSec {
 	var i int32 = 0
 	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db,&i)
 	return dgpWrap.GetTime()
+}
+
+func (c *Controller) headBlockNum() uint32 {
+	var i int32 = 0
+	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db,&i)
+	return dgpWrap.GetHeadBlockNumber()
+}
+
+func (c *Controller) GetSlotTime(slot uint32) *prototype.TimePointSec {
+	if slot == 0 {
+		return &prototype.TimePointSec{UtcSeconds:0}
+	}
+
+	if c.headBlockNum() == 0 {
+		genesisTime := c.headBlockTime()
+		genesisTime.UtcSeconds += slot * constants.BLOCK_INTERVAL
+		return genesisTime
+	}
+
+	headBlockAbsSlot := c.headBlockTime().UtcSeconds / constants.BLOCK_INTERVAL
+	slotTime := &prototype.TimePointSec{UtcSeconds:headBlockAbsSlot*constants.BLOCK_INTERVAL}
+
+	slotTime.UtcSeconds += slot*constants.BLOCK_INTERVAL
+	return slotTime
+}
+
+func (c *Controller) GetSlotAtTime(t *prototype.TimePointSec) uint32 {
+	nextBlockSlotTime := c.GetSlotTime(1)
+	if t.UtcSeconds < nextBlockSlotTime.UtcSeconds {
+		return 0
+	}
+	return (t.UtcSeconds - nextBlockSlotTime.UtcSeconds) / constants.BLOCK_INTERVAL + 1
+}
+
+func (c *Controller) GetScheduledWitness(slot uint32) string {
+	var i int32 = 0
+	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db,&i)
+	currentSlot := dgpWrap.GetCurrentAslot()
+	currentSlot += uint64(slot)
+
+	wsoWrap := table.NewSoWitnessScheduleObjectWrap(c.db,&i)
+	witnesses := wsoWrap.GetCurrentShuffledWitness()
+	witnessNum := len(witnesses)
+	witnessName := witnesses[currentSlot % uint64(witnessNum)]
+	return witnessName
 }

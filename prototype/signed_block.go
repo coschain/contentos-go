@@ -1,6 +1,7 @@
 package prototype
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
 	"errors"
@@ -66,10 +67,10 @@ func (sb *SignedBlock) Hash() (hash [Size]byte) {
 	return
 }
 
-func (sb *SignedBlock) GetSignee() (*PublicKeyType,error) {
+func (sbh *SignedBlockHeader) GetSignee() (*PublicKeyType,error) {
 	// TODO: get pub key
-	hash := sb.SignedHeader.Header.Hash()
-	buf,err := secp256k1.RecoverPubkey(hash[:],sb.SignedHeader.WitnessSignature.Sig)
+	hash := sbh.Header.Hash()
+	buf,err := secp256k1.RecoverPubkey(hash[:],sbh.WitnessSignature.Sig)
 	if err != nil {
 		return nil,errors.New("RecoverPubkey error")
 	}
@@ -87,8 +88,12 @@ func (bh *BlockHeader) Hash() (hash [Size]byte) {
 	return
 }
 
-func (sbh *SignedBlockHeader) ValidateSig(key *PublicKeyType) bool {
-	return false
+func (sbh *SignedBlockHeader) ValidateSig(key *PublicKeyType) (bool,error) {
+	pub,err := sbh.GetSignee()
+	if err != nil {
+		return false, errors.New("ValidateSig error")
+	}
+	return bytes.Equal(pub.Data,key.Data),nil
 }
 
 func (sbh *SignedBlockHeader) Sign(secKey *PrivateKeyType) error {
