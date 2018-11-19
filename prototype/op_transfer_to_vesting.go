@@ -1,6 +1,6 @@
 package prototype
 
-import "errors"
+import "github.com/pkg/errors"
 
 func (m *TransferToVestingOperation) GetAuthorities(auths *[]Authority) {
 
@@ -27,11 +27,11 @@ func (m *TransferToVestingOperation)Validate() error {
 	}
 
 	if err := m.From.Validate(); err != nil{
-		return err
+		return errors.WithMessage(err, "From error" )
 	}
 
 	if err := m.To.Validate(); err != nil{
-		return err
+		return errors.WithMessage(err, "To error" )
 	}
 
 	if m.Amount == nil || m.Amount.Value == 0 {

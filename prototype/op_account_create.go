@@ -1,6 +1,8 @@
 package prototype
 
-import "errors"
+import (
+	"github.com/pkg/errors"
+)
 
 func (a *AccountCreateOperation) GetAuthorities(auths *[]Authority) {
 
@@ -32,18 +34,19 @@ func (a *AccountCreateOperation) Validate() error {
 	}
 
 	if err := a.Creator.Validate(); err != nil{
-		return err
+		return errors.WithMessage(err, "Creator error" )
+
 	}
 
 	if err := a.NewAccountName.Validate();err != nil{
-		return err
+		return errors.WithMessage(err, "NewAccountName error" )
 	}
 
 	if a.MemoKey == nil {
-		return errors.New("MemoKey cant be null")
+		return errors.New("Memo key cant be empty")
 	}
 	if err := a.MemoKey.Validate(); err != nil {
-		return err
+		return errors.WithMessage(err, "Memo key error" )
 	}
 
 	if a.Posting == nil {
@@ -51,24 +54,24 @@ func (a *AccountCreateOperation) Validate() error {
 	}
 
 	if err := a.Posting.Validate(); err != nil {
-		return err
+		return errors.WithMessage(err, "Posting error" )
 	}
 
 	if a.Active == nil {
 		return errors.New("Posting Key cant be empty")
 	}
 	if err := a.Active.Validate(); err != nil {
-		return err
+		return errors.WithMessage(err, "Active error" )
 	}
 	if a.Owner == nil {
 		return errors.New("Posting Key cant be empty")
 	}
 	if err := a.Owner.Validate(); err != nil {
-		return err
+		return errors.WithMessage(err, "Owner error" )
 	}
 
 	if a.Fee == nil || a.Fee.Value == 0 {
-		return errors.New("Account Create do not have Fee")
+		return errors.New("Account Create must set Fee")
 	}
 
 	return nil

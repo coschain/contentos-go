@@ -1,5 +1,7 @@
 package prototype
 
+import "github.com/pkg/errors"
+
 func (m *BpUnregisterOperation) GetAuthorities(auths *[]Authority) {
 
 }
@@ -27,7 +29,7 @@ func (m *BpUnregisterOperation)Validate() error {
 	}
 
 	if err := m.Owner.Validate(); err != nil{
-		return err
+		return errors.WithMessage(err, "Owner error" )
 	}
 	return nil
 }

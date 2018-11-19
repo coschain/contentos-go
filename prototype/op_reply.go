@@ -1,6 +1,6 @@
 package prototype
 
-import "errors"
+import "github.com/pkg/errors"
 
 func (m *ReplyOperation) GetAuthorities(auths *[]Authority) {
 
@@ -30,7 +30,7 @@ func (m *ReplyOperation)Validate() error {
 	}
 
 	if err := m.Owner.Validate(); err != nil{
-		return err
+		return errors.WithMessage(err, "Follower error" )
 	}
 
 	if m.Uuid == 0 {

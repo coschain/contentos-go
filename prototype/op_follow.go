@@ -1,5 +1,7 @@
 package prototype
 
+import "github.com/pkg/errors"
+
 func (m *FollowOperation) GetAuthorities(auths *[]Authority) {
 
 }
@@ -28,11 +30,11 @@ func (m *FollowOperation)Validate() error {
 	}
 
 	if err := m.Follower.Validate(); err != nil{
-		return err
+		return errors.WithMessage(err, "Follower error" )
 	}
 
 	if err := m.Following.Validate(); err != nil{
-		return err
+		return errors.WithMessage(err, "Following error" )
 	}
 
 	return nil

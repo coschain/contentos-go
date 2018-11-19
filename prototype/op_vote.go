@@ -1,6 +1,6 @@
 package prototype
 
-import "errors"
+import "github.com/pkg/errors"
 
 func (m *VoteOperation) GetAuthorities(auths *[]Authority) {
 
@@ -29,7 +29,7 @@ func (m *VoteOperation)Validate() error {
 	}
 
 	if err := m.Voter.Validate(); err != nil{
-		return err
+		return errors.WithMessage(err, "Voter error" )
 	}
 
 	if m.Idx == 0 {

@@ -2,12 +2,13 @@ package prototype
 
 import (
 	"crypto/sha256"
-	"errors"
+	"fmt"
 	cmn "github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/p2p/depend/common"
 	"github.com/coschain/contentos-go/common/crypto"
 	"github.com/coschain/contentos-go/common/crypto/secp256k1"
 	"github.com/gogo/protobuf/proto"
+	"github.com/pkg/errors"
 )
 
 func (p *SignedTransaction) ExportPubKeys(cid ChainId) ([]*PublicKeyType, error) {
@@ -53,10 +54,9 @@ func (p *SignedTransaction) Validate() error {
 	if len(p.Signatures) == 0 {
 		return errors.New("no signatures")
 	}
-	for _,sig := range p.Signatures{
+	for index,sig := range p.Signatures{
 		if err := sig.Validate(); err != nil{
-			return err
-		}
+			return errors.WithMessage(err, fmt.Sprintf("Signatures error index: %d", index))}
 	}
 	return nil
 }

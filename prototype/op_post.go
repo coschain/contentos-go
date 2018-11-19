@@ -1,6 +1,6 @@
 package prototype
 
-import "errors"
+import "github.com/pkg/errors"
 
 func (m *PostOperation) GetAuthorities(auths *[]Authority) {
 
@@ -29,7 +29,7 @@ func (m *PostOperation)Validate() error {
 	}
 
 	if err := m.Owner.Validate(); err != nil{
-		return err
+		return errors.WithMessage(err, "Owner error" )
 	}
 
 	if m.Uuid == 0 {

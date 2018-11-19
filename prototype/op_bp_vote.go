@@ -1,5 +1,7 @@
 package prototype
 
+import "github.com/pkg/errors"
+
 func (m *BpVoteOperation) GetAuthorities(auths *[]Authority) {
 
 }
@@ -27,10 +29,10 @@ func (m *BpVoteOperation)Validate() error {
 	}
 
 	if err := m.Voter.Validate(); err != nil{
-		return err
+		return errors.WithMessage(err, "Voter error" )
 	}
 	if err := m.Witness.Validate(); err != nil{
-		return err
+		return errors.WithMessage(err, "Witness error" )
 	}
 
 	return nil

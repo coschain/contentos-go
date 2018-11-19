@@ -1,5 +1,7 @@
 package prototype
 
+import "github.com/pkg/errors"
+
 func (m *BpRegisterOperation) GetAuthorities(auths *[]Authority) {
 
 }
@@ -27,10 +29,10 @@ func (m *BpRegisterOperation)Validate() error  {
 	}
 
 	if err := m.Owner.Validate(); err != nil{
-		return err
+		return errors.WithMessage(err, "Owner error" )
 	}
 	if err := m.BlockSigningKey.Validate(); err != nil{
-		return err
+		return errors.WithMessage(err, "BlockSigningKey error" )
 	}
 	if m.Props == nil {
 		return ErrNpe

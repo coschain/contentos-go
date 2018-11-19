@@ -1,6 +1,9 @@
 package prototype
 
-import "errors"
+import (
+	"fmt"
+	"github.com/pkg/errors"
+)
 
 func (m *Transaction) set_expiration(time int) {
 }
@@ -18,9 +21,9 @@ func (m *Transaction) Validate() error {
 		return errors.New("trx must has Operations")
 	}
 
-	for _,op := range m.Operations {
+	for index,op := range m.Operations {
 		if err := validateOp(op); err != nil{
-			return err
+			return errors.WithMessage(err, fmt.Sprintf("Operation Error index: %d", index))
 		}
 	}
 

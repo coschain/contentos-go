@@ -1,6 +1,6 @@
 package prototype
 
-import "errors"
+import "github.com/pkg/errors"
 
 func (t *TransferOperation) GetAuthorities(auths *[]Authority) {
 
@@ -29,10 +29,10 @@ func (t *TransferOperation) Validate() error {
 		return ErrNpe
 	}
 	if err := t.From.Validate(); err != nil{
-		return err
+		return errors.WithMessage(err, "From error" )
 	}
 	if err := t.To.Validate(); err != nil{
-		return err
+		return errors.WithMessage(err, "To error" )
 	}
 	if t.Amount == nil || !t.Amount.NonZero() {
 		return errors.New("transfer op must has amount value")
