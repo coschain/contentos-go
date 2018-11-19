@@ -11,7 +11,6 @@ import (
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/rpc"
-	log "github.com/inconshreveable/log15"
 	"github.com/spf13/viper"
 	"os"
 	"os/signal"
@@ -100,7 +99,7 @@ func startNode(cmd *cobra.Command, args []string) {
 		signal.Notify(sigc, syscall.SIGINT, syscall.SIGTERM)
 		defer signal.Stop(sigc)
 		<-sigc
-		log.Info("Got interrupt, shutting down...")
+		logging.CLog().Infoln("Got interrupt, shutting down...")
 		go app.Stop()
 	}()
 

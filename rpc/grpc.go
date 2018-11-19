@@ -2,10 +2,10 @@ package rpc
 
 import (
 	"context"
-	"fmt"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/common/eventloop"
+	"github.com/coschain/contentos-go/common/logging"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/rpc/pb"
@@ -305,7 +305,7 @@ func (as *APIService) BroadcastTrx(ctx context.Context, req *grpcpb.BroadcastTrx
 	var result *prototype.TransactionInvoice = nil
 	as.mainLoop.Send(func() {
 		result = as.ctrl.PushTrx(req.GetTransaction())
-		fmt.Println("BroadcastTrx Result:", result)
+		logging.CLog().Infof("BroadcastTrx Result:", result)
 	})
 
 	return &grpcpb.BroadcastTrxResponse{}, nil
