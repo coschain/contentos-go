@@ -1,0 +1,56 @@
+package prototype
+
+import "errors"
+
+func (m *PostOperation) GetAuthorities(auths *[]Authority) {
+
+}
+func (m *PostOperation) GetRequiredPosting(auths *map[string]bool) {
+
+}
+
+func (m *PostOperation) GetRequiredOwner(auths *map[string]bool) {
+
+}
+func (m *PostOperation) GetAdmin(*[]AccountAdminPair) {
+
+}
+func (m *PostOperation) IsVirtual() {
+
+}
+
+func (m *PostOperation) GetRequiredActive(auths *map[string]bool) {
+	(*auths)[m.Owner.Value] = true
+}
+
+func (m *PostOperation)Validate() error {
+	if m == nil {
+		return ErrNpe
+	}
+
+	if err := m.Owner.Validate(); err != nil{
+		return err
+	}
+
+	if m.Uuid == 0 {
+		return errors.New("uuid cant be 0")
+	}
+
+	if len(m.Title) == 0 {
+		return errors.New("title cant be null")
+	}
+	if len(m.Content) == 0 {
+		return errors.New("content cant be null")
+	}
+	if len(m.Tags) == 0 {
+		return errors.New("tags cant be null")
+	}
+
+	for _ , val := range m.Tags {
+		if len(val) == 0 {
+			return errors.New("tag length cant be null")
+		}
+	}
+
+	return nil
+}

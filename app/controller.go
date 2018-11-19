@@ -301,6 +301,30 @@ func (c *Controller) getEvaluator(op *prototype.Operation) BaseEvaluator {
 	case *prototype.Operation_Op2:
 		eva := &TransferEvaluator{ ctx:ctx, op: op.GetOp2() }
 		return BaseEvaluator(eva)
+	//case *prototype.Operation_Op3:
+	//	eva := &AccountCreateEvaluator{ ctx:ctx, op: op.GetOp3() }
+	//	return BaseEvaluator(eva)
+	//case *prototype.Operation_Op4:
+	//	eva := &TransferEvaluator{ ctx:ctx, op: op.GetOp4() }
+	//	return BaseEvaluator(eva)
+	//case *prototype.Operation_Op5:
+	//	eva := &AccountCreateEvaluator{ ctx:ctx, op: op.GetOp5() }
+	//	return BaseEvaluator(eva)
+	//case *prototype.Operation_Op6:
+	//	eva := &TransferEvaluator{ ctx:ctx, op: op.GetOp6() }
+	//	return BaseEvaluator(eva)
+	//case *prototype.Operation_Op7:
+	//	eva := &AccountCreateEvaluator{ ctx:ctx, op: op.GetOp7() }
+	//	return BaseEvaluator(eva)
+	//case *prototype.Operation_Op8:
+	//	eva := &TransferEvaluator{ ctx:ctx, op: op.GetOp8() }
+	//	return BaseEvaluator(eva)
+	//case *prototype.Operation_Op9:
+	//	eva := &AccountCreateEvaluator{ ctx:ctx, op: op.GetOp9() }
+	//	return BaseEvaluator(eva)
+	//case *prototype.Operation_Op10:
+	//	eva := &TransferEvaluator{ ctx:ctx, op: op.GetOp10() }
+	//	return BaseEvaluator(eva)
 	default:
 		panic("no matchable evaluator")
 	}

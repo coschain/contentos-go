@@ -38,33 +38,33 @@ func validateOp(op *Operation)  error {
 	if op.GetOp2() != nil {
 		return op.GetOp2().Validate()
 	}
-	//if op.GetOp3() != nil {
-	//	return op.GetOp3().Validate()
-	//}
-	//if op.GetOp4() != nil {
-	//	return op.GetOp4().Validate()
-	//}
-	//if op.GetOp5() != nil {
-	//	return op.GetOp5().Validate()
-	//}
-	//if op.GetOp6() != nil {
-	//	return op.GetOp6().Validate()
-	//}
-	//if op.GetOp7() != nil {
-	//	return op.GetOp7().Validate()
-	//}
-	//if op.GetOp8() != nil {
-	//	return op.GetOp8().Validate()
-	//}
-	//if op.GetOp9() != nil {
-	//	return op.GetOp9().Validate()
-	//}
-	//if op.GetOp9() != nil {
-	//	return op.GetOp9().Validate()
-	//}
-	//if op.GetOp10() != nil {
-	//	return op.GetOp10().Validate()
-	//}
+	if op.GetOp3() != nil {
+		return op.GetOp3().Validate()
+	}
+	if op.GetOp4() != nil {
+		return op.GetOp4().Validate()
+	}
+	if op.GetOp5() != nil {
+		return op.GetOp5().Validate()
+	}
+	if op.GetOp6() != nil {
+		return op.GetOp6().Validate()
+	}
+	if op.GetOp7() != nil {
+		return op.GetOp7().Validate()
+	}
+	if op.GetOp8() != nil {
+		return op.GetOp8().Validate()
+	}
+	if op.GetOp9() != nil {
+		return op.GetOp9().Validate()
+	}
+	if op.GetOp9() != nil {
+		return op.GetOp9().Validate()
+	}
+	if op.GetOp10() != nil {
+		return op.GetOp10().Validate()
+	}
 
 	return errors.New("unknown op type")
 }

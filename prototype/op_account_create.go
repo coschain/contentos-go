@@ -1,6 +1,6 @@
 package prototype
 
-import "github.com/pkg/errors"
+import "errors"
 
 func (a *AccountCreateOperation) GetAuthorities(auths *[]Authority) {
 
@@ -8,9 +8,7 @@ func (a *AccountCreateOperation) GetAuthorities(auths *[]Authority) {
 func (a *AccountCreateOperation) GetRequiredPosting(auths *map[string]bool) {
 
 }
-func (a *AccountCreateOperation) GetRequiredActive(auths *map[string]bool) {
-	(*auths)[a.Creator.Value] = true
-}
+
 func (a *AccountCreateOperation) GetRequiredOwner(auths *map[string]bool) {
 
 }
@@ -20,6 +18,13 @@ func (a *AccountCreateOperation) GetAdmin(*[]AccountAdminPair) {
 func (a *AccountCreateOperation) IsVirtual() {
 
 }
+
+
+func (a *AccountCreateOperation) GetRequiredActive(auths *map[string]bool) {
+	(*auths)[a.Creator.Value] = true
+}
+
+
 func (a *AccountCreateOperation) Validate() error {
 
 	if a == nil{
@@ -42,7 +47,7 @@ func (a *AccountCreateOperation) Validate() error {
 	}
 
 	if a.Posting == nil {
-		return errors.New("Posting Key cant be null")
+		return errors.New("Posting Key cant be empty")
 	}
 
 	if err := a.Posting.Validate(); err != nil {
@@ -50,13 +55,13 @@ func (a *AccountCreateOperation) Validate() error {
 	}
 
 	if a.Active == nil {
-		return errors.New("Posting Key cant be null")
+		return errors.New("Posting Key cant be empty")
 	}
 	if err := a.Active.Validate(); err != nil {
 		return err
 	}
 	if a.Owner == nil {
-		return errors.New("Posting Key cant be null")
+		return errors.New("Posting Key cant be empty")
 	}
 	if err := a.Owner.Validate(); err != nil {
 		return err
