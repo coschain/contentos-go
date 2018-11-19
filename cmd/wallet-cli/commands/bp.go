@@ -84,7 +84,7 @@ func registerBP(cmd *cobra.Command, args []string) {
 		},
 	}
 
-	signTx, err := GenerateSignedTx([]interface{}{bpRegister_op}, bpAccount)
+	signTx, err := generateSignedTx([]interface{}{bpRegister_op}, bpAccount)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -114,7 +114,7 @@ func unRegisterBP(cmd *cobra.Command, args []string) {
 		Owner: &prototype.AccountName{Value: name},
 	}
 
-	signTx, err := GenerateSignedTx([]interface{}{bpUnregister_op}, bpAccount)
+	signTx, err := generateSignedTx([]interface{}{bpUnregister_op}, bpAccount)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -147,7 +147,7 @@ func voteBp(cmd *cobra.Command, args []string) {
 		Cancel:  bpVoteCancel,
 	}
 
-	signTx, err := GenerateSignedTx([]interface{}{bpVote_op}, voterAccount)
+	signTx, err := generateSignedTx([]interface{}{bpVote_op}, voterAccount)
 	if err != nil {
 		fmt.Println(err)
 		return

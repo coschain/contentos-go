@@ -119,6 +119,7 @@ func addCommands() {
 	rootCmd.AddCommand(commands.LoadCmd())
 	rootCmd.AddCommand(commands.UnlockCmd())
 	rootCmd.AddCommand(commands.LockCmd())
+	rootCmd.AddCommand(commands.LoadAllCmd())
 	rootCmd.AddCommand(commands.IsLockedCmd())
 	rootCmd.AddCommand(commands.ListCmd())
 	rootCmd.AddCommand(commands.InfoCmd())

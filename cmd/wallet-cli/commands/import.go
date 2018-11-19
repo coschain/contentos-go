@@ -11,11 +11,11 @@ var importForceFlag bool
 
 var ImportCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "import",
-		Short: "import an account",
-
-		Args: cobra.ExactArgs(3),
-		Run:  importAccount,
+		Use:     "import",
+		Short:   "import an account",
+		Example: "import [name] [privkey]",
+		Args:    cobra.ExactArgs(2),
+		Run:     importAccount,
 	}
 	cmd.Flags().BoolVarP(&importForceFlag, "force", "f", false, "import --force")
 	return cmd
@@ -28,7 +28,11 @@ func importAccount(cmd *cobra.Command, args []string) {
 	mywallet := w.(*wallet.BaseWallet)
 	name := args[0]
 	privKeyStr := args[1]
-	passphrase := args[2]
+	passphrase, err := getPassphrase()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 	if !importForceFlag {
 		// just try to load or reload, if the name exist then we can find it in next step
 		_ = mywallet.Load(name)

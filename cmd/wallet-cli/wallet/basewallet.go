@@ -14,6 +14,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -134,6 +135,7 @@ func (w *BaseWallet) LoadAll() error {
 	if _, err = os.Stat(w.dirPath); os.IsNotExist(err) {
 		return err
 	}
+	r, _ := regexp.Compile(`COS-KEYJSON-(\w+)\.json`)
 	err = filepath.Walk(w.dirPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -141,7 +143,8 @@ func (w *BaseWallet) LoadAll() error {
 		if info.IsDir() {
 			return nil
 		}
-		if strings.HasSuffix(path, ".json") {
+
+		if ok := r.MatchString(path); ok {
 			accjson, err := ioutil.ReadFile(path)
 			if err != nil {
 				return err

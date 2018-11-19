@@ -68,7 +68,7 @@ func reply(cmd *cobra.Command, args []string) {
 
 		beneficiaries = append(beneficiaries, route)
 	}
-	uuid := GenerateUUID(author)
+	uuid := generateUUID(author)
 	reply_op := &prototype.ReplyOperation{
 		Uuid:          uuid,
 		Owner:         &prototype.AccountName{Value: author},
@@ -76,7 +76,7 @@ func reply(cmd *cobra.Command, args []string) {
 		ParentUuid:    postId,
 		Beneficiaries: beneficiaries,
 	}
-	signTx, err := GenerateSignedTx([]interface{}{reply_op}, authorAccount)
+	signTx, err := generateSignedTx([]interface{}{reply_op}, authorAccount)
 	if err != nil {
 		fmt.Println(err)
 		return

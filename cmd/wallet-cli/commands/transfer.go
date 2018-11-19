@@ -47,11 +47,11 @@ func transfer(cmd *cobra.Command, args []string) {
 	transfer_op := &prototype.TransferOperation{
 		From:   &prototype.AccountName{Value: from},
 		To:     &prototype.AccountName{Value: to},
-		Amount: prototype.MakeCoin( uint64(amount) ),
+		Amount: prototype.MakeCoin(uint64(amount)),
 		Memo:   memo,
 	}
 
-	signTx, err := GenerateSignedTx([]interface{}{transfer_op}, fromAccount)
+	signTx, err := generateSignedTx([]interface{}{transfer_op}, fromAccount)
 	if err != nil {
 		fmt.Println(err)
 		return

@@ -70,7 +70,7 @@ func post(cmd *cobra.Command, args []string) {
 
 		beneficiaries = append(beneficiaries, route)
 	}
-	uuid := GenerateUUID(author + title)
+	uuid := generateUUID(author + title)
 	post_op := &prototype.PostOperation{
 		Uuid:          uuid,
 		Owner:         &prototype.AccountName{Value: author},
@@ -79,7 +79,7 @@ func post(cmd *cobra.Command, args []string) {
 		Tags:          tags,
 		Beneficiaries: beneficiaries,
 	}
-	signTx, err := GenerateSignedTx([]interface{}{post_op}, authorAccount)
+	signTx, err := generateSignedTx([]interface{}{post_op}, authorAccount)
 	if err != nil {
 		fmt.Println(err)
 		return
