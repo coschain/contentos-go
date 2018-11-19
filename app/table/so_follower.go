@@ -87,7 +87,6 @@ func (s *SoFollowerWrap) CreateFollower(sa *SoFollower) bool {
 func (s *SoFollowerWrap) delSortKeyFollowerInfo(sa *SoFollower) bool {
 	val := SoListFollowerByFollowerInfo{}
 	val.FollowerInfo = sa.FollowerInfo
-	val.FollowerInfo = sa.FollowerInfo
     subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false

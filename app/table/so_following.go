@@ -87,7 +87,6 @@ func (s *SoFollowingWrap) CreateFollowing(sa *SoFollowing) bool {
 func (s *SoFollowingWrap) delSortKeyFollowingInfo(sa *SoFollowing) bool {
 	val := SoListFollowingByFollowingInfo{}
 	val.FollowingInfo = sa.FollowingInfo
-	val.FollowingInfo = sa.FollowingInfo
     subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false

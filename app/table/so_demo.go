@@ -119,7 +119,6 @@ func (s *SoDemoWrap) CreateDemo(sa *SoDemo) bool {
 func (s *SoDemoWrap) delSortKeyOwner(sa *SoDemo) bool {
 	val := SoListDemoByOwner{}
 	val.Owner = sa.Owner
-	val.Owner = sa.Owner
     subRevBuf, err := val.EncodeRevSortKey()
 	if err != nil {
 		return false
@@ -150,7 +149,7 @@ func (s *SoDemoWrap) insertSortKeyOwner(sa *SoDemo) bool {
 func (s *SoDemoWrap) delSortKeyPostTime(sa *SoDemo) bool {
 	val := SoListDemoByPostTime{}
 	val.PostTime = sa.PostTime
-	val.Owner = sa.Owner
+    val.Owner = sa.Owner
     subBuf, err := val.OpeEncode()
     var ordErr,revOrdErr error
 	if err == nil {
@@ -198,7 +197,7 @@ func (s *SoDemoWrap) insertSortKeyPostTime(sa *SoDemo) bool {
 func (s *SoDemoWrap) delSortKeyLikeCount(sa *SoDemo) bool {
 	val := SoListDemoByLikeCount{}
 	val.LikeCount = sa.LikeCount
-	val.Owner = sa.Owner
+    val.Owner = sa.Owner
     subRevBuf, err := val.EncodeRevSortKey()
 	if err != nil {
 		return false
@@ -230,7 +229,7 @@ func (s *SoDemoWrap) insertSortKeyLikeCount(sa *SoDemo) bool {
 func (s *SoDemoWrap) delSortKeyIdx(sa *SoDemo) bool {
 	val := SoListDemoByIdx{}
 	val.Idx = sa.Idx
-	val.Owner = sa.Owner
+    val.Owner = sa.Owner
     subRevBuf, err := val.EncodeRevSortKey()
 	if err != nil {
 		return false
@@ -262,7 +261,7 @@ func (s *SoDemoWrap) insertSortKeyIdx(sa *SoDemo) bool {
 func (s *SoDemoWrap) delSortKeyReplayCount(sa *SoDemo) bool {
 	val := SoListDemoByReplayCount{}
 	val.ReplayCount = sa.ReplayCount
-	val.Owner = sa.Owner
+    val.Owner = sa.Owner
     subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false

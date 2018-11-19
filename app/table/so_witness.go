@@ -87,7 +87,6 @@ func (s *SoWitnessWrap) CreateWitness(sa *SoWitness) bool {
 func (s *SoWitnessWrap) delSortKeyOwner(sa *SoWitness) bool {
 	val := SoListWitnessByOwner{}
 	val.Owner = sa.Owner
-	val.Owner = sa.Owner
     subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false

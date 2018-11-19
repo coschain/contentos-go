@@ -140,7 +140,9 @@ func (s *So{{.ClsName}}Wrap) Create{{.ClsName}}(sa *So{{.ClsName}}) bool {
 func (s *So{{$.ClsName}}Wrap) delSortKey{{$v1.PName}}(sa *So{{$.ClsName}}) bool {
 	val := SoList{{$.ClsName}}By{{$v1.PName}}{}
 	val.{{$v1.PName}} = sa.{{$v1.PName}}
-	val.{{UperFirstChar $.MainKeyName}} = sa.{{UperFirstChar $.MainKeyName}}
+    {{if ne $.MainKeyName $v1.PName -}}
+    val.{{UperFirstChar $.MainKeyName}} = sa.{{UperFirstChar $.MainKeyName}}
+    {{end -}}
     {{if eq $v1.SType 1 -}}
     subBuf, err := val.OpeEncode()
 	if err != nil {

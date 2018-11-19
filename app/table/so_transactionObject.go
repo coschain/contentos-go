@@ -87,7 +87,7 @@ func (s *SoTransactionObjectWrap) CreateTransactionObject(sa *SoTransactionObjec
 func (s *SoTransactionObjectWrap) delSortKeyExpiration(sa *SoTransactionObject) bool {
 	val := SoListTransactionObjectByExpiration{}
 	val.Expiration = sa.Expiration
-	val.TrxId = sa.TrxId
+    val.TrxId = sa.TrxId
     subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false

@@ -103,7 +103,7 @@ func (s *SoAccountWrap) CreateAccount(sa *SoAccount) bool {
 func (s *SoAccountWrap) delSortKeyCreatedTime(sa *SoAccount) bool {
 	val := SoListAccountByCreatedTime{}
 	val.CreatedTime = sa.CreatedTime
-	val.Name = sa.Name
+    val.Name = sa.Name
     subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -135,7 +135,7 @@ func (s *SoAccountWrap) insertSortKeyCreatedTime(sa *SoAccount) bool {
 func (s *SoAccountWrap) delSortKeyBalance(sa *SoAccount) bool {
 	val := SoListAccountByBalance{}
 	val.Balance = sa.Balance
-	val.Name = sa.Name
+    val.Name = sa.Name
     subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -167,7 +167,7 @@ func (s *SoAccountWrap) insertSortKeyBalance(sa *SoAccount) bool {
 func (s *SoAccountWrap) delSortKeyVestingShares(sa *SoAccount) bool {
 	val := SoListAccountByVestingShares{}
 	val.VestingShares = sa.VestingShares
-	val.Name = sa.Name
+    val.Name = sa.Name
     subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false

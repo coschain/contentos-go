@@ -93,7 +93,7 @@ func (s *SoPostWrap) CreatePost(sa *SoPost) bool {
 func (s *SoPostWrap) delSortKeyCreatedOrder(sa *SoPost) bool {
 	val := SoListPostByCreatedOrder{}
 	val.CreatedOrder = sa.CreatedOrder
-	val.PostId = sa.PostId
+    val.PostId = sa.PostId
     subRevBuf, err := val.EncodeRevSortKey()
 	if err != nil {
 		return false
@@ -125,7 +125,7 @@ func (s *SoPostWrap) insertSortKeyCreatedOrder(sa *SoPost) bool {
 func (s *SoPostWrap) delSortKeyReplyOrder(sa *SoPost) bool {
 	val := SoListPostByReplyOrder{}
 	val.ReplyOrder = sa.ReplyOrder
-	val.PostId = sa.PostId
+    val.PostId = sa.PostId
     subRevBuf, err := val.EncodeRevSortKey()
 	if err != nil {
 		return false
