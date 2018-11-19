@@ -53,7 +53,7 @@ message transaction_wrapper{
 message block_header{
     sha256 previous = 1;
     time_point_sec timestamp = 2;
-    string witness = 3;
+    account_name witness = 3;
     sha256 transaction_merkle_root = 4;
 }
 
