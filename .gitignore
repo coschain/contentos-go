@@ -17,4 +17,4 @@ cmd_main
 main
 *.log
 #wallet-cli
-#!/cmd/wallet-cli/
+/cmd/wallet-cli/wallet-cli
