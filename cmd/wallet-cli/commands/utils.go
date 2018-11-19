@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-func generateSignedTx(ops []interface{}, signers ...*wallet.PrivAccount) (*prototype.SignedTransaction, error) {
+func generateSignedTxAndValidate(ops []interface{}, signers ...*wallet.PrivAccount) (*prototype.SignedTransaction, error) {
 	privKeys := []*prototype.PrivateKeyType{}
 	for _, acc := range signers {
 		privKey, err := prototype.PrivateKeyFromWIF(acc.PrivKey)
@@ -30,6 +30,10 @@ func generateSignedTx(ops []interface{}, signers ...*wallet.PrivAccount) (*proto
 	for _, privkey := range privKeys {
 		res := signTx.Sign(privkey, prototype.ChainId{Value: 0})
 		signTx.Signatures = append(signTx.Signatures, &prototype.SignatureType{Sig: res})
+	}
+
+	if err := signTx.Validate(); err != nil {
+		return nil, err
 	}
 
 	return &signTx, nil

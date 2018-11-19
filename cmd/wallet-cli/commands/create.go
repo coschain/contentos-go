@@ -61,7 +61,7 @@ func create(cmd *cobra.Command, args []string) {
 			},
 		},
 	}
-	signTx, err := generateSignedTx([]interface{}{acop}, creatorAccount)
+	signTx, err := generateSignedTxAndValidate([]interface{}{acop}, creatorAccount)
 	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
 	resp, err := client.BroadcastTrx(context.Background(), req)
 	if err != nil {

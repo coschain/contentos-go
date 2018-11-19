@@ -51,7 +51,7 @@ func transfer(cmd *cobra.Command, args []string) {
 		Memo:   memo,
 	}
 
-	signTx, err := generateSignedTx([]interface{}{transfer_op}, fromAccount)
+	signTx, err := generateSignedTxAndValidate([]interface{}{transfer_op}, fromAccount)
 	if err != nil {
 		fmt.Println(err)
 		return
