@@ -4,9 +4,11 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"errors"
+	"github.com/coschain/contentos-go/common/crypto/secp256k1"
 
 	"github.com/coschain/contentos-go/common"
 	"github.com/gogo/protobuf/proto"
+	"github.com/coschain/contentos-go/common/crypto"
 )
 
 const Size = 32
@@ -64,8 +66,34 @@ func (sb *SignedBlock) Hash() (hash [Size]byte) {
 	return
 }
 
-func (sb *SignedBlock) GetSignee() interface{} {
+func (sb *SignedBlock) GetSignee() (*PublicKeyType,error) {
 	// TODO: get pub key
+	hash := sb.SignedHeader.Header.Hash()
+	buf,err := secp256k1.RecoverPubkey(hash[:],sb.SignedHeader.WitnessSignature.Sig)
+	if err != nil {
+		return nil,errors.New("RecoverPubkey error")
+	}
+	ecPubKey, err := crypto.UnmarshalPubkey(buf)
+	if err != nil {
+		return nil,errors.New("UnmarshalPubkey error")
+	}
+	pub := PublicKeyFromBytes(secp256k1.CompressPubkey(ecPubKey.X, ecPubKey.Y))
+	return pub,nil
+}
+
+func (bh *BlockHeader) Hash() (hash [Size]byte) {
+	data, _ := proto.Marshal(bh)
+	hash = sha256.Sum256(data)
+	return
+}
+
+func (sbh *SignedBlockHeader) Sign(secKey *PrivateKeyType) error {
+	hash := sbh.Header.Hash()
+	res ,err := secp256k1.Sign(hash[:],secKey.Data)
+	if err != nil {
+		errors.New("secp256k1 sign error")
+	}
+	sbh.WitnessSignature.Sig = append(sbh.WitnessSignature.Sig,res...)
 	return nil
 }
 

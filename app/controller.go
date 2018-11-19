@@ -38,6 +38,8 @@ type Controller struct {
 	_isProducing       bool
 	_currentTrxId      *prototype.Sha256
 	_current_op_in_trx uint16
+	_currentBlockNum 	uint64
+	_current_trx_in_block int16
 }
 
 func (c *Controller) getDb() (iservices.IDatabaseService,error) {
@@ -316,12 +318,49 @@ func (c *Controller) applyBlock(blk *prototype.SignedBlock) {
 }
 
 func (c *Controller) _applyBlock(blk *prototype.SignedBlock) {
-	//nextBlockNum := blk.Id().BlockNum()
+	nextBlockNum := blk.Id().BlockNum()
 
-	root := blk.CalculateMerkleRoot()
-	if !bytes.Equal(root.Data[:], blk.SignedHeader.Header.TransactionMerkleRoot.Hash) {
+	merkleRoot := blk.CalculateMerkleRoot()
+	if !bytes.Equal(merkleRoot.Data[:], blk.SignedHeader.Header.TransactionMerkleRoot.Hash) {
 		panic("Merkle check failed")
 	}
+
+	// @ validate_block_header
+
+	c._currentBlockNum = nextBlockNum
+	c._current_trx_in_block = 0
+
+	var i int32 = 0
+	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db,&i)
+	blockSize := proto.Size(blk)
+	if uint32(blockSize) > dgpWrap.GetMaximumBlockSize() {
+		panic("Block size is too big")
+	}
+	if uint32(blockSize) < constants.MIN_BLOCK_SIZE {
+		// elog("Block size is too small")
+	}
+
+	w := prototype.AccountName{Value:blk.SignedHeader.Header.Witness}
+	dgpWrap.MdCurrentWitness(w)
+
+	// @ process extension
+
+	// @ hardfork_state
+
+	trxWrp := &prototype.TransactionWrapper{}
+	trxWrp.Invoice = &prototype.TransactionInvoice{}
+
+	for _,tw := range blk.Transactions {
+		trxWrp.SigTrx = tw.SigTrx
+		trxWrp.Invoice.Status = 200
+		c._applyTransaction(trxWrp)
+		if trxWrp.Invoice.Status != tw.Invoice.Status {
+			panic("mismatched invoice")
+		}
+		c._current_trx_in_block++
+	}
+
+	// update xxx ...
 }
 
 func (c *Controller) initGenesis() {
@@ -433,4 +472,32 @@ func (c *Controller) AddBalance(accountName *prototype.AccountName, cos *prototy
 	originTotal := dgpWrap.GetTotalCos()
 	originTotal.Value += cos.Value
 	dgpWrap.MdTotalCos(originTotal)
+}
+
+
+func (c *Controller) validateBlockHeader(blk *prototype.SignedBlock) {
+	headID := c.headBlockID()
+	if !bytes.Equal(headID.Hash,blk.SignedHeader.Header.Previous.Hash) {
+		panic("hash not equal")
+	}
+	headTime := c.headBlockTime()
+	if headTime.UtcSeconds >= blk.SignedHeader.Header.Timestamp.UtcSeconds {
+		panic("block time is invalid")
+	}
+
+
+}
+
+
+func (c *Controller) headBlockID() *prototype.Sha256 {
+	var i int32 = 0
+	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db,&i)
+	headID := dgpWrap.GetHeadBlockId()
+	return headID
+}
+
+func (c *Controller) headBlockTime() *prototype.TimePointSec {
+	var i int32 = 0
+	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db,&i)
+	return dgpWrap.GetTime()
 }
