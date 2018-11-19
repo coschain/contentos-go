@@ -13,8 +13,8 @@ var CreateCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "create",
 		Short:   "create a new account",
-		Example: "create [creator] [name]",
-		Args:    cobra.ExactArgs(2),
+		Example: "create [creator] [name] [passphrase]",
+		Args:    cobra.ExactArgs(3),
 		Run:     create,
 	}
 	return cmd
@@ -25,7 +25,6 @@ func create(cmd *cobra.Command, args []string) {
 	client := c.(grpcpb.ApiServiceClient)
 	w := cmd.Context["wallet"]
 	mywallet := w.(*wallet.BaseWallet)
-	pubKeyStr, privKeyStr, err := mywallet.GenerateNewKey()
 	creator := args[0]
 	creatorAccount, ok := mywallet.GetUnlockedAccount(creator)
 	if !ok {
@@ -33,35 +32,42 @@ func create(cmd *cobra.Command, args []string) {
 		return
 	}
 	name := args[1]
-	passphrase, err := getPassphrase()
+	passphrase := args[2]
+
+	pubKeyStr, privKeyStr, err := mywallet.GenerateNewKey()
+	pubkey, _ := prototype.PublicKeyFromWIF(pubKeyStr)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
+
+	keys :=&prototype.Authority{
+		Cf:              prototype.Authority_active,
+		WeightThreshold: 1,
+		AccountAuths: []*prototype.KvAccountAuth{
+			{
+				Name:   &prototype.AccountName{Value: creator},
+				Weight: 3,
+			},
+		},
+		KeyAuths: []*prototype.KvKeyAuth{
+			{
+				Key: pubkey,
+				Weight: 23,
+			},
+		},
+	}
+
 	acop := &prototype.AccountCreateOperation{
 		Fee:            prototype.MakeCoin(1),
 		Creator:        &prototype.AccountName{Value: creator},
 		NewAccountName: &prototype.AccountName{Value: name},
-		Owner: &prototype.Authority{
-			Cf:              prototype.Authority_active,
-			WeightThreshold: 1,
-			AccountAuths: []*prototype.KvAccountAuth{
-				{
-					Name:   &prototype.AccountName{Value: name},
-					Weight: 3,
-				},
-			},
-			KeyAuths: []*prototype.KvKeyAuth{
-				{
-					Key: &prototype.PublicKeyType{
-						Data: []byte(pubKeyStr),
-					},
-					Weight: 23,
-				},
-			},
-		},
+		Owner: keys,
+		Posting: keys,
+		Active: keys,
+		MemoKey: pubkey,
 	}
-	signTx, err := generateSignedTxAndValidate([]interface{}{acop}, creatorAccount)
+	signTx, err := GenerateSignedTx([]interface{}{acop}, creatorAccount)
 	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
 	resp, err := client.BroadcastTrx(context.Background(), req)
 	if err != nil {

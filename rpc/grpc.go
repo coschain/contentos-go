@@ -9,6 +9,11 @@ import (
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/rpc/pb"
+	"github.com/pkg/errors"
+)
+
+var (
+	ErrEmptyResp = errors.New("empty response")
 )
 
 type APIService struct {
@@ -20,7 +25,7 @@ type APIService struct {
 func (as *APIService) GetAccountByName(ctx context.Context, req *grpcpb.GetAccountByNameRequest) (*grpcpb.AccountResponse, error) {
 
 	accWrap := table.NewSoAccountWrap(as.db, req.AccountName)
-	acct := &grpcpb.AccountResponse{AccountName: &prototype.AccountName{Value: req.AccountName.Value}}
+	acct := &grpcpb.AccountResponse{AccountName: &prototype.AccountName{}}
 
 	if accWrap.CheckExist() {
 		acct.AccountName = &prototype.AccountName{Value: accWrap.GetName().Value}
@@ -28,9 +33,12 @@ func (as *APIService) GetAccountByName(ctx context.Context, req *grpcpb.GetAccou
 		acct.Vest = accWrap.GetVestingShares()
 		//acct.PublicKeys = accWrap.GetPubKey()
 		acct.CreatedTime = accWrap.GetCreatedTime()
+
+		return acct, nil
+	} else {
+		return nil, ErrEmptyResp
 	}
 
-	return acct, nil
 }
 
 func (as *APIService) GetFollowerListByName(ctx context.Context, req *grpcpb.GetFollowerListByNameRequest) (*grpcpb.GetFollowerListByNameResponse, error) {
@@ -69,7 +77,12 @@ func (as *APIService) GetFollowerListByName(ctx context.Context, req *grpcpb.Get
 		}
 	}
 
-	return &grpcpb.GetFollowerListByNameResponse{FollowerList: ferList}, nil
+	if len(ferList) == 0 {
+		return nil, ErrEmptyResp
+	} else {
+		return &grpcpb.GetFollowerListByNameResponse{FollowerList: ferList}, nil
+	}
+
 }
 
 func (as *APIService) GetFollowingListByName(ctx context.Context, req *grpcpb.GetFollowingListByNameRequest) (*grpcpb.GetFollowingListByNameResponse, error) {
@@ -108,7 +121,12 @@ func (as *APIService) GetFollowingListByName(ctx context.Context, req *grpcpb.Ge
 		}
 	}
 
-	return &grpcpb.GetFollowingListByNameResponse{FollowingList:fingList}, nil
+	if len(fingList) == 0 {
+		return nil, ErrEmptyResp
+	} else {
+		return &grpcpb.GetFollowingListByNameResponse{FollowingList:fingList}, nil
+	}
+
 }
 
 func (as *APIService) GetFollowCountByName(ctx context.Context, req *grpcpb.GetFollowCountByNameRequest) (*grpcpb.GetFollowCountByNameResponse, error) {
@@ -122,9 +140,11 @@ func (as *APIService) GetFollowCountByName(ctx context.Context, req *grpcpb.GetF
 	if afc.CheckExist() {
 		ferCnt = afc.GetFollowerCnt()
 		fingCnt = afc.GetFollowingCnt()
+		return &grpcpb.GetFollowCountByNameResponse{FerCnt: ferCnt, FingCnt: fingCnt}, nil
+	} else {
+		return nil, ErrEmptyResp
 	}
 
-	return &grpcpb.GetFollowCountByNameResponse{FerCnt: ferCnt, FingCnt: fingCnt}, nil
 }
 
 func (as *APIService) GetWitnessList(ctx context.Context, req *grpcpb.GetWitnessListRequest) (*grpcpb.GetWitnessListResponse, error) {
@@ -173,7 +193,12 @@ func (as *APIService) GetWitnessList(ctx context.Context, req *grpcpb.GetWitness
 		}
 	}
 
-	return &grpcpb.GetWitnessListResponse{WitnessList: witList}, nil
+	if len(witList) == 0 {
+		return nil, ErrEmptyResp
+	} else {
+		return &grpcpb.GetWitnessListResponse{WitnessList: witList}, nil
+	}
+
 }
 
 func (as *APIService) GetPostListByCreated(ctx context.Context, req *grpcpb.GetPostListByCreatedRequest) (*grpcpb.GetPostListByCreatedResponse, error) {
@@ -231,7 +256,12 @@ func (as *APIService) GetPostListByCreated(ctx context.Context, req *grpcpb.GetP
 		}
 	}
 
-	return &grpcpb.GetPostListByCreatedResponse{PostList:postList}, nil
+	if len(postList) == 0 {
+		return nil, ErrEmptyResp
+	} else {
+		return &grpcpb.GetPostListByCreatedResponse{PostList:postList}, nil
+	}
+
 }
 
 func (as *APIService) GetReplyListByPostId(ctx context.Context, req *grpcpb.GetReplyListByPostIdRequest) (*grpcpb.GetReplyListByPostIdResponse, error) {
@@ -289,7 +319,12 @@ func (as *APIService) GetReplyListByPostId(ctx context.Context, req *grpcpb.GetR
 		}
 	}
 
-	return &grpcpb.GetReplyListByPostIdResponse{ReplyList:replyList}, nil
+	if len(replyList) == 0 {
+		return nil, ErrEmptyResp
+	} else {
+		return &grpcpb.GetReplyListByPostIdResponse{ReplyList:replyList}, nil
+	}
+
 }
 
 func (as *APIService) GetBlockTransactionsByNum(ctx context.Context, req *grpcpb.GetBlockTransactionsByNumRequest) (*grpcpb.GetBlockTransactionsByNumResponse, error) {
@@ -297,6 +332,7 @@ func (as *APIService) GetBlockTransactionsByNum(ctx context.Context, req *grpcpb
 }
 
 func (as *APIService) GetTrxById(ctx context.Context, req *grpcpb.GetTrxByIdRequest) (*grpcpb.GetTrxByIdResponse, error) {
+
 	return &grpcpb.GetTrxByIdResponse{}, nil
 }
 
@@ -305,7 +341,7 @@ func (as *APIService) BroadcastTrx(ctx context.Context, req *grpcpb.BroadcastTrx
 	var result *prototype.TransactionInvoice = nil
 	as.mainLoop.Send(func() {
 		result = as.ctrl.PushTrx(req.GetTransaction())
-		logging.CLog().Infof("BroadcastTrx Result:", result)
+		logging.CLog().Infof("BroadcastTrx Result: %x", result)
 	})
 
 	return &grpcpb.BroadcastTrxResponse{}, nil
