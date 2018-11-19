@@ -512,7 +512,7 @@ func (c *Controller) validateBlockHeader(blk *prototype.SignedBlock) {
 	}
 
 	// witness sig check
-	witnessName := &prototype.AccountName{Value:blk.SignedHeader.Header.Witness}
+	witnessName := blk.SignedHeader.Header.Witness
 	witnessWrap := table.NewSoWitnessWrap(c.db,witnessName)
 	pubKey := witnessWrap.GetSigningKey()
 	res,err := blk.SignedHeader.ValidateSig(pubKey)
