@@ -113,15 +113,13 @@ func (s *SoBlockSummaryObjectWrap) GetBlockId(v **prototype.Sha256) error {
 
 
 
-func (s *SoBlockSummaryObjectWrap) MdBlockId(p prototype.Sha256) error {
+func (s *SoBlockSummaryObjectWrap) MdBlockId(p *prototype.Sha256) error {
 	sa := s.getBlockSummaryObject()
 	if sa == nil {
 		return errors.New("initialization data failed")
 	}
 	
-   
-   sa.BlockId = &p
-   
+    sa.BlockId = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}

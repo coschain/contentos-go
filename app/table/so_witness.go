@@ -157,15 +157,13 @@ func (s *SoWitnessWrap) GetCreatedTime(v **prototype.TimePointSec) error {
 
 
 
-func (s *SoWitnessWrap) MdCreatedTime(p prototype.TimePointSec) error {
+func (s *SoWitnessWrap) MdCreatedTime(p *prototype.TimePointSec) error {
 	sa := s.getWitness()
 	if sa == nil {
 		return errors.New("initialization data failed")
 	}
 	
-   
-   sa.CreatedTime = &p
-   
+    sa.CreatedTime = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
@@ -191,9 +189,7 @@ func (s *SoWitnessWrap) MdLastConfirmedBlockNum(p uint32) error {
 		return errors.New("initialization data failed")
 	}
 	
-   sa.LastConfirmedBlockNum = p
-   
-   
+    sa.LastConfirmedBlockNum = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
@@ -213,15 +209,13 @@ func (s *SoWitnessWrap) GetLastWork(v **prototype.Sha256) error {
 
 
 
-func (s *SoWitnessWrap) MdLastWork(p prototype.Sha256) error {
+func (s *SoWitnessWrap) MdLastWork(p *prototype.Sha256) error {
 	sa := s.getWitness()
 	if sa == nil {
 		return errors.New("initialization data failed")
 	}
 	
-   
-   sa.LastWork = &p
-   
+    sa.LastWork = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
@@ -258,9 +252,7 @@ func (s *SoWitnessWrap) MdPowWorker(p uint32) error {
 		return errors.New("initialization data failed")
 	}
 	
-   sa.PowWorker = p
-   
-   
+    sa.PowWorker = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
@@ -286,9 +278,7 @@ func (s *SoWitnessWrap) MdRunningVersion(p uint32) error {
 		return errors.New("initialization data failed")
 	}
 	
-   sa.RunningVersion = p
-   
-   
+    sa.RunningVersion = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
@@ -308,15 +298,13 @@ func (s *SoWitnessWrap) GetSigningKey(v **prototype.PublicKeyType) error {
 
 
 
-func (s *SoWitnessWrap) MdSigningKey(p prototype.PublicKeyType) error {
+func (s *SoWitnessWrap) MdSigningKey(p *prototype.PublicKeyType) error {
 	sa := s.getWitness()
 	if sa == nil {
 		return errors.New("initialization data failed")
 	}
 	
-   
-   sa.SigningKey = &p
-   
+    sa.SigningKey = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
@@ -342,9 +330,7 @@ func (s *SoWitnessWrap) MdTotalMissed(p uint32) error {
 		return errors.New("initialization data failed")
 	}
 	
-   sa.TotalMissed = p
-   
-   
+    sa.TotalMissed = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
@@ -370,9 +356,7 @@ func (s *SoWitnessWrap) MdUrl(p string) error {
 		return errors.New("initialization data failed")
 	}
 	
-   sa.Url = p
-   
-   
+    sa.Url = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
@@ -392,15 +376,13 @@ func (s *SoWitnessWrap) GetWitnessScheduleType(v **prototype.WitnessScheduleType
 
 
 
-func (s *SoWitnessWrap) MdWitnessScheduleType(p prototype.WitnessScheduleType) error {
+func (s *SoWitnessWrap) MdWitnessScheduleType(p *prototype.WitnessScheduleType) error {
 	sa := s.getWitness()
 	if sa == nil {
 		return errors.New("initialization data failed")
 	}
 	
-   
-   sa.WitnessScheduleType = &p
-   
+    sa.WitnessScheduleType = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}

@@ -158,7 +158,7 @@ func (s *SoTransactionObjectWrap) GetExpiration(v **prototype.TimePointSec) erro
 
 
 
-func (s *SoTransactionObjectWrap) MdExpiration(p prototype.TimePointSec) error {
+func (s *SoTransactionObjectWrap) MdExpiration(p *prototype.TimePointSec) error {
 	sa := s.getTransactionObject()
 	if sa == nil {
 		return errors.New("initialization data failed")
@@ -167,9 +167,7 @@ func (s *SoTransactionObjectWrap) MdExpiration(p prototype.TimePointSec) error {
 	if !s.delSortKeyExpiration(sa) {
 		return errors.New("delete the sort key Expiration fail")
 	}
-   
-   sa.Expiration = &p
-   
+    sa.Expiration = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}

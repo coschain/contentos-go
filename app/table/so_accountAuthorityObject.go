@@ -127,15 +127,13 @@ func (s *SoAccountAuthorityObjectWrap) GetActive(v **prototype.Authority) error 
 
 
 
-func (s *SoAccountAuthorityObjectWrap) MdActive(p prototype.Authority) error {
+func (s *SoAccountAuthorityObjectWrap) MdActive(p *prototype.Authority) error {
 	sa := s.getAccountAuthorityObject()
 	if sa == nil {
 		return errors.New("initialization data failed")
 	}
 	
-   
-   sa.Active = &p
-   
+    sa.Active = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
@@ -155,15 +153,13 @@ func (s *SoAccountAuthorityObjectWrap) GetLastOwnerUpdate(v **prototype.TimePoin
 
 
 
-func (s *SoAccountAuthorityObjectWrap) MdLastOwnerUpdate(p prototype.TimePointSec) error {
+func (s *SoAccountAuthorityObjectWrap) MdLastOwnerUpdate(p *prototype.TimePointSec) error {
 	sa := s.getAccountAuthorityObject()
 	if sa == nil {
 		return errors.New("initialization data failed")
 	}
 	
-   
-   sa.LastOwnerUpdate = &p
-   
+    sa.LastOwnerUpdate = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
@@ -183,15 +179,13 @@ func (s *SoAccountAuthorityObjectWrap) GetOwner(v **prototype.Authority) error {
 
 
 
-func (s *SoAccountAuthorityObjectWrap) MdOwner(p prototype.Authority) error {
+func (s *SoAccountAuthorityObjectWrap) MdOwner(p *prototype.Authority) error {
 	sa := s.getAccountAuthorityObject()
 	if sa == nil {
 		return errors.New("initialization data failed")
 	}
 	
-   
-   sa.Owner = &p
-   
+    sa.Owner = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
@@ -211,15 +205,13 @@ func (s *SoAccountAuthorityObjectWrap) GetPosting(v **prototype.Authority) error
 
 
 
-func (s *SoAccountAuthorityObjectWrap) MdPosting(p prototype.Authority) error {
+func (s *SoAccountAuthorityObjectWrap) MdPosting(p *prototype.Authority) error {
 	sa := s.getAccountAuthorityObject()
 	if sa == nil {
 		return errors.New("initialization data failed")
 	}
 	
-   
-   sa.Posting = &p
-   
+    sa.Posting = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}

@@ -247,7 +247,7 @@ func (s *SoAccountWrap) GetBalance(v **prototype.Coin) error {
 
 
 
-func (s *SoAccountWrap) MdBalance(p prototype.Coin) error {
+func (s *SoAccountWrap) MdBalance(p *prototype.Coin) error {
 	sa := s.getAccount()
 	if sa == nil {
 		return errors.New("initialization data failed")
@@ -256,9 +256,7 @@ func (s *SoAccountWrap) MdBalance(p prototype.Coin) error {
 	if !s.delSortKeyBalance(sa) {
 		return errors.New("delete the sort key Balance fail")
 	}
-   
-   sa.Balance = &p
-   
+    sa.Balance = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
@@ -282,7 +280,7 @@ func (s *SoAccountWrap) GetCreatedTime(v **prototype.TimePointSec) error {
 
 
 
-func (s *SoAccountWrap) MdCreatedTime(p prototype.TimePointSec) error {
+func (s *SoAccountWrap) MdCreatedTime(p *prototype.TimePointSec) error {
 	sa := s.getAccount()
 	if sa == nil {
 		return errors.New("initialization data failed")
@@ -291,9 +289,7 @@ func (s *SoAccountWrap) MdCreatedTime(p prototype.TimePointSec) error {
 	if !s.delSortKeyCreatedTime(sa) {
 		return errors.New("delete the sort key CreatedTime fail")
 	}
-   
-   sa.CreatedTime = &p
-   
+    sa.CreatedTime = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
@@ -317,15 +313,13 @@ func (s *SoAccountWrap) GetCreator(v **prototype.AccountName) error {
 
 
 
-func (s *SoAccountWrap) MdCreator(p prototype.AccountName) error {
+func (s *SoAccountWrap) MdCreator(p *prototype.AccountName) error {
 	sa := s.getAccount()
 	if sa == nil {
 		return errors.New("initialization data failed")
 	}
 	
-   
-   sa.Creator = &p
-   
+    sa.Creator = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
@@ -356,7 +350,7 @@ func (s *SoAccountWrap) GetPubKey(v **prototype.PublicKeyType) error {
 
 
 
-func (s *SoAccountWrap) MdPubKey(p prototype.PublicKeyType) error {
+func (s *SoAccountWrap) MdPubKey(p *prototype.PublicKeyType) error {
 	sa := s.getAccount()
 	if sa == nil {
 		return errors.New("initialization data failed")
@@ -374,9 +368,7 @@ func (s *SoAccountWrap) MdPubKey(p prototype.PublicKeyType) error {
 	}
     
 	
-   
-   sa.PubKey = &p
-   
+    sa.PubKey = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
@@ -399,7 +391,7 @@ func (s *SoAccountWrap) GetVestingShares(v **prototype.Vest) error {
 
 
 
-func (s *SoAccountWrap) MdVestingShares(p prototype.Vest) error {
+func (s *SoAccountWrap) MdVestingShares(p *prototype.Vest) error {
 	sa := s.getAccount()
 	if sa == nil {
 		return errors.New("initialization data failed")
@@ -408,9 +400,7 @@ func (s *SoAccountWrap) MdVestingShares(p prototype.Vest) error {
 	if !s.delSortKeyVestingShares(sa) {
 		return errors.New("delete the sort key VestingShares fail")
 	}
-   
-   sa.VestingShares = &p
-   
+    sa.VestingShares = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}

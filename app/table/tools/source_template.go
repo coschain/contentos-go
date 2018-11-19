@@ -269,7 +269,7 @@ func (s *So{{$.ClsName}}Wrap) Get{{$k1}}(v *{{formatRTypeStr $v1}}) error {
 
 {{if ne $k1 $.MainKeyName}}
 
-func (s *So{{$.ClsName}}Wrap) Md{{$k1}}(p {{formatStr $v1}}) error {
+func (s *So{{$.ClsName}}Wrap) Md{{$k1}}(p {{formatRTypeStr $v1}}) error {
 	sa := s.get{{$.ClsName}}()
 	if sa == nil {
 		return errors.New("initialization data failed")
@@ -301,13 +301,7 @@ func (s *So{{$.ClsName}}Wrap) Md{{$k1}}(p {{formatStr $v1}}) error {
 	}
 		{{- end -}}
 	{{end}}
-   {{ $baseType := (DetectBaseType $v1) -}}
-   {{if $baseType -}} 
-     sa.{{$k1}} = p
-   {{end}}
-   {{if not $baseType -}} 
-     sa.{{$k1}} = &p
-   {{end}}
+    sa.{{$k1}} = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}

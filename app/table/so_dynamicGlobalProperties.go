@@ -113,15 +113,13 @@ func (s *SoDynamicGlobalPropertiesWrap) GetCurrentSupply(v **prototype.Coin) err
 
 
 
-func (s *SoDynamicGlobalPropertiesWrap) MdCurrentSupply(p prototype.Coin) error {
+func (s *SoDynamicGlobalPropertiesWrap) MdCurrentSupply(p *prototype.Coin) error {
 	sa := s.getDynamicGlobalProperties()
 	if sa == nil {
 		return errors.New("initialization data failed")
 	}
 	
-   
-   sa.CurrentSupply = &p
-   
+    sa.CurrentSupply = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
@@ -141,15 +139,13 @@ func (s *SoDynamicGlobalPropertiesWrap) GetCurrentWitness(v **prototype.AccountN
 
 
 
-func (s *SoDynamicGlobalPropertiesWrap) MdCurrentWitness(p prototype.AccountName) error {
+func (s *SoDynamicGlobalPropertiesWrap) MdCurrentWitness(p *prototype.AccountName) error {
 	sa := s.getDynamicGlobalProperties()
 	if sa == nil {
 		return errors.New("initialization data failed")
 	}
 	
-   
-   sa.CurrentWitness = &p
-   
+    sa.CurrentWitness = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
@@ -169,15 +165,13 @@ func (s *SoDynamicGlobalPropertiesWrap) GetHeadBlockId(v **prototype.Sha256) err
 
 
 
-func (s *SoDynamicGlobalPropertiesWrap) MdHeadBlockId(p prototype.Sha256) error {
+func (s *SoDynamicGlobalPropertiesWrap) MdHeadBlockId(p *prototype.Sha256) error {
 	sa := s.getDynamicGlobalProperties()
 	if sa == nil {
 		return errors.New("initialization data failed")
 	}
 	
-   
-   sa.HeadBlockId = &p
-   
+    sa.HeadBlockId = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
@@ -203,9 +197,7 @@ func (s *SoDynamicGlobalPropertiesWrap) MdHeadBlockNumber(p uint32) error {
 		return errors.New("initialization data failed")
 	}
 	
-   sa.HeadBlockNumber = p
-   
-   
+    sa.HeadBlockNumber = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
@@ -242,9 +234,7 @@ func (s *SoDynamicGlobalPropertiesWrap) MdIrreversibleBlockNum(p uint32) error {
 		return errors.New("initialization data failed")
 	}
 	
-   sa.IrreversibleBlockNum = p
-   
-   
+    sa.IrreversibleBlockNum = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
@@ -270,9 +260,7 @@ func (s *SoDynamicGlobalPropertiesWrap) MdMaximumBlockSize(p uint32) error {
 		return errors.New("initialization data failed")
 	}
 	
-   sa.MaximumBlockSize = p
-   
-   
+    sa.MaximumBlockSize = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
@@ -292,15 +280,13 @@ func (s *SoDynamicGlobalPropertiesWrap) GetTime(v **prototype.TimePointSec) erro
 
 
 
-func (s *SoDynamicGlobalPropertiesWrap) MdTime(p prototype.TimePointSec) error {
+func (s *SoDynamicGlobalPropertiesWrap) MdTime(p *prototype.TimePointSec) error {
 	sa := s.getDynamicGlobalProperties()
 	if sa == nil {
 		return errors.New("initialization data failed")
 	}
 	
-   
-   sa.Time = &p
-   
+    sa.Time = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
@@ -320,15 +306,13 @@ func (s *SoDynamicGlobalPropertiesWrap) GetTotalCos(v **prototype.Coin) error {
 
 
 
-func (s *SoDynamicGlobalPropertiesWrap) MdTotalCos(p prototype.Coin) error {
+func (s *SoDynamicGlobalPropertiesWrap) MdTotalCos(p *prototype.Coin) error {
 	sa := s.getDynamicGlobalProperties()
 	if sa == nil {
 		return errors.New("initialization data failed")
 	}
 	
-   
-   sa.TotalCos = &p
-   
+    sa.TotalCos = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
@@ -348,15 +332,13 @@ func (s *SoDynamicGlobalPropertiesWrap) GetTotalVestingShares(v **prototype.Vest
 
 
 
-func (s *SoDynamicGlobalPropertiesWrap) MdTotalVestingShares(p prototype.Vest) error {
+func (s *SoDynamicGlobalPropertiesWrap) MdTotalVestingShares(p *prototype.Vest) error {
 	sa := s.getDynamicGlobalProperties()
 	if sa == nil {
 		return errors.New("initialization data failed")
 	}
 	
-   
-   sa.TotalVestingShares = &p
-   
+    sa.TotalVestingShares = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
@@ -382,9 +364,7 @@ func (s *SoDynamicGlobalPropertiesWrap) MdTps(p uint32) error {
 		return errors.New("initialization data failed")
 	}
 	
-   sa.Tps = p
-   
-   
+    sa.Tps = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}

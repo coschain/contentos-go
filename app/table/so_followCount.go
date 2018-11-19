@@ -133,9 +133,7 @@ func (s *SoFollowCountWrap) MdFollowerCnt(p uint32) error {
 		return errors.New("initialization data failed")
 	}
 	
-   sa.FollowerCnt = p
-   
-   
+    sa.FollowerCnt = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
@@ -161,9 +159,7 @@ func (s *SoFollowCountWrap) MdFollowingCnt(p uint32) error {
 		return errors.New("initialization data failed")
 	}
 	
-   sa.FollowingCnt = p
-   
-   
+    sa.FollowingCnt = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
@@ -183,15 +179,13 @@ func (s *SoFollowCountWrap) GetUpdateTime(v **prototype.TimePointSec) error {
 
 
 
-func (s *SoFollowCountWrap) MdUpdateTime(p prototype.TimePointSec) error {
+func (s *SoFollowCountWrap) MdUpdateTime(p *prototype.TimePointSec) error {
 	sa := s.getFollowCount()
 	if sa == nil {
 		return errors.New("initialization data failed")
 	}
 	
-   
-   sa.UpdateTime = &p
-   
+    sa.UpdateTime = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}

@@ -357,9 +357,7 @@ func (s *SoDemoWrap) MdContent(p string) error {
 		return errors.New("initialization data failed")
 	}
 	
-   sa.Content = p
-   
-   
+    sa.Content = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
@@ -399,9 +397,7 @@ func (s *SoDemoWrap) MdIdx(p int64) error {
 	if !s.delSortKeyIdx(sa) {
 		return errors.New("delete the sort key Idx fail")
 	}
-   sa.Idx = p
-   
-   
+    sa.Idx = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
@@ -448,9 +444,7 @@ func (s *SoDemoWrap) MdLikeCount(p int64) error {
 	if !s.delSortKeyLikeCount(sa) {
 		return errors.New("delete the sort key LikeCount fail")
 	}
-   sa.LikeCount = p
-   
-   
+    sa.LikeCount = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
@@ -488,7 +482,7 @@ func (s *SoDemoWrap) GetPostTime(v **prototype.TimePointSec) error {
 
 
 
-func (s *SoDemoWrap) MdPostTime(p prototype.TimePointSec) error {
+func (s *SoDemoWrap) MdPostTime(p *prototype.TimePointSec) error {
 	sa := s.getDemo()
 	if sa == nil {
 		return errors.New("initialization data failed")
@@ -497,9 +491,7 @@ func (s *SoDemoWrap) MdPostTime(p prototype.TimePointSec) error {
 	if !s.delSortKeyPostTime(sa) {
 		return errors.New("delete the sort key PostTime fail")
 	}
-   
-   sa.PostTime = &p
-   
+    sa.PostTime = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
@@ -532,9 +524,7 @@ func (s *SoDemoWrap) MdReplayCount(p int64) error {
 	if !s.delSortKeyReplayCount(sa) {
 		return errors.New("delete the sort key ReplayCount fail")
 	}
-   sa.ReplayCount = p
-   
-   
+    sa.ReplayCount = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
@@ -564,9 +554,7 @@ func (s *SoDemoWrap) MdTaglist(p string) error {
 		return errors.New("initialization data failed")
 	}
 	
-   sa.Taglist = p
-   
-   
+    sa.Taglist = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
@@ -592,9 +580,7 @@ func (s *SoDemoWrap) MdTitle(p string) error {
 		return errors.New("initialization data failed")
 	}
 	
-   sa.Title = p
-   
-   
+    sa.Title = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}

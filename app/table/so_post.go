@@ -196,15 +196,13 @@ func (s *SoPostWrap) GetActive(v **prototype.TimePointSec) error {
 
 
 
-func (s *SoPostWrap) MdActive(p prototype.TimePointSec) error {
+func (s *SoPostWrap) MdActive(p *prototype.TimePointSec) error {
 	sa := s.getPost()
 	if sa == nil {
 		return errors.New("initialization data failed")
 	}
 	
-   
-   sa.Active = &p
-   
+    sa.Active = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
@@ -230,9 +228,7 @@ func (s *SoPostWrap) MdAllowReplies(p bool) error {
 		return errors.New("initialization data failed")
 	}
 	
-   sa.AllowReplies = p
-   
-   
+    sa.AllowReplies = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
@@ -258,9 +254,7 @@ func (s *SoPostWrap) MdAllowVotes(p bool) error {
 		return errors.New("initialization data failed")
 	}
 	
-   sa.AllowVotes = p
-   
-   
+    sa.AllowVotes = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
@@ -280,15 +274,13 @@ func (s *SoPostWrap) GetAuthor(v **prototype.AccountName) error {
 
 
 
-func (s *SoPostWrap) MdAuthor(p prototype.AccountName) error {
+func (s *SoPostWrap) MdAuthor(p *prototype.AccountName) error {
 	sa := s.getPost()
 	if sa == nil {
 		return errors.New("initialization data failed")
 	}
 	
-   
-   sa.Author = &p
-   
+    sa.Author = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
@@ -314,9 +306,7 @@ func (s *SoPostWrap) MdBody(p string) error {
 		return errors.New("initialization data failed")
 	}
 	
-   sa.Body = p
-   
-   
+    sa.Body = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
@@ -342,9 +332,7 @@ func (s *SoPostWrap) MdCategory(p string) error {
 		return errors.New("initialization data failed")
 	}
 	
-   sa.Category = p
-   
-   
+    sa.Category = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
@@ -370,9 +358,7 @@ func (s *SoPostWrap) MdChildren(p uint32) error {
 		return errors.New("initialization data failed")
 	}
 	
-   sa.Children = p
-   
-   
+    sa.Children = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
@@ -392,15 +378,13 @@ func (s *SoPostWrap) GetCreated(v **prototype.TimePointSec) error {
 
 
 
-func (s *SoPostWrap) MdCreated(p prototype.TimePointSec) error {
+func (s *SoPostWrap) MdCreated(p *prototype.TimePointSec) error {
 	sa := s.getPost()
 	if sa == nil {
 		return errors.New("initialization data failed")
 	}
 	
-   
-   sa.Created = &p
-   
+    sa.Created = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
@@ -420,7 +404,7 @@ func (s *SoPostWrap) GetCreatedOrder(v **prototype.PostCreatedOrder) error {
 
 
 
-func (s *SoPostWrap) MdCreatedOrder(p prototype.PostCreatedOrder) error {
+func (s *SoPostWrap) MdCreatedOrder(p *prototype.PostCreatedOrder) error {
 	sa := s.getPost()
 	if sa == nil {
 		return errors.New("initialization data failed")
@@ -429,9 +413,7 @@ func (s *SoPostWrap) MdCreatedOrder(p prototype.PostCreatedOrder) error {
 	if !s.delSortKeyCreatedOrder(sa) {
 		return errors.New("delete the sort key CreatedOrder fail")
 	}
-   
-   sa.CreatedOrder = &p
-   
+    sa.CreatedOrder = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
@@ -461,9 +443,7 @@ func (s *SoPostWrap) MdDepth(p uint32) error {
 		return errors.New("initialization data failed")
 	}
 	
-   sa.Depth = p
-   
-   
+    sa.Depth = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
@@ -489,9 +469,7 @@ func (s *SoPostWrap) MdJsonMetadata(p string) error {
 		return errors.New("initialization data failed")
 	}
 	
-   sa.JsonMetadata = p
-   
-   
+    sa.JsonMetadata = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
@@ -511,15 +489,13 @@ func (s *SoPostWrap) GetLastPayout(v **prototype.TimePointSec) error {
 
 
 
-func (s *SoPostWrap) MdLastPayout(p prototype.TimePointSec) error {
+func (s *SoPostWrap) MdLastPayout(p *prototype.TimePointSec) error {
 	sa := s.getPost()
 	if sa == nil {
 		return errors.New("initialization data failed")
 	}
 	
-   
-   sa.LastPayout = &p
-   
+    sa.LastPayout = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
@@ -539,15 +515,13 @@ func (s *SoPostWrap) GetLastUpdate(v **prototype.TimePointSec) error {
 
 
 
-func (s *SoPostWrap) MdLastUpdate(p prototype.TimePointSec) error {
+func (s *SoPostWrap) MdLastUpdate(p *prototype.TimePointSec) error {
 	sa := s.getPost()
 	if sa == nil {
 		return errors.New("initialization data failed")
 	}
 	
-   
-   sa.LastUpdate = &p
-   
+    sa.LastUpdate = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
@@ -567,15 +541,13 @@ func (s *SoPostWrap) GetParentAuthor(v **prototype.AccountName) error {
 
 
 
-func (s *SoPostWrap) MdParentAuthor(p prototype.AccountName) error {
+func (s *SoPostWrap) MdParentAuthor(p *prototype.AccountName) error {
 	sa := s.getPost()
 	if sa == nil {
 		return errors.New("initialization data failed")
 	}
 	
-   
-   sa.ParentAuthor = &p
-   
+    sa.ParentAuthor = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
@@ -601,9 +573,7 @@ func (s *SoPostWrap) MdParentId(p uint64) error {
 		return errors.New("initialization data failed")
 	}
 	
-   sa.ParentId = p
-   
-   
+    sa.ParentId = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
@@ -629,9 +599,7 @@ func (s *SoPostWrap) MdParentPermlink(p string) error {
 		return errors.New("initialization data failed")
 	}
 	
-   sa.ParentPermlink = p
-   
-   
+    sa.ParentPermlink = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
@@ -657,9 +625,7 @@ func (s *SoPostWrap) MdPermlink(p string) error {
 		return errors.New("initialization data failed")
 	}
 	
-   sa.Permlink = p
-   
-   
+    sa.Permlink = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
@@ -690,7 +656,7 @@ func (s *SoPostWrap) GetReplyOrder(v **prototype.PostReplyOrder) error {
 
 
 
-func (s *SoPostWrap) MdReplyOrder(p prototype.PostReplyOrder) error {
+func (s *SoPostWrap) MdReplyOrder(p *prototype.PostReplyOrder) error {
 	sa := s.getPost()
 	if sa == nil {
 		return errors.New("initialization data failed")
@@ -699,9 +665,7 @@ func (s *SoPostWrap) MdReplyOrder(p prototype.PostReplyOrder) error {
 	if !s.delSortKeyReplyOrder(sa) {
 		return errors.New("delete the sort key ReplyOrder fail")
 	}
-   
-   sa.ReplyOrder = &p
-   
+    sa.ReplyOrder = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
@@ -731,9 +695,7 @@ func (s *SoPostWrap) MdRootId(p uint64) error {
 		return errors.New("initialization data failed")
 	}
 	
-   sa.RootId = p
-   
-   
+    sa.RootId = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
@@ -759,9 +721,7 @@ func (s *SoPostWrap) MdTitle(p string) error {
 		return errors.New("initialization data failed")
 	}
 	
-   sa.Title = p
-   
-   
+    sa.Title = p
 	if upErr := s.update(sa);upErr != nil {
 		return upErr
 	}
