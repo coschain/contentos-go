@@ -99,6 +99,32 @@ func (s *SoDynamicGlobalPropertiesWrap) RemoveDynamicGlobalProperties() bool {
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
+func (s *SoDynamicGlobalPropertiesWrap) GetCurrentAslot() uint64 {
+	res := s.getDynamicGlobalProperties()
+
+   if res == nil {
+      var tmpValue uint64 
+      return tmpValue
+   }
+   return res.CurrentAslot
+}
+
+
+
+func (s *SoDynamicGlobalPropertiesWrap) MdCurrentAslot(p uint64) bool {
+	sa := s.getDynamicGlobalProperties()
+	if sa == nil {
+		return false
+	}
+	
+    sa.CurrentAslot = p
+	if !s.update(sa) {
+		return false
+	}
+    
+	return true
+}
+
 func (s *SoDynamicGlobalPropertiesWrap) GetCurrentSupply() *prototype.Coin {
 	res := s.getDynamicGlobalProperties()
 
