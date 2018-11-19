@@ -40,6 +40,10 @@ func (db *TrxLevelDatabase) NewIterator(start []byte, limit []byte) Iterator {
 	return db.trx.NewIterator(start, limit)
 }
 
+func (db *TrxLevelDatabase) NewReversedIterator(start []byte, limit []byte) Iterator {
+	return db.trx.NewReversedIterator(start, limit)
+}
+
 func (db *TrxLevelDatabase) DeleteIterator(it Iterator) {
 	db.trx.DeleteIterator(it)
 }

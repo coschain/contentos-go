@@ -112,6 +112,13 @@ func (db *MemoryDatabase) NewIterator(start []byte, limit []byte) Iterator {
 	return &memoryDatabaseIterator{ db: db, keys:keys, data:data, index:-1 }
 }
 
+func (db *MemoryDatabase) NewReversedIterator(start []byte, limit []byte) Iterator {
+	it := db.NewIterator(start, limit).(*memoryDatabaseIterator)
+	it.index = len(it.keys)
+	it.reversed = true
+	return it
+}
+
 func (db *MemoryDatabase) DeleteIterator(it Iterator) {
 
 }
@@ -125,6 +132,7 @@ type memoryDatabaseIterator struct {
 	keys []string
 	data map[string][]byte
 	index int
+	reversed bool
 }
 
 // check if the iterator is a valid position, i.e. safe to call other methods
@@ -156,7 +164,11 @@ func (it *memoryDatabaseIterator) Value() ([]byte, error) {
 
 // move to the next position
 func (it *memoryDatabaseIterator) Next() bool {
-	nextIdx := it.index + 1
+	delta := 1
+	if it.reversed {
+		delta = -1
+	}
+	nextIdx := it.index + delta
 	if nextIdx >= 0 && nextIdx < len(it.keys) {
 		it.index = nextIdx
 		return true

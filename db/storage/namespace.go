@@ -80,17 +80,31 @@ func (ns *namespace) Delete(key []byte) error {
 // DatabaseScanner implementation
 //
 
-func (ns *namespace) NewIterator(start []byte, limit []byte) Iterator {
+func (ns *namespace) makeIterator(start []byte, limit []byte, reversed bool) Iterator {
 	var newLimit []byte
 	if limit == nil {
 		newLimit = ns.bound
 	} else {
 		newLimit = ns.compositeKey(limit)
 	}
+	var it Iterator
+	if reversed {
+		it = ns.db.NewReversedIterator(ns.compositeKey(start), newLimit)
+	} else {
+		it = ns.db.NewIterator(ns.compositeKey(start), newLimit)
+	}
 	return &nsIterator{
 		ns: ns,
-		it: ns.db.NewIterator(ns.compositeKey(start), newLimit),
+		it: it,
 	}
+}
+
+func (ns *namespace) NewIterator(start []byte, limit []byte) Iterator {
+	return ns.makeIterator(start, limit, false)
+}
+
+func (ns *namespace) NewReversedIterator(start []byte, limit []byte) Iterator {
+	return ns.makeIterator(start, limit, true)
 }
 
 func (ns *namespace) DeleteIterator(it Iterator) {

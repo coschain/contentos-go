@@ -79,6 +79,9 @@ type IDatabaseService interface {
 	// a nil limit is the logical maximum key that is greater than any existing keys
 	NewIterator(start []byte, limit []byte) IDatabaseIterator
 
+	// same as NewIterator, but iteration will be in reversed order.
+	NewReversedIterator(start []byte, limit []byte) IDatabaseIterator
+
 	// release an iterator.
 	DeleteIterator(it IDatabaseIterator)
 

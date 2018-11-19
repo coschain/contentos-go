@@ -100,6 +100,16 @@ func dbTest(t *testing.T, db Database) {
 	requireIteratorKeyValue(t, it, []byte("key_one"), []byte("value_one"))
 	db.DeleteIterator(it)
 
+	// reversed range scan
+	itRev := db.NewReversedIterator([]byte("key_"), []byte("key_s"))
+	itRev.Next()
+	requireIteratorKeyValue(t, itRev, []byte("key_one"), []byte("value_one"))
+	itRev.Next()
+	requireIteratorKeyValue(t, itRev, []byte("key_four"), []byte("value_four"))
+	itRev.Next()
+	requireIteratorKeyValue(t, itRev, []byte("key_five"), []byte("value_five"))
+	db.DeleteIterator(itRev)
+
 	// batch of deletions and puts
 	b := db.NewBatch()
 	b.Delete([]byte("key_one"))

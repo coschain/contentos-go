@@ -134,7 +134,7 @@ func (g *SimpleDatabaseGroup) Delete(key []byte) error {
 	return g.dbForKey(key).Delete(key)
 }
 
-func (g *SimpleDatabaseGroup) NewIterator(start []byte, limit []byte) Iterator {
+func (g *SimpleDatabaseGroup) makeIterator(start []byte, limit []byte, reversed bool) Iterator {
 	g.lock.RLock()
 	defer g.lock.RUnlock()
 
@@ -145,13 +145,27 @@ func (g *SimpleDatabaseGroup) NewIterator(start []byte, limit []byte) Iterator {
 	indices := g.dp.DatabasesForKeyRange(start, limit)
 	var items []sdgIteratorItem
 	for idx := range indices {
+		var itemIt Iterator
+		if reversed {
+			itemIt = g.dbAt(idx).NewReversedIterator(start, limit)
+		} else {
+			itemIt = g.dbAt(idx).NewIterator(start, limit)
+		}
 		items = append(items, sdgIteratorItem{
-			g.dbAt(idx).NewIterator(start, limit),
+			itemIt,
 			false,
 			nil, nil,
-			})
+		})
 	}
-	return &sdgIterator{ g, items, nil }
+	return &sdgIterator{ g, items, nil, reversed }
+}
+
+func (g *SimpleDatabaseGroup) NewIterator(start []byte, limit []byte) Iterator {
+	return g.makeIterator(start, limit, false)
+}
+
+func (g *SimpleDatabaseGroup) NewReversedIterator(start []byte, limit []byte) Iterator {
+	return g.makeIterator(start, limit, true)
 }
 
 func (g *SimpleDatabaseGroup) DeleteIterator(it Iterator) {
@@ -163,6 +177,7 @@ type sdgIterator struct {
 	g *SimpleDatabaseGroup		// the db group
 	items []sdgIteratorItem		// member iterators
 	selected *sdgIteratorItem	// current selected member
+	reversed bool
 }
 
 // iterator wrapper for a member database
@@ -223,13 +238,18 @@ func (it *sdgIterator) Next() bool {
 	wg.Wait()
 
 	// re-select the minimal member
+	// or when reversed, select the maximum one
+	multiplier := 1
+	if it.reversed {
+		multiplier = -1
+	}
 	minItem := (*sdgIteratorItem)(nil)
 	for i := range it.items {
 		item := &(it.items[i])
 		if item.end || item.key == nil {
 			continue
 		}
-		if minItem == nil || bytes.Compare(minItem.key, item.key) > 0 {
+		if minItem == nil || bytes.Compare(minItem.key, item.key) * multiplier > 0 {
 			minItem = item
 		}
 	}

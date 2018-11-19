@@ -262,6 +262,10 @@ func (db *RevertibleDatabase) NewIterator(start []byte, limit []byte) Iterator {
 	return db.db.NewIterator(start, limit)
 }
 
+func (db *RevertibleDatabase) NewReversedIterator(start []byte, limit []byte) Iterator {
+	return db.db.NewReversedIterator(start, limit)
+}
+
 func (db *RevertibleDatabase) DeleteIterator(it Iterator) {
 	db.db.DeleteIterator(it)
 }

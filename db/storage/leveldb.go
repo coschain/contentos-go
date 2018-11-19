@@ -91,7 +91,12 @@ func (db *LevelDatabase) Delete(key []byte) error {
 
 func (db *LevelDatabase) NewIterator(start []byte, limit []byte) Iterator {
 	it := db.db.NewIterator(&util.Range{Start: start, Limit: limit}, nil)
-	return &LevelDatabaseIterator{it}
+	return &LevelDatabaseIterator{it: it}
+}
+
+func (db *LevelDatabase) NewReversedIterator(start []byte, limit []byte) Iterator {
+	it := db.db.NewIterator(&util.Range{Start: start, Limit: limit}, nil)
+	return &LevelDatabaseIterator{it: it, reversed: true, moved: false, moveLast:it.Last()}
 }
 
 func (db *LevelDatabase) DeleteIterator(it Iterator) {
@@ -104,10 +109,16 @@ func (db *LevelDatabase) DeleteIterator(it Iterator) {
 
 type LevelDatabaseIterator struct {
 	it iterator.Iterator
+	reversed bool
+	moved bool
+	moveLast bool
 }
 
 // check if the iterator is a valid position, i.e. safe to call other methods
 func (it *LevelDatabaseIterator) Valid() bool {
+	if it.reversed && !it.moved {
+		return false
+	}
 	return it.it.Valid()
 }
 
@@ -131,6 +142,13 @@ func (it *LevelDatabaseIterator) Value() ([]byte, error) {
 
 // move to the next position
 func (it *LevelDatabaseIterator) Next() bool {
+	if it.reversed {
+		if !it.moved {
+			it.moved = true
+			return it.moveLast
+		}
+		return it.it.Prev()
+	}
 	return it.it.Next()
 }
 

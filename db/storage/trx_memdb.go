@@ -37,6 +37,10 @@ func (db *TrxMemoryDatabase) NewIterator(start []byte, limit []byte) Iterator {
 	return db.trx.NewIterator(start, limit)
 }
 
+func (db *TrxMemoryDatabase) NewReversedIterator(start []byte, limit []byte) Iterator {
+	return db.trx.NewReversedIterator(start, limit)
+}
+
 func (db *TrxMemoryDatabase) DeleteIterator(it Iterator) {
 	db.trx.DeleteIterator(it)
 }

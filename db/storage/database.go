@@ -34,6 +34,9 @@ type DatabaseScanner interface {
 	// a nil limit is the logical maximum key that is greater than any existing keys
 	NewIterator(start []byte, limit []byte) Iterator
 
+	// same as NewIterator, but iteration will be in reversed order.
+	NewReversedIterator(start []byte, limit []byte) Iterator
+
 	// release an iterator.
 	DeleteIterator(it Iterator)
 }

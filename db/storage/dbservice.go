@@ -150,6 +150,11 @@ func (s *DatabaseService) NewIterator(start []byte, limit []byte) iservices.IDat
 	return s.tdb.NewIterator(start, limit)
 }
 
+// same as NewIterator, but iteration will be in reversed order.
+func (s *DatabaseService) NewReversedIterator(start []byte, limit []byte) iservices.IDatabaseIterator {
+	return s.tdb.NewReversedIterator(start, limit)
+}
+
 func (s *DatabaseService) DeleteIterator(it iservices.IDatabaseIterator) {
 	s.tdb.DeleteIterator(it)
 }

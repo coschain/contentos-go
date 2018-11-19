@@ -133,7 +133,7 @@ func (db *inTrxDB) Delete(key []byte) error {
 	return err
 }
 
-func (db *inTrxDB) NewIterator(start []byte, limit []byte) Iterator {
+func (db *inTrxDB) makeIterator(start []byte, limit []byte, reversed bool) Iterator {
 	db.lock.RLock()
 	defer db.lock.RUnlock()
 
@@ -146,16 +146,33 @@ func (db *inTrxDB) NewIterator(start []byte, limit []byte) Iterator {
 	for k, v := range db.removals {
 		removals[k[:]] = v
 	}
+	var mIter, dIter Iterator
+	if reversed {
+		mIter = db.mem.NewReversedIterator(start, limit)
+		dIter = db.db.NewReversedIterator(start, limit)
+	} else {
+		mIter = db.mem.NewIterator(start, limit)
+		dIter = db.db.NewIterator(start, limit)
+	}
 	return &inTrxIterator{
 		memIter: inTrxIteratorItem{
-			it: db.mem.NewIterator(start, limit),
+			it: mIter,
 			filter: make(map[string]bool),
 		},
 		dbIter: inTrxIteratorItem{
-			it: db.db.NewIterator(start, limit),
+			it: dIter,
 			filter: removals,
 		},
+		reversed: reversed,
 	}
+}
+
+func (db *inTrxDB) NewIterator(start []byte, limit []byte) Iterator {
+	return db.makeIterator(start, limit, false)
+}
+
+func (db *inTrxDB) NewReversedIterator(start []byte, limit []byte) Iterator {
+	return db.makeIterator(start, limit, true)
 }
 
 func (db *inTrxDB) DeleteIterator(it Iterator) {
@@ -173,6 +190,7 @@ type inTrxIteratorItem struct {
 type inTrxIterator struct {
 	memIter, dbIter inTrxIteratorItem		// the 2 iterators, memIter for mem db, dbIter for underlying db
 	selected *inTrxIteratorItem				// where to read key & value
+	reversed bool
 }
 
 func (it *inTrxIterator) Valid() bool {
@@ -255,8 +273,13 @@ func (it *inTrxIterator) Next() bool {
 	}
 
 	// select the smaller one from 2 iterators
+	// if reversed, select the bigger one
+	multiplier := 1
+	if it.reversed {
+		multiplier = -1
+	}
 	if it.memIter.k != nil && it.dbIter.k != nil {
-		if bytes.Compare(it.memIter.k, it.dbIter.k) <= 0 {
+		if bytes.Compare(it.memIter.k, it.dbIter.k) * multiplier <= 0 {
 			it.selected = &it.memIter
 		} else {
 			it.selected = &it.dbIter
@@ -441,6 +464,10 @@ func (db *TransactionalDatabase) Delete(key []byte) error {
 
 func (db *TransactionalDatabase) NewIterator(start []byte, limit []byte) Iterator {
 	return db.readerDB().NewIterator(start, limit)
+}
+
+func (db *TransactionalDatabase) NewReversedIterator(start []byte, limit []byte) Iterator {
+	return db.readerDB().NewReversedIterator(start, limit)
 }
 
 func (db *TransactionalDatabase) DeleteIterator(it Iterator) {
