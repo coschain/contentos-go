@@ -32,19 +32,19 @@ func NewSoPostWrap(dba iservices.IDatabaseService, key *uint64) *SoPostWrap{
 	return result
 }
 
-func (s *SoPostWrap) CheckExist(exi *bool) error {
+func (s *SoPostWrap) CheckExist() error {
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
-        *exi = false
 		return errors.New("encode the mainKey fail")
 	}
 
 	res, err := s.dba.Has(keyBuf)
 	if err != nil {
-        *exi = false
-		return errors.New("check the db fail")
+		return err
 	}
-    *exi = res
+    if !res {
+       return errors.New("the table is already exist")
+    }
 	return nil
 }
 
@@ -52,8 +52,7 @@ func (s *SoPostWrap) CreatePost(f func(t *SoPost)) error {
 
 	val := &SoPost{}
     f(val)
-    res := false
-    if s.CheckExist(&res) == nil && res {
+    if s.CheckExist() == nil {
        return errors.New("the mainkey is already exist")
     }
 	keyBuf, err := s.encodeMainKey()

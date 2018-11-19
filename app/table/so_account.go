@@ -35,19 +35,19 @@ func NewSoAccountWrap(dba iservices.IDatabaseService, key *prototype.AccountName
 	return result
 }
 
-func (s *SoAccountWrap) CheckExist(exi *bool) error {
+func (s *SoAccountWrap) CheckExist() error {
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
-        *exi = false
 		return errors.New("encode the mainKey fail")
 	}
 
 	res, err := s.dba.Has(keyBuf)
 	if err != nil {
-        *exi = false
-		return errors.New("check the db fail")
+		return err
 	}
-    *exi = res
+    if !res {
+       return errors.New("the table is already exist")
+    }
 	return nil
 }
 
@@ -58,8 +58,7 @@ func (s *SoAccountWrap) CreateAccount(f func(t *SoAccount)) error {
     if val.Name == nil {
        return errors.New("the mainkey is nil")
     }
-    res := false
-    if s.CheckExist(&res) == nil && res {
+    if s.CheckExist() == nil {
        return errors.New("the mainkey is already exist")
     }
 	keyBuf, err := s.encodeMainKey()

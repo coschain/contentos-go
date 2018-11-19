@@ -27,19 +27,19 @@ func NewSoFollowCountWrap(dba iservices.IDatabaseService, key *prototype.Account
 	return result
 }
 
-func (s *SoFollowCountWrap) CheckExist(exi *bool) error {
+func (s *SoFollowCountWrap) CheckExist() error {
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
-        *exi = false
 		return errors.New("encode the mainKey fail")
 	}
 
 	res, err := s.dba.Has(keyBuf)
 	if err != nil {
-        *exi = false
-		return errors.New("check the db fail")
+		return err
 	}
-    *exi = res
+    if !res {
+       return errors.New("the table is already exist")
+    }
 	return nil
 }
 
@@ -50,8 +50,7 @@ func (s *SoFollowCountWrap) CreateFollowCount(f func(t *SoFollowCount)) error {
     if val.Account == nil {
        return errors.New("the mainkey is nil")
     }
-    res := false
-    if s.CheckExist(&res) == nil && res {
+    if s.CheckExist() == nil {
        return errors.New("the mainkey is already exist")
     }
 	keyBuf, err := s.encodeMainKey()

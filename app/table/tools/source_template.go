@@ -82,19 +82,20 @@ func NewSo{{.ClsName}}Wrap(dba iservices.IDatabaseService, key *{{formatStr .Mai
 	return result
 }
 
-func (s *So{{.ClsName}}Wrap) CheckExist(exi *bool) error {
+//return nil if exist
+func (s *So{{.ClsName}}Wrap) CheckExist() error {
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
-        *exi = false
 		return errors.New("encode the mainKey fail")
 	}
 
 	res, err := s.dba.Has(keyBuf)
 	if err != nil {
-        *exi = false
-		return errors.New("check the db fail")
+		return err
 	}
-    *exi = res
+    if !res {
+       return errors.New("the table is already exist")
+    }
 	return nil
 }
 
@@ -108,8 +109,7 @@ func (s *So{{.ClsName}}Wrap) Create{{.ClsName}}(f func(t *So{{.ClsName}})) error
        return errors.New("the mainkey is nil")
     }
     {{ end -}}
-    res := false
-    if s.CheckExist(&res) == nil && res {
+    if s.CheckExist() == nil {
        return errors.New("the mainkey is already exist")
     }
 	keyBuf, err := s.encodeMainKey()

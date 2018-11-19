@@ -27,19 +27,19 @@ func NewSoDynamicGlobalPropertiesWrap(dba iservices.IDatabaseService, key *int32
 	return result
 }
 
-func (s *SoDynamicGlobalPropertiesWrap) CheckExist(exi *bool) error {
+func (s *SoDynamicGlobalPropertiesWrap) CheckExist() error {
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
-        *exi = false
 		return errors.New("encode the mainKey fail")
 	}
 
 	res, err := s.dba.Has(keyBuf)
 	if err != nil {
-        *exi = false
-		return errors.New("check the db fail")
+		return err
 	}
-    *exi = res
+    if !res {
+       return errors.New("the table is already exist")
+    }
 	return nil
 }
 
@@ -47,8 +47,7 @@ func (s *SoDynamicGlobalPropertiesWrap) CreateDynamicGlobalProperties(f func(t *
 
 	val := &SoDynamicGlobalProperties{}
     f(val)
-    res := false
-    if s.CheckExist(&res) == nil && res {
+    if s.CheckExist() == nil {
        return errors.New("the mainkey is already exist")
     }
 	keyBuf, err := s.encodeMainKey()
