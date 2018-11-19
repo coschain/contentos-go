@@ -8,11 +8,9 @@ option go_package = "github.com/coschain/contentos-go/table";
 import "prototype/type.proto";
 
 message so_transactionObject {
-	
-    prototype.sha256            trx_id            =      1;
-	
+	prototype.sha256            trx_id            =      1;
     prototype.time_point_sec    expiration        =      2;
-	  
+      
 }
 
 

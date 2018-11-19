@@ -8,49 +8,28 @@ option go_package = "github.com/coschain/contentos-go/table";
 import "prototype/type.proto";
 
 message so_post {
-	
-    uint64                             post_id                 =      1;
-	
+	uint64                             post_id                 =      1;
     string                             category                =      2;
-	
     prototype.account_name             parent_author           =      3;
-	
     string                             parent_permlink         =      4;
-	
     prototype.account_name             author                  =      5;
-	
     string                             permlink                =      6;
-	
     string                             title                   =      7;
-	
     string                             body                    =      8;
-	
     string                             json_metadata           =      9;
-	
     prototype.time_point_sec           last_update             =      10;
-	
     prototype.time_point_sec           created                 =      11;
-	
     prototype.time_point_sec           active                  =      12;
-	
     prototype.time_point_sec           last_payout             =      13;
-	
     uint32                             depth                   =      14;
-	
     uint32                             children                =      15;
-	
     uint64                             root_id                 =      16;
-	
     uint64                             parent_id               =      17;
-	
     bool                               allow_replies           =      18;
-	
     bool                               allow_votes             =      19;
-	
     prototype.post_created_order       created_order           =      20;
-	
     prototype.post_reply_order         reply_order             =      21;
-	  
+      
 }
 
 

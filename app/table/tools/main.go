@@ -31,7 +31,12 @@ type PropList struct {
 var TmlFolder = "./app/table/"
 
 func (p *PropList) ToString() string {
-	s := fmt.Sprintf("\t%s\t%s = %d;\n", p.VarType, p.VarName, p.Index)
+	s := ""
+	if checkIsSliceType(p.VarType) {
+		s = fmt.Sprintf("\trepeated  \t%s\t%s = %d;\n", formatPbSliceType(p.VarType), p.VarName, p.Index)
+	}else {
+		s = fmt.Sprintf("\t%s\t%s = %d;\n", p.VarType, p.VarName, p.Index)
+	}
 	return s
 }
 
@@ -210,6 +215,10 @@ func WritePbTplToFile(tInfo TableInfo) (bool, error) {
 		fName := TmlFolder + "so_" + tInfo.Name + ".proto"
 		if fPtr := CreateFile(fName); fPtr != nil {
 			t := template.New("layout.html")
+			funcMap := template.FuncMap{
+				"checkIsSliceType":checkIsSliceType,
+				"formatPbSliceType":formatPbSliceType}
+			t = t.Funcs(funcMap)
 			t.Parse(tpl)
 			t.Execute(fPtr, tInfo)
 			cmd := exec.Command("goimports", "-I./", "-I./../../../", "-w=./", fName)
@@ -243,7 +252,11 @@ import "prototype/type.proto";
 
 message so_{{.Name}} {
 	{{range $k,$v := .PList}}
+    {{- if (checkIsSliceType .VarType) -}}
+    repeated                      {{formatPbSliceType .VarType}}   {{.VarName}}     =      {{.Index}};
+    {{else -}}
     {{.VarType}}   {{.VarName}}     =      {{.Index}};
+    {{end -}}
 	{{end}}  
 }
 `
@@ -398,6 +411,20 @@ func conToInt32Str(str string) string {
 		if reStr != "" {
 			str = strings.Replace(str,tmpStr,reStr,-1)
 		}
+	}
+	return str
+}
+
+func checkIsSliceType(str string) bool {
+	if str != "" && strings.HasPrefix(str,"[]"){
+		return true
+	}
+	return false
+}
+
+func formatPbSliceType(str string) string {
+	if str != "" && strings.HasPrefix(str,"[]") {
+		return strings.Replace(str,"[]","",-1)
 	}
 	return str
 }

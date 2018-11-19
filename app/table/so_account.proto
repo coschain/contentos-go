@@ -8,19 +8,13 @@ option go_package = "github.com/coschain/contentos-go/table";
 import "prototype/type.proto";
 
 message so_account {
-	
-    prototype.account_name      name             =      1;
-	
+	prototype.account_name      name             =      1;
     prototype.time_point_sec    created_time     =      2;
-	
     prototype.account_name      creator          =      3;
-	
     prototype.public_key_type   pub_key          =      4;
-	
     prototype.coin              balance          =      5;
-	
     prototype.vest              vesting_shares      =      6;
-	  
+      
 }
 
 

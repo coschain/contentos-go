@@ -51,7 +51,7 @@ func main() {
 	 	Content:"test the pb tool",
 	 	Idx: 1001,
 	 	LikeCount:100,
-	 	Taglist:"#NBA",
+	 	Taglist:[]string{"#NBA"},
 	 	ReplayCount:100,
 		PostTime:creTimeSecondPoint(20120401),
 	 }
@@ -100,6 +100,13 @@ func main() {
 		fmt.Println("modify content fail")
 	}
 
+	tMdRes = wrap.MdTaglist([]string{"#Football"})
+	if !tMdRes {
+		fmt.Println("modify taglist fail")
+	}else {
+		tag := wrap.GetTaglist()
+		fmt.Printf("the new taglsit is %v \n",tag)
+	}
 
 	/*--------------------------
 	   Sort Query List

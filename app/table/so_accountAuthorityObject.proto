@@ -8,17 +8,12 @@ option go_package = "github.com/coschain/contentos-go/table";
 import "prototype/type.proto";
 
 message so_accountAuthorityObject {
-	
-    prototype.account_name      account                   =      1;
-	
+	prototype.account_name      account                   =      1;
     prototype.authority         owner                    =      2;
-	
     prototype.authority         active                   =      3;
-	
     prototype.authority         posting                  =      4;
-	
     prototype.time_point_sec    last_owner_update        =      5;
-	  
+      
 }
 
 

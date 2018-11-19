@@ -8,23 +8,15 @@ option go_package = "github.com/coschain/contentos-go/table";
 import "prototype/type.proto";
 
 message so_demo {
-	
-    prototype.account_name        owner            =      1;
-	
+	prototype.account_name        owner            =      1;
     prototype.time_point_sec      post_time        =      2;
-	
     string                        title            =      3;
-	
     int64                         like_count       =      4;
-	
     int64                         idx              =      5;
-	
     int64                         replay_count     =      6;
-	
     string                        content          =      7;
-	
-    string                        taglist          =      8;
-	  
+    repeated                      string                      taglist          =      8;
+      
 }
 
 
@@ -53,6 +45,12 @@ message so_list_demo_by_idx {
 
 message so_list_demo_by_replay_count {
 	int64                      	replay_count = 1;
+	prototype.account_name     	owner        = 2;
+}
+
+
+message so_list_demo_by_taglist {
+	repeated  	string                   	taglist      = 1;
 	prototype.account_name     	owner        = 2;
 }
 

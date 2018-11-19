@@ -8,9 +8,8 @@ option go_package = "github.com/coschain/contentos-go/table";
 import "prototype/type.proto";
 
 message so_following {
-	
-    prototype.following_relation           following_info          =      1;
-	  
+	prototype.following_relation           following_info          =      1;
+      
 }
 
 

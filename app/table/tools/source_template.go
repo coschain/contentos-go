@@ -776,6 +776,9 @@ func ConvertToPbForm(arry []string) string {
 
 /* detect if is basic data type*/
 func DetectBaseType(str string) bool {
+	if str != "" && strings.HasPrefix(str,"[]") {
+		return true
+	}
 	switch str {
 	    case "string":
 	 	  return true
