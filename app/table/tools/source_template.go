@@ -82,18 +82,20 @@ func NewSo{{.ClsName}}Wrap(dba iservices.IDatabaseService, key *{{formatStr .Mai
 	return result
 }
 
-func (s *So{{.ClsName}}Wrap) CheckExist() bool {
+func (s *So{{.ClsName}}Wrap) CheckExist(exi *bool) error {
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
-		return false
+        *exi = false
+		return errors.New("encode the mainKey fail")
 	}
 
 	res, err := s.dba.Has(keyBuf)
 	if err != nil {
-		return false
+        *exi = false
+		return errors.New("check the db fail")
 	}
-    
-	return res
+    *exi = res
+	return nil
 }
 
 func (s *So{{.ClsName}}Wrap) Create{{.ClsName}}(f func(t *So{{.ClsName}})) error {
@@ -106,7 +108,8 @@ func (s *So{{.ClsName}}Wrap) Create{{.ClsName}}(f func(t *So{{.ClsName}})) error
        return errors.New("the mainkey is nil")
     }
     {{ end -}}
-    if s.CheckExist() {
+    res := false
+    if s.CheckExist(&res) == nil && res {
        return errors.New("the mainkey is already exist")
     }
 	keyBuf, err := s.encodeMainKey()
@@ -126,14 +129,14 @@ func (s *So{{.ClsName}}Wrap) Create{{.ClsName}}(f func(t *So{{.ClsName}})) error
 	// update sort list keys
 	{{range $k, $v := .LKeys}}
 	if !s.insertSortKey{{$v}}(val) {
-		return err
+		return errors.New("insert sort Field {{$v}} while insert table ")
 	}
 	{{end}}
   
     //update unique list
     {{range $k, $v := .UniqueFieldMap -}}
 	if !s.insertUniKey{{$k}}(val) {
-		return err
+		return errors.New("insert unique Field {{$v}} while insert table ")
 	}
 	{{end}}
     
@@ -344,7 +347,7 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) GetMainVal(iterator iservices.IDatabase
 	val, err := iterator.Value()
 
 	if err != nil {
-		return errors.New("the value of iterator is nil")
+		return err
 	}
 
 	res := &SoList{{$.ClsName}}By{{$v.PName}}{}

@@ -30,18 +30,20 @@ func NewSoWitnessWrap(dba iservices.IDatabaseService, key *prototype.AccountName
 	return result
 }
 
-func (s *SoWitnessWrap) CheckExist() bool {
+func (s *SoWitnessWrap) CheckExist(exi *bool) error {
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
-		return false
+        *exi = false
+		return errors.New("encode the mainKey fail")
 	}
 
 	res, err := s.dba.Has(keyBuf)
 	if err != nil {
-		return false
+        *exi = false
+		return errors.New("check the db fail")
 	}
-    
-	return res
+    *exi = res
+	return nil
 }
 
 func (s *SoWitnessWrap) CreateWitness(f func(t *SoWitness)) error {
@@ -51,7 +53,8 @@ func (s *SoWitnessWrap) CreateWitness(f func(t *SoWitness)) error {
     if val.Owner == nil {
        return errors.New("the mainkey is nil")
     }
-    if s.CheckExist() {
+    res := false
+    if s.CheckExist(&res) == nil && res {
        return errors.New("the mainkey is already exist")
     }
 	keyBuf, err := s.encodeMainKey()
@@ -71,13 +74,13 @@ func (s *SoWitnessWrap) CreateWitness(f func(t *SoWitness)) error {
 	// update sort list keys
 	
 	if !s.insertSortKeyOwner(val) {
-		return err
+		return errors.New("insert sort Field Owner while insert table ")
 	}
 	
   
     //update unique list
     if !s.insertUniKeyOwner(val) {
-		return err
+		return errors.New("insert unique Field prototype.AccountName while insert table ")
 	}
 	
     
@@ -412,7 +415,7 @@ func (s *SWitnessOwnerWrap) GetMainVal(iterator iservices.IDatabaseIterator,mKey
 	val, err := iterator.Value()
 
 	if err != nil {
-		return errors.New("the value of iterator is nil")
+		return err
 	}
 
 	res := &SoListWitnessByOwner{}

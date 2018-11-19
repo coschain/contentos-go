@@ -27,18 +27,20 @@ func NewSoFollowCountWrap(dba iservices.IDatabaseService, key *prototype.Account
 	return result
 }
 
-func (s *SoFollowCountWrap) CheckExist() bool {
+func (s *SoFollowCountWrap) CheckExist(exi *bool) error {
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
-		return false
+        *exi = false
+		return errors.New("encode the mainKey fail")
 	}
 
 	res, err := s.dba.Has(keyBuf)
 	if err != nil {
-		return false
+        *exi = false
+		return errors.New("check the db fail")
 	}
-    
-	return res
+    *exi = res
+	return nil
 }
 
 func (s *SoFollowCountWrap) CreateFollowCount(f func(t *SoFollowCount)) error {
@@ -48,7 +50,8 @@ func (s *SoFollowCountWrap) CreateFollowCount(f func(t *SoFollowCount)) error {
     if val.Account == nil {
        return errors.New("the mainkey is nil")
     }
-    if s.CheckExist() {
+    res := false
+    if s.CheckExist(&res) == nil && res {
        return errors.New("the mainkey is already exist")
     }
 	keyBuf, err := s.encodeMainKey()
@@ -70,7 +73,7 @@ func (s *SoFollowCountWrap) CreateFollowCount(f func(t *SoFollowCount)) error {
   
     //update unique list
     if !s.insertUniKeyAccount(val) {
-		return err
+		return errors.New("insert unique Field prototype.AccountName while insert table ")
 	}
 	
     

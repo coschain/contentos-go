@@ -30,18 +30,20 @@ func NewSoFollowerWrap(dba iservices.IDatabaseService, key *prototype.FollowerRe
 	return result
 }
 
-func (s *SoFollowerWrap) CheckExist() bool {
+func (s *SoFollowerWrap) CheckExist(exi *bool) error {
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
-		return false
+        *exi = false
+		return errors.New("encode the mainKey fail")
 	}
 
 	res, err := s.dba.Has(keyBuf)
 	if err != nil {
-		return false
+        *exi = false
+		return errors.New("check the db fail")
 	}
-    
-	return res
+    *exi = res
+	return nil
 }
 
 func (s *SoFollowerWrap) CreateFollower(f func(t *SoFollower)) error {
@@ -51,7 +53,8 @@ func (s *SoFollowerWrap) CreateFollower(f func(t *SoFollower)) error {
     if val.FollowerInfo == nil {
        return errors.New("the mainkey is nil")
     }
-    if s.CheckExist() {
+    res := false
+    if s.CheckExist(&res) == nil && res {
        return errors.New("the mainkey is already exist")
     }
 	keyBuf, err := s.encodeMainKey()
@@ -71,13 +74,13 @@ func (s *SoFollowerWrap) CreateFollower(f func(t *SoFollower)) error {
 	// update sort list keys
 	
 	if !s.insertSortKeyFollowerInfo(val) {
-		return err
+		return errors.New("insert sort Field FollowerInfo while insert table ")
 	}
 	
   
     //update unique list
     if !s.insertUniKeyFollowerInfo(val) {
-		return err
+		return errors.New("insert unique Field prototype.FollowerRelation while insert table ")
 	}
 	
     
@@ -178,7 +181,7 @@ func (s *SFollowerFollowerInfoWrap) GetMainVal(iterator iservices.IDatabaseItera
 	val, err := iterator.Value()
 
 	if err != nil {
-		return errors.New("the value of iterator is nil")
+		return err
 	}
 
 	res := &SoListFollowerByFollowerInfo{}

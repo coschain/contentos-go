@@ -30,18 +30,20 @@ func NewSoTransactionObjectWrap(dba iservices.IDatabaseService, key *prototype.S
 	return result
 }
 
-func (s *SoTransactionObjectWrap) CheckExist() bool {
+func (s *SoTransactionObjectWrap) CheckExist(exi *bool) error {
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
-		return false
+        *exi = false
+		return errors.New("encode the mainKey fail")
 	}
 
 	res, err := s.dba.Has(keyBuf)
 	if err != nil {
-		return false
+        *exi = false
+		return errors.New("check the db fail")
 	}
-    
-	return res
+    *exi = res
+	return nil
 }
 
 func (s *SoTransactionObjectWrap) CreateTransactionObject(f func(t *SoTransactionObject)) error {
@@ -51,7 +53,8 @@ func (s *SoTransactionObjectWrap) CreateTransactionObject(f func(t *SoTransactio
     if val.TrxId == nil {
        return errors.New("the mainkey is nil")
     }
-    if s.CheckExist() {
+    res := false
+    if s.CheckExist(&res) == nil && res {
        return errors.New("the mainkey is already exist")
     }
 	keyBuf, err := s.encodeMainKey()
@@ -71,13 +74,13 @@ func (s *SoTransactionObjectWrap) CreateTransactionObject(f func(t *SoTransactio
 	// update sort list keys
 	
 	if !s.insertSortKeyExpiration(val) {
-		return err
+		return errors.New("insert sort Field Expiration while insert table ")
 	}
 	
   
     //update unique list
     if !s.insertUniKeyTrxId(val) {
-		return err
+		return errors.New("insert unique Field prototype.Sha256 while insert table ")
 	}
 	
     
@@ -212,7 +215,7 @@ func (s *STransactionObjectExpirationWrap) GetMainVal(iterator iservices.IDataba
 	val, err := iterator.Value()
 
 	if err != nil {
-		return errors.New("the value of iterator is nil")
+		return err
 	}
 
 	res := &SoListTransactionObjectByExpiration{}

@@ -30,18 +30,20 @@ func NewSoFollowingWrap(dba iservices.IDatabaseService, key *prototype.Following
 	return result
 }
 
-func (s *SoFollowingWrap) CheckExist() bool {
+func (s *SoFollowingWrap) CheckExist(exi *bool) error {
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
-		return false
+        *exi = false
+		return errors.New("encode the mainKey fail")
 	}
 
 	res, err := s.dba.Has(keyBuf)
 	if err != nil {
-		return false
+        *exi = false
+		return errors.New("check the db fail")
 	}
-    
-	return res
+    *exi = res
+	return nil
 }
 
 func (s *SoFollowingWrap) CreateFollowing(f func(t *SoFollowing)) error {
@@ -51,7 +53,8 @@ func (s *SoFollowingWrap) CreateFollowing(f func(t *SoFollowing)) error {
     if val.FollowingInfo == nil {
        return errors.New("the mainkey is nil")
     }
-    if s.CheckExist() {
+    res := false
+    if s.CheckExist(&res) == nil && res {
        return errors.New("the mainkey is already exist")
     }
 	keyBuf, err := s.encodeMainKey()
@@ -71,13 +74,13 @@ func (s *SoFollowingWrap) CreateFollowing(f func(t *SoFollowing)) error {
 	// update sort list keys
 	
 	if !s.insertSortKeyFollowingInfo(val) {
-		return err
+		return errors.New("insert sort Field FollowingInfo while insert table ")
 	}
 	
   
     //update unique list
     if !s.insertUniKeyFollowingInfo(val) {
-		return err
+		return errors.New("insert unique Field prototype.FollowingRelation while insert table ")
 	}
 	
     
@@ -178,7 +181,7 @@ func (s *SFollowingFollowingInfoWrap) GetMainVal(iterator iservices.IDatabaseIte
 	val, err := iterator.Value()
 
 	if err != nil {
-		return errors.New("the value of iterator is nil")
+		return err
 	}
 
 	res := &SoListFollowingByFollowingInfo{}

@@ -42,7 +42,8 @@ func main() {
 		log.Println("crreate fail , the db already contain table with current mainKey")
 		return
 	}
-    if wrap.CheckExist() {
+	r := false
+    if wrap.CheckExist(&r) == nil && r {
     	wrap.RemoveDemo()
 	}
 	 //2.save table data to db
@@ -311,8 +312,9 @@ func main() {
 	    remove tabale data from db
 	  */
 	  //judge the table of current mainKey if is exist
-	  isExsit := wrap.CheckExist()
-	  if isExsit {
+	  isExsit := false
+	  err  = wrap.CheckExist(&isExsit)
+	  if err == nil && isExsit {
 	  	 err := wrap.RemoveDemo()
 	  	 if err != nil {
 	  	 	fmt.Println("remove the table data fail")

@@ -35,18 +35,20 @@ func NewSoAccountWrap(dba iservices.IDatabaseService, key *prototype.AccountName
 	return result
 }
 
-func (s *SoAccountWrap) CheckExist() bool {
+func (s *SoAccountWrap) CheckExist(exi *bool) error {
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
-		return false
+        *exi = false
+		return errors.New("encode the mainKey fail")
 	}
 
 	res, err := s.dba.Has(keyBuf)
 	if err != nil {
-		return false
+        *exi = false
+		return errors.New("check the db fail")
 	}
-    
-	return res
+    *exi = res
+	return nil
 }
 
 func (s *SoAccountWrap) CreateAccount(f func(t *SoAccount)) error {
@@ -56,7 +58,8 @@ func (s *SoAccountWrap) CreateAccount(f func(t *SoAccount)) error {
     if val.Name == nil {
        return errors.New("the mainkey is nil")
     }
-    if s.CheckExist() {
+    res := false
+    if s.CheckExist(&res) == nil && res {
        return errors.New("the mainkey is already exist")
     }
 	keyBuf, err := s.encodeMainKey()
@@ -76,24 +79,24 @@ func (s *SoAccountWrap) CreateAccount(f func(t *SoAccount)) error {
 	// update sort list keys
 	
 	if !s.insertSortKeyCreatedTime(val) {
-		return err
+		return errors.New("insert sort Field CreatedTime while insert table ")
 	}
 	
 	if !s.insertSortKeyBalance(val) {
-		return err
+		return errors.New("insert sort Field Balance while insert table ")
 	}
 	
 	if !s.insertSortKeyVestingShares(val) {
-		return err
+		return errors.New("insert sort Field VestingShares while insert table ")
 	}
 	
   
     //update unique list
     if !s.insertUniKeyName(val) {
-		return err
+		return errors.New("insert unique Field prototype.AccountName while insert table ")
 	}
 	if !s.insertUniKeyPubKey(val) {
-		return err
+		return errors.New("insert unique Field prototype.PublicKeyType while insert table ")
 	}
 	
     
@@ -434,7 +437,7 @@ func (s *SAccountCreatedTimeWrap) GetMainVal(iterator iservices.IDatabaseIterato
 	val, err := iterator.Value()
 
 	if err != nil {
-		return errors.New("the value of iterator is nil")
+		return err
 	}
 
 	res := &SoListAccountByCreatedTime{}
@@ -559,7 +562,7 @@ func (s *SAccountBalanceWrap) GetMainVal(iterator iservices.IDatabaseIterator,mK
 	val, err := iterator.Value()
 
 	if err != nil {
-		return errors.New("the value of iterator is nil")
+		return err
 	}
 
 	res := &SoListAccountByBalance{}
@@ -684,7 +687,7 @@ func (s *SAccountVestingSharesWrap) GetMainVal(iterator iservices.IDatabaseItera
 	val, err := iterator.Value()
 
 	if err != nil {
-		return errors.New("the value of iterator is nil")
+		return err
 	}
 
 	res := &SoListAccountByVestingShares{}

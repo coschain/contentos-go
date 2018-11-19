@@ -27,25 +27,28 @@ func NewSoDynamicGlobalPropertiesWrap(dba iservices.IDatabaseService, key *int32
 	return result
 }
 
-func (s *SoDynamicGlobalPropertiesWrap) CheckExist() bool {
+func (s *SoDynamicGlobalPropertiesWrap) CheckExist(exi *bool) error {
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
-		return false
+        *exi = false
+		return errors.New("encode the mainKey fail")
 	}
 
 	res, err := s.dba.Has(keyBuf)
 	if err != nil {
-		return false
+        *exi = false
+		return errors.New("check the db fail")
 	}
-    
-	return res
+    *exi = res
+	return nil
 }
 
 func (s *SoDynamicGlobalPropertiesWrap) CreateDynamicGlobalProperties(f func(t *SoDynamicGlobalProperties)) error {
 
 	val := &SoDynamicGlobalProperties{}
     f(val)
-    if s.CheckExist() {
+    res := false
+    if s.CheckExist(&res) == nil && res {
        return errors.New("the mainkey is already exist")
     }
 	keyBuf, err := s.encodeMainKey()
@@ -67,7 +70,7 @@ func (s *SoDynamicGlobalPropertiesWrap) CreateDynamicGlobalProperties(f func(t *
   
     //update unique list
     if !s.insertUniKeyId(val) {
-		return err
+		return errors.New("insert unique Field int32 while insert table ")
 	}
 	
     

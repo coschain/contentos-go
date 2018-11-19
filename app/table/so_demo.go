@@ -40,18 +40,20 @@ func NewSoDemoWrap(dba iservices.IDatabaseService, key *prototype.AccountName) *
 	return result
 }
 
-func (s *SoDemoWrap) CheckExist() bool {
+func (s *SoDemoWrap) CheckExist(exi *bool) error {
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
-		return false
+        *exi = false
+		return errors.New("encode the mainKey fail")
 	}
 
 	res, err := s.dba.Has(keyBuf)
 	if err != nil {
-		return false
+        *exi = false
+		return errors.New("check the db fail")
 	}
-    
-	return res
+    *exi = res
+	return nil
 }
 
 func (s *SoDemoWrap) CreateDemo(f func(t *SoDemo)) error {
@@ -61,7 +63,8 @@ func (s *SoDemoWrap) CreateDemo(f func(t *SoDemo)) error {
     if val.Owner == nil {
        return errors.New("the mainkey is nil")
     }
-    if s.CheckExist() {
+    res := false
+    if s.CheckExist(&res) == nil && res {
        return errors.New("the mainkey is already exist")
     }
 	keyBuf, err := s.encodeMainKey()
@@ -81,35 +84,35 @@ func (s *SoDemoWrap) CreateDemo(f func(t *SoDemo)) error {
 	// update sort list keys
 	
 	if !s.insertSortKeyOwner(val) {
-		return err
+		return errors.New("insert sort Field Owner while insert table ")
 	}
 	
 	if !s.insertSortKeyPostTime(val) {
-		return err
+		return errors.New("insert sort Field PostTime while insert table ")
 	}
 	
 	if !s.insertSortKeyLikeCount(val) {
-		return err
+		return errors.New("insert sort Field LikeCount while insert table ")
 	}
 	
 	if !s.insertSortKeyIdx(val) {
-		return err
+		return errors.New("insert sort Field Idx while insert table ")
 	}
 	
 	if !s.insertSortKeyReplayCount(val) {
-		return err
+		return errors.New("insert sort Field ReplayCount while insert table ")
 	}
 	
   
     //update unique list
     if !s.insertUniKeyIdx(val) {
-		return err
+		return errors.New("insert unique Field int64 while insert table ")
 	}
 	if !s.insertUniKeyLikeCount(val) {
-		return err
+		return errors.New("insert unique Field int64 while insert table ")
 	}
 	if !s.insertUniKeyOwner(val) {
-		return err
+		return errors.New("insert unique Field prototype.AccountName while insert table ")
 	}
 	
     
@@ -610,7 +613,7 @@ func (s *SDemoOwnerWrap) GetMainVal(iterator iservices.IDatabaseIterator,mKey **
 	val, err := iterator.Value()
 
 	if err != nil {
-		return errors.New("the value of iterator is nil")
+		return err
 	}
 
 	res := &SoListDemoByOwner{}
@@ -745,7 +748,7 @@ func (s *SDemoPostTimeWrap) GetMainVal(iterator iservices.IDatabaseIterator,mKey
 	val, err := iterator.Value()
 
 	if err != nil {
-		return errors.New("the value of iterator is nil")
+		return err
 	}
 
 	res := &SoListDemoByPostTime{}
@@ -918,7 +921,7 @@ func (s *SDemoLikeCountWrap) GetMainVal(iterator iservices.IDatabaseIterator,mKe
 	val, err := iterator.Value()
 
 	if err != nil {
-		return errors.New("the value of iterator is nil")
+		return err
 	}
 
 	res := &SoListDemoByLikeCount{}
@@ -1049,7 +1052,7 @@ func (s *SDemoIdxWrap) GetMainVal(iterator iservices.IDatabaseIterator,mKey **pr
 	val, err := iterator.Value()
 
 	if err != nil {
-		return errors.New("the value of iterator is nil")
+		return err
 	}
 
 	res := &SoListDemoByIdx{}
@@ -1180,7 +1183,7 @@ func (s *SDemoReplayCountWrap) GetMainVal(iterator iservices.IDatabaseIterator,m
 	val, err := iterator.Value()
 
 	if err != nil {
-		return errors.New("the value of iterator is nil")
+		return err
 	}
 
 	res := &SoListDemoByReplayCount{}

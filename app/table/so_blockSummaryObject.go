@@ -27,25 +27,28 @@ func NewSoBlockSummaryObjectWrap(dba iservices.IDatabaseService, key *uint32) *S
 	return result
 }
 
-func (s *SoBlockSummaryObjectWrap) CheckExist() bool {
+func (s *SoBlockSummaryObjectWrap) CheckExist(exi *bool) error {
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
-		return false
+        *exi = false
+		return errors.New("encode the mainKey fail")
 	}
 
 	res, err := s.dba.Has(keyBuf)
 	if err != nil {
-		return false
+        *exi = false
+		return errors.New("check the db fail")
 	}
-    
-	return res
+    *exi = res
+	return nil
 }
 
 func (s *SoBlockSummaryObjectWrap) CreateBlockSummaryObject(f func(t *SoBlockSummaryObject)) error {
 
 	val := &SoBlockSummaryObject{}
     f(val)
-    if s.CheckExist() {
+    res := false
+    if s.CheckExist(&res) == nil && res {
        return errors.New("the mainkey is already exist")
     }
 	keyBuf, err := s.encodeMainKey()
@@ -67,7 +70,7 @@ func (s *SoBlockSummaryObjectWrap) CreateBlockSummaryObject(f func(t *SoBlockSum
   
     //update unique list
     if !s.insertUniKeyId(val) {
-		return err
+		return errors.New("insert unique Field uint32 while insert table ")
 	}
 	
     

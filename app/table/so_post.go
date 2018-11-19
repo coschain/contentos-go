@@ -32,25 +32,28 @@ func NewSoPostWrap(dba iservices.IDatabaseService, key *uint64) *SoPostWrap{
 	return result
 }
 
-func (s *SoPostWrap) CheckExist() bool {
+func (s *SoPostWrap) CheckExist(exi *bool) error {
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
-		return false
+        *exi = false
+		return errors.New("encode the mainKey fail")
 	}
 
 	res, err := s.dba.Has(keyBuf)
 	if err != nil {
-		return false
+        *exi = false
+		return errors.New("check the db fail")
 	}
-    
-	return res
+    *exi = res
+	return nil
 }
 
 func (s *SoPostWrap) CreatePost(f func(t *SoPost)) error {
 
 	val := &SoPost{}
     f(val)
-    if s.CheckExist() {
+    res := false
+    if s.CheckExist(&res) == nil && res {
        return errors.New("the mainkey is already exist")
     }
 	keyBuf, err := s.encodeMainKey()
@@ -70,17 +73,17 @@ func (s *SoPostWrap) CreatePost(f func(t *SoPost)) error {
 	// update sort list keys
 	
 	if !s.insertSortKeyCreatedOrder(val) {
-		return err
+		return errors.New("insert sort Field CreatedOrder while insert table ")
 	}
 	
 	if !s.insertSortKeyReplyOrder(val) {
-		return err
+		return errors.New("insert sort Field ReplyOrder while insert table ")
 	}
 	
   
     //update unique list
     if !s.insertUniKeyPostId(val) {
-		return err
+		return errors.New("insert unique Field uint64 while insert table ")
 	}
 	
     
@@ -751,7 +754,7 @@ func (s *SPostCreatedOrderWrap) GetMainVal(iterator iservices.IDatabaseIterator,
 	val, err := iterator.Value()
 
 	if err != nil {
-		return errors.New("the value of iterator is nil")
+		return err
 	}
 
 	res := &SoListPostByCreatedOrder{}
@@ -882,7 +885,7 @@ func (s *SPostReplyOrderWrap) GetMainVal(iterator iservices.IDatabaseIterator,mK
 	val, err := iterator.Value()
 
 	if err != nil {
-		return errors.New("the value of iterator is nil")
+		return err
 	}
 
 	res := &SoListPostByReplyOrder{}
