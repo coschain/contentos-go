@@ -31,7 +31,6 @@ require (
 	github.com/mattn/go-isatty v0.0.4 // indirect
 	github.com/mitchellh/go-homedir v1.0.0
 	github.com/onsi/gomega v1.4.2 // indirect
-	github.com/ontio/ontology-crypto v1.0.2
 	github.com/ontio/ontology-eventbus v0.9.1
 	github.com/orcaman/concurrent-map v0.0.0-20180723183937-b28018939af9 // indirect
 	github.com/pkg/errors v0.8.0

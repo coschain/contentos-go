@@ -4,8 +4,6 @@ import (
 	"errors"
 	"strconv"
 	"strings"
-
-	"github.com/coschain/contentos-go/p2p/depend/core/types"
 )
 
 //peer capability
@@ -120,7 +118,6 @@ type RemovePeerID struct {
 
 type AppendHeaders struct {
 	FromID  uint64          // The peer id
-	Headers []*types.Header // Headers to be added to the ledger
 }
 
 //type AppendBlock struct {

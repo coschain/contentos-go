@@ -3,11 +3,9 @@ package config
 import (
 	"crypto/sha256"
 	"encoding/binary"
-	"encoding/hex"
 	"fmt"
 	"github.com/coschain/contentos-go/p2p/depend/common/constants"
 	"github.com/coschain/contentos-go/p2p/depend/common/log"
-	"github.com/ontio/ontology-crypto/keypair"
 )
 
 var Version = "" //Set value when build project
@@ -30,7 +28,6 @@ const (
 	DEFAULT_MAX_SYNC_HEADER                 = 500
 	DEFAULT_ENABLE_EVENT_LOG                = true
 	DEFAULT_GAS_LIMIT                       = 20000
-	DEFAULT_GAS_PRICE                       = 500
 
 	DEFAULT_DATA_DIR      = "./Chain"
 )
@@ -190,25 +187,6 @@ func NewOntologyConfig() *OntologyConfig {
 	}
 }
 
-func (this *OntologyConfig) GetBookkeepers() ([]keypair.PublicKey, error) {
-	var bookKeepers []string
-	switch this.Genesis.ConsensusType {
-	default:
-		return nil, fmt.Errorf("Does not support %s consensus", this.Genesis.ConsensusType)
-	}
-
-	pubKeys := make([]keypair.PublicKey, 0, len(bookKeepers))
-	for _, key := range bookKeepers {
-		pubKey, err := hex.DecodeString(key)
-		k, err := keypair.DeserializePublicKey(pubKey)
-		if err != nil {
-			return nil, fmt.Errorf("Incorrectly book keepers key:%s", key)
-		}
-		pubKeys = append(pubKeys, k)
-	}
-	keypair.SortPublicKeys(pubKeys)
-	return pubKeys, nil
-}
 
 func (this *OntologyConfig) GetDefaultNetworkId() (uint32, error) {
 	defaultNetworkId, err := this.getDefNetworkIDFromGenesisConfig(this.Genesis)
