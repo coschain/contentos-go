@@ -27,6 +27,7 @@ func create(cmd *cobra.Command, args []string) {
 	mywallet := w.(*wallet.BaseWallet)
 	pubKeyStr, privKeyStr, err := mywallet.GenerateNewKey()
 	creator := args[0]
+	pubkey, _ := prototype.PublicKeyFromWIF(pubKeyStr)
 	creatorAccount, ok := mywallet.GetUnlockedAccount(creator)
 	if !ok {
 		fmt.Println(fmt.Sprintf("creator: %s should be loaded or created first", creator))
@@ -38,28 +39,32 @@ func create(cmd *cobra.Command, args []string) {
 		fmt.Println(err)
 		return
 	}
+
+	keys :=&prototype.Authority{
+		Cf:              prototype.Authority_active,
+		WeightThreshold: 1,
+		AccountAuths: []*prototype.KvAccountAuth{
+			{
+				Name:   &prototype.AccountName{Value: creator},
+				Weight: 3,
+			},
+		},
+		KeyAuths: []*prototype.KvKeyAuth{
+			{
+				Key: pubkey,
+				Weight: 23,
+			},
+		},
+	}
+
 	acop := &prototype.AccountCreateOperation{
 		Fee:            prototype.MakeCoin(1),
 		Creator:        &prototype.AccountName{Value: creator},
 		NewAccountName: &prototype.AccountName{Value: name},
-		Owner: &prototype.Authority{
-			Cf:              prototype.Authority_active,
-			WeightThreshold: 1,
-			AccountAuths: []*prototype.KvAccountAuth{
-				{
-					Name:   &prototype.AccountName{Value: name},
-					Weight: 3,
-				},
-			},
-			KeyAuths: []*prototype.KvKeyAuth{
-				{
-					Key: &prototype.PublicKeyType{
-						Data: []byte(pubKeyStr),
-					},
-					Weight: 23,
-				},
-			},
-		},
+		Owner: keys,
+		Posting: keys,
+		Active: keys,
+		MemoKey: pubkey,
 	}
 	signTx, err := GenerateSignedTx([]interface{}{acop}, creatorAccount)
 	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
