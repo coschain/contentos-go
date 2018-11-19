@@ -340,7 +340,7 @@ func (c *Controller) _applyBlock(blk *prototype.SignedBlock) {
 		// elog("Block size is too small")
 	}
 
-	w := prototype.AccountName{Value:blk.SignedHeader.Header.Witness}
+	w := &prototype.AccountName{Value:blk.SignedHeader.Header.Witness}
 	dgpWrap.MdCurrentWitness(w)
 
 	// @ process extension

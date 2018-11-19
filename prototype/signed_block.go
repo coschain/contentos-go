@@ -87,6 +87,10 @@ func (bh *BlockHeader) Hash() (hash [Size]byte) {
 	return
 }
 
+func (sbh *SignedBlockHeader) ValidateSig(key *PublicKeyType) bool {
+	return false
+}
+
 func (sbh *SignedBlockHeader) Sign(secKey *PrivateKeyType) error {
 	hash := sbh.Header.Hash()
 	res ,err := secp256k1.Sign(hash[:],secKey.Data)
