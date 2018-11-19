@@ -257,7 +257,7 @@ func (s *So{{$.ClsName}}Wrap) Get{{$k1}}() {{formatRTypeStr $v1}} {
    if res == nil {
       {{$baseType := (DetectBaseType $v1) -}}
       {{- if $baseType -}} 
-      var tmpValue {{$v1}} 
+      var tmpValue {{formatRTypeStr $v1}} 
       return tmpValue
       {{- end -}}
       {{if not $baseType -}} 
@@ -362,7 +362,7 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) GetMainVal(iterator iservices.IDatabase
    {{end}}
 }
 
-func (s *S{{$.ClsName}}{{$v.PName}}Wrap) GetSubVal(iterator iservices.IDatabaseIterator) *{{formatStr $v.PType}} {
+func (s *S{{$.ClsName}}{{$v.PName}}Wrap) GetSubVal(iterator iservices.IDatabaseIterator) *{{formatePbSliceType $v.PType}} {
 	if iterator == nil || !iterator.Valid() {
 		return nil
 	}
@@ -660,6 +660,7 @@ func (s *Uni{{$.ClsName}}{{$k}}Wrap) UniQuery{{$k}}(start *{{formatStr $v}}) *So
 		"DetectBaseType":DetectBaseType,
 		"formatRTypeStr":formatRTypeStr,
 		"formateQueryParamStr":formateQueryParamStr,
+		"formatePbSliceType":formatePbSliceType,
 		}
 		t := template.New("layout.html")
 		t  = t.Funcs(funcMapUper)
@@ -803,7 +804,9 @@ func DetectBaseType(str string) bool {
 		case "float32":
 			return true
 	    case "[]byte":
-	    	return true
+			return true
+	    case "byte":
+			 return true
 		case "float64":
 			 return true
 	    case "bool":
@@ -815,6 +818,9 @@ func DetectBaseType(str string) bool {
 /* format the return value type (if the type is not base data type,the type add *)*/
 func formatRTypeStr(str string) string{
 	if str != "" {
+		if strings.HasPrefix(str,"[]") {
+			str = formatePbSliceType(str)
+		}
 		if !DetectBaseType(str) {
 			return "*" + str
 		}
@@ -827,6 +833,16 @@ func formateQueryParamStr(str string) string {
 	if str != "" {
 		if DetectBaseType(str) {
 			return "*" + str
+		}
+	}
+	return str
+}
+
+func formatePbSliceType(str string) string {
+	if strings.HasPrefix(str,"[]") {
+		s := strings.TrimPrefix(str,"[]")
+		if !DetectBaseType(s) {
+			str = "[]"+"*"+s
 		}
 	}
 	return str
