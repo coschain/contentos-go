@@ -49,6 +49,12 @@ func main() {
 		sigBlkHdr := new(prototype.SignedBlockHeader)
 		sigBlkHdr.Header = new(prototype.BlockHeader)
 		sigBlkHdr.Header.Witness = "hanyunlong"
+
+		sigBlkHdr.Header.Previous = new(prototype.Sha256)
+		sigBlkHdr.Header.TransactionMerkleRoot = new(prototype.Sha256)
+		sigBlkHdr.Header.Previous.Hash = make([]byte, 32)
+		sigBlkHdr.Header.TransactionMerkleRoot.Hash = make([]byte, 32)
+
 		sigBlk.SignedHeader = sigBlkHdr
 		p2p.Network.Broadcast(sigBlk)
 	}

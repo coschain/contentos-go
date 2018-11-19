@@ -461,6 +461,7 @@ func IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args
 	remotePeer := p2p.GetPeerFromAddr(data.Addr)
 	switch msgdata.Msgtype{
 	case msg.IdMsg_broadcast_sigblk_id:
+		log.Info("receive a msg from:    v%    data:   %v\n", data.Addr, *msgdata)
 		length := len( msgdata.Value[0])
 		if length > 32 {
 			log.Info("block id length beyond the limit 32")
@@ -482,7 +483,9 @@ func IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args
 			log.Warn(err)
 			return
 		}
+		log.Info("send a message to:   v%   data:   v%\n", data.Addr, reqmsg)
 	case msg.IdMsg_request_sigblk_by_id:
+		log.Info("receive a msg from:    v%    data:   %v\n", data.Addr, *msgdata)
 		for i, id := range msgdata.Value {
 			length := len( msgdata.Value[i])
 			if length > 32 {
@@ -502,6 +505,7 @@ func IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args
 			//}
 		}
 	case msg.IdMsg_request_id_ack:
+		log.Info("receive a msg from:    v%    data:   %v\n", data.Addr, *msgdata)
 		var reqmsg msg.IdMsg
 		reqmsg.Msgtype = msg.IdMsg_request_sigblk_by_id
 		for i, id := range msgdata.Value {
@@ -525,6 +529,7 @@ func IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args
 			log.Warn(err)
 			return
 		}
+		log.Info("send a message to:   v%   data:   v%\n", remotePeer, reqmsg)
 	default:
 		log.Warnf("[p2p]Unknown id message %v", msgdata)
 	}
