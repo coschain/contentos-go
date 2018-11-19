@@ -140,8 +140,10 @@ func MakeEmptyMessage(cmdType string) (Message, error) {
 		return &AddrReq{}, nil
 	case common.PONG_TYPE:
 		return &Pong{}, nil
-	case common.HASH_TYPE:
-		return &msg.HashMsg{}, nil
+	case common.ID_TYPE:
+		return &msg.IdMsg{}, nil
+	case common.REQ_ID_TYPE:
+		return &msg.ReqIdMsg{}, nil
 	case common.GET_DATA_TYPE:
 		return &DataReq{}, nil
 	case common.BLOCK_TYPE:

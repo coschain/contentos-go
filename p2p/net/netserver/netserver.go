@@ -228,7 +228,7 @@ func (this *NetServer) Broadcast(message interface{}) {
 	case *prototype.SignedBlock:
 		log.Debug("[p2p]TX block message")
 		block := message.(*prototype.SignedBlock)
-		msg = msgpack.NewSigBlkHashMsg(block)
+		msg = msgpack.NewSigBlkIdMsg(block)
 	default:
 		log.Warnf("[p2p]Unknown Xmit message %v , type %v", message,
 			reflect.TypeOf(message))
@@ -811,7 +811,7 @@ func (this *NetServer) SetOwnAddress(addr string) {
 }
 
 func (this *NetServer) Triggeer_sync(p *peer.Peer, current_head_blk_id comn.BlockID) {
-	reqmsg := new(msg.ReqHashMsg)
+	reqmsg := new(msg.ReqIdMsg)
 	reqmsg.HeadBlockId = current_head_blk_id.Data[:]
 	this.Send(p, reqmsg, false)
 }

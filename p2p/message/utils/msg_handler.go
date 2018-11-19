@@ -2,8 +2,8 @@ package utils
 
 import (
 	"fmt"
+	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/p2p/msg"
-	"github.com/coschain/contentos-go/prototype"
 	"net"
 	"strconv"
 	"strings"
@@ -454,59 +454,101 @@ func DisconnectHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID,
 	}
 }
 
-func HashMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
+func IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
 	log.Trace("[p2p]receive hash message from ", data.Addr, data.Id)
 
-	var msgdata = data.Payload.(*msg.HashMsg)
+	var msgdata = data.Payload.(*msg.IdMsg)
 	remotePeer := p2p.GetPeerFromAddr(data.Addr)
 	switch msgdata.Msgtype{
-	case msg.HashMsg_broadcast_sigblk_hash:
-		//if consensus do not has this hash
-		var reqmsg msg.HashMsg
-		reqmsg.Msgtype = msg.HashMsg_request_sigblk_by_hash
-		for _, ha := range msgdata.Value {
-			reqmsg.Value = append(reqmsg.Value, new(prototype.Sha256) )
-			idx := len(reqmsg.Value) - 1
-			*reqmsg.Value[idx] = *ha
+	case msg.IdMsg_broadcast_sigblk_id:
+		length := len( msgdata.Value[0])
+		if length > 32 {
+			log.Info("block id length beyond the limit 32")
+			return
+		}
+		var blkId common.BlockID
+		copy( blkId.Data[:], msgdata.Value[0] )
+
+		//if consensus do not has this id
+
+		var reqmsg msg.IdMsg
+		reqmsg.Msgtype = msg.IdMsg_request_sigblk_by_id
+		var tmp []byte
+		reqmsg.Value = append(reqmsg.Value, tmp )
+		reqmsg.Value[0] = msgdata.Value[0]
+
+		err := p2p.Send(remotePeer, &reqmsg, false)
+		if err != nil {
+			log.Warn(err)
+			return
+		}
+	case msg.IdMsg_request_sigblk_by_id:
+		for i, id := range msgdata.Value {
+			length := len( msgdata.Value[i])
+			if length > 32 {
+				log.Info("block id length beyond the limit 32")
+				continue
+			}
+			var blkId common.BlockID
+			copy( blkId.Data[:], id )
+
+			//sigblk := get sigblk from consensus by id
+			//
+			//msg := msgpack.NewSigBlk(sigblk)
+			//err := p2p.Send(remotePeer, msg, false)
+			//if err != nil {
+			//	log.Warn(err)
+			//	return
+			//}
+		}
+	case msg.IdMsg_request_id_ack:
+		var reqmsg msg.IdMsg
+		reqmsg.Msgtype = msg.IdMsg_request_sigblk_by_id
+		for i, id := range msgdata.Value {
+			length := len( id )
+			if length > 32 {
+				log.Info("block id length beyond the limit 32")
+				continue
+			}
+			var blkId common.BlockID
+			copy( blkId.Data[:], id )
+
+			// query consensus whether we really do not have this block by id
+
+			var tmp []byte
+			reqmsg.Value = append(reqmsg.Value, tmp)
+			reqmsg.Value[i] = id
+
 		}
 		err := p2p.Send(remotePeer, &reqmsg, false)
 		if err != nil {
 			log.Warn(err)
 			return
 		}
-	case msg.HashMsg_request_sigblk_by_hash:
-		fallthrough
-	case msg.HashMsg_request_hash_ack:
-		//for i, ha := range msgdata.Value {
-		//	sigblk := get sigblk from consensus by hash
-		//	msg := msgpack.NewSigBlk(sigblk)
-		//	err := p2p.Send(remotePeer, msg, false)
-		//	if err != nil {
-		//		log.Warn(err)
-		//		return
-		//	}
-		//}
 	default:
-		log.Warnf("[p2p]Unknown hash message %v", msgdata)
+		log.Warnf("[p2p]Unknown id message %v", msgdata)
 	}
 }
 
-func ReqHashHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
-	log.Trace("[p2p]receive request hash message from ", data.Addr, data.Id)
-
-	//var msgdata = data.Payload.(*msg.ReqHashMsg)
+func ReqIdHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
+	//log.Trace("[p2p]receive request id message from ", data.Addr, data.Id)
+	//
+	//var msgdata = data.Payload.(*msg.ReqIdMsg)
 	//remote_head_blk_id := msgdata.HeadBlockId
-
-	// hashes := call consensus to get hashes
-
+	//
+	//current_head_blk_id := query consensus to get our head block id
+	//ids := call consensus to get ids
+	//
 	//remotePeer := p2p.GetPeerFromAddr(data.Addr)
-	//var reqmsg msg.HashMsg
-	//reqmsg.Msgtype = msg.HashMsg_request_hash_ack
-	//for _, ha := range hashes{
-	//	reqmsg.Value = append(reqmsg.Value, new(prototype.Sha256) )
-	//	idx := len(reqmsg.Value) - 1
-	//	*reqmsg.Value[idx] = *ha
+	//
+	//var reqmsg msg.IdMsg
+	//reqmsg.Msgtype = msg.IdMsg_request_id_ack
+	//for i, id := range ids {
+	//	var tmp []byte
+	//	reqmsg.Value = append(reqmsg.Value, tmp)
+	//	reqmsg.Value[i] = id
 	//}
+	//
 	//err := p2p.Send(remotePeer, &reqmsg, false)
 	//if err != nil {
 	//	log.Warn(err)

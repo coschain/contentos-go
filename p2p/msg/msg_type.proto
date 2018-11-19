@@ -5,26 +5,25 @@ package msg;
 option go_package = "github.com/coschain/contentos-go/p2p/msg";
 
 import "prototype/transaction.proto";
-import "prototype/type.proto";
 
 message broadcast_sig_trx {
     prototype.signed_transaction SigTrx = 1;
 }
 
-message hash_msg {
+message id_msg {
     enum type {
-        broadcast_sigblk_hash = 0;
-        request_sigblk_by_hash = 1;
-        request_hash_ack = 2;
+        broadcast_sigblk_id = 0;
+        request_sigblk_by_id = 1;
+        request_id_ack = 2;
     }
     type msgtype = 1;
-    repeated prototype.sha256 value = 2;
+    repeated bytes value = 2;
 }
 
 message sig_blk_msg {
     prototype.signed_block SigBlk = 1;
 }
 
-message req_hash_msg {
+message req_id_msg {
     bytes head_block_id = 1;
 }

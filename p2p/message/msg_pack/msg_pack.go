@@ -29,17 +29,17 @@ func NewAddrReq() mt.Message {
 	return &msg
 }
 
-///block package
-func NewSigBlkHashMsg(bk *prototype.SignedBlock) mt.Message {
+//block package
+func NewSigBlkIdMsg(bk *prototype.SignedBlock) mt.Message {
 	log.Trace()
-	var blk msg.HashMsg
-	blk.Msgtype = msg.HashMsg_broadcast_sigblk_hash
-	hash := new(prototype.Sha256)
-	blockHash := bk.Hash()
-	hash.Hash = blockHash[:]
-	blk.Value = append(blk.Value, hash)
+	var reqmsg msg.IdMsg
+	var tmp []byte
+	reqmsg.Msgtype = msg.IdMsg_broadcast_sigblk_id
+	id := bk.Id()
+	reqmsg.Value = append(reqmsg.Value, tmp)
+	reqmsg.Value[0] = id.Data[:]
 
-	return &blk
+	return &reqmsg
 }
 
 func NewSigBlk(bk *prototype.SignedBlock) mt.Message {

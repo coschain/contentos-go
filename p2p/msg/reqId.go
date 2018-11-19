@@ -7,19 +7,19 @@ import (
 )
 
 //Serialize message payload
-func (this *ReqHashMsg) Serialization(sink *comm.ZeroCopySink) error {
+func (this *ReqIdMsg) Serialization(sink *comm.ZeroCopySink) error {
 	data, _ := proto.Marshal(this)
 	sink.WriteBytes(data)
 	return nil
 }
 
-func (this *ReqHashMsg) CmdType() string {
-	return common.REQ_HASH_TYPE
+func (this *ReqIdMsg) CmdType() string {
+	return common.REQ_ID_TYPE
 }
 
 //Deserialize message payload
-func (this *ReqHashMsg) Deserialization(source *comm.ZeroCopySource) error {
-	var tmp ReqHashMsg
+func (this *ReqIdMsg) Deserialization(source *comm.ZeroCopySource) error {
+	var tmp ReqIdMsg
 	err := proto.Unmarshal(source.Data(), &tmp)
 	if err != nil {
 		return err
