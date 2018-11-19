@@ -25,3 +25,10 @@ type AccountNotFound struct {
 func (e AccountNotFound) Error() string {
 	return fmt.Sprintf("%s is not found in wallet-cli try to load or create", e.LocalName)
 }
+
+type UnmatchedPassphraseError struct {
+}
+
+func (e UnmatchedPassphraseError) Error() string {
+	return fmt.Sprintf("passphrase is not matched with record")
+}

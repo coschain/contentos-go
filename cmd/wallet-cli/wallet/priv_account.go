@@ -18,5 +18,6 @@ type EncryptAccount struct {
 	Cipher     string // a cipher algorithm from aes
 	CipherText string // encrypted privkey
 	Iv         string // the iv
+	Mac        string // the mac of passphrase
 	Version    uint8  // version of format
 }

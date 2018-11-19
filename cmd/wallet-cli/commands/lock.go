@@ -22,7 +22,7 @@ func lock(cmd *cobra.Command, args []string) {
 	name := args[0]
 	err := w.Lock(name)
 	if err != nil {
-		fmt.Println(fmt.Sprintf("error: %v\n", err))
+		fmt.Println(fmt.Sprintf("error: %v", err))
 		return
 	}
 	fmt.Println(fmt.Sprintf("account %s success", name))

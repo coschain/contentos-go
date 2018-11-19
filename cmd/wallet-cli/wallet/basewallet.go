@@ -3,6 +3,7 @@ package wallet
 import (
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
@@ -171,32 +172,29 @@ func (w *BaseWallet) GenerateNewKey() (string, string, error) {
 }
 
 func (w *BaseWallet) Create(name, passphrase, pubKeyStr, privKeyStr string) error {
-	//privKey, err := prototype.PrivateKeyFromWIF(privKeyStr)
-	//if err != nil {
-	//	return err
-	//}
-	//pubKey, err :=  privKey.PubKey()
-	//if err != nil {
-	//	return err
-	//}
-	//pubKeyStr := pubKey.ToWIF()
 	cipher_data, iv, err := EncryptData([]byte(privKeyStr), []byte(passphrase))
 	if err != nil {
 		return err
 	}
 	cipher_text := base64.StdEncoding.EncodeToString(cipher_data)
 	iv_text := base64.StdEncoding.EncodeToString(iv)
+	mac := hmac.New(sha256.New, []byte(passphrase))
+	mac.Write([]byte(privKeyStr))
+	calcMac := mac.Sum(nil)
+	mac_text := base64.StdEncoding.EncodeToString(calcMac)
 	encrypt_account := &EncryptAccount{
 		Account:    Account{Name: name, PubKey: pubKeyStr},
 		Cipher:     selectAESAlgorithm(PasswordLength),
 		CipherText: cipher_text,
 		Iv:         iv_text,
+		Mac:        mac_text,
 		Version:    1,
 	}
 	priv_account := &PrivAccount{
 		Account: Account{Name: name, PubKey: pubKeyStr},
 		PrivKey: privKeyStr,
 	}
+	priv_account.Expire = time.Now().Unix() + ExpirationSeconds
 	w.locked[name] = encrypt_account
 	w.unlocked[name] = priv_account
 	w.seal(encrypt_account)
@@ -273,9 +271,19 @@ func (w *BaseWallet) Unlock(name, passphrase string) error {
 		if err != nil {
 			return err
 		}
+		mac_data, err := base64.StdEncoding.DecodeString(encrypt_acc.Mac)
+		if err != nil {
+			return err
+		}
 		priv_key, err := DecryptData(cipher_data, key, iv)
 		if err != nil {
 			return err
+		}
+		mac := hmac.New(sha256.New, []byte(passphrase))
+		mac.Write(priv_key)
+		calcMac := mac.Sum(nil)
+		if !hmac.Equal(mac_data, calcMac) {
+			return &UnmatchedPassphraseError{}
 		}
 		expiredTime := time.Now().Unix() + ExpirationSeconds
 		acc := &PrivAccount{Account{Name: name, PubKey: encrypt_acc.PubKey},

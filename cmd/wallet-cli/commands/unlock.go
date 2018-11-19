@@ -23,7 +23,7 @@ func unlock(cmd *cobra.Command, args []string) {
 	passphrase := args[1]
 	err := w.Unlock(name, passphrase)
 	if err != nil {
-		fmt.Println(fmt.Sprintf("error: %v\n", err))
+		fmt.Println(fmt.Sprintf("error: %v", err))
 		return
 	}
 	fmt.Println(fmt.Sprintf("unlock account %s success", name))

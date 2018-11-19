@@ -22,7 +22,7 @@ func load(cmd *cobra.Command, args []string) {
 	name := args[0]
 	err := w.Load(name)
 	if err != nil {
-		fmt.Println(fmt.Sprintf("error: %v\n", err))
+		fmt.Println(fmt.Sprintf("error: %v", err))
 		return
 	}
 	fmt.Println(fmt.Sprintf("load account %s success", name))
