@@ -80,7 +80,7 @@ func (c *Controller) Open() {
 	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db, &i)
 	if !dgpWrap.CheckExist() {
 
-		mustNoError( c.db.DeleteAll() , "truncate database error")
+		mustNoError(c.db.DeleteAll(), "truncate database error")
 
 		logging.CLog().Info("start initGenesis")
 		c.initGenesis()
@@ -147,7 +147,51 @@ func (c *Controller) _pushTrx(trx *prototype.SignedTransaction) *prototype.Trans
 }
 
 func (c *Controller) PushBlock(blk *prototype.SignedBlock) {
+	oldFlag := c.skip
+	defer func() {
+		c.skip = oldFlag
+	}()
 
+	tmpPending := c.ClearPending()
+
+	defer func() {
+		if err := recover(); err != nil {
+			c.skip = oldFlag
+			c.restorePending(tmpPending)
+			panic("PushBlock error")
+		}
+	}()
+
+	defer func() {
+		c.restorePending(tmpPending)
+	}()
+
+	c.applyBlock(blk)
+}
+
+func (c *Controller) ClearPending() []*prototype.TransactionWrapper {
+	//
+	res := make([]*prototype.TransactionWrapper, len(c._pending_tx))
+	copy(res, c._pending_tx)
+
+	c._pending_tx = c._pending_tx[:0]
+	c.db.EndTransaction(false)
+
+	return res
+}
+
+func (c *Controller) restorePending(pending []*prototype.TransactionWrapper) {
+	for _, tw := range pending {
+		id, err := tw.SigTrx.Id()
+		if err != nil {
+			panic("get transaction id error")
+		}
+
+		objWrap := table.NewSoTransactionObjectWrap(c.db, id)
+		if !objWrap.CheckExist() {
+			c._pushTrx(tw.SigTrx)
+		}
+	}
 }
 
 func (c *Controller) GenerateBlock(accountName string, timestamp uint32,
@@ -182,7 +226,11 @@ func (c *Controller) NotifyBlockApply(block *prototype.SignedBlock) {
 // calculate reward for creator and witness
 func (c *Controller) processBlock() {
 }
-
+func (c *Controller) applyTransaction(trxWrp *prototype.TransactionWrapper) {
+	c._applyTransaction(trxWrp)
+	// @ not use yet
+	//c.NotifyTrxPostExecute(trxWrp.SigTrx)
+}
 func (c *Controller) _applyTransaction(trxWrp *prototype.TransactionWrapper) {
 	defer func() {
 		if err := recover(); err != nil {
@@ -309,13 +357,13 @@ func (c *Controller) getEvaluator(op *prototype.Operation) BaseEvaluator {
 		eva := &TransferEvaluator{ctx: ctx, op: op.GetOp2()}
 		return BaseEvaluator(eva)
 	case *prototype.Operation_Op6:
-		eva := &PostEvaluator{ ctx:ctx, op: op.GetOp6() }
+		eva := &PostEvaluator{ctx: ctx, op: op.GetOp6()}
 		return BaseEvaluator(eva)
 	case *prototype.Operation_Op7:
-		eva := &ReplyEvaluator{ ctx:ctx, op: op.GetOp7() }
+		eva := &ReplyEvaluator{ctx: ctx, op: op.GetOp7()}
 		return BaseEvaluator(eva)
 	case *prototype.Operation_Op9:
-		eva := &VoteEvaluator{ ctx:ctx, op: op.GetOp9() }
+		eva := &VoteEvaluator{ctx: ctx, op: op.GetOp9()}
 		return BaseEvaluator(eva)
 	//case *prototype.Operation_Op4:
 	//	eva := &TransferEvaluator{ ctx:ctx, op: op.GetOp4() }
@@ -391,7 +439,7 @@ func (c *Controller) _applyBlock(blk *prototype.SignedBlock) {
 	for _, tw := range blk.Transactions {
 		trxWrp.SigTrx = tw.SigTrx
 		trxWrp.Invoice.Status = 200
-		c._applyTransaction(trxWrp)
+		c.applyTransaction(trxWrp)
 		if trxWrp.Invoice.Status != tw.Invoice.Status {
 			panic("mismatched invoice")
 		}
@@ -411,16 +459,16 @@ func (c *Controller) _applyBlock(blk *prototype.SignedBlock) {
 func (c *Controller) initGenesis() {
 
 	// create initminer
-	pubKey , _ := prototype.PublicKeyFromWIF(constants.INITMINER_PUBKEY)
-	name := &prototype.AccountName{Value:constants.INIT_MINER_NAME}
-	newAccountWrap := table.NewSoAccountWrap(c.db,name)
-	mustNoError( newAccountWrap.Create(func(tInfo *table.SoAccount) {
-		tInfo.Name             = name
-		tInfo.PubKey           = pubKey
-		tInfo.CreatedTime      = &prototype.TimePointSec{UtcSeconds:0}
-		tInfo.Balance          = prototype.NewCoin(constants.INIT_SUPPLY)
-		tInfo.VestingShares    = prototype.NewVest(0)
-	}), "CreateAccount error" )
+	pubKey, _ := prototype.PublicKeyFromWIF(constants.INITMINER_PUBKEY)
+	name := &prototype.AccountName{Value: constants.INIT_MINER_NAME}
+	newAccountWrap := table.NewSoAccountWrap(c.db, name)
+	mustNoError(newAccountWrap.Create(func(tInfo *table.SoAccount) {
+		tInfo.Name = name
+		tInfo.PubKey = pubKey
+		tInfo.CreatedTime = &prototype.TimePointSec{UtcSeconds: 0}
+		tInfo.Balance = prototype.NewCoin(constants.INIT_SUPPLY)
+		tInfo.VestingShares = prototype.NewVest(0)
+	}), "CreateAccount error")
 
 	// create account authority
 	authorityWrap := table.NewSoAccountAuthorityObjectWrap(c.db, name)
@@ -433,43 +481,44 @@ func (c *Controller) initGenesis() {
 			},
 		},
 	}
-	mustNoError( authorityWrap.Create(func(tInfo *table.SoAccountAuthorityObject) {
-		tInfo.Account    = name
-		tInfo.Posting    = ownerAuth
-		tInfo.Active     = ownerAuth
-		tInfo.Owner      = ownerAuth
-	}) ,"CreateAccountAuthorityObject error ")
+	mustNoError(authorityWrap.Create(func(tInfo *table.SoAccountAuthorityObject) {
+		tInfo.Account = name
+		tInfo.Posting = ownerAuth
+		tInfo.Active = ownerAuth
+		tInfo.Owner = ownerAuth
+	}), "CreateAccountAuthorityObject error ")
 
 	// create witness_object
-	witnessWrap := table.NewSoWitnessWrap(c.db,name)
-	mustNoError( witnessWrap.Create(func(tInfo *table.SoWitness) {
-		tInfo.Owner                  = name
-		tInfo.WitnessScheduleType    = &prototype.WitnessScheduleType{Value:prototype.WitnessScheduleType_miner}
-		tInfo.CreatedTime            = &prototype.TimePointSec{UtcSeconds:0}
-		tInfo.SigningKey             = pubKey
-		tInfo.LastWork               = &prototype.Sha256{Hash:[]byte{0}}
-	}), "Witness Create Error" )
+	witnessWrap := table.NewSoWitnessWrap(c.db, name)
+	mustNoError(witnessWrap.Create(func(tInfo *table.SoWitness) {
+		tInfo.Owner = name
+		tInfo.WitnessScheduleType = &prototype.WitnessScheduleType{Value: prototype.WitnessScheduleType_miner}
+		tInfo.CreatedTime = &prototype.TimePointSec{UtcSeconds: 0}
+		tInfo.SigningKey = pubKey
+		tInfo.LastWork = &prototype.Sha256{Hash: []byte{0}}
+	}), "Witness Create Error")
 
 	// create dynamic global properties
-	var i int32                  = 0
-	dgpWrap                     := table.NewSoDynamicGlobalPropertiesWrap(c.db,&i)
-	mustNoError( dgpWrap.Create(func(tInfo *table.SoDynamicGlobalProperties) {
-		tInfo.CurrentWitness        = name
-		tInfo.Time                  = &prototype.TimePointSec{UtcSeconds:constants.GENESIS_TIME}
+	var i int32 = 0
+	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db, &i)
+	mustNoError(dgpWrap.Create(func(tInfo *table.SoDynamicGlobalProperties) {
+		tInfo.CurrentWitness = name
+		tInfo.Time = &prototype.TimePointSec{UtcSeconds: constants.GENESIS_TIME}
+		tInfo.HeadBlockId = &prototype.Sha256{Hash: make([]byte, 32)}
 		// @ recent_slots_filled
 		// @ participation_count
-		tInfo.CurrentSupply         = prototype.NewCoin(0)
-		tInfo.TotalCos              = prototype.NewCoin(constants.COS_INIT_SUPPLY)
-		tInfo.MaximumBlockSize      = constants.MAX_BLOCK_SIZE
-		tInfo.TotalVestingShares    = prototype.NewVest(0)
-	}), "CreateDynamicGlobalProperties error" )
+		tInfo.CurrentSupply = prototype.NewCoin(constants.COS_INIT_SUPPLY)
+		tInfo.TotalCos = prototype.NewCoin(constants.COS_INIT_SUPPLY)
+		tInfo.MaximumBlockSize = constants.MAX_BLOCK_SIZE
+		tInfo.TotalVestingShares = prototype.NewVest(0)
+	}), "CreateDynamicGlobalProperties error")
 
 	// create block summary
 	for i := uint32(0); i < 0x10000; i++ {
 		wrap := table.NewSoBlockSummaryObjectWrap(c.db, &i)
-		mustNoError( wrap.Create(func(tInfo *table.SoBlockSummaryObject) {
+		mustNoError(wrap.Create(func(tInfo *table.SoBlockSummaryObject) {
 			tInfo.Id = i
-		}) ,"CreateBlockSummaryObject error")
+		}), "CreateBlockSummaryObject error")
 	}
 
 	// create witness scheduler
@@ -647,6 +696,11 @@ func (c *Controller) clearExpiredTransactions() {
 		for itr.Next() {
 			if c.headBlockTime().UtcSeconds > sortWrap.GetSubVal(itr).UtcSeconds {
 				// delete trx ...
+				k := sortWrap.GetMainVal(itr)
+				objWrap := table.NewSoTransactionObjectWrap(c.db, k)
+				if !objWrap.RemoveTransactionObject() {
+					panic("RemoveTransactionObject error")
+				}
 			}
 		}
 		sortWrap.DelIterater(itr)

@@ -79,7 +79,7 @@ func Test_PushTrx(t *testing.T) {
 
 	signedTrx, err := createSigTrx(acop)
 	if err != nil {
-		t.Error("createSigTrx failed:",err)
+		t.Error("createSigTrx error:",err)
 	}
 
 	// set up controller
@@ -101,5 +101,54 @@ func Test_PushTrx(t *testing.T) {
 
 func Test_PushBlock(t *testing.T) {
 	clearDB()
-	
+
+	createOP,err := makeCreateAccountOP()
+	if err != nil {
+		t.Error("makeCreateAccountOP error:",err)
+	}
+	signedTrx,err := createSigTrx(createOP)
+	if err != nil {
+		t.Error("createSigTrx error:",err)
+	}
+
+	// set up controller
+	db := startDB()
+	defer db.Close()
+	c := startController(db)
+
+	sigBlk := new(prototype.SignedBlock)
+
+	// add trx wraper
+	trxWraper := &prototype.TransactionWrapper{
+		SigTrx:signedTrx,
+		Invoice:&prototype.TransactionInvoice{Status:200},
+	}
+	sigBlk.Transactions = append(sigBlk.Transactions,trxWraper)
+
+	// calculate merkle
+	id := sigBlk.CalculateMerkleRoot()
+
+	// write signed block header
+	sigBlkHdr := new(prototype.SignedBlockHeader)
+
+	sigBlkHdr.Header = new(prototype.BlockHeader)
+	var i int32 = 0
+	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(db, &i)
+	sigBlkHdr.Header.Previous = dgpWrap.GetHeadBlockId()
+	sigBlkHdr.Header.Timestamp = &prototype.TimePointSec{UtcSeconds:20}
+	sigBlkHdr.Header.Witness = &prototype.AccountName{Value:constants.INIT_MINER_NAME}
+	sigBlkHdr.Header.TransactionMerkleRoot = &prototype.Sha256{Hash:id.Data[:]}
+	sigBlkHdr.WitnessSignature = &prototype.SignatureType{}
+
+	// signature
+	pri,err := prototype.PrivateKeyFromWIF(constants.INITMINER_PRIKEY)
+	if err != nil {
+		t.Error("PrivateKeyFromWIF error")
+	}
+	sigBlkHdr.Sign(pri)
+
+	sigBlk.SignedHeader = sigBlkHdr
+
+	c.PushBlock(sigBlk)
+
 }

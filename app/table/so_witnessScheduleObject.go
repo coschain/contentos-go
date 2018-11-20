@@ -2,7 +2,6 @@ package table
 
 import (
 	"errors"
-
 	"github.com/coschain/contentos-go/common/encoding"
 	"github.com/coschain/contentos-go/iservices"
 	proto "github.com/golang/protobuf/proto"
