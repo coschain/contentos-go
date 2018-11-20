@@ -4,7 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
-	"github.com/coschain/contentos-go/p2p/depend/common/constants"
+
 	"github.com/coschain/contentos-go/p2p/depend/common/log"
 )
 
@@ -42,9 +42,9 @@ const (
 )
 
 var NETWORK_MAGIC = map[uint32]uint32{
-	NETWORK_ID_MAIN_NET:    constants.NETWORK_MAGIC_MAINNET, //Network main
-	NETWORK_ID_POLARIS_NET: constants.NETWORK_MAGIC_POLARIS, //Network polaris
-	NETWORK_ID_SOLO_NET:    0,                               //Network solo
+	NETWORK_ID_MAIN_NET:    0x8c77ab60,     //Network main
+	NETWORK_ID_POLARIS_NET: 0x2d8829df,     //Network polaris
+	NETWORK_ID_SOLO_NET:    0,              //Network solo
 }
 
 var NETWORK_NAME = map[uint32]string{
