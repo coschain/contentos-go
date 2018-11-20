@@ -6,9 +6,9 @@ import (
 	"github.com/coschain/contentos-go/prototype"
 )
 
-func mustNoError( err error )  {
+func mustNoError( err error, val string )  {
 	if ( err != nil ){
-		panic(err)
+		panic( val + " : "+ err.Error() )
 	}
 }
 func mustSuccess( b bool , val string)  {
@@ -76,36 +76,25 @@ func (ev *AccountCreateEvaluator) Apply() {
 
 	// create account
 	newAccountWrap := table.NewSoAccountWrap(ev.ctx.db,op.NewAccountName)
-	res := true
-	err := newAccountWrap.Create(func(tInfo *table.SoAccount) {
-		tInfo.Name = op.NewAccountName
-		tInfo.Creator = op.Creator
-		tInfo.CreatedTime = dgpWrap.GetTime()
-		tInfo.PubKey = op.MemoKey
-		cos := prototype.NewCoin(0)
-		vest := prototype.NewVest(0)
-		tInfo.Balance = cos
-		tInfo.VestingShares = vest
-	})
-	if err != nil {
-		res = false
-	}
-	mustSuccess(res , "duplicate create account object")
+	mustNoError( newAccountWrap.Create(func(tInfo *table.SoAccount) {
+		tInfo.Name             = op.NewAccountName
+		tInfo.Creator          = op.Creator
+		tInfo.CreatedTime      = dgpWrap.GetTime()
+		tInfo.PubKey           = op.MemoKey
+		tInfo.Balance          = prototype.NewCoin(0)
+		tInfo.VestingShares    = prototype.NewVest(0)
+	}) , "duplicate create account object")
+
 
 	// create account authority
 	authorityWrap := table.NewSoAccountAuthorityObjectWrap(ev.ctx.db,op.NewAccountName)
-	cRes := true
-	err = authorityWrap.Create(func(tInfo *table.SoAccountAuthorityObject) {
-		tInfo.Account = op.NewAccountName
-		tInfo.Posting = op.Posting
-		tInfo.Active = op.Active
-		tInfo.Owner = op.Owner
-		tInfo.LastOwnerUpdate = &prototype.TimePointSec{UtcSeconds:0}
-	})
-	if err != nil {
-		cRes = false
-	}
-	mustSuccess(cRes , "duplicate create account authority object")
+	mustNoError( authorityWrap.Create(func(tInfo *table.SoAccountAuthorityObject) {
+		tInfo.Account            = op.NewAccountName
+		tInfo.Posting            = op.Posting
+		tInfo.Active             = op.Active
+		tInfo.Owner              = op.Owner
+		tInfo.LastOwnerUpdate    = prototype.NewTimePointSec(0)
+	}) , "duplicate create account authority object")
 
 	// create vesting
 	if op.Fee.Value > 0 {

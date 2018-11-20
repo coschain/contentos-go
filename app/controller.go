@@ -7,6 +7,7 @@ import (
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/common/eventloop"
+	"github.com/coschain/contentos-go/common/logging"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/prototype"
@@ -78,7 +79,12 @@ func (c *Controller) Open() {
 	var i int32 = 0
 	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db, &i)
 	if !dgpWrap.CheckExist() {
+
+		mustNoError( c.db.DeleteAll() , "truncate database error")
+
+		logging.CLog().Info("start initGenesis")
 		c.initGenesis()
+		logging.CLog().Info("finish initGenesis")
 	}
 }
 
@@ -402,17 +408,13 @@ func (c *Controller) initGenesis() {
 	pubKey , _ := prototype.PublicKeyFromWIF(constants.INITMINER_PUBKEY)
 	name := &prototype.AccountName{Value:constants.INIT_MINER_NAME}
 	newAccountWrap := table.NewSoAccountWrap(c.db,name)
-	cos := prototype.NewCoin(constants.INIT_SUPPLY)
-	vest := prototype.NewVest(0)
-	if newAccountWrap.Create(func(tInfo *table.SoAccount) {
-		tInfo.Name = name
-		tInfo.PubKey = pubKey
-		tInfo.CreatedTime = &prototype.TimePointSec{UtcSeconds:0}
-		tInfo.Balance = cos
-		tInfo.VestingShares = vest
-	}) != nil {
-		panic("CreateAccount error")
-	}
+	mustNoError( newAccountWrap.Create(func(tInfo *table.SoAccount) {
+		tInfo.Name             = name
+		tInfo.PubKey           = pubKey
+		tInfo.CreatedTime      = &prototype.TimePointSec{UtcSeconds:0}
+		tInfo.Balance          = prototype.NewCoin(constants.INIT_SUPPLY)
+		tInfo.VestingShares    = prototype.NewVest(0)
+	}), "CreateAccount error" )
 
 	// create account authority
 	authorityWrap := table.NewSoAccountAuthorityObjectWrap(c.db, name)
@@ -425,48 +427,43 @@ func (c *Controller) initGenesis() {
 			},
 		},
 	}
-	if authorityWrap.Create(func(tInfo *table.SoAccountAuthorityObject) {
-		tInfo.Account = name
-		tInfo.Posting = ownerAuth
-		tInfo.Active = ownerAuth
-		tInfo.Owner = ownerAuth
-	}) != nil {
-		panic("CreateAccountAuthorityObject error ")
-	}
+	mustNoError( authorityWrap.Create(func(tInfo *table.SoAccountAuthorityObject) {
+		tInfo.Account    = name
+		tInfo.Posting    = ownerAuth
+		tInfo.Active     = ownerAuth
+		tInfo.Owner      = ownerAuth
+	}) ,"CreateAccountAuthorityObject error ")
+
 	// create witness_object
 	witnessWrap := table.NewSoWitnessWrap(c.db,name)
-	witnessWrap.Create(func(tInfo *table.SoWitness) {
-		tInfo.Owner = name
-		tInfo.WitnessScheduleType = &prototype.WitnessScheduleType{Value:prototype.WitnessScheduleType_miner}
-		tInfo.CreatedTime = &prototype.TimePointSec{UtcSeconds:0}
-		tInfo.SigningKey = pubKey
-		tInfo.LastWork = &prototype.Sha256{Hash:[]byte{0}}
-	})
+	mustNoError( witnessWrap.Create(func(tInfo *table.SoWitness) {
+		tInfo.Owner                  = name
+		tInfo.WitnessScheduleType    = &prototype.WitnessScheduleType{Value:prototype.WitnessScheduleType_miner}
+		tInfo.CreatedTime            = &prototype.TimePointSec{UtcSeconds:0}
+		tInfo.SigningKey             = pubKey
+		tInfo.LastWork               = &prototype.Sha256{Hash:[]byte{0}}
+	}), "Witness Create Error" )
 
 	// create dynamic global properties
-	var i int32 = 0
-	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db,&i)
-	if dgpWrap.Create(func(tInfo *table.SoDynamicGlobalProperties) {
-		tInfo.CurrentWitness = name
-		tInfo.Time = &prototype.TimePointSec{UtcSeconds:constants.GENESIS_TIME}
+	var i int32                  = 0
+	dgpWrap                     := table.NewSoDynamicGlobalPropertiesWrap(c.db,&i)
+	mustNoError( dgpWrap.Create(func(tInfo *table.SoDynamicGlobalProperties) {
+		tInfo.CurrentWitness        = name
+		tInfo.Time                  = &prototype.TimePointSec{UtcSeconds:constants.GENESIS_TIME}
 		// @ recent_slots_filled
 		// @ participation_count
-		tInfo.CurrentSupply = cos
-		tInfo.TotalCos = cos
-		tInfo.MaximumBlockSize = constants.MAX_BLOCK_SIZE
-		tInfo.TotalVestingShares = prototype.NewVest(0)
-	}) != nil {
-		panic("CreateDynamicGlobalProperties error")
-	}
+		tInfo.CurrentSupply         = prototype.NewCoin(0)
+		tInfo.TotalCos              = prototype.NewCoin(constants.COS_INIT_SUPPLY)
+		tInfo.MaximumBlockSize      = constants.MAX_BLOCK_SIZE
+		tInfo.TotalVestingShares    = prototype.NewVest(0)
+	}), "CreateDynamicGlobalProperties error" )
 
 	// create block summary
 	for i := uint32(0); i < 0x10000; i++ {
 		wrap := table.NewSoBlockSummaryObjectWrap(c.db, &i)
-		if wrap.Create(func(tInfo *table.SoBlockSummaryObject) {
+		mustNoError( wrap.Create(func(tInfo *table.SoBlockSummaryObject) {
 			tInfo.Id = i
-		}) != nil {
-			panic("CreateBlockSummaryObject error")
-		}
+		}) ,"CreateBlockSummaryObject error")
 	}
 
 	// create witness scheduler
