@@ -44,46 +44,44 @@ func (s *SoPostWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoPostWrap) CreatePost(sa *SoPost) bool {
-
-	if sa == nil {
-		return false
-	}
+func (s *SoPostWrap) Create(f func(tInfo *SoPost)) error {
+    val := &SoPost{}
+    f(val)
     if s.CheckExist() {
-       return false
+       return errors.New("the mainkey is already exist")
     }
 	keyBuf, err := s.encodeMainKey()
+	if err != nil {
+       return err
 
-	if err != nil {
-		return false
 	}
-	resBuf, err := proto.Marshal(sa)
+	resBuf, err := proto.Marshal(val)
 	if err != nil {
-		return false
+		return err
 	}
 	err = s.dba.Put(keyBuf, resBuf)
 	if err != nil {
-		return false
+		return err
 	}
 
 	// update sort list keys
 	
-	if !s.insertSortKeyCreatedOrder(sa) {
-		return false
+	if !s.insertSortKeyCreatedOrder(val) {
+       return errors.New("insert sort Field CreatedOrder while insert table ")
 	}
 	
-	if !s.insertSortKeyReplyOrder(sa) {
-		return false
+	if !s.insertSortKeyReplyOrder(val) {
+       return errors.New("insert sort Field ReplyOrder while insert table ")
 	}
 	
   
     //update unique list
-    if !s.insertUniKeyPostId(sa) {
-		return false
+    if !s.insertUniKeyPostId(val) {
+		return errors.New("insert unique Field uint64 while insert table ")
 	}
 	
     
-	return true
+	return nil
 }
 
 ////////////// SECTION LKeys delete/insert ///////////////

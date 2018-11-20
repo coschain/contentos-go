@@ -50,68 +50,69 @@ func (s *SoDemoWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoDemoWrap) CreateDemo(sa *SoDemo) bool {
-
-	if sa == nil {
-		return false
-	}
+func (s *SoDemoWrap) Create(f func(tInfo *SoDemo)) error {
+    val := &SoDemo{}
+    f(val)
+    if val.Owner == nil {
+       return errors.New("the mainkey is nil")
+    }
     if s.CheckExist() {
-       return false
+       return errors.New("the mainkey is already exist")
     }
 	keyBuf, err := s.encodeMainKey()
+	if err != nil {
+       return err
 
-	if err != nil {
-		return false
 	}
-	resBuf, err := proto.Marshal(sa)
+	resBuf, err := proto.Marshal(val)
 	if err != nil {
-		return false
+		return err
 	}
 	err = s.dba.Put(keyBuf, resBuf)
 	if err != nil {
-		return false
+		return err
 	}
 
 	// update sort list keys
 	
-	if !s.insertSortKeyOwner(sa) {
-		return false
+	if !s.insertSortKeyOwner(val) {
+       return errors.New("insert sort Field Owner while insert table ")
 	}
 	
-	if !s.insertSortKeyPostTime(sa) {
-		return false
+	if !s.insertSortKeyPostTime(val) {
+       return errors.New("insert sort Field PostTime while insert table ")
 	}
 	
-	if !s.insertSortKeyLikeCount(sa) {
-		return false
+	if !s.insertSortKeyLikeCount(val) {
+       return errors.New("insert sort Field LikeCount while insert table ")
 	}
 	
-	if !s.insertSortKeyIdx(sa) {
-		return false
+	if !s.insertSortKeyIdx(val) {
+       return errors.New("insert sort Field Idx while insert table ")
 	}
 	
-	if !s.insertSortKeyReplayCount(sa) {
-		return false
+	if !s.insertSortKeyReplayCount(val) {
+       return errors.New("insert sort Field ReplayCount while insert table ")
 	}
 	
-	if !s.insertSortKeyTaglist(sa) {
-		return false
+	if !s.insertSortKeyTaglist(val) {
+       return errors.New("insert sort Field Taglist while insert table ")
 	}
 	
   
     //update unique list
-    if !s.insertUniKeyIdx(sa) {
-		return false
+    if !s.insertUniKeyIdx(val) {
+		return errors.New("insert unique Field int64 while insert table ")
 	}
-	if !s.insertUniKeyLikeCount(sa) {
-		return false
+	if !s.insertUniKeyLikeCount(val) {
+		return errors.New("insert unique Field int64 while insert table ")
 	}
-	if !s.insertUniKeyOwner(sa) {
-		return false
+	if !s.insertUniKeyOwner(val) {
+		return errors.New("insert unique Field prototype.AccountName while insert table ")
 	}
 	
     
-	return true
+	return nil
 }
 
 ////////////// SECTION LKeys delete/insert ///////////////

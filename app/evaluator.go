@@ -76,28 +76,36 @@ func (ev *AccountCreateEvaluator) Apply() {
 
 	// create account
 	newAccountWrap := table.NewSoAccountWrap(ev.ctx.db,op.NewAccountName)
-	newAccount := &table.SoAccount{}
-	newAccount.Name = op.NewAccountName
-	newAccount.Creator = op.Creator
-	newAccount.CreatedTime = dgpWrap.GetTime()
-	newAccount.PubKey = op.MemoKey
-	cos := prototype.NewCoin(0)
-	vest := prototype.NewVest(0)
-	newAccount.Balance = cos
-	newAccount.VestingShares = vest
-
-	mustSuccess( newAccountWrap.CreateAccount(newAccount), "duplicate create account object")
+	res := true
+	err := newAccountWrap.Create(func(tInfo *table.SoAccount) {
+		tInfo.Name = op.NewAccountName
+		tInfo.Creator = op.Creator
+		tInfo.CreatedTime = dgpWrap.GetTime()
+		tInfo.PubKey = op.MemoKey
+		cos := prototype.NewCoin(0)
+		vest := prototype.NewVest(0)
+		tInfo.Balance = cos
+		tInfo.VestingShares = vest
+	})
+	if err != nil {
+		res = false
+	}
+	mustSuccess(res , "duplicate create account object")
 
 	// create account authority
 	authorityWrap := table.NewSoAccountAuthorityObjectWrap(ev.ctx.db,op.NewAccountName)
-	authority := &table.SoAccountAuthorityObject{}
-	authority.Account = op.NewAccountName
-	authority.Posting = op.Posting
-	authority.Active = op.Active
-	authority.Owner = op.Owner
-	authority.LastOwnerUpdate = &prototype.TimePointSec{UtcSeconds:0}
-
-	mustSuccess( authorityWrap.CreateAccountAuthorityObject(authority), "duplicate create account authority object")
+	cRes := true
+	err = authorityWrap.Create(func(tInfo *table.SoAccountAuthorityObject) {
+		tInfo.Account = op.NewAccountName
+		tInfo.Posting = op.Posting
+		tInfo.Active = op.Active
+		tInfo.Owner = op.Owner
+		tInfo.LastOwnerUpdate = &prototype.TimePointSec{UtcSeconds:0}
+	})
+	if err != nil {
+		cRes = false
+	}
+	mustSuccess(cRes , "duplicate create account authority object")
 
 	// create vesting
 	if op.Fee.Value > 0 {

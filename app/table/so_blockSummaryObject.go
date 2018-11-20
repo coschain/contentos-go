@@ -41,38 +41,36 @@ func (s *SoBlockSummaryObjectWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoBlockSummaryObjectWrap) CreateBlockSummaryObject(sa *SoBlockSummaryObject) bool {
-
-	if sa == nil {
-		return false
-	}
+func (s *SoBlockSummaryObjectWrap) Create(f func(tInfo *SoBlockSummaryObject)) error {
+    val := &SoBlockSummaryObject{}
+    f(val)
     if s.CheckExist() {
-       return false
+       return errors.New("the mainkey is already exist")
     }
 	keyBuf, err := s.encodeMainKey()
+	if err != nil {
+       return err
 
-	if err != nil {
-		return false
 	}
-	resBuf, err := proto.Marshal(sa)
+	resBuf, err := proto.Marshal(val)
 	if err != nil {
-		return false
+		return err
 	}
 	err = s.dba.Put(keyBuf, resBuf)
 	if err != nil {
-		return false
+		return err
 	}
 
 	// update sort list keys
 	
   
     //update unique list
-    if !s.insertUniKeyId(sa) {
-		return false
+    if !s.insertUniKeyId(val) {
+		return errors.New("insert unique Field uint32 while insert table ")
 	}
 	
     
-	return true
+	return nil
 }
 
 ////////////// SECTION LKeys delete/insert ///////////////

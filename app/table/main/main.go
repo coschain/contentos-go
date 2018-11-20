@@ -44,21 +44,18 @@ func main() {
     if wrap.CheckExist() {
     	wrap.RemoveDemo()
 	}
-	//2.create the pb struct
-	data := table.SoDemo{
-	 	Owner:mKey,
-	 	Title:"hello",
-	 	Content:"test the pb tool",
-	 	Idx: 1001,
-	 	LikeCount:100,
-	 	Taglist:[]string{"#NBA"},
-	 	ReplayCount:100,
-		PostTime:creTimeSecondPoint(20120401),
-	 }
-
-	 //3.save table data to db
-	 res := wrap.CreateDemo(&data)
-	 if !res {
+	 //2.save table data to db
+	 err = wrap.Create(func(tInfo *table.SoDemo) {
+		 tInfo.Owner = mKey
+		 tInfo.Title = "hello"
+		 tInfo.Content = "test the pb tool"
+		 tInfo.Idx = 1001
+		 tInfo.LikeCount = 100
+		 tInfo.Taglist = []string{"#NBA"}
+		 tInfo.ReplayCount = 100
+		 tInfo.PostTime = creTimeSecondPoint(20120401)
+	 })
+	 if err != nil {
 		 fmt.Println("create new table of Demo fail")
 		 return
 	 }

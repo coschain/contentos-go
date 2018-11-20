@@ -43,42 +43,43 @@ func (s *SoTransactionObjectWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoTransactionObjectWrap) CreateTransactionObject(sa *SoTransactionObject) bool {
-
-	if sa == nil {
-		return false
-	}
+func (s *SoTransactionObjectWrap) Create(f func(tInfo *SoTransactionObject)) error {
+    val := &SoTransactionObject{}
+    f(val)
+    if val.TrxId == nil {
+       return errors.New("the mainkey is nil")
+    }
     if s.CheckExist() {
-       return false
+       return errors.New("the mainkey is already exist")
     }
 	keyBuf, err := s.encodeMainKey()
+	if err != nil {
+       return err
 
-	if err != nil {
-		return false
 	}
-	resBuf, err := proto.Marshal(sa)
+	resBuf, err := proto.Marshal(val)
 	if err != nil {
-		return false
+		return err
 	}
 	err = s.dba.Put(keyBuf, resBuf)
 	if err != nil {
-		return false
+		return err
 	}
 
 	// update sort list keys
 	
-	if !s.insertSortKeyExpiration(sa) {
-		return false
+	if !s.insertSortKeyExpiration(val) {
+       return errors.New("insert sort Field Expiration while insert table ")
 	}
 	
   
     //update unique list
-    if !s.insertUniKeyTrxId(sa) {
-		return false
+    if !s.insertUniKeyTrxId(val) {
+		return errors.New("insert unique Field prototype.Sha256 while insert table ")
 	}
 	
     
-	return true
+	return nil
 }
 
 ////////////// SECTION LKeys delete/insert ///////////////

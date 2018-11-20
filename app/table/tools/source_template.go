@@ -95,43 +95,47 @@ func (s *So{{.ClsName}}Wrap) CheckExist() bool {
 	return res
 }
 
-func (s *So{{.ClsName}}Wrap) Create{{.ClsName}}(sa *So{{.ClsName}}) bool {
-
-	if sa == nil {
-		return false
-	}
+func (s *So{{.ClsName}}Wrap) Create(f func(tInfo *So{{.ClsName}})) error {
+    val := &So{{.ClsName}}{}
+    f(val)
+    {{$baseType := (DetectBaseType $.MainKeyType) -}}
+    {{- if not $baseType -}} 
+    if val.{{$.MainKeyName}} == nil {
+       return errors.New("the mainkey is nil")
+    }
+    {{ end -}}
     if s.CheckExist() {
-       return false
+       return errors.New("the mainkey is already exist")
     }
 	keyBuf, err := s.encodeMainKey()
+	if err != nil {
+       return err
 
-	if err != nil {
-		return false
 	}
-	resBuf, err := proto.Marshal(sa)
+	resBuf, err := proto.Marshal(val)
 	if err != nil {
-		return false
+		return err
 	}
 	err = s.dba.Put(keyBuf, resBuf)
 	if err != nil {
-		return false
+		return err
 	}
 
 	// update sort list keys
 	{{range $k, $v := .LKeys}}
-	if !s.insertSortKey{{$v}}(sa) {
-		return false
+	if !s.insertSortKey{{$v}}(val) {
+       return errors.New("insert sort Field {{$v}} while insert table ")
 	}
 	{{end}}
   
     //update unique list
     {{range $k, $v := .UniqueFieldMap -}}
-	if !s.insertUniKey{{$k}}(sa) {
-		return false
+	if !s.insertUniKey{{$k}}(val) {
+		return errors.New("insert unique Field {{$v}} while insert table ")
 	}
 	{{end}}
     
-	return true
+	return nil
 }
 
 ////////////// SECTION LKeys delete/insert ///////////////

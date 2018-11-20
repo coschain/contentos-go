@@ -43,42 +43,43 @@ func (s *SoWitnessWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoWitnessWrap) CreateWitness(sa *SoWitness) bool {
-
-	if sa == nil {
-		return false
-	}
+func (s *SoWitnessWrap) Create(f func(tInfo *SoWitness)) error {
+    val := &SoWitness{}
+    f(val)
+    if val.Owner == nil {
+       return errors.New("the mainkey is nil")
+    }
     if s.CheckExist() {
-       return false
+       return errors.New("the mainkey is already exist")
     }
 	keyBuf, err := s.encodeMainKey()
+	if err != nil {
+       return err
 
-	if err != nil {
-		return false
 	}
-	resBuf, err := proto.Marshal(sa)
+	resBuf, err := proto.Marshal(val)
 	if err != nil {
-		return false
+		return err
 	}
 	err = s.dba.Put(keyBuf, resBuf)
 	if err != nil {
-		return false
+		return err
 	}
 
 	// update sort list keys
 	
-	if !s.insertSortKeyOwner(sa) {
-		return false
+	if !s.insertSortKeyOwner(val) {
+       return errors.New("insert sort Field Owner while insert table ")
 	}
 	
   
     //update unique list
-    if !s.insertUniKeyOwner(sa) {
-		return false
+    if !s.insertUniKeyOwner(val) {
+		return errors.New("insert unique Field prototype.AccountName while insert table ")
 	}
 	
     
-	return true
+	return nil
 }
 
 ////////////// SECTION LKeys delete/insert ///////////////

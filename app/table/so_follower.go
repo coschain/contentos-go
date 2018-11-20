@@ -43,42 +43,43 @@ func (s *SoFollowerWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoFollowerWrap) CreateFollower(sa *SoFollower) bool {
-
-	if sa == nil {
-		return false
-	}
+func (s *SoFollowerWrap) Create(f func(tInfo *SoFollower)) error {
+    val := &SoFollower{}
+    f(val)
+    if val.FollowerInfo == nil {
+       return errors.New("the mainkey is nil")
+    }
     if s.CheckExist() {
-       return false
+       return errors.New("the mainkey is already exist")
     }
 	keyBuf, err := s.encodeMainKey()
+	if err != nil {
+       return err
 
-	if err != nil {
-		return false
 	}
-	resBuf, err := proto.Marshal(sa)
+	resBuf, err := proto.Marshal(val)
 	if err != nil {
-		return false
+		return err
 	}
 	err = s.dba.Put(keyBuf, resBuf)
 	if err != nil {
-		return false
+		return err
 	}
 
 	// update sort list keys
 	
-	if !s.insertSortKeyFollowerInfo(sa) {
-		return false
+	if !s.insertSortKeyFollowerInfo(val) {
+       return errors.New("insert sort Field FollowerInfo while insert table ")
 	}
 	
   
     //update unique list
-    if !s.insertUniKeyFollowerInfo(sa) {
-		return false
+    if !s.insertUniKeyFollowerInfo(val) {
+		return errors.New("insert unique Field prototype.FollowerRelation while insert table ")
 	}
 	
     
-	return true
+	return nil
 }
 
 ////////////// SECTION LKeys delete/insert ///////////////

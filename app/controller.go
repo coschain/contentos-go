@@ -263,10 +263,11 @@ func (c *Controller) _applyTransaction(trxWrp *prototype.TransactionWrapper) {
 	}
 
 	// insert trx into DB unique table
-	obj := &table.SoTransactionObject{}
-	obj.TrxId = c._currentTrxId
-	obj.Expiration = &prototype.TimePointSec{UtcSeconds: 100}
-	if !transactionObjWrap.CreateTransactionObject(obj) {
+	cErr := transactionObjWrap.Create(func(tInfo *table.SoTransactionObject) {
+		tInfo.TrxId = c._currentTrxId
+		tInfo.Expiration = &prototype.TimePointSec{UtcSeconds: 100}
+	})
+	if cErr != nil {
 		panic("create transactionObject failed")
 	}
 	// @ not use yet
@@ -398,26 +399,23 @@ func (c *Controller) _applyBlock(blk *prototype.SignedBlock) {
 func (c *Controller) initGenesis() {
 
 	// create initminer
-	pubKey, _ := prototype.PublicKeyFromWIF(constants.INITMINER_PUBKEY)
-	name := &prototype.AccountName{Value: constants.INIT_MINER_NAME}
-	newAccountWrap := table.NewSoAccountWrap(c.db, name)
-	newAccount := &table.SoAccount{}
-	newAccount.Name = name
-	newAccount.PubKey = pubKey
-	newAccount.CreatedTime = &prototype.TimePointSec{UtcSeconds: 0}
+	pubKey , _ := prototype.PublicKeyFromWIF(constants.INITMINER_PUBKEY)
+	name := &prototype.AccountName{Value:constants.INIT_MINER_NAME}
+	newAccountWrap := table.NewSoAccountWrap(c.db,name)
 	cos := prototype.NewCoin(constants.INIT_SUPPLY)
 	vest := prototype.NewVest(0)
-	newAccount.Balance = cos
-	newAccount.VestingShares = vest
-	if !newAccountWrap.CreateAccount(newAccount) {
+	if newAccountWrap.Create(func(tInfo *table.SoAccount) {
+		tInfo.Name = name
+		tInfo.PubKey = pubKey
+		tInfo.CreatedTime = &prototype.TimePointSec{UtcSeconds:0}
+		tInfo.Balance = cos
+		tInfo.VestingShares = vest
+	}) != nil {
 		panic("CreateAccount error")
 	}
 
 	// create account authority
 	authorityWrap := table.NewSoAccountAuthorityObjectWrap(c.db, name)
-	authority := &table.SoAccountAuthorityObject{}
-	authority.Account = name
-
 	ownerAuth := &prototype.Authority{
 		WeightThreshold: 1,
 		KeyAuths: []*prototype.KvKeyAuth{
@@ -427,45 +425,46 @@ func (c *Controller) initGenesis() {
 			},
 		},
 	}
-	authority.Posting = ownerAuth
-	authority.Active = ownerAuth
-	authority.Owner = ownerAuth
-	if !authorityWrap.CreateAccountAuthorityObject(authority) {
+	if authorityWrap.Create(func(tInfo *table.SoAccountAuthorityObject) {
+		tInfo.Account = name
+		tInfo.Posting = ownerAuth
+		tInfo.Active = ownerAuth
+		tInfo.Owner = ownerAuth
+	}) != nil {
 		panic("CreateAccountAuthorityObject error ")
 	}
 	// create witness_object
-	witnessWrap := table.NewSoWitnessWrap(c.db, name)
-	witness := &table.SoWitness{
-		Owner:               name,
-		WitnessScheduleType: &prototype.WitnessScheduleType{Value: prototype.WitnessScheduleType_miner},
-		CreatedTime:         &prototype.TimePointSec{UtcSeconds: 0},
-		SigningKey:          pubKey,
-		LastWork:            &prototype.Sha256{Hash: []byte{0}},
-	}
-	witnessWrap.CreateWitness(witness)
+	witnessWrap := table.NewSoWitnessWrap(c.db,name)
+	witnessWrap.Create(func(tInfo *table.SoWitness) {
+		tInfo.Owner = name
+		tInfo.WitnessScheduleType = &prototype.WitnessScheduleType{Value:prototype.WitnessScheduleType_miner}
+		tInfo.CreatedTime = &prototype.TimePointSec{UtcSeconds:0}
+		tInfo.SigningKey = pubKey
+		tInfo.LastWork = &prototype.Sha256{Hash:[]byte{0}}
+	})
 
 	// create dynamic global properties
 	var i int32 = 0
-	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db, &i)
-	dgp := &table.SoDynamicGlobalProperties{}
-	dgp.CurrentWitness = name
-	dgp.Time = &prototype.TimePointSec{UtcSeconds: constants.GENESIS_TIME}
-	// @ recent_slots_filled
-	// @ participation_count
-	dgp.CurrentSupply = cos
-	dgp.TotalCos = cos
-	dgp.MaximumBlockSize = constants.MAX_BLOCK_SIZE
-	dgp.TotalVestingShares = prototype.NewVest(0)
-	if !dgpWrap.CreateDynamicGlobalProperties(dgp) {
+	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db,&i)
+	if dgpWrap.Create(func(tInfo *table.SoDynamicGlobalProperties) {
+		tInfo.CurrentWitness = name
+		tInfo.Time = &prototype.TimePointSec{UtcSeconds:constants.GENESIS_TIME}
+		// @ recent_slots_filled
+		// @ participation_count
+		tInfo.CurrentSupply = cos
+		tInfo.TotalCos = cos
+		tInfo.MaximumBlockSize = constants.MAX_BLOCK_SIZE
+		tInfo.TotalVestingShares = prototype.NewVest(0)
+	}) != nil {
 		panic("CreateDynamicGlobalProperties error")
 	}
 
 	// create block summary
 	for i := uint32(0); i < 0x10000; i++ {
 		wrap := table.NewSoBlockSummaryObjectWrap(c.db, &i)
-		obj := &table.SoBlockSummaryObject{}
-		obj.Id = i
-		if !wrap.CreateBlockSummaryObject(obj) {
+		if wrap.Create(func(tInfo *table.SoBlockSummaryObject) {
+			tInfo.Id = i
+		}) != nil {
 			panic("CreateBlockSummaryObject error")
 		}
 	}

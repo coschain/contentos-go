@@ -41,38 +41,39 @@ func (s *SoAccountAuthorityObjectWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoAccountAuthorityObjectWrap) CreateAccountAuthorityObject(sa *SoAccountAuthorityObject) bool {
-
-	if sa == nil {
-		return false
-	}
+func (s *SoAccountAuthorityObjectWrap) Create(f func(tInfo *SoAccountAuthorityObject)) error {
+    val := &SoAccountAuthorityObject{}
+    f(val)
+    if val.Account == nil {
+       return errors.New("the mainkey is nil")
+    }
     if s.CheckExist() {
-       return false
+       return errors.New("the mainkey is already exist")
     }
 	keyBuf, err := s.encodeMainKey()
+	if err != nil {
+       return err
 
-	if err != nil {
-		return false
 	}
-	resBuf, err := proto.Marshal(sa)
+	resBuf, err := proto.Marshal(val)
 	if err != nil {
-		return false
+		return err
 	}
 	err = s.dba.Put(keyBuf, resBuf)
 	if err != nil {
-		return false
+		return err
 	}
 
 	// update sort list keys
 	
   
     //update unique list
-    if !s.insertUniKeyAccount(sa) {
-		return false
+    if !s.insertUniKeyAccount(val) {
+		return errors.New("insert unique Field prototype.AccountName while insert table ")
 	}
 	
     
-	return true
+	return nil
 }
 
 ////////////// SECTION LKeys delete/insert ///////////////
