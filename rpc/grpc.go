@@ -24,6 +24,10 @@ type APIService struct {
 
 func (as *APIService) GetAccountByName(ctx context.Context, req *grpcpb.GetAccountByNameRequest) (*grpcpb.AccountResponse, error) {
 
+	if true {
+		panic("123")
+	}
+
 	accWrap := table.NewSoAccountWrap(as.db, req.AccountName)
 	acct := &grpcpb.AccountResponse{AccountName: &prototype.AccountName{}}
 

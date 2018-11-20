@@ -6,6 +6,7 @@ import (
 	"github.com/coschain/contentos-go/iservices/service-configs"
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/rpc/pb"
+	"github.com/grpc-ecosystem/go-grpc-middleware"
 	"net"
 
 	"google.golang.org/grpc"
@@ -24,14 +25,13 @@ type GRPCServer struct {
 }
 
 func NewGRPCServer(ctx *node.ServiceContext, config service_configs.GRPCConfig) (*GRPCServer, error) {
-	rpc := grpc.NewServer(grpc.MaxRecvMsgSize(GRPCMaxRecvMsgSize))
-
+	rpc := grpc.NewServer(
+		grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(streamLoggingInterceptor, streamRecoveryInterceptor)),
+		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(unaryLoggingInterceptor, unaryRecoveryInterceptor)),
+		grpc.MaxRecvMsgSize(GRPCMaxRecvMsgSize))
 	api := &APIService{}
-
 	grpcpb.RegisterApiServiceServer(rpc, api)
-
 	srv := &GRPCServer{rpcServer: rpc, ctx: ctx, api: api, config: &config}
-
 	return srv, nil
 }
 
@@ -79,6 +79,7 @@ func (gs *GRPCServer) startGRPC() error {
 	}
 
 	go func() {
+		grpc.NewServer()
 		if err := gs.rpcServer.Serve(listener); err != nil {
 			logging.VLog().Error("rpc server start failure")
 		} else {

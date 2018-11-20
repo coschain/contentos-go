@@ -15,9 +15,7 @@ require (
 	github.com/golang/mock v1.1.1
 	github.com/golang/protobuf v1.2.0
 	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db // indirect
-	github.com/grpc-ecosystem/grpc-gateway v1.5.1
-	github.com/hashicorp/golang-lru v0.5.0
-	github.com/howeyc/gopass v0.0.0-20170109162249-bf9dde6d0d2c
+	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0
 	github.com/inconshreveable/log15 v0.0.0-20180818164646-67afb5ed74ec
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/itchyny/base58-go v0.0.0-20181013094353-56d50cf40874
