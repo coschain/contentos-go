@@ -468,9 +468,9 @@ func (c *Controller) initGenesis() {
 
 	// create witness scheduler
 	witnessScheduleWrap := table.NewSoWitnessScheduleObjectWrap(c.db, &i)
-	witnessSchedule := &table.SoWitnessScheduleObject{}
-	witnessSchedule.CurrentShuffledWitness = append(witnessSchedule.CurrentShuffledWitness, constants.COS_INIT_MINER)
-	witnessScheduleWrap.CreateWitnessScheduleObject(witnessSchedule)
+	witnessScheduleWrap.Create(func(tInfo *table.SoWitnessScheduleObject) {
+		tInfo.CurrentShuffledWitness = append(tInfo.CurrentShuffledWitness, constants.COS_INIT_MINER)
+	})
 }
 
 func (c *Controller) CreateVesting(accountName *prototype.AccountName, cos *prototype.Coin) *prototype.Vest {
