@@ -1,23 +1,17 @@
 type                            ,pName              ,mKey   ,unique ,sort   ,reverseSort
 uint64                          ,post_id            ,1      ,1      ,0      ,0
 string                          ,category           ,0      ,0      ,0      ,0
-prototype.account_name          ,parent_author      ,0      ,0      ,0      ,0
-string                          ,parent_permlink    ,0      ,0      ,0      ,0
 prototype.account_name          ,author             ,0      ,0      ,0      ,0
-string                          ,permlink           ,0      ,0      ,0      ,0
 string                          ,title              ,0      ,0      ,0      ,0
 string                          ,body               ,0      ,0      ,0      ,0
-string                          ,json_metadata      ,0      ,0      ,0      ,0
-prototype.time_point_sec        ,last_update        ,0      ,0      ,0      ,0
-prototype.time_point_sec        ,created            ,0      ,0      ,0      ,0
-prototype.time_point_sec        ,active             ,0      ,0      ,0      ,0
+[]string                        ,tags									      ,0      ,0      ,0      ,0
+prototype.time_point_sec        ,created            ,0      ,0      ,1      ,0
 prototype.time_point_sec        ,last_payout        ,0      ,0      ,0      ,0
 uint16                          ,depth              ,0      ,0      ,0      ,0
 uint32                          ,children           ,0      ,0      ,0      ,0
 uint64                          ,root_id            ,0      ,0      ,0      ,0
-uint64                          ,parent_id          ,0      ,0      ,0      ,0
-bool                            ,allow_replies      ,0      ,0      ,0      ,0
-bool                            ,allow_votes        ,0      ,0      ,0      ,0
+uint64                   							,parent_id          ,0      ,0      ,0      ,0
+uint64                          ,vote_cnt           ,0      ,0      ,0      ,0
 prototype.post_created_order    ,created_order      ,0      ,0      ,0      ,1
 prototype.post_reply_order      ,reply_order        ,0      ,0      ,0      ,1
 

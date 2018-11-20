@@ -16,4 +16,5 @@ type IController interface {
 	CreateVesting(accountName *prototype.AccountName, cos *prototype.Coin) *prototype.Vest
 	AddBalance(accountName *prototype.AccountName, cos *prototype.Coin)
 	SubBalance(accountName *prototype.AccountName, cos *prototype.Coin)
+	HeadBlockTime() *prototype.TimePointSec
 }
