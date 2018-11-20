@@ -15,7 +15,6 @@ import (
 var (
 	TransactionObjectTable        = []byte("TransactionObjectTable")
     TransactionObjectExpirationTable = []byte("TransactionObjectExpirationTable")
-    TransactionObjectExpirationRevOrdTable = []byte("TransactionObjectExpirationRevOrdTable")
     TransactionObjectTrxIdUniTable = []byte("TransactionObjectTrxIdUniTable")
     )
 
@@ -94,7 +93,6 @@ func (s *SoTransactionObjectWrap) delSortKeyExpiration(sa *SoTransactionObject) 
 	}
     ordErr :=  s.dba.Delete(subBuf)
     return ordErr == nil
-    
 }
 
 
@@ -112,7 +110,6 @@ func (s *SoTransactionObjectWrap) insertSortKeyExpiration(sa *SoTransactionObjec
 	}
     ordErr :=  s.dba.Put(subBuf, buf) 
     return ordErr == nil
-    
 }
 
 
@@ -252,25 +249,6 @@ func (m *SoListTransactionObjectByExpiration) OpeEncode() ([]byte,error) {
     kList := []interface{}{pre,sub,sub1}
     kBuf,cErr := encoding.EncodeSlice(kList,false)
     return kBuf,cErr
-}
-
-func (m *SoListTransactionObjectByExpiration) EncodeRevSortKey() ([]byte,error) {
-    pre := TransactionObjectExpirationRevOrdTable
-    sub := m.Expiration
-    if sub == nil {
-       return nil,errors.New("the pro Expiration is nil")
-    }
-    sub1 := m.TrxId
-    if sub1 == nil {
-       return nil,errors.New("the mainkey TrxId is nil")
-    }
-    kList := []interface{}{pre,sub,sub1}
-    ordKey,cErr := encoding.EncodeSlice(kList,false)
-    if cErr != nil {
-       return nil,cErr
-    }
-    revKey,revRrr := encoding.Complement(ordKey, cErr)
-    return revKey,revRrr
 }
 
 //Query sort by order 

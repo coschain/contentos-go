@@ -15,7 +15,6 @@ import (
 var (
 	WitnessTable        = []byte("WitnessTable")
     WitnessOwnerTable = []byte("WitnessOwnerTable")
-    WitnessOwnerRevOrdTable = []byte("WitnessOwnerRevOrdTable")
     WitnessOwnerUniTable = []byte("WitnessOwnerUniTable")
     )
 
@@ -93,7 +92,6 @@ func (s *SoWitnessWrap) delSortKeyOwner(sa *SoWitness) bool {
 	}
     ordErr :=  s.dba.Delete(subBuf)
     return ordErr == nil
-    
 }
 
 
@@ -110,7 +108,6 @@ func (s *SoWitnessWrap) insertSortKeyOwner(sa *SoWitness) bool {
 	}
     ordErr :=  s.dba.Put(subBuf, buf) 
     return ordErr == nil
-    
 }
 
 
@@ -477,25 +474,6 @@ func (m *SoListWitnessByOwner) OpeEncode() ([]byte,error) {
     kList := []interface{}{pre,sub,sub1}
     kBuf,cErr := encoding.EncodeSlice(kList,false)
     return kBuf,cErr
-}
-
-func (m *SoListWitnessByOwner) EncodeRevSortKey() ([]byte,error) {
-    pre := WitnessOwnerRevOrdTable
-    sub := m.Owner
-    if sub == nil {
-       return nil,errors.New("the pro Owner is nil")
-    }
-    sub1 := m.Owner
-    if sub1 == nil {
-       return nil,errors.New("the mainkey Owner is nil")
-    }
-    kList := []interface{}{pre,sub,sub1}
-    ordKey,cErr := encoding.EncodeSlice(kList,false)
-    if cErr != nil {
-       return nil,cErr
-    }
-    revKey,revRrr := encoding.Complement(ordKey, cErr)
-    return revKey,revRrr
 }
 
 //Query sort by order 

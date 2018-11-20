@@ -64,7 +64,6 @@ var (
 	{{.ClsName}}Table        = []byte("{{.ClsName}}Table")
     {{range $k, $v := .SortList -}}
     {{$.ClsName}}{{$v.PName}}Table = []byte("{{$.ClsName}}{{$v.PName}}Table")
-    {{$.ClsName}}{{$v.PName}}RevOrdTable = []byte("{{$.ClsName}}{{$v.PName}}RevOrdTable")
     {{end -}}
     {{range $k, $v := .UniqueFieldMap -}}
 	{{$.ClsName}}{{$k}}UniTable = []byte("{{$.ClsName}}{{$k}}UniTable")
@@ -143,39 +142,12 @@ func (s *So{{$.ClsName}}Wrap) delSortKey{{$v1.PName}}(sa *So{{$.ClsName}}) bool 
     {{if ne $.MainKeyName $v1.PName -}}
     val.{{UperFirstChar $.MainKeyName}} = sa.{{UperFirstChar $.MainKeyName}}
     {{end -}}
-    {{if eq $v1.SType 1 -}}
     subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
 	}
     ordErr :=  s.dba.Delete(subBuf)
     return ordErr == nil
-    {{end -}}
-    {{if eq $v1.SType 2 -}}
-    subRevBuf, err := val.EncodeRevSortKey()
-	if err != nil {
-		return false
-	}
-    revOrdErr :=  s.dba.Delete(subRevBuf) 
-    return revOrdErr == nil
-    {{end -}}
-    {{if eq $v1.SType 3 -}}
-    subBuf, err := val.OpeEncode()
-    var ordErr,revOrdErr error
-	if err == nil {
-       ordKey := append({{$.ClsName}}{{$v1.PName}}Table, subBuf...)
-       ordErr =  s.dba.Delete(ordKey) 
-	}
-    subRevBuf, err := val.EncodeRevSortKey()
-	if err == nil {
-		revOrdKey := append({{$.ClsName}}{{$v1.PName}}RevOrdTable, subRevBuf...)
-        revOrdErr =  s.dba.Delete(revOrdKey) 
-	}
-    if ordErr == nil && revOrdErr == nil {
-       return true
-    }
-    return false
-    {{end}}
 }
 
 
@@ -189,37 +161,12 @@ func (s *So{{$.ClsName}}Wrap) insertSortKey{{$v1.PName}}(sa *So{{$.ClsName}}) bo
 	if err != nil {
 		return false
 	}
-    {{if eq $v1.SType 1 -}}
     subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
 	}
     ordErr :=  s.dba.Put(subBuf, buf) 
     return ordErr == nil
-    {{end -}}
-    {{if eq $v1.SType 2 -}}
-    subRevBuf, err := val.EncodeRevSortKey()
-	if err != nil {
-		return false
-	}
-    revOrdErr :=  s.dba.Put(subRevBuf, buf) 
-    return revOrdErr == nil
-    {{end -}}
-    {{if eq $v1.SType 3 -}}
-    subBuf, err := val.OpeEncode()
-    var ordErr,revOrdErr error
-	if err == nil {
-       ordErr =  s.dba.Put(subBuf, buf) 
-	}
-    subRevBuf, err := val.EncodeRevSortKey()
-	if err == nil {
-        revOrdErr =  s.dba.Put(subRevBuf, buf) 
-	}
-    if ordErr == nil && revOrdErr == nil {
-       return true
-    }
-    return false
-    {{end}}
 }
 
 {{end}}
@@ -407,31 +354,6 @@ func (m *SoList{{$.ClsName}}By{{$v.PName}}) OpeEncode() ([]byte,error) {
     return kBuf,cErr
 }
 
-func (m *SoList{{$.ClsName}}By{{$v.PName}}) EncodeRevSortKey() ([]byte,error) {
-    pre := {{$.ClsName}}{{$v.PName}}RevOrdTable
-    sub := m.{{$v.PName}}
-    {{$baseType := (DetectBaseType $v.PType) -}}
-    {{- if not $baseType -}} 
-    if sub == nil {
-       return nil,errors.New("the pro {{$v.PName}} is nil")
-    }
-    {{- end}}
-    sub1 := m.{{UperFirstChar $.MainKeyName}}
-    {{$mType := (DetectBaseType $.MainKeyType) -}}
-    {{- if not $mType -}} 
-    if sub1 == nil {
-       return nil,errors.New("the mainkey {{$.MainKeyName}} is nil")
-    }
-    {{- end}}
-    kList := []interface{}{pre,sub,sub1}
-    ordKey,cErr := encoding.EncodeSlice(kList,false)
-    if cErr != nil {
-       return nil,cErr
-    }
-    revKey,revRrr := encoding.Complement(ordKey, cErr)
-    return revKey,revRrr
-}
-
 {{if or (eq $v.SType 1) (eq $v.SType 3) -}}
 //Query sort by order 
 //start = nil  end = nil (query the db from start to end)
@@ -476,49 +398,40 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByOrder(start *{{$v.PType}}, e
 //Query sort by reverse order 
 func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByRevOrder(start *{{$v.PType}}, end *{{$v.PType}}) iservices.IDatabaseIterator {
 
-    var sBuf,eBuf,rBufStart,rBufEnd []byte
-    pre := {{$.ClsName}}{{$v.PName}}RevOrdTable
+    pre := {{$.ClsName}}{{$v.PName}}Table
+    skeyList := []interface{}{pre}
     if start != nil {
-       skeyList := []interface{}{pre,start}
-       buf,cErr := encoding.EncodeSlice(skeyList,false)
-       if cErr != nil {
+       skeyList = append(skeyList,start)
+    }
+    sBuf,cErr := encoding.EncodeSlice(skeyList,false)
+    if cErr != nil {
          return nil
-       }
-       sBuf = buf
     }
-    
+    eKeyList := []interface{}{pre}
     if end != nil {
-       eKeyList := []interface{}{pre,end}
-       buf,err := encoding.EncodeSlice(eKeyList,false)
-       if err != nil {
-          return nil
-       }
-       eBuf = buf
-
+       eKeyList = append(eKeyList,end)
+    }
+    eBuf,cErr := encoding.EncodeSlice(eKeyList,false)
+    if cErr != nil {
+       return nil
     }
 
-    if sBuf != nil && eBuf != nil {
+    if start != nil && end != nil {
        res := bytes.Compare(sBuf,eBuf)
        if res == -1 {
           // order
           return nil
+       }else if res == 0 {
+          sBuf = nil
        }
+    }else if start == nil {
+       //query from min data 
+       sBuf = nil
+    }else {
+       //query to the max data
+       eBuf = nil
     }
-    if sBuf != nil {
-       rBuf,rErr := encoding.Complement(sBuf, nil)
-       if rErr != nil {
-          return nil
-       }
-       rBufStart = rBuf
-    }
-    if eBuf != nil {
-          rBuf,rErr := encoding.Complement(eBuf, nil)
-          if rErr != nil { 
-            return nil
-          }
-          rBufEnd = rBuf
-    }
-    iter := s.Dba.NewIterator(rBufStart, rBufEnd)
+    iter := s.Dba.NewReversedIterator(eBuf,sBuf)
     return iter
 }
 {{end -}}

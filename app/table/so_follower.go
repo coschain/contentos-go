@@ -15,7 +15,6 @@ import (
 var (
 	FollowerTable        = []byte("FollowerTable")
     FollowerFollowerInfoTable = []byte("FollowerFollowerInfoTable")
-    FollowerFollowerInfoRevOrdTable = []byte("FollowerFollowerInfoRevOrdTable")
     FollowerFollowerInfoUniTable = []byte("FollowerFollowerInfoUniTable")
     )
 
@@ -93,7 +92,6 @@ func (s *SoFollowerWrap) delSortKeyFollowerInfo(sa *SoFollower) bool {
 	}
     ordErr :=  s.dba.Delete(subBuf)
     return ordErr == nil
-    
 }
 
 
@@ -110,7 +108,6 @@ func (s *SoFollowerWrap) insertSortKeyFollowerInfo(sa *SoFollower) bool {
 	}
     ordErr :=  s.dba.Put(subBuf, buf) 
     return ordErr == nil
-    
 }
 
 
@@ -217,25 +214,6 @@ func (m *SoListFollowerByFollowerInfo) OpeEncode() ([]byte,error) {
     kList := []interface{}{pre,sub,sub1}
     kBuf,cErr := encoding.EncodeSlice(kList,false)
     return kBuf,cErr
-}
-
-func (m *SoListFollowerByFollowerInfo) EncodeRevSortKey() ([]byte,error) {
-    pre := FollowerFollowerInfoRevOrdTable
-    sub := m.FollowerInfo
-    if sub == nil {
-       return nil,errors.New("the pro FollowerInfo is nil")
-    }
-    sub1 := m.FollowerInfo
-    if sub1 == nil {
-       return nil,errors.New("the mainkey FollowerInfo is nil")
-    }
-    kList := []interface{}{pre,sub,sub1}
-    ordKey,cErr := encoding.EncodeSlice(kList,false)
-    if cErr != nil {
-       return nil,cErr
-    }
-    revKey,revRrr := encoding.Complement(ordKey, cErr)
-    return revKey,revRrr
 }
 
 //Query sort by order 

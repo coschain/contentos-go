@@ -15,9 +15,7 @@ import (
 var (
 	PostTable        = []byte("PostTable")
     PostCreatedOrderTable = []byte("PostCreatedOrderTable")
-    PostCreatedOrderRevOrdTable = []byte("PostCreatedOrderRevOrdTable")
     PostReplyOrderTable = []byte("PostReplyOrderTable")
-    PostReplyOrderRevOrdTable = []byte("PostReplyOrderRevOrdTable")
     PostPostIdUniTable = []byte("PostPostIdUniTable")
     )
 
@@ -94,13 +92,12 @@ func (s *SoPostWrap) delSortKeyCreatedOrder(sa *SoPost) bool {
 	val := SoListPostByCreatedOrder{}
 	val.CreatedOrder = sa.CreatedOrder
     val.PostId = sa.PostId
-    subRevBuf, err := val.EncodeRevSortKey()
+    subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
 	}
-    revOrdErr :=  s.dba.Delete(subRevBuf) 
-    return revOrdErr == nil
-    
+    ordErr :=  s.dba.Delete(subBuf)
+    return ordErr == nil
 }
 
 
@@ -112,13 +109,12 @@ func (s *SoPostWrap) insertSortKeyCreatedOrder(sa *SoPost) bool {
 	if err != nil {
 		return false
 	}
-    subRevBuf, err := val.EncodeRevSortKey()
+    subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
 	}
-    revOrdErr :=  s.dba.Put(subRevBuf, buf) 
-    return revOrdErr == nil
-    
+    ordErr :=  s.dba.Put(subBuf, buf) 
+    return ordErr == nil
 }
 
 
@@ -126,13 +122,12 @@ func (s *SoPostWrap) delSortKeyReplyOrder(sa *SoPost) bool {
 	val := SoListPostByReplyOrder{}
 	val.ReplyOrder = sa.ReplyOrder
     val.PostId = sa.PostId
-    subRevBuf, err := val.EncodeRevSortKey()
+    subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
 	}
-    revOrdErr :=  s.dba.Delete(subRevBuf) 
-    return revOrdErr == nil
-    
+    ordErr :=  s.dba.Delete(subBuf)
+    return ordErr == nil
 }
 
 
@@ -144,13 +139,12 @@ func (s *SoPostWrap) insertSortKeyReplyOrder(sa *SoPost) bool {
 	if err != nil {
 		return false
 	}
-    subRevBuf, err := val.EncodeRevSortKey()
+    subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
 	}
-    revOrdErr :=  s.dba.Put(subRevBuf, buf) 
-    return revOrdErr == nil
-    
+    ordErr :=  s.dba.Put(subBuf, buf) 
+    return ordErr == nil
 }
 
 
@@ -795,70 +789,44 @@ func (m *SoListPostByCreatedOrder) OpeEncode() ([]byte,error) {
     return kBuf,cErr
 }
 
-func (m *SoListPostByCreatedOrder) EncodeRevSortKey() ([]byte,error) {
-    pre := PostCreatedOrderRevOrdTable
-    sub := m.CreatedOrder
-    if sub == nil {
-       return nil,errors.New("the pro CreatedOrder is nil")
-    }
-    sub1 := m.PostId
-    
-    kList := []interface{}{pre,sub,sub1}
-    ordKey,cErr := encoding.EncodeSlice(kList,false)
-    if cErr != nil {
-       return nil,cErr
-    }
-    revKey,revRrr := encoding.Complement(ordKey, cErr)
-    return revKey,revRrr
-}
-
 
 //Query sort by reverse order 
 func (s *SPostCreatedOrderWrap) QueryListByRevOrder(start *prototype.PostCreatedOrder, end *prototype.PostCreatedOrder) iservices.IDatabaseIterator {
 
-    var sBuf,eBuf,rBufStart,rBufEnd []byte
-    pre := PostCreatedOrderRevOrdTable
+    pre := PostCreatedOrderTable
+    skeyList := []interface{}{pre}
     if start != nil {
-       skeyList := []interface{}{pre,start}
-       buf,cErr := encoding.EncodeSlice(skeyList,false)
-       if cErr != nil {
+       skeyList = append(skeyList,start)
+    }
+    sBuf,cErr := encoding.EncodeSlice(skeyList,false)
+    if cErr != nil {
          return nil
-       }
-       sBuf = buf
     }
-    
+    eKeyList := []interface{}{pre}
     if end != nil {
-       eKeyList := []interface{}{pre,end}
-       buf,err := encoding.EncodeSlice(eKeyList,false)
-       if err != nil {
-          return nil
-       }
-       eBuf = buf
-
+       eKeyList = append(eKeyList,end)
+    }
+    eBuf,cErr := encoding.EncodeSlice(eKeyList,false)
+    if cErr != nil {
+       return nil
     }
 
-    if sBuf != nil && eBuf != nil {
+    if start != nil && end != nil {
        res := bytes.Compare(sBuf,eBuf)
        if res == -1 {
           // order
           return nil
+       }else if res == 0 {
+          sBuf = nil
        }
+    }else if start == nil {
+       //query from min data 
+       sBuf = nil
+    }else {
+       //query to the max data
+       eBuf = nil
     }
-    if sBuf != nil {
-       rBuf,rErr := encoding.Complement(sBuf, nil)
-       if rErr != nil {
-          return nil
-       }
-       rBufStart = rBuf
-    }
-    if eBuf != nil {
-          rBuf,rErr := encoding.Complement(eBuf, nil)
-          if rErr != nil { 
-            return nil
-          }
-          rBufEnd = rBuf
-    }
-    iter := s.Dba.NewIterator(rBufStart, rBufEnd)
+    iter := s.Dba.NewReversedIterator(eBuf,sBuf)
     return iter
 }
 
@@ -927,70 +895,44 @@ func (m *SoListPostByReplyOrder) OpeEncode() ([]byte,error) {
     return kBuf,cErr
 }
 
-func (m *SoListPostByReplyOrder) EncodeRevSortKey() ([]byte,error) {
-    pre := PostReplyOrderRevOrdTable
-    sub := m.ReplyOrder
-    if sub == nil {
-       return nil,errors.New("the pro ReplyOrder is nil")
-    }
-    sub1 := m.PostId
-    
-    kList := []interface{}{pre,sub,sub1}
-    ordKey,cErr := encoding.EncodeSlice(kList,false)
-    if cErr != nil {
-       return nil,cErr
-    }
-    revKey,revRrr := encoding.Complement(ordKey, cErr)
-    return revKey,revRrr
-}
-
 
 //Query sort by reverse order 
 func (s *SPostReplyOrderWrap) QueryListByRevOrder(start *prototype.PostReplyOrder, end *prototype.PostReplyOrder) iservices.IDatabaseIterator {
 
-    var sBuf,eBuf,rBufStart,rBufEnd []byte
-    pre := PostReplyOrderRevOrdTable
+    pre := PostReplyOrderTable
+    skeyList := []interface{}{pre}
     if start != nil {
-       skeyList := []interface{}{pre,start}
-       buf,cErr := encoding.EncodeSlice(skeyList,false)
-       if cErr != nil {
+       skeyList = append(skeyList,start)
+    }
+    sBuf,cErr := encoding.EncodeSlice(skeyList,false)
+    if cErr != nil {
          return nil
-       }
-       sBuf = buf
     }
-    
+    eKeyList := []interface{}{pre}
     if end != nil {
-       eKeyList := []interface{}{pre,end}
-       buf,err := encoding.EncodeSlice(eKeyList,false)
-       if err != nil {
-          return nil
-       }
-       eBuf = buf
-
+       eKeyList = append(eKeyList,end)
+    }
+    eBuf,cErr := encoding.EncodeSlice(eKeyList,false)
+    if cErr != nil {
+       return nil
     }
 
-    if sBuf != nil && eBuf != nil {
+    if start != nil && end != nil {
        res := bytes.Compare(sBuf,eBuf)
        if res == -1 {
           // order
           return nil
+       }else if res == 0 {
+          sBuf = nil
        }
+    }else if start == nil {
+       //query from min data 
+       sBuf = nil
+    }else {
+       //query to the max data
+       eBuf = nil
     }
-    if sBuf != nil {
-       rBuf,rErr := encoding.Complement(sBuf, nil)
-       if rErr != nil {
-          return nil
-       }
-       rBufStart = rBuf
-    }
-    if eBuf != nil {
-          rBuf,rErr := encoding.Complement(eBuf, nil)
-          if rErr != nil { 
-            return nil
-          }
-          rBufEnd = rBuf
-    }
-    iter := s.Dba.NewIterator(rBufStart, rBufEnd)
+    iter := s.Dba.NewReversedIterator(eBuf,sBuf)
     return iter
 }
 /////////////// SECTION Private function ////////////////

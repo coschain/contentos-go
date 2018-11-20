@@ -15,11 +15,8 @@ import (
 var (
 	AccountTable        = []byte("AccountTable")
     AccountCreatedTimeTable = []byte("AccountCreatedTimeTable")
-    AccountCreatedTimeRevOrdTable = []byte("AccountCreatedTimeRevOrdTable")
     AccountBalanceTable = []byte("AccountBalanceTable")
-    AccountBalanceRevOrdTable = []byte("AccountBalanceRevOrdTable")
     AccountVestingSharesTable = []byte("AccountVestingSharesTable")
-    AccountVestingSharesRevOrdTable = []byte("AccountVestingSharesRevOrdTable")
     AccountNameUniTable = []byte("AccountNameUniTable")
     AccountPubKeyUniTable = []byte("AccountPubKeyUniTable")
     )
@@ -110,7 +107,6 @@ func (s *SoAccountWrap) delSortKeyCreatedTime(sa *SoAccount) bool {
 	}
     ordErr :=  s.dba.Delete(subBuf)
     return ordErr == nil
-    
 }
 
 
@@ -128,7 +124,6 @@ func (s *SoAccountWrap) insertSortKeyCreatedTime(sa *SoAccount) bool {
 	}
     ordErr :=  s.dba.Put(subBuf, buf) 
     return ordErr == nil
-    
 }
 
 
@@ -142,7 +137,6 @@ func (s *SoAccountWrap) delSortKeyBalance(sa *SoAccount) bool {
 	}
     ordErr :=  s.dba.Delete(subBuf)
     return ordErr == nil
-    
 }
 
 
@@ -160,7 +154,6 @@ func (s *SoAccountWrap) insertSortKeyBalance(sa *SoAccount) bool {
 	}
     ordErr :=  s.dba.Put(subBuf, buf) 
     return ordErr == nil
-    
 }
 
 
@@ -174,7 +167,6 @@ func (s *SoAccountWrap) delSortKeyVestingShares(sa *SoAccount) bool {
 	}
     ordErr :=  s.dba.Delete(subBuf)
     return ordErr == nil
-    
 }
 
 
@@ -192,7 +184,6 @@ func (s *SoAccountWrap) insertSortKeyVestingShares(sa *SoAccount) bool {
 	}
     ordErr :=  s.dba.Put(subBuf, buf) 
     return ordErr == nil
-    
 }
 
 
@@ -476,25 +467,6 @@ func (m *SoListAccountByCreatedTime) OpeEncode() ([]byte,error) {
     return kBuf,cErr
 }
 
-func (m *SoListAccountByCreatedTime) EncodeRevSortKey() ([]byte,error) {
-    pre := AccountCreatedTimeRevOrdTable
-    sub := m.CreatedTime
-    if sub == nil {
-       return nil,errors.New("the pro CreatedTime is nil")
-    }
-    sub1 := m.Name
-    if sub1 == nil {
-       return nil,errors.New("the mainkey Name is nil")
-    }
-    kList := []interface{}{pre,sub,sub1}
-    ordKey,cErr := encoding.EncodeSlice(kList,false)
-    if cErr != nil {
-       return nil,cErr
-    }
-    revKey,revRrr := encoding.Complement(ordKey, cErr)
-    return revKey,revRrr
-}
-
 //Query sort by order 
 //start = nil  end = nil (query the db from start to end)
 //start = nil (query from start the db)
@@ -601,25 +573,6 @@ func (m *SoListAccountByBalance) OpeEncode() ([]byte,error) {
     return kBuf,cErr
 }
 
-func (m *SoListAccountByBalance) EncodeRevSortKey() ([]byte,error) {
-    pre := AccountBalanceRevOrdTable
-    sub := m.Balance
-    if sub == nil {
-       return nil,errors.New("the pro Balance is nil")
-    }
-    sub1 := m.Name
-    if sub1 == nil {
-       return nil,errors.New("the mainkey Name is nil")
-    }
-    kList := []interface{}{pre,sub,sub1}
-    ordKey,cErr := encoding.EncodeSlice(kList,false)
-    if cErr != nil {
-       return nil,cErr
-    }
-    revKey,revRrr := encoding.Complement(ordKey, cErr)
-    return revKey,revRrr
-}
-
 //Query sort by order 
 //start = nil  end = nil (query the db from start to end)
 //start = nil (query from start the db)
@@ -724,25 +677,6 @@ func (m *SoListAccountByVestingShares) OpeEncode() ([]byte,error) {
     kList := []interface{}{pre,sub,sub1}
     kBuf,cErr := encoding.EncodeSlice(kList,false)
     return kBuf,cErr
-}
-
-func (m *SoListAccountByVestingShares) EncodeRevSortKey() ([]byte,error) {
-    pre := AccountVestingSharesRevOrdTable
-    sub := m.VestingShares
-    if sub == nil {
-       return nil,errors.New("the pro VestingShares is nil")
-    }
-    sub1 := m.Name
-    if sub1 == nil {
-       return nil,errors.New("the mainkey Name is nil")
-    }
-    kList := []interface{}{pre,sub,sub1}
-    ordKey,cErr := encoding.EncodeSlice(kList,false)
-    if cErr != nil {
-       return nil,cErr
-    }
-    revKey,revRrr := encoding.Complement(ordKey, cErr)
-    return revKey,revRrr
 }
 
 //Query sort by order 
