@@ -555,6 +555,9 @@ func (c *Controller) headBlockID() *prototype.Sha256 {
 	return headID
 }
 
+func (c *Controller) HeadBlockTime() *prototype.TimePointSec {
+	return c.headBlockTime()
+}
 func (c *Controller) headBlockTime() *prototype.TimePointSec {
 	var i int32 = 0
 	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db, &i)

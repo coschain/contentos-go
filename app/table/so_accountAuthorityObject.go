@@ -1,29 +1,28 @@
-
-
 package table
 
 import (
-     "errors"
-     "github.com/coschain/contentos-go/common/encoding"
-     "github.com/coschain/contentos-go/prototype"
-	 "github.com/gogo/protobuf/proto"
-     "github.com/coschain/contentos-go/iservices"
+	"errors"
+
+	"github.com/coschain/contentos-go/common/encoding"
+	"github.com/coschain/contentos-go/iservices"
+	prototype "github.com/coschain/contentos-go/prototype"
+	proto "github.com/golang/protobuf/proto"
 )
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	AccountAuthorityObjectTable        = []byte("AccountAuthorityObjectTable")
-    AccountAuthorityObjectAccountUniTable = []byte("AccountAuthorityObjectAccountUniTable")
-    )
+	AccountAuthorityObjectTable           = []byte("AccountAuthorityObjectTable")
+	AccountAuthorityObjectAccountUniTable = []byte("AccountAuthorityObjectAccountUniTable")
+)
 
 ////////////// SECTION Wrap Define ///////////////
 type SoAccountAuthorityObjectWrap struct {
-	dba 		iservices.IDatabaseService
-	mainKey 	*prototype.AccountName
+	dba     iservices.IDatabaseService
+	mainKey *prototype.AccountName
 }
 
-func NewSoAccountAuthorityObjectWrap(dba iservices.IDatabaseService, key *prototype.AccountName) *SoAccountAuthorityObjectWrap{
-	result := &SoAccountAuthorityObjectWrap{ dba, key}
+func NewSoAccountAuthorityObjectWrap(dba iservices.IDatabaseService, key *prototype.AccountName) *SoAccountAuthorityObjectWrap {
+	result := &SoAccountAuthorityObjectWrap{dba, key}
 	return result
 }
 
@@ -37,22 +36,22 @@ func (s *SoAccountAuthorityObjectWrap) CheckExist() bool {
 	if err != nil {
 		return false
 	}
-    
+
 	return res
 }
 
 func (s *SoAccountAuthorityObjectWrap) Create(f func(tInfo *SoAccountAuthorityObject)) error {
-    val := &SoAccountAuthorityObject{}
-    f(val)
-    if val.Account == nil {
-       return errors.New("the mainkey is nil")
-    }
-    if s.CheckExist() {
-       return errors.New("the mainkey is already exist")
-    }
+	val := &SoAccountAuthorityObject{}
+	f(val)
+	if val.Account == nil {
+		return errors.New("the mainkey is nil")
+	}
+	if s.CheckExist() {
+		return errors.New("the mainkey is already exist")
+	}
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
-       return err
+		return err
 
 	}
 	resBuf, err := proto.Marshal(val)
@@ -65,14 +64,12 @@ func (s *SoAccountAuthorityObjectWrap) Create(f func(tInfo *SoAccountAuthorityOb
 	}
 
 	// update sort list keys
-	
-  
-    //update unique list
-    if !s.insertUniKeyAccount(val) {
+
+	//update unique list
+	if !s.insertUniKeyAccount(val) {
 		return errors.New("insert unique Field prototype.AccountName while insert table ")
 	}
-	
-    
+
 	return nil
 }
 
@@ -85,13 +82,13 @@ func (s *SoAccountAuthorityObjectWrap) RemoveAccountAuthorityObject() bool {
 	if sa == nil {
 		return false
 	}
-    //delete sort list key
-	
-    //delete unique list
-    if !s.delUniKeyAccount(sa) {
+	//delete sort list key
+
+	//delete unique list
+	if !s.delUniKeyAccount(sa) {
 		return false
 	}
-	
+
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
 		return false
@@ -103,119 +100,108 @@ func (s *SoAccountAuthorityObjectWrap) RemoveAccountAuthorityObject() bool {
 func (s *SoAccountAuthorityObjectWrap) GetAccount() *prototype.AccountName {
 	res := s.getAccountAuthorityObject()
 
-   if res == nil {
-      return nil
-      
-   }
-   return res.Account
-}
+	if res == nil {
+		return nil
 
+	}
+	return res.Account
+}
 
 func (s *SoAccountAuthorityObjectWrap) GetActive() *prototype.Authority {
 	res := s.getAccountAuthorityObject()
 
-   if res == nil {
-      return nil
-      
-   }
-   return res.Active
+	if res == nil {
+		return nil
+
+	}
+	return res.Active
 }
-
-
 
 func (s *SoAccountAuthorityObjectWrap) MdActive(p *prototype.Authority) bool {
 	sa := s.getAccountAuthorityObject()
 	if sa == nil {
 		return false
 	}
-	
-    sa.Active = p
+
+	sa.Active = p
 	if !s.update(sa) {
 		return false
 	}
-    
+
 	return true
 }
 
 func (s *SoAccountAuthorityObjectWrap) GetLastOwnerUpdate() *prototype.TimePointSec {
 	res := s.getAccountAuthorityObject()
 
-   if res == nil {
-      return nil
-      
-   }
-   return res.LastOwnerUpdate
+	if res == nil {
+		return nil
+
+	}
+	return res.LastOwnerUpdate
 }
-
-
 
 func (s *SoAccountAuthorityObjectWrap) MdLastOwnerUpdate(p *prototype.TimePointSec) bool {
 	sa := s.getAccountAuthorityObject()
 	if sa == nil {
 		return false
 	}
-	
-    sa.LastOwnerUpdate = p
+
+	sa.LastOwnerUpdate = p
 	if !s.update(sa) {
 		return false
 	}
-    
+
 	return true
 }
 
 func (s *SoAccountAuthorityObjectWrap) GetOwner() *prototype.Authority {
 	res := s.getAccountAuthorityObject()
 
-   if res == nil {
-      return nil
-      
-   }
-   return res.Owner
+	if res == nil {
+		return nil
+
+	}
+	return res.Owner
 }
-
-
 
 func (s *SoAccountAuthorityObjectWrap) MdOwner(p *prototype.Authority) bool {
 	sa := s.getAccountAuthorityObject()
 	if sa == nil {
 		return false
 	}
-	
-    sa.Owner = p
+
+	sa.Owner = p
 	if !s.update(sa) {
 		return false
 	}
-    
+
 	return true
 }
 
 func (s *SoAccountAuthorityObjectWrap) GetPosting() *prototype.Authority {
 	res := s.getAccountAuthorityObject()
 
-   if res == nil {
-      return nil
-      
-   }
-   return res.Posting
+	if res == nil {
+		return nil
+
+	}
+	return res.Posting
 }
-
-
 
 func (s *SoAccountAuthorityObjectWrap) MdPosting(p *prototype.Authority) bool {
 	sa := s.getAccountAuthorityObject()
 	if sa == nil {
 		return false
 	}
-	
-    sa.Posting = p
+
+	sa.Posting = p
 	if !s.update(sa) {
 		return false
 	}
-    
+
 	return true
 }
-
-
 
 /////////////// SECTION Private function ////////////////
 
@@ -254,53 +240,51 @@ func (s *SoAccountAuthorityObjectWrap) getAccountAuthorityObject() *SoAccountAut
 }
 
 func (s *SoAccountAuthorityObjectWrap) encodeMainKey() ([]byte, error) {
-    pre := AccountAuthorityObjectTable
-    sub := s.mainKey
-    if sub == nil {
-       return nil,errors.New("the mainKey is nil")
-    }
-    kList := []interface{}{pre,sub}
-    kBuf,cErr := encoding.EncodeSlice(kList,false)
-    return kBuf,cErr
+	pre := AccountAuthorityObjectTable
+	sub := s.mainKey
+	if sub == nil {
+		return nil, errors.New("the mainKey is nil")
+	}
+	kList := []interface{}{pre, sub}
+	kBuf, cErr := encoding.EncodeSlice(kList, false)
+	return kBuf, cErr
 }
 
 ////////////// Unique Query delete/insert/query ///////////////
 
-
 func (s *SoAccountAuthorityObjectWrap) delUniKeyAccount(sa *SoAccountAuthorityObject) bool {
-    pre := AccountAuthorityObjectAccountUniTable
-    sub := sa.Account
-    kList := []interface{}{pre,sub}
-    kBuf,err := encoding.EncodeSlice(kList,false)
+	pre := AccountAuthorityObjectAccountUniTable
+	sub := sa.Account
+	kList := []interface{}{pre, sub}
+	kBuf, err := encoding.EncodeSlice(kList, false)
 	if err != nil {
 		return false
 	}
 	return s.dba.Delete(kBuf) == nil
 }
 
-
 func (s *SoAccountAuthorityObjectWrap) insertUniKeyAccount(sa *SoAccountAuthorityObject) bool {
-    uniWrap  := UniAccountAuthorityObjectAccountWrap{}
-     uniWrap.Dba = s.dba
-   
-   res := uniWrap.UniQueryAccount(sa.Account)
-   if res != nil {
+	uniWrap := UniAccountAuthorityObjectAccountWrap{}
+	uniWrap.Dba = s.dba
+
+	res := uniWrap.UniQueryAccount(sa.Account)
+	if res != nil {
 		//the unique key is already exist
 		return false
 	}
-    val := SoUniqueAccountAuthorityObjectByAccount{}
-    val.Account = sa.Account
-    
+	val := SoUniqueAccountAuthorityObjectByAccount{}
+	val.Account = sa.Account
+
 	buf, err := proto.Marshal(&val)
 
 	if err != nil {
 		return false
 	}
-    
-    pre := AccountAuthorityObjectAccountUniTable
-    sub := sa.Account
-    kList := []interface{}{pre,sub}
-    kBuf,err := encoding.EncodeSlice(kList,false)
+
+	pre := AccountAuthorityObjectAccountUniTable
+	sub := sa.Account
+	kList := []interface{}{pre, sub}
+	kBuf, err := encoding.EncodeSlice(kList, false)
 	if err != nil {
 		return false
 	}
@@ -312,22 +296,19 @@ type UniAccountAuthorityObjectAccountWrap struct {
 	Dba iservices.IDatabaseService
 }
 
-func (s *UniAccountAuthorityObjectAccountWrap) UniQueryAccount(start *prototype.AccountName) *SoAccountAuthorityObjectWrap{
-    pre := AccountAuthorityObjectAccountUniTable
-    kList := []interface{}{pre,start}
-    bufStartkey,err := encoding.EncodeSlice(kList,false)
-    val,err := s.Dba.Get(bufStartkey)
+func (s *UniAccountAuthorityObjectAccountWrap) UniQueryAccount(start *prototype.AccountName) *SoAccountAuthorityObjectWrap {
+	pre := AccountAuthorityObjectAccountUniTable
+	kList := []interface{}{pre, start}
+	bufStartkey, err := encoding.EncodeSlice(kList, false)
+	val, err := s.Dba.Get(bufStartkey)
 	if err == nil {
 		res := &SoUniqueAccountAuthorityObjectByAccount{}
 		rErr := proto.Unmarshal(val, res)
 		if rErr == nil {
-			wrap := NewSoAccountAuthorityObjectWrap(s.Dba,res.Account)
-            
+			wrap := NewSoAccountAuthorityObjectWrap(s.Dba, res.Account)
+
 			return wrap
 		}
 	}
-    return nil
+	return nil
 }
-
-
-
