@@ -1,0 +1,32 @@
+
+syntax = "proto3";
+
+package table;
+
+option go_package = "github.com/coschain/contentos-go/table";
+
+import "prototype/type.proto";
+
+message so_vote {
+	prototype.voter_id          				   voter                   =      1;
+    prototype.time_point_sec           vote_time               =      2;
+    uint64                             post_id                 =      3;
+      
+}
+
+
+message so_list_vote_by_vote_time {
+	prototype.time_point_sec        	vote_time           = 1;
+	prototype.voter_id          					voter               = 2;
+}
+
+
+message so_list_vote_by_post_id {
+	uint64                          	post_id             = 1;
+	prototype.voter_id          					voter               = 2;
+}
+
+
+message so_unique_vote_by_voter {
+	prototype.voter_id          					voter               = 1;
+}

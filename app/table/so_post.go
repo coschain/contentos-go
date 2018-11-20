@@ -13,6 +13,7 @@ import (
 ////////////// SECTION Prefix Mark ///////////////
 var (
 	PostTable             = []byte("PostTable")
+	PostCreatedTable      = []byte("PostCreatedTable")
 	PostCreatedOrderTable = []byte("PostCreatedOrderTable")
 	PostReplyOrderTable   = []byte("PostReplyOrderTable")
 	PostPostIdUniTable    = []byte("PostPostIdUniTable")
@@ -65,6 +66,10 @@ func (s *SoPostWrap) Create(f func(tInfo *SoPost)) error {
 
 	// update sort list keys
 
+	if !s.insertSortKeyCreated(val) {
+		return errors.New("insert sort Field Created while insert table ")
+	}
+
 	if !s.insertSortKeyCreatedOrder(val) {
 		return errors.New("insert sort Field CreatedOrder while insert table ")
 	}
@@ -82,6 +87,34 @@ func (s *SoPostWrap) Create(f func(tInfo *SoPost)) error {
 }
 
 ////////////// SECTION LKeys delete/insert ///////////////
+
+func (s *SoPostWrap) delSortKeyCreated(sa *SoPost) bool {
+	val := SoListPostByCreated{}
+	val.Created = sa.Created
+	val.PostId = sa.PostId
+	subBuf, err := val.OpeEncode()
+	if err != nil {
+		return false
+	}
+	ordErr := s.dba.Delete(subBuf)
+	return ordErr == nil
+}
+
+func (s *SoPostWrap) insertSortKeyCreated(sa *SoPost) bool {
+	val := SoListPostByCreated{}
+	val.PostId = sa.PostId
+	val.Created = sa.Created
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return false
+	}
+	subBuf, err := val.OpeEncode()
+	if err != nil {
+		return false
+	}
+	ordErr := s.dba.Put(subBuf, buf)
+	return ordErr == nil
+}
 
 func (s *SoPostWrap) delSortKeyCreatedOrder(sa *SoPost) bool {
 	val := SoListPostByCreatedOrder{}
@@ -147,6 +180,9 @@ func (s *SoPostWrap) RemovePost() bool {
 		return false
 	}
 	//delete sort list key
+	if !s.delSortKeyCreated(sa) {
+		return false
+	}
 	if !s.delSortKeyCreatedOrder(sa) {
 		return false
 	}
@@ -167,78 +203,6 @@ func (s *SoPostWrap) RemovePost() bool {
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
-func (s *SoPostWrap) GetActive() *prototype.TimePointSec {
-	res := s.getPost()
-
-	if res == nil {
-		return nil
-
-	}
-	return res.Active
-}
-
-func (s *SoPostWrap) MdActive(p *prototype.TimePointSec) bool {
-	sa := s.getPost()
-	if sa == nil {
-		return false
-	}
-
-	sa.Active = p
-	if !s.update(sa) {
-		return false
-	}
-
-	return true
-}
-
-func (s *SoPostWrap) GetAllowReplies() bool {
-	res := s.getPost()
-
-	if res == nil {
-		var tmpValue bool
-		return tmpValue
-	}
-	return res.AllowReplies
-}
-
-func (s *SoPostWrap) MdAllowReplies(p bool) bool {
-	sa := s.getPost()
-	if sa == nil {
-		return false
-	}
-
-	sa.AllowReplies = p
-	if !s.update(sa) {
-		return false
-	}
-
-	return true
-}
-
-func (s *SoPostWrap) GetAllowVotes() bool {
-	res := s.getPost()
-
-	if res == nil {
-		var tmpValue bool
-		return tmpValue
-	}
-	return res.AllowVotes
-}
-
-func (s *SoPostWrap) MdAllowVotes(p bool) bool {
-	sa := s.getPost()
-	if sa == nil {
-		return false
-	}
-
-	sa.AllowVotes = p
-	if !s.update(sa) {
-		return false
-	}
-
-	return true
-}
-
 func (s *SoPostWrap) GetAuthor() *prototype.AccountName {
 	res := s.getPost()
 
@@ -351,8 +315,15 @@ func (s *SoPostWrap) MdCreated(p *prototype.TimePointSec) bool {
 		return false
 	}
 
+	if !s.delSortKeyCreated(sa) {
+		return false
+	}
 	sa.Created = p
 	if !s.update(sa) {
+		return false
+	}
+
+	if !s.insertSortKeyCreated(sa) {
 		return false
 	}
 
@@ -414,30 +385,6 @@ func (s *SoPostWrap) MdDepth(p uint32) bool {
 	return true
 }
 
-func (s *SoPostWrap) GetJsonMetadata() string {
-	res := s.getPost()
-
-	if res == nil {
-		var tmpValue string
-		return tmpValue
-	}
-	return res.JsonMetadata
-}
-
-func (s *SoPostWrap) MdJsonMetadata(p string) bool {
-	sa := s.getPost()
-	if sa == nil {
-		return false
-	}
-
-	sa.JsonMetadata = p
-	if !s.update(sa) {
-		return false
-	}
-
-	return true
-}
-
 func (s *SoPostWrap) GetLastPayout() *prototype.TimePointSec {
 	res := s.getPost()
 
@@ -462,54 +409,6 @@ func (s *SoPostWrap) MdLastPayout(p *prototype.TimePointSec) bool {
 	return true
 }
 
-func (s *SoPostWrap) GetLastUpdate() *prototype.TimePointSec {
-	res := s.getPost()
-
-	if res == nil {
-		return nil
-
-	}
-	return res.LastUpdate
-}
-
-func (s *SoPostWrap) MdLastUpdate(p *prototype.TimePointSec) bool {
-	sa := s.getPost()
-	if sa == nil {
-		return false
-	}
-
-	sa.LastUpdate = p
-	if !s.update(sa) {
-		return false
-	}
-
-	return true
-}
-
-func (s *SoPostWrap) GetParentAuthor() *prototype.AccountName {
-	res := s.getPost()
-
-	if res == nil {
-		return nil
-
-	}
-	return res.ParentAuthor
-}
-
-func (s *SoPostWrap) MdParentAuthor(p *prototype.AccountName) bool {
-	sa := s.getPost()
-	if sa == nil {
-		return false
-	}
-
-	sa.ParentAuthor = p
-	if !s.update(sa) {
-		return false
-	}
-
-	return true
-}
-
 func (s *SoPostWrap) GetParentId() uint64 {
 	res := s.getPost()
 
@@ -527,54 +426,6 @@ func (s *SoPostWrap) MdParentId(p uint64) bool {
 	}
 
 	sa.ParentId = p
-	if !s.update(sa) {
-		return false
-	}
-
-	return true
-}
-
-func (s *SoPostWrap) GetParentPermlink() string {
-	res := s.getPost()
-
-	if res == nil {
-		var tmpValue string
-		return tmpValue
-	}
-	return res.ParentPermlink
-}
-
-func (s *SoPostWrap) MdParentPermlink(p string) bool {
-	sa := s.getPost()
-	if sa == nil {
-		return false
-	}
-
-	sa.ParentPermlink = p
-	if !s.update(sa) {
-		return false
-	}
-
-	return true
-}
-
-func (s *SoPostWrap) GetPermlink() string {
-	res := s.getPost()
-
-	if res == nil {
-		var tmpValue string
-		return tmpValue
-	}
-	return res.Permlink
-}
-
-func (s *SoPostWrap) MdPermlink(p string) bool {
-	sa := s.getPost()
-	if sa == nil {
-		return false
-	}
-
-	sa.Permlink = p
 	if !s.update(sa) {
 		return false
 	}
@@ -647,6 +498,30 @@ func (s *SoPostWrap) MdRootId(p uint64) bool {
 	return true
 }
 
+func (s *SoPostWrap) GetTags() []string {
+	res := s.getPost()
+
+	if res == nil {
+		var tmpValue []string
+		return tmpValue
+	}
+	return res.Tags
+}
+
+func (s *SoPostWrap) MdTags(p []string) bool {
+	sa := s.getPost()
+	if sa == nil {
+		return false
+	}
+
+	sa.Tags = p
+	if !s.update(sa) {
+		return false
+	}
+
+	return true
+}
+
 func (s *SoPostWrap) GetTitle() string {
 	res := s.getPost()
 
@@ -669,6 +544,134 @@ func (s *SoPostWrap) MdTitle(p string) bool {
 	}
 
 	return true
+}
+
+func (s *SoPostWrap) GetVoteCnt() uint64 {
+	res := s.getPost()
+
+	if res == nil {
+		var tmpValue uint64
+		return tmpValue
+	}
+	return res.VoteCnt
+}
+
+func (s *SoPostWrap) MdVoteCnt(p uint64) bool {
+	sa := s.getPost()
+	if sa == nil {
+		return false
+	}
+
+	sa.VoteCnt = p
+	if !s.update(sa) {
+		return false
+	}
+
+	return true
+}
+
+////////////// SECTION List Keys ///////////////
+type SPostCreatedWrap struct {
+	Dba iservices.IDatabaseService
+}
+
+func (s *SPostCreatedWrap) DelIterater(iterator iservices.IDatabaseIterator) {
+	if iterator == nil || !iterator.Valid() {
+		return
+	}
+	s.Dba.DeleteIterator(iterator)
+}
+
+func (s *SPostCreatedWrap) GetMainVal(iterator iservices.IDatabaseIterator) *uint64 {
+	if iterator == nil || !iterator.Valid() {
+		return nil
+	}
+	val, err := iterator.Value()
+
+	if err != nil {
+		return nil
+	}
+
+	res := &SoListPostByCreated{}
+	err = proto.Unmarshal(val, res)
+
+	if err != nil {
+		return nil
+	}
+
+	return &res.PostId
+
+}
+
+func (s *SPostCreatedWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.TimePointSec {
+	if iterator == nil || !iterator.Valid() {
+		return nil
+	}
+
+	val, err := iterator.Value()
+
+	if err != nil {
+		return nil
+	}
+	res := &SoListPostByCreated{}
+	err = proto.Unmarshal(val, res)
+	if err != nil {
+		return nil
+	}
+	return res.Created
+
+}
+
+func (m *SoListPostByCreated) OpeEncode() ([]byte, error) {
+	pre := PostCreatedTable
+	sub := m.Created
+	if sub == nil {
+		return nil, errors.New("the pro Created is nil")
+	}
+	sub1 := m.PostId
+
+	kList := []interface{}{pre, sub, sub1}
+	kBuf, cErr := encoding.EncodeSlice(kList, false)
+	return kBuf, cErr
+}
+
+//Query sort by order
+//start = nil  end = nil (query the db from start to end)
+//start = nil (query from start the db)
+//end = nil (query to the end of db)
+func (s *SPostCreatedWrap) QueryListByOrder(start *prototype.TimePointSec, end *prototype.TimePointSec) iservices.IDatabaseIterator {
+	pre := PostCreatedTable
+	skeyList := []interface{}{pre}
+	if start != nil {
+		skeyList = append(skeyList, start)
+	}
+	sBuf, cErr := encoding.EncodeSlice(skeyList, false)
+	if cErr != nil {
+		return nil
+	}
+	if start != nil && end == nil {
+		iter := s.Dba.NewIterator(sBuf, nil)
+		return iter
+	}
+	eKeyList := []interface{}{pre}
+	if end != nil {
+		eKeyList = append(eKeyList, end)
+	}
+	eBuf, cErr := encoding.EncodeSlice(eKeyList, false)
+	if cErr != nil {
+		return nil
+	}
+
+	res := bytes.Compare(sBuf, eBuf)
+	if res == 0 {
+		eBuf = nil
+	} else if res == 1 {
+		//reverse order
+		return nil
+	}
+	iter := s.Dba.NewIterator(sBuf, eBuf)
+
+	return iter
 }
 
 ////////////// SECTION List Keys ///////////////
