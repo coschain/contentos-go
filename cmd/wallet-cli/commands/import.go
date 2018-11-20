@@ -30,7 +30,7 @@ func importAccount(cmd *cobra.Command, args []string) {
 	w := cmd.Context["wallet"]
 	r := cmd.Context["preader"]
 	preader := r.(utils.PasswordReader)
-	mywallet := w.(*wallet.BaseWallet)
+	mywallet := w.(wallet.Wallet)
 	name := args[0]
 	privKeyStr := args[1]
 	passphrase, err := utils.GetPassphrase(preader)
@@ -78,7 +78,7 @@ func importAccount(cmd *cobra.Command, args []string) {
 				fmt.Println(err)
 			}
 		} else {
-			fmt.Println("pubkey %s doesn't match %s", pubKeyStr, name)
+			fmt.Println(fmt.Sprintf("pubkey %s doesn't match %s", pubKeyStr, name))
 		}
 
 	}
