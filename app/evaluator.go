@@ -81,8 +81,8 @@ func (ev *AccountCreateEvaluator) Apply() {
 	newAccount.Creator = op.Creator
 	newAccount.CreatedTime = dgpWrap.GetTime()
 	newAccount.PubKey = op.MemoKey
-	cos := prototype.MakeCoin(0)
-	vest := prototype.MakeVest(0)
+	cos := prototype.NewCoin(0)
+	vest := prototype.NewVest(0)
 	newAccount.Balance = cos
 	newAccount.VestingShares = vest
 

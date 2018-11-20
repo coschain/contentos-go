@@ -43,7 +43,7 @@ func transferVesting(cmd *cobra.Command, args []string) {
 	transferv_op := &prototype.TransferToVestingOperation{
 		From:   &prototype.AccountName{Value: from},
 		To:     &prototype.AccountName{Value: to},
-		Amount: prototype.MakeCoin(uint64(amount)),
+		Amount: prototype.NewCoin(uint64(amount)),
 	}
 
 	signTx, err := generateSignedTxAndValidate([]interface{}{transferv_op}, fromAccount)

@@ -44,6 +44,6 @@ func (m *AccountName) Validate() error {
 	return nil
 }
 
-func MakeAccountName(value string) *AccountName {
+func NewAccountName(value string) *AccountName {
 	return &AccountName{Value: value}
 }

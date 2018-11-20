@@ -14,7 +14,7 @@ func Test_Serialize(t *testing.T) {
 
 	// AccountCreateOperation
 	acop := &AccountCreateOperation{
-		Fee:            MakeCoin(1),
+		Fee:            NewCoin(1),
 		Creator:        &AccountName{Value: "alice"},
 		NewAccountName: &AccountName{Value: "alice"},
 		Owner: &Authority{
@@ -41,7 +41,7 @@ func Test_Serialize(t *testing.T) {
 	top := &TransferOperation{
 		From:   &AccountName{Value: "alice"},
 		To:     &AccountName{Value: "alice"},
-		Amount: MakeCoin(100),
+		Amount: NewCoin(100),
 		Memo:   "this is transfer",
 	}
 

@@ -405,8 +405,8 @@ func (c *Controller) initGenesis() {
 	newAccount.Name = name
 	newAccount.PubKey = pubKey
 	newAccount.CreatedTime = &prototype.TimePointSec{UtcSeconds: 0}
-	cos := prototype.MakeCoin(constants.INIT_SUPPLY)
-	vest := prototype.MakeVest(0)
+	cos := prototype.NewCoin(constants.INIT_SUPPLY)
+	vest := prototype.NewVest(0)
 	newAccount.Balance = cos
 	newAccount.VestingShares = vest
 	if !newAccountWrap.CreateAccount(newAccount) {
@@ -455,7 +455,7 @@ func (c *Controller) initGenesis() {
 	dgp.CurrentSupply = cos
 	dgp.TotalCos = cos
 	dgp.MaximumBlockSize = constants.MAX_BLOCK_SIZE
-	dgp.TotalVestingShares = prototype.MakeVest(0)
+	dgp.TotalVestingShares = prototype.NewVest(0)
 	if !dgpWrap.CreateDynamicGlobalProperties(dgp) {
 		panic("CreateDynamicGlobalProperties error")
 	}

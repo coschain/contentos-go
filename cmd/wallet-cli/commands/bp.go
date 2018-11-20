@@ -79,7 +79,7 @@ func registerBP(cmd *cobra.Command, args []string) {
 		Desc:            bpDescFlag,
 		BlockSigningKey: pubKey,
 		Props: &prototype.ChainProperties{
-			AccountCreationFee: prototype.MakeCoin(bpCreateAccountFee),
+			AccountCreationFee: prototype.NewCoin(bpCreateAccountFee),
 			MaximumBlockSize:   bpBlockSize,
 		},
 	}

@@ -15,7 +15,7 @@ const (
 func Test_ApplyAccountCreate(t *testing.T) {
 	clearDB()
 	acop := &prototype.AccountCreateOperation{
-		Fee:            prototype.MakeCoin(1),
+		Fee:            prototype.NewCoin(1),
 		Creator:        &prototype.AccountName{Value: "initminer"},
 		NewAccountName: &prototype.AccountName{Value: "alice"},
 		Owner: &prototype.Authority{
@@ -70,7 +70,7 @@ func Test_ApplyTransfer(t *testing.T) {
 	top := &prototype.TransferOperation{
 		From: &prototype.AccountName{Value:"initminer"},
 		To: &prototype.AccountName{Value:"alice"},
-		Amount: prototype.MakeCoin(100),
+		Amount: prototype.NewCoin(100),
 	}
 
 	db := startDB()

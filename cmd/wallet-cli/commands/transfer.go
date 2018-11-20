@@ -47,7 +47,7 @@ func transfer(cmd *cobra.Command, args []string) {
 	transfer_op := &prototype.TransferOperation{
 		From:   &prototype.AccountName{Value: from},
 		To:     &prototype.AccountName{Value: to},
-		Amount: prototype.MakeCoin(uint64(amount)),
+		Amount: prototype.NewCoin(uint64(amount)),
 		Memo:   memo,
 	}
 

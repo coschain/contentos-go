@@ -58,7 +58,7 @@ func create(cmd *cobra.Command, args []string) {
 	}
 
 	acop := &prototype.AccountCreateOperation{
-		Fee:            prototype.MakeCoin(1),
+		Fee:            prototype.NewCoin(1),
 		Creator:        &prototype.AccountName{Value: creator},
 		NewAccountName: &prototype.AccountName{Value: name},
 		Owner:          keys,

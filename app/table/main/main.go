@@ -34,7 +34,7 @@ func main() {
 	//we can use the type  which is contained in another created pb struct,
 	// such as "prototype.account_name" in AccountName 、prototype.time_point_sec
 	//MakeXXX func can create a pb struct
-	mKey := prototype.MakeAccountName("myName")
+	mKey := prototype.NewAccountName("myName")
 	wrap := table.NewSoDemoWrap(db, mKey)
 	if wrap == nil {
 		//crreate fail , the db already contain table with current mainKey
@@ -274,7 +274,7 @@ func main() {
 	//unique query mainkey(E.g query owner)
 	mUniWrap := table.UniDemoOwnerWrap{}
 	mUniWrap.Dba = db
-	wrap1 := mUniWrap.UniQueryOwner(prototype.MakeAccountName("myName"))
+	wrap1 := mUniWrap.UniQueryOwner(prototype.NewAccountName("myName"))
 	if wrap1 != nil {
 		fmt.Printf("owner is test,the idx is %d \n",wrap1.GetIdx())
 	}

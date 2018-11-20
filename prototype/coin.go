@@ -10,6 +10,6 @@ func (m *Coin) NonZero() bool {
 	return m.Value != 0
 }
 
-func MakeCoin(value uint64) *Coin {
+func NewCoin(value uint64) *Coin {
 	return &Coin{Value:value}
 }

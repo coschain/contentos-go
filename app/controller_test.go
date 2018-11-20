@@ -40,7 +40,7 @@ func makeCreateAccountOP() (*prototype.AccountCreateOperation,error) {
 		return nil,errors.New("PublicKeyFromWIF error")
 	}
 	acop := &prototype.AccountCreateOperation{
-		Fee:            prototype.MakeCoin(1),
+		Fee:            prototype.NewCoin(1),
 		Creator:        &prototype.AccountName{Value: constants.COS_INIT_MINER},
 		NewAccountName: &prototype.AccountName{Value: accountName},
 		Owner: &prototype.Authority{

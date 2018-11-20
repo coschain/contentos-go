@@ -6,6 +6,6 @@ func (m *Vest) OpeEncode() ([]byte, error) {
 	return encoding.Encode(m.Value)
 }
 
-func MakeVest(value uint64) *Vest {
+func NewVest(value uint64) *Vest {
 	return &Vest{Value:value}
 }

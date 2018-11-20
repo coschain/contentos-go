@@ -9,7 +9,7 @@ func makeOp() *TransferOperation {
 	top := &TransferOperation{
 		From:   &AccountName{Value: "alice"},
 		To:     &AccountName{Value: "bob"},
-		Amount: MakeCoin(100),
+		Amount: NewCoin(100),
 		Memo:   "this is transfer",
 	}
 
