@@ -13,7 +13,9 @@ require (
 	github.com/golang/mock v1.1.1
 	github.com/golang/protobuf v1.2.0
 	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db // indirect
+	github.com/google/pprof v0.0.0-20181115081917-dcb5510988eb // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0
+	github.com/ianlancetaylor/demangle v0.0.0-20181102032728-5e5cf60278f6 // indirect
 	github.com/inconshreveable/log15 v0.0.0-20180818164646-67afb5ed74ec
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/itchyny/base58-go v0.0.0-20181013094353-56d50cf40874
@@ -38,6 +40,7 @@ require (
 	github.com/tebeka/strftime v0.0.0-20140926081919-3f9c7761e312 // indirect
 	golang.org/x/crypto v0.0.0-20181106171534-e4dc69e5b2fd
 	golang.org/x/net v0.0.0-20181011144130-49bb7cea24b1
+	golang.org/x/tools v0.0.0-20181120060634-fc4f04983f62 // indirect
 	google.golang.org/genproto v0.0.0-20181101192439-c830210a61df
 	google.golang.org/grpc v1.16.0
 )

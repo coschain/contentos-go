@@ -6,6 +6,7 @@ import (
 	ctrl "github.com/coschain/contentos-go/app"
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/logging"
+	"github.com/coschain/contentos-go/common/pprof"
 	"github.com/coschain/contentos-go/config"
 	"github.com/coschain/contentos-go/db/storage"
 	"github.com/coschain/contentos-go/iservices"
@@ -65,6 +66,9 @@ func makeNode() (*node.Node, node.Config) {
 // NO OTHER CONFIGS HERE EXCEPT NODE CONFIG
 func startNode(cmd *cobra.Command, args []string) {
 	logging.Init("logs", "debug", 0)
+
+	pprof.StartPprof()
+
 	// _ is cfg as below process has't used
 	_, _ = cmd, args
 	app, _ := makeNode()
