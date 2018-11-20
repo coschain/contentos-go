@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/coschain/cobra"
+	"github.com/coschain/contentos-go/cmd/wallet-cli/commands/utils"
 	"github.com/coschain/contentos-go/cmd/wallet-cli/wallet"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/rpc/pb"
@@ -68,7 +69,7 @@ func reply(cmd *cobra.Command, args []string) {
 
 		beneficiaries = append(beneficiaries, route)
 	}
-	uuid := generateUUID(author)
+	uuid := utils.GenerateUUID(author)
 	reply_op := &prototype.ReplyOperation{
 		Uuid:          uuid,
 		Owner:         &prototype.AccountName{Value: author},
@@ -76,7 +77,7 @@ func reply(cmd *cobra.Command, args []string) {
 		ParentUuid:    postId,
 		Beneficiaries: beneficiaries,
 	}
-	signTx, err := generateSignedTxAndValidate([]interface{}{reply_op}, authorAccount)
+	signTx, err := utils.GenerateSignedTxAndValidate([]interface{}{reply_op}, authorAccount)
 	if err != nil {
 		fmt.Println(err)
 		return

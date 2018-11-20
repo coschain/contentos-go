@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/coschain/cobra"
+	"github.com/coschain/contentos-go/cmd/wallet-cli/commands/utils"
 	"github.com/coschain/contentos-go/cmd/wallet-cli/wallet"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/rpc/pb"
@@ -25,6 +26,8 @@ func create(cmd *cobra.Command, args []string) {
 	client := c.(grpcpb.ApiServiceClient)
 	w := cmd.Context["wallet"]
 	mywallet := w.(wallet.Wallet)
+	r := cmd.Context["preader"]
+	preader := r.(utils.PasswordReader)
 	creator := args[0]
 	creatorAccount, ok := mywallet.GetUnlockedAccount(creator)
 	if !ok {
@@ -34,7 +37,7 @@ func create(cmd *cobra.Command, args []string) {
 	pubKeyStr, privKeyStr, err := mywallet.GenerateNewKey()
 	pubkey, _ := prototype.PublicKeyFromWIF(pubKeyStr)
 	name := args[1]
-	passphrase, err := getPassphrase()
+	passphrase, err := utils.GetPassphrase(preader)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -66,7 +69,7 @@ func create(cmd *cobra.Command, args []string) {
 		Active:         keys,
 		MemoKey:        pubkey,
 	}
-	signTx, err := generateSignedTxAndValidate([]interface{}{acop}, creatorAccount)
+	signTx, err := utils.GenerateSignedTxAndValidate([]interface{}{acop}, creatorAccount)
 	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
 	resp, err := client.BroadcastTrx(context.Background(), req)
 	if err != nil {

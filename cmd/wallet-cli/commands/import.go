@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 	"github.com/coschain/cobra"
+	"github.com/coschain/contentos-go/cmd/wallet-cli/commands/utils"
 	"github.com/coschain/contentos-go/cmd/wallet-cli/wallet"
 	"github.com/coschain/contentos-go/prototype"
 )
@@ -25,10 +26,12 @@ func importAccount(cmd *cobra.Command, args []string) {
 	//c := cmd.Context["rpcclient"]
 	//client := c.(grpcpb.ApiServiceClient)
 	w := cmd.Context["wallet"]
+	r := cmd.Context["preader"]
+	preader := r.(utils.PasswordReader)
 	mywallet := w.(*wallet.BaseWallet)
 	name := args[0]
 	privKeyStr := args[1]
-	passphrase, err := getPassphrase()
+	passphrase, err := utils.GetPassphrase(preader)
 	if err != nil {
 		fmt.Println(err)
 		return

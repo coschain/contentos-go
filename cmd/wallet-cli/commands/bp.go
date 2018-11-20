@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/coschain/cobra"
+	"github.com/coschain/contentos-go/cmd/wallet-cli/commands/utils"
 	"github.com/coschain/contentos-go/cmd/wallet-cli/wallet"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/rpc/pb"
@@ -84,7 +85,7 @@ func registerBP(cmd *cobra.Command, args []string) {
 		},
 	}
 
-	signTx, err := generateSignedTxAndValidate([]interface{}{bpRegister_op}, bpAccount)
+	signTx, err := utils.GenerateSignedTxAndValidate([]interface{}{bpRegister_op}, bpAccount)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -114,7 +115,7 @@ func unRegisterBP(cmd *cobra.Command, args []string) {
 		Owner: &prototype.AccountName{Value: name},
 	}
 
-	signTx, err := generateSignedTxAndValidate([]interface{}{bpUnregister_op}, bpAccount)
+	signTx, err := utils.GenerateSignedTxAndValidate([]interface{}{bpUnregister_op}, bpAccount)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -147,7 +148,7 @@ func voteBp(cmd *cobra.Command, args []string) {
 		Cancel:  bpVoteCancel,
 	}
 
-	signTx, err := generateSignedTxAndValidate([]interface{}{bpVote_op}, voterAccount)
+	signTx, err := utils.GenerateSignedTxAndValidate([]interface{}{bpVote_op}, voterAccount)
 	if err != nil {
 		fmt.Println(err)
 		return

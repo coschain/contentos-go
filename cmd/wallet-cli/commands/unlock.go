@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 	"github.com/coschain/cobra"
+	"github.com/coschain/contentos-go/cmd/wallet-cli/commands/utils"
 	"github.com/coschain/contentos-go/cmd/wallet-cli/wallet"
 )
 
@@ -21,7 +22,9 @@ func unlock(cmd *cobra.Command, args []string) {
 	o := cmd.Context["wallet"]
 	w := o.(wallet.Wallet)
 	name := args[0]
-	passphrase, err := getPassphrase()
+	r := cmd.Context["preader"]
+	preader := r.(utils.PasswordReader)
+	passphrase, err := utils.GetPassphrase(preader)
 	if err != nil {
 		fmt.Println(err)
 		return

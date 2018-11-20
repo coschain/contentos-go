@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/coschain/cobra"
+	"github.com/coschain/contentos-go/cmd/wallet-cli/commands/utils"
 	"github.com/coschain/contentos-go/cmd/wallet-cli/wallet"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/rpc/pb"
@@ -42,7 +43,7 @@ func follow(cmd *cobra.Command, args []string) {
 		Cancel:    followCancel,
 	}
 
-	signTx, err := generateSignedTxAndValidate([]interface{}{follow_op}, followerAccount)
+	signTx, err := utils.GenerateSignedTxAndValidate([]interface{}{follow_op}, followerAccount)
 	if err != nil {
 		fmt.Println(err)
 		return

@@ -5,6 +5,7 @@ import (
 	"github.com/chzyer/readline"
 	"github.com/coschain/cobra"
 	"github.com/coschain/contentos-go/cmd/wallet-cli/commands"
+	"github.com/coschain/contentos-go/cmd/wallet-cli/commands/utils"
 	"github.com/coschain/contentos-go/cmd/wallet-cli/wallet"
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/rpc"
@@ -145,8 +146,10 @@ func init() {
 
 func main() {
 	localWallet := wallet.NewBaseWallet("default", DefaultDataDir())
+	preader := utils.MyPasswordReader{}
 	localWallet.Start()
 	rootCmd.SetContext("wallet", localWallet)
+	rootCmd.SetContext("preader", preader)
 	defer localWallet.Close()
 
 	conn, err := rpc.Dial("localhost:8888")

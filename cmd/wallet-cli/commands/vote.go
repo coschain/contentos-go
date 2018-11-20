@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/coschain/cobra"
+	"github.com/coschain/contentos-go/cmd/wallet-cli/commands/utils"
 	"github.com/coschain/contentos-go/cmd/wallet-cli/wallet"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/rpc/pb"
@@ -43,7 +44,7 @@ func vote(cmd *cobra.Command, args []string) {
 		Idx:   idx,
 	}
 
-	signTx, err := generateSignedTxAndValidate([]interface{}{vote_op}, voterAccount)
+	signTx, err := utils.GenerateSignedTxAndValidate([]interface{}{vote_op}, voterAccount)
 	if err != nil {
 		fmt.Println(err)
 		return

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/coschain/cobra"
+	"github.com/coschain/contentos-go/cmd/wallet-cli/commands/utils"
 	"github.com/coschain/contentos-go/cmd/wallet-cli/wallet"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/rpc/pb"
@@ -51,7 +52,7 @@ func transfer(cmd *cobra.Command, args []string) {
 		Memo:   memo,
 	}
 
-	signTx, err := generateSignedTxAndValidate([]interface{}{transfer_op}, fromAccount)
+	signTx, err := utils.GenerateSignedTxAndValidate([]interface{}{transfer_op}, fromAccount)
 	if err != nil {
 		fmt.Println(err)
 		return
