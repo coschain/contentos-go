@@ -22,16 +22,12 @@ import (
 	"github.com/coschain/contentos-go/p2p/net/netserver"
 	p2pnet "github.com/coschain/contentos-go/p2p/net/protocol"
 	"github.com/coschain/contentos-go/p2p/peer"
-	evtActor "github.com/ontio/ontology-eventbus/actor"
 )
 
 //P2PServer control all network activities
 type P2PServer struct {
 	Network   p2pnet.P2P
 	msgRouter *utils.MessageRouter
-	pid       *evtActor.PID
-	//blockSync *BlockSyncMgr
-	//ledger    *ledger.Ledger
 	ReconnectAddrs
 	recentPeers    map[uint32][]string
 	quitSyncRecent chan bool
@@ -165,16 +161,6 @@ func (this *P2PServer) GetTime() int64 {
 	return this.Network.GetTime()
 }
 
-// SetPID sets p2p actor
-func (this *P2PServer) SetPID(pid *evtActor.PID) {
-	this.pid = pid
-	this.msgRouter.SetPID(pid)
-}
-
-// GetPID returns p2p actor
-func (this *P2PServer) GetPID() *evtActor.PID {
-	return this.pid
-}
 
 //blockSyncFinished compare all nbr peers and self height at beginning
 func (this *P2PServer) blockSyncFinished() bool {

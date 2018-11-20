@@ -48,7 +48,8 @@ func main() {
 		sigBlk := new(prototype.SignedBlock)
 		sigBlkHdr := new(prototype.SignedBlockHeader)
 		sigBlkHdr.Header = new(prototype.BlockHeader)
-		sigBlkHdr.Header.Witness = "hanyunlong"
+		sigBlkHdr.Header.Witness = new(prototype.AccountName)
+		sigBlkHdr.Header.Witness.Value = "alice"
 
 		sigBlkHdr.Header.Previous = new(prototype.Sha256)
 		sigBlkHdr.Header.TransactionMerkleRoot = new(prototype.Sha256)

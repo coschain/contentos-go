@@ -25,7 +25,6 @@ const (
 //msg cmd const
 const (
 	MSG_CMD_LEN      = 12               //msg type length in byte
-	CMD_OFFSET       = 4                //cmd type offet in msg hdr
 	CHECKSUM_LEN     = 4                //checksum length in byte
 	MSG_HDR_LEN      = 24               //msg hdr length in byte
 	MAX_BLK_HDR_CNT  = 500              //hdr count once when sync header
@@ -69,11 +68,6 @@ const (
 	HTTP_INFO_FLAG = 0 //peer`s http info bit in cap field
 )
 
-//actor const
-const (
-	ACTOR_TIMEOUT = 5 //actor request timeout in secs
-)
-
 //recent contact const
 const (
 	RECENT_TIMEOUT   = 60
@@ -107,24 +101,6 @@ const (
 	NOT_FOUND_TYPE         = "notfound"   //peer can`t find blk according to the hash
 	DISCONNECT_TYPE        = "disconnect" //peer disconnect info raise by link
 )
-
-type AppendPeerID struct {
-	ID uint64 // The peer id
-}
-
-type RemovePeerID struct {
-	ID uint64 // The peer id
-}
-
-type AppendHeaders struct {
-	FromID  uint64          // The peer id
-}
-
-//type AppendBlock struct {
-//	FromID    uint64       // The peer id
-//	BlockSize uint32       // Block size
-//	Block     *types.Block // Block to be added to the ledger
-//}
 
 //ParseIPAddr return ip address
 func ParseIPAddr(s string) (string, error) {

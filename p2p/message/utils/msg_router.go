@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/coschain/contentos-go/p2p/depend/common/log"
 	msgCommon "github.com/coschain/contentos-go/p2p/common"
 	"github.com/coschain/contentos-go/p2p/message/types"
@@ -9,7 +8,7 @@ import (
 )
 
 // MessageHandler defines the unified api for each net message
-type MessageHandler func(data *types.MsgPayload, p2p p2p.P2P, pid *actor.PID, args ...interface{})
+type MessageHandler func(data *types.MsgPayload, p2p p2p.P2P, args ...interface{})
 
 // MessageRouter mostly route different message type-based to the
 // related message handler
@@ -20,7 +19,6 @@ type MessageRouter struct {
 	stopSyncCh   chan bool                 // To stop sync channel
 	stopConsCh   chan bool                 // To stop consensus channel
 	p2p          p2p.P2P                   // Refer to the p2p network
-	pid          *actor.PID                // P2P actor
 }
 
 // NewMsgRouter returns a message router object
@@ -66,11 +64,6 @@ func (this *MessageRouter) UnRegisterMsgHandler(key string) {
 	delete(this.msgHandlers, key)
 }
 
-// SetPID sets p2p actor
-func (this *MessageRouter) SetPID(pid *actor.PID) {
-	this.pid = pid
-}
-
 // Start starts the loop to handle the message from the network
 func (this *MessageRouter) Start() {
 	go this.hookChan(this.RecvSyncChan, this.stopSyncCh)
@@ -89,7 +82,7 @@ func (this *MessageRouter) hookChan(channel chan *types.MsgPayload,
 
 				handler, ok := this.msgHandlers[msgType]
 				if ok {
-					go handler(data, this.p2p, this.pid)
+					go handler(data, this.p2p)
 				} else {
 					log.Warn("unknown message handler for the msg: ",
 						msgType)
