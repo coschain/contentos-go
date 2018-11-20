@@ -13,8 +13,8 @@ var CreateCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "create",
 		Short:   "create a new account",
-		Example: "create [creator] [name] [passphrase]",
-		Args:    cobra.ExactArgs(3),
+		Example: "create [creator] [name]",
+		Args:    cobra.ExactArgs(2),
 		Run:     create,
 	}
 	return cmd
@@ -24,7 +24,7 @@ func create(cmd *cobra.Command, args []string) {
 	c := cmd.Context["rpcclient"]
 	client := c.(grpcpb.ApiServiceClient)
 	w := cmd.Context["wallet"]
-	mywallet := w.(*wallet.BaseWallet)
+	mywallet := w.(wallet.Wallet)
 	creator := args[0]
 	creatorAccount, ok := mywallet.GetUnlockedAccount(creator)
 	if !ok {
@@ -34,13 +34,13 @@ func create(cmd *cobra.Command, args []string) {
 	pubKeyStr, privKeyStr, err := mywallet.GenerateNewKey()
 	pubkey, _ := prototype.PublicKeyFromWIF(pubKeyStr)
 	name := args[1]
-	passphrase := args[2]
+	passphrase, err := getPassphrase()
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	keys :=&prototype.Authority{
+	keys := &prototype.Authority{
 		Cf:              prototype.Authority_active,
 		WeightThreshold: 1,
 		AccountAuths: []*prototype.KvAccountAuth{
@@ -51,7 +51,7 @@ func create(cmd *cobra.Command, args []string) {
 		},
 		KeyAuths: []*prototype.KvKeyAuth{
 			{
-				Key: pubkey,
+				Key:    pubkey,
 				Weight: 23,
 			},
 		},
@@ -61,10 +61,10 @@ func create(cmd *cobra.Command, args []string) {
 		Fee:            prototype.MakeCoin(1),
 		Creator:        &prototype.AccountName{Value: creator},
 		NewAccountName: &prototype.AccountName{Value: name},
-		Owner: keys,
-		Posting: keys,
-		Active: keys,
-		MemoKey: pubkey,
+		Owner:          keys,
+		Posting:        keys,
+		Active:         keys,
+		MemoKey:        pubkey,
 	}
 	signTx, err := generateSignedTxAndValidate([]interface{}{acop}, creatorAccount)
 	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}

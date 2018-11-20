@@ -37,8 +37,8 @@ func getAccount(cmd *cobra.Command, args []string) {
 	if err != nil {
 		fmt.Println(err)
 	} else {
-		buf,_:=json.Marshal(resp)
-		fmt.Println(fmt.Sprintf("GetAccountByName detail: %s", string(buf)))
+		buf, _ := json.Marshal(resp)
+		fmt.Println(fmt.Sprintf("GetAccountByName detail: %s", buf))
 	}
 }
 
@@ -52,7 +52,7 @@ func getFollowers(cmd *cobra.Command, args []string) {
 	if err != nil {
 		fmt.Println(err)
 	} else {
-		buf,_:=json.Marshal(resp)
+		buf, _ := json.Marshal(resp)
 		fmt.Println(fmt.Sprintf("GetAccountByName detail: %s", string(buf)))
 	}
 }

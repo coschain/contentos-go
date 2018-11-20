@@ -46,7 +46,7 @@ func generateUUID(content string) uint64 {
 }
 
 func getPassphrase() (string, error) {
-	fmt.Print("Enter new passphrase > ")
+	fmt.Print("Enter passphrase > ")
 	bytePassphrase, err := terminal.ReadPassword(int(syscall.Stdin))
 	fmt.Println()
 	if err != nil {
