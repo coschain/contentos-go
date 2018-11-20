@@ -25,7 +25,9 @@ func create(cmd *cobra.Command, args []string) {
 	client := c.(grpcpb.ApiServiceClient)
 	w := cmd.Context["wallet"]
 	mywallet := w.(*wallet.BaseWallet)
+	pubKeyStr, privKeyStr, err := mywallet.GenerateNewKey()
 	creator := args[0]
+	pubkey, _ := prototype.PublicKeyFromWIF(pubKeyStr)
 	creatorAccount, ok := mywallet.GetUnlockedAccount(creator)
 	if !ok {
 		fmt.Println(fmt.Sprintf("creator: %s should be loaded or created first", creator))
@@ -33,9 +35,6 @@ func create(cmd *cobra.Command, args []string) {
 	}
 	name := args[1]
 	passphrase := args[2]
-
-	pubKeyStr, privKeyStr, err := mywallet.GenerateNewKey()
-	pubkey, _ := prototype.PublicKeyFromWIF(pubKeyStr)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -67,7 +66,7 @@ func create(cmd *cobra.Command, args []string) {
 		Active: keys,
 		MemoKey: pubkey,
 	}
-	signTx, err := GenerateSignedTx([]interface{}{acop}, creatorAccount)
+	signTx, err := generateSignedTxAndValidate([]interface{}{acop}, creatorAccount)
 	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
 	resp, err := client.BroadcastTrx(context.Background(), req)
 	if err != nil {

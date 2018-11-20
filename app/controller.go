@@ -621,7 +621,7 @@ func (c * Controller) updateSigningWitness(blk *prototype.SignedBlock) {
 	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db,&i)
 	newAsLot := dgpWrap.GetCurrentAslot() + uint64(c.GetIncrementSlotAtTime(blk.SignedHeader.Header.Timestamp))
 
-	name := &prototype.AccountName{Value:blk.SignedHeader.Header.Witness}
+	name := blk.SignedHeader.Header.Witness
 	witnessWrap := table.NewSoWitnessWrap(c.db,name)
 	witnessWrap.MdLastConfirmedBlockNum(blk.Id().BlockNum())
 	witnessWrap.MdLastAslot(newAsLot)

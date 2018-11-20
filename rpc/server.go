@@ -26,8 +26,8 @@ type GRPCServer struct {
 
 func NewGRPCServer(ctx *node.ServiceContext, config service_configs.GRPCConfig) (*GRPCServer, error) {
 	rpc := grpc.NewServer(
-		grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(streamLoggingInterceptor, streamRecoveryInterceptor)),
-		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(unaryLoggingInterceptor, unaryRecoveryInterceptor)),
+		grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(streamRecoveryLoggingInterceptor)),
+		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(unaryRecoveryLoggingInterceptor)),
 		grpc.MaxRecvMsgSize(GRPCMaxRecvMsgSize))
 	api := &APIService{}
 	grpcpb.RegisterApiServiceServer(rpc, api)

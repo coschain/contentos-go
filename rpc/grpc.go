@@ -182,7 +182,7 @@ func (as *APIService) GetWitnessList(ctx context.Context, req *grpcpb.GetWitness
 				CreatedTime:witWrap.GetCreatedTime(),
 				Url:witWrap.GetUrl(),
 				LastConfirmedBlockNum:witWrap.GetLastConfirmedBlockNum(),
-				TotalMissed:witWrap.GetLastConfirmedBlockNum(),
+				TotalMissed:witWrap.GetTotalMissed(),
 				PowWorker:witWrap.GetPowWorker(),
 				SigningKey:witWrap.GetSigningKey(),
 				LastWork:witWrap.GetLastWork(),
