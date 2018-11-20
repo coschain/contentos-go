@@ -1,29 +1,28 @@
-
-
 package table
 
 import (
-     "errors"
-     "github.com/coschain/contentos-go/common/encoding"
-     "github.com/coschain/contentos-go/prototype"
-	 "github.com/gogo/protobuf/proto"
-     "github.com/coschain/contentos-go/iservices"
+	"errors"
+
+	"github.com/coschain/contentos-go/common/encoding"
+	"github.com/coschain/contentos-go/iservices"
+	prototype "github.com/coschain/contentos-go/prototype"
+	proto "github.com/golang/protobuf/proto"
 )
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	BlockSummaryObjectTable        = []byte("BlockSummaryObjectTable")
-    BlockSummaryObjectIdUniTable = []byte("BlockSummaryObjectIdUniTable")
-    )
+	BlockSummaryObjectTable      = []byte("BlockSummaryObjectTable")
+	BlockSummaryObjectIdUniTable = []byte("BlockSummaryObjectIdUniTable")
+)
 
 ////////////// SECTION Wrap Define ///////////////
 type SoBlockSummaryObjectWrap struct {
-	dba 		iservices.IDatabaseService
-	mainKey 	*uint32
+	dba     iservices.IDatabaseService
+	mainKey *uint32
 }
 
-func NewSoBlockSummaryObjectWrap(dba iservices.IDatabaseService, key *uint32) *SoBlockSummaryObjectWrap{
-	result := &SoBlockSummaryObjectWrap{ dba, key}
+func NewSoBlockSummaryObjectWrap(dba iservices.IDatabaseService, key *uint32) *SoBlockSummaryObjectWrap {
+	result := &SoBlockSummaryObjectWrap{dba, key}
 	return result
 }
 
@@ -37,19 +36,19 @@ func (s *SoBlockSummaryObjectWrap) CheckExist() bool {
 	if err != nil {
 		return false
 	}
-    
+
 	return res
 }
 
 func (s *SoBlockSummaryObjectWrap) Create(f func(tInfo *SoBlockSummaryObject)) error {
-    val := &SoBlockSummaryObject{}
-    f(val)
-    if s.CheckExist() {
-       return errors.New("the mainkey is already exist")
-    }
+	val := &SoBlockSummaryObject{}
+	f(val)
+	if s.CheckExist() {
+		return errors.New("the mainkey is already exist")
+	}
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
-       return err
+		return err
 
 	}
 	resBuf, err := proto.Marshal(val)
@@ -62,14 +61,12 @@ func (s *SoBlockSummaryObjectWrap) Create(f func(tInfo *SoBlockSummaryObject)) e
 	}
 
 	// update sort list keys
-	
-  
-    //update unique list
-    if !s.insertUniKeyId(val) {
+
+	//update unique list
+	if !s.insertUniKeyId(val) {
 		return errors.New("insert unique Field uint32 while insert table ")
 	}
-	
-    
+
 	return nil
 }
 
@@ -82,13 +79,13 @@ func (s *SoBlockSummaryObjectWrap) RemoveBlockSummaryObject() bool {
 	if sa == nil {
 		return false
 	}
-    //delete sort list key
-	
-    //delete unique list
-    if !s.delUniKeyId(sa) {
+	//delete sort list key
+
+	//delete unique list
+	if !s.delUniKeyId(sa) {
 		return false
 	}
-	
+
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
 		return false
@@ -100,41 +97,36 @@ func (s *SoBlockSummaryObjectWrap) RemoveBlockSummaryObject() bool {
 func (s *SoBlockSummaryObjectWrap) GetBlockId() *prototype.Sha256 {
 	res := s.getBlockSummaryObject()
 
-   if res == nil {
-      return nil
-      
-   }
-   return res.BlockId
+	if res == nil {
+		return nil
+
+	}
+	return res.BlockId
 }
-
-
 
 func (s *SoBlockSummaryObjectWrap) MdBlockId(p *prototype.Sha256) bool {
 	sa := s.getBlockSummaryObject()
 	if sa == nil {
 		return false
 	}
-	
-    sa.BlockId = p
+
+	sa.BlockId = p
 	if !s.update(sa) {
 		return false
 	}
-    
+
 	return true
 }
 
 func (s *SoBlockSummaryObjectWrap) GetId() uint32 {
 	res := s.getBlockSummaryObject()
 
-   if res == nil {
-      var tmpValue uint32 
-      return tmpValue
-   }
-   return res.Id
+	if res == nil {
+		var tmpValue uint32
+		return tmpValue
+	}
+	return res.Id
 }
-
-
-
 
 /////////////// SECTION Private function ////////////////
 
@@ -173,53 +165,51 @@ func (s *SoBlockSummaryObjectWrap) getBlockSummaryObject() *SoBlockSummaryObject
 }
 
 func (s *SoBlockSummaryObjectWrap) encodeMainKey() ([]byte, error) {
-    pre := BlockSummaryObjectTable
-    sub := s.mainKey
-    if sub == nil {
-       return nil,errors.New("the mainKey is nil")
-    }
-    kList := []interface{}{pre,sub}
-    kBuf,cErr := encoding.EncodeSlice(kList,false)
-    return kBuf,cErr
+	pre := BlockSummaryObjectTable
+	sub := s.mainKey
+	if sub == nil {
+		return nil, errors.New("the mainKey is nil")
+	}
+	kList := []interface{}{pre, sub}
+	kBuf, cErr := encoding.EncodeSlice(kList, false)
+	return kBuf, cErr
 }
 
 ////////////// Unique Query delete/insert/query ///////////////
 
-
 func (s *SoBlockSummaryObjectWrap) delUniKeyId(sa *SoBlockSummaryObject) bool {
-    pre := BlockSummaryObjectIdUniTable
-    sub := sa.Id
-    kList := []interface{}{pre,sub}
-    kBuf,err := encoding.EncodeSlice(kList,false)
+	pre := BlockSummaryObjectIdUniTable
+	sub := sa.Id
+	kList := []interface{}{pre, sub}
+	kBuf, err := encoding.EncodeSlice(kList, false)
 	if err != nil {
 		return false
 	}
 	return s.dba.Delete(kBuf) == nil
 }
 
-
 func (s *SoBlockSummaryObjectWrap) insertUniKeyId(sa *SoBlockSummaryObject) bool {
-    uniWrap  := UniBlockSummaryObjectIdWrap{}
-     uniWrap.Dba = s.dba
-   res := uniWrap.UniQueryId(&sa.Id)
-   
-   if res != nil {
+	uniWrap := UniBlockSummaryObjectIdWrap{}
+	uniWrap.Dba = s.dba
+	res := uniWrap.UniQueryId(&sa.Id)
+
+	if res != nil {
 		//the unique key is already exist
 		return false
 	}
-    val := SoUniqueBlockSummaryObjectById{}
-    val.Id = sa.Id
-    
+	val := SoUniqueBlockSummaryObjectById{}
+	val.Id = sa.Id
+
 	buf, err := proto.Marshal(&val)
 
 	if err != nil {
 		return false
 	}
-    
-    pre := BlockSummaryObjectIdUniTable
-    sub := sa.Id
-    kList := []interface{}{pre,sub}
-    kBuf,err := encoding.EncodeSlice(kList,false)
+
+	pre := BlockSummaryObjectIdUniTable
+	sub := sa.Id
+	kList := []interface{}{pre, sub}
+	kBuf, err := encoding.EncodeSlice(kList, false)
 	if err != nil {
 		return false
 	}
@@ -231,21 +221,18 @@ type UniBlockSummaryObjectIdWrap struct {
 	Dba iservices.IDatabaseService
 }
 
-func (s *UniBlockSummaryObjectIdWrap) UniQueryId(start *uint32) *SoBlockSummaryObjectWrap{
-    pre := BlockSummaryObjectIdUniTable
-    kList := []interface{}{pre,start}
-    bufStartkey,err := encoding.EncodeSlice(kList,false)
-    val,err := s.Dba.Get(bufStartkey)
+func (s *UniBlockSummaryObjectIdWrap) UniQueryId(start *uint32) *SoBlockSummaryObjectWrap {
+	pre := BlockSummaryObjectIdUniTable
+	kList := []interface{}{pre, start}
+	bufStartkey, err := encoding.EncodeSlice(kList, false)
+	val, err := s.Dba.Get(bufStartkey)
 	if err == nil {
 		res := &SoUniqueBlockSummaryObjectById{}
 		rErr := proto.Unmarshal(val, res)
 		if rErr == nil {
-			wrap := NewSoBlockSummaryObjectWrap(s.Dba,&res.Id)
+			wrap := NewSoBlockSummaryObjectWrap(s.Dba, &res.Id)
 			return wrap
 		}
 	}
-    return nil
+	return nil
 }
-
-
-

@@ -1,31 +1,30 @@
-
-
 package table
 
 import (
-     "bytes"
-     "errors"
-     "github.com/coschain/contentos-go/common/encoding"
-     "github.com/coschain/contentos-go/prototype"
-	 "github.com/gogo/protobuf/proto"
-     "github.com/coschain/contentos-go/iservices"
+	"bytes"
+	"errors"
+
+	"github.com/coschain/contentos-go/common/encoding"
+	"github.com/coschain/contentos-go/iservices"
+	prototype "github.com/coschain/contentos-go/prototype"
+	proto "github.com/golang/protobuf/proto"
 )
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	TransactionObjectTable        = []byte("TransactionObjectTable")
-    TransactionObjectExpirationTable = []byte("TransactionObjectExpirationTable")
-    TransactionObjectTrxIdUniTable = []byte("TransactionObjectTrxIdUniTable")
-    )
+	TransactionObjectTable           = []byte("TransactionObjectTable")
+	TransactionObjectExpirationTable = []byte("TransactionObjectExpirationTable")
+	TransactionObjectTrxIdUniTable   = []byte("TransactionObjectTrxIdUniTable")
+)
 
 ////////////// SECTION Wrap Define ///////////////
 type SoTransactionObjectWrap struct {
-	dba 		iservices.IDatabaseService
-	mainKey 	*prototype.Sha256
+	dba     iservices.IDatabaseService
+	mainKey *prototype.Sha256
 }
 
-func NewSoTransactionObjectWrap(dba iservices.IDatabaseService, key *prototype.Sha256) *SoTransactionObjectWrap{
-	result := &SoTransactionObjectWrap{ dba, key}
+func NewSoTransactionObjectWrap(dba iservices.IDatabaseService, key *prototype.Sha256) *SoTransactionObjectWrap {
+	result := &SoTransactionObjectWrap{dba, key}
 	return result
 }
 
@@ -39,22 +38,22 @@ func (s *SoTransactionObjectWrap) CheckExist() bool {
 	if err != nil {
 		return false
 	}
-    
+
 	return res
 }
 
 func (s *SoTransactionObjectWrap) Create(f func(tInfo *SoTransactionObject)) error {
-    val := &SoTransactionObject{}
-    f(val)
-    if val.TrxId == nil {
-       return errors.New("the mainkey is nil")
-    }
-    if s.CheckExist() {
-       return errors.New("the mainkey is already exist")
-    }
+	val := &SoTransactionObject{}
+	f(val)
+	if val.TrxId == nil {
+		return errors.New("the mainkey is nil")
+	}
+	if s.CheckExist() {
+		return errors.New("the mainkey is already exist")
+	}
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
-       return err
+		return err
 
 	}
 	resBuf, err := proto.Marshal(val)
@@ -67,18 +66,16 @@ func (s *SoTransactionObjectWrap) Create(f func(tInfo *SoTransactionObject)) err
 	}
 
 	// update sort list keys
-	
+
 	if !s.insertSortKeyExpiration(val) {
-       return errors.New("insert sort Field Expiration while insert table ")
+		return errors.New("insert sort Field Expiration while insert table ")
 	}
-	
-  
-    //update unique list
-    if !s.insertUniKeyTrxId(val) {
+
+	//update unique list
+	if !s.insertUniKeyTrxId(val) {
 		return errors.New("insert unique Field prototype.Sha256 while insert table ")
 	}
-	
-    
+
 	return nil
 }
 
@@ -87,32 +84,30 @@ func (s *SoTransactionObjectWrap) Create(f func(tInfo *SoTransactionObject)) err
 func (s *SoTransactionObjectWrap) delSortKeyExpiration(sa *SoTransactionObject) bool {
 	val := SoListTransactionObjectByExpiration{}
 	val.Expiration = sa.Expiration
-    val.TrxId = sa.TrxId
-    subBuf, err := val.OpeEncode()
+	val.TrxId = sa.TrxId
+	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
 	}
-    ordErr :=  s.dba.Delete(subBuf)
-    return ordErr == nil
+	ordErr := s.dba.Delete(subBuf)
+	return ordErr == nil
 }
-
 
 func (s *SoTransactionObjectWrap) insertSortKeyExpiration(sa *SoTransactionObject) bool {
 	val := SoListTransactionObjectByExpiration{}
-    val.TrxId = sa.TrxId
-    val.Expiration = sa.Expiration
+	val.TrxId = sa.TrxId
+	val.Expiration = sa.Expiration
 	buf, err := proto.Marshal(&val)
 	if err != nil {
 		return false
 	}
-    subBuf, err := val.OpeEncode()
+	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
 	}
-    ordErr :=  s.dba.Put(subBuf, buf) 
-    return ordErr == nil
+	ordErr := s.dba.Put(subBuf, buf)
+	return ordErr == nil
 }
-
 
 ////////////// SECTION LKeys delete/insert //////////////
 
@@ -121,16 +116,16 @@ func (s *SoTransactionObjectWrap) RemoveTransactionObject() bool {
 	if sa == nil {
 		return false
 	}
-    //delete sort list key
+	//delete sort list key
 	if !s.delSortKeyExpiration(sa) {
 		return false
 	}
-	
-    //delete unique list
-    if !s.delUniKeyTrxId(sa) {
+
+	//delete unique list
+	if !s.delUniKeyTrxId(sa) {
 		return false
 	}
-	
+
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
 		return false
@@ -142,60 +137,54 @@ func (s *SoTransactionObjectWrap) RemoveTransactionObject() bool {
 func (s *SoTransactionObjectWrap) GetExpiration() *prototype.TimePointSec {
 	res := s.getTransactionObject()
 
-   if res == nil {
-      return nil
-      
-   }
-   return res.Expiration
+	if res == nil {
+		return nil
+
+	}
+	return res.Expiration
 }
-
-
 
 func (s *SoTransactionObjectWrap) MdExpiration(p *prototype.TimePointSec) bool {
 	sa := s.getTransactionObject()
 	if sa == nil {
 		return false
 	}
-	
+
 	if !s.delSortKeyExpiration(sa) {
 		return false
 	}
-    sa.Expiration = p
+	sa.Expiration = p
 	if !s.update(sa) {
 		return false
 	}
-    
-    if !s.insertSortKeyExpiration(sa) {
+
+	if !s.insertSortKeyExpiration(sa) {
 		return false
-    }
-       
+	}
+
 	return true
 }
 
 func (s *SoTransactionObjectWrap) GetTrxId() *prototype.Sha256 {
 	res := s.getTransactionObject()
 
-   if res == nil {
-      return nil
-      
-   }
-   return res.TrxId
+	if res == nil {
+		return nil
+
+	}
+	return res.TrxId
 }
-
-
-
-
 
 ////////////// SECTION List Keys ///////////////
 type STransactionObjectExpirationWrap struct {
 	Dba iservices.IDatabaseService
 }
 
-func (s *STransactionObjectExpirationWrap)DelIterater(iterator iservices.IDatabaseIterator){
-   if iterator == nil || !iterator.Valid() {
-		return 
+func (s *STransactionObjectExpirationWrap) DelIterater(iterator iservices.IDatabaseIterator) {
+	if iterator == nil || !iterator.Valid() {
+		return
 	}
-   s.Dba.DeleteIterator(iterator)
+	s.Dba.DeleteIterator(iterator)
 }
 
 func (s *STransactionObjectExpirationWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.Sha256 {
@@ -214,8 +203,8 @@ func (s *STransactionObjectExpirationWrap) GetMainVal(iterator iservices.IDataba
 	if err != nil {
 		return nil
 	}
-    return res.TrxId
-   
+	return res.TrxId
+
 }
 
 func (s *STransactionObjectExpirationWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.TimePointSec {
@@ -233,62 +222,62 @@ func (s *STransactionObjectExpirationWrap) GetSubVal(iterator iservices.IDatabas
 	if err != nil {
 		return nil
 	}
-    return res.Expiration
-   
+	return res.Expiration
+
 }
 
-func (m *SoListTransactionObjectByExpiration) OpeEncode() ([]byte,error) {
-    pre := TransactionObjectExpirationTable
-    sub := m.Expiration
-    if sub == nil {
-       return nil,errors.New("the pro Expiration is nil")
-    }
-    sub1 := m.TrxId
-    if sub1 == nil {
-       return nil,errors.New("the mainkey TrxId is nil")
-    }
-    kList := []interface{}{pre,sub,sub1}
-    kBuf,cErr := encoding.EncodeSlice(kList,false)
-    return kBuf,cErr
+func (m *SoListTransactionObjectByExpiration) OpeEncode() ([]byte, error) {
+	pre := TransactionObjectExpirationTable
+	sub := m.Expiration
+	if sub == nil {
+		return nil, errors.New("the pro Expiration is nil")
+	}
+	sub1 := m.TrxId
+	if sub1 == nil {
+		return nil, errors.New("the mainkey TrxId is nil")
+	}
+	kList := []interface{}{pre, sub, sub1}
+	kBuf, cErr := encoding.EncodeSlice(kList, false)
+	return kBuf, cErr
 }
 
-//Query sort by order 
+//Query sort by order
 //start = nil  end = nil (query the db from start to end)
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
 func (s *STransactionObjectExpirationWrap) QueryListByOrder(start *prototype.TimePointSec, end *prototype.TimePointSec) iservices.IDatabaseIterator {
-    pre := TransactionObjectExpirationTable
-    skeyList := []interface{}{pre}
-    if start != nil {
-       skeyList = append(skeyList,start)
-    }
-    sBuf,cErr := encoding.EncodeSlice(skeyList,false)
-    if cErr != nil {
-         return nil
-    }
-    if start != nil && end == nil {
+	pre := TransactionObjectExpirationTable
+	skeyList := []interface{}{pre}
+	if start != nil {
+		skeyList = append(skeyList, start)
+	}
+	sBuf, cErr := encoding.EncodeSlice(skeyList, false)
+	if cErr != nil {
+		return nil
+	}
+	if start != nil && end == nil {
 		iter := s.Dba.NewIterator(sBuf, nil)
 		return iter
 	}
-    eKeyList := []interface{}{pre}
-    if end != nil {
-       eKeyList = append(eKeyList,end)
-    }
-    eBuf,cErr := encoding.EncodeSlice(eKeyList,false)
-    if cErr != nil {
-       return nil
-    }
-    
-    res := bytes.Compare(sBuf,eBuf)
-    if res == 0 {
+	eKeyList := []interface{}{pre}
+	if end != nil {
+		eKeyList = append(eKeyList, end)
+	}
+	eBuf, cErr := encoding.EncodeSlice(eKeyList, false)
+	if cErr != nil {
+		return nil
+	}
+
+	res := bytes.Compare(sBuf, eBuf)
+	if res == 0 {
 		eBuf = nil
-	}else if res == 1 {
-       //reverse order
-       return nil
-    }
-    iter := s.Dba.NewIterator(sBuf, eBuf)
-    
-    return iter
+	} else if res == 1 {
+		//reverse order
+		return nil
+	}
+	iter := s.Dba.NewIterator(sBuf, eBuf)
+
+	return iter
 }
 
 /////////////// SECTION Private function ////////////////
@@ -328,53 +317,51 @@ func (s *SoTransactionObjectWrap) getTransactionObject() *SoTransactionObject {
 }
 
 func (s *SoTransactionObjectWrap) encodeMainKey() ([]byte, error) {
-    pre := TransactionObjectTable
-    sub := s.mainKey
-    if sub == nil {
-       return nil,errors.New("the mainKey is nil")
-    }
-    kList := []interface{}{pre,sub}
-    kBuf,cErr := encoding.EncodeSlice(kList,false)
-    return kBuf,cErr
+	pre := TransactionObjectTable
+	sub := s.mainKey
+	if sub == nil {
+		return nil, errors.New("the mainKey is nil")
+	}
+	kList := []interface{}{pre, sub}
+	kBuf, cErr := encoding.EncodeSlice(kList, false)
+	return kBuf, cErr
 }
 
 ////////////// Unique Query delete/insert/query ///////////////
 
-
 func (s *SoTransactionObjectWrap) delUniKeyTrxId(sa *SoTransactionObject) bool {
-    pre := TransactionObjectTrxIdUniTable
-    sub := sa.TrxId
-    kList := []interface{}{pre,sub}
-    kBuf,err := encoding.EncodeSlice(kList,false)
+	pre := TransactionObjectTrxIdUniTable
+	sub := sa.TrxId
+	kList := []interface{}{pre, sub}
+	kBuf, err := encoding.EncodeSlice(kList, false)
 	if err != nil {
 		return false
 	}
 	return s.dba.Delete(kBuf) == nil
 }
 
-
 func (s *SoTransactionObjectWrap) insertUniKeyTrxId(sa *SoTransactionObject) bool {
-    uniWrap  := UniTransactionObjectTrxIdWrap{}
-     uniWrap.Dba = s.dba
-   
-   res := uniWrap.UniQueryTrxId(sa.TrxId)
-   if res != nil {
+	uniWrap := UniTransactionObjectTrxIdWrap{}
+	uniWrap.Dba = s.dba
+
+	res := uniWrap.UniQueryTrxId(sa.TrxId)
+	if res != nil {
 		//the unique key is already exist
 		return false
 	}
-    val := SoUniqueTransactionObjectByTrxId{}
-    val.TrxId = sa.TrxId
-    
+	val := SoUniqueTransactionObjectByTrxId{}
+	val.TrxId = sa.TrxId
+
 	buf, err := proto.Marshal(&val)
 
 	if err != nil {
 		return false
 	}
-    
-    pre := TransactionObjectTrxIdUniTable
-    sub := sa.TrxId
-    kList := []interface{}{pre,sub}
-    kBuf,err := encoding.EncodeSlice(kList,false)
+
+	pre := TransactionObjectTrxIdUniTable
+	sub := sa.TrxId
+	kList := []interface{}{pre, sub}
+	kBuf, err := encoding.EncodeSlice(kList, false)
 	if err != nil {
 		return false
 	}
@@ -386,22 +373,19 @@ type UniTransactionObjectTrxIdWrap struct {
 	Dba iservices.IDatabaseService
 }
 
-func (s *UniTransactionObjectTrxIdWrap) UniQueryTrxId(start *prototype.Sha256) *SoTransactionObjectWrap{
-    pre := TransactionObjectTrxIdUniTable
-    kList := []interface{}{pre,start}
-    bufStartkey,err := encoding.EncodeSlice(kList,false)
-    val,err := s.Dba.Get(bufStartkey)
+func (s *UniTransactionObjectTrxIdWrap) UniQueryTrxId(start *prototype.Sha256) *SoTransactionObjectWrap {
+	pre := TransactionObjectTrxIdUniTable
+	kList := []interface{}{pre, start}
+	bufStartkey, err := encoding.EncodeSlice(kList, false)
+	val, err := s.Dba.Get(bufStartkey)
 	if err == nil {
 		res := &SoUniqueTransactionObjectByTrxId{}
 		rErr := proto.Unmarshal(val, res)
 		if rErr == nil {
-			wrap := NewSoTransactionObjectWrap(s.Dba,res.TrxId)
-            
+			wrap := NewSoTransactionObjectWrap(s.Dba, res.TrxId)
+
 			return wrap
 		}
 	}
-    return nil
+	return nil
 }
-
-
-

@@ -48,16 +48,6 @@ func CreateGoFile(tIfno TableInfo) (bool,error) {
 
 package table
 
-import (
-     {{if ge $.SListCount 1 -}}
-     "bytes"
-     {{end -}}
-     "errors"
-     "github.com/coschain/contentos-go/common/encoding"
-     "github.com/coschain/contentos-go/prototype"
-	 "github.com/gogo/protobuf/proto"
-     "github.com/coschain/contentos-go/iservices"
-)
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
@@ -581,7 +571,7 @@ func (s *Uni{{$.ClsName}}{{$k}}Wrap) UniQuery{{$k}}(start *{{formatStr $v}}) *So
 		t  = t.Funcs(funcMapUper)
 		t.Parse(tmpl)
 		t.Execute(fPtr,createParamsFromTableInfo(tIfno))
-		cmd := exec.Command("goimports", "-I./","-I./../../../","-w=./", fName)
+		cmd := exec.Command("goimports", "-w", fName)
 		cmd.Start()
 		defer fPtr.Close()
 		return true,nil

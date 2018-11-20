@@ -1,34 +1,33 @@
-
-
 package table
 
 import (
-     "bytes"
-     "errors"
-     "github.com/coschain/contentos-go/common/encoding"
-     "github.com/coschain/contentos-go/prototype"
-	 "github.com/gogo/protobuf/proto"
-     "github.com/coschain/contentos-go/iservices"
+	"bytes"
+	"errors"
+
+	"github.com/coschain/contentos-go/common/encoding"
+	"github.com/coschain/contentos-go/iservices"
+	prototype "github.com/coschain/contentos-go/prototype"
+	proto "github.com/golang/protobuf/proto"
 )
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	AccountTable        = []byte("AccountTable")
-    AccountCreatedTimeTable = []byte("AccountCreatedTimeTable")
-    AccountBalanceTable = []byte("AccountBalanceTable")
-    AccountVestingSharesTable = []byte("AccountVestingSharesTable")
-    AccountNameUniTable = []byte("AccountNameUniTable")
-    AccountPubKeyUniTable = []byte("AccountPubKeyUniTable")
-    )
+	AccountTable              = []byte("AccountTable")
+	AccountCreatedTimeTable   = []byte("AccountCreatedTimeTable")
+	AccountBalanceTable       = []byte("AccountBalanceTable")
+	AccountVestingSharesTable = []byte("AccountVestingSharesTable")
+	AccountNameUniTable       = []byte("AccountNameUniTable")
+	AccountPubKeyUniTable     = []byte("AccountPubKeyUniTable")
+)
 
 ////////////// SECTION Wrap Define ///////////////
 type SoAccountWrap struct {
-	dba 		iservices.IDatabaseService
-	mainKey 	*prototype.AccountName
+	dba     iservices.IDatabaseService
+	mainKey *prototype.AccountName
 }
 
-func NewSoAccountWrap(dba iservices.IDatabaseService, key *prototype.AccountName) *SoAccountWrap{
-	result := &SoAccountWrap{ dba, key}
+func NewSoAccountWrap(dba iservices.IDatabaseService, key *prototype.AccountName) *SoAccountWrap {
+	result := &SoAccountWrap{dba, key}
 	return result
 }
 
@@ -42,22 +41,22 @@ func (s *SoAccountWrap) CheckExist() bool {
 	if err != nil {
 		return false
 	}
-    
+
 	return res
 }
 
 func (s *SoAccountWrap) Create(f func(tInfo *SoAccount)) error {
-    val := &SoAccount{}
-    f(val)
-    if val.Name == nil {
-       return errors.New("the mainkey is nil")
-    }
-    if s.CheckExist() {
-       return errors.New("the mainkey is already exist")
-    }
+	val := &SoAccount{}
+	f(val)
+	if val.Name == nil {
+		return errors.New("the mainkey is nil")
+	}
+	if s.CheckExist() {
+		return errors.New("the mainkey is already exist")
+	}
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
-       return err
+		return err
 
 	}
 	resBuf, err := proto.Marshal(val)
@@ -70,29 +69,27 @@ func (s *SoAccountWrap) Create(f func(tInfo *SoAccount)) error {
 	}
 
 	// update sort list keys
-	
+
 	if !s.insertSortKeyCreatedTime(val) {
-       return errors.New("insert sort Field CreatedTime while insert table ")
+		return errors.New("insert sort Field CreatedTime while insert table ")
 	}
-	
+
 	if !s.insertSortKeyBalance(val) {
-       return errors.New("insert sort Field Balance while insert table ")
+		return errors.New("insert sort Field Balance while insert table ")
 	}
-	
+
 	if !s.insertSortKeyVestingShares(val) {
-       return errors.New("insert sort Field VestingShares while insert table ")
+		return errors.New("insert sort Field VestingShares while insert table ")
 	}
-	
-  
-    //update unique list
-    if !s.insertUniKeyName(val) {
+
+	//update unique list
+	if !s.insertUniKeyName(val) {
 		return errors.New("insert unique Field prototype.AccountName while insert table ")
 	}
 	if !s.insertUniKeyPubKey(val) {
 		return errors.New("insert unique Field prototype.PublicKeyType while insert table ")
 	}
-	
-    
+
 	return nil
 }
 
@@ -101,92 +98,86 @@ func (s *SoAccountWrap) Create(f func(tInfo *SoAccount)) error {
 func (s *SoAccountWrap) delSortKeyCreatedTime(sa *SoAccount) bool {
 	val := SoListAccountByCreatedTime{}
 	val.CreatedTime = sa.CreatedTime
-    val.Name = sa.Name
-    subBuf, err := val.OpeEncode()
+	val.Name = sa.Name
+	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
 	}
-    ordErr :=  s.dba.Delete(subBuf)
-    return ordErr == nil
+	ordErr := s.dba.Delete(subBuf)
+	return ordErr == nil
 }
-
 
 func (s *SoAccountWrap) insertSortKeyCreatedTime(sa *SoAccount) bool {
 	val := SoListAccountByCreatedTime{}
-    val.Name = sa.Name
-    val.CreatedTime = sa.CreatedTime
+	val.Name = sa.Name
+	val.CreatedTime = sa.CreatedTime
 	buf, err := proto.Marshal(&val)
 	if err != nil {
 		return false
 	}
-    subBuf, err := val.OpeEncode()
+	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
 	}
-    ordErr :=  s.dba.Put(subBuf, buf) 
-    return ordErr == nil
+	ordErr := s.dba.Put(subBuf, buf)
+	return ordErr == nil
 }
-
 
 func (s *SoAccountWrap) delSortKeyBalance(sa *SoAccount) bool {
 	val := SoListAccountByBalance{}
 	val.Balance = sa.Balance
-    val.Name = sa.Name
-    subBuf, err := val.OpeEncode()
+	val.Name = sa.Name
+	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
 	}
-    ordErr :=  s.dba.Delete(subBuf)
-    return ordErr == nil
+	ordErr := s.dba.Delete(subBuf)
+	return ordErr == nil
 }
-
 
 func (s *SoAccountWrap) insertSortKeyBalance(sa *SoAccount) bool {
 	val := SoListAccountByBalance{}
-    val.Name = sa.Name
-    val.Balance = sa.Balance
+	val.Name = sa.Name
+	val.Balance = sa.Balance
 	buf, err := proto.Marshal(&val)
 	if err != nil {
 		return false
 	}
-    subBuf, err := val.OpeEncode()
+	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
 	}
-    ordErr :=  s.dba.Put(subBuf, buf) 
-    return ordErr == nil
+	ordErr := s.dba.Put(subBuf, buf)
+	return ordErr == nil
 }
-
 
 func (s *SoAccountWrap) delSortKeyVestingShares(sa *SoAccount) bool {
 	val := SoListAccountByVestingShares{}
 	val.VestingShares = sa.VestingShares
-    val.Name = sa.Name
-    subBuf, err := val.OpeEncode()
+	val.Name = sa.Name
+	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
 	}
-    ordErr :=  s.dba.Delete(subBuf)
-    return ordErr == nil
+	ordErr := s.dba.Delete(subBuf)
+	return ordErr == nil
 }
-
 
 func (s *SoAccountWrap) insertSortKeyVestingShares(sa *SoAccount) bool {
 	val := SoListAccountByVestingShares{}
-    val.Name = sa.Name
-    val.VestingShares = sa.VestingShares
+	val.Name = sa.Name
+	val.VestingShares = sa.VestingShares
 	buf, err := proto.Marshal(&val)
 	if err != nil {
 		return false
 	}
-    subBuf, err := val.OpeEncode()
+	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
 	}
-    ordErr :=  s.dba.Put(subBuf, buf) 
-    return ordErr == nil
+	ordErr := s.dba.Put(subBuf, buf)
+	return ordErr == nil
 }
-
 
 ////////////// SECTION LKeys delete/insert //////////////
 
@@ -195,7 +186,7 @@ func (s *SoAccountWrap) RemoveAccount() bool {
 	if sa == nil {
 		return false
 	}
-    //delete sort list key
+	//delete sort list key
 	if !s.delSortKeyCreatedTime(sa) {
 		return false
 	}
@@ -205,15 +196,15 @@ func (s *SoAccountWrap) RemoveAccount() bool {
 	if !s.delSortKeyVestingShares(sa) {
 		return false
 	}
-	
-    //delete unique list
-    if !s.delUniKeyName(sa) {
+
+	//delete unique list
+	if !s.delUniKeyName(sa) {
 		return false
 	}
 	if !s.delUniKeyPubKey(sa) {
 		return false
 	}
-	
+
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
 		return false
@@ -225,127 +216,118 @@ func (s *SoAccountWrap) RemoveAccount() bool {
 func (s *SoAccountWrap) GetBalance() *prototype.Coin {
 	res := s.getAccount()
 
-   if res == nil {
-      return nil
-      
-   }
-   return res.Balance
+	if res == nil {
+		return nil
+
+	}
+	return res.Balance
 }
-
-
 
 func (s *SoAccountWrap) MdBalance(p *prototype.Coin) bool {
 	sa := s.getAccount()
 	if sa == nil {
 		return false
 	}
-	
+
 	if !s.delSortKeyBalance(sa) {
 		return false
 	}
-    sa.Balance = p
+	sa.Balance = p
 	if !s.update(sa) {
 		return false
 	}
-    
-    if !s.insertSortKeyBalance(sa) {
+
+	if !s.insertSortKeyBalance(sa) {
 		return false
-    }
-       
+	}
+
 	return true
 }
 
 func (s *SoAccountWrap) GetCreatedTime() *prototype.TimePointSec {
 	res := s.getAccount()
 
-   if res == nil {
-      return nil
-      
-   }
-   return res.CreatedTime
+	if res == nil {
+		return nil
+
+	}
+	return res.CreatedTime
 }
-
-
 
 func (s *SoAccountWrap) MdCreatedTime(p *prototype.TimePointSec) bool {
 	sa := s.getAccount()
 	if sa == nil {
 		return false
 	}
-	
+
 	if !s.delSortKeyCreatedTime(sa) {
 		return false
 	}
-    sa.CreatedTime = p
+	sa.CreatedTime = p
 	if !s.update(sa) {
 		return false
 	}
-    
-    if !s.insertSortKeyCreatedTime(sa) {
+
+	if !s.insertSortKeyCreatedTime(sa) {
 		return false
-    }
-       
+	}
+
 	return true
 }
 
 func (s *SoAccountWrap) GetCreator() *prototype.AccountName {
 	res := s.getAccount()
 
-   if res == nil {
-      return nil
-      
-   }
-   return res.Creator
+	if res == nil {
+		return nil
+
+	}
+	return res.Creator
 }
-
-
 
 func (s *SoAccountWrap) MdCreator(p *prototype.AccountName) bool {
 	sa := s.getAccount()
 	if sa == nil {
 		return false
 	}
-	
-    sa.Creator = p
+
+	sa.Creator = p
 	if !s.update(sa) {
 		return false
 	}
-    
+
 	return true
 }
 
 func (s *SoAccountWrap) GetName() *prototype.AccountName {
 	res := s.getAccount()
 
-   if res == nil {
-      return nil
-      
-   }
-   return res.Name
-}
+	if res == nil {
+		return nil
 
+	}
+	return res.Name
+}
 
 func (s *SoAccountWrap) GetPubKey() *prototype.PublicKeyType {
 	res := s.getAccount()
 
-   if res == nil {
-      return nil
-      
-   }
-   return res.PubKey
+	if res == nil {
+		return nil
+
+	}
+	return res.PubKey
 }
-
-
 
 func (s *SoAccountWrap) MdPubKey(p *prototype.PublicKeyType) bool {
 	sa := s.getAccount()
 	if sa == nil {
 		return false
 	}
-    //judge the unique value if is exist
-    uniWrap  := UniAccountPubKeyWrap{}
-   res := uniWrap.UniQueryPubKey(sa.PubKey)
-   
+	//judge the unique value if is exist
+	uniWrap := UniAccountPubKeyWrap{}
+	res := uniWrap.UniQueryPubKey(sa.PubKey)
+
 	if res != nil {
 		//the unique value to be modified is already exist
 		return false
@@ -353,65 +335,59 @@ func (s *SoAccountWrap) MdPubKey(p *prototype.PublicKeyType) bool {
 	if !s.delUniKeyPubKey(sa) {
 		return false
 	}
-    
-	
-    sa.PubKey = p
+
+	sa.PubKey = p
 	if !s.update(sa) {
 		return false
 	}
-    
-    if !s.insertUniKeyPubKey(sa) {
+
+	if !s.insertUniKeyPubKey(sa) {
 		return false
-    }
+	}
 	return true
 }
 
 func (s *SoAccountWrap) GetVestingShares() *prototype.Vest {
 	res := s.getAccount()
 
-   if res == nil {
-      return nil
-      
-   }
-   return res.VestingShares
+	if res == nil {
+		return nil
+
+	}
+	return res.VestingShares
 }
-
-
 
 func (s *SoAccountWrap) MdVestingShares(p *prototype.Vest) bool {
 	sa := s.getAccount()
 	if sa == nil {
 		return false
 	}
-	
+
 	if !s.delSortKeyVestingShares(sa) {
 		return false
 	}
-    sa.VestingShares = p
+	sa.VestingShares = p
 	if !s.update(sa) {
 		return false
 	}
-    
-    if !s.insertSortKeyVestingShares(sa) {
+
+	if !s.insertSortKeyVestingShares(sa) {
 		return false
-    }
-       
+	}
+
 	return true
 }
-
-
-
 
 ////////////// SECTION List Keys ///////////////
 type SAccountCreatedTimeWrap struct {
 	Dba iservices.IDatabaseService
 }
 
-func (s *SAccountCreatedTimeWrap)DelIterater(iterator iservices.IDatabaseIterator){
-   if iterator == nil || !iterator.Valid() {
-		return 
+func (s *SAccountCreatedTimeWrap) DelIterater(iterator iservices.IDatabaseIterator) {
+	if iterator == nil || !iterator.Valid() {
+		return
 	}
-   s.Dba.DeleteIterator(iterator)
+	s.Dba.DeleteIterator(iterator)
 }
 
 func (s *SAccountCreatedTimeWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.AccountName {
@@ -430,8 +406,8 @@ func (s *SAccountCreatedTimeWrap) GetMainVal(iterator iservices.IDatabaseIterato
 	if err != nil {
 		return nil
 	}
-    return res.Name
-   
+	return res.Name
+
 }
 
 func (s *SAccountCreatedTimeWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.TimePointSec {
@@ -449,75 +425,74 @@ func (s *SAccountCreatedTimeWrap) GetSubVal(iterator iservices.IDatabaseIterator
 	if err != nil {
 		return nil
 	}
-    return res.CreatedTime
-   
+	return res.CreatedTime
+
 }
 
-func (m *SoListAccountByCreatedTime) OpeEncode() ([]byte,error) {
-    pre := AccountCreatedTimeTable
-    sub := m.CreatedTime
-    if sub == nil {
-       return nil,errors.New("the pro CreatedTime is nil")
-    }
-    sub1 := m.Name
-    if sub1 == nil {
-       return nil,errors.New("the mainkey Name is nil")
-    }
-    kList := []interface{}{pre,sub,sub1}
-    kBuf,cErr := encoding.EncodeSlice(kList,false)
-    return kBuf,cErr
+func (m *SoListAccountByCreatedTime) OpeEncode() ([]byte, error) {
+	pre := AccountCreatedTimeTable
+	sub := m.CreatedTime
+	if sub == nil {
+		return nil, errors.New("the pro CreatedTime is nil")
+	}
+	sub1 := m.Name
+	if sub1 == nil {
+		return nil, errors.New("the mainkey Name is nil")
+	}
+	kList := []interface{}{pre, sub, sub1}
+	kBuf, cErr := encoding.EncodeSlice(kList, false)
+	return kBuf, cErr
 }
 
-//Query sort by order 
+//Query sort by order
 //start = nil  end = nil (query the db from start to end)
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
 func (s *SAccountCreatedTimeWrap) QueryListByOrder(start *prototype.TimePointSec, end *prototype.TimePointSec) iservices.IDatabaseIterator {
-    pre := AccountCreatedTimeTable
-    skeyList := []interface{}{pre}
-    if start != nil {
-       skeyList = append(skeyList,start)
-    }
-    sBuf,cErr := encoding.EncodeSlice(skeyList,false)
-    if cErr != nil {
-         return nil
-    }
-    if start != nil && end == nil {
+	pre := AccountCreatedTimeTable
+	skeyList := []interface{}{pre}
+	if start != nil {
+		skeyList = append(skeyList, start)
+	}
+	sBuf, cErr := encoding.EncodeSlice(skeyList, false)
+	if cErr != nil {
+		return nil
+	}
+	if start != nil && end == nil {
 		iter := s.Dba.NewIterator(sBuf, nil)
 		return iter
 	}
-    eKeyList := []interface{}{pre}
-    if end != nil {
-       eKeyList = append(eKeyList,end)
-    }
-    eBuf,cErr := encoding.EncodeSlice(eKeyList,false)
-    if cErr != nil {
-       return nil
-    }
-    
-    res := bytes.Compare(sBuf,eBuf)
-    if res == 0 {
-		eBuf = nil
-	}else if res == 1 {
-       //reverse order
-       return nil
-    }
-    iter := s.Dba.NewIterator(sBuf, eBuf)
-    
-    return iter
-}
+	eKeyList := []interface{}{pre}
+	if end != nil {
+		eKeyList = append(eKeyList, end)
+	}
+	eBuf, cErr := encoding.EncodeSlice(eKeyList, false)
+	if cErr != nil {
+		return nil
+	}
 
+	res := bytes.Compare(sBuf, eBuf)
+	if res == 0 {
+		eBuf = nil
+	} else if res == 1 {
+		//reverse order
+		return nil
+	}
+	iter := s.Dba.NewIterator(sBuf, eBuf)
+
+	return iter
+}
 
 ////////////// SECTION List Keys ///////////////
 type SAccountBalanceWrap struct {
 	Dba iservices.IDatabaseService
 }
 
-func (s *SAccountBalanceWrap)DelIterater(iterator iservices.IDatabaseIterator){
-   if iterator == nil || !iterator.Valid() {
-		return 
+func (s *SAccountBalanceWrap) DelIterater(iterator iservices.IDatabaseIterator) {
+	if iterator == nil || !iterator.Valid() {
+		return
 	}
-   s.Dba.DeleteIterator(iterator)
+	s.Dba.DeleteIterator(iterator)
 }
 
 func (s *SAccountBalanceWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.AccountName {
@@ -536,8 +511,8 @@ func (s *SAccountBalanceWrap) GetMainVal(iterator iservices.IDatabaseIterator) *
 	if err != nil {
 		return nil
 	}
-    return res.Name
-   
+	return res.Name
+
 }
 
 func (s *SAccountBalanceWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.Coin {
@@ -555,75 +530,74 @@ func (s *SAccountBalanceWrap) GetSubVal(iterator iservices.IDatabaseIterator) *p
 	if err != nil {
 		return nil
 	}
-    return res.Balance
-   
+	return res.Balance
+
 }
 
-func (m *SoListAccountByBalance) OpeEncode() ([]byte,error) {
-    pre := AccountBalanceTable
-    sub := m.Balance
-    if sub == nil {
-       return nil,errors.New("the pro Balance is nil")
-    }
-    sub1 := m.Name
-    if sub1 == nil {
-       return nil,errors.New("the mainkey Name is nil")
-    }
-    kList := []interface{}{pre,sub,sub1}
-    kBuf,cErr := encoding.EncodeSlice(kList,false)
-    return kBuf,cErr
+func (m *SoListAccountByBalance) OpeEncode() ([]byte, error) {
+	pre := AccountBalanceTable
+	sub := m.Balance
+	if sub == nil {
+		return nil, errors.New("the pro Balance is nil")
+	}
+	sub1 := m.Name
+	if sub1 == nil {
+		return nil, errors.New("the mainkey Name is nil")
+	}
+	kList := []interface{}{pre, sub, sub1}
+	kBuf, cErr := encoding.EncodeSlice(kList, false)
+	return kBuf, cErr
 }
 
-//Query sort by order 
+//Query sort by order
 //start = nil  end = nil (query the db from start to end)
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
 func (s *SAccountBalanceWrap) QueryListByOrder(start *prototype.Coin, end *prototype.Coin) iservices.IDatabaseIterator {
-    pre := AccountBalanceTable
-    skeyList := []interface{}{pre}
-    if start != nil {
-       skeyList = append(skeyList,start)
-    }
-    sBuf,cErr := encoding.EncodeSlice(skeyList,false)
-    if cErr != nil {
-         return nil
-    }
-    if start != nil && end == nil {
+	pre := AccountBalanceTable
+	skeyList := []interface{}{pre}
+	if start != nil {
+		skeyList = append(skeyList, start)
+	}
+	sBuf, cErr := encoding.EncodeSlice(skeyList, false)
+	if cErr != nil {
+		return nil
+	}
+	if start != nil && end == nil {
 		iter := s.Dba.NewIterator(sBuf, nil)
 		return iter
 	}
-    eKeyList := []interface{}{pre}
-    if end != nil {
-       eKeyList = append(eKeyList,end)
-    }
-    eBuf,cErr := encoding.EncodeSlice(eKeyList,false)
-    if cErr != nil {
-       return nil
-    }
-    
-    res := bytes.Compare(sBuf,eBuf)
-    if res == 0 {
-		eBuf = nil
-	}else if res == 1 {
-       //reverse order
-       return nil
-    }
-    iter := s.Dba.NewIterator(sBuf, eBuf)
-    
-    return iter
-}
+	eKeyList := []interface{}{pre}
+	if end != nil {
+		eKeyList = append(eKeyList, end)
+	}
+	eBuf, cErr := encoding.EncodeSlice(eKeyList, false)
+	if cErr != nil {
+		return nil
+	}
 
+	res := bytes.Compare(sBuf, eBuf)
+	if res == 0 {
+		eBuf = nil
+	} else if res == 1 {
+		//reverse order
+		return nil
+	}
+	iter := s.Dba.NewIterator(sBuf, eBuf)
+
+	return iter
+}
 
 ////////////// SECTION List Keys ///////////////
 type SAccountVestingSharesWrap struct {
 	Dba iservices.IDatabaseService
 }
 
-func (s *SAccountVestingSharesWrap)DelIterater(iterator iservices.IDatabaseIterator){
-   if iterator == nil || !iterator.Valid() {
-		return 
+func (s *SAccountVestingSharesWrap) DelIterater(iterator iservices.IDatabaseIterator) {
+	if iterator == nil || !iterator.Valid() {
+		return
 	}
-   s.Dba.DeleteIterator(iterator)
+	s.Dba.DeleteIterator(iterator)
 }
 
 func (s *SAccountVestingSharesWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.AccountName {
@@ -642,8 +616,8 @@ func (s *SAccountVestingSharesWrap) GetMainVal(iterator iservices.IDatabaseItera
 	if err != nil {
 		return nil
 	}
-    return res.Name
-   
+	return res.Name
+
 }
 
 func (s *SAccountVestingSharesWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.Vest {
@@ -661,62 +635,62 @@ func (s *SAccountVestingSharesWrap) GetSubVal(iterator iservices.IDatabaseIterat
 	if err != nil {
 		return nil
 	}
-    return res.VestingShares
-   
+	return res.VestingShares
+
 }
 
-func (m *SoListAccountByVestingShares) OpeEncode() ([]byte,error) {
-    pre := AccountVestingSharesTable
-    sub := m.VestingShares
-    if sub == nil {
-       return nil,errors.New("the pro VestingShares is nil")
-    }
-    sub1 := m.Name
-    if sub1 == nil {
-       return nil,errors.New("the mainkey Name is nil")
-    }
-    kList := []interface{}{pre,sub,sub1}
-    kBuf,cErr := encoding.EncodeSlice(kList,false)
-    return kBuf,cErr
+func (m *SoListAccountByVestingShares) OpeEncode() ([]byte, error) {
+	pre := AccountVestingSharesTable
+	sub := m.VestingShares
+	if sub == nil {
+		return nil, errors.New("the pro VestingShares is nil")
+	}
+	sub1 := m.Name
+	if sub1 == nil {
+		return nil, errors.New("the mainkey Name is nil")
+	}
+	kList := []interface{}{pre, sub, sub1}
+	kBuf, cErr := encoding.EncodeSlice(kList, false)
+	return kBuf, cErr
 }
 
-//Query sort by order 
+//Query sort by order
 //start = nil  end = nil (query the db from start to end)
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
 func (s *SAccountVestingSharesWrap) QueryListByOrder(start *prototype.Vest, end *prototype.Vest) iservices.IDatabaseIterator {
-    pre := AccountVestingSharesTable
-    skeyList := []interface{}{pre}
-    if start != nil {
-       skeyList = append(skeyList,start)
-    }
-    sBuf,cErr := encoding.EncodeSlice(skeyList,false)
-    if cErr != nil {
-         return nil
-    }
-    if start != nil && end == nil {
+	pre := AccountVestingSharesTable
+	skeyList := []interface{}{pre}
+	if start != nil {
+		skeyList = append(skeyList, start)
+	}
+	sBuf, cErr := encoding.EncodeSlice(skeyList, false)
+	if cErr != nil {
+		return nil
+	}
+	if start != nil && end == nil {
 		iter := s.Dba.NewIterator(sBuf, nil)
 		return iter
 	}
-    eKeyList := []interface{}{pre}
-    if end != nil {
-       eKeyList = append(eKeyList,end)
-    }
-    eBuf,cErr := encoding.EncodeSlice(eKeyList,false)
-    if cErr != nil {
-       return nil
-    }
-    
-    res := bytes.Compare(sBuf,eBuf)
-    if res == 0 {
+	eKeyList := []interface{}{pre}
+	if end != nil {
+		eKeyList = append(eKeyList, end)
+	}
+	eBuf, cErr := encoding.EncodeSlice(eKeyList, false)
+	if cErr != nil {
+		return nil
+	}
+
+	res := bytes.Compare(sBuf, eBuf)
+	if res == 0 {
 		eBuf = nil
-	}else if res == 1 {
-       //reverse order
-       return nil
-    }
-    iter := s.Dba.NewIterator(sBuf, eBuf)
-    
-    return iter
+	} else if res == 1 {
+		//reverse order
+		return nil
+	}
+	iter := s.Dba.NewIterator(sBuf, eBuf)
+
+	return iter
 }
 
 /////////////// SECTION Private function ////////////////
@@ -756,53 +730,51 @@ func (s *SoAccountWrap) getAccount() *SoAccount {
 }
 
 func (s *SoAccountWrap) encodeMainKey() ([]byte, error) {
-    pre := AccountTable
-    sub := s.mainKey
-    if sub == nil {
-       return nil,errors.New("the mainKey is nil")
-    }
-    kList := []interface{}{pre,sub}
-    kBuf,cErr := encoding.EncodeSlice(kList,false)
-    return kBuf,cErr
+	pre := AccountTable
+	sub := s.mainKey
+	if sub == nil {
+		return nil, errors.New("the mainKey is nil")
+	}
+	kList := []interface{}{pre, sub}
+	kBuf, cErr := encoding.EncodeSlice(kList, false)
+	return kBuf, cErr
 }
 
 ////////////// Unique Query delete/insert/query ///////////////
 
-
 func (s *SoAccountWrap) delUniKeyName(sa *SoAccount) bool {
-    pre := AccountNameUniTable
-    sub := sa.Name
-    kList := []interface{}{pre,sub}
-    kBuf,err := encoding.EncodeSlice(kList,false)
+	pre := AccountNameUniTable
+	sub := sa.Name
+	kList := []interface{}{pre, sub}
+	kBuf, err := encoding.EncodeSlice(kList, false)
 	if err != nil {
 		return false
 	}
 	return s.dba.Delete(kBuf) == nil
 }
 
-
 func (s *SoAccountWrap) insertUniKeyName(sa *SoAccount) bool {
-    uniWrap  := UniAccountNameWrap{}
-     uniWrap.Dba = s.dba
-   
-   res := uniWrap.UniQueryName(sa.Name)
-   if res != nil {
+	uniWrap := UniAccountNameWrap{}
+	uniWrap.Dba = s.dba
+
+	res := uniWrap.UniQueryName(sa.Name)
+	if res != nil {
 		//the unique key is already exist
 		return false
 	}
-    val := SoUniqueAccountByName{}
-    val.Name = sa.Name
-    
+	val := SoUniqueAccountByName{}
+	val.Name = sa.Name
+
 	buf, err := proto.Marshal(&val)
 
 	if err != nil {
 		return false
 	}
-    
-    pre := AccountNameUniTable
-    sub := sa.Name
-    kList := []interface{}{pre,sub}
-    kBuf,err := encoding.EncodeSlice(kList,false)
+
+	pre := AccountNameUniTable
+	sub := sa.Name
+	kList := []interface{}{pre, sub}
+	kBuf, err := encoding.EncodeSlice(kList, false)
 	if err != nil {
 		return false
 	}
@@ -814,60 +786,57 @@ type UniAccountNameWrap struct {
 	Dba iservices.IDatabaseService
 }
 
-func (s *UniAccountNameWrap) UniQueryName(start *prototype.AccountName) *SoAccountWrap{
-    pre := AccountNameUniTable
-    kList := []interface{}{pre,start}
-    bufStartkey,err := encoding.EncodeSlice(kList,false)
-    val,err := s.Dba.Get(bufStartkey)
+func (s *UniAccountNameWrap) UniQueryName(start *prototype.AccountName) *SoAccountWrap {
+	pre := AccountNameUniTable
+	kList := []interface{}{pre, start}
+	bufStartkey, err := encoding.EncodeSlice(kList, false)
+	val, err := s.Dba.Get(bufStartkey)
 	if err == nil {
 		res := &SoUniqueAccountByName{}
 		rErr := proto.Unmarshal(val, res)
 		if rErr == nil {
-			wrap := NewSoAccountWrap(s.Dba,res.Name)
-            
+			wrap := NewSoAccountWrap(s.Dba, res.Name)
+
 			return wrap
 		}
 	}
-    return nil
+	return nil
 }
 
-
-
 func (s *SoAccountWrap) delUniKeyPubKey(sa *SoAccount) bool {
-    pre := AccountPubKeyUniTable
-    sub := sa.PubKey
-    kList := []interface{}{pre,sub}
-    kBuf,err := encoding.EncodeSlice(kList,false)
+	pre := AccountPubKeyUniTable
+	sub := sa.PubKey
+	kList := []interface{}{pre, sub}
+	kBuf, err := encoding.EncodeSlice(kList, false)
 	if err != nil {
 		return false
 	}
 	return s.dba.Delete(kBuf) == nil
 }
 
-
 func (s *SoAccountWrap) insertUniKeyPubKey(sa *SoAccount) bool {
-    uniWrap  := UniAccountPubKeyWrap{}
-     uniWrap.Dba = s.dba
-   
-   res := uniWrap.UniQueryPubKey(sa.PubKey)
-   if res != nil {
+	uniWrap := UniAccountPubKeyWrap{}
+	uniWrap.Dba = s.dba
+
+	res := uniWrap.UniQueryPubKey(sa.PubKey)
+	if res != nil {
 		//the unique key is already exist
 		return false
 	}
-    val := SoUniqueAccountByPubKey{}
-    val.Name = sa.Name
-    val.PubKey = sa.PubKey
-    
+	val := SoUniqueAccountByPubKey{}
+	val.Name = sa.Name
+	val.PubKey = sa.PubKey
+
 	buf, err := proto.Marshal(&val)
 
 	if err != nil {
 		return false
 	}
-    
-    pre := AccountPubKeyUniTable
-    sub := sa.PubKey
-    kList := []interface{}{pre,sub}
-    kBuf,err := encoding.EncodeSlice(kList,false)
+
+	pre := AccountPubKeyUniTable
+	sub := sa.PubKey
+	kList := []interface{}{pre, sub}
+	kBuf, err := encoding.EncodeSlice(kList, false)
 	if err != nil {
 		return false
 	}
@@ -879,22 +848,19 @@ type UniAccountPubKeyWrap struct {
 	Dba iservices.IDatabaseService
 }
 
-func (s *UniAccountPubKeyWrap) UniQueryPubKey(start *prototype.PublicKeyType) *SoAccountWrap{
-    pre := AccountPubKeyUniTable
-    kList := []interface{}{pre,start}
-    bufStartkey,err := encoding.EncodeSlice(kList,false)
-    val,err := s.Dba.Get(bufStartkey)
+func (s *UniAccountPubKeyWrap) UniQueryPubKey(start *prototype.PublicKeyType) *SoAccountWrap {
+	pre := AccountPubKeyUniTable
+	kList := []interface{}{pre, start}
+	bufStartkey, err := encoding.EncodeSlice(kList, false)
+	val, err := s.Dba.Get(bufStartkey)
 	if err == nil {
 		res := &SoUniqueAccountByPubKey{}
 		rErr := proto.Unmarshal(val, res)
 		if rErr == nil {
-			wrap := NewSoAccountWrap(s.Dba,res.Name)
-            
+			wrap := NewSoAccountWrap(s.Dba, res.Name)
+
 			return wrap
 		}
 	}
-    return nil
+	return nil
 }
-
-
-
