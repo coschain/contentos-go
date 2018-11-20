@@ -385,8 +385,14 @@ func (c *Controller) _applyBlock(blk *prototype.SignedBlock) {
 		c._current_trx_in_block++
 	}
 
-	// update xxx ...
+	// @ updateGlobalDynamicData
+	c.updateSigningWitness(blk)
+	// @ update_last_irreversible_block
+	c.createBlockSummary(blk)
+	c.clearExpiredTransactions()
+	// @ ...
 
+	// @ notify_applied_block
 }
 
 func (c *Controller) initGenesis() {
@@ -427,7 +433,16 @@ func (c *Controller) initGenesis() {
 	if !authorityWrap.CreateAccountAuthorityObject(authority) {
 		panic("CreateAccountAuthorityObject error ")
 	}
-	// @ create witness_object
+	// create witness_object
+	witnessWrap := table.NewSoWitnessWrap(c.db,name)
+	witness := &table.SoWitness{
+		Owner: name,
+		WitnessScheduleType: &prototype.WitnessScheduleType{Value:prototype.WitnessScheduleType_miner},
+		CreatedTime:&prototype.TimePointSec{UtcSeconds:0},
+		SigningKey:pubKey,
+		LastWork:&prototype.Sha256{Hash:[]byte{0}},
+	}
+	witnessWrap.CreateWitness(witness)
 
 	// create dynamic global properties
 	var i int32 = 0
@@ -454,6 +469,12 @@ func (c *Controller) initGenesis() {
 			panic("CreateBlockSummaryObject error")
 		}
 	}
+
+	// create witness scheduler
+	witnessScheduleWrap := table.NewSoWitnessScheduleObjectWrap(c.db,&i)
+	witnessSchedule := &table.SoWitnessScheduleObject{}
+	witnessSchedule.CurrentShuffledWitness = append(witnessSchedule.CurrentShuffledWitness,constants.COS_INIT_MINER)
+	witnessScheduleWrap.CreateWitnessScheduleObject(witnessSchedule)
 }
 
 func (c *Controller) CreateVesting(accountName *prototype.AccountName, cos *prototype.Coin) *prototype.Vest {
@@ -521,7 +542,7 @@ func (c *Controller) validateBlockHeader(blk *prototype.SignedBlock) {
 	}
 
 	// witness schedule check
-	nextSlot := c.GetSlotAtTime(blk.SignedHeader.Header.Timestamp)
+	nextSlot := c.GetIncrementSlotAtTime(blk.SignedHeader.Header.Timestamp)
 	if nextSlot == 0 {
 		panic("next slot should be greater than 0")
 	}
@@ -570,7 +591,7 @@ func (c *Controller) GetSlotTime(slot uint32) *prototype.TimePointSec {
 	return slotTime
 }
 
-func (c *Controller) GetSlotAtTime(t *prototype.TimePointSec) uint32 {
+func (c *Controller) GetIncrementSlotAtTime(t *prototype.TimePointSec) uint32 {
 	nextBlockSlotTime := c.GetSlotTime(1)
 	if t.UtcSeconds < nextBlockSlotTime.UtcSeconds {
 		return 0
@@ -589,4 +610,42 @@ func (c *Controller) GetScheduledWitness(slot uint32) string {
 	witnessNum := len(witnesses)
 	witnessName := witnesses[currentSlot % uint64(witnessNum)]
 	return witnessName
+}
+
+func (c *Controller) updateGlobalDynamicData(blk *prototype.SignedBlock) {
+
+}
+
+func (c * Controller) updateSigningWitness(blk *prototype.SignedBlock) {
+	var i int32 = 0
+	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db,&i)
+	newAsLot := dgpWrap.GetCurrentAslot() + uint64(c.GetIncrementSlotAtTime(blk.SignedHeader.Header.Timestamp))
+
+	name := &prototype.AccountName{Value:blk.SignedHeader.Header.Witness}
+	witnessWrap := table.NewSoWitnessWrap(c.db,name)
+	witnessWrap.MdLastConfirmedBlockNum(blk.Id().BlockNum())
+	witnessWrap.MdLastAslot(newAsLot)
+}
+
+func (c *Controller) createBlockSummary(blk *prototype.SignedBlock) {
+	blockNum := blk.Id().BlockNum()
+	blockNumSuffix := uint32(blockNum & 0xffff)
+
+	blockSummaryWrap := table.NewSoBlockSummaryObjectWrap(c.db,&blockNumSuffix)
+	blockIDArray := blk.Id().Data
+	blockID := &prototype.Sha256{Hash:blockIDArray[:]}
+	blockSummaryWrap.MdBlockId(blockID)
+}
+
+func (c *Controller) clearExpiredTransactions() {
+	sortWrap := table.STransactionObjectExpirationWrap{}
+	itr := sortWrap.QueryListByOrder(nil,nil) // query all
+	if itr != nil {
+		for itr.Next() {
+			if c.headBlockTime().UtcSeconds > sortWrap.GetSubVal(itr).UtcSeconds {
+				// delete trx ...
+			}
+		}
+		sortWrap.DelIterater(itr)
+	}
 }

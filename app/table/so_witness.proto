@@ -12,12 +12,13 @@ message so_witness {
     prototype.witness_schedule_type    witness_schedule_type           =      2;
     prototype.time_point_sec           created_time                    =      3;
     string                             url                             =      4;
-    uint32                             last_confirmed_block_num        =      5;
+    uint64                             last_confirmed_block_num        =      5;
     uint32                             total_missed                    =      6;
     uint32                             pow_worker                      =      7;
     prototype.public_key_type          signing_key                     =      8;
     prototype.sha256                   last_work                       =      9;
     uint32                             running_version                 =      10;
+    uint64                             last_aslot                      =      11;
       
 }
 
