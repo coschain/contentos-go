@@ -25,14 +25,14 @@ func create(cmd *cobra.Command, args []string) {
 	client := c.(grpcpb.ApiServiceClient)
 	w := cmd.Context["wallet"]
 	mywallet := w.(*wallet.BaseWallet)
-	pubKeyStr, privKeyStr, err := mywallet.GenerateNewKey()
 	creator := args[0]
-	pubkey, _ := prototype.PublicKeyFromWIF(pubKeyStr)
 	creatorAccount, ok := mywallet.GetUnlockedAccount(creator)
 	if !ok {
 		fmt.Println(fmt.Sprintf("creator: %s should be loaded or created first", creator))
 		return
 	}
+	pubKeyStr, privKeyStr, err := mywallet.GenerateNewKey()
+	pubkey, _ := prototype.PublicKeyFromWIF(pubKeyStr)
 	name := args[1]
 	passphrase := args[2]
 	if err != nil {
