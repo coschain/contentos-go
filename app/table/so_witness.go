@@ -358,6 +358,30 @@ func (s *SoWitnessWrap) MdUrl(p string) bool {
 	return true
 }
 
+func (s *SoWitnessWrap) GetVoteCount() uint64 {
+	res := s.getWitness()
+
+	if res == nil {
+		var tmpValue uint64
+		return tmpValue
+	}
+	return res.VoteCount
+}
+
+func (s *SoWitnessWrap) MdVoteCount(p uint64) bool {
+	sa := s.getWitness()
+	if sa == nil {
+		return false
+	}
+
+	sa.VoteCount = p
+	if !s.update(sa) {
+		return false
+	}
+
+	return true
+}
+
 func (s *SoWitnessWrap) GetWitnessScheduleType() *prototype.WitnessScheduleType {
 	res := s.getWitness()
 

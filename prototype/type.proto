@@ -107,6 +107,16 @@ message voter_id{
     uint64          post_id = 2;
 }
 
+message bp_voter_id{
+    account_name    voter   = 1;
+    account_name    witness = 2;
+}
+
+message bp_witness_id{
+    account_name    voter   = 1;
+    account_name    witness = 2;
+}
+
 message post_reply_order{
     uint64 root_id = 1;
     prototype.time_point_sec last_update = 2;

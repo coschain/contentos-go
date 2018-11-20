@@ -308,9 +308,15 @@ func (c *Controller) getEvaluator(op *prototype.Operation) BaseEvaluator {
 	case *prototype.Operation_Op2:
 		eva := &TransferEvaluator{ctx: ctx, op: op.GetOp2()}
 		return BaseEvaluator(eva)
-	//case *prototype.Operation_Op3:
-	//	eva := &AccountCreateEvaluator{ ctx:ctx, op: op.GetOp3() }
-	//	return BaseEvaluator(eva)
+	case *prototype.Operation_Op6:
+		eva := &PostEvaluator{ ctx:ctx, op: op.GetOp6() }
+		return BaseEvaluator(eva)
+	case *prototype.Operation_Op7:
+		eva := &ReplyEvaluator{ ctx:ctx, op: op.GetOp7() }
+		return BaseEvaluator(eva)
+	case *prototype.Operation_Op9:
+		eva := &VoteEvaluator{ ctx:ctx, op: op.GetOp9() }
+		return BaseEvaluator(eva)
 	//case *prototype.Operation_Op4:
 	//	eva := &TransferEvaluator{ ctx:ctx, op: op.GetOp4() }
 	//	return BaseEvaluator(eva)

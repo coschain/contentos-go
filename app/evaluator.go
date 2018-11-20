@@ -3,29 +3,8 @@ package app
 import (
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common/constants"
-	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
 )
-
-func mustNoError( err error, val string )  {
-	if ( err != nil ){
-		panic( val + " : "+ err.Error() )
-	}
-}
-func mustSuccess( b bool , val string)  {
-	if ( !b ){
-		panic(val)
-	}
-}
-
-type ApplyContext struct {
-	db iservices.IDatabaseService
-	control iservices.IController
-}
-
-type BaseEvaluator interface {
-	Apply()
-}
 
 
 type AccountCreateEvaluator struct{
@@ -55,28 +34,44 @@ type VoteEvaluator struct{
 	ctx *ApplyContext
 	op *prototype.VoteOperation
 }
+type BpRegisterEvaluator struct{
+	BaseEvaluator
+	ctx *ApplyContext
+	op *prototype.BpRegisterOperation
+}
+type BpUnregisterEvaluator struct{
+	BaseEvaluator
+	ctx *ApplyContext
+	op *prototype.BpUnregisterOperation
+}
+
+type BpVoteEvaluator struct{
+	BaseEvaluator
+	ctx *ApplyContext
+	op *prototype.BpVoteOperation
+}
 
 func (ev *AccountCreateEvaluator) Apply() {
 	op := ev.op
 	creatorWrap := table.NewSoAccountWrap(ev.ctx.db,op.Creator)
 
-	mustSuccess( creatorWrap.CheckExist() , "creator not exist ")
+	opAssert( creatorWrap.CheckExist() , "creator not exist ")
 
-	mustSuccess( creatorWrap.GetBalance().Value >= op.Fee.Value , "Insufficient balance to create account.")
+	opAssert( creatorWrap.GetBalance().Value >= op.Fee.Value , "Insufficient balance to create account.")
 
 
 	// check auth accounts
 	for _,a := range op.Owner.AccountAuths {
 		tmpAccountWrap := table.NewSoAccountWrap(ev.ctx.db,a.Name)
-		mustSuccess( tmpAccountWrap.CheckExist(), "owner auth account not exist")
+		opAssert( tmpAccountWrap.CheckExist(), "owner auth account not exist")
 	}
 	for _,a := range op.Active.AccountAuths {
 		tmpAccountWrap := table.NewSoAccountWrap(ev.ctx.db,a.Name)
-		mustSuccess( tmpAccountWrap.CheckExist(), "active auth account not exist")
+		opAssert( tmpAccountWrap.CheckExist(), "active auth account not exist")
 	}
 	for _,a := range op.Posting.AccountAuths {
 		tmpAccountWrap := table.NewSoAccountWrap(ev.ctx.db,a.Name)
-		mustSuccess( tmpAccountWrap.CheckExist(), "posting auth account not exist")
+		opAssert( tmpAccountWrap.CheckExist(), "posting auth account not exist")
 	}
 
 	// sub creator's fee
@@ -93,7 +88,7 @@ func (ev *AccountCreateEvaluator) Apply() {
 
 	// create account
 	newAccountWrap := table.NewSoAccountWrap(ev.ctx.db,op.NewAccountName)
-	mustNoError( newAccountWrap.Create(func(tInfo *table.SoAccount) {
+	opAssertE( newAccountWrap.Create(func(tInfo *table.SoAccount) {
 		tInfo.Name             = op.NewAccountName
 		tInfo.Creator          = op.Creator
 		tInfo.CreatedTime      = dgpWrap.GetTime()
@@ -105,7 +100,7 @@ func (ev *AccountCreateEvaluator) Apply() {
 
 	// create account authority
 	authorityWrap := table.NewSoAccountAuthorityObjectWrap(ev.ctx.db,op.NewAccountName)
-	mustNoError( authorityWrap.Create(func(tInfo *table.SoAccountAuthorityObject) {
+	opAssertE( authorityWrap.Create(func(tInfo *table.SoAccountAuthorityObject) {
 		tInfo.Account            = op.NewAccountName
 		tInfo.Posting            = op.Posting
 		tInfo.Active             = op.Active
@@ -124,38 +119,22 @@ func (ev *TransferEvaluator) Apply() {
 
 	// @ active_challenged
 	fromWrap := table.NewSoAccountWrap(ev.ctx.db,op.From)
-	mustSuccess( fromWrap.GetBalance().Value >= op.Amount.Value, "Insufficient balance to transfer.")
+	opAssert( fromWrap.GetBalance().Value >= op.Amount.Value, "Insufficient balance to transfer.")
 	ev.ctx.control.SubBalance(op.From,op.Amount)
 	ev.ctx.control.AddBalance(op.To,op.Amount)
 }
 
-/*
-PostId               uint64                  `protobuf:"varint,1,opt,name=post_id,json=postId,proto3" json:"post_id,omitempty"`
-Category             string                  `protobuf:"bytes,2,opt,name=category,proto3" json:"category,omitempty"`
-Author               *prototype.AccountName  `protobuf:"bytes,3,opt,name=author,proto3" json:"author,omitempty"`
-Title                string                  `protobuf:"bytes,4,opt,name=title,proto3" json:"title,omitempty"`
-Body                 string                  `protobuf:"bytes,5,opt,name=body,proto3" json:"body,omitempty"`
-Tags                 []string                `protobuf:"bytes,6,rep,name=tags,proto3" json:"tags,omitempty"`
-Created              *prototype.TimePointSec `protobuf:"bytes,7,opt,name=created,proto3" json:"created,omitempty"`
-LastPayout           *prototype.TimePointSec `protobuf:"bytes,8,opt,name=last_payout,json=lastPayout,proto3" json:"last_payout,omitempty"`
-Depth                uint32                  `protobuf:"varint,9,opt,name=depth,proto3" json:"depth,omitempty"`
-Children             uint32                  `protobuf:"varint,10,opt,name=children,proto3" json:"children,omitempty"`
-RootId               uint64                  `protobuf:"varint,11,opt,name=root_id,json=rootId,proto3" json:"root_id,omitempty"`
-ParentId             uint64
-CreatedOrder         *prototype.PostCreatedOrder `protobuf:"bytes,13,opt,name=created_order,json=createdOrder,proto3" json:"created_order,omitempty"`
-ReplyOrder           *prototype.PostReplyOrder   `protobuf:"bytes,14,opt,name=reply_order,json=replyOrder,proto3" json:"reply_order,omitempty"`
-*/
 func (ev *ReplyEvaluator) Apply() {
 	op 		:= ev.op
 	cidWrap 	:= table.NewSoPostWrap( ev.ctx.db, &op.Uuid )
 	pidWrap := table.NewSoPostWrap( ev.ctx.db, &op.ParentUuid )
 
-	mustSuccess( !cidWrap.CheckExist(), "post uuid exist" )
-	mustSuccess(  pidWrap.CheckExist(), "parent uuid do not exist" )
+	opAssert( !cidWrap.CheckExist(), "post uuid exist" )
+	opAssert(  pidWrap.CheckExist(), "parent uuid do not exist" )
 
-	mustSuccess( pidWrap.GetDepth() + 1 < constants.POST_MAX_DEPTH, "reply depth error")
+	opAssert( pidWrap.GetDepth() + 1 < constants.POST_MAX_DEPTH, "reply depth error")
 
-	mustNoError( cidWrap.Create(func(t *table.SoPost) {
+	opAssertE( cidWrap.Create(func(t *table.SoPost) {
 		t.PostId        = op.Uuid
 		t.Tags          = nil
 		t.Title         = ""
@@ -175,16 +154,16 @@ func (ev *ReplyEvaluator) Apply() {
 	}), "create reply error")
 
 	// Modify Parent Object
-	mustSuccess( pidWrap.MdChildren( pidWrap.GetChildren() + 1 ), "Modify Parent Children Error" )
+	opAssert( pidWrap.MdChildren( pidWrap.GetChildren() + 1 ), "Modify Parent Children Error" )
 }
 
 func (ev *PostEvaluator) Apply() {
 	op 		:= ev.op
 	idWrap 	:= table.NewSoPostWrap( ev.ctx.db, &op.Uuid )
 
-	mustSuccess( !idWrap.CheckExist(), "post uuid exist" )
+	opAssert( !idWrap.CheckExist(), "post uuid exist" )
 
-	mustNoError( idWrap.Create(func(t *table.SoPost) {
+	opAssertE( idWrap.Create(func(t *table.SoPost) {
 		t.PostId        = op.Uuid
 		t.Tags          = op.Tags
 		t.Title         = op.Title
@@ -212,14 +191,69 @@ func (ev *VoteEvaluator) Apply() {
 	vidWrap := table.NewSoVoteWrap( ev.ctx.db, &voterId )
 	pidWrap := table.NewSoPostWrap( ev.ctx.db, &op.Idx )
 
-	mustSuccess( !pidWrap.CheckExist(), "post invalid" )
-	mustSuccess( !vidWrap.CheckExist(), "vote info exist" )
+	opAssert( !pidWrap.CheckExist(), "post invalid" )
+	opAssert( !vidWrap.CheckExist(), "vote info exist" )
 
-	mustNoError( vidWrap.Create(func(t *table.SoVote) {
+	opAssertE( vidWrap.Create(func(t *table.SoVote) {
 		t.Voter		= &voterId
 		t.PostId	= op.Idx
 		t.VoteTime	= ev.ctx.control.HeadBlockTime()
 	}), "create voter object error")
 
-	mustSuccess( pidWrap.MdVoteCnt( pidWrap.GetVoteCnt() + 1 ), "set vote count error" )
+	opAssert( pidWrap.MdVoteCnt( pidWrap.GetVoteCnt() + 1 ), "set vote count error" )
+}
+
+
+func (ev *BpRegisterEvaluator) Apply() {
+	op 			:= ev.op
+	witnessWrap := table.NewSoWitnessWrap(ev.ctx.db, op.Owner)
+
+	opAssert( witnessWrap.CheckExist(), "witness already exist" )
+
+	opAssertE(witnessWrap.Create(func(t *table.SoWitness) {
+		t.Owner 		= op.Owner
+		t.CreatedTime	= ev.ctx.control.HeadBlockTime()
+		t.Url	= op.Url
+		t.SigningKey = op.BlockSigningKey
+
+		// TODO add others
+	}), "add witness record error")
+}
+
+func (ev *BpUnregisterEvaluator) Apply() {
+	panic("not yet implement")
+}
+
+func (ev *BpVoteEvaluator) Apply() {
+	op 		:= ev.op
+
+	voterAccount 	:= table.NewSoAccountWrap(ev.ctx.db, op.Voter )
+	voteCnt 		:= voterAccount.GetBpVoteCount()
+
+	voterId 	:= &prototype.BpVoterId{ Voter:op.Voter, Witness:op.Witness }
+	witnessId 	:= &prototype.BpWitnessId{ Voter:op.Voter, Witness:op.Witness }
+	vidWrap 	:= table.NewSoWitnessVoteWrap(ev.ctx.db, voterId)
+
+	witnessWrap := table.NewSoWitnessWrap(ev.ctx.db, op.Witness)
+
+	if op.Cancel {
+		opAssert( voteCnt > 0, "vote count must not be 0")
+		opAssert( vidWrap.CheckExist(), "vote record not exist" )
+		opAssert( vidWrap.RemoveWitnessVote(), "remove vote record error")
+		opAssert( witnessWrap.GetVoteCount() > 0 , "witness data error")
+		opAssert( witnessWrap.MdVoteCount( witnessWrap.GetVoteCount() - 1 ), "set witness data error" )
+		opAssert( voterAccount.MdBpVoteCount( voteCnt - 1 ),"set voter data error")
+	} else {
+		opAssert( voteCnt < constants.MAX_BP_VOTE_COUNT, "vote count exceeding")
+
+		opAssertE( vidWrap.Create(func(t *table.SoWitnessVote) {
+			t.VoteTime = ev.ctx.control.HeadBlockTime()
+			t.VoterId	= voterId
+			t.WitnessId	= witnessId
+		}), "add vote record error")
+
+		opAssert( voterAccount.MdBpVoteCount( voteCnt + 1 ),"set voter data error")
+		opAssert( witnessWrap.MdVoteCount( witnessWrap.GetVoteCount() + 1 ), "set witness data error" )
+	}
+
 }

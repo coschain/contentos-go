@@ -16,6 +16,7 @@ var (
 	AccountCreatedTimeTable   = []byte("AccountCreatedTimeTable")
 	AccountBalanceTable       = []byte("AccountBalanceTable")
 	AccountVestingSharesTable = []byte("AccountVestingSharesTable")
+	AccountBpVoteCountTable   = []byte("AccountBpVoteCountTable")
 	AccountNameUniTable       = []byte("AccountNameUniTable")
 	AccountPubKeyUniTable     = []byte("AccountPubKeyUniTable")
 )
@@ -80,6 +81,10 @@ func (s *SoAccountWrap) Create(f func(tInfo *SoAccount)) error {
 
 	if !s.insertSortKeyVestingShares(val) {
 		return errors.New("insert sort Field VestingShares while insert table ")
+	}
+
+	if !s.insertSortKeyBpVoteCount(val) {
+		return errors.New("insert sort Field BpVoteCount while insert table ")
 	}
 
 	//update unique list
@@ -179,6 +184,34 @@ func (s *SoAccountWrap) insertSortKeyVestingShares(sa *SoAccount) bool {
 	return ordErr == nil
 }
 
+func (s *SoAccountWrap) delSortKeyBpVoteCount(sa *SoAccount) bool {
+	val := SoListAccountByBpVoteCount{}
+	val.BpVoteCount = sa.BpVoteCount
+	val.Name = sa.Name
+	subBuf, err := val.OpeEncode()
+	if err != nil {
+		return false
+	}
+	ordErr := s.dba.Delete(subBuf)
+	return ordErr == nil
+}
+
+func (s *SoAccountWrap) insertSortKeyBpVoteCount(sa *SoAccount) bool {
+	val := SoListAccountByBpVoteCount{}
+	val.Name = sa.Name
+	val.BpVoteCount = sa.BpVoteCount
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return false
+	}
+	subBuf, err := val.OpeEncode()
+	if err != nil {
+		return false
+	}
+	ordErr := s.dba.Put(subBuf, buf)
+	return ordErr == nil
+}
+
 ////////////// SECTION LKeys delete/insert //////////////
 
 func (s *SoAccountWrap) RemoveAccount() bool {
@@ -194,6 +227,9 @@ func (s *SoAccountWrap) RemoveAccount() bool {
 		return false
 	}
 	if !s.delSortKeyVestingShares(sa) {
+		return false
+	}
+	if !s.delSortKeyBpVoteCount(sa) {
 		return false
 	}
 
@@ -238,6 +274,37 @@ func (s *SoAccountWrap) MdBalance(p *prototype.Coin) bool {
 	}
 
 	if !s.insertSortKeyBalance(sa) {
+		return false
+	}
+
+	return true
+}
+
+func (s *SoAccountWrap) GetBpVoteCount() uint32 {
+	res := s.getAccount()
+
+	if res == nil {
+		var tmpValue uint32
+		return tmpValue
+	}
+	return res.BpVoteCount
+}
+
+func (s *SoAccountWrap) MdBpVoteCount(p uint32) bool {
+	sa := s.getAccount()
+	if sa == nil {
+		return false
+	}
+
+	if !s.delSortKeyBpVoteCount(sa) {
+		return false
+	}
+	sa.BpVoteCount = p
+	if !s.update(sa) {
+		return false
+	}
+
+	if !s.insertSortKeyBpVoteCount(sa) {
 		return false
 	}
 
@@ -660,6 +727,109 @@ func (m *SoListAccountByVestingShares) OpeEncode() ([]byte, error) {
 //end = nil (query to the end of db)
 func (s *SAccountVestingSharesWrap) QueryListByOrder(start *prototype.Vest, end *prototype.Vest) iservices.IDatabaseIterator {
 	pre := AccountVestingSharesTable
+	skeyList := []interface{}{pre}
+	if start != nil {
+		skeyList = append(skeyList, start)
+	}
+	sBuf, cErr := encoding.EncodeSlice(skeyList, false)
+	if cErr != nil {
+		return nil
+	}
+	if start != nil && end == nil {
+		iter := s.Dba.NewIterator(sBuf, nil)
+		return iter
+	}
+	eKeyList := []interface{}{pre}
+	if end != nil {
+		eKeyList = append(eKeyList, end)
+	}
+	eBuf, cErr := encoding.EncodeSlice(eKeyList, false)
+	if cErr != nil {
+		return nil
+	}
+
+	res := bytes.Compare(sBuf, eBuf)
+	if res == 0 {
+		eBuf = nil
+	} else if res == 1 {
+		//reverse order
+		return nil
+	}
+	iter := s.Dba.NewIterator(sBuf, eBuf)
+
+	return iter
+}
+
+////////////// SECTION List Keys ///////////////
+type SAccountBpVoteCountWrap struct {
+	Dba iservices.IDatabaseService
+}
+
+func (s *SAccountBpVoteCountWrap) DelIterater(iterator iservices.IDatabaseIterator) {
+	if iterator == nil || !iterator.Valid() {
+		return
+	}
+	s.Dba.DeleteIterator(iterator)
+}
+
+func (s *SAccountBpVoteCountWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.AccountName {
+	if iterator == nil || !iterator.Valid() {
+		return nil
+	}
+	val, err := iterator.Value()
+
+	if err != nil {
+		return nil
+	}
+
+	res := &SoListAccountByBpVoteCount{}
+	err = proto.Unmarshal(val, res)
+
+	if err != nil {
+		return nil
+	}
+	return res.Name
+
+}
+
+func (s *SAccountBpVoteCountWrap) GetSubVal(iterator iservices.IDatabaseIterator) *uint32 {
+	if iterator == nil || !iterator.Valid() {
+		return nil
+	}
+
+	val, err := iterator.Value()
+
+	if err != nil {
+		return nil
+	}
+	res := &SoListAccountByBpVoteCount{}
+	err = proto.Unmarshal(val, res)
+	if err != nil {
+		return nil
+	}
+	return &res.BpVoteCount
+
+}
+
+func (m *SoListAccountByBpVoteCount) OpeEncode() ([]byte, error) {
+	pre := AccountBpVoteCountTable
+	sub := m.BpVoteCount
+
+	sub1 := m.Name
+	if sub1 == nil {
+		return nil, errors.New("the mainkey Name is nil")
+	}
+	kList := []interface{}{pre, sub, sub1}
+	kBuf, cErr := encoding.EncodeSlice(kList, false)
+	return kBuf, cErr
+}
+
+//Query sort by order
+//start = nil  end = nil (query the db from start to end)
+//start = nil (query from start the db)
+//end = nil (query to the end of db)
+func (s *SAccountBpVoteCountWrap) QueryListByOrder(start *uint32, end *uint32) iservices.IDatabaseIterator {
+	pre := AccountBpVoteCountTable
 	skeyList := []interface{}{pre}
 	if start != nil {
 		skeyList = append(skeyList, start)

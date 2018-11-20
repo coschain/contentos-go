@@ -1,0 +1,25 @@
+
+syntax = "proto3";
+
+package table;
+
+option go_package = "github.com/coschain/contentos-go/table";
+
+import "prototype/type.proto";
+
+message so_witnessVote {
+	prototype.bp_voter_id              voter_id       =      1;
+    prototype.bp_witness_id 								   witness_id     =      2;
+    prototype.time_point_sec           vote_time      =      3;
+      
+}
+
+
+message so_list_witnessVote_by_voter_id {
+	prototype.bp_voter_id           	voter_id   = 1;
+}
+
+
+message so_unique_witnessVote_by_voter_id {
+	prototype.bp_voter_id           	voter_id   = 1;
+}
