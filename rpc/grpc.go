@@ -25,10 +25,6 @@ type APIService struct {
 
 func (as *APIService) GetAccountByName(ctx context.Context, req *grpcpb.GetAccountByNameRequest) (*grpcpb.AccountResponse, error) {
 
-	if true {
-		panic("123")
-	}
-
 	accWrap := table.NewSoAccountWrap(as.db, req.AccountName)
 	acct := &grpcpb.AccountResponse{AccountName: &prototype.AccountName{}}
 
@@ -63,23 +59,15 @@ func (as *APIService) GetFollowerListByName(ctx context.Context, req *grpcpb.Get
 		ferIter = ferOrderWrap.QueryListByOrder(req.Start, nil)
 	}
 
-	if req.Limit <= constants.RPC_PAGE_SIZE_LIMIT {
-		limit = req.Limit
-	} else {
-		limit = constants.RPC_PAGE_SIZE_LIMIT
-	}
+	limit = checkLimit(req.Limit)
 
-	for ferIter.Next() {
+	for ferIter.Next() && i < limit {
 		ferOrder := ferOrderWrap.GetMainVal(ferIter)
 		if ferOrder != nil {
 			ferList = append(ferList, ferOrder.Follower)
 		}
 
 		i++
-
-		if i < limit {
-			break
-		}
 	}
 
 	if len(ferList) == 0 {
@@ -107,23 +95,15 @@ func (as *APIService) GetFollowingListByName(ctx context.Context, req *grpcpb.Ge
 		fingIter = fingOrderWrap.QueryListByOrder(req.Start, nil)
 	}
 
-	if req.Limit <= constants.RPC_PAGE_SIZE_LIMIT {
-		limit = req.Limit
-	} else {
-		limit = constants.RPC_PAGE_SIZE_LIMIT
-	}
+	limit = checkLimit(req.Limit)
 
-	for fingIter.Next() {
+	for fingIter.Next() && i < limit {
 		fingOrder := fingOrderWrap.GetMainVal(fingIter)
 		if fingOrder != nil {
 			fingList = append(fingList, fingOrder.Following)
 		}
 
 		i++
-
-		if i < limit {
-			break
-		}
 	}
 
 	if len(fingList) == 0 {
@@ -168,13 +148,9 @@ func (as *APIService) GetWitnessList(ctx context.Context, req *grpcpb.GetWitness
 		witIter = witOrderWrap.QueryListByOrder(req.Start, nil)
 	}
 
-	if req.Limit <= constants.RPC_PAGE_SIZE_LIMIT {
-		limit = req.Limit
-	} else {
-		limit = constants.RPC_PAGE_SIZE_LIMIT
-	}
+	limit = checkLimit(req.Limit)
 
-	for witIter.Next() {
+	for witIter.Next() && i < limit {
 		witWrap := table.NewSoWitnessWrap(as.db, witOrderWrap.GetMainVal(witIter))
 		if witWrap.CheckExist() {
 			witList = append(witList, &grpcpb.WitnessResponse{
@@ -192,10 +168,6 @@ func (as *APIService) GetWitnessList(ctx context.Context, req *grpcpb.GetWitness
 		}
 
 		i++
-
-		if i < limit {
-			break
-		}
 	}
 
 	if len(witList) == 0 {
@@ -222,13 +194,9 @@ func (as *APIService) GetPostListByCreated(ctx context.Context, req *grpcpb.GetP
 		postIter = postOrderWrap.QueryListByRevOrder(req.Start, nil)
 	}
 
-	if req.Limit <= constants.RPC_PAGE_SIZE_LIMIT {
-		limit = req.Limit
-	} else {
-		limit = constants.RPC_PAGE_SIZE_LIMIT
-	}
+	limit = checkLimit(req.Limit)
 
-	for postIter.Next() {
+	for postIter.Next() && i < limit {
 		postWrap := table.NewSoPostWrap(as.db, postOrderWrap.GetMainVal(postIter))
 		if postWrap.CheckExist() {
 			postList = append(postList, &grpcpb.PostResponse{
@@ -255,10 +223,6 @@ func (as *APIService) GetPostListByCreated(ctx context.Context, req *grpcpb.GetP
 		}
 
 		i++
-
-		if i < limit {
-			break
-		}
 	}
 
 	if len(postList) == 0 {
@@ -285,13 +249,9 @@ func (as *APIService) GetReplyListByPostId(ctx context.Context, req *grpcpb.GetR
 		replyIter = replyOrderWrap.QueryListByRevOrder(req.Start, nil)
 	}
 
-	if req.Limit <= constants.RPC_PAGE_SIZE_LIMIT {
-		limit = req.Limit
-	} else {
-		limit = constants.RPC_PAGE_SIZE_LIMIT
-	}
+	limit = checkLimit(req.Limit)
 
-	for replyIter.Next() {
+	for replyIter.Next() && i < limit {
 		postWrap := table.NewSoPostWrap(as.db, replyOrderWrap.GetMainVal(replyIter))
 		if postWrap.CheckExist() {
 			replyList = append(replyList, &grpcpb.PostResponse{
@@ -318,10 +278,6 @@ func (as *APIService) GetReplyListByPostId(ctx context.Context, req *grpcpb.GetR
 		}
 
 		i++
-
-		if i < limit {
-			break
-		}
 	}
 
 	if len(replyList) == 0 {
@@ -350,4 +306,12 @@ func (as *APIService) BroadcastTrx(ctx context.Context, req *grpcpb.BroadcastTrx
 	})
 
 	return &grpcpb.BroadcastTrxResponse{}, nil
+}
+
+func checkLimit(limit uint32) uint32 {
+	if limit <= constants.RPC_PAGE_SIZE_LIMIT {
+		return limit
+	} else {
+		return constants.RPC_PAGE_SIZE_LIMIT
+	}
 }
