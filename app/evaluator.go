@@ -23,7 +23,7 @@ type ApplyContext struct {
 }
 
 type BaseEvaluator interface {
-	Apply(op *prototype.Operation)
+	Apply()
 }
 
 
@@ -39,7 +39,7 @@ type TransferEvaluator struct{
 	op *prototype.TransferOperation
 }
 
-func (ev *AccountCreateEvaluator) Apply(operation *prototype.Operation) {
+func (ev *AccountCreateEvaluator) Apply() {
 	op := ev.op
 	creatorWrap := table.NewSoAccountWrap(ev.ctx.db,op.Creator)
 
@@ -105,7 +105,7 @@ func (ev *AccountCreateEvaluator) Apply(operation *prototype.Operation) {
 	}
 }
 
-func (ev *TransferEvaluator) Apply(operation *prototype.Operation) {
+func (ev *TransferEvaluator) Apply() {
 	op := ev.op
 
 	// @ active_challenged

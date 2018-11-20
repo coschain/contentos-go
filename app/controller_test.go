@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/prototype"
@@ -33,12 +34,10 @@ func createSigTrx(op interface{}) (*prototype.SignedTransaction,error) {
 	return &signTx, nil
 }
 
-func Test_PushTrx(t *testing.T) {
-	clearDB()
-
+func makeCreateAccountOP() (*prototype.AccountCreateOperation,error) {
 	pub,err := prototype.PublicKeyFromWIF(pubKey)
 	if err != nil {
-		t.Error("PublicKeyFromWIF error")
+		return nil,errors.New("PublicKeyFromWIF error")
 	}
 	acop := &prototype.AccountCreateOperation{
 		Fee:            prototype.MakeCoin(1),
@@ -67,6 +66,17 @@ func Test_PushTrx(t *testing.T) {
 		MemoKey: pub, // new account's memo key
 	}
 
+	return acop,nil
+}
+
+func Test_PushTrx(t *testing.T) {
+	clearDB()
+
+	acop,err := makeCreateAccountOP()
+	if err != nil {
+		t.Error("makeCreateAccountOP error:",err)
+	}
+
 	signedTrx, err := createSigTrx(acop)
 	if err != nil {
 		t.Error("createSigTrx failed:",err)
@@ -87,4 +97,9 @@ func Test_PushTrx(t *testing.T) {
 	if !bobWrap.CheckExist() {
 		t.Error("create account failed")
 	}
+}
+
+func Test_PushBlock(t *testing.T) {
+	clearDB()
+	
 }

@@ -54,10 +54,9 @@ func Test_ApplyAccountCreate(t *testing.T) {
 	defer db.Close()
 	c := startController(db)
 
-	ev := &AccountCreateEvaluator{}
-	ev.SetDB(db)
-	ev.SetController(c)
-	ev.Apply(op)
+	ctx := &ApplyContext{ db:db, control:c}
+	ev := &AccountCreateEvaluator{ctx:ctx,op:op.GetOp1()}
+	ev.Apply()
 
 	// verify
 	name := &prototype.AccountName{Value:"alice"}
@@ -94,10 +93,9 @@ func Test_ApplyTransfer(t *testing.T) {
 	op2.Op2 = top
 	op.Op = op2
 
-	ev := &TransferEvaluator{}
-	ev.SetDB(db)
-	ev.SetController(c)
-	ev.Apply(op)
+	ctx := &ApplyContext{ db:db, control:c}
+	ev := &TransferEvaluator{ctx:ctx,op:op.GetOp2()}
+	ev.Apply()
 
 	// check
 	fmt.Println("alice new:",aliceWrap.GetBalance().Value)

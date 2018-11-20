@@ -34,15 +34,15 @@ type Controller struct {
 	noticer EventBus.Bus
 	skip    skipFlag
 
-	_pending_tx        []*prototype.TransactionWrapper
-	_isProducing       bool
-	_currentTrxId      *prototype.Sha256
-	_current_op_in_trx uint16
-	_currentBlockNum 	uint64
+	_pending_tx           []*prototype.TransactionWrapper
+	_isProducing          bool
+	_currentTrxId         *prototype.Sha256
+	_current_op_in_trx    uint16
+	_currentBlockNum      uint64
 	_current_trx_in_block int16
 }
 
-func (c *Controller) getDb() (iservices.IDatabaseService,error) {
+func (c *Controller) getDb() (iservices.IDatabaseService, error) {
 	s, err := c.ctx.Service(iservices.DB_SERVER_NAME)
 	if err != nil {
 		return nil, err
@@ -62,7 +62,7 @@ func NewController(ctx *node.ServiceContext) (*Controller, error) {
 }
 
 func (c *Controller) Start(node *node.Node) error {
-	db,err := c.getDb()
+	db, err := c.getDb()
 	if err != nil {
 		return err
 	}
@@ -76,7 +76,7 @@ func (c *Controller) Start(node *node.Node) error {
 
 func (c *Controller) Open() {
 	var i int32 = 0
-	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db,&i)
+	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db, &i)
 	if !dgpWrap.CheckExist() {
 		c.initGenesis()
 	}
@@ -100,8 +100,8 @@ func (c *Controller) PushTrx(trx *prototype.SignedTransaction) *prototype.Transa
 
 	// check maximum_block_size
 	var i int32 = 0
-	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db,&i)
-	if  proto.Size(trx) > int(dgpWrap.GetMaximumBlockSize() - 256) {
+	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db, &i)
+	if proto.Size(trx) > int(dgpWrap.GetMaximumBlockSize()-256) {
 		panic("transaction is too large")
 	}
 
@@ -145,7 +145,7 @@ func (c *Controller) PushBlock(blk *prototype.SignedBlock) {
 }
 
 func (c *Controller) GenerateBlock(accountName string, timestamp uint32,
-					 prev common.BlockID) *prototype.SignedBlock {
+	prev common.BlockID) *prototype.SignedBlock {
 	return nil
 }
 
@@ -205,8 +205,8 @@ func (c *Controller) _applyTransaction(trxWrp *prototype.TransactionWrapper) {
 
 	if c.skip&skip_transaction_signatures == 0 {
 		postingGetter := func(name string) *prototype.Authority {
-			account := &prototype.AccountName{Value:name}
-			authWrap := table.NewSoAccountAuthorityObjectWrap(c.db,account)
+			account := &prototype.AccountName{Value: name}
+			authWrap := table.NewSoAccountAuthorityObjectWrap(c.db, account)
 			auth := authWrap.GetPosting()
 			if auth == nil {
 				panic("no posting auth")
@@ -214,8 +214,8 @@ func (c *Controller) _applyTransaction(trxWrp *prototype.TransactionWrapper) {
 			return auth
 		}
 		activeGetter := func(name string) *prototype.Authority {
-			account := &prototype.AccountName{Value:name}
-			authWrap := table.NewSoAccountAuthorityObjectWrap(c.db,account)
+			account := &prototype.AccountName{Value: name}
+			authWrap := table.NewSoAccountAuthorityObjectWrap(c.db, account)
 			auth := authWrap.GetActive()
 			if auth == nil {
 				panic("no posting auth")
@@ -223,8 +223,8 @@ func (c *Controller) _applyTransaction(trxWrp *prototype.TransactionWrapper) {
 			return auth
 		}
 		ownerGetter := func(name string) *prototype.Authority {
-			account := &prototype.AccountName{Value:name}
-			authWrap := table.NewSoAccountAuthorityObjectWrap(c.db,account)
+			account := &prototype.AccountName{Value: name}
+			authWrap := table.NewSoAccountAuthorityObjectWrap(c.db, account)
 			auth := authWrap.GetOwner()
 			if auth == nil {
 				panic("no posting auth")
@@ -233,13 +233,13 @@ func (c *Controller) _applyTransaction(trxWrp *prototype.TransactionWrapper) {
 		}
 
 		tmpChainId := prototype.ChainId{Value: 0}
-		trx.VerifyAuthority(tmpChainId, 2,postingGetter,activeGetter,ownerGetter)
+		trx.VerifyAuthority(tmpChainId, 2, postingGetter, activeGetter, ownerGetter)
 		// @ check_admin
 	}
 
 	// TaPos and expired check
 	var i int32 = 0
-	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db,&i)
+	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db, &i)
 	blockNum := dgpWrap.GetHeadBlockNumber()
 	if blockNum > 0 {
 		uniWrap := table.UniBlockSummaryObjectIdWrap{}
@@ -285,21 +285,21 @@ func (c *Controller) _applyTransaction(trxWrp *prototype.TransactionWrapper) {
 func (c *Controller) applyOperation(op *prototype.Operation) {
 	// @ not use yet
 	//n := &prototype.OperationNotification{Op: op}
-//	c.NotifyOpPreExecute(n)
+	//	c.NotifyOpPreExecute(n)
 	eva := c.getEvaluator(op)
-	eva.Apply(op)
+	eva.Apply()
 	// @ not use yet
-//	c.NotifyOpPostExecute(n)
+	//	c.NotifyOpPostExecute(n)
 }
 
 func (c *Controller) getEvaluator(op *prototype.Operation) BaseEvaluator {
-	ctx := &ApplyContext{ db:c.db, control:c}
+	ctx := &ApplyContext{db: c.db, control: c}
 	switch op.Op.(type) {
 	case *prototype.Operation_Op1:
-		eva := &AccountCreateEvaluator{ ctx:ctx, op: op.GetOp1() }
+		eva := &AccountCreateEvaluator{ctx: ctx, op: op.GetOp1()}
 		return BaseEvaluator(eva)
 	case *prototype.Operation_Op2:
-		eva := &TransferEvaluator{ ctx:ctx, op: op.GetOp2() }
+		eva := &TransferEvaluator{ctx: ctx, op: op.GetOp2()}
 		return BaseEvaluator(eva)
 	//case *prototype.Operation_Op3:
 	//	eva := &AccountCreateEvaluator{ ctx:ctx, op: op.GetOp3() }
@@ -349,14 +349,14 @@ func (c *Controller) _applyBlock(blk *prototype.SignedBlock) {
 		panic("Merkle check failed")
 	}
 
-	// @ validate_block_header
+	// validate_block_header
 	c.validateBlockHeader(blk)
 
 	c._currentBlockNum = nextBlockNum
 	c._current_trx_in_block = 0
 
 	var i int32 = 0
-	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db,&i)
+	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db, &i)
 	blockSize := proto.Size(blk)
 	if uint32(blockSize) > dgpWrap.GetMaximumBlockSize() {
 		panic("Block size is too big")
@@ -375,7 +375,7 @@ func (c *Controller) _applyBlock(blk *prototype.SignedBlock) {
 	trxWrp := &prototype.TransactionWrapper{}
 	trxWrp.Invoice = &prototype.TransactionInvoice{}
 
-	for _,tw := range blk.Transactions {
+	for _, tw := range blk.Transactions {
 		trxWrp.SigTrx = tw.SigTrx
 		trxWrp.Invoice.Status = 200
 		c._applyTransaction(trxWrp)
@@ -398,13 +398,13 @@ func (c *Controller) _applyBlock(blk *prototype.SignedBlock) {
 func (c *Controller) initGenesis() {
 
 	// create initminer
-	pubKey , _ := prototype.PublicKeyFromWIF(constants.INITMINER_PUBKEY)
-	name := &prototype.AccountName{Value:constants.INIT_MINER_NAME}
-	newAccountWrap := table.NewSoAccountWrap(c.db,name)
+	pubKey, _ := prototype.PublicKeyFromWIF(constants.INITMINER_PUBKEY)
+	name := &prototype.AccountName{Value: constants.INIT_MINER_NAME}
+	newAccountWrap := table.NewSoAccountWrap(c.db, name)
 	newAccount := &table.SoAccount{}
 	newAccount.Name = name
 	newAccount.PubKey = pubKey
-	newAccount.CreatedTime = &prototype.TimePointSec{UtcSeconds:0}
+	newAccount.CreatedTime = &prototype.TimePointSec{UtcSeconds: 0}
 	cos := prototype.MakeCoin(constants.INIT_SUPPLY)
 	vest := prototype.MakeVest(0)
 	newAccount.Balance = cos
@@ -414,7 +414,7 @@ func (c *Controller) initGenesis() {
 	}
 
 	// create account authority
-	authorityWrap := table.NewSoAccountAuthorityObjectWrap(c.db,name)
+	authorityWrap := table.NewSoAccountAuthorityObjectWrap(c.db, name)
 	authority := &table.SoAccountAuthorityObject{}
 	authority.Account = name
 
@@ -422,7 +422,7 @@ func (c *Controller) initGenesis() {
 		WeightThreshold: 1,
 		KeyAuths: []*prototype.KvKeyAuth{
 			&prototype.KvKeyAuth{
-				Key: pubKey,
+				Key:    pubKey,
 				Weight: 1,
 			},
 		},
@@ -434,22 +434,22 @@ func (c *Controller) initGenesis() {
 		panic("CreateAccountAuthorityObject error ")
 	}
 	// create witness_object
-	witnessWrap := table.NewSoWitnessWrap(c.db,name)
+	witnessWrap := table.NewSoWitnessWrap(c.db, name)
 	witness := &table.SoWitness{
-		Owner: name,
-		WitnessScheduleType: &prototype.WitnessScheduleType{Value:prototype.WitnessScheduleType_miner},
-		CreatedTime:&prototype.TimePointSec{UtcSeconds:0},
-		SigningKey:pubKey,
-		LastWork:&prototype.Sha256{Hash:[]byte{0}},
+		Owner:               name,
+		WitnessScheduleType: &prototype.WitnessScheduleType{Value: prototype.WitnessScheduleType_miner},
+		CreatedTime:         &prototype.TimePointSec{UtcSeconds: 0},
+		SigningKey:          pubKey,
+		LastWork:            &prototype.Sha256{Hash: []byte{0}},
 	}
 	witnessWrap.CreateWitness(witness)
 
 	// create dynamic global properties
 	var i int32 = 0
-	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db,&i)
+	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db, &i)
 	dgp := &table.SoDynamicGlobalProperties{}
 	dgp.CurrentWitness = name
-	dgp.Time = &prototype.TimePointSec{UtcSeconds:constants.GENESIS_TIME}
+	dgp.Time = &prototype.TimePointSec{UtcSeconds: constants.GENESIS_TIME}
 	// @ recent_slots_filled
 	// @ participation_count
 	dgp.CurrentSupply = cos
@@ -471,22 +471,22 @@ func (c *Controller) initGenesis() {
 	}
 
 	// create witness scheduler
-	witnessScheduleWrap := table.NewSoWitnessScheduleObjectWrap(c.db,&i)
+	witnessScheduleWrap := table.NewSoWitnessScheduleObjectWrap(c.db, &i)
 	witnessSchedule := &table.SoWitnessScheduleObject{}
-	witnessSchedule.CurrentShuffledWitness = append(witnessSchedule.CurrentShuffledWitness,constants.COS_INIT_MINER)
+	witnessSchedule.CurrentShuffledWitness = append(witnessSchedule.CurrentShuffledWitness, constants.COS_INIT_MINER)
 	witnessScheduleWrap.CreateWitnessScheduleObject(witnessSchedule)
 }
 
 func (c *Controller) CreateVesting(accountName *prototype.AccountName, cos *prototype.Coin) *prototype.Vest {
 
 	newVesting := prototype.CosToVesting(cos)
-	creatorWrap := table.NewSoAccountWrap(c.db,accountName)
+	creatorWrap := table.NewSoAccountWrap(c.db, accountName)
 	oldVesting := creatorWrap.GetVestingShares()
 	oldVesting.Value += newVesting.Value
 	creatorWrap.MdVestingShares(oldVesting)
 
 	var i int32 = 0
-	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db,&i)
+	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db, &i)
 	originTotal := dgpWrap.GetTotalVestingShares()
 	originTotal.Value += newVesting.Value
 	dgpWrap.MdTotalVestingShares(originTotal)
@@ -494,37 +494,36 @@ func (c *Controller) CreateVesting(accountName *prototype.AccountName, cos *prot
 }
 
 func (c *Controller) SubBalance(accountName *prototype.AccountName, cos *prototype.Coin) {
-	accountWrap := table.NewSoAccountWrap(c.db,accountName)
+	accountWrap := table.NewSoAccountWrap(c.db, accountName)
 	originBalance := accountWrap.GetBalance()
 	originBalance.Value -= cos.Value
 	accountWrap.MdBalance(originBalance)
 
 	// dynamic glaobal properties
 	var i int32 = 0
-	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db,&i)
+	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db, &i)
 	originTotal := dgpWrap.GetTotalCos()
 	originTotal.Value -= cos.Value
 	dgpWrap.MdTotalCos(originTotal)
 }
 
 func (c *Controller) AddBalance(accountName *prototype.AccountName, cos *prototype.Coin) {
-	accountWrap := table.NewSoAccountWrap(c.db,accountName)
+	accountWrap := table.NewSoAccountWrap(c.db, accountName)
 	originBalance := accountWrap.GetBalance()
 	originBalance.Value += cos.Value
 	accountWrap.MdBalance(originBalance)
 
 	// dynamic glaobal properties
 	var i int32 = 0
-	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db,&i)
+	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db, &i)
 	originTotal := dgpWrap.GetTotalCos()
 	originTotal.Value += cos.Value
 	dgpWrap.MdTotalCos(originTotal)
 }
 
-
 func (c *Controller) validateBlockHeader(blk *prototype.SignedBlock) {
 	headID := c.headBlockID()
-	if !bytes.Equal(headID.Hash,blk.SignedHeader.Header.Previous.Hash) {
+	if !bytes.Equal(headID.Hash, blk.SignedHeader.Header.Previous.Hash) {
 		panic("hash not equal")
 	}
 	headTime := c.headBlockTime()
@@ -534,9 +533,9 @@ func (c *Controller) validateBlockHeader(blk *prototype.SignedBlock) {
 
 	// witness sig check
 	witnessName := blk.SignedHeader.Header.Witness
-	witnessWrap := table.NewSoWitnessWrap(c.db,witnessName)
+	witnessWrap := table.NewSoWitnessWrap(c.db, witnessName)
 	pubKey := witnessWrap.GetSigningKey()
-	res,err := blk.SignedHeader.ValidateSig(pubKey)
+	res, err := blk.SignedHeader.ValidateSig(pubKey)
 	if !res || err != nil {
 		panic("ValidateSig error")
 	}
@@ -553,29 +552,28 @@ func (c *Controller) validateBlockHeader(blk *prototype.SignedBlock) {
 	}
 }
 
-
 func (c *Controller) headBlockID() *prototype.Sha256 {
 	var i int32 = 0
-	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db,&i)
+	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db, &i)
 	headID := dgpWrap.GetHeadBlockId()
 	return headID
 }
 
 func (c *Controller) headBlockTime() *prototype.TimePointSec {
 	var i int32 = 0
-	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db,&i)
+	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db, &i)
 	return dgpWrap.GetTime()
 }
 
 func (c *Controller) headBlockNum() uint32 {
 	var i int32 = 0
-	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db,&i)
+	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db, &i)
 	return dgpWrap.GetHeadBlockNumber()
 }
 
 func (c *Controller) GetSlotTime(slot uint32) *prototype.TimePointSec {
 	if slot == 0 {
-		return &prototype.TimePointSec{UtcSeconds:0}
+		return &prototype.TimePointSec{UtcSeconds: 0}
 	}
 
 	if c.headBlockNum() == 0 {
@@ -585,9 +583,9 @@ func (c *Controller) GetSlotTime(slot uint32) *prototype.TimePointSec {
 	}
 
 	headBlockAbsSlot := c.headBlockTime().UtcSeconds / constants.BLOCK_INTERVAL
-	slotTime := &prototype.TimePointSec{UtcSeconds:headBlockAbsSlot*constants.BLOCK_INTERVAL}
+	slotTime := &prototype.TimePointSec{UtcSeconds: headBlockAbsSlot * constants.BLOCK_INTERVAL}
 
-	slotTime.UtcSeconds += slot*constants.BLOCK_INTERVAL
+	slotTime.UtcSeconds += slot * constants.BLOCK_INTERVAL
 	return slotTime
 }
 
@@ -596,19 +594,19 @@ func (c *Controller) GetIncrementSlotAtTime(t *prototype.TimePointSec) uint32 {
 	if t.UtcSeconds < nextBlockSlotTime.UtcSeconds {
 		return 0
 	}
-	return (t.UtcSeconds - nextBlockSlotTime.UtcSeconds) / constants.BLOCK_INTERVAL + 1
+	return (t.UtcSeconds-nextBlockSlotTime.UtcSeconds)/constants.BLOCK_INTERVAL + 1
 }
 
 func (c *Controller) GetScheduledWitness(slot uint32) string {
 	var i int32 = 0
-	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db,&i)
+	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db, &i)
 	currentSlot := dgpWrap.GetCurrentAslot()
 	currentSlot += uint64(slot)
 
-	wsoWrap := table.NewSoWitnessScheduleObjectWrap(c.db,&i)
+	wsoWrap := table.NewSoWitnessScheduleObjectWrap(c.db, &i)
 	witnesses := wsoWrap.GetCurrentShuffledWitness()
 	witnessNum := len(witnesses)
-	witnessName := witnesses[currentSlot % uint64(witnessNum)]
+	witnessName := witnesses[currentSlot%uint64(witnessNum)]
 	return witnessName
 }
 
@@ -616,13 +614,13 @@ func (c *Controller) updateGlobalDynamicData(blk *prototype.SignedBlock) {
 
 }
 
-func (c * Controller) updateSigningWitness(blk *prototype.SignedBlock) {
+func (c *Controller) updateSigningWitness(blk *prototype.SignedBlock) {
 	var i int32 = 0
-	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db,&i)
+	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db, &i)
 	newAsLot := dgpWrap.GetCurrentAslot() + uint64(c.GetIncrementSlotAtTime(blk.SignedHeader.Header.Timestamp))
 
 	name := blk.SignedHeader.Header.Witness
-	witnessWrap := table.NewSoWitnessWrap(c.db,name)
+	witnessWrap := table.NewSoWitnessWrap(c.db, name)
 	witnessWrap.MdLastConfirmedBlockNum(blk.Id().BlockNum())
 	witnessWrap.MdLastAslot(newAsLot)
 }
@@ -631,15 +629,15 @@ func (c *Controller) createBlockSummary(blk *prototype.SignedBlock) {
 	blockNum := blk.Id().BlockNum()
 	blockNumSuffix := uint32(blockNum & 0xffff)
 
-	blockSummaryWrap := table.NewSoBlockSummaryObjectWrap(c.db,&blockNumSuffix)
+	blockSummaryWrap := table.NewSoBlockSummaryObjectWrap(c.db, &blockNumSuffix)
 	blockIDArray := blk.Id().Data
-	blockID := &prototype.Sha256{Hash:blockIDArray[:]}
+	blockID := &prototype.Sha256{Hash: blockIDArray[:]}
 	blockSummaryWrap.MdBlockId(blockID)
 }
 
 func (c *Controller) clearExpiredTransactions() {
 	sortWrap := table.STransactionObjectExpirationWrap{}
-	itr := sortWrap.QueryListByOrder(nil,nil) // query all
+	itr := sortWrap.QueryListByOrder(nil, nil) // query all
 	if itr != nil {
 		for itr.Next() {
 			if c.headBlockTime().UtcSeconds > sortWrap.GetSubVal(itr).UtcSeconds {
