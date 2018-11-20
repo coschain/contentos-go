@@ -3,7 +3,6 @@ package p2p
 import (
 	"encoding/json"
 	"errors"
-	"github.com/coschain/contentos-go/p2p/message/msg_pack"
 	"io/ioutil"
 	"math/rand"
 	"net"
@@ -14,19 +13,21 @@ import (
 	"time"
 
 	"github.com/coschain/contentos-go/p2p/common"
+	"github.com/coschain/contentos-go/p2p/message/msg_pack"
 	comm "github.com/coschain/contentos-go/p2p/depend/common"
 	"github.com/coschain/contentos-go/p2p/depend/common/config"
 	"github.com/coschain/contentos-go/p2p/depend/common/log"
 	msgtypes "github.com/coschain/contentos-go/p2p/message/types"
 	"github.com/coschain/contentos-go/p2p/message/utils"
 	"github.com/coschain/contentos-go/p2p/net/netserver"
-	p2pnet "github.com/coschain/contentos-go/p2p/net/protocol"
+	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/p2p/peer"
+	"github.com/coschain/contentos-go/node"
 )
 
 //P2PServer control all network activities
 type P2PServer struct {
-	Network   p2pnet.P2P
+	Network   iservices.P2P
 	msgRouter *utils.MessageRouter
 	ReconnectAddrs
 	recentPeers    map[uint32][]string
@@ -42,21 +43,19 @@ type ReconnectAddrs struct {
 }
 
 //NewServer return a new p2pserver according to the pubkey
-func NewServer() *P2PServer {
-	n := netserver.NewNetServer()
+func NewServer(ctx *node.ServiceContext) (*P2PServer, error) {
+	n := netserver.NewNetServer(ctx)
 
 	p := &P2PServer{
 		Network: n,
-		//ledger:  ledger.DefLedger,
 	}
 
 	p.msgRouter = utils.NewMsgRouter(p.Network)
-	//p.blockSync = NewBlockSyncMgr(p)
 	p.recentPeers = make(map[uint32][]string)
 	p.quitSyncRecent = make(chan bool)
 	p.quitOnline = make(chan bool)
 	p.quitHeartBeat = make(chan bool)
-	return p
+	return p, nil
 }
 
 //GetConnectionCnt return the established connect count
@@ -65,9 +64,9 @@ func (this *P2PServer) GetConnectionCnt() uint32 {
 }
 
 //Start create all services
-func (this *P2PServer) Start() error {
+func (this *P2PServer) Start(node *node.Node) error {
 	if this.Network != nil {
-		this.Network.Start()
+		this.Network.Start(node)
 	} else {
 		return errors.New("[p2p]network invalid")
 	}
@@ -81,22 +80,21 @@ func (this *P2PServer) Start() error {
 	go this.syncUpRecentPeers()
 	go this.keepOnlineService()
 	go this.heartBeatService()
-	//go this.blockSync.Start()
 	return nil
 }
 
 //Stop halt all service by send signal to channels
-func (this *P2PServer) Stop() {
+func (this *P2PServer) Stop() error {
 	this.Network.Halt()
 	this.quitSyncRecent <- true
 	this.quitOnline <- true
 	this.quitHeartBeat <- true
 	this.msgRouter.Stop()
-	//this.blockSync.Close()
+	return nil
 }
 
 // GetNetWork returns the low level netserver
-func (this *P2PServer) GetNetWork() p2pnet.P2P {
+func (this *P2PServer) GetNetWork() iservices.P2P {
 	return this.Network
 }
 
@@ -131,25 +129,6 @@ func (this *P2PServer) GetID() uint64 {
 	return this.Network.GetID()
 }
 
-// OnAddNode adds the peer id to the block sync mgr
-//func (this *P2PServer) OnAddNode(id uint64) {
-//	this.blockSync.OnAddNode(id)
-//}
-
-// OnDelNode removes the peer id from the block sync mgr
-//func (this *P2PServer) OnDelNode(id uint64) {
-//	this.blockSync.OnDelNode(id)
-//}
-
-// OnHeaderReceive adds the header list from network
-//func (this *P2PServer) OnHeaderReceive(fromID uint64, headers []*types.Header) {
-//	this.blockSync.OnHeaderReceive(fromID, headers)
-//}
-
-// OnBlockReceive adds the block from network
-//func (this *P2PServer) OnBlockReceive(fromID uint64, blockSize uint32, block *types.Block) {
-//	this.blockSync.OnBlockReceive(fromID, blockSize, block)
-//}
 
 // Todo: remove it if no use
 func (this *P2PServer) GetConnectionState() uint32 {

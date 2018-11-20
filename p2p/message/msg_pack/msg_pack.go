@@ -10,7 +10,7 @@ import (
 	"github.com/coschain/contentos-go/p2p/depend/common/log"
 	mt "github.com/coschain/contentos-go/p2p/message/types"
 	"github.com/coschain/contentos-go/p2p/msg"
-	p2pnet "github.com/coschain/contentos-go/p2p/net/protocol"
+	"github.com/coschain/contentos-go/iservices"
 )
 
 //Peer address package
@@ -96,7 +96,7 @@ func NewVerAck(isConsensus bool) mt.Message {
 }
 
 //Version package
-func NewVersion(n p2pnet.P2P, isCons bool, height uint32) mt.Message {
+func NewVersion(n iservices.P2P, isCons bool, height uint32) mt.Message {
 	log.Trace()
 	var version mt.Version
 	version.P = mt.VersionPayload{
@@ -122,34 +122,4 @@ func NewVersion(n p2pnet.P2P, isCons bool, height uint32) mt.Message {
 		version.P.Cap[msgCommon.HTTP_INFO_FLAG] = 0x00
 	}
 	return &version
-}
-
-//transaction request package
-func NewTxnDataReq(hash common.Uint256) mt.Message {
-	log.Trace()
-	var dataReq mt.DataReq
-	dataReq.DataType = common.TRANSACTION
-	dataReq.Hash = hash
-
-	return &dataReq
-}
-
-//block request package
-func NewBlkDataReq(hash common.Uint256) mt.Message {
-	log.Trace()
-	var dataReq mt.DataReq
-	dataReq.DataType = common.BLOCK
-	dataReq.Hash = hash
-
-	return &dataReq
-}
-
-//consensus request package
-func NewConsensusDataReq(hash common.Uint256) mt.Message {
-	log.Trace()
-	var dataReq mt.DataReq
-	dataReq.DataType = common.CONSENSUS
-	dataReq.Hash = hash
-
-	return &dataReq
 }

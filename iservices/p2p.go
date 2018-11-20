@@ -1,16 +1,19 @@
-// Package p2p provides an network interface
-package p2p
+package iservices
 
 import (
+	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/p2p/common"
 	"github.com/coschain/contentos-go/p2p/message/types"
 	"github.com/coschain/contentos-go/p2p/peer"
 	 comn "github.com/coschain/contentos-go/common"
+	"github.com/coschain/contentos-go/node"
 )
+
+var P2P_SERVER_NAME = "p2p"
 
 //P2P represent the net interface of p2p package
 type P2P interface {
-	Start()
+	Start(*node.Node)
 	Halt()
 	Connect(addr string, isConsensus bool) error
 	GetID() uint64
@@ -46,6 +49,9 @@ type P2P interface {
 	NodeEstablished(uint64) bool
 	SetOwnAddress(addr string)
 	IsAddrFromConnecting(addr string) bool
+
+	GetService(string) (interface{}, error)
+	GetNoticer() EventBus.Bus
 
 	// Broadcast sigTrx or sigBlk msg
 	Broadcast(message interface{})

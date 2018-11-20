@@ -75,6 +75,10 @@ func startNode(cmd *cobra.Command, args []string) {
 	//	return printer.New(ctx)
 	//})
 
+	//app.Register(iservices.P2P_SERVER_NAME, func(ctx *node.ServiceContext) (node.Service, error) {
+	//		return p2p.NewServer(ctx)
+	//})
+
 	app.Register(iservices.DB_SERVER_NAME, func(ctx *node.ServiceContext) (node.Service, error) {
 		return storage.New(ctx, "./db/")
 	})
@@ -87,9 +91,6 @@ func startNode(cmd *cobra.Command, args []string) {
 		return rpc.NewGRPCServer(ctx, ctx.Config().GRPC)
 	})
 
-	//app.Register("cos", func(ctx *node.ServiceContext) (node.Service, error) {
-	//	return cos.New(ctx)
-	//})
 	if err := app.Start(); err != nil {
 		common.Fatalf("start node failed, err: %v\n", err)
 	}

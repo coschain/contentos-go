@@ -3,12 +3,10 @@ package main
 import (
 	"fmt"
 	"github.com/coschain/contentos-go/prototype"
-//	"github.com/coschain/contentos-go/p2p/message/msg_pack"
 	"time"
 
 	myp2p "github.com/coschain/contentos-go/p2p"
 	"github.com/coschain/contentos-go/p2p/common"
-	//	conn "github.com/coschain/contentos-go/p2p/depend/common"
 	"github.com/coschain/contentos-go/p2p/depend/common/log"
 )
 
@@ -17,15 +15,15 @@ var ch chan int
 func init() {
 	log.InitLog(log.DebugLog)
 	fmt.Println("Start test the netserver...")
-
 }
+
 func main() {
 	log.Init(log.Stdout)
 	fmt.Println("Start test new p2pserver...")
 
-	p2p := myp2p.NewServer()
+	p2p, err := myp2p.NewServer(nil)
 
-	err := p2p.Start()
+	err = p2p.Start(nil)
 	if err != nil {
 		fmt.Println("Start p2p error: ", err)
 	}

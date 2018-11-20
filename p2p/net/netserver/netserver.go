@@ -2,8 +2,6 @@ package netserver
 
 import (
 	"errors"
-	"github.com/coschain/contentos-go/p2p/msg"
-	"github.com/coschain/contentos-go/prototype"
 	"math/rand"
 	"net"
 	"reflect"
@@ -16,15 +14,19 @@ import (
 	"github.com/coschain/contentos-go/p2p/common"
 	"github.com/coschain/contentos-go/p2p/message/msg_pack"
 	"github.com/coschain/contentos-go/p2p/message/types"
-	"github.com/coschain/contentos-go/p2p/net/protocol"
+	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/p2p/peer"
 	comn "github.com/coschain/contentos-go/common"
-	//"github.com/coschain/contentos-go/p2p/msg"
+	"github.com/coschain/contentos-go/p2p/msg"
+	"github.com/coschain/contentos-go/prototype"
+	"github.com/coschain/contentos-go/node"
+	"github.com/asaskevich/EventBus"
 )
 
 //NewNetServer return the net object in p2p
-func NewNetServer() p2p.P2P {
+func NewNetServer(ctx *node.ServiceContext) iservices.P2P {
 	n := &NetServer{
+		ctx     : ctx,
 		SyncChan: make(chan *types.MsgPayload, common.CHAN_CAPABILITY),
 		ConsChan: make(chan *types.MsgPayload, common.CHAN_CAPABILITY),
 	}
@@ -38,6 +40,8 @@ func NewNetServer() p2p.P2P {
 
 //NetServer represent all the actions in net layer
 type NetServer struct {
+	ctx          *node.ServiceContext
+	noticer      EventBus.Bus
 	base         peer.PeerCom
 	synclistener net.Listener
 	conslistener net.Listener
@@ -120,7 +124,8 @@ func (this *NetServer) init() error {
 }
 
 //InitListen start listening on the config port
-func (this *NetServer) Start() {
+func (this *NetServer) Start(node *node.Node) {
+	//this.noticer = node.EvBus
 	this.startListening()
 }
 
@@ -814,4 +819,16 @@ func (this *NetServer) Triggeer_sync(p *peer.Peer, current_head_blk_id comn.Bloc
 	reqmsg := new(msg.ReqIdMsg)
 	reqmsg.HeadBlockId = current_head_blk_id.Data[:]
 	this.Send(p, reqmsg, false)
+}
+
+func (this *NetServer) GetService(str string) (interface{}, error) {
+	s, err := this.ctx.Service(str)
+	if err != nil {
+		return nil, err
+	}
+	return s, nil
+}
+
+func (this *NetServer) GetNoticer() EventBus.Bus {
+	return this.noticer
 }
