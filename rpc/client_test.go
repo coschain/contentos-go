@@ -84,7 +84,7 @@ func TestGPRCApi_GetFollowerListByName(t *testing.T) {
 
 	asc := grpcpb.NewApiServiceClient(conn)
 
-	req := &grpcpb.GetFollowerListByNameRequest{Limit:100, Start:&prototype.FollowerRelation{Account:&prototype.AccountName{Value:"Jack"}}}
+	req := &grpcpb.GetFollowerListByNameRequest{Limit: 100, Start: &prototype.FollowerRelation{Account: &prototype.AccountName{Value: "Jack"}}}
 	resp := &grpcpb.GetFollowerListByNameResponse{}
 	resp, err = asc.GetFollowerListByName(context.Background(), req)
 	if err != nil {
@@ -103,7 +103,7 @@ func TestGPRCApi_GetFollowingListByName(t *testing.T) {
 
 	asc := grpcpb.NewApiServiceClient(conn)
 
-	req := &grpcpb.GetFollowingListByNameRequest{Limit:100, Start:&prototype.FollowingRelation{Account:&prototype.AccountName{Value:"Jack"}}}
+	req := &grpcpb.GetFollowingListByNameRequest{Limit: 100, Start: &prototype.FollowingRelation{Account: &prototype.AccountName{Value: "Jack"}}}
 	resp := &grpcpb.GetFollowingListByNameResponse{}
 	resp, err = asc.GetFollowingListByName(context.Background(), req)
 	if err != nil {
@@ -122,7 +122,7 @@ func TestGPRCApi_GetWitnessList(t *testing.T) {
 
 	asc := grpcpb.NewApiServiceClient(conn)
 
-	req := &grpcpb.GetWitnessListRequest{Limit:100}
+	req := &grpcpb.GetWitnessListRequest{Limit: 100}
 	resp := &grpcpb.GetWitnessListResponse{}
 	resp, err = asc.GetWitnessList(context.Background(), req)
 	if err != nil {

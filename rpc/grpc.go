@@ -14,6 +14,7 @@ import (
 
 var (
 	ErrEmptyResp = errors.New("empty response")
+	ErrPanicResp = errors.New("rpc panic")
 )
 
 type APIService struct {
@@ -72,7 +73,7 @@ func (as *APIService) GetFollowerListByName(ctx context.Context, req *grpcpb.Get
 		ferOrder := ferOrderWrap.GetMainVal(ferIter)
 		if ferOrder != nil {
 			ferList = append(ferList, ferOrder.Follower)
-		} 
+		}
 
 		i++
 
@@ -116,7 +117,7 @@ func (as *APIService) GetFollowingListByName(ctx context.Context, req *grpcpb.Ge
 		fingOrder := fingOrderWrap.GetMainVal(fingIter)
 		if fingOrder != nil {
 			fingList = append(fingList, fingOrder.Following)
-		} 
+		}
 
 		i++
 
@@ -128,7 +129,7 @@ func (as *APIService) GetFollowingListByName(ctx context.Context, req *grpcpb.Ge
 	if len(fingList) == 0 {
 		return nil, ErrEmptyResp
 	} else {
-		return &grpcpb.GetFollowingListByNameResponse{FollowingList:fingList}, nil
+		return &grpcpb.GetFollowingListByNameResponse{FollowingList: fingList}, nil
 	}
 
 }
@@ -155,8 +156,8 @@ func (as *APIService) GetWitnessList(ctx context.Context, req *grpcpb.GetWitness
 	var (
 		witIter iservices.IDatabaseIterator
 		witList []*grpcpb.WitnessResponse
-		i        uint32
-		limit    uint32
+		i       uint32
+		limit   uint32
 	)
 
 	witOrderWrap := &table.SWitnessOwnerWrap{as.db}
@@ -177,16 +178,16 @@ func (as *APIService) GetWitnessList(ctx context.Context, req *grpcpb.GetWitness
 		witWrap := table.NewSoWitnessWrap(as.db, witOrderWrap.GetMainVal(witIter))
 		if witWrap.CheckExist() {
 			witList = append(witList, &grpcpb.WitnessResponse{
-				Owner:witWrap.GetOwner(),
-				WitnessScheduleType:witWrap.GetWitnessScheduleType(),
-				CreatedTime:witWrap.GetCreatedTime(),
-				Url:witWrap.GetUrl(),
-				LastConfirmedBlockNum:witWrap.GetLastConfirmedBlockNum(),
-				TotalMissed:witWrap.GetTotalMissed(),
-				PowWorker:witWrap.GetPowWorker(),
-				SigningKey:witWrap.GetSigningKey(),
-				LastWork:witWrap.GetLastWork(),
-				RunningVersion:witWrap.GetRunningVersion(),
+				Owner:                 witWrap.GetOwner(),
+				WitnessScheduleType:   witWrap.GetWitnessScheduleType(),
+				CreatedTime:           witWrap.GetCreatedTime(),
+				Url:                   witWrap.GetUrl(),
+				LastConfirmedBlockNum: witWrap.GetLastConfirmedBlockNum(),
+				TotalMissed:           witWrap.GetTotalMissed(),
+				PowWorker:             witWrap.GetPowWorker(),
+				SigningKey:            witWrap.GetSigningKey(),
+				LastWork:              witWrap.GetLastWork(),
+				RunningVersion:        witWrap.GetRunningVersion(),
 			})
 		}
 
@@ -213,7 +214,7 @@ func (as *APIService) GetPostListByCreated(ctx context.Context, req *grpcpb.GetP
 		limit    uint32
 	)
 
-	postOrderWrap := &table.SPostCreatedOrderWrap{Dba:as.db}
+	postOrderWrap := &table.SPostCreatedOrderWrap{Dba: as.db}
 
 	if req.Start == nil {
 		postIter = postOrderWrap.QueryListByRevOrder(nil, nil)
@@ -231,25 +232,25 @@ func (as *APIService) GetPostListByCreated(ctx context.Context, req *grpcpb.GetP
 		postWrap := table.NewSoPostWrap(as.db, postOrderWrap.GetMainVal(postIter))
 		if postWrap.CheckExist() {
 			postList = append(postList, &grpcpb.PostResponse{
-				PostId:postWrap.GetPostId(),
-				Category:postWrap.GetCategory(),
-				ParentAuthor:postWrap.GetAuthor(),
-				ParentPermlink:postWrap.GetPermlink(),
-				Author:postWrap.GetAuthor(),
-				Permlink:postWrap.GetPermlink(),
-				Title:postWrap.GetTitle(),
-				Body:postWrap.GetBody(),
-				JsonMetadata:postWrap.GetJsonMetadata(),
-				LastUpdate:postWrap.GetLastUpdate(),
-				Created:postWrap.GetCreated(),
-				Active:postWrap.GetActive(),
-				LastPayout:postWrap.GetLastPayout(),
-				Depth:postWrap.GetDepth(),
-				Children:postWrap.GetChildren(),
-				RootId:postWrap.GetRootId(),
-				ParentId:postWrap.GetParentId(),
-				AllowReplies:postWrap.GetAllowReplies(),
-				AllowVotes:postWrap.GetAllowVotes(),
+				PostId:         postWrap.GetPostId(),
+				Category:       postWrap.GetCategory(),
+				ParentAuthor:   postWrap.GetAuthor(),
+				ParentPermlink: postWrap.GetPermlink(),
+				Author:         postWrap.GetAuthor(),
+				Permlink:       postWrap.GetPermlink(),
+				Title:          postWrap.GetTitle(),
+				Body:           postWrap.GetBody(),
+				JsonMetadata:   postWrap.GetJsonMetadata(),
+				LastUpdate:     postWrap.GetLastUpdate(),
+				Created:        postWrap.GetCreated(),
+				Active:         postWrap.GetActive(),
+				LastPayout:     postWrap.GetLastPayout(),
+				Depth:          postWrap.GetDepth(),
+				Children:       postWrap.GetChildren(),
+				RootId:         postWrap.GetRootId(),
+				ParentId:       postWrap.GetParentId(),
+				AllowReplies:   postWrap.GetAllowReplies(),
+				AllowVotes:     postWrap.GetAllowVotes(),
 			})
 		}
 
@@ -263,7 +264,7 @@ func (as *APIService) GetPostListByCreated(ctx context.Context, req *grpcpb.GetP
 	if len(postList) == 0 {
 		return nil, ErrEmptyResp
 	} else {
-		return &grpcpb.GetPostListByCreatedResponse{PostList:postList}, nil
+		return &grpcpb.GetPostListByCreatedResponse{PostList: postList}, nil
 	}
 
 }
@@ -272,11 +273,11 @@ func (as *APIService) GetReplyListByPostId(ctx context.Context, req *grpcpb.GetR
 	var (
 		replyIter iservices.IDatabaseIterator
 		replyList []*grpcpb.PostResponse
-		i        uint32
-		limit    uint32
+		i         uint32
+		limit     uint32
 	)
 
-	replyOrderWrap := &table.SPostReplyOrderWrap{Dba:as.db}
+	replyOrderWrap := &table.SPostReplyOrderWrap{Dba: as.db}
 
 	if req.Start == nil {
 		replyIter = replyOrderWrap.QueryListByRevOrder(nil, nil)
@@ -294,25 +295,25 @@ func (as *APIService) GetReplyListByPostId(ctx context.Context, req *grpcpb.GetR
 		postWrap := table.NewSoPostWrap(as.db, replyOrderWrap.GetMainVal(replyIter))
 		if postWrap.CheckExist() {
 			replyList = append(replyList, &grpcpb.PostResponse{
-				PostId:postWrap.GetPostId(),
-				Category:postWrap.GetCategory(),
-				ParentAuthor:postWrap.GetAuthor(),
-				ParentPermlink:postWrap.GetPermlink(),
-				Author:postWrap.GetAuthor(),
-				Permlink:postWrap.GetPermlink(),
-				Title:postWrap.GetTitle(),
-				Body:postWrap.GetBody(),
-				JsonMetadata:postWrap.GetJsonMetadata(),
-				LastUpdate:postWrap.GetLastUpdate(),
-				Created:postWrap.GetCreated(),
-				Active:postWrap.GetActive(),
-				LastPayout:postWrap.GetLastPayout(),
-				Depth:postWrap.GetDepth(),
-				Children:postWrap.GetChildren(),
-				RootId:postWrap.GetRootId(),
-				ParentId:postWrap.GetParentId(),
-				AllowReplies:postWrap.GetAllowReplies(),
-				AllowVotes:postWrap.GetAllowVotes(),
+				PostId:         postWrap.GetPostId(),
+				Category:       postWrap.GetCategory(),
+				ParentAuthor:   postWrap.GetAuthor(),
+				ParentPermlink: postWrap.GetPermlink(),
+				Author:         postWrap.GetAuthor(),
+				Permlink:       postWrap.GetPermlink(),
+				Title:          postWrap.GetTitle(),
+				Body:           postWrap.GetBody(),
+				JsonMetadata:   postWrap.GetJsonMetadata(),
+				LastUpdate:     postWrap.GetLastUpdate(),
+				Created:        postWrap.GetCreated(),
+				Active:         postWrap.GetActive(),
+				LastPayout:     postWrap.GetLastPayout(),
+				Depth:          postWrap.GetDepth(),
+				Children:       postWrap.GetChildren(),
+				RootId:         postWrap.GetRootId(),
+				ParentId:       postWrap.GetParentId(),
+				AllowReplies:   postWrap.GetAllowReplies(),
+				AllowVotes:     postWrap.GetAllowVotes(),
 			})
 		}
 
@@ -326,7 +327,7 @@ func (as *APIService) GetReplyListByPostId(ctx context.Context, req *grpcpb.GetR
 	if len(replyList) == 0 {
 		return nil, ErrEmptyResp
 	} else {
-		return &grpcpb.GetReplyListByPostIdResponse{ReplyList:replyList}, nil
+		return &grpcpb.GetReplyListByPostIdResponse{ReplyList: replyList}, nil
 	}
 
 }

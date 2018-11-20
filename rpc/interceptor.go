@@ -8,11 +8,12 @@ import (
 	"strings"
 )
 
-func streamRecoveryLoggingInterceptor(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+func streamRecoveryLoggingInterceptor(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) (err error) {
 
 	defer func() {
-		if err := recover(); err != nil {
-			logging.CLog().Errorf("stream recovery interceptor err: [%x]", err)
+		if r := recover(); r != nil {
+			logging.CLog().Errorf("stream recovery interceptor err: [%x]", r)
+			err = ErrPanicResp
 		}
 	}()
 
@@ -26,8 +27,9 @@ func streamRecoveryLoggingInterceptor(srv interface{}, ss grpc.ServerStream, inf
 func unaryRecoveryLoggingInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
 
 	defer func() {
-		if err := recover(); err != nil {
-			logging.CLog().Errorf("unary recovery interceptor err: [%x]", err)
+		if r := recover(); r != nil {
+			logging.CLog().Errorf("unary recovery interceptor err: [%x]", r)
+			err = ErrPanicResp
 		}
 	}()
 
