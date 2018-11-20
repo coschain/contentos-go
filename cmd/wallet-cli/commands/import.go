@@ -1,11 +1,13 @@
 package commands
 
 import (
+	"context"
 	"fmt"
 	"github.com/coschain/cobra"
 	"github.com/coschain/contentos-go/cmd/wallet-cli/commands/utils"
 	"github.com/coschain/contentos-go/cmd/wallet-cli/wallet"
 	"github.com/coschain/contentos-go/prototype"
+	"github.com/coschain/contentos-go/rpc/pb"
 )
 
 var importForceFlag bool
@@ -23,8 +25,8 @@ var ImportCmd = func() *cobra.Command {
 }
 
 func importAccount(cmd *cobra.Command, args []string) {
-	//c := cmd.Context["rpcclient"]
-	//client := c.(grpcpb.ApiServiceClient)
+	c := cmd.Context["rpcclient"]
+	client := c.(grpcpb.ApiServiceClient)
 	w := cmd.Context["wallet"]
 	r := cmd.Context["preader"]
 	preader := r.(utils.PasswordReader)
@@ -57,10 +59,28 @@ func importAccount(cmd *cobra.Command, args []string) {
 		return
 	}
 	pubKeyStr := pubKey.ToWIF()
-	// fixme
-	// the pubkey and account name should be check by api
-	err = mywallet.Create(name, passphrase, pubKeyStr, privKeyStr)
+	req := &grpcpb.GetAccountByNameRequest{AccountName: &prototype.AccountName{Value: name}}
+	resp, err := client.GetAccountByName(context.Background(), req)
 	if err != nil {
 		fmt.Println(err)
+	} else {
+		pubkeys := resp.PublicKeys
+		is_exist := false
+		for _, key := range pubkeys {
+			if pubKeyStr == key.ToWIF() {
+				is_exist = true
+			}
+		}
+		if is_exist {
+			// the pubkey and account name should be check by api
+			err = mywallet.Create(name, passphrase, pubKeyStr, privKeyStr)
+			if err != nil {
+				fmt.Println(err)
+			}
+		} else {
+			fmt.Println("pubkey %s doesn't match %s", pubKeyStr, name)
+		}
+
 	}
+
 }
