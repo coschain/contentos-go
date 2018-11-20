@@ -696,12 +696,10 @@ func (s *SDemoOwnerWrap) QueryListByRevOrder(start *prototype.AccountName, end *
           sBuf = nil
        }
     }else if start == nil {
-       //query from min data 
-       sBuf = nil
-    }else {
        //query to the max data
-       eBuf = nil
+       sBuf = nil
     }
+    //reverse the start and end when create ReversedIterator to query by reverse order
     iter := s.Dba.NewReversedIterator(eBuf,sBuf)
     return iter
 }
@@ -841,11 +839,8 @@ func (s *SDemoPostTimeWrap) QueryListByRevOrder(start *prototype.TimePointSec, e
           sBuf = nil
        }
     }else if start == nil {
-       //query from end data
+       //query to the max data
        sBuf = nil
-    }else {
-       //query to the start data
-       eBuf = nil
     }
     //reverse the start and end when create ReversedIterator to query by reverse order
     iter := s.Dba.NewReversedIterator(eBuf,sBuf)
@@ -947,12 +942,10 @@ func (s *SDemoLikeCountWrap) QueryListByRevOrder(start *int64, end *int64) iserv
           sBuf = nil
        }
     }else if start == nil {
-       //query from min data 
-       sBuf = nil
-    }else {
        //query to the max data
-       eBuf = nil
+       sBuf = nil
     }
+    //reverse the start and end when create ReversedIterator to query by reverse order
     iter := s.Dba.NewReversedIterator(eBuf,sBuf)
     return iter
 }
@@ -1052,12 +1045,10 @@ func (s *SDemoIdxWrap) QueryListByRevOrder(start *int64, end *int64) iservices.I
           sBuf = nil
        }
     }else if start == nil {
-       //query from min data 
-       sBuf = nil
-    }else {
        //query to the max data
-       eBuf = nil
+       sBuf = nil
     }
+    //reverse the start and end when create ReversedIterator to query by reverse order
     iter := s.Dba.NewReversedIterator(eBuf,sBuf)
     return iter
 }

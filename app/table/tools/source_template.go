@@ -425,12 +425,10 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByRevOrder(start *{{$v.PType}}
           sBuf = nil
        }
     }else if start == nil {
-       //query from min data 
-       sBuf = nil
-    }else {
        //query to the max data
-       eBuf = nil
+       sBuf = nil
     }
+    //reverse the start and end when create ReversedIterator to query by reverse order
     iter := s.Dba.NewReversedIterator(eBuf,sBuf)
     return iter
 }
