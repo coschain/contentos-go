@@ -147,6 +147,7 @@ func init() {
 func main() {
 	localWallet := wallet.NewBaseWallet("default", DefaultDataDir())
 	preader := utils.MyPasswordReader{}
+	localWallet.LoadAll()
 	localWallet.Start()
 	rootCmd.SetContext("wallet", localWallet)
 	rootCmd.SetContext("preader", preader)

@@ -71,16 +71,21 @@ func importAccount(cmd *cobra.Command, args []string) {
 				is_exist = true
 			}
 		}
-		if is_exist {
-			// the pubkey and account name should be check by api
-			err = mywallet.Create(name, passphrase, pubKeyStr, privKeyStr)
-			if err != nil {
-				fmt.Println(err)
-			}
-		} else {
-			fmt.Println(fmt.Sprintf("pubkey %s doesn't match %s", pubKeyStr, name))
+		// Todo: uncomment me
+		//if is_exist {
+		//	// the pubkey and account name should be check by api
+		//	err = mywallet.Create(name, passphrase, pubKeyStr, privKeyStr)
+		//	if err != nil {
+		//		fmt.Println(err)
+		//	}
+		//} else {
+		//	fmt.Println(fmt.Sprintf("pubkey %s doesn't match %s", pubKeyStr, name))
+		//}
+		_ = is_exist
+		err = mywallet.Create(name, passphrase, pubKeyStr, privKeyStr)
+		if err != nil {
+			fmt.Println(err)
 		}
-
 	}
 
 }
