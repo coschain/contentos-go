@@ -15,8 +15,8 @@ var VoteCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "vote",
 		Short:   "vote to a post",
-		Example: "vote [voter] [author] [permlink] [weight]",
-		Args:    cobra.ExactArgs(4),
+		Example: "vote [voter] [postId]",
+		Args:    cobra.ExactArgs(2),
 		Run:     vote,
 	}
 	return cmd
@@ -26,7 +26,7 @@ func vote(cmd *cobra.Command, args []string) {
 	c := cmd.Context["rpcclient"]
 	client := c.(grpcpb.ApiServiceClient)
 	w := cmd.Context["wallet"]
-	mywallet := w.(*wallet.BaseWallet)
+	mywallet := w.(wallet.Wallet)
 	voter := args[0]
 	idx, err := strconv.ParseUint(args[1], 10, 64)
 	if err != nil {

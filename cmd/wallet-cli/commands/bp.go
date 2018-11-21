@@ -22,10 +22,11 @@ var BpCmd = func() *cobra.Command {
 	}
 
 	registerCmd := &cobra.Command{
-		Use:   "register",
-		Short: "register as a new block-producer",
-		Args:  cobra.ExactArgs(2),
-		Run:   registerBP,
+		Use:     "register",
+		Short:   "register as a new block-producer",
+		Example: "bp register [bpname] [pubkey]",
+		Args:    cobra.ExactArgs(2),
+		Run:     registerBP,
 	}
 
 	registerCmd.Flags().StringVarP(&bpUrlFlag, "url", "u", "", `bp register alice --url "http://example.com"`)
@@ -34,17 +35,19 @@ var BpCmd = func() *cobra.Command {
 	registerCmd.Flags().Uint32VarP(&bpBlockSize, "blocksize", "", 1024*1024, `bp register alice --blocksize 1024`)
 
 	unregisterCmd := &cobra.Command{
-		Use:   "unregister",
-		Short: "unregister a block-producer",
-		Args:  cobra.ExactArgs(1),
-		Run:   unRegisterBP,
+		Use:     "unregister",
+		Short:   "unregister a block-producer",
+		Example: "bp unregister [bpname]",
+		Args:    cobra.ExactArgs(1),
+		Run:     unRegisterBP,
 	}
 
 	voteCmd := &cobra.Command{
-		Use:   "vote",
-		Short: "vote to a block-producer or unvote it",
-		Args:  cobra.ExactArgs(2),
-		Run:   voteBp,
+		Use:     "vote",
+		Short:   "vote to a block-producer or unvote it",
+		Example: "bp vote [voter] [bpname]",
+		Args:    cobra.ExactArgs(2),
+		Run:     voteBp,
 	}
 
 	voteCmd.Flags().BoolVarP(&bpVoteCancel, "cancel", "c", false, `bp vote alice bob --cancel`)

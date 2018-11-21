@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"github.com/coschain/contentos-go/cmd/wallet-cli/commands/utils/mock"
 	"github.com/coschain/contentos-go/cmd/wallet-cli/wallet"
 	"github.com/coschain/contentos-go/cmd/wallet-cli/wallet/mock"
 	"github.com/coschain/contentos-go/rpc/mock_grpcpb"
@@ -14,11 +13,9 @@ func TestReplyWithoutBeneficiaries(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	client := mock_grpcpb.NewMockApiServiceClient(ctrl)
 	mywallet := mock_wallet.NewMockWallet(ctrl)
-	passwordReader := mock_utils.NewMockPasswordReader(ctrl)
 	cmd := ReplyCmd()
 	cmd.SetContext("wallet", mywallet)
 	cmd.SetContext("rpcclient", client)
-	cmd.SetContext("preader", passwordReader)
 	for _, child := range cmd.Commands() {
 		child.Context = cmd.Context
 	}
@@ -43,11 +40,9 @@ func TestReplyWithBeneficiaries(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	client := mock_grpcpb.NewMockApiServiceClient(ctrl)
 	mywallet := mock_wallet.NewMockWallet(ctrl)
-	passwordReader := mock_utils.NewMockPasswordReader(ctrl)
 	cmd := ReplyCmd()
 	cmd.SetContext("wallet", mywallet)
 	cmd.SetContext("rpcclient", client)
-	cmd.SetContext("preader", passwordReader)
 	for _, child := range cmd.Commands() {
 		child.Context = cmd.Context
 	}
