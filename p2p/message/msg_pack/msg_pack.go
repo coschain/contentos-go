@@ -1,7 +1,6 @@
 package msgpack
 
 import (
-	"github.com/coschain/contentos-go/prototype"
 	"time"
 
 	msgCommon "github.com/coschain/contentos-go/p2p/common"
@@ -9,8 +8,9 @@ import (
 	"github.com/coschain/contentos-go/p2p/depend/common/config"
 	"github.com/coschain/contentos-go/p2p/depend/common/log"
 	mt "github.com/coschain/contentos-go/p2p/message/types"
+	"github.com/coschain/contentos-go/p2p/net/protocol"
+	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/p2p/msg"
-	"github.com/coschain/contentos-go/iservices"
 )
 
 //Peer address package
@@ -97,7 +97,7 @@ func NewVerAck(isConsensus bool) mt.Message {
 }
 
 //Version package
-func NewVersion(n iservices.P2P, isCons bool, height uint32) mt.Message {
+func NewVersion(n p2p.P2P, isCons bool, height uint32) mt.Message {
 	log.Trace()
 	var version mt.Version
 	version.P = mt.VersionPayload{

@@ -4,11 +4,11 @@ import (
 	"github.com/coschain/contentos-go/p2p/depend/common/log"
 	msgCommon "github.com/coschain/contentos-go/p2p/common"
 	"github.com/coschain/contentos-go/p2p/message/types"
-	"github.com/coschain/contentos-go/iservices"
+	"github.com/coschain/contentos-go/p2p/net/protocol"
 )
 
 // MessageHandler defines the unified api for each net message
-type MessageHandler func(data *types.MsgPayload, p2p iservices.P2P, args ...interface{})
+type MessageHandler func(data *types.MsgPayload, p2p p2p.P2P, args ...interface{})
 
 // MessageRouter mostly route different message type-based to the
 // related message handler
@@ -18,18 +18,18 @@ type MessageRouter struct {
 	RecvConsChan chan *types.MsgPayload    // The channel to handle consensus msg
 	stopSyncCh   chan bool                 // To stop sync channel
 	stopConsCh   chan bool                 // To stop consensus channel
-	p2p          iservices.P2P                   // Refer to the p2p network
+	p2p          p2p.P2P                   // Refer to the p2p network
 }
 
 // NewMsgRouter returns a message router object
-func NewMsgRouter(p2p iservices.P2P) *MessageRouter {
+func NewMsgRouter(p2p p2p.P2P) *MessageRouter {
 	msgRouter := &MessageRouter{}
 	msgRouter.init(p2p)
 	return msgRouter
 }
 
 // init initializes the message router's attributes
-func (this *MessageRouter) init(p2p iservices.P2P) {
+func (this *MessageRouter) init(p2p p2p.P2P) {
 	this.msgHandlers = make(map[string]MessageHandler)
 	this.RecvSyncChan = p2p.GetMsgChan(false)
 	this.RecvConsChan = p2p.GetMsgChan(true)

@@ -1,58 +1,15 @@
 package iservices
 
 import (
-	"github.com/asaskevich/EventBus"
-	"github.com/coschain/contentos-go/p2p/common"
+	comn "github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/p2p/message/types"
 	"github.com/coschain/contentos-go/p2p/peer"
-	 comn "github.com/coschain/contentos-go/common"
-	"github.com/coschain/contentos-go/node"
 )
 
 var P2P_SERVER_NAME = "p2p"
 
-//P2P represent the net interface of p2p package
-type P2P interface {
-	Start(*node.Node)
-	Halt()
-	Connect(addr string, isConsensus bool) error
-	GetID() uint64
-	GetVersion() uint32
-	GetSyncPort() uint16
-	GetConsPort() uint16
-	GetHttpInfoPort() uint16
-	GetRelay() bool
-	GetHeight() uint64
-	GetTime() int64
-	GetServices() uint64
-	GetNeighbors() []*peer.Peer
-	GetNeighborAddrs() []common.PeerAddr
-	GetConnectionCnt() uint32
-	GetNp() *peer.NbrPeers
-	GetPeer(uint64) *peer.Peer
-	SetHeight(uint64)
-	IsPeerEstablished(p *peer.Peer) bool
-	GetMsgChan(isConsensus bool) chan *types.MsgPayload
-	GetPeerFromAddr(addr string) *peer.Peer
-	AddOutConnectingList(addr string) (added bool)
-	GetOutConnRecordLen() int
-	RemoveFromConnectingList(addr string)
-	RemoveFromOutConnRecord(addr string)
-	RemoveFromInConnRecord(addr string)
-	AddPeerSyncAddress(addr string, p *peer.Peer)
-	AddPeerConsAddress(addr string, p *peer.Peer)
-	GetOutConnectingListLen() (count uint)
-	RemovePeerSyncAddress(addr string)
-	RemovePeerConsAddress(addr string)
-	AddNbrNode(*peer.Peer)
-	DelNbrNode(id uint64) (*peer.Peer, bool)
-	NodeEstablished(uint64) bool
-	SetOwnAddress(addr string)
-	IsAddrFromConnecting(addr string) bool
-
-	GetService(string) (interface{}, error)
-	GetNoticer() EventBus.Bus
-
+//IP2P represent the net interface of p2p package which can be called by other service
+type IP2P interface {
 	// Broadcast sigTrx or sigBlk msg
 	Broadcast(message interface{})
 

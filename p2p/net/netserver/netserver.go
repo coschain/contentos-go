@@ -9,22 +9,22 @@ import (
 	"sync"
 	"time"
 
+	"github.com/asaskevich/EventBus"
+	comn "github.com/coschain/contentos-go/common"
+	"github.com/coschain/contentos-go/node"
+	"github.com/coschain/contentos-go/p2p/common"
 	"github.com/coschain/contentos-go/p2p/depend/common/config"
 	"github.com/coschain/contentos-go/p2p/depend/common/log"
-	"github.com/coschain/contentos-go/p2p/common"
 	"github.com/coschain/contentos-go/p2p/message/msg_pack"
 	"github.com/coschain/contentos-go/p2p/message/types"
-	"github.com/coschain/contentos-go/iservices"
-	"github.com/coschain/contentos-go/p2p/peer"
-	comn "github.com/coschain/contentos-go/common"
+	"github.com/coschain/contentos-go/p2p/net/protocol"
 	"github.com/coschain/contentos-go/p2p/msg"
+	"github.com/coschain/contentos-go/p2p/peer"
 	"github.com/coschain/contentos-go/prototype"
-	"github.com/coschain/contentos-go/node"
-	"github.com/asaskevich/EventBus"
 )
 
 //NewNetServer return the net object in p2p
-func NewNetServer(ctx *node.ServiceContext) iservices.P2P {
+func NewNetServer(ctx *node.ServiceContext) p2p.P2P {
 	n := &NetServer{
 		ctx     : ctx,
 		SyncChan: make(chan *types.MsgPayload, common.CHAN_CAPABILITY),

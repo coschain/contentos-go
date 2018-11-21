@@ -20,14 +20,14 @@ import (
 	msgtypes "github.com/coschain/contentos-go/p2p/message/types"
 	"github.com/coschain/contentos-go/p2p/message/utils"
 	"github.com/coschain/contentos-go/p2p/net/netserver"
-	"github.com/coschain/contentos-go/iservices"
+	"github.com/coschain/contentos-go/p2p/net/protocol"
 	"github.com/coschain/contentos-go/p2p/peer"
 	"github.com/coschain/contentos-go/node"
 )
 
 //P2PServer control all network activities
 type P2PServer struct {
-	Network   iservices.P2P
+	Network   p2p.P2P
 	msgRouter *utils.MessageRouter
 	ReconnectAddrs
 	recentPeers    map[uint32][]string
@@ -94,7 +94,7 @@ func (this *P2PServer) Stop() error {
 }
 
 // GetNetWork returns the low level netserver
-func (this *P2PServer) GetNetWork() iservices.P2P {
+func (this *P2PServer) GetNetWork() p2p.P2P {
 	return this.Network
 }
 

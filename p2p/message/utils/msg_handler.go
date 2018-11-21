@@ -2,25 +2,24 @@ package utils
 
 import (
 	"fmt"
-	"github.com/coschain/contentos-go/common"
-	"github.com/coschain/contentos-go/p2p/msg"
 	"net"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/coschain/contentos-go/common"
+	msgCommon "github.com/coschain/contentos-go/p2p/common"
 	"github.com/coschain/contentos-go/p2p/depend/common/config"
 	"github.com/coschain/contentos-go/p2p/depend/common/log"
-
-	msgCommon "github.com/coschain/contentos-go/p2p/common"
 	"github.com/coschain/contentos-go/p2p/message/msg_pack"
 	msgTypes "github.com/coschain/contentos-go/p2p/message/types"
+	"github.com/coschain/contentos-go/p2p/msg"
+	"github.com/coschain/contentos-go/p2p/net/protocol"
 	"github.com/coschain/contentos-go/prototype"
-	"github.com/coschain/contentos-go/iservices"
 )
 
 // AddrReqHandle handles the neighbor address request from peer
-func AddrReqHandle(data *msgTypes.MsgPayload, p2p iservices.P2P, args ...interface{}) {
+func AddrReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	log.Trace("[p2p]receive addr request message", data.Addr, data.Id)
 	remotePeer := p2p.GetPeer(data.Id)
 	if remotePeer == nil {
@@ -56,7 +55,7 @@ func AddrReqHandle(data *msgTypes.MsgPayload, p2p iservices.P2P, args ...interfa
 }
 
 //PingHandle handle ping msg from peer
-func PingHandle(data *msgTypes.MsgPayload, p2p iservices.P2P, args ...interface{}) {
+func PingHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	log.Trace("[p2p]receive ping message", data.Addr, data.Id)
 
 	ping := data.Payload.(*msgTypes.Ping)
@@ -81,7 +80,7 @@ func PingHandle(data *msgTypes.MsgPayload, p2p iservices.P2P, args ...interface{
 }
 
 ///PongHandle handle pong msg from peer
-func PongHandle(data *msgTypes.MsgPayload, p2p iservices.P2P, args ...interface{}) {
+func PongHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	log.Trace("[p2p]receive pong message", data.Addr, data.Id)
 
 	pong := data.Payload.(*msgTypes.Pong)
@@ -95,7 +94,7 @@ func PongHandle(data *msgTypes.MsgPayload, p2p iservices.P2P, args ...interface{
 }
 
 // BlockHandle handles the block message from peer
-func BlockHandle(data *msgTypes.MsgPayload, p2p iservices.P2P, args ...interface{}) {
+func BlockHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	log.Trace("[p2p]receive block message from ", data.Addr, data.Id)
 
 	var block = data.Payload.(*msg.SigBlkMsg)
@@ -104,13 +103,13 @@ func BlockHandle(data *msgTypes.MsgPayload, p2p iservices.P2P, args ...interface
 }
 
 // NotFoundHandle handles the not found message from peer
-func NotFoundHandle(data *msgTypes.MsgPayload, p2p iservices.P2P, args ...interface{}) {
+func NotFoundHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	var notFound = data.Payload.(*msgTypes.NotFound)
 	log.Debug("[p2p]receive notFound message, hash is ", notFound.Hash)
 }
 
 // TransactionHandle handles the transaction message from peer
-func TransactionHandle(data *msgTypes.MsgPayload, p2p iservices.P2P, args ...interface{}) {
+func TransactionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	log.Trace("[p2p]receive transaction message", data.Addr, data.Id)
 
 	var trn = data.Payload.(*msg.BroadcastSigTrx)
@@ -123,7 +122,7 @@ func TransactionHandle(data *msgTypes.MsgPayload, p2p iservices.P2P, args ...int
 }
 
 // VersionHandle handles version handshake protocol from peer
-func VersionHandle(data *msgTypes.MsgPayload, p2p iservices.P2P, args ...interface{}) {
+func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	log.Trace("[p2p]receive version message", data.Addr, data.Id)
 
 	version := data.Payload.(*msgTypes.Version)
@@ -303,7 +302,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p iservices.P2P, args ...interfa
 }
 
 // VerAckHandle handles the version ack from peer
-func VerAckHandle(data *msgTypes.MsgPayload, p2p iservices.P2P, args ...interface{}) {
+func VerAckHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	log.Trace("[p2p]receive verAck message from ", data.Addr, data.Id)
 
 	verAck := data.Payload.(*msgTypes.VerACK)
@@ -370,7 +369,7 @@ func VerAckHandle(data *msgTypes.MsgPayload, p2p iservices.P2P, args ...interfac
 }
 
 // AddrHandle handles the neighbor address response message from peer
-func AddrHandle(data *msgTypes.MsgPayload, p2p iservices.P2P, args ...interface{}) {
+func AddrHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	log.Trace("[p2p]handle addr message", data.Addr, data.Id)
 
 	var msg = data.Payload.(*msgTypes.Addr)
@@ -403,7 +402,7 @@ func AddrHandle(data *msgTypes.MsgPayload, p2p iservices.P2P, args ...interface{
 }
 
 // DisconnectHandle handles the disconnect events
-func DisconnectHandle(data *msgTypes.MsgPayload, p2p iservices.P2P, args ...interface{}) {
+func DisconnectHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	log.Debug("[p2p]receive disconnect message", data.Addr, data.Id)
 	p2p.RemoveFromInConnRecord(data.Addr)
 	p2p.RemoveFromOutConnRecord(data.Addr)
@@ -426,7 +425,7 @@ func DisconnectHandle(data *msgTypes.MsgPayload, p2p iservices.P2P, args ...inte
 	}
 }
 
-func IdMsgHandle(data *msgTypes.MsgPayload, p2p iservices.P2P, args ...interface{}) {
+func IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	log.Trace("[p2p]receive hash message from ", data.Addr, data.Id)
 
 	var msgdata = data.Payload.(*msg.IdMsg)
@@ -527,7 +526,7 @@ func IdMsgHandle(data *msgTypes.MsgPayload, p2p iservices.P2P, args ...interface
 	}
 }
 
-func ReqIdHandle(data *msgTypes.MsgPayload, p2p iservices.P2P, args ...interface{}) {
+func ReqIdHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	//log.Trace("[p2p]receive request id message from ", data.Addr, data.Id)
 	//
 	//var msgdata = data.Payload.(*msg.ReqIdMsg)
