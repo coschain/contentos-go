@@ -690,11 +690,16 @@ func (c *Controller) createBlockSummary(blk *prototype.SignedBlock) {
 }
 
 func (c *Controller) clearExpiredTransactions() {
-	sortWrap := table.STransactionObjectExpirationWrap{}
+	sortWrap := table.STransactionObjectExpirationWrap{Dba:c.db}
 	itr := sortWrap.QueryListByOrder(nil, nil) // query all
 	if itr != nil {
 		for itr.Next() {
-			if c.headBlockTime().UtcSeconds > sortWrap.GetSubVal(itr).UtcSeconds {
+			headTime := c.headBlockTime().UtcSeconds
+			subPtr := sortWrap.GetSubVal(itr)
+			if subPtr == nil {
+				break
+			}
+			if headTime > subPtr.UtcSeconds {
 				// delete trx ...
 				k := sortWrap.GetMainVal(itr)
 				objWrap := table.NewSoTransactionObjectWrap(c.db, k)
