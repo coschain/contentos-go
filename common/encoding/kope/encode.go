@@ -6,19 +6,17 @@ import (
 	"reflect"
 )
 
+type OpeEncoder interface {
+	OpeEncode() ([]byte, error)
+}
+
 // Encode a signed integer
 func EncodeInt(value int) ([]byte, error) {
-	var data []byte
-	var err error
 	if is32bitPlatform {
-		data, err = EncodeInt32(int32(value))
+		return EncodeInt32(int32(value))
 	} else {
-		data, err = EncodeInt64(int64(value))
+		return EncodeInt64(int64(value))
 	}
-	if err == nil {
-		data[0] = typeInt
-	}
-	return data, err
 }
 
 // Encode a signed 8-bit integer
@@ -43,17 +41,11 @@ func EncodeInt64(value int64) ([]byte, error) {
 
 // Encode an unsigned integer
 func EncodeUint(value uint) ([]byte, error) {
-	var data []byte
-	var err error
 	if is32bitPlatform {
-		data, err = EncodeUint32(uint32(value))
+		return EncodeUint32(uint32(value))
 	} else {
-		data, err = EncodeUint64(uint64(value))
+		return EncodeUint64(uint64(value))
 	}
-	if err == nil {
-		data[0] = typeUint
-	}
-	return data, err
 }
 
 // Encode an unsigned 8-bit integer
@@ -78,11 +70,7 @@ func EncodeUint64(value uint64) ([]byte, error) {
 
 // Encode an unsigned pointer integer
 func EncodeUintPtr(value uintptr) ([]byte, error) {
-	data, err := EncodeUint(uint(value))
-	if err == nil {
-		data[0] = typeUintptr
-	}
-	return data, err
+	return EncodeUint(uint(value))
 }
 
 // Encode a bool
@@ -91,7 +79,7 @@ func EncodeBool(value bool) ([]byte, error) {
 	if value {
 		b = 1
 	}
-	return pack(typeBool, false, []byte{b})
+	return EncodeUint8(b)
 }
 
 // Encode a float32
@@ -106,12 +94,12 @@ func EncodeFloat64(value float64) ([]byte, error) {
 
 // Encode a string
 func EncodeString(value string) ([]byte, error) {
-	return pack(typeString, true, []byte(value))
+	return EncodeBytes([]byte(value))
 }
 
 // Encode a byte slice
 func EncodeBytes(value []byte) ([]byte, error) {
-	return pack(typeBytes, true, value)
+	return packString(value), nil
 }
 
 func EncodeSlice(value []interface{}) ([]byte, error) {
@@ -127,20 +115,28 @@ func EncodeSlice(value []interface{}) ([]byte, error) {
 	return encodeSlice(children)
 }
 
+// Encode a OpeEncoder
+func EncodeOpeEncoder(value OpeEncoder) ([]byte, error) {
+	return value.OpeEncode()
+}
+
+var opeEncoderInterfaceType = reflect.TypeOf((*OpeEncoder)(nil)).Elem()
+
 func EncodeValue(rv reflect.Value) ([]byte, error) {
 	k := rv.Kind()
 	if k == reflect.Invalid {
-		return nil, errors.New("kope: cannot encode nil values")
+		return nil, errors.New("kope: cannot encode zero values")
 	}
 	rt := rv.Type()
-
-	if codec := customCodecByType(rt); codec != nil {
-		return codec.encoder(rv)
+	if rt.Implements(opeEncoderInterfaceType) {
+		if k == reflect.Ptr && rv.IsNil() {
+			return encodeNil()
+		}
+		return EncodeOpeEncoder(rv.Interface().(OpeEncoder))
 	}
-
 	if k == reflect.Ptr {
 		if rv.IsNil() {
-			return nil, errors.New("kope: cannot encode nil pointers")
+			return encodeNil()
 		}
 		if rt.Elem().Kind() == reflect.String {
 			ptr := rv.Interface().(*string)
@@ -186,9 +182,6 @@ func EncodeValue(rv reflect.Value) ([]byte, error) {
 		return EncodeString(rv.String())
 	case reflect.Array, reflect.Slice:
 		if rt.Elem().Kind() == reflect.Uint8 {
-			if rt.PkgPath() + "." + rt.Name() == keyTypePkgName {
-				return rv.Bytes(), nil
-			}
 			return EncodeBytes(rv.Bytes())
 		}
 		size := rv.Len()
@@ -216,8 +209,4 @@ func Encode(values...interface{}) ([]byte, error) {
 	} else {
 		return encode(values)
 	}
-}
-
-func Complement(enc []byte, errs ...error) ([]byte, error) {
-	return flipped(enc, errs...)
 }
