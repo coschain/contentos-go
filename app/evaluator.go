@@ -126,6 +126,9 @@ func (ev *TransferEvaluator) Apply() {
 	// @ active_challenged
 	fromWrap := table.NewSoAccountWrap(ev.ctx.db, op.From)
 	toWrap := table.NewSoAccountWrap(ev.ctx.db, op.To)
+
+	opAssert(toWrap.CheckExist(), "To account do not exist ")
+
 	fBalance := fromWrap.GetBalance()
 	tBalance := toWrap.GetBalance()
 
@@ -246,6 +249,9 @@ func (ev *BpVoteEvaluator) Apply() {
 	witnessId := &prototype.BpWitnessId{Voter: op.Voter, Witness: op.Witness}
 	vidWrap := table.NewSoWitnessVoteWrap(ev.ctx.db, voterId)
 
+	witAccWrap := table.NewSoAccountWrap( ev.ctx.db, op.Voter )
+	opAssert(witAccWrap.CheckExist(), "witness account do not exist ")
+
 	witnessWrap := table.NewSoWitnessWrap(ev.ctx.db, op.Witness)
 
 	if op.Cancel {
@@ -279,6 +285,8 @@ func (ev *TransferToVestingEvaluator) Apply() {
 
 	fidWrap := table.NewSoAccountWrap( ev.ctx.db, op.From)
 	tidWrap := table.NewSoAccountWrap( ev.ctx.db, op.To)
+
+	opAssert(tidWrap.CheckExist(), "to account do not exist")
 
 	fBalance := fidWrap.GetBalance()
 	tVests   := tidWrap.GetVestingShares()
