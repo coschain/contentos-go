@@ -6,24 +6,10 @@ import (
 	"github.com/coschain/contentos-go/prototype"
 )
 
-func mustNoError(err error) {
-	if err != nil {
-		panic(err)
-	}
-}
 func mustSuccess(b bool, val string) {
 	if !b {
 		panic(val)
 	}
-}
-
-type ApplyContext struct {
-	db      iservices.IDatabaseService
-	control iservices.IController
-}
-
-type BaseEvaluator interface {
-	Apply()
 }
 
 type AccountCreateEvaluator struct {
