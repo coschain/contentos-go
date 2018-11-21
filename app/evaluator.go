@@ -56,6 +56,18 @@ type BpVoteEvaluator struct {
 	op  *prototype.BpVoteOperation
 }
 
+type FollowEvaluator struct {
+	BaseEvaluator
+	ctx *ApplyContext
+	op  *prototype.FollowOperation
+}
+
+type TransferToVestingEvaluator struct {
+	BaseEvaluator
+	ctx *ApplyContext
+	op  *prototype.TransferToVestingOperation
+}
+
 func (ev *AccountCreateEvaluator) Apply() {
 	op := ev.op
 	creatorWrap := table.NewSoAccountWrap(ev.ctx.db, op.Creator)
@@ -222,7 +234,9 @@ func (ev *BpRegisterEvaluator) Apply() {
 }
 
 func (ev *BpUnregisterEvaluator) Apply() {
+	// unregister op cost too much cpu time
 	panic("not yet implement")
+
 }
 
 func (ev *BpVoteEvaluator) Apply() {
@@ -257,4 +271,27 @@ func (ev *BpVoteEvaluator) Apply() {
 		opAssert(witnessWrap.MdVoteCount(witnessWrap.GetVoteCount()+1), "set witness data error")
 	}
 
+}
+
+func (ev *FollowEvaluator) Apply() {
+	panic("not yet implement")
+}
+
+func (ev *TransferToVestingEvaluator) Apply() {
+	op := ev.op
+
+	fidWrap := table.NewSoAccountWrap( ev.ctx.db, op.From)
+	tidWrap := table.NewSoAccountWrap( ev.ctx.db, op.To)
+
+	fBalance := fidWrap.GetBalance()
+	tVests   := tidWrap.GetVestingShares()
+	addVests := prototype.NewVest( op.Amount.Value )
+
+	opAssertE( fBalance.Sub(op.Amount) , "balance not enough")
+	opAssert ( fidWrap.MdBalance(fBalance), "set from new balance error")
+
+	opAssertE( tVests.Add(addVests), "vests error" )
+	opAssert ( tidWrap.MdVestingShares(tVests), "set to new vests error")
+
+	// TODO modify gdp total balance / vests
 }
