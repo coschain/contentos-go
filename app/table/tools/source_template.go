@@ -600,7 +600,10 @@ func (s *Uni{{$.ClsName}}{{$k}}Wrap) UniQuery{{$k}}(start *{{formatStr $v}}) *So
 		t.Parse(tmpl)
 		t.Execute(fPtr,createParamsFromTableInfo(tIfno))
 		cmd := exec.Command("goimports", "-w", fName)
-		cmd.Start()
+		err := cmd.Run()
+		if err != nil {
+			panic(fmt.Sprintf("auto import package fail,the error is %s",err))
+		}
 		defer fPtr.Close()
 		return true,nil
 	}else {

@@ -171,16 +171,18 @@ func ProcessCSVFile(fileName string, name string) bool {
 			"-I./../../../",
 			"--go_out=paths=source_relative:.",
 			TmlFolder+"so_"+name+".proto")
-		err := cmd.Start()
+		err := cmd.Run()
 		if err == nil {
 			//create detail go file (include update insert delete functions)
 			cRes, cErr := CreateGoFile(tInfo)
 			if !cRes {
-				log.Printf("create go file fail,name prefix is %s , error is %s \n", tInfo.Name, cErr)
+				panic(fmt.Sprintf("create go file fail,name prefix is %s , error is %s",tInfo.Name,cErr))
 			}
 		} else {
-			log.Printf("create pb file fail,cmd error is %s\n", err)
+			panic(fmt.Sprintf("create pb file fail,cmd error is %s",err))
 		}
+	}else {
+		panic(fmt.Sprintf("create so_%s.proto fail",name))
 	}
 
 	return true
@@ -221,8 +223,6 @@ func WritePbTplToFile(tInfo TableInfo) (bool, error) {
 			t = t.Funcs(funcMap)
 			t.Parse(tpl)
 			t.Execute(fPtr, tInfo)
-			cmd := exec.Command("goimports", "-I./", "-I./../../../", "-w=./", fName)
-			cmd.Start()
 			defer fPtr.Close()
 			return true, nil
 		} else {
