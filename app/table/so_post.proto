@@ -6,45 +6,47 @@ package table;
 option go_package = "github.com/coschain/contentos-go/table";
 
 import "prototype/type.proto";
+import "prototype/operation.proto";
 
 message so_post {
-	uint64                             post_id                 =      1;
-    string                             category                =      2;
-    prototype.account_name             author                  =      3;
-    string                             title                   =      4;
-    string                             body                    =      5;
-    repeated                      string                           tags									           =      6;
-    prototype.time_point_sec           created                 =      7;
-    prototype.time_point_sec           last_payout             =      8;
-    uint32                             depth                   =      9;
-    uint32                             children                =      10;
-    uint64                             root_id                 =      11;
-    uint64                             parent_id               =      12;
-    uint64                             vote_cnt                =      13;
-    prototype.post_created_order       created_order           =      14;
-    prototype.post_reply_order         reply_order             =      15;
+	uint64                                 post_id                 =      1;
+    string                                 category                =      2;
+    prototype.account_name                 author                  =      3;
+    string                                 title                   =      4;
+    string                                 body                    =      5;
+    repeated                      string                               tags				     =      6;
+    prototype.time_point_sec               created                 =      7;
+    prototype.time_point_sec               last_payout             =      8;
+    uint32                                 depth                   =      9;
+    uint32                                 children                =      10;
+    uint64                                 root_id                 =      11;
+    uint64                                 parent_id               =      12;
+    uint64                                 vote_cnt                =      13;
+    repeated                      prototype.beneficiary_route_type     beneficiaries           =      14;
+    prototype.post_created_order           created_order           =      15;
+    prototype.post_reply_order             reply_order             =      16;
       
 }
 
 
 message so_list_post_by_created {
-	prototype.time_point_sec        	created             = 1;
-	uint64                          	post_id             = 2;
+	prototype.time_point_sec            	created             = 1;
+	uint64                              	post_id             = 2;
 }
 
 
 message so_list_post_by_created_order {
-	prototype.post_created_order    	created_order       = 1;
-	uint64                          	post_id             = 2;
+	prototype.post_created_order        	created_order       = 1;
+	uint64                              	post_id             = 2;
 }
 
 
 message so_list_post_by_reply_order {
-	prototype.post_reply_order      	reply_order         = 1;
-	uint64                          	post_id             = 2;
+	prototype.post_reply_order          	reply_order         = 1;
+	uint64                              	post_id             = 2;
 }
 
 
 message so_unique_post_by_post_id {
-	uint64                          	post_id             = 1;
+	uint64                              	post_id             = 1;
 }

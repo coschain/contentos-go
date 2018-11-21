@@ -139,6 +139,7 @@ func addCommands() {
 	rootCmd.AddCommand(commands.PostCmd())
 	rootCmd.AddCommand(commands.ReplyCmd())
 	rootCmd.AddCommand(commands.FollowCmd())
+	rootCmd.AddCommand(commands.FollowCntCmd())
 }
 
 func init() {

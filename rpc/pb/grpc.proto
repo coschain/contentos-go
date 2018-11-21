@@ -7,6 +7,7 @@ package grpcpb;
 import "google/api/annotations.proto";
 import "prototype/type.proto";
 import "prototype/transaction.proto";
+import "prototype/operation.proto";
 
 /*
 Installation
@@ -178,18 +179,20 @@ message GetWitnessListResponse {
 }
 
 message PostResponse {
-    uint64                             post_id                 =      1;
-    string                             category                =      2;
-    prototype.account_name             parent_author           =      3;
-    prototype.account_name             author                  =      5;
-    string                             title                   =      7;
-    string                             body                    =      8;
-    prototype.time_point_sec           created                 =      11;
-    prototype.time_point_sec           last_payout             =      13;
-    uint32                             depth                   =      14;
-    uint32                             children                =      15;
-    uint64                             root_id                 =      16;
-    uint64                             parent_id               =      17;
+    uint64                                      post_id                 =      1;
+    string                                      category                =      2;
+    prototype.account_name                      parent_author           =      3;
+    prototype.account_name                      author                  =      5;
+    string                                      title                   =      7;
+    string                                      body                    =      8;
+    prototype.time_point_sec                    created                 =      11;
+    prototype.time_point_sec                    last_payout             =      13;
+    uint32                                      depth                   =      14;
+    uint32                                      children                =      15;
+    uint64                                      root_id                 =      16;
+    uint64                                      parent_id               =      17;
+    repeated string                             tags                    =      18;
+    repeated prototype.beneficiary_route_type   beneficiaries           =      19;
 }
 
 message GetPostListByCreatedRequest {
