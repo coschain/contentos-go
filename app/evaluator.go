@@ -277,7 +277,13 @@ func (ev *BpVoteEvaluator) Apply() {
 }
 
 func (ev *FollowEvaluator) Apply() {
-	panic("not yet implement")
+	op := ev.op
+
+	followeeWrap := table.NewSoAccountWrap(ev.ctx.db, op.Following)
+	opAssert(followeeWrap.CheckExist(), "followee account do not exist ")
+
+	// TODO
+	// Follow relation update should be implement is plugin-services
 }
 
 func (ev *TransferToVestingEvaluator) Apply() {
