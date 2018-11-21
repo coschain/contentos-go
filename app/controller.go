@@ -2,6 +2,7 @@ package app
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common"
@@ -100,6 +101,9 @@ func (c *Controller) PushTrx(trx *prototype.SignedTransaction) *prototype.Transa
 	// this function may be cross routines ? use channel or lock ?
 	oldSkip := c.skip
 	defer func() {
+		if err := recover(); err != nil {
+			logging.CLog().Errorf("PushTrx Error: %v", err)
+		}
 		c.setProducing(false)
 		c.skip = oldSkip
 	}()
@@ -235,7 +239,7 @@ func (c *Controller) _applyTransaction(trxWrp *prototype.TransactionWrapper) {
 	defer func() {
 		if err := recover(); err != nil {
 			trxWrp.Invoice.Status = 500
-			panic("_applyTransaction failed")
+			panic(fmt.Sprintf("applyTransaction failed : %v", err))
 		} else {
 			trxWrp.Invoice.Status = 200
 			return
@@ -357,13 +361,13 @@ func (c *Controller) getEvaluator(op *prototype.Operation) BaseEvaluator {
 		eva := &TransferEvaluator{ctx: ctx, op: op.GetOp2()}
 		return BaseEvaluator(eva)
 	case *prototype.Operation_Op3:
-		eva := &BpRegisterEvaluator{ ctx:ctx, op: op.GetOp3() }
+		eva := &BpRegisterEvaluator{ctx: ctx, op: op.GetOp3()}
 		return BaseEvaluator(eva)
 	case *prototype.Operation_Op4:
-		eva := &BpUnregisterEvaluator{ ctx:ctx, op: op.GetOp4() }
+		eva := &BpUnregisterEvaluator{ctx: ctx, op: op.GetOp4()}
 		return BaseEvaluator(eva)
 	case *prototype.Operation_Op5:
-		eva := &BpVoteEvaluator{ ctx:ctx, op: op.GetOp5() }
+		eva := &BpVoteEvaluator{ctx: ctx, op: op.GetOp5()}
 		return BaseEvaluator(eva)
 	case *prototype.Operation_Op6:
 		eva := &PostEvaluator{ctx: ctx, op: op.GetOp6()}
@@ -372,13 +376,13 @@ func (c *Controller) getEvaluator(op *prototype.Operation) BaseEvaluator {
 		eva := &ReplyEvaluator{ctx: ctx, op: op.GetOp7()}
 		return BaseEvaluator(eva)
 	case *prototype.Operation_Op8:
-		eva := &FollowEvaluator{ ctx:ctx, op: op.GetOp8() }
+		eva := &FollowEvaluator{ctx: ctx, op: op.GetOp8()}
 		return BaseEvaluator(eva)
 	case *prototype.Operation_Op9:
 		eva := &VoteEvaluator{ctx: ctx, op: op.GetOp9()}
 		return BaseEvaluator(eva)
 	case *prototype.Operation_Op10:
-		eva := &TransferToVestingEvaluator{ ctx:ctx, op: op.GetOp10() }
+		eva := &TransferToVestingEvaluator{ctx: ctx, op: op.GetOp10()}
 		return BaseEvaluator(eva)
 	default:
 		panic("no matchable evaluator")
@@ -522,21 +526,21 @@ func (c *Controller) initGenesis() {
 	})
 }
 
-func (c *Controller) TransferToVest( value *prototype.Coin){
+func (c *Controller) TransferToVest(value *prototype.Coin) {
 	var i int32 = 0
 	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db, &i)
-	cos 	:= dgpWrap.GetTotalCos()
-	vest	:= dgpWrap.GetTotalVestingShares()
+	cos := dgpWrap.GetTotalCos()
+	vest := dgpWrap.GetTotalVestingShares()
 	addVest := value.ToVest()
 
 	mustNoError(cos.Sub(value), "TotalCos overflow")
 	mustSuccess(dgpWrap.MdTotalCos(cos), "modify GlobalProperties error")
 
-	mustNoError( vest.Add(addVest), "TotalVestingShares overflow")
+	mustNoError(vest.Add(addVest), "TotalVestingShares overflow")
 	mustSuccess(dgpWrap.MdTotalVestingShares(vest), "modify GlobalProperties error")
 }
 
-func (c *Controller) TransferFromVest( value *prototype.Vest){
+func (c *Controller) TransferFromVest(value *prototype.Vest) {
 	var i int32 = 0
 	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db, &i)
 	cos := dgpWrap.GetTotalCos()
@@ -668,7 +672,7 @@ func (c *Controller) createBlockSummary(blk *prototype.SignedBlock) {
 }
 
 func (c *Controller) clearExpiredTransactions() {
-	sortWrap := table.STransactionObjectExpirationWrap{Dba:c.db}
+	sortWrap := table.STransactionObjectExpirationWrap{Dba: c.db}
 	itr := sortWrap.QueryListByOrder(nil, nil) // query all
 	if itr != nil {
 		for itr.Next() {

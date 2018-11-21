@@ -4,9 +4,9 @@ import (
 	"crypto/sha256"
 	"fmt"
 	cmn "github.com/coschain/contentos-go/common"
-	"github.com/coschain/contentos-go/p2p/depend/common"
 	"github.com/coschain/contentos-go/common/crypto"
 	"github.com/coschain/contentos-go/common/crypto/secp256k1"
+	"github.com/coschain/contentos-go/p2p/depend/common"
 	"github.com/gogo/protobuf/proto"
 	"github.com/pkg/errors"
 )
@@ -54,9 +54,10 @@ func (p *SignedTransaction) Validate() error {
 	if len(p.Signatures) == 0 {
 		return errors.New("no signatures")
 	}
-	for index,sig := range p.Signatures{
-		if err := sig.Validate(); err != nil{
-			return errors.WithMessage(err, fmt.Sprintf("Signatures error index: %d", index))}
+	for index, sig := range p.Signatures {
+		if err := sig.Validate(); err != nil {
+			return errors.WithMessage(err, fmt.Sprintf("Signatures error index: %d", index))
+		}
 	}
 	return nil
 }
@@ -159,21 +160,21 @@ func (p *SignedTransaction) MerkleDigest() (*Sha256, error) {
 	return id, nil
 }
 
-func (p *SignedTransaction) VerifyAuthority(cid ChainId,max_recursion_depth uint32,posting AuthorityGetter,active AuthorityGetter,owner AuthorityGetter) {
-	pubs,err := p.ExportPubKeys(cid)
+func (p *SignedTransaction) VerifyAuthority(cid ChainId, max_recursion_depth uint32, posting AuthorityGetter, active AuthorityGetter, owner AuthorityGetter) {
+	pubs, err := p.ExportPubKeys(cid)
 	if err != nil {
 		panic(err)
 	}
-	verifyAuthority(p.Trx.Operations,pubs,max_recursion_depth,posting,active,owner)
+	verifyAuthority(p.Trx.Operations, pubs, max_recursion_depth, posting, active, owner)
 }
 
-func verifyAuthority(ops []*Operation, trxPubs []*PublicKeyType, max_recursion_depth uint32,posting AuthorityGetter,active AuthorityGetter,owner AuthorityGetter) {
+func verifyAuthority(ops []*Operation, trxPubs []*PublicKeyType, max_recursion_depth uint32, posting AuthorityGetter, active AuthorityGetter, owner AuthorityGetter) {
 	required_active := map[string]bool{}
 	required_posting := map[string]bool{}
 	required_owner := map[string]bool{}
 	other := []Authority{}
 
-	for _,op := range ops {
+	for _, op := range ops {
 		baseOp := getBaseOp(op)
 
 		baseOp.GetAuthorities(&other)
@@ -187,11 +188,11 @@ func verifyAuthority(ops []*Operation, trxPubs []*PublicKeyType, max_recursion_d
 			panic("can not combinme posing authority with others")
 		}
 		s := SignState{}
-		s.Init(trxPubs,max_recursion_depth,posting,active,owner)
-		for k,_ := range required_posting {
-			if !s.CheckAuthorityByName(k,0,Posting) &&
-				!s.CheckAuthorityByName(k,0,Active) &&
-				!s.CheckAuthorityByName(k,0,Owner) {
+		s.Init(trxPubs, max_recursion_depth, posting, active, owner)
+		for k, _ := range required_posting {
+			if !s.CheckAuthorityByName(k, 0, Posting) &&
+				!s.CheckAuthorityByName(k, 0, Active) &&
+				!s.CheckAuthorityByName(k, 0, Owner) {
 				panic("check posting authority failed")
 			}
 		}
@@ -199,22 +200,22 @@ func verifyAuthority(ops []*Operation, trxPubs []*PublicKeyType, max_recursion_d
 	}
 
 	s := SignState{}
-	s.Init(trxPubs,max_recursion_depth,posting,active,owner)
-	for _,auth := range other {
-		if !s.CheckAuthority(&auth,0,Active) {
+	s.Init(trxPubs, max_recursion_depth, posting, active, owner)
+	for _, auth := range other {
+		if !s.CheckAuthority(&auth, 0, Active) {
 			panic("missing authority")
 		}
 	}
 
-	for k,_ := range required_active {
-		if !s.CheckAuthorityByName(k,0,Active) &&
-			!s.CheckAuthorityByName(k,0,Owner) {
+	for k, _ := range required_active {
+		if !s.CheckAuthorityByName(k, 0, Active) &&
+			!s.CheckAuthorityByName(k, 0, Owner) {
 			panic("check active authority failed")
 		}
 	}
 
-	for k,_ := range required_owner {
-		if !s.CheckAuthorityByName(k,0,Owner) {
+	for k, _ := range required_owner {
+		if !s.CheckAuthorityByName(k, 0, Owner) {
 			panic("check active authority failed")
 		}
 	}
@@ -226,12 +227,26 @@ func getBaseOp(op *Operation) BaseOperation {
 		return BaseOperation(t.Op1)
 	case *Operation_Op2:
 		return BaseOperation(t.Op2)
+	case *Operation_Op3:
+		return BaseOperation(t.Op3)
+	case *Operation_Op4:
+		return BaseOperation(t.Op4)
+	case *Operation_Op5:
+		return BaseOperation(t.Op5)
+	case *Operation_Op6:
+		return BaseOperation(t.Op6)
+	case *Operation_Op7:
+		return BaseOperation(t.Op7)
+	case *Operation_Op8:
+		return BaseOperation(t.Op8)
+	case *Operation_Op9:
+		return BaseOperation(t.Op9)
+	case *Operation_Op10:
+		return BaseOperation(t.Op10)
 	default:
 		return nil
 	}
 }
-
-
 
 func (p *SignedTransaction) Serialization(sink *common.ZeroCopySink) error {
 	data, _ := proto.Marshal(p)
