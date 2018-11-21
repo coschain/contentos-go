@@ -92,25 +92,18 @@ func (ev *AccountCreateEvaluator) Apply() {
 
 	// sub creator's fee
 	originBalance := creatorWrap.GetBalance()
-	originBalance.Value -= op.Fee.Value
-	creatorWrap.MdBalance(originBalance)
-
-	// sub dynamic glaobal properties's total fee
-	var i int32 = 0
-	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(ev.ctx.db, &i)
-	originTotal := dgpWrap.GetTotalCos()
-	originTotal.Value -= op.Fee.Value
-	dgpWrap.MdTotalCos(originTotal)
+	opAssertE( originBalance.Sub( op.Fee ), "creator balance overflow" )
+	opAssert( creatorWrap.MdBalance(originBalance), "")
 
 	// create account
 	newAccountWrap := table.NewSoAccountWrap(ev.ctx.db, op.NewAccountName)
 	opAssertE(newAccountWrap.Create(func(tInfo *table.SoAccount) {
 		tInfo.Name = op.NewAccountName
 		tInfo.Creator = op.Creator
-		tInfo.CreatedTime = dgpWrap.GetTime()
+		tInfo.CreatedTime = ev.ctx.control.HeadBlockTime()
 		tInfo.PubKey = op.MemoKey
 		tInfo.Balance = prototype.NewCoin(0)
-		tInfo.VestingShares = prototype.NewVest(0)
+		tInfo.VestingShares = op.Fee.ToVest()
 	}), "duplicate create account object")
 
 	// create account authority
@@ -123,10 +116,8 @@ func (ev *AccountCreateEvaluator) Apply() {
 		tInfo.LastOwnerUpdate = prototype.NewTimePointSec(0)
 	}), "duplicate create account authority object")
 
-	// create vesting
-	if op.Fee.Value > 0 {
-		ev.ctx.control.CreateVesting(op.NewAccountName, op.Fee)
-	}
+	// sub dynamic glaobal properties's total fee
+	ev.ctx.control.TransferToVest( op.Fee )
 }
 
 func (ev *TransferEvaluator) Apply() {
@@ -134,9 +125,15 @@ func (ev *TransferEvaluator) Apply() {
 
 	// @ active_challenged
 	fromWrap := table.NewSoAccountWrap(ev.ctx.db, op.From)
-	opAssert(fromWrap.GetBalance().Value >= op.Amount.Value, "Insufficient balance to transfer.")
-	ev.ctx.control.SubBalance(op.From, op.Amount)
-	ev.ctx.control.AddBalance(op.To, op.Amount)
+	toWrap := table.NewSoAccountWrap(ev.ctx.db, op.To)
+	fBalance := fromWrap.GetBalance()
+	tBalance := toWrap.GetBalance()
+
+	opAssertE( fBalance.Sub( op.Amount ), "Insufficient balance to transfer.")
+	opAssert( fromWrap.MdBalance(fBalance), "")
+
+	opAssertE( tBalance.Add( op.Amount ), "balance overflow")
+	opAssert( toWrap.MdBalance(tBalance), "")
 }
 
 func (ev *ReplyEvaluator) Apply() {
@@ -293,5 +290,5 @@ func (ev *TransferToVestingEvaluator) Apply() {
 	opAssertE( tVests.Add(addVests), "vests error" )
 	opAssert ( tidWrap.MdVestingShares(tVests), "set to new vests error")
 
-	// TODO modify gdp total balance / vests
+	ev.ctx.control.TransferToVest( op.Amount )
 }

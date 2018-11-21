@@ -23,6 +23,10 @@ func (m *Vest) Sub( o *Vest) error {
 	return nil
 }
 
+func (m *Vest) ToCoin() *Coin {
+	return NewVest(m.Value)
+}
+
 func NewVest(value uint64) *Vest {
 	return &Vest{Value:value}
 }

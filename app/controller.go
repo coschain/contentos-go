@@ -528,48 +528,32 @@ func (c *Controller) initGenesis() {
 	})
 }
 
-func (c *Controller) CreateVesting(accountName *prototype.AccountName, cos *prototype.Coin) *prototype.Vest {
-
-	newVesting := prototype.CosToVesting(cos)
-	creatorWrap := table.NewSoAccountWrap(c.db, accountName)
-	oldVesting := creatorWrap.GetVestingShares()
-	oldVesting.Value += newVesting.Value
-	creatorWrap.MdVestingShares(oldVesting)
-
+func (c *Controller) TransferToVest( value *prototype.Coin){
 	var i int32 = 0
 	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db, &i)
-	originTotal := dgpWrap.GetTotalVestingShares()
-	originTotal.Value += newVesting.Value
-	dgpWrap.MdTotalVestingShares(originTotal)
-	return newVesting
+	cos 	:= dgpWrap.GetTotalCos()
+	vest	:= dgpWrap.GetTotalVestingShares()
+	addVest := value.ToVest()
+
+	mustNoError(cos.Sub(value), "TotalCos overflow")
+	mustSuccess(dgpWrap.MdTotalCos(cos), "modify GlobalProperties error")
+
+	mustNoError( vest.Add(addVest), "TotalVestingShares overflow")
+	mustSuccess(dgpWrap.MdTotalVestingShares(vest), "modify GlobalProperties error")
 }
 
-func (c *Controller) SubBalance(accountName *prototype.AccountName, cos *prototype.Coin) {
-	accountWrap := table.NewSoAccountWrap(c.db, accountName)
-	originBalance := accountWrap.GetBalance()
-	originBalance.Value -= cos.Value
-	accountWrap.MdBalance(originBalance)
-
-	// dynamic glaobal properties
+func (c *Controller) TransferFromVest( value *prototype.Vest){
 	var i int32 = 0
 	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db, &i)
-	originTotal := dgpWrap.GetTotalCos()
-	originTotal.Value -= cos.Value
-	dgpWrap.MdTotalCos(originTotal)
-}
+	cos := dgpWrap.GetTotalCos()
+	vest := dgpWrap.GetTotalVestingShares()
+	addCos := value.ToCoin()
 
-func (c *Controller) AddBalance(accountName *prototype.AccountName, cos *prototype.Coin) {
-	accountWrap := table.NewSoAccountWrap(c.db, accountName)
-	originBalance := accountWrap.GetBalance()
-	originBalance.Value += cos.Value
-	accountWrap.MdBalance(originBalance)
+	mustNoError(cos.Add(addCos), "TotalCos overflow")
+	mustSuccess(dgpWrap.MdTotalCos(cos), "modify GlobalProperties error")
 
-	// dynamic glaobal properties
-	var i int32 = 0
-	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db, &i)
-	originTotal := dgpWrap.GetTotalCos()
-	originTotal.Value += cos.Value
-	dgpWrap.MdTotalCos(originTotal)
+	mustNoError(vest.Sub(value), "TotalVestingShares overflow")
+	mustSuccess(dgpWrap.MdTotalVestingShares(vest), "modify GlobalProperties error")
 }
 
 func (c *Controller) validateBlockHeader(blk *prototype.SignedBlock) {

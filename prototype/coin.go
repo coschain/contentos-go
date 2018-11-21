@@ -27,6 +27,10 @@ func (m *Coin) Sub( o *Coin) error {
 	return nil
 }
 
+func (m *Coin) ToVest() *Vest {
+	return NewVest(m.Value)
+}
+
 func NewCoin(value uint64) *Coin {
 	return &Coin{Value:value}
 }
