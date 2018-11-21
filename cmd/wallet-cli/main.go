@@ -13,7 +13,6 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
-	"strings"
 )
 
 var rootCmd = &cobra.Command{
@@ -64,7 +63,12 @@ shell_loop:
 		if err != nil {
 			break shell_loop
 		}
-		cmd, flags, err := rootCmd.Find(strings.Fields(l))
+		argv, err := ToArgv(l)
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
+		cmd, flags, err := rootCmd.Find(argv)
 		if err != nil {
 			shell.Terminal.Write([]byte(err.Error()))
 		}
