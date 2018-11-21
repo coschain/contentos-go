@@ -30,7 +30,7 @@ func post(cmd *cobra.Command, args []string) {
 	c := cmd.Context["rpcclient"]
 	client := c.(grpcpb.ApiServiceClient)
 	w := cmd.Context["wallet"]
-	mywallet := w.(*wallet.BaseWallet)
+	mywallet := w.(wallet.Wallet)
 	author := args[0]
 	authorAccount, ok := mywallet.GetUnlockedAccount(author)
 	if !ok {
@@ -43,8 +43,8 @@ func post(cmd *cobra.Command, args []string) {
 		return
 	}
 	tags := strings.Split(tagsStr, ",")
-	title := args[1]
-	content := args[2]
+	title := args[2]
+	content := args[3]
 	beneficiaries := []*prototype.BeneficiaryRouteType{}
 	accumulateWeight := 0
 	for k, v := range postBeneficiaryRoute {

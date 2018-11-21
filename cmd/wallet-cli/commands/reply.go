@@ -30,7 +30,7 @@ func reply(cmd *cobra.Command, args []string) {
 	c := cmd.Context["rpcclient"]
 	client := c.(grpcpb.ApiServiceClient)
 	w := cmd.Context["wallet"]
-	mywallet := w.(*wallet.BaseWallet)
+	mywallet := w.(wallet.Wallet)
 	author := args[0]
 	authorAccount, ok := mywallet.GetUnlockedAccount(author)
 	if !ok {

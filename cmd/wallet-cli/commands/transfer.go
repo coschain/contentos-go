@@ -27,7 +27,7 @@ func transfer(cmd *cobra.Command, args []string) {
 	c := cmd.Context["rpcclient"]
 	client := c.(grpcpb.ApiServiceClient)
 	w := cmd.Context["wallet"]
-	mywallet := w.(*wallet.BaseWallet)
+	mywallet := w.(wallet.Wallet)
 	from := args[0]
 	to := args[1]
 	amount, err := strconv.ParseInt(args[2], 10, 64)
