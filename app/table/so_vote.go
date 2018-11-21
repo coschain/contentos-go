@@ -25,6 +25,9 @@ type SoVoteWrap struct {
 }
 
 func NewSoVoteWrap(dba iservices.IDatabaseService, key *prototype.VoterId) *SoVoteWrap {
+	if dba == nil || key == nil {
+		return nil
+	}
 	result := &SoVoteWrap{dba, key}
 	return result
 }
@@ -247,6 +250,14 @@ type SVoteVoteTimeWrap struct {
 	Dba iservices.IDatabaseService
 }
 
+func NewVoteVoteTimeWrap(db iservices.IDatabaseService) *SVoteVoteTimeWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := SVoteVoteTimeWrap{Dba: db}
+	return &wrap
+}
+
 func (s *SVoteVoteTimeWrap) DelIterater(iterator iservices.IDatabaseIterator) {
 	if iterator == nil || !iterator.Valid() {
 		return
@@ -313,6 +324,9 @@ func (m *SoListVoteByVoteTime) OpeEncode() ([]byte, error) {
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
 func (s *SVoteVoteTimeWrap) QueryListByOrder(start *prototype.TimePointSec, end *prototype.TimePointSec) iservices.IDatabaseIterator {
+	if s.Dba == nil {
+		return nil
+	}
 	pre := VoteVoteTimeTable
 	skeyList := []interface{}{pre}
 	if start != nil {
@@ -350,6 +364,14 @@ func (s *SVoteVoteTimeWrap) QueryListByOrder(start *prototype.TimePointSec, end 
 ////////////// SECTION List Keys ///////////////
 type SVotePostIdWrap struct {
 	Dba iservices.IDatabaseService
+}
+
+func NewVotePostIdWrap(db iservices.IDatabaseService) *SVotePostIdWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := SVotePostIdWrap{Dba: db}
+	return &wrap
 }
 
 func (s *SVotePostIdWrap) DelIterater(iterator iservices.IDatabaseIterator) {
@@ -416,6 +438,9 @@ func (m *SoListVoteByPostId) OpeEncode() ([]byte, error) {
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
 func (s *SVotePostIdWrap) QueryListByOrder(start *uint64, end *uint64) iservices.IDatabaseIterator {
+	if s.Dba == nil {
+		return nil
+	}
 	pre := VotePostIdTable
 	skeyList := []interface{}{pre}
 	if start != nil {
@@ -543,7 +568,18 @@ type UniVoteVoterWrap struct {
 	Dba iservices.IDatabaseService
 }
 
+func NewUniVoteVoterWrap(db iservices.IDatabaseService) *UniVoteVoterWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := UniVoteVoterWrap{Dba: db}
+	return &wrap
+}
+
 func (s *UniVoteVoterWrap) UniQueryVoter(start *prototype.VoterId) *SoVoteWrap {
+	if start == nil {
+		return nil
+	}
 	pre := VoteVoterUniTable
 	kList := []interface{}{pre, start}
 	bufStartkey, err := encoding.EncodeSlice(kList, false)

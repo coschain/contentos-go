@@ -26,6 +26,9 @@ type SoPostWrap struct {
 }
 
 func NewSoPostWrap(dba iservices.IDatabaseService, key *uint64) *SoPostWrap {
+	if dba == nil || key == nil {
+		return nil
+	}
 	result := &SoPostWrap{dba, key}
 	return result
 }
@@ -575,6 +578,14 @@ type SPostCreatedWrap struct {
 	Dba iservices.IDatabaseService
 }
 
+func NewPostCreatedWrap(db iservices.IDatabaseService) *SPostCreatedWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := SPostCreatedWrap{Dba: db}
+	return &wrap
+}
+
 func (s *SPostCreatedWrap) DelIterater(iterator iservices.IDatabaseIterator) {
 	if iterator == nil || !iterator.Valid() {
 		return
@@ -640,6 +651,9 @@ func (m *SoListPostByCreated) OpeEncode() ([]byte, error) {
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
 func (s *SPostCreatedWrap) QueryListByOrder(start *prototype.TimePointSec, end *prototype.TimePointSec) iservices.IDatabaseIterator {
+	if s.Dba == nil {
+		return nil
+	}
 	pre := PostCreatedTable
 	skeyList := []interface{}{pre}
 	if start != nil {
@@ -677,6 +691,14 @@ func (s *SPostCreatedWrap) QueryListByOrder(start *prototype.TimePointSec, end *
 ////////////// SECTION List Keys ///////////////
 type SPostCreatedOrderWrap struct {
 	Dba iservices.IDatabaseService
+}
+
+func NewPostCreatedOrderWrap(db iservices.IDatabaseService) *SPostCreatedOrderWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := SPostCreatedOrderWrap{Dba: db}
+	return &wrap
 }
 
 func (s *SPostCreatedOrderWrap) DelIterater(iterator iservices.IDatabaseIterator) {
@@ -741,7 +763,9 @@ func (m *SoListPostByCreatedOrder) OpeEncode() ([]byte, error) {
 
 //Query sort by reverse order
 func (s *SPostCreatedOrderWrap) QueryListByRevOrder(start *prototype.PostCreatedOrder, end *prototype.PostCreatedOrder) iservices.IDatabaseIterator {
-
+	if s.Dba == nil {
+		return nil
+	}
 	pre := PostCreatedOrderTable
 	skeyList := []interface{}{pre}
 	if start != nil {
@@ -780,6 +804,14 @@ func (s *SPostCreatedOrderWrap) QueryListByRevOrder(start *prototype.PostCreated
 ////////////// SECTION List Keys ///////////////
 type SPostReplyOrderWrap struct {
 	Dba iservices.IDatabaseService
+}
+
+func NewPostReplyOrderWrap(db iservices.IDatabaseService) *SPostReplyOrderWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := SPostReplyOrderWrap{Dba: db}
+	return &wrap
 }
 
 func (s *SPostReplyOrderWrap) DelIterater(iterator iservices.IDatabaseIterator) {
@@ -844,7 +876,9 @@ func (m *SoListPostByReplyOrder) OpeEncode() ([]byte, error) {
 
 //Query sort by reverse order
 func (s *SPostReplyOrderWrap) QueryListByRevOrder(start *prototype.PostReplyOrder, end *prototype.PostReplyOrder) iservices.IDatabaseIterator {
-
+	if s.Dba == nil {
+		return nil
+	}
 	pre := PostReplyOrderTable
 	skeyList := []interface{}{pre}
 	if start != nil {
@@ -973,7 +1007,18 @@ type UniPostPostIdWrap struct {
 	Dba iservices.IDatabaseService
 }
 
+func NewUniPostPostIdWrap(db iservices.IDatabaseService) *UniPostPostIdWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := UniPostPostIdWrap{Dba: db}
+	return &wrap
+}
+
 func (s *UniPostPostIdWrap) UniQueryPostId(start *uint64) *SoPostWrap {
+	if start == nil {
+		return nil
+	}
 	pre := PostPostIdUniTable
 	kList := []interface{}{pre, start}
 	bufStartkey, err := encoding.EncodeSlice(kList, false)

@@ -22,6 +22,9 @@ type SoAccountAuthorityObjectWrap struct {
 }
 
 func NewSoAccountAuthorityObjectWrap(dba iservices.IDatabaseService, key *prototype.AccountName) *SoAccountAuthorityObjectWrap {
+	if dba == nil || key == nil {
+		return nil
+	}
 	result := &SoAccountAuthorityObjectWrap{dba, key}
 	return result
 }
@@ -296,7 +299,18 @@ type UniAccountAuthorityObjectAccountWrap struct {
 	Dba iservices.IDatabaseService
 }
 
+func NewUniAccountAuthorityObjectAccountWrap(db iservices.IDatabaseService) *UniAccountAuthorityObjectAccountWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := UniAccountAuthorityObjectAccountWrap{Dba: db}
+	return &wrap
+}
+
 func (s *UniAccountAuthorityObjectAccountWrap) UniQueryAccount(start *prototype.AccountName) *SoAccountAuthorityObjectWrap {
+	if start == nil {
+		return nil
+	}
 	pre := AccountAuthorityObjectAccountUniTable
 	kList := []interface{}{pre, start}
 	bufStartkey, err := encoding.EncodeSlice(kList, false)

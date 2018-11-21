@@ -24,6 +24,9 @@ type SoTransactionObjectWrap struct {
 }
 
 func NewSoTransactionObjectWrap(dba iservices.IDatabaseService, key *prototype.Sha256) *SoTransactionObjectWrap {
+	if dba == nil || key == nil {
+		return nil
+	}
 	result := &SoTransactionObjectWrap{dba, key}
 	return result
 }
@@ -180,6 +183,14 @@ type STransactionObjectExpirationWrap struct {
 	Dba iservices.IDatabaseService
 }
 
+func NewTransactionObjectExpirationWrap(db iservices.IDatabaseService) *STransactionObjectExpirationWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := STransactionObjectExpirationWrap{Dba: db}
+	return &wrap
+}
+
 func (s *STransactionObjectExpirationWrap) DelIterater(iterator iservices.IDatabaseIterator) {
 	if iterator == nil || !iterator.Valid() {
 		return
@@ -246,6 +257,9 @@ func (m *SoListTransactionObjectByExpiration) OpeEncode() ([]byte, error) {
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
 func (s *STransactionObjectExpirationWrap) QueryListByOrder(start *prototype.TimePointSec, end *prototype.TimePointSec) iservices.IDatabaseIterator {
+	if s.Dba == nil {
+		return nil
+	}
 	pre := TransactionObjectExpirationTable
 	skeyList := []interface{}{pre}
 	if start != nil {
@@ -373,7 +387,18 @@ type UniTransactionObjectTrxIdWrap struct {
 	Dba iservices.IDatabaseService
 }
 
+func NewUniTransactionObjectTrxIdWrap(db iservices.IDatabaseService) *UniTransactionObjectTrxIdWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := UniTransactionObjectTrxIdWrap{Dba: db}
+	return &wrap
+}
+
 func (s *UniTransactionObjectTrxIdWrap) UniQueryTrxId(start *prototype.Sha256) *SoTransactionObjectWrap {
+	if start == nil {
+		return nil
+	}
 	pre := TransactionObjectTrxIdUniTable
 	kList := []interface{}{pre, start}
 	bufStartkey, err := encoding.EncodeSlice(kList, false)

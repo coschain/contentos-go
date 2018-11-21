@@ -22,6 +22,9 @@ type SoFollowCountWrap struct {
 }
 
 func NewSoFollowCountWrap(dba iservices.IDatabaseService, key *prototype.AccountName) *SoFollowCountWrap {
+	if dba == nil || key == nil {
+		return nil
+	}
 	result := &SoFollowCountWrap{dba, key}
 	return result
 }
@@ -272,7 +275,18 @@ type UniFollowCountAccountWrap struct {
 	Dba iservices.IDatabaseService
 }
 
+func NewUniFollowCountAccountWrap(db iservices.IDatabaseService) *UniFollowCountAccountWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := UniFollowCountAccountWrap{Dba: db}
+	return &wrap
+}
+
 func (s *UniFollowCountAccountWrap) UniQueryAccount(start *prototype.AccountName) *SoFollowCountWrap {
+	if start == nil {
+		return nil
+	}
 	pre := FollowCountAccountUniTable
 	kList := []interface{}{pre, start}
 	bufStartkey, err := encoding.EncodeSlice(kList, false)

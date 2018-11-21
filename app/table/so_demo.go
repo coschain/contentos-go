@@ -31,6 +31,9 @@ type SoDemoWrap struct {
 }
 
 func NewSoDemoWrap(dba iservices.IDatabaseService, key *prototype.AccountName) *SoDemoWrap {
+	if dba == nil || key == nil {
+		return nil
+	}
 	result := &SoDemoWrap{dba, key}
 	return result
 }
@@ -367,7 +370,8 @@ func (s *SoDemoWrap) MdIdx(p int64) bool {
 	}
 	//judge the unique value if is exist
 	uniWrap := UniDemoIdxWrap{}
-	res := uniWrap.UniQueryIdx(&sa.Idx)
+	uniWrap.Dba = s.dba
+	res := uniWrap.UniQueryIdx(&p)
 	if res != nil {
 		//the unique value to be modified is already exist
 		return false
@@ -411,7 +415,8 @@ func (s *SoDemoWrap) MdLikeCount(p int64) bool {
 	}
 	//judge the unique value if is exist
 	uniWrap := UniDemoLikeCountWrap{}
-	res := uniWrap.UniQueryLikeCount(&sa.LikeCount)
+	uniWrap.Dba = s.dba
+	res := uniWrap.UniQueryLikeCount(&p)
 	if res != nil {
 		//the unique value to be modified is already exist
 		return false
@@ -570,6 +575,14 @@ type SDemoOwnerWrap struct {
 	Dba iservices.IDatabaseService
 }
 
+func NewDemoOwnerWrap(db iservices.IDatabaseService) *SDemoOwnerWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := SDemoOwnerWrap{Dba: db}
+	return &wrap
+}
+
 func (s *SDemoOwnerWrap) DelIterater(iterator iservices.IDatabaseIterator) {
 	if iterator == nil || !iterator.Valid() {
 		return
@@ -633,7 +646,9 @@ func (m *SoListDemoByOwner) OpeEncode() ([]byte, error) {
 
 //Query sort by reverse order
 func (s *SDemoOwnerWrap) QueryListByRevOrder(start *prototype.AccountName, end *prototype.AccountName) iservices.IDatabaseIterator {
-
+	if s.Dba == nil {
+		return nil
+	}
 	pre := DemoOwnerTable
 	skeyList := []interface{}{pre}
 	if start != nil {
@@ -672,6 +687,14 @@ func (s *SDemoOwnerWrap) QueryListByRevOrder(start *prototype.AccountName, end *
 ////////////// SECTION List Keys ///////////////
 type SDemoPostTimeWrap struct {
 	Dba iservices.IDatabaseService
+}
+
+func NewDemoPostTimeWrap(db iservices.IDatabaseService) *SDemoPostTimeWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := SDemoPostTimeWrap{Dba: db}
+	return &wrap
 }
 
 func (s *SDemoPostTimeWrap) DelIterater(iterator iservices.IDatabaseIterator) {
@@ -740,6 +763,9 @@ func (m *SoListDemoByPostTime) OpeEncode() ([]byte, error) {
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
 func (s *SDemoPostTimeWrap) QueryListByOrder(start *prototype.TimePointSec, end *prototype.TimePointSec) iservices.IDatabaseIterator {
+	if s.Dba == nil {
+		return nil
+	}
 	pre := DemoPostTimeTable
 	skeyList := []interface{}{pre}
 	if start != nil {
@@ -776,7 +802,9 @@ func (s *SDemoPostTimeWrap) QueryListByOrder(start *prototype.TimePointSec, end 
 
 //Query sort by reverse order
 func (s *SDemoPostTimeWrap) QueryListByRevOrder(start *prototype.TimePointSec, end *prototype.TimePointSec) iservices.IDatabaseIterator {
-
+	if s.Dba == nil {
+		return nil
+	}
 	pre := DemoPostTimeTable
 	skeyList := []interface{}{pre}
 	if start != nil {
@@ -815,6 +843,14 @@ func (s *SDemoPostTimeWrap) QueryListByRevOrder(start *prototype.TimePointSec, e
 ////////////// SECTION List Keys ///////////////
 type SDemoLikeCountWrap struct {
 	Dba iservices.IDatabaseService
+}
+
+func NewDemoLikeCountWrap(db iservices.IDatabaseService) *SDemoLikeCountWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := SDemoLikeCountWrap{Dba: db}
+	return &wrap
 }
 
 func (s *SDemoLikeCountWrap) DelIterater(iterator iservices.IDatabaseIterator) {
@@ -878,7 +914,9 @@ func (m *SoListDemoByLikeCount) OpeEncode() ([]byte, error) {
 
 //Query sort by reverse order
 func (s *SDemoLikeCountWrap) QueryListByRevOrder(start *int64, end *int64) iservices.IDatabaseIterator {
-
+	if s.Dba == nil {
+		return nil
+	}
 	pre := DemoLikeCountTable
 	skeyList := []interface{}{pre}
 	if start != nil {
@@ -917,6 +955,14 @@ func (s *SDemoLikeCountWrap) QueryListByRevOrder(start *int64, end *int64) iserv
 ////////////// SECTION List Keys ///////////////
 type SDemoIdxWrap struct {
 	Dba iservices.IDatabaseService
+}
+
+func NewDemoIdxWrap(db iservices.IDatabaseService) *SDemoIdxWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := SDemoIdxWrap{Dba: db}
+	return &wrap
 }
 
 func (s *SDemoIdxWrap) DelIterater(iterator iservices.IDatabaseIterator) {
@@ -980,7 +1026,9 @@ func (m *SoListDemoByIdx) OpeEncode() ([]byte, error) {
 
 //Query sort by reverse order
 func (s *SDemoIdxWrap) QueryListByRevOrder(start *int64, end *int64) iservices.IDatabaseIterator {
-
+	if s.Dba == nil {
+		return nil
+	}
 	pre := DemoIdxTable
 	skeyList := []interface{}{pre}
 	if start != nil {
@@ -1019,6 +1067,14 @@ func (s *SDemoIdxWrap) QueryListByRevOrder(start *int64, end *int64) iservices.I
 ////////////// SECTION List Keys ///////////////
 type SDemoReplayCountWrap struct {
 	Dba iservices.IDatabaseService
+}
+
+func NewDemoReplayCountWrap(db iservices.IDatabaseService) *SDemoReplayCountWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := SDemoReplayCountWrap{Dba: db}
+	return &wrap
 }
 
 func (s *SDemoReplayCountWrap) DelIterater(iterator iservices.IDatabaseIterator) {
@@ -1085,6 +1141,9 @@ func (m *SoListDemoByReplayCount) OpeEncode() ([]byte, error) {
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
 func (s *SDemoReplayCountWrap) QueryListByOrder(start *int64, end *int64) iservices.IDatabaseIterator {
+	if s.Dba == nil {
+		return nil
+	}
 	pre := DemoReplayCountTable
 	skeyList := []interface{}{pre}
 	if start != nil {
@@ -1122,6 +1181,14 @@ func (s *SDemoReplayCountWrap) QueryListByOrder(start *int64, end *int64) iservi
 ////////////// SECTION List Keys ///////////////
 type SDemoTaglistWrap struct {
 	Dba iservices.IDatabaseService
+}
+
+func NewDemoTaglistWrap(db iservices.IDatabaseService) *SDemoTaglistWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := SDemoTaglistWrap{Dba: db}
+	return &wrap
 }
 
 func (s *SDemoTaglistWrap) DelIterater(iterator iservices.IDatabaseIterator) {
@@ -1188,6 +1255,9 @@ func (m *SoListDemoByTaglist) OpeEncode() ([]byte, error) {
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
 func (s *SDemoTaglistWrap) QueryListByOrder(start *[]string, end *[]string) iservices.IDatabaseIterator {
+	if s.Dba == nil {
+		return nil
+	}
 	pre := DemoTaglistTable
 	skeyList := []interface{}{pre}
 	if start != nil {
@@ -1316,7 +1386,18 @@ type UniDemoIdxWrap struct {
 	Dba iservices.IDatabaseService
 }
 
+func NewUniDemoIdxWrap(db iservices.IDatabaseService) *UniDemoIdxWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := UniDemoIdxWrap{Dba: db}
+	return &wrap
+}
+
 func (s *UniDemoIdxWrap) UniQueryIdx(start *int64) *SoDemoWrap {
+	if start == nil {
+		return nil
+	}
 	pre := DemoIdxUniTable
 	kList := []interface{}{pre, start}
 	bufStartkey, err := encoding.EncodeSlice(kList, false)
@@ -1378,7 +1459,18 @@ type UniDemoLikeCountWrap struct {
 	Dba iservices.IDatabaseService
 }
 
+func NewUniDemoLikeCountWrap(db iservices.IDatabaseService) *UniDemoLikeCountWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := UniDemoLikeCountWrap{Dba: db}
+	return &wrap
+}
+
 func (s *UniDemoLikeCountWrap) UniQueryLikeCount(start *int64) *SoDemoWrap {
+	if start == nil {
+		return nil
+	}
 	pre := DemoLikeCountUniTable
 	kList := []interface{}{pre, start}
 	bufStartkey, err := encoding.EncodeSlice(kList, false)
@@ -1439,7 +1531,18 @@ type UniDemoOwnerWrap struct {
 	Dba iservices.IDatabaseService
 }
 
+func NewUniDemoOwnerWrap(db iservices.IDatabaseService) *UniDemoOwnerWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := UniDemoOwnerWrap{Dba: db}
+	return &wrap
+}
+
 func (s *UniDemoOwnerWrap) UniQueryOwner(start *prototype.AccountName) *SoDemoWrap {
+	if start == nil {
+		return nil
+	}
 	pre := DemoOwnerUniTable
 	kList := []interface{}{pre, start}
 	bufStartkey, err := encoding.EncodeSlice(kList, false)

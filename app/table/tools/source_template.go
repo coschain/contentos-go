@@ -67,7 +67,10 @@ type So{{.ClsName}}Wrap struct {
 }
 
 func NewSo{{.ClsName}}Wrap(dba iservices.IDatabaseService, key *{{formatStr .MainKeyType}}) *So{{.ClsName}}Wrap{
-	result := &So{{.ClsName}}Wrap{ dba, key}
+	if dba == nil || key == nil {
+       return nil
+    }
+    result := &So{{.ClsName}}Wrap{ dba, key}
 	return result
 }
 
@@ -219,9 +222,10 @@ func (s *So{{$.ClsName}}Wrap) Md{{$k1}}(p {{formatRTypeStr $v1}}) bool {
       {{- if eq $k2 $k1 }}
     //judge the unique value if is exist
     uniWrap  := Uni{{$.ClsName}}{{$k2}}Wrap{}
+    uniWrap.Dba = s.dba
    {{ $baseType := (DetectBaseType $v2) -}}
    {{- if $baseType -}} 
-   	res := uniWrap.UniQuery{{$k1}}(&sa.{{UperFirstChar $k1}})
+   	res := uniWrap.UniQuery{{$k1}}(&p)
    {{- end -}}
    {{if not $baseType -}} 
    	res := uniWrap.UniQuery{{$k1}}(sa.{{UperFirstChar $k1}})
@@ -269,6 +273,14 @@ func (s *So{{$.ClsName}}Wrap) Md{{$k1}}(p {{formatRTypeStr $v1}}) bool {
 ////////////// SECTION List Keys ///////////////
 type S{{$.ClsName}}{{$v.PName}}Wrap struct {
 	Dba iservices.IDatabaseService
+}
+
+func New{{$.ClsName}}{{$v.PName}}Wrap(db iservices.IDatabaseService) *S{{$.ClsName}}{{$v.PName}}Wrap {
+     if db == nil {
+        return nil
+     }
+     wrap := S{{$.ClsName}}{{$v.PName}}Wrap{Dba:db}
+     return &wrap
 }
 
 func (s *S{{$.ClsName}}{{$v.PName}}Wrap)DelIterater(iterator iservices.IDatabaseIterator){
@@ -354,6 +366,9 @@ func (m *SoList{{$.ClsName}}By{{$v.PName}}) OpeEncode() ([]byte,error) {
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
 func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByOrder(start *{{$v.PType}}, end *{{$v.PType}}) iservices.IDatabaseIterator {
+    if s.Dba == nil {
+       return nil
+    }
     pre := {{$.ClsName}}{{$v.PName}}Table
     skeyList := []interface{}{pre}
     if start != nil {
@@ -391,7 +406,9 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByOrder(start *{{$v.PType}}, e
 {{if or (eq $v.SType 2) (eq $v.SType 3) -}}
 //Query sort by reverse order 
 func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByRevOrder(start *{{$v.PType}}, end *{{$v.PType}}) iservices.IDatabaseIterator {
-
+    if s.Dba == nil {
+       return nil
+    }
     pre := {{$.ClsName}}{{$v.PName}}Table
     skeyList := []interface{}{pre}
     if start != nil {
@@ -532,7 +549,18 @@ type Uni{{$.ClsName}}{{$k}}Wrap struct {
 	Dba iservices.IDatabaseService
 }
 
+func NewUni{{$.ClsName}}{{$k}}Wrap (db iservices.IDatabaseService) *Uni{{$.ClsName}}{{$k}}Wrap{
+     if db == nil {
+        return nil
+     }
+     wrap := Uni{{$.ClsName}}{{$k}}Wrap{Dba:db}
+     return &wrap
+}
+
 func (s *Uni{{$.ClsName}}{{$k}}Wrap) UniQuery{{$k}}(start *{{formatStr $v}}) *So{{$.ClsName}}Wrap{
+    if start == nil {
+       return nil
+    }
     pre := {{$.ClsName}}{{$k}}UniTable
     kList := []interface{}{pre,start}
     bufStartkey,err := encoding.EncodeSlice(kList,false)

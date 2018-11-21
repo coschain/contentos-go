@@ -22,6 +22,9 @@ type SoBlockSummaryObjectWrap struct {
 }
 
 func NewSoBlockSummaryObjectWrap(dba iservices.IDatabaseService, key *uint32) *SoBlockSummaryObjectWrap {
+	if dba == nil || key == nil {
+		return nil
+	}
 	result := &SoBlockSummaryObjectWrap{dba, key}
 	return result
 }
@@ -221,7 +224,18 @@ type UniBlockSummaryObjectIdWrap struct {
 	Dba iservices.IDatabaseService
 }
 
+func NewUniBlockSummaryObjectIdWrap(db iservices.IDatabaseService) *UniBlockSummaryObjectIdWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := UniBlockSummaryObjectIdWrap{Dba: db}
+	return &wrap
+}
+
 func (s *UniBlockSummaryObjectIdWrap) UniQueryId(start *uint32) *SoBlockSummaryObjectWrap {
+	if start == nil {
+		return nil
+	}
 	pre := BlockSummaryObjectIdUniTable
 	kList := []interface{}{pre, start}
 	bufStartkey, err := encoding.EncodeSlice(kList, false)

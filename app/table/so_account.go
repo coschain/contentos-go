@@ -28,6 +28,9 @@ type SoAccountWrap struct {
 }
 
 func NewSoAccountWrap(dba iservices.IDatabaseService, key *prototype.AccountName) *SoAccountWrap {
+	if dba == nil || key == nil {
+		return nil
+	}
 	result := &SoAccountWrap{dba, key}
 	return result
 }
@@ -393,6 +396,7 @@ func (s *SoAccountWrap) MdPubKey(p *prototype.PublicKeyType) bool {
 	}
 	//judge the unique value if is exist
 	uniWrap := UniAccountPubKeyWrap{}
+	uniWrap.Dba = s.dba
 	res := uniWrap.UniQueryPubKey(sa.PubKey)
 
 	if res != nil {
@@ -448,6 +452,14 @@ func (s *SoAccountWrap) MdVestingShares(p *prototype.Vest) bool {
 ////////////// SECTION List Keys ///////////////
 type SAccountCreatedTimeWrap struct {
 	Dba iservices.IDatabaseService
+}
+
+func NewAccountCreatedTimeWrap(db iservices.IDatabaseService) *SAccountCreatedTimeWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := SAccountCreatedTimeWrap{Dba: db}
+	return &wrap
 }
 
 func (s *SAccountCreatedTimeWrap) DelIterater(iterator iservices.IDatabaseIterator) {
@@ -516,6 +528,9 @@ func (m *SoListAccountByCreatedTime) OpeEncode() ([]byte, error) {
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
 func (s *SAccountCreatedTimeWrap) QueryListByOrder(start *prototype.TimePointSec, end *prototype.TimePointSec) iservices.IDatabaseIterator {
+	if s.Dba == nil {
+		return nil
+	}
 	pre := AccountCreatedTimeTable
 	skeyList := []interface{}{pre}
 	if start != nil {
@@ -553,6 +568,14 @@ func (s *SAccountCreatedTimeWrap) QueryListByOrder(start *prototype.TimePointSec
 ////////////// SECTION List Keys ///////////////
 type SAccountBalanceWrap struct {
 	Dba iservices.IDatabaseService
+}
+
+func NewAccountBalanceWrap(db iservices.IDatabaseService) *SAccountBalanceWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := SAccountBalanceWrap{Dba: db}
+	return &wrap
 }
 
 func (s *SAccountBalanceWrap) DelIterater(iterator iservices.IDatabaseIterator) {
@@ -621,6 +644,9 @@ func (m *SoListAccountByBalance) OpeEncode() ([]byte, error) {
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
 func (s *SAccountBalanceWrap) QueryListByOrder(start *prototype.Coin, end *prototype.Coin) iservices.IDatabaseIterator {
+	if s.Dba == nil {
+		return nil
+	}
 	pre := AccountBalanceTable
 	skeyList := []interface{}{pre}
 	if start != nil {
@@ -658,6 +684,14 @@ func (s *SAccountBalanceWrap) QueryListByOrder(start *prototype.Coin, end *proto
 ////////////// SECTION List Keys ///////////////
 type SAccountVestingSharesWrap struct {
 	Dba iservices.IDatabaseService
+}
+
+func NewAccountVestingSharesWrap(db iservices.IDatabaseService) *SAccountVestingSharesWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := SAccountVestingSharesWrap{Dba: db}
+	return &wrap
 }
 
 func (s *SAccountVestingSharesWrap) DelIterater(iterator iservices.IDatabaseIterator) {
@@ -726,6 +760,9 @@ func (m *SoListAccountByVestingShares) OpeEncode() ([]byte, error) {
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
 func (s *SAccountVestingSharesWrap) QueryListByOrder(start *prototype.Vest, end *prototype.Vest) iservices.IDatabaseIterator {
+	if s.Dba == nil {
+		return nil
+	}
 	pre := AccountVestingSharesTable
 	skeyList := []interface{}{pre}
 	if start != nil {
@@ -763,6 +800,14 @@ func (s *SAccountVestingSharesWrap) QueryListByOrder(start *prototype.Vest, end 
 ////////////// SECTION List Keys ///////////////
 type SAccountBpVoteCountWrap struct {
 	Dba iservices.IDatabaseService
+}
+
+func NewAccountBpVoteCountWrap(db iservices.IDatabaseService) *SAccountBpVoteCountWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := SAccountBpVoteCountWrap{Dba: db}
+	return &wrap
 }
 
 func (s *SAccountBpVoteCountWrap) DelIterater(iterator iservices.IDatabaseIterator) {
@@ -829,6 +874,9 @@ func (m *SoListAccountByBpVoteCount) OpeEncode() ([]byte, error) {
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
 func (s *SAccountBpVoteCountWrap) QueryListByOrder(start *uint32, end *uint32) iservices.IDatabaseIterator {
+	if s.Dba == nil {
+		return nil
+	}
 	pre := AccountBpVoteCountTable
 	skeyList := []interface{}{pre}
 	if start != nil {
@@ -956,7 +1004,18 @@ type UniAccountNameWrap struct {
 	Dba iservices.IDatabaseService
 }
 
+func NewUniAccountNameWrap(db iservices.IDatabaseService) *UniAccountNameWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := UniAccountNameWrap{Dba: db}
+	return &wrap
+}
+
 func (s *UniAccountNameWrap) UniQueryName(start *prototype.AccountName) *SoAccountWrap {
+	if start == nil {
+		return nil
+	}
 	pre := AccountNameUniTable
 	kList := []interface{}{pre, start}
 	bufStartkey, err := encoding.EncodeSlice(kList, false)
@@ -1018,7 +1077,18 @@ type UniAccountPubKeyWrap struct {
 	Dba iservices.IDatabaseService
 }
 
+func NewUniAccountPubKeyWrap(db iservices.IDatabaseService) *UniAccountPubKeyWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := UniAccountPubKeyWrap{Dba: db}
+	return &wrap
+}
+
 func (s *UniAccountPubKeyWrap) UniQueryPubKey(start *prototype.PublicKeyType) *SoAccountWrap {
+	if start == nil {
+		return nil
+	}
 	pre := AccountPubKeyUniTable
 	kList := []interface{}{pre, start}
 	bufStartkey, err := encoding.EncodeSlice(kList, false)

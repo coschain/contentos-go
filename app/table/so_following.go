@@ -24,6 +24,9 @@ type SoFollowingWrap struct {
 }
 
 func NewSoFollowingWrap(dba iservices.IDatabaseService, key *prototype.FollowingRelation) *SoFollowingWrap {
+	if dba == nil || key == nil {
+		return nil
+	}
 	result := &SoFollowingWrap{dba, key}
 	return result
 }
@@ -147,6 +150,14 @@ type SFollowingFollowingInfoWrap struct {
 	Dba iservices.IDatabaseService
 }
 
+func NewFollowingFollowingInfoWrap(db iservices.IDatabaseService) *SFollowingFollowingInfoWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := SFollowingFollowingInfoWrap{Dba: db}
+	return &wrap
+}
+
 func (s *SFollowingFollowingInfoWrap) DelIterater(iterator iservices.IDatabaseIterator) {
 	if iterator == nil || !iterator.Valid() {
 		return
@@ -213,6 +224,9 @@ func (m *SoListFollowingByFollowingInfo) OpeEncode() ([]byte, error) {
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
 func (s *SFollowingFollowingInfoWrap) QueryListByOrder(start *prototype.FollowingRelation, end *prototype.FollowingRelation) iservices.IDatabaseIterator {
+	if s.Dba == nil {
+		return nil
+	}
 	pre := FollowingFollowingInfoTable
 	skeyList := []interface{}{pre}
 	if start != nil {
@@ -340,7 +354,18 @@ type UniFollowingFollowingInfoWrap struct {
 	Dba iservices.IDatabaseService
 }
 
+func NewUniFollowingFollowingInfoWrap(db iservices.IDatabaseService) *UniFollowingFollowingInfoWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := UniFollowingFollowingInfoWrap{Dba: db}
+	return &wrap
+}
+
 func (s *UniFollowingFollowingInfoWrap) UniQueryFollowingInfo(start *prototype.FollowingRelation) *SoFollowingWrap {
+	if start == nil {
+		return nil
+	}
 	pre := FollowingFollowingInfoUniTable
 	kList := []interface{}{pre, start}
 	bufStartkey, err := encoding.EncodeSlice(kList, false)

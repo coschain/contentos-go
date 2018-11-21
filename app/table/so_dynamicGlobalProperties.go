@@ -22,6 +22,9 @@ type SoDynamicGlobalPropertiesWrap struct {
 }
 
 func NewSoDynamicGlobalPropertiesWrap(dba iservices.IDatabaseService, key *int32) *SoDynamicGlobalPropertiesWrap {
+	if dba == nil || key == nil {
+		return nil
+	}
 	result := &SoDynamicGlobalPropertiesWrap{dba, key}
 	return result
 }
@@ -461,7 +464,18 @@ type UniDynamicGlobalPropertiesIdWrap struct {
 	Dba iservices.IDatabaseService
 }
 
+func NewUniDynamicGlobalPropertiesIdWrap(db iservices.IDatabaseService) *UniDynamicGlobalPropertiesIdWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := UniDynamicGlobalPropertiesIdWrap{Dba: db}
+	return &wrap
+}
+
 func (s *UniDynamicGlobalPropertiesIdWrap) UniQueryId(start *int32) *SoDynamicGlobalPropertiesWrap {
+	if start == nil {
+		return nil
+	}
 	pre := DynamicGlobalPropertiesIdUniTable
 	kList := []interface{}{pre, start}
 	bufStartkey, err := encoding.EncodeSlice(kList, false)

@@ -24,6 +24,9 @@ type SoWitnessVoteWrap struct {
 }
 
 func NewSoWitnessVoteWrap(dba iservices.IDatabaseService, key *prototype.BpVoterId) *SoWitnessVoteWrap {
+	if dba == nil || key == nil {
+		return nil
+	}
 	result := &SoWitnessVoteWrap{dba, key}
 	return result
 }
@@ -195,6 +198,14 @@ type SWitnessVoteVoterIdWrap struct {
 	Dba iservices.IDatabaseService
 }
 
+func NewWitnessVoteVoterIdWrap(db iservices.IDatabaseService) *SWitnessVoteVoterIdWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := SWitnessVoteVoterIdWrap{Dba: db}
+	return &wrap
+}
+
 func (s *SWitnessVoteVoterIdWrap) DelIterater(iterator iservices.IDatabaseIterator) {
 	if iterator == nil || !iterator.Valid() {
 		return
@@ -261,6 +272,9 @@ func (m *SoListWitnessVoteByVoterId) OpeEncode() ([]byte, error) {
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
 func (s *SWitnessVoteVoterIdWrap) QueryListByOrder(start *prototype.BpVoterId, end *prototype.BpVoterId) iservices.IDatabaseIterator {
+	if s.Dba == nil {
+		return nil
+	}
 	pre := WitnessVoteVoterIdTable
 	skeyList := []interface{}{pre}
 	if start != nil {
@@ -388,7 +402,18 @@ type UniWitnessVoteVoterIdWrap struct {
 	Dba iservices.IDatabaseService
 }
 
+func NewUniWitnessVoteVoterIdWrap(db iservices.IDatabaseService) *UniWitnessVoteVoterIdWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := UniWitnessVoteVoterIdWrap{Dba: db}
+	return &wrap
+}
+
 func (s *UniWitnessVoteVoterIdWrap) UniQueryVoterId(start *prototype.BpVoterId) *SoWitnessVoteWrap {
+	if start == nil {
+		return nil
+	}
 	pre := WitnessVoteVoterIdUniTable
 	kList := []interface{}{pre, start}
 	bufStartkey, err := encoding.EncodeSlice(kList, false)

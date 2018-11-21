@@ -24,6 +24,9 @@ type SoWitnessWrap struct {
 }
 
 func NewSoWitnessWrap(dba iservices.IDatabaseService, key *prototype.AccountName) *SoWitnessWrap {
+	if dba == nil || key == nil {
+		return nil
+	}
 	result := &SoWitnessWrap{dba, key}
 	return result
 }
@@ -411,6 +414,14 @@ type SWitnessOwnerWrap struct {
 	Dba iservices.IDatabaseService
 }
 
+func NewWitnessOwnerWrap(db iservices.IDatabaseService) *SWitnessOwnerWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := SWitnessOwnerWrap{Dba: db}
+	return &wrap
+}
+
 func (s *SWitnessOwnerWrap) DelIterater(iterator iservices.IDatabaseIterator) {
 	if iterator == nil || !iterator.Valid() {
 		return
@@ -477,6 +488,9 @@ func (m *SoListWitnessByOwner) OpeEncode() ([]byte, error) {
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
 func (s *SWitnessOwnerWrap) QueryListByOrder(start *prototype.AccountName, end *prototype.AccountName) iservices.IDatabaseIterator {
+	if s.Dba == nil {
+		return nil
+	}
 	pre := WitnessOwnerTable
 	skeyList := []interface{}{pre}
 	if start != nil {
@@ -604,7 +618,18 @@ type UniWitnessOwnerWrap struct {
 	Dba iservices.IDatabaseService
 }
 
+func NewUniWitnessOwnerWrap(db iservices.IDatabaseService) *UniWitnessOwnerWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := UniWitnessOwnerWrap{Dba: db}
+	return &wrap
+}
+
 func (s *UniWitnessOwnerWrap) UniQueryOwner(start *prototype.AccountName) *SoWitnessWrap {
+	if start == nil {
+		return nil
+	}
 	pre := WitnessOwnerUniTable
 	kList := []interface{}{pre, start}
 	bufStartkey, err := encoding.EncodeSlice(kList, false)
