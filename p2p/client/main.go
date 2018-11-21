@@ -39,7 +39,7 @@ func main() {
 
 		sigtrx := new(prototype.SignedTransaction)
 		sigtrx.Trx = trx
-		p2p.Network.Broadcast(sigtrx)
+//		p2p.Network.Broadcast(sigtrx)
 
 
 		// Broadcast signedBlock
@@ -51,8 +51,8 @@ func main() {
 
 		sigBlkHdr.Header.Previous = new(prototype.Sha256)
 		sigBlkHdr.Header.TransactionMerkleRoot = new(prototype.Sha256)
-		sigBlkHdr.Header.Previous.Hash = make([]byte, 32)
-		sigBlkHdr.Header.TransactionMerkleRoot.Hash = make([]byte, 32)
+		sigBlkHdr.Header.Previous.Hash = make([]byte, prototype.Size)
+		sigBlkHdr.Header.TransactionMerkleRoot.Hash = make([]byte, prototype.Size)
 
 		sigBlk.SignedHeader = sigBlkHdr
 		p2p.Network.Broadcast(sigBlk)

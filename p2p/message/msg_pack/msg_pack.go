@@ -45,7 +45,8 @@ func NewSigBlkIdMsg(bk *prototype.SignedBlock) mt.Message {
 func NewSigBlk(bk *prototype.SignedBlock) mt.Message {
 	log.Trace()
 	var blk msg.SigBlkMsg
-	*blk.SigBlk = *bk
+	blk.SigBlk = new(prototype.SignedBlock)
+	blk.SigBlk = bk
 
 	return &blk
 }

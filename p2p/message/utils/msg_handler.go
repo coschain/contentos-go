@@ -15,6 +15,7 @@ import (
 	msgCommon "github.com/coschain/contentos-go/p2p/common"
 	"github.com/coschain/contentos-go/p2p/message/msg_pack"
 	msgTypes "github.com/coschain/contentos-go/p2p/message/types"
+	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/iservices"
 )
 
@@ -99,8 +100,7 @@ func BlockHandle(data *msgTypes.MsgPayload, p2p iservices.P2P, args ...interface
 
 	var block = data.Payload.(*msg.SigBlkMsg)
 
-	log.Info("receive a block")
-	fmt.Printf("data:   +%v\n", block)
+	log.Info("receive a SignedBlock msg:   ", block)
 }
 
 // NotFoundHandle handles the not found message from peer
@@ -435,8 +435,8 @@ func IdMsgHandle(data *msgTypes.MsgPayload, p2p iservices.P2P, args ...interface
 	case msg.IdMsg_broadcast_sigblk_id:
 		log.Info("receive a msg from:    v%    data:   %v\n", data.Addr, *msgdata)
 		length := len( msgdata.Value[0])
-		if length > 32 {
-			log.Info("block id length beyond the limit 32")
+		if length > prototype.Size {
+			log.Info("block id length beyond the limit ", prototype.Size)
 			return
 		}
 		var blkId common.BlockID
@@ -460,21 +460,35 @@ func IdMsgHandle(data *msgTypes.MsgPayload, p2p iservices.P2P, args ...interface
 		log.Info("receive a msg from:    v%    data:   %v\n", data.Addr, *msgdata)
 		for i, id := range msgdata.Value {
 			length := len( msgdata.Value[i])
-			if length > 32 {
-				log.Info("block id length beyond the limit 32")
+			if length > prototype.Size {
+				log.Info("block id length beyond the limit ", prototype.Size)
 				continue
 			}
 			var blkId common.BlockID
 			copy( blkId.Data[:], id )
 
-			//sigblk := get sigblk from consensus by id
-			//
-			//msg := msgpack.NewSigBlk(sigblk)
-			//err := p2p.Send(remotePeer, msg, false)
-			//if err != nil {
-			//	log.Warn(err)
-			//	return
-			//}
+			// test code create a SignedBlock
+			sigBlk := new(prototype.SignedBlock)
+			sigBlkHdr := new(prototype.SignedBlockHeader)
+			sigBlk.SignedHeader = sigBlkHdr
+			sigBlkHdr.Header = new(prototype.BlockHeader)
+			sigBlkHdr.Header.Witness = new(prototype.AccountName)
+			sigBlkHdr.Header.Witness.Value = "alice"
+
+			sigBlkHdr.Header.Previous = new(prototype.Sha256)
+			sigBlkHdr.Header.TransactionMerkleRoot = new(prototype.Sha256)
+			sigBlkHdr.Header.Previous.Hash = make([]byte, prototype.Size)
+			sigBlkHdr.Header.TransactionMerkleRoot.Hash = make([]byte, prototype.Size)
+
+			//sigBlk := get sigblk from consensus by id
+
+			msg := msgpack.NewSigBlk(sigBlk)
+			err := p2p.Send(remotePeer, msg, false)
+			if err != nil {
+				log.Warn(err)
+				return
+			}
+			log.Info("send a SignedBlock msg to   v%   data   v%\n", data.Addr, msg)
 		}
 	case msg.IdMsg_request_id_ack:
 		log.Info("receive a msg from:    v%    data:   %v\n", data.Addr, *msgdata)
@@ -482,8 +496,8 @@ func IdMsgHandle(data *msgTypes.MsgPayload, p2p iservices.P2P, args ...interface
 		reqmsg.Msgtype = msg.IdMsg_request_sigblk_by_id
 		for i, id := range msgdata.Value {
 			length := len( id )
-			if length > 32 {
-				log.Info("block id length beyond the limit 32")
+			if length > prototype.Size {
+				log.Info("block id length beyond the limit ", prototype.Size)
 				continue
 			}
 			var blkId common.BlockID
