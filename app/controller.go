@@ -343,12 +343,12 @@ func (c *Controller) _applyTransaction(trxWrp *prototype.TransactionWrapper) {
 
 func (c *Controller) applyOperation(op *prototype.Operation) {
 	// @ not use yet
-	//n := &prototype.OperationNotification{Op: op}
+	n := &prototype.OperationNotification{Op: op}
 	//	c.NotifyOpPreExecute(n)
 	eva := c.getEvaluator(op)
 	eva.Apply()
 	// @ not use yet
-	//	c.NotifyOpPostExecute(n)
+	c.NotifyOpPostExecute(n)
 }
 
 func (c *Controller) getEvaluator(op *prototype.Operation) BaseEvaluator {

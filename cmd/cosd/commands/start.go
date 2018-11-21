@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/coschain/cobra"
 	ctrl "github.com/coschain/contentos-go/app"
+	"github.com/coschain/contentos-go/app/plugins"
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/logging"
 	"github.com/coschain/contentos-go/common/pprof"
@@ -93,6 +94,15 @@ func startNode(cmd *cobra.Command, args []string) {
 
 	app.Register(iservices.RPC_SERVER_NAME, func(ctx *node.ServiceContext) (node.Service, error) {
 		return rpc.NewGRPCServer(ctx, ctx.Config().GRPC)
+	})
+	app.Register( plugins.FOLLOW_SERVICE_NAME, func(ctx *node.ServiceContext) (node.Service, error) {
+		return plugins.NewFollowService(ctx)
+	})
+	app.Register( plugins.POST_SERVICE_NAME, func(ctx *node.ServiceContext) (node.Service, error) {
+		return plugins.NewPostService(ctx)
+	})
+	app.Register( plugins.DEMO_SERVICE_NAME, func(ctx *node.ServiceContext) (node.Service, error) {
+		return plugins.NewDemoService(ctx)
 	})
 
 	if err := app.Start(); err != nil {
