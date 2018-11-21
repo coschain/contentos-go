@@ -362,6 +362,11 @@ func VerAckHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 			}
 		}
 
+		var blockid common.BlockID
+		blockid.Data[0] = 8
+		blockid.Data[1] = 18
+		p2p.Triggeer_sync(remotePeer, blockid)
+
 		msg := msgpack.NewAddrReq()
 		go p2p.Send(remotePeer, msg, false)
 	}
@@ -527,27 +532,40 @@ func IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 }
 
 func ReqIdHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
-	//log.Trace("[p2p]receive request id message from ", data.Addr, data.Id)
-	//
-	//var msgdata = data.Payload.(*msg.ReqIdMsg)
+	log.Trace("[p2p]receive request id message from ", data.Addr, data.Id)
+
+	var msgdata = data.Payload.(*msg.ReqIdMsg)
+
+	log.Info("receive a ReqIdMsg from   v%    data   v%\n", data.Addr, msgdata.HeadBlockId)
+
 	//remote_head_blk_id := msgdata.HeadBlockId
-	//
+
 	//current_head_blk_id := query consensus to get our head block id
 	//ids := call consensus to get ids
-	//
-	//remotePeer := p2p.GetPeerFromAddr(data.Addr)
-	//
-	//var reqmsg msg.IdMsg
-	//reqmsg.Msgtype = msg.IdMsg_request_id_ack
+
+	remotePeer := p2p.GetPeerFromAddr(data.Addr)
+
+	var reqmsg msg.IdMsg
+	reqmsg.Msgtype = msg.IdMsg_request_id_ack
+
+	// test code create return id msg
+	for i:=0;i<3;i++ {
+		var tmp []byte
+		reqmsg.Value = append(reqmsg.Value, tmp)
+		reqmsg.Value[i] = make([]byte, prototype.Size)
+		reqmsg.Value[i][0] =byte( (i+1) * 8)
+	}
+
 	//for i, id := range ids {
 	//	var tmp []byte
 	//	reqmsg.Value = append(reqmsg.Value, tmp)
+	//	reqmsg.Value[i] = make([]byte, prototype.Size)
 	//	reqmsg.Value[i] = id
 	//}
-	//
-	//err := p2p.Send(remotePeer, &reqmsg, false)
-	//if err != nil {
-	//	log.Warn(err)
-	//	return
-	//}
+
+	err := p2p.Send(remotePeer, &reqmsg, false)
+	if err != nil {
+		log.Warn(err)
+		return
+	}
 }

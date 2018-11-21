@@ -55,7 +55,7 @@ func main() {
 		sigBlkHdr.Header.TransactionMerkleRoot.Hash = make([]byte, prototype.Size)
 
 		sigBlk.SignedHeader = sigBlkHdr
-		p2p.Network.Broadcast(sigBlk)
+//		p2p.Network.Broadcast(sigBlk)
 	}
 
 	if p2p.GetVersion() != common.PROTOCOL_VERSION {
