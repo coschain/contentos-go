@@ -8,7 +8,7 @@ func (m *Vest) OpeEncode() ([]byte, error) {
 
 func (m *Vest) Add( o *Vest) error {
 
-	if m.Value < o.Value + m.Value {
+	if m.Value > o.Value + m.Value {
 		return ErrVestOverflow
 	}
 	m.Value += o.Value
@@ -24,7 +24,7 @@ func (m *Vest) Sub( o *Vest) error {
 }
 
 func (m *Vest) ToCoin() *Coin {
-	return NewVest(m.Value)
+	return NewCoin(m.Value)
 }
 
 func NewVest(value uint64) *Vest {

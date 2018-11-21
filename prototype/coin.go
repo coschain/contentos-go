@@ -12,7 +12,7 @@ func (m *Coin) NonZero() bool {
 
 func (m *Coin) Add( o *Coin) error {
 
-	if m.Value < o.Value + m.Value {
+	if m.Value > o.Value + m.Value {
 		return ErrCoinOverflow
 	}
 	m.Value += o.Value
