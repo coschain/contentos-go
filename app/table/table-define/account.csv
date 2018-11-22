@@ -2,7 +2,6 @@ type                     ,pName         ,mKey,unique,sort,reverseSort
 prototype.account_name   ,name          ,1   ,1     ,0   ,0
 prototype.time_point_sec ,created_time  ,0   ,0     ,1   ,0
 prototype.account_name   ,creator       ,0   ,0     ,0   ,0
-prototype.public_key_type,pub_key       ,0   ,1     ,0   ,0
 prototype.coin           ,balance       ,0   ,0     ,1   ,0
 prototype.vest           ,vesting_shares,0   ,0     ,1   ,0
 uint32                   ,bp_vote_count ,0   ,0     ,1   ,0

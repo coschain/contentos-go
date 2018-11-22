@@ -42,13 +42,6 @@ func (a *AccountCreateOperation) Validate() error {
 		return errors.WithMessage(err, "NewAccountName error" )
 	}
 
-	if a.MemoKey == nil {
-		return errors.New("Memo key cant be empty")
-	}
-	if err := a.MemoKey.Validate(); err != nil {
-		return errors.WithMessage(err, "Memo key error" )
-	}
-
 	if a.Posting == nil {
 		return errors.New("Posting Key cant be empty")
 	}

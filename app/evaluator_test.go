@@ -40,7 +40,6 @@ func Test_ApplyAccountCreate(t *testing.T) {
 		},
 		Posting: &prototype.Authority{
 		},
-		MemoKey: &prototype.PublicKeyType{Data:[]byte{0}},
 	}
 	// construct base op ...
 	op := &prototype.Operation{}

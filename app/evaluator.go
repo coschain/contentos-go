@@ -101,7 +101,6 @@ func (ev *AccountCreateEvaluator) Apply() {
 		tInfo.Name = op.NewAccountName
 		tInfo.Creator = op.Creator
 		tInfo.CreatedTime = ev.ctx.control.HeadBlockTime()
-		tInfo.PubKey = op.MemoKey
 		tInfo.Balance = prototype.NewCoin(0)
 		tInfo.VestingShares = op.Fee.ToVest()
 	}), "duplicate create account object")

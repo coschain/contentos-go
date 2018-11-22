@@ -63,7 +63,6 @@ func makeCreateAccountOP() (*prototype.AccountCreateOperation,error) {
 		},
 		Posting: &prototype.Authority{
 		},
-		MemoKey: pub, // new account's memo key
 	}
 
 	return acop,nil

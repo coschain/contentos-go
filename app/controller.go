@@ -462,7 +462,6 @@ func (c *Controller) initGenesis() {
 	newAccountWrap := table.NewSoAccountWrap(c.db, name)
 	mustNoError(newAccountWrap.Create(func(tInfo *table.SoAccount) {
 		tInfo.Name = name
-		tInfo.PubKey = pubKey
 		tInfo.CreatedTime = &prototype.TimePointSec{UtcSeconds: 0}
 		tInfo.Balance = prototype.NewCoin(constants.INIT_SUPPLY)
 		tInfo.VestingShares = prototype.NewVest(0)

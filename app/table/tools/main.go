@@ -179,7 +179,7 @@ func ProcessCSVFile(fileName string, name string) bool {
 				panic(fmt.Sprintf("create go file fail,name prefix is %s , error is %s",tInfo.Name,cErr))
 			}
 		} else {
-			panic(fmt.Sprintf("create pb file fail,cmd error is %s",err))
+			panic(fmt.Sprintf("create %s pb file fail,cmd error is %s", name, err))
 		}
 	}else {
 		panic(fmt.Sprintf("create so_%s.proto fail",name))

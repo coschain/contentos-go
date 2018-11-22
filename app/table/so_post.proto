@@ -6,7 +6,6 @@ package table;
 option go_package = "github.com/coschain/contentos-go/table";
 
 import "prototype/type.proto";
-import "prototype/operation.proto";
 
 message so_post {
 	uint64                                 post_id                 =      1;
@@ -22,9 +21,8 @@ message so_post {
     uint64                                 root_id                 =      11;
     uint64                                 parent_id               =      12;
     uint64                                 vote_cnt                =      13;
-    repeated                      prototype.beneficiary_route_type     beneficiaries           =      14;
-    prototype.post_created_order           created_order           =      15;
-    prototype.post_reply_order             reply_order             =      16;
+    prototype.post_created_order           created_order           =      14;
+    prototype.post_reply_order             reply_order             =      15;
       
 }
 

@@ -213,7 +213,7 @@ func (as *APIService) GetPostListByCreated(ctx context.Context, req *grpcpb.GetP
 				RootId:         postWrap.GetRootId(),
 				ParentId:       postWrap.GetParentId(),
 				Tags: 			postWrap.GetTags(),
-				Beneficiaries:	postWrap.GetBeneficiaries(),
+			//	Beneficiaries:	postWrap.GetBeneficiaries(),
 			})
 		}
 

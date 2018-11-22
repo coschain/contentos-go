@@ -14,7 +14,6 @@ message account_create_operation{
     authority owner = 4;
     authority active = 5;
     authority posting = 6;
-    public_key_type memo_key = 7;
     string json_metadata = 8;
 }
 

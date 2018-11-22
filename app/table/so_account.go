@@ -18,7 +18,6 @@ var (
 	AccountVestingSharesTable = []byte("AccountVestingSharesTable")
 	AccountBpVoteCountTable   = []byte("AccountBpVoteCountTable")
 	AccountNameUniTable       = []byte("AccountNameUniTable")
-	AccountPubKeyUniTable     = []byte("AccountPubKeyUniTable")
 )
 
 ////////////// SECTION Wrap Define ///////////////
@@ -93,9 +92,6 @@ func (s *SoAccountWrap) Create(f func(tInfo *SoAccount)) error {
 	//update unique list
 	if !s.insertUniKeyName(val) {
 		return errors.New("insert unique Field prototype.AccountName while insert table ")
-	}
-	if !s.insertUniKeyPubKey(val) {
-		return errors.New("insert unique Field prototype.PublicKeyType while insert table ")
 	}
 
 	return nil
@@ -240,9 +236,6 @@ func (s *SoAccountWrap) RemoveAccount() bool {
 	if !s.delUniKeyName(sa) {
 		return false
 	}
-	if !s.delUniKeyPubKey(sa) {
-		return false
-	}
 
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
@@ -377,45 +370,6 @@ func (s *SoAccountWrap) GetName() *prototype.AccountName {
 
 	}
 	return res.Name
-}
-
-func (s *SoAccountWrap) GetPubKey() *prototype.PublicKeyType {
-	res := s.getAccount()
-
-	if res == nil {
-		return nil
-
-	}
-	return res.PubKey
-}
-
-func (s *SoAccountWrap) MdPubKey(p *prototype.PublicKeyType) bool {
-	sa := s.getAccount()
-	if sa == nil {
-		return false
-	}
-	//judge the unique value if is exist
-	uniWrap := UniAccountPubKeyWrap{}
-	uniWrap.Dba = s.dba
-	res := uniWrap.UniQueryPubKey(sa.PubKey)
-
-	if res != nil {
-		//the unique value to be modified is already exist
-		return false
-	}
-	if !s.delUniKeyPubKey(sa) {
-		return false
-	}
-
-	sa.PubKey = p
-	if !s.update(sa) {
-		return false
-	}
-
-	if !s.insertUniKeyPubKey(sa) {
-		return false
-	}
-	return true
 }
 
 func (s *SoAccountWrap) GetVestingShares() *prototype.Vest {
@@ -1022,79 +976,6 @@ func (s *UniAccountNameWrap) UniQueryName(start *prototype.AccountName) *SoAccou
 	val, err := s.Dba.Get(bufStartkey)
 	if err == nil {
 		res := &SoUniqueAccountByName{}
-		rErr := proto.Unmarshal(val, res)
-		if rErr == nil {
-			wrap := NewSoAccountWrap(s.Dba, res.Name)
-
-			return wrap
-		}
-	}
-	return nil
-}
-
-func (s *SoAccountWrap) delUniKeyPubKey(sa *SoAccount) bool {
-	pre := AccountPubKeyUniTable
-	sub := sa.PubKey
-	kList := []interface{}{pre, sub}
-	kBuf, err := encoding.EncodeSlice(kList, false)
-	if err != nil {
-		return false
-	}
-	return s.dba.Delete(kBuf) == nil
-}
-
-func (s *SoAccountWrap) insertUniKeyPubKey(sa *SoAccount) bool {
-	uniWrap := UniAccountPubKeyWrap{}
-	uniWrap.Dba = s.dba
-
-	res := uniWrap.UniQueryPubKey(sa.PubKey)
-	if res != nil {
-		//the unique key is already exist
-		return false
-	}
-	val := SoUniqueAccountByPubKey{}
-	val.Name = sa.Name
-	val.PubKey = sa.PubKey
-
-	buf, err := proto.Marshal(&val)
-
-	if err != nil {
-		return false
-	}
-
-	pre := AccountPubKeyUniTable
-	sub := sa.PubKey
-	kList := []interface{}{pre, sub}
-	kBuf, err := encoding.EncodeSlice(kList, false)
-	if err != nil {
-		return false
-	}
-	return s.dba.Put(kBuf, buf) == nil
-
-}
-
-type UniAccountPubKeyWrap struct {
-	Dba iservices.IDatabaseService
-}
-
-func NewUniAccountPubKeyWrap(db iservices.IDatabaseService) *UniAccountPubKeyWrap {
-	if db == nil {
-		return nil
-	}
-	wrap := UniAccountPubKeyWrap{Dba: db}
-	return &wrap
-}
-
-func (s *UniAccountPubKeyWrap) UniQueryPubKey(start *prototype.PublicKeyType) *SoAccountWrap {
-	if start == nil {
-		return nil
-	}
-	pre := AccountPubKeyUniTable
-	kList := []interface{}{pre, start}
-	bufStartkey, err := encoding.EncodeSlice(kList, false)
-	val, err := s.Dba.Get(bufStartkey)
-	if err == nil {
-		res := &SoUniqueAccountByPubKey{}
 		rErr := proto.Unmarshal(val, res)
 		if rErr == nil {
 			wrap := NewSoAccountWrap(s.Dba, res.Name)

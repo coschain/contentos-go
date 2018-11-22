@@ -67,7 +67,6 @@ func create(cmd *cobra.Command, args []string) {
 		Owner:          keys,
 		Posting:        keys,
 		Active:         keys,
-		MemoKey:        pubkey,
 	}
 	signTx, err := utils.GenerateSignedTxAndValidate([]interface{}{acop}, creatorAccount)
 	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
