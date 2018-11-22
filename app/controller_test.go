@@ -131,9 +131,7 @@ func Test_PushBlock(t *testing.T) {
 	sigBlkHdr := new(prototype.SignedBlockHeader)
 
 	sigBlkHdr.Header = new(prototype.BlockHeader)
-	var i int32 = 0
-	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(db, &i)
-	sigBlkHdr.Header.Previous = dgpWrap.GetHeadBlockId()
+	sigBlkHdr.Header.Previous = c.dgpo.GetHeadBlockId()
 	sigBlkHdr.Header.Timestamp = &prototype.TimePointSec{UtcSeconds:20}
 	sigBlkHdr.Header.Witness = &prototype.AccountName{Value:constants.INIT_MINER_NAME}
 	sigBlkHdr.Header.TransactionMerkleRoot = &prototype.Sha256{Hash:id.Data[:]}

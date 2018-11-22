@@ -121,7 +121,7 @@ func startDB() iservices.IDatabaseService{
 	return db
 }
 
-func startController(db iservices.IDatabaseService) iservices.IController{
+func startController(db iservices.IDatabaseService) *Controller{
 	c,_ := NewController(nil)
 	c.SetDB(db)
 	c.Open()

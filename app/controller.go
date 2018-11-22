@@ -490,6 +490,7 @@ func (c *Controller) initGenesis() {
 	var i int32 = 0
 	dgpWrap := table.NewSoGlobalWrap(c.db, &SINGLE_ID)
 	mustNoError(dgpWrap.Create(func(tInfo *table.SoGlobal) {
+		tInfo.Id = SINGLE_ID
 		tInfo.Props = &prototype.DynamicProperties{}
 		tInfo.Props.CurrentWitness = name
 		tInfo.Props.Time = &prototype.TimePointSec{UtcSeconds: constants.GENESIS_TIME}
