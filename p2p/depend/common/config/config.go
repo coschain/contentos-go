@@ -50,7 +50,7 @@ func GetNetworkName(id uint32) string {
 	return fmt.Sprintf("%d", id)
 }
 
-var PolarisConfig = &GenesisConfig{
+var TestNetConfig = &GenesisConfig{
 	SeedList: []string{
 		"10.66.108.138:20338"},
 }
@@ -60,7 +60,7 @@ var MainNetConfig = &GenesisConfig{
 		"10.66.108.138:20338"},
 }
 
-var DefConfig = NewOntologyConfig()
+var DefConfig = NewContentosConfig()
 
 type GenesisConfig struct {
 	SeedList      []string
@@ -104,15 +104,15 @@ type P2PNodeConfig struct {
 	MaxConnInBoundForSingleIP uint
 }
 
-type OntologyConfig struct {
+type ContentosConfig struct {
 	Genesis   *GenesisConfig
 	Common    *CommonConfig
 	Consensus *ConsensusConfig
 	P2PNode   *P2PNodeConfig
 }
 
-func NewOntologyConfig() *OntologyConfig {
-	return &OntologyConfig{
+func NewContentosConfig() *ContentosConfig {
+	return &ContentosConfig{
 		Genesis: MainNetConfig,
 		Common: &CommonConfig{
 			LogLevel:       DEFAULT_LOG_LEVEL,
