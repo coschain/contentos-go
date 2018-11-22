@@ -28,18 +28,15 @@ func (as *APIService) GetAccountByName(ctx context.Context, req *grpcpb.GetAccou
 	accWrap := table.NewSoAccountWrap(as.db, req.AccountName)
 	acct := &grpcpb.AccountResponse{}
 
-	if accWrap.CheckExist() {
+	if accWrap != nil && accWrap.CheckExist() {
 		acct.AccountName = &prototype.AccountName{Value: accWrap.GetName().Value}
 		acct.Coin = accWrap.GetBalance()
 		acct.Vest = accWrap.GetVestingShares()
 		//acct.PublicKeys = accWrap.GetPubKey()
 		acct.CreatedTime = accWrap.GetCreatedTime()
-
-		return nil, nil
-	} else {
-		return nil, ErrEmptyResp
 	}
 
+	return acct, nil
 }
 
 func (as *APIService) GetFollowerListByName(ctx context.Context, req *grpcpb.GetFollowerListByNameRequest) (*grpcpb.GetFollowerListByNameResponse, error) {
@@ -53,7 +50,6 @@ func (as *APIService) GetFollowerListByName(ctx context.Context, req *grpcpb.Get
 
 	ferOrderWrap := table.NewExtFollowerFollowerInfoWrap(as.db)
 
-
 	if req.Start == nil {
 		ferIter = ferOrderWrap.QueryListByOrder(nil, nil)
 	} else {
@@ -62,7 +58,7 @@ func (as *APIService) GetFollowerListByName(ctx context.Context, req *grpcpb.Get
 
 	limit = checkLimit(req.Limit)
 
-	for ferIter.Next() && i < limit {
+	for ferIter != nil && ferIter.Next() && i < limit {
 		ferOrder := ferOrderWrap.GetMainVal(ferIter)
 		if ferOrder != nil {
 			ferList = append(ferList, ferOrder.Follower)
@@ -71,11 +67,11 @@ func (as *APIService) GetFollowerListByName(ctx context.Context, req *grpcpb.Get
 		i++
 	}
 
-	if len(ferList) == 0 {
-		return nil, ErrEmptyResp
-	} else {
+	//if len(ferList) == 0 {
+	//	return nil, ErrEmptyResp
+	//} else {
 		return &grpcpb.GetFollowerListByNameResponse{FollowerList: ferList}, nil
-	}
+	//}
 
 }
 
@@ -98,7 +94,7 @@ func (as *APIService) GetFollowingListByName(ctx context.Context, req *grpcpb.Ge
 
 	limit = checkLimit(req.Limit)
 
-	for fingIter.Next() && i < limit {
+	for fingIter != nil && fingIter.Next() && i < limit {
 		fingOrder := fingOrderWrap.GetMainVal(fingIter)
 		if fingOrder != nil {
 			fingList = append(fingList, fingOrder.Following)
@@ -123,7 +119,7 @@ func (as *APIService) GetFollowCountByName(ctx context.Context, req *grpcpb.GetF
 
 	afc := table.NewSoExtFollowCountWrap(as.db, req.AccountName)
 
-	if afc.CheckExist() {
+	if afc != nil && afc.CheckExist() {
 		ferCnt = afc.GetFollowerCnt()
 		fingCnt = afc.GetFollowingCnt()
 		return &grpcpb.GetFollowCountByNameResponse{FerCnt: ferCnt, FingCnt: fingCnt}, nil
@@ -151,9 +147,9 @@ func (as *APIService) GetWitnessList(ctx context.Context, req *grpcpb.GetWitness
 
 	limit = checkLimit(req.Limit)
 
-	for witIter.Next() && i < limit {
+	for witIter != nil && witIter.Next() && i < limit {
 		witWrap := table.NewSoWitnessWrap(as.db, witOrderWrap.GetMainVal(witIter))
-		if witWrap.CheckExist() {
+		if witWrap != nil && witWrap.CheckExist() {
 			witList = append(witList, &grpcpb.WitnessResponse{
 				Owner:                 witWrap.GetOwner(),
 				WitnessScheduleType:   witWrap.GetWitnessScheduleType(),
@@ -172,7 +168,7 @@ func (as *APIService) GetWitnessList(ctx context.Context, req *grpcpb.GetWitness
 	}
 
 	if len(witList) == 0 {
-		return nil, nil
+		return nil, ErrEmptyResp
 	} else {
 		return &grpcpb.GetWitnessListResponse{WitnessList: witList}, nil
 	}
@@ -197,9 +193,9 @@ func (as *APIService) GetPostListByCreated(ctx context.Context, req *grpcpb.GetP
 
 	limit = checkLimit(req.Limit)
 
-	for postIter.Next() && i < limit {
+	for postIter != nil && postIter.Next() && i < limit {
 		postWrap := table.NewSoPostWrap(as.db, postOrderWrap.GetMainVal(postIter))
-		if postWrap.CheckExist() {
+		if postWrap != nil && postWrap.CheckExist() {
 			postList = append(postList, &grpcpb.PostResponse{
 				PostId:         postWrap.GetPostId(),
 				Category:       postWrap.GetCategory(),
@@ -247,9 +243,9 @@ func (as *APIService) GetReplyListByPostId(ctx context.Context, req *grpcpb.GetR
 
 	limit = checkLimit(req.Limit)
 
-	for replyIter.Next() && i < limit {
+	for replyIter != nil && replyIter.Next() && i < limit {
 		postWrap := table.NewSoPostWrap(as.db, replyOrderWrap.GetMainVal(replyIter))
-		if postWrap.CheckExist() {
+		if postWrap != nil && postWrap.CheckExist() {
 			replyList = append(replyList, &grpcpb.PostResponse{
 				PostId:         postWrap.GetPostId(),
 				Category:       postWrap.GetCategory(),

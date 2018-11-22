@@ -41,18 +41,3 @@ func getAccount(cmd *cobra.Command, args []string) {
 		fmt.Println(fmt.Sprintf("GetAccountByName detail: %s", buf))
 	}
 }
-
-func getFollowers(cmd *cobra.Command, args []string) {
-	c := cmd.Context["rpcclient"]
-	rpc := c.(grpcpb.ApiServiceClient)
-
-	name := args[0]
-	req := &grpcpb.GetFollowerListByNameRequest{AccountName: &prototype.AccountName{Value: name}}
-	resp, err := rpc.GetFollowerListByName(context.Background(), req)
-	if err != nil {
-		fmt.Println(err)
-	} else {
-		buf, _ := json.Marshal(resp)
-		fmt.Println(fmt.Sprintf("GetAccountByName detail: %s", string(buf)))
-	}
-}
