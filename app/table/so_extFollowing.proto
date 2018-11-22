@@ -1,0 +1,23 @@
+
+syntax = "proto3";
+
+package table;
+
+option go_package = "github.com/coschain/contentos-go/table";
+
+import "prototype/type.proto";
+
+message so_extFollowing {
+	prototype.following_created_order     following_info          =      1;
+      
+}
+
+
+message so_list_extFollowing_by_following_info {
+	prototype.following_created_order  	following_info      = 1;
+}
+
+
+message so_unique_extFollowing_by_following_info {
+	prototype.following_created_order  	following_info      = 1;
+}

@@ -1,0 +1,4 @@
+type                                ,pName              ,mKey   ,unique ,sort   ,reverseSort
+uint64                              ,post_id            ,1      ,1      ,0      ,0
+prototype.post_created_order        ,created_order      ,0      ,0      ,0      ,1
+prototype.post_reply_order          ,reply_order        ,0      ,0      ,0      ,1

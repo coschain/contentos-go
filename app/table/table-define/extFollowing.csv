@@ -1,0 +1,2 @@
+type                                ,pName              ,mKey   ,unique ,sort   ,reverseSort
+prototype.following_created_order  ,following_info     ,1      ,1      ,1      ,0

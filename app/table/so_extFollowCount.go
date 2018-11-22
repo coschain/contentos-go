@@ -11,25 +11,25 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	FollowerTable                = []byte("FollowerTable")
-	FollowerFollowerInfoUniTable = []byte("FollowerFollowerInfoUniTable")
+	ExtFollowCountTable           = []byte("ExtFollowCountTable")
+	ExtFollowCountAccountUniTable = []byte("ExtFollowCountAccountUniTable")
 )
 
 ////////////// SECTION Wrap Define ///////////////
-type SoFollowerWrap struct {
+type SoExtFollowCountWrap struct {
 	dba     iservices.IDatabaseService
-	mainKey *prototype.FollowerRelation
+	mainKey *prototype.AccountName
 }
 
-func NewSoFollowerWrap(dba iservices.IDatabaseService, key *prototype.FollowerRelation) *SoFollowerWrap {
+func NewSoExtFollowCountWrap(dba iservices.IDatabaseService, key *prototype.AccountName) *SoExtFollowCountWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoFollowerWrap{dba, key}
+	result := &SoExtFollowCountWrap{dba, key}
 	return result
 }
 
-func (s *SoFollowerWrap) CheckExist() bool {
+func (s *SoExtFollowCountWrap) CheckExist() bool {
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
 		return false
@@ -43,10 +43,10 @@ func (s *SoFollowerWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoFollowerWrap) Create(f func(tInfo *SoFollower)) error {
-	val := &SoFollower{}
+func (s *SoExtFollowCountWrap) Create(f func(tInfo *SoExtFollowCount)) error {
+	val := &SoExtFollowCount{}
 	f(val)
-	if val.FollowerInfo == nil {
+	if val.Account == nil {
 		return errors.New("the mainkey is nil")
 	}
 	if s.CheckExist() {
@@ -69,8 +69,8 @@ func (s *SoFollowerWrap) Create(f func(tInfo *SoFollower)) error {
 	// update sort list keys
 
 	//update unique list
-	if !s.insertUniKeyFollowerInfo(val) {
-		return errors.New("insert unique Field prototype.FollowerRelation while insert table ")
+	if !s.insertUniKeyAccount(val) {
+		return errors.New("insert unique Field prototype.AccountName while insert table ")
 	}
 
 	return nil
@@ -80,15 +80,15 @@ func (s *SoFollowerWrap) Create(f func(tInfo *SoFollower)) error {
 
 ////////////// SECTION LKeys delete/insert //////////////
 
-func (s *SoFollowerWrap) RemoveFollower() bool {
-	sa := s.getFollower()
+func (s *SoExtFollowCountWrap) RemoveExtFollowCount() bool {
+	sa := s.getExtFollowCount()
 	if sa == nil {
 		return false
 	}
 	//delete sort list key
 
 	//delete unique list
-	if !s.delUniKeyFollowerInfo(sa) {
+	if !s.delUniKeyAccount(sa) {
 		return false
 	}
 
@@ -100,23 +100,33 @@ func (s *SoFollowerWrap) RemoveFollower() bool {
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
-func (s *SoFollowerWrap) GetCreatedTime() *prototype.TimePointSec {
-	res := s.getFollower()
+func (s *SoExtFollowCountWrap) GetAccount() *prototype.AccountName {
+	res := s.getExtFollowCount()
 
 	if res == nil {
 		return nil
 
 	}
-	return res.CreatedTime
+	return res.Account
 }
 
-func (s *SoFollowerWrap) MdCreatedTime(p *prototype.TimePointSec) bool {
-	sa := s.getFollower()
+func (s *SoExtFollowCountWrap) GetFollowerCnt() uint32 {
+	res := s.getExtFollowCount()
+
+	if res == nil {
+		var tmpValue uint32
+		return tmpValue
+	}
+	return res.FollowerCnt
+}
+
+func (s *SoExtFollowCountWrap) MdFollowerCnt(p uint32) bool {
+	sa := s.getExtFollowCount()
 	if sa == nil {
 		return false
 	}
 
-	sa.CreatedTime = p
+	sa.FollowerCnt = p
 	if !s.update(sa) {
 		return false
 	}
@@ -124,19 +134,57 @@ func (s *SoFollowerWrap) MdCreatedTime(p *prototype.TimePointSec) bool {
 	return true
 }
 
-func (s *SoFollowerWrap) GetFollowerInfo() *prototype.FollowerRelation {
-	res := s.getFollower()
+func (s *SoExtFollowCountWrap) GetFollowingCnt() uint32 {
+	res := s.getExtFollowCount()
+
+	if res == nil {
+		var tmpValue uint32
+		return tmpValue
+	}
+	return res.FollowingCnt
+}
+
+func (s *SoExtFollowCountWrap) MdFollowingCnt(p uint32) bool {
+	sa := s.getExtFollowCount()
+	if sa == nil {
+		return false
+	}
+
+	sa.FollowingCnt = p
+	if !s.update(sa) {
+		return false
+	}
+
+	return true
+}
+
+func (s *SoExtFollowCountWrap) GetUpdateTime() *prototype.TimePointSec {
+	res := s.getExtFollowCount()
 
 	if res == nil {
 		return nil
 
 	}
-	return res.FollowerInfo
+	return res.UpdateTime
+}
+
+func (s *SoExtFollowCountWrap) MdUpdateTime(p *prototype.TimePointSec) bool {
+	sa := s.getExtFollowCount()
+	if sa == nil {
+		return false
+	}
+
+	sa.UpdateTime = p
+	if !s.update(sa) {
+		return false
+	}
+
+	return true
 }
 
 /////////////// SECTION Private function ////////////////
 
-func (s *SoFollowerWrap) update(sa *SoFollower) bool {
+func (s *SoExtFollowCountWrap) update(sa *SoExtFollowCount) bool {
 	buf, err := proto.Marshal(sa)
 	if err != nil {
 		return false
@@ -150,7 +198,7 @@ func (s *SoFollowerWrap) update(sa *SoFollower) bool {
 	return s.dba.Put(keyBuf, buf) == nil
 }
 
-func (s *SoFollowerWrap) getFollower() *SoFollower {
+func (s *SoExtFollowCountWrap) getExtFollowCount() *SoExtFollowCount {
 	keyBuf, err := s.encodeMainKey()
 
 	if err != nil {
@@ -163,15 +211,15 @@ func (s *SoFollowerWrap) getFollower() *SoFollower {
 		return nil
 	}
 
-	res := &SoFollower{}
+	res := &SoExtFollowCount{}
 	if proto.Unmarshal(resBuf, res) != nil {
 		return nil
 	}
 	return res
 }
 
-func (s *SoFollowerWrap) encodeMainKey() ([]byte, error) {
-	pre := FollowerTable
+func (s *SoExtFollowCountWrap) encodeMainKey() ([]byte, error) {
+	pre := ExtFollowCountTable
 	sub := s.mainKey
 	if sub == nil {
 		return nil, errors.New("the mainKey is nil")
@@ -183,9 +231,9 @@ func (s *SoFollowerWrap) encodeMainKey() ([]byte, error) {
 
 ////////////// Unique Query delete/insert/query ///////////////
 
-func (s *SoFollowerWrap) delUniKeyFollowerInfo(sa *SoFollower) bool {
-	pre := FollowerFollowerInfoUniTable
-	sub := sa.FollowerInfo
+func (s *SoExtFollowCountWrap) delUniKeyAccount(sa *SoExtFollowCount) bool {
+	pre := ExtFollowCountAccountUniTable
+	sub := sa.Account
 	kList := []interface{}{pre, sub}
 	kBuf, err := encoding.EncodeSlice(kList, false)
 	if err != nil {
@@ -194,17 +242,17 @@ func (s *SoFollowerWrap) delUniKeyFollowerInfo(sa *SoFollower) bool {
 	return s.dba.Delete(kBuf) == nil
 }
 
-func (s *SoFollowerWrap) insertUniKeyFollowerInfo(sa *SoFollower) bool {
-	uniWrap := UniFollowerFollowerInfoWrap{}
+func (s *SoExtFollowCountWrap) insertUniKeyAccount(sa *SoExtFollowCount) bool {
+	uniWrap := UniExtFollowCountAccountWrap{}
 	uniWrap.Dba = s.dba
 
-	res := uniWrap.UniQueryFollowerInfo(sa.FollowerInfo)
+	res := uniWrap.UniQueryAccount(sa.Account)
 	if res != nil {
 		//the unique key is already exist
 		return false
 	}
-	val := SoUniqueFollowerByFollowerInfo{}
-	val.FollowerInfo = sa.FollowerInfo
+	val := SoUniqueExtFollowCountByAccount{}
+	val.Account = sa.Account
 
 	buf, err := proto.Marshal(&val)
 
@@ -212,8 +260,8 @@ func (s *SoFollowerWrap) insertUniKeyFollowerInfo(sa *SoFollower) bool {
 		return false
 	}
 
-	pre := FollowerFollowerInfoUniTable
-	sub := sa.FollowerInfo
+	pre := ExtFollowCountAccountUniTable
+	sub := sa.Account
 	kList := []interface{}{pre, sub}
 	kBuf, err := encoding.EncodeSlice(kList, false)
 	if err != nil {
@@ -223,31 +271,31 @@ func (s *SoFollowerWrap) insertUniKeyFollowerInfo(sa *SoFollower) bool {
 
 }
 
-type UniFollowerFollowerInfoWrap struct {
+type UniExtFollowCountAccountWrap struct {
 	Dba iservices.IDatabaseService
 }
 
-func NewUniFollowerFollowerInfoWrap(db iservices.IDatabaseService) *UniFollowerFollowerInfoWrap {
+func NewUniExtFollowCountAccountWrap(db iservices.IDatabaseService) *UniExtFollowCountAccountWrap {
 	if db == nil {
 		return nil
 	}
-	wrap := UniFollowerFollowerInfoWrap{Dba: db}
+	wrap := UniExtFollowCountAccountWrap{Dba: db}
 	return &wrap
 }
 
-func (s *UniFollowerFollowerInfoWrap) UniQueryFollowerInfo(start *prototype.FollowerRelation) *SoFollowerWrap {
+func (s *UniExtFollowCountAccountWrap) UniQueryAccount(start *prototype.AccountName) *SoExtFollowCountWrap {
 	if start == nil {
 		return nil
 	}
-	pre := FollowerFollowerInfoUniTable
+	pre := ExtFollowCountAccountUniTable
 	kList := []interface{}{pre, start}
 	bufStartkey, err := encoding.EncodeSlice(kList, false)
 	val, err := s.Dba.Get(bufStartkey)
 	if err == nil {
-		res := &SoUniqueFollowerByFollowerInfo{}
+		res := &SoUniqueExtFollowCountByAccount{}
 		rErr := proto.Unmarshal(val, res)
 		if rErr == nil {
-			wrap := NewSoFollowerWrap(s.Dba, res.FollowerInfo)
+			wrap := NewSoExtFollowCountWrap(s.Dba, res.Account)
 
 			return wrap
 		}

@@ -9,12 +9,8 @@ import "prototype/type.proto";
 
 message so_following {
 	prototype.following_relation           following_info          =      1;
+    prototype.time_point_sec               created_time            =      2;
       
-}
-
-
-message so_list_following_by_following_info {
-	prototype.following_relation        	following_info      = 1;
 }
 
 

@@ -1,7 +1,6 @@
 package table
 
 import (
-	"bytes"
 	"errors"
 
 	"github.com/coschain/contentos-go/common/encoding"
@@ -13,7 +12,6 @@ import (
 ////////////// SECTION Prefix Mark ///////////////
 var (
 	FollowingTable                 = []byte("FollowingTable")
-	FollowingFollowingInfoTable    = []byte("FollowingFollowingInfoTable")
 	FollowingFollowingInfoUniTable = []byte("FollowingFollowingInfoUniTable")
 )
 
@@ -70,10 +68,6 @@ func (s *SoFollowingWrap) Create(f func(tInfo *SoFollowing)) error {
 
 	// update sort list keys
 
-	if !s.insertSortKeyFollowingInfo(val) {
-		return errors.New("insert sort Field FollowingInfo while insert table ")
-	}
-
 	//update unique list
 	if !s.insertUniKeyFollowingInfo(val) {
 		return errors.New("insert unique Field prototype.FollowingRelation while insert table ")
@@ -84,32 +78,6 @@ func (s *SoFollowingWrap) Create(f func(tInfo *SoFollowing)) error {
 
 ////////////// SECTION LKeys delete/insert ///////////////
 
-func (s *SoFollowingWrap) delSortKeyFollowingInfo(sa *SoFollowing) bool {
-	val := SoListFollowingByFollowingInfo{}
-	val.FollowingInfo = sa.FollowingInfo
-	subBuf, err := val.OpeEncode()
-	if err != nil {
-		return false
-	}
-	ordErr := s.dba.Delete(subBuf)
-	return ordErr == nil
-}
-
-func (s *SoFollowingWrap) insertSortKeyFollowingInfo(sa *SoFollowing) bool {
-	val := SoListFollowingByFollowingInfo{}
-	val.FollowingInfo = sa.FollowingInfo
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return false
-	}
-	subBuf, err := val.OpeEncode()
-	if err != nil {
-		return false
-	}
-	ordErr := s.dba.Put(subBuf, buf)
-	return ordErr == nil
-}
-
 ////////////// SECTION LKeys delete/insert //////////////
 
 func (s *SoFollowingWrap) RemoveFollowing() bool {
@@ -118,9 +86,6 @@ func (s *SoFollowingWrap) RemoveFollowing() bool {
 		return false
 	}
 	//delete sort list key
-	if !s.delSortKeyFollowingInfo(sa) {
-		return false
-	}
 
 	//delete unique list
 	if !s.delUniKeyFollowingInfo(sa) {
@@ -135,6 +100,30 @@ func (s *SoFollowingWrap) RemoveFollowing() bool {
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
+func (s *SoFollowingWrap) GetCreatedTime() *prototype.TimePointSec {
+	res := s.getFollowing()
+
+	if res == nil {
+		return nil
+
+	}
+	return res.CreatedTime
+}
+
+func (s *SoFollowingWrap) MdCreatedTime(p *prototype.TimePointSec) bool {
+	sa := s.getFollowing()
+	if sa == nil {
+		return false
+	}
+
+	sa.CreatedTime = p
+	if !s.update(sa) {
+		return false
+	}
+
+	return true
+}
+
 func (s *SoFollowingWrap) GetFollowingInfo() *prototype.FollowingRelation {
 	res := s.getFollowing()
 
@@ -143,122 +132,6 @@ func (s *SoFollowingWrap) GetFollowingInfo() *prototype.FollowingRelation {
 
 	}
 	return res.FollowingInfo
-}
-
-////////////// SECTION List Keys ///////////////
-type SFollowingFollowingInfoWrap struct {
-	Dba iservices.IDatabaseService
-}
-
-func NewFollowingFollowingInfoWrap(db iservices.IDatabaseService) *SFollowingFollowingInfoWrap {
-	if db == nil {
-		return nil
-	}
-	wrap := SFollowingFollowingInfoWrap{Dba: db}
-	return &wrap
-}
-
-func (s *SFollowingFollowingInfoWrap) DelIterater(iterator iservices.IDatabaseIterator) {
-	if iterator == nil || !iterator.Valid() {
-		return
-	}
-	s.Dba.DeleteIterator(iterator)
-}
-
-func (s *SFollowingFollowingInfoWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.FollowingRelation {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
-
-	res := &SoListFollowingByFollowingInfo{}
-	err = proto.Unmarshal(val, res)
-
-	if err != nil {
-		return nil
-	}
-	return res.FollowingInfo
-
-}
-
-func (s *SFollowingFollowingInfoWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.FollowingRelation {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
-	res := &SoListFollowingByFollowingInfo{}
-	err = proto.Unmarshal(val, res)
-	if err != nil {
-		return nil
-	}
-	return res.FollowingInfo
-
-}
-
-func (m *SoListFollowingByFollowingInfo) OpeEncode() ([]byte, error) {
-	pre := FollowingFollowingInfoTable
-	sub := m.FollowingInfo
-	if sub == nil {
-		return nil, errors.New("the pro FollowingInfo is nil")
-	}
-	sub1 := m.FollowingInfo
-	if sub1 == nil {
-		return nil, errors.New("the mainkey FollowingInfo is nil")
-	}
-	kList := []interface{}{pre, sub, sub1}
-	kBuf, cErr := encoding.EncodeSlice(kList, false)
-	return kBuf, cErr
-}
-
-//Query sort by order
-//start = nil  end = nil (query the db from start to end)
-//start = nil (query from start the db)
-//end = nil (query to the end of db)
-func (s *SFollowingFollowingInfoWrap) QueryListByOrder(start *prototype.FollowingRelation, end *prototype.FollowingRelation) iservices.IDatabaseIterator {
-	if s.Dba == nil {
-		return nil
-	}
-	pre := FollowingFollowingInfoTable
-	skeyList := []interface{}{pre}
-	if start != nil {
-		skeyList = append(skeyList, start)
-	}
-	sBuf, cErr := encoding.EncodeSlice(skeyList, false)
-	if cErr != nil {
-		return nil
-	}
-	if start != nil && end == nil {
-		iter := s.Dba.NewIterator(sBuf, nil)
-		return iter
-	}
-	eKeyList := []interface{}{pre}
-	if end != nil {
-		eKeyList = append(eKeyList, end)
-	}
-	eBuf, cErr := encoding.EncodeSlice(eKeyList, false)
-	if cErr != nil {
-		return nil
-	}
-
-	res := bytes.Compare(sBuf, eBuf)
-	if res == 0 {
-		eBuf = nil
-	} else if res == 1 {
-		//reverse order
-		return nil
-	}
-	iter := s.Dba.NewIterator(sBuf, eBuf)
-
-	return iter
 }
 
 /////////////// SECTION Private function ////////////////

@@ -1,0 +1,2 @@
+type                                ,pName          ,mKey   ,unique ,sort   ,reverseSort
+prototype.follower_created_order    ,follower_info  ,1      ,1      ,1      ,0

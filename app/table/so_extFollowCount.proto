@@ -1,0 +1,21 @@
+
+syntax = "proto3";
+
+package table;
+
+option go_package = "github.com/coschain/contentos-go/table";
+
+import "prototype/type.proto";
+
+message so_extFollowCount {
+	prototype.account_name         account              =      1;
+    uint32                         follower_cnt         =      2;
+    uint32                         following_cnt        =      3;
+    prototype.time_point_sec       update_time          =      4;
+      
+}
+
+
+message so_unique_extFollowCount_by_account {
+	prototype.account_name      	account          = 1;
+}
