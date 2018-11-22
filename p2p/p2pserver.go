@@ -8,7 +8,6 @@ import (
 	"net"
 	"os"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -140,60 +139,6 @@ func (this *P2PServer) GetTime() int64 {
 	return this.Network.GetTime()
 }
 
-
-//blockSyncFinished compare all nbr peers and self height at beginning
-func (this *P2PServer) blockSyncFinished() bool {
-	peers := this.Network.GetNeighbors()
-	if len(peers) == 0 {
-		return false
-	}
-
-	//blockHeight := this.ledger.GetCurrentBlockHeight()
-
-	blockHeight := uint32(0)
-
-	for _, v := range peers {
-		if blockHeight < uint32(v.GetHeight()) {
-			return false
-		}
-	}
-	return true
-}
-
-//WaitForSyncBlkFinish compare the height of self and remote peer in loop
-func (this *P2PServer) WaitForSyncBlkFinish() {
-	consensusType := strings.ToLower(config.DefConfig.Genesis.ConsensusType)
-	if consensusType == "solo" {
-		return
-	}
-
-	for {
-		//headerHeight := this.ledger.GetCurrentHeaderHeight()
-		//currentBlkHeight := this.ledger.GetCurrentBlockHeight()
-		//log.Info("[p2p]WaitForSyncBlkFinish... current block height is ",
-		//	currentBlkHeight, " ,current header height is ", headerHeight)
-
-		if this.blockSyncFinished() {
-			break
-		}
-
-		<-time.After(time.Second * (time.Duration(common.SYNC_BLK_WAIT)))
-	}
-}
-
-//WaitForPeersStart check whether enough peer linked in loop
-func (this *P2PServer) WaitForPeersStart() {
-	periodTime := config.DEFAULT_GEN_BLOCK_TIME / common.UPDATE_RATE_PER_BLOCK
-	for {
-		log.Info("[p2p]Wait for minimum connection...")
-		if this.reachMinConnection() {
-			break
-		}
-
-		<-time.After(time.Second * (time.Duration(periodTime)))
-	}
-}
-
 //connectSeeds connect the seeds in seedlist and call for nbr list
 func (this *P2PServer) connectSeeds() {
 	seedNodes := make([]string, 0)
@@ -241,28 +186,6 @@ func (this *P2PServer) connectSeeds() {
 			go this.Network.Connect(nodeAddr, false)
 		}
 	}
-}
-
-//reachMinConnection return whether net layer have enough link under different config
-func (this *P2PServer) reachMinConnection() bool {
-	if config.DefConfig.Consensus.EnableConsensus == false {
-		//just sync
-		return true
-	}
-	consensusType := strings.ToLower(config.DefConfig.Genesis.ConsensusType)
-	if consensusType == "" {
-		consensusType = "dbft"
-	}
-	minCount := config.DBFT_MIN_NODE_NUM
-	switch consensusType {
-	case "dbft":
-	case "solo":
-		minCount = config.SOLO_MIN_NODE_NUM
-	case "vbft":
-		minCount = config.VBFT_MIN_NODE_NUM
-
-	}
-	return int(this.GetConnectionCnt())+1 >= minCount
 }
 
 //getNode returns the peer with the id
@@ -353,11 +276,7 @@ func (this *P2PServer) connectSeedService() {
 		case <-t.C:
 			this.connectSeeds()
 			t.Stop()
-			if this.reachMinConnection() {
-				t.Reset(time.Second * time.Duration(10*common.CONN_MONITOR))
-			} else {
-				t.Reset(time.Second * common.CONN_MONITOR)
-			}
+			t.Reset(time.Second * common.CONN_MONITOR)
 		case <-this.quitOnline:
 			t.Stop()
 			break
