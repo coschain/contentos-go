@@ -16,6 +16,7 @@ require (
 	github.com/google/gops v0.3.5 // indirect
 	github.com/google/pprof v0.0.0-20181115081917-dcb5510988eb // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0
+	github.com/grpc-ecosystem/grpc-gateway v1.5.1
 	github.com/ianlancetaylor/demangle v0.0.0-20181102032728-5e5cf60278f6 // indirect
 	github.com/inconshreveable/log15 v0.0.0-20180818164646-67afb5ed74ec
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect

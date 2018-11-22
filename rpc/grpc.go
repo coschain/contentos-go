@@ -37,6 +37,7 @@ func (as *APIService) GetAccountByName(ctx context.Context, req *grpcpb.GetAccou
 	}
 
 	return acct, nil
+
 }
 
 func (as *APIService) GetFollowerListByName(ctx context.Context, req *grpcpb.GetFollowerListByNameRequest) (*grpcpb.GetFollowerListByNameResponse, error) {
@@ -67,11 +68,7 @@ func (as *APIService) GetFollowerListByName(ctx context.Context, req *grpcpb.Get
 		i++
 	}
 
-	//if len(ferList) == 0 {
-	//	return nil, ErrEmptyResp
-	//} else {
-		return &grpcpb.GetFollowerListByNameResponse{FollowerList: ferList}, nil
-	//}
+	return &grpcpb.GetFollowerListByNameResponse{FollowerList: ferList}, nil
 
 }
 
@@ -103,11 +100,7 @@ func (as *APIService) GetFollowingListByName(ctx context.Context, req *grpcpb.Ge
 		i++
 	}
 
-	if len(fingList) == 0 {
-		return nil, ErrEmptyResp
-	} else {
-		return &grpcpb.GetFollowingListByNameResponse{FollowingList: fingList}, nil
-	}
+	return &grpcpb.GetFollowingListByNameResponse{FollowingList: fingList}, nil
 
 }
 
@@ -122,10 +115,10 @@ func (as *APIService) GetFollowCountByName(ctx context.Context, req *grpcpb.GetF
 	if afc != nil && afc.CheckExist() {
 		ferCnt = afc.GetFollowerCnt()
 		fingCnt = afc.GetFollowingCnt()
-		return &grpcpb.GetFollowCountByNameResponse{FerCnt: ferCnt, FingCnt: fingCnt}, nil
-	} else {
-		return nil, ErrEmptyResp
+
 	}
+
+	return &grpcpb.GetFollowCountByNameResponse{FerCnt: ferCnt, FingCnt: fingCnt}, nil
 
 }
 
@@ -167,11 +160,7 @@ func (as *APIService) GetWitnessList(ctx context.Context, req *grpcpb.GetWitness
 		i++
 	}
 
-	if len(witList) == 0 {
-		return nil, ErrEmptyResp
-	} else {
-		return &grpcpb.GetWitnessListResponse{WitnessList: witList}, nil
-	}
+	return &grpcpb.GetWitnessListResponse{WitnessList: witList}, nil
 
 }
 
@@ -217,11 +206,7 @@ func (as *APIService) GetPostListByCreated(ctx context.Context, req *grpcpb.GetP
 		i++
 	}
 
-	if len(postList) == 0 {
-		return nil, ErrEmptyResp
-	} else {
-		return &grpcpb.GetPostListByCreatedResponse{PostList: postList}, nil
-	}
+	return &grpcpb.GetPostListByCreatedResponse{PostList: postList}, nil
 
 }
 
@@ -265,11 +250,7 @@ func (as *APIService) GetReplyListByPostId(ctx context.Context, req *grpcpb.GetR
 		i++
 	}
 
-	if len(replyList) == 0 {
-		return nil, ErrEmptyResp
-	} else {
-		return &grpcpb.GetReplyListByPostIdResponse{ReplyList: replyList}, nil
-	}
+	return &grpcpb.GetReplyListByPostIdResponse{ReplyList: replyList}, nil
 
 }
 

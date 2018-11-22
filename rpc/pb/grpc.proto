@@ -7,7 +7,6 @@ package grpcpb;
 import "google/api/annotations.proto";
 import "prototype/type.proto";
 import "prototype/transaction.proto";
-import "prototype/operation.proto";
 
 /*
 Installation

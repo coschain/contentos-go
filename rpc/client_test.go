@@ -68,10 +68,10 @@ func TestGRPCApi_GetAccountByName(t *testing.T) {
 	resp := &grpcpb.AccountResponse{}
 	resp, err = asc.GetAccountByName(context.Background(), req)
 
-	if err == nil {
-		t.Logf("GetAccountByName detail: %s", resp.AccountName)
+	if err != nil {
+		t.Errorf("GetAccountByName failed: err:[%s], resp:[%x]", err, resp)
 	} else {
-		t.Logf("GetAccountByName failed: err:[%s], resp:[%x]", err, resp)
+		t.Logf("GetAccountByName detail: %s", resp.AccountName)
 	}
 }
 
@@ -88,7 +88,7 @@ func TestGPRCApi_GetFollowerListByName(t *testing.T) {
 	resp := &grpcpb.GetFollowerListByNameResponse{}
 	resp, err = asc.GetFollowerListByName(context.Background(), req)
 	if err != nil {
-		t.Logf("GetFollowerListByName failed: %s", err)
+		t.Errorf("GetFollowerListByName failed: %s", err)
 	} else {
 		t.Logf("GetFollowerListByName detail: %s", resp.FollowerList)
 	}
@@ -107,7 +107,7 @@ func TestGPRCApi_GetFollowingListByName(t *testing.T) {
 	resp := &grpcpb.GetFollowingListByNameResponse{}
 	resp, err = asc.GetFollowingListByName(context.Background(), req)
 	if err != nil {
-		t.Logf("GetFollowingListByName failed: %s", err)
+		t.Errorf("GetFollowingListByName failed: %s", err)
 	} else {
 		t.Logf("GetFollowingListByName detail: %s", resp.FollowingList)
 	}
@@ -126,7 +126,7 @@ func TestGPRCApi_GetWitnessList(t *testing.T) {
 	resp := &grpcpb.GetWitnessListResponse{}
 	resp, err = asc.GetWitnessList(context.Background(), req)
 	if err != nil {
-		t.Logf("GetWitnessList failed: %s", err)
+		t.Errorf("GetWitnessList failed: %s", err)
 	} else {
 		t.Logf("GetWitnessList detail: %s", resp.WitnessList)
 	}
@@ -146,7 +146,7 @@ func TestGRPCApi_GetPostListByCreated(t *testing.T) {
 
 	resp, err = asc.GetPostListByCreated(context.Background(), req)
 	if err != nil {
-		t.Logf("GetPostListByCreated failed: %s", err)
+		t.Errorf("GetPostListByCreated failed: %s", err)
 	} else {
 		t.Logf("GetPostListByCreated detail: %s", resp.PostList)
 	}
@@ -166,7 +166,7 @@ func TestGRPCApi_GetReplyListByPostId(t *testing.T) {
 
 	resp, err = asc.GetReplyListByPostId(context.Background(), req)
 	if err != nil {
-		t.Logf("GetReplyListByPostId failed: %s", err)
+		t.Errorf("GetReplyListByPostId failed: %s", err)
 	} else {
 		t.Logf("GetReplyListByPostId detail: %s", resp.ReplyList)
 	}
