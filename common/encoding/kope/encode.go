@@ -117,7 +117,12 @@ func EncodeSlice(value []interface{}) ([]byte, error) {
 
 // Encode a OpeEncoder
 func EncodeOpeEncoder(value OpeEncoder) ([]byte, error) {
-	return value.OpeEncode()
+	// TODO: just return value.OpeEncode() when deprecated ope completely replaced by kope.
+	if data, err := value.OpeEncode(); err != nil {
+		return nil, err
+	} else {
+		return EncodeBytes(data)
+	}
 }
 
 var opeEncoderInterfaceType = reflect.TypeOf((*OpeEncoder)(nil)).Elem()
