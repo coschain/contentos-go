@@ -15,6 +15,7 @@ type protoColumn struct {
 	typ reflect.Type
 	typeId string
 	field int
+	indexType TableIndexType
 }
 
 type protoTableBuilder struct {
@@ -27,7 +28,11 @@ type protoTableBuilder struct {
 }
 
 func ProtoTableBuilder(x proto.Message) *protoTableBuilder {
-	b := &protoTableBuilder{ tb: TableBuilder(), typ: reflect.TypeOf(x) }
+	b := &protoTableBuilder{
+		tb: TableBuilder(),
+		typ: reflect.TypeOf(x),
+		colsByName: make(map[string]int),
+	}
 	b.tb.Name(proto.MessageName(x))
 	b.parse()
 	return b
@@ -44,6 +49,9 @@ func (b *protoTableBuilder) Name(name string) *protoTableBuilder {
 }
 
 func (b *protoTableBuilder) Build() (*Table, error) {
+	for _, col := range b.cols {
+		b.tb.Column(col.name, col.typeId, col.indexType)
+	}
 	t, err := b.tb.Build()
 	if err != nil {
 		return nil, err
@@ -57,8 +65,8 @@ func (b *protoTableBuilder) Index(name string, indexType ...TableIndexType) *pro
 	idx, ok := b.colsByName[name]
 	if !ok {
 		b.error("unknown column name: " + name)
-	} else {
-		b.tb.Column(name, b.cols[idx].typeId, indexType...)
+	} else if len(indexType) > 0 {
+		b.cols[idx].indexType = indexType[0]
 	}
 	return b
 }
@@ -112,10 +120,11 @@ func (b *protoTableBuilder) parseProtoType() {
 			return
 		}
 		protoCol := protoColumn{
-			name: f.Name,
+			name: colName,
 			typ: f.Type,
 			typeId: typeName,
 			field: i,
+			indexType: NotIndexed,
 		}
 		b.colsByName[protoCol.name] = len(b.cols)
 		b.cols = append(b.cols, protoCol)

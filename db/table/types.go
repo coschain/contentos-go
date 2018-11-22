@@ -21,9 +21,9 @@ var (
 
 func registerType(name string, t reflect.Type, supportKope bool) {
 	if len(name) > 0 && t != nil {
-		ti := typeInfo{t, name, t.Implements(opeEncoderInterfaceType)}
+		ti := typeInfo{t, name, supportKope}
 		registeredTypes.Store(t, ti)
-		registeredTypes.Store(name, ti)
+		registeredTypesByName.Store(name, ti)
 	}
 }
 

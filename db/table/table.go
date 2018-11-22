@@ -40,7 +40,7 @@ func (t *Table) NewRow(columnValues...interface{}) *TableRows {
 	batch := t.db.NewBatch()
 	defer t.db.DeleteBatch(batch)
 
-	rk, err := t.valueIO.NewRow(t.db, t.db, batch, batch, colVals)
+	rk, err := t.valueIO.NewRow(t.db, t.db, batch, batch, colVals...)
 	if err == nil {
 		for _, idx := range t.indices {
 			if idx.typ == Primary {
