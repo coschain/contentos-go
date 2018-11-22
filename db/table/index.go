@@ -48,22 +48,31 @@ func (idx *TableIndex) Row(value...interface{}) *TableRows {
 		return errorTableRows(idx.err)
 	}
 	valueCount := len(value)
-	if valueCount > 1 {
-		return errorTableRows(errors.New(fmt.Sprintf("index \"%s\" takes at most 1 argument. %d argumets were given.", idx.name, valueCount)))
-	} else if valueCount == 0 {
-		return &TableRows{
-			index:    idx,
-			keyStart: kope.MinKey(idx.prefix),
-			keyLimit: kope.MaxKey(idx.prefix),
-		}
+	if valueCount > 2 {
+		return errorTableRows(errors.New(fmt.Sprintf("index \"%s\" takes at most 2 argument. %d argumets were given.", idx.name, valueCount)))
 	}
-	val := value[0]
+	if valueCount == 2 {
+		return idx.rowsByValueRange(value[0], value[1])
+	} else if valueCount == 1 {
+		return idx.rowsByFixedValue(value[0])
+	} else {
+		return idx.rowsAll()
+	}
+}
+
+func (idx *TableIndex) rowsAll() *TableRows {
+	return &TableRows{
+		index:    idx,
+		keyStart: kope.MinKey(idx.prefix),
+		keyLimit: kope.MaxKey(idx.prefix),
+	}
+}
+
+func (idx *TableIndex) rowsByFixedValue(val interface{}) *TableRows {
+	var rows *TableRows
 	if err := idx.column.checkValueType(val); err != nil {
 		return errorTableRows(err)
 	}
-
-	var rows *TableRows
-
 	switch idx.typ {
 	case Primary:
 		rows = &TableRows{ index: idx, key: kope.AppendKey(idx.prefix, val) }
@@ -73,6 +82,28 @@ func (idx *TableIndex) Row(value...interface{}) *TableRows {
 		vk := kope.AppendKey(idx.prefix, val)
 		rows = &TableRows{ index: idx, keyStart: kope.MinKey(vk), keyLimit: kope.MaxKey(vk) }
 	}
+	return rows
+}
+
+func (idx *TableIndex) rowsByValueRange(valStart interface{}, valLimit interface{}) *TableRows {
+	var (
+		rows *TableRows
+	)
+	if valStart != nil {
+		if err := idx.column.checkValueType(valStart); err != nil {
+			return errorTableRows(err)
+		}
+	} else {
+		valStart = kope.MinimalKey
+	}
+	if valLimit != nil {
+		if err := idx.column.checkValueType(valLimit); err != nil {
+			return errorTableRows(err)
+		}
+	} else {
+		valLimit = kope.MaximumKey
+	}
+	rows = &TableRows{ index: idx, keyStart: kope.AppendKey(idx.prefix, valStart), keyLimit: kope.AppendKey(idx.prefix, valLimit) }
 	return rows
 }
 

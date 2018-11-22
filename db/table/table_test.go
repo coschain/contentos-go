@@ -59,6 +59,17 @@ func TestTable(t *testing.T) {
 	x, err = tab.Index("vesting_shares").Row(prototype.NewVest(1500)).Col("name").Get()
 	fmt.Println(x, err)
 
+	x, err = tab.Index("vesting_shares").Row(prototype.NewVest(501), nil).Col("name").Get()
+	fmt.Println("xxx", x, err)
+	x, err = tab.Index("vesting_shares").Row(nil, nil).Col("name").Get()
+	fmt.Println("xxx", x, err)
+	x, err = tab.Index("vesting_shares").Row(prototype.NewVest(500), prototype.NewVest(1501)).Col("name").Get()
+	fmt.Println("xxx", x, err)
+	x, err = tab.Index("vesting_shares").Row(nil, prototype.NewVest(1501)).Col("name").Get()
+	fmt.Println("xxx", x, err)
+	x, err = tab.Index("vesting_shares").Row(nil, prototype.NewVest(600)).Col("name").Get()
+	fmt.Println("xxx", x, err)
+
 	err = tab.Row(&prototype.AccountName{ Value: "bob" }).Delete()
 	fmt.Println(err)
 
@@ -69,5 +80,16 @@ func TestTable(t *testing.T) {
 	fmt.Println(x, err)
 
 	x, err = tab.Index("pub_key").Row(prototype.PublicKeyFromBytes([]byte("public_key_alice"))).Col("name", "balance", "creator").Get()
+	fmt.Println(x, err)
+
+	err = tab.Row(&prototype.AccountName{ Value: "alice" }).Col("balance").Modify(func(old interface{}) (interface{}, error) {
+		return prototype.NewCoin(old.(*prototype.Coin).Value + 300), nil
+	})
+	fmt.Println(err)
+
+	x, err = tab.Row(&prototype.AccountName{ Value: "alice" }).Col("balance").Get()
+	fmt.Println(x, err)
+
+	x, err = tab.Index("balance").Row(prototype.NewCoin(1300)).Col("name").Get()
 	fmt.Println(x, err)
 }
