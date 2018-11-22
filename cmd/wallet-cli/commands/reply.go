@@ -45,7 +45,7 @@ func reply(cmd *cobra.Command, args []string) {
 	}
 	beneficiaries := []*prototype.BeneficiaryRouteType{}
 	accumulateWeight := 0
-	for k, v := range postBeneficiaryRoute {
+	for k, v := range replyBeneficiaryRoute {
 		if v < 0 {
 			fmt.Println("weight should greater than zero")
 			return

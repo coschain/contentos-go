@@ -16,6 +16,7 @@ func TestCreateAccount(t *testing.T) {
 	client := mock_grpcpb.NewMockApiServiceClient(ctrl)
 	wallet := mock_wallet.NewMockWallet(ctrl)
 	passwordReader := mock_utils.NewMockPasswordReader(ctrl)
+	myassert := assert.New(t)
 	cmd := CreateCmd()
 	cmd.SetContext("wallet", wallet)
 	cmd.SetContext("rpcclient", client)
@@ -34,11 +35,16 @@ func TestCreateAccount(t *testing.T) {
 		"COS8V8KUkBcxUQGkUNByoYLUSvc9ge7kgrGc8wbD7WDX3KXhCnZLz",
 		"2syFyhZ4kfoS8Sz933nPA3jEUEHPFCsiAB2LUH5HqVjTKJwWGn", nil)
 	wallet.EXPECT().GetUnlockedAccount("initminer").Return(priv_account, true)
-	wallet.EXPECT().Create("alice", gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+	wallet.EXPECT().Create("kochiya", gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 	passwordReader.EXPECT().ReadPassword(gomock.Any()).Return([]byte("123456"), nil)
-	cmd.SetArgs([]string{"initminer", "alice"})
+	cmd.SetArgs([]string{"initminer", "kochiya"})
 	resp := &grpcpb.BroadcastTrxResponse{Status: 1, Msg: "success"}
-	client.EXPECT().BroadcastTrx(gomock.Any(), gomock.Any()).Return(resp, nil)
+	client.EXPECT().BroadcastTrx(gomock.Any(), gomock.Any()).Return(resp, nil).Do(func(context interface{}, req *grpcpb.BroadcastTrxRequest) {
+		op := req.Transaction.Trx.Operations[0]
+		acc_op := op.GetOp1()
+		myassert.Equal(acc_op.Creator.Value, "initminer")
+		myassert.Equal(acc_op.NewAccountName.Value, "kochiya")
+	})
 	_, err := cmd.ExecuteC()
 	assert.NoError(t, err, cmd)
 }

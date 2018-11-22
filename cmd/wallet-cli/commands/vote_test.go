@@ -6,6 +6,7 @@ import (
 	"github.com/coschain/contentos-go/rpc/mock_grpcpb"
 	"github.com/coschain/contentos-go/rpc/pb"
 	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
@@ -13,6 +14,7 @@ func TestVote(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	client := mock_grpcpb.NewMockApiServiceClient(ctrl)
 	mywallet := mock_wallet.NewMockWallet(ctrl)
+	myassert := assert.New(t)
 	cmd := VoteCmd()
 	cmd.SetContext("wallet", mywallet)
 	cmd.SetContext("rpcclient", client)
@@ -29,7 +31,11 @@ func TestVote(t *testing.T) {
 	}
 	mywallet.EXPECT().GetUnlockedAccount("initminer").Return(priv_account, true)
 	resp := &grpcpb.BroadcastTrxResponse{Status: 1, Msg: "success"}
-	client.EXPECT().BroadcastTrx(gomock.Any(), gomock.Any()).Return(resp, nil)
+	client.EXPECT().BroadcastTrx(gomock.Any(), gomock.Any()).Return(resp, nil).Do(func(context interface{}, req *grpcpb.BroadcastTrxRequest) {
+		op := req.Transaction.Trx.Operations[0]
+		vote_op := op.GetOp9()
+		myassert.Equal(vote_op.Voter.Value, "initminer")
+	})
 	_, err := cmd.ExecuteC()
 	if err != nil {
 		t.Error(err)
