@@ -29,7 +29,7 @@ func follow(cmd *cobra.Command, args []string) {
 	c := cmd.Context["rpcclient"]
 	client := c.(grpcpb.ApiServiceClient)
 	w := cmd.Context["wallet"]
-	mywallet := w.(*wallet.BaseWallet)
+	mywallet := w.(wallet.Wallet)
 	follower := args[0]
 	followerAccount, ok := mywallet.GetUnlockedAccount(follower)
 	if !ok {
