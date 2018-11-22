@@ -43,22 +43,7 @@ func create(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	keys := &prototype.Authority{
-		Cf:              prototype.Authority_active,
-		WeightThreshold: 1,
-		AccountAuths: []*prototype.KvAccountAuth{
-			{
-				Name:   &prototype.AccountName{Value: creator},
-				Weight: 3,
-			},
-		},
-		KeyAuths: []*prototype.KvKeyAuth{
-			{
-				Key:    pubkey,
-				Weight: 23,
-			},
-		},
-	}
+	keys := prototype.NewAuthorityFromPubKey(pubkey)
 
 	acop := &prototype.AccountCreateOperation{
 		Fee:            prototype.NewCoin(1),

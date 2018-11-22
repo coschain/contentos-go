@@ -469,15 +469,8 @@ func (c *Controller) initGenesis() {
 
 	// create account authority
 	authorityWrap := table.NewSoAccountAuthorityObjectWrap(c.db, name)
-	ownerAuth := &prototype.Authority{
-		WeightThreshold: 1,
-		KeyAuths: []*prototype.KvKeyAuth{
-			&prototype.KvKeyAuth{
-				Key:    pubKey,
-				Weight: 1,
-			},
-		},
-	}
+	ownerAuth := prototype.NewAuthorityFromPubKey(pubKey)
+
 	mustNoError(authorityWrap.Create(func(tInfo *table.SoAccountAuthorityObject) {
 		tInfo.Account = name
 		tInfo.Posting = ownerAuth
