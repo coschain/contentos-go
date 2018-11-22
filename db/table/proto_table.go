@@ -48,8 +48,8 @@ func (b *protoTableBuilder) Build() (*Table, error) {
 	if err != nil {
 		return nil, err
 	}
-	b.vio.primaryIndex = t.indicesByType[Primary][0]
-	b.vio.prefix = t.indices[b.vio.primaryIndex].prefix
+	b.vio.primaryCol = t.primaryIndex.column.ordinal
+	b.vio.prefix = t.primaryIndex.prefix
 	return t, nil
 }
 
@@ -135,7 +135,7 @@ type protoTableValueIO struct {
 	mt reflect.Type
 	st reflect.Type
 	cols []protoColumn
-	primaryIndex int
+	primaryCol int
 	prefix []byte
 }
 
@@ -153,7 +153,7 @@ func (vio *protoTableValueIO) NewRow(dbGetter storage.DatabaseGetter, dbScanner 
 		}
 		s.Field(col.field).Set(v)
 	}
-	rk := kope.AppendKey(vio.prefix, columnValues[vio.primaryIndex])
+	rk := kope.AppendKey(vio.prefix, columnValues[vio.primaryCol])
 	if dup, err := dbGetter.Has(rk); err != nil {
 		return nil, err
 	} else if dup {

@@ -17,6 +17,7 @@ type Table struct {
 	indices []*TableIndex
 	indexByName map[string]int
 	indicesByType map[TableIndexType][]int
+	primaryIndex *TableIndex
 	prefix kope.Key
 	err error
 }
@@ -45,17 +46,16 @@ func (t *Table) NewRow(columnValues...interface{}) *TableRows {
 		return errorTableRows(err)
 	}
 	return &TableRows{
-		index: t.indices[t.indicesByType[Primary][0]],
+		index: t.primaryIndex,
 		key: common.CopyBytes(rk),
 	}
 }
 
-func (t *Table) DeleteRow(primaryValue interface{}) error {
+func (t *Table) Row(value...interface{}) *TableRows {
 	if t.err != nil {
-		return t.err
+		return errorTableRows(t.err)
 	}
-
-	return t.indices[t.indicesByType[Primary][0]].Row(primaryValue).Delete()
+	return t.primaryIndex.Row(value...)
 }
 
 func (t *Table) Index(name string) *TableIndex {

@@ -116,5 +116,6 @@ func (b *tableBuilder) Build() (*Table, error) {
 			index.prefix = kope.AppendKey(b.t.prefix, "ix", index.name)
 		}
 	}
+	b.t.primaryIndex = b.t.indices[b.t.indicesByType[Primary][0]]
 	return &b.t, nil
 }
