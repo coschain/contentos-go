@@ -444,7 +444,7 @@ func (c *Controller) _applyBlock(blk *prototype.SignedBlock) {
 		c._current_trx_in_block++
 	}
 
-	// @ updateGlobalDynamicData
+	c.updateGlobalDynamicData(blk)
 	c.updateSigningWitness(blk)
 	// @ update_last_irreversible_block
 	c.createBlockSummary(blk)
@@ -572,7 +572,7 @@ func (c *Controller) validateBlockHeader(blk *prototype.SignedBlock) {
 	}
 
 	scheduledWitness := c.GetScheduledWitness(nextSlot)
-	if witnessWrap.GetOwner().Value != scheduledWitness {
+	if witnessWrap.GetOwner().Value != scheduledWitness.Value {
 		panic("Witness produced block at wrong time")
 	}
 }
@@ -625,31 +625,67 @@ func (c *Controller) GetIncrementSlotAtTime(t *prototype.TimePointSec) uint32 {
 	return (t.UtcSeconds-nextBlockSlotTime.UtcSeconds)/constants.BLOCK_INTERVAL + 1
 }
 
-func (c *Controller) GetScheduledWitness(slot uint32) string {
+func (c *Controller) GetScheduledWitness(slot uint32) *prototype.AccountName {
 	var i int32 = 0
 	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db, &i)
 	currentSlot := dgpWrap.GetCurrentAslot()
-	currentSlot += uint64(slot)
+	currentSlot += slot
 
 	wsoWrap := table.NewSoWitnessScheduleObjectWrap(c.db, &i)
 	witnesses := wsoWrap.GetCurrentShuffledWitness()
-	witnessNum := len(witnesses)
-	witnessName := witnesses[currentSlot%uint64(witnessNum)]
-	return witnessName
+	witnessNum := uint32(len(witnesses))
+	witnessName := witnesses[currentSlot%witnessNum]
+	return &prototype.AccountName{Value:witnessName}
 }
 
 func (c *Controller) updateGlobalDynamicData(blk *prototype.SignedBlock) {
+	var i int32 = 0
+	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db, &i)
 
+	var missedBlock uint32 = 0
+	if c.headBlockTime().UtcSeconds != 0 {
+		missedBlock = c.GetIncrementSlotAtTime(blk.SignedHeader.Header.Timestamp)
+		mustSuccess(missedBlock != 0,"missedBlock error")
+		missedBlock--
+		for i:= uint32(i);i<missedBlock;i++{
+			witnessMissedName := c.GetScheduledWitness(i+1)
+			witnessWrap := table.NewSoWitnessWrap(c.db,witnessMissedName)
+			if witnessWrap.GetOwner().Value != blk.SignedHeader.Header.Witness.Value {
+				oldMissed := witnessWrap.GetTotalMissed()
+				oldMissed++
+				witnessWrap.MdTotalMissed(oldMissed)
+				if c.headBlockNum() - witnessWrap.GetLastConfirmedBlockNum() > constants.BLOCKS_PER_DAY {
+					emptyKey := &prototype.PublicKeyType{Data:[]byte{0}}
+					witnessWrap.MdSigningKey(emptyKey)
+					// @ push push_virtual_operation shutdown_witness_operation
+				}
+			}
+		}
+	}
+
+	// @ calculate participation
+
+	dgpWrap.MdHeadBlockNumber(uint32(blk.Id().BlockNum()))
+	id := blk.Id()
+	blockID := &prototype.Sha256{Hash:id.Data[:]}
+	dgpWrap.MdHeadBlockId(blockID)
+	dgpWrap.MdTime(blk.SignedHeader.Header.Timestamp)
+	aslot := dgpWrap.GetCurrentAslot()
+	aslot += missedBlock+1
+	dgpWrap.MdCurrentAslot(aslot)
+
+	// this check is useful ?
+	mustSuccess(dgpWrap.GetHeadBlockNumber() - dgpWrap.GetIrreversibleBlockNum() < constants.MAX_UNDO_HISTORY,"The database does not have enough undo history to support a blockchain with so many missed blocks.")
 }
 
 func (c *Controller) updateSigningWitness(blk *prototype.SignedBlock) {
 	var i int32 = 0
 	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db, &i)
-	newAsLot := dgpWrap.GetCurrentAslot() + uint64(c.GetIncrementSlotAtTime(blk.SignedHeader.Header.Timestamp))
+	newAsLot := dgpWrap.GetCurrentAslot() + c.GetIncrementSlotAtTime(blk.SignedHeader.Header.Timestamp)
 
 	name := blk.SignedHeader.Header.Witness
 	witnessWrap := table.NewSoWitnessWrap(c.db, name)
-	witnessWrap.MdLastConfirmedBlockNum(blk.Id().BlockNum())
+	witnessWrap.MdLastConfirmedBlockNum(uint32(blk.Id().BlockNum()))
 	witnessWrap.MdLastAslot(newAsLot)
 }
 

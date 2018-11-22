@@ -13,13 +13,13 @@ message so_witness {
     prototype.time_point_sec          created_time                 =      3;
     string                            url                          =      4;
     uint64                            vote_count                   =      5;
-    uint64                            last_confirmed_block_num     =      6;
+    uint32                            last_confirmed_block_num     =      6;
     uint32                            total_missed                 =      7;
     uint32                            pow_worker                   =      8;
     prototype.public_key_type         signing_key                  =      9;
     prototype.sha256                  last_work                    =      10;
     uint32                            running_version              =      11;
-    uint64                            last_aslot                   =      12;
+    uint32                            last_aslot                   =      12;
       
 }
 

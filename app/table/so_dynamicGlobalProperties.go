@@ -97,17 +97,17 @@ func (s *SoDynamicGlobalPropertiesWrap) RemoveDynamicGlobalProperties() bool {
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
-func (s *SoDynamicGlobalPropertiesWrap) GetCurrentAslot() uint64 {
+func (s *SoDynamicGlobalPropertiesWrap) GetCurrentAslot() uint32 {
 	res := s.getDynamicGlobalProperties()
 
 	if res == nil {
-		var tmpValue uint64
+		var tmpValue uint32
 		return tmpValue
 	}
 	return res.CurrentAslot
 }
 
-func (s *SoDynamicGlobalPropertiesWrap) MdCurrentAslot(p uint64) bool {
+func (s *SoDynamicGlobalPropertiesWrap) MdCurrentAslot(p uint32) bool {
 	sa := s.getDynamicGlobalProperties()
 	if sa == nil {
 		return false

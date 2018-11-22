@@ -159,17 +159,17 @@ func (s *SoWitnessWrap) MdCreatedTime(p *prototype.TimePointSec) bool {
 	return true
 }
 
-func (s *SoWitnessWrap) GetLastAslot() uint64 {
+func (s *SoWitnessWrap) GetLastAslot() uint32 {
 	res := s.getWitness()
 
 	if res == nil {
-		var tmpValue uint64
+		var tmpValue uint32
 		return tmpValue
 	}
 	return res.LastAslot
 }
 
-func (s *SoWitnessWrap) MdLastAslot(p uint64) bool {
+func (s *SoWitnessWrap) MdLastAslot(p uint32) bool {
 	sa := s.getWitness()
 	if sa == nil {
 		return false
@@ -183,17 +183,17 @@ func (s *SoWitnessWrap) MdLastAslot(p uint64) bool {
 	return true
 }
 
-func (s *SoWitnessWrap) GetLastConfirmedBlockNum() uint64 {
+func (s *SoWitnessWrap) GetLastConfirmedBlockNum() uint32 {
 	res := s.getWitness()
 
 	if res == nil {
-		var tmpValue uint64
+		var tmpValue uint32
 		return tmpValue
 	}
 	return res.LastConfirmedBlockNum
 }
 
-func (s *SoWitnessWrap) MdLastConfirmedBlockNum(p uint64) bool {
+func (s *SoWitnessWrap) MdLastConfirmedBlockNum(p uint32) bool {
 	sa := s.getWitness()
 	if sa == nil {
 		return false

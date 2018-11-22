@@ -12,24 +12,14 @@ var Version = "" //Set value when build project
 
 const (
 	DEFAULT_GEN_BLOCK_TIME   = 6
-	DBFT_MIN_NODE_NUM        = 4 //min node number of dbft consensus
-	SOLO_MIN_NODE_NUM        = 1 //min node number of solo consensus
-	VBFT_MIN_NODE_NUM        = 4 //min node number of vbft consensus
 
 	DEFAULT_LOG_LEVEL                       = log.InfoLog
 	DEFAULT_NODE_PORT                       = uint(20338)
 	DEFAULT_CONSENSUS_PORT                  = uint(20339)
-	DEFAULT_REST_PORT                       = uint(20334)
 	DEFAULT_MAX_CONN_IN_BOUND               = uint(1024)
 	DEFAULT_MAX_CONN_OUT_BOUND              = uint(1024)
 	DEFAULT_MAX_CONN_IN_BOUND_FOR_SINGLE_IP = uint(16)
 	DEFAULT_HTTP_INFO_PORT                  = uint(0)
-	DEFAULT_MAX_TX_IN_BLOCK                 = 60000
-	DEFAULT_MAX_SYNC_HEADER                 = 500
-	DEFAULT_ENABLE_EVENT_LOG                = true
-	DEFAULT_GAS_LIMIT                       = 20000
-
-	DEFAULT_DATA_DIR      = "./Chain"
 )
 
 const (
@@ -95,16 +85,11 @@ func NewGenesisConfig() *GenesisConfig {
 type CommonConfig struct {
 	LogLevel       uint
 	NodeType       string
-	EnableEventLog bool
 	SystemFee      map[string]int64
-	GasLimit       uint64
-	GasPrice       uint64
-	DataDir        string
 }
 
 type ConsensusConfig struct {
 	EnableConsensus bool
-	MaxTxInBlock    uint
 }
 
 type P2PRsvConfig struct {
@@ -126,17 +111,9 @@ type P2PNodeConfig struct {
 	KeyPath                   string
 	CAPath                    string
 	HttpInfoPort              uint
-	MaxHdrSyncReqs            uint
 	MaxConnInBound            uint
 	MaxConnOutBound           uint
 	MaxConnInBoundForSingleIP uint
-}
-
-type RestfulConfig struct {
-	EnableHttpRestful bool
-	HttpRestPort      uint
-	HttpCertPath      string
-	HttpKeyPath       string
 }
 
 type OntologyConfig struct {
@@ -144,7 +121,6 @@ type OntologyConfig struct {
 	Common    *CommonConfig
 	Consensus *ConsensusConfig
 	P2PNode   *P2PNodeConfig
-	Restful   *RestfulConfig
 }
 
 func NewOntologyConfig() *OntologyConfig {
@@ -152,14 +128,10 @@ func NewOntologyConfig() *OntologyConfig {
 		Genesis: MainNetConfig,
 		Common: &CommonConfig{
 			LogLevel:       DEFAULT_LOG_LEVEL,
-			EnableEventLog: DEFAULT_ENABLE_EVENT_LOG,
 			SystemFee:      make(map[string]int64),
-			GasLimit:       DEFAULT_GAS_LIMIT,
-			DataDir:        DEFAULT_DATA_DIR,
 		},
 		Consensus: &ConsensusConfig{
 			EnableConsensus: true,
-			MaxTxInBlock:    DEFAULT_MAX_TX_IN_BLOCK,
 		},
 		P2PNode: &P2PNodeConfig{
 			ReservedCfg:               &P2PRsvConfig{},
@@ -175,14 +147,9 @@ func NewOntologyConfig() *OntologyConfig {
 			KeyPath:                   "",
 			CAPath:                    "",
 			HttpInfoPort:              DEFAULT_HTTP_INFO_PORT,
-			MaxHdrSyncReqs:            DEFAULT_MAX_SYNC_HEADER,
 			MaxConnInBound:            DEFAULT_MAX_CONN_IN_BOUND,
 			MaxConnOutBound:           DEFAULT_MAX_CONN_OUT_BOUND,
 			MaxConnInBoundForSingleIP: DEFAULT_MAX_CONN_IN_BOUND_FOR_SINGLE_IP,
-		},
-		Restful: &RestfulConfig{
-			EnableHttpRestful: true,
-			HttpRestPort:      DEFAULT_REST_PORT,
 		},
 	}
 }
