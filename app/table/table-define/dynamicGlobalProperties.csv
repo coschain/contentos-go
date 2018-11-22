@@ -10,4 +10,4 @@ uint32                    ,irreversible_block_num   ,0,0,0,0
 uint32                    ,tps                      ,0,0,0,0
 prototype.vest            ,total_vesting_shares     ,0,0,0,0
 prototype.coin            ,current_supply           ,0,0,0,0
-uint64                    ,current_aslot            ,0,0,0,0
+uint32                    ,current_aslot            ,0,0,0,0

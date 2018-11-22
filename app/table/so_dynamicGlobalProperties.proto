@@ -19,7 +19,7 @@ message so_dynamicGlobalProperties {
     uint32                       tps                           =      9;
     prototype.vest               total_vesting_shares          =      10;
     prototype.coin               current_supply                =      11;
-    uint64                       current_aslot                 =      12;
+    uint32                       current_aslot                 =      12;
       
 }
 
