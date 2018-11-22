@@ -3,7 +3,7 @@ package table
 import (
 	"errors"
 
-	"github.com/coschain/contentos-go/common/encoding"
+	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
 	prototype "github.com/coschain/contentos-go/prototype"
 	proto "github.com/golang/protobuf/proto"
@@ -225,7 +225,7 @@ func (s *SoExtFollowCountWrap) encodeMainKey() ([]byte, error) {
 		return nil, errors.New("the mainKey is nil")
 	}
 	kList := []interface{}{pre, sub}
-	kBuf, cErr := encoding.EncodeSlice(kList, false)
+	kBuf, cErr := kope.EncodeSlice(kList)
 	return kBuf, cErr
 }
 
@@ -235,7 +235,7 @@ func (s *SoExtFollowCountWrap) delUniKeyAccount(sa *SoExtFollowCount) bool {
 	pre := ExtFollowCountAccountUniTable
 	sub := sa.Account
 	kList := []interface{}{pre, sub}
-	kBuf, err := encoding.EncodeSlice(kList, false)
+	kBuf, err := kope.EncodeSlice(kList)
 	if err != nil {
 		return false
 	}
@@ -263,7 +263,7 @@ func (s *SoExtFollowCountWrap) insertUniKeyAccount(sa *SoExtFollowCount) bool {
 	pre := ExtFollowCountAccountUniTable
 	sub := sa.Account
 	kList := []interface{}{pre, sub}
-	kBuf, err := encoding.EncodeSlice(kList, false)
+	kBuf, err := kope.EncodeSlice(kList)
 	if err != nil {
 		return false
 	}
@@ -289,7 +289,7 @@ func (s *UniExtFollowCountAccountWrap) UniQueryAccount(start *prototype.AccountN
 	}
 	pre := ExtFollowCountAccountUniTable
 	kList := []interface{}{pre, start}
-	bufStartkey, err := encoding.EncodeSlice(kList, false)
+	bufStartkey, err := kope.EncodeSlice(kList)
 	val, err := s.Dba.Get(bufStartkey)
 	if err == nil {
 		res := &SoUniqueExtFollowCountByAccount{}

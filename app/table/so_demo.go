@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"errors"
 
-	"github.com/coschain/contentos-go/common/encoding"
+	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
 	prototype "github.com/coschain/contentos-go/prototype"
 	proto "github.com/golang/protobuf/proto"
@@ -640,7 +640,7 @@ func (m *SoListDemoByOwner) OpeEncode() ([]byte, error) {
 		return nil, errors.New("the mainkey Owner is nil")
 	}
 	kList := []interface{}{pre, sub, sub1}
-	kBuf, cErr := encoding.EncodeSlice(kList, false)
+	kBuf, cErr := kope.EncodeSlice(kList)
 	return kBuf, cErr
 }
 
@@ -654,7 +654,7 @@ func (s *SDemoOwnerWrap) QueryListByRevOrder(start *prototype.AccountName, end *
 	if start != nil {
 		skeyList = append(skeyList, start)
 	}
-	sBuf, cErr := encoding.EncodeSlice(skeyList, false)
+	sBuf, cErr := kope.EncodeSlice(skeyList)
 	if cErr != nil {
 		return nil
 	}
@@ -662,7 +662,7 @@ func (s *SDemoOwnerWrap) QueryListByRevOrder(start *prototype.AccountName, end *
 	if end != nil {
 		eKeyList = append(eKeyList, end)
 	}
-	eBuf, cErr := encoding.EncodeSlice(eKeyList, false)
+	eBuf, cErr := kope.EncodeSlice(eKeyList)
 	if cErr != nil {
 		return nil
 	}
@@ -754,7 +754,7 @@ func (m *SoListDemoByPostTime) OpeEncode() ([]byte, error) {
 		return nil, errors.New("the mainkey Owner is nil")
 	}
 	kList := []interface{}{pre, sub, sub1}
-	kBuf, cErr := encoding.EncodeSlice(kList, false)
+	kBuf, cErr := kope.EncodeSlice(kList)
 	return kBuf, cErr
 }
 
@@ -771,7 +771,7 @@ func (s *SDemoPostTimeWrap) QueryListByOrder(start *prototype.TimePointSec, end 
 	if start != nil {
 		skeyList = append(skeyList, start)
 	}
-	sBuf, cErr := encoding.EncodeSlice(skeyList, false)
+	sBuf, cErr := kope.EncodeSlice(skeyList)
 	if cErr != nil {
 		return nil
 	}
@@ -783,7 +783,7 @@ func (s *SDemoPostTimeWrap) QueryListByOrder(start *prototype.TimePointSec, end 
 	if end != nil {
 		eKeyList = append(eKeyList, end)
 	}
-	eBuf, cErr := encoding.EncodeSlice(eKeyList, false)
+	eBuf, cErr := kope.EncodeSlice(eKeyList)
 	if cErr != nil {
 		return nil
 	}
@@ -810,7 +810,7 @@ func (s *SDemoPostTimeWrap) QueryListByRevOrder(start *prototype.TimePointSec, e
 	if start != nil {
 		skeyList = append(skeyList, start)
 	}
-	sBuf, cErr := encoding.EncodeSlice(skeyList, false)
+	sBuf, cErr := kope.EncodeSlice(skeyList)
 	if cErr != nil {
 		return nil
 	}
@@ -818,7 +818,7 @@ func (s *SDemoPostTimeWrap) QueryListByRevOrder(start *prototype.TimePointSec, e
 	if end != nil {
 		eKeyList = append(eKeyList, end)
 	}
-	eBuf, cErr := encoding.EncodeSlice(eKeyList, false)
+	eBuf, cErr := kope.EncodeSlice(eKeyList)
 	if cErr != nil {
 		return nil
 	}
@@ -908,7 +908,7 @@ func (m *SoListDemoByLikeCount) OpeEncode() ([]byte, error) {
 		return nil, errors.New("the mainkey Owner is nil")
 	}
 	kList := []interface{}{pre, sub, sub1}
-	kBuf, cErr := encoding.EncodeSlice(kList, false)
+	kBuf, cErr := kope.EncodeSlice(kList)
 	return kBuf, cErr
 }
 
@@ -922,7 +922,7 @@ func (s *SDemoLikeCountWrap) QueryListByRevOrder(start *int64, end *int64) iserv
 	if start != nil {
 		skeyList = append(skeyList, start)
 	}
-	sBuf, cErr := encoding.EncodeSlice(skeyList, false)
+	sBuf, cErr := kope.EncodeSlice(skeyList)
 	if cErr != nil {
 		return nil
 	}
@@ -930,7 +930,7 @@ func (s *SDemoLikeCountWrap) QueryListByRevOrder(start *int64, end *int64) iserv
 	if end != nil {
 		eKeyList = append(eKeyList, end)
 	}
-	eBuf, cErr := encoding.EncodeSlice(eKeyList, false)
+	eBuf, cErr := kope.EncodeSlice(eKeyList)
 	if cErr != nil {
 		return nil
 	}
@@ -1020,7 +1020,7 @@ func (m *SoListDemoByIdx) OpeEncode() ([]byte, error) {
 		return nil, errors.New("the mainkey Owner is nil")
 	}
 	kList := []interface{}{pre, sub, sub1}
-	kBuf, cErr := encoding.EncodeSlice(kList, false)
+	kBuf, cErr := kope.EncodeSlice(kList)
 	return kBuf, cErr
 }
 
@@ -1034,7 +1034,7 @@ func (s *SDemoIdxWrap) QueryListByRevOrder(start *int64, end *int64) iservices.I
 	if start != nil {
 		skeyList = append(skeyList, start)
 	}
-	sBuf, cErr := encoding.EncodeSlice(skeyList, false)
+	sBuf, cErr := kope.EncodeSlice(skeyList)
 	if cErr != nil {
 		return nil
 	}
@@ -1042,7 +1042,7 @@ func (s *SDemoIdxWrap) QueryListByRevOrder(start *int64, end *int64) iservices.I
 	if end != nil {
 		eKeyList = append(eKeyList, end)
 	}
-	eBuf, cErr := encoding.EncodeSlice(eKeyList, false)
+	eBuf, cErr := kope.EncodeSlice(eKeyList)
 	if cErr != nil {
 		return nil
 	}
@@ -1132,7 +1132,7 @@ func (m *SoListDemoByReplayCount) OpeEncode() ([]byte, error) {
 		return nil, errors.New("the mainkey Owner is nil")
 	}
 	kList := []interface{}{pre, sub, sub1}
-	kBuf, cErr := encoding.EncodeSlice(kList, false)
+	kBuf, cErr := kope.EncodeSlice(kList)
 	return kBuf, cErr
 }
 
@@ -1149,7 +1149,7 @@ func (s *SDemoReplayCountWrap) QueryListByOrder(start *int64, end *int64) iservi
 	if start != nil {
 		skeyList = append(skeyList, start)
 	}
-	sBuf, cErr := encoding.EncodeSlice(skeyList, false)
+	sBuf, cErr := kope.EncodeSlice(skeyList)
 	if cErr != nil {
 		return nil
 	}
@@ -1161,7 +1161,7 @@ func (s *SDemoReplayCountWrap) QueryListByOrder(start *int64, end *int64) iservi
 	if end != nil {
 		eKeyList = append(eKeyList, end)
 	}
-	eBuf, cErr := encoding.EncodeSlice(eKeyList, false)
+	eBuf, cErr := kope.EncodeSlice(eKeyList)
 	if cErr != nil {
 		return nil
 	}
@@ -1246,7 +1246,7 @@ func (m *SoListDemoByTaglist) OpeEncode() ([]byte, error) {
 		return nil, errors.New("the mainkey Owner is nil")
 	}
 	kList := []interface{}{pre, sub, sub1}
-	kBuf, cErr := encoding.EncodeSlice(kList, false)
+	kBuf, cErr := kope.EncodeSlice(kList)
 	return kBuf, cErr
 }
 
@@ -1263,7 +1263,7 @@ func (s *SDemoTaglistWrap) QueryListByOrder(start *[]string, end *[]string) iser
 	if start != nil {
 		skeyList = append(skeyList, start)
 	}
-	sBuf, cErr := encoding.EncodeSlice(skeyList, false)
+	sBuf, cErr := kope.EncodeSlice(skeyList)
 	if cErr != nil {
 		return nil
 	}
@@ -1275,7 +1275,7 @@ func (s *SDemoTaglistWrap) QueryListByOrder(start *[]string, end *[]string) iser
 	if end != nil {
 		eKeyList = append(eKeyList, end)
 	}
-	eBuf, cErr := encoding.EncodeSlice(eKeyList, false)
+	eBuf, cErr := kope.EncodeSlice(eKeyList)
 	if cErr != nil {
 		return nil
 	}
@@ -1335,7 +1335,7 @@ func (s *SoDemoWrap) encodeMainKey() ([]byte, error) {
 		return nil, errors.New("the mainKey is nil")
 	}
 	kList := []interface{}{pre, sub}
-	kBuf, cErr := encoding.EncodeSlice(kList, false)
+	kBuf, cErr := kope.EncodeSlice(kList)
 	return kBuf, cErr
 }
 
@@ -1345,7 +1345,7 @@ func (s *SoDemoWrap) delUniKeyIdx(sa *SoDemo) bool {
 	pre := DemoIdxUniTable
 	sub := sa.Idx
 	kList := []interface{}{pre, sub}
-	kBuf, err := encoding.EncodeSlice(kList, false)
+	kBuf, err := kope.EncodeSlice(kList)
 	if err != nil {
 		return false
 	}
@@ -1374,7 +1374,7 @@ func (s *SoDemoWrap) insertUniKeyIdx(sa *SoDemo) bool {
 	pre := DemoIdxUniTable
 	sub := sa.Idx
 	kList := []interface{}{pre, sub}
-	kBuf, err := encoding.EncodeSlice(kList, false)
+	kBuf, err := kope.EncodeSlice(kList)
 	if err != nil {
 		return false
 	}
@@ -1400,7 +1400,7 @@ func (s *UniDemoIdxWrap) UniQueryIdx(start *int64) *SoDemoWrap {
 	}
 	pre := DemoIdxUniTable
 	kList := []interface{}{pre, start}
-	bufStartkey, err := encoding.EncodeSlice(kList, false)
+	bufStartkey, err := kope.EncodeSlice(kList)
 	val, err := s.Dba.Get(bufStartkey)
 	if err == nil {
 		res := &SoUniqueDemoByIdx{}
@@ -1418,7 +1418,7 @@ func (s *SoDemoWrap) delUniKeyLikeCount(sa *SoDemo) bool {
 	pre := DemoLikeCountUniTable
 	sub := sa.LikeCount
 	kList := []interface{}{pre, sub}
-	kBuf, err := encoding.EncodeSlice(kList, false)
+	kBuf, err := kope.EncodeSlice(kList)
 	if err != nil {
 		return false
 	}
@@ -1447,7 +1447,7 @@ func (s *SoDemoWrap) insertUniKeyLikeCount(sa *SoDemo) bool {
 	pre := DemoLikeCountUniTable
 	sub := sa.LikeCount
 	kList := []interface{}{pre, sub}
-	kBuf, err := encoding.EncodeSlice(kList, false)
+	kBuf, err := kope.EncodeSlice(kList)
 	if err != nil {
 		return false
 	}
@@ -1473,7 +1473,7 @@ func (s *UniDemoLikeCountWrap) UniQueryLikeCount(start *int64) *SoDemoWrap {
 	}
 	pre := DemoLikeCountUniTable
 	kList := []interface{}{pre, start}
-	bufStartkey, err := encoding.EncodeSlice(kList, false)
+	bufStartkey, err := kope.EncodeSlice(kList)
 	val, err := s.Dba.Get(bufStartkey)
 	if err == nil {
 		res := &SoUniqueDemoByLikeCount{}
@@ -1491,7 +1491,7 @@ func (s *SoDemoWrap) delUniKeyOwner(sa *SoDemo) bool {
 	pre := DemoOwnerUniTable
 	sub := sa.Owner
 	kList := []interface{}{pre, sub}
-	kBuf, err := encoding.EncodeSlice(kList, false)
+	kBuf, err := kope.EncodeSlice(kList)
 	if err != nil {
 		return false
 	}
@@ -1519,7 +1519,7 @@ func (s *SoDemoWrap) insertUniKeyOwner(sa *SoDemo) bool {
 	pre := DemoOwnerUniTable
 	sub := sa.Owner
 	kList := []interface{}{pre, sub}
-	kBuf, err := encoding.EncodeSlice(kList, false)
+	kBuf, err := kope.EncodeSlice(kList)
 	if err != nil {
 		return false
 	}
@@ -1545,7 +1545,7 @@ func (s *UniDemoOwnerWrap) UniQueryOwner(start *prototype.AccountName) *SoDemoWr
 	}
 	pre := DemoOwnerUniTable
 	kList := []interface{}{pre, start}
-	bufStartkey, err := encoding.EncodeSlice(kList, false)
+	bufStartkey, err := kope.EncodeSlice(kList)
 	val, err := s.Dba.Get(bufStartkey)
 	if err == nil {
 		res := &SoUniqueDemoByOwner{}

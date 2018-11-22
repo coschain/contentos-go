@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"errors"
 
-	"github.com/coschain/contentos-go/common/encoding"
+	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
 	prototype "github.com/coschain/contentos-go/prototype"
 	proto "github.com/golang/protobuf/proto"
@@ -315,7 +315,7 @@ func (m *SoListVoteByVoteTime) OpeEncode() ([]byte, error) {
 		return nil, errors.New("the mainkey Voter is nil")
 	}
 	kList := []interface{}{pre, sub, sub1}
-	kBuf, cErr := encoding.EncodeSlice(kList, false)
+	kBuf, cErr := kope.EncodeSlice(kList)
 	return kBuf, cErr
 }
 
@@ -332,7 +332,7 @@ func (s *SVoteVoteTimeWrap) QueryListByOrder(start *prototype.TimePointSec, end 
 	if start != nil {
 		skeyList = append(skeyList, start)
 	}
-	sBuf, cErr := encoding.EncodeSlice(skeyList, false)
+	sBuf, cErr := kope.EncodeSlice(skeyList)
 	if cErr != nil {
 		return nil
 	}
@@ -344,7 +344,7 @@ func (s *SVoteVoteTimeWrap) QueryListByOrder(start *prototype.TimePointSec, end 
 	if end != nil {
 		eKeyList = append(eKeyList, end)
 	}
-	eBuf, cErr := encoding.EncodeSlice(eKeyList, false)
+	eBuf, cErr := kope.EncodeSlice(eKeyList)
 	if cErr != nil {
 		return nil
 	}
@@ -429,7 +429,7 @@ func (m *SoListVoteByPostId) OpeEncode() ([]byte, error) {
 		return nil, errors.New("the mainkey Voter is nil")
 	}
 	kList := []interface{}{pre, sub, sub1}
-	kBuf, cErr := encoding.EncodeSlice(kList, false)
+	kBuf, cErr := kope.EncodeSlice(kList)
 	return kBuf, cErr
 }
 
@@ -446,7 +446,7 @@ func (s *SVotePostIdWrap) QueryListByOrder(start *uint64, end *uint64) iservices
 	if start != nil {
 		skeyList = append(skeyList, start)
 	}
-	sBuf, cErr := encoding.EncodeSlice(skeyList, false)
+	sBuf, cErr := kope.EncodeSlice(skeyList)
 	if cErr != nil {
 		return nil
 	}
@@ -458,7 +458,7 @@ func (s *SVotePostIdWrap) QueryListByOrder(start *uint64, end *uint64) iservices
 	if end != nil {
 		eKeyList = append(eKeyList, end)
 	}
-	eBuf, cErr := encoding.EncodeSlice(eKeyList, false)
+	eBuf, cErr := kope.EncodeSlice(eKeyList)
 	if cErr != nil {
 		return nil
 	}
@@ -518,7 +518,7 @@ func (s *SoVoteWrap) encodeMainKey() ([]byte, error) {
 		return nil, errors.New("the mainKey is nil")
 	}
 	kList := []interface{}{pre, sub}
-	kBuf, cErr := encoding.EncodeSlice(kList, false)
+	kBuf, cErr := kope.EncodeSlice(kList)
 	return kBuf, cErr
 }
 
@@ -528,7 +528,7 @@ func (s *SoVoteWrap) delUniKeyVoter(sa *SoVote) bool {
 	pre := VoteVoterUniTable
 	sub := sa.Voter
 	kList := []interface{}{pre, sub}
-	kBuf, err := encoding.EncodeSlice(kList, false)
+	kBuf, err := kope.EncodeSlice(kList)
 	if err != nil {
 		return false
 	}
@@ -556,7 +556,7 @@ func (s *SoVoteWrap) insertUniKeyVoter(sa *SoVote) bool {
 	pre := VoteVoterUniTable
 	sub := sa.Voter
 	kList := []interface{}{pre, sub}
-	kBuf, err := encoding.EncodeSlice(kList, false)
+	kBuf, err := kope.EncodeSlice(kList)
 	if err != nil {
 		return false
 	}
@@ -582,7 +582,7 @@ func (s *UniVoteVoterWrap) UniQueryVoter(start *prototype.VoterId) *SoVoteWrap {
 	}
 	pre := VoteVoterUniTable
 	kList := []interface{}{pre, start}
-	bufStartkey, err := encoding.EncodeSlice(kList, false)
+	bufStartkey, err := kope.EncodeSlice(kList)
 	val, err := s.Dba.Get(bufStartkey)
 	if err == nil {
 		res := &SoUniqueVoteByVoter{}

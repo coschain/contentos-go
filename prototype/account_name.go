@@ -1,7 +1,7 @@
 package prototype
 
 import (
-	"github.com/coschain/contentos-go/common/encoding"
+	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/pkg/errors"
 )
 
@@ -10,7 +10,7 @@ func (m *AccountName) Empty() bool {
 }
 
 func (m *AccountName) OpeEncode() ([]byte, error) {
-	return encoding.Encode(m.Value)
+	return kope.Encode(m.Value)
 }
 
 func isValidNameChar( c byte ) bool {

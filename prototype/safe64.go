@@ -1,6 +1,6 @@
 package prototype
 
-import "github.com/coschain/contentos-go/common/encoding"
+import "github.com/coschain/contentos-go/common/encoding/kope"
 
 func (m *Safe64) Min() *Safe64 {
 	return &Safe64{Value: 0}
@@ -8,7 +8,7 @@ func (m *Safe64) Min() *Safe64 {
 
 
 func (m *Safe64) OpeEncode() ([]byte, error) {
-	return encoding.Encode(m.Value)
+	return kope.Encode(m.Value)
 }
 
 

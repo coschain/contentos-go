@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/coschain/contentos-go/common/constants"
-	"github.com/coschain/contentos-go/common/encoding"
+	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/itchyny/base58-go"
 	"math/big"
 	"strings"
@@ -115,5 +115,5 @@ func (m *PublicKeyType) Validate () error {
 }
 
 func (m *PublicKeyType) OpeEncode() ([]byte, error) {
-	return encoding.Encode(m.Data)
+	return kope.Encode(m.Data)
 }

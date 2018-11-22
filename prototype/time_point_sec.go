@@ -1,9 +1,9 @@
 package prototype
 
-import "github.com/coschain/contentos-go/common/encoding"
+import "github.com/coschain/contentos-go/common/encoding/kope"
 
 func (m *TimePointSec) OpeEncode() ([]byte, error) {
-	return encoding.Encode(m.UtcSeconds)
+	return kope.Encode(m.UtcSeconds)
 }
 
 func (m TimePointSec) Add( value uint32 ) TimePointSec {

@@ -179,12 +179,12 @@ func (w *BaseWallet) Create(name, passphrase, pubKeyStr, privKeyStr string) erro
 	if err != nil {
 		return err
 	}
-	cipher_text := base64.StdEncoding.EncodeToString(cipher_data)
-	iv_text := base64.StdEncoding.EncodeToString(iv)
+	cipher_text := base64.Stdkope.EncodeToString(cipher_data)
+	iv_text := base64.Stdkope.EncodeToString(iv)
 	mac := hmac.New(sha256.New, []byte(passphrase))
 	mac.Write([]byte(privKeyStr))
 	calcMac := mac.Sum(nil)
-	mac_text := base64.StdEncoding.EncodeToString(calcMac)
+	mac_text := base64.Stdkope.EncodeToString(calcMac)
 	encrypt_account := &EncryptAccount{
 		Account:    Account{Name: name, PubKey: pubKeyStr},
 		Cipher:     selectAESAlgorithm(PasswordLength),

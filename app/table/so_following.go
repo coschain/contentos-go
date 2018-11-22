@@ -3,7 +3,7 @@ package table
 import (
 	"errors"
 
-	"github.com/coschain/contentos-go/common/encoding"
+	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
 	prototype "github.com/coschain/contentos-go/prototype"
 	proto "github.com/golang/protobuf/proto"
@@ -177,7 +177,7 @@ func (s *SoFollowingWrap) encodeMainKey() ([]byte, error) {
 		return nil, errors.New("the mainKey is nil")
 	}
 	kList := []interface{}{pre, sub}
-	kBuf, cErr := encoding.EncodeSlice(kList, false)
+	kBuf, cErr := kope.EncodeSlice(kList)
 	return kBuf, cErr
 }
 
@@ -187,7 +187,7 @@ func (s *SoFollowingWrap) delUniKeyFollowingInfo(sa *SoFollowing) bool {
 	pre := FollowingFollowingInfoUniTable
 	sub := sa.FollowingInfo
 	kList := []interface{}{pre, sub}
-	kBuf, err := encoding.EncodeSlice(kList, false)
+	kBuf, err := kope.EncodeSlice(kList)
 	if err != nil {
 		return false
 	}
@@ -215,7 +215,7 @@ func (s *SoFollowingWrap) insertUniKeyFollowingInfo(sa *SoFollowing) bool {
 	pre := FollowingFollowingInfoUniTable
 	sub := sa.FollowingInfo
 	kList := []interface{}{pre, sub}
-	kBuf, err := encoding.EncodeSlice(kList, false)
+	kBuf, err := kope.EncodeSlice(kList)
 	if err != nil {
 		return false
 	}
@@ -241,7 +241,7 @@ func (s *UniFollowingFollowingInfoWrap) UniQueryFollowingInfo(start *prototype.F
 	}
 	pre := FollowingFollowingInfoUniTable
 	kList := []interface{}{pre, start}
-	bufStartkey, err := encoding.EncodeSlice(kList, false)
+	bufStartkey, err := kope.EncodeSlice(kList)
 	val, err := s.Dba.Get(bufStartkey)
 	if err == nil {
 		res := &SoUniqueFollowingByFollowingInfo{}

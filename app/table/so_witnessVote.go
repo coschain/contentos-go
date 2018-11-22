@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"errors"
 
-	"github.com/coschain/contentos-go/common/encoding"
+	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
 	prototype "github.com/coschain/contentos-go/prototype"
 	proto "github.com/golang/protobuf/proto"
@@ -263,7 +263,7 @@ func (m *SoListWitnessVoteByVoterId) OpeEncode() ([]byte, error) {
 		return nil, errors.New("the mainkey VoterId is nil")
 	}
 	kList := []interface{}{pre, sub, sub1}
-	kBuf, cErr := encoding.EncodeSlice(kList, false)
+	kBuf, cErr := kope.EncodeSlice(kList)
 	return kBuf, cErr
 }
 
@@ -280,7 +280,7 @@ func (s *SWitnessVoteVoterIdWrap) QueryListByOrder(start *prototype.BpVoterId, e
 	if start != nil {
 		skeyList = append(skeyList, start)
 	}
-	sBuf, cErr := encoding.EncodeSlice(skeyList, false)
+	sBuf, cErr := kope.EncodeSlice(skeyList)
 	if cErr != nil {
 		return nil
 	}
@@ -292,7 +292,7 @@ func (s *SWitnessVoteVoterIdWrap) QueryListByOrder(start *prototype.BpVoterId, e
 	if end != nil {
 		eKeyList = append(eKeyList, end)
 	}
-	eBuf, cErr := encoding.EncodeSlice(eKeyList, false)
+	eBuf, cErr := kope.EncodeSlice(eKeyList)
 	if cErr != nil {
 		return nil
 	}
@@ -352,7 +352,7 @@ func (s *SoWitnessVoteWrap) encodeMainKey() ([]byte, error) {
 		return nil, errors.New("the mainKey is nil")
 	}
 	kList := []interface{}{pre, sub}
-	kBuf, cErr := encoding.EncodeSlice(kList, false)
+	kBuf, cErr := kope.EncodeSlice(kList)
 	return kBuf, cErr
 }
 
@@ -362,7 +362,7 @@ func (s *SoWitnessVoteWrap) delUniKeyVoterId(sa *SoWitnessVote) bool {
 	pre := WitnessVoteVoterIdUniTable
 	sub := sa.VoterId
 	kList := []interface{}{pre, sub}
-	kBuf, err := encoding.EncodeSlice(kList, false)
+	kBuf, err := kope.EncodeSlice(kList)
 	if err != nil {
 		return false
 	}
@@ -390,7 +390,7 @@ func (s *SoWitnessVoteWrap) insertUniKeyVoterId(sa *SoWitnessVote) bool {
 	pre := WitnessVoteVoterIdUniTable
 	sub := sa.VoterId
 	kList := []interface{}{pre, sub}
-	kBuf, err := encoding.EncodeSlice(kList, false)
+	kBuf, err := kope.EncodeSlice(kList)
 	if err != nil {
 		return false
 	}
@@ -416,7 +416,7 @@ func (s *UniWitnessVoteVoterIdWrap) UniQueryVoterId(start *prototype.BpVoterId) 
 	}
 	pre := WitnessVoteVoterIdUniTable
 	kList := []interface{}{pre, start}
-	bufStartkey, err := encoding.EncodeSlice(kList, false)
+	bufStartkey, err := kope.EncodeSlice(kList)
 	val, err := s.Dba.Get(bufStartkey)
 	if err == nil {
 		res := &SoUniqueWitnessVoteByVoterId{}

@@ -1,9 +1,9 @@
 package prototype
 
-import "github.com/coschain/contentos-go/common/encoding"
+import "github.com/coschain/contentos-go/common/encoding/kope"
 
 func (m *Coin) OpeEncode() ([]byte, error) {
-	return encoding.Encode(m.Value)
+	return kope.Encode(m.Value)
 }
 
 func (m *Coin) NonZero() bool {

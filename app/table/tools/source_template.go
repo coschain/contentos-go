@@ -356,7 +356,7 @@ func (m *SoList{{$.ClsName}}By{{$v.PName}}) OpeEncode() ([]byte,error) {
     }
     {{- end}}
     kList := []interface{}{pre,sub,sub1}
-    kBuf,cErr := encoding.EncodeSlice(kList,false)
+    kBuf,cErr := kope.EncodeSlice(kList)
     return kBuf,cErr
 }
 
@@ -374,7 +374,7 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByOrder(start *{{$v.PType}}, e
     if start != nil {
        skeyList = append(skeyList,start)
     }
-    sBuf,cErr := encoding.EncodeSlice(skeyList,false)
+    sBuf,cErr := kope.EncodeSlice(skeyList)
     if cErr != nil {
          return nil
     }
@@ -386,7 +386,7 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByOrder(start *{{$v.PType}}, e
     if end != nil {
        eKeyList = append(eKeyList,end)
     }
-    eBuf,cErr := encoding.EncodeSlice(eKeyList,false)
+    eBuf,cErr := kope.EncodeSlice(eKeyList)
     if cErr != nil {
        return nil
     }
@@ -414,7 +414,7 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByRevOrder(start *{{$v.PType}}
     if start != nil {
        skeyList = append(skeyList,start)
     }
-    sBuf,cErr := encoding.EncodeSlice(skeyList,false)
+    sBuf,cErr := kope.EncodeSlice(skeyList)
     if cErr != nil {
          return nil
     }
@@ -422,7 +422,7 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByRevOrder(start *{{$v.PType}}
     if end != nil {
        eKeyList = append(eKeyList,end)
     }
-    eBuf,cErr := encoding.EncodeSlice(eKeyList,false)
+    eBuf,cErr := kope.EncodeSlice(eKeyList)
     if cErr != nil {
        return nil
     }
@@ -489,7 +489,7 @@ func (s *So{{$.ClsName}}Wrap) encodeMainKey() ([]byte, error) {
        return nil,errors.New("the mainKey is nil")
     }
     kList := []interface{}{pre,sub}
-    kBuf,cErr := encoding.EncodeSlice(kList,false)
+    kBuf,cErr := kope.EncodeSlice(kList)
     return kBuf,cErr
 }
 
@@ -500,7 +500,7 @@ func (s *So{{$.ClsName}}Wrap) delUniKey{{$k}}(sa *So{{$.ClsName}}) bool {
     pre := {{$.ClsName}}{{$k}}UniTable
     sub := sa.{{UperFirstChar $k}}
     kList := []interface{}{pre,sub}
-    kBuf,err := encoding.EncodeSlice(kList,false)
+    kBuf,err := kope.EncodeSlice(kList)
 	if err != nil {
 		return false
 	}
@@ -537,7 +537,7 @@ func (s *So{{$.ClsName}}Wrap) insertUniKey{{$k}}(sa *So{{$.ClsName}}) bool {
     pre := {{$.ClsName}}{{$k}}UniTable
     sub := sa.{{UperFirstChar $k}}
     kList := []interface{}{pre,sub}
-    kBuf,err := encoding.EncodeSlice(kList,false)
+    kBuf,err := kope.EncodeSlice(kList)
 	if err != nil {
 		return false
 	}
@@ -563,7 +563,7 @@ func (s *Uni{{$.ClsName}}{{$k}}Wrap) UniQuery{{$k}}(start *{{formatStr $v}}) *So
     }
     pre := {{$.ClsName}}{{$k}}UniTable
     kList := []interface{}{pre,start}
-    bufStartkey,err := encoding.EncodeSlice(kList,false)
+    bufStartkey,err := kope.EncodeSlice(kList)
     val,err := s.Dba.Get(bufStartkey)
 	if err == nil {
 		res := &SoUnique{{$.ClsName}}By{{$k}}{}

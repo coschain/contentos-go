@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"errors"
 
-	"github.com/coschain/contentos-go/common/encoding"
+	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
 	prototype "github.com/coschain/contentos-go/prototype"
 	proto "github.com/golang/protobuf/proto"
@@ -248,7 +248,7 @@ func (m *SoListTransactionObjectByExpiration) OpeEncode() ([]byte, error) {
 		return nil, errors.New("the mainkey TrxId is nil")
 	}
 	kList := []interface{}{pre, sub, sub1}
-	kBuf, cErr := encoding.EncodeSlice(kList, false)
+	kBuf, cErr := kope.EncodeSlice(kList)
 	return kBuf, cErr
 }
 
@@ -265,7 +265,7 @@ func (s *STransactionObjectExpirationWrap) QueryListByOrder(start *prototype.Tim
 	if start != nil {
 		skeyList = append(skeyList, start)
 	}
-	sBuf, cErr := encoding.EncodeSlice(skeyList, false)
+	sBuf, cErr := kope.EncodeSlice(skeyList)
 	if cErr != nil {
 		return nil
 	}
@@ -277,7 +277,7 @@ func (s *STransactionObjectExpirationWrap) QueryListByOrder(start *prototype.Tim
 	if end != nil {
 		eKeyList = append(eKeyList, end)
 	}
-	eBuf, cErr := encoding.EncodeSlice(eKeyList, false)
+	eBuf, cErr := kope.EncodeSlice(eKeyList)
 	if cErr != nil {
 		return nil
 	}
@@ -337,7 +337,7 @@ func (s *SoTransactionObjectWrap) encodeMainKey() ([]byte, error) {
 		return nil, errors.New("the mainKey is nil")
 	}
 	kList := []interface{}{pre, sub}
-	kBuf, cErr := encoding.EncodeSlice(kList, false)
+	kBuf, cErr := kope.EncodeSlice(kList)
 	return kBuf, cErr
 }
 
@@ -347,7 +347,7 @@ func (s *SoTransactionObjectWrap) delUniKeyTrxId(sa *SoTransactionObject) bool {
 	pre := TransactionObjectTrxIdUniTable
 	sub := sa.TrxId
 	kList := []interface{}{pre, sub}
-	kBuf, err := encoding.EncodeSlice(kList, false)
+	kBuf, err := kope.EncodeSlice(kList)
 	if err != nil {
 		return false
 	}
@@ -375,7 +375,7 @@ func (s *SoTransactionObjectWrap) insertUniKeyTrxId(sa *SoTransactionObject) boo
 	pre := TransactionObjectTrxIdUniTable
 	sub := sa.TrxId
 	kList := []interface{}{pre, sub}
-	kBuf, err := encoding.EncodeSlice(kList, false)
+	kBuf, err := kope.EncodeSlice(kList)
 	if err != nil {
 		return false
 	}
@@ -401,7 +401,7 @@ func (s *UniTransactionObjectTrxIdWrap) UniQueryTrxId(start *prototype.Sha256) *
 	}
 	pre := TransactionObjectTrxIdUniTable
 	kList := []interface{}{pre, start}
-	bufStartkey, err := encoding.EncodeSlice(kList, false)
+	bufStartkey, err := kope.EncodeSlice(kList)
 	val, err := s.Dba.Get(bufStartkey)
 	if err == nil {
 		res := &SoUniqueTransactionObjectByTrxId{}

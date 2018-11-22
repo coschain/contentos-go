@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"errors"
 
-	"github.com/coschain/contentos-go/common/encoding"
+	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
 	prototype "github.com/coschain/contentos-go/prototype"
 	proto "github.com/golang/protobuf/proto"
@@ -532,7 +532,7 @@ func (m *SoListPostByCreated) OpeEncode() ([]byte, error) {
 	sub1 := m.PostId
 
 	kList := []interface{}{pre, sub, sub1}
-	kBuf, cErr := encoding.EncodeSlice(kList, false)
+	kBuf, cErr := kope.EncodeSlice(kList)
 	return kBuf, cErr
 }
 
@@ -549,7 +549,7 @@ func (s *SPostCreatedWrap) QueryListByOrder(start *prototype.TimePointSec, end *
 	if start != nil {
 		skeyList = append(skeyList, start)
 	}
-	sBuf, cErr := encoding.EncodeSlice(skeyList, false)
+	sBuf, cErr := kope.EncodeSlice(skeyList)
 	if cErr != nil {
 		return nil
 	}
@@ -561,7 +561,7 @@ func (s *SPostCreatedWrap) QueryListByOrder(start *prototype.TimePointSec, end *
 	if end != nil {
 		eKeyList = append(eKeyList, end)
 	}
-	eBuf, cErr := encoding.EncodeSlice(eKeyList, false)
+	eBuf, cErr := kope.EncodeSlice(eKeyList)
 	if cErr != nil {
 		return nil
 	}
@@ -621,7 +621,7 @@ func (s *SoPostWrap) encodeMainKey() ([]byte, error) {
 		return nil, errors.New("the mainKey is nil")
 	}
 	kList := []interface{}{pre, sub}
-	kBuf, cErr := encoding.EncodeSlice(kList, false)
+	kBuf, cErr := kope.EncodeSlice(kList)
 	return kBuf, cErr
 }
 
@@ -631,7 +631,7 @@ func (s *SoPostWrap) delUniKeyPostId(sa *SoPost) bool {
 	pre := PostPostIdUniTable
 	sub := sa.PostId
 	kList := []interface{}{pre, sub}
-	kBuf, err := encoding.EncodeSlice(kList, false)
+	kBuf, err := kope.EncodeSlice(kList)
 	if err != nil {
 		return false
 	}
@@ -659,7 +659,7 @@ func (s *SoPostWrap) insertUniKeyPostId(sa *SoPost) bool {
 	pre := PostPostIdUniTable
 	sub := sa.PostId
 	kList := []interface{}{pre, sub}
-	kBuf, err := encoding.EncodeSlice(kList, false)
+	kBuf, err := kope.EncodeSlice(kList)
 	if err != nil {
 		return false
 	}
@@ -685,7 +685,7 @@ func (s *UniPostPostIdWrap) UniQueryPostId(start *uint64) *SoPostWrap {
 	}
 	pre := PostPostIdUniTable
 	kList := []interface{}{pre, start}
-	bufStartkey, err := encoding.EncodeSlice(kList, false)
+	bufStartkey, err := kope.EncodeSlice(kList)
 	val, err := s.Dba.Get(bufStartkey)
 	if err == nil {
 		res := &SoUniquePostByPostId{}
