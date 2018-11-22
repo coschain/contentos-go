@@ -7,6 +7,7 @@ import (
 	"github.com/coschain/contentos-go/rpc/mock_grpcpb"
 	"github.com/coschain/contentos-go/rpc/pb"
 	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
@@ -43,6 +44,7 @@ func TestBpRegisterWithUrl(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	client := mock_grpcpb.NewMockApiServiceClient(ctrl)
 	mywallet := mock_wallet.NewMockWallet(ctrl)
+	myassert := assert.New(t)
 	passwordReader := mock_utils.NewMockPasswordReader(ctrl)
 	cmd := BpCmd()
 	cmd.SetContext("wallet", mywallet)
@@ -61,7 +63,12 @@ func TestBpRegisterWithUrl(t *testing.T) {
 	}
 	mywallet.EXPECT().GetUnlockedAccount("initminer").Return(priv_account, true)
 	resp := &grpcpb.BroadcastTrxResponse{Status: 1, Msg: "success"}
-	client.EXPECT().BroadcastTrx(gomock.Any(), gomock.Any()).Return(resp, nil)
+	client.EXPECT().BroadcastTrx(gomock.Any(), gomock.Any()).Return(resp, nil).Do(func(context interface{}, req *grpcpb.BroadcastTrxRequest) {
+		op := req.Transaction.Trx.Operations[0]
+		bp_op := op.GetOp3()
+		myassert.Equal(bp_op.Owner.Value, "initminer")
+		myassert.Equal(bp_op.Url, "http://example.com")
+	})
 	_, err := cmd.ExecuteC()
 	if err != nil {
 		t.Error(err)
@@ -72,6 +79,7 @@ func TestBpRegisterWithDesc(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	client := mock_grpcpb.NewMockApiServiceClient(ctrl)
 	mywallet := mock_wallet.NewMockWallet(ctrl)
+	myassert := assert.New(t)
 	passwordReader := mock_utils.NewMockPasswordReader(ctrl)
 	cmd := BpCmd()
 	cmd.SetContext("wallet", mywallet)
@@ -90,7 +98,12 @@ func TestBpRegisterWithDesc(t *testing.T) {
 	}
 	mywallet.EXPECT().GetUnlockedAccount("initminer").Return(priv_account, true)
 	resp := &grpcpb.BroadcastTrxResponse{Status: 1, Msg: "success"}
-	client.EXPECT().BroadcastTrx(gomock.Any(), gomock.Any()).Return(resp, nil)
+	client.EXPECT().BroadcastTrx(gomock.Any(), gomock.Any()).Return(resp, nil).Do(func(context interface{}, req *grpcpb.BroadcastTrxRequest) {
+		op := req.Transaction.Trx.Operations[0]
+		bp_op := op.GetOp3()
+		myassert.Equal(bp_op.Owner.Value, "initminer")
+		myassert.Equal(bp_op.Desc, "hello world")
+	})
 	_, err := cmd.ExecuteC()
 	if err != nil {
 		t.Error(err)
@@ -101,6 +114,7 @@ func TestBpRegisterWithFee(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	client := mock_grpcpb.NewMockApiServiceClient(ctrl)
 	mywallet := mock_wallet.NewMockWallet(ctrl)
+	myassert := assert.New(t)
 	passwordReader := mock_utils.NewMockPasswordReader(ctrl)
 	cmd := BpCmd()
 	cmd.SetContext("wallet", mywallet)
@@ -119,7 +133,12 @@ func TestBpRegisterWithFee(t *testing.T) {
 	}
 	mywallet.EXPECT().GetUnlockedAccount("initminer").Return(priv_account, true)
 	resp := &grpcpb.BroadcastTrxResponse{Status: 1, Msg: "success"}
-	client.EXPECT().BroadcastTrx(gomock.Any(), gomock.Any()).Return(resp, nil)
+	client.EXPECT().BroadcastTrx(gomock.Any(), gomock.Any()).Return(resp, nil).Do(func(context interface{}, req *grpcpb.BroadcastTrxRequest) {
+		op := req.Transaction.Trx.Operations[0]
+		bp_op := op.GetOp3()
+		myassert.Equal(bp_op.Owner.Value, "initminer")
+		myassert.Equal(bp_op.Props.AccountCreationFee.Value, uint64(100))
+	})
 	_, err := cmd.ExecuteC()
 	if err != nil {
 		t.Error(err)
@@ -130,6 +149,7 @@ func TestBpRegisterWithBlockSize(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	client := mock_grpcpb.NewMockApiServiceClient(ctrl)
 	mywallet := mock_wallet.NewMockWallet(ctrl)
+	myassert := assert.New(t)
 	passwordReader := mock_utils.NewMockPasswordReader(ctrl)
 	cmd := BpCmd()
 	cmd.SetContext("wallet", mywallet)
@@ -148,7 +168,12 @@ func TestBpRegisterWithBlockSize(t *testing.T) {
 	}
 	mywallet.EXPECT().GetUnlockedAccount("initminer").Return(priv_account, true)
 	resp := &grpcpb.BroadcastTrxResponse{Status: 1, Msg: "success"}
-	client.EXPECT().BroadcastTrx(gomock.Any(), gomock.Any()).Return(resp, nil)
+	client.EXPECT().BroadcastTrx(gomock.Any(), gomock.Any()).Return(resp, nil).Do(func(context interface{}, req *grpcpb.BroadcastTrxRequest) {
+		op := req.Transaction.Trx.Operations[0]
+		bp_op := op.GetOp3()
+		myassert.Equal(bp_op.Owner.Value, "initminer")
+		myassert.Equal(bp_op.Props.MaximumBlockSize, uint32(1000))
+	})
 	_, err := cmd.ExecuteC()
 	if err != nil {
 		t.Error(err)
@@ -157,6 +182,7 @@ func TestBpRegisterWithBlockSize(t *testing.T) {
 
 func TestBpUnRegister(t *testing.T) {
 	ctrl := gomock.NewController(t)
+	myassert := assert.New(t)
 	client := mock_grpcpb.NewMockApiServiceClient(ctrl)
 	mywallet := mock_wallet.NewMockWallet(ctrl)
 	passwordReader := mock_utils.NewMockPasswordReader(ctrl)
@@ -177,7 +203,11 @@ func TestBpUnRegister(t *testing.T) {
 	}
 	mywallet.EXPECT().GetUnlockedAccount("initminer").Return(priv_account, true)
 	resp := &grpcpb.BroadcastTrxResponse{Status: 1, Msg: "success"}
-	client.EXPECT().BroadcastTrx(gomock.Any(), gomock.Any()).Return(resp, nil)
+	client.EXPECT().BroadcastTrx(gomock.Any(), gomock.Any()).Return(resp, nil).Do(func(context interface{}, req *grpcpb.BroadcastTrxRequest) {
+		op := req.Transaction.Trx.Operations[0]
+		bp_op := op.GetOp4()
+		myassert.Equal(bp_op.Owner.Value, "initminer")
+	})
 	_, err := cmd.ExecuteC()
 	if err != nil {
 		t.Error(err)
@@ -186,6 +216,7 @@ func TestBpUnRegister(t *testing.T) {
 
 func TestBpVoteWithoutFlags(t *testing.T) {
 	ctrl := gomock.NewController(t)
+	myassert := assert.New(t)
 	client := mock_grpcpb.NewMockApiServiceClient(ctrl)
 	mywallet := mock_wallet.NewMockWallet(ctrl)
 	passwordReader := mock_utils.NewMockPasswordReader(ctrl)
@@ -206,7 +237,11 @@ func TestBpVoteWithoutFlags(t *testing.T) {
 	}
 	mywallet.EXPECT().GetUnlockedAccount("initminer").Return(priv_account, true)
 	resp := &grpcpb.BroadcastTrxResponse{Status: 1, Msg: "success"}
-	client.EXPECT().BroadcastTrx(gomock.Any(), gomock.Any()).Return(resp, nil)
+	client.EXPECT().BroadcastTrx(gomock.Any(), gomock.Any()).Return(resp, nil).Do(func(context interface{}, req *grpcpb.BroadcastTrxRequest) {
+		op := req.Transaction.Trx.Operations[0]
+		bp_op := op.GetOp5()
+		myassert.Equal(bp_op.Cancel, false)
+	})
 	_, err := cmd.ExecuteC()
 	if err != nil {
 		t.Error(err)
@@ -215,6 +250,7 @@ func TestBpVoteWithoutFlags(t *testing.T) {
 
 func TestBpVoteCancel(t *testing.T) {
 	ctrl := gomock.NewController(t)
+	myassert := assert.New(t)
 	client := mock_grpcpb.NewMockApiServiceClient(ctrl)
 	mywallet := mock_wallet.NewMockWallet(ctrl)
 	passwordReader := mock_utils.NewMockPasswordReader(ctrl)
@@ -235,7 +271,11 @@ func TestBpVoteCancel(t *testing.T) {
 	}
 	mywallet.EXPECT().GetUnlockedAccount("initminer").Return(priv_account, true)
 	resp := &grpcpb.BroadcastTrxResponse{Status: 1, Msg: "success"}
-	client.EXPECT().BroadcastTrx(gomock.Any(), gomock.Any()).Return(resp, nil)
+	client.EXPECT().BroadcastTrx(gomock.Any(), gomock.Any()).Return(resp, nil).Do(func(context interface{}, req *grpcpb.BroadcastTrxRequest) {
+		op := req.Transaction.Trx.Operations[0]
+		bp_op := op.GetOp5()
+		myassert.Equal(bp_op.Cancel, true)
+	})
 	_, err := cmd.ExecuteC()
 	if err != nil {
 		t.Error(err)
