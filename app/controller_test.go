@@ -151,3 +151,59 @@ func Test_PushBlock(t *testing.T) {
 	c.PushBlock(sigBlk)
 
 }
+
+func Test_list(t *testing.T) {
+	clearDB()
+
+	// set up controller
+	db := startDB()
+	defer db.Close()
+
+	// make trx
+	acop,err := makeCreateAccountOP()
+	if err != nil {
+		t.Error("makeCreateAccountOP error:",err)
+	}
+
+	signedTrx, err := createSigTrx(acop)
+	if err != nil {
+		t.Error("createSigTrx error:",err)
+	}
+	id,err := signedTrx.Id()
+
+	// insert trx into DB unique table
+	transactionObjWrap := table.NewSoTransactionObjectWrap(db, id)
+	if transactionObjWrap.CheckExist() {
+		panic("Duplicate transaction check failed")
+	}
+
+	cErr := transactionObjWrap.Create(func(tInfo *table.SoTransactionObject) {
+		tInfo.TrxId = id
+		tInfo.Expiration = &prototype.TimePointSec{UtcSeconds: 100}
+	})
+	if cErr != nil {
+		panic("create transactionObject failed")
+	}
+
+	// check and delete
+
+	sortWrap := table.STransactionObjectExpirationWrap{Dba: db}
+	itr := sortWrap.QueryListByOrder(nil, nil) // query all
+	if itr != nil {
+		for itr.Next() {
+
+			subPtr := sortWrap.GetSubVal(itr)
+			if subPtr == nil {
+				break
+			}
+
+			k := sortWrap.GetMainVal(itr)
+			objWrap := table.NewSoTransactionObjectWrap(db, k)
+			if !objWrap.RemoveTransactionObject() {
+				panic("RemoveTransactionObject error")
+			}
+
+		}
+		sortWrap.DelIterater(itr)
+	}
+}
