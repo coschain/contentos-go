@@ -66,9 +66,9 @@ func (c *TableCells) Get() (values [][]interface{}, err error) {
 	}
 	for _, row := range c.cells {
 		rowValues := make([]interface{}, len(row))
-		for _, cell := range row {
+		for i, cell := range row {
 			if value, err := cell.get(); err == nil {
-				rowValues = append(rowValues, value)
+				rowValues[i] = value
 			} else {
 				return nil, err
 			}
