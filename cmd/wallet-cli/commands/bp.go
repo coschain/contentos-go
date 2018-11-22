@@ -31,8 +31,8 @@ var BpCmd = func() *cobra.Command {
 
 	registerCmd.Flags().StringVarP(&bpUrlFlag, "url", "u", "", `bp register alice --url "http://example.com"`)
 	registerCmd.Flags().StringVarP(&bpDescFlag, "desc", "d", "", `bp register alice --desc "Hello World"`)
-	registerCmd.Flags().Uint64VarP(&bpCreateAccountFee, "fee", "", 1, `bp register alice --fee 1`)
-	registerCmd.Flags().Uint32VarP(&bpBlockSize, "blocksize", "", 1024*1024, `bp register alice --blocksize 1024`)
+	registerCmd.Flags().Uint64VarP(&bpCreateAccountFee, "fee", "f", 1, `bp register alice --fee 1`)
+	registerCmd.Flags().Uint32VarP(&bpBlockSize, "blocksize", "b", 1024*1024, `bp register alice --blocksize 1024`)
 
 	unregisterCmd := &cobra.Command{
 		Use:     "unregister",
@@ -63,7 +63,7 @@ func registerBP(cmd *cobra.Command, args []string) {
 	c := cmd.Context["rpcclient"]
 	client := c.(grpcpb.ApiServiceClient)
 	w := cmd.Context["wallet"]
-	mywallet := w.(*wallet.BaseWallet)
+	mywallet := w.(wallet.Wallet)
 	name := args[0]
 	pubKeyStr := args[1]
 	bpAccount, ok := mywallet.GetUnlockedAccount(name)
@@ -107,7 +107,7 @@ func unRegisterBP(cmd *cobra.Command, args []string) {
 	c := cmd.Context["rpcclient"]
 	client := c.(grpcpb.ApiServiceClient)
 	w := cmd.Context["wallet"]
-	mywallet := w.(*wallet.BaseWallet)
+	mywallet := w.(wallet.Wallet)
 	name := args[0]
 	bpAccount, ok := mywallet.GetUnlockedAccount(name)
 	if !ok {
