@@ -2,8 +2,8 @@ package table
 
 import (
 	"fmt"
-	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/db/storage"
+	"github.com/coschain/contentos-go/db/table/test_data"
 	"github.com/coschain/contentos-go/prototype"
 	"testing"
 )
@@ -21,7 +21,7 @@ func TestTable(t *testing.T) {
 	RegisterProtoType((*prototype.Vest)(nil))
 
 	db := storage.NewMemoryDatabase()
-	tab, err = ProtoTableBuilder((*table.SoAccount)(nil)).
+	tab, err = ProtoTableBuilder((*test_data.SoAccount)(nil)).
 		Database(db).
 		Index("name", Primary).
 		Index("created_time", Nonunique).
