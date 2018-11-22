@@ -35,7 +35,7 @@ func MaxKey(prefix Key) Key {
 }
 
 func IndexKey(prefix Key, primaryKey Key, idxValues...interface{}) Key {
-	return ConcatKey(AppendKey(prefix, idxValues), packList([]Key{primaryKey}))
+	return ConcatKey(AppendKey(prefix, idxValues...), packList([]Key{primaryKey}))
 }
 
 func IndexedPrimaryKey(indexKey Key) Key {

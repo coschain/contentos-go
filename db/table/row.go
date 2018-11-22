@@ -89,5 +89,19 @@ type TableRow struct {
 }
 
 func (r *TableRow) delete(dbGetter storage.DatabaseGetter, dbScanner storage.DatabaseScanner, dbPutter storage.DatabasePutter, dbDeleter storage.DatabaseDeleter) error {
-	return r.table.valueIO.DeleteRow(dbGetter, dbScanner, dbPutter, dbDeleter, r.key)
+	vio := r.table.valueIO
+	for _, index := range r.table.indices {
+		if index.typ == Primary {
+			continue
+		}
+		colVal, err := vio.GetCellValue(dbGetter, dbScanner, r.key, index.column.ordinal)
+		if err != nil {
+			return err
+		}
+		err = index.removeIndex(dbDeleter, colVal, r.key)
+		if err != nil {
+			return err
+		}
+	}
+	return vio.DeleteRow(dbGetter, dbScanner, dbPutter, dbDeleter, r.key)
 }
