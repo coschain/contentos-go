@@ -1,8 +1,6 @@
 package config
 
 import (
-	"crypto/sha256"
-	"encoding/binary"
 	"fmt"
 
 	"github.com/coschain/contentos-go/p2p/depend/common/log"
@@ -11,36 +9,29 @@ import (
 var Version = "" //Set value when build project
 
 const (
-	DEFAULT_GEN_BLOCK_TIME   = 6
-
 	DEFAULT_LOG_LEVEL                       = log.InfoLog
 	DEFAULT_NODE_PORT                       = uint(20338)
 	DEFAULT_CONSENSUS_PORT                  = uint(20339)
 	DEFAULT_MAX_CONN_IN_BOUND               = uint(1024)
 	DEFAULT_MAX_CONN_OUT_BOUND              = uint(1024)
 	DEFAULT_MAX_CONN_IN_BOUND_FOR_SINGLE_IP = uint(16)
-	DEFAULT_HTTP_INFO_PORT                  = uint(0)
 )
 
 const (
 	NETWORK_ID_MAIN_NET      = 1
-	NETWORK_ID_POLARIS_NET   = 2
-	NETWORK_ID_SOLO_NET      = 3
+	NETWORK_ID_TESTNET_NET   = 2
 	NETWORK_NAME_MAIN_NET    = "contentos"
-	NETWORK_NAME_POLARIS_NET = "polaris"
-	NETWORK_NAME_SOLO_NET    = "testmode"
+	NETWORK_NAME_TEST_NET    = "contentos_test"
 )
 
 var NETWORK_MAGIC = map[uint32]uint32{
-	NETWORK_ID_MAIN_NET:    0x8c77ab60,     //Network main
-	NETWORK_ID_POLARIS_NET: 0x2d8829df,     //Network polaris
-	NETWORK_ID_SOLO_NET:    0,              //Network solo
+	NETWORK_ID_MAIN_NET:    0x8c77ab66,     //Network main
+	NETWORK_ID_TESTNET_NET: 0x2d8829ff,     //Network testnet
 }
 
 var NETWORK_NAME = map[uint32]string{
 	NETWORK_ID_MAIN_NET:    NETWORK_NAME_MAIN_NET,
-	NETWORK_ID_POLARIS_NET: NETWORK_NAME_POLARIS_NET,
-	NETWORK_ID_SOLO_NET:    NETWORK_NAME_SOLO_NET,
+	NETWORK_ID_TESTNET_NET: NETWORK_NAME_TEST_NET,
 }
 
 func GetNetworkMagic(id uint32) uint32 {
@@ -84,8 +75,6 @@ func NewGenesisConfig() *GenesisConfig {
 
 type CommonConfig struct {
 	LogLevel       uint
-	NodeType       string
-	SystemFee      map[string]int64
 }
 
 type ConsensusConfig struct {
@@ -110,7 +99,6 @@ type P2PNodeConfig struct {
 	CertPath                  string
 	KeyPath                   string
 	CAPath                    string
-	HttpInfoPort              uint
 	MaxConnInBound            uint
 	MaxConnOutBound           uint
 	MaxConnInBoundForSingleIP uint
@@ -128,7 +116,6 @@ func NewOntologyConfig() *OntologyConfig {
 		Genesis: MainNetConfig,
 		Common: &CommonConfig{
 			LogLevel:       DEFAULT_LOG_LEVEL,
-			SystemFee:      make(map[string]int64),
 		},
 		Consensus: &ConsensusConfig{
 			EnableConsensus: true,
@@ -146,47 +133,9 @@ func NewOntologyConfig() *OntologyConfig {
 			CertPath:                  "",
 			KeyPath:                   "",
 			CAPath:                    "",
-			HttpInfoPort:              DEFAULT_HTTP_INFO_PORT,
 			MaxConnInBound:            DEFAULT_MAX_CONN_IN_BOUND,
 			MaxConnOutBound:           DEFAULT_MAX_CONN_OUT_BOUND,
 			MaxConnInBoundForSingleIP: DEFAULT_MAX_CONN_IN_BOUND_FOR_SINGLE_IP,
 		},
 	}
-}
-
-
-func (this *OntologyConfig) GetDefaultNetworkId() (uint32, error) {
-	defaultNetworkId, err := this.getDefNetworkIDFromGenesisConfig(this.Genesis)
-	if err != nil {
-		return 0, err
-	}
-	mainNetId, err := this.getDefNetworkIDFromGenesisConfig(MainNetConfig)
-	if err != nil {
-		return 0, err
-	}
-	polaridId, err := this.getDefNetworkIDFromGenesisConfig(PolarisConfig)
-	if err != nil {
-		return 0, err
-	}
-	switch defaultNetworkId {
-	case mainNetId:
-		return NETWORK_ID_MAIN_NET, nil
-	case polaridId:
-		return NETWORK_ID_POLARIS_NET, nil
-	}
-	return defaultNetworkId, nil
-}
-
-func (this *OntologyConfig) getDefNetworkIDFromGenesisConfig(genCfg *GenesisConfig) (uint32, error) {
-	var configData []byte
-	var err error
-	switch this.Genesis.ConsensusType {
-	default:
-		return 0, fmt.Errorf("unknown consensus type:%s", this.Genesis.ConsensusType)
-	}
-	if err != nil {
-		return 0, fmt.Errorf("json.Marshal error:%s", err)
-	}
-	data := sha256.Sum256(configData)
-	return binary.LittleEndian.Uint32(data[0:4]), nil
 }

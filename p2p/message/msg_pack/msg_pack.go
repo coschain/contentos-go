@@ -5,12 +5,11 @@ import (
 
 	msgCommon "github.com/coschain/contentos-go/p2p/common"
 	"github.com/coschain/contentos-go/p2p/depend/common"
-	"github.com/coschain/contentos-go/p2p/depend/common/config"
 	"github.com/coschain/contentos-go/p2p/depend/common/log"
 	mt "github.com/coschain/contentos-go/p2p/message/types"
+	"github.com/coschain/contentos-go/p2p/msg"
 	"github.com/coschain/contentos-go/p2p/net/protocol"
 	"github.com/coschain/contentos-go/prototype"
-	"github.com/coschain/contentos-go/p2p/msg"
 )
 
 //Peer address package
@@ -107,7 +106,6 @@ func NewVersion(n p2p.P2P, isCons bool, height uint32) mt.Message {
 		ConsPort:     n.GetConsPort(),
 		Nonce:        n.GetID(),
 		IsConsensus:  isCons,
-		HttpInfoPort: n.GetHttpInfoPort(),
 		StartHeight:  uint64(height),
 		TimeStamp:    time.Now().UnixNano(),
 	}
@@ -116,11 +114,6 @@ func NewVersion(n p2p.P2P, isCons bool, height uint32) mt.Message {
 		version.P.Relay = 1
 	} else {
 		version.P.Relay = 0
-	}
-	if config.DefConfig.P2PNode.HttpInfoPort > 0 {
-		version.P.Cap[msgCommon.HTTP_INFO_FLAG] = 0x01
-	} else {
-		version.P.Cap[msgCommon.HTTP_INFO_FLAG] = 0x00
 	}
 	return &version
 }

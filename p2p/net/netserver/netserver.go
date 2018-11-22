@@ -170,11 +170,6 @@ func (this *NetServer) GetConsPort() uint16 {
 	return this.base.GetConsPort()
 }
 
-//GetHttpInfoPort return the port support info via http
-func (this *NetServer) GetHttpInfoPort() uint16 {
-	return this.base.GetHttpInfoPort()
-}
-
 //GetRelay return whether net module can relay msg
 func (this *NetServer) GetRelay() bool {
 	return this.base.GetRelay()

@@ -268,13 +268,6 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) 
 			}
 		}
 
-		if version.P.Cap[msgCommon.HTTP_INFO_FLAG] == 0x01 {
-			remotePeer.SetHttpInfoState(true)
-		} else {
-			remotePeer.SetHttpInfoState(false)
-		}
-		remotePeer.SetHttpInfoPort(version.P.HttpInfoPort)
-
 		remotePeer.UpdateInfo(time.Now(), version.P.Version,
 			version.P.Services, version.P.SyncPort,
 			version.P.ConsPort, version.P.Nonce,

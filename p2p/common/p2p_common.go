@@ -50,7 +50,7 @@ const (
 	CONN_MAX_BACK         = 4000  //max backoff time in micro sec
 	MAX_RETRY_COUNT       = 3     //max reconnect time of remote peer
 	CHAN_CAPABILITY       = 10000 //channel capability of recv link
-	SYNC_BLK_WAIT         = 2     //timespan for blk sync check
+	//SYNC_BLK_WAIT         = 2     //timespan for blk sync check
 )
 
 // The peer state
@@ -61,11 +61,6 @@ const (
 	HAND_SHAKED = 3 //send verion to peer and receive peer`s version
 	ESTABLISH   = 4 //receive peer`s verack
 	INACTIVITY  = 5 //link broken
-)
-
-//cap flag
-const (
-	HTTP_INFO_FLAG = 0 //peer`s http info bit in cap field
 )
 
 //recent contact const

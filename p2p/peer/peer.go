@@ -20,7 +20,6 @@ type PeerCom struct {
 	version      uint32
 	services     uint64
 	relay        bool
-	httpInfoPort uint16
 	syncPort     uint16
 	consPort     uint16
 	height       uint64
@@ -84,16 +83,6 @@ func (this *PeerCom) SetConsPort(port uint16) {
 // GetConsPort returns a peer's consensus port
 func (this *PeerCom) GetConsPort() uint16 {
 	return this.consPort
-}
-
-// SetHttpInfoPort sets a peer's http info port
-func (this *PeerCom) SetHttpInfoPort(port uint16) {
-	this.httpInfoPort = port
-}
-
-// GetHttpInfoPort returns a peer's http info port
-func (this *PeerCom) GetHttpInfoPort() uint16 {
-	return this.httpInfoPort
 }
 
 // SetHeight sets a peer's height
@@ -314,30 +303,6 @@ func (this *Peer) Send(msg types.Message, isConsensus bool) error {
 		return this.SendToCons(msg)
 	}
 	return this.SendToSync(msg)
-}
-
-//SetHttpInfoState set peer`s httpinfo state
-func (this *Peer) SetHttpInfoState(httpInfo bool) {
-	if httpInfo {
-		this.cap[common.HTTP_INFO_FLAG] = 0x01
-	} else {
-		this.cap[common.HTTP_INFO_FLAG] = 0x00
-	}
-}
-
-//GetHttpInfoState return peer`s httpinfo state
-func (this *Peer) GetHttpInfoState() bool {
-	return this.cap[common.HTTP_INFO_FLAG] == 1
-}
-
-//GetHttpInfoPort return peer`s httpinfo port
-func (this *Peer) GetHttpInfoPort() uint16 {
-	return this.base.GetHttpInfoPort()
-}
-
-//SetHttpInfoPort set peer`s httpinfo port
-func (this *Peer) SetHttpInfoPort(port uint16) {
-	this.base.SetHttpInfoPort(port)
 }
 
 //UpdateInfo update peer`s information

@@ -12,7 +12,6 @@ type VersionPayload struct {
 	Services     uint64
 	TimeStamp    int64
 	SyncPort     uint16
-	HttpInfoPort uint16
 	ConsPort     uint16
 	Cap          [32]byte
 	Nonce        uint64
@@ -31,7 +30,6 @@ func (this *Version) Serialization(sink *comm.ZeroCopySink) error {
 	sink.WriteUint64(this.P.Services)
 	sink.WriteInt64(this.P.TimeStamp)
 	sink.WriteUint16(this.P.SyncPort)
-	sink.WriteUint16(this.P.HttpInfoPort)
 	sink.WriteUint16(this.P.ConsPort)
 	sink.WriteBytes(this.P.Cap[:])
 	sink.WriteUint64(this.P.Nonce)
@@ -53,7 +51,6 @@ func (this *Version) Deserialization(source *comm.ZeroCopySource) error {
 	this.P.Services, eof = source.NextUint64()
 	this.P.TimeStamp, eof = source.NextInt64()
 	this.P.SyncPort, eof = source.NextUint16()
-	this.P.HttpInfoPort, eof = source.NextUint16()
 	this.P.ConsPort, eof = source.NextUint16()
 	var buf []byte
 	buf, eof = source.NextBytes(uint64(len(this.P.Cap[:])))

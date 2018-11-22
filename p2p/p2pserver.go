@@ -17,6 +17,7 @@ import (
 	"github.com/coschain/contentos-go/p2p/depend/common/config"
 	"github.com/coschain/contentos-go/p2p/depend/common/log"
 	msgtypes "github.com/coschain/contentos-go/p2p/message/types"
+	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/p2p/message/utils"
 	"github.com/coschain/contentos-go/p2p/net/netserver"
 	"github.com/coschain/contentos-go/p2p/net/protocol"
@@ -309,7 +310,7 @@ func (this *P2PServer) reqNbrList(p *peer.Peer) {
 //heartBeat send ping to nbr peers and check the timeout
 func (this *P2PServer) heartBeatService() {
 	var periodTime uint
-	periodTime = config.DEFAULT_GEN_BLOCK_TIME / common.UPDATE_RATE_PER_BLOCK
+	periodTime = constants.BLOCK_INTERVAL
 	t := time.NewTicker(time.Second * (time.Duration(periodTime)))
 
 	for {
@@ -349,7 +350,7 @@ func (this *P2PServer) pingTo(peers []*peer.Peer) {
 func (this *P2PServer) timeout() {
 	peers := this.Network.GetNeighbors()
 	var periodTime uint
-	periodTime = config.DEFAULT_GEN_BLOCK_TIME / common.UPDATE_RATE_PER_BLOCK
+	periodTime = constants.BLOCK_INTERVAL
 	for _, p := range peers {
 		if p.GetSyncState() == common.ESTABLISH {
 			t := p.GetContactTime()
