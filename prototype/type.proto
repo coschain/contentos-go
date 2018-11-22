@@ -132,3 +132,24 @@ message post_reply_order{
     prototype.time_point_sec last_update = 2;
     uint64 post_id = 3;
 }
+
+message dynamic_properties {
+    int32                        id                            =      1;
+    prototype.sha256             head_block_id                 =      2;
+    uint32                       head_block_number             =      3;
+    uint32                       maximum_block_size            =      4;
+    prototype.coin               total_cos                     =      5;
+    prototype.time_point_sec     time                          =      6;
+    prototype.account_name       current_witness               =      7;
+    uint32                       irreversible_block_num        =      8;
+    uint32                       tps                           =      9;
+    prototype.vest               total_vesting_shares          =      10;
+    prototype.coin               current_supply                =      11;
+    uint32                       current_aslot                 =      12;
+}
+
+
+message beneficiary_route_type{
+    account_name    name    = 1;
+    uint32          weight  = 2;
+}

@@ -158,6 +158,30 @@ func (s *SoPostWrap) MdAuthor(p *prototype.AccountName) bool {
 	return true
 }
 
+func (s *SoPostWrap) GetBeneficiaries() []*prototype.BeneficiaryRouteType {
+	res := s.getPost()
+
+	if res == nil {
+		var tmpValue []*prototype.BeneficiaryRouteType
+		return tmpValue
+	}
+	return res.Beneficiaries
+}
+
+func (s *SoPostWrap) MdBeneficiaries(p []*prototype.BeneficiaryRouteType) bool {
+	sa := s.getPost()
+	if sa == nil {
+		return false
+	}
+
+	sa.Beneficiaries = p
+	if !s.update(sa) {
+		return false
+	}
+
+	return true
+}
+
 func (s *SoPostWrap) GetBody() string {
 	res := s.getPost()
 

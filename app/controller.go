@@ -24,6 +24,10 @@ const (
 	skip_apply_transaction      skipFlag = 1 << 1
 )
 
+var(
+	SINGLE_ID int32 = 1
+)
+
 type Controller struct {
 	iservices.IController
 	// lock for db write
@@ -42,6 +46,7 @@ type Controller struct {
 	_current_op_in_trx    uint16
 	_currentBlockNum      uint64
 	_current_trx_in_block int16
+	dgpo *prototype.DynamicProperties
 }
 
 func (c *Controller) getDb() (iservices.IDatabaseService, error) {
@@ -77,8 +82,7 @@ func (c *Controller) Start(node *node.Node) error {
 }
 
 func (c *Controller) Open() {
-	var i int32 = 0
-	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db, &i)
+	dgpWrap := table.NewSoGlobalWrap(c.db, &SINGLE_ID )
 	if !dgpWrap.CheckExist() {
 
 		mustNoError(c.db.DeleteAll(), "truncate database error")
@@ -109,9 +113,7 @@ func (c *Controller) PushTrx(trx *prototype.SignedTransaction) *prototype.Transa
 	}()
 
 	// check maximum_block_size
-	var i int32 = 0
-	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db, &i)
-	if proto.Size(trx) > int(dgpWrap.GetMaximumBlockSize()-256) {
+	if proto.Size(trx) > int(c.dgpo.MaximumBlockSize-256) {
 		panic("transaction is too large")
 	}
 
@@ -295,10 +297,7 @@ func (c *Controller) _applyTransaction(trxWrp *prototype.TransactionWrapper) {
 		// @ check_admin
 	}
 
-	// TaPos and expired check
-	var i int32 = 0
-	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db, &i)
-	blockNum := dgpWrap.GetHeadBlockNumber()
+	blockNum := c.dgpo.GetHeadBlockNumber()
 	if blockNum > 0 {
 		uniWrap := table.UniBlockSummaryObjectIdWrap{}
 		idWrap := uniWrap.UniQueryId(&trx.Trx.RefBlockNum)
@@ -414,10 +413,8 @@ func (c *Controller) _applyBlock(blk *prototype.SignedBlock) {
 	c._currentBlockNum = nextBlockNum
 	c._current_trx_in_block = 0
 
-	var i int32 = 0
-	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db, &i)
 	blockSize := proto.Size(blk)
-	if uint32(blockSize) > dgpWrap.GetMaximumBlockSize() {
+	if uint32(blockSize) > c.dgpo.GetMaximumBlockSize() {
 		panic("Block size is too big")
 	}
 	if uint32(blockSize) < constants.MIN_BLOCK_SIZE {
@@ -425,7 +422,7 @@ func (c *Controller) _applyBlock(blk *prototype.SignedBlock) {
 	}
 
 	w := blk.SignedHeader.Header.Witness
-	dgpWrap.MdCurrentWitness(w)
+	c.dgpo.CurrentWitness = w
 
 	// @ process extension
 
@@ -490,17 +487,18 @@ func (c *Controller) initGenesis() {
 
 	// create dynamic global properties
 	var i int32 = 0
-	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db, &i)
-	mustNoError(dgpWrap.Create(func(tInfo *table.SoDynamicGlobalProperties) {
-		tInfo.CurrentWitness = name
-		tInfo.Time = &prototype.TimePointSec{UtcSeconds: constants.GENESIS_TIME}
-		tInfo.HeadBlockId = &prototype.Sha256{Hash: make([]byte, 32)}
+	dgpWrap := table.NewSoGlobalWrap(c.db, &SINGLE_ID)
+	mustNoError(dgpWrap.Create(func(tInfo *table.SoGlobal) {
+		tInfo.Props = &prototype.DynamicProperties{}
+		tInfo.Props.CurrentWitness = name
+		tInfo.Props.Time = &prototype.TimePointSec{UtcSeconds: constants.GENESIS_TIME}
+		tInfo.Props.HeadBlockId = &prototype.Sha256{Hash: make([]byte, 32)}
 		// @ recent_slots_filled
 		// @ participation_count
-		tInfo.CurrentSupply = prototype.NewCoin(constants.COS_INIT_SUPPLY)
-		tInfo.TotalCos = prototype.NewCoin(constants.COS_INIT_SUPPLY)
-		tInfo.MaximumBlockSize = constants.MAX_BLOCK_SIZE
-		tInfo.TotalVestingShares = prototype.NewVest(0)
+		tInfo.Props.CurrentSupply = prototype.NewCoin(constants.COS_INIT_SUPPLY)
+		tInfo.Props.TotalCos = prototype.NewCoin(constants.COS_INIT_SUPPLY)
+		tInfo.Props.MaximumBlockSize = constants.MAX_BLOCK_SIZE
+		tInfo.Props.TotalVestingShares = prototype.NewVest(0)
 	}), "CreateDynamicGlobalProperties error")
 
 	// create block summary
@@ -519,31 +517,34 @@ func (c *Controller) initGenesis() {
 }
 
 func (c *Controller) TransferToVest(value *prototype.Coin) {
-	var i int32 = 0
-	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db, &i)
-	cos := dgpWrap.GetTotalCos()
-	vest := dgpWrap.GetTotalVestingShares()
+
+	cos := c.dgpo.GetTotalCos()
+	vest := c.dgpo.GetTotalVestingShares()
 	addVest := value.ToVest()
 
 	mustNoError(cos.Sub(value), "TotalCos overflow")
-	mustSuccess(dgpWrap.MdTotalCos(cos), "modify GlobalProperties error")
+	c.dgpo.TotalCos = cos
 
 	mustNoError(vest.Add(addVest), "TotalVestingShares overflow")
-	mustSuccess(dgpWrap.MdTotalVestingShares(vest), "modify GlobalProperties error")
+	c.dgpo.TotalVestingShares = vest
+
+	c.updateGlobalDataToDB()
 }
 
 func (c *Controller) TransferFromVest(value *prototype.Vest) {
-	var i int32 = 0
-	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db, &i)
-	cos := dgpWrap.GetTotalCos()
-	vest := dgpWrap.GetTotalVestingShares()
+
+	cos := c.dgpo.GetTotalCos()
+	vest := c.dgpo.GetTotalVestingShares()
 	addCos := value.ToCoin()
 
 	mustNoError(cos.Add(addCos), "TotalCos overflow")
-	mustSuccess(dgpWrap.MdTotalCos(cos), "modify GlobalProperties error")
+	c.dgpo.TotalCos = cos
 
 	mustNoError(vest.Sub(value), "TotalVestingShares overflow")
-	mustSuccess(dgpWrap.MdTotalVestingShares(vest), "modify GlobalProperties error")
+	c.dgpo.TotalVestingShares = vest
+	
+	// TODO if op execute failed ???? how to revert ??
+	c.updateGlobalDataToDB()
 }
 
 func (c *Controller) validateBlockHeader(blk *prototype.SignedBlock) {
@@ -578,25 +579,18 @@ func (c *Controller) validateBlockHeader(blk *prototype.SignedBlock) {
 }
 
 func (c *Controller) headBlockID() *prototype.Sha256 {
-	var i int32 = 0
-	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db, &i)
-	headID := dgpWrap.GetHeadBlockId()
-	return headID
+	return c.dgpo.GetHeadBlockId()
 }
 
 func (c *Controller) HeadBlockTime() *prototype.TimePointSec {
 	return c.headBlockTime()
 }
 func (c *Controller) headBlockTime() *prototype.TimePointSec {
-	var i int32 = 0
-	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db, &i)
-	return dgpWrap.GetTime()
+	return c.dgpo.Time
 }
 
 func (c *Controller) headBlockNum() uint32 {
-	var i int32 = 0
-	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db, &i)
-	return dgpWrap.GetHeadBlockNumber()
+	return c.dgpo.HeadBlockNumber
 }
 
 func (c *Controller) GetSlotTime(slot uint32) *prototype.TimePointSec {
@@ -627,8 +621,7 @@ func (c *Controller) GetIncrementSlotAtTime(t *prototype.TimePointSec) uint32 {
 
 func (c *Controller) GetScheduledWitness(slot uint32) *prototype.AccountName {
 	var i int32 = 0
-	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db, &i)
-	currentSlot := dgpWrap.GetCurrentAslot()
+	currentSlot := c.dgpo.GetCurrentAslot()
 	currentSlot += slot
 
 	wsoWrap := table.NewSoWitnessScheduleObjectWrap(c.db, &i)
@@ -638,16 +631,18 @@ func (c *Controller) GetScheduledWitness(slot uint32) *prototype.AccountName {
 	return &prototype.AccountName{Value:witnessName}
 }
 
-func (c *Controller) updateGlobalDynamicData(blk *prototype.SignedBlock) {
-	var i int32 = 0
-	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db, &i)
+func (c *Controller) updateGlobalDataToDB() {
+	dgpWrap := table.NewSoGlobalWrap(c.db, &SINGLE_ID)
+	mustSuccess( dgpWrap.MdProps( c.dgpo ), "")
+}
 
+func (c *Controller) updateGlobalDynamicData(blk *prototype.SignedBlock) {
 	var missedBlock uint32 = 0
 	if c.headBlockTime().UtcSeconds != 0 {
 		missedBlock = c.GetIncrementSlotAtTime(blk.SignedHeader.Header.Timestamp)
 		mustSuccess(missedBlock != 0,"missedBlock error")
 		missedBlock--
-		for i:= uint32(i);i<missedBlock;i++{
+		for i:= uint32(0);i<missedBlock;i++{
 			witnessMissedName := c.GetScheduledWitness(i+1)
 			witnessWrap := table.NewSoWitnessWrap(c.db,witnessMissedName)
 			if witnessWrap.GetOwner().Value != blk.SignedHeader.Header.Witness.Value {
@@ -665,23 +660,21 @@ func (c *Controller) updateGlobalDynamicData(blk *prototype.SignedBlock) {
 
 	// @ calculate participation
 
-	dgpWrap.MdHeadBlockNumber(uint32(blk.Id().BlockNum()))
-	id := blk.Id()
-	blockID := &prototype.Sha256{Hash:id.Data[:]}
-	dgpWrap.MdHeadBlockId(blockID)
-	dgpWrap.MdTime(blk.SignedHeader.Header.Timestamp)
-	aslot := dgpWrap.GetCurrentAslot()
-	aslot += missedBlock+1
-	dgpWrap.MdCurrentAslot(aslot)
+	id         := blk.Id()
+	blockID    := &prototype.Sha256{Hash:id.Data[:]}
+
+	c.dgpo.HeadBlockNumber    = uint32(blk.Id().BlockNum())
+	c.dgpo.HeadBlockId        = blockID
+	c.dgpo.Time               = blk.SignedHeader.Header.Timestamp
+	c.dgpo.CurrentAslot       = c.dgpo.CurrentAslot + missedBlock+1
 
 	// this check is useful ?
-	mustSuccess(dgpWrap.GetHeadBlockNumber() - dgpWrap.GetIrreversibleBlockNum() < constants.MAX_UNDO_HISTORY,"The database does not have enough undo history to support a blockchain with so many missed blocks.")
+	mustSuccess( c.dgpo.GetHeadBlockNumber() - c.dgpo.GetIrreversibleBlockNum() < constants.MAX_UNDO_HISTORY,"The database does not have enough undo history to support a blockchain with so many missed blocks." )
+	c.updateGlobalDataToDB()
 }
 
 func (c *Controller) updateSigningWitness(blk *prototype.SignedBlock) {
-	var i int32 = 0
-	dgpWrap := table.NewSoDynamicGlobalPropertiesWrap(c.db, &i)
-	newAsLot := dgpWrap.GetCurrentAslot() + c.GetIncrementSlotAtTime(blk.SignedHeader.Header.Timestamp)
+	newAsLot := c.dgpo.GetCurrentAslot() + c.GetIncrementSlotAtTime(blk.SignedHeader.Header.Timestamp)
 
 	name := blk.SignedHeader.Header.Witness
 	witnessWrap := table.NewSoWitnessWrap(c.db, name)

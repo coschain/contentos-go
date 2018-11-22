@@ -60,11 +60,6 @@ message follow_operation{
 }
 
 
-message beneficiary_route_type{
-    account_name    name    = 1;
-    uint32          weight  = 2;
-}
-
 
 message post_operation{
     uint64 uuid             = 1;
