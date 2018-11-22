@@ -1,7 +1,6 @@
 package table
 
 import (
-	"bytes"
 	"errors"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
@@ -653,6 +652,8 @@ func (s *SDemoOwnerWrap) QueryListByRevOrder(start *prototype.AccountName, end *
 	skeyList := []interface{}{pre}
 	if start != nil {
 		skeyList = append(skeyList, start)
+	} else {
+		skeyList = append(skeyList, kope.MaximumKey)
 	}
 	sBuf, cErr := kope.EncodeSlice(skeyList)
 	if cErr != nil {
@@ -665,19 +666,6 @@ func (s *SDemoOwnerWrap) QueryListByRevOrder(start *prototype.AccountName, end *
 	eBuf, cErr := kope.EncodeSlice(eKeyList)
 	if cErr != nil {
 		return nil
-	}
-
-	if start != nil && end != nil {
-		res := bytes.Compare(sBuf, eBuf)
-		if res == -1 {
-			// order
-			return nil
-		} else if res == 0 {
-			sBuf = nil
-		}
-	} else if start == nil {
-		//query to the max data
-		sBuf = nil
 	}
 	//reverse the start and end when create ReversedIterator to query by reverse order
 	iter := s.Dba.NewReversedIterator(eBuf, sBuf)
@@ -775,29 +763,17 @@ func (s *SDemoPostTimeWrap) QueryListByOrder(start *prototype.TimePointSec, end 
 	if cErr != nil {
 		return nil
 	}
-	if start != nil && end == nil {
-		iter := s.Dba.NewIterator(sBuf, nil)
-		return iter
-	}
 	eKeyList := []interface{}{pre}
 	if end != nil {
 		eKeyList = append(eKeyList, end)
+	} else {
+		eKeyList = append(eKeyList, kope.MaximumKey)
 	}
 	eBuf, cErr := kope.EncodeSlice(eKeyList)
 	if cErr != nil {
 		return nil
 	}
-
-	res := bytes.Compare(sBuf, eBuf)
-	if res == 0 {
-		eBuf = nil
-	} else if res == 1 {
-		//reverse order
-		return nil
-	}
-	iter := s.Dba.NewIterator(sBuf, eBuf)
-
-	return iter
+	return s.Dba.NewIterator(sBuf, eBuf)
 }
 
 //Query sort by reverse order
@@ -809,6 +785,8 @@ func (s *SDemoPostTimeWrap) QueryListByRevOrder(start *prototype.TimePointSec, e
 	skeyList := []interface{}{pre}
 	if start != nil {
 		skeyList = append(skeyList, start)
+	} else {
+		skeyList = append(skeyList, kope.MaximumKey)
 	}
 	sBuf, cErr := kope.EncodeSlice(skeyList)
 	if cErr != nil {
@@ -821,19 +799,6 @@ func (s *SDemoPostTimeWrap) QueryListByRevOrder(start *prototype.TimePointSec, e
 	eBuf, cErr := kope.EncodeSlice(eKeyList)
 	if cErr != nil {
 		return nil
-	}
-
-	if start != nil && end != nil {
-		res := bytes.Compare(sBuf, eBuf)
-		if res == -1 {
-			// order
-			return nil
-		} else if res == 0 {
-			sBuf = nil
-		}
-	} else if start == nil {
-		//query to the max data
-		sBuf = nil
 	}
 	//reverse the start and end when create ReversedIterator to query by reverse order
 	iter := s.Dba.NewReversedIterator(eBuf, sBuf)
@@ -921,6 +886,8 @@ func (s *SDemoLikeCountWrap) QueryListByRevOrder(start *int64, end *int64) iserv
 	skeyList := []interface{}{pre}
 	if start != nil {
 		skeyList = append(skeyList, start)
+	} else {
+		skeyList = append(skeyList, kope.MaximumKey)
 	}
 	sBuf, cErr := kope.EncodeSlice(skeyList)
 	if cErr != nil {
@@ -933,19 +900,6 @@ func (s *SDemoLikeCountWrap) QueryListByRevOrder(start *int64, end *int64) iserv
 	eBuf, cErr := kope.EncodeSlice(eKeyList)
 	if cErr != nil {
 		return nil
-	}
-
-	if start != nil && end != nil {
-		res := bytes.Compare(sBuf, eBuf)
-		if res == -1 {
-			// order
-			return nil
-		} else if res == 0 {
-			sBuf = nil
-		}
-	} else if start == nil {
-		//query to the max data
-		sBuf = nil
 	}
 	//reverse the start and end when create ReversedIterator to query by reverse order
 	iter := s.Dba.NewReversedIterator(eBuf, sBuf)
@@ -1033,6 +987,8 @@ func (s *SDemoIdxWrap) QueryListByRevOrder(start *int64, end *int64) iservices.I
 	skeyList := []interface{}{pre}
 	if start != nil {
 		skeyList = append(skeyList, start)
+	} else {
+		skeyList = append(skeyList, kope.MaximumKey)
 	}
 	sBuf, cErr := kope.EncodeSlice(skeyList)
 	if cErr != nil {
@@ -1045,19 +1001,6 @@ func (s *SDemoIdxWrap) QueryListByRevOrder(start *int64, end *int64) iservices.I
 	eBuf, cErr := kope.EncodeSlice(eKeyList)
 	if cErr != nil {
 		return nil
-	}
-
-	if start != nil && end != nil {
-		res := bytes.Compare(sBuf, eBuf)
-		if res == -1 {
-			// order
-			return nil
-		} else if res == 0 {
-			sBuf = nil
-		}
-	} else if start == nil {
-		//query to the max data
-		sBuf = nil
 	}
 	//reverse the start and end when create ReversedIterator to query by reverse order
 	iter := s.Dba.NewReversedIterator(eBuf, sBuf)
@@ -1153,29 +1096,17 @@ func (s *SDemoReplayCountWrap) QueryListByOrder(start *int64, end *int64) iservi
 	if cErr != nil {
 		return nil
 	}
-	if start != nil && end == nil {
-		iter := s.Dba.NewIterator(sBuf, nil)
-		return iter
-	}
 	eKeyList := []interface{}{pre}
 	if end != nil {
 		eKeyList = append(eKeyList, end)
+	} else {
+		eKeyList = append(eKeyList, kope.MaximumKey)
 	}
 	eBuf, cErr := kope.EncodeSlice(eKeyList)
 	if cErr != nil {
 		return nil
 	}
-
-	res := bytes.Compare(sBuf, eBuf)
-	if res == 0 {
-		eBuf = nil
-	} else if res == 1 {
-		//reverse order
-		return nil
-	}
-	iter := s.Dba.NewIterator(sBuf, eBuf)
-
-	return iter
+	return s.Dba.NewIterator(sBuf, eBuf)
 }
 
 ////////////// SECTION List Keys ///////////////
@@ -1267,29 +1198,17 @@ func (s *SDemoTaglistWrap) QueryListByOrder(start *[]string, end *[]string) iser
 	if cErr != nil {
 		return nil
 	}
-	if start != nil && end == nil {
-		iter := s.Dba.NewIterator(sBuf, nil)
-		return iter
-	}
 	eKeyList := []interface{}{pre}
 	if end != nil {
 		eKeyList = append(eKeyList, end)
+	} else {
+		eKeyList = append(eKeyList, kope.MaximumKey)
 	}
 	eBuf, cErr := kope.EncodeSlice(eKeyList)
 	if cErr != nil {
 		return nil
 	}
-
-	res := bytes.Compare(sBuf, eBuf)
-	if res == 0 {
-		eBuf = nil
-	} else if res == 1 {
-		//reverse order
-		return nil
-	}
-	iter := s.Dba.NewIterator(sBuf, eBuf)
-
-	return iter
+	return s.Dba.NewIterator(sBuf, eBuf)
 }
 
 /////////////// SECTION Private function ////////////////

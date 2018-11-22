@@ -1,7 +1,6 @@
 package table
 
 import (
-	"bytes"
 	"errors"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
@@ -324,6 +323,8 @@ func (s *SExtPostCreatedOrderWrap) QueryListByRevOrder(start *prototype.PostCrea
 	skeyList := []interface{}{pre}
 	if start != nil {
 		skeyList = append(skeyList, start)
+	} else {
+		skeyList = append(skeyList, kope.MaximumKey)
 	}
 	sBuf, cErr := kope.EncodeSlice(skeyList)
 	if cErr != nil {
@@ -336,19 +337,6 @@ func (s *SExtPostCreatedOrderWrap) QueryListByRevOrder(start *prototype.PostCrea
 	eBuf, cErr := kope.EncodeSlice(eKeyList)
 	if cErr != nil {
 		return nil
-	}
-
-	if start != nil && end != nil {
-		res := bytes.Compare(sBuf, eBuf)
-		if res == -1 {
-			// order
-			return nil
-		} else if res == 0 {
-			sBuf = nil
-		}
-	} else if start == nil {
-		//query to the max data
-		sBuf = nil
 	}
 	//reverse the start and end when create ReversedIterator to query by reverse order
 	iter := s.Dba.NewReversedIterator(eBuf, sBuf)
@@ -437,6 +425,8 @@ func (s *SExtPostReplyOrderWrap) QueryListByRevOrder(start *prototype.PostReplyO
 	skeyList := []interface{}{pre}
 	if start != nil {
 		skeyList = append(skeyList, start)
+	} else {
+		skeyList = append(skeyList, kope.MaximumKey)
 	}
 	sBuf, cErr := kope.EncodeSlice(skeyList)
 	if cErr != nil {
@@ -449,19 +439,6 @@ func (s *SExtPostReplyOrderWrap) QueryListByRevOrder(start *prototype.PostReplyO
 	eBuf, cErr := kope.EncodeSlice(eKeyList)
 	if cErr != nil {
 		return nil
-	}
-
-	if start != nil && end != nil {
-		res := bytes.Compare(sBuf, eBuf)
-		if res == -1 {
-			// order
-			return nil
-		} else if res == 0 {
-			sBuf = nil
-		}
-	} else if start == nil {
-		//query to the max data
-		sBuf = nil
 	}
 	//reverse the start and end when create ReversedIterator to query by reverse order
 	iter := s.Dba.NewReversedIterator(eBuf, sBuf)

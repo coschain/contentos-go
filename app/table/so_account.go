@@ -1,7 +1,6 @@
 package table
 
 import (
-	"bytes"
 	"errors"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
@@ -494,29 +493,17 @@ func (s *SAccountCreatedTimeWrap) QueryListByOrder(start *prototype.TimePointSec
 	if cErr != nil {
 		return nil
 	}
-	if start != nil && end == nil {
-		iter := s.Dba.NewIterator(sBuf, nil)
-		return iter
-	}
 	eKeyList := []interface{}{pre}
 	if end != nil {
 		eKeyList = append(eKeyList, end)
+	} else {
+		eKeyList = append(eKeyList, kope.MaximumKey)
 	}
 	eBuf, cErr := kope.EncodeSlice(eKeyList)
 	if cErr != nil {
 		return nil
 	}
-
-	res := bytes.Compare(sBuf, eBuf)
-	if res == 0 {
-		eBuf = nil
-	} else if res == 1 {
-		//reverse order
-		return nil
-	}
-	iter := s.Dba.NewIterator(sBuf, eBuf)
-
-	return iter
+	return s.Dba.NewIterator(sBuf, eBuf)
 }
 
 ////////////// SECTION List Keys ///////////////
@@ -610,29 +597,17 @@ func (s *SAccountBalanceWrap) QueryListByOrder(start *prototype.Coin, end *proto
 	if cErr != nil {
 		return nil
 	}
-	if start != nil && end == nil {
-		iter := s.Dba.NewIterator(sBuf, nil)
-		return iter
-	}
 	eKeyList := []interface{}{pre}
 	if end != nil {
 		eKeyList = append(eKeyList, end)
+	} else {
+		eKeyList = append(eKeyList, kope.MaximumKey)
 	}
 	eBuf, cErr := kope.EncodeSlice(eKeyList)
 	if cErr != nil {
 		return nil
 	}
-
-	res := bytes.Compare(sBuf, eBuf)
-	if res == 0 {
-		eBuf = nil
-	} else if res == 1 {
-		//reverse order
-		return nil
-	}
-	iter := s.Dba.NewIterator(sBuf, eBuf)
-
-	return iter
+	return s.Dba.NewIterator(sBuf, eBuf)
 }
 
 ////////////// SECTION List Keys ///////////////
@@ -726,29 +701,17 @@ func (s *SAccountVestingSharesWrap) QueryListByOrder(start *prototype.Vest, end 
 	if cErr != nil {
 		return nil
 	}
-	if start != nil && end == nil {
-		iter := s.Dba.NewIterator(sBuf, nil)
-		return iter
-	}
 	eKeyList := []interface{}{pre}
 	if end != nil {
 		eKeyList = append(eKeyList, end)
+	} else {
+		eKeyList = append(eKeyList, kope.MaximumKey)
 	}
 	eBuf, cErr := kope.EncodeSlice(eKeyList)
 	if cErr != nil {
 		return nil
 	}
-
-	res := bytes.Compare(sBuf, eBuf)
-	if res == 0 {
-		eBuf = nil
-	} else if res == 1 {
-		//reverse order
-		return nil
-	}
-	iter := s.Dba.NewIterator(sBuf, eBuf)
-
-	return iter
+	return s.Dba.NewIterator(sBuf, eBuf)
 }
 
 ////////////// SECTION List Keys ///////////////
@@ -840,29 +803,17 @@ func (s *SAccountBpVoteCountWrap) QueryListByOrder(start *uint32, end *uint32) i
 	if cErr != nil {
 		return nil
 	}
-	if start != nil && end == nil {
-		iter := s.Dba.NewIterator(sBuf, nil)
-		return iter
-	}
 	eKeyList := []interface{}{pre}
 	if end != nil {
 		eKeyList = append(eKeyList, end)
+	} else {
+		eKeyList = append(eKeyList, kope.MaximumKey)
 	}
 	eBuf, cErr := kope.EncodeSlice(eKeyList)
 	if cErr != nil {
 		return nil
 	}
-
-	res := bytes.Compare(sBuf, eBuf)
-	if res == 0 {
-		eBuf = nil
-	} else if res == 1 {
-		//reverse order
-		return nil
-	}
-	iter := s.Dba.NewIterator(sBuf, eBuf)
-
-	return iter
+	return s.Dba.NewIterator(sBuf, eBuf)
 }
 
 /////////////// SECTION Private function ////////////////

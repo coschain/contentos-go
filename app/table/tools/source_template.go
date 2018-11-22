@@ -378,29 +378,17 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByOrder(start *{{$v.PType}}, e
     if cErr != nil {
          return nil
     }
-    if start != nil && end == nil {
-		iter := s.Dba.NewIterator(sBuf, nil)
-		return iter
-	}
-    eKeyList := []interface{}{pre}
+	eKeyList := []interface{}{pre}
     if end != nil {
        eKeyList = append(eKeyList,end)
-    }
+    } else {
+       eKeyList = append(eKeyList, kope.MaximumKey)
+	}
     eBuf,cErr := kope.EncodeSlice(eKeyList)
     if cErr != nil {
        return nil
     }
-    
-    res := bytes.Compare(sBuf,eBuf)
-    if res == 0 {
-		eBuf = nil
-	}else if res == 1 {
-       //reverse order
-       return nil
-    }
-    iter := s.Dba.NewIterator(sBuf, eBuf)
-    
-    return iter
+	return s.Dba.NewIterator(sBuf, eBuf)
 }
 {{end}}
 {{if or (eq $v.SType 2) (eq $v.SType 3) -}}
@@ -413,7 +401,9 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByRevOrder(start *{{$v.PType}}
     skeyList := []interface{}{pre}
     if start != nil {
        skeyList = append(skeyList,start)
-    }
+    } else {
+       skeyList = append(skeyList, kope.MaximumKey)
+	}
     sBuf,cErr := kope.EncodeSlice(skeyList)
     if cErr != nil {
          return nil
@@ -425,19 +415,6 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByRevOrder(start *{{$v.PType}}
     eBuf,cErr := kope.EncodeSlice(eKeyList)
     if cErr != nil {
        return nil
-    }
-
-    if start != nil && end != nil {
-       res := bytes.Compare(sBuf,eBuf)
-       if res == -1 {
-          // order
-          return nil
-       }else if res == 0 {
-          sBuf = nil
-       }
-    }else if start == nil {
-       //query to the max data
-       sBuf = nil
     }
     //reverse the start and end when create ReversedIterator to query by reverse order
     iter := s.Dba.NewReversedIterator(eBuf,sBuf)
