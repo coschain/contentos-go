@@ -27,16 +27,26 @@ func (t *Table) NewRow(columnValues...interface{}) *TableRows {
 		return errorTableRows(t.err)
 	}
 
+	var err error
+	colVals := columnValues
+	if len(columnValues) == 1 {
+		if nv, isNamedVals := columnValues[0].(map[string]interface{}); isNamedVals {
+			if colVals, err = t.parseNamedValues(nv); err != nil {
+				return errorTableRows(err)
+			}
+		}
+	}
+
 	batch := t.db.NewBatch()
 	defer t.db.DeleteBatch(batch)
 
-	rk, err := t.valueIO.NewRow(t.db, t.db, batch, batch, columnValues)
+	rk, err := t.valueIO.NewRow(t.db, t.db, batch, batch, colVals)
 	if err == nil {
 		for _, idx := range t.indices {
 			if idx.typ == Primary {
 				continue
 			}
-			if err = idx.addIndex(batch, columnValues[idx.column.ordinal], rk); err != nil {
+			if err = idx.addIndex(batch, colVals[idx.column.ordinal], rk); err != nil {
 				break
 			}
 		}
@@ -66,4 +76,16 @@ func (t *Table) Index(name string) *TableIndex {
 		return t.indices[idx]
 	}
 	return errorTableIndex(errors.New(fmt.Sprintf("index named \"%s\" not found.", name)))
+}
+
+func (t *Table) parseNamedValues(namedVals map[string]interface{}) ([]interface{}, error) {
+	values := make([]interface{}, len(t.columns))
+	for name, val := range namedVals {
+		colOrd, ok := t.columnByName[name]
+		if !ok {
+			return nil, errors.New("unknown column name: " + name)
+		}
+		values[colOrd] = val
+	}
+	return values, nil
 }
