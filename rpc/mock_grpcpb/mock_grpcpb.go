@@ -5,9 +5,9 @@
 package mock_grpcpb
 
 import (
+	context "context"
 	pb "github.com/coschain/contentos-go/rpc/pb"
 	gomock "github.com/golang/mock/gomock"
-	context "golang.org/x/net/context"
 	grpc "google.golang.org/grpc"
 	reflect "reflect"
 )
@@ -197,6 +197,24 @@ func (mr *MockApiServiceClientMockRecorder) GetTrxById(ctx, in interface{}, opts
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTrxById", reflect.TypeOf((*MockApiServiceClient)(nil).GetTrxById), varargs...)
 }
 
+// GetChainState mocks base method
+func (m *MockApiServiceClient) GetChainState(ctx context.Context, in *pb.NonParamsRequest, opts ...grpc.CallOption) (*pb.GetChainStateResponse, error) {
+	varargs := []interface{}{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetChainState", varargs...)
+	ret0, _ := ret[0].(*pb.GetChainStateResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetChainState indicates an expected call of GetChainState
+func (mr *MockApiServiceClientMockRecorder) GetChainState(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	varargs := append([]interface{}{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetChainState", reflect.TypeOf((*MockApiServiceClient)(nil).GetChainState), varargs...)
+}
+
 // BroadcastTrx mocks base method
 func (m *MockApiServiceClient) BroadcastTrx(ctx context.Context, in *pb.BroadcastTrxRequest, opts ...grpc.CallOption) (*pb.BroadcastTrxResponse, error) {
 	varargs := []interface{}{ctx, in}
@@ -353,6 +371,19 @@ func (m *MockApiServiceServer) GetTrxById(arg0 context.Context, arg1 *pb.GetTrxB
 // GetTrxById indicates an expected call of GetTrxById
 func (mr *MockApiServiceServerMockRecorder) GetTrxById(arg0, arg1 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTrxById", reflect.TypeOf((*MockApiServiceServer)(nil).GetTrxById), arg0, arg1)
+}
+
+// GetChainState mocks base method
+func (m *MockApiServiceServer) GetChainState(arg0 context.Context, arg1 *pb.NonParamsRequest) (*pb.GetChainStateResponse, error) {
+	ret := m.ctrl.Call(m, "GetChainState", arg0, arg1)
+	ret0, _ := ret[0].(*pb.GetChainStateResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetChainState indicates an expected call of GetChainState
+func (mr *MockApiServiceServerMockRecorder) GetChainState(arg0, arg1 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetChainState", reflect.TypeOf((*MockApiServiceServer)(nil).GetChainState), arg0, arg1)
 }
 
 // BroadcastTrx mocks base method

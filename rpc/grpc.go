@@ -121,6 +121,13 @@ func (as *APIService) GetFollowCountByName(ctx context.Context, req *grpcpb.GetF
 	return &grpcpb.GetFollowCountByNameResponse{FerCnt: ferCnt, FingCnt: fingCnt}, nil
 
 }
+func (as *APIService) GetChainState(ctx context.Context, in *grpcpb.NonParamsRequest) (*grpcpb.GetChainStateResponse, error){
+	var (
+		i         int32 = 1
+	)
+	globalVar := table.NewSoGlobalWrap(as.db, &i)
+	return &grpcpb.GetChainStateResponse{Props: globalVar.GetProps()}, nil
+}
 
 func (as *APIService) GetWitnessList(ctx context.Context, req *grpcpb.GetWitnessListRequest) (*grpcpb.GetWitnessListResponse, error) {
 	var (
