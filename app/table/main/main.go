@@ -171,48 +171,33 @@ func main() {
 		fmt.Println("there is no data exist in reverse order")
 	}
 
-
-    //query single value but not a range,start and end set the same value
-	iter2 := tSortWrap.QueryListByOrder(creTimeSecondPoint(20136666),
-		creTimeSecondPoint(20136666))
-	if iter2 != nil {
-		if iter2.Next() {
-			mKeyPtr := tSortWrap.GetMainVal(iter2)
-			if mKeyPtr == nil {
-				fmt.Println("get main key fail in range")
-			}
-		}
-
-		tSortWrap.DelIterater(iter2)
-	}
-
 	//query without start
-	iter3 := tSortWrap.QueryListByOrder(nil,creTimeSecondPoint(20120422))
-	if iter3 != nil  {
-		for iter3.Next() {
-			mKeyPtr := tSortWrap.GetMainVal(iter3)
+	iter2 := tSortWrap.QueryListByOrder(nil,creTimeSecondPoint(20120422))
+	if iter2 != nil  {
+		for iter2.Next() {
+			mKeyPtr := tSortWrap.GetMainVal(iter2)
 			if mKeyPtr == nil {
 				fmt.Println("get main key fail in range when query without start 1111")
 			}else {
 				fmt.Printf("the main key is %s in range when query without start  \n",mKeyPtr.Value)
 			}
 		}
-		tSortWrap.DelIterater(iter3)
+		tSortWrap.DelIterater(iter2)
 	}else {
 		fmt.Println("there is no data exist without start")
 	}
 
 	//query without end
-	iter4 := tSortWrap.QueryListByOrder(creTimeSecondPoint(20120000),nil)
-	if iter4 != nil  {
-		for iter4.Next() {
-			mKeyPtr := tSortWrap.GetMainVal(iter4)
+	iter3 := tSortWrap.QueryListByOrder(creTimeSecondPoint(20120000),nil)
+	if iter3 != nil  {
+		for iter3.Next() {
+			mKeyPtr := tSortWrap.GetMainVal(iter3)
 			if mKeyPtr == nil {
 				fmt.Println("get main key fail in range when query without end")
 			}else {
 				fmt.Printf("the main key is %s in range when query without end \n",mKeyPtr.Value)
 			}
-			tSortWrap.DelIterater(iter4)
+			tSortWrap.DelIterater(iter3)
 		}
 
 	}else {
@@ -220,31 +205,31 @@ func main() {
 	}
 
 	//query without start and end
-	iter5 := tSortWrap.QueryListByOrder(nil,nil)
-	if iter5 != nil {
-		for iter5.Next() {
-			mKeyPtr := tSortWrap.GetMainVal(iter5)
+	iter4 := tSortWrap.QueryListByOrder(nil,nil)
+	if iter4 != nil {
+		for iter4.Next() {
+			mKeyPtr := tSortWrap.GetMainVal(iter4)
 			if mKeyPtr == nil {
 				fmt.Println("get main key fail in range when query without start and end")
 			} else {
 				fmt.Printf("the main key is %s when query without start and end  \n", mKeyPtr.Value)
 			}
 		}
-		tSortWrap.DelIterater(iter5)
+		tSortWrap.DelIterater(iter4)
 	}
 
 	//query without start and end by reverse order
-	iter6 := tSortWrap.QueryListByRevOrder(nil,nil)
-	if iter6 != nil {
-		for iter6.Next() {
-			mKeyPtr := tSortWrap.GetMainVal(iter6)
+	iter5 := tSortWrap.QueryListByRevOrder(nil,nil)
+	if iter5 != nil {
+		for iter5.Next() {
+			mKeyPtr := tSortWrap.GetMainVal(iter5)
 			if mKeyPtr == nil {
 				fmt.Println("get main key fail in range when query without start and end by reverse sort ")
 			}else {
 				fmt.Printf("the main key is %s in range when query without start and end by reverse sort \n",mKeyPtr.Value)
 			}
 		}
-		tSortWrap.DelIterater(iter6)
+		tSortWrap.DelIterater(iter5)
 	}else {
 		fmt.Println("there is no data in reverse order without start and end")
 	}
