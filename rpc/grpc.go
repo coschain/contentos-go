@@ -26,7 +26,7 @@ type APIService struct {
 func (as *APIService) GetAccountByName(ctx context.Context, req *grpcpb.GetAccountByNameRequest) (*grpcpb.AccountResponse, error) {
 
 	accWrap := table.NewSoAccountWrap(as.db, req.AccountName)
-	acct := &grpcpb.AccountResponse{AccountName: &prototype.AccountName{}}
+	acct := &grpcpb.AccountResponse{}
 
 	if accWrap.CheckExist() {
 		acct.AccountName = &prototype.AccountName{Value: accWrap.GetName().Value}
