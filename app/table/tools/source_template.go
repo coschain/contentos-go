@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/syndtr/goleveldb/leveldb/errors"
-	"html/template"
+	"text/template"
 	"log"
 	"os/exec"
 	"strings"
@@ -572,7 +572,7 @@ func (s *Uni{{$.ClsName}}{{$k}}Wrap) UniQuery{{$k}}(start *{{formatStr $v}}) *So
 		"formateQueryParamStr":formateQueryParamStr,
 		"formatePbSliceType":formatePbSliceType,
 		}
-		t := template.New("layout.html")
+		t := template.New("go_template")
 		t  = t.Funcs(funcMapUper)
 		t.Parse(tmpl)
 		t.Execute(fPtr,createParamsFromTableInfo(tIfno))

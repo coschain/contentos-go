@@ -224,7 +224,7 @@ func WritePbTplToFile(tInfo TableInfo) (bool, error) {
 		}
 		fName := TmlFolder + "so_" + tInfo.Name + ".proto"
 		if fPtr := CreateFile(fName); fPtr != nil {
-			t := template.New("layout.html")
+			t := template.New("pb_template")
 			funcMap := template.FuncMap{
 				"checkIsSliceType":checkIsSliceType,
 				"formatPbSliceType":formatPbSliceType,
