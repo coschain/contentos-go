@@ -177,7 +177,7 @@ func (c *Controller) PushBlock(blk *prototype.SignedBlock) {
 }
 
 func (c *Controller) ClearPending() []*prototype.TransactionWrapper {
-	//
+	// @
 	res := make([]*prototype.TransactionWrapper, len(c._pending_tx))
 	copy(res, c._pending_tx)
 
@@ -201,8 +201,95 @@ func (c *Controller) restorePending(pending []*prototype.TransactionWrapper) {
 	}
 }
 
-func (c *Controller) GenerateBlock(accountName string, timestamp uint32,
-	prev common.BlockID) *prototype.SignedBlock {
+func (c *Controller) GenerateBlock(witness string, timestamp uint32,
+	prev *common.BlockID, priKey *prototype.PrivateKeyType, skip skipFlag) *prototype.SignedBlock {
+	oldSkip := c.skip
+	defer func() {
+		c.skip = oldSkip
+		if err := recover(); err != nil {
+			c.db.EndTransaction(false)
+			logging.CLog().Errorf("GenerateBlock Error: %v", err)
+			panic(err)
+		}
+	}()
+
+	c.skip = skip
+
+	slotNum := c.GetIncrementSlotAtTime(&prototype.TimePointSec{UtcSeconds:timestamp})
+	mustSuccess(slotNum > 0,"slot num must > 0")
+	witnessName := c.GetScheduledWitness(slotNum)
+	mustSuccess(witnessName.Value == witness,"not this witness")
+
+	pubkey,err := priKey.PubKey()
+	mustNoError(err,"get public key error")
+
+	witnessWrap := table.NewSoWitnessWrap(c.db,witnessName)
+	mustSuccess(bytes.Equal(witnessWrap.GetSigningKey().Data[:],pubkey.Data[:]),"public key not equal")
+
+	// @ ok ?
+	signHeader := &prototype.SignedBlockHeader{}
+	maxBlockHeaderSize := proto.Size(signHeader) + 4
+	var i int32 = 0
+	dgpWrap := table.NewSoGlobalWrap(c.db,&i)
+	maxBlockSize := dgpWrap.GetProps().MaximumBlockSize
+	var totalSize uint32 = uint32(maxBlockHeaderSize)
+
+	signBlock := &prototype.SignedBlock{}
+	signBlock.SignedHeader = &prototype.SignedBlockHeader{}
+	signBlock.SignedHeader.Header = &prototype.BlockHeader{}
+	c._current_trx_in_block = 0
+
+	// undo all _pending_tx in DB
+	c.db.EndTransaction(false)
+	c.db.BeginTransaction()
+
+	var postponeTrx uint64 = 0
+	for _,trxWraper := range c._pending_tx {
+		if trxWraper.SigTrx.Trx.Expiration.UtcSeconds < timestamp {
+			continue
+		}
+		var newTotalSize uint64 = uint64(totalSize) + uint64(proto.Size(trxWraper))
+		if newTotalSize > uint64(maxBlockSize) {
+			postponeTrx++
+			continue
+		}
+
+		func () {
+			defer func() {
+				if err := recover(); err != nil{
+					c.db.EndTransaction(false)
+				}
+			}()
+
+			c.db.BeginTransaction()
+			c._applyTransaction(trxWraper)
+			c.db.EndTransaction(true)
+
+			totalSize += uint32(proto.Size(trxWraper))
+			signBlock.Transactions = append(signBlock.Transactions,trxWraper)
+			c._current_trx_in_block++
+		}()
+	}
+	if postponeTrx > 0 {
+		logging.CLog().Warnf("postponed %d trx due to max block size",postponeTrx)
+	}
+
+	signBlock.SignedHeader.Header.Previous = c.headBlockID()
+	signBlock.SignedHeader.Header.Timestamp = &prototype.TimePointSec{UtcSeconds:timestamp}
+	id := signBlock.CalculateMerkleRoot()
+	signBlock.SignedHeader.Header.TransactionMerkleRoot = &prototype.Sha256{Hash:id.Data[:]}
+	signBlock.SignedHeader.Header.Witness = witnessName
+	signBlock.SignedHeader.Sign(priKey)
+
+	mustSuccess(proto.Size(signBlock) <= constants.MAX_BLOCK_SIZE,"block size too big")
+
+	c.PushBlock(signBlock)
+	if signBlock.SignedHeader.Number() == uint64(c.headBlockNum()) {
+		c.db.EndTransaction(true)
+	} else {
+		c.db.EndTransaction(false)
+	}
+
 	return nil
 }
 
