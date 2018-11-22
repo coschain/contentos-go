@@ -91,6 +91,7 @@ func (c *Controller) Open() {
 		c.initGenesis()
 		logging.CLog().Info("finish initGenesis")
 	}
+	c.dgpo = dgpWrap.GetProps()
 }
 
 func (c *Controller) Stop() error {
