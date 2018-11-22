@@ -154,6 +154,11 @@ func (vio *protoTableValueIO) NewRow(dbGetter storage.DatabaseGetter, dbScanner 
 		s.Field(col.field).Set(v)
 	}
 	rk := kope.AppendKey(vio.prefix, columnValues[vio.primaryIndex])
+	if dup, err := dbGetter.Has(rk); err != nil {
+		return nil, err
+	} else if dup {
+		return nil, errors.New("duplicate row")
+	}
 	err = vio.putMessage(dbPutter, rk, msg)
 	if err != nil {
 		return nil, err
