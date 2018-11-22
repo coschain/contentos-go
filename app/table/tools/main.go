@@ -4,7 +4,7 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
-	"html/template"
+	"text/template"
 	"io/ioutil"
 	"log"
 	"os"
@@ -24,8 +24,9 @@ type PropList struct {
 	VarName  string
 	BMainKey bool
 	BUnique  bool
-	SortType int //0 不支持排序 1:支持正序 2:支持倒序 3:支持正序和倒序
+	SortType int //0 not support sort 1:support order 2:support reverse order 3:support order and reverse order
 	Index    uint32
+	impPath  string //the import path of pb type
 }
 
 var TmlFolder = "./app/table/"
@@ -93,6 +94,13 @@ func (p *PropList) Parse(info []string, index uint32) bool {
 	}
 
 	p.Index = index
+
+	if len(info) > 6 && len(info[6]) > 0 {
+		impPath := strings.Replace(info[6]," ","",-1)
+		if len(impPath) > 0 {
+			p.impPath = impPath
+		}
+	}
 
 	if index == 1 && !p.BMainKey {
 		return false
@@ -219,7 +227,8 @@ func WritePbTplToFile(tInfo TableInfo) (bool, error) {
 			t := template.New("layout.html")
 			funcMap := template.FuncMap{
 				"checkIsSliceType":checkIsSliceType,
-				"formatPbSliceType":formatPbSliceType}
+				"formatPbSliceType":formatPbSliceType,
+			    "getPbImpPaths":getPbImpPaths}
 			t = t.Funcs(funcMap)
 			t.Parse(tpl)
 			t.Execute(fPtr, tInfo)
@@ -248,8 +257,10 @@ package table;
 
 option go_package = "github.com/coschain/contentos-go/table";
 
-import "prototype/type.proto";
-
+{{$path := (getPbImpPaths .PList) -}}
+{{if ne $path "" -}}
+{{$path}}
+{{end}}
 message so_{{.Name}} {
 	{{range $k,$v := .PList}}
     {{- if (checkIsSliceType .VarType) -}}
@@ -427,4 +438,29 @@ func formatPbSliceType(str string) string {
 		return strings.Replace(str,"[]","",-1)
 	}
 	return str
+}
+
+func getPbImpPaths(pList []PropList) string  {
+	 res := ""
+	 if len(pList) > 0 {
+		 pMap := make(map[string]string)
+		 for _,v := range pList {
+		 	 if len(v.impPath) > 0 {
+				 pMap[v.impPath] = v.impPath
+			 }
+		 }
+		 count := len(pMap)
+		 if count > 0 {
+			i := 0
+			for _,v := range pMap {
+				if i != 0 {
+					res += "\n"
+				}
+				res += "import " + "\"" + v + "\"" + ";"
+				i++
+			}
+		 }
+	 }
+
+     return res
 }

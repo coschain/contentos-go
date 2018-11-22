@@ -1,4 +1,4 @@
-type                            ,pName     ,mKey,unique,sort,reverseSort
-prototype.bp_voter_id           ,voter_id  ,1   ,1     ,1   ,0
-prototype.bp_witness_id 								,witness_id,0   ,0     ,0   ,0
-prototype.time_point_sec        ,vote_time ,0   ,0     ,0   ,0
+type                            ,pName     ,mKey,unique,sort,reverseSort,importPath
+prototype.bp_voter_id           ,voter_id  ,1   ,1     ,1   ,0          ,prototype/type.proto
+prototype.bp_witness_id 								,witness_id,0   ,0     ,0   ,0          ,
+prototype.time_point_sec        ,vote_time ,0   ,0     ,0   ,0          ,

@@ -5,7 +5,6 @@ package table;
 
 option go_package = "github.com/coschain/contentos-go/table";
 
-import "prototype/type.proto";
 
 message so_witnessScheduleObject {
 	int32                        id                                     =      1;

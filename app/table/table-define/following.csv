@@ -1,3 +1,3 @@
-type                                ,pName              ,mKey   ,unique ,sort   ,reverseSort
-prototype.following_relation        ,following_info     ,1      ,1      ,0      ,0
-prototype.time_point_sec            ,created_time       ,0      ,0      ,0      ,0
+type                                ,pName              ,mKey   ,unique ,sort   ,reverseSort ,importPath
+prototype.following_relation        ,following_info     ,1      ,1      ,0      ,0           ,prototype/type.proto
+prototype.time_point_sec            ,created_time       ,0      ,0      ,0      ,0           ,

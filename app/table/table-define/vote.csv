@@ -1,4 +1,4 @@
-type                            ,pName              ,mKey   ,unique ,sort   ,reverseSort
-prototype.voter_id          				,voter              ,1      ,1      ,0      ,0
-prototype.time_point_sec        ,vote_time          ,0      ,0      ,1      ,0
-uint64                          ,post_id            ,0      ,0      ,1      ,0
+type                            ,pName              ,mKey   ,unique ,sort   ,reverseSort,importPath
+prototype.voter_id          				,voter              ,1      ,1      ,0      ,0          ,prototype/type.proto
+prototype.time_point_sec        ,vote_time          ,0      ,0      ,1      ,0          ,
+uint64                          ,post_id            ,0      ,0      ,1      ,0          ,

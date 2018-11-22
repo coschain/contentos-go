@@ -1,6 +1,6 @@
-type                       ,pName         ,mKey,unique,sort,reverseSort
-prototype.account_name   ,account              ,1,1,0,0
-prototype.authority      ,owner               ,0,0,0,0
-prototype.authority      ,active              ,0,0,0,0
-prototype.authority      ,posting             ,0,0,0,0
-prototype.time_point_sec ,last_owner_update   ,0,0,0,0
+type                       ,pName         ,mKey,unique,sort,reverseSort,importPath
+prototype.account_name   ,account              ,1,1,0,0,prototype/type.proto
+prototype.authority      ,owner               ,0,0,0,0,prototype/type.proto
+prototype.authority      ,active              ,0,0,0,0,prototype/type.proto
+prototype.authority      ,posting             ,0,0,0,0,prototype/type.proto
+prototype.time_point_sec ,last_owner_update   ,0,0,0,0,prototype/type.proto

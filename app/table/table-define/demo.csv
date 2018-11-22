@@ -1,9 +1,9 @@
-type                       ,pName       ,mKey,unique,sort,reverseSort
-prototype.account_name     ,owner       ,1    ,0     ,0    ,1
-prototype.time_point_sec   ,post_time   ,0    ,0     ,1    ,1
-string                     ,title       ,0    ,0     ,0    ,0
-int64                      ,like_count  ,0    ,1     ,0    ,1
-int64                      ,idx         ,0    ,1     ,0    ,1
-int64                      ,replay_count,0    ,0     ,1    ,0
-string                     ,content     ,0    ,0     ,0    ,0
-[]string                   ,taglist     ,0    ,0     ,1    ,0
+type                       ,pName       ,mKey,unique,sort,reverseSort,importPath
+prototype.account_name     ,owner       ,1    ,0     ,0    ,1        ,prototype/type.proto
+prototype.time_point_sec   ,post_time   ,0    ,0     ,1    ,1        ,prototype/type.proto
+string                     ,title       ,0    ,0     ,0    ,0        ,
+int64                      ,like_count  ,0    ,1     ,0    ,1        ,
+int64                      ,idx         ,0    ,1     ,0    ,1        ,
+int64                      ,replay_count,0    ,0     ,1    ,0        ,
+string                     ,content     ,0    ,0     ,0    ,0        ,
+[]string                   ,taglist     ,0    ,0     ,1    ,0        ,
