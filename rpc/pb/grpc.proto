@@ -128,9 +128,8 @@ message AccountResponse {
 }
 
 message GetFollowerListByNameRequest {
-    prototype.account_name account_name = 1;
-    prototype.follower_relation start = 2;
-    uint32 limit = 3;
+    prototype.follower_created_order start = 1;
+    uint32 limit = 2;
 }
 
 message GetFollowerListByNameResponse {
@@ -138,9 +137,8 @@ message GetFollowerListByNameResponse {
 }
 
 message GetFollowingListByNameRequest {
-    prototype.account_name account_name = 1;
-    prototype.following_relation start = 2;
-    uint32 limit = 3;
+    prototype.following_created_order start = 1;
+    uint32 limit = 2;
 }
 
 message GetFollowingListByNameResponse {
@@ -161,7 +159,7 @@ message WitnessResponse {
     prototype.witness_schedule_type    witness_schedule_type           = 2;
     prototype.time_point_sec           created_time                    = 3;
     string                             url                             = 4;
-    uint64                             last_confirmed_block_num        = 5;
+    uint32                             last_confirmed_block_num        = 5;
     uint32                             total_missed                    = 6;
     uint32                             pow_worker                      = 7;
     prototype.public_key_type          signing_key                     = 8;

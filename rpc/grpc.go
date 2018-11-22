@@ -35,7 +35,7 @@ func (as *APIService) GetAccountByName(ctx context.Context, req *grpcpb.GetAccou
 		//acct.PublicKeys = accWrap.GetPubKey()
 		acct.CreatedTime = accWrap.GetCreatedTime()
 
-		return acct, nil
+		return nil, nil
 	} else {
 		return nil, ErrEmptyResp
 	}
@@ -51,7 +51,8 @@ func (as *APIService) GetFollowerListByName(ctx context.Context, req *grpcpb.Get
 		limit   uint32
 	)
 
-	ferOrderWrap := &table.SFollowerFollowerInfoWrap{Dba: as.db}
+	ferOrderWrap := table.NewExtFollowerFollowerInfoWrap(as.db)
+
 
 	if req.Start == nil {
 		ferIter = ferOrderWrap.QueryListByOrder(nil, nil)
@@ -87,7 +88,7 @@ func (as *APIService) GetFollowingListByName(ctx context.Context, req *grpcpb.Ge
 		limit    uint32
 	)
 
-	fingOrderWrap := &table.SFollowingFollowingInfoWrap{Dba: as.db}
+	fingOrderWrap := table.NewExtFollowingFollowingInfoWrap(as.db)
 
 	if req.Start == nil {
 		fingIter = fingOrderWrap.QueryListByOrder(nil, nil)
@@ -120,7 +121,7 @@ func (as *APIService) GetFollowCountByName(ctx context.Context, req *grpcpb.GetF
 		ferCnt, fingCnt uint32
 	)
 
-	afc := table.NewSoFollowCountWrap(as.db, req.AccountName)
+	afc := table.NewSoExtFollowCountWrap(as.db, req.AccountName)
 
 	if afc.CheckExist() {
 		ferCnt = afc.GetFollowerCnt()
@@ -171,7 +172,7 @@ func (as *APIService) GetWitnessList(ctx context.Context, req *grpcpb.GetWitness
 	}
 
 	if len(witList) == 0 {
-		return nil, ErrEmptyResp
+		return nil, nil
 	} else {
 		return &grpcpb.GetWitnessListResponse{WitnessList: witList}, nil
 	}
@@ -186,7 +187,7 @@ func (as *APIService) GetPostListByCreated(ctx context.Context, req *grpcpb.GetP
 		limit    uint32
 	)
 
-	postOrderWrap := &table.SPostCreatedOrderWrap{Dba: as.db}
+	postOrderWrap := table.NewExtPostCreatedOrderWrap(as.db)
 
 	if req.Start == nil {
 		postIter = postOrderWrap.QueryListByRevOrder(nil, nil)
@@ -213,7 +214,7 @@ func (as *APIService) GetPostListByCreated(ctx context.Context, req *grpcpb.GetP
 				RootId:         postWrap.GetRootId(),
 				ParentId:       postWrap.GetParentId(),
 				Tags: 			postWrap.GetTags(),
-			//	Beneficiaries:	postWrap.GetBeneficiaries(),
+				//Beneficiaries:	postWrap.GetBeneficiaries(), //TODO wait table tool resolve general problem
 			})
 		}
 
@@ -236,7 +237,7 @@ func (as *APIService) GetReplyListByPostId(ctx context.Context, req *grpcpb.GetR
 		limit     uint32
 	)
 
-	replyOrderWrap := &table.SPostReplyOrderWrap{Dba: as.db}
+	replyOrderWrap := table.NewExtPostReplyOrderWrap(as.db)
 
 	if req.Start == nil {
 		replyIter = replyOrderWrap.QueryListByRevOrder(nil, nil)
