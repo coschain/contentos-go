@@ -85,7 +85,7 @@ func startNode(cmd *cobra.Command, args []string) {
 	//})
 
 	app.Register(iservices.DB_SERVER_NAME, func(ctx *node.ServiceContext) (node.Service, error) {
-		return storage.New(ctx, "./db/")
+		return storage.NewDatabaseService(ctx, "./db/")
 	})
 
 	app.Register(iservices.CTRL_SERVER_NAME, func(ctx *node.ServiceContext) (node.Service, error) {

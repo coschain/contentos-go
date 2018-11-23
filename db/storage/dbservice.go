@@ -6,7 +6,7 @@ package storage
 // the service uses levelDB as the underlying kv-store solution with additional supports for
 // nested transactions and data reversion.
 //
-// New() creates a service instance of type DatabaseService.
+// NewDatabaseService() creates a service instance of type DatabaseService.
 // DatabaseService implements both node.Service and iservices.IDatabaseService interfaces.
 // the former is for service management, and the latter is for real function uses.
 //
@@ -28,7 +28,7 @@ type DatabaseService struct {
 }
 
 // service constructor
-func New(ctx *node.ServiceContext, dbPath string) (*DatabaseService, error) {
+func NewDatabaseService(ctx *node.ServiceContext, dbPath string) (*DatabaseService, error) {
 	if ctx == nil || len(dbPath) == 0 {
 		return nil, errors.New("invalid parameter")
 	}
