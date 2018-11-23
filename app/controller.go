@@ -2,6 +2,7 @@ package app
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app/table"
@@ -168,7 +169,7 @@ func (c *Controller) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFl
 		c.restorePending(tmpPending)
 	}()
 
-	c.applyBlock(blk)
+	c.applyBlock(blk,skip)
 }
 
 func (c *Controller) ClearPending() []*prototype.TransactionWrapper {
@@ -399,14 +400,14 @@ func (c *Controller) _applyTransaction(trxWrp *prototype.TransactionWrapper) {
 
 	blockNum := c.dgpo.GetHeadBlockNumber()
 	if blockNum > 0 {
-		uniWrap := table.UniBlockSummaryObjectIdWrap{}
+		uniWrap := table.UniBlockSummaryObjectIdWrap{Dba:c.db}
 		idWrap := uniWrap.UniQueryId(&trx.Trx.RefBlockNum)
 		if !idWrap.CheckExist() {
 			panic("no refBlockNum founded")
 		} else {
 			blockId := idWrap.GetBlockId()
-			summaryId := uint32(blockId.Hash[1])
-			if trx.Trx.RefBlockPrefix != summaryId {
+			summaryId := binary.BigEndian.Uint32(blockId.Hash[8:12])
+			if trx.Trx.RefBlockPrefix !=  summaryId{
 				panic("transaction tapos failed")
 			}
 		}
@@ -488,18 +489,19 @@ func (c *Controller) getEvaluator(op *prototype.Operation) BaseEvaluator {
 	}
 }
 
-func (c *Controller) applyBlock(blk *prototype.SignedBlock) {
+func (c *Controller) applyBlock(blk *prototype.SignedBlock,skip prototype.SkipFlag) {
 	oldFlag := c.skip
 	defer func() {
 		c.skip = oldFlag
 	}()
 
-	c._applyBlock(blk)
+	c.skip = skip
+	c._applyBlock(blk,skip)
 
 	// @ tps update
 }
 
-func (c *Controller) _applyBlock(blk *prototype.SignedBlock) {
+func (c *Controller) _applyBlock(blk *prototype.SignedBlock,skip prototype.SkipFlag) {
 	nextBlockNum := blk.Id().BlockNum()
 
 	merkleRoot := blk.CalculateMerkleRoot()
@@ -531,14 +533,17 @@ func (c *Controller) _applyBlock(blk *prototype.SignedBlock) {
 	trxWrp := &prototype.TransactionWrapper{}
 	trxWrp.Invoice = &prototype.TransactionInvoice{}
 
-	for _, tw := range blk.Transactions {
-		trxWrp.SigTrx = tw.SigTrx
-		trxWrp.Invoice.Status = 200
-		c.applyTransaction(trxWrp)
-		if trxWrp.Invoice.Status != tw.Invoice.Status {
-			panic("mismatched invoice")
+	if skip & prototype.Skip_apply_transaction == 0 {
+
+		for _, tw := range blk.Transactions {
+			trxWrp.SigTrx = tw.SigTrx
+			trxWrp.Invoice.Status = 200
+			c.applyTransaction(trxWrp)
+			if trxWrp.Invoice.Status != tw.Invoice.Status {
+				panic("mismatched invoice")
+			}
+			c._current_trx_in_block++
 		}
-		c._current_trx_in_block++
 	}
 
 	c.updateGlobalDynamicData(blk)
@@ -603,10 +608,11 @@ func (c *Controller) initGenesis() {
 	}), "CreateDynamicGlobalProperties error")
 
 	// create block summary
-	for i := uint32(0); i < 0x1; i++ {
+	for i := uint32(0); i < 0x100; i++ {
 		wrap := table.NewSoBlockSummaryObjectWrap(c.db, &i)
 		mustNoError(wrap.Create(func(tInfo *table.SoBlockSummaryObject) {
 			tInfo.Id = i
+			tInfo.BlockId = &prototype.Sha256{Hash:make([]byte,32)}
 		}), "CreateBlockSummaryObject error")
 	}
 
@@ -788,9 +794,10 @@ func (c *Controller) createBlockSummary(blk *prototype.SignedBlock) {
 	blockNumSuffix := uint32(blockNum & 0xffff)
 
 	blockSummaryWrap := table.NewSoBlockSummaryObjectWrap(c.db, &blockNumSuffix)
+	mustSuccess(blockSummaryWrap.CheckExist(),"can not get block summary object")
 	blockIDArray := blk.Id().Data
 	blockID := &prototype.Sha256{Hash: blockIDArray[:]}
-	blockSummaryWrap.MdBlockId(blockID)
+	mustSuccess(blockSummaryWrap.MdBlockId(blockID),"update block summary object error")
 }
 
 func (c *Controller) clearExpiredTransactions() {

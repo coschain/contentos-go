@@ -4,10 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"github.com/coschain/contentos-go/app/table"
+	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/golang/protobuf/proto"
 	"testing"
+	"time"
 )
 
 const (
@@ -25,7 +27,8 @@ func createSigTrx(op interface{}) (*prototype.SignedTransaction,error) {
 		return nil, err
 	}
 
-	tx := &prototype.Transaction{RefBlockNum: 0, RefBlockPrefix: 0, Expiration: &prototype.TimePointSec{UtcSeconds: 0}}
+	tx := &prototype.Transaction{RefBlockNum: 0, RefBlockPrefix: 0,
+	Expiration: &prototype.TimePointSec{UtcSeconds: uint32(time.Now().Second()+20)}}
 	tx.AddOperation(op)
 
 	signTx := prototype.SignedTransaction{Trx: tx}
@@ -174,6 +177,12 @@ func TestController_GenerateBlock(t *testing.T) {
 	db := startDB()
 	defer db.Close()
 	c := startController(db)
+
+	// set reference
+	id := &common.BlockID{}
+	sha256ID := c.dgpo.GetHeadBlockId()
+	copy(id.Data[:],sha256ID.Hash[:])
+	signedTrx.Trx.SetReferenceBlock(id)
 
 	invoice := c.PushTrx(signedTrx)
 	if invoice.Status != 200 {

@@ -1,7 +1,9 @@
 package prototype
 
 import (
+	"encoding/binary"
 	"fmt"
+	"github.com/coschain/contentos-go/common"
 	"github.com/pkg/errors"
 )
 
@@ -28,6 +30,11 @@ func (m *Transaction) Validate() error {
 	}
 
 	return nil
+}
+
+func (m *Transaction) SetReferenceBlock(id *common.BlockID) {
+	m.RefBlockNum = uint32(id.BlockNum())
+	m.RefBlockPrefix = binary.BigEndian.Uint32(id.Data[8:12])
 }
 
 func validateOp(op *Operation)  error {
