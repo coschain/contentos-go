@@ -201,6 +201,15 @@ func (c *Controller) restorePending(pending []*prototype.TransactionWrapper) {
 	}
 }
 
+func emptyHeader(signHeader * prototype.SignedBlockHeader) {
+	signHeader.Header =  new(prototype.BlockHeader)
+	signHeader.Header.Previous = &prototype.Sha256{}
+	signHeader.Header.Timestamp = &prototype.TimePointSec{}
+	signHeader.Header.Witness = &prototype.AccountName{}
+	signHeader.Header.TransactionMerkleRoot = &prototype.Sha256{}
+	signHeader.WitnessSignature = &prototype.SignatureType{}
+}
+
 func (c *Controller) GenerateBlock(witness string, timestamp uint32,
 	prev *common.BlockID, priKey *prototype.PrivateKeyType, skip skipFlag) *prototype.SignedBlock {
 	oldSkip := c.skip
@@ -226,8 +235,9 @@ func (c *Controller) GenerateBlock(witness string, timestamp uint32,
 	witnessWrap := table.NewSoWitnessWrap(c.db,witnessName)
 	mustSuccess(bytes.Equal(witnessWrap.GetSigningKey().Data[:],pubkey.Data[:]),"public key not equal")
 
-	// @ ok ?
+	// @ signHeader size is zero, must have some content
 	signHeader := &prototype.SignedBlockHeader{}
+	emptyHeader(signHeader)
 	maxBlockHeaderSize := proto.Size(signHeader) + 4
 	var i int32 = 0
 	dgpWrap := table.NewSoGlobalWrap(c.db,&i)
@@ -430,12 +440,12 @@ func (c *Controller) _applyTransaction(trxWrp *prototype.TransactionWrapper) {
 
 func (c *Controller) applyOperation(op *prototype.Operation) {
 	// @ not use yet
-	n := &prototype.OperationNotification{Op: op}
+	//n := &prototype.OperationNotification{Op: op}
 	//	c.NotifyOpPreExecute(n)
 	eva := c.getEvaluator(op)
 	eva.Apply()
 	// @ not use yet
-	c.NotifyOpPostExecute(n)
+	//c.NotifyOpPostExecute(n)
 }
 
 func (c *Controller) getEvaluator(op *prototype.Operation) BaseEvaluator {

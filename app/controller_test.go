@@ -2,10 +2,12 @@ package app
 
 import (
 	"errors"
+	"fmt"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/prototype"
 	"testing"
+	"github.com/golang/protobuf/proto"
 )
 
 const (
@@ -146,8 +148,15 @@ func Test_PushBlock(t *testing.T) {
 
 	sigBlk.SignedHeader = sigBlkHdr
 
+	fmt.Println("block size:",proto.Size(sigBlk))
+
 	c.PushBlock(sigBlk)
 
+	bobName := &prototype.AccountName{Value:accountName}
+	bobWrap := table.NewSoAccountWrap(db,bobName)
+	if !bobWrap.CheckExist() {
+		t.Error("create account failed")
+	}
 }
 
 func Test_list(t *testing.T) {
