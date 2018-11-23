@@ -8,16 +8,29 @@ import (
 	"github.com/coschain/contentos-go/common/crypto/secp256k1"
 
 	"github.com/coschain/contentos-go/common"
-	"github.com/gogo/protobuf/proto"
 	"github.com/coschain/contentos-go/common/crypto"
+	"github.com/gogo/protobuf/proto"
 )
 
 const Size = 32
+
+func (sb *SignedBlock) Marshal() ([]byte, error) {
+	return proto.Marshal(sb)
+}
+
+func (sb *SignedBlock) Unmarshal(buff []byte) error {
+	return proto.Unmarshal(buff, sb)
+}
+
 
 func (sb *SignedBlock) Previous() common.BlockID {
 	var ret common.BlockID
 	copy(ret.Data[:], sb.SignedHeader.Header.Previous.Hash[:32])
 	return ret
+}
+
+func (sb *SignedBlock) Timestamp() uint64 {
+	return uint64(sb.SignedHeader.Header.Timestamp.UtcSeconds)
 }
 
 func (sb *SignedBlock) Id() common.BlockID {
@@ -67,19 +80,22 @@ func (sb *SignedBlock) Hash() (hash [Size]byte) {
 	return
 }
 
-func (sbh *SignedBlockHeader) GetSignee() (*PublicKeyType,error) {
-	// TODO: get pub key
+func (sb *SignedBlock) GetSignee() (interface{}, error) {
+	return sb.SignedHeader.GetSignee()
+}
+
+func (sbh *SignedBlockHeader) GetSignee() (interface{}, error) {
 	hash := sbh.Header.Hash()
-	buf,err := secp256k1.RecoverPubkey(hash[:],sbh.WitnessSignature.Sig)
+	buf, err := secp256k1.RecoverPubkey(hash[:], sbh.WitnessSignature.Sig)
 	if err != nil {
-		return nil,errors.New("RecoverPubkey error")
+		return nil, errors.New("RecoverPubkey error")
 	}
 	ecPubKey, err := crypto.UnmarshalPubkey(buf)
 	if err != nil {
-		return nil,errors.New("UnmarshalPubkey error")
+		return nil, errors.New("UnmarshalPubkey error")
 	}
 	pub := PublicKeyFromBytes(secp256k1.CompressPubkey(ecPubKey.X, ecPubKey.Y))
-	return pub,nil
+	return pub, nil
 }
 
 func (bh *BlockHeader) Hash() (hash [Size]byte) {
@@ -88,21 +104,21 @@ func (bh *BlockHeader) Hash() (hash [Size]byte) {
 	return
 }
 
-func (sbh *SignedBlockHeader) ValidateSig(key *PublicKeyType) (bool,error) {
-	pub,err := sbh.GetSignee()
+func (sbh *SignedBlockHeader) ValidateSig(key *PublicKeyType) (bool, error) {
+	pub, err := sbh.GetSignee()
 	if err != nil {
 		return false, errors.New("ValidateSig error")
 	}
-	return bytes.Equal(pub.Data,key.Data),nil
+	return bytes.Equal(pub.(*PublicKeyType).Data, key.Data), nil
 }
 
 func (sbh *SignedBlockHeader) Sign(secKey *PrivateKeyType) error {
 	hash := sbh.Header.Hash()
-	res ,err := secp256k1.Sign(hash[:],secKey.Data)
+	res, err := secp256k1.Sign(hash[:], secKey.Data)
 	if err != nil {
 		errors.New("secp256k1 sign error")
 	}
-	sbh.WitnessSignature.Sig = append(sbh.WitnessSignature.Sig,res...)
+	sbh.WitnessSignature.Sig = append(sbh.WitnessSignature.Sig, res...)
 	return nil
 }
 

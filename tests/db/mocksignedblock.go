@@ -13,11 +13,11 @@ type MockSignedBlock struct {
 	Prev    common.BlockID
 }
 
-func (msb *MockSignedBlock) Marshall() []byte {
-	return msb.Payload
+func (msb *MockSignedBlock) Marshal() ([]byte, error) {
+	return msb.Payload, nil
 }
 
-func (msb *MockSignedBlock) Unmarshall(b []byte) error {
+func (msb *MockSignedBlock) Unmarshal(b []byte) error {
 	msb.Payload = b
 	return nil
 }
@@ -32,8 +32,8 @@ func (msb *MockSignedBlock) Data() string {
 	return string(msb.Payload)
 }
 
-func (msb *MockSignedBlock) GetSignee() interface{} {
-	return nil
+func (msb *MockSignedBlock) GetSignee() (interface{}, error) {
+	return nil, nil
 }
 
 func (msb *MockSignedBlock) Timestamp() uint64 {

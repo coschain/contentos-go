@@ -95,7 +95,10 @@ func (bl *BLog) Append(sb common.ISignedBlock) error {
 	bl.indexFile.Seek(0, 2)
 	// TODO: check index cnt and sb block num
 
-	payload := sb.Marshall()
+	payload, err := sb.Marshal()
+	if err != nil {
+		return fmt.Errorf("BLOG Append: %s", err.Error())
+	}
 	if len(payload) > maxPayloadLen {
 		return errors.New("BLog Append: common.SignedBlock too big")
 	}
@@ -103,7 +106,7 @@ func (bl *BLog) Append(sb common.ISignedBlock) error {
 	// append payload len to log file
 	lenByte := make([]byte, blockLenSize)
 	binary.LittleEndian.PutUint32(lenByte, uint32(len(payload)))
-	_, err := bl.logFile.Write(lenByte)
+	_, err = bl.logFile.Write(lenByte)
 	if err != nil {
 		return fmt.Errorf("BLOG Append: %s", err.Error())
 	}
@@ -161,7 +164,7 @@ func (bl *BLog) readBlock(sb common.ISignedBlock, idx int64) error {
 		return err
 	}
 
-	err = sb.Unmarshall(payloadByte)
+	err = sb.Unmarshal(payloadByte)
 	if err != nil {
 		return fmt.Errorf("BLOG readBlock: %s", err.Error())
 	}

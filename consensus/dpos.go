@@ -3,6 +3,8 @@ package consensus
 import (
 	"errors"
 	"fmt"
+	"github.com/coschain/contentos-go/iservices"
+	"github.com/coschain/contentos-go/prototype"
 	"sync"
 	"time"
 
@@ -10,6 +12,7 @@ import (
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/db/forkdb"
 	"github.com/coschain/contentos-go/node"
+	//"github.com/coschain/contentos-go/app"
 )
 
 func waitTilNextSec() {
@@ -26,19 +29,20 @@ func timeToNextSec() time.Duration {
 
 type Producer struct {
 	Name string
-	//PubKey *prototype.PublicKeyType
-	Weight uint32
+	dpos *DPoS
 }
 
-func (p *Producer) Produce(timestamp uint64, prev common.BlockID) (common.ISignedBlock, error) {
-	return nil, nil
+func (p *Producer) Produce(timestamp uint64, prev common.BlockID, privKey *prototype.PrivateKeyType) (common.ISignedBlock, error) {
+	ctrl := p.dpos.getController()
+	b := ctrl.GenerateBlock(p.Name, uint32(timestamp), privKey, prototype.Skip_nothing)
+	return b, nil
 }
 
 type DPoS struct {
 	ForkDB *forkdb.DB
 
 	Producers      []*Producer
-	hostMask       []bool
+	privKey        prototype.PrivateKeyType
 	producerIdx    uint64
 	readyToProduce bool
 	prodTimer      *time.Timer
@@ -52,26 +56,36 @@ type DPoS struct {
 
 	//head common.ISignedBlock
 
+	ctx *node.ServiceContext
+
 	stopCh chan struct{}
 	wg     sync.WaitGroup
 	sync.RWMutex
 }
 
-func NewDPoS() *DPoS {
+func NewDPoS(ctx *node.ServiceContext) *DPoS {
 	return &DPoS{
 		ForkDB:    forkdb.NewDB(),
 		Producers: make([]*Producer, constants.ProducerNum),
-		hostMask:  make([]bool, constants.ProducerNum),
 		prodTimer: time.NewTimer(10 * time.Second),
 		trxCh:     make(chan common.ISignedTransaction, 5000),
 		blkCh:     make(chan common.ISignedBlock),
-
-		stopCh: make(chan struct{}),
+		ctx:       ctx,
+		stopCh:    make(chan struct{}),
 	}
+}
+
+func (d *DPoS) getController() iservices.IController {
+	ctrl, _ := d.ctx.Service(iservices.CTRL_SERVER_NAME)
+	return ctrl.(iservices.IController)
 }
 
 func (d *DPoS) SetBootstrap(b bool) {
 	d.bootstrap = b
+	if d.bootstrap {
+		d.readyToProduce = true
+		d.shuffle()
+	}
 }
 
 func (d *DPoS) CurrentProducer() *Producer {
@@ -82,7 +96,9 @@ func (d *DPoS) CurrentProducer() *Producer {
 
 // Called when a produce round complete, it adds new producers,
 // remove unqualified producers and shuffle the block-producing order
-func (d *DPoS) shuffle() {}
+func (d *DPoS) shuffle() {
+
+}
 
 func (d *DPoS) ActiveProducers() []*Producer {
 	d.RLock()
@@ -105,6 +121,7 @@ func (d *DPoS) scheduleProduce() bool {
 			d.readyToProduce = true
 		} else {
 			d.prodTimer.Reset(timeToNextSec())
+			// TODO: p2p sync
 			return false
 		}
 	}
@@ -151,7 +168,7 @@ func (d *DPoS) Stop() error {
 func (d *DPoS) generateBlock() (common.ISignedBlock, error) {
 	ts := d.getSlotTime(d.slot)
 	prev := d.ForkDB.Head().Id()
-	return d.Producers[d.producerIdx].Produce(ts, prev)
+	return d.Producers[d.producerIdx].Produce(ts, prev, &d.privKey)
 }
 
 func (d *DPoS) checkGenesis() bool {
@@ -191,7 +208,7 @@ func (d *DPoS) checkProducingTiming() bool {
 
 func (d *DPoS) checkOurTurn() bool {
 	idx := d.getScheduledProducer(d.slot)
-	if d.hostMask[idx] == true {
+	if true { // TODO: match key
 		d.producerIdx = idx
 		return true
 	}
@@ -258,6 +275,7 @@ func (d *DPoS) pushBlock(b common.ISignedBlock) error {
 		// 2. out of range block or
 		// 3. head of a non-main branch or
 		// 4. illegal block
+		// TODO: if it's detached, trigger sync
 		return nil
 	} else if newHead.Previous() != head.Id() {
 		d.switchFork(head.Id(), newHead.Id())
@@ -271,10 +289,14 @@ func (d *DPoS) pushBlock(b common.ISignedBlock) error {
 		return err
 	}
 
-	// TODO:
-	//if bytes.Equal(b.GetSignee().(*prototype.PublicKeyType).Data, d.Producers[len(d.Producers)-1].PubKey.Data) {
-	//	d.shuffle()
-	//}
+	// TODO: shuffle
+	/*
+		GetWitnesses() []witness
+		SetWitnesses(ws []witness)
+		GetTopK() []witness
+	*/
+
+	// TODO: commit
 	return nil
 }
 
@@ -332,4 +354,37 @@ func (d *DPoS) applyBlock(b common.ISignedBlock) error {
 func (d *DPoS) popBlock() error {
 	// TODO: state db revert
 	return nil
+}
+
+func (d *DPoS) GetHeadBlockId() (common.BlockID) {
+	return d.ForkDB.Head().Id()
+}
+
+func (d *DPoS) GetHashes(start, end common.BlockID) []common.BlockID {
+	ret := make([]common.BlockID, 10)
+	length := 0
+	for end != start {
+		b, err := d.ForkDB.FetchBlock(end)
+		if err != nil {
+			return nil
+		}
+		ret = append(ret, end)
+		end = b.Previous()
+		length++
+	}
+	ret = append(ret, end)
+	ret = ret[:length]
+	for i:=0; i<=(length-1)/2; i++ {
+		ret[i], ret[length-1-i] = ret[length-1-i], ret[i]
+	}
+	return ret
+}
+
+func (d *DPoS) FetchBlock(id common.BlockID) (common.ISignedBlock, error) {
+	return d.ForkDB.FetchBlock(id)
+}
+
+func (d *DPoS) HasBlock(id common.BlockID) bool {
+	_, err := d.ForkDB.FetchBlock(id)
+	return err == nil
 }

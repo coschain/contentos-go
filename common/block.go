@@ -6,8 +6,8 @@ import (
 
 // Marshaller ...
 type Marshaller interface {
-	Marshall() []byte
-	Unmarshall([]byte) error
+	Marshal() ([]byte, error)
+	Unmarshal([]byte) error
 }
 
 // BlockID is a sha256 byte array, the first 2 byte is
@@ -31,7 +31,7 @@ type IBlockHeader interface {
 type ISignedBlockHeader interface {
 	IBlockHeader
 	Id() BlockID
-	GetSignee() interface{}
+	GetSignee() (interface{}, error)
 }
 
 // SignedBlock ...
