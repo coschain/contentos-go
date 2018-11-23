@@ -359,7 +359,7 @@ func (s *SoAccountAuthorityObjectWrap) delUniKeyAccount(sa *SoAccountAuthorityOb
 }
 
 func (s *SoAccountAuthorityObjectWrap) insertUniKeyAccount(sa *SoAccountAuthorityObject) bool {
-	if s.dba == nil {
+	if s.dba == nil || sa == nil {
 		return false
 	}
 	uniWrap := UniAccountAuthorityObjectAccountWrap{}

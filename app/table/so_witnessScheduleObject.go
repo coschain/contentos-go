@@ -274,7 +274,7 @@ func (s *SoWitnessScheduleObjectWrap) delUniKeyId(sa *SoWitnessScheduleObject) b
 }
 
 func (s *SoWitnessScheduleObjectWrap) insertUniKeyId(sa *SoWitnessScheduleObject) bool {
-	if s.dba == nil {
+	if s.dba == nil || sa == nil {
 		return false
 	}
 	uniWrap := UniWitnessScheduleObjectIdWrap{}

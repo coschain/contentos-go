@@ -105,7 +105,7 @@ func (s *SoExtFollowingWrap) delSortKeyFollowingInfo(sa *SoExtFollowing) bool {
 }
 
 func (s *SoExtFollowingWrap) insertSortKeyFollowingInfo(sa *SoExtFollowing) bool {
-	if s.dba == nil {
+	if s.dba == nil || sa == nil {
 		return false
 	}
 	val := SoListExtFollowingByFollowingInfo{}
@@ -398,7 +398,7 @@ func (s *SoExtFollowingWrap) delUniKeyFollowingInfo(sa *SoExtFollowing) bool {
 }
 
 func (s *SoExtFollowingWrap) insertUniKeyFollowingInfo(sa *SoExtFollowing) bool {
-	if s.dba == nil {
+	if s.dba == nil || sa == nil {
 		return false
 	}
 	uniWrap := UniExtFollowingFollowingInfoWrap{}

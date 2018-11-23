@@ -104,7 +104,7 @@ func (s *SoExtPostWrap) delSortKeyCreatedOrder(sa *SoExtPost) bool {
 }
 
 func (s *SoExtPostWrap) insertSortKeyCreatedOrder(sa *SoExtPost) bool {
-	if s.dba == nil {
+	if s.dba == nil || sa == nil {
 		return false
 	}
 	val := SoListExtPostByCreatedOrder{}
@@ -138,7 +138,7 @@ func (s *SoExtPostWrap) delSortKeyReplyOrder(sa *SoExtPost) bool {
 }
 
 func (s *SoExtPostWrap) insertSortKeyReplyOrder(sa *SoExtPost) bool {
-	if s.dba == nil {
+	if s.dba == nil || sa == nil {
 		return false
 	}
 	val := SoListExtPostByReplyOrder{}
@@ -610,7 +610,7 @@ func (s *SoExtPostWrap) delUniKeyPostId(sa *SoExtPost) bool {
 }
 
 func (s *SoExtPostWrap) insertUniKeyPostId(sa *SoExtPost) bool {
-	if s.dba == nil {
+	if s.dba == nil || sa == nil {
 		return false
 	}
 	uniWrap := UniExtPostPostIdWrap{}

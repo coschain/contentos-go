@@ -106,7 +106,7 @@ func (s *SoTransactionObjectWrap) delSortKeyExpiration(sa *SoTransactionObject) 
 }
 
 func (s *SoTransactionObjectWrap) insertSortKeyExpiration(sa *SoTransactionObject) bool {
-	if s.dba == nil {
+	if s.dba == nil || sa == nil {
 		return false
 	}
 	val := SoListTransactionObjectByExpiration{}
@@ -434,7 +434,7 @@ func (s *SoTransactionObjectWrap) delUniKeyTrxId(sa *SoTransactionObject) bool {
 }
 
 func (s *SoTransactionObjectWrap) insertUniKeyTrxId(sa *SoTransactionObject) bool {
-	if s.dba == nil {
+	if s.dba == nil || sa == nil {
 		return false
 	}
 	uniWrap := UniTransactionObjectTrxIdWrap{}

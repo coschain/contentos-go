@@ -105,7 +105,7 @@ func (s *SoWitnessVoteWrap) delSortKeyVoterId(sa *SoWitnessVote) bool {
 }
 
 func (s *SoWitnessVoteWrap) insertSortKeyVoterId(sa *SoWitnessVote) bool {
-	if s.dba == nil {
+	if s.dba == nil || sa == nil {
 		return false
 	}
 	val := SoListWitnessVoteByVoterId{}
@@ -452,7 +452,7 @@ func (s *SoWitnessVoteWrap) delUniKeyVoterId(sa *SoWitnessVote) bool {
 }
 
 func (s *SoWitnessVoteWrap) insertUniKeyVoterId(sa *SoWitnessVote) bool {
-	if s.dba == nil {
+	if s.dba == nil || sa == nil {
 		return false
 	}
 	uniWrap := UniWitnessVoteVoterIdWrap{}

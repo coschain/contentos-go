@@ -275,7 +275,7 @@ func (s *SoGlobalWrap) delUniKeyId(sa *SoGlobal) bool {
 }
 
 func (s *SoGlobalWrap) insertUniKeyId(sa *SoGlobal) bool {
-	if s.dba == nil {
+	if s.dba == nil || sa == nil {
 		return false
 	}
 	uniWrap := UniGlobalIdWrap{}

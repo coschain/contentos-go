@@ -107,7 +107,7 @@ func (s *SoVoteWrap) delSortKeyVoteTime(sa *SoVote) bool {
 }
 
 func (s *SoVoteWrap) insertSortKeyVoteTime(sa *SoVote) bool {
-	if s.dba == nil {
+	if s.dba == nil || sa == nil {
 		return false
 	}
 	val := SoListVoteByVoteTime{}
@@ -141,7 +141,7 @@ func (s *SoVoteWrap) delSortKeyPostId(sa *SoVote) bool {
 }
 
 func (s *SoVoteWrap) insertSortKeyPostId(sa *SoVote) bool {
-	if s.dba == nil {
+	if s.dba == nil || sa == nil {
 		return false
 	}
 	val := SoListVoteByPostId{}
@@ -615,7 +615,7 @@ func (s *SoVoteWrap) delUniKeyVoter(sa *SoVote) bool {
 }
 
 func (s *SoVoteWrap) insertUniKeyVoter(sa *SoVote) bool {
-	if s.dba == nil {
+	if s.dba == nil || sa == nil {
 		return false
 	}
 	uniWrap := UniVoteVoterWrap{}

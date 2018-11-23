@@ -109,7 +109,7 @@ func (s *SoAccountWrap) delSortKeyCreatedTime(sa *SoAccount) bool {
 }
 
 func (s *SoAccountWrap) insertSortKeyCreatedTime(sa *SoAccount) bool {
-	if s.dba == nil {
+	if s.dba == nil || sa == nil {
 		return false
 	}
 	val := SoListAccountByCreatedTime{}
@@ -143,7 +143,7 @@ func (s *SoAccountWrap) delSortKeyBalance(sa *SoAccount) bool {
 }
 
 func (s *SoAccountWrap) insertSortKeyBalance(sa *SoAccount) bool {
-	if s.dba == nil {
+	if s.dba == nil || sa == nil {
 		return false
 	}
 	val := SoListAccountByBalance{}
@@ -177,7 +177,7 @@ func (s *SoAccountWrap) delSortKeyVestingShares(sa *SoAccount) bool {
 }
 
 func (s *SoAccountWrap) insertSortKeyVestingShares(sa *SoAccount) bool {
-	if s.dba == nil {
+	if s.dba == nil || sa == nil {
 		return false
 	}
 	val := SoListAccountByVestingShares{}
@@ -211,7 +211,7 @@ func (s *SoAccountWrap) delSortKeyBpVoteCount(sa *SoAccount) bool {
 }
 
 func (s *SoAccountWrap) insertSortKeyBpVoteCount(sa *SoAccount) bool {
-	if s.dba == nil {
+	if s.dba == nil || sa == nil {
 		return false
 	}
 	val := SoListAccountByBpVoteCount{}
@@ -1008,7 +1008,7 @@ func (s *SoAccountWrap) delUniKeyName(sa *SoAccount) bool {
 }
 
 func (s *SoAccountWrap) insertUniKeyName(sa *SoAccount) bool {
-	if s.dba == nil {
+	if s.dba == nil || sa == nil {
 		return false
 	}
 	uniWrap := UniAccountNameWrap{}

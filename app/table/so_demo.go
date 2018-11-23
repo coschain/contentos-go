@@ -112,7 +112,7 @@ func (s *SoDemoWrap) delSortKeyOwner(sa *SoDemo) bool {
 }
 
 func (s *SoDemoWrap) insertSortKeyOwner(sa *SoDemo) bool {
-	if s.dba == nil {
+	if s.dba == nil || sa == nil {
 		return false
 	}
 	val := SoListDemoByOwner{}
@@ -145,7 +145,7 @@ func (s *SoDemoWrap) delSortKeyPostTime(sa *SoDemo) bool {
 }
 
 func (s *SoDemoWrap) insertSortKeyPostTime(sa *SoDemo) bool {
-	if s.dba == nil {
+	if s.dba == nil || sa == nil {
 		return false
 	}
 	val := SoListDemoByPostTime{}
@@ -179,7 +179,7 @@ func (s *SoDemoWrap) delSortKeyLikeCount(sa *SoDemo) bool {
 }
 
 func (s *SoDemoWrap) insertSortKeyLikeCount(sa *SoDemo) bool {
-	if s.dba == nil {
+	if s.dba == nil || sa == nil {
 		return false
 	}
 	val := SoListDemoByLikeCount{}
@@ -213,7 +213,7 @@ func (s *SoDemoWrap) delSortKeyIdx(sa *SoDemo) bool {
 }
 
 func (s *SoDemoWrap) insertSortKeyIdx(sa *SoDemo) bool {
-	if s.dba == nil {
+	if s.dba == nil || sa == nil {
 		return false
 	}
 	val := SoListDemoByIdx{}
@@ -247,7 +247,7 @@ func (s *SoDemoWrap) delSortKeyReplayCount(sa *SoDemo) bool {
 }
 
 func (s *SoDemoWrap) insertSortKeyReplayCount(sa *SoDemo) bool {
-	if s.dba == nil {
+	if s.dba == nil || sa == nil {
 		return false
 	}
 	val := SoListDemoByReplayCount{}
@@ -281,7 +281,7 @@ func (s *SoDemoWrap) delSortKeyTaglist(sa *SoDemo) bool {
 }
 
 func (s *SoDemoWrap) insertSortKeyTaglist(sa *SoDemo) bool {
-	if s.dba == nil {
+	if s.dba == nil || sa == nil {
 		return false
 	}
 	val := SoListDemoByTaglist{}
@@ -1435,7 +1435,7 @@ func (s *SoDemoWrap) delUniKeyIdx(sa *SoDemo) bool {
 }
 
 func (s *SoDemoWrap) insertUniKeyIdx(sa *SoDemo) bool {
-	if s.dba == nil {
+	if s.dba == nil || sa == nil {
 		return false
 	}
 	uniWrap := UniDemoIdxWrap{}
@@ -1514,7 +1514,7 @@ func (s *SoDemoWrap) delUniKeyLikeCount(sa *SoDemo) bool {
 }
 
 func (s *SoDemoWrap) insertUniKeyLikeCount(sa *SoDemo) bool {
-	if s.dba == nil {
+	if s.dba == nil || sa == nil {
 		return false
 	}
 	uniWrap := UniDemoLikeCountWrap{}
@@ -1593,7 +1593,7 @@ func (s *SoDemoWrap) delUniKeyOwner(sa *SoDemo) bool {
 }
 
 func (s *SoDemoWrap) insertUniKeyOwner(sa *SoDemo) bool {
-	if s.dba == nil {
+	if s.dba == nil || sa == nil {
 		return false
 	}
 	uniWrap := UniDemoOwnerWrap{}

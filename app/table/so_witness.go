@@ -105,7 +105,7 @@ func (s *SoWitnessWrap) delSortKeyOwner(sa *SoWitness) bool {
 }
 
 func (s *SoWitnessWrap) insertSortKeyOwner(sa *SoWitness) bool {
-	if s.dba == nil {
+	if s.dba == nil || sa == nil {
 		return false
 	}
 	val := SoListWitnessByOwner{}
@@ -695,7 +695,7 @@ func (s *SoWitnessWrap) delUniKeyOwner(sa *SoWitness) bool {
 }
 
 func (s *SoWitnessWrap) insertUniKeyOwner(sa *SoWitness) bool {
-	if s.dba == nil {
+	if s.dba == nil || sa == nil {
 		return false
 	}
 	uniWrap := UniWitnessOwnerWrap{}

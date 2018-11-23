@@ -332,7 +332,7 @@ func (s *SoExtFollowCountWrap) delUniKeyAccount(sa *SoExtFollowCount) bool {
 }
 
 func (s *SoExtFollowCountWrap) insertUniKeyAccount(sa *SoExtFollowCount) bool {
-	if s.dba == nil {
+	if s.dba == nil || sa == nil {
 		return false
 	}
 	uniWrap := UniExtFollowCountAccountWrap{}

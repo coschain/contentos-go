@@ -158,7 +158,7 @@ func (s *So{{$.ClsName}}Wrap) delSortKey{{$v1.PName}}(sa *So{{$.ClsName}}) bool 
 
 
 func (s *So{{$.ClsName}}Wrap) insertSortKey{{$v1.PName}}(sa *So{{$.ClsName}}) bool {
-    if s.dba == nil {
+    if s.dba == nil || sa == nil {
        return false
     }
 	val := SoList{{$.ClsName}}By{{$v1.PName}}{}
@@ -587,7 +587,7 @@ func (s *So{{$.ClsName}}Wrap) delUniKey{{$k}}(sa *So{{$.ClsName}}) bool {
 
 
 func (s *So{{$.ClsName}}Wrap) insertUniKey{{$k}}(sa *So{{$.ClsName}}) bool {
-    if s.dba == nil {
+    if s.dba == nil || sa == nil{
        return false
     }
     uniWrap  := Uni{{$.ClsName}}{{$k}}Wrap{}

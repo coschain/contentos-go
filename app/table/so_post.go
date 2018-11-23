@@ -103,7 +103,7 @@ func (s *SoPostWrap) delSortKeyCreated(sa *SoPost) bool {
 }
 
 func (s *SoPostWrap) insertSortKeyCreated(sa *SoPost) bool {
-	if s.dba == nil {
+	if s.dba == nil || sa == nil {
 		return false
 	}
 	val := SoListPostByCreated{}
@@ -754,7 +754,7 @@ func (s *SoPostWrap) delUniKeyPostId(sa *SoPost) bool {
 }
 
 func (s *SoPostWrap) insertUniKeyPostId(sa *SoPost) bool {
-	if s.dba == nil {
+	if s.dba == nil || sa == nil {
 		return false
 	}
 	uniWrap := UniPostPostIdWrap{}
