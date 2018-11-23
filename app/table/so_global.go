@@ -67,13 +67,18 @@ func (s *SoGlobalWrap) Create(f func(tInfo *SoGlobal)) error {
 	}
 
 	// update sort list keys
+	if err = s.insertAllSortKeys(val); err != nil {
+		s.delAllSortKeys(false, val)
+		s.dba.Delete(keyBuf)
+		return err
+	}
 
 	//update unique list
-	if !s.insertUniKeyId(val) {
-		s.delAllSortKeys()
-		s.delAllUniKeys()
+	if err = s.insertAllUniKeys(val); err != nil {
+		s.delAllSortKeys(false, val)
+		s.delAllUniKeys(false, val)
 		s.dba.Delete(keyBuf)
-		return errors.New("insert unique Field int32 while insert table ")
+		return err
 	}
 
 	return nil
@@ -81,17 +86,27 @@ func (s *SoGlobalWrap) Create(f func(tInfo *SoGlobal)) error {
 
 ////////////// SECTION LKeys delete/insert ///////////////
 
-func (s *SoGlobalWrap) delAllSortKeys() bool {
+func (s *SoGlobalWrap) delAllSortKeys(br bool, val *SoGlobal) bool {
 	if s.dba == nil {
 		return false
 	}
-	sa := s.getGlobal()
-	if sa == nil {
+	if val == nil {
 		return false
 	}
 	res := true
 
 	return res
+}
+
+func (s *SoGlobalWrap) insertAllSortKeys(val *SoGlobal) error {
+	if s.dba == nil {
+		return errors.New("insert sort Field fail,the db is nil ")
+	}
+	if val == nil {
+		return errors.New("insert sort Field fail,get the SoGlobal fail ")
+	}
+
+	return nil
 }
 
 ////////////// SECTION LKeys delete/insert //////////////
@@ -100,14 +115,17 @@ func (s *SoGlobalWrap) RemoveGlobal() bool {
 	if s.dba == nil {
 		return false
 	}
-	sa := s.getGlobal()
-	if sa == nil {
+	val := s.getGlobal()
+	if val == nil {
 		return false
 	}
 	//delete sort list key
+	if res := s.delAllSortKeys(true, val); !res {
+		return false
+	}
 
 	//delete unique list
-	if !s.delUniKeyId(sa) {
+	if res := s.delAllUniKeys(true, val); !res {
 		return false
 	}
 
@@ -209,20 +227,37 @@ func (s *SoGlobalWrap) encodeMainKey() ([]byte, error) {
 
 ////////////// Unique Query delete/insert/query ///////////////
 
-func (s *SoGlobalWrap) delAllUniKeys() bool {
+func (s *SoGlobalWrap) delAllUniKeys(br bool, val *SoGlobal) bool {
 	if s.dba == nil {
 		return false
 	}
-	sa := s.getGlobal()
-	if sa == nil {
+	if val == nil {
 		return false
 	}
 	res := true
-	if !s.delUniKeyId(sa) && res {
-		res = false
+	if !s.delUniKeyId(val) {
+		if br {
+			return false
+		} else {
+			res = false
+		}
 	}
 
 	return res
+}
+
+func (s *SoGlobalWrap) insertAllUniKeys(val *SoGlobal) error {
+	if s.dba == nil {
+		return errors.New("insert uniuqe Field fail,the db is nil ")
+	}
+	if val == nil {
+		return errors.New("insert uniuqe Field fail,get the SoGlobal fail ")
+	}
+	if !s.insertUniKeyId(val) {
+		return errors.New("insert unique Field int32 while insert table ")
+	}
+
+	return nil
 }
 
 func (s *SoGlobalWrap) delUniKeyId(sa *SoGlobal) bool {

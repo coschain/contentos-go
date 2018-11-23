@@ -70,13 +70,18 @@ func (s *SoExtFollowCountWrap) Create(f func(tInfo *SoExtFollowCount)) error {
 	}
 
 	// update sort list keys
+	if err = s.insertAllSortKeys(val); err != nil {
+		s.delAllSortKeys(false, val)
+		s.dba.Delete(keyBuf)
+		return err
+	}
 
 	//update unique list
-	if !s.insertUniKeyAccount(val) {
-		s.delAllSortKeys()
-		s.delAllUniKeys()
+	if err = s.insertAllUniKeys(val); err != nil {
+		s.delAllSortKeys(false, val)
+		s.delAllUniKeys(false, val)
 		s.dba.Delete(keyBuf)
-		return errors.New("insert unique Field prototype.AccountName while insert table ")
+		return err
 	}
 
 	return nil
@@ -84,17 +89,27 @@ func (s *SoExtFollowCountWrap) Create(f func(tInfo *SoExtFollowCount)) error {
 
 ////////////// SECTION LKeys delete/insert ///////////////
 
-func (s *SoExtFollowCountWrap) delAllSortKeys() bool {
+func (s *SoExtFollowCountWrap) delAllSortKeys(br bool, val *SoExtFollowCount) bool {
 	if s.dba == nil {
 		return false
 	}
-	sa := s.getExtFollowCount()
-	if sa == nil {
+	if val == nil {
 		return false
 	}
 	res := true
 
 	return res
+}
+
+func (s *SoExtFollowCountWrap) insertAllSortKeys(val *SoExtFollowCount) error {
+	if s.dba == nil {
+		return errors.New("insert sort Field fail,the db is nil ")
+	}
+	if val == nil {
+		return errors.New("insert sort Field fail,get the SoExtFollowCount fail ")
+	}
+
+	return nil
 }
 
 ////////////// SECTION LKeys delete/insert //////////////
@@ -103,14 +118,17 @@ func (s *SoExtFollowCountWrap) RemoveExtFollowCount() bool {
 	if s.dba == nil {
 		return false
 	}
-	sa := s.getExtFollowCount()
-	if sa == nil {
+	val := s.getExtFollowCount()
+	if val == nil {
 		return false
 	}
 	//delete sort list key
+	if res := s.delAllSortKeys(true, val); !res {
+		return false
+	}
 
 	//delete unique list
-	if !s.delUniKeyAccount(sa) {
+	if res := s.delAllUniKeys(true, val); !res {
 		return false
 	}
 
@@ -266,20 +284,37 @@ func (s *SoExtFollowCountWrap) encodeMainKey() ([]byte, error) {
 
 ////////////// Unique Query delete/insert/query ///////////////
 
-func (s *SoExtFollowCountWrap) delAllUniKeys() bool {
+func (s *SoExtFollowCountWrap) delAllUniKeys(br bool, val *SoExtFollowCount) bool {
 	if s.dba == nil {
 		return false
 	}
-	sa := s.getExtFollowCount()
-	if sa == nil {
+	if val == nil {
 		return false
 	}
 	res := true
-	if !s.delUniKeyAccount(sa) && res {
-		res = false
+	if !s.delUniKeyAccount(val) {
+		if br {
+			return false
+		} else {
+			res = false
+		}
 	}
 
 	return res
+}
+
+func (s *SoExtFollowCountWrap) insertAllUniKeys(val *SoExtFollowCount) error {
+	if s.dba == nil {
+		return errors.New("insert uniuqe Field fail,the db is nil ")
+	}
+	if val == nil {
+		return errors.New("insert uniuqe Field fail,get the SoExtFollowCount fail ")
+	}
+	if !s.insertUniKeyAccount(val) {
+		return errors.New("insert unique Field prototype.AccountName while insert table ")
+	}
+
+	return nil
 }
 
 func (s *SoExtFollowCountWrap) delUniKeyAccount(sa *SoExtFollowCount) bool {

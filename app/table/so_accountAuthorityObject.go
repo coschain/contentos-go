@@ -70,13 +70,18 @@ func (s *SoAccountAuthorityObjectWrap) Create(f func(tInfo *SoAccountAuthorityOb
 	}
 
 	// update sort list keys
+	if err = s.insertAllSortKeys(val); err != nil {
+		s.delAllSortKeys(false, val)
+		s.dba.Delete(keyBuf)
+		return err
+	}
 
 	//update unique list
-	if !s.insertUniKeyAccount(val) {
-		s.delAllSortKeys()
-		s.delAllUniKeys()
+	if err = s.insertAllUniKeys(val); err != nil {
+		s.delAllSortKeys(false, val)
+		s.delAllUniKeys(false, val)
 		s.dba.Delete(keyBuf)
-		return errors.New("insert unique Field prototype.AccountName while insert table ")
+		return err
 	}
 
 	return nil
@@ -84,17 +89,27 @@ func (s *SoAccountAuthorityObjectWrap) Create(f func(tInfo *SoAccountAuthorityOb
 
 ////////////// SECTION LKeys delete/insert ///////////////
 
-func (s *SoAccountAuthorityObjectWrap) delAllSortKeys() bool {
+func (s *SoAccountAuthorityObjectWrap) delAllSortKeys(br bool, val *SoAccountAuthorityObject) bool {
 	if s.dba == nil {
 		return false
 	}
-	sa := s.getAccountAuthorityObject()
-	if sa == nil {
+	if val == nil {
 		return false
 	}
 	res := true
 
 	return res
+}
+
+func (s *SoAccountAuthorityObjectWrap) insertAllSortKeys(val *SoAccountAuthorityObject) error {
+	if s.dba == nil {
+		return errors.New("insert sort Field fail,the db is nil ")
+	}
+	if val == nil {
+		return errors.New("insert sort Field fail,get the SoAccountAuthorityObject fail ")
+	}
+
+	return nil
 }
 
 ////////////// SECTION LKeys delete/insert //////////////
@@ -103,14 +118,17 @@ func (s *SoAccountAuthorityObjectWrap) RemoveAccountAuthorityObject() bool {
 	if s.dba == nil {
 		return false
 	}
-	sa := s.getAccountAuthorityObject()
-	if sa == nil {
+	val := s.getAccountAuthorityObject()
+	if val == nil {
 		return false
 	}
 	//delete sort list key
+	if res := s.delAllSortKeys(true, val); !res {
+		return false
+	}
 
 	//delete unique list
-	if !s.delUniKeyAccount(sa) {
+	if res := s.delAllUniKeys(true, val); !res {
 		return false
 	}
 
@@ -293,20 +311,37 @@ func (s *SoAccountAuthorityObjectWrap) encodeMainKey() ([]byte, error) {
 
 ////////////// Unique Query delete/insert/query ///////////////
 
-func (s *SoAccountAuthorityObjectWrap) delAllUniKeys() bool {
+func (s *SoAccountAuthorityObjectWrap) delAllUniKeys(br bool, val *SoAccountAuthorityObject) bool {
 	if s.dba == nil {
 		return false
 	}
-	sa := s.getAccountAuthorityObject()
-	if sa == nil {
+	if val == nil {
 		return false
 	}
 	res := true
-	if !s.delUniKeyAccount(sa) && res {
-		res = false
+	if !s.delUniKeyAccount(val) {
+		if br {
+			return false
+		} else {
+			res = false
+		}
 	}
 
 	return res
+}
+
+func (s *SoAccountAuthorityObjectWrap) insertAllUniKeys(val *SoAccountAuthorityObject) error {
+	if s.dba == nil {
+		return errors.New("insert uniuqe Field fail,the db is nil ")
+	}
+	if val == nil {
+		return errors.New("insert uniuqe Field fail,get the SoAccountAuthorityObject fail ")
+	}
+	if !s.insertUniKeyAccount(val) {
+		return errors.New("insert unique Field prototype.AccountName while insert table ")
+	}
+
+	return nil
 }
 
 func (s *SoAccountAuthorityObjectWrap) delUniKeyAccount(sa *SoAccountAuthorityObject) bool {

@@ -71,19 +71,18 @@ func (s *SoExtFollowerWrap) Create(f func(tInfo *SoExtFollower)) error {
 	}
 
 	// update sort list keys
-
-	if !s.insertSortKeyFollowerInfo(val) {
-		s.delAllSortKeys()
+	if err = s.insertAllSortKeys(val); err != nil {
+		s.delAllSortKeys(false, val)
 		s.dba.Delete(keyBuf)
-		return errors.New("insert sort Field FollowerInfo while insert table ")
+		return err
 	}
 
 	//update unique list
-	if !s.insertUniKeyFollowerInfo(val) {
-		s.delAllSortKeys()
-		s.delAllUniKeys()
+	if err = s.insertAllUniKeys(val); err != nil {
+		s.delAllSortKeys(false, val)
+		s.delAllUniKeys(false, val)
 		s.dba.Delete(keyBuf)
-		return errors.New("insert unique Field prototype.FollowerCreatedOrder while insert table ")
+		return err
 	}
 
 	return nil
@@ -123,20 +122,37 @@ func (s *SoExtFollowerWrap) insertSortKeyFollowerInfo(sa *SoExtFollower) bool {
 	return ordErr == nil
 }
 
-func (s *SoExtFollowerWrap) delAllSortKeys() bool {
+func (s *SoExtFollowerWrap) delAllSortKeys(br bool, val *SoExtFollower) bool {
 	if s.dba == nil {
 		return false
 	}
-	sa := s.getExtFollower()
-	if sa == nil {
+	if val == nil {
 		return false
 	}
 	res := true
-	if !s.delSortKeyFollowerInfo(sa) && res {
-		res = false
+	if !s.delSortKeyFollowerInfo(val) {
+		if br {
+			return false
+		} else {
+			res = false
+		}
 	}
 
 	return res
+}
+
+func (s *SoExtFollowerWrap) insertAllSortKeys(val *SoExtFollower) error {
+	if s.dba == nil {
+		return errors.New("insert sort Field fail,the db is nil ")
+	}
+	if val == nil {
+		return errors.New("insert sort Field fail,get the SoExtFollower fail ")
+	}
+	if !s.insertSortKeyFollowerInfo(val) {
+		return errors.New("insert sort Field FollowerInfo while insert table ")
+	}
+
+	return nil
 }
 
 ////////////// SECTION LKeys delete/insert //////////////
@@ -145,17 +161,17 @@ func (s *SoExtFollowerWrap) RemoveExtFollower() bool {
 	if s.dba == nil {
 		return false
 	}
-	sa := s.getExtFollower()
-	if sa == nil {
+	val := s.getExtFollower()
+	if val == nil {
 		return false
 	}
 	//delete sort list key
-	if !s.delSortKeyFollowerInfo(sa) {
+	if res := s.delAllSortKeys(true, val); !res {
 		return false
 	}
 
 	//delete unique list
-	if !s.delUniKeyFollowerInfo(sa) {
+	if res := s.delAllUniKeys(true, val); !res {
 		return false
 	}
 
@@ -334,20 +350,37 @@ func (s *SoExtFollowerWrap) encodeMainKey() ([]byte, error) {
 
 ////////////// Unique Query delete/insert/query ///////////////
 
-func (s *SoExtFollowerWrap) delAllUniKeys() bool {
+func (s *SoExtFollowerWrap) delAllUniKeys(br bool, val *SoExtFollower) bool {
 	if s.dba == nil {
 		return false
 	}
-	sa := s.getExtFollower()
-	if sa == nil {
+	if val == nil {
 		return false
 	}
 	res := true
-	if !s.delUniKeyFollowerInfo(sa) && res {
-		res = false
+	if !s.delUniKeyFollowerInfo(val) {
+		if br {
+			return false
+		} else {
+			res = false
+		}
 	}
 
 	return res
+}
+
+func (s *SoExtFollowerWrap) insertAllUniKeys(val *SoExtFollower) error {
+	if s.dba == nil {
+		return errors.New("insert uniuqe Field fail,the db is nil ")
+	}
+	if val == nil {
+		return errors.New("insert uniuqe Field fail,get the SoExtFollower fail ")
+	}
+	if !s.insertUniKeyFollowerInfo(val) {
+		return errors.New("insert unique Field prototype.FollowerRelation while insert table ")
+	}
+
+	return nil
 }
 
 func (s *SoExtFollowerWrap) delUniKeyFollowerInfo(sa *SoExtFollower) bool {

@@ -117,25 +117,23 @@ func (s *So{{.ClsName}}Wrap) Create(f func(tInfo *So{{.ClsName}})) error {
 		return err
 	}
 
+    {{if ge  $.SListCount 0 -}}
 	// update sort list keys
-	{{range $k, $v := .LKeys}}
-	if !s.insertSortKey{{$v}}(val) {
-       s.delAllSortKeys()
+	if err = s.insertAllSortKeys(val); err != nil {
+       s.delAllSortKeys(false,val)
        s.dba.Delete(keyBuf)
-       return errors.New("insert sort Field {{$v}} while insert table ")
-	}
-	{{end}}
-  
+       return err
+    }
+    {{end}}
+    {{if ge (getMapCount .UniqueFieldMap) 0 -}}
     //update unique list
-    {{range $k, $v := .UniqueFieldMap -}}
-	if !s.insertUniKey{{$k}}(val) {
-        s.delAllSortKeys()
-        s.delAllUniKeys()
+    if err = s.insertAllUniKeys(val); err != nil {
+        s.delAllSortKeys(false,val)
+        s.delAllUniKeys(false,val)
         s.dba.Delete(keyBuf)
-		return errors.New("insert unique Field {{$v}} while insert table ")
-	}
-	{{end}}
-    
+        return err
+    }
+    {{end}}
 	return nil
 }
 
@@ -183,21 +181,39 @@ func (s *So{{$.ClsName}}Wrap) insertSortKey{{$v1.PName}}(sa *So{{$.ClsName}}) bo
 {{end}}
 
 {{if ge .SListCount 0}}
-func (s *So{{$.ClsName}}Wrap) delAllSortKeys() bool {
+func (s *So{{$.ClsName}}Wrap) delAllSortKeys(br bool, val *So{{.ClsName}}) bool {
     if s.dba == nil {
        return false
     }
-    sa := s.get{{.ClsName}}()
-	if sa == nil {
+	if val == nil {
 		return false
 	}
     res := true
     {{range $k, $v := .LKeys -}}
-    if !s.delSortKey{{$v}}(sa) && res {
-        res = false
+    if !s.delSortKey{{$v}}(val) {
+        if br {
+           return false
+        }else {
+           res = false
+        }
     }
 	{{end}}
     return res
+}
+
+func (s *So{{$.ClsName}}Wrap)insertAllSortKeys(val *So{{$.ClsName}}) error {
+    if s.dba == nil {
+       return errors.New("insert sort Field fail,the db is nil ")
+    }
+	if val == nil {
+		return errors.New("insert sort Field fail,get the So{{.ClsName}} fail ")
+	}
+    {{range $k, $v := .LKeys -}}
+	if !s.insertSortKey{{$v}}(val) {
+       return errors.New("insert sort Field {{$v}} while insert table ")
+	}
+	{{end}}    
+    return nil
 }
 {{end}}
 
@@ -207,22 +223,22 @@ func (s *So{{.ClsName}}Wrap) Remove{{.ClsName}}() bool {
     if s.dba == nil {
        return false
     }
-	sa := s.get{{.ClsName}}()
-	if sa == nil {
+	val := s.get{{.ClsName}}()
+	if val == nil {
 		return false
 	}
+    {{if ge  $.SListCount 0 -}}
     //delete sort list key
-	{{range $k, $v := .LKeys -}}
-	if !s.delSortKey{{$v}}(sa) {
-		return false
-	}
-	{{end}}
+    if res := s.delAllSortKeys(true, val); !res {
+       return false
+    }
+    {{end}}
+    {{if ge (getMapCount .UniqueFieldMap) 0 -}}
     //delete unique list
-    {{range $k, $v := .UniqueFieldMap -}}
-	if !s.delUniKey{{$k}}(sa) {
-		return false
-	}
-	{{end}}
+    if res := s.delAllUniKeys(true,val);  !res {
+       return false
+    }
+    {{end}}
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
 		return false
@@ -517,22 +533,41 @@ func (s *So{{$.ClsName}}Wrap) encodeMainKey() ([]byte, error) {
 ////////////// Unique Query delete/insert/query ///////////////
 
 {{if ge (getMapCount .UniqueFieldMap) 0}}
-func (s *So{{$.ClsName}}Wrap)delAllUniKeys() bool {
+func (s *So{{$.ClsName}}Wrap)delAllUniKeys(br bool, val *So{{.ClsName}}) bool {
      if s.dba == nil {
        return false
      }
-	 sa := s.get{{.ClsName}}()
-	 if sa == nil {
+	 if val == nil {
 		return false
 	 }
      res := true
      {{range $k, $v := .UniqueFieldMap -}}
-	 if !s.delUniKey{{$k}}(sa) && res {
-		res = false
+	 if !s.delUniKey{{$k}}(val) {
+        if br {
+           return false
+        }else {
+           res = false
+        }
 	 }
 	 {{end}}
      return res
 }
+
+func (s *So{{$.ClsName}}Wrap)insertAllUniKeys(val *So{{$.ClsName}}) error {
+     if s.dba == nil {
+       return errors.New("insert uniuqe Field fail,the db is nil ")
+    }
+	if val == nil {
+		return errors.New("insert uniuqe Field fail,get the So{{.ClsName}} fail ")
+	}
+    {{range $k, $v := .UniqueFieldMap -}}
+	if !s.insertUniKey{{$k}}(val) {
+		return errors.New("insert unique Field {{$v}} while insert table ")
+	}
+	{{end}}
+    return nil
+}
+
 {{end}}
 
 {{range $k, $v := .UniqueFieldMap}}

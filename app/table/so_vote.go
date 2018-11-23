@@ -72,25 +72,18 @@ func (s *SoVoteWrap) Create(f func(tInfo *SoVote)) error {
 	}
 
 	// update sort list keys
-
-	if !s.insertSortKeyVoteTime(val) {
-		s.delAllSortKeys()
+	if err = s.insertAllSortKeys(val); err != nil {
+		s.delAllSortKeys(false, val)
 		s.dba.Delete(keyBuf)
-		return errors.New("insert sort Field VoteTime while insert table ")
-	}
-
-	if !s.insertSortKeyPostId(val) {
-		s.delAllSortKeys()
-		s.dba.Delete(keyBuf)
-		return errors.New("insert sort Field PostId while insert table ")
+		return err
 	}
 
 	//update unique list
-	if !s.insertUniKeyVoter(val) {
-		s.delAllSortKeys()
-		s.delAllUniKeys()
+	if err = s.insertAllUniKeys(val); err != nil {
+		s.delAllSortKeys(false, val)
+		s.delAllUniKeys(false, val)
 		s.dba.Delete(keyBuf)
-		return errors.New("insert unique Field prototype.VoterId				 while insert table ")
+		return err
 	}
 
 	return nil
@@ -166,23 +159,47 @@ func (s *SoVoteWrap) insertSortKeyPostId(sa *SoVote) bool {
 	return ordErr == nil
 }
 
-func (s *SoVoteWrap) delAllSortKeys() bool {
+func (s *SoVoteWrap) delAllSortKeys(br bool, val *SoVote) bool {
 	if s.dba == nil {
 		return false
 	}
-	sa := s.getVote()
-	if sa == nil {
+	if val == nil {
 		return false
 	}
 	res := true
-	if !s.delSortKeyVoteTime(sa) && res {
-		res = false
+	if !s.delSortKeyVoteTime(val) {
+		if br {
+			return false
+		} else {
+			res = false
+		}
 	}
-	if !s.delSortKeyPostId(sa) && res {
-		res = false
+	if !s.delSortKeyPostId(val) {
+		if br {
+			return false
+		} else {
+			res = false
+		}
 	}
 
 	return res
+}
+
+func (s *SoVoteWrap) insertAllSortKeys(val *SoVote) error {
+	if s.dba == nil {
+		return errors.New("insert sort Field fail,the db is nil ")
+	}
+	if val == nil {
+		return errors.New("insert sort Field fail,get the SoVote fail ")
+	}
+	if !s.insertSortKeyVoteTime(val) {
+		return errors.New("insert sort Field VoteTime while insert table ")
+	}
+	if !s.insertSortKeyPostId(val) {
+		return errors.New("insert sort Field PostId while insert table ")
+	}
+
+	return nil
 }
 
 ////////////// SECTION LKeys delete/insert //////////////
@@ -191,20 +208,17 @@ func (s *SoVoteWrap) RemoveVote() bool {
 	if s.dba == nil {
 		return false
 	}
-	sa := s.getVote()
-	if sa == nil {
+	val := s.getVote()
+	if val == nil {
 		return false
 	}
 	//delete sort list key
-	if !s.delSortKeyVoteTime(sa) {
-		return false
-	}
-	if !s.delSortKeyPostId(sa) {
+	if res := s.delAllSortKeys(true, val); !res {
 		return false
 	}
 
 	//delete unique list
-	if !s.delUniKeyVoter(sa) {
+	if res := s.delAllUniKeys(true, val); !res {
 		return false
 	}
 
@@ -553,20 +567,37 @@ func (s *SoVoteWrap) encodeMainKey() ([]byte, error) {
 
 ////////////// Unique Query delete/insert/query ///////////////
 
-func (s *SoVoteWrap) delAllUniKeys() bool {
+func (s *SoVoteWrap) delAllUniKeys(br bool, val *SoVote) bool {
 	if s.dba == nil {
 		return false
 	}
-	sa := s.getVote()
-	if sa == nil {
+	if val == nil {
 		return false
 	}
 	res := true
-	if !s.delUniKeyVoter(sa) && res {
-		res = false
+	if !s.delUniKeyVoter(val) {
+		if br {
+			return false
+		} else {
+			res = false
+		}
 	}
 
 	return res
+}
+
+func (s *SoVoteWrap) insertAllUniKeys(val *SoVote) error {
+	if s.dba == nil {
+		return errors.New("insert uniuqe Field fail,the db is nil ")
+	}
+	if val == nil {
+		return errors.New("insert uniuqe Field fail,get the SoVote fail ")
+	}
+	if !s.insertUniKeyVoter(val) {
+		return errors.New("insert unique Field prototype.VoterId				 while insert table ")
+	}
+
+	return nil
 }
 
 func (s *SoVoteWrap) delUniKeyVoter(sa *SoVote) bool {

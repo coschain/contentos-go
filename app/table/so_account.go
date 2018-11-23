@@ -74,37 +74,18 @@ func (s *SoAccountWrap) Create(f func(tInfo *SoAccount)) error {
 	}
 
 	// update sort list keys
-
-	if !s.insertSortKeyCreatedTime(val) {
-		s.delAllSortKeys()
+	if err = s.insertAllSortKeys(val); err != nil {
+		s.delAllSortKeys(false, val)
 		s.dba.Delete(keyBuf)
-		return errors.New("insert sort Field CreatedTime while insert table ")
-	}
-
-	if !s.insertSortKeyBalance(val) {
-		s.delAllSortKeys()
-		s.dba.Delete(keyBuf)
-		return errors.New("insert sort Field Balance while insert table ")
-	}
-
-	if !s.insertSortKeyVestingShares(val) {
-		s.delAllSortKeys()
-		s.dba.Delete(keyBuf)
-		return errors.New("insert sort Field VestingShares while insert table ")
-	}
-
-	if !s.insertSortKeyBpVoteCount(val) {
-		s.delAllSortKeys()
-		s.dba.Delete(keyBuf)
-		return errors.New("insert sort Field BpVoteCount while insert table ")
+		return err
 	}
 
 	//update unique list
-	if !s.insertUniKeyName(val) {
-		s.delAllSortKeys()
-		s.delAllUniKeys()
+	if err = s.insertAllUniKeys(val); err != nil {
+		s.delAllSortKeys(false, val)
+		s.delAllUniKeys(false, val)
 		s.dba.Delete(keyBuf)
-		return errors.New("insert unique Field prototype.AccountName while insert table ")
+		return err
 	}
 
 	return nil
@@ -248,29 +229,67 @@ func (s *SoAccountWrap) insertSortKeyBpVoteCount(sa *SoAccount) bool {
 	return ordErr == nil
 }
 
-func (s *SoAccountWrap) delAllSortKeys() bool {
+func (s *SoAccountWrap) delAllSortKeys(br bool, val *SoAccount) bool {
 	if s.dba == nil {
 		return false
 	}
-	sa := s.getAccount()
-	if sa == nil {
+	if val == nil {
 		return false
 	}
 	res := true
-	if !s.delSortKeyCreatedTime(sa) && res {
-		res = false
+	if !s.delSortKeyCreatedTime(val) {
+		if br {
+			return false
+		} else {
+			res = false
+		}
 	}
-	if !s.delSortKeyBalance(sa) && res {
-		res = false
+	if !s.delSortKeyBalance(val) {
+		if br {
+			return false
+		} else {
+			res = false
+		}
 	}
-	if !s.delSortKeyVestingShares(sa) && res {
-		res = false
+	if !s.delSortKeyVestingShares(val) {
+		if br {
+			return false
+		} else {
+			res = false
+		}
 	}
-	if !s.delSortKeyBpVoteCount(sa) && res {
-		res = false
+	if !s.delSortKeyBpVoteCount(val) {
+		if br {
+			return false
+		} else {
+			res = false
+		}
 	}
 
 	return res
+}
+
+func (s *SoAccountWrap) insertAllSortKeys(val *SoAccount) error {
+	if s.dba == nil {
+		return errors.New("insert sort Field fail,the db is nil ")
+	}
+	if val == nil {
+		return errors.New("insert sort Field fail,get the SoAccount fail ")
+	}
+	if !s.insertSortKeyCreatedTime(val) {
+		return errors.New("insert sort Field CreatedTime while insert table ")
+	}
+	if !s.insertSortKeyBalance(val) {
+		return errors.New("insert sort Field Balance while insert table ")
+	}
+	if !s.insertSortKeyVestingShares(val) {
+		return errors.New("insert sort Field VestingShares while insert table ")
+	}
+	if !s.insertSortKeyBpVoteCount(val) {
+		return errors.New("insert sort Field BpVoteCount while insert table ")
+	}
+
+	return nil
 }
 
 ////////////// SECTION LKeys delete/insert //////////////
@@ -279,26 +298,17 @@ func (s *SoAccountWrap) RemoveAccount() bool {
 	if s.dba == nil {
 		return false
 	}
-	sa := s.getAccount()
-	if sa == nil {
+	val := s.getAccount()
+	if val == nil {
 		return false
 	}
 	//delete sort list key
-	if !s.delSortKeyCreatedTime(sa) {
-		return false
-	}
-	if !s.delSortKeyBalance(sa) {
-		return false
-	}
-	if !s.delSortKeyVestingShares(sa) {
-		return false
-	}
-	if !s.delSortKeyBpVoteCount(sa) {
+	if res := s.delAllSortKeys(true, val); !res {
 		return false
 	}
 
 	//delete unique list
-	if !s.delUniKeyName(sa) {
+	if res := s.delAllUniKeys(true, val); !res {
 		return false
 	}
 
@@ -950,20 +960,37 @@ func (s *SoAccountWrap) encodeMainKey() ([]byte, error) {
 
 ////////////// Unique Query delete/insert/query ///////////////
 
-func (s *SoAccountWrap) delAllUniKeys() bool {
+func (s *SoAccountWrap) delAllUniKeys(br bool, val *SoAccount) bool {
 	if s.dba == nil {
 		return false
 	}
-	sa := s.getAccount()
-	if sa == nil {
+	if val == nil {
 		return false
 	}
 	res := true
-	if !s.delUniKeyName(sa) && res {
-		res = false
+	if !s.delUniKeyName(val) {
+		if br {
+			return false
+		} else {
+			res = false
+		}
 	}
 
 	return res
+}
+
+func (s *SoAccountWrap) insertAllUniKeys(val *SoAccount) error {
+	if s.dba == nil {
+		return errors.New("insert uniuqe Field fail,the db is nil ")
+	}
+	if val == nil {
+		return errors.New("insert uniuqe Field fail,get the SoAccount fail ")
+	}
+	if !s.insertUniKeyName(val) {
+		return errors.New("insert unique Field prototype.AccountName while insert table ")
+	}
+
+	return nil
 }
 
 func (s *SoAccountWrap) delUniKeyName(sa *SoAccount) bool {

@@ -71,19 +71,18 @@ func (s *SoWitnessWrap) Create(f func(tInfo *SoWitness)) error {
 	}
 
 	// update sort list keys
-
-	if !s.insertSortKeyOwner(val) {
-		s.delAllSortKeys()
+	if err = s.insertAllSortKeys(val); err != nil {
+		s.delAllSortKeys(false, val)
 		s.dba.Delete(keyBuf)
-		return errors.New("insert sort Field Owner while insert table ")
+		return err
 	}
 
 	//update unique list
-	if !s.insertUniKeyOwner(val) {
-		s.delAllSortKeys()
-		s.delAllUniKeys()
+	if err = s.insertAllUniKeys(val); err != nil {
+		s.delAllSortKeys(false, val)
+		s.delAllUniKeys(false, val)
 		s.dba.Delete(keyBuf)
-		return errors.New("insert unique Field prototype.AccountName while insert table ")
+		return err
 	}
 
 	return nil
@@ -123,20 +122,37 @@ func (s *SoWitnessWrap) insertSortKeyOwner(sa *SoWitness) bool {
 	return ordErr == nil
 }
 
-func (s *SoWitnessWrap) delAllSortKeys() bool {
+func (s *SoWitnessWrap) delAllSortKeys(br bool, val *SoWitness) bool {
 	if s.dba == nil {
 		return false
 	}
-	sa := s.getWitness()
-	if sa == nil {
+	if val == nil {
 		return false
 	}
 	res := true
-	if !s.delSortKeyOwner(sa) && res {
-		res = false
+	if !s.delSortKeyOwner(val) {
+		if br {
+			return false
+		} else {
+			res = false
+		}
 	}
 
 	return res
+}
+
+func (s *SoWitnessWrap) insertAllSortKeys(val *SoWitness) error {
+	if s.dba == nil {
+		return errors.New("insert sort Field fail,the db is nil ")
+	}
+	if val == nil {
+		return errors.New("insert sort Field fail,get the SoWitness fail ")
+	}
+	if !s.insertSortKeyOwner(val) {
+		return errors.New("insert sort Field Owner while insert table ")
+	}
+
+	return nil
 }
 
 ////////////// SECTION LKeys delete/insert //////////////
@@ -145,17 +161,17 @@ func (s *SoWitnessWrap) RemoveWitness() bool {
 	if s.dba == nil {
 		return false
 	}
-	sa := s.getWitness()
-	if sa == nil {
+	val := s.getWitness()
+	if val == nil {
 		return false
 	}
 	//delete sort list key
-	if !s.delSortKeyOwner(sa) {
+	if res := s.delAllSortKeys(true, val); !res {
 		return false
 	}
 
 	//delete unique list
-	if !s.delUniKeyOwner(sa) {
+	if res := s.delAllUniKeys(true, val); !res {
 		return false
 	}
 
@@ -631,20 +647,37 @@ func (s *SoWitnessWrap) encodeMainKey() ([]byte, error) {
 
 ////////////// Unique Query delete/insert/query ///////////////
 
-func (s *SoWitnessWrap) delAllUniKeys() bool {
+func (s *SoWitnessWrap) delAllUniKeys(br bool, val *SoWitness) bool {
 	if s.dba == nil {
 		return false
 	}
-	sa := s.getWitness()
-	if sa == nil {
+	if val == nil {
 		return false
 	}
 	res := true
-	if !s.delUniKeyOwner(sa) && res {
-		res = false
+	if !s.delUniKeyOwner(val) {
+		if br {
+			return false
+		} else {
+			res = false
+		}
 	}
 
 	return res
+}
+
+func (s *SoWitnessWrap) insertAllUniKeys(val *SoWitness) error {
+	if s.dba == nil {
+		return errors.New("insert uniuqe Field fail,the db is nil ")
+	}
+	if val == nil {
+		return errors.New("insert uniuqe Field fail,get the SoWitness fail ")
+	}
+	if !s.insertUniKeyOwner(val) {
+		return errors.New("insert unique Field prototype.AccountName while insert table ")
+	}
+
+	return nil
 }
 
 func (s *SoWitnessWrap) delUniKeyOwner(sa *SoWitness) bool {

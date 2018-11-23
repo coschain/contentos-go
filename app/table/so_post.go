@@ -68,19 +68,18 @@ func (s *SoPostWrap) Create(f func(tInfo *SoPost)) error {
 	}
 
 	// update sort list keys
-
-	if !s.insertSortKeyCreated(val) {
-		s.delAllSortKeys()
+	if err = s.insertAllSortKeys(val); err != nil {
+		s.delAllSortKeys(false, val)
 		s.dba.Delete(keyBuf)
-		return errors.New("insert sort Field Created while insert table ")
+		return err
 	}
 
 	//update unique list
-	if !s.insertUniKeyPostId(val) {
-		s.delAllSortKeys()
-		s.delAllUniKeys()
+	if err = s.insertAllUniKeys(val); err != nil {
+		s.delAllSortKeys(false, val)
+		s.delAllUniKeys(false, val)
 		s.dba.Delete(keyBuf)
-		return errors.New("insert unique Field uint64 while insert table ")
+		return err
 	}
 
 	return nil
@@ -122,20 +121,37 @@ func (s *SoPostWrap) insertSortKeyCreated(sa *SoPost) bool {
 	return ordErr == nil
 }
 
-func (s *SoPostWrap) delAllSortKeys() bool {
+func (s *SoPostWrap) delAllSortKeys(br bool, val *SoPost) bool {
 	if s.dba == nil {
 		return false
 	}
-	sa := s.getPost()
-	if sa == nil {
+	if val == nil {
 		return false
 	}
 	res := true
-	if !s.delSortKeyCreated(sa) && res {
-		res = false
+	if !s.delSortKeyCreated(val) {
+		if br {
+			return false
+		} else {
+			res = false
+		}
 	}
 
 	return res
+}
+
+func (s *SoPostWrap) insertAllSortKeys(val *SoPost) error {
+	if s.dba == nil {
+		return errors.New("insert sort Field fail,the db is nil ")
+	}
+	if val == nil {
+		return errors.New("insert sort Field fail,get the SoPost fail ")
+	}
+	if !s.insertSortKeyCreated(val) {
+		return errors.New("insert sort Field Created while insert table ")
+	}
+
+	return nil
 }
 
 ////////////// SECTION LKeys delete/insert //////////////
@@ -144,17 +160,17 @@ func (s *SoPostWrap) RemovePost() bool {
 	if s.dba == nil {
 		return false
 	}
-	sa := s.getPost()
-	if sa == nil {
+	val := s.getPost()
+	if val == nil {
 		return false
 	}
 	//delete sort list key
-	if !s.delSortKeyCreated(sa) {
+	if res := s.delAllSortKeys(true, val); !res {
 		return false
 	}
 
 	//delete unique list
-	if !s.delUniKeyPostId(sa) {
+	if res := s.delAllUniKeys(true, val); !res {
 		return false
 	}
 
@@ -690,20 +706,37 @@ func (s *SoPostWrap) encodeMainKey() ([]byte, error) {
 
 ////////////// Unique Query delete/insert/query ///////////////
 
-func (s *SoPostWrap) delAllUniKeys() bool {
+func (s *SoPostWrap) delAllUniKeys(br bool, val *SoPost) bool {
 	if s.dba == nil {
 		return false
 	}
-	sa := s.getPost()
-	if sa == nil {
+	if val == nil {
 		return false
 	}
 	res := true
-	if !s.delUniKeyPostId(sa) && res {
-		res = false
+	if !s.delUniKeyPostId(val) {
+		if br {
+			return false
+		} else {
+			res = false
+		}
 	}
 
 	return res
+}
+
+func (s *SoPostWrap) insertAllUniKeys(val *SoPost) error {
+	if s.dba == nil {
+		return errors.New("insert uniuqe Field fail,the db is nil ")
+	}
+	if val == nil {
+		return errors.New("insert uniuqe Field fail,get the SoPost fail ")
+	}
+	if !s.insertUniKeyPostId(val) {
+		return errors.New("insert unique Field uint64 while insert table ")
+	}
+
+	return nil
 }
 
 func (s *SoPostWrap) delUniKeyPostId(sa *SoPost) bool {

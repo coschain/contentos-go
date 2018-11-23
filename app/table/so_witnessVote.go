@@ -71,19 +71,18 @@ func (s *SoWitnessVoteWrap) Create(f func(tInfo *SoWitnessVote)) error {
 	}
 
 	// update sort list keys
-
-	if !s.insertSortKeyVoterId(val) {
-		s.delAllSortKeys()
+	if err = s.insertAllSortKeys(val); err != nil {
+		s.delAllSortKeys(false, val)
 		s.dba.Delete(keyBuf)
-		return errors.New("insert sort Field VoterId while insert table ")
+		return err
 	}
 
 	//update unique list
-	if !s.insertUniKeyVoterId(val) {
-		s.delAllSortKeys()
-		s.delAllUniKeys()
+	if err = s.insertAllUniKeys(val); err != nil {
+		s.delAllSortKeys(false, val)
+		s.delAllUniKeys(false, val)
 		s.dba.Delete(keyBuf)
-		return errors.New("insert unique Field prototype.BpVoterId while insert table ")
+		return err
 	}
 
 	return nil
@@ -123,20 +122,37 @@ func (s *SoWitnessVoteWrap) insertSortKeyVoterId(sa *SoWitnessVote) bool {
 	return ordErr == nil
 }
 
-func (s *SoWitnessVoteWrap) delAllSortKeys() bool {
+func (s *SoWitnessVoteWrap) delAllSortKeys(br bool, val *SoWitnessVote) bool {
 	if s.dba == nil {
 		return false
 	}
-	sa := s.getWitnessVote()
-	if sa == nil {
+	if val == nil {
 		return false
 	}
 	res := true
-	if !s.delSortKeyVoterId(sa) && res {
-		res = false
+	if !s.delSortKeyVoterId(val) {
+		if br {
+			return false
+		} else {
+			res = false
+		}
 	}
 
 	return res
+}
+
+func (s *SoWitnessVoteWrap) insertAllSortKeys(val *SoWitnessVote) error {
+	if s.dba == nil {
+		return errors.New("insert sort Field fail,the db is nil ")
+	}
+	if val == nil {
+		return errors.New("insert sort Field fail,get the SoWitnessVote fail ")
+	}
+	if !s.insertSortKeyVoterId(val) {
+		return errors.New("insert sort Field VoterId while insert table ")
+	}
+
+	return nil
 }
 
 ////////////// SECTION LKeys delete/insert //////////////
@@ -145,17 +161,17 @@ func (s *SoWitnessVoteWrap) RemoveWitnessVote() bool {
 	if s.dba == nil {
 		return false
 	}
-	sa := s.getWitnessVote()
-	if sa == nil {
+	val := s.getWitnessVote()
+	if val == nil {
 		return false
 	}
 	//delete sort list key
-	if !s.delSortKeyVoterId(sa) {
+	if res := s.delAllSortKeys(true, val); !res {
 		return false
 	}
 
 	//delete unique list
-	if !s.delUniKeyVoterId(sa) {
+	if res := s.delAllUniKeys(true, val); !res {
 		return false
 	}
 
@@ -388,20 +404,37 @@ func (s *SoWitnessVoteWrap) encodeMainKey() ([]byte, error) {
 
 ////////////// Unique Query delete/insert/query ///////////////
 
-func (s *SoWitnessVoteWrap) delAllUniKeys() bool {
+func (s *SoWitnessVoteWrap) delAllUniKeys(br bool, val *SoWitnessVote) bool {
 	if s.dba == nil {
 		return false
 	}
-	sa := s.getWitnessVote()
-	if sa == nil {
+	if val == nil {
 		return false
 	}
 	res := true
-	if !s.delUniKeyVoterId(sa) && res {
-		res = false
+	if !s.delUniKeyVoterId(val) {
+		if br {
+			return false
+		} else {
+			res = false
+		}
 	}
 
 	return res
+}
+
+func (s *SoWitnessVoteWrap) insertAllUniKeys(val *SoWitnessVote) error {
+	if s.dba == nil {
+		return errors.New("insert uniuqe Field fail,the db is nil ")
+	}
+	if val == nil {
+		return errors.New("insert uniuqe Field fail,get the SoWitnessVote fail ")
+	}
+	if !s.insertUniKeyVoterId(val) {
+		return errors.New("insert unique Field prototype.BpVoterId while insert table ")
+	}
+
+	return nil
 }
 
 func (s *SoWitnessVoteWrap) delUniKeyVoterId(sa *SoWitnessVote) bool {

@@ -71,19 +71,18 @@ func (s *SoTransactionObjectWrap) Create(f func(tInfo *SoTransactionObject)) err
 	}
 
 	// update sort list keys
-
-	if !s.insertSortKeyExpiration(val) {
-		s.delAllSortKeys()
+	if err = s.insertAllSortKeys(val); err != nil {
+		s.delAllSortKeys(false, val)
 		s.dba.Delete(keyBuf)
-		return errors.New("insert sort Field Expiration while insert table ")
+		return err
 	}
 
 	//update unique list
-	if !s.insertUniKeyTrxId(val) {
-		s.delAllSortKeys()
-		s.delAllUniKeys()
+	if err = s.insertAllUniKeys(val); err != nil {
+		s.delAllSortKeys(false, val)
+		s.delAllUniKeys(false, val)
 		s.dba.Delete(keyBuf)
-		return errors.New("insert unique Field prototype.Sha256 while insert table ")
+		return err
 	}
 
 	return nil
@@ -125,20 +124,37 @@ func (s *SoTransactionObjectWrap) insertSortKeyExpiration(sa *SoTransactionObjec
 	return ordErr == nil
 }
 
-func (s *SoTransactionObjectWrap) delAllSortKeys() bool {
+func (s *SoTransactionObjectWrap) delAllSortKeys(br bool, val *SoTransactionObject) bool {
 	if s.dba == nil {
 		return false
 	}
-	sa := s.getTransactionObject()
-	if sa == nil {
+	if val == nil {
 		return false
 	}
 	res := true
-	if !s.delSortKeyExpiration(sa) && res {
-		res = false
+	if !s.delSortKeyExpiration(val) {
+		if br {
+			return false
+		} else {
+			res = false
+		}
 	}
 
 	return res
+}
+
+func (s *SoTransactionObjectWrap) insertAllSortKeys(val *SoTransactionObject) error {
+	if s.dba == nil {
+		return errors.New("insert sort Field fail,the db is nil ")
+	}
+	if val == nil {
+		return errors.New("insert sort Field fail,get the SoTransactionObject fail ")
+	}
+	if !s.insertSortKeyExpiration(val) {
+		return errors.New("insert sort Field Expiration while insert table ")
+	}
+
+	return nil
 }
 
 ////////////// SECTION LKeys delete/insert //////////////
@@ -147,17 +163,17 @@ func (s *SoTransactionObjectWrap) RemoveTransactionObject() bool {
 	if s.dba == nil {
 		return false
 	}
-	sa := s.getTransactionObject()
-	if sa == nil {
+	val := s.getTransactionObject()
+	if val == nil {
 		return false
 	}
 	//delete sort list key
-	if !s.delSortKeyExpiration(sa) {
+	if res := s.delAllSortKeys(true, val); !res {
 		return false
 	}
 
 	//delete unique list
-	if !s.delUniKeyTrxId(sa) {
+	if res := s.delAllUniKeys(true, val); !res {
 		return false
 	}
 
@@ -370,20 +386,37 @@ func (s *SoTransactionObjectWrap) encodeMainKey() ([]byte, error) {
 
 ////////////// Unique Query delete/insert/query ///////////////
 
-func (s *SoTransactionObjectWrap) delAllUniKeys() bool {
+func (s *SoTransactionObjectWrap) delAllUniKeys(br bool, val *SoTransactionObject) bool {
 	if s.dba == nil {
 		return false
 	}
-	sa := s.getTransactionObject()
-	if sa == nil {
+	if val == nil {
 		return false
 	}
 	res := true
-	if !s.delUniKeyTrxId(sa) && res {
-		res = false
+	if !s.delUniKeyTrxId(val) {
+		if br {
+			return false
+		} else {
+			res = false
+		}
 	}
 
 	return res
+}
+
+func (s *SoTransactionObjectWrap) insertAllUniKeys(val *SoTransactionObject) error {
+	if s.dba == nil {
+		return errors.New("insert uniuqe Field fail,the db is nil ")
+	}
+	if val == nil {
+		return errors.New("insert uniuqe Field fail,get the SoTransactionObject fail ")
+	}
+	if !s.insertUniKeyTrxId(val) {
+		return errors.New("insert unique Field prototype.Sha256 while insert table ")
+	}
+
+	return nil
 }
 
 func (s *SoTransactionObjectWrap) delUniKeyTrxId(sa *SoTransactionObject) bool {
