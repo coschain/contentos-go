@@ -26,6 +26,7 @@ type DB struct {
 
 // NewDB ...
 func NewDB() *DB {
+	// TODO: purge the detachedLink
 	return &DB{
 		list:         make([][]common.BlockID, defaultSize+1),
 		branches:     make(map[common.BlockID]common.ISignedBlock),
@@ -253,34 +254,44 @@ func (db *DB) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, []comm
 // other branches, sets id as the start block. It should be regularly
 // called when a block is commited to save ram.
 func (db *DB) Commit(id common.BlockID) {
-	//newList := make([][]common.BlockID, defaultSize+1)
+	newList := make([][]common.BlockID, defaultSize+1)
+	newBranches := make(map[common.BlockID]common.ISignedBlock)
+	commitNum := id.BlockNum()
+	startNum := commitNum+1
+	endNum := db.head.BlockNum()
 
-	_, ids, err := db.FetchBlocksSince(id)
-	if err != nil {
-		return
-	}
+	// copy all the valid block after the committed block
+	newList[0] = append(newList[0], id)
+	newBranches[id] = db.branches[id]
+	for startNum <= endNum {
+		for i:=0; i<len(db.list[startNum-db.start]); i++ {
+			newId := db.list[startNum-db.start][i]
+			b, err := db.FetchBlock(newId)
+			if err != nil {
+				continue
+			}
 
-	for i := 0; i < len(db.list); i++ {
-		for j := 0; j < len(db.list[i]); j++ {
-			keep := false
-			for k := range ids {
-				if db.list[i][j] == ids[k] {
-					keep = true
+			prev := b.Previous()
+			detached := true
+			for j:=0;j<len(newList[startNum-commitNum-1]);j++{
+				if newList[startNum-commitNum-1][j] == prev {
+					detached = false
 					break
 				}
 			}
-			if !keep {
-				delete(db.branches, db.list[i][j])
-				delete(db.branches, db.list[i][j])
+			if !detached {
+				newList[startNum-db.start] = append(newList[startNum-db.start], newId)
+				newBranches[newId] = db.branches[newId]
 			}
 		}
+		startNum++
 	}
 
-	db.list = make([][]common.BlockID, defaultSize+1)
-	for i := 0; i < len(ids); i++ {
-		db.list[i] = append(db.list[i], ids[i])
-	}
-	db.start = ids[0].BlockNum()
+	// purge the branches
+	db.list = newList
+	db.branches = newBranches
+
+	db.start = id.BlockNum()
 }
 
 // Illegal determines if the block has illegal transactions
