@@ -6,8 +6,8 @@ import (
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/prototype"
-	"testing"
 	"github.com/golang/protobuf/proto"
+	"testing"
 )
 
 const (
@@ -150,13 +150,48 @@ func Test_PushBlock(t *testing.T) {
 
 	fmt.Println("block size:",proto.Size(sigBlk))
 
-	c.PushBlock(sigBlk)
+	c.PushBlock(sigBlk,prototype.Skip_nothing)
 
 	bobName := &prototype.AccountName{Value:accountName}
 	bobWrap := table.NewSoAccountWrap(db,bobName)
 	if !bobWrap.CheckExist() {
 		t.Error("create account failed")
 	}
+}
+
+func TestController_GenerateBlock(t *testing.T) {
+	clearDB()
+	createOP,err := makeCreateAccountOP()
+	if err != nil {
+		t.Error("makeCreateAccountOP error:",err)
+	}
+	signedTrx,err := createSigTrx(createOP)
+	if err != nil {
+		t.Error("createSigTrx error:",err)
+	}
+
+	// set up controller
+	db := startDB()
+	defer db.Close()
+	c := startController(db)
+
+	invoice := c.PushTrx(signedTrx)
+	if invoice.Status != 200 {
+		t.Error("PushTrx return status error:",invoice.Status)
+	}
+
+	bobName := &prototype.AccountName{Value:accountName}
+	bobWrap := table.NewSoAccountWrap(db,bobName)
+	if !bobWrap.CheckExist() {
+		t.Error("create account failed")
+	}
+
+	pri,err := prototype.PrivateKeyFromWIF(constants.INITMINER_PRIKEY)
+	if err != nil {
+		t.Error("PrivateKeyFromWIF error")
+	}
+
+	c.GenerateBlock(constants.INIT_MINER_NAME,18,pri,0)
 }
 
 func Test_list(t *testing.T) {

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app/table"
-	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/common/eventloop"
 	"github.com/coschain/contentos-go/common/logging"
@@ -14,14 +13,6 @@ import (
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/golang/protobuf/proto"
 	"time"
-)
-
-type skipFlag uint32
-
-const (
-	skip_nothing                skipFlag = 0
-	skip_transaction_signatures skipFlag = 1 << 0
-	skip_apply_transaction      skipFlag = 1 << 1
 )
 
 var(
@@ -38,7 +29,7 @@ type Controller struct {
 
 	db      iservices.IDatabaseService
 	noticer EventBus.Bus
-	skip    skipFlag
+	skip    prototype.SkipFlag
 
 	_pending_tx           []*prototype.TransactionWrapper
 	_isProducing          bool
@@ -47,6 +38,7 @@ type Controller struct {
 	_currentBlockNum      uint64
 	_current_trx_in_block int16
 	dgpo *prototype.DynamicProperties
+	havePendingTransaction bool
 }
 
 func (c *Controller) getDb() (iservices.IDatabaseService, error) {
@@ -131,8 +123,9 @@ func (c *Controller) _pushTrx(trx *prototype.SignedTransaction) *prototype.Trans
 		}
 	}()
 	// start a new undo session when first transaction come after push block
-	if len(c._pending_tx) == 0 {
+	if !c.havePendingTransaction {
 		c.db.BeginTransaction()
+		c.havePendingTransaction = true
 	}
 
 	trxWrp := &prototype.TransactionWrapper{}
@@ -153,11 +146,13 @@ func (c *Controller) _pushTrx(trx *prototype.SignedTransaction) *prototype.Trans
 	return trxWrp.Invoice
 }
 
-func (c *Controller) PushBlock(blk *prototype.SignedBlock) {
+func (c *Controller) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag) {
 	oldFlag := c.skip
 	defer func() {
 		c.skip = oldFlag
 	}()
+
+	c.skip = skip
 
 	tmpPending := c.ClearPending()
 
@@ -178,11 +173,16 @@ func (c *Controller) PushBlock(blk *prototype.SignedBlock) {
 
 func (c *Controller) ClearPending() []*prototype.TransactionWrapper {
 	// @
+	mustSuccess(len(c._pending_tx) == 0 || c.havePendingTransaction,"can not clear pending")
 	res := make([]*prototype.TransactionWrapper, len(c._pending_tx))
 	copy(res, c._pending_tx)
 
 	c._pending_tx = c._pending_tx[:0]
-	c.db.EndTransaction(false)
+
+	if c.skip & prototype.Skip_apply_transaction == 0 {
+		c.db.EndTransaction(false)
+		c.havePendingTransaction = false
+	}
 
 	return res
 }
@@ -211,7 +211,7 @@ func emptyHeader(signHeader * prototype.SignedBlockHeader) {
 }
 
 func (c *Controller) GenerateBlock(witness string, timestamp uint32,
-	prev *common.BlockID, priKey *prototype.PrivateKeyType, skip skipFlag) *prototype.SignedBlock {
+	priKey *prototype.PrivateKeyType, skip prototype.SkipFlag) *prototype.SignedBlock {
 	oldSkip := c.skip
 	defer func() {
 		c.skip = oldSkip
@@ -239,8 +239,8 @@ func (c *Controller) GenerateBlock(witness string, timestamp uint32,
 	signHeader := &prototype.SignedBlockHeader{}
 	emptyHeader(signHeader)
 	maxBlockHeaderSize := proto.Size(signHeader) + 4
-	var i int32 = 0
-	dgpWrap := table.NewSoGlobalWrap(c.db,&i)
+
+	dgpWrap := table.NewSoGlobalWrap(c.db,&SINGLE_ID)
 	maxBlockSize := dgpWrap.GetProps().MaximumBlockSize
 	var totalSize uint32 = uint32(maxBlockHeaderSize)
 
@@ -252,6 +252,7 @@ func (c *Controller) GenerateBlock(witness string, timestamp uint32,
 	// undo all _pending_tx in DB
 	c.db.EndTransaction(false)
 	c.db.BeginTransaction()
+	c.havePendingTransaction = true
 
 	var postponeTrx uint64 = 0
 	for _,trxWraper := range c._pending_tx {
@@ -289,11 +290,12 @@ func (c *Controller) GenerateBlock(witness string, timestamp uint32,
 	id := signBlock.CalculateMerkleRoot()
 	signBlock.SignedHeader.Header.TransactionMerkleRoot = &prototype.Sha256{Hash:id.Data[:]}
 	signBlock.SignedHeader.Header.Witness = witnessName
+	signBlock.SignedHeader.WitnessSignature = &prototype.SignatureType{}
 	signBlock.SignedHeader.Sign(priKey)
 
 	mustSuccess(proto.Size(signBlock) <= constants.MAX_BLOCK_SIZE,"block size too big")
 
-	c.PushBlock(signBlock)
+	c.PushBlock(signBlock,c.skip | prototype.Skip_apply_transaction)
 	if signBlock.SignedHeader.Number() == uint64(c.headBlockNum()) {
 		c.db.EndTransaction(true)
 	} else {
@@ -361,7 +363,7 @@ func (c *Controller) _applyTransaction(trxWrp *prototype.TransactionWrapper) {
 		panic("Duplicate transaction check failed")
 	}
 
-	if c.skip&skip_transaction_signatures == 0 {
+	if c.skip&prototype.Skip_transaction_signatures == 0 {
 		postingGetter := func(name string) *prototype.Authority {
 			account := &prototype.AccountName{Value: name}
 			authWrap := table.NewSoAccountAuthorityObjectWrap(c.db, account)
@@ -601,7 +603,7 @@ func (c *Controller) initGenesis() {
 	}), "CreateDynamicGlobalProperties error")
 
 	// create block summary
-	for i := uint32(0); i < 0x10000; i++ {
+	for i := uint32(0); i < 0x1; i++ {
 		wrap := table.NewSoBlockSummaryObjectWrap(c.db, &i)
 		mustNoError(wrap.Create(func(tInfo *table.SoBlockSummaryObject) {
 			tInfo.Id = i
