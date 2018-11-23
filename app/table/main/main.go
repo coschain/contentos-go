@@ -226,7 +226,8 @@ func main() {
 			if mKeyPtr == nil {
 				fmt.Println("get main key fail in range when query without start and end by reverse sort ")
 			}else {
-				fmt.Printf("the main key is %s in range when query without start and end by reverse sort \n",mKeyPtr.Value)
+				fmt.Printf("the main key is %s in range when query without start and end by reverse sort \n",
+					mKeyPtr.Value)
 			}
 		}
 		tSortWrap.DelIterater(iter5)

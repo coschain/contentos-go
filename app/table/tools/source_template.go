@@ -15,7 +15,7 @@ var tbMask uint64 = 1
 type SortPro struct {
 	PType string
 	PName string
-	SType int   //1:支持正序 2:支持倒序 3:支持正序和倒序
+	SType int   //1:support order 2:support reverse order 3:support order and reverse order
 }
 
 
