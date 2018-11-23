@@ -3,8 +3,6 @@ package consensus
 import (
 	"errors"
 	"fmt"
-	"github.com/coschain/contentos-go/iservices"
-	"github.com/coschain/contentos-go/prototype"
 	"sync"
 	"time"
 
@@ -12,6 +10,9 @@ import (
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/db/forkdb"
 	"github.com/coschain/contentos-go/node"
+	"github.com/coschain/contentos-go/db/blocklog"
+	"github.com/coschain/contentos-go/iservices"
+	"github.com/coschain/contentos-go/prototype"
 	//"github.com/coschain/contentos-go/app"
 )
 
@@ -40,6 +41,7 @@ func (p *Producer) Produce(timestamp uint64, prev common.BlockID, privKey *proto
 
 type DPoS struct {
 	ForkDB *forkdb.DB
+	blog blocklog.BLog
 
 	Producers      []*Producer
 	privKey        prototype.PrivateKeyType
@@ -107,6 +109,7 @@ func (d *DPoS) ActiveProducers() []*Producer {
 }
 
 func (d *DPoS) Start(node *node.Node) error {
+	d.blog.Open(node.Config().DataDir)
 	go d.start()
 	return nil
 }
@@ -296,13 +299,23 @@ func (d *DPoS) pushBlock(b common.ISignedBlock) error {
 		GetTopK() []witness
 	*/
 
-	//if newHead.Id().BlockNum() - lrb > 15 {
-	//	d.commit()
-	//}
+	if lastCommitted :=d.ForkDB.LastCommitted().BlockNum(); newHead.Id().BlockNum() - lastCommitted > 15 {
+		b, err := d.ForkDB.FetchBlockFromMainBranch(lastCommitted+1)
+		if err != nil {
+			return err
+		}
+		return d.commit(b)
+	}
 	return nil
 }
 
-func (d *DPoS) commit(id common.BlockID) error {
+func (d *DPoS) commit(b common.ISignedBlock) error {
+	// TODO: state db commit
+	err := d.blog.Append(b)
+	if err != nil {
+		// something went really wrong if we got here
+		panic(err)
+	}
 	return nil
 }
 

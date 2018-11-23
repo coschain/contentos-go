@@ -35,6 +35,11 @@ func NewDB() *DB {
 	}
 }
 
+// LastCommitted...
+func (db *DB) LastCommitted() common.BlockID {
+	return db.list[0][0]
+}
+
 // TotalBlockNum returns the total number of blocks contained in the DB
 func (db *DB) TotalBlockNum() int {
 	return len(db.branches)
