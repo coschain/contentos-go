@@ -80,37 +80,58 @@ func (s *SoDemoWrap) Create(f func(tInfo *SoDemo)) error {
 	// update sort list keys
 
 	if !s.insertSortKeyOwner(val) {
+		s.delAllSortKeys()
+		s.dba.Delete(keyBuf)
 		return errors.New("insert sort Field Owner while insert table ")
 	}
 
 	if !s.insertSortKeyPostTime(val) {
+		s.delAllSortKeys()
+		s.dba.Delete(keyBuf)
 		return errors.New("insert sort Field PostTime while insert table ")
 	}
 
 	if !s.insertSortKeyLikeCount(val) {
+		s.delAllSortKeys()
+		s.dba.Delete(keyBuf)
 		return errors.New("insert sort Field LikeCount while insert table ")
 	}
 
 	if !s.insertSortKeyIdx(val) {
+		s.delAllSortKeys()
+		s.dba.Delete(keyBuf)
 		return errors.New("insert sort Field Idx while insert table ")
 	}
 
 	if !s.insertSortKeyReplayCount(val) {
+		s.delAllSortKeys()
+		s.dba.Delete(keyBuf)
 		return errors.New("insert sort Field ReplayCount while insert table ")
 	}
 
 	if !s.insertSortKeyTaglist(val) {
+		s.delAllSortKeys()
+		s.dba.Delete(keyBuf)
 		return errors.New("insert sort Field Taglist while insert table ")
 	}
 
 	//update unique list
 	if !s.insertUniKeyIdx(val) {
+		s.delAllSortKeys()
+		s.delAllUniKeys()
+		s.dba.Delete(keyBuf)
 		return errors.New("insert unique Field int64 while insert table ")
 	}
 	if !s.insertUniKeyLikeCount(val) {
+		s.delAllSortKeys()
+		s.delAllUniKeys()
+		s.dba.Delete(keyBuf)
 		return errors.New("insert unique Field int64 while insert table ")
 	}
 	if !s.insertUniKeyOwner(val) {
+		s.delAllSortKeys()
+		s.delAllUniKeys()
+		s.dba.Delete(keyBuf)
 		return errors.New("insert unique Field prototype.AccountName while insert table ")
 	}
 
@@ -319,6 +340,37 @@ func (s *SoDemoWrap) insertSortKeyTaglist(sa *SoDemo) bool {
 	}
 	ordErr := s.dba.Put(subBuf, buf)
 	return ordErr == nil
+}
+
+func (s *SoDemoWrap) delAllSortKeys() bool {
+	if s.dba == nil {
+		return false
+	}
+	sa := s.getDemo()
+	if sa == nil {
+		return false
+	}
+	res := true
+	if !s.delSortKeyOwner(sa) && res {
+		res = false
+	}
+	if !s.delSortKeyPostTime(sa) && res {
+		res = false
+	}
+	if !s.delSortKeyLikeCount(sa) && res {
+		res = false
+	}
+	if !s.delSortKeyIdx(sa) && res {
+		res = false
+	}
+	if !s.delSortKeyReplayCount(sa) && res {
+		res = false
+	}
+	if !s.delSortKeyTaglist(sa) && res {
+		res = false
+	}
+
+	return res
 }
 
 ////////////// SECTION LKeys delete/insert //////////////
@@ -1326,6 +1378,28 @@ func (s *SoDemoWrap) encodeMainKey() ([]byte, error) {
 }
 
 ////////////// Unique Query delete/insert/query ///////////////
+
+func (s *SoDemoWrap) delAllUniKeys() bool {
+	if s.dba == nil {
+		return false
+	}
+	sa := s.getDemo()
+	if sa == nil {
+		return false
+	}
+	res := true
+	if !s.delUniKeyIdx(sa) && res {
+		res = false
+	}
+	if !s.delUniKeyLikeCount(sa) && res {
+		res = false
+	}
+	if !s.delUniKeyOwner(sa) && res {
+		res = false
+	}
+
+	return res
+}
 
 func (s *SoDemoWrap) delUniKeyIdx(sa *SoDemo) bool {
 	if s.dba == nil {

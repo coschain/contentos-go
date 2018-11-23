@@ -73,6 +73,9 @@ func (s *SoAccountAuthorityObjectWrap) Create(f func(tInfo *SoAccountAuthorityOb
 
 	//update unique list
 	if !s.insertUniKeyAccount(val) {
+		s.delAllSortKeys()
+		s.delAllUniKeys()
+		s.dba.Delete(keyBuf)
 		return errors.New("insert unique Field prototype.AccountName while insert table ")
 	}
 
@@ -80,6 +83,19 @@ func (s *SoAccountAuthorityObjectWrap) Create(f func(tInfo *SoAccountAuthorityOb
 }
 
 ////////////// SECTION LKeys delete/insert ///////////////
+
+func (s *SoAccountAuthorityObjectWrap) delAllSortKeys() bool {
+	if s.dba == nil {
+		return false
+	}
+	sa := s.getAccountAuthorityObject()
+	if sa == nil {
+		return false
+	}
+	res := true
+
+	return res
+}
 
 ////////////// SECTION LKeys delete/insert //////////////
 
@@ -276,6 +292,22 @@ func (s *SoAccountAuthorityObjectWrap) encodeMainKey() ([]byte, error) {
 }
 
 ////////////// Unique Query delete/insert/query ///////////////
+
+func (s *SoAccountAuthorityObjectWrap) delAllUniKeys() bool {
+	if s.dba == nil {
+		return false
+	}
+	sa := s.getAccountAuthorityObject()
+	if sa == nil {
+		return false
+	}
+	res := true
+	if !s.delUniKeyAccount(sa) && res {
+		res = false
+	}
+
+	return res
+}
 
 func (s *SoAccountAuthorityObjectWrap) delUniKeyAccount(sa *SoAccountAuthorityObject) bool {
 	if s.dba == nil {

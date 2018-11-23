@@ -73,11 +73,16 @@ func (s *SoWitnessWrap) Create(f func(tInfo *SoWitness)) error {
 	// update sort list keys
 
 	if !s.insertSortKeyOwner(val) {
+		s.delAllSortKeys()
+		s.dba.Delete(keyBuf)
 		return errors.New("insert sort Field Owner while insert table ")
 	}
 
 	//update unique list
 	if !s.insertUniKeyOwner(val) {
+		s.delAllSortKeys()
+		s.delAllUniKeys()
+		s.dba.Delete(keyBuf)
 		return errors.New("insert unique Field prototype.AccountName while insert table ")
 	}
 
@@ -116,6 +121,22 @@ func (s *SoWitnessWrap) insertSortKeyOwner(sa *SoWitness) bool {
 	}
 	ordErr := s.dba.Put(subBuf, buf)
 	return ordErr == nil
+}
+
+func (s *SoWitnessWrap) delAllSortKeys() bool {
+	if s.dba == nil {
+		return false
+	}
+	sa := s.getWitness()
+	if sa == nil {
+		return false
+	}
+	res := true
+	if !s.delSortKeyOwner(sa) && res {
+		res = false
+	}
+
+	return res
 }
 
 ////////////// SECTION LKeys delete/insert //////////////
@@ -609,6 +630,22 @@ func (s *SoWitnessWrap) encodeMainKey() ([]byte, error) {
 }
 
 ////////////// Unique Query delete/insert/query ///////////////
+
+func (s *SoWitnessWrap) delAllUniKeys() bool {
+	if s.dba == nil {
+		return false
+	}
+	sa := s.getWitness()
+	if sa == nil {
+		return false
+	}
+	res := true
+	if !s.delUniKeyOwner(sa) && res {
+		res = false
+	}
+
+	return res
+}
 
 func (s *SoWitnessWrap) delUniKeyOwner(sa *SoWitness) bool {
 	if s.dba == nil {

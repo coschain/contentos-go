@@ -73,11 +73,16 @@ func (s *SoWitnessVoteWrap) Create(f func(tInfo *SoWitnessVote)) error {
 	// update sort list keys
 
 	if !s.insertSortKeyVoterId(val) {
+		s.delAllSortKeys()
+		s.dba.Delete(keyBuf)
 		return errors.New("insert sort Field VoterId while insert table ")
 	}
 
 	//update unique list
 	if !s.insertUniKeyVoterId(val) {
+		s.delAllSortKeys()
+		s.delAllUniKeys()
+		s.dba.Delete(keyBuf)
 		return errors.New("insert unique Field prototype.BpVoterId while insert table ")
 	}
 
@@ -116,6 +121,22 @@ func (s *SoWitnessVoteWrap) insertSortKeyVoterId(sa *SoWitnessVote) bool {
 	}
 	ordErr := s.dba.Put(subBuf, buf)
 	return ordErr == nil
+}
+
+func (s *SoWitnessVoteWrap) delAllSortKeys() bool {
+	if s.dba == nil {
+		return false
+	}
+	sa := s.getWitnessVote()
+	if sa == nil {
+		return false
+	}
+	res := true
+	if !s.delSortKeyVoterId(sa) && res {
+		res = false
+	}
+
+	return res
 }
 
 ////////////// SECTION LKeys delete/insert //////////////
@@ -366,6 +387,22 @@ func (s *SoWitnessVoteWrap) encodeMainKey() ([]byte, error) {
 }
 
 ////////////// Unique Query delete/insert/query ///////////////
+
+func (s *SoWitnessVoteWrap) delAllUniKeys() bool {
+	if s.dba == nil {
+		return false
+	}
+	sa := s.getWitnessVote()
+	if sa == nil {
+		return false
+	}
+	res := true
+	if !s.delUniKeyVoterId(sa) && res {
+		res = false
+	}
+
+	return res
+}
 
 func (s *SoWitnessVoteWrap) delUniKeyVoterId(sa *SoWitnessVote) bool {
 	if s.dba == nil {

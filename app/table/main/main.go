@@ -271,7 +271,7 @@ func main() {
 	  	 res := wrap.RemoveDemo()
 	  	 if !res {
 	  	 	fmt.Println("remove the table data fail")
-		 }
+		}
 	  }
 
 	 db.Close()

@@ -74,15 +74,22 @@ func (s *SoVoteWrap) Create(f func(tInfo *SoVote)) error {
 	// update sort list keys
 
 	if !s.insertSortKeyVoteTime(val) {
+		s.delAllSortKeys()
+		s.dba.Delete(keyBuf)
 		return errors.New("insert sort Field VoteTime while insert table ")
 	}
 
 	if !s.insertSortKeyPostId(val) {
+		s.delAllSortKeys()
+		s.dba.Delete(keyBuf)
 		return errors.New("insert sort Field PostId while insert table ")
 	}
 
 	//update unique list
 	if !s.insertUniKeyVoter(val) {
+		s.delAllSortKeys()
+		s.delAllUniKeys()
+		s.dba.Delete(keyBuf)
 		return errors.New("insert unique Field prototype.VoterId				 while insert table ")
 	}
 
@@ -157,6 +164,25 @@ func (s *SoVoteWrap) insertSortKeyPostId(sa *SoVote) bool {
 	}
 	ordErr := s.dba.Put(subBuf, buf)
 	return ordErr == nil
+}
+
+func (s *SoVoteWrap) delAllSortKeys() bool {
+	if s.dba == nil {
+		return false
+	}
+	sa := s.getVote()
+	if sa == nil {
+		return false
+	}
+	res := true
+	if !s.delSortKeyVoteTime(sa) && res {
+		res = false
+	}
+	if !s.delSortKeyPostId(sa) && res {
+		res = false
+	}
+
+	return res
 }
 
 ////////////// SECTION LKeys delete/insert //////////////
@@ -526,6 +552,22 @@ func (s *SoVoteWrap) encodeMainKey() ([]byte, error) {
 }
 
 ////////////// Unique Query delete/insert/query ///////////////
+
+func (s *SoVoteWrap) delAllUniKeys() bool {
+	if s.dba == nil {
+		return false
+	}
+	sa := s.getVote()
+	if sa == nil {
+		return false
+	}
+	res := true
+	if !s.delUniKeyVoter(sa) && res {
+		res = false
+	}
+
+	return res
+}
 
 func (s *SoVoteWrap) delUniKeyVoter(sa *SoVote) bool {
 	if s.dba == nil {

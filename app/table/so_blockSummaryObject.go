@@ -70,6 +70,9 @@ func (s *SoBlockSummaryObjectWrap) Create(f func(tInfo *SoBlockSummaryObject)) e
 
 	//update unique list
 	if !s.insertUniKeyId(val) {
+		s.delAllSortKeys()
+		s.delAllUniKeys()
+		s.dba.Delete(keyBuf)
 		return errors.New("insert unique Field uint32 while insert table ")
 	}
 
@@ -77,6 +80,19 @@ func (s *SoBlockSummaryObjectWrap) Create(f func(tInfo *SoBlockSummaryObject)) e
 }
 
 ////////////// SECTION LKeys delete/insert ///////////////
+
+func (s *SoBlockSummaryObjectWrap) delAllSortKeys() bool {
+	if s.dba == nil {
+		return false
+	}
+	sa := s.getBlockSummaryObject()
+	if sa == nil {
+		return false
+	}
+	res := true
+
+	return res
+}
 
 ////////////// SECTION LKeys delete/insert //////////////
 
@@ -192,6 +208,22 @@ func (s *SoBlockSummaryObjectWrap) encodeMainKey() ([]byte, error) {
 }
 
 ////////////// Unique Query delete/insert/query ///////////////
+
+func (s *SoBlockSummaryObjectWrap) delAllUniKeys() bool {
+	if s.dba == nil {
+		return false
+	}
+	sa := s.getBlockSummaryObject()
+	if sa == nil {
+		return false
+	}
+	res := true
+	if !s.delUniKeyId(sa) && res {
+		res = false
+	}
+
+	return res
+}
 
 func (s *SoBlockSummaryObjectWrap) delUniKeyId(sa *SoBlockSummaryObject) bool {
 	if s.dba == nil {

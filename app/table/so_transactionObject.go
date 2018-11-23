@@ -73,11 +73,16 @@ func (s *SoTransactionObjectWrap) Create(f func(tInfo *SoTransactionObject)) err
 	// update sort list keys
 
 	if !s.insertSortKeyExpiration(val) {
+		s.delAllSortKeys()
+		s.dba.Delete(keyBuf)
 		return errors.New("insert sort Field Expiration while insert table ")
 	}
 
 	//update unique list
 	if !s.insertUniKeyTrxId(val) {
+		s.delAllSortKeys()
+		s.delAllUniKeys()
+		s.dba.Delete(keyBuf)
 		return errors.New("insert unique Field prototype.Sha256 while insert table ")
 	}
 
@@ -118,6 +123,22 @@ func (s *SoTransactionObjectWrap) insertSortKeyExpiration(sa *SoTransactionObjec
 	}
 	ordErr := s.dba.Put(subBuf, buf)
 	return ordErr == nil
+}
+
+func (s *SoTransactionObjectWrap) delAllSortKeys() bool {
+	if s.dba == nil {
+		return false
+	}
+	sa := s.getTransactionObject()
+	if sa == nil {
+		return false
+	}
+	res := true
+	if !s.delSortKeyExpiration(sa) && res {
+		res = false
+	}
+
+	return res
 }
 
 ////////////// SECTION LKeys delete/insert //////////////
@@ -348,6 +369,22 @@ func (s *SoTransactionObjectWrap) encodeMainKey() ([]byte, error) {
 }
 
 ////////////// Unique Query delete/insert/query ///////////////
+
+func (s *SoTransactionObjectWrap) delAllUniKeys() bool {
+	if s.dba == nil {
+		return false
+	}
+	sa := s.getTransactionObject()
+	if sa == nil {
+		return false
+	}
+	res := true
+	if !s.delUniKeyTrxId(sa) && res {
+		res = false
+	}
+
+	return res
+}
 
 func (s *SoTransactionObjectWrap) delUniKeyTrxId(sa *SoTransactionObject) bool {
 	if s.dba == nil {

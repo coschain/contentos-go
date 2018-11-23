@@ -69,6 +69,9 @@ func (s *SoWitnessScheduleObjectWrap) Create(f func(tInfo *SoWitnessScheduleObje
 
 	//update unique list
 	if !s.insertUniKeyId(val) {
+		s.delAllSortKeys()
+		s.delAllUniKeys()
+		s.dba.Delete(keyBuf)
 		return errors.New("insert unique Field int32 while insert table ")
 	}
 
@@ -76,6 +79,19 @@ func (s *SoWitnessScheduleObjectWrap) Create(f func(tInfo *SoWitnessScheduleObje
 }
 
 ////////////// SECTION LKeys delete/insert ///////////////
+
+func (s *SoWitnessScheduleObjectWrap) delAllSortKeys() bool {
+	if s.dba == nil {
+		return false
+	}
+	sa := s.getWitnessScheduleObject()
+	if sa == nil {
+		return false
+	}
+	res := true
+
+	return res
+}
 
 ////////////// SECTION LKeys delete/insert //////////////
 
@@ -191,6 +207,22 @@ func (s *SoWitnessScheduleObjectWrap) encodeMainKey() ([]byte, error) {
 }
 
 ////////////// Unique Query delete/insert/query ///////////////
+
+func (s *SoWitnessScheduleObjectWrap) delAllUniKeys() bool {
+	if s.dba == nil {
+		return false
+	}
+	sa := s.getWitnessScheduleObject()
+	if sa == nil {
+		return false
+	}
+	res := true
+	if !s.delUniKeyId(sa) && res {
+		res = false
+	}
+
+	return res
+}
 
 func (s *SoWitnessScheduleObjectWrap) delUniKeyId(sa *SoWitnessScheduleObject) bool {
 	if s.dba == nil {

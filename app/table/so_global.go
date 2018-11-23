@@ -70,6 +70,9 @@ func (s *SoGlobalWrap) Create(f func(tInfo *SoGlobal)) error {
 
 	//update unique list
 	if !s.insertUniKeyId(val) {
+		s.delAllSortKeys()
+		s.delAllUniKeys()
+		s.dba.Delete(keyBuf)
 		return errors.New("insert unique Field int32 while insert table ")
 	}
 
@@ -77,6 +80,19 @@ func (s *SoGlobalWrap) Create(f func(tInfo *SoGlobal)) error {
 }
 
 ////////////// SECTION LKeys delete/insert ///////////////
+
+func (s *SoGlobalWrap) delAllSortKeys() bool {
+	if s.dba == nil {
+		return false
+	}
+	sa := s.getGlobal()
+	if sa == nil {
+		return false
+	}
+	res := true
+
+	return res
+}
 
 ////////////// SECTION LKeys delete/insert //////////////
 
@@ -192,6 +208,22 @@ func (s *SoGlobalWrap) encodeMainKey() ([]byte, error) {
 }
 
 ////////////// Unique Query delete/insert/query ///////////////
+
+func (s *SoGlobalWrap) delAllUniKeys() bool {
+	if s.dba == nil {
+		return false
+	}
+	sa := s.getGlobal()
+	if sa == nil {
+		return false
+	}
+	res := true
+	if !s.delUniKeyId(sa) && res {
+		res = false
+	}
+
+	return res
+}
 
 func (s *SoGlobalWrap) delUniKeyId(sa *SoGlobal) bool {
 	if s.dba == nil {

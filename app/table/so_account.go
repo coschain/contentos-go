@@ -76,23 +76,34 @@ func (s *SoAccountWrap) Create(f func(tInfo *SoAccount)) error {
 	// update sort list keys
 
 	if !s.insertSortKeyCreatedTime(val) {
+		s.delAllSortKeys()
+		s.dba.Delete(keyBuf)
 		return errors.New("insert sort Field CreatedTime while insert table ")
 	}
 
 	if !s.insertSortKeyBalance(val) {
+		s.delAllSortKeys()
+		s.dba.Delete(keyBuf)
 		return errors.New("insert sort Field Balance while insert table ")
 	}
 
 	if !s.insertSortKeyVestingShares(val) {
+		s.delAllSortKeys()
+		s.dba.Delete(keyBuf)
 		return errors.New("insert sort Field VestingShares while insert table ")
 	}
 
 	if !s.insertSortKeyBpVoteCount(val) {
+		s.delAllSortKeys()
+		s.dba.Delete(keyBuf)
 		return errors.New("insert sort Field BpVoteCount while insert table ")
 	}
 
 	//update unique list
 	if !s.insertUniKeyName(val) {
+		s.delAllSortKeys()
+		s.delAllUniKeys()
+		s.dba.Delete(keyBuf)
 		return errors.New("insert unique Field prototype.AccountName while insert table ")
 	}
 
@@ -235,6 +246,31 @@ func (s *SoAccountWrap) insertSortKeyBpVoteCount(sa *SoAccount) bool {
 	}
 	ordErr := s.dba.Put(subBuf, buf)
 	return ordErr == nil
+}
+
+func (s *SoAccountWrap) delAllSortKeys() bool {
+	if s.dba == nil {
+		return false
+	}
+	sa := s.getAccount()
+	if sa == nil {
+		return false
+	}
+	res := true
+	if !s.delSortKeyCreatedTime(sa) && res {
+		res = false
+	}
+	if !s.delSortKeyBalance(sa) && res {
+		res = false
+	}
+	if !s.delSortKeyVestingShares(sa) && res {
+		res = false
+	}
+	if !s.delSortKeyBpVoteCount(sa) && res {
+		res = false
+	}
+
+	return res
 }
 
 ////////////// SECTION LKeys delete/insert //////////////
@@ -913,6 +949,22 @@ func (s *SoAccountWrap) encodeMainKey() ([]byte, error) {
 }
 
 ////////////// Unique Query delete/insert/query ///////////////
+
+func (s *SoAccountWrap) delAllUniKeys() bool {
+	if s.dba == nil {
+		return false
+	}
+	sa := s.getAccount()
+	if sa == nil {
+		return false
+	}
+	res := true
+	if !s.delUniKeyName(sa) && res {
+		res = false
+	}
+
+	return res
+}
 
 func (s *SoAccountWrap) delUniKeyName(sa *SoAccount) bool {
 	if s.dba == nil {

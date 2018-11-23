@@ -70,11 +70,16 @@ func (s *SoPostWrap) Create(f func(tInfo *SoPost)) error {
 	// update sort list keys
 
 	if !s.insertSortKeyCreated(val) {
+		s.delAllSortKeys()
+		s.dba.Delete(keyBuf)
 		return errors.New("insert sort Field Created while insert table ")
 	}
 
 	//update unique list
 	if !s.insertUniKeyPostId(val) {
+		s.delAllSortKeys()
+		s.delAllUniKeys()
+		s.dba.Delete(keyBuf)
 		return errors.New("insert unique Field uint64 while insert table ")
 	}
 
@@ -115,6 +120,22 @@ func (s *SoPostWrap) insertSortKeyCreated(sa *SoPost) bool {
 	}
 	ordErr := s.dba.Put(subBuf, buf)
 	return ordErr == nil
+}
+
+func (s *SoPostWrap) delAllSortKeys() bool {
+	if s.dba == nil {
+		return false
+	}
+	sa := s.getPost()
+	if sa == nil {
+		return false
+	}
+	res := true
+	if !s.delSortKeyCreated(sa) && res {
+		res = false
+	}
+
+	return res
 }
 
 ////////////// SECTION LKeys delete/insert //////////////
@@ -668,6 +689,22 @@ func (s *SoPostWrap) encodeMainKey() ([]byte, error) {
 }
 
 ////////////// Unique Query delete/insert/query ///////////////
+
+func (s *SoPostWrap) delAllUniKeys() bool {
+	if s.dba == nil {
+		return false
+	}
+	sa := s.getPost()
+	if sa == nil {
+		return false
+	}
+	res := true
+	if !s.delUniKeyPostId(sa) && res {
+		res = false
+	}
+
+	return res
+}
 
 func (s *SoPostWrap) delUniKeyPostId(sa *SoPost) bool {
 	if s.dba == nil {

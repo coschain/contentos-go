@@ -73,12 +73,17 @@ func (s *SoExtFollowingWrap) Create(f func(tInfo *SoExtFollowing)) error {
 	// update sort list keys
 
 	if !s.insertSortKeyFollowingInfo(val) {
+		s.delAllSortKeys()
+		s.dba.Delete(keyBuf)
 		return errors.New("insert sort Field FollowingInfo while insert table ")
 	}
 
 	//update unique list
 	if !s.insertUniKeyFollowingInfo(val) {
-		return errors.New("insert unique Field prototype.FollowingRelation while insert table ")
+		s.delAllSortKeys()
+		s.delAllUniKeys()
+		s.dba.Delete(keyBuf)
+		return errors.New("insert unique Field prototype.FollowingCreatedOrder while insert table ")
 	}
 
 	return nil
@@ -116,6 +121,22 @@ func (s *SoExtFollowingWrap) insertSortKeyFollowingInfo(sa *SoExtFollowing) bool
 	}
 	ordErr := s.dba.Put(subBuf, buf)
 	return ordErr == nil
+}
+
+func (s *SoExtFollowingWrap) delAllSortKeys() bool {
+	if s.dba == nil {
+		return false
+	}
+	sa := s.getExtFollowing()
+	if sa == nil {
+		return false
+	}
+	res := true
+	if !s.delSortKeyFollowingInfo(sa) && res {
+		res = false
+	}
+
+	return res
 }
 
 ////////////// SECTION LKeys delete/insert //////////////
@@ -312,6 +333,22 @@ func (s *SoExtFollowingWrap) encodeMainKey() ([]byte, error) {
 }
 
 ////////////// Unique Query delete/insert/query ///////////////
+
+func (s *SoExtFollowingWrap) delAllUniKeys() bool {
+	if s.dba == nil {
+		return false
+	}
+	sa := s.getExtFollowing()
+	if sa == nil {
+		return false
+	}
+	res := true
+	if !s.delUniKeyFollowingInfo(sa) && res {
+		res = false
+	}
+
+	return res
+}
 
 func (s *SoExtFollowingWrap) delUniKeyFollowingInfo(sa *SoExtFollowing) bool {
 	if s.dba == nil {

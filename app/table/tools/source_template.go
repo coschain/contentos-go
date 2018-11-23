@@ -120,6 +120,8 @@ func (s *So{{.ClsName}}Wrap) Create(f func(tInfo *So{{.ClsName}})) error {
 	// update sort list keys
 	{{range $k, $v := .LKeys}}
 	if !s.insertSortKey{{$v}}(val) {
+       s.delAllSortKeys()
+       s.dba.Delete(keyBuf)
        return errors.New("insert sort Field {{$v}} while insert table ")
 	}
 	{{end}}
@@ -127,6 +129,9 @@ func (s *So{{.ClsName}}Wrap) Create(f func(tInfo *So{{.ClsName}})) error {
     //update unique list
     {{range $k, $v := .UniqueFieldMap -}}
 	if !s.insertUniKey{{$k}}(val) {
+        s.delAllSortKeys()
+        s.delAllUniKeys()
+        s.dba.Delete(keyBuf)
 		return errors.New("insert unique Field {{$v}} while insert table ")
 	}
 	{{end}}
@@ -176,6 +181,26 @@ func (s *So{{$.ClsName}}Wrap) insertSortKey{{$v1.PName}}(sa *So{{$.ClsName}}) bo
 }
 
 {{end}}
+
+{{if ge .SListCount 0}}
+func (s *So{{$.ClsName}}Wrap) delAllSortKeys() bool {
+    if s.dba == nil {
+       return false
+    }
+    sa := s.get{{.ClsName}}()
+	if sa == nil {
+		return false
+	}
+    res := true
+    {{range $k, $v := .LKeys -}}
+    if !s.delSortKey{{$v}}(sa) && res {
+        res = false
+    }
+	{{end}}
+    return res
+}
+{{end}}
+
 ////////////// SECTION LKeys delete/insert //////////////
 
 func (s *So{{.ClsName}}Wrap) Remove{{.ClsName}}() bool {
@@ -490,8 +515,27 @@ func (s *So{{$.ClsName}}Wrap) encodeMainKey() ([]byte, error) {
 }
 
 ////////////// Unique Query delete/insert/query ///////////////
-{{range $k, $v := .UniqueFieldMap}}
 
+{{if ge (getMapCount .UniqueFieldMap) 0}}
+func (s *So{{$.ClsName}}Wrap)delAllUniKeys() bool {
+     if s.dba == nil {
+       return false
+     }
+	 sa := s.get{{.ClsName}}()
+	 if sa == nil {
+		return false
+	 }
+     res := true
+     {{range $k, $v := .UniqueFieldMap -}}
+	 if !s.delUniKey{{$k}}(sa) && res {
+		res = false
+	 }
+	 {{end}}
+     return res
+}
+{{end}}
+
+{{range $k, $v := .UniqueFieldMap}}
 func (s *So{{$.ClsName}}Wrap) delUniKey{{$k}}(sa *So{{$.ClsName}}) bool {
     if s.dba == nil {
        return false
@@ -596,6 +640,7 @@ func (s *Uni{{$.ClsName}}{{$k}}Wrap) UniQuery{{$k}}(start *{{formatStr $v}}) *So
 		"formatRTypeStr":formatRTypeStr,
 		"formatQueryParamStr":formatQueryParamStr,
 		"formatSliceType":formatSliceType,
+		"getMapCount":getMapCount,
 		}
 		t := template.New("go_template")
 		t  = t.Funcs(funcMapUper)
@@ -784,4 +829,8 @@ func formatSliceType(str string) string {
 		}
 	}
 	return str
+}
+
+func getMapCount(m map[string]string) int {
+	return len(m)
 }

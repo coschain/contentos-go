@@ -73,6 +73,9 @@ func (s *SoExtFollowCountWrap) Create(f func(tInfo *SoExtFollowCount)) error {
 
 	//update unique list
 	if !s.insertUniKeyAccount(val) {
+		s.delAllSortKeys()
+		s.delAllUniKeys()
+		s.dba.Delete(keyBuf)
 		return errors.New("insert unique Field prototype.AccountName while insert table ")
 	}
 
@@ -80,6 +83,19 @@ func (s *SoExtFollowCountWrap) Create(f func(tInfo *SoExtFollowCount)) error {
 }
 
 ////////////// SECTION LKeys delete/insert ///////////////
+
+func (s *SoExtFollowCountWrap) delAllSortKeys() bool {
+	if s.dba == nil {
+		return false
+	}
+	sa := s.getExtFollowCount()
+	if sa == nil {
+		return false
+	}
+	res := true
+
+	return res
+}
 
 ////////////// SECTION LKeys delete/insert //////////////
 
@@ -249,6 +265,22 @@ func (s *SoExtFollowCountWrap) encodeMainKey() ([]byte, error) {
 }
 
 ////////////// Unique Query delete/insert/query ///////////////
+
+func (s *SoExtFollowCountWrap) delAllUniKeys() bool {
+	if s.dba == nil {
+		return false
+	}
+	sa := s.getExtFollowCount()
+	if sa == nil {
+		return false
+	}
+	res := true
+	if !s.delUniKeyAccount(sa) && res {
+		res = false
+	}
+
+	return res
+}
 
 func (s *SoExtFollowCountWrap) delUniKeyAccount(sa *SoExtFollowCount) bool {
 	if s.dba == nil {
