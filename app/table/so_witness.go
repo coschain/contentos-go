@@ -31,6 +31,9 @@ func NewSoWitnessWrap(dba iservices.IDatabaseService, key *prototype.AccountName
 }
 
 func (s *SoWitnessWrap) CheckExist() bool {
+	if s.dba == nil {
+		return false
+	}
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
 		return false
@@ -84,6 +87,9 @@ func (s *SoWitnessWrap) Create(f func(tInfo *SoWitness)) error {
 ////////////// SECTION LKeys delete/insert ///////////////
 
 func (s *SoWitnessWrap) delSortKeyOwner(sa *SoWitness) bool {
+	if s.dba == nil {
+		return false
+	}
 	val := SoListWitnessByOwner{}
 	val.Owner = sa.Owner
 	subBuf, err := val.OpeEncode()
@@ -95,6 +101,9 @@ func (s *SoWitnessWrap) delSortKeyOwner(sa *SoWitness) bool {
 }
 
 func (s *SoWitnessWrap) insertSortKeyOwner(sa *SoWitness) bool {
+	if s.dba == nil {
+		return false
+	}
 	val := SoListWitnessByOwner{}
 	val.Owner = sa.Owner
 	buf, err := proto.Marshal(&val)
@@ -112,6 +121,9 @@ func (s *SoWitnessWrap) insertSortKeyOwner(sa *SoWitness) bool {
 ////////////// SECTION LKeys delete/insert //////////////
 
 func (s *SoWitnessWrap) RemoveWitness() bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getWitness()
 	if sa == nil {
 		return false
@@ -145,6 +157,9 @@ func (s *SoWitnessWrap) GetCreatedTime() *prototype.TimePointSec {
 }
 
 func (s *SoWitnessWrap) MdCreatedTime(p *prototype.TimePointSec) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getWitness()
 	if sa == nil {
 		return false
@@ -169,6 +184,9 @@ func (s *SoWitnessWrap) GetLastAslot() uint32 {
 }
 
 func (s *SoWitnessWrap) MdLastAslot(p uint32) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getWitness()
 	if sa == nil {
 		return false
@@ -193,6 +211,9 @@ func (s *SoWitnessWrap) GetLastConfirmedBlockNum() uint32 {
 }
 
 func (s *SoWitnessWrap) MdLastConfirmedBlockNum(p uint32) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getWitness()
 	if sa == nil {
 		return false
@@ -217,6 +238,9 @@ func (s *SoWitnessWrap) GetLastWork() *prototype.Sha256 {
 }
 
 func (s *SoWitnessWrap) MdLastWork(p *prototype.Sha256) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getWitness()
 	if sa == nil {
 		return false
@@ -251,6 +275,9 @@ func (s *SoWitnessWrap) GetPowWorker() uint32 {
 }
 
 func (s *SoWitnessWrap) MdPowWorker(p uint32) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getWitness()
 	if sa == nil {
 		return false
@@ -275,6 +302,9 @@ func (s *SoWitnessWrap) GetRunningVersion() uint32 {
 }
 
 func (s *SoWitnessWrap) MdRunningVersion(p uint32) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getWitness()
 	if sa == nil {
 		return false
@@ -299,6 +329,9 @@ func (s *SoWitnessWrap) GetSigningKey() *prototype.PublicKeyType {
 }
 
 func (s *SoWitnessWrap) MdSigningKey(p *prototype.PublicKeyType) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getWitness()
 	if sa == nil {
 		return false
@@ -323,6 +356,9 @@ func (s *SoWitnessWrap) GetTotalMissed() uint32 {
 }
 
 func (s *SoWitnessWrap) MdTotalMissed(p uint32) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getWitness()
 	if sa == nil {
 		return false
@@ -347,6 +383,9 @@ func (s *SoWitnessWrap) GetUrl() string {
 }
 
 func (s *SoWitnessWrap) MdUrl(p string) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getWitness()
 	if sa == nil {
 		return false
@@ -371,6 +410,9 @@ func (s *SoWitnessWrap) GetVoteCount() uint64 {
 }
 
 func (s *SoWitnessWrap) MdVoteCount(p uint64) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getWitness()
 	if sa == nil {
 		return false
@@ -395,6 +437,9 @@ func (s *SoWitnessWrap) GetWitnessScheduleType() *prototype.WitnessScheduleType 
 }
 
 func (s *SoWitnessWrap) MdWitnessScheduleType(p *prototype.WitnessScheduleType) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getWitness()
 	if sa == nil {
 		return false
@@ -515,6 +560,9 @@ func (s *SWitnessOwnerWrap) QueryListByOrder(start *prototype.AccountName, end *
 /////////////// SECTION Private function ////////////////
 
 func (s *SoWitnessWrap) update(sa *SoWitness) bool {
+	if s.dba == nil {
+		return false
+	}
 	buf, err := proto.Marshal(sa)
 	if err != nil {
 		return false
@@ -529,12 +577,13 @@ func (s *SoWitnessWrap) update(sa *SoWitness) bool {
 }
 
 func (s *SoWitnessWrap) getWitness() *SoWitness {
+	if s.dba == nil {
+		return nil
+	}
 	keyBuf, err := s.encodeMainKey()
-
 	if err != nil {
 		return nil
 	}
-
 	resBuf, err := s.dba.Get(keyBuf)
 
 	if err != nil {
@@ -562,6 +611,9 @@ func (s *SoWitnessWrap) encodeMainKey() ([]byte, error) {
 ////////////// Unique Query delete/insert/query ///////////////
 
 func (s *SoWitnessWrap) delUniKeyOwner(sa *SoWitness) bool {
+	if s.dba == nil {
+		return false
+	}
 	pre := WitnessOwnerUniTable
 	sub := sa.Owner
 	kList := []interface{}{pre, sub}
@@ -573,6 +625,9 @@ func (s *SoWitnessWrap) delUniKeyOwner(sa *SoWitness) bool {
 }
 
 func (s *SoWitnessWrap) insertUniKeyOwner(sa *SoWitness) bool {
+	if s.dba == nil {
+		return false
+	}
 	uniWrap := UniWitnessOwnerWrap{}
 	uniWrap.Dba = s.dba
 
@@ -614,7 +669,7 @@ func NewUniWitnessOwnerWrap(db iservices.IDatabaseService) *UniWitnessOwnerWrap 
 }
 
 func (s *UniWitnessOwnerWrap) UniQueryOwner(start *prototype.AccountName) *SoWitnessWrap {
-	if start == nil {
+	if start == nil || s.Dba == nil {
 		return nil
 	}
 	pre := WitnessOwnerUniTable

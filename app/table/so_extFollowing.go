@@ -31,6 +31,9 @@ func NewSoExtFollowingWrap(dba iservices.IDatabaseService, key *prototype.Follow
 }
 
 func (s *SoExtFollowingWrap) CheckExist() bool {
+	if s.dba == nil {
+		return false
+	}
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
 		return false
@@ -84,6 +87,9 @@ func (s *SoExtFollowingWrap) Create(f func(tInfo *SoExtFollowing)) error {
 ////////////// SECTION LKeys delete/insert ///////////////
 
 func (s *SoExtFollowingWrap) delSortKeyFollowingInfo(sa *SoExtFollowing) bool {
+	if s.dba == nil {
+		return false
+	}
 	val := SoListExtFollowingByFollowingInfo{}
 	val.FollowingInfo = sa.FollowingInfo
 	subBuf, err := val.OpeEncode()
@@ -95,6 +101,9 @@ func (s *SoExtFollowingWrap) delSortKeyFollowingInfo(sa *SoExtFollowing) bool {
 }
 
 func (s *SoExtFollowingWrap) insertSortKeyFollowingInfo(sa *SoExtFollowing) bool {
+	if s.dba == nil {
+		return false
+	}
 	val := SoListExtFollowingByFollowingInfo{}
 	val.FollowingInfo = sa.FollowingInfo
 	buf, err := proto.Marshal(&val)
@@ -112,6 +121,9 @@ func (s *SoExtFollowingWrap) insertSortKeyFollowingInfo(sa *SoExtFollowing) bool
 ////////////// SECTION LKeys delete/insert //////////////
 
 func (s *SoExtFollowingWrap) RemoveExtFollowing() bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getExtFollowing()
 	if sa == nil {
 		return false
@@ -251,6 +263,9 @@ func (s *SExtFollowingFollowingInfoWrap) QueryListByOrder(start *prototype.Follo
 /////////////// SECTION Private function ////////////////
 
 func (s *SoExtFollowingWrap) update(sa *SoExtFollowing) bool {
+	if s.dba == nil {
+		return false
+	}
 	buf, err := proto.Marshal(sa)
 	if err != nil {
 		return false
@@ -265,12 +280,13 @@ func (s *SoExtFollowingWrap) update(sa *SoExtFollowing) bool {
 }
 
 func (s *SoExtFollowingWrap) getExtFollowing() *SoExtFollowing {
+	if s.dba == nil {
+		return nil
+	}
 	keyBuf, err := s.encodeMainKey()
-
 	if err != nil {
 		return nil
 	}
-
 	resBuf, err := s.dba.Get(keyBuf)
 
 	if err != nil {
@@ -298,6 +314,9 @@ func (s *SoExtFollowingWrap) encodeMainKey() ([]byte, error) {
 ////////////// Unique Query delete/insert/query ///////////////
 
 func (s *SoExtFollowingWrap) delUniKeyFollowingInfo(sa *SoExtFollowing) bool {
+	if s.dba == nil {
+		return false
+	}
 	pre := ExtFollowingFollowingInfoUniTable
 	sub := sa.FollowingInfo
 	kList := []interface{}{pre, sub}
@@ -309,6 +328,9 @@ func (s *SoExtFollowingWrap) delUniKeyFollowingInfo(sa *SoExtFollowing) bool {
 }
 
 func (s *SoExtFollowingWrap) insertUniKeyFollowingInfo(sa *SoExtFollowing) bool {
+	if s.dba == nil {
+		return false
+	}
 	uniWrap := UniExtFollowingFollowingInfoWrap{}
 	uniWrap.Dba = s.dba
 
@@ -350,7 +372,7 @@ func NewUniExtFollowingFollowingInfoWrap(db iservices.IDatabaseService) *UniExtF
 }
 
 func (s *UniExtFollowingFollowingInfoWrap) UniQueryFollowingInfo(start *prototype.FollowingCreatedOrder) *SoExtFollowingWrap {
-	if start == nil {
+	if start == nil || s.Dba == nil {
 		return nil
 	}
 	pre := ExtFollowingFollowingInfoUniTable

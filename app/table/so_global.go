@@ -30,6 +30,9 @@ func NewSoGlobalWrap(dba iservices.IDatabaseService, key *int32) *SoGlobalWrap {
 }
 
 func (s *SoGlobalWrap) CheckExist() bool {
+	if s.dba == nil {
+		return false
+	}
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
 		return false
@@ -78,6 +81,9 @@ func (s *SoGlobalWrap) Create(f func(tInfo *SoGlobal)) error {
 ////////////// SECTION LKeys delete/insert //////////////
 
 func (s *SoGlobalWrap) RemoveGlobal() bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getGlobal()
 	if sa == nil {
 		return false
@@ -118,6 +124,9 @@ func (s *SoGlobalWrap) GetProps() *prototype.DynamicProperties {
 }
 
 func (s *SoGlobalWrap) MdProps(p *prototype.DynamicProperties) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getGlobal()
 	if sa == nil {
 		return false
@@ -134,6 +143,9 @@ func (s *SoGlobalWrap) MdProps(p *prototype.DynamicProperties) bool {
 /////////////// SECTION Private function ////////////////
 
 func (s *SoGlobalWrap) update(sa *SoGlobal) bool {
+	if s.dba == nil {
+		return false
+	}
 	buf, err := proto.Marshal(sa)
 	if err != nil {
 		return false
@@ -148,12 +160,13 @@ func (s *SoGlobalWrap) update(sa *SoGlobal) bool {
 }
 
 func (s *SoGlobalWrap) getGlobal() *SoGlobal {
+	if s.dba == nil {
+		return nil
+	}
 	keyBuf, err := s.encodeMainKey()
-
 	if err != nil {
 		return nil
 	}
-
 	resBuf, err := s.dba.Get(keyBuf)
 
 	if err != nil {
@@ -181,6 +194,9 @@ func (s *SoGlobalWrap) encodeMainKey() ([]byte, error) {
 ////////////// Unique Query delete/insert/query ///////////////
 
 func (s *SoGlobalWrap) delUniKeyId(sa *SoGlobal) bool {
+	if s.dba == nil {
+		return false
+	}
 	pre := GlobalIdUniTable
 	sub := sa.Id
 	kList := []interface{}{pre, sub}
@@ -192,6 +208,9 @@ func (s *SoGlobalWrap) delUniKeyId(sa *SoGlobal) bool {
 }
 
 func (s *SoGlobalWrap) insertUniKeyId(sa *SoGlobal) bool {
+	if s.dba == nil {
+		return false
+	}
 	uniWrap := UniGlobalIdWrap{}
 	uniWrap.Dba = s.dba
 	res := uniWrap.UniQueryId(&sa.Id)
@@ -233,7 +252,7 @@ func NewUniGlobalIdWrap(db iservices.IDatabaseService) *UniGlobalIdWrap {
 }
 
 func (s *UniGlobalIdWrap) UniQueryId(start *int32) *SoGlobalWrap {
-	if start == nil {
+	if start == nil || s.Dba == nil {
 		return nil
 	}
 	pre := GlobalIdUniTable

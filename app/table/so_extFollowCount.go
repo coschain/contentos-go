@@ -30,6 +30,9 @@ func NewSoExtFollowCountWrap(dba iservices.IDatabaseService, key *prototype.Acco
 }
 
 func (s *SoExtFollowCountWrap) CheckExist() bool {
+	if s.dba == nil {
+		return false
+	}
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
 		return false
@@ -81,6 +84,9 @@ func (s *SoExtFollowCountWrap) Create(f func(tInfo *SoExtFollowCount)) error {
 ////////////// SECTION LKeys delete/insert //////////////
 
 func (s *SoExtFollowCountWrap) RemoveExtFollowCount() bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getExtFollowCount()
 	if sa == nil {
 		return false
@@ -121,6 +127,9 @@ func (s *SoExtFollowCountWrap) GetFollowerCnt() uint32 {
 }
 
 func (s *SoExtFollowCountWrap) MdFollowerCnt(p uint32) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getExtFollowCount()
 	if sa == nil {
 		return false
@@ -145,6 +154,9 @@ func (s *SoExtFollowCountWrap) GetFollowingCnt() uint32 {
 }
 
 func (s *SoExtFollowCountWrap) MdFollowingCnt(p uint32) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getExtFollowCount()
 	if sa == nil {
 		return false
@@ -169,6 +181,9 @@ func (s *SoExtFollowCountWrap) GetUpdateTime() *prototype.TimePointSec {
 }
 
 func (s *SoExtFollowCountWrap) MdUpdateTime(p *prototype.TimePointSec) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getExtFollowCount()
 	if sa == nil {
 		return false
@@ -185,6 +200,9 @@ func (s *SoExtFollowCountWrap) MdUpdateTime(p *prototype.TimePointSec) bool {
 /////////////// SECTION Private function ////////////////
 
 func (s *SoExtFollowCountWrap) update(sa *SoExtFollowCount) bool {
+	if s.dba == nil {
+		return false
+	}
 	buf, err := proto.Marshal(sa)
 	if err != nil {
 		return false
@@ -199,12 +217,13 @@ func (s *SoExtFollowCountWrap) update(sa *SoExtFollowCount) bool {
 }
 
 func (s *SoExtFollowCountWrap) getExtFollowCount() *SoExtFollowCount {
+	if s.dba == nil {
+		return nil
+	}
 	keyBuf, err := s.encodeMainKey()
-
 	if err != nil {
 		return nil
 	}
-
 	resBuf, err := s.dba.Get(keyBuf)
 
 	if err != nil {
@@ -232,6 +251,9 @@ func (s *SoExtFollowCountWrap) encodeMainKey() ([]byte, error) {
 ////////////// Unique Query delete/insert/query ///////////////
 
 func (s *SoExtFollowCountWrap) delUniKeyAccount(sa *SoExtFollowCount) bool {
+	if s.dba == nil {
+		return false
+	}
 	pre := ExtFollowCountAccountUniTable
 	sub := sa.Account
 	kList := []interface{}{pre, sub}
@@ -243,6 +265,9 @@ func (s *SoExtFollowCountWrap) delUniKeyAccount(sa *SoExtFollowCount) bool {
 }
 
 func (s *SoExtFollowCountWrap) insertUniKeyAccount(sa *SoExtFollowCount) bool {
+	if s.dba == nil {
+		return false
+	}
 	uniWrap := UniExtFollowCountAccountWrap{}
 	uniWrap.Dba = s.dba
 
@@ -284,7 +309,7 @@ func NewUniExtFollowCountAccountWrap(db iservices.IDatabaseService) *UniExtFollo
 }
 
 func (s *UniExtFollowCountAccountWrap) UniQueryAccount(start *prototype.AccountName) *SoExtFollowCountWrap {
-	if start == nil {
+	if start == nil || s.Dba == nil {
 		return nil
 	}
 	pre := ExtFollowCountAccountUniTable

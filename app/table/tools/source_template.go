@@ -75,6 +75,9 @@ func NewSo{{.ClsName}}Wrap(dba iservices.IDatabaseService, key *{{formatStr .Mai
 }
 
 func (s *So{{.ClsName}}Wrap) CheckExist() bool {
+    if s.dba ==  nil {
+       return false
+    }
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
 		return false
@@ -134,6 +137,9 @@ func (s *So{{.ClsName}}Wrap) Create(f func(tInfo *So{{.ClsName}})) error {
 ////////////// SECTION LKeys delete/insert ///////////////
 {{range $k1, $v1 := .SortList}}
 func (s *So{{$.ClsName}}Wrap) delSortKey{{$v1.PName}}(sa *So{{$.ClsName}}) bool {
+    if s.dba == nil {
+       return false
+    }
 	val := SoList{{$.ClsName}}By{{$v1.PName}}{}
 	val.{{$v1.PName}} = sa.{{$v1.PName}}
     {{if ne $.MainKeyName $v1.PName -}}
@@ -149,6 +155,9 @@ func (s *So{{$.ClsName}}Wrap) delSortKey{{$v1.PName}}(sa *So{{$.ClsName}}) bool 
 
 
 func (s *So{{$.ClsName}}Wrap) insertSortKey{{$v1.PName}}(sa *So{{$.ClsName}}) bool {
+    if s.dba == nil {
+       return false
+    }
 	val := SoList{{$.ClsName}}By{{$v1.PName}}{}
     {{if ne $.MainKeyName $v1.PName -}}
    	val.{{UperFirstChar $.MainKeyName}} = sa.{{UperFirstChar $.MainKeyName}}
@@ -170,6 +179,9 @@ func (s *So{{$.ClsName}}Wrap) insertSortKey{{$v1.PName}}(sa *So{{$.ClsName}}) bo
 ////////////// SECTION LKeys delete/insert //////////////
 
 func (s *So{{.ClsName}}Wrap) Remove{{.ClsName}}() bool {
+    if s.dba == nil {
+       return false
+    }
 	sa := s.get{{.ClsName}}()
 	if sa == nil {
 		return false
@@ -214,6 +226,9 @@ func (s *So{{$.ClsName}}Wrap) Get{{$k1}}() {{formatRTypeStr $v1}} {
 {{if ne $k1 $.MainKeyName}}
 
 func (s *So{{$.ClsName}}Wrap) Md{{$k1}}(p {{formatRTypeStr $v1}}) bool {
+    if s.dba == nil {
+       return false
+    }
 	sa := s.get{{$.ClsName}}()
 	if sa == nil {
 		return false
@@ -426,6 +441,9 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByRevOrder(start *{{$v.PType}}
 /////////////// SECTION Private function ////////////////
 
 func (s *So{{$.ClsName}}Wrap) update(sa *So{{$.ClsName}}) bool {
+    if s.dba == nil {
+       return false
+    }
 	buf, err := proto.Marshal(sa)
 	if err != nil {
 		return false
@@ -440,12 +458,13 @@ func (s *So{{$.ClsName}}Wrap) update(sa *So{{$.ClsName}}) bool {
 }
 
 func (s *So{{$.ClsName}}Wrap) get{{$.ClsName}}() *So{{$.ClsName}} {
+    if s.dba == nil {
+       return nil
+    }
 	keyBuf, err := s.encodeMainKey()
-
 	if err != nil {
 		return nil
 	}
-
 	resBuf, err := s.dba.Get(keyBuf)
 
 	if err != nil {
@@ -474,6 +493,9 @@ func (s *So{{$.ClsName}}Wrap) encodeMainKey() ([]byte, error) {
 {{range $k, $v := .UniqueFieldMap}}
 
 func (s *So{{$.ClsName}}Wrap) delUniKey{{$k}}(sa *So{{$.ClsName}}) bool {
+    if s.dba == nil {
+       return false
+    }
     pre := {{$.ClsName}}{{$k}}UniTable
     sub := sa.{{UperFirstChar $k}}
     kList := []interface{}{pre,sub}
@@ -486,6 +508,9 @@ func (s *So{{$.ClsName}}Wrap) delUniKey{{$k}}(sa *So{{$.ClsName}}) bool {
 
 
 func (s *So{{$.ClsName}}Wrap) insertUniKey{{$k}}(sa *So{{$.ClsName}}) bool {
+    if s.dba == nil {
+       return false
+    }
     uniWrap  := Uni{{$.ClsName}}{{$k}}Wrap{}
      uniWrap.Dba = s.dba
    {{$baseType := (DetectBaseType $v) -}}
@@ -535,7 +560,7 @@ func NewUni{{$.ClsName}}{{$k}}Wrap (db iservices.IDatabaseService) *Uni{{$.ClsNa
 }
 
 func (s *Uni{{$.ClsName}}{{$k}}Wrap) UniQuery{{$k}}(start *{{formatStr $v}}) *So{{$.ClsName}}Wrap{
-    if start == nil {
+    if start == nil || s.Dba == nil {
        return nil
     }
     pre := {{$.ClsName}}{{$k}}UniTable

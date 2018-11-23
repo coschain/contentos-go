@@ -38,6 +38,9 @@ func NewSoDemoWrap(dba iservices.IDatabaseService, key *prototype.AccountName) *
 }
 
 func (s *SoDemoWrap) CheckExist() bool {
+	if s.dba == nil {
+		return false
+	}
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
 		return false
@@ -117,6 +120,9 @@ func (s *SoDemoWrap) Create(f func(tInfo *SoDemo)) error {
 ////////////// SECTION LKeys delete/insert ///////////////
 
 func (s *SoDemoWrap) delSortKeyOwner(sa *SoDemo) bool {
+	if s.dba == nil {
+		return false
+	}
 	val := SoListDemoByOwner{}
 	val.Owner = sa.Owner
 	subBuf, err := val.OpeEncode()
@@ -128,6 +134,9 @@ func (s *SoDemoWrap) delSortKeyOwner(sa *SoDemo) bool {
 }
 
 func (s *SoDemoWrap) insertSortKeyOwner(sa *SoDemo) bool {
+	if s.dba == nil {
+		return false
+	}
 	val := SoListDemoByOwner{}
 	val.Owner = sa.Owner
 	buf, err := proto.Marshal(&val)
@@ -143,6 +152,9 @@ func (s *SoDemoWrap) insertSortKeyOwner(sa *SoDemo) bool {
 }
 
 func (s *SoDemoWrap) delSortKeyPostTime(sa *SoDemo) bool {
+	if s.dba == nil {
+		return false
+	}
 	val := SoListDemoByPostTime{}
 	val.PostTime = sa.PostTime
 	val.Owner = sa.Owner
@@ -155,6 +167,9 @@ func (s *SoDemoWrap) delSortKeyPostTime(sa *SoDemo) bool {
 }
 
 func (s *SoDemoWrap) insertSortKeyPostTime(sa *SoDemo) bool {
+	if s.dba == nil {
+		return false
+	}
 	val := SoListDemoByPostTime{}
 	val.Owner = sa.Owner
 	val.PostTime = sa.PostTime
@@ -171,6 +186,9 @@ func (s *SoDemoWrap) insertSortKeyPostTime(sa *SoDemo) bool {
 }
 
 func (s *SoDemoWrap) delSortKeyLikeCount(sa *SoDemo) bool {
+	if s.dba == nil {
+		return false
+	}
 	val := SoListDemoByLikeCount{}
 	val.LikeCount = sa.LikeCount
 	val.Owner = sa.Owner
@@ -183,6 +201,9 @@ func (s *SoDemoWrap) delSortKeyLikeCount(sa *SoDemo) bool {
 }
 
 func (s *SoDemoWrap) insertSortKeyLikeCount(sa *SoDemo) bool {
+	if s.dba == nil {
+		return false
+	}
 	val := SoListDemoByLikeCount{}
 	val.Owner = sa.Owner
 	val.LikeCount = sa.LikeCount
@@ -199,6 +220,9 @@ func (s *SoDemoWrap) insertSortKeyLikeCount(sa *SoDemo) bool {
 }
 
 func (s *SoDemoWrap) delSortKeyIdx(sa *SoDemo) bool {
+	if s.dba == nil {
+		return false
+	}
 	val := SoListDemoByIdx{}
 	val.Idx = sa.Idx
 	val.Owner = sa.Owner
@@ -211,6 +235,9 @@ func (s *SoDemoWrap) delSortKeyIdx(sa *SoDemo) bool {
 }
 
 func (s *SoDemoWrap) insertSortKeyIdx(sa *SoDemo) bool {
+	if s.dba == nil {
+		return false
+	}
 	val := SoListDemoByIdx{}
 	val.Owner = sa.Owner
 	val.Idx = sa.Idx
@@ -227,6 +254,9 @@ func (s *SoDemoWrap) insertSortKeyIdx(sa *SoDemo) bool {
 }
 
 func (s *SoDemoWrap) delSortKeyReplayCount(sa *SoDemo) bool {
+	if s.dba == nil {
+		return false
+	}
 	val := SoListDemoByReplayCount{}
 	val.ReplayCount = sa.ReplayCount
 	val.Owner = sa.Owner
@@ -239,6 +269,9 @@ func (s *SoDemoWrap) delSortKeyReplayCount(sa *SoDemo) bool {
 }
 
 func (s *SoDemoWrap) insertSortKeyReplayCount(sa *SoDemo) bool {
+	if s.dba == nil {
+		return false
+	}
 	val := SoListDemoByReplayCount{}
 	val.Owner = sa.Owner
 	val.ReplayCount = sa.ReplayCount
@@ -255,6 +288,9 @@ func (s *SoDemoWrap) insertSortKeyReplayCount(sa *SoDemo) bool {
 }
 
 func (s *SoDemoWrap) delSortKeyTaglist(sa *SoDemo) bool {
+	if s.dba == nil {
+		return false
+	}
 	val := SoListDemoByTaglist{}
 	val.Taglist = sa.Taglist
 	val.Owner = sa.Owner
@@ -267,6 +303,9 @@ func (s *SoDemoWrap) delSortKeyTaglist(sa *SoDemo) bool {
 }
 
 func (s *SoDemoWrap) insertSortKeyTaglist(sa *SoDemo) bool {
+	if s.dba == nil {
+		return false
+	}
 	val := SoListDemoByTaglist{}
 	val.Owner = sa.Owner
 	val.Taglist = sa.Taglist
@@ -285,6 +324,9 @@ func (s *SoDemoWrap) insertSortKeyTaglist(sa *SoDemo) bool {
 ////////////// SECTION LKeys delete/insert //////////////
 
 func (s *SoDemoWrap) RemoveDemo() bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getDemo()
 	if sa == nil {
 		return false
@@ -339,6 +381,9 @@ func (s *SoDemoWrap) GetContent() string {
 }
 
 func (s *SoDemoWrap) MdContent(p string) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getDemo()
 	if sa == nil {
 		return false
@@ -363,6 +408,9 @@ func (s *SoDemoWrap) GetIdx() int64 {
 }
 
 func (s *SoDemoWrap) MdIdx(p int64) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getDemo()
 	if sa == nil {
 		return false
@@ -408,6 +456,9 @@ func (s *SoDemoWrap) GetLikeCount() int64 {
 }
 
 func (s *SoDemoWrap) MdLikeCount(p int64) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getDemo()
 	if sa == nil {
 		return false
@@ -463,6 +514,9 @@ func (s *SoDemoWrap) GetPostTime() *prototype.TimePointSec {
 }
 
 func (s *SoDemoWrap) MdPostTime(p *prototype.TimePointSec) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getDemo()
 	if sa == nil {
 		return false
@@ -494,6 +548,9 @@ func (s *SoDemoWrap) GetReplayCount() int64 {
 }
 
 func (s *SoDemoWrap) MdReplayCount(p int64) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getDemo()
 	if sa == nil {
 		return false
@@ -525,6 +582,9 @@ func (s *SoDemoWrap) GetTaglist() []string {
 }
 
 func (s *SoDemoWrap) MdTaglist(p []string) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getDemo()
 	if sa == nil {
 		return false
@@ -556,6 +616,9 @@ func (s *SoDemoWrap) GetTitle() string {
 }
 
 func (s *SoDemoWrap) MdTitle(p string) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getDemo()
 	if sa == nil {
 		return false
@@ -1214,6 +1277,9 @@ func (s *SDemoTaglistWrap) QueryListByOrder(start *[]string, end *[]string) iser
 /////////////// SECTION Private function ////////////////
 
 func (s *SoDemoWrap) update(sa *SoDemo) bool {
+	if s.dba == nil {
+		return false
+	}
 	buf, err := proto.Marshal(sa)
 	if err != nil {
 		return false
@@ -1228,12 +1294,13 @@ func (s *SoDemoWrap) update(sa *SoDemo) bool {
 }
 
 func (s *SoDemoWrap) getDemo() *SoDemo {
+	if s.dba == nil {
+		return nil
+	}
 	keyBuf, err := s.encodeMainKey()
-
 	if err != nil {
 		return nil
 	}
-
 	resBuf, err := s.dba.Get(keyBuf)
 
 	if err != nil {
@@ -1261,6 +1328,9 @@ func (s *SoDemoWrap) encodeMainKey() ([]byte, error) {
 ////////////// Unique Query delete/insert/query ///////////////
 
 func (s *SoDemoWrap) delUniKeyIdx(sa *SoDemo) bool {
+	if s.dba == nil {
+		return false
+	}
 	pre := DemoIdxUniTable
 	sub := sa.Idx
 	kList := []interface{}{pre, sub}
@@ -1272,6 +1342,9 @@ func (s *SoDemoWrap) delUniKeyIdx(sa *SoDemo) bool {
 }
 
 func (s *SoDemoWrap) insertUniKeyIdx(sa *SoDemo) bool {
+	if s.dba == nil {
+		return false
+	}
 	uniWrap := UniDemoIdxWrap{}
 	uniWrap.Dba = s.dba
 	res := uniWrap.UniQueryIdx(&sa.Idx)
@@ -1314,7 +1387,7 @@ func NewUniDemoIdxWrap(db iservices.IDatabaseService) *UniDemoIdxWrap {
 }
 
 func (s *UniDemoIdxWrap) UniQueryIdx(start *int64) *SoDemoWrap {
-	if start == nil {
+	if start == nil || s.Dba == nil {
 		return nil
 	}
 	pre := DemoIdxUniTable
@@ -1334,6 +1407,9 @@ func (s *UniDemoIdxWrap) UniQueryIdx(start *int64) *SoDemoWrap {
 }
 
 func (s *SoDemoWrap) delUniKeyLikeCount(sa *SoDemo) bool {
+	if s.dba == nil {
+		return false
+	}
 	pre := DemoLikeCountUniTable
 	sub := sa.LikeCount
 	kList := []interface{}{pre, sub}
@@ -1345,6 +1421,9 @@ func (s *SoDemoWrap) delUniKeyLikeCount(sa *SoDemo) bool {
 }
 
 func (s *SoDemoWrap) insertUniKeyLikeCount(sa *SoDemo) bool {
+	if s.dba == nil {
+		return false
+	}
 	uniWrap := UniDemoLikeCountWrap{}
 	uniWrap.Dba = s.dba
 	res := uniWrap.UniQueryLikeCount(&sa.LikeCount)
@@ -1387,7 +1466,7 @@ func NewUniDemoLikeCountWrap(db iservices.IDatabaseService) *UniDemoLikeCountWra
 }
 
 func (s *UniDemoLikeCountWrap) UniQueryLikeCount(start *int64) *SoDemoWrap {
-	if start == nil {
+	if start == nil || s.Dba == nil {
 		return nil
 	}
 	pre := DemoLikeCountUniTable
@@ -1407,6 +1486,9 @@ func (s *UniDemoLikeCountWrap) UniQueryLikeCount(start *int64) *SoDemoWrap {
 }
 
 func (s *SoDemoWrap) delUniKeyOwner(sa *SoDemo) bool {
+	if s.dba == nil {
+		return false
+	}
 	pre := DemoOwnerUniTable
 	sub := sa.Owner
 	kList := []interface{}{pre, sub}
@@ -1418,6 +1500,9 @@ func (s *SoDemoWrap) delUniKeyOwner(sa *SoDemo) bool {
 }
 
 func (s *SoDemoWrap) insertUniKeyOwner(sa *SoDemo) bool {
+	if s.dba == nil {
+		return false
+	}
 	uniWrap := UniDemoOwnerWrap{}
 	uniWrap.Dba = s.dba
 
@@ -1459,7 +1544,7 @@ func NewUniDemoOwnerWrap(db iservices.IDatabaseService) *UniDemoOwnerWrap {
 }
 
 func (s *UniDemoOwnerWrap) UniQueryOwner(start *prototype.AccountName) *SoDemoWrap {
-	if start == nil {
+	if start == nil || s.Dba == nil {
 		return nil
 	}
 	pre := DemoOwnerUniTable

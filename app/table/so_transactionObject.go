@@ -31,6 +31,9 @@ func NewSoTransactionObjectWrap(dba iservices.IDatabaseService, key *prototype.S
 }
 
 func (s *SoTransactionObjectWrap) CheckExist() bool {
+	if s.dba == nil {
+		return false
+	}
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
 		return false
@@ -84,6 +87,9 @@ func (s *SoTransactionObjectWrap) Create(f func(tInfo *SoTransactionObject)) err
 ////////////// SECTION LKeys delete/insert ///////////////
 
 func (s *SoTransactionObjectWrap) delSortKeyExpiration(sa *SoTransactionObject) bool {
+	if s.dba == nil {
+		return false
+	}
 	val := SoListTransactionObjectByExpiration{}
 	val.Expiration = sa.Expiration
 	val.TrxId = sa.TrxId
@@ -96,6 +102,9 @@ func (s *SoTransactionObjectWrap) delSortKeyExpiration(sa *SoTransactionObject) 
 }
 
 func (s *SoTransactionObjectWrap) insertSortKeyExpiration(sa *SoTransactionObject) bool {
+	if s.dba == nil {
+		return false
+	}
 	val := SoListTransactionObjectByExpiration{}
 	val.TrxId = sa.TrxId
 	val.Expiration = sa.Expiration
@@ -114,6 +123,9 @@ func (s *SoTransactionObjectWrap) insertSortKeyExpiration(sa *SoTransactionObjec
 ////////////// SECTION LKeys delete/insert //////////////
 
 func (s *SoTransactionObjectWrap) RemoveTransactionObject() bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getTransactionObject()
 	if sa == nil {
 		return false
@@ -147,6 +159,9 @@ func (s *SoTransactionObjectWrap) GetExpiration() *prototype.TimePointSec {
 }
 
 func (s *SoTransactionObjectWrap) MdExpiration(p *prototype.TimePointSec) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getTransactionObject()
 	if sa == nil {
 		return false
@@ -284,6 +299,9 @@ func (s *STransactionObjectExpirationWrap) QueryListByOrder(start *prototype.Tim
 /////////////// SECTION Private function ////////////////
 
 func (s *SoTransactionObjectWrap) update(sa *SoTransactionObject) bool {
+	if s.dba == nil {
+		return false
+	}
 	buf, err := proto.Marshal(sa)
 	if err != nil {
 		return false
@@ -298,12 +316,13 @@ func (s *SoTransactionObjectWrap) update(sa *SoTransactionObject) bool {
 }
 
 func (s *SoTransactionObjectWrap) getTransactionObject() *SoTransactionObject {
+	if s.dba == nil {
+		return nil
+	}
 	keyBuf, err := s.encodeMainKey()
-
 	if err != nil {
 		return nil
 	}
-
 	resBuf, err := s.dba.Get(keyBuf)
 
 	if err != nil {
@@ -331,6 +350,9 @@ func (s *SoTransactionObjectWrap) encodeMainKey() ([]byte, error) {
 ////////////// Unique Query delete/insert/query ///////////////
 
 func (s *SoTransactionObjectWrap) delUniKeyTrxId(sa *SoTransactionObject) bool {
+	if s.dba == nil {
+		return false
+	}
 	pre := TransactionObjectTrxIdUniTable
 	sub := sa.TrxId
 	kList := []interface{}{pre, sub}
@@ -342,6 +364,9 @@ func (s *SoTransactionObjectWrap) delUniKeyTrxId(sa *SoTransactionObject) bool {
 }
 
 func (s *SoTransactionObjectWrap) insertUniKeyTrxId(sa *SoTransactionObject) bool {
+	if s.dba == nil {
+		return false
+	}
 	uniWrap := UniTransactionObjectTrxIdWrap{}
 	uniWrap.Dba = s.dba
 
@@ -383,7 +408,7 @@ func NewUniTransactionObjectTrxIdWrap(db iservices.IDatabaseService) *UniTransac
 }
 
 func (s *UniTransactionObjectTrxIdWrap) UniQueryTrxId(start *prototype.Sha256) *SoTransactionObjectWrap {
-	if start == nil {
+	if start == nil || s.Dba == nil {
 		return nil
 	}
 	pre := TransactionObjectTrxIdUniTable

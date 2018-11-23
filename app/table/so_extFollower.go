@@ -31,6 +31,9 @@ func NewSoExtFollowerWrap(dba iservices.IDatabaseService, key *prototype.Followe
 }
 
 func (s *SoExtFollowerWrap) CheckExist() bool {
+	if s.dba == nil {
+		return false
+	}
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
 		return false
@@ -84,6 +87,9 @@ func (s *SoExtFollowerWrap) Create(f func(tInfo *SoExtFollower)) error {
 ////////////// SECTION LKeys delete/insert ///////////////
 
 func (s *SoExtFollowerWrap) delSortKeyFollowerInfo(sa *SoExtFollower) bool {
+	if s.dba == nil {
+		return false
+	}
 	val := SoListExtFollowerByFollowerInfo{}
 	val.FollowerInfo = sa.FollowerInfo
 	subBuf, err := val.OpeEncode()
@@ -95,6 +101,9 @@ func (s *SoExtFollowerWrap) delSortKeyFollowerInfo(sa *SoExtFollower) bool {
 }
 
 func (s *SoExtFollowerWrap) insertSortKeyFollowerInfo(sa *SoExtFollower) bool {
+	if s.dba == nil {
+		return false
+	}
 	val := SoListExtFollowerByFollowerInfo{}
 	val.FollowerInfo = sa.FollowerInfo
 	buf, err := proto.Marshal(&val)
@@ -112,6 +121,9 @@ func (s *SoExtFollowerWrap) insertSortKeyFollowerInfo(sa *SoExtFollower) bool {
 ////////////// SECTION LKeys delete/insert //////////////
 
 func (s *SoExtFollowerWrap) RemoveExtFollower() bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getExtFollower()
 	if sa == nil {
 		return false
@@ -251,6 +263,9 @@ func (s *SExtFollowerFollowerInfoWrap) QueryListByOrder(start *prototype.Followe
 /////////////// SECTION Private function ////////////////
 
 func (s *SoExtFollowerWrap) update(sa *SoExtFollower) bool {
+	if s.dba == nil {
+		return false
+	}
 	buf, err := proto.Marshal(sa)
 	if err != nil {
 		return false
@@ -265,12 +280,13 @@ func (s *SoExtFollowerWrap) update(sa *SoExtFollower) bool {
 }
 
 func (s *SoExtFollowerWrap) getExtFollower() *SoExtFollower {
+	if s.dba == nil {
+		return nil
+	}
 	keyBuf, err := s.encodeMainKey()
-
 	if err != nil {
 		return nil
 	}
-
 	resBuf, err := s.dba.Get(keyBuf)
 
 	if err != nil {
@@ -298,6 +314,9 @@ func (s *SoExtFollowerWrap) encodeMainKey() ([]byte, error) {
 ////////////// Unique Query delete/insert/query ///////////////
 
 func (s *SoExtFollowerWrap) delUniKeyFollowerInfo(sa *SoExtFollower) bool {
+	if s.dba == nil {
+		return false
+	}
 	pre := ExtFollowerFollowerInfoUniTable
 	sub := sa.FollowerInfo
 	kList := []interface{}{pre, sub}
@@ -309,6 +328,9 @@ func (s *SoExtFollowerWrap) delUniKeyFollowerInfo(sa *SoExtFollower) bool {
 }
 
 func (s *SoExtFollowerWrap) insertUniKeyFollowerInfo(sa *SoExtFollower) bool {
+	if s.dba == nil {
+		return false
+	}
 	uniWrap := UniExtFollowerFollowerInfoWrap{}
 	uniWrap.Dba = s.dba
 
@@ -350,7 +372,7 @@ func NewUniExtFollowerFollowerInfoWrap(db iservices.IDatabaseService) *UniExtFol
 }
 
 func (s *UniExtFollowerFollowerInfoWrap) UniQueryFollowerInfo(start *prototype.FollowerCreatedOrder) *SoExtFollowerWrap {
-	if start == nil {
+	if start == nil || s.Dba == nil {
 		return nil
 	}
 	pre := ExtFollowerFollowerInfoUniTable

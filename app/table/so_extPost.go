@@ -32,6 +32,9 @@ func NewSoExtPostWrap(dba iservices.IDatabaseService, key *uint64) *SoExtPostWra
 }
 
 func (s *SoExtPostWrap) CheckExist() bool {
+	if s.dba == nil {
+		return false
+	}
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
 		return false
@@ -86,6 +89,9 @@ func (s *SoExtPostWrap) Create(f func(tInfo *SoExtPost)) error {
 ////////////// SECTION LKeys delete/insert ///////////////
 
 func (s *SoExtPostWrap) delSortKeyCreatedOrder(sa *SoExtPost) bool {
+	if s.dba == nil {
+		return false
+	}
 	val := SoListExtPostByCreatedOrder{}
 	val.CreatedOrder = sa.CreatedOrder
 	val.PostId = sa.PostId
@@ -98,6 +104,9 @@ func (s *SoExtPostWrap) delSortKeyCreatedOrder(sa *SoExtPost) bool {
 }
 
 func (s *SoExtPostWrap) insertSortKeyCreatedOrder(sa *SoExtPost) bool {
+	if s.dba == nil {
+		return false
+	}
 	val := SoListExtPostByCreatedOrder{}
 	val.PostId = sa.PostId
 	val.CreatedOrder = sa.CreatedOrder
@@ -114,6 +123,9 @@ func (s *SoExtPostWrap) insertSortKeyCreatedOrder(sa *SoExtPost) bool {
 }
 
 func (s *SoExtPostWrap) delSortKeyReplyOrder(sa *SoExtPost) bool {
+	if s.dba == nil {
+		return false
+	}
 	val := SoListExtPostByReplyOrder{}
 	val.ReplyOrder = sa.ReplyOrder
 	val.PostId = sa.PostId
@@ -126,6 +138,9 @@ func (s *SoExtPostWrap) delSortKeyReplyOrder(sa *SoExtPost) bool {
 }
 
 func (s *SoExtPostWrap) insertSortKeyReplyOrder(sa *SoExtPost) bool {
+	if s.dba == nil {
+		return false
+	}
 	val := SoListExtPostByReplyOrder{}
 	val.PostId = sa.PostId
 	val.ReplyOrder = sa.ReplyOrder
@@ -144,6 +159,9 @@ func (s *SoExtPostWrap) insertSortKeyReplyOrder(sa *SoExtPost) bool {
 ////////////// SECTION LKeys delete/insert //////////////
 
 func (s *SoExtPostWrap) RemoveExtPost() bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getExtPost()
 	if sa == nil {
 		return false
@@ -180,6 +198,9 @@ func (s *SoExtPostWrap) GetCreatedOrder() *prototype.PostCreatedOrder {
 }
 
 func (s *SoExtPostWrap) MdCreatedOrder(p *prototype.PostCreatedOrder) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getExtPost()
 	if sa == nil {
 		return false
@@ -221,6 +242,9 @@ func (s *SoExtPostWrap) GetReplyOrder() *prototype.PostReplyOrder {
 }
 
 func (s *SoExtPostWrap) MdReplyOrder(p *prototype.PostReplyOrder) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getExtPost()
 	if sa == nil {
 		return false
@@ -448,6 +472,9 @@ func (s *SExtPostReplyOrderWrap) QueryListByRevOrder(start *prototype.PostReplyO
 /////////////// SECTION Private function ////////////////
 
 func (s *SoExtPostWrap) update(sa *SoExtPost) bool {
+	if s.dba == nil {
+		return false
+	}
 	buf, err := proto.Marshal(sa)
 	if err != nil {
 		return false
@@ -462,12 +489,13 @@ func (s *SoExtPostWrap) update(sa *SoExtPost) bool {
 }
 
 func (s *SoExtPostWrap) getExtPost() *SoExtPost {
+	if s.dba == nil {
+		return nil
+	}
 	keyBuf, err := s.encodeMainKey()
-
 	if err != nil {
 		return nil
 	}
-
 	resBuf, err := s.dba.Get(keyBuf)
 
 	if err != nil {
@@ -495,6 +523,9 @@ func (s *SoExtPostWrap) encodeMainKey() ([]byte, error) {
 ////////////// Unique Query delete/insert/query ///////////////
 
 func (s *SoExtPostWrap) delUniKeyPostId(sa *SoExtPost) bool {
+	if s.dba == nil {
+		return false
+	}
 	pre := ExtPostPostIdUniTable
 	sub := sa.PostId
 	kList := []interface{}{pre, sub}
@@ -506,6 +537,9 @@ func (s *SoExtPostWrap) delUniKeyPostId(sa *SoExtPost) bool {
 }
 
 func (s *SoExtPostWrap) insertUniKeyPostId(sa *SoExtPost) bool {
+	if s.dba == nil {
+		return false
+	}
 	uniWrap := UniExtPostPostIdWrap{}
 	uniWrap.Dba = s.dba
 	res := uniWrap.UniQueryPostId(&sa.PostId)
@@ -547,7 +581,7 @@ func NewUniExtPostPostIdWrap(db iservices.IDatabaseService) *UniExtPostPostIdWra
 }
 
 func (s *UniExtPostPostIdWrap) UniQueryPostId(start *uint64) *SoExtPostWrap {
-	if start == nil {
+	if start == nil || s.Dba == nil {
 		return nil
 	}
 	pre := ExtPostPostIdUniTable

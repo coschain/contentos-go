@@ -30,6 +30,9 @@ func NewSoFollowCountWrap(dba iservices.IDatabaseService, key *prototype.Account
 }
 
 func (s *SoFollowCountWrap) CheckExist() bool {
+	if s.dba == nil {
+		return false
+	}
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
 		return false
@@ -81,6 +84,9 @@ func (s *SoFollowCountWrap) Create(f func(tInfo *SoFollowCount)) error {
 ////////////// SECTION LKeys delete/insert //////////////
 
 func (s *SoFollowCountWrap) RemoveFollowCount() bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getFollowCount()
 	if sa == nil {
 		return false
@@ -121,6 +127,9 @@ func (s *SoFollowCountWrap) GetFollowerCnt() uint32 {
 }
 
 func (s *SoFollowCountWrap) MdFollowerCnt(p uint32) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getFollowCount()
 	if sa == nil {
 		return false
@@ -145,6 +154,9 @@ func (s *SoFollowCountWrap) GetFollowingCnt() uint32 {
 }
 
 func (s *SoFollowCountWrap) MdFollowingCnt(p uint32) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getFollowCount()
 	if sa == nil {
 		return false
@@ -169,6 +181,9 @@ func (s *SoFollowCountWrap) GetUpdateTime() *prototype.TimePointSec {
 }
 
 func (s *SoFollowCountWrap) MdUpdateTime(p *prototype.TimePointSec) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getFollowCount()
 	if sa == nil {
 		return false
@@ -185,6 +200,9 @@ func (s *SoFollowCountWrap) MdUpdateTime(p *prototype.TimePointSec) bool {
 /////////////// SECTION Private function ////////////////
 
 func (s *SoFollowCountWrap) update(sa *SoFollowCount) bool {
+	if s.dba == nil {
+		return false
+	}
 	buf, err := proto.Marshal(sa)
 	if err != nil {
 		return false
@@ -199,12 +217,13 @@ func (s *SoFollowCountWrap) update(sa *SoFollowCount) bool {
 }
 
 func (s *SoFollowCountWrap) getFollowCount() *SoFollowCount {
+	if s.dba == nil {
+		return nil
+	}
 	keyBuf, err := s.encodeMainKey()
-
 	if err != nil {
 		return nil
 	}
-
 	resBuf, err := s.dba.Get(keyBuf)
 
 	if err != nil {
@@ -232,6 +251,9 @@ func (s *SoFollowCountWrap) encodeMainKey() ([]byte, error) {
 ////////////// Unique Query delete/insert/query ///////////////
 
 func (s *SoFollowCountWrap) delUniKeyAccount(sa *SoFollowCount) bool {
+	if s.dba == nil {
+		return false
+	}
 	pre := FollowCountAccountUniTable
 	sub := sa.Account
 	kList := []interface{}{pre, sub}
@@ -243,6 +265,9 @@ func (s *SoFollowCountWrap) delUniKeyAccount(sa *SoFollowCount) bool {
 }
 
 func (s *SoFollowCountWrap) insertUniKeyAccount(sa *SoFollowCount) bool {
+	if s.dba == nil {
+		return false
+	}
 	uniWrap := UniFollowCountAccountWrap{}
 	uniWrap.Dba = s.dba
 
@@ -284,7 +309,7 @@ func NewUniFollowCountAccountWrap(db iservices.IDatabaseService) *UniFollowCount
 }
 
 func (s *UniFollowCountAccountWrap) UniQueryAccount(start *prototype.AccountName) *SoFollowCountWrap {
-	if start == nil {
+	if start == nil || s.Dba == nil {
 		return nil
 	}
 	pre := FollowCountAccountUniTable

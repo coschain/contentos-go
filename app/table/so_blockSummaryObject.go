@@ -30,6 +30,9 @@ func NewSoBlockSummaryObjectWrap(dba iservices.IDatabaseService, key *uint32) *S
 }
 
 func (s *SoBlockSummaryObjectWrap) CheckExist() bool {
+	if s.dba == nil {
+		return false
+	}
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
 		return false
@@ -78,6 +81,9 @@ func (s *SoBlockSummaryObjectWrap) Create(f func(tInfo *SoBlockSummaryObject)) e
 ////////////// SECTION LKeys delete/insert //////////////
 
 func (s *SoBlockSummaryObjectWrap) RemoveBlockSummaryObject() bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getBlockSummaryObject()
 	if sa == nil {
 		return false
@@ -108,6 +114,9 @@ func (s *SoBlockSummaryObjectWrap) GetBlockId() *prototype.Sha256 {
 }
 
 func (s *SoBlockSummaryObjectWrap) MdBlockId(p *prototype.Sha256) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getBlockSummaryObject()
 	if sa == nil {
 		return false
@@ -134,6 +143,9 @@ func (s *SoBlockSummaryObjectWrap) GetId() uint32 {
 /////////////// SECTION Private function ////////////////
 
 func (s *SoBlockSummaryObjectWrap) update(sa *SoBlockSummaryObject) bool {
+	if s.dba == nil {
+		return false
+	}
 	buf, err := proto.Marshal(sa)
 	if err != nil {
 		return false
@@ -148,12 +160,13 @@ func (s *SoBlockSummaryObjectWrap) update(sa *SoBlockSummaryObject) bool {
 }
 
 func (s *SoBlockSummaryObjectWrap) getBlockSummaryObject() *SoBlockSummaryObject {
+	if s.dba == nil {
+		return nil
+	}
 	keyBuf, err := s.encodeMainKey()
-
 	if err != nil {
 		return nil
 	}
-
 	resBuf, err := s.dba.Get(keyBuf)
 
 	if err != nil {
@@ -181,6 +194,9 @@ func (s *SoBlockSummaryObjectWrap) encodeMainKey() ([]byte, error) {
 ////////////// Unique Query delete/insert/query ///////////////
 
 func (s *SoBlockSummaryObjectWrap) delUniKeyId(sa *SoBlockSummaryObject) bool {
+	if s.dba == nil {
+		return false
+	}
 	pre := BlockSummaryObjectIdUniTable
 	sub := sa.Id
 	kList := []interface{}{pre, sub}
@@ -192,6 +208,9 @@ func (s *SoBlockSummaryObjectWrap) delUniKeyId(sa *SoBlockSummaryObject) bool {
 }
 
 func (s *SoBlockSummaryObjectWrap) insertUniKeyId(sa *SoBlockSummaryObject) bool {
+	if s.dba == nil {
+		return false
+	}
 	uniWrap := UniBlockSummaryObjectIdWrap{}
 	uniWrap.Dba = s.dba
 	res := uniWrap.UniQueryId(&sa.Id)
@@ -233,7 +252,7 @@ func NewUniBlockSummaryObjectIdWrap(db iservices.IDatabaseService) *UniBlockSumm
 }
 
 func (s *UniBlockSummaryObjectIdWrap) UniQueryId(start *uint32) *SoBlockSummaryObjectWrap {
-	if start == nil {
+	if start == nil || s.Dba == nil {
 		return nil
 	}
 	pre := BlockSummaryObjectIdUniTable

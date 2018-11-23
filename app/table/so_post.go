@@ -31,6 +31,9 @@ func NewSoPostWrap(dba iservices.IDatabaseService, key *uint64) *SoPostWrap {
 }
 
 func (s *SoPostWrap) CheckExist() bool {
+	if s.dba == nil {
+		return false
+	}
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
 		return false
@@ -81,6 +84,9 @@ func (s *SoPostWrap) Create(f func(tInfo *SoPost)) error {
 ////////////// SECTION LKeys delete/insert ///////////////
 
 func (s *SoPostWrap) delSortKeyCreated(sa *SoPost) bool {
+	if s.dba == nil {
+		return false
+	}
 	val := SoListPostByCreated{}
 	val.Created = sa.Created
 	val.PostId = sa.PostId
@@ -93,6 +99,9 @@ func (s *SoPostWrap) delSortKeyCreated(sa *SoPost) bool {
 }
 
 func (s *SoPostWrap) insertSortKeyCreated(sa *SoPost) bool {
+	if s.dba == nil {
+		return false
+	}
 	val := SoListPostByCreated{}
 	val.PostId = sa.PostId
 	val.Created = sa.Created
@@ -111,6 +120,9 @@ func (s *SoPostWrap) insertSortKeyCreated(sa *SoPost) bool {
 ////////////// SECTION LKeys delete/insert //////////////
 
 func (s *SoPostWrap) RemovePost() bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getPost()
 	if sa == nil {
 		return false
@@ -144,6 +156,9 @@ func (s *SoPostWrap) GetAuthor() *prototype.AccountName {
 }
 
 func (s *SoPostWrap) MdAuthor(p *prototype.AccountName) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getPost()
 	if sa == nil {
 		return false
@@ -168,6 +183,9 @@ func (s *SoPostWrap) GetBeneficiaries() []*prototype.BeneficiaryRouteType {
 }
 
 func (s *SoPostWrap) MdBeneficiaries(p []*prototype.BeneficiaryRouteType) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getPost()
 	if sa == nil {
 		return false
@@ -192,6 +210,9 @@ func (s *SoPostWrap) GetBody() string {
 }
 
 func (s *SoPostWrap) MdBody(p string) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getPost()
 	if sa == nil {
 		return false
@@ -216,6 +237,9 @@ func (s *SoPostWrap) GetCategory() string {
 }
 
 func (s *SoPostWrap) MdCategory(p string) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getPost()
 	if sa == nil {
 		return false
@@ -240,6 +264,9 @@ func (s *SoPostWrap) GetChildren() uint32 {
 }
 
 func (s *SoPostWrap) MdChildren(p uint32) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getPost()
 	if sa == nil {
 		return false
@@ -264,6 +291,9 @@ func (s *SoPostWrap) GetCreated() *prototype.TimePointSec {
 }
 
 func (s *SoPostWrap) MdCreated(p *prototype.TimePointSec) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getPost()
 	if sa == nil {
 		return false
@@ -295,6 +325,9 @@ func (s *SoPostWrap) GetDepth() uint32 {
 }
 
 func (s *SoPostWrap) MdDepth(p uint32) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getPost()
 	if sa == nil {
 		return false
@@ -319,6 +352,9 @@ func (s *SoPostWrap) GetLastPayout() *prototype.TimePointSec {
 }
 
 func (s *SoPostWrap) MdLastPayout(p *prototype.TimePointSec) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getPost()
 	if sa == nil {
 		return false
@@ -343,6 +379,9 @@ func (s *SoPostWrap) GetParentId() uint64 {
 }
 
 func (s *SoPostWrap) MdParentId(p uint64) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getPost()
 	if sa == nil {
 		return false
@@ -377,6 +416,9 @@ func (s *SoPostWrap) GetRootId() uint64 {
 }
 
 func (s *SoPostWrap) MdRootId(p uint64) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getPost()
 	if sa == nil {
 		return false
@@ -401,6 +443,9 @@ func (s *SoPostWrap) GetTags() []string {
 }
 
 func (s *SoPostWrap) MdTags(p []string) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getPost()
 	if sa == nil {
 		return false
@@ -425,6 +470,9 @@ func (s *SoPostWrap) GetTitle() string {
 }
 
 func (s *SoPostWrap) MdTitle(p string) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getPost()
 	if sa == nil {
 		return false
@@ -449,6 +497,9 @@ func (s *SoPostWrap) GetVoteCnt() uint64 {
 }
 
 func (s *SoPostWrap) MdVoteCnt(p uint64) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getPost()
 	if sa == nil {
 		return false
@@ -568,6 +619,9 @@ func (s *SPostCreatedWrap) QueryListByOrder(start *prototype.TimePointSec, end *
 /////////////// SECTION Private function ////////////////
 
 func (s *SoPostWrap) update(sa *SoPost) bool {
+	if s.dba == nil {
+		return false
+	}
 	buf, err := proto.Marshal(sa)
 	if err != nil {
 		return false
@@ -582,12 +636,13 @@ func (s *SoPostWrap) update(sa *SoPost) bool {
 }
 
 func (s *SoPostWrap) getPost() *SoPost {
+	if s.dba == nil {
+		return nil
+	}
 	keyBuf, err := s.encodeMainKey()
-
 	if err != nil {
 		return nil
 	}
-
 	resBuf, err := s.dba.Get(keyBuf)
 
 	if err != nil {
@@ -615,6 +670,9 @@ func (s *SoPostWrap) encodeMainKey() ([]byte, error) {
 ////////////// Unique Query delete/insert/query ///////////////
 
 func (s *SoPostWrap) delUniKeyPostId(sa *SoPost) bool {
+	if s.dba == nil {
+		return false
+	}
 	pre := PostPostIdUniTable
 	sub := sa.PostId
 	kList := []interface{}{pre, sub}
@@ -626,6 +684,9 @@ func (s *SoPostWrap) delUniKeyPostId(sa *SoPost) bool {
 }
 
 func (s *SoPostWrap) insertUniKeyPostId(sa *SoPost) bool {
+	if s.dba == nil {
+		return false
+	}
 	uniWrap := UniPostPostIdWrap{}
 	uniWrap.Dba = s.dba
 	res := uniWrap.UniQueryPostId(&sa.PostId)
@@ -667,7 +728,7 @@ func NewUniPostPostIdWrap(db iservices.IDatabaseService) *UniPostPostIdWrap {
 }
 
 func (s *UniPostPostIdWrap) UniQueryPostId(start *uint64) *SoPostWrap {
-	if start == nil {
+	if start == nil || s.Dba == nil {
 		return nil
 	}
 	pre := PostPostIdUniTable

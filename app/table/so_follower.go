@@ -30,6 +30,9 @@ func NewSoFollowerWrap(dba iservices.IDatabaseService, key *prototype.FollowerRe
 }
 
 func (s *SoFollowerWrap) CheckExist() bool {
+	if s.dba == nil {
+		return false
+	}
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
 		return false
@@ -81,6 +84,9 @@ func (s *SoFollowerWrap) Create(f func(tInfo *SoFollower)) error {
 ////////////// SECTION LKeys delete/insert //////////////
 
 func (s *SoFollowerWrap) RemoveFollower() bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getFollower()
 	if sa == nil {
 		return false
@@ -111,6 +117,9 @@ func (s *SoFollowerWrap) GetCreatedTime() *prototype.TimePointSec {
 }
 
 func (s *SoFollowerWrap) MdCreatedTime(p *prototype.TimePointSec) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getFollower()
 	if sa == nil {
 		return false
@@ -137,6 +146,9 @@ func (s *SoFollowerWrap) GetFollowerInfo() *prototype.FollowerRelation {
 /////////////// SECTION Private function ////////////////
 
 func (s *SoFollowerWrap) update(sa *SoFollower) bool {
+	if s.dba == nil {
+		return false
+	}
 	buf, err := proto.Marshal(sa)
 	if err != nil {
 		return false
@@ -151,12 +163,13 @@ func (s *SoFollowerWrap) update(sa *SoFollower) bool {
 }
 
 func (s *SoFollowerWrap) getFollower() *SoFollower {
+	if s.dba == nil {
+		return nil
+	}
 	keyBuf, err := s.encodeMainKey()
-
 	if err != nil {
 		return nil
 	}
-
 	resBuf, err := s.dba.Get(keyBuf)
 
 	if err != nil {
@@ -184,6 +197,9 @@ func (s *SoFollowerWrap) encodeMainKey() ([]byte, error) {
 ////////////// Unique Query delete/insert/query ///////////////
 
 func (s *SoFollowerWrap) delUniKeyFollowerInfo(sa *SoFollower) bool {
+	if s.dba == nil {
+		return false
+	}
 	pre := FollowerFollowerInfoUniTable
 	sub := sa.FollowerInfo
 	kList := []interface{}{pre, sub}
@@ -195,6 +211,9 @@ func (s *SoFollowerWrap) delUniKeyFollowerInfo(sa *SoFollower) bool {
 }
 
 func (s *SoFollowerWrap) insertUniKeyFollowerInfo(sa *SoFollower) bool {
+	if s.dba == nil {
+		return false
+	}
 	uniWrap := UniFollowerFollowerInfoWrap{}
 	uniWrap.Dba = s.dba
 
@@ -236,7 +255,7 @@ func NewUniFollowerFollowerInfoWrap(db iservices.IDatabaseService) *UniFollowerF
 }
 
 func (s *UniFollowerFollowerInfoWrap) UniQueryFollowerInfo(start *prototype.FollowerRelation) *SoFollowerWrap {
-	if start == nil {
+	if start == nil || s.Dba == nil {
 		return nil
 	}
 	pre := FollowerFollowerInfoUniTable

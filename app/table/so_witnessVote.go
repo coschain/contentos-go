@@ -31,6 +31,9 @@ func NewSoWitnessVoteWrap(dba iservices.IDatabaseService, key *prototype.BpVoter
 }
 
 func (s *SoWitnessVoteWrap) CheckExist() bool {
+	if s.dba == nil {
+		return false
+	}
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
 		return false
@@ -84,6 +87,9 @@ func (s *SoWitnessVoteWrap) Create(f func(tInfo *SoWitnessVote)) error {
 ////////////// SECTION LKeys delete/insert ///////////////
 
 func (s *SoWitnessVoteWrap) delSortKeyVoterId(sa *SoWitnessVote) bool {
+	if s.dba == nil {
+		return false
+	}
 	val := SoListWitnessVoteByVoterId{}
 	val.VoterId = sa.VoterId
 	subBuf, err := val.OpeEncode()
@@ -95,6 +101,9 @@ func (s *SoWitnessVoteWrap) delSortKeyVoterId(sa *SoWitnessVote) bool {
 }
 
 func (s *SoWitnessVoteWrap) insertSortKeyVoterId(sa *SoWitnessVote) bool {
+	if s.dba == nil {
+		return false
+	}
 	val := SoListWitnessVoteByVoterId{}
 	val.VoterId = sa.VoterId
 	buf, err := proto.Marshal(&val)
@@ -112,6 +121,9 @@ func (s *SoWitnessVoteWrap) insertSortKeyVoterId(sa *SoWitnessVote) bool {
 ////////////// SECTION LKeys delete/insert //////////////
 
 func (s *SoWitnessVoteWrap) RemoveWitnessVote() bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getWitnessVote()
 	if sa == nil {
 		return false
@@ -145,6 +157,9 @@ func (s *SoWitnessVoteWrap) GetVoteTime() *prototype.TimePointSec {
 }
 
 func (s *SoWitnessVoteWrap) MdVoteTime(p *prototype.TimePointSec) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getWitnessVote()
 	if sa == nil {
 		return false
@@ -179,6 +194,9 @@ func (s *SoWitnessVoteWrap) GetWitnessId() *prototype.BpWitnessId {
 }
 
 func (s *SoWitnessVoteWrap) MdWitnessId(p *prototype.BpWitnessId) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getWitnessVote()
 	if sa == nil {
 		return false
@@ -299,6 +317,9 @@ func (s *SWitnessVoteVoterIdWrap) QueryListByOrder(start *prototype.BpVoterId, e
 /////////////// SECTION Private function ////////////////
 
 func (s *SoWitnessVoteWrap) update(sa *SoWitnessVote) bool {
+	if s.dba == nil {
+		return false
+	}
 	buf, err := proto.Marshal(sa)
 	if err != nil {
 		return false
@@ -313,12 +334,13 @@ func (s *SoWitnessVoteWrap) update(sa *SoWitnessVote) bool {
 }
 
 func (s *SoWitnessVoteWrap) getWitnessVote() *SoWitnessVote {
+	if s.dba == nil {
+		return nil
+	}
 	keyBuf, err := s.encodeMainKey()
-
 	if err != nil {
 		return nil
 	}
-
 	resBuf, err := s.dba.Get(keyBuf)
 
 	if err != nil {
@@ -346,6 +368,9 @@ func (s *SoWitnessVoteWrap) encodeMainKey() ([]byte, error) {
 ////////////// Unique Query delete/insert/query ///////////////
 
 func (s *SoWitnessVoteWrap) delUniKeyVoterId(sa *SoWitnessVote) bool {
+	if s.dba == nil {
+		return false
+	}
 	pre := WitnessVoteVoterIdUniTable
 	sub := sa.VoterId
 	kList := []interface{}{pre, sub}
@@ -357,6 +382,9 @@ func (s *SoWitnessVoteWrap) delUniKeyVoterId(sa *SoWitnessVote) bool {
 }
 
 func (s *SoWitnessVoteWrap) insertUniKeyVoterId(sa *SoWitnessVote) bool {
+	if s.dba == nil {
+		return false
+	}
 	uniWrap := UniWitnessVoteVoterIdWrap{}
 	uniWrap.Dba = s.dba
 
@@ -398,7 +426,7 @@ func NewUniWitnessVoteVoterIdWrap(db iservices.IDatabaseService) *UniWitnessVote
 }
 
 func (s *UniWitnessVoteVoterIdWrap) UniQueryVoterId(start *prototype.BpVoterId) *SoWitnessVoteWrap {
-	if start == nil {
+	if start == nil || s.Dba == nil {
 		return nil
 	}
 	pre := WitnessVoteVoterIdUniTable

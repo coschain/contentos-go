@@ -34,6 +34,9 @@ func NewSoAccountWrap(dba iservices.IDatabaseService, key *prototype.AccountName
 }
 
 func (s *SoAccountWrap) CheckExist() bool {
+	if s.dba == nil {
+		return false
+	}
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
 		return false
@@ -99,6 +102,9 @@ func (s *SoAccountWrap) Create(f func(tInfo *SoAccount)) error {
 ////////////// SECTION LKeys delete/insert ///////////////
 
 func (s *SoAccountWrap) delSortKeyCreatedTime(sa *SoAccount) bool {
+	if s.dba == nil {
+		return false
+	}
 	val := SoListAccountByCreatedTime{}
 	val.CreatedTime = sa.CreatedTime
 	val.Name = sa.Name
@@ -111,6 +117,9 @@ func (s *SoAccountWrap) delSortKeyCreatedTime(sa *SoAccount) bool {
 }
 
 func (s *SoAccountWrap) insertSortKeyCreatedTime(sa *SoAccount) bool {
+	if s.dba == nil {
+		return false
+	}
 	val := SoListAccountByCreatedTime{}
 	val.Name = sa.Name
 	val.CreatedTime = sa.CreatedTime
@@ -127,6 +136,9 @@ func (s *SoAccountWrap) insertSortKeyCreatedTime(sa *SoAccount) bool {
 }
 
 func (s *SoAccountWrap) delSortKeyBalance(sa *SoAccount) bool {
+	if s.dba == nil {
+		return false
+	}
 	val := SoListAccountByBalance{}
 	val.Balance = sa.Balance
 	val.Name = sa.Name
@@ -139,6 +151,9 @@ func (s *SoAccountWrap) delSortKeyBalance(sa *SoAccount) bool {
 }
 
 func (s *SoAccountWrap) insertSortKeyBalance(sa *SoAccount) bool {
+	if s.dba == nil {
+		return false
+	}
 	val := SoListAccountByBalance{}
 	val.Name = sa.Name
 	val.Balance = sa.Balance
@@ -155,6 +170,9 @@ func (s *SoAccountWrap) insertSortKeyBalance(sa *SoAccount) bool {
 }
 
 func (s *SoAccountWrap) delSortKeyVestingShares(sa *SoAccount) bool {
+	if s.dba == nil {
+		return false
+	}
 	val := SoListAccountByVestingShares{}
 	val.VestingShares = sa.VestingShares
 	val.Name = sa.Name
@@ -167,6 +185,9 @@ func (s *SoAccountWrap) delSortKeyVestingShares(sa *SoAccount) bool {
 }
 
 func (s *SoAccountWrap) insertSortKeyVestingShares(sa *SoAccount) bool {
+	if s.dba == nil {
+		return false
+	}
 	val := SoListAccountByVestingShares{}
 	val.Name = sa.Name
 	val.VestingShares = sa.VestingShares
@@ -183,6 +204,9 @@ func (s *SoAccountWrap) insertSortKeyVestingShares(sa *SoAccount) bool {
 }
 
 func (s *SoAccountWrap) delSortKeyBpVoteCount(sa *SoAccount) bool {
+	if s.dba == nil {
+		return false
+	}
 	val := SoListAccountByBpVoteCount{}
 	val.BpVoteCount = sa.BpVoteCount
 	val.Name = sa.Name
@@ -195,6 +219,9 @@ func (s *SoAccountWrap) delSortKeyBpVoteCount(sa *SoAccount) bool {
 }
 
 func (s *SoAccountWrap) insertSortKeyBpVoteCount(sa *SoAccount) bool {
+	if s.dba == nil {
+		return false
+	}
 	val := SoListAccountByBpVoteCount{}
 	val.Name = sa.Name
 	val.BpVoteCount = sa.BpVoteCount
@@ -213,6 +240,9 @@ func (s *SoAccountWrap) insertSortKeyBpVoteCount(sa *SoAccount) bool {
 ////////////// SECTION LKeys delete/insert //////////////
 
 func (s *SoAccountWrap) RemoveAccount() bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getAccount()
 	if sa == nil {
 		return false
@@ -255,6 +285,9 @@ func (s *SoAccountWrap) GetBalance() *prototype.Coin {
 }
 
 func (s *SoAccountWrap) MdBalance(p *prototype.Coin) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getAccount()
 	if sa == nil {
 		return false
@@ -286,6 +319,9 @@ func (s *SoAccountWrap) GetBpVoteCount() uint32 {
 }
 
 func (s *SoAccountWrap) MdBpVoteCount(p uint32) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getAccount()
 	if sa == nil {
 		return false
@@ -317,6 +353,9 @@ func (s *SoAccountWrap) GetCreatedTime() *prototype.TimePointSec {
 }
 
 func (s *SoAccountWrap) MdCreatedTime(p *prototype.TimePointSec) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getAccount()
 	if sa == nil {
 		return false
@@ -348,6 +387,9 @@ func (s *SoAccountWrap) GetCreator() *prototype.AccountName {
 }
 
 func (s *SoAccountWrap) MdCreator(p *prototype.AccountName) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getAccount()
 	if sa == nil {
 		return false
@@ -382,6 +424,9 @@ func (s *SoAccountWrap) GetVestingShares() *prototype.Vest {
 }
 
 func (s *SoAccountWrap) MdVestingShares(p *prototype.Vest) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getAccount()
 	if sa == nil {
 		return false
@@ -819,6 +864,9 @@ func (s *SAccountBpVoteCountWrap) QueryListByOrder(start *uint32, end *uint32) i
 /////////////// SECTION Private function ////////////////
 
 func (s *SoAccountWrap) update(sa *SoAccount) bool {
+	if s.dba == nil {
+		return false
+	}
 	buf, err := proto.Marshal(sa)
 	if err != nil {
 		return false
@@ -833,12 +881,13 @@ func (s *SoAccountWrap) update(sa *SoAccount) bool {
 }
 
 func (s *SoAccountWrap) getAccount() *SoAccount {
+	if s.dba == nil {
+		return nil
+	}
 	keyBuf, err := s.encodeMainKey()
-
 	if err != nil {
 		return nil
 	}
-
 	resBuf, err := s.dba.Get(keyBuf)
 
 	if err != nil {
@@ -866,6 +915,9 @@ func (s *SoAccountWrap) encodeMainKey() ([]byte, error) {
 ////////////// Unique Query delete/insert/query ///////////////
 
 func (s *SoAccountWrap) delUniKeyName(sa *SoAccount) bool {
+	if s.dba == nil {
+		return false
+	}
 	pre := AccountNameUniTable
 	sub := sa.Name
 	kList := []interface{}{pre, sub}
@@ -877,6 +929,9 @@ func (s *SoAccountWrap) delUniKeyName(sa *SoAccount) bool {
 }
 
 func (s *SoAccountWrap) insertUniKeyName(sa *SoAccount) bool {
+	if s.dba == nil {
+		return false
+	}
 	uniWrap := UniAccountNameWrap{}
 	uniWrap.Dba = s.dba
 
@@ -918,7 +973,7 @@ func NewUniAccountNameWrap(db iservices.IDatabaseService) *UniAccountNameWrap {
 }
 
 func (s *UniAccountNameWrap) UniQueryName(start *prototype.AccountName) *SoAccountWrap {
-	if start == nil {
+	if start == nil || s.Dba == nil {
 		return nil
 	}
 	pre := AccountNameUniTable

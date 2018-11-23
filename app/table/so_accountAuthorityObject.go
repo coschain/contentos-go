@@ -30,6 +30,9 @@ func NewSoAccountAuthorityObjectWrap(dba iservices.IDatabaseService, key *protot
 }
 
 func (s *SoAccountAuthorityObjectWrap) CheckExist() bool {
+	if s.dba == nil {
+		return false
+	}
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
 		return false
@@ -81,6 +84,9 @@ func (s *SoAccountAuthorityObjectWrap) Create(f func(tInfo *SoAccountAuthorityOb
 ////////////// SECTION LKeys delete/insert //////////////
 
 func (s *SoAccountAuthorityObjectWrap) RemoveAccountAuthorityObject() bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getAccountAuthorityObject()
 	if sa == nil {
 		return false
@@ -121,6 +127,9 @@ func (s *SoAccountAuthorityObjectWrap) GetActive() *prototype.Authority {
 }
 
 func (s *SoAccountAuthorityObjectWrap) MdActive(p *prototype.Authority) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getAccountAuthorityObject()
 	if sa == nil {
 		return false
@@ -145,6 +154,9 @@ func (s *SoAccountAuthorityObjectWrap) GetLastOwnerUpdate() *prototype.TimePoint
 }
 
 func (s *SoAccountAuthorityObjectWrap) MdLastOwnerUpdate(p *prototype.TimePointSec) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getAccountAuthorityObject()
 	if sa == nil {
 		return false
@@ -169,6 +181,9 @@ func (s *SoAccountAuthorityObjectWrap) GetOwner() *prototype.Authority {
 }
 
 func (s *SoAccountAuthorityObjectWrap) MdOwner(p *prototype.Authority) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getAccountAuthorityObject()
 	if sa == nil {
 		return false
@@ -193,6 +208,9 @@ func (s *SoAccountAuthorityObjectWrap) GetPosting() *prototype.Authority {
 }
 
 func (s *SoAccountAuthorityObjectWrap) MdPosting(p *prototype.Authority) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getAccountAuthorityObject()
 	if sa == nil {
 		return false
@@ -209,6 +227,9 @@ func (s *SoAccountAuthorityObjectWrap) MdPosting(p *prototype.Authority) bool {
 /////////////// SECTION Private function ////////////////
 
 func (s *SoAccountAuthorityObjectWrap) update(sa *SoAccountAuthorityObject) bool {
+	if s.dba == nil {
+		return false
+	}
 	buf, err := proto.Marshal(sa)
 	if err != nil {
 		return false
@@ -223,12 +244,13 @@ func (s *SoAccountAuthorityObjectWrap) update(sa *SoAccountAuthorityObject) bool
 }
 
 func (s *SoAccountAuthorityObjectWrap) getAccountAuthorityObject() *SoAccountAuthorityObject {
+	if s.dba == nil {
+		return nil
+	}
 	keyBuf, err := s.encodeMainKey()
-
 	if err != nil {
 		return nil
 	}
-
 	resBuf, err := s.dba.Get(keyBuf)
 
 	if err != nil {
@@ -256,6 +278,9 @@ func (s *SoAccountAuthorityObjectWrap) encodeMainKey() ([]byte, error) {
 ////////////// Unique Query delete/insert/query ///////////////
 
 func (s *SoAccountAuthorityObjectWrap) delUniKeyAccount(sa *SoAccountAuthorityObject) bool {
+	if s.dba == nil {
+		return false
+	}
 	pre := AccountAuthorityObjectAccountUniTable
 	sub := sa.Account
 	kList := []interface{}{pre, sub}
@@ -267,6 +292,9 @@ func (s *SoAccountAuthorityObjectWrap) delUniKeyAccount(sa *SoAccountAuthorityOb
 }
 
 func (s *SoAccountAuthorityObjectWrap) insertUniKeyAccount(sa *SoAccountAuthorityObject) bool {
+	if s.dba == nil {
+		return false
+	}
 	uniWrap := UniAccountAuthorityObjectAccountWrap{}
 	uniWrap.Dba = s.dba
 
@@ -308,7 +336,7 @@ func NewUniAccountAuthorityObjectAccountWrap(db iservices.IDatabaseService) *Uni
 }
 
 func (s *UniAccountAuthorityObjectAccountWrap) UniQueryAccount(start *prototype.AccountName) *SoAccountAuthorityObjectWrap {
-	if start == nil {
+	if start == nil || s.Dba == nil {
 		return nil
 	}
 	pre := AccountAuthorityObjectAccountUniTable

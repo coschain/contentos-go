@@ -32,6 +32,9 @@ func NewSoVoteWrap(dba iservices.IDatabaseService, key *prototype.VoterId) *SoVo
 }
 
 func (s *SoVoteWrap) CheckExist() bool {
+	if s.dba == nil {
+		return false
+	}
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
 		return false
@@ -89,6 +92,9 @@ func (s *SoVoteWrap) Create(f func(tInfo *SoVote)) error {
 ////////////// SECTION LKeys delete/insert ///////////////
 
 func (s *SoVoteWrap) delSortKeyVoteTime(sa *SoVote) bool {
+	if s.dba == nil {
+		return false
+	}
 	val := SoListVoteByVoteTime{}
 	val.VoteTime = sa.VoteTime
 	val.Voter = sa.Voter
@@ -101,6 +107,9 @@ func (s *SoVoteWrap) delSortKeyVoteTime(sa *SoVote) bool {
 }
 
 func (s *SoVoteWrap) insertSortKeyVoteTime(sa *SoVote) bool {
+	if s.dba == nil {
+		return false
+	}
 	val := SoListVoteByVoteTime{}
 	val.Voter = sa.Voter
 	val.VoteTime = sa.VoteTime
@@ -117,6 +126,9 @@ func (s *SoVoteWrap) insertSortKeyVoteTime(sa *SoVote) bool {
 }
 
 func (s *SoVoteWrap) delSortKeyPostId(sa *SoVote) bool {
+	if s.dba == nil {
+		return false
+	}
 	val := SoListVoteByPostId{}
 	val.PostId = sa.PostId
 	val.Voter = sa.Voter
@@ -129,6 +141,9 @@ func (s *SoVoteWrap) delSortKeyPostId(sa *SoVote) bool {
 }
 
 func (s *SoVoteWrap) insertSortKeyPostId(sa *SoVote) bool {
+	if s.dba == nil {
+		return false
+	}
 	val := SoListVoteByPostId{}
 	val.Voter = sa.Voter
 	val.PostId = sa.PostId
@@ -147,6 +162,9 @@ func (s *SoVoteWrap) insertSortKeyPostId(sa *SoVote) bool {
 ////////////// SECTION LKeys delete/insert //////////////
 
 func (s *SoVoteWrap) RemoveVote() bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getVote()
 	if sa == nil {
 		return false
@@ -183,6 +201,9 @@ func (s *SoVoteWrap) GetPostId() uint64 {
 }
 
 func (s *SoVoteWrap) MdPostId(p uint64) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getVote()
 	if sa == nil {
 		return false
@@ -214,6 +235,9 @@ func (s *SoVoteWrap) GetVoteTime() *prototype.TimePointSec {
 }
 
 func (s *SoVoteWrap) MdVoteTime(p *prototype.TimePointSec) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getVote()
 	if sa == nil {
 		return false
@@ -453,6 +477,9 @@ func (s *SVotePostIdWrap) QueryListByOrder(start *uint64, end *uint64) iservices
 /////////////// SECTION Private function ////////////////
 
 func (s *SoVoteWrap) update(sa *SoVote) bool {
+	if s.dba == nil {
+		return false
+	}
 	buf, err := proto.Marshal(sa)
 	if err != nil {
 		return false
@@ -467,12 +494,13 @@ func (s *SoVoteWrap) update(sa *SoVote) bool {
 }
 
 func (s *SoVoteWrap) getVote() *SoVote {
+	if s.dba == nil {
+		return nil
+	}
 	keyBuf, err := s.encodeMainKey()
-
 	if err != nil {
 		return nil
 	}
-
 	resBuf, err := s.dba.Get(keyBuf)
 
 	if err != nil {
@@ -500,6 +528,9 @@ func (s *SoVoteWrap) encodeMainKey() ([]byte, error) {
 ////////////// Unique Query delete/insert/query ///////////////
 
 func (s *SoVoteWrap) delUniKeyVoter(sa *SoVote) bool {
+	if s.dba == nil {
+		return false
+	}
 	pre := VoteVoterUniTable
 	sub := sa.Voter
 	kList := []interface{}{pre, sub}
@@ -511,6 +542,9 @@ func (s *SoVoteWrap) delUniKeyVoter(sa *SoVote) bool {
 }
 
 func (s *SoVoteWrap) insertUniKeyVoter(sa *SoVote) bool {
+	if s.dba == nil {
+		return false
+	}
 	uniWrap := UniVoteVoterWrap{}
 	uniWrap.Dba = s.dba
 
@@ -552,7 +586,7 @@ func NewUniVoteVoterWrap(db iservices.IDatabaseService) *UniVoteVoterWrap {
 }
 
 func (s *UniVoteVoterWrap) UniQueryVoter(start *prototype.VoterId) *SoVoteWrap {
-	if start == nil {
+	if start == nil || s.Dba == nil {
 		return nil
 	}
 	pre := VoteVoterUniTable

@@ -29,6 +29,9 @@ func NewSoWitnessScheduleObjectWrap(dba iservices.IDatabaseService, key *int32) 
 }
 
 func (s *SoWitnessScheduleObjectWrap) CheckExist() bool {
+	if s.dba == nil {
+		return false
+	}
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
 		return false
@@ -77,6 +80,9 @@ func (s *SoWitnessScheduleObjectWrap) Create(f func(tInfo *SoWitnessScheduleObje
 ////////////// SECTION LKeys delete/insert //////////////
 
 func (s *SoWitnessScheduleObjectWrap) RemoveWitnessScheduleObject() bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getWitnessScheduleObject()
 	if sa == nil {
 		return false
@@ -107,6 +113,9 @@ func (s *SoWitnessScheduleObjectWrap) GetCurrentShuffledWitness() []string {
 }
 
 func (s *SoWitnessScheduleObjectWrap) MdCurrentShuffledWitness(p []string) bool {
+	if s.dba == nil {
+		return false
+	}
 	sa := s.getWitnessScheduleObject()
 	if sa == nil {
 		return false
@@ -133,6 +142,9 @@ func (s *SoWitnessScheduleObjectWrap) GetId() int32 {
 /////////////// SECTION Private function ////////////////
 
 func (s *SoWitnessScheduleObjectWrap) update(sa *SoWitnessScheduleObject) bool {
+	if s.dba == nil {
+		return false
+	}
 	buf, err := proto.Marshal(sa)
 	if err != nil {
 		return false
@@ -147,12 +159,13 @@ func (s *SoWitnessScheduleObjectWrap) update(sa *SoWitnessScheduleObject) bool {
 }
 
 func (s *SoWitnessScheduleObjectWrap) getWitnessScheduleObject() *SoWitnessScheduleObject {
+	if s.dba == nil {
+		return nil
+	}
 	keyBuf, err := s.encodeMainKey()
-
 	if err != nil {
 		return nil
 	}
-
 	resBuf, err := s.dba.Get(keyBuf)
 
 	if err != nil {
@@ -180,6 +193,9 @@ func (s *SoWitnessScheduleObjectWrap) encodeMainKey() ([]byte, error) {
 ////////////// Unique Query delete/insert/query ///////////////
 
 func (s *SoWitnessScheduleObjectWrap) delUniKeyId(sa *SoWitnessScheduleObject) bool {
+	if s.dba == nil {
+		return false
+	}
 	pre := WitnessScheduleObjectIdUniTable
 	sub := sa.Id
 	kList := []interface{}{pre, sub}
@@ -191,6 +207,9 @@ func (s *SoWitnessScheduleObjectWrap) delUniKeyId(sa *SoWitnessScheduleObject) b
 }
 
 func (s *SoWitnessScheduleObjectWrap) insertUniKeyId(sa *SoWitnessScheduleObject) bool {
+	if s.dba == nil {
+		return false
+	}
 	uniWrap := UniWitnessScheduleObjectIdWrap{}
 	uniWrap.Dba = s.dba
 	res := uniWrap.UniQueryId(&sa.Id)
@@ -232,7 +251,7 @@ func NewUniWitnessScheduleObjectIdWrap(db iservices.IDatabaseService) *UniWitnes
 }
 
 func (s *UniWitnessScheduleObjectIdWrap) UniQueryId(start *int32) *SoWitnessScheduleObjectWrap {
-	if start == nil {
+	if start == nil || s.Dba == nil {
 		return nil
 	}
 	pre := WitnessScheduleObjectIdUniTable
