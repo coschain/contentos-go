@@ -216,7 +216,11 @@ func TestDatabaseGroup(t *testing.T) {
 	db4 := NewMemoryDatabase()
 	defer db4.Close()
 
-	g := NewSimpleDatabaseGroup(NewKeyHashDispatcher([]Database{db1, db2, db3, db4}))
+	walfile := filepath.Join(dir, randomString(8))
+	wal, _ := NewLevelWriteAheadLog(walfile)
+	defer wal.Close()
+
+	g, _ := NewSimpleDatabaseGroup(NewKeyHashDispatcher([]Database{db1, db2, db3, db4}), wal)
 	defer g.Close()
 
 	dbTest(t, g)
