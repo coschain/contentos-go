@@ -19,10 +19,10 @@ var (
 ////////////// SECTION Wrap Define ///////////////
 type SoExtFollowingWrap struct {
 	dba     iservices.IDatabaseService
-	mainKey *prototype.FollowingCreatedOrder
+	mainKey *prototype.FollowingRelation
 }
 
-func NewSoExtFollowingWrap(dba iservices.IDatabaseService, key *prototype.FollowingCreatedOrder) *SoExtFollowingWrap {
+func NewSoExtFollowingWrap(dba iservices.IDatabaseService, key *prototype.FollowingRelation) *SoExtFollowingWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
@@ -78,7 +78,7 @@ func (s *SoExtFollowingWrap) Create(f func(tInfo *SoExtFollowing)) error {
 
 	//update unique list
 	if !s.insertUniKeyFollowingInfo(val) {
-		return errors.New("insert unique Field prototype.FollowingCreatedOrder while insert table ")
+		return errors.New("insert unique Field prototype.FollowingRelation while insert table ")
 	}
 
 	return nil
@@ -146,7 +146,7 @@ func (s *SoExtFollowingWrap) RemoveExtFollowing() bool {
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
-func (s *SoExtFollowingWrap) GetFollowingInfo() *prototype.FollowingCreatedOrder {
+func (s *SoExtFollowingWrap) GetFollowingInfo() *prototype.FollowingRelation {
 	res := s.getExtFollowing()
 
 	if res == nil {
@@ -176,7 +176,7 @@ func (s *SExtFollowingFollowingInfoWrap) DelIterater(iterator iservices.IDatabas
 	s.Dba.DeleteIterator(iterator)
 }
 
-func (s *SExtFollowingFollowingInfoWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.FollowingCreatedOrder {
+func (s *SExtFollowingFollowingInfoWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.FollowingRelation {
 	if iterator == nil || !iterator.Valid() {
 		return nil
 	}
@@ -196,7 +196,7 @@ func (s *SExtFollowingFollowingInfoWrap) GetMainVal(iterator iservices.IDatabase
 
 }
 
-func (s *SExtFollowingFollowingInfoWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.FollowingCreatedOrder {
+func (s *SExtFollowingFollowingInfoWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.FollowingRelation {
 	if iterator == nil || !iterator.Valid() {
 		return nil
 	}
@@ -234,7 +234,7 @@ func (m *SoListExtFollowingByFollowingInfo) OpeEncode() ([]byte, error) {
 //start = nil  end = nil (query the db from start to end)
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
-func (s *SExtFollowingFollowingInfoWrap) QueryListByOrder(start *prototype.FollowingCreatedOrder, end *prototype.FollowingCreatedOrder) iservices.IDatabaseIterator {
+func (s *SExtFollowingFollowingInfoWrap) QueryListByOrder(start *prototype.FollowingRelation, end *prototype.FollowingRelation) iservices.IDatabaseIterator {
 	if s.Dba == nil {
 		return nil
 	}
@@ -371,7 +371,7 @@ func NewUniExtFollowingFollowingInfoWrap(db iservices.IDatabaseService) *UniExtF
 	return &wrap
 }
 
-func (s *UniExtFollowingFollowingInfoWrap) UniQueryFollowingInfo(start *prototype.FollowingCreatedOrder) *SoExtFollowingWrap {
+func (s *UniExtFollowingFollowingInfoWrap) UniQueryFollowingInfo(start *prototype.FollowingRelation) *SoExtFollowingWrap {
 	if start == nil || s.Dba == nil {
 		return nil
 	}

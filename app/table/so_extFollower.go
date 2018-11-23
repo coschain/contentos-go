@@ -19,10 +19,10 @@ var (
 ////////////// SECTION Wrap Define ///////////////
 type SoExtFollowerWrap struct {
 	dba     iservices.IDatabaseService
-	mainKey *prototype.FollowerCreatedOrder
+	mainKey *prototype.FollowerRelation
 }
 
-func NewSoExtFollowerWrap(dba iservices.IDatabaseService, key *prototype.FollowerCreatedOrder) *SoExtFollowerWrap {
+func NewSoExtFollowerWrap(dba iservices.IDatabaseService, key *prototype.FollowerRelation) *SoExtFollowerWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
@@ -78,7 +78,7 @@ func (s *SoExtFollowerWrap) Create(f func(tInfo *SoExtFollower)) error {
 
 	//update unique list
 	if !s.insertUniKeyFollowerInfo(val) {
-		return errors.New("insert unique Field prototype.FollowerCreatedOrder while insert table ")
+		return errors.New("insert unique Field prototype.FollowerRelation while insert table ")
 	}
 
 	return nil
@@ -146,7 +146,7 @@ func (s *SoExtFollowerWrap) RemoveExtFollower() bool {
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
-func (s *SoExtFollowerWrap) GetFollowerInfo() *prototype.FollowerCreatedOrder {
+func (s *SoExtFollowerWrap) GetFollowerInfo() *prototype.FollowerRelation {
 	res := s.getExtFollower()
 
 	if res == nil {
@@ -176,7 +176,7 @@ func (s *SExtFollowerFollowerInfoWrap) DelIterater(iterator iservices.IDatabaseI
 	s.Dba.DeleteIterator(iterator)
 }
 
-func (s *SExtFollowerFollowerInfoWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.FollowerCreatedOrder {
+func (s *SExtFollowerFollowerInfoWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.FollowerRelation {
 	if iterator == nil || !iterator.Valid() {
 		return nil
 	}
@@ -196,7 +196,7 @@ func (s *SExtFollowerFollowerInfoWrap) GetMainVal(iterator iservices.IDatabaseIt
 
 }
 
-func (s *SExtFollowerFollowerInfoWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.FollowerCreatedOrder {
+func (s *SExtFollowerFollowerInfoWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.FollowerRelation {
 	if iterator == nil || !iterator.Valid() {
 		return nil
 	}
@@ -234,7 +234,7 @@ func (m *SoListExtFollowerByFollowerInfo) OpeEncode() ([]byte, error) {
 //start = nil  end = nil (query the db from start to end)
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
-func (s *SExtFollowerFollowerInfoWrap) QueryListByOrder(start *prototype.FollowerCreatedOrder, end *prototype.FollowerCreatedOrder) iservices.IDatabaseIterator {
+func (s *SExtFollowerFollowerInfoWrap) QueryListByOrder(start *prototype.FollowerRelation, end *prototype.FollowerRelation) iservices.IDatabaseIterator {
 	if s.Dba == nil {
 		return nil
 	}
@@ -371,7 +371,7 @@ func NewUniExtFollowerFollowerInfoWrap(db iservices.IDatabaseService) *UniExtFol
 	return &wrap
 }
 
-func (s *UniExtFollowerFollowerInfoWrap) UniQueryFollowerInfo(start *prototype.FollowerCreatedOrder) *SoExtFollowerWrap {
+func (s *UniExtFollowerFollowerInfoWrap) UniQueryFollowerInfo(start *prototype.FollowerRelation) *SoExtFollowerWrap {
 	if start == nil || s.Dba == nil {
 		return nil
 	}

@@ -76,12 +76,14 @@ message chain_properties{
 
 message follower_relation{
     account_name account = 1;
-    account_name follower = 2;
+    time_point_sec created_time = 2;
+    account_name follower = 3;
 }
 
 message following_relation{
     account_name account = 1;
-    account_name following = 2;
+    time_point_sec created_time = 2;
+    account_name following = 3;
 }
 
 message follower_created_order{
