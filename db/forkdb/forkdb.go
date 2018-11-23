@@ -7,13 +7,12 @@ import (
 	"github.com/coschain/contentos-go/common"
 )
 
-const maxSize = 1024
+const defaultSize = 1024
 
 // DB ...
 type DB struct {
 	//committed common.BlockID
 	start  uint64
-	offset uint64
 	head   common.BlockID
 
 	list     [][]common.BlockID
@@ -28,7 +27,7 @@ type DB struct {
 // NewDB ...
 func NewDB() *DB {
 	return &DB{
-		list:         make([][]common.BlockID, maxSize*2+1),
+		list:         make([][]common.BlockID, defaultSize+1),
 		branches:     make(map[common.BlockID]common.ISignedBlock),
 		detachedLink: make(map[common.BlockID]common.ISignedBlock),
 		//detached:     make(map[common.BlockID]common.ISignedBlock),
@@ -38,25 +37,6 @@ func NewDB() *DB {
 // TotalBlockNum returns the total number of blocks contained in the DB
 func (db *DB) TotalBlockNum() int {
 	return len(db.branches)
-}
-
-// Remove removes a block
-func (db *DB) Remove(id common.BlockID) {
-	num := id.BlockNum()
-	if num > db.head.BlockNum()+1 || num < db.start {
-		return
-	}
-	delete(db.branches, id)
-	delete(db.detachedLink, id)
-	//delete(db.detached, id)
-	idx := num - db.start + db.offset
-	for i := range db.list[idx] {
-		if db.list[idx][i] == id {
-			l := len(db.list[idx])
-			db.list[idx][i], db.list[idx][l-1] = db.list[idx][l-1], db.list[idx][i]
-			db.list[idx] = db.list[idx][:l-1]
-		}
-	}
 }
 
 // FetchBlock fetches a block corresponding to id
@@ -73,7 +53,7 @@ func (db *DB) FetchBlockByNum(num uint64) []common.ISignedBlock {
 	if num < db.start || num > db.head.BlockNum() {
 		return nil
 	}
-	list := db.list[num-db.start+db.offset]
+	list := db.list[num-db.start]
 	ret := make([]common.ISignedBlock, len(list))
 	for i := range list {
 		b, _ := db.branches[list[i]]
@@ -83,7 +63,7 @@ func (db *DB) FetchBlockByNum(num uint64) []common.ISignedBlock {
 }
 
 // PushBlock adds a block. If any of the forkchain has more than
-// maxSize blocks, purge will be triggered.
+// defaultSize blocks, purge will be triggered.
 func (db *DB) PushBlock(b common.ISignedBlock) common.ISignedBlock {
 	id := b.Id()
 	if db.Illegal(id) {
@@ -106,7 +86,7 @@ func (db *DB) PushBlock(b common.ISignedBlock) common.ISignedBlock {
 	if num > db.head.BlockNum()+1 || num < db.start {
 		return db.branches[db.head]
 	}
-	db.list[num-db.start+db.offset] = append(db.list[num-db.start+db.offset], id)
+	db.list[num-db.start] = append(db.list[num-db.start], id)
 	prev := b.Previous()
 	if _, ok := db.branches[prev]; !ok {
 		db.detachedLink[prev] = b
@@ -135,30 +115,9 @@ func (db *DB) pushDetached(id common.BlockID) {
 
 func (db *DB) tryNewHead(id common.BlockID) {
 	curNum := id.BlockNum()
-	if curNum > db.head.BlockNum() {
+	if curNum == db.head.BlockNum()+1 {
 		db.head = id
-		if curNum-db.start >= maxSize {
-			db.start++
-			db.offset++
-		}
-		if db.offset >= maxSize {
-			db.purge()
-		}
 	}
-}
-
-func (db *DB) purge() {
-	var cnt uint64
-	for cnt = 0; cnt < db.offset; cnt++ {
-		for i := range db.list[cnt] {
-			delete(db.branches, db.list[cnt][i])
-			delete(db.detachedLink, db.list[cnt][i])
-		}
-	}
-
-	newList := make([][]common.BlockID, maxSize*2+1)
-	copy(newList, db.list[db.offset:])
-	db.list = newList
 }
 
 // Head returns the head block of the longest chain, returns nil
@@ -209,8 +168,8 @@ func (db *DB) FetchBranch(id1, id2 common.BlockID) ([2][]common.BlockID, error) 
 	}
 
 	headNum := db.head.BlockNum()
-	//for tid1 != tid2 && tid1.BlockNum() <= headNum-maxSize {
-	for tid1 != tid2 && tid1.BlockNum()+maxSize > headNum {
+	//for tid1 != tid2 && tid1.BlockNum() <= headNum-defaultSize {
+	for tid1 != tid2 && tid1.BlockNum()+defaultSize > headNum {
 		ret[0] = append(ret[0], tid1)
 		ret[1] = append(ret[1], tid2)
 		tmp, err := db.FetchBlock(tid1)
@@ -294,6 +253,8 @@ func (db *DB) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, []comm
 // other branches, sets id as the start block. It should be regularly
 // called when a block is commited to save ram.
 func (db *DB) Commit(id common.BlockID) {
+	//newList := make([][]common.BlockID, defaultSize+1)
+
 	_, ids, err := db.FetchBlocksSince(id)
 	if err != nil {
 		return
@@ -315,12 +276,11 @@ func (db *DB) Commit(id common.BlockID) {
 		}
 	}
 
-	db.list = make([][]common.BlockID, maxSize*2+1)
+	db.list = make([][]common.BlockID, defaultSize+1)
 	for i := 0; i < len(ids); i++ {
 		db.list[i] = append(db.list[i], ids[i])
 	}
 	db.start = ids[0].BlockNum()
-	db.offset = 0
 }
 
 // Illegal determines if the block has illegal transactions

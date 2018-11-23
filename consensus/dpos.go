@@ -296,7 +296,13 @@ func (d *DPoS) pushBlock(b common.ISignedBlock) error {
 		GetTopK() []witness
 	*/
 
-	// TODO: commit
+	//if newHead.Id().BlockNum() - lrb > 15 {
+	//	d.commit()
+	//}
+	return nil
+}
+
+func (d *DPoS) commit(id common.BlockID) error {
 	return nil
 }
 
