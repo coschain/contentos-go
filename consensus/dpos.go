@@ -8,19 +8,13 @@ import (
 
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
-	"github.com/coschain/contentos-go/db/forkdb"
-	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/db/blocklog"
+	"github.com/coschain/contentos-go/db/forkdb"
 	"github.com/coschain/contentos-go/iservices"
+	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/prototype"
 	//"github.com/coschain/contentos-go/app"
 )
-
-func waitTilNextSec() {
-	now := time.Now()
-	ceil := now.Add(time.Millisecond * 500).Round(time.Second)
-	time.Sleep(ceil.Sub(now))
-}
 
 func timeToNextSec() time.Duration {
 	now := time.Now()
@@ -28,37 +22,22 @@ func timeToNextSec() time.Duration {
 	return ceil.Sub(now)
 }
 
-type Producer struct {
-	Name string
-	dpos *DPoS
-}
-
-func (p *Producer) Produce(timestamp uint64, prev common.BlockID, privKey *prototype.PrivateKeyType) (common.ISignedBlock, error) {
-	ctrl := p.dpos.getController()
-	b := ctrl.GenerateBlock(p.Name, uint32(timestamp), privKey, prototype.Skip_nothing)
-	return b, nil
-}
-
 type DPoS struct {
 	ForkDB *forkdb.DB
-	blog blocklog.BLog
+	blog   blocklog.BLog
 
-	Producers      []*Producer
-	privKey        prototype.PrivateKeyType
-	producerIdx    uint64
+	//Producers      []*Producer
+	//producerIdx    uint64
+	privKey        *prototype.PrivateKeyType
 	readyToProduce bool
 	prodTimer      *time.Timer
 	trxCh          chan common.ISignedTransaction
 	blkCh          chan common.ISignedBlock
-
 	bootstrap bool
-
 	slot uint64
-	//currentAbsSlot uint64
-
-	//head common.ISignedBlock
 
 	ctx *node.ServiceContext
+	ctrl iservices.IController
 
 	stopCh chan struct{}
 	wg     sync.WaitGroup
@@ -68,7 +47,7 @@ type DPoS struct {
 func NewDPoS(ctx *node.ServiceContext) *DPoS {
 	return &DPoS{
 		ForkDB:    forkdb.NewDB(),
-		Producers: make([]*Producer, constants.ProducerNum),
+		//Producers: make([]*Producer, constants.ProducerNum),
 		prodTimer: time.NewTimer(10 * time.Second),
 		trxCh:     make(chan common.ISignedTransaction, 5000),
 		blkCh:     make(chan common.ISignedBlock),
@@ -90,10 +69,10 @@ func (d *DPoS) SetBootstrap(b bool) {
 	}
 }
 
-func (d *DPoS) CurrentProducer() *Producer {
+func (d *DPoS) CurrentProducer() string {
 	d.RLock()
 	defer d.RUnlock()
-	return d.Producers[0]
+	return ""
 }
 
 // Called when a produce round complete, it adds new producers,
@@ -102,14 +81,15 @@ func (d *DPoS) shuffle() {
 
 }
 
-func (d *DPoS) ActiveProducers() []*Producer {
+func (d *DPoS) ActiveProducers() string {
 	d.RLock()
 	defer d.RUnlock()
-	return d.Producers
+	return ""
 }
 
 func (d *DPoS) Start(node *node.Node) error {
 	d.blog.Open(node.Config().DataDir)
+	d.ctrl = d.getController()
 	go d.start()
 	return nil
 }
@@ -170,8 +150,9 @@ func (d *DPoS) Stop() error {
 
 func (d *DPoS) generateBlock() (common.ISignedBlock, error) {
 	ts := d.getSlotTime(d.slot)
-	prev := d.ForkDB.Head().Id()
-	return d.Producers[d.producerIdx].Produce(ts, prev, &d.privKey)
+	//prev := d.ForkDB.Head().Id()
+	return d.ctrl.GenerateBlock(/*TODO:*/"name", uint32(ts), d.privKey, prototype.Skip_nothing), nil
+	//return d.Producers[d.producerIdx].Produce(ts, prev, &d.privKey)
 }
 
 func (d *DPoS) checkGenesis() bool {
@@ -210,17 +191,19 @@ func (d *DPoS) checkProducingTiming() bool {
 }
 
 func (d *DPoS) checkOurTurn() bool {
-	idx := d.getScheduledProducer(d.slot)
-	if true { // TODO: match key
-		d.producerIdx = idx
-		return true
+	producer := d.getScheduledProducer(d.slot)
+	ourPubKey, err := d.privKey.PubKey()
+	if err != nil {
+		return false
 	}
-	return false
+
+	return ourPubKey.Equal(producer)
 }
 
-func (d *DPoS) getScheduledProducer(slot uint64) uint64 {
-	absSlot := (d.ForkDB.Head().Timestamp() - constants.GenesisTime) / constants.BLOCK_INTERVAL
-	return (absSlot + slot) % uint64(len(d.Producers))
+func (d *DPoS) getScheduledProducer(slot uint64) *prototype.PublicKeyType {
+	//absSlot := (d.ForkDB.Head().Timestamp() - constants.GenesisTime) / constants.BLOCK_INTERVAL
+	//return (absSlot + slot) % uint64(len(d.Producers))
+	return &prototype.PublicKeyType{}
 }
 
 // returns false if we're out of sync
@@ -299,8 +282,8 @@ func (d *DPoS) pushBlock(b common.ISignedBlock) error {
 		GetTopK() []witness
 	*/
 
-	if lastCommitted :=d.ForkDB.LastCommitted().BlockNum(); newHead.Id().BlockNum() - lastCommitted > 15 {
-		b, err := d.ForkDB.FetchBlockFromMainBranch(lastCommitted+1)
+	if lastCommitted := d.ForkDB.LastCommitted().BlockNum(); newHead.Id().BlockNum()-lastCommitted > 15 {
+		b, err := d.ForkDB.FetchBlockFromMainBranch(lastCommitted + 1)
 		if err != nil {
 			return err
 		}
@@ -375,7 +358,7 @@ func (d *DPoS) popBlock() error {
 	return nil
 }
 
-func (d *DPoS) GetHeadBlockId() (common.BlockID) {
+func (d *DPoS) GetHeadBlockId() common.BlockID {
 	return d.ForkDB.Head().Id()
 }
 
@@ -393,7 +376,7 @@ func (d *DPoS) GetHashes(start, end common.BlockID) []common.BlockID {
 	}
 	ret = append(ret, end)
 	ret = ret[:length]
-	for i:=0; i<=(length-1)/2; i++ {
+	for i := 0; i <= (length-1)/2; i++ {
 		ret[i], ret[length-1-i] = ret[length-1-i], ret[i]
 	}
 	return ret
