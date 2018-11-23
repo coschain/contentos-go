@@ -219,8 +219,8 @@ message GetReplyListByPostIdResponse {
 
 message GetBlockTransactionsByNumRequest {
     uint32 block_num = 1;
-    uint32 page = 2;
-    uint32 size = 3;
+    uint32 start = 2;
+    uint32 limit = 3;
 }
 
 message GetBlockTransactionsByNumResponse {
@@ -228,7 +228,7 @@ message GetBlockTransactionsByNumResponse {
 }
 
 message GetTrxByIdRequest {
-    uint64 trx_id = 1;
+    prototype.sha256 trx_id = 1;
 }
 
 message GetTrxByIdResponse {

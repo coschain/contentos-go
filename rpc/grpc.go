@@ -125,7 +125,9 @@ func (as *APIService) GetChainState(ctx context.Context, in *grpcpb.NonParamsReq
 	var (
 		i         int32 = 1
 	)
+
 	globalVar := table.NewSoGlobalWrap(as.db, &i)
+
 	return &grpcpb.GetChainStateResponse{Props: globalVar.GetProps()}, nil
 }
 
@@ -267,7 +269,16 @@ func (as *APIService) GetBlockTransactionsByNum(ctx context.Context, req *grpcpb
 
 func (as *APIService) GetTrxById(ctx context.Context, req *grpcpb.GetTrxByIdRequest) (*grpcpb.GetTrxByIdResponse, error) {
 
-	return &grpcpb.GetTrxByIdResponse{}, nil
+	trxWrap := table.NewSoTransactionObjectWrap(as.db, req.TrxId)
+	resp := &grpcpb.GetTrxByIdResponse{}
+
+	if trxWrap != nil && trxWrap.CheckExist() {
+		//resp.Trx. = trxWrap.GetTrxId()
+
+		//TODO wait trx definition
+	}
+
+	return resp, nil
 }
 
 func (as *APIService) BroadcastTrx(ctx context.Context, req *grpcpb.BroadcastTrxRequest) (*grpcpb.BroadcastTrxResponse, error) {

@@ -51,7 +51,7 @@ func (p *FollowService) onPostOperation( notification *prototype.OperationNotifi
 
 	op := notification.Op.GetOp8()
 
-	followerWrap := table.NewSoFollowCountWrap( p.db, op.Follower )
+	followerWrap := table.NewSoExtFollowCountWrap( p.db, op.Follower )
 
 	// TODO update follow data
 	if followerWrap.CheckExist() {
