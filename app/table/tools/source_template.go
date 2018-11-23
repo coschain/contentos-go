@@ -330,7 +330,7 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) GetMainVal(iterator iservices.IDatabase
    {{end}}
 }
 
-func (s *S{{$.ClsName}}{{$v.PName}}Wrap) GetSubVal(iterator iservices.IDatabaseIterator) *{{formatePbSliceType $v.PType}} {
+func (s *S{{$.ClsName}}{{$v.PName}}Wrap) GetSubVal(iterator iservices.IDatabaseIterator) *{{formatSliceType $v.PType}} {
 	if iterator == nil || !iterator.Valid() {
 		return nil
 	}
@@ -594,8 +594,8 @@ func (s *Uni{{$.ClsName}}{{$k}}Wrap) UniQuery{{$k}}(start *{{formatStr $v}}) *So
 		"LowerFirstChar": LowerFirstChar,
 		"DetectBaseType":DetectBaseType,
 		"formatRTypeStr":formatRTypeStr,
-		"formateQueryParamStr":formateQueryParamStr,
-		"formatePbSliceType":formatePbSliceType,
+		"formatQueryParamStr":formatQueryParamStr,
+		"formatSliceType":formatSliceType,
 		}
 		t := template.New("go_template")
 		t  = t.Funcs(funcMapUper)
@@ -671,7 +671,7 @@ func LowerFirstChar(str string) string {
 	return str
 }
 
-/*  formate params of function in pb tool template, remove the "_" meanWhile uppercase words beside "_"*/
+/*  format params of function in pb tool template, remove the "_" meanWhile uppercase words beside "_"*/
 func formatStr(str string) string  {
 	formStr := ""
 	if str != "" {
@@ -757,7 +757,7 @@ func DetectBaseType(str string) bool {
 func formatRTypeStr(str string) string{
 	if str != "" {
 		if strings.HasPrefix(str,"[]") {
-			str = formatePbSliceType(str)
+			str = formatSliceType(str)
 		}
 		if !DetectBaseType(str) {
 			return "*" + str
@@ -767,7 +767,7 @@ func formatRTypeStr(str string) string{
 }
 
 /* format the type of querylist params to ptr (if the type is base data type,the type add *)*/
-func formateQueryParamStr(str string) string {
+func formatQueryParamStr(str string) string {
 	if str != "" {
 		if DetectBaseType(str) {
 			return "*" + str
@@ -776,7 +776,7 @@ func formateQueryParamStr(str string) string {
 	return str
 }
 
-func formatePbSliceType(str string) string {
+func formatSliceType(str string) string {
 	if strings.HasPrefix(str,"[]") {
 		s := strings.TrimPrefix(str,"[]")
 		if !DetectBaseType(s) {
