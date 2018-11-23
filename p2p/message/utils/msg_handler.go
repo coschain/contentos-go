@@ -358,7 +358,7 @@ func VerAckHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 		var blockid common.BlockID
 		blockid.Data[0] = 8
 		blockid.Data[1] = 18
-		p2p.Triggeer_sync(remotePeer, blockid)
+		p2p.Trigger_sync(remotePeer, blockid)
 
 		msg := msgpack.NewAddrReq()
 		go p2p.Send(remotePeer, msg, false)

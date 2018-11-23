@@ -810,7 +810,7 @@ func (this *NetServer) SetOwnAddress(addr string) {
 
 }
 
-func (this *NetServer) Triggeer_sync(p *peer.Peer, current_head_blk_id comn.BlockID) {
+func (this *NetServer) Trigger_sync(p *peer.Peer, current_head_blk_id comn.BlockID) {
 	reqmsg := new(msg.ReqIdMsg)
 	reqmsg.HeadBlockId = current_head_blk_id.Data[:]
 	this.Send(p, reqmsg, false)
