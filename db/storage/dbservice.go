@@ -126,6 +126,9 @@ func (s *DatabaseService) EndTransaction(commit bool) error {
 	return s.tdb.EndTransaction(commit)
 }
 
+func (s *DatabaseService) TransactionHeight() uint {
+	return s.tdb.TransactionHeight()
+}
 
 //
 // implementation of Database interface

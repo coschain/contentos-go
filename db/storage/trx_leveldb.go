@@ -63,3 +63,7 @@ func (db *TrxLevelDatabase) BeginTransaction() {
 func (db *TrxLevelDatabase) EndTransaction(commit bool) error {
 	return db.trx.EndTransaction(commit)
 }
+
+func (db *TrxLevelDatabase) TransactionHeight() uint {
+	return db.trx.TransactionHeight()
+}

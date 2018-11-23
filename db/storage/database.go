@@ -111,6 +111,9 @@ type Transactional interface {
 
 	// end current transaction session, commit or discard changes
 	EndTransaction(commit bool) error
+
+	// current transaction height
+	TransactionHeight() uint
 }
 
 // interface for databases that support transactions

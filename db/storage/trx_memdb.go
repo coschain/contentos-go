@@ -60,3 +60,7 @@ func (db *TrxMemoryDatabase) BeginTransaction() {
 func (db *TrxMemoryDatabase) EndTransaction(commit bool) error {
 	return db.trx.EndTransaction(commit)
 }
+
+func (db *TrxMemoryDatabase) TransactionHeight() uint {
+	return db.trx.TransactionHeight()
+}

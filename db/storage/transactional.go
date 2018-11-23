@@ -431,7 +431,9 @@ func (db *TransactionalDatabase) EndTransaction(commit bool) error {
 	return nil
 }
 
-
+func (db *TransactionalDatabase) TransactionHeight() uint {
+	return uint(len(db.trx))
+}
 
 // return an Database Interface with no support for dirty-read.
 func (db *TransactionalDatabase) cleanRead() *TransactionalDatabase {

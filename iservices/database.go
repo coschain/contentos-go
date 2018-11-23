@@ -104,6 +104,8 @@ type IDatabaseService interface {
 	// end current transaction session, commit or discard changes
 	EndTransaction(commit bool) error
 
+	// current transaction height
+	TransactionHeight() uint
 
 	//
 	// data reversion feature
