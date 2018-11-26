@@ -87,10 +87,7 @@ func (db *dbSession) Get(key []byte) ([]byte, error) {
 	return data, err
 }
 
-func (db *dbSession) Put(key []byte, value []byte) error {
-	db.dblock.Lock()
-	defer db.dblock.Unlock()
-
+func (db *dbSession) put(key []byte, value []byte) error {
 	// write to mem db only
 	err := db.mem.Put(key, value)
 	if err == nil {
@@ -108,10 +105,7 @@ func (db *dbSession) Put(key []byte, value []byte) error {
 	return err
 }
 
-func (db *dbSession) Delete(key []byte) error {
-	db.dblock.Lock()
-	defer db.dblock.Unlock()
-
+func (db *dbSession) delete(key []byte) error {
 	// write to mem db only
 	err := db.mem.Delete(key)
 	if err == nil {
@@ -127,6 +121,21 @@ func (db *dbSession) Delete(key []byte) error {
 		db.removals[string(key)] = true
 	}
 	return err
+}
+
+
+func (db *dbSession) Put(key []byte, value []byte) error {
+	db.dblock.Lock()
+	defer db.dblock.Unlock()
+
+	return db.put(key, value)
+}
+
+func (db *dbSession) Delete(key []byte) error {
+	db.dblock.Lock()
+	defer db.dblock.Unlock()
+
+	return db.delete(key)
 }
 
 func (db *dbSession) makeIterator(start []byte, limit []byte, reversed bool) Iterator {
@@ -304,11 +313,14 @@ type dbSessionBatch struct {
 }
 
 func (b *dbSessionBatch) Write() error {
+	b.db.dblock.Lock()
+	defer b.db.dblock.Unlock()
+
 	for _, op := range b.changes {
 		if op.Del {
-			b.db.Delete(op.Key)
+			b.db.delete(op.Key)
 		} else {
-			b.db.Put(op.Key, op.Value)
+			b.db.put(op.Key, op.Value)
 		}
 	}
 	return nil
