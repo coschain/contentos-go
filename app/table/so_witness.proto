@@ -29,6 +29,12 @@ message so_list_witness_by_owner {
 }
 
 
+message so_list_witness_by_vote_count {
+	uint64                         	vote_count               = 1;
+	prototype.account_name         	owner                    = 2;
+}
+
+
 message so_unique_witness_by_owner {
 	prototype.account_name         	owner                    = 1;
 }

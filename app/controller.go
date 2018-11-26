@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app/table"
+	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/common/eventloop"
 	"github.com/coschain/contentos-go/common/logging"
@@ -40,6 +41,9 @@ type Controller struct {
 	_current_trx_in_block int16
 	dgpo *prototype.DynamicProperties
 	havePendingTransaction bool
+	idToRev  map[[32]byte]uint64
+
+	stack *sessionStack
 }
 
 func (c *Controller) getDb() (iservices.IDatabaseService, error) {
@@ -298,7 +302,7 @@ func (c *Controller) GenerateBlock(witness string, timestamp uint32,
 
 	c.PushBlock(signBlock,c.skip | prototype.Skip_apply_transaction)
 	if signBlock.SignedHeader.Number() == uint64(c.headBlockNum()) {
-		c.db.EndTransaction(true)
+		//c.db.EndTransaction(true)
 	} else {
 		c.db.EndTransaction(false)
 	}
@@ -593,7 +597,6 @@ func (c *Controller) initGenesis() {
 	}), "Witness Create Error")
 
 	// create dynamic global properties
-	var i int32 = 0
 	dgpWrap := table.NewSoGlobalWrap(c.db, &SINGLE_ID)
 	mustNoError(dgpWrap.Create(func(tInfo *table.SoGlobal) {
 		tInfo.Id = SINGLE_ID
@@ -619,7 +622,7 @@ func (c *Controller) initGenesis() {
 	}
 
 	// create witness scheduler
-	witnessScheduleWrap := table.NewSoWitnessScheduleObjectWrap(c.db, &i)
+	witnessScheduleWrap := table.NewSoWitnessScheduleObjectWrap(c.db, &SINGLE_ID)
 	witnessScheduleWrap.Create(func(tInfo *table.SoWitnessScheduleObject) {
 		tInfo.CurrentShuffledWitness = append(tInfo.CurrentShuffledWitness, constants.COS_INIT_MINER)
 	})
@@ -729,11 +732,10 @@ func (c *Controller) GetIncrementSlotAtTime(t *prototype.TimePointSec) uint32 {
 }
 
 func (c *Controller) GetScheduledWitness(slot uint32) *prototype.AccountName {
-	var i int32 = 0
 	currentSlot := c.dgpo.GetCurrentAslot()
 	currentSlot += slot
 
-	wsoWrap := table.NewSoWitnessScheduleObjectWrap(c.db, &i)
+	wsoWrap := table.NewSoWitnessScheduleObjectWrap(c.db, &SINGLE_ID)
 	witnesses := wsoWrap.GetCurrentShuffledWitness()
 	witnessNum := uint32(len(witnesses))
 	witnessName := witnesses[currentSlot%witnessNum]
@@ -823,4 +825,84 @@ func (c *Controller) clearExpiredTransactions() {
 		}
 		sortWrap.DelIterater(itr)
 	}
+}
+
+func (c *Controller) GetWitnessTopN(n uint32) []string {
+	ret := []string{}
+	revList := table.SWitnessVoteCountWrap{Dba:c.db}
+	itr := revList.QueryListByRevOrder(nil,nil)
+	if itr != nil {
+		i:= uint32(0)
+		for itr.Next() && i < n {
+			mainPtr := revList.GetMainVal(itr)
+			if mainPtr != nil {
+				ret = append(ret,mainPtr.Value)
+			} else {
+				// panic() ?
+				logging.CLog().Warnf("reverse get witness meet nil value")
+			}
+			i++
+		}
+		revList.DelIterater(itr)
+	}
+	return ret
+}
+
+func (c *Controller) SetShuffledWitness(names []string) {
+	witnessScheduleWrap := table.NewSoWitnessScheduleObjectWrap(c.db,&SINGLE_ID)
+	mustSuccess(witnessScheduleWrap.MdCurrentShuffledWitness(names),"SetWitness error")
+}
+
+func (c *Controller) GetShuffledWitness() []string {
+	witnessScheduleWrap := table.NewSoWitnessScheduleObjectWrap(c.db,&SINGLE_ID)
+	return witnessScheduleWrap.GetCurrentShuffledWitness()
+}
+
+func (c *Controller) setReversion(id *common.BlockID) {
+	currentRev := c.db.GetRevision()
+	c.idToRev[id.Data] = currentRev
+}
+
+func (c *Controller) getReversion(id *common.BlockID) uint64{
+	rev,ok := c.idToRev[id.Data]
+	if !ok {
+		panic("reversion not found")
+	}
+	return rev
+}
+
+func (c *Controller) gotoReversion(id *common.BlockID) {
+	rev := c.getReversion(id)
+	c.db.RevertToRevision(rev)
+}
+
+func (c *Controller) Pop(id *common.BlockID) {
+
+}
+
+type sessionStack struct {
+	db iservices.IDatabaseService
+	currentLayer uint32
+	isPendingLayer bool
+}
+
+func (ss *sessionStack) begin() {
+	ss.db.BeginTransaction()
+	ss.currentLayer++
+}
+
+func (ss *sessionStack) squash() {
+	mustSuccess(ss.currentLayer > 0, "squash when layer <= 0")
+	ss.db.EndTransaction(true)
+	ss.currentLayer--
+}
+
+func (ss *sessionStack) undo() {
+	mustSuccess(ss.currentLayer > 0, "undo when layer <= 0")
+	ss.db.EndTransaction(false)
+	ss.currentLayer--
+}
+
+func (ss *sessionStack) keep() {
+
 }

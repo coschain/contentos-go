@@ -11,9 +11,10 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	WitnessTable         = []byte("WitnessTable")
-	WitnessOwnerTable    = []byte("WitnessOwnerTable")
-	WitnessOwnerUniTable = []byte("WitnessOwnerUniTable")
+	WitnessTable          = []byte("WitnessTable")
+	WitnessOwnerTable     = []byte("WitnessOwnerTable")
+	WitnessVoteCountTable = []byte("WitnessVoteCountTable")
+	WitnessOwnerUniTable  = []byte("WitnessOwnerUniTable")
 )
 
 ////////////// SECTION Wrap Define ///////////////
@@ -77,6 +78,12 @@ func (s *SoWitnessWrap) Create(f func(tInfo *SoWitness)) error {
 		return err
 	}
 
+	if !s.insertSortKeyVoteCount(val) {
+		s.delAllSortKeys()
+		s.dba.Delete(keyBuf)
+		return errors.New("insert sort Field VoteCount while insert table ")
+	}
+
 	//update unique list
 	if err = s.insertAllUniKeys(val); err != nil {
 		s.delAllSortKeys(false, val)
@@ -122,6 +129,40 @@ func (s *SoWitnessWrap) insertSortKeyOwner(sa *SoWitness) bool {
 	return ordErr == nil
 }
 
+func (s *SoWitnessWrap) delSortKeyVoteCount(sa *SoWitness) bool {
+	if s.dba == nil {
+		return false
+	}
+	val := SoListWitnessByVoteCount{}
+	val.VoteCount = sa.VoteCount
+	val.Owner = sa.Owner
+	subBuf, err := val.OpeEncode()
+	if err != nil {
+		return false
+	}
+	ordErr := s.dba.Delete(subBuf)
+	return ordErr == nil
+}
+
+func (s *SoWitnessWrap) insertSortKeyVoteCount(sa *SoWitness) bool {
+	if s.dba == nil {
+		return false
+	}
+	val := SoListWitnessByVoteCount{}
+	val.Owner = sa.Owner
+	val.VoteCount = sa.VoteCount
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return false
+	}
+	subBuf, err := val.OpeEncode()
+	if err != nil {
+		return false
+	}
+	ordErr := s.dba.Put(subBuf, buf)
+	return ordErr == nil
+}
+
 func (s *SoWitnessWrap) delAllSortKeys(br bool, val *SoWitness) bool {
 	if s.dba == nil {
 		return false
@@ -136,6 +177,9 @@ func (s *SoWitnessWrap) delAllSortKeys(br bool, val *SoWitness) bool {
 		} else {
 			res = false
 		}
+	}
+	if !s.delSortKeyVoteCount(sa) && res {
+		res = false
 	}
 
 	return res
@@ -167,6 +211,9 @@ func (s *SoWitnessWrap) RemoveWitness() bool {
 	}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, val); !res {
+		return false
+	}
+	if !s.delSortKeyVoteCount(sa) {
 		return false
 	}
 
@@ -455,8 +502,15 @@ func (s *SoWitnessWrap) MdVoteCount(p uint64) bool {
 		return false
 	}
 
+	if !s.delSortKeyVoteCount(sa) {
+		return false
+	}
 	sa.VoteCount = p
 	if !s.update(sa) {
+		return false
+	}
+
+	if !s.insertSortKeyVoteCount(sa) {
 		return false
 	}
 
@@ -592,6 +646,107 @@ func (s *SWitnessOwnerWrap) QueryListByOrder(start *prototype.AccountName, end *
 		return nil
 	}
 	return s.Dba.NewIterator(sBuf, eBuf)
+}
+
+////////////// SECTION List Keys ///////////////
+type SWitnessVoteCountWrap struct {
+	Dba iservices.IDatabaseService
+}
+
+func NewWitnessVoteCountWrap(db iservices.IDatabaseService) *SWitnessVoteCountWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := SWitnessVoteCountWrap{Dba: db}
+	return &wrap
+}
+
+func (s *SWitnessVoteCountWrap) DelIterater(iterator iservices.IDatabaseIterator) {
+	if iterator == nil || !iterator.Valid() {
+		return
+	}
+	s.Dba.DeleteIterator(iterator)
+}
+
+func (s *SWitnessVoteCountWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.AccountName {
+	if iterator == nil || !iterator.Valid() {
+		return nil
+	}
+	val, err := iterator.Value()
+
+	if err != nil {
+		return nil
+	}
+
+	res := &SoListWitnessByVoteCount{}
+	err = proto.Unmarshal(val, res)
+
+	if err != nil {
+		return nil
+	}
+	return res.Owner
+
+}
+
+func (s *SWitnessVoteCountWrap) GetSubVal(iterator iservices.IDatabaseIterator) *uint64 {
+	if iterator == nil || !iterator.Valid() {
+		return nil
+	}
+
+	val, err := iterator.Value()
+
+	if err != nil {
+		return nil
+	}
+	res := &SoListWitnessByVoteCount{}
+	err = proto.Unmarshal(val, res)
+	if err != nil {
+		return nil
+	}
+	return &res.VoteCount
+
+}
+
+func (m *SoListWitnessByVoteCount) OpeEncode() ([]byte, error) {
+	pre := WitnessVoteCountTable
+	sub := m.VoteCount
+
+	sub1 := m.Owner
+	if sub1 == nil {
+		return nil, errors.New("the mainkey Owner is nil")
+	}
+	kList := []interface{}{pre, sub, sub1}
+	kBuf, cErr := kope.EncodeSlice(kList)
+	return kBuf, cErr
+}
+
+//Query sort by reverse order
+func (s *SWitnessVoteCountWrap) QueryListByRevOrder(start *uint64, end *uint64) iservices.IDatabaseIterator {
+	if s.Dba == nil {
+		return nil
+	}
+	pre := WitnessVoteCountTable
+	skeyList := []interface{}{pre}
+	if start != nil {
+		skeyList = append(skeyList, start)
+	} else {
+		skeyList = append(skeyList, kope.MaximumKey)
+	}
+	sBuf, cErr := kope.EncodeSlice(skeyList)
+	if cErr != nil {
+		return nil
+	}
+	eKeyList := []interface{}{pre}
+	if end != nil {
+		eKeyList = append(eKeyList, end)
+	}
+	eBuf, cErr := kope.EncodeSlice(eKeyList)
+	if cErr != nil {
+		return nil
+	}
+	//reverse the start and end when create ReversedIterator to query by reverse order
+	iter := s.Dba.NewReversedIterator(eBuf, sBuf)
+	return iter
 }
 
 /////////////// SECTION Private function ////////////////
