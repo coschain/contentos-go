@@ -3,6 +3,7 @@ package consensus
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -26,17 +27,18 @@ type DPoS struct {
 	ForkDB *forkdb.DB
 	blog   blocklog.BLog
 
-	//Producers      []*Producer
+	Producers      []string
+	Name string
 	//producerIdx    uint64
 	privKey        *prototype.PrivateKeyType
 	readyToProduce bool
 	prodTimer      *time.Timer
 	trxCh          chan common.ISignedTransaction
 	blkCh          chan common.ISignedBlock
-	bootstrap bool
-	slot uint64
+	bootstrap      bool
+	slot           uint64
 
-	ctx *node.ServiceContext
+	ctx  *node.ServiceContext
 	ctrl iservices.IController
 
 	stopCh chan struct{}
@@ -46,7 +48,7 @@ type DPoS struct {
 
 func NewDPoS(ctx *node.ServiceContext) *DPoS {
 	return &DPoS{
-		ForkDB:    forkdb.NewDB(),
+		ForkDB: forkdb.NewDB(),
 		//Producers: make([]*Producer, constants.ProducerNum),
 		prodTimer: time.NewTimer(10 * time.Second),
 		trxCh:     make(chan common.ISignedTransaction, 5000),
@@ -78,7 +80,21 @@ func (d *DPoS) CurrentProducer() string {
 // Called when a produce round complete, it adds new producers,
 // remove unqualified producers and shuffle the block-producing order
 func (d *DPoS) shuffle() {
+	prods := d.ctrl.GetWitnessTopN(constants.MAX_WITNESSES)
+	seed := d.ForkDB.Head().Timestamp() << 32
+	prodNum := len(prods)
+	for i := 0; i < prodNum; i++ {
+		k := seed + uint64(i)*2695921657736338717
+		k ^= k >> 12
+		k ^= k << 25
+		k ^= k >> 27
+		k *= 2695921657736338717
 
+		j := i + int(k%uint64(prodNum-i))
+		prods[i], prods[j] = prods[j], prods[i]
+	}
+
+	d.Producers = prods
 }
 
 func (d *DPoS) ActiveProducers() string {
@@ -89,6 +105,9 @@ func (d *DPoS) ActiveProducers() string {
 
 func (d *DPoS) Start(node *node.Node) error {
 	d.blog.Open(node.Config().DataDir)
+	if d.ForkDB.Head() == nil && d.blog.BlockNum() == 0 {
+		d.shuffle()
+	}
 	d.ctrl = d.getController()
 	go d.start()
 	return nil
@@ -151,8 +170,7 @@ func (d *DPoS) Stop() error {
 func (d *DPoS) generateBlock() (common.ISignedBlock, error) {
 	ts := d.getSlotTime(d.slot)
 	//prev := d.ForkDB.Head().Id()
-	return d.ctrl.GenerateBlock(/*TODO:*/"name", uint32(ts), d.privKey, prototype.Skip_nothing), nil
-	//return d.Producers[d.producerIdx].Produce(ts, prev, &d.privKey)
+	return d.ctrl.GenerateBlock( d.Name, uint32(ts), d.privKey, prototype.Skip_nothing), nil
 }
 
 func (d *DPoS) checkGenesis() bool {
@@ -192,18 +210,12 @@ func (d *DPoS) checkProducingTiming() bool {
 
 func (d *DPoS) checkOurTurn() bool {
 	producer := d.getScheduledProducer(d.slot)
-	ourPubKey, err := d.privKey.PubKey()
-	if err != nil {
-		return false
-	}
-
-	return ourPubKey.Equal(producer)
+	return strings.Compare(d.Name, producer) == 0
 }
 
-func (d *DPoS) getScheduledProducer(slot uint64) *prototype.PublicKeyType {
-	//absSlot := (d.ForkDB.Head().Timestamp() - constants.GenesisTime) / constants.BLOCK_INTERVAL
-	//return (absSlot + slot) % uint64(len(d.Producers))
-	return &prototype.PublicKeyType{}
+func (d *DPoS) getScheduledProducer(slot uint64) string {
+	absSlot := (d.ForkDB.Head().Timestamp() - constants.GenesisTime) / constants.BLOCK_INTERVAL
+	return d.Producers[(absSlot + slot) % uint64(len(d.Producers))]
 }
 
 // returns false if we're out of sync
@@ -275,12 +287,10 @@ func (d *DPoS) pushBlock(b common.ISignedBlock) error {
 		return err
 	}
 
-	// TODO: shuffle
-	/*
-		GetWitnesses() []witness
-		SetWitnesses(ws []witness)
-		GetTopK() []witness
-	*/
+	// shuffle
+	if d.ForkDB.Head().Id().BlockNum() % uint64(len(d.Producers)) == 0 {
+		d.shuffle()
+	}
 
 	if lastCommitted := d.ForkDB.LastCommitted().BlockNum(); newHead.Id().BlockNum()-lastCommitted > 15 {
 		b, err := d.ForkDB.FetchBlockFromMainBranch(lastCommitted + 1)

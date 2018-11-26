@@ -15,6 +15,9 @@ type IController interface {
 	PushBlock(blk *prototype.SignedBlock,skip prototype.SkipFlag)
 	HeadBlockTime() *prototype.TimePointSec
 	GenerateBlock(witness string, timestamp uint32, priKey *prototype.PrivateKeyType, skip prototype.SkipFlag) *prototype.SignedBlock
+	GetWitnessTopN(n uint32) []string
+	SetShuffledWitness(names []string)
+	GetShuffledWitness() []string
 
 	TransferToVest( value *prototype.Coin)
 	TransferFromVest( value *prototype.Vest)

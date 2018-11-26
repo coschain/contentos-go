@@ -14,10 +14,10 @@ const blockLenSize = 4
 const maxPayloadLen = 1024 * 1024 * 256
 
 /*BLog is an external append only log of the blocks. Blocks should only be written
- * to the log after they irreverisble as the log is append only. There is a secondary
+ * to the log after they're irreversible as the log is append only. There is a secondary
  * index file of only block positions that enables O(1) random access lookup by block number.
  *
- * A block data in the BLog is formated as len+payload, len is a uint32
+ * A block data in the BLog is formatted as len+payload, len is a uint32
  *
  * +---------+----------------+---------+----------------+-----+------------+-------------------+
  * | Block 1 | Pos of Block 1 | Block 2 | Pos of Block 2 | ... | Head Block | Pos of Head Block |
