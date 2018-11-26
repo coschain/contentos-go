@@ -423,6 +423,11 @@ func (s *SoTransactionObjectWrap) delUniKeyTrxId(sa *SoTransactionObject) bool {
 	if s.dba == nil {
 		return false
 	}
+
+	if sa.TrxId == nil {
+		return false
+	}
+
 	pre := TransactionObjectTrxIdUniTable
 	sub := sa.TrxId
 	kList := []interface{}{pre, sub}

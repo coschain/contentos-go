@@ -1424,6 +1424,7 @@ func (s *SoDemoWrap) delUniKeyIdx(sa *SoDemo) bool {
 	if s.dba == nil {
 		return false
 	}
+
 	pre := DemoIdxUniTable
 	sub := sa.Idx
 	kList := []interface{}{pre, sub}
@@ -1503,6 +1504,7 @@ func (s *SoDemoWrap) delUniKeyLikeCount(sa *SoDemo) bool {
 	if s.dba == nil {
 		return false
 	}
+
 	pre := DemoLikeCountUniTable
 	sub := sa.LikeCount
 	kList := []interface{}{pre, sub}
@@ -1582,6 +1584,11 @@ func (s *SoDemoWrap) delUniKeyOwner(sa *SoDemo) bool {
 	if s.dba == nil {
 		return false
 	}
+
+	if sa.Owner == nil {
+		return false
+	}
+
 	pre := DemoOwnerUniTable
 	sub := sa.Owner
 	kList := []interface{}{pre, sub}

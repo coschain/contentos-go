@@ -805,6 +805,11 @@ func (s *SoVoteWrap) delUniKeyVoter(sa *SoVote) bool {
 	if s.dba == nil {
 		return false
 	}
+
+	if sa.Voter == nil {
+		return false
+	}
+
 	pre := VoteVoterUniTable
 	sub := sa.Voter
 	kList := []interface{}{pre, sub}

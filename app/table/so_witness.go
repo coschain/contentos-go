@@ -837,6 +837,11 @@ func (s *SoWitnessWrap) delUniKeyOwner(sa *SoWitness) bool {
 	if s.dba == nil {
 		return false
 	}
+
+	if sa.Owner == nil {
+		return false
+	}
+
 	pre := WitnessOwnerUniTable
 	sub := sa.Owner
 	kList := []interface{}{pre, sub}

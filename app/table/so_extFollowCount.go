@@ -321,6 +321,11 @@ func (s *SoExtFollowCountWrap) delUniKeyAccount(sa *SoExtFollowCount) bool {
 	if s.dba == nil {
 		return false
 	}
+
+	if sa.Account == nil {
+		return false
+	}
+
 	pre := ExtFollowCountAccountUniTable
 	sub := sa.Account
 	kList := []interface{}{pre, sub}

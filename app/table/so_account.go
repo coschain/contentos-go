@@ -1078,6 +1078,11 @@ func (s *SoAccountWrap) delUniKeyName(sa *SoAccount) bool {
 	if s.dba == nil {
 		return false
 	}
+
+	if sa.Name == nil {
+		return false
+	}
+
 	pre := AccountNameUniTable
 	sub := sa.Name
 	kList := []interface{}{pre, sub}

@@ -348,6 +348,11 @@ func (s *SoAccountAuthorityObjectWrap) delUniKeyAccount(sa *SoAccountAuthorityOb
 	if s.dba == nil {
 		return false
 	}
+
+	if sa.Account == nil {
+		return false
+	}
+
 	pre := AccountAuthorityObjectAccountUniTable
 	sub := sa.Account
 	kList := []interface{}{pre, sub}

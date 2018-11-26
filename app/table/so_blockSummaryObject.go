@@ -264,6 +264,7 @@ func (s *SoBlockSummaryObjectWrap) delUniKeyId(sa *SoBlockSummaryObject) bool {
 	if s.dba == nil {
 		return false
 	}
+
 	pre := BlockSummaryObjectIdUniTable
 	sub := sa.Id
 	kList := []interface{}{pre, sub}

@@ -441,6 +441,11 @@ func (s *SoWitnessVoteWrap) delUniKeyVoterId(sa *SoWitnessVote) bool {
 	if s.dba == nil {
 		return false
 	}
+
+	if sa.VoterId == nil {
+		return false
+	}
+
 	pre := WitnessVoteVoterIdUniTable
 	sub := sa.VoterId
 	kList := []interface{}{pre, sub}

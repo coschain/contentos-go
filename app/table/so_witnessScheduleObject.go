@@ -263,6 +263,7 @@ func (s *SoWitnessScheduleObjectWrap) delUniKeyId(sa *SoWitnessScheduleObject) b
 	if s.dba == nil {
 		return false
 	}
+
 	pre := WitnessScheduleObjectIdUniTable
 	sub := sa.Id
 	kList := []interface{}{pre, sub}

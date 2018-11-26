@@ -264,6 +264,7 @@ func (s *SoGlobalWrap) delUniKeyId(sa *SoGlobal) bool {
 	if s.dba == nil {
 		return false
 	}
+
 	pre := GlobalIdUniTable
 	sub := sa.Id
 	kList := []interface{}{pre, sub}

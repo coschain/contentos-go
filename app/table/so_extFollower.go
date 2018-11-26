@@ -387,6 +387,11 @@ func (s *SoExtFollowerWrap) delUniKeyFollowerInfo(sa *SoExtFollower) bool {
 	if s.dba == nil {
 		return false
 	}
+
+	if sa.FollowerInfo == nil {
+		return false
+	}
+
 	pre := ExtFollowerFollowerInfoUniTable
 	sub := sa.FollowerInfo
 	kList := []interface{}{pre, sub}

@@ -599,6 +599,7 @@ func (s *SoExtPostWrap) delUniKeyPostId(sa *SoExtPost) bool {
 	if s.dba == nil {
 		return false
 	}
+
 	pre := ExtPostPostIdUniTable
 	sub := sa.PostId
 	kList := []interface{}{pre, sub}

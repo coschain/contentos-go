@@ -797,6 +797,7 @@ func (s *SoPostWrap) delUniKeyPostId(sa *SoPost) bool {
 	if s.dba == nil {
 		return false
 	}
+
 	pre := PostPostIdUniTable
 	sub := sa.PostId
 	kList := []interface{}{pre, sub}

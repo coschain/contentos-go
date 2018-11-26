@@ -575,6 +575,12 @@ func (s *So{{$.ClsName}}Wrap) delUniKey{{$k}}(sa *So{{$.ClsName}}) bool {
     if s.dba == nil {
        return false
     }
+    {{ $baseType := (DetectBaseType $v) -}}
+    {{if not $baseType }} 
+    if sa.{{UperFirstChar $k}} == nil {
+       return false
+    }
+    {{end}}   
     pre := {{$.ClsName}}{{$k}}UniTable
     sub := sa.{{UperFirstChar $k}}
     kList := []interface{}{pre,sub}
