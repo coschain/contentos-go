@@ -17,8 +17,10 @@ func TestForkDB(t *testing.T) {
 		Prev:    p,
 	}
 	db := forkdb.NewDB()
+	assert.Equal(db.Empty(), true)
 	b := db.PushBlock(msb0)
 	assert.Equal(b, msb0, "wrong head")
+	assert.Equal(db.Empty(), false)
 
 	prevID := msb0.Id()
 	msb1 := &MockSignedBlock{

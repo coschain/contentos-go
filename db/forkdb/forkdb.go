@@ -3,6 +3,7 @@ package forkdb
 import (
 	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/coschain/contentos-go/common"
 )
@@ -14,6 +15,7 @@ type DB struct {
 	//committed common.BlockID
 	start  uint64
 	head   common.BlockID
+	lastCommitted common.BlockID
 
 	list     [][]common.BlockID
 	branches map[common.BlockID]common.ISignedBlock
@@ -21,7 +23,7 @@ type DB struct {
 	// previous BlockID ===> ISignedBlock
 	detachedLink map[common.BlockID]common.ISignedBlock
 
-	//detached map[common.BlockID]common.ISignedBlock
+	sync.RWMutex
 }
 
 // NewDB ...
@@ -37,16 +39,26 @@ func NewDB() *DB {
 
 // LastCommitted...
 func (db *DB) LastCommitted() common.BlockID {
-	return db.list[0][0]
+	db.RLock()
+	defer db.RUnlock()
+	return db.lastCommitted
 }
 
 // TotalBlockNum returns the total number of blocks contained in the DB
 func (db *DB) TotalBlockNum() int {
+	db.RLock()
+	defer db.RUnlock()
 	return len(db.branches)
 }
 
 // FetchBlock fetches a block corresponding to id
 func (db *DB) FetchBlock(id common.BlockID) (common.ISignedBlock, error) {
+	db.RLock()
+	defer db.RUnlock()
+	return db.fetchBlock(id)
+}
+
+func (db *DB) fetchBlock(id common.BlockID) (common.ISignedBlock, error) {
 	b, ok := db.branches[id]
 	if ok {
 		return b, nil
@@ -56,6 +68,8 @@ func (db *DB) FetchBlock(id common.BlockID) (common.ISignedBlock, error) {
 
 // FetchBlockByNum fetches a block corresponding to the block num
 func (db *DB) FetchBlockByNum(num uint64) []common.ISignedBlock {
+	db.RLock()
+	defer db.RUnlock()
 	if num < db.start || num > db.head.BlockNum() {
 		return nil
 	}
@@ -71,6 +85,8 @@ func (db *DB) FetchBlockByNum(num uint64) []common.ISignedBlock {
 // PushBlock adds a block. If any of the forkchain has more than
 // defaultSize blocks, purge will be triggered.
 func (db *DB) PushBlock(b common.ISignedBlock) common.ISignedBlock {
+	db.Lock()
+	defer db.Unlock()
 	id := b.Id()
 	if db.Illegal(id) {
 		return db.branches[db.head]
@@ -129,11 +145,20 @@ func (db *DB) tryNewHead(id common.BlockID) {
 // Head returns the head block of the longest chain, returns nil
 // if the db is empty
 func (db *DB) Head() common.ISignedBlock {
+	db.RLock()
+	defer db.RUnlock()
 	if len(db.branches) == 0 {
 		return nil
 	}
 
 	return db.branches[db.head]
+}
+
+// Empty returns true if DB contains no block
+func (db *DB) Empty() bool {
+	db.RLock()
+	defer db.RUnlock()
+	return db.head == common.EmptyBlockID
 }
 
 // Pop pops the head block
@@ -144,6 +169,8 @@ func (db *DB) Head() common.ISignedBlock {
 //  2.the newly appended block contains illegal transactions
 // Popping an empty db results in undefined behaviour
 func (db *DB) Pop() common.ISignedBlock {
+	db.Lock()
+	defer db.Unlock()
 	ret := db.branches[db.head]
 	db.head = ret.Previous()
 
@@ -153,6 +180,8 @@ func (db *DB) Pop() common.ISignedBlock {
 // FetchBranch finds the nearest ancestor of id1 and id2, then returns
 // the 2 branches
 func (db *DB) FetchBranch(id1, id2 common.BlockID) ([2][]common.BlockID, error) {
+	db.RLock()
+	defer db.RUnlock()
 	num1 := id1.BlockNum()
 	num2 := id2.BlockNum()
 	tid1 := id1
@@ -213,6 +242,8 @@ func (db *DB) getPrevID(id common.BlockID) (common.BlockID, error) {
 
 // FetchBlockFromMainBranch returns the num'th block on main branch
 func (db *DB) FetchBlockFromMainBranch(num uint64) (common.ISignedBlock, error) {
+	db.RLock()
+	defer db.RUnlock()
 	headNum := db.head.BlockNum()
 	if num > headNum || num < db.start {
 		return nil, errors.New("[ForkDB] num out of scope")
@@ -234,6 +265,8 @@ func (db *DB) FetchBlockFromMainBranch(num uint64) (common.ISignedBlock, error) 
 
 // FetchBlocksSince fetches the main branch starting from id
 func (db *DB) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, []common.BlockID, error) {
+	db.RLock()
+	defer db.RUnlock()
 	length := db.head.BlockNum() - id.BlockNum() + 1
 	list := make([]common.ISignedBlock, length)
 	list1 := make([]common.BlockID, length)
@@ -259,6 +292,11 @@ func (db *DB) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, []comm
 // other branches, sets id as the start block. It should be regularly
 // called when a block is commited to save ram.
 func (db *DB) Commit(id common.BlockID) {
+	db.RLock()
+	defer db.RUnlock()
+	if _, ok := db.branches[id]; !ok {
+		panic("tried to commit a detached or non-exist block")
+	}
 	newList := make([][]common.BlockID, defaultSize+1)
 	newBranches := make(map[common.BlockID]common.ISignedBlock)
 	commitNum := id.BlockNum()
@@ -295,8 +333,8 @@ func (db *DB) Commit(id common.BlockID) {
 	// purge the branches
 	db.list = newList
 	db.branches = newBranches
-
 	db.start = id.BlockNum()
+	db.lastCommitted = id
 }
 
 // Illegal determines if the block has illegal transactions

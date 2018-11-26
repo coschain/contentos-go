@@ -27,8 +27,8 @@ type DPoS struct {
 	ForkDB *forkdb.DB
 	blog   blocklog.BLog
 
-	Producers      []string
-	Name string
+	Producers []string
+	Name      string
 	//producerIdx    uint64
 	privKey        *prototype.PrivateKeyType
 	readyToProduce bool
@@ -72,16 +72,21 @@ func (d *DPoS) SetBootstrap(b bool) {
 }
 
 func (d *DPoS) CurrentProducer() string {
-	d.RLock()
-	defer d.RUnlock()
-	return ""
+	//d.RLock()
+	//defer d.RUnlock()
+	now := time.Now().Round(time.Second)
+	slot := d.getSlotAtTime(now)
+	return d.getScheduledProducer(slot)
 }
 
 // Called when a produce round complete, it adds new producers,
 // remove unqualified producers and shuffle the block-producing order
 func (d *DPoS) shuffle() {
 	prods := d.ctrl.GetWitnessTopN(constants.MAX_WITNESSES)
-	seed := d.ForkDB.Head().Timestamp() << 32
+	var seed uint64
+	if !d.ForkDB.Empty() {
+		seed = d.ForkDB.Head().Timestamp() << 32
+	}
 	prodNum := len(prods)
 	for i := 0; i < prodNum; i++ {
 		k := seed + uint64(i)*2695921657736338717
@@ -95,17 +100,18 @@ func (d *DPoS) shuffle() {
 	}
 
 	d.Producers = prods
+	d.ctrl.SetShuffledWitness(prods)
 }
 
-func (d *DPoS) ActiveProducers() string {
-	d.RLock()
-	defer d.RUnlock()
-	return ""
+func (d *DPoS) ActiveProducers() []string {
+	//d.RLock()
+	//defer d.RUnlock()
+	return d.Producers
 }
 
 func (d *DPoS) Start(node *node.Node) error {
 	d.blog.Open(node.Config().DataDir)
-	if d.ForkDB.Head() == nil && d.blog.Empty() {
+	if d.ForkDB.Empty() && d.blog.Empty() {
 		d.shuffle()
 	}
 	d.ctrl = d.getController()
@@ -170,7 +176,7 @@ func (d *DPoS) Stop() error {
 func (d *DPoS) generateBlock() (common.ISignedBlock, error) {
 	ts := d.getSlotTime(d.slot)
 	//prev := d.ForkDB.Head().Id()
-	return d.ctrl.GenerateBlock( d.Name, uint32(ts), d.privKey, prototype.Skip_nothing), nil
+	return d.ctrl.GenerateBlock(d.Name, uint32(ts), d.privKey, prototype.Skip_nothing), nil
 }
 
 func (d *DPoS) checkGenesis() bool {
@@ -214,8 +220,11 @@ func (d *DPoS) checkOurTurn() bool {
 }
 
 func (d *DPoS) getScheduledProducer(slot uint64) string {
+	if d.ForkDB.Empty() {
+		return d.Producers[0]
+	}
 	absSlot := (d.ForkDB.Head().Timestamp() - constants.GenesisTime) / constants.BLOCK_INTERVAL
-	return d.Producers[(absSlot + slot) % uint64(len(d.Producers))]
+	return d.Producers[(absSlot+slot)%uint64(len(d.Producers))]
 }
 
 // returns false if we're out of sync
@@ -260,6 +269,8 @@ func (d *DPoS) PushTransaction(trx common.ISignedTransaction) {
 }
 
 func (d *DPoS) pushBlock(b common.ISignedBlock) error {
+	//d.Lock()
+	//defer d.Unlock()
 	// TODO: check signee & merkle
 	if b.Timestamp() < d.getSlotTime(1) {
 		return errors.New("the timestamp of the new block is less than that of the head block")
@@ -275,7 +286,7 @@ func (d *DPoS) pushBlock(b common.ISignedBlock) error {
 		// 4. illegal block
 		// TODO: if it's detached, trigger sync
 		return nil
-	} else if newHead.Previous() != head.Id() {
+	} else if head != nil && newHead.Previous() != head.Id() {
 		d.switchFork(head.Id(), newHead.Id())
 		return nil
 	}
@@ -288,12 +299,19 @@ func (d *DPoS) pushBlock(b common.ISignedBlock) error {
 	}
 
 	// shuffle
-	if d.ForkDB.Head().Id().BlockNum() % uint64(len(d.Producers)) == 0 {
+	if (d.ForkDB.Head().Id().BlockNum()+1)%uint64(len(d.Producers)) == 0 {
 		d.shuffle()
 	}
 
-	if lastCommitted := d.ForkDB.LastCommitted().BlockNum(); newHead.Id().BlockNum()-lastCommitted > 15 {
-		b, err := d.ForkDB.FetchBlockFromMainBranch(lastCommitted + 1)
+	lastCommitted := d.ForkDB.LastCommitted()
+	var commitIdx uint64
+	if newHead.Id().BlockNum()-lastCommitted.BlockNum() > constants.MAX_WITNESSES*2/3 {
+		if lastCommitted == common.EmptyBlockID {
+			commitIdx = 0
+		} else {
+			commitIdx = lastCommitted.BlockNum()+1
+		}
+		b, err := d.ForkDB.FetchBlockFromMainBranch(commitIdx)
 		if err != nil {
 			return err
 		}
@@ -309,6 +327,8 @@ func (d *DPoS) commit(b common.ISignedBlock) error {
 		// something went really wrong if we got here
 		panic(err)
 	}
+
+	d.ForkDB.Commit(b.Id())
 	return nil
 }
 
@@ -320,8 +340,9 @@ func (d *DPoS) switchFork(old, new common.BlockID) {
 	poppedNum := len(branches[0]) - 1
 	for i := 0; i < poppedNum; i++ {
 		d.ForkDB.Pop()
-		d.popBlock()
+		//d.popBlock()
 	}
+	d.popBlock(branches[0][poppedNum])
 	if d.ForkDB.Head().Id() != branches[0][poppedNum] {
 		errStr := fmt.Sprintf("[ForkDB][switchFork] pop to root block with id: %d, num: %d",
 			d.ForkDB.Head().Id(), d.ForkDB.Head().Id().BlockNum())
@@ -346,8 +367,9 @@ func (d *DPoS) switchFork(old, new common.BlockID) {
 	if errWhileSwitch {
 		for i := newBranchIdx + 1; i < appendedNum; i++ {
 			d.ForkDB.Pop()
-			d.popBlock()
+			//d.popBlock()
 		}
+		d.popBlock(branches[0][poppedNum])
 		for i := poppedNum - 1; i >= 0; i-- {
 			b, err := d.ForkDB.FetchBlock(branches[0][i])
 			if err != nil {
@@ -359,12 +381,12 @@ func (d *DPoS) switchFork(old, new common.BlockID) {
 }
 
 func (d *DPoS) applyBlock(b common.ISignedBlock) error {
-	// TODO: state db apply
+	d.ctrl.PushBlock(b.(*prototype.SignedBlock), prototype.Skip_nothing)
 	return nil
 }
 
-func (d *DPoS) popBlock() error {
-	// TODO: state db revert
+func (d *DPoS) popBlock(id common.BlockID) error {
+	d.ctrl.Pop(&id)
 	return nil
 }
 

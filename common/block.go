@@ -4,6 +4,8 @@ import (
 	"encoding/binary"
 )
 
+var EmptyBlockID = BlockID{}
+
 // Marshaller ...
 type Marshaller interface {
 	Marshal() ([]byte, error)
