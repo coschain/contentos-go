@@ -7,6 +7,8 @@ import (
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/pkg/errors"
+	"regexp"
+	"strconv"
 )
 
 var (
@@ -19,6 +21,7 @@ type Economist struct {
 	rewardAccumulator uint64 // reward accumulator
 	vpAccumulator     uint64 // vote power accumulator
 	globalProps       *prototype.DynamicProperties
+	waitClaimReward   map[string]uint64
 }
 
 func (e *Economist) getDb() (iservices.IDatabaseService, error) {
@@ -32,7 +35,7 @@ func (e *Economist) getDb() (iservices.IDatabaseService, error) {
 
 func New(ctx *node.ServiceContext) (*Economist, error) {
 
-	return &Economist{ctx: ctx}, nil
+	return &Economist{ctx: ctx, waitClaimReward: make(map[string]uint64)}, nil
 }
 
 func (e *Economist) Start(node *node.Node) error {
@@ -53,8 +56,9 @@ func (e *Economist) Stop() error {
 	return nil
 }
 
-func (e *Economist) getBucket() uint32 {
-	return (e.globalProps.Time.UtcSeconds - uint32(constants.GenesisTime)) / uint32(constants.BLOCK_INTERVAL)
+func (e *Economist) getBucket(timestamp uint32) uint32 {
+	//return (e.globalProps.Time.UtcSeconds - uint32(constants.GenesisTime)) / uint32(constants.BLOCK_INTERVAL)
+	return timestamp / uint32(constants.BLOCK_INTERVAL)
 }
 
 func (e *Economist) pastVoteId(voterName *prototype.AccountName, idx uint64) *prototype.VoterId {
@@ -155,7 +159,16 @@ func (e *Economist) DoPost(authorName *prototype.AccountName, idx uint64, title,
 		tInfo.RootId = 0
 		tInfo.Beneficiaries = beneficiaries
 	})
-	return nil
+	timestamp := e.globalProps.Time.UtcSeconds + uint32(constants.POST_CASHPUT_DELAY_TIME) - uint32(constants.GenesisTime)
+	key_prefix := "cashout:" + string(e.getBucket(timestamp)) + "_"
+	key := key_prefix + string(idx)
+	value := "post"
+	err := e.db.Put([]byte(key), []byte(value))
+	if err != nil {
+		return err
+	} else {
+		return nil
+	}
 }
 
 func (e *Economist) DoReply(authorName *prototype.AccountName, idx, pidx uint64, content string,
@@ -185,10 +198,91 @@ func (e *Economist) DoReply(authorName *prototype.AccountName, idx, pidx uint64,
 		tInfo.Depth = post.GetDepth() + 1
 		tInfo.Beneficiaries = beneficiaries
 	})
-	return nil
+	timestamp := e.globalProps.Time.UtcSeconds + uint32(constants.POST_CASHPUT_DELAY_TIME) - uint32(constants.GenesisTime)
+	key_prefix := "cashout:" + string(e.getBucket(timestamp)) + "_"
+	key := key_prefix + string(idx)
+	value := "reply"
+	err := e.db.Put([]byte(key), []byte(value))
+	if err != nil {
+		return err
+	} else {
+		return nil
+	}
 }
 
 //
 func (e *Economist) Do() error {
+	e.decayGlobalVotePower()
+	timestamp := e.globalProps.Time.UtcSeconds - uint32(constants.GenesisTime)
+	keyPrefix := "cashout:" + string(e.getBucket(timestamp)) + "_"
+	postCashoutList := []string{}
+	replyCashoutList := []string{}
+	r := regexp.MustCompile(`cashout:(?P<bucket>\d+)_(?P<idx>\d+)`)
+	for iter := e.db.NewIterator([]byte(keyPrefix), nil); iter.Valid(); iter.Next() {
+		key, err := iter.Key()
+		if err != nil {
+			return err
+		}
+		value, err := iter.Value()
+		if err != nil {
+			return err
+		}
+		match := r.FindStringSubmatch(string(key))
+		if len(match) > 0 {
+			idx := match[2]
+			switch string(value) {
+			case "post":
+				postCashoutList = append(postCashoutList, idx)
+			case "reply":
+				replyCashoutList = append(replyCashoutList, idx)
+			}
+		}
+	}
+	if len(postCashoutList) > 0 {
+		e.postCashout(postCashoutList)
+	}
+
+	if len(postCashoutList) > 0 {
+		e.replyCashout(replyCashoutList)
+	}
 	return nil
+}
+
+func (e *Economist) decayGlobalVotePower() {
+	e.globalProps.WeightedVps -= e.globalProps.WeightedVps * constants.BLOCK_INTERVAL / constants.VP_DECAY_TIME
+}
+
+func (e *Economist) postCashout(pids []string) {
+	posts := []*table.SoPostWrap{}
+	var vpAccumulator uint64 = 0
+	for _, pidStr := range pids {
+		pid, _ := strconv.ParseUint(pidStr, 10, 64)
+		post := table.NewSoPostWrap(e.db, &pid)
+		vpAccumulator += post.GetWeightedVp()
+		posts = append(posts, post)
+	}
+	blockReward := vpAccumulator * e.globalProps.PostRewards.Value / e.globalProps.WeightedVps
+	for _, post := range posts {
+		author := post.GetAuthor().Value
+		reward := post.GetWeightedVp() * blockReward / vpAccumulator
+		e.waitClaimReward[author] += reward
+	}
+}
+
+// use same algorithm to simplify
+func (e *Economist) replyCashout(rids []string) {
+	replies := []*table.SoPostWrap{}
+	var vpAccumulator uint64 = 0
+	for _, pidStr := range rids {
+		pid, _ := strconv.ParseUint(pidStr, 10, 64)
+		reply := table.NewSoPostWrap(e.db, &pid)
+		vpAccumulator += reply.GetWeightedVp()
+		replies = append(replies, reply)
+	}
+	blockReward := vpAccumulator * e.globalProps.ReplyRewards.Value / e.globalProps.WeightedVps
+	for _, reply := range replies {
+		author := reply.GetAuthor().Value
+		reward := reply.GetWeightedVp() * blockReward / vpAccumulator
+		e.waitClaimReward[author] += reward
+	}
 }

@@ -145,6 +145,8 @@ message dynamic_properties {
     prototype.coin               current_supply                =      11;
     uint32                       current_aslot                 =      12;
     uint64   weighted_vps = 13;
+    prototype.vest     post_rewards = 14;
+    prototype.vest     reply_rewards = 15;
 }
 
 
