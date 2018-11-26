@@ -59,7 +59,10 @@ func NewDPoS(ctx *node.ServiceContext) *DPoS {
 }
 
 func (d *DPoS) getController() iservices.IController {
-	ctrl, _ := d.ctx.Service(iservices.CTRL_SERVER_NAME)
+	ctrl, err := d.ctx.Service(iservices.CTRL_SERVER_NAME)
+	if err != nil {
+		panic(err)
+	}
 	return ctrl.(iservices.IController)
 }
 
@@ -110,12 +113,13 @@ func (d *DPoS) ActiveProducers() []string {
 }
 
 func (d *DPoS) Start(node *node.Node) error {
-	d.blog.Open(node.Config().DataDir)
-	if d.ForkDB.Empty() && d.blog.Empty() {
-		d.shuffle()
-	}
 	d.ctrl = d.getController()
-	go d.start()
+	//d.blog.Open(node.Config().DataDir)
+	//if d.ForkDB.Empty() && d.blog.Empty() {
+	//	d.shuffle()
+	//}
+
+	//go d.start()
 	return nil
 }
 

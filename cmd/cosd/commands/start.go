@@ -9,6 +9,7 @@ import (
 	"github.com/coschain/contentos-go/common/logging"
 	"github.com/coschain/contentos-go/common/pprof"
 	"github.com/coschain/contentos-go/config"
+	"github.com/coschain/contentos-go/consensus"
 	"github.com/coschain/contentos-go/db/storage"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
@@ -83,6 +84,10 @@ func startNode(cmd *cobra.Command, args []string) {
 	//app.Register(iservices.P2P_SERVER_NAME, func(ctx *node.ServiceContext) (node.Service, error) {
 	//		return p2p.NewServer(ctx)
 	//})
+
+	app.Register(iservices.CS_SERVER_NAME, func(ctx *node.ServiceContext) (node.Service, error) {
+		return consensus.NewDPoS(ctx), nil
+	})
 
 	app.Register(iservices.DB_SERVER_NAME, func(ctx *node.ServiceContext) (node.Service, error) {
 		return storage.NewGuardedDatabaseService(ctx, "./db/")
