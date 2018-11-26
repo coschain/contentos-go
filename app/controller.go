@@ -111,9 +111,7 @@ func (c *Controller) PushTrx(trx *prototype.SignedTransaction) *prototype.Transa
 	}()
 
 	// check maximum_block_size
-	if proto.Size(trx) > int(c.dgpo.MaximumBlockSize-256) {
-		panic("transaction is too large")
-	}
+	mustSuccess(proto.Size(trx) <= int(c.dgpo.MaximumBlockSize-256),"transaction is too large")
 
 	c.setProducing(true)
 	return c._pushTrx(trx)
@@ -195,9 +193,7 @@ func (c *Controller) ClearPending() []*prototype.TransactionWrapper {
 func (c *Controller) restorePending(pending []*prototype.TransactionWrapper) {
 	for _, tw := range pending {
 		id, err := tw.SigTrx.Id()
-		if err != nil {
-			panic("get transaction id error")
-		}
+		mustNoError(err,"get transaction id error")
 
 		objWrap := table.NewSoTransactionObjectWrap(c.db, id)
 		if !objWrap.CheckExist() {
@@ -255,7 +251,9 @@ func (c *Controller) GenerateBlock(witness string, timestamp uint32,
 	c._current_trx_in_block = 0
 
 	// undo all _pending_tx in DB
-	c.db.EndTransaction(false)
+	if c.havePendingTransaction {
+		c.db.EndTransaction(false)
+	}
 	c.db.BeginTransaction()
 	c.havePendingTransaction = true
 
@@ -356,17 +354,13 @@ func (c *Controller) _applyTransaction(trxWrp *prototype.TransactionWrapper) {
 	trx := trxWrp.SigTrx
 	var err error
 	c._currentTrxId, err = trx.Id()
-	if err != nil {
-		panic("get trx id failed")
-	}
+	mustNoError(err,"get trx id failed")
 
 	trx.Validate()
 
 	// trx duplicate check
 	transactionObjWrap := table.NewSoTransactionObjectWrap(c.db, c._currentTrxId)
-	if transactionObjWrap.CheckExist() {
-		panic("Duplicate transaction check failed")
-	}
+	mustSuccess(!transactionObjWrap.CheckExist(),"Duplicate transaction check failed")
 
 	if c.skip&prototype.Skip_transaction_signatures == 0 {
 		postingGetter := func(name string) *prototype.Authority {
@@ -411,17 +405,11 @@ func (c *Controller) _applyTransaction(trxWrp *prototype.TransactionWrapper) {
 		} else {
 			blockId := idWrap.GetBlockId()
 			summaryId := binary.BigEndian.Uint32(blockId.Hash[8:12])
-			if trx.Trx.RefBlockPrefix !=  summaryId{
-				panic("transaction tapos failed")
-			}
+			mustSuccess(trx.Trx.RefBlockPrefix ==  summaryId,"transaction tapos failed")
 		}
 		// get head time
-		if trx.Trx.Expiration.UtcSeconds > uint32(time.Now().Second()+30) {
-			panic("transaction expiration too long")
-		}
-		if uint32(time.Now().Second()) > trx.Trx.Expiration.UtcSeconds {
-			panic("transaction has expired")
-		}
+		mustSuccess(trx.Trx.Expiration.UtcSeconds <= uint32(time.Now().Second()+30),"transaction expiration too long")
+		mustSuccess(uint32(time.Now().Second()) <= trx.Trx.Expiration.UtcSeconds,"transaction has expired")
 	}
 
 	// insert trx into DB unique table
@@ -429,9 +417,8 @@ func (c *Controller) _applyTransaction(trxWrp *prototype.TransactionWrapper) {
 		tInfo.TrxId = c._currentTrxId
 		tInfo.Expiration = &prototype.TimePointSec{UtcSeconds: 100}
 	})
-	if cErr != nil {
-		panic("create transactionObject failed")
-	}
+	mustNoError(cErr,"create transactionObject failed")
+
 	// @ not use yet
 	//c.notifyTrxPreExecute(trx)
 
@@ -511,9 +498,7 @@ func (c *Controller) _applyBlock(blk *prototype.SignedBlock,skip prototype.SkipF
 	nextBlockNum := blk.Id().BlockNum()
 
 	merkleRoot := blk.CalculateMerkleRoot()
-	if !bytes.Equal(merkleRoot.Data[:], blk.SignedHeader.Header.TransactionMerkleRoot.Hash) {
-		panic("Merkle check failed")
-	}
+	mustSuccess(bytes.Equal(merkleRoot.Data[:], blk.SignedHeader.Header.TransactionMerkleRoot.Hash),"Merkle check failed")
 
 	// validate_block_header
 	c.validateBlockHeader(blk)
@@ -522,9 +507,8 @@ func (c *Controller) _applyBlock(blk *prototype.SignedBlock,skip prototype.SkipF
 	c._current_trx_in_block = 0
 
 	blockSize := proto.Size(blk)
-	if uint32(blockSize) > c.dgpo.GetMaximumBlockSize() {
-		panic("Block size is too big")
-	}
+	mustSuccess(uint32(blockSize) <= c.dgpo.GetMaximumBlockSize(),"Block size is too big")
+
 	if uint32(blockSize) < constants.MIN_BLOCK_SIZE {
 		// elog("Block size is too small")
 	}
@@ -545,9 +529,7 @@ func (c *Controller) _applyBlock(blk *prototype.SignedBlock,skip prototype.SkipF
 			trxWrp.SigTrx = tw.SigTrx
 			trxWrp.Invoice.Status = 200
 			c.applyTransaction(trxWrp)
-			if trxWrp.Invoice.Status != tw.Invoice.Status {
-				panic("mismatched invoice")
-			}
+			mustSuccess(trxWrp.Invoice.Status == tw.Invoice.Status,"mismatched invoice")
 			c._current_trx_in_block++
 		}
 	}
@@ -623,9 +605,9 @@ func (c *Controller) initGenesis() {
 
 	// create witness scheduler
 	witnessScheduleWrap := table.NewSoWitnessScheduleObjectWrap(c.db, &SINGLE_ID)
-	witnessScheduleWrap.Create(func(tInfo *table.SoWitnessScheduleObject) {
+	mustNoError(witnessScheduleWrap.Create(func(tInfo *table.SoWitnessScheduleObject) {
 		tInfo.CurrentShuffledWitness = append(tInfo.CurrentShuffledWitness, constants.COS_INIT_MINER)
-	})
+	}),"CreateWitnessScheduleObject error")
 }
 
 func (c *Controller) TransferToVest(value *prototype.Coin) {
@@ -818,9 +800,7 @@ func (c *Controller) clearExpiredTransactions() {
 				// delete trx ...
 				k := sortWrap.GetMainVal(itr)
 				objWrap := table.NewSoTransactionObjectWrap(c.db, k)
-				if !objWrap.RemoveTransactionObject() {
-					panic("RemoveTransactionObject error")
-				}
+				mustSuccess(objWrap.RemoveTransactionObject(),"RemoveTransactionObject error")
 			}
 		}
 		sortWrap.DelIterater(itr)
@@ -858,49 +838,70 @@ func (c *Controller) GetShuffledWitness() []string {
 	return witnessScheduleWrap.GetCurrentShuffledWitness()
 }
 
-func (c *Controller) setReversion(id *common.BlockID) {
+type reversion struct {
+	self *common.BlockID
+	pre *common.BlockID
+}
+
+func (c *Controller) saveReversion(id *common.BlockID) {
 	currentRev := c.db.GetRevision()
 	c.idToRev[id.Data] = currentRev
 }
 
 func (c *Controller) getReversion(id *common.BlockID) uint64{
 	rev,ok := c.idToRev[id.Data]
-	if !ok {
-		panic("reversion not found")
-	}
+	mustSuccess(ok,"reversion not found")
 	return rev
 }
 
 func (c *Controller) gotoReversion(id *common.BlockID) {
 	rev := c.getReversion(id)
-	c.db.RevertToRevision(rev)
+	mustNoError(c.db.RevertToRevision(rev),"RevertToRevision error")
 }
 
-func (c *Controller) Pop(id *common.BlockID) {
+func (c *Controller) PopBlock() {
+	// undo pending trx
+	if c.havePendingTransaction {
+		c.db.EndTransaction(false)
+		c.havePendingTransaction = false
+	}
+	c.db.EndTransaction(false)
+}
 
+func (c *Controller) RevertTo(id *common.BlockID) {
+	c.gotoReversion(id)
+}
+
+type layer struct{
+	currentLayer uint32
+	PendingLayer uint32
 }
 
 type sessionStack struct {
 	db iservices.IDatabaseService
-	currentLayer uint32
-	isPendingLayer bool
+	layerInfo layer
+	havePendingLayer bool
 }
 
-func (ss *sessionStack) begin() {
+func (ss *sessionStack) begin(isPendingLayer bool) {
 	ss.db.BeginTransaction()
-	ss.currentLayer++
+	ss.layerInfo.currentLayer++
+	if isPendingLayer {
+		ss.layerInfo.PendingLayer = ss.layerInfo.currentLayer
+	}
 }
 
 func (ss *sessionStack) squash() {
-	mustSuccess(ss.currentLayer > 0, "squash when layer <= 0")
+	mustSuccess(ss.layerInfo.currentLayer > 0, "squash when layer <= 0")
+	mustSuccess(ss.layerInfo.PendingLayer + 1 == ss.layerInfo.currentLayer,"squash to no pending layer")
 	ss.db.EndTransaction(true)
-	ss.currentLayer--
+	ss.layerInfo.currentLayer--
 }
 
-func (ss *sessionStack) undo() {
-	mustSuccess(ss.currentLayer > 0, "undo when layer <= 0")
+func (ss *sessionStack) undo(isPendingLayer bool) {
+	mustSuccess(ss.layerInfo.currentLayer > 0, "undo when layer <= 0")
 	ss.db.EndTransaction(false)
-	ss.currentLayer--
+	ss.layerInfo.currentLayer--
 }
 
 func (ss *sessionStack) keep() {

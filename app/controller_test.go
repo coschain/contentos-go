@@ -258,3 +258,38 @@ func Test_list(t *testing.T) {
 		sortWrap.DelIterater(itr)
 	}
 }
+
+func TestController_GetWitnessTopN(t *testing.T) {
+	clearDB()
+
+	// set up controller
+	db := startDB()
+	defer db.Close()
+	c := startController(db)
+
+	name := &prototype.AccountName{Value:"wit1"}
+	witnessWrap := table.NewSoWitnessWrap(db,name)
+	mustNoError(witnessWrap.Create(func(tInfo *table.SoWitness) {
+		tInfo.Owner = name
+		tInfo.WitnessScheduleType = &prototype.WitnessScheduleType{Value: prototype.WitnessScheduleType_miner}
+		tInfo.CreatedTime = &prototype.TimePointSec{UtcSeconds: 0}
+		tInfo.SigningKey = &prototype.PublicKeyType{Data:[]byte{1}}
+		tInfo.LastWork = &prototype.Sha256{Hash: []byte{0}}
+	}), "Witness Create Error")
+
+	name2 := &prototype.AccountName{Value:"wit2"}
+	witnessWrap2 := table.NewSoWitnessWrap(db,name2)
+	mustNoError(witnessWrap2.Create(func(tInfo *table.SoWitness) {
+		tInfo.Owner = name2
+		tInfo.WitnessScheduleType = &prototype.WitnessScheduleType{Value: prototype.WitnessScheduleType_miner}
+		tInfo.CreatedTime = &prototype.TimePointSec{UtcSeconds: 0}
+		tInfo.SigningKey = &prototype.PublicKeyType{Data:[]byte{2}}
+		tInfo.LastWork = &prototype.Sha256{Hash: []byte{0}}
+	}), "Witness Create Error")
+
+	witnesses := c.GetWitnessTopN(10)
+
+	for _,wit := range witnesses {
+		fmt.Println(wit)
+	}
+}
