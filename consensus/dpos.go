@@ -48,7 +48,7 @@ type DPoS struct {
 }
 
 func NewDPoS(ctx *node.ServiceContext) *DPoS {
-	return &DPoS{
+	ret := &DPoS{
 		ForkDB: forkdb.NewDB(),
 		//Producers: make([]*Producer, constants.ProducerNum),
 		prodTimer: time.NewTimer(10 * time.Second),
@@ -57,6 +57,13 @@ func NewDPoS(ctx *node.ServiceContext) *DPoS {
 		ctx:       ctx,
 		stopCh:    make(chan struct{}),
 	}
+	ret.Name = constants.COS_INIT_MINER
+	var err error
+	ret.privKey, err = prototype.PrivateKeyFromWIF(constants.INITMINER_PRIKEY)
+	if err != nil {
+		panic(err)
+	}
+	return ret
 }
 
 func (d *DPoS) getController() iservices.IController {
@@ -71,7 +78,7 @@ func (d *DPoS) SetBootstrap(b bool) {
 	d.bootstrap = b
 	if d.bootstrap {
 		d.readyToProduce = true
-		d.shuffle()
+		//d.shuffle()
 	}
 }
 
@@ -116,6 +123,7 @@ func (d *DPoS) ActiveProducers() []string {
 func (d *DPoS) Start(node *node.Node) error {
 	d.ctrl = d.getController()
 	d.blog.Open(node.Config().DataDir)
+	d.SetBootstrap(true)
 
 	go d.start()
 	return nil
@@ -123,15 +131,18 @@ func (d *DPoS) Start(node *node.Node) error {
 
 func (d *DPoS) scheduleProduce() bool {
 	if !d.checkGenesis() {
+		logging.CLog().Info("checkGenesis failed.")
 		d.prodTimer.Reset(timeToNextSec())
 		return false
 	}
+
 	if !d.readyToProduce {
 		if d.checkSync() {
 			d.readyToProduce = true
 		} else {
 			d.prodTimer.Reset(timeToNextSec())
 			// TODO: p2p sync
+			logging.CLog().Info("checkSync failed.")
 			return false
 		}
 	}
@@ -145,7 +156,7 @@ func (d *DPoS) scheduleProduce() bool {
 func (d *DPoS) start() {
 	d.wg.Add(1)
 	defer d.wg.Done()
-	time.Sleep(5*time.Second)
+	time.Sleep(4*time.Second)
 
 	logging.CLog().Info("DPoS started.")
 	if d.ForkDB.Empty() && d.blog.Empty() {
@@ -161,10 +172,14 @@ func (d *DPoS) start() {
 		//case trx := <-d.trxCh:
 		// handle trx
 		case <-d.prodTimer.C:
+			logging.CLog().Debug("scheduleProduce.")
+			logging.CLog().Debug("producers: ", d.Producers)
 			if !d.scheduleProduce() {
 				continue
 			}
+			d.prodTimer.Reset(1*time.Second)
 			b, err := d.generateBlock()
+			logging.CLog().Debug("generated block.", b.Id())
 			if err != nil {
 				// TODO: log
 				continue
@@ -182,6 +197,7 @@ func (d *DPoS) Stop() error {
 }
 
 func (d *DPoS) generateBlock() (common.ISignedBlock, error) {
+	logging.CLog().Debug("generateBlock.")
 	ts := d.getSlotTime(d.slot)
 	//prev := d.ForkDB.Head().Id()
 	return d.ctrl.GenerateBlock(d.Name, uint32(ts), d.privKey, prototype.Skip_nothing), nil
@@ -217,6 +233,7 @@ func (d *DPoS) checkProducingTiming() bool {
 		// cycle comes
 		//nextSlotTime := d.getSlotTime(1)
 		//time.Sleep(time.Unix(int64(nextSlotTime), 0).Sub(time.Now()))
+		logging.CLog().Info("checkProducingTiming failed.")
 		return false
 	}
 	return true
@@ -224,7 +241,11 @@ func (d *DPoS) checkProducingTiming() bool {
 
 func (d *DPoS) checkOurTurn() bool {
 	producer := d.getScheduledProducer(d.slot)
-	return strings.Compare(d.Name, producer) == 0
+	ret := strings.Compare(d.Name, producer) == 0
+	if !ret {
+		logging.CLog().Info("checkProducingTiming failed.")
+	}
+	return ret
 }
 
 func (d *DPoS) getScheduledProducer(slot uint64) string {
@@ -277,6 +298,7 @@ func (d *DPoS) PushTransaction(trx common.ISignedTransaction) {
 }
 
 func (d *DPoS) pushBlock(b common.ISignedBlock) error {
+	logging.CLog().Debug("pushBlock.")
 	//d.Lock()
 	//defer d.Unlock()
 	// TODO: check signee & merkle
@@ -329,6 +351,7 @@ func (d *DPoS) pushBlock(b common.ISignedBlock) error {
 }
 
 func (d *DPoS) commit(b common.ISignedBlock) error {
+	logging.CLog().Debug("commit block #", b.Id().BlockNum())
 	// TODO: state db commit
 	err := d.blog.Append(b)
 	if err != nil {
@@ -389,6 +412,7 @@ func (d *DPoS) switchFork(old, new common.BlockID) {
 }
 
 func (d *DPoS) applyBlock(b common.ISignedBlock) error {
+	logging.CLog().Debug("applyBlock #", b.Id().BlockNum())
 	d.ctrl.PushBlock(b.(*prototype.SignedBlock), prototype.Skip_nothing)
 	return nil
 }
