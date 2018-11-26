@@ -606,6 +606,7 @@ func (c *Controller) initGenesis() {
 	// create witness scheduler
 	witnessScheduleWrap := table.NewSoWitnessScheduleObjectWrap(c.db, &SINGLE_ID)
 	mustNoError(witnessScheduleWrap.Create(func(tInfo *table.SoWitnessScheduleObject) {
+		tInfo.Id = SINGLE_ID
 		tInfo.CurrentShuffledWitness = append(tInfo.CurrentShuffledWitness, constants.COS_INIT_MINER)
 	}),"CreateWitnessScheduleObject error")
 }
