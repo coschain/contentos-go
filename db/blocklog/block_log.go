@@ -95,7 +95,7 @@ func (bl *BLog) Append(sb common.ISignedBlock) error {
 	bl.indexFile.Seek(0, 2)
 	// TODO: check index cnt and sb block num
 
-	payload, err := sb.Marshal()
+	payload, err := sb.Marshall()
 	if err != nil {
 		return fmt.Errorf("BLOG Append: %s", err.Error())
 	}
@@ -174,7 +174,7 @@ func (bl *BLog) readBlock(sb common.ISignedBlock, idx int64) error {
 		return err
 	}
 
-	err = sb.Unmarshal(payloadByte)
+	err = sb.Unmarshall(payloadByte)
 	if err != nil {
 		return fmt.Errorf("BLOG readBlock: %s", err.Error())
 	}

@@ -13,11 +13,11 @@ type MockSignedBlock struct {
 	Prev    common.BlockID
 }
 
-func (msb *MockSignedBlock) Marshal() ([]byte, error) {
+func (msb *MockSignedBlock) Marshall() ([]byte, error) {
 	return msb.Payload, nil
 }
 
-func (msb *MockSignedBlock) Unmarshal(b []byte) error {
+func (msb *MockSignedBlock) Unmarshall(b []byte) error {
 	msb.Payload = b
 	return nil
 }

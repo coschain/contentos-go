@@ -8,8 +8,8 @@ var EmptyBlockID = BlockID{}
 
 // Marshaller ...
 type Marshaller interface {
-	Marshal() ([]byte, error)
-	Unmarshal([]byte) error
+	Marshall() ([]byte, error)
+	Unmarshall([]byte) error
 }
 
 // BlockID is a sha256 byte array, the first 2 byte is
