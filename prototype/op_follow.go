@@ -20,7 +20,7 @@ func (m *FollowOperation) IsVirtual() {
 }
 
 func (m *FollowOperation) GetRequiredActive(auths *map[string]bool) {
-	(*auths)[m.Follower.Value] = true
+	(*auths)[m.Account.Value] = true
 }
 
 
@@ -29,11 +29,11 @@ func (m *FollowOperation)Validate() error {
 		return ErrNpe
 	}
 
-	if err := m.Follower.Validate(); err != nil{
+	if err := m.Account.Validate(); err != nil{
 		return errors.WithMessage(err, "Follower error" )
 	}
 
-	if err := m.Following.Validate(); err != nil{
+	if err := m.FAccount.Validate(); err != nil{
 		return errors.WithMessage(err, "Following error" )
 	}
 

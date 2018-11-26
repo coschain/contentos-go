@@ -11,9 +11,9 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	ExtFollowerTable                = []byte("ExtFollowerTable")
-	ExtFollowerFollowerInfoTable    = []byte("ExtFollowerFollowerInfoTable")
-	ExtFollowerFollowerInfoUniTable = []byte("ExtFollowerFollowerInfoUniTable")
+	ExtFollowerTable                     = []byte("ExtFollowerTable")
+	ExtFollowerFollowerCreatedOrderTable = []byte("ExtFollowerFollowerCreatedOrderTable")
+	ExtFollowerFollowerInfoUniTable      = []byte("ExtFollowerFollowerInfoUniTable")
 )
 
 ////////////// SECTION Wrap Define ///////////////
@@ -48,19 +48,13 @@ func (s *SoExtFollowerWrap) CheckExist() bool {
 }
 
 func (s *SoExtFollowerWrap) Create(f func(tInfo *SoExtFollower)) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if s.mainKey == nil {
-		return errors.New("the main key is nil")
-	}
 	val := &SoExtFollower{}
 	f(val)
 	if val.FollowerInfo == nil {
-		val.FollowerInfo = s.mainKey
+		return errors.New("the mainkey is nil")
 	}
 	if s.CheckExist() {
-		return errors.New("the main key is already exist")
+		return errors.New("the mainkey is already exist")
 	}
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
@@ -96,11 +90,12 @@ func (s *SoExtFollowerWrap) Create(f func(tInfo *SoExtFollower)) error {
 
 ////////////// SECTION LKeys delete/insert ///////////////
 
-func (s *SoExtFollowerWrap) delSortKeyFollowerInfo(sa *SoExtFollower) bool {
+func (s *SoExtFollowerWrap) delSortKeyFollowerCreatedOrder(sa *SoExtFollower) bool {
 	if s.dba == nil {
 		return false
 	}
-	val := SoListExtFollowerByFollowerInfo{}
+	val := SoListExtFollowerByFollowerCreatedOrder{}
+	val.FollowerCreatedOrder = sa.FollowerCreatedOrder
 	val.FollowerInfo = sa.FollowerInfo
 	subBuf, err := val.OpeEncode()
 	if err != nil {
@@ -110,12 +105,13 @@ func (s *SoExtFollowerWrap) delSortKeyFollowerInfo(sa *SoExtFollower) bool {
 	return ordErr == nil
 }
 
-func (s *SoExtFollowerWrap) insertSortKeyFollowerInfo(sa *SoExtFollower) bool {
+func (s *SoExtFollowerWrap) insertSortKeyFollowerCreatedOrder(sa *SoExtFollower) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
-	val := SoListExtFollowerByFollowerInfo{}
+	val := SoListExtFollowerByFollowerCreatedOrder{}
 	val.FollowerInfo = sa.FollowerInfo
+	val.FollowerCreatedOrder = sa.FollowerCreatedOrder
 	buf, err := proto.Marshal(&val)
 	if err != nil {
 		return false
@@ -129,11 +125,14 @@ func (s *SoExtFollowerWrap) insertSortKeyFollowerInfo(sa *SoExtFollower) bool {
 }
 
 func (s *SoExtFollowerWrap) delAllSortKeys(br bool, val *SoExtFollower) bool {
-	if s.dba == nil || val == nil {
+	if s.dba == nil {
+		return false
+	}
+	if val == nil {
 		return false
 	}
 	res := true
-	if !s.delSortKeyFollowerInfo(val) {
+	if !s.delSortKeyFollowerCreatedOrder(val) {
 		if br {
 			return false
 		} else {
@@ -151,8 +150,8 @@ func (s *SoExtFollowerWrap) insertAllSortKeys(val *SoExtFollower) error {
 	if val == nil {
 		return errors.New("insert sort Field fail,get the SoExtFollower fail ")
 	}
-	if !s.insertSortKeyFollowerInfo(val) {
-		return errors.New("insert sort Field FollowerInfo fail while insert table ")
+	if !s.insertSortKeyFollowerCreatedOrder(val) {
+		return errors.New("insert sort Field FollowerCreatedOrder while insert table ")
 	}
 
 	return nil
@@ -186,6 +185,40 @@ func (s *SoExtFollowerWrap) RemoveExtFollower() bool {
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
+func (s *SoExtFollowerWrap) GetFollowerCreatedOrder() *prototype.FollowerCreatedOrder {
+	res := s.getExtFollower()
+
+	if res == nil {
+		return nil
+
+	}
+	return res.FollowerCreatedOrder
+}
+
+func (s *SoExtFollowerWrap) MdFollowerCreatedOrder(p *prototype.FollowerCreatedOrder) bool {
+	if s.dba == nil {
+		return false
+	}
+	sa := s.getExtFollower()
+	if sa == nil {
+		return false
+	}
+
+	if !s.delSortKeyFollowerCreatedOrder(sa) {
+		return false
+	}
+	sa.FollowerCreatedOrder = p
+	if !s.update(sa) {
+		return false
+	}
+
+	if !s.insertSortKeyFollowerCreatedOrder(sa) {
+		return false
+	}
+
+	return true
+}
+
 func (s *SoExtFollowerWrap) GetFollowerInfo() *prototype.FollowerRelation {
 	res := s.getExtFollower()
 
@@ -197,26 +230,26 @@ func (s *SoExtFollowerWrap) GetFollowerInfo() *prototype.FollowerRelation {
 }
 
 ////////////// SECTION List Keys ///////////////
-type SExtFollowerFollowerInfoWrap struct {
+type SExtFollowerFollowerCreatedOrderWrap struct {
 	Dba iservices.IDatabaseService
 }
 
-func NewExtFollowerFollowerInfoWrap(db iservices.IDatabaseService) *SExtFollowerFollowerInfoWrap {
+func NewExtFollowerFollowerCreatedOrderWrap(db iservices.IDatabaseService) *SExtFollowerFollowerCreatedOrderWrap {
 	if db == nil {
 		return nil
 	}
-	wrap := SExtFollowerFollowerInfoWrap{Dba: db}
+	wrap := SExtFollowerFollowerCreatedOrderWrap{Dba: db}
 	return &wrap
 }
 
-func (s *SExtFollowerFollowerInfoWrap) DelIterater(iterator iservices.IDatabaseIterator) {
+func (s *SExtFollowerFollowerCreatedOrderWrap) DelIterater(iterator iservices.IDatabaseIterator) {
 	if iterator == nil || !iterator.Valid() {
 		return
 	}
 	s.Dba.DeleteIterator(iterator)
 }
 
-func (s *SExtFollowerFollowerInfoWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.FollowerRelation {
+func (s *SExtFollowerFollowerCreatedOrderWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.FollowerRelation {
 	if iterator == nil || !iterator.Valid() {
 		return nil
 	}
@@ -226,7 +259,7 @@ func (s *SExtFollowerFollowerInfoWrap) GetMainVal(iterator iservices.IDatabaseIt
 		return nil
 	}
 
-	res := &SoListExtFollowerByFollowerInfo{}
+	res := &SoListExtFollowerByFollowerCreatedOrder{}
 	err = proto.Unmarshal(val, res)
 
 	if err != nil {
@@ -236,7 +269,7 @@ func (s *SExtFollowerFollowerInfoWrap) GetMainVal(iterator iservices.IDatabaseIt
 
 }
 
-func (s *SExtFollowerFollowerInfoWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.FollowerRelation {
+func (s *SExtFollowerFollowerCreatedOrderWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.FollowerCreatedOrder {
 	if iterator == nil || !iterator.Valid() {
 		return nil
 	}
@@ -246,20 +279,20 @@ func (s *SExtFollowerFollowerInfoWrap) GetSubVal(iterator iservices.IDatabaseIte
 	if err != nil {
 		return nil
 	}
-	res := &SoListExtFollowerByFollowerInfo{}
+	res := &SoListExtFollowerByFollowerCreatedOrder{}
 	err = proto.Unmarshal(val, res)
 	if err != nil {
 		return nil
 	}
-	return res.FollowerInfo
+	return res.FollowerCreatedOrder
 
 }
 
-func (m *SoListExtFollowerByFollowerInfo) OpeEncode() ([]byte, error) {
-	pre := ExtFollowerFollowerInfoTable
-	sub := m.FollowerInfo
+func (m *SoListExtFollowerByFollowerCreatedOrder) OpeEncode() ([]byte, error) {
+	pre := ExtFollowerFollowerCreatedOrderTable
+	sub := m.FollowerCreatedOrder
 	if sub == nil {
-		return nil, errors.New("the pro FollowerInfo is nil")
+		return nil, errors.New("the pro FollowerCreatedOrder is nil")
 	}
 	sub1 := m.FollowerInfo
 	if sub1 == nil {
@@ -274,11 +307,11 @@ func (m *SoListExtFollowerByFollowerInfo) OpeEncode() ([]byte, error) {
 //start = nil  end = nil (query the db from start to end)
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
-func (s *SExtFollowerFollowerInfoWrap) QueryListByOrder(start *prototype.FollowerRelation, end *prototype.FollowerRelation) iservices.IDatabaseIterator {
+func (s *SExtFollowerFollowerCreatedOrderWrap) QueryListByOrder(start *prototype.FollowerCreatedOrder, end *prototype.FollowerCreatedOrder) iservices.IDatabaseIterator {
 	if s.Dba == nil {
 		return nil
 	}
-	pre := ExtFollowerFollowerInfoTable
+	pre := ExtFollowerFollowerCreatedOrderTable
 	skeyList := []interface{}{pre}
 	if start != nil {
 		skeyList = append(skeyList, start)
@@ -303,7 +336,7 @@ func (s *SExtFollowerFollowerInfoWrap) QueryListByOrder(start *prototype.Followe
 /////////////// SECTION Private function ////////////////
 
 func (s *SoExtFollowerWrap) update(sa *SoExtFollower) bool {
-	if s.dba == nil || sa == nil {
+	if s.dba == nil {
 		return false
 	}
 	buf, err := proto.Marshal(sa)
@@ -354,7 +387,10 @@ func (s *SoExtFollowerWrap) encodeMainKey() ([]byte, error) {
 ////////////// Unique Query delete/insert/query ///////////////
 
 func (s *SoExtFollowerWrap) delAllUniKeys(br bool, val *SoExtFollower) bool {
-	if s.dba == nil || val == nil {
+	if s.dba == nil {
+		return false
+	}
+	if val == nil {
 		return false
 	}
 	res := true
@@ -377,7 +413,7 @@ func (s *SoExtFollowerWrap) insertAllUniKeys(val *SoExtFollower) error {
 		return errors.New("insert uniuqe Field fail,get the SoExtFollower fail ")
 	}
 	if !s.insertUniKeyFollowerInfo(val) {
-		return errors.New("insert unique Field FollowerInfo fail while insert table ")
+		return errors.New("insert unique Field prototype.FollowerRelation while insert table ")
 	}
 
 	return nil
@@ -387,11 +423,6 @@ func (s *SoExtFollowerWrap) delUniKeyFollowerInfo(sa *SoExtFollower) bool {
 	if s.dba == nil {
 		return false
 	}
-
-	if sa.FollowerInfo == nil {
-		return false
-	}
-
 	pre := ExtFollowerFollowerInfoUniTable
 	sub := sa.FollowerInfo
 	kList := []interface{}{pre, sub}

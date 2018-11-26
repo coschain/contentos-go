@@ -49,7 +49,7 @@ func (as *APIService) GetFollowerListByName(ctx context.Context, req *grpcpb.Get
 		limit   uint32
 	)
 
-	ferOrderWrap := table.NewExtFollowerFollowerInfoWrap(as.db)
+	ferOrderWrap := table.NewExtFollowerFollowerCreatedOrderWrap(as.db)
 
 	if req.Start == nil {
 		ferIter = ferOrderWrap.QueryListByOrder(nil, nil)
@@ -81,7 +81,7 @@ func (as *APIService) GetFollowingListByName(ctx context.Context, req *grpcpb.Ge
 		limit    uint32
 	)
 
-	fingOrderWrap := table.NewExtFollowingFollowingInfoWrap(as.db)
+	fingOrderWrap := table.NewExtFollowingFollowingCreatedOrderWrap(as.db)
 
 	if req.Start == nil {
 		fingIter = fingOrderWrap.QueryListByOrder(nil, nil)
@@ -181,7 +181,7 @@ func (as *APIService) GetPostListByCreated(ctx context.Context, req *grpcpb.GetP
 		limit    uint32
 	)
 
-	postOrderWrap := table.NewExtPostCreatedOrderWrap(as.db)
+	postOrderWrap := table.NewExtPostCreatedCreatedOrderWrap(as.db)
 
 	if req.Start == nil {
 		postIter = postOrderWrap.QueryListByRevOrder(nil, nil)
@@ -227,7 +227,7 @@ func (as *APIService) GetReplyListByPostId(ctx context.Context, req *grpcpb.GetR
 		limit     uint32
 	)
 
-	replyOrderWrap := table.NewExtPostReplyOrderWrap(as.db)
+	replyOrderWrap := table.NewExtReplyCreatedCreatedOrderWrap(as.db)
 
 	if req.Start == nil {
 		replyIter = replyOrderWrap.QueryListByRevOrder(nil, nil)

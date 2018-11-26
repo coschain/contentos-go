@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"testing"
+	"time"
 )
 
 var asc grpcpb.ApiServiceClient
@@ -131,7 +132,14 @@ func TestGRPCApi_GetAccountByName(t *testing.T) {
 }
 
 func TestGPRCApi_GetFollowerListByName(t *testing.T) {
-	req := &grpcpb.GetFollowerListByNameRequest{Limit: 100, Start: &prototype.FollowerCreatedOrder{Account: &prototype.AccountName{Value: "Jack"}}}
+	req := &grpcpb.GetFollowerListByNameRequest{
+		Limit: 100,
+		Start: &prototype.FollowerCreatedOrder{
+			Account: &prototype.AccountName{Value: "Jack"},
+			CreatedTime:&prototype.TimePointSec{UtcSeconds:uint32(time.Now().Second())},
+			Follower:&prototype.AccountName{Value:"Bob"},
+		},
+	}
 	resp := &grpcpb.GetFollowerListByNameResponse{}
 	resp, err := asc.GetFollowerListByName(context.Background(), req)
 	if err != nil {
@@ -142,7 +150,14 @@ func TestGPRCApi_GetFollowerListByName(t *testing.T) {
 }
 
 func TestGPRCApi_GetFollowingListByName(t *testing.T) {
-	req := &grpcpb.GetFollowingListByNameRequest{Limit: 100, Start: &prototype.FollowingCreatedOrder{Account: &prototype.AccountName{Value: "Jack"}}}
+	req := &grpcpb.GetFollowingListByNameRequest{
+		Limit: 100,
+		Start: &prototype.FollowingCreatedOrder{
+			Account: &prototype.AccountName{Value: "Jack"},
+			CreatedTime:&prototype.TimePointSec{UtcSeconds:uint32(time.Now().Second())},
+			Following:&prototype.AccountName{Value:"Bob"},
+		},
+	}
 	resp := &grpcpb.GetFollowingListByNameResponse{}
 	resp, err := asc.GetFollowingListByName(context.Background(), req)
 	if err != nil {

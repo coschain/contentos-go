@@ -7,26 +7,19 @@ option go_package = "github.com/coschain/contentos-go/table";
 
 import "prototype/type.proto";
 
-message so_extPost {
+message so_extPostCreated {
 	uint64                                 post_id                 =      1;
     prototype.post_created_order           created_order           =      2;
-    prototype.post_reply_order             reply_order             =      3;
       
 }
 
 
-message so_list_extPost_by_created_order {
+message so_list_extPostCreated_by_created_order {
 	prototype.post_created_order        	created_order       = 1;
 	uint64                              	post_id             = 2;
 }
 
 
-message so_list_extPost_by_reply_order {
-	prototype.post_reply_order          	reply_order         = 1;
-	uint64                              	post_id             = 2;
-}
-
-
-message so_unique_extPost_by_post_id {
+message so_unique_extPostCreated_by_post_id {
 	uint64                              	post_id             = 1;
 }

@@ -2,11 +2,12 @@ package plugins
 
 import (
 	"github.com/asaskevich/EventBus"
+	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common/constants"
-	"github.com/coschain/contentos-go/common/logging"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/prototype"
+	"time"
 )
 
 var POST_SERVICE_NAME = "postsrv"
@@ -45,15 +46,48 @@ func (p *PostService) unhookEvent() {
 
 func (p *PostService) onPostOperation( notification *prototype.OperationNotification )  {
 
-	if notification.Op == nil || notification.Op.GetOp6() == nil {
+	if notification.Op == nil {
 		return
 	}
 
-	op := notification.Op.GetOp6()
-	logging.CLog().Infof("receive post-op event: %v", op)
-	// TODO
+	switch notification.Op.GetOp().(type) {
+	case *prototype.Operation_Op6:
+		p.executePostOperation(notification.Op.GetOp6())
+	case *prototype.Operation_Op7:
+		p.executeReplyOperation(notification.Op.GetOp7())
+	default:
+
+	}
 }
 
+
+func (p *PostService) executePostOperation(op *prototype.PostOperation) {
+	uuid := op.GetUuid()
+	exPostWrap := table.NewSoExtPostCreatedWrap(p.db, &uuid)
+	if exPostWrap != nil && !exPostWrap.CheckExist() {
+		exPostWrap.Create(func(exPost *table.SoExtPostCreated) {
+			exPost.PostId = uuid
+			exPost.CreatedOrder = &prototype.PostCreatedOrder{
+				Created: &prototype.TimePointSec{UtcSeconds: uint32(time.Now().Second())},
+				ParentId:constants.POST_INVALID_ID,
+			}
+		})
+	}
+}
+
+func (p *PostService) executeReplyOperation(op *prototype.ReplyOperation) {
+	uuid := op.GetUuid()
+	exReplyWrap := table.NewSoExtReplyCreatedWrap(p.db, &uuid)
+	if exReplyWrap != nil && !exReplyWrap.CheckExist() {
+		exReplyWrap.Create(func(exReply *table.SoExtReplyCreated) {
+			exReply.PostId = uuid
+			exReply.CreatedOrder = &prototype.ReplyCreatedOrder{
+				ParentId: op.GetParentUuid(),
+				Created:  &prototype.TimePointSec{UtcSeconds: uint32(time.Now().Second())},
+			}
+		})
+	}
+}
 
 func (p *PostService) Stop() error{
 	p.unhookEvent()

@@ -76,14 +76,12 @@ message chain_properties{
 
 message follower_relation{
     account_name account = 1;
-    time_point_sec created_time = 2;
-    account_name follower = 3;
+    account_name follower = 2;
 }
 
 message following_relation{
     account_name account = 1;
-    time_point_sec created_time = 2;
-    account_name following = 3;
+    account_name following = 2;
 }
 
 message follower_created_order{
@@ -109,9 +107,8 @@ message witness_schedule_type{
 }
 
 message post_created_order{
-    prototype.time_point_sec last_update = 1;
-    uint64 root_id = 2;
-    uint64 post_id = 3;
+    prototype.time_point_sec created = 1;
+    uint64 parent_id = 2;
 }
 
 message voter_id{
@@ -129,10 +126,9 @@ message bp_witness_id{
     account_name    witness = 2;
 }
 
-message post_reply_order{
-    uint64 root_id = 1;
-    prototype.time_point_sec last_update = 2;
-    uint64 post_id = 3;
+message reply_created_order{
+    uint64 parent_id = 1;
+    prototype.time_point_sec created = 2;
 }
 
 message dynamic_properties {

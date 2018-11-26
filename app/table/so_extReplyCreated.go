@@ -11,26 +11,26 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	ExtFollowingTable                      = []byte("ExtFollowingTable")
-	ExtFollowingFollowingCreatedOrderTable = []byte("ExtFollowingFollowingCreatedOrderTable")
-	ExtFollowingFollowingInfoUniTable      = []byte("ExtFollowingFollowingInfoUniTable")
+	ExtReplyCreatedTable             = []byte("ExtReplyCreatedTable")
+	ExtReplyCreatedCreatedOrderTable = []byte("ExtReplyCreatedCreatedOrderTable")
+	ExtReplyCreatedPostIdUniTable    = []byte("ExtReplyCreatedPostIdUniTable")
 )
 
 ////////////// SECTION Wrap Define ///////////////
-type SoExtFollowingWrap struct {
+type SoExtReplyCreatedWrap struct {
 	dba     iservices.IDatabaseService
-	mainKey *prototype.FollowingRelation
+	mainKey *uint64
 }
 
-func NewSoExtFollowingWrap(dba iservices.IDatabaseService, key *prototype.FollowingRelation) *SoExtFollowingWrap {
+func NewSoExtReplyCreatedWrap(dba iservices.IDatabaseService, key *uint64) *SoExtReplyCreatedWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoExtFollowingWrap{dba, key}
+	result := &SoExtReplyCreatedWrap{dba, key}
 	return result
 }
 
-func (s *SoExtFollowingWrap) CheckExist() bool {
+func (s *SoExtReplyCreatedWrap) CheckExist() bool {
 	if s.dba == nil {
 		return false
 	}
@@ -47,12 +47,9 @@ func (s *SoExtFollowingWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoExtFollowingWrap) Create(f func(tInfo *SoExtFollowing)) error {
-	val := &SoExtFollowing{}
+func (s *SoExtReplyCreatedWrap) Create(f func(tInfo *SoExtReplyCreated)) error {
+	val := &SoExtReplyCreated{}
 	f(val)
-	if val.FollowingInfo == nil {
-		return errors.New("the mainkey is nil")
-	}
 	if s.CheckExist() {
 		return errors.New("the mainkey is already exist")
 	}
@@ -90,13 +87,13 @@ func (s *SoExtFollowingWrap) Create(f func(tInfo *SoExtFollowing)) error {
 
 ////////////// SECTION LKeys delete/insert ///////////////
 
-func (s *SoExtFollowingWrap) delSortKeyFollowingCreatedOrder(sa *SoExtFollowing) bool {
+func (s *SoExtReplyCreatedWrap) delSortKeyCreatedOrder(sa *SoExtReplyCreated) bool {
 	if s.dba == nil {
 		return false
 	}
-	val := SoListExtFollowingByFollowingCreatedOrder{}
-	val.FollowingCreatedOrder = sa.FollowingCreatedOrder
-	val.FollowingInfo = sa.FollowingInfo
+	val := SoListExtReplyCreatedByCreatedOrder{}
+	val.CreatedOrder = sa.CreatedOrder
+	val.PostId = sa.PostId
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -105,13 +102,13 @@ func (s *SoExtFollowingWrap) delSortKeyFollowingCreatedOrder(sa *SoExtFollowing)
 	return ordErr == nil
 }
 
-func (s *SoExtFollowingWrap) insertSortKeyFollowingCreatedOrder(sa *SoExtFollowing) bool {
+func (s *SoExtReplyCreatedWrap) insertSortKeyCreatedOrder(sa *SoExtReplyCreated) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
-	val := SoListExtFollowingByFollowingCreatedOrder{}
-	val.FollowingInfo = sa.FollowingInfo
-	val.FollowingCreatedOrder = sa.FollowingCreatedOrder
+	val := SoListExtReplyCreatedByCreatedOrder{}
+	val.PostId = sa.PostId
+	val.CreatedOrder = sa.CreatedOrder
 	buf, err := proto.Marshal(&val)
 	if err != nil {
 		return false
@@ -124,7 +121,7 @@ func (s *SoExtFollowingWrap) insertSortKeyFollowingCreatedOrder(sa *SoExtFollowi
 	return ordErr == nil
 }
 
-func (s *SoExtFollowingWrap) delAllSortKeys(br bool, val *SoExtFollowing) bool {
+func (s *SoExtReplyCreatedWrap) delAllSortKeys(br bool, val *SoExtReplyCreated) bool {
 	if s.dba == nil {
 		return false
 	}
@@ -132,7 +129,7 @@ func (s *SoExtFollowingWrap) delAllSortKeys(br bool, val *SoExtFollowing) bool {
 		return false
 	}
 	res := true
-	if !s.delSortKeyFollowingCreatedOrder(val) {
+	if !s.delSortKeyCreatedOrder(val) {
 		if br {
 			return false
 		} else {
@@ -143,15 +140,15 @@ func (s *SoExtFollowingWrap) delAllSortKeys(br bool, val *SoExtFollowing) bool {
 	return res
 }
 
-func (s *SoExtFollowingWrap) insertAllSortKeys(val *SoExtFollowing) error {
+func (s *SoExtReplyCreatedWrap) insertAllSortKeys(val *SoExtReplyCreated) error {
 	if s.dba == nil {
 		return errors.New("insert sort Field fail,the db is nil ")
 	}
 	if val == nil {
-		return errors.New("insert sort Field fail,get the SoExtFollowing fail ")
+		return errors.New("insert sort Field fail,get the SoExtReplyCreated fail ")
 	}
-	if !s.insertSortKeyFollowingCreatedOrder(val) {
-		return errors.New("insert sort Field FollowingCreatedOrder while insert table ")
+	if !s.insertSortKeyCreatedOrder(val) {
+		return errors.New("insert sort Field CreatedOrder while insert table ")
 	}
 
 	return nil
@@ -159,11 +156,11 @@ func (s *SoExtFollowingWrap) insertAllSortKeys(val *SoExtFollowing) error {
 
 ////////////// SECTION LKeys delete/insert //////////////
 
-func (s *SoExtFollowingWrap) RemoveExtFollowing() bool {
+func (s *SoExtReplyCreatedWrap) RemoveExtReplyCreated() bool {
 	if s.dba == nil {
 		return false
 	}
-	val := s.getExtFollowing()
+	val := s.getExtReplyCreated()
 	if val == nil {
 		return false
 	}
@@ -185,71 +182,71 @@ func (s *SoExtFollowingWrap) RemoveExtFollowing() bool {
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
-func (s *SoExtFollowingWrap) GetFollowingCreatedOrder() *prototype.FollowingCreatedOrder {
-	res := s.getExtFollowing()
+func (s *SoExtReplyCreatedWrap) GetCreatedOrder() *prototype.ReplyCreatedOrder {
+	res := s.getExtReplyCreated()
 
 	if res == nil {
 		return nil
 
 	}
-	return res.FollowingCreatedOrder
+	return res.CreatedOrder
 }
 
-func (s *SoExtFollowingWrap) MdFollowingCreatedOrder(p *prototype.FollowingCreatedOrder) bool {
+func (s *SoExtReplyCreatedWrap) MdCreatedOrder(p *prototype.ReplyCreatedOrder) bool {
 	if s.dba == nil {
 		return false
 	}
-	sa := s.getExtFollowing()
+	sa := s.getExtReplyCreated()
 	if sa == nil {
 		return false
 	}
 
-	if !s.delSortKeyFollowingCreatedOrder(sa) {
+	if !s.delSortKeyCreatedOrder(sa) {
 		return false
 	}
-	sa.FollowingCreatedOrder = p
+	sa.CreatedOrder = p
 	if !s.update(sa) {
 		return false
 	}
 
-	if !s.insertSortKeyFollowingCreatedOrder(sa) {
+	if !s.insertSortKeyCreatedOrder(sa) {
 		return false
 	}
 
 	return true
 }
 
-func (s *SoExtFollowingWrap) GetFollowingInfo() *prototype.FollowingRelation {
-	res := s.getExtFollowing()
+func (s *SoExtReplyCreatedWrap) GetPostId() uint64 {
+	res := s.getExtReplyCreated()
 
 	if res == nil {
-		return nil
-
+		var tmpValue uint64
+		return tmpValue
 	}
-	return res.FollowingInfo
+	return res.PostId
 }
 
 ////////////// SECTION List Keys ///////////////
-type SExtFollowingFollowingCreatedOrderWrap struct {
+type SExtReplyCreatedCreatedOrderWrap struct {
 	Dba iservices.IDatabaseService
 }
 
-func NewExtFollowingFollowingCreatedOrderWrap(db iservices.IDatabaseService) *SExtFollowingFollowingCreatedOrderWrap {
+func NewExtReplyCreatedCreatedOrderWrap(db iservices.IDatabaseService) *SExtReplyCreatedCreatedOrderWrap {
 	if db == nil {
 		return nil
 	}
-	wrap := SExtFollowingFollowingCreatedOrderWrap{Dba: db}
+	wrap := SExtReplyCreatedCreatedOrderWrap{Dba: db}
 	return &wrap
 }
 
-func (s *SExtFollowingFollowingCreatedOrderWrap) DelIterater(iterator iservices.IDatabaseIterator) {
+func (s *SExtReplyCreatedCreatedOrderWrap) DelIterater(iterator iservices.IDatabaseIterator) {
 	if iterator == nil || !iterator.Valid() {
 		return
 	}
 	s.Dba.DeleteIterator(iterator)
 }
 
-func (s *SExtFollowingFollowingCreatedOrderWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.FollowingRelation {
+func (s *SExtReplyCreatedCreatedOrderWrap) GetMainVal(iterator iservices.IDatabaseIterator) *uint64 {
 	if iterator == nil || !iterator.Valid() {
 		return nil
 	}
@@ -259,17 +256,18 @@ func (s *SExtFollowingFollowingCreatedOrderWrap) GetMainVal(iterator iservices.I
 		return nil
 	}
 
-	res := &SoListExtFollowingByFollowingCreatedOrder{}
+	res := &SoListExtReplyCreatedByCreatedOrder{}
 	err = proto.Unmarshal(val, res)
 
 	if err != nil {
 		return nil
 	}
-	return res.FollowingInfo
+
+	return &res.PostId
 
 }
 
-func (s *SExtFollowingFollowingCreatedOrderWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.FollowingCreatedOrder {
+func (s *SExtReplyCreatedCreatedOrderWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.ReplyCreatedOrder {
 	if iterator == nil || !iterator.Valid() {
 		return nil
 	}
@@ -279,42 +277,39 @@ func (s *SExtFollowingFollowingCreatedOrderWrap) GetSubVal(iterator iservices.ID
 	if err != nil {
 		return nil
 	}
-	res := &SoListExtFollowingByFollowingCreatedOrder{}
+	res := &SoListExtReplyCreatedByCreatedOrder{}
 	err = proto.Unmarshal(val, res)
 	if err != nil {
 		return nil
 	}
-	return res.FollowingCreatedOrder
+	return res.CreatedOrder
 
 }
 
-func (m *SoListExtFollowingByFollowingCreatedOrder) OpeEncode() ([]byte, error) {
-	pre := ExtFollowingFollowingCreatedOrderTable
-	sub := m.FollowingCreatedOrder
+func (m *SoListExtReplyCreatedByCreatedOrder) OpeEncode() ([]byte, error) {
+	pre := ExtReplyCreatedCreatedOrderTable
+	sub := m.CreatedOrder
 	if sub == nil {
-		return nil, errors.New("the pro FollowingCreatedOrder is nil")
+		return nil, errors.New("the pro CreatedOrder is nil")
 	}
-	sub1 := m.FollowingInfo
-	if sub1 == nil {
-		return nil, errors.New("the mainkey FollowingInfo is nil")
-	}
+	sub1 := m.PostId
+
 	kList := []interface{}{pre, sub, sub1}
 	kBuf, cErr := kope.EncodeSlice(kList)
 	return kBuf, cErr
 }
 
-//Query sort by order
-//start = nil  end = nil (query the db from start to end)
-//start = nil (query from start the db)
-//end = nil (query to the end of db)
-func (s *SExtFollowingFollowingCreatedOrderWrap) QueryListByOrder(start *prototype.FollowingCreatedOrder, end *prototype.FollowingCreatedOrder) iservices.IDatabaseIterator {
+//Query sort by reverse order
+func (s *SExtReplyCreatedCreatedOrderWrap) QueryListByRevOrder(start *prototype.ReplyCreatedOrder, end *prototype.ReplyCreatedOrder) iservices.IDatabaseIterator {
 	if s.Dba == nil {
 		return nil
 	}
-	pre := ExtFollowingFollowingCreatedOrderTable
+	pre := ExtReplyCreatedCreatedOrderTable
 	skeyList := []interface{}{pre}
 	if start != nil {
 		skeyList = append(skeyList, start)
+	} else {
+		skeyList = append(skeyList, kope.MaximumKey)
 	}
 	sBuf, cErr := kope.EncodeSlice(skeyList)
 	if cErr != nil {
@@ -323,19 +318,19 @@ func (s *SExtFollowingFollowingCreatedOrderWrap) QueryListByOrder(start *prototy
 	eKeyList := []interface{}{pre}
 	if end != nil {
 		eKeyList = append(eKeyList, end)
-	} else {
-		eKeyList = append(eKeyList, kope.MaximumKey)
 	}
 	eBuf, cErr := kope.EncodeSlice(eKeyList)
 	if cErr != nil {
 		return nil
 	}
-	return s.Dba.NewIterator(sBuf, eBuf)
+	//reverse the start and end when create ReversedIterator to query by reverse order
+	iter := s.Dba.NewReversedIterator(eBuf, sBuf)
+	return iter
 }
 
 /////////////// SECTION Private function ////////////////
 
-func (s *SoExtFollowingWrap) update(sa *SoExtFollowing) bool {
+func (s *SoExtReplyCreatedWrap) update(sa *SoExtReplyCreated) bool {
 	if s.dba == nil {
 		return false
 	}
@@ -352,7 +347,7 @@ func (s *SoExtFollowingWrap) update(sa *SoExtFollowing) bool {
 	return s.dba.Put(keyBuf, buf) == nil
 }
 
-func (s *SoExtFollowingWrap) getExtFollowing() *SoExtFollowing {
+func (s *SoExtReplyCreatedWrap) getExtReplyCreated() *SoExtReplyCreated {
 	if s.dba == nil {
 		return nil
 	}
@@ -366,15 +361,15 @@ func (s *SoExtFollowingWrap) getExtFollowing() *SoExtFollowing {
 		return nil
 	}
 
-	res := &SoExtFollowing{}
+	res := &SoExtReplyCreated{}
 	if proto.Unmarshal(resBuf, res) != nil {
 		return nil
 	}
 	return res
 }
 
-func (s *SoExtFollowingWrap) encodeMainKey() ([]byte, error) {
-	pre := ExtFollowingTable
+func (s *SoExtReplyCreatedWrap) encodeMainKey() ([]byte, error) {
+	pre := ExtReplyCreatedTable
 	sub := s.mainKey
 	if sub == nil {
 		return nil, errors.New("the mainKey is nil")
@@ -386,7 +381,7 @@ func (s *SoExtFollowingWrap) encodeMainKey() ([]byte, error) {
 
 ////////////// Unique Query delete/insert/query ///////////////
 
-func (s *SoExtFollowingWrap) delAllUniKeys(br bool, val *SoExtFollowing) bool {
+func (s *SoExtReplyCreatedWrap) delAllUniKeys(br bool, val *SoExtReplyCreated) bool {
 	if s.dba == nil {
 		return false
 	}
@@ -394,7 +389,7 @@ func (s *SoExtFollowingWrap) delAllUniKeys(br bool, val *SoExtFollowing) bool {
 		return false
 	}
 	res := true
-	if !s.delUniKeyFollowingInfo(val) {
+	if !s.delUniKeyPostId(val) {
 		if br {
 			return false
 		} else {
@@ -405,26 +400,26 @@ func (s *SoExtFollowingWrap) delAllUniKeys(br bool, val *SoExtFollowing) bool {
 	return res
 }
 
-func (s *SoExtFollowingWrap) insertAllUniKeys(val *SoExtFollowing) error {
+func (s *SoExtReplyCreatedWrap) insertAllUniKeys(val *SoExtReplyCreated) error {
 	if s.dba == nil {
 		return errors.New("insert uniuqe Field fail,the db is nil ")
 	}
 	if val == nil {
-		return errors.New("insert uniuqe Field fail,get the SoExtFollowing fail ")
+		return errors.New("insert uniuqe Field fail,get the SoExtReplyCreated fail ")
 	}
-	if !s.insertUniKeyFollowingInfo(val) {
-		return errors.New("insert unique Field prototype.FollowingRelation while insert table ")
+	if !s.insertUniKeyPostId(val) {
+		return errors.New("insert unique Field uint64 while insert table ")
 	}
 
 	return nil
 }
 
-func (s *SoExtFollowingWrap) delUniKeyFollowingInfo(sa *SoExtFollowing) bool {
+func (s *SoExtReplyCreatedWrap) delUniKeyPostId(sa *SoExtReplyCreated) bool {
 	if s.dba == nil {
 		return false
 	}
-	pre := ExtFollowingFollowingInfoUniTable
-	sub := sa.FollowingInfo
+	pre := ExtReplyCreatedPostIdUniTable
+	sub := sa.PostId
 	kList := []interface{}{pre, sub}
 	kBuf, err := kope.EncodeSlice(kList)
 	if err != nil {
@@ -433,20 +428,20 @@ func (s *SoExtFollowingWrap) delUniKeyFollowingInfo(sa *SoExtFollowing) bool {
 	return s.dba.Delete(kBuf) == nil
 }
 
-func (s *SoExtFollowingWrap) insertUniKeyFollowingInfo(sa *SoExtFollowing) bool {
+func (s *SoExtReplyCreatedWrap) insertUniKeyPostId(sa *SoExtReplyCreated) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
-	uniWrap := UniExtFollowingFollowingInfoWrap{}
+	uniWrap := UniExtReplyCreatedPostIdWrap{}
 	uniWrap.Dba = s.dba
+	res := uniWrap.UniQueryPostId(&sa.PostId)
 
-	res := uniWrap.UniQueryFollowingInfo(sa.FollowingInfo)
 	if res != nil {
 		//the unique key is already exist
 		return false
 	}
-	val := SoUniqueExtFollowingByFollowingInfo{}
-	val.FollowingInfo = sa.FollowingInfo
+	val := SoUniqueExtReplyCreatedByPostId{}
+	val.PostId = sa.PostId
 
 	buf, err := proto.Marshal(&val)
 
@@ -454,8 +449,8 @@ func (s *SoExtFollowingWrap) insertUniKeyFollowingInfo(sa *SoExtFollowing) bool 
 		return false
 	}
 
-	pre := ExtFollowingFollowingInfoUniTable
-	sub := sa.FollowingInfo
+	pre := ExtReplyCreatedPostIdUniTable
+	sub := sa.PostId
 	kList := []interface{}{pre, sub}
 	kBuf, err := kope.EncodeSlice(kList)
 	if err != nil {
@@ -465,32 +460,31 @@ func (s *SoExtFollowingWrap) insertUniKeyFollowingInfo(sa *SoExtFollowing) bool 
 
 }
 
-type UniExtFollowingFollowingInfoWrap struct {
+type UniExtReplyCreatedPostIdWrap struct {
 	Dba iservices.IDatabaseService
 }
 
-func NewUniExtFollowingFollowingInfoWrap(db iservices.IDatabaseService) *UniExtFollowingFollowingInfoWrap {
+func NewUniExtReplyCreatedPostIdWrap(db iservices.IDatabaseService) *UniExtReplyCreatedPostIdWrap {
 	if db == nil {
 		return nil
 	}
-	wrap := UniExtFollowingFollowingInfoWrap{Dba: db}
+	wrap := UniExtReplyCreatedPostIdWrap{Dba: db}
 	return &wrap
 }
 
-func (s *UniExtFollowingFollowingInfoWrap) UniQueryFollowingInfo(start *prototype.FollowingRelation) *SoExtFollowingWrap {
+func (s *UniExtReplyCreatedPostIdWrap) UniQueryPostId(start *uint64) *SoExtReplyCreatedWrap {
 	if start == nil || s.Dba == nil {
 		return nil
 	}
-	pre := ExtFollowingFollowingInfoUniTable
+	pre := ExtReplyCreatedPostIdUniTable
 	kList := []interface{}{pre, start}
 	bufStartkey, err := kope.EncodeSlice(kList)
 	val, err := s.Dba.Get(bufStartkey)
 	if err == nil {
-		res := &SoUniqueExtFollowingByFollowingInfo{}
+		res := &SoUniqueExtReplyCreatedByPostId{}
 		rErr := proto.Unmarshal(val, res)
 		if rErr == nil {
-			wrap := NewSoExtFollowingWrap(s.Dba, res.FollowingInfo)
-
+			wrap := NewSoExtReplyCreatedWrap(s.Dba, &res.PostId)
 			return wrap
 		}
 	}

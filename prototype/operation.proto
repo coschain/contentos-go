@@ -54,8 +54,8 @@ message bp_vote_operation{
 }
 
 message follow_operation{
-    account_name follower = 1;
-    account_name following = 2;
+    account_name account = 1;
+    account_name f_account = 2;
     bool cancel = 3;
 }
 

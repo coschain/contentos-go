@@ -1,0 +1,25 @@
+
+syntax = "proto3";
+
+package table;
+
+option go_package = "github.com/coschain/contentos-go/table";
+
+import "prototype/type.proto";
+
+message so_extReplyCreated {
+	uint64                                 post_id                 =      1;
+    prototype.reply_created_order          created_order           =      2;
+      
+}
+
+
+message so_list_extReplyCreated_by_created_order {
+	prototype.reply_created_order       	created_order       = 1;
+	uint64                              	post_id             = 2;
+}
+
+
+message so_unique_extReplyCreated_by_post_id {
+	uint64                              	post_id             = 1;
+}

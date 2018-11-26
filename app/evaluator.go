@@ -159,12 +159,8 @@ func (ev *ReplyEvaluator) Apply() {
 		t.Depth = pidWrap.GetDepth() + 1
 		t.Children = 0
 		t.RootId = pidWrap.GetRootId()
-		t.ParentId = constants.POST_INVALID_ID
+		t.ParentId = op.ParentUuid
 		t.VoteCnt = 0
-
-		// TODO  CreatedOrder / ReplyOrder sort
-		// maybe should implement in plugin-services
-
 	}), "create reply error")
 
 	// Modify Parent Object
@@ -190,10 +186,6 @@ func (ev *PostEvaluator) Apply() {
 		t.RootId = t.PostId
 		t.ParentId = constants.POST_INVALID_ID
 		t.VoteCnt = 0
-
-		// TODO  CreatedOrder / ReplyOrder sort
-		// maybe should implement in plugin-services
-
 	}), "create post error")
 }
 
@@ -278,11 +270,11 @@ func (ev *BpVoteEvaluator) Apply() {
 func (ev *FollowEvaluator) Apply() {
 	op := ev.op
 
-	followeeWrap := table.NewSoAccountWrap(ev.ctx.db, op.Following)
-	opAssert(followeeWrap.CheckExist(), "followee account do not exist ")
+	acctWrap := table.NewSoAccountWrap(ev.ctx.db, op.Account)
+	opAssert(acctWrap.CheckExist(), "follow account do not exist ")
 
-	// TODO
-	// Follow relation update should be implement is plugin-services
+	acctWrap = table.NewSoAccountWrap(ev.ctx.db, op.FAccount)
+	opAssert(acctWrap.CheckExist(), "follow f_account do not exist ")
 }
 
 func (ev *TransferToVestingEvaluator) Apply() {
