@@ -48,10 +48,16 @@ func (s *SoExtPostCreatedWrap) CheckExist() bool {
 }
 
 func (s *SoExtPostCreatedWrap) Create(f func(tInfo *SoExtPostCreated)) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if s.mainKey == nil {
+		return errors.New("the main key is nil")
+	}
 	val := &SoExtPostCreated{}
 	f(val)
 	if s.CheckExist() {
-		return errors.New("the mainkey is already exist")
+		return errors.New("the main key is already exist")
 	}
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
@@ -122,10 +128,7 @@ func (s *SoExtPostCreatedWrap) insertSortKeyCreatedOrder(sa *SoExtPostCreated) b
 }
 
 func (s *SoExtPostCreatedWrap) delAllSortKeys(br bool, val *SoExtPostCreated) bool {
-	if s.dba == nil {
-		return false
-	}
-	if val == nil {
+	if s.dba == nil || val == nil {
 		return false
 	}
 	res := true
@@ -148,7 +151,7 @@ func (s *SoExtPostCreatedWrap) insertAllSortKeys(val *SoExtPostCreated) error {
 		return errors.New("insert sort Field fail,get the SoExtPostCreated fail ")
 	}
 	if !s.insertSortKeyCreatedOrder(val) {
-		return errors.New("insert sort Field CreatedOrder while insert table ")
+		return errors.New("insert sort Field CreatedOrder fail while insert table ")
 	}
 
 	return nil
@@ -331,7 +334,7 @@ func (s *SExtPostCreatedCreatedOrderWrap) QueryListByRevOrder(start *prototype.P
 /////////////// SECTION Private function ////////////////
 
 func (s *SoExtPostCreatedWrap) update(sa *SoExtPostCreated) bool {
-	if s.dba == nil {
+	if s.dba == nil || sa == nil {
 		return false
 	}
 	buf, err := proto.Marshal(sa)
@@ -382,10 +385,7 @@ func (s *SoExtPostCreatedWrap) encodeMainKey() ([]byte, error) {
 ////////////// Unique Query delete/insert/query ///////////////
 
 func (s *SoExtPostCreatedWrap) delAllUniKeys(br bool, val *SoExtPostCreated) bool {
-	if s.dba == nil {
-		return false
-	}
-	if val == nil {
+	if s.dba == nil || val == nil {
 		return false
 	}
 	res := true
@@ -408,7 +408,7 @@ func (s *SoExtPostCreatedWrap) insertAllUniKeys(val *SoExtPostCreated) error {
 		return errors.New("insert uniuqe Field fail,get the SoExtPostCreated fail ")
 	}
 	if !s.insertUniKeyPostId(val) {
-		return errors.New("insert unique Field uint64 while insert table ")
+		return errors.New("insert unique Field PostId fail while insert table ")
 	}
 
 	return nil
@@ -418,6 +418,7 @@ func (s *SoExtPostCreatedWrap) delUniKeyPostId(sa *SoExtPostCreated) bool {
 	if s.dba == nil {
 		return false
 	}
+
 	pre := ExtPostCreatedPostIdUniTable
 	sub := sa.PostId
 	kList := []interface{}{pre, sub}

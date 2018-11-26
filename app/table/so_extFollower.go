@@ -48,13 +48,19 @@ func (s *SoExtFollowerWrap) CheckExist() bool {
 }
 
 func (s *SoExtFollowerWrap) Create(f func(tInfo *SoExtFollower)) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if s.mainKey == nil {
+		return errors.New("the main key is nil")
+	}
 	val := &SoExtFollower{}
 	f(val)
 	if val.FollowerInfo == nil {
-		return errors.New("the mainkey is nil")
+		val.FollowerInfo = s.mainKey
 	}
 	if s.CheckExist() {
-		return errors.New("the mainkey is already exist")
+		return errors.New("the main key is already exist")
 	}
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
@@ -125,10 +131,7 @@ func (s *SoExtFollowerWrap) insertSortKeyFollowerCreatedOrder(sa *SoExtFollower)
 }
 
 func (s *SoExtFollowerWrap) delAllSortKeys(br bool, val *SoExtFollower) bool {
-	if s.dba == nil {
-		return false
-	}
-	if val == nil {
+	if s.dba == nil || val == nil {
 		return false
 	}
 	res := true
@@ -151,7 +154,7 @@ func (s *SoExtFollowerWrap) insertAllSortKeys(val *SoExtFollower) error {
 		return errors.New("insert sort Field fail,get the SoExtFollower fail ")
 	}
 	if !s.insertSortKeyFollowerCreatedOrder(val) {
-		return errors.New("insert sort Field FollowerCreatedOrder while insert table ")
+		return errors.New("insert sort Field FollowerCreatedOrder fail while insert table ")
 	}
 
 	return nil
@@ -336,7 +339,7 @@ func (s *SExtFollowerFollowerCreatedOrderWrap) QueryListByOrder(start *prototype
 /////////////// SECTION Private function ////////////////
 
 func (s *SoExtFollowerWrap) update(sa *SoExtFollower) bool {
-	if s.dba == nil {
+	if s.dba == nil || sa == nil {
 		return false
 	}
 	buf, err := proto.Marshal(sa)
@@ -387,10 +390,7 @@ func (s *SoExtFollowerWrap) encodeMainKey() ([]byte, error) {
 ////////////// Unique Query delete/insert/query ///////////////
 
 func (s *SoExtFollowerWrap) delAllUniKeys(br bool, val *SoExtFollower) bool {
-	if s.dba == nil {
-		return false
-	}
-	if val == nil {
+	if s.dba == nil || val == nil {
 		return false
 	}
 	res := true
@@ -413,7 +413,7 @@ func (s *SoExtFollowerWrap) insertAllUniKeys(val *SoExtFollower) error {
 		return errors.New("insert uniuqe Field fail,get the SoExtFollower fail ")
 	}
 	if !s.insertUniKeyFollowerInfo(val) {
-		return errors.New("insert unique Field prototype.FollowerRelation while insert table ")
+		return errors.New("insert unique Field FollowerInfo fail while insert table ")
 	}
 
 	return nil
@@ -423,6 +423,11 @@ func (s *SoExtFollowerWrap) delUniKeyFollowerInfo(sa *SoExtFollower) bool {
 	if s.dba == nil {
 		return false
 	}
+
+	if sa.FollowerInfo == nil {
+		return false
+	}
+
 	pre := ExtFollowerFollowerInfoUniTable
 	sub := sa.FollowerInfo
 	kList := []interface{}{pre, sub}
