@@ -8,7 +8,6 @@ import (
 )
 
 type dbSession struct {
-	ts uint64
 	db Database
 	mem *MemoryDatabase
 	changes []writeOp
