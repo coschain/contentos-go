@@ -69,7 +69,8 @@ func (p *FollowService) executeFollowOperation(op *prototype.FollowOperation) {
 
 	1. if Cancel == false, meaning A follow B
 	2. if Cancel == true, meaning A cancel follow B
-*/
+	*/
+
 	currTime := time.Now().Second()
 
 	// A's following
