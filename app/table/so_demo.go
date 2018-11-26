@@ -55,13 +55,19 @@ func (s *SoDemoWrap) CheckExist() bool {
 }
 
 func (s *SoDemoWrap) Create(f func(tInfo *SoDemo)) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if s.mainKey == nil {
+		return errors.New("the main key is nil")
+	}
 	val := &SoDemo{}
 	f(val)
 	if val.Owner == nil {
-		return errors.New("the mainkey is nil")
+		val.Owner = s.mainKey
 	}
 	if s.CheckExist() {
-		return errors.New("the mainkey is already exist")
+		return errors.New("the main key is already exist")
 	}
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
@@ -300,10 +306,7 @@ func (s *SoDemoWrap) insertSortKeyTaglist(sa *SoDemo) bool {
 }
 
 func (s *SoDemoWrap) delAllSortKeys(br bool, val *SoDemo) bool {
-	if s.dba == nil {
-		return false
-	}
-	if val == nil {
+	if s.dba == nil || val == nil {
 		return false
 	}
 	res := true
@@ -1317,7 +1320,7 @@ func (s *SDemoTaglistWrap) QueryListByOrder(start *[]string, end *[]string) iser
 /////////////// SECTION Private function ////////////////
 
 func (s *SoDemoWrap) update(sa *SoDemo) bool {
-	if s.dba == nil {
+	if s.dba == nil || sa == nil {
 		return false
 	}
 	buf, err := proto.Marshal(sa)
@@ -1368,10 +1371,7 @@ func (s *SoDemoWrap) encodeMainKey() ([]byte, error) {
 ////////////// Unique Query delete/insert/query ///////////////
 
 func (s *SoDemoWrap) delAllUniKeys(br bool, val *SoDemo) bool {
-	if s.dba == nil {
-		return false
-	}
-	if val == nil {
+	if s.dba == nil || val == nil {
 		return false
 	}
 	res := true

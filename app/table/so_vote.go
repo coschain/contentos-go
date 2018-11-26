@@ -50,13 +50,19 @@ func (s *SoVoteWrap) CheckExist() bool {
 }
 
 func (s *SoVoteWrap) Create(f func(tInfo *SoVote)) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if s.mainKey == nil {
+		return errors.New("the main key is nil")
+	}
 	val := &SoVote{}
 	f(val)
 	if val.Voter == nil {
-		return errors.New("the mainkey is nil")
+		val.Voter = s.mainKey
 	}
 	if s.CheckExist() {
-		return errors.New("the mainkey is already exist")
+		return errors.New("the main key is already exist")
 	}
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
@@ -193,10 +199,7 @@ func (s *SoVoteWrap) insertSortKeyPostId(sa *SoVote) bool {
 }
 
 func (s *SoVoteWrap) delAllSortKeys(br bool, val *SoVote) bool {
-	if s.dba == nil {
-		return false
-	}
-	if val == nil {
+	if s.dba == nil || val == nil {
 		return false
 	}
 	res := true
@@ -233,7 +236,7 @@ func (s *SoVoteWrap) insertAllSortKeys(val *SoVote) error {
 		return errors.New("insert sort Field fail,get the SoVote fail ")
 	}
 	if !s.insertSortKeyVoter(val) {
-		return errors.New("insert sort Field Voter while insert table ")
+		return errors.New("insert sort Field Voter fail while insert table ")
 	}
 	if !s.insertSortKeyVoteTime(val) {
 		return errors.New("insert sort Field VoteTime fail while insert table ")
@@ -718,7 +721,7 @@ func (s *SVotePostIdWrap) QueryListByOrder(start *uint64, end *uint64) iservices
 /////////////// SECTION Private function ////////////////
 
 func (s *SoVoteWrap) update(sa *SoVote) bool {
-	if s.dba == nil {
+	if s.dba == nil || sa == nil {
 		return false
 	}
 	buf, err := proto.Marshal(sa)
@@ -769,10 +772,7 @@ func (s *SoVoteWrap) encodeMainKey() ([]byte, error) {
 ////////////// Unique Query delete/insert/query ///////////////
 
 func (s *SoVoteWrap) delAllUniKeys(br bool, val *SoVote) bool {
-	if s.dba == nil {
-		return false
-	}
-	if val == nil {
+	if s.dba == nil || val == nil {
 		return false
 	}
 	res := true

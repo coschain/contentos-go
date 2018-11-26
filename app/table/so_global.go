@@ -47,10 +47,16 @@ func (s *SoGlobalWrap) CheckExist() bool {
 }
 
 func (s *SoGlobalWrap) Create(f func(tInfo *SoGlobal)) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if s.mainKey == nil {
+		return errors.New("the main key is nil")
+	}
 	val := &SoGlobal{}
 	f(val)
 	if s.CheckExist() {
-		return errors.New("the mainkey is already exist")
+		return errors.New("the main key is already exist")
 	}
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
@@ -87,10 +93,7 @@ func (s *SoGlobalWrap) Create(f func(tInfo *SoGlobal)) error {
 ////////////// SECTION LKeys delete/insert ///////////////
 
 func (s *SoGlobalWrap) delAllSortKeys(br bool, val *SoGlobal) bool {
-	if s.dba == nil {
-		return false
-	}
-	if val == nil {
+	if s.dba == nil || val == nil {
 		return false
 	}
 	res := true
@@ -177,7 +180,7 @@ func (s *SoGlobalWrap) MdProps(p *prototype.DynamicProperties) bool {
 /////////////// SECTION Private function ////////////////
 
 func (s *SoGlobalWrap) update(sa *SoGlobal) bool {
-	if s.dba == nil {
+	if s.dba == nil || sa == nil {
 		return false
 	}
 	buf, err := proto.Marshal(sa)
@@ -228,10 +231,7 @@ func (s *SoGlobalWrap) encodeMainKey() ([]byte, error) {
 ////////////// Unique Query delete/insert/query ///////////////
 
 func (s *SoGlobalWrap) delAllUniKeys(br bool, val *SoGlobal) bool {
-	if s.dba == nil {
-		return false
-	}
-	if val == nil {
+	if s.dba == nil || val == nil {
 		return false
 	}
 	res := true

@@ -46,10 +46,16 @@ func (s *SoWitnessScheduleObjectWrap) CheckExist() bool {
 }
 
 func (s *SoWitnessScheduleObjectWrap) Create(f func(tInfo *SoWitnessScheduleObject)) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if s.mainKey == nil {
+		return errors.New("the main key is nil")
+	}
 	val := &SoWitnessScheduleObject{}
 	f(val)
 	if s.CheckExist() {
-		return errors.New("the mainkey is already exist")
+		return errors.New("the main key is already exist")
 	}
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
@@ -86,10 +92,7 @@ func (s *SoWitnessScheduleObjectWrap) Create(f func(tInfo *SoWitnessScheduleObje
 ////////////// SECTION LKeys delete/insert ///////////////
 
 func (s *SoWitnessScheduleObjectWrap) delAllSortKeys(br bool, val *SoWitnessScheduleObject) bool {
-	if s.dba == nil {
-		return false
-	}
-	if val == nil {
+	if s.dba == nil || val == nil {
 		return false
 	}
 	res := true
@@ -176,7 +179,7 @@ func (s *SoWitnessScheduleObjectWrap) GetId() int32 {
 /////////////// SECTION Private function ////////////////
 
 func (s *SoWitnessScheduleObjectWrap) update(sa *SoWitnessScheduleObject) bool {
-	if s.dba == nil {
+	if s.dba == nil || sa == nil {
 		return false
 	}
 	buf, err := proto.Marshal(sa)
@@ -227,10 +230,7 @@ func (s *SoWitnessScheduleObjectWrap) encodeMainKey() ([]byte, error) {
 ////////////// Unique Query delete/insert/query ///////////////
 
 func (s *SoWitnessScheduleObjectWrap) delAllUniKeys(br bool, val *SoWitnessScheduleObject) bool {
-	if s.dba == nil {
-		return false
-	}
-	if val == nil {
+	if s.dba == nil || val == nil {
 		return false
 	}
 	res := true

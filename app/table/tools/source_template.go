@@ -92,16 +92,22 @@ func (s *So{{.ClsName}}Wrap) CheckExist() bool {
 }
 
 func (s *So{{.ClsName}}Wrap) Create(f func(tInfo *So{{.ClsName}})) error {
+    if s.dba == nil {
+       return errors.New("the db is nil")
+    }
+    if s.mainKey == nil {
+          return errors.New("the main key is nil")
+    }
     val := &So{{.ClsName}}{}
     f(val)
     {{$baseType := (DetectBaseType $.MainKeyType) -}}
-    {{- if not $baseType -}} 
+    {{- if not $baseType -}}
     if val.{{$.MainKeyName}} == nil {
-       return errors.New("the mainkey is nil")
+       val.{{$.MainKeyName}} = s.mainKey
     }
     {{ end -}}
     if s.CheckExist() {
-       return errors.New("the mainkey is already exist")
+       return errors.New("the main key is already exist")
     }
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
@@ -182,12 +188,9 @@ func (s *So{{$.ClsName}}Wrap) insertSortKey{{$v1.PName}}(sa *So{{$.ClsName}}) bo
 
 {{if ge .SListCount 0}}
 func (s *So{{$.ClsName}}Wrap) delAllSortKeys(br bool, val *So{{.ClsName}}) bool {
-    if s.dba == nil {
+    if s.dba == nil || val == nil {
        return false
     }
-	if val == nil {
-		return false
-	}
     res := true
     {{range $k, $v := .LKeys -}}
     if !s.delSortKey{{$v}}(val) {
@@ -482,7 +485,7 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByRevOrder(start *{{$v.PType}}
 /////////////// SECTION Private function ////////////////
 
 func (s *So{{$.ClsName}}Wrap) update(sa *So{{$.ClsName}}) bool {
-    if s.dba == nil {
+    if s.dba == nil || sa == nil {
        return false
     }
 	buf, err := proto.Marshal(sa)
@@ -534,12 +537,9 @@ func (s *So{{$.ClsName}}Wrap) encodeMainKey() ([]byte, error) {
 
 {{if ge (getMapCount .UniqueFieldMap) 0}}
 func (s *So{{$.ClsName}}Wrap)delAllUniKeys(br bool, val *So{{.ClsName}}) bool {
-     if s.dba == nil {
+     if s.dba == nil || val == nil{
        return false
      }
-	 if val == nil {
-		return false
-	 }
      res := true
      {{range $k, $v := .UniqueFieldMap -}}
 	 if !s.delUniKey{{$k}}(val) {

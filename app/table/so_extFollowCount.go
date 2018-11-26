@@ -47,13 +47,19 @@ func (s *SoExtFollowCountWrap) CheckExist() bool {
 }
 
 func (s *SoExtFollowCountWrap) Create(f func(tInfo *SoExtFollowCount)) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if s.mainKey == nil {
+		return errors.New("the main key is nil")
+	}
 	val := &SoExtFollowCount{}
 	f(val)
 	if val.Account == nil {
-		return errors.New("the mainkey is nil")
+		val.Account = s.mainKey
 	}
 	if s.CheckExist() {
-		return errors.New("the mainkey is already exist")
+		return errors.New("the main key is already exist")
 	}
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
@@ -90,10 +96,7 @@ func (s *SoExtFollowCountWrap) Create(f func(tInfo *SoExtFollowCount)) error {
 ////////////// SECTION LKeys delete/insert ///////////////
 
 func (s *SoExtFollowCountWrap) delAllSortKeys(br bool, val *SoExtFollowCount) bool {
-	if s.dba == nil {
-		return false
-	}
-	if val == nil {
+	if s.dba == nil || val == nil {
 		return false
 	}
 	res := true
@@ -234,7 +237,7 @@ func (s *SoExtFollowCountWrap) MdUpdateTime(p *prototype.TimePointSec) bool {
 /////////////// SECTION Private function ////////////////
 
 func (s *SoExtFollowCountWrap) update(sa *SoExtFollowCount) bool {
-	if s.dba == nil {
+	if s.dba == nil || sa == nil {
 		return false
 	}
 	buf, err := proto.Marshal(sa)
@@ -285,10 +288,7 @@ func (s *SoExtFollowCountWrap) encodeMainKey() ([]byte, error) {
 ////////////// Unique Query delete/insert/query ///////////////
 
 func (s *SoExtFollowCountWrap) delAllUniKeys(br bool, val *SoExtFollowCount) bool {
-	if s.dba == nil {
-		return false
-	}
-	if val == nil {
+	if s.dba == nil || val == nil {
 		return false
 	}
 	res := true

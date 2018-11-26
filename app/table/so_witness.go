@@ -49,13 +49,19 @@ func (s *SoWitnessWrap) CheckExist() bool {
 }
 
 func (s *SoWitnessWrap) Create(f func(tInfo *SoWitness)) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if s.mainKey == nil {
+		return errors.New("the main key is nil")
+	}
 	val := &SoWitness{}
 	f(val)
 	if val.Owner == nil {
-		return errors.New("the mainkey is nil")
+		val.Owner = s.mainKey
 	}
 	if s.CheckExist() {
-		return errors.New("the mainkey is already exist")
+		return errors.New("the main key is already exist")
 	}
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
@@ -158,10 +164,7 @@ func (s *SoWitnessWrap) insertSortKeyVoteCount(sa *SoWitness) bool {
 }
 
 func (s *SoWitnessWrap) delAllSortKeys(br bool, val *SoWitness) bool {
-	if s.dba == nil {
-		return false
-	}
-	if val == nil {
+	if s.dba == nil || val == nil {
 		return false
 	}
 	res := true
@@ -750,7 +753,7 @@ func (s *SWitnessVoteCountWrap) QueryListByRevOrder(start *uint64, end *uint64) 
 /////////////// SECTION Private function ////////////////
 
 func (s *SoWitnessWrap) update(sa *SoWitness) bool {
-	if s.dba == nil {
+	if s.dba == nil || sa == nil {
 		return false
 	}
 	buf, err := proto.Marshal(sa)
@@ -801,10 +804,7 @@ func (s *SoWitnessWrap) encodeMainKey() ([]byte, error) {
 ////////////// Unique Query delete/insert/query ///////////////
 
 func (s *SoWitnessWrap) delAllUniKeys(br bool, val *SoWitness) bool {
-	if s.dba == nil {
-		return false
-	}
-	if val == nil {
+	if s.dba == nil || val == nil {
 		return false
 	}
 	res := true

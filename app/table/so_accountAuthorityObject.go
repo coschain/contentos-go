@@ -47,13 +47,19 @@ func (s *SoAccountAuthorityObjectWrap) CheckExist() bool {
 }
 
 func (s *SoAccountAuthorityObjectWrap) Create(f func(tInfo *SoAccountAuthorityObject)) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if s.mainKey == nil {
+		return errors.New("the main key is nil")
+	}
 	val := &SoAccountAuthorityObject{}
 	f(val)
 	if val.Account == nil {
-		return errors.New("the mainkey is nil")
+		val.Account = s.mainKey
 	}
 	if s.CheckExist() {
-		return errors.New("the mainkey is already exist")
+		return errors.New("the main key is already exist")
 	}
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
@@ -90,10 +96,7 @@ func (s *SoAccountAuthorityObjectWrap) Create(f func(tInfo *SoAccountAuthorityOb
 ////////////// SECTION LKeys delete/insert ///////////////
 
 func (s *SoAccountAuthorityObjectWrap) delAllSortKeys(br bool, val *SoAccountAuthorityObject) bool {
-	if s.dba == nil {
-		return false
-	}
-	if val == nil {
+	if s.dba == nil || val == nil {
 		return false
 	}
 	res := true
@@ -261,7 +264,7 @@ func (s *SoAccountAuthorityObjectWrap) MdPosting(p *prototype.Authority) bool {
 /////////////// SECTION Private function ////////////////
 
 func (s *SoAccountAuthorityObjectWrap) update(sa *SoAccountAuthorityObject) bool {
-	if s.dba == nil {
+	if s.dba == nil || sa == nil {
 		return false
 	}
 	buf, err := proto.Marshal(sa)
@@ -312,10 +315,7 @@ func (s *SoAccountAuthorityObjectWrap) encodeMainKey() ([]byte, error) {
 ////////////// Unique Query delete/insert/query ///////////////
 
 func (s *SoAccountAuthorityObjectWrap) delAllUniKeys(br bool, val *SoAccountAuthorityObject) bool {
-	if s.dba == nil {
-		return false
-	}
-	if val == nil {
+	if s.dba == nil || val == nil {
 		return false
 	}
 	res := true

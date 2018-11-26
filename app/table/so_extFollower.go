@@ -48,13 +48,19 @@ func (s *SoExtFollowerWrap) CheckExist() bool {
 }
 
 func (s *SoExtFollowerWrap) Create(f func(tInfo *SoExtFollower)) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if s.mainKey == nil {
+		return errors.New("the main key is nil")
+	}
 	val := &SoExtFollower{}
 	f(val)
 	if val.FollowerInfo == nil {
-		return errors.New("the mainkey is nil")
+		val.FollowerInfo = s.mainKey
 	}
 	if s.CheckExist() {
-		return errors.New("the mainkey is already exist")
+		return errors.New("the main key is already exist")
 	}
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
@@ -123,10 +129,7 @@ func (s *SoExtFollowerWrap) insertSortKeyFollowerInfo(sa *SoExtFollower) bool {
 }
 
 func (s *SoExtFollowerWrap) delAllSortKeys(br bool, val *SoExtFollower) bool {
-	if s.dba == nil {
-		return false
-	}
-	if val == nil {
+	if s.dba == nil || val == nil {
 		return false
 	}
 	res := true
@@ -300,7 +303,7 @@ func (s *SExtFollowerFollowerInfoWrap) QueryListByOrder(start *prototype.Followe
 /////////////// SECTION Private function ////////////////
 
 func (s *SoExtFollowerWrap) update(sa *SoExtFollower) bool {
-	if s.dba == nil {
+	if s.dba == nil || sa == nil {
 		return false
 	}
 	buf, err := proto.Marshal(sa)
@@ -351,10 +354,7 @@ func (s *SoExtFollowerWrap) encodeMainKey() ([]byte, error) {
 ////////////// Unique Query delete/insert/query ///////////////
 
 func (s *SoExtFollowerWrap) delAllUniKeys(br bool, val *SoExtFollower) bool {
-	if s.dba == nil {
-		return false
-	}
-	if val == nil {
+	if s.dba == nil || val == nil {
 		return false
 	}
 	res := true

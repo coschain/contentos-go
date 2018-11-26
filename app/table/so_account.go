@@ -51,13 +51,19 @@ func (s *SoAccountWrap) CheckExist() bool {
 }
 
 func (s *SoAccountWrap) Create(f func(tInfo *SoAccount)) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if s.mainKey == nil {
+		return errors.New("the main key is nil")
+	}
 	val := &SoAccount{}
 	f(val)
 	if val.Name == nil {
-		return errors.New("the mainkey is nil")
+		val.Name = s.mainKey
 	}
 	if s.CheckExist() {
-		return errors.New("the mainkey is already exist")
+		return errors.New("the main key is already exist")
 	}
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
@@ -230,10 +236,7 @@ func (s *SoAccountWrap) insertSortKeyBpVoteCount(sa *SoAccount) bool {
 }
 
 func (s *SoAccountWrap) delAllSortKeys(br bool, val *SoAccount) bool {
-	if s.dba == nil {
-		return false
-	}
-	if val == nil {
+	if s.dba == nil || val == nil {
 		return false
 	}
 	res := true
@@ -991,7 +994,7 @@ func (s *SAccountBpVoteCountWrap) QueryListByOrder(start *uint32, end *uint32) i
 /////////////// SECTION Private function ////////////////
 
 func (s *SoAccountWrap) update(sa *SoAccount) bool {
-	if s.dba == nil {
+	if s.dba == nil || sa == nil {
 		return false
 	}
 	buf, err := proto.Marshal(sa)
@@ -1042,10 +1045,7 @@ func (s *SoAccountWrap) encodeMainKey() ([]byte, error) {
 ////////////// Unique Query delete/insert/query ///////////////
 
 func (s *SoAccountWrap) delAllUniKeys(br bool, val *SoAccount) bool {
-	if s.dba == nil {
-		return false
-	}
-	if val == nil {
+	if s.dba == nil || val == nil {
 		return false
 	}
 	res := true

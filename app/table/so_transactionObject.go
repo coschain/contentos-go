@@ -48,13 +48,19 @@ func (s *SoTransactionObjectWrap) CheckExist() bool {
 }
 
 func (s *SoTransactionObjectWrap) Create(f func(tInfo *SoTransactionObject)) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if s.mainKey == nil {
+		return errors.New("the main key is nil")
+	}
 	val := &SoTransactionObject{}
 	f(val)
 	if val.TrxId == nil {
-		return errors.New("the mainkey is nil")
+		val.TrxId = s.mainKey
 	}
 	if s.CheckExist() {
-		return errors.New("the mainkey is already exist")
+		return errors.New("the main key is already exist")
 	}
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
@@ -125,10 +131,7 @@ func (s *SoTransactionObjectWrap) insertSortKeyExpiration(sa *SoTransactionObjec
 }
 
 func (s *SoTransactionObjectWrap) delAllSortKeys(br bool, val *SoTransactionObject) bool {
-	if s.dba == nil {
-		return false
-	}
-	if val == nil {
+	if s.dba == nil || val == nil {
 		return false
 	}
 	res := true
@@ -336,7 +339,7 @@ func (s *STransactionObjectExpirationWrap) QueryListByOrder(start *prototype.Tim
 /////////////// SECTION Private function ////////////////
 
 func (s *SoTransactionObjectWrap) update(sa *SoTransactionObject) bool {
-	if s.dba == nil {
+	if s.dba == nil || sa == nil {
 		return false
 	}
 	buf, err := proto.Marshal(sa)
@@ -387,10 +390,7 @@ func (s *SoTransactionObjectWrap) encodeMainKey() ([]byte, error) {
 ////////////// Unique Query delete/insert/query ///////////////
 
 func (s *SoTransactionObjectWrap) delAllUniKeys(br bool, val *SoTransactionObject) bool {
-	if s.dba == nil {
-		return false
-	}
-	if val == nil {
+	if s.dba == nil || val == nil {
 		return false
 	}
 	res := true

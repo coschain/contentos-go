@@ -49,10 +49,16 @@ func (s *SoExtPostWrap) CheckExist() bool {
 }
 
 func (s *SoExtPostWrap) Create(f func(tInfo *SoExtPost)) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if s.mainKey == nil {
+		return errors.New("the main key is nil")
+	}
 	val := &SoExtPost{}
 	f(val)
 	if s.CheckExist() {
-		return errors.New("the mainkey is already exist")
+		return errors.New("the main key is already exist")
 	}
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
@@ -157,10 +163,7 @@ func (s *SoExtPostWrap) insertSortKeyReplyOrder(sa *SoExtPost) bool {
 }
 
 func (s *SoExtPostWrap) delAllSortKeys(br bool, val *SoExtPost) bool {
-	if s.dba == nil {
-		return false
-	}
-	if val == nil {
+	if s.dba == nil || val == nil {
 		return false
 	}
 	res := true
@@ -512,7 +515,7 @@ func (s *SExtPostReplyOrderWrap) QueryListByRevOrder(start *prototype.PostReplyO
 /////////////// SECTION Private function ////////////////
 
 func (s *SoExtPostWrap) update(sa *SoExtPost) bool {
-	if s.dba == nil {
+	if s.dba == nil || sa == nil {
 		return false
 	}
 	buf, err := proto.Marshal(sa)
@@ -563,10 +566,7 @@ func (s *SoExtPostWrap) encodeMainKey() ([]byte, error) {
 ////////////// Unique Query delete/insert/query ///////////////
 
 func (s *SoExtPostWrap) delAllUniKeys(br bool, val *SoExtPost) bool {
-	if s.dba == nil {
-		return false
-	}
-	if val == nil {
+	if s.dba == nil || val == nil {
 		return false
 	}
 	res := true
