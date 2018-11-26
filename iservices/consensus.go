@@ -2,7 +2,7 @@ package iservices
 
 import "github.com/coschain/contentos-go/common"
 
-var CS_SERVER_NAME = "ctrl"
+var CS_SERVER_NAME = "consensus"
 type IConsensus interface {
 	// NOTE: producers should be maintained by the specific Consensus algorithm
 	// CurrentProducer returns current producer

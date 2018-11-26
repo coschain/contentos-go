@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/coschain/contentos-go/p2p/common"
+	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/p2p/message/msg_pack"
 	comm "github.com/coschain/contentos-go/p2p/depend/common"
 	"github.com/coschain/contentos-go/p2p/depend/common/config"
@@ -333,14 +334,17 @@ func (this *P2PServer) ping() {
 
 //pings send pkgs to get pong msg from others
 func (this *P2PServer) pingTo(peers []*peer.Peer) {
+	service, err := this.Network.GetService(iservices.CS_SERVER_NAME)
+	if err != nil {
+		log.Info("can't get other service, service name: ", iservices.CS_SERVER_NAME)
+		return
+	}
+	ctrl := service.(iservices.IConsensus)
 	for _, p := range peers {
 		if p.GetSyncState() == common.ESTABLISH {
 
-			//height := this.ledger.GetCurrentBlockHeight()
-
-			height := 0
-
-			ping := msgpack.NewPingMsg(uint64(height))
+			height := ctrl.GetHeadBlockId().BlockNum()
+			ping := msgpack.NewPingMsg(height)
 			go this.Send(p, ping, false)
 		}
 	}

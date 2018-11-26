@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/coschain/contentos-go/common"
+	"github.com/coschain/contentos-go/common/constants"
+	"github.com/coschain/contentos-go/iservices"
 	msgCommon "github.com/coschain/contentos-go/p2p/common"
 	"github.com/coschain/contentos-go/p2p/depend/common/config"
 	"github.com/coschain/contentos-go/p2p/depend/common/log"
@@ -66,14 +68,18 @@ func PingHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	}
 	remotePeer.SetHeight(ping.Height)
 
-	//height := ledger.DefLedger.GetCurrentBlockHeight()
+	s, err := p2p.GetService(iservices.CS_SERVER_NAME)
+	if err != nil {
+		log.Info("can't get other service, service name: ", iservices.CS_SERVER_NAME)
+		return
+	}
+	ctrl := s.(iservices.IConsensus)
+	height := ctrl.GetHeadBlockId().BlockNum()
 
-	height := 0
+	p2p.SetHeight(height)
+	msg := msgpack.NewPongMsg(height)
 
-	p2p.SetHeight(uint64(height))
-	msg := msgpack.NewPongMsg(uint64(height))
-
-	err := p2p.Send(remotePeer, msg, false)
+	err = p2p.Send(remotePeer, msg, false)
 	if err != nil {
 		log.Warn(err)
 	}
@@ -98,8 +104,12 @@ func BlockHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	log.Trace("[p2p]receive block message from ", data.Addr, data.Id)
 
 	var block = data.Payload.(*msg.SigBlkMsg)
+	remotePeer := p2p.GetPeerFromAddr(data.Addr)
 
 	log.Info("receive a SignedBlock msg:   ", block)
+
+	noticer := p2p.GetNoticer()
+	noticer.Publish(constants.NOTICE_HANDLE_P2P_SIGBLK, remotePeer, block.SigBlk)
 }
 
 // NotFoundHandle handles the not found message from peer
@@ -117,8 +127,8 @@ func TransactionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface
 	log.Info("receive a trx")
 	fmt.Printf("data:   +%v\n", trn)
 
-	//noticer := p2p.GetNoticer()
-	//noticer.Publish()
+	noticer := p2p.GetNoticer()
+	noticer.Publish(constants.NOTICE_HANDLE_P2P_SIGTRX, trn.SigTrx)
 }
 
 // VersionHandle handles version handshake protocol from peer
@@ -158,6 +168,13 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) 
 		}
 
 	}
+
+	service, err := p2p.GetService(iservices.CS_SERVER_NAME)
+	if err != nil {
+		log.Info("can't get other service, service name: ", iservices.CS_SERVER_NAME)
+		return
+	}
+	ctrl := service.(iservices.IConsensus)
 
 	if version.P.IsConsensus == true {
 		if config.DefConfig.P2PNode.DualPortSupport == false {
@@ -206,10 +223,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) 
 		var msg msgTypes.Message
 		if s == msgCommon.INIT {
 			remotePeer.SetConsState(msgCommon.HAND_SHAKE)
-			//msg = msgpack.NewVersion(p2p, true, ledger.DefLedger.GetCurrentBlockHeight())
-
-			msg = msgpack.NewVersion(p2p, true, 0)
-
+			msg = msgpack.NewVersion(p2p, true, ctrl.GetHeadBlockId().BlockNum())
 		} else if s == msgCommon.HAND {
 			remotePeer.SetConsState(msgCommon.HAND_SHAKED)
 			msg = msgpack.NewVerAck(true)
@@ -278,10 +292,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) 
 		var msg msgTypes.Message
 		if s == msgCommon.INIT {
 			remotePeer.SetSyncState(msgCommon.HAND_SHAKE)
-			//msg = msgpack.NewVersion(p2p, false, ledger.DefLedger.GetCurrentBlockHeight())
-
-			msg = msgpack.NewVersion(p2p, false, 0)
-
+			msg = msgpack.NewVersion(p2p, false, ctrl.GetHeadBlockId().BlockNum())
 		} else if s == msgCommon.HAND {
 			remotePeer.SetSyncState(msgCommon.HAND_SHAKED)
 			msg = msgpack.NewVerAck(false)
@@ -356,8 +367,13 @@ func VerAckHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 		}
 
 		var blockid common.BlockID
-		blockid.Data[0] = 8
-		blockid.Data[1] = 18
+		service, err := p2p.GetService(iservices.CS_SERVER_NAME)
+		if err != nil {
+			log.Info("can't get other service, service name: ", iservices.CS_SERVER_NAME)
+			return
+		}
+		ctrl := service.(iservices.IConsensus)
+		blockid = ctrl.GetHeadBlockId()
 		p2p.Trigger_sync(remotePeer, blockid)
 
 		msg := msgpack.NewAddrReq()
@@ -439,20 +455,26 @@ func IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 		var blkId common.BlockID
 		copy( blkId.Data[:], msgdata.Value[0] )
 
-		//if consensus do not has this id
-
-		var reqmsg msg.IdMsg
-		reqmsg.Msgtype = msg.IdMsg_request_sigblk_by_id
-		var tmp []byte
-		reqmsg.Value = append(reqmsg.Value, tmp )
-		reqmsg.Value[0] = msgdata.Value[0]
-
-		err := p2p.Send(remotePeer, &reqmsg, false)
+		s, err := p2p.GetService(iservices.CS_SERVER_NAME)
 		if err != nil {
-			log.Warn(err)
+			log.Info("can't get other service, service name: ", iservices.CS_SERVER_NAME)
 			return
 		}
-		log.Info("send a message to:   v%   data:   v%\n", data.Addr, reqmsg)
+		ctrl := s.(iservices.IConsensus)
+		if !ctrl.HasBlock(blkId) {
+			var reqmsg msg.IdMsg
+			reqmsg.Msgtype = msg.IdMsg_request_sigblk_by_id
+			var tmp []byte
+			reqmsg.Value = append(reqmsg.Value, tmp )
+			reqmsg.Value[0] = msgdata.Value[0]
+
+			err := p2p.Send(remotePeer, &reqmsg, false)
+			if err != nil {
+				log.Warn(err)
+				return
+			}
+			log.Info("send a message to:   v%   data:   v%\n", data.Addr, reqmsg)
+		}
 	case msg.IdMsg_request_sigblk_by_id:
 		log.Info("receive a msg from:    v%    data:   %v\n", data.Addr, *msgdata)
 		for i, id := range msgdata.Value {
@@ -491,7 +513,7 @@ func IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 		log.Info("receive a msg from:    v%    data:   %v\n", data.Addr, *msgdata)
 		var reqmsg msg.IdMsg
 		reqmsg.Msgtype = msg.IdMsg_request_sigblk_by_id
-		for i, id := range msgdata.Value {
+		for _, id := range msgdata.Value {
 			length := len( id )
 			if length > prototype.Size {
 				log.Info("block id length beyond the limit ", prototype.Size)
@@ -500,18 +522,18 @@ func IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 			var blkId common.BlockID
 			copy( blkId.Data[:], id )
 
-			//s, err := p2p.GetService(iservices.CTRL_SERVER_NAME)
-			//if err != nil {
-			//	log.Info("can't get other service")
-			//	return
-			//}
-			//ctrl := s.(iservices.IController)
-			// query consensus whether we really do not have this block by id
-
-			var tmp []byte
-			reqmsg.Value = append(reqmsg.Value, tmp)
-			reqmsg.Value[i] = id
-
+			s, err := p2p.GetService(iservices.CS_SERVER_NAME)
+			if err != nil {
+				log.Info("can't get other service, service name: ", iservices.CS_SERVER_NAME)
+				return
+			}
+			ctrl := s.(iservices.IConsensus)
+			if !ctrl.HasBlock(blkId) {
+				var tmp []byte
+				reqmsg.Value = append(reqmsg.Value, tmp)
+				idx := len(reqmsg.Value) - 1
+				reqmsg.Value[idx] = id
+			}
 		}
 		err := p2p.Send(remotePeer, &reqmsg, false)
 		if err != nil {
@@ -528,35 +550,38 @@ func ReqIdHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	log.Trace("[p2p]receive request id message from ", data.Addr, data.Id)
 
 	var msgdata = data.Payload.(*msg.ReqIdMsg)
+	length := len(msgdata.HeadBlockId)
+	if length > prototype.Size {
+		log.Info("block id length beyond the limit ", prototype.Size)
+		return
+	}
 
 	log.Info("receive a ReqIdMsg from   v%    data   v%\n", data.Addr, msgdata.HeadBlockId)
 
-	//remote_head_blk_id := msgdata.HeadBlockId
-
-	//current_head_blk_id := query consensus to get our head block id
-	//ids := call consensus to get ids
+	s, err := p2p.GetService(iservices.CS_SERVER_NAME)
+	if err != nil {
+		log.Info("can't get other service, service name: ", iservices.CS_SERVER_NAME)
+		return
+	}
+	ctrl := s.(iservices.IConsensus)
+	var remote_head_blk_id common.BlockID
+	copy( remote_head_blk_id.Data[:], msgdata.HeadBlockId )
+	current_head_blk_id := ctrl.GetHeadBlockId()
+	ids := ctrl.GetHashes(remote_head_blk_id, current_head_blk_id)
 
 	remotePeer := p2p.GetPeerFromAddr(data.Addr)
 
 	var reqmsg msg.IdMsg
 	reqmsg.Msgtype = msg.IdMsg_request_id_ack
 
-	// test code create return id msg
-	for i:=0;i<3;i++ {
+	for i, id := range ids {
 		var tmp []byte
 		reqmsg.Value = append(reqmsg.Value, tmp)
 		reqmsg.Value[i] = make([]byte, prototype.Size)
-		reqmsg.Value[i][0] =byte( (i+1) * 8)
+		reqmsg.Value[i] = id.Data[:]
 	}
 
-	//for i, id := range ids {
-	//	var tmp []byte
-	//	reqmsg.Value = append(reqmsg.Value, tmp)
-	//	reqmsg.Value[i] = make([]byte, prototype.Size)
-	//	reqmsg.Value[i] = id
-	//}
-
-	err := p2p.Send(remotePeer, &reqmsg, false)
+	err = p2p.Send(remotePeer, &reqmsg, false)
 	if err != nil {
 		log.Warn(err)
 		return

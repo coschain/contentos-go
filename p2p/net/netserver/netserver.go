@@ -2,6 +2,7 @@ package netserver
 
 import (
 	"errors"
+	"github.com/coschain/contentos-go/iservices"
 	"math/rand"
 	"net"
 	"reflect"
@@ -125,7 +126,7 @@ func (this *NetServer) init() error {
 
 //InitListen start listening on the config port
 func (this *NetServer) Start(node *node.Node) {
-	//this.noticer = node.EvBus
+	this.noticer = node.EvBus
 	this.startListening()
 }
 
@@ -343,8 +344,14 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 		go remotePeer.ConsLink.Rx()
 		remotePeer.SetConsState(common.HAND)
 	}
-	//version := msgpack.NewVersion(this, isConsensus, ledger.DefLedger.GetCurrentBlockHeight())
-	version := msgpack.NewVersion(this, isConsensus, 0)
+
+	service, err := this.GetService(iservices.CS_SERVER_NAME)
+	if err != nil {
+		log.Info("can't get other service, service name: ", iservices.CS_SERVER_NAME)
+		return err
+	}
+	ctrl := service.(iservices.IConsensus)
+	version := msgpack.NewVersion(this, isConsensus, ctrl.GetHeadBlockId().BlockNum())
 	err = remotePeer.Send(version, isConsensus)
 	if err != nil {
 		if !isConsensus {

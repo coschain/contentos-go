@@ -18,6 +18,9 @@ const (
 	NOTICE_TRX_PENDING = "trxpending"
 	NOTICE_BLOCK_APPLY = "blockapply"
 
+	NOTICE_HANDLE_P2P_SIGTRX = "p2p_get_sigtrx"
+	NOTICE_HANDLE_P2P_SIGBLK = "p2p_get_sigblk"
+
 	ProducerNum = 21
 	GenesisTime = 11111
 

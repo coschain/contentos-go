@@ -96,7 +96,7 @@ func NewVerAck(isConsensus bool) mt.Message {
 }
 
 //Version package
-func NewVersion(n p2p.P2P, isCons bool, height uint32) mt.Message {
+func NewVersion(n p2p.P2P, isCons bool, height uint64) mt.Message {
 	log.Trace()
 	var version mt.Version
 	version.P = mt.VersionPayload{
