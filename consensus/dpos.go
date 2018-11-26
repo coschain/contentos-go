@@ -105,7 +105,7 @@ func (d *DPoS) ActiveProducers() string {
 
 func (d *DPoS) Start(node *node.Node) error {
 	d.blog.Open(node.Config().DataDir)
-	if d.ForkDB.Head() == nil && d.blog.BlockNum() == 0 {
+	if d.ForkDB.Head() == nil && d.blog.Empty() {
 		d.shuffle()
 	}
 	d.ctrl = d.getController()

@@ -134,6 +134,16 @@ func (bl *BLog) Append(sb common.ISignedBlock) error {
 	return nil
 }
 
+// Empty returns true if it contains no block
+func (bl *BLog) Empty() bool {
+	logInfo, err := bl.logFile.Stat()
+	if err != nil {
+		panic(err)
+	}
+
+	return logInfo.Size() == 0
+}
+
 // ReadBlock read a block at blockNum, blockNum start at 0
 func (bl *BLog) ReadBlock(sb common.ISignedBlock, blockNum int64) error {
 	indexOffset := blockNum * indexSize

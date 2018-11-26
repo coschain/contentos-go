@@ -1,7 +1,7 @@
 package db
 
 import (
-	"strings"
+	"github.com/stretchr/testify/assert"
 	"testing"
 
 	"github.com/coschain/contentos-go/db/blocklog"
@@ -9,6 +9,7 @@ import (
 )
 
 func TestBlockLog(t *testing.T) {
+	assert := assert.New(t)
 	var blog blocklog.BLog
 	home, err := homedir.Dir()
 	if err != nil {
@@ -20,29 +21,20 @@ func TestBlockLog(t *testing.T) {
 		t.Error(err.Error())
 	}
 
+	assert.Equal(blog.Empty(), true)
 	var msb MockSignedBlock
 	msb.Payload = []byte("hello0")
-	err = blog.Append(&msb)
-	if err != nil {
-		t.Error(err.Error())
-	}
+	assert.NoError(blog.Append(&msb))
+
+	assert.Equal(blog.Empty(), false)
+
 	msb.Payload = []byte("hello1")
-	err = blog.Append(&msb)
-	if err != nil {
-		t.Error(err.Error())
-	}
-	err = blog.ReadBlock(&msb, 0)
-	if err != nil {
-		t.Error(err.Error())
-	}
-	if strings.Compare(msb.Data(), "hello0") != 0 {
-		t.Error("Expect hello0 while got: ", msb.Data())
-	}
-	err = blog.ReadBlock(&msb, 1)
-	if err != nil {
-		t.Error(err.Error())
-	}
-	if strings.Compare(msb.Data(), "hello1") != 0 {
-		t.Error("Expect hello1 while got: ", msb.Data())
-	}
+	assert.NoError(blog.Append(&msb))
+
+	assert.NoError(blog.ReadBlock(&msb, 0))
+	assert.Equal(msb.Data(), "hello0")
+
+	assert.NoError(blog.ReadBlock(&msb, 1))
+	assert.Equal(msb.Data(), "hello1")
+
 }
