@@ -14,11 +14,11 @@ import (
 
 const Size = 32
 
-func (sb *SignedBlock) Marshal() ([]byte, error) {
+func (sb *SignedBlock) Marshall() ([]byte, error) {
 	return proto.Marshal(sb)
 }
 
-func (sb *SignedBlock) Unmarshal(buff []byte) error {
+func (sb *SignedBlock) Unmarshall(buff []byte) error {
 	return proto.Unmarshal(buff, sb)
 }
 
