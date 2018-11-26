@@ -151,7 +151,7 @@ func (s *SoTransactionObjectWrap) insertAllSortKeys(val *SoTransactionObject) er
 		return errors.New("insert sort Field fail,get the SoTransactionObject fail ")
 	}
 	if !s.insertSortKeyExpiration(val) {
-		return errors.New("insert sort Field Expiration while insert table ")
+		return errors.New("insert sort Field Expiration fail while insert table ")
 	}
 
 	return nil
@@ -413,7 +413,7 @@ func (s *SoTransactionObjectWrap) insertAllUniKeys(val *SoTransactionObject) err
 		return errors.New("insert uniuqe Field fail,get the SoTransactionObject fail ")
 	}
 	if !s.insertUniKeyTrxId(val) {
-		return errors.New("insert unique Field prototype.Sha256 while insert table ")
+		return errors.New("insert unique Field TrxId fail while insert table ")
 	}
 
 	return nil

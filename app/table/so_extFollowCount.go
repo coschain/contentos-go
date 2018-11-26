@@ -311,7 +311,7 @@ func (s *SoExtFollowCountWrap) insertAllUniKeys(val *SoExtFollowCount) error {
 		return errors.New("insert uniuqe Field fail,get the SoExtFollowCount fail ")
 	}
 	if !s.insertUniKeyAccount(val) {
-		return errors.New("insert unique Field prototype.AccountName while insert table ")
+		return errors.New("insert unique Field Account fail while insert table ")
 	}
 
 	return nil

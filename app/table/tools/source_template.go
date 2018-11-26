@@ -210,7 +210,7 @@ func (s *So{{$.ClsName}}Wrap)insertAllSortKeys(val *So{{$.ClsName}}) error {
 	}
     {{range $k, $v := .LKeys -}}
 	if !s.insertSortKey{{$v}}(val) {
-       return errors.New("insert sort Field {{$v}} while insert table ")
+       return errors.New("insert sort Field {{$v}} fail while insert table ")
 	}
 	{{end}}    
     return nil
@@ -562,7 +562,7 @@ func (s *So{{$.ClsName}}Wrap)insertAllUniKeys(val *So{{$.ClsName}}) error {
 	}
     {{range $k, $v := .UniqueFieldMap -}}
 	if !s.insertUniKey{{$k}}(val) {
-		return errors.New("insert unique Field {{$v}} while insert table ")
+		return errors.New("insert unique Field {{$k}} fail while insert table ")
 	}
 	{{end}}
     return nil

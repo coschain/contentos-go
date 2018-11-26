@@ -149,7 +149,7 @@ func (s *SoWitnessVoteWrap) insertAllSortKeys(val *SoWitnessVote) error {
 		return errors.New("insert sort Field fail,get the SoWitnessVote fail ")
 	}
 	if !s.insertSortKeyVoterId(val) {
-		return errors.New("insert sort Field VoterId while insert table ")
+		return errors.New("insert sort Field VoterId fail while insert table ")
 	}
 
 	return nil
@@ -431,7 +431,7 @@ func (s *SoWitnessVoteWrap) insertAllUniKeys(val *SoWitnessVote) error {
 		return errors.New("insert uniuqe Field fail,get the SoWitnessVote fail ")
 	}
 	if !s.insertUniKeyVoterId(val) {
-		return errors.New("insert unique Field prototype.BpVoterId while insert table ")
+		return errors.New("insert unique Field VoterId fail while insert table ")
 	}
 
 	return nil

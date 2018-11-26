@@ -193,10 +193,10 @@ func (s *SoVoteWrap) insertAllSortKeys(val *SoVote) error {
 		return errors.New("insert sort Field fail,get the SoVote fail ")
 	}
 	if !s.insertSortKeyVoteTime(val) {
-		return errors.New("insert sort Field VoteTime while insert table ")
+		return errors.New("insert sort Field VoteTime fail while insert table ")
 	}
 	if !s.insertSortKeyPostId(val) {
-		return errors.New("insert sort Field PostId while insert table ")
+		return errors.New("insert sort Field PostId fail while insert table ")
 	}
 
 	return nil
@@ -594,7 +594,7 @@ func (s *SoVoteWrap) insertAllUniKeys(val *SoVote) error {
 		return errors.New("insert uniuqe Field fail,get the SoVote fail ")
 	}
 	if !s.insertUniKeyVoter(val) {
-		return errors.New("insert unique Field prototype.VoterId				 while insert table ")
+		return errors.New("insert unique Field Voter fail while insert table ")
 	}
 
 	return nil

@@ -254,7 +254,7 @@ func (s *SoGlobalWrap) insertAllUniKeys(val *SoGlobal) error {
 		return errors.New("insert uniuqe Field fail,get the SoGlobal fail ")
 	}
 	if !s.insertUniKeyId(val) {
-		return errors.New("insert unique Field int32 while insert table ")
+		return errors.New("insert unique Field Id fail while insert table ")
 	}
 
 	return nil

@@ -191,10 +191,10 @@ func (s *SoWitnessWrap) insertAllSortKeys(val *SoWitness) error {
 		return errors.New("insert sort Field fail,get the SoWitness fail ")
 	}
 	if !s.insertSortKeyOwner(val) {
-		return errors.New("insert sort Field Owner while insert table ")
+		return errors.New("insert sort Field Owner fail while insert table ")
 	}
 	if !s.insertSortKeyVoteCount(val) {
-		return errors.New("insert sort Field VoteCount while insert table ")
+		return errors.New("insert sort Field VoteCount fail while insert table ")
 	}
 
 	return nil
@@ -827,7 +827,7 @@ func (s *SoWitnessWrap) insertAllUniKeys(val *SoWitness) error {
 		return errors.New("insert uniuqe Field fail,get the SoWitness fail ")
 	}
 	if !s.insertUniKeyOwner(val) {
-		return errors.New("insert unique Field prototype.AccountName while insert table ")
+		return errors.New("insert unique Field Owner fail while insert table ")
 	}
 
 	return nil

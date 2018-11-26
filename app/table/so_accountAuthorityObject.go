@@ -338,7 +338,7 @@ func (s *SoAccountAuthorityObjectWrap) insertAllUniKeys(val *SoAccountAuthorityO
 		return errors.New("insert uniuqe Field fail,get the SoAccountAuthorityObject fail ")
 	}
 	if !s.insertUniKeyAccount(val) {
-		return errors.New("insert unique Field prototype.AccountName while insert table ")
+		return errors.New("insert unique Field Account fail while insert table ")
 	}
 
 	return nil

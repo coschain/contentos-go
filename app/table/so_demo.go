@@ -361,22 +361,22 @@ func (s *SoDemoWrap) insertAllSortKeys(val *SoDemo) error {
 		return errors.New("insert sort Field fail,get the SoDemo fail ")
 	}
 	if !s.insertSortKeyOwner(val) {
-		return errors.New("insert sort Field Owner while insert table ")
+		return errors.New("insert sort Field Owner fail while insert table ")
 	}
 	if !s.insertSortKeyPostTime(val) {
-		return errors.New("insert sort Field PostTime while insert table ")
+		return errors.New("insert sort Field PostTime fail while insert table ")
 	}
 	if !s.insertSortKeyLikeCount(val) {
-		return errors.New("insert sort Field LikeCount while insert table ")
+		return errors.New("insert sort Field LikeCount fail while insert table ")
 	}
 	if !s.insertSortKeyIdx(val) {
-		return errors.New("insert sort Field Idx while insert table ")
+		return errors.New("insert sort Field Idx fail while insert table ")
 	}
 	if !s.insertSortKeyReplayCount(val) {
-		return errors.New("insert sort Field ReplayCount while insert table ")
+		return errors.New("insert sort Field ReplayCount fail while insert table ")
 	}
 	if !s.insertSortKeyTaglist(val) {
-		return errors.New("insert sort Field Taglist while insert table ")
+		return errors.New("insert sort Field Taglist fail while insert table ")
 	}
 
 	return nil
@@ -1408,13 +1408,13 @@ func (s *SoDemoWrap) insertAllUniKeys(val *SoDemo) error {
 		return errors.New("insert uniuqe Field fail,get the SoDemo fail ")
 	}
 	if !s.insertUniKeyIdx(val) {
-		return errors.New("insert unique Field int64 while insert table ")
+		return errors.New("insert unique Field Idx fail while insert table ")
 	}
 	if !s.insertUniKeyLikeCount(val) {
-		return errors.New("insert unique Field int64 while insert table ")
+		return errors.New("insert unique Field LikeCount fail while insert table ")
 	}
 	if !s.insertUniKeyOwner(val) {
-		return errors.New("insert unique Field prototype.AccountName while insert table ")
+		return errors.New("insert unique Field Owner fail while insert table ")
 	}
 
 	return nil

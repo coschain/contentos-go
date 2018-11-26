@@ -149,7 +149,7 @@ func (s *SoExtFollowingWrap) insertAllSortKeys(val *SoExtFollowing) error {
 		return errors.New("insert sort Field fail,get the SoExtFollowing fail ")
 	}
 	if !s.insertSortKeyFollowingInfo(val) {
-		return errors.New("insert sort Field FollowingInfo while insert table ")
+		return errors.New("insert sort Field FollowingInfo fail while insert table ")
 	}
 
 	return nil
@@ -377,7 +377,7 @@ func (s *SoExtFollowingWrap) insertAllUniKeys(val *SoExtFollowing) error {
 		return errors.New("insert uniuqe Field fail,get the SoExtFollowing fail ")
 	}
 	if !s.insertUniKeyFollowingInfo(val) {
-		return errors.New("insert unique Field prototype.FollowingRelation while insert table ")
+		return errors.New("insert unique Field FollowingInfo fail while insert table ")
 	}
 
 	return nil

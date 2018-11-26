@@ -254,7 +254,7 @@ func (s *SoBlockSummaryObjectWrap) insertAllUniKeys(val *SoBlockSummaryObject) e
 		return errors.New("insert uniuqe Field fail,get the SoBlockSummaryObject fail ")
 	}
 	if !s.insertUniKeyId(val) {
-		return errors.New("insert unique Field uint32 while insert table ")
+		return errors.New("insert unique Field Id fail while insert table ")
 	}
 
 	return nil

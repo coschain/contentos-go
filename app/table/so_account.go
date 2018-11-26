@@ -277,16 +277,16 @@ func (s *SoAccountWrap) insertAllSortKeys(val *SoAccount) error {
 		return errors.New("insert sort Field fail,get the SoAccount fail ")
 	}
 	if !s.insertSortKeyCreatedTime(val) {
-		return errors.New("insert sort Field CreatedTime while insert table ")
+		return errors.New("insert sort Field CreatedTime fail while insert table ")
 	}
 	if !s.insertSortKeyBalance(val) {
-		return errors.New("insert sort Field Balance while insert table ")
+		return errors.New("insert sort Field Balance fail while insert table ")
 	}
 	if !s.insertSortKeyVestingShares(val) {
-		return errors.New("insert sort Field VestingShares while insert table ")
+		return errors.New("insert sort Field VestingShares fail while insert table ")
 	}
 	if !s.insertSortKeyBpVoteCount(val) {
-		return errors.New("insert sort Field BpVoteCount while insert table ")
+		return errors.New("insert sort Field BpVoteCount fail while insert table ")
 	}
 
 	return nil
@@ -987,7 +987,7 @@ func (s *SoAccountWrap) insertAllUniKeys(val *SoAccount) error {
 		return errors.New("insert uniuqe Field fail,get the SoAccount fail ")
 	}
 	if !s.insertUniKeyName(val) {
-		return errors.New("insert unique Field prototype.AccountName while insert table ")
+		return errors.New("insert unique Field Name fail while insert table ")
 	}
 
 	return nil

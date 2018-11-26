@@ -148,7 +148,7 @@ func (s *SoPostWrap) insertAllSortKeys(val *SoPost) error {
 		return errors.New("insert sort Field fail,get the SoPost fail ")
 	}
 	if !s.insertSortKeyCreated(val) {
-		return errors.New("insert sort Field Created while insert table ")
+		return errors.New("insert sort Field Created fail while insert table ")
 	}
 
 	return nil
@@ -733,7 +733,7 @@ func (s *SoPostWrap) insertAllUniKeys(val *SoPost) error {
 		return errors.New("insert uniuqe Field fail,get the SoPost fail ")
 	}
 	if !s.insertUniKeyPostId(val) {
-		return errors.New("insert unique Field uint64 while insert table ")
+		return errors.New("insert unique Field PostId fail while insert table ")
 	}
 
 	return nil

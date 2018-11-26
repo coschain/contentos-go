@@ -190,10 +190,10 @@ func (s *SoExtPostWrap) insertAllSortKeys(val *SoExtPost) error {
 		return errors.New("insert sort Field fail,get the SoExtPost fail ")
 	}
 	if !s.insertSortKeyCreatedOrder(val) {
-		return errors.New("insert sort Field CreatedOrder while insert table ")
+		return errors.New("insert sort Field CreatedOrder fail while insert table ")
 	}
 	if !s.insertSortKeyReplyOrder(val) {
-		return errors.New("insert sort Field ReplyOrder while insert table ")
+		return errors.New("insert sort Field ReplyOrder fail while insert table ")
 	}
 
 	return nil
@@ -589,7 +589,7 @@ func (s *SoExtPostWrap) insertAllUniKeys(val *SoExtPost) error {
 		return errors.New("insert uniuqe Field fail,get the SoExtPost fail ")
 	}
 	if !s.insertUniKeyPostId(val) {
-		return errors.New("insert unique Field uint64 while insert table ")
+		return errors.New("insert unique Field PostId fail while insert table ")
 	}
 
 	return nil
