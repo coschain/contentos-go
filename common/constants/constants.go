@@ -18,8 +18,8 @@ const (
 	NOTICE_TRX_PENDING = "trxpending"
 	NOTICE_BLOCK_APPLY = "blockapply"
 
-	NOTICE_HANDLE_P2P_SIGTRX = "p2p_get_sigtrx"
-	NOTICE_HANDLE_P2P_SIGBLK = "p2p_get_sigblk"
+	NOTICE_HANDLE_P2P_SIGTRX = "p2p_get_sigtrx"  // handle function need one parameter *prototype.SignedTransaction
+	NOTICE_HANDLE_P2P_SIGBLK = "p2p_get_sigblk"  // handle function need two parameters 1.*peer.Peer 2.*prototype.SignedBlock
 
 	ProducerNum = 21
 	GenesisTime = 11111
