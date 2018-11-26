@@ -78,12 +78,6 @@ func (s *SoWitnessWrap) Create(f func(tInfo *SoWitness)) error {
 		return err
 	}
 
-	if !s.insertSortKeyVoteCount(val) {
-		s.delAllSortKeys()
-		s.dba.Delete(keyBuf)
-		return errors.New("insert sort Field VoteCount while insert table ")
-	}
-
 	//update unique list
 	if err = s.insertAllUniKeys(val); err != nil {
 		s.delAllSortKeys(false, val)
@@ -145,7 +139,7 @@ func (s *SoWitnessWrap) delSortKeyVoteCount(sa *SoWitness) bool {
 }
 
 func (s *SoWitnessWrap) insertSortKeyVoteCount(sa *SoWitness) bool {
-	if s.dba == nil {
+	if s.dba == nil || sa == nil {
 		return false
 	}
 	val := SoListWitnessByVoteCount{}
@@ -178,8 +172,12 @@ func (s *SoWitnessWrap) delAllSortKeys(br bool, val *SoWitness) bool {
 			res = false
 		}
 	}
-	if !s.delSortKeyVoteCount(sa) && res {
-		res = false
+	if !s.delSortKeyVoteCount(val) {
+		if br {
+			return false
+		} else {
+			res = false
+		}
 	}
 
 	return res
@@ -194,6 +192,9 @@ func (s *SoWitnessWrap) insertAllSortKeys(val *SoWitness) error {
 	}
 	if !s.insertSortKeyOwner(val) {
 		return errors.New("insert sort Field Owner while insert table ")
+	}
+	if !s.insertSortKeyVoteCount(val) {
+		return errors.New("insert sort Field VoteCount while insert table ")
 	}
 
 	return nil
@@ -211,9 +212,6 @@ func (s *SoWitnessWrap) RemoveWitness() bool {
 	}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, val); !res {
-		return false
-	}
-	if !s.delSortKeyVoteCount(sa) {
 		return false
 	}
 
