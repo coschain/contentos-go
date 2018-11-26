@@ -12,6 +12,7 @@ import (
 ////////////// SECTION Prefix Mark ///////////////
 var (
 	VoteTable         = []byte("VoteTable")
+	VoteVoterTable    = []byte("VoteVoterTable")
 	VoteVoteTimeTable = []byte("VoteVoteTimeTable")
 	VotePostIdTable   = []byte("VotePostIdTable")
 	VoteVoterUniTable = []byte("VoteVoterUniTable")
@@ -91,6 +92,38 @@ func (s *SoVoteWrap) Create(f func(tInfo *SoVote)) error {
 
 ////////////// SECTION LKeys delete/insert ///////////////
 
+func (s *SoVoteWrap) delSortKeyVoter(sa *SoVote) bool {
+	if s.dba == nil {
+		return false
+	}
+	val := SoListVoteByVoter{}
+	val.Voter = sa.Voter
+	subBuf, err := val.OpeEncode()
+	if err != nil {
+		return false
+	}
+	ordErr := s.dba.Delete(subBuf)
+	return ordErr == nil
+}
+
+func (s *SoVoteWrap) insertSortKeyVoter(sa *SoVote) bool {
+	if s.dba == nil || sa == nil {
+		return false
+	}
+	val := SoListVoteByVoter{}
+	val.Voter = sa.Voter
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return false
+	}
+	subBuf, err := val.OpeEncode()
+	if err != nil {
+		return false
+	}
+	ordErr := s.dba.Put(subBuf, buf)
+	return ordErr == nil
+}
+
 func (s *SoVoteWrap) delSortKeyVoteTime(sa *SoVote) bool {
 	if s.dba == nil {
 		return false
@@ -167,6 +200,13 @@ func (s *SoVoteWrap) delAllSortKeys(br bool, val *SoVote) bool {
 		return false
 	}
 	res := true
+	if !s.delSortKeyVoter(val) {
+		if br {
+			return false
+		} else {
+			res = false
+		}
+	}
 	if !s.delSortKeyVoteTime(val) {
 		if br {
 			return false
@@ -191,6 +231,9 @@ func (s *SoVoteWrap) insertAllSortKeys(val *SoVote) error {
 	}
 	if val == nil {
 		return errors.New("insert sort Field fail,get the SoVote fail ")
+	}
+	if !s.insertSortKeyVoter(val) {
+		return errors.New("insert sort Field Voter while insert table ")
 	}
 	if !s.insertSortKeyVoteTime(val) {
 		return errors.New("insert sort Field VoteTime fail while insert table ")
@@ -264,6 +307,33 @@ func (s *SoVoteWrap) MdPostId(p uint64) bool {
 	return true
 }
 
+func (s *SoVoteWrap) GetUpvote() bool {
+	res := s.getVote()
+
+	if res == nil {
+		var tmpValue bool
+		return tmpValue
+	}
+	return res.Upvote
+}
+
+func (s *SoVoteWrap) MdUpvote(p bool) bool {
+	if s.dba == nil {
+		return false
+	}
+	sa := s.getVote()
+	if sa == nil {
+		return false
+	}
+
+	sa.Upvote = p
+	if !s.update(sa) {
+		return false
+	}
+
+	return true
+}
+
 func (s *SoVoteWrap) GetVoteTime() *prototype.TimePointSec {
 	res := s.getVote()
 
@@ -306,6 +376,137 @@ func (s *SoVoteWrap) GetVoter() *prototype.VoterId {
 
 	}
 	return res.Voter
+}
+
+func (s *SoVoteWrap) GetWeightedVp() uint64 {
+	res := s.getVote()
+
+	if res == nil {
+		var tmpValue uint64
+		return tmpValue
+	}
+	return res.WeightedVp
+}
+
+func (s *SoVoteWrap) MdWeightedVp(p uint64) bool {
+	if s.dba == nil {
+		return false
+	}
+	sa := s.getVote()
+	if sa == nil {
+		return false
+	}
+
+	sa.WeightedVp = p
+	if !s.update(sa) {
+		return false
+	}
+
+	return true
+}
+
+////////////// SECTION List Keys ///////////////
+type SVoteVoterWrap struct {
+	Dba iservices.IDatabaseService
+}
+
+func NewVoteVoterWrap(db iservices.IDatabaseService) *SVoteVoterWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := SVoteVoterWrap{Dba: db}
+	return &wrap
+}
+
+func (s *SVoteVoterWrap) DelIterater(iterator iservices.IDatabaseIterator) {
+	if iterator == nil || !iterator.Valid() {
+		return
+	}
+	s.Dba.DeleteIterator(iterator)
+}
+
+func (s *SVoteVoterWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.VoterId {
+	if iterator == nil || !iterator.Valid() {
+		return nil
+	}
+	val, err := iterator.Value()
+
+	if err != nil {
+		return nil
+	}
+
+	res := &SoListVoteByVoter{}
+	err = proto.Unmarshal(val, res)
+
+	if err != nil {
+		return nil
+	}
+	return res.Voter
+
+}
+
+func (s *SVoteVoterWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.VoterId {
+	if iterator == nil || !iterator.Valid() {
+		return nil
+	}
+
+	val, err := iterator.Value()
+
+	if err != nil {
+		return nil
+	}
+	res := &SoListVoteByVoter{}
+	err = proto.Unmarshal(val, res)
+	if err != nil {
+		return nil
+	}
+	return res.Voter
+
+}
+
+func (m *SoListVoteByVoter) OpeEncode() ([]byte, error) {
+	pre := VoteVoterTable
+	sub := m.Voter
+	if sub == nil {
+		return nil, errors.New("the pro Voter is nil")
+	}
+	sub1 := m.Voter
+	if sub1 == nil {
+		return nil, errors.New("the mainkey Voter is nil")
+	}
+	kList := []interface{}{pre, sub, sub1}
+	kBuf, cErr := kope.EncodeSlice(kList)
+	return kBuf, cErr
+}
+
+//Query sort by order
+//start = nil  end = nil (query the db from start to end)
+//start = nil (query from start the db)
+//end = nil (query to the end of db)
+func (s *SVoteVoterWrap) QueryListByOrder(start *prototype.VoterId, end *prototype.VoterId) iservices.IDatabaseIterator {
+	if s.Dba == nil {
+		return nil
+	}
+	pre := VoteVoterTable
+	skeyList := []interface{}{pre}
+	if start != nil {
+		skeyList = append(skeyList, start)
+	}
+	sBuf, cErr := kope.EncodeSlice(skeyList)
+	if cErr != nil {
+		return nil
+	}
+	eKeyList := []interface{}{pre}
+	if end != nil {
+		eKeyList = append(eKeyList, end)
+	} else {
+		eKeyList = append(eKeyList, kope.MaximumKey)
+	}
+	eBuf, cErr := kope.EncodeSlice(eKeyList)
+	if cErr != nil {
+		return nil
+	}
+	return s.Dba.NewIterator(sBuf, eBuf)
 }
 
 ////////////// SECTION List Keys ///////////////

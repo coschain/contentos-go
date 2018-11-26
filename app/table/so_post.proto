@@ -22,6 +22,8 @@ message so_post {
     uint64                                 parent_id               =      12;
     uint64                                 vote_cnt                =      13;
     repeated                      prototype.beneficiary_route_type     beneficiaries           =      14;
+    prototype.time_point_sec               cashout_time            =      15;
+    uint64                                 weighted_vp             =      16;
       
 }
 

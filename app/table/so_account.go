@@ -449,6 +449,60 @@ func (s *SoAccountWrap) MdCreator(p *prototype.AccountName) bool {
 	return true
 }
 
+func (s *SoAccountWrap) GetLastPostTime() *prototype.TimePointSec {
+	res := s.getAccount()
+
+	if res == nil {
+		return nil
+
+	}
+	return res.LastPostTime
+}
+
+func (s *SoAccountWrap) MdLastPostTime(p *prototype.TimePointSec) bool {
+	if s.dba == nil {
+		return false
+	}
+	sa := s.getAccount()
+	if sa == nil {
+		return false
+	}
+
+	sa.LastPostTime = p
+	if !s.update(sa) {
+		return false
+	}
+
+	return true
+}
+
+func (s *SoAccountWrap) GetLastVoteTime() *prototype.TimePointSec {
+	res := s.getAccount()
+
+	if res == nil {
+		return nil
+
+	}
+	return res.LastVoteTime
+}
+
+func (s *SoAccountWrap) MdLastVoteTime(p *prototype.TimePointSec) bool {
+	if s.dba == nil {
+		return false
+	}
+	sa := s.getAccount()
+	if sa == nil {
+		return false
+	}
+
+	sa.LastVoteTime = p
+	if !s.update(sa) {
+		return false
+	}
+
+	return true
+}
+
 func (s *SoAccountWrap) GetName() *prototype.AccountName {
 	res := s.getAccount()
 
@@ -487,6 +541,33 @@ func (s *SoAccountWrap) MdVestingShares(p *prototype.Vest) bool {
 	}
 
 	if !s.insertSortKeyVestingShares(sa) {
+		return false
+	}
+
+	return true
+}
+
+func (s *SoAccountWrap) GetVotePower() uint32 {
+	res := s.getAccount()
+
+	if res == nil {
+		var tmpValue uint32
+		return tmpValue
+	}
+	return res.VotePower
+}
+
+func (s *SoAccountWrap) MdVotePower(p uint32) bool {
+	if s.dba == nil {
+		return false
+	}
+	sa := s.getAccount()
+	if sa == nil {
+		return false
+	}
+
+	sa.VotePower = p
+	if !s.update(sa) {
 		return false
 	}
 

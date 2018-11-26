@@ -14,6 +14,9 @@ message so_account {
     prototype.coin              balance            =      4;
     prototype.vest              vesting_shares     =      5;
     uint32                      bp_vote_count      =      6;
+    prototype.time_point_sec    last_vote_time      =      7;
+    prototype.time_point_sec    last_post_time      =      8;
+    uint32                      vote_power     =      9;
       
 }
 

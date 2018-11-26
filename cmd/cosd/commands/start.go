@@ -43,7 +43,7 @@ func makeNode() (*node.Node, node.Config) {
 	viper.AddConfigPath(confdir)
 	err := viper.ReadInConfig()
 	if err == nil {
-		viper.Unmarshal(&cfg)
+		_ = viper.Unmarshal(&cfg)
 	} else {
 		fmt.Printf("fatal: not be initialized (do `init` first)\n")
 		os.Exit(1)
@@ -88,20 +88,20 @@ func startNode(cmd *cobra.Command, args []string) {
 		return storage.NewGuardedDatabaseService(ctx, "./db/")
 	})
 
-	app.Register(iservices.CTRL_SERVER_NAME, func(ctx *node.ServiceContext) (node.Service, error) {
+	_ = app.Register(iservices.CTRL_SERVER_NAME, func(ctx *node.ServiceContext) (node.Service, error) {
 		return ctrl.NewController(ctx)
 	})
 
-	app.Register(iservices.RPC_SERVER_NAME, func(ctx *node.ServiceContext) (node.Service, error) {
+	_ = app.Register(iservices.RPC_SERVER_NAME, func(ctx *node.ServiceContext) (node.Service, error) {
 		return rpc.NewGRPCServer(ctx, ctx.Config().GRPC)
 	})
-	app.Register( plugins.FOLLOW_SERVICE_NAME, func(ctx *node.ServiceContext) (node.Service, error) {
+	_ = app.Register(plugins.FOLLOW_SERVICE_NAME, func(ctx *node.ServiceContext) (node.Service, error) {
 		return plugins.NewFollowService(ctx)
 	})
-	app.Register( plugins.POST_SERVICE_NAME, func(ctx *node.ServiceContext) (node.Service, error) {
+	_ = app.Register(plugins.POST_SERVICE_NAME, func(ctx *node.ServiceContext) (node.Service, error) {
 		return plugins.NewPostService(ctx)
 	})
-	app.Register( plugins.DEMO_SERVICE_NAME, func(ctx *node.ServiceContext) (node.Service, error) {
+	_ = app.Register(plugins.DEMO_SERVICE_NAME, func(ctx *node.ServiceContext) (node.Service, error) {
 		return plugins.NewDemoService(ctx)
 	})
 

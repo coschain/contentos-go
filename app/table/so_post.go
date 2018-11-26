@@ -263,6 +263,33 @@ func (s *SoPostWrap) MdBody(p string) bool {
 	return true
 }
 
+func (s *SoPostWrap) GetCashoutTime() *prototype.TimePointSec {
+	res := s.getPost()
+
+	if res == nil {
+		return nil
+
+	}
+	return res.CashoutTime
+}
+
+func (s *SoPostWrap) MdCashoutTime(p *prototype.TimePointSec) bool {
+	if s.dba == nil {
+		return false
+	}
+	sa := s.getPost()
+	if sa == nil {
+		return false
+	}
+
+	sa.CashoutTime = p
+	if !s.update(sa) {
+		return false
+	}
+
+	return true
+}
+
 func (s *SoPostWrap) GetCategory() string {
 	res := s.getPost()
 
@@ -543,6 +570,33 @@ func (s *SoPostWrap) MdVoteCnt(p uint64) bool {
 	}
 
 	sa.VoteCnt = p
+	if !s.update(sa) {
+		return false
+	}
+
+	return true
+}
+
+func (s *SoPostWrap) GetWeightedVp() uint64 {
+	res := s.getPost()
+
+	if res == nil {
+		var tmpValue uint64
+		return tmpValue
+	}
+	return res.WeightedVp
+}
+
+func (s *SoPostWrap) MdWeightedVp(p uint64) bool {
+	if s.dba == nil {
+		return false
+	}
+	sa := s.getPost()
+	if sa == nil {
+		return false
+	}
+
+	sa.WeightedVp = p
 	if !s.update(sa) {
 		return false
 	}

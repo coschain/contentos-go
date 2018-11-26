@@ -11,7 +11,14 @@ message so_vote {
 	prototype.voter_id          				   voter                   =      1;
     prototype.time_point_sec           vote_time               =      2;
     uint64                             post_id                 =      3;
+    uint64                              weighted_vp            =      4;
+    bool                                upvote                 =      5;
       
+}
+
+
+message so_list_vote_by_voter {
+	prototype.voter_id          					voter               = 1;
 }
 
 
