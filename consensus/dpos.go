@@ -3,6 +3,7 @@ package consensus
 import (
 	"errors"
 	"fmt"
+	"github.com/coschain/contentos-go/common/logging"
 	"strings"
 	"sync"
 	"time"
@@ -114,12 +115,9 @@ func (d *DPoS) ActiveProducers() []string {
 
 func (d *DPoS) Start(node *node.Node) error {
 	d.ctrl = d.getController()
-	//d.blog.Open(node.Config().DataDir)
-	//if d.ForkDB.Empty() && d.blog.Empty() {
-	//	d.shuffle()
-	//}
+	d.blog.Open(node.Config().DataDir)
 
-	//go d.start()
+	go d.start()
 	return nil
 }
 
@@ -147,6 +145,12 @@ func (d *DPoS) scheduleProduce() bool {
 func (d *DPoS) start() {
 	d.wg.Add(1)
 	defer d.wg.Done()
+	time.Sleep(5*time.Second)
+
+	logging.CLog().Info("DPoS started.")
+	if d.ForkDB.Empty() && d.blog.Empty() {
+		d.shuffle()
+	}
 	d.scheduleProduce()
 	for {
 		select {
