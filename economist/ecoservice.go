@@ -190,5 +190,5 @@ func (e *Economist) DoReply(authorName *prototype.AccountName, idx, pidx uint64,
 
 //
 func (e *Economist) Do() error {
-
+	return nil
 }
