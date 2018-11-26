@@ -143,7 +143,7 @@ func (c *Controller) _pushTrx(trx *prototype.SignedTransaction) *prototype.Trans
 	c.db.EndTransaction(true)
 
 	// @ not use yet
-	//c.NotifyTrxPending(trx)
+	//c.notifyTrxPending(trx)
 	return trxWrp.Invoice
 }
 
@@ -306,27 +306,27 @@ func (c *Controller) GenerateBlock(witness string, timestamp uint32,
 	return nil
 }
 
-func (c *Controller) NotifyOpPostExecute(on *prototype.OperationNotification) {
-	c.noticer.Publish(constants.NOTICE_OP_POST, on)
-}
-
-func (c *Controller) NotifyOpPreExecute(on *prototype.OperationNotification) {
+func (c *Controller) notifyOpPreExecute(on *prototype.OperationNotification) {
 	c.noticer.Publish(constants.NOTICE_OP_PRE, on)
 }
 
-func (c *Controller) NotifyTrxPreExecute(trx *prototype.SignedTransaction) {
+func (c *Controller) notifyOpPostExecute(on *prototype.OperationNotification) {
+	c.noticer.Publish(constants.NOTICE_OP_POST, on)
+}
+
+func (c *Controller) notifyTrxPreExecute(trx *prototype.SignedTransaction) {
 	c.noticer.Publish(constants.NOTICE_TRX_PRE, trx)
 }
 
-func (c *Controller) NotifyTrxPostExecute(trx *prototype.SignedTransaction) {
+func (c *Controller) notifyTrxPostExecute(trx *prototype.SignedTransaction) {
 	c.noticer.Publish(constants.NOTICE_TRX_POST, trx)
 }
 
-func (c *Controller) NotifyTrxPending(trx *prototype.SignedTransaction) {
+func (c *Controller) notifyTrxPending(trx *prototype.SignedTransaction) {
 	c.noticer.Publish(constants.NOTICE_TRX_PENDING, trx)
 }
 
-func (c *Controller) NotifyBlockApply(block *prototype.SignedBlock) {
+func (c *Controller) notifyBlockApply(block *prototype.SignedBlock) {
 	c.noticer.Publish(constants.NOTICE_BLOCK_APPLY, block)
 }
 
@@ -336,7 +336,7 @@ func (c *Controller) processBlock() {
 func (c *Controller) applyTransaction(trxWrp *prototype.TransactionWrapper) {
 	c._applyTransaction(trxWrp)
 	// @ not use yet
-	//c.NotifyTrxPostExecute(trxWrp.SigTrx)
+	//c.notifyTrxPostExecute(trxWrp.SigTrx)
 }
 func (c *Controller) _applyTransaction(trxWrp *prototype.TransactionWrapper) {
 	defer func() {
@@ -429,7 +429,7 @@ func (c *Controller) _applyTransaction(trxWrp *prototype.TransactionWrapper) {
 		panic("create transactionObject failed")
 	}
 	// @ not use yet
-	//c.NotifyTrxPreExecute(trx)
+	//c.notifyTrxPreExecute(trx)
 
 	// process operation
 	c._current_op_in_trx = 0
@@ -443,12 +443,14 @@ func (c *Controller) _applyTransaction(trxWrp *prototype.TransactionWrapper) {
 
 func (c *Controller) applyOperation(op *prototype.Operation) {
 	// @ not use yet
-	//n := &prototype.OperationNotification{Op: op}
-	//	c.NotifyOpPreExecute(n)
+	n := &prototype.OperationNotification{Op: op}
+	c.notifyOpPreExecute(n)
+
 	eva := c.getEvaluator(op)
 	eva.Apply()
+
 	// @ not use yet
-	//c.NotifyOpPostExecute(n)
+	c.notifyOpPostExecute(n)
 }
 
 func (c *Controller) getEvaluator(op *prototype.Operation) BaseEvaluator {
