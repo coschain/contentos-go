@@ -126,16 +126,16 @@ message GetAccountByNameRequest {
 }
 
 message AccountResponse {
-    prototype.account_name account_name = 1;
-    prototype.coin coin = 2;
-    prototype.vest vest = 3;
-    repeated prototype.public_key_type public_keys = 4;
-    prototype.time_point_sec created_time = 5;
+    prototype.account_name                  account_name    = 1;
+    prototype.coin                          coin            = 2;
+    prototype.vest                          vest            = 3;
+    repeated prototype.public_key_type      public_keys     = 4;
+    prototype.time_point_sec                created_time    = 5;
 }
 
 message GetFollowerListByNameRequest {
-    prototype.follower_created_order start = 1;
-    uint32 limit = 2;
+    prototype.follower_created_order    start = 1;
+    uint32                              limit = 2;
 }
 
 message GetFollowerListByNameResponse {
@@ -143,8 +143,8 @@ message GetFollowerListByNameResponse {
 }
 
 message GetFollowingListByNameRequest {
-    prototype.following_created_order start = 1;
-    uint32 limit = 2;
+    prototype.following_created_order   start = 1;
+    uint32                              limit = 2;
 }
 
 message GetFollowingListByNameResponse {
@@ -156,8 +156,8 @@ message GetFollowCountByNameRequest {
 }
 
 message GetFollowCountByNameResponse {
-    uint32 fer_cnt = 1;
-    uint32 fing_cnt = 2;
+    uint32      fer_cnt     = 1;
+    uint32      fing_cnt    = 2;
 }
 
 message WitnessResponse {
@@ -174,8 +174,8 @@ message WitnessResponse {
 }
 
 message GetWitnessListRequest {
-    prototype.account_name start = 1;
-    uint32 limit = 2;
+    prototype.account_name      start = 1;
+    uint32                      limit = 2;
 }
 
 message GetWitnessListResponse {
@@ -200,8 +200,8 @@ message PostResponse {
 }
 
 message GetPostListByCreatedRequest {
-    prototype.post_created_order start = 1;
-    uint32 limit = 2;
+    prototype.post_created_order    start = 1;
+    uint32                          limit = 2;
 }
 
 message GetPostListByCreatedResponse {
@@ -209,8 +209,8 @@ message GetPostListByCreatedResponse {
 }
 
 message GetReplyListByPostIdRequest {
-    prototype.reply_created_order start = 1;
-    uint32 limit = 2;
+    prototype.reply_created_order       start = 1;
+    uint32                              limit = 2;
 }
 
 message GetReplyListByPostIdResponse {
@@ -218,9 +218,9 @@ message GetReplyListByPostIdResponse {
 }
 
 message GetBlockTransactionsByNumRequest {
-    uint32 block_num = 1;
-    uint32 start = 2;
-    uint32 limit = 3;
+    uint32          block_num   = 1;
+    uint32          start       = 2;
+    uint32          limit       = 3;
 }
 
 message GetBlockTransactionsByNumResponse {
@@ -244,21 +244,16 @@ message BroadcastTrxRequest {
 }
 
 message BroadcastTrxResponse {
-    uint32 status = 1;
-    string msg = 2;
+    uint32      status  = 1;
+    string      msg     = 2;
 }
 
-// Request message of non params.
 message NonParamsRequest {
 }
 
-// Response message of Call rpc.
 message CallResponse {
-    // result of smart contract method call.
-    string result = 1;
-    //execute error
-    string execute_err = 2;
-    //estimate gas used
-    string estimate_gas = 3;
+    string      result          = 1;
+    string      execute_err     = 2;
+    string      estimate_gas    = 3;
 }
 

@@ -38,8 +38,8 @@ func follow(cmd *cobra.Command, args []string) {
 	}
 	following := args[1]
 	follow_op := &prototype.FollowOperation{
-		Follower:  &prototype.AccountName{Value: follower},
-		Following: &prototype.AccountName{Value: following},
+		Account:  &prototype.AccountName{Value: follower},
+		FAccount: &prototype.AccountName{Value: following},
 		Cancel:    followCancel,
 	}
 

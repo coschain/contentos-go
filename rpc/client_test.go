@@ -238,6 +238,18 @@ func TestGRPCApi_GetTrxById(t *testing.T) {
 	}
 }
 
+func TestGRPCApi_BroadcastTrx(t *testing.T) {
+	req := &grpcpb.BroadcastTrxRequest{}
+	resp := &grpcpb.BroadcastTrxResponse{}
+
+	resp, err := asc.BroadcastTrx(context.Background(), req)
+	if err != nil {
+		t.Errorf("BroadcastTrx failed: %s", err)
+	} else {
+		t.Logf("BroadcastTrx detail: %s", resp)
+	}
+}
+
 func TestHTTPApi_GetAccountByName(t *testing.T) {
 	postValue := "{\"account_name\": {\"value\":\"jack's test info\"}}"
 	http_client("POST", "http://127.0.0.1:8080/v1/user/get_account_by_name", postValue)

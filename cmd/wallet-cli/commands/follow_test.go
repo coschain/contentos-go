@@ -37,8 +37,8 @@ func TestFollow(t *testing.T) {
 	client.EXPECT().BroadcastTrx(gomock.Any(), gomock.Any()).Return(resp, nil).Do(func(context interface{}, req *grpcpb.BroadcastTrxRequest) {
 		op := req.Transaction.Trx.Operations[0]
 		follow_op := op.GetOp8()
-		myassert.Equal(follow_op.Follower.Value, "initminer")
-		myassert.Equal(follow_op.Following.Value, "kochiya")
+		myassert.Equal(follow_op.Account.Value, "initminer")
+		myassert.Equal(follow_op.FAccount.Value, "kochiya")
 
 	})
 	_, err := cmd.ExecuteC()

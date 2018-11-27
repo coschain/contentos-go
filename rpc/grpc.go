@@ -13,7 +13,6 @@ import (
 )
 
 var (
-	ErrEmptyResp = errors.New("empty response")
 	ErrPanicResp = errors.New("rpc panic")
 )
 
@@ -25,7 +24,7 @@ type APIService struct {
 
 func (as *APIService) GetAccountByName(ctx context.Context, req *grpcpb.GetAccountByNameRequest) (*grpcpb.AccountResponse, error) {
 
-	accWrap := table.NewSoAccountWrap(as.db, req.AccountName)
+	accWrap := table.NewSoAccountWrap(as.db, req.GetAccountName())
 	acct := &grpcpb.AccountResponse{}
 
 	if accWrap != nil && accWrap.CheckExist() {
@@ -51,13 +50,13 @@ func (as *APIService) GetFollowerListByName(ctx context.Context, req *grpcpb.Get
 
 	ferOrderWrap := table.NewExtFollowerFollowerCreatedOrderWrap(as.db)
 
-	if req.Start == nil {
+	if req.GetStart() == nil {
 		ferIter = ferOrderWrap.QueryListByOrder(nil, nil)
 	} else {
-		ferIter = ferOrderWrap.QueryListByOrder(req.Start, nil)
+		ferIter = ferOrderWrap.QueryListByOrder(req.GetStart(), nil)
 	}
 
-	limit = checkLimit(req.Limit)
+	limit = checkLimit(req.GetLimit())
 
 	for ferIter != nil && ferIter.Next() && i < limit {
 		ferOrder := ferOrderWrap.GetMainVal(ferIter)
@@ -83,13 +82,13 @@ func (as *APIService) GetFollowingListByName(ctx context.Context, req *grpcpb.Ge
 
 	fingOrderWrap := table.NewExtFollowingFollowingCreatedOrderWrap(as.db)
 
-	if req.Start == nil {
+	if req.GetStart() == nil {
 		fingIter = fingOrderWrap.QueryListByOrder(nil, nil)
 	} else {
-		fingIter = fingOrderWrap.QueryListByOrder(req.Start, nil)
+		fingIter = fingOrderWrap.QueryListByOrder(req.GetStart(), nil)
 	}
 
-	limit = checkLimit(req.Limit)
+	limit = checkLimit(req.GetLimit())
 
 	for fingIter != nil && fingIter.Next() && i < limit {
 		fingOrder := fingOrderWrap.GetMainVal(fingIter)
@@ -110,7 +109,7 @@ func (as *APIService) GetFollowCountByName(ctx context.Context, req *grpcpb.GetF
 		ferCnt, fingCnt uint32
 	)
 
-	afc := table.NewSoExtFollowCountWrap(as.db, req.AccountName)
+	afc := table.NewSoExtFollowCountWrap(as.db, req.GetAccountName())
 
 	if afc != nil && afc.CheckExist() {
 		ferCnt = afc.GetFollowerCnt()
@@ -121,7 +120,7 @@ func (as *APIService) GetFollowCountByName(ctx context.Context, req *grpcpb.GetF
 	return &grpcpb.GetFollowCountByNameResponse{FerCnt: ferCnt, FingCnt: fingCnt}, nil
 
 }
-func (as *APIService) GetChainState(ctx context.Context, in *grpcpb.NonParamsRequest) (*grpcpb.GetChainStateResponse, error){
+func (as *APIService) GetChainState(ctx context.Context, req *grpcpb.NonParamsRequest) (*grpcpb.GetChainStateResponse, error){
 	var (
 		i         int32 = 1
 	)
@@ -141,13 +140,13 @@ func (as *APIService) GetWitnessList(ctx context.Context, req *grpcpb.GetWitness
 
 	witOrderWrap := &table.SWitnessOwnerWrap{as.db}
 
-	if req.Start == nil {
+	if req.GetStart() == nil {
 		witIter = witOrderWrap.QueryListByOrder(nil, nil)
 	} else {
-		witIter = witOrderWrap.QueryListByOrder(req.Start, nil)
+		witIter = witOrderWrap.QueryListByOrder(req.GetStart(), nil)
 	}
 
-	limit = checkLimit(req.Limit)
+	limit = checkLimit(req.GetLimit())
 
 	for witIter != nil && witIter.Next() && i < limit {
 		witWrap := table.NewSoWitnessWrap(as.db, witOrderWrap.GetMainVal(witIter))
@@ -183,13 +182,13 @@ func (as *APIService) GetPostListByCreated(ctx context.Context, req *grpcpb.GetP
 
 	postOrderWrap := table.NewExtPostCreatedCreatedOrderWrap(as.db)
 
-	if req.Start == nil {
+	if req.GetStart() == nil {
 		postIter = postOrderWrap.QueryListByRevOrder(nil, nil)
 	} else {
-		postIter = postOrderWrap.QueryListByRevOrder(req.Start, nil)
+		postIter = postOrderWrap.QueryListByRevOrder(req.GetStart(), nil)
 	}
 
-	limit = checkLimit(req.Limit)
+	limit = checkLimit(req.GetLimit())
 
 	for postIter != nil && postIter.Next() && i < limit {
 		postWrap := table.NewSoPostWrap(as.db, postOrderWrap.GetMainVal(postIter))
@@ -229,13 +228,13 @@ func (as *APIService) GetReplyListByPostId(ctx context.Context, req *grpcpb.GetR
 
 	replyOrderWrap := table.NewExtReplyCreatedCreatedOrderWrap(as.db)
 
-	if req.Start == nil {
+	if req.GetStart() == nil {
 		replyIter = replyOrderWrap.QueryListByRevOrder(nil, nil)
 	} else {
-		replyIter = replyOrderWrap.QueryListByRevOrder(req.Start, nil)
+		replyIter = replyOrderWrap.QueryListByRevOrder(req.GetStart(), nil)
 	}
 
-	limit = checkLimit(req.Limit)
+	limit = checkLimit(req.GetLimit())
 
 	for replyIter != nil && replyIter.Next() && i < limit {
 		postWrap := table.NewSoPostWrap(as.db, replyOrderWrap.GetMainVal(replyIter))
@@ -269,7 +268,7 @@ func (as *APIService) GetBlockTransactionsByNum(ctx context.Context, req *grpcpb
 
 func (as *APIService) GetTrxById(ctx context.Context, req *grpcpb.GetTrxByIdRequest) (*grpcpb.GetTrxByIdResponse, error) {
 
-	trxWrap := table.NewSoTransactionObjectWrap(as.db, req.TrxId)
+	trxWrap := table.NewSoTransactionObjectWrap(as.db, req.GetTrxId())
 	resp := &grpcpb.GetTrxByIdResponse{}
 
 	if trxWrap != nil && trxWrap.CheckExist() {
