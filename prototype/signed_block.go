@@ -22,7 +22,6 @@ func (sb *SignedBlock) Unmarshall(buff []byte) error {
 	return proto.Unmarshal(buff, sb)
 }
 
-
 func (sb *SignedBlock) Previous() common.BlockID {
 	var ret common.BlockID
 	copy(ret.Data[:], sb.SignedHeader.Header.Previous.Hash[:32])
@@ -35,7 +34,9 @@ func (sb *SignedBlock) Timestamp() uint64 {
 
 func (sb *SignedBlock) Id() common.BlockID {
 	var ret, prev common.BlockID
-	copy(prev.Data[:], sb.SignedHeader.Header.Previous.Hash[:32])
+	if len(sb.SignedHeader.Header.Previous.Hash) != 0 {
+		copy(prev.Data[:], sb.SignedHeader.Header.Previous.Hash[:32])
+	}
 	digest := sb.SignedHeader.Hash()
 	copy(ret.Data[:], digest[:])
 	binary.LittleEndian.PutUint64(ret.Data[:8], prev.BlockNum()+1)

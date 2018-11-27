@@ -51,7 +51,7 @@ func NewDPoS(ctx *node.ServiceContext) *DPoS {
 	ret := &DPoS{
 		ForkDB: forkdb.NewDB(),
 		//Producers: make([]*Producer, constants.ProducerNum),
-		prodTimer: time.NewTimer(10 * time.Second),
+		prodTimer: time.NewTimer(1 * time.Millisecond),
 		trxCh:     make(chan common.ISignedTransaction, 5000),
 		blkCh:     make(chan common.ISignedBlock),
 		ctx:       ctx,
@@ -163,10 +163,12 @@ func (d *DPoS) start() {
 	time.Sleep(4 * time.Second)
 
 	logging.CLog().Info("DPoS started.")
-	if d.ForkDB.Empty() && d.blog.Empty() {
+	if d.bootstrap && d.ForkDB.Empty() && d.blog.Empty() {
 		d.shuffle()
+	} else {
+		d.restoreProducers()
 	}
-	d.scheduleProduce()
+	//d.scheduleProduce()
 	for {
 		select {
 		case <-d.stopCh:
@@ -185,11 +187,11 @@ func (d *DPoS) start() {
 			}
 			d.prodTimer.Reset(1 * time.Second)
 			b, err := d.generateBlock()
-			logging.CLog().Debug("generated block.", b.Id())
 			if err != nil {
 				logging.CLog().Error("generating block error: ", err)
 				continue
 			}
+			logging.CLog().Debugf("generated block: <id %v> <ts %d> <prev %d>", b.Id(), b.Timestamp(), b.Previous())
 			// TODO: broadcast block
 			d.PushBlock(b)
 		}
@@ -207,8 +209,15 @@ func (d *DPoS) Stop() error {
 func (d *DPoS) generateBlock() (common.ISignedBlock, error) {
 	//logging.CLog().Debug("generateBlock.")
 	ts := d.getSlotTime(d.slot)
-	//prev := d.ForkDB.Head().Id()
-	return d.ctrl.GenerateBlock(d.Name, uint32(ts), d.privKey, prototype.Skip_nothing), nil
+	prev := &prototype.Sha256{}
+	if !d.ForkDB.Empty() {
+		prev.FromBlockID(d.ForkDB.Head().Id())
+		//logging.CLog().Debug("xxxxxxxxxxxxx ", d.ForkDB.Head().Id())
+	} else {
+		prev.Hash = make([]byte, 32)
+	}
+	//logging.CLog().Debugf("generating block. <prev %v>, <ts %d>", prev.Hash, ts)
+	return d.ctrl.GenerateBlock(d.Name, prev, uint32(ts), d.privKey, prototype.Skip_nothing), nil
 }
 
 func (d *DPoS) checkGenesis() bool {
@@ -429,7 +438,7 @@ func (d *DPoS) switchFork(old, new common.BlockID) {
 }
 
 func (d *DPoS) applyBlock(b common.ISignedBlock) error {
-	logging.CLog().Debug("applyBlock #", b.Id().BlockNum())
+	//logging.CLog().Debug("applyBlock #", b.Id().BlockNum())
 	d.ctrl.PushBlock(b.(*prototype.SignedBlock), prototype.Skip_nothing)
 	return nil
 }

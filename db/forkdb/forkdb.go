@@ -2,7 +2,6 @@ package forkdb
 
 import (
 	"fmt"
-	"github.com/coschain/contentos-go/common/logging"
 	"sync"
 
 	"github.com/coschain/contentos-go/common"
@@ -292,8 +291,6 @@ func (db *DB) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, []comm
 // other branches, sets id as the start block. It should be regularly
 // called when a block is commited to save ram.
 func (db *DB) Commit(id common.BlockID) {
-	logging.CLog().Debug("commit block ", id)
-	logging.CLog().Debugf("before commit head %v, blocks %d", db.head, len(db.branches))
 	db.Lock()
 	defer db.Unlock()
 	if _, ok := db.branches[id]; !ok {
@@ -337,7 +334,6 @@ func (db *DB) Commit(id common.BlockID) {
 	db.branches = newBranches
 	db.start = id.BlockNum()
 	db.lastCommitted = id
-	logging.CLog().Debugf("after commit head %v, blocks %d", db.head, len(db.branches))
 }
 
 // Illegal determines if the block has illegal transactions
