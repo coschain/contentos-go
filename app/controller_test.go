@@ -23,6 +23,39 @@ const (
 
 )
 
+func makeBlock(pre *prototype.Sha256, blockTimestamp uint32, signedTrx *prototype.SignedTransaction) *prototype.SignedBlock {
+	sigBlk := new(prototype.SignedBlock)
+
+	// add trx wraper
+	trxWraper := &prototype.TransactionWrapper{
+		SigTrx:signedTrx,
+		Invoice:&prototype.TransactionInvoice{Status:200},
+	}
+	sigBlk.Transactions = append(sigBlk.Transactions,trxWraper)
+
+	// calculate merkle
+	id := sigBlk.CalculateMerkleRoot()
+
+	// write signed block header
+	sigBlkHdr := new(prototype.SignedBlockHeader)
+
+	sigBlkHdr.Header = new(prototype.BlockHeader)
+	sigBlkHdr.Header.Previous = pre
+	sigBlkHdr.Header.Timestamp = &prototype.TimePointSec{UtcSeconds:blockTimestamp}
+	sigBlkHdr.Header.Witness = &prototype.AccountName{Value:constants.INIT_MINER_NAME}
+	sigBlkHdr.Header.TransactionMerkleRoot = &prototype.Sha256{Hash:id.Data[:]}
+	sigBlkHdr.WitnessSignature = &prototype.SignatureType{}
+
+	// signature
+	pri,err := prototype.PrivateKeyFromWIF(constants.INITMINER_PRIKEY)
+	if err != nil {
+		panic("PrivateKeyFromWIF error")
+	}
+	sigBlkHdr.Sign(pri)
+
+	sigBlk.SignedHeader = sigBlkHdr
+	return sigBlk
+}
 
 func createSigTrx(op interface{},headBlockID *prototype.Sha256, expire int) (*prototype.SignedTransaction,error) {
 
@@ -131,36 +164,7 @@ func Test_PushBlock(t *testing.T) {
 		t.Error("createSigTrx error:",err)
 	}
 
-	sigBlk := new(prototype.SignedBlock)
-
-	// add trx wraper
-	trxWraper := &prototype.TransactionWrapper{
-		SigTrx:signedTrx,
-		Invoice:&prototype.TransactionInvoice{Status:200},
-	}
-	sigBlk.Transactions = append(sigBlk.Transactions,trxWraper)
-
-	// calculate merkle
-	id := sigBlk.CalculateMerkleRoot()
-
-	// write signed block header
-	sigBlkHdr := new(prototype.SignedBlockHeader)
-
-	sigBlkHdr.Header = new(prototype.BlockHeader)
-	sigBlkHdr.Header.Previous = c.dgpo.GetHeadBlockId()
-	sigBlkHdr.Header.Timestamp = &prototype.TimePointSec{UtcSeconds:20}
-	sigBlkHdr.Header.Witness = &prototype.AccountName{Value:constants.INIT_MINER_NAME}
-	sigBlkHdr.Header.TransactionMerkleRoot = &prototype.Sha256{Hash:id.Data[:]}
-	sigBlkHdr.WitnessSignature = &prototype.SignatureType{}
-
-	// signature
-	pri,err := prototype.PrivateKeyFromWIF(constants.INITMINER_PRIKEY)
-	if err != nil {
-		t.Error("PrivateKeyFromWIF error")
-	}
-	sigBlkHdr.Sign(pri)
-
-	sigBlk.SignedHeader = sigBlkHdr
+	sigBlk := makeBlock(c.dgpo.GetHeadBlockId(),10,signedTrx)
 
 	fmt.Println("block size:",proto.Size(sigBlk))
 
@@ -368,40 +372,72 @@ func TestController_PopBlock(t *testing.T) {
 
 }
 
-func makeBlock(pre *prototype.Sha256, blockTimestamp uint32, signedTrx *prototype.SignedTransaction) *prototype.SignedBlock {
-	sigBlk := new(prototype.SignedBlock)
-
-	// add trx wraper
-	trxWraper := &prototype.TransactionWrapper{
-		SigTrx:signedTrx,
-		Invoice:&prototype.TransactionInvoice{Status:200},
-	}
-	sigBlk.Transactions = append(sigBlk.Transactions,trxWraper)
-
-	// calculate merkle
-	id := sigBlk.CalculateMerkleRoot()
-
-	// write signed block header
-	sigBlkHdr := new(prototype.SignedBlockHeader)
-
-	sigBlkHdr.Header = new(prototype.BlockHeader)
-	sigBlkHdr.Header.Previous = pre
-	sigBlkHdr.Header.Timestamp = &prototype.TimePointSec{UtcSeconds:blockTimestamp}
-	sigBlkHdr.Header.Witness = &prototype.AccountName{Value:constants.INIT_MINER_NAME}
-	sigBlkHdr.Header.TransactionMerkleRoot = &prototype.Sha256{Hash:id.Data[:]}
-	sigBlkHdr.WitnessSignature = &prototype.SignatureType{}
-
-	// signature
-	pri,err := prototype.PrivateKeyFromWIF(constants.INITMINER_PRIKEY)
-	if err != nil {
-		panic("PrivateKeyFromWIF error")
-	}
-	sigBlkHdr.Sign(pri)
-
-	sigBlk.SignedHeader = sigBlkHdr
-	return sigBlk
-}
-
 func TestController_Commit(t *testing.T) {
+	clearDB()
 
+	// set up controller
+	db := startDB()
+	defer db.Close()
+	c := startController(db)
+
+	createOP,err := makeCreateAccountOP(accountNameBob,pubKeyBob)
+	if err != nil {
+		t.Error("makeCreateAccountOP error:",err)
+	}
+	headBlockID := c.dgpo.GetHeadBlockId()
+	signedTrx,err := createSigTrx(createOP,headBlockID,20)
+	if err != nil {
+		t.Error("createSigTrx error:",err)
+	}
+
+	block := makeBlock(c.dgpo.GetHeadBlockId(),6,signedTrx)
+
+	fmt.Println("block size:",proto.Size(block))
+
+	c.PushBlock(block,prototype.Skip_nothing)
+
+	// second block
+	createOP2,err := makeCreateAccountOP(accountNameTom,pubKeyTom)
+	if err != nil {
+		t.Error("makeCreateAccountOP error:",err)
+	}
+	headBlockID2 := c.dgpo.GetHeadBlockId()
+	signedTrx2,err := createSigTrx(createOP2,headBlockID2,20)
+	if err != nil {
+		t.Error("createSigTrx error:",err)
+	}
+
+	block2 := makeBlock(c.dgpo.GetHeadBlockId(),9,signedTrx2)
+
+	c.PushBlock(block2,prototype.Skip_nothing)
+
+	// check
+	bobName := &prototype.AccountName{Value:accountNameBob}
+	bobWrap := table.NewSoAccountWrap(db,bobName)
+	if !bobWrap.CheckExist() {
+		t.Error("create account failed")
+	}
+	tomName := &prototype.AccountName{Value:accountNameTom}
+	tomWrap := table.NewSoAccountWrap(db,tomName)
+	if !tomWrap.CheckExist() {
+		t.Error("create account failed")
+	}
+
+	c.Commit(2)
+	bobStillExistWrap := table.NewSoAccountWrap(db,bobName)
+	if !bobStillExistWrap.CheckExist() {
+		t.Error("commit error")
+	}
+
+	tomStillExistWrap := table.NewSoAccountWrap(db,tomName)
+	if !tomStillExistWrap.CheckExist() {
+		t.Error("commit error")
+	}
+
+	defer func() {
+		if err := recover(); err == nil {
+			t.Error("pop a irreversible block but no panic")
+		}
+	}()
+	c.PopBlock(2)
 }
