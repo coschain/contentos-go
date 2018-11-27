@@ -36,7 +36,8 @@ func (sb *SignedBlock) Timestamp() uint64 {
 func (sb *SignedBlock) Id() common.BlockID {
 	var ret, prev common.BlockID
 	copy(prev.Data[:], sb.SignedHeader.Header.Previous.Hash[:32])
-	copy(ret.Data[:], sb.SignedHeader.Header.TransactionMerkleRoot.Hash[:32])
+	digest := sb.SignedHeader.Hash()
+	copy(ret.Data[:], digest[:])
 	binary.LittleEndian.PutUint64(ret.Data[:8], prev.BlockNum()+1)
 	return ret
 }

@@ -135,7 +135,7 @@ func (d *DPoS) Start(node *node.Node) error {
 
 func (d *DPoS) scheduleProduce() bool {
 	if !d.checkGenesis() {
-		logging.CLog().Info("checkGenesis failed.")
+		//logging.CLog().Info("checkGenesis failed.")
 		d.prodTimer.Reset(timeToNextSec())
 		return false
 	}
@@ -146,7 +146,7 @@ func (d *DPoS) scheduleProduce() bool {
 		} else {
 			d.prodTimer.Reset(timeToNextSec())
 			// TODO: p2p sync
-			logging.CLog().Info("checkSync failed.")
+			//logging.CLog().Info("checkSync failed.")
 			return false
 		}
 	}
@@ -172,12 +172,14 @@ func (d *DPoS) start() {
 		case <-d.stopCh:
 			break
 		case b := <-d.blkCh:
-			d.pushBlock(b)
+			if err := d.pushBlock(b); err != nil {
+				logging.CLog().Error("push block error: ", err)
+			}
 		//case trx := <-d.trxCh:
 		// handle trx
 		case <-d.prodTimer.C:
-			logging.CLog().Debug("scheduleProduce.")
-			logging.CLog().Debug("producers: ", d.Producers)
+			//logging.CLog().Debug("scheduleProduce.")
+			//logging.CLog().Debug("producers: ", d.Producers)
 			if !d.scheduleProduce() {
 				continue
 			}
@@ -201,7 +203,7 @@ func (d *DPoS) Stop() error {
 }
 
 func (d *DPoS) generateBlock() (common.ISignedBlock, error) {
-	logging.CLog().Debug("generateBlock.")
+	//logging.CLog().Debug("generateBlock.")
 	ts := d.getSlotTime(d.slot)
 	//prev := d.ForkDB.Head().Id()
 	return d.ctrl.GenerateBlock(d.Name, uint32(ts), d.privKey, prototype.Skip_nothing), nil
@@ -237,7 +239,7 @@ func (d *DPoS) checkProducingTiming() bool {
 		// cycle comes
 		//nextSlotTime := d.getSlotTime(1)
 		//time.Sleep(time.Unix(int64(nextSlotTime), 0).Sub(time.Now()))
-		logging.CLog().Info("checkProducingTiming failed.")
+		//logging.CLog().Info("checkProducingTiming failed.")
 		return false
 	}
 	return true
@@ -247,7 +249,7 @@ func (d *DPoS) checkOurTurn() bool {
 	producer := d.getScheduledProducer(d.slot)
 	ret := strings.Compare(d.Name, producer) == 0
 	if !ret {
-		logging.CLog().Info("checkProducingTiming failed.")
+		//logging.CLog().Info("checkProducingTiming failed.")
 	}
 	return ret
 }
@@ -302,7 +304,7 @@ func (d *DPoS) PushTransaction(trx common.ISignedTransaction) {
 }
 
 func (d *DPoS) pushBlock(b common.ISignedBlock) error {
-	logging.CLog().Debug("pushBlock.")
+	logging.CLog().Debug("pushBlock #", b.Id().BlockNum())
 	//d.Lock()
 	//defer d.Unlock()
 	// TODO: check signee & merkle
