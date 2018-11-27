@@ -722,6 +722,8 @@ func (c *Controller) GetIncrementSlotAtTime(t *prototype.TimePointSec) uint32 {
 }
 
 func (c *Controller) GetScheduledWitness(slot uint32) *prototype.AccountName {
+	return nil
+	/*
 	currentSlot := c.dgpo.GetCurrentAslot()
 	currentSlot += slot
 
@@ -729,7 +731,7 @@ func (c *Controller) GetScheduledWitness(slot uint32) *prototype.AccountName {
 	witnesses := wsoWrap.GetCurrentShuffledWitness()
 	witnessNum := uint32(len(witnesses))
 	witnessName := witnesses[currentSlot%witnessNum]
-	return &prototype.AccountName{Value:witnessName}
+	return &prototype.AccountName{Value:witnessName}*/
 }
 
 func (c *Controller) updateGlobalDataToDB() {
@@ -768,7 +770,7 @@ func (c *Controller) updateGlobalDynamicData(blk *prototype.SignedBlock) {
 	c.dgpo.HeadBlockNumber    = uint32(blk.Id().BlockNum())
 	c.dgpo.HeadBlockId        = blockID
 	c.dgpo.Time               = blk.SignedHeader.Header.Timestamp
-	c.dgpo.CurrentAslot       = c.dgpo.CurrentAslot + missedBlock+1
+	//c.dgpo.CurrentAslot       = c.dgpo.CurrentAslot + missedBlock+1
 
 	// this check is useful ?
 	mustSuccess( c.dgpo.GetHeadBlockNumber() - c.dgpo.GetIrreversibleBlockNum() < constants.MAX_UNDO_HISTORY,"The database does not have enough undo history to support a blockchain with so many missed blocks." )
