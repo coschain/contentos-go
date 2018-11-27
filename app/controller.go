@@ -101,11 +101,12 @@ func (c *Controller) setProducing(b bool) {
 	c._isProducing = b
 }
 
-func (c *Controller) PushTrx(trx *prototype.SignedTransaction) *prototype.TransactionInvoice {
+func (c *Controller) PushTrx(trx *prototype.SignedTransaction) (invoice *prototype.TransactionInvoice) {
 	// this function may be cross routines ? use channel or lock ?
 	oldSkip := c.skip
 	defer func() {
 		if err := recover(); err != nil {
+			invoice = &prototype.TransactionInvoice{Status:uint32(500)}
 			logging.CLog().Errorf("PushTrx Error: %v", err)
 		}
 		c.setProducing(false)

@@ -115,12 +115,27 @@ func startNode(cmd *cobra.Command, args []string) {
 	}
 
 	go func() {
+		SIGSTOP := syscall.Signal(0x13) //for windows compile
 		sigc := make(chan os.Signal, 1)
-		signal.Notify(sigc, syscall.SIGINT, syscall.SIGTERM)
-		defer signal.Stop(sigc)
-		<-sigc
-		logging.CLog().Infoln("Got interrupt, shutting down...")
-		go app.Stop()
+		signal.Notify(sigc, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT, SIGSTOP, syscall.SIGUSR1, syscall.SIGUSR2)
+		for {
+			s := <-sigc
+			logging.CLog().Infof("get a signal %s", s.String())
+			switch s {
+			case syscall.SIGQUIT, syscall.SIGTERM, SIGSTOP, syscall.SIGINT:
+				logging.CLog().Infoln("Got interrupt, shutting down...")
+				go app.Stop()
+				return
+			case syscall.SIGHUP:
+				logging.CLog().Info("syscall.SIGHUP custom operation")
+			case syscall.SIGUSR1:
+				logging.CLog().Info("syscall.SIGUSR1 custom operation")
+			case syscall.SIGUSR2:
+				logging.CLog().Info("syscall.SIGUSR2 custom operation")
+			default:
+				return
+			}
+		}
 	}()
 
 	app.Wait()

@@ -216,7 +216,7 @@ func verifyAuthority(ops []*Operation, trxPubs []*PublicKeyType, max_recursion_d
 
 	for k, _ := range required_owner {
 		if !s.CheckAuthorityByName(k, 0, Owner) {
-			panic("check active authority failed")
+			panic("check owner authority failed")
 		}
 	}
 }

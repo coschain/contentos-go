@@ -4,6 +4,7 @@ import (
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common/constants"
+	"github.com/coschain/contentos-go/common/logging"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/prototype"
@@ -52,6 +53,7 @@ func (p *FollowService) onPostOperation( notification *prototype.OperationNotifi
 
 	switch notification.Op.GetOp().(type) {
 	case *prototype.Operation_Op8:
+		logging.CLog().Debugf("receive follow operation [%x]", notification.Op.GetOp8())
 		p.executeFollowOperation(notification.Op.GetOp8())
 	default:
 

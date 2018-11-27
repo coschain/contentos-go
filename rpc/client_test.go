@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/common/logging"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/rpc/mock_grpcpb"
@@ -20,6 +21,8 @@ var asc grpcpb.ApiServiceClient
 
 func TestMain(m *testing.M) {
 	logging.Init("logs	", "debug", 0)
+
+	os.RemoveAll("/Users/eagle/.coschain/cosd/db")
 
 	addr := fmt.Sprintf("127.0.0.1:%d", uint32(8888))
 	conn, err := Dial(addr)
@@ -238,8 +241,85 @@ func TestGRPCApi_GetTrxById(t *testing.T) {
 	}
 }
 
+var (
+	BOB = "BobName"
+	ALICE = "AliceName"
+)
+
 func TestGRPCApi_BroadcastTrx(t *testing.T) {
-	req := &grpcpb.BroadcastTrxRequest{}
+	pushTrx(t, createAccountTxReq(t))
+	pushTrx(t, createUnfollowTxReq(t))
+	pushTrx(t, createFollowTxReq(t))
+
+	req := &grpcpb.GetFollowerListByNameRequest{
+		Limit: 100,
+	}
+	resp := &grpcpb.GetFollowerListByNameResponse{}
+	resp, err := asc.GetFollowerListByName(context.Background(), req)
+	if err != nil {
+		t.Errorf("GetFollowerListByName failed: %s", err)
+	} else {
+		t.Logf("GetFollowerListByName detail: %s", resp.FollowerList)
+	}
+
+}
+
+func createFollowTxReq(t *testing.T) *grpcpb.BroadcastTrxRequest {
+	fOP := &prototype.FollowOperation{
+		Account:  &prototype.AccountName{Value: BOB},
+		FAccount: &prototype.AccountName{Value: ALICE},
+		Cancel:    false,
+	}
+
+	return generateSignedTxResp(t, fOP)
+}
+
+func createUnfollowTxReq(t *testing.T) *grpcpb.BroadcastTrxRequest {
+	unfOP := &prototype.FollowOperation{
+		Account:  &prototype.AccountName{Value: BOB},
+		FAccount: &prototype.AccountName{Value: ALICE},
+		Cancel:    true,
+	}
+
+	return generateSignedTxResp(t, unfOP)
+}
+
+func createAccountTxReq(t *testing.T) *grpcpb.BroadcastTrxRequest {
+
+	pubkeyWIFA := "COS6Ezgyx3RQP5YjwBRf7higSytEVwELBCzK6xgB9orvpMuaLregA"
+	//prikeyWIFA := "YLC5nMjxPWvMPzDW9dC3d5UEamZwWffZpjWCmFq1Mk99EpQ1D"
+
+	pubkeyWIFB := "COS65V8VdcvE4sF6qXtXs6k74TCi3rJrA5Lc5EqkH9Rh8YS3D2WT7"
+	//prikeyWIFB := "y9i4xUWGpbHQqfFjE1wL8LA2oevjhJtoej1KbMMJdoH9gnbhZ"
+
+	pubkeyA, _ := prototype.PublicKeyFromWIF(pubkeyWIFA)
+	pubkeyB, _ := prototype.PublicKeyFromWIF(pubkeyWIFB)
+
+	keysA := prototype.NewAuthorityFromPubKey(pubkeyA)
+	keysB := prototype.NewAuthorityFromPubKey(pubkeyB)
+
+	acoA := &prototype.AccountCreateOperation{
+		Fee:            prototype.NewCoin(1),
+		Creator:        &prototype.AccountName{Value: constants.INIT_MINER_NAME},
+		NewAccountName: &prototype.AccountName{Value: BOB},
+		Owner:          keysA,
+		Posting:        keysA,
+		Active:         keysA,
+	}
+
+	acoB := &prototype.AccountCreateOperation{
+		Fee:            prototype.NewCoin(1),
+		Creator:        &prototype.AccountName{Value: constants.INIT_MINER_NAME},
+		NewAccountName: &prototype.AccountName{Value: ALICE},
+		Owner:          keysB,
+		Posting:        keysB,
+		Active:         keysB,
+	}
+
+	return generateSignedTxResp(t, acoA, acoB)
+}
+
+func pushTrx(t *testing.T, req *grpcpb.BroadcastTrxRequest) {
 	resp := &grpcpb.BroadcastTrxResponse{}
 
 	resp, err := asc.BroadcastTrx(context.Background(), req)
@@ -248,6 +328,41 @@ func TestGRPCApi_BroadcastTrx(t *testing.T) {
 	} else {
 		t.Logf("BroadcastTrx detail: %s", resp)
 	}
+}
+
+func generateSignedTxResp(t *testing.T, ops ...interface{}) *grpcpb.BroadcastTrxRequest {
+	//creatorPrikeys := []*prototype.PrivateKeyType{}
+	creatorPrikey, _ := prototype.PrivateKeyFromWIF(constants.INITMINER_PRIKEY)
+	//creatorPrikeys = append(creatorPrikeys, creatorPrikey)
+
+	tx := &prototype.Transaction{RefBlockNum: 0, RefBlockPrefix: 0, Expiration: &prototype.TimePointSec{UtcSeconds: 0}}
+
+	for _, op := range ops  {
+		tx.AddOperation(op)
+	}
+
+	signTx := prototype.SignedTransaction{Trx: tx}
+	signTx.Signatures = append(signTx.Signatures, &prototype.SignatureType{Sig:signTx.Sign(creatorPrikey, prototype.ChainId{Value: 0})})
+
+	if err := signTx.Validate(); err != nil {
+		t.Error(err)
+	}
+
+	return &grpcpb.BroadcastTrxRequest{Transaction: &signTx}
+}
+
+func GenerateNewKey() (string, string, error) {
+	privKey, err := prototype.GenerateNewKey()
+	if err != nil {
+		return "", "", err
+	}
+	pubKey, err := privKey.PubKey()
+	if err != nil {
+		return "", "", err
+	}
+	privKeyStr := privKey.ToWIF()
+	pubKeyStr := pubKey.ToWIF()
+	return pubKeyStr, privKeyStr, nil
 }
 
 func TestHTTPApi_GetAccountByName(t *testing.T) {

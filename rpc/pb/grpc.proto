@@ -244,8 +244,9 @@ message BroadcastTrxRequest {
 }
 
 message BroadcastTrxResponse {
-    uint32      status  = 1;
-    string      msg     = 2;
+    prototype.transaction_invoice   invoice = 1;
+    uint32                          status  = 2;
+    string                          msg     = 3;
 }
 
 message NonParamsRequest {

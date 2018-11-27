@@ -285,10 +285,10 @@ func (as *APIService) BroadcastTrx(ctx context.Context, req *grpcpb.BroadcastTrx
 	var result *prototype.TransactionInvoice = nil
 	as.mainLoop.Send(func() {
 		result = as.ctrl.PushTrx(req.GetTransaction())
-		logging.CLog().Infof("BroadcastTrx Result: %x", result)
+		logging.CLog().Infof("BroadcastTrx Result: %s", result)
 	})
 
-	return &grpcpb.BroadcastTrxResponse{}, nil
+	return &grpcpb.BroadcastTrxResponse{Invoice:result}, nil
 }
 
 func checkLimit(limit uint32) uint32 {
