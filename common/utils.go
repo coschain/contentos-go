@@ -2,6 +2,7 @@ package common
 
 import (
 	"fmt"
+	"github.com/coschain/contentos-go/common/constants"
 	"io"
 	"os"
 	"runtime"
@@ -38,6 +39,10 @@ func Fatalf(format string, args ...interface{}) {
 			w = os.Stderr
 		}
 	}
-	fmt.Fprintf(w, "Fatal: "+format+"\n", args...)
+	_, _ = fmt.Fprintf(w, "Fatal: "+format+"\n", args...)
 	os.Exit(1)
+}
+
+func GetBucket(timestamp uint32) uint32 {
+	return timestamp / uint32(constants.BLOCK_INTERVAL)
 }

@@ -13,7 +13,7 @@ var CTRL_SERVER_NAME = "ctrl"
 
 type IController interface {
 	PushTrx(trx *prototype.SignedTransaction) *prototype.TransactionInvoice
-	PushBlock(blk *prototype.SignedBlock,skip prototype.SkipFlag)
+	PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag)
 	HeadBlockTime() *prototype.TimePointSec
 	GenerateBlock(witness string, pre *prototype.Sha256, timestamp uint32, priKey *prototype.PrivateKeyType, skip prototype.SkipFlag) *prototype.SignedBlock
 	GetWitnessTopN(n uint32) []string
@@ -21,7 +21,8 @@ type IController interface {
 	GetShuffledWitness() []string
 	Pop(id *common.BlockID)
 
-	TransferToVest( value *prototype.Coin)
-	TransferFromVest( value *prototype.Vest)
+	TransferToVest(value *prototype.Coin)
+	TransferFromVest(value *prototype.Vest)
 
+	AddWeightedVP(value uint64)
 }

@@ -2,8 +2,10 @@ package app
 
 import (
 	"github.com/coschain/contentos-go/app/table"
+	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/prototype"
+	"github.com/pkg/errors"
 )
 
 func mustSuccess(b bool, val string) {
@@ -92,8 +94,8 @@ func (ev *AccountCreateEvaluator) Apply() {
 
 	// sub creator's fee
 	originBalance := creatorWrap.GetBalance()
-	opAssertE( originBalance.Sub( op.Fee ), "creator balance overflow" )
-	opAssert( creatorWrap.MdBalance(originBalance), "")
+	opAssertE(originBalance.Sub(op.Fee), "creator balance overflow")
+	opAssert(creatorWrap.MdBalance(originBalance), "")
 
 	// create account
 	newAccountWrap := table.NewSoAccountWrap(ev.ctx.db, op.NewAccountName)
@@ -116,7 +118,7 @@ func (ev *AccountCreateEvaluator) Apply() {
 	}), "duplicate create account authority object")
 
 	// sub dynamic glaobal properties's total fee
-	ev.ctx.control.TransferToVest( op.Fee )
+	ev.ctx.control.TransferToVest(op.Fee)
 }
 
 func (ev *TransferEvaluator) Apply() {
@@ -131,11 +133,46 @@ func (ev *TransferEvaluator) Apply() {
 	fBalance := fromWrap.GetBalance()
 	tBalance := toWrap.GetBalance()
 
-	opAssertE( fBalance.Sub( op.Amount ), "Insufficient balance to transfer.")
-	opAssert( fromWrap.MdBalance(fBalance), "")
+	opAssertE(fBalance.Sub(op.Amount), "Insufficient balance to transfer.")
+	opAssert(fromWrap.MdBalance(fBalance), "")
 
-	opAssertE( tBalance.Add( op.Amount ), "balance overflow")
-	opAssert( toWrap.MdBalance(tBalance), "")
+	opAssertE(tBalance.Add(op.Amount), "balance overflow")
+	opAssert(toWrap.MdBalance(tBalance), "")
+}
+
+func (ev *PostEvaluator) Apply() {
+	op := ev.op
+	idWrap := table.NewSoPostWrap(ev.ctx.db, &op.Uuid)
+	opAssert(!idWrap.CheckExist(), "post uuid exist")
+
+	authorWrap := table.NewSoAccountWrap(ev.ctx.db, op.Owner)
+	elapsedSeconds := ev.ctx.control.HeadBlockTime().UtcSeconds - authorWrap.GetLastPostTime().UtcSeconds
+	opAssert(elapsedSeconds < constants.MIN_POST_INTERVAL, "posting frequently")
+
+	opAssertE(idWrap.Create(func(t *table.SoPost) {
+		t.PostId = op.Uuid
+		t.Tags = op.Tags
+		t.Title = op.Title
+		t.Author = op.Owner
+		t.Body = op.Content
+		t.Created = ev.ctx.control.HeadBlockTime()
+		t.CashoutTime = &prototype.TimePointSec{UtcSeconds: ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.POST_CASHPUT_DELAY_TIME)}
+		t.Depth = 0
+		t.Children = 0
+		t.RootId = t.PostId
+		t.ParentId = 0
+		t.RootId = 0
+		t.Beneficiaries = op.Beneficiaries
+		t.WeightedVp = 0
+		t.VoteCnt = 0
+	}), "create post error")
+
+	timestamp := ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.POST_CASHPUT_DELAY_TIME) - uint32(constants.GenesisTime)
+	keyPrefix := "cashout:" + string(common.GetBucket(timestamp)) + "_"
+	key := keyPrefix + string(op.Uuid)
+	value := "post"
+	opAssertE(ev.ctx.db.Put([]byte(key), []byte(value)), "put post key into db error")
+
 }
 
 func (ev *ReplyEvaluator) Apply() {
@@ -148,6 +185,17 @@ func (ev *ReplyEvaluator) Apply() {
 
 	opAssert(pidWrap.GetDepth()+1 < constants.POST_MAX_DEPTH, "reply depth error")
 
+	authorWrap := table.NewSoAccountWrap(ev.ctx.db, op.Owner)
+	elapsedSeconds := ev.ctx.control.HeadBlockTime().UtcSeconds - authorWrap.GetLastPostTime().UtcSeconds
+	opAssert(elapsedSeconds < constants.MIN_POST_INTERVAL, "posting frequently")
+
+	var rootId uint64
+	if pidWrap.GetRootId() == 0 {
+		rootId = pidWrap.GetPostId()
+	} else {
+		rootId = pidWrap.GetRootId()
+	}
+
 	opAssertE(cidWrap.Create(func(t *table.SoPost) {
 		t.PostId = op.Uuid
 		t.Tags = nil
@@ -155,57 +203,82 @@ func (ev *ReplyEvaluator) Apply() {
 		t.Author = op.Owner
 		t.Body = op.Content
 		t.Created = ev.ctx.control.HeadBlockTime()
-		t.LastPayout = prototype.NewTimePointSec(0) //TODO
+		t.CashoutTime = &prototype.TimePointSec{UtcSeconds: ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.POST_CASHPUT_DELAY_TIME)}
 		t.Depth = pidWrap.GetDepth() + 1
 		t.Children = 0
-		t.RootId = pidWrap.GetRootId()
+		t.RootId = rootId
 		t.ParentId = op.ParentUuid
 		t.VoteCnt = 0
+		t.Beneficiaries = op.Beneficiaries
 	}), "create reply error")
 
 	// Modify Parent Object
 	opAssert(pidWrap.MdChildren(pidWrap.GetChildren()+1), "Modify Parent Children Error")
+
+	timestamp := ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.POST_CASHPUT_DELAY_TIME) - uint32(constants.GenesisTime)
+	keyPrefix := "cashout:" + string(common.GetBucket(timestamp)) + "_"
+	key := keyPrefix + string(op.Uuid)
+	value := "reply"
+	opAssertE(ev.ctx.db.Put([]byte(key), []byte(value)), "put reply key into db error")
 }
 
-func (ev *PostEvaluator) Apply() {
-	op := ev.op
-	idWrap := table.NewSoPostWrap(ev.ctx.db, &op.Uuid)
-
-	opAssert(!idWrap.CheckExist(), "post uuid exist")
-
-	opAssertE(idWrap.Create(func(t *table.SoPost) {
-		t.PostId = op.Uuid
-		t.Tags = op.Tags
-		t.Title = op.Title
-		t.Author = op.Owner
-		t.Body = op.Content
-		t.Created = ev.ctx.control.HeadBlockTime()
-		t.LastPayout = prototype.NewTimePointSec(0) //TODO
-		t.Depth = 0
-		t.Children = 0
-		t.RootId = t.PostId
-		t.ParentId = constants.POST_INVALID_ID
-		t.VoteCnt = 0
-	}), "create post error")
-}
-
+// upvote is true: upvote otherwise downvote
+// no downvote has been supplied by command, so I ignore it
 func (ev *VoteEvaluator) Apply() {
 	op := ev.op
 
+	voterWrap := table.NewSoAccountWrap(ev.ctx.db, op.Voter)
+	elapsedSeconds := ev.ctx.control.HeadBlockTime().UtcSeconds - voterWrap.GetLastVoteTime().UtcSeconds
+	opAssert(elapsedSeconds < constants.MIN_VOTE_INTERVAL, "voting frequently")
+
 	voterId := prototype.VoterId{Voter: op.Voter, PostId: op.Idx}
-	vidWrap := table.NewSoVoteWrap(ev.ctx.db, &voterId)
-	pidWrap := table.NewSoPostWrap(ev.ctx.db, &op.Idx)
+	voteWrap := table.NewSoVoteWrap(ev.ctx.db, &voterId)
+	postWrap := table.NewSoPostWrap(ev.ctx.db, &op.Idx)
 
-	opAssert(!pidWrap.CheckExist(), "post invalid")
-	opAssert(!vidWrap.CheckExist(), "vote info exist")
+	opAssert(!postWrap.CheckExist(), "post invalid")
+	opAssert(!voteWrap.CheckExist(), "vote info exist")
 
-	opAssertE(vidWrap.Create(func(t *table.SoVote) {
-		t.Voter = &voterId
-		t.PostId = op.Idx
-		t.VoteTime = ev.ctx.control.HeadBlockTime()
-	}), "create voter object error")
+	votePostWrap := table.NewVotePostIdWrap(ev.ctx.db)
 
-	opAssert(pidWrap.MdVoteCnt(pidWrap.GetVoteCnt()+1), "set vote count error")
+	for voteIter := votePostWrap.QueryListByOrder(&op.Idx, nil); voteIter.Valid(); voteIter.Next() {
+		voterId := votePostWrap.GetMainVal(voteIter)
+		if voterId.Voter.Value == op.Voter.Value {
+			opAssertE(errors.New("Vote Error"), "vote to a same post")
+		}
+	}
+
+	regeneratedPower := constants.PERCENT * elapsedSeconds / constants.VOTE_REGENERATE_TIME
+	var currentVp uint32
+	votePower := voterWrap.GetVotePower() + regeneratedPower
+	if votePower > constants.PERCENT {
+		currentVp = constants.PERCENT
+	} else {
+		currentVp = votePower
+	}
+	usedVp := (currentVp + constants.VOTE_LIMITE_DURING_REGENERATE - 1) / constants.VOTE_LIMITE_DURING_REGENERATE
+
+	voterWrap.MdVotePower(currentVp - usedVp)
+	vesting := voterWrap.GetVestingShares().Value
+	// todo: uint128
+	weightedVp := vesting * uint64(usedVp)
+	if postWrap.GetCashoutTime().UtcSeconds < ev.ctx.control.HeadBlockTime().UtcSeconds {
+		lastVp := postWrap.GetWeightedVp()
+		votePower := lastVp + weightedVp
+		// add new vp into global
+		ev.ctx.control.AddWeightedVP(weightedVp)
+		// update post's weighted vp
+		postWrap.MdWeightedVp(votePower)
+
+		opAssertE(voteWrap.Create(func(t *table.SoVote) {
+			t.Voter = &voterId
+			t.PostId = op.Idx
+			t.Upvote = true
+			t.WeightedVp = weightedVp
+			t.VoteTime = ev.ctx.control.HeadBlockTime()
+		}), "create voter object error")
+
+		opAssert(postWrap.MdVoteCnt(postWrap.GetVoteCnt()+1), "set vote count error")
+	}
 }
 
 func (ev *BpRegisterEvaluator) Apply() {
@@ -240,7 +313,7 @@ func (ev *BpVoteEvaluator) Apply() {
 	witnessId := &prototype.BpWitnessId{Voter: op.Voter, Witness: op.Witness}
 	vidWrap := table.NewSoWitnessVoteWrap(ev.ctx.db, voterId)
 
-	witAccWrap := table.NewSoAccountWrap( ev.ctx.db, op.Voter )
+	witAccWrap := table.NewSoAccountWrap(ev.ctx.db, op.Voter)
 	opAssert(witAccWrap.CheckExist(), "witness account do not exist ")
 
 	witnessWrap := table.NewSoWitnessWrap(ev.ctx.db, op.Witness)
@@ -280,20 +353,20 @@ func (ev *FollowEvaluator) Apply() {
 func (ev *TransferToVestingEvaluator) Apply() {
 	op := ev.op
 
-	fidWrap := table.NewSoAccountWrap( ev.ctx.db, op.From)
-	tidWrap := table.NewSoAccountWrap( ev.ctx.db, op.To)
+	fidWrap := table.NewSoAccountWrap(ev.ctx.db, op.From)
+	tidWrap := table.NewSoAccountWrap(ev.ctx.db, op.To)
 
 	opAssert(tidWrap.CheckExist(), "to account do not exist")
 
 	fBalance := fidWrap.GetBalance()
-	tVests   := tidWrap.GetVestingShares()
-	addVests := prototype.NewVest( op.Amount.Value )
+	tVests := tidWrap.GetVestingShares()
+	addVests := prototype.NewVest(op.Amount.Value)
 
-	opAssertE( fBalance.Sub(op.Amount) , "balance not enough")
-	opAssert ( fidWrap.MdBalance(fBalance), "set from new balance error")
+	opAssertE(fBalance.Sub(op.Amount), "balance not enough")
+	opAssert(fidWrap.MdBalance(fBalance), "set from new balance error")
 
-	opAssertE( tVests.Add(addVests), "vests error" )
-	opAssert ( tidWrap.MdVestingShares(tVests), "set to new vests error")
+	opAssertE(tVests.Add(addVests), "vests error")
+	opAssert(tidWrap.MdVestingShares(tVests), "set to new vests error")
 
-	ev.ctx.control.TransferToVest( op.Amount )
+	ev.ctx.control.TransferToVest(op.Amount)
 }

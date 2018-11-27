@@ -603,11 +603,11 @@ func (c *Controller) initGenesis() {
 
 	//create rewards keeper
 	/*
-	keeperWrap := table.NewSoRewardsKeeperWrap(c.db, &SINGLE_ID)
-	mustNoError(keeperWrap.Create(func(tInfo *table.SoRewardsKeeper) {
-		tInfo.Id = SINGLE_ID
-		tInfo.Keeper.Rewards = make(map[string]*prototype.Vest)
-	}), "Create Rewards Keeper error")*/
+		keeperWrap := table.NewSoRewardsKeeperWrap(c.db, &SINGLE_ID)
+		mustNoError(keeperWrap.Create(func(tInfo *table.SoRewardsKeeper) {
+			tInfo.Id = SINGLE_ID
+			tInfo.Keeper.Rewards = make(map[string]*prototype.Vest)
+		}), "Create Rewards Keeper error")*/
 
 	// create block summary
 	for i := uint32(0); i < 0x100; i++ {
@@ -856,6 +856,10 @@ func (c *Controller) SetShuffledWitness(names []string) {
 func (c *Controller) GetShuffledWitness() []string {
 	witnessScheduleWrap := table.NewSoWitnessScheduleObjectWrap(c.db, &SINGLE_ID)
 	return witnessScheduleWrap.GetCurrentShuffledWitness()
+}
+
+func (c *Controller) AddWeightedVP(value uint64) {
+	c.dgpo.WeightedVps += value
 }
 
 func (c *Controller) saveReversion(num uint32) {
