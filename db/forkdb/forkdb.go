@@ -2,6 +2,7 @@ package forkdb
 
 import (
 	"fmt"
+	"github.com/coschain/contentos-go/common/logging"
 	"github.com/mitchellh/go-homedir"
 	"os"
 	"sync"
@@ -63,7 +64,9 @@ func (db *DB) Snapshot() {
 				panic(err)
 			}
 		}
+		start++
 	}
+	logging.CLog().Debugf("[ForkDB][Snapshot] %d blocks stored.", end-db.start+1)
 }
 
 // LoadSnapshot...
@@ -104,6 +107,7 @@ func (db *DB) LoadSnapshot() {
 		}
 		db.PushBlock(b)
 	}
+	logging.CLog().Debugf("[ForkDB][LoadSnapshot] %d blocks loaded.", size)
 }
 
 // LastCommitted...
