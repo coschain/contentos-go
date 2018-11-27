@@ -16,6 +16,5 @@
 cmd_main
 main
 *.log
-cosd
 #wallet-cli
 /cmd/wallet-cli/wallet-cli

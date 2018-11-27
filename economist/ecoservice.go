@@ -21,7 +21,7 @@ type Economist struct {
 	rewardAccumulator uint64 // reward accumulator
 	vpAccumulator     uint64 // vote power accumulator
 	globalProps       *prototype.DynamicProperties
-	waitClaimReward   map[string]uint64
+	rewardsKeeper     *prototype.InternalRewardsKeeper
 }
 
 func (e *Economist) getDb() (iservices.IDatabaseService, error) {
@@ -35,7 +35,7 @@ func (e *Economist) getDb() (iservices.IDatabaseService, error) {
 
 func New(ctx *node.ServiceContext) (*Economist, error) {
 
-	return &Economist{ctx: ctx, waitClaimReward: make(map[string]uint64)}, nil
+	return &Economist{ctx: ctx}, nil
 }
 
 func (e *Economist) Start(node *node.Node) error {
@@ -49,6 +49,17 @@ func (e *Economist) Start(node *node.Node) error {
 		return errors.New("the mainkey is already exist")
 	}
 	e.globalProps = dgpWrap.GetProps()
+
+	keeper := table.NewSoRewardsKeeperWrap(e.db, &SINGLE_ID)
+	err = keeper.Create(func(tInfo *table.SoRewardsKeeper) {
+		tInfo.Id = SINGLE_ID
+	})
+
+	if err != nil {
+		return err
+	}
+
+	e.rewardsKeeper = keeper.GetKeeper()
 	return nil
 }
 
@@ -265,7 +276,11 @@ func (e *Economist) postCashout(pids []string) {
 	for _, post := range posts {
 		author := post.GetAuthor().Value
 		reward := post.GetWeightedVp() * blockReward / vpAccumulator
-		e.waitClaimReward[author] += reward
+		if vest, ok := e.rewardsKeeper.Rewards[author]; !ok {
+			e.rewardsKeeper.Rewards[author] = &prototype.Vest{Value: reward}
+		} else {
+			vest.Value += reward
+		}
 	}
 }
 
@@ -283,6 +298,10 @@ func (e *Economist) replyCashout(rids []string) {
 	for _, reply := range replies {
 		author := reply.GetAuthor().Value
 		reward := reply.GetWeightedVp() * blockReward / vpAccumulator
-		e.waitClaimReward[author] += reward
+		if vest, ok := e.rewardsKeeper.Rewards[author]; !ok {
+			e.rewardsKeeper.Rewards[author] = &prototype.Vest{Value: reward}
+		} else {
+			vest.Value += reward
+		}
 	}
 }
