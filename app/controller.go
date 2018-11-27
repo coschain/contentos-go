@@ -163,6 +163,7 @@ func (c *Controller) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFl
 		if err := recover(); err != nil {
 			c.skip = oldFlag
 			c.restorePending(tmpPending)
+			logging.CLog().Debug("push block error : ",err)
 			panic("PushBlock error")
 		}
 	}()
@@ -225,15 +226,16 @@ func (c *Controller) GenerateBlock(witness string, timestamp uint32,
 
 	c.skip = skip
 
+	/*
 	slotNum := c.GetIncrementSlotAtTime(&prototype.TimePointSec{UtcSeconds:timestamp})
 	mustSuccess(slotNum > 0,"slot num must > 0")
 	witnessName := c.GetScheduledWitness(slotNum)
-	mustSuccess(witnessName.Value == witness,"not this witness")
+	mustSuccess(witnessName.Value == witness,"not this witness")*/
 
 	pubkey,err := priKey.PubKey()
 	mustNoError(err,"get public key error")
 
-	witnessWrap := table.NewSoWitnessWrap(c.db,witnessName)
+	witnessWrap := table.NewSoWitnessWrap(c.db,&prototype.AccountName{Value:witness})
 	mustSuccess(bytes.Equal(witnessWrap.GetSigningKey().Data[:],pubkey.Data[:]),"public key not equal")
 
 	// @ signHeader size is zero, must have some content
@@ -292,20 +294,23 @@ func (c *Controller) GenerateBlock(witness string, timestamp uint32,
 	signBlock.SignedHeader.Header.Timestamp = &prototype.TimePointSec{UtcSeconds:timestamp}
 	id := signBlock.CalculateMerkleRoot()
 	signBlock.SignedHeader.Header.TransactionMerkleRoot = &prototype.Sha256{Hash:id.Data[:]}
-	signBlock.SignedHeader.Header.Witness = witnessName
+	signBlock.SignedHeader.Header.Witness = &prototype.AccountName{Value:witness}
 	signBlock.SignedHeader.WitnessSignature = &prototype.SignatureType{}
 	signBlock.SignedHeader.Sign(priKey)
 
 	mustSuccess(proto.Size(signBlock) <= constants.MAX_BLOCK_SIZE,"block size too big")
 
-	c.PushBlock(signBlock,c.skip | prototype.Skip_apply_transaction)
+	/*c.PushBlock(signBlock,c.skip | prototype.Skip_apply_transaction)
+
 	if signBlock.SignedHeader.Number() == uint64(c.headBlockNum()) {
 		//c.db.EndTransaction(true)
 	} else {
 		c.db.EndTransaction(false)
-	}
+	}*/
 
-	return nil
+	c.db.EndTransaction(false)
+
+	return signBlock
 }
 
 func (c *Controller) notifyOpPreExecute(on *prototype.OperationNotification) {
@@ -523,7 +528,7 @@ func (c *Controller) _applyBlock(blk *prototype.SignedBlock,skip prototype.SkipF
 	trxWrp := &prototype.TransactionWrapper{}
 	trxWrp.Invoice = &prototype.TransactionInvoice{}
 
-	if skip & prototype.Skip_apply_transaction == 0 {
+	if skip & prototype.Skip_apply_transaction == 0{
 
 		for _, tw := range blk.Transactions {
 			trxWrp.SigTrx = tw.SigTrx
@@ -535,7 +540,7 @@ func (c *Controller) _applyBlock(blk *prototype.SignedBlock,skip prototype.SkipF
 	}
 
 	c.updateGlobalDynamicData(blk)
-	c.updateSigningWitness(blk)
+	//c.updateSigningWitness(blk)
 	// @ update_last_irreversible_block
 	c.createBlockSummary(blk)
 	c.clearExpiredTransactions()
@@ -662,15 +667,16 @@ func (c *Controller) validateBlockHeader(blk *prototype.SignedBlock) {
 	}
 
 	// witness schedule check
+	/*
 	nextSlot := c.GetIncrementSlotAtTime(blk.SignedHeader.Header.Timestamp)
 	if nextSlot == 0 {
 		panic("next slot should be greater than 0")
-	}
+	}*/
 
-	scheduledWitness := c.GetScheduledWitness(nextSlot)
+	/*scheduledWitness := c.GetScheduledWitness(nextSlot)
 	if witnessWrap.GetOwner().Value != scheduledWitness.Value {
 		panic("Witness produced block at wrong time")
-	}
+	}*/
 }
 
 func (c *Controller) headBlockID() *prototype.Sha256 {
@@ -707,11 +713,12 @@ func (c *Controller) GetSlotTime(slot uint32) *prototype.TimePointSec {
 }
 
 func (c *Controller) GetIncrementSlotAtTime(t *prototype.TimePointSec) uint32 {
-	nextBlockSlotTime := c.GetSlotTime(1)
+	/*nextBlockSlotTime := c.GetSlotTime(1)
 	if t.UtcSeconds < nextBlockSlotTime.UtcSeconds {
 		return 0
 	}
-	return (t.UtcSeconds-nextBlockSlotTime.UtcSeconds)/constants.BLOCK_INTERVAL + 1
+	return (t.UtcSeconds-nextBlockSlotTime.UtcSeconds)/constants.BLOCK_INTERVAL + 1*/
+	return 0
 }
 
 func (c *Controller) GetScheduledWitness(slot uint32) *prototype.AccountName {
@@ -732,7 +739,8 @@ func (c *Controller) updateGlobalDataToDB() {
 
 func (c *Controller) updateGlobalDynamicData(blk *prototype.SignedBlock) {
 	var missedBlock uint32 = 0
-	if c.headBlockTime().UtcSeconds != 0 {
+	/*
+	if false && c.headBlockTime().UtcSeconds != 0 {
 		missedBlock = c.GetIncrementSlotAtTime(blk.SignedHeader.Header.Timestamp)
 		mustSuccess(missedBlock != 0,"missedBlock error")
 		missedBlock--
@@ -750,7 +758,7 @@ func (c *Controller) updateGlobalDynamicData(blk *prototype.SignedBlock) {
 				}
 			}
 		}
-	}
+	}*/
 
 	// @ calculate participation
 
@@ -768,12 +776,12 @@ func (c *Controller) updateGlobalDynamicData(blk *prototype.SignedBlock) {
 }
 
 func (c *Controller) updateSigningWitness(blk *prototype.SignedBlock) {
-	newAsLot := c.dgpo.GetCurrentAslot() + c.GetIncrementSlotAtTime(blk.SignedHeader.Header.Timestamp)
+	/*newAsLot := c.dgpo.GetCurrentAslot() + c.GetIncrementSlotAtTime(blk.SignedHeader.Header.Timestamp)
 
 	name := blk.SignedHeader.Header.Witness
 	witnessWrap := table.NewSoWitnessWrap(c.db, name)
 	witnessWrap.MdLastConfirmedBlockNum(uint32(blk.Id().BlockNum()))
-	witnessWrap.MdLastAslot(newAsLot)
+	witnessWrap.MdLastAslot(newAsLot)*/
 }
 
 func (c *Controller) createBlockSummary(blk *prototype.SignedBlock) {
