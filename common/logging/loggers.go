@@ -86,14 +86,14 @@ func Init(path string, level string, age uint32) {
 	LoadFunctionHooker(clog)
 	clog.Hooks.Add(fileHooker)
 	clog.Out = os.Stdout
-	clog.Formatter = &logrus.TextFormatter{FullTimestamp: true}
+	clog.Formatter = &logrus.TextFormatter{FullTimestamp: true, ForceColors:true}
 	clog.Level = convertLevel("debug")
 
 	vlog = logrus.New()
 	LoadFunctionHooker(vlog)
 	vlog.Hooks.Add(fileHooker)
 	vlog.Out = &emptyWriter{}
-	vlog.Formatter = &logrus.TextFormatter{FullTimestamp: true}
+	vlog.Formatter = &logrus.TextFormatter{FullTimestamp: true, ForceColors:true}
 	vlog.Level = convertLevel(level)
 
 	VLog().WithFields(logrus.Fields{
