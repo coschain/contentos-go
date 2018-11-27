@@ -2,7 +2,6 @@ package netserver
 
 import (
 	"errors"
-	"github.com/coschain/contentos-go/iservices"
 	"math/rand"
 	"net"
 	"reflect"
@@ -18,8 +17,8 @@ import (
 	"github.com/coschain/contentos-go/p2p/depend/common/log"
 	"github.com/coschain/contentos-go/p2p/message/msg_pack"
 	"github.com/coschain/contentos-go/p2p/message/types"
-	"github.com/coschain/contentos-go/p2p/net/protocol"
 	"github.com/coschain/contentos-go/p2p/msg"
+	"github.com/coschain/contentos-go/p2p/net/protocol"
 	"github.com/coschain/contentos-go/p2p/peer"
 	"github.com/coschain/contentos-go/prototype"
 )
@@ -126,7 +125,7 @@ func (this *NetServer) init() error {
 
 //InitListen start listening on the config port
 func (this *NetServer) Start(node *node.Node) {
-	this.noticer = node.EvBus
+	//this.noticer = node.EvBus
 	this.startListening()
 }
 
@@ -345,13 +344,14 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 		remotePeer.SetConsState(common.HAND)
 	}
 
-	service, err := this.GetService(iservices.CS_SERVER_NAME)
-	if err != nil {
-		log.Info("can't get other service, service name: ", iservices.CS_SERVER_NAME)
-		return err
-	}
-	ctrl := service.(iservices.IConsensus)
-	version := msgpack.NewVersion(this, isConsensus, ctrl.GetHeadBlockId().BlockNum())
+	//service, err := this.GetService(iservices.CS_SERVER_NAME)
+	//if err != nil {
+	//	log.Info("can't get other service, service name: ", iservices.CS_SERVER_NAME)
+	//	return err
+	//}
+	//ctrl := service.(iservices.IConsensus)
+	//version := msgpack.NewVersion(this, isConsensus, ctrl.GetHeadBlockId().BlockNum())
+	version := msgpack.NewVersion(this, isConsensus, 0)
 	err = remotePeer.Send(version, isConsensus)
 	if err != nil {
 		if !isConsensus {

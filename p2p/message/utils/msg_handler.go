@@ -9,7 +9,6 @@ import (
 
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
-	"github.com/coschain/contentos-go/iservices"
 	msgCommon "github.com/coschain/contentos-go/p2p/common"
 	"github.com/coschain/contentos-go/p2p/depend/common/config"
 	"github.com/coschain/contentos-go/p2p/depend/common/log"
@@ -68,13 +67,15 @@ func PingHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	}
 	remotePeer.SetHeight(ping.Height)
 
-	s, err := p2p.GetService(iservices.CS_SERVER_NAME)
-	if err != nil {
-		log.Info("can't get other service, service name: ", iservices.CS_SERVER_NAME)
-		return
-	}
-	ctrl := s.(iservices.IConsensus)
-	height := ctrl.GetHeadBlockId().BlockNum()
+	//s, err := p2p.GetService(iservices.CS_SERVER_NAME)
+	//if err != nil {
+	//	log.Info("can't get other service, service name: ", iservices.CS_SERVER_NAME)
+	//	return
+	//}
+	//ctrl := s.(iservices.IConsensus)
+	//height := ctrl.GetHeadBlockId().BlockNum()
+	var height uint64 = 0
+	var err error
 
 	p2p.SetHeight(height)
 	msg := msgpack.NewPongMsg(height)
@@ -169,12 +170,12 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) 
 
 	}
 
-	service, err := p2p.GetService(iservices.CS_SERVER_NAME)
-	if err != nil {
-		log.Info("can't get other service, service name: ", iservices.CS_SERVER_NAME)
-		return
-	}
-	ctrl := service.(iservices.IConsensus)
+	//service, err := p2p.GetService(iservices.CS_SERVER_NAME)
+	//if err != nil {
+	//	log.Info("can't get other service, service name: ", iservices.CS_SERVER_NAME)
+	//	return
+	//}
+	//ctrl := service.(iservices.IConsensus)
 
 	if version.P.IsConsensus == true {
 		if config.DefConfig.P2PNode.DualPortSupport == false {
@@ -223,7 +224,8 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) 
 		var msg msgTypes.Message
 		if s == msgCommon.INIT {
 			remotePeer.SetConsState(msgCommon.HAND_SHAKE)
-			msg = msgpack.NewVersion(p2p, true, ctrl.GetHeadBlockId().BlockNum())
+			//msg = msgpack.NewVersion(p2p, true, ctrl.GetHeadBlockId().BlockNum())
+			msg = msgpack.NewVersion(p2p, true, 0)
 		} else if s == msgCommon.HAND {
 			remotePeer.SetConsState(msgCommon.HAND_SHAKED)
 			msg = msgpack.NewVerAck(true)
@@ -292,7 +294,8 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) 
 		var msg msgTypes.Message
 		if s == msgCommon.INIT {
 			remotePeer.SetSyncState(msgCommon.HAND_SHAKE)
-			msg = msgpack.NewVersion(p2p, false, ctrl.GetHeadBlockId().BlockNum())
+			//msg = msgpack.NewVersion(p2p, false, ctrl.GetHeadBlockId().BlockNum())
+			msg = msgpack.NewVersion(p2p, false, 0)
 		} else if s == msgCommon.HAND {
 			remotePeer.SetSyncState(msgCommon.HAND_SHAKED)
 			msg = msgpack.NewVerAck(false)
@@ -367,13 +370,13 @@ func VerAckHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 		}
 
 		var blockid common.BlockID
-		service, err := p2p.GetService(iservices.CS_SERVER_NAME)
-		if err != nil {
-			log.Info("can't get other service, service name: ", iservices.CS_SERVER_NAME)
-			return
-		}
-		ctrl := service.(iservices.IConsensus)
-		blockid = ctrl.GetHeadBlockId()
+		//service, err := p2p.GetService(iservices.CS_SERVER_NAME)
+		//if err != nil {
+		//	log.Info("can't get other service, service name: ", iservices.CS_SERVER_NAME)
+		//	return
+		//}
+		//ctrl := service.(iservices.IConsensus)
+		//blockid = ctrl.GetHeadBlockId()
 		p2p.Trigger_sync(remotePeer, blockid)
 
 		msg := msgpack.NewAddrReq()
@@ -455,26 +458,26 @@ func IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 		var blkId common.BlockID
 		copy( blkId.Data[:], msgdata.Value[0] )
 
-		s, err := p2p.GetService(iservices.CS_SERVER_NAME)
-		if err != nil {
-			log.Info("can't get other service, service name: ", iservices.CS_SERVER_NAME)
-			return
-		}
-		ctrl := s.(iservices.IConsensus)
-		if !ctrl.HasBlock(blkId) {
-			var reqmsg msg.IdMsg
-			reqmsg.Msgtype = msg.IdMsg_request_sigblk_by_id
-			var tmp []byte
-			reqmsg.Value = append(reqmsg.Value, tmp )
-			reqmsg.Value[0] = msgdata.Value[0]
-
-			err := p2p.Send(remotePeer, &reqmsg, false)
-			if err != nil {
-				log.Warn(err)
-				return
-			}
-			log.Info("send a message to:   v%   data:   v%\n", data.Addr, reqmsg)
-		}
+		//s, err := p2p.GetService(iservices.CS_SERVER_NAME)
+		//if err != nil {
+		//	log.Info("can't get other service, service name: ", iservices.CS_SERVER_NAME)
+		//	return
+		//}
+		//ctrl := s.(iservices.IConsensus)
+		//if !ctrl.HasBlock(blkId) {
+		//	var reqmsg msg.IdMsg
+		//	reqmsg.Msgtype = msg.IdMsg_request_sigblk_by_id
+		//	var tmp []byte
+		//	reqmsg.Value = append(reqmsg.Value, tmp )
+		//	reqmsg.Value[0] = msgdata.Value[0]
+		//
+		//	err := p2p.Send(remotePeer, &reqmsg, false)
+		//	if err != nil {
+		//		log.Warn(err)
+		//		return
+		//	}
+		//	log.Info("send a message to:   v%   data:   v%\n", data.Addr, reqmsg)
+		//}
 	case msg.IdMsg_request_sigblk_by_id:
 		log.Info("receive a msg from:    v%    data:   %v\n", data.Addr, *msgdata)
 		for i, id := range msgdata.Value {
@@ -522,18 +525,18 @@ func IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 			var blkId common.BlockID
 			copy( blkId.Data[:], id )
 
-			s, err := p2p.GetService(iservices.CS_SERVER_NAME)
-			if err != nil {
-				log.Info("can't get other service, service name: ", iservices.CS_SERVER_NAME)
-				return
-			}
-			ctrl := s.(iservices.IConsensus)
-			if !ctrl.HasBlock(blkId) {
-				var tmp []byte
-				reqmsg.Value = append(reqmsg.Value, tmp)
-				idx := len(reqmsg.Value) - 1
-				reqmsg.Value[idx] = id
-			}
+			//s, err := p2p.GetService(iservices.CS_SERVER_NAME)
+			//if err != nil {
+			//	log.Info("can't get other service, service name: ", iservices.CS_SERVER_NAME)
+			//	return
+			//}
+			//ctrl := s.(iservices.IConsensus)
+			//if !ctrl.HasBlock(blkId) {
+			//	var tmp []byte
+			//	reqmsg.Value = append(reqmsg.Value, tmp)
+			//	idx := len(reqmsg.Value) - 1
+			//	reqmsg.Value[idx] = id
+			//}
 		}
 		err := p2p.Send(remotePeer, &reqmsg, false)
 		if err != nil {
@@ -558,30 +561,30 @@ func ReqIdHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 
 	log.Info("receive a ReqIdMsg from   v%    data   v%\n", data.Addr, msgdata.HeadBlockId)
 
-	s, err := p2p.GetService(iservices.CS_SERVER_NAME)
-	if err != nil {
-		log.Info("can't get other service, service name: ", iservices.CS_SERVER_NAME)
-		return
-	}
-	ctrl := s.(iservices.IConsensus)
-	var remote_head_blk_id common.BlockID
-	copy( remote_head_blk_id.Data[:], msgdata.HeadBlockId )
-	current_head_blk_id := ctrl.GetHeadBlockId()
-	ids := ctrl.GetHashes(remote_head_blk_id, current_head_blk_id)
+	//s, err := p2p.GetService(iservices.CS_SERVER_NAME)
+	//if err != nil {
+	//	log.Info("can't get other service, service name: ", iservices.CS_SERVER_NAME)
+	//	return
+	//}
+	//ctrl := s.(iservices.IConsensus)
+	//var remote_head_blk_id common.BlockID
+	//copy( remote_head_blk_id.Data[:], msgdata.HeadBlockId )
+	//current_head_blk_id := ctrl.GetHeadBlockId()
+	//ids := ctrl.GetHashes(remote_head_blk_id, current_head_blk_id)
 
 	remotePeer := p2p.GetPeerFromAddr(data.Addr)
 
 	var reqmsg msg.IdMsg
 	reqmsg.Msgtype = msg.IdMsg_request_id_ack
 
-	for i, id := range ids {
-		var tmp []byte
-		reqmsg.Value = append(reqmsg.Value, tmp)
-		reqmsg.Value[i] = make([]byte, prototype.Size)
-		reqmsg.Value[i] = id.Data[:]
-	}
+	//for i, id := range ids {
+	//	var tmp []byte
+	//	reqmsg.Value = append(reqmsg.Value, tmp)
+	//	reqmsg.Value[i] = make([]byte, prototype.Size)
+	//	reqmsg.Value[i] = id.Data[:]
+	//}
 
-	err = p2p.Send(remotePeer, &reqmsg, false)
+	err := p2p.Send(remotePeer, &reqmsg, false)
 	if err != nil {
 		log.Warn(err)
 		return

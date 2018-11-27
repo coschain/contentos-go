@@ -11,19 +11,18 @@ import (
 	"sync"
 	"time"
 
+	"github.com/coschain/contentos-go/common/constants"
+	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/p2p/common"
-	"github.com/coschain/contentos-go/iservices"
-	"github.com/coschain/contentos-go/p2p/message/msg_pack"
 	comm "github.com/coschain/contentos-go/p2p/depend/common"
 	"github.com/coschain/contentos-go/p2p/depend/common/config"
 	"github.com/coschain/contentos-go/p2p/depend/common/log"
+	"github.com/coschain/contentos-go/p2p/message/msg_pack"
 	msgtypes "github.com/coschain/contentos-go/p2p/message/types"
-	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/p2p/message/utils"
 	"github.com/coschain/contentos-go/p2p/net/netserver"
 	"github.com/coschain/contentos-go/p2p/net/protocol"
 	"github.com/coschain/contentos-go/p2p/peer"
-	"github.com/coschain/contentos-go/node"
 )
 
 //P2PServer control all network activities
@@ -334,16 +333,17 @@ func (this *P2PServer) ping() {
 
 //pings send pkgs to get pong msg from others
 func (this *P2PServer) pingTo(peers []*peer.Peer) {
-	service, err := this.Network.GetService(iservices.CS_SERVER_NAME)
-	if err != nil {
-		log.Info("can't get other service, service name: ", iservices.CS_SERVER_NAME)
-		return
-	}
-	ctrl := service.(iservices.IConsensus)
+	//service, err := this.Network.GetService(iservices.CS_SERVER_NAME)
+	//if err != nil {
+	//	log.Info("can't get other service, service name: ", iservices.CS_SERVER_NAME)
+	//	return
+	//}
+	//ctrl := service.(iservices.IConsensus)
 	for _, p := range peers {
 		if p.GetSyncState() == common.ESTABLISH {
 
-			height := ctrl.GetHeadBlockId().BlockNum()
+			//height := ctrl.GetHeadBlockId().BlockNum()
+			var height uint64 = 0
 			ping := msgpack.NewPingMsg(height)
 			go this.Send(p, ping, false)
 		}
