@@ -191,7 +191,7 @@ func (d *DPoS) start() {
 				logging.CLog().Error("generating block error: ", err)
 				continue
 			}
-			logging.CLog().Debugf("generated block: <id %v> <ts %d> <prev %d>", b.Id(), b.Timestamp(), b.Previous())
+			logging.CLog().Debugf("generated block: <num %d> <ts %d>", b.Id().BlockNum(), b.Timestamp())
 			// TODO: broadcast block
 			d.PushBlock(b)
 		}
@@ -370,7 +370,9 @@ func (d *DPoS) pushBlock(b common.ISignedBlock) error {
 
 func (d *DPoS) commit(b common.ISignedBlock) error {
 	logging.CLog().Debug("commit block #", b.Id().BlockNum())
-	// TODO: state db commit
+
+	d.ctrl.Commit(uint32(b.Id().BlockNum()))
+
 	err := d.blog.Append(b)
 	if err != nil {
 		// something went really wrong if we got here
@@ -444,7 +446,7 @@ func (d *DPoS) applyBlock(b common.ISignedBlock) error {
 }
 
 func (d *DPoS) popBlock(id common.BlockID) error {
-	d.ctrl.Pop(&id)
+	d.ctrl.PopBlock(uint32(id.BlockNum()))
 	return nil
 }
 

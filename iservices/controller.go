@@ -1,7 +1,6 @@
 package iservices
 
 import (
-	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/prototype"
 )
 
@@ -19,7 +18,8 @@ type IController interface {
 	GetWitnessTopN(n uint32) []string
 	SetShuffledWitness(names []string)
 	GetShuffledWitness() []string
-	Pop(id *common.BlockID)
+	PopBlock(num uint32)
+	Commit(num uint32)
 
 	TransferToVest(value *prototype.Coin)
 	TransferFromVest(value *prototype.Vest)
