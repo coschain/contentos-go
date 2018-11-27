@@ -124,7 +124,7 @@ func startNode(cmd *cobra.Command, args []string) {
 			switch s {
 			case syscall.SIGQUIT, syscall.SIGTERM, SIGSTOP, syscall.SIGINT:
 				logging.CLog().Infoln("Got interrupt, shutting down...")
-				go app.Stop()
+				app.MainLoop.Stop()
 				return
 			case syscall.SIGHUP:
 				logging.CLog().Info("syscall.SIGHUP custom operation")
@@ -139,4 +139,5 @@ func startNode(cmd *cobra.Command, args []string) {
 	}()
 
 	app.Wait()
+	app.Stop()
 }
