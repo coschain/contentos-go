@@ -77,10 +77,15 @@ func keyOfReversionOp(rev uint64) []byte {
 }
 
 func (db *RevertibleDatabase) GetRevision() uint64 {
+	curr, _ := db.GetRevisionAndBase()
+	return curr
+}
+
+func (db *RevertibleDatabase) GetRevisionAndBase() (current uint64, base uint64) {
 	db.lock.RLock()
 	defer db.lock.RUnlock()
 
-	return db.rev.Current
+	return db.rev.Current, db.rev.Base
 }
 
 func (db *RevertibleDatabase) RevertToRevision(r uint64) error {

@@ -114,6 +114,9 @@ type IDatabaseService interface {
 	// get current revision
 	GetRevision() uint64
 
+	// get current revision and base revision
+	GetRevisionAndBase() (current uint64, base uint64)
+
 	// revert to the given revision
 	// you can only revert to a revision that is less than or equal to current revision.
 	// after reverted to revision r, r will be the current revision.

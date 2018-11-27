@@ -85,6 +85,10 @@ func (s *DatabaseService) GetRevision() uint64 {
 	return s.rdb.GetRevision()
 }
 
+func (s *DatabaseService) GetRevisionAndBase() (current uint64, base uint64) {
+	return s.rdb.GetRevisionAndBase()
+}
+
 func (s *DatabaseService) RevertToRevision(r uint64) error {
 	return s.rdb.RevertToRevision(r)
 }
