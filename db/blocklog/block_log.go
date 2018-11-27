@@ -41,6 +41,12 @@ type BLog struct {
 
 // Open opens the block log & index file
 func (bl *BLog) Open(dir string) (err error) {
+	_, err = os.Stat(dir)
+
+	if err != nil {
+		os.Mkdir(dir, os.ModePerm)
+	}
+
 	bl.logFile, err = os.OpenFile(dir+"/block.bin", os.O_RDWR|os.O_CREATE, 0755)
 	if err != nil {
 		return

@@ -126,7 +126,7 @@ func (d *DPoS) ActiveProducers() []string {
 
 func (d *DPoS) Start(node *node.Node) error {
 	d.ctrl = d.getController()
-	d.blog.Open(node.Config().DataDir)
+	d.blog.Open(node.Config().ResolvePath("blog"))
 	d.SetBootstrap(true)
 
 	go d.start()
