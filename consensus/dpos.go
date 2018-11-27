@@ -3,13 +3,13 @@ package consensus
 import (
 	"errors"
 	"fmt"
-	"github.com/coschain/contentos-go/common/logging"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
+	"github.com/coschain/contentos-go/common/logging"
 	"github.com/coschain/contentos-go/db/blocklog"
 	"github.com/coschain/contentos-go/db/forkdb"
 	"github.com/coschain/contentos-go/iservices"
@@ -114,6 +114,10 @@ func (d *DPoS) shuffle() {
 	d.ctrl.SetShuffledWitness(prods)
 }
 
+func (d *DPoS) restoreProducers() {
+	d.Producers = d.ctrl.GetShuffledWitness()
+}
+
 func (d *DPoS) ActiveProducers() []string {
 	//d.RLock()
 	//defer d.RUnlock()
@@ -156,7 +160,7 @@ func (d *DPoS) scheduleProduce() bool {
 func (d *DPoS) start() {
 	d.wg.Add(1)
 	defer d.wg.Done()
-	time.Sleep(4*time.Second)
+	time.Sleep(4 * time.Second)
 
 	logging.CLog().Info("DPoS started.")
 	if d.ForkDB.Empty() && d.blog.Empty() {
@@ -177,11 +181,11 @@ func (d *DPoS) start() {
 			if !d.scheduleProduce() {
 				continue
 			}
-			d.prodTimer.Reset(1*time.Second)
+			d.prodTimer.Reset(1 * time.Second)
 			b, err := d.generateBlock()
 			logging.CLog().Debug("generated block.", b.Id())
 			if err != nil {
-				// TODO: log
+				logging.CLog().Error("generating block error: ", err)
 				continue
 			}
 			// TODO: broadcast block
@@ -339,7 +343,7 @@ func (d *DPoS) pushBlock(b common.ISignedBlock) error {
 		if lastCommitted == common.EmptyBlockID {
 			commitIdx = 0
 		} else {
-			commitIdx = lastCommitted.BlockNum()+1
+			commitIdx = lastCommitted.BlockNum() + 1
 		}
 		b, err := d.ForkDB.FetchBlockFromMainBranch(commitIdx)
 		if err != nil {
@@ -374,6 +378,10 @@ func (d *DPoS) switchFork(old, new common.BlockID) {
 		//d.popBlock()
 	}
 	d.popBlock(branches[0][poppedNum])
+
+	// producers fixup
+	d.restoreProducers()
+
 	if d.ForkDB.Head().Id() != branches[0][poppedNum] {
 		errStr := fmt.Sprintf("[ForkDB][switchFork] pop to root block with id: %d, num: %d",
 			d.ForkDB.Head().Id(), d.ForkDB.Head().Id().BlockNum())
@@ -401,6 +409,10 @@ func (d *DPoS) switchFork(old, new common.BlockID) {
 			//d.popBlock()
 		}
 		d.popBlock(branches[0][poppedNum])
+
+		// producers fixup
+		d.restoreProducers()
+
 		for i := poppedNum - 1; i >= 0; i-- {
 			b, err := d.ForkDB.FetchBlock(branches[0][i])
 			if err != nil {
