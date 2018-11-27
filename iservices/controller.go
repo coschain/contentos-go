@@ -15,7 +15,7 @@ type IController interface {
 	PushTrx(trx *prototype.SignedTransaction) *prototype.TransactionInvoice
 	PushBlock(blk *prototype.SignedBlock,skip prototype.SkipFlag)
 	HeadBlockTime() *prototype.TimePointSec
-	GenerateBlock(witness string, timestamp uint32, priKey *prototype.PrivateKeyType, skip prototype.SkipFlag) *prototype.SignedBlock
+	GenerateBlock(witness string, pre *prototype.Sha256, timestamp uint32, priKey *prototype.PrivateKeyType, skip prototype.SkipFlag) *prototype.SignedBlock
 	GetWitnessTopN(n uint32) []string
 	SetShuffledWitness(names []string)
 	GetShuffledWitness() []string

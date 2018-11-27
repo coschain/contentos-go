@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app/table"
-	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/common/eventloop"
 	"github.com/coschain/contentos-go/common/logging"
@@ -41,9 +40,7 @@ type Controller struct {
 	_current_trx_in_block  int16
 	dgpo                   *prototype.DynamicProperties
 	havePendingTransaction bool
-	idToRev                map[[32]byte]uint64
-
-	stack *sessionStack
+	numToRev               [100]uint64
 }
 
 func (c *Controller) getDb() (iservices.IDatabaseService, error) {
@@ -58,6 +55,10 @@ func (c *Controller) getDb() (iservices.IDatabaseService, error) {
 // for easy test
 func (c *Controller) SetDB(db iservices.IDatabaseService) {
 	c.db = db
+}
+
+func (c *Controller) SetBus(bus EventBus.Bus) {
+	c.noticer = bus
 }
 
 // service constructor
@@ -86,6 +87,7 @@ func (c *Controller) Open() {
 
 		logging.CLog().Info("start initGenesis")
 		c.initGenesis()
+		c.saveReversion(0)
 		logging.CLog().Info("finish initGenesis")
 	}
 	c.dgpo = dgpWrap.GetProps()
@@ -151,10 +153,6 @@ func (c *Controller) _pushTrx(trx *prototype.SignedTransaction) *prototype.Trans
 
 func (c *Controller) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag) {
 	oldFlag := c.skip
-	defer func() {
-		c.skip = oldFlag
-	}()
-
 	c.skip = skip
 
 	tmpPending := c.ClearPending()
@@ -169,10 +167,14 @@ func (c *Controller) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFl
 	}()
 
 	defer func() {
+		c.skip = oldFlag
 		c.restorePending(tmpPending)
 	}()
 
 	c.applyBlock(blk, skip)
+
+	blockNum := blk.Id().BlockNum()
+	c.saveReversion(uint32(blockNum))
 }
 
 func (c *Controller) ClearPending() []*prototype.TransactionWrapper {
@@ -212,7 +214,7 @@ func emptyHeader(signHeader *prototype.SignedBlockHeader) {
 	signHeader.WitnessSignature = &prototype.SignatureType{}
 }
 
-func (c *Controller) GenerateBlock(witness string, timestamp uint32,
+func (c *Controller) GenerateBlock(witness string, pre *prototype.Sha256, timestamp uint32,
 	priKey *prototype.PrivateKeyType, skip prototype.SkipFlag) *prototype.SignedBlock {
 	oldSkip := c.skip
 	defer func() {
@@ -290,7 +292,7 @@ func (c *Controller) GenerateBlock(witness string, timestamp uint32,
 		logging.CLog().Warnf("postponed %d trx due to max block size", postponeTrx)
 	}
 
-	signBlock.SignedHeader.Header.Previous = c.headBlockID()
+	signBlock.SignedHeader.Header.Previous = pre
 	signBlock.SignedHeader.Header.Timestamp = &prototype.TimePointSec{UtcSeconds: timestamp}
 	id := signBlock.CalculateMerkleRoot()
 	signBlock.SignedHeader.Header.TransactionMerkleRoot = &prototype.Sha256{Hash: id.Data[:]}
@@ -299,11 +301,11 @@ func (c *Controller) GenerateBlock(witness string, timestamp uint32,
 	signBlock.SignedHeader.Sign(priKey)
 
 	mustSuccess(proto.Size(signBlock) <= constants.MAX_BLOCK_SIZE, "block size too big")
-
 	/*c.PushBlock(signBlock,c.skip | prototype.Skip_apply_transaction)
 
 	if signBlock.SignedHeader.Number() == uint64(c.headBlockNum()) {
-		//c.db.EndTransaction(true)
+		c.db.EndTransaction(true)
+		c.saveReversion(uint32(signBlock.Id().BlockNum()))
 	} else {
 		c.db.EndTransaction(false)
 	}*/
@@ -600,11 +602,12 @@ func (c *Controller) initGenesis() {
 	}), "CreateDynamicGlobalProperties error")
 
 	//create rewards keeper
+	/*
 	keeperWrap := table.NewSoRewardsKeeperWrap(c.db, &SINGLE_ID)
 	mustNoError(keeperWrap.Create(func(tInfo *table.SoRewardsKeeper) {
 		tInfo.Id = SINGLE_ID
 		tInfo.Keeper.Rewards = make(map[string]*prototype.Vest)
-	}), "Create Rewards Keeper error")
+	}), "Create Rewards Keeper error")*/
 
 	// create block summary
 	for i := uint32(0); i < 0x100; i++ {
@@ -747,24 +750,23 @@ func (c *Controller) updateGlobalDataToDB() {
 }
 
 func (c *Controller) updateGlobalDynamicData(blk *prototype.SignedBlock) {
-	/*
-		var missedBlock uint32 = 0
-		if false && c.headBlockTime().UtcSeconds != 0 {
-			missedBlock = c.GetIncrementSlotAtTime(blk.SignedHeader.Header.Timestamp)
-			mustSuccess(missedBlock != 0,"missedBlock error")
-			missedBlock--
-			for i:= uint32(0);i<missedBlock;i++{
-				witnessMissedName := c.GetScheduledWitness(i+1)
-				witnessWrap := table.NewSoWitnessWrap(c.db,witnessMissedName)
-				if witnessWrap.GetOwner().Value != blk.SignedHeader.Header.Witness.Value {
-					oldMissed := witnessWrap.GetTotalMissed()
-					oldMissed++
-					witnessWrap.MdTotalMissed(oldMissed)
-					if c.headBlockNum() - witnessWrap.GetLastConfirmedBlockNum() > constants.BLOCKS_PER_DAY {
-						emptyKey := &prototype.PublicKeyType{Data:[]byte{0}}
-						witnessWrap.MdSigningKey(emptyKey)
-						// @ push push_virtual_operation shutdown_witness_operation
-					}
+	/*var missedBlock uint32 = 0
+
+	if false && c.headBlockTime().UtcSeconds != 0 {
+		missedBlock = c.GetIncrementSlotAtTime(blk.SignedHeader.Header.Timestamp)
+		mustSuccess(missedBlock != 0,"missedBlock error")
+		missedBlock--
+		for i:= uint32(0);i<missedBlock;i++{
+			witnessMissedName := c.GetScheduledWitness(i+1)
+			witnessWrap := table.NewSoWitnessWrap(c.db,witnessMissedName)
+			if witnessWrap.GetOwner().Value != blk.SignedHeader.Header.Witness.Value {
+				oldMissed := witnessWrap.GetTotalMissed()
+				oldMissed++
+				witnessWrap.MdTotalMissed(oldMissed)
+				if c.headBlockNum() - witnessWrap.GetLastConfirmedBlockNum() > constants.BLOCKS_PER_DAY {
+					emptyKey := &prototype.PublicKeyType{Data:[]byte{0}}
+					witnessWrap.MdSigningKey(emptyKey)
+					// @ push push_virtual_operation shutdown_witness_operation
 				}
 			}
 		}*/
@@ -856,38 +858,33 @@ func (c *Controller) GetShuffledWitness() []string {
 	return witnessScheduleWrap.GetCurrentShuffledWitness()
 }
 
-type reversion struct {
-	self *common.BlockID
-	pre  *common.BlockID
-}
-
-func (c *Controller) saveReversion(id *common.BlockID) {
+func (c *Controller) saveReversion(num uint32) {
 	currentRev := c.db.GetRevision()
-	c.idToRev[id.Data] = currentRev
+	slot := num % 100
+	c.numToRev[slot] = currentRev
 }
 
-func (c *Controller) getReversion(id *common.BlockID) uint64 {
-	rev, ok := c.idToRev[id.Data]
-	mustSuccess(ok, "reversion not found")
+func (c *Controller) getReversion(num uint32) uint64 {
+	rev := c.numToRev[num%100]
 	return rev
 }
 
-func (c *Controller) gotoReversion(id *common.BlockID) {
-	rev := c.getReversion(id)
-	mustNoError(c.db.RevertToRevision(rev), "RevertToRevision error")
-}
-
-func (c *Controller) PopBlock() {
+func (c *Controller) PopBlock(num uint32) {
 	// undo pending trx
 	if c.havePendingTransaction {
 		c.db.EndTransaction(false)
 		c.havePendingTransaction = false
 	}
-	c.db.EndTransaction(false)
+	// get pre reversion
+	rev := c.getReversion(num - 1)
+	// go to pre
+	mustNoError(c.db.RevertToRevision(rev), "RevertToRevision error")
 }
 
-func (c *Controller) RevertTo(id *common.BlockID) {
-	c.gotoReversion(id)
+func (c *Controller) Commit(num uint32) {
+	// this block can not be revert over, so it's irreversible
+	rev := c.getReversion(num)
+	mustNoError(c.db.RebaseToRevision(rev), "RebaseToRevision error")
 }
 
 type layer struct {

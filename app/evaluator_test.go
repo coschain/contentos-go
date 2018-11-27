@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/db/storage"
 	"github.com/coschain/contentos-go/iservices"
@@ -124,6 +125,7 @@ func startDB() iservices.IDatabaseService{
 func startController(db iservices.IDatabaseService) *Controller{
 	c,_ := NewController(nil)
 	c.SetDB(db)
+	c.SetBus(EventBus.New())
 	c.Open()
 	return c
 }

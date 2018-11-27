@@ -13,9 +13,13 @@ import (
 )
 
 const (
-	accountName = "bob"
-	pubKey = "COS6oLVaFEtHZmPDuCvuB48NpSKytjyavPk5MwtN4HqKG16oSA2wS"
-	priKey = "EpgwWxboEdaWfEBdWswobsBt8pBF6xoYQPayBs4eVysMGGGYL"
+	accountNameBob = "bob"
+	pubKeyBob = "COS6oLVaFEtHZmPDuCvuB48NpSKytjyavPk5MwtN4HqKG16oSA2wS"
+	priKeyBob = "EpgwWxboEdaWfEBdWswobsBt8pBF6xoYQPayBs4eVysMGGGYL"
+
+	accountNameTom = "tom"
+	pubKeyTom = "COS5LgGC16xurDrmfC7Yv5RGUeWeCPUP4tdW627vqXk9eQ97ZEJ7P"
+	priKeyTom = "aFovWd8qS1yUAr94ULbG6ASwUsfPS3GX1ebPGDzowrUxQp1ta"
 
 )
 
@@ -39,7 +43,7 @@ func createSigTrx(op interface{}) (*prototype.SignedTransaction,error) {
 	return &signTx, nil
 }
 
-func makeCreateAccountOP() (*prototype.AccountCreateOperation,error) {
+func makeCreateAccountOP(accountName string,pubKey string) (*prototype.AccountCreateOperation,error) {
 	pub,err := prototype.PublicKeyFromWIF(pubKey)
 	if err != nil {
 		return nil,errors.New("PublicKeyFromWIF error")
@@ -76,7 +80,7 @@ func makeCreateAccountOP() (*prototype.AccountCreateOperation,error) {
 func Test_PushTrx(t *testing.T) {
 	clearDB()
 
-	acop,err := makeCreateAccountOP()
+	acop,err := makeCreateAccountOP(accountNameBob,pubKeyBob)
 	if err != nil {
 		t.Error("makeCreateAccountOP error:",err)
 	}
@@ -96,7 +100,7 @@ func Test_PushTrx(t *testing.T) {
 		t.Error("PushTrx return status error:",invoice.Status)
 	}
 
-	bobName := &prototype.AccountName{Value:accountName}
+	bobName := &prototype.AccountName{Value:accountNameBob}
 	bobWrap := table.NewSoAccountWrap(db,bobName)
 	if !bobWrap.CheckExist() {
 		t.Error("create account failed")
@@ -106,7 +110,7 @@ func Test_PushTrx(t *testing.T) {
 func Test_PushBlock(t *testing.T) {
 	clearDB()
 
-	createOP,err := makeCreateAccountOP()
+	createOP,err := makeCreateAccountOP(accountNameBob,pubKeyBob)
 	if err != nil {
 		t.Error("makeCreateAccountOP error:",err)
 	}
@@ -155,7 +159,7 @@ func Test_PushBlock(t *testing.T) {
 
 	c.PushBlock(sigBlk,prototype.Skip_nothing)
 
-	bobName := &prototype.AccountName{Value:accountName}
+	bobName := &prototype.AccountName{Value:accountNameBob}
 	bobWrap := table.NewSoAccountWrap(db,bobName)
 	if !bobWrap.CheckExist() {
 		t.Error("create account failed")
@@ -164,7 +168,7 @@ func Test_PushBlock(t *testing.T) {
 
 func TestController_GenerateBlock(t *testing.T) {
 	clearDB()
-	createOP,err := makeCreateAccountOP()
+	createOP,err := makeCreateAccountOP(accountNameBob,pubKeyBob)
 	if err != nil {
 		t.Error("makeCreateAccountOP error:",err)
 	}
@@ -189,7 +193,7 @@ func TestController_GenerateBlock(t *testing.T) {
 		t.Error("PushTrx return status error:",invoice.Status)
 	}
 
-	bobName := &prototype.AccountName{Value:accountName}
+	bobName := &prototype.AccountName{Value:accountNameBob}
 	bobWrap := table.NewSoAccountWrap(db,bobName)
 	if !bobWrap.CheckExist() {
 		t.Error("create account failed")
@@ -200,7 +204,8 @@ func TestController_GenerateBlock(t *testing.T) {
 		t.Error("PrivateKeyFromWIF error")
 	}
 
-	c.GenerateBlock(constants.INIT_MINER_NAME,18,pri,0)
+	pre := &prototype.Sha256{Hash:[]byte{0}}
+	c.GenerateBlock(constants.INIT_MINER_NAME,pre,18,pri,0)
 }
 
 func Test_list(t *testing.T) {
@@ -211,7 +216,7 @@ func Test_list(t *testing.T) {
 	defer db.Close()
 
 	// make trx
-	acop,err := makeCreateAccountOP()
+	acop,err := makeCreateAccountOP(accountNameBob,pubKeyBob)
 	if err != nil {
 		t.Error("makeCreateAccountOP error:",err)
 	}
@@ -292,4 +297,102 @@ func TestController_GetWitnessTopN(t *testing.T) {
 	for _,wit := range witnesses {
 		fmt.Println(wit)
 	}
+}
+
+func TestController_PopBlock(t *testing.T) {
+	clearDB()
+
+	// set up controller
+	db := startDB()
+	defer db.Close()
+	c := startController(db)
+
+	createOP,err := makeCreateAccountOP(accountNameBob,pubKeyBob)
+	if err != nil {
+		t.Error("makeCreateAccountOP error:",err)
+	}
+	signedTrx,err := createSigTrx(createOP)
+	if err != nil {
+		t.Error("createSigTrx error:",err)
+	}
+
+	// set reference
+	id := &common.BlockID{}
+	sha256ID := c.dgpo.GetHeadBlockId()
+	copy(id.Data[:],sha256ID.Hash[:])
+	signedTrx.Trx.SetReferenceBlock(id)
+
+	block := makeBlock(c.dgpo.GetHeadBlockId(),6,signedTrx)
+
+	fmt.Println("block size:",proto.Size(block))
+
+	c.PushBlock(block,prototype.Skip_nothing)
+
+	// second block
+	createOP2,err := makeCreateAccountOP(accountNameTom,pubKeyTom)
+	if err != nil {
+		t.Error("makeCreateAccountOP error:",err)
+	}
+	signedTrx2,err := createSigTrx(createOP2)
+	if err != nil {
+		t.Error("createSigTrx error:",err)
+	}
+	// set reference
+	sha256ID = c.dgpo.GetHeadBlockId()
+	copy(id.Data[:],sha256ID.Hash[:])
+	signedTrx2.Trx.SetReferenceBlock(id)
+
+	block2 := makeBlock(c.dgpo.GetHeadBlockId(),9,signedTrx2)
+
+	c.PushBlock(block2,prototype.Skip_nothing)
+
+	// check
+	bobName := &prototype.AccountName{Value:accountNameBob}
+	bobWrap := table.NewSoAccountWrap(db,bobName)
+	if !bobWrap.CheckExist() {
+		t.Error("create account failed")
+	}
+	tomName := &prototype.AccountName{Value:accountNameTom}
+	tomWrap := table.NewSoAccountWrap(db,tomName)
+	if !tomWrap.CheckExist() {
+		t.Error("create account failed")
+	}
+}
+
+func makeBlock(pre *prototype.Sha256, blockTimestamp uint32, signedTrx *prototype.SignedTransaction) *prototype.SignedBlock {
+	sigBlk := new(prototype.SignedBlock)
+
+	// add trx wraper
+	trxWraper := &prototype.TransactionWrapper{
+		SigTrx:signedTrx,
+		Invoice:&prototype.TransactionInvoice{Status:200},
+	}
+	sigBlk.Transactions = append(sigBlk.Transactions,trxWraper)
+
+	// calculate merkle
+	id := sigBlk.CalculateMerkleRoot()
+
+	// write signed block header
+	sigBlkHdr := new(prototype.SignedBlockHeader)
+
+	sigBlkHdr.Header = new(prototype.BlockHeader)
+	sigBlkHdr.Header.Previous = pre
+	sigBlkHdr.Header.Timestamp = &prototype.TimePointSec{UtcSeconds:blockTimestamp}
+	sigBlkHdr.Header.Witness = &prototype.AccountName{Value:constants.INIT_MINER_NAME}
+	sigBlkHdr.Header.TransactionMerkleRoot = &prototype.Sha256{Hash:id.Data[:]}
+	sigBlkHdr.WitnessSignature = &prototype.SignatureType{}
+
+	// signature
+	pri,err := prototype.PrivateKeyFromWIF(constants.INITMINER_PRIKEY)
+	if err != nil {
+		panic("PrivateKeyFromWIF error")
+	}
+	sigBlkHdr.Sign(pri)
+
+	sigBlk.SignedHeader = sigBlkHdr
+	return sigBlk
+}
+
+func TestController_Commit(t *testing.T) {
+
 }
