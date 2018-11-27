@@ -423,7 +423,7 @@ func (c *Controller) _applyTransaction(trxWrp *prototype.TransactionWrapper) {
 	// insert trx into DB unique table
 	cErr := transactionObjWrap.Create(func(tInfo *table.SoTransactionObject) {
 		tInfo.TrxId = c._currentTrxId
-		tInfo.Expiration = &prototype.TimePointSec{UtcSeconds: 100}
+		tInfo.Expiration = trx.Trx.Expiration
 	})
 	mustNoError(cErr, "create transactionObject failed")
 
