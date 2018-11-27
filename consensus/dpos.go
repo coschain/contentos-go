@@ -165,7 +165,10 @@ func (d *DPoS) start() {
 	logging.CLog().Info("DPoS starting...")
 
 	logging.CLog().Info("DPoS Loading ForkDB snapshot...")
-	d.ForkDB.LoadSnapshot()
+
+	// TODO: fuck!! this is fugly
+	var avatar prototype.SignedBlock
+	d.ForkDB.LoadSnapshot(&avatar)
 	if d.bootstrap && d.ForkDB.Empty() && d.blog.Empty() {
 		d.shuffle()
 	} else {
@@ -177,7 +180,8 @@ func (d *DPoS) start() {
 	for {
 		select {
 		case <-d.stopCh:
-			break
+			logging.CLog().Debug("DPoS routine stopped.")
+			return
 		case b := <-d.blkCh:
 			if err := d.pushBlock(b); err != nil {
 				logging.CLog().Error("push block error: ", err)

@@ -2,12 +2,12 @@ package forkdb
 
 import (
 	"fmt"
-	"github.com/coschain/contentos-go/common/logging"
 	"github.com/mitchellh/go-homedir"
 	"os"
 	"sync"
 
 	"github.com/coschain/contentos-go/common"
+	"github.com/coschain/contentos-go/common/logging"
 	"github.com/coschain/contentos-go/db/blocklog"
 )
 
@@ -70,7 +70,7 @@ func (db *DB) Snapshot() {
 }
 
 // LoadSnapshot...
-func (db *DB) LoadSnapshot() {
+func (db *DB) LoadSnapshot(avatar common.ISignedBlock) {
 	db.Lock()
 	defer db.Unlock()
 	home, err := homedir.Dir()
@@ -78,7 +78,7 @@ func (db *DB) LoadSnapshot() {
 		panic(err)
 	}
 	if _, err = os.Stat(home + "/forkdb_tmp"); os.IsNotExist(err) {
-		os.Mkdir(home + "/forkdb_tmp", 0755)
+		os.Mkdir(home+"/forkdb_tmp", 0755)
 	}
 	if err = db.snapshot.Open(home + "/forkdb_tmp"); err != nil {
 		panic(err)
@@ -94,18 +94,17 @@ func (db *DB) LoadSnapshot() {
 	db.branches = make(map[common.BlockID]common.ISignedBlock)
 	db.detachedLink = make(map[common.BlockID]common.ISignedBlock)
 
-	var b common.ISignedBlock
 	size := db.snapshot.Size()
 	var i int64
 	for i = 0; i < size; i++ {
-		if err = db.snapshot.ReadBlock(b, i); err != nil {
+		if err = db.snapshot.ReadBlock(avatar, i); err != nil {
 			panic(err)
 		}
 		if i == 0 {
 			// TODO: it's gonna be a problem if the node never committed any block
-			db.lastCommitted = b.Id()
+			db.lastCommitted = avatar.Id()
 		}
-		db.PushBlock(b)
+		db.PushBlock(avatar)
 	}
 	logging.CLog().Debugf("[ForkDB][LoadSnapshot] %d blocks loaded.", size)
 }
