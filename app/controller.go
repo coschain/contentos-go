@@ -413,8 +413,8 @@ func (c *Controller) _applyTransaction(trxWrp *prototype.TransactionWrapper) {
 			mustSuccess(trx.Trx.RefBlockPrefix ==  summaryId,"transaction tapos failed")
 		}
 		// get head time
-		mustSuccess(trx.Trx.Expiration.UtcSeconds <= uint32(time.Now().Second()+30),"transaction expiration too long")
-		mustSuccess(uint32(time.Now().Second()) <= trx.Trx.Expiration.UtcSeconds,"transaction has expired")
+		mustSuccess(trx.Trx.Expiration.UtcSeconds <= uint32(time.Now().Unix() + constants.TRX_MAX_EXPIRATION_TIME ),"transaction expiration too long")
+		mustSuccess(uint32(time.Now().Unix()) <= trx.Trx.Expiration.UtcSeconds,"transaction has expired")
 	}
 
 	// insert trx into DB unique table
