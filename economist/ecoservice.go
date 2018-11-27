@@ -50,20 +50,24 @@ func (e *Economist) Start(node *node.Node) error {
 	}
 	e.globalProps = dgpWrap.GetProps()
 
-	keeper := table.NewSoRewardsKeeperWrap(e.db, &SINGLE_ID)
-	err = keeper.Create(func(tInfo *table.SoRewardsKeeper) {
-		tInfo.Id = SINGLE_ID
-	})
-
-	if err != nil {
-		return err
+	keeperWrap := table.NewSoRewardsKeeperWrap(e.db, &SINGLE_ID)
+	if !keeperWrap.CheckExist() {
+		return errors.New("Economist access rewards keeper error")
 	}
-
-	e.rewardsKeeper = keeper.GetKeeper()
+	e.rewardsKeeper = keeperWrap.GetKeeper()
 	return nil
 }
 
 func (e *Economist) Stop() error {
+	return nil
+}
+
+func (e *Economist) updateRewardsKeeper() error {
+	keeper := table.NewSoRewardsKeeperWrap(e.db, &SINGLE_ID)
+	success := keeper.MdKeeper(e.rewardsKeeper)
+	if !success {
+		return errors.New("flush rewards keeper into db error")
+	}
 	return nil
 }
 
@@ -256,7 +260,9 @@ func (e *Economist) Do() error {
 	if len(postCashoutList) > 0 {
 		e.replyCashout(replyCashoutList)
 	}
-	return nil
+
+	err := e.updateRewardsKeeper()
+	return err
 }
 
 func (e *Economist) decayGlobalVotePower() {

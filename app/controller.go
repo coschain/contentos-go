@@ -17,7 +17,7 @@ import (
 	"time"
 )
 
-var(
+var (
 	SINGLE_ID int32 = 1
 )
 
@@ -33,15 +33,15 @@ type Controller struct {
 	noticer EventBus.Bus
 	skip    prototype.SkipFlag
 
-	_pending_tx           []*prototype.TransactionWrapper
-	_isProducing          bool
-	_currentTrxId         *prototype.Sha256
-	_current_op_in_trx    uint16
-	_currentBlockNum      uint64
-	_current_trx_in_block int16
-	dgpo *prototype.DynamicProperties
+	_pending_tx            []*prototype.TransactionWrapper
+	_isProducing           bool
+	_currentTrxId          *prototype.Sha256
+	_current_op_in_trx     uint16
+	_currentBlockNum       uint64
+	_current_trx_in_block  int16
+	dgpo                   *prototype.DynamicProperties
 	havePendingTransaction bool
-	idToRev  map[[32]byte]uint64
+	idToRev                map[[32]byte]uint64
 
 	stack *sessionStack
 }
@@ -79,7 +79,7 @@ func (c *Controller) Start(node *node.Node) error {
 }
 
 func (c *Controller) Open() {
-	dgpWrap := table.NewSoGlobalWrap(c.db, &SINGLE_ID )
+	dgpWrap := table.NewSoGlobalWrap(c.db, &SINGLE_ID)
 	if !dgpWrap.CheckExist() {
 
 		mustNoError(c.db.DeleteAll(), "truncate database error")
@@ -111,7 +111,7 @@ func (c *Controller) PushTrx(trx *prototype.SignedTransaction) *prototype.Transa
 	}()
 
 	// check maximum_block_size
-	mustSuccess(proto.Size(trx) <= int(c.dgpo.MaximumBlockSize-256),"transaction is too large")
+	mustSuccess(proto.Size(trx) <= int(c.dgpo.MaximumBlockSize-256), "transaction is too large")
 
 	c.setProducing(true)
 	return c._pushTrx(trx)
@@ -163,7 +163,7 @@ func (c *Controller) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFl
 		if err := recover(); err != nil {
 			c.skip = oldFlag
 			c.restorePending(tmpPending)
-			logging.CLog().Debug("push block error : ",err)
+			logging.CLog().Debug("push block error : ", err)
 			panic("PushBlock error")
 		}
 	}()
@@ -172,18 +172,18 @@ func (c *Controller) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFl
 		c.restorePending(tmpPending)
 	}()
 
-	c.applyBlock(blk,skip)
+	c.applyBlock(blk, skip)
 }
 
 func (c *Controller) ClearPending() []*prototype.TransactionWrapper {
 	// @
-	mustSuccess(len(c._pending_tx) == 0 || c.havePendingTransaction,"can not clear pending")
+	mustSuccess(len(c._pending_tx) == 0 || c.havePendingTransaction, "can not clear pending")
 	res := make([]*prototype.TransactionWrapper, len(c._pending_tx))
 	copy(res, c._pending_tx)
 
 	c._pending_tx = c._pending_tx[:0]
 
-	if c.skip & prototype.Skip_apply_transaction == 0 {
+	if c.skip&prototype.Skip_apply_transaction == 0 {
 		c.db.EndTransaction(false)
 		c.havePendingTransaction = false
 	}
@@ -194,7 +194,7 @@ func (c *Controller) ClearPending() []*prototype.TransactionWrapper {
 func (c *Controller) restorePending(pending []*prototype.TransactionWrapper) {
 	for _, tw := range pending {
 		id, err := tw.SigTrx.Id()
-		mustNoError(err,"get transaction id error")
+		mustNoError(err, "get transaction id error")
 
 		objWrap := table.NewSoTransactionObjectWrap(c.db, id)
 		if !objWrap.CheckExist() {
@@ -203,8 +203,8 @@ func (c *Controller) restorePending(pending []*prototype.TransactionWrapper) {
 	}
 }
 
-func emptyHeader(signHeader * prototype.SignedBlockHeader) {
-	signHeader.Header =  new(prototype.BlockHeader)
+func emptyHeader(signHeader *prototype.SignedBlockHeader) {
+	signHeader.Header = new(prototype.BlockHeader)
 	signHeader.Header.Previous = &prototype.Sha256{}
 	signHeader.Header.Timestamp = &prototype.TimePointSec{}
 	signHeader.Header.Witness = &prototype.AccountName{}
@@ -227,23 +227,23 @@ func (c *Controller) GenerateBlock(witness string, timestamp uint32,
 	c.skip = skip
 
 	/*
-	slotNum := c.GetIncrementSlotAtTime(&prototype.TimePointSec{UtcSeconds:timestamp})
-	mustSuccess(slotNum > 0,"slot num must > 0")
-	witnessName := c.GetScheduledWitness(slotNum)
-	mustSuccess(witnessName.Value == witness,"not this witness")*/
+		slotNum := c.GetIncrementSlotAtTime(&prototype.TimePointSec{UtcSeconds:timestamp})
+		mustSuccess(slotNum > 0,"slot num must > 0")
+		witnessName := c.GetScheduledWitness(slotNum)
+		mustSuccess(witnessName.Value == witness,"not this witness")*/
 
-	pubkey,err := priKey.PubKey()
-	mustNoError(err,"get public key error")
+	pubkey, err := priKey.PubKey()
+	mustNoError(err, "get public key error")
 
-	witnessWrap := table.NewSoWitnessWrap(c.db,&prototype.AccountName{Value:witness})
-	mustSuccess(bytes.Equal(witnessWrap.GetSigningKey().Data[:],pubkey.Data[:]),"public key not equal")
+	witnessWrap := table.NewSoWitnessWrap(c.db, &prototype.AccountName{Value: witness})
+	mustSuccess(bytes.Equal(witnessWrap.GetSigningKey().Data[:], pubkey.Data[:]), "public key not equal")
 
 	// @ signHeader size is zero, must have some content
 	signHeader := &prototype.SignedBlockHeader{}
 	emptyHeader(signHeader)
 	maxBlockHeaderSize := proto.Size(signHeader) + 4
 
-	dgpWrap := table.NewSoGlobalWrap(c.db,&SINGLE_ID)
+	dgpWrap := table.NewSoGlobalWrap(c.db, &SINGLE_ID)
 	maxBlockSize := dgpWrap.GetProps().MaximumBlockSize
 	var totalSize uint32 = uint32(maxBlockHeaderSize)
 
@@ -260,7 +260,7 @@ func (c *Controller) GenerateBlock(witness string, timestamp uint32,
 	c.havePendingTransaction = true
 
 	var postponeTrx uint64 = 0
-	for _,trxWraper := range c._pending_tx {
+	for _, trxWraper := range c._pending_tx {
 		if trxWraper.SigTrx.Trx.Expiration.UtcSeconds < timestamp {
 			continue
 		}
@@ -270,9 +270,9 @@ func (c *Controller) GenerateBlock(witness string, timestamp uint32,
 			continue
 		}
 
-		func () {
+		func() {
 			defer func() {
-				if err := recover(); err != nil{
+				if err := recover(); err != nil {
 					c.db.EndTransaction(false)
 				}
 			}()
@@ -282,23 +282,23 @@ func (c *Controller) GenerateBlock(witness string, timestamp uint32,
 			c.db.EndTransaction(true)
 
 			totalSize += uint32(proto.Size(trxWraper))
-			signBlock.Transactions = append(signBlock.Transactions,trxWraper)
+			signBlock.Transactions = append(signBlock.Transactions, trxWraper)
 			c._current_trx_in_block++
 		}()
 	}
 	if postponeTrx > 0 {
-		logging.CLog().Warnf("postponed %d trx due to max block size",postponeTrx)
+		logging.CLog().Warnf("postponed %d trx due to max block size", postponeTrx)
 	}
 
 	signBlock.SignedHeader.Header.Previous = c.headBlockID()
-	signBlock.SignedHeader.Header.Timestamp = &prototype.TimePointSec{UtcSeconds:timestamp}
+	signBlock.SignedHeader.Header.Timestamp = &prototype.TimePointSec{UtcSeconds: timestamp}
 	id := signBlock.CalculateMerkleRoot()
-	signBlock.SignedHeader.Header.TransactionMerkleRoot = &prototype.Sha256{Hash:id.Data[:]}
-	signBlock.SignedHeader.Header.Witness = &prototype.AccountName{Value:witness}
+	signBlock.SignedHeader.Header.TransactionMerkleRoot = &prototype.Sha256{Hash: id.Data[:]}
+	signBlock.SignedHeader.Header.Witness = &prototype.AccountName{Value: witness}
 	signBlock.SignedHeader.WitnessSignature = &prototype.SignatureType{}
 	signBlock.SignedHeader.Sign(priKey)
 
-	mustSuccess(proto.Size(signBlock) <= constants.MAX_BLOCK_SIZE,"block size too big")
+	mustSuccess(proto.Size(signBlock) <= constants.MAX_BLOCK_SIZE, "block size too big")
 
 	/*c.PushBlock(signBlock,c.skip | prototype.Skip_apply_transaction)
 
@@ -359,13 +359,13 @@ func (c *Controller) _applyTransaction(trxWrp *prototype.TransactionWrapper) {
 	trx := trxWrp.SigTrx
 	var err error
 	c._currentTrxId, err = trx.Id()
-	mustNoError(err,"get trx id failed")
+	mustNoError(err, "get trx id failed")
 
 	trx.Validate()
 
 	// trx duplicate check
 	transactionObjWrap := table.NewSoTransactionObjectWrap(c.db, c._currentTrxId)
-	mustSuccess(!transactionObjWrap.CheckExist(),"Duplicate transaction check failed")
+	mustSuccess(!transactionObjWrap.CheckExist(), "Duplicate transaction check failed")
 
 	if c.skip&prototype.Skip_transaction_signatures == 0 {
 		postingGetter := func(name string) *prototype.Authority {
@@ -403,18 +403,18 @@ func (c *Controller) _applyTransaction(trxWrp *prototype.TransactionWrapper) {
 
 	blockNum := c.dgpo.GetHeadBlockNumber()
 	if blockNum > 0 {
-		uniWrap := table.UniBlockSummaryObjectIdWrap{Dba:c.db}
+		uniWrap := table.UniBlockSummaryObjectIdWrap{Dba: c.db}
 		idWrap := uniWrap.UniQueryId(&trx.Trx.RefBlockNum)
 		if !idWrap.CheckExist() {
 			panic("no refBlockNum founded")
 		} else {
 			blockId := idWrap.GetBlockId()
 			summaryId := binary.BigEndian.Uint32(blockId.Hash[8:12])
-			mustSuccess(trx.Trx.RefBlockPrefix ==  summaryId,"transaction tapos failed")
+			mustSuccess(trx.Trx.RefBlockPrefix == summaryId, "transaction tapos failed")
 		}
 		// get head time
-		mustSuccess(trx.Trx.Expiration.UtcSeconds <= uint32(time.Now().Unix() + constants.TRX_MAX_EXPIRATION_TIME ),"transaction expiration too long")
-		mustSuccess(uint32(time.Now().Unix()) <= trx.Trx.Expiration.UtcSeconds,"transaction has expired")
+		mustSuccess(trx.Trx.Expiration.UtcSeconds <= uint32(time.Now().Unix()+constants.TRX_MAX_EXPIRATION_TIME), "transaction expiration too long")
+		mustSuccess(uint32(time.Now().Unix()) <= trx.Trx.Expiration.UtcSeconds, "transaction has expired")
 	}
 
 	// insert trx into DB unique table
@@ -422,7 +422,7 @@ func (c *Controller) _applyTransaction(trxWrp *prototype.TransactionWrapper) {
 		tInfo.TrxId = c._currentTrxId
 		tInfo.Expiration = &prototype.TimePointSec{UtcSeconds: 100}
 	})
-	mustNoError(cErr,"create transactionObject failed")
+	mustNoError(cErr, "create transactionObject failed")
 
 	// @ not use yet
 	//c.notifyTrxPreExecute(trx)
@@ -487,23 +487,23 @@ func (c *Controller) getEvaluator(op *prototype.Operation) BaseEvaluator {
 	}
 }
 
-func (c *Controller) applyBlock(blk *prototype.SignedBlock,skip prototype.SkipFlag) {
+func (c *Controller) applyBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag) {
 	oldFlag := c.skip
 	defer func() {
 		c.skip = oldFlag
 	}()
 
 	c.skip = skip
-	c._applyBlock(blk,skip)
+	c._applyBlock(blk, skip)
 
 	// @ tps update
 }
 
-func (c *Controller) _applyBlock(blk *prototype.SignedBlock,skip prototype.SkipFlag) {
+func (c *Controller) _applyBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag) {
 	nextBlockNum := blk.Id().BlockNum()
 
 	merkleRoot := blk.CalculateMerkleRoot()
-	mustSuccess(bytes.Equal(merkleRoot.Data[:], blk.SignedHeader.Header.TransactionMerkleRoot.Hash),"Merkle check failed")
+	mustSuccess(bytes.Equal(merkleRoot.Data[:], blk.SignedHeader.Header.TransactionMerkleRoot.Hash), "Merkle check failed")
 
 	// validate_block_header
 	c.validateBlockHeader(blk)
@@ -512,7 +512,7 @@ func (c *Controller) _applyBlock(blk *prototype.SignedBlock,skip prototype.SkipF
 	c._current_trx_in_block = 0
 
 	blockSize := proto.Size(blk)
-	mustSuccess(uint32(blockSize) <= c.dgpo.GetMaximumBlockSize(),"Block size is too big")
+	mustSuccess(uint32(blockSize) <= c.dgpo.GetMaximumBlockSize(), "Block size is too big")
 
 	if uint32(blockSize) < constants.MIN_BLOCK_SIZE {
 		// elog("Block size is too small")
@@ -528,13 +528,13 @@ func (c *Controller) _applyBlock(blk *prototype.SignedBlock,skip prototype.SkipF
 	trxWrp := &prototype.TransactionWrapper{}
 	trxWrp.Invoice = &prototype.TransactionInvoice{}
 
-	if skip & prototype.Skip_apply_transaction == 0{
+	if skip&prototype.Skip_apply_transaction == 0 {
 
 		for _, tw := range blk.Transactions {
 			trxWrp.SigTrx = tw.SigTrx
 			trxWrp.Invoice.Status = 200
 			c.applyTransaction(trxWrp)
-			mustSuccess(trxWrp.Invoice.Status == tw.Invoice.Status,"mismatched invoice")
+			mustSuccess(trxWrp.Invoice.Status == tw.Invoice.Status, "mismatched invoice")
 			c._current_trx_in_block++
 		}
 	}
@@ -599,12 +599,19 @@ func (c *Controller) initGenesis() {
 		tInfo.Props.TotalVestingShares = prototype.NewVest(0)
 	}), "CreateDynamicGlobalProperties error")
 
+	//create rewards keeper
+	keeperWrap := table.NewSoRewardsKeeperWrap(c.db, &SINGLE_ID)
+	mustNoError(keeperWrap.Create(func(tInfo *table.SoRewardsKeeper) {
+		tInfo.Id = SINGLE_ID
+		tInfo.Keeper.Rewards = make(map[string]*prototype.Vest)
+	}), "Create Rewards Keeper error")
+
 	// create block summary
 	for i := uint32(0); i < 0x100; i++ {
 		wrap := table.NewSoBlockSummaryObjectWrap(c.db, &i)
 		mustNoError(wrap.Create(func(tInfo *table.SoBlockSummaryObject) {
 			tInfo.Id = i
-			tInfo.BlockId = &prototype.Sha256{Hash:make([]byte,32)}
+			tInfo.BlockId = &prototype.Sha256{Hash: make([]byte, 32)}
 		}), "CreateBlockSummaryObject error")
 	}
 
@@ -613,7 +620,7 @@ func (c *Controller) initGenesis() {
 	mustNoError(witnessScheduleWrap.Create(func(tInfo *table.SoWitnessScheduleObject) {
 		tInfo.Id = SINGLE_ID
 		tInfo.CurrentShuffledWitness = append(tInfo.CurrentShuffledWitness, constants.COS_INIT_MINER)
-	}),"CreateWitnessScheduleObject error")
+	}), "CreateWitnessScheduleObject error")
 }
 
 func (c *Controller) TransferToVest(value *prototype.Coin) {
@@ -642,7 +649,7 @@ func (c *Controller) TransferFromVest(value *prototype.Vest) {
 
 	mustNoError(vest.Sub(value), "TotalVestingShares overflow")
 	c.dgpo.TotalVestingShares = vest
-	
+
 	// TODO if op execute failed ???? how to revert ??
 	c.updateGlobalDataToDB()
 }
@@ -668,10 +675,10 @@ func (c *Controller) validateBlockHeader(blk *prototype.SignedBlock) {
 
 	// witness schedule check
 	/*
-	nextSlot := c.GetIncrementSlotAtTime(blk.SignedHeader.Header.Timestamp)
-	if nextSlot == 0 {
-		panic("next slot should be greater than 0")
-	}*/
+		nextSlot := c.GetIncrementSlotAtTime(blk.SignedHeader.Header.Timestamp)
+		if nextSlot == 0 {
+			panic("next slot should be greater than 0")
+		}*/
 
 	/*scheduledWitness := c.GetScheduledWitness(nextSlot)
 	if witnessWrap.GetOwner().Value != scheduledWitness.Value {
@@ -724,56 +731,56 @@ func (c *Controller) GetIncrementSlotAtTime(t *prototype.TimePointSec) uint32 {
 func (c *Controller) GetScheduledWitness(slot uint32) *prototype.AccountName {
 	return nil
 	/*
-	currentSlot := c.dgpo.GetCurrentAslot()
-	currentSlot += slot
+		currentSlot := c.dgpo.GetCurrentAslot()
+		currentSlot += slot
 
-	wsoWrap := table.NewSoWitnessScheduleObjectWrap(c.db, &SINGLE_ID)
-	witnesses := wsoWrap.GetCurrentShuffledWitness()
-	witnessNum := uint32(len(witnesses))
-	witnessName := witnesses[currentSlot%witnessNum]
-	return &prototype.AccountName{Value:witnessName}*/
+		wsoWrap := table.NewSoWitnessScheduleObjectWrap(c.db, &SINGLE_ID)
+		witnesses := wsoWrap.GetCurrentShuffledWitness()
+		witnessNum := uint32(len(witnesses))
+		witnessName := witnesses[currentSlot%witnessNum]
+		return &prototype.AccountName{Value:witnessName}*/
 }
 
 func (c *Controller) updateGlobalDataToDB() {
 	dgpWrap := table.NewSoGlobalWrap(c.db, &SINGLE_ID)
-	mustSuccess( dgpWrap.MdProps( c.dgpo ), "")
+	mustSuccess(dgpWrap.MdProps(c.dgpo), "")
 }
 
 func (c *Controller) updateGlobalDynamicData(blk *prototype.SignedBlock) {
 	/*
-	var missedBlock uint32 = 0
-	if false && c.headBlockTime().UtcSeconds != 0 {
-		missedBlock = c.GetIncrementSlotAtTime(blk.SignedHeader.Header.Timestamp)
-		mustSuccess(missedBlock != 0,"missedBlock error")
-		missedBlock--
-		for i:= uint32(0);i<missedBlock;i++{
-			witnessMissedName := c.GetScheduledWitness(i+1)
-			witnessWrap := table.NewSoWitnessWrap(c.db,witnessMissedName)
-			if witnessWrap.GetOwner().Value != blk.SignedHeader.Header.Witness.Value {
-				oldMissed := witnessWrap.GetTotalMissed()
-				oldMissed++
-				witnessWrap.MdTotalMissed(oldMissed)
-				if c.headBlockNum() - witnessWrap.GetLastConfirmedBlockNum() > constants.BLOCKS_PER_DAY {
-					emptyKey := &prototype.PublicKeyType{Data:[]byte{0}}
-					witnessWrap.MdSigningKey(emptyKey)
-					// @ push push_virtual_operation shutdown_witness_operation
+		var missedBlock uint32 = 0
+		if false && c.headBlockTime().UtcSeconds != 0 {
+			missedBlock = c.GetIncrementSlotAtTime(blk.SignedHeader.Header.Timestamp)
+			mustSuccess(missedBlock != 0,"missedBlock error")
+			missedBlock--
+			for i:= uint32(0);i<missedBlock;i++{
+				witnessMissedName := c.GetScheduledWitness(i+1)
+				witnessWrap := table.NewSoWitnessWrap(c.db,witnessMissedName)
+				if witnessWrap.GetOwner().Value != blk.SignedHeader.Header.Witness.Value {
+					oldMissed := witnessWrap.GetTotalMissed()
+					oldMissed++
+					witnessWrap.MdTotalMissed(oldMissed)
+					if c.headBlockNum() - witnessWrap.GetLastConfirmedBlockNum() > constants.BLOCKS_PER_DAY {
+						emptyKey := &prototype.PublicKeyType{Data:[]byte{0}}
+						witnessWrap.MdSigningKey(emptyKey)
+						// @ push push_virtual_operation shutdown_witness_operation
+					}
 				}
 			}
-		}
-	}*/
+		}*/
 
 	// @ calculate participation
 
-	id         := blk.Id()
-	blockID    := &prototype.Sha256{Hash:id.Data[:]}
+	id := blk.Id()
+	blockID := &prototype.Sha256{Hash: id.Data[:]}
 
-	c.dgpo.HeadBlockNumber    = uint32(blk.Id().BlockNum())
-	c.dgpo.HeadBlockId        = blockID
-	c.dgpo.Time               = blk.SignedHeader.Header.Timestamp
+	c.dgpo.HeadBlockNumber = uint32(blk.Id().BlockNum())
+	c.dgpo.HeadBlockId = blockID
+	c.dgpo.Time = blk.SignedHeader.Header.Timestamp
 	//c.dgpo.CurrentAslot       = c.dgpo.CurrentAslot + missedBlock+1
 
 	// this check is useful ?
-	mustSuccess( c.dgpo.GetHeadBlockNumber() - c.dgpo.GetIrreversibleBlockNum() < constants.MAX_UNDO_HISTORY,"The database does not have enough undo history to support a blockchain with so many missed blocks." )
+	mustSuccess(c.dgpo.GetHeadBlockNumber()-c.dgpo.GetIrreversibleBlockNum() < constants.MAX_UNDO_HISTORY, "The database does not have enough undo history to support a blockchain with so many missed blocks.")
 	c.updateGlobalDataToDB()
 }
 
@@ -791,10 +798,10 @@ func (c *Controller) createBlockSummary(blk *prototype.SignedBlock) {
 	blockNumSuffix := uint32(blockNum & 0xffff)
 
 	blockSummaryWrap := table.NewSoBlockSummaryObjectWrap(c.db, &blockNumSuffix)
-	mustSuccess(blockSummaryWrap.CheckExist(),"can not get block summary object")
+	mustSuccess(blockSummaryWrap.CheckExist(), "can not get block summary object")
 	blockIDArray := blk.Id().Data
 	blockID := &prototype.Sha256{Hash: blockIDArray[:]}
-	mustSuccess(blockSummaryWrap.MdBlockId(blockID),"update block summary object error")
+	mustSuccess(blockSummaryWrap.MdBlockId(blockID), "update block summary object error")
 }
 
 func (c *Controller) clearExpiredTransactions() {
@@ -811,7 +818,7 @@ func (c *Controller) clearExpiredTransactions() {
 				// delete trx ...
 				k := sortWrap.GetMainVal(itr)
 				objWrap := table.NewSoTransactionObjectWrap(c.db, k)
-				mustSuccess(objWrap.RemoveTransactionObject(),"RemoveTransactionObject error")
+				mustSuccess(objWrap.RemoveTransactionObject(), "RemoveTransactionObject error")
 			}
 		}
 		sortWrap.DelIterater(itr)
@@ -820,14 +827,14 @@ func (c *Controller) clearExpiredTransactions() {
 
 func (c *Controller) GetWitnessTopN(n uint32) []string {
 	ret := []string{}
-	revList := table.SWitnessVoteCountWrap{Dba:c.db}
-	itr := revList.QueryListByRevOrder(nil,nil)
+	revList := table.SWitnessVoteCountWrap{Dba: c.db}
+	itr := revList.QueryListByRevOrder(nil, nil)
 	if itr != nil {
-		i:= uint32(0)
+		i := uint32(0)
 		for itr.Next() && i < n {
 			mainPtr := revList.GetMainVal(itr)
 			if mainPtr != nil {
-				ret = append(ret,mainPtr.Value)
+				ret = append(ret, mainPtr.Value)
 			} else {
 				// panic() ?
 				logging.CLog().Warnf("reverse get witness meet nil value")
@@ -840,18 +847,18 @@ func (c *Controller) GetWitnessTopN(n uint32) []string {
 }
 
 func (c *Controller) SetShuffledWitness(names []string) {
-	witnessScheduleWrap := table.NewSoWitnessScheduleObjectWrap(c.db,&SINGLE_ID)
-	mustSuccess(witnessScheduleWrap.MdCurrentShuffledWitness(names),"SetWitness error")
+	witnessScheduleWrap := table.NewSoWitnessScheduleObjectWrap(c.db, &SINGLE_ID)
+	mustSuccess(witnessScheduleWrap.MdCurrentShuffledWitness(names), "SetWitness error")
 }
 
 func (c *Controller) GetShuffledWitness() []string {
-	witnessScheduleWrap := table.NewSoWitnessScheduleObjectWrap(c.db,&SINGLE_ID)
+	witnessScheduleWrap := table.NewSoWitnessScheduleObjectWrap(c.db, &SINGLE_ID)
 	return witnessScheduleWrap.GetCurrentShuffledWitness()
 }
 
 type reversion struct {
 	self *common.BlockID
-	pre *common.BlockID
+	pre  *common.BlockID
 }
 
 func (c *Controller) saveReversion(id *common.BlockID) {
@@ -859,15 +866,15 @@ func (c *Controller) saveReversion(id *common.BlockID) {
 	c.idToRev[id.Data] = currentRev
 }
 
-func (c *Controller) getReversion(id *common.BlockID) uint64{
-	rev,ok := c.idToRev[id.Data]
-	mustSuccess(ok,"reversion not found")
+func (c *Controller) getReversion(id *common.BlockID) uint64 {
+	rev, ok := c.idToRev[id.Data]
+	mustSuccess(ok, "reversion not found")
 	return rev
 }
 
 func (c *Controller) gotoReversion(id *common.BlockID) {
 	rev := c.getReversion(id)
-	mustNoError(c.db.RevertToRevision(rev),"RevertToRevision error")
+	mustNoError(c.db.RevertToRevision(rev), "RevertToRevision error")
 }
 
 func (c *Controller) PopBlock() {
@@ -883,14 +890,14 @@ func (c *Controller) RevertTo(id *common.BlockID) {
 	c.gotoReversion(id)
 }
 
-type layer struct{
+type layer struct {
 	currentLayer uint32
 	PendingLayer uint32
 }
 
 type sessionStack struct {
-	db iservices.IDatabaseService
-	layerInfo layer
+	db               iservices.IDatabaseService
+	layerInfo        layer
 	havePendingLayer bool
 }
 
@@ -904,7 +911,7 @@ func (ss *sessionStack) begin(isPendingLayer bool) {
 
 func (ss *sessionStack) squash() {
 	mustSuccess(ss.layerInfo.currentLayer > 0, "squash when layer <= 0")
-	mustSuccess(ss.layerInfo.PendingLayer + 1 == ss.layerInfo.currentLayer,"squash to no pending layer")
+	mustSuccess(ss.layerInfo.PendingLayer+1 == ss.layerInfo.currentLayer, "squash to no pending layer")
 	ss.db.EndTransaction(true)
 	ss.layerInfo.currentLayer--
 }
