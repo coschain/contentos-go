@@ -2,9 +2,12 @@ package forkdb
 
 import (
 	"fmt"
+	"github.com/mitchellh/go-homedir"
+	"os"
 	"sync"
 
 	"github.com/coschain/contentos-go/common"
+	"github.com/coschain/contentos-go/db/blocklog"
 )
 
 const defaultSize = 1024
@@ -22,6 +25,7 @@ type DB struct {
 	// previous BlockID ===> ISignedBlock
 	detachedLink map[common.BlockID]common.ISignedBlock
 
+	snapshot blocklog.BLog
 	sync.RWMutex
 }
 
@@ -33,6 +37,72 @@ func NewDB() *DB {
 		branches:     make(map[common.BlockID]common.ISignedBlock),
 		detachedLink: make(map[common.BlockID]common.ISignedBlock),
 		//detached:     make(map[common.BlockID]common.ISignedBlock),
+	}
+}
+
+// Snapshot...
+func (db *DB) Snapshot() {
+	db.RLock()
+	defer db.RUnlock()
+	home, err := homedir.Dir()
+	if err != nil {
+		panic(err)
+	}
+	if err = db.snapshot.Open(home + "/forkdb_tmp"); err != nil {
+		panic(err)
+	}
+	start := db.start
+	end := db.head.BlockNum()
+	for start <= end {
+		for i := 0; i < len(db.list[start-db.start]); i++ {
+			b, err := db.fetchBlock(db.list[start-db.start][i])
+			if err != nil {
+				panic(err)
+			}
+			if err = db.snapshot.Append(b); err != nil {
+				panic(err)
+			}
+		}
+	}
+}
+
+// LoadSnapshot...
+func (db *DB) LoadSnapshot() {
+	db.Lock()
+	defer db.Unlock()
+	home, err := homedir.Dir()
+	if err != nil {
+		panic(err)
+	}
+	if _, err = os.Stat(home + "/forkdb_tmp"); os.IsNotExist(err) {
+		os.Mkdir(home + "/forkdb_tmp", 0755)
+	}
+	if err = db.snapshot.Open(home + "/forkdb_tmp"); err != nil {
+		panic(err)
+	}
+	defer db.snapshot.Remove(home + "/forkdb_tmp")
+
+	if db.snapshot.Empty() {
+		return
+	}
+
+	// clear
+	db.list = make([][]common.BlockID, defaultSize+1)
+	db.branches = make(map[common.BlockID]common.ISignedBlock)
+	db.detachedLink = make(map[common.BlockID]common.ISignedBlock)
+
+	var b common.ISignedBlock
+	size := db.snapshot.Size()
+	var i int64
+	for i = 0; i < size; i++ {
+		if err = db.snapshot.ReadBlock(b, i); err != nil {
+			panic(err)
+		}
+		if i == 0 {
+			// TODO: it's gonna be a problem if the node never committed any block
+			db.lastCommitted = b.Id()
+		}
+		db.PushBlock(b)
 	}
 }
 

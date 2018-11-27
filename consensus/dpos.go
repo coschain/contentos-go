@@ -162,12 +162,17 @@ func (d *DPoS) start() {
 	defer d.wg.Done()
 	time.Sleep(4 * time.Second)
 
-	logging.CLog().Info("DPoS started.")
+	logging.CLog().Info("DPoS starting...")
+
+	logging.CLog().Info("DPoS Loading ForkDB snapshot...")
+	d.ForkDB.LoadSnapshot()
 	if d.bootstrap && d.ForkDB.Empty() && d.blog.Empty() {
 		d.shuffle()
 	} else {
 		d.restoreProducers()
 	}
+
+	logging.CLog().Info("DPoS started...")
 	//d.scheduleProduce()
 	for {
 		select {
@@ -200,7 +205,9 @@ func (d *DPoS) start() {
 
 func (d *DPoS) Stop() error {
 	logging.CLog().Info("DPoS consensus stopped.")
-	// TODO: flush mainchain in the forkDB so that it can be restored when restarted??
+	// restore uncommitted forkdb
+	d.ForkDB.Snapshot()
+
 	close(d.stopCh)
 	d.wg.Wait()
 	return nil

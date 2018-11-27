@@ -91,6 +91,8 @@ func (bl *BLog) Open(dir string) (err error) {
 
 // Remove remove log and index file
 func (bl *BLog) Remove(dir string) {
+	bl.logFile.Close()
+	bl.indexFile.Close()
 	os.Remove(dir + "/block.bin")
 	os.Remove(dir + "/block.index")
 }
@@ -140,6 +142,16 @@ func (bl *BLog) Append(sb common.ISignedBlock) error {
 	return nil
 }
 
+// Size...
+func (bl *BLog) Size() int64 {
+	logInfo, err := bl.logFile.Stat()
+	if err != nil {
+		panic(err)
+	}
+
+	return logInfo.Size()/indexSize
+}
+
 // Empty returns true if it contains no block
 func (bl *BLog) Empty() bool {
 	logInfo, err := bl.logFile.Stat()
@@ -150,7 +162,7 @@ func (bl *BLog) Empty() bool {
 	return logInfo.Size() == 0
 }
 
-// ReadBlock read a block at blockNum, blockNum start at 0
+// ReadBlock reads a block at blockNum, blockNum start at 0
 func (bl *BLog) ReadBlock(sb common.ISignedBlock, blockNum int64) error {
 	indexOffset := blockNum * indexSize
 	// read index
