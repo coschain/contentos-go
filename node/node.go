@@ -143,8 +143,6 @@ func (n *Node) Stop() error {
 	n.lock.Lock()
 	defer n.lock.Unlock()
 
-	n.MainLoop.Stop()
-
 	failure := &StopError{
 		Services: make(map[string]error),
 	}
