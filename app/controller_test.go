@@ -24,7 +24,7 @@ const (
 )
 
 
-func createSigTrx(op interface{}) (*prototype.SignedTransaction,error) {
+func createSigTrx(op interface{},headBlockID *prototype.Sha256, expire int) (*prototype.SignedTransaction,error) {
 
 	privKey, err := prototype.PrivateKeyFromWIF(constants.INITMINER_PRIKEY)
 	if err != nil {
@@ -32,8 +32,13 @@ func createSigTrx(op interface{}) (*prototype.SignedTransaction,error) {
 	}
 
 	tx := &prototype.Transaction{RefBlockNum: 0, RefBlockPrefix: 0,
-	Expiration: &prototype.TimePointSec{UtcSeconds: uint32(time.Now().Second()+20)}}
+	Expiration: &prototype.TimePointSec{UtcSeconds: uint32(int(time.Now().Unix())+expire)}}
 	tx.AddOperation(op)
+
+	// set reference
+	id := &common.BlockID{}
+	copy(id.Data[:],headBlockID.Hash[:])
+	tx.SetReferenceBlock(id)
 
 	signTx := prototype.SignedTransaction{Trx: tx}
 
@@ -80,20 +85,21 @@ func makeCreateAccountOP(accountName string,pubKey string) (*prototype.AccountCr
 func Test_PushTrx(t *testing.T) {
 	clearDB()
 
+	// set up controller
+	db := startDB()
+	defer db.Close()
+	c := startController(db)
+
 	acop,err := makeCreateAccountOP(accountNameBob,pubKeyBob)
 	if err != nil {
 		t.Error("makeCreateAccountOP error:",err)
 	}
 
-	signedTrx, err := createSigTrx(acop)
+	headBlockID := c.dgpo.GetHeadBlockId()
+	signedTrx, err := createSigTrx(acop,headBlockID,20)
 	if err != nil {
 		t.Error("createSigTrx error:",err)
 	}
-
-	// set up controller
-	db := startDB()
-	defer db.Close()
-	c := startController(db)
 
 	invoice := c.PushTrx(signedTrx)
 	if invoice.Status != 200 {
@@ -110,19 +116,20 @@ func Test_PushTrx(t *testing.T) {
 func Test_PushBlock(t *testing.T) {
 	clearDB()
 
-	createOP,err := makeCreateAccountOP(accountNameBob,pubKeyBob)
-	if err != nil {
-		t.Error("makeCreateAccountOP error:",err)
-	}
-	signedTrx,err := createSigTrx(createOP)
-	if err != nil {
-		t.Error("createSigTrx error:",err)
-	}
-
 	// set up controller
 	db := startDB()
 	defer db.Close()
 	c := startController(db)
+
+	createOP,err := makeCreateAccountOP(accountNameBob,pubKeyBob)
+	if err != nil {
+		t.Error("makeCreateAccountOP error:",err)
+	}
+	headBlockID := c.dgpo.GetHeadBlockId()
+	signedTrx,err := createSigTrx(createOP,headBlockID,20)
+	if err != nil {
+		t.Error("createSigTrx error:",err)
+	}
 
 	sigBlk := new(prototype.SignedBlock)
 
@@ -172,21 +179,16 @@ func TestController_GenerateBlock(t *testing.T) {
 	if err != nil {
 		t.Error("makeCreateAccountOP error:",err)
 	}
-	signedTrx,err := createSigTrx(createOP)
-	if err != nil {
-		t.Error("createSigTrx error:",err)
-	}
-
 	// set up controller
 	db := startDB()
 	defer db.Close()
 	c := startController(db)
 
-	// set reference
-	id := &common.BlockID{}
-	sha256ID := c.dgpo.GetHeadBlockId()
-	copy(id.Data[:],sha256ID.Hash[:])
-	signedTrx.Trx.SetReferenceBlock(id)
+	headBlockID := c.dgpo.GetHeadBlockId()
+	signedTrx,err := createSigTrx(createOP,headBlockID,20)
+	if err != nil {
+		t.Error("createSigTrx error:",err)
+	}
 
 	invoice := c.PushTrx(signedTrx)
 	if invoice.Status != 200 {
@@ -214,6 +216,7 @@ func Test_list(t *testing.T) {
 	// set up controller
 	db := startDB()
 	defer db.Close()
+	c := startController(db)
 
 	// make trx
 	acop,err := makeCreateAccountOP(accountNameBob,pubKeyBob)
@@ -221,7 +224,8 @@ func Test_list(t *testing.T) {
 		t.Error("makeCreateAccountOP error:",err)
 	}
 
-	signedTrx, err := createSigTrx(acop)
+	headBlockID := c.dgpo.GetHeadBlockId()
+	signedTrx, err := createSigTrx(acop,headBlockID,20)
 	if err != nil {
 		t.Error("createSigTrx error:",err)
 	}
@@ -311,16 +315,11 @@ func TestController_PopBlock(t *testing.T) {
 	if err != nil {
 		t.Error("makeCreateAccountOP error:",err)
 	}
-	signedTrx,err := createSigTrx(createOP)
+	headBlockID := c.dgpo.GetHeadBlockId()
+	signedTrx,err := createSigTrx(createOP,headBlockID,20)
 	if err != nil {
 		t.Error("createSigTrx error:",err)
 	}
-
-	// set reference
-	id := &common.BlockID{}
-	sha256ID := c.dgpo.GetHeadBlockId()
-	copy(id.Data[:],sha256ID.Hash[:])
-	signedTrx.Trx.SetReferenceBlock(id)
 
 	block := makeBlock(c.dgpo.GetHeadBlockId(),6,signedTrx)
 
@@ -333,14 +332,11 @@ func TestController_PopBlock(t *testing.T) {
 	if err != nil {
 		t.Error("makeCreateAccountOP error:",err)
 	}
-	signedTrx2,err := createSigTrx(createOP2)
+	headBlockID2 := c.dgpo.GetHeadBlockId()
+	signedTrx2,err := createSigTrx(createOP2,headBlockID2,20)
 	if err != nil {
 		t.Error("createSigTrx error:",err)
 	}
-	// set reference
-	sha256ID = c.dgpo.GetHeadBlockId()
-	copy(id.Data[:],sha256ID.Hash[:])
-	signedTrx2.Trx.SetReferenceBlock(id)
 
 	block2 := makeBlock(c.dgpo.GetHeadBlockId(),9,signedTrx2)
 
@@ -357,6 +353,19 @@ func TestController_PopBlock(t *testing.T) {
 	if !tomWrap.CheckExist() {
 		t.Error("create account failed")
 	}
+
+	c.PopBlock(2)
+	tomNoExistWrap := table.NewSoAccountWrap(db,tomName)
+	if tomNoExistWrap.CheckExist(){	// need check c.dgpo.HeadBlockNumber
+		t.Error("pop block error")
+	}
+
+	c.PopBlock(1)
+	bobNoExistWrap := table.NewSoAccountWrap(db,bobName)
+	if bobNoExistWrap.CheckExist(){	// need check c.dgpo.HeadBlockNumber
+		t.Error("pop block error")
+	}
+
 }
 
 func makeBlock(pre *prototype.Sha256, blockTimestamp uint32, signedTrx *prototype.SignedTransaction) *prototype.SignedBlock {
