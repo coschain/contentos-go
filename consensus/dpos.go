@@ -197,6 +197,8 @@ func (d *DPoS) start() {
 }
 
 func (d *DPoS) Stop() error {
+	logging.CLog().Info("DPoS consensus stopped.")
+	// TODO: flush mainchain in the forkDB so that it can be restored when restarted??
 	close(d.stopCh)
 	d.wg.Wait()
 	return nil
@@ -320,6 +322,7 @@ func (d *DPoS) pushBlock(b common.ISignedBlock) error {
 		// 2. out of range block or
 		// 3. head of a non-main branch or
 		// 4. illegal block
+		logging.CLog().Debug("[pushBlock]possibly detached block. prev: got %v, want %v", b.Id(), head.Id())
 		// TODO: if it's detached, trigger sync
 		return nil
 	} else if head != nil && newHead.Previous() != head.Id() {
@@ -335,15 +338,15 @@ func (d *DPoS) pushBlock(b common.ISignedBlock) error {
 	}
 
 	// shuffle
-	if (d.ForkDB.Head().Id().BlockNum()+1)%uint64(len(d.Producers)) == 0 {
+	if d.ForkDB.Head().Id().BlockNum()%uint64(len(d.Producers)) == 0 {
 		d.shuffle()
 	}
 
 	lastCommitted := d.ForkDB.LastCommitted()
 	var commitIdx uint64
-	if newHead.Id().BlockNum()-lastCommitted.BlockNum() > constants.MAX_WITNESSES*2/3 {
+	if newHead.Id().BlockNum()-lastCommitted.BlockNum() > 3/*constants.MAX_WITNESSES*2/3*/ {
 		if lastCommitted == common.EmptyBlockID {
-			commitIdx = 0
+			commitIdx = 1
 		} else {
 			commitIdx = lastCommitted.BlockNum() + 1
 		}

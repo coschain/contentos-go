@@ -154,5 +154,5 @@ func TestForkDB(t *testing.T) {
 	for i := 0; i < len(ids); i++ {
 		assert.Equal(afterCommit[i], ids[i])
 	}
-	assert.Equal(3, db.TotalBlockNum())
+	assert.Equal(4, db.TotalBlockNum())
 }

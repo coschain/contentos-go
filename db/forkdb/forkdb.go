@@ -2,6 +2,7 @@ package forkdb
 
 import (
 	"fmt"
+	"github.com/coschain/contentos-go/common/logging"
 	"sync"
 
 	"github.com/coschain/contentos-go/common"
@@ -12,8 +13,8 @@ const defaultSize = 1024
 // DB ...
 type DB struct {
 	//committed common.BlockID
-	start  uint64
-	head   common.BlockID
+	start         uint64
+	head          common.BlockID
 	lastCommitted common.BlockID
 
 	list     [][]common.BlockID
@@ -245,7 +246,7 @@ func (db *DB) FetchBlockFromMainBranch(num uint64) (common.ISignedBlock, error) 
 	defer db.RUnlock()
 	headNum := db.head.BlockNum()
 	if num > headNum || num < db.start {
-		return nil, fmt.Errorf("[ForkDB] num out of scope: %d", num)
+		return nil, fmt.Errorf("[ForkDB] num out of scope: %d [%d, %d]", num, db.start, headNum)
 	}
 
 	var ret common.ISignedBlock
@@ -291,38 +292,40 @@ func (db *DB) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, []comm
 // other branches, sets id as the start block. It should be regularly
 // called when a block is commited to save ram.
 func (db *DB) Commit(id common.BlockID) {
-	db.RLock()
-	defer db.RUnlock()
+	logging.CLog().Debug("commit block ", id)
+	logging.CLog().Debugf("before commit head %v, blocks %d", db.head, len(db.branches))
+	db.Lock()
+	defer db.Unlock()
 	if _, ok := db.branches[id]; !ok {
 		panic("tried to commit a detached or non-exist block")
 	}
 	newList := make([][]common.BlockID, defaultSize+1)
 	newBranches := make(map[common.BlockID]common.ISignedBlock)
 	commitNum := id.BlockNum()
-	startNum := commitNum+1
+	startNum := commitNum + 1
 	endNum := db.head.BlockNum()
 
 	// copy all the valid block after the committed block
 	newList[0] = append(newList[0], id)
 	newBranches[id] = db.branches[id]
 	for startNum <= endNum {
-		for i:=0; i<len(db.list[startNum-db.start]); i++ {
+		for i := 0; i < len(db.list[startNum-db.start]); i++ {
 			newId := db.list[startNum-db.start][i]
-			b, err := db.FetchBlock(newId)
+			b, err := db.fetchBlock(newId)
 			if err != nil {
 				continue
 			}
 
 			prev := b.Previous()
 			detached := true
-			for j:=0;j<len(newList[startNum-commitNum-1]);j++{
+			for j := 0; j < len(newList[startNum-commitNum-1]); j++ {
 				if newList[startNum-commitNum-1][j] == prev {
 					detached = false
 					break
 				}
 			}
 			if !detached {
-				newList[startNum-db.start] = append(newList[startNum-db.start], newId)
+				newList[startNum-commitNum] = append(newList[startNum-commitNum], newId)
 				newBranches[newId] = db.branches[newId]
 			}
 		}
@@ -334,6 +337,7 @@ func (db *DB) Commit(id common.BlockID) {
 	db.branches = newBranches
 	db.start = id.BlockNum()
 	db.lastCommitted = id
+	logging.CLog().Debugf("after commit head %v, blocks %d", db.head, len(db.branches))
 }
 
 // Illegal determines if the block has illegal transactions
