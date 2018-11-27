@@ -128,7 +128,7 @@ func Test_PushTrx(t *testing.T) {
 		t.Error("makeCreateAccountOP error:",err)
 	}
 
-	headBlockID := c.dgpo.GetHeadBlockId()
+	headBlockID := c.GetProps().GetHeadBlockId()
 	signedTrx, err := createSigTrx(acop,headBlockID,20)
 	if err != nil {
 		t.Error("createSigTrx error:",err)
@@ -158,13 +158,13 @@ func Test_PushBlock(t *testing.T) {
 	if err != nil {
 		t.Error("makeCreateAccountOP error:",err)
 	}
-	headBlockID := c.dgpo.GetHeadBlockId()
+	headBlockID := c.GetProps().GetHeadBlockId()
 	signedTrx,err := createSigTrx(createOP,headBlockID,20)
 	if err != nil {
 		t.Error("createSigTrx error:",err)
 	}
 
-	sigBlk := makeBlock(c.dgpo.GetHeadBlockId(),10,signedTrx)
+	sigBlk := makeBlock(c.GetProps().GetHeadBlockId(),10,signedTrx)
 
 	fmt.Println("block size:",proto.Size(sigBlk))
 
@@ -188,7 +188,7 @@ func TestController_GenerateBlock(t *testing.T) {
 	defer db.Close()
 	c := startController(db)
 
-	headBlockID := c.dgpo.GetHeadBlockId()
+	headBlockID := c.GetProps().GetHeadBlockId()
 	signedTrx,err := createSigTrx(createOP,headBlockID,20)
 	if err != nil {
 		t.Error("createSigTrx error:",err)
@@ -228,7 +228,7 @@ func Test_list(t *testing.T) {
 		t.Error("makeCreateAccountOP error:",err)
 	}
 
-	headBlockID := c.dgpo.GetHeadBlockId()
+	headBlockID := c.GetProps().GetHeadBlockId()
 	signedTrx, err := createSigTrx(acop,headBlockID,20)
 	if err != nil {
 		t.Error("createSigTrx error:",err)
@@ -319,13 +319,13 @@ func TestController_PopBlock(t *testing.T) {
 	if err != nil {
 		t.Error("makeCreateAccountOP error:",err)
 	}
-	headBlockID := c.dgpo.GetHeadBlockId()
+	headBlockID := c.GetProps().GetHeadBlockId()
 	signedTrx,err := createSigTrx(createOP,headBlockID,20)
 	if err != nil {
 		t.Error("createSigTrx error:",err)
 	}
 
-	block := makeBlock(c.dgpo.GetHeadBlockId(),6,signedTrx)
+	block := makeBlock(c.GetProps().GetHeadBlockId(),6,signedTrx)
 
 	fmt.Println("block size:",proto.Size(block))
 
@@ -336,13 +336,13 @@ func TestController_PopBlock(t *testing.T) {
 	if err != nil {
 		t.Error("makeCreateAccountOP error:",err)
 	}
-	headBlockID2 := c.dgpo.GetHeadBlockId()
+	headBlockID2 := c.GetProps().GetHeadBlockId()
 	signedTrx2,err := createSigTrx(createOP2,headBlockID2,20)
 	if err != nil {
 		t.Error("createSigTrx error:",err)
 	}
 
-	block2 := makeBlock(c.dgpo.GetHeadBlockId(),9,signedTrx2)
+	block2 := makeBlock(c.GetProps().GetHeadBlockId(),9,signedTrx2)
 
 	c.PushBlock(block2,prototype.Skip_nothing)
 
@@ -360,13 +360,13 @@ func TestController_PopBlock(t *testing.T) {
 
 	c.PopBlock(2)
 	tomNoExistWrap := table.NewSoAccountWrap(db,tomName)
-	if tomNoExistWrap.CheckExist(){	// need check c.dgpo.HeadBlockNumber
+	if tomNoExistWrap.CheckExist() || c.GetProps().HeadBlockNumber != 1{	// need check c.dgpo.HeadBlockNumber
 		t.Error("pop block error")
 	}
 
 	c.PopBlock(1)
 	bobNoExistWrap := table.NewSoAccountWrap(db,bobName)
-	if bobNoExistWrap.CheckExist(){	// need check c.dgpo.HeadBlockNumber
+	if bobNoExistWrap.CheckExist() || c.GetProps().HeadBlockNumber != 0{	// need check c.dgpo.HeadBlockNumber
 		t.Error("pop block error")
 	}
 
@@ -384,13 +384,13 @@ func TestController_Commit(t *testing.T) {
 	if err != nil {
 		t.Error("makeCreateAccountOP error:",err)
 	}
-	headBlockID := c.dgpo.GetHeadBlockId()
+	headBlockID := c.GetProps().GetHeadBlockId()
 	signedTrx,err := createSigTrx(createOP,headBlockID,20)
 	if err != nil {
 		t.Error("createSigTrx error:",err)
 	}
 
-	block := makeBlock(c.dgpo.GetHeadBlockId(),6,signedTrx)
+	block := makeBlock(c.GetProps().GetHeadBlockId(),6,signedTrx)
 
 	fmt.Println("block size:",proto.Size(block))
 
@@ -401,13 +401,13 @@ func TestController_Commit(t *testing.T) {
 	if err != nil {
 		t.Error("makeCreateAccountOP error:",err)
 	}
-	headBlockID2 := c.dgpo.GetHeadBlockId()
+	headBlockID2 := c.GetProps().GetHeadBlockId()
 	signedTrx2,err := createSigTrx(createOP2,headBlockID2,20)
 	if err != nil {
 		t.Error("createSigTrx error:",err)
 	}
 
-	block2 := makeBlock(c.dgpo.GetHeadBlockId(),9,signedTrx2)
+	block2 := makeBlock(c.GetProps().GetHeadBlockId(),9,signedTrx2)
 
 	c.PushBlock(block2,prototype.Skip_nothing)
 

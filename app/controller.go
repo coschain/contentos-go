@@ -38,7 +38,6 @@ type Controller struct {
 	_current_op_in_trx     uint16
 	_currentBlockNum       uint64
 	_current_trx_in_block  int16
-	dgpo                   *prototype.DynamicProperties
 	havePendingTransaction bool
 	numToRev               [100]uint64
 }
@@ -90,7 +89,6 @@ func (c *Controller) Open() {
 		c.saveReversion(0)
 		logging.CLog().Info("finish initGenesis")
 	}
-	c.dgpo = dgpWrap.GetProps()
 }
 
 func (c *Controller) Stop() error {
@@ -114,10 +112,15 @@ func (c *Controller) PushTrx(trx *prototype.SignedTransaction) (invoice *prototy
 	}()
 
 	// check maximum_block_size
-	mustSuccess(proto.Size(trx) <= int(c.dgpo.MaximumBlockSize-256), "transaction is too large")
+	mustSuccess(proto.Size(trx) <= int(c.GetProps().MaximumBlockSize-256), "transaction is too large")
 
 	c.setProducing(true)
 	return c._pushTrx(trx)
+}
+
+func (c *Controller) GetProps() *prototype.DynamicProperties {
+	dgpWrap := table.NewSoGlobalWrap(c.db, &SINGLE_ID)
+	return dgpWrap.GetProps()
 }
 
 func (c *Controller) _pushTrx(trx *prototype.SignedTransaction) *prototype.TransactionInvoice {
@@ -404,7 +407,7 @@ func (c *Controller) _applyTransaction(trxWrp *prototype.TransactionWrapper) {
 		// @ check_admin
 	}
 
-	blockNum := c.dgpo.GetHeadBlockNumber()
+	blockNum := c.GetProps().GetHeadBlockNumber()
 	if blockNum > 0 {
 		uniWrap := table.UniBlockSummaryObjectIdWrap{Dba: c.db}
 		idWrap := uniWrap.UniQueryId(&trx.Trx.RefBlockNum)
@@ -515,14 +518,17 @@ func (c *Controller) _applyBlock(blk *prototype.SignedBlock, skip prototype.Skip
 	c._current_trx_in_block = 0
 
 	blockSize := proto.Size(blk)
-	mustSuccess(uint32(blockSize) <= c.dgpo.GetMaximumBlockSize(), "Block size is too big")
+	mustSuccess(uint32(blockSize) <= c.GetProps().GetMaximumBlockSize(), "Block size is too big")
 
 	if uint32(blockSize) < constants.MIN_BLOCK_SIZE {
 		// elog("Block size is too small")
 	}
 
 	w := blk.SignedHeader.Header.Witness
-	c.dgpo.CurrentWitness = w
+	dgpo := c.GetProps()
+	dgpo.CurrentWitness = w
+	dgpWrap := table.NewSoGlobalWrap(c.db, &SINGLE_ID)
+	dgpWrap.MdProps(dgpo)
 
 	// @ process extension
 
@@ -629,33 +635,35 @@ func (c *Controller) initGenesis() {
 
 func (c *Controller) TransferToVest(value *prototype.Coin) {
 
-	cos := c.dgpo.GetTotalCos()
-	vest := c.dgpo.GetTotalVestingShares()
+	dgpo := c.GetProps()
+	cos := dgpo.GetTotalCos()
+	vest := dgpo.GetTotalVestingShares()
 	addVest := value.ToVest()
 
 	mustNoError(cos.Sub(value), "TotalCos overflow")
-	c.dgpo.TotalCos = cos
+	dgpo.TotalCos = cos
 
 	mustNoError(vest.Add(addVest), "TotalVestingShares overflow")
-	c.dgpo.TotalVestingShares = vest
+	dgpo.TotalVestingShares = vest
 
-	c.updateGlobalDataToDB()
+	c.updateGlobalDataToDB(dgpo)
 }
 
 func (c *Controller) TransferFromVest(value *prototype.Vest) {
+	dgpo := c.GetProps()
 
-	cos := c.dgpo.GetTotalCos()
-	vest := c.dgpo.GetTotalVestingShares()
+	cos := dgpo.GetTotalCos()
+	vest := dgpo.GetTotalVestingShares()
 	addCos := value.ToCoin()
 
 	mustNoError(cos.Add(addCos), "TotalCos overflow")
-	c.dgpo.TotalCos = cos
+	dgpo.TotalCos = cos
 
 	mustNoError(vest.Sub(value), "TotalVestingShares overflow")
-	c.dgpo.TotalVestingShares = vest
+	dgpo.TotalVestingShares = vest
 
 	// TODO if op execute failed ???? how to revert ??
-	c.updateGlobalDataToDB()
+	c.updateGlobalDataToDB(dgpo)
 }
 
 func (c *Controller) validateBlockHeader(blk *prototype.SignedBlock) {
@@ -691,18 +699,18 @@ func (c *Controller) validateBlockHeader(blk *prototype.SignedBlock) {
 }
 
 func (c *Controller) headBlockID() *prototype.Sha256 {
-	return c.dgpo.GetHeadBlockId()
+	return c.GetProps().GetHeadBlockId()
 }
 
 func (c *Controller) HeadBlockTime() *prototype.TimePointSec {
 	return c.headBlockTime()
 }
 func (c *Controller) headBlockTime() *prototype.TimePointSec {
-	return c.dgpo.Time
+	return c.GetProps().Time
 }
 
 func (c *Controller) headBlockNum() uint32 {
-	return c.dgpo.HeadBlockNumber
+	return c.GetProps().HeadBlockNumber
 }
 
 func (c *Controller) GetSlotTime(slot uint32) *prototype.TimePointSec {
@@ -745,9 +753,9 @@ func (c *Controller) GetScheduledWitness(slot uint32) *prototype.AccountName {
 		return &prototype.AccountName{Value:witnessName}*/
 }
 
-func (c *Controller) updateGlobalDataToDB() {
+func (c *Controller) updateGlobalDataToDB(dgpo *prototype.DynamicProperties) {
 	dgpWrap := table.NewSoGlobalWrap(c.db, &SINGLE_ID)
-	mustSuccess(dgpWrap.MdProps(c.dgpo), "")
+	mustSuccess(dgpWrap.MdProps(dgpo), "")
 }
 
 func (c *Controller) updateGlobalDynamicData(blk *prototype.SignedBlock) {
@@ -777,14 +785,15 @@ func (c *Controller) updateGlobalDynamicData(blk *prototype.SignedBlock) {
 	id := blk.Id()
 	blockID := &prototype.Sha256{Hash: id.Data[:]}
 
-	c.dgpo.HeadBlockNumber = uint32(blk.Id().BlockNum())
-	c.dgpo.HeadBlockId = blockID
-	c.dgpo.Time = blk.SignedHeader.Header.Timestamp
+	dgpo := c.GetProps()
+	dgpo.HeadBlockNumber = uint32(blk.Id().BlockNum())
+	dgpo.HeadBlockId = blockID
+	dgpo.Time = blk.SignedHeader.Header.Timestamp
 	//c.dgpo.CurrentAslot       = c.dgpo.CurrentAslot + missedBlock+1
 
 	// this check is useful ?
-	mustSuccess(c.dgpo.GetHeadBlockNumber()-c.dgpo.GetIrreversibleBlockNum() < constants.MAX_UNDO_HISTORY, "The database does not have enough undo history to support a blockchain with so many missed blocks.")
-	c.updateGlobalDataToDB()
+	mustSuccess(dgpo.GetHeadBlockNumber()-dgpo.GetIrreversibleBlockNum() < constants.MAX_UNDO_HISTORY, "The database does not have enough undo history to support a blockchain with so many missed blocks.")
+	c.updateGlobalDataToDB(dgpo)
 }
 
 func (c *Controller) updateSigningWitness(blk *prototype.SignedBlock) {
@@ -860,7 +869,9 @@ func (c *Controller) GetShuffledWitness() []string {
 }
 
 func (c *Controller) AddWeightedVP(value uint64) {
-	c.dgpo.WeightedVps += value
+	dgpo := c.GetProps()
+	dgpo.WeightedVps += value
+	// TODO update dgpo to DB
 }
 
 func (c *Controller) saveReversion(num uint32) {
