@@ -740,8 +740,8 @@ func (c *Controller) updateGlobalDataToDB() {
 }
 
 func (c *Controller) updateGlobalDynamicData(blk *prototype.SignedBlock) {
-	var missedBlock uint32 = 0
 	/*
+	var missedBlock uint32 = 0
 	if false && c.headBlockTime().UtcSeconds != 0 {
 		missedBlock = c.GetIncrementSlotAtTime(blk.SignedHeader.Header.Timestamp)
 		mustSuccess(missedBlock != 0,"missedBlock error")

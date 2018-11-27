@@ -1,7 +1,6 @@
 package forkdb
 
 import (
-	"errors"
 	"fmt"
 	"sync"
 
@@ -246,7 +245,7 @@ func (db *DB) FetchBlockFromMainBranch(num uint64) (common.ISignedBlock, error) 
 	defer db.RUnlock()
 	headNum := db.head.BlockNum()
 	if num > headNum || num < db.start {
-		return nil, errors.New("[ForkDB] num out of scope")
+		return nil, fmt.Errorf("[ForkDB] num out of scope: %d", num)
 	}
 
 	var ret common.ISignedBlock
