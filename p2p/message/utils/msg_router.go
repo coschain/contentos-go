@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"fmt"
+//	"fmt"
 	msgCommon "github.com/coschain/contentos-go/p2p/common"
 	"github.com/coschain/contentos-go/p2p/depend/common/log"
 	"github.com/coschain/contentos-go/p2p/message/types"
@@ -83,7 +83,7 @@ func (this *MessageRouter) hookChan(channel chan *types.MsgPayload,
 				msgType := data.Payload.CMDType()
 				msgdata := data.Payload.(*msg.TransferMsg).Msg
 				if msgdata == nil {
-					fmt.Println("nil message")
+					//fmt.Println("nil message")
 					continue
 				}
 

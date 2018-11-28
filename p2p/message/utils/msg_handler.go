@@ -130,8 +130,8 @@ func TransactionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface
 	log.Info("receive a trx")
 	fmt.Printf("data:   +%v\n", trn)
 
-	noticer := p2p.GetNoticer()
-	noticer.Publish(constants.NOTICE_HANDLE_P2P_SIGTRX, trn.SigTrx)
+	//noticer := p2p.GetNoticer()
+	//noticer.Publish(constants.NOTICE_HANDLE_P2P_SIGTRX, trn.SigTrx)
 }
 
 // VersionHandle handles version handshake protocol from peer
