@@ -37,12 +37,12 @@ func NewGRPCServer(ctx *node.ServiceContext, config service_configs.GRPCConfig) 
 
 func (gs *GRPCServer) Start(node *node.Node) error {
 
-	ctrl, err := gs.ctx.Service(iservices.CTRL_SERVER_NAME)
+	consensus, err := gs.ctx.Service(iservices.CS_SERVER_NAME)
 	if err != nil {
 		// TODO Mock Test
 		//return err
 	} else {
-		gs.api.ctrl = ctrl.(iservices.IController)
+		gs.api.consensus = consensus.(iservices.IConsensus)
 	}
 
 	db, err := gs.ctx.Service(iservices.DB_SERVER_NAME)

@@ -43,7 +43,11 @@ type ISignedBlock interface {
 }
 
 type ITransaction interface {
-	Validate() bool
+	Validate() error
+}
+
+
+type ITransactionInvoice interface {
 }
 
 type ISignedTransaction interface {

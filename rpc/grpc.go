@@ -17,7 +17,7 @@ var (
 )
 
 type APIService struct {
-	ctrl     iservices.IController
+	consensus     iservices.IConsensus
 	mainLoop *eventloop.EventLoop
 	db       iservices.IDatabaseService
 }
@@ -300,8 +300,12 @@ func (as *APIService) BroadcastTrx(ctx context.Context, req *grpcpb.BroadcastTrx
 
 	var result *prototype.TransactionInvoice = nil
 	as.mainLoop.Send(func() {
-		result = as.ctrl.PushTrx(req.GetTransaction())
+		r := as.consensus.PushTransaction(req.GetTransaction())
 		logging.CLog().Infof("BroadcastTrx Result: %s", result)
+
+		if r != nil {
+			result = r.(*prototype.TransactionInvoice)
+		}
 	})
 
 	return &grpcpb.BroadcastTrxResponse{Invoice:result}, nil

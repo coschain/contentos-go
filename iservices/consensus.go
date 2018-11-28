@@ -1,6 +1,8 @@
 package iservices
 
-import "github.com/coschain/contentos-go/common"
+import (
+	"github.com/coschain/contentos-go/common"
+)
 
 var CS_SERVER_NAME = "consensus"
 type IConsensus interface {
@@ -18,7 +20,7 @@ type IConsensus interface {
 	// PushTransaction accepts the trx if and only if
 	// 1. it's valid
 	// 2. the current node is a producer
-	PushTransaction(trx common.ISignedTransaction)
+	PushTransaction(trx common.ISignedTransaction) common.ITransactionInvoice
 
 	// PushBlock adds b to the block fork DB, called if ValidateBlock returns true
 	PushBlock(b common.ISignedBlock)

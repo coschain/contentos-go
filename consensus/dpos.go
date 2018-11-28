@@ -37,6 +37,7 @@ type DPoS struct {
 	readyToProduce bool
 	prodTimer      *time.Timer
 	trxCh          chan common.ISignedTransaction
+	trxRetCh       chan common.ITransactionInvoice
 	blkCh          chan common.ISignedBlock
 	bootstrap      bool
 	slot           uint64
@@ -55,7 +56,8 @@ func NewDPoS(ctx *node.ServiceContext) *DPoS {
 		ForkDB: forkdb.NewDB(),
 		//Producers: make([]*Producer, constants.ProducerNum),
 		prodTimer: time.NewTimer(1 * time.Millisecond),
-		trxCh:     make(chan common.ISignedTransaction, 5000),
+		trxCh:     make(chan common.ISignedTransaction),
+		trxRetCh:  make(chan common.ITransactionInvoice),
 		blkCh:     make(chan common.ISignedBlock),
 		ctx:       ctx,
 		stopCh:    make(chan struct{}),
@@ -202,8 +204,10 @@ func (d *DPoS) start() {
 			if err := d.pushBlock(b); err != nil {
 				logging.CLog().Error("push block error: ", err)
 			}
-		//case trx := <-d.trxCh:
-		// handle trx
+		case trx := <-d.trxCh:
+			ret := d.ctrl.PushTrx( trx.(*prototype.SignedTransaction) )
+			d.trxRetCh <- ret
+			continue
 		case <-d.prodTimer.C:
 			//logging.CLog().Debug("scheduleProduce.")
 			//logging.CLog().Debug("producers: ", d.Producers)
@@ -339,8 +343,9 @@ func (d *DPoS) PushBlock(b common.ISignedBlock) {
 	}(b)
 }
 
-func (d *DPoS) PushTransaction(trx common.ISignedTransaction) {
+func (d *DPoS) PushTransaction(trx common.ISignedTransaction) common.ITransactionInvoice{
 	d.trxCh <- trx
+	return  <- d.trxRetCh
 }
 
 func (d *DPoS) pushBlock(b common.ISignedBlock) error {
