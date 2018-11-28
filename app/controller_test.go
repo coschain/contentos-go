@@ -358,13 +358,13 @@ func TestController_PopBlock(t *testing.T) {
 		t.Error("create account failed")
 	}
 
-	c.PopBlock(2)
+	c.PopBlockTo(1)
 	tomNoExistWrap := table.NewSoAccountWrap(db,tomName)
 	if tomNoExistWrap.CheckExist() || c.GetProps().HeadBlockNumber != 1{	// need check c.dgpo.HeadBlockNumber
 		t.Error("pop block error")
 	}
 
-	c.PopBlock(1)
+	c.PopBlockTo(0)
 	bobNoExistWrap := table.NewSoAccountWrap(db,bobName)
 	if bobNoExistWrap.CheckExist() || c.GetProps().HeadBlockNumber != 0{	// need check c.dgpo.HeadBlockNumber
 		t.Error("pop block error")
@@ -439,5 +439,5 @@ func TestController_Commit(t *testing.T) {
 			t.Error("pop a irreversible block but no panic")
 		}
 	}()
-	c.PopBlock(2)
+	c.PopBlockTo(1)
 }

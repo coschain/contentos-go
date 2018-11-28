@@ -472,7 +472,7 @@ func (d *DPoS) applyBlock(b common.ISignedBlock) error {
 }
 
 func (d *DPoS) popBlock(id common.BlockID) error {
-	d.ctrl.PopBlock(uint32(id.BlockNum()))
+	d.ctrl.PopBlockTo(uint32(id.BlockNum()))
 	return nil
 }
 

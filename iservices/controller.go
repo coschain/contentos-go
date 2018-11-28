@@ -18,7 +18,9 @@ type IController interface {
 	GetWitnessTopN(n uint32) []string
 	SetShuffledWitness(names []string)
 	GetShuffledWitness() []string
-	PopBlock(num uint32)
+	// will set DB status to num
+	PopBlockTo(num uint32)
+	// will cut off DB status that before num
 	Commit(num uint32)
 
 	TransferToVest(value *prototype.Coin)
