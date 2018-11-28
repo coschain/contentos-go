@@ -1,12 +1,12 @@
 package app
 
 import (
+	"fmt"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/pkg/errors"
-	"time"
 )
 
 func mustSuccess(b bool, val string) {
@@ -106,7 +106,8 @@ func (ev *AccountCreateEvaluator) Apply() {
 		tInfo.CreatedTime = ev.ctx.control.HeadBlockTime()
 		tInfo.Balance = prototype.NewCoin(0)
 		tInfo.VestingShares = op.Fee.ToVest()
-		tInfo.LastPostTime = &prototype.TimePointSec{UtcSeconds:uint32(time.Now().Second())}
+		tInfo.LastPostTime = ev.ctx.control.HeadBlockTime()
+		tInfo.LastVoteTime = ev.ctx.control.HeadBlockTime()
 	}), "duplicate create account object")
 
 	// create account authority
@@ -172,8 +173,7 @@ func (ev *PostEvaluator) Apply() {
 	authorWrap.MdLastPostTime(ev.ctx.control.HeadBlockTime())
 
 	timestamp := ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.POST_CASHPUT_DELAY_TIME) - uint32(constants.GenesisTime)
-	keyPrefix := "cashout:" + string(common.GetBucket(timestamp)) + "_"
-	key := keyPrefix + string(op.Uuid)
+	key := fmt.Sprintf("cashout:%d_%d", common.GetBucket(timestamp), op.Uuid)
 	value := "post"
 	opAssertE(ev.ctx.db.Put([]byte(key), []byte(value)), "put post key into db error")
 
@@ -191,7 +191,7 @@ func (ev *ReplyEvaluator) Apply() {
 
 	authorWrap := table.NewSoAccountWrap(ev.ctx.db, op.Owner)
 	elapsedSeconds := ev.ctx.control.HeadBlockTime().UtcSeconds - authorWrap.GetLastPostTime().UtcSeconds
-	opAssert(elapsedSeconds > constants.MIN_POST_INTERVAL, "reply frequently")
+	opAssert(elapsedSeconds > constants.MIN_POST_INTERVAL, "posting frequently")
 
 	var rootId uint64
 	if pidWrap.GetRootId() == 0 {
@@ -221,8 +221,7 @@ func (ev *ReplyEvaluator) Apply() {
 	opAssert(pidWrap.MdChildren(pidWrap.GetChildren()+1), "Modify Parent Children Error")
 
 	timestamp := ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.POST_CASHPUT_DELAY_TIME) - uint32(constants.GenesisTime)
-	keyPrefix := "cashout:" + string(common.GetBucket(timestamp)) + "_"
-	key := keyPrefix + string(op.Uuid)
+	key := fmt.Sprintf("cashout:%d_%d", common.GetBucket(timestamp), op.Uuid)
 	value := "reply"
 	opAssertE(ev.ctx.db.Put([]byte(key), []byte(value)), "put reply key into db error")
 }
@@ -234,7 +233,7 @@ func (ev *VoteEvaluator) Apply() {
 
 	voterWrap := table.NewSoAccountWrap(ev.ctx.db, op.Voter)
 	elapsedSeconds := ev.ctx.control.HeadBlockTime().UtcSeconds - voterWrap.GetLastVoteTime().UtcSeconds
-	opAssert(elapsedSeconds < constants.MIN_VOTE_INTERVAL, "voting frequently")
+	opAssert(elapsedSeconds > constants.MIN_VOTE_INTERVAL, "voting frequently")
 
 	voterId := prototype.VoterId{Voter: op.Voter, PostId: op.Idx}
 	voteWrap := table.NewSoVoteWrap(ev.ctx.db, &voterId)

@@ -4,12 +4,15 @@ import (
 	"fmt"
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app/table"
+	"github.com/coschain/contentos-go/common"
+	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/db/storage"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
+	"time"
 )
 
 const (
@@ -111,6 +114,7 @@ func Test_ApplyTransfer(t *testing.T) {
 }
 
 func TestPostEvaluator_ApplyNormal(t *testing.T) {
+	clearDB()
 	operation := &prototype.PostOperation{
 		Uuid:          uint64(111),
 		Owner:         &prototype.AccountName{Value: "initminer"},
@@ -121,7 +125,6 @@ func TestPostEvaluator_ApplyNormal(t *testing.T) {
 	}
 	db := startDB()
 	defer db.Close()
-	defer clearDB()
 
 	op := &prototype.Operation{}
 	opPost := &prototype.Operation_Op6{}
@@ -129,6 +132,10 @@ func TestPostEvaluator_ApplyNormal(t *testing.T) {
 	op.Op = opPost
 
 	c := startController(db)
+
+	props := c.GetProps()
+	props.Time = &prototype.TimePointSec{UtcSeconds: uint32(time.Now().Unix())}
+	c.updateGlobalDataToDB(props)
 	ctx := &ApplyContext{db: db, control: c}
 	ev := &PostEvaluator{ctx: ctx, op: op.GetOp6()}
 	ev.Apply()
@@ -139,9 +146,18 @@ func TestPostEvaluator_ApplyNormal(t *testing.T) {
 	myassert.Equal(postWrap.GetAuthor().Value, "initminer")
 	myassert.Equal(postWrap.GetPostId(), uint64(111))
 	myassert.Equal(postWrap.GetRootId(), uint64(0))
+
+	authorWrap := table.NewSoAccountWrap(ev.ctx.db, &prototype.AccountName{Value: "initminer"})
+	// author last post time should be modified
+	myassert.Equal(authorWrap.GetLastPostTime().UtcSeconds, uint32(time.Now().Unix()))
+	timestamp := ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.POST_CASHPUT_DELAY_TIME) - uint32(constants.GenesisTime)
+	key := fmt.Sprintf("cashout:%d_%d", common.GetBucket(timestamp), uuid)
+	value, _ := ev.ctx.db.Get([]byte(key))
+	myassert.Equal(value, []byte("post"))
 }
 
 func TestPostEvaluator_ApplyPostExistId(t *testing.T) {
+	clearDB()
 	operation := &prototype.PostOperation{
 		Uuid:          uint64(111),
 		Owner:         &prototype.AccountName{Value: "initminer"},
@@ -152,7 +168,6 @@ func TestPostEvaluator_ApplyPostExistId(t *testing.T) {
 	}
 	db := startDB()
 	defer db.Close()
-	defer clearDB()
 
 	op := &prototype.Operation{}
 	opPost := &prototype.Operation_Op6{}
@@ -160,20 +175,33 @@ func TestPostEvaluator_ApplyPostExistId(t *testing.T) {
 	op.Op = opPost
 
 	c := startController(db)
+
+	props := c.GetProps()
+	props.Time = &prototype.TimePointSec{UtcSeconds: uint32(time.Now().Unix())}
+	c.updateGlobalDataToDB(props)
+
 	ctx := &ApplyContext{db: db, control: c}
 	ev := &PostEvaluator{ctx: ctx, op: op.GetOp6()}
 	ev.Apply()
+
+	// avoid frequently
+	props.Time = &prototype.TimePointSec{UtcSeconds: uint32(time.Now().Unix() + 1000)}
+	c.updateGlobalDataToDB(props)
+	ctx = &ApplyContext{db: db, control: c}
+	ev = &PostEvaluator{ctx: ctx, op: op.GetOp6()}
 	func() {
 		defer func() {
 			if r := recover(); r == nil {
 				t.Errorf("repost should have panic!")
 			}
 		}()
+
 		ev.Apply()
 	}()
 }
 
 func TestPostEvaluator_ApplyPostFrequently(t *testing.T) {
+	clearDB()
 	operation := &prototype.PostOperation{
 		Uuid:          uint64(111),
 		Owner:         &prototype.AccountName{Value: "initminer"},
@@ -184,7 +212,6 @@ func TestPostEvaluator_ApplyPostFrequently(t *testing.T) {
 	}
 	db := startDB()
 	defer db.Close()
-	defer clearDB()
 
 	op := &prototype.Operation{}
 	opPost := &prototype.Operation_Op6{}
@@ -192,9 +219,30 @@ func TestPostEvaluator_ApplyPostFrequently(t *testing.T) {
 	op.Op = opPost
 
 	c := startController(db)
+
+	props := c.GetProps()
+	props.Time = &prototype.TimePointSec{UtcSeconds: uint32(time.Now().Unix())}
+	c.updateGlobalDataToDB(props)
+
 	ctx := &ApplyContext{db: db, control: c}
 	ev := &PostEvaluator{ctx: ctx, op: op.GetOp6()}
 	ev.Apply()
+
+	operation = &prototype.PostOperation{
+		Uuid:          uint64(112),
+		Owner:         &prototype.AccountName{Value: "initminer"},
+		Title:         "Lorem Ipsum",
+		Content:       "Lorem ipsum dolor sit amet",
+		Tags:          []string{"article", "image"},
+		Beneficiaries: []*prototype.BeneficiaryRouteType{},
+	}
+
+	opPost.Op6 = operation
+	op.Op = opPost
+
+	ctx = &ApplyContext{db: db, control: c}
+	ev = &PostEvaluator{ctx: ctx, op: op.GetOp6()}
+
 	func() {
 		defer func() {
 			if r := recover(); r == nil {
