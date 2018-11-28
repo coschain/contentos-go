@@ -86,7 +86,14 @@ func startNode(cmd *cobra.Command, args []string) {
 	//})
 
 	app.Register(iservices.CS_SERVER_NAME, func(ctx *node.ServiceContext) (node.Service, error) {
-		return consensus.NewDPoS(ctx), nil
+		var s node.Service
+		switch ctx.Config().Consensus.Type {
+		case "DPoS":
+			s = consensus.NewDPoS(ctx)
+		default:
+			s = consensus.NewDPoS(ctx)
+		}
+		return s, nil
 	})
 
 	app.Register(iservices.DB_SERVER_NAME, func(ctx *node.ServiceContext) (node.Service, error) {

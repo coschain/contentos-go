@@ -88,6 +88,7 @@ func (db *DB) LoadSnapshot(avatar []common.ISignedBlock, dir string) {
 	db.detachedLink = make(map[common.BlockID]common.ISignedBlock)
 
 	size := db.snapshot.Size()
+	logging.CLog().Info("DPoS Loading ForkDB snapshot...")
 	logging.CLog().Debugf("[ForkDB][LoadSnapshot] %d blocks detected.", size)
 	var i int64
 	for i = 0; i < size; i++ {
@@ -98,9 +99,9 @@ func (db *DB) LoadSnapshot(avatar []common.ISignedBlock, dir string) {
 			// TODO: it's gonna be a problem if the node never committed any block
 			db.lastCommitted = avatar[i].Id()
 		}
-		logging.CLog().Debug("loading block #", avatar[i].Id().BlockNum())
+		//logging.CLog().Debug("loading block #", avatar[i].Id().BlockNum())
 		db.pushBlock(avatar[i])
-		logging.CLog().Debugf("[ForkDB][LoadSnapshot] restore #%d, id %v, prev %d", avatar[i].Id().BlockNum(), avatar[i].Id(), avatar[i].Previous())
+		//logging.CLog().Debugf("[ForkDB][LoadSnapshot] restore #%d, id %v, prev %d", avatar[i].Id().BlockNum(), avatar[i].Id(), avatar[i].Previous())
 	}
 	logging.CLog().Debugf("[ForkDB][LoadSnapshot] %d blocks loaded.", size)
 }

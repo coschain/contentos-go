@@ -58,6 +58,7 @@ func NewDPoS(ctx *node.ServiceContext) *DPoS {
 		ctx:       ctx,
 		stopCh:    make(chan struct{}),
 	}
+	ret.SetBootstrap(ctx.Config().Consensus.BootStrap)
 	ret.Name = constants.COS_INIT_MINER
 	var err error
 	ret.privKey, err = prototype.PrivateKeyFromWIF(constants.INITMINER_PRIKEY)
@@ -129,7 +130,6 @@ func (d *DPoS) Start(node *node.Node) error {
 	d.node = node
 	d.ctrl = d.getController()
 	d.blog.Open(node.Config().ResolvePath("blog"))
-	d.SetBootstrap(true)
 
 	go d.start()
 	return nil
@@ -163,10 +163,7 @@ func (d *DPoS) start() {
 	d.wg.Add(1)
 	defer d.wg.Done()
 	time.Sleep(4 * time.Second)
-
-	logging.CLog().Info("DPoS starting...")
-
-	logging.CLog().Info("DPoS Loading ForkDB snapshot...")
+	logging.CLog().Info("[DPoS] starting...")
 
 	// TODO: fuck!! this is fugly
 	var avatar []common.ISignedBlock
@@ -176,12 +173,13 @@ func (d *DPoS) start() {
 	}
 	d.ForkDB.LoadSnapshot(avatar, d.node.Config().ResolvePath("forkdb_snapshot"))
 	if d.bootstrap && d.ForkDB.Empty() && d.blog.Empty() {
+		logging.CLog().Info("[DPoS] bootstrapping...")
 		d.shuffle()
 	} else {
 		d.restoreProducers()
 	}
 
-	logging.CLog().Info("DPoS started...")
+	logging.CLog().Info("[DPoS] started")
 	//d.scheduleProduce()
 	for {
 		select {
@@ -206,7 +204,7 @@ func (d *DPoS) start() {
 				logging.CLog().Error("generating block error: ", err)
 				continue
 			}
-			logging.CLog().Debugf("generated block: <num %d> <ts %d>", b.Id().BlockNum(), b.Timestamp())
+			logging.CLog().Debugf("[DPoS]generated block: <num %d> <ts %d>", b.Id().BlockNum(), b.Timestamp())
 			// TODO: broadcast block
 			d.PushBlock(b)
 		}
