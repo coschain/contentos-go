@@ -348,7 +348,7 @@ func (d *DPoS) pushBlock(b common.ISignedBlock) error {
 		// 2. out of range block or
 		// 3. head of a non-main branch or
 		// 4. illegal block
-		logging.CLog().Debug("[pushBlock]possibly detached block. prev: got %v, want %v", b.Id(), head.Id())
+		logging.CLog().Debugf("[pushBlock]possibly detached block. prev: got %v, want %v", b.Id(), head.Id())
 		// TODO: if it's detached, trigger sync
 		return nil
 	} else if head != nil && newHead.Previous() != head.Id() {

@@ -388,7 +388,7 @@ func (c *Controller) _applyTransaction(trxWrp *prototype.TransactionWrapper) {
 			authWrap := table.NewSoAccountAuthorityObjectWrap(c.db, account)
 			auth := authWrap.GetActive()
 			if auth == nil {
-				panic("no posting auth")
+				panic("no active auth")
 			}
 			return auth
 		}
@@ -397,7 +397,7 @@ func (c *Controller) _applyTransaction(trxWrp *prototype.TransactionWrapper) {
 			authWrap := table.NewSoAccountAuthorityObjectWrap(c.db, account)
 			auth := authWrap.GetOwner()
 			if auth == nil {
-				panic("no posting auth")
+				panic("no owner auth")
 			}
 			return auth
 		}

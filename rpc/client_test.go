@@ -244,13 +244,22 @@ func TestGRPCApi_GetTrxById(t *testing.T) {
 var (
 	BOB = "BobName"
 	ALICE = "AliceName"
+	pubkeyWIFBOB = "COS6Ezgyx3RQP5YjwBRf7higSytEVwELBCzK6xgB9orvpMuaLregA"
+	prikeyWIFBOB = "YLC5nMjxPWvMPzDW9dC3d5UEamZwWffZpjWCmFq1Mk99EpQ1D"
+
+	pubkeyWIFAlice = "COS65V8VdcvE4sF6qXtXs6k74TCi3rJrA5Lc5EqkH9Rh8YS3D2WT7"
+	prikeyWIFAlice = "y9i4xUWGpbHQqfFjE1wL8LA2oevjhJtoej1KbMMJdoH9gnbhZ"
 )
 
 func TestGRPCApi_BroadcastTrx(t *testing.T) {
-	pushTrx(t, createAccountTxReq(t))
+	//pushTrx(t, createAccountTxReq(t))
 	pushTrx(t, createUnfollowTxReq(t))
+	getFollowerList(t)
 	pushTrx(t, createFollowTxReq(t))
+	getFollowerList(t)
+}
 
+func getFollowerList(t *testing.T) {
 	req := &grpcpb.GetFollowerListByNameRequest{
 		Limit: 100,
 	}
@@ -261,7 +270,6 @@ func TestGRPCApi_BroadcastTrx(t *testing.T) {
 	} else {
 		t.Logf("GetFollowerListByName detail: %s", resp.FollowerList)
 	}
-
 }
 
 func createFollowTxReq(t *testing.T) *grpcpb.BroadcastTrxRequest {
@@ -271,7 +279,7 @@ func createFollowTxReq(t *testing.T) *grpcpb.BroadcastTrxRequest {
 		Cancel:    false,
 	}
 
-	return generateSignedTxResp(t, fOP)
+	return generateSignedTxResp(t, BOB, fOP)
 }
 
 func createUnfollowTxReq(t *testing.T) *grpcpb.BroadcastTrxRequest {
@@ -281,19 +289,13 @@ func createUnfollowTxReq(t *testing.T) *grpcpb.BroadcastTrxRequest {
 		Cancel:    true,
 	}
 
-	return generateSignedTxResp(t, unfOP)
+	return generateSignedTxResp(t, BOB, unfOP)
 }
 
 func createAccountTxReq(t *testing.T) *grpcpb.BroadcastTrxRequest {
 
-	pubkeyWIFA := "COS6Ezgyx3RQP5YjwBRf7higSytEVwELBCzK6xgB9orvpMuaLregA"
-	//prikeyWIFA := "YLC5nMjxPWvMPzDW9dC3d5UEamZwWffZpjWCmFq1Mk99EpQ1D"
-
-	pubkeyWIFB := "COS65V8VdcvE4sF6qXtXs6k74TCi3rJrA5Lc5EqkH9Rh8YS3D2WT7"
-	//prikeyWIFB := "y9i4xUWGpbHQqfFjE1wL8LA2oevjhJtoej1KbMMJdoH9gnbhZ"
-
-	pubkeyA, _ := prototype.PublicKeyFromWIF(pubkeyWIFA)
-	pubkeyB, _ := prototype.PublicKeyFromWIF(pubkeyWIFB)
+	pubkeyA, _ := prototype.PublicKeyFromWIF(pubkeyWIFBOB)
+	pubkeyB, _ := prototype.PublicKeyFromWIF(pubkeyWIFAlice)
 
 	keysA := prototype.NewAuthorityFromPubKey(pubkeyA)
 	keysB := prototype.NewAuthorityFromPubKey(pubkeyB)
@@ -316,26 +318,36 @@ func createAccountTxReq(t *testing.T) *grpcpb.BroadcastTrxRequest {
 		Active:         keysB,
 	}
 
-	return generateSignedTxResp(t, acoA, acoB)
+	return generateSignedTxResp(t, constants.INIT_MINER_NAME, acoA, acoB)
 }
 
 func pushTrx(t *testing.T, req *grpcpb.BroadcastTrxRequest) {
 	resp := &grpcpb.BroadcastTrxResponse{}
 
 	resp, err := asc.BroadcastTrx(context.Background(), req)
-	if err != nil {
-		t.Errorf("BroadcastTrx failed: %s", err)
+	if err != nil || resp.Invoice.Status != 200 {
+		t.Errorf("BroadcastTrx failed: err:[%v], status:[%d]", err, resp.Invoice.Status)
 	} else {
-		t.Logf("BroadcastTrx detail: %s", resp)
+		t.Logf("BroadcastTrx detail: resp: [%v]", resp)
 	}
 }
 
-func generateSignedTxResp(t *testing.T, ops ...interface{}) *grpcpb.BroadcastTrxRequest {
-	//creatorPrikeys := []*prototype.PrivateKeyType{}
-	creatorPrikey, _ := prototype.PrivateKeyFromWIF(constants.INITMINER_PRIKEY)
-	//creatorPrikeys = append(creatorPrikeys, creatorPrikey)
+func generateSignedTxResp(t *testing.T, creator string, ops ...interface{}) *grpcpb.BroadcastTrxRequest {
+	var creatorPrikey *prototype.PrivateKeyType
+	switch creator {
+	case constants.INIT_MINER_NAME:
+		creatorPrikey, _ = prototype.PrivateKeyFromWIF(constants.INITMINER_PRIKEY)
+	case BOB:
+		creatorPrikey, _ = prototype.PrivateKeyFromWIF(prikeyWIFBOB)
+	case ALICE:
+		creatorPrikey, _ = prototype.PrivateKeyFromWIF(prikeyWIFAlice)
+	default:
+		creatorPrikey, _ = prototype.PrivateKeyFromWIF(constants.INITMINER_PRIKEY)
+	}
 
-	tx := &prototype.Transaction{RefBlockNum: 0, RefBlockPrefix: 0, Expiration: &prototype.TimePointSec{UtcSeconds: 0}}
+	currTime := time.Now().Unix()
+
+	tx := &prototype.Transaction{RefBlockNum: 0, RefBlockPrefix: 0, Expiration: &prototype.TimePointSec{UtcSeconds: uint32(currTime)+constants.TRX_MAX_EXPIRATION_TIME}}
 
 	for _, op := range ops  {
 		tx.AddOperation(op)
