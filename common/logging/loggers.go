@@ -87,9 +87,9 @@ func Init(path string, level string, age uint32) {
 	clog.Hooks.Add(fileHooker)
 	clog.Out = os.Stdout
 	clog.Formatter = &TextFormatter{
-		ForceColors: true,
-		TimestampFormat : "2006-01-02 15:04:05",
-		FullTimestamp:true,
+		ForceColors:     true,
+		TimestampFormat: "2006-01-02 15:04:05",
+		FullTimestamp:   true,
 		ForceFormatting: true,
 	}
 	clog.Level = convertLevel("debug")
@@ -99,9 +99,9 @@ func Init(path string, level string, age uint32) {
 	vlog.Hooks.Add(fileHooker)
 	vlog.Out = &emptyWriter{}
 	vlog.Formatter = &TextFormatter{
-		ForceColors: true,
-		TimestampFormat : "2006-01-02 15:04:05",
-		FullTimestamp:true,
+		ForceColors:     true,
+		TimestampFormat: "2006-01-02 15:04:05",
+		FullTimestamp:   true,
 		ForceFormatting: true,
 	}
 	vlog.Level = convertLevel(level)
