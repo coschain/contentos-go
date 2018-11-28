@@ -20,7 +20,7 @@ func (this DataReq) Serialization(sink *common.ZeroCopySink) error {
 	return nil
 }
 
-func (this *DataReq) CmdType() string {
+func (this *DataReq) CMDType() string {
 	return comm.GET_DATA_TYPE
 }
 

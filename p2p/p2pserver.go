@@ -13,6 +13,7 @@ import (
 
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/node"
+	"github.com/coschain/contentos-go/p2p/msg"
 	"github.com/coschain/contentos-go/p2p/common"
 	comm "github.com/coschain/contentos-go/p2p/depend/common"
 	"github.com/coschain/contentos-go/p2p/depend/common/config"
@@ -99,7 +100,7 @@ func (this *P2PServer) GetNetWork() p2p.P2P {
 }
 
 //GetPort return two network port
-func (this *P2PServer) GetPort() (uint16, uint16) {
+func (this *P2PServer) GetPort() (uint32, uint32) {
 	return this.Network.GetSyncPort(), this.Network.GetConsPort()
 }
 
@@ -109,7 +110,7 @@ func (this *P2PServer) GetVersion() uint32 {
 }
 
 //GetNeighborAddrs return all nbr`s address
-func (this *P2PServer) GetNeighborAddrs() []common.PeerAddr {
+func (this *P2PServer) GetNeighborAddrs() []*msg.PeerAddr {
 	return this.Network.GetNeighborAddrs()
 }
 

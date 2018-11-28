@@ -10,6 +10,7 @@ import (
 	comm "github.com/coschain/contentos-go/p2p/depend/common"
 	"github.com/coschain/contentos-go/p2p/depend/common/log"
 	"github.com/coschain/contentos-go/p2p/common"
+	"github.com/coschain/contentos-go/p2p/msg"
 	"github.com/coschain/contentos-go/p2p/message/types"
 )
 
@@ -18,7 +19,7 @@ type Link struct {
 	id        uint64
 	addr      string                 // The address of the node
 	conn      net.Conn               // Connect socket with the peer node
-	port      uint16                 // The server port of the node
+	port      uint32                 // The server port of the node
 	time      time.Time              // The latest time the node activity
 	recvChan  chan *types.MsgPayload //msgpayload channel
 	reqRecord map[string]int64       //Map RequestId to Timestamp, using for rejecting duplicate request in specific time
@@ -62,12 +63,12 @@ func (this *Link) SetAddr(addr string) {
 }
 
 //set port number
-func (this *Link) SetPort(p uint16) {
+func (this *Link) SetPort(p uint32) {
 	this.port = p
 }
 
 //get port number
-func (this *Link) GetPort() uint16 {
+func (this *Link) GetPort() uint32 {
 	return this.port
 }
 
@@ -110,7 +111,7 @@ func (this *Link) Rx() {
 		this.UpdateRXTime(t)
 
 		if !this.needSendMsg(msg) {
-			log.Debugf("skip handle msgType:%s from:%d", msg.CmdType(), this.id)
+			log.Debugf("skip handle msgType:%s from:%d", msg.CMDType(), this.id)
 			continue
 		}
 		this.addReqRecord(msg)
@@ -120,7 +121,6 @@ func (this *Link) Rx() {
 			PayloadSize: payloadSize,
 			Payload:     msg,
 		}
-
 	}
 
 	this.disconnectNotify()
@@ -131,7 +131,7 @@ func (this *Link) disconnectNotify() {
 	log.Debugf("[p2p]call disconnectNotify for %s", this.GetAddr())
 	this.CloseConn()
 
-	msg, _ := types.MakeEmptyMessage(common.DISCONNECT_TYPE)
+	msg := &msg.TransferMsg{}
 	discMsg := &types.MsgPayload{
 		Id:      this.id,
 		Addr:    this.addr,
@@ -182,7 +182,7 @@ func (this *Link) Tx(msg types.Message) error {
 
 //needSendMsg check whether the msg is needed to push to channel
 func (this *Link) needSendMsg(msg types.Message) bool {
-	if msg.CmdType() != common.GET_DATA_TYPE {
+	if msg.CMDType() != common.GET_DATA_TYPE {
 		return true
 	}
 	var dataReq = msg.(*types.DataReq)
@@ -199,7 +199,7 @@ func (this *Link) needSendMsg(msg types.Message) bool {
 
 //addReqRecord add request record by removing outdated request records
 func (this *Link) addReqRecord(msg types.Message) {
-	if msg.CmdType() != common.GET_DATA_TYPE {
+	if msg.CMDType() != common.GET_DATA_TYPE {
 		return
 	}
 	now := time.Now().Unix()

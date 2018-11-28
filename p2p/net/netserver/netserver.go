@@ -96,7 +96,7 @@ func (this *NetServer) init() error {
 		return errors.New("[p2p]invalid link port")
 	}
 
-	this.base.SetSyncPort(uint16(config.DefConfig.P2PNode.NodePort))
+	this.base.SetSyncPort(uint32(config.DefConfig.P2PNode.NodePort))
 
 	if config.DefConfig.P2PNode.DualPortSupport {
 		if config.DefConfig.P2PNode.NodeConsensusPort == 0 {
@@ -104,7 +104,7 @@ func (this *NetServer) init() error {
 			return errors.New("[p2p]invalid consensus port")
 		}
 
-		this.base.SetConsPort(uint16(config.DefConfig.P2PNode.NodeConsensusPort))
+		this.base.SetConsPort(uint32(config.DefConfig.P2PNode.NodeConsensusPort))
 	} else {
 		this.base.SetConsPort(0)
 	}
@@ -161,12 +161,12 @@ func (this *NetServer) GetServices() uint64 {
 }
 
 //GetSyncPort return the sync port
-func (this *NetServer) GetSyncPort() uint16 {
+func (this *NetServer) GetSyncPort() uint32 {
 	return this.base.GetSyncPort()
 }
 
 //GetConsPort return the cons port
-func (this *NetServer) GetConsPort() uint16 {
+func (this *NetServer) GetConsPort() uint32 {
 	return this.base.GetConsPort()
 }
 
@@ -186,7 +186,7 @@ func (this *NetServer) GetNp() *peer.NbrPeers {
 }
 
 //GetNeighborAddrs return all the nbr peer`s addr
-func (this *NetServer) GetNeighborAddrs() []common.PeerAddr {
+func (this *NetServer) GetNeighborAddrs() []*msg.PeerAddr {
 	return this.Np.GetNeighborAddrs()
 }
 
@@ -414,7 +414,7 @@ func (this *NetServer) startListening() error {
 }
 
 // startSyncListening starts a sync listener on the port for the inbound peer
-func (this *NetServer) startSyncListening(port uint16) error {
+func (this *NetServer) startSyncListening(port uint32) error {
 	var err error
 	this.synclistener, err = createListener(port)
 	if err != nil {
@@ -428,7 +428,7 @@ func (this *NetServer) startSyncListening(port uint16) error {
 }
 
 // startConsListening starts a sync listener on the port for the inbound peer
-func (this *NetServer) startConsListening(port uint16) error {
+func (this *NetServer) startConsListening(port uint32) error {
 	var err error
 	this.conslistener, err = createListener(port)
 	if err != nil {
@@ -818,9 +818,11 @@ func (this *NetServer) SetOwnAddress(addr string) {
 }
 
 func (this *NetServer) Trigger_sync(p *peer.Peer, current_head_blk_id comn.BlockID) {
-	reqmsg := new(msg.ReqIdMsg)
-	reqmsg.HeadBlockId = current_head_blk_id.Data[:]
-	this.Send(p, reqmsg, false)
+	var reqmsg msg.TransferMsg
+	data := new(msg.ReqIdMsg)
+	data.HeadBlockId = current_head_blk_id.Data[:]
+	reqmsg.Msg = &msg.TransferMsg_Msg4{Msg4:data}
+	this.Send(p, &reqmsg, false)
 }
 
 func (this *NetServer) GetService(str string) (interface{}, error) {

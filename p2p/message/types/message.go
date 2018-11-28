@@ -1,22 +1,20 @@
 package types
 
 import (
-	"bytes"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"io"
 
+	"github.com/coschain/contentos-go/p2p/common"
 	comm "github.com/coschain/contentos-go/p2p/depend/common"
 	"github.com/coschain/contentos-go/p2p/depend/common/config"
-	"github.com/coschain/contentos-go/p2p/common"
 	"github.com/coschain/contentos-go/p2p/msg"
 )
 
 type Message interface {
 	Serialization(sink *comm.ZeroCopySink) error
 	Deserialization(source *comm.ZeroCopySource) error
-	CmdType() string
+	CMDType() string
 }
 
 //MsgPayload in link channel
@@ -74,7 +72,7 @@ func WriteMessage(sink *comm.ZeroCopySink, msg Message) error {
 	sink.BackUp(total)
 	buf := sink.NextBytes(total)
 	checksum := common.Checksum(buf[common.MSG_HDR_LEN:])
-	hdr := newMessageHeader(msg.CmdType(), uint32(payLen), checksum)
+	hdr := newMessageHeader(msg.CMDType(), uint32(payLen), checksum)
 
 	sink.BackUp(total)
 	writeMessageHeaderInto(sink, hdr)
@@ -110,52 +108,14 @@ func ReadMessage(reader io.Reader) (Message, uint32, error) {
 		return nil, 0, fmt.Errorf("message checksum mismatch: %x != %x ", hdr.Checksum, checksum)
 	}
 
-	cmdType := string(bytes.TrimRight(hdr.CMD[:], string(0)))
-	msg, err := MakeEmptyMessage(cmdType)
-	if err != nil {
-		return nil, 0, err
-	}
+	msgdata := &msg.TransferMsg{}
 
 	// the buf is referenced by msg to avoid reallocation, so can not reused
 	source := comm.NewZeroCopySource(buf)
-	err = msg.Deserialization(source)
+	err = msgdata.Deserialization(source)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	return msg, hdr.Length, nil
-}
-
-func MakeEmptyMessage(cmdType string) (Message, error) {
-	switch cmdType {
-	case common.PING_TYPE:
-		return &Ping{}, nil
-	case common.VERSION_TYPE:
-		return &Version{}, nil
-	case common.VERACK_TYPE:
-		return &VerACK{}, nil
-	case common.ADDR_TYPE:
-		return &Addr{}, nil
-	case common.GetADDR_TYPE:
-		return &AddrReq{}, nil
-	case common.PONG_TYPE:
-		return &Pong{}, nil
-	case common.ID_TYPE:
-		return &msg.IdMsg{}, nil
-	case common.REQ_ID_TYPE:
-		return &msg.ReqIdMsg{}, nil
-	case common.GET_DATA_TYPE:
-		return &DataReq{}, nil
-	case common.BLOCK_TYPE:
-		return &msg.SigBlkMsg{}, nil
-	case common.TX_TYPE:
-		return &msg.BroadcastSigTrx{}, nil
-	case common.NOT_FOUND_TYPE:
-		return &NotFound{}, nil
-	case common.DISCONNECT_TYPE:
-		return &Disconnected{}, nil
-	default:
-		return nil, errors.New("unsupported cmd type:" + cmdType)
-	}
-
+	return msgdata, hdr.Length, nil
 }

@@ -20,8 +20,8 @@ type PeerCom struct {
 	version      uint32
 	services     uint64
 	relay        bool
-	syncPort     uint16
-	consPort     uint16
+	syncPort     uint32
+	consPort     uint32
 	height       uint64
 }
 
@@ -66,22 +66,22 @@ func (this *PeerCom) GetRelay() bool {
 }
 
 // SetSyncPort sets a peer's sync port
-func (this *PeerCom) SetSyncPort(port uint16) {
+func (this *PeerCom) SetSyncPort(port uint32) {
 	this.syncPort = port
 }
 
 // GetSyncPort returns a peer's sync port
-func (this *PeerCom) GetSyncPort() uint16 {
+func (this *PeerCom) GetSyncPort() uint32 {
 	return this.syncPort
 }
 
 // SetConsPort sets a peer's consensus port
-func (this *PeerCom) SetConsPort(port uint16) {
+func (this *PeerCom) SetConsPort(port uint32) {
 	this.consPort = port
 }
 
 // GetConsPort returns a peer's consensus port
-func (this *PeerCom) GetConsPort() uint16 {
+func (this *PeerCom) GetConsPort() uint32 {
 	return this.consPort
 }
 
@@ -187,17 +187,17 @@ func (this *Peer) SetConsState(state uint32) {
 }
 
 //GetSyncPort return peer`s sync port
-func (this *Peer) GetSyncPort() uint16 {
+func (this *Peer) GetSyncPort() uint32 {
 	return this.SyncLink.GetPort()
 }
 
 //GetConsPort return peer`s consensus port
-func (this *Peer) GetConsPort() uint16 {
+func (this *Peer) GetConsPort() uint32 {
 	return this.ConsLink.GetPort()
 }
 
 //SetConsPort set peer`s consensus port
-func (this *Peer) SetConsPort(port uint16) {
+func (this *Peer) SetConsPort(port uint32) {
 	this.ConsLink.SetPort(port)
 }
 
@@ -307,7 +307,7 @@ func (this *Peer) Send(msg types.Message, isConsensus bool) error {
 
 //UpdateInfo update peer`s information
 func (this *Peer) UpdateInfo(t time.Time, version uint32, services uint64,
-	syncPort uint16, consPort uint16, nonce uint64, relay uint8, height uint64) {
+	syncPort uint32, consPort uint32, nonce uint64, relay uint32, height uint64) {
 
 	this.SyncLink.UpdateRXTime(t)
 	this.base.SetID(nonce)

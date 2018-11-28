@@ -23,6 +23,7 @@ func Test_Serialize(t *testing.T) {
 	msg.SigTrx = sigtrx
 
 	obj1.MakeMsg(msg)
+	obj1.cmdType()
 	fmt.Printf("before marshal BroadcastSigTrx message, message data: +%v\n",obj1)
 	data, err := proto.Marshal(obj1)
 	if err != nil {
@@ -45,6 +46,7 @@ func Test_Serialize(t *testing.T) {
 	msg2.SigBlk = sigBlk
 
 	obj1.MakeMsg(msg2)
+	obj1.cmdType()
 	fmt.Printf("before marshal SigBlkMsg message, message data: +%v\n",obj1)
 	data, err = proto.Marshal(obj1)
 	if err != nil {
@@ -70,5 +72,14 @@ func (m *TransferMsg) MakeMsg(msg interface{}) {
 		m.Msg = &TransferMsg_Msg3{Msg3:ptr}
 	default:
 		panic("error omsg type")
+	}
+}
+
+func (m *TransferMsg) cmdType() {
+	switch m.Msg.(type) {
+	case *TransferMsg_Msg1:
+		fmt.Println("sigtrx")
+	case *TransferMsg_Msg3:
+		fmt.Println("sigblk")
 	}
 }

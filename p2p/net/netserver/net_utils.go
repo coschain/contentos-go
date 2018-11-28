@@ -15,7 +15,7 @@ import (
 )
 
 // createListener creates a net listener on the port
-func createListener(port uint16) (net.Listener, error) {
+func createListener(port uint32) (net.Listener, error) {
 	var listener net.Listener
 	var err error
 
@@ -84,7 +84,7 @@ func TLSDial(nodeAddr string) (net.Conn, error) {
 }
 
 //initNonTlsListen return net.Listener with nonTls mode
-func initNonTlsListen(port uint16) (net.Listener, error) {
+func initNonTlsListen(port uint32) (net.Listener, error) {
 	log.Trace()
 	listener, err := net.Listen("tcp", ":"+strconv.Itoa(int(port)))
 	if err != nil {
@@ -95,7 +95,7 @@ func initNonTlsListen(port uint16) (net.Listener, error) {
 }
 
 //initTlsListen return net.Listener with Tls mode
-func initTlsListen(port uint16) (net.Listener, error) {
+func initTlsListen(port uint32) (net.Listener, error) {
 	CertPath := config.DefConfig.P2PNode.CertPath
 	KeyPath := config.DefConfig.P2PNode.KeyPath
 	CAPath := config.DefConfig.P2PNode.CAPath

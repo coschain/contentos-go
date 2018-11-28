@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/coschain/contentos-go/p2p/msg"
 	"github.com/coschain/contentos-go/p2p/common"
 	"github.com/coschain/contentos-go/p2p/message/types"
 )
@@ -90,17 +91,18 @@ func (this *NbrPeers) NodeEstablished(id uint64) bool {
 }
 
 //GetNeighborAddrs return all establish peer address
-func (this *NbrPeers) GetNeighborAddrs() []common.PeerAddr {
+func (this *NbrPeers) GetNeighborAddrs() []*msg.PeerAddr {
 	this.RLock()
 	defer this.RUnlock()
 
-	var addrs []common.PeerAddr
+	var addrs []*msg.PeerAddr
 	for _, p := range this.List {
 		if p.GetSyncState() != common.ESTABLISH {
 			continue
 		}
-		var addr common.PeerAddr
-		addr.IpAddr, _ = p.GetAddr16()
+		addr := new(msg.PeerAddr)
+		res, _ := p.GetAddr16()
+		addr.IpAddr = res[:]
 		addr.Time = p.GetTimeStamp()
 		addr.Services = p.GetServices()
 		addr.Port = p.GetSyncPort()

@@ -75,8 +75,8 @@ type PeerAddr struct {
 	Time          int64    //latest timestamp
 	Services      uint64   //service type
 	IpAddr        [16]byte //ip address
-	Port          uint16   //sync port
-	ConsensusPort uint16   //consensus port
+	Port          uint32   //sync port
+	ConsensusPort uint32   //consensus port
 	ID            uint64   //Unique ID
 }
 

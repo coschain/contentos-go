@@ -4,8 +4,8 @@ import (
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
-	"github.com/coschain/contentos-go/p2p/common"
 	"github.com/coschain/contentos-go/p2p/message/types"
+	"github.com/coschain/contentos-go/p2p/msg"
 	"github.com/coschain/contentos-go/p2p/peer"
 )
 
@@ -17,14 +17,14 @@ type P2P interface {
 	Connect(addr string, isConsensus bool) error
 	GetID() uint64
 	GetVersion() uint32
-	GetSyncPort() uint16
-	GetConsPort() uint16
+	GetSyncPort() uint32
+	GetConsPort() uint32
 	GetRelay() bool
 	GetHeight() uint64
 	GetTime() int64
 	GetServices() uint64
 	GetNeighbors() []*peer.Peer
-	GetNeighborAddrs() []common.PeerAddr
+	GetNeighborAddrs() []*msg.PeerAddr
 	GetConnectionCnt() uint32
 	GetNp() *peer.NbrPeers
 	GetPeer(uint64) *peer.Peer

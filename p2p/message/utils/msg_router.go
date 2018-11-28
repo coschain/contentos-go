@@ -1,9 +1,11 @@
 package utils
 
 import (
-	"github.com/coschain/contentos-go/p2p/depend/common/log"
+	"fmt"
 	msgCommon "github.com/coschain/contentos-go/p2p/common"
+	"github.com/coschain/contentos-go/p2p/depend/common/log"
 	"github.com/coschain/contentos-go/p2p/message/types"
+	"github.com/coschain/contentos-go/p2p/msg"
 	"github.com/coschain/contentos-go/p2p/net/protocol"
 )
 
@@ -78,7 +80,12 @@ func (this *MessageRouter) hookChan(channel chan *types.MsgPayload,
 		select {
 		case data, ok := <-channel:
 			if ok {
-				msgType := data.Payload.CmdType()
+				msgType := data.Payload.CMDType()
+				msgdata := data.Payload.(*msg.TransferMsg).Msg
+				if msgdata == nil {
+					fmt.Println("nil message")
+					continue
+				}
 
 				handler, ok := this.msgHandlers[msgType]
 				if ok {
