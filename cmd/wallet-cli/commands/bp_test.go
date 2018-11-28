@@ -281,3 +281,57 @@ func TestBpVoteCancel(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+func TestBpVoteUnsetFlag(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	client := mock_grpcpb.NewMockApiServiceClient(ctrl)
+	mywallet := mock_wallet.NewMockWallet(ctrl)
+	myassert := assert.New(t)
+	passwordReader := mock_utils.NewMockPasswordReader(ctrl)
+	cmd := BpCmd()
+	cmd.SetContext("wallet", mywallet)
+	cmd.SetContext("rpcclient", client)
+	cmd.SetContext("preader", passwordReader)
+	for _, child := range cmd.Commands() {
+		child.Context = cmd.Context
+	}
+	cmd.SetArgs([]string{"vote", "initminer", "initminer", "-c"})
+	priv_account := &wallet.PrivAccount{
+		Account: wallet.Account{
+			Name:   "initminer",
+			PubKey: "COS6oKUcS7jNfPk48SEHENfeHbkWWjH7QAJt6C5tzGyL46yTWWBBv",
+		},
+		PrivKey: "27Pah3aJ8XbaQxgU1jxmYdUzWaBbBbbxLbZ9whSH9Zc8GbPMhw",
+	}
+	mywallet.EXPECT().GetUnlockedAccount("initminer").Return(priv_account, true).MaxTimes(100)
+	resp := &grpcpb.BroadcastTrxResponse{Status: 1, Msg: "success"}
+	client.EXPECT().BroadcastTrx(gomock.Any(), gomock.Any()).Return(resp, nil).Do(func(context interface{}, req *grpcpb.BroadcastTrxRequest) {
+		op := req.Transaction.Trx.Operations[0]
+		bp_op := op.GetOp5()
+		myassert.Equal(bp_op.Cancel, true)
+	})
+	_, err := cmd.ExecuteC()
+	if err != nil {
+		t.Error(err)
+	}
+	client.EXPECT().BroadcastTrx(gomock.Any(), gomock.Any()).Return(resp, nil).Do(func(context interface{}, req *grpcpb.BroadcastTrxRequest) {
+		op := req.Transaction.Trx.Operations[0]
+		bp_op := op.GetOp5()
+		myassert.Equal(bp_op.Cancel, false)
+	})
+	cmd.SetArgs([]string{"vote", "initminer", "initminer"})
+	_, err = cmd.ExecuteC()
+	if err != nil {
+		t.Error(err)
+	}
+	client.EXPECT().BroadcastTrx(gomock.Any(), gomock.Any()).Return(resp, nil).Do(func(context interface{}, req *grpcpb.BroadcastTrxRequest) {
+		op := req.Transaction.Trx.Operations[0]
+		bp_op := op.GetOp5()
+		myassert.NotEqual(bp_op.Cancel, false)
+	})
+	cmd.SetArgs([]string{"vote", "initminer", "initminer", "-c"})
+	_, err = cmd.ExecuteC()
+	if err != nil {
+		t.Error(err)
+	}
+}
