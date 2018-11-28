@@ -90,6 +90,7 @@ shell_loop:
 
 		if helpVal {
 			cmd.UsageFunc()(cmd)
+			cmd.Flags().Lookup("help").Value.Set("false")
 			continue
 		}
 		argWoFlags := cmd.Flags().Args()
