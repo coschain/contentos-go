@@ -40,7 +40,7 @@ func follow(cmd *cobra.Command, args []string) {
 	follow_op := &prototype.FollowOperation{
 		Account:  &prototype.AccountName{Value: follower},
 		FAccount: &prototype.AccountName{Value: following},
-		Cancel:    followCancel,
+		Cancel:   followCancel,
 	}
 
 	signTx, err := utils.GenerateSignedTxAndValidate([]interface{}{follow_op}, followerAccount)
@@ -55,5 +55,7 @@ func follow(cmd *cobra.Command, args []string) {
 	} else {
 		fmt.Println(fmt.Sprintf("Result: %v", resp))
 	}
+
+	followCancel = false
 
 }

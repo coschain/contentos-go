@@ -90,4 +90,6 @@ func reply(cmd *cobra.Command, args []string) {
 		fmt.Println(fmt.Sprintf("Result: %v", resp))
 	}
 
+	replyBeneficiaryRoute = map[string]int{}
+
 }

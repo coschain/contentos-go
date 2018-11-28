@@ -104,7 +104,7 @@ func (c *Controller) PushTrx(trx *prototype.SignedTransaction) (invoice *prototy
 	oldSkip := c.skip
 	defer func() {
 		if err := recover(); err != nil {
-			invoice = &prototype.TransactionInvoice{Status:uint32(500)}
+			invoice = &prototype.TransactionInvoice{Status: uint32(500)}
 			logging.CLog().Errorf("PushTrx Error: %v", err)
 		}
 		c.setProducing(false)
@@ -578,6 +578,8 @@ func (c *Controller) initGenesis() {
 		tInfo.CreatedTime = &prototype.TimePointSec{UtcSeconds: 0}
 		tInfo.Balance = prototype.NewCoin(constants.INIT_SUPPLY)
 		tInfo.VestingShares = prototype.NewVest(0)
+		tInfo.LastPostTime = &prototype.TimePointSec{UtcSeconds: 0}
+		tInfo.LastVoteTime = &prototype.TimePointSec{UtcSeconds: 0}
 	}), "CreateAccount error")
 
 	// create account authority

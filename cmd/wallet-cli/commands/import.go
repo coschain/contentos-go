@@ -88,4 +88,6 @@ func importAccount(cmd *cobra.Command, args []string) {
 		}
 	}
 
+	importForceFlag = false
+
 }

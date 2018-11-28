@@ -167,6 +167,8 @@ func (ev *PostEvaluator) Apply() {
 		t.VoteCnt = 0
 	}), "create post error")
 
+	authorWrap.MdLastPostTime(ev.ctx.control.HeadBlockTime())
+
 	timestamp := ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.POST_CASHPUT_DELAY_TIME) - uint32(constants.GenesisTime)
 	keyPrefix := "cashout:" + string(common.GetBucket(timestamp)) + "_"
 	key := keyPrefix + string(op.Uuid)
@@ -212,6 +214,7 @@ func (ev *ReplyEvaluator) Apply() {
 		t.Beneficiaries = op.Beneficiaries
 	}), "create reply error")
 
+	authorWrap.MdLastPostTime(ev.ctx.control.HeadBlockTime())
 	// Modify Parent Object
 	opAssert(pidWrap.MdChildren(pidWrap.GetChildren()+1), "Modify Parent Children Error")
 
@@ -258,6 +261,7 @@ func (ev *VoteEvaluator) Apply() {
 	usedVp := (currentVp + constants.VOTE_LIMITE_DURING_REGENERATE - 1) / constants.VOTE_LIMITE_DURING_REGENERATE
 
 	voterWrap.MdVotePower(currentVp - usedVp)
+	voterWrap.MdLastVoteTime(ev.ctx.control.HeadBlockTime())
 	vesting := voterWrap.GetVestingShares().Value
 	// todo: uint128
 	weightedVp := vesting * uint64(usedVp)
@@ -285,7 +289,7 @@ func (ev *BpRegisterEvaluator) Apply() {
 	op := ev.op
 	witnessWrap := table.NewSoWitnessWrap(ev.ctx.db, op.Owner)
 
-	opAssert( !witnessWrap.CheckExist(), "witness already exist")
+	opAssert(!witnessWrap.CheckExist(), "witness already exist")
 
 	opAssertE(witnessWrap.Create(func(t *table.SoWitness) {
 		t.Owner = op.Owner

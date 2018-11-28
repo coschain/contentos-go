@@ -93,4 +93,6 @@ func post(cmd *cobra.Command, args []string) {
 		fmt.Println(fmt.Sprintf("Result: %v", resp))
 	}
 
+	postBeneficiaryRoute = map[string]int{}
+
 }

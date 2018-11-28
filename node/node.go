@@ -111,7 +111,7 @@ func (n *Node) Start() error {
 	for kind, service := range services {
 		if err := service.Start(n); err != nil {
 			for _, kind := range started {
-				services[kind].Stop()
+				_ = services[kind].Stop()
 			}
 
 			return err

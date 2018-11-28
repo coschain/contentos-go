@@ -101,6 +101,13 @@ func registerBP(cmd *cobra.Command, args []string) {
 		fmt.Println(fmt.Sprintf("Result: %v", resp))
 	}
 
+	// reset to default value
+	// it's hard to assign default value from cobra.command
+	// so I have to do it manually
+	bpCreateAccountFee = 1
+	bpBlockSize = 1024 * 1024
+	bpUrlFlag = ""
+	bpDescFlag = ""
 }
 
 func unRegisterBP(cmd *cobra.Command, args []string) {
@@ -163,4 +170,6 @@ func voteBp(cmd *cobra.Command, args []string) {
 	} else {
 		fmt.Println(fmt.Sprintf("Result: %v", resp))
 	}
+
+	bpVoteCancel = false
 }
