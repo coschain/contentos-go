@@ -3,9 +3,11 @@ package commands
 import (
 	"fmt"
 	"github.com/coschain/cobra"
+	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/common/logging"
 	"github.com/coschain/contentos-go/config"
 	"github.com/coschain/contentos-go/node"
+	"github.com/coschain/contentos-go/prototype"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -43,6 +45,15 @@ func addConf(confdir string, cfg node.Config, index int) {
 	cfg.P2PPortConsensus = p2pPortStart + index*2 + 1
 
 	cfg.P2PSeeds = seeds
+
+	if index > 0 {
+		cfg.Consensus.LocalBpName = fmt.Sprintf("%s%d", constants.INIT_MINER_NAME, index)
+		key, err := prototype.GenerateNewKey()
+		if err != nil{
+			panic(err)
+		}
+		cfg.Consensus.LocalBpPrivateKey = key.ToWIF()
+	}
 
 	err = config.WriteNodeConfigFile(confdir, "config.toml", cfg, 0600)
 	if err != nil {

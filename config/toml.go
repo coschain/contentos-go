@@ -35,6 +35,9 @@ HTTPLimit = {{ .GRPC.HTTPLimit }}
 [consensus]
 Type = "{{ .Consensus.Type }}"
 BootStrap = {{ .Consensus.BootStrap }}
+LocalBpName = "{{ .Consensus.LocalBpName }}"
+LocalBpPrivateKey = "{{ .Consensus.LocalBpPrivateKey }}"
+
 `
 
 func WriteNodeConfigFile(configDirPath string, configName string, config node.Config, mode os.FileMode) error {

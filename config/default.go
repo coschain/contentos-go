@@ -1,6 +1,7 @@
 package config
 
 import (
+	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/iservices/service-configs"
 	"github.com/coschain/contentos-go/node"
 	"os"
@@ -32,6 +33,8 @@ var DefaultNodeConfig = node.Config{
 	Consensus: service_configs.ConsensusConfig{
 		Type:      "DPoS",
 		BootStrap: true,
+		LocalBpName: constants.INIT_MINER_NAME,
+		LocalBpPrivateKey: constants.INITMINER_PRIKEY,
 	},
 }
 

@@ -60,11 +60,15 @@ func NewDPoS(ctx *node.ServiceContext) *DPoS {
 		stopCh:    make(chan struct{}),
 	}
 	ret.SetBootstrap(ctx.Config().Consensus.BootStrap)
-	ret.Name = constants.COS_INIT_MINER
-	var err error
-	ret.privKey, err = prototype.PrivateKeyFromWIF(constants.INITMINER_PRIKEY)
-	if err != nil {
-		panic(err)
+	ret.Name = ctx.Config().Consensus.LocalBpName
+
+	privateKey := ctx.Config().Consensus.LocalBpPrivateKey
+	if len(privateKey) > 0{
+		var err error
+		ret.privKey, err = prototype.PrivateKeyFromWIF(ctx.Config().Consensus.LocalBpPrivateKey)
+		if err != nil {
+			panic(err)
+		}
 	}
 	return ret
 }
