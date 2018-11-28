@@ -285,7 +285,7 @@ func (ev *BpRegisterEvaluator) Apply() {
 	op := ev.op
 	witnessWrap := table.NewSoWitnessWrap(ev.ctx.db, op.Owner)
 
-	opAssert(witnessWrap.CheckExist(), "witness already exist")
+	opAssert( !witnessWrap.CheckExist(), "witness already exist")
 
 	opAssertE(witnessWrap.Create(func(t *table.SoWitness) {
 		t.Owner = op.Owner

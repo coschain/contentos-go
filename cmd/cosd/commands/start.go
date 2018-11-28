@@ -140,4 +140,5 @@ func startNode(cmd *cobra.Command, args []string) {
 
 	app.Wait()
 	app.Stop()
+	logging.CLog().Info("app exit success")
 }

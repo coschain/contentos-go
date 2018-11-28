@@ -560,6 +560,15 @@ func (c *Controller) _applyBlock(blk *prototype.SignedBlock, skip prototype.Skip
 
 func (c *Controller) initGenesis() {
 
+	c.db.BeginTransaction()
+	defer func() {
+		if err := recover(); err != nil {
+			c.db.EndTransaction(false)
+			panic(err)
+		} else {
+			c.db.EndTransaction(true)
+		}
+	}()
 	// create initminer
 	pubKey, _ := prototype.PublicKeyFromWIF(constants.INITMINER_PUBKEY)
 	name := &prototype.AccountName{Value: constants.INIT_MINER_NAME}
