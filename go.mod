@@ -30,6 +30,7 @@ require (
 	github.com/lestrrat/go-strftime v0.0.0-20180220042222-ba3bf9c1d042 // indirect
 	github.com/mattn/go-colorable v0.0.9 // indirect
 	github.com/mattn/go-isatty v0.0.4 // indirect
+	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b
 	github.com/mitchellh/go-homedir v1.0.0
 	github.com/onsi/gomega v1.4.2 // indirect
 	github.com/pkg/errors v0.8.0
