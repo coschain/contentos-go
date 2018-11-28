@@ -99,12 +99,15 @@ func (c *Controller) Open() {
 		logging.CLog().Info("finish initGenesis")
 	}
 
-	dir := c.node.Config().ResolvePath(REVERSION_FILE_NAME)
+
+	cfg := c.ctx.Config()
+	dir := cfg.ResolvePath(REVERSION_FILE_NAME)
 	c.readReversionFile(dir)
 }
 
 func (c *Controller) Stop() error {
-	dir := c.node.Config().ResolvePath(REVERSION_FILE_NAME)
+	cfg := c.ctx.Config()
+	dir := cfg.ResolvePath(REVERSION_FILE_NAME)
 	c.saveReversionFile(dir)
 	return nil
 }

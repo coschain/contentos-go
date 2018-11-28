@@ -35,6 +35,8 @@ type P2PServer struct {
 	quitSyncRecent chan bool
 	quitOnline     chan bool
 	quitHeartBeat  chan bool
+
+	ctx *node.ServiceContext
 }
 
 //ReconnectAddrs contain addr need to reconnect
@@ -51,6 +53,7 @@ func NewServer(ctx *node.ServiceContext) (*P2PServer, error) {
 		Network: n,
 	}
 
+	p.ctx = ctx
 	p.msgRouter = utils.NewMsgRouter(p.Network)
 	p.recentPeers = make(map[uint32][]string)
 	p.quitSyncRecent = make(chan bool)
@@ -67,9 +70,10 @@ func (this *P2PServer) GetConnectionCnt() uint32 {
 //Start create all services
 func (this *P2PServer) Start(node *node.Node) error {
 
-	config.DefConfig.Genesis.SeedList = node.Config().P2PSeeds
-	config.DefConfig.P2PNode.NodePort = uint(node.Config().P2PPort)
-	config.DefConfig.P2PNode.NodeConsensusPort = uint(node.Config().P2PPortConsensus)
+	cfg := this.ctx.Config()
+	config.DefConfig.Genesis.SeedList = cfg.P2PSeeds
+	config.DefConfig.P2PNode.NodePort = uint(cfg.P2PPort)
+	config.DefConfig.P2PNode.NodeConsensusPort = uint(cfg.P2PPortConsensus)
 
 	if this.Network != nil {
 		this.Network.Start(node)

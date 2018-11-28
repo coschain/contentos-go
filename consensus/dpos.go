@@ -128,9 +128,9 @@ func (d *DPoS) ActiveProducers() []string {
 }
 
 func (d *DPoS) Start(node *node.Node) error {
-	d.node = node
 	d.ctrl = d.getController()
-	d.blog.Open(node.Config().ResolvePath("blog"))
+	cfg := d.ctx.Config()
+	d.blog.Open(cfg.ResolvePath("blog"))
 
 	go d.start()
 	return nil
@@ -172,7 +172,8 @@ func (d *DPoS) start() {
 		// deep copy hell
 		avatar = append(avatar, &prototype.SignedBlock{})
 	}
-	d.ForkDB.LoadSnapshot(avatar, d.node.Config().ResolvePath("forkdb_snapshot"))
+	cfg := d.ctx.Config()
+	d.ForkDB.LoadSnapshot(avatar, cfg.ResolvePath("forkdb_snapshot"))
 	if d.bootstrap && d.ForkDB.Empty() && d.blog.Empty() {
 		logging.CLog().Info("[DPoS] bootstrapping...")
 		d.shuffle()
@@ -215,7 +216,8 @@ func (d *DPoS) start() {
 func (d *DPoS) Stop() error {
 	logging.CLog().Info("DPoS consensus stopped.")
 	// restore uncommitted forkdb
-	d.ForkDB.Snapshot(d.node.Config().ResolvePath("forkdb_snapshot"))
+	cfg := d.ctx.Config()
+	d.ForkDB.Snapshot(cfg.ResolvePath("forkdb_snapshot"))
 
 	close(d.stopCh)
 	d.wg.Wait()

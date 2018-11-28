@@ -60,10 +60,6 @@ func New(conf *Config) (*Node, error) {
 	}, nil
 }
 
-func (n *Node) Config() *Config {
-	return n.config
-}
-
 func (n *Node) Register(name string, constructor ServiceConstructor) error {
 	n.lock.Lock()
 	defer n.lock.Unlock()
