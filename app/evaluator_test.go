@@ -253,6 +253,72 @@ func TestPostEvaluator_ApplyPostFrequently(t *testing.T) {
 	}()
 }
 
+func TestReplyEvaluator_ApplyNormal(t *testing.T) {
+	clearDB()
+	post_operation := &prototype.PostOperation{
+		Uuid:          uint64(111),
+		Owner:         &prototype.AccountName{Value: "initminer"},
+		Title:         "Lorem Ipsum",
+		Content:       "Lorem ipsum dolor sit amet",
+		Tags:          []string{"article", "image"},
+		Beneficiaries: []*prototype.BeneficiaryRouteType{},
+	}
+	db := startDB()
+	defer db.Close()
+
+	op := &prototype.Operation{}
+	opPost := &prototype.Operation_Op6{}
+	opPost.Op6 = post_operation
+	op.Op = opPost
+
+	c := startController(db)
+
+	currentTimestamp := uint32(time.Now().Unix())
+
+	props := c.GetProps()
+	props.Time = &prototype.TimePointSec{UtcSeconds: currentTimestamp}
+	c.updateGlobalDataToDB(props)
+	ctx := &ApplyContext{db: db, control: c}
+	ev := &PostEvaluator{ctx: ctx, op: op.GetOp6()}
+	ev.Apply()
+
+	props.Time = &prototype.TimePointSec{UtcSeconds: currentTimestamp + 1000}
+	c.updateGlobalDataToDB(props)
+	ctx = &ApplyContext{db: db, control: c}
+
+	reply_operation := &prototype.ReplyOperation{
+		Uuid:          uint64(112),
+		Owner:         &prototype.AccountName{Value: "initminer"},
+		Content:       "Lorem Ipsum",
+		ParentUuid:    uint64(111),
+		Beneficiaries: []*prototype.BeneficiaryRouteType{},
+	}
+
+	op = &prototype.Operation{}
+	opReply := &prototype.Operation_Op7{}
+	opReply.Op7 = reply_operation
+	op.Op = opReply
+
+	ev2 := &ReplyEvaluator{ctx: ctx, op: op.GetOp7()}
+	ev2.Apply()
+
+	uuid := uint64(112)
+	postWrap := table.NewSoPostWrap(db, &uuid)
+	myassert := assert.New(t)
+	myassert.Equal(postWrap.GetAuthor().Value, "initminer")
+	myassert.Equal(postWrap.GetPostId(), uint64(112))
+	myassert.Equal(postWrap.GetRootId(), uint64(111))
+	myassert.Equal(postWrap.GetParentId(), uint64(111))
+
+	authorWrap := table.NewSoAccountWrap(ev.ctx.db, &prototype.AccountName{Value: "initminer"})
+	// author last post time should be modified
+	myassert.Equal(authorWrap.GetLastPostTime().UtcSeconds, currentTimestamp+1000)
+	timestamp := currentTimestamp + 1000 + uint32(constants.POST_CASHPUT_DELAY_TIME) - uint32(constants.GenesisTime)
+	key := fmt.Sprintf("cashout:%d_%d", common.GetBucket(timestamp), uuid)
+	value, _ := ev.ctx.db.Get([]byte(key))
+	myassert.Equal(value, []byte("reply"))
+}
+
 func startDB() iservices.IDatabaseService {
 	db, err := storage.NewDatabase(dbPath)
 	if err != nil {
