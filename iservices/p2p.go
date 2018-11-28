@@ -6,7 +6,8 @@ import (
 	"github.com/coschain/contentos-go/p2p/peer"
 )
 
-var P2P_SERVER_NAME = "p2p"
+var P2PServerName = "p2p"
+
 
 //IP2P represent the net interface of p2p package which can be called by other service
 type IP2P interface {

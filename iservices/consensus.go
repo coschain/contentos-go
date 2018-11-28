@@ -26,10 +26,9 @@ type IConsensus interface {
 
 
 	GetHeadBlockId() (common.BlockID)
-
-	GetHashes(start, end common.BlockID) []common.BlockID
-
-	GetBlockByHash(id common.BlockID) common.ISignedBlock
-
+	GetIDs(start, end common.BlockID) ([]common.BlockID, error)
+	FetchBlock(id common.BlockID) (common.ISignedBlock, error)
 	HasBlock(id common.BlockID) bool
+	FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, error)
+
 }

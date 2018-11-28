@@ -444,16 +444,16 @@ func IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 
 	var msgdata = data.Payload.(*msg.IdMsg)
 	remotePeer := p2p.GetPeerFromAddr(data.Addr)
-	switch msgdata.Msgtype{
+	switch msgdata.Msgtype {
 	case msg.IdMsg_broadcast_sigblk_id:
 		log.Info("receive a msg from:    v%    data:   %v\n", data.Addr, *msgdata)
-		length := len( msgdata.Value[0])
+		length := len(msgdata.Value[0])
 		if length > prototype.Size {
 			log.Info("block id length beyond the limit ", prototype.Size)
 			return
 		}
 		var blkId common.BlockID
-		copy( blkId.Data[:], msgdata.Value[0] )
+		copy(blkId.Data[:], msgdata.Value[0])
 
 		s, err := p2p.GetService(iservices.CS_SERVER_NAME)
 		if err != nil {
@@ -465,7 +465,7 @@ func IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 			var reqmsg msg.IdMsg
 			reqmsg.Msgtype = msg.IdMsg_request_sigblk_by_id
 			var tmp []byte
-			reqmsg.Value = append(reqmsg.Value, tmp )
+			reqmsg.Value = append(reqmsg.Value, tmp)
 			reqmsg.Value[0] = msgdata.Value[0]
 
 			err := p2p.Send(remotePeer, &reqmsg, false)
@@ -478,13 +478,13 @@ func IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	case msg.IdMsg_request_sigblk_by_id:
 		log.Info("receive a msg from:    v%    data:   %v\n", data.Addr, *msgdata)
 		for i, id := range msgdata.Value {
-			length := len( msgdata.Value[i])
+			length := len(msgdata.Value[i])
 			if length > prototype.Size {
 				log.Info("block id length beyond the limit ", prototype.Size)
 				continue
 			}
 			var blkId common.BlockID
-			copy( blkId.Data[:], id )
+			copy(blkId.Data[:], id)
 
 			// test code create a SignedBlock
 			sigBlk := new(prototype.SignedBlock)
@@ -514,13 +514,13 @@ func IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 		var reqmsg msg.IdMsg
 		reqmsg.Msgtype = msg.IdMsg_request_sigblk_by_id
 		for _, id := range msgdata.Value {
-			length := len( id )
+			length := len(id)
 			if length > prototype.Size {
 				log.Info("block id length beyond the limit ", prototype.Size)
 				continue
 			}
 			var blkId common.BlockID
-			copy( blkId.Data[:], id )
+			copy(blkId.Data[:], id)
 
 			s, err := p2p.GetService(iservices.CS_SERVER_NAME)
 			if err != nil {
@@ -565,9 +565,12 @@ func ReqIdHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	}
 	ctrl := s.(iservices.IConsensus)
 	var remote_head_blk_id common.BlockID
-	copy( remote_head_blk_id.Data[:], msgdata.HeadBlockId )
+	copy(remote_head_blk_id.Data[:], msgdata.HeadBlockId)
 	current_head_blk_id := ctrl.GetHeadBlockId()
-	ids := ctrl.GetHashes(remote_head_blk_id, current_head_blk_id)
+	ids, err := ctrl.GetIDs(remote_head_blk_id, current_head_blk_id)
+	if err != nil {
+		// TODO:
+	}
 
 	remotePeer := p2p.GetPeerFromAddr(data.Addr)
 

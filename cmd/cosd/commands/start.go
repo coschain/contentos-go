@@ -82,7 +82,7 @@ func startNode(cmd *cobra.Command, args []string) {
 	//	return printer.New(ctx)
 	//})
 
-	app.Register(iservices.P2P_SERVER_NAME, func(ctx *node.ServiceContext) (node.Service, error) {
+	app.Register(iservices.P2PServerName, func(ctx *node.ServiceContext) (node.Service, error) {
 			return p2p.NewServer(ctx)
 	})
 

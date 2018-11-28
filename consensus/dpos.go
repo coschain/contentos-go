@@ -43,6 +43,7 @@ type DPoS struct {
 
 	ctx  *node.ServiceContext
 	ctrl iservices.IController
+	p2p iservices.IP2P
 
 	stopCh chan struct{}
 	wg     sync.WaitGroup
@@ -133,6 +134,11 @@ func (d *DPoS) ActiveProducers() []string {
 
 func (d *DPoS) Start(node *node.Node) error {
 	d.ctrl = d.getController()
+	p2p, err := d.ctx.Service(iservices.P2PServerName)
+	if err != nil {
+		panic(err)
+	}
+	d.p2p = p2p.(iservices.IP2P)
 	cfg := d.ctx.Config()
 	d.blog.Open(cfg.ResolvePath("blog"))
 
@@ -211,7 +217,8 @@ func (d *DPoS) start() {
 				continue
 			}
 			logging.CLog().Debugf("[DPoS]generated block: <num %d> <ts %d>", b.Id().BlockNum(), b.Timestamp())
-			// TODO: broadcast block
+			// broadcast block
+			d.p2p.Broadcast(b)
 			d.PushBlock(b)
 		}
 	}
@@ -480,13 +487,13 @@ func (d *DPoS) GetHeadBlockId() common.BlockID {
 	return d.ForkDB.Head().Id()
 }
 
-func (d *DPoS) GetHashes(start, end common.BlockID) []common.BlockID {
+func (d *DPoS) GetIDes(start, end common.BlockID) ([]common.BlockID, error) {
 	ret := make([]common.BlockID, 10)
 	length := 0
 	for end != start {
 		b, err := d.ForkDB.FetchBlock(end)
 		if err != nil {
-			return nil
+			return nil, err
 		}
 		ret = append(ret, end)
 		end = b.Previous()
@@ -497,7 +504,7 @@ func (d *DPoS) GetHashes(start, end common.BlockID) []common.BlockID {
 	for i := 0; i <= (length-1)/2; i++ {
 		ret[i], ret[length-1-i] = ret[length-1-i], ret[i]
 	}
-	return ret
+	return ret, nil
 }
 
 func (d *DPoS) FetchBlock(id common.BlockID) (common.ISignedBlock, error) {
@@ -507,4 +514,9 @@ func (d *DPoS) FetchBlock(id common.BlockID) (common.ISignedBlock, error) {
 func (d *DPoS) HasBlock(id common.BlockID) bool {
 	_, err := d.ForkDB.FetchBlock(id)
 	return err == nil
+}
+
+func (d *DPoS) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, error) {
+	blocks, _, err := d.ForkDB.FetchBlocksSince(id)
+	return blocks, err
 }
