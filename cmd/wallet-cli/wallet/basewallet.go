@@ -349,9 +349,11 @@ func (w *BaseWallet) Info(name string) string {
 		return fmt.Sprintf("unknown account: %s", name)
 	} else {
 		content := fmt.Sprintf("account: %s\npub_key: %s\n", acc.Name, acc.PubKey)
-		if _, ok = w.unlocked[name]; ok {
+		if priv_acc, ok := w.unlocked[name]; ok {
+			content += fmt.Sprintf("priv_key: %s\n", priv_acc.PrivKey)
 			content += fmt.Sprintf("status: unlocked")
 		} else {
+			content += fmt.Sprintf("priv_key: %s\n", "display priv key until account has been unlocked")
 			content += fmt.Sprintf("status: locked")
 		}
 		return content
