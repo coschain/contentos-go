@@ -26,6 +26,10 @@ RPCListen = "{{ .GRPC.RPCListen }}"
 HTTPListen = "{{ .GRPC.HTTPListen }}"
 HTTPCors = "{{ .GRPC.HTTPCors }}"
 HTTPLimit = {{ .GRPC.HTTPLimit }}
+
+[consensus]
+Type = "{{ .Consensus.Type }}"
+BootStrap = {{ .Consensus.BootStrap }}
 `
 
 func WriteNodeConfigFile(configDirPath string, configName string, config node.Config, mode os.FileMode) error {

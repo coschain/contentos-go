@@ -35,6 +35,8 @@ type Config struct {
 	Timer service_configs.TimerConfig
 
 	GRPC service_configs.GRPCConfig
+
+	Consensus service_configs.ConsensusConfig
 }
 
 // DB returns the path to the discovery database.

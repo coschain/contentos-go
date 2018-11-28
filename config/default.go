@@ -25,6 +25,10 @@ var DefaultNodeConfig = node.Config{
 		HTTPCors:   []string{"*"},
 		HTTPLimit:  100,
 	},
+	Consensus: service_configs.ConsensusConfig{
+		Type:      "DPoS",
+		BootStrap: true,
+	},
 }
 
 func DefaultDataDir() string {
