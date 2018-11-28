@@ -3,6 +3,7 @@ package app
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app/table"
@@ -13,14 +14,21 @@ import (
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/golang/protobuf/proto"
+	"os"
 	"time"
 )
 
 var (
 	SINGLE_ID int32 = 1
+	REVERSION_FILE_NAME string = "reversion_log"
+)
+
+const (
+	REVERSION_LEN = 100
 )
 
 type Controller struct {
+	node   *node.Node
 	iservices.IController
 	// lock for db write
 	// pending_trx_list
@@ -39,7 +47,7 @@ type Controller struct {
 	_currentBlockNum       uint64
 	_current_trx_in_block  int16
 	havePendingTransaction bool
-	numToRev               [100]uint64
+	numToRev               [REVERSION_LEN]uint64
 }
 
 func (c *Controller) getDb() (iservices.IDatabaseService, error) {
@@ -66,6 +74,7 @@ func NewController(ctx *node.ServiceContext) (*Controller, error) {
 }
 
 func (c *Controller) Start(node *node.Node) error {
+	c.node = node
 	db, err := c.getDb()
 	if err != nil {
 		return err
@@ -89,10 +98,50 @@ func (c *Controller) Open() {
 		c.saveReversion(0)
 		logging.CLog().Info("finish initGenesis")
 	}
+
+	dir := c.node.Config().ResolvePath("controller_reversion")
+	c.readReversionFile(dir)
 }
 
 func (c *Controller) Stop() error {
+	dir := c.node.Config().ResolvePath("controller_reversion")
+	c.saveReversionFile(dir)
 	return nil
+}
+
+func (c *Controller) readReversionFile(dir string) {
+	file,err := os.OpenFile(dir,os.O_RDWR|os.O_CREATE,0644)
+	mustNoError(err,"open file error")
+	defer file.Close()
+	info,err := file.Stat()
+	mustNoError(err,"file stat error")
+	if info.Size() == 0 {
+		return
+	}
+	buf := make([]byte, info.Size())
+	n,err := file.Read(buf)
+	mustNoError(err,"read error")
+	mustSuccess(n == len(buf),"read length error")
+	err = json.Unmarshal(buf,&c.numToRev)
+	if err != nil {
+		panic(err)
+	}
+	logging.CLog().Debug("!!!!!!! read reversion file")
+	//logging.CLog().Debug("$$$$$$$ dump reversion array:",c.numToRev)
+}
+
+func (c *Controller) saveReversionFile(dir string) {
+	file,err := os.OpenFile(dir,os.O_RDWR|os.O_CREATE,0644)
+	mustNoError(err,"open file error")
+	defer file.Close()
+	buf,err := json.Marshal(c.numToRev)
+	mustNoError(err,"marshal error")
+
+	file.Truncate(0)
+	file.Seek(0,0)
+	file.Write(buf)
+	mustNoError(file.Sync(),"file sync error")
+	logging.CLog().Debug("!!!!!!! write reversion file")
 }
 
 func (c *Controller) setProducing(b bool) {
@@ -887,12 +936,13 @@ func (c *Controller) AddWeightedVP(value uint64) {
 
 func (c *Controller) saveReversion(num uint32) {
 	currentRev := c.db.GetRevision()
-	slot := num % 100
+	slot := num % REVERSION_LEN
 	c.numToRev[slot] = currentRev
+	logging.CLog().Debug("### saveReversion, slot:",slot," rev:",currentRev)
 }
 
 func (c *Controller) getReversion(num uint32) uint64 {
-	rev := c.numToRev[num%100]
+	rev := c.numToRev[num%REVERSION_LEN]
 	return rev
 }
 
@@ -911,6 +961,8 @@ func (c *Controller) PopBlock(num uint32) {
 func (c *Controller) Commit(num uint32) {
 	// this block can not be revert over, so it's irreversible
 	rev := c.getReversion(num)
+	logging.CLog().Debug("### Commit, slot:",num%REVERSION_LEN," rev:",rev)
+	//logging.CLog().Debug("$$$ dump reversion array:",c.numToRev)
 	mustNoError(c.db.RebaseToRevision(rev), "RebaseToRevision error")
 }
 
