@@ -123,9 +123,7 @@ func (c *Controller) readReversionFile(dir string) {
 	mustNoError(err,"read error")
 	mustSuccess(n == len(buf),"read length error")
 	err = json.Unmarshal(buf,&c.numToRev)
-	if err != nil {
-		panic(err)
-	}
+	mustNoError(err,"Unmarshal error")
 	logging.CLog().Debug("!!!!!!! read reversion file")
 	//logging.CLog().Debug("$$$$$$$ dump reversion array:",c.numToRev)
 }
