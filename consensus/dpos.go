@@ -169,8 +169,12 @@ func (d *DPoS) start() {
 	logging.CLog().Info("DPoS Loading ForkDB snapshot...")
 
 	// TODO: fuck!! this is fugly
-	var avatar prototype.SignedBlock
-	d.ForkDB.LoadSnapshot(&avatar, d.node.Config().ResolvePath("forkdb_snapshot"))
+	var avatar []common.ISignedBlock
+	for i:=0; i<constants.MAX_WITNESSES;i++ {
+		// deep copy hell
+		avatar = append(avatar, &prototype.SignedBlock{})
+	}
+	d.ForkDB.LoadSnapshot(avatar, d.node.Config().ResolvePath("forkdb_snapshot"))
 	if d.bootstrap && d.ForkDB.Empty() && d.blog.Empty() {
 		d.shuffle()
 	} else {
@@ -348,6 +352,7 @@ func (d *DPoS) pushBlock(b common.ISignedBlock) error {
 		// TODO: if it's detached, trigger sync
 		return nil
 	} else if head != nil && newHead.Previous() != head.Id() {
+		logging.CLog().Debug("[DPoS] start to switch fork.")
 		d.switchFork(head.Id(), newHead.Id())
 		return nil
 	}
@@ -362,9 +367,11 @@ func (d *DPoS) pushBlock(b common.ISignedBlock) error {
 	// shuffle
 	if d.ForkDB.Head().Id().BlockNum()%uint64(len(d.Producers)) == 0 {
 		d.shuffle()
+		logging.CLog().Debug("[DPoS shuffle] active producers: ", d.Producers)
 	}
 
 	lastCommitted := d.ForkDB.LastCommitted()
+	logging.CLog().Debug("last committed: ", lastCommitted.BlockNum())
 	var commitIdx uint64
 	if newHead.Id().BlockNum()-lastCommitted.BlockNum() > 3 /*constants.MAX_WITNESSES*2/3*/ {
 		if lastCommitted == common.EmptyBlockID {
@@ -455,6 +462,7 @@ func (d *DPoS) switchFork(old, new common.BlockID) {
 func (d *DPoS) applyBlock(b common.ISignedBlock) error {
 	//logging.CLog().Debug("applyBlock #", b.Id().BlockNum())
 	d.ctrl.PushBlock(b.(*prototype.SignedBlock), prototype.Skip_nothing)
+	//logging.CLog().Debugf("applyBlock #%d finished.", b.Id().BlockNum())
 	return nil
 }
 

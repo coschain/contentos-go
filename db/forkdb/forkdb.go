@@ -66,12 +66,12 @@ func (db *DB) Snapshot(dir string) {
 }
 
 // LoadSnapshot...
-func (db *DB) LoadSnapshot(avatar common.ISignedBlock, dir string) {
+func (db *DB) LoadSnapshot(avatar []common.ISignedBlock, dir string) {
 	db.Lock()
 	defer db.Unlock()
 
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		os.Mkdir(dir, 0755)
+		return
 	}
 	if err := db.snapshot.Open(dir); err != nil {
 		panic(err)
@@ -88,16 +88,19 @@ func (db *DB) LoadSnapshot(avatar common.ISignedBlock, dir string) {
 	db.detachedLink = make(map[common.BlockID]common.ISignedBlock)
 
 	size := db.snapshot.Size()
+	logging.CLog().Debugf("[ForkDB][LoadSnapshot] %d blocks detected.", size)
 	var i int64
 	for i = 0; i < size; i++ {
-		if err := db.snapshot.ReadBlock(avatar, i); err != nil {
+		if err := db.snapshot.ReadBlock(avatar[i], i); err != nil {
 			panic(err)
 		}
 		if i == 0 {
 			// TODO: it's gonna be a problem if the node never committed any block
-			db.lastCommitted = avatar.Id()
+			db.lastCommitted = avatar[i].Id()
 		}
-		db.PushBlock(avatar)
+		logging.CLog().Debug("loading block #", avatar[i].Id().BlockNum())
+		db.pushBlock(avatar[i])
+		logging.CLog().Debugf("[ForkDB][LoadSnapshot] restore #%d, id %v, prev %d", avatar[i].Id().BlockNum(), avatar[i].Id(), avatar[i].Previous())
 	}
 	logging.CLog().Debugf("[ForkDB][LoadSnapshot] %d blocks loaded.", size)
 }
@@ -152,6 +155,11 @@ func (db *DB) FetchBlockByNum(num uint64) []common.ISignedBlock {
 func (db *DB) PushBlock(b common.ISignedBlock) common.ISignedBlock {
 	db.Lock()
 	defer db.Unlock()
+
+	return db.pushBlock(b)
+}
+
+func (db *DB) pushBlock(b common.ISignedBlock) common.ISignedBlock {
 	id := b.Id()
 	if db.Illegal(id) {
 		return db.branches[db.head]
@@ -318,7 +326,7 @@ func (db *DB) FetchBlockFromMainBranch(num uint64) (common.ISignedBlock, error) 
 	var err error
 	cur := db.head
 	for headNum >= num {
-		ret, err = db.FetchBlock(cur)
+		ret, err = db.fetchBlock(cur)
 		if err != nil {
 			return nil, err
 		}

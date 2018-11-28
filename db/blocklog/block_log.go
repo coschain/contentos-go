@@ -144,12 +144,12 @@ func (bl *BLog) Append(sb common.ISignedBlock) error {
 
 // Size...
 func (bl *BLog) Size() int64 {
-	logInfo, err := bl.logFile.Stat()
+	idxInfo, err := bl.indexFile.Stat()
 	if err != nil {
 		panic(err)
 	}
 
-	return logInfo.Size()/indexSize
+	return idxInfo.Size()/indexSize
 }
 
 // Empty returns true if it contains no block
