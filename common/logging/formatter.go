@@ -164,6 +164,8 @@ func (f *TextFormatter) SetColorScheme(colorScheme *ColorScheme) {
 }
 
 func (f *TextFormatter) Format(entry *logrus.Entry) ([]byte, error) {
+	entry.Data["pid"] = os.Getpid()
+
 	var b *bytes.Buffer
 	var keys []string = make([]string, 0, len(entry.Data))
 	for k := range entry.Data {

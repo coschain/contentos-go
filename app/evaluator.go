@@ -6,6 +6,7 @@ import (
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/pkg/errors"
+	"time"
 )
 
 func mustSuccess(b bool, val string) {
@@ -105,6 +106,7 @@ func (ev *AccountCreateEvaluator) Apply() {
 		tInfo.CreatedTime = ev.ctx.control.HeadBlockTime()
 		tInfo.Balance = prototype.NewCoin(0)
 		tInfo.VestingShares = op.Fee.ToVest()
+		tInfo.LastPostTime = &prototype.TimePointSec{UtcSeconds:uint32(time.Now().Second())}
 	}), "duplicate create account object")
 
 	// create account authority
@@ -147,7 +149,7 @@ func (ev *PostEvaluator) Apply() {
 
 	authorWrap := table.NewSoAccountWrap(ev.ctx.db, op.Owner)
 	elapsedSeconds := ev.ctx.control.HeadBlockTime().UtcSeconds - authorWrap.GetLastPostTime().UtcSeconds
-	opAssert(elapsedSeconds < constants.MIN_POST_INTERVAL, "posting frequently")
+	opAssert(elapsedSeconds > constants.MIN_POST_INTERVAL, "posting frequently")
 
 	opAssertE(idWrap.Create(func(t *table.SoPost) {
 		t.PostId = op.Uuid
@@ -189,7 +191,7 @@ func (ev *ReplyEvaluator) Apply() {
 
 	authorWrap := table.NewSoAccountWrap(ev.ctx.db, op.Owner)
 	elapsedSeconds := ev.ctx.control.HeadBlockTime().UtcSeconds - authorWrap.GetLastPostTime().UtcSeconds
-	opAssert(elapsedSeconds < constants.MIN_POST_INTERVAL, "posting frequently")
+	opAssert(elapsedSeconds > constants.MIN_POST_INTERVAL, "reply frequently")
 
 	var rootId uint64
 	if pidWrap.GetRootId() == 0 {

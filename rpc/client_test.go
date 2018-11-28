@@ -10,7 +10,9 @@ import (
 	"github.com/coschain/contentos-go/rpc/mock_grpcpb"
 	"github.com/coschain/contentos-go/rpc/pb"
 	"github.com/golang/mock/gomock"
+	"hash/crc32"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"os"
 	"testing"
@@ -28,6 +30,7 @@ func TestMain(m *testing.M) {
 	conn, err := Dial(addr)
 	if err != nil {
 		fmt.Print(err)
+		return
 	}
 	defer conn.Close()
 
@@ -54,7 +57,7 @@ func TestMockGRPCApi_GetAccountByName(t *testing.T) {
 		if err != nil {
 			t.Logf("GetAccountByName failed: %x", err)
 		} else {
-			t.Logf("GetAccountByName detail: %s", resp.AccountName)
+			t.Logf("GetAccountByName detail: %v", resp.AccountName)
 		}
 	}
 }
@@ -75,7 +78,7 @@ func TestMockGPRCApi_GetFollowerListByName(t *testing.T) {
 		if err != nil {
 			t.Logf("GetFollowerListByName failed: %x", err)
 		} else {
-			t.Logf("GetFollowerListByName detail: %s", resp.FollowerList)
+			t.Logf("GetFollowerListByName detail: %v", resp.FollowerList)
 		}
 	}
 }
@@ -96,7 +99,7 @@ func TestMockGRPCApi_GetFollowingListByName(t *testing.T) {
 		if err != nil {
 			t.Logf("GetFollowingListByName failed: %x", err)
 		} else {
-			t.Logf("GetFollowingListByName detail: %s", resp.FollowingList)
+			t.Logf("GetFollowingListByName detail: %v", resp.FollowingList)
 		}
 	}
 }
@@ -117,7 +120,7 @@ func TestMockGPRCApi_GetWitnessList(t *testing.T) {
 		if err != nil {
 			t.Logf("GetWitnessListByName failed: %x", err)
 		} else {
-			t.Logf("GetWitnessListByName detail: %s", resp.WitnessList)
+			t.Logf("GetWitnessListByName detail: %v", resp.WitnessList)
 		}
 	}
 }
@@ -128,9 +131,9 @@ func TestGRPCApi_GetAccountByName(t *testing.T) {
 	resp, err := asc.GetAccountByName(context.Background(), req)
 
 	if err != nil {
-		t.Errorf("GetAccountByName failed: err:[%s], resp:[%x]", err, resp)
+		t.Errorf("GetAccountByName failed: err:[%v], resp:[%x]", err, resp)
 	} else {
-		t.Logf("GetAccountByName detail: %s", resp.AccountName)
+		t.Logf("GetAccountByName detail: %v", resp.AccountName)
 	}
 }
 
@@ -146,9 +149,9 @@ func TestGPRCApi_GetFollowerListByName(t *testing.T) {
 	resp := &grpcpb.GetFollowerListByNameResponse{}
 	resp, err := asc.GetFollowerListByName(context.Background(), req)
 	if err != nil {
-		t.Errorf("GetFollowerListByName failed: %s", err)
+		t.Errorf("GetFollowerListByName failed: %v", err)
 	} else {
-		t.Logf("GetFollowerListByName detail: %s", resp.FollowerList)
+		t.Logf("GetFollowerListByName detail: %v", resp.FollowerList)
 	}
 }
 
@@ -164,9 +167,9 @@ func TestGPRCApi_GetFollowingListByName(t *testing.T) {
 	resp := &grpcpb.GetFollowingListByNameResponse{}
 	resp, err := asc.GetFollowingListByName(context.Background(), req)
 	if err != nil {
-		t.Errorf("GetFollowingListByName failed: %s", err)
+		t.Errorf("GetFollowingListByName failed: %v", err)
 	} else {
-		t.Logf("GetFollowingListByName detail: %s", resp.FollowingList)
+		t.Logf("GetFollowingListByName detail: %v", resp.FollowingList)
 	}
 }
 
@@ -175,9 +178,9 @@ func TestGPRCApi_GetWitnessList(t *testing.T) {
 	resp := &grpcpb.GetWitnessListResponse{}
 	resp, err := asc.GetWitnessList(context.Background(), req)
 	if err != nil {
-		t.Errorf("GetWitnessList failed: %s", err)
+		t.Errorf("GetWitnessList failed: %v", err)
 	} else {
-		t.Logf("GetWitnessList detail: %s", resp.WitnessList)
+		t.Logf("GetWitnessList detail: %v", resp.WitnessList)
 	}
 }
 
@@ -187,9 +190,9 @@ func TestGRPCApi_GetPostListByCreated(t *testing.T) {
 
 	resp, err := asc.GetPostListByCreated(context.Background(), req)
 	if err != nil {
-		t.Errorf("GetPostListByCreated failed: %s", err)
+		t.Errorf("GetPostListByCreated failed: %v", err)
 	} else {
-		t.Logf("GetPostListByCreated detail: %s", resp.PostList)
+		t.Logf("GetPostListByCreated detail: %v", resp.PostList)
 	}
 }
 
@@ -199,9 +202,9 @@ func TestGRPCApi_GetReplyListByPostId(t *testing.T) {
 
 	resp, err := asc.GetReplyListByPostId(context.Background(), req)
 	if err != nil {
-		t.Errorf("GetReplyListByPostId failed: %s", err)
+		t.Errorf("GetReplyListByPostId failed: %v", err)
 	} else {
-		t.Logf("GetReplyListByPostId detail: %s", resp.ReplyList)
+		t.Logf("GetReplyListByPostId detail: %v", resp.ReplyList)
 	}
 }
 
@@ -211,9 +214,9 @@ func TestGRPCApi_GetChainState(t *testing.T) {
 
 	resp, err := asc.GetChainState(context.Background(), req)
 	if err != nil {
-		t.Errorf("GetChainState failed: %s", err)
+		t.Errorf("GetChainState failed: %v", err)
 	} else {
-		t.Logf("GetChainState detail: %s", resp.Props)
+		t.Logf("GetChainState detail: %v", resp.Props)
 	}
 }
 
@@ -223,9 +226,9 @@ func TestGRPCApi_GetBlockTransactionsByNum(t *testing.T) {
 
 	resp, err := asc.GetBlockTransactionsByNum(context.Background(), req)
 	if err != nil {
-		t.Errorf("GetChainState failed: %s", err)
+		t.Errorf("GetChainState failed: %v", err)
 	} else {
-		t.Logf("GetChainState detail: %s", resp.Transactions)
+		t.Logf("GetChainState detail: %v", resp.Transactions)
 	}
 }
 
@@ -235,9 +238,9 @@ func TestGRPCApi_GetTrxById(t *testing.T) {
 
 	resp, err := asc.GetTrxById(context.Background(), req)
 	if err != nil {
-		t.Errorf("GetTrxById failed: %s", err)
+		t.Errorf("GetTrxById failed: %v", err)
 	} else {
-		t.Logf("GetTrxById detail: %s", resp.Trx)
+		t.Logf("GetTrxById detail: %v", resp.Trx)
 	}
 }
 
@@ -252,11 +255,84 @@ var (
 )
 
 func TestGRPCApi_BroadcastTrx(t *testing.T) {
-	//pushTrx(t, createAccountTxReq(t))
+	//if test account is created in current db, pls comment out createAccount method
+	pushTrx(t, createAccountTxReq(t))
+
 	pushTrx(t, createUnfollowTxReq(t))
 	getFollowerList(t)
 	pushTrx(t, createFollowTxReq(t))
 	getFollowerList(t)
+
+	uuid, postReq := createPostTxReq(t)
+	time.Sleep(time.Second * 3)
+	pushTrx(t, postReq)
+	pushTrx(t, createRelayTxReq(t, uuid))
+
+	getPostList(t)
+	getRelyList(t, uuid)
+}
+
+func getPostList(t *testing.T) {
+	req := &grpcpb.GetPostListByCreatedRequest{
+		//Start:&prototype.PostCreatedOrder{
+		//	Created:&prototype.TimePointSec{UtcSeconds:0},
+		//	ParentId:0,
+		//},
+		Limit:100,
+	}
+	resp := &grpcpb.GetPostListByCreatedResponse{}
+
+	resp, err := asc.GetPostListByCreated(context.Background(), req)
+	if err != nil {
+		t.Errorf("GetPostListByCreated failed: %v", err)
+	} else {
+		t.Logf("GetPostListByCreated detail: %v", resp.PostList)
+	}
+}
+
+func getRelyList(t *testing.T, parentId uint64) {
+	req := &grpcpb.GetReplyListByPostIdRequest{
+		//Start:&prototype.ReplyCreatedOrder{
+		//	ParentId:parentId,
+		//	Created:&prototype.TimePointSec{UtcSeconds:0},
+		//},
+		Limit:100,
+	}
+	resp := &grpcpb.GetReplyListByPostIdResponse{}
+
+	resp, err := asc.GetReplyListByPostId(context.Background(), req)
+	if err != nil {
+		t.Errorf("GetReplyListByPostId failed: %v", err)
+	} else {
+		t.Logf("GetReplyListByPostId detail: %v", resp.ReplyList)
+	}
+}
+
+func createPostTxReq(t *testing.T) (uuid uint64, req *grpcpb.BroadcastTrxRequest) {
+	title := "title_" + randStr(15)
+	uuid = GenerateUUID(BOB + title)
+	post_op := &prototype.PostOperation{
+		Uuid:          uuid,
+		Owner:         &prototype.AccountName{Value: BOB},
+		Title:         title,
+		Content:       "content" + randStr(100),
+		Tags:          []string{"abc"},
+		Beneficiaries: []*prototype.BeneficiaryRouteType{},
+	}
+	return uuid, generateSignedTxResp(t, BOB, post_op)
+}
+
+func createRelayTxReq(t *testing.T, parentId uint64) (req *grpcpb.BroadcastTrxRequest) {
+	content := "reply_content_" + randStr(119)
+	uuid := GenerateUUID(ALICE + content)
+	reply_op := &prototype.ReplyOperation{
+		Uuid:          uuid,
+		Owner:         &prototype.AccountName{Value: ALICE},
+		Content:       content,
+		ParentUuid:    parentId,
+		Beneficiaries: []*prototype.BeneficiaryRouteType{},
+	}
+	return generateSignedTxResp(t, ALICE, reply_op)
 }
 
 func getFollowerList(t *testing.T) {
@@ -266,9 +342,9 @@ func getFollowerList(t *testing.T) {
 	resp := &grpcpb.GetFollowerListByNameResponse{}
 	resp, err := asc.GetFollowerListByName(context.Background(), req)
 	if err != nil {
-		t.Errorf("GetFollowerListByName failed: %s", err)
+		t.Errorf("GetFollowerListByName failed: %v", err)
 	} else {
-		t.Logf("GetFollowerListByName detail: %s", resp.FollowerList)
+		t.Logf("GetFollowerListByName detail: %v", resp.FollowerList)
 	}
 }
 
@@ -375,6 +451,22 @@ func GenerateNewKey() (string, string, error) {
 	privKeyStr := privKey.ToWIF()
 	pubKeyStr := pubKey.ToWIF()
 	return pubKeyStr, privKeyStr, nil
+}
+
+func GenerateUUID(content string) uint64 {
+	crc32q := crc32.MakeTable(0xD5828281)
+	randContent := content + string(rand.Intn(1e5))
+	return uint64(time.Now().Unix()*1e9) + uint64(crc32.Checksum([]byte(randContent), crc32q))
+}
+
+var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+func randStr(n int) string {
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+	return string(b)
 }
 
 func TestHTTPApi_GetAccountByName(t *testing.T) {
