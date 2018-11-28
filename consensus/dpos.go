@@ -207,6 +207,10 @@ func (d *DPoS) start() {
 		case trx := <-d.trxCh:
 			ret := d.ctrl.PushTrx( trx.(*prototype.SignedTransaction) )
 			d.trxRetCh <- ret
+			if ret != nil{
+				logging.CLog().Debug("DPoS Broadcast trx.")
+				d.p2p.Broadcast( trx.(*prototype.SignedTransaction) )
+			}
 			continue
 		case <-d.prodTimer.C:
 			//logging.CLog().Debug("scheduleProduce.")
