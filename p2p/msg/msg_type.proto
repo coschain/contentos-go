@@ -74,11 +74,11 @@ message transfer_msg {
         address           msg5  = 5;
         addr_req          msg6  = 6;
         disconnected      msg7  = 7;
-        not_found         msg8  = 8;
-        ping              msg9  = 9;
-        pong              msg10 = 10;
-        ver_ack           msg11 = 11;
-        version           msg12 = 12;
+        ping              msg8  = 8;
+        pong              msg9  = 9;
+        ver_ack           msg10 = 10;
+        version           msg11 = 11;
+        not_found         msg12 = 12;
     }
 }
 
