@@ -20,6 +20,7 @@ type Node struct {
 	MainLoop *eventloop.EventLoop
 	EvBus    EventBus.Bus
 
+	serviceNames []string
 	services     map[string]Service
 	serviceFuncs []NamedServiceConstructor // registered services store into this slice
 
@@ -55,6 +56,7 @@ func New(conf *Config) (*Node, error) {
 	}
 	return &Node{
 		config:       conf,
+		serviceNames: []string{},
 		serviceFuncs: []NamedServiceConstructor{},
 		log:          conf.Logger,
 	}, nil
@@ -93,6 +95,8 @@ func (n *Node) Start() error {
 		name := namedConstructor.name
 		constructor := namedConstructor.constructor
 
+		n.serviceNames = append(n.serviceNames, name)
+
 		service, err := constructor(ctx)
 		if err != nil {
 			return err
@@ -104,7 +108,8 @@ func (n *Node) Start() error {
 	}
 
 	var started []string
-	for kind, service := range services {
+	for _, kind := range n.serviceNames {
+		service := services[kind]
 		if err := service.Start(n); err != nil {
 			for _, kind := range started {
 				_ = services[kind].Stop()
@@ -143,7 +148,10 @@ func (n *Node) Stop() error {
 		Services: make(map[string]error),
 	}
 
-	for kind, service := range n.services {
+	length := len(n.serviceNames)
+	for i := range n.serviceNames {
+		kind := n.serviceNames[length-1-i]
+		service := n.services[kind]
 		if err := service.Stop(); err != nil {
 			failure.Services[kind] = err
 		}
