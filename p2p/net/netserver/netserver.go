@@ -5,13 +5,11 @@ import (
 	"github.com/coschain/contentos-go/iservices"
 	"math/rand"
 	"net"
-	"reflect"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/asaskevich/EventBus"
-	comn "github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/p2p/common"
 	"github.com/coschain/contentos-go/p2p/depend/common/config"
@@ -19,9 +17,7 @@ import (
 	"github.com/coschain/contentos-go/p2p/message/msg_pack"
 	"github.com/coschain/contentos-go/p2p/message/types"
 	"github.com/coschain/contentos-go/p2p/net/protocol"
-	"github.com/coschain/contentos-go/p2p/msg"
 	"github.com/coschain/contentos-go/p2p/peer"
-	"github.com/coschain/contentos-go/prototype"
 )
 
 //NewNetServer return the net object in p2p
@@ -217,25 +213,7 @@ func (this *NetServer) NodeEstablished(id uint64) bool {
 }
 
 
-func (this *NetServer) Broadcast(message interface{}) {
-	log.Debug()
-	var msg types.Message
-	isConsensus := false
-	switch message.(type) {
-	case *prototype.SignedTransaction:
-		log.Debug("[p2p]TX transaction message")
-		sigtrx := message.(*prototype.SignedTransaction)
-		msg = msgpack.NewTxn(sigtrx)
-	case *prototype.SignedBlock:
-		log.Debug("[p2p]TX block message")
-		block := message.(*prototype.SignedBlock)
-		msg = msgpack.NewSigBlkIdMsg(block)
-	default:
-		log.Warnf("[p2p]Unknown Xmit message %v , type %v", message,
-			reflect.TypeOf(message))
-		return
-	}
-
+func (this *NetServer) Broadcast(msg types.Message, isConsensus bool) {
 	this.Np.Broadcast(msg, isConsensus)
 }
 
@@ -815,12 +793,6 @@ func (this *NetServer) SetOwnAddress(addr string) {
 		this.OwnAddress = addr
 	}
 
-}
-
-func (this *NetServer) Trigger_sync(p *peer.Peer, current_head_blk_id comn.BlockID) {
-	reqmsg := new(msg.ReqIdMsg)
-	reqmsg.HeadBlockId = current_head_blk_id.Data[:]
-	this.Send(p, reqmsg, false)
 }
 
 func (this *NetServer) GetService(str string) (interface{}, error) {

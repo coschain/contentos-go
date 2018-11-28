@@ -366,16 +366,6 @@ func VerAckHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 			}
 		}
 
-		var blockid common.BlockID
-		service, err := p2p.GetService(iservices.CS_SERVER_NAME)
-		if err != nil {
-			log.Info("can't get other service, service name: ", iservices.CS_SERVER_NAME)
-			return
-		}
-		ctrl := service.(iservices.IConsensus)
-		blockid = ctrl.GetHeadBlockId()
-		p2p.Trigger_sync(remotePeer, blockid)
-
 		msg := msgpack.NewAddrReq()
 		go p2p.Send(remotePeer, msg, false)
 	}

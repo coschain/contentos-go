@@ -3,10 +3,13 @@ package p2p
 import (
 	"encoding/json"
 	"errors"
+	"github.com/coschain/contentos-go/p2p/msg"
+	"github.com/coschain/contentos-go/prototype"
 	"io/ioutil"
 	"math/rand"
 	"net"
 	"os"
+	"reflect"
 	"strconv"
 	"sync"
 	"time"
@@ -24,10 +27,12 @@ import (
 	"github.com/coschain/contentos-go/p2p/net/protocol"
 	"github.com/coschain/contentos-go/p2p/peer"
 	"github.com/coschain/contentos-go/node"
+	coomn "github.com/coschain/contentos-go/common"
 )
 
 //P2PServer control all network activities
 type P2PServer struct {
+	iservices.IP2P
 	Network   p2p.P2P
 	msgRouter *utils.MessageRouter
 	ReconnectAddrs
@@ -501,4 +506,32 @@ func (this *P2PServer) syncPeerAddr() {
 			log.Warn("[p2p]write recent peer fail: ", err)
 		}
 	}
+}
+
+func (this *P2PServer) Broadcast(message interface{}) {
+	log.Debug()
+	var msg msgtypes.Message
+	isConsensus := false
+	switch message.(type) {
+	case *prototype.SignedTransaction:
+		log.Debug("[p2p]TX transaction message")
+		sigtrx := message.(*prototype.SignedTransaction)
+		msg = msgpack.NewTxn(sigtrx)
+	case *prototype.SignedBlock:
+		log.Debug("[p2p]TX block message")
+		block := message.(*prototype.SignedBlock)
+		msg = msgpack.NewSigBlkIdMsg(block)
+	default:
+		log.Warnf("[p2p]Unknown Xmit message %v , type %v", message,
+			reflect.TypeOf(message))
+		return
+	}
+
+	this.Network.Broadcast(msg, isConsensus)
+}
+
+func (this *P2PServer) Trigger_sync(p *peer.Peer, current_head_blk_id coomn.BlockID) {
+	reqmsg := new(msg.ReqIdMsg)
+	reqmsg.HeadBlockId = current_head_blk_id.Data[:]
+	this.Send(p, reqmsg, false)
 }
