@@ -2,7 +2,6 @@ package forkdb
 
 import (
 	"fmt"
-	"github.com/mitchellh/go-homedir"
 	"os"
 	"sync"
 
@@ -42,14 +41,11 @@ func NewDB() *DB {
 }
 
 // Snapshot...
-func (db *DB) Snapshot() {
+func (db *DB) Snapshot(dir string) {
 	db.RLock()
 	defer db.RUnlock()
-	home, err := homedir.Dir()
-	if err != nil {
-		panic(err)
-	}
-	if err = db.snapshot.Open(home + "/forkdb_tmp"); err != nil {
+
+	if err := db.snapshot.Open(dir); err != nil {
 		panic(err)
 	}
 	start := db.start
@@ -70,20 +66,17 @@ func (db *DB) Snapshot() {
 }
 
 // LoadSnapshot...
-func (db *DB) LoadSnapshot(avatar common.ISignedBlock) {
+func (db *DB) LoadSnapshot(avatar common.ISignedBlock, dir string) {
 	db.Lock()
 	defer db.Unlock()
-	home, err := homedir.Dir()
-	if err != nil {
+
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		os.Mkdir(dir, 0755)
+	}
+	if err := db.snapshot.Open(dir); err != nil {
 		panic(err)
 	}
-	if _, err = os.Stat(home + "/forkdb_tmp"); os.IsNotExist(err) {
-		os.Mkdir(home+"/forkdb_tmp", 0755)
-	}
-	if err = db.snapshot.Open(home + "/forkdb_tmp"); err != nil {
-		panic(err)
-	}
-	defer db.snapshot.Remove(home + "/forkdb_tmp")
+	defer db.snapshot.Remove(dir)
 
 	if db.snapshot.Empty() {
 		return
@@ -97,7 +90,7 @@ func (db *DB) LoadSnapshot(avatar common.ISignedBlock) {
 	size := db.snapshot.Size()
 	var i int64
 	for i = 0; i < size; i++ {
-		if err = db.snapshot.ReadBlock(avatar, i); err != nil {
+		if err := db.snapshot.ReadBlock(avatar, i); err != nil {
 			panic(err)
 		}
 		if i == 0 {

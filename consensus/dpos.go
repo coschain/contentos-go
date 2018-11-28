@@ -25,6 +25,7 @@ func timeToNextSec() time.Duration {
 }
 
 type DPoS struct {
+	node   *node.Node
 	ForkDB *forkdb.DB
 	blog   blocklog.BLog
 
@@ -125,6 +126,7 @@ func (d *DPoS) ActiveProducers() []string {
 }
 
 func (d *DPoS) Start(node *node.Node) error {
+	d.node = node
 	d.ctrl = d.getController()
 	d.blog.Open(node.Config().ResolvePath("blog"))
 	d.SetBootstrap(true)
@@ -168,7 +170,7 @@ func (d *DPoS) start() {
 
 	// TODO: fuck!! this is fugly
 	var avatar prototype.SignedBlock
-	d.ForkDB.LoadSnapshot(&avatar)
+	d.ForkDB.LoadSnapshot(&avatar, d.node.Config().ResolvePath("forkdb_snapshot"))
 	if d.bootstrap && d.ForkDB.Empty() && d.blog.Empty() {
 		d.shuffle()
 	} else {
@@ -210,7 +212,7 @@ func (d *DPoS) start() {
 func (d *DPoS) Stop() error {
 	logging.CLog().Info("DPoS consensus stopped.")
 	// restore uncommitted forkdb
-	d.ForkDB.Snapshot()
+	d.ForkDB.Snapshot(d.node.Config().ResolvePath("forkdb_snapshot"))
 
 	close(d.stopCh)
 	d.wg.Wait()
@@ -364,7 +366,7 @@ func (d *DPoS) pushBlock(b common.ISignedBlock) error {
 
 	lastCommitted := d.ForkDB.LastCommitted()
 	var commitIdx uint64
-	if newHead.Id().BlockNum()-lastCommitted.BlockNum() > 3/*constants.MAX_WITNESSES*2/3*/ {
+	if newHead.Id().BlockNum()-lastCommitted.BlockNum() > 3 /*constants.MAX_WITNESSES*2/3*/ {
 		if lastCommitted == common.EmptyBlockID {
 			commitIdx = 1
 		} else {
