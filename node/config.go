@@ -27,6 +27,11 @@ type Config struct {
 	// HTTPPort is the TCP port number on which to start the HTTP RPC server.
 	HTTPPort int `toml:",omitempty"`
 
+	P2PPort int `toml:",omitempty"`
+	P2PPortConsensus int `toml:",omitempty"`
+	P2PSeeds   []string `toml:",omitempty"`
+
+
 	// Logger is a custom logger
 	Logger log.Logger `toml:",omitempty"`
 

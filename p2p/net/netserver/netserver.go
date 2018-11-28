@@ -35,7 +35,6 @@ func NewNetServer(ctx *node.ServiceContext) p2p.P2P {
 	n.PeerAddrMap.PeerSyncAddress = make(map[string]*peer.Peer)
 	n.PeerAddrMap.PeerConsAddress = make(map[string]*peer.Peer)
 
-	n.init()
 	return n
 }
 
@@ -126,6 +125,7 @@ func (this *NetServer) init() error {
 
 //InitListen start listening on the config port
 func (this *NetServer) Start(node *node.Node) {
+	this.init()
 	this.noticer = node.EvBus
 	this.startListening()
 }

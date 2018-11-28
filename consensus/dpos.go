@@ -25,6 +25,7 @@ func timeToNextSec() time.Duration {
 }
 
 type DPoS struct {
+	iservices.IConsensus
 	node   *node.Node
 	ForkDB *forkdb.DB
 	blog   blocklog.BLog

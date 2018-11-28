@@ -33,6 +33,22 @@ func (as *APIService) GetAccountByName(ctx context.Context, req *grpcpb.GetAccou
 		acct.Vest = accWrap.GetVestingShares()
 		//acct.PublicKeys = accWrap.GetPubKey()
 		acct.CreatedTime = accWrap.GetCreatedTime()
+
+		witWrap := table.NewSoWitnessWrap(as.db, accWrap.GetName() )
+		if witWrap != nil && witWrap.CheckExist() {
+			acct.Witness = &grpcpb.WitnessResponse{
+				Owner:                 witWrap.GetOwner(),
+				WitnessScheduleType:   witWrap.GetWitnessScheduleType(),
+				CreatedTime:           witWrap.GetCreatedTime(),
+				Url:                   witWrap.GetUrl(),
+				LastConfirmedBlockNum: witWrap.GetLastConfirmedBlockNum(),
+				TotalMissed:           witWrap.GetTotalMissed(),
+				VoteCount:             witWrap.GetVoteCount(),
+				SigningKey:            witWrap.GetSigningKey(),
+				LastWork:              witWrap.GetLastWork(),
+				RunningVersion:        witWrap.GetRunningVersion(),
+			}
+		}
 	}
 
 	return acct, nil
@@ -158,7 +174,7 @@ func (as *APIService) GetWitnessList(ctx context.Context, req *grpcpb.GetWitness
 				Url:                   witWrap.GetUrl(),
 				LastConfirmedBlockNum: witWrap.GetLastConfirmedBlockNum(),
 				TotalMissed:           witWrap.GetTotalMissed(),
-				PowWorker:             witWrap.GetPowWorker(),
+				VoteCount:             witWrap.GetVoteCount(),
 				SigningKey:            witWrap.GetSigningKey(),
 				LastWork:              witWrap.GetLastWork(),
 				RunningVersion:        witWrap.GetRunningVersion(),

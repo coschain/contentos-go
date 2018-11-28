@@ -16,6 +16,11 @@ const DefaultConfigTemplate = `# This is a TOML config file.
 
 DataDir = "{{ .DataDir }}"
 
+P2PPort = "{{ .P2PPort }}"
+P2PPortConsensus = "{{ .P2PPortConsensus }}"
+P2PSeeds = {{ .P2PSeeds }}
+
+
 [timer]
 
 Interval = "{{ .Timer.Interval }}"

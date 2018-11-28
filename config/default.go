@@ -19,6 +19,10 @@ var DefaultNodeConfig = node.Config{
 	Timer: service_configs.TimerConfig{
 		Interval: 500,
 	},
+	P2PPort:20200,
+	P2PPortConsensus:20201,
+	P2PSeeds:[]string{""},
+
 	GRPC: service_configs.GRPCConfig{
 		RPCListen:  DefaultRPCEndPoint,
 		HTTPListen: DefaultHTTPEndPoint,

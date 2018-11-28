@@ -48,7 +48,7 @@
  
     
     //注册为BP节点
-    bp register yyking COS7Z7oHh2NHGjmQqZULNJZch9rNZfztzfg5AmSHQgozzGagBokm5            // 此处需要输入密码，后面如有需要使用 unlock yyking 来解锁账号
+    bp register yyking COS7Z7oHh2NHGjmQqZULNJZch9rNZfztzfg5AmSHQgozzGagBokm5            
             
     //设置initminer投票给yyking
     bp vote initminer yyking

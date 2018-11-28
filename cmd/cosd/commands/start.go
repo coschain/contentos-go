@@ -13,6 +13,7 @@ import (
 	"github.com/coschain/contentos-go/db/storage"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
+	"github.com/coschain/contentos-go/p2p"
 	"github.com/coschain/contentos-go/rpc"
 	"github.com/spf13/viper"
 	"os"
@@ -81,9 +82,9 @@ func startNode(cmd *cobra.Command, args []string) {
 	//	return printer.New(ctx)
 	//})
 
-	//app.Register(iservices.P2P_SERVER_NAME, func(ctx *node.ServiceContext) (node.Service, error) {
-	//		return p2p.NewServer(ctx)
-	//})
+	app.Register(iservices.P2P_SERVER_NAME, func(ctx *node.ServiceContext) (node.Service, error) {
+			return p2p.NewServer(ctx)
+	})
 
 	app.Register(iservices.CS_SERVER_NAME, func(ctx *node.ServiceContext) (node.Service, error) {
 		var s node.Service
