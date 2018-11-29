@@ -31,6 +31,7 @@ type Config struct {
 	P2PPortConsensus int `toml:",omitempty"`
 	P2PSeeds   []string `toml:",omitempty"`
 
+	LogLevel string `toml:",omitempty"`
 
 	// Logger is a custom logger
 	Logger log.Logger `toml:",omitempty"`

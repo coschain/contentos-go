@@ -73,7 +73,7 @@ func (gs *GRPCServer) Start(node *node.Node) error {
 }
 
 func (gs *GRPCServer) startGRPC() error {
-	logging.CLog().Infof("RPCListen", gs.config.RPCListen)
+	logging.CLog().Infof("RPCListen %v", gs.config.RPCListen)
 	listener, err := net.Listen(GRPCServerType, gs.config.RPCListen)
 	if err != nil {
 		logging.VLog().Errorf("grpc listener addr: [%s] failure", gs.config.RPCListen)

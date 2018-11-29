@@ -68,13 +68,12 @@ func makeNode() (*node.Node, node.Config) {
 
 // NO OTHER CONFIGS HERE EXCEPT NODE CONFIG
 func startNode(cmd *cobra.Command, args []string) {
-	logging.Init("logs", "debug", 0)
-
-	pprof.StartPprof()
-
 	// _ is cfg as below process has't used
 	_, _ = cmd, args
-	app, _ := makeNode()
+	app, cfg := makeNode()
+	logging.Init(cfg.ResolvePath("logs"), cfg.LogLevel, 0)
+
+	pprof.StartPprof()
 	//app.Register("timer", func(ctx *node.ServiceContext) (node.Service, error) {
 	//	return timer.New(ctx, ctx.Config().Timer)
 	//})

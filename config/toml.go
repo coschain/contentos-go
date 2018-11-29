@@ -20,6 +20,7 @@ P2PPort = "{{ .P2PPort }}"
 P2PPortConsensus = "{{ .P2PPortConsensus }}"
 P2PSeeds = {{ .P2PSeeds }}
 
+LogLevel = "{{ .LogLevel }}"
 
 [timer]
 

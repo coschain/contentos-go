@@ -12,6 +12,7 @@ import (
 const (
 	DefaultRPCEndPoint  = "127.0.0.1:8888"
 	DefaultHTTPEndPoint = "127.0.0.1:8080"
+	DefaultLogLevel 	= "debug"
 )
 
 // DefaultConfig contains reasonable default settings.
@@ -20,6 +21,7 @@ var DefaultNodeConfig = node.Config{
 	Timer: service_configs.TimerConfig{
 		Interval: 500,
 	},
+	LogLevel:DefaultLogLevel,
 	P2PPort:20200,
 	P2PPortConsensus:20201,
 	P2PSeeds:[]string{""},

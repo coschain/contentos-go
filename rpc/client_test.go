@@ -24,7 +24,7 @@ var asc grpcpb.ApiServiceClient
 func TestMain(m *testing.M) {
 	logging.Init("logs	", "debug", 0)
 
-	os.RemoveAll("/Users/eagle/.coschain/cosd/db")
+	//os.RemoveAll("/Users/eagle/.coschain/cosd/db")
 
 	addr := fmt.Sprintf("127.0.0.1:%d", uint32(8888))
 	conn, err := Dial(addr)
