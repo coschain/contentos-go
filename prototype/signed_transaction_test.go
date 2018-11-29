@@ -16,7 +16,7 @@ func makeOp() *TransferOperation {
 	return top
 }
 
-func makeFixKeyMap() map[string]string  {
+func makeFixKeyMap() map[string]string {
 	fixKeys := make(map[string]string)
 
 	fixKeys["123456"] = "2AvYqihDZjq7pFeZNuBYjBW1hQyPUw36xZB25g8UYfRLKwh7k9"
@@ -30,24 +30,24 @@ func makeFixKeyMap() map[string]string  {
 
 func TestFixGenKey(t *testing.T) {
 	fixKeys := makeFixKeyMap()
-	for k,v:= range fixKeys {
-		res1, err := GenerateNewKeyFromBytes( []byte(k) )
+	for k, v := range fixKeys {
+		res1, err := GenerateNewKeyFromBytes([]byte(k))
 
-		if err != nil{
+		if err != nil {
 			t.Fatal(err)
 		}
 
-		if res1.ToWIF() != v{
+		if res1.ToWIF() != v {
 			t.Fatal("key Error")
 		}
 
-		res2, err := GenerateNewKeyFromBytes( []byte(k) )
+		res2, err := GenerateNewKeyFromBytes([]byte(k))
 
-		if err != nil{
+		if err != nil {
 			t.Fatal(err)
 		}
 
-		if !res1.Equal( res2 ){
+		if !res1.Equal(res2) {
 			t.Fatal("key Error")
 		}
 	}

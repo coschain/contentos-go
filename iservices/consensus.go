@@ -5,6 +5,7 @@ import (
 )
 
 var ConsensusServerName = "consensus"
+
 type IConsensus interface {
 	// NOTE: producers should be maintained by the specific Consensus algorithm
 	// CurrentProducer returns current producer
@@ -25,12 +26,9 @@ type IConsensus interface {
 	// PushBlock adds b to the block fork DB, called if ValidateBlock returns true
 	PushBlock(b common.ISignedBlock)
 
-
-
-	GetHeadBlockId() (common.BlockID)
+	GetHeadBlockId() common.BlockID
 	GetIDs(start, end common.BlockID) ([]common.BlockID, error)
 	FetchBlock(id common.BlockID) (common.ISignedBlock, error)
 	HasBlock(id common.BlockID) bool
 	FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, error)
-
 }

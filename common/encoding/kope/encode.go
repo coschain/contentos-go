@@ -200,7 +200,7 @@ func encode(value interface{}) ([]byte, error) {
 }
 
 // Encode values
-func Encode(values...interface{}) ([]byte, error) {
+func Encode(values ...interface{}) ([]byte, error) {
 	if len(values) == 0 {
 		return nil, errors.New("nothing to encode")
 	}

@@ -1,8 +1,8 @@
 package types
 
 import (
-	comm "github.com/coschain/contentos-go/p2p/depend/common"
 	"github.com/coschain/contentos-go/p2p/common"
+	comm "github.com/coschain/contentos-go/p2p/depend/common"
 )
 
 type Disconnected struct{}

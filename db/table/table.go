@@ -9,20 +9,20 @@ import (
 )
 
 type Table struct {
-	name string
-	db storage.Database
-	valueIO TableValueIO
-	columns []*TableColumn
-	columnByName map[string]int
-	indices []*TableIndex
-	indexByName map[string]int
+	name          string
+	db            storage.Database
+	valueIO       TableValueIO
+	columns       []*TableColumn
+	columnByName  map[string]int
+	indices       []*TableIndex
+	indexByName   map[string]int
 	indicesByType map[TableIndexType][]int
-	primaryIndex *TableIndex
-	prefix kope.Key
-	err error
+	primaryIndex  *TableIndex
+	prefix        kope.Key
+	err           error
 }
 
-func (t *Table) NewRow(columnValues...interface{}) *TableRows {
+func (t *Table) NewRow(columnValues ...interface{}) *TableRows {
 	if t.err != nil {
 		return errorTableRows(t.err)
 	}
@@ -57,11 +57,11 @@ func (t *Table) NewRow(columnValues...interface{}) *TableRows {
 	}
 	return &TableRows{
 		index: t.primaryIndex,
-		key: common.CopyBytes(rk),
+		key:   common.CopyBytes(rk),
 	}
 }
 
-func (t *Table) Row(value...interface{}) *TableRows {
+func (t *Table) Row(value ...interface{}) *TableRows {
 	if t.err != nil {
 		return errorTableRows(t.err)
 	}

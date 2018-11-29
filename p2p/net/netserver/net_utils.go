@@ -9,9 +9,9 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/coschain/contentos-go/p2p/common"
 	"github.com/coschain/contentos-go/p2p/depend/common/config"
 	"github.com/coschain/contentos-go/p2p/depend/common/log"
-	"github.com/coschain/contentos-go/p2p/common"
 )
 
 // createListener creates a net listener on the port

@@ -23,16 +23,16 @@ func (m *BpRegisterOperation) GetRequiredActive(auths *map[string]bool) {
 	(*auths)[m.Owner.Value] = true
 }
 
-func (m *BpRegisterOperation)Validate() error  {
+func (m *BpRegisterOperation) Validate() error {
 	if m == nil {
 		return ErrNpe
 	}
 
-	if err := m.Owner.Validate(); err != nil{
-		return errors.WithMessage(err, "Owner error" )
+	if err := m.Owner.Validate(); err != nil {
+		return errors.WithMessage(err, "Owner error")
 	}
-	if err := m.BlockSigningKey.Validate(); err != nil{
-		return errors.WithMessage(err, "BlockSigningKey error" )
+	if err := m.BlockSigningKey.Validate(); err != nil {
+		return errors.WithMessage(err, "BlockSigningKey error")
 	}
 	if m.Props == nil {
 		return ErrNpe

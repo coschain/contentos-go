@@ -8,14 +8,14 @@ import (
 )
 
 type typeInfo struct {
-	typ reflect.Type
+	typ  reflect.Type
 	name string
 	kope bool
 }
 
 var (
-	registeredTypesByName  	sync.Map
-	registeredTypes  		sync.Map
+	registeredTypesByName   sync.Map
+	registeredTypes         sync.Map
 	opeEncoderInterfaceType = reflect.TypeOf((*kope.OpeEncoder)(nil)).Elem()
 )
 

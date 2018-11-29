@@ -34,7 +34,9 @@ func (sb *SignedBlock) Timestamp() uint64 {
 
 func (sb *SignedBlock) Id() common.BlockID {
 	var ret, prev common.BlockID
-	if len(sb.SignedHeader.Header.Previous.Hash) != 0 {
+	if sb.SignedHeader != nil && sb.SignedHeader.Header != nil &&
+		sb.SignedHeader.Header.Previous != nil &&
+		len(sb.SignedHeader.Header.Previous.Hash) != 0 {
 		copy(prev.Data[:], sb.SignedHeader.Header.Previous.Hash[:32])
 	}
 	digest := sb.SignedHeader.Hash()

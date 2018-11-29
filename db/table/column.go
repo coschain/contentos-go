@@ -7,11 +7,11 @@ import (
 )
 
 type TableColumn struct {
-	name string
-	table *Table
+	name    string
+	table   *Table
 	ordinal int
-	ti *typeInfo
-	index *TableIndex
+	ti      *typeInfo
+	index   *TableIndex
 }
 
 func (c *TableColumn) checkValueType(value interface{}) error {

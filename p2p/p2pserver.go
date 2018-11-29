@@ -14,20 +14,20 @@ import (
 	"sync"
 	"time"
 
-	"github.com/coschain/contentos-go/p2p/common"
+	coomn "github.com/coschain/contentos-go/common"
+	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/iservices"
-	"github.com/coschain/contentos-go/p2p/message/msg_pack"
+	"github.com/coschain/contentos-go/node"
+	"github.com/coschain/contentos-go/p2p/common"
 	comm "github.com/coschain/contentos-go/p2p/depend/common"
 	"github.com/coschain/contentos-go/p2p/depend/common/config"
 	"github.com/coschain/contentos-go/p2p/depend/common/log"
+	"github.com/coschain/contentos-go/p2p/message/msg_pack"
 	msgtypes "github.com/coschain/contentos-go/p2p/message/types"
-	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/p2p/message/utils"
 	"github.com/coschain/contentos-go/p2p/net/netserver"
 	"github.com/coschain/contentos-go/p2p/net/protocol"
 	"github.com/coschain/contentos-go/p2p/peer"
-	"github.com/coschain/contentos-go/node"
-	coomn "github.com/coschain/contentos-go/common"
 )
 
 //P2PServer control all network activities
@@ -143,7 +143,6 @@ func (this *P2PServer) Send(p *peer.Peer, msg msgtypes.Message,
 func (this *P2PServer) GetID() uint64 {
 	return this.Network.GetID()
 }
-
 
 // Todo: remove it if no use
 func (this *P2PServer) GetConnectionState() uint32 {
@@ -533,6 +532,7 @@ func (this *P2PServer) Broadcast(message interface{}) {
 func (this *P2PServer) TriggerSync(current_head_blk_id coomn.BlockID) {
 	reqmsg := new(msg.ReqIdMsg)
 	reqmsg.HeadBlockId = current_head_blk_id.Data[:]
+	log.Info("enter TriggerSync func")
 	for _, p := range this.Network.GetNp().List {
 		log.Info("cons call TriggerSync func")
 		p.Send(reqmsg, false)

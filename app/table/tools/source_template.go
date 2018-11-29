@@ -3,10 +3,10 @@ package main
 import (
 	"fmt"
 	"github.com/syndtr/goleveldb/leveldb/errors"
-	"text/template"
 	"log"
 	"os/exec"
 	"strings"
+	"text/template"
 	"unicode"
 )
 
@@ -15,33 +15,31 @@ var tbMask uint64 = 1
 type SortPro struct {
 	PType string
 	PName string
-	SType int   //1:support order 2:support reverse order 3:support order and reverse order
+	SType int //1:support order 2:support reverse order 3:support order and reverse order
 }
-
 
 type Params struct {
-	ClsName 			string
-	MainKeyType			string
-	MainKeyName			string
+	ClsName     string
+	MainKeyType string
+	MainKeyName string
 
-	LKeys				[]string
-	MemberKeyMap		map[string]string
-	LKeyWithType		map[string]string
-	UniqueFieldMap      map[string]string
-	TBMask				string
-    SortList            []SortPro
-	SListCount          int
+	LKeys          []string
+	MemberKeyMap   map[string]string
+	LKeyWithType   map[string]string
+	UniqueFieldMap map[string]string
+	TBMask         string
+	SortList       []SortPro
+	SListCount     int
 }
 
-
-func CreateGoFile(tIfno TableInfo) (bool,error) {
+func CreateGoFile(tIfno TableInfo) (bool, error) {
 	var err error = nil
 	if tIfno.Name == "" {
 		err = errors.New("table name is empty")
-		return false,err
-	}else if len(tIfno.PList) < 1{
+		return false, err
+	} else if len(tIfno.PList) < 1 {
 		err = errors.New("table datas are empty")
-		return false,err
+		return false, err
 	}
 
 	tmpl := `
@@ -672,32 +670,32 @@ func (s *Uni{{$.ClsName}}{{$k}}Wrap) UniQuery{{$k}}(start *{{formatStr $v}}) *So
 {{end}}
 
 `
-	fName := TmlFolder + "so_"+ tIfno.Name + ".go"
+	fName := TmlFolder + "so_" + tIfno.Name + ".go"
 	if fPtr := CreateFile(fName); fPtr != nil {
 		funcMapUper := template.FuncMap{"UperFirstChar": UpperFirstChar,
-		"formatStr":formatStr,
-		"LowerFirstChar": LowerFirstChar,
-		"DetectBaseType":DetectBaseType,
-		"formatRTypeStr":formatRTypeStr,
-		"formatQueryParamStr":formatQueryParamStr,
-		"formatSliceType":formatSliceType,
-		"getMapCount":getMapCount,
+			"formatStr":           formatStr,
+			"LowerFirstChar":      LowerFirstChar,
+			"DetectBaseType":      DetectBaseType,
+			"formatRTypeStr":      formatRTypeStr,
+			"formatQueryParamStr": formatQueryParamStr,
+			"formatSliceType":     formatSliceType,
+			"getMapCount":         getMapCount,
 		}
 		t := template.New("go_template")
-		t  = t.Funcs(funcMapUper)
+		t = t.Funcs(funcMapUper)
 		t.Parse(tmpl)
-		t.Execute(fPtr,createParamsFromTableInfo(tIfno))
+		t.Execute(fPtr, createParamsFromTableInfo(tIfno))
 		cmd := exec.Command("goimports", "-w", fName)
 		err := cmd.Run()
 		if err != nil {
-			panic(fmt.Sprintf("auto import package fail,the error is %s",err))
+			panic(fmt.Sprintf("auto import package fail,the error is %s", err))
 		}
 		defer fPtr.Close()
-		return true,nil
-	}else {
+		return true, nil
+	} else {
 		err = errors.New("get file ptr fail")
 		log.Println("get file ptr fail")
-		return false,err
+		return false, err
 	}
 
 }
@@ -705,35 +703,35 @@ func (s *Uni{{$.ClsName}}{{$k}}Wrap) UniQuery{{$k}}(start *{{formatStr $v}}) *So
 func createParamsFromTableInfo(tInfo TableInfo) Params {
 	para := Params{}
 	para.ClsName = UpperFirstChar(tInfo.Name)
-	para.TBMask = fmt.Sprintf("%d",tbMask)
-	tbMask ++
+	para.TBMask = fmt.Sprintf("%d", tbMask)
+	tbMask++
 	para.LKeys = []string{}
 	para.LKeyWithType = make(map[string]string)
 	para.MemberKeyMap = make(map[string]string)
 	para.UniqueFieldMap = make(map[string]string)
-	para.SortList = make([]SortPro,0)
-	for _,v := range tInfo.PList {
-		fType :=  strings.Replace(v.VarType," ", "", -1)
+	para.SortList = make([]SortPro, 0)
+	for _, v := range tInfo.PList {
+		fType := strings.Replace(v.VarType, " ", "", -1)
 		if fType == "bytes" {
 			fType = "[]byte"
 		}
-		fName :=  strings.Replace(v.VarName," ", "", -1)
+		fName := strings.Replace(v.VarName, " ", "", -1)
 		if v.BMainKey {
 			para.MainKeyName = rValueFormStr(fName)
-			para.MainKeyType =  formatStr(fType)
+			para.MainKeyType = formatStr(fType)
 		}
-		if v.SortType > 0  {
-			para.LKeys = append(para.LKeys,rValueFormStr(fName))
+		if v.SortType > 0 {
+			para.LKeys = append(para.LKeys, rValueFormStr(fName))
 			para.LKeyWithType[rValueFormStr(fName)] = formatStr(fType)
-			para.SortList = append(para.SortList,SortPro{
-				PName:rValueFormStr(fName),
-				PType:formatStr(fType),
-				SType:v.SortType,
+			para.SortList = append(para.SortList, SortPro{
+				PName: rValueFormStr(fName),
+				PType: formatStr(fType),
+				SType: v.SortType,
 			})
 		}
 
 		if v.BUnique || v.BMainKey {
-            para.UniqueFieldMap[rValueFormStr(fName)] = formatStr(fType)
+			para.UniqueFieldMap[rValueFormStr(fName)] = formatStr(fType)
 		}
 		para.MemberKeyMap[rValueFormStr(fName)] = formatStr(fType)
 	}
@@ -758,26 +756,26 @@ func LowerFirstChar(str string) string {
 }
 
 /*  format params of function in pb tool template, remove the "_" meanWhile uppercase words beside "_"*/
-func formatStr(str string) string  {
+func formatStr(str string) string {
 	formStr := ""
 	if str != "" {
-            if strings.Contains(str, ".") {
-				arry := strings.Split(str, ".")
-            	for k,v := range arry {
-					if k != 0 {
-						formStr += "."
-						formStr += ConvertToPbForm(strings.Split(v, "_"))
-					}else {
-						formStr +=  v
-					}
+		if strings.Contains(str, ".") {
+			arry := strings.Split(str, ".")
+			for k, v := range arry {
+				if k != 0 {
+					formStr += "."
+					formStr += ConvertToPbForm(strings.Split(v, "_"))
+				} else {
+					formStr += v
 				}
-			}else if strings.Contains(str,"_"){
-
-				formStr = ConvertToPbForm(strings.Split(str, "_"))
-			}else {
-				formStr = str
 			}
+		} else if strings.Contains(str, "_") {
+
+			formStr = ConvertToPbForm(strings.Split(str, "_"))
+		} else {
+			formStr = str
 		}
+	}
 
 	return formStr
 }
@@ -786,14 +784,14 @@ func formatStr(str string) string  {
 func rValueFormStr(str string) string {
 	formStr := ""
 	if str != "" {
-		formStr = ConvertToPbForm(strings.Split(str,"_"))
+		formStr = ConvertToPbForm(strings.Split(str, "_"))
 	}
 	return formStr
 }
 
 func ConvertToPbForm(arry []string) string {
 	formStr := ""
-	for _,v := range arry {
+	for _, v := range arry {
 		formStr += UpperFirstChar(v)
 	}
 	return formStr
@@ -801,48 +799,48 @@ func ConvertToPbForm(arry []string) string {
 
 /* detect if is basic data type*/
 func DetectBaseType(str string) bool {
-	if str != "" && strings.HasPrefix(str,"[]") {
+	if str != "" && strings.HasPrefix(str, "[]") {
 		return true
 	}
 	switch str {
-	    case "string":
-	 	  return true
-	 	case "uint8":
-	 		return true
-		case "uint16":
-			return true
-		case "uint32":
-			return true
-		case "uint64":
-			return true
-		case "int8":
-			return true
-		case "int16":
-			return true
-		case "int32":
-			return true
-		case "int64":
-			return true
-		case "int":
-			return true
-		case "float32":
-			return true
-	    case "[]byte":
-			return true
-	    case "byte":
-			 return true
-		case "float64":
-			 return true
-	    case "bool":
-		 return true
+	case "string":
+		return true
+	case "uint8":
+		return true
+	case "uint16":
+		return true
+	case "uint32":
+		return true
+	case "uint64":
+		return true
+	case "int8":
+		return true
+	case "int16":
+		return true
+	case "int32":
+		return true
+	case "int64":
+		return true
+	case "int":
+		return true
+	case "float32":
+		return true
+	case "[]byte":
+		return true
+	case "byte":
+		return true
+	case "float64":
+		return true
+	case "bool":
+		return true
 	}
 	return false
 }
 
 /* format the return value type (if the type is not base data type,the type add *)*/
-func formatRTypeStr(str string) string{
+func formatRTypeStr(str string) string {
 	if str != "" {
-		if strings.HasPrefix(str,"[]") {
+		if strings.HasPrefix(str, "[]") {
 			str = formatSliceType(str)
 		}
 		if !DetectBaseType(str) {
@@ -863,10 +861,10 @@ func formatQueryParamStr(str string) string {
 }
 
 func formatSliceType(str string) string {
-	if strings.HasPrefix(str,"[]") {
-		s := strings.TrimPrefix(str,"[]")
+	if strings.HasPrefix(str, "[]") {
+		s := strings.TrimPrefix(str, "[]")
 		if !DetectBaseType(s) {
-			str = "[]"+"*"+s
+			str = "[]" + "*" + s
 		}
 	}
 	return str

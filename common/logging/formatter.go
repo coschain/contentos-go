@@ -173,7 +173,6 @@ func (f *TextFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 	}
 	lastKeyIdx := len(keys) - 1
 
-
 	if !f.DisableSorting {
 		sort.Strings(keys)
 	}

@@ -141,9 +141,9 @@ func TestGPRCApi_GetFollowerListByName(t *testing.T) {
 	req := &grpcpb.GetFollowerListByNameRequest{
 		Limit: 100,
 		Start: &prototype.FollowerCreatedOrder{
-			Account: &prototype.AccountName{Value: "Jack"},
-			CreatedTime:&prototype.TimePointSec{UtcSeconds:uint32(time.Now().Second())},
-			Follower:&prototype.AccountName{Value:"Bob"},
+			Account:     &prototype.AccountName{Value: "Jack"},
+			CreatedTime: &prototype.TimePointSec{UtcSeconds: uint32(time.Now().Second())},
+			Follower:    &prototype.AccountName{Value: "Bob"},
 		},
 	}
 	resp := &grpcpb.GetFollowerListByNameResponse{}
@@ -159,9 +159,9 @@ func TestGPRCApi_GetFollowingListByName(t *testing.T) {
 	req := &grpcpb.GetFollowingListByNameRequest{
 		Limit: 100,
 		Start: &prototype.FollowingCreatedOrder{
-			Account: &prototype.AccountName{Value: "Jack"},
-			CreatedTime:&prototype.TimePointSec{UtcSeconds:uint32(time.Now().Second())},
-			Following:&prototype.AccountName{Value:"Bob"},
+			Account:     &prototype.AccountName{Value: "Jack"},
+			CreatedTime: &prototype.TimePointSec{UtcSeconds: uint32(time.Now().Second())},
+			Following:   &prototype.AccountName{Value: "Bob"},
 		},
 	}
 	resp := &grpcpb.GetFollowingListByNameResponse{}
@@ -245,8 +245,8 @@ func TestGRPCApi_GetTrxById(t *testing.T) {
 }
 
 var (
-	BOB = "BobName"
-	ALICE = "AliceName"
+	BOB          = "BobName"
+	ALICE        = "AliceName"
 	pubkeyWIFBOB = "COS6Ezgyx3RQP5YjwBRf7higSytEVwELBCzK6xgB9orvpMuaLregA"
 	prikeyWIFBOB = "YLC5nMjxPWvMPzDW9dC3d5UEamZwWffZpjWCmFq1Mk99EpQ1D"
 
@@ -278,7 +278,7 @@ func getPostList(t *testing.T) {
 		//	Created:&prototype.TimePointSec{UtcSeconds:0},
 		//	ParentId:0,
 		//},
-		Limit:100,
+		Limit: 100,
 	}
 	resp := &grpcpb.GetPostListByCreatedResponse{}
 
@@ -296,7 +296,7 @@ func getRelyList(t *testing.T, parentId uint64) {
 		//	ParentId:parentId,
 		//	Created:&prototype.TimePointSec{UtcSeconds:0},
 		//},
-		Limit:100,
+		Limit: 100,
 	}
 	resp := &grpcpb.GetReplyListByPostIdResponse{}
 
@@ -352,7 +352,7 @@ func createFollowTxReq(t *testing.T) *grpcpb.BroadcastTrxRequest {
 	fOP := &prototype.FollowOperation{
 		Account:  &prototype.AccountName{Value: BOB},
 		FAccount: &prototype.AccountName{Value: ALICE},
-		Cancel:    false,
+		Cancel:   false,
 	}
 
 	return generateSignedTxResp(t, BOB, fOP)
@@ -362,7 +362,7 @@ func createUnfollowTxReq(t *testing.T) *grpcpb.BroadcastTrxRequest {
 	unfOP := &prototype.FollowOperation{
 		Account:  &prototype.AccountName{Value: BOB},
 		FAccount: &prototype.AccountName{Value: ALICE},
-		Cancel:    true,
+		Cancel:   true,
 	}
 
 	return generateSignedTxResp(t, BOB, unfOP)
@@ -423,14 +423,14 @@ func generateSignedTxResp(t *testing.T, creator string, ops ...interface{}) *grp
 
 	currTime := time.Now().Unix()
 
-	tx := &prototype.Transaction{RefBlockNum: 0, RefBlockPrefix: 0, Expiration: &prototype.TimePointSec{UtcSeconds: uint32(currTime)+constants.TRX_MAX_EXPIRATION_TIME}}
+	tx := &prototype.Transaction{RefBlockNum: 0, RefBlockPrefix: 0, Expiration: &prototype.TimePointSec{UtcSeconds: uint32(currTime) + constants.TRX_MAX_EXPIRATION_TIME}}
 
-	for _, op := range ops  {
+	for _, op := range ops {
 		tx.AddOperation(op)
 	}
 
 	signTx := prototype.SignedTransaction{Trx: tx}
-	signTx.Signatures = append(signTx.Signatures, &prototype.SignatureType{Sig:signTx.Sign(creatorPrikey, prototype.ChainId{Value: 0})})
+	signTx.Signatures = append(signTx.Signatures, &prototype.SignatureType{Sig: signTx.Sign(creatorPrikey, prototype.ChainId{Value: 0})})
 
 	if err := signTx.Validate(); err != nil {
 		t.Error(err)

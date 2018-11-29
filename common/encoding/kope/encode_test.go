@@ -13,7 +13,6 @@ func hexStr(t *testing.T, v interface{}) string {
 	return fmt.Sprintf("%x", data)
 }
 
-
 func assertLess(t *testing.T, a interface{}, b interface{}) {
 	if sa, sb := hexStr(t, a), hexStr(t, b); sa >= sb {
 		t.Fatalf("assertLess: %v | %v", sa, sb)
@@ -77,7 +76,6 @@ func TestEncode(t *testing.T) {
 	requireNoError(t, []float32{-2.3, 0.0, 7.2, 99.5, 1e20, -5e-7})
 	requireNoError(t, []float64{-2.3, 0.0, 7.2, 99.5, 1e20, -5e-7})
 	requireNoError(t, []string{"alice", "bob", "charlie"})
-
 
 	// order preserving
 	assertLess(t, int8(-2), int8(0))

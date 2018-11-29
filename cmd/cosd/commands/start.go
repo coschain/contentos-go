@@ -71,7 +71,7 @@ func startNode(cmd *cobra.Command, args []string) {
 	// _ is cfg as below process has't used
 	_, _ = cmd, args
 	app, cfg := makeNode()
-	logging.Init(cfg.ResolvePath("logs"), cfg.LogLevel, 0)
+	logging.Init(cfg.ResolvePath("logs"), logging.DebugLevel, 0)
 
 	pprof.StartPprof()
 	//app.Register("timer", func(ctx *node.ServiceContext) (node.Service, error) {

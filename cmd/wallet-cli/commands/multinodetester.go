@@ -22,12 +22,12 @@ var MultinodetesterCmd = func() *cobra.Command {
 	return cmd
 }
 
-func makeMultiNodeTeseterTrx( count int64, onlyCreate bool) (*prototype.SignedTransaction, error) {
+func makeMultiNodeTeseterTrx(count int64, onlyCreate bool) (*prototype.SignedTransaction, error) {
 
-	priKeys := make([]*prototype.PrivateKeyType,0)
+	priKeys := make([]*prototype.PrivateKeyType, 0)
 
-	tx  := &prototype.Transaction{RefBlockNum: 0, RefBlockPrefix: 0, Expiration: &prototype.TimePointSec{UtcSeconds: uint32(time.Now().Unix()) + constants.TRX_MAX_EXPIRATION_TIME}}
-	trx := &prototype.SignedTransaction{ Trx:tx }
+	tx := &prototype.Transaction{RefBlockNum: 0, RefBlockPrefix: 0, Expiration: &prototype.TimePointSec{UtcSeconds: uint32(time.Now().Unix()) + constants.TRX_MAX_EXPIRATION_TIME}}
+	trx := &prototype.SignedTransaction{Trx: tx}
 
 	creator := prototype.NewAccountName(constants.INIT_MINER_NAME)
 
@@ -36,22 +36,21 @@ func makeMultiNodeTeseterTrx( count int64, onlyCreate bool) (*prototype.SignedTr
 		return nil, err
 	}
 
-	opCreatorBpVote := &prototype.BpVoteOperation{ Voter:creator, Witness:creator, Cancel:false }
+	opCreatorBpVote := &prototype.BpVoteOperation{Voter: creator, Witness: creator, Cancel: false}
 
 	if !onlyCreate {
 		trx.Trx.AddOperation(opCreatorBpVote)
 	}
 
-
 	for index := int64(1); index < count; index++ {
 		bpName := fmt.Sprintf("%s%d", constants.INIT_MINER_NAME, index)
-		keys,err := prototype.GenerateNewKeyFromBytes( []byte(bpName) )
-		if err != nil{
+		keys, err := prototype.GenerateNewKeyFromBytes([]byte(bpName))
+		if err != nil {
 			return nil, err
 		}
 
 		pubKey, err := keys.PubKey()
-		if err != nil{
+		if err != nil {
 			return nil, err
 		}
 
@@ -64,21 +63,20 @@ func makeMultiNodeTeseterTrx( count int64, onlyCreate bool) (*prototype.SignedTr
 			Active:         prototype.NewAuthorityFromPubKey(pubKey),
 		}
 
-		opBpReg  := &prototype.BpRegisterOperation{
-			Owner:&prototype.AccountName{Value: bpName},
-			Url:bpName,
-			Desc:bpName,
-			BlockSigningKey:pubKey,
+		opBpReg := &prototype.BpRegisterOperation{
+			Owner:           &prototype.AccountName{Value: bpName},
+			Url:             bpName,
+			Desc:            bpName,
+			BlockSigningKey: pubKey,
 			Props: &prototype.ChainProperties{
 				AccountCreationFee: prototype.NewCoin(1),
-				MaximumBlockSize:   10*1024*1024,
+				MaximumBlockSize:   10 * 1024 * 1024,
 			},
 		}
 
-		opBpVote := &prototype.BpVoteOperation{ Voter:prototype.NewAccountName(constants.INIT_MINER_NAME), Witness:prototype.NewAccountName(bpName), Cancel:false }
+		opBpVote := &prototype.BpVoteOperation{Voter: prototype.NewAccountName(constants.INIT_MINER_NAME), Witness: prototype.NewAccountName(bpName), Cancel: false}
 
-
-		if !onlyCreate{
+		if !onlyCreate {
 			trx.Trx.AddOperation(opBpReg)
 			trx.Trx.AddOperation(opBpVote)
 			priKeys = append(priKeys, keys)
@@ -90,7 +88,7 @@ func makeMultiNodeTeseterTrx( count int64, onlyCreate bool) (*prototype.SignedTr
 
 	priKeys = append(priKeys, creatorPriKey)
 
-	for _, k := range priKeys{
+	for _, k := range priKeys {
 		res := trx.Sign(k, prototype.ChainId{Value: 0})
 		trx.Signatures = append(trx.Signatures, &prototype.SignatureType{Sig: res})
 	}

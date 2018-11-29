@@ -23,7 +23,7 @@ import (
 //NewNetServer return the net object in p2p
 func NewNetServer(ctx *node.ServiceContext) p2p.P2P {
 	n := &NetServer{
-		ctx     : ctx,
+		ctx:      ctx,
 		SyncChan: make(chan *types.MsgPayload, common.CHAN_CAPABILITY),
 		ConsChan: make(chan *types.MsgPayload, common.CHAN_CAPABILITY),
 	}
@@ -211,7 +211,6 @@ func (this *NetServer) GetNeighbors() []*peer.Peer {
 func (this *NetServer) NodeEstablished(id uint64) bool {
 	return this.Np.NodeEstablished(id)
 }
-
 
 func (this *NetServer) Broadcast(msg types.Message, isConsensus bool) {
 	this.Np.Broadcast(msg, isConsensus)

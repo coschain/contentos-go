@@ -15,8 +15,8 @@ var FOLLOW_SERVICE_NAME = "followsrv"
 
 type FollowService struct {
 	node.Service
-	db iservices.IDatabaseService
-	ev EventBus.Bus
+	db  iservices.IDatabaseService
+	ev  EventBus.Bus
 	ctx *node.ServiceContext
 }
 
@@ -24,7 +24,6 @@ type FollowService struct {
 func NewFollowService(ctx *node.ServiceContext) (*FollowService, error) {
 	return &FollowService{ctx: ctx}, nil
 }
-
 
 func (p *FollowService) Start(node *node.Node) error {
 	db, err := p.ctx.Service(iservices.DB_SERVER_NAME)
@@ -39,13 +38,13 @@ func (p *FollowService) Start(node *node.Node) error {
 }
 
 func (p *FollowService) hookEvent() {
-	p.ev.Subscribe( constants.NOTICE_OP_POST , p.onPostOperation )
+	p.ev.Subscribe(constants.NOTICE_OP_POST, p.onPostOperation)
 }
 func (p *FollowService) unhookEvent() {
-	p.ev.Unsubscribe( constants.NOTICE_OP_POST , p.onPostOperation )
+	p.ev.Unsubscribe(constants.NOTICE_OP_POST, p.onPostOperation)
 }
 
-func (p *FollowService) onPostOperation( notification *prototype.OperationNotification )  {
+func (p *FollowService) onPostOperation(notification *prototype.OperationNotification) {
 
 	if notification.Op == nil {
 		return
@@ -63,34 +62,34 @@ func (p *FollowService) onPostOperation( notification *prototype.OperationNotifi
 
 func (p *FollowService) executeFollowOperation(op *prototype.FollowOperation) {
 	/*
-	FollowOperation{
-		Account             A
-		FAccount            B
-		Cancel              bool
-	}
+		FollowOperation{
+			Account             A
+			FAccount            B
+			Cancel              bool
+		}
 
-	1. if Cancel == false, meaning A follow B
-	2. if Cancel == true, meaning A cancel follow B
+		1. if Cancel == false, meaning A follow B
+		2. if Cancel == true, meaning A cancel follow B
 	*/
 
 	currTime := time.Now().Second()
 
 	// A's following
 	fingWrap := table.NewSoExtFollowingWrap(p.db, &prototype.FollowingRelation{
-		Account:op.Account,
-		Following:op.FAccount,
+		Account:   op.Account,
+		Following: op.FAccount,
 	})
 	// B's follower
 	ferWrap := table.NewSoExtFollowerWrap(p.db, &prototype.FollowerRelation{
-		Account:op.FAccount,
-		Follower:op.Account,
+		Account:  op.FAccount,
+		Follower: op.Account,
 	})
 	// A's fing cnt
-	fingCntWrap := table.NewSoExtFollowCountWrap( p.db, op.Account)
+	fingCntWrap := table.NewSoExtFollowCountWrap(p.db, op.Account)
 	// B's fer cnt
-	ferCntWrap := table.NewSoExtFollowCountWrap( p.db, op.FAccount )
+	ferCntWrap := table.NewSoExtFollowCountWrap(p.db, op.FAccount)
 
-	if ferWrap == nil && fingWrap == nil && ferCntWrap == nil && fingCntWrap == nil  {
+	if ferWrap == nil && fingWrap == nil && ferCntWrap == nil && fingCntWrap == nil {
 		return
 	}
 
@@ -102,25 +101,25 @@ func (p *FollowService) executeFollowOperation(op *prototype.FollowOperation) {
 		if !fingWrap.CheckExist() {
 			fingWrap.Create(func(fing *table.SoExtFollowing) {
 				fing.FollowingInfo = &prototype.FollowingRelation{
-					Account:&prototype.AccountName{Value:op.Account.Value},
-					Following:&prototype.AccountName{Value:op.FAccount.Value},
+					Account:   &prototype.AccountName{Value: op.Account.Value},
+					Following: &prototype.AccountName{Value: op.FAccount.Value},
 				}
 				fing.FollowingCreatedOrder = &prototype.FollowingCreatedOrder{
-					Account:&prototype.AccountName{Value:op.Account.Value},
-					CreatedTime:&prototype.TimePointSec{UtcSeconds:uint32(currTime)},
-					Following:&prototype.AccountName{Value:op.FAccount.Value},
+					Account:     &prototype.AccountName{Value: op.Account.Value},
+					CreatedTime: &prototype.TimePointSec{UtcSeconds: uint32(currTime)},
+					Following:   &prototype.AccountName{Value: op.FAccount.Value},
 				}
 			})
 
 			ferWrap.Create(func(fer *table.SoExtFollower) {
 				fer.FollowerInfo = &prototype.FollowerRelation{
-					Account:&prototype.AccountName{Value:op.FAccount.Value},
-					Follower:&prototype.AccountName{Value:op.Account.Value},
+					Account:  &prototype.AccountName{Value: op.FAccount.Value},
+					Follower: &prototype.AccountName{Value: op.Account.Value},
 				}
 				fer.FollowerCreatedOrder = &prototype.FollowerCreatedOrder{
-					Account:&prototype.AccountName{Value:op.FAccount.Value},
-					CreatedTime:&prototype.TimePointSec{UtcSeconds:uint32(currTime)},
-					Follower:&prototype.AccountName{Value:op.Account.Value},
+					Account:     &prototype.AccountName{Value: op.FAccount.Value},
+					CreatedTime: &prototype.TimePointSec{UtcSeconds: uint32(currTime)},
+					Follower:    &prototype.AccountName{Value: op.Account.Value},
 				}
 			})
 
@@ -129,13 +128,13 @@ func (p *FollowService) executeFollowOperation(op *prototype.FollowOperation) {
 				ferCntWrap.MdFollowerCnt(ferCnt + 1)
 			} else {
 				fingCntWrap.Create(func(fCnt *table.SoExtFollowCount) {
-					fCnt.Account = &prototype.AccountName{Value:op.Account.Value}
+					fCnt.Account = &prototype.AccountName{Value: op.Account.Value}
 					fCnt.FollowingCnt = uint32(1)
 					fCnt.FollowerCnt = uint32(0)
 				})
 
 				ferCntWrap.Create(func(fCnt *table.SoExtFollowCount) {
-					fCnt.Account = &prototype.AccountName{Value:op.FAccount.Value}
+					fCnt.Account = &prototype.AccountName{Value: op.FAccount.Value}
 					fCnt.FollowingCnt = uint32(0)
 					fCnt.FollowerCnt = uint32(1)
 				})
@@ -153,7 +152,7 @@ func (p *FollowService) executeFollowOperation(op *prototype.FollowOperation) {
 	}
 }
 
-func (p *FollowService) Stop() error{
+func (p *FollowService) Stop() error {
 	p.unhookEvent()
 	return nil
 }

@@ -341,7 +341,7 @@ func (db *DB) FetchBlockFromMainBranch(num uint64) (common.ISignedBlock, error) 
 func (db *DB) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, []common.BlockID, error) {
 	db.RLock()
 	defer db.RUnlock()
-	length := db.head.BlockNum() - id.BlockNum() + 1
+	length := db.head.BlockNum() - id.BlockNum()
 	list := make([]common.ISignedBlock, length)
 	list1 := make([]common.BlockID, length)
 	cur := db.head
@@ -355,9 +355,9 @@ func (db *DB) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, []comm
 		list1[idx] = cur
 		cur = b.Previous()
 	}
-	if list1[0] != id {
-		errStr := fmt.Sprintf("block %v is not on main branch", id)
-		panic(errStr)
+	if list[0].Previous() != id {
+		return nil, nil, fmt.Errorf("block %v is not on main branch", id)
+
 	}
 	return list, list1, nil
 }

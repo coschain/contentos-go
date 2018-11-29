@@ -23,13 +23,13 @@ func (m *VoteOperation) GetRequiredActive(auths *map[string]bool) {
 	(*auths)[m.Voter.Value] = true
 }
 
-func (m *VoteOperation)Validate() error {
+func (m *VoteOperation) Validate() error {
 	if m == nil {
 		return ErrNpe
 	}
 
-	if err := m.Voter.Validate(); err != nil{
-		return errors.WithMessage(err, "Voter error" )
+	if err := m.Voter.Validate(); err != nil {
+		return errors.WithMessage(err, "Voter error")
 	}
 
 	if m.Idx == 0 {

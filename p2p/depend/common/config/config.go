@@ -18,15 +18,15 @@ const (
 )
 
 const (
-	NETWORK_ID_MAIN_NET      = 1
-	NETWORK_ID_TESTNET_NET   = 2
-	NETWORK_NAME_MAIN_NET    = "contentos"
-	NETWORK_NAME_TEST_NET    = "contentos_test"
+	NETWORK_ID_MAIN_NET    = 1
+	NETWORK_ID_TESTNET_NET = 2
+	NETWORK_NAME_MAIN_NET  = "contentos"
+	NETWORK_NAME_TEST_NET  = "contentos_test"
 )
 
 var NETWORK_MAGIC = map[uint32]uint32{
-	NETWORK_ID_MAIN_NET:    0x8c77ab66,     //Network main
-	NETWORK_ID_TESTNET_NET: 0x2d8829ff,     //Network testnet
+	NETWORK_ID_MAIN_NET:    0x8c77ab66, //Network main
+	NETWORK_ID_TESTNET_NET: 0x2d8829ff, //Network testnet
 }
 
 var NETWORK_NAME = map[uint32]string{
@@ -74,7 +74,7 @@ func NewGenesisConfig() *GenesisConfig {
 }
 
 type CommonConfig struct {
-	LogLevel       uint
+	LogLevel uint
 }
 
 type ConsensusConfig struct {
@@ -115,7 +115,7 @@ func NewContentosConfig() *ContentosConfig {
 	return &ContentosConfig{
 		Genesis: MainNetConfig,
 		Common: &CommonConfig{
-			LogLevel:       DEFAULT_LOG_LEVEL,
+			LogLevel: DEFAULT_LOG_LEVEL,
 		},
 		Consensus: &ConsensusConfig{
 			EnableConsensus: true,

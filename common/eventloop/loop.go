@@ -17,45 +17,46 @@ type EventLoop struct {
 
 func NewEventLoop() *EventLoop {
 	ev := EventLoop{
-		evFunc:make(chan uint32, 1024),
-		evStop:make(chan bool),
-		highQueue:list.New(),
-		lowQueue:list.New(),
-		lock:sync.Mutex{},
+		evFunc:    make(chan uint32, 1024),
+		evStop:    make(chan bool),
+		highQueue: list.New(),
+		lowQueue:  list.New(),
+		lock:      sync.Mutex{},
 	}
 	return &ev
 }
 
-func (s *EventLoop) Run()  {
+func (s *EventLoop) Run() {
 	for {
 		select {
-		case <-s.evFunc:{
-			f := s.pop()
-			if f != nil{
-				f()
+		case <-s.evFunc:
+			{
+				f := s.pop()
+				if f != nil {
+					f()
+				}
 			}
-		}
 		case <-s.evStop:
 			return
 		}
 	}
 }
 
-func (s *EventLoop) pushHigh( f func() ){
+func (s *EventLoop) pushHigh(f func()) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	s.highQueue.PushBack( f )
+	s.highQueue.PushBack(f)
 }
 
-func (s *EventLoop) pushLow( f func() ){
+func (s *EventLoop) pushLow(f func()) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	s.lowQueue.PushBack( f )
+	s.lowQueue.PushBack(f)
 }
 
-func (s *EventLoop) pop() ( func() )  {
+func (s *EventLoop) pop() func() {
 
 	s.lock.Lock()
 	defer s.lock.Unlock()
@@ -74,21 +75,21 @@ func (s *EventLoop) pop() ( func() )  {
 	return nil
 }
 
-func (s *EventLoop)Stop()  {
+func (s *EventLoop) Stop() {
 	s.evStop <- true
 }
 
-func (s *EventLoop) Post( f func() )  {
-	s.pushLow( f )
+func (s *EventLoop) Post(f func()) {
+	s.pushLow(f)
 	s.evFunc <- 1
 }
 
-func (s *EventLoop) PostHighPri( f func() )  {
-	s.pushHigh( f )
+func (s *EventLoop) PostHighPri(f func()) {
+	s.pushHigh(f)
 	s.evFunc <- 1
 }
 
-func (s *EventLoop) SendHighPri( f func() )  {
+func (s *EventLoop) SendHighPri(f func()) {
 	done := make(chan bool, 1)
 
 	s.pushHigh(func() {
@@ -99,7 +100,7 @@ func (s *EventLoop) SendHighPri( f func() )  {
 	<-done
 }
 
-func (s *EventLoop) Send( f func() )  {
+func (s *EventLoop) Send(f func()) {
 	done := make(chan bool, 1)
 
 	s.pushLow(func() {

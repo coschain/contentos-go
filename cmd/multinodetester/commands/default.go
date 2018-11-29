@@ -1,7 +1,7 @@
 package commands
 
 const (
-	ClientIdentifier = "cosd"
+	ClientIdentifier       = "cosd"
 	TesterClientIdentifier = "testcosd"
 )
 

@@ -17,10 +17,10 @@ var (
 )
 
 type LevelWriteAheadLog struct {
-	file string
-	db *leveldb.DB
+	file       string
+	db         *leveldb.DB
 	nextTaskId uint64
-	lock sync.RWMutex
+	lock       sync.RWMutex
 }
 
 func NewLevelWriteAheadLog(file string) (*LevelWriteAheadLog, error) {
@@ -40,8 +40,8 @@ func NewLevelWriteAheadLog(file string) (*LevelWriteAheadLog, error) {
 		}
 	}
 	return &LevelWriteAheadLog{
-		file: file,
-		db: db,
+		file:       file,
+		db:         db,
 		nextTaskId: nextTaskId,
 	}, nil
 }

@@ -126,7 +126,6 @@ type IDatabaseService interface {
 	// after rebased to revision r, r will be the minimal revision you can revert to.
 	RebaseToRevision(r uint64) error
 
-
 	//
 	// revision tagging feature
 	//
@@ -145,7 +144,6 @@ type IDatabaseService interface {
 
 	// rebase to a revision by its tag
 	RebaseToTag(tag string) error
-
 
 	//
 	// delete-all feature

@@ -6,7 +6,7 @@ import (
 )
 
 type TableCell struct {
-	row *TableRow
+	row    *TableRow
 	column *TableColumn
 }
 
@@ -16,7 +16,7 @@ func (c *TableCell) get() (interface{}, error) {
 	return table.valueIO.GetCellValue(db, db, c.row.key, c.column.ordinal)
 }
 
-func (c *TableCell) modify(dbPutter storage.DatabasePutter, dbDeleter storage.DatabaseDeleter, modifer func(interface{})(interface{}, error)) error {
+func (c *TableCell) modify(dbPutter storage.DatabasePutter, dbDeleter storage.DatabaseDeleter, modifer func(interface{}) (interface{}, error)) error {
 	index := c.column.index
 	if index != nil && index.typ == Primary {
 		return errors.New("primary key modification not supported.")
@@ -46,14 +46,14 @@ func (c *TableCell) modify(dbPutter storage.DatabasePutter, dbDeleter storage.Da
 }
 
 type TableCells struct {
-	table *Table
-	cells [][]*TableCell
+	table      *Table
+	cells      [][]*TableCell
 	rows, cols int
-	err error
+	err        error
 }
 
 func errorTableCells(err error) *TableCells {
-	return &TableCells{err:err}
+	return &TableCells{err: err}
 }
 
 func (c *TableCells) Size() (rows int, cols int) {
@@ -78,7 +78,7 @@ func (c *TableCells) Get() (values [][]interface{}, err error) {
 	return values, nil
 }
 
-func (c *TableCells) Modify(modifer func(interface{})(interface{}, error)) error {
+func (c *TableCells) Modify(modifer func(interface{}) (interface{}, error)) error {
 	if c.err != nil {
 		return c.err
 	}

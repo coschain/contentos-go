@@ -149,7 +149,7 @@ func (bl *BLog) Size() int64 {
 		panic(err)
 	}
 
-	return idxInfo.Size()/indexSize
+	return idxInfo.Size() / indexSize
 }
 
 // Empty returns true if it contains no block

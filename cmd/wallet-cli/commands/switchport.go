@@ -37,7 +37,7 @@ func switchport(cmd *cobra.Command, args []string) {
 		c := cmd.Context["rpcclient_raw"]
 		client := c.(*grpc.ClientConn)
 		client.Close()
-		cmd.SetContext("rpcclient_raw", conn )
+		cmd.SetContext("rpcclient_raw", conn)
 		cmd.SetContext("rpcclient", grpcpb.NewApiServiceClient(conn))
 	}
 

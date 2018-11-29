@@ -7,7 +7,7 @@ import (
 )
 
 type tableBuilder struct {
-	t Table
+	t   Table
 	err error
 }
 

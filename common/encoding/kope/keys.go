@@ -2,14 +2,14 @@ package kope
 
 type Key = []byte
 
-func NewKey(values...interface{}) Key {
+func NewKey(values ...interface{}) Key {
 	if data, err := Encode(values); err == nil {
 		return data
 	}
 	return nil
 }
 
-func ConcatKey(keys...Key) Key {
+func ConcatKey(keys ...Key) Key {
 	count := len(keys)
 	if count < 1 {
 		return nil
@@ -19,7 +19,7 @@ func ConcatKey(keys...Key) Key {
 	return catLists(keys)
 }
 
-func AppendKey(prefix Key, values...interface{}) Key {
+func AppendKey(prefix Key, values ...interface{}) Key {
 	if len(values) == 0 {
 		return prefix
 	}
@@ -34,20 +34,20 @@ func MaxKey(prefix Key) Key {
 	return AppendKey(prefix, MaximumKey)
 }
 
-func IndexKey(prefix Key, primaryKey Key, idxValues...interface{}) Key {
+func IndexKey(prefix Key, primaryKey Key, idxValues ...interface{}) Key {
 	return ConcatKey(AppendKey(prefix, idxValues...), packList([]Key{primaryKey}))
 }
 
 func IndexedPrimaryKey(indexKey Key) Key {
 	lists := unpackList(indexKey)
-	return lists[len(lists) - 1]
+	return lists[len(lists)-1]
 }
 
 type ValueRange struct {
 	start, limit interface{}
 }
 
-func IndexKeyRange(prefix Key, idxValues...interface{}) (start Key, limit Key) {
+func IndexKeyRange(prefix Key, idxValues ...interface{}) (start Key, limit Key) {
 	valueCount := len(idxValues)
 	var startVal, limitVal interface{}
 	ik, startVal, limitVal := prefix, MinimalKey, MaximumKey

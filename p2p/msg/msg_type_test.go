@@ -35,7 +35,6 @@ func Test_Serialize(t *testing.T) {
 
 	fmt.Printf("after Unmarshal sig_trx:     +%v\n", &obj)
 
-
 	sigBlk := new(prototype.SignedBlock)
 	sigBlkHdr := new(prototype.SignedBlockHeader)
 	sigBlkHdr.Header = new(prototype.BlockHeader)

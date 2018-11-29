@@ -23,13 +23,13 @@ func (m *PostOperation) GetRequiredActive(auths *map[string]bool) {
 	(*auths)[m.Owner.Value] = true
 }
 
-func (m *PostOperation)Validate() error {
+func (m *PostOperation) Validate() error {
 	if m == nil {
 		return ErrNpe
 	}
 
-	if err := m.Owner.Validate(); err != nil{
-		return errors.WithMessage(err, "Owner error" )
+	if err := m.Owner.Validate(); err != nil {
+		return errors.WithMessage(err, "Owner error")
 	}
 
 	if m.Uuid == 0 {
@@ -46,7 +46,7 @@ func (m *PostOperation)Validate() error {
 		return errors.New("tags cant be null")
 	}
 
-	for _ , val := range m.Tags {
+	for _, val := range m.Tags {
 		if len(val) == 0 {
 			return errors.New("tag length cant be null")
 		}

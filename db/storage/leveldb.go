@@ -96,7 +96,7 @@ func (db *LevelDatabase) NewIterator(start []byte, limit []byte) Iterator {
 
 func (db *LevelDatabase) NewReversedIterator(start []byte, limit []byte) Iterator {
 	it := db.db.NewIterator(&util.Range{Start: start, Limit: limit}, nil)
-	return &LevelDatabaseIterator{it: it, reversed: true, moved: false, moveLast:it.Last()}
+	return &LevelDatabaseIterator{it: it, reversed: true, moved: false, moveLast: it.Last()}
 }
 
 func (db *LevelDatabase) DeleteIterator(it Iterator) {
@@ -108,9 +108,9 @@ func (db *LevelDatabase) DeleteIterator(it Iterator) {
 //
 
 type LevelDatabaseIterator struct {
-	it iterator.Iterator
+	it       iterator.Iterator
 	reversed bool
-	moved bool
+	moved    bool
 	moveLast bool
 }
 

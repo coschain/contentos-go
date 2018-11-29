@@ -8,21 +8,21 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/coschain/contentos-go/p2p/depend/common/log"
 	"github.com/coschain/contentos-go/p2p/common"
+	"github.com/coschain/contentos-go/p2p/depend/common/log"
 	conn "github.com/coschain/contentos-go/p2p/link"
 	"github.com/coschain/contentos-go/p2p/message/types"
 )
 
 // PeerCom provides the basic information of a peer
 type PeerCom struct {
-	id           uint64
-	version      uint32
-	services     uint64
-	relay        bool
-	syncPort     uint16
-	consPort     uint16
-	height       uint64
+	id       uint64
+	version  uint32
+	services uint64
+	relay    bool
+	syncPort uint16
+	consPort uint16
+	height   uint64
 }
 
 // SetID sets a peer's id

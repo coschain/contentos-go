@@ -12,11 +12,11 @@ import (
 
 var FollowCntCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:"follow_count",
-		Short:"get account follow relation",
-		Example:"follow_count [account_name]",
-		Args:cobra.ExactArgs(1),
-		Run:followCnt,
+		Use:     "follow_count",
+		Short:   "get account follow relation",
+		Example: "follow_count [account_name]",
+		Args:    cobra.ExactArgs(1),
+		Run:     followCnt,
 	}
 
 	return cmd
@@ -28,7 +28,7 @@ func followCnt(cmd *cobra.Command, args []string) {
 
 	name := strings.TrimSpace(args[0])
 	if name != "" {
-		req := &grpcpb.GetFollowCountByNameRequest{AccountName:&prototype.AccountName{Value:name}}
+		req := &grpcpb.GetFollowCountByNameRequest{AccountName: &prototype.AccountName{Value: name}}
 		resp, err := c.GetFollowCountByName(context.Background(), req)
 		if err != nil {
 			fmt.Println(err)

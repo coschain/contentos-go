@@ -30,7 +30,7 @@ func main() {
 
 	time.Sleep(28 * time.Second)
 
-	for i:=0;i<1;i++ {
+	for i := 0; i < 1; i++ {
 		// Broadcast signedTransaction
 		trx := &prototype.Transaction{
 			RefBlockNum:    1,
@@ -39,8 +39,7 @@ func main() {
 
 		sigtrx := new(prototype.SignedTransaction)
 		sigtrx.Trx = trx
-//		p2p.Network.Broadcast(sigtrx)
-
+		//		p2p.Network.Broadcast(sigtrx)
 
 		// Broadcast signedBlock
 		sigBlk := new(prototype.SignedBlock)
@@ -55,7 +54,7 @@ func main() {
 		sigBlkHdr.Header.TransactionMerkleRoot.Hash = make([]byte, prototype.Size)
 
 		sigBlk.SignedHeader = sigBlkHdr
-//		p2p.Network.Broadcast(sigBlk)
+		//		p2p.Network.Broadcast(sigBlk)
 	}
 
 	if p2p.GetVersion() != common.PROTOCOL_VERSION {
@@ -74,5 +73,5 @@ func main() {
 		log.Error("TestNewP2PServer consensus port error")
 	}
 
-	<- ch
+	<-ch
 }

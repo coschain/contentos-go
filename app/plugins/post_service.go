@@ -14,8 +14,8 @@ var POST_SERVICE_NAME = "postsrv"
 
 type PostService struct {
 	node.Service
-	db iservices.IDatabaseService
-	ev EventBus.Bus
+	db  iservices.IDatabaseService
+	ev  EventBus.Bus
 	ctx *node.ServiceContext
 }
 
@@ -23,7 +23,6 @@ type PostService struct {
 func NewPostService(ctx *node.ServiceContext) (*PostService, error) {
 	return &PostService{ctx: ctx}, nil
 }
-
 
 func (p *PostService) Start(node *node.Node) error {
 	db, err := p.ctx.Service(iservices.DB_SERVER_NAME)
@@ -38,13 +37,13 @@ func (p *PostService) Start(node *node.Node) error {
 }
 
 func (p *PostService) hookEvent() {
-	p.ev.Subscribe( constants.NOTICE_OP_POST , p.onPostOperation )
+	p.ev.Subscribe(constants.NOTICE_OP_POST, p.onPostOperation)
 }
 func (p *PostService) unhookEvent() {
-	p.ev.Unsubscribe( constants.NOTICE_OP_POST , p.onPostOperation )
+	p.ev.Unsubscribe(constants.NOTICE_OP_POST, p.onPostOperation)
 }
 
-func (p *PostService) onPostOperation( notification *prototype.OperationNotification )  {
+func (p *PostService) onPostOperation(notification *prototype.OperationNotification) {
 
 	if notification.Op == nil {
 		return
@@ -60,7 +59,6 @@ func (p *PostService) onPostOperation( notification *prototype.OperationNotifica
 	}
 }
 
-
 func (p *PostService) executePostOperation(op *prototype.PostOperation) {
 	uuid := op.GetUuid()
 	exPostWrap := table.NewSoExtPostCreatedWrap(p.db, &uuid)
@@ -68,8 +66,8 @@ func (p *PostService) executePostOperation(op *prototype.PostOperation) {
 		exPostWrap.Create(func(exPost *table.SoExtPostCreated) {
 			exPost.PostId = uuid
 			exPost.CreatedOrder = &prototype.PostCreatedOrder{
-				Created: &prototype.TimePointSec{UtcSeconds: uint32(time.Now().Second())},
-				ParentId:constants.POST_INVALID_ID,
+				Created:  &prototype.TimePointSec{UtcSeconds: uint32(time.Now().Second())},
+				ParentId: constants.POST_INVALID_ID,
 			}
 		})
 	}
@@ -89,7 +87,7 @@ func (p *PostService) executeReplyOperation(op *prototype.ReplyOperation) {
 	}
 }
 
-func (p *PostService) Stop() error{
+func (p *PostService) Stop() error {
 	p.unhookEvent()
 	return nil
 }

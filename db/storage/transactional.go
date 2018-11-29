@@ -5,10 +5,10 @@ package storage
 //
 
 import (
-	"sync"
-	"github.com/coschain/contentos-go/common"
 	"bytes"
 	"errors"
+	"github.com/coschain/contentos-go/common"
+	"sync"
 )
 
 //
@@ -16,12 +16,12 @@ import (
 // where changes are stored in memory, but not committed to underlying database until commit() is called.
 //
 type inTrxDB struct {
-	db Database
-	mem *MemoryDatabase
-	changes []writeOp
+	db       Database
+	mem      *MemoryDatabase
+	changes  []writeOp
 	removals map[string]bool
-	lock sync.RWMutex				// for internal struct data
-	dblock sync.RWMutex				// for database operations
+	lock     sync.RWMutex // for internal struct data
+	dblock   sync.RWMutex // for database operations
 }
 
 func (db *inTrxDB) Close() {
@@ -156,11 +156,11 @@ func (db *inTrxDB) makeIterator(start []byte, limit []byte, reversed bool) Itera
 	}
 	return &inTrxIterator{
 		memIter: inTrxIteratorItem{
-			it: mIter,
+			it:     mIter,
 			filter: make(map[string]bool),
 		},
 		dbIter: inTrxIteratorItem{
-			it: dIter,
+			it:     dIter,
 			filter: removals,
 		},
 		reversed: reversed,
@@ -181,16 +181,16 @@ func (db *inTrxDB) DeleteIterator(it Iterator) {
 
 // it's an iterator wrapper of either mem db or underlying db
 type inTrxIteratorItem struct {
-	it Iterator							// the original Iterator
-	filter map[string]bool				// keys in the filter must be skipped
-	k, v []byte							// key & value of current position
-	end bool							// has reached the end
+	it     Iterator        // the original Iterator
+	filter map[string]bool // keys in the filter must be skipped
+	k, v   []byte          // key & value of current position
+	end    bool            // has reached the end
 }
 
 type inTrxIterator struct {
-	memIter, dbIter inTrxIteratorItem		// the 2 iterators, memIter for mem db, dbIter for underlying db
-	selected *inTrxIteratorItem				// where to read key & value
-	reversed bool
+	memIter, dbIter inTrxIteratorItem  // the 2 iterators, memIter for mem db, dbIter for underlying db
+	selected        *inTrxIteratorItem // where to read key & value
+	reversed        bool
 }
 
 func (it *inTrxIterator) Valid() bool {
@@ -279,7 +279,7 @@ func (it *inTrxIterator) Next() bool {
 		multiplier = -1
 	}
 	if it.memIter.k != nil && it.dbIter.k != nil {
-		if bytes.Compare(it.memIter.k, it.dbIter.k) * multiplier <= 0 {
+		if bytes.Compare(it.memIter.k, it.dbIter.k)*multiplier <= 0 {
 			it.selected = &it.memIter
 		} else {
 			it.selected = &it.dbIter
@@ -294,7 +294,7 @@ func (it *inTrxIterator) Next() bool {
 }
 
 func (db *inTrxDB) NewBatch() Batch {
-	return &inTrxDBBatch{ db: db }
+	return &inTrxDBBatch{db: db}
 }
 
 func (db *inTrxDB) DeleteBatch(b Batch) {
@@ -303,7 +303,7 @@ func (db *inTrxDB) DeleteBatch(b Batch) {
 
 // the batch
 type inTrxDBBatch struct {
-	db *inTrxDB
+	db      *inTrxDB
 	changes []writeOp
 }
 
@@ -340,32 +340,30 @@ func (b *inTrxDBBatch) Delete(key []byte) error {
 	return nil
 }
 
-
 //
 // TransactionalDatabase adds transactional feature on its underlying database
 //
 type TransactionalDatabase struct {
-	db Database					// underlying db
-	dirtyRead bool				// dirty-read, true: read from top-most trx, false: read from underlying db
-	dirtyWrite bool				// dirty-write, true: write to top-most trx, false: write to underlying db
-	trx []*inTrxDB				// current transaction stack
-	lock *sync.RWMutex			// the lock
+	db         Database      // underlying db
+	dirtyRead  bool          // dirty-read, true: read from top-most trx, false: read from underlying db
+	dirtyWrite bool          // dirty-write, true: write to top-most trx, false: write to underlying db
+	trx        []*inTrxDB    // current transaction stack
+	lock       *sync.RWMutex // the lock
 }
-
 
 func NewTransactionalDatabase(db Database, dirtyRead bool) *TransactionalDatabase {
 	return &TransactionalDatabase{
-		db: db,
-		dirtyRead: dirtyRead,
+		db:         db,
+		dirtyRead:  dirtyRead,
 		dirtyWrite: true,
-		lock: new(sync.RWMutex),
+		lock:       new(sync.RWMutex),
 	}
 }
 
 // get the top-most transaction db
 func (db *TransactionalDatabase) topTrx() *inTrxDB {
 	if trxCount := len(db.trx); trxCount > 0 {
-		return db.trx[trxCount - 1]
+		return db.trx[trxCount-1]
 	}
 	return nil
 }
@@ -406,8 +404,8 @@ func (db *TransactionalDatabase) BeginTransaction() {
 
 	// push the new transaction
 	newTrx := inTrxDB{
-		db: trxDb,
-		mem: NewMemoryDatabase(),
+		db:       trxDb,
+		mem:      NewMemoryDatabase(),
 		removals: make(map[string]bool),
 	}
 	db.trx = append(db.trx, &newTrx)
@@ -424,7 +422,7 @@ func (db *TransactionalDatabase) EndTransaction(commit bool) error {
 		}
 	}
 	if trxnum := len(db.trx); trxnum > 0 {
-		db.trx = db.trx[:len(db.trx) - 1]
+		db.trx = db.trx[:len(db.trx)-1]
 	} else {
 		return errors.New("unexpected EndTransaction")
 	}
@@ -441,10 +439,10 @@ func (db *TransactionalDatabase) cleanRead() *TransactionalDatabase {
 		return db
 	}
 	return &TransactionalDatabase{
-		db: db.db,
-		dirtyRead: false,
+		db:         db.db,
+		dirtyRead:  false,
 		dirtyWrite: false,
-		lock: db.lock,
+		lock:       db.lock,
 	}
 }
 

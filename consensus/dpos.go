@@ -44,7 +44,7 @@ type DPoS struct {
 
 	ctx  *node.ServiceContext
 	ctrl iservices.IController
-	p2p iservices.IP2P
+	p2p  iservices.IP2P
 
 	stopCh chan struct{}
 	wg     sync.WaitGroup
@@ -64,9 +64,10 @@ func NewDPoS(ctx *node.ServiceContext) *DPoS {
 	}
 	ret.SetBootstrap(ctx.Config().Consensus.BootStrap)
 	ret.Name = ctx.Config().Consensus.LocalBpName
+	logging.CLog().Info("[DPoS bootstrap] ", ctx.Config().Consensus.BootStrap)
 
 	privateKey := ctx.Config().Consensus.LocalBpPrivateKey
-	if len(privateKey) > 0{
+	if len(privateKey) > 0 {
 		var err error
 		ret.privKey, err = prototype.PrivateKeyFromWIF(ctx.Config().Consensus.LocalBpPrivateKey)
 		if err != nil {
@@ -165,7 +166,7 @@ func (d *DPoS) scheduleProduce() bool {
 				headID = d.ForkDB.Head().Id()
 			}
 			d.p2p.TriggerSync(headID)
-			//logging.CLog().Info("checkSync failed.")
+			logging.CLog().Debug("[DPoS TriggerSync]: start from ", headID.BlockNum())
 			return false
 		}
 	}
@@ -184,7 +185,7 @@ func (d *DPoS) start() {
 
 	// TODO: fuck!! this is fugly
 	var avatar []common.ISignedBlock
-	for i:=0; i<constants.MAX_WITNESSES;i++ {
+	for i := 0; i < constants.MAX_WITNESSES; i++ {
 		// deep copy hell
 		avatar = append(avatar, &prototype.SignedBlock{})
 	}
@@ -209,11 +210,11 @@ func (d *DPoS) start() {
 				logging.CLog().Error("push block error: ", err)
 			}
 		case trx := <-d.trxCh:
-			ret := d.ctrl.PushTrx( trx.(*prototype.SignedTransaction) )
+			ret := d.ctrl.PushTrx(trx.(*prototype.SignedTransaction))
 			d.trxRetCh <- ret
-			if ret != nil{
+			if ret != nil {
 				logging.CLog().Debug("DPoS Broadcast trx.")
-				d.p2p.Broadcast( trx.(*prototype.SignedTransaction) )
+				d.p2p.Broadcast(trx.(*prototype.SignedTransaction))
 			}
 			continue
 		case <-d.prodTimer.C:
@@ -351,9 +352,9 @@ func (d *DPoS) PushBlock(b common.ISignedBlock) {
 	}(b)
 }
 
-func (d *DPoS) PushTransaction(trx common.ISignedTransaction) common.ITransactionInvoice{
+func (d *DPoS) PushTransaction(trx common.ISignedTransaction) common.ITransactionInvoice {
 	d.trxCh <- trx
-	return  <- d.trxRetCh
+	return <-d.trxRetCh
 }
 
 func (d *DPoS) pushBlock(b common.ISignedBlock) error {
@@ -364,13 +365,14 @@ func (d *DPoS) pushBlock(b common.ISignedBlock) error {
 	if b.Timestamp() < d.getSlotTime(1) {
 		return errors.New("the timestamp of the new block is less than that of the head block")
 	}
-	head := d.ForkDB.Head()
-	newHead := d.ForkDB.PushBlock(b)
 
+	head := d.ForkDB.Head()
 	if head == nil && b.Id().BlockNum() != 1 {
-		logging.CLog().Errorf("[DPoS] the first block pushed should have number of 1, got ", b.Id().BlockNum())
+		logging.CLog().Errorf("[DPoS] the first block pushed should have number of 1, got %d", b.Id().BlockNum())
 		return fmt.Errorf("invalid block number")
 	}
+
+	newHead := d.ForkDB.PushBlock(b)
 	if newHead == head {
 		// this implies that b is a:
 		// 1. detached block or
@@ -527,15 +529,67 @@ func (d *DPoS) GetIDs(start, end common.BlockID) ([]common.BlockID, error) {
 }
 
 func (d *DPoS) FetchBlock(id common.BlockID) (common.ISignedBlock, error) {
-	return d.ForkDB.FetchBlock(id)
+	if b, err := d.ForkDB.FetchBlock(id); err == nil {
+		return b, nil
+	}
+
+	var b prototype.SignedBlock
+	if err := d.blog.ReadBlock(&b, int64(id.BlockNum())); err != nil {
+		if b.Id() == id {
+			return &b, nil
+		}
+	}
+
+	return nil, fmt.Errorf("[DPoS FetchBlock] block with id %v doesn't exist", id)
 }
 
 func (d *DPoS) HasBlock(id common.BlockID) bool {
-	_, err := d.ForkDB.FetchBlock(id)
-	return err == nil
+	if _, err := d.ForkDB.FetchBlock(id); err == nil {
+		return true
+	}
+
+	var b prototype.SignedBlock
+	if err := d.blog.ReadBlock(&b, int64(id.BlockNum())); err == nil {
+		if b.Id() == id {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (d *DPoS) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, error) {
-	blocks, _, err := d.ForkDB.FetchBlocksSince(id)
-	return blocks, err
+	if id.BlockNum() >= d.ForkDB.Head().Id().BlockNum() {
+		blocks, _, err := d.ForkDB.FetchBlocksSince(id)
+		return blocks, err
+	}
+
+	ret := make([]common.ISignedBlock, constants.MAX_WITNESSES*2/3)
+	idNum := id.BlockNum()
+	start := idNum
+	end := uint64(d.blog.Size() - 1)
+	for start <= end {
+		var b prototype.SignedBlock
+		if err := d.blog.ReadBlock(&b, int64(start)); err != nil {
+			return nil, err
+		}
+
+		if start == idNum && b.Id() != id {
+			return nil, fmt.Errorf("blockchain doesn't have block with id %v", id)
+		}
+
+		ret = append(ret, &b)
+		start++
+
+		if start > end && b.Id() != d.ForkDB.LastCommitted() {
+			panic("ForkDB and BLog inconsistent state")
+		}
+	}
+
+	blocksInForkDB, _, err := d.ForkDB.FetchBlocksSince(d.ForkDB.LastCommitted())
+	if err != nil {
+		return nil, err
+	}
+	ret = append(ret, blocksInForkDB...)
+	return ret, nil
 }

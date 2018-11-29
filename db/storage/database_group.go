@@ -49,13 +49,12 @@ func (dp *KeyHashDispatcher) DatabasesForKeyRange(start []byte, limit []byte) []
 	return idx
 }
 
-
 // the database group
 type SimpleDatabaseGroup struct {
-	dp DatabaseDispatcher			// key dispatching policy
-	crashed int32					// non-zero if the group should stop service due to fatal errors
-	lock sync.RWMutex				// lock for db operations
-	wal WriteAheadLog				// write ahead log
+	dp      DatabaseDispatcher // key dispatching policy
+	crashed int32              // non-zero if the group should stop service due to fatal errors
+	lock    sync.RWMutex       // lock for db operations
+	wal     WriteAheadLog      // write ahead log
 }
 
 func NewSimpleDatabaseGroup(dp DatabaseDispatcher, wal WriteAheadLog) (*SimpleDatabaseGroup, error) {
@@ -165,7 +164,7 @@ func (g *SimpleDatabaseGroup) makeIterator(start []byte, limit []byte, reversed 
 			nil, nil,
 		})
 	}
-	return &sdgIterator{ g, items, nil, reversed }
+	return &sdgIterator{g, items, nil, reversed}
 }
 
 func (g *SimpleDatabaseGroup) NewIterator(start []byte, limit []byte) Iterator {
@@ -182,18 +181,18 @@ func (g *SimpleDatabaseGroup) DeleteIterator(it Iterator) {
 
 // db group iterator
 type sdgIterator struct {
-	g *SimpleDatabaseGroup		// the db group
-	items []sdgIteratorItem		// member iterators
-	selected *sdgIteratorItem	// current selected member
+	g        *SimpleDatabaseGroup // the db group
+	items    []sdgIteratorItem    // member iterators
+	selected *sdgIteratorItem     // current selected member
 	reversed bool
 }
 
 // iterator wrapper for a member database
 type sdgIteratorItem struct {
-	it Iterator				// iterator of member database
-	end bool				// reached end
-	key []byte				// key of current position
-	val []byte				// value of current position
+	it  Iterator // iterator of member database
+	end bool     // reached end
+	key []byte   // key of current position
+	val []byte   // value of current position
 }
 
 func (it *sdgIterator) Valid() bool {
@@ -257,7 +256,7 @@ func (it *sdgIterator) Next() bool {
 		if item.end || item.key == nil {
 			continue
 		}
-		if minItem == nil || bytes.Compare(minItem.key, item.key) * multiplier > 0 {
+		if minItem == nil || bytes.Compare(minItem.key, item.key)*multiplier > 0 {
 			minItem = item
 		}
 	}
@@ -272,7 +271,7 @@ func (g *SimpleDatabaseGroup) NewBatch() Batch {
 		return nil
 	}
 	return &sdgBatch{
-		g: g,
+		g:   g,
 		ops: make(map[int][]writeOp),
 		rev: make(map[int][]writeOp),
 	}
@@ -284,9 +283,9 @@ func (g *SimpleDatabaseGroup) DeleteBatch(b Batch) {
 
 // db group batch
 type sdgBatch struct {
-	g *SimpleDatabaseGroup // the db group
-	ops map[int][]writeOp  // operations of this batch, grouped by member db index
-	rev map[int][]writeOp  // reversed operations of this batch, grouped by member db index
+	g    *SimpleDatabaseGroup // the db group
+	ops  map[int][]writeOp    // operations of this batch, grouped by member db index
+	rev  map[int][]writeOp    // reversed operations of this batch, grouped by member db index
 	lock sync.RWMutex
 }
 
@@ -358,7 +357,7 @@ func (b *sdgBatch) Write() error {
 		dbBatches[idx] = append(dbBatches[idx], batch, rbatch)
 
 		taskId := b.g.wal.NewTaskID()
-		dbTasks = append(dbTasks, &WriteTask{ taskId, strconv.Itoa(idx), w })
+		dbTasks = append(dbTasks, &WriteTask{taskId, strconv.Itoa(idx), w})
 		dbTaskIds = append(dbTaskIds, taskId)
 	}
 

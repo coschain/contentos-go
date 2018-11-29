@@ -8,7 +8,6 @@ import (
 
 var P2PServerName = "p2p"
 
-
 //IP2P represent the net interface of p2p package which can be called by other service
 type IP2P interface {
 	// Broadcast sigTrx or sigBlk msg

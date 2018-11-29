@@ -1,8 +1,8 @@
 package utils
 
 import (
-	"github.com/coschain/contentos-go/p2p/depend/common/log"
 	msgCommon "github.com/coschain/contentos-go/p2p/common"
+	"github.com/coschain/contentos-go/p2p/depend/common/log"
 	"github.com/coschain/contentos-go/p2p/message/types"
 	"github.com/coschain/contentos-go/p2p/net/protocol"
 )

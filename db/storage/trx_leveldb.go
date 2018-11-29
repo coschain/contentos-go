@@ -3,7 +3,7 @@ package storage
 // This file implements TrxDatabase interface based on LevelDB.
 
 type TrxLevelDatabase struct {
-	db *LevelDatabase
+	db  *LevelDatabase
 	trx *TransactionalDatabase
 }
 
@@ -12,7 +12,7 @@ func NewTrxLevelDatabase(file string, dirtyRead bool) (*TrxLevelDatabase, error)
 	if err != nil {
 		return nil, err
 	}
-	return &TrxLevelDatabase{ db: db, trx: NewTransactionalDatabase(db, dirtyRead) }, nil
+	return &TrxLevelDatabase{db: db, trx: NewTransactionalDatabase(db, dirtyRead)}, nil
 }
 
 func (db *TrxLevelDatabase) Close() {

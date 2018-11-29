@@ -92,8 +92,8 @@ func HexToECDSA(hexkey string) (*ecdsa.PrivateKey, error) {
 	return ToECDSA(b)
 }
 
-func GenerateKeyFromBytes( buff []byte ) (*ecdsa.PrivateKey, error) {
-	return ecdsa.GenerateKey(S256(), bytes.NewReader(buff) )
+func GenerateKeyFromBytes(buff []byte) (*ecdsa.PrivateKey, error) {
+	return ecdsa.GenerateKey(S256(), bytes.NewReader(buff))
 }
 
 func GenerateKey() (*ecdsa.PrivateKey, error) {

@@ -12,14 +12,13 @@ import (
 	"strings"
 )
 
-
-func PublicKeyFromBytes( buffer []byte ) *PublicKeyType {
+func PublicKeyFromBytes(buffer []byte) *PublicKeyType {
 	result := new(PublicKeyType)
 	result.Data = buffer
 	return result
 }
 
-func PublicKeyFromWIF( encoded string ) (*PublicKeyType, error) {
+func PublicKeyFromWIF(encoded string) (*PublicKeyType, error) {
 	if encoded == "" {
 		return nil, errors.New("invalid address 1")
 	}
@@ -28,7 +27,7 @@ func PublicKeyFromWIF( encoded string ) (*PublicKeyType, error) {
 		return nil, errors.New("invalid address 2")
 	}
 
-	if !strings.HasPrefix( encoded, constants.COIN_SYMBOL ){
+	if !strings.HasPrefix(encoded, constants.COIN_SYMBOL) {
 		return nil, errors.New("invalid address 3")
 	}
 
@@ -51,7 +50,7 @@ func PublicKeyFromWIF( encoded string ) (*PublicKeyType, error) {
 	temp := sha256.Sum256(buf[:len(buf)-4])
 	temps := sha256.Sum256(temp[:])
 
-	if !bytes.Equal( temps[0:4], buf[len(buf)-4:] ){
+	if !bytes.Equal(temps[0:4], buf[len(buf)-4:]) {
 		return nil, errors.New("invalid address 6")
 	}
 
@@ -62,8 +61,8 @@ func (m *PublicKeyType) Equal(other *PublicKeyType) bool {
 	return bytes.Equal(m.Data, other.Data)
 }
 
-func (m *PublicKeyType) ToWIF() string  {
-	return fmt.Sprintf( "%s%s", constants.COIN_SYMBOL, m.ToBase58() )
+func (m *PublicKeyType) ToWIF() string {
+	return fmt.Sprintf("%s%s", constants.COIN_SYMBOL, m.ToBase58())
 }
 
 // ToBase58 returns base58 encoded address string
@@ -78,34 +77,33 @@ func (m *PublicKeyType) ToBase58() string {
 	return string(encoded)
 }
 
-
 func (m *PublicKeyType) MarshalJSON() ([]byte, error) {
 	val := fmt.Sprintf("\"%s\"", m.ToWIF())
-	return []byte( val ), nil
+	return []byte(val), nil
 }
 
 func (m *PublicKeyType) UnmarshalJSON(input []byte) error {
 
-	if len(input) < 2{
+	if len(input) < 2 {
 		return errors.New("public key length error")
 	}
-	if input[0] != '"'{
+	if input[0] != '"' {
 		return errors.New("public key error")
 	}
-	if input[ len(input)-1 ] != '"'{
+	if input[len(input)-1] != '"' {
 		return errors.New("public key error")
 	}
 
-	res ,err := PublicKeyFromWIF( string( input[1:len(input)-1] ))
-	if err != nil{
+	res, err := PublicKeyFromWIF(string(input[1 : len(input)-1]))
+	if err != nil {
 		return err
 	}
 	m.Data = res.Data
 	return nil
 }
 
-func (m *PublicKeyType) Validate () error {
-	if m == nil{
+func (m *PublicKeyType) Validate() error {
+	if m == nil {
 		return ErrNpe
 	}
 	if len(m.Data) != 33 {

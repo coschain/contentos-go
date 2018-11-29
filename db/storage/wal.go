@@ -6,7 +6,7 @@ import (
 )
 
 type WriteTask struct {
-	TaskID uint64
+	TaskID     uint64
 	DatabaseID string
 	Operations []writeOp
 }
@@ -20,7 +20,6 @@ type WriteAheadLog interface {
 	DeleteTask(taskId uint64) error
 	DeleteTasks(taskIds []uint64) error
 }
-
 
 func EncodeWriteTask(task *WriteTask) []byte {
 	buf := new(bytes.Buffer)
