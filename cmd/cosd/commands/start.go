@@ -80,12 +80,19 @@ func startNode(cmd *cobra.Command, args []string) {
 	//app.Register("printer", func(ctx *node.ServiceContext) (node.Service, error) {
 	//	return printer.New(ctx)
 	//})
-
-	app.Register(iservices.P2PServerName, func(ctx *node.ServiceContext) (node.Service, error) {
-			return p2p.NewServer(ctx)
+	_ = app.Register(iservices.DB_SERVER_NAME, func(ctx *node.ServiceContext) (node.Service, error) {
+		return storage.NewGuardedDatabaseService(ctx, "./db/")
 	})
 
-	app.Register(iservices.ConsensusServerName, func(ctx *node.ServiceContext) (node.Service, error) {
+	_ = app.Register(iservices.P2PServerName, func(ctx *node.ServiceContext) (node.Service, error) {
+		return p2p.NewServer(ctx)
+	})
+
+	_ = app.Register(iservices.CTRL_SERVER_NAME, func(ctx *node.ServiceContext) (node.Service, error) {
+		return ctrl.NewController(ctx)
+	})
+
+	_ = app.Register(iservices.ConsensusServerName, func(ctx *node.ServiceContext) (node.Service, error) {
 		var s node.Service
 		switch ctx.Config().Consensus.Type {
 		case "DPoS":
@@ -96,17 +103,6 @@ func startNode(cmd *cobra.Command, args []string) {
 		return s, nil
 	})
 
-	app.Register(iservices.DB_SERVER_NAME, func(ctx *node.ServiceContext) (node.Service, error) {
-		return storage.NewGuardedDatabaseService(ctx, "./db/")
-	})
-
-	_ = app.Register(iservices.CTRL_SERVER_NAME, func(ctx *node.ServiceContext) (node.Service, error) {
-		return ctrl.NewController(ctx)
-	})
-
-	_ = app.Register(iservices.RPC_SERVER_NAME, func(ctx *node.ServiceContext) (node.Service, error) {
-		return rpc.NewGRPCServer(ctx, ctx.Config().GRPC)
-	})
 	_ = app.Register(plugins.FOLLOW_SERVICE_NAME, func(ctx *node.ServiceContext) (node.Service, error) {
 		return plugins.NewFollowService(ctx)
 	})
@@ -115,6 +111,10 @@ func startNode(cmd *cobra.Command, args []string) {
 	})
 	_ = app.Register(plugins.DEMO_SERVICE_NAME, func(ctx *node.ServiceContext) (node.Service, error) {
 		return plugins.NewDemoService(ctx)
+	})
+
+	_ = app.Register(iservices.RPC_SERVER_NAME, func(ctx *node.ServiceContext) (node.Service, error) {
+		return rpc.NewGRPCServer(ctx, ctx.Config().GRPC)
 	})
 
 	if err := app.Start(); err != nil {

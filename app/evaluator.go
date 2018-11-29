@@ -6,7 +6,6 @@ import (
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/prototype"
-	"github.com/pkg/errors"
 )
 
 func mustSuccess(b bool, val string) {
@@ -239,17 +238,17 @@ func (ev *VoteEvaluator) Apply() {
 	voteWrap := table.NewSoVoteWrap(ev.ctx.db, &voterId)
 	postWrap := table.NewSoPostWrap(ev.ctx.db, &op.Idx)
 
-	opAssert(!postWrap.CheckExist(), "post invalid")
+	opAssert(postWrap.CheckExist(), "post invalid")
 	opAssert(!voteWrap.CheckExist(), "vote info exist")
 
-	votePostWrap := table.NewVotePostIdWrap(ev.ctx.db)
+	//votePostWrap := table.NewVotePostIdWrap(ev.ctx.db)
 
-	for voteIter := votePostWrap.QueryListByOrder(&op.Idx, nil); voteIter.Valid(); voteIter.Next() {
-		voterId := votePostWrap.GetMainVal(voteIter)
-		if voterId.Voter.Value == op.Voter.Value {
-			opAssertE(errors.New("Vote Error"), "vote to a same post")
-		}
-	}
+	//for voteIter := votePostWrap.QueryListByOrder(&op.Idx, nil); voteIter.Valid(); voteIter.Next() {
+	//	voterId := votePostWrap.GetMainVal(voteIter)
+	//	if voterId.Voter.Value == op.Voter.Value {
+	//		opAssertE(errors.New("Vote Error"), "vote to a same post")
+	//	}
+	//}
 
 	regeneratedPower := constants.PERCENT * elapsedSeconds / constants.VOTE_REGENERATE_TIME
 	var currentVp uint32
@@ -266,7 +265,7 @@ func (ev *VoteEvaluator) Apply() {
 	vesting := voterWrap.GetVestingShares().Value
 	// todo: uint128
 	weightedVp := vesting * uint64(usedVp)
-	if postWrap.GetCashoutTime().UtcSeconds < ev.ctx.control.HeadBlockTime().UtcSeconds {
+	if postWrap.GetCashoutTime().UtcSeconds > ev.ctx.control.HeadBlockTime().UtcSeconds {
 		lastVp := postWrap.GetWeightedVp()
 		votePower := lastVp + weightedVp
 		// add new vp into global

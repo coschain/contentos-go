@@ -319,6 +319,59 @@ func TestReplyEvaluator_ApplyNormal(t *testing.T) {
 	myassert.Equal(value, []byte("reply"))
 }
 
+func TestVoteEvaluator_ApplyNormal(t *testing.T) {
+	clearDB()
+	post_operation := &prototype.PostOperation{
+		Uuid:          uint64(111),
+		Owner:         &prototype.AccountName{Value: "initminer"},
+		Title:         "Lorem Ipsum",
+		Content:       "Lorem ipsum dolor sit amet",
+		Tags:          []string{"article", "image"},
+		Beneficiaries: []*prototype.BeneficiaryRouteType{},
+	}
+	db := startDB()
+	defer db.Close()
+
+	op := &prototype.Operation{}
+	opPost := &prototype.Operation_Op6{}
+	opPost.Op6 = post_operation
+	op.Op = opPost
+
+	c := startController(db)
+
+	currentTimestamp := c.HeadBlockTime().UtcSeconds + 1000
+
+	props := c.GetProps()
+	//props.Time = &prototype.TimePointSec{UtcSeconds: currentTimestamp}
+	props.Time = &prototype.TimePointSec{UtcSeconds: currentTimestamp}
+	c.updateGlobalDataToDB(props)
+	ctx := &ApplyContext{db: db, control: c}
+	ev := &PostEvaluator{ctx: ctx, op: op.GetOp6()}
+	ev.Apply()
+
+	vote_operation := &prototype.VoteOperation{
+		Voter: &prototype.AccountName{Value: "initminer"},
+		Idx:   uint64(111),
+	}
+
+	op = &prototype.Operation{}
+	opVote := &prototype.Operation_Op9{}
+	opVote.Op9 = vote_operation
+	op.Op = opVote
+
+	ev2 := &VoteEvaluator{ctx: ctx, op: op.GetOp9()}
+	ev2.Apply()
+
+	voterWrap := table.NewSoAccountWrap(ev.ctx.db, &prototype.AccountName{Value: "initminer"})
+	fmt.Println(voterWrap.GetVotePower())
+	// author last post time should be modified
+	//myassert.Equal(authorWrap.GetLastPostTime().UtcSeconds, currentTimestamp+1000)
+	//timestamp := currentTimestamp + 1000 + uint32(constants.POST_CASHPUT_DELAY_TIME) - uint32(constants.GenesisTime)
+	//key := fmt.Sprintf("cashout:%d_%d", common.GetBucket(timestamp), uuid)
+	//value, _ := ev.ctx.db.Get([]byte(key))
+	//myassert.Equal(value, []byte("reply"))
+}
+
 func startDB() iservices.IDatabaseService {
 	db, err := storage.NewDatabase(dbPath)
 	if err != nil {

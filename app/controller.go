@@ -39,12 +39,12 @@ type Controller struct {
 	noticer EventBus.Bus
 	skip    prototype.SkipFlag
 
-	pending_tx            []*prototype.TransactionWrapper
-	isProducing           bool
-	currentTrxId          *prototype.Sha256
-	current_op_in_trx     uint16
-	currentBlockNum       uint64
-	current_trx_in_block  int16
+	pending_tx             []*prototype.TransactionWrapper
+	isProducing            bool
+	currentTrxId           *prototype.Sha256
+	current_op_in_trx      uint16
+	currentBlockNum        uint64
+	current_trx_in_block   int16
 	havePendingTransaction bool
 }
 
@@ -172,13 +172,13 @@ func (c *Controller) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFl
 		if r := recover(); r != nil {
 			c.skip = oldFlag
 			c.restorePending(tmpPending)
-			switch x:= r.(type) {
+			switch x := r.(type) {
 			case error:
 				err = x
-				logging.CLog().Errorf("push block error : ", x.Error())
+				logging.CLog().Errorf("push block error : %v", x.Error())
 			case string:
 				err = errors.New(x)
-				logging.CLog().Errorf("push block error : ", x)
+				logging.CLog().Errorf("push block error : %v ", x)
 			default:
 				err = errors.New("unknown panic type")
 			}
@@ -362,6 +362,7 @@ func (c *Controller) notifyBlockApply(block *prototype.SignedBlock) {
 // calculate reward for creator and witness
 func (c *Controller) processBlock() {
 }
+
 //func (c *Controller) applyTransaction(trxWrp *prototype.TransactionWrapper) {
 //	c.applyTransaction(trxWrp)
 //	// @ not use yet
@@ -592,8 +593,8 @@ func (c *Controller) initGenesis() {
 	mustNoError(newAccountWrap.Create(func(tInfo *table.SoAccount) {
 		tInfo.Name = name
 		tInfo.CreatedTime = &prototype.TimePointSec{UtcSeconds: 0}
-		tInfo.Balance = prototype.NewCoin(constants.INIT_SUPPLY)
-		tInfo.VestingShares = prototype.NewVest(0)
+		tInfo.Balance = prototype.NewCoin(constants.INIT_SUPPLY - 1000)
+		tInfo.VestingShares = prototype.NewVest(1000)
 		tInfo.LastPostTime = &prototype.TimePointSec{UtcSeconds: 0}
 		tInfo.LastVoteTime = &prototype.TimePointSec{UtcSeconds: 0}
 	}), "CreateAccount error")
