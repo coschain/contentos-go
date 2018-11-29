@@ -9,7 +9,7 @@ import (
 	"github.com/coschain/contentos-go/p2p/message/types"
 )
 
-var TrxMap map[*Peer][]byte = make(map[*Peer][]byte)
+var TrxMap map[string][]byte = make(map[string][]byte)
 var TrxLock = &sync.Mutex{}
 
 //NbrPeers: The neigbor list
@@ -44,7 +44,7 @@ func (this *NbrPeers) Broadcast(mesg types.Message, isConsensus bool) {
 		if msgdata, ok := mesg.(*msg.BroadcastSigTrx); ok {
 			id, _ := msgdata.SigTrx.Id()
 			TrxLock.Lock()
-			target := TrxMap[node]
+			target := TrxMap[node.GetAddr()]
 			TrxLock.Unlock()
 			if byteSliceEqual(target, id.Hash) {
 				continue

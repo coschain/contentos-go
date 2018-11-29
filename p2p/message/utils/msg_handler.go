@@ -135,10 +135,9 @@ func TransactionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface
 	ctrl := s.(iservices.IConsensus)
 	ctrl.PushTransaction(trn.SigTrx)
 
-	remotePeer := p2p.GetPeerFromAddr(data.Addr)
 	id, _ := trn.SigTrx.Id()
 	peer.TrxLock.Lock()
-	peer.TrxMap[remotePeer] = id.Hash
+	peer.TrxMap[data.Addr] = id.Hash
 	peer.TrxLock.Unlock()
 }
 
