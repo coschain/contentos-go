@@ -583,12 +583,12 @@ func ReqIdHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 		return
 	}
 
-	//log.Info("start:   ", remote_head_blk_id)
-	//log.Info("end:     ", current_head_blk_id)
+	log.Info("start:   ", remote_head_blk_id)
+	log.Info("end:     ", current_head_blk_id)
 
 	ids, err := ctrl.GetIDs(remote_head_blk_id, current_head_blk_id)
 	if err != nil {
-		log.Info("can't get gap ids from consessus, start number:", remote_head_blk_id.BlockNum(), " end number: ",current_head_blk_id.BlockNum(), "error: ", err )
+		log.Error("can't get gap ids from consessus, start number:", remote_head_blk_id.BlockNum(), " end number: ",current_head_blk_id.BlockNum(), "error: ", err )
 		return
 	}
 	if len(ids) == 0 {
