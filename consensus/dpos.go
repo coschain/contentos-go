@@ -520,10 +520,11 @@ func (d *DPoS) GetIDs(start, end common.BlockID) ([]common.BlockID, error) {
 
 	length := end.BlockNum() - start.BlockNum() + 1
 	ret := make([]common.BlockID, 0, length)
-	if start != blocks[0].Id() {
+	if start != blocks[0].Previous() {
 		return nil, fmt.Errorf("[DPoS GetIDs] internal error")
 	}
 
+	ret = append(ret, start)
 	for i := 0; i < int(length) && i < len(blocks); i++ {
 		ret = append(ret, blocks[i].Id())
 	}
