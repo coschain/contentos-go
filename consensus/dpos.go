@@ -226,7 +226,7 @@ func (d *DPoS) start() {
 			logging.CLog().Debugf("[DPoS]generated block: <num %d> <ts %d>", b.Id().BlockNum(), b.Timestamp())
 			// broadcast block
 			d.p2p.Broadcast(b)
-			d.PushBlock(b)
+			d.pushBlock(b)
 		}
 	}
 }
