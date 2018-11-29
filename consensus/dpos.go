@@ -166,7 +166,7 @@ func (d *DPoS) scheduleProduce() bool {
 				headID = d.ForkDB.Head().Id()
 			}
 			d.p2p.TriggerSync(headID)
-			//logging.CLog().Info("checkSync failed.")
+			logging.CLog().Debug("[DPoS TriggerSync]: start from ", headID.BlockNum())
 			return false
 		}
 	}
@@ -365,13 +365,14 @@ func (d *DPoS) pushBlock(b common.ISignedBlock) error {
 	if b.Timestamp() < d.getSlotTime(1) {
 		return errors.New("the timestamp of the new block is less than that of the head block")
 	}
-	head := d.ForkDB.Head()
-	newHead := d.ForkDB.PushBlock(b)
 
+	head := d.ForkDB.Head()
 	if head == nil && b.Id().BlockNum() != 1 {
-		logging.CLog().Errorf("[DPoS] the first block pushed should have number of 1, got ", b.Id().BlockNum())
+		logging.CLog().Errorf("[DPoS] the first block pushed should have number of 1, got %d", b.Id().BlockNum())
 		return fmt.Errorf("invalid block number")
 	}
+	
+	newHead := d.ForkDB.PushBlock(b)
 	if newHead == head {
 		// this implies that b is a:
 		// 1. detached block or
