@@ -27,6 +27,9 @@ var ReplyCmd = func() *cobra.Command {
 }
 
 func reply(cmd *cobra.Command, args []string) {
+	defer func() {
+		replyBeneficiaryRoute = map[string]int{}
+	}()
 	c := cmd.Context["rpcclient"]
 	client := c.(grpcpb.ApiServiceClient)
 	w := cmd.Context["wallet"]
@@ -89,7 +92,5 @@ func reply(cmd *cobra.Command, args []string) {
 	} else {
 		fmt.Println(fmt.Sprintf("Result: %v", resp))
 	}
-
-	replyBeneficiaryRoute = map[string]int{}
 
 }

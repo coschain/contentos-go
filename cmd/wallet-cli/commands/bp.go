@@ -60,6 +60,15 @@ var BpCmd = func() *cobra.Command {
 }
 
 func registerBP(cmd *cobra.Command, args []string) {
+	defer func() {
+		// reset to default value
+		// it's hard to assign default value from cobra.command
+		// so I have to do it manually
+		bpCreateAccountFee = 1
+		bpBlockSize = 1024 * 1024
+		bpUrlFlag = ""
+		bpDescFlag = ""
+	}()
 	c := cmd.Context["rpcclient"]
 	client := c.(grpcpb.ApiServiceClient)
 	w := cmd.Context["wallet"]
@@ -101,13 +110,6 @@ func registerBP(cmd *cobra.Command, args []string) {
 		fmt.Println(fmt.Sprintf("Result: %v", resp))
 	}
 
-	// reset to default value
-	// it's hard to assign default value from cobra.command
-	// so I have to do it manually
-	bpCreateAccountFee = 1
-	bpBlockSize = 1024 * 1024
-	bpUrlFlag = ""
-	bpDescFlag = ""
 }
 
 func unRegisterBP(cmd *cobra.Command, args []string) {
@@ -141,6 +143,9 @@ func unRegisterBP(cmd *cobra.Command, args []string) {
 }
 
 func voteBp(cmd *cobra.Command, args []string) {
+	defer func() {
+		bpVoteCancel = false
+	}()
 	c := cmd.Context["rpcclient"]
 	client := c.(grpcpb.ApiServiceClient)
 	w := cmd.Context["wallet"]
@@ -170,6 +175,4 @@ func voteBp(cmd *cobra.Command, args []string) {
 	} else {
 		fmt.Println(fmt.Sprintf("Result: %v", resp))
 	}
-
-	bpVoteCancel = false
 }

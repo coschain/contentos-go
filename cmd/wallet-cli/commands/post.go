@@ -27,6 +27,9 @@ var PostCmd = func() *cobra.Command {
 }
 
 func post(cmd *cobra.Command, args []string) {
+	defer func() {
+		postBeneficiaryRoute = map[string]int{}
+	}()
 	c := cmd.Context["rpcclient"]
 	client := c.(grpcpb.ApiServiceClient)
 	w := cmd.Context["wallet"]
@@ -92,7 +95,5 @@ func post(cmd *cobra.Command, args []string) {
 	} else {
 		fmt.Println(fmt.Sprintf("Result: %v", resp))
 	}
-
-	postBeneficiaryRoute = map[string]int{}
 
 }

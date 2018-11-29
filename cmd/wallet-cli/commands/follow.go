@@ -26,6 +26,9 @@ var FollowCmd = func() *cobra.Command {
 }
 
 func follow(cmd *cobra.Command, args []string) {
+	defer func() {
+		followCancel = false
+	}()
 	c := cmd.Context["rpcclient"]
 	client := c.(grpcpb.ApiServiceClient)
 	w := cmd.Context["wallet"]
@@ -55,7 +58,5 @@ func follow(cmd *cobra.Command, args []string) {
 	} else {
 		fmt.Println(fmt.Sprintf("Result: %v", resp))
 	}
-
-	followCancel = false
 
 }

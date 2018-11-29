@@ -25,6 +25,9 @@ var ImportCmd = func() *cobra.Command {
 }
 
 func importAccount(cmd *cobra.Command, args []string) {
+	defer func() {
+		importForceFlag = false
+	}()
 	c := cmd.Context["rpcclient"]
 	client := c.(grpcpb.ApiServiceClient)
 	w := cmd.Context["wallet"]
@@ -87,7 +90,5 @@ func importAccount(cmd *cobra.Command, args []string) {
 			fmt.Println(err)
 		}
 	}
-
-	importForceFlag = false
 
 }
