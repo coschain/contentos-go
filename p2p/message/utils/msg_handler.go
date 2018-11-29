@@ -599,11 +599,11 @@ func ReqIdHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	var reqmsg msg.IdMsg
 	reqmsg.Msgtype = msg.IdMsg_request_id_ack
 
-	for i, id := range ids {
+	for i:=0;i<len(ids);i++ {
 		var tmp []byte
 		reqmsg.Value = append(reqmsg.Value, tmp)
 		reqmsg.Value[i] = make([]byte, prototype.Size)
-		reqmsg.Value[i] = id.Data[:]
+		reqmsg.Value[i] = ids[i].Data[:]
 	}
 
 	err = p2p.Send(remotePeer, &reqmsg, false)
