@@ -562,7 +562,7 @@ func (d *DPoS) HasBlock(id common.BlockID) bool {
 }
 
 func (d *DPoS) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, error) {
-	if id.BlockNum() >= d.ForkDB.Head().Id().BlockNum() {
+	if id.BlockNum() >= d.ForkDB.LastCommitted().BlockNum() {
 		blocks, _, err := d.ForkDB.FetchBlocksSince(id)
 		return blocks, err
 	}
@@ -570,10 +570,13 @@ func (d *DPoS) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, error
 	ret := make([]common.ISignedBlock, 0, constants.MAX_WITNESSES*2/3)
 	idNum := id.BlockNum()
 	start := idNum
-	end := uint64(d.blog.Size() - 1)
+	if start < 1 {
+		start = 1
+	}
+	end := uint64(d.blog.Size())
 	for start <= end {
 		var b prototype.SignedBlock
-		if err := d.blog.ReadBlock(&b, int64(start)); err != nil {
+		if err := d.blog.ReadBlock(&b, int64(start-1)); err != nil {
 			return nil, err
 		}
 
