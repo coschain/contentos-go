@@ -528,7 +528,7 @@ func (d *DPoS) GetIDs(start, end common.BlockID) ([]common.BlockID, error) {
 	for i := 0; i < int(length) && i < len(blocks); i++ {
 		ret = append(ret, blocks[i].Id())
 	}
-
+	//logging.CLog().Debugf("FetchBlocksSince %v: %v", start, ret)
 	return ret, nil
 }
 
@@ -563,12 +563,17 @@ func (d *DPoS) HasBlock(id common.BlockID) bool {
 }
 
 func (d *DPoS) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, error) {
+	length := int64(d.ForkDB.Head().Id().BlockNum()) - int64(id.BlockNum())
+	if length < 1 {
+		return nil, nil
+	}
+
 	if id.BlockNum() >= d.ForkDB.LastCommitted().BlockNum() {
 		blocks, _, err := d.ForkDB.FetchBlocksSince(id)
 		return blocks, err
 	}
 
-	ret := make([]common.ISignedBlock, 0, constants.MAX_WITNESSES*2/3)
+	ret := make([]common.ISignedBlock, 0, length)
 	idNum := id.BlockNum()
 	start := idNum
 	if start < 1 {
