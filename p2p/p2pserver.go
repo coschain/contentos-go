@@ -348,9 +348,9 @@ func (this *P2PServer) ping() {
 
 //pings send pkgs to get pong msg from others
 func (this *P2PServer) pingTo(peers []*peer.Peer) {
-	service, err := this.Network.GetService(iservices.CS_SERVER_NAME)
+	service, err := this.Network.GetService(iservices.ConsensusServerName)
 	if err != nil {
-		log.Info("can't get other service, service name: ", iservices.CS_SERVER_NAME)
+		log.Info("can't get other service, service name: ", iservices.ConsensusServerName)
 		return
 	}
 	ctrl := service.(iservices.IConsensus)

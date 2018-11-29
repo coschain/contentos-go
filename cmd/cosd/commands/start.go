@@ -85,7 +85,7 @@ func startNode(cmd *cobra.Command, args []string) {
 			return p2p.NewServer(ctx)
 	})
 
-	app.Register(iservices.CS_SERVER_NAME, func(ctx *node.ServiceContext) (node.Service, error) {
+	app.Register(iservices.ConsensusServerName, func(ctx *node.ServiceContext) (node.Service, error) {
 		var s node.Service
 		switch ctx.Config().Consensus.Type {
 		case "DPoS":

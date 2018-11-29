@@ -323,9 +323,9 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 		remotePeer.SetConsState(common.HAND)
 	}
 
-	service, err := this.GetService(iservices.CS_SERVER_NAME)
+	service, err := this.GetService(iservices.ConsensusServerName)
 	if err != nil {
-		log.Info("can't get other service, service name: ", iservices.CS_SERVER_NAME)
+		log.Info("can't get other service, service name: ", iservices.ConsensusServerName)
 		return err
 	}
 	ctrl := service.(iservices.IConsensus)

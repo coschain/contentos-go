@@ -67,9 +67,9 @@ func PingHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	}
 	remotePeer.SetHeight(ping.Height)
 
-	s, err := p2p.GetService(iservices.CS_SERVER_NAME)
+	s, err := p2p.GetService(iservices.ConsensusServerName)
 	if err != nil {
-		log.Info("can't get other service, service name: ", iservices.CS_SERVER_NAME)
+		log.Info("can't get other service, service name: ", iservices.ConsensusServerName)
 		return
 	}
 	ctrl := s.(iservices.IConsensus)
@@ -105,9 +105,9 @@ func BlockHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	var block = data.Payload.(*msg.SigBlkMsg)
 	log.Info("receive a SignedBlock msg:   ", block)
 
-	s, err := p2p.GetService(iservices.CS_SERVER_NAME)
+	s, err := p2p.GetService(iservices.ConsensusServerName)
 	if err != nil {
-		log.Info("can't get other service, service name: ", iservices.CS_SERVER_NAME)
+		log.Info("can't get other service, service name: ", iservices.ConsensusServerName)
 		return
 	}
 	ctrl := s.(iservices.IConsensus)
@@ -127,9 +127,9 @@ func TransactionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface
 	var trn = data.Payload.(*msg.BroadcastSigTrx)
 	log.Info("receive a SignedTransaction msg:   ", trn)
 
-	s, err := p2p.GetService(iservices.CS_SERVER_NAME)
+	s, err := p2p.GetService(iservices.ConsensusServerName)
 	if err != nil {
-		log.Info("can't get other service, service name: ", iservices.CS_SERVER_NAME)
+		log.Info("can't get other service, service name: ", iservices.ConsensusServerName)
 		return
 	}
 	ctrl := s.(iservices.IConsensus)
@@ -179,9 +179,9 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) 
 
 	}
 
-	service, err := p2p.GetService(iservices.CS_SERVER_NAME)
+	service, err := p2p.GetService(iservices.ConsensusServerName)
 	if err != nil {
-		log.Info("can't get other service, service name: ", iservices.CS_SERVER_NAME)
+		log.Info("can't get other service, service name: ", iservices.ConsensusServerName)
 		return
 	}
 	ctrl := service.(iservices.IConsensus)
@@ -455,9 +455,9 @@ func IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 		var blkId common.BlockID
 		copy(blkId.Data[:], msgdata.Value[0])
 
-		s, err := p2p.GetService(iservices.CS_SERVER_NAME)
+		s, err := p2p.GetService(iservices.ConsensusServerName)
 		if err != nil {
-			log.Info("can't get other service, service name: ", iservices.CS_SERVER_NAME)
+			log.Info("can't get other service, service name: ", iservices.ConsensusServerName)
 			return
 		}
 		ctrl := s.(iservices.IConsensus)
@@ -486,9 +486,9 @@ func IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 			var blkId common.BlockID
 			copy(blkId.Data[:], id)
 
-			s, err := p2p.GetService(iservices.CS_SERVER_NAME)
+			s, err := p2p.GetService(iservices.ConsensusServerName)
 			if err != nil {
-				log.Info("can't get other service, service name: ", iservices.CS_SERVER_NAME)
+				log.Info("can't get other service, service name: ", iservices.ConsensusServerName)
 				return
 			}
 			ctrl := s.(iservices.IConsensus)
@@ -522,9 +522,9 @@ func IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 			var blkId common.BlockID
 			copy(blkId.Data[:], id)
 
-			s, err := p2p.GetService(iservices.CS_SERVER_NAME)
+			s, err := p2p.GetService(iservices.ConsensusServerName)
 			if err != nil {
-				log.Info("can't get other service, service name: ", iservices.CS_SERVER_NAME)
+				log.Info("can't get other service, service name: ", iservices.ConsensusServerName)
 				return
 			}
 			ctrl := s.(iservices.IConsensus)
@@ -562,9 +562,9 @@ func ReqIdHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 
 	log.Info("receive a ReqIdMsg from   v%    data   v%\n", data.Addr, msgdata.HeadBlockId)
 
-	s, err := p2p.GetService(iservices.CS_SERVER_NAME)
+	s, err := p2p.GetService(iservices.ConsensusServerName)
 	if err != nil {
-		log.Info("can't get other service, service name: ", iservices.CS_SERVER_NAME)
+		log.Info("can't get other service, service name: ", iservices.ConsensusServerName)
 		return
 	}
 	ctrl := s.(iservices.IConsensus)
