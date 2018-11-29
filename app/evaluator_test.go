@@ -362,14 +362,17 @@ func TestVoteEvaluator_ApplyNormal(t *testing.T) {
 	ev2 := &VoteEvaluator{ctx: ctx, op: op.GetOp9()}
 	ev2.Apply()
 
+	myassert := assert.New(t)
+
+	uuid := uint64(111)
+	postWrap := table.NewSoPostWrap(db, &uuid)
+
 	voterWrap := table.NewSoAccountWrap(ev.ctx.db, &prototype.AccountName{Value: "initminer"})
-	fmt.Println(voterWrap.GetVotePower())
-	// author last post time should be modified
-	//myassert.Equal(authorWrap.GetLastPostTime().UtcSeconds, currentTimestamp+1000)
-	//timestamp := currentTimestamp + 1000 + uint32(constants.POST_CASHPUT_DELAY_TIME) - uint32(constants.GenesisTime)
-	//key := fmt.Sprintf("cashout:%d_%d", common.GetBucket(timestamp), uuid)
-	//value, _ := ev.ctx.db.Get([]byte(key))
-	//myassert.Equal(value, []byte("reply"))
+	myassert.Equal(voterWrap.GetVotePower(), uint32(36))
+	myassert.Equal(voterWrap.GetLastPostTime().UtcSeconds, c.HeadBlockTime().UtcSeconds)
+	myassert.Equal(postWrap.GetWeightedVp(), uint64(2000))
+	myassert.Equal(c.GetProps().WeightedVps, uint64(2000))
+
 }
 
 func startDB() iservices.IDatabaseService {

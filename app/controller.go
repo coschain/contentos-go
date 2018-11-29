@@ -899,7 +899,8 @@ func (c *Controller) GetShuffledWitness() []string {
 func (c *Controller) AddWeightedVP(value uint64) {
 	dgpo := c.GetProps()
 	dgpo.WeightedVps += value
-	// TODO update dgpo to DB
+	dgpWrap := table.NewSoGlobalWrap(c.db, &SINGLE_ID)
+	dgpWrap.MdProps(dgpo)
 }
 
 func (c *Controller) saveReversion(num uint32) {
