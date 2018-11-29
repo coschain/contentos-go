@@ -1,14 +1,12 @@
 package utils
 
 import (
-	"fmt"
 	"net"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/coschain/contentos-go/common"
-	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/iservices"
 	msgCommon "github.com/coschain/contentos-go/p2p/common"
 	"github.com/coschain/contentos-go/p2p/depend/common/config"
@@ -104,12 +102,15 @@ func BlockHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	log.Trace("[p2p]receive block message from ", data.Addr, data.Id)
 
 	var block = data.Payload.(*msg.SigBlkMsg)
-	remotePeer := p2p.GetPeerFromAddr(data.Addr)
-
 	log.Info("receive a SignedBlock msg:   ", block)
 
-	noticer := p2p.GetNoticer()
-	noticer.Publish(constants.NOTICE_HANDLE_P2P_SIGBLK, remotePeer, block.SigBlk)
+	s, err := p2p.GetService(iservices.CS_SERVER_NAME)
+	if err != nil {
+		log.Info("can't get other service, service name: ", iservices.CS_SERVER_NAME)
+		return
+	}
+	ctrl := s.(iservices.IConsensus)
+	ctrl.PushBlock(block.SigBlk)
 }
 
 // NotFoundHandle handles the not found message from peer
@@ -123,12 +124,15 @@ func TransactionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface
 	log.Trace("[p2p]receive transaction message", data.Addr, data.Id)
 
 	var trn = data.Payload.(*msg.BroadcastSigTrx)
+	log.Info("receive a SignedTransaction msg:   ", trn)
 
-	log.Info("receive a trx")
-	fmt.Printf("data:   +%v\n", trn)
-
-	noticer := p2p.GetNoticer()
-	noticer.Publish(constants.NOTICE_HANDLE_P2P_SIGTRX, trn.SigTrx)
+	s, err := p2p.GetService(iservices.CS_SERVER_NAME)
+	if err != nil {
+		log.Info("can't get other service, service name: ", iservices.CS_SERVER_NAME)
+		return
+	}
+	ctrl := s.(iservices.IConsensus)
+	ctrl.PushTransaction(trn.SigTrx)
 }
 
 // VersionHandle handles version handshake protocol from peer
@@ -476,23 +480,23 @@ func IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 			var blkId common.BlockID
 			copy(blkId.Data[:], id)
 
-			// test code create a SignedBlock
-			sigBlk := new(prototype.SignedBlock)
-			sigBlkHdr := new(prototype.SignedBlockHeader)
-			sigBlk.SignedHeader = sigBlkHdr
-			sigBlkHdr.Header = new(prototype.BlockHeader)
-			sigBlkHdr.Header.Witness = new(prototype.AccountName)
-			sigBlkHdr.Header.Witness.Value = "alice"
+			s, err := p2p.GetService(iservices.CS_SERVER_NAME)
+			if err != nil {
+				log.Info("can't get other service, service name: ", iservices.CS_SERVER_NAME)
+				return
+			}
+			ctrl := s.(iservices.IConsensus)
 
-			sigBlkHdr.Header.Previous = new(prototype.Sha256)
-			sigBlkHdr.Header.TransactionMerkleRoot = new(prototype.Sha256)
-			sigBlkHdr.Header.Previous.Hash = make([]byte, prototype.Size)
-			sigBlkHdr.Header.TransactionMerkleRoot.Hash = make([]byte, prototype.Size)
+			IsigBlk, err := ctrl.FetchBlock(blkId)
+			if err != nil {
+				log.Info("can't get IsigBlk from consensus")
+				return
+			}
+			sigBlk := IsigBlk.(*prototype.SignedBlock)
 
-			//sigBlk := get sigblk from consensus by id
 
 			msg := msgpack.NewSigBlk(sigBlk)
-			err := p2p.Send(remotePeer, msg, false)
+			err = p2p.Send(remotePeer, msg, false)
 			if err != nil {
 				log.Warn(err)
 				return
@@ -524,6 +528,10 @@ func IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 				idx := len(reqmsg.Value) - 1
 				reqmsg.Value[idx] = id
 			}
+		}
+		if len(reqmsg.Value) == 0 {
+			log.Info("no block need to request")
+			return
 		}
 		err := p2p.Send(remotePeer, &reqmsg, false)
 		if err != nil {
@@ -559,7 +567,12 @@ func ReqIdHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	current_head_blk_id := ctrl.GetHeadBlockId()
 	ids, err := ctrl.GetIDs(remote_head_blk_id, current_head_blk_id)
 	if err != nil {
+		log.Info("can't get gap ids frm consessus")
 		// TODO:
+	}
+	if len(ids) == 0 {
+		log.Info("we have same blocks, no need to request from me")
+		return
 	}
 
 	remotePeer := p2p.GetPeerFromAddr(data.Addr)

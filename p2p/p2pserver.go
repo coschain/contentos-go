@@ -75,10 +75,10 @@ func (this *P2PServer) GetConnectionCnt() uint32 {
 //Start create all services
 func (this *P2PServer) Start(node *node.Node) error {
 
-	cfg := this.ctx.Config()
-	config.DefConfig.Genesis.SeedList = cfg.P2PSeeds
-	config.DefConfig.P2PNode.NodePort = uint(cfg.P2PPort)
-	config.DefConfig.P2PNode.NodeConsensusPort = uint(cfg.P2PPortConsensus)
+	//cfg := this.ctx.Config()
+	//config.DefConfig.Genesis.SeedList = cfg.P2PSeeds
+	//config.DefConfig.P2PNode.NodePort = uint(cfg.P2PPort)
+	//config.DefConfig.P2PNode.NodeConsensusPort = uint(cfg.P2PPortConsensus)
 
 	if this.Network != nil {
 		this.Network.Start(node)
