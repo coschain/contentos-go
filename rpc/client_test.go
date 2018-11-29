@@ -258,6 +258,7 @@ func TestGRPCApi_BroadcastTrx(t *testing.T) {
 	//if test account is created in current db, pls comment out createAccount method
 	pushTrx(t, createAccountTxReq(t))
 
+	time.Sleep(time.Second * 15)
 	pushTrx(t, createUnfollowTxReq(t))
 	getFollowerList(t)
 	pushTrx(t, createFollowTxReq(t))

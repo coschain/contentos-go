@@ -190,7 +190,7 @@ func (ev *ReplyEvaluator) Apply() {
 
 	authorWrap := table.NewSoAccountWrap(ev.ctx.db, op.Owner)
 	elapsedSeconds := ev.ctx.control.HeadBlockTime().UtcSeconds - authorWrap.GetLastPostTime().UtcSeconds
-	opAssert(elapsedSeconds > constants.MIN_POST_INTERVAL, "posting frequently")
+	opAssert(elapsedSeconds > constants.MIN_POST_INTERVAL, "reply frequently")
 
 	var rootId uint64
 	if pidWrap.GetRootId() == 0 {
