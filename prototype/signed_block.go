@@ -24,6 +24,11 @@ func (sb *SignedBlock) Unmarshall(buff []byte) error {
 
 func (sb *SignedBlock) Previous() common.BlockID {
 	var ret common.BlockID
+	if sb.SignedHeader == nil || sb.SignedHeader.Header == nil ||
+		sb.SignedHeader.Header.Previous == nil ||
+		len(sb.SignedHeader.Header.Previous.Hash) != 32 {
+		return ret
+	}
 	copy(ret.Data[:], sb.SignedHeader.Header.Previous.Hash[:32])
 	return ret
 }

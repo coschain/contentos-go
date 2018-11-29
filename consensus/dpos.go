@@ -24,7 +24,6 @@ func timeToNextSec() time.Duration {
 	return ceil.Sub(now)
 }
 
-
 type DPoS struct {
 	iservices.IConsensus
 	node   *node.Node
@@ -58,9 +57,9 @@ func NewDPoS(ctx *node.ServiceContext) *DPoS {
 		prodTimer: time.NewTimer(1 * time.Millisecond),
 		trxCh:     make(chan func()),
 		//trxRetCh:  make(chan common.ITransactionInvoice),
-		blkCh:     make(chan common.ISignedBlock),
-		ctx:       ctx,
-		stopCh:    make(chan struct{}),
+		blkCh:  make(chan common.ISignedBlock),
+		ctx:    ctx,
+		stopCh: make(chan struct{}),
 	}
 	ret.SetBootstrap(ctx.Config().Consensus.BootStrap)
 	ret.Name = ctx.Config().Consensus.LocalBpName
@@ -369,7 +368,7 @@ func (d *DPoS) PushTransaction(trx common.ISignedTransaction, wait bool, broadca
 		}
 	}
 	if wait {
-		return <- waitChan
+		return <-waitChan
 	} else {
 		return nil
 	}
@@ -539,6 +538,7 @@ func (d *DPoS) GetIDs(start, end common.BlockID) ([]common.BlockID, error) {
 	length := end.BlockNum() - start.BlockNum() + 1
 	ret := make([]common.BlockID, 0, length)
 	if start != blocks[0].Previous() {
+		logging.CLog().Debugf("[GetIDs] <from: %v, to: %v> start %v", start, end, blocks[0].Previous())
 		return nil, fmt.Errorf("[DPoS GetIDs] internal error")
 	}
 
@@ -593,10 +593,8 @@ func (d *DPoS) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, error
 
 	ret := make([]common.ISignedBlock, 0, length)
 	idNum := id.BlockNum()
-	start := idNum
-	if start < 1 {
-		start = 1
-	}
+	start := idNum + 1
+
 	end := uint64(d.blog.Size())
 	for start <= end {
 		var b prototype.SignedBlock
