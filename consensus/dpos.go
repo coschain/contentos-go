@@ -363,6 +363,10 @@ func (d *DPoS) pushBlock(b common.ISignedBlock) error {
 	head := d.ForkDB.Head()
 	newHead := d.ForkDB.PushBlock(b)
 
+	if head == nil && b.Id().BlockNum() != 1 {
+		logging.CLog().Errorf("[DPoS] the first block pushed should have number of 1, got ", b.Id().BlockNum())
+		return fmt.Errorf("invalid block number")
+	}
 	if newHead == head {
 		// this implies that b is a:
 		// 1. detached block or

@@ -362,11 +362,11 @@ func (c *Controller) notifyBlockApply(block *prototype.SignedBlock) {
 // calculate reward for creator and witness
 func (c *Controller) processBlock() {
 }
-func (c *Controller) applyTransaction(trxWrp *prototype.TransactionWrapper) {
-	c.applyTransaction(trxWrp)
-	// @ not use yet
-	//c.notifyTrxPostExecute(trxWrp.SigTrx)
-}
+//func (c *Controller) applyTransaction(trxWrp *prototype.TransactionWrapper) {
+//	c.applyTransaction(trxWrp)
+//	// @ not use yet
+//	//c.notifyTrxPostExecute(trxWrp.SigTrx)
+//}
 func (c *Controller) applyTransaction(trxWrp *prototype.TransactionWrapper) {
 	defer func() {
 		if err := recover(); err != nil {
@@ -509,17 +509,17 @@ func (c *Controller) getEvaluator(op *prototype.Operation) BaseEvaluator {
 	}
 }
 
-func (c *Controller) applyBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag) {
-	oldFlag := c.skip
-	defer func() {
-		c.skip = oldFlag
-	}()
-
-	c.skip = skip
-	c.applyBlock(blk, skip)
-
-	// @ tps update
-}
+//func (c *Controller) applyBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag) {
+//	oldFlag := c.skip
+//	defer func() {
+//		c.skip = oldFlag
+//	}()
+//
+//	c.skip = skip
+//	c.applyBlock(blk, skip)
+//
+//	// @ tps update
+//}
 
 func (c *Controller) applyBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag) {
 	nextBlockNum := blk.Id().BlockNum()
