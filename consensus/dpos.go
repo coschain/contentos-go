@@ -506,7 +506,7 @@ func (d *DPoS) GetHeadBlockId() common.BlockID {
 	return d.ForkDB.Head().Id()
 }
 
-func (d *DPoS) GetIDes(start, end common.BlockID) ([]common.BlockID, error) {
+func (d *DPoS) GetIDs(start, end common.BlockID) ([]common.BlockID, error) {
 	ret := make([]common.BlockID, 10)
 	length := 0
 	for end != start {
