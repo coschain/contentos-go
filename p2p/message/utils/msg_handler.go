@@ -103,7 +103,7 @@ func BlockHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	log.Trace("[p2p]receive block message from ", data.Addr, data.Id)
 
 	var block = data.Payload.(*msg.SigBlkMsg)
-	log.Info("receive a SignedBlock msg:   ", block)
+	//log.Info("receive a SignedBlock msg:   ", block)
 
 	s, err := p2p.GetService(iservices.ConsensusServerName)
 	if err != nil {
@@ -125,7 +125,7 @@ func TransactionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface
 	log.Trace("[p2p]receive transaction message", data.Addr, data.Id)
 
 	var trn = data.Payload.(*msg.BroadcastSigTrx)
-	log.Info("receive a SignedTransaction msg:   ", trn)
+	//log.Info("receive a SignedTransaction msg:   ", trn)
 
 	s, err := p2p.GetService(iservices.ConsensusServerName)
 	if err != nil {
@@ -445,7 +445,7 @@ func IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	remotePeer := p2p.GetPeerFromAddr(data.Addr)
 	switch msgdata.Msgtype {
 	case msg.IdMsg_broadcast_sigblk_id:
-		log.Info("receive a msg from:    v%    data:   %v\n", data.Addr, *msgdata)
+		//log.Info("receive a msg from:    v%    data:   %v\n", data.Addr, *msgdata)
 		length := len(msgdata.Value[0])
 		if length > prototype.Size {
 			log.Info("block id length beyond the limit ", prototype.Size)
@@ -472,10 +472,10 @@ func IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 				log.Warn(err)
 				return
 			}
-			log.Info("send a message to:   v%   data:   v%\n", data.Addr, reqmsg)
+			//log.Info("send a message to:   v%   data:   v%\n", data.Addr, reqmsg)
 		}
 	case msg.IdMsg_request_sigblk_by_id:
-		log.Info("receive a msg from:    v%    data:   %v\n", data.Addr, *msgdata)
+		//log.Info("receive a msg from:    v%    data:   %v\n", data.Addr, *msgdata)
 		for i, id := range msgdata.Value {
 			length := len(msgdata.Value[i])
 			if length > prototype.Size {
@@ -508,10 +508,10 @@ func IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 				log.Warn(err)
 				return
 			}
-			log.Info("send a SignedBlock msg to   v%   data   v%\n", data.Addr, msg)
+			//log.Info("send a SignedBlock msg to   v%   data   v%\n", data.Addr, msg)
 		}
 	case msg.IdMsg_request_id_ack:
-		log.Info("receive a msg from:    v%    data:   %v\n", data.Addr, *msgdata)
+		//log.Info("receive a msg from:    v%    data:   %v\n", data.Addr, *msgdata)
 		var reqmsg msg.IdMsg
 		reqmsg.Msgtype = msg.IdMsg_request_sigblk_by_id
 		for _, id := range msgdata.Value {
@@ -545,7 +545,7 @@ func IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 			log.Warn(err)
 			return
 		}
-		log.Info("send a message to:   v%   data:   v%\n", remotePeer, reqmsg)
+		//log.Info("send a message to:   v%   data:   v%\n", remotePeer, reqmsg)
 	default:
 		log.Warnf("[p2p]Unknown id message %v", msgdata)
 	}
@@ -561,7 +561,7 @@ func ReqIdHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 		return
 	}
 
-	log.Info("receive a ReqIdMsg from   v%    data   v%\n", data.Addr, msgdata.HeadBlockId)
+	//log.Info("receive a ReqIdMsg from   v%    data   v%\n", data.Addr, msgdata.HeadBlockId)
 
 	s, err := p2p.GetService(iservices.ConsensusServerName)
 	if err != nil {
@@ -583,13 +583,13 @@ func ReqIdHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 		return
 	}
 
-	log.Info("start:   ", remote_head_blk_id)
-	log.Info("end:     ", current_head_blk_id)
+	//log.Info("start:   ", remote_head_blk_id)
+	//log.Info("end:     ", current_head_blk_id)
 
 	ids, err := ctrl.GetIDs(remote_head_blk_id, current_head_blk_id)
 	if err != nil {
 		log.Info("can't get gap ids from consessus, ", err)
-		// TODO:
+		return
 	}
 	if len(ids) == 0 {
 		log.Info("we have same blocks, no need to request from me")
@@ -613,5 +613,5 @@ func ReqIdHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 		log.Warn(err)
 		return
 	}
-	log.Info("send a message to:   v%   data:   v%\n", remotePeer, reqmsg)
+	//log.Info("send a message to:   v%   data:   v%\n", remotePeer, reqmsg)
 }
