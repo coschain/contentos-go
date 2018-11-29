@@ -495,7 +495,7 @@ func IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 
 			IsigBlk, err := ctrl.FetchBlock(blkId)
 			if err != nil {
-				log.Info("can't get IsigBlk from consensus")
+				log.Info("can't get IsigBlk from consensus, block number: ", blkId.BlockNum())
 				return
 			}
 			sigBlk := IsigBlk.(*prototype.SignedBlock)
@@ -609,4 +609,5 @@ func ReqIdHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 		log.Warn(err)
 		return
 	}
+	log.Info("send a message to:   v%   data:   v%\n", remotePeer, reqmsg)
 }

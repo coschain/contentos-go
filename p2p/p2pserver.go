@@ -534,6 +534,7 @@ func (this *P2PServer) TriggerSync(current_head_blk_id coomn.BlockID) {
 	reqmsg := new(msg.ReqIdMsg)
 	reqmsg.HeadBlockId = current_head_blk_id.Data[:]
 	for _, p := range this.Network.GetNp().List {
+		log.Info("cons call TriggerSync func")
 		p.Send(reqmsg, false)
 	}
 }
