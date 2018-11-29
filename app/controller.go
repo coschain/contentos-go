@@ -206,8 +206,10 @@ func (c *Controller) ClearPending() []*prototype.TransactionWrapper {
 	c.pending_tx = c.pending_tx[:0]
 
 	if c.skip&prototype.Skip_apply_transaction == 0 {
-		mustNoError(c.db.EndTransaction(false), "EndTransaction error")
-		c.havePendingTransaction = false
+		if c.havePendingTransaction == true {
+			mustNoError(c.db.EndTransaction(false), "EndTransaction error")
+			c.havePendingTransaction = false
+		}
 	}
 
 	return res
@@ -240,7 +242,7 @@ func (c *Controller) GenerateBlock(witness string, pre *prototype.Sha256, timest
 	defer func() {
 		c.skip = oldSkip
 		if err := recover(); err != nil {
-			mustNoError(c.db.EndTransaction(false), "EndTransaction error")
+			//mustNoError(c.db.EndTransaction(false), "EndTransaction error")
 			logging.CLog().Errorf("GenerateBlock Error: %v", err)
 			panic(err)
 		}
@@ -331,6 +333,7 @@ func (c *Controller) GenerateBlock(witness string, pre *prototype.Sha256, timest
 	}*/
 
 	mustNoError(c.db.EndTransaction(false), "EndTransaction error")
+	c.havePendingTransaction = false
 
 	return signBlock
 }
