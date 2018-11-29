@@ -74,11 +74,7 @@ func initConf(cmd *cobra.Command, args []string) {
 	}
 
 	for i := 0; i < nodeCount; i++ {
-		if i == nodeCount-1 {
-			seeds = append(seeds, fmt.Sprintf("\"127.0.0.1:%d\"", i*2+p2pPortStart))
-		} else {
-			seeds = append(seeds, fmt.Sprintf("\"127.0.0.1:%d\",", i*2+p2pPortStart))
-		}
+			seeds = append(seeds, fmt.Sprintf("127.0.0.1:%d", i*2+p2pPortStart))
 	}
 
 	fmt.Println(seeds)
