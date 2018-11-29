@@ -509,22 +509,25 @@ func (d *DPoS) GetHeadBlockId() common.BlockID {
 }
 
 func (d *DPoS) GetIDs(start, end common.BlockID) ([]common.BlockID, error) {
-	ret := make([]common.BlockID, 10)
-	length := 0
-	for end != start {
-		b, err := d.ForkDB.FetchBlock(end)
-		if err != nil {
-			return nil, err
-		}
-		ret = append(ret, end)
-		end = b.Previous()
-		length++
+	blocks, err := d.FetchBlocksSince(start)
+	if err != nil {
+		return nil, err
 	}
-	ret = append(ret, end)
-	ret = ret[:length]
-	for i := 0; i <= (length-1)/2; i++ {
-		ret[i], ret[length-1-i] = ret[length-1-i], ret[i]
+
+	if len(blocks) == 0 {
+		return nil, nil
 	}
+
+	length := end.BlockNum() - start.BlockNum() + 1
+	ret := make([]common.BlockID, 0, length)
+	if start != blocks[0].Id() {
+		return nil, fmt.Errorf("[DPoS GetIDs] internal error")
+	}
+
+	for i := 0; i < int(length) && i < len(blocks); i++ {
+		ret = append(ret, blocks[i].Id())
+	}
+
 	return ret, nil
 }
 
@@ -534,7 +537,7 @@ func (d *DPoS) FetchBlock(id common.BlockID) (common.ISignedBlock, error) {
 	}
 
 	var b prototype.SignedBlock
-	if err := d.blog.ReadBlock(&b, int64(id.BlockNum())); err != nil {
+	if err := d.blog.ReadBlock(&b, int64(id.BlockNum())); err == nil {
 		if b.Id() == id {
 			return &b, nil
 		}
@@ -564,7 +567,7 @@ func (d *DPoS) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, error
 		return blocks, err
 	}
 
-	ret := make([]common.ISignedBlock, constants.MAX_WITNESSES*2/3)
+	ret := make([]common.ISignedBlock, 0, constants.MAX_WITNESSES*2/3)
 	idNum := id.BlockNum()
 	start := idNum
 	end := uint64(d.blog.Size() - 1)
