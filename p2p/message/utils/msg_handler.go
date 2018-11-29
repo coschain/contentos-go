@@ -571,9 +571,20 @@ func ReqIdHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	var remote_head_blk_id common.BlockID
 	copy(remote_head_blk_id.Data[:], msgdata.HeadBlockId)
 	current_head_blk_id := ctrl.GetHeadBlockId()
+
+	start := remote_head_blk_id.BlockNum()
+	end := current_head_blk_id.BlockNum()
+
+	if start >= end {
+		log.Info("no need to get ids")
+		log.Info("remote_head_blk_id:   v%", remote_head_blk_id)
+		log.Info("current_head_blk_id:   v%", current_head_blk_id)
+		return
+	}
+
 	ids, err := ctrl.GetIDs(remote_head_blk_id, current_head_blk_id)
 	if err != nil {
-		log.Info("can't get gap ids from consessus")
+		log.Info("can't get gap ids from consessus, ", err)
 		// TODO:
 	}
 	if len(ids) == 0 {
