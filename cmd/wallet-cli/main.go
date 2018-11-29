@@ -142,6 +142,7 @@ func addCommands() {
 	rootCmd.AddCommand(commands.FollowCmd())
 	rootCmd.AddCommand(commands.FollowCntCmd())
 	rootCmd.AddCommand(commands.MultinodetesterCmd())
+	rootCmd.AddCommand(commands.SwitchPortcmd())
 }
 
 func init() {
@@ -166,6 +167,8 @@ func main() {
 		common.Fatalf("Chain should have been run first")
 	} else {
 		rootCmd.SetContext("rpcclient", grpcpb.NewApiServiceClient(conn))
+		// for switch port
+		rootCmd.SetContext("rpcclient_raw", conn)
 	}
 
 	inheritContext(rootCmd)

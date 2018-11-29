@@ -43,7 +43,7 @@ func makeMultiNodeTeseterTrx( count int64, onlyCreate bool) (*prototype.SignedTr
 	}
 
 
-	for index := int64(0); index < count; index++ {
+	for index := int64(1); index < count; index++ {
 		bpName := fmt.Sprintf("%s%d", constants.INIT_MINER_NAME, index)
 		keys,err := prototype.GenerateNewKeyFromBytes( []byte(bpName) )
 		if err != nil{

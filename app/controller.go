@@ -13,7 +13,7 @@ import (
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/golang/protobuf/proto"
-	"github.com/kataras/go-errors"
+	"github.com/pkg/errors"
 	"strconv"
 	"time"
 )
