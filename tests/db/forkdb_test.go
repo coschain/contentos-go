@@ -148,7 +148,7 @@ func TestForkDB(t *testing.T) {
 	assert.Equal(9, db.TotalBlockNum())
 
 	var afterCommit []common.BlockID
-	afterCommit = append(afterCommit, msb1_2.Id(), msb1_3.Id(), msb1_4.Id())
+	afterCommit = append(afterCommit, msb1_3.Id(), msb1_4.Id())
 	db.Commit(msb1_2.Id())
 	_, ids, err := db.FetchBlocksSince(msb1_2.Id())
 	for i := 0; i < len(ids); i++ {

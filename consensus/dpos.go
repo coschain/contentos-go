@@ -529,15 +529,67 @@ func (d *DPoS) GetIDs(start, end common.BlockID) ([]common.BlockID, error) {
 }
 
 func (d *DPoS) FetchBlock(id common.BlockID) (common.ISignedBlock, error) {
-	return d.ForkDB.FetchBlock(id)
+	if b, err := d.ForkDB.FetchBlock(id); err == nil {
+		return b, nil
+	}
+
+	var b prototype.SignedBlock
+	if err := d.blog.ReadBlock(&b, int64(id.BlockNum())); err != nil {
+		if b.Id() == id {
+			return &b, nil
+		}
+	}
+
+	return nil, fmt.Errorf("[DPoS FetchBlock] block with id %v doesn't exist", id)
 }
 
 func (d *DPoS) HasBlock(id common.BlockID) bool {
-	_, err := d.ForkDB.FetchBlock(id)
-	return err == nil
+	if _, err := d.ForkDB.FetchBlock(id); err == nil {
+		return true
+	}
+
+	var b prototype.SignedBlock
+	if err := d.blog.ReadBlock(&b, int64(id.BlockNum())); err != nil {
+		if b.Id() == id {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (d *DPoS) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, error) {
-	blocks, _, err := d.ForkDB.FetchBlocksSince(id)
-	return blocks, err
+	if id.BlockNum() >= d.ForkDB.Head().Id().BlockNum() {
+		blocks, _, err := d.ForkDB.FetchBlocksSince(id)
+		return blocks, err
+	}
+
+	ret := make([]common.ISignedBlock, constants.MAX_WITNESSES*2/3)
+	idNum := id.BlockNum()
+	start := idNum
+	end := uint64(d.blog.Size()-1)
+	for start <= end {
+		var b prototype.SignedBlock
+		if err := d.blog.ReadBlock(&b, int64(start)); err != nil {
+			return nil, err
+		}
+
+		if start == idNum && b.Id() != id {
+			return nil, fmt.Errorf("blockchain doesn't have block with id %v", id)
+		}
+
+		ret = append(ret, &b)
+		start++
+
+		if start > end && b.Id() != d.ForkDB.LastCommitted()  {
+			panic("ForkDB and BLog inconsistent state")
+		}
+	}
+
+	blocksInForkDB, _, err := d.ForkDB.FetchBlocksSince(d.ForkDB.LastCommitted())
+	if err != nil {
+		return nil, err
+	}
+	ret = append(ret, blocksInForkDB...)
+	return ret, nil
 }
