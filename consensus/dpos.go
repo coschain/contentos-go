@@ -357,7 +357,10 @@ func (d *DPoS) PushTransaction(trx common.ISignedTransaction, wait bool, broadca
 
 	d.trxCh <- func() {
 		ret := d.ctrl.PushTrx(trx.(*prototype.SignedTransaction))
-		waitChan <- ret
+
+		if wait {
+			waitChan <- ret
+		}
 		if ret.IsSuccess() {
 			if broadcast {
 				logging.CLog().Debug("DPoS Broadcast trx.")
