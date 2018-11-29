@@ -160,7 +160,11 @@ func (d *DPoS) scheduleProduce() bool {
 			d.readyToProduce = true
 		} else {
 			d.prodTimer.Reset(timeToNextSec())
-			// TODO: p2p sync
+			var headID common.BlockID
+			if !d.ForkDB.Empty() {
+				headID = d.ForkDB.Head().Id()
+			}
+			d.p2p.TriggerSync(headID)
 			//logging.CLog().Info("checkSync failed.")
 			return false
 		}
@@ -374,7 +378,6 @@ func (d *DPoS) pushBlock(b common.ISignedBlock) error {
 		// 3. head of a non-main branch or
 		// 4. illegal block
 		logging.CLog().Debugf("[pushBlock]possibly detached block. prev: got %v, want %v", b.Id(), head.Id())
-		// TODO: if it's detached, trigger sync
 		return nil
 	} else if head != nil && newHead.Previous() != head.Id() {
 		logging.CLog().Debug("[DPoS] start to switch fork.")
