@@ -401,7 +401,7 @@ func (d *DPoS) pushBlock(b common.ISignedBlock) error {
 	}
 
 	lastCommitted := d.ForkDB.LastCommitted()
-	logging.CLog().Debug("last committed: ", lastCommitted.BlockNum())
+	//logging.CLog().Debug("last committed: ", lastCommitted.BlockNum())
 	var commitIdx uint64
 	if newHead.Id().BlockNum()-lastCommitted.BlockNum() > 3 /*constants.MAX_WITNESSES*2/3*/ {
 		if lastCommitted == common.EmptyBlockID {
@@ -538,7 +538,7 @@ func (d *DPoS) FetchBlock(id common.BlockID) (common.ISignedBlock, error) {
 	}
 
 	var b prototype.SignedBlock
-	if err := d.blog.ReadBlock(&b, int64(id.BlockNum())); err == nil {
+	if err := d.blog.ReadBlock(&b, int64(id.BlockNum())-1); err == nil {
 		if b.Id() == id {
 			return &b, nil
 		}
@@ -553,7 +553,7 @@ func (d *DPoS) HasBlock(id common.BlockID) bool {
 	}
 
 	var b prototype.SignedBlock
-	if err := d.blog.ReadBlock(&b, int64(id.BlockNum())); err == nil {
+	if err := d.blog.ReadBlock(&b, int64(id.BlockNum())-1); err == nil {
 		if b.Id() == id {
 			return true
 		}
