@@ -64,6 +64,7 @@ func NewDPoS(ctx *node.ServiceContext) *DPoS {
 	}
 	ret.SetBootstrap(ctx.Config().Consensus.BootStrap)
 	ret.Name = ctx.Config().Consensus.LocalBpName
+	logging.CLog().Info("[DPoS bootstrap] ", ctx.Config().Consensus.BootStrap)
 
 	privateKey := ctx.Config().Consensus.LocalBpPrivateKey
 	if len(privateKey) > 0{

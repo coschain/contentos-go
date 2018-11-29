@@ -87,6 +87,9 @@ func initConf(cmd *cobra.Command, args []string) {
 	for i:=0; i < nodeCount; i++ {
 		cfg := config.DefaultNodeConfig
 		cfg.Name = fmt.Sprintf("%s_%d", TesterClientIdentifier, i)
+		if i > 0 {
+			cfg.Consensus.BootStrap = false
+		}
 		confDir := filepath.Join(cfg.DataDir, cfg.Name)
 		addConf(confDir, cfg, i)
 	}
