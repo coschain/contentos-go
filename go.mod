@@ -24,6 +24,7 @@ require (
 	github.com/jackami/grpc-gateway v1.5.2
 	github.com/jehiah/go-strftime v0.0.0-20171201141054-1d33003b3869 // indirect
 	github.com/jonboulle/clockwork v0.1.0 // indirect
+	github.com/kataras/go-errors v0.0.3
 	github.com/keybase/go-ps v0.0.0-20161005175911-668c8856d999 // indirect
 	github.com/lestrrat/go-envload v0.0.0-20180220120943-6ed08b54a570 // indirect
 	github.com/lestrrat/go-file-rotatelogs v0.0.0-20180223000712-d3151e2a480f

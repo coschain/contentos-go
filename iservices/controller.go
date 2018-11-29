@@ -12,7 +12,7 @@ var CTRL_SERVER_NAME = "ctrl"
 
 type IController interface {
 	PushTrx(trx *prototype.SignedTransaction) *prototype.TransactionInvoice
-	PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag)
+	PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag) error
 	HeadBlockTime() *prototype.TimePointSec
 	GenerateBlock(witness string, pre *prototype.Sha256, timestamp uint32, priKey *prototype.PrivateKeyType, skip prototype.SkipFlag) *prototype.SignedBlock
 	GetWitnessTopN(n uint32) []string

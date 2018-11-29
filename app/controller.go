@@ -13,6 +13,7 @@ import (
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/golang/protobuf/proto"
+	"github.com/kataras/go-errors"
 	"strconv"
 	"time"
 )
@@ -160,18 +161,27 @@ func (c *Controller) _pushTrx(trx *prototype.SignedTransaction) *prototype.Trans
 	return trxWrp.Invoice
 }
 
-func (c *Controller) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag) {
+func (c *Controller) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag) error {
+	var err error = nil
 	oldFlag := c.skip
 	c.skip = skip
 
 	tmpPending := c.ClearPending()
 
 	defer func() {
-		if err := recover(); err != nil {
+		if r := recover(); r != nil {
 			c.skip = oldFlag
 			c.restorePending(tmpPending)
-			logging.CLog().Debug("push block error : ", err)
-			panic("PushBlock error")
+			switch x:= r.(type) {
+			case error:
+				err = x
+				logging.CLog().Errorf("push block error : ", x.Error())
+			case string:
+				err = errors.New(x)
+				logging.CLog().Errorf("push block error : ", x)
+			default:
+				err = errors.New("unknown panic type")
+			}
 		}
 	}()
 
@@ -184,6 +194,7 @@ func (c *Controller) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFl
 
 	blockNum := blk.Id().BlockNum()
 	c.saveReversion(uint32(blockNum))
+	return err
 }
 
 func (c *Controller) ClearPending() []*prototype.TransactionWrapper {

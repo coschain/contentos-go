@@ -482,9 +482,9 @@ func (d *DPoS) switchFork(old, new common.BlockID) {
 
 func (d *DPoS) applyBlock(b common.ISignedBlock) error {
 	//logging.CLog().Debug("applyBlock #", b.Id().BlockNum())
-	d.ctrl.PushBlock(b.(*prototype.SignedBlock), prototype.Skip_nothing)
+	err := d.ctrl.PushBlock(b.(*prototype.SignedBlock), prototype.Skip_nothing)
 	//logging.CLog().Debugf("applyBlock #%d finished.", b.Id().BlockNum())
-	return nil
+	return err
 }
 
 func (d *DPoS) popBlock(id common.BlockID) error {
