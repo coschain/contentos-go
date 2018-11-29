@@ -493,6 +493,9 @@ func (d *DPoS) popBlock(id common.BlockID) error {
 }
 
 func (d *DPoS) GetHeadBlockId() common.BlockID {
+	if d.ForkDB.Empty() {
+		return common.EmptyBlockID
+	}
 	return d.ForkDB.Head().Id()
 }
 
