@@ -82,7 +82,7 @@ func (gs *GRPCServer) startGRPC() error {
 	go func() {
 		grpc.NewServer()
 		if err := gs.rpcServer.Serve(listener); err != nil {
-			logging.VLog().Error("rpc server start failure")
+			logging.VLog().Error("rpc server start failure, %v", err)
 		} else {
 			logging.VLog().Info("rpc server start failure")
 		}

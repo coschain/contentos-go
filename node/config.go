@@ -13,13 +13,13 @@ const (
 
 type Config struct {
 	// Name refers the name of node's instance
-	Name string `toml:"-"`
+	Name string
 
 	// Version should be set to the version number of the program.
 	Version string `toml:"-"`
 
 	// DataDir is the root folder that store data and service-configs
-	DataDir string `toml:"-"`
+	DataDir string `toml:",omitempty"`
 
 	// HTTPHost is the host interface on which to start the HTTP RPC server.
 	HTTPHost string `toml:",omitempty"`
@@ -27,14 +27,14 @@ type Config struct {
 	// HTTPPort is the TCP port number on which to start the HTTP RPC server.
 	HTTPPort int `toml:",omitempty"`
 
-	P2PPort int `toml:",omitempty"`
-	P2PPortConsensus int `toml:",omitempty"`
-	P2PSeeds   []string `toml:",omitempty"`
+	P2PPort          int      `toml:",omitempty"`
+	P2PPortConsensus int      `toml:",omitempty"`
+	P2PSeeds         []string `toml:",omitempty"`
 
 	LogLevel string `toml:",omitempty"`
 
 	// Logger is a custom logger
-	Logger log.Logger `toml:",omitempty"`
+	Logger log.Logger `toml:"-"`
 
 	// Timer configuration
 
