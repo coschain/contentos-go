@@ -1,6 +1,6 @@
 package prototype
 
-func CosToVesting(cos *Coin) *Vest{
+func CosToVesting(cos *Coin) *Vest {
 	vest := &Vest{}
 	vest.Value = cos.Value
 	return vest

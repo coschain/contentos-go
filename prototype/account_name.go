@@ -13,12 +13,12 @@ func (m *AccountName) OpeEncode() ([]byte, error) {
 	return kope.Encode(m.Value)
 }
 
-func isValidNameChar( c byte ) bool {
-	if c >='0' && c <= '9'{
+func isValidNameChar(c byte) bool {
+	if c >= '0' && c <= '9' {
 		return true
-	} else if c >='a' && c <= 'z'{
+	} else if c >= 'a' && c <= 'z' {
 		return true
-	} else if c >='A' && c <= 'Z'{
+	} else if c >= 'A' && c <= 'Z' {
 		return true
 	} else {
 		return false
@@ -31,14 +31,14 @@ func (m *AccountName) Validate() error {
 	}
 
 	if len(m.Value) < 6 || len(m.Value) > 16 {
-		return errors.New("name length invalid: " + m.Value )
+		return errors.New("name length invalid: " + m.Value)
 	}
 
 	buf := []byte(m.Value)
 
 	for _, val := range buf {
-		if !isValidNameChar(val){
-			return errors.New("name contains invalid char: " + string(val) )
+		if !isValidNameChar(val) {
+			return errors.New("name contains invalid char: " + string(val))
 		}
 	}
 	return nil

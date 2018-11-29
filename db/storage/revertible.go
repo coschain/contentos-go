@@ -5,33 +5,33 @@ package storage
 //
 
 import (
-	"sync"
 	"bytes"
 	"encoding/gob"
-	"fmt"
 	"errors"
+	"fmt"
 	"github.com/coschain/contentos-go/common"
+	"sync"
 )
 
 const (
-	info_prefix = "__rev_info_"
-	key_rev_num = info_prefix + "rev_num"
+	info_prefix   = "__rev_info_"
+	key_rev_num   = info_prefix + "rev_num"
 	rev_op_prefix = info_prefix + "op_"
-	max_op_key = rev_op_prefix + "fffffffffffffffff"
-	min_op_key = rev_op_prefix + "000000000000000"
-	key_rev_tags = info_prefix + "rev_tags"
+	max_op_key    = rev_op_prefix + "fffffffffffffffff"
+	min_op_key    = rev_op_prefix + "000000000000000"
+	key_rev_tags  = info_prefix + "rev_tags"
 )
 
 type RevertibleDatabase struct {
-	db Database
-	rev revNumber
-	tag revTags
+	db   Database
+	rev  revNumber
+	tag  revTags
 	lock sync.RWMutex
 }
 
 type revNumber struct {
-	Current uint64		// current revision
-	Base uint64			// minimal revision that can be reverted to
+	Current uint64 // current revision
+	Base    uint64 // minimal revision that can be reverted to
 }
 
 func encodeRevNumber(r revNumber) []byte {
@@ -63,7 +63,7 @@ func (db *RevertibleDatabase) loadRevNum() {
 }
 
 func NewRevertibleDatabase(db Database) *RevertibleDatabase {
-	rdb := RevertibleDatabase{ db: db }
+	rdb := RevertibleDatabase{db: db}
 	rdb.lock.Lock()
 	defer rdb.lock.Unlock()
 
@@ -134,10 +134,10 @@ func (db *RevertibleDatabase) RevertToRevision(r uint64) error {
 			return errors.New("invalid revision log")
 		}
 	}
-	b.Put([]byte(key_rev_num), encodeRevNumber(revNumber{ r, db.rev.Base }))
+	b.Put([]byte(key_rev_num), encodeRevNumber(revNumber{r, db.rev.Base}))
 
 	tags := db.revTagsCopy()
-	cleanRevTags(&tags, revNumber{ r, db.rev.Base })
+	cleanRevTags(&tags, revNumber{r, db.rev.Base})
 	b.Put([]byte(key_rev_tags), encodeRevTags(tags))
 
 	err := b.Write()
@@ -181,10 +181,10 @@ func (db *RevertibleDatabase) RebaseToRevision(r uint64) error {
 			return errors.New("invalid revision log")
 		}
 	}
-	b.Put([]byte(key_rev_num), encodeRevNumber(revNumber{ db.rev.Current, r }))
+	b.Put([]byte(key_rev_num), encodeRevNumber(revNumber{db.rev.Current, r}))
 
 	tags := db.revTagsCopy()
-	cleanRevTags(&tags, revNumber{ db.rev.Current, r })
+	cleanRevTags(&tags, revNumber{db.rev.Current, r})
 	b.Put([]byte(key_rev_tags), encodeRevTags(tags))
 
 	err := b.Write()
@@ -223,14 +223,13 @@ func (db *RevertibleDatabase) put(key []byte, value []byte) error {
 	} else {
 		b.Put(keyOfReversionOp(db.rev.Current), encodeWriteOpSlice([]writeOp{{key, oldValue, false}}))
 	}
-	b.Put([]byte(key_rev_num), encodeRevNumber(revNumber{ db.rev.Current + 1, db.rev.Base }))
+	b.Put([]byte(key_rev_num), encodeRevNumber(revNumber{db.rev.Current + 1, db.rev.Base}))
 
 	if err = b.Write(); err == nil {
 		db.rev.Current++
 	}
 	return err
 }
-
 
 func (db *RevertibleDatabase) Put(key []byte, value []byte) error {
 	db.lock.Lock()
@@ -245,7 +244,7 @@ func (db *RevertibleDatabase) delete(key []byte) error {
 		b := db.db.NewBatch()
 		b.Delete(key)
 		b.Put(keyOfReversionOp(db.rev.Current), encodeWriteOpSlice([]writeOp{{key, oldValue, false}}))
-		b.Put([]byte(key_rev_num), encodeRevNumber(revNumber{ db.rev.Current + 1, db.rev.Base }))
+		b.Put([]byte(key_rev_num), encodeRevNumber(revNumber{db.rev.Current + 1, db.rev.Base}))
 
 		if err = b.Write(); err == nil {
 			db.rev.Current++
@@ -276,7 +275,7 @@ func (db *RevertibleDatabase) DeleteIterator(it Iterator) {
 }
 
 func (db *RevertibleDatabase) NewBatch() Batch {
-	return &revdbBatch{ db: db }
+	return &revdbBatch{db: db}
 }
 
 func (db *RevertibleDatabase) DeleteBatch(b Batch) {
@@ -300,30 +299,30 @@ func (b *revdbBatch) Write() error {
 		if op.Del && err == nil {
 			batch.Delete(op.Key)
 			reverts = append([]writeOp{{
-				Key: common.CopyBytes(op.Key),
+				Key:   common.CopyBytes(op.Key),
 				Value: common.CopyBytes(oldValue),
-				Del: false,
+				Del:   false,
 			}}, reverts...)
 		}
 		if !op.Del {
 			batch.Put(op.Key, op.Value)
 			if err == nil {
 				reverts = append([]writeOp{{
-					Key: common.CopyBytes(op.Key),
+					Key:   common.CopyBytes(op.Key),
 					Value: common.CopyBytes(oldValue),
-					Del: false,
+					Del:   false,
 				}}, reverts...)
 			} else {
 				reverts = append([]writeOp{{
-					Key: common.CopyBytes(op.Key),
+					Key:   common.CopyBytes(op.Key),
 					Value: nil,
-					Del: true,
+					Del:   true,
 				}}, reverts...)
 			}
 		}
 	}
 	batch.Put(keyOfReversionOp(b.db.rev.Current), encodeWriteOpSlice(reverts))
-	batch.Put([]byte(key_rev_num), encodeRevNumber(revNumber{ b.db.rev.Current + 1, b.db.rev.Base }))
+	batch.Put([]byte(key_rev_num), encodeRevNumber(revNumber{b.db.rev.Current + 1, b.db.rev.Base}))
 
 	err := batch.Write()
 	if err == nil {
@@ -337,12 +336,12 @@ func (b *revdbBatch) Reset() {
 }
 
 func (b *revdbBatch) Put(key []byte, value []byte) error {
-	b.op = append(b.op, writeOp{ common.CopyBytes(key), common.CopyBytes(value), false })
+	b.op = append(b.op, writeOp{common.CopyBytes(key), common.CopyBytes(value), false})
 	return nil
 }
 
 func (b *revdbBatch) Delete(key []byte) error {
-	b.op = append(b.op, writeOp{ common.CopyBytes(key), nil, true })
+	b.op = append(b.op, writeOp{common.CopyBytes(key), nil, true})
 	return nil
 }
 
@@ -352,7 +351,7 @@ func (b *revdbBatch) Delete(key []byte) error {
 
 type revTags struct {
 	Rev2Tag map[uint64]string
- 	Tag2Rev map[string]uint64
+	Tag2Rev map[string]uint64
 }
 
 func encodeRevTags(rt revTags) []byte {
@@ -380,11 +379,11 @@ func (db *RevertibleDatabase) loadRevTags() {
 			return
 		}
 	}
-	db.tag = revTags{ map[uint64]string{}, map[string]uint64{} }
+	db.tag = revTags{map[uint64]string{}, map[string]uint64{}}
 }
 
 func (db *RevertibleDatabase) revTagsCopy() revTags {
-	c := revTags{ map[uint64]string{}, map[string]uint64{} }
+	c := revTags{map[uint64]string{}, map[string]uint64{}}
 	for k, v := range db.tag.Rev2Tag {
 		c.Rev2Tag[k] = v
 	}

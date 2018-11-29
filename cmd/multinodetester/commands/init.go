@@ -13,7 +13,6 @@ import (
 	"strconv"
 )
 
-
 var InitCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "init count(default 3)",
@@ -48,8 +47,8 @@ func addConf(confdir string, cfg node.Config, index int) {
 
 	if index > 0 {
 		cfg.Consensus.LocalBpName = fmt.Sprintf("%s%d", constants.INIT_MINER_NAME, index)
-		key, err := prototype.GenerateNewKeyFromBytes([]byte(cfg.Consensus.LocalBpName) )
-		if err != nil{
+		key, err := prototype.GenerateNewKeyFromBytes([]byte(cfg.Consensus.LocalBpName))
+		if err != nil {
 			panic(err)
 		}
 		cfg.Consensus.LocalBpPrivateKey = key.ToWIF()
@@ -67,24 +66,24 @@ func initConf(cmd *cobra.Command, args []string) {
 	var nodeCount int = 3
 	if len(args) > 0 {
 		cnt, err := strconv.Atoi(args[0])
-		if err != nil{
+		if err != nil {
 			fmt.Println(err)
 			return
 		}
 		nodeCount = cnt
 	}
 
-	for i:=0; i < nodeCount; i++ {
-		if i == nodeCount-1{
-			seeds = append(seeds, fmt.Sprintf("\"127.0.0.1:%d\"", i*2 + p2pPortStart) )
+	for i := 0; i < nodeCount; i++ {
+		if i == nodeCount-1 {
+			seeds = append(seeds, fmt.Sprintf("\"127.0.0.1:%d\"", i*2+p2pPortStart))
 		} else {
-			seeds = append(seeds, fmt.Sprintf("\"127.0.0.1:%d\",", i*2 + p2pPortStart) )
+			seeds = append(seeds, fmt.Sprintf("\"127.0.0.1:%d\",", i*2+p2pPortStart))
 		}
 	}
 
 	fmt.Println(seeds)
 
-	for i:=0; i < nodeCount; i++ {
+	for i := 0; i < nodeCount; i++ {
 		cfg := config.DefaultNodeConfig
 		cfg.Name = fmt.Sprintf("%s_%d", TesterClientIdentifier, i)
 		if i > 0 {

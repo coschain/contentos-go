@@ -23,14 +23,13 @@ func (m *ReplyOperation) GetRequiredActive(auths *map[string]bool) {
 	(*auths)[m.Owner.Value] = true
 }
 
-
-func (m *ReplyOperation)Validate() error {
+func (m *ReplyOperation) Validate() error {
 	if m == nil {
 		return ErrNpe
 	}
 
-	if err := m.Owner.Validate(); err != nil{
-		return errors.WithMessage(err, "Follower error" )
+	if err := m.Owner.Validate(); err != nil {
+		return errors.WithMessage(err, "Follower error")
 	}
 
 	if m.Uuid == 0 {

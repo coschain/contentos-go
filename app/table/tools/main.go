@@ -4,13 +4,13 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
-	"text/template"
 	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
 	"strconv"
 	"strings"
+	"text/template"
 	"unicode"
 )
 
@@ -35,7 +35,7 @@ func (p *PropList) ToString() string {
 	s := ""
 	if checkIsSliceType(p.VarType) {
 		s = fmt.Sprintf("\trepeated  \t%s\t%s = %d;\n", formatPbSliceType(p.VarType), p.VarName, p.Index)
-	}else {
+	} else {
 		s = fmt.Sprintf("\t%s\t%s = %d;\n", p.VarType, p.VarName, p.Index)
 	}
 	return s
@@ -54,10 +54,10 @@ func (p *PropList) Parse(info []string, index uint32) bool {
 		return false
 	}
 	p.VarType = info[0]
-	if strings.HasPrefix(p.VarType,"[]byte")  {
-		p.VarType = strings.Replace(p.VarType,"[]byte", "bytes",-1)
+	if strings.HasPrefix(p.VarType, "[]byte") {
+		p.VarType = strings.Replace(p.VarType, "[]byte", "bytes", -1)
 	}
-	if strings.HasPrefix(p.VarType,"int") || strings.HasPrefix(p.VarType,"uint") {
+	if strings.HasPrefix(p.VarType, "int") || strings.HasPrefix(p.VarType, "uint") {
 		p.VarType = conToInt32Str(p.VarType)
 	}
 	p.VarName = name
@@ -96,7 +96,7 @@ func (p *PropList) Parse(info []string, index uint32) bool {
 	p.Index = index
 
 	if len(info) > 6 && len(info[6]) > 0 {
-		impPath := strings.Replace(info[6]," ","",-1)
+		impPath := strings.Replace(info[6], " ", "", -1)
 		if len(impPath) > 0 {
 			p.impPath = impPath
 		}
@@ -184,13 +184,13 @@ func ProcessCSVFile(fileName string, name string) bool {
 			//create detail go file (include update insert delete functions)
 			cRes, cErr := CreateGoFile(tInfo)
 			if !cRes {
-				panic(fmt.Sprintf("create go file fail,name prefix is %s , error is %s",tInfo.Name,cErr))
+				panic(fmt.Sprintf("create go file fail,name prefix is %s , error is %s", tInfo.Name, cErr))
 			}
 		} else {
 			panic(fmt.Sprintf("create %s pb file fail,cmd error is %s", name, err))
 		}
-	}else {
-		panic(fmt.Sprintf("create so_%s.proto fail",name))
+	} else {
+		panic(fmt.Sprintf("create so_%s.proto fail", name))
 	}
 
 	return true
@@ -226,9 +226,9 @@ func WritePbTplToFile(tInfo TableInfo) (bool, error) {
 		if fPtr := CreateFile(fName); fPtr != nil {
 			t := template.New("pb_template")
 			funcMap := template.FuncMap{
-				"checkIsSliceType":checkIsSliceType,
-				"formatPbSliceType":formatPbSliceType,
-			    "getPbImpPaths":getPbImpPaths}
+				"checkIsSliceType":  checkIsSliceType,
+				"formatPbSliceType": formatPbSliceType,
+				"getPbImpPaths":     getPbImpPaths}
 			t = t.Funcs(funcMap)
 			t.Parse(tpl)
 			t.Execute(fPtr, tInfo)
@@ -403,64 +403,64 @@ func CheckUpperLetter(str string) bool {
 }
 
 func conToInt32Str(str string) string {
-	if strings.HasPrefix(str,"int") || strings.HasPrefix(str,"uint") {
-		tmpStr := strings.Replace(str, " ","",-1)
+	if strings.HasPrefix(str, "int") || strings.HasPrefix(str, "uint") {
+		tmpStr := strings.Replace(str, " ", "", -1)
 		reStr := ""
 		t32 := "int32"
 		t64 := "int64"
-		if strings.HasPrefix(str,"uint") {
-			t32,t64 = "uint32","uint64"
+		if strings.HasPrefix(str, "uint") {
+			t32, t64 = "uint32", "uint64"
 		}
 		switch tmpStr {
-		  case t32:
-			  reStr = ""
-		  case t64:
-			  reStr = ""
+		case t32:
+			reStr = ""
+		case t64:
+			reStr = ""
 		default:
 			reStr = t32
 		}
 		if reStr != "" {
-			str = strings.Replace(str,tmpStr,reStr,-1)
+			str = strings.Replace(str, tmpStr, reStr, -1)
 		}
 	}
 	return str
 }
 
 func checkIsSliceType(str string) bool {
-	if str != "" && strings.HasPrefix(str,"[]"){
+	if str != "" && strings.HasPrefix(str, "[]") {
 		return true
 	}
 	return false
 }
 
 func formatPbSliceType(str string) string {
-	if str != "" && strings.HasPrefix(str,"[]") {
-		return strings.Replace(str,"[]","",-1)
+	if str != "" && strings.HasPrefix(str, "[]") {
+		return strings.Replace(str, "[]", "", -1)
 	}
 	return str
 }
 
-func getPbImpPaths(pList []PropList) string  {
-	 res := ""
-	 if len(pList) > 0 {
-		 pMap := make(map[string]string)
-		 for _,v := range pList {
-		 	 if len(v.impPath) > 0 {
-				 pMap[v.impPath] = v.impPath
-			 }
-		 }
-		 count := len(pMap)
-		 if count > 0 {
+func getPbImpPaths(pList []PropList) string {
+	res := ""
+	if len(pList) > 0 {
+		pMap := make(map[string]string)
+		for _, v := range pList {
+			if len(v.impPath) > 0 {
+				pMap[v.impPath] = v.impPath
+			}
+		}
+		count := len(pMap)
+		if count > 0 {
 			i := 0
-			for _,v := range pMap {
+			for _, v := range pMap {
 				if i != 0 {
 					res += "\n"
 				}
 				res += "import " + "\"" + v + "\"" + ";"
 				i++
 			}
-		 }
-	 }
+		}
+	}
 
-     return res
+	return res
 }

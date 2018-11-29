@@ -346,7 +346,7 @@ func (db *DB) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, []comm
 	list1 := make([]common.BlockID, length)
 	cur := db.head
 	var idx int
-	for idx = int(length-1); idx >= 0; idx-- {
+	for idx = int(length - 1); idx >= 0; idx-- {
 		b, err := db.FetchBlock(cur)
 		if err != nil {
 			return nil, nil, err

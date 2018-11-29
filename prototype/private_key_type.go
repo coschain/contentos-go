@@ -2,23 +2,23 @@ package prototype
 
 import (
 	"bytes"
-	"fmt"
-	"github.com/coschain/contentos-go/common/crypto"
 	"crypto/ecdsa"
 	"crypto/sha256"
-	"math/big"
-	"github.com/itchyny/base58-go"
 	"errors"
+	"fmt"
+	"github.com/coschain/contentos-go/common/crypto"
 	"github.com/coschain/contentos-go/common/crypto/secp256k1"
+	"github.com/itchyny/base58-go"
+	"math/big"
 )
 
-func PrivateKeyFromECDSA( key *ecdsa.PrivateKey ) *PrivateKeyType {
+func PrivateKeyFromECDSA(key *ecdsa.PrivateKey) *PrivateKeyType {
 	result := new(PrivateKeyType)
 	result.Data = crypto.FromECDSA(key)
 	return result
 }
 
-func PrivateKeyFromWIF( encoded string ) (*PrivateKeyType, error) {
+func PrivateKeyFromWIF(encoded string) (*PrivateKeyType, error) {
 	if encoded == "" {
 		return nil, errors.New("invalid address 1")
 	}
@@ -40,14 +40,14 @@ func PrivateKeyFromWIF( encoded string ) (*PrivateKeyType, error) {
 	temp := sha256.Sum256(buf[:len(buf)-4])
 	temps := sha256.Sum256(temp[:])
 
-	if !bytes.Equal( temps[0:4], buf[len(buf)-4:] ){
+	if !bytes.Equal(temps[0:4], buf[len(buf)-4:]) {
 		return nil, errors.New("invalid address 4")
 	}
 
 	return PrivateKeyFromBytes(buf[:len(buf)-4]), nil
 }
 
-func GenerateNewKeyFromBytes( buff []byte ) (*PrivateKeyType, error) {
+func GenerateNewKeyFromBytes(buff []byte) (*PrivateKeyType, error) {
 
 	cBuff1 := sha256.Sum256(buff)
 
@@ -57,7 +57,7 @@ func GenerateNewKeyFromBytes( buff []byte ) (*PrivateKeyType, error) {
 
 	sigRawKey, err := crypto.GenerateKeyFromBytes(cBuff)
 
-	if err != nil{
+	if err != nil {
 		return nil, err
 	}
 
@@ -67,14 +67,14 @@ func GenerateNewKeyFromBytes( buff []byte ) (*PrivateKeyType, error) {
 func GenerateNewKey() (*PrivateKeyType, error) {
 	sigRawKey, err := crypto.GenerateKey()
 
-	if err != nil{
+	if err != nil {
 		return nil, err
 	}
 
 	return PrivateKeyFromECDSA(sigRawKey), nil
 }
 
-func PrivateKeyFromBytes( buffer []byte ) *PrivateKeyType {
+func PrivateKeyFromBytes(buffer []byte) *PrivateKeyType {
 	result := new(PrivateKeyType)
 	result.Data = buffer
 	return result
@@ -88,17 +88,17 @@ func (m *PrivateKeyType) ToECDSA() (*ecdsa.PrivateKey, error) {
 	return crypto.ToECDSA(m.Data)
 }
 
-func (m *PrivateKeyType) PubKey() (*PublicKeyType, error)  {
+func (m *PrivateKeyType) PubKey() (*PublicKeyType, error) {
 
-	sigRaw, err := crypto.ToECDSA( m.Data )
-	if err != nil{
+	sigRaw, err := crypto.ToECDSA(m.Data)
+	if err != nil {
 		return nil, err
 	}
-	buf := secp256k1.CompressPubkey( sigRaw.PublicKey.X, sigRaw.PublicKey.Y )
-	return PublicKeyFromBytes( buf ), nil
+	buf := secp256k1.CompressPubkey(sigRaw.PublicKey.X, sigRaw.PublicKey.Y)
+	return PublicKeyFromBytes(buf), nil
 }
 
-func (m *PrivateKeyType) ToWIF() string  {
+func (m *PrivateKeyType) ToWIF() string {
 	return m.ToBase58()
 }
 
@@ -114,9 +114,8 @@ func (m *PrivateKeyType) ToBase58() string {
 	return string(encoded)
 }
 
-
-func (m *PrivateKeyType) Validate () error {
-	if m == nil{
+func (m *PrivateKeyType) Validate() error {
+	if m == nil {
 		return ErrNpe
 	}
 	if len(m.Data) != 32 {
@@ -127,23 +126,23 @@ func (m *PrivateKeyType) Validate () error {
 
 func (m *PrivateKeyType) MarshalJSON() ([]byte, error) {
 	val := fmt.Sprintf("\"%s\"", m.ToWIF())
-	return []byte( val ), nil
+	return []byte(val), nil
 }
 
 func (m *PrivateKeyType) UnmarshalJSON(input []byte) error {
 
-	if len(input) < 2{
+	if len(input) < 2 {
 		return errors.New("private key length error")
 	}
-	if input[0] != '"'{
+	if input[0] != '"' {
 		return errors.New("private key error")
 	}
-	if input[ len(input)-1 ] != '"'{
+	if input[len(input)-1] != '"' {
 		return errors.New("private key error")
 	}
 
-	res ,err := PrivateKeyFromWIF( string( input[1:len(input)-1] ))
-	if err != nil{
+	res, err := PrivateKeyFromWIF(string(input[1 : len(input)-1]))
+	if err != nil {
 		return err
 	}
 	m.Data = res.Data

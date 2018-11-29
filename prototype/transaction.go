@@ -23,8 +23,8 @@ func (m *Transaction) Validate() error {
 		return errors.New("trx must has Operations")
 	}
 
-	for index,op := range m.Operations {
-		if err := validateOp(op); err != nil{
+	for index, op := range m.Operations {
+		if err := validateOp(op); err != nil {
 			return errors.WithMessage(err, fmt.Sprintf("Operation Error index: %d", index))
 		}
 	}
@@ -37,7 +37,7 @@ func (m *Transaction) SetReferenceBlock(id *common.BlockID) {
 	m.RefBlockPrefix = binary.BigEndian.Uint32(id.Data[8:12])
 }
 
-func validateOp(op *Operation)  error {
+func validateOp(op *Operation) error {
 	if op == nil {
 		return ErrNpe
 	}
@@ -124,7 +124,7 @@ func (m *Transaction) AddOperation(op interface{}) {
 		res.Op = &Operation_Op10{Op10: ptr}
 		break
 	default:
-		panic(fmt.Sprintf("error op type %v", op) )
+		panic(fmt.Sprintf("error op type %v", op))
 	}
 	m.Operations = append(m.Operations, res)
 }

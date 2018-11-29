@@ -11,26 +11,26 @@ import (
 )
 
 type protoColumn struct {
-	name string
-	typ reflect.Type
-	typeId string
-	field int
+	name      string
+	typ       reflect.Type
+	typeId    string
+	field     int
 	indexType TableIndexType
 }
 
 type protoTableBuilder struct {
-	tb *tableBuilder
-	typ reflect.Type
-	st reflect.Type
-	cols []protoColumn
+	tb         *tableBuilder
+	typ        reflect.Type
+	st         reflect.Type
+	cols       []protoColumn
 	colsByName map[string]int
-	vio *protoTableValueIO
+	vio        *protoTableValueIO
 }
 
 func ProtoTableBuilder(x proto.Message) *protoTableBuilder {
 	b := &protoTableBuilder{
-		tb: TableBuilder(),
-		typ: reflect.TypeOf(x),
+		tb:         TableBuilder(),
+		typ:        reflect.TypeOf(x),
 		colsByName: make(map[string]int),
 	}
 	b.tb.Name(proto.MessageName(x))
@@ -120,10 +120,10 @@ func (b *protoTableBuilder) parseProtoType() {
 			return
 		}
 		protoCol := protoColumn{
-			name: colName,
-			typ: f.Type,
-			typeId: typeName,
-			field: i,
+			name:      colName,
+			typ:       f.Type,
+			typeId:    typeName,
+			field:     i,
 			indexType: NotIndexed,
 		}
 		b.colsByName[protoCol.name] = len(b.cols)
@@ -132,23 +132,23 @@ func (b *protoTableBuilder) parseProtoType() {
 }
 
 func (b *protoTableBuilder) prepareValueIO() {
-	b.vio = &protoTableValueIO {
-		mt: b.typ,
-		st: b.st,
+	b.vio = &protoTableValueIO{
+		mt:   b.typ,
+		st:   b.st,
 		cols: b.cols,
 	}
 	b.tb.ValueIO(b.vio)
 }
 
 type protoTableValueIO struct {
-	mt reflect.Type
-	st reflect.Type
-	cols []protoColumn
+	mt         reflect.Type
+	st         reflect.Type
+	cols       []protoColumn
 	primaryCol int
-	prefix []byte
+	prefix     []byte
 }
 
-func (vio *protoTableValueIO) NewRow(dbGetter storage.DatabaseGetter, dbScanner storage.DatabaseScanner, dbPutter storage.DatabasePutter, dbDeleter storage.DatabaseDeleter, columnValues...interface{}) (rowKey []byte, err error) {
+func (vio *protoTableValueIO) NewRow(dbGetter storage.DatabaseGetter, dbScanner storage.DatabaseScanner, dbPutter storage.DatabasePutter, dbDeleter storage.DatabaseDeleter, columnValues ...interface{}) (rowKey []byte, err error) {
 	if len(columnValues) != len(vio.cols) {
 		return nil, errors.New(fmt.Sprintf("column count is %d, but %d values given.", len(vio.cols), len(columnValues)))
 	}
@@ -181,7 +181,7 @@ func (vio *protoTableValueIO) DeleteRow(dbGetter storage.DatabaseGetter, dbScann
 
 func (vio *protoTableValueIO) GetCellValue(dbGetter storage.DatabaseGetter, dbScanner storage.DatabaseScanner, rowKey []byte, columnIndex int) (interface{}, error) {
 	if columnIndex < 0 || columnIndex >= len(vio.cols) {
-		return nil, errors.New(fmt.Sprintf("columnIndex overflow: %d not in [%d, %d]", columnIndex, 0, len(vio.cols) - 1))
+		return nil, errors.New(fmt.Sprintf("columnIndex overflow: %d not in [%d, %d]", columnIndex, 0, len(vio.cols)-1))
 	}
 	msg, err := vio.getMessage(dbGetter, rowKey)
 	if err != nil {
@@ -192,7 +192,7 @@ func (vio *protoTableValueIO) GetCellValue(dbGetter storage.DatabaseGetter, dbSc
 
 func (vio *protoTableValueIO) SetCellValue(dbGetter storage.DatabaseGetter, dbScanner storage.DatabaseScanner, dbPutter storage.DatabasePutter, dbDeleter storage.DatabaseDeleter, rowKey []byte, columnIndex int, columnValue interface{}) error {
 	if columnIndex < 0 || columnIndex >= len(vio.cols) {
-		return errors.New(fmt.Sprintf("columnIndex overflow: %d not in [%d, %d]", columnIndex, 0, len(vio.cols) - 1))
+		return errors.New(fmt.Sprintf("columnIndex overflow: %d not in [%d, %d]", columnIndex, 0, len(vio.cols)-1))
 	}
 	col := vio.cols[columnIndex]
 	valType := reflect.TypeOf(columnValue)

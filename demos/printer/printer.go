@@ -27,7 +27,7 @@ func (t *Printer) getTimer() (iservices.ITimer, error) {
 	return timer, nil
 }
 
-func (t *Printer) Start(node* node.Node) error {
+func (t *Printer) Start(node *node.Node) error {
 	timer, err := t.getTimer()
 	if err != nil {
 		return err

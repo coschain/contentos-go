@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/coschain/contentos-go/p2p/msg"
 	"github.com/coschain/contentos-go/p2p/common"
 	"github.com/coschain/contentos-go/p2p/message/types"
+	"github.com/coschain/contentos-go/p2p/msg"
 )
 
 var TrxMap map[string][]byte = make(map[string][]byte)

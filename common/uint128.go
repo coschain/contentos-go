@@ -231,4 +231,3 @@ func (u *Uint128) Cmp(x *Uint128) int {
 func (u *Uint128) Bytes() []byte {
 	return u.value.Bytes()
 }
-

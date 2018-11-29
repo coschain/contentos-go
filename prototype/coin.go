@@ -10,16 +10,16 @@ func (m *Coin) NonZero() bool {
 	return m.Value != 0
 }
 
-func (m *Coin) Add( o *Coin) error {
+func (m *Coin) Add(o *Coin) error {
 
-	if m.Value > o.Value + m.Value {
+	if m.Value > o.Value+m.Value {
 		return ErrCoinOverflow
 	}
 	m.Value += o.Value
 	return nil
 }
 
-func (m *Coin) Sub( o *Coin) error {
+func (m *Coin) Sub(o *Coin) error {
 	if m.Value < o.Value {
 		return ErrCoinOverflow
 	}
@@ -32,5 +32,5 @@ func (m *Coin) ToVest() *Vest {
 }
 
 func NewCoin(value uint64) *Coin {
-	return &Coin{Value:value}
+	return &Coin{Value: value}
 }

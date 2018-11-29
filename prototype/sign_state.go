@@ -19,9 +19,9 @@ type SignState struct {
 	trxCarryedPubs []*PublicKeyType
 	approved       map[string]bool
 	max_recursion  uint32
-	PostingGetter AuthorityGetter
-	ActiveGetter AuthorityGetter
-	OwnerGetter AuthorityGetter
+	PostingGetter  AuthorityGetter
+	ActiveGetter   AuthorityGetter
+	OwnerGetter    AuthorityGetter
 }
 
 func (s *SignState) checkPub(key *PublicKeyType) bool {
@@ -40,7 +40,7 @@ func (s *SignState) CheckAuthorityByName(name string, depth uint32, at Authority
 	}
 	// a speed up cache
 	auth := s.getAuthority(name, at)
-	return s.CheckAuthority(auth,0, at)
+	return s.CheckAuthority(auth, 0, at)
 }
 
 func (s *SignState) CheckAuthority(auth *Authority, depth uint32, at AuthorityType) bool {
@@ -81,13 +81,13 @@ func (s *SignState) CheckAuthority(auth *Authority, depth uint32, at AuthorityTy
 	return total_weight >= auth.WeightThreshold
 }
 
-func (s *SignState) Init(pubs []*PublicKeyType,maxDepth uint32,posting AuthorityGetter,active AuthorityGetter,owner AuthorityGetter) {
-	 s.trxCarryedPubs = s.trxCarryedPubs[:0]
-	 s.trxCarryedPubs = append(s.trxCarryedPubs,pubs...)
-	 s.max_recursion = maxDepth
-	 s.PostingGetter = posting
-	 s.ActiveGetter = active
-	 s.OwnerGetter = owner
+func (s *SignState) Init(pubs []*PublicKeyType, maxDepth uint32, posting AuthorityGetter, active AuthorityGetter, owner AuthorityGetter) {
+	s.trxCarryedPubs = s.trxCarryedPubs[:0]
+	s.trxCarryedPubs = append(s.trxCarryedPubs, pubs...)
+	s.max_recursion = maxDepth
+	s.PostingGetter = posting
+	s.ActiveGetter = active
+	s.OwnerGetter = owner
 }
 
 func (s *SignState) getAuthority(name string, at AuthorityType) *Authority {

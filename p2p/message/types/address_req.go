@@ -1,8 +1,8 @@
 package types
 
 import (
-	"github.com/coschain/contentos-go/p2p/depend/common"
 	comm "github.com/coschain/contentos-go/p2p/common"
+	"github.com/coschain/contentos-go/p2p/depend/common"
 )
 
 type AddrReq struct{}

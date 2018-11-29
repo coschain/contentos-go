@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/coschain/contentos-go/p2p/common"
 	comm "github.com/coschain/contentos-go/p2p/depend/common"
 	"github.com/coschain/contentos-go/p2p/depend/common/config"
-	"github.com/coschain/contentos-go/p2p/common"
 	"github.com/coschain/contentos-go/p2p/msg"
 )
 

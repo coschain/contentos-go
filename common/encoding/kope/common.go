@@ -11,18 +11,18 @@ const (
 
 // type marks
 const (
-	typeInvalid			= byte(iota)
+	typeInvalid = byte(iota)
 	typeMin
 	typeNormal
-	typeMax				= ^typeMin
+	typeMax = ^typeMin
 )
 
 // extended alphabet
 const (
-	extListBegin	= byte(0x01)
-	extListEnd		= byte(0x02)
-	extSeparator	= byte(0x80)
-	extZero			= byte(0xff)
+	extListBegin = byte(0x01)
+	extListEnd   = byte(0x02)
+	extSeparator = byte(0x80)
+	extZero      = byte(0xff)
 )
 
 var (
@@ -72,12 +72,12 @@ func unpackList(d []byte) [][]byte {
 				} else if c == extListEnd {
 					depth--
 					if depth == 0 {
-						r = append(r, d[begin: p - 1])
+						r = append(r, d[begin:p-1])
 						begin = -1
 					}
 				} else if c == extSeparator {
 					if depth == 1 {
-						r = append(r, d[begin: p - 1])
+						r = append(r, d[begin:p-1])
 						begin = p + 1
 					}
 				}

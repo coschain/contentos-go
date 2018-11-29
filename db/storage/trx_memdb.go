@@ -3,13 +3,13 @@ package storage
 // This file implements TrxDatabase interface based on MemoryDatabase.
 
 type TrxMemoryDatabase struct {
-	db *MemoryDatabase
+	db  *MemoryDatabase
 	trx *TransactionalDatabase
 }
 
 func NewTrxMemoryDatabase(file string, dirtyRead bool) (*TrxMemoryDatabase, error) {
 	db := NewMemoryDatabase()
-	return &TrxMemoryDatabase{ db: db, trx: NewTransactionalDatabase(db, dirtyRead) }, nil
+	return &TrxMemoryDatabase{db: db, trx: NewTransactionalDatabase(db, dirtyRead)}, nil
 }
 
 func (db *TrxMemoryDatabase) Close() {

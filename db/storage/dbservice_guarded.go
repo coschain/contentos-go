@@ -29,7 +29,7 @@ func (s *GuardedDatabaseService) checkRevert() (err error) {
 	return err
 }
 
-func (s *GuardedDatabaseService) RevertToRevision(r uint64) error  {
+func (s *GuardedDatabaseService) RevertToRevision(r uint64) error {
 	if err := s.checkRevert(); err != nil {
 		return err
 	}

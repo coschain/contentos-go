@@ -22,9 +22,9 @@ import (
 // the service type
 type DatabaseService struct {
 	path string
-	db *LevelDatabase
-	rdb *RevertibleDatabase
-	tdb *TransactionalDatabase
+	db   *LevelDatabase
+	rdb  *RevertibleDatabase
+	tdb  *TransactionalDatabase
 }
 
 // service constructor
@@ -36,16 +36,15 @@ func NewDatabaseService(ctx *node.ServiceContext, dbPath string) (*DatabaseServi
 	if len(path) == 0 {
 		return nil, errors.New("cannot resolve database path")
 	}
-	return &DatabaseService{ path: path  }, nil
+	return &DatabaseService{path: path}, nil
 }
 
 func NewDatabase(dbPath string) (*DatabaseService, error) {
 	if len(dbPath) == 0 {
 		return nil, errors.New("invalid parameter")
 	}
-	return &DatabaseService{ path: dbPath  }, nil
+	return &DatabaseService{path: dbPath}, nil
 }
-
 
 //
 // implementation of Service interface
@@ -75,7 +74,6 @@ func (s *DatabaseService) Stop() error {
 	s.Close()
 	return nil
 }
-
 
 //
 // implementation of TagRevertible interface
@@ -116,7 +114,6 @@ func (s *DatabaseService) RevertToTag(tag string) error {
 func (s *DatabaseService) RebaseToTag(tag string) error {
 	return s.rdb.RebaseToTag(tag)
 }
-
 
 //
 // implementation of Transactional interface

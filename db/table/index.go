@@ -9,6 +9,7 @@ import (
 )
 
 type TableIndexType int
+
 const (
 	NotIndexed TableIndexType = iota
 	Primary
@@ -31,19 +32,19 @@ func (idxType TableIndexType) String() string {
 }
 
 type TableIndex struct {
-	name string
-	table *Table
+	name   string
+	table  *Table
 	column *TableColumn
-	typ TableIndexType
+	typ    TableIndexType
 	prefix []byte
-	err error
+	err    error
 }
 
 func errorTableIndex(err error) *TableIndex {
-	return &TableIndex{err:err}
+	return &TableIndex{err: err}
 }
 
-func (idx *TableIndex) Row(value...interface{}) *TableRows {
+func (idx *TableIndex) Row(value ...interface{}) *TableRows {
 	if idx.err != nil {
 		return errorTableRows(idx.err)
 	}
@@ -75,12 +76,12 @@ func (idx *TableIndex) rowsByFixedValue(val interface{}) *TableRows {
 	}
 	switch idx.typ {
 	case Primary:
-		rows = &TableRows{ index: idx, key: kope.AppendKey(idx.prefix, val) }
+		rows = &TableRows{index: idx, key: kope.AppendKey(idx.prefix, val)}
 	case Unique:
-		rows = &TableRows{ index: idx, key: kope.AppendKey(idx.prefix, val) }
+		rows = &TableRows{index: idx, key: kope.AppendKey(idx.prefix, val)}
 	case Nonunique:
 		vk := kope.AppendKey(idx.prefix, val)
-		rows = &TableRows{ index: idx, keyStart: kope.MinKey(vk), keyLimit: kope.MaxKey(vk) }
+		rows = &TableRows{index: idx, keyStart: kope.MinKey(vk), keyLimit: kope.MaxKey(vk)}
 	}
 	return rows
 }
@@ -103,7 +104,7 @@ func (idx *TableIndex) rowsByValueRange(valStart interface{}, valLimit interface
 	} else {
 		valLimit = kope.MaximumKey
 	}
-	rows = &TableRows{ index: idx, keyStart: kope.AppendKey(idx.prefix, valStart), keyLimit: kope.AppendKey(idx.prefix, valLimit) }
+	rows = &TableRows{index: idx, keyStart: kope.AppendKey(idx.prefix, valStart), keyLimit: kope.AppendKey(idx.prefix, valLimit)}
 	return rows
 }
 
@@ -178,9 +179,9 @@ func (idx *TableIndex) rowKey(indexedKey []byte) ([]byte, error) {
 
 func (idx *TableIndex) rowKeyScan(indexedKeyStart []byte, indexedKeyLimit []byte) ([][]byte, error) {
 	var (
-		rowKeys [][]byte
-		k, v, rk []byte
-		err error
+		rowKeys   [][]byte
+		k, v, rk  []byte
+		err       error
 		dbScanner storage.DatabaseScanner
 	)
 	dbScanner = idx.table.db

@@ -3,8 +3,8 @@ package types
 import (
 	"io"
 
-	"github.com/coschain/contentos-go/p2p/depend/common"
 	comm "github.com/coschain/contentos-go/p2p/common"
+	"github.com/coschain/contentos-go/p2p/depend/common"
 )
 
 type NotFound struct {

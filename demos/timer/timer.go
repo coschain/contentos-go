@@ -31,7 +31,7 @@ func (t *Timer) getPrinter() (iservices.IPrinter, error) {
 	return printer, nil
 }
 
-func (t *Timer) Start(node* node.Node) error {
+func (t *Timer) Start(node *node.Node) error {
 	printer, err := t.getPrinter()
 	if err != nil {
 		return err

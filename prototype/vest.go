@@ -6,16 +6,16 @@ func (m *Vest) OpeEncode() ([]byte, error) {
 	return kope.Encode(m.Value)
 }
 
-func (m *Vest) Add( o *Vest) error {
+func (m *Vest) Add(o *Vest) error {
 
-	if m.Value > o.Value + m.Value {
+	if m.Value > o.Value+m.Value {
 		return ErrVestOverflow
 	}
 	m.Value += o.Value
 	return nil
 }
 
-func (m *Vest) Sub( o *Vest) error {
+func (m *Vest) Sub(o *Vest) error {
 	if m.Value < o.Value {
 		return ErrVestOverflow
 	}
@@ -28,5 +28,5 @@ func (m *Vest) ToCoin() *Coin {
 }
 
 func NewVest(value uint64) *Vest {
-	return &Vest{Value:value}
+	return &Vest{Value: value}
 }

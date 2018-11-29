@@ -21,25 +21,23 @@ func (a *AccountCreateOperation) IsVirtual() {
 
 }
 
-
 func (a *AccountCreateOperation) GetRequiredActive(auths *map[string]bool) {
 	(*auths)[a.Creator.Value] = true
 }
 
-
 func (a *AccountCreateOperation) Validate() error {
 
-	if a == nil{
+	if a == nil {
 		return ErrNpe
 	}
 
-	if err := a.Creator.Validate(); err != nil{
-		return errors.WithMessage(err, "Creator error" )
+	if err := a.Creator.Validate(); err != nil {
+		return errors.WithMessage(err, "Creator error")
 
 	}
 
-	if err := a.NewAccountName.Validate();err != nil{
-		return errors.WithMessage(err, "NewAccountName error" )
+	if err := a.NewAccountName.Validate(); err != nil {
+		return errors.WithMessage(err, "NewAccountName error")
 	}
 
 	if a.Posting == nil {
@@ -47,20 +45,20 @@ func (a *AccountCreateOperation) Validate() error {
 	}
 
 	if err := a.Posting.Validate(); err != nil {
-		return errors.WithMessage(err, "Posting error" )
+		return errors.WithMessage(err, "Posting error")
 	}
 
 	if a.Active == nil {
 		return errors.New("Posting Key cant be empty")
 	}
 	if err := a.Active.Validate(); err != nil {
-		return errors.WithMessage(err, "Active error" )
+		return errors.WithMessage(err, "Active error")
 	}
 	if a.Owner == nil {
 		return errors.New("Posting Key cant be empty")
 	}
 	if err := a.Owner.Validate(); err != nil {
-		return errors.WithMessage(err, "Owner error" )
+		return errors.WithMessage(err, "Owner error")
 	}
 
 	if a.Fee == nil || a.Fee.Value == 0 {

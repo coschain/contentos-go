@@ -100,14 +100,14 @@ func NewVersion(n p2p.P2P, isCons bool, height uint64) mt.Message {
 	log.Trace()
 	var version mt.Version
 	version.P = mt.VersionPayload{
-		Version:      n.GetVersion(),
-		Services:     n.GetServices(),
-		SyncPort:     n.GetSyncPort(),
-		ConsPort:     n.GetConsPort(),
-		Nonce:        n.GetID(),
-		IsConsensus:  isCons,
-		StartHeight:  uint64(height),
-		TimeStamp:    time.Now().UnixNano(),
+		Version:     n.GetVersion(),
+		Services:    n.GetServices(),
+		SyncPort:    n.GetSyncPort(),
+		ConsPort:    n.GetConsPort(),
+		Nonce:       n.GetID(),
+		IsConsensus: isCons,
+		StartHeight: uint64(height),
+		TimeStamp:   time.Now().UnixNano(),
 	}
 
 	if n.GetRelay() {

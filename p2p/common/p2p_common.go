@@ -82,19 +82,19 @@ type PeerAddr struct {
 
 //const channel msg id and type
 const (
-	VERSION_TYPE           = "version"    //peer`s information
-	VERACK_TYPE            = "verack"     //ack msg after version recv
-	GetADDR_TYPE           = "getaddr"    //req nbr address from peer
-	ADDR_TYPE              = "addr"       //nbr address
-	PING_TYPE              = "ping"       //ping  sync height
-	PONG_TYPE              = "pong"       //pong  recv nbr height
-	GET_DATA_TYPE          = "getdata"    //req data from peer
-	BLOCK_TYPE             = "sig_block"      //blk payload
-	ID_TYPE                = "id"
-	REQ_ID_TYPE            = "req_id"
-	TX_TYPE                = "sig_trx"         //transaction
-	NOT_FOUND_TYPE         = "notfound"   //peer can`t find blk according to the hash
-	DISCONNECT_TYPE        = "disconnect" //peer disconnect info raise by link
+	VERSION_TYPE    = "version"   //peer`s information
+	VERACK_TYPE     = "verack"    //ack msg after version recv
+	GetADDR_TYPE    = "getaddr"   //req nbr address from peer
+	ADDR_TYPE       = "addr"      //nbr address
+	PING_TYPE       = "ping"      //ping  sync height
+	PONG_TYPE       = "pong"      //pong  recv nbr height
+	GET_DATA_TYPE   = "getdata"   //req data from peer
+	BLOCK_TYPE      = "sig_block" //blk payload
+	ID_TYPE         = "id"
+	REQ_ID_TYPE     = "req_id"
+	TX_TYPE         = "sig_trx"    //transaction
+	NOT_FOUND_TYPE  = "notfound"   //peer can`t find blk according to the hash
+	DISCONNECT_TYPE = "disconnect" //peer disconnect info raise by link
 )
 
 //ParseIPAddr return ip address

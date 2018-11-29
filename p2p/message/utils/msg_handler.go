@@ -500,7 +500,6 @@ func IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 			}
 			sigBlk := IsigBlk.(*prototype.SignedBlock)
 
-
 			msg := msgpack.NewSigBlk(sigBlk)
 			err = p2p.Send(remotePeer, msg, false)
 			if err != nil {

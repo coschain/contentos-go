@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	"github.com/coschain/contentos-go/app/table"
-	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/db/storage"
+	"github.com/coschain/contentos-go/prototype"
 	"log"
 )
 
@@ -23,7 +23,7 @@ func main() {
 	*/
 
 	//db, _ := storage.NewLevelDatabase("/Users/yykingking/abc123.db")
-	db,err := storage.NewDatabase("./demos/pbTool.db")
+	db, err := storage.NewDatabase("./demos/pbTool.db")
 	if err != nil {
 		return
 	}
@@ -41,43 +41,43 @@ func main() {
 		log.Println("crreate fail , the db already contain table with current mainKey")
 		return
 	}
-    if wrap.CheckExist() {
-    	wrap.RemoveDemo()
+	if wrap.CheckExist() {
+		wrap.RemoveDemo()
 	}
-	 //2.save table data to db
-	 err = wrap.Create(func(tInfo *table.SoDemo) {
-		 tInfo.Owner = mKey
-		 tInfo.Title = "hello"
-		 tInfo.Content = "test the pb tool"
-		 tInfo.Idx = 1001
-		 tInfo.LikeCount = 100
-		 tInfo.Taglist = []string{"#NBA"}
-		 tInfo.ReplayCount = 100
-		 tInfo.PostTime = creTimeSecondPoint(20120401)
-	 })
-	 if err != nil {
-		 fmt.Println("create new table of Demo fail")
-		 return
-	 }
+	//2.save table data to db
+	err = wrap.Create(func(tInfo *table.SoDemo) {
+		tInfo.Owner = mKey
+		tInfo.Title = "hello"
+		tInfo.Content = "test the pb tool"
+		tInfo.Idx = 1001
+		tInfo.LikeCount = 100
+		tInfo.Taglist = []string{"#NBA"}
+		tInfo.ReplayCount = 100
+		tInfo.PostTime = creTimeSecondPoint(20120401)
+	})
+	if err != nil {
+		fmt.Println("create new table of Demo fail")
+		return
+	}
 
-	 /*
+	/*
 	   --------------------------
 	   Get Property（the GetXXX function  return the property value）
 	   --------------------------*/
 
-	 //get title
-	 t := wrap.GetTitle()
-	 if t != "" {
-		 fmt.Printf("the title is %s \n",t)
-	 }else {
-		 fmt.Printf("get title fail")
-	 }
+	//get title
+	t := wrap.GetTitle()
+	if t != "" {
+		fmt.Printf("the title is %s \n", t)
+	} else {
+		fmt.Printf("get title fail")
+	}
 
-	 //get content
-	 c := wrap.GetContent()
+	//get content
+	c := wrap.GetContent()
 	if c != "" {
-		fmt.Printf("the content is %s \n",c)
-	}else {
+		fmt.Printf("the content is %s \n", c)
+	} else {
 		fmt.Println("modify tilte fail")
 	}
 	//modify title
@@ -85,7 +85,6 @@ func main() {
 	if !tMdRes {
 		fmt.Println("modify tilte fail")
 	}
-
 
 	/*
 	  --------------------------
@@ -100,18 +99,18 @@ func main() {
 	tMdRes = wrap.MdTaglist([]string{"#Football"})
 	if !tMdRes {
 		fmt.Println("modify taglist fail")
-	}else {
+	} else {
 		tag := wrap.GetTaglist()
-		fmt.Printf("the new taglsit is %v \n",tag)
+		fmt.Printf("the new taglsit is %v \n", tag)
 	}
 
 	/*--------------------------
-	   Sort Query List
-	  --------------------------*/
-     //1.create the sort wrap for property which is surpport sort (E.g postTime)
-	 tSortWrap := table.SDemoPostTimeWrap{}
+	  Sort Query List
+	 --------------------------*/
+	//1.create the sort wrap for property which is surpport sort (E.g postTime)
+	tSortWrap := table.SDemoPostTimeWrap{}
 	tSortWrap.Dba = db
-	 //2.start query data of range(sort by order)
+	//2.start query data of range(sort by order)
 	//start = nil  end = nil (query the db from start to end)
 	//start = nil (query from start the db)
 	//end = nil (query to the end of db)
@@ -126,20 +125,20 @@ func main() {
 			mKeyPtr := tSortWrap.GetMainVal(iter)
 			if mKeyPtr == nil {
 				fmt.Println("get main key fail")
-			}else {
-				fmt.Printf("the main key is %s in range \n",mKeyPtr.Value)
+			} else {
+				fmt.Printf("the main key is %s in range \n", mKeyPtr.Value)
 			}
 			//get subKey value (the postTime value)
 			mSubPtr := tSortWrap.GetSubVal(iter)
 			if mSubPtr == nil {
 				fmt.Println("get postTime fail")
-			}else {
-				fmt.Printf("the postTime is %d \n",mSubPtr.UtcSeconds)
+			} else {
+				fmt.Printf("the postTime is %d \n", mSubPtr.UtcSeconds)
 			}
 		}
 		//******* we must delete the iterator after end of use,otherwise maybe cause unKnow error *******//
 		tSortWrap.DelIterater(iter)
-	}else {
+	} else {
 		fmt.Println("there is no data exist in range posttime")
 	}
 	//query by reverse order
@@ -155,57 +154,57 @@ func main() {
 			mKeyPtr := tSortWrap.GetMainVal(iter1)
 			if mKeyPtr == nil {
 				fmt.Println("query by reverse order get main key fail")
-			}else {
-				fmt.Printf("the main key is %s in reverse order  \n",mKeyPtr.Value)
+			} else {
+				fmt.Printf("the main key is %s in reverse order  \n", mKeyPtr.Value)
 			}
 			mSubPtr := tSortWrap.GetSubVal(iter1)
 			if mSubPtr == nil {
 				fmt.Println("query by reverse order get postTime fail")
-			}else {
-				fmt.Printf("the postTime is %d in reverse order \n",mSubPtr.UtcSeconds)
+			} else {
+				fmt.Printf("the postTime is %d in reverse order \n", mSubPtr.UtcSeconds)
 			}
 		}
-     //******** delete the iterator ***********//
+		//******** delete the iterator ***********//
 		tSortWrap.DelIterater(iter1)
-	}else {
+	} else {
 		fmt.Println("there is no data exist in reverse order")
 	}
 
 	//query without start
-	iter2 := tSortWrap.QueryListByOrder(nil,creTimeSecondPoint(20120422))
-	if iter2 != nil  {
+	iter2 := tSortWrap.QueryListByOrder(nil, creTimeSecondPoint(20120422))
+	if iter2 != nil {
 		for iter2.Next() {
 			mKeyPtr := tSortWrap.GetMainVal(iter2)
 			if mKeyPtr == nil {
 				fmt.Println("get main key fail in range when query without start 1111")
-			}else {
-				fmt.Printf("the main key is %s in range when query without start  \n",mKeyPtr.Value)
+			} else {
+				fmt.Printf("the main key is %s in range when query without start  \n", mKeyPtr.Value)
 			}
 		}
 		tSortWrap.DelIterater(iter2)
-	}else {
+	} else {
 		fmt.Println("there is no data exist without start")
 	}
 
 	//query without end
-	iter3 := tSortWrap.QueryListByOrder(creTimeSecondPoint(20120000),nil)
-	if iter3 != nil  {
+	iter3 := tSortWrap.QueryListByOrder(creTimeSecondPoint(20120000), nil)
+	if iter3 != nil {
 		for iter3.Next() {
 			mKeyPtr := tSortWrap.GetMainVal(iter3)
 			if mKeyPtr == nil {
 				fmt.Println("get main key fail in range when query without end")
-			}else {
-				fmt.Printf("the main key is %s in range when query without end \n",mKeyPtr.Value)
+			} else {
+				fmt.Printf("the main key is %s in range when query without end \n", mKeyPtr.Value)
 			}
 			tSortWrap.DelIterater(iter3)
 		}
 
-	}else {
+	} else {
 		fmt.Println("there is no data in range when query without end")
 	}
 
 	//query without start and end
-	iter4 := tSortWrap.QueryListByOrder(nil,nil)
+	iter4 := tSortWrap.QueryListByOrder(nil, nil)
 	if iter4 != nil {
 		for iter4.Next() {
 			mKeyPtr := tSortWrap.GetMainVal(iter4)
@@ -219,19 +218,19 @@ func main() {
 	}
 
 	//query without start and end by reverse order
-	iter5 := tSortWrap.QueryListByRevOrder(nil,nil)
+	iter5 := tSortWrap.QueryListByRevOrder(nil, nil)
 	if iter5 != nil {
 		for iter5.Next() {
 			mKeyPtr := tSortWrap.GetMainVal(iter5)
 			if mKeyPtr == nil {
 				fmt.Println("get main key fail in range when query without start and end by reverse sort ")
-			}else {
+			} else {
 				fmt.Printf("the main key is %s in range when query without start and end by reverse sort \n",
 					mKeyPtr.Value)
 			}
 		}
 		tSortWrap.DelIterater(iter5)
-	}else {
+	} else {
 		fmt.Println("there is no data in reverse order without start and end")
 	}
 
@@ -239,45 +238,45 @@ func main() {
 	 --------------------------
 	  unique Query List (only support query the property which is flag unique)
 	 --------------------------*/
-	 //1.create the uni wrap of property which is need unique query
-	 var idx int64 = 1001
-	 //create the UniXXXWrap
-	 uniWrap := table.UniDemoIdxWrap{}
-	 //set the dataBase to UniXXXWrap
-	 uniWrap.Dba = db
-	 //2.use UniQueryXX func to query data meanWhile return the table wrap
-	 dWrap := uniWrap.UniQueryIdx(&idx)
-	 if dWrap == nil {
-	 	fmt.Printf("uni query fail \n")
-	 }else {
-		 title := dWrap.GetTitle()
-		 fmt.Printf("the title of index is %s \n",title)
-	 }
+	//1.create the uni wrap of property which is need unique query
+	var idx int64 = 1001
+	//create the UniXXXWrap
+	uniWrap := table.UniDemoIdxWrap{}
+	//set the dataBase to UniXXXWrap
+	uniWrap.Dba = db
+	//2.use UniQueryXX func to query data meanWhile return the table wrap
+	dWrap := uniWrap.UniQueryIdx(&idx)
+	if dWrap == nil {
+		fmt.Printf("uni query fail \n")
+	} else {
+		title := dWrap.GetTitle()
+		fmt.Printf("the title of index is %s \n", title)
+	}
 
 	//unique query mainkey(E.g query owner)
 	mUniWrap := table.UniDemoOwnerWrap{}
 	mUniWrap.Dba = db
 	wrap1 := mUniWrap.UniQueryOwner(prototype.NewAccountName("myName"))
 	if wrap1 != nil {
-		fmt.Printf("owner is test,the idx is %d \n",wrap1.GetIdx())
+		fmt.Printf("owner is test,the idx is %d \n", wrap1.GetIdx())
 	}
 
-	  /*
-	    remove tabale data from db
-	  */
-	  //judge the table of current mainKey if is exist
-	  isExsit := wrap.CheckExist()
-	  if isExsit {
-	  	 res := wrap.RemoveDemo()
-	  	 if !res {
-	  	 	fmt.Println("remove the table data fail")
+	/*
+	   remove tabale data from db
+	*/
+	//judge the table of current mainKey if is exist
+	isExsit := wrap.CheckExist()
+	if isExsit {
+		res := wrap.RemoveDemo()
+		if !res {
+			fmt.Println("remove the table data fail")
 		}
-	  }
+	}
 
-	 db.Close()
+	db.Close()
 }
 
 func creTimeSecondPoint(t uint32) *prototype.TimePointSec {
-	val := prototype.TimePointSec{UtcSeconds:t}
+	val := prototype.TimePointSec{UtcSeconds: t}
 	return &val
 }

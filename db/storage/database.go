@@ -173,7 +173,6 @@ type TagRevDatabase interface {
 	Database
 }
 
-
 // interface for key->database mapping policy for a group of databases
 type DatabaseDispatcher interface {
 	// return members of database group.

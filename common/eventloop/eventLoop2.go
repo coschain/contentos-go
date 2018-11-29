@@ -17,33 +17,33 @@ func NewEventLoop2() *EventLoop2 {
 
 func (l *EventLoop2) Run() {
 
-		for {
-			select {
-			case f := <-l.highPrioChan:
-				f()
-			case f := <-l.lowPrioChan:
-				// process high first
-				bk := false
-				for !bk {
-					select {
-					case fHi := <-l.highPrioChan:
-						fHi()
-					default:
+	for {
+		select {
+		case f := <-l.highPrioChan:
+			f()
+		case f := <-l.lowPrioChan:
+			// process high first
+			bk := false
+			for !bk {
+				select {
+				case fHi := <-l.highPrioChan:
+					fHi()
+				default:
 					bk = true
-						break
-					}
+					break
 				}
-				f()
-			case <-l.evStop:
-				// need close ?
-				close(l.highPrioChan)
-				close(l.lowPrioChan)
-				return
 			}
+			f()
+		case <-l.evStop:
+			// need close ?
+			close(l.highPrioChan)
+			close(l.lowPrioChan)
+			return
 		}
+	}
 }
 
-func (l *EventLoop2) Stop(){
+func (l *EventLoop2) Stop() {
 	l.evStop <- true
 }
 

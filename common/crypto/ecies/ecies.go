@@ -321,7 +321,7 @@ func (prv *PrivateKey) Decrypt(c, s1, s2 []byte) (m []byte, err error) {
 		rLen = (prv.PublicKey.Curve.Params().BitSize + 7) / 4
 		fmt.Println("rLen value: ", rLen)
 		fmt.Println("length of c: ", len(c))
-		fmt.Println("rLen + hLen + 1: ", rLen + hLen + 1)
+		fmt.Println("rLen + hLen + 1: ", rLen+hLen+1)
 		if len(c) < (rLen + hLen + 1) {
 			fmt.Println("error 2")
 			err = ErrInvalidMessage
@@ -372,7 +372,7 @@ func (prv *PrivateKey) Decrypt(c, s1, s2 []byte) (m []byte, err error) {
 		fmt.Println("mEnd value: ", mEnd)
 		fmt.Println("length of c[mEnd:]: ", len(c[mEnd:]))
 		fmt.Println("length of d: ", len(d))
-		fmt.Println("c[mEnd:]: ", c[mEnd:] )
+		fmt.Println("c[mEnd:]: ", c[mEnd:])
 		fmt.Println("d: ", d)
 		err = ErrInvalidMessage
 		return

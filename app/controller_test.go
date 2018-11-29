@@ -14,13 +14,12 @@ import (
 
 const (
 	accountNameBob = "bob"
-	pubKeyBob = "COS6oLVaFEtHZmPDuCvuB48NpSKytjyavPk5MwtN4HqKG16oSA2wS"
-	priKeyBob = "EpgwWxboEdaWfEBdWswobsBt8pBF6xoYQPayBs4eVysMGGGYL"
+	pubKeyBob      = "COS6oLVaFEtHZmPDuCvuB48NpSKytjyavPk5MwtN4HqKG16oSA2wS"
+	priKeyBob      = "EpgwWxboEdaWfEBdWswobsBt8pBF6xoYQPayBs4eVysMGGGYL"
 
 	accountNameTom = "tom"
-	pubKeyTom = "COS5LgGC16xurDrmfC7Yv5RGUeWeCPUP4tdW627vqXk9eQ97ZEJ7P"
-	priKeyTom = "aFovWd8qS1yUAr94ULbG6ASwUsfPS3GX1ebPGDzowrUxQp1ta"
-
+	pubKeyTom      = "COS5LgGC16xurDrmfC7Yv5RGUeWeCPUP4tdW627vqXk9eQ97ZEJ7P"
+	priKeyTom      = "aFovWd8qS1yUAr94ULbG6ASwUsfPS3GX1ebPGDzowrUxQp1ta"
 )
 
 func makeBlock(pre *prototype.Sha256, blockTimestamp uint32, signedTrx *prototype.SignedTransaction) *prototype.SignedBlock {
@@ -28,10 +27,10 @@ func makeBlock(pre *prototype.Sha256, blockTimestamp uint32, signedTrx *prototyp
 
 	// add trx wraper
 	trxWraper := &prototype.TransactionWrapper{
-		SigTrx:signedTrx,
-		Invoice:&prototype.TransactionInvoice{Status:200},
+		SigTrx:  signedTrx,
+		Invoice: &prototype.TransactionInvoice{Status: 200},
 	}
-	sigBlk.Transactions = append(sigBlk.Transactions,trxWraper)
+	sigBlk.Transactions = append(sigBlk.Transactions, trxWraper)
 
 	// calculate merkle
 	id := sigBlk.CalculateMerkleRoot()
@@ -41,13 +40,13 @@ func makeBlock(pre *prototype.Sha256, blockTimestamp uint32, signedTrx *prototyp
 
 	sigBlkHdr.Header = new(prototype.BlockHeader)
 	sigBlkHdr.Header.Previous = pre
-	sigBlkHdr.Header.Timestamp = &prototype.TimePointSec{UtcSeconds:blockTimestamp}
-	sigBlkHdr.Header.Witness = &prototype.AccountName{Value:constants.INIT_MINER_NAME}
-	sigBlkHdr.Header.TransactionMerkleRoot = &prototype.Sha256{Hash:id.Data[:]}
+	sigBlkHdr.Header.Timestamp = &prototype.TimePointSec{UtcSeconds: blockTimestamp}
+	sigBlkHdr.Header.Witness = &prototype.AccountName{Value: constants.INIT_MINER_NAME}
+	sigBlkHdr.Header.TransactionMerkleRoot = &prototype.Sha256{Hash: id.Data[:]}
 	sigBlkHdr.WitnessSignature = &prototype.SignatureType{}
 
 	// signature
-	pri,err := prototype.PrivateKeyFromWIF(constants.INITMINER_PRIKEY)
+	pri, err := prototype.PrivateKeyFromWIF(constants.INITMINER_PRIKEY)
 	if err != nil {
 		panic("PrivateKeyFromWIF error")
 	}
@@ -57,7 +56,7 @@ func makeBlock(pre *prototype.Sha256, blockTimestamp uint32, signedTrx *prototyp
 	return sigBlk
 }
 
-func createSigTrx(op interface{},headBlockID *prototype.Sha256, expire int) (*prototype.SignedTransaction,error) {
+func createSigTrx(op interface{}, headBlockID *prototype.Sha256, expire int) (*prototype.SignedTransaction, error) {
 
 	privKey, err := prototype.PrivateKeyFromWIF(constants.INITMINER_PRIKEY)
 	if err != nil {
@@ -65,12 +64,12 @@ func createSigTrx(op interface{},headBlockID *prototype.Sha256, expire int) (*pr
 	}
 
 	tx := &prototype.Transaction{RefBlockNum: 0, RefBlockPrefix: 0,
-	Expiration: &prototype.TimePointSec{UtcSeconds: uint32(int(time.Now().Unix())+expire)}}
+		Expiration: &prototype.TimePointSec{UtcSeconds: uint32(int(time.Now().Unix()) + expire)}}
 	tx.AddOperation(op)
 
 	// set reference
 	id := &common.BlockID{}
-	copy(id.Data[:],headBlockID.Hash[:])
+	copy(id.Data[:], headBlockID.Hash[:])
 	tx.SetReferenceBlock(id)
 
 	signTx := prototype.SignedTransaction{Trx: tx}
@@ -81,10 +80,10 @@ func createSigTrx(op interface{},headBlockID *prototype.Sha256, expire int) (*pr
 	return &signTx, nil
 }
 
-func makeCreateAccountOP(accountName string,pubKey string) (*prototype.AccountCreateOperation,error) {
-	pub,err := prototype.PublicKeyFromWIF(pubKey)
+func makeCreateAccountOP(accountName string, pubKey string) (*prototype.AccountCreateOperation, error) {
+	pub, err := prototype.PublicKeyFromWIF(pubKey)
 	if err != nil {
-		return nil,errors.New("PublicKeyFromWIF error")
+		return nil, errors.New("PublicKeyFromWIF error")
 	}
 	acop := &prototype.AccountCreateOperation{
 		Fee:            prototype.NewCoin(1),
@@ -95,24 +94,22 @@ func makeCreateAccountOP(accountName string,pubKey string) (*prototype.AccountCr
 			WeightThreshold: 1,
 			AccountAuths: []*prototype.KvAccountAuth{
 				&prototype.KvAccountAuth{
-					Name:    &prototype.AccountName{Value: constants.COS_INIT_MINER},
+					Name:   &prototype.AccountName{Value: constants.COS_INIT_MINER},
 					Weight: 3,
 				},
 			},
 			KeyAuths: []*prototype.KvKeyAuth{
 				&prototype.KvKeyAuth{
-					Key: pub,	// owner key
+					Key:    pub, // owner key
 					Weight: 1,
 				},
 			},
 		},
-		Active: &prototype.Authority{
-		},
-		Posting: &prototype.Authority{
-		},
+		Active:  &prototype.Authority{},
+		Posting: &prototype.Authority{},
 	}
 
-	return acop,nil
+	return acop, nil
 }
 
 func Test_PushTrx(t *testing.T) {
@@ -123,24 +120,24 @@ func Test_PushTrx(t *testing.T) {
 	defer db.Close()
 	c := startController(db)
 
-	acop,err := makeCreateAccountOP(accountNameBob,pubKeyBob)
+	acop, err := makeCreateAccountOP(accountNameBob, pubKeyBob)
 	if err != nil {
-		t.Error("makeCreateAccountOP error:",err)
+		t.Error("makeCreateAccountOP error:", err)
 	}
 
 	headBlockID := c.GetProps().GetHeadBlockId()
-	signedTrx, err := createSigTrx(acop,headBlockID,20)
+	signedTrx, err := createSigTrx(acop, headBlockID, 20)
 	if err != nil {
-		t.Error("createSigTrx error:",err)
+		t.Error("createSigTrx error:", err)
 	}
 
 	invoice := c.PushTrx(signedTrx)
 	if invoice.Status != 200 {
-		t.Error("PushTrx return status error:",invoice.Status)
+		t.Error("PushTrx return status error:", invoice.Status)
 	}
 
-	bobName := &prototype.AccountName{Value:accountNameBob}
-	bobWrap := table.NewSoAccountWrap(db,bobName)
+	bobName := &prototype.AccountName{Value: accountNameBob}
+	bobWrap := table.NewSoAccountWrap(db, bobName)
 	if !bobWrap.CheckExist() {
 		t.Error("create account failed")
 	}
@@ -154,24 +151,24 @@ func Test_PushBlock(t *testing.T) {
 	defer db.Close()
 	c := startController(db)
 
-	createOP,err := makeCreateAccountOP(accountNameBob,pubKeyBob)
+	createOP, err := makeCreateAccountOP(accountNameBob, pubKeyBob)
 	if err != nil {
-		t.Error("makeCreateAccountOP error:",err)
+		t.Error("makeCreateAccountOP error:", err)
 	}
 	headBlockID := c.GetProps().GetHeadBlockId()
-	signedTrx,err := createSigTrx(createOP,headBlockID,20)
+	signedTrx, err := createSigTrx(createOP, headBlockID, 20)
 	if err != nil {
-		t.Error("createSigTrx error:",err)
+		t.Error("createSigTrx error:", err)
 	}
 
-	sigBlk := makeBlock(c.GetProps().GetHeadBlockId(),10,signedTrx)
+	sigBlk := makeBlock(c.GetProps().GetHeadBlockId(), 10, signedTrx)
 
-	fmt.Println("block size:",proto.Size(sigBlk))
+	fmt.Println("block size:", proto.Size(sigBlk))
 
-	c.PushBlock(sigBlk,prototype.Skip_nothing)
+	c.PushBlock(sigBlk, prototype.Skip_nothing)
 
-	bobName := &prototype.AccountName{Value:accountNameBob}
-	bobWrap := table.NewSoAccountWrap(db,bobName)
+	bobName := &prototype.AccountName{Value: accountNameBob}
+	bobWrap := table.NewSoAccountWrap(db, bobName)
 	if !bobWrap.CheckExist() {
 		t.Error("create account failed")
 	}
@@ -179,9 +176,9 @@ func Test_PushBlock(t *testing.T) {
 
 func TestController_GenerateBlock(t *testing.T) {
 	clearDB()
-	createOP,err := makeCreateAccountOP(accountNameBob,pubKeyBob)
+	createOP, err := makeCreateAccountOP(accountNameBob, pubKeyBob)
 	if err != nil {
-		t.Error("makeCreateAccountOP error:",err)
+		t.Error("makeCreateAccountOP error:", err)
 	}
 	// set up controller
 	db := startDB()
@@ -189,29 +186,29 @@ func TestController_GenerateBlock(t *testing.T) {
 	c := startController(db)
 
 	headBlockID := c.GetProps().GetHeadBlockId()
-	signedTrx,err := createSigTrx(createOP,headBlockID,20)
+	signedTrx, err := createSigTrx(createOP, headBlockID, 20)
 	if err != nil {
-		t.Error("createSigTrx error:",err)
+		t.Error("createSigTrx error:", err)
 	}
 
 	invoice := c.PushTrx(signedTrx)
 	if invoice.Status != 200 {
-		t.Error("PushTrx return status error:",invoice.Status)
+		t.Error("PushTrx return status error:", invoice.Status)
 	}
 
-	bobName := &prototype.AccountName{Value:accountNameBob}
-	bobWrap := table.NewSoAccountWrap(db,bobName)
+	bobName := &prototype.AccountName{Value: accountNameBob}
+	bobWrap := table.NewSoAccountWrap(db, bobName)
 	if !bobWrap.CheckExist() {
 		t.Error("create account failed")
 	}
 
-	pri,err := prototype.PrivateKeyFromWIF(constants.INITMINER_PRIKEY)
+	pri, err := prototype.PrivateKeyFromWIF(constants.INITMINER_PRIKEY)
 	if err != nil {
 		t.Error("PrivateKeyFromWIF error")
 	}
 
-	pre := &prototype.Sha256{Hash:[]byte{0}}
-	c.GenerateBlock(constants.INIT_MINER_NAME,pre,18,pri,0)
+	pre := &prototype.Sha256{Hash: []byte{0}}
+	c.GenerateBlock(constants.INIT_MINER_NAME, pre, 18, pri, 0)
 }
 
 func Test_list(t *testing.T) {
@@ -223,17 +220,17 @@ func Test_list(t *testing.T) {
 	c := startController(db)
 
 	// make trx
-	acop,err := makeCreateAccountOP(accountNameBob,pubKeyBob)
+	acop, err := makeCreateAccountOP(accountNameBob, pubKeyBob)
 	if err != nil {
-		t.Error("makeCreateAccountOP error:",err)
+		t.Error("makeCreateAccountOP error:", err)
 	}
 
 	headBlockID := c.GetProps().GetHeadBlockId()
-	signedTrx, err := createSigTrx(acop,headBlockID,20)
+	signedTrx, err := createSigTrx(acop, headBlockID, 20)
 	if err != nil {
-		t.Error("createSigTrx error:",err)
+		t.Error("createSigTrx error:", err)
 	}
-	id,err := signedTrx.Id()
+	id, err := signedTrx.Id()
 
 	// insert trx into DB unique table
 	transactionObjWrap := table.NewSoTransactionObjectWrap(db, id)
@@ -280,29 +277,29 @@ func TestController_GetWitnessTopN(t *testing.T) {
 	defer db.Close()
 	c := startController(db)
 
-	name := &prototype.AccountName{Value:"wit1"}
-	witnessWrap := table.NewSoWitnessWrap(db,name)
+	name := &prototype.AccountName{Value: "wit1"}
+	witnessWrap := table.NewSoWitnessWrap(db, name)
 	mustNoError(witnessWrap.Create(func(tInfo *table.SoWitness) {
 		tInfo.Owner = name
 		tInfo.WitnessScheduleType = &prototype.WitnessScheduleType{Value: prototype.WitnessScheduleType_miner}
 		tInfo.CreatedTime = &prototype.TimePointSec{UtcSeconds: 0}
-		tInfo.SigningKey = &prototype.PublicKeyType{Data:[]byte{1}}
+		tInfo.SigningKey = &prototype.PublicKeyType{Data: []byte{1}}
 		tInfo.LastWork = &prototype.Sha256{Hash: []byte{0}}
 	}), "Witness Create Error")
 
-	name2 := &prototype.AccountName{Value:"wit2"}
-	witnessWrap2 := table.NewSoWitnessWrap(db,name2)
+	name2 := &prototype.AccountName{Value: "wit2"}
+	witnessWrap2 := table.NewSoWitnessWrap(db, name2)
 	mustNoError(witnessWrap2.Create(func(tInfo *table.SoWitness) {
 		tInfo.Owner = name2
 		tInfo.WitnessScheduleType = &prototype.WitnessScheduleType{Value: prototype.WitnessScheduleType_miner}
 		tInfo.CreatedTime = &prototype.TimePointSec{UtcSeconds: 0}
-		tInfo.SigningKey = &prototype.PublicKeyType{Data:[]byte{2}}
+		tInfo.SigningKey = &prototype.PublicKeyType{Data: []byte{2}}
 		tInfo.LastWork = &prototype.Sha256{Hash: []byte{0}}
 	}), "Witness Create Error")
 
 	witnesses := c.GetWitnessTopN(10)
 
-	for _,wit := range witnesses {
+	for _, wit := range witnesses {
 		fmt.Println(wit)
 	}
 }
@@ -315,58 +312,58 @@ func TestController_PopBlock(t *testing.T) {
 	defer db.Close()
 	c := startController(db)
 
-	createOP,err := makeCreateAccountOP(accountNameBob,pubKeyBob)
+	createOP, err := makeCreateAccountOP(accountNameBob, pubKeyBob)
 	if err != nil {
-		t.Error("makeCreateAccountOP error:",err)
+		t.Error("makeCreateAccountOP error:", err)
 	}
 	headBlockID := c.GetProps().GetHeadBlockId()
-	signedTrx,err := createSigTrx(createOP,headBlockID,20)
+	signedTrx, err := createSigTrx(createOP, headBlockID, 20)
 	if err != nil {
-		t.Error("createSigTrx error:",err)
+		t.Error("createSigTrx error:", err)
 	}
 
-	block := makeBlock(c.GetProps().GetHeadBlockId(),6,signedTrx)
+	block := makeBlock(c.GetProps().GetHeadBlockId(), 6, signedTrx)
 
-	fmt.Println("block size:",proto.Size(block))
+	fmt.Println("block size:", proto.Size(block))
 
-	c.PushBlock(block,prototype.Skip_nothing)
+	c.PushBlock(block, prototype.Skip_nothing)
 
 	// second block
-	createOP2,err := makeCreateAccountOP(accountNameTom,pubKeyTom)
+	createOP2, err := makeCreateAccountOP(accountNameTom, pubKeyTom)
 	if err != nil {
-		t.Error("makeCreateAccountOP error:",err)
+		t.Error("makeCreateAccountOP error:", err)
 	}
 	headBlockID2 := c.GetProps().GetHeadBlockId()
-	signedTrx2,err := createSigTrx(createOP2,headBlockID2,20)
+	signedTrx2, err := createSigTrx(createOP2, headBlockID2, 20)
 	if err != nil {
-		t.Error("createSigTrx error:",err)
+		t.Error("createSigTrx error:", err)
 	}
 
-	block2 := makeBlock(c.GetProps().GetHeadBlockId(),9,signedTrx2)
+	block2 := makeBlock(c.GetProps().GetHeadBlockId(), 9, signedTrx2)
 
-	c.PushBlock(block2,prototype.Skip_nothing)
+	c.PushBlock(block2, prototype.Skip_nothing)
 
 	// check
-	bobName := &prototype.AccountName{Value:accountNameBob}
-	bobWrap := table.NewSoAccountWrap(db,bobName)
+	bobName := &prototype.AccountName{Value: accountNameBob}
+	bobWrap := table.NewSoAccountWrap(db, bobName)
 	if !bobWrap.CheckExist() {
 		t.Error("create account failed")
 	}
-	tomName := &prototype.AccountName{Value:accountNameTom}
-	tomWrap := table.NewSoAccountWrap(db,tomName)
+	tomName := &prototype.AccountName{Value: accountNameTom}
+	tomWrap := table.NewSoAccountWrap(db, tomName)
 	if !tomWrap.CheckExist() {
 		t.Error("create account failed")
 	}
 
 	c.PopBlockTo(1)
-	tomNoExistWrap := table.NewSoAccountWrap(db,tomName)
-	if tomNoExistWrap.CheckExist() || c.GetProps().HeadBlockNumber != 1{	// need check c.dgpo.HeadBlockNumber
+	tomNoExistWrap := table.NewSoAccountWrap(db, tomName)
+	if tomNoExistWrap.CheckExist() || c.GetProps().HeadBlockNumber != 1 { // need check c.dgpo.HeadBlockNumber
 		t.Error("pop block error")
 	}
 
 	c.PopBlockTo(0)
-	bobNoExistWrap := table.NewSoAccountWrap(db,bobName)
-	if bobNoExistWrap.CheckExist() || c.GetProps().HeadBlockNumber != 0{	// need check c.dgpo.HeadBlockNumber
+	bobNoExistWrap := table.NewSoAccountWrap(db, bobName)
+	if bobNoExistWrap.CheckExist() || c.GetProps().HeadBlockNumber != 0 { // need check c.dgpo.HeadBlockNumber
 		t.Error("pop block error")
 	}
 
@@ -380,56 +377,56 @@ func TestController_Commit(t *testing.T) {
 	defer db.Close()
 	c := startController(db)
 
-	createOP,err := makeCreateAccountOP(accountNameBob,pubKeyBob)
+	createOP, err := makeCreateAccountOP(accountNameBob, pubKeyBob)
 	if err != nil {
-		t.Error("makeCreateAccountOP error:",err)
+		t.Error("makeCreateAccountOP error:", err)
 	}
 	headBlockID := c.GetProps().GetHeadBlockId()
-	signedTrx,err := createSigTrx(createOP,headBlockID,20)
+	signedTrx, err := createSigTrx(createOP, headBlockID, 20)
 	if err != nil {
-		t.Error("createSigTrx error:",err)
+		t.Error("createSigTrx error:", err)
 	}
 
-	block := makeBlock(c.GetProps().GetHeadBlockId(),6,signedTrx)
+	block := makeBlock(c.GetProps().GetHeadBlockId(), 6, signedTrx)
 
-	fmt.Println("block size:",proto.Size(block))
+	fmt.Println("block size:", proto.Size(block))
 
-	c.PushBlock(block,prototype.Skip_nothing)
+	c.PushBlock(block, prototype.Skip_nothing)
 
 	// second block
-	createOP2,err := makeCreateAccountOP(accountNameTom,pubKeyTom)
+	createOP2, err := makeCreateAccountOP(accountNameTom, pubKeyTom)
 	if err != nil {
-		t.Error("makeCreateAccountOP error:",err)
+		t.Error("makeCreateAccountOP error:", err)
 	}
 	headBlockID2 := c.GetProps().GetHeadBlockId()
-	signedTrx2,err := createSigTrx(createOP2,headBlockID2,20)
+	signedTrx2, err := createSigTrx(createOP2, headBlockID2, 20)
 	if err != nil {
-		t.Error("createSigTrx error:",err)
+		t.Error("createSigTrx error:", err)
 	}
 
-	block2 := makeBlock(c.GetProps().GetHeadBlockId(),9,signedTrx2)
+	block2 := makeBlock(c.GetProps().GetHeadBlockId(), 9, signedTrx2)
 
-	c.PushBlock(block2,prototype.Skip_nothing)
+	c.PushBlock(block2, prototype.Skip_nothing)
 
 	// check
-	bobName := &prototype.AccountName{Value:accountNameBob}
-	bobWrap := table.NewSoAccountWrap(db,bobName)
+	bobName := &prototype.AccountName{Value: accountNameBob}
+	bobWrap := table.NewSoAccountWrap(db, bobName)
 	if !bobWrap.CheckExist() {
 		t.Error("create account failed")
 	}
-	tomName := &prototype.AccountName{Value:accountNameTom}
-	tomWrap := table.NewSoAccountWrap(db,tomName)
+	tomName := &prototype.AccountName{Value: accountNameTom}
+	tomWrap := table.NewSoAccountWrap(db, tomName)
 	if !tomWrap.CheckExist() {
 		t.Error("create account failed")
 	}
 
 	c.Commit(2)
-	bobStillExistWrap := table.NewSoAccountWrap(db,bobName)
+	bobStillExistWrap := table.NewSoAccountWrap(db, bobName)
 	if !bobStillExistWrap.CheckExist() {
 		t.Error("commit error")
 	}
 
-	tomStillExistWrap := table.NewSoAccountWrap(db,tomName)
+	tomStillExistWrap := table.NewSoAccountWrap(db, tomName)
 	if !tomStillExistWrap.CheckExist() {
 		t.Error("commit error")
 	}

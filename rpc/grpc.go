@@ -17,9 +17,9 @@ var (
 )
 
 type APIService struct {
-	consensus     iservices.IConsensus
-	mainLoop *eventloop.EventLoop
-	db       iservices.IDatabaseService
+	consensus iservices.IConsensus
+	mainLoop  *eventloop.EventLoop
+	db        iservices.IDatabaseService
 }
 
 func (as *APIService) GetAccountByName(ctx context.Context, req *grpcpb.GetAccountByNameRequest) (*grpcpb.AccountResponse, error) {
@@ -34,7 +34,7 @@ func (as *APIService) GetAccountByName(ctx context.Context, req *grpcpb.GetAccou
 		//acct.PublicKeys = accWrap.GetPubKey()
 		acct.CreatedTime = accWrap.GetCreatedTime()
 
-		witWrap := table.NewSoWitnessWrap(as.db, accWrap.GetName() )
+		witWrap := table.NewSoWitnessWrap(as.db, accWrap.GetName())
 		if witWrap != nil && witWrap.CheckExist() {
 			acct.Witness = &grpcpb.WitnessResponse{
 				Owner:                 witWrap.GetOwner(),
@@ -136,9 +136,9 @@ func (as *APIService) GetFollowCountByName(ctx context.Context, req *grpcpb.GetF
 	return &grpcpb.GetFollowCountByNameResponse{FerCnt: ferCnt, FingCnt: fingCnt}, nil
 
 }
-func (as *APIService) GetChainState(ctx context.Context, req *grpcpb.NonParamsRequest) (*grpcpb.GetChainStateResponse, error){
+func (as *APIService) GetChainState(ctx context.Context, req *grpcpb.NonParamsRequest) (*grpcpb.GetChainStateResponse, error) {
 	var (
-		i         int32 = 1
+		i int32 = 1
 	)
 
 	globalVar := table.NewSoGlobalWrap(as.db, &i)
@@ -210,20 +210,20 @@ func (as *APIService) GetPostListByCreated(ctx context.Context, req *grpcpb.GetP
 		postWrap := table.NewSoPostWrap(as.db, postOrderWrap.GetMainVal(postIter))
 		if postWrap != nil && postWrap.CheckExist() {
 			postList = append(postList, &grpcpb.PostResponse{
-				PostId:         postWrap.GetPostId(),
-				Category:       postWrap.GetCategory(),
-				ParentAuthor:   postWrap.GetAuthor(),
-				Author:         postWrap.GetAuthor(),
-				Title:          postWrap.GetTitle(),
-				Body:           postWrap.GetBody(),
-				Created:        postWrap.GetCreated(),
-				LastPayout:     postWrap.GetLastPayout(),
-				Depth:          postWrap.GetDepth(),
-				Children:       postWrap.GetChildren(),
-				RootId:         postWrap.GetRootId(),
-				ParentId:       postWrap.GetParentId(),
-				Tags: 			postWrap.GetTags(),
-				Beneficiaries:	postWrap.GetBeneficiaries(),
+				PostId:        postWrap.GetPostId(),
+				Category:      postWrap.GetCategory(),
+				ParentAuthor:  postWrap.GetAuthor(),
+				Author:        postWrap.GetAuthor(),
+				Title:         postWrap.GetTitle(),
+				Body:          postWrap.GetBody(),
+				Created:       postWrap.GetCreated(),
+				LastPayout:    postWrap.GetLastPayout(),
+				Depth:         postWrap.GetDepth(),
+				Children:      postWrap.GetChildren(),
+				RootId:        postWrap.GetRootId(),
+				ParentId:      postWrap.GetParentId(),
+				Tags:          postWrap.GetTags(),
+				Beneficiaries: postWrap.GetBeneficiaries(),
 			})
 		}
 
@@ -256,18 +256,18 @@ func (as *APIService) GetReplyListByPostId(ctx context.Context, req *grpcpb.GetR
 		postWrap := table.NewSoPostWrap(as.db, replyOrderWrap.GetMainVal(replyIter))
 		if postWrap != nil && postWrap.CheckExist() {
 			replyList = append(replyList, &grpcpb.PostResponse{
-				PostId:         postWrap.GetPostId(),
-				Category:       postWrap.GetCategory(),
-				ParentAuthor:   postWrap.GetAuthor(),
-				Author:         postWrap.GetAuthor(),
-				Title:          postWrap.GetTitle(),
-				Body:           postWrap.GetBody(),
-				Created:        postWrap.GetCreated(),
-				LastPayout:     postWrap.GetLastPayout(),
-				Depth:          postWrap.GetDepth(),
-				Children:       postWrap.GetChildren(),
-				RootId:         postWrap.GetRootId(),
-				ParentId:       postWrap.GetParentId(),
+				PostId:       postWrap.GetPostId(),
+				Category:     postWrap.GetCategory(),
+				ParentAuthor: postWrap.GetAuthor(),
+				Author:       postWrap.GetAuthor(),
+				Title:        postWrap.GetTitle(),
+				Body:         postWrap.GetBody(),
+				Created:      postWrap.GetCreated(),
+				LastPayout:   postWrap.GetLastPayout(),
+				Depth:        postWrap.GetDepth(),
+				Children:     postWrap.GetChildren(),
+				RootId:       postWrap.GetRootId(),
+				ParentId:     postWrap.GetParentId(),
 			})
 		}
 
@@ -308,7 +308,7 @@ func (as *APIService) BroadcastTrx(ctx context.Context, req *grpcpb.BroadcastTrx
 		}
 	})
 
-	return &grpcpb.BroadcastTrxResponse{Invoice:result}, nil
+	return &grpcpb.BroadcastTrxResponse{Invoice: result}, nil
 }
 
 func checkLimit(limit uint32) uint32 {

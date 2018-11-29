@@ -16,10 +16,10 @@ type TableRows struct {
 }
 
 func errorTableRows(err error) *TableRows {
-	return &TableRows{err:err}
+	return &TableRows{err: err}
 }
 
-func (rows *TableRows) Col(names...string) *TableCells {
+func (rows *TableRows) Col(names ...string) *TableCells {
 	if rows.err != nil {
 		return errorTableCells(rows.err)
 	}
@@ -44,7 +44,7 @@ func (rows *TableRows) Col(names...string) *TableCells {
 	for _, r := range rows.rows() {
 		line := make([]*TableCell, len(cols))
 		for i, c := range cols {
-			line[i] = &TableCell{ row: r, column: c }
+			line[i] = &TableCell{row: r, column: c}
 		}
 		cells = append(cells, line)
 	}
@@ -70,22 +70,21 @@ func (rows *TableRows) Delete() error {
 func (rows *TableRows) rows() (result []*TableRow) {
 	if len(rows.key) > 0 {
 		if rk, err := rows.index.rowKey(rows.key); err == nil {
-			result = append(result, &TableRow{ table: rows.index.table, key: common.CopyBytes(rk)})
+			result = append(result, &TableRow{table: rows.index.table, key: common.CopyBytes(rk)})
 		}
 	} else {
 		if rks, err := rows.index.rowKeyScan(rows.keyStart, rows.keyLimit); err == nil {
 			for _, rk := range rks {
-				result = append(result, &TableRow{ table: rows.index.table, key: rk})
+				result = append(result, &TableRow{table: rows.index.table, key: rk})
 			}
 		}
 	}
 	return
 }
 
-
 type TableRow struct {
 	table *Table
-	key []byte
+	key   []byte
 }
 
 func (r *TableRow) delete(dbGetter storage.DatabaseGetter, dbScanner storage.DatabaseScanner, dbPutter storage.DatabasePutter, dbDeleter storage.DatabaseDeleter) error {

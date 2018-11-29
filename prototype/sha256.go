@@ -14,11 +14,11 @@ func (m *Sha256) FromBlockID(id common.BlockID) {
 	copy(m.Hash, id.Data[:])
 }
 
-func (m *Sha256) Validate () error {
-	if m == nil{
+func (m *Sha256) Validate() error {
+	if m == nil {
 		return ErrNpe
 	}
-	if len(m.Hash) != 32{
+	if len(m.Hash) != 32 {
 		return ErrHashLength
 	}
 	return nil
