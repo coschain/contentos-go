@@ -39,12 +39,12 @@ type Controller struct {
 	noticer EventBus.Bus
 	skip    prototype.SkipFlag
 
-	_pending_tx            []*prototype.TransactionWrapper
-	_isProducing           bool
-	_currentTrxId          *prototype.Sha256
-	_current_op_in_trx     uint16
-	_currentBlockNum       uint64
-	_current_trx_in_block  int16
+	pending_tx            []*prototype.TransactionWrapper
+	isProducing           bool
+	currentTrxId          *prototype.Sha256
+	current_op_in_trx     uint16
+	currentBlockNum       uint64
+	current_trx_in_block  int16
 	havePendingTransaction bool
 }
 
@@ -102,7 +102,7 @@ func (c *Controller) Stop() error {
 }
 
 func (c *Controller) setProducing(b bool) {
-	c._isProducing = b
+	c.isProducing = b
 }
 
 func (c *Controller) PushTrx(trx *prototype.SignedTransaction) (invoice *prototype.TransactionInvoice) {
@@ -121,7 +121,7 @@ func (c *Controller) PushTrx(trx *prototype.SignedTransaction) (invoice *prototy
 	mustSuccess(proto.Size(trx) <= int(c.GetProps().MaximumBlockSize-256), "transaction is too large")
 
 	c.setProducing(true)
-	return c._pushTrx(trx)
+	return c.pushTrx(trx)
 }
 
 func (c *Controller) GetProps() *prototype.DynamicProperties {
@@ -129,7 +129,7 @@ func (c *Controller) GetProps() *prototype.DynamicProperties {
 	return dgpWrap.GetProps()
 }
 
-func (c *Controller) _pushTrx(trx *prototype.SignedTransaction) *prototype.TransactionInvoice {
+func (c *Controller) pushTrx(trx *prototype.SignedTransaction) *prototype.TransactionInvoice {
 	defer func() {
 		// undo sub session
 		if err := recover(); err != nil {
@@ -150,8 +150,8 @@ func (c *Controller) _pushTrx(trx *prototype.SignedTransaction) *prototype.Trans
 	// start a sub undo session for applyTransaction
 	c.db.BeginTransaction()
 
-	c._applyTransaction(trxWrp)
-	c._pending_tx = append(c._pending_tx, trxWrp)
+	c.applyTransaction(trxWrp)
+	c.pending_tx = append(c.pending_tx, trxWrp)
 
 	// commit sub session
 	c.db.EndTransaction(true)
@@ -199,11 +199,11 @@ func (c *Controller) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFl
 
 func (c *Controller) ClearPending() []*prototype.TransactionWrapper {
 	// @
-	mustSuccess(len(c._pending_tx) == 0 || c.havePendingTransaction, "can not clear pending")
-	res := make([]*prototype.TransactionWrapper, len(c._pending_tx))
-	copy(res, c._pending_tx)
+	mustSuccess(len(c.pending_tx) == 0 || c.havePendingTransaction, "can not clear pending")
+	res := make([]*prototype.TransactionWrapper, len(c.pending_tx))
+	copy(res, c.pending_tx)
 
-	c._pending_tx = c._pending_tx[:0]
+	c.pending_tx = c.pending_tx[:0]
 
 	if c.skip&prototype.Skip_apply_transaction == 0 {
 		c.db.EndTransaction(false)
@@ -220,7 +220,7 @@ func (c *Controller) restorePending(pending []*prototype.TransactionWrapper) {
 
 		objWrap := table.NewSoTransactionObjectWrap(c.db, id)
 		if !objWrap.CheckExist() {
-			c._pushTrx(tw.SigTrx)
+			c.pushTrx(tw.SigTrx)
 		}
 	}
 }
@@ -272,9 +272,9 @@ func (c *Controller) GenerateBlock(witness string, pre *prototype.Sha256, timest
 	signBlock := &prototype.SignedBlock{}
 	signBlock.SignedHeader = &prototype.SignedBlockHeader{}
 	signBlock.SignedHeader.Header = &prototype.BlockHeader{}
-	c._current_trx_in_block = 0
+	c.current_trx_in_block = 0
 
-	// undo all _pending_tx in DB
+	// undo all pending_tx in DB
 	if c.havePendingTransaction {
 		c.db.EndTransaction(false)
 	}
@@ -282,7 +282,7 @@ func (c *Controller) GenerateBlock(witness string, pre *prototype.Sha256, timest
 	c.havePendingTransaction = true
 
 	var postponeTrx uint64 = 0
-	for _, trxWraper := range c._pending_tx {
+	for _, trxWraper := range c.pending_tx {
 		if trxWraper.SigTrx.Trx.Expiration.UtcSeconds < timestamp {
 			continue
 		}
@@ -300,12 +300,12 @@ func (c *Controller) GenerateBlock(witness string, pre *prototype.Sha256, timest
 			}()
 
 			c.db.BeginTransaction()
-			c._applyTransaction(trxWraper)
+			c.applyTransaction(trxWraper)
 			c.db.EndTransaction(true)
 
 			totalSize += uint32(proto.Size(trxWraper))
 			signBlock.Transactions = append(signBlock.Transactions, trxWraper)
-			c._current_trx_in_block++
+			c.current_trx_in_block++
 		}()
 	}
 	if postponeTrx > 0 {
@@ -363,11 +363,11 @@ func (c *Controller) notifyBlockApply(block *prototype.SignedBlock) {
 func (c *Controller) processBlock() {
 }
 func (c *Controller) applyTransaction(trxWrp *prototype.TransactionWrapper) {
-	c._applyTransaction(trxWrp)
+	c.applyTransaction(trxWrp)
 	// @ not use yet
 	//c.notifyTrxPostExecute(trxWrp.SigTrx)
 }
-func (c *Controller) _applyTransaction(trxWrp *prototype.TransactionWrapper) {
+func (c *Controller) applyTransaction(trxWrp *prototype.TransactionWrapper) {
 	defer func() {
 		if err := recover(); err != nil {
 			trxWrp.Invoice.Status = 500
@@ -380,13 +380,13 @@ func (c *Controller) _applyTransaction(trxWrp *prototype.TransactionWrapper) {
 
 	trx := trxWrp.SigTrx
 	var err error
-	c._currentTrxId, err = trx.Id()
+	c.currentTrxId, err = trx.Id()
 	mustNoError(err, "get trx id failed")
 
 	trx.Validate()
 
 	// trx duplicate check
-	transactionObjWrap := table.NewSoTransactionObjectWrap(c.db, c._currentTrxId)
+	transactionObjWrap := table.NewSoTransactionObjectWrap(c.db, c.currentTrxId)
 	mustSuccess(!transactionObjWrap.CheckExist(), "Duplicate transaction check failed")
 
 	if c.skip&prototype.Skip_transaction_signatures == 0 {
@@ -441,7 +441,7 @@ func (c *Controller) _applyTransaction(trxWrp *prototype.TransactionWrapper) {
 
 	// insert trx into DB unique table
 	cErr := transactionObjWrap.Create(func(tInfo *table.SoTransactionObject) {
-		tInfo.TrxId = c._currentTrxId
+		tInfo.TrxId = c.currentTrxId
 		tInfo.Expiration = trx.Trx.Expiration
 	})
 	mustNoError(cErr, "create transactionObject failed")
@@ -450,13 +450,13 @@ func (c *Controller) _applyTransaction(trxWrp *prototype.TransactionWrapper) {
 	//c.notifyTrxPreExecute(trx)
 
 	// process operation
-	c._current_op_in_trx = 0
+	c.current_op_in_trx = 0
 	for _, op := range trx.Trx.Operations {
 		c.applyOperation(op)
-		c._current_op_in_trx++
+		c.current_op_in_trx++
 	}
 
-	c._currentTrxId = &prototype.Sha256{}
+	c.currentTrxId = &prototype.Sha256{}
 }
 
 func (c *Controller) applyOperation(op *prototype.Operation) {
@@ -516,12 +516,12 @@ func (c *Controller) applyBlock(blk *prototype.SignedBlock, skip prototype.SkipF
 	}()
 
 	c.skip = skip
-	c._applyBlock(blk, skip)
+	c.applyBlock(blk, skip)
 
 	// @ tps update
 }
 
-func (c *Controller) _applyBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag) {
+func (c *Controller) applyBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag) {
 	nextBlockNum := blk.Id().BlockNum()
 
 	merkleRoot := blk.CalculateMerkleRoot()
@@ -530,8 +530,8 @@ func (c *Controller) _applyBlock(blk *prototype.SignedBlock, skip prototype.Skip
 	// validate_block_header
 	c.validateBlockHeader(blk)
 
-	c._currentBlockNum = nextBlockNum
-	c._current_trx_in_block = 0
+	c.currentBlockNum = nextBlockNum
+	c.current_trx_in_block = 0
 
 	blockSize := proto.Size(blk)
 	mustSuccess(uint32(blockSize) <= c.GetProps().GetMaximumBlockSize(), "Block size is too big")
@@ -560,7 +560,7 @@ func (c *Controller) _applyBlock(blk *prototype.SignedBlock, skip prototype.Skip
 			trxWrp.Invoice.Status = 200
 			c.applyTransaction(trxWrp)
 			mustSuccess(trxWrp.Invoice.Status == tw.Invoice.Status, "mismatched invoice")
-			c._current_trx_in_block++
+			c.current_trx_in_block++
 		}
 	}
 
