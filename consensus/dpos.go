@@ -24,6 +24,7 @@ func timeToNextSec() time.Duration {
 	return ceil.Sub(now)
 }
 
+
 type DPoS struct {
 	iservices.IConsensus
 	node   *node.Node
@@ -36,8 +37,7 @@ type DPoS struct {
 	privKey        *prototype.PrivateKeyType
 	readyToProduce bool
 	prodTimer      *time.Timer
-	trxCh          chan common.ISignedTransaction
-	trxRetCh       chan common.ITransactionInvoice
+	trxCh          chan func()
 	blkCh          chan common.ISignedBlock
 	bootstrap      bool
 	slot           uint64
@@ -56,8 +56,8 @@ func NewDPoS(ctx *node.ServiceContext) *DPoS {
 		ForkDB: forkdb.NewDB(),
 		//Producers: make([]*Producer, constants.ProducerNum),
 		prodTimer: time.NewTimer(1 * time.Millisecond),
-		trxCh:     make(chan common.ISignedTransaction),
-		trxRetCh:  make(chan common.ITransactionInvoice),
+		trxCh:     make(chan func()),
+		//trxRetCh:  make(chan common.ITransactionInvoice),
 		blkCh:     make(chan common.ISignedBlock),
 		ctx:       ctx,
 		stopCh:    make(chan struct{}),
@@ -209,13 +209,8 @@ func (d *DPoS) start() {
 			if err := d.pushBlock(b); err != nil {
 				logging.CLog().Error("push block error: ", err)
 			}
-		case trx := <-d.trxCh:
-			ret := d.ctrl.PushTrx(trx.(*prototype.SignedTransaction))
-			d.trxRetCh <- ret
-			if ret != nil {
-				logging.CLog().Debug("DPoS Broadcast trx.")
-				d.p2p.Broadcast(trx.(*prototype.SignedTransaction))
-			}
+		case trx_fn := <-d.trxCh:
+			trx_fn()
 			continue
 		case <-d.prodTimer.C:
 			//logging.CLog().Debug("scheduleProduce.")
@@ -352,9 +347,29 @@ func (d *DPoS) PushBlock(b common.ISignedBlock) {
 	}(b)
 }
 
-func (d *DPoS) PushTransaction(trx common.ISignedTransaction) common.ITransactionInvoice {
-	d.trxCh <- trx
-	return <-d.trxRetCh
+func (d *DPoS) PushTransaction(trx common.ISignedTransaction, wait bool, broadcast bool) common.ITransactionInvoice {
+
+	var waitChan chan common.ITransactionInvoice
+
+	if wait {
+		waitChan = make(chan common.ITransactionInvoice)
+	}
+
+	d.trxCh <- func() {
+		ret := d.ctrl.PushTrx(trx.(*prototype.SignedTransaction))
+		waitChan <- ret
+		if ret.IsSuccess() {
+			if broadcast {
+				logging.CLog().Debug("DPoS Broadcast trx.")
+				d.p2p.Broadcast(trx.(*prototype.SignedTransaction))
+			}
+		}
+	}
+	if wait {
+		return <- waitChan
+	} else {
+		return nil
+	}
 }
 
 func (d *DPoS) pushBlock(b common.ISignedBlock) error {

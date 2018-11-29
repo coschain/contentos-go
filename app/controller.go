@@ -913,7 +913,7 @@ func (c *Controller) saveReversion(num uint32) {
 func (c *Controller) getReversion(num uint32) uint64 {
 	tag := strconv.FormatUint(uint64(num), 10)
 	rev, err := c.db.GetTagRevision(tag)
-	mustNoError(err, "GetTagRevision")
+	mustNoError(err, fmt.Sprintf("GetTagRevision: %d", num) )
 	return rev
 }
 

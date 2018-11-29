@@ -130,6 +130,7 @@ message AccountResponse {
     repeated prototype.public_key_type      public_keys     = 4;
     prototype.time_point_sec                created_time    = 5;
     WitnessResponse                         witness         = 6;
+    prototype.dynamic_properties            dgpo            = 7;
 }
 
 message GetFollowerListByNameRequest {

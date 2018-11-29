@@ -49,6 +49,10 @@ func (as *APIService) GetAccountByName(ctx context.Context, req *grpcpb.GetAccou
 				RunningVersion:        witWrap.GetRunningVersion(),
 			}
 		}
+		var (
+			i int32 = 1
+		)
+		acct.Dgpo = table.NewSoGlobalWrap(as.db, &i).GetProps()
 	}
 
 	return acct, nil
@@ -300,7 +304,7 @@ func (as *APIService) BroadcastTrx(ctx context.Context, req *grpcpb.BroadcastTrx
 
 	var result *prototype.TransactionInvoice = nil
 	as.mainLoop.Send(func() {
-		r := as.consensus.PushTransaction(req.GetTransaction())
+		r := as.consensus.PushTransaction(req.GetTransaction(), true, true)
 		logging.CLog().Infof("BroadcastTrx Result: %s", result)
 
 		if r != nil {
