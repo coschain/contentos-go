@@ -237,6 +237,7 @@ message GetTrxByIdResponse {
 
 message GetChainStateResponse {
     prototype.dynamic_properties props = 1;
+    repeated prototype.sha256 headers = 2;
 }
 
 message BroadcastTrxRequest {

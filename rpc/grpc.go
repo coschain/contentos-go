@@ -3,6 +3,7 @@ package rpc
 import (
 	"context"
 	"github.com/coschain/contentos-go/app/table"
+	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/common/eventloop"
 	"github.com/coschain/contentos-go/common/logging"
@@ -147,7 +148,16 @@ func (as *APIService) GetChainState(ctx context.Context, req *grpcpb.NonParamsRe
 
 	globalVar := table.NewSoGlobalWrap(as.db, &i)
 
-	return &grpcpb.GetChainStateResponse{Props: globalVar.GetProps()}, nil
+	ret := &grpcpb.GetChainStateResponse{}
+	blks, err := as.consensus.FetchBlocksSince( common.EmptyBlockID )
+	if err == nil {
+		for _, v := range blks {
+			ret.Headers = append( ret.Headers, v.(*prototype.SignedBlock).SignedHeader.Header.Previous )
+		}
+	}
+	ret.Props = globalVar.GetProps()
+
+	return ret, nil
 }
 
 func (as *APIService) GetWitnessList(ctx context.Context, req *grpcpb.GetWitnessListRequest) (*grpcpb.GetWitnessListResponse, error) {

@@ -143,6 +143,7 @@ func addCommands() {
 	rootCmd.AddCommand(commands.FollowCntCmd())
 	rootCmd.AddCommand(commands.MultinodetesterCmd())
 	rootCmd.AddCommand(commands.SwitchPortcmd())
+	rootCmd.AddCommand(commands.ChainStateCmd())
 }
 
 func init() {
