@@ -485,6 +485,9 @@ func IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 			}
 			var blkId common.BlockID
 			copy(blkId.Data[:], id)
+			if blkId.BlockNum() == 0 {
+				continue
+			}
 
 			s, err := p2p.GetService(iservices.ConsensusServerName)
 			if err != nil {
@@ -495,7 +498,7 @@ func IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 
 			IsigBlk, err := ctrl.FetchBlock(blkId)
 			if err != nil {
-				log.Info("can't get IsigBlk from consensus, block number: ", blkId.BlockNum())
+				log.Info("can't get IsigBlk from consensus, block number: ", blkId.BlockNum(), " error: ", err)
 				return
 			}
 			sigBlk := IsigBlk.(*prototype.SignedBlock)
