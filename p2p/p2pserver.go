@@ -530,8 +530,10 @@ func (this *P2PServer) Broadcast(message interface{}) {
 	this.Network.Broadcast(msg, isConsensus)
 }
 
-func (this *P2PServer) Trigger_sync(p *peer.Peer, current_head_blk_id coomn.BlockID) {
+func (this *P2PServer) TriggerSync(current_head_blk_id coomn.BlockID) {
 	reqmsg := new(msg.ReqIdMsg)
 	reqmsg.HeadBlockId = current_head_blk_id.Data[:]
-	this.Send(p, reqmsg, false)
+	for _, p := range this.Network.GetNp().List {
+		p.Send(reqmsg, false)
+	}
 }

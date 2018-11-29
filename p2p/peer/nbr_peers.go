@@ -4,9 +4,13 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/coschain/contentos-go/p2p/msg"
 	"github.com/coschain/contentos-go/p2p/common"
 	"github.com/coschain/contentos-go/p2p/message/types"
 )
+
+var TrxMap map[*Peer][]byte = make(map[*Peer][]byte)
+var TrxLock = &sync.Mutex{}
 
 //NbrPeers: The neigbor list
 type NbrPeers struct {
@@ -14,13 +18,40 @@ type NbrPeers struct {
 	List map[uint64]*Peer
 }
 
+func byteSliceEqual(a, b []byte) bool {
+	if len(a) != len(b) {
+		return false
+	}
+
+	if (a == nil) != (b == nil) {
+		return false
+	}
+
+	for i, v := range a {
+		if v != b[i] {
+			return false
+		}
+	}
+
+	return true
+}
+
 //Broadcast tranfer msg buffer to all establish peer
-func (this *NbrPeers) Broadcast(msg types.Message, isConsensus bool) {
+func (this *NbrPeers) Broadcast(mesg types.Message, isConsensus bool) {
 	this.RLock()
 	defer this.RUnlock()
 	for _, node := range this.List {
+		if msgdata, ok := mesg.(*msg.BroadcastSigTrx); ok {
+			id, _ := msgdata.SigTrx.Id()
+			TrxLock.Lock()
+			target := TrxMap[node]
+			TrxLock.Unlock()
+			if byteSliceEqual(target, id.Hash) {
+				continue
+			}
+		}
 		if node.syncState == common.ESTABLISH && node.GetRelay() == true {
-			node.Send(msg, isConsensus)
+			node.Send(mesg, isConsensus)
 		}
 	}
 }

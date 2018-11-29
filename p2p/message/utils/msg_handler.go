@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"github.com/coschain/contentos-go/p2p/peer"
 	"net"
 	"strconv"
 	"strings"
@@ -133,6 +134,12 @@ func TransactionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface
 	}
 	ctrl := s.(iservices.IConsensus)
 	ctrl.PushTransaction(trn.SigTrx)
+
+	remotePeer := p2p.GetPeerFromAddr(data.Addr)
+	id, _ := trn.SigTrx.Id()
+	peer.TrxLock.Lock()
+	peer.TrxMap[remotePeer] = id.Hash
+	peer.TrxLock.Unlock()
 }
 
 // VersionHandle handles version handshake protocol from peer
@@ -567,7 +574,7 @@ func ReqIdHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	current_head_blk_id := ctrl.GetHeadBlockId()
 	ids, err := ctrl.GetIDs(remote_head_blk_id, current_head_blk_id)
 	if err != nil {
-		log.Info("can't get gap ids frm consessus")
+		log.Info("can't get gap ids from consessus")
 		// TODO:
 	}
 	if len(ids) == 0 {
