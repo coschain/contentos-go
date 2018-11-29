@@ -133,7 +133,7 @@ func (c *Controller) pushTrx(trx *prototype.SignedTransaction) *prototype.Transa
 	defer func() {
 		// undo sub session
 		if err := recover(); err != nil {
-			c.db.EndTransaction(false)
+			mustNoError(c.db.EndTransaction(false), "EndTransaction error")
 			panic(err)
 		}
 	}()
@@ -154,7 +154,7 @@ func (c *Controller) pushTrx(trx *prototype.SignedTransaction) *prototype.Transa
 	c.pending_tx = append(c.pending_tx, trxWrp)
 
 	// commit sub session
-	c.db.EndTransaction(true)
+	mustNoError(c.db.EndTransaction(true), "EndTransaction error")
 
 	// @ not use yet
 	//c.notifyTrxPending(trx)
@@ -206,7 +206,7 @@ func (c *Controller) ClearPending() []*prototype.TransactionWrapper {
 	c.pending_tx = c.pending_tx[:0]
 
 	if c.skip&prototype.Skip_apply_transaction == 0 {
-		c.db.EndTransaction(false)
+		mustNoError(c.db.EndTransaction(false), "EndTransaction error")
 		c.havePendingTransaction = false
 	}
 
@@ -240,7 +240,7 @@ func (c *Controller) GenerateBlock(witness string, pre *prototype.Sha256, timest
 	defer func() {
 		c.skip = oldSkip
 		if err := recover(); err != nil {
-			c.db.EndTransaction(false)
+			mustNoError(c.db.EndTransaction(false), "EndTransaction error")
 			logging.CLog().Errorf("GenerateBlock Error: %v", err)
 			panic(err)
 		}
@@ -276,7 +276,7 @@ func (c *Controller) GenerateBlock(witness string, pre *prototype.Sha256, timest
 
 	// undo all pending_tx in DB
 	if c.havePendingTransaction {
-		c.db.EndTransaction(false)
+		mustNoError(c.db.EndTransaction(false), "EndTransaction error")
 	}
 	c.db.BeginTransaction()
 	c.havePendingTransaction = true
@@ -295,13 +295,13 @@ func (c *Controller) GenerateBlock(witness string, pre *prototype.Sha256, timest
 		func() {
 			defer func() {
 				if err := recover(); err != nil {
-					c.db.EndTransaction(false)
+					mustNoError(c.db.EndTransaction(false), "EndTransaction error")
 				}
 			}()
 
 			c.db.BeginTransaction()
 			c.applyTransactionInner(trxWraper)
-			c.db.EndTransaction(true)
+			mustNoError(c.db.EndTransaction(true), "EndTransaction error")
 
 			totalSize += uint32(proto.Size(trxWraper))
 			signBlock.Transactions = append(signBlock.Transactions, trxWraper)
@@ -330,7 +330,7 @@ func (c *Controller) GenerateBlock(witness string, pre *prototype.Sha256, timest
 		c.db.EndTransaction(false)
 	}*/
 
-	c.db.EndTransaction(false)
+	mustNoError(c.db.EndTransaction(false), "EndTransaction error")
 
 	return signBlock
 }
@@ -581,10 +581,10 @@ func (c *Controller) initGenesis() {
 	c.db.BeginTransaction()
 	defer func() {
 		if err := recover(); err != nil {
-			c.db.EndTransaction(false)
+			mustNoError(c.db.EndTransaction(false), "EndTransaction error")
 			panic(err)
 		} else {
-			c.db.EndTransaction(true)
+			mustNoError(c.db.EndTransaction(true), "EndTransaction error")
 		}
 	}()
 	// create initminer
@@ -907,26 +907,26 @@ func (c *Controller) AddWeightedVP(value uint64) {
 func (c *Controller) saveReversion(num uint32) {
 	tag := strconv.FormatUint(uint64(num), 10)
 	currentRev := c.db.GetRevision()
-	c.db.TagRevision(currentRev, tag)
+	mustNoError(c.db.TagRevision(currentRev, tag), fmt.Sprintf("TagRevision:  tag:%d, reversion%d", num, currentRev))
 	logging.CLog().Debug("### saveReversion, num:", num, " rev:", currentRev)
 }
 
 func (c *Controller) getReversion(num uint32) uint64 {
 	tag := strconv.FormatUint(uint64(num), 10)
 	rev, err := c.db.GetTagRevision(tag)
-	mustNoError(err, fmt.Sprintf("GetTagRevision: %d", num) )
+	mustNoError(err, fmt.Sprintf("GetTagRevision: tag:%d, reversion:%d", num, rev))
 	return rev
 }
 
 func (c *Controller) PopBlockTo(num uint32) {
 	// undo pending trx
 	if c.havePendingTransaction {
-		c.db.EndTransaction(false)
+		mustNoError(c.db.EndTransaction(false), "EndTransaction error")
 		c.havePendingTransaction = false
 	}
 	// get reversion
 	rev := c.getReversion(num)
-	mustNoError(c.db.RevertToRevision(rev), "RevertToRevision error")
+	mustNoError(c.db.RevertToRevision(rev), fmt.Sprintf("RebaseToRevision error: tag:%d, reversion:%d", num, rev))
 }
 
 func (c *Controller) Commit(num uint32) {
@@ -934,7 +934,7 @@ func (c *Controller) Commit(num uint32) {
 	rev := c.getReversion(num)
 	logging.CLog().Debug("### Commit, tag:", num, " rev:", rev)
 	//logging.CLog().Debug("$$$ dump reversion array:",c.numToRev)
-	mustNoError(c.db.RebaseToRevision(rev), "RebaseToRevision error")
+	mustNoError(c.db.RebaseToRevision(rev), fmt.Sprintf("RebaseToRevision: tag:%d, reversion:%d", num, rev))
 }
 
 type layer struct {
