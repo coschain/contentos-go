@@ -150,7 +150,7 @@ func (c *Controller) pushTrx(trx *prototype.SignedTransaction) *prototype.Transa
 	// start a sub undo session for applyTransaction
 	c.db.BeginTransaction()
 
-	c.applyTransaction(trxWrp)
+	c.applyTransactionInner(trxWrp)
 	c.pending_tx = append(c.pending_tx, trxWrp)
 
 	// commit sub session
@@ -300,7 +300,7 @@ func (c *Controller) GenerateBlock(witness string, pre *prototype.Sha256, timest
 			}()
 
 			c.db.BeginTransaction()
-			c.applyTransaction(trxWraper)
+			c.applyTransactionInner(trxWraper)
 			c.db.EndTransaction(true)
 
 			totalSize += uint32(proto.Size(trxWraper))
@@ -363,12 +363,13 @@ func (c *Controller) notifyBlockApply(block *prototype.SignedBlock) {
 func (c *Controller) processBlock() {
 }
 
-//func (c *Controller) applyTransaction(trxWrp *prototype.TransactionWrapper) {
-//	c.applyTransaction(trxWrp)
-//	// @ not use yet
-//	//c.notifyTrxPostExecute(trxWrp.SigTrx)
-//}
 func (c *Controller) applyTransaction(trxWrp *prototype.TransactionWrapper) {
+	c.applyTransactionInner(trxWrp)
+	// @ not use yet
+	//c.notifyTrxPostExecute(trxWrp.SigTrx)
+}
+
+func (c *Controller) applyTransactionInner(trxWrp *prototype.TransactionWrapper) {
 	defer func() {
 		if err := recover(); err != nil {
 			trxWrp.Invoice.Status = 500
@@ -510,19 +511,19 @@ func (c *Controller) getEvaluator(op *prototype.Operation) BaseEvaluator {
 	}
 }
 
-//func (c *Controller) applyBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag) {
-//	oldFlag := c.skip
-//	defer func() {
-//		c.skip = oldFlag
-//	}()
-//
-//	c.skip = skip
-//	c.applyBlock(blk, skip)
-//
-//	// @ tps update
-//}
-
 func (c *Controller) applyBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag) {
+	oldFlag := c.skip
+	defer func() {
+		c.skip = oldFlag
+	}()
+
+	c.skip = skip
+	c.applyBlockInner(blk, skip)
+
+	// @ tps update
+}
+
+func (c *Controller) applyBlockInner(blk *prototype.SignedBlock, skip prototype.SkipFlag) {
 	nextBlockNum := blk.Id().BlockNum()
 
 	merkleRoot := blk.CalculateMerkleRoot()
