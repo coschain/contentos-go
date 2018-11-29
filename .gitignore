@@ -18,3 +18,5 @@ main
 *.log
 #wallet-cli
 /cmd/wallet-cli/wallet-cli
+cmd/cosd/cosd
+cmd/multinodetester/multinodetester

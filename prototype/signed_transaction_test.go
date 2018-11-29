@@ -16,6 +16,43 @@ func makeOp() *TransferOperation {
 	return top
 }
 
+func makeFixKeyMap() map[string]string  {
+	fixKeys := make(map[string]string)
+
+	fixKeys["123456"] = "2AvYqihDZjq7pFeZNuBYjBW1hQyPUw36xZB25g8UYfRLKwh7k9"
+	fixKeys["initminer"] = "28PFDCwkDWNFYSeFEyN5mct1J75v5ZxwpVtAb3mb3XySJBrGSj"
+	fixKeys["initminer1"] = "2su2nYzmkfT7p1JbiStegUN3Prrkr36p6CPQSvGG3TmRbEVEqy"
+	fixKeys["initminer2"] = "bM8zkJXxvdfyKCweWZaT6vgEPCtWCEX3S4EspmiiSjwgRzgcF"
+	fixKeys["1"] = "2CL5gdFyX4XF4sq6yoxPBpX92xHtnyz7K5JG9gGSKDzqmzgyzp"
+
+	return fixKeys
+}
+
+func TestFixGenKey(t *testing.T) {
+	fixKeys := makeFixKeyMap()
+	for k,v:= range fixKeys {
+		res1, err := GenerateNewKeyFromBytes( []byte(k) )
+
+		if err != nil{
+			t.Fatal(err)
+		}
+
+		if res1.ToWIF() != v{
+			t.Fatal("key Error")
+		}
+
+		res2, err := GenerateNewKeyFromBytes( []byte(k) )
+
+		if err != nil{
+			t.Fatal(err)
+		}
+
+		if !res1.Equal( res2 ){
+			t.Fatal("key Error")
+		}
+	}
+}
+
 func TestVerifySig(t *testing.T) {
 
 	sigKey, err := GenerateNewKey()

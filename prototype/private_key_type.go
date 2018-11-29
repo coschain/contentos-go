@@ -47,6 +47,23 @@ func PrivateKeyFromWIF( encoded string ) (*PrivateKeyType, error) {
 	return PrivateKeyFromBytes(buf[:len(buf)-4]), nil
 }
 
+func GenerateNewKeyFromBytes( buff []byte ) (*PrivateKeyType, error) {
+
+	cBuff1 := sha256.Sum256(buff)
+
+	cBuff := make([]byte, 0)
+	cBuff = append(cBuff, cBuff1[:]...)
+	cBuff = append(cBuff, cBuff1[:]...)
+
+	sigRawKey, err := crypto.GenerateKeyFromBytes(cBuff)
+
+	if err != nil{
+		return nil, err
+	}
+
+	return PrivateKeyFromECDSA(sigRawKey), nil
+}
+
 func GenerateNewKey() (*PrivateKeyType, error) {
 	sigRawKey, err := crypto.GenerateKey()
 
