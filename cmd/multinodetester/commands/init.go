@@ -48,7 +48,7 @@ func addConf(confdir string, cfg node.Config, index int) {
 
 	if index > 0 {
 		cfg.Consensus.LocalBpName = fmt.Sprintf("%s%d", constants.INIT_MINER_NAME, index)
-		key, err := prototype.GenerateNewKey()
+		key, err := prototype.GenerateNewKeyFromBytes([]byte(cfg.Consensus.LocalBpName) )
 		if err != nil{
 			panic(err)
 		}

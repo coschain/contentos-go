@@ -124,7 +124,7 @@ func (m *Transaction) AddOperation(op interface{}) {
 		res.Op = &Operation_Op10{Op10: ptr}
 		break
 	default:
-		panic("error op type")
+		panic(fmt.Sprintf("error op type %v", op) )
 	}
 	m.Operations = append(m.Operations, res)
 }

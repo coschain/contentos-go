@@ -141,6 +141,7 @@ func addCommands() {
 	rootCmd.AddCommand(commands.ReplyCmd())
 	rootCmd.AddCommand(commands.FollowCmd())
 	rootCmd.AddCommand(commands.FollowCntCmd())
+	rootCmd.AddCommand(commands.MultinodetesterCmd())
 }
 
 func init() {
