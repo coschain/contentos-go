@@ -22,7 +22,7 @@ import (
 
 const (
 	PasswordLength    int   = 32
-	ExpirationSeconds int64 = 5 * 60
+	ExpirationSeconds int64 = 5 * 60 * 60 * 24 * 30
 )
 
 type BaseWallet struct {
