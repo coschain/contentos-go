@@ -84,8 +84,14 @@ func (e *Economist) Mint() error {
 	e.globalProps.PostRewards.Value += uint64(authorReward)
 	e.globalProps.ReplyRewards.Value += uint64(replyReward)
 
-	// todo get bp and add reward into its reward keeper
 	_ = bpReward
+	currentBp := e.globalProps.GetCurrentWitness().Value
+	rewards := e.rewardsKeeper.GetRewards()
+	if vest, ok := rewards[currentBp]; !ok {
+		rewards[currentBp] = &prototype.Vest{Value: uint64(bpReward)}
+	} else {
+		vest.Value += uint64(bpReward)
+	}
 
 	return nil
 }
