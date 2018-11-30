@@ -246,9 +246,19 @@ func (db *DB) Pop() common.ISignedBlock {
 	db.Lock()
 	defer db.Unlock()
 	ret := db.branches[db.head]
+	old := db.head
 	db.head = ret.Previous()
+	delete(db.branches, old)
 
 	return ret
+}
+
+// ResetHead...
+// WARNING: DO NOT call this method unless you know what you are doing
+func (db *DB) ResetHead(head common.BlockID) {
+	db.Lock()
+	defer db.Unlock()
+	db.head = head
 }
 
 // FetchBranch finds the nearest ancestor of id1 and id2, then returns

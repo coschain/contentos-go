@@ -1,7 +1,6 @@
 package consensus
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -165,6 +164,7 @@ func (d *DPoS) scheduleProduce() bool {
 				headID = d.ForkDB.Head().Id()
 			}
 			d.p2p.TriggerSync(headID)
+			// TODO:  if we are not on the main branch, pop until the head is on main branch
 			logging.CLog().Debug("[DPoS TriggerSync]: start from ", headID.BlockNum())
 			return false
 		}
@@ -190,6 +190,7 @@ func (d *DPoS) start() {
 	}
 	cfg := d.ctx.Config()
 	d.ForkDB.LoadSnapshot(avatar, cfg.ResolvePath("forkdb_snapshot"))
+
 	if d.bootstrap && d.ForkDB.Empty() && d.blog.Empty() {
 		logging.CLog().Info("[DPoS] bootstrapping...")
 		d.shuffle()
@@ -198,39 +199,45 @@ func (d *DPoS) start() {
 	}
 
 	logging.CLog().Info("[DPoS] started")
-	//d.scheduleProduce()
 	for {
 		select {
 		case <-d.stopCh:
-			logging.CLog().Debug("DPoS routine stopped.")
+			logging.CLog().Debug("[DPoS] routine stopped.")
 			return
 		case b := <-d.blkCh:
 			if err := d.pushBlock(b); err != nil {
-				logging.CLog().Error("push block error: ", err)
+				logging.CLog().Error("[DPoS] pushBlock failed: ", err)
 			}
 		case trx_fn := <-d.trxCh:
 			trx_fn()
 			continue
 		case <-d.prodTimer.C:
-			//logging.CLog().Debug("scheduleProduce.")
-			//logging.CLog().Debug("producers: ", d.Producers)
 			if !d.scheduleProduce() {
 				continue
 			}
-			d.prodTimer.Reset(1 * time.Second)
+
 			b, err := d.generateBlock()
 			if err != nil {
-				logging.CLog().Error("generating block error: ", err)
+				logging.CLog().Error("[DPoS] generateBlock error: ", err)
 				continue
 			}
-			logging.CLog().Debugf("[DPoS]generated block: <num %d> <ts %d>", b.Id().BlockNum(), b.Timestamp())
+			d.prodTimer.Reset(timeToNextSec())
+			logging.CLog().Debugf("[DPoS] generated block: <num %d> <ts %d>", b.Id().BlockNum(), b.Timestamp())
+
 			if err = d.pushBlock(b); err != nil {
-				logging.CLog().Error("[DPoS] pushBlock failed. ", err)
+				logging.CLog().Error("[DPoS] push generated block failed: ", err)
 				continue
 			}
 			// broadcast block
+			//if b.Id().BlockNum() % 10 == 0 {
+			//	go func() {
+			//		time.Sleep(4*time.Second)
+			//		d.p2p.Broadcast(b)
+			//	}()
+			//} else {
+			//	d.p2p.Broadcast(b)
+			//}
 			d.p2p.Broadcast(b)
-
 		}
 	}
 }
@@ -383,8 +390,9 @@ func (d *DPoS) pushBlock(b common.ISignedBlock) error {
 	//d.Lock()
 	//defer d.Unlock()
 	// TODO: check signee & merkle
+
 	if b.Timestamp() < d.getSlotTime(1) {
-		return errors.New("the timestamp of the new block is less than that of the head block")
+		logging.CLog().Debugf("the timestamp of the new block is less than that of the head block.")
 	}
 
 	head := d.ForkDB.Head()
@@ -401,6 +409,9 @@ func (d *DPoS) pushBlock(b common.ISignedBlock) error {
 		// 3. head of a non-main branch or
 		// 4. illegal block
 		logging.CLog().Debugf("[pushBlock]possibly detached block. prev: got %v, want %v", b.Id(), head.Id())
+		if b.Id().BlockNum() > head.Id().BlockNum() {
+			d.p2p.TriggerSync(head.Id())
+		}
 		return nil
 	} else if head != nil && newHead.Previous() != head.Id() {
 		logging.CLog().Debug("[DPoS] start to switch fork.")
@@ -459,30 +470,32 @@ func (d *DPoS) switchFork(old, new common.BlockID) {
 	if err != nil {
 		panic(err)
 	}
+	logging.CLog().Debug("[ForkDB][switchFork] fork branches: ", branches)
 	poppedNum := len(branches[0]) - 1
-	for i := 0; i < poppedNum; i++ {
-		d.ForkDB.Pop()
-		//d.popBlock()
-	}
+	//for i := 0; i <= poppedNum; i++ {
+	//	popped := d.ForkDB.Pop()
+	//	logging.CLog().Debugf("[ForkDB][switchFork] block %v was popped", popped.Id())
+	//	//d.popBlock()
+	//}
 	d.popBlock(branches[0][poppedNum])
 
 	// producers fixup
 	d.restoreProducers()
 
 	if d.ForkDB.Head().Id() != branches[0][poppedNum] {
-		errStr := fmt.Sprintf("[ForkDB][switchFork] pop to root block with id: %d, num: %d",
-			d.ForkDB.Head().Id(), d.ForkDB.Head().Id().BlockNum())
+		errStr := fmt.Sprintf("[ForkDB][switchFork] pop to root block with id: %d, expect: %d",
+			d.ForkDB.Head().Id(), branches[0][poppedNum])
 		panic(errStr)
 	}
 	appendedNum := len(branches[1]) - 1
 	errWhileSwitch := false
 	var newBranchIdx int
-	for newBranchIdx := appendedNum - 1; newBranchIdx >= 0; newBranchIdx-- {
+	for newBranchIdx = appendedNum - 1; newBranchIdx >= 0; newBranchIdx-- {
 		b, err := d.ForkDB.FetchBlock(branches[1][newBranchIdx])
 		if err != nil {
 			panic(err)
 		}
-		if d.pushBlock(b) != nil {
+		if d.applyBlock(b) != nil {
 			errWhileSwitch = true
 			// TODO: peels off this invalid branch to avoid flip-flop switch
 			break
@@ -491,10 +504,10 @@ func (d *DPoS) switchFork(old, new common.BlockID) {
 
 	// switch back
 	if errWhileSwitch {
-		for i := newBranchIdx + 1; i < appendedNum; i++ {
-			d.ForkDB.Pop()
-			//d.popBlock()
-		}
+		//for i := newBranchIdx + 1; i < appendedNum; i++ {
+		//	d.ForkDB.Pop()
+		//	//d.popBlock()
+		//}
 		d.popBlock(branches[0][poppedNum])
 
 		// producers fixup
@@ -505,8 +518,11 @@ func (d *DPoS) switchFork(old, new common.BlockID) {
 			if err != nil {
 				panic(err)
 			}
-			d.PushBlock(b)
+			d.applyBlock(b)
 		}
+
+		// restore the good old head of ForkDB
+		d.ForkDB.ResetHead(branches[0][0])
 	}
 }
 
