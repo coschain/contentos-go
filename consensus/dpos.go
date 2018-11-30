@@ -224,9 +224,13 @@ func (d *DPoS) start() {
 				continue
 			}
 			logging.CLog().Debugf("[DPoS]generated block: <num %d> <ts %d>", b.Id().BlockNum(), b.Timestamp())
+			if err = d.pushBlock(b); err != nil {
+				logging.CLog().Error("[DPoS] pushBlock failed. ", err)
+				continue
+			}
 			// broadcast block
 			d.p2p.Broadcast(b)
-			d.pushBlock(b)
+
 		}
 	}
 }
