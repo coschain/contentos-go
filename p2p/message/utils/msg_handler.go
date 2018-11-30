@@ -103,7 +103,7 @@ func BlockHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	log.Trace("[p2p]receive block message from ", data.Addr, data.Id)
 
 	var block = data.Payload.(*msg.SigBlkMsg)
-	//log.Info("receive a SignedBlock msg:   ", block)
+	log.Info("receive a SignedBlock msg, block number :   ", block.SigBlk.Id().BlockNum())
 
 	s, err := p2p.GetService(iservices.ConsensusServerName)
 	if err != nil {
