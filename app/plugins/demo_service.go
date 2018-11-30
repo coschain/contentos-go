@@ -3,7 +3,6 @@ package plugins
 import (
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/common/constants"
-	"github.com/coschain/contentos-go/common/logging"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/prototype"
@@ -44,7 +43,7 @@ func (p *DemoService) unhookEvent() {
 
 func (p *DemoService) onPostOperation(notification *prototype.OperationNotification) {
 	// TODO add handle code
-	logging.CLog().Infof("onPostOperation: %v", notification.Op)
+//	logging.CLog().Infof("onPostOperation: %v", notification.Op)
 }
 
 func (p *DemoService) Stop() error {

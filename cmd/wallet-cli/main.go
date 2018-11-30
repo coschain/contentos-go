@@ -144,6 +144,7 @@ func addCommands() {
 	rootCmd.AddCommand(commands.MultinodetesterCmd())
 	rootCmd.AddCommand(commands.SwitchPortcmd())
 	rootCmd.AddCommand(commands.ChainStateCmd())
+	rootCmd.AddCommand(commands.StressCmd())
 }
 
 func init() {
