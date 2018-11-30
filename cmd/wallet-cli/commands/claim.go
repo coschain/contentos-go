@@ -40,13 +40,13 @@ func queryClaim(cmd *cobra.Command, args []string) {
 	rpc := c.(grpcpb.ApiServiceClient)
 	name := args[0]
 	// todo need get account reward by name
-	req := &grpcpb.GetAccountByNameRequest{AccountName: &prototype.AccountName{Value: name}}
-	resp, err := rpc.GetAccountByName(context.Background(), req)
+	req := &grpcpb.GetAccountRewardByNameRequest{AccountName: &prototype.AccountName{Value: name}}
+	resp, err := rpc.GetAccountRewardByName(context.Background(), req)
 	if err != nil {
 		fmt.Println(err)
 	} else {
 		buf, _ := json.MarshalIndent(resp, "", "\t")
-		fmt.Println(fmt.Sprintf("GetAccountByName detail: %s", buf))
+		fmt.Println(fmt.Sprintf("GetAccountRewardByName detail: %s", buf))
 	}
 }
 

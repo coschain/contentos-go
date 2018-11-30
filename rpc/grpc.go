@@ -62,7 +62,17 @@ func (as *APIService) GetAccountByName(ctx context.Context, req *grpcpb.GetAccou
 
 func (as *APIService) GetAccountRewardByName(ctx context.Context, req *grpcpb.GetAccountRewardByNameRequest) (*grpcpb.AccountRewardResponse, error) {
 
-	return &grpcpb.AccountRewardResponse{}, nil
+	var i int32 = 1
+
+	rewardKeeperWrap := table.NewSoRewardsKeeperWrap(as.db, &i)
+
+	if rewardKeeperWrap != nil && rewardKeeperWrap.CheckExist() {
+		keeper := rewardKeeperWrap.GetKeeper()
+		if val, ok := keeper.Rewards[req.AccountName.Value]; ok {
+			return &grpcpb.AccountRewardResponse{AccountName: req.AccountName, Reward: val}, nil
+		}
+	}
+	return &grpcpb.AccountRewardResponse{AccountName: req.AccountName, Reward: &prototype.Vest{Value: 0}}, nil
 }
 
 func (as *APIService) GetFollowerListByName(ctx context.Context, req *grpcpb.GetFollowerListByNameRequest) (*grpcpb.GetFollowerListByNameResponse, error) {
@@ -154,10 +164,10 @@ func (as *APIService) GetChainState(ctx context.Context, req *grpcpb.NonParamsRe
 	globalVar := table.NewSoGlobalWrap(as.db, &i)
 
 	ret := &grpcpb.GetChainStateResponse{}
-	blks, err := as.consensus.FetchBlocksSince( common.EmptyBlockID )
+	blks, err := as.consensus.FetchBlocksSince(common.EmptyBlockID)
 	if err == nil {
 		for _, v := range blks {
-			ret.Headers = append( ret.Headers, v.(*prototype.SignedBlock).SignedHeader.Header.Previous )
+			ret.Headers = append(ret.Headers, v.(*prototype.SignedBlock).SignedHeader.Header.Previous)
 		}
 	}
 	ret.Props = globalVar.GetProps()
