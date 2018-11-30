@@ -1,6 +1,7 @@
 package economist
 
 import (
+	"fmt"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
@@ -76,11 +77,15 @@ func (e *Economist) updateRewardsKeeper() error {
 func (e *Economist) Do() error {
 	e.decayGlobalVotePower()
 	timestamp := e.globalProps.Time.UtcSeconds - uint32(constants.GenesisTime)
-	keyPrefix := "cashout:" + string(common.GetBucket(timestamp)) + "_"
+	keyPrefix := fmt.Sprintf("cashout:%d_", common.GetBucket(timestamp))
 	postCashoutList := []string{}
 	replyCashoutList := []string{}
 	r := regexp.MustCompile(`cashout:(?P<bucket>\d+)_(?P<idx>\d+)`)
-	for iter := e.db.NewIterator([]byte(keyPrefix), nil); iter.Valid(); iter.Next() {
+	iter := e.db.NewIterator([]byte(keyPrefix), nil)
+	for iter.Next() {
+		if !iter.Valid() {
+			break
+		}
 		key, err := iter.Key()
 		if err != nil {
 			return err
@@ -104,7 +109,7 @@ func (e *Economist) Do() error {
 		e.postCashout(postCashoutList)
 	}
 
-	if len(postCashoutList) > 0 {
+	if len(replyCashoutList) > 0 {
 		e.replyCashout(replyCashoutList)
 	}
 
@@ -126,11 +131,12 @@ func (e *Economist) postCashout(pids []string) {
 		posts = append(posts, post)
 	}
 	blockReward := vpAccumulator * e.globalProps.PostRewards.Value / e.globalProps.WeightedVps
+	innerRewards := e.rewardsKeeper.Rewards
 	for _, post := range posts {
 		author := post.GetAuthor().Value
 		reward := post.GetWeightedVp() * blockReward / vpAccumulator
-		if vest, ok := e.rewardsKeeper.Rewards[author]; !ok {
-			e.rewardsKeeper.Rewards[author] = &prototype.Vest{Value: reward}
+		if vest, ok := innerRewards[author]; !ok {
+			innerRewards[author] = &prototype.Vest{Value: reward}
 		} else {
 			vest.Value += reward
 		}

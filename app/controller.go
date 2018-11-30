@@ -140,7 +140,7 @@ func (c *Controller) pushTrx(trx *prototype.SignedTransaction) *prototype.Transa
 	// start a new undo session when first transaction come after push block
 	if !c.havePendingTransaction {
 		c.db.BeginTransaction()
-	//	logging.CLog().Debug("@@@@@@ pushTrx havePendingTransaction=true")
+		//	logging.CLog().Debug("@@@@@@ pushTrx havePendingTransaction=true")
 		c.havePendingTransaction = true
 	}
 
@@ -210,7 +210,7 @@ func (c *Controller) ClearPending() []*prototype.TransactionWrapper {
 		if c.havePendingTransaction == true {
 			mustNoError(c.db.EndTransaction(false), "EndTransaction error")
 			c.havePendingTransaction = false
-	//		logging.CLog().Debug("@@@@@@ ClearPending havePendingTransaction=false")
+			//		logging.CLog().Debug("@@@@@@ ClearPending havePendingTransaction=false")
 		}
 	}
 
@@ -647,12 +647,14 @@ func (c *Controller) initGenesis() {
 	}), "CreateDynamicGlobalProperties error")
 
 	//create rewards keeper
-	/*
-		keeperWrap := table.NewSoRewardsKeeperWrap(c.db, &SINGLE_ID)
-		mustNoError(keeperWrap.Create(func(tInfo *table.SoRewardsKeeper) {
-			tInfo.Id = SINGLE_ID
-			tInfo.Keeper.Rewards = make(map[string]*prototype.Vest)
-		}), "Create Rewards Keeper error")*/
+	keeperWrap := table.NewSoRewardsKeeperWrap(c.db, &SINGLE_ID)
+	rewards := make(map[string]*prototype.Vest)
+	rewards["initminer"] = &prototype.Vest{Value: 0}
+	mustNoError(keeperWrap.Create(func(tInfo *table.SoRewardsKeeper) {
+		tInfo.Id = SINGLE_ID
+		//tInfo.Keeper.Rewards = map[string]*prototype.Vest{}
+		tInfo.Keeper = &prototype.InternalRewardsKeeper{Rewards: rewards}
+	}), "Create Rewards Keeper error")
 
 	// create block summary buffer 2048
 	for i := uint32(0); i < 0x800; i++ {

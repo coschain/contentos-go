@@ -1,11 +1,12 @@
 package node
 
 import (
+	"github.com/coschain/contentos-go/config"
 	"testing"
 )
 
 func testNodeConfig() Config {
-	cfg := DefaultNodeConfig
+	cfg := config.DefaultNodeConfig
 	cfg.Name = "cosd"
 	return cfg
 }
