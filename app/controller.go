@@ -140,6 +140,7 @@ func (c *Controller) pushTrx(trx *prototype.SignedTransaction) *prototype.Transa
 	// start a new undo session when first transaction come after push block
 	if !c.havePendingTransaction {
 		c.db.BeginTransaction()
+	//	logging.CLog().Debug("@@@@@@ pushTrx havePendingTransaction=true")
 		c.havePendingTransaction = true
 	}
 
@@ -209,6 +210,7 @@ func (c *Controller) ClearPending() []*prototype.TransactionWrapper {
 		if c.havePendingTransaction == true {
 			mustNoError(c.db.EndTransaction(false), "EndTransaction error")
 			c.havePendingTransaction = false
+	//		logging.CLog().Debug("@@@@@@ ClearPending havePendingTransaction=false")
 		}
 	}
 
@@ -281,6 +283,7 @@ func (c *Controller) GenerateBlock(witness string, pre *prototype.Sha256, timest
 		mustNoError(c.db.EndTransaction(false), "EndTransaction error")
 	}
 	c.db.BeginTransaction()
+	//logging.CLog().Debug("@@@@@@ GeneratBlock havePendingTransaction=true")
 	c.havePendingTransaction = true
 
 	var postponeTrx uint64 = 0
@@ -323,6 +326,12 @@ func (c *Controller) GenerateBlock(witness string, pre *prototype.Sha256, timest
 	signBlock.SignedHeader.Sign(priKey)
 
 	mustSuccess(proto.Size(signBlock) <= constants.MAX_BLOCK_SIZE, "block size too big")
+	// clearpending then let dpos call PushBlock, the point is without restore pending step when PushBlock
+	c.ClearPending()
+	/*mustNoError(c.db.EndTransaction(false), "EndTransaction error")
+	c.havePendingTransaction = false*/
+	//logging.CLog().Debug("@@@@@@ GenerateBlock havePendingTransaction=false")
+
 	/*c.PushBlock(signBlock,c.skip | prototype.Skip_apply_transaction)
 
 	if signBlock.SignedHeader.Number() == uint64(c.headBlockNum()) {
@@ -331,9 +340,6 @@ func (c *Controller) GenerateBlock(witness string, pre *prototype.Sha256, timest
 	} else {
 		c.db.EndTransaction(false)
 	}*/
-
-	mustNoError(c.db.EndTransaction(false), "EndTransaction error")
-	c.havePendingTransaction = false
 
 	return signBlock
 }
@@ -926,6 +932,7 @@ func (c *Controller) PopBlockTo(num uint32) {
 	if c.havePendingTransaction {
 		mustNoError(c.db.EndTransaction(false), "EndTransaction error")
 		c.havePendingTransaction = false
+		//logging.CLog().Debug("@@@@@@ PopBlockTo havePendingTransaction=false")
 	}
 	// get reversion
 	rev := c.getReversion(num)
