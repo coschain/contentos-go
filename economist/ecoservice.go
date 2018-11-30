@@ -74,6 +74,22 @@ func (e *Economist) updateRewardsKeeper() error {
 	return nil
 }
 
+func (e *Economist) Mint() error {
+	blockCurrent := constants.PER_BLOCK_CURRENT
+
+	authorReward := blockCurrent * constants.AUTHOR_REWARD / constants.PERCENT
+	replyReward := blockCurrent * constants.AUTHOR_REWARD / constants.PERCENT
+	bpReward := blockCurrent * constants.BP_REWARD / constants.PERCENT
+
+	e.globalProps.PostRewards.Value += uint64(authorReward)
+	e.globalProps.ReplyRewards.Value += uint64(replyReward)
+
+	// todo get bp and add reward into its reward keeper
+	_ = bpReward
+
+	return nil
+}
+
 func (e *Economist) Do() error {
 	e.decayGlobalVotePower()
 	timestamp := e.globalProps.Time.UtcSeconds - uint32(constants.GenesisTime)
@@ -147,18 +163,19 @@ func (e *Economist) postCashout(pids []string) {
 func (e *Economist) replyCashout(rids []string) {
 	replies := []*table.SoPostWrap{}
 	var vpAccumulator uint64 = 0
-	for _, pidStr := range rids {
-		pid, _ := strconv.ParseUint(pidStr, 10, 64)
-		reply := table.NewSoPostWrap(e.db, &pid)
+	for _, ridStr := range rids {
+		rid, _ := strconv.ParseUint(ridStr, 10, 64)
+		reply := table.NewSoPostWrap(e.db, &rid)
 		vpAccumulator += reply.GetWeightedVp()
 		replies = append(replies, reply)
 	}
 	blockReward := vpAccumulator * e.globalProps.ReplyRewards.Value / e.globalProps.WeightedVps
+	innerRewards := e.rewardsKeeper.Rewards
 	for _, reply := range replies {
 		author := reply.GetAuthor().Value
 		reward := reply.GetWeightedVp() * blockReward / vpAccumulator
 		if vest, ok := e.rewardsKeeper.Rewards[author]; !ok {
-			e.rewardsKeeper.Rewards[author] = &prototype.Vest{Value: reward}
+			innerRewards[author] = &prototype.Vest{Value: reward}
 		} else {
 			vest.Value += reward
 		}

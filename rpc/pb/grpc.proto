@@ -48,6 +48,13 @@ service ApiService {
         };
     }
 
+    rpc GetAccountRewardByName (GetAccountRewardByNameRequest) returns (AccountRewardResponse) {
+        option (google.api.http) = {
+            post: "/v1/user/get_account_reward_by_name"
+            body: "*"
+        };
+    }
+
     rpc GetFollowerListByName (GetFollowerListByNameRequest) returns (GetFollowerListByNameResponse) {
         option (google.api.http) = {
             post: "/v1/user/get_follower_list_by_name"
@@ -110,6 +117,7 @@ service ApiService {
         };
     }
 
+
     rpc BroadcastTrx (BroadcastTrxRequest) returns (BroadcastTrxResponse) {
         option (google.api.http) = {
             post: "/v1/trx/broadcast_trx"
@@ -122,6 +130,14 @@ message GetAccountByNameRequest {
     prototype.account_name account_name = 1;
 }
 
+message GetAccountRewardByNameRequest{
+    prototype.account_name account_name = 1;
+}
+
+message AccountRewardResponse {
+    prototype.account_name account_name = 1;
+    prototype.vest reward = 2;
+}
 
 message AccountResponse {
     prototype.account_name                  account_name    = 1;
