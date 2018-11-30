@@ -78,3 +78,12 @@ message reply_operation{
     repeated beneficiary_route_type beneficiaries = 6;
 }
 
+message claim_all_operation {
+    account_name account = 1;
+}
+
+message claim_operation {
+    account_name account = 1;
+    uint64 amount = 2;
+}
+
