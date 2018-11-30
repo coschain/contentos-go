@@ -649,7 +649,7 @@ func (c *Controller) initGenesis() {
 		}), "Create Rewards Keeper error")*/
 
 	// create block summary
-	for i := uint32(0); i < 0x100; i++ {
+	for i := uint32(0); i < 0x10000; i++ {
 		wrap := table.NewSoBlockSummaryObjectWrap(c.db, &i)
 		mustNoError(wrap.Create(func(tInfo *table.SoBlockSummaryObject) {
 			tInfo.Id = i
