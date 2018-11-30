@@ -648,8 +648,8 @@ func (c *Controller) initGenesis() {
 			tInfo.Keeper.Rewards = make(map[string]*prototype.Vest)
 		}), "Create Rewards Keeper error")*/
 
-	// create block summary
-	for i := uint32(0); i < 0x10000; i++ {
+	// create block summary buffer 2048
+	for i := uint32(0); i < 0x800; i++ {
 		wrap := table.NewSoBlockSummaryObjectWrap(c.db, &i)
 		mustNoError(wrap.Create(func(tInfo *table.SoBlockSummaryObject) {
 			tInfo.Id = i
@@ -839,7 +839,7 @@ func (c *Controller) updateSigningWitness(blk *prototype.SignedBlock) {
 
 func (c *Controller) createBlockSummary(blk *prototype.SignedBlock) {
 	blockNum := blk.Id().BlockNum()
-	blockNumSuffix := uint32(blockNum & 0xffff)
+	blockNumSuffix := uint32(blockNum & 0x7ff)
 
 	blockSummaryWrap := table.NewSoBlockSummaryObjectWrap(c.db, &blockNumSuffix)
 	mustSuccess(blockSummaryWrap.CheckExist(), "can not get block summary object")
