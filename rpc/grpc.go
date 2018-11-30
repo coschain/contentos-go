@@ -60,6 +60,11 @@ func (as *APIService) GetAccountByName(ctx context.Context, req *grpcpb.GetAccou
 
 }
 
+func (as *APIService) GetAccountRewardByName(ctx context.Context, req *grpcpb.GetAccountRewardByNameRequest) (*grpcpb.AccountRewardResponse, error) {
+
+	return &grpcpb.AccountRewardResponse{}, nil
+}
+
 func (as *APIService) GetFollowerListByName(ctx context.Context, req *grpcpb.GetFollowerListByNameRequest) (*grpcpb.GetFollowerListByNameResponse, error) {
 
 	var (
