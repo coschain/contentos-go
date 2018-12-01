@@ -12,9 +12,11 @@ import (
 	"github.com/golang/mock/gomock"
 	"hash/crc32"
 	"io/ioutil"
+	"math"
 	"math/rand"
 	"net/http"
 	"os"
+	"strings"
 	"testing"
 	"time"
 )
@@ -257,16 +259,16 @@ var (
 func TestGRPCApi_BroadcastTrx(t *testing.T) {
 	//if test account is created in current db, pls comment out createAccount method
 	pushTrx(t, createAccountTxReq(t))
-
 	time.Sleep(time.Second * 5)
+
 	pushTrx(t, createUnfollowTxReq(t))
 	getFollowerList(t)
 	pushTrx(t, createFollowTxReq(t))
 	getFollowerList(t)
 
 	uuid, postReq := createPostTxReq(t)
-	time.Sleep(time.Second * 3)
 	pushTrx(t, postReq)
+	time.Sleep(time.Second * 5)
 	pushTrx(t, createRelayTxReq(t, uuid))
 
 	getPostList(t)
@@ -275,10 +277,14 @@ func TestGRPCApi_BroadcastTrx(t *testing.T) {
 
 func getPostList(t *testing.T) {
 	req := &grpcpb.GetPostListByCreatedRequest{
-		//Start:&prototype.PostCreatedOrder{
-		//	Created:&prototype.TimePointSec{UtcSeconds:0},
-		//	ParentId:0,
-		//},
+		Start:&prototype.PostCreatedOrder{
+			Created:&prototype.TimePointSec{UtcSeconds:math.MaxUint32},
+			ParentId:0,
+		},
+		End:&prototype.PostCreatedOrder{
+			Created:&prototype.TimePointSec{UtcSeconds: 0},
+			ParentId:0,
+		},
 		Limit: 100,
 	}
 	resp := &grpcpb.GetPostListByCreatedResponse{}
@@ -293,10 +299,14 @@ func getPostList(t *testing.T) {
 
 func getRelyList(t *testing.T, parentId uint64) {
 	req := &grpcpb.GetReplyListByPostIdRequest{
-		//Start:&prototype.ReplyCreatedOrder{
-		//	ParentId:parentId,
-		//	Created:&prototype.TimePointSec{UtcSeconds:0},
-		//},
+		Start:&prototype.ReplyCreatedOrder{
+			ParentId:parentId,
+			Created:&prototype.TimePointSec{UtcSeconds: math.MaxUint32},
+		},
+		End:&prototype.ReplyCreatedOrder{
+			ParentId:parentId,
+			Created:&prototype.TimePointSec{UtcSeconds: 0},
+		},
 		Limit: 100,
 	}
 	resp := &grpcpb.GetReplyListByPostIdResponse{}
@@ -310,13 +320,13 @@ func getRelyList(t *testing.T, parentId uint64) {
 }
 
 func createPostTxReq(t *testing.T) (uuid uint64, req *grpcpb.BroadcastTrxRequest) {
-	title := "title_" + randStr(15)
+	title := "title_" + RandomString(15, "Aa0")
 	uuid = GenerateUUID(BOB + title)
 	post_op := &prototype.PostOperation{
 		Uuid:          uuid,
 		Owner:         &prototype.AccountName{Value: BOB},
 		Title:         title,
-		Content:       "content" + randStr(100),
+		Content:       "content" + RandomString(100, "Aa0"),
 		Tags:          []string{"abc"},
 		Beneficiaries: []*prototype.BeneficiaryRouteType{},
 	}
@@ -324,7 +334,7 @@ func createPostTxReq(t *testing.T) (uuid uint64, req *grpcpb.BroadcastTrxRequest
 }
 
 func createRelayTxReq(t *testing.T, parentId uint64) (req *grpcpb.BroadcastTrxRequest) {
-	content := "reply_content_" + randStr(119)
+	content := "reply_content_" + RandomString(119, "Aa0")
 	uuid := GenerateUUID(ALICE + content)
 	reply_op := &prototype.ReplyOperation{
 		Uuid:          uuid,
@@ -468,6 +478,44 @@ func randStr(n int) string {
 		b[i] = letters[rand.Intn(len(letters))]
 	}
 	return string(b)
+}
+
+func RandomString(randLength int, randType string) (result string) {
+	/**
+		eg:
+		RandomString(8, "A")
+    	RandomString(8, "a0")
+    	RandomString(20, "Aa0")
+	*/
+
+	var num string = "0123456789"
+	var lower string = "abcdefghijklmnopqrstuvwxyz"
+	var upper string = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+	b := bytes.Buffer{}
+	if strings.Contains(randType, "0") {
+		b.WriteString(num)
+	}
+	if strings.Contains(randType, "a") {
+		b.WriteString(lower)
+	}
+	if strings.Contains(randType, "A") {
+		b.WriteString(upper)
+	}
+	var str = b.String()
+	var strLen = len(str)
+	if strLen == 0 {
+		result = ""
+		return
+	}
+
+	rand.Seed(time.Now().UnixNano())
+	b = bytes.Buffer{}
+	for i := 0; i < randLength; i++ {
+		b.WriteByte(str[rand.Intn(strLen)])
+	}
+	result = b.String()
+	return
 }
 
 func TestHTTPApi_GetAccountByName(t *testing.T) {

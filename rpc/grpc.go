@@ -86,10 +86,10 @@ func (as *APIService) GetFollowerListByName(ctx context.Context, req *grpcpb.Get
 
 	ferOrderWrap := table.NewExtFollowerFollowerCreatedOrderWrap(as.db)
 
-	if req.GetStart() == nil {
+	if req.GetStart() == nil || req.GetEnd() == nil {
 		ferIter = ferOrderWrap.QueryListByOrder(nil, nil)
 	} else {
-		ferIter = ferOrderWrap.QueryListByOrder(req.GetStart(), nil)
+		ferIter = ferOrderWrap.QueryListByOrder(req.GetStart(), req.GetEnd())
 	}
 
 	limit = checkLimit(req.GetLimit())
@@ -118,10 +118,10 @@ func (as *APIService) GetFollowingListByName(ctx context.Context, req *grpcpb.Ge
 
 	fingOrderWrap := table.NewExtFollowingFollowingCreatedOrderWrap(as.db)
 
-	if req.GetStart() == nil {
+	if req.GetStart() == nil || req.GetEnd() == nil {
 		fingIter = fingOrderWrap.QueryListByOrder(nil, nil)
 	} else {
-		fingIter = fingOrderWrap.QueryListByOrder(req.GetStart(), nil)
+		fingIter = fingOrderWrap.QueryListByOrder(req.GetStart(), req.GetEnd())
 	}
 
 	limit = checkLimit(req.GetLimit())
@@ -227,10 +227,10 @@ func (as *APIService) GetPostListByCreated(ctx context.Context, req *grpcpb.GetP
 
 	postOrderWrap := table.NewExtPostCreatedCreatedOrderWrap(as.db)
 
-	if req.GetStart() == nil {
+	if req.GetStart() == nil || req.GetEnd() == nil {
 		postIter = postOrderWrap.QueryListByRevOrder(nil, nil)
 	} else {
-		postIter = postOrderWrap.QueryListByRevOrder(req.GetStart(), nil)
+		postIter = postOrderWrap.QueryListByRevOrder(req.GetStart(), req.GetEnd())
 	}
 
 	limit = checkLimit(req.GetLimit())
@@ -273,10 +273,14 @@ func (as *APIService) GetReplyListByPostId(ctx context.Context, req *grpcpb.GetR
 
 	replyOrderWrap := table.NewExtReplyCreatedCreatedOrderWrap(as.db)
 
-	if req.GetStart() == nil {
+	if req.GetStart() == nil || req.GetEnd() == nil {
+		//start := prototype.ReplyCreatedOrder{
+		//	ParentId:nil,
+		//	Created:&prototype.TimePointSec{UtcSeconds:math.MaxUint32},
+		//}
 		replyIter = replyOrderWrap.QueryListByRevOrder(nil, nil)
 	} else {
-		replyIter = replyOrderWrap.QueryListByRevOrder(req.GetStart(), nil)
+		replyIter = replyOrderWrap.QueryListByRevOrder(req.GetStart(), req.GetEnd())
 	}
 
 	limit = checkLimit(req.GetLimit())

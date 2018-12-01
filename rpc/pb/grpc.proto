@@ -151,7 +151,8 @@ message AccountResponse {
 
 message GetFollowerListByNameRequest {
     prototype.follower_created_order    start = 1;
-    uint32                              limit = 2;
+    prototype.follower_created_order    end   = 2;
+    uint32                              limit = 3;
 }
 
 message GetFollowerListByNameResponse {
@@ -160,7 +161,8 @@ message GetFollowerListByNameResponse {
 
 message GetFollowingListByNameRequest {
     prototype.following_created_order   start = 1;
-    uint32                              limit = 2;
+    prototype.following_created_order   end   = 2;
+    uint32                              limit = 3;
 }
 
 message GetFollowingListByNameResponse {
@@ -217,7 +219,8 @@ message PostResponse {
 
 message GetPostListByCreatedRequest {
     prototype.post_created_order    start = 1;
-    uint32                          limit = 2;
+    prototype.post_created_order    end   = 2;
+    uint32                          limit = 3;
 }
 
 message GetPostListByCreatedResponse {
@@ -226,7 +229,8 @@ message GetPostListByCreatedResponse {
 
 message GetReplyListByPostIdRequest {
     prototype.reply_created_order       start = 1;
-    uint32                              limit = 2;
+    prototype.reply_created_order       end   = 2;
+    uint32                              limit = 3;
 }
 
 message GetReplyListByPostIdResponse {

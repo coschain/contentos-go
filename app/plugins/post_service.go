@@ -7,7 +7,6 @@ import (
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/prototype"
-	"time"
 )
 
 var POST_SERVICE_NAME = "postsrv"
@@ -61,12 +60,17 @@ func (p *PostService) onPostOperation(notification *prototype.OperationNotificat
 
 func (p *PostService) executePostOperation(op *prototype.PostOperation) {
 	uuid := op.GetUuid()
+	ctrl, err := p.ctx.Service(iservices.CTRL_SERVER_NAME)
+	if err != nil {
+		panic("ctrl service invalid")
+	}
+
 	exPostWrap := table.NewSoExtPostCreatedWrap(p.db, &uuid)
 	if exPostWrap != nil && !exPostWrap.CheckExist() {
 		exPostWrap.Create(func(exPost *table.SoExtPostCreated) {
 			exPost.PostId = uuid
 			exPost.CreatedOrder = &prototype.PostCreatedOrder{
-				Created:  &prototype.TimePointSec{UtcSeconds: uint32(time.Now().Second())},
+				Created: ctrl.(iservices.IController).HeadBlockTime(),
 				ParentId: constants.POST_INVALID_ID,
 			}
 		})
@@ -75,13 +79,17 @@ func (p *PostService) executePostOperation(op *prototype.PostOperation) {
 
 func (p *PostService) executeReplyOperation(op *prototype.ReplyOperation) {
 	uuid := op.GetUuid()
+	ctrl, err := p.ctx.Service(iservices.CTRL_SERVER_NAME)
+	if err != nil {
+		panic("ctrl service invalid")
+	}
 	exReplyWrap := table.NewSoExtReplyCreatedWrap(p.db, &uuid)
 	if exReplyWrap != nil && !exReplyWrap.CheckExist() {
 		exReplyWrap.Create(func(exReply *table.SoExtReplyCreated) {
 			exReply.PostId = uuid
 			exReply.CreatedOrder = &prototype.ReplyCreatedOrder{
 				ParentId: op.GetParentUuid(),
-				Created:  &prototype.TimePointSec{UtcSeconds: uint32(time.Now().Second())},
+				Created: ctrl.(iservices.IController).HeadBlockTime(),
 			}
 		})
 	}

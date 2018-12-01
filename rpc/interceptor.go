@@ -12,7 +12,7 @@ func streamRecoveryLoggingInterceptor(srv interface{}, ss grpc.ServerStream, inf
 
 	defer func() {
 		if r := recover(); r != nil {
-			logging.CLog().Errorf("stream recovery interceptor err: [%s]", r)
+			logging.CLog().Errorf("stream recovery interceptor err: [%v]", r)
 			err = ErrPanicResp
 		}
 	}()
@@ -28,7 +28,7 @@ func unaryRecoveryLoggingInterceptor(ctx context.Context, req interface{}, info 
 
 	defer func() {
 		if r := recover(); r != nil {
-			logging.CLog().Errorf("unary recovery interceptor err: [%s]", r)
+			logging.CLog().Errorf("unary recovery interceptor err: [%v]", r)
 			err = ErrPanicResp
 		}
 	}()
