@@ -68,3 +68,8 @@ message signed_block{
     signed_block_header signed_header = 1;
     repeated transaction_wrapper transactions = 2;
 }
+
+message empty_signed_block{
+    signed_block_header signed_header = 1;
+    uint32 trx_count = 2;
+}

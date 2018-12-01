@@ -53,6 +53,24 @@ func (mr *MockApiServiceClientMockRecorder) GetAccountByName(ctx, in interface{}
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccountByName", reflect.TypeOf((*MockApiServiceClient)(nil).GetAccountByName), varargs...)
 }
 
+// GetAccountRewardByName mocks base method
+func (m *MockApiServiceClient) GetAccountRewardByName(ctx context.Context, in *pb.GetAccountRewardByNameRequest, opts ...grpc.CallOption) (*pb.AccountRewardResponse, error) {
+	varargs := []interface{}{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetAccountRewardByName", varargs...)
+	ret0, _ := ret[0].(*pb.AccountRewardResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAccountRewardByName indicates an expected call of GetAccountRewardByName
+func (mr *MockApiServiceClientMockRecorder) GetAccountRewardByName(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	varargs := append([]interface{}{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccountRewardByName", reflect.TypeOf((*MockApiServiceClient)(nil).GetAccountRewardByName), varargs...)
+}
+
 // GetFollowerListByName mocks base method
 func (m *MockApiServiceClient) GetFollowerListByName(ctx context.Context, in *pb.GetFollowerListByNameRequest, opts ...grpc.CallOption) (*pb.GetFollowerListByNameResponse, error) {
 	varargs := []interface{}{ctx, in}
@@ -267,6 +285,19 @@ func (m *MockApiServiceServer) GetAccountByName(arg0 context.Context, arg1 *pb.G
 // GetAccountByName indicates an expected call of GetAccountByName
 func (mr *MockApiServiceServerMockRecorder) GetAccountByName(arg0, arg1 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccountByName", reflect.TypeOf((*MockApiServiceServer)(nil).GetAccountByName), arg0, arg1)
+}
+
+// GetAccountRewardByName mocks base method
+func (m *MockApiServiceServer) GetAccountRewardByName(arg0 context.Context, arg1 *pb.GetAccountRewardByNameRequest) (*pb.AccountRewardResponse, error) {
+	ret := m.ctrl.Call(m, "GetAccountRewardByName", arg0, arg1)
+	ret0, _ := ret[0].(*pb.AccountRewardResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAccountRewardByName indicates an expected call of GetAccountRewardByName
+func (mr *MockApiServiceServerMockRecorder) GetAccountRewardByName(arg0, arg1 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccountRewardByName", reflect.TypeOf((*MockApiServiceServer)(nil).GetAccountRewardByName), arg0, arg1)
 }
 
 // GetFollowerListByName mocks base method

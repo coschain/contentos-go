@@ -167,7 +167,9 @@ func (as *APIService) GetChainState(ctx context.Context, req *grpcpb.NonParamsRe
 	blks, err := as.consensus.FetchBlocksSince(common.EmptyBlockID)
 	if err == nil {
 		for _, v := range blks {
-			ret.Headers = append(ret.Headers, v.(*prototype.SignedBlock).SignedHeader.Header.Previous)
+
+			res := &prototype.EmptySignedBlock{ SignedHeader:v.(*prototype.SignedBlock).SignedHeader, TrxCount:uint32(len(v.(*prototype.SignedBlock).Transactions)) }
+			ret.Blocks = append(ret.Blocks, res )
 		}
 	}
 	ret.Props = globalVar.GetProps()
