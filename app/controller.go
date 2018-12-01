@@ -931,11 +931,12 @@ func (c *Controller) getReversion(num uint32) uint64 {
 
 func (c *Controller) PopBlockTo(num uint32) {
 	// undo pending trx
-	if c.havePendingTransaction {
+	c.ClearPending()
+	/*if c.havePendingTransaction {
 		mustNoError(c.db.EndTransaction(false), "EndTransaction error")
 		c.havePendingTransaction = false
 		//logging.CLog().Debug("@@@@@@ PopBlockTo havePendingTransaction=false")
-	}
+	}*/
 	// get reversion
 	rev := c.getReversion(num)
 	mustNoError(c.db.RevertToRevision(rev), fmt.Sprintf("RebaseToRevision error: tag:%d, reversion:%d", num, rev))
