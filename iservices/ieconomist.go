@@ -1,6 +1,6 @@
 package iservices
 
-var ECO_SERVICE_NAME = "economist"
+var EcoServerName = "economist"
 
 type IEconomist interface {
 	Do() error

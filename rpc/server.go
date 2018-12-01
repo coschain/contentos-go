@@ -45,7 +45,7 @@ func (gs *GRPCServer) Start(node *node.Node) error {
 		gs.api.consensus = consensus.(iservices.IConsensus)
 	}
 
-	db, err := gs.ctx.Service(iservices.DB_SERVER_NAME)
+	db, err := gs.ctx.Service(iservices.DbServerName)
 	if err != nil {
 		// TODO Mock Test
 		//return err

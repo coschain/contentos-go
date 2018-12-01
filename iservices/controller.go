@@ -8,7 +8,7 @@ import (
 // This file defines interfaces of Database service.
 //
 
-var CTRL_SERVER_NAME = "ctrl"
+var ControlServerName = "ctrl"
 
 type IController interface {
 	PushTrx(trx *prototype.SignedTransaction) *prototype.TransactionInvoice

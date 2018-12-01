@@ -19,12 +19,7 @@ import (
 )
 
 var (
-	SINGLE_ID           int32  = 1
-	REVERSION_FILE_NAME string = "reversion_log"
-)
-
-const (
-	REVERSION_LEN = 100
+	SingleId            int32  = 1
 )
 
 type Controller struct {
@@ -39,17 +34,17 @@ type Controller struct {
 	noticer EventBus.Bus
 	skip    prototype.SkipFlag
 
-	pending_tx             []*prototype.TransactionWrapper
+	pendingTx              []*prototype.TransactionWrapper
 	isProducing            bool
 	currentTrxId           *prototype.Sha256
-	current_op_in_trx      uint16
+	currentOpInTrx         uint16
 	currentBlockNum        uint64
-	current_trx_in_block   int16
+	currentTrxInBlock      int16
 	havePendingTransaction bool
 }
 
 func (c *Controller) getDb() (iservices.IDatabaseService, error) {
-	s, err := c.ctx.Service(iservices.DB_SERVER_NAME)
+	s, err := c.ctx.Service(iservices.DbServerName)
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +80,7 @@ func (c *Controller) Start(node *node.Node) error {
 }
 
 func (c *Controller) Open() {
-	dgpWrap := table.NewSoGlobalWrap(c.db, &SINGLE_ID)
+	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
 	if !dgpWrap.CheckExist() {
 
 		mustNoError(c.db.DeleteAll(), "truncate database error")
@@ -125,7 +120,7 @@ func (c *Controller) PushTrx(trx *prototype.SignedTransaction) (invoice *prototy
 }
 
 func (c *Controller) GetProps() *prototype.DynamicProperties {
-	dgpWrap := table.NewSoGlobalWrap(c.db, &SINGLE_ID)
+	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
 	return dgpWrap.GetProps()
 }
 
@@ -152,7 +147,7 @@ func (c *Controller) pushTrx(trx *prototype.SignedTransaction) *prototype.Transa
 	c.db.BeginTransaction()
 
 	c.applyTransactionInner(trxWrp)
-	c.pending_tx = append(c.pending_tx, trxWrp)
+	c.pendingTx = append(c.pendingTx, trxWrp)
 
 	// commit sub session
 	mustNoError(c.db.EndTransaction(true), "EndTransaction error")
@@ -200,11 +195,11 @@ func (c *Controller) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFl
 
 func (c *Controller) ClearPending() []*prototype.TransactionWrapper {
 	// @
-	mustSuccess(len(c.pending_tx) == 0 || c.havePendingTransaction, "can not clear pending")
-	res := make([]*prototype.TransactionWrapper, len(c.pending_tx))
-	copy(res, c.pending_tx)
+	mustSuccess(len(c.pendingTx) == 0 || c.havePendingTransaction, "can not clear pending")
+	res := make([]*prototype.TransactionWrapper, len(c.pendingTx))
+	copy(res, c.pendingTx)
 
-	c.pending_tx = c.pending_tx[:0]
+	c.pendingTx = c.pendingTx[:0]
 
 	if c.skip&prototype.Skip_apply_transaction == 0 {
 		if c.havePendingTransaction == true {
@@ -269,16 +264,16 @@ func (c *Controller) GenerateBlock(witness string, pre *prototype.Sha256, timest
 	emptyHeader(signHeader)
 	maxBlockHeaderSize := proto.Size(signHeader) + 4
 
-	dgpWrap := table.NewSoGlobalWrap(c.db, &SINGLE_ID)
+	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
 	maxBlockSize := dgpWrap.GetProps().MaximumBlockSize
 	var totalSize uint32 = uint32(maxBlockHeaderSize)
 
 	signBlock := &prototype.SignedBlock{}
 	signBlock.SignedHeader = &prototype.SignedBlockHeader{}
 	signBlock.SignedHeader.Header = &prototype.BlockHeader{}
-	c.current_trx_in_block = 0
+	c.currentTrxInBlock = 0
 
-	// undo all pending_tx in DB
+	// undo all pending in DB
 	if c.havePendingTransaction {
 		mustNoError(c.db.EndTransaction(false), "EndTransaction error")
 	}
@@ -287,7 +282,7 @@ func (c *Controller) GenerateBlock(witness string, pre *prototype.Sha256, timest
 	c.havePendingTransaction = true
 
 	var postponeTrx uint64 = 0
-	for _, trxWraper := range c.pending_tx {
+	for _, trxWraper := range c.pendingTx {
 		if trxWraper.SigTrx.Trx.Expiration.UtcSeconds < timestamp {
 			continue
 		}
@@ -310,7 +305,7 @@ func (c *Controller) GenerateBlock(witness string, pre *prototype.Sha256, timest
 
 			totalSize += uint32(proto.Size(trxWraper))
 			signBlock.Transactions = append(signBlock.Transactions, trxWraper)
-			c.current_trx_in_block++
+			c.currentTrxInBlock++
 		}()
 	}
 	if postponeTrx > 0 {
@@ -461,10 +456,10 @@ func (c *Controller) applyTransactionInner(trxWrp *prototype.TransactionWrapper)
 	//c.notifyTrxPreExecute(trx)
 
 	// process operation
-	c.current_op_in_trx = 0
+	c.currentOpInTrx = 0
 	for _, op := range trx.Trx.Operations {
 		c.applyOperation(op)
-		c.current_op_in_trx++
+		c.currentOpInTrx++
 	}
 
 	c.currentTrxId = &prototype.Sha256{}
@@ -542,7 +537,7 @@ func (c *Controller) applyBlockInner(blk *prototype.SignedBlock, skip prototype.
 	c.validateBlockHeader(blk)
 
 	c.currentBlockNum = nextBlockNum
-	c.current_trx_in_block = 0
+	c.currentTrxInBlock = 0
 
 	blockSize := proto.Size(blk)
 	mustSuccess(uint32(blockSize) <= c.GetProps().GetMaximumBlockSize(), "Block size is too big")
@@ -554,7 +549,7 @@ func (c *Controller) applyBlockInner(blk *prototype.SignedBlock, skip prototype.
 	w := blk.SignedHeader.Header.Witness
 	dgpo := c.GetProps()
 	dgpo.CurrentWitness = w
-	dgpWrap := table.NewSoGlobalWrap(c.db, &SINGLE_ID)
+	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
 	dgpWrap.MdProps(dgpo)
 
 	// @ process extension
@@ -571,7 +566,7 @@ func (c *Controller) applyBlockInner(blk *prototype.SignedBlock, skip prototype.
 			trxWrp.Invoice.Status = 200
 			c.applyTransaction(trxWrp)
 			mustSuccess(trxWrp.Invoice.Status == tw.Invoice.Status, "mismatched invoice")
-			c.current_trx_in_block++
+			c.currentTrxInBlock++
 		}
 	}
 
@@ -631,9 +626,9 @@ func (c *Controller) initGenesis() {
 	}), "Witness Create Error")
 
 	// create dynamic global properties
-	dgpWrap := table.NewSoGlobalWrap(c.db, &SINGLE_ID)
+	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
 	mustNoError(dgpWrap.Create(func(tInfo *table.SoGlobal) {
-		tInfo.Id = SINGLE_ID
+		tInfo.Id = SingleId
 		tInfo.Props = &prototype.DynamicProperties{}
 		tInfo.Props.CurrentWitness = name
 		tInfo.Props.Time = &prototype.TimePointSec{UtcSeconds: constants.GENESIS_TIME}
@@ -647,11 +642,11 @@ func (c *Controller) initGenesis() {
 	}), "CreateDynamicGlobalProperties error")
 
 	//create rewards keeper
-	keeperWrap := table.NewSoRewardsKeeperWrap(c.db, &SINGLE_ID)
+	keeperWrap := table.NewSoRewardsKeeperWrap(c.db, &SingleId)
 	rewards := make(map[string]*prototype.Vest)
 	rewards["initminer"] = &prototype.Vest{Value: 0}
 	mustNoError(keeperWrap.Create(func(tInfo *table.SoRewardsKeeper) {
-		tInfo.Id = SINGLE_ID
+		tInfo.Id = SingleId
 		//tInfo.Keeper.Rewards = map[string]*prototype.Vest{}
 		tInfo.Keeper = &prototype.InternalRewardsKeeper{Rewards: rewards}
 	}), "Create Rewards Keeper error")
@@ -666,9 +661,9 @@ func (c *Controller) initGenesis() {
 	}
 
 	// create witness scheduler
-	witnessScheduleWrap := table.NewSoWitnessScheduleObjectWrap(c.db, &SINGLE_ID)
+	witnessScheduleWrap := table.NewSoWitnessScheduleObjectWrap(c.db, &SingleId)
 	mustNoError(witnessScheduleWrap.Create(func(tInfo *table.SoWitnessScheduleObject) {
-		tInfo.Id = SINGLE_ID
+		tInfo.Id = SingleId
 		tInfo.CurrentShuffledWitness = append(tInfo.CurrentShuffledWitness, constants.COS_INIT_MINER)
 	}), "CreateWitnessScheduleObject error")
 }
@@ -786,7 +781,7 @@ func (c *Controller) GetScheduledWitness(slot uint32) *prototype.AccountName {
 		currentSlot := c.dgpo.GetCurrentAslot()
 		currentSlot += slot
 
-		wsoWrap := table.NewSoWitnessScheduleObjectWrap(c.db, &SINGLE_ID)
+		wsoWrap := table.NewSoWitnessScheduleObjectWrap(c.db, &SingleId)
 		witnesses := wsoWrap.GetCurrentShuffledWitness()
 		witnessNum := uint32(len(witnesses))
 		witnessName := witnesses[currentSlot%witnessNum]
@@ -794,7 +789,7 @@ func (c *Controller) GetScheduledWitness(slot uint32) *prototype.AccountName {
 }
 
 func (c *Controller) updateGlobalDataToDB(dgpo *prototype.DynamicProperties) {
-	dgpWrap := table.NewSoGlobalWrap(c.db, &SINGLE_ID)
+	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
 	mustSuccess(dgpWrap.MdProps(dgpo), "")
 }
 
@@ -899,19 +894,19 @@ func (c *Controller) GetWitnessTopN(n uint32) []string {
 }
 
 func (c *Controller) SetShuffledWitness(names []string) {
-	witnessScheduleWrap := table.NewSoWitnessScheduleObjectWrap(c.db, &SINGLE_ID)
+	witnessScheduleWrap := table.NewSoWitnessScheduleObjectWrap(c.db, &SingleId)
 	mustSuccess(witnessScheduleWrap.MdCurrentShuffledWitness(names), "SetWitness error")
 }
 
 func (c *Controller) GetShuffledWitness() []string {
-	witnessScheduleWrap := table.NewSoWitnessScheduleObjectWrap(c.db, &SINGLE_ID)
+	witnessScheduleWrap := table.NewSoWitnessScheduleObjectWrap(c.db, &SingleId)
 	return witnessScheduleWrap.GetCurrentShuffledWitness()
 }
 
 func (c *Controller) AddWeightedVP(value uint64) {
 	dgpo := c.GetProps()
 	dgpo.WeightedVps += value
-	dgpWrap := table.NewSoGlobalWrap(c.db, &SINGLE_ID)
+	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
 	dgpWrap.MdProps(dgpo)
 }
 

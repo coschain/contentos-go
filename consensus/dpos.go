@@ -76,7 +76,7 @@ func NewDPoS(ctx *node.ServiceContext) *DPoS {
 }
 
 func (d *DPoS) getController() iservices.IController {
-	ctrl, err := d.ctx.Service(iservices.CTRL_SERVER_NAME)
+	ctrl, err := d.ctx.Service(iservices.ControlServerName)
 	if err != nil {
 		panic(err)
 	}

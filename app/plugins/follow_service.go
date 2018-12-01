@@ -26,7 +26,7 @@ func NewFollowService(ctx *node.ServiceContext) (*FollowService, error) {
 }
 
 func (p *FollowService) Start(node *node.Node) error {
-	db, err := p.ctx.Service(iservices.DB_SERVER_NAME)
+	db, err := p.ctx.Service(iservices.DbServerName)
 	if err != nil {
 		return err
 	}

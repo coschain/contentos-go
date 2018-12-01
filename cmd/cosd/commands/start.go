@@ -80,7 +80,7 @@ func startNode(cmd *cobra.Command, args []string) {
 	//app.Register("printer", func(ctx *node.ServiceContext) (node.Service, error) {
 	//	return printer.New(ctx)
 	//})
-	_ = app.Register(iservices.DB_SERVER_NAME, func(ctx *node.ServiceContext) (node.Service, error) {
+	_ = app.Register(iservices.DbServerName, func(ctx *node.ServiceContext) (node.Service, error) {
 		return storage.NewGuardedDatabaseService(ctx, "./db/")
 	})
 
@@ -88,7 +88,7 @@ func startNode(cmd *cobra.Command, args []string) {
 		return p2p.NewServer(ctx)
 	})
 
-	_ = app.Register(iservices.CTRL_SERVER_NAME, func(ctx *node.ServiceContext) (node.Service, error) {
+	_ = app.Register(iservices.ControlServerName, func(ctx *node.ServiceContext) (node.Service, error) {
 		return ctrl.NewController(ctx)
 	})
 
@@ -113,7 +113,7 @@ func startNode(cmd *cobra.Command, args []string) {
 		return plugins.NewDemoService(ctx)
 	})
 
-	_ = app.Register(iservices.RPC_SERVER_NAME, func(ctx *node.ServiceContext) (node.Service, error) {
+	_ = app.Register(iservices.RpcServerName, func(ctx *node.ServiceContext) (node.Service, error) {
 		return rpc.NewGRPCServer(ctx, ctx.Config().GRPC)
 	})
 

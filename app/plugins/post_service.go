@@ -24,7 +24,7 @@ func NewPostService(ctx *node.ServiceContext) (*PostService, error) {
 }
 
 func (p *PostService) Start(node *node.Node) error {
-	db, err := p.ctx.Service(iservices.DB_SERVER_NAME)
+	db, err := p.ctx.Service(iservices.DbServerName)
 	if err != nil {
 		return err
 	}

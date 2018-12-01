@@ -23,7 +23,7 @@ func NewDemoService(ctx *node.ServiceContext) (*DemoService, error) {
 }
 
 func (p *DemoService) Start(node *node.Node) error {
-	db, err := p.ctx.Service(iservices.DB_SERVER_NAME)
+	db, err := p.ctx.Service(iservices.DbServerName)
 	if err != nil {
 		return err
 	}

@@ -1,6 +1,6 @@
 package iservices
 
-var RPC_SERVER_NAME = "rpc"
+var RpcServerName = "rpc"
 
 type IRPCServer interface {
 }
