@@ -10,7 +10,6 @@ import (
 
 //P2P represent the net interface of p2p package
 type P2P interface {
-	//iservices.IP2P
 	Start(*node.Node)
 	Halt()
 	Connect(addr string, isConsensus bool) error

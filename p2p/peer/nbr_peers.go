@@ -53,7 +53,7 @@ func (this *NbrPeers) Broadcast(mesg types.Message, isConsensus bool) {
 			}
 		}
 		if node.syncState == common.ESTABLISH && node.GetRelay() == true {
-			node.Send(mesg, isConsensus)
+			go node.Send(mesg, isConsensus)
 		}
 	}
 }
