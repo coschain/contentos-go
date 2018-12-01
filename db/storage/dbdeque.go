@@ -75,10 +75,14 @@ func (dq *dbDeque) PopFront(commit bool) error {
 
 func (dq *dbDeque) pushBack() {
 	dq.sessions = append([]*dbSession{ {
-		db: dq.front(),
+		db: dq.back(),
 		mem: NewMemoryDatabase(),
 		removals: make(map[string]bool),
 	} }, dq.sessions...)
+
+	if len(dq.sessions) > 1 {
+		dq.sessions[1].db = dq.sessions[0]
+	}
 }
 
 func (dq *dbDeque) PushBack() {
@@ -95,6 +99,9 @@ func (dq *dbDeque) popBack(commit bool) (err error) {
 	}
 	if commit {
 		err = dq.sessions[0].commit()
+		if sessionCount > 1 {
+			dq.sessions[1].db = dq.sessions[0].db
+		}
 	}
 	dq.sessions = dq.sessions[1:]
 	return err

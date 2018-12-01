@@ -21,6 +21,8 @@ func NewSquashableDatabase(db Database, dirtyRead bool) *SquashableDatabase {
 				readFront: dirtyRead,
 			},
 		},
+		tags: make(map[string]uint),
+		tagsByIdx: make(map[uint]string),
 	}
 }
 
@@ -71,8 +73,8 @@ func (db *SquashableDatabase) Squash(tag string) error {
 		newTagsByIdx := make(map[uint]string)
 		for i, t := range db.tagsByIdx {
 			if i > idx {
-				newTagsByIdx[i - idx] = t
-				newTags[t] = i - idx
+				newTagsByIdx[i - idx - 1] = t
+				newTags[t] = i - idx - 1
 			}
 		}
 		db.tags, db.tagsByIdx = newTags, newTagsByIdx
