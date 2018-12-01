@@ -470,23 +470,13 @@ func (d *DPoS) switchFork(old, new common.BlockID) {
 	if err != nil {
 		panic(err)
 	}
-	logging.CLog().Debug("[ForkDB][switchFork] fork branches: ", branches)
+	logging.CLog().Debug("[DPoS][switchFork] fork branches: ", branches)
 	poppedNum := len(branches[0]) - 1
-	//for i := 0; i <= poppedNum; i++ {
-	//	popped := d.ForkDB.Pop()
-	//	logging.CLog().Debugf("[ForkDB][switchFork] block %v was popped", popped.Id())
-	//	//d.popBlock()
-	//}
 	d.popBlock(branches[0][poppedNum])
 
 	// producers fixup
 	d.restoreProducers()
 
-	if d.ForkDB.Head().Id() != branches[0][poppedNum] {
-		errStr := fmt.Sprintf("[ForkDB][switchFork] pop to root block with id: %d, expect: %d",
-			d.ForkDB.Head().Id(), branches[0][poppedNum])
-		panic(errStr)
-	}
 	appendedNum := len(branches[1]) - 1
 	errWhileSwitch := false
 	var newBranchIdx int
@@ -496,6 +486,7 @@ func (d *DPoS) switchFork(old, new common.BlockID) {
 			panic(err)
 		}
 		if d.applyBlock(b) != nil {
+			logging.CLog().Errorf("[DPoS][switchFork] applying block %v failed.", b.Id())
 			errWhileSwitch = true
 			// TODO: peels off this invalid branch to avoid flip-flop switch
 			break
@@ -504,10 +495,7 @@ func (d *DPoS) switchFork(old, new common.BlockID) {
 
 	// switch back
 	if errWhileSwitch {
-		//for i := newBranchIdx + 1; i < appendedNum; i++ {
-		//	d.ForkDB.Pop()
-		//	//d.popBlock()
-		//}
+		logging.CLog().Info("[DPoS][switchFork] switch back to original fork")
 		d.popBlock(branches[0][poppedNum])
 
 		// producers fixup
