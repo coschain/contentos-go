@@ -1,14 +1,11 @@
 package p2p
 
 import (
-	"encoding/json"
 	"errors"
 	"github.com/coschain/contentos-go/p2p/msg"
 	"github.com/coschain/contentos-go/prototype"
-	"io/ioutil"
 	"math/rand"
 	"net"
-	"os"
 	"reflect"
 	"strconv"
 	"sync"
@@ -19,7 +16,6 @@ import (
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/p2p/common"
-	comm "github.com/coschain/contentos-go/p2p/depend/common"
 	"github.com/coschain/contentos-go/p2p/depend/common/config"
 	"github.com/coschain/contentos-go/p2p/depend/common/log"
 	"github.com/coschain/contentos-go/p2p/message/msg_pack"
@@ -36,8 +32,6 @@ type P2PServer struct {
 	Network   p2p.P2P
 	msgRouter *utils.MessageRouter
 	ReconnectAddrs
-	recentPeers    map[uint32][]string
-	quitSyncRecent chan bool
 	quitOnline     chan bool
 	quitHeartBeat  chan bool
 
@@ -60,8 +54,6 @@ func NewServer(ctx *node.ServiceContext) (*P2PServer, error) {
 
 	p.ctx = ctx
 	p.msgRouter = utils.NewMsgRouter(p.Network)
-	p.recentPeers = make(map[uint32][]string)
-	p.quitSyncRecent = make(chan bool)
 	p.quitOnline = make(chan bool)
 	p.quitHeartBeat = make(chan bool)
 	return p, nil
@@ -90,9 +82,7 @@ func (this *P2PServer) Start(node *node.Node) error {
 	} else {
 		return errors.New("[p2p]msg router invalid")
 	}
-	this.tryRecentPeers()
 	go this.connectSeedService()
-	go this.syncUpRecentPeers()
 	go this.keepOnlineService()
 	go this.heartBeatService()
 	return nil
@@ -101,7 +91,6 @@ func (this *P2PServer) Start(node *node.Node) error {
 //Stop halt all service by send signal to channels
 func (this *P2PServer) Stop() error {
 	this.Network.Halt()
-	this.quitSyncRecent <- true
 	this.quitOnline <- true
 	this.quitHeartBeat <- true
 	this.msgRouter.Stop()
@@ -402,107 +391,6 @@ func (this *P2PServer) removeFromRetryList(addr string) {
 	if len(this.RetryAddrs) > 0 {
 		if _, ok := this.RetryAddrs[addr]; ok {
 			delete(this.RetryAddrs, addr)
-		}
-	}
-}
-
-//tryRecentPeers try connect recent contact peer when service start
-func (this *P2PServer) tryRecentPeers() {
-	netID := config.DefConfig.P2PNode.NetworkMagic
-	if comm.FileExisted(common.RECENT_FILE_NAME) {
-		buf, err := ioutil.ReadFile(common.RECENT_FILE_NAME)
-		if err != nil {
-			log.Warn("[p2p]read %s fail:%s, connect recent peers cancel", common.RECENT_FILE_NAME, err.Error())
-			return
-		}
-
-		err = json.Unmarshal(buf, &this.recentPeers)
-		if err != nil {
-			log.Warn("[p2p]parse recent peer file fail: ", err)
-			return
-		}
-		if len(this.recentPeers[netID]) > 0 {
-			log.Info("[p2p]try to connect recent peer")
-		}
-		for _, v := range this.recentPeers[netID] {
-			go this.Network.Connect(v, false)
-		}
-
-	}
-}
-
-//syncUpRecentPeers sync up recent peers periodically
-func (this *P2PServer) syncUpRecentPeers() {
-	periodTime := common.RECENT_TIMEOUT
-	t := time.NewTicker(time.Second * (time.Duration(periodTime)))
-	for {
-		select {
-		case <-t.C:
-			this.syncPeerAddr()
-		case <-this.quitSyncRecent:
-			t.Stop()
-			break
-		}
-	}
-
-}
-
-//syncPeerAddr compare snapshot of recent peer with current link,then persist the list
-func (this *P2PServer) syncPeerAddr() {
-	changed := false
-	netID := config.DefConfig.P2PNode.NetworkMagic
-	for i := 0; i < len(this.recentPeers[netID]); i++ {
-		p := this.Network.GetPeerFromAddr(this.recentPeers[netID][i])
-		if p == nil || (p != nil && p.GetSyncState() != common.ESTABLISH) {
-			this.recentPeers[netID] = append(this.recentPeers[netID][:i], this.recentPeers[netID][i+1:]...)
-			changed = true
-			i--
-		}
-	}
-	left := common.RECENT_LIMIT - len(this.recentPeers[netID])
-	if left > 0 {
-		np := this.Network.GetNp()
-		np.Lock()
-		var ip net.IP
-		for _, p := range np.List {
-			addr, _ := p.GetAddr16()
-			ip = addr[:]
-			nodeAddr := ip.To16().String() + ":" +
-				strconv.Itoa(int(p.GetSyncPort()))
-			found := false
-			for i := 0; i < len(this.recentPeers[netID]); i++ {
-				if nodeAddr == this.recentPeers[netID][i] {
-					found = true
-					break
-				}
-			}
-			if !found {
-				this.recentPeers[netID] = append(this.recentPeers[netID], nodeAddr)
-				left--
-				changed = true
-				if left == 0 {
-					break
-				}
-			}
-		}
-		np.Unlock()
-	} else {
-		if left < 0 {
-			left = -left
-			this.recentPeers[netID] = append(this.recentPeers[netID][:0], this.recentPeers[netID][0+left:]...)
-			changed = true
-		}
-
-	}
-	if changed {
-		buf, err := json.Marshal(this.recentPeers)
-		if err != nil {
-			log.Warn("[p2p]package recent peer fail: ", err)
-			return
-		}
-		err = ioutil.WriteFile(common.RECENT_FILE_NAME, buf, os.ModePerm)
-		if err != nil {
-			log.Warn("[p2p]write recent peer fail: ", err)
 		}
 	}
 }

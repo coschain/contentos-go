@@ -63,13 +63,6 @@ const (
 	INACTIVITY  = 5 //link broken
 )
 
-//recent contact const
-const (
-	RECENT_TIMEOUT   = 60
-	RECENT_FILE_NAME = "peers.recent"
-	RECENT_LIMIT     = 10 //recent contact list limit
-)
-
 //PeerAddr represent peer`s net information
 type PeerAddr struct {
 	Time          int64    //latest timestamp

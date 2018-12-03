@@ -60,7 +60,7 @@ func (p *PostService) onPostOperation(notification *prototype.OperationNotificat
 
 func (p *PostService) executePostOperation(op *prototype.PostOperation) {
 	uuid := op.GetUuid()
-	ctrl, err := p.ctx.Service(iservices.CTRL_SERVER_NAME)
+	ctrl, err := p.ctx.Service(iservices.ControlServerName)
 	if err != nil {
 		panic("ctrl service invalid")
 	}
@@ -79,7 +79,7 @@ func (p *PostService) executePostOperation(op *prototype.PostOperation) {
 
 func (p *PostService) executeReplyOperation(op *prototype.ReplyOperation) {
 	uuid := op.GetUuid()
-	ctrl, err := p.ctx.Service(iservices.CTRL_SERVER_NAME)
+	ctrl, err := p.ctx.Service(iservices.ControlServerName)
 	if err != nil {
 		panic("ctrl service invalid")
 	}
