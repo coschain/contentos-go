@@ -13,7 +13,8 @@ import (
 )
 
 const (
-	dbPath = "/tmp/cos.db"
+	dbPath      = "/tmp/cos.db"
+	initPrivKey = "2AvYqihDZjq7pFeZNuBYjBW1hQyPUw36xZB25g8UYfRLKwh7k9"
 )
 
 type GreenDandelion struct {
@@ -95,7 +96,11 @@ func (d *GreenDandelion) GenerateBlockFor(timestamp uint32) {
 	d.GenerateBlocks(count)
 }
 
-func (d *GreenDandelion) Sign(ops ...interface{}) (*prototype.SignedTransaction, error) {
+func (d *GreenDandelion) Sign(privKeyStr string, ops ...interface{}) (*prototype.SignedTransaction, error) {
+	privKey, err := prototype.GenerateNewKeyFromBytes([]byte(privKeyStr))
+	if err != nil {
+		return nil, err
+	}
 	props := d.Controller.GetProps()
 	tx := &prototype.Transaction{RefBlockNum: 0, RefBlockPrefix: 0, Expiration: &prototype.TimePointSec{UtcSeconds: props.GetTime().UtcSeconds + constants.TRX_MAX_EXPIRATION_TIME}}
 	headBlockID := props.GetHeadBlockId()
@@ -106,7 +111,7 @@ func (d *GreenDandelion) Sign(ops ...interface{}) (*prototype.SignedTransaction,
 		tx.AddOperation(op)
 	}
 	signTx := prototype.SignedTransaction{Trx: tx}
-	res := signTx.Sign(d.privKey, prototype.ChainId{Value: 0})
+	res := signTx.Sign(privKey, prototype.ChainId{Value: 0})
 	signTx.Signatures = append(signTx.Signatures, &prototype.SignatureType{Sig: res})
 	if err := signTx.Validate(); err != nil {
 		d.logger.Error("error:", err)
@@ -141,7 +146,7 @@ func (d *GreenDandelion) CreateAccount(name string) error {
 		Active:  &prototype.Authority{},
 		Posting: &prototype.Authority{},
 	}
-	signTx, err := d.Sign(acop)
+	signTx, err := d.Sign(initPrivKey, acop)
 	if err != nil {
 		d.logger.Error("error:", err)
 		return err
@@ -158,7 +163,7 @@ func (d *GreenDandelion) Transfer(from, to string, amount uint64, memo string) e
 		Amount: prototype.NewCoin(amount),
 		Memo:   memo,
 	}
-	signTx, err := d.Sign(top)
+	signTx, err := d.Sign(initPrivKey, top)
 	if err != nil {
 		d.logger.Error("error:", err)
 		return err
