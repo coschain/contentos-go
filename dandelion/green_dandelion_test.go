@@ -20,7 +20,7 @@ func TestGreenDandelion_GenerateBlock(t *testing.T) {
 	acop := &prototype.AccountCreateOperation{
 		Fee:            prototype.NewCoin(1),
 		Creator:        &prototype.AccountName{Value: "initminer"},
-		NewAccountName: &prototype.AccountName{Value: "alice"},
+		NewAccountName: &prototype.AccountName{Value: "kochiya"},
 		Owner: &prototype.Authority{
 			Cf:              prototype.Authority_owner,
 			WeightThreshold: 1,
@@ -49,5 +49,6 @@ func TestGreenDandelion_GenerateBlock(t *testing.T) {
 	}
 	dandelion.PushTrx(signTx)
 	dandelion.GenerateBlock()
+
 	fmt.Println(dandelion.GetProduced())
 }

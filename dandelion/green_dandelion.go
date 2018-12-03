@@ -3,13 +3,13 @@ package dandelion
 import (
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app"
+	"github.com/coschain/contentos-go/app/table"
+	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/db/storage"
-	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/inconshreveable/log15"
 	"os"
-	"time"
 )
 
 const (
@@ -17,7 +17,7 @@ const (
 )
 
 type GreenDandelion struct {
-	iservices.IController
+	*app.Controller
 	path      string
 	db        *storage.DatabaseService
 	witness   string
@@ -31,10 +31,12 @@ type GreenDandelion struct {
 func NewDandelion(log log15.Logger) (*GreenDandelion, error) {
 	db, err := storage.NewDatabase(dbPath)
 	if err != nil {
+		log.Error("error:", err)
 		return nil, err
 	}
 	privKey, err := prototype.PrivateKeyFromWIF(constants.INITMINER_PRIKEY)
 	if err != nil {
+		log.Error("error:", err)
 		return nil, err
 	}
 	pre := &prototype.Sha256{Hash: []byte{0}}
@@ -55,20 +57,51 @@ func (d *GreenDandelion) OpenDatabase() error {
 	c.SetDB(d.db)
 	c.SetBus(EventBus.New())
 	c.Open()
-	d.IController = c
+	d.Controller = c
+	d.timestamp = c.GetProps().GetTime().UtcSeconds
 	return nil
 }
 
+func (d *GreenDandelion) SetWitness(name string, privKey *prototype.PrivateKeyType) {
+	d.witness = name
+	d.privKey = privKey
+}
+
 func (d *GreenDandelion) GenerateBlock() {
-	current := d.IController.GenerateBlock(d.witness, d.pre, d.timestamp, d.privKey, 0)
+	current := d.Controller.GenerateBlock(d.witness, d.pre, d.timestamp, d.privKey, 0)
 	d.timestamp += constants.BLOCK_INTERVAL
 	currentHash := current.SignedHeader.Header.GetTransactionMerkleRoot()
 	d.pre = currentHash
 	d.produced += 1
+	err := d.PushBlock(current, prototype.Skip_nothing)
+	if err != nil {
+		d.logger.Error("error", err)
+	}
+}
+
+func (d *GreenDandelion) GenerateBlocks(count uint32) {
+	for i := uint32(0); i < count; i++ {
+		d.GenerateBlock()
+	}
+}
+
+func (d *GreenDandelion) GenerateBlockUntil(timestamp uint32) {
+	count := (timestamp - d.GetProps().GetTime().UtcSeconds) / constants.BLOCK_INTERVAL
+	d.GenerateBlocks(count)
+}
+
+func (d *GreenDandelion) GenerateBlockFor(timestamp uint32) {
+	count := timestamp / constants.BLOCK_INTERVAL
+	d.GenerateBlocks(count)
 }
 
 func (d *GreenDandelion) Sign(ops ...interface{}) (*prototype.SignedTransaction, error) {
-	tx := &prototype.Transaction{RefBlockNum: 0, RefBlockPrefix: 0, Expiration: &prototype.TimePointSec{UtcSeconds: uint32(time.Now().Unix()) + constants.TRX_MAX_EXPIRATION_TIME}}
+	props := d.Controller.GetProps()
+	tx := &prototype.Transaction{RefBlockNum: 0, RefBlockPrefix: 0, Expiration: &prototype.TimePointSec{UtcSeconds: props.GetTime().UtcSeconds + constants.TRX_MAX_EXPIRATION_TIME}}
+	headBlockID := props.GetHeadBlockId()
+	id := &common.BlockID{}
+	copy(id.Data[:], headBlockID.Hash[:])
+	tx.SetReferenceBlock(id)
 	for _, op := range ops {
 		tx.AddOperation(op)
 	}
@@ -76,9 +109,67 @@ func (d *GreenDandelion) Sign(ops ...interface{}) (*prototype.SignedTransaction,
 	res := signTx.Sign(d.privKey, prototype.ChainId{Value: 0})
 	signTx.Signatures = append(signTx.Signatures, &prototype.SignatureType{Sig: res})
 	if err := signTx.Validate(); err != nil {
+		d.logger.Error("error:", err)
 		return nil, err
 	}
 	return &signTx, nil
+}
+
+func (d *GreenDandelion) CreateAccount(name string) error {
+	acop := &prototype.AccountCreateOperation{
+		Fee:            prototype.NewCoin(1),
+		Creator:        &prototype.AccountName{Value: "initminer"},
+		NewAccountName: &prototype.AccountName{Value: name},
+		Owner: &prototype.Authority{
+			Cf:              prototype.Authority_owner,
+			WeightThreshold: 1,
+			AccountAuths: []*prototype.KvAccountAuth{
+				&prototype.KvAccountAuth{
+					Name:   &prototype.AccountName{Value: "initminer"},
+					Weight: 3,
+				},
+			},
+			KeyAuths: []*prototype.KvKeyAuth{
+				&prototype.KvKeyAuth{
+					Key: &prototype.PublicKeyType{
+						Data: []byte{0},
+					},
+					Weight: 23,
+				},
+			},
+		},
+		Active:  &prototype.Authority{},
+		Posting: &prototype.Authority{},
+	}
+	signTx, err := d.Sign(acop)
+	if err != nil {
+		d.logger.Error("error:", err)
+		return err
+	}
+	d.PushTrx(signTx)
+	d.GenerateBlock()
+	return nil
+}
+
+func (d *GreenDandelion) Transfer(from, to string, amount uint64, memo string) error {
+	top := &prototype.TransferOperation{
+		From:   &prototype.AccountName{Value: from},
+		To:     &prototype.AccountName{Value: to},
+		Amount: prototype.NewCoin(amount),
+		Memo:   memo,
+	}
+	signTx, err := d.Sign(top)
+	if err != nil {
+		d.logger.Error("error:", err)
+		return err
+	}
+	d.PushTrx(signTx)
+	d.GenerateBlock()
+	return nil
+}
+
+func (d *GreenDandelion) Fund(name string, amount uint64) error {
+	return d.Transfer("initminer", name, amount, "")
 }
 
 func (d *GreenDandelion) Clean() error {
@@ -97,6 +188,14 @@ func (d *GreenDandelion) GetProduced() uint32 {
 
 func (d *GreenDandelion) GetTimestamp() uint32 {
 	return d.timestamp
+}
+
+func (d *GreenDandelion) GetAccount(name string) *table.SoAccountWrap {
+	accWrap := table.NewSoAccountWrap(d.db, &prototype.AccountName{Value: name})
+	if !accWrap.CheckExist() {
+		return nil
+	}
+	return accWrap
 }
 
 func (d *GreenDandelion) reset() {
