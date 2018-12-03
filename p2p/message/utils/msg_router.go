@@ -1,8 +1,8 @@
 package utils
 
 import (
+	"github.com/coschain/contentos-go/common/logging"
 	msgCommon "github.com/coschain/contentos-go/p2p/common"
-	"github.com/coschain/contentos-go/p2p/depend/common/log"
 	"github.com/coschain/contentos-go/p2p/message/types"
 	"github.com/coschain/contentos-go/p2p/net/protocol"
 )
@@ -68,7 +68,7 @@ func (this *MessageRouter) UnRegisterMsgHandler(key string) {
 func (this *MessageRouter) Start() {
 	go this.hookChan(this.RecvSyncChan, this.stopSyncCh)
 	go this.hookChan(this.RecvConsChan, this.stopConsCh)
-	log.Debug("[p2p]MessageRouter start to parse p2p message...")
+	logging.CLog().Debug("[p2p]MessageRouter start to parse p2p message...")
 }
 
 // hookChan loops to handle the message from the network
@@ -84,7 +84,7 @@ func (this *MessageRouter) hookChan(channel chan *types.MsgPayload,
 				if ok {
 					go handler(data, this.p2p)
 				} else {
-					log.Warn("unknown message handler for the msg: ",
+					logging.CLog().Warn("unknown message handler for the msg: ",
 						msgType)
 				}
 			}

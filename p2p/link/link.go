@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/coschain/contentos-go/p2p/common"
+	"github.com/coschain/contentos-go/common/logging"
 	comm "github.com/coschain/contentos-go/p2p/depend/common"
-	"github.com/coschain/contentos-go/p2p/depend/common/log"
 	"github.com/coschain/contentos-go/p2p/message/types"
 )
 
@@ -102,7 +102,7 @@ func (this *Link) Rx() {
 	for {
 		msg, payloadSize, err := types.ReadMessage(reader)
 		if err != nil {
-			log.Infof("[p2p]error read from %s :%s", this.GetAddr(), err.Error())
+			logging.CLog().Infof("[p2p] error read from %s :%s", this.GetAddr(), err.Error())
 			break
 		}
 
@@ -110,7 +110,7 @@ func (this *Link) Rx() {
 		this.UpdateRXTime(t)
 
 		if !this.needSendMsg(msg) {
-			log.Debugf("skip handle msgType:%s from:%d", msg.CmdType(), this.id)
+			logging.CLog().Debugf("[p2p] skip handle msgType:%s from:%d", msg.CmdType(), this.id)
 			continue
 		}
 		this.addReqRecord(msg)
@@ -128,7 +128,7 @@ func (this *Link) Rx() {
 
 //disconnectNotify push disconnect msg to channel
 func (this *Link) disconnectNotify() {
-	log.Debugf("[p2p]call disconnectNotify for %s", this.GetAddr())
+	logging.CLog().Debugf("[p2p] call disconnectNotify for %s", this.GetAddr())
 	this.CloseConn()
 
 	msg, _ := types.MakeEmptyMessage(common.DISCONNECT_TYPE)
@@ -157,13 +157,12 @@ func (this *Link) Tx(msg types.Message) error {
 	sink := comm.NewZeroCopySink(nil)
 	err := types.WriteMessage(sink, msg)
 	if err != nil {
-		log.Debugf("[p2p]error serialize messge ", err.Error())
+		logging.CLog().Error("[p2p] error serialize messge ", err.Error())
 		return err
 	}
 
 	payload := sink.Bytes()
 	nByteCnt := len(payload)
-	log.Tracef("[p2p]TX buf length: %d\n", nByteCnt)
 
 	nCount := nByteCnt / common.PER_SEND_LEN
 	if nCount == 0 {
@@ -172,7 +171,7 @@ func (this *Link) Tx(msg types.Message) error {
 	conn.SetWriteDeadline(time.Now().Add(time.Duration(nCount*common.WRITE_DEADLINE) * time.Second))
 	_, err = conn.Write(payload)
 	if err != nil {
-		log.Infof("[p2p]error sending messge to %s :%s", this.GetAddr(), err.Error())
+		logging.CLog().Errorf("[p2p] error sending messge to %s :%s", this.GetAddr(), err.Error())
 		this.disconnectNotify()
 		return err
 	}

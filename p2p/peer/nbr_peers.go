@@ -2,7 +2,6 @@ package peer
 
 import (
 	"fmt"
-	"github.com/coschain/contentos-go/p2p/depend/common/log"
 	"sync"
 
 	"github.com/coschain/contentos-go/p2p/common"
@@ -48,7 +47,6 @@ func (this *NbrPeers) Broadcast(mesg types.Message, isConsensus bool) {
 			target := TrxMap[node.GetAddr()]
 			TrxLock.Unlock()
 			if byteSliceEqual(target, id.Hash) {
-				log.Info("no need to send this trx")
 				continue
 			}
 		}

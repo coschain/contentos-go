@@ -2,28 +2,25 @@ package main
 
 import (
 	"fmt"
-	"github.com/coschain/contentos-go/prototype"
 	"time"
 
 	myp2p "github.com/coschain/contentos-go/p2p"
 	"github.com/coschain/contentos-go/p2p/common"
-	"github.com/coschain/contentos-go/p2p/depend/common/log"
+	"github.com/coschain/contentos-go/prototype"
 )
 
 var ch chan int
 
 func init() {
-	log.InitLog(log.DebugLog)
 	fmt.Println("Start test the netserver...")
 }
 
 func main() {
-	log.Init(log.Stdout)
 	fmt.Println("Start test new p2pserver...")
 
 	p2p, err := myp2p.NewServer(nil)
 
-	err = p2p.Start()
+	err = p2p.Start(nil)
 	if err != nil {
 		fmt.Println("Start p2p error: ", err)
 	}
@@ -58,19 +55,19 @@ func main() {
 	}
 
 	if p2p.GetVersion() != common.PROTOCOL_VERSION {
-		log.Error("TestNewP2PServer p2p version error", p2p.GetVersion())
+		fmt.Println("TestNewP2PServer p2p version error", p2p.GetVersion())
 	}
 
 	if p2p.GetVersion() != common.PROTOCOL_VERSION {
-		log.Error("TestNewP2PServer p2p version error")
+		fmt.Println("TestNewP2PServer p2p version error")
 	}
 	sync, cons := p2p.GetPort()
 	if sync != 20338 {
-		log.Error("TestNewP2PServer sync port error")
+		fmt.Println("TestNewP2PServer sync port error")
 	}
 
 	if cons != 20339 {
-		log.Error("TestNewP2PServer consensus port error")
+		fmt.Println("TestNewP2PServer consensus port error")
 	}
 
 	<-ch

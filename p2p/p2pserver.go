@@ -10,20 +10,20 @@ import (
 	"time"
 
 	coomn "github.com/coschain/contentos-go/common"
-	"github.com/coschain/contentos-go/p2p/msg"
-	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/common/constants"
+	"github.com/coschain/contentos-go/common/logging"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/p2p/common"
 	"github.com/coschain/contentos-go/p2p/depend/common/config"
-	"github.com/coschain/contentos-go/p2p/depend/common/log"
 	"github.com/coschain/contentos-go/p2p/message/msg_pack"
 	msgtypes "github.com/coschain/contentos-go/p2p/message/types"
 	"github.com/coschain/contentos-go/p2p/message/utils"
+	"github.com/coschain/contentos-go/p2p/msg"
 	"github.com/coschain/contentos-go/p2p/net/netserver"
 	"github.com/coschain/contentos-go/p2p/net/protocol"
 	"github.com/coschain/contentos-go/p2p/peer"
+	"github.com/coschain/contentos-go/prototype"
 )
 
 //P2PServer control all network activities
@@ -123,9 +123,9 @@ func (this *P2PServer) Send(p *peer.Peer, msg msgtypes.Message,
 	if this.Network.IsPeerEstablished(p) {
 		return this.Network.Send(p, msg, isConsensus)
 	}
-	log.Warnf("[p2p]send to a not ESTABLISH peer %d",
+	logging.CLog().Warnf("[p2p] send to a not ESTABLISH peer %d",
 		p.GetID())
-	return errors.New("[p2p]send to a not ESTABLISH peer")
+	return errors.New("[p2p] send to a not ESTABLISH peer")
 }
 
 // GetID returns local node id
@@ -150,17 +150,17 @@ func (this *P2PServer) connectSeeds() {
 	for _, n := range config.DefConfig.Genesis.SeedList {
 		ip, err := common.ParseIPAddr(n)
 		if err != nil {
-			log.Warnf("[p2p]seed peer %s address format is wrong", n)
+			logging.CLog().Warnf("[p2p] seed peer %s address format is wrong", n)
 			continue
 		}
 		ns, err := net.LookupHost(ip)
 		if err != nil {
-			log.Warnf("[p2p]resolve err: %s", err.Error())
+			logging.CLog().Warnf("[p2p] resolve err: %s", err.Error())
 			continue
 		}
 		port, err := common.ParseIPPort(n)
 		if err != nil {
-			log.Warnf("[p2p]seed peer %s address format is wrong", n)
+			logging.CLog().Warnf("[p2p] seed peer %s address format is wrong", n)
 			continue
 		}
 		seedNodes = append(seedNodes, ns[0]+port)
@@ -209,7 +209,7 @@ func (this *P2PServer) retryInactivePeer() {
 		nodeAddr := ip.To16().String() + ":" +
 			strconv.Itoa(int(p.GetSyncPort()))
 		if p.GetSyncState() == common.INACTIVITY {
-			log.Debugf("[p2p] try reconnect %s", nodeAddr)
+			logging.CLog().Debugf("[p2p] try reconnect %s", nodeAddr)
 			//add addr to retry list
 			this.addToRetryList(nodeAddr)
 			p.CloseSync()
@@ -226,7 +226,7 @@ func (this *P2PServer) retryInactivePeer() {
 
 	connCount := uint(this.Network.GetOutConnRecordLen())
 	if connCount >= config.DefConfig.P2PNode.MaxConnOutBound {
-		log.Warnf("[p2p]Connect: out connections(%d) reach the max limit(%d)", connCount,
+		logging.CLog().Warnf("[p2p] Connect: out connections(%d) reach the max limit(%d)", connCount,
 			config.DefConfig.P2PNode.MaxConnOutBound)
 		return
 	}
@@ -263,9 +263,9 @@ func (this *P2PServer) retryInactivePeer() {
 		this.ReconnectAddrs.Unlock()
 		for _, addr := range addrs {
 			rand.Seed(time.Now().UnixNano())
-			log.Debug("[p2p]Try to reconnect peer, peer addr is ", addr)
+			logging.CLog().Debug("[p2p] Try to reconnect peer, peer addr is ", addr)
 			<-time.After(time.Duration(rand.Intn(common.CONN_MAX_BACK)) * time.Millisecond)
-			log.Debug("[p2p]Back off time`s up, start connect node")
+			logging.CLog().Debug("[p2p] Back off time`s up, start connect node")
 			this.Network.Connect(addr, false)
 		}
 
@@ -338,7 +338,7 @@ func (this *P2PServer) ping() {
 func (this *P2PServer) pingTo(peers []*peer.Peer) {
 	service, err := this.Network.GetService(iservices.ConsensusServerName)
 	if err != nil {
-		log.Info("can't get other service, service name: ", iservices.ConsensusServerName)
+		logging.CLog().Error("[p2p] can't get other service, service name: ", iservices.ConsensusServerName)
 		return
 	}
 	ctrl := service.(iservices.IConsensus)
@@ -362,7 +362,7 @@ func (this *P2PServer) timeout() {
 			t := p.GetContactTime()
 			if t.Before(time.Now().Add(-1 * time.Second *
 				time.Duration(periodTime) * common.KEEPALIVE_TIMEOUT)) {
-				log.Warnf("[p2p]keep alive timeout!!!lost remote peer %d - %s from %s", p.GetID(), p.SyncLink.GetAddr(), t.String())
+				logging.CLog().Warnf("[p2p] keep alive timeout!!!lost remote peer %d - %s from %s", p.GetID(), p.SyncLink.GetAddr(), t.String())
 				p.CloseSync()
 				p.CloseCons()
 			}
@@ -396,20 +396,17 @@ func (this *P2PServer) removeFromRetryList(addr string) {
 }
 
 func (this *P2PServer) Broadcast(message interface{}) {
-	log.Debug()
 	var msg msgtypes.Message
 	isConsensus := false
 	switch message.(type) {
 	case *prototype.SignedTransaction:
-		log.Debug("[p2p]TX transaction message")
 		sigtrx := message.(*prototype.SignedTransaction)
 		msg = msgpack.NewTxn(sigtrx)
 	case *prototype.SignedBlock:
-		log.Debug("[p2p]TX block message")
 		block := message.(*prototype.SignedBlock)
 		msg = msgpack.NewSigBlkIdMsg(block)
 	default:
-		log.Warnf("[p2p]Unknown Xmit message %v , type %v", message,
+		logging.CLog().Warnf("[p2p] Unknown Xmit message %v , type %v", message,
 			reflect.TypeOf(message))
 		return
 	}
@@ -420,9 +417,9 @@ func (this *P2PServer) Broadcast(message interface{}) {
 func (this *P2PServer) TriggerSync(current_head_blk_id coomn.BlockID) {
 	reqmsg := new(msg.ReqIdMsg)
 	reqmsg.HeadBlockId = current_head_blk_id.Data[:]
-	//log.Info("enter TriggerSync func")
+	//logging.CLog().Info("enter TriggerSync func")
 	for _, p := range this.Network.GetNp().List {
-		log.Info("cons call TriggerSync func, head id :  ", reqmsg.HeadBlockId)
+		//logging.CLog().Info("[p2p] cons call TriggerSync func, head id :  ", reqmsg.HeadBlockId)
 		go p.Send(reqmsg, false)
 	}
 }
