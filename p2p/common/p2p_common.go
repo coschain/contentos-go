@@ -27,9 +27,6 @@ const (
 	MSG_CMD_LEN      = 12               //msg type length in byte
 	CHECKSUM_LEN     = 4                //checksum length in byte
 	MSG_HDR_LEN      = 24               //msg hdr length in byte
-	MAX_BLK_HDR_CNT  = 500              //hdr count once when sync header
-	MAX_INV_HDR_CNT  = 500              //inventory count once when req inv
-	MAX_REQ_BLK_ONCE = 16               //req blk count once from one peer when sync blk
 	MAX_MSG_LEN      = 30 * 1024 * 1024 //the maximum message length
 	MAX_PAYLOAD_LEN  = MAX_MSG_LEN - MSG_HDR_LEN
 )
@@ -37,20 +34,17 @@ const (
 //msg type const
 const (
 	MAX_ADDR_NODE_CNT = 64 //the maximum peer address from msg
-	MAX_INV_BLK_CNT   = 64 //the maximum blk hash cnt of inv msg
 )
 
 //info update const
 const (
 	PROTOCOL_VERSION      = 0     //protocol version
-	UPDATE_RATE_PER_BLOCK = 2     //info update rate in one generate block period
 	KEEPALIVE_TIMEOUT     = 15    //contact timeout in sec
 	DIAL_TIMEOUT          = 6     //connect timeout in sec
 	CONN_MONITOR          = 6     //time to retry connect in sec
 	CONN_MAX_BACK         = 4000  //max backoff time in micro sec
 	MAX_RETRY_COUNT       = 3     //max reconnect time of remote peer
 	CHAN_CAPABILITY       = 10000 //channel capability of recv link
-	//SYNC_BLK_WAIT         = 2     //timespan for blk sync check
 )
 
 // The peer state

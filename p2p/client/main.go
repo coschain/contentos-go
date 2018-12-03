@@ -23,7 +23,7 @@ func main() {
 
 	p2p, err := myp2p.NewServer(nil)
 
-	err = p2p.Start(nil)
+	err = p2p.Start()
 	if err != nil {
 		fmt.Println("Start p2p error: ", err)
 	}

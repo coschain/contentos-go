@@ -2,15 +2,14 @@ package netserver
 
 import (
 	"errors"
-	"github.com/coschain/contentos-go/iservices"
 	"math/rand"
 	"net"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/node"
+	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/p2p/common"
 	"github.com/coschain/contentos-go/p2p/depend/common/config"
 	"github.com/coschain/contentos-go/p2p/depend/common/log"
@@ -37,7 +36,6 @@ func NewNetServer(ctx *node.ServiceContext) p2p.P2P {
 //NetServer represent all the actions in net layer
 type NetServer struct {
 	ctx          *node.ServiceContext
-	noticer      EventBus.Bus
 	base         peer.PeerCom
 	synclistener net.Listener
 	conslistener net.Listener
@@ -120,9 +118,8 @@ func (this *NetServer) init() error {
 }
 
 //InitListen start listening on the config port
-func (this *NetServer) Start(node *node.Node) {
+func (this *NetServer) Start() {
 	this.init()
-	this.noticer = node.EvBus
 	this.startListening()
 }
 
@@ -800,8 +797,4 @@ func (this *NetServer) GetService(str string) (interface{}, error) {
 		return nil, err
 	}
 	return s, nil
-}
-
-func (this *NetServer) GetNoticer() EventBus.Bus {
-	return this.noticer
 }

@@ -1,15 +1,8 @@
 package config
 
-import (
-	"fmt"
-
-	"github.com/coschain/contentos-go/p2p/depend/common/log"
-)
-
-var Version = "" //Set value when build project
+import "fmt"
 
 const (
-	DEFAULT_LOG_LEVEL                       = log.InfoLog
 	DEFAULT_NODE_PORT                       = uint(20338)
 	DEFAULT_CONSENSUS_PORT                  = uint(20339)
 	DEFAULT_MAX_CONN_IN_BOUND               = uint(1024)
@@ -67,16 +60,6 @@ type GenesisConfig struct {
 	ConsensusType string
 }
 
-func NewGenesisConfig() *GenesisConfig {
-	return &GenesisConfig{
-		SeedList: make([]string, 0),
-	}
-}
-
-type CommonConfig struct {
-	LogLevel uint
-}
-
 type ConsensusConfig struct {
 	EnableConsensus bool
 }
@@ -106,7 +89,6 @@ type P2PNodeConfig struct {
 
 type ContentosConfig struct {
 	Genesis   *GenesisConfig
-	Common    *CommonConfig
 	Consensus *ConsensusConfig
 	P2PNode   *P2PNodeConfig
 }
@@ -114,9 +96,6 @@ type ContentosConfig struct {
 func NewContentosConfig() *ContentosConfig {
 	return &ContentosConfig{
 		Genesis: MainNetConfig,
-		Common: &CommonConfig{
-			LogLevel: DEFAULT_LOG_LEVEL,
-		},
 		Consensus: &ConsensusConfig{
 			EnableConsensus: true,
 		},

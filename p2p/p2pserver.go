@@ -2,8 +2,6 @@ package p2p
 
 import (
 	"errors"
-	"github.com/coschain/contentos-go/p2p/msg"
-	"github.com/coschain/contentos-go/prototype"
 	"math/rand"
 	"net"
 	"reflect"
@@ -12,6 +10,8 @@ import (
 	"time"
 
 	coomn "github.com/coschain/contentos-go/common"
+	"github.com/coschain/contentos-go/p2p/msg"
+	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
@@ -73,7 +73,7 @@ func (this *P2PServer) Start(node *node.Node) error {
 	config.DefConfig.P2PNode.NodeConsensusPort = uint(cfg.P2PPortConsensus)
 
 	if this.Network != nil {
-		this.Network.Start(node)
+		this.Network.Start()
 	} else {
 		return errors.New("[p2p]network invalid")
 	}

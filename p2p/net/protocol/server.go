@@ -1,8 +1,6 @@
 package p2p
 
 import (
-	"github.com/asaskevich/EventBus"
-	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/p2p/common"
 	"github.com/coschain/contentos-go/p2p/message/types"
 	"github.com/coschain/contentos-go/p2p/peer"
@@ -10,7 +8,7 @@ import (
 
 //P2P represent the net interface of p2p package
 type P2P interface {
-	Start(*node.Node)
+	Start()
 	Halt()
 	Connect(addr string, isConsensus bool) error
 	GetID() uint64
@@ -49,5 +47,4 @@ type P2P interface {
 	Send(p *peer.Peer, msg types.Message, isConsensus bool) error
 
 	GetService(string) (interface{}, error)
-	GetNoticer() EventBus.Bus
 }
