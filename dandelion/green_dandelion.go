@@ -19,10 +19,10 @@ const (
 
 type GreenDandelion struct {
 	*app.Controller
-	path      string
-	db        *storage.DatabaseService
-	witness   string
-	pre       *prototype.Sha256
+	path    string
+	db      *storage.DatabaseService
+	witness string
+	//pre       *prototype.Sha256
 	privKey   *prototype.PrivateKeyType
 	timestamp uint32
 	produced  uint32
@@ -40,8 +40,7 @@ func NewDandelion(log log15.Logger) (*GreenDandelion, error) {
 		log.Error("error:", err)
 		return nil, err
 	}
-	pre := &prototype.Sha256{Hash: []byte{0}}
-	return &GreenDandelion{path: dbPath, db: db, witness: constants.INIT_MINER_NAME, pre: pre, privKey: privKey,
+	return &GreenDandelion{path: dbPath, db: db, witness: constants.INIT_MINER_NAME, privKey: privKey,
 		timestamp: 0, produced: 0, logger: log}, nil
 }
 
@@ -59,7 +58,7 @@ func (d *GreenDandelion) OpenDatabase() error {
 	c.SetBus(EventBus.New())
 	c.Open()
 	d.Controller = c
-	d.timestamp = c.GetProps().GetTime().UtcSeconds
+	//d.timestamp = c.GetProps().GetTime().UtcSeconds
 	return nil
 }
 
@@ -69,10 +68,8 @@ func (d *GreenDandelion) SetWitness(name string, privKey *prototype.PrivateKeyTy
 }
 
 func (d *GreenDandelion) GenerateBlock() {
-	current := d.Controller.GenerateBlock(d.witness, d.pre, d.timestamp, d.privKey, 0)
 	d.timestamp += constants.BLOCK_INTERVAL
-	currentHash := current.SignedHeader.Header.GetTransactionMerkleRoot()
-	d.pre = currentHash
+	current := d.Controller.GenerateBlock(d.witness, d.Controller.GetProps().GetHeadBlockId(), d.timestamp, d.privKey, 0)
 	d.produced += 1
 	err := d.PushBlock(current, prototype.Skip_nothing)
 	if err != nil {
@@ -97,7 +94,7 @@ func (d *GreenDandelion) GenerateBlockFor(timestamp uint32) {
 }
 
 func (d *GreenDandelion) Sign(privKeyStr string, ops ...interface{}) (*prototype.SignedTransaction, error) {
-	privKey, err := prototype.GenerateNewKeyFromBytes([]byte(privKeyStr))
+	privKey, err := prototype.PrivateKeyFromWIF(privKeyStr)
 	if err != nil {
 		return nil, err
 	}
@@ -121,32 +118,30 @@ func (d *GreenDandelion) Sign(privKeyStr string, ops ...interface{}) (*prototype
 }
 
 func (d *GreenDandelion) CreateAccount(name string) error {
+	defaultPrivKey, err := prototype.GenerateNewKeyFromBytes([]byte(initPrivKey))
+	if err != nil {
+		d.logger.Error("error:", err)
+		return err
+	}
+	defaultPubKey, err := defaultPrivKey.PubKey()
+	if err != nil {
+		d.logger.Error("error:", err)
+		return err
+	}
+
+	keys := prototype.NewAuthorityFromPubKey(defaultPubKey)
+
+	// create account with default pub key
 	acop := &prototype.AccountCreateOperation{
 		Fee:            prototype.NewCoin(1),
 		Creator:        &prototype.AccountName{Value: "initminer"},
 		NewAccountName: &prototype.AccountName{Value: name},
-		Owner: &prototype.Authority{
-			Cf:              prototype.Authority_owner,
-			WeightThreshold: 1,
-			AccountAuths: []*prototype.KvAccountAuth{
-				&prototype.KvAccountAuth{
-					Name:   &prototype.AccountName{Value: "initminer"},
-					Weight: 3,
-				},
-			},
-			KeyAuths: []*prototype.KvKeyAuth{
-				&prototype.KvKeyAuth{
-					Key: &prototype.PublicKeyType{
-						Data: []byte{0},
-					},
-					Weight: 23,
-				},
-			},
-		},
-		Active:  &prototype.Authority{},
-		Posting: &prototype.Authority{},
+		Owner:          keys,
+		Posting:        keys,
+		Active:         keys,
 	}
-	signTx, err := d.Sign(initPrivKey, acop)
+	// use initminer's priv key sign
+	signTx, err := d.Sign(d.privKey.ToWIF(), acop)
 	if err != nil {
 		d.logger.Error("error:", err)
 		return err
@@ -157,13 +152,23 @@ func (d *GreenDandelion) CreateAccount(name string) error {
 }
 
 func (d *GreenDandelion) Transfer(from, to string, amount uint64, memo string) error {
+	defaultPrivKey, err := prototype.GenerateNewKeyFromBytes([]byte(initPrivKey))
+	if err != nil {
+		d.logger.Error("error:", err)
+		return err
+	}
 	top := &prototype.TransferOperation{
 		From:   &prototype.AccountName{Value: from},
 		To:     &prototype.AccountName{Value: to},
 		Amount: prototype.NewCoin(amount),
 		Memo:   memo,
 	}
-	signTx, err := d.Sign(initPrivKey, top)
+	var signTx *prototype.SignedTransaction
+	if from == "initminer" {
+		signTx, err = d.Sign(d.privKey.ToWIF())
+	} else {
+		signTx, err = d.Sign(defaultPrivKey.ToWIF(), top)
+	}
 	if err != nil {
 		d.logger.Error("error:", err)
 		return err
@@ -204,7 +209,6 @@ func (d *GreenDandelion) GetAccount(name string) *table.SoAccountWrap {
 }
 
 func (d *GreenDandelion) reset() {
-	d.pre = &prototype.Sha256{Hash: []byte{0}}
 	d.timestamp = 0
 	d.privKey = nil
 	d.produced = 0
@@ -212,5 +216,5 @@ func (d *GreenDandelion) reset() {
 }
 
 func deleteDb(path string) {
-	_ = os.Remove(path)
+	_ = os.RemoveAll(path)
 }
