@@ -15,7 +15,6 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 	"strconv"
-	"time"
 )
 
 var (
@@ -440,9 +439,11 @@ func (c *Controller) applyTransactionInner(trxWrp *prototype.TransactionWrapper)
 			summaryId := binary.BigEndian.Uint32(blockId.Hash[8:12])
 			mustSuccess(trx.Trx.RefBlockPrefix == summaryId, "transaction tapos failed")
 		}
+
+		now := c.GetProps().Time;
 		// get head time
-		mustSuccess(trx.Trx.Expiration.UtcSeconds <= uint32(time.Now().Unix()+constants.TRX_MAX_EXPIRATION_TIME), "transaction expiration too long")
-		mustSuccess(uint32(time.Now().Unix()) <= trx.Trx.Expiration.UtcSeconds, "transaction has expired")
+		mustSuccess(trx.Trx.Expiration.UtcSeconds <= uint32(now.UtcSeconds+constants.TRX_MAX_EXPIRATION_TIME), "transaction expiration too long")
+		mustSuccess(now.UtcSeconds < trx.Trx.Expiration.UtcSeconds, "transaction has expired")
 	}
 
 	// insert trx into DB unique table

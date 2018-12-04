@@ -9,7 +9,6 @@ import (
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/golang/protobuf/proto"
 	"testing"
-	"time"
 )
 
 const (
@@ -56,7 +55,7 @@ func makeBlock(pre *prototype.Sha256, blockTimestamp uint32, signedTrx *prototyp
 	return sigBlk
 }
 
-func createSigTrx(op interface{}, headBlockID *prototype.Sha256, expire int) (*prototype.SignedTransaction, error) {
+func createSigTrx(op interface{}, headBlockID *prototype.Sha256, expire uint32) (*prototype.SignedTransaction, error) {
 
 	privKey, err := prototype.PrivateKeyFromWIF(constants.INITMINER_PRIKEY)
 	if err != nil {
@@ -64,7 +63,7 @@ func createSigTrx(op interface{}, headBlockID *prototype.Sha256, expire int) (*p
 	}
 
 	tx := &prototype.Transaction{RefBlockNum: 0, RefBlockPrefix: 0,
-		Expiration: &prototype.TimePointSec{UtcSeconds: uint32(int(time.Now().Unix()) + expire)}}
+		Expiration: &prototype.TimePointSec{UtcSeconds: expire}}
 	tx.AddOperation(op)
 
 	// set reference
@@ -126,7 +125,9 @@ func Test_PushTrx(t *testing.T) {
 	}
 
 	headBlockID := c.GetProps().GetHeadBlockId()
-	signedTrx, err := createSigTrx(acop, headBlockID, 20)
+	headTime := c.GetProps().Time.UtcSeconds;
+	headTime += 20;
+	signedTrx, err := createSigTrx(acop, headBlockID, headTime)
 	if err != nil {
 		t.Error("createSigTrx error:", err)
 	}
@@ -156,7 +157,9 @@ func Test_PushBlock(t *testing.T) {
 		t.Error("makeCreateAccountOP error:", err)
 	}
 	headBlockID := c.GetProps().GetHeadBlockId()
-	signedTrx, err := createSigTrx(createOP, headBlockID, 20)
+	headTime := c.GetProps().Time.UtcSeconds;
+	headTime += 20;
+	signedTrx, err := createSigTrx(createOP, headBlockID, headTime)
 	if err != nil {
 		t.Error("createSigTrx error:", err)
 	}
@@ -186,7 +189,9 @@ func TestController_GenerateBlock(t *testing.T) {
 	c := startController(db)
 
 	headBlockID := c.GetProps().GetHeadBlockId()
-	signedTrx, err := createSigTrx(createOP, headBlockID, 20)
+	headTime := c.GetProps().Time.UtcSeconds;
+	headTime += 20;
+	signedTrx, err := createSigTrx(createOP, headBlockID, headTime)
 	if err != nil {
 		t.Error("createSigTrx error:", err)
 	}
@@ -226,7 +231,9 @@ func Test_list(t *testing.T) {
 	}
 
 	headBlockID := c.GetProps().GetHeadBlockId()
-	signedTrx, err := createSigTrx(acop, headBlockID, 20)
+	headTime := c.GetProps().Time.UtcSeconds;
+	headTime += 20;
+	signedTrx, err := createSigTrx(acop, headBlockID, headTime)
 	if err != nil {
 		t.Error("createSigTrx error:", err)
 	}
@@ -317,7 +324,9 @@ func TestController_PopBlock(t *testing.T) {
 		t.Error("makeCreateAccountOP error:", err)
 	}
 	headBlockID := c.GetProps().GetHeadBlockId()
-	signedTrx, err := createSigTrx(createOP, headBlockID, 20)
+	headTime := c.GetProps().Time.UtcSeconds;
+	headTime += 20;
+	signedTrx, err := createSigTrx(createOP, headBlockID, headTime)
 	if err != nil {
 		t.Error("createSigTrx error:", err)
 	}
@@ -334,7 +343,9 @@ func TestController_PopBlock(t *testing.T) {
 		t.Error("makeCreateAccountOP error:", err)
 	}
 	headBlockID2 := c.GetProps().GetHeadBlockId()
-	signedTrx2, err := createSigTrx(createOP2, headBlockID2, 20)
+	headTime2 := c.GetProps().Time.UtcSeconds;
+	headTime2 += 20;
+	signedTrx2, err := createSigTrx(createOP2, headBlockID2, headTime2)
 	if err != nil {
 		t.Error("createSigTrx error:", err)
 	}
@@ -382,7 +393,9 @@ func TestController_Commit(t *testing.T) {
 		t.Error("makeCreateAccountOP error:", err)
 	}
 	headBlockID := c.GetProps().GetHeadBlockId()
-	signedTrx, err := createSigTrx(createOP, headBlockID, 20)
+	headTime := c.GetProps().Time.UtcSeconds;
+	headTime += 20;
+	signedTrx, err := createSigTrx(createOP, headBlockID, headTime)
 	if err != nil {
 		t.Error("createSigTrx error:", err)
 	}
@@ -399,7 +412,9 @@ func TestController_Commit(t *testing.T) {
 		t.Error("makeCreateAccountOP error:", err)
 	}
 	headBlockID2 := c.GetProps().GetHeadBlockId()
-	signedTrx2, err := createSigTrx(createOP2, headBlockID2, 20)
+	headTime2 := c.GetProps().Time.UtcSeconds;
+	headTime2 += 20;
+	signedTrx2, err := createSigTrx(createOP2, headBlockID2, headTime2)
 	if err != nil {
 		t.Error("createSigTrx error:", err)
 	}
