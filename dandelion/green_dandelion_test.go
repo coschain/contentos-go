@@ -31,7 +31,7 @@ func TestGreenDandelion_CreateAccount(t *testing.T) {
 	myassert.Equal(acc.GetName().Value, "kochiya")
 }
 
-func TestGreenDandelion_Transfer(t *testing.T) {
+func TestGreenDandelion_Fund(t *testing.T) {
 	myassert := assert.New(t)
 	dandelion, _ := NewDandelion()
 	_ = dandelion.OpenDatabase()

@@ -63,11 +63,6 @@ func (d *GreenDandelion) OpenDatabase() error {
 	return nil
 }
 
-func (d *GreenDandelion) SetWitness(name string, privKey *prototype.PrivateKeyType) {
-	d.witness = name
-	d.privKey = privKey
-}
-
 func (d *GreenDandelion) GenerateBlock() {
 	d.timestamp += constants.BLOCK_INTERVAL
 	current := d.Controller.GenerateBlock(d.witness, d.Controller.GetProps().GetHeadBlockId(), d.timestamp, d.privKey, 0)
@@ -85,8 +80,10 @@ func (d *GreenDandelion) GenerateBlocks(count uint32) {
 }
 
 func (d *GreenDandelion) GenerateBlockUntil(timestamp uint32) {
-	count := (timestamp - d.GetProps().GetTime().UtcSeconds) / constants.BLOCK_INTERVAL
-	d.GenerateBlocks(count)
+	if timestamp > d.GetProps().GetTime().UtcSeconds {
+		count := (timestamp - d.GetProps().GetTime().UtcSeconds) / constants.BLOCK_INTERVAL
+		d.GenerateBlocks(count)
+	}
 }
 
 func (d *GreenDandelion) GenerateBlockFor(timestamp uint32) {
@@ -193,12 +190,21 @@ func (d *GreenDandelion) Clean() error {
 	return nil
 }
 
+func (d *GreenDandelion) GetDB() *storage.DatabaseService {
+	return d.db
+}
+
 func (d *GreenDandelion) GetProduced() uint32 {
 	return d.produced
 }
 
 func (d *GreenDandelion) GetTimestamp() uint32 {
 	return d.timestamp
+}
+
+func (d *GreenDandelion) GeneralPrivKey() string {
+	defaultPrivKey, _ := prototype.GenerateNewKeyFromBytes([]byte(initPrivKey))
+	return defaultPrivKey.ToWIF()
 }
 
 func (d *GreenDandelion) GetAccount(name string) *table.SoAccountWrap {

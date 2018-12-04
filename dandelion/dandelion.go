@@ -2,6 +2,7 @@ package dandelion
 
 import (
 	"github.com/coschain/contentos-go/app/table"
+	"github.com/coschain/contentos-go/db/storage"
 	"github.com/coschain/contentos-go/prototype"
 )
 
@@ -14,14 +15,15 @@ type Dandelion interface {
 
 	GenerateBlocks(count uint32)
 
-	SetWitness(name string, privKey *prototype.PrivateKeyType)
-
 	// deadline
 	GenerateBlockUntil(timestamp uint32)
 	//
 	// pass by time
 	GenerateBlockFor(timestamp uint32)
 	//
+
+	Sign(privKeyStr string, ops ...interface{}) (*prototype.SignedTransaction, error)
+
 	////Validate()
 	CreateAccount() error
 
@@ -29,11 +31,15 @@ type Dandelion interface {
 
 	Fund(name string, amount uint64) error
 
+	GetDB() *storage.DatabaseService
+
 	GetProduced() uint32
 
 	GetTimestamp() uint32
 
 	GetAccount(name string) *table.SoAccountWrap
+
+	GeneralPrivKey() string
 
 	Clean()
 }
