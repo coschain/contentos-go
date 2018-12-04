@@ -9,13 +9,11 @@ import (
 	"github.com/coschain/contentos-go/p2p/msg"
 )
 
-var TrxMap map[string][]byte = make(map[string][]byte)
-var TrxLock = &sync.Mutex{}
-
 //NbrPeers: The neigbor list
 type NbrPeers struct {
 	sync.RWMutex
-	List map[uint64]*Peer
+	List   map[uint64]*Peer
+	TrxMap map[string][]byte
 }
 
 func byteSliceEqual(a, b []byte) bool {
@@ -43,9 +41,7 @@ func (this *NbrPeers) Broadcast(mesg types.Message, isConsensus bool, magic uint
 	for _, node := range this.List {
 		if msgdata, ok := mesg.(*msg.BroadcastSigTrx); ok {
 			id, _ := msgdata.SigTrx.Id()
-			TrxLock.Lock()
-			target := TrxMap[node.GetAddr()]
-			TrxLock.Unlock()
+			target := this.TrxMap[node.GetAddr()]
 			if byteSliceEqual(target, id.Hash) {
 				continue
 			}
@@ -101,6 +97,7 @@ func (this *NbrPeers) DelNbrNode(id uint64) (*Peer, bool) {
 //initialize nbr list
 func (this *NbrPeers) Init() {
 	this.List = make(map[uint64]*Peer)
+	this.TrxMap = make(map[string][]byte)
 }
 
 //NodeEstablished whether peer established according to id

@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"github.com/coschain/contentos-go/p2p/peer"
 	"net"
 	"strconv"
 	"strings"
@@ -130,9 +129,14 @@ func TransactionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface
 	ctrl := s.(iservices.IConsensus)
 	ctrl.PushTransaction(trn.SigTrx, false, false)
 	id, _ := trn.SigTrx.Id()
-	peer.TrxLock.Lock()
-	peer.TrxMap[data.Addr] = id.Hash
-	peer.TrxLock.Unlock()
+	np := p2p.GetNp()
+	if np == nil {
+		logging.CLog().Error("[p2p] NbrPeers invalid in TransactionHandle")
+		return
+	}
+	np.Lock()
+	np.TrxMap[data.Addr] = id.Hash
+	np.Unlock()
 }
 
 // VersionHandle handles version handshake protocol from peer
