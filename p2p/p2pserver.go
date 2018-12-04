@@ -15,7 +15,6 @@ import (
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/p2p/common"
-	"github.com/coschain/contentos-go/p2p/depend/common/config"
 	"github.com/coschain/contentos-go/p2p/message/msg_pack"
 	msgtypes "github.com/coschain/contentos-go/p2p/message/types"
 	"github.com/coschain/contentos-go/p2p/message/utils"
@@ -66,12 +65,6 @@ func (this *P2PServer) GetConnectionCnt() uint32 {
 
 //Start create all services
 func (this *P2PServer) Start(node *node.Node) error {
-
-	cfg := this.ctx.Config()
-	config.DefConfig.Genesis.SeedList = cfg.P2PSeeds
-	config.DefConfig.P2PNode.NodePort = uint(cfg.P2PPort)
-	config.DefConfig.P2PNode.NodeConsensusPort = uint(cfg.P2PPortConsensus)
-
 	if this.Network != nil {
 		this.Network.Start()
 	} else {
@@ -147,7 +140,7 @@ func (this *P2PServer) GetTime() int64 {
 func (this *P2PServer) connectSeeds() {
 	seedNodes := make([]string, 0)
 	pList := make([]*peer.Peer, 0)
-	for _, n := range config.DefConfig.Genesis.SeedList {
+	for _, n := range this.ctx.Config().P2P.Genesis.SeedList {
 		ip, err := common.ParseIPAddr(n)
 		if err != nil {
 			logging.CLog().Warnf("[p2p] seed peer %s address format is wrong", n)
@@ -225,9 +218,9 @@ func (this *P2PServer) retryInactivePeer() {
 	np.Unlock()
 
 	connCount := uint(this.Network.GetOutConnRecordLen())
-	if connCount >= config.DefConfig.P2PNode.MaxConnOutBound {
+	if connCount >= this.ctx.Config().P2P.MaxConnOutBound {
 		logging.CLog().Warnf("[p2p] Connect: out connections(%d) reach the max limit(%d)", connCount,
-			config.DefConfig.P2PNode.MaxConnOutBound)
+			this.ctx.Config().P2P.MaxConnOutBound)
 		return
 	}
 
@@ -420,6 +413,6 @@ func (this *P2PServer) TriggerSync(current_head_blk_id coomn.BlockID) {
 	//logging.CLog().Info("enter TriggerSync func")
 	for _, p := range this.Network.GetNp().List {
 		//logging.CLog().Info("[p2p] cons call TriggerSync func, head id :  ", reqmsg.HeadBlockId)
-		go p.Send(reqmsg, false)
+		go p.Send(reqmsg, false, this.ctx.Config().P2P.NetworkMagic)
 	}
 }

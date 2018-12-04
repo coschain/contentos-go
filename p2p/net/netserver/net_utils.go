@@ -11,17 +11,15 @@ import (
 
 	"github.com/coschain/contentos-go/common/logging"
 	"github.com/coschain/contentos-go/p2p/common"
-	"github.com/coschain/contentos-go/p2p/depend/common/config"
 )
 
 // createListener creates a net listener on the port
-func createListener(port uint16) (net.Listener, error) {
+func createListener(port uint16, isTls bool, CertPath, KeyPath, CAPath string) (net.Listener, error) {
 	var listener net.Listener
 	var err error
 
-	isTls := config.DefConfig.P2PNode.IsTLS
 	if isTls {
-		listener, err = initTlsListen(port)
+		listener, err = initTlsListen(port, CertPath, KeyPath, CAPath)
 		if err != nil {
 			logging.CLog().Error("[p2p] initTlslisten failed")
 			return nil, errors.New("[p2p] initTlslisten failed")
@@ -46,11 +44,7 @@ func nonTLSDial(addr string) (net.Conn, error) {
 }
 
 //TLSDial return net.Conn with TLS
-func TLSDial(nodeAddr string) (net.Conn, error) {
-	CertPath := config.DefConfig.P2PNode.CertPath
-	KeyPath := config.DefConfig.P2PNode.KeyPath
-	CAPath := config.DefConfig.P2PNode.CAPath
-
+func TLSDial(nodeAddr, CertPath, KeyPath, CAPath string) (net.Conn, error) {
 	clientCertPool := x509.NewCertPool()
 
 	cacert, err := ioutil.ReadFile(CAPath)
@@ -93,11 +87,7 @@ func initNonTlsListen(port uint16) (net.Listener, error) {
 }
 
 //initTlsListen return net.Listener with Tls mode
-func initTlsListen(port uint16) (net.Listener, error) {
-	CertPath := config.DefConfig.P2PNode.CertPath
-	KeyPath := config.DefConfig.P2PNode.KeyPath
-	CAPath := config.DefConfig.P2PNode.CAPath
-
+func initTlsListen(port uint16, CertPath, KeyPath, CAPath string) (net.Listener, error) {
 	// load cert
 	cert, err := tls.LoadX509KeyPair(CertPath, KeyPath)
 	if err != nil {

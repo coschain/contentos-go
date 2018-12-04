@@ -91,7 +91,7 @@ func (this *Link) GetRXTime() time.Time {
 	return this.time
 }
 
-func (this *Link) Rx() {
+func (this *Link) Rx(magic uint32) {
 	conn := this.conn
 	if conn == nil {
 		return
@@ -100,7 +100,7 @@ func (this *Link) Rx() {
 	reader := bufio.NewReaderSize(conn, common.MAX_BUF_LEN)
 
 	for {
-		msg, payloadSize, err := types.ReadMessage(reader)
+		msg, payloadSize, err := types.ReadMessage(reader, magic)
 		if err != nil {
 			logging.CLog().Infof("[p2p] error read from %s :%s", this.GetAddr(), err.Error())
 			break
@@ -148,14 +148,14 @@ func (this *Link) CloseConn() {
 	}
 }
 
-func (this *Link) Tx(msg types.Message) error {
+func (this *Link) Tx(msg types.Message, magic uint32) error {
 	conn := this.conn
 	if conn == nil {
 		return errors.New("[p2p]tx link invalid")
 	}
 
 	sink := comm.NewZeroCopySink(nil)
-	err := types.WriteMessage(sink, msg)
+	err := types.WriteMessage(sink, msg, magic)
 	if err != nil {
 		logging.CLog().Error("[p2p] error serialize messge ", err.Error())
 		return err

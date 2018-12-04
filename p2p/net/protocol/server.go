@@ -1,6 +1,7 @@
 package p2p
 
 import (
+	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/p2p/common"
 	"github.com/coschain/contentos-go/p2p/message/types"
 	"github.com/coschain/contentos-go/p2p/peer"
@@ -47,4 +48,5 @@ type P2P interface {
 	Send(p *peer.Peer, msg types.Message, isConsensus bool) error
 
 	GetService(string) (interface{}, error)
+	GetContex() *node.ServiceContext
 }

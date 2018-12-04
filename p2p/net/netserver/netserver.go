@@ -8,11 +8,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/coschain/contentos-go/node"
-	"github.com/coschain/contentos-go/iservices"
-	"github.com/coschain/contentos-go/p2p/common"
 	"github.com/coschain/contentos-go/common/logging"
-	"github.com/coschain/contentos-go/p2p/depend/common/config"
+	"github.com/coschain/contentos-go/iservices"
+	"github.com/coschain/contentos-go/node"
+	"github.com/coschain/contentos-go/p2p/common"
 	"github.com/coschain/contentos-go/p2p/message/msg_pack"
 	"github.com/coschain/contentos-go/p2p/message/types"
 	"github.com/coschain/contentos-go/p2p/net/protocol"
@@ -79,26 +78,26 @@ type PeerAddrMap struct {
 func (this *NetServer) init() error {
 	this.base.SetVersion(common.PROTOCOL_VERSION)
 
-	if config.DefConfig.Consensus.EnableConsensus {
+	if this.ctx.Config().P2P.EnableConsensus {
 		this.base.SetServices(uint64(common.VERIFY_NODE))
 	} else {
 		this.base.SetServices(uint64(common.SERVICE_NODE))
 	}
 
-	if config.DefConfig.P2PNode.NodePort == 0 {
+	if this.ctx.Config().P2P.NodePort == 0 {
 		logging.CLog().Error("[p2p] link port invalid")
 		return errors.New("[p2p] invalid link port")
 	}
 
-	this.base.SetSyncPort(uint16(config.DefConfig.P2PNode.NodePort))
+	this.base.SetSyncPort ( uint16 ( this.ctx.Config().P2P.NodePort ) )
 
-	if config.DefConfig.P2PNode.DualPortSupport {
-		if config.DefConfig.P2PNode.NodeConsensusPort == 0 {
+	if this.ctx.Config().P2P.DualPortSupport {
+		if this.ctx.Config().P2P.NodeConsensusPort == 0 {
 			logging.CLog().Error("[p2p] consensus port invalid")
 			return errors.New("[p2p] invalid consensus port")
 		}
 
-		this.base.SetConsPort(uint16(config.DefConfig.P2PNode.NodeConsensusPort))
+		this.base.SetConsPort ( uint16 ( this.ctx.Config().P2P.NodeConsensusPort ) )
 	} else {
 		this.base.SetConsPort(0)
 	}
@@ -210,7 +209,7 @@ func (this *NetServer) NodeEstablished(id uint64) bool {
 }
 
 func (this *NetServer) Broadcast(msg types.Message, isConsensus bool) {
-	this.Np.Broadcast(msg, isConsensus)
+	this.Np.Broadcast(msg, isConsensus, this.ctx.Config().P2P.NetworkMagic)
 }
 
 //GetMsgChan return sync or consensus channel when msgrouter need msg input
@@ -225,10 +224,10 @@ func (this *NetServer) GetMsgChan(isConsensus bool) chan *types.MsgPayload {
 //Tx send data buf to peer
 func (this *NetServer) Send(p *peer.Peer, msg types.Message, isConsensus bool) error {
 	if p != nil {
-		if config.DefConfig.P2PNode.DualPortSupport == false {
-			return p.Send(msg, false)
+		if this.ctx.Config().P2P.DualPortSupport == false {
+			return p.Send(msg, false, this.ctx.Config().P2P.NetworkMagic)
 		}
-		return p.Send(msg, isConsensus)
+		return p.Send(msg, isConsensus, this.ctx.Config().P2P.NetworkMagic)
 	}
 	logging.CLog().Warn("[p2p] send to a invalid peer")
 	return errors.New("[p2p] send to a invalid peer")
@@ -257,9 +256,9 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 
 	this.connectLock.Lock()
 	connCount := uint(this.GetOutConnRecordLen())
-	if connCount >= config.DefConfig.P2PNode.MaxConnOutBound {
+	if connCount >= this.ctx.Config().P2P.MaxConnOutBound {
 		logging.CLog().Warnf("[p2p] Connect: out connections(%d) reach the max limit(%d)", connCount,
-			config.DefConfig.P2PNode.MaxConnOutBound)
+			this.ctx.Config().P2P.MaxConnOutBound)
 		this.connectLock.Unlock()
 		return errors.New("[p2p] connect: out connections reach the max limit")
 	}
@@ -274,12 +273,12 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 	}
 	this.connectLock.Unlock()
 
-	isTls := config.DefConfig.P2PNode.IsTLS
+	isTls := this.ctx.Config().P2P.IsTLS
 	var conn net.Conn
 	var err error
 	var remotePeer *peer.Peer
 	if isTls {
-		conn, err = TLSDial(addr)
+		conn, err = TLSDial(addr, this.ctx.Config().P2P.CertPath, this.ctx.Config().P2P.KeyPath, this.ctx.Config().P2P.CAPath)
 		if err != nil {
 			this.RemoveFromConnectingList(addr)
 			logging.CLog().Debugf("[p2p] connect %s failed:%s", addr, err.Error())
@@ -306,7 +305,7 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 		remotePeer.SyncLink.SetAddr(addr)
 		remotePeer.SyncLink.SetConn(conn)
 		remotePeer.AttachSyncChan(this.SyncChan)
-		go remotePeer.SyncLink.Rx()
+		go remotePeer.SyncLink.Rx(this.ctx.Config().P2P.NetworkMagic)
 		remotePeer.SetSyncState(common.HAND)
 
 	} else {
@@ -315,7 +314,7 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 		remotePeer.ConsLink.SetAddr(addr)
 		remotePeer.ConsLink.SetConn(conn)
 		remotePeer.AttachConsChan(this.ConsChan)
-		go remotePeer.ConsLink.Rx()
+		go remotePeer.ConsLink.Rx(this.ctx.Config().P2P.NetworkMagic)
 		remotePeer.SetConsState(common.HAND)
 	}
 
@@ -326,7 +325,7 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 	}
 	ctrl := service.(iservices.IConsensus)
 	version := msgpack.NewVersion(this, isConsensus, ctrl.GetHeadBlockId().BlockNum())
-	err = remotePeer.Send(version, isConsensus)
+	err = remotePeer.Send(version, isConsensus, this.ctx.Config().P2P.NetworkMagic)
 	if err != nil {
 		if !isConsensus {
 			this.RemoveFromOutConnRecord(addr)
@@ -371,7 +370,7 @@ func (this *NetServer) startListening() error {
 	}
 
 	//consensus
-	if config.DefConfig.P2PNode.DualPortSupport == false {
+	if this.ctx.Config().P2P.DualPortSupport == false {
 		logging.CLog().Debug("[p2p] dual port mode not supported,keep single link")
 		return nil
 	}
@@ -390,7 +389,11 @@ func (this *NetServer) startListening() error {
 // startSyncListening starts a sync listener on the port for the inbound peer
 func (this *NetServer) startSyncListening(port uint16) error {
 	var err error
-	this.synclistener, err = createListener(port)
+	this.synclistener, err = createListener(port,
+											this.ctx.Config().P2P.IsTLS,
+											this.ctx.Config().P2P.CertPath,
+											this.ctx.Config().P2P.KeyPath,
+											this.ctx.Config().P2P.CAPath)
 	if err != nil {
 		logging.CLog().Error("[p2p] failed to create sync listener")
 		return errors.New("[p2p] failed to create sync listener")
@@ -404,7 +407,11 @@ func (this *NetServer) startSyncListening(port uint16) error {
 // startConsListening starts a sync listener on the port for the inbound peer
 func (this *NetServer) startConsListening(port uint16) error {
 	var err error
-	this.conslistener, err = createListener(port)
+	this.conslistener, err = createListener(port,
+											this.ctx.Config().P2P.IsTLS,
+											this.ctx.Config().P2P.CertPath,
+											this.ctx.Config().P2P.KeyPath,
+											this.ctx.Config().P2P.CAPath)
 	if err != nil {
 		logging.CLog().Error("[p2p] failed to create cons listener")
 		return errors.New("[p2p] failed to create cons listener")
@@ -439,9 +446,9 @@ func (this *NetServer) startSyncAccept(listener net.Listener) {
 		}
 
 		syncAddrCount := uint(this.GetInConnRecordLen())
-		if syncAddrCount >= config.DefConfig.P2PNode.MaxConnInBound {
+		if syncAddrCount >= this.ctx.Config().P2P.MaxConnInBound {
 			logging.CLog().Warnf("[p2p] SyncAccept: total connections(%d) reach the max limit(%d), conn closed",
-				syncAddrCount, config.DefConfig.P2PNode.MaxConnInBound)
+				syncAddrCount, this.ctx.Config().P2P.MaxConnInBound)
 			conn.Close()
 			continue
 		}
@@ -453,9 +460,9 @@ func (this *NetServer) startSyncAccept(listener net.Listener) {
 			continue
 		}
 		connNum := this.GetIpCountInInConnRecord(remoteIp)
-		if connNum >= config.DefConfig.P2PNode.MaxConnInBoundForSingleIP {
+		if connNum >= this.ctx.Config().P2P.MaxConnInBoundForSingleIP {
 			logging.CLog().Warnf("[p2p] SyncAccept: connections(%d) with ip(%s) has reach the max limit(%d), "+
-				"conn closed", connNum, remoteIp, config.DefConfig.P2PNode.MaxConnInBoundForSingleIP)
+				"conn closed", connNum, remoteIp, this.ctx.Config().P2P.MaxConnInBoundForSingleIP)
 			conn.Close()
 			continue
 		}
@@ -469,7 +476,7 @@ func (this *NetServer) startSyncAccept(listener net.Listener) {
 		remotePeer.SyncLink.SetAddr(addr)
 		remotePeer.SyncLink.SetConn(conn)
 		remotePeer.AttachSyncChan(this.SyncChan)
-		go remotePeer.SyncLink.Rx()
+		go remotePeer.SyncLink.Rx(this.ctx.Config().P2P.NetworkMagic)
 	}
 }
 
@@ -507,7 +514,7 @@ func (this *NetServer) startConsAccept(listener net.Listener) {
 		remotePeer.ConsLink.SetAddr(addr)
 		remotePeer.ConsLink.SetConn(conn)
 		remotePeer.AttachConsChan(this.ConsChan)
-		go remotePeer.ConsLink.Rx()
+		go remotePeer.ConsLink.Rx(this.ctx.Config().P2P.NetworkMagic)
 	}
 }
 
@@ -762,8 +769,8 @@ func (this *NetServer) GetOutConnRecordLen() int {
 
 //AddrValid whether the addr could be connect or accept
 func (this *NetServer) AddrValid(addr string) bool {
-	if config.DefConfig.P2PNode.ReservedPeersOnly && len(config.DefConfig.P2PNode.ReservedCfg.ReservedPeers) > 0 {
-		for _, ip := range config.DefConfig.P2PNode.ReservedCfg.ReservedPeers {
+	if this.ctx.Config().P2P.ReservedPeersOnly && len( this.ctx.Config().P2P.ReservedCfg.ReservedPeers ) > 0 {
+		for _, ip := range this.ctx.Config().P2P.ReservedCfg.ReservedPeers {
 			if strings.HasPrefix(addr, ip) {
 				logging.CLog().Info("[p2p] found reserved peer :", addr)
 				return true
@@ -797,4 +804,8 @@ func (this *NetServer) GetService(str string) (interface{}, error) {
 		return nil, err
 	}
 	return s, nil
+}
+
+func (this *NetServer) GetContex() *node.ServiceContext{
+	return this.ctx
 }

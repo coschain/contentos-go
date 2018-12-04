@@ -27,9 +27,9 @@ type Config struct {
 	// HTTPPort is the TCP port number on which to start the HTTP RPC server.
 	HTTPPort int `toml:",omitempty"`
 
-	P2PPort          int      `toml:",omitempty"`
-	P2PPortConsensus int      `toml:",omitempty"`
-	P2PSeeds         []string `toml:",omitempty"`
+	//P2PPort          int      `toml:",omitempty"`
+	//P2PPortConsensus int      `toml:",omitempty"`
+	//P2PSeeds         []string `toml:",omitempty"`
 
 	LogLevel string `toml:",omitempty"`
 
@@ -43,6 +43,8 @@ type Config struct {
 	GRPC service_configs.GRPCConfig
 
 	Consensus service_configs.ConsensusConfig
+
+	P2P   service_configs.P2PConfig
 }
 
 // DB returns the path to the discovery database.

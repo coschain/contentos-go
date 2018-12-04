@@ -11,7 +11,6 @@ import (
 	"github.com/coschain/contentos-go/common/logging"
 	"github.com/coschain/contentos-go/iservices"
 	msgCommon "github.com/coschain/contentos-go/p2p/common"
-	"github.com/coschain/contentos-go/p2p/depend/common/config"
 	"github.com/coschain/contentos-go/p2p/message/msg_pack"
 	msgTypes "github.com/coschain/contentos-go/p2p/message/types"
 	"github.com/coschain/contentos-go/p2p/msg"
@@ -30,8 +29,13 @@ func AddrReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) 
 	var addrStr []msgCommon.PeerAddr
 	addrStr = p2p.GetNeighborAddrs()
 	//check mask peers
-	mskPeers := config.DefConfig.P2PNode.ReservedCfg.MaskPeers
-	if config.DefConfig.P2PNode.ReservedPeersOnly && len(mskPeers) > 0 {
+	ctx := p2p.GetContex()
+	if ctx == nil {
+		logging.CLog().Error("[p2p] ctx invalid in AddrReqHandle")
+		return
+	}
+	mskPeers := ctx.Config().P2P.ReservedCfg.MaskPeers
+	if ctx.Config().P2P.ReservedPeersOnly && len(mskPeers) > 0 {
 		for i := 0; i < len(addrStr); i++ {
 			var ip net.IP
 			ip = addrStr[i].IpAddr[:]
@@ -147,11 +151,15 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) 
 		logging.CLog().Error("[p2p] can't parse IP address: ", err)
 		return
 	}
-	nodeAddr := addrIp + ":" +
-		strconv.Itoa(int(version.P.SyncPort))
-	if config.DefConfig.P2PNode.ReservedPeersOnly && len(config.DefConfig.P2PNode.ReservedCfg.ReservedPeers) > 0 {
+	nodeAddr := addrIp + ":" + strconv.Itoa(int(version.P.SyncPort))
+	ctx := p2p.GetContex()
+	if ctx == nil {
+		logging.CLog().Error("[p2p] ctx invalid in VersionHandle")
+		return
+	}
+	if ctx.Config().P2P.ReservedPeersOnly && len(ctx.Config().P2P.ReservedCfg.ReservedPeers) > 0 {
 		found := false
-		for _, addr := range config.DefConfig.P2PNode.ReservedCfg.ReservedPeers {
+		for _, addr := range ctx.Config().P2P.ReservedCfg.ReservedPeers {
 			if strings.HasPrefix(data.Addr, addr) {
 				logging.CLog().Debug("[p2p] peer in reserved list: ", data.Addr)
 				found = true
@@ -174,7 +182,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) 
 	ctrl := service.(iservices.IConsensus)
 
 	if version.P.IsConsensus == true {
-		if config.DefConfig.P2PNode.DualPortSupport == false {
+		if ctx.Config().P2P.DualPortSupport == false {
 			logging.CLog().Warn("[p2p] consensus port not surpport ", data.Addr)
 			remotePeer.CloseCons()
 			return
@@ -311,9 +319,14 @@ func VerAckHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 		logging.CLog().Error("[p2p] nbr node is not exist", data.Id, data.Addr)
 		return
 	}
+	ctx := p2p.GetContex()
+	if ctx == nil {
+		logging.CLog().Error("[p2p] ctx invalid in VerAckHandle")
+		return
+	}
 
 	if verAck.IsConsensus == true {
-		if config.DefConfig.P2PNode.DualPortSupport == false {
+		if ctx.Config().P2P.DualPortSupport == false {
 			logging.CLog().Warn("[p2p] consensus port not surpport")
 			return
 		}
@@ -349,7 +362,7 @@ func VerAckHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 			p2p.Send(remotePeer, msg, false)
 		} else {
 			//consensus port connect
-			if config.DefConfig.P2PNode.DualPortSupport && remotePeer.GetConsPort() > 0 {
+			if ctx.Config().P2P.DualPortSupport && remotePeer.GetConsPort() > 0 {
 				addrIp, err := msgCommon.ParseIPAddr(addr)
 				if err != nil {
 					logging.CLog().Error("[p2p] can't parse IP address: ", err)

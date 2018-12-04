@@ -9,7 +9,6 @@ import (
 
 	"github.com/coschain/contentos-go/p2p/common"
 	comm "github.com/coschain/contentos-go/p2p/depend/common"
-	"github.com/coschain/contentos-go/p2p/depend/common/config"
 	"github.com/coschain/contentos-go/p2p/msg"
 )
 
@@ -51,16 +50,16 @@ func writeMessageHeader(writer io.Writer, msgh messageHeader) error {
 	return binary.Write(writer, binary.LittleEndian, msgh)
 }
 
-func newMessageHeader(cmd string, length uint32, checksum [common.CHECKSUM_LEN]byte) messageHeader {
+func newMessageHeader(cmd string, length uint32, checksum [common.CHECKSUM_LEN]byte, magic uint32) messageHeader {
 	msgh := messageHeader{}
-	msgh.Magic = config.DefConfig.P2PNode.NetworkMagic
+	msgh.Magic = magic
 	copy(msgh.CMD[:], cmd)
 	msgh.Checksum = checksum
 	msgh.Length = length
 	return msgh
 }
 
-func WriteMessage(sink *comm.ZeroCopySink, msg Message) error {
+func WriteMessage(sink *comm.ZeroCopySink, msg Message, magic uint32) error {
 	pstart := sink.Size()
 	sink.NextBytes(common.MSG_HDR_LEN) // can not save the buf, since it may reallocate in sink
 	err := msg.Serialization(sink)
@@ -74,7 +73,7 @@ func WriteMessage(sink *comm.ZeroCopySink, msg Message) error {
 	sink.BackUp(total)
 	buf := sink.NextBytes(total)
 	checksum := common.Checksum(buf[common.MSG_HDR_LEN:])
-	hdr := newMessageHeader(msg.CmdType(), uint32(payLen), checksum)
+	hdr := newMessageHeader(msg.CmdType(), uint32(payLen), checksum, magic)
 
 	sink.BackUp(total)
 	writeMessageHeaderInto(sink, hdr)
@@ -83,13 +82,12 @@ func WriteMessage(sink *comm.ZeroCopySink, msg Message) error {
 	return err
 }
 
-func ReadMessage(reader io.Reader) (Message, uint32, error) {
+func ReadMessage(reader io.Reader, magic uint32) (Message, uint32, error) {
 	hdr, err := readMessageHeader(reader)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	magic := config.DefConfig.P2PNode.NetworkMagic
 	if hdr.Magic != magic {
 		return nil, 0, fmt.Errorf("unmatched magic number %d, expected %d", hdr.Magic, magic)
 	}

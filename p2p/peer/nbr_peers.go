@@ -37,7 +37,7 @@ func byteSliceEqual(a, b []byte) bool {
 }
 
 //Broadcast tranfer msg buffer to all establish peer
-func (this *NbrPeers) Broadcast(mesg types.Message, isConsensus bool) {
+func (this *NbrPeers) Broadcast(mesg types.Message, isConsensus bool, magic uint32) {
 	this.RLock()
 	defer this.RUnlock()
 	for _, node := range this.List {
@@ -51,7 +51,7 @@ func (this *NbrPeers) Broadcast(mesg types.Message, isConsensus bool) {
 			}
 		}
 		if node.syncState == common.ESTABLISH && node.GetRelay() == true {
-			go node.Send(mesg, isConsensus)
+			go node.Send(mesg, isConsensus, magic)
 		}
 	}
 }
