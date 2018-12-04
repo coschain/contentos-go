@@ -177,7 +177,7 @@ func Test_PushBlock(t *testing.T) {
 	}
 }
 
-func TestController_GenerateBlock(t *testing.T) {
+func TestController_GenerateAndApplyBlock(t *testing.T) {
 	clearDB()
 	createOP, err := makeCreateAccountOP(accountNameBob, pubKeyBob)
 	if err != nil {
@@ -212,8 +212,14 @@ func TestController_GenerateBlock(t *testing.T) {
 		t.Error("PrivateKeyFromWIF error")
 	}
 
-	pre := &prototype.Sha256{Hash: []byte{0}}
-	c.GenerateBlock(constants.INIT_MINER_NAME, pre, 18, pri, 0)
+	pre := &prototype.Sha256{Hash: make([]byte,32)}
+	block,err := c.GenerateAndApplyBlock(constants.INIT_MINER_NAME, pre, 18, pri, 0)
+	dgpWrap := table.NewSoGlobalWrap(db,&SingleId)
+	mustSuccess(uint32(block.Id().BlockNum()) == dgpWrap.GetProps().HeadBlockNumber,"block number error")
+	bobWrap2 := table.NewSoAccountWrap(db, bobName)
+	if !bobWrap2.CheckExist() {
+		t.Error("create account failed")
+	}
 }
 
 func Test_list(t *testing.T) {

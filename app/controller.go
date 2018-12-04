@@ -196,9 +196,16 @@ func (c *Controller) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFl
 		c.restorePending(tmpPending)
 	}()
 
-	c.db.BeginTransaction()
-	c.applyBlock(blk, skip)
-	c.db.EndTransaction(true)
+	if skip & prototype.Skip_apply_transaction == 0 {
+		c.db.BeginTransaction()
+		c.applyBlock(blk, skip)
+		mustNoError(c.db.EndTransaction(true),"EndTransaction error")
+	} else {
+		// we have do a BeginTransaction at GenerateBlock
+		c.applyBlock(blk, skip)
+		mustNoError(c.db.EndTransaction(true),"EndTransaction error")
+	}
+
 
 	blockNum := blk.Id().BlockNum()
 	c.saveReversion(uint32(blockNum))
@@ -243,6 +250,19 @@ func emptyHeader(signHeader *prototype.SignedBlockHeader) {
 	signHeader.Header.Witness = &prototype.AccountName{}
 	signHeader.Header.TransactionMerkleRoot = &prototype.Sha256{}
 	signHeader.WitnessSignature = &prototype.SignatureType{}
+}
+
+func (c *Controller) GenerateAndApplyBlock(witness string, pre *prototype.Sha256, timestamp uint32,
+	priKey *prototype.PrivateKeyType, skip prototype.SkipFlag) (*prototype.SignedBlock,error) {
+
+	newBlock := c.GenerateBlock(witness,pre,timestamp,priKey,skip)
+
+	err := c.PushBlock(newBlock,c.skip | prototype.Skip_apply_transaction)
+	if err != nil {
+		return nil,err
+	}
+
+	return newBlock,nil
 }
 
 func (c *Controller) GenerateBlock(witness string, pre *prototype.Sha256, timestamp uint32,
@@ -334,7 +354,8 @@ func (c *Controller) GenerateBlock(witness string, pre *prototype.Sha256, timest
 
 	mustSuccess(proto.Size(signBlock) <= constants.MAX_BLOCK_SIZE, "block size too big")
 	// clearpending then let dpos call PushBlock, the point is without restore pending step when PushBlock
-	c.ClearPending()
+	//c.ClearPending()
+
 	/*mustNoError(c.db.EndTransaction(false), "EndTransaction error")
 	c.havePendingTransaction = false*/
 	//logging.CLog().Debug("@@@@@@ GenerateBlock havePendingTransaction=false")
