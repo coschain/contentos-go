@@ -29,8 +29,9 @@ type GreenDandelion struct {
 	logger    log15.Logger
 }
 
-func NewDandelion(log log15.Logger) (*GreenDandelion, error) {
+func NewDandelion() (*GreenDandelion, error) {
 	db, err := storage.NewDatabase(dbPath)
+	log := log15.New()
 	if err != nil {
 		log.Error("error:", err)
 		return nil, err
@@ -165,7 +166,7 @@ func (d *GreenDandelion) Transfer(from, to string, amount uint64, memo string) e
 	}
 	var signTx *prototype.SignedTransaction
 	if from == "initminer" {
-		signTx, err = d.Sign(d.privKey.ToWIF())
+		signTx, err = d.Sign(d.privKey.ToWIF(), top)
 	} else {
 		signTx, err = d.Sign(defaultPrivKey.ToWIF(), top)
 	}
