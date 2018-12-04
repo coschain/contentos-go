@@ -27,4 +27,6 @@ type IController interface {
 	TransferFromVest(value *prototype.Vest)
 
 	AddWeightedVP(value uint64)
+	// put trx into pending directly, no return value, so should be used by witness node to collect p2p trx
+	PushTrxToPending(trx *prototype.SignedTransaction)
 }

@@ -99,6 +99,20 @@ func (c *Controller) setProducing(b bool) {
 	c.isProducing = b
 }
 
+func (c *Controller) PushTrxToPending(trx *prototype.SignedTransaction) {
+
+	if !c.havePendingTransaction {
+		c.db.BeginTransaction()
+		c.havePendingTransaction = true
+	}
+
+	trxWrp := &prototype.TransactionWrapper{}
+	trxWrp.SigTrx = trx
+	trxWrp.Invoice = &prototype.TransactionInvoice{}
+
+	c.pendingTx = append(c.pendingTx, trxWrp)
+}
+
 func (c *Controller) PushTrx(trx *prototype.SignedTransaction) (invoice *prototype.TransactionInvoice) {
 	// this function may be cross routines ? use channel or lock ?
 	oldSkip := c.skip
@@ -165,8 +179,6 @@ func (c *Controller) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFl
 
 	defer func() {
 		if r := recover(); r != nil {
-			c.skip = oldFlag
-			c.restorePending(tmpPending)
 			switch x := r.(type) {
 			case error:
 				err = x
@@ -177,15 +189,16 @@ func (c *Controller) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFl
 			default:
 				err = errors.New("unknown panic type")
 			}
+			// undo changes
+			c.db.EndTransaction(false)
 		}
-	}()
-
-	defer func() {
 		c.skip = oldFlag
 		c.restorePending(tmpPending)
 	}()
 
+	c.db.BeginTransaction()
 	c.applyBlock(blk, skip)
+	c.db.EndTransaction(true)
 
 	blockNum := blk.Id().BlockNum()
 	c.saveReversion(uint32(blockNum))
