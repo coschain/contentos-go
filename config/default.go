@@ -100,6 +100,7 @@ var DefaultNodeConfig = node.Config{
 	},
 
 	GRPC: service_configs.GRPCConfig{
+		RPCName:    "rpc",
 		RPCListen:  DefaultRPCEndPoint,
 		HTTPListen: DefaultHTTPEndPoint,
 		HTTPCors:   []string{"*"},

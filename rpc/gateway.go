@@ -20,7 +20,7 @@ const (
 	DefaultHTTPLimit = 128
 	// MaxGateWayRecvMsgSize Deafult max message size  gateway's grpc client can receive
 	MaxGateWayRecvMsgSize = 64 * 1024 * 1024
-	GRPCEndpointName      = "rpc"
+	//GRPCEndpointName      = "rpc"
 	GRPCEndpointUsage     = ""
 )
 
@@ -35,7 +35,7 @@ func Run(config *service_configs.GRPCConfig) error {
 	opts := []grpc.DialOption{grpc.WithInsecure(),
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(MaxGateWayRecvMsgSize))}
 
-	endpoint := flag.String(GRPCEndpointName, config.RPCListen, GRPCEndpointUsage)
+	endpoint := flag.String(config.RPCName, config.RPCListen, GRPCEndpointUsage)
 
 	grpcpb.RegisterApiServiceHandlerFromEndpoint(ctx, mux, *endpoint, opts)
 
