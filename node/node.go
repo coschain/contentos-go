@@ -5,6 +5,7 @@ import (
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/common/eventloop"
 	log "github.com/inconshreveable/log15"
+	"github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
 	"strings"
@@ -27,7 +28,8 @@ type Node struct {
 	//stop chan struct{}
 	lock sync.RWMutex
 
-	log log.Logger
+	//log log.Logger
+	Log *logrus.Logger
 }
 
 type NamedServiceConstructor struct {
@@ -54,11 +56,12 @@ func New(conf *Config) (*Node, error) {
 	if conf.Logger == nil {
 		conf.Logger = log.New()
 	}
+
 	return &Node{
 		config:       conf,
 		serviceNames: []string{},
 		serviceFuncs: []NamedServiceConstructor{},
-		log:          conf.Logger,
+		//log:          conf.Logger,
 	}, nil
 }
 

@@ -55,7 +55,7 @@ func NewDPoS(ctx *node.ServiceContext) *DPoS {
 		panic(err)
 	}
 	ret := &DPoS{
-		ForkDB: forkdb.NewDB(),
+		ForkDB: forkdb.NewDB(ctx),
 		//Producers: make([]*Producer, constants.ProducerNum),
 		prodTimer: time.NewTimer(1 * time.Millisecond),
 		trxCh:     make(chan func()),

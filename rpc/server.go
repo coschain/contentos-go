@@ -1,12 +1,12 @@
 package rpc
 
 import (
-	"github.com/coschain/contentos-go/common/logging"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/iservices/service-configs"
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/rpc/pb"
 	"github.com/grpc-ecosystem/go-grpc-middleware"
+	"github.com/sirupsen/logrus"
 	"net"
 
 	"google.golang.org/grpc"
@@ -22,6 +22,7 @@ type GRPCServer struct {
 	ctx       *node.ServiceContext
 	api       *APIService
 	config    *service_configs.GRPCConfig
+	log       *logrus.Logger
 }
 
 func NewGRPCServer(ctx *node.ServiceContext, config service_configs.GRPCConfig) (*GRPCServer, error) {
@@ -32,6 +33,12 @@ func NewGRPCServer(ctx *node.ServiceContext, config service_configs.GRPCConfig) 
 	api := &APIService{}
 	grpcpb.RegisterApiServiceServer(rpc, api)
 	srv := &GRPCServer{rpcServer: rpc, ctx: ctx, api: api, config: &config}
+	logService, err := ctx.Service(iservices.LogServerName)
+	if err != nil {
+		panic(err)
+	}
+	srv.log = logService.(iservices.ILog).GetLog()
+	srv.api.log = srv.log
 	return srv, nil
 }
 
@@ -59,32 +66,32 @@ func (gs *GRPCServer) Start(node *node.Node) error {
 	if err != nil {
 		return err
 	} else {
-		logging.CLog().Infof("GPRC Server Start [ %s ]", gs.config.RPCListen)
+		gs.log.Infof("GPRC Server Start [ %s ]", gs.config.RPCListen)
 	}
 
 	err = gs.startGateway()
 	if err != nil {
 		return err
 	} else {
-		logging.CLog().Infof("Gateway Server Start [ %s ]", gs.config.HTTPListen)
+		gs.log.Infof("Gateway Server Start [ %s ]", gs.config.HTTPListen)
 	}
 
 	return nil
 }
 
 func (gs *GRPCServer) startGRPC() error {
-	logging.CLog().Infof("RPCListen %v", gs.config.RPCListen)
+	gs.log.Infof("RPCListen %v", gs.config.RPCListen)
 	listener, err := net.Listen(GRPCServerType, gs.config.RPCListen)
 	if err != nil {
-		logging.VLog().Errorf("grpc listener addr: [%s] failure", gs.config.RPCListen)
+		gs.log.Errorf("grpc listener addr: [%s] failure", gs.config.RPCListen)
 	}
 
 	go func() {
 		grpc.NewServer()
 		if err := gs.rpcServer.Serve(listener); err != nil {
-			logging.VLog().Errorf("rpc server start failure, %v", err)
+			gs.log.Errorf("rpc server start failure, %v", err)
 		} else {
-			logging.VLog().Info("rpc server start failure")
+			gs.log.Info("rpc server start failure")
 		}
 	}()
 
@@ -99,9 +106,9 @@ func (gs *GRPCServer) Stop() error {
 func (gs *GRPCServer) startGateway() error {
 	go func() {
 		if err := Run(gs.config); err != nil {
-			logging.VLog().Error("rpc gateway start failure")
+			gs.log.Error("rpc gateway start failure")
 		} else {
-			logging.VLog().Info("rpc gateway start failure")
+			gs.log.Info("rpc gateway start failure")
 		}
 	}()
 	return nil

@@ -6,11 +6,11 @@ import (
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/common/eventloop"
-	"github.com/coschain/contentos-go/common/logging"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/rpc/pb"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -21,6 +21,7 @@ type APIService struct {
 	consensus iservices.IConsensus
 	mainLoop  *eventloop.EventLoop
 	db        iservices.IDatabaseService
+	log       *logrus.Logger
 }
 
 func (as *APIService) GetAccountByName(ctx context.Context, req *grpcpb.GetAccountByNameRequest) (*grpcpb.AccountResponse, error) {
@@ -336,7 +337,7 @@ func (as *APIService) BroadcastTrx(ctx context.Context, req *grpcpb.BroadcastTrx
 	var result *prototype.TransactionInvoice = nil
 	as.mainLoop.Send(func() {
 		r := as.consensus.PushTransaction(req.GetTransaction(), true, true)
-		logging.CLog().Infof("BroadcastTrx Result: %s", result)
+		as.log.Infof("BroadcastTrx Result: %s", result)
 
 		if r != nil {
 			result = r.(*prototype.TransactionInvoice)

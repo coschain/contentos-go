@@ -3,12 +3,12 @@ package commands
 import (
 	"fmt"
 	"github.com/coschain/cobra"
-	"github.com/coschain/contentos-go/cmd/multinodetester/commands"
 	cmd "github.com/coschain/contentos-go/cmd/cosd/commands"
+	"github.com/coschain/contentos-go/cmd/multinodetester/commands"
 	"github.com/coschain/contentos-go/common"
-	"github.com/coschain/contentos-go/common/logging"
 	"github.com/coschain/contentos-go/common/pprof"
 	"github.com/coschain/contentos-go/config"
+	"github.com/coschain/contentos-go/mylog"
 	"github.com/coschain/contentos-go/node"
 	"github.com/spf13/viper"
 	"os"
@@ -71,7 +71,7 @@ func makeNode(index int) (*node.Node, node.Config) {
 }
 
 func startNode(app *node.Node, cfg node.Config) {
-	logging.Init(cfg.ResolvePath("logs"), logging.DebugLevel, 0)
+	app.Log = mylog.Init(cfg.ResolvePath("logs"), mylog.DebugLevel, 0)
 
 	pprof.StartPprof()
 
@@ -88,18 +88,18 @@ func startNode(app *node.Node, cfg node.Config) {
 			signal.Notify(sigc, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT, SIGSTOP, syscall.SIGUSR1, syscall.SIGUSR2)
 			for {
 				s := <-sigc
-				logging.CLog().Infof("get a signal %s", s.String())
+				app.Log.Infof("get a signal %s", s.String())
 				switch s {
 				case syscall.SIGQUIT, syscall.SIGTERM, SIGSTOP, syscall.SIGINT:
-					logging.CLog().Infoln("Got interrupt, shutting down...")
+					app.Log.Infoln("Got interrupt, shutting down...")
 					app.MainLoop.Stop()
 					return
 				case syscall.SIGHUP:
-					logging.CLog().Info("syscall.SIGHUP custom operation")
+					app.Log.Info("syscall.SIGHUP custom operation")
 				case syscall.SIGUSR1:
-					logging.CLog().Info("syscall.SIGUSR1 custom operation")
+					app.Log.Info("syscall.SIGUSR1 custom operation")
 				case syscall.SIGUSR2:
-					logging.CLog().Info("syscall.SIGUSR2 custom operation")
+					app.Log.Info("syscall.SIGUSR2 custom operation")
 				default:
 					return
 				}
@@ -108,7 +108,7 @@ func startNode(app *node.Node, cfg node.Config) {
 
 		app.Wait()
 		app.Stop()
-		logging.CLog().Info("app exit success")
+		app.Log.Info("app exit success")
 	}()
 }
 
@@ -118,17 +118,17 @@ func WaitSignal() {
 	signal.Notify(sigc, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT, SIGSTOP, syscall.SIGUSR1, syscall.SIGUSR2)
 	for {
 		s := <-sigc
-		logging.CLog().Infof("get a signal %s", s.String())
+		fmt.Printf("get a signal %s\n", s.String())
 		switch s {
 		case syscall.SIGQUIT, syscall.SIGTERM, SIGSTOP, syscall.SIGINT:
-			logging.CLog().Infoln("Got interrupt, shutting down...")
+			fmt.Println("Got interrupt, shutting down...")
 			return
 		case syscall.SIGHUP:
-			logging.CLog().Info("syscall.SIGHUP custom operation")
+			fmt.Println("syscall.SIGHUP custom operation")
 		case syscall.SIGUSR1:
-			logging.CLog().Info("syscall.SIGUSR1 custom operation")
+			fmt.Println("syscall.SIGUSR1 custom operation")
 		case syscall.SIGUSR2:
-			logging.CLog().Info("syscall.SIGUSR2 custom operation")
+			fmt.Println("syscall.SIGUSR2 custom operation")
 		default:
 			return
 		}

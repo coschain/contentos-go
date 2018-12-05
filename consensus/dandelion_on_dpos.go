@@ -14,7 +14,7 @@ func NewDandelionDpos() *DPoS {
 		panic("initminer privkey parser error")
 	}
 	ret := &DPoS{
-		ForkDB:         forkdb.NewDB(),
+		ForkDB:         forkdb.NewDB(nil),
 		Name:           "initminer",
 		Producers:      []string{"initminer"},
 		bootstrap:      true,
