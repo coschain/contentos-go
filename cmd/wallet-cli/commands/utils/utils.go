@@ -3,7 +3,6 @@ package utils
 import (
 	"fmt"
 	"github.com/coschain/contentos-go/cmd/wallet-cli/wallet"
-	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/prototype"
 	"hash/crc32"
 	"math/rand"
@@ -21,7 +20,7 @@ func GenerateSignedTxAndValidate(ops []interface{}, signers ...*wallet.PrivAccou
 		privKeys = append(privKeys, privKey)
 	}
 	// occupant implement
-	tx := &prototype.Transaction{RefBlockNum: 0, RefBlockPrefix: 0, Expiration: &prototype.TimePointSec{UtcSeconds: uint32(time.Now().Unix()) + constants.TRX_MAX_EXPIRATION_TIME}}
+	tx := &prototype.Transaction{RefBlockNum: 0, RefBlockPrefix: 0, Expiration: &prototype.TimePointSec{UtcSeconds: uint32(time.Now().Unix()) + 30}}
 	for _, op := range ops {
 		tx.AddOperation(op)
 	}
