@@ -196,6 +196,7 @@ func (c *Controller) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFl
 			}
 		}
 		c.skip = oldFlag
+		// restorePending will call pushTrx, will start new transaction for pending
 		c.restorePending(tmpPending)
 	}()
 
@@ -224,6 +225,8 @@ func (c *Controller) ClearPending() []*prototype.TransactionWrapper {
 
 	c.pendingTx = c.pendingTx[:0]
 
+	// 1. block from network, we undo pending state
+	// 2. block from local generate, we keep it
 	if c.skip&prototype.Skip_apply_transaction == 0 {
 		if c.havePendingTransaction == true {
 			mustNoError(c.db.EndTransaction(false), "EndTransaction error")
