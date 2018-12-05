@@ -103,6 +103,7 @@ func (d *DPoS) CurrentProducer() string {
 // remove unqualified producers and shuffle the block-producing order
 func (d *DPoS) shuffle() {
 	prods := d.ctrl.GetWitnessTopN(constants.MAX_WITNESSES)
+	//logging.CLog().Debug("GetWitnessTopN: ", prods)
 	var seed uint64
 	if !d.ForkDB.Empty() {
 		seed = d.ForkDB.Head().Timestamp() << 32
@@ -205,7 +206,7 @@ func (d *DPoS) start() {
 			logging.CLog().Debug("[DPoS] routine stopped.")
 			return
 		case b := <-d.blkCh:
-			if err := d.pushBlock(b); err != nil {
+			if err := d.pushBlock(b, true); err != nil {
 				logging.CLog().Error("[DPoS] pushBlock failed: ", err)
 			}
 		case trx_fn := <-d.trxCh:
@@ -216,18 +217,17 @@ func (d *DPoS) start() {
 				continue
 			}
 
-			b, err := d.generateBlock()
+			b, err := d.generateAndApplyBlock()
 			if err != nil {
-				logging.CLog().Error("[DPoS] generateBlock error: ", err)
+				logging.CLog().Error("[DPoS] generateAndApplyBlock error: ", err)
 				continue
 			}
 			d.prodTimer.Reset(timeToNextSec())
 			logging.CLog().Debugf("[DPoS] generated block: <num %d> <ts %d>", b.Id().BlockNum(), b.Timestamp())
-
-			if err = d.pushBlock(b); err != nil {
-				logging.CLog().Error("[DPoS] push generated block failed: ", err)
-				continue
+			if err := d.pushBlock(b, false); err != nil {
+				logging.CLog().Error("[DPoS] pushBlock push generated block failed: ", err)
 			}
+
 			// broadcast block
 			//if b.Id().BlockNum() % 10 == 0 {
 			//	go func() {
@@ -253,18 +253,17 @@ func (d *DPoS) Stop() error {
 	return nil
 }
 
-func (d *DPoS) generateBlock() (common.ISignedBlock, error) {
+func (d *DPoS) generateAndApplyBlock() (common.ISignedBlock, error) {
 	//logging.CLog().Debug("generateBlock.")
 	ts := d.getSlotTime(d.slot)
 	prev := &prototype.Sha256{}
 	if !d.ForkDB.Empty() {
 		prev.FromBlockID(d.ForkDB.Head().Id())
-		//logging.CLog().Debug("xxxxxxxxxxxxx ", d.ForkDB.Head().Id())
 	} else {
 		prev.Hash = make([]byte, 32)
 	}
 	//logging.CLog().Debugf("generating block. <prev %v>, <ts %d>", prev.Hash, ts)
-	return d.ctrl.GenerateBlock(d.Name, prev, uint32(ts), d.privKey, prototype.Skip_nothing), nil
+	return d.ctrl.GenerateAndApplyBlock(d.Name, prev, uint32(ts), d.privKey, prototype.Skip_nothing)
 }
 
 func (d *DPoS) checkGenesis() bool {
@@ -385,7 +384,7 @@ func (d *DPoS) PushTransaction(trx common.ISignedTransaction, wait bool, broadca
 	}
 }
 
-func (d *DPoS) pushBlock(b common.ISignedBlock) error {
+func (d *DPoS) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 	logging.CLog().Debug("pushBlock #", b.Id().BlockNum())
 	//d.Lock()
 	//defer d.Unlock()
@@ -419,11 +418,13 @@ func (d *DPoS) pushBlock(b common.ISignedBlock) error {
 		return nil
 	}
 
-	if err := d.applyBlock(b); err != nil {
-		// the block is illegal
-		d.ForkDB.MarkAsIllegal(b.Id())
-		d.ForkDB.Pop()
-		return err
+	if applyStateDB {
+		if err := d.applyBlock(b); err != nil {
+			// the block is illegal
+			d.ForkDB.MarkAsIllegal(b.Id())
+			d.ForkDB.Pop()
+			return err
+		}
 	}
 
 	// shuffle

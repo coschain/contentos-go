@@ -191,6 +191,9 @@ func (c *Controller) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFl
 			}
 			// undo changes
 			c.db.EndTransaction(false)
+			if skip & prototype.Skip_apply_transaction != 0 {
+				c.havePendingTransaction = false
+			}
 		}
 		c.skip = oldFlag
 		c.restorePending(tmpPending)
@@ -204,6 +207,7 @@ func (c *Controller) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFl
 		// we have do a BeginTransaction at GenerateBlock
 		c.applyBlock(blk, skip)
 		mustNoError(c.db.EndTransaction(true),"EndTransaction error")
+		c.havePendingTransaction = false
 	}
 
 
