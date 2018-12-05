@@ -3,6 +3,7 @@ package dandelion
 import (
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app"
+	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/consensus"
 	"github.com/coschain/contentos-go/db/storage"
@@ -17,6 +18,7 @@ const (
 // for dpos
 type RedDandelion struct {
 	*consensus.DPoS
+	*app.Controller
 	path    string
 	db      *storage.DatabaseService
 	witness string
@@ -53,6 +55,7 @@ func (d *RedDandelion) OpenDatabase() error {
 	c.SetDB(d.db)
 	c.SetBus(EventBus.New())
 	c.Open()
+	d.Controller = c
 	p2p := NewDandelionP2P()
 	dpos := consensus.NewDandelionDpos()
 	dpos.DandelionDposSetController(c)
@@ -70,6 +73,30 @@ func (d *RedDandelion) OpenDatabase() error {
 func (d *RedDandelion) GenerateBlock() {
 	err := d.DPoS.DandelionDposGenerateBlock()
 	d.logger.Error("error:", err)
+}
+
+func (d *RedDandelion) Sign(privKeyStr string, ops ...interface{}) (*prototype.SignedTransaction, error) {
+	privKey, err := prototype.PrivateKeyFromWIF(privKeyStr)
+	if err != nil {
+		return nil, err
+	}
+	props := d.GetProps()
+	tx := &prototype.Transaction{RefBlockNum: 0, RefBlockPrefix: 0, Expiration: &prototype.TimePointSec{UtcSeconds: props.GetTime().UtcSeconds + constants.TRX_MAX_EXPIRATION_TIME}}
+	headBlockID := props.GetHeadBlockId()
+	id := &common.BlockID{}
+	copy(id.Data[:], headBlockID.Hash[:])
+	tx.SetReferenceBlock(id)
+	for _, op := range ops {
+		tx.AddOperation(op)
+	}
+	signTx := prototype.SignedTransaction{Trx: tx}
+	res := signTx.Sign(privKey, prototype.ChainId{Value: 0})
+	signTx.Signatures = append(signTx.Signatures, &prototype.SignatureType{Sig: res})
+	if err := signTx.Validate(); err != nil {
+		d.logger.Error("error:", err)
+		return nil, err
+	}
+	return &signTx, nil
 }
 
 func (d *RedDandelion) Clean() error {
