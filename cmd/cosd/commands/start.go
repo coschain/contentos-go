@@ -3,15 +3,16 @@ package commands
 import (
 	"fmt"
 	"github.com/coschain/cobra"
-	ctrl "github.com/coschain/contentos-go/app"
 	"github.com/coschain/contentos-go/app/plugins"
 	"github.com/coschain/contentos-go/common"
+	ctrl "github.com/coschain/contentos-go/app"
 	"github.com/coschain/contentos-go/common/logging"
 	"github.com/coschain/contentos-go/common/pprof"
 	"github.com/coschain/contentos-go/config"
 	"github.com/coschain/contentos-go/consensus"
 	"github.com/coschain/contentos-go/db/storage"
 	"github.com/coschain/contentos-go/iservices"
+	"github.com/coschain/contentos-go/mylog"
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/p2p"
 	"github.com/coschain/contentos-go/rpc"
@@ -74,12 +75,54 @@ func startNode(cmd *cobra.Command, args []string) {
 	logging.Init(cfg.ResolvePath("logs"), logging.DebugLevel, 0)
 
 	pprof.StartPprof()
+
+	RegisterService(app, cfg)
+
+	if err := app.Start(); err != nil {
+		common.Fatalf("start node failed, err: %v\n", err)
+	}
+
+	go func() {
+		SIGSTOP := syscall.Signal(0x13) //for windows compile
+		sigc := make(chan os.Signal, 1)
+		signal.Notify(sigc, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT, SIGSTOP, syscall.SIGUSR1, syscall.SIGUSR2)
+		for {
+			s := <-sigc
+			logging.CLog().Infof("get a signal %s", s.String())
+			switch s {
+			case syscall.SIGQUIT, syscall.SIGTERM, SIGSTOP, syscall.SIGINT:
+				logging.CLog().Infoln("Got interrupt, shutting down...")
+				app.MainLoop.Stop()
+				return
+			case syscall.SIGHUP:
+				logging.CLog().Info("syscall.SIGHUP custom operation")
+			case syscall.SIGUSR1:
+				logging.CLog().Info("syscall.SIGUSR1 custom operation")
+			case syscall.SIGUSR2:
+				logging.CLog().Info("syscall.SIGUSR2 custom operation")
+			default:
+				return
+			}
+		}
+	}()
+
+	app.Wait()
+	app.Stop()
+	logging.CLog().Info("app exit success")
+}
+
+func RegisterService(app *node.Node, cfg node.Config) {
 	//app.Register("timer", func(ctx *node.ServiceContext) (node.Service, error) {
 	//	return timer.New(ctx, ctx.Config().Timer)
 	//})
 	//app.Register("printer", func(ctx *node.ServiceContext) (node.Service, error) {
 	//	return printer.New(ctx)
 	//})
+
+	_ = app.Register(iservices.LogServerName, func(ctx *node.ServiceContext) (node.Service, error) {
+		return mylog.NewMyLog( cfg.ResolvePath("logs"), mylog.DebugLevel, 0)
+	})
+
 	_ = app.Register(iservices.DbServerName, func(ctx *node.ServiceContext) (node.Service, error) {
 		return storage.NewGuardedDatabaseService(ctx, "./db/")
 	})
@@ -116,36 +159,4 @@ func startNode(cmd *cobra.Command, args []string) {
 	_ = app.Register(iservices.RpcServerName, func(ctx *node.ServiceContext) (node.Service, error) {
 		return rpc.NewGRPCServer(ctx, ctx.Config().GRPC)
 	})
-
-	if err := app.Start(); err != nil {
-		common.Fatalf("start node failed, err: %v\n", err)
-	}
-
-	go func() {
-		SIGSTOP := syscall.Signal(0x13) //for windows compile
-		sigc := make(chan os.Signal, 1)
-		signal.Notify(sigc, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT, SIGSTOP, syscall.SIGUSR1, syscall.SIGUSR2)
-		for {
-			s := <-sigc
-			logging.CLog().Infof("get a signal %s", s.String())
-			switch s {
-			case syscall.SIGQUIT, syscall.SIGTERM, SIGSTOP, syscall.SIGINT:
-				logging.CLog().Infoln("Got interrupt, shutting down...")
-				app.MainLoop.Stop()
-				return
-			case syscall.SIGHUP:
-				logging.CLog().Info("syscall.SIGHUP custom operation")
-			case syscall.SIGUSR1:
-				logging.CLog().Info("syscall.SIGUSR1 custom operation")
-			case syscall.SIGUSR2:
-				logging.CLog().Info("syscall.SIGUSR2 custom operation")
-			default:
-				return
-			}
-		}
-	}()
-
-	app.Wait()
-	app.Stop()
-	logging.CLog().Info("app exit success")
 }

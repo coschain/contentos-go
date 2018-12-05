@@ -3,19 +3,13 @@ package commands
 import (
 	"fmt"
 	"github.com/coschain/cobra"
-	ctrl "github.com/coschain/contentos-go/app"
-	"github.com/coschain/contentos-go/app/plugins"
 	"github.com/coschain/contentos-go/cmd/multinodetester/commands"
+	cmd "github.com/coschain/contentos-go/cmd/cosd/commands"
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/logging"
 	"github.com/coschain/contentos-go/common/pprof"
 	"github.com/coschain/contentos-go/config"
-	"github.com/coschain/contentos-go/consensus"
-	"github.com/coschain/contentos-go/db/storage"
-	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
-	"github.com/coschain/contentos-go/p2p"
-	"github.com/coschain/contentos-go/rpc"
 	"github.com/spf13/viper"
 	"os"
 	"os/signal"
@@ -29,14 +23,15 @@ var StartCmd = func() *cobra.Command {
 		Short: "start multi cosd node",
 		Run:   StartNode,
 	}
-	cmd.Flags().Int64VarP(&NodeCnt, "number", "n", 2, "number of cosd thread")
+	cmd.Flags().Int64VarP(&NodeCnt, "number", "n", 3, "number of cosd thread")
 	return cmd
 }
 
 func StartNode(cmd *cobra.Command, args []string) {
 	for i:=0;i<int(NodeCnt);i++{
 		fmt.Println("i: ", i," NodeCnt: ", NodeCnt)
-		startNode(i)
+		app, cfg := makeNode(i)
+		go startNode(app, cfg)
 	}
 
 	WaitSignal()
@@ -50,7 +45,6 @@ func makeNode(index int) (*node.Node, node.Config) {
 	viper.AddConfigPath(confdir)
 	viper.SetConfigName("config")
 	viper.SetConfigType("toml")
-	//viper.SetConfigFile(confdir + "/config.toml")
 	err := viper.ReadInConfig()
 	if err == nil {
 		_ = viper.Unmarshal(&cfg)
@@ -76,81 +70,46 @@ func makeNode(index int) (*node.Node, node.Config) {
 	return app, cfg
 }
 
-func startNode(index int) {
-	app, cfg := makeNode(index)
+func startNode(app *node.Node, cfg node.Config) {
 	logging.Init(cfg.ResolvePath("logs"), logging.DebugLevel, 0)
 
 	pprof.StartPprof()
-	_ = app.Register(iservices.DbServerName, func(ctx *node.ServiceContext) (node.Service, error) {
-		return storage.NewGuardedDatabaseService(ctx, "./db/")
-	})
 
-	_ = app.Register(iservices.P2PServerName, func(ctx *node.ServiceContext) (node.Service, error) {
-		return p2p.NewServer(ctx)
-	})
-
-	_ = app.Register(iservices.ControlServerName, func(ctx *node.ServiceContext) (node.Service, error) {
-		return ctrl.NewController(ctx)
-	})
-
-	_ = app.Register(iservices.ConsensusServerName, func(ctx *node.ServiceContext) (node.Service, error) {
-		var s node.Service
-		switch ctx.Config().Consensus.Type {
-		case "DPoS":
-			s = consensus.NewDPoS(ctx)
-		default:
-			s = consensus.NewDPoS(ctx)
-		}
-		return s, nil
-	})
-
-	_ = app.Register(plugins.FOLLOW_SERVICE_NAME, func(ctx *node.ServiceContext) (node.Service, error) {
-		return plugins.NewFollowService(ctx)
-	})
-	_ = app.Register(plugins.POST_SERVICE_NAME, func(ctx *node.ServiceContext) (node.Service, error) {
-		return plugins.NewPostService(ctx)
-	})
-	_ = app.Register(plugins.DEMO_SERVICE_NAME, func(ctx *node.ServiceContext) (node.Service, error) {
-		return plugins.NewDemoService(ctx)
-	})
-
-	_ = app.Register(iservices.RpcServerName, func(ctx *node.ServiceContext) (node.Service, error) {
-		return rpc.NewGRPCServer(ctx, ctx.Config().GRPC)
-	})
+	cmd.RegisterService(app, cfg)
 
 	if err := app.Start(); err != nil {
 		common.Fatalf("start node failed, err: %v\n", err)
 	}
 
-	//go func() {
-	//	go func() {
-	//		SIGSTOP := syscall.Signal(0x13) //for windows compile
-	//		sigc := make(chan os.Signal, 1)
-	//		signal.Notify(sigc, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT, SIGSTOP, syscall.SIGUSR1, syscall.SIGUSR2)
-	//		for {
-	//			s := <-sigc
-	//			logging.CLog().Infof("get a signal %s", s.String())
-	//			switch s {
-	//			case syscall.SIGQUIT, syscall.SIGTERM, SIGSTOP, syscall.SIGINT:
-	//				logging.CLog().Infoln("Got interrupt, shutting down...")
-	//				app.MainLoop.Stop()
-	//				return
-	//			case syscall.SIGHUP:
-	//				logging.CLog().Info("syscall.SIGHUP custom operation")
-	//			case syscall.SIGUSR1:
-	//				logging.CLog().Info("syscall.SIGUSR1 custom operation")
-	//			case syscall.SIGUSR2:
-	//				logging.CLog().Info("syscall.SIGUSR2 custom operation")
-	//			default:
-	//				return
-	//			}
-	//		}
-	//	}()
-	//
-	//	app.Wait()
-	//	app.Stop()
-	//	logging.CLog().Info("app exit success")
-	//}()
+	go func() {
+		go func() {
+			SIGSTOP := syscall.Signal(0x13) //for windows compile
+			sigc := make(chan os.Signal, 1)
+			signal.Notify(sigc, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT, SIGSTOP, syscall.SIGUSR1, syscall.SIGUSR2)
+			for {
+				s := <-sigc
+				logging.CLog().Infof("get a signal %s", s.String())
+				switch s {
+				case syscall.SIGQUIT, syscall.SIGTERM, SIGSTOP, syscall.SIGINT:
+					logging.CLog().Infoln("Got interrupt, shutting down...")
+					app.MainLoop.Stop()
+					return
+				case syscall.SIGHUP:
+					logging.CLog().Info("syscall.SIGHUP custom operation")
+				case syscall.SIGUSR1:
+					logging.CLog().Info("syscall.SIGUSR1 custom operation")
+				case syscall.SIGUSR2:
+					logging.CLog().Info("syscall.SIGUSR2 custom operation")
+				default:
+					return
+				}
+			}
+		}()
+
+		app.Wait()
+		app.Stop()
+		logging.CLog().Info("app exit success")
+	}()
 }
 
 func WaitSignal() {

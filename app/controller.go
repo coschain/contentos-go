@@ -8,7 +8,6 @@ import (
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/common/eventloop"
-	"github.com/coschain/contentos-go/common/logging"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/prototype"
@@ -30,6 +29,7 @@ type Controller struct {
 	evLoop *eventloop.EventLoop
 
 	db      iservices.IDatabaseService
+	log     iservices.ILog
 	noticer EventBus.Bus
 	skip    prototype.SkipFlag
 
@@ -51,6 +51,15 @@ func (c *Controller) getDb() (iservices.IDatabaseService, error) {
 	return db, nil
 }
 
+func (c *Controller) getLog() (iservices.ILog, error) {
+	s, err := c.ctx.Service(iservices.LogServerName)
+	if err != nil {
+		return nil, err
+	}
+	log := s.(iservices.ILog)
+	return log, nil
+}
+
 // for easy test
 func (c *Controller) SetDB(db iservices.IDatabaseService) {
 	c.db = db
@@ -66,6 +75,12 @@ func NewController(ctx *node.ServiceContext) (*Controller, error) {
 }
 
 func (c *Controller) Start(node *node.Node) error {
+	log, err := c.getLog()
+	if err != nil {
+		return err
+	}
+	c.log = log
+
 	db, err := c.getDb()
 	if err != nil {
 		return err
@@ -84,10 +99,10 @@ func (c *Controller) Open() {
 
 		mustNoError(c.db.DeleteAll(), "truncate database error")
 
-		logging.CLog().Info("start initGenesis")
+		c.log.GetLog().Info("start initGenesis")
 		c.initGenesis()
 		c.saveReversion(0)
-		logging.CLog().Info("finish initGenesis")
+		c.log.GetLog().Info("finish initGenesis")
 	}
 }
 
@@ -119,7 +134,7 @@ func (c *Controller) PushTrx(trx *prototype.SignedTransaction) (invoice *prototy
 	defer func() {
 		if err := recover(); err != nil {
 			invoice = &prototype.TransactionInvoice{Status: uint32(500)}
-			logging.CLog().Errorf("PushTrx Error: %v", err)
+			c.log.GetLog().Errorf("PushTrx Error: %v", err)
 		}
 		c.setProducing(false)
 		c.skip = oldSkip
@@ -148,7 +163,7 @@ func (c *Controller) pushTrx(trx *prototype.SignedTransaction) *prototype.Transa
 	// start a new undo session when first transaction come after push block
 	if !c.havePendingTransaction {
 		c.db.BeginTransaction()
-		//	logging.CLog().Debug("@@@@@@ pushTrx havePendingTransaction=true")
+		//	c.log.GetLog().Debug("@@@@@@ pushTrx havePendingTransaction=true")
 		c.havePendingTransaction = true
 	}
 
@@ -182,10 +197,10 @@ func (c *Controller) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFl
 			switch x := r.(type) {
 			case error:
 				err = x
-				logging.CLog().Errorf("push block error : %v", x.Error())
+				c.log.GetLog().Errorf("push block error : %v", x.Error())
 			case string:
 				err = errors.New(x)
-				logging.CLog().Errorf("push block error : %v ", x)
+				c.log.GetLog().Errorf("push block error : %v ", x)
 			default:
 				err = errors.New("unknown panic type")
 			}
@@ -231,7 +246,7 @@ func (c *Controller) ClearPending() []*prototype.TransactionWrapper {
 		if c.havePendingTransaction == true {
 			mustNoError(c.db.EndTransaction(false), "EndTransaction error")
 			c.havePendingTransaction = false
-			//		logging.CLog().Debug("@@@@@@ ClearPending havePendingTransaction=false")
+			//		c.log.GetLog().Debug("@@@@@@ ClearPending havePendingTransaction=false")
 		}
 	}
 
@@ -279,7 +294,7 @@ func (c *Controller) GenerateBlock(witness string, pre *prototype.Sha256, timest
 		c.skip = oldSkip
 		if err := recover(); err != nil {
 			//mustNoError(c.db.EndTransaction(false), "EndTransaction error")
-			logging.CLog().Errorf("GenerateBlock Error: %v", err)
+			c.log.GetLog().Errorf("GenerateBlock Error: %v", err)
 			panic(err)
 		}
 	}()
@@ -317,7 +332,7 @@ func (c *Controller) GenerateBlock(witness string, pre *prototype.Sha256, timest
 		mustNoError(c.db.EndTransaction(false), "EndTransaction error")
 	}
 	c.db.BeginTransaction()
-	//logging.CLog().Debug("@@@@@@ GeneratBlock havePendingTransaction=true")
+	//c.log.GetLog().Debug("@@@@@@ GeneratBlock havePendingTransaction=true")
 	c.havePendingTransaction = true
 
 	var postponeTrx uint64 = 0
@@ -348,7 +363,7 @@ func (c *Controller) GenerateBlock(witness string, pre *prototype.Sha256, timest
 		}()
 	}
 	if postponeTrx > 0 {
-		logging.CLog().Warnf("postponed %d trx due to max block size", postponeTrx)
+		c.log.GetLog().Warnf("postponed %d trx due to max block size", postponeTrx)
 	}
 
 	signBlock.SignedHeader.Header.Previous = pre
@@ -365,7 +380,7 @@ func (c *Controller) GenerateBlock(witness string, pre *prototype.Sha256, timest
 
 	/*mustNoError(c.db.EndTransaction(false), "EndTransaction error")
 	c.havePendingTransaction = false*/
-	//logging.CLog().Debug("@@@@@@ GenerateBlock havePendingTransaction=false")
+	//c.log.GetLog().Debug("@@@@@@ GenerateBlock havePendingTransaction=false")
 
 	/*c.PushBlock(signBlock,c.skip | prototype.Skip_apply_transaction)
 
@@ -926,7 +941,7 @@ func (c *Controller) GetWitnessTopN(n uint32) []string {
 				ret = append(ret, mainPtr.Value)
 			} else {
 				// panic() ?
-				logging.CLog().Warnf("reverse get witness meet nil value")
+				c.log.GetLog().Warnf("reverse get witness meet nil value")
 			}
 			i++
 		}
@@ -956,7 +971,7 @@ func (c *Controller) saveReversion(num uint32) {
 	tag := strconv.FormatUint(uint64(num), 10)
 	currentRev := c.db.GetRevision()
 	mustNoError(c.db.TagRevision(currentRev, tag), fmt.Sprintf("TagRevision:  tag:%d, reversion%d", num, currentRev))
-	logging.CLog().Debug("### saveReversion, num:", num, " rev:", currentRev)
+	c.log.GetLog().Debug("### saveReversion, num:", num, " rev:", currentRev)
 }
 
 func (c *Controller) getReversion(num uint32) uint64 {
@@ -972,7 +987,7 @@ func (c *Controller) PopBlockTo(num uint32) {
 	/*if c.havePendingTransaction {
 		mustNoError(c.db.EndTransaction(false), "EndTransaction error")
 		c.havePendingTransaction = false
-		//logging.CLog().Debug("@@@@@@ PopBlockTo havePendingTransaction=false")
+		//c.log.GetLog().Debug("@@@@@@ PopBlockTo havePendingTransaction=false")
 	}*/
 	// get reversion
 	rev := c.getReversion(num)
@@ -982,8 +997,8 @@ func (c *Controller) PopBlockTo(num uint32) {
 func (c *Controller) Commit(num uint32) {
 	// this block can not be revert over, so it's irreversible
 	rev := c.getReversion(num)
-	logging.CLog().Debug("### Commit, tag:", num, " rev:", rev)
-	//logging.CLog().Debug("$$$ dump reversion array:",c.numToRev)
+	c.log.GetLog().Debug("### Commit, tag:", num, " rev:", rev)
+	//c.log.GetLog().Debug("$$$ dump reversion array:",c.numToRev)
 	mustNoError(c.db.RebaseToRevision(rev), fmt.Sprintf("RebaseToRevision: tag:%d, reversion:%d", num, rev))
 }
 

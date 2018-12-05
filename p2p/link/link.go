@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/coschain/contentos-go/p2p/common"
-	"github.com/coschain/contentos-go/common/logging"
 	comm "github.com/coschain/contentos-go/p2p/depend/common"
 	"github.com/coschain/contentos-go/p2p/message/types"
 )
@@ -102,7 +101,6 @@ func (this *Link) Rx(magic uint32) {
 	for {
 		msg, payloadSize, err := types.ReadMessage(reader, magic)
 		if err != nil {
-			logging.CLog().Infof("[p2p] error read from %s :%s", this.GetAddr(), err.Error())
 			break
 		}
 
@@ -110,7 +108,6 @@ func (this *Link) Rx(magic uint32) {
 		this.UpdateRXTime(t)
 
 		if !this.needSendMsg(msg) {
-			logging.CLog().Debugf("[p2p] skip handle msgType:%s from:%d", msg.CmdType(), this.id)
 			continue
 		}
 		this.addReqRecord(msg)
@@ -128,7 +125,6 @@ func (this *Link) Rx(magic uint32) {
 
 //disconnectNotify push disconnect msg to channel
 func (this *Link) disconnectNotify() {
-	logging.CLog().Debugf("[p2p] call disconnectNotify for %s", this.GetAddr())
 	this.CloseConn()
 
 	msg, _ := types.MakeEmptyMessage(common.DISCONNECT_TYPE)
@@ -157,8 +153,7 @@ func (this *Link) Tx(msg types.Message, magic uint32) error {
 	sink := comm.NewZeroCopySink(nil)
 	err := types.WriteMessage(sink, msg, magic)
 	if err != nil {
-		logging.CLog().Error("[p2p] error serialize messge ", err.Error())
-		return err
+		return errors.New( fmt.Sprintf("[p2p] error serialize messge ", err) )
 	}
 
 	payload := sink.Bytes()
@@ -171,9 +166,8 @@ func (this *Link) Tx(msg types.Message, magic uint32) error {
 	conn.SetWriteDeadline(time.Now().Add(time.Duration(nCount*common.WRITE_DEADLINE) * time.Second))
 	_, err = conn.Write(payload)
 	if err != nil {
-		logging.CLog().Errorf("[p2p] error sending messge to %s :%s", this.GetAddr(), err.Error())
 		this.disconnectNotify()
-		return err
+		return errors.New( fmt.Sprintf("[p2p] error sending messge to %s :%s", this.GetAddr(), err.Error()) )
 	}
 
 	return nil

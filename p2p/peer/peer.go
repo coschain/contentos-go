@@ -2,13 +2,13 @@ package peer
 
 import (
 	"errors"
+	"github.com/sirupsen/logrus"
 	"net"
 	"runtime"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	"github.com/coschain/contentos-go/common/logging"
 	"github.com/coschain/contentos-go/p2p/common"
 	conn "github.com/coschain/contentos-go/p2p/link"
 	"github.com/coschain/contentos-go/p2p/message/types"
@@ -122,23 +122,23 @@ func NewPeer() *Peer {
 
 //rmPeer print a debug log when peer be finalized by system
 func rmPeer(p *Peer) {
-	logging.CLog().Debugf("[p2p] Remove unused peer: %d", p.GetID())
+	//logging.CLog().Debugf("[p2p] Remove unused peer: %d", p.GetID())
 }
 
 //DumpInfo print all information of peer
-func (this *Peer) DumpInfo() {
-	logging.CLog().Debug("[p2p] Node info:")
-	logging.CLog().Debug("[p2p] \t syncState = ", this.syncState)
-	logging.CLog().Debug("[p2p] \t consState = ", this.consState)
-	logging.CLog().Debug("[p2p] \t id = ", this.GetID())
-	logging.CLog().Debug("[p2p] \t addr = ", this.SyncLink.GetAddr())
-	logging.CLog().Debug("[p2p] \t cap = ", this.cap)
-	logging.CLog().Debug("[p2p] \t version = ", this.GetVersion())
-	logging.CLog().Debug("[p2p] \t services = ", this.GetServices())
-	logging.CLog().Debug("[p2p] \t syncPort = ", this.GetSyncPort())
-	logging.CLog().Debug("[p2p] \t consPort = ", this.GetConsPort())
-	logging.CLog().Debug("[p2p] \t relay = ", this.GetRelay())
-	logging.CLog().Debug("[p2p] \t height = ", this.GetHeight())
+func (this *Peer) DumpInfo(log *logrus.Logger) {
+	log.Debug("[p2p] Node info:")
+	log.Debug("[p2p] \t syncState = ", this.syncState)
+	log.Debug("[p2p] \t consState = ", this.consState)
+	log.Debug("[p2p] \t id = ", this.GetID())
+	log.Debug("[p2p] \t addr = ", this.SyncLink.GetAddr())
+	log.Debug("[p2p] \t cap = ", this.cap)
+	log.Debug("[p2p] \t version = ", this.GetVersion())
+	log.Debug("[p2p] \t services = ", this.GetServices())
+	log.Debug("[p2p] \t syncPort = ", this.GetSyncPort())
+	log.Debug("[p2p] \t consPort = ", this.GetConsPort())
+	log.Debug("[p2p] \t relay = ", this.GetRelay())
+	log.Debug("[p2p] \t height = ", this.GetHeight())
 }
 
 //GetVersion return peer`s version
@@ -279,7 +279,6 @@ func (this *Peer) GetAddr16() ([16]byte, error) {
 	}
 	ip := net.ParseIP(addrIp).To16()
 	if ip == nil {
-		logging.CLog().Warn("[p2p] parse ip address error\n", this.GetAddr())
 		return result, errors.New("[p2p]parse ip address error")
 	}
 

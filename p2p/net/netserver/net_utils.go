@@ -4,12 +4,12 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net"
 	"strconv"
 	"time"
 
-	"github.com/coschain/contentos-go/common/logging"
 	"github.com/coschain/contentos-go/p2p/common"
 )
 
@@ -21,13 +21,11 @@ func createListener(port uint16, isTls bool, CertPath, KeyPath, CAPath string) (
 	if isTls {
 		listener, err = initTlsListen(port, CertPath, KeyPath, CAPath)
 		if err != nil {
-			logging.CLog().Error("[p2p] initTlslisten failed")
 			return nil, errors.New("[p2p] initTlslisten failed")
 		}
 	} else {
 		listener, err = initNonTlsListen(port)
 		if err != nil {
-			logging.CLog().Error("[p2p] initNonTlsListen failed")
 			return nil, errors.New("[p2p] initNonTlsListen failed")
 		}
 	}
@@ -49,8 +47,7 @@ func TLSDial(nodeAddr, CertPath, KeyPath, CAPath string) (net.Conn, error) {
 
 	cacert, err := ioutil.ReadFile(CAPath)
 	if err != nil {
-		logging.CLog().Error("[p2p] load CA file fail", err)
-		return nil, err
+		return nil, errors.New( fmt.Sprintf("[p2p] load CA file fail", err) )
 	}
 	cert, err := tls.LoadX509KeyPair(CertPath, KeyPath)
 	if err != nil {
@@ -80,8 +77,7 @@ func TLSDial(nodeAddr, CertPath, KeyPath, CAPath string) (net.Conn, error) {
 func initNonTlsListen(port uint16) (net.Listener, error) {
 	listener, err := net.Listen("tcp", ":"+strconv.Itoa(int(port)))
 	if err != nil {
-		logging.CLog().Error("[p2p] Error listening\n", err.Error())
-		return nil, err
+		return nil, errors.New( fmt.Sprintf("[p2p] Error listening %s", err) )
 	}
 	return listener, nil
 }
@@ -91,14 +87,12 @@ func initTlsListen(port uint16, CertPath, KeyPath, CAPath string) (net.Listener,
 	// load cert
 	cert, err := tls.LoadX509KeyPair(CertPath, KeyPath)
 	if err != nil {
-		logging.CLog().Error("[p2p] load keys fail", err)
-		return nil, err
+		return nil, errors.New( fmt.Sprintf("[p2p] load keys fail", err) )
 	}
 	// load root ca
 	caData, err := ioutil.ReadFile(CAPath)
 	if err != nil {
-		logging.CLog().Error("[p2p] read ca fail", err)
-		return nil, err
+		return nil, errors.New( fmt.Sprintf("[p2p] read ca fail", err) )
 	}
 	pool := x509.NewCertPool()
 	ret := pool.AppendCertsFromPEM(caData)
@@ -113,11 +107,9 @@ func initTlsListen(port uint16, CertPath, KeyPath, CAPath string) (net.Listener,
 		ClientCAs:    pool,
 	}
 
-	logging.CLog().Info("[p2p] TLS listen port is ", strconv.Itoa(int(port)))
 	listener, err := tls.Listen("tcp", ":"+strconv.Itoa(int(port)), tlsConfig)
 	if err != nil {
-		logging.CLog().Error("[p2p] tls listen error ", err)
-		return nil, err
+		return nil, errors.New( fmt.Sprintf("[p2p] tls listen error ", err) )
 	}
 	return listener, nil
 }
