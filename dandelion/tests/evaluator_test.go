@@ -10,7 +10,7 @@ import (
 
 func TestPostEvaluator_DandelionNormal(t *testing.T) {
 	myassert := assert.New(t)
-	dandelion, _ := dande.NewDandelion()
+	dandelion, _ := dande.NewGreenDandelion()
 	_ = dandelion.OpenDatabase()
 	defer func() {
 		err := dandelion.Clean()

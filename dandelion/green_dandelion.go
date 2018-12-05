@@ -29,7 +29,7 @@ type GreenDandelion struct {
 	logger    log15.Logger
 }
 
-func NewDandelion() (*GreenDandelion, error) {
+func NewGreenDandelion() (*GreenDandelion, error) {
 	db, err := storage.NewDatabase(dbPath)
 	log := log15.New()
 	if err != nil {
@@ -182,7 +182,7 @@ func (d *GreenDandelion) Fund(name string, amount uint64) error {
 
 func (d *GreenDandelion) Clean() error {
 	err := d.db.Stop()
-	defer deleteDb(d.path)
+	defer deletePath(d.path)
 	defer d.reset()
 	if err != nil {
 		return err
@@ -222,6 +222,6 @@ func (d *GreenDandelion) reset() {
 	d.witness = ""
 }
 
-func deleteDb(path string) {
+func deletePath(path string) {
 	_ = os.RemoveAll(path)
 }

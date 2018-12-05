@@ -6,7 +6,7 @@ import (
 )
 
 func TestGreenDandelion_CreateAccount(t *testing.T) {
-	dandelion, err := NewDandelion()
+	dandelion, err := NewGreenDandelion()
 	myassert := assert.New(t)
 	if err != nil {
 		t.Error(err)
@@ -33,7 +33,7 @@ func TestGreenDandelion_CreateAccount(t *testing.T) {
 
 func TestGreenDandelion_Fund(t *testing.T) {
 	myassert := assert.New(t)
-	dandelion, _ := NewDandelion()
+	dandelion, _ := NewGreenDandelion()
 	_ = dandelion.OpenDatabase()
 	defer func() {
 		err := dandelion.Clean()
