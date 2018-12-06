@@ -23,11 +23,12 @@ const (
 type RedDandelion struct {
 	*consensus.DPoS
 	*app.Controller
-	path    string
-	db      *storage.DatabaseService
-	witness string
-	privKey *prototype.PrivateKeyType
-	logger  iservices.ILog
+	path     string
+	db       *storage.DatabaseService
+	witness  string
+	privKey  *prototype.PrivateKeyType
+	produced uint32
+	logger   iservices.ILog
 }
 
 func NewRedDandelion() (*RedDandelion, error) {
@@ -84,6 +85,25 @@ func (d *RedDandelion) GenerateBlock() {
 	if err != nil {
 		d.logger.GetLog().Error("error:", err)
 	}
+	d.produced += 1
+}
+
+func (d *RedDandelion) GenerateBlocks(count uint32) {
+	for i := uint32(0); i < count; i++ {
+		d.GenerateBlock()
+	}
+}
+
+func (d *RedDandelion) GenerateBlockUntil(timestamp uint32) {
+	if timestamp > d.GetProps().GetTime().UtcSeconds {
+		count := (timestamp - d.GetProps().GetTime().UtcSeconds) / constants.BLOCK_INTERVAL
+		d.GenerateBlocks(count)
+	}
+}
+
+func (d *RedDandelion) GenerateBlockFor(timestamp uint32) {
+	count := timestamp / constants.BLOCK_INTERVAL
+	d.GenerateBlocks(count)
 }
 
 func (d *RedDandelion) CreateAccount(name string) error {
@@ -181,6 +201,19 @@ func (d *RedDandelion) Sign(privKeyStr string, ops ...interface{}) (*prototype.S
 		return nil, err
 	}
 	return &signTx, nil
+}
+
+func (d *RedDandelion) GetDB() *storage.DatabaseService {
+	return d.db
+}
+
+func (d *RedDandelion) GetProduced() uint32 {
+	return d.produced
+}
+
+func (d *RedDandelion) GeneralPrivKey() string {
+	defaultPrivKey, _ := prototype.GenerateNewKeyFromBytes([]byte(initPrivKey))
+	return defaultPrivKey.ToWIF()
 }
 
 func (d *RedDandelion) Clean() error {

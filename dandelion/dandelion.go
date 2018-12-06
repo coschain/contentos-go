@@ -35,8 +35,6 @@ type Dandelion interface {
 
 	GetProduced() uint32
 
-	GetTimestamp() uint32
-
 	GetAccount(name string) *table.SoAccountWrap
 
 	GeneralPrivKey() string
