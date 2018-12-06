@@ -11,7 +11,6 @@ import (
 	"github.com/coschain/contentos-go/rpc/pb"
 	"github.com/golang/mock/gomock"
 	"hash/crc32"
-	"io/ioutil"
 	"math"
 	"math/rand"
 	"net/http"
@@ -540,8 +539,8 @@ func http_client(rtype, url, reqJson string) error {
 		panic(err)
 	}
 	defer resp.Body.Close()
-	body, _ := ioutil.ReadAll(resp.Body)
-	logging.CLog().Println("response Body:", string(body))
+	//body, _ := ioutil.ReadAll(resp.Body)
+	//logging.CLog().Println("response Body:", string(body))
 
 	return nil
 }

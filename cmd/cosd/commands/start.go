@@ -3,10 +3,9 @@ package commands
 import (
 	"fmt"
 	"github.com/coschain/cobra"
+	ctrl "github.com/coschain/contentos-go/app"
 	"github.com/coschain/contentos-go/app/plugins"
 	"github.com/coschain/contentos-go/common"
-	ctrl "github.com/coschain/contentos-go/app"
-	"github.com/coschain/contentos-go/common/logging"
 	"github.com/coschain/contentos-go/common/pprof"
 	"github.com/coschain/contentos-go/config"
 	"github.com/coschain/contentos-go/consensus"
@@ -72,7 +71,7 @@ func startNode(cmd *cobra.Command, args []string) {
 	// _ is cfg as below process has't used
 	_, _ = cmd, args
 	app, cfg := makeNode()
-	logging.Init(cfg.ResolvePath("logs"), logging.DebugLevel, 0)
+	app.Log = mylog.Init(cfg.ResolvePath("logs"), mylog.DebugLevel, 0)
 
 	pprof.StartPprof()
 
@@ -88,18 +87,18 @@ func startNode(cmd *cobra.Command, args []string) {
 		signal.Notify(sigc, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT, SIGSTOP, syscall.SIGUSR1, syscall.SIGUSR2)
 		for {
 			s := <-sigc
-			logging.CLog().Infof("get a signal %s", s.String())
+			app.Log.Infof("get a signal %s", s.String())
 			switch s {
 			case syscall.SIGQUIT, syscall.SIGTERM, SIGSTOP, syscall.SIGINT:
-				logging.CLog().Infoln("Got interrupt, shutting down...")
+				app.Log.Infoln("Got interrupt, shutting down...")
 				app.MainLoop.Stop()
 				return
 			case syscall.SIGHUP:
-				logging.CLog().Info("syscall.SIGHUP custom operation")
+				app.Log.Info("syscall.SIGHUP custom operation")
 			case syscall.SIGUSR1:
-				logging.CLog().Info("syscall.SIGUSR1 custom operation")
+				app.Log.Info("syscall.SIGUSR1 custom operation")
 			case syscall.SIGUSR2:
-				logging.CLog().Info("syscall.SIGUSR2 custom operation")
+				app.Log.Info("syscall.SIGUSR2 custom operation")
 			default:
 				return
 			}
@@ -108,7 +107,7 @@ func startNode(cmd *cobra.Command, args []string) {
 
 	app.Wait()
 	app.Stop()
-	logging.CLog().Info("app exit success")
+	app.Log.Info("app exit success")
 }
 
 func RegisterService(app *node.Node, cfg node.Config) {

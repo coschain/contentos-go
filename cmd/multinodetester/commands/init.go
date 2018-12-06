@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/coschain/cobra"
 	"github.com/coschain/contentos-go/common/constants"
-	"github.com/coschain/contentos-go/common/logging"
 	"github.com/coschain/contentos-go/config"
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/prototype"
@@ -36,13 +35,9 @@ func addConf(confdir string, cfg node.Config, index int) {
 		}
 	}
 
-	logging.CLog()
+	//logging.CLog()
 	cfg.GRPC.RPCListen = fmt.Sprintf("127.0.0.1:%d", 8888+index)
 	cfg.GRPC.HTTPListen = fmt.Sprintf("127.0.0.1:%d", 8080+index)
-
-	//cfg.P2PPort = p2pPortStart + index*2 + 0
-	//cfg.P2PPortConsensus = p2pPortStart + index*2 + 1
-	//cfg.P2PSeeds = seeds
 
 	cfg.P2P.NodePort = uint(p2pPortStart + index*2 + 0)
 	cfg.P2P.NodeConsensusPort = uint(p2pPortStart + index*2 + 1)

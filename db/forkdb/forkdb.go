@@ -2,11 +2,13 @@ package forkdb
 
 import (
 	"fmt"
+	"github.com/coschain/contentos-go/iservices"
+	"github.com/coschain/contentos-go/node"
+	"github.com/sirupsen/logrus"
 	"os"
 	"sync"
 
 	"github.com/coschain/contentos-go/common"
-	"github.com/coschain/contentos-go/common/logging"
 	"github.com/coschain/contentos-go/db/blocklog"
 )
 
@@ -27,16 +29,31 @@ type DB struct {
 
 	snapshot blocklog.BLog
 	sync.RWMutex
+	log *logrus.Logger
 }
 
 // NewDB ...
-func NewDB() *DB {
+func NewDB(ctx *node.ServiceContext) *DB {
 	// TODO: purge the detachedLink
-	return &DB{
-		list:         make([][]common.BlockID, defaultSize+1),
-		branches:     make(map[common.BlockID]common.ISignedBlock),
-		detachedLink: make(map[common.BlockID]common.ISignedBlock),
-		//detached:     make(map[common.BlockID]common.ISignedBlock),
+	if ctx == nil {
+		return &DB{
+			list:         make([][]common.BlockID, defaultSize+1),
+			branches:     make(map[common.BlockID]common.ISignedBlock),
+			detachedLink: make(map[common.BlockID]common.ISignedBlock),
+			//detached:     make(map[common.BlockID]common.ISignedBlock),
+		}
+	} else {
+		log, err := ctx.Service(iservices.LogServerName)
+		if err != nil {
+			return nil
+		}
+		return &DB{
+			list:         make([][]common.BlockID, defaultSize+1),
+			branches:     make(map[common.BlockID]common.ISignedBlock),
+			detachedLink: make(map[common.BlockID]common.ISignedBlock),
+			//detached:     make(map[common.BlockID]common.ISignedBlock),
+			log:          log.(iservices.ILog).GetLog(),
+		}
 	}
 }
 
@@ -62,7 +79,7 @@ func (db *DB) Snapshot(dir string) {
 		}
 		start++
 	}
-	logging.CLog().Debugf("[ForkDB][Snapshot] %d blocks stored.", end-db.start+1)
+	db.log.Debugf("[ForkDB][Snapshot] %d blocks stored.", end-db.start+1)
 }
 
 // LoadSnapshot...
@@ -88,8 +105,8 @@ func (db *DB) LoadSnapshot(avatar []common.ISignedBlock, dir string) {
 	db.detachedLink = make(map[common.BlockID]common.ISignedBlock)
 
 	size := db.snapshot.Size()
-	logging.CLog().Info("DPoS Loading ForkDB snapshot...")
-	logging.CLog().Debugf("[ForkDB][LoadSnapshot] %d blocks detected.", size)
+	db.log.Info("DPoS Loading ForkDB snapshot...")
+	db.log.Debugf("[ForkDB][LoadSnapshot] %d blocks detected.", size)
 	var i int64
 	for i = 0; i < size; i++ {
 		if err := db.snapshot.ReadBlock(avatar[i], i); err != nil {
@@ -99,11 +116,11 @@ func (db *DB) LoadSnapshot(avatar []common.ISignedBlock, dir string) {
 			// TODO: it's gonna be a problem if the node never committed any block
 			db.lastCommitted = avatar[i].Id()
 		}
-		//logging.CLog().Debug("loading block #", avatar[i].Id().BlockNum())
+		//db.log.Debug("loading block #", avatar[i].Id().BlockNum())
 		db.pushBlock(avatar[i])
-		//logging.CLog().Debugf("[ForkDB][LoadSnapshot] restore #%d, id %v, prev %d", avatar[i].Id().BlockNum(), avatar[i].Id(), avatar[i].Previous())
+		//db.log.Debugf("[ForkDB][LoadSnapshot] restore #%d, id %v, prev %d", avatar[i].Id().BlockNum(), avatar[i].Id(), avatar[i].Previous())
 	}
-	logging.CLog().Debugf("[ForkDB][LoadSnapshot] %d blocks loaded.", size)
+	db.log.Debugf("[ForkDB][LoadSnapshot] %d blocks loaded.", size)
 }
 
 // LastCommitted...
