@@ -56,12 +56,18 @@ func (d *DPoS) DandelionDposStart() {
 	go d.start(snapshotPath)
 }
 
-func (d *DPoS) DandelionDposGenerateBlock() error {
-	b, err := d.generateAndApplyBlock()
+func (d *DPoS) DandelionDposGenerateBlock(timestamp uint64) error {
+	prev := &prototype.Sha256{}
+	if !d.ForkDB.Empty() {
+		prev.FromBlockID(d.ForkDB.Head().Id())
+	} else {
+		prev.Hash = make([]byte, 32)
+	}
+	b, err := d.ctrl.GenerateAndApplyBlock(d.Name, prev, uint32(timestamp), d.privKey, prototype.Skip_nothing)
 	if err != nil {
 		return err
 	}
-	err = d.pushBlock(b, false)
+	err = d.pushBlock(b, true)
 	if err != nil {
 		return err
 	}

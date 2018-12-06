@@ -293,7 +293,7 @@ func (c *Controller) GenerateBlock(witness string, pre *prototype.Sha256, timest
 		c.skip = oldSkip
 		if err := recover(); err != nil {
 			//mustNoError(c.db.EndTransaction(false), "EndTransaction error")
-			c.log.GetLog().Errorf("GenerateBlock Error: %v", err)
+			//c.log.GetLog().Errorf("GenerateBlock Error: %v", err)
 			panic(err)
 		}
 	}()
@@ -362,7 +362,7 @@ func (c *Controller) GenerateBlock(witness string, pre *prototype.Sha256, timest
 		}()
 	}
 	if postponeTrx > 0 {
-		c.log.GetLog().Warnf("postponed %d trx due to max block size", postponeTrx)
+		//c.log.GetLog().Warnf("postponed %d trx due to max block size", postponeTrx)
 	}
 
 	signBlock.SignedHeader.Header.Previous = pre
@@ -940,7 +940,7 @@ func (c *Controller) GetWitnessTopN(n uint32) []string {
 				ret = append(ret, mainPtr.Value)
 			} else {
 				// panic() ?
-				c.log.GetLog().Warnf("reverse get witness meet nil value")
+				//c.log.GetLog().Warnf("reverse get witness meet nil value")
 			}
 			i++
 		}
@@ -996,7 +996,7 @@ func (c *Controller) PopBlockTo(num uint32) {
 func (c *Controller) Commit(num uint32) {
 	// this block can not be revert over, so it's irreversible
 	rev := c.getReversion(num)
-	c.log.GetLog().Debug("### Commit, tag:", num, " rev:", rev)
+	//c.log.GetLog().Debug("### Commit, tag:", num, " rev:", rev)
 	//c.log.GetLog().Debug("$$$ dump reversion array:",c.numToRev)
 	mustNoError(c.db.RebaseToRevision(rev), fmt.Sprintf("RebaseToRevision: tag:%d, reversion:%d", num, rev))
 }

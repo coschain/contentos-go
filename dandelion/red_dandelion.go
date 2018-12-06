@@ -23,12 +23,13 @@ const (
 type RedDandelion struct {
 	*consensus.DPoS
 	*app.Controller
-	path     string
-	db       *storage.DatabaseService
-	witness  string
-	privKey  *prototype.PrivateKeyType
-	produced uint32
-	logger   iservices.ILog
+	path      string
+	db        *storage.DatabaseService
+	witness   string
+	privKey   *prototype.PrivateKeyType
+	produced  uint32
+	timestamp uint64
+	logger    iservices.ILog
 }
 
 func NewRedDandelion() (*RedDandelion, error) {
@@ -47,7 +48,7 @@ func NewRedDandelion() (*RedDandelion, error) {
 		log.GetLog().Error(err)
 		return nil, err
 	}
-	return &RedDandelion{path: dbPath, db: db, witness: "initminer", privKey: privKey, logger: log}, nil
+	return &RedDandelion{path: dbPath, db: db, witness: "initminer", privKey: privKey, logger: log, timestamp: 3}, nil
 }
 
 func (d *RedDandelion) OpenDatabase() error {
@@ -81,11 +82,12 @@ func (d *RedDandelion) OpenDatabase() error {
 }
 
 func (d *RedDandelion) GenerateBlock() {
-	err := d.DPoS.DandelionDposGenerateBlock()
+	err := d.DPoS.DandelionDposGenerateBlock(d.timestamp)
 	if err != nil {
 		d.logger.GetLog().Error("error:", err)
 	}
 	d.produced += 1
+	d.timestamp += constants.BLOCK_INTERVAL
 }
 
 func (d *RedDandelion) GenerateBlocks(count uint32) {
