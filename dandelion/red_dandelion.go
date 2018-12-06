@@ -120,6 +120,37 @@ func (d *RedDandelion) CreateAccount(name string) error {
 	return nil
 }
 
+func (d *RedDandelion) Transfer(from, to string, amount uint64, memo string) error {
+	defaultPrivKey, err := prototype.GenerateNewKeyFromBytes([]byte(initPrivKey))
+	if err != nil {
+		d.logger.GetLog().Error("error:", err)
+		return err
+	}
+	top := &prototype.TransferOperation{
+		From:   &prototype.AccountName{Value: from},
+		To:     &prototype.AccountName{Value: to},
+		Amount: prototype.NewCoin(amount),
+		Memo:   memo,
+	}
+	var signTx *prototype.SignedTransaction
+	if from == "initminer" {
+		signTx, err = d.Sign(d.privKey.ToWIF(), top)
+	} else {
+		signTx, err = d.Sign(defaultPrivKey.ToWIF(), top)
+	}
+	if err != nil {
+		d.logger.GetLog().Error("error:", err)
+		return err
+	}
+	d.PushTrx(signTx)
+	d.GenerateBlock()
+	return nil
+}
+
+func (d *RedDandelion) Fund(name string, amount uint64) error {
+	return d.Transfer("initminer", name, amount, "")
+}
+
 func (d *RedDandelion) GetAccount(name string) *table.SoAccountWrap {
 	accWrap := table.NewSoAccountWrap(d.db, &prototype.AccountName{Value: name})
 	if !accWrap.CheckExist() {
