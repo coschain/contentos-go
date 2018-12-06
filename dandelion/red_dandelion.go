@@ -115,7 +115,7 @@ func (d *RedDandelion) CreateAccount(name string) error {
 		d.logger.GetLog().Error("error:", err)
 		return err
 	}
-	d.PushTrx(signTx)
+	d.DPoS.PushTransaction(signTx, true, true)
 	d.GenerateBlock()
 	return nil
 }
@@ -142,7 +142,7 @@ func (d *RedDandelion) Transfer(from, to string, amount uint64, memo string) err
 		d.logger.GetLog().Error("error:", err)
 		return err
 	}
-	d.PushTrx(signTx)
+	d.DPoS.PushTransaction(signTx, true, true)
 	d.GenerateBlock()
 	return nil
 }
