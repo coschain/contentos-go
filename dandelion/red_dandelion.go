@@ -3,16 +3,20 @@ package dandelion
 import (
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app"
+	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/consensus"
 	"github.com/coschain/contentos-go/db/storage"
+	"github.com/coschain/contentos-go/iservices"
+	"github.com/coschain/contentos-go/mylog"
 	"github.com/coschain/contentos-go/prototype"
-	"github.com/inconshreveable/log15"
 )
 
 const (
-	blogPath = "/tmp/blog"
+	blogPath     = "/tmp/blog"
+	logPath      = "/tmp/log"
+	snapshotPath = "/tmp/snapshot"
 )
 
 // for dpos
@@ -23,19 +27,23 @@ type RedDandelion struct {
 	db      *storage.DatabaseService
 	witness string
 	privKey *prototype.PrivateKeyType
-	logger  log15.Logger
+	logger  iservices.ILog
 }
 
 func NewRedDandelion() (*RedDandelion, error) {
 	db, err := storage.NewDatabase(dbPath)
-	log := log15.New()
+	log, err := mylog.NewMyLog(logPath, "info", 0)
 	if err != nil {
-		log.Error("error:", err)
+		log.GetLog().Error(err)
+		return nil, err
+	}
+	if err != nil {
+		log.GetLog().Error(err)
 		return nil, err
 	}
 	privKey, err := prototype.PrivateKeyFromWIF(constants.INITMINER_PRIKEY)
 	if err != nil {
-		log.Error("error:", err)
+		log.GetLog().Error(err)
 		return nil, err
 	}
 	return &RedDandelion{path: dbPath, db: db, witness: "initminer", privKey: privKey, logger: log}, nil
@@ -44,12 +52,12 @@ func NewRedDandelion() (*RedDandelion, error) {
 func (d *RedDandelion) OpenDatabase() error {
 	err := d.db.Start(nil)
 	if err != nil {
-		d.logger.Error("open database error")
+		d.logger.GetLog().Error("open database error")
 		return err
 	}
 	c, err := app.NewController(nil)
 	if err != nil {
-		d.logger.Error("create new controller failed")
+		d.logger.GetLog().Error("create new controller failed")
 		return err
 	}
 	c.SetDB(d.db)
@@ -61,10 +69,11 @@ func (d *RedDandelion) OpenDatabase() error {
 	dpos.DandelionDposSetController(c)
 	dpos.DandelionDposSetP2P(p2p)
 	dpos.DandelionDposOpenBlog(blogPath)
-	err = dpos.Start(nil)
+	dpos.DandelionDposSetLog(d.logger)
+	dpos.DandelionDposStart()
 	d.DPoS = dpos
 	if err != nil {
-		d.logger.Error("dpos start error")
+		d.logger.GetLog().Error("dpos start error")
 		return err
 	}
 	return nil
@@ -72,7 +81,51 @@ func (d *RedDandelion) OpenDatabase() error {
 
 func (d *RedDandelion) GenerateBlock() {
 	err := d.DPoS.DandelionDposGenerateBlock()
-	d.logger.Error("error:", err)
+	if err != nil {
+		d.logger.GetLog().Error("error:", err)
+	}
+}
+
+func (d *RedDandelion) CreateAccount(name string) error {
+	defaultPrivKey, err := prototype.GenerateNewKeyFromBytes([]byte(initPrivKey))
+	if err != nil {
+		d.logger.GetLog().Error("error:", err)
+		return err
+	}
+	defaultPubKey, err := defaultPrivKey.PubKey()
+	if err != nil {
+		d.logger.GetLog().Error("error:", err)
+		return err
+	}
+
+	keys := prototype.NewAuthorityFromPubKey(defaultPubKey)
+
+	// create account with default pub key
+	acop := &prototype.AccountCreateOperation{
+		Fee:            prototype.NewCoin(1),
+		Creator:        &prototype.AccountName{Value: "initminer"},
+		NewAccountName: &prototype.AccountName{Value: name},
+		Owner:          keys,
+		Posting:        keys,
+		Active:         keys,
+	}
+	// use initminer's priv key sign
+	signTx, err := d.Sign(d.privKey.ToWIF(), acop)
+	if err != nil {
+		d.logger.GetLog().Error("error:", err)
+		return err
+	}
+	d.PushTrx(signTx)
+	d.GenerateBlock()
+	return nil
+}
+
+func (d *RedDandelion) GetAccount(name string) *table.SoAccountWrap {
+	accWrap := table.NewSoAccountWrap(d.db, &prototype.AccountName{Value: name})
+	if !accWrap.CheckExist() {
+		return nil
+	}
+	return accWrap
 }
 
 func (d *RedDandelion) Sign(privKeyStr string, ops ...interface{}) (*prototype.SignedTransaction, error) {
@@ -80,7 +133,7 @@ func (d *RedDandelion) Sign(privKeyStr string, ops ...interface{}) (*prototype.S
 	if err != nil {
 		return nil, err
 	}
-	props := d.GetProps()
+	props := d.Controller.GetProps()
 	tx := &prototype.Transaction{RefBlockNum: 0, RefBlockPrefix: 0, Expiration: &prototype.TimePointSec{UtcSeconds: props.GetTime().UtcSeconds + constants.TRX_MAX_EXPIRATION_TIME}}
 	headBlockID := props.GetHeadBlockId()
 	id := &common.BlockID{}
@@ -93,19 +146,21 @@ func (d *RedDandelion) Sign(privKeyStr string, ops ...interface{}) (*prototype.S
 	res := signTx.Sign(privKey, prototype.ChainId{Value: 0})
 	signTx.Signatures = append(signTx.Signatures, &prototype.SignatureType{Sig: res})
 	if err := signTx.Validate(); err != nil {
-		d.logger.Error("error:", err)
+		d.logger.GetLog().Error("error:", err)
 		return nil, err
 	}
 	return &signTx, nil
 }
 
 func (d *RedDandelion) Clean() error {
-	d.DandelionDposStop()
-	err := d.db.Stop()
 	defer deletePath(d.path)
 	defer deletePath(blogPath)
+	defer deletePath(logPath)
+	defer deletePath(snapshotPath)
+	d.DandelionDposStop()
+	err := d.db.Stop()
 	if err != nil {
-		d.logger.Error("clean err", err)
+		d.logger.GetLog().Error("error:", err)
 		return err
 	}
 	return nil

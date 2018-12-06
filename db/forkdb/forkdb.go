@@ -52,7 +52,7 @@ func NewDB(ctx *node.ServiceContext) *DB {
 			branches:     make(map[common.BlockID]common.ISignedBlock),
 			detachedLink: make(map[common.BlockID]common.ISignedBlock),
 			//detached:     make(map[common.BlockID]common.ISignedBlock),
-			log:          log.(iservices.ILog).GetLog(),
+			log: log.(iservices.ILog).GetLog(),
 		}
 	}
 }
@@ -79,7 +79,7 @@ func (db *DB) Snapshot(dir string) {
 		}
 		start++
 	}
-	db.log.Debugf("[ForkDB][Snapshot] %d blocks stored.", end-db.start+1)
+	//db.log.Debugf("[ForkDB][Snapshot] %d blocks stored.", end-db.start+1)
 }
 
 // LoadSnapshot...
@@ -105,8 +105,8 @@ func (db *DB) LoadSnapshot(avatar []common.ISignedBlock, dir string) {
 	db.detachedLink = make(map[common.BlockID]common.ISignedBlock)
 
 	size := db.snapshot.Size()
-	db.log.Info("DPoS Loading ForkDB snapshot...")
-	db.log.Debugf("[ForkDB][LoadSnapshot] %d blocks detected.", size)
+	//db.log.Info("DPoS Loading ForkDB snapshot...")
+	//db.log.Debugf("[ForkDB][LoadSnapshot] %d blocks detected.", size)
 	var i int64
 	for i = 0; i < size; i++ {
 		if err := db.snapshot.ReadBlock(avatar[i], i); err != nil {
@@ -120,7 +120,7 @@ func (db *DB) LoadSnapshot(avatar []common.ISignedBlock, dir string) {
 		db.pushBlock(avatar[i])
 		//db.log.Debugf("[ForkDB][LoadSnapshot] restore #%d, id %v, prev %d", avatar[i].Id().BlockNum(), avatar[i].Id(), avatar[i].Previous())
 	}
-	db.log.Debugf("[ForkDB][LoadSnapshot] %d blocks loaded.", size)
+	//db.log.Debugf("[ForkDB][LoadSnapshot] %d blocks loaded.", size)
 }
 
 // LastCommitted...

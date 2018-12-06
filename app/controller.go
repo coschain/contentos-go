@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	SingleId            int32  = 1
+	SingleId int32 = 1
 )
 
 type Controller struct {
@@ -99,10 +99,10 @@ func (c *Controller) Open() {
 
 		mustNoError(c.db.DeleteAll(), "truncate database error")
 
-		c.log.GetLog().Info("start initGenesis")
+		//c.log.GetLog().Info("start initGenesis")
 		c.initGenesis()
 		c.saveReversion(0)
-		c.log.GetLog().Info("finish initGenesis")
+		//c.log.GetLog().Info("finish initGenesis")
 	}
 }
 
@@ -134,7 +134,7 @@ func (c *Controller) PushTrx(trx *prototype.SignedTransaction) (invoice *prototy
 	defer func() {
 		if err := recover(); err != nil {
 			invoice = &prototype.TransactionInvoice{Status: uint32(500)}
-			c.log.GetLog().Errorf("PushTrx Error: %v", err)
+			//c.log.GetLog().Errorf("PushTrx Error: %v", err)
 		}
 		c.setProducing(false)
 		c.skip = oldSkip
@@ -197,16 +197,16 @@ func (c *Controller) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFl
 			switch x := r.(type) {
 			case error:
 				err = x
-				c.log.GetLog().Errorf("push block error : %v", x.Error())
+				//c.log.GetLog().Errorf("push block error : %v", x.Error())
 			case string:
 				err = errors.New(x)
-				c.log.GetLog().Errorf("push block error : %v ", x)
+				//c.log.GetLog().Errorf("push block error : %v ", x)
 			default:
 				err = errors.New("unknown panic type")
 			}
 			// undo changes
 			c.db.EndTransaction(false)
-			if skip & prototype.Skip_apply_transaction != 0 {
+			if skip&prototype.Skip_apply_transaction != 0 {
 				c.havePendingTransaction = false
 			}
 		}
@@ -215,17 +215,16 @@ func (c *Controller) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFl
 		c.restorePending(tmpPending)
 	}()
 
-	if skip & prototype.Skip_apply_transaction == 0 {
+	if skip&prototype.Skip_apply_transaction == 0 {
 		c.db.BeginTransaction()
 		c.applyBlock(blk, skip)
-		mustNoError(c.db.EndTransaction(true),"EndTransaction error")
+		mustNoError(c.db.EndTransaction(true), "EndTransaction error")
 	} else {
 		// we have do a BeginTransaction at GenerateBlock
 		c.applyBlock(blk, skip)
-		mustNoError(c.db.EndTransaction(true),"EndTransaction error")
+		mustNoError(c.db.EndTransaction(true), "EndTransaction error")
 		c.havePendingTransaction = false
 	}
-
 
 	blockNum := blk.Id().BlockNum()
 	c.saveReversion(uint32(blockNum))
@@ -275,16 +274,16 @@ func emptyHeader(signHeader *prototype.SignedBlockHeader) {
 }
 
 func (c *Controller) GenerateAndApplyBlock(witness string, pre *prototype.Sha256, timestamp uint32,
-	priKey *prototype.PrivateKeyType, skip prototype.SkipFlag) (*prototype.SignedBlock,error) {
+	priKey *prototype.PrivateKeyType, skip prototype.SkipFlag) (*prototype.SignedBlock, error) {
 
-	newBlock := c.GenerateBlock(witness,pre,timestamp,priKey,skip)
+	newBlock := c.GenerateBlock(witness, pre, timestamp, priKey, skip)
 
-	err := c.PushBlock(newBlock,c.skip | prototype.Skip_apply_transaction)
+	err := c.PushBlock(newBlock, c.skip|prototype.Skip_apply_transaction)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 
-	return newBlock,nil
+	return newBlock, nil
 }
 
 func (c *Controller) GenerateBlock(witness string, pre *prototype.Sha256, timestamp uint32,
@@ -496,7 +495,7 @@ func (c *Controller) applyTransactionInner(trxWrp *prototype.TransactionWrapper)
 			mustSuccess(trx.Trx.RefBlockPrefix == summaryId, "transaction tapos failed")
 		}
 
-		now := c.GetProps().Time;
+		now := c.GetProps().Time
 		// get head time
 		mustSuccess(trx.Trx.Expiration.UtcSeconds <= uint32(now.UtcSeconds+constants.TRX_MAX_EXPIRATION_TIME), "transaction expiration too long")
 		mustSuccess(now.UtcSeconds < trx.Trx.Expiration.UtcSeconds, "transaction has expired")
@@ -971,7 +970,7 @@ func (c *Controller) saveReversion(num uint32) {
 	tag := strconv.FormatUint(uint64(num), 10)
 	currentRev := c.db.GetRevision()
 	mustNoError(c.db.TagRevision(currentRev, tag), fmt.Sprintf("TagRevision:  tag:%d, reversion%d", num, currentRev))
-	c.log.GetLog().Debug("### saveReversion, num:", num, " rev:", currentRev)
+	//c.log.GetLog().Debug("### saveReversion, num:", num, " rev:", currentRev)
 }
 
 func (c *Controller) getReversion(num uint32) uint64 {

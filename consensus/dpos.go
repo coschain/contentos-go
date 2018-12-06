@@ -148,8 +148,8 @@ func (d *DPoS) Start(node *node.Node) error {
 	d.p2p = p2p.(iservices.IP2P)
 	cfg := d.ctx.Config()
 	d.blog.Open(cfg.ResolvePath("blog"))
-
-	go d.start()
+	forkdbPath := cfg.ResolvePath("forkdb_snapshot")
+	go d.start(forkdbPath)
 	return nil
 }
 
@@ -182,7 +182,7 @@ func (d *DPoS) scheduleProduce() bool {
 	return true
 }
 
-func (d *DPoS) start() {
+func (d *DPoS) start(snapshotPath string) {
 	d.wg.Add(1)
 	defer d.wg.Done()
 	time.Sleep(4 * time.Second)
@@ -194,8 +194,9 @@ func (d *DPoS) start() {
 		// deep copy hell
 		avatar = append(avatar, &prototype.SignedBlock{})
 	}
-	cfg := d.ctx.Config()
-	d.ForkDB.LoadSnapshot(avatar, cfg.ResolvePath("forkdb_snapshot"))
+	//cfg := d.ctx.Config()
+	//d.ForkDB.LoadSnapshot(avatar, cfg.ResolvePath("forkdb_snapshot"))
+	d.ForkDB.LoadSnapshot(avatar, snapshotPath)
 
 	if d.bootstrap && d.ForkDB.Empty() && d.blog.Empty() {
 		d.log.GetLog().Info("[DPoS] bootstrapping...")
@@ -251,8 +252,13 @@ func (d *DPoS) Stop() error {
 	d.log.GetLog().Info("DPoS consensus stopped.")
 	// restore uncommitted forkdb
 	cfg := d.ctx.Config()
-	d.ForkDB.Snapshot(cfg.ResolvePath("forkdb_snapshot"))
+	snapshotPath := cfg.ResolvePath("forkdb_snapshot")
+	return d.stop(snapshotPath)
+}
 
+func (d *DPoS) stop(snapshotPath string) error {
+	d.ForkDB.Snapshot(snapshotPath)
+	d.prodTimer.Stop()
 	close(d.stopCh)
 	d.wg.Wait()
 	return nil

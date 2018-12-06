@@ -6,6 +6,11 @@ import (
 	"github.com/coschain/contentos-go/db/forkdb"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
+	"time"
+)
+
+const (
+	snapshotPath = "/tmp/snapshot"
 )
 
 func NewDandelionDpos() *DPoS {
@@ -19,6 +24,7 @@ func NewDandelionDpos() *DPoS {
 		Producers:      []string{"initminer"},
 		bootstrap:      true,
 		readyToProduce: true,
+		prodTimer:      time.NewTimer(86400 * time.Second),
 		privKey:        privKey,
 		trxCh:          make(chan func()),
 		blkCh:          make(chan common.ISignedBlock),
@@ -35,12 +41,19 @@ func (d *DPoS) DandelionDposSetP2P(p2p iservices.IP2P) {
 	d.p2p = p2p
 }
 
+func (d *DPoS) DandelionDposSetLog(log iservices.ILog) {
+	d.log = log
+}
+
 func (d *DPoS) DandelionDposOpenBlog(path string) {
 	err := d.blog.Open(path)
 	if err != nil {
 		panic(err)
 	}
+}
 
+func (d *DPoS) DandelionDposStart() {
+	go d.start(snapshotPath)
 }
 
 func (d *DPoS) DandelionDposGenerateBlock() error {
@@ -57,6 +70,5 @@ func (d *DPoS) DandelionDposGenerateBlock() error {
 }
 
 func (d *DPoS) DandelionDposStop() {
-	close(d.stopCh)
-	d.wg.Wait()
+	d.stop(snapshotPath)
 }

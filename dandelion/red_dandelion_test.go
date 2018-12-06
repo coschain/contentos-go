@@ -1,12 +1,13 @@
 package dandelion
 
 import (
-	"github.com/coschain/contentos-go/prototype"
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
 func TestRedDandelion_CreateAccount(t *testing.T) {
 	dandelion, err := NewRedDandelion()
+	myassert := assert.New(t)
 	if err != nil {
 		t.Error(err)
 	}
@@ -14,40 +15,20 @@ func TestRedDandelion_CreateAccount(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	defaultPrivKey, err := prototype.GenerateNewKeyFromBytes([]byte(initPrivKey))
-	if err != nil {
-		t.Error(err)
-	}
-	defaultPubKey, err := defaultPrivKey.PubKey()
-	if err != nil {
-		t.Error(err)
-	}
 
-	keys := prototype.NewAuthorityFromPubKey(defaultPubKey)
-
-	// create account with default pub key
-	acop := &prototype.AccountCreateOperation{
-		Fee:            prototype.NewCoin(1),
-		Creator:        &prototype.AccountName{Value: "initminer"},
-		NewAccountName: &prototype.AccountName{Value: "kochiya"},
-		Owner:          keys,
-		Posting:        keys,
-		Active:         keys,
-	}
-	// use initminer's priv key sign
-	signTx, err := dandelion.Sign(defaultPrivKey.ToWIF(), acop)
-	if err != nil {
-		t.Error(err)
-	}
-	dandelion.PushTrx(signTx)
-	dandelion.GenerateBlock()
-	if err != nil {
-		t.Error(err)
-	}
 	defer func() {
 		err := dandelion.Clean()
 		if err != nil {
 			t.Error(err)
 		}
 	}()
+
+	err = dandelion.CreateAccount("kochiya")
+	if err != nil {
+		t.Error(err)
+	}
+
+	acc := dandelion.GetAccount("kochiya")
+	myassert.NotNil(acc)
+	myassert.Equal(acc.GetName().Value, "kochiya")
 }
