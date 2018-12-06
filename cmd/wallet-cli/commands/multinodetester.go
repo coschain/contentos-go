@@ -26,7 +26,7 @@ func makeMultiNodeTeseterTrx(count int64, onlyCreate bool) (*prototype.SignedTra
 
 	priKeys := make([]*prototype.PrivateKeyType, 0)
 
-	tx := &prototype.Transaction{RefBlockNum: 0, RefBlockPrefix: 0, Expiration: &prototype.TimePointSec{UtcSeconds: uint32(time.Now().Unix()) + constants.TRX_MAX_EXPIRATION_TIME}}
+	tx := &prototype.Transaction{RefBlockNum: 0, RefBlockPrefix: 0, Expiration: &prototype.TimePointSec{UtcSeconds: uint32(time.Now().Unix()) + 30}}
 	trx := &prototype.SignedTransaction{Trx: tx}
 
 	creator := prototype.NewAccountName(constants.INIT_MINER_NAME)
