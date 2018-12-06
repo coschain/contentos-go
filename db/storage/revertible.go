@@ -294,6 +294,7 @@ func (b *revdbBatch) Write() error {
 	batch := b.db.db.NewBatch()
 	var reverts []writeOp
 
+	b.shrink()
 	for _, op := range b.op {
 		oldValue, err := b.db.db.Get(op.Key)
 		if op.Del && err == nil {
@@ -344,6 +345,39 @@ func (b *revdbBatch) Delete(key []byte) error {
 	b.op = append(b.op, writeOp{common.CopyBytes(key), nil, true})
 	return nil
 }
+
+// shrink removes redundant PUT operations
+func (b *revdbBatch) shrink() {
+	skip := make([]bool, len(b.op))
+	putOps := make(map[string][]int)
+	changed := false
+	for i, op := range b.op {
+		sk := string(op.Key)
+		skip[i] = false
+		if op.Del {
+			if rPuts := putOps[sk]; len(rPuts) > 0 {
+				for _, j := range rPuts {
+					skip[j] = true
+				}
+				putOps[sk] = rPuts[:0]
+				changed = true
+			}
+		} else {
+			putOps[sk] = append(putOps[sk], i)
+		}
+	}
+	if changed {
+		newOps := make([]writeOp, 0, len(b.op))
+		for i, op := range b.op {
+			if skip[i] {
+				continue
+			}
+			newOps = append(newOps, op)
+		}
+		b.op = newOps
+	}
+}
+
 
 //
 // tagging

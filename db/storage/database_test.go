@@ -409,6 +409,12 @@ func doTestRevertFeature(t *testing.T, db TagRevDatabase) {
 	requireSuccessGet(t, db, []byte("key_two"), []byte("value_two"))
 	requireErrorGet(t, db, []byte("key_three"))
 	requireSuccessGet(t, db, []byte("key_one"), []byte("value_one"))
+
+	b2 := db.NewBatch()
+	b2.Put([]byte("key_new"), []byte("value_new"))
+	b2.Delete([]byte("key_new"))
+	b2.Write()
+	requireErrorGet(t, db, []byte("key_new"))
 }
 
 func TestRevertibleDatabaseFeature(t *testing.T) {
