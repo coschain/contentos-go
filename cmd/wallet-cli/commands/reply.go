@@ -21,7 +21,7 @@ var ReplyCmd = func() *cobra.Command {
 		Args:    cobra.ExactArgs(3),
 		Run:     reply,
 	}
-	cmd.Flags().StringToIntVarP(&replyBeneficiaryRoute, "rbeneficiary", "b", map[string]int{},
+	cmd.Flags().StringToIntVarP(&replyBeneficiaryRoute, "beneficiary", "b", map[string]int{},
 		`reply --beneficiary="Alice=5,Bob=10"`)
 	return cmd
 }

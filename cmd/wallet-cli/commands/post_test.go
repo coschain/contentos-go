@@ -73,10 +73,13 @@ func TestPostWithBeneficiaries(t *testing.T) {
 	client.EXPECT().BroadcastTrx(gomock.Any(), gomock.Any()).Return(resp, nil).Do(func(context interface{}, req *grpcpb.BroadcastTrxRequest) {
 		op := req.Transaction.Trx.Operations[0]
 		post_op := op.GetOp6()
-		myassert.Equal(post_op.Beneficiaries[0].Name.Value, "Alice")
-		myassert.Equal(post_op.Beneficiaries[0].Weight, uint32(5))
-		myassert.Equal(post_op.Beneficiaries[1].Name.Value, "Bob")
-		myassert.Equal(post_op.Beneficiaries[1].Weight, uint32(5))
+		if post_op.Beneficiaries[0].Name.Value == "Alice" {
+			myassert.Equal(post_op.Beneficiaries[1].Name.Value, "Bob")
+			myassert.Equal(post_op.Beneficiaries[1].Weight, uint32(5))
+		} else {
+			myassert.Equal(post_op.Beneficiaries[1].Name.Value, "Alice")
+			myassert.Equal(post_op.Beneficiaries[1].Weight, uint32(5))
+		}
 	})
 	_, err := cmd.ExecuteC()
 	if err != nil {
