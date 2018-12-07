@@ -21,7 +21,7 @@ var PostCmd = func() *cobra.Command {
 		Args:    cobra.ExactArgs(4),
 		Run:     post,
 	}
-	cmd.Flags().StringToIntVarP(&postBeneficiaryRoute, "beneficiary", "b", map[string]int{},
+	cmd.Flags().StringToIntVarP(&postBeneficiaryRoute, "pbeneficiary", "b", map[string]int{},
 		`post --beneficiary="Alice=5,Bob=10"`)
 	return cmd
 }
