@@ -37,6 +37,10 @@ collect-cover-data:
 	fi\
 	;)
 
+test-cover:
+	@echo "cover html"
+	go tool cover -func=coverage-all.out
+
 test-cover-html:
 	@echo "cover html"
 	go tool cover -html=coverage-all.out -o coverage.html
