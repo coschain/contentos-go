@@ -15,7 +15,7 @@ var bCnt = 1000
 var trxCnt = 100
 
 func BenchmarkGenerateBlock(b *testing.B)  {
-	os.Remove(fPath)
+	os.RemoveAll(fPath)
 	if sdb == nil {
 		tdb,err := NewLevelDatabase(fPath)
 		db = tdb
@@ -66,7 +66,7 @@ func BenchmarkPushBlock(b *testing.B) {
 	if sdb != nil && sdb.TransactionHeight() > 0 {
 		return
 	}
-	os.Remove(fPath)
+	os.RemoveAll(fPath)
     if sdb == nil {
     	 tdb,err := NewLevelDatabase(fPath)
     	 db = tdb
