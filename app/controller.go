@@ -69,6 +69,10 @@ func (c *Controller) SetBus(bus EventBus.Bus) {
 	c.noticer = bus
 }
 
+func (c *Controller) SetLog(log iservices.ILog) {
+	c.log = log
+}
+
 // service constructor
 func NewController(ctx *node.ServiceContext) (*Controller, error) {
 	return &Controller{ctx: ctx}, nil

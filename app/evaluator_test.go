@@ -8,6 +8,7 @@ import (
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/db/storage"
 	"github.com/coschain/contentos-go/iservices"
+	"github.com/coschain/contentos-go/mylog"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/stretchr/testify/assert"
 	"os"
@@ -17,6 +18,7 @@ import (
 
 const (
 	dbPath = "./pbTool.db"
+	logPath = "./logs"
 )
 
 func Test_ApplyAccountCreate(t *testing.T) {
@@ -392,6 +394,9 @@ func startController(db iservices.IDatabaseService) *Controller {
 	c, _ := NewController(nil)
 	c.SetDB(db)
 	c.SetBus(EventBus.New())
+	log,err := mylog.NewMyLog( logPath, mylog.DebugLevel, 0)
+	mustNoError(err,"new log error")
+	c.SetLog(log)
 	c.Open()
 	return c
 }
