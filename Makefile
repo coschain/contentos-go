@@ -1,7 +1,7 @@
-PACKAGES= github.com/coschain/contentos-go/cmd/wallet-cli/commands  \
-      github.com/coschain/contentos-go/cmd/wallet-cli/wallet \
-      github.com/coschain/contentos-go/dandelion \
-      github.com/coschain/contentos-go/economist
+PACKAGES= github.com/coschain/contentos-go/cmd/wallet-cli/commands \
+	github.com/coschain/contentos-go/cmd/wallet-cli/wallet \
+	github.com/coschain/contentos-go/dandelion \
+    github.com/coschain/contentos-go/economist
 
 COSD = github.com/coschain/contentos-go/cmd/cosd
 WALLET = github.com/coschain/contentos-go/cmd/wallet-cli
@@ -28,6 +28,8 @@ build_wallet:
 
 collect-cover-data:
 	@echo "collect cover data"
+	rm coverage-all.out
+	echo "mode: set" >> coverage-all.out
 	$(foreach pkg, $(PACKAGES),\
 	go test -coverprofile=coverage.out $(pkg) || exit $$?;\
 	if [ -fcoverage.out ]; then \
