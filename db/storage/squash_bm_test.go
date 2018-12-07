@@ -55,6 +55,7 @@ func makeBenchmarkSuite(revertible bool, dataPtr *sort.StringSlice, sortedDataPt
 		b.Run("reverse-iteration" + strconv.Itoa(bmIterRangeSize), makeIterationBenchmark(dbs, &sortedData, bmIterRangeSize, true))
 		b.Run("query", makeQueryBenchmark(dbs, &data))
 		b.Run("update", makeUpdateBenchmark(dbs, &data))
+		b.Run("insert", makeInsertBenchmark(dbs, &data))
 		b.Run("delete", makeDeleteBenchmark(dbs, &data))
 	}
 }
@@ -138,6 +139,18 @@ func makeUpdateBenchmark(dbs *dbService, dataPtr *sort.StringSlice) func(*testin
 		}
 	}
 }
+
+// benchmark maker for insertion
+func makeInsertBenchmark(dbs *dbService, dataPtr *sort.StringSlice) func(*testing.B) {
+	return func(b *testing.B) {
+		s := len(*dataPtr)
+		for i := 0; i < b.N; i++ {
+			k := []byte(fmt.Sprintf("%x", md5.Sum([]byte(strconv.Itoa(rand.Intn(100000000) + s)))))
+			dbs.db.Put(k, k)
+		}
+	}
+}
+
 
 // benchmark maker for deletion
 func makeDeleteBenchmark(dbs *dbService, dataPtr *sort.StringSlice) func(*testing.B) {
