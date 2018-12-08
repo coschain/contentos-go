@@ -21,6 +21,8 @@ message operation{
         transfer_to_vesting_operation op10 = 10;
         claim_operation op11 = 11;
         claim_all_operation op12 = 12;
+        contract_deploy_operation op13 = 13;
+        contract_apply_operation op14 = 14;
     }
 }
 

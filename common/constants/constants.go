@@ -64,4 +64,6 @@ const (
 	AUTHOR_REWARD = 7000
 	REPLY_REWARD  = 2000
 	BP_REWARD     = 1000
+
+	Contract_Construct = "construct"
 )

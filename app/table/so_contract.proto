@@ -1,0 +1,28 @@
+
+syntax = "proto3";
+
+package table;
+
+option go_package = "github.com/coschain/contentos-go/table";
+
+import "prototype/type.proto";
+
+message so_contract {
+	prototype.contract_id      id               =      1;
+    prototype.time_point_sec   created_time     =      2;
+    string                     abi              =      3;
+    prototype.coin             balance          =      4;
+    bytes                      code             =      5;
+      
+}
+
+
+message so_list_contract_by_created_time {
+	prototype.time_point_sec	created_time = 1;
+	prototype.contract_id   	id           = 2;
+}
+
+
+message so_unique_contract_by_id {
+	prototype.contract_id   	id           = 1;
+}

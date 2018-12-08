@@ -75,6 +75,19 @@ func validateOp(op *Operation) error {
 	if op.GetOp10() != nil {
 		return op.GetOp10().Validate()
 	}
+	// TODO @zengli
+	//if op.GetOp11() != nil {
+	//	return op.GetOp11().Validate()
+	//}
+	//if op.GetOp12() != nil {
+	//	return op.GetOp12().Validate()
+	//}
+	if op.GetOp13() != nil {
+		return op.GetOp13().Validate()
+	}
+	if op.GetOp14() != nil {
+		return op.GetOp14().Validate()
+	}
 
 	return errors.New("unknown op type")
 }
@@ -122,6 +135,22 @@ func (m *Transaction) AddOperation(op interface{}) {
 	case *TransferToVestingOperation:
 		ptr := op.(*TransferToVestingOperation)
 		res.Op = &Operation_Op10{Op10: ptr}
+		break
+	case *ClaimOperation:
+		ptr := op.(*ClaimOperation)
+		res.Op = &Operation_Op11{Op11: ptr}
+		break
+	case *ClaimAllOperation:
+		ptr := op.(*ClaimAllOperation)
+		res.Op = &Operation_Op12{Op12: ptr}
+		break
+	case *ContractDeployOperation:
+		ptr := op.(*ContractDeployOperation)
+		res.Op = &Operation_Op13{Op13: ptr}
+		break
+	case *ContractApplyOperation:
+		ptr := op.(*ContractApplyOperation)
+		res.Op = &Operation_Op14{Op14: ptr}
 		break
 	default:
 		panic(fmt.Sprintf("error op type %v", op))

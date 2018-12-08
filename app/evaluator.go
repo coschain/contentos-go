@@ -6,6 +6,7 @@ import (
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/prototype"
+	"github.com/coschain/contentos-go/vm"
 )
 
 func mustSuccess(b bool, val string) {
@@ -81,6 +82,18 @@ type ClaimAllEvaluator struct {
 	BaseEvaluator
 	ctx *ApplyContext
 	op  *prototype.ClaimAllOperation
+}
+
+type ContractDeployEvaluator struct {
+	BaseEvaluator
+	ctx *ApplyContext
+	op  *prototype.ContractDeployOperation
+}
+
+type ContractApplyEvaluator struct {
+	BaseEvaluator
+	ctx *ApplyContext
+	op  *prototype.ContractApplyOperation
 }
 
 func (ev *AccountCreateEvaluator) Apply() {
@@ -452,4 +465,43 @@ func (ev *ClaimAllEvaluator) Apply() {
 		opAssert(ok, "No remains reward on chain")
 	}
 
+}
+
+
+func (ev *ContractDeployEvaluator) Apply() {
+	op := ev.op
+
+	// TODO Check code and abi
+	// TODO Save code/abi to database
+
+	cid  := prototype.ContractId{ Owner:op.Owner, Cname:op.Contract }
+	scid := table.NewSoContractWrap( ev.ctx.db, &cid )
+
+	opAssert( !scid.CheckExist(), "contract name exist")
+
+	opAssertE( scid.Create(func(t *table.SoContract) {
+		t.Code = op.Code
+		t.Id   = &cid
+		t.CreatedTime = ev.ctx.control.HeadBlockTime()
+		t.Abi = op.Abi
+		t.Balance = prototype.NewCoin(0)
+	}), "create contract data error")
+
+	//vmCtx := vm.NewContextFromDeployOp(op)
+	//vmCtx.Run()
+}
+
+
+func (ev *ContractApplyEvaluator) Apply() {
+	op := ev.op
+
+	cid  := prototype.ContractId{ Owner:op.Owner, Cname:op.Contract }
+	scid := table.NewSoContractWrap( ev.ctx.db, &cid )
+	opAssert( scid.CheckExist(), "contract name exist")
+
+	// TODO Load code from database
+
+	code := scid.GetCode()
+	vmCtx := vm.NewContextFromApplyOp(op, code)
+	vmCtx.Run()
 }

@@ -126,6 +126,17 @@ message bp_witness_id{
     account_name    witness = 2;
 }
 
+message contract_id{
+    account_name    owner   = 1;
+    string    cname = 2;
+}
+
+message contract_data_id{
+    account_name    owner   = 1;
+    string  cname = 2;
+    int32   pos = 3;                // crc-value of data
+}
+
 message reply_created_order{
     uint64 parent_id = 1;
     prototype.time_point_sec created = 2;

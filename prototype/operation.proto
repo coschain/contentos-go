@@ -59,7 +59,22 @@ message follow_operation{
     bool cancel = 3;
 }
 
+message contract_deploy_operation{
+    account_name owner = 1;
+    string contract = 2;
+    string abi = 3;
+    bytes  code = 4;
+}
 
+message contract_apply_operation{
+    account_name from = 1;          // who apply this op
+    account_name owner = 2;         // who owner this contract
+    string contract = 3;            // contract name
+    string method = 4;              // call which method
+    repeated string params = 5;     // param list
+    coin   amount = 6;              // cos-coin send to the contract
+    coin   gas = 7;                 // max permit gas cost when apply
+}
 
 message post_operation{
     uint64 uuid             = 1;
