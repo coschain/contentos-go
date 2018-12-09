@@ -22,7 +22,7 @@ func mustNoError(err error, val string) {
 
 type ApplyContext struct {
 	db      iservices.IDatabaseService
-	control iservices.IController
+	control iservices.ITrxPool
 }
 
 type BaseEvaluator interface {

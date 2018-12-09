@@ -10,7 +10,7 @@ import (
 
 var ControlServerName = "ctrl"
 
-type IController interface {
+type ITrxPool interface {
 	PushTrx(trx *prototype.SignedTransaction) *prototype.TransactionInvoice
 	PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag) error
 	HeadBlockTime() *prototype.TimePointSec

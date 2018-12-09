@@ -20,8 +20,8 @@ var (
 	SingleId int32 = 1
 )
 
-type Controller struct {
-	iservices.IController
+type TrxPool struct {
+	iservices.ITrxPool
 	// lock for db write
 	// pending_trx_list
 	// DB Manager
@@ -42,7 +42,7 @@ type Controller struct {
 	havePendingTransaction bool
 }
 
-func (c *Controller) getDb() (iservices.IDatabaseService, error) {
+func (c *TrxPool) getDb() (iservices.IDatabaseService, error) {
 	s, err := c.ctx.Service(iservices.DbServerName)
 	if err != nil {
 		return nil, err
@@ -51,7 +51,7 @@ func (c *Controller) getDb() (iservices.IDatabaseService, error) {
 	return db, nil
 }
 
-func (c *Controller) getLog() (iservices.ILog, error) {
+func (c *TrxPool) getLog() (iservices.ILog, error) {
 	s, err := c.ctx.Service(iservices.LogServerName)
 	if err != nil {
 		return nil, err
@@ -61,24 +61,24 @@ func (c *Controller) getLog() (iservices.ILog, error) {
 }
 
 // for easy test
-func (c *Controller) SetDB(db iservices.IDatabaseService) {
+func (c *TrxPool) SetDB(db iservices.IDatabaseService) {
 	c.db = db
 }
 
-func (c *Controller) SetBus(bus EventBus.Bus) {
+func (c *TrxPool) SetBus(bus EventBus.Bus) {
 	c.noticer = bus
 }
 
-func (c *Controller) SetLog(log iservices.ILog) {
+func (c *TrxPool) SetLog(log iservices.ILog) {
 	c.log = log
 }
 
 // service constructor
-func NewController(ctx *node.ServiceContext) (*Controller, error) {
-	return &Controller{ctx: ctx}, nil
+func NewController(ctx *node.ServiceContext) (*TrxPool, error) {
+	return &TrxPool{ctx: ctx}, nil
 }
 
-func (c *Controller) Start(node *node.Node) error {
+func (c *TrxPool) Start(node *node.Node) error {
 	log, err := c.getLog()
 	if err != nil {
 		return err
@@ -97,7 +97,7 @@ func (c *Controller) Start(node *node.Node) error {
 	return nil
 }
 
-func (c *Controller) Open() {
+func (c *TrxPool) Open() {
 	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
 	if !dgpWrap.CheckExist() {
 
@@ -110,15 +110,15 @@ func (c *Controller) Open() {
 	}
 }
 
-func (c *Controller) Stop() error {
+func (c *TrxPool) Stop() error {
 	return nil
 }
 
-func (c *Controller) setProducing(b bool) {
+func (c *TrxPool) setProducing(b bool) {
 	c.isProducing = b
 }
 
-func (c *Controller) PushTrxToPending(trx *prototype.SignedTransaction) {
+func (c *TrxPool) PushTrxToPending(trx *prototype.SignedTransaction) {
 
 	if !c.havePendingTransaction {
 		c.db.BeginTransaction()
@@ -132,7 +132,7 @@ func (c *Controller) PushTrxToPending(trx *prototype.SignedTransaction) {
 	c.pendingTx = append(c.pendingTx, trxWrp)
 }
 
-func (c *Controller) PushTrx(trx *prototype.SignedTransaction) (invoice *prototype.TransactionInvoice) {
+func (c *TrxPool) PushTrx(trx *prototype.SignedTransaction) (invoice *prototype.TransactionInvoice) {
 	// this function may be cross routines ? use channel or lock ?
 	oldSkip := c.skip
 	defer func() {
@@ -151,12 +151,12 @@ func (c *Controller) PushTrx(trx *prototype.SignedTransaction) (invoice *prototy
 	return c.pushTrx(trx)
 }
 
-func (c *Controller) GetProps() *prototype.DynamicProperties {
+func (c *TrxPool) GetProps() *prototype.DynamicProperties {
 	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
 	return dgpWrap.GetProps()
 }
 
-func (c *Controller) pushTrx(trx *prototype.SignedTransaction) *prototype.TransactionInvoice {
+func (c *TrxPool) pushTrx(trx *prototype.SignedTransaction) *prototype.TransactionInvoice {
 	defer func() {
 		// undo sub session
 		if err := recover(); err != nil {
@@ -189,7 +189,7 @@ func (c *Controller) pushTrx(trx *prototype.SignedTransaction) *prototype.Transa
 	return trxWrp.Invoice
 }
 
-func (c *Controller) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag) error {
+func (c *TrxPool) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag) error {
 	var err error = nil
 	oldFlag := c.skip
 	c.skip = skip
@@ -235,7 +235,7 @@ func (c *Controller) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFl
 	return err
 }
 
-func (c *Controller) ClearPending() []*prototype.TransactionWrapper {
+func (c *TrxPool) ClearPending() []*prototype.TransactionWrapper {
 	// @
 	mustSuccess(len(c.pendingTx) == 0 || c.havePendingTransaction, "can not clear pending")
 	res := make([]*prototype.TransactionWrapper, len(c.pendingTx))
@@ -256,7 +256,7 @@ func (c *Controller) ClearPending() []*prototype.TransactionWrapper {
 	return res
 }
 
-func (c *Controller) restorePending(pending []*prototype.TransactionWrapper) {
+func (c *TrxPool) restorePending(pending []*prototype.TransactionWrapper) {
 	for _, tw := range pending {
 		id, err := tw.SigTrx.Id()
 		mustNoError(err, "get transaction id error")
@@ -277,7 +277,7 @@ func emptyHeader(signHeader *prototype.SignedBlockHeader) {
 	signHeader.WitnessSignature = &prototype.SignatureType{}
 }
 
-func (c *Controller) GenerateAndApplyBlock(witness string, pre *prototype.Sha256, timestamp uint32,
+func (c *TrxPool) GenerateAndApplyBlock(witness string, pre *prototype.Sha256, timestamp uint32,
 	priKey *prototype.PrivateKeyType, skip prototype.SkipFlag) (*prototype.SignedBlock, error) {
 
 	newBlock := c.GenerateBlock(witness, pre, timestamp, priKey, skip)
@@ -290,7 +290,7 @@ func (c *Controller) GenerateAndApplyBlock(witness string, pre *prototype.Sha256
 	return newBlock, nil
 }
 
-func (c *Controller) GenerateBlock(witness string, pre *prototype.Sha256, timestamp uint32,
+func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp uint32,
 	priKey *prototype.PrivateKeyType, skip prototype.SkipFlag) *prototype.SignedBlock {
 	oldSkip := c.skip
 	defer func() {
@@ -397,41 +397,41 @@ func (c *Controller) GenerateBlock(witness string, pre *prototype.Sha256, timest
 	return signBlock
 }
 
-func (c *Controller) notifyOpPreExecute(on *prototype.OperationNotification) {
+func (c *TrxPool) notifyOpPreExecute(on *prototype.OperationNotification) {
 	c.noticer.Publish(constants.NOTICE_OP_PRE, on)
 }
 
-func (c *Controller) notifyOpPostExecute(on *prototype.OperationNotification) {
+func (c *TrxPool) notifyOpPostExecute(on *prototype.OperationNotification) {
 	c.noticer.Publish(constants.NOTICE_OP_POST, on)
 }
 
-func (c *Controller) notifyTrxPreExecute(trx *prototype.SignedTransaction) {
+func (c *TrxPool) notifyTrxPreExecute(trx *prototype.SignedTransaction) {
 	c.noticer.Publish(constants.NOTICE_TRX_PRE, trx)
 }
 
-func (c *Controller) notifyTrxPostExecute(trx *prototype.SignedTransaction) {
+func (c *TrxPool) notifyTrxPostExecute(trx *prototype.SignedTransaction) {
 	c.noticer.Publish(constants.NOTICE_TRX_POST, trx)
 }
 
-func (c *Controller) notifyTrxPending(trx *prototype.SignedTransaction) {
+func (c *TrxPool) notifyTrxPending(trx *prototype.SignedTransaction) {
 	c.noticer.Publish(constants.NOTICE_TRX_PENDING, trx)
 }
 
-func (c *Controller) notifyBlockApply(block *prototype.SignedBlock) {
+func (c *TrxPool) notifyBlockApply(block *prototype.SignedBlock) {
 	c.noticer.Publish(constants.NOTICE_BLOCK_APPLY, block)
 }
 
 // calculate reward for creator and witness
-func (c *Controller) processBlock() {
+func (c *TrxPool) processBlock() {
 }
 
-func (c *Controller) applyTransaction(trxWrp *prototype.TransactionWrapper) {
+func (c *TrxPool) applyTransaction(trxWrp *prototype.TransactionWrapper) {
 	c.applyTransactionInner(trxWrp)
 	// @ not use yet
 	//c.notifyTrxPostExecute(trxWrp.SigTrx)
 }
 
-func (c *Controller) applyTransactionInner(trxWrp *prototype.TransactionWrapper) {
+func (c *TrxPool) applyTransactionInner(trxWrp *prototype.TransactionWrapper) {
 	defer func() {
 		if err := recover(); err != nil {
 			trxWrp.Invoice.Status = 500
@@ -525,7 +525,7 @@ func (c *Controller) applyTransactionInner(trxWrp *prototype.TransactionWrapper)
 	c.currentTrxId = &prototype.Sha256{}
 }
 
-func (c *Controller) applyOperation(op *prototype.Operation) {
+func (c *TrxPool) applyOperation(op *prototype.Operation) {
 	// @ not use yet
 	n := &prototype.OperationNotification{Op: op}
 	c.notifyOpPreExecute(n)
@@ -537,7 +537,7 @@ func (c *Controller) applyOperation(op *prototype.Operation) {
 	c.notifyOpPostExecute(n)
 }
 
-func (c *Controller) getEvaluator(op *prototype.Operation) BaseEvaluator {
+func (c *TrxPool) getEvaluator(op *prototype.Operation) BaseEvaluator {
 	ctx := &ApplyContext{db: c.db, control: c}
 	switch op.Op.(type) {
 	case *prototype.Operation_Op1:
@@ -587,7 +587,7 @@ func (c *Controller) getEvaluator(op *prototype.Operation) BaseEvaluator {
 	}
 }
 
-func (c *Controller) applyBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag) {
+func (c *TrxPool) applyBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag) {
 	oldFlag := c.skip
 	defer func() {
 		c.skip = oldFlag
@@ -599,7 +599,7 @@ func (c *Controller) applyBlock(blk *prototype.SignedBlock, skip prototype.SkipF
 	// @ tps update
 }
 
-func (c *Controller) applyBlockInner(blk *prototype.SignedBlock, skip prototype.SkipFlag) {
+func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.SkipFlag) {
 	nextBlockNum := blk.Id().BlockNum()
 
 	merkleRoot := blk.CalculateMerkleRoot()
@@ -652,7 +652,7 @@ func (c *Controller) applyBlockInner(blk *prototype.SignedBlock, skip prototype.
 	// @ notify_applied_block
 }
 
-func (c *Controller) initGenesis() {
+func (c *TrxPool) initGenesis() {
 
 	c.db.BeginTransaction()
 	defer func() {
@@ -740,7 +740,7 @@ func (c *Controller) initGenesis() {
 	}), "CreateWitnessScheduleObject error")
 }
 
-func (c *Controller) TransferToVest(value *prototype.Coin) {
+func (c *TrxPool) TransferToVest(value *prototype.Coin) {
 
 	dgpo := c.GetProps()
 	cos := dgpo.GetTotalCos()
@@ -756,7 +756,7 @@ func (c *Controller) TransferToVest(value *prototype.Coin) {
 	c.updateGlobalDataToDB(dgpo)
 }
 
-func (c *Controller) TransferFromVest(value *prototype.Vest) {
+func (c *TrxPool) TransferFromVest(value *prototype.Vest) {
 	dgpo := c.GetProps()
 
 	cos := dgpo.GetTotalCos()
@@ -773,7 +773,7 @@ func (c *Controller) TransferFromVest(value *prototype.Vest) {
 	c.updateGlobalDataToDB(dgpo)
 }
 
-func (c *Controller) validateBlockHeader(blk *prototype.SignedBlock) {
+func (c *TrxPool) validateBlockHeader(blk *prototype.SignedBlock) {
 	headID := c.headBlockID()
 	if !bytes.Equal(headID.Hash, blk.SignedHeader.Header.Previous.Hash) {
 		panic("hash not equal")
@@ -805,22 +805,22 @@ func (c *Controller) validateBlockHeader(blk *prototype.SignedBlock) {
 	}*/
 }
 
-func (c *Controller) headBlockID() *prototype.Sha256 {
+func (c *TrxPool) headBlockID() *prototype.Sha256 {
 	return c.GetProps().GetHeadBlockId()
 }
 
-func (c *Controller) HeadBlockTime() *prototype.TimePointSec {
+func (c *TrxPool) HeadBlockTime() *prototype.TimePointSec {
 	return c.headBlockTime()
 }
-func (c *Controller) headBlockTime() *prototype.TimePointSec {
+func (c *TrxPool) headBlockTime() *prototype.TimePointSec {
 	return c.GetProps().Time
 }
 
-func (c *Controller) headBlockNum() uint32 {
+func (c *TrxPool) headBlockNum() uint32 {
 	return c.GetProps().HeadBlockNumber
 }
 
-func (c *Controller) GetSlotTime(slot uint32) *prototype.TimePointSec {
+func (c *TrxPool) GetSlotTime(slot uint32) *prototype.TimePointSec {
 	if slot == 0 {
 		return &prototype.TimePointSec{UtcSeconds: 0}
 	}
@@ -838,7 +838,7 @@ func (c *Controller) GetSlotTime(slot uint32) *prototype.TimePointSec {
 	return slotTime
 }
 
-func (c *Controller) GetIncrementSlotAtTime(t *prototype.TimePointSec) uint32 {
+func (c *TrxPool) GetIncrementSlotAtTime(t *prototype.TimePointSec) uint32 {
 	/*nextBlockSlotTime := c.GetSlotTime(1)
 	if t.UtcSeconds < nextBlockSlotTime.UtcSeconds {
 		return 0
@@ -847,7 +847,7 @@ func (c *Controller) GetIncrementSlotAtTime(t *prototype.TimePointSec) uint32 {
 	return 0
 }
 
-func (c *Controller) GetScheduledWitness(slot uint32) *prototype.AccountName {
+func (c *TrxPool) GetScheduledWitness(slot uint32) *prototype.AccountName {
 	return nil
 	/*
 		currentSlot := c.dgpo.GetCurrentAslot()
@@ -860,12 +860,12 @@ func (c *Controller) GetScheduledWitness(slot uint32) *prototype.AccountName {
 		return &prototype.AccountName{Value:witnessName}*/
 }
 
-func (c *Controller) updateGlobalDataToDB(dgpo *prototype.DynamicProperties) {
+func (c *TrxPool) updateGlobalDataToDB(dgpo *prototype.DynamicProperties) {
 	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
 	mustSuccess(dgpWrap.MdProps(dgpo), "")
 }
 
-func (c *Controller) updateGlobalDynamicData(blk *prototype.SignedBlock) {
+func (c *TrxPool) updateGlobalDynamicData(blk *prototype.SignedBlock) {
 	/*var missedBlock uint32 = 0
 
 	if false && c.headBlockTime().UtcSeconds != 0 {
@@ -903,7 +903,7 @@ func (c *Controller) updateGlobalDynamicData(blk *prototype.SignedBlock) {
 	c.updateGlobalDataToDB(dgpo)
 }
 
-func (c *Controller) updateSigningWitness(blk *prototype.SignedBlock) {
+func (c *TrxPool) updateSigningWitness(blk *prototype.SignedBlock) {
 	/*newAsLot := c.dgpo.GetCurrentAslot() + c.GetIncrementSlotAtTime(blk.SignedHeader.Header.Timestamp)
 
 	name := blk.SignedHeader.Header.Witness
@@ -912,7 +912,7 @@ func (c *Controller) updateSigningWitness(blk *prototype.SignedBlock) {
 	witnessWrap.MdLastAslot(newAsLot)*/
 }
 
-func (c *Controller) createBlockSummary(blk *prototype.SignedBlock) {
+func (c *TrxPool) createBlockSummary(blk *prototype.SignedBlock) {
 	blockNum := blk.Id().BlockNum()
 	blockNumSuffix := uint32(blockNum & 0x7ff)
 
@@ -923,7 +923,7 @@ func (c *Controller) createBlockSummary(blk *prototype.SignedBlock) {
 	mustSuccess(blockSummaryWrap.MdBlockId(blockID), "update block summary object error")
 }
 
-func (c *Controller) clearExpiredTransactions() {
+func (c *TrxPool) clearExpiredTransactions() {
 	sortWrap := table.STransactionObjectExpirationWrap{Dba: c.db}
 	itr := sortWrap.QueryListByOrder(nil, nil) // query all
 	if itr != nil {
@@ -944,7 +944,7 @@ func (c *Controller) clearExpiredTransactions() {
 	}
 }
 
-func (c *Controller) GetWitnessTopN(n uint32) []string {
+func (c *TrxPool) GetWitnessTopN(n uint32) []string {
 	ret := []string{}
 	revList := table.SWitnessVoteCountWrap{Dba: c.db}
 	itr := revList.QueryListByRevOrder(nil, nil)
@@ -965,38 +965,38 @@ func (c *Controller) GetWitnessTopN(n uint32) []string {
 	return ret
 }
 
-func (c *Controller) SetShuffledWitness(names []string) {
+func (c *TrxPool) SetShuffledWitness(names []string) {
 	witnessScheduleWrap := table.NewSoWitnessScheduleObjectWrap(c.db, &SingleId)
 	mustSuccess(witnessScheduleWrap.MdCurrentShuffledWitness(names), "SetWitness error")
 }
 
-func (c *Controller) GetShuffledWitness() []string {
+func (c *TrxPool) GetShuffledWitness() []string {
 	witnessScheduleWrap := table.NewSoWitnessScheduleObjectWrap(c.db, &SingleId)
 	return witnessScheduleWrap.GetCurrentShuffledWitness()
 }
 
-func (c *Controller) AddWeightedVP(value uint64) {
+func (c *TrxPool) AddWeightedVP(value uint64) {
 	dgpo := c.GetProps()
 	dgpo.WeightedVps += value
 	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
 	dgpWrap.MdProps(dgpo)
 }
 
-func (c *Controller) saveReversion(num uint32) {
+func (c *TrxPool) saveReversion(num uint32) {
 	tag := strconv.FormatUint(uint64(num), 10)
 	currentRev := c.db.GetRevision()
 	mustNoError(c.db.TagRevision(currentRev, tag), fmt.Sprintf("TagRevision:  tag:%d, reversion%d", num, currentRev))
 	//c.log.GetLog().Debug("### saveReversion, num:", num, " rev:", currentRev)
 }
 
-func (c *Controller) getReversion(num uint32) uint64 {
+func (c *TrxPool) getReversion(num uint32) uint64 {
 	tag := strconv.FormatUint(uint64(num), 10)
 	rev, err := c.db.GetTagRevision(tag)
 	mustNoError(err, fmt.Sprintf("GetTagRevision: tag:%d, reversion:%d", num, rev))
 	return rev
 }
 
-func (c *Controller) PopBlockTo(num uint32) {
+func (c *TrxPool) PopBlockTo(num uint32) {
 	// undo pending trx
 	c.ClearPending()
 	/*if c.havePendingTransaction {
@@ -1009,7 +1009,7 @@ func (c *Controller) PopBlockTo(num uint32) {
 	mustNoError(c.db.RevertToRevision(rev), fmt.Sprintf("RebaseToRevision error: tag:%d, reversion:%d", num, rev))
 }
 
-func (c *Controller) Commit(num uint32) {
+func (c *TrxPool) Commit(num uint32) {
 	// this block can not be revert over, so it's irreversible
 	rev := c.getReversion(num)
 	//c.log.GetLog().Debug("### Commit, tag:", num, " rev:", rev)

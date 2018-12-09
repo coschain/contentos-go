@@ -22,7 +22,7 @@ const (
 // for dpos
 type RedDandelion struct {
 	*consensus.DPoS
-	*app.Controller
+	*app.TrxPool
 	path      string
 	db        *storage.DatabaseService
 	witness   string
@@ -65,7 +65,7 @@ func (d *RedDandelion) OpenDatabase() error {
 	c.SetDB(d.db)
 	c.SetBus(EventBus.New())
 	c.Open()
-	d.Controller = c
+	d.TrxPool = c
 	p2p := NewDandelionP2P()
 	dpos := consensus.NewDandelionDpos()
 	dpos.DandelionDposSetController(c)
@@ -186,7 +186,7 @@ func (d *RedDandelion) Sign(privKeyStr string, ops ...interface{}) (*prototype.S
 	if err != nil {
 		return nil, err
 	}
-	props := d.Controller.GetProps()
+	props := d.TrxPool.GetProps()
 	tx := &prototype.Transaction{RefBlockNum: 0, RefBlockPrefix: 0, Expiration: &prototype.TimePointSec{UtcSeconds: props.GetTime().UtcSeconds + constants.TRX_MAX_EXPIRATION_TIME}}
 	headBlockID := props.GetHeadBlockId()
 	id := &common.BlockID{}

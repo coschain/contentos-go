@@ -70,7 +70,7 @@ func (p *PostService) executePostOperation(op *prototype.PostOperation) {
 		exPostWrap.Create(func(exPost *table.SoExtPostCreated) {
 			exPost.PostId = uuid
 			exPost.CreatedOrder = &prototype.PostCreatedOrder{
-				Created: ctrl.(iservices.IController).HeadBlockTime(),
+				Created: ctrl.(iservices.ITrxPool).HeadBlockTime(),
 				ParentId: constants.POST_INVALID_ID,
 			}
 		})
@@ -89,7 +89,7 @@ func (p *PostService) executeReplyOperation(op *prototype.ReplyOperation) {
 			exReply.PostId = uuid
 			exReply.CreatedOrder = &prototype.ReplyCreatedOrder{
 				ParentId: op.GetParentUuid(),
-				Created: ctrl.(iservices.IController).HeadBlockTime(),
+				Created: ctrl.(iservices.ITrxPool).HeadBlockTime(),
 			}
 		})
 	}

@@ -390,7 +390,7 @@ func startDB() iservices.IDatabaseService {
 	return db
 }
 
-func startController(db iservices.IDatabaseService) *Controller {
+func startController(db iservices.IDatabaseService) *TrxPool {
 	c, _ := NewController(nil)
 	c.SetDB(db)
 	c.SetBus(EventBus.New())

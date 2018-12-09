@@ -40,7 +40,7 @@ type DPoS struct {
 	slot           uint64
 
 	ctx  *node.ServiceContext
-	ctrl iservices.IController
+	ctrl iservices.ITrxPool
 	p2p  iservices.IP2P
 	log  iservices.ILog
 
@@ -80,12 +80,12 @@ func NewDPoS(ctx *node.ServiceContext) *DPoS {
 	return ret
 }
 
-func (d *DPoS) getController() iservices.IController {
+func (d *DPoS) getController() iservices.ITrxPool {
 	ctrl, err := d.ctx.Service(iservices.ControlServerName)
 	if err != nil {
 		panic(err)
 	}
-	return ctrl.(iservices.IController)
+	return ctrl.(iservices.ITrxPool)
 }
 
 func (d *DPoS) SetBootstrap(b bool) {

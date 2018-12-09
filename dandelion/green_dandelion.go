@@ -18,7 +18,7 @@ const (
 )
 
 type GreenDandelion struct {
-	*app.Controller
+	*app.TrxPool
 	path    string
 	db      *storage.DatabaseService
 	witness string
@@ -58,14 +58,14 @@ func (d *GreenDandelion) OpenDatabase() error {
 	c.SetDB(d.db)
 	c.SetBus(EventBus.New())
 	c.Open()
-	d.Controller = c
+	d.TrxPool = c
 	//d.timestamp = c.GetProps().GetTime().UtcSeconds
 	return nil
 }
 
 func (d *GreenDandelion) GenerateBlock() {
 	d.timestamp += constants.BLOCK_INTERVAL
-	current := d.Controller.GenerateBlock(d.witness, d.Controller.GetProps().GetHeadBlockId(), d.timestamp, d.privKey, 0)
+	current := d.TrxPool.GenerateBlock(d.witness, d.TrxPool.GetProps().GetHeadBlockId(), d.timestamp, d.privKey, 0)
 	d.produced += 1
 	err := d.PushBlock(current, prototype.Skip_nothing)
 	if err != nil {
@@ -96,7 +96,7 @@ func (d *GreenDandelion) Sign(privKeyStr string, ops ...interface{}) (*prototype
 	if err != nil {
 		return nil, err
 	}
-	props := d.Controller.GetProps()
+	props := d.TrxPool.GetProps()
 	tx := &prototype.Transaction{RefBlockNum: 0, RefBlockPrefix: 0, Expiration: &prototype.TimePointSec{UtcSeconds: props.GetTime().UtcSeconds + constants.TRX_MAX_EXPIRATION_TIME}}
 	headBlockID := props.GetHeadBlockId()
 	id := &common.BlockID{}

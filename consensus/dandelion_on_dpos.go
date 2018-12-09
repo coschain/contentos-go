@@ -33,7 +33,7 @@ func NewDandelionDpos() *DPoS {
 	return ret
 }
 
-func (d *DPoS) DandelionDposSetController(ctrl iservices.IController) {
+func (d *DPoS) DandelionDposSetController(ctrl iservices.ITrxPool) {
 	d.ctrl = ctrl
 }
 
