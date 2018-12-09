@@ -56,7 +56,7 @@ func main() {
 		tInfo.PostTime = creTimeSecondPoint(20120401)
 	})
 	if err != nil {
-		fmt.Println("create new table of Demo fail")
+		fmt.Printf("create new table of Demo fail,the error is %s \n",err)
 		return
 	}
 

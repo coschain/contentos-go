@@ -68,6 +68,86 @@ func (m *SoExtFollower) GetFollowerCreatedOrder() *prototype.FollowerCreatedOrde
 	return nil
 }
 
+type SoMemExtFollowerByFollowerInfo struct {
+	FollowerInfo         *prototype.FollowerRelation `protobuf:"bytes,1,opt,name=follower_info,json=followerInfo,proto3" json:"follower_info,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}                    `json:"-"`
+	XXX_unrecognized     []byte                      `json:"-"`
+	XXX_sizecache        int32                       `json:"-"`
+}
+
+func (m *SoMemExtFollowerByFollowerInfo) Reset()         { *m = SoMemExtFollowerByFollowerInfo{} }
+func (m *SoMemExtFollowerByFollowerInfo) String() string { return proto.CompactTextString(m) }
+func (*SoMemExtFollowerByFollowerInfo) ProtoMessage()    {}
+func (*SoMemExtFollowerByFollowerInfo) Descriptor() ([]byte, []int) {
+	return fileDescriptor_508fa16fefe64619, []int{1}
+}
+
+func (m *SoMemExtFollowerByFollowerInfo) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SoMemExtFollowerByFollowerInfo.Unmarshal(m, b)
+}
+func (m *SoMemExtFollowerByFollowerInfo) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SoMemExtFollowerByFollowerInfo.Marshal(b, m, deterministic)
+}
+func (m *SoMemExtFollowerByFollowerInfo) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoMemExtFollowerByFollowerInfo.Merge(m, src)
+}
+func (m *SoMemExtFollowerByFollowerInfo) XXX_Size() int {
+	return xxx_messageInfo_SoMemExtFollowerByFollowerInfo.Size(m)
+}
+func (m *SoMemExtFollowerByFollowerInfo) XXX_DiscardUnknown() {
+	xxx_messageInfo_SoMemExtFollowerByFollowerInfo.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SoMemExtFollowerByFollowerInfo proto.InternalMessageInfo
+
+func (m *SoMemExtFollowerByFollowerInfo) GetFollowerInfo() *prototype.FollowerRelation {
+	if m != nil {
+		return m.FollowerInfo
+	}
+	return nil
+}
+
+type SoMemExtFollowerByFollowerCreatedOrder struct {
+	FollowerCreatedOrder *prototype.FollowerCreatedOrder `protobuf:"bytes,1,opt,name=follower_created_order,json=followerCreatedOrder,proto3" json:"follower_created_order,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}                        `json:"-"`
+	XXX_unrecognized     []byte                          `json:"-"`
+	XXX_sizecache        int32                           `json:"-"`
+}
+
+func (m *SoMemExtFollowerByFollowerCreatedOrder) Reset() {
+	*m = SoMemExtFollowerByFollowerCreatedOrder{}
+}
+func (m *SoMemExtFollowerByFollowerCreatedOrder) String() string { return proto.CompactTextString(m) }
+func (*SoMemExtFollowerByFollowerCreatedOrder) ProtoMessage()    {}
+func (*SoMemExtFollowerByFollowerCreatedOrder) Descriptor() ([]byte, []int) {
+	return fileDescriptor_508fa16fefe64619, []int{2}
+}
+
+func (m *SoMemExtFollowerByFollowerCreatedOrder) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SoMemExtFollowerByFollowerCreatedOrder.Unmarshal(m, b)
+}
+func (m *SoMemExtFollowerByFollowerCreatedOrder) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SoMemExtFollowerByFollowerCreatedOrder.Marshal(b, m, deterministic)
+}
+func (m *SoMemExtFollowerByFollowerCreatedOrder) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoMemExtFollowerByFollowerCreatedOrder.Merge(m, src)
+}
+func (m *SoMemExtFollowerByFollowerCreatedOrder) XXX_Size() int {
+	return xxx_messageInfo_SoMemExtFollowerByFollowerCreatedOrder.Size(m)
+}
+func (m *SoMemExtFollowerByFollowerCreatedOrder) XXX_DiscardUnknown() {
+	xxx_messageInfo_SoMemExtFollowerByFollowerCreatedOrder.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SoMemExtFollowerByFollowerCreatedOrder proto.InternalMessageInfo
+
+func (m *SoMemExtFollowerByFollowerCreatedOrder) GetFollowerCreatedOrder() *prototype.FollowerCreatedOrder {
+	if m != nil {
+		return m.FollowerCreatedOrder
+	}
+	return nil
+}
+
 type SoListExtFollowerByFollowerCreatedOrder struct {
 	FollowerCreatedOrder *prototype.FollowerCreatedOrder `protobuf:"bytes,1,opt,name=follower_created_order,json=followerCreatedOrder,proto3" json:"follower_created_order,omitempty"`
 	FollowerInfo         *prototype.FollowerRelation     `protobuf:"bytes,2,opt,name=follower_info,json=followerInfo,proto3" json:"follower_info,omitempty"`
@@ -82,7 +162,7 @@ func (m *SoListExtFollowerByFollowerCreatedOrder) Reset() {
 func (m *SoListExtFollowerByFollowerCreatedOrder) String() string { return proto.CompactTextString(m) }
 func (*SoListExtFollowerByFollowerCreatedOrder) ProtoMessage()    {}
 func (*SoListExtFollowerByFollowerCreatedOrder) Descriptor() ([]byte, []int) {
-	return fileDescriptor_508fa16fefe64619, []int{1}
+	return fileDescriptor_508fa16fefe64619, []int{3}
 }
 
 func (m *SoListExtFollowerByFollowerCreatedOrder) XXX_Unmarshal(b []byte) error {
@@ -128,7 +208,7 @@ func (m *SoUniqueExtFollowerByFollowerInfo) Reset()         { *m = SoUniqueExtFo
 func (m *SoUniqueExtFollowerByFollowerInfo) String() string { return proto.CompactTextString(m) }
 func (*SoUniqueExtFollowerByFollowerInfo) ProtoMessage()    {}
 func (*SoUniqueExtFollowerByFollowerInfo) Descriptor() ([]byte, []int) {
-	return fileDescriptor_508fa16fefe64619, []int{2}
+	return fileDescriptor_508fa16fefe64619, []int{4}
 }
 
 func (m *SoUniqueExtFollowerByFollowerInfo) XXX_Unmarshal(b []byte) error {
@@ -158,6 +238,8 @@ func (m *SoUniqueExtFollowerByFollowerInfo) GetFollowerInfo() *prototype.Followe
 
 func init() {
 	proto.RegisterType((*SoExtFollower)(nil), "table.so_extFollower")
+	proto.RegisterType((*SoMemExtFollowerByFollowerInfo)(nil), "table.so_mem_extFollower_by_follower_info")
+	proto.RegisterType((*SoMemExtFollowerByFollowerCreatedOrder)(nil), "table.so_mem_extFollower_by_follower_created_order")
 	proto.RegisterType((*SoListExtFollowerByFollowerCreatedOrder)(nil), "table.so_list_extFollower_by_follower_created_order")
 	proto.RegisterType((*SoUniqueExtFollowerByFollowerInfo)(nil), "table.so_unique_extFollower_by_follower_info")
 }
@@ -165,7 +247,7 @@ func init() {
 func init() { proto.RegisterFile("app/table/so_extFollower.proto", fileDescriptor_508fa16fefe64619) }
 
 var fileDescriptor_508fa16fefe64619 = []byte{
-	// 257 bytes of a gzipped FileDescriptorProto
+	// 275 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0x92, 0x4b, 0x2c, 0x28, 0xd0,
 	0x2f, 0x49, 0x4c, 0xca, 0x49, 0xd5, 0x2f, 0xce, 0x8f, 0x4f, 0xad, 0x28, 0x71, 0xcb, 0xcf, 0xc9,
 	0xc9, 0x2f, 0x4f, 0x2d, 0xd2, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0x05, 0xcb, 0x49, 0x89,
@@ -175,12 +257,13 @@ var fileDescriptor_508fa16fefe64619 = []byte{
 	0x92, 0x99, 0x9f, 0x17, 0xc4, 0x03, 0x13, 0xf2, 0xcc, 0x4b, 0xcb, 0x17, 0x0a, 0xe7, 0x12, 0x83,
 	0x2b, 0x49, 0x2e, 0x4a, 0x4d, 0x2c, 0x49, 0x4d, 0x89, 0xcf, 0x2f, 0x4a, 0x49, 0x2d, 0x92, 0x60,
 	0x02, 0x9b, 0xa5, 0x88, 0xcd, 0x2c, 0x14, 0x85, 0x41, 0x22, 0x30, 0x71, 0x67, 0x88, 0xb0, 0x3f,
-	0x48, 0x54, 0xe9, 0x34, 0x23, 0x97, 0x6e, 0x71, 0x7e, 0x7c, 0x4e, 0x66, 0x71, 0x09, 0xb2, 0x9b,
-	0xe3, 0x93, 0x2a, 0xe3, 0xb1, 0x9b, 0x83, 0xc7, 0x29, 0x8c, 0x14, 0x39, 0x05, 0x33, 0x98, 0x98,
-	0x48, 0x0d, 0x26, 0xa5, 0x6c, 0x2e, 0xb5, 0xe2, 0xfc, 0xf8, 0xd2, 0xbc, 0xcc, 0xc2, 0xd2, 0x54,
-	0x9c, 0xde, 0x01, 0x99, 0x4d, 0x85, 0x38, 0x71, 0xd2, 0x88, 0x52, 0x4b, 0xcf, 0x2c, 0xc9, 0x28,
-	0x4d, 0xd2, 0x4b, 0xce, 0xcf, 0xd5, 0x4f, 0xce, 0x2f, 0x4e, 0xce, 0x48, 0xcc, 0xcc, 0xd3, 0x4f,
-	0xce, 0xcf, 0x2b, 0x49, 0xcd, 0x2b, 0xc9, 0x2f, 0xd6, 0x4d, 0xcf, 0x87, 0xa4, 0xa2, 0x24, 0x36,
-	0xb0, 0xa1, 0xc6, 0x80, 0x00, 0x00, 0x00, 0xff, 0xff, 0x4a, 0x31, 0xb6, 0xcc, 0x59, 0x02, 0x00,
-	0x00,
+	0x48, 0x54, 0x29, 0x83, 0x4b, 0xb9, 0x38, 0x3f, 0x3e, 0x37, 0x35, 0x17, 0xd9, 0xc5, 0xf1, 0x49,
+	0x95, 0xf1, 0x28, 0x2e, 0xa6, 0x82, 0x17, 0x94, 0xda, 0x19, 0xb9, 0x74, 0x08, 0x58, 0x85, 0xe2,
+	0x60, 0x3c, 0x7e, 0x66, 0xa4, 0xcc, 0xcf, 0xa7, 0x19, 0xb9, 0x74, 0x8b, 0xf3, 0xe3, 0x73, 0x32,
+	0x8b, 0x4b, 0x06, 0xd8, 0x29, 0x98, 0xe1, 0xca, 0x44, 0x72, 0xb8, 0x66, 0x73, 0xa9, 0x15, 0xe7,
+	0xc7, 0x97, 0xe6, 0x65, 0x16, 0x96, 0xa6, 0xd2, 0x3a, 0x12, 0x9d, 0x34, 0xa2, 0xd4, 0xd2, 0x33,
+	0x4b, 0x32, 0x4a, 0x93, 0xf4, 0x92, 0xf3, 0x73, 0xf5, 0x93, 0xf3, 0x8b, 0x93, 0x33, 0x12, 0x33,
+	0xf3, 0xf4, 0x93, 0xf3, 0xf3, 0x4a, 0x52, 0xf3, 0x4a, 0xf2, 0x8b, 0x75, 0xd3, 0xf3, 0x21, 0x39,
+	0x27, 0x89, 0x0d, 0x6c, 0xa8, 0x31, 0x20, 0x00, 0x00, 0xff, 0xff, 0x51, 0xf8, 0xd9, 0x52, 0x4d,
+	0x03, 0x00, 0x00,
 }

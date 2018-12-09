@@ -68,6 +68,86 @@ func (m *SoExtFollowing) GetFollowingCreatedOrder() *prototype.FollowingCreatedO
 	return nil
 }
 
+type SoMemExtFollowingByFollowingInfo struct {
+	FollowingInfo        *prototype.FollowingRelation `protobuf:"bytes,1,opt,name=following_info,json=followingInfo,proto3" json:"following_info,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}                     `json:"-"`
+	XXX_unrecognized     []byte                       `json:"-"`
+	XXX_sizecache        int32                        `json:"-"`
+}
+
+func (m *SoMemExtFollowingByFollowingInfo) Reset()         { *m = SoMemExtFollowingByFollowingInfo{} }
+func (m *SoMemExtFollowingByFollowingInfo) String() string { return proto.CompactTextString(m) }
+func (*SoMemExtFollowingByFollowingInfo) ProtoMessage()    {}
+func (*SoMemExtFollowingByFollowingInfo) Descriptor() ([]byte, []int) {
+	return fileDescriptor_fad976f27ab4b609, []int{1}
+}
+
+func (m *SoMemExtFollowingByFollowingInfo) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SoMemExtFollowingByFollowingInfo.Unmarshal(m, b)
+}
+func (m *SoMemExtFollowingByFollowingInfo) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SoMemExtFollowingByFollowingInfo.Marshal(b, m, deterministic)
+}
+func (m *SoMemExtFollowingByFollowingInfo) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoMemExtFollowingByFollowingInfo.Merge(m, src)
+}
+func (m *SoMemExtFollowingByFollowingInfo) XXX_Size() int {
+	return xxx_messageInfo_SoMemExtFollowingByFollowingInfo.Size(m)
+}
+func (m *SoMemExtFollowingByFollowingInfo) XXX_DiscardUnknown() {
+	xxx_messageInfo_SoMemExtFollowingByFollowingInfo.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SoMemExtFollowingByFollowingInfo proto.InternalMessageInfo
+
+func (m *SoMemExtFollowingByFollowingInfo) GetFollowingInfo() *prototype.FollowingRelation {
+	if m != nil {
+		return m.FollowingInfo
+	}
+	return nil
+}
+
+type SoMemExtFollowingByFollowingCreatedOrder struct {
+	FollowingCreatedOrder *prototype.FollowingCreatedOrder `protobuf:"bytes,1,opt,name=following_created_order,json=followingCreatedOrder,proto3" json:"following_created_order,omitempty"`
+	XXX_NoUnkeyedLiteral  struct{}                         `json:"-"`
+	XXX_unrecognized      []byte                           `json:"-"`
+	XXX_sizecache         int32                            `json:"-"`
+}
+
+func (m *SoMemExtFollowingByFollowingCreatedOrder) Reset() {
+	*m = SoMemExtFollowingByFollowingCreatedOrder{}
+}
+func (m *SoMemExtFollowingByFollowingCreatedOrder) String() string { return proto.CompactTextString(m) }
+func (*SoMemExtFollowingByFollowingCreatedOrder) ProtoMessage()    {}
+func (*SoMemExtFollowingByFollowingCreatedOrder) Descriptor() ([]byte, []int) {
+	return fileDescriptor_fad976f27ab4b609, []int{2}
+}
+
+func (m *SoMemExtFollowingByFollowingCreatedOrder) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SoMemExtFollowingByFollowingCreatedOrder.Unmarshal(m, b)
+}
+func (m *SoMemExtFollowingByFollowingCreatedOrder) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SoMemExtFollowingByFollowingCreatedOrder.Marshal(b, m, deterministic)
+}
+func (m *SoMemExtFollowingByFollowingCreatedOrder) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoMemExtFollowingByFollowingCreatedOrder.Merge(m, src)
+}
+func (m *SoMemExtFollowingByFollowingCreatedOrder) XXX_Size() int {
+	return xxx_messageInfo_SoMemExtFollowingByFollowingCreatedOrder.Size(m)
+}
+func (m *SoMemExtFollowingByFollowingCreatedOrder) XXX_DiscardUnknown() {
+	xxx_messageInfo_SoMemExtFollowingByFollowingCreatedOrder.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SoMemExtFollowingByFollowingCreatedOrder proto.InternalMessageInfo
+
+func (m *SoMemExtFollowingByFollowingCreatedOrder) GetFollowingCreatedOrder() *prototype.FollowingCreatedOrder {
+	if m != nil {
+		return m.FollowingCreatedOrder
+	}
+	return nil
+}
+
 type SoListExtFollowingByFollowingCreatedOrder struct {
 	FollowingCreatedOrder *prototype.FollowingCreatedOrder `protobuf:"bytes,1,opt,name=following_created_order,json=followingCreatedOrder,proto3" json:"following_created_order,omitempty"`
 	FollowingInfo         *prototype.FollowingRelation     `protobuf:"bytes,2,opt,name=following_info,json=followingInfo,proto3" json:"following_info,omitempty"`
@@ -82,7 +162,7 @@ func (m *SoListExtFollowingByFollowingCreatedOrder) Reset() {
 func (m *SoListExtFollowingByFollowingCreatedOrder) String() string { return proto.CompactTextString(m) }
 func (*SoListExtFollowingByFollowingCreatedOrder) ProtoMessage()    {}
 func (*SoListExtFollowingByFollowingCreatedOrder) Descriptor() ([]byte, []int) {
-	return fileDescriptor_fad976f27ab4b609, []int{1}
+	return fileDescriptor_fad976f27ab4b609, []int{3}
 }
 
 func (m *SoListExtFollowingByFollowingCreatedOrder) XXX_Unmarshal(b []byte) error {
@@ -128,7 +208,7 @@ func (m *SoUniqueExtFollowingByFollowingInfo) Reset()         { *m = SoUniqueExt
 func (m *SoUniqueExtFollowingByFollowingInfo) String() string { return proto.CompactTextString(m) }
 func (*SoUniqueExtFollowingByFollowingInfo) ProtoMessage()    {}
 func (*SoUniqueExtFollowingByFollowingInfo) Descriptor() ([]byte, []int) {
-	return fileDescriptor_fad976f27ab4b609, []int{2}
+	return fileDescriptor_fad976f27ab4b609, []int{4}
 }
 
 func (m *SoUniqueExtFollowingByFollowingInfo) XXX_Unmarshal(b []byte) error {
@@ -158,6 +238,8 @@ func (m *SoUniqueExtFollowingByFollowingInfo) GetFollowingInfo() *prototype.Foll
 
 func init() {
 	proto.RegisterType((*SoExtFollowing)(nil), "table.so_extFollowing")
+	proto.RegisterType((*SoMemExtFollowingByFollowingInfo)(nil), "table.so_mem_extFollowing_by_following_info")
+	proto.RegisterType((*SoMemExtFollowingByFollowingCreatedOrder)(nil), "table.so_mem_extFollowing_by_following_created_order")
 	proto.RegisterType((*SoListExtFollowingByFollowingCreatedOrder)(nil), "table.so_list_extFollowing_by_following_created_order")
 	proto.RegisterType((*SoUniqueExtFollowingByFollowingInfo)(nil), "table.so_unique_extFollowing_by_following_info")
 }
@@ -165,7 +247,7 @@ func init() {
 func init() { proto.RegisterFile("app/table/so_extFollowing.proto", fileDescriptor_fad976f27ab4b609) }
 
 var fileDescriptor_fad976f27ab4b609 = []byte{
-	// 256 bytes of a gzipped FileDescriptorProto
+	// 275 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0x92, 0x4f, 0x2c, 0x28, 0xd0,
 	0x2f, 0x49, 0x4c, 0xca, 0x49, 0xd5, 0x2f, 0xce, 0x8f, 0x4f, 0xad, 0x28, 0x71, 0xcb, 0xcf, 0xc9,
 	0xc9, 0x2f, 0xcf, 0xcc, 0x4b, 0xd7, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0x05, 0x4b, 0x4a,
@@ -175,11 +257,13 @@ var fileDescriptor_fad976f27ab4b609 = []byte{
 	0xb1, 0x24, 0x33, 0x3f, 0x2f, 0x88, 0x17, 0x2e, 0xe6, 0x99, 0x97, 0x96, 0x2f, 0x14, 0xc5, 0x25,
 	0x8e, 0x50, 0x94, 0x5c, 0x94, 0x9a, 0x58, 0x92, 0x9a, 0x12, 0x9f, 0x5f, 0x94, 0x92, 0x5a, 0x24,
 	0xc1, 0x04, 0x36, 0x4e, 0x09, 0xab, 0x71, 0x28, 0x2a, 0x83, 0x44, 0xe1, 0x12, 0xce, 0x10, 0x71,
-	0x7f, 0x90, 0xb0, 0xd2, 0x65, 0x46, 0x2e, 0x90, 0x67, 0x73, 0x32, 0x8b, 0x4b, 0x50, 0x9c, 0x1e,
-	0x9f, 0x54, 0x19, 0x8f, 0xc3, 0x28, 0x7c, 0xee, 0x61, 0xa4, 0xd0, 0x3d, 0x58, 0x42, 0x8c, 0x89,
-	0xf4, 0x10, 0x53, 0x2a, 0xe0, 0xd2, 0x28, 0xce, 0x8f, 0x2f, 0xcd, 0xcb, 0x2c, 0x2c, 0x4d, 0xc5,
-	0xe3, 0x2d, 0x90, 0xf9, 0xd4, 0x89, 0x23, 0x27, 0x8d, 0x28, 0xb5, 0xf4, 0xcc, 0x92, 0x8c, 0xd2,
-	0x24, 0xbd, 0xe4, 0xfc, 0x5c, 0xfd, 0xe4, 0xfc, 0xe2, 0xe4, 0x8c, 0xc4, 0xcc, 0x3c, 0xfd, 0xe4,
-	0xfc, 0xbc, 0x92, 0xd4, 0xbc, 0x92, 0xfc, 0x62, 0xdd, 0xf4, 0x7c, 0x48, 0xd2, 0x4a, 0x62, 0x03,
-	0x1b, 0x6b, 0x0c, 0x08, 0x00, 0x00, 0xff, 0xff, 0x90, 0xb9, 0x04, 0xe4, 0x6e, 0x02, 0x00, 0x00,
+	0x7f, 0x90, 0xb0, 0x52, 0x2e, 0x97, 0x6a, 0x71, 0x7e, 0x7c, 0x6e, 0x6a, 0x2e, 0x8a, 0xc3, 0xe3,
+	0x93, 0x2a, 0xe3, 0x51, 0x1d, 0x4e, 0x1d, 0xaf, 0x28, 0xf5, 0x30, 0x72, 0xe9, 0x11, 0xb4, 0x0f,
+	0xc5, 0xe1, 0xf8, 0x7c, 0xcf, 0x48, 0xa9, 0xef, 0x2f, 0x33, 0x72, 0x81, 0xa2, 0x3a, 0x27, 0xb3,
+	0xb8, 0x64, 0x30, 0xb8, 0x07, 0x4b, 0x20, 0x33, 0x91, 0x11, 0xc8, 0x05, 0x5c, 0x1a, 0xc5, 0xf9,
+	0xf1, 0xa5, 0x79, 0x99, 0x85, 0xa5, 0xa9, 0x74, 0x89, 0x56, 0x27, 0x8d, 0x28, 0xb5, 0xf4, 0xcc,
+	0x92, 0x8c, 0xd2, 0x24, 0xbd, 0xe4, 0xfc, 0x5c, 0xfd, 0xe4, 0xfc, 0xe2, 0xe4, 0x8c, 0xc4, 0xcc,
+	0x3c, 0xfd, 0xe4, 0xfc, 0xbc, 0x92, 0xd4, 0xbc, 0x92, 0xfc, 0x62, 0xdd, 0xf4, 0x7c, 0x48, 0xc6,
+	0x4a, 0x62, 0x03, 0x1b, 0x6b, 0x0c, 0x08, 0x00, 0x00, 0xff, 0xff, 0x0b, 0x90, 0xf0, 0x1b, 0x6c,
+	0x03, 0x00, 0x00,
 }

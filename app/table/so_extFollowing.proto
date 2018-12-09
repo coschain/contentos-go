@@ -14,6 +14,16 @@ message so_extFollowing {
 }
 
 
+message so_mem_extFollowing_by_following_info {
+	prototype.following_relation        	following_info              = 1;
+}
+
+
+message so_mem_extFollowing_by_following_created_order {
+	prototype.following_created_order   	following_created_order     = 1;
+}
+
+
 message so_list_extFollowing_by_following_created_order {
 	prototype.following_created_order   	following_created_order     = 1;
 	prototype.following_relation        	following_info              = 2;

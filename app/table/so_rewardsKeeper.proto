@@ -14,6 +14,16 @@ message so_rewardsKeeper {
 }
 
 
+message so_mem_rewardsKeeper_by_id {
+	int32                       	id    = 1;
+}
+
+
+message so_mem_rewardsKeeper_by_keeper {
+	prototype.internal_rewards_keeper	keeper = 1;
+}
+
+
 message so_unique_rewardsKeeper_by_id {
 	int32                       	id    = 1;
 }

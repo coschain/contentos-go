@@ -20,6 +20,46 @@ message so_demo {
 }
 
 
+message so_mem_demo_by_owner {
+	prototype.account_name     	owner        = 1;
+}
+
+
+message so_mem_demo_by_post_time {
+	prototype.time_point_sec   	post_time    = 1;
+}
+
+
+message so_mem_demo_by_title {
+	string                     	title        = 1;
+}
+
+
+message so_mem_demo_by_like_count {
+	int64                      	like_count   = 1;
+}
+
+
+message so_mem_demo_by_idx {
+	int64                      	idx          = 1;
+}
+
+
+message so_mem_demo_by_replay_count {
+	int64                      	replay_count = 1;
+}
+
+
+message so_mem_demo_by_content {
+	string                     	content      = 1;
+}
+
+
+message so_mem_demo_by_taglist {
+	repeated  	string                   	taglist      = 1;
+}
+
+
 message so_list_demo_by_owner {
 	prototype.account_name     	owner        = 1;
 }

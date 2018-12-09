@@ -24,6 +24,66 @@ message so_witness {
 }
 
 
+message so_mem_witness_by_owner {
+	prototype.account_name         	owner                    = 1;
+}
+
+
+message so_mem_witness_by_witness_schedule_type {
+	prototype.witness_schedule_type	witness_schedule_type    = 1;
+}
+
+
+message so_mem_witness_by_created_time {
+	prototype.time_point_sec       	created_time             = 1;
+}
+
+
+message so_mem_witness_by_url {
+	string                         	url                      = 1;
+}
+
+
+message so_mem_witness_by_vote_count {
+	uint64                         	vote_count               = 1;
+}
+
+
+message so_mem_witness_by_last_confirmed_block_num {
+	uint32                         	last_confirmed_block_num = 1;
+}
+
+
+message so_mem_witness_by_total_missed {
+	uint32                         	total_missed             = 1;
+}
+
+
+message so_mem_witness_by_pow_worker {
+	uint32                         	pow_worker               = 1;
+}
+
+
+message so_mem_witness_by_signing_key {
+	prototype.public_key_type      	signing_key              = 1;
+}
+
+
+message so_mem_witness_by_last_work {
+	prototype.sha256               	last_work                = 1;
+}
+
+
+message so_mem_witness_by_running_version {
+	uint32                         	running_version          = 1;
+}
+
+
+message so_mem_witness_by_last_aslot {
+	uint32                         	last_aslot               = 1;
+}
+
+
 message so_list_witness_by_owner {
 	prototype.account_name         	owner                    = 1;
 }

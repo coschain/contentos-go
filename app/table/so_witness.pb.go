@@ -148,6 +148,474 @@ func (m *SoWitness) GetLastAslot() uint32 {
 	return 0
 }
 
+type SoMemWitnessByOwner struct {
+	Owner                *prototype.AccountName `protobuf:"bytes,1,opt,name=owner,proto3" json:"owner,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}               `json:"-"`
+	XXX_unrecognized     []byte                 `json:"-"`
+	XXX_sizecache        int32                  `json:"-"`
+}
+
+func (m *SoMemWitnessByOwner) Reset()         { *m = SoMemWitnessByOwner{} }
+func (m *SoMemWitnessByOwner) String() string { return proto.CompactTextString(m) }
+func (*SoMemWitnessByOwner) ProtoMessage()    {}
+func (*SoMemWitnessByOwner) Descriptor() ([]byte, []int) {
+	return fileDescriptor_00097e516fc05425, []int{1}
+}
+
+func (m *SoMemWitnessByOwner) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SoMemWitnessByOwner.Unmarshal(m, b)
+}
+func (m *SoMemWitnessByOwner) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SoMemWitnessByOwner.Marshal(b, m, deterministic)
+}
+func (m *SoMemWitnessByOwner) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoMemWitnessByOwner.Merge(m, src)
+}
+func (m *SoMemWitnessByOwner) XXX_Size() int {
+	return xxx_messageInfo_SoMemWitnessByOwner.Size(m)
+}
+func (m *SoMemWitnessByOwner) XXX_DiscardUnknown() {
+	xxx_messageInfo_SoMemWitnessByOwner.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SoMemWitnessByOwner proto.InternalMessageInfo
+
+func (m *SoMemWitnessByOwner) GetOwner() *prototype.AccountName {
+	if m != nil {
+		return m.Owner
+	}
+	return nil
+}
+
+type SoMemWitnessByWitnessScheduleType struct {
+	WitnessScheduleType  *prototype.WitnessScheduleType `protobuf:"bytes,1,opt,name=witness_schedule_type,json=witnessScheduleType,proto3" json:"witness_schedule_type,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}                       `json:"-"`
+	XXX_unrecognized     []byte                         `json:"-"`
+	XXX_sizecache        int32                          `json:"-"`
+}
+
+func (m *SoMemWitnessByWitnessScheduleType) Reset()         { *m = SoMemWitnessByWitnessScheduleType{} }
+func (m *SoMemWitnessByWitnessScheduleType) String() string { return proto.CompactTextString(m) }
+func (*SoMemWitnessByWitnessScheduleType) ProtoMessage()    {}
+func (*SoMemWitnessByWitnessScheduleType) Descriptor() ([]byte, []int) {
+	return fileDescriptor_00097e516fc05425, []int{2}
+}
+
+func (m *SoMemWitnessByWitnessScheduleType) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SoMemWitnessByWitnessScheduleType.Unmarshal(m, b)
+}
+func (m *SoMemWitnessByWitnessScheduleType) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SoMemWitnessByWitnessScheduleType.Marshal(b, m, deterministic)
+}
+func (m *SoMemWitnessByWitnessScheduleType) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoMemWitnessByWitnessScheduleType.Merge(m, src)
+}
+func (m *SoMemWitnessByWitnessScheduleType) XXX_Size() int {
+	return xxx_messageInfo_SoMemWitnessByWitnessScheduleType.Size(m)
+}
+func (m *SoMemWitnessByWitnessScheduleType) XXX_DiscardUnknown() {
+	xxx_messageInfo_SoMemWitnessByWitnessScheduleType.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SoMemWitnessByWitnessScheduleType proto.InternalMessageInfo
+
+func (m *SoMemWitnessByWitnessScheduleType) GetWitnessScheduleType() *prototype.WitnessScheduleType {
+	if m != nil {
+		return m.WitnessScheduleType
+	}
+	return nil
+}
+
+type SoMemWitnessByCreatedTime struct {
+	CreatedTime          *prototype.TimePointSec `protobuf:"bytes,1,opt,name=created_time,json=createdTime,proto3" json:"created_time,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}                `json:"-"`
+	XXX_unrecognized     []byte                  `json:"-"`
+	XXX_sizecache        int32                   `json:"-"`
+}
+
+func (m *SoMemWitnessByCreatedTime) Reset()         { *m = SoMemWitnessByCreatedTime{} }
+func (m *SoMemWitnessByCreatedTime) String() string { return proto.CompactTextString(m) }
+func (*SoMemWitnessByCreatedTime) ProtoMessage()    {}
+func (*SoMemWitnessByCreatedTime) Descriptor() ([]byte, []int) {
+	return fileDescriptor_00097e516fc05425, []int{3}
+}
+
+func (m *SoMemWitnessByCreatedTime) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SoMemWitnessByCreatedTime.Unmarshal(m, b)
+}
+func (m *SoMemWitnessByCreatedTime) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SoMemWitnessByCreatedTime.Marshal(b, m, deterministic)
+}
+func (m *SoMemWitnessByCreatedTime) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoMemWitnessByCreatedTime.Merge(m, src)
+}
+func (m *SoMemWitnessByCreatedTime) XXX_Size() int {
+	return xxx_messageInfo_SoMemWitnessByCreatedTime.Size(m)
+}
+func (m *SoMemWitnessByCreatedTime) XXX_DiscardUnknown() {
+	xxx_messageInfo_SoMemWitnessByCreatedTime.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SoMemWitnessByCreatedTime proto.InternalMessageInfo
+
+func (m *SoMemWitnessByCreatedTime) GetCreatedTime() *prototype.TimePointSec {
+	if m != nil {
+		return m.CreatedTime
+	}
+	return nil
+}
+
+type SoMemWitnessByUrl struct {
+	Url                  string   `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *SoMemWitnessByUrl) Reset()         { *m = SoMemWitnessByUrl{} }
+func (m *SoMemWitnessByUrl) String() string { return proto.CompactTextString(m) }
+func (*SoMemWitnessByUrl) ProtoMessage()    {}
+func (*SoMemWitnessByUrl) Descriptor() ([]byte, []int) {
+	return fileDescriptor_00097e516fc05425, []int{4}
+}
+
+func (m *SoMemWitnessByUrl) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SoMemWitnessByUrl.Unmarshal(m, b)
+}
+func (m *SoMemWitnessByUrl) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SoMemWitnessByUrl.Marshal(b, m, deterministic)
+}
+func (m *SoMemWitnessByUrl) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoMemWitnessByUrl.Merge(m, src)
+}
+func (m *SoMemWitnessByUrl) XXX_Size() int {
+	return xxx_messageInfo_SoMemWitnessByUrl.Size(m)
+}
+func (m *SoMemWitnessByUrl) XXX_DiscardUnknown() {
+	xxx_messageInfo_SoMemWitnessByUrl.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SoMemWitnessByUrl proto.InternalMessageInfo
+
+func (m *SoMemWitnessByUrl) GetUrl() string {
+	if m != nil {
+		return m.Url
+	}
+	return ""
+}
+
+type SoMemWitnessByVoteCount struct {
+	VoteCount            uint64   `protobuf:"varint,1,opt,name=vote_count,json=voteCount,proto3" json:"vote_count,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *SoMemWitnessByVoteCount) Reset()         { *m = SoMemWitnessByVoteCount{} }
+func (m *SoMemWitnessByVoteCount) String() string { return proto.CompactTextString(m) }
+func (*SoMemWitnessByVoteCount) ProtoMessage()    {}
+func (*SoMemWitnessByVoteCount) Descriptor() ([]byte, []int) {
+	return fileDescriptor_00097e516fc05425, []int{5}
+}
+
+func (m *SoMemWitnessByVoteCount) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SoMemWitnessByVoteCount.Unmarshal(m, b)
+}
+func (m *SoMemWitnessByVoteCount) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SoMemWitnessByVoteCount.Marshal(b, m, deterministic)
+}
+func (m *SoMemWitnessByVoteCount) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoMemWitnessByVoteCount.Merge(m, src)
+}
+func (m *SoMemWitnessByVoteCount) XXX_Size() int {
+	return xxx_messageInfo_SoMemWitnessByVoteCount.Size(m)
+}
+func (m *SoMemWitnessByVoteCount) XXX_DiscardUnknown() {
+	xxx_messageInfo_SoMemWitnessByVoteCount.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SoMemWitnessByVoteCount proto.InternalMessageInfo
+
+func (m *SoMemWitnessByVoteCount) GetVoteCount() uint64 {
+	if m != nil {
+		return m.VoteCount
+	}
+	return 0
+}
+
+type SoMemWitnessByLastConfirmedBlockNum struct {
+	LastConfirmedBlockNum uint32   `protobuf:"varint,1,opt,name=last_confirmed_block_num,json=lastConfirmedBlockNum,proto3" json:"last_confirmed_block_num,omitempty"`
+	XXX_NoUnkeyedLiteral  struct{} `json:"-"`
+	XXX_unrecognized      []byte   `json:"-"`
+	XXX_sizecache         int32    `json:"-"`
+}
+
+func (m *SoMemWitnessByLastConfirmedBlockNum) Reset()         { *m = SoMemWitnessByLastConfirmedBlockNum{} }
+func (m *SoMemWitnessByLastConfirmedBlockNum) String() string { return proto.CompactTextString(m) }
+func (*SoMemWitnessByLastConfirmedBlockNum) ProtoMessage()    {}
+func (*SoMemWitnessByLastConfirmedBlockNum) Descriptor() ([]byte, []int) {
+	return fileDescriptor_00097e516fc05425, []int{6}
+}
+
+func (m *SoMemWitnessByLastConfirmedBlockNum) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SoMemWitnessByLastConfirmedBlockNum.Unmarshal(m, b)
+}
+func (m *SoMemWitnessByLastConfirmedBlockNum) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SoMemWitnessByLastConfirmedBlockNum.Marshal(b, m, deterministic)
+}
+func (m *SoMemWitnessByLastConfirmedBlockNum) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoMemWitnessByLastConfirmedBlockNum.Merge(m, src)
+}
+func (m *SoMemWitnessByLastConfirmedBlockNum) XXX_Size() int {
+	return xxx_messageInfo_SoMemWitnessByLastConfirmedBlockNum.Size(m)
+}
+func (m *SoMemWitnessByLastConfirmedBlockNum) XXX_DiscardUnknown() {
+	xxx_messageInfo_SoMemWitnessByLastConfirmedBlockNum.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SoMemWitnessByLastConfirmedBlockNum proto.InternalMessageInfo
+
+func (m *SoMemWitnessByLastConfirmedBlockNum) GetLastConfirmedBlockNum() uint32 {
+	if m != nil {
+		return m.LastConfirmedBlockNum
+	}
+	return 0
+}
+
+type SoMemWitnessByTotalMissed struct {
+	TotalMissed          uint32   `protobuf:"varint,1,opt,name=total_missed,json=totalMissed,proto3" json:"total_missed,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *SoMemWitnessByTotalMissed) Reset()         { *m = SoMemWitnessByTotalMissed{} }
+func (m *SoMemWitnessByTotalMissed) String() string { return proto.CompactTextString(m) }
+func (*SoMemWitnessByTotalMissed) ProtoMessage()    {}
+func (*SoMemWitnessByTotalMissed) Descriptor() ([]byte, []int) {
+	return fileDescriptor_00097e516fc05425, []int{7}
+}
+
+func (m *SoMemWitnessByTotalMissed) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SoMemWitnessByTotalMissed.Unmarshal(m, b)
+}
+func (m *SoMemWitnessByTotalMissed) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SoMemWitnessByTotalMissed.Marshal(b, m, deterministic)
+}
+func (m *SoMemWitnessByTotalMissed) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoMemWitnessByTotalMissed.Merge(m, src)
+}
+func (m *SoMemWitnessByTotalMissed) XXX_Size() int {
+	return xxx_messageInfo_SoMemWitnessByTotalMissed.Size(m)
+}
+func (m *SoMemWitnessByTotalMissed) XXX_DiscardUnknown() {
+	xxx_messageInfo_SoMemWitnessByTotalMissed.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SoMemWitnessByTotalMissed proto.InternalMessageInfo
+
+func (m *SoMemWitnessByTotalMissed) GetTotalMissed() uint32 {
+	if m != nil {
+		return m.TotalMissed
+	}
+	return 0
+}
+
+type SoMemWitnessByPowWorker struct {
+	PowWorker            uint32   `protobuf:"varint,1,opt,name=pow_worker,json=powWorker,proto3" json:"pow_worker,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *SoMemWitnessByPowWorker) Reset()         { *m = SoMemWitnessByPowWorker{} }
+func (m *SoMemWitnessByPowWorker) String() string { return proto.CompactTextString(m) }
+func (*SoMemWitnessByPowWorker) ProtoMessage()    {}
+func (*SoMemWitnessByPowWorker) Descriptor() ([]byte, []int) {
+	return fileDescriptor_00097e516fc05425, []int{8}
+}
+
+func (m *SoMemWitnessByPowWorker) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SoMemWitnessByPowWorker.Unmarshal(m, b)
+}
+func (m *SoMemWitnessByPowWorker) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SoMemWitnessByPowWorker.Marshal(b, m, deterministic)
+}
+func (m *SoMemWitnessByPowWorker) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoMemWitnessByPowWorker.Merge(m, src)
+}
+func (m *SoMemWitnessByPowWorker) XXX_Size() int {
+	return xxx_messageInfo_SoMemWitnessByPowWorker.Size(m)
+}
+func (m *SoMemWitnessByPowWorker) XXX_DiscardUnknown() {
+	xxx_messageInfo_SoMemWitnessByPowWorker.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SoMemWitnessByPowWorker proto.InternalMessageInfo
+
+func (m *SoMemWitnessByPowWorker) GetPowWorker() uint32 {
+	if m != nil {
+		return m.PowWorker
+	}
+	return 0
+}
+
+type SoMemWitnessBySigningKey struct {
+	SigningKey           *prototype.PublicKeyType `protobuf:"bytes,1,opt,name=signing_key,json=signingKey,proto3" json:"signing_key,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}                 `json:"-"`
+	XXX_unrecognized     []byte                   `json:"-"`
+	XXX_sizecache        int32                    `json:"-"`
+}
+
+func (m *SoMemWitnessBySigningKey) Reset()         { *m = SoMemWitnessBySigningKey{} }
+func (m *SoMemWitnessBySigningKey) String() string { return proto.CompactTextString(m) }
+func (*SoMemWitnessBySigningKey) ProtoMessage()    {}
+func (*SoMemWitnessBySigningKey) Descriptor() ([]byte, []int) {
+	return fileDescriptor_00097e516fc05425, []int{9}
+}
+
+func (m *SoMemWitnessBySigningKey) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SoMemWitnessBySigningKey.Unmarshal(m, b)
+}
+func (m *SoMemWitnessBySigningKey) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SoMemWitnessBySigningKey.Marshal(b, m, deterministic)
+}
+func (m *SoMemWitnessBySigningKey) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoMemWitnessBySigningKey.Merge(m, src)
+}
+func (m *SoMemWitnessBySigningKey) XXX_Size() int {
+	return xxx_messageInfo_SoMemWitnessBySigningKey.Size(m)
+}
+func (m *SoMemWitnessBySigningKey) XXX_DiscardUnknown() {
+	xxx_messageInfo_SoMemWitnessBySigningKey.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SoMemWitnessBySigningKey proto.InternalMessageInfo
+
+func (m *SoMemWitnessBySigningKey) GetSigningKey() *prototype.PublicKeyType {
+	if m != nil {
+		return m.SigningKey
+	}
+	return nil
+}
+
+type SoMemWitnessByLastWork struct {
+	LastWork             *prototype.Sha256 `protobuf:"bytes,1,opt,name=last_work,json=lastWork,proto3" json:"last_work,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
+	XXX_unrecognized     []byte            `json:"-"`
+	XXX_sizecache        int32             `json:"-"`
+}
+
+func (m *SoMemWitnessByLastWork) Reset()         { *m = SoMemWitnessByLastWork{} }
+func (m *SoMemWitnessByLastWork) String() string { return proto.CompactTextString(m) }
+func (*SoMemWitnessByLastWork) ProtoMessage()    {}
+func (*SoMemWitnessByLastWork) Descriptor() ([]byte, []int) {
+	return fileDescriptor_00097e516fc05425, []int{10}
+}
+
+func (m *SoMemWitnessByLastWork) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SoMemWitnessByLastWork.Unmarshal(m, b)
+}
+func (m *SoMemWitnessByLastWork) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SoMemWitnessByLastWork.Marshal(b, m, deterministic)
+}
+func (m *SoMemWitnessByLastWork) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoMemWitnessByLastWork.Merge(m, src)
+}
+func (m *SoMemWitnessByLastWork) XXX_Size() int {
+	return xxx_messageInfo_SoMemWitnessByLastWork.Size(m)
+}
+func (m *SoMemWitnessByLastWork) XXX_DiscardUnknown() {
+	xxx_messageInfo_SoMemWitnessByLastWork.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SoMemWitnessByLastWork proto.InternalMessageInfo
+
+func (m *SoMemWitnessByLastWork) GetLastWork() *prototype.Sha256 {
+	if m != nil {
+		return m.LastWork
+	}
+	return nil
+}
+
+type SoMemWitnessByRunningVersion struct {
+	RunningVersion       uint32   `protobuf:"varint,1,opt,name=running_version,json=runningVersion,proto3" json:"running_version,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *SoMemWitnessByRunningVersion) Reset()         { *m = SoMemWitnessByRunningVersion{} }
+func (m *SoMemWitnessByRunningVersion) String() string { return proto.CompactTextString(m) }
+func (*SoMemWitnessByRunningVersion) ProtoMessage()    {}
+func (*SoMemWitnessByRunningVersion) Descriptor() ([]byte, []int) {
+	return fileDescriptor_00097e516fc05425, []int{11}
+}
+
+func (m *SoMemWitnessByRunningVersion) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SoMemWitnessByRunningVersion.Unmarshal(m, b)
+}
+func (m *SoMemWitnessByRunningVersion) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SoMemWitnessByRunningVersion.Marshal(b, m, deterministic)
+}
+func (m *SoMemWitnessByRunningVersion) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoMemWitnessByRunningVersion.Merge(m, src)
+}
+func (m *SoMemWitnessByRunningVersion) XXX_Size() int {
+	return xxx_messageInfo_SoMemWitnessByRunningVersion.Size(m)
+}
+func (m *SoMemWitnessByRunningVersion) XXX_DiscardUnknown() {
+	xxx_messageInfo_SoMemWitnessByRunningVersion.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SoMemWitnessByRunningVersion proto.InternalMessageInfo
+
+func (m *SoMemWitnessByRunningVersion) GetRunningVersion() uint32 {
+	if m != nil {
+		return m.RunningVersion
+	}
+	return 0
+}
+
+type SoMemWitnessByLastAslot struct {
+	LastAslot            uint32   `protobuf:"varint,1,opt,name=last_aslot,json=lastAslot,proto3" json:"last_aslot,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *SoMemWitnessByLastAslot) Reset()         { *m = SoMemWitnessByLastAslot{} }
+func (m *SoMemWitnessByLastAslot) String() string { return proto.CompactTextString(m) }
+func (*SoMemWitnessByLastAslot) ProtoMessage()    {}
+func (*SoMemWitnessByLastAslot) Descriptor() ([]byte, []int) {
+	return fileDescriptor_00097e516fc05425, []int{12}
+}
+
+func (m *SoMemWitnessByLastAslot) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SoMemWitnessByLastAslot.Unmarshal(m, b)
+}
+func (m *SoMemWitnessByLastAslot) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SoMemWitnessByLastAslot.Marshal(b, m, deterministic)
+}
+func (m *SoMemWitnessByLastAslot) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoMemWitnessByLastAslot.Merge(m, src)
+}
+func (m *SoMemWitnessByLastAslot) XXX_Size() int {
+	return xxx_messageInfo_SoMemWitnessByLastAslot.Size(m)
+}
+func (m *SoMemWitnessByLastAslot) XXX_DiscardUnknown() {
+	xxx_messageInfo_SoMemWitnessByLastAslot.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SoMemWitnessByLastAslot proto.InternalMessageInfo
+
+func (m *SoMemWitnessByLastAslot) GetLastAslot() uint32 {
+	if m != nil {
+		return m.LastAslot
+	}
+	return 0
+}
+
 type SoListWitnessByOwner struct {
 	Owner                *prototype.AccountName `protobuf:"bytes,1,opt,name=owner,proto3" json:"owner,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}               `json:"-"`
@@ -159,7 +627,7 @@ func (m *SoListWitnessByOwner) Reset()         { *m = SoListWitnessByOwner{} }
 func (m *SoListWitnessByOwner) String() string { return proto.CompactTextString(m) }
 func (*SoListWitnessByOwner) ProtoMessage()    {}
 func (*SoListWitnessByOwner) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00097e516fc05425, []int{1}
+	return fileDescriptor_00097e516fc05425, []int{13}
 }
 
 func (m *SoListWitnessByOwner) XXX_Unmarshal(b []byte) error {
@@ -199,7 +667,7 @@ func (m *SoListWitnessByVoteCount) Reset()         { *m = SoListWitnessByVoteCou
 func (m *SoListWitnessByVoteCount) String() string { return proto.CompactTextString(m) }
 func (*SoListWitnessByVoteCount) ProtoMessage()    {}
 func (*SoListWitnessByVoteCount) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00097e516fc05425, []int{2}
+	return fileDescriptor_00097e516fc05425, []int{14}
 }
 
 func (m *SoListWitnessByVoteCount) XXX_Unmarshal(b []byte) error {
@@ -245,7 +713,7 @@ func (m *SoUniqueWitnessByOwner) Reset()         { *m = SoUniqueWitnessByOwner{}
 func (m *SoUniqueWitnessByOwner) String() string { return proto.CompactTextString(m) }
 func (*SoUniqueWitnessByOwner) ProtoMessage()    {}
 func (*SoUniqueWitnessByOwner) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00097e516fc05425, []int{3}
+	return fileDescriptor_00097e516fc05425, []int{15}
 }
 
 func (m *SoUniqueWitnessByOwner) XXX_Unmarshal(b []byte) error {
@@ -275,6 +743,18 @@ func (m *SoUniqueWitnessByOwner) GetOwner() *prototype.AccountName {
 
 func init() {
 	proto.RegisterType((*SoWitness)(nil), "table.so_witness")
+	proto.RegisterType((*SoMemWitnessByOwner)(nil), "table.so_mem_witness_by_owner")
+	proto.RegisterType((*SoMemWitnessByWitnessScheduleType)(nil), "table.so_mem_witness_by_witness_schedule_type")
+	proto.RegisterType((*SoMemWitnessByCreatedTime)(nil), "table.so_mem_witness_by_created_time")
+	proto.RegisterType((*SoMemWitnessByUrl)(nil), "table.so_mem_witness_by_url")
+	proto.RegisterType((*SoMemWitnessByVoteCount)(nil), "table.so_mem_witness_by_vote_count")
+	proto.RegisterType((*SoMemWitnessByLastConfirmedBlockNum)(nil), "table.so_mem_witness_by_last_confirmed_block_num")
+	proto.RegisterType((*SoMemWitnessByTotalMissed)(nil), "table.so_mem_witness_by_total_missed")
+	proto.RegisterType((*SoMemWitnessByPowWorker)(nil), "table.so_mem_witness_by_pow_worker")
+	proto.RegisterType((*SoMemWitnessBySigningKey)(nil), "table.so_mem_witness_by_signing_key")
+	proto.RegisterType((*SoMemWitnessByLastWork)(nil), "table.so_mem_witness_by_last_work")
+	proto.RegisterType((*SoMemWitnessByRunningVersion)(nil), "table.so_mem_witness_by_running_version")
+	proto.RegisterType((*SoMemWitnessByLastAslot)(nil), "table.so_mem_witness_by_last_aslot")
 	proto.RegisterType((*SoListWitnessByOwner)(nil), "table.so_list_witness_by_owner")
 	proto.RegisterType((*SoListWitnessByVoteCount)(nil), "table.so_list_witness_by_vote_count")
 	proto.RegisterType((*SoUniqueWitnessByOwner)(nil), "table.so_unique_witness_by_owner")
@@ -283,36 +763,45 @@ func init() {
 func init() { proto.RegisterFile("app/table/so_witness.proto", fileDescriptor_00097e516fc05425) }
 
 var fileDescriptor_00097e516fc05425 = []byte{
-	// 484 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xa4, 0x93, 0xcf, 0x6f, 0xd3, 0x30,
-	0x14, 0xc7, 0x95, 0xad, 0x1d, 0xab, 0x5b, 0x7e, 0x19, 0x26, 0x4c, 0xa5, 0x49, 0xa1, 0x07, 0xc8,
-	0x65, 0x89, 0x34, 0x04, 0x1c, 0xe0, 0xc2, 0x76, 0x42, 0x13, 0x1c, 0x42, 0x05, 0x12, 0x17, 0xcb,
-	0x71, 0x1f, 0xad, 0xd5, 0xc4, 0x2f, 0xc4, 0xf6, 0xa2, 0xfc, 0x57, 0xfc, 0x89, 0xc8, 0x4e, 0xd8,
-	0xaa, 0x69, 0x07, 0xd0, 0x2e, 0x55, 0xf3, 0x79, 0xdf, 0xef, 0x7b, 0x5f, 0xe7, 0x39, 0x64, 0x2e,
-	0xea, 0x3a, 0xb3, 0xa2, 0x28, 0x21, 0x33, 0xc8, 0x5b, 0x65, 0x35, 0x18, 0x93, 0xd6, 0x0d, 0x5a,
-	0xa4, 0xe3, 0xc0, 0xe7, 0x4f, 0xc3, 0x93, 0xed, 0x6a, 0xc8, 0xfc, 0x4f, 0x5f, 0x5c, 0xfc, 0x1e,
-	0x11, 0x72, 0xed, 0xa0, 0x27, 0x64, 0x8c, 0xad, 0x86, 0x86, 0x45, 0x71, 0x94, 0x4c, 0x4f, 0x9f,
-	0xa5, 0x57, 0xa6, 0x54, 0x48, 0x89, 0x4e, 0x5b, 0xae, 0x45, 0x05, 0x79, 0xaf, 0xa2, 0x4b, 0x72,
-	0x34, 0x38, 0xb9, 0x91, 0x1b, 0x58, 0xb9, 0x12, 0xb8, 0x17, 0xb3, 0xbd, 0x60, 0x8f, 0x77, 0xec,
-	0xb7, 0xea, 0xf2, 0x27, 0x03, 0xfe, 0x3a, 0xd0, 0x65, 0x57, 0x03, 0xfd, 0x40, 0x66, 0xb2, 0x01,
-	0x61, 0x61, 0xc5, 0xad, 0xaa, 0x80, 0xed, 0x87, 0x66, 0xcf, 0x77, 0x9a, 0x79, 0xcc, 0x6b, 0x54,
-	0xda, 0x72, 0x03, 0x32, 0x9f, 0x0e, 0xf2, 0xa5, 0xaa, 0x80, 0x3e, 0x22, 0xfb, 0xae, 0x29, 0xd9,
-	0x28, 0x8e, 0x92, 0x49, 0xee, 0xff, 0xd2, 0x63, 0x42, 0x2e, 0xd1, 0x02, 0x0f, 0xf9, 0xd9, 0x38,
-	0x8e, 0x92, 0x51, 0x3e, 0xf1, 0xe4, 0xdc, 0x03, 0xfa, 0x8e, 0xb0, 0x52, 0x18, 0xcb, 0x25, 0xea,
-	0x9f, 0xaa, 0xa9, 0x60, 0xc5, 0x8b, 0x12, 0xe5, 0x96, 0x6b, 0x57, 0xb1, 0x83, 0x38, 0x4a, 0xee,
-	0xe7, 0x47, 0xbe, 0x7e, 0xfe, 0xb7, 0x7c, 0xe6, 0xab, 0x5f, 0x5c, 0x45, 0x5f, 0x90, 0x99, 0x45,
-	0x2b, 0x4a, 0x5e, 0x29, 0x63, 0x60, 0xc5, 0xee, 0x05, 0xf1, 0x34, 0xb0, 0xcf, 0x01, 0xf9, 0xd1,
-	0x35, 0xb6, 0xbc, 0xc5, 0x66, 0x0b, 0x0d, 0x3b, 0x0c, 0x82, 0x49, 0x8d, 0xed, 0xf7, 0x00, 0xe8,
-	0x7b, 0x32, 0x35, 0x6a, 0xad, 0x95, 0x5e, 0xf3, 0x2d, 0x74, 0x6c, 0x12, 0x0e, 0x3a, 0xdf, 0x39,
-	0x68, 0xed, 0x8a, 0x52, 0x49, 0x5f, 0xec, 0xdf, 0x17, 0x19, 0xe4, 0x17, 0xd0, 0xd1, 0x94, 0x4c,
-	0x42, 0x6e, 0xdf, 0x9c, 0x91, 0x60, 0x7d, 0xbc, 0x63, 0x35, 0x1b, 0x71, 0xfa, 0xe6, 0x6d, 0x7e,
-	0xe8, 0x35, 0x7e, 0x1c, 0x7d, 0x45, 0x1e, 0x36, 0x4e, 0x87, 0x61, 0x97, 0xd0, 0x18, 0x85, 0x9a,
-	0x4d, 0x43, 0xa0, 0x07, 0x03, 0xfe, 0xd6, 0x53, 0x1f, 0x3a, 0x34, 0x16, 0xa6, 0x44, 0xcb, 0x66,
-	0x7d, 0x68, 0x4f, 0x3e, 0x7a, 0xb0, 0xf8, 0x44, 0x98, 0x41, 0x5e, 0x2a, 0x3f, 0x7a, 0x58, 0x6a,
-	0xd1, 0xf1, 0xfe, 0x42, 0xfc, 0xdf, 0xfd, 0x59, 0x54, 0xe4, 0xf8, 0x96, 0x56, 0xd7, 0xcb, 0xba,
-	0xb1, 0xba, 0xe8, 0xe6, 0xea, 0xae, 0xc6, 0xed, 0xfd, 0xd3, 0xb8, 0x0b, 0x32, 0x37, 0xc8, 0x9d,
-	0x56, 0xbf, 0x1c, 0xdc, 0x35, 0xfb, 0x59, 0xf2, 0xe3, 0xe5, 0x5a, 0xd9, 0x8d, 0x2b, 0x52, 0x89,
-	0x55, 0x26, 0xd1, 0xc8, 0x8d, 0x50, 0x3a, 0x93, 0xa8, 0x2d, 0x68, 0x8b, 0xe6, 0x64, 0x8d, 0xfd,
-	0x17, 0x59, 0x1c, 0x84, 0x46, 0xaf, 0xff, 0x04, 0x00, 0x00, 0xff, 0xff, 0x87, 0xd7, 0x39, 0x7f,
-	0xa5, 0x03, 0x00, 0x00,
+	// 636 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xa4, 0x95, 0x4d, 0x6f, 0xd3, 0x30,
+	0x18, 0xc7, 0xe5, 0xbd, 0xb1, 0x3e, 0x1d, 0x6f, 0x81, 0x69, 0xa6, 0x30, 0xd4, 0xe5, 0xc0, 0x0a,
+	0xd2, 0x5a, 0x69, 0x08, 0x38, 0x00, 0x07, 0xb6, 0x0b, 0x68, 0x8c, 0x43, 0x98, 0x40, 0x42, 0x08,
+	0x2b, 0x75, 0x1f, 0x5a, 0x6b, 0x89, 0x1d, 0x62, 0x67, 0x55, 0x4f, 0x7c, 0x25, 0x3e, 0x22, 0xb2,
+	0x93, 0xad, 0x21, 0xc9, 0xc6, 0xa6, 0x5d, 0xaa, 0xe6, 0xff, 0xbc, 0xda, 0xf9, 0xfd, 0x15, 0xe8,
+	0x84, 0x49, 0x32, 0x30, 0xe1, 0x30, 0xc2, 0x81, 0x56, 0x6c, 0x2a, 0x8c, 0x44, 0xad, 0xfb, 0x49,
+	0xaa, 0x8c, 0xf2, 0x96, 0x9d, 0xde, 0xb9, 0xef, 0x9e, 0xcc, 0x2c, 0xc1, 0x81, 0xfd, 0xc9, 0x83,
+	0xfe, 0x9f, 0x25, 0x80, 0x79, 0x85, 0xb7, 0x03, 0xcb, 0x6a, 0x2a, 0x31, 0xa5, 0xa4, 0x4b, 0x7a,
+	0xed, 0xdd, 0x8d, 0xfe, 0x59, 0x51, 0x3f, 0xe4, 0x5c, 0x65, 0xd2, 0x30, 0x19, 0xc6, 0x18, 0xe4,
+	0x59, 0xde, 0x11, 0xac, 0x17, 0x95, 0x4c, 0xf3, 0x09, 0x8e, 0xb2, 0x08, 0x99, 0x4d, 0xa6, 0x0b,
+	0xae, 0xbc, 0x5b, 0x2a, 0x6f, 0xcc, 0x0b, 0xee, 0x15, 0xf2, 0xe7, 0x42, 0x3d, 0x9a, 0x25, 0xe8,
+	0xbd, 0x81, 0x35, 0x9e, 0x62, 0x68, 0x70, 0xc4, 0x8c, 0x88, 0x91, 0x2e, 0xba, 0x66, 0x0f, 0x4a,
+	0xcd, 0xac, 0xcc, 0x12, 0x25, 0xa4, 0x61, 0x1a, 0x79, 0xd0, 0x2e, 0xd2, 0x8f, 0x44, 0x8c, 0xde,
+	0x1d, 0x58, 0xcc, 0xd2, 0x88, 0x2e, 0x75, 0x49, 0xaf, 0x15, 0xd8, 0xbf, 0xde, 0x26, 0xc0, 0x89,
+	0x32, 0xc8, 0xdc, 0xfe, 0x74, 0xb9, 0x4b, 0x7a, 0x4b, 0x41, 0xcb, 0x2a, 0xfb, 0x56, 0xf0, 0x5e,
+	0x01, 0x8d, 0x42, 0x6d, 0x18, 0x57, 0xf2, 0xa7, 0x48, 0x63, 0x1c, 0xb1, 0x61, 0xa4, 0xf8, 0x31,
+	0x93, 0x59, 0x4c, 0x57, 0xba, 0xa4, 0x77, 0x33, 0x58, 0xb7, 0xf1, 0xfd, 0xd3, 0xf0, 0x9e, 0x8d,
+	0x7e, 0xca, 0x62, 0x6f, 0x0b, 0xd6, 0x8c, 0x32, 0x61, 0xc4, 0x62, 0xa1, 0x35, 0x8e, 0xe8, 0x0d,
+	0x97, 0xdc, 0x76, 0xda, 0xa1, 0x93, 0xec, 0xe8, 0x44, 0x4d, 0xd9, 0x54, 0xa5, 0xc7, 0x98, 0xd2,
+	0x55, 0x97, 0xd0, 0x4a, 0xd4, 0xf4, 0xab, 0x13, 0xbc, 0xd7, 0xd0, 0xd6, 0x62, 0x2c, 0x85, 0x1c,
+	0xb3, 0x63, 0x9c, 0xd1, 0x96, 0x3b, 0x68, 0xa7, 0x74, 0xd0, 0x24, 0x1b, 0x46, 0x82, 0xdb, 0x60,
+	0x7e, 0x5f, 0x50, 0xa4, 0x1f, 0xe0, 0xcc, 0xeb, 0x43, 0xcb, 0xed, 0x6d, 0x9b, 0x53, 0x70, 0xa5,
+	0x77, 0x4b, 0xa5, 0x7a, 0x12, 0xee, 0xbe, 0x78, 0x19, 0xac, 0xda, 0x1c, 0x3b, 0xce, 0xdb, 0x86,
+	0xdb, 0x69, 0x26, 0xdd, 0xb0, 0x13, 0x4c, 0xb5, 0x50, 0x92, 0xb6, 0xdd, 0x42, 0xb7, 0x0a, 0xf9,
+	0x4b, 0xae, 0xda, 0xa5, 0x5d, 0xe3, 0x50, 0x47, 0xca, 0xd0, 0xb5, 0x7c, 0x69, 0xab, 0xbc, 0xb3,
+	0x82, 0xff, 0x1e, 0x36, 0xb4, 0x62, 0x31, 0xc6, 0xa7, 0xd4, 0xb0, 0xe1, 0x8c, 0xe5, 0x3c, 0x5c,
+	0x0d, 0x1f, 0xff, 0x37, 0x6c, 0xd7, 0x3b, 0x35, 0x82, 0x72, 0x3e, 0x69, 0xe4, 0x1a, 0xa4, 0xf9,
+	0x3f, 0xe0, 0x71, 0x7d, 0x81, 0x32, 0x7b, 0x35, 0x16, 0xc9, 0x55, 0x58, 0xf4, 0x9f, 0xc2, 0x7a,
+	0xbd, 0xbf, 0x45, 0xb2, 0x80, 0x94, 0x9c, 0x41, 0xea, 0xbf, 0x85, 0x47, 0xf5, 0xd4, 0x39, 0xb6,
+	0x15, 0x88, 0x49, 0x05, 0x62, 0x1f, 0xe1, 0x59, 0xbd, 0xfc, 0x3c, 0xac, 0x2f, 0x44, 0x9e, 0x5c,
+	0x80, 0xbc, 0xbf, 0xdf, 0x74, 0x61, 0x65, 0x13, 0xd4, 0x4c, 0x41, 0x6a, 0xa6, 0x68, 0x3e, 0xea,
+	0xdc, 0x26, 0x15, 0xd3, 0x90, 0x8a, 0x69, 0xfc, 0xef, 0xb0, 0x59, 0x2f, 0x2f, 0xd9, 0xa8, 0xea,
+	0x2a, 0x72, 0x15, 0x57, 0xf9, 0x87, 0xf0, 0xf0, 0x9c, 0x8b, 0xb4, 0xfb, 0xfc, 0x6b, 0x3a, 0xf2,
+	0x5f, 0xd3, 0xf9, 0x1f, 0x61, 0xab, 0xde, 0xae, 0x62, 0xc3, 0x26, 0x67, 0x92, 0x26, 0x67, 0x36,
+	0xdf, 0xdc, 0xdc, 0xab, 0x15, 0xe7, 0x92, 0xaa, 0x73, 0x3f, 0x00, 0xd5, 0x8a, 0x45, 0xc2, 0xee,
+	0x7f, 0x4d, 0xeb, 0xc6, 0xee, 0x25, 0x54, 0x5b, 0x5d, 0x9a, 0xd7, 0xf9, 0xb8, 0x85, 0x4b, 0x8d,
+	0x3b, 0x80, 0x8e, 0x56, 0x2c, 0x93, 0xe2, 0x57, 0x86, 0xd7, 0xdd, 0x7d, 0xaf, 0xf7, 0xed, 0xc9,
+	0x58, 0x98, 0x49, 0x36, 0xec, 0x73, 0x15, 0x0f, 0xb8, 0xd2, 0x7c, 0x12, 0x0a, 0x39, 0xe0, 0x4a,
+	0x1a, 0x94, 0x46, 0xe9, 0x9d, 0xb1, 0xca, 0xbf, 0xa5, 0xc3, 0x15, 0xd7, 0xe8, 0xf9, 0xdf, 0x00,
+	0x00, 0x00, 0xff, 0xff, 0x14, 0xfe, 0x90, 0x53, 0x5f, 0x07, 0x00, 0x00,
 }

@@ -282,6 +282,7 @@ func createKeyTpl(t TableInfo) string {
 	if len(t.PList) > 0 {
 		var sortList = make([]PropList, 0)
 		var uniList = make([]PropList, 0)
+		var memList = make([]PropList, 0)
 		mKeyType, mKeyName := "", ""
 		for _, v := range t.PList {
 			if v.BMainKey {
@@ -294,8 +295,22 @@ func createKeyTpl(t TableInfo) string {
 			if v.BUnique || v.BMainKey {
 				uniList = append(uniList, v)
 			}
+			memList = append(memList, v)
 		}
 		mKeyPro := PropList{VarName: mKeyName, VarType: mKeyType}
+		if len(memList) > 0 {
+			for _, v := range memList {
+				tempTpl := ""
+				msgName := fmt.Sprintf("\nmessage so_mem_%s_by_%s {\n",
+					strings.Replace(t.Name, " ", "", -1),
+					strings.Replace(v.VarName, " ", "", -1))
+				 tempTpl = creSubTabMsgTpl(v, msgName, PropList{})
+				if tempTpl != "" {
+					tpl += tempTpl
+				}
+			}
+		}
+
 		if len(sortList) > 0 && mKeyType != "" && mKeyName != "" {
 			for _, v := range sortList {
 				tempTpl := ""

@@ -17,6 +17,31 @@ message so_vote {
 }
 
 
+message so_mem_vote_by_voter {
+	prototype.voter_id          					voter               = 1;
+}
+
+
+message so_mem_vote_by_vote_time {
+	prototype.time_point_sec        	vote_time           = 1;
+}
+
+
+message so_mem_vote_by_post_id {
+	uint64                          	post_id             = 1;
+}
+
+
+message so_mem_vote_by_weighted_vp {
+	uint64                           	weighted_vp        = 1;
+}
+
+
+message so_mem_vote_by_upvote {
+	bool                             	upvote             = 1;
+}
+
+
 message so_list_vote_by_voter {
 	prototype.voter_id          					voter               = 1;
 }

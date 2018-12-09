@@ -2,6 +2,9 @@ package table
 
 import (
 	"errors"
+	fmt "fmt"
+	"reflect"
+	"strings"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -74,11 +77,7 @@ func (s *SoDemoWrap) Create(f func(tInfo *SoDemo)) error {
 		return err
 
 	}
-	resBuf, err := proto.Marshal(val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(keyBuf, resBuf)
+	err = s.saveAllMemKeys(val, true)
 	if err != nil {
 		return err
 	}
@@ -87,6 +86,7 @@ func (s *SoDemoWrap) Create(f func(tInfo *SoDemo)) error {
 	if err = s.insertAllSortKeys(val); err != nil {
 		s.delAllSortKeys(false, val)
 		s.dba.Delete(keyBuf)
+		s.delAllMemKeys(false, val)
 		return err
 	}
 
@@ -95,20 +95,164 @@ func (s *SoDemoWrap) Create(f func(tInfo *SoDemo)) error {
 		s.delAllSortKeys(false, val)
 		s.delAllUniKeys(false, val)
 		s.dba.Delete(keyBuf)
+		s.delAllMemKeys(false, val)
 		return err
 	}
 
 	return nil
 }
 
+func (s *SoDemoWrap) encodeMemKey(fName string) ([]byte, error) {
+	if len(fName) < 1 || s.mainKey == nil {
+		return nil, errors.New("field name or main key is empty")
+	}
+	pre := "Demo" + fName + "cell"
+	kList := []interface{}{pre, s.mainKey}
+	key, err := kope.EncodeSlice(kList)
+	if err != nil {
+		return nil, err
+	}
+	return key, nil
+}
+
+func (so *SoDemoWrap) saveAllMemKeys(tInfo *SoDemo, br bool) error {
+	if so.dba == nil {
+		return errors.New("save member Field fail , the db is nil")
+	}
+
+	if tInfo == nil {
+		return errors.New("save member Field fail , the data is nil ")
+	}
+	var err error = nil
+	errDes := ""
+	if err = so.saveMemKeyContent(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Content", err)
+		}
+	}
+	if err = so.saveMemKeyIdx(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Idx", err)
+		}
+	}
+	if err = so.saveMemKeyLikeCount(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "LikeCount", err)
+		}
+	}
+	if err = so.saveMemKeyOwner(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Owner", err)
+		}
+	}
+	if err = so.saveMemKeyPostTime(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "PostTime", err)
+		}
+	}
+	if err = so.saveMemKeyReplayCount(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "ReplayCount", err)
+		}
+	}
+	if err = so.saveMemKeyTaglist(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Taglist", err)
+		}
+	}
+	if err = so.saveMemKeyTitle(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Title", err)
+		}
+	}
+
+	if len(errDes) > 0 {
+		return errors.New(errDes)
+	}
+	return err
+}
+
+func (so *SoDemoWrap) delAllMemKeys(br bool, tInfo *SoDemo) error {
+	if so.dba == nil {
+		return errors.New("the db is nil")
+	}
+	t := reflect.TypeOf(*tInfo)
+	errDesc := ""
+	for k := 0; k < t.NumField(); k++ {
+		name := t.Field(k).Name
+		if len(name) > 0 && !strings.HasPrefix(name, "XXX_") {
+			err := so.delMemKey(name)
+			if err != nil {
+				if br {
+					return err
+				}
+				errDesc += fmt.Sprintf("delete the Field %s fail,error is %s;\n", name, err)
+			}
+		}
+	}
+	if len(errDesc) > 0 {
+		return errors.New(errDesc)
+	}
+	return nil
+}
+
+func (so *SoDemoWrap) delMemKey(fName string) error {
+	if so.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if len(fName) <= 0 {
+		return errors.New("the field name is empty ")
+	}
+	key, err := so.encodeMemKey(fName)
+	if err != nil {
+		return err
+	}
+	err = so.dba.Delete(key)
+	return err
+}
+
 ////////////// SECTION LKeys delete/insert ///////////////
 
 func (s *SoDemoWrap) delSortKeyOwner(sa *SoDemo) bool {
-	if s.dba == nil {
+	if s.dba == nil || s.mainKey == nil {
 		return false
 	}
 	val := SoListDemoByOwner{}
-	val.Owner = sa.Owner
+	if sa == nil {
+		key, err := s.encodeMemKey("Owner")
+		if err != nil {
+			return false
+		}
+		buf, err := s.dba.Get(key)
+		if err != nil {
+			return false
+		}
+		ori := &SoMemDemoByOwner{}
+		err = proto.Unmarshal(buf, ori)
+		if err != nil {
+			return false
+		}
+		val.Owner = ori.Owner
+	} else {
+		val.Owner = sa.Owner
+	}
+
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -136,12 +280,32 @@ func (s *SoDemoWrap) insertSortKeyOwner(sa *SoDemo) bool {
 }
 
 func (s *SoDemoWrap) delSortKeyPostTime(sa *SoDemo) bool {
-	if s.dba == nil {
+	if s.dba == nil || s.mainKey == nil {
 		return false
 	}
 	val := SoListDemoByPostTime{}
-	val.PostTime = sa.PostTime
-	val.Owner = sa.Owner
+	if sa == nil {
+		key, err := s.encodeMemKey("PostTime")
+		if err != nil {
+			return false
+		}
+		buf, err := s.dba.Get(key)
+		if err != nil {
+			return false
+		}
+		ori := &SoMemDemoByPostTime{}
+		err = proto.Unmarshal(buf, ori)
+		if err != nil {
+			return false
+		}
+		val.PostTime = ori.PostTime
+		val.Owner = s.mainKey
+
+	} else {
+		val.PostTime = sa.PostTime
+		val.Owner = sa.Owner
+	}
+
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -170,12 +334,32 @@ func (s *SoDemoWrap) insertSortKeyPostTime(sa *SoDemo) bool {
 }
 
 func (s *SoDemoWrap) delSortKeyLikeCount(sa *SoDemo) bool {
-	if s.dba == nil {
+	if s.dba == nil || s.mainKey == nil {
 		return false
 	}
 	val := SoListDemoByLikeCount{}
-	val.LikeCount = sa.LikeCount
-	val.Owner = sa.Owner
+	if sa == nil {
+		key, err := s.encodeMemKey("LikeCount")
+		if err != nil {
+			return false
+		}
+		buf, err := s.dba.Get(key)
+		if err != nil {
+			return false
+		}
+		ori := &SoMemDemoByLikeCount{}
+		err = proto.Unmarshal(buf, ori)
+		if err != nil {
+			return false
+		}
+		val.LikeCount = ori.LikeCount
+		val.Owner = s.mainKey
+
+	} else {
+		val.LikeCount = sa.LikeCount
+		val.Owner = sa.Owner
+	}
+
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -204,12 +388,32 @@ func (s *SoDemoWrap) insertSortKeyLikeCount(sa *SoDemo) bool {
 }
 
 func (s *SoDemoWrap) delSortKeyIdx(sa *SoDemo) bool {
-	if s.dba == nil {
+	if s.dba == nil || s.mainKey == nil {
 		return false
 	}
 	val := SoListDemoByIdx{}
-	val.Idx = sa.Idx
-	val.Owner = sa.Owner
+	if sa == nil {
+		key, err := s.encodeMemKey("Idx")
+		if err != nil {
+			return false
+		}
+		buf, err := s.dba.Get(key)
+		if err != nil {
+			return false
+		}
+		ori := &SoMemDemoByIdx{}
+		err = proto.Unmarshal(buf, ori)
+		if err != nil {
+			return false
+		}
+		val.Idx = ori.Idx
+		val.Owner = s.mainKey
+
+	} else {
+		val.Idx = sa.Idx
+		val.Owner = sa.Owner
+	}
+
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -238,12 +442,32 @@ func (s *SoDemoWrap) insertSortKeyIdx(sa *SoDemo) bool {
 }
 
 func (s *SoDemoWrap) delSortKeyReplayCount(sa *SoDemo) bool {
-	if s.dba == nil {
+	if s.dba == nil || s.mainKey == nil {
 		return false
 	}
 	val := SoListDemoByReplayCount{}
-	val.ReplayCount = sa.ReplayCount
-	val.Owner = sa.Owner
+	if sa == nil {
+		key, err := s.encodeMemKey("ReplayCount")
+		if err != nil {
+			return false
+		}
+		buf, err := s.dba.Get(key)
+		if err != nil {
+			return false
+		}
+		ori := &SoMemDemoByReplayCount{}
+		err = proto.Unmarshal(buf, ori)
+		if err != nil {
+			return false
+		}
+		val.ReplayCount = ori.ReplayCount
+		val.Owner = s.mainKey
+
+	} else {
+		val.ReplayCount = sa.ReplayCount
+		val.Owner = sa.Owner
+	}
+
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -272,12 +496,32 @@ func (s *SoDemoWrap) insertSortKeyReplayCount(sa *SoDemo) bool {
 }
 
 func (s *SoDemoWrap) delSortKeyTaglist(sa *SoDemo) bool {
-	if s.dba == nil {
+	if s.dba == nil || s.mainKey == nil {
 		return false
 	}
 	val := SoListDemoByTaglist{}
-	val.Taglist = sa.Taglist
-	val.Owner = sa.Owner
+	if sa == nil {
+		key, err := s.encodeMemKey("Taglist")
+		if err != nil {
+			return false
+		}
+		buf, err := s.dba.Get(key)
+		if err != nil {
+			return false
+		}
+		ori := &SoMemDemoByTaglist{}
+		err = proto.Unmarshal(buf, ori)
+		if err != nil {
+			return false
+		}
+		val.Taglist = ori.Taglist
+		val.Owner = s.mainKey
+
+	} else {
+		val.Taglist = sa.Taglist
+		val.Owner = sa.Owner
+	}
+
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -306,7 +550,7 @@ func (s *SoDemoWrap) insertSortKeyTaglist(sa *SoDemo) bool {
 }
 
 func (s *SoDemoWrap) delAllSortKeys(br bool, val *SoDemo) bool {
-	if s.dba == nil || val == nil {
+	if s.dba == nil {
 		return false
 	}
 	res := true
@@ -391,73 +635,173 @@ func (s *SoDemoWrap) RemoveDemo() bool {
 	if s.dba == nil {
 		return false
 	}
-	val := s.getDemo()
-	if val == nil {
-		return false
-	}
+	val := &SoDemo{}
 	//delete sort list key
-	if res := s.delAllSortKeys(true, val); !res {
+	if res := s.delAllSortKeys(true, nil); !res {
 		return false
 	}
 
 	//delete unique list
-	if res := s.delAllUniKeys(true, val); !res {
+	if res := s.delAllUniKeys(true, nil); !res {
 		return false
 	}
 
-	keyBuf, err := s.encodeMainKey()
-	if err != nil {
-		return false
-	}
-	return s.dba.Delete(keyBuf) == nil
+	err := s.delAllMemKeys(true, val)
+	return err == nil
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
-func (s *SoDemoWrap) GetContent() string {
-	res := s.getDemo()
+func (s *SoDemoWrap) saveMemKeyContent(tInfo *SoDemo) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemDemoByContent{}
+	val.Content = tInfo.Content
+	key, err := s.encodeMemKey("Content")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
 
-	if res == nil {
+func (s *SoDemoWrap) GetContent() string {
+	res := true
+	msg := &SoMemDemoByContent{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("Content")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.Content
+			}
+		}
+	}
+	if !res {
 		var tmpValue string
 		return tmpValue
 	}
-	return res.Content
+	return msg.Content
 }
 
 func (s *SoDemoWrap) MdContent(p string) bool {
 	if s.dba == nil {
 		return false
 	}
-	sa := s.getDemo()
-	if sa == nil {
+	key, err := s.encodeMemKey("Content")
+	if err != nil {
 		return false
 	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemDemoByContent{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoDemo{}
+	sa.Owner = s.mainKey
 
-	sa.Content = p
-	if !s.update(sa) {
+	sa.Content = ori.Content
+
+	ori.Content = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
 		return false
 	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.Content = p
 
 	return true
 }
 
-func (s *SoDemoWrap) GetIdx() int64 {
-	res := s.getDemo()
+func (s *SoDemoWrap) saveMemKeyIdx(tInfo *SoDemo) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemDemoByIdx{}
+	val.Idx = tInfo.Idx
+	key, err := s.encodeMemKey("Idx")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
 
-	if res == nil {
+func (s *SoDemoWrap) GetIdx() int64 {
+	res := true
+	msg := &SoMemDemoByIdx{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("Idx")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.Idx
+			}
+		}
+	}
+	if !res {
 		var tmpValue int64
 		return tmpValue
 	}
-	return res.Idx
+	return msg.Idx
 }
 
 func (s *SoDemoWrap) MdIdx(p int64) bool {
 	if s.dba == nil {
 		return false
 	}
-	sa := s.getDemo()
-	if sa == nil {
+	key, err := s.encodeMemKey("Idx")
+	if err != nil {
 		return false
 	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemDemoByIdx{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoDemo{}
+	sa.Owner = s.mainKey
+
+	sa.Idx = ori.Idx
 	//judge the unique value if is exist
 	uniWrap := UniDemoIdxWrap{}
 	uniWrap.Dba = s.dba
@@ -473,10 +817,16 @@ func (s *SoDemoWrap) MdIdx(p int64) bool {
 	if !s.delSortKeyIdx(sa) {
 		return false
 	}
-	sa.Idx = p
-	if !s.update(sa) {
+	ori.Idx = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
 		return false
 	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.Idx = p
 
 	if !s.insertSortKeyIdx(sa) {
 		return false
@@ -488,24 +838,74 @@ func (s *SoDemoWrap) MdIdx(p int64) bool {
 	return true
 }
 
-func (s *SoDemoWrap) GetLikeCount() int64 {
-	res := s.getDemo()
+func (s *SoDemoWrap) saveMemKeyLikeCount(tInfo *SoDemo) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemDemoByLikeCount{}
+	val.LikeCount = tInfo.LikeCount
+	key, err := s.encodeMemKey("LikeCount")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
 
-	if res == nil {
+func (s *SoDemoWrap) GetLikeCount() int64 {
+	res := true
+	msg := &SoMemDemoByLikeCount{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("LikeCount")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.LikeCount
+			}
+		}
+	}
+	if !res {
 		var tmpValue int64
 		return tmpValue
 	}
-	return res.LikeCount
+	return msg.LikeCount
 }
 
 func (s *SoDemoWrap) MdLikeCount(p int64) bool {
 	if s.dba == nil {
 		return false
 	}
-	sa := s.getDemo()
-	if sa == nil {
+	key, err := s.encodeMemKey("LikeCount")
+	if err != nil {
 		return false
 	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemDemoByLikeCount{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoDemo{}
+	sa.Owner = s.mainKey
+
+	sa.LikeCount = ori.LikeCount
 	//judge the unique value if is exist
 	uniWrap := UniDemoLikeCountWrap{}
 	uniWrap.Dba = s.dba
@@ -521,10 +921,16 @@ func (s *SoDemoWrap) MdLikeCount(p int64) bool {
 	if !s.delSortKeyLikeCount(sa) {
 		return false
 	}
-	sa.LikeCount = p
-	if !s.update(sa) {
+	ori.LikeCount = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
 		return false
 	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.LikeCount = p
 
 	if !s.insertSortKeyLikeCount(sa) {
 		return false
@@ -536,42 +942,138 @@ func (s *SoDemoWrap) MdLikeCount(p int64) bool {
 	return true
 }
 
-func (s *SoDemoWrap) GetOwner() *prototype.AccountName {
-	res := s.getDemo()
+func (s *SoDemoWrap) saveMemKeyOwner(tInfo *SoDemo) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemDemoByOwner{}
+	val.Owner = tInfo.Owner
+	key, err := s.encodeMemKey("Owner")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
 
-	if res == nil {
+func (s *SoDemoWrap) GetOwner() *prototype.AccountName {
+	res := true
+	msg := &SoMemDemoByOwner{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("Owner")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.Owner
+			}
+		}
+	}
+	if !res {
 		return nil
 
 	}
-	return res.Owner
+	return msg.Owner
+}
+
+func (s *SoDemoWrap) saveMemKeyPostTime(tInfo *SoDemo) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemDemoByPostTime{}
+	val.PostTime = tInfo.PostTime
+	key, err := s.encodeMemKey("PostTime")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
 }
 
 func (s *SoDemoWrap) GetPostTime() *prototype.TimePointSec {
-	res := s.getDemo()
-
-	if res == nil {
+	res := true
+	msg := &SoMemDemoByPostTime{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("PostTime")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.PostTime
+			}
+		}
+	}
+	if !res {
 		return nil
 
 	}
-	return res.PostTime
+	return msg.PostTime
 }
 
 func (s *SoDemoWrap) MdPostTime(p *prototype.TimePointSec) bool {
 	if s.dba == nil {
 		return false
 	}
-	sa := s.getDemo()
-	if sa == nil {
+	key, err := s.encodeMemKey("PostTime")
+	if err != nil {
 		return false
 	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemDemoByPostTime{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoDemo{}
+	sa.Owner = s.mainKey
+
+	sa.PostTime = ori.PostTime
 
 	if !s.delSortKeyPostTime(sa) {
 		return false
 	}
-	sa.PostTime = p
-	if !s.update(sa) {
+	ori.PostTime = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
 		return false
 	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.PostTime = p
 
 	if !s.insertSortKeyPostTime(sa) {
 		return false
@@ -580,32 +1082,88 @@ func (s *SoDemoWrap) MdPostTime(p *prototype.TimePointSec) bool {
 	return true
 }
 
-func (s *SoDemoWrap) GetReplayCount() int64 {
-	res := s.getDemo()
+func (s *SoDemoWrap) saveMemKeyReplayCount(tInfo *SoDemo) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemDemoByReplayCount{}
+	val.ReplayCount = tInfo.ReplayCount
+	key, err := s.encodeMemKey("ReplayCount")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
 
-	if res == nil {
+func (s *SoDemoWrap) GetReplayCount() int64 {
+	res := true
+	msg := &SoMemDemoByReplayCount{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("ReplayCount")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.ReplayCount
+			}
+		}
+	}
+	if !res {
 		var tmpValue int64
 		return tmpValue
 	}
-	return res.ReplayCount
+	return msg.ReplayCount
 }
 
 func (s *SoDemoWrap) MdReplayCount(p int64) bool {
 	if s.dba == nil {
 		return false
 	}
-	sa := s.getDemo()
-	if sa == nil {
+	key, err := s.encodeMemKey("ReplayCount")
+	if err != nil {
 		return false
 	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemDemoByReplayCount{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoDemo{}
+	sa.Owner = s.mainKey
+
+	sa.ReplayCount = ori.ReplayCount
 
 	if !s.delSortKeyReplayCount(sa) {
 		return false
 	}
-	sa.ReplayCount = p
-	if !s.update(sa) {
+	ori.ReplayCount = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
 		return false
 	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.ReplayCount = p
 
 	if !s.insertSortKeyReplayCount(sa) {
 		return false
@@ -614,32 +1172,88 @@ func (s *SoDemoWrap) MdReplayCount(p int64) bool {
 	return true
 }
 
-func (s *SoDemoWrap) GetTaglist() []string {
-	res := s.getDemo()
+func (s *SoDemoWrap) saveMemKeyTaglist(tInfo *SoDemo) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemDemoByTaglist{}
+	val.Taglist = tInfo.Taglist
+	key, err := s.encodeMemKey("Taglist")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
 
-	if res == nil {
+func (s *SoDemoWrap) GetTaglist() []string {
+	res := true
+	msg := &SoMemDemoByTaglist{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("Taglist")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.Taglist
+			}
+		}
+	}
+	if !res {
 		var tmpValue []string
 		return tmpValue
 	}
-	return res.Taglist
+	return msg.Taglist
 }
 
 func (s *SoDemoWrap) MdTaglist(p []string) bool {
 	if s.dba == nil {
 		return false
 	}
-	sa := s.getDemo()
-	if sa == nil {
+	key, err := s.encodeMemKey("Taglist")
+	if err != nil {
 		return false
 	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemDemoByTaglist{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoDemo{}
+	sa.Owner = s.mainKey
+
+	sa.Taglist = ori.Taglist
 
 	if !s.delSortKeyTaglist(sa) {
 		return false
 	}
-	sa.Taglist = p
-	if !s.update(sa) {
+	ori.Taglist = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
 		return false
 	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.Taglist = p
 
 	if !s.insertSortKeyTaglist(sa) {
 		return false
@@ -648,29 +1262,85 @@ func (s *SoDemoWrap) MdTaglist(p []string) bool {
 	return true
 }
 
-func (s *SoDemoWrap) GetTitle() string {
-	res := s.getDemo()
+func (s *SoDemoWrap) saveMemKeyTitle(tInfo *SoDemo) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemDemoByTitle{}
+	val.Title = tInfo.Title
+	key, err := s.encodeMemKey("Title")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
 
-	if res == nil {
+func (s *SoDemoWrap) GetTitle() string {
+	res := true
+	msg := &SoMemDemoByTitle{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("Title")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.Title
+			}
+		}
+	}
+	if !res {
 		var tmpValue string
 		return tmpValue
 	}
-	return res.Title
+	return msg.Title
 }
 
 func (s *SoDemoWrap) MdTitle(p string) bool {
 	if s.dba == nil {
 		return false
 	}
-	sa := s.getDemo()
-	if sa == nil {
+	key, err := s.encodeMemKey("Title")
+	if err != nil {
 		return false
 	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemDemoByTitle{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoDemo{}
+	sa.Owner = s.mainKey
 
-	sa.Title = p
-	if !s.update(sa) {
+	sa.Title = ori.Title
+
+	ori.Title = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
 		return false
 	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.Title = p
 
 	return true
 }
@@ -1358,7 +2028,7 @@ func (s *SoDemoWrap) getDemo() *SoDemo {
 }
 
 func (s *SoDemoWrap) encodeMainKey() ([]byte, error) {
-	pre := DemoTable
+	pre := "Demo" + "Owner" + "cell"
 	sub := s.mainKey
 	if sub == nil {
 		return nil, errors.New("the mainKey is nil")
@@ -1371,7 +2041,7 @@ func (s *SoDemoWrap) encodeMainKey() ([]byte, error) {
 ////////////// Unique Query delete/insert/query ///////////////
 
 func (s *SoDemoWrap) delAllUniKeys(br bool, val *SoDemo) bool {
-	if s.dba == nil || val == nil {
+	if s.dba == nil {
 		return false
 	}
 	res := true
@@ -1424,10 +2094,30 @@ func (s *SoDemoWrap) delUniKeyIdx(sa *SoDemo) bool {
 	if s.dba == nil {
 		return false
 	}
-
 	pre := DemoIdxUniTable
-	sub := sa.Idx
-	kList := []interface{}{pre, sub}
+	kList := []interface{}{pre}
+	if sa != nil {
+
+		sub := sa.Idx
+		kList = append(kList, sub)
+	} else {
+		key, err := s.encodeMemKey("Idx")
+		if err != nil {
+			return false
+		}
+		buf, err := s.dba.Get(key)
+		if err != nil {
+			return false
+		}
+		ori := &SoMemDemoByIdx{}
+		err = proto.Unmarshal(buf, ori)
+		if err != nil {
+			return false
+		}
+		sub := ori.Idx
+		kList = append(kList, sub)
+
+	}
 	kBuf, err := kope.EncodeSlice(kList)
 	if err != nil {
 		return false
@@ -1504,10 +2194,30 @@ func (s *SoDemoWrap) delUniKeyLikeCount(sa *SoDemo) bool {
 	if s.dba == nil {
 		return false
 	}
-
 	pre := DemoLikeCountUniTable
-	sub := sa.LikeCount
-	kList := []interface{}{pre, sub}
+	kList := []interface{}{pre}
+	if sa != nil {
+
+		sub := sa.LikeCount
+		kList = append(kList, sub)
+	} else {
+		key, err := s.encodeMemKey("LikeCount")
+		if err != nil {
+			return false
+		}
+		buf, err := s.dba.Get(key)
+		if err != nil {
+			return false
+		}
+		ori := &SoMemDemoByLikeCount{}
+		err = proto.Unmarshal(buf, ori)
+		if err != nil {
+			return false
+		}
+		sub := ori.LikeCount
+		kList = append(kList, sub)
+
+	}
 	kBuf, err := kope.EncodeSlice(kList)
 	if err != nil {
 		return false
@@ -1584,14 +2294,34 @@ func (s *SoDemoWrap) delUniKeyOwner(sa *SoDemo) bool {
 	if s.dba == nil {
 		return false
 	}
-
-	if sa.Owner == nil {
-		return false
-	}
-
 	pre := DemoOwnerUniTable
-	sub := sa.Owner
-	kList := []interface{}{pre, sub}
+	kList := []interface{}{pre}
+	if sa != nil {
+
+		if sa.Owner == nil {
+			return false
+		}
+
+		sub := sa.Owner
+		kList = append(kList, sub)
+	} else {
+		key, err := s.encodeMemKey("Owner")
+		if err != nil {
+			return false
+		}
+		buf, err := s.dba.Get(key)
+		if err != nil {
+			return false
+		}
+		ori := &SoMemDemoByOwner{}
+		err = proto.Unmarshal(buf, ori)
+		if err != nil {
+			return false
+		}
+		sub := ori.Owner
+		kList = append(kList, sub)
+
+	}
 	kBuf, err := kope.EncodeSlice(kList)
 	if err != nil {
 		return false

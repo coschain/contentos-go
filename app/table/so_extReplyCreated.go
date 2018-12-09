@@ -2,6 +2,9 @@ package table
 
 import (
 	"errors"
+	fmt "fmt"
+	"reflect"
+	"strings"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -64,11 +67,7 @@ func (s *SoExtReplyCreatedWrap) Create(f func(tInfo *SoExtReplyCreated)) error {
 		return err
 
 	}
-	resBuf, err := proto.Marshal(val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(keyBuf, resBuf)
+	err = s.saveAllMemKeys(val, true)
 	if err != nil {
 		return err
 	}
@@ -77,6 +76,7 @@ func (s *SoExtReplyCreatedWrap) Create(f func(tInfo *SoExtReplyCreated)) error {
 	if err = s.insertAllSortKeys(val); err != nil {
 		s.delAllSortKeys(false, val)
 		s.dba.Delete(keyBuf)
+		s.delAllMemKeys(false, val)
 		return err
 	}
 
@@ -85,21 +85,124 @@ func (s *SoExtReplyCreatedWrap) Create(f func(tInfo *SoExtReplyCreated)) error {
 		s.delAllSortKeys(false, val)
 		s.delAllUniKeys(false, val)
 		s.dba.Delete(keyBuf)
+		s.delAllMemKeys(false, val)
 		return err
 	}
 
 	return nil
 }
 
+func (s *SoExtReplyCreatedWrap) encodeMemKey(fName string) ([]byte, error) {
+	if len(fName) < 1 || s.mainKey == nil {
+		return nil, errors.New("field name or main key is empty")
+	}
+	pre := "ExtReplyCreated" + fName + "cell"
+	kList := []interface{}{pre, s.mainKey}
+	key, err := kope.EncodeSlice(kList)
+	if err != nil {
+		return nil, err
+	}
+	return key, nil
+}
+
+func (so *SoExtReplyCreatedWrap) saveAllMemKeys(tInfo *SoExtReplyCreated, br bool) error {
+	if so.dba == nil {
+		return errors.New("save member Field fail , the db is nil")
+	}
+
+	if tInfo == nil {
+		return errors.New("save member Field fail , the data is nil ")
+	}
+	var err error = nil
+	errDes := ""
+	if err = so.saveMemKeyCreatedOrder(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "CreatedOrder", err)
+		}
+	}
+	if err = so.saveMemKeyPostId(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "PostId", err)
+		}
+	}
+
+	if len(errDes) > 0 {
+		return errors.New(errDes)
+	}
+	return err
+}
+
+func (so *SoExtReplyCreatedWrap) delAllMemKeys(br bool, tInfo *SoExtReplyCreated) error {
+	if so.dba == nil {
+		return errors.New("the db is nil")
+	}
+	t := reflect.TypeOf(*tInfo)
+	errDesc := ""
+	for k := 0; k < t.NumField(); k++ {
+		name := t.Field(k).Name
+		if len(name) > 0 && !strings.HasPrefix(name, "XXX_") {
+			err := so.delMemKey(name)
+			if err != nil {
+				if br {
+					return err
+				}
+				errDesc += fmt.Sprintf("delete the Field %s fail,error is %s;\n", name, err)
+			}
+		}
+	}
+	if len(errDesc) > 0 {
+		return errors.New(errDesc)
+	}
+	return nil
+}
+
+func (so *SoExtReplyCreatedWrap) delMemKey(fName string) error {
+	if so.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if len(fName) <= 0 {
+		return errors.New("the field name is empty ")
+	}
+	key, err := so.encodeMemKey(fName)
+	if err != nil {
+		return err
+	}
+	err = so.dba.Delete(key)
+	return err
+}
+
 ////////////// SECTION LKeys delete/insert ///////////////
 
 func (s *SoExtReplyCreatedWrap) delSortKeyCreatedOrder(sa *SoExtReplyCreated) bool {
-	if s.dba == nil {
+	if s.dba == nil || s.mainKey == nil {
 		return false
 	}
 	val := SoListExtReplyCreatedByCreatedOrder{}
-	val.CreatedOrder = sa.CreatedOrder
-	val.PostId = sa.PostId
+	if sa == nil {
+		key, err := s.encodeMemKey("CreatedOrder")
+		if err != nil {
+			return false
+		}
+		buf, err := s.dba.Get(key)
+		if err != nil {
+			return false
+		}
+		ori := &SoMemExtReplyCreatedByCreatedOrder{}
+		err = proto.Unmarshal(buf, ori)
+		if err != nil {
+			return false
+		}
+		val.CreatedOrder = ori.CreatedOrder
+		val.PostId = *s.mainKey
+	} else {
+		val.CreatedOrder = sa.CreatedOrder
+		val.PostId = sa.PostId
+	}
+
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -128,7 +231,7 @@ func (s *SoExtReplyCreatedWrap) insertSortKeyCreatedOrder(sa *SoExtReplyCreated)
 }
 
 func (s *SoExtReplyCreatedWrap) delAllSortKeys(br bool, val *SoExtReplyCreated) bool {
-	if s.dba == nil || val == nil {
+	if s.dba == nil {
 		return false
 	}
 	res := true
@@ -163,54 +266,103 @@ func (s *SoExtReplyCreatedWrap) RemoveExtReplyCreated() bool {
 	if s.dba == nil {
 		return false
 	}
-	val := s.getExtReplyCreated()
-	if val == nil {
-		return false
-	}
+	val := &SoExtReplyCreated{}
 	//delete sort list key
-	if res := s.delAllSortKeys(true, val); !res {
+	if res := s.delAllSortKeys(true, nil); !res {
 		return false
 	}
 
 	//delete unique list
-	if res := s.delAllUniKeys(true, val); !res {
+	if res := s.delAllUniKeys(true, nil); !res {
 		return false
 	}
 
-	keyBuf, err := s.encodeMainKey()
-	if err != nil {
-		return false
-	}
-	return s.dba.Delete(keyBuf) == nil
+	err := s.delAllMemKeys(true, val)
+	return err == nil
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
-func (s *SoExtReplyCreatedWrap) GetCreatedOrder() *prototype.ReplyCreatedOrder {
-	res := s.getExtReplyCreated()
+func (s *SoExtReplyCreatedWrap) saveMemKeyCreatedOrder(tInfo *SoExtReplyCreated) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemExtReplyCreatedByCreatedOrder{}
+	val.CreatedOrder = tInfo.CreatedOrder
+	key, err := s.encodeMemKey("CreatedOrder")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
 
-	if res == nil {
+func (s *SoExtReplyCreatedWrap) GetCreatedOrder() *prototype.ReplyCreatedOrder {
+	res := true
+	msg := &SoMemExtReplyCreatedByCreatedOrder{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("CreatedOrder")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.CreatedOrder
+			}
+		}
+	}
+	if !res {
 		return nil
 
 	}
-	return res.CreatedOrder
+	return msg.CreatedOrder
 }
 
 func (s *SoExtReplyCreatedWrap) MdCreatedOrder(p *prototype.ReplyCreatedOrder) bool {
 	if s.dba == nil {
 		return false
 	}
-	sa := s.getExtReplyCreated()
-	if sa == nil {
+	key, err := s.encodeMemKey("CreatedOrder")
+	if err != nil {
 		return false
 	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemExtReplyCreatedByCreatedOrder{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoExtReplyCreated{}
+	sa.PostId = *s.mainKey
+	sa.CreatedOrder = ori.CreatedOrder
 
 	if !s.delSortKeyCreatedOrder(sa) {
 		return false
 	}
-	sa.CreatedOrder = p
-	if !s.update(sa) {
+	ori.CreatedOrder = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
 		return false
 	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.CreatedOrder = p
 
 	if !s.insertSortKeyCreatedOrder(sa) {
 		return false
@@ -219,14 +371,54 @@ func (s *SoExtReplyCreatedWrap) MdCreatedOrder(p *prototype.ReplyCreatedOrder) b
 	return true
 }
 
-func (s *SoExtReplyCreatedWrap) GetPostId() uint64 {
-	res := s.getExtReplyCreated()
+func (s *SoExtReplyCreatedWrap) saveMemKeyPostId(tInfo *SoExtReplyCreated) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemExtReplyCreatedByPostId{}
+	val.PostId = tInfo.PostId
+	key, err := s.encodeMemKey("PostId")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
 
-	if res == nil {
+func (s *SoExtReplyCreatedWrap) GetPostId() uint64 {
+	res := true
+	msg := &SoMemExtReplyCreatedByPostId{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("PostId")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.PostId
+			}
+		}
+	}
+	if !res {
 		var tmpValue uint64
 		return tmpValue
 	}
-	return res.PostId
+	return msg.PostId
 }
 
 ////////////// SECTION List Keys ///////////////
@@ -372,7 +564,7 @@ func (s *SoExtReplyCreatedWrap) getExtReplyCreated() *SoExtReplyCreated {
 }
 
 func (s *SoExtReplyCreatedWrap) encodeMainKey() ([]byte, error) {
-	pre := ExtReplyCreatedTable
+	pre := "ExtReplyCreated" + "PostId" + "cell"
 	sub := s.mainKey
 	if sub == nil {
 		return nil, errors.New("the mainKey is nil")
@@ -385,7 +577,7 @@ func (s *SoExtReplyCreatedWrap) encodeMainKey() ([]byte, error) {
 ////////////// Unique Query delete/insert/query ///////////////
 
 func (s *SoExtReplyCreatedWrap) delAllUniKeys(br bool, val *SoExtReplyCreated) bool {
-	if s.dba == nil || val == nil {
+	if s.dba == nil {
 		return false
 	}
 	res := true
@@ -418,10 +610,30 @@ func (s *SoExtReplyCreatedWrap) delUniKeyPostId(sa *SoExtReplyCreated) bool {
 	if s.dba == nil {
 		return false
 	}
-
 	pre := ExtReplyCreatedPostIdUniTable
-	sub := sa.PostId
-	kList := []interface{}{pre, sub}
+	kList := []interface{}{pre}
+	if sa != nil {
+
+		sub := sa.PostId
+		kList = append(kList, sub)
+	} else {
+		key, err := s.encodeMemKey("PostId")
+		if err != nil {
+			return false
+		}
+		buf, err := s.dba.Get(key)
+		if err != nil {
+			return false
+		}
+		ori := &SoMemExtReplyCreatedByPostId{}
+		err = proto.Unmarshal(buf, ori)
+		if err != nil {
+			return false
+		}
+		sub := ori.PostId
+		kList = append(kList, sub)
+
+	}
 	kBuf, err := kope.EncodeSlice(kList)
 	if err != nil {
 		return false

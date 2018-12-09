@@ -92,6 +92,201 @@ func (m *SoVote) GetUpvote() bool {
 	return false
 }
 
+type SoMemVoteByVoter struct {
+	Voter                *prototype.VoterId `protobuf:"bytes,1,opt,name=voter,proto3" json:"voter,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}           `json:"-"`
+	XXX_unrecognized     []byte             `json:"-"`
+	XXX_sizecache        int32              `json:"-"`
+}
+
+func (m *SoMemVoteByVoter) Reset()         { *m = SoMemVoteByVoter{} }
+func (m *SoMemVoteByVoter) String() string { return proto.CompactTextString(m) }
+func (*SoMemVoteByVoter) ProtoMessage()    {}
+func (*SoMemVoteByVoter) Descriptor() ([]byte, []int) {
+	return fileDescriptor_6fb8a0494f841ad2, []int{1}
+}
+
+func (m *SoMemVoteByVoter) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SoMemVoteByVoter.Unmarshal(m, b)
+}
+func (m *SoMemVoteByVoter) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SoMemVoteByVoter.Marshal(b, m, deterministic)
+}
+func (m *SoMemVoteByVoter) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoMemVoteByVoter.Merge(m, src)
+}
+func (m *SoMemVoteByVoter) XXX_Size() int {
+	return xxx_messageInfo_SoMemVoteByVoter.Size(m)
+}
+func (m *SoMemVoteByVoter) XXX_DiscardUnknown() {
+	xxx_messageInfo_SoMemVoteByVoter.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SoMemVoteByVoter proto.InternalMessageInfo
+
+func (m *SoMemVoteByVoter) GetVoter() *prototype.VoterId {
+	if m != nil {
+		return m.Voter
+	}
+	return nil
+}
+
+type SoMemVoteByVoteTime struct {
+	VoteTime             *prototype.TimePointSec `protobuf:"bytes,1,opt,name=vote_time,json=voteTime,proto3" json:"vote_time,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}                `json:"-"`
+	XXX_unrecognized     []byte                  `json:"-"`
+	XXX_sizecache        int32                   `json:"-"`
+}
+
+func (m *SoMemVoteByVoteTime) Reset()         { *m = SoMemVoteByVoteTime{} }
+func (m *SoMemVoteByVoteTime) String() string { return proto.CompactTextString(m) }
+func (*SoMemVoteByVoteTime) ProtoMessage()    {}
+func (*SoMemVoteByVoteTime) Descriptor() ([]byte, []int) {
+	return fileDescriptor_6fb8a0494f841ad2, []int{2}
+}
+
+func (m *SoMemVoteByVoteTime) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SoMemVoteByVoteTime.Unmarshal(m, b)
+}
+func (m *SoMemVoteByVoteTime) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SoMemVoteByVoteTime.Marshal(b, m, deterministic)
+}
+func (m *SoMemVoteByVoteTime) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoMemVoteByVoteTime.Merge(m, src)
+}
+func (m *SoMemVoteByVoteTime) XXX_Size() int {
+	return xxx_messageInfo_SoMemVoteByVoteTime.Size(m)
+}
+func (m *SoMemVoteByVoteTime) XXX_DiscardUnknown() {
+	xxx_messageInfo_SoMemVoteByVoteTime.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SoMemVoteByVoteTime proto.InternalMessageInfo
+
+func (m *SoMemVoteByVoteTime) GetVoteTime() *prototype.TimePointSec {
+	if m != nil {
+		return m.VoteTime
+	}
+	return nil
+}
+
+type SoMemVoteByPostId struct {
+	PostId               uint64   `protobuf:"varint,1,opt,name=post_id,json=postId,proto3" json:"post_id,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *SoMemVoteByPostId) Reset()         { *m = SoMemVoteByPostId{} }
+func (m *SoMemVoteByPostId) String() string { return proto.CompactTextString(m) }
+func (*SoMemVoteByPostId) ProtoMessage()    {}
+func (*SoMemVoteByPostId) Descriptor() ([]byte, []int) {
+	return fileDescriptor_6fb8a0494f841ad2, []int{3}
+}
+
+func (m *SoMemVoteByPostId) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SoMemVoteByPostId.Unmarshal(m, b)
+}
+func (m *SoMemVoteByPostId) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SoMemVoteByPostId.Marshal(b, m, deterministic)
+}
+func (m *SoMemVoteByPostId) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoMemVoteByPostId.Merge(m, src)
+}
+func (m *SoMemVoteByPostId) XXX_Size() int {
+	return xxx_messageInfo_SoMemVoteByPostId.Size(m)
+}
+func (m *SoMemVoteByPostId) XXX_DiscardUnknown() {
+	xxx_messageInfo_SoMemVoteByPostId.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SoMemVoteByPostId proto.InternalMessageInfo
+
+func (m *SoMemVoteByPostId) GetPostId() uint64 {
+	if m != nil {
+		return m.PostId
+	}
+	return 0
+}
+
+type SoMemVoteByWeightedVp struct {
+	WeightedVp           uint64   `protobuf:"varint,1,opt,name=weighted_vp,json=weightedVp,proto3" json:"weighted_vp,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *SoMemVoteByWeightedVp) Reset()         { *m = SoMemVoteByWeightedVp{} }
+func (m *SoMemVoteByWeightedVp) String() string { return proto.CompactTextString(m) }
+func (*SoMemVoteByWeightedVp) ProtoMessage()    {}
+func (*SoMemVoteByWeightedVp) Descriptor() ([]byte, []int) {
+	return fileDescriptor_6fb8a0494f841ad2, []int{4}
+}
+
+func (m *SoMemVoteByWeightedVp) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SoMemVoteByWeightedVp.Unmarshal(m, b)
+}
+func (m *SoMemVoteByWeightedVp) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SoMemVoteByWeightedVp.Marshal(b, m, deterministic)
+}
+func (m *SoMemVoteByWeightedVp) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoMemVoteByWeightedVp.Merge(m, src)
+}
+func (m *SoMemVoteByWeightedVp) XXX_Size() int {
+	return xxx_messageInfo_SoMemVoteByWeightedVp.Size(m)
+}
+func (m *SoMemVoteByWeightedVp) XXX_DiscardUnknown() {
+	xxx_messageInfo_SoMemVoteByWeightedVp.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SoMemVoteByWeightedVp proto.InternalMessageInfo
+
+func (m *SoMemVoteByWeightedVp) GetWeightedVp() uint64 {
+	if m != nil {
+		return m.WeightedVp
+	}
+	return 0
+}
+
+type SoMemVoteByUpvote struct {
+	Upvote               bool     `protobuf:"varint,1,opt,name=upvote,proto3" json:"upvote,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *SoMemVoteByUpvote) Reset()         { *m = SoMemVoteByUpvote{} }
+func (m *SoMemVoteByUpvote) String() string { return proto.CompactTextString(m) }
+func (*SoMemVoteByUpvote) ProtoMessage()    {}
+func (*SoMemVoteByUpvote) Descriptor() ([]byte, []int) {
+	return fileDescriptor_6fb8a0494f841ad2, []int{5}
+}
+
+func (m *SoMemVoteByUpvote) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SoMemVoteByUpvote.Unmarshal(m, b)
+}
+func (m *SoMemVoteByUpvote) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SoMemVoteByUpvote.Marshal(b, m, deterministic)
+}
+func (m *SoMemVoteByUpvote) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoMemVoteByUpvote.Merge(m, src)
+}
+func (m *SoMemVoteByUpvote) XXX_Size() int {
+	return xxx_messageInfo_SoMemVoteByUpvote.Size(m)
+}
+func (m *SoMemVoteByUpvote) XXX_DiscardUnknown() {
+	xxx_messageInfo_SoMemVoteByUpvote.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SoMemVoteByUpvote proto.InternalMessageInfo
+
+func (m *SoMemVoteByUpvote) GetUpvote() bool {
+	if m != nil {
+		return m.Upvote
+	}
+	return false
+}
+
 type SoListVoteByVoter struct {
 	Voter                *prototype.VoterId `protobuf:"bytes,1,opt,name=voter,proto3" json:"voter,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}           `json:"-"`
@@ -103,7 +298,7 @@ func (m *SoListVoteByVoter) Reset()         { *m = SoListVoteByVoter{} }
 func (m *SoListVoteByVoter) String() string { return proto.CompactTextString(m) }
 func (*SoListVoteByVoter) ProtoMessage()    {}
 func (*SoListVoteByVoter) Descriptor() ([]byte, []int) {
-	return fileDescriptor_6fb8a0494f841ad2, []int{1}
+	return fileDescriptor_6fb8a0494f841ad2, []int{6}
 }
 
 func (m *SoListVoteByVoter) XXX_Unmarshal(b []byte) error {
@@ -143,7 +338,7 @@ func (m *SoListVoteByVoteTime) Reset()         { *m = SoListVoteByVoteTime{} }
 func (m *SoListVoteByVoteTime) String() string { return proto.CompactTextString(m) }
 func (*SoListVoteByVoteTime) ProtoMessage()    {}
 func (*SoListVoteByVoteTime) Descriptor() ([]byte, []int) {
-	return fileDescriptor_6fb8a0494f841ad2, []int{2}
+	return fileDescriptor_6fb8a0494f841ad2, []int{7}
 }
 
 func (m *SoListVoteByVoteTime) XXX_Unmarshal(b []byte) error {
@@ -190,7 +385,7 @@ func (m *SoListVoteByPostId) Reset()         { *m = SoListVoteByPostId{} }
 func (m *SoListVoteByPostId) String() string { return proto.CompactTextString(m) }
 func (*SoListVoteByPostId) ProtoMessage()    {}
 func (*SoListVoteByPostId) Descriptor() ([]byte, []int) {
-	return fileDescriptor_6fb8a0494f841ad2, []int{3}
+	return fileDescriptor_6fb8a0494f841ad2, []int{8}
 }
 
 func (m *SoListVoteByPostId) XXX_Unmarshal(b []byte) error {
@@ -236,7 +431,7 @@ func (m *SoUniqueVoteByVoter) Reset()         { *m = SoUniqueVoteByVoter{} }
 func (m *SoUniqueVoteByVoter) String() string { return proto.CompactTextString(m) }
 func (*SoUniqueVoteByVoter) ProtoMessage()    {}
 func (*SoUniqueVoteByVoter) Descriptor() ([]byte, []int) {
-	return fileDescriptor_6fb8a0494f841ad2, []int{4}
+	return fileDescriptor_6fb8a0494f841ad2, []int{9}
 }
 
 func (m *SoUniqueVoteByVoter) XXX_Unmarshal(b []byte) error {
@@ -266,6 +461,11 @@ func (m *SoUniqueVoteByVoter) GetVoter() *prototype.VoterId {
 
 func init() {
 	proto.RegisterType((*SoVote)(nil), "table.so_vote")
+	proto.RegisterType((*SoMemVoteByVoter)(nil), "table.so_mem_vote_by_voter")
+	proto.RegisterType((*SoMemVoteByVoteTime)(nil), "table.so_mem_vote_by_vote_time")
+	proto.RegisterType((*SoMemVoteByPostId)(nil), "table.so_mem_vote_by_post_id")
+	proto.RegisterType((*SoMemVoteByWeightedVp)(nil), "table.so_mem_vote_by_weighted_vp")
+	proto.RegisterType((*SoMemVoteByUpvote)(nil), "table.so_mem_vote_by_upvote")
 	proto.RegisterType((*SoListVoteByVoter)(nil), "table.so_list_vote_by_voter")
 	proto.RegisterType((*SoListVoteByVoteTime)(nil), "table.so_list_vote_by_vote_time")
 	proto.RegisterType((*SoListVoteByPostId)(nil), "table.so_list_vote_by_post_id")
@@ -275,25 +475,28 @@ func init() {
 func init() { proto.RegisterFile("app/table/so_vote.proto", fileDescriptor_6fb8a0494f841ad2) }
 
 var fileDescriptor_6fb8a0494f841ad2 = []byte{
-	// 306 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x52, 0xcd, 0x4e, 0xf3, 0x30,
-	0x10, 0x94, 0xfb, 0x35, 0x69, 0x3f, 0xf7, 0x66, 0x7e, 0x92, 0x72, 0x21, 0xca, 0x01, 0x85, 0x03,
-	0x89, 0x04, 0x12, 0x0f, 0x50, 0x71, 0xe1, 0x1a, 0x21, 0x0e, 0x48, 0xc8, 0xca, 0x8f, 0x95, 0x58,
-	0x6a, 0xb2, 0xa6, 0xde, 0x14, 0xf5, 0xc2, 0xa3, 0xf1, 0x6c, 0xc8, 0x4e, 0xa8, 0x5a, 0x84, 0x44,
-	0xe1, 0x62, 0x7b, 0x67, 0xc7, 0xb3, 0x9e, 0x91, 0xa9, 0x97, 0x29, 0x95, 0x60, 0x96, 0x2f, 0x45,
-	0xa2, 0x81, 0xaf, 0x01, 0x45, 0xac, 0x56, 0x80, 0xc0, 0x1c, 0x0b, 0x9e, 0x1d, 0xdb, 0x0a, 0x37,
-	0x4a, 0x24, 0x66, 0xe9, 0x9b, 0xe1, 0x3b, 0xa1, 0x93, 0x81, 0xce, 0x2e, 0xa9, 0x63, 0xf6, 0x95,
-	0x4f, 0x02, 0x12, 0xcd, 0xae, 0x8f, 0xe2, 0xed, 0x8d, 0xd8, 0xe2, 0x5c, 0x96, 0x69, 0xcf, 0x60,
-	0xb7, 0xf4, 0xbf, 0x39, 0x70, 0x94, 0x8d, 0xf0, 0x47, 0x96, 0x3e, 0xdf, 0xa1, 0x1b, 0x98, 0x2b,
-	0x90, 0x2d, 0x72, 0x2d, 0x8a, 0x74, 0x6a, 0xb8, 0x0f, 0xb2, 0x11, 0xcc, 0xa3, 0x13, 0x05, 0x1a,
-	0xb9, 0x2c, 0xfd, 0x7f, 0x01, 0x89, 0xc6, 0xa9, 0x6b, 0xca, 0xfb, 0x92, 0x9d, 0xd3, 0xd9, 0xab,
-	0x90, 0x55, 0x8d, 0xa2, 0xe4, 0x6b, 0xe5, 0x8f, 0x6d, 0x93, 0x7e, 0x42, 0x8f, 0x8a, 0x9d, 0x52,
-	0xb7, 0x53, 0x46, 0xc7, 0x77, 0x02, 0x12, 0x4d, 0xd3, 0xa1, 0x0a, 0x17, 0xf4, 0x44, 0x03, 0x5f,
-	0x4a, 0x8d, 0xd6, 0x04, 0xcf, 0x37, 0xbc, 0x7f, 0xe2, 0xe1, 0x6e, 0xc2, 0x37, 0x3a, 0xff, 0x4e,
-	0xc3, 0xba, 0xdb, 0xb7, 0x4a, 0x0e, 0xb7, 0xba, 0x9d, 0x3f, 0xfa, 0x71, 0xfe, 0x33, 0xf5, 0xbe,
-	0xce, 0x1f, 0x52, 0xda, 0x0d, 0x8c, 0xec, 0x05, 0xf6, 0x0b, 0xf9, 0x3b, 0x2b, 0xdf, 0xb5, 0xf2,
-	0xa5, 0x13, 0x7f, 0x0e, 0x69, 0x11, 0x3d, 0x5d, 0x54, 0x12, 0xeb, 0x2e, 0x8f, 0x0b, 0x68, 0x92,
-	0x02, 0x74, 0x51, 0x67, 0xb2, 0x4d, 0x0a, 0x68, 0x51, 0xb4, 0x08, 0xfa, 0xaa, 0x82, 0xfe, 0xfb,
-	0xe5, 0xae, 0x15, 0xb9, 0xf9, 0x08, 0x00, 0x00, 0xff, 0xff, 0x94, 0x52, 0xc8, 0x32, 0x92, 0x02,
-	0x00, 0x00,
+	// 353 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xa4, 0x93, 0x4f, 0x4f, 0xc2, 0x40,
+	0x10, 0xc5, 0xb3, 0xc8, 0x3f, 0x87, 0x5b, 0x45, 0x28, 0x5c, 0x24, 0x3d, 0x98, 0x7a, 0xb0, 0x8d,
+	0x9a, 0x78, 0xf3, 0x20, 0xf1, 0xe2, 0xb5, 0x31, 0x1e, 0x4c, 0xcc, 0x86, 0xb6, 0x1b, 0xd8, 0x84,
+	0x76, 0x57, 0x76, 0x8a, 0xe1, 0xe2, 0x47, 0xf3, 0xb3, 0x99, 0xdd, 0xa2, 0x96, 0x0d, 0x09, 0x88,
+	0x97, 0xb6, 0x33, 0xfb, 0xe6, 0x4d, 0xdf, 0x2f, 0x59, 0xe8, 0x4f, 0xa4, 0x0c, 0x71, 0x12, 0xcf,
+	0x59, 0xa8, 0x04, 0x5d, 0x0a, 0x64, 0x81, 0x5c, 0x08, 0x14, 0x4e, 0xc3, 0x34, 0x87, 0x5d, 0x53,
+	0xe1, 0x4a, 0xb2, 0x50, 0x3f, 0xca, 0x43, 0xef, 0x93, 0x40, 0x6b, 0x2d, 0x77, 0x2e, 0xa0, 0xa1,
+	0xdf, 0x0b, 0x97, 0x8c, 0x88, 0xdf, 0xb9, 0x3e, 0x09, 0x7e, 0x26, 0x02, 0xd3, 0xa7, 0x3c, 0x8d,
+	0x4a, 0x85, 0x73, 0x0b, 0xc7, 0xfa, 0x83, 0x22, 0xcf, 0x98, 0x5b, 0x33, 0xf2, 0x41, 0x45, 0xae,
+	0xdb, 0x54, 0x0a, 0x9e, 0x23, 0x55, 0x2c, 0x89, 0xda, 0x5a, 0xfb, 0xc4, 0x33, 0xe6, 0xf4, 0xa1,
+	0x25, 0x85, 0x42, 0xca, 0x53, 0xf7, 0x68, 0x44, 0xfc, 0x7a, 0xd4, 0xd4, 0xe5, 0x63, 0xea, 0x9c,
+	0x41, 0xe7, 0x9d, 0xf1, 0xe9, 0x0c, 0x59, 0x4a, 0x97, 0xd2, 0xad, 0x9b, 0x43, 0xf8, 0x6e, 0x3d,
+	0x4b, 0xa7, 0x07, 0xcd, 0x42, 0x6a, 0x1f, 0xb7, 0x31, 0x22, 0x7e, 0x3b, 0x5a, 0x57, 0xde, 0x3d,
+	0x74, 0x95, 0xa0, 0x19, 0xcb, 0x4c, 0x06, 0x1a, 0xaf, 0x68, 0xf9, 0x87, 0xfb, 0x87, 0xf1, 0x22,
+	0x70, 0xb7, 0x58, 0x98, 0x6c, 0x9b, 0x41, 0xc9, 0xde, 0x41, 0xbd, 0x2b, 0xe8, 0x59, 0x9e, 0xeb,
+	0xdc, 0x55, 0x04, 0xa4, 0x8a, 0xc0, 0xbb, 0x83, 0xa1, 0x35, 0x52, 0x21, 0x62, 0x03, 0x22, 0x36,
+	0x20, 0x2f, 0x84, 0x53, 0x6b, 0xbc, 0x24, 0x54, 0x21, 0x47, 0x36, 0xc8, 0x8d, 0xcd, 0xc0, 0x9c,
+	0x2b, 0x3c, 0x1c, 0xdd, 0x07, 0x0c, 0xb6, 0x79, 0xfc, 0x8b, 0xdd, 0xef, 0xfe, 0xda, 0xce, 0xfd,
+	0xaf, 0xd0, 0xb7, 0xf7, 0xef, 0xe2, 0xfc, 0x17, 0xfb, 0x07, 0x63, 0x5f, 0xe4, 0xfc, 0xad, 0x60,
+	0x07, 0x43, 0x1a, 0xfb, 0x2f, 0xe7, 0x53, 0x8e, 0xb3, 0x22, 0x0e, 0x12, 0x91, 0x85, 0x89, 0x50,
+	0xc9, 0x6c, 0xc2, 0xf3, 0x30, 0x11, 0x39, 0xb2, 0x1c, 0x85, 0xba, 0x9c, 0x8a, 0xf2, 0xe2, 0xc6,
+	0x4d, 0x63, 0x72, 0xf3, 0x15, 0x00, 0x00, 0xff, 0xff, 0xa9, 0x9a, 0x0c, 0xa6, 0xcc, 0x03, 0x00,
+	0x00,
 }

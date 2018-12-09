@@ -17,6 +17,31 @@ message so_accountAuthorityObject {
 }
 
 
+message so_mem_accountAuthorityObject_by_account {
+	prototype.account_name   	account               = 1;
+}
+
+
+message so_mem_accountAuthorityObject_by_owner {
+	prototype.authority      	owner                = 1;
+}
+
+
+message so_mem_accountAuthorityObject_by_active {
+	prototype.authority      	active               = 1;
+}
+
+
+message so_mem_accountAuthorityObject_by_posting {
+	prototype.authority      	posting              = 1;
+}
+
+
+message so_mem_accountAuthorityObject_by_last_owner_update {
+	prototype.time_point_sec 	last_owner_update    = 1;
+}
+
+
 message so_unique_accountAuthorityObject_by_account {
 	prototype.account_name   	account               = 1;
 }

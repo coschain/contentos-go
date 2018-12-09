@@ -28,6 +28,86 @@ message so_post {
 }
 
 
+message so_mem_post_by_post_id {
+	uint64                              	post_id             = 1;
+}
+
+
+message so_mem_post_by_category {
+	string                              	category            = 1;
+}
+
+
+message so_mem_post_by_author {
+	prototype.account_name              	author              = 1;
+}
+
+
+message so_mem_post_by_title {
+	string                              	title               = 1;
+}
+
+
+message so_mem_post_by_body {
+	string                              	body                = 1;
+}
+
+
+message so_mem_post_by_tags				 {
+	repeated  	string                            	tags				 = 1;
+}
+
+
+message so_mem_post_by_created {
+	prototype.time_point_sec            	created             = 1;
+}
+
+
+message so_mem_post_by_last_payout {
+	prototype.time_point_sec            	last_payout         = 1;
+}
+
+
+message so_mem_post_by_depth {
+	uint32                              	depth               = 1;
+}
+
+
+message so_mem_post_by_children {
+	uint32                              	children            = 1;
+}
+
+
+message so_mem_post_by_root_id {
+	uint64                              	root_id             = 1;
+}
+
+
+message so_mem_post_by_parent_id {
+	uint64                              	parent_id           = 1;
+}
+
+
+message so_mem_post_by_vote_cnt {
+	uint64                              	vote_cnt            = 1;
+}
+
+
+message so_mem_post_by_beneficiaries {
+	repeated  	prototype.beneficiary_route_type  	beneficiaries       = 1;
+}
+
+
+message so_mem_post_by_cashout_time {
+	prototype.time_point_sec            	cashout_time        = 1;
+}
+
+
+message so_mem_post_by_weighted_vp {
+	uint64                              	weighted_vp         = 1;
+}
+
+
 message so_list_post_by_created {
 	prototype.time_point_sec            	created             = 1;
 	uint64                              	post_id             = 2;

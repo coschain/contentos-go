@@ -14,6 +14,16 @@ message so_transactionObject {
 }
 
 
+message so_mem_transactionObject_by_trx_id {
+	prototype.sha256         	trx_id        = 1;
+}
+
+
+message so_mem_transactionObject_by_expiration {
+	prototype.time_point_sec 	expiration    = 1;
+}
+
+
 message so_list_transactionObject_by_expiration {
 	prototype.time_point_sec 	expiration    = 1;
 	prototype.sha256         	trx_id        = 2;

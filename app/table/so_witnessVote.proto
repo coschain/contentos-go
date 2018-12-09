@@ -15,6 +15,21 @@ message so_witnessVote {
 }
 
 
+message so_mem_witnessVote_by_voter_id {
+	prototype.bp_voter_id           	voter_id   = 1;
+}
+
+
+message so_mem_witnessVote_by_witness_id {
+	prototype.bp_witness_id 									witness_id = 1;
+}
+
+
+message so_mem_witnessVote_by_vote_time {
+	prototype.time_point_sec        	vote_time  = 1;
+}
+
+
 message so_list_witnessVote_by_voter_id {
 	prototype.bp_voter_id           	voter_id   = 1;
 }

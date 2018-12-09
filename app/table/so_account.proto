@@ -21,6 +21,51 @@ message so_account {
 }
 
 
+message so_mem_account_by_name {
+	prototype.account_name   	name           = 1;
+}
+
+
+message so_mem_account_by_created_time {
+	prototype.time_point_sec 	created_time   = 1;
+}
+
+
+message so_mem_account_by_creator {
+	prototype.account_name   	creator        = 1;
+}
+
+
+message so_mem_account_by_balance {
+	prototype.coin           	balance        = 1;
+}
+
+
+message so_mem_account_by_vesting_shares {
+	prototype.vest           	vesting_shares = 1;
+}
+
+
+message so_mem_account_by_bp_vote_count {
+	uint32                   	bp_vote_count  = 1;
+}
+
+
+message so_mem_account_by_last_vote_time {
+	prototype.time_point_sec 	last_vote_time  = 1;
+}
+
+
+message so_mem_account_by_last_post_time {
+	prototype.time_point_sec 	last_post_time  = 1;
+}
+
+
+message so_mem_account_by_vote_power {
+	uint32                   	vote_power = 1;
+}
+
+
 message so_list_account_by_created_time {
 	prototype.time_point_sec 	created_time   = 1;
 	prototype.account_name   	name           = 2;

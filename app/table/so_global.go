@@ -2,6 +2,9 @@ package table
 
 import (
 	"errors"
+	fmt "fmt"
+	"reflect"
+	"strings"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -63,11 +66,7 @@ func (s *SoGlobalWrap) Create(f func(tInfo *SoGlobal)) error {
 		return err
 
 	}
-	resBuf, err := proto.Marshal(val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(keyBuf, resBuf)
+	err = s.saveAllMemKeys(val, true)
 	if err != nil {
 		return err
 	}
@@ -76,6 +75,7 @@ func (s *SoGlobalWrap) Create(f func(tInfo *SoGlobal)) error {
 	if err = s.insertAllSortKeys(val); err != nil {
 		s.delAllSortKeys(false, val)
 		s.dba.Delete(keyBuf)
+		s.delAllMemKeys(false, val)
 		return err
 	}
 
@@ -84,16 +84,100 @@ func (s *SoGlobalWrap) Create(f func(tInfo *SoGlobal)) error {
 		s.delAllSortKeys(false, val)
 		s.delAllUniKeys(false, val)
 		s.dba.Delete(keyBuf)
+		s.delAllMemKeys(false, val)
 		return err
 	}
 
 	return nil
 }
 
+func (s *SoGlobalWrap) encodeMemKey(fName string) ([]byte, error) {
+	if len(fName) < 1 || s.mainKey == nil {
+		return nil, errors.New("field name or main key is empty")
+	}
+	pre := "Global" + fName + "cell"
+	kList := []interface{}{pre, s.mainKey}
+	key, err := kope.EncodeSlice(kList)
+	if err != nil {
+		return nil, err
+	}
+	return key, nil
+}
+
+func (so *SoGlobalWrap) saveAllMemKeys(tInfo *SoGlobal, br bool) error {
+	if so.dba == nil {
+		return errors.New("save member Field fail , the db is nil")
+	}
+
+	if tInfo == nil {
+		return errors.New("save member Field fail , the data is nil ")
+	}
+	var err error = nil
+	errDes := ""
+	if err = so.saveMemKeyId(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Id", err)
+		}
+	}
+	if err = so.saveMemKeyProps(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Props", err)
+		}
+	}
+
+	if len(errDes) > 0 {
+		return errors.New(errDes)
+	}
+	return err
+}
+
+func (so *SoGlobalWrap) delAllMemKeys(br bool, tInfo *SoGlobal) error {
+	if so.dba == nil {
+		return errors.New("the db is nil")
+	}
+	t := reflect.TypeOf(*tInfo)
+	errDesc := ""
+	for k := 0; k < t.NumField(); k++ {
+		name := t.Field(k).Name
+		if len(name) > 0 && !strings.HasPrefix(name, "XXX_") {
+			err := so.delMemKey(name)
+			if err != nil {
+				if br {
+					return err
+				}
+				errDesc += fmt.Sprintf("delete the Field %s fail,error is %s;\n", name, err)
+			}
+		}
+	}
+	if len(errDesc) > 0 {
+		return errors.New(errDesc)
+	}
+	return nil
+}
+
+func (so *SoGlobalWrap) delMemKey(fName string) error {
+	if so.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if len(fName) <= 0 {
+		return errors.New("the field name is empty ")
+	}
+	key, err := so.encodeMemKey(fName)
+	if err != nil {
+		return err
+	}
+	err = so.dba.Delete(key)
+	return err
+}
+
 ////////////// SECTION LKeys delete/insert ///////////////
 
 func (s *SoGlobalWrap) delAllSortKeys(br bool, val *SoGlobal) bool {
-	if s.dba == nil || val == nil {
+	if s.dba == nil {
 		return false
 	}
 	res := true
@@ -118,61 +202,150 @@ func (s *SoGlobalWrap) RemoveGlobal() bool {
 	if s.dba == nil {
 		return false
 	}
-	val := s.getGlobal()
-	if val == nil {
-		return false
-	}
+	val := &SoGlobal{}
 	//delete sort list key
-	if res := s.delAllSortKeys(true, val); !res {
+	if res := s.delAllSortKeys(true, nil); !res {
 		return false
 	}
 
 	//delete unique list
-	if res := s.delAllUniKeys(true, val); !res {
+	if res := s.delAllUniKeys(true, nil); !res {
 		return false
 	}
 
-	keyBuf, err := s.encodeMainKey()
-	if err != nil {
-		return false
-	}
-	return s.dba.Delete(keyBuf) == nil
+	err := s.delAllMemKeys(true, val)
+	return err == nil
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
-func (s *SoGlobalWrap) GetId() int32 {
-	res := s.getGlobal()
+func (s *SoGlobalWrap) saveMemKeyId(tInfo *SoGlobal) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemGlobalById{}
+	val.Id = tInfo.Id
+	key, err := s.encodeMemKey("Id")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
 
-	if res == nil {
+func (s *SoGlobalWrap) GetId() int32 {
+	res := true
+	msg := &SoMemGlobalById{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("Id")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.Id
+			}
+		}
+	}
+	if !res {
 		var tmpValue int32
 		return tmpValue
 	}
-	return res.Id
+	return msg.Id
+}
+
+func (s *SoGlobalWrap) saveMemKeyProps(tInfo *SoGlobal) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemGlobalByProps{}
+	val.Props = tInfo.Props
+	key, err := s.encodeMemKey("Props")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
 }
 
 func (s *SoGlobalWrap) GetProps() *prototype.DynamicProperties {
-	res := s.getGlobal()
-
-	if res == nil {
+	res := true
+	msg := &SoMemGlobalByProps{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("Props")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.Props
+			}
+		}
+	}
+	if !res {
 		return nil
 
 	}
-	return res.Props
+	return msg.Props
 }
 
 func (s *SoGlobalWrap) MdProps(p *prototype.DynamicProperties) bool {
 	if s.dba == nil {
 		return false
 	}
-	sa := s.getGlobal()
-	if sa == nil {
+	key, err := s.encodeMemKey("Props")
+	if err != nil {
 		return false
 	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemGlobalByProps{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoGlobal{}
+	sa.Id = *s.mainKey
+	sa.Props = ori.Props
 
-	sa.Props = p
-	if !s.update(sa) {
+	ori.Props = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
 		return false
 	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.Props = p
 
 	return true
 }
@@ -218,7 +391,7 @@ func (s *SoGlobalWrap) getGlobal() *SoGlobal {
 }
 
 func (s *SoGlobalWrap) encodeMainKey() ([]byte, error) {
-	pre := GlobalTable
+	pre := "Global" + "Id" + "cell"
 	sub := s.mainKey
 	if sub == nil {
 		return nil, errors.New("the mainKey is nil")
@@ -231,7 +404,7 @@ func (s *SoGlobalWrap) encodeMainKey() ([]byte, error) {
 ////////////// Unique Query delete/insert/query ///////////////
 
 func (s *SoGlobalWrap) delAllUniKeys(br bool, val *SoGlobal) bool {
-	if s.dba == nil || val == nil {
+	if s.dba == nil {
 		return false
 	}
 	res := true
@@ -264,10 +437,30 @@ func (s *SoGlobalWrap) delUniKeyId(sa *SoGlobal) bool {
 	if s.dba == nil {
 		return false
 	}
-
 	pre := GlobalIdUniTable
-	sub := sa.Id
-	kList := []interface{}{pre, sub}
+	kList := []interface{}{pre}
+	if sa != nil {
+
+		sub := sa.Id
+		kList = append(kList, sub)
+	} else {
+		key, err := s.encodeMemKey("Id")
+		if err != nil {
+			return false
+		}
+		buf, err := s.dba.Get(key)
+		if err != nil {
+			return false
+		}
+		ori := &SoMemGlobalById{}
+		err = proto.Unmarshal(buf, ori)
+		if err != nil {
+			return false
+		}
+		sub := ori.Id
+		kList = append(kList, sub)
+
+	}
 	kBuf, err := kope.EncodeSlice(kList)
 	if err != nil {
 		return false
