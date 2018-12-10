@@ -127,17 +127,17 @@ func ReadMessage(reader io.Reader, magic uint32) (Message, uint32, error) {
 func MakeEmptyMessage(cmdType string) (Message, error) {
 	switch cmdType {
 	case common.PING_TYPE:
-		return &Ping{}, nil
+		return &msg.TransferMsg{}, nil
 	case common.VERSION_TYPE:
-		return &Version{}, nil
+		return &msg.TransferMsg{}, nil
 	case common.VERACK_TYPE:
-		return &VerACK{}, nil
+		return &msg.TransferMsg{}, nil
 	case common.ADDR_TYPE:
-		return &Addr{}, nil
+		return &msg.TransferMsg{}, nil
 	case common.GetADDR_TYPE:
-		return &AddrReq{}, nil
+		return &msg.TransferMsg{}, nil
 	case common.PONG_TYPE:
-		return &Pong{}, nil
+		return &msg.TransferMsg{}, nil
 	case common.ID_TYPE:
 		return &msg.TransferMsg{}, nil
 	case common.REQ_ID_TYPE:
@@ -148,10 +148,8 @@ func MakeEmptyMessage(cmdType string) (Message, error) {
 		return &msg.TransferMsg{}, nil
 	case common.TX_TYPE:
 		return &msg.TransferMsg{}, nil
-	case common.NOT_FOUND_TYPE:
-		return &NotFound{}, nil
 	case common.DISCONNECT_TYPE:
-		return &Disconnected{}, nil
+		return &msg.TransferMsg{}, nil
 	default:
 		return nil, errors.New("unsupported cmd type:" + cmdType)
 	}

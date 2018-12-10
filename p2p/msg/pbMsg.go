@@ -37,8 +37,6 @@ func (this *TransferMsg) CmdType() ( res string) {
 		res = common.VERACK_TYPE
 	case *TransferMsg_Msg11:
 		res = common.VERSION_TYPE
-	case *TransferMsg_Msg12:
-		res = common.NOT_FOUND_TYPE
 	default:
 		res = "unknow msg"
 	}

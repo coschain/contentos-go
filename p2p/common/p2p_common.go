@@ -80,7 +80,6 @@ const (
 	ID_TYPE         = "id"
 	REQ_ID_TYPE     = "req_id"
 	TX_TYPE         = "sig_trx"    //transaction
-	NOT_FOUND_TYPE  = "notfound"   //peer can`t find blk according to the hash
 	DISCONNECT_TYPE = "disconnect" //peer disconnect info raise by link
 )
 

@@ -3,8 +3,6 @@ package msgpack
 import (
 	"time"
 
-	msgCommon "github.com/coschain/contentos-go/p2p/common"
-	"github.com/coschain/contentos-go/p2p/depend/common"
 	mt "github.com/coschain/contentos-go/p2p/message/types"
 	"github.com/coschain/contentos-go/p2p/msg"
 	"github.com/coschain/contentos-go/p2p/net/protocol"
@@ -12,17 +10,22 @@ import (
 )
 
 //Peer address package
-func NewAddrs(nodeAddrs []msgCommon.PeerAddr) mt.Message {
-	var addr mt.Addr
-	addr.NodeAddrs = nodeAddrs
+func NewAddrs(nodeAddrs []*msg.PeerAddr) mt.Message {
+	var reqmsg msg.TransferMsg
+	data := new(msg.Address)
+	data.Addr = nodeAddrs
 
-	return &addr
+	reqmsg.Msg = &msg.TransferMsg_Msg5{Msg5:data}
+	return &reqmsg
 }
 
 //Peer address request package
 func NewAddrReq() mt.Message {
-	var msg mt.AddrReq
-	return &msg
+	var reqmsg msg.TransferMsg
+	data := new(msg.AddrReq)
+
+	reqmsg.Msg = &msg.TransferMsg_Msg6{Msg6:data}
+	return &reqmsg
 }
 
 //block package
@@ -48,28 +51,24 @@ func NewSigBlk(bk *prototype.SignedBlock) mt.Message {
 	return &reqmsg
 }
 
-//NotFound package
-func NewNotFound(hash common.Uint256) mt.Message {
-	var notFound mt.NotFound
-	notFound.Hash = hash
-
-	return &notFound
-}
-
 //ping msg package
-func NewPingMsg(height uint64) *mt.Ping {
-	var ping mt.Ping
-	ping.Height = uint64(height)
+func NewPingMsg(height uint64) mt.Message {
+	var reqmsg msg.TransferMsg
+	data := new(msg.Ping)
+	data.Height = height
 
-	return &ping
+	reqmsg.Msg = &msg.TransferMsg_Msg8{Msg8:data}
+	return &reqmsg
 }
 
 //pong msg package
-func NewPongMsg(height uint64) *mt.Pong {
-	var pong mt.Pong
-	pong.Height = uint64(height)
+func NewPongMsg(height uint64) mt.Message {
+	var reqmsg msg.TransferMsg
+	data := new(msg.Pong)
+	data.Height = height
 
-	return &pong
+	reqmsg.Msg = &msg.TransferMsg_Msg9{Msg9:data}
+	return &reqmsg
 }
 
 //Transaction package
@@ -84,16 +83,19 @@ func NewTxn(txn *prototype.SignedTransaction) mt.Message {
 
 //version ack package
 func NewVerAck(isConsensus bool) mt.Message {
-	var verAck mt.VerACK
-	verAck.IsConsensus = isConsensus
+	var reqmsg msg.TransferMsg
+	data := new(msg.VerAck)
+	data.IsConsensus = isConsensus
 
-	return &verAck
+	reqmsg.Msg = &msg.TransferMsg_Msg10{Msg10:data}
+	return &reqmsg
 }
 
 //Version package
 func NewVersion(n p2p.P2P, isCons bool, height uint64) mt.Message {
-	var version mt.Version
-	version.P = mt.VersionPayload{
+	var reqmsg msg.TransferMsg
+
+	 data := &msg.Version{
 		Version:     n.GetVersion(),
 		Services:    n.GetServices(),
 		SyncPort:    n.GetSyncPort(),
@@ -101,13 +103,14 @@ func NewVersion(n p2p.P2P, isCons bool, height uint64) mt.Message {
 		Nonce:       n.GetID(),
 		IsConsensus: isCons,
 		StartHeight: uint64(height),
-		TimeStamp:   time.Now().UnixNano(),
+		Timestamp:   time.Now().UnixNano(),
+	}
+	if n.GetRelay() {
+		data.Relay = 1
+	} else {
+		data.Relay = 0
 	}
 
-	if n.GetRelay() {
-		version.P.Relay = 1
-	} else {
-		version.P.Relay = 0
-	}
-	return &version
+	 reqmsg.Msg = &msg.TransferMsg_Msg11{Msg11:data}
+	 return &reqmsg
 }

@@ -14,7 +14,7 @@ import (
 )
 
 // createListener creates a net listener on the port
-func createListener(port uint16, isTls bool, CertPath, KeyPath, CAPath string) (net.Listener, error) {
+func createListener(port uint32, isTls bool, CertPath, KeyPath, CAPath string) (net.Listener, error) {
 	var listener net.Listener
 	var err error
 
@@ -74,7 +74,7 @@ func TLSDial(nodeAddr, CertPath, KeyPath, CAPath string) (net.Conn, error) {
 }
 
 //initNonTlsListen return net.Listener with nonTls mode
-func initNonTlsListen(port uint16) (net.Listener, error) {
+func initNonTlsListen(port uint32) (net.Listener, error) {
 	listener, err := net.Listen("tcp", ":"+strconv.Itoa(int(port)))
 	if err != nil {
 		return nil, errors.New( fmt.Sprintf("[p2p] Error listening %s", err) )
@@ -83,7 +83,7 @@ func initNonTlsListen(port uint16) (net.Listener, error) {
 }
 
 //initTlsListen return net.Listener with Tls mode
-func initTlsListen(port uint16, CertPath, KeyPath, CAPath string) (net.Listener, error) {
+func initTlsListen(port uint32, CertPath, KeyPath, CAPath string) (net.Listener, error) {
 	// load cert
 	cert, err := tls.LoadX509KeyPair(CertPath, KeyPath)
 	if err != nil {

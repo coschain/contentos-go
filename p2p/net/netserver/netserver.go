@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/coschain/contentos-go/p2p/msg"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/p2p/common"
@@ -93,7 +94,7 @@ func (this *NetServer) init() error {
 		return errors.New("[p2p] invalid link port")
 	}
 
-	this.base.SetSyncPort ( uint16 ( this.ctx.Config().P2P.NodePort ) )
+	this.base.SetSyncPort ( uint32 ( this.ctx.Config().P2P.NodePort ) )
 
 	if this.ctx.Config().P2P.DualPortSupport {
 		if this.ctx.Config().P2P.NodeConsensusPort == 0 {
@@ -101,7 +102,7 @@ func (this *NetServer) init() error {
 			return errors.New("[p2p] invalid consensus port")
 		}
 
-		this.base.SetConsPort ( uint16 ( this.ctx.Config().P2P.NodeConsensusPort ) )
+		this.base.SetConsPort ( uint32 ( this.ctx.Config().P2P.NodeConsensusPort ) )
 	} else {
 		this.base.SetConsPort(0)
 	}
@@ -158,12 +159,12 @@ func (this *NetServer) GetServices() uint64 {
 }
 
 //GetSyncPort return the sync port
-func (this *NetServer) GetSyncPort() uint16 {
+func (this *NetServer) GetSyncPort() uint32 {
 	return this.base.GetSyncPort()
 }
 
 //GetConsPort return the cons port
-func (this *NetServer) GetConsPort() uint16 {
+func (this *NetServer) GetConsPort() uint32 {
 	return this.base.GetConsPort()
 }
 
@@ -183,7 +184,7 @@ func (this *NetServer) GetNp() *peer.NbrPeers {
 }
 
 //GetNeighborAddrs return all the nbr peer`s addr
-func (this *NetServer) GetNeighborAddrs() []common.PeerAddr {
+func (this *NetServer) GetNeighborAddrs() []*msg.PeerAddr {
 	return this.Np.GetNeighborAddrs()
 }
 
@@ -404,7 +405,7 @@ func (this *NetServer) startListening() error {
 }
 
 // startSyncListening starts a sync listener on the port for the inbound peer
-func (this *NetServer) startSyncListening(port uint16) error {
+func (this *NetServer) startSyncListening(port uint32) error {
 	logs , err := this.GetService(iservices.LogServerName)
 	if err != nil {
 		panic(err)
@@ -426,7 +427,7 @@ func (this *NetServer) startSyncListening(port uint16) error {
 }
 
 // startConsListening starts a sync listener on the port for the inbound peer
-func (this *NetServer) startConsListening(port uint16) error {
+func (this *NetServer) startConsListening(port uint32) error {
 	logs , err := this.GetService(iservices.LogServerName)
 	if err != nil {
 		panic(err)

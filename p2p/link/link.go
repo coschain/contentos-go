@@ -7,6 +7,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/coschain/contentos-go/p2p/msg"
 	"github.com/coschain/contentos-go/p2p/common"
 	comm "github.com/coschain/contentos-go/p2p/depend/common"
 	"github.com/coschain/contentos-go/p2p/message/types"
@@ -17,7 +18,7 @@ type Link struct {
 	id        uint64
 	addr      string                 // The address of the node
 	conn      net.Conn               // Connect socket with the peer node
-	port      uint16                 // The server port of the node
+	port      uint32                 // The server port of the node
 	time      time.Time              // The latest time the node activity
 	recvChan  chan *types.MsgPayload //msgpayload channel
 	reqRecord map[string]int64       //Map RequestId to Timestamp, using for rejecting duplicate request in specific time
@@ -61,12 +62,12 @@ func (this *Link) SetAddr(addr string) {
 }
 
 //set port number
-func (this *Link) SetPort(p uint16) {
+func (this *Link) SetPort(p uint32) {
 	this.port = p
 }
 
 //get port number
-func (this *Link) GetPort() uint16 {
+func (this *Link) GetPort() uint32 {
 	return this.port
 }
 
@@ -127,13 +128,22 @@ func (this *Link) Rx(magic uint32) {
 func (this *Link) disconnectNotify() {
 	this.CloseConn()
 
-	msg, _ := types.MakeEmptyMessage(common.DISCONNECT_TYPE)
+	reqmsg := NewDisconnected()
+
 	discMsg := &types.MsgPayload{
 		Id:      this.id,
 		Addr:    this.addr,
-		Payload: msg,
+		Payload: reqmsg,
 	}
 	this.recvChan <- discMsg
+}
+
+func NewDisconnected() *msg.TransferMsg {
+	var reqmsg msg.TransferMsg
+	data := new(msg.Disconnected)
+
+	reqmsg.Msg = &msg.TransferMsg_Msg7{Msg7:data}
+	return &reqmsg
 }
 
 //close connection
