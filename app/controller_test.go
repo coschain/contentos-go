@@ -215,7 +215,7 @@ func TestController_GenerateAndApplyBlock(t *testing.T) {
 	pre := &prototype.Sha256{Hash: make([]byte,32)}
 	block,err := c.GenerateAndApplyBlock(constants.INIT_MINER_NAME, pre, 18, pri, 0)
 	dgpWrap := table.NewSoGlobalWrap(db,&SingleId)
-	mustSuccess(uint32(block.Id().BlockNum()) == dgpWrap.GetProps().HeadBlockNumber,"block number error")
+	mustSuccess(block.Id().BlockNum() == dgpWrap.GetProps().HeadBlockNumber,"block number error")
 	bobWrap2 := table.NewSoAccountWrap(db, bobName)
 	if !bobWrap2.CheckExist() {
 		t.Error("create account failed")

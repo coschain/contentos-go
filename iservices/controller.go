@@ -19,9 +19,9 @@ type ITrxPool interface {
 	SetShuffledWitness(names []string)
 	GetShuffledWitness() []string
 	// will set DB status to num
-	PopBlockTo(num uint32)
+	PopBlockTo(num uint64)
 	// will cut off DB status that before num
-	Commit(num uint32)
+	Commit(num uint64)
 
 	TransferToVest(value *prototype.Coin)
 	TransferFromVest(value *prototype.Vest)

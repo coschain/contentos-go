@@ -465,7 +465,7 @@ func (d *DPoS) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 func (d *DPoS) commit(b common.ISignedBlock) error {
 	d.log.GetLog().Debug("commit block #", b.Id().BlockNum())
 
-	d.ctrl.Commit(uint32(b.Id().BlockNum()))
+	d.ctrl.Commit(b.Id().BlockNum())
 
 	err := d.blog.Append(b)
 	if err != nil {
@@ -534,7 +534,7 @@ func (d *DPoS) applyBlock(b common.ISignedBlock) error {
 }
 
 func (d *DPoS) popBlock(id common.BlockID) error {
-	d.ctrl.PopBlockTo(uint32(id.BlockNum()))
+	d.ctrl.PopBlockTo(id.BlockNum())
 	return nil
 }
 

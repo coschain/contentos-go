@@ -231,7 +231,7 @@ func (c *TrxPool) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag)
 	}
 
 	blockNum := blk.Id().BlockNum()
-	c.saveReversion(uint32(blockNum))
+	c.saveReversion(blockNum)
 	return err
 }
 
@@ -816,7 +816,7 @@ func (c *TrxPool) headBlockTime() *prototype.TimePointSec {
 	return c.GetProps().Time
 }
 
-func (c *TrxPool) headBlockNum() uint32 {
+func (c *TrxPool) headBlockNum() uint64 {
 	return c.GetProps().HeadBlockNumber
 }
 
@@ -893,7 +893,7 @@ func (c *TrxPool) updateGlobalDynamicData(blk *prototype.SignedBlock) {
 	blockID := &prototype.Sha256{Hash: id.Data[:]}
 
 	dgpo := c.GetProps()
-	dgpo.HeadBlockNumber = uint32(blk.Id().BlockNum())
+	dgpo.HeadBlockNumber = blk.Id().BlockNum()
 	dgpo.HeadBlockId = blockID
 	dgpo.Time = blk.SignedHeader.Header.Timestamp
 	//c.dgpo.CurrentAslot       = c.dgpo.CurrentAslot + missedBlock+1
@@ -982,21 +982,21 @@ func (c *TrxPool) AddWeightedVP(value uint64) {
 	dgpWrap.MdProps(dgpo)
 }
 
-func (c *TrxPool) saveReversion(num uint32) {
-	tag := strconv.FormatUint(uint64(num), 10)
+func (c *TrxPool) saveReversion(num uint64) {
+	tag := strconv.FormatUint(num, 10)
 	currentRev := c.db.GetRevision()
 	mustNoError(c.db.TagRevision(currentRev, tag), fmt.Sprintf("TagRevision:  tag:%d, reversion%d", num, currentRev))
 	//c.log.GetLog().Debug("### saveReversion, num:", num, " rev:", currentRev)
 }
 
-func (c *TrxPool) getReversion(num uint32) uint64 {
-	tag := strconv.FormatUint(uint64(num), 10)
+func (c *TrxPool) getReversion(num uint64) uint64 {
+	tag := strconv.FormatUint(num, 10)
 	rev, err := c.db.GetTagRevision(tag)
 	mustNoError(err, fmt.Sprintf("GetTagRevision: tag:%d, reversion:%d", num, rev))
 	return rev
 }
 
-func (c *TrxPool) PopBlockTo(num uint32) {
+func (c *TrxPool) PopBlockTo(num uint64) {
 	// undo pending trx
 	c.ClearPending()
 	/*if c.havePendingTransaction {
@@ -1009,7 +1009,7 @@ func (c *TrxPool) PopBlockTo(num uint32) {
 	mustNoError(c.db.RevertToRevision(rev), fmt.Sprintf("RebaseToRevision error: tag:%d, reversion:%d", num, rev))
 }
 
-func (c *TrxPool) Commit(num uint32) {
+func (c *TrxPool) Commit(num uint64) {
 	// this block can not be revert over, so it's irreversible
 	rev := c.getReversion(num)
 	//c.log.GetLog().Debug("### Commit, tag:", num, " rev:", rev)
