@@ -12,17 +12,13 @@ func (a *AccountCreateOperation) GetRequiredPosting(auths *map[string]bool) {
 }
 
 func (a *AccountCreateOperation) GetRequiredOwner(auths *map[string]bool) {
-
+	(*auths)[a.Creator.Value] = true
 }
 func (a *AccountCreateOperation) GetAdmin(*[]AccountAdminPair) {
 
 }
 func (a *AccountCreateOperation) IsVirtual() {
 
-}
-
-func (a *AccountCreateOperation) GetRequiredActive(auths *map[string]bool) {
-	(*auths)[a.Creator.Value] = true
 }
 
 func (a *AccountCreateOperation) Validate() error {
@@ -40,20 +36,6 @@ func (a *AccountCreateOperation) Validate() error {
 		return errors.WithMessage(err, "NewAccountName error")
 	}
 
-	if a.Posting == nil {
-		return errors.New("Posting Key cant be empty")
-	}
-
-	if err := a.Posting.Validate(); err != nil {
-		return errors.WithMessage(err, "Posting error")
-	}
-
-	if a.Active == nil {
-		return errors.New("Posting Key cant be empty")
-	}
-	if err := a.Active.Validate(); err != nil {
-		return errors.WithMessage(err, "Active error")
-	}
 	if a.Owner == nil {
 		return errors.New("Posting Key cant be empty")
 	}

@@ -43,13 +43,6 @@ message kv_key_auth{
 }
 
 message authority{
-    enum classification{
-         owner   = 0;
-         active  = 1;
-         key     = 2;
-         posting = 3;
-    }
-    classification cf = 1;
     uint32 weight_threshold = 2;
     repeated kv_account_auth account_auths = 3;
     repeated kv_key_auth key_auths = 4;

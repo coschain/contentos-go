@@ -160,17 +160,17 @@ func (p *SignedTransaction) MerkleDigest() (*Sha256, error) {
 	return id, nil
 }
 
-func (p *SignedTransaction) VerifyAuthority(cid ChainId, max_recursion_depth uint32, posting AuthorityGetter, active AuthorityGetter, owner AuthorityGetter) {
+func (p *SignedTransaction) VerifyAuthority(cid ChainId, max_recursion_depth uint32, owner AuthorityGetter) {
 	pubs, err := p.ExportPubKeys(cid)
 	if err != nil {
 		panic(err)
 	}
-	verifyAuthority(p.Trx.Operations, pubs, max_recursion_depth, posting, active, owner)
+	verifyAuthority(p.Trx.Operations, pubs, max_recursion_depth, owner)
 }
 
-func verifyAuthority(ops []*Operation, trxPubs []*PublicKeyType, max_recursion_depth uint32, posting AuthorityGetter, active AuthorityGetter, owner AuthorityGetter) {
-	required_active := map[string]bool{}
-	required_posting := map[string]bool{}
+func verifyAuthority(ops []*Operation, trxPubs []*PublicKeyType, max_recursion_depth uint32, owner AuthorityGetter) {
+	//required_active := map[string]bool{}
+	//required_posting := map[string]bool{}
 	required_owner := map[string]bool{}
 	other := []Authority{}
 
@@ -178,41 +178,41 @@ func verifyAuthority(ops []*Operation, trxPubs []*PublicKeyType, max_recursion_d
 		baseOp := getBaseOp(op)
 
 		baseOp.GetAuthorities(&other)
-		baseOp.GetRequiredPosting(&required_posting)
-		baseOp.GetRequiredActive(&required_active)
+		//baseOp.GetRequiredPosting(&required_posting)
+		//baseOp.GetRequiredActive(&required_active)
 		baseOp.GetRequiredOwner(&required_owner)
 	}
 
-	if len(required_posting) > 0 {
-		if len(required_active) > 0 || len(required_owner) > 0 || len(other) > 0 {
-			panic("can not combinme posing authority with others")
-		}
-		s := SignState{}
-		s.Init(trxPubs, max_recursion_depth, posting, active, owner)
-		for k, _ := range required_posting {
-			if !s.CheckAuthorityByName(k, 0, Posting) &&
-				!s.CheckAuthorityByName(k, 0, Active) &&
-				!s.CheckAuthorityByName(k, 0, Owner) {
-				panic("check posting authority failed")
-			}
-		}
-		return
-	}
+	//if len(required_posting) > 0 {
+	//	if len(required_active) > 0 || len(required_owner) > 0 || len(other) > 0 {
+	//		panic("can not combinme posing authority with others")
+	//	}
+	//	s := SignState{}
+	//	s.Init(trxPubs, max_recursion_depth, posting, active, owner)
+	//	for k, _ := range required_posting {
+	//		if !s.CheckAuthorityByName(k, 0, Posting) &&
+	//			!s.CheckAuthorityByName(k, 0, Active) &&
+	//			!s.CheckAuthorityByName(k, 0, Owner) {
+	//			panic("check posting authority failed")
+	//		}
+	//	}
+	//	return
+	//}
 
 	s := SignState{}
-	s.Init(trxPubs, max_recursion_depth, posting, active, owner)
-	for _, auth := range other {
-		if !s.CheckAuthority(&auth, 0, Active) {
-			panic("missing authority")
-		}
-	}
-
-	for k, _ := range required_active {
-		if !s.CheckAuthorityByName(k, 0, Active) &&
-			!s.CheckAuthorityByName(k, 0, Owner) {
-			panic("check active authority failed")
-		}
-	}
+	s.Init(trxPubs, max_recursion_depth, owner)
+	//for _, auth := range other {
+	//	if !s.CheckAuthority(&auth, 0, Active) {
+	//		panic("missing authority")
+	//	}
+	//}
+	//
+	//for k, _ := range required_active {
+	//	if !s.CheckAuthorityByName(k, 0, Active) &&
+	//		!s.CheckAuthorityByName(k, 0, Owner) {
+	//		panic("check active authority failed")
+	//	}
+	//}
 
 	for k, _ := range required_owner {
 		if !s.CheckAuthorityByName(k, 0, Owner) {

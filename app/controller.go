@@ -454,24 +454,24 @@ func (c *TrxPool) applyTransactionInner(trxWrp *prototype.TransactionWrapper) {
 	mustSuccess(!transactionObjWrap.CheckExist(), "Duplicate transaction check failed")
 
 	if c.skip&prototype.Skip_transaction_signatures == 0 {
-		postingGetter := func(name string) *prototype.Authority {
-			account := &prototype.AccountName{Value: name}
-			authWrap := table.NewSoAccountAuthorityObjectWrap(c.db, account)
-			auth := authWrap.GetPosting()
-			if auth == nil {
-				panic("no posting auth")
-			}
-			return auth
-		}
-		activeGetter := func(name string) *prototype.Authority {
-			account := &prototype.AccountName{Value: name}
-			authWrap := table.NewSoAccountAuthorityObjectWrap(c.db, account)
-			auth := authWrap.GetActive()
-			if auth == nil {
-				panic("no active auth")
-			}
-			return auth
-		}
+		//postingGetter := func(name string) *prototype.Authority {
+		//	account := &prototype.AccountName{Value: name}
+		//	authWrap := table.NewSoAccountAuthorityObjectWrap(c.db, account)
+		//	auth := authWrap.GetPosting()
+		//	if auth == nil {
+		//		panic("no posting auth")
+		//	}
+		//	return auth
+		//}
+		//activeGetter := func(name string) *prototype.Authority {
+		//	account := &prototype.AccountName{Value: name}
+		//	authWrap := table.NewSoAccountAuthorityObjectWrap(c.db, account)
+		//	auth := authWrap.GetActive()
+		//	if auth == nil {
+		//		panic("no active auth")
+		//	}
+		//	return auth
+		//}
 		ownerGetter := func(name string) *prototype.Authority {
 			account := &prototype.AccountName{Value: name}
 			authWrap := table.NewSoAccountAuthorityObjectWrap(c.db, account)
@@ -483,7 +483,7 @@ func (c *TrxPool) applyTransactionInner(trxWrp *prototype.TransactionWrapper) {
 		}
 
 		tmpChainId := prototype.ChainId{Value: 0}
-		trx.VerifyAuthority(tmpChainId, 2, postingGetter, activeGetter, ownerGetter)
+		trx.VerifyAuthority(tmpChainId, 2, ownerGetter)
 		// @ check_admin
 	}
 
@@ -682,8 +682,6 @@ func (c *TrxPool) initGenesis() {
 
 	mustNoError(authorityWrap.Create(func(tInfo *table.SoAccountAuthorityObject) {
 		tInfo.Account = name
-		tInfo.Posting = ownerAuth
-		tInfo.Active = ownerAuth
 		tInfo.Owner = ownerAuth
 	}), "CreateAccountAuthorityObject error ")
 

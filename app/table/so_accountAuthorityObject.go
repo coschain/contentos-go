@@ -124,13 +124,6 @@ func (so *SoAccountAuthorityObjectWrap) saveAllMemKeys(tInfo *SoAccountAuthority
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Account", err)
 		}
 	}
-	if err = so.saveMemKeyActive(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Active", err)
-		}
-	}
 	if err = so.saveMemKeyLastOwnerUpdate(tInfo); err != nil {
 		if br {
 			return err
@@ -143,13 +136,6 @@ func (so *SoAccountAuthorityObjectWrap) saveAllMemKeys(tInfo *SoAccountAuthority
 			return err
 		} else {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Owner", err)
-		}
-	}
-	if err = so.saveMemKeyPosting(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Posting", err)
 		}
 	}
 
@@ -290,89 +276,6 @@ func (s *SoAccountAuthorityObjectWrap) GetAccount() *prototype.AccountName {
 
 	}
 	return msg.Account
-}
-
-func (s *SoAccountAuthorityObjectWrap) saveMemKeyActive(tInfo *SoAccountAuthorityObject) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemAccountAuthorityObjectByActive{}
-	val.Active = tInfo.Active
-	key, err := s.encodeMemKey("Active")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
-
-func (s *SoAccountAuthorityObjectWrap) GetActive() *prototype.Authority {
-	res := true
-	msg := &SoMemAccountAuthorityObjectByActive{}
-	if s.dba == nil {
-		res = false
-	} else {
-		key, err := s.encodeMemKey("Active")
-		if err != nil {
-			res = false
-		} else {
-			buf, err := s.dba.Get(key)
-			if err != nil {
-				res = false
-			}
-			err = proto.Unmarshal(buf, msg)
-			if err != nil {
-				res = false
-			} else {
-				return msg.Active
-			}
-		}
-	}
-	if !res {
-		return nil
-
-	}
-	return msg.Active
-}
-
-func (s *SoAccountAuthorityObjectWrap) MdActive(p *prototype.Authority) bool {
-	if s.dba == nil {
-		return false
-	}
-	key, err := s.encodeMemKey("Active")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemAccountAuthorityObjectByActive{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoAccountAuthorityObject{}
-	sa.Account = s.mainKey
-
-	sa.Active = ori.Active
-
-	ori.Active = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.Active = p
-
-	return true
 }
 
 func (s *SoAccountAuthorityObjectWrap) saveMemKeyLastOwnerUpdate(tInfo *SoAccountAuthorityObject) error {
@@ -537,89 +440,6 @@ func (s *SoAccountAuthorityObjectWrap) MdOwner(p *prototype.Authority) bool {
 		return false
 	}
 	sa.Owner = p
-
-	return true
-}
-
-func (s *SoAccountAuthorityObjectWrap) saveMemKeyPosting(tInfo *SoAccountAuthorityObject) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemAccountAuthorityObjectByPosting{}
-	val.Posting = tInfo.Posting
-	key, err := s.encodeMemKey("Posting")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
-
-func (s *SoAccountAuthorityObjectWrap) GetPosting() *prototype.Authority {
-	res := true
-	msg := &SoMemAccountAuthorityObjectByPosting{}
-	if s.dba == nil {
-		res = false
-	} else {
-		key, err := s.encodeMemKey("Posting")
-		if err != nil {
-			res = false
-		} else {
-			buf, err := s.dba.Get(key)
-			if err != nil {
-				res = false
-			}
-			err = proto.Unmarshal(buf, msg)
-			if err != nil {
-				res = false
-			} else {
-				return msg.Posting
-			}
-		}
-	}
-	if !res {
-		return nil
-
-	}
-	return msg.Posting
-}
-
-func (s *SoAccountAuthorityObjectWrap) MdPosting(p *prototype.Authority) bool {
-	if s.dba == nil {
-		return false
-	}
-	key, err := s.encodeMemKey("Posting")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemAccountAuthorityObjectByPosting{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoAccountAuthorityObject{}
-	sa.Account = s.mainKey
-
-	sa.Posting = ori.Posting
-
-	ori.Posting = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.Posting = p
 
 	return true
 }

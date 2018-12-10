@@ -5,12 +5,9 @@ import "github.com/pkg/errors"
 func (m *FollowOperation) GetAuthorities(auths *[]Authority) {
 
 }
-func (m *FollowOperation) GetRequiredPosting(auths *map[string]bool) {
-
-}
 
 func (m *FollowOperation) GetRequiredOwner(auths *map[string]bool) {
-
+	(*auths)[m.Account.Value] = true
 }
 func (m *FollowOperation) GetAdmin(*[]AccountAdminPair) {
 
@@ -19,9 +16,6 @@ func (m *FollowOperation) IsVirtual() {
 
 }
 
-func (m *FollowOperation) GetRequiredActive(auths *map[string]bool) {
-	(*auths)[m.Account.Value] = true
-}
 
 func (m *FollowOperation) Validate() error {
 	if m == nil {

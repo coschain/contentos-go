@@ -50,8 +50,6 @@ func create(cmd *cobra.Command, args []string) {
 		Creator:        &prototype.AccountName{Value: creator},
 		NewAccountName: &prototype.AccountName{Value: name},
 		Owner:          keys,
-		Posting:        keys,
-		Active:         keys,
 	}
 	signTx, err := utils.GenerateSignedTxAndValidate([]interface{}{acop}, creatorAccount)
 	if err != nil {
