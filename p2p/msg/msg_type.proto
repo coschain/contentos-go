@@ -27,3 +27,66 @@ message sig_blk_msg {
 message req_id_msg {
     bytes head_block_id = 1;
 }
+
+message address {
+    repeated peer_addr addr = 1;
+}
+
+message addr_req {}
+
+message disconnected {}
+
+message not_found {
+    bytes hash = 1;
+}
+
+message ping {
+    uint64 height = 1;
+}
+
+message pong {
+    uint64 height = 1;
+}
+
+message ver_ack {
+    bool IsConsensus = 1;
+}
+
+message version {
+    uint32  version = 1;
+    uint64  services = 2;
+    int64   timestamp = 3;
+    uint32  syncPort = 4;
+    uint32  consPort = 5;
+    bytes   cap = 6;
+    uint64  nonce = 7;
+    uint64  startHeight = 8;
+    uint32  relay = 9;
+    bool    IsConsensus = 10;
+}
+
+message transfer_msg {
+    oneof msg {
+        broadcast_sig_trx msg1  = 1;
+        id_msg            msg2  = 2;
+        sig_blk_msg       msg3  = 3;
+        req_id_msg        msg4  = 4;
+        address           msg5  = 5;
+        addr_req          msg6  = 6;
+        disconnected      msg7  = 7;
+        ping              msg8  = 8;
+        pong              msg9  = 9;
+        ver_ack           msg10 = 10;
+        version           msg11 = 11;
+        not_found         msg12 = 12;
+    }
+}
+
+message peer_addr {
+    int64  Time = 1;
+    uint64 Services = 2;
+    bytes  IpAddr = 3;
+    uint32 Port = 4;
+    uint32 ConsensusPort = 5;
+    uint64 ID = 6;
+}
