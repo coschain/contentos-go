@@ -139,15 +139,15 @@ func MakeEmptyMessage(cmdType string) (Message, error) {
 	case common.PONG_TYPE:
 		return &Pong{}, nil
 	case common.ID_TYPE:
-		return &msg.IdMsg{}, nil
+		return &msg.TransferMsg{}, nil
 	case common.REQ_ID_TYPE:
-		return &msg.ReqIdMsg{}, nil
+		return &msg.TransferMsg{}, nil
 	case common.GET_DATA_TYPE:
 		return &DataReq{}, nil
 	case common.BLOCK_TYPE:
-		return &msg.SigBlkMsg{}, nil
+		return &msg.TransferMsg{}, nil
 	case common.TX_TYPE:
-		return &msg.BroadcastSigTrx{}, nil
+		return &msg.TransferMsg{}, nil
 	case common.NOT_FOUND_TYPE:
 		return &NotFound{}, nil
 	case common.DISCONNECT_TYPE:
@@ -155,5 +155,4 @@ func MakeEmptyMessage(cmdType string) (Message, error) {
 	default:
 		return nil, errors.New("unsupported cmd type:" + cmdType)
 	}
-
 }

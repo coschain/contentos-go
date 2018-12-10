@@ -27,22 +27,25 @@ func NewAddrReq() mt.Message {
 
 //block package
 func NewSigBlkIdMsg(bk *prototype.SignedBlock) mt.Message {
-	var reqmsg msg.IdMsg
+	var reqmsg msg.TransferMsg
+	data := new(msg.IdMsg)
 	var tmp []byte
-	reqmsg.Msgtype = msg.IdMsg_broadcast_sigblk_id
+	data.Msgtype = msg.IdMsg_broadcast_sigblk_id
 	id := bk.Id()
-	reqmsg.Value = append(reqmsg.Value, tmp)
-	reqmsg.Value[0] = id.Data[:]
+	data.Value = append(data.Value, tmp)
+	data.Value[0] = id.Data[:]
 
+	reqmsg.Msg = &msg.TransferMsg_Msg2{Msg2:data}
 	return &reqmsg
 }
 
 func NewSigBlk(bk *prototype.SignedBlock) mt.Message {
-	var blk msg.SigBlkMsg
-	blk.SigBlk = new(prototype.SignedBlock)
-	blk.SigBlk = bk
+	var reqmsg msg.TransferMsg
+	data := new(msg.SigBlkMsg)
+	data.SigBlk = bk
 
-	return &blk
+	reqmsg.Msg = &msg.TransferMsg_Msg3{Msg3:data}
+	return &reqmsg
 }
 
 //NotFound package
@@ -71,10 +74,12 @@ func NewPongMsg(height uint64) *mt.Pong {
 
 //Transaction package
 func NewTxn(txn *prototype.SignedTransaction) mt.Message {
-	var trn msg.BroadcastSigTrx
-	trn.SigTrx = txn
+	var reqmsg msg.TransferMsg
+	data := new(msg.BroadcastSigTrx)
+	data.SigTrx = txn
 
-	return &trn
+	reqmsg.Msg = &msg.TransferMsg_Msg1{Msg1:data}
+	return &reqmsg
 }
 
 //version ack package

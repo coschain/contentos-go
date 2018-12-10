@@ -39,8 +39,9 @@ func (this *NbrPeers) Broadcast(mesg types.Message, isConsensus bool, magic uint
 	this.RLock()
 	defer this.RUnlock()
 	for _, node := range this.List {
-		if msgdata, ok := mesg.(*msg.BroadcastSigTrx); ok {
-			id, _ := msgdata.SigTrx.Id()
+		data := mesg.(*msg.TransferMsg)
+		if msgdata, ok := data.Msg.(*msg.TransferMsg_Msg1); ok {
+			id, _ := msgdata.Msg1.SigTrx.Id()
 			target := this.TrxMap[node.GetAddr()]
 			if byteSliceEqual(target, id.Hash) {
 				continue

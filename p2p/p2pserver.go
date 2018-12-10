@@ -419,8 +419,10 @@ func (this *P2PServer) Broadcast(message interface{}) {
 }
 
 func (this *P2PServer) TriggerSync(current_head_blk_id coomn.BlockID) {
-	reqmsg := new(msg.ReqIdMsg)
-	reqmsg.HeadBlockId = current_head_blk_id.Data[:]
+	reqmsg := new(msg.TransferMsg)
+	reqdata := new(msg.ReqIdMsg)
+	reqdata.HeadBlockId = current_head_blk_id.Data[:]
+	reqmsg.Msg = &msg.TransferMsg_Msg4{Msg4:reqdata}
 	//this.log.Info("enter TriggerSync func")
 	for _, p := range this.Network.GetNp().List {
 		//this.log.Info("[p2p] cons call TriggerSync func, head id :  ", reqmsg.HeadBlockId)
