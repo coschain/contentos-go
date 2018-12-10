@@ -92,7 +92,6 @@ func (d *DPoS) SetBootstrap(b bool) {
 	d.bootstrap = b
 	if d.bootstrap {
 		d.readyToProduce = true
-		//d.shuffle()
 	}
 }
 
@@ -106,12 +105,12 @@ func (d *DPoS) CurrentProducer() string {
 
 // Called when a produce round complete, it adds new producers,
 // remove unqualified producers and shuffle the block-producing order
-func (d *DPoS) shuffle() {
+func (d *DPoS) shuffle(head common.ISignedBlock) {
 	prods := d.ctrl.GetWitnessTopN(constants.MAX_WITNESSES)
 	//logging.CLog().Debug("GetWitnessTopN: ", prods)
 	var seed uint64
-	if !d.ForkDB.Empty() {
-		seed = d.ForkDB.Head().Timestamp() << 32
+	if head != nil {
+		seed = head.Timestamp() << 32
 	}
 	prodNum := len(prods)
 	for i := 0; i < prodNum; i++ {
@@ -200,7 +199,7 @@ func (d *DPoS) start(snapshotPath string) {
 
 	if d.bootstrap && d.ForkDB.Empty() && d.blog.Empty() {
 		d.log.GetLog().Info("[DPoS] bootstrapping...")
-		d.shuffle()
+		d.shuffle(nil)
 	} else {
 		d.restoreProducers()
 	}
@@ -440,7 +439,7 @@ func (d *DPoS) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 
 	// shuffle
 	if d.ForkDB.Head().Id().BlockNum()%uint64(len(d.Producers)) == 0 {
-		d.shuffle()
+		d.shuffle(d.ForkDB.Head())
 		d.log.GetLog().Debug("[DPoS shuffle] active producers: ", d.Producers)
 	}
 
@@ -488,6 +487,14 @@ func (d *DPoS) switchFork(old, new common.BlockID) {
 
 	// producers fixup
 	d.restoreProducers()
+	if branches[0][poppedNum].BlockNum()%uint64(len(d.Producers)) == 0 {
+		head, err := d.ForkDB.FetchBlock(branches[0][poppedNum])
+		if err != nil {
+			panic(err)
+		}
+		d.shuffle(head)
+		d.log.GetLog().Debug("[DPoS shuffle] active producers: ", d.Producers)
+	}
 
 	appendedNum := len(branches[1]) - 1
 	errWhileSwitch := false
