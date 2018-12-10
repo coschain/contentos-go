@@ -86,9 +86,9 @@ func (s *SoVoteWrap) Create(f func(tInfo *SoVote)) error {
 	}
 
 	//update unique list
-	if err = s.insertAllUniKeys(val); err != nil {
+	if sucNames, err := s.insertAllUniKeys(val); err != nil {
 		s.delAllSortKeys(false, val)
-		s.delAllUniKeys(false, val)
+		s.delUniKeysWithNames(sucNames, val)
 		s.dba.Delete(keyBuf)
 		s.delAllMemKeys(false, val)
 		return err
@@ -1208,18 +1208,34 @@ func (s *SoVoteWrap) delAllUniKeys(br bool, val *SoVote) bool {
 	return res
 }
 
-func (s *SoVoteWrap) insertAllUniKeys(val *SoVote) error {
+func (s *SoVoteWrap) delUniKeysWithNames(names map[string]string, val *SoVote) bool {
 	if s.dba == nil {
-		return errors.New("insert uniuqe Field fail,the db is nil ")
+		return false
 	}
-	if val == nil {
-		return errors.New("insert uniuqe Field fail,get the SoVote fail ")
-	}
-	if !s.insertUniKeyVoter(val) {
-		return errors.New("insert unique Field Voter fail while insert table ")
+	res := true
+	if len(names["Voter"]) > 0 {
+		if !s.delUniKeyVoter(val) {
+			res = false
+		}
 	}
 
-	return nil
+	return res
+}
+
+func (s *SoVoteWrap) insertAllUniKeys(val *SoVote) (map[string]string, error) {
+	if s.dba == nil {
+		return nil, errors.New("insert uniuqe Field fail,the db is nil ")
+	}
+	if val == nil {
+		return nil, errors.New("insert uniuqe Field fail,get the SoVote fail ")
+	}
+	sucFields := map[string]string{}
+	if !s.insertUniKeyVoter(val) {
+		return sucFields, errors.New("insert unique Field Voter fail while insert table ")
+	}
+	sucFields["Voter"] = "Voter"
+
+	return sucFields, nil
 }
 
 func (s *SoVoteWrap) delUniKeyVoter(sa *SoVote) bool {

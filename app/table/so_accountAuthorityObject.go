@@ -83,9 +83,9 @@ func (s *SoAccountAuthorityObjectWrap) Create(f func(tInfo *SoAccountAuthorityOb
 	}
 
 	//update unique list
-	if err = s.insertAllUniKeys(val); err != nil {
+	if sucNames, err := s.insertAllUniKeys(val); err != nil {
 		s.delAllSortKeys(false, val)
-		s.delAllUniKeys(false, val)
+		s.delUniKeysWithNames(sucNames, val)
 		s.dba.Delete(keyBuf)
 		s.delAllMemKeys(false, val)
 		return err
@@ -693,18 +693,34 @@ func (s *SoAccountAuthorityObjectWrap) delAllUniKeys(br bool, val *SoAccountAuth
 	return res
 }
 
-func (s *SoAccountAuthorityObjectWrap) insertAllUniKeys(val *SoAccountAuthorityObject) error {
+func (s *SoAccountAuthorityObjectWrap) delUniKeysWithNames(names map[string]string, val *SoAccountAuthorityObject) bool {
 	if s.dba == nil {
-		return errors.New("insert uniuqe Field fail,the db is nil ")
+		return false
 	}
-	if val == nil {
-		return errors.New("insert uniuqe Field fail,get the SoAccountAuthorityObject fail ")
-	}
-	if !s.insertUniKeyAccount(val) {
-		return errors.New("insert unique Field Account fail while insert table ")
+	res := true
+	if len(names["Account"]) > 0 {
+		if !s.delUniKeyAccount(val) {
+			res = false
+		}
 	}
 
-	return nil
+	return res
+}
+
+func (s *SoAccountAuthorityObjectWrap) insertAllUniKeys(val *SoAccountAuthorityObject) (map[string]string, error) {
+	if s.dba == nil {
+		return nil, errors.New("insert uniuqe Field fail,the db is nil ")
+	}
+	if val == nil {
+		return nil, errors.New("insert uniuqe Field fail,get the SoAccountAuthorityObject fail ")
+	}
+	sucFields := map[string]string{}
+	if !s.insertUniKeyAccount(val) {
+		return sucFields, errors.New("insert unique Field Account fail while insert table ")
+	}
+	sucFields["Account"] = "Account"
+
+	return sucFields, nil
 }
 
 func (s *SoAccountAuthorityObjectWrap) delUniKeyAccount(sa *SoAccountAuthorityObject) bool {

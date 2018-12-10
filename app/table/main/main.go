@@ -60,6 +60,32 @@ func main() {
 		return
 	}
 
+
+	key1 := prototype.NewAccountName("myName1")
+	wrap1 := table.NewSoDemoWrap(db, key1)
+	if wrap1 == nil {
+		//crreate fail , the db already contain table with current mainKey
+		log.Println("crreate fail , the db already contain table with current mainKey myName1")
+		return
+	}
+	err = wrap1.Create(func(tInfo *table.SoDemo) {
+		tInfo.Owner = key1
+		tInfo.Title = "hello1"
+		tInfo.Content = "wrap1"
+		tInfo.Idx = 1001
+		tInfo.LikeCount = 200
+		tInfo.Taglist = []string{"#Car"}
+		tInfo.ReplayCount = 150
+		tInfo.PostTime = creTimeSecondPoint(20120401)
+	})
+	if err != nil {
+		fmt.Printf("create new table of Demo fail,the error is %s \n",err)
+	}
+	con := wrap1.GetContent()
+	fmt.Printf("the content of new wrap is %s \n",con)
+	idx1 := wrap1.GetIdx()
+	fmt.Printf("the idx of new wrap is %d \n", idx1)
+	fmt.Printf("the likeCount of new wrap is %d \n", wrap1.GetLikeCount())
 	/*
 	   --------------------------
 	   Get Property（the GetXXX function  return the property value）
@@ -101,7 +127,7 @@ func main() {
 		fmt.Println("modify taglist fail")
 	} else {
 		tag := wrap.GetTaglist()
-		fmt.Printf("the new taglsit is %v \n", tag)
+		fmt.Printf("the modified taglist is %v \n", tag)
 	}
 
 	/*--------------------------
@@ -256,9 +282,10 @@ func main() {
 	//unique query mainkey(E.g query owner)
 	mUniWrap := table.UniDemoOwnerWrap{}
 	mUniWrap.Dba = db
-	wrap1 := mUniWrap.UniQueryOwner(prototype.NewAccountName("myName"))
+	str := "myName"
+	wrap1 = mUniWrap.UniQueryOwner(prototype.NewAccountName(str))
 	if wrap1 != nil {
-		fmt.Printf("owner is test,the idx is %d \n", wrap1.GetIdx())
+		fmt.Printf("owner is %s,the idx is %d \n",str,wrap1.GetIdx())
 	}
 
 	/*
