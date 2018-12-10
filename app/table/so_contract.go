@@ -2,6 +2,9 @@ package table
 
 import (
 	"errors"
+	fmt "fmt"
+	"reflect"
+	"strings"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -67,11 +70,7 @@ func (s *SoContractWrap) Create(f func(tInfo *SoContract)) error {
 		return err
 
 	}
-	resBuf, err := proto.Marshal(val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(keyBuf, resBuf)
+	err = s.saveAllMemKeys(val, true)
 	if err != nil {
 		return err
 	}
@@ -80,6 +79,7 @@ func (s *SoContractWrap) Create(f func(tInfo *SoContract)) error {
 	if err = s.insertAllSortKeys(val); err != nil {
 		s.delAllSortKeys(false, val)
 		s.dba.Delete(keyBuf)
+		s.delAllMemKeys(false, val)
 		return err
 	}
 
@@ -88,21 +88,146 @@ func (s *SoContractWrap) Create(f func(tInfo *SoContract)) error {
 		s.delAllSortKeys(false, val)
 		s.delAllUniKeys(false, val)
 		s.dba.Delete(keyBuf)
+		s.delAllMemKeys(false, val)
 		return err
 	}
 
 	return nil
 }
 
+func (s *SoContractWrap) encodeMemKey(fName string) ([]byte, error) {
+	if len(fName) < 1 || s.mainKey == nil {
+		return nil, errors.New("field name or main key is empty")
+	}
+	pre := "Contract" + fName + "cell"
+	kList := []interface{}{pre, s.mainKey}
+	key, err := kope.EncodeSlice(kList)
+	if err != nil {
+		return nil, err
+	}
+	return key, nil
+}
+
+func (so *SoContractWrap) saveAllMemKeys(tInfo *SoContract, br bool) error {
+	if so.dba == nil {
+		return errors.New("save member Field fail , the db is nil")
+	}
+
+	if tInfo == nil {
+		return errors.New("save member Field fail , the data is nil ")
+	}
+	var err error = nil
+	errDes := ""
+	if err = so.saveMemKeyAbi(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Abi", err)
+		}
+	}
+	if err = so.saveMemKeyBalance(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Balance", err)
+		}
+	}
+	if err = so.saveMemKeyCode(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Code", err)
+		}
+	}
+	if err = so.saveMemKeyCreatedTime(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "CreatedTime", err)
+		}
+	}
+	if err = so.saveMemKeyId(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Id", err)
+		}
+	}
+
+	if len(errDes) > 0 {
+		return errors.New(errDes)
+	}
+	return err
+}
+
+func (so *SoContractWrap) delAllMemKeys(br bool, tInfo *SoContract) error {
+	if so.dba == nil {
+		return errors.New("the db is nil")
+	}
+	t := reflect.TypeOf(*tInfo)
+	errDesc := ""
+	for k := 0; k < t.NumField(); k++ {
+		name := t.Field(k).Name
+		if len(name) > 0 && !strings.HasPrefix(name, "XXX_") {
+			err := so.delMemKey(name)
+			if err != nil {
+				if br {
+					return err
+				}
+				errDesc += fmt.Sprintf("delete the Field %s fail,error is %s;\n", name, err)
+			}
+		}
+	}
+	if len(errDesc) > 0 {
+		return errors.New(errDesc)
+	}
+	return nil
+}
+
+func (so *SoContractWrap) delMemKey(fName string) error {
+	if so.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if len(fName) <= 0 {
+		return errors.New("the field name is empty ")
+	}
+	key, err := so.encodeMemKey(fName)
+	if err != nil {
+		return err
+	}
+	err = so.dba.Delete(key)
+	return err
+}
+
 ////////////// SECTION LKeys delete/insert ///////////////
 
 func (s *SoContractWrap) delSortKeyCreatedTime(sa *SoContract) bool {
-	if s.dba == nil {
+	if s.dba == nil || s.mainKey == nil {
 		return false
 	}
 	val := SoListContractByCreatedTime{}
-	val.CreatedTime = sa.CreatedTime
-	val.Id = sa.Id
+	if sa == nil {
+		key, err := s.encodeMemKey("CreatedTime")
+		if err != nil {
+			return false
+		}
+		buf, err := s.dba.Get(key)
+		if err != nil {
+			return false
+		}
+		ori := &SoMemContractByCreatedTime{}
+		err = proto.Unmarshal(buf, ori)
+		if err != nil {
+			return false
+		}
+		val.CreatedTime = ori.CreatedTime
+		val.Id = s.mainKey
+
+	} else {
+		val.CreatedTime = sa.CreatedTime
+		val.Id = sa.Id
+	}
+
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -131,7 +256,7 @@ func (s *SoContractWrap) insertSortKeyCreatedTime(sa *SoContract) bool {
 }
 
 func (s *SoContractWrap) delAllSortKeys(br bool, val *SoContract) bool {
-	if s.dba == nil || val == nil {
+	if s.dba == nil {
 		return false
 	}
 	res := true
@@ -166,135 +291,353 @@ func (s *SoContractWrap) RemoveContract() bool {
 	if s.dba == nil {
 		return false
 	}
-	val := s.getContract()
-	if val == nil {
-		return false
-	}
+	val := &SoContract{}
 	//delete sort list key
-	if res := s.delAllSortKeys(true, val); !res {
+	if res := s.delAllSortKeys(true, nil); !res {
 		return false
 	}
 
 	//delete unique list
-	if res := s.delAllUniKeys(true, val); !res {
+	if res := s.delAllUniKeys(true, nil); !res {
 		return false
 	}
 
-	keyBuf, err := s.encodeMainKey()
-	if err != nil {
-		return false
-	}
-	return s.dba.Delete(keyBuf) == nil
+	err := s.delAllMemKeys(true, val)
+	return err == nil
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
-func (s *SoContractWrap) GetAbi() string {
-	res := s.getContract()
+func (s *SoContractWrap) saveMemKeyAbi(tInfo *SoContract) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemContractByAbi{}
+	val.Abi = tInfo.Abi
+	key, err := s.encodeMemKey("Abi")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
 
-	if res == nil {
+func (s *SoContractWrap) GetAbi() string {
+	res := true
+	msg := &SoMemContractByAbi{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("Abi")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.Abi
+			}
+		}
+	}
+	if !res {
 		var tmpValue string
 		return tmpValue
 	}
-	return res.Abi
+	return msg.Abi
 }
 
 func (s *SoContractWrap) MdAbi(p string) bool {
 	if s.dba == nil {
 		return false
 	}
-	sa := s.getContract()
-	if sa == nil {
+	key, err := s.encodeMemKey("Abi")
+	if err != nil {
 		return false
 	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemContractByAbi{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoContract{}
+	sa.Id = s.mainKey
 
-	sa.Abi = p
-	if !s.update(sa) {
+	sa.Abi = ori.Abi
+
+	ori.Abi = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
 		return false
 	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.Abi = p
 
 	return true
 }
 
-func (s *SoContractWrap) GetBalance() *prototype.Coin {
-	res := s.getContract()
+func (s *SoContractWrap) saveMemKeyBalance(tInfo *SoContract) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemContractByBalance{}
+	val.Balance = tInfo.Balance
+	key, err := s.encodeMemKey("Balance")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
 
-	if res == nil {
+func (s *SoContractWrap) GetBalance() *prototype.Coin {
+	res := true
+	msg := &SoMemContractByBalance{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("Balance")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.Balance
+			}
+		}
+	}
+	if !res {
 		return nil
 
 	}
-	return res.Balance
+	return msg.Balance
 }
 
 func (s *SoContractWrap) MdBalance(p *prototype.Coin) bool {
 	if s.dba == nil {
 		return false
 	}
-	sa := s.getContract()
-	if sa == nil {
+	key, err := s.encodeMemKey("Balance")
+	if err != nil {
 		return false
 	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemContractByBalance{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoContract{}
+	sa.Id = s.mainKey
 
-	sa.Balance = p
-	if !s.update(sa) {
+	sa.Balance = ori.Balance
+
+	ori.Balance = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
 		return false
 	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.Balance = p
 
 	return true
 }
 
-func (s *SoContractWrap) GetCode() []byte {
-	res := s.getContract()
+func (s *SoContractWrap) saveMemKeyCode(tInfo *SoContract) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemContractByCode{}
+	val.Code = tInfo.Code
+	key, err := s.encodeMemKey("Code")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
 
-	if res == nil {
+func (s *SoContractWrap) GetCode() []byte {
+	res := true
+	msg := &SoMemContractByCode{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("Code")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.Code
+			}
+		}
+	}
+	if !res {
 		var tmpValue []byte
 		return tmpValue
 	}
-	return res.Code
+	return msg.Code
 }
 
 func (s *SoContractWrap) MdCode(p []byte) bool {
 	if s.dba == nil {
 		return false
 	}
-	sa := s.getContract()
-	if sa == nil {
+	key, err := s.encodeMemKey("Code")
+	if err != nil {
 		return false
 	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemContractByCode{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoContract{}
+	sa.Id = s.mainKey
 
-	sa.Code = p
-	if !s.update(sa) {
+	sa.Code = ori.Code
+
+	ori.Code = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
 		return false
 	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.Code = p
 
 	return true
 }
 
-func (s *SoContractWrap) GetCreatedTime() *prototype.TimePointSec {
-	res := s.getContract()
+func (s *SoContractWrap) saveMemKeyCreatedTime(tInfo *SoContract) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemContractByCreatedTime{}
+	val.CreatedTime = tInfo.CreatedTime
+	key, err := s.encodeMemKey("CreatedTime")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
 
-	if res == nil {
+func (s *SoContractWrap) GetCreatedTime() *prototype.TimePointSec {
+	res := true
+	msg := &SoMemContractByCreatedTime{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("CreatedTime")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.CreatedTime
+			}
+		}
+	}
+	if !res {
 		return nil
 
 	}
-	return res.CreatedTime
+	return msg.CreatedTime
 }
 
 func (s *SoContractWrap) MdCreatedTime(p *prototype.TimePointSec) bool {
 	if s.dba == nil {
 		return false
 	}
-	sa := s.getContract()
-	if sa == nil {
+	key, err := s.encodeMemKey("CreatedTime")
+	if err != nil {
 		return false
 	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemContractByCreatedTime{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoContract{}
+	sa.Id = s.mainKey
+
+	sa.CreatedTime = ori.CreatedTime
 
 	if !s.delSortKeyCreatedTime(sa) {
 		return false
 	}
-	sa.CreatedTime = p
-	if !s.update(sa) {
+	ori.CreatedTime = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
 		return false
 	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.CreatedTime = p
 
 	if !s.insertSortKeyCreatedTime(sa) {
 		return false
@@ -303,14 +646,54 @@ func (s *SoContractWrap) MdCreatedTime(p *prototype.TimePointSec) bool {
 	return true
 }
 
-func (s *SoContractWrap) GetId() *prototype.ContractId {
-	res := s.getContract()
+func (s *SoContractWrap) saveMemKeyId(tInfo *SoContract) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemContractById{}
+	val.Id = tInfo.Id
+	key, err := s.encodeMemKey("Id")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
 
-	if res == nil {
+func (s *SoContractWrap) GetId() *prototype.ContractId {
+	res := true
+	msg := &SoMemContractById{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("Id")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.Id
+			}
+		}
+	}
+	if !res {
 		return nil
 
 	}
-	return res.Id
+	return msg.Id
 }
 
 ////////////// SECTION List Keys ///////////////
@@ -458,7 +841,7 @@ func (s *SoContractWrap) getContract() *SoContract {
 }
 
 func (s *SoContractWrap) encodeMainKey() ([]byte, error) {
-	pre := ContractTable
+	pre := "Contract" + "Id" + "cell"
 	sub := s.mainKey
 	if sub == nil {
 		return nil, errors.New("the mainKey is nil")
@@ -471,7 +854,7 @@ func (s *SoContractWrap) encodeMainKey() ([]byte, error) {
 ////////////// Unique Query delete/insert/query ///////////////
 
 func (s *SoContractWrap) delAllUniKeys(br bool, val *SoContract) bool {
-	if s.dba == nil || val == nil {
+	if s.dba == nil {
 		return false
 	}
 	res := true
@@ -504,14 +887,34 @@ func (s *SoContractWrap) delUniKeyId(sa *SoContract) bool {
 	if s.dba == nil {
 		return false
 	}
-
-	if sa.Id == nil {
-		return false
-	}
-
 	pre := ContractIdUniTable
-	sub := sa.Id
-	kList := []interface{}{pre, sub}
+	kList := []interface{}{pre}
+	if sa != nil {
+
+		if sa.Id == nil {
+			return false
+		}
+
+		sub := sa.Id
+		kList = append(kList, sub)
+	} else {
+		key, err := s.encodeMemKey("Id")
+		if err != nil {
+			return false
+		}
+		buf, err := s.dba.Get(key)
+		if err != nil {
+			return false
+		}
+		ori := &SoMemContractById{}
+		err = proto.Unmarshal(buf, ori)
+		if err != nil {
+			return false
+		}
+		sub := ori.Id
+		kList = append(kList, sub)
+
+	}
 	kBuf, err := kope.EncodeSlice(kList)
 	if err != nil {
 		return false

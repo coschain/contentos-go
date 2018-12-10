@@ -68,6 +68,84 @@ func (m *SoContractData) GetValue() []byte {
 	return nil
 }
 
+type SoMemContractDataById struct {
+	Id                   *prototype.ContractDataId `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}                  `json:"-"`
+	XXX_unrecognized     []byte                    `json:"-"`
+	XXX_sizecache        int32                     `json:"-"`
+}
+
+func (m *SoMemContractDataById) Reset()         { *m = SoMemContractDataById{} }
+func (m *SoMemContractDataById) String() string { return proto.CompactTextString(m) }
+func (*SoMemContractDataById) ProtoMessage()    {}
+func (*SoMemContractDataById) Descriptor() ([]byte, []int) {
+	return fileDescriptor_7d3e7d262658ec8d, []int{1}
+}
+
+func (m *SoMemContractDataById) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SoMemContractDataById.Unmarshal(m, b)
+}
+func (m *SoMemContractDataById) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SoMemContractDataById.Marshal(b, m, deterministic)
+}
+func (m *SoMemContractDataById) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoMemContractDataById.Merge(m, src)
+}
+func (m *SoMemContractDataById) XXX_Size() int {
+	return xxx_messageInfo_SoMemContractDataById.Size(m)
+}
+func (m *SoMemContractDataById) XXX_DiscardUnknown() {
+	xxx_messageInfo_SoMemContractDataById.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SoMemContractDataById proto.InternalMessageInfo
+
+func (m *SoMemContractDataById) GetId() *prototype.ContractDataId {
+	if m != nil {
+		return m.Id
+	}
+	return nil
+}
+
+type SoMemContractDataByValue struct {
+	Value                []byte   `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *SoMemContractDataByValue) Reset()         { *m = SoMemContractDataByValue{} }
+func (m *SoMemContractDataByValue) String() string { return proto.CompactTextString(m) }
+func (*SoMemContractDataByValue) ProtoMessage()    {}
+func (*SoMemContractDataByValue) Descriptor() ([]byte, []int) {
+	return fileDescriptor_7d3e7d262658ec8d, []int{2}
+}
+
+func (m *SoMemContractDataByValue) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SoMemContractDataByValue.Unmarshal(m, b)
+}
+func (m *SoMemContractDataByValue) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SoMemContractDataByValue.Marshal(b, m, deterministic)
+}
+func (m *SoMemContractDataByValue) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoMemContractDataByValue.Merge(m, src)
+}
+func (m *SoMemContractDataByValue) XXX_Size() int {
+	return xxx_messageInfo_SoMemContractDataByValue.Size(m)
+}
+func (m *SoMemContractDataByValue) XXX_DiscardUnknown() {
+	xxx_messageInfo_SoMemContractDataByValue.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SoMemContractDataByValue proto.InternalMessageInfo
+
+func (m *SoMemContractDataByValue) GetValue() []byte {
+	if m != nil {
+		return m.Value
+	}
+	return nil
+}
+
 type SoUniqueContractDataById struct {
 	Id                   *prototype.ContractDataId `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                  `json:"-"`
@@ -79,7 +157,7 @@ func (m *SoUniqueContractDataById) Reset()         { *m = SoUniqueContractDataBy
 func (m *SoUniqueContractDataById) String() string { return proto.CompactTextString(m) }
 func (*SoUniqueContractDataById) ProtoMessage()    {}
 func (*SoUniqueContractDataById) Descriptor() ([]byte, []int) {
-	return fileDescriptor_7d3e7d262658ec8d, []int{1}
+	return fileDescriptor_7d3e7d262658ec8d, []int{3}
 }
 
 func (m *SoUniqueContractDataById) XXX_Unmarshal(b []byte) error {
@@ -109,13 +187,15 @@ func (m *SoUniqueContractDataById) GetId() *prototype.ContractDataId {
 
 func init() {
 	proto.RegisterType((*SoContractData)(nil), "table.so_contractData")
+	proto.RegisterType((*SoMemContractDataById)(nil), "table.so_mem_contractData_by_id")
+	proto.RegisterType((*SoMemContractDataByValue)(nil), "table.so_mem_contractData_by_value")
 	proto.RegisterType((*SoUniqueContractDataById)(nil), "table.so_unique_contractData_by_id")
 }
 
 func init() { proto.RegisterFile("app/table/so_contractData.proto", fileDescriptor_7d3e7d262658ec8d) }
 
 var fileDescriptor_7d3e7d262658ec8d = []byte{
-	// 194 bytes of a gzipped FileDescriptorProto
+	// 217 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0x92, 0x4f, 0x2c, 0x28, 0xd0,
 	0x2f, 0x49, 0x4c, 0xca, 0x49, 0xd5, 0x2f, 0xce, 0x8f, 0x4f, 0xce, 0xcf, 0x2b, 0x29, 0x4a, 0x4c,
 	0x2e, 0x71, 0x49, 0x2c, 0x49, 0xd4, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0x05, 0x4b, 0x4a,
@@ -123,10 +203,11 @@ var fileDescriptor_7d3e7d262658ec8d = []byte{
 	0xa6, 0x4b, 0x48, 0x9b, 0x8b, 0x29, 0x33, 0x45, 0x82, 0x51, 0x81, 0x51, 0x83, 0xdb, 0x48, 0x5a,
 	0x0f, 0xae, 0x4b, 0x0f, 0xa6, 0x28, 0x3e, 0x25, 0xb1, 0x24, 0x31, 0x3e, 0x33, 0x25, 0x88, 0x29,
 	0x33, 0x45, 0x48, 0x84, 0x8b, 0xb5, 0x2c, 0x31, 0xa7, 0x34, 0x55, 0x82, 0x49, 0x81, 0x51, 0x83,
-	0x27, 0x08, 0xc2, 0x51, 0xf2, 0xe6, 0x92, 0x29, 0xce, 0x8f, 0x2f, 0xcd, 0xcb, 0x2c, 0x2c, 0x4d,
-	0x45, 0x31, 0x3c, 0x3e, 0xa9, 0x32, 0x3e, 0x33, 0x85, 0x24, 0x2b, 0x9c, 0x34, 0xa2, 0xd4, 0xd2,
-	0x33, 0x4b, 0x32, 0x4a, 0x93, 0xf4, 0x92, 0xf3, 0x73, 0xf5, 0x93, 0xf3, 0x8b, 0x93, 0x33, 0x12,
-	0x33, 0xf3, 0xf4, 0x41, 0x6a, 0x53, 0xf3, 0x4a, 0xf2, 0x8b, 0x75, 0xd3, 0xf3, 0x21, 0xfe, 0x4f,
-	0x62, 0x03, 0x9b, 0x64, 0x0c, 0x08, 0x00, 0x00, 0xff, 0xff, 0x78, 0x12, 0x07, 0xee, 0x13, 0x01,
-	0x00, 0x00,
+	0x27, 0x08, 0xc2, 0x51, 0xf2, 0xe0, 0x92, 0x2c, 0xce, 0x8f, 0xcf, 0x4d, 0xcd, 0x45, 0x31, 0x39,
+	0x3e, 0xa9, 0x32, 0x3e, 0x33, 0x85, 0x24, 0xf3, 0x95, 0x4c, 0xb8, 0x64, 0x70, 0x98, 0x04, 0xb6,
+	0x09, 0x61, 0x3f, 0x23, 0xb2, 0xfd, 0xde, 0x60, 0x5d, 0xa5, 0x79, 0x99, 0x85, 0xa5, 0xa9, 0x94,
+	0x3a, 0xc1, 0x49, 0x23, 0x4a, 0x2d, 0x3d, 0xb3, 0x24, 0xa3, 0x34, 0x49, 0x2f, 0x39, 0x3f, 0x57,
+	0x3f, 0x39, 0xbf, 0x38, 0x39, 0x23, 0x31, 0x33, 0x4f, 0x1f, 0xa4, 0x36, 0x35, 0xaf, 0x24, 0xbf,
+	0x58, 0x37, 0x3d, 0x1f, 0x12, 0xfe, 0x49, 0x6c, 0x60, 0x93, 0x8c, 0x01, 0x01, 0x00, 0x00, 0xff,
+	0xff, 0x52, 0x37, 0x7a, 0xe8, 0x93, 0x01, 0x00, 0x00,
 }
