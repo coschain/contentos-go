@@ -16,7 +16,10 @@ type HostFunction interface {
 	ReadFromStorage(key []byte) []byte
 	LogSort( namespace uint32, key []byte, value[]byte)
 	CosAssert( v bool, info string)
-	ReadOpParams() []byte
+	ReadContractOpParams() []byte
+	ReadContractOpParamsLength() uint32
+	ReadContractOwner() string
+	ReadContractCaller() string
 	Transfer( from string , to string , amount uint64, memo string)
 	GetSenderValue() uint64
 }
@@ -40,7 +43,13 @@ type FunctionRouter interface {
 	read_from_storage(ptr, len, ptr, len)
 	log_sort(uint32, ptr, len, ptr, len)
 	cos_assert(bool, ptr )
-	read_op_params( ptr, len) []byte
+
+	read_contract_op_params( ptr, len, ptr, len)
+	read_contract_op_params_length() len
+
+	read_contract_owner(ptr, len)
+	read_contract_caller(ptr, len)
+
 	transfer( ptr , ptr , uint64, ptr )
 	get_sender_value() uint64
 }

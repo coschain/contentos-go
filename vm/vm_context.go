@@ -7,7 +7,7 @@ import (
 type ContractName string
 
 type Context struct {
-	From     *prototype.AccountName
+	Caller    *prototype.AccountName
 	Owner    *prototype.AccountName
 	Contract string
 	Method   string
@@ -33,7 +33,8 @@ type Context struct {
 
 
 func NewContextFromApplyOp(op *prototype.ContractApplyOperation, code []byte) *Context  {
-	return &Context{ From:op.Owner,
+	return &Context{
+		Caller:op.Caller,
 		Owner:op.Owner,
 		Contract:op.Contract,
 		Method:op.Method,

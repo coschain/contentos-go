@@ -67,7 +67,7 @@ message contract_deploy_operation{
 }
 
 message contract_apply_operation{
-    account_name from = 1;          // who apply this op
+    account_name caller = 1;          // who apply this op
     account_name owner = 2;         // who owner this contract
     string contract = 3;            // contract name
     string method = 4;              // call which method
