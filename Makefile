@@ -18,6 +18,11 @@ test_detail:
 	@echo "--> Running go test"
 	@GO111MODULE=on go test -v $(PACKAGES)
 
+build:
+	@echo "--> build all"
+	@GO111MODULE=on go build $(COSD)
+	@GO111MODULE=on go build $(WALLET)
+
 build_cosd:
 	@echo "--> build cosd"
 	@GO111MODULE=on go build $(COSD)
@@ -25,6 +30,19 @@ build_cosd:
 build_wallet:
 	@echo "--> build wallet"
 	@GO111MODULE=on go build $(WALLET)
+
+install:
+	@echo "--> build all"
+	@GO111MODULE=on go install $(COSD)
+	@GO111MODULE=on go install $(WALLET)
+
+install_cosd:
+	@echo "--> install cosd"
+	@GO111MODULE=on go install $(COSD)
+
+install_wallet:
+	@echo "--> build wallet"
+	@GO111MODULE=on go install $(WALLET)
 
 collect-cover-data:
 	@echo "collect cover data"
