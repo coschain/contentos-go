@@ -5,22 +5,14 @@ import "github.com/pkg/errors"
 func (m *VoteOperation) GetAuthorities(auths *[]Authority) {
 
 }
-func (m *VoteOperation) GetRequiredPosting(auths *map[string]bool) {
-
-}
-
 func (m *VoteOperation) GetRequiredOwner(auths *map[string]bool) {
-
+	(*auths)[m.Voter.Value] = true
 }
 func (m *VoteOperation) GetAdmin(*[]AccountAdminPair) {
 
 }
 func (m *VoteOperation) IsVirtual() {
 
-}
-
-func (m *VoteOperation) GetRequiredActive(auths *map[string]bool) {
-	(*auths)[m.Voter.Value] = true
 }
 
 func (m *VoteOperation) Validate() error {

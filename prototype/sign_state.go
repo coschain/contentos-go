@@ -9,8 +9,8 @@ type AuthorityGetter func(string) *Authority
 type AuthorityType uint16
 
 const (
-	Posting AuthorityType = iota
-	Active  AuthorityType = iota
+	//Posting AuthorityType = iota
+	//Active  AuthorityType = iota
 	Owner   AuthorityType = iota
 )
 
@@ -19,8 +19,8 @@ type SignState struct {
 	trxCarryedPubs []*PublicKeyType
 	approved       map[string]bool
 	max_recursion  uint32
-	PostingGetter  AuthorityGetter
-	ActiveGetter   AuthorityGetter
+	//PostingGetter  AuthorityGetter
+	//ActiveGetter   AuthorityGetter
 	OwnerGetter    AuthorityGetter
 }
 
@@ -81,22 +81,22 @@ func (s *SignState) CheckAuthority(auth *Authority, depth uint32, at AuthorityTy
 	return total_weight >= auth.WeightThreshold
 }
 
-func (s *SignState) Init(pubs []*PublicKeyType, maxDepth uint32, posting AuthorityGetter, active AuthorityGetter, owner AuthorityGetter) {
+func (s *SignState) Init(pubs []*PublicKeyType, maxDepth uint32, owner AuthorityGetter) {
 	s.trxCarryedPubs = s.trxCarryedPubs[:0]
 	s.trxCarryedPubs = append(s.trxCarryedPubs, pubs...)
 	s.max_recursion = maxDepth
-	s.PostingGetter = posting
-	s.ActiveGetter = active
+	//s.PostingGetter = posting
+	//s.ActiveGetter = active
 	s.OwnerGetter = owner
 }
 
 func (s *SignState) getAuthority(name string, at AuthorityType) *Authority {
 	// read Authority struct from DB
 	switch at {
-	case Posting:
-		return s.PostingGetter(name)
-	case Active:
-		return s.ActiveGetter(name)
+	//case Posting:
+	//	return s.PostingGetter(name)
+	//case Active:
+	//	return s.ActiveGetter(name)
 	case Owner:
 		return s.OwnerGetter(name)
 	default:

@@ -84,9 +84,9 @@ func (s *SoTransactionObjectWrap) Create(f func(tInfo *SoTransactionObject)) err
 	}
 
 	//update unique list
-	if err = s.insertAllUniKeys(val); err != nil {
+	if sucNames, err := s.insertAllUniKeys(val); err != nil {
 		s.delAllSortKeys(false, val)
-		s.delAllUniKeys(false, val)
+		s.delUniKeysWithNames(sucNames, val)
 		s.dba.Delete(keyBuf)
 		s.delAllMemKeys(false, val)
 		return err
@@ -599,18 +599,34 @@ func (s *SoTransactionObjectWrap) delAllUniKeys(br bool, val *SoTransactionObjec
 	return res
 }
 
-func (s *SoTransactionObjectWrap) insertAllUniKeys(val *SoTransactionObject) error {
+func (s *SoTransactionObjectWrap) delUniKeysWithNames(names map[string]string, val *SoTransactionObject) bool {
 	if s.dba == nil {
-		return errors.New("insert uniuqe Field fail,the db is nil ")
+		return false
 	}
-	if val == nil {
-		return errors.New("insert uniuqe Field fail,get the SoTransactionObject fail ")
-	}
-	if !s.insertUniKeyTrxId(val) {
-		return errors.New("insert unique Field TrxId fail while insert table ")
+	res := true
+	if len(names["TrxId"]) > 0 {
+		if !s.delUniKeyTrxId(val) {
+			res = false
+		}
 	}
 
-	return nil
+	return res
+}
+
+func (s *SoTransactionObjectWrap) insertAllUniKeys(val *SoTransactionObject) (map[string]string, error) {
+	if s.dba == nil {
+		return nil, errors.New("insert uniuqe Field fail,the db is nil ")
+	}
+	if val == nil {
+		return nil, errors.New("insert uniuqe Field fail,get the SoTransactionObject fail ")
+	}
+	sucFields := map[string]string{}
+	if !s.insertUniKeyTrxId(val) {
+		return sucFields, errors.New("insert unique Field TrxId fail while insert table ")
+	}
+	sucFields["TrxId"] = "TrxId"
+
+	return sucFields, nil
 }
 
 func (s *SoTransactionObjectWrap) delUniKeyTrxId(sa *SoTransactionObject) bool {

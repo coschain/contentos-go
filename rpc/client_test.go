@@ -391,8 +391,6 @@ func createAccountTxReq(t *testing.T) *grpcpb.BroadcastTrxRequest {
 		Creator:        &prototype.AccountName{Value: constants.INIT_MINER_NAME},
 		NewAccountName: &prototype.AccountName{Value: BOB},
 		Owner:          keysA,
-		Posting:        keysA,
-		Active:         keysA,
 	}
 
 	acoB := &prototype.AccountCreateOperation{
@@ -400,8 +398,6 @@ func createAccountTxReq(t *testing.T) *grpcpb.BroadcastTrxRequest {
 		Creator:        &prototype.AccountName{Value: constants.INIT_MINER_NAME},
 		NewAccountName: &prototype.AccountName{Value: ALICE},
 		Owner:          keysB,
-		Posting:        keysB,
-		Active:         keysB,
 	}
 
 	return generateSignedTxResp(t, constants.INIT_MINER_NAME, acoA, acoB)

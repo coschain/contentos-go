@@ -109,14 +109,6 @@ func (ev *AccountCreateEvaluator) Apply() {
 		tmpAccountWrap := table.NewSoAccountWrap(ev.ctx.db, a.Name)
 		opAssert(tmpAccountWrap.CheckExist(), "owner auth account not exist")
 	}
-	for _, a := range op.Active.AccountAuths {
-		tmpAccountWrap := table.NewSoAccountWrap(ev.ctx.db, a.Name)
-		opAssert(tmpAccountWrap.CheckExist(), "active auth account not exist")
-	}
-	for _, a := range op.Posting.AccountAuths {
-		tmpAccountWrap := table.NewSoAccountWrap(ev.ctx.db, a.Name)
-		opAssert(tmpAccountWrap.CheckExist(), "posting auth account not exist")
-	}
 
 	// sub creator's fee
 	originBalance := creatorWrap.GetBalance()
@@ -139,8 +131,6 @@ func (ev *AccountCreateEvaluator) Apply() {
 	authorityWrap := table.NewSoAccountAuthorityObjectWrap(ev.ctx.db, op.NewAccountName)
 	opAssertE(authorityWrap.Create(func(tInfo *table.SoAccountAuthorityObject) {
 		tInfo.Account = op.NewAccountName
-		tInfo.Posting = op.Posting
-		tInfo.Active = op.Active
 		tInfo.Owner = op.Owner
 		tInfo.LastOwnerUpdate = prototype.NewTimePointSec(0)
 	}), "duplicate create account authority object")

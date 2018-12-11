@@ -28,7 +28,6 @@ func Test_ApplyAccountCreate(t *testing.T) {
 		Creator:        &prototype.AccountName{Value: "initminer"},
 		NewAccountName: &prototype.AccountName{Value: "alice"},
 		Owner: &prototype.Authority{
-			Cf:              prototype.Authority_owner,
 			WeightThreshold: 1,
 			AccountAuths: []*prototype.KvAccountAuth{
 				&prototype.KvAccountAuth{
@@ -45,8 +44,6 @@ func Test_ApplyAccountCreate(t *testing.T) {
 				},
 			},
 		},
-		Active:  &prototype.Authority{},
-		Posting: &prototype.Authority{},
 	}
 	// construct base op ...
 	op := &prototype.Operation{}

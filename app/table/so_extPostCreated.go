@@ -81,9 +81,9 @@ func (s *SoExtPostCreatedWrap) Create(f func(tInfo *SoExtPostCreated)) error {
 	}
 
 	//update unique list
-	if err = s.insertAllUniKeys(val); err != nil {
+	if sucNames, err := s.insertAllUniKeys(val); err != nil {
 		s.delAllSortKeys(false, val)
-		s.delAllUniKeys(false, val)
+		s.delUniKeysWithNames(sucNames, val)
 		s.dba.Delete(keyBuf)
 		s.delAllMemKeys(false, val)
 		return err
@@ -592,18 +592,34 @@ func (s *SoExtPostCreatedWrap) delAllUniKeys(br bool, val *SoExtPostCreated) boo
 	return res
 }
 
-func (s *SoExtPostCreatedWrap) insertAllUniKeys(val *SoExtPostCreated) error {
+func (s *SoExtPostCreatedWrap) delUniKeysWithNames(names map[string]string, val *SoExtPostCreated) bool {
 	if s.dba == nil {
-		return errors.New("insert uniuqe Field fail,the db is nil ")
+		return false
 	}
-	if val == nil {
-		return errors.New("insert uniuqe Field fail,get the SoExtPostCreated fail ")
-	}
-	if !s.insertUniKeyPostId(val) {
-		return errors.New("insert unique Field PostId fail while insert table ")
+	res := true
+	if len(names["PostId"]) > 0 {
+		if !s.delUniKeyPostId(val) {
+			res = false
+		}
 	}
 
-	return nil
+	return res
+}
+
+func (s *SoExtPostCreatedWrap) insertAllUniKeys(val *SoExtPostCreated) (map[string]string, error) {
+	if s.dba == nil {
+		return nil, errors.New("insert uniuqe Field fail,the db is nil ")
+	}
+	if val == nil {
+		return nil, errors.New("insert uniuqe Field fail,get the SoExtPostCreated fail ")
+	}
+	sucFields := map[string]string{}
+	if !s.insertUniKeyPostId(val) {
+		return sucFields, errors.New("insert unique Field PostId fail while insert table ")
+	}
+	sucFields["PostId"] = "PostId"
+
+	return sucFields, nil
 }
 
 func (s *SoExtPostCreatedWrap) delUniKeyPostId(sa *SoExtPostCreated) bool {

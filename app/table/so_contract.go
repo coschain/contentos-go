@@ -84,9 +84,9 @@ func (s *SoContractWrap) Create(f func(tInfo *SoContract)) error {
 	}
 
 	//update unique list
-	if err = s.insertAllUniKeys(val); err != nil {
+	if sucNames, err := s.insertAllUniKeys(val); err != nil {
 		s.delAllSortKeys(false, val)
-		s.delAllUniKeys(false, val)
+		s.delUniKeysWithNames(sucNames, val)
 		s.dba.Delete(keyBuf)
 		s.delAllMemKeys(false, val)
 		return err
@@ -869,18 +869,34 @@ func (s *SoContractWrap) delAllUniKeys(br bool, val *SoContract) bool {
 	return res
 }
 
-func (s *SoContractWrap) insertAllUniKeys(val *SoContract) error {
+func (s *SoContractWrap) delUniKeysWithNames(names map[string]string, val *SoContract) bool {
 	if s.dba == nil {
-		return errors.New("insert uniuqe Field fail,the db is nil ")
+		return false
 	}
-	if val == nil {
-		return errors.New("insert uniuqe Field fail,get the SoContract fail ")
-	}
-	if !s.insertUniKeyId(val) {
-		return errors.New("insert unique Field Id fail while insert table ")
+	res := true
+	if len(names["Id"]) > 0 {
+		if !s.delUniKeyId(val) {
+			res = false
+		}
 	}
 
-	return nil
+	return res
+}
+
+func (s *SoContractWrap) insertAllUniKeys(val *SoContract) (map[string]string, error) {
+	if s.dba == nil {
+		return nil, errors.New("insert uniuqe Field fail,the db is nil ")
+	}
+	if val == nil {
+		return nil, errors.New("insert uniuqe Field fail,get the SoContract fail ")
+	}
+	sucFields := map[string]string{}
+	if !s.insertUniKeyId(val) {
+		return sucFields, errors.New("insert unique Field Id fail while insert table ")
+	}
+	sucFields["Id"] = "Id"
+
+	return sucFields, nil
 }
 
 func (s *SoContractWrap) delUniKeyId(sa *SoContract) bool {

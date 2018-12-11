@@ -89,7 +89,6 @@ func makeCreateAccountOP(accountName string, pubKey string) (*prototype.AccountC
 		Creator:        &prototype.AccountName{Value: constants.COS_INIT_MINER},
 		NewAccountName: &prototype.AccountName{Value: accountName},
 		Owner: &prototype.Authority{
-			Cf:              prototype.Authority_owner,
 			WeightThreshold: 1,
 			AccountAuths: []*prototype.KvAccountAuth{
 				&prototype.KvAccountAuth{
@@ -104,8 +103,6 @@ func makeCreateAccountOP(accountName string, pubKey string) (*prototype.AccountC
 				},
 			},
 		},
-		Active:  &prototype.Authority{},
-		Posting: &prototype.Authority{},
 	}
 
 	return acop, nil

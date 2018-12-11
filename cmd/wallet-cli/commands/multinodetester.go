@@ -59,8 +59,6 @@ func makeMultiNodeTeseterTrx(count int64, onlyCreate bool) (*prototype.SignedTra
 			Creator:        creator,
 			NewAccountName: &prototype.AccountName{Value: bpName},
 			Owner:          prototype.NewAuthorityFromPubKey(pubKey),
-			Posting:        prototype.NewAuthorityFromPubKey(pubKey),
-			Active:         prototype.NewAuthorityFromPubKey(pubKey),
 		}
 
 		opBpReg := &prototype.BpRegisterOperation{

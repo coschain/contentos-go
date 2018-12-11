@@ -10,9 +10,7 @@ import "prototype/type.proto";
 message so_accountAuthorityObject {
 	prototype.account_name      account                   =      1;
     prototype.authority         owner                    =      2;
-    prototype.authority         active                   =      3;
-    prototype.authority         posting                  =      4;
-    prototype.time_point_sec    last_owner_update        =      5;
+    prototype.time_point_sec    last_owner_update        =      3;
       
 }
 
@@ -24,16 +22,6 @@ message so_mem_accountAuthorityObject_by_account {
 
 message so_mem_accountAuthorityObject_by_owner {
 	prototype.authority      	owner                = 1;
-}
-
-
-message so_mem_accountAuthorityObject_by_active {
-	prototype.authority      	active               = 1;
-}
-
-
-message so_mem_accountAuthorityObject_by_posting {
-	prototype.authority      	posting              = 1;
 }
 
 

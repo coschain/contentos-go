@@ -128,9 +128,9 @@ func (s *So{{.ClsName}}Wrap) Create(f func(tInfo *So{{.ClsName}})) error {
     {{end}}
     {{if ge (getMapCount .UniqueFieldMap) 0 -}}
     //update unique list
-    if err = s.insertAllUniKeys(val); err != nil {
+    if sucNames,err := s.insertAllUniKeys(val); err != nil {
         s.delAllSortKeys(false,val)
-        s.delAllUniKeys(false,val)
+        s.delUniKeysWithNames(sucNames,val)
         s.dba.Delete(keyBuf)
         s.delAllMemKeys(false,val)
         return err
@@ -710,19 +710,36 @@ func (s *So{{$.ClsName}}Wrap)delAllUniKeys(br bool, val *So{{.ClsName}}) bool {
      return res
 }
 
-func (s *So{{$.ClsName}}Wrap)insertAllUniKeys(val *So{{$.ClsName}}) error {
+func (s *So{{$.ClsName}}Wrap)delUniKeysWithNames(names map[string]string, val *So{{.ClsName}}) bool {
      if s.dba == nil {
-       return errors.New("insert uniuqe Field fail,the db is nil ")
+       return false
+     }
+     res := true
+     {{range $k, $v := .UniqueFieldMap -}}
+	 if len(names["{{$k}}"]) > 0 {
+        if !s.delUniKey{{$k}}(val) {
+           res = false
+        }
+	 }
+	 {{end}}
+     return res
+}
+
+func (s *So{{$.ClsName}}Wrap)insertAllUniKeys(val *So{{$.ClsName}}) (map[string]string, error) {
+     if s.dba == nil {
+       return nil,errors.New("insert uniuqe Field fail,the db is nil ")
     }
 	if val == nil {
-		return errors.New("insert uniuqe Field fail,get the So{{.ClsName}} fail ")
+		return nil,errors.New("insert uniuqe Field fail,get the So{{.ClsName}} fail ")
 	}
+    sucFields := map[string]string{}
     {{range $k, $v := .UniqueFieldMap -}}
 	if !s.insertUniKey{{$k}}(val) {
-		return errors.New("insert unique Field {{$k}} fail while insert table ")
+		return sucFields,errors.New("insert unique Field {{$k}} fail while insert table ")
 	}
+    sucFields["{{$k}}"] = "{{$k}}"
 	{{end}}
-    return nil
+    return sucFields,nil
 }
 
 {{end}}

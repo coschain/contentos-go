@@ -14,8 +14,6 @@ type AccountAdminPair struct {
 
 type BaseOperation interface {
 	GetAuthorities(*[]Authority)
-	GetRequiredPosting(*map[string]bool)
-	GetRequiredActive(*map[string]bool)
 	GetRequiredOwner(*map[string]bool)
 	GetAdmin(*[]AccountAdminPair)
 	IsVirtual()
