@@ -26,17 +26,21 @@ type GRPCServer struct {
 }
 
 func NewGRPCServer(ctx *node.ServiceContext, config service_configs.GRPCConfig) (*GRPCServer, error) {
-	rpc := grpc.NewServer(
-		grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(streamRecoveryLoggingInterceptor)),
-		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(unaryRecoveryLoggingInterceptor)),
-		grpc.MaxRecvMsgSize(GRPCMaxRecvMsgSize))
-	api := &APIService{}
-	grpcpb.RegisterApiServiceServer(rpc, api)
-	srv := &GRPCServer{rpcServer: rpc, ctx: ctx, api: api, config: &config}
 	logService, err := ctx.Service(iservices.LogServerName)
 	if err != nil {
 		panic(err)
 	}
+
+	gi := NewGRPCIntercepter(logService.(iservices.ILog))
+
+	rpc := grpc.NewServer(
+		grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(gi.streamRecoveryLoggingInterceptor)),
+		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(gi.unaryRecoveryLoggingInterceptor)),
+		grpc.MaxRecvMsgSize(GRPCMaxRecvMsgSize))
+	api := &APIService{}
+	grpcpb.RegisterApiServiceServer(rpc, api)
+	srv := &GRPCServer{rpcServer: rpc, ctx: ctx, api: api, config: &config}
+
 	srv.log = logService.(iservices.ILog).GetLog()
 	srv.api.log = srv.log
 	return srv, nil
