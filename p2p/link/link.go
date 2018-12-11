@@ -108,10 +108,11 @@ func (this *Link) Rx(magic uint32) {
 		t := time.Now()
 		this.UpdateRXTime(t)
 
-		if !this.needSendMsg(msg) {
-			continue
-		}
-		this.addReqRecord(msg)
+		//if !this.needSendMsg(msg) {
+		//	continue
+		//}
+		//this.addReqRecord(msg)
+
 		this.recvChan <- &types.MsgPayload{
 			Id:          this.id,
 			Addr:        this.addr,
@@ -184,37 +185,37 @@ func (this *Link) Tx(msg types.Message, magic uint32) error {
 }
 
 //needSendMsg check whether the msg is needed to push to channel
-func (this *Link) needSendMsg(msg types.Message) bool {
-	if msg.CmdType() != common.GET_DATA_TYPE {
-		return true
-	}
-	var dataReq = msg.(*types.DataReq)
-	reqID := fmt.Sprintf("%x%s", dataReq.DataType, dataReq.Hash.ToHexString())
-	now := time.Now().Unix()
-
-	if t, ok := this.reqRecord[reqID]; ok {
-		if int(now-t) < common.REQ_INTERVAL {
-			return false
-		}
-	}
-	return true
-}
+//func (this *Link) needSendMsg(msg types.Message) bool {
+//	if msg.CmdType() != common.GET_DATA_TYPE {
+//		return true
+//	}
+//	var dataReq = msg.(*types.DataReq)
+//	reqID := fmt.Sprintf("%x%s", dataReq.DataType, dataReq.Hash.ToHexString())
+//	now := time.Now().Unix()
+//
+//	if t, ok := this.reqRecord[reqID]; ok {
+//		if int(now-t) < common.REQ_INTERVAL {
+//			return false
+//		}
+//	}
+//	return true
+//}
 
 //addReqRecord add request record by removing outdated request records
-func (this *Link) addReqRecord(msg types.Message) {
-	if msg.CmdType() != common.GET_DATA_TYPE {
-		return
-	}
-	now := time.Now().Unix()
-	if len(this.reqRecord) >= common.MAX_REQ_RECORD_SIZE-1 {
-		for id := range this.reqRecord {
-			t := this.reqRecord[id]
-			if int(now-t) > common.REQ_INTERVAL {
-				delete(this.reqRecord, id)
-			}
-		}
-	}
-	var dataReq = msg.(*types.DataReq)
-	reqID := fmt.Sprintf("%x%s", dataReq.DataType, dataReq.Hash.ToHexString())
-	this.reqRecord[reqID] = now
-}
+//func (this *Link) addReqRecord(msg types.Message) {
+//	if msg.CmdType() != common.GET_DATA_TYPE {
+//		return
+//	}
+//	now := time.Now().Unix()
+//	if len(this.reqRecord) >= common.MAX_REQ_RECORD_SIZE-1 {
+//		for id := range this.reqRecord {
+//			t := this.reqRecord[id]
+//			if int(now-t) > common.REQ_INTERVAL {
+//				delete(this.reqRecord, id)
+//			}
+//		}
+//	}
+//	var dataReq = msg.(*types.DataReq)
+//	reqID := fmt.Sprintf("%x%s", dataReq.DataType, dataReq.Hash.ToHexString())
+//	this.reqRecord[reqID] = now
+//}

@@ -57,16 +57,6 @@ const (
 	INACTIVITY  = 5 //link broken
 )
 
-//PeerAddr represent peer`s net information
-type PeerAddr struct {
-	Time          int64    //latest timestamp
-	Services      uint64   //service type
-	IpAddr        [16]byte //ip address
-	Port          uint16   //sync port
-	ConsensusPort uint16   //consensus port
-	ID            uint64   //Unique ID
-}
-
 //const channel msg id and type
 const (
 	VERSION_TYPE    = "version"   //peer`s information
@@ -75,7 +65,7 @@ const (
 	ADDR_TYPE       = "addr"      //nbr address
 	PING_TYPE       = "ping"      //ping  sync height
 	PONG_TYPE       = "pong"      //pong  recv nbr height
-	GET_DATA_TYPE   = "getdata"   //req data from peer
+	//GET_DATA_TYPE   = "getdata"   //req data from peer
 	BLOCK_TYPE      = "sig_block" //blk payload
 	ID_TYPE         = "id"
 	REQ_ID_TYPE     = "req_id"

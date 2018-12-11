@@ -142,8 +142,6 @@ func MakeEmptyMessage(cmdType string) (Message, error) {
 		return &msg.TransferMsg{}, nil
 	case common.REQ_ID_TYPE:
 		return &msg.TransferMsg{}, nil
-	case common.GET_DATA_TYPE:
-		return &DataReq{}, nil
 	case common.BLOCK_TYPE:
 		return &msg.TransferMsg{}, nil
 	case common.TX_TYPE:
