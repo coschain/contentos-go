@@ -13,8 +13,7 @@ type GRPCIntercepter struct {
 }
 
 func NewGRPCIntercepter(ilog iservices.ILog) *GRPCIntercepter {
-	log := ilog.GetLog()
-	return &GRPCIntercepter{log: log}
+	return &GRPCIntercepter{log: ilog.GetLog()}
 }
 
 func (gi *GRPCIntercepter) streamRecoveryLoggingInterceptor(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) (err error) {
