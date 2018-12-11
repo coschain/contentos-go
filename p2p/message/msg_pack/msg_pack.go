@@ -4,98 +4,97 @@ import (
 	"time"
 
 	mt "github.com/coschain/contentos-go/p2p/message/types"
-	"github.com/coschain/contentos-go/p2p/msg"
 	"github.com/coschain/contentos-go/p2p/net/protocol"
 	"github.com/coschain/contentos-go/prototype"
 )
 
 //Peer address package
-func NewAddrs(nodeAddrs []*msg.PeerAddr) mt.Message {
-	var reqmsg msg.TransferMsg
-	data := new(msg.Address)
+func NewAddrs(nodeAddrs []*mt.PeerAddr) mt.Message {
+	var reqmsg mt.TransferMsg
+	data := new(mt.Address)
 	data.Addr = nodeAddrs
 
-	reqmsg.Msg = &msg.TransferMsg_Msg5{Msg5:data}
+	reqmsg.Msg = &mt.TransferMsg_Msg5{Msg5:data}
 	return &reqmsg
 }
 
 //Peer address request package
 func NewAddrReq() mt.Message {
-	var reqmsg msg.TransferMsg
-	data := new(msg.AddrReq)
+	var reqmsg mt.TransferMsg
+	data := new(mt.AddrReq)
 
-	reqmsg.Msg = &msg.TransferMsg_Msg6{Msg6:data}
+	reqmsg.Msg = &mt.TransferMsg_Msg6{Msg6:data}
 	return &reqmsg
 }
 
 //block package
 func NewSigBlkIdMsg(bk *prototype.SignedBlock) mt.Message {
-	var reqmsg msg.TransferMsg
-	data := new(msg.IdMsg)
+	var reqmsg mt.TransferMsg
+	data := new(mt.IdMsg)
 	var tmp []byte
-	data.Msgtype = msg.IdMsg_broadcast_sigblk_id
+	data.Msgtype = mt.IdMsg_broadcast_sigblk_id
 	id := bk.Id()
 	data.Value = append(data.Value, tmp)
 	data.Value[0] = id.Data[:]
 
-	reqmsg.Msg = &msg.TransferMsg_Msg2{Msg2:data}
+	reqmsg.Msg = &mt.TransferMsg_Msg2{Msg2:data}
 	return &reqmsg
 }
 
 func NewSigBlk(bk *prototype.SignedBlock) mt.Message {
-	var reqmsg msg.TransferMsg
-	data := new(msg.SigBlkMsg)
+	var reqmsg mt.TransferMsg
+	data := new(mt.SigBlkMsg)
 	data.SigBlk = bk
 
-	reqmsg.Msg = &msg.TransferMsg_Msg3{Msg3:data}
+	reqmsg.Msg = &mt.TransferMsg_Msg3{Msg3:data}
 	return &reqmsg
 }
 
 //ping msg package
 func NewPingMsg(height uint64) mt.Message {
-	var reqmsg msg.TransferMsg
-	data := new(msg.Ping)
+	var reqmsg mt.TransferMsg
+	data := new(mt.Ping)
 	data.Height = height
 
-	reqmsg.Msg = &msg.TransferMsg_Msg8{Msg8:data}
+	reqmsg.Msg = &mt.TransferMsg_Msg8{Msg8:data}
 	return &reqmsg
 }
 
 //pong msg package
 func NewPongMsg(height uint64) mt.Message {
-	var reqmsg msg.TransferMsg
-	data := new(msg.Pong)
+	var reqmsg mt.TransferMsg
+	data := new(mt.Pong)
 	data.Height = height
 
-	reqmsg.Msg = &msg.TransferMsg_Msg9{Msg9:data}
+	reqmsg.Msg = &mt.TransferMsg_Msg9{Msg9:data}
 	return &reqmsg
 }
 
 //Transaction package
 func NewTxn(txn *prototype.SignedTransaction) mt.Message {
-	var reqmsg msg.TransferMsg
-	data := new(msg.BroadcastSigTrx)
+	var reqmsg mt.TransferMsg
+	data := new(mt.BroadcastSigTrx)
 	data.SigTrx = txn
 
-	reqmsg.Msg = &msg.TransferMsg_Msg1{Msg1:data}
+	reqmsg.Msg = &mt.TransferMsg_Msg1{Msg1:data}
 	return &reqmsg
 }
 
 //version ack package
 func NewVerAck(isConsensus bool) mt.Message {
-	var reqmsg msg.TransferMsg
-	data := new(msg.VerAck)
+	var reqmsg mt.TransferMsg
+	data := new(mt.VerAck)
 	data.IsConsensus = isConsensus
 
-	reqmsg.Msg = &msg.TransferMsg_Msg10{Msg10:data}
+	reqmsg.Msg = &mt.TransferMsg_Msg10{Msg10:data}
 	return &reqmsg
 }
 
 //Version package
 func NewVersion(n p2p.P2P, isCons bool, height uint64) mt.Message {
-	var reqmsg msg.TransferMsg
+	var reqmsg mt.TransferMsg
 
-	 data := &msg.Version{
+	 data := &mt.Version{
 		Version:     n.GetVersion(),
 		Services:    n.GetServices(),
 		SyncPort:    n.GetSyncPort(),
@@ -111,6 +110,6 @@ func NewVersion(n p2p.P2P, isCons bool, height uint64) mt.Message {
 		data.Relay = 0
 	}
 
-	 reqmsg.Msg = &msg.TransferMsg_Msg11{Msg11:data}
+	 reqmsg.Msg = &mt.TransferMsg_Msg11{Msg11:data}
 	 return &reqmsg
 }

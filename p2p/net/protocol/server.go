@@ -3,7 +3,6 @@ package p2p
 import (
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/p2p/message/types"
-	"github.com/coschain/contentos-go/p2p/msg"
 	"github.com/coschain/contentos-go/p2p/peer"
 )
 
@@ -21,7 +20,7 @@ type P2P interface {
 	GetTime() int64
 	GetServices() uint64
 	GetNeighbors() []*peer.Peer
-	GetNeighborAddrs() []*msg.PeerAddr
+	GetNeighborAddrs() []*types.PeerAddr
 	GetConnectionCnt() uint32
 	GetNp() *peer.NbrPeers
 	GetPeer(uint64) *peer.Peer

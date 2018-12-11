@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package msg;
+package types;
 
-option go_package = "github.com/coschain/contentos-go/p2p/msg";
+option go_package = "github.com/coschain/contentos-go/p2p/message/types";
 
 import "prototype/transaction.proto";
 

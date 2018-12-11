@@ -7,7 +7,6 @@ import (
 	"net"
 	"time"
 
-	"github.com/coschain/contentos-go/p2p/msg"
 	"github.com/coschain/contentos-go/p2p/common"
 	"github.com/coschain/contentos-go/p2p/message/types"
 )
@@ -138,11 +137,11 @@ func (this *Link) disconnectNotify() {
 	this.recvChan <- discMsg
 }
 
-func NewDisconnected() *msg.TransferMsg {
-	var reqmsg msg.TransferMsg
-	data := new(msg.Disconnected)
+func NewDisconnected() *types.TransferMsg {
+	var reqmsg types.TransferMsg
+	data := new(types.Disconnected)
 
-	reqmsg.Msg = &msg.TransferMsg_Msg7{Msg7:data}
+	reqmsg.Msg = &types.TransferMsg_Msg7{Msg7:data}
 	return &reqmsg
 }
 

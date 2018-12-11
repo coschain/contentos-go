@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/coschain/contentos-go/p2p/msg"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/p2p/common"
@@ -184,7 +183,7 @@ func (this *NetServer) GetNp() *peer.NbrPeers {
 }
 
 //GetNeighborAddrs return all the nbr peer`s addr
-func (this *NetServer) GetNeighborAddrs() []*msg.PeerAddr {
+func (this *NetServer) GetNeighborAddrs() []*types.PeerAddr {
 	return this.Np.GetNeighborAddrs()
 }
 

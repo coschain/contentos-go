@@ -17,7 +17,6 @@ import (
 	"github.com/coschain/contentos-go/p2p/message/msg_pack"
 	msgtypes "github.com/coschain/contentos-go/p2p/message/types"
 	"github.com/coschain/contentos-go/p2p/message/utils"
-	"github.com/coschain/contentos-go/p2p/msg"
 	"github.com/coschain/contentos-go/p2p/net/netserver"
 	"github.com/coschain/contentos-go/p2p/net/protocol"
 	"github.com/coschain/contentos-go/p2p/peer"
@@ -113,7 +112,7 @@ func (this *P2PServer) GetVersion() uint32 {
 }
 
 //GetNeighborAddrs return all nbr`s address
-func (this *P2PServer) GetNeighborAddrs() []*msg.PeerAddr {
+func (this *P2PServer) GetNeighborAddrs() []*msgtypes.PeerAddr {
 	return this.Network.GetNeighborAddrs()
 }
 
@@ -419,10 +418,10 @@ func (this *P2PServer) Broadcast(message interface{}) {
 }
 
 func (this *P2PServer) TriggerSync(current_head_blk_id coomn.BlockID) {
-	reqmsg := new(msg.TransferMsg)
-	reqdata := new(msg.ReqIdMsg)
+	reqmsg := new(msgtypes.TransferMsg)
+	reqdata := new(msgtypes.ReqIdMsg)
 	reqdata.HeadBlockId = current_head_blk_id.Data[:]
-	reqmsg.Msg = &msg.TransferMsg_Msg4{Msg4:reqdata}
+	reqmsg.Msg = &msgtypes.TransferMsg_Msg4{Msg4:reqdata}
 	//this.log.Info("enter TriggerSync func")
 	for _, p := range this.Network.GetNp().List {
 		//this.log.Info("[p2p] cons call TriggerSync func, head id :  ", reqmsg.HeadBlockId)

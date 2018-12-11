@@ -1,4 +1,4 @@
-package msg
+package types
 
 import (
 	"github.com/coschain/contentos-go/p2p/common"

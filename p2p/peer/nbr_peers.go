@@ -6,7 +6,6 @@ import (
 
 	"github.com/coschain/contentos-go/p2p/common"
 	"github.com/coschain/contentos-go/p2p/message/types"
-	"github.com/coschain/contentos-go/p2p/msg"
 )
 
 //NbrPeers: The neigbor list
@@ -39,8 +38,8 @@ func (this *NbrPeers) Broadcast(mesg types.Message, isConsensus bool, magic uint
 	this.RLock()
 	defer this.RUnlock()
 	for _, node := range this.List {
-		data := mesg.(*msg.TransferMsg)
-		if msgdata, ok := data.Msg.(*msg.TransferMsg_Msg1); ok {
+		data := mesg.(*types.TransferMsg)
+		if msgdata, ok := data.Msg.(*types.TransferMsg_Msg1); ok {
 			id, _ := msgdata.Msg1.SigTrx.Id()
 			target := this.TrxMap[node.GetAddr()]
 			if byteSliceEqual(target, id.Hash) {
@@ -119,16 +118,16 @@ func (this *NbrPeers) NodeEstablished(id uint64) bool {
 }
 
 //GetNeighborAddrs return all establish peer address
-func (this *NbrPeers) GetNeighborAddrs() []*msg.PeerAddr {
+func (this *NbrPeers) GetNeighborAddrs() []*types.PeerAddr {
 	this.RLock()
 	defer this.RUnlock()
 
-	var addrs []*msg.PeerAddr
+	var addrs []*types.PeerAddr
 	for _, p := range this.List {
 		if p.GetSyncState() != common.ESTABLISH {
 			continue
 		}
-		addr := &msg.PeerAddr{}
+		addr := &types.PeerAddr{}
 		res, _ := p.GetAddr16()
 		addr.IpAddr = res[:]
 		addr.Time = p.GetTimeStamp()

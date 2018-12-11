@@ -11,7 +11,6 @@ import (
 	msgCommon "github.com/coschain/contentos-go/p2p/common"
 	"github.com/coschain/contentos-go/p2p/message/msg_pack"
 	msgTypes "github.com/coschain/contentos-go/p2p/message/types"
-	"github.com/coschain/contentos-go/p2p/msg"
 	"github.com/coschain/contentos-go/p2p/net/protocol"
 	"github.com/coschain/contentos-go/prototype"
 )
@@ -29,7 +28,7 @@ func AddrReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) 
 		return
 	}
 
-	var addrStr []*msg.PeerAddr
+	var addrStr []*msgTypes.PeerAddr
 	addrStr = p2p.GetNeighborAddrs()
 	//check mask peers
 	ctx := p2p.GetContex()
@@ -69,8 +68,8 @@ func PingHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	}
 	log := logs.(iservices.ILog)
 
-	var raw = data.Payload.(*msg.TransferMsg)
-	ping := raw.Msg.(*msg.TransferMsg_Msg8).Msg8
+	var raw = data.Payload.(*msgTypes.TransferMsg)
+	ping := raw.Msg.(*msgTypes.TransferMsg_Msg8).Msg8
 
 	remotePeer := p2p.GetPeer(data.Id)
 	if remotePeer == nil {
@@ -97,8 +96,8 @@ func PingHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 
 ///PongHandle handle pong msg from peer
 func PongHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
-	var raw = data.Payload.(*msg.TransferMsg)
-	pong := raw.Msg.(*msg.TransferMsg_Msg9).Msg9
+	var raw = data.Payload.(*msgTypes.TransferMsg)
+	pong := raw.Msg.(*msgTypes.TransferMsg_Msg9).Msg9
 
 	logs , err := p2p.GetService(iservices.LogServerName)
 	if err != nil {
@@ -116,8 +115,8 @@ func PongHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 
 // BlockHandle handles the block message from peer
 func BlockHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
-	var raw = data.Payload.(*msg.TransferMsg)
-	var block = raw.Msg.(*msg.TransferMsg_Msg3).Msg3
+	var raw = data.Payload.(*msgTypes.TransferMsg)
+	var block = raw.Msg.(*msgTypes.TransferMsg_Msg3).Msg3
 	logs , err := p2p.GetService(iservices.LogServerName)
 	if err != nil {
 		panic(err)
@@ -136,8 +135,8 @@ func BlockHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 
 // TransactionHandle handles the transaction message from peer
 func TransactionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
-	var raw = data.Payload.(*msg.TransferMsg)
-	var trn = raw.Msg.(*msg.TransferMsg_Msg1).Msg1
+	var raw = data.Payload.(*msgTypes.TransferMsg)
+	var trn = raw.Msg.(*msgTypes.TransferMsg_Msg1).Msg1
 	logs , err := p2p.GetService(iservices.LogServerName)
 	if err != nil {
 		panic(err)
@@ -165,8 +164,8 @@ func TransactionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface
 
 // VersionHandle handles version handshake protocol from peer
 func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
-	var raw = data.Payload.(*msg.TransferMsg)
-	version := raw.Msg.(*msg.TransferMsg_Msg11).Msg11
+	var raw = data.Payload.(*msgTypes.TransferMsg)
+	version := raw.Msg.(*msgTypes.TransferMsg_Msg11).Msg11
 
 	logs , err := p2p.GetService(iservices.LogServerName)
 	if err != nil {
@@ -347,8 +346,8 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) 
 
 // VerAckHandle handles the version ack from peer
 func VerAckHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
-	var raw = data.Payload.(*msg.TransferMsg)
-	verAck := raw.Msg.(*msg.TransferMsg_Msg10).Msg10
+	var raw = data.Payload.(*msgTypes.TransferMsg)
+	verAck := raw.Msg.(*msgTypes.TransferMsg_Msg10).Msg10
 
 	logs , err := p2p.GetService(iservices.LogServerName)
 	if err != nil {
@@ -424,8 +423,8 @@ func VerAckHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 
 // AddrHandle handles the neighbor address response message from peer
 func AddrHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
-	var raw = data.Payload.(*msg.TransferMsg)
-	var msgdata = raw.Msg.(*msg.TransferMsg_Msg5).Msg5
+	var raw = data.Payload.(*msgTypes.TransferMsg)
+	var msgdata = raw.Msg.(*msgTypes.TransferMsg_Msg5).Msg5
 
 	logs , err := p2p.GetService(iservices.LogServerName)
 	if err != nil {
@@ -492,8 +491,8 @@ func DisconnectHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{
 }
 
 func IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
-	var raw = data.Payload.(*msg.TransferMsg)
-	var msgdata = raw.Msg.(*msg.TransferMsg_Msg2).Msg2
+	var raw = data.Payload.(*msgTypes.TransferMsg)
+	var msgdata = raw.Msg.(*msgTypes.TransferMsg_Msg2).Msg2
 	logs , err := p2p.GetService(iservices.LogServerName)
 	if err != nil {
 		panic(err)
@@ -502,7 +501,7 @@ func IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 
 	remotePeer := p2p.GetPeerFromAddr(data.Addr)
 	switch msgdata.Msgtype {
-	case msg.IdMsg_broadcast_sigblk_id:
+	case msgTypes.IdMsg_broadcast_sigblk_id:
 		//log.GetLog().Infof("receive a msg from:    v%    data:   %v\n", data.Addr, *msgdata)
 		length := len(msgdata.Value[0])
 		if length > prototype.Size {
@@ -519,14 +518,14 @@ func IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 		}
 		ctrl := s.(iservices.IConsensus)
 		if !ctrl.HasBlock(blkId) {
-			var reqmsg msg.TransferMsg
-			reqdata := new(msg.IdMsg)
-			reqdata.Msgtype = msg.IdMsg_request_sigblk_by_id
+			var reqmsg msgTypes.TransferMsg
+			reqdata := new(msgTypes.IdMsg)
+			reqdata.Msgtype = msgTypes.IdMsg_request_sigblk_by_id
 			var tmp []byte
 			reqdata.Value = append(reqdata.Value, tmp)
 			reqdata.Value[0] = msgdata.Value[0]
 
-			reqmsg.Msg = &msg.TransferMsg_Msg2{Msg2:reqdata}
+			reqmsg.Msg = &msgTypes.TransferMsg_Msg2{Msg2:reqdata}
 
 			err := p2p.Send(remotePeer, &reqmsg, false)
 			if err != nil {
@@ -535,7 +534,7 @@ func IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 			}
 			//log.GetLog().Infof("send a message to:   v%   data:   v%\n", data.Addr, reqmsg)
 		}
-	case msg.IdMsg_request_sigblk_by_id:
+	case msgTypes.IdMsg_request_sigblk_by_id:
 		//log.GetLog().Infof("receive a msg from:    v%    data:   %v\n", data.Addr, *msgdata)
 		for i, id := range msgdata.Value {
 			length := len(msgdata.Value[i])
@@ -571,11 +570,11 @@ func IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 			}
 			//log.GetLog().Infof("send a SignedBlock msg to   v%   data   v%\n", data.Addr, msg)
 		}
-	case msg.IdMsg_request_id_ack:
+	case msgTypes.IdMsg_request_id_ack:
 		//log.GetLog().Infof("receive a msg from:    v%    data:   %v\n", data.Addr, *msgdata)
-		var reqmsg msg.TransferMsg
-		reqdata := new(msg.IdMsg)
-		reqdata.Msgtype = msg.IdMsg_request_sigblk_by_id
+		var reqmsg msgTypes.TransferMsg
+		reqdata := new(msgTypes.IdMsg)
+		reqdata.Msgtype = msgTypes.IdMsg_request_sigblk_by_id
 		for _, id := range msgdata.Value {
 			length := len(id)
 			if length > prototype.Size {
@@ -602,7 +601,7 @@ func IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 			log.GetLog().Info("[p2p] no block need to request")
 			return
 		}
-		reqmsg.Msg = &msg.TransferMsg_Msg2{Msg2:reqdata}
+		reqmsg.Msg = &msgTypes.TransferMsg_Msg2{Msg2:reqdata}
 		err := p2p.Send(remotePeer, &reqmsg, false)
 		if err != nil {
 			log.GetLog().Error("[p2p] send message error: ", err)
@@ -615,8 +614,8 @@ func IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 }
 
 func ReqIdHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
-	var raw = data.Payload.(*msg.TransferMsg)
-	var msgdata = raw.Msg.(*msg.TransferMsg_Msg4).Msg4
+	var raw = data.Payload.(*msgTypes.TransferMsg)
+	var msgdata = raw.Msg.(*msgTypes.TransferMsg_Msg4).Msg4
 	logs , err := p2p.GetService(iservices.LogServerName)
 	if err != nil {
 		panic(err)
@@ -666,9 +665,9 @@ func ReqIdHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 
 	remotePeer := p2p.GetPeerFromAddr(data.Addr)
 
-	var reqmsg msg.TransferMsg
-	reqdata := new(msg.IdMsg)
-	reqdata.Msgtype = msg.IdMsg_request_id_ack
+	var reqmsg msgTypes.TransferMsg
+	reqdata := new(msgTypes.IdMsg)
+	reqdata.Msgtype = msgTypes.IdMsg_request_id_ack
 
 	for i:=0;i<len(ids);i++ {
 		var tmp []byte
@@ -677,7 +676,7 @@ func ReqIdHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 		reqdata.Value[i] = ids[i].Data[:]
 	}
 
-	reqmsg.Msg = &msg.TransferMsg_Msg2{Msg2:reqdata}
+	reqmsg.Msg = &msgTypes.TransferMsg_Msg2{Msg2:reqdata}
 	err = p2p.Send(remotePeer, &reqmsg, false)
 	if err != nil {
 		log.GetLog().Error("[p2p] send message error: ", err)
