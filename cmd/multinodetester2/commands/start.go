@@ -27,6 +27,8 @@ var StartCmd = func() *cobra.Command {
 	return cmd
 }
 
+var arr []*node.Node
+
 func StartNode(cmd *cobra.Command, args []string) {
 	for i:=0;i<int(NodeCnt);i++{
 		fmt.Println("i: ", i," NodeCnt: ", NodeCnt)
@@ -76,40 +78,13 @@ func startNode(app *node.Node, cfg node.Config) {
 	pprof.StartPprof()
 
 	cmd.RegisterService(app, cfg)
+	arr = append(arr, app)
 
 	if err := app.Start(); err != nil {
 		common.Fatalf("start node failed, err: %v\n", err)
 	}
 
-	go func() {
-		go func() {
-			SIGSTOP := syscall.Signal(0x13) //for windows compile
-			sigc := make(chan os.Signal, 1)
-			signal.Notify(sigc, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT, SIGSTOP, syscall.SIGUSR1, syscall.SIGUSR2)
-			for {
-				s := <-sigc
-				app.Log.Infof("get a signal %s", s.String())
-				switch s {
-				case syscall.SIGQUIT, syscall.SIGTERM, SIGSTOP, syscall.SIGINT:
-					app.Log.Infoln("Got interrupt, shutting down...")
-					app.MainLoop.Stop()
-					return
-				case syscall.SIGHUP:
-					app.Log.Info("syscall.SIGHUP custom operation")
-				case syscall.SIGUSR1:
-					app.Log.Info("syscall.SIGUSR1 custom operation")
-				case syscall.SIGUSR2:
-					app.Log.Info("syscall.SIGUSR2 custom operation")
-				default:
-					return
-				}
-			}
-		}()
-
-		app.Wait()
-		app.Stop()
-		app.Log.Info("app exit success")
-	}()
+	app.Wait()
 }
 
 func WaitSignal() {
@@ -121,6 +96,10 @@ func WaitSignal() {
 		fmt.Printf("get a signal %s\n", s.String())
 		switch s {
 		case syscall.SIGQUIT, syscall.SIGTERM, SIGSTOP, syscall.SIGINT:
+			for i:=0;i<len(arr);i++ {
+				arr[i].MainLoop.Stop()
+				arr[i].Stop()
+			}
 			fmt.Println("Got interrupt, shutting down...")
 			return
 		case syscall.SIGHUP:
