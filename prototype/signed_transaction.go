@@ -6,7 +6,7 @@ import (
 	cmn "github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/crypto"
 	"github.com/coschain/contentos-go/common/crypto/secp256k1"
-	"github.com/coschain/contentos-go/p2p/depend/common"
+	"github.com/coschain/contentos-go/p2p/common"
 	"github.com/gogo/protobuf/proto"
 	"github.com/pkg/errors"
 )

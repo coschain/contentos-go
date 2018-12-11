@@ -67,91 +67,9 @@ func (self *ZeroCopySink) BackUp(n uint64) {
 	self.buf = self.buf[:l]
 }
 
-func (self *ZeroCopySink) WriteUint8(data uint8) {
-	buf := self.NextBytes(1)
-	buf[0] = data
-}
-
-func (self *ZeroCopySink) WriteByte(c byte) {
-	self.WriteUint8(c)
-}
-
-func (self *ZeroCopySink) WriteBool(data bool) {
-	if data {
-		self.WriteByte(1)
-	} else {
-		self.WriteByte(0)
-	}
-}
-
-func (self *ZeroCopySink) WriteUint16(data uint16) {
-	buf := self.NextBytes(2)
-	binary.LittleEndian.PutUint16(buf, data)
-}
-
 func (self *ZeroCopySink) WriteUint32(data uint32) {
 	buf := self.NextBytes(4)
 	binary.LittleEndian.PutUint32(buf, data)
-}
-
-func (self *ZeroCopySink) WriteUint64(data uint64) {
-	buf := self.NextBytes(8)
-	binary.LittleEndian.PutUint64(buf, data)
-}
-
-func (self *ZeroCopySink) WriteInt64(data int64) {
-	self.WriteUint64(uint64(data))
-}
-
-func (self *ZeroCopySink) WriteInt32(data int32) {
-	self.WriteUint32(uint32(data))
-}
-
-func (self *ZeroCopySink) WriteInt16(data int16) {
-	self.WriteUint16(uint16(data))
-}
-
-func (self *ZeroCopySink) WriteVarBytes(data []byte) (size uint64) {
-	l := uint64(len(data))
-	size = self.WriteVarUint(l) + l
-
-	self.WriteBytes(data)
-	return
-}
-
-func (self *ZeroCopySink) WriteString(data string) (size uint64) {
-	return self.WriteVarBytes([]byte(data))
-}
-
-func (self *ZeroCopySink) WriteAddress(addr Address) {
-	self.WriteBytes(addr[:])
-}
-
-func (self *ZeroCopySink) WriteHash(hash Uint256) {
-	self.WriteBytes(hash[:])
-}
-
-func (self *ZeroCopySink) WriteVarUint(data uint64) (size uint64) {
-	buf := self.NextBytes(9)
-	if data < 0xFD {
-		buf[0] = uint8(data)
-		size = 1
-	} else if data <= 0xFFFF {
-		buf[0] = 0xFD
-		binary.LittleEndian.PutUint16(buf[1:], uint16(data))
-		size = 3
-	} else if data <= 0xFFFFFFFF {
-		buf[0] = 0xFE
-		binary.LittleEndian.PutUint32(buf[1:], uint32(data))
-		size = 5
-	} else {
-		buf[0] = 0xFF
-		binary.LittleEndian.PutUint64(buf[1:], uint64(data))
-		size = 9
-	}
-
-	self.BackUp(9 - size)
-	return
 }
 
 // NewReader returns a new ZeroCopySink reading from b.

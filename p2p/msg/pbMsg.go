@@ -2,12 +2,11 @@ package msg
 
 import (
 	"github.com/coschain/contentos-go/p2p/common"
-	comm "github.com/coschain/contentos-go/p2p/depend/common"
 	"github.com/gogo/protobuf/proto"
 )
 
 //Serialize message payload
-func (this *TransferMsg) Serialization(sink *comm.ZeroCopySink) error {
+func (this *TransferMsg) Serialization(sink *common.ZeroCopySink) error {
 	data, _ := proto.Marshal(this)
 	sink.WriteBytes(data)
 	return nil
@@ -44,7 +43,7 @@ func (this *TransferMsg) CmdType() ( res string) {
 }
 
 //Deserialize message payload
-func (this *TransferMsg) Deserialization(source *comm.ZeroCopySource) error {
+func (this *TransferMsg) Deserialization(source *common.ZeroCopySource) error {
 	var tmp TransferMsg
 	err := proto.Unmarshal(source.Data(), &tmp)
 	if err != nil {

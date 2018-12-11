@@ -8,13 +8,12 @@ import (
 	"io"
 
 	"github.com/coschain/contentos-go/p2p/common"
-	comm "github.com/coschain/contentos-go/p2p/depend/common"
 	"github.com/coschain/contentos-go/p2p/msg"
 )
 
 type Message interface {
-	Serialization(sink *comm.ZeroCopySink) error
-	Deserialization(source *comm.ZeroCopySource) error
+	Serialization(sink *common.ZeroCopySink) error
+	Deserialization(source *common.ZeroCopySource) error
 	CmdType() string
 }
 
@@ -39,7 +38,7 @@ func readMessageHeader(reader io.Reader) (messageHeader, error) {
 	return msgh, err
 }
 
-func writeMessageHeaderInto(sink *comm.ZeroCopySink, msgh messageHeader) {
+func writeMessageHeaderInto(sink *common.ZeroCopySink, msgh messageHeader) {
 	sink.WriteUint32(msgh.Magic)
 	sink.WriteBytes(msgh.CMD[:])
 	sink.WriteUint32(msgh.Length)
@@ -59,7 +58,7 @@ func newMessageHeader(cmd string, length uint32, checksum [common.CHECKSUM_LEN]b
 	return msgh
 }
 
-func WriteMessage(sink *comm.ZeroCopySink, msg Message, magic uint32) error {
+func WriteMessage(sink *common.ZeroCopySink, msg Message, magic uint32) error {
 	pstart := sink.Size()
 	sink.NextBytes(common.MSG_HDR_LEN) // can not save the buf, since it may reallocate in sink
 	err := msg.Serialization(sink)
@@ -115,7 +114,7 @@ func ReadMessage(reader io.Reader, magic uint32) (Message, uint32, error) {
 	}
 
 	// the buf is referenced by msg to avoid reallocation, so can not reused
-	source := comm.NewZeroCopySource(buf)
+	source := common.NewZeroCopySource(buf)
 	err = msg.Deserialization(source)
 	if err != nil {
 		return nil, 0, err

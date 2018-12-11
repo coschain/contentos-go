@@ -9,7 +9,6 @@ import (
 
 	"github.com/coschain/contentos-go/p2p/msg"
 	"github.com/coschain/contentos-go/p2p/common"
-	comm "github.com/coschain/contentos-go/p2p/depend/common"
 	"github.com/coschain/contentos-go/p2p/message/types"
 )
 
@@ -161,7 +160,7 @@ func (this *Link) Tx(msg types.Message, magic uint32) error {
 		return errors.New("[p2p]tx link invalid")
 	}
 
-	sink := comm.NewZeroCopySink(nil)
+	sink := common.NewZeroCopySink(nil)
 	err := types.WriteMessage(sink, msg, magic)
 	if err != nil {
 		return errors.New( fmt.Sprintf("[p2p] error serialize messge ", err) )
