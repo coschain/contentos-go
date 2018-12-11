@@ -292,44 +292,53 @@ func (b *revdbBatch) Write() error {
 	defer b.db.lock.Unlock()
 
 	batch := b.db.db.NewBatch()
-	var reverts []writeOp
+	defer b.db.db.DeleteBatch(batch)
 
 	b.shrink()
-	for _, op := range b.op {
-		oldValue, err := b.db.db.Get(op.Key)
-		if op.Del && err == nil {
-			batch.Delete(op.Key)
-			reverts = append([]writeOp{{
-				Key:   common.CopyBytes(op.Key),
-				Value: common.CopyBytes(oldValue),
-				Del:   false,
-			}}, reverts...)
-		}
-		if !op.Del {
-			batch.Put(op.Key, op.Value)
-			if err == nil {
-				reverts = append([]writeOp{{
-					Key:   common.CopyBytes(op.Key),
-					Value: common.CopyBytes(oldValue),
+	opCount := len(b.op)
+	if opCount > 0 {
+		reverts, reverts_idx := make([]writeOp, opCount), opCount - 1
+		for _, op := range b.op {
+			oldValue, err := b.db.db.Get(op.Key)
+			if op.Del && err == nil {
+				batch.Delete(op.Key)
+				reverts[reverts_idx] = writeOp{
+					Key:   op.Key,
+					Value: oldValue,
 					Del:   false,
-				}}, reverts...)
-			} else {
-				reverts = append([]writeOp{{
-					Key:   common.CopyBytes(op.Key),
-					Value: nil,
-					Del:   true,
-				}}, reverts...)
+				}
+				reverts_idx--
+			}
+			if !op.Del {
+				batch.Put(op.Key, op.Value)
+				if err == nil {
+					reverts[reverts_idx] = writeOp{
+						Key:   op.Key,
+						Value: oldValue,
+						Del:   false,
+					}
+					reverts_idx--
+				} else {
+					reverts[reverts_idx] = writeOp{
+						Key:   op.Key,
+						Value: nil,
+						Del:   true,
+					}
+					reverts_idx--
+				}
 			}
 		}
-	}
-	batch.Put(keyOfReversionOp(b.db.rev.Current), encodeWriteOpSlice(reverts))
-	batch.Put([]byte(key_rev_num), encodeRevNumber(revNumber{b.db.rev.Current + 1, b.db.rev.Base}))
+		batch.Put(keyOfReversionOp(b.db.rev.Current), encodeWriteOpSlice(reverts[reverts_idx + 1:]))
+		batch.Put([]byte(key_rev_num), encodeRevNumber(revNumber{b.db.rev.Current + 1, b.db.rev.Base}))
 
-	err := batch.Write()
-	if err == nil {
-		b.db.rev.Current++
+		err := batch.Write()
+		if err == nil {
+			b.db.rev.Current++
+		}
+		return err
+	} else {
+		return nil
 	}
-	return err
 }
 
 func (b *revdbBatch) Reset() {
