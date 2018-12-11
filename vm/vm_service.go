@@ -25,19 +25,18 @@ func New(ctx *node.ServiceContext) (*WasmVmService, error) {
 		nativeFuncs: []wasm.Function{}, ctx: ctx}, nil
 }
 
-func (w *WasmVmService) Run(ctx *Context) ([]byte, error) {
-	var ret []byte
+func (w *WasmVmService) Run(ctx *Context) (uint32, error) {
 	code := ctx.Code
 	module, err := wasm.ReadModule(bytes.NewReader(code), func(name string) (module *wasm.Module, e error) {
 		return w.module, nil
 	})
 	// why resolvePath?
 	if err != nil {
-		return nil, err
+		return 1, err
 	}
 	vm, err := exec.NewVM(module)
 	if err != nil {
-		return nil, err
+		return 1, err
 	}
 
 	var entryIndex = -1
@@ -47,15 +46,16 @@ func (w *WasmVmService) Run(ctx *Context) ([]byte, error) {
 		}
 	}
 	if entryIndex >= 0 {
-		_, err := vm.ExecCode(int64(entryIndex))
+		r, err := vm.ExecCode(int64(entryIndex))
 		if err != nil {
 			if err.Error() != "exec: return" && err.Error() != "exec: revert" && err.Error() != "exec: suicide" {
-				return nil, fmt.Errorf("Error excuting function %d: %v", 0, err)
+				return 1, fmt.Errorf("Error excuting function %d: %v", 0, err)
 			}
 		}
+		return r.(uint32), err
 	}
 
-	return ret, nil
+	return 0, nil
 }
 
 func (w *WasmVmService) Start(node *node.Node) error {
@@ -74,6 +74,10 @@ func (w *WasmVmService) Start(node *node.Node) error {
 		Entries: entries,
 	}
 	w.module = m
+	return nil
+}
+
+func (w *WasmVmService) Stop() error {
 	return nil
 }
 
@@ -108,7 +112,7 @@ func (w *WasmVmService) exactFuncSig(p reflect.Type) (wasm.FunctionSig, error) {
 	for i := 1; i < argsLens; i++ {
 		arg := p.In(i)
 		switch arg.Kind() {
-		case reflect.Int:
+		case reflect.Int32:
 			paramTypes = append(paramTypes, wasm.ValueTypeI32)
 		case reflect.Int64:
 			paramTypes = append(paramTypes, wasm.ValueTypeI64)
@@ -123,7 +127,7 @@ func (w *WasmVmService) exactFuncSig(p reflect.Type) (wasm.FunctionSig, error) {
 	for i := 0; i < returnLens; i++ {
 		arg := p.Out(i)
 		switch arg.Kind() {
-		case reflect.Int:
+		case reflect.Int32:
 			returnTypes = append(returnTypes, wasm.ValueTypeI32)
 		case reflect.Int64:
 			returnTypes = append(returnTypes, wasm.ValueTypeI64)
