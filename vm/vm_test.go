@@ -1,9 +1,12 @@
 package vm
 
 import (
+	"fmt"
 	"github.com/go-interpreter/wagon/exec"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
+	"reflect"
+	"runtime"
 	"testing"
 )
 
@@ -13,6 +16,19 @@ func add(proc *exec.Process, a, b int32) int32 {
 
 func mul(proc *exec.Process, a, b int32) int32 {
 	return a * b
+}
+
+// I don't like the way to import runtime package only for fetch the function's name
+func TestCosVM_Register(t *testing.T) {
+	funcname := runtime.FuncForPC(reflect.ValueOf(add).Pointer()).Name()
+	fmt.Println(funcname)
+}
+
+func TestCosVM_Register2(t *testing.T) {
+	a := make([]byte, 3)
+	b := "abcd"
+	copy(a[:], b)
+	fmt.Println(a)
 }
 
 func TestContext_Run(t *testing.T) {
