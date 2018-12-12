@@ -229,7 +229,7 @@ func (c *TrxPool) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag)
 	} else {
 		// we have do a BeginTransaction at GenerateBlock
 		c.applyBlock(blk, skip)
-		mustNoError(c.db.EndTransaction(true), "EndTransaction error")
+		//mustNoError(c.db.EndTransaction(true), "EndTransaction error")
 		c.havePendingTransaction = false
 	}
 
@@ -339,6 +339,7 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 	}
 	tag := c.getBlockTag(uint64(c.headBlockNum())+1)
 	c.db.BeginTransactionWithTag(tag)
+	c.db.BeginTransaction()
 	//c.log.GetLog().Debug("@@@@@@ GeneratBlock havePendingTransaction=true")
 	c.havePendingTransaction = true
 
@@ -1021,7 +1022,8 @@ func (c *TrxPool) PopBlockTo(num uint64) {
 func (c *TrxPool) Commit(num uint64) {
 	// this block can not be revert over, so it's irreversible
 	tag := c.getBlockTag(uint64(num))
-	mustSuccess(c.db.Squash(tag)==nil,fmt.Sprintf("SquashBlock: tag:%d",num))
+	err := c.db.Squash(tag)
+	mustSuccess(err == nil,fmt.Sprintf("SquashBlock: tag:%d,error is %s",num,err))
 }
 
 type layer struct {
