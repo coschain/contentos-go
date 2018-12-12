@@ -229,7 +229,7 @@ func (c *TrxPool) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag)
 	} else {
 		// we have do a BeginTransaction at GenerateBlock
 		c.applyBlock(blk, skip)
-		//mustNoError(c.db.EndTransaction(true), "EndTransaction error")
+		mustNoError(c.db.EndTransaction(true), "EndTransaction error")
 		c.havePendingTransaction = false
 	}
 
