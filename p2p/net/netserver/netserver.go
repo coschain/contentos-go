@@ -197,9 +197,9 @@ func (this *NetServer) AddNbrNode(remotePeer *peer.Peer) {
 	this.Np.AddNbrNode(remotePeer)
 }
 
-//DelNbrNode delete nbr peer by id
-func (this *NetServer) DelNbrNode(id uint64) (*peer.Peer, bool) {
-	return this.Np.DelNbrNode(id)
+//DelNbrNode delete nbr peer
+func (this *NetServer) DelNbrNode(p *peer.Peer) (*peer.Peer, bool) {
+	return this.Np.DelNbrNode(p)
 }
 
 //GetNeighbors return all nbr peer

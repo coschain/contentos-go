@@ -381,10 +381,10 @@ func (d *DPoS) PushTransaction(trx common.ISignedTransaction, wait bool, broadca
 			waitChan <- ret
 		}
 		if ret.IsSuccess() {
-			if broadcast {
+		//	if broadcast {
 				d.log.GetLog().Debug("DPoS Broadcast trx.")
 				d.p2p.Broadcast(trx.(*prototype.SignedTransaction))
-			}
+		//	}
 		}
 	}
 	if wait {

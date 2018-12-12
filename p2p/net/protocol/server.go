@@ -39,7 +39,7 @@ type P2P interface {
 	RemovePeerSyncAddress(addr string)
 	RemovePeerConsAddress(addr string)
 	AddNbrNode(*peer.Peer)
-	DelNbrNode(id uint64) (*peer.Peer, bool)
+	DelNbrNode(p *peer.Peer) (*peer.Peer, bool)
 	NodeEstablished(uint64) bool
 	SetOwnAddress(addr string)
 	IsAddrFromConnecting(addr string) bool

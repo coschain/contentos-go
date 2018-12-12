@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/p2p/common"
 	"github.com/coschain/contentos-go/p2p/message/types"
 )
@@ -11,11 +12,12 @@ import (
 //NbrPeers: The neigbor list
 type NbrPeers struct {
 	sync.RWMutex
-	List   map[uint64]*Peer
-	TrxMap map[string][]byte
+	List       map[uint64]*Peer
+	SendTrxMap map[string][]byte  // the last trx hash send to a peer
+	RecvTrxMap map[string][]byte  // the last trx hash receive from a peer
 }
 
-func byteSliceEqual(a, b []byte) bool {
+func ByteSliceEqual(a, b []byte) bool {
 	if len(a) != len(b) {
 		return false
 	}
@@ -38,15 +40,18 @@ func (this *NbrPeers) Broadcast(mesg types.Message, isConsensus bool, magic uint
 	this.RLock()
 	defer this.RUnlock()
 	for _, node := range this.List {
+		id := new(prototype.Sha256)
 		data := mesg.(*types.TransferMsg)
 		if msgdata, ok := data.Msg.(*types.TransferMsg_Msg1); ok {
-			id, _ := msgdata.Msg1.SigTrx.Id()
-			target := this.TrxMap[node.GetAddr()]
-			if byteSliceEqual(target, id.Hash) {
+			id, _ = msgdata.Msg1.SigTrx.Id()
+			sendCache := this.SendTrxMap[node.GetAddr()]
+			recvCache := this.RecvTrxMap[node.GetAddr()]
+			if ByteSliceEqual(sendCache, id.Hash) || ByteSliceEqual(recvCache, id.Hash) {
 				continue
 			}
 		}
 		if node.syncState == common.ESTABLISH && node.GetRelay() == true {
+			this.SendTrxMap[node.GetAddr()] = id.Hash
 			go node.Send(mesg, isConsensus, magic)
 		}
 	}
@@ -82,22 +87,27 @@ func (this *NbrPeers) AddNbrNode(p *Peer) {
 }
 
 //DelNbrNode delete peer from nbr list
-func (this *NbrPeers) DelNbrNode(id uint64) (*Peer, bool) {
+func (this *NbrPeers) DelNbrNode(p *Peer) (*Peer, bool) {
 	this.Lock()
 	defer this.Unlock()
 
-	n, ok := this.List[id]
+	n, ok := this.List[p.GetID()]
 	if ok == false {
 		return nil, false
 	}
-	delete(this.List, id)
+
+	delete(this.List, p.GetID())
+	delete(this.SendTrxMap, p.GetAddr())
+	delete(this.RecvTrxMap, p.GetAddr())
+
 	return n, true
 }
 
 //initialize nbr list
 func (this *NbrPeers) Init() {
 	this.List = make(map[uint64]*Peer)
-	this.TrxMap = make(map[string][]byte)
+	this.SendTrxMap = make(map[string][]byte)
+	this.RecvTrxMap = make(map[string][]byte)
 }
 
 //NodeEstablished whether peer established according to id

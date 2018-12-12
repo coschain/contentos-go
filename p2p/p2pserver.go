@@ -257,7 +257,7 @@ func (this *P2PServer) retryInactivePeer() {
 					if remotePeer.ConsLink.GetAddr() == addr {
 						this.Network.RemovePeerConsAddress(addr)
 					}
-					this.Network.DelNbrNode(remotePeer.GetID())
+					this.Network.DelNbrNode(remotePeer)
 				}
 			}
 		}

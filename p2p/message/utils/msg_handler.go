@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/coschain/contentos-go/common"
+	"github.com/coschain/contentos-go/p2p/peer"
 	"github.com/coschain/contentos-go/iservices"
 	msgCommon "github.com/coschain/contentos-go/p2p/common"
 	"github.com/coschain/contentos-go/p2p/message/msg_pack"
@@ -144,13 +145,6 @@ func TransactionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface
 	log := logs.(iservices.ILog)
 	//log.GetLog().Info("receive a SignedTransaction msg: ", trn)
 
-	s, err := p2p.GetService(iservices.ConsensusServerName)
-	if err != nil {
-		log.GetLog().Error("[p2p] can't get other service, service name: ", iservices.ConsensusServerName)
-		return
-	}
-	ctrl := s.(iservices.IConsensus)
-	ctrl.PushTransaction(trn.SigTrx, false, false)
 	id, _ := trn.SigTrx.Id()
 	np := p2p.GetNp()
 	if np == nil {
@@ -158,8 +152,23 @@ func TransactionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface
 		return
 	}
 	np.Lock()
-	np.TrxMap[data.Addr] = id.Hash
+	sendCache := np.SendTrxMap[data.Addr]
+	recvCache := np.RecvTrxMap[data.Addr]
+	if peer.ByteSliceEqual(sendCache, id.Hash) || peer.ByteSliceEqual(recvCache, id.Hash) {
+		log.GetLog().Info("[p2p] we alerady has this transaction, transaction hash: ", id.Hash)
+		np.Unlock()
+		return
+	}
+	np.RecvTrxMap[data.Addr] = id.Hash
 	np.Unlock()
+
+	s, err := p2p.GetService(iservices.ConsensusServerName)
+	if err != nil {
+		log.GetLog().Error("[p2p] can't get other service, service name: ", iservices.ConsensusServerName)
+		return
+	}
+	ctrl := s.(iservices.IConsensus)
+	ctrl.PushTransaction(trn.SigTrx, false, false)
 }
 
 // VersionHandle handles version handshake protocol from peer
@@ -306,7 +315,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) 
 			}
 			if ipNew == ipOld {
 				//same id and same ip
-				n, ret := p2p.DelNbrNode(version.Nonce)
+				n, ret := p2p.DelNbrNode(p)
 				if ret == true {
 					log.GetLog().Infof("[p2p] peer reconnect %d", version.Nonce, data.Addr)
 					// Close the connection and release the node source
