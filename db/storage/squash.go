@@ -82,3 +82,28 @@ func (db *SquashableDatabase) Squash(tag string) error {
 	}
 	return errors.New("unknown tag: " + tag)
 }
+
+func (db *SquashableDatabase) RevertToTag(tag string) error {
+	db.lock.Lock()
+	defer db.lock.Unlock()
+
+	if idx, ok := db.tags[tag]; ok {
+		count := int(db.Size()-1) - int(idx)
+		for i := 0; i < count; i++ {
+			if err := db.PopFront(false); err != nil {
+				return err
+			}
+		}
+		newTags := make(map[string]uint)
+		newTagsByIdx := make(map[uint]string)
+		for i, t := range db.tagsByIdx {
+			if i < idx {
+				newTagsByIdx[i] = t
+				newTags[t] = i
+			}
+		}
+		db.tags, db.tagsByIdx = newTags, newTagsByIdx
+		return nil
+	}
+	return errors.New("unknown tag: " + tag)
+}

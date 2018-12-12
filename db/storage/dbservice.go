@@ -60,7 +60,7 @@ func (s *DatabaseService) Start(node *node.Node) error {
 		db.Close()
 		return errors.New("failed to create reversible database")
 	}
-	tdb := NewSquashableDatabase(rdb, true)
+	tdb := NewSquashableDatabase(db, true)
 	if tdb == nil {
 		tdb.Close()
 		db.Close()
@@ -137,6 +137,10 @@ func (s *DatabaseService) BeginTransactionWithTag(tag string) {
 
 func (s *DatabaseService) Squash(tag string) error {
 	return s.tdb.Squash(tag)
+}
+
+func (s *DatabaseService) RollBackToTag(tag string) error {
+	return s.tdb.RevertToTag(tag)
 }
 
 //
