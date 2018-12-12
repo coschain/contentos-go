@@ -9,13 +9,19 @@ import "prototype/type.proto";
 
 message so_contractData {
 	prototype.contract_data_id   id        =      1;
-    bytes                        value     =      2;
+    bytes                        key       =      2;
+    bytes                        value     =      3;
       
 }
 
 
 message so_mem_contractData_by_id {
 	prototype.contract_data_id	id    = 1;
+}
+
+
+message so_mem_contractData_by_key {
+	bytes                     	key   = 1;
 }
 
 

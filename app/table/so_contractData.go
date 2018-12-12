@@ -124,6 +124,13 @@ func (so *SoContractDataWrap) saveAllMemKeys(tInfo *SoContractData, br bool) err
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Id", err)
 		}
 	}
+	if err = so.saveMemKeyKey(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Key", err)
+		}
+	}
 	if err = so.saveMemKeyValue(tInfo); err != nil {
 		if br {
 			return err
@@ -269,6 +276,89 @@ func (s *SoContractDataWrap) GetId() *prototype.ContractDataId {
 
 	}
 	return msg.Id
+}
+
+func (s *SoContractDataWrap) saveMemKeyKey(tInfo *SoContractData) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemContractDataByKey{}
+	val.Key = tInfo.Key
+	key, err := s.encodeMemKey("Key")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
+
+func (s *SoContractDataWrap) GetKey() []byte {
+	res := true
+	msg := &SoMemContractDataByKey{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("Key")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.Key
+			}
+		}
+	}
+	if !res {
+		var tmpValue []byte
+		return tmpValue
+	}
+	return msg.Key
+}
+
+func (s *SoContractDataWrap) MdKey(p []byte) bool {
+	if s.dba == nil {
+		return false
+	}
+	key, err := s.encodeMemKey("Key")
+	if err != nil {
+		return false
+	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemContractDataByKey{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoContractData{}
+	sa.Id = s.mainKey
+
+	sa.Key = ori.Key
+
+	ori.Key = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
+		return false
+	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.Key = p
+
+	return true
 }
 
 func (s *SoContractDataWrap) saveMemKeyValue(tInfo *SoContractData) error {

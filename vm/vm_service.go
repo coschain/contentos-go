@@ -36,7 +36,7 @@ func New(ctx *node.ServiceContext) (*WasmVmService, error) {
 }
 
 func (w *WasmVmService) Run(ctx *Context) (uint32, error) {
-	cosVM := NewCosVM(ctx, w.globalProps, w.logger)
+	cosVM := NewCosVM(ctx, w.db, w.globalProps, w.logger)
 	for funcName, function := range w.registerFuncs {
 		cosVM.Register(funcName, function)
 	}
