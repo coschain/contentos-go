@@ -145,6 +145,7 @@ func addCommands() {
 	rootCmd.AddCommand(commands.SwitchPortcmd())
 	rootCmd.AddCommand(commands.ChainStateCmd())
 	rootCmd.AddCommand(commands.StressCmd())
+	rootCmd.AddCommand(commands.StressCreAccountCmd())
 	rootCmd.AddCommand(commands.ClaimAllCmd())
 	rootCmd.AddCommand(commands.ClaimCmd())
 }
