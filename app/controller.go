@@ -537,6 +537,29 @@ func (c *TrxPool) applyOperation(op *prototype.Operation) {
 	c.notifyOpPostExecute(n)
 }
 
+func (c *TrxPool) requireAuth(name string) {
+	fmt.Println(name, " require auth")
+}
+
+func (c *TrxPool) vmTransfer(from, to string, amount uint64, memo string) {
+	ctx := &ApplyContext{db: c.db, control: c}
+	transferOp := &prototype.TransferOperation{
+		From:   &prototype.AccountName{Value: from},
+		To:     &prototype.AccountName{Value: to},
+		Amount: prototype.NewCoin(amount),
+		Memo:   memo,
+	}
+	op := &prototype.Operation{}
+	op2 := &prototype.Operation_Op2{}
+	op2.Op2 = transferOp
+	op.Op = op2
+	n := &prototype.OperationNotification{Op: op}
+	c.notifyOpPreExecute(n)
+	eva := &TransferEvaluator{ctx: ctx, op: transferOp}
+	eva.Apply()
+	c.notifyOpPostExecute(n)
+}
+
 func (c *TrxPool) getEvaluator(op *prototype.Operation) BaseEvaluator {
 	ctx := &ApplyContext{db: c.db, control: c}
 	switch op.Op.(type) {
@@ -580,7 +603,10 @@ func (c *TrxPool) getEvaluator(op *prototype.Operation) BaseEvaluator {
 		eva := &ContractDeployEvaluator{ctx: ctx, op: op.GetOp13()}
 		return BaseEvaluator(eva)
 	case *prototype.Operation_Op14:
-		eva := &ContractApplyEvaluator{ctx: ctx, op: op.GetOp14()}
+		injector := &Injector{}
+		injector.RequireAuth = c.requireAuth
+		injector.Transfer = c.vmTransfer
+		eva := &ContractApplyEvaluator{ctx: ctx, op: op.GetOp14(), injector: injector}
 		return BaseEvaluator(eva)
 	default:
 		panic("no matchable evaluator")

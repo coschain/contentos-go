@@ -92,8 +92,9 @@ type ContractDeployEvaluator struct {
 
 type ContractApplyEvaluator struct {
 	BaseEvaluator
-	ctx *ApplyContext
-	op  *prototype.ContractApplyOperation
+	ctx      *ApplyContext
+	op       *prototype.ContractApplyOperation
+	injector *Injector
 }
 
 func (ev *AccountCreateEvaluator) Apply() {
@@ -457,21 +458,20 @@ func (ev *ClaimAllEvaluator) Apply() {
 
 }
 
-
 func (ev *ContractDeployEvaluator) Apply() {
 	op := ev.op
 
 	// TODO Check code and abi
 	// TODO Save code/abi to database
 
-	cid  := prototype.ContractId{ Owner:op.Owner, Cname:op.Contract }
-	scid := table.NewSoContractWrap( ev.ctx.db, &cid )
+	cid := prototype.ContractId{Owner: op.Owner, Cname: op.Contract}
+	scid := table.NewSoContractWrap(ev.ctx.db, &cid)
 
-	opAssert( !scid.CheckExist(), "contract name exist")
+	opAssert(!scid.CheckExist(), "contract name exist")
 
-	opAssertE( scid.Create(func(t *table.SoContract) {
+	opAssertE(scid.Create(func(t *table.SoContract) {
 		t.Code = op.Code
-		t.Id   = &cid
+		t.Id = &cid
 		t.CreatedTime = ev.ctx.control.HeadBlockTime()
 		t.Abi = op.Abi
 		t.Balance = prototype.NewCoin(0)
@@ -481,17 +481,17 @@ func (ev *ContractDeployEvaluator) Apply() {
 	//vmCtx.Run()
 }
 
-
 func (ev *ContractApplyEvaluator) Apply() {
 	op := ev.op
+	injector := ev.injector
 
-	cid  := prototype.ContractId{ Owner:op.Owner, Cname:op.Contract }
-	scid := table.NewSoContractWrap( ev.ctx.db, &cid )
-	opAssert( scid.CheckExist(), "contract name exist")
+	cid := prototype.ContractId{Owner: op.Owner, Cname: op.Contract}
+	scid := table.NewSoContractWrap(ev.ctx.db, &cid)
+	opAssert(scid.CheckExist(), "contract name exist")
 
 	// TODO Load code from database
 
 	code := scid.GetCode()
-	vmCtx := vm.NewContextFromApplyOp(op, code)
+	vmCtx := vm.NewContextFromApplyOp(op, code, injector)
 	vmCtx.Run()
 }
