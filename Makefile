@@ -8,7 +8,7 @@ WALLET = github.com/coschain/contentos-go/cmd/wallet-cli
 
 test:
 	@echo "--> Running go test"
-	@GO111MODULE=on go tes  $(PACKAGES)
+	@GO111MODULE=on go test  $(PACKAGES)
 
 test_cover:
 	@echo "--> Running go test with coverage"

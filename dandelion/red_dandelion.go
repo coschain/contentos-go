@@ -128,8 +128,6 @@ func (d *RedDandelion) CreateAccount(name string) error {
 		Creator:        &prototype.AccountName{Value: "initminer"},
 		NewAccountName: &prototype.AccountName{Value: name},
 		Owner:          keys,
-		Posting:        keys,
-		Active:         keys,
 	}
 	// use initminer's priv key sign
 	signTx, err := d.Sign(d.privKey.ToWIF(), acop)
