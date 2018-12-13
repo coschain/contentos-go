@@ -94,7 +94,6 @@ type ContractApplyEvaluator struct {
 	BaseEvaluator
 	ctx      *ApplyContext
 	op       *prototype.ContractApplyOperation
-	injector *Injector
 }
 
 func (ev *AccountCreateEvaluator) Apply() {
@@ -483,7 +482,6 @@ func (ev *ContractDeployEvaluator) Apply() {
 
 func (ev *ContractApplyEvaluator) Apply() {
 	op := ev.op
-	injector := ev.injector
 
 	cid := prototype.ContractId{Owner: op.Owner, Cname: op.Contract}
 	scid := table.NewSoContractWrap(ev.ctx.db, &cid)
@@ -492,6 +490,6 @@ func (ev *ContractApplyEvaluator) Apply() {
 	// TODO Load code from database
 
 	code := scid.GetCode()
-	vmCtx := vm.NewContextFromApplyOp(op, code, injector)
+	vmCtx := vm.NewContextFromApplyOp(op, code, ev.ctx.trxCtx)
 	vmCtx.Run()
 }

@@ -23,6 +23,7 @@ func mustNoError(err error, val string) {
 type ApplyContext struct {
 	db      iservices.IDatabaseService
 	control iservices.ITrxPool
+	trxCtx *TrxContext
 }
 
 type BaseEvaluator interface {

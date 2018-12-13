@@ -1,7 +1,6 @@
 package vm
 
 import (
-	"github.com/coschain/contentos-go/app"
 	"github.com/coschain/contentos-go/prototype"
 )
 
@@ -17,7 +16,7 @@ type Context struct {
 	Gas       *prototype.Coin
 	Construct bool
 	Code      []byte
-	Injector  *app.Injector
+	Injector  Injector
 }
 
 //
@@ -34,7 +33,7 @@ type Context struct {
 //			}
 //}
 
-func NewContextFromApplyOp(op *prototype.ContractApplyOperation, code []byte, injector *app.Injector) *Context {
+func NewContextFromApplyOp(op *prototype.ContractApplyOperation, code []byte, injector Injector) *Context {
 	return &Context{
 		Caller:    op.Caller,
 		Owner:     op.Owner,

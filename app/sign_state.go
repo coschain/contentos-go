@@ -1,10 +1,11 @@
-package prototype
+package app
 
 import (
 	"bytes"
+	"github.com/coschain/contentos-go/prototype"
 )
 
-type AuthorityGetter func(string) *Authority
+type AuthorityGetter func(string) *prototype.Authority
 
 type AuthorityType uint16
 
@@ -16,7 +17,7 @@ const (
 
 type SignState struct {
 	// PublicKeyType can not use as key in map
-	trxCarryedPubs []*PublicKeyType
+	trxCarryedPubs []*prototype.PublicKeyType
 	approved       map[string]bool
 	max_recursion  uint32
 	//PostingGetter  AuthorityGetter
@@ -24,7 +25,7 @@ type SignState struct {
 	OwnerGetter    AuthorityGetter
 }
 
-func (s *SignState) checkPub(key *PublicKeyType) bool {
+func (s *SignState) checkPub(key *prototype.PublicKeyType) bool {
 	for _, k := range s.trxCarryedPubs {
 		if bytes.Equal(key.Data, k.Data) {
 			return true
@@ -43,7 +44,7 @@ func (s *SignState) CheckAuthorityByName(name string, depth uint32, at Authority
 	return s.CheckAuthority(auth, 0, at)
 }
 
-func (s *SignState) CheckAuthority(auth *Authority, depth uint32, at AuthorityType) bool {
+func (s *SignState) CheckAuthority(auth *prototype.Authority, depth uint32, at AuthorityType) bool {
 
 	var total_weight uint32 = 0
 	for _, k := range auth.KeyAuths {
@@ -81,7 +82,7 @@ func (s *SignState) CheckAuthority(auth *Authority, depth uint32, at AuthorityTy
 	return total_weight >= auth.WeightThreshold
 }
 
-func (s *SignState) Init(pubs []*PublicKeyType, maxDepth uint32, owner AuthorityGetter) {
+func (s *SignState) Init(pubs []*prototype.PublicKeyType, maxDepth uint32, owner AuthorityGetter) {
 	s.trxCarryedPubs = s.trxCarryedPubs[:0]
 	s.trxCarryedPubs = append(s.trxCarryedPubs, pubs...)
 	s.max_recursion = maxDepth
@@ -90,7 +91,7 @@ func (s *SignState) Init(pubs []*PublicKeyType, maxDepth uint32, owner Authority
 	s.OwnerGetter = owner
 }
 
-func (s *SignState) getAuthority(name string, at AuthorityType) *Authority {
+func (s *SignState) getAuthority(name string, at AuthorityType) *prototype.Authority {
 	// read Authority struct from DB
 	switch at {
 	//case Posting:

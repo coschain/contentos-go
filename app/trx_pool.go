@@ -421,10 +421,6 @@ func (c *TrxPool) notifyBlockApply(block *prototype.SignedBlock) {
 	c.noticer.Publish(constants.NOTICE_BLOCK_APPLY, block)
 }
 
-// calculate reward for creator and witness
-func (c *TrxPool) processBlock() {
-}
-
 func (c *TrxPool) applyTransaction(trxWrp *prototype.TransactionWrapper) {
 	c.applyTransactionInner(trxWrp)
 	// @ not use yet
@@ -432,6 +428,7 @@ func (c *TrxPool) applyTransaction(trxWrp *prototype.TransactionWrapper) {
 }
 
 func (c *TrxPool) applyTransactionInner(trxWrp *prototype.TransactionWrapper) {
+	trxContext := NewTrxContext(trxWrp, c.db)
 	defer func() {
 		if err := recover(); err != nil {
 			trxWrp.Invoice.Status = 500
@@ -454,36 +451,7 @@ func (c *TrxPool) applyTransactionInner(trxWrp *prototype.TransactionWrapper) {
 	mustSuccess(!transactionObjWrap.CheckExist(), "Duplicate transaction check failed")
 
 	if c.skip&prototype.Skip_transaction_signatures == 0 {
-		//postingGetter := func(name string) *prototype.Authority {
-		//	account := &prototype.AccountName{Value: name}
-		//	authWrap := table.NewSoAccountAuthorityObjectWrap(c.db, account)
-		//	auth := authWrap.GetPosting()
-		//	if auth == nil {
-		//		panic("no posting auth")
-		//	}
-		//	return auth
-		//}
-		//activeGetter := func(name string) *prototype.Authority {
-		//	account := &prototype.AccountName{Value: name}
-		//	authWrap := table.NewSoAccountAuthorityObjectWrap(c.db, account)
-		//	auth := authWrap.GetActive()
-		//	if auth == nil {
-		//		panic("no active auth")
-		//	}
-		//	return auth
-		//}
-		ownerGetter := func(name string) *prototype.Authority {
-			account := &prototype.AccountName{Value: name}
-			authWrap := table.NewSoAccountAuthorityObjectWrap(c.db, account)
-			auth := authWrap.GetOwner()
-			if auth == nil {
-				panic("no owner auth")
-			}
-			return auth
-		}
-
-		tmpChainId := prototype.ChainId{Value: 0}
-		trx.VerifyAuthority(tmpChainId, 2, ownerGetter)
+		trxContext.Verify()
 		// @ check_admin
 	}
 
@@ -518,19 +486,19 @@ func (c *TrxPool) applyTransactionInner(trxWrp *prototype.TransactionWrapper) {
 	// process operation
 	c.currentOpInTrx = 0
 	for _, op := range trx.Trx.Operations {
-		c.applyOperation(op)
+		c.applyOperation(trxContext, op)
 		c.currentOpInTrx++
 	}
 
 	c.currentTrxId = &prototype.Sha256{}
 }
 
-func (c *TrxPool) applyOperation(op *prototype.Operation) {
+func (c *TrxPool) applyOperation(trxCtx *TrxContext, op *prototype.Operation) {
 	// @ not use yet
 	n := &prototype.OperationNotification{Op: op}
 	c.notifyOpPreExecute(n)
 
-	eva := c.getEvaluator(op)
+	eva := c.getEvaluator(trxCtx, op)
 	eva.Apply()
 
 	// @ not use yet
@@ -560,8 +528,8 @@ func (c *TrxPool) vmTransfer(from, to string, amount uint64, memo string) {
 	c.notifyOpPostExecute(n)
 }
 
-func (c *TrxPool) getEvaluator(op *prototype.Operation) BaseEvaluator {
-	ctx := &ApplyContext{db: c.db, control: c}
+func (c *TrxPool) getEvaluator(trxCtx *TrxContext, op *prototype.Operation) BaseEvaluator {
+	ctx := &ApplyContext{db: c.db, control: c, trxCtx:trxCtx}
 	switch op.Op.(type) {
 	case *prototype.Operation_Op1:
 		eva := &AccountCreateEvaluator{ctx: ctx, op: op.GetOp1()}
@@ -603,10 +571,7 @@ func (c *TrxPool) getEvaluator(op *prototype.Operation) BaseEvaluator {
 		eva := &ContractDeployEvaluator{ctx: ctx, op: op.GetOp13()}
 		return BaseEvaluator(eva)
 	case *prototype.Operation_Op14:
-		injector := &Injector{}
-		injector.RequireAuth = c.requireAuth
-		injector.Transfer = c.vmTransfer
-		eva := &ContractApplyEvaluator{ctx: ctx, op: op.GetOp14(), injector: injector}
+		eva := &ContractApplyEvaluator{ctx: ctx, op: op.GetOp14() }
 		return BaseEvaluator(eva)
 	default:
 		panic("no matchable evaluator")
@@ -1041,38 +1006,3 @@ func (c *TrxPool) Commit(num uint64) {
 	mustNoError(c.db.RebaseToRevision(rev), fmt.Sprintf("RebaseToRevision: tag:%d, reversion:%d", num, rev))
 }
 
-type layer struct {
-	currentLayer uint32
-	PendingLayer uint32
-}
-
-type sessionStack struct {
-	db               iservices.IDatabaseService
-	layerInfo        layer
-	havePendingLayer bool
-}
-
-func (ss *sessionStack) begin(isPendingLayer bool) {
-	ss.db.BeginTransaction()
-	ss.layerInfo.currentLayer++
-	if isPendingLayer {
-		ss.layerInfo.PendingLayer = ss.layerInfo.currentLayer
-	}
-}
-
-func (ss *sessionStack) squash() {
-	mustSuccess(ss.layerInfo.currentLayer > 0, "squash when layer <= 0")
-	mustSuccess(ss.layerInfo.PendingLayer+1 == ss.layerInfo.currentLayer, "squash to no pending layer")
-	ss.db.EndTransaction(true)
-	ss.layerInfo.currentLayer--
-}
-
-func (ss *sessionStack) undo(isPendingLayer bool) {
-	mustSuccess(ss.layerInfo.currentLayer > 0, "undo when layer <= 0")
-	ss.db.EndTransaction(false)
-	ss.layerInfo.currentLayer--
-}
-
-func (ss *sessionStack) keep() {
-
-}
