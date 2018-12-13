@@ -1,6 +1,8 @@
 package app
 
 import (
+	"errors"
+	"fmt"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
@@ -12,36 +14,54 @@ type TrxContext struct {
 	vm.Injector
 	Wrapper *prototype.TransactionWrapper
 	db iservices.IDatabaseService
+
+	recoverPubs []*prototype.PublicKeyType
 }
 
 func NewTrxContext(wrapper *prototype.TransactionWrapper, db iservices.IDatabaseService) *TrxContext {
 	return &TrxContext{ Wrapper:wrapper , db:db }
 }
 
-func (p *TrxContext) Verify()  {
-	ownerGetter := func(name string) *prototype.Authority {
-		account := &prototype.AccountName{Value: name}
-		authWrap := table.NewSoAccountAuthorityObjectWrap(p.db, account)
-		auth := authWrap.GetOwner()
-		if auth == nil {
-			panic("no owner auth")
-		}
-		return auth
-	}
-
-	tmpChainId := prototype.ChainId{Value: 0}
-	p.verifyAuthority(tmpChainId, 2, ownerGetter)
-}
-
-func (p *TrxContext) verifyAuthority(cid prototype.ChainId, maxDepth uint32, owner AuthorityGetter) {
+func (p *TrxContext) InitSigState(cid prototype.ChainId) error {
 	pubs, err := p.Wrapper.SigTrx.ExportPubKeys(cid)
 	if err != nil {
-		panic(err)
+		return err
 	}
-	verifyAuthority(p.Wrapper.SigTrx.Trx.Operations, pubs, maxDepth, owner)
+	p.recoverPubs = append(p.recoverPubs, pubs...)
+	return nil
 }
 
-func (p *TrxContext) RequireAuth(name string) error{
+func (p *TrxContext) VerifySignature()  {
+	p.verifyAuthority(2, p.authGetter)
+}
+
+func (p *TrxContext) verifyAuthority(maxDepth uint32, owner AuthorityGetter) {
+	keyMaps := obtainKeyMap(p.Wrapper.SigTrx.Trx.Operations)
+	verifyAuthority(keyMaps, p.recoverPubs, maxDepth, owner)
+}
+
+
+func (p *TrxContext) authGetter(name string) *prototype.Authority {
+	account := &prototype.AccountName{Value: name}
+	authWrap := table.NewSoAccountAuthorityObjectWrap(p.db, account)
+	auth := authWrap.GetOwner()
+	if auth == nil {
+		panic("no owner auth")
+	}
+	return auth
+}
+
+func (p *TrxContext) RequireAuth(name string) (err error){
+	keyMaps := map[string]bool{}
+	keyMaps[name] = true
+
+	defer func() {
+		if ret := recover(); ret != nil{
+			err = errors.New(fmt.Sprint(ret))
+		}
+	}()
+
+	verifyAuthority(keyMaps, p.recoverPubs, 2, p.authGetter)
 	return nil
 }
 
@@ -49,26 +69,28 @@ func (p *TrxContext) Transfer(from, to string, amount uint64, memo string) error
 	return nil
 }
 
-
-
-func verifyAuthority(ops []*prototype.Operation, trxPubs []*prototype.PublicKeyType, max_recursion_depth uint32, owner AuthorityGetter) {
-	//required_active := map[string]bool{}
-	//required_posting := map[string]bool{}
-	required_owner := map[string]bool{}
-	other := []prototype.Authority{}
-
+func obtainKeyMap(ops []*prototype.Operation) map[string]bool {
+	keyMaps := map[string]bool{}
 	for _, op := range ops {
 		baseOp := getBaseOp(op)
 
-		baseOp.GetAuthorities(&other)
-		baseOp.GetRequiredOwner(&required_owner)
+		//baseOp.GetAuthorities(&other)
+		baseOp.GetRequiredOwner(&keyMaps)
 	}
+	return keyMaps
+}
 
+
+
+func verifyAuthority(keyMaps map[string]bool, trxPubs []*prototype.PublicKeyType, max_recursion_depth uint32, owner AuthorityGetter) {
+	//required_active := map[string]bool{}
+	//required_posting := map[string]bool{}
+	//other := []prototype.Authority{}
 
 	s := SignState{}
 	s.Init(trxPubs, max_recursion_depth, owner)
 
-	for k, _ := range required_owner {
+	for k := range keyMaps {
 		if !s.CheckAuthorityByName(k, 0, Owner) {
 			panic("check owner authority failed")
 		}
@@ -99,6 +121,7 @@ func getBaseOp(op *prototype.Operation) prototype.BaseOperation {
 	case *prototype.Operation_Op10:
 		return prototype.BaseOperation(t.Op10)
 	default:
-		return nil
+		panic("unknown op type")
 	}
+	return nil
 }

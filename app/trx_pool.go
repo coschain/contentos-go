@@ -451,7 +451,9 @@ func (c *TrxPool) applyTransactionInner(trxWrp *prototype.TransactionWrapper) {
 	mustSuccess(!transactionObjWrap.CheckExist(), "Duplicate transaction check failed")
 
 	if c.skip&prototype.Skip_transaction_signatures == 0 {
-		trxContext.Verify()
+		tmpChainId := prototype.ChainId{Value: 0}
+		mustNoError( trxContext.InitSigState(tmpChainId), "signature export error")
+		trxContext.VerifySignature()
 		// @ check_admin
 	}
 
