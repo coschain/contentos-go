@@ -2,7 +2,6 @@ package peer
 
 import (
 	"errors"
-	"github.com/sirupsen/logrus"
 	"net"
 	"runtime"
 	"sync"
@@ -12,6 +11,8 @@ import (
 	"github.com/coschain/contentos-go/p2p/common"
 	conn "github.com/coschain/contentos-go/p2p/link"
 	"github.com/coschain/contentos-go/p2p/message/types"
+	"github.com/deckarep/golang-set"
+	"github.com/sirupsen/logrus"
 )
 
 // PeerCom provides the basic information of a peer
@@ -97,15 +98,15 @@ func (this *PeerCom) GetHeight() uint64 {
 
 //Peer represent the node in p2p
 type Peer struct {
-	base      PeerCom
-	cap       [32]byte
-	SyncLink  *conn.Link
-	ConsLink  *conn.Link
-	syncState uint32
-	consState uint32
-	txnCnt    uint64
-	rxTxnCnt  uint64
-	connLock  sync.RWMutex
+	base             PeerCom
+	cap              [32]byte
+	SyncLink         *conn.Link
+	ConsLink         *conn.Link
+	syncState        uint32
+	consState        uint32
+	SendTrxCache     mapset.Set
+	RecvTrxCache     mapset.Set
+	connLock         sync.RWMutex
 }
 
 //NewPeer return new peer without publickey initial
@@ -116,6 +117,8 @@ func NewPeer() *Peer {
 	}
 	p.SyncLink = conn.NewLink()
 	p.ConsLink = conn.NewLink()
+	p.SendTrxCache = mapset.NewSet()
+	p.RecvTrxCache = mapset.NewSet()
 	runtime.SetFinalizer(p, rmPeer)
 	return p
 }

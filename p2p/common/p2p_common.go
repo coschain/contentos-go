@@ -73,6 +73,11 @@ const (
 	DISCONNECT_TYPE = "disconnect" //peer disconnect info raise by link
 )
 
+const (
+	MAX_TRX_CACHE = 2048   // the max trx hash cached in p2p
+	HASH_LENGTH = 64       // byte array length of each trx hash
+)
+
 //ParseIPAddr return ip address
 func ParseIPAddr(s string) (string, error) {
 	i := strings.Index(s, ":")

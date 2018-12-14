@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/coschain/contentos-go/common"
-	"github.com/coschain/contentos-go/p2p/peer"
 	"github.com/coschain/contentos-go/iservices"
 	msgCommon "github.com/coschain/contentos-go/p2p/common"
 	"github.com/coschain/contentos-go/p2p/message/msg_pack"
@@ -146,21 +145,21 @@ func TransactionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface
 	//log.GetLog().Info("receive a SignedTransaction msg: ", trn)
 
 	id, _ := trn.SigTrx.Id()
-	np := p2p.GetNp()
-	if np == nil {
-		log.GetLog().Error("[p2p] NbrPeers invalid in TransactionHandle")
+	remotePeer := p2p.GetPeerFromAddr(data.Addr)
+	if remotePeer == nil {
+		log.GetLog().Error("[p2p] peer is not exist: ", data.Addr)
 		return
 	}
-	np.Lock()
-	sendCache := np.SendTrxMap[data.Addr]
-	recvCache := np.RecvTrxMap[data.Addr]
-	if peer.ByteSliceEqual(sendCache, id.Hash) || peer.ByteSliceEqual(recvCache, id.Hash) {
-		log.GetLog().Info("[p2p] we alerady has this transaction, transaction hash: ", id.Hash)
-		np.Unlock()
+	var hash [msgCommon.HASH_LENGTH]byte
+	copy(hash[:], id.Hash[:])
+	if remotePeer.SendTrxCache.Contains(hash) || remotePeer.RecvTrxCache.Contains(hash) {
+		log.GetLog().Info("[p2p] we alerady have this transaction, transaction hash: ", id.Hash)
 		return
 	}
-	np.RecvTrxMap[data.Addr] = id.Hash
-	np.Unlock()
+	if remotePeer.RecvTrxCache.Cardinality() > msgCommon.MAX_TRX_CACHE {
+		remotePeer.RecvTrxCache.Pop()
+	}
+	remotePeer.RecvTrxCache.Add(hash)
 
 	s, err := p2p.GetService(iservices.ConsensusServerName)
 	if err != nil {

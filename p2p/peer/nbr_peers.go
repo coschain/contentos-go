@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/p2p/common"
 	"github.com/coschain/contentos-go/p2p/message/types"
 )
@@ -13,46 +12,35 @@ import (
 type NbrPeers struct {
 	sync.RWMutex
 	List       map[uint64]*Peer
-	SendTrxMap map[string][]byte  // the last trx hash send to a peer
-	RecvTrxMap map[string][]byte  // the last trx hash receive from a peer
-}
-
-func ByteSliceEqual(a, b []byte) bool {
-	if len(a) != len(b) {
-		return false
-	}
-
-	if (a == nil) != (b == nil) {
-		return false
-	}
-
-	for i, v := range a {
-		if v != b[i] {
-			return false
-		}
-	}
-
-	return true
 }
 
 //Broadcast tranfer msg buffer to all establish peer
 func (this *NbrPeers) Broadcast(mesg types.Message, isConsensus bool, magic uint32) {
 	this.RLock()
 	defer this.RUnlock()
-	for _, node := range this.List {
-		id := new(prototype.Sha256)
-		data := mesg.(*types.TransferMsg)
-		if msgdata, ok := data.Msg.(*types.TransferMsg_Msg1); ok {
-			id, _ = msgdata.Msg1.SigTrx.Id()
-			sendCache := this.SendTrxMap[node.GetAddr()]
-			recvCache := this.RecvTrxMap[node.GetAddr()]
-			if ByteSliceEqual(sendCache, id.Hash) || ByteSliceEqual(recvCache, id.Hash) {
-				continue
+
+	data := mesg.(*types.TransferMsg)
+	if msgdata, ok := data.Msg.(*types.TransferMsg_Msg1); ok {
+		var hash [common.HASH_LENGTH]byte
+		id, _ := msgdata.Msg1.SigTrx.Id()
+		copy(hash[:], id.Hash[:])
+		for _, node := range this.List {
+			if node.syncState == common.ESTABLISH && node.GetRelay() == true {
+				if node.SendTrxCache.Contains(hash) || node.RecvTrxCache.Contains(hash) {
+					continue
+				}
+				if node.SendTrxCache.Cardinality() > common.MAX_TRX_CACHE {
+					node.SendTrxCache.Pop()
+				}
+				node.SendTrxCache.Add(hash)
+				go node.Send(mesg, isConsensus, magic)
 			}
 		}
-		if node.syncState == common.ESTABLISH && node.GetRelay() == true {
-			this.SendTrxMap[node.GetAddr()] = id.Hash
-			go node.Send(mesg, isConsensus, magic)
+	} else {
+		for _, node := range this.List {
+			if node.syncState == common.ESTABLISH && node.GetRelay() == true {
+				go node.Send(mesg, isConsensus, magic)
+			}
 		}
 	}
 }
@@ -97,8 +85,6 @@ func (this *NbrPeers) DelNbrNode(p *Peer) (*Peer, bool) {
 	}
 
 	delete(this.List, p.GetID())
-	delete(this.SendTrxMap, p.GetAddr())
-	delete(this.RecvTrxMap, p.GetAddr())
 
 	return n, true
 }
@@ -106,8 +92,6 @@ func (this *NbrPeers) DelNbrNode(p *Peer) (*Peer, bool) {
 //initialize nbr list
 func (this *NbrPeers) Init() {
 	this.List = make(map[uint64]*Peer)
-	this.SendTrxMap = make(map[string][]byte)
-	this.RecvTrxMap = make(map[string][]byte)
 }
 
 //NodeEstablished whether peer established according to id
