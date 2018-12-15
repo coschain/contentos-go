@@ -11,7 +11,7 @@ type Context struct {
 	Owner     *prototype.AccountName
 	Contract  string
 	Method    string
-	Params    []string
+	Params    string
 	Amount    *prototype.Coin
 	Gas       *prototype.Coin
 	Construct bool

@@ -4,6 +4,31 @@ package vme
 // vme is for contract parameter encoding.
 // It implements the same serialization protocol used by smart contracts.
 //
+// Single parameter
+// A single parameter can be an instance of,
+//  - primitive types (bool/integers/floats/string) or
+//  - single or multiple dimensional slice of primitive types
+//
+// Integers and floats are encoded by simply using their memory bytes, in host machine's byte order.
+// Booleans are treated as special bytes. byte(1) represents true, and byte(0) represents false.
+// Strings are treated as byte slices.
+// Slices are encoded as a variant-length-integer encoded length followed by encoded elements one by one.
+//
+//
+// Multiple parameters
+// Multiple parameters are encoded by concatenating encoded parameters.
+//
+//
+// Example
+// To encode a single parameter,
+//   Encode(10)
+//   Encode("hello")
+//   Encode([]int{1, 2, 3})         // a single parameter of type []int.
+//
+// To encode multiple parameters,
+//   Encode(1, 2, 3)                // 3 separate int parameters
+//   Encode("world", 3.14, byte(20), true)
+//
 
 import (
 	"bytes"
@@ -160,42 +185,30 @@ func encodeValue(rv reflect.Value) ([]byte, error) {
 	return nil, errors.New(fmt.Sprintf("vme: cannot encode values of type %s", rt.Name()))
 }
 
-func Encode(value interface{}) ([]byte, error) {
+func encode(value interface{}) ([]byte, error) {
 	return encodeValue(reflect.ValueOf(value))
 }
 
-func EncodeValues(values...interface{}) ([][]byte, error) {
+func Encode(values...interface{}) ([]byte, error) {
 	count := len(values)
 	if count == 0 {
 		return nil, errors.New("vme: nothing to encode")
 	}
 	r := make([][]byte, count)
 	for i, v := range values {
-		data, err := Encode(v)
+		data, err := encode(v)
 		if err != nil {
 			return nil, err
 		}
 		r[i] = data
 	}
-	return r, nil
+	return bytes.Join(r, nil), nil
 }
 
-func String(value interface{}) (string, error) {
-	if data, err := Encode(value); err != nil {
+func String(value...interface{}) (string, error) {
+	if data, err := Encode(value...); err != nil {
 		return "", err
 	} else {
 		return string(data), nil
 	}
-}
-
-func StringValues(values...interface{}) ([]string, error) {
-	data, err := EncodeValues(values...)
-	if err != nil {
-		return nil, err
-	}
-	r := make([]string, len(data))
-	for i, d := range data {
-		r[i] = string(d)
-	}
-	return r, nil
 }
