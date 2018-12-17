@@ -104,30 +104,3 @@ func verifyAuthority(keyMaps map[string]bool, trxPubs []*prototype.PublicKeyType
 	}
 }
 
-func getBaseOp(op *prototype.Operation) prototype.BaseOperation {
-	switch t := op.Op.(type) {
-	case *prototype.Operation_Op1:
-		return prototype.BaseOperation(t.Op1)
-	case *prototype.Operation_Op2:
-		return prototype.BaseOperation(t.Op2)
-	case *prototype.Operation_Op3:
-		return prototype.BaseOperation(t.Op3)
-	case *prototype.Operation_Op4:
-		return prototype.BaseOperation(t.Op4)
-	case *prototype.Operation_Op5:
-		return prototype.BaseOperation(t.Op5)
-	case *prototype.Operation_Op6:
-		return prototype.BaseOperation(t.Op6)
-	case *prototype.Operation_Op7:
-		return prototype.BaseOperation(t.Op7)
-	case *prototype.Operation_Op8:
-		return prototype.BaseOperation(t.Op8)
-	case *prototype.Operation_Op9:
-		return prototype.BaseOperation(t.Op9)
-	case *prototype.Operation_Op10:
-		return prototype.BaseOperation(t.Op10)
-	default:
-		panic("unknown op type")
-	}
-	return nil
-}
