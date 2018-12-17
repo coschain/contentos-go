@@ -140,7 +140,7 @@ func (d *DPoS) ActiveProducers() []string {
 
 func (d *DPoS) Start(node *node.Node) error {
 	d.ctrl = d.getController()
-	p2p, err := d.ctx.Service(iservices.P2PServerName)
+	p2p, err := node.Service(iservices.P2PServerName)
 	if err != nil {
 		panic(err)
 	}
@@ -214,8 +214,8 @@ func (d *DPoS) start(snapshotPath string) {
 			if err := d.pushBlock(b, true); err != nil {
 				d.log.GetLog().Error("[DPoS] pushBlock failed: ", err)
 			}
-		case trx_fn := <-d.trxCh:
-			trx_fn()
+		case trxFn := <-d.trxCh:
+			trxFn()
 			continue
 		case <-d.prodTimer.C:
 			if !d.scheduleProduce() {
