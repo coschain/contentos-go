@@ -28,7 +28,7 @@ type Economist struct {
 }
 
 func (e *Economist) getDb() (iservices.IDatabaseService, error) {
-	s, err := e.ctx.Service("db")
+	s, err := e.ctx.Service(iservices.DbServerName)
 	if err != nil {
 		return nil, err
 	}

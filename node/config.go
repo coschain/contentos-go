@@ -36,10 +36,6 @@ type Config struct {
 	// Logger is a custom logger
 	Logger log.Logger `toml:"-"`
 
-	// Timer configuration
-
-	Timer service_configs.TimerConfig
-
 	GRPC service_configs.GRPCConfig
 
 	Consensus service_configs.ConsensusConfig

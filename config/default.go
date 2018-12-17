@@ -72,9 +72,6 @@ func GetNetworkName(id uint32) string {
 // DefaultConfig contains reasonable default settings.
 var DefaultNodeConfig = node.Config{
 	DataDir: DefaultDataDir(),
-	Timer: service_configs.TimerConfig{
-		Interval: 500,
-	},
 	LogLevel:         DefaultLogLevel,
 	//P2PPort:          20200,
 	//P2PPortConsensus: 20201,
