@@ -69,7 +69,7 @@ message contract_apply_operation{
     account_name owner = 2;         // who owner this contract
     string contract = 3;            // contract name
     string method = 4;              // call which method
-    string params = 5;              // param list, encoded as a single string
+    string params = 5;              // param list, encoded as a single json string. e.g. '[]' or '["hello", 3, true]'
     coin   amount = 6;              // cos-coin send to the contract
     coin   gas = 7;                 // max permit gas cost when apply
 }
