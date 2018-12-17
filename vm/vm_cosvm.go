@@ -56,6 +56,10 @@ func (w *CosVM) initNativeFuncs() {
 	w.Register("read_contract_caller", w.readContractCaller)
 	w.Register("transfer", w.transfer)
 	w.Register("get_sender_value", w.getSenderValue)
+
+	// for test
+	w.Register("readt1", w.readT1)
+	w.Register("readt2", w.readT2)
 }
 
 func (w *CosVM) Run() (uint32, error) {
@@ -126,6 +130,28 @@ func (w *CosVM) Register(funcName string, function interface{}) {
 	w.nativeFuncName = append(w.nativeFuncName, funcName)
 	w.nativeFuncSigs = append(w.nativeFuncSigs, funcSig)
 	w.nativeFuncs = append(w.nativeFuncs, f)
+}
+
+func (w *CosVM) readT1(proc *exec.Process, pointer int32, maxLength int32) int32 {
+	var msg []byte
+	length, err := w.readAt(proc, pointer, maxLength, &msg)
+	if err != nil {
+		fmt.Println("read error:", err)
+	}
+	fmt.Printf("length %d\n", length)
+	fmt.Println(string(msg))
+	return length
+}
+
+func (w *CosVM) readT2(proc *exec.Process, pointer int32) int32 {
+	var msg []byte
+	length, err := w.readAt(proc, pointer, int32(maxReadLength), &msg)
+	if err != nil {
+		fmt.Println("read error:", err)
+	}
+	fmt.Printf("length %d\n", length)
+	fmt.Println(string(msg))
+	return length
 }
 
 func (w *CosVM) readAt(proc *exec.Process, pointer int32, maxLength int32, buf *[]byte) (length int32, err error) {
