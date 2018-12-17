@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app/table"
+	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/common/eventloop"
 	"github.com/coschain/contentos-go/iservices"
@@ -15,6 +16,8 @@ import (
 	"github.com/pkg/errors"
 	"strconv"
 )
+
+type ShuffleFunc func(head common.ISignedBlock)
 
 var (
 	SingleId int32 = 1
@@ -40,6 +43,7 @@ type TrxPool struct {
 	currentBlockNum        uint64
 	currentTrxInBlock      int16
 	havePendingTransaction bool
+	shuffle				ShuffleFunc
 }
 
 func (c *TrxPool) getDb() (iservices.IDatabaseService, error) {
@@ -58,6 +62,10 @@ func (c *TrxPool) getLog() (iservices.ILog, error) {
 	}
 	log := s.(iservices.ILog)
 	return log, nil
+}
+
+func (c *TrxPool) SetShuffle(s ShuffleFunc) {
+	c.shuffle = s
 }
 
 // for easy test
@@ -428,7 +436,7 @@ func (c *TrxPool) applyTransaction(trxWrp *prototype.TransactionWrapper) {
 }
 
 func (c *TrxPool) applyTransactionInner(trxWrp *prototype.TransactionWrapper) {
-	trxContext := NewTrxContext(trxWrp, c.db, c)
+	trxContext := NewTrxContext(trxWrp, c.db)
 	defer func() {
 		if err := recover(); err != nil {
 			trxWrp.Invoice.Status = 500
@@ -637,6 +645,7 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 
 	c.updateGlobalDynamicData(blk)
 	//c.updateSigningWitness(blk)
+	c.shuffle(blk)
 	// @ update_last_irreversible_block
 	c.createBlockSummary(blk)
 	c.clearExpiredTransactions()
