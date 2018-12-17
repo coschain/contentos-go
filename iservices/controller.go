@@ -8,7 +8,7 @@ import (
 // This file defines interfaces of Database service.
 //
 
-var ControlServerName = "ctrl"
+var TxPoolServerName = "ctrl"
 
 type ITrxPool interface {
 	PushTrx(trx *prototype.SignedTransaction) *prototype.TransactionInvoice

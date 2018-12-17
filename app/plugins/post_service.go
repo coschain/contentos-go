@@ -9,26 +9,32 @@ import (
 	"github.com/coschain/contentos-go/prototype"
 )
 
-var POST_SERVICE_NAME = "postsrv"
+var PostServiceName = "postsrv"
 
 type PostService struct {
 	node.Service
 	db  iservices.IDatabaseService
 	ev  EventBus.Bus
-	ctx *node.ServiceContext
+	pool iservices.ITrxPool
 }
 
 // service constructor
 func NewPostService(ctx *node.ServiceContext) (*PostService, error) {
-	return &PostService{ctx: ctx}, nil
+	return &PostService{}, nil
 }
 
 func (p *PostService) Start(node *node.Node) error {
-	db, err := p.ctx.Service(iservices.DbServerName)
+	db, err := node.Service(iservices.DbServerName)
 	if err != nil {
 		return err
 	}
 	p.db = db.(iservices.IDatabaseService)
+
+	pool, err := node.Service(iservices.TxPoolServerName)
+	if err != nil {
+		return err
+	}
+	p.pool = pool.(iservices.ITrxPool)
 	p.ev = node.EvBus
 
 	p.hookEvent()
@@ -60,17 +66,14 @@ func (p *PostService) onPostOperation(notification *prototype.OperationNotificat
 
 func (p *PostService) executePostOperation(op *prototype.PostOperation) {
 	uuid := op.GetUuid()
-	ctrl, err := p.ctx.Service(iservices.ControlServerName)
-	if err != nil {
-		panic("ctrl service invalid")
-	}
+
 
 	exPostWrap := table.NewSoExtPostCreatedWrap(p.db, &uuid)
 	if exPostWrap != nil && !exPostWrap.CheckExist() {
 		exPostWrap.Create(func(exPost *table.SoExtPostCreated) {
 			exPost.PostId = uuid
 			exPost.CreatedOrder = &prototype.PostCreatedOrder{
-				Created: ctrl.(iservices.ITrxPool).HeadBlockTime(),
+				Created: p.pool.HeadBlockTime(),
 				ParentId: constants.POST_INVALID_ID,
 			}
 		})
@@ -79,17 +82,13 @@ func (p *PostService) executePostOperation(op *prototype.PostOperation) {
 
 func (p *PostService) executeReplyOperation(op *prototype.ReplyOperation) {
 	uuid := op.GetUuid()
-	ctrl, err := p.ctx.Service(iservices.ControlServerName)
-	if err != nil {
-		panic("ctrl service invalid")
-	}
 	exReplyWrap := table.NewSoExtReplyCreatedWrap(p.db, &uuid)
 	if exReplyWrap != nil && !exReplyWrap.CheckExist() {
 		exReplyWrap.Create(func(exReply *table.SoExtReplyCreated) {
 			exReply.PostId = uuid
 			exReply.CreatedOrder = &prototype.ReplyCreatedOrder{
 				ParentId: op.GetParentUuid(),
-				Created: ctrl.(iservices.ITrxPool).HeadBlockTime(),
+				Created: p.pool.HeadBlockTime(),
 			}
 		})
 	}

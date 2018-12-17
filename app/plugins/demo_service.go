@@ -8,22 +8,21 @@ import (
 	"github.com/coschain/contentos-go/prototype"
 )
 
-var DEMO_SERVICE_NAME = "demosrv"
+var DemoServiceName = "demosrv"
 
 type DemoService struct {
 	node.Service
 	db  iservices.IDatabaseService
 	ev  EventBus.Bus
-	ctx *node.ServiceContext
 }
 
 // service constructor
-func NewDemoService(ctx *node.ServiceContext) (*DemoService, error) {
-	return &DemoService{ctx: ctx}, nil
+func NewDemoService() (*DemoService, error) {
+	return &DemoService{}, nil
 }
 
 func (p *DemoService) Start(node *node.Node) error {
-	db, err := p.ctx.Service(iservices.DbServerName)
+	db, err := node.Service(iservices.DbServerName)
 	if err != nil {
 		return err
 	}

@@ -130,7 +130,7 @@ func RegisterService(app *node.Node, cfg node.Config) {
 		return p2p.NewServer(ctx)
 	})
 
-	_ = app.Register(iservices.ControlServerName, func(ctx *node.ServiceContext) (node.Service, error) {
+	_ = app.Register(iservices.TxPoolServerName, func(ctx *node.ServiceContext) (node.Service, error) {
 		return ctrl.NewController(ctx)
 	})
 
@@ -145,13 +145,13 @@ func RegisterService(app *node.Node, cfg node.Config) {
 		return s, nil
 	})
 
-	_ = app.Register(plugins.FOLLOW_SERVICE_NAME, func(ctx *node.ServiceContext) (node.Service, error) {
+	_ = app.Register(plugins.FollowServiceName, func(ctx *node.ServiceContext) (node.Service, error) {
 		return plugins.NewFollowService(ctx)
 	})
-	_ = app.Register(plugins.POST_SERVICE_NAME, func(ctx *node.ServiceContext) (node.Service, error) {
+	_ = app.Register(plugins.PostServiceName, func(ctx *node.ServiceContext) (node.Service, error) {
 		return plugins.NewPostService(ctx)
 	})
-	_ = app.Register(plugins.DEMO_SERVICE_NAME, func(ctx *node.ServiceContext) (node.Service, error) {
+	_ = app.Register(plugins.DemoServiceName, func(ctx *node.ServiceContext) (node.Service, error) {
 		return plugins.NewDemoService(ctx)
 	})
 

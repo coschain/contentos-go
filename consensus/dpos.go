@@ -81,7 +81,7 @@ func NewDPoS(ctx *node.ServiceContext) *DPoS {
 }
 
 func (d *DPoS) getController() iservices.ITrxPool {
-	ctrl, err := d.ctx.Service(iservices.ControlServerName)
+	ctrl, err := d.ctx.Service(iservices.TxPoolServerName)
 	if err != nil {
 		panic(err)
 	}

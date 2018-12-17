@@ -10,29 +10,28 @@ import (
 	"time"
 )
 
-var FOLLOW_SERVICE_NAME = "followsrv"
+var FollowServiceName = "followsrv"
 
 type FollowService struct {
 	node.Service
 	db  iservices.IDatabaseService
 	log iservices.ILog
 	ev  EventBus.Bus
-	ctx *node.ServiceContext
 }
 
 // service constructor
 func NewFollowService(ctx *node.ServiceContext) (*FollowService, error) {
-	return &FollowService{ctx: ctx}, nil
+	return &FollowService{}, nil
 }
 
 func (p *FollowService) Start(node *node.Node) error {
-	log, err := p.ctx.Service(iservices.LogServerName)
+	log, err := node.Service(iservices.LogServerName)
 	if err != nil {
 		return err
 	}
 	p.log = log.(iservices.ILog)
 
-	db, err := p.ctx.Service(iservices.DbServerName)
+	db, err := node.Service(iservices.DbServerName)
 	if err != nil {
 		return err
 	}
