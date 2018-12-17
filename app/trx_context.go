@@ -81,7 +81,7 @@ func (p *TrxContext) ContractTransfer(contract, owner, to string, amount uint64)
 func obtainKeyMap(ops []*prototype.Operation) map[string]bool {
 	keyMaps := map[string]bool{}
 	for _, op := range ops {
-		baseOp := getBaseOp(op)
+		baseOp := prototype.GetBaseOperation(op)
 
 		//baseOp.GetAuthorities(&other)
 		baseOp.GetRequiredOwner(&keyMaps)

@@ -531,53 +531,8 @@ func (c *TrxPool) vmTransfer(from, to string, amount uint64, memo string) {
 }
 
 func (c *TrxPool) getEvaluator(trxCtx *TrxContext, op *prototype.Operation) BaseEvaluator {
-	ctx := &ApplyContext{db: c.db, control: c, trxCtx: trxCtx}
-	switch op.Op.(type) {
-	case *prototype.Operation_Op1:
-		eva := &AccountCreateEvaluator{ctx: ctx, op: op.GetOp1()}
-		return BaseEvaluator(eva)
-	case *prototype.Operation_Op2:
-		eva := &TransferEvaluator{ctx: ctx, op: op.GetOp2()}
-		return BaseEvaluator(eva)
-	case *prototype.Operation_Op3:
-		eva := &BpRegisterEvaluator{ctx: ctx, op: op.GetOp3()}
-		return BaseEvaluator(eva)
-	case *prototype.Operation_Op4:
-		eva := &BpUnregisterEvaluator{ctx: ctx, op: op.GetOp4()}
-		return BaseEvaluator(eva)
-	case *prototype.Operation_Op5:
-		eva := &BpVoteEvaluator{ctx: ctx, op: op.GetOp5()}
-		return BaseEvaluator(eva)
-	case *prototype.Operation_Op6:
-		eva := &PostEvaluator{ctx: ctx, op: op.GetOp6()}
-		return BaseEvaluator(eva)
-	case *prototype.Operation_Op7:
-		eva := &ReplyEvaluator{ctx: ctx, op: op.GetOp7()}
-		return BaseEvaluator(eva)
-	case *prototype.Operation_Op8:
-		eva := &FollowEvaluator{ctx: ctx, op: op.GetOp8()}
-		return BaseEvaluator(eva)
-	case *prototype.Operation_Op9:
-		eva := &VoteEvaluator{ctx: ctx, op: op.GetOp9()}
-		return BaseEvaluator(eva)
-	case *prototype.Operation_Op10:
-		eva := &TransferToVestingEvaluator{ctx: ctx, op: op.GetOp10()}
-		return BaseEvaluator(eva)
-	case *prototype.Operation_Op11:
-		eva := &ClaimEvaluator{ctx: ctx, op: op.GetOp11()}
-		return BaseEvaluator(eva)
-	case *prototype.Operation_Op12:
-		eva := &ClaimAllEvaluator{ctx: ctx, op: op.GetOp12()}
-		return BaseEvaluator(eva)
-	case *prototype.Operation_Op13:
-		eva := &ContractDeployEvaluator{ctx: ctx, op: op.GetOp13()}
-		return BaseEvaluator(eva)
-	case *prototype.Operation_Op14:
-		eva := &ContractApplyEvaluator{ctx: ctx, op: op.GetOp14()}
-		return BaseEvaluator(eva)
-	default:
-		panic("no matchable evaluator")
-	}
+	ctx := &ApplyContext{db: c.db, control: c, trxCtx:trxCtx}
+	return GetBaseEvaluator(ctx, op)
 }
 
 func (c *TrxPool) applyBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag) {
