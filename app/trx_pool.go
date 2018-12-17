@@ -428,7 +428,7 @@ func (c *TrxPool) applyTransaction(trxWrp *prototype.TransactionWrapper) {
 }
 
 func (c *TrxPool) applyTransactionInner(trxWrp *prototype.TransactionWrapper) {
-	trxContext := NewTrxContext(trxWrp, c.db, c)
+	trxContext := NewTrxContext(trxWrp, c.db)
 	defer func() {
 		if err := recover(); err != nil {
 			trxWrp.Invoice.Status = 500
