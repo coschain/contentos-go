@@ -42,6 +42,20 @@ func (w *CosVM) initNativeFuncs() {
 	w.Register("current_block_number", w.currentBlockNumber)
 	w.Register("current_timestamp", w.currentTimestamp)
 	w.Register("current_witness", w.currentWitness)
+	w.Register("print_string", w.printString)
+	w.Register("print_uint32", w.printUint32)
+	w.Register("print_uint64", w.printUint64)
+	w.Register("print_bool", w.printBool)
+	w.Register("require_auth", w.requiredAuth)
+	w.Register("get_balance_by_name", w.getBalanceByName)
+	w.Register("get_contract_balance", w.getContractBalance)
+	w.Register("save_to_storage", w.saveToStorage)
+	w.Register("read_from_storage", w.readFromStorage)
+	w.Register("cos_assert", w.cosAssert)
+	w.Register("read_contract_owner", w.readContractOwner)
+	w.Register("read_contract_caller", w.readContractCaller)
+	w.Register("transfer", w.transfer)
+	w.Register("get_sender_value", w.getSenderValue)
 }
 
 func (w *CosVM) Run() (uint32, error) {
@@ -82,7 +96,7 @@ func (w *CosVM) Run() (uint32, error) {
 		r, err := vm.ExecCode(int64(entryIndex))
 		if err != nil {
 			if err.Error() != "exec: return" && err.Error() != "exec: revert" && err.Error() != "exec: suicide" {
-				return 1, fmt.Errorf("Error excuting function %d: %v", 0, err)
+				return 1, fmt.Errorf("error excuting function %d: %v", 0, err)
 			}
 		}
 		return r.(uint32), err
@@ -105,7 +119,7 @@ func (w *CosVM) Register(funcName string, function interface{}) {
 	}
 	funcSig, err := w.exactFuncSig(rfunc)
 	if err != nil {
-		w.logger.Error("exactFuncSig error:", err)
+		w.logger.Error("exactFuncSig error:", funcName, err)
 		return
 	}
 	f := wasm.Function{Sig: &funcSig, Host: reflect.ValueOf(function), Body: &wasm.FunctionBody{}}
@@ -185,8 +199,8 @@ func (w *CosVM) writeBytes(proc *exec.Process, bytes []byte, pointer int32) (int
 }
 
 func (w *CosVM) exactFuncSig(p reflect.Type) (wasm.FunctionSig, error) {
-	paramTypes := []wasm.ValueType{}
-	returnTypes := []wasm.ValueType{}
+	var paramTypes []wasm.ValueType
+	var returnTypes []wasm.ValueType
 	argsLens := p.NumIn()
 	returnLens := p.NumOut()
 	// step over first params, it is proc
@@ -295,16 +309,16 @@ func (w *CosVM) PrintUint32(value uint32) {
 	fmt.Printf("%d", value)
 }
 
-func (w *CosVM) printUint32(proc *exec.Process, value uint32) {
-	w.PrintUint32(value)
+func (w *CosVM) printUint32(proc *exec.Process, value int32) {
+	w.PrintUint32(uint32(value))
 }
 
 func (w *CosVM) PrintUint64(value uint64) {
 	fmt.Printf("%d", value)
 }
 
-func (w *CosVM) printUint64(proc *exec.Process, value uint64) {
-	w.PrintUint64(value)
+func (w *CosVM) printUint64(proc *exec.Process, value int64) {
+	w.PrintUint64(uint64(value))
 }
 
 func (w *CosVM) PrintBool(value bool) {
@@ -315,12 +329,13 @@ func (w *CosVM) PrintBool(value bool) {
 	}
 }
 
-func (w *CosVM) printBool(proc *exec.Process, value bool) {
-	w.PrintBool(value)
+func (w *CosVM) printBool(proc *exec.Process, value int32) {
+	w.PrintBool(value > 0)
 }
 
 func (w *CosVM) RequiredAuth(name string) {
-	w.ctx.Injector.RequireAuth(name)
+	err := w.ctx.Injector.RequireAuth(name)
+	w.CosAssert(err != nil, "require auth error")
 }
 
 func (w *CosVM) requiredAuth(proc *exec.Process, pStr int32, pLen int32) {
@@ -414,13 +429,13 @@ func (w *CosVM) CosAssert(condition bool, msg string) {
 	}
 }
 
-func (w *CosVM) cosAssert(proc *exec.Process, condition bool, pStr int32, len int32) {
+func (w *CosVM) cosAssert(proc *exec.Process, condition int32, pStr int32, len int32) {
 	var msg []byte
 	_, err := w.readAt(proc, pStr, len, &msg)
 	if err != nil {
 		panic("read msg when assert failed")
 	}
-	w.CosAssert(condition, string(msg))
+	w.CosAssert(condition > 0, string(msg))
 }
 
 func (w *CosVM) ReadContractOwner() string {
