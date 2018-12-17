@@ -428,7 +428,7 @@ func (c *TrxPool) applyTransaction(trxWrp *prototype.TransactionWrapper) {
 }
 
 func (c *TrxPool) applyTransactionInner(trxWrp *prototype.TransactionWrapper) {
-	trxContext := NewTrxContext(trxWrp, c.db)
+	trxContext := NewTrxContext(trxWrp, c.db, c)
 	defer func() {
 		if err := recover(); err != nil {
 			trxWrp.Invoice.Status = 500
@@ -452,7 +452,7 @@ func (c *TrxPool) applyTransactionInner(trxWrp *prototype.TransactionWrapper) {
 
 	if c.skip&prototype.Skip_transaction_signatures == 0 {
 		tmpChainId := prototype.ChainId{Value: 0}
-		mustNoError( trxContext.InitSigState(tmpChainId), "signature export error")
+		mustNoError(trxContext.InitSigState(tmpChainId), "signature export error")
 		trxContext.VerifySignature()
 		// @ check_admin
 	}
@@ -531,7 +531,7 @@ func (c *TrxPool) vmTransfer(from, to string, amount uint64, memo string) {
 }
 
 func (c *TrxPool) getEvaluator(trxCtx *TrxContext, op *prototype.Operation) BaseEvaluator {
-	ctx := &ApplyContext{db: c.db, control: c, trxCtx:trxCtx}
+	ctx := &ApplyContext{db: c.db, control: c, trxCtx: trxCtx}
 	switch op.Op.(type) {
 	case *prototype.Operation_Op1:
 		eva := &AccountCreateEvaluator{ctx: ctx, op: op.GetOp1()}
@@ -573,7 +573,7 @@ func (c *TrxPool) getEvaluator(trxCtx *TrxContext, op *prototype.Operation) Base
 		eva := &ContractDeployEvaluator{ctx: ctx, op: op.GetOp13()}
 		return BaseEvaluator(eva)
 	case *prototype.Operation_Op14:
-		eva := &ContractApplyEvaluator{ctx: ctx, op: op.GetOp14() }
+		eva := &ContractApplyEvaluator{ctx: ctx, op: op.GetOp14()}
 		return BaseEvaluator(eva)
 	default:
 		panic("no matchable evaluator")
@@ -1007,4 +1007,3 @@ func (c *TrxPool) Commit(num uint64) {
 	//c.log.GetLog().Debug("$$$ dump reversion array:",c.numToRev)
 	mustNoError(c.db.RebaseToRevision(rev), fmt.Sprintf("RebaseToRevision: tag:%d, reversion:%d", num, rev))
 }
-

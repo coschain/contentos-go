@@ -99,10 +99,10 @@ func TestContext_Sha256(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	err = vm.Start(nil)
-	if err != nil {
-		t.Error(err)
-	}
+	//err = vm.Start(nil)
+	//if err != nil {
+	//	t.Error(err)
+	//}
 	ctx := &Context{Code: data}
 	_, err = vm.Run(ctx)
 	if err != nil {

@@ -2,6 +2,7 @@ package vm
 
 import (
 	"errors"
+	"fmt"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
@@ -40,7 +41,11 @@ func (w *WasmVmService) Run(ctx *Context) (uint32, error) {
 	for funcName, function := range w.registerFuncs {
 		cosVM.Register(funcName, function)
 	}
-	return cosVM.Run()
+	ret, err := cosVM.Run()
+	if err != nil {
+		w.logger.Error(fmt.Sprintf("exec contract:%s, owner:%s occur error: %v", ctx.Contract, ctx.Owner, err))
+	}
+	return ret, err
 }
 
 func (w *WasmVmService) Register(funcName string, function interface{}) {

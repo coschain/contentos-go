@@ -9,17 +9,16 @@ import (
 	"github.com/coschain/contentos-go/vm"
 )
 
-
 type TrxContext struct {
 	vm.Injector
 	Wrapper *prototype.TransactionWrapper
-	db iservices.IDatabaseService
+	db      iservices.IDatabaseService
 
 	recoverPubs []*prototype.PublicKeyType
 }
 
 func NewTrxContext(wrapper *prototype.TransactionWrapper, db iservices.IDatabaseService) *TrxContext {
-	return &TrxContext{ Wrapper:wrapper , db:db }
+	return &TrxContext{Wrapper: wrapper, db: db}
 }
 
 func (p *TrxContext) InitSigState(cid prototype.ChainId) error {
@@ -31,7 +30,7 @@ func (p *TrxContext) InitSigState(cid prototype.ChainId) error {
 	return nil
 }
 
-func (p *TrxContext) VerifySignature()  {
+func (p *TrxContext) VerifySignature() {
 	p.verifyAuthority(2, p.authGetter)
 }
 
@@ -39,7 +38,6 @@ func (p *TrxContext) verifyAuthority(maxDepth uint32, owner AuthorityGetter) {
 	keyMaps := obtainKeyMap(p.Wrapper.SigTrx.Trx.Operations)
 	verifyAuthority(keyMaps, p.recoverPubs, maxDepth, owner)
 }
-
 
 func (p *TrxContext) authGetter(name string) *prototype.Authority {
 	account := &prototype.AccountName{Value: name}
@@ -51,12 +49,12 @@ func (p *TrxContext) authGetter(name string) *prototype.Authority {
 	return auth
 }
 
-func (p *TrxContext) RequireAuth(name string) (err error){
+func (p *TrxContext) RequireAuth(name string) (err error) {
 	keyMaps := map[string]bool{}
 	keyMaps[name] = true
 
 	defer func() {
-		if ret := recover(); ret != nil{
+		if ret := recover(); ret != nil {
 			err = errors.New(fmt.Sprint(ret))
 		}
 	}()
@@ -65,7 +63,18 @@ func (p *TrxContext) RequireAuth(name string) (err error){
 	return nil
 }
 
-func (p *TrxContext) Transfer(from, to string, amount uint64, memo string) error{
+// vm transfer just modify db data
+func (p *TrxContext) ContractTransfer(contract, owner, to string, amount uint64) error {
+	// need authority?
+	c := table.NewSoContractWrap(p.db, &prototype.ContractId{Owner: &prototype.AccountName{Value: owner}, Cname: contract})
+	balance := c.GetBalance().Value
+	if balance < amount {
+		panic(fmt.Sprintf("Endanger Transfer Operation: %s, %s, %s, %d", contract, owner, to, amount))
+	}
+	acc := table.NewSoAccountWrap(p.db, &prototype.AccountName{Value: to})
+	// need atomic ?
+	c.MdBalance(&prototype.Coin{Value: balance - amount})
+	acc.MdBalance(&prototype.Coin{Value: acc.GetBalance().Value + amount})
 	return nil
 }
 
@@ -79,8 +88,6 @@ func obtainKeyMap(ops []*prototype.Operation) map[string]bool {
 	}
 	return keyMaps
 }
-
-
 
 func verifyAuthority(keyMaps map[string]bool, trxPubs []*prototype.PublicKeyType, max_recursion_depth uint32, owner AuthorityGetter) {
 	//required_active := map[string]bool{}
@@ -96,7 +103,6 @@ func verifyAuthority(keyMaps map[string]bool, trxPubs []*prototype.PublicKeyType
 		}
 	}
 }
-
 
 func getBaseOp(op *prototype.Operation) prototype.BaseOperation {
 	switch t := op.Op.(type) {
