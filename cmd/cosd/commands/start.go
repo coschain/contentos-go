@@ -111,13 +111,7 @@ func startNode(cmd *cobra.Command, args []string) {
 }
 
 func RegisterService(app *node.Node, cfg node.Config) {
-	//app.Register("timer", func(ctx *node.ServiceContext) (node.Service, error) {
-	//	return timer.New(ctx, ctx.Config().Timer)
-	//})
-	//app.Register("printer", func(ctx *node.ServiceContext) (node.Service, error) {
-	//	return printer.New(ctx)
-	//})
-
+	
 	_ = app.Register(iservices.LogServerName, func(ctx *node.ServiceContext) (node.Service, error) {
 		return mylog.NewMyLog( cfg.ResolvePath("logs"), mylog.DebugLevel, 0)
 	})
