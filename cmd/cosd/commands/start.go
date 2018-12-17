@@ -152,7 +152,7 @@ func RegisterService(app *node.Node, cfg node.Config) {
 		return plugins.NewPostService(ctx)
 	})
 	_ = app.Register(plugins.DemoServiceName, func(ctx *node.ServiceContext) (node.Service, error) {
-		return plugins.NewDemoService(ctx)
+		return plugins.NewDemoService()
 	})
 
 	_ = app.Register(iservices.RpcServerName, func(ctx *node.ServiceContext) (node.Service, error) {
