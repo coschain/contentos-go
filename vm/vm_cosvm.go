@@ -60,6 +60,7 @@ func (w *CosVM) initNativeFuncs() {
 	// for test
 	w.Register("readt1", w.readT1)
 	w.Register("readt2", w.readT2)
+	w.Register("writet1", w.writeT1)
 }
 
 func (w *CosVM) Run() (uint32, error) {
@@ -151,6 +152,19 @@ func (w *CosVM) readT2(proc *exec.Process, pointer int32) int32 {
 	}
 	fmt.Printf("length %d\n", length)
 	fmt.Println(string(msg))
+	return length
+}
+
+func (w *CosVM) writeT1(proc *exec.Process, spointer int32, dpointer int32) int32 {
+	var msg []byte
+	length, err := w.readAt(proc, spointer, int32(maxReadLength), &msg)
+	if err != nil {
+		fmt.Println("read error:", err)
+	}
+	length, err = w.writeAt(proc, msg, dpointer, length)
+	if err != nil {
+		fmt.Println("write error:", err)
+	}
 	return length
 }
 

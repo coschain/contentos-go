@@ -46,5 +46,24 @@ func TestCosVM_readBytes3(t *testing.T) {
 	vm := NewCosVM(&context, nil, nil, log15.New())
 	ret, _ := vm.Run()
 	myassert.Equal(ret, 5)
+}
 
+func TestCosVm_writeByte1(t *testing.T) {
+	wasmFile := "./testdata/write1.wasm"
+	myassert := assert.New(t)
+	data, _ := ioutil.ReadFile(wasmFile)
+	context := Context{Code: data}
+	vm := NewCosVM(&context, nil, nil, log15.New())
+	ret, _ := vm.Run()
+	myassert.Equal(ret, 12) // because add \0
+}
+
+func TestCosVm_writeByte2(t *testing.T) {
+	wasmFile := "./testdata/write2.wasm"
+	myassert := assert.New(t)
+	data, _ := ioutil.ReadFile(wasmFile)
+	context := Context{Code: data}
+	vm := NewCosVM(&context, nil, nil, log15.New())
+	ret, _ := vm.Run()
+	myassert.Equal(ret, 6) // as above
 }
