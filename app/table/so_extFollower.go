@@ -439,7 +439,7 @@ func NewExtFollowerFollowerCreatedOrderWrap(db iservices.IDatabaseService) *SExt
 	return &wrap
 }
 
-func (s *SExtFollowerFollowerCreatedOrderWrap) DelIterater(iterator iservices.IDatabaseIterator) {
+func (s *SExtFollowerFollowerCreatedOrderWrap) DelIterator(iterator iservices.IDatabaseIterator) {
 	if iterator == nil || !iterator.Valid() {
 		return
 	}
@@ -500,12 +500,21 @@ func (m *SoListExtFollowerByFollowerCreatedOrder) OpeEncode() ([]byte, error) {
 	return kBuf, cErr
 }
 
+//
 //Query sort by order
 //start = nil  end = nil (query the db from start to end)
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
-func (s *SExtFollowerFollowerCreatedOrderWrap) QueryListByOrder(start *prototype.FollowerCreatedOrder, end *prototype.FollowerCreatedOrder) iservices.IDatabaseIterator {
+//maxCount: represent the maximum amount of data you want to get，if the maxCount is greater than or equal to
+//the total count of data in result,traverse all data;otherwise traverse part of the data
+//f: callback for each traversal , primary and sub key as arguments to the callback function
+//
+func (s *SExtFollowerFollowerCreatedOrderWrap) QueryListByOrder(start *prototype.FollowerCreatedOrder, end *prototype.FollowerCreatedOrder, maxCount uint32,
+	f func(mVal *prototype.FollowerRelation, sVal *prototype.FollowerCreatedOrder)) error {
 	if s.Dba == nil {
+		return errors.New("the db is nil")
+	}
+	if f == nil || maxCount < 1 {
 		return nil
 	}
 	pre := ExtFollowerFollowerCreatedOrderTable
@@ -515,7 +524,7 @@ func (s *SExtFollowerFollowerCreatedOrderWrap) QueryListByOrder(start *prototype
 	}
 	sBuf, cErr := kope.EncodeSlice(skeyList)
 	if cErr != nil {
-		return nil
+		return cErr
 	}
 	eKeyList := []interface{}{pre}
 	if end != nil {
@@ -525,9 +534,19 @@ func (s *SExtFollowerFollowerCreatedOrderWrap) QueryListByOrder(start *prototype
 	}
 	eBuf, cErr := kope.EncodeSlice(eKeyList)
 	if cErr != nil {
-		return nil
+		return cErr
 	}
-	return s.Dba.NewIterator(sBuf, eBuf)
+	iterator := s.Dba.NewIterator(sBuf, eBuf)
+	if iterator == nil {
+		return errors.New("there is no data in range")
+	}
+	var idx uint32 = 0
+	for idx < maxCount && iterator.Next() {
+		idx++
+		f(s.GetMainVal(iterator), s.GetSubVal(iterator))
+	}
+	s.DelIterator(iterator)
+	return nil
 }
 
 /////////////// SECTION Private function ////////////////

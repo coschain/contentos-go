@@ -1400,7 +1400,7 @@ func NewWitnessOwnerWrap(db iservices.IDatabaseService) *SWitnessOwnerWrap {
 	return &wrap
 }
 
-func (s *SWitnessOwnerWrap) DelIterater(iterator iservices.IDatabaseIterator) {
+func (s *SWitnessOwnerWrap) DelIterator(iterator iservices.IDatabaseIterator) {
 	if iterator == nil || !iterator.Valid() {
 		return
 	}
@@ -1461,12 +1461,21 @@ func (m *SoListWitnessByOwner) OpeEncode() ([]byte, error) {
 	return kBuf, cErr
 }
 
+//
 //Query sort by order
 //start = nil  end = nil (query the db from start to end)
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
-func (s *SWitnessOwnerWrap) QueryListByOrder(start *prototype.AccountName, end *prototype.AccountName) iservices.IDatabaseIterator {
+//maxCount: represent the maximum amount of data you want to get，if the maxCount is greater than or equal to
+//the total count of data in result,traverse all data;otherwise traverse part of the data
+//f: callback for each traversal , primary and sub key as arguments to the callback function
+//
+func (s *SWitnessOwnerWrap) QueryListByOrder(start *prototype.AccountName, end *prototype.AccountName, maxCount uint32,
+	f func(mVal *prototype.AccountName, sVal *prototype.AccountName)) error {
 	if s.Dba == nil {
+		return errors.New("the db is nil")
+	}
+	if f == nil || maxCount < 1 {
 		return nil
 	}
 	pre := WitnessOwnerTable
@@ -1476,7 +1485,7 @@ func (s *SWitnessOwnerWrap) QueryListByOrder(start *prototype.AccountName, end *
 	}
 	sBuf, cErr := kope.EncodeSlice(skeyList)
 	if cErr != nil {
-		return nil
+		return cErr
 	}
 	eKeyList := []interface{}{pre}
 	if end != nil {
@@ -1486,9 +1495,19 @@ func (s *SWitnessOwnerWrap) QueryListByOrder(start *prototype.AccountName, end *
 	}
 	eBuf, cErr := kope.EncodeSlice(eKeyList)
 	if cErr != nil {
-		return nil
+		return cErr
 	}
-	return s.Dba.NewIterator(sBuf, eBuf)
+	iterator := s.Dba.NewIterator(sBuf, eBuf)
+	if iterator == nil {
+		return errors.New("there is no data in range")
+	}
+	var idx uint32 = 0
+	for idx < maxCount && iterator.Next() {
+		idx++
+		f(s.GetMainVal(iterator), s.GetSubVal(iterator))
+	}
+	s.DelIterator(iterator)
+	return nil
 }
 
 ////////////// SECTION List Keys ///////////////
@@ -1504,7 +1523,7 @@ func NewWitnessVoteCountWrap(db iservices.IDatabaseService) *SWitnessVoteCountWr
 	return &wrap
 }
 
-func (s *SWitnessVoteCountWrap) DelIterater(iterator iservices.IDatabaseIterator) {
+func (s *SWitnessVoteCountWrap) DelIterator(iterator iservices.IDatabaseIterator) {
 	if iterator == nil || !iterator.Valid() {
 		return
 	}
@@ -1563,9 +1582,18 @@ func (m *SoListWitnessByVoteCount) OpeEncode() ([]byte, error) {
 	return kBuf, cErr
 }
 
+//
 //Query sort by reverse order
-func (s *SWitnessVoteCountWrap) QueryListByRevOrder(start *uint64, end *uint64) iservices.IDatabaseIterator {
+//maxCount: represent the maximum amount of data you want to get，if the maxCount is greater than or equal to
+//the total count of data in result,traverse all data;otherwise traverse part of the data
+//f: callback for each traversal , primary and sub key as arguments to the callback function
+//
+func (s *SWitnessVoteCountWrap) QueryListByRevOrder(start *uint64, end *uint64, maxCount uint32,
+	f func(mVal *prototype.AccountName, sVal *uint64)) error {
 	if s.Dba == nil {
+		return errors.New("the db is nil")
+	}
+	if f == nil || maxCount < 1 {
 		return nil
 	}
 	pre := WitnessVoteCountTable
@@ -1577,7 +1605,7 @@ func (s *SWitnessVoteCountWrap) QueryListByRevOrder(start *uint64, end *uint64) 
 	}
 	sBuf, cErr := kope.EncodeSlice(skeyList)
 	if cErr != nil {
-		return nil
+		return cErr
 	}
 	eKeyList := []interface{}{pre}
 	if end != nil {
@@ -1585,11 +1613,20 @@ func (s *SWitnessVoteCountWrap) QueryListByRevOrder(start *uint64, end *uint64) 
 	}
 	eBuf, cErr := kope.EncodeSlice(eKeyList)
 	if cErr != nil {
-		return nil
+		return cErr
 	}
 	//reverse the start and end when create ReversedIterator to query by reverse order
-	iter := s.Dba.NewReversedIterator(eBuf, sBuf)
-	return iter
+	iterator := s.Dba.NewReversedIterator(eBuf, sBuf)
+	if iterator == nil {
+		return errors.New("there is no data in range")
+	}
+	var idx uint32 = 0
+	for idx < maxCount && iterator.Next() {
+		idx++
+		f(s.GetMainVal(iterator), s.GetSubVal(iterator))
+	}
+	s.DelIterator(iterator)
+	return nil
 }
 
 /////////////// SECTION Private function ////////////////

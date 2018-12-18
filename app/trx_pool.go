@@ -13,6 +13,7 @@ import (
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
+	"math"
 	"strconv"
 )
 
@@ -871,43 +872,28 @@ func (c *TrxPool) createBlockSummary(blk *prototype.SignedBlock) {
 
 func (c *TrxPool) clearExpiredTransactions() {
 	sortWrap := table.STransactionObjectExpirationWrap{Dba: c.db}
-	itr := sortWrap.QueryListByOrder(nil, nil) // query all
-	if itr != nil {
-		for itr.Next() {
-			headTime := c.headBlockTime().UtcSeconds
-			subPtr := sortWrap.GetSubVal(itr)
-			if subPtr == nil {
-				break
+	sortWrap.QueryListByOrder(nil, nil, math.MaxUint32,
+		func(mVal *prototype.Sha256, sVal *prototype.TimePointSec) {
+			if sVal != nil {
+				headTime := c.headBlockTime().UtcSeconds
+				if headTime > sVal.UtcSeconds {
+					// delete trx ...
+					k := mVal
+					objWrap := table.NewSoTransactionObjectWrap(c.db, k)
+					mustSuccess(objWrap.RemoveTransactionObject(), "RemoveTransactionObject error")
+				}
 			}
-			if headTime > subPtr.UtcSeconds {
-				// delete trx ...
-				k := sortWrap.GetMainVal(itr)
-				objWrap := table.NewSoTransactionObjectWrap(c.db, k)
-				mustSuccess(objWrap.RemoveTransactionObject(), "RemoveTransactionObject error")
-			}
-		}
-		sortWrap.DelIterater(itr)
-	}
+	})
 }
 
 func (c *TrxPool) GetWitnessTopN(n uint32) []string {
 	ret := []string{}
 	revList := table.SWitnessVoteCountWrap{Dba: c.db}
-	itr := revList.QueryListByRevOrder(nil, nil)
-	if itr != nil {
-		i := uint32(0)
-		for itr.Next() && i < n {
-			mainPtr := revList.GetMainVal(itr)
-			if mainPtr != nil {
-				ret = append(ret, mainPtr.Value)
-			} else {
-				// panic() ?
-				//c.log.GetLog().Warnf("reverse get witness meet nil value")
-			}
-			i++
+	revList.QueryListByRevOrder(nil, nil, n, func(mVal *prototype.AccountName, sVal *uint64) {
+		if mVal != nil {
+			ret = append(ret, mVal.Value)
 		}
-		revList.DelIterater(itr)
-	}
+	})
 	return ret
 }
 

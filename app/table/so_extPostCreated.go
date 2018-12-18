@@ -434,7 +434,7 @@ func NewExtPostCreatedCreatedOrderWrap(db iservices.IDatabaseService) *SExtPostC
 	return &wrap
 }
 
-func (s *SExtPostCreatedCreatedOrderWrap) DelIterater(iterator iservices.IDatabaseIterator) {
+func (s *SExtPostCreatedCreatedOrderWrap) DelIterator(iterator iservices.IDatabaseIterator) {
 	if iterator == nil || !iterator.Valid() {
 		return
 	}
@@ -494,9 +494,18 @@ func (m *SoListExtPostCreatedByCreatedOrder) OpeEncode() ([]byte, error) {
 	return kBuf, cErr
 }
 
+//
 //Query sort by reverse order
-func (s *SExtPostCreatedCreatedOrderWrap) QueryListByRevOrder(start *prototype.PostCreatedOrder, end *prototype.PostCreatedOrder) iservices.IDatabaseIterator {
+//maxCount: represent the maximum amount of data you want to get，if the maxCount is greater than or equal to
+//the total count of data in result,traverse all data;otherwise traverse part of the data
+//f: callback for each traversal , primary and sub key as arguments to the callback function
+//
+func (s *SExtPostCreatedCreatedOrderWrap) QueryListByRevOrder(start *prototype.PostCreatedOrder, end *prototype.PostCreatedOrder, maxCount uint32,
+	f func(mVal *uint64, sVal *prototype.PostCreatedOrder)) error {
 	if s.Dba == nil {
+		return errors.New("the db is nil")
+	}
+	if f == nil || maxCount < 1 {
 		return nil
 	}
 	pre := ExtPostCreatedCreatedOrderTable
@@ -508,7 +517,7 @@ func (s *SExtPostCreatedCreatedOrderWrap) QueryListByRevOrder(start *prototype.P
 	}
 	sBuf, cErr := kope.EncodeSlice(skeyList)
 	if cErr != nil {
-		return nil
+		return cErr
 	}
 	eKeyList := []interface{}{pre}
 	if end != nil {
@@ -516,11 +525,20 @@ func (s *SExtPostCreatedCreatedOrderWrap) QueryListByRevOrder(start *prototype.P
 	}
 	eBuf, cErr := kope.EncodeSlice(eKeyList)
 	if cErr != nil {
-		return nil
+		return cErr
 	}
 	//reverse the start and end when create ReversedIterator to query by reverse order
-	iter := s.Dba.NewReversedIterator(eBuf, sBuf)
-	return iter
+	iterator := s.Dba.NewReversedIterator(eBuf, sBuf)
+	if iterator == nil {
+		return errors.New("there is no data in range")
+	}
+	var idx uint32 = 0
+	for idx < maxCount && iterator.Next() {
+		idx++
+		f(s.GetMainVal(iterator), s.GetSubVal(iterator))
+	}
+	s.DelIterator(iterator)
+	return nil
 }
 
 /////////////// SECTION Private function ////////////////

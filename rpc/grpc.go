@@ -79,31 +79,25 @@ func (as *APIService) GetAccountRewardByName(ctx context.Context, req *grpcpb.Ge
 func (as *APIService) GetFollowerListByName(ctx context.Context, req *grpcpb.GetFollowerListByNameRequest) (*grpcpb.GetFollowerListByNameResponse, error) {
 
 	var (
-		ferIter iservices.IDatabaseIterator
 		ferList []*prototype.AccountName
-		i       uint32
 		limit   uint32
 	)
 
 	ferOrderWrap := table.NewExtFollowerFollowerCreatedOrderWrap(as.db)
 
-	if req.GetStart() == nil || req.GetEnd() == nil {
-		ferIter = ferOrderWrap.QueryListByOrder(nil, nil)
-	} else {
-		ferIter = ferOrderWrap.QueryListByOrder(req.GetStart(), req.GetEnd())
+	start := req.GetStart()
+	end := req.GetEnd()
+	if start == nil || end == nil {
+		start = nil
+		end = nil
 	}
-
 	limit = checkLimit(req.GetLimit())
-
-	for ferIter != nil && ferIter.Next() && i < limit {
-		ferOrder := ferOrderWrap.GetMainVal(ferIter)
-		if ferOrder != nil {
-			ferList = append(ferList, ferOrder.Follower)
-		}
-
-		i++
-	}
-
+	ferOrderWrap.QueryListByOrder(start, end, limit,
+		func(mVal *prototype.FollowerRelation, sVal *prototype.FollowerCreatedOrder) {
+		    if mVal != nil {
+				ferList = append(ferList, mVal.Follower)
+			}
+	})
 	return &grpcpb.GetFollowerListByNameResponse{FollowerList: ferList}, nil
 
 }
@@ -111,31 +105,25 @@ func (as *APIService) GetFollowerListByName(ctx context.Context, req *grpcpb.Get
 func (as *APIService) GetFollowingListByName(ctx context.Context, req *grpcpb.GetFollowingListByNameRequest) (*grpcpb.GetFollowingListByNameResponse, error) {
 
 	var (
-		fingIter iservices.IDatabaseIterator
 		fingList []*prototype.AccountName
-		i        uint32
 		limit    uint32
 	)
 
 	fingOrderWrap := table.NewExtFollowingFollowingCreatedOrderWrap(as.db)
 
-	if req.GetStart() == nil || req.GetEnd() == nil {
-		fingIter = fingOrderWrap.QueryListByOrder(nil, nil)
-	} else {
-		fingIter = fingOrderWrap.QueryListByOrder(req.GetStart(), req.GetEnd())
+	start := req.GetStart()
+	end := req.GetEnd()
+	if start == nil || end == nil {
+		start = nil
+		end = nil
 	}
-
 	limit = checkLimit(req.GetLimit())
-
-	for fingIter != nil && fingIter.Next() && i < limit {
-		fingOrder := fingOrderWrap.GetMainVal(fingIter)
-		if fingOrder != nil {
-			fingList = append(fingList, fingOrder.Following)
-		}
-
-		i++
-	}
-
+	fingOrderWrap.QueryListByOrder(start, end, limit ,
+		func(mVal *prototype.FollowingRelation, sVal *prototype.FollowingCreatedOrder) {
+			if mVal != nil {
+				fingList = append(fingList, mVal.Following)
+			}
+		})
 	return &grpcpb.GetFollowingListByNameResponse{FollowingList: fingList}, nil
 
 }
@@ -180,41 +168,30 @@ func (as *APIService) GetChainState(ctx context.Context, req *grpcpb.NonParamsRe
 
 func (as *APIService) GetWitnessList(ctx context.Context, req *grpcpb.GetWitnessListRequest) (*grpcpb.GetWitnessListResponse, error) {
 	var (
-		witIter iservices.IDatabaseIterator
 		witList []*grpcpb.WitnessResponse
-		i       uint32
 		limit   uint32
 	)
 
 	witOrderWrap := &table.SWitnessOwnerWrap{as.db}
-
-	if req.GetStart() == nil {
-		witIter = witOrderWrap.QueryListByOrder(nil, nil)
-	} else {
-		witIter = witOrderWrap.QueryListByOrder(req.GetStart(), nil)
-	}
-
 	limit = checkLimit(req.GetLimit())
-
-	for witIter != nil && witIter.Next() && i < limit {
-		witWrap := table.NewSoWitnessWrap(as.db, witOrderWrap.GetMainVal(witIter))
-		if witWrap != nil && witWrap.CheckExist() {
-			witList = append(witList, &grpcpb.WitnessResponse{
-				Owner:                 witWrap.GetOwner(),
-				WitnessScheduleType:   witWrap.GetWitnessScheduleType(),
-				CreatedTime:           witWrap.GetCreatedTime(),
-				Url:                   witWrap.GetUrl(),
-				LastConfirmedBlockNum: witWrap.GetLastConfirmedBlockNum(),
-				TotalMissed:           witWrap.GetTotalMissed(),
-				VoteCount:             witWrap.GetVoteCount(),
-				SigningKey:            witWrap.GetSigningKey(),
-				LastWork:              witWrap.GetLastWork(),
-				RunningVersion:        witWrap.GetRunningVersion(),
-			})
-		}
-
-		i++
-	}
+	witOrderWrap.QueryListByOrder(req.GetStart(),nil, limit,
+		func(mVal *prototype.AccountName, sVal *prototype.AccountName) {
+			witWrap := table.NewSoWitnessWrap(as.db, mVal)
+			if witWrap != nil && witWrap.CheckExist() {
+				witList = append(witList, &grpcpb.WitnessResponse{
+					Owner:                 witWrap.GetOwner(),
+					WitnessScheduleType:   witWrap.GetWitnessScheduleType(),
+					CreatedTime:           witWrap.GetCreatedTime(),
+					Url:                   witWrap.GetUrl(),
+					LastConfirmedBlockNum: witWrap.GetLastConfirmedBlockNum(),
+					TotalMissed:           witWrap.GetTotalMissed(),
+					VoteCount:             witWrap.GetVoteCount(),
+					SigningKey:            witWrap.GetSigningKey(),
+					LastWork:              witWrap.GetLastWork(),
+					RunningVersion:        witWrap.GetRunningVersion(),
+				})
+			}
+		})
 
 	return &grpcpb.GetWitnessListResponse{WitnessList: witList}, nil
 
@@ -222,45 +199,42 @@ func (as *APIService) GetWitnessList(ctx context.Context, req *grpcpb.GetWitness
 
 func (as *APIService) GetPostListByCreated(ctx context.Context, req *grpcpb.GetPostListByCreatedRequest) (*grpcpb.GetPostListByCreatedResponse, error) {
 	var (
-		postIter iservices.IDatabaseIterator
 		postList []*grpcpb.PostResponse
-		i        uint32
 		limit    uint32
 	)
 
 	postOrderWrap := table.NewExtPostCreatedCreatedOrderWrap(as.db)
 
-	if req.GetStart() == nil || req.GetEnd() == nil {
-		postIter = postOrderWrap.QueryListByRevOrder(nil, nil)
-	} else {
-		postIter = postOrderWrap.QueryListByRevOrder(req.GetStart(), req.GetEnd())
+	start := req.GetStart()
+	end := req.GetEnd()
+	if start == nil || end == nil {
+		start = nil
+		end = nil
 	}
 
 	limit = checkLimit(req.GetLimit())
-
-	for postIter != nil && postIter.Next() && i < limit {
-		postWrap := table.NewSoPostWrap(as.db, postOrderWrap.GetMainVal(postIter))
-		if postWrap != nil && postWrap.CheckExist() {
-			postList = append(postList, &grpcpb.PostResponse{
-				PostId:        postWrap.GetPostId(),
-				Category:      postWrap.GetCategory(),
-				ParentAuthor:  postWrap.GetAuthor(),
-				Author:        postWrap.GetAuthor(),
-				Title:         postWrap.GetTitle(),
-				Body:          postWrap.GetBody(),
-				Created:       postWrap.GetCreated(),
-				LastPayout:    postWrap.GetLastPayout(),
-				Depth:         postWrap.GetDepth(),
-				Children:      postWrap.GetChildren(),
-				RootId:        postWrap.GetRootId(),
-				ParentId:      postWrap.GetParentId(),
-				Tags:          postWrap.GetTags(),
-				Beneficiaries: postWrap.GetBeneficiaries(),
-			})
-		}
-
-		i++
-	}
+    postOrderWrap.QueryListByRevOrder(start, end, limit ,
+		func(mVal *uint64, sVal *prototype.PostCreatedOrder) {
+			postWrap := table.NewSoPostWrap(as.db, mVal)
+			if postWrap != nil && postWrap.CheckExist() {
+				postList = append(postList, &grpcpb.PostResponse{
+					PostId:        postWrap.GetPostId(),
+					Category:      postWrap.GetCategory(),
+					ParentAuthor:  postWrap.GetAuthor(),
+					Author:        postWrap.GetAuthor(),
+					Title:         postWrap.GetTitle(),
+					Body:          postWrap.GetBody(),
+					Created:       postWrap.GetCreated(),
+					LastPayout:    postWrap.GetLastPayout(),
+					Depth:         postWrap.GetDepth(),
+					Children:      postWrap.GetChildren(),
+					RootId:        postWrap.GetRootId(),
+					ParentId:      postWrap.GetParentId(),
+					Tags:          postWrap.GetTags(),
+					Beneficiaries: postWrap.GetBeneficiaries(),
+				})
+			}
+		})
 
 	return &grpcpb.GetPostListByCreatedResponse{PostList: postList}, nil
 
@@ -268,28 +242,21 @@ func (as *APIService) GetPostListByCreated(ctx context.Context, req *grpcpb.GetP
 
 func (as *APIService) GetReplyListByPostId(ctx context.Context, req *grpcpb.GetReplyListByPostIdRequest) (*grpcpb.GetReplyListByPostIdResponse, error) {
 	var (
-		replyIter iservices.IDatabaseIterator
 		replyList []*grpcpb.PostResponse
-		i         uint32
 		limit     uint32
 	)
 
 	replyOrderWrap := table.NewExtReplyCreatedCreatedOrderWrap(as.db)
 
-	if req.GetStart() == nil || req.GetEnd() == nil {
-		//start := prototype.ReplyCreatedOrder{
-		//	ParentId:nil,
-		//	Created:&prototype.TimePointSec{UtcSeconds:math.MaxUint32},
-		//}
-		replyIter = replyOrderWrap.QueryListByRevOrder(nil, nil)
-	} else {
-		replyIter = replyOrderWrap.QueryListByRevOrder(req.GetStart(), req.GetEnd())
+	start := req.GetStart()
+	end := req.GetEnd()
+    if start == nil || end == nil {
+    	start = nil
+    	end = nil
 	}
-
 	limit = checkLimit(req.GetLimit())
-
-	for replyIter != nil && replyIter.Next() && i < limit {
-		postWrap := table.NewSoPostWrap(as.db, replyOrderWrap.GetMainVal(replyIter))
+    replyOrderWrap.QueryListByRevOrder(start, end, limit , func(mVal *uint64, sVal *prototype.ReplyCreatedOrder) {
+		postWrap := table.NewSoPostWrap(as.db, mVal)
 		if postWrap != nil && postWrap.CheckExist() {
 			replyList = append(replyList, &grpcpb.PostResponse{
 				PostId:       postWrap.GetPostId(),
@@ -306,9 +273,7 @@ func (as *APIService) GetReplyListByPostId(ctx context.Context, req *grpcpb.GetR
 				ParentId:     postWrap.GetParentId(),
 			})
 		}
-
-		i++
-	}
+	})
 
 	return &grpcpb.GetReplyListByPostIdResponse{ReplyList: replyList}, nil
 

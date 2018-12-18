@@ -499,7 +499,7 @@ func New{{$.ClsName}}{{$v.PName}}Wrap(db iservices.IDatabaseService) *S{{$.ClsNa
      return &wrap
 }
 
-func (s *S{{$.ClsName}}{{$v.PName}}Wrap)DelIterater(iterator iservices.IDatabaseIterator){
+func (s *S{{$.ClsName}}{{$v.PName}}Wrap)DelIterator(iterator iservices.IDatabaseIterator){
    if iterator == nil || !iterator.Valid() {
 		return 
 	}
@@ -577,12 +577,21 @@ func (m *SoList{{$.ClsName}}By{{$v.PName}}) OpeEncode() ([]byte,error) {
 }
 
 {{if or (eq $v.SType 1) (eq $v.SType 3) -}}
+//
 //Query sort by order 
 //start = nil  end = nil (query the db from start to end)
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
-func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByOrder(start *{{$v.PType}}, end *{{$v.PType}}) iservices.IDatabaseIterator {
+//maxCount: represent the maximum amount of data you want to get，if the maxCount is greater than or equal to
+//the total count of data in result,traverse all data;otherwise traverse part of the data
+//f: callback for each traversal , primary and sub key as arguments to the callback function
+//
+func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByOrder(start *{{$v.PType}}, end *{{$v.PType}}, maxCount uint32,
+     f func(mVal *{{formatStr $.MainKeyType}},sVal *{{formatSliceType $v.PType}})) error {
     if s.Dba == nil {
+       return errors.New("the db is nil")
+    }
+    if f == nil || maxCount < 1 {
        return nil
     }
     pre := {{$.ClsName}}{{$v.PName}}Table
@@ -592,7 +601,7 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByOrder(start *{{$v.PType}}, e
     }
     sBuf,cErr := kope.EncodeSlice(skeyList)
     if cErr != nil {
-         return nil
+         return cErr
     }
 	eKeyList := []interface{}{pre}
     if end != nil {
@@ -602,15 +611,34 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByOrder(start *{{$v.PType}}, e
 	}
     eBuf,cErr := kope.EncodeSlice(eKeyList)
     if cErr != nil {
-       return nil
+       return cErr
     }
-	return s.Dba.NewIterator(sBuf, eBuf)
+	iterator := s.Dba.NewIterator(sBuf, eBuf)
+    if iterator == nil {
+		return errors.New("there is no data in range")
+	}
+    var idx uint32 = 0
+    for idx < maxCount && iterator.Next() {
+        idx ++
+        f(s.GetMainVal(iterator),s.GetSubVal(iterator))
+    }
+    s.DelIterator(iterator)
+	return nil
 }
 {{end}}
 {{if or (eq $v.SType 2) (eq $v.SType 3) -}}
+//
 //Query sort by reverse order 
-func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByRevOrder(start *{{$v.PType}}, end *{{$v.PType}}) iservices.IDatabaseIterator {
+//maxCount: represent the maximum amount of data you want to get，if the maxCount is greater than or equal to
+//the total count of data in result,traverse all data;otherwise traverse part of the data
+//f: callback for each traversal , primary and sub key as arguments to the callback function
+//
+func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByRevOrder(start *{{$v.PType}}, end *{{$v.PType}}, maxCount uint32,
+     f func(mVal *{{formatStr $.MainKeyType}},sVal *{{formatSliceType $v.PType}})) error {
     if s.Dba == nil {
+       return errors.New("the db is nil")
+    }
+    if f == nil || maxCount < 1 {
        return nil
     }
     pre := {{$.ClsName}}{{$v.PName}}Table
@@ -622,7 +650,7 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByRevOrder(start *{{$v.PType}}
 	}
     sBuf,cErr := kope.EncodeSlice(skeyList)
     if cErr != nil {
-         return nil
+         return cErr
     }
     eKeyList := []interface{}{pre}
     if end != nil {
@@ -630,11 +658,20 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByRevOrder(start *{{$v.PType}}
     }
     eBuf,cErr := kope.EncodeSlice(eKeyList)
     if cErr != nil {
-       return nil
+       return cErr
     }
     //reverse the start and end when create ReversedIterator to query by reverse order
-    iter := s.Dba.NewReversedIterator(eBuf,sBuf)
-    return iter
+    iterator := s.Dba.NewReversedIterator(eBuf,sBuf)
+    if iterator == nil {
+		return errors.New("there is no data in range")
+	}
+    var idx uint32 = 0
+    for idx < maxCount && iterator.Next() {
+        idx ++
+        f(s.GetMainVal(iterator),s.GetSubVal(iterator))
+    }
+    s.DelIterator(iterator)
+	return nil
 }
 {{end -}}
 {{end -}}

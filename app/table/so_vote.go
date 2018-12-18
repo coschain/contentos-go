@@ -842,7 +842,7 @@ func NewVoteVoterWrap(db iservices.IDatabaseService) *SVoteVoterWrap {
 	return &wrap
 }
 
-func (s *SVoteVoterWrap) DelIterater(iterator iservices.IDatabaseIterator) {
+func (s *SVoteVoterWrap) DelIterator(iterator iservices.IDatabaseIterator) {
 	if iterator == nil || !iterator.Valid() {
 		return
 	}
@@ -903,12 +903,21 @@ func (m *SoListVoteByVoter) OpeEncode() ([]byte, error) {
 	return kBuf, cErr
 }
 
+//
 //Query sort by order
 //start = nil  end = nil (query the db from start to end)
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
-func (s *SVoteVoterWrap) QueryListByOrder(start *prototype.VoterId, end *prototype.VoterId) iservices.IDatabaseIterator {
+//maxCount: represent the maximum amount of data you want to get，if the maxCount is greater than or equal to
+//the total count of data in result,traverse all data;otherwise traverse part of the data
+//f: callback for each traversal , primary and sub key as arguments to the callback function
+//
+func (s *SVoteVoterWrap) QueryListByOrder(start *prototype.VoterId, end *prototype.VoterId, maxCount uint32,
+	f func(mVal *prototype.VoterId, sVal *prototype.VoterId)) error {
 	if s.Dba == nil {
+		return errors.New("the db is nil")
+	}
+	if f == nil || maxCount < 1 {
 		return nil
 	}
 	pre := VoteVoterTable
@@ -918,7 +927,7 @@ func (s *SVoteVoterWrap) QueryListByOrder(start *prototype.VoterId, end *prototy
 	}
 	sBuf, cErr := kope.EncodeSlice(skeyList)
 	if cErr != nil {
-		return nil
+		return cErr
 	}
 	eKeyList := []interface{}{pre}
 	if end != nil {
@@ -928,9 +937,19 @@ func (s *SVoteVoterWrap) QueryListByOrder(start *prototype.VoterId, end *prototy
 	}
 	eBuf, cErr := kope.EncodeSlice(eKeyList)
 	if cErr != nil {
-		return nil
+		return cErr
 	}
-	return s.Dba.NewIterator(sBuf, eBuf)
+	iterator := s.Dba.NewIterator(sBuf, eBuf)
+	if iterator == nil {
+		return errors.New("there is no data in range")
+	}
+	var idx uint32 = 0
+	for idx < maxCount && iterator.Next() {
+		idx++
+		f(s.GetMainVal(iterator), s.GetSubVal(iterator))
+	}
+	s.DelIterator(iterator)
+	return nil
 }
 
 ////////////// SECTION List Keys ///////////////
@@ -946,7 +965,7 @@ func NewVoteVoteTimeWrap(db iservices.IDatabaseService) *SVoteVoteTimeWrap {
 	return &wrap
 }
 
-func (s *SVoteVoteTimeWrap) DelIterater(iterator iservices.IDatabaseIterator) {
+func (s *SVoteVoteTimeWrap) DelIterator(iterator iservices.IDatabaseIterator) {
 	if iterator == nil || !iterator.Valid() {
 		return
 	}
@@ -1007,12 +1026,21 @@ func (m *SoListVoteByVoteTime) OpeEncode() ([]byte, error) {
 	return kBuf, cErr
 }
 
+//
 //Query sort by order
 //start = nil  end = nil (query the db from start to end)
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
-func (s *SVoteVoteTimeWrap) QueryListByOrder(start *prototype.TimePointSec, end *prototype.TimePointSec) iservices.IDatabaseIterator {
+//maxCount: represent the maximum amount of data you want to get，if the maxCount is greater than or equal to
+//the total count of data in result,traverse all data;otherwise traverse part of the data
+//f: callback for each traversal , primary and sub key as arguments to the callback function
+//
+func (s *SVoteVoteTimeWrap) QueryListByOrder(start *prototype.TimePointSec, end *prototype.TimePointSec, maxCount uint32,
+	f func(mVal *prototype.VoterId, sVal *prototype.TimePointSec)) error {
 	if s.Dba == nil {
+		return errors.New("the db is nil")
+	}
+	if f == nil || maxCount < 1 {
 		return nil
 	}
 	pre := VoteVoteTimeTable
@@ -1022,7 +1050,7 @@ func (s *SVoteVoteTimeWrap) QueryListByOrder(start *prototype.TimePointSec, end 
 	}
 	sBuf, cErr := kope.EncodeSlice(skeyList)
 	if cErr != nil {
-		return nil
+		return cErr
 	}
 	eKeyList := []interface{}{pre}
 	if end != nil {
@@ -1032,9 +1060,19 @@ func (s *SVoteVoteTimeWrap) QueryListByOrder(start *prototype.TimePointSec, end 
 	}
 	eBuf, cErr := kope.EncodeSlice(eKeyList)
 	if cErr != nil {
-		return nil
+		return cErr
 	}
-	return s.Dba.NewIterator(sBuf, eBuf)
+	iterator := s.Dba.NewIterator(sBuf, eBuf)
+	if iterator == nil {
+		return errors.New("there is no data in range")
+	}
+	var idx uint32 = 0
+	for idx < maxCount && iterator.Next() {
+		idx++
+		f(s.GetMainVal(iterator), s.GetSubVal(iterator))
+	}
+	s.DelIterator(iterator)
+	return nil
 }
 
 ////////////// SECTION List Keys ///////////////
@@ -1050,7 +1088,7 @@ func NewVotePostIdWrap(db iservices.IDatabaseService) *SVotePostIdWrap {
 	return &wrap
 }
 
-func (s *SVotePostIdWrap) DelIterater(iterator iservices.IDatabaseIterator) {
+func (s *SVotePostIdWrap) DelIterator(iterator iservices.IDatabaseIterator) {
 	if iterator == nil || !iterator.Valid() {
 		return
 	}
@@ -1109,12 +1147,21 @@ func (m *SoListVoteByPostId) OpeEncode() ([]byte, error) {
 	return kBuf, cErr
 }
 
+//
 //Query sort by order
 //start = nil  end = nil (query the db from start to end)
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
-func (s *SVotePostIdWrap) QueryListByOrder(start *uint64, end *uint64) iservices.IDatabaseIterator {
+//maxCount: represent the maximum amount of data you want to get，if the maxCount is greater than or equal to
+//the total count of data in result,traverse all data;otherwise traverse part of the data
+//f: callback for each traversal , primary and sub key as arguments to the callback function
+//
+func (s *SVotePostIdWrap) QueryListByOrder(start *uint64, end *uint64, maxCount uint32,
+	f func(mVal *prototype.VoterId, sVal *uint64)) error {
 	if s.Dba == nil {
+		return errors.New("the db is nil")
+	}
+	if f == nil || maxCount < 1 {
 		return nil
 	}
 	pre := VotePostIdTable
@@ -1124,7 +1171,7 @@ func (s *SVotePostIdWrap) QueryListByOrder(start *uint64, end *uint64) iservices
 	}
 	sBuf, cErr := kope.EncodeSlice(skeyList)
 	if cErr != nil {
-		return nil
+		return cErr
 	}
 	eKeyList := []interface{}{pre}
 	if end != nil {
@@ -1134,9 +1181,19 @@ func (s *SVotePostIdWrap) QueryListByOrder(start *uint64, end *uint64) iservices
 	}
 	eBuf, cErr := kope.EncodeSlice(eKeyList)
 	if cErr != nil {
-		return nil
+		return cErr
 	}
-	return s.Dba.NewIterator(sBuf, eBuf)
+	iterator := s.Dba.NewIterator(sBuf, eBuf)
+	if iterator == nil {
+		return errors.New("there is no data in range")
+	}
+	var idx uint32 = 0
+	for idx < maxCount && iterator.Next() {
+		idx++
+		f(s.GetMainVal(iterator), s.GetSubVal(iterator))
+	}
+	s.DelIterator(iterator)
+	return nil
 }
 
 /////////////// SECTION Private function ////////////////
