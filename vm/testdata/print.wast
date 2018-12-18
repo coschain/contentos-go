@@ -1,8 +1,11 @@
 (module
- (type $FUNCSIG$viiii (func (param i32 i32 i32 i32)))
  (type $FUNCSIG$vii (func (param i32 i32)))
+ (type $FUNCSIG$vi (func (param i32)))
+ (type $FUNCSIG$vj (func (param i64)))
+ (import "env" "print_bool" (func $print_bool (param i32)))
  (import "env" "print_string" (func $print_string (param i32 i32)))
- (import "env" "sha256" (func $sha256 (param i32 i32 i32 i32)))
+ (import "env" "print_uint32" (func $print_uint32 (param i32)))
+ (import "env" "print_uint64" (func $print_uint64 (param i64)))
  (table 0 anyfunc)
  (memory $0 1)
  (data (i32.const 4) " @\00\00")
@@ -18,43 +21,49 @@
      (i32.load offset=4
       (i32.const 0)
      )
-     (i32.const 48)
+     (i32.const 16)
     )
    )
   )
   (i32.store
    (i32.add
     (get_local $0)
-    (i32.const 44)
+    (i32.const 12)
    )
    (i32.load offset=24 align=1
     (i32.const 0)
    )
   )
-  (i64.store offset=36 align=4
+  (i64.store offset=4 align=4
    (get_local $0)
    (i64.load offset=16 align=1
     (i32.const 0)
    )
   )
-  (call $sha256
+  (call $print_string
    (i32.add
     (get_local $0)
-    (i32.const 36)
+    (i32.const 4)
    )
    (i32.const 11)
-   (get_local $0)
-   (i32.const 32)
   )
-  (call $print_string
-   (get_local $0)
-   (i32.const 32)
+  (call $print_uint32
+   (i32.const 42)
+  )
+  (call $print_uint64
+   (i64.const 1000)
+  )
+  (call $print_bool
+   (i32.const 1)
+  )
+  (call $print_bool
+   (i32.const 0)
   )
   (i32.store offset=4
    (i32.const 0)
    (i32.add
     (get_local $0)
-    (i32.const 48)
+    (i32.const 16)
    )
   )
   (i32.const 0)

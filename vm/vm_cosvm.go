@@ -63,7 +63,13 @@ func (w *CosVM) initNativeFuncs() {
 	w.Register("writet1", w.writeT1)
 }
 
-func (w *CosVM) Run() (uint32, error) {
+func (w *CosVM) Run() (ret uint32, err error) {
+	defer func() {
+		if e := recover(); e != nil {
+			ret = 1
+			err = errors.New("cosvm exit by exception")
+		}
+	}()
 	w.initNativeFuncs()
 	m := wasm.NewModule()
 	m.Types = &wasm.SectionTypes{Entries: w.nativeFuncSigs}
@@ -84,11 +90,13 @@ func (w *CosVM) Run() (uint32, error) {
 		return m, nil
 	})
 	if err != nil {
-		return 1, err
+		ret = 1
+		return
 	}
 	vm, err := exec.NewVM(vmModule)
 	if err != nil {
-		return 1, err
+		ret = 1
+		return
 	}
 
 	var entryIndex = -1
@@ -98,15 +106,11 @@ func (w *CosVM) Run() (uint32, error) {
 		}
 	}
 	if entryIndex >= 0 {
-		r, err := vm.ExecCode(int64(entryIndex))
-		if err != nil {
-			if err.Error() != "exec: return" && err.Error() != "exec: revert" && err.Error() != "exec: suicide" {
-				return 1, fmt.Errorf("error excuting function %d: %v", 0, err)
-			}
-		}
-		return r.(uint32), err
+		r, e := vm.ExecCode(int64(entryIndex))
+		ret = r.(uint32)
+		err = e
 	}
-	return 0, nil
+	return
 }
 
 func (w *CosVM) Register(funcName string, function interface{}) {
@@ -135,7 +139,7 @@ func (w *CosVM) Register(funcName string, function interface{}) {
 
 func (w *CosVM) readT1(proc *exec.Process, pointer int32, maxLength int32) int32 {
 	var msg []byte
-	length, err := w.readAt(proc, pointer, maxLength, &msg)
+	length, err := w.readStrAt(proc, pointer, maxLength, &msg)
 	if err != nil {
 		fmt.Println("read error:", err)
 	}
@@ -146,7 +150,7 @@ func (w *CosVM) readT1(proc *exec.Process, pointer int32, maxLength int32) int32
 
 func (w *CosVM) readT2(proc *exec.Process, pointer int32) int32 {
 	var msg []byte
-	length, err := w.readAt(proc, pointer, int32(maxReadLength), &msg)
+	length, err := w.readStrAt(proc, pointer, int32(maxReadLength), &msg)
 	if err != nil {
 		fmt.Println("read error:", err)
 	}
@@ -157,34 +161,34 @@ func (w *CosVM) readT2(proc *exec.Process, pointer int32) int32 {
 
 func (w *CosVM) writeT1(proc *exec.Process, spointer int32, dpointer int32) int32 {
 	var msg []byte
-	length, err := w.readAt(proc, spointer, int32(maxReadLength), &msg)
+	length, err := w.readStrAt(proc, spointer, int32(maxReadLength), &msg)
 	if err != nil {
 		fmt.Println("read error:", err)
 	}
-	length, err = w.writeAt(proc, msg, dpointer, length)
+	length, err = w.writeStrAt(proc, msg, dpointer, length)
 	if err != nil {
 		fmt.Println("write error:", err)
 	}
 	return length
 }
 
-func (w *CosVM) readAt(proc *exec.Process, pointer int32, maxLength int32, buf *[]byte) (length int32, err error) {
+func (w *CosVM) readStrAt(proc *exec.Process, pointer int32, maxLength int32, buf *[]byte) (length int32, err error) {
 	if pointer == 0 && maxLength == 0 {
 		return w.strLen(proc, pointer)
 	} else {
-		return w.readBytes(proc, pointer, maxLength, buf)
+		return w.readStr(proc, pointer, maxLength, buf)
 	}
 }
 
 func (w *CosVM) strLen(proc *exec.Process, pointer int32) (length int32, err error) {
 	// for now, the max read length is 36
 	var buf []byte
-	length, err = w.readBytes(proc, pointer, int32(maxReadLength), &buf)
+	length, err = w.readStr(proc, pointer, int32(maxReadLength), &buf)
 	// never raise error
 	return length, nil
 }
 
-func (w *CosVM) readBytes(proc *exec.Process, pointer int32, maxLength int32, buf *[]byte) (int32, error) {
+func (w *CosVM) readStr(proc *exec.Process, pointer int32, maxLength int32, buf *[]byte) (int32, error) {
 	length := int(maxLength)
 	data := make([]byte, maxLength)
 	length, err := proc.ReadAt(data, int64(pointer))
@@ -203,17 +207,17 @@ func (w *CosVM) readBytes(proc *exec.Process, pointer int32, maxLength int32, bu
 	return int32(length), err
 }
 
-func (w *CosVM) writeAt(proc *exec.Process, bytes []byte, pointer int32, maxLen int32) (length int32, err error) {
+func (w *CosVM) writeStrAt(proc *exec.Process, bytes []byte, pointer int32, maxLen int32) (length int32, err error) {
 	buf := make([]byte, maxLen)
 	if len(bytes) > int(maxLen) {
 		copy(buf, bytes[:maxLen])
 	} else {
 		copy(buf, bytes[:])
 	}
-	return w.writeBytes(proc, buf, pointer)
+	return w.writeStr(proc, buf, pointer)
 }
 
-func (w *CosVM) writeBytes(proc *exec.Process, bytes []byte, pointer int32) (int32, error) {
+func (w *CosVM) writeStr(proc *exec.Process, bytes []byte, pointer int32) (int32, error) {
 	length := len(bytes)
 	// \00 in str, break it and return front part
 	for i, c := range bytes {
@@ -225,11 +229,8 @@ func (w *CosVM) writeBytes(proc *exec.Process, bytes []byte, pointer int32) (int
 	if length == 0 {
 		return 0, errors.New("write nil")
 	}
-	// left an extra byte to contain \0
 	buf := make([]byte, length)
 	copy(buf, bytes[:length])
-	// add 0 at end
-	buf = append(buf, 0)
 	length, err := proc.WriteAt(buf, int64(pointer))
 	if err == io.ErrShortWrite {
 		w.logger.Error(fmt.Sprintf("io.ErrShortWrite: %v", w.ctx))
@@ -285,21 +286,16 @@ func (w *CosVM) Sha256(in []byte) [32]byte {
 
 func (w *CosVM) sha256(proc *exec.Process, pSrc int32, lenSrc int32, pDst int32, lenDst int32) {
 	var srcBuf []byte
-	length, err := w.readAt(proc, pSrc, 18, &srcBuf)
-	fmt.Println(srcBuf)
+	_, err := w.readStrAt(proc, pSrc, lenSrc, &srcBuf)
 	if err != nil {
 		w.logger.Error("sha256 read error:", err)
 		return
 	}
-	out := w.Sha256(srcBuf)
-	_, err = w.writeAt(proc, out[:], pDst, length)
+	out := sha256.Sum256(srcBuf)
+	_, err = w.writeStrAt(proc, out[:], pDst, lenDst)
 	if err != nil {
 		panic(errors.New("write sha256 error"))
 	}
-	//_, err = proc.WriteAt(out[:lenDst], int64(pDst))
-	//if err != nil {
-	//	w.logger.Error("sha256 write error:", err)
-	//}
 }
 
 func (w *CosVM) CurrentBlockNumber() uint64 {
@@ -322,31 +318,39 @@ func (w *CosVM) CurrentWitness() string {
 	return w.props.CurrentWitness.Value
 }
 
-func (w *CosVM) currentWitness(proc *exec.Process, pDst int32, lenDst int32) {
+func (w *CosVM) currentWitness(proc *exec.Process, pDst int32) (length int32) {
 	witness := w.CurrentWitness()
-	buf := make([]byte, lenDst)
-	copy(buf[:], witness)
-	_, err := proc.WriteAt(buf, int64(pDst))
-	if err != nil {
-		w.logger.Error("current witness write error:", err)
-	}
+	buf := []byte(witness)
+	length, err := w.writeStrAt(proc, buf, pDst, int32(maxReadLength))
+	w.CosAssert(err == nil, "get current witness error")
+	return length
 }
 
 func (w *CosVM) PrintString(str string) {
-	fmt.Printf(str)
+	fmt.Println(str)
 }
 
 func (w *CosVM) printString(proc *exec.Process, pStr int32, lenStr int32) {
 	var str []byte
-	_, err := w.readAt(proc, pStr, lenStr, &str)
+	_, err := w.readStrAt(proc, pStr, lenStr, &str)
 	if err != nil {
 		panic(errors.New("read pre print str error"))
 	}
 	w.PrintString(string(str))
 }
 
+// need support indirect uint32
+//func (w *CosVM) PrintIndirectUint32(pointer int32) {
+//
+//}
+//
+//func (w *CosVM) printIndirectUint32(proc *exec.Process, pointer int32) {
+//	value := w.readUint32(proc, pointer)
+//
+//}
+
 func (w *CosVM) PrintUint32(value uint32) {
-	fmt.Printf("%d", value)
+	fmt.Printf("%d\n", value)
 }
 
 func (w *CosVM) printUint32(proc *exec.Process, value int32) {
@@ -354,7 +358,7 @@ func (w *CosVM) printUint32(proc *exec.Process, value int32) {
 }
 
 func (w *CosVM) PrintUint64(value uint64) {
-	fmt.Printf("%d", value)
+	fmt.Printf("%d\n", value)
 }
 
 func (w *CosVM) printUint64(proc *exec.Process, value int64) {
@@ -363,9 +367,9 @@ func (w *CosVM) printUint64(proc *exec.Process, value int64) {
 
 func (w *CosVM) PrintBool(value bool) {
 	if value {
-		fmt.Printf("true")
+		fmt.Println("true")
 	} else {
-		fmt.Printf("false")
+		fmt.Println("false")
 	}
 }
 
@@ -375,12 +379,12 @@ func (w *CosVM) printBool(proc *exec.Process, value int32) {
 
 func (w *CosVM) RequiredAuth(name string) {
 	err := w.ctx.Injector.RequireAuth(name)
-	w.CosAssert(err != nil, "require auth error")
+	w.CosAssert(err == nil, "require auth error")
 }
 
 func (w *CosVM) requiredAuth(proc *exec.Process, pStr int32, pLen int32) {
 	var name []byte
-	_, err := w.readAt(proc, pStr, pLen, &name)
+	_, err := w.readStrAt(proc, pStr, pLen, &name)
 	if err != nil {
 		panic("read auth name error")
 	}
@@ -394,7 +398,7 @@ func (w *CosVM) GetBalanceByName(name string) uint64 {
 
 func (w *CosVM) getBalanceByName(proc *exec.Process, ptr int32, len int32) int64 {
 	var name []byte
-	_, err := w.readAt(proc, ptr, len, &name)
+	_, err := w.readStrAt(proc, ptr, len, &name)
 	if err != nil {
 		panic(err)
 	}
@@ -408,12 +412,12 @@ func (w *CosVM) GetContractBalance(contract string, name string) uint64 {
 
 func (w *CosVM) getContractBalance(proc *exec.Process, cPtr int32, cLen int32, nPtr int32, nLen int32) int64 {
 	var contract []byte
-	_, err := w.readAt(proc, cPtr, cLen, &contract)
+	_, err := w.readStrAt(proc, cPtr, cLen, &contract)
 	if err != nil {
 		panic(err)
 	}
 	var name []byte
-	_, err = w.readAt(proc, nPtr, nLen, &name)
+	_, err = w.readStrAt(proc, nPtr, nLen, &name)
 	if err != nil {
 		w.logger.Error("get contract balance error when read name:", err)
 	}
@@ -435,11 +439,11 @@ func (w *CosVM) SaveToStorage(key []byte, value []byte) {
 
 func (w *CosVM) saveToStorage(proc *exec.Process, pKey int32, kLen int32, pValue int32, vLen int32) {
 	var key []byte
-	_, err := w.readAt(proc, pKey, kLen, &key)
-	w.CosAssert(err != nil, "read key failed when save to storage")
+	_, err := w.readStrAt(proc, pKey, kLen, &key)
+	w.CosAssert(err == nil, "read key failed when save to storage")
 	var value []byte
-	_, err = w.readAt(proc, pValue, vLen, &value)
-	w.CosAssert(err != nil, "read value failed when save to storage")
+	_, err = w.readStrAt(proc, pValue, vLen, &value)
+	w.CosAssert(err == nil, "read value failed when save to storage")
 	w.SaveToStorage(key, value)
 }
 
@@ -453,14 +457,14 @@ func (w *CosVM) ReadFromStorage(key []byte) (value []byte) {
 
 func (w *CosVM) readFromStorage(proc *exec.Process, pKey int32, kLen int32, pValue int32, vLen int32) {
 	var key []byte
-	_, err := w.readAt(proc, pKey, kLen, &key)
-	w.CosAssert(err != nil, "read key failed when read from stroage")
+	_, err := w.readStrAt(proc, pKey, kLen, &key)
+	w.CosAssert(err == nil, "read key failed when read from stroage")
 	value := w.ReadFromStorage(key)
 	if len(value) > int(vLen) {
 		value = value[:vLen]
 	}
-	_, err = w.writeAt(proc, value, pValue, vLen)
-	w.CosAssert(err != nil, "write value failed when read from storage")
+	_, err = w.writeStrAt(proc, value, pValue, vLen)
+	w.CosAssert(err == nil, "write value failed when read from storage")
 }
 
 func (w *CosVM) CosAssert(condition bool, msg string) {
@@ -471,7 +475,7 @@ func (w *CosVM) CosAssert(condition bool, msg string) {
 
 func (w *CosVM) cosAssert(proc *exec.Process, condition int32, pStr int32, len int32) {
 	var msg []byte
-	_, err := w.readAt(proc, pStr, len, &msg)
+	_, err := w.readStrAt(proc, pStr, len, &msg)
 	if err != nil {
 		panic("read msg when assert failed")
 	}
@@ -505,22 +509,22 @@ func (w *CosVM) readContractCaller(proc *exec.Process, pStr int32, length int32)
 		byteCaller = byteCaller[:length]
 	}
 	_, err := proc.WriteAt(byteCaller, int64(pStr))
-	w.CosAssert(err != nil, "read contract caller error")
+	w.CosAssert(err == nil, "read contract caller error")
 }
 
 func (w *CosVM) Transfer(from string, to string, amount uint64, memo string) {
 	err := w.ctx.Injector.Transfer(from, to, amount, memo)
-	w.CosAssert(err != nil, fmt.Sprintf("transfer error: %v", err))
+	w.CosAssert(err == nil, fmt.Sprintf("transfer error: %v", err))
 }
 
 func (w *CosVM) transfer(proc *exec.Process, pFrom, pFromLen, pTo, pToLen int32, amount int64, pMemo, pMemoLen int32) {
 	var from, to, memo []byte
-	_, err := w.readAt(proc, pFrom, pFromLen, &from)
-	w.CosAssert(err != nil, "read from error when transfer")
-	_, err = w.readAt(proc, pTo, pToLen, &to)
-	w.CosAssert(err != nil, "read to err when transfer")
-	_, err = w.readAt(proc, pMemo, pMemoLen, &memo)
-	w.CosAssert(err != nil, "read memo error when transfer")
+	_, err := w.readStrAt(proc, pFrom, pFromLen, &from)
+	w.CosAssert(err == nil, "read from error when transfer")
+	_, err = w.readStrAt(proc, pTo, pToLen, &to)
+	w.CosAssert(err == nil, "read to err when transfer")
+	_, err = w.readStrAt(proc, pMemo, pMemoLen, &memo)
+	w.CosAssert(err == nil, "read memo error when transfer")
 	w.Transfer(string(from), string(to), uint64(amount), string(memo))
 }
 
