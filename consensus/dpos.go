@@ -55,7 +55,8 @@ func NewDPoS(ctx *node.ServiceContext) *DPoS {
 		panic(err)
 	}
 	ret := &DPoS{
-		ForkDB: forkdb.NewDB(ctx),
+		ForkDB:    forkdb.NewDB(ctx),
+		Producers: make([]string, 0, 1),
 		prodTimer: time.NewTimer(1 * time.Millisecond),
 		trxCh:     make(chan func()),
 		//trxRetCh:  make(chan common.ITransactionInvoice),
@@ -103,7 +104,7 @@ func (d *DPoS) CurrentProducer() string {
 }
 
 func (d *DPoS) shuffle(head common.ISignedBlock) {
-	if d.ForkDB.Head().Id().BlockNum()%uint64(len(d.Producers)) != 0 {
+	if !d.ForkDB.Empty() && d.ForkDB.Head().Id().BlockNum()%uint64(len(d.Producers)) != 0 {
 		return
 	}
 
@@ -151,7 +152,7 @@ func (d *DPoS) Start(node *node.Node) error {
 	cfg := d.ctx.Config()
 	d.blog.Open(cfg.ResolvePath("blog"))
 	forkdbPath := cfg.ResolvePath("forkdb_snapshot")
-	d.ctrl.SetShuffle(func(block common.ISignedBlock){
+	d.ctrl.SetShuffle(func(block common.ISignedBlock) {
 		d.shuffle(block)
 	})
 	go d.start(forkdbPath)
@@ -385,10 +386,10 @@ func (d *DPoS) PushTransaction(trx common.ISignedTransaction, wait bool, broadca
 			waitChan <- ret
 		}
 		if ret.IsSuccess() {
-		//	if broadcast {
-				d.log.GetLog().Debug("DPoS Broadcast trx.")
-				d.p2p.Broadcast(trx.(*prototype.SignedTransaction))
-		//	}
+			//	if broadcast {
+			d.log.GetLog().Debug("DPoS Broadcast trx.")
+			d.p2p.Broadcast(trx.(*prototype.SignedTransaction))
+			//	}
 		}
 	}
 	if wait {
