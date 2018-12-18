@@ -55,8 +55,8 @@ func NewDPoS(ctx *node.ServiceContext) *DPoS {
 		panic(err)
 	}
 	ret := &DPoS{
-		ForkDB: forkdb.NewDB(),
-		//Producers: make([]*Producer, constants.ProducerNum),
+		ForkDB:    forkdb.NewDB(),
+		Producers: make([]string, 0, 1),
 		prodTimer: time.NewTimer(1 * time.Millisecond),
 		trxCh:     make(chan func()),
 		//trxRetCh:  make(chan common.ITransactionInvoice),
@@ -103,11 +103,14 @@ func (d *DPoS) CurrentProducer() string {
 	return d.getScheduledProducer(slot)
 }
 
-// Called when a produce round complete, it adds new producers,
-// remove unqualified producers and shuffle the block-producing order
 func (d *DPoS) shuffle(head common.ISignedBlock) {
+	if !d.ForkDB.Empty() && d.ForkDB.Head().Id().BlockNum()%uint64(len(d.Producers)) != 0 {
+		return
+	}
+
+	// When a produce round complete, it adds new producers,
+	// remove unqualified producers and shuffle the block-producing order
 	prods := d.ctrl.GetWitnessTopN(constants.MAX_WITNESSES)
-	//logging.CLog().Debug("GetWitnessTopN: ", prods)
 	var seed uint64
 	if head != nil {
 		seed = head.Timestamp() << 32
@@ -125,6 +128,7 @@ func (d *DPoS) shuffle(head common.ISignedBlock) {
 	}
 
 	d.Producers = prods
+	d.log.GetLog().Debug("[DPoS shuffle] active producers: ", d.Producers)
 	d.ctrl.SetShuffledWitness(prods)
 }
 
@@ -148,6 +152,9 @@ func (d *DPoS) Start(node *node.Node) error {
 	cfg := d.ctx.Config()
 	d.blog.Open(cfg.ResolvePath("blog"))
 	forkdbPath := cfg.ResolvePath("forkdb_snapshot")
+	d.ctrl.SetShuffle(func(block common.ISignedBlock) {
+		d.shuffle(block)
+	})
 	go d.start(forkdbPath)
 	return nil
 }
@@ -199,10 +206,8 @@ func (d *DPoS) start(snapshotPath string) {
 
 	if d.bootstrap && d.ForkDB.Empty() && d.blog.Empty() {
 		d.log.GetLog().Info("[DPoS] bootstrapping...")
-		d.shuffle(nil)
-	} else {
-		d.restoreProducers()
 	}
+	d.restoreProducers()
 
 	d.log.GetLog().Info("[DPoS] started")
 	for {
@@ -381,10 +386,10 @@ func (d *DPoS) PushTransaction(trx common.ISignedTransaction, wait bool, broadca
 			waitChan <- ret
 		}
 		if ret.IsSuccess() {
-		//	if broadcast {
-				d.log.GetLog().Debug("DPoS Broadcast trx.")
-				d.p2p.Broadcast(trx.(*prototype.SignedTransaction))
-		//	}
+			//	if broadcast {
+			d.log.GetLog().Debug("DPoS Broadcast trx.")
+			d.p2p.Broadcast(trx.(*prototype.SignedTransaction))
+			//	}
 		}
 	}
 	if wait {
@@ -437,12 +442,6 @@ func (d *DPoS) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 		}
 	}
 
-	// shuffle
-	if d.ForkDB.Head().Id().BlockNum()%uint64(len(d.Producers)) == 0 {
-		d.shuffle(d.ForkDB.Head())
-		d.log.GetLog().Debug("[DPoS shuffle] active producers: ", d.Producers)
-	}
-
 	lastCommitted := d.ForkDB.LastCommitted()
 	//d.log.GetLog().Debug("last committed: ", lastCommitted.BlockNum())
 	var commitIdx uint64
@@ -487,14 +486,6 @@ func (d *DPoS) switchFork(old, new common.BlockID) {
 
 	// producers fixup
 	d.restoreProducers()
-	if branches[0][poppedNum].BlockNum()%uint64(len(d.Producers)) == 0 {
-		head, err := d.ForkDB.FetchBlock(branches[0][poppedNum])
-		if err != nil {
-			panic(err)
-		}
-		d.shuffle(head)
-		d.log.GetLog().Debug("[DPoS shuffle] active producers: ", d.Producers)
-	}
 
 	appendedNum := len(branches[1]) - 1
 	errWhileSwitch := false

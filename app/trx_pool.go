@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app/table"
+	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/common/eventloop"
 	"github.com/coschain/contentos-go/iservices"
@@ -41,6 +42,7 @@ type TrxPool struct {
 	currentBlockNum        uint64
 	currentTrxInBlock      int16
 	havePendingTransaction bool
+	shuffle                common.ShuffleFunc
 }
 
 func (c *TrxPool) getDb() (iservices.IDatabaseService, error) {
@@ -59,6 +61,10 @@ func (c *TrxPool) getLog() (iservices.ILog, error) {
 	}
 	log := s.(iservices.ILog)
 	return log, nil
+}
+
+func (c *TrxPool) SetShuffle(s common.ShuffleFunc) {
+	c.shuffle = s
 }
 
 // for easy test
@@ -593,6 +599,7 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 
 	c.updateGlobalDynamicData(blk)
 	//c.updateSigningWitness(blk)
+	c.shuffle(blk)
 	// @ update_last_irreversible_block
 	c.createBlockSummary(blk)
 	c.clearExpiredTransactions()
