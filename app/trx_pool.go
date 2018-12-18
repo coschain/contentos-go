@@ -17,8 +17,6 @@ import (
 	"strconv"
 )
 
-type ShuffleFunc func(head common.ISignedBlock)
-
 var (
 	SingleId int32 = 1
 )
@@ -43,7 +41,7 @@ type TrxPool struct {
 	currentBlockNum        uint64
 	currentTrxInBlock      int16
 	havePendingTransaction bool
-	shuffle				ShuffleFunc
+	shuffle                common.ShuffleFunc
 }
 
 func (c *TrxPool) getDb() (iservices.IDatabaseService, error) {
@@ -64,7 +62,7 @@ func (c *TrxPool) getLog() (iservices.ILog, error) {
 	return log, nil
 }
 
-func (c *TrxPool) SetShuffle(s ShuffleFunc) {
+func (c *TrxPool) SetShuffle(s common.ShuffleFunc) {
 	c.shuffle = s
 }
 

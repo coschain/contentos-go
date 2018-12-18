@@ -1,6 +1,7 @@
 package iservices
 
 import (
+	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/prototype"
 )
 
@@ -18,6 +19,7 @@ type ITrxPool interface {
 	GetWitnessTopN(n uint32) []string
 	SetShuffledWitness(names []string)
 	GetShuffledWitness() []string
+	SetShuffle(s common.ShuffleFunc)
 	// will set DB status to num
 	PopBlockTo(num uint64)
 	// will cut off DB status that before num
