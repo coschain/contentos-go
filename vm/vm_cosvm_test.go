@@ -1,11 +1,17 @@
 package vm
 
 import (
+	"github.com/coschain/contentos-go/db/storage"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/inconshreveable/log15"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
+	"os"
 	"testing"
+)
+
+const (
+	dbPath = "/tmp/cos.db"
 )
 
 func TestCosVM_simpleAdd(t *testing.T) {
@@ -82,25 +88,54 @@ func TestCosVM_Print(t *testing.T) {
 
 func TestCosVM_Sha256(t *testing.T) {
 	wasmFile := "./testdata/sha256.wasm"
-	//myassert := assert.New(t)
+	myassert := assert.New(t)
 	data, _ := ioutil.ReadFile(wasmFile)
 	context := Context{Code: data}
 	vm := NewCosVM(&context, nil, nil, log15.New())
-	_, _ = vm.Run()
-	// assert no error
-	//myassert.Equal(ret, uint32(0));
-	//out := sha256.Sum256([]byte("hello world"))
-	//o := base64.StdEncoding.EncodeToString(out[:])
-	// uU0nuZNNPgilLlLX2n2r+sSE7+N6U4DukIj3rOLvzek=
-	//fmt.Println(o)
+	ret, _ := vm.Run()
+	myassert.Equal(ret, uint32(0))
 }
 
 func TestCosVM_Props(t *testing.T) {
 	wasmFile := "./testdata/props.wasm"
+	myassert := assert.New(t)
 	data, _ := ioutil.ReadFile(wasmFile)
 	context := Context{Code: data}
 	props := &prototype.DynamicProperties{CurrentWitness: &prototype.AccountName{Value: "initminer"}, HeadBlockNumber: 1,
 		Time: &prototype.TimePointSec{UtcSeconds: 42}}
 	vm := NewCosVM(&context, nil, props, log15.New())
-	_, _ = vm.Run()
+	ret, _ := vm.Run()
+	myassert.Equal(ret, uint32(0))
+}
+
+func TestCosVM_CosAssert(t *testing.T) {
+	wasmFile := "./testdata/props.wasm"
+	myassert := assert.New(t)
+	data, _ := ioutil.ReadFile(wasmFile)
+	context := Context{Code: data}
+	vm := NewCosVM(&context, nil, nil, log15.New())
+	ret, _ := vm.Run()
+	myassert.Equal(ret, uint32(1))
+}
+
+func TestCosVM_RWStorage(t *testing.T) {
+	db, err := storage.NewDatabase(dbPath)
+	defer func() {
+		_ = db.Stop()
+		_ = os.RemoveAll(dbPath)
+	}()
+	if err != nil {
+		t.Error(err)
+	}
+	err = db.Start(nil)
+	if err != nil {
+		t.Error(err)
+	}
+	wasmFile := "./testdata/rwstorage.wasm"
+	myassert := assert.New(t)
+	data, _ := ioutil.ReadFile(wasmFile)
+	context := Context{Code: data}
+	vm := NewCosVM(&context, db, nil, log15.New())
+	ret, _ := vm.Run()
+	myassert.Equal(ret, uint32(0))
 }
