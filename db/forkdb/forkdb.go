@@ -2,9 +2,6 @@ package forkdb
 
 import (
 	"fmt"
-	"github.com/coschain/contentos-go/iservices"
-	"github.com/coschain/contentos-go/node"
-	"github.com/sirupsen/logrus"
 	"os"
 	"sync"
 
@@ -29,31 +26,16 @@ type DB struct {
 
 	snapshot blocklog.BLog
 	sync.RWMutex
-	log *logrus.Logger
 }
 
 // NewDB ...
-func NewDB(ctx *node.ServiceContext) *DB {
+func NewDB() *DB {
 	// TODO: purge the detachedLink
-	if ctx == nil {
-		return &DB{
-			list:         make([][]common.BlockID, defaultSize+1),
-			branches:     make(map[common.BlockID]common.ISignedBlock),
-			detachedLink: make(map[common.BlockID]common.ISignedBlock),
-			//detached:     make(map[common.BlockID]common.ISignedBlock),
-		}
-	} else {
-		log, err := ctx.Service(iservices.LogServerName)
-		if err != nil {
-			return nil
-		}
-		return &DB{
-			list:         make([][]common.BlockID, defaultSize+1),
-			branches:     make(map[common.BlockID]common.ISignedBlock),
-			detachedLink: make(map[common.BlockID]common.ISignedBlock),
-			//detached:     make(map[common.BlockID]common.ISignedBlock),
-			log: log.(iservices.ILog).GetLog(),
-		}
+	return &DB{
+		list:         make([][]common.BlockID, defaultSize+1),
+		branches:     make(map[common.BlockID]common.ISignedBlock),
+		detachedLink: make(map[common.BlockID]common.ISignedBlock),
+		//detached:     make(map[common.BlockID]common.ISignedBlock),
 	}
 }
 
