@@ -14,15 +14,16 @@ type DemoService struct {
 	node.Service
 	db  iservices.IDatabaseService
 	ev  EventBus.Bus
+	ctx *node.ServiceContext
 }
 
 // service constructor
-func NewDemoService() (*DemoService, error) {
-	return &DemoService{}, nil
+func NewDemoService(ctx *node.ServiceContext) (*DemoService, error) {
+	return &DemoService{ctx:ctx}, nil
 }
 
 func (p *DemoService) Start(node *node.Node) error {
-	db, err := node.Service(iservices.DbServerName)
+	db, err := p.ctx.Service(iservices.DbServerName)
 	if err != nil {
 		return err
 	}

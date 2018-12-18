@@ -140,7 +140,7 @@ func (d *DPoS) ActiveProducers() []string {
 
 func (d *DPoS) Start(node *node.Node) error {
 	d.ctrl = d.getController()
-	p2p, err := node.Service(iservices.P2PServerName)
+	p2p, err := d.ctx.Service(iservices.P2PServerName)
 	if err != nil {
 		panic(err)
 	}

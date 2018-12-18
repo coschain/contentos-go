@@ -16,21 +16,22 @@ type PostService struct {
 	db  iservices.IDatabaseService
 	ev  EventBus.Bus
 	pool iservices.ITrxPool
+	ctx *node.ServiceContext
 }
 
 // service constructor
 func NewPostService(ctx *node.ServiceContext) (*PostService, error) {
-	return &PostService{}, nil
+	return &PostService{ctx:ctx}, nil
 }
 
 func (p *PostService) Start(node *node.Node) error {
-	db, err := node.Service(iservices.DbServerName)
+	db, err := p.ctx.Service(iservices.DbServerName)
 	if err != nil {
 		return err
 	}
 	p.db = db.(iservices.IDatabaseService)
 
-	pool, err := node.Service(iservices.TxPoolServerName)
+	pool, err := p.ctx.Service(iservices.TxPoolServerName)
 	if err != nil {
 		return err
 	}

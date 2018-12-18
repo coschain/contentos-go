@@ -184,12 +184,12 @@ func (n *Node) Restart() error {
 	return nil
 }
 
-func (n *Node) Service(serviceName string) (interface{}, error) {
-	n.lock.RLock()
-	defer n.lock.RUnlock()
-
-	if running, ok := n.services[serviceName]; ok {
-		return running, nil
-	}
-	return nil, ErrServiceUnknown
-}
+//func (n *Node) Service(serviceName string) (interface{}, error) {
+//	n.lock.RLock()
+//	defer n.lock.RUnlock()
+//
+//	if running, ok := n.services[serviceName]; ok {
+//		return running, nil
+//	}
+//	return nil, ErrServiceUnknown
+//}

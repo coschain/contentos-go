@@ -3,7 +3,6 @@ package prototype
 import (
 	"bytes"
 	"crypto/sha256"
-	"errors"
 	"fmt"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/common/encoding/kope"
@@ -85,13 +84,13 @@ func (m *PublicKeyType) MarshalJSON() ([]byte, error) {
 func (m *PublicKeyType) UnmarshalJSON(input []byte) error {
 
 	if len(input) < 2 {
-		return errors.New("public key length error")
+		return ErrPubKeyFormatErr
 	}
 	if input[0] != '"' {
-		return errors.New("public key error")
+		return ErrPubKeyFormatErr
 	}
 	if input[len(input)-1] != '"' {
-		return errors.New("public key error")
+		return ErrPubKeyFormatErr
 	}
 
 	res, err := PublicKeyFromWIF(string(input[1 : len(input)-1]))

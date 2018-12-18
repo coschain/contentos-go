@@ -69,6 +69,7 @@ func makeNode() (*node.Node, node.Config) {
 // NO OTHER CONFIGS HERE EXCEPT NODE CONFIG
 func startNode(cmd *cobra.Command, args []string) {
 	// _ is cfg as below process has't used
+
 	_, _ = cmd, args
 	app, cfg := makeNode()
 	app.Log = mylog.Init(cfg.ResolvePath("logs"), mylog.DebugLevel, 0)
@@ -104,14 +105,14 @@ func startNode(cmd *cobra.Command, args []string) {
 			}
 		}
 	}()
-
+	app.Log.Info("start complete")
 	app.Wait()
 	app.Stop()
 	app.Log.Info("app exit success")
 }
 
 func RegisterService(app *node.Node, cfg node.Config) {
-	
+
 	_ = app.Register(iservices.LogServerName, func(ctx *node.ServiceContext) (node.Service, error) {
 		return mylog.NewMyLog( cfg.ResolvePath("logs"), mylog.DebugLevel, 0)
 	})
@@ -146,7 +147,7 @@ func RegisterService(app *node.Node, cfg node.Config) {
 		return plugins.NewPostService(ctx)
 	})
 	_ = app.Register(plugins.DemoServiceName, func(ctx *node.ServiceContext) (node.Service, error) {
-		return plugins.NewDemoService()
+		return plugins.NewDemoService(ctx)
 	})
 
 	_ = app.Register(iservices.RpcServerName, func(ctx *node.ServiceContext) (node.Service, error) {
