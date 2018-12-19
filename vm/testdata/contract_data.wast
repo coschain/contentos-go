@@ -21,11 +21,10 @@
  (func $main (result i32)
   (local $0 i32)
   (local $1 i64)
-  (local $2 i64)
-  (local $3 i32)
+  (local $2 i32)
   (i32.store offset=4
    (i32.const 0)
-   (tee_local $3
+   (tee_local $2
     (i32.sub
      (i32.load offset=4
       (i32.const 0)
@@ -37,7 +36,7 @@
   (i32.store16
    (i32.add
     (i32.add
-     (get_local $3)
+     (get_local $2)
      (i32.const 84)
     )
     (i32.const 8)
@@ -49,7 +48,7 @@
    )
   )
   (i64.store offset=84 align=4
-   (get_local $3)
+   (get_local $2)
    (tee_local $1
     (i64.load offset=16 align=1
      (i32.const 0)
@@ -57,20 +56,18 @@
    )
   )
   (call $print_uint64
-   (tee_local $2
-    (call $get_balance_by_name
-     (i32.add
-      (get_local $3)
-      (i32.const 84)
-     )
-     (i32.const 9)
+   (call $get_balance_by_name
+    (i32.add
+     (get_local $2)
+     (i32.const 84)
     )
+    (i32.const 9)
    )
   )
   (i32.store16
    (i32.add
     (i32.add
-     (get_local $3)
+     (get_local $2)
      (i32.const 72)
     )
     (i32.const 8)
@@ -78,12 +75,12 @@
    (get_local $0)
   )
   (i64.store offset=72 align=4
-   (get_local $3)
+   (get_local $2)
    (get_local $1)
   )
   (i32.store16
    (i32.add
-    (get_local $3)
+    (get_local $2)
     (i32.const 68)
    )
    (i32.load16_u offset=36 align=1
@@ -91,48 +88,45 @@
    )
   )
   (i32.store offset=64
-   (get_local $3)
+   (get_local $2)
    (i32.load offset=32 align=1
     (i32.const 0)
    )
   )
-  (drop
+  (call $print_uint64
    (call $get_contract_balance
     (i32.add
-     (get_local $3)
-     (i32.const 72)
-    )
-    (i32.const 9)
-    (i32.add
-     (get_local $3)
+     (get_local $2)
      (i32.const 64)
     )
     (i32.const 5)
+    (i32.add
+     (get_local $2)
+     (i32.const 72)
+    )
+    (i32.const 9)
    )
-  )
-  (call $print_uint64
-   (get_local $2)
   )
   (call $read_contract_owner
    (i32.add
-    (get_local $3)
+    (get_local $2)
     (i32.const 32)
    )
    (i32.const 20)
   )
   (call $print_string
    (i32.add
-    (get_local $3)
+    (get_local $2)
     (i32.const 32)
    )
    (i32.const 20)
   )
   (call $read_contract_caller
-   (get_local $3)
+   (get_local $2)
    (i32.const 20)
   )
   (call $print_string
-   (get_local $3)
+   (get_local $2)
    (i32.const 20)
   )
   (call $print_uint64
@@ -141,7 +135,7 @@
   (i32.store offset=4
    (i32.const 0)
    (i32.add
-    (get_local $3)
+    (get_local $2)
     (i32.const 96)
    )
   )

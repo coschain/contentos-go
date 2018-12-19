@@ -178,7 +178,7 @@ func TestCosVM_Contract(t *testing.T) {
 	data, _ := ioutil.ReadFile(wasmFile)
 	context := Context{Code: data, Caller: &prototype.AccountName{Value: "alice"},
 		Owner: &prototype.AccountName{Value: "initminer"}, Amount: &prototype.Coin{Value: 100}}
-	vm := NewCosVM(&context, nil, nil, log15.New())
+	vm := NewCosVM(&context, db, nil, log15.New())
 	ret, _ := vm.Run()
 	myassert.Equal(ret, uint32(0))
 }
