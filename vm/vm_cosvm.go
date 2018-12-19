@@ -483,6 +483,29 @@ func (w *CosVM) cosAssert(proc *exec.Process, condition int32, pStr int32, len i
 	w.CosAssert(condition > 0, string(msg))
 }
 
+func (w *CosVM) ReadContractOpParams() string {
+	return w.ctx.Params
+}
+
+func (w *CosVM) readContractOpParams(proc *exec.Process, ptr, length int32) {
+	params := w.ReadContractOpParams()
+	b := []byte(params)
+	if len(b) > int(length) {
+		b = b[:length]
+	}
+	_, err := w.writeStrAt(proc, b, ptr, length)
+	w.CosAssert(err == nil, "read contract params error")
+}
+
+func (w *CosVM) ReadContractOpParamsLength() int {
+	return len(w.ctx.Params)
+}
+
+func (w *CosVM) readContractOpParamsLength(proc *exec.Process) int32 {
+	length := int32(w.ReadContractOpParamsLength())
+	return length
+}
+
 func (w *CosVM) ReadContractOwner() string {
 	return w.ctx.Owner.Value
 }
@@ -493,10 +516,8 @@ func (w *CosVM) readContractOwner(proc *exec.Process, pStr int32, length int32) 
 	if len(byteOwner) > int(length) {
 		byteOwner = byteOwner[:length]
 	}
-	_, err := proc.WriteAt(byteOwner, int64(pStr))
-	if err != nil {
-		w.logger.Error("write owner into memory err:", err)
-	}
+	_, err := w.writeStrAt(proc, byteOwner, pStr, length)
+	w.CosAssert(err == nil, "write owner into memory err")
 }
 
 func (w *CosVM) ReadContractCaller() string {
@@ -509,7 +530,7 @@ func (w *CosVM) readContractCaller(proc *exec.Process, pStr int32, length int32)
 	if len(byteCaller) > int(length) {
 		byteCaller = byteCaller[:length]
 	}
-	_, err := proc.WriteAt(byteCaller, int64(pStr))
+	_, err := w.writeStrAt(proc, byteCaller, pStr, length)
 	w.CosAssert(err == nil, "read contract caller error")
 }
 
