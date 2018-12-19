@@ -6,11 +6,11 @@ import (
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
-	"github.com/coschain/contentos-go/vm"
+	"github.com/coschain/contentos-go/vm/injector"
 )
 
 type TrxContext struct {
-	vm.Injector
+	vminjector.Injector
 	Wrapper *prototype.TransactionWrapper
 	db      iservices.IDatabaseService
 
@@ -103,4 +103,3 @@ func verifyAuthority(keyMaps map[string]bool, trxPubs []*prototype.PublicKeyType
 		}
 	}
 }
-

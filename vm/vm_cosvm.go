@@ -8,6 +8,7 @@ import (
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
+	"github.com/coschain/contentos-go/vm/context"
 	"github.com/go-interpreter/wagon/exec"
 	"github.com/go-interpreter/wagon/wasm"
 	"github.com/inconshreveable/log15"
@@ -25,14 +26,14 @@ type CosVM struct {
 	nativeFuncName []string
 	nativeFuncSigs []wasm.FunctionSig
 	nativeFuncs    []wasm.Function
-	ctx            *Context
+	ctx            *vmcontext.Context
 	db             iservices.IDatabaseService
 	props          *prototype.DynamicProperties
 	lock           sync.RWMutex
 	logger         log15.Logger
 }
 
-func NewCosVM(ctx *Context, db iservices.IDatabaseService, props *prototype.DynamicProperties, logger log15.Logger) *CosVM {
+func NewCosVM(ctx *vmcontext.Context, db iservices.IDatabaseService, props *prototype.DynamicProperties, logger log15.Logger) *CosVM {
 	return &CosVM{nativeFuncName: []string{}, nativeFuncSigs: []wasm.FunctionSig{},
 		nativeFuncs: []wasm.Function{}, ctx: ctx, logger: logger, db: db, props: props}
 }
@@ -54,7 +55,7 @@ func (w *CosVM) initNativeFuncs() {
 	w.Register("cos_assert", w.cosAssert)
 	w.Register("read_contract_owner", w.readContractOwner)
 	w.Register("read_contract_caller", w.readContractCaller)
-	w.Register("transfer", w.transfer)
+	w.Register("contract_transfer", w.contractTransfer)
 	w.Register("get_sender_value", w.getSenderValue)
 
 	// for test
@@ -512,20 +513,16 @@ func (w *CosVM) readContractCaller(proc *exec.Process, pStr int32, length int32)
 	w.CosAssert(err == nil, "read contract caller error")
 }
 
-func (w *CosVM) Transfer(from string, to string, amount uint64, memo string) {
-	err := w.ctx.Injector.Transfer(from, to, amount, memo)
+func (w *CosVM) ContractTransfer(to string, amount uint64) {
+	err := w.ctx.Injector.ContractTransfer(w.ctx.Contract, w.ctx.Owner.Value, to, amount)
 	w.CosAssert(err == nil, fmt.Sprintf("transfer error: %v", err))
 }
 
-func (w *CosVM) transfer(proc *exec.Process, pFrom, pFromLen, pTo, pToLen int32, amount int64, pMemo, pMemoLen int32) {
-	var from, to, memo []byte
-	_, err := w.readStrAt(proc, pFrom, pFromLen, &from)
-	w.CosAssert(err == nil, "read from error when transfer")
-	_, err = w.readStrAt(proc, pTo, pToLen, &to)
+func (w *CosVM) contractTransfer(proc *exec.Process, pTo, pToLen int32, amount int64) {
+	var to []byte
+	_, err := w.readStrAt(proc, pTo, pToLen, &to)
 	w.CosAssert(err == nil, "read to err when transfer")
-	_, err = w.readStrAt(proc, pMemo, pMemoLen, &memo)
-	w.CosAssert(err == nil, "read memo error when transfer")
-	w.Transfer(string(from), string(to), uint64(amount), string(memo))
+	w.ContractTransfer(string(to), uint64(amount))
 }
 
 func (w *CosVM) GetSenderValue() uint64 {

@@ -7,6 +7,7 @@ import (
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/prototype"
+	"github.com/coschain/contentos-go/vm/context"
 	"github.com/inconshreveable/log15"
 )
 
@@ -36,7 +37,7 @@ func New(ctx *node.ServiceContext) (*WasmVmService, error) {
 	return &WasmVmService{ctx: ctx, registerFuncs: make(map[string]interface{}), logger: log15.New()}, nil
 }
 
-func (w *WasmVmService) Run(ctx *Context) (uint32, error) {
+func (w *WasmVmService) Run(ctx *vmcontext.Context) (uint32, error) {
 	cosVM := NewCosVM(ctx, w.db, w.globalProps, w.logger)
 	for funcName, function := range w.registerFuncs {
 		cosVM.Register(funcName, function)

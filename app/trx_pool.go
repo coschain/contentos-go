@@ -513,31 +513,8 @@ func (c *TrxPool) applyOperation(trxCtx *TrxContext, op *prototype.Operation) {
 	c.notifyOpPostExecute(n)
 }
 
-func (c *TrxPool) requireAuth(name string) {
-	fmt.Println(name, " require auth")
-}
-
-func (c *TrxPool) vmTransfer(from, to string, amount uint64, memo string) {
-	ctx := &ApplyContext{db: c.db, control: c}
-	transferOp := &prototype.TransferOperation{
-		From:   &prototype.AccountName{Value: from},
-		To:     &prototype.AccountName{Value: to},
-		Amount: prototype.NewCoin(amount),
-		Memo:   memo,
-	}
-	op := &prototype.Operation{}
-	op2 := &prototype.Operation_Op2{}
-	op2.Op2 = transferOp
-	op.Op = op2
-	n := &prototype.OperationNotification{Op: op}
-	c.notifyOpPreExecute(n)
-	eva := &TransferEvaluator{ctx: ctx, op: transferOp}
-	eva.Apply()
-	c.notifyOpPostExecute(n)
-}
-
 func (c *TrxPool) getEvaluator(trxCtx *TrxContext, op *prototype.Operation) BaseEvaluator {
-	ctx := &ApplyContext{db: c.db, control: c, trxCtx:trxCtx}
+	ctx := &ApplyContext{db: c.db, control: c, trxCtx: trxCtx}
 	return GetBaseEvaluator(ctx, op)
 }
 
@@ -891,7 +868,7 @@ func (c *TrxPool) clearExpiredTransactions() {
 				return true
 			}
 			return false
-	})
+		})
 }
 
 func (c *TrxPool) GetWitnessTopN(n uint32) []string {

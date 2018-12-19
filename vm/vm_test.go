@@ -2,6 +2,7 @@ package vm
 
 import (
 	"fmt"
+	"github.com/coschain/contentos-go/vm/context"
 	"github.com/go-interpreter/wagon/exec"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
@@ -55,7 +56,7 @@ func TestContext_Run(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	ctx := &Context{Code: data}
+	ctx := &vmcontext.Context{Code: data}
 	ret, err := vm.Run(ctx)
 	if err != nil {
 		t.Error(err)
@@ -80,7 +81,7 @@ func TestContext_Run2(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	ctx := &Context{Code: data}
+	ctx := &vmcontext.Context{Code: data}
 	ret, err := vm.Run(ctx)
 	if err != nil {
 		t.Error(err)
@@ -103,7 +104,7 @@ func TestContext_Sha256(t *testing.T) {
 	//if err != nil {
 	//	t.Error(err)
 	//}
-	ctx := &Context{Code: data}
+	ctx := &vmcontext.Context{Code: data}
 	_, err = vm.Run(ctx)
 	if err != nil {
 		t.Error(err)

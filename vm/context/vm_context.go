@@ -1,7 +1,8 @@
-package vm
+package vmcontext
 
 import (
 	"github.com/coschain/contentos-go/prototype"
+	"github.com/coschain/contentos-go/vm/injector"
 )
 
 type ContractName string
@@ -16,24 +17,10 @@ type Context struct {
 	Gas       *prototype.Coin
 	Construct bool
 	Code      []byte
-	Injector  Injector
+	Injector  vminjector.Injector
 }
 
-//
-//func NewContextFromDeployOp(op *prototype.ContractDeployOperation) *Context  {
-//	return &Context{ From:op.Owner,
-//				Owner:op.Owner,
-//				Contract:op.Contract,
-//				Method:constants.Contract_Construct,
-//				Params:[]string{},
-//				Amount:nil,
-//				Gas:nil,
-//				Construct:true,
-//				Code:op.Code,
-//			}
-//}
-
-func NewContextFromApplyOp(op *prototype.ContractApplyOperation, code []byte, injector Injector) *Context {
+func NewContextFromApplyOp(op *prototype.ContractApplyOperation, code []byte, injector vminjector.Injector) *Context {
 	return &Context{
 		Caller:    op.Caller,
 		Owner:     op.Owner,
