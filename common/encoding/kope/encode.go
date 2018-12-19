@@ -3,6 +3,7 @@ package kope
 import (
 	"errors"
 	"fmt"
+	"github.com/coschain/contentos-go/common"
 	"reflect"
 )
 
@@ -12,7 +13,7 @@ type OpeEncoder interface {
 
 // Encode a signed integer
 func EncodeInt(value int) ([]byte, error) {
-	if is32bitPlatform {
+	if common.Is32bitPlatform {
 		return EncodeInt32(int32(value))
 	} else {
 		return EncodeInt64(int64(value))
@@ -41,7 +42,7 @@ func EncodeInt64(value int64) ([]byte, error) {
 
 // Encode an unsigned integer
 func EncodeUint(value uint) ([]byte, error) {
-	if is32bitPlatform {
+	if common.Is32bitPlatform {
 		return EncodeUint32(uint32(value))
 	} else {
 		return EncodeUint64(uint64(value))

@@ -3,6 +3,7 @@ package vme
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/coschain/contentos-go/common"
 	"github.com/pkg/errors"
 	"reflect"
 	"strings"
@@ -120,10 +121,6 @@ func typeSigDecode(sig string) (reflect.Type, error) {
 	return typ, nil
 }
 
-const (
-	is32bitPlatform = ^uint(0)>>32 == 0
-)
-
 var type2sig = map[reflect.Kind]string {
 	reflect.Bool:		"Z",
 	reflect.Int8:		"b",
@@ -155,7 +152,7 @@ var sig2type = map[string]reflect.Type {
 }
 
 func init() {
-	if is32bitPlatform {
+	if common.Is32bitPlatform {
 		type2sig[reflect.Int] = type2sig[reflect.Int32]
 		type2sig[reflect.Uint] = type2sig[reflect.Uint32]
 	} else {
