@@ -494,18 +494,19 @@ func (m *SoListExtReplyCreatedByCreatedOrder) OpeEncode() ([]byte, error) {
 	return kBuf, cErr
 }
 
-//
 //Query sort by reverse order
-//maxCount: represent the maximum amount of data you want to get，if the maxCount is greater than or equal to
-//the total count of data in result,traverse all data;otherwise traverse part of the data
-//f: callback for each traversal , primary and sub key as arguments to the callback function
 //
-func (s *SExtReplyCreatedCreatedOrderWrap) QueryListByRevOrder(start *prototype.ReplyCreatedOrder, end *prototype.ReplyCreatedOrder, maxCount uint32,
-	f func(mVal *uint64, sVal *prototype.ReplyCreatedOrder)) error {
+//f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
+//as arguments to the callback function
+//if the return value of f is true,continue iterating until the end iteration;
+//otherwise stop iteration immediately
+//
+func (s *SExtReplyCreatedCreatedOrderWrap) ForEachByRevOrder(start *prototype.ReplyCreatedOrder, end *prototype.ReplyCreatedOrder,
+	f func(mVal *uint64, sVal *prototype.ReplyCreatedOrder, idx uint32) bool) error {
 	if s.Dba == nil {
 		return errors.New("the db is nil")
 	}
-	if f == nil || maxCount < 1 {
+	if f == nil {
 		return nil
 	}
 	pre := ExtReplyCreatedCreatedOrderTable
@@ -533,9 +534,11 @@ func (s *SExtReplyCreatedCreatedOrderWrap) QueryListByRevOrder(start *prototype.
 		return errors.New("there is no data in range")
 	}
 	var idx uint32 = 0
-	for idx < maxCount && iterator.Next() {
+	for iterator.Next() {
 		idx++
-		f(s.GetMainVal(iterator), s.GetSubVal(iterator))
+		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
+			break
+		}
 	}
 	s.DelIterator(iterator)
 	return nil

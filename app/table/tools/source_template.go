@@ -577,21 +577,23 @@ func (m *SoList{{$.ClsName}}By{{$v.PName}}) OpeEncode() ([]byte,error) {
 }
 
 {{if or (eq $v.SType 1) (eq $v.SType 3) -}}
-//
 //Query sort by order 
+//
 //start = nil  end = nil (query the db from start to end)
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
-//maxCount: represent the maximum amount of data you want to get，if the maxCount is greater than or equal to
-//the total count of data in result,traverse all data;otherwise traverse part of the data
-//f: callback for each traversal , primary and sub key as arguments to the callback function
 //
-func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByOrder(start *{{$v.PType}}, end *{{$v.PType}}, maxCount uint32,
-     f func(mVal *{{formatStr $.MainKeyType}},sVal *{{formatSliceType $v.PType}})) error {
+//f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated) 
+//as arguments to the callback function 
+//if the return value of f is true,continue iterating until the end iteration;
+//otherwise stop iteration immediately
+//
+func (s *S{{$.ClsName}}{{$v.PName}}Wrap) ForEachByOrder(start *{{$v.PType}}, end *{{$v.PType}},
+     f func(mVal *{{formatStr $.MainKeyType}},sVal *{{formatSliceType $v.PType}},idx uint32) bool ) error {
     if s.Dba == nil {
        return errors.New("the db is nil")
     }
-    if f == nil || maxCount < 1 {
+    if f == nil {
        return nil
     }
     pre := {{$.ClsName}}{{$v.PName}}Table
@@ -618,27 +620,30 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByOrder(start *{{$v.PType}}, e
 		return errors.New("there is no data in range")
 	}
     var idx uint32 = 0
-    for idx < maxCount && iterator.Next() {
+    for iterator.Next() {
         idx ++
-        f(s.GetMainVal(iterator),s.GetSubVal(iterator))
+        if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
+			break
+		}
     }
     s.DelIterator(iterator)
 	return nil
 }
 {{end}}
 {{if or (eq $v.SType 2) (eq $v.SType 3) -}}
-//
 //Query sort by reverse order 
-//maxCount: represent the maximum amount of data you want to get，if the maxCount is greater than or equal to
-//the total count of data in result,traverse all data;otherwise traverse part of the data
-//f: callback for each traversal , primary and sub key as arguments to the callback function
 //
-func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByRevOrder(start *{{$v.PType}}, end *{{$v.PType}}, maxCount uint32,
-     f func(mVal *{{formatStr $.MainKeyType}},sVal *{{formatSliceType $v.PType}})) error {
+//f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated) 
+//as arguments to the callback function 
+//if the return value of f is true,continue iterating until the end iteration;
+//otherwise stop iteration immediately
+//
+func (s *S{{$.ClsName}}{{$v.PName}}Wrap) ForEachByRevOrder(start *{{$v.PType}}, end *{{$v.PType}},
+     f func(mVal *{{formatStr $.MainKeyType}},sVal *{{formatSliceType $v.PType}}, idx uint32) bool) error {
     if s.Dba == nil {
        return errors.New("the db is nil")
     }
-    if f == nil || maxCount < 1 {
+    if f == nil {
        return nil
     }
     pre := {{$.ClsName}}{{$v.PName}}Table
@@ -666,9 +671,11 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) QueryListByRevOrder(start *{{$v.PType}}
 		return errors.New("there is no data in range")
 	}
     var idx uint32 = 0
-    for idx < maxCount && iterator.Next() {
+    for iterator.Next() {
         idx ++
-        f(s.GetMainVal(iterator),s.GetSubVal(iterator))
+        if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
+			break
+		}
     }
     s.DelIterator(iterator)
 	return nil

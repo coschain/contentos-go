@@ -1461,21 +1461,23 @@ func (m *SoListWitnessByOwner) OpeEncode() ([]byte, error) {
 	return kBuf, cErr
 }
 
-//
 //Query sort by order
+//
 //start = nil  end = nil (query the db from start to end)
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
-//maxCount: represent the maximum amount of data you want to get，if the maxCount is greater than or equal to
-//the total count of data in result,traverse all data;otherwise traverse part of the data
-//f: callback for each traversal , primary and sub key as arguments to the callback function
 //
-func (s *SWitnessOwnerWrap) QueryListByOrder(start *prototype.AccountName, end *prototype.AccountName, maxCount uint32,
-	f func(mVal *prototype.AccountName, sVal *prototype.AccountName)) error {
+//f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
+//as arguments to the callback function
+//if the return value of f is true,continue iterating until the end iteration;
+//otherwise stop iteration immediately
+//
+func (s *SWitnessOwnerWrap) ForEachByOrder(start *prototype.AccountName, end *prototype.AccountName,
+	f func(mVal *prototype.AccountName, sVal *prototype.AccountName, idx uint32) bool) error {
 	if s.Dba == nil {
 		return errors.New("the db is nil")
 	}
-	if f == nil || maxCount < 1 {
+	if f == nil {
 		return nil
 	}
 	pre := WitnessOwnerTable
@@ -1502,9 +1504,11 @@ func (s *SWitnessOwnerWrap) QueryListByOrder(start *prototype.AccountName, end *
 		return errors.New("there is no data in range")
 	}
 	var idx uint32 = 0
-	for idx < maxCount && iterator.Next() {
+	for iterator.Next() {
 		idx++
-		f(s.GetMainVal(iterator), s.GetSubVal(iterator))
+		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
+			break
+		}
 	}
 	s.DelIterator(iterator)
 	return nil
@@ -1582,18 +1586,19 @@ func (m *SoListWitnessByVoteCount) OpeEncode() ([]byte, error) {
 	return kBuf, cErr
 }
 
-//
 //Query sort by reverse order
-//maxCount: represent the maximum amount of data you want to get，if the maxCount is greater than or equal to
-//the total count of data in result,traverse all data;otherwise traverse part of the data
-//f: callback for each traversal , primary and sub key as arguments to the callback function
 //
-func (s *SWitnessVoteCountWrap) QueryListByRevOrder(start *uint64, end *uint64, maxCount uint32,
-	f func(mVal *prototype.AccountName, sVal *uint64)) error {
+//f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
+//as arguments to the callback function
+//if the return value of f is true,continue iterating until the end iteration;
+//otherwise stop iteration immediately
+//
+func (s *SWitnessVoteCountWrap) ForEachByRevOrder(start *uint64, end *uint64,
+	f func(mVal *prototype.AccountName, sVal *uint64, idx uint32) bool) error {
 	if s.Dba == nil {
 		return errors.New("the db is nil")
 	}
-	if f == nil || maxCount < 1 {
+	if f == nil {
 		return nil
 	}
 	pre := WitnessVoteCountTable
@@ -1621,9 +1626,11 @@ func (s *SWitnessVoteCountWrap) QueryListByRevOrder(start *uint64, end *uint64, 
 		return errors.New("there is no data in range")
 	}
 	var idx uint32 = 0
-	for idx < maxCount && iterator.Next() {
+	for iterator.Next() {
 		idx++
-		f(s.GetMainVal(iterator), s.GetSubVal(iterator))
+		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
+			break
+		}
 	}
 	s.DelIterator(iterator)
 	return nil

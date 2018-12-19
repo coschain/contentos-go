@@ -903,21 +903,23 @@ func (m *SoListVoteByVoter) OpeEncode() ([]byte, error) {
 	return kBuf, cErr
 }
 
-//
 //Query sort by order
+//
 //start = nil  end = nil (query the db from start to end)
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
-//maxCount: represent the maximum amount of data you want to get，if the maxCount is greater than or equal to
-//the total count of data in result,traverse all data;otherwise traverse part of the data
-//f: callback for each traversal , primary and sub key as arguments to the callback function
 //
-func (s *SVoteVoterWrap) QueryListByOrder(start *prototype.VoterId, end *prototype.VoterId, maxCount uint32,
-	f func(mVal *prototype.VoterId, sVal *prototype.VoterId)) error {
+//f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
+//as arguments to the callback function
+//if the return value of f is true,continue iterating until the end iteration;
+//otherwise stop iteration immediately
+//
+func (s *SVoteVoterWrap) ForEachByOrder(start *prototype.VoterId, end *prototype.VoterId,
+	f func(mVal *prototype.VoterId, sVal *prototype.VoterId, idx uint32) bool) error {
 	if s.Dba == nil {
 		return errors.New("the db is nil")
 	}
-	if f == nil || maxCount < 1 {
+	if f == nil {
 		return nil
 	}
 	pre := VoteVoterTable
@@ -944,9 +946,11 @@ func (s *SVoteVoterWrap) QueryListByOrder(start *prototype.VoterId, end *prototy
 		return errors.New("there is no data in range")
 	}
 	var idx uint32 = 0
-	for idx < maxCount && iterator.Next() {
+	for iterator.Next() {
 		idx++
-		f(s.GetMainVal(iterator), s.GetSubVal(iterator))
+		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
+			break
+		}
 	}
 	s.DelIterator(iterator)
 	return nil
@@ -1026,21 +1030,23 @@ func (m *SoListVoteByVoteTime) OpeEncode() ([]byte, error) {
 	return kBuf, cErr
 }
 
-//
 //Query sort by order
+//
 //start = nil  end = nil (query the db from start to end)
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
-//maxCount: represent the maximum amount of data you want to get，if the maxCount is greater than or equal to
-//the total count of data in result,traverse all data;otherwise traverse part of the data
-//f: callback for each traversal , primary and sub key as arguments to the callback function
 //
-func (s *SVoteVoteTimeWrap) QueryListByOrder(start *prototype.TimePointSec, end *prototype.TimePointSec, maxCount uint32,
-	f func(mVal *prototype.VoterId, sVal *prototype.TimePointSec)) error {
+//f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
+//as arguments to the callback function
+//if the return value of f is true,continue iterating until the end iteration;
+//otherwise stop iteration immediately
+//
+func (s *SVoteVoteTimeWrap) ForEachByOrder(start *prototype.TimePointSec, end *prototype.TimePointSec,
+	f func(mVal *prototype.VoterId, sVal *prototype.TimePointSec, idx uint32) bool) error {
 	if s.Dba == nil {
 		return errors.New("the db is nil")
 	}
-	if f == nil || maxCount < 1 {
+	if f == nil {
 		return nil
 	}
 	pre := VoteVoteTimeTable
@@ -1067,9 +1073,11 @@ func (s *SVoteVoteTimeWrap) QueryListByOrder(start *prototype.TimePointSec, end 
 		return errors.New("there is no data in range")
 	}
 	var idx uint32 = 0
-	for idx < maxCount && iterator.Next() {
+	for iterator.Next() {
 		idx++
-		f(s.GetMainVal(iterator), s.GetSubVal(iterator))
+		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
+			break
+		}
 	}
 	s.DelIterator(iterator)
 	return nil
@@ -1147,21 +1155,23 @@ func (m *SoListVoteByPostId) OpeEncode() ([]byte, error) {
 	return kBuf, cErr
 }
 
-//
 //Query sort by order
+//
 //start = nil  end = nil (query the db from start to end)
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
-//maxCount: represent the maximum amount of data you want to get，if the maxCount is greater than or equal to
-//the total count of data in result,traverse all data;otherwise traverse part of the data
-//f: callback for each traversal , primary and sub key as arguments to the callback function
 //
-func (s *SVotePostIdWrap) QueryListByOrder(start *uint64, end *uint64, maxCount uint32,
-	f func(mVal *prototype.VoterId, sVal *uint64)) error {
+//f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
+//as arguments to the callback function
+//if the return value of f is true,continue iterating until the end iteration;
+//otherwise stop iteration immediately
+//
+func (s *SVotePostIdWrap) ForEachByOrder(start *uint64, end *uint64,
+	f func(mVal *prototype.VoterId, sVal *uint64, idx uint32) bool) error {
 	if s.Dba == nil {
 		return errors.New("the db is nil")
 	}
-	if f == nil || maxCount < 1 {
+	if f == nil {
 		return nil
 	}
 	pre := VotePostIdTable
@@ -1188,9 +1198,11 @@ func (s *SVotePostIdWrap) QueryListByOrder(start *uint64, end *uint64, maxCount 
 		return errors.New("there is no data in range")
 	}
 	var idx uint32 = 0
-	for idx < maxCount && iterator.Next() {
+	for iterator.Next() {
 		idx++
-		f(s.GetMainVal(iterator), s.GetSubVal(iterator))
+		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
+			break
+		}
 	}
 	s.DelIterator(iterator)
 	return nil

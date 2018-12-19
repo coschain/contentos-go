@@ -500,21 +500,23 @@ func (m *SoListExtFollowingByFollowingCreatedOrder) OpeEncode() ([]byte, error) 
 	return kBuf, cErr
 }
 
-//
 //Query sort by order
+//
 //start = nil  end = nil (query the db from start to end)
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
-//maxCount: represent the maximum amount of data you want to get，if the maxCount is greater than or equal to
-//the total count of data in result,traverse all data;otherwise traverse part of the data
-//f: callback for each traversal , primary and sub key as arguments to the callback function
 //
-func (s *SExtFollowingFollowingCreatedOrderWrap) QueryListByOrder(start *prototype.FollowingCreatedOrder, end *prototype.FollowingCreatedOrder, maxCount uint32,
-	f func(mVal *prototype.FollowingRelation, sVal *prototype.FollowingCreatedOrder)) error {
+//f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
+//as arguments to the callback function
+//if the return value of f is true,continue iterating until the end iteration;
+//otherwise stop iteration immediately
+//
+func (s *SExtFollowingFollowingCreatedOrderWrap) ForEachByOrder(start *prototype.FollowingCreatedOrder, end *prototype.FollowingCreatedOrder,
+	f func(mVal *prototype.FollowingRelation, sVal *prototype.FollowingCreatedOrder, idx uint32) bool) error {
 	if s.Dba == nil {
 		return errors.New("the db is nil")
 	}
-	if f == nil || maxCount < 1 {
+	if f == nil {
 		return nil
 	}
 	pre := ExtFollowingFollowingCreatedOrderTable
@@ -541,9 +543,11 @@ func (s *SExtFollowingFollowingCreatedOrderWrap) QueryListByOrder(start *prototy
 		return errors.New("there is no data in range")
 	}
 	var idx uint32 = 0
-	for idx < maxCount && iterator.Next() {
+	for iterator.Next() {
 		idx++
-		f(s.GetMainVal(iterator), s.GetSubVal(iterator))
+		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
+			break
+		}
 	}
 	s.DelIterator(iterator)
 	return nil

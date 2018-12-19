@@ -14,7 +14,6 @@ import (
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
-	"math"
 	"strconv"
 )
 
@@ -879,8 +878,8 @@ func (c *TrxPool) createBlockSummary(blk *prototype.SignedBlock) {
 
 func (c *TrxPool) clearExpiredTransactions() {
 	sortWrap := table.STransactionObjectExpirationWrap{Dba: c.db}
-	sortWrap.QueryListByOrder(nil, nil, math.MaxUint32,
-		func(mVal *prototype.Sha256, sVal *prototype.TimePointSec) {
+	sortWrap.ForEachByOrder(nil, nil,
+		func(mVal *prototype.Sha256, sVal *prototype.TimePointSec, idx uint32) bool {
 			if sVal != nil {
 				headTime := c.headBlockTime().UtcSeconds
 				if headTime > sVal.UtcSeconds {
@@ -889,17 +888,23 @@ func (c *TrxPool) clearExpiredTransactions() {
 					objWrap := table.NewSoTransactionObjectWrap(c.db, k)
 					mustSuccess(objWrap.RemoveTransactionObject(), "RemoveTransactionObject error")
 				}
+				return true
 			}
+			return false
 	})
 }
 
 func (c *TrxPool) GetWitnessTopN(n uint32) []string {
 	ret := []string{}
 	revList := table.SWitnessVoteCountWrap{Dba: c.db}
-	revList.QueryListByRevOrder(nil, nil, n, func(mVal *prototype.AccountName, sVal *uint64) {
+	revList.ForEachByRevOrder(nil, nil, func(mVal *prototype.AccountName, sVal *uint64, idx uint32) bool {
 		if mVal != nil {
 			ret = append(ret, mVal.Value)
 		}
+		if idx < n {
+			return true
+		}
+		return false
 	})
 	return ret
 }

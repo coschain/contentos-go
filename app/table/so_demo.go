@@ -1419,18 +1419,19 @@ func (m *SoListDemoByOwner) OpeEncode() ([]byte, error) {
 	return kBuf, cErr
 }
 
-//
 //Query sort by reverse order
-//maxCount: represent the maximum amount of data you want to get，if the maxCount is greater than or equal to
-//the total count of data in result,traverse all data;otherwise traverse part of the data
-//f: callback for each traversal , primary and sub key as arguments to the callback function
 //
-func (s *SDemoOwnerWrap) QueryListByRevOrder(start *prototype.AccountName, end *prototype.AccountName, maxCount uint32,
-	f func(mVal *prototype.AccountName, sVal *prototype.AccountName)) error {
+//f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
+//as arguments to the callback function
+//if the return value of f is true,continue iterating until the end iteration;
+//otherwise stop iteration immediately
+//
+func (s *SDemoOwnerWrap) ForEachByRevOrder(start *prototype.AccountName, end *prototype.AccountName,
+	f func(mVal *prototype.AccountName, sVal *prototype.AccountName, idx uint32) bool) error {
 	if s.Dba == nil {
 		return errors.New("the db is nil")
 	}
-	if f == nil || maxCount < 1 {
+	if f == nil {
 		return nil
 	}
 	pre := DemoOwnerTable
@@ -1458,9 +1459,11 @@ func (s *SDemoOwnerWrap) QueryListByRevOrder(start *prototype.AccountName, end *
 		return errors.New("there is no data in range")
 	}
 	var idx uint32 = 0
-	for idx < maxCount && iterator.Next() {
+	for iterator.Next() {
 		idx++
-		f(s.GetMainVal(iterator), s.GetSubVal(iterator))
+		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
+			break
+		}
 	}
 	s.DelIterator(iterator)
 	return nil
@@ -1540,21 +1543,23 @@ func (m *SoListDemoByPostTime) OpeEncode() ([]byte, error) {
 	return kBuf, cErr
 }
 
-//
 //Query sort by order
+//
 //start = nil  end = nil (query the db from start to end)
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
-//maxCount: represent the maximum amount of data you want to get，if the maxCount is greater than or equal to
-//the total count of data in result,traverse all data;otherwise traverse part of the data
-//f: callback for each traversal , primary and sub key as arguments to the callback function
 //
-func (s *SDemoPostTimeWrap) QueryListByOrder(start *prototype.TimePointSec, end *prototype.TimePointSec, maxCount uint32,
-	f func(mVal *prototype.AccountName, sVal *prototype.TimePointSec)) error {
+//f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
+//as arguments to the callback function
+//if the return value of f is true,continue iterating until the end iteration;
+//otherwise stop iteration immediately
+//
+func (s *SDemoPostTimeWrap) ForEachByOrder(start *prototype.TimePointSec, end *prototype.TimePointSec,
+	f func(mVal *prototype.AccountName, sVal *prototype.TimePointSec, idx uint32) bool) error {
 	if s.Dba == nil {
 		return errors.New("the db is nil")
 	}
-	if f == nil || maxCount < 1 {
+	if f == nil {
 		return nil
 	}
 	pre := DemoPostTimeTable
@@ -1581,26 +1586,29 @@ func (s *SDemoPostTimeWrap) QueryListByOrder(start *prototype.TimePointSec, end 
 		return errors.New("there is no data in range")
 	}
 	var idx uint32 = 0
-	for idx < maxCount && iterator.Next() {
+	for iterator.Next() {
 		idx++
-		f(s.GetMainVal(iterator), s.GetSubVal(iterator))
+		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
+			break
+		}
 	}
 	s.DelIterator(iterator)
 	return nil
 }
 
-//
 //Query sort by reverse order
-//maxCount: represent the maximum amount of data you want to get，if the maxCount is greater than or equal to
-//the total count of data in result,traverse all data;otherwise traverse part of the data
-//f: callback for each traversal , primary and sub key as arguments to the callback function
 //
-func (s *SDemoPostTimeWrap) QueryListByRevOrder(start *prototype.TimePointSec, end *prototype.TimePointSec, maxCount uint32,
-	f func(mVal *prototype.AccountName, sVal *prototype.TimePointSec)) error {
+//f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
+//as arguments to the callback function
+//if the return value of f is true,continue iterating until the end iteration;
+//otherwise stop iteration immediately
+//
+func (s *SDemoPostTimeWrap) ForEachByRevOrder(start *prototype.TimePointSec, end *prototype.TimePointSec,
+	f func(mVal *prototype.AccountName, sVal *prototype.TimePointSec, idx uint32) bool) error {
 	if s.Dba == nil {
 		return errors.New("the db is nil")
 	}
-	if f == nil || maxCount < 1 {
+	if f == nil {
 		return nil
 	}
 	pre := DemoPostTimeTable
@@ -1628,9 +1636,11 @@ func (s *SDemoPostTimeWrap) QueryListByRevOrder(start *prototype.TimePointSec, e
 		return errors.New("there is no data in range")
 	}
 	var idx uint32 = 0
-	for idx < maxCount && iterator.Next() {
+	for iterator.Next() {
 		idx++
-		f(s.GetMainVal(iterator), s.GetSubVal(iterator))
+		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
+			break
+		}
 	}
 	s.DelIterator(iterator)
 	return nil
@@ -1708,18 +1718,19 @@ func (m *SoListDemoByLikeCount) OpeEncode() ([]byte, error) {
 	return kBuf, cErr
 }
 
-//
 //Query sort by reverse order
-//maxCount: represent the maximum amount of data you want to get，if the maxCount is greater than or equal to
-//the total count of data in result,traverse all data;otherwise traverse part of the data
-//f: callback for each traversal , primary and sub key as arguments to the callback function
 //
-func (s *SDemoLikeCountWrap) QueryListByRevOrder(start *int64, end *int64, maxCount uint32,
-	f func(mVal *prototype.AccountName, sVal *int64)) error {
+//f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
+//as arguments to the callback function
+//if the return value of f is true,continue iterating until the end iteration;
+//otherwise stop iteration immediately
+//
+func (s *SDemoLikeCountWrap) ForEachByRevOrder(start *int64, end *int64,
+	f func(mVal *prototype.AccountName, sVal *int64, idx uint32) bool) error {
 	if s.Dba == nil {
 		return errors.New("the db is nil")
 	}
-	if f == nil || maxCount < 1 {
+	if f == nil {
 		return nil
 	}
 	pre := DemoLikeCountTable
@@ -1747,9 +1758,11 @@ func (s *SDemoLikeCountWrap) QueryListByRevOrder(start *int64, end *int64, maxCo
 		return errors.New("there is no data in range")
 	}
 	var idx uint32 = 0
-	for idx < maxCount && iterator.Next() {
+	for iterator.Next() {
 		idx++
-		f(s.GetMainVal(iterator), s.GetSubVal(iterator))
+		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
+			break
+		}
 	}
 	s.DelIterator(iterator)
 	return nil
@@ -1827,18 +1840,19 @@ func (m *SoListDemoByIdx) OpeEncode() ([]byte, error) {
 	return kBuf, cErr
 }
 
-//
 //Query sort by reverse order
-//maxCount: represent the maximum amount of data you want to get，if the maxCount is greater than or equal to
-//the total count of data in result,traverse all data;otherwise traverse part of the data
-//f: callback for each traversal , primary and sub key as arguments to the callback function
 //
-func (s *SDemoIdxWrap) QueryListByRevOrder(start *int64, end *int64, maxCount uint32,
-	f func(mVal *prototype.AccountName, sVal *int64)) error {
+//f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
+//as arguments to the callback function
+//if the return value of f is true,continue iterating until the end iteration;
+//otherwise stop iteration immediately
+//
+func (s *SDemoIdxWrap) ForEachByRevOrder(start *int64, end *int64,
+	f func(mVal *prototype.AccountName, sVal *int64, idx uint32) bool) error {
 	if s.Dba == nil {
 		return errors.New("the db is nil")
 	}
-	if f == nil || maxCount < 1 {
+	if f == nil {
 		return nil
 	}
 	pre := DemoIdxTable
@@ -1866,9 +1880,11 @@ func (s *SDemoIdxWrap) QueryListByRevOrder(start *int64, end *int64, maxCount ui
 		return errors.New("there is no data in range")
 	}
 	var idx uint32 = 0
-	for idx < maxCount && iterator.Next() {
+	for iterator.Next() {
 		idx++
-		f(s.GetMainVal(iterator), s.GetSubVal(iterator))
+		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
+			break
+		}
 	}
 	s.DelIterator(iterator)
 	return nil
@@ -1946,21 +1962,23 @@ func (m *SoListDemoByReplayCount) OpeEncode() ([]byte, error) {
 	return kBuf, cErr
 }
 
-//
 //Query sort by order
+//
 //start = nil  end = nil (query the db from start to end)
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
-//maxCount: represent the maximum amount of data you want to get，if the maxCount is greater than or equal to
-//the total count of data in result,traverse all data;otherwise traverse part of the data
-//f: callback for each traversal , primary and sub key as arguments to the callback function
 //
-func (s *SDemoReplayCountWrap) QueryListByOrder(start *int64, end *int64, maxCount uint32,
-	f func(mVal *prototype.AccountName, sVal *int64)) error {
+//f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
+//as arguments to the callback function
+//if the return value of f is true,continue iterating until the end iteration;
+//otherwise stop iteration immediately
+//
+func (s *SDemoReplayCountWrap) ForEachByOrder(start *int64, end *int64,
+	f func(mVal *prototype.AccountName, sVal *int64, idx uint32) bool) error {
 	if s.Dba == nil {
 		return errors.New("the db is nil")
 	}
-	if f == nil || maxCount < 1 {
+	if f == nil {
 		return nil
 	}
 	pre := DemoReplayCountTable
@@ -1987,9 +2005,11 @@ func (s *SDemoReplayCountWrap) QueryListByOrder(start *int64, end *int64, maxCou
 		return errors.New("there is no data in range")
 	}
 	var idx uint32 = 0
-	for idx < maxCount && iterator.Next() {
+	for iterator.Next() {
 		idx++
-		f(s.GetMainVal(iterator), s.GetSubVal(iterator))
+		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
+			break
+		}
 	}
 	s.DelIterator(iterator)
 	return nil
@@ -2067,21 +2087,23 @@ func (m *SoListDemoByTaglist) OpeEncode() ([]byte, error) {
 	return kBuf, cErr
 }
 
-//
 //Query sort by order
+//
 //start = nil  end = nil (query the db from start to end)
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
-//maxCount: represent the maximum amount of data you want to get，if the maxCount is greater than or equal to
-//the total count of data in result,traverse all data;otherwise traverse part of the data
-//f: callback for each traversal , primary and sub key as arguments to the callback function
 //
-func (s *SDemoTaglistWrap) QueryListByOrder(start *[]string, end *[]string, maxCount uint32,
-	f func(mVal *prototype.AccountName, sVal *[]string)) error {
+//f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
+//as arguments to the callback function
+//if the return value of f is true,continue iterating until the end iteration;
+//otherwise stop iteration immediately
+//
+func (s *SDemoTaglistWrap) ForEachByOrder(start *[]string, end *[]string,
+	f func(mVal *prototype.AccountName, sVal *[]string, idx uint32) bool) error {
 	if s.Dba == nil {
 		return errors.New("the db is nil")
 	}
-	if f == nil || maxCount < 1 {
+	if f == nil {
 		return nil
 	}
 	pre := DemoTaglistTable
@@ -2108,9 +2130,11 @@ func (s *SDemoTaglistWrap) QueryListByOrder(start *[]string, end *[]string, maxC
 		return errors.New("there is no data in range")
 	}
 	var idx uint32 = 0
-	for idx < maxCount && iterator.Next() {
+	for iterator.Next() {
 		idx++
-		f(s.GetMainVal(iterator), s.GetSubVal(iterator))
+		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
+			break
+		}
 	}
 	s.DelIterator(iterator)
 	return nil
