@@ -1,11 +1,11 @@
 package vme
 
 //
-// vme is for contract parameter encoding.
+// vme is for contract data encoding.
 // It implements the same serialization protocol used by smart contracts.
 //
-// Single parameter
-// A single parameter can be an instance of,
+// Single value
+// A single value can be an instance of,
 //  - primitive types (bool/integers/floats/string) or
 //  - single or multiple dimensional slice of primitive types
 //
@@ -15,19 +15,23 @@ package vme
 // Slices are encoded as a variant-length-integer encoded length followed by encoded elements one by one.
 //
 //
-// Multiple parameters
-// Multiple parameters are encoded by concatenating encoded parameters.
+// Multiple values
+// Multiple values are just treated as []interface{}.
 //
 //
-// Example
-// To encode a single parameter,
+// Examples
+// To encode a single value,
 //   Encode(10)
 //   Encode("hello")
-//   Encode([]int{1, 2, 3})         // a single parameter of type []int.
+//   Encode([]int{1, 2, 3})                    // a single value of type []int.
 //
-// To encode multiple parameters,
-//   Encode(1, 2, 3)                // 3 separate int parameters
-//   Encode("world", 3.14, byte(20), true)
+// To encode multiple values,
+//   EncodeMany(1, 2, 3)                       // 3 separate int values
+//   EncodeMany("world", 3.14, byte(20), true)
+//
+// When passing contract arguments, always use EncodeMany(). e.g.
+//   EncodeMany("alice", 100)                  // 2 arguments
+//   EncodeMany()                              // no arguments
 //
 
 import (
@@ -185,30 +189,10 @@ func encodeValue(rv reflect.Value) ([]byte, error) {
 	return nil, errors.New(fmt.Sprintf("vme: cannot encode values of type %s", rt.Name()))
 }
 
-func encode(value interface{}) ([]byte, error) {
+func Encode(value interface{}) ([]byte, error) {
 	return encodeValue(reflect.ValueOf(value))
 }
 
-func Encode(values...interface{}) ([]byte, error) {
-	count := len(values)
-	if count == 0 {
-		return nil, errors.New("vme: nothing to encode")
-	}
-	r := make([][]byte, count)
-	for i, v := range values {
-		data, err := encode(v)
-		if err != nil {
-			return nil, err
-		}
-		r[i] = data
-	}
-	return bytes.Join(r, nil), nil
-}
-
-func String(value...interface{}) (string, error) {
-	if data, err := Encode(value...); err != nil {
-		return "", err
-	} else {
-		return string(data), nil
-	}
+func EncodeMany(values...interface{}) ([]byte, error) {
+	return encodeSlice(values)
 }

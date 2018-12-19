@@ -26,7 +26,7 @@ func EncodeJsonArray(jsonStr string, targetTypes []reflect.Type) ([]byte, error)
 			args[i] = cv
 		}
 	}
-	return Encode(args...)
+	return EncodeMany(args...)
 }
 
 func convertJsonArg(src interface{}, dstType reflect.Type) (interface{}, error) {
