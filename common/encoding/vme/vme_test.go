@@ -124,4 +124,22 @@ func TestDecode(t *testing.T) {
 		reflect.ValueOf(d).Field(1).Field(2).Float() != float64(float32(3.14159)) {
 		t.Fatal("decoding result error on structures")
 	}
+
+	v1 := int32(0)
+	Decode([]byte{10, 0, 0, 0}, &v1)
+	if v1 != 10 {
+		t.Fatal("decoding result error on ints")
+	}
+	v2 := "world"
+	Decode([]byte("\x05hello"), &v2)
+	if v2 != "hello" {
+		t.Fatal("decoding result error on strings")
+	}
+
+	t3 := StructOf(StringType(), StructOf(StringType(), Int16Type(), Float32Type()))
+	p3 := reflect.New(t3).Interface()
+	Decode([]byte("\x02\x03bob\x03\x05alice\x64\x00\xd0\x0f\x49\x40"), p3)
+	if reflect.ValueOf(p3).Elem().Field(0).String() != "bob" {
+		t.Fatal("decoding result error on structures")
+	}
 }

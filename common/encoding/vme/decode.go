@@ -221,7 +221,7 @@ func Decode(data []byte, outPtr interface{}) error {
 	dt := out.Type().Elem()
 	dv, n := decodeValue(data, dt)
 	if n > 0 {
-		out.Set(reflect.ValueOf(dv).Addr())
+		out.Elem().Set(reflect.ValueOf(dv))
 	}
 	return decodingError(n, dt)
 }
