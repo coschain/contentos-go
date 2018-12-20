@@ -75,3 +75,24 @@ func StructValue(fieldValues...interface{}) interface{} {
 	}
 	return val.Interface()
 }
+
+type structBuilder struct {
+	fields []reflect.StructField
+}
+
+func NewStructBuilder() *structBuilder {
+	return &structBuilder{}
+}
+
+func (b *structBuilder) AddField(name string, typ reflect.Type, tag string) *structBuilder {
+	b.fields = append(b.fields, reflect.StructField{
+		Name: name,
+		Type: typ,
+		Tag: reflect.StructTag(tag),
+	})
+	return b
+}
+
+func (b *structBuilder) Build() reflect.Type {
+	return reflect.StructOf(b.fields)
+}
