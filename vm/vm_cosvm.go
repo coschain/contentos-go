@@ -174,7 +174,7 @@ func (w *CosVM) writeT1(proc *exec.Process, spointer int32, dpointer int32) int3
 }
 
 func (w *CosVM) readStrAt(proc *exec.Process, pointer int32, maxLength int32, buf *[]byte) (length int32, err error) {
-	if pointer == 0 && maxLength == 0 {
+	if maxLength == 0 {
 		return w.strLen(proc, pointer)
 	} else {
 		return w.readStr(proc, pointer, maxLength, buf)
@@ -184,7 +184,14 @@ func (w *CosVM) readStrAt(proc *exec.Process, pointer int32, maxLength int32, bu
 func (w *CosVM) strLen(proc *exec.Process, pointer int32) (length int32, err error) {
 	// for now, the max read length is 36
 	var buf []byte
-	length, err = w.readStr(proc, pointer, int32(maxReadLength), &buf)
+	for {
+		perLength, _ := w.readStr(proc, pointer, int32(maxReadLength), &buf)
+		length += perLength
+		pointer += perLength
+		if perLength < int32(maxReadLength) {
+			break
+		}
+	}
 	// never raise error
 	return length, nil
 }

@@ -25,7 +25,7 @@ type WasmVmService struct {
 }
 
 func (w *WasmVmService) getDb() (iservices.IDatabaseService, error) {
-	s, err := w.ctx.Service("db")
+	s, err := w.ctx.Service(iservices.DbServerName)
 	if err != nil {
 		return nil, err
 	}

@@ -78,6 +78,16 @@ func TestCosVm_writeByte2(t *testing.T) {
 	myassert.Equal(ret, uint32(5))
 }
 
+func TestCosVM_StrLen(t *testing.T) {
+	wasmFile := "./testdata/strlen.wasm"
+	myassert := assert.New(t)
+	data, _ := ioutil.ReadFile(wasmFile)
+	context := vmcontext.Context{Code: data}
+	vm := NewCosVM(&context, nil, nil, log15.New())
+	ret, _ := vm.Run()
+	myassert.Equal(ret, uint32(101))
+}
+
 func TestCosVM_Print(t *testing.T) {
 	wasmFile := "./testdata/print.wasm"
 	myassert := assert.New(t)
