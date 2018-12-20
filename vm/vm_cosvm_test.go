@@ -6,6 +6,7 @@ import (
 	"github.com/coschain/contentos-go/db/storage"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/vm/context"
+	"github.com/go-interpreter/wagon/exec"
 	"github.com/inconshreveable/log15"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
@@ -16,6 +17,10 @@ import (
 const (
 	dbPath = "/tmp/cos.db"
 )
+
+func fadd(proc *exec.Process, a, b float32) float32 {
+	return a + b
+}
 
 func TestCosVM_simpleAdd(t *testing.T) {
 	wasmFile := "./testdata/add.wasm"
@@ -88,8 +93,19 @@ func TestCosVM_StrLen(t *testing.T) {
 	myassert.Equal(ret, uint32(101))
 }
 
-func TestCosVM_Validate(t *testing.T) {
+func TestCosVM_ValidateFloat(t *testing.T) {
 	wasmFile := "./testdata/float.wasm"
+	data, _ := ioutil.ReadFile(wasmFile)
+	myassert := assert.New(t)
+	context := vmcontext.Context{Code: data}
+	vm := NewCosVM(&context, nil, nil, log15.New())
+	vm.Register("add", fadd)
+	err := vm.Validate()
+	myassert.Error(err)
+}
+
+func TestCosVM_ValidateFloatGlobal(t *testing.T) {
+	wasmFile := "./testdata/float_global.wasm"
 	data, _ := ioutil.ReadFile(wasmFile)
 	myassert := assert.New(t)
 	context := vmcontext.Context{Code: data}

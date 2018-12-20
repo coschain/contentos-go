@@ -1,8 +1,6 @@
 extern "C" {
 
-    float add(float a, float b) {
-        return a + b;
-    }
+    float add(float a, float b);
 
     int main() {
         float a = 3.14;
