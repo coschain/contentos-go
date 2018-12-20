@@ -41,6 +41,9 @@ func UintType() reflect.Type {
 func Float32Type() reflect.Type {
 	return reflect.TypeOf(float32(0))
 }
+func Float64Type() reflect.Type {
+	return reflect.TypeOf(float64(0))
+}
 func StringType() reflect.Type {
 	return reflect.TypeOf("")
 }
