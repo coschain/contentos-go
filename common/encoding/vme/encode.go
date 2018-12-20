@@ -1,39 +1,5 @@
 package vme
 
-//
-// vme is for contract data encoding.
-// It implements the same serialization protocol used by smart contracts.
-//
-// Single value
-// A single value can be an instance of,
-//  - primitive types (bool/integers/floats/string) or
-//  - single or multiple dimensional slice of primitive types
-//
-// Integers and floats are encoded by simply using their memory bytes, in host machine's byte order.
-// Booleans are treated as special bytes. byte(1) represents true, and byte(0) represents false.
-// Strings are treated as byte slices.
-// Slices are encoded as a variant-length-integer encoded length followed by encoded elements one by one.
-//
-//
-// Multiple values
-// Multiple values are just treated as []interface{}.
-//
-//
-// Examples
-// To encode a single value,
-//   Encode(10)
-//   Encode("hello")
-//   Encode([]int{1, 2, 3})                    // a single value of type []int.
-//
-// To encode multiple values,
-//   EncodeMany(1, 2, 3)                       // 3 separate int values
-//   EncodeMany("world", 3.14, byte(20), true)
-//
-// When passing contract arguments, always use EncodeMany(). e.g.
-//   EncodeMany("alice", 100)                  // 2 arguments
-//   EncodeMany()                              // no arguments
-//
-
 import (
 	"bytes"
 	"encoding/binary"
@@ -120,12 +86,12 @@ func encodeBytes(value []byte) ([]byte, error) {
 	return bytes.Join([][]byte{ varInt(uint64(len(value))), value }, nil), nil
 }
 
-func encodeSlice(value []interface{}) ([]byte, error) {
-	count := len(value)
+func encodeStruct(rv reflect.Value) ([]byte, error) {
+	count := rv.NumField()
 	parts := make([][]byte, 0, count + 1)
 	parts = append(parts, varInt(uint64(count)))
-	for _, e := range value {
-		if data, err := Encode(e); err != nil {
+	for i := 0; i < count; i++ {
+		if data, err := encodeValue(rv.Field(i)); err != nil {
 			return nil, err
 		} else {
 			parts = append(parts, data)
@@ -175,24 +141,16 @@ func encodeValue(rv reflect.Value) ([]byte, error) {
 		return encodeFloat64(rv.Float())
 	case reflect.String:
 		return encodeString(rv.String())
-	case reflect.Array, reflect.Slice:
+	case reflect.Slice:
 		if rt.Elem().Kind() == reflect.Uint8 {
 			return encodeBytes(rv.Bytes())
 		}
-		size := rv.Len()
-		elements := make([]interface{}, size)
-		for i := 0; i < size; i++ {
-			elements[i] = rv.Index(i).Interface()
-		}
-		return encodeSlice(elements)
+	case reflect.Struct:
+		return encodeStruct(rv)
 	}
-	return nil, errors.New(fmt.Sprintf("vme: cannot encode values of type %s", rt.Name()))
+	return nil, errors.New(fmt.Sprintf("vme: cannot encode values of type: %s", rt.String()))
 }
 
 func Encode(value interface{}) ([]byte, error) {
 	return encodeValue(reflect.ValueOf(value))
-}
-
-func EncodeMany(values...interface{}) ([]byte, error) {
-	return encodeSlice(values)
 }

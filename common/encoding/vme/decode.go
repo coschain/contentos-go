@@ -145,22 +145,22 @@ func decodeBytes(data []byte) ([]byte, int) {
 	}
 }
 
-func decodeSlice(data []byte, eType reflect.Type) (interface{}, int) {
+func decodeStruct(data []byte, typ reflect.Type) (interface{}, int) {
 	count, offset := decodeCount(data)
 	if offset <= 0 {
 		return nil, 0
 	}
 	size := int(count)
-	sv := reflect.MakeSlice(eType, size, size)
+	rv := reflect.New(typ).Elem()
 	for i := 0; i < size; i++ {
-		dv, n := decodeValue(data[offset:], eType)
+		dv, n := decodeValue(data[offset:], typ.Field(i).Type)
 		if n <= 0 {
 			return nil, n
 		}
-		sv.Index(i).Set(reflect.ValueOf(dv))
+		rv.Field(i).Set(reflect.ValueOf(dv))
 		offset += n
 	}
-	return sv.Interface(), offset
+	return rv.Interface(), offset
 }
 
 func decodeValue(data []byte, typ reflect.Type) (interface{}, int) {
@@ -198,7 +198,8 @@ func decodeValue(data []byte, typ reflect.Type) (interface{}, int) {
 		if et.Kind() == reflect.Uint8 {
 			return decodeBytes(data)
 		}
-		return decodeSlice(data, et)
+	case reflect.Struct:
+		return decodeStruct(data, typ)
 	}
 	return nil, -1
 }
@@ -228,45 +229,4 @@ func Decode(data []byte, outPtr interface{}) error {
 func DecodeWithType(data []byte, valueType reflect.Type) (interface{}, error) {
 	dv, n := decodeValue(data, valueType)
 	return dv, decodingError(n, valueType)
-}
-
-func DecodeManyWithTypes(data []byte, valueTypes...reflect.Type) ([]interface{}, error) {
-	if len(valueTypes) == 0 {
-		return nil, errors.New("vme: nothing to decode.")
-	}
-	count, offset := decodeCount(data)
-	if offset <= 0 || int(count) < len(valueTypes) {
-		return nil, errors.New("vme: Invalid encoded data.")
-	}
-
-	result := make([]interface{}, len(valueTypes))
-	for i, vt := range valueTypes {
-		dv, n := decodeValue(data[offset:], vt)
-		if n > 0 {
-			result[i] = dv
-			offset += n
-		} else {
-			return nil, decodingError(n, vt)
-		}
-	}
-	return result, nil
-}
-
-func DecodeWithTypeSig(data []byte, typeSig string) (interface{}, error) {
-	valueTypes, err := TypeSignatureDecode(typeSig)
-	if err != nil {
-		return nil, err
-	}
-	if len(valueTypes) == 0 {
-		return nil, errors.New("vme: nothing to decode.")
-	}
-	return DecodeWithType(data, valueTypes[0])
-}
-
-func DecodeManyWithTypeSig(data []byte, typeSig string) ([]interface{}, error) {
-	valueTypes, err := TypeSignatureDecode(typeSig)
-	if err != nil {
-		return nil, err
-	}
-	return DecodeManyWithTypes(data, valueTypes...)
 }
