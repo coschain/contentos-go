@@ -28,6 +28,7 @@ func requireEncodeJsonResult(t *testing.T, jsonStr string, typ reflect.Type, leB
 	if !common.IsLittleEndianPlatform() {
 		n := len(leBytes)
 		r = make([]byte, n)
+		n--
 		for i := range r {
 			r[i] = leBytes[n - i]
 		}
@@ -42,6 +43,7 @@ func requireDecodeJsonOK(t *testing.T, typ reflect.Type, leBytes...byte) string 
 	if !common.IsLittleEndianPlatform() {
 		n := len(leBytes)
 		enc = make([]byte, n)
+		n--
 		for i := range enc {
 			enc[i] = leBytes[n - i]
 		}

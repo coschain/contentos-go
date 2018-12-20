@@ -28,6 +28,7 @@ func requireEncodeResult(t *testing.T, value interface{}, leBytes...byte) {
 	if !common.IsLittleEndianPlatform() {
 		n := len(leBytes)
 		r = make([]byte, n)
+		n--
 		for i := range r {
 			r[i] = leBytes[n - i]
 		}
@@ -42,6 +43,7 @@ func requireDecodeOK(t *testing.T, typ reflect.Type, leBytes...byte) interface{}
 	if !common.IsLittleEndianPlatform() {
 		n := len(leBytes)
 		enc = make([]byte, n)
+		n--
 		for i := range enc {
 			enc[i] = leBytes[n - i]
 		}
