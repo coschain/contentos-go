@@ -9,6 +9,7 @@ import (
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/vm/context"
+	"github.com/coschain/contentos-go/vm/validator"
 	"github.com/go-interpreter/wagon/exec"
 	"github.com/go-interpreter/wagon/wasm"
 	"github.com/inconshreveable/log15"
@@ -64,13 +65,7 @@ func (w *CosVM) initNativeFuncs() {
 	w.Register("writet1", w.writeT1)
 }
 
-func (w *CosVM) Run() (ret uint32, err error) {
-	defer func() {
-		if e := recover(); e != nil {
-			ret = 1
-			err = errors.New("cosvm exit by exception")
-		}
-	}()
+func (w *CosVM) readModule() (*wasm.Module, error) {
 	w.initNativeFuncs()
 	m := wasm.NewModule()
 	m.Types = &wasm.SectionTypes{Entries: w.nativeFuncSigs}
@@ -90,6 +85,17 @@ func (w *CosVM) Run() (ret uint32, err error) {
 	vmModule, err := wasm.ReadModule(bytes.NewReader(code), func(name string) (module *wasm.Module, e error) {
 		return m, nil
 	})
+	return vmModule, err
+}
+
+func (w *CosVM) Run() (ret uint32, err error) {
+	defer func() {
+		if e := recover(); e != nil {
+			ret = 1
+			err = errors.New("cosvm exit by exception")
+		}
+	}()
+	vmModule, err := w.readModule()
 	if err != nil {
 		ret = 1
 		return
@@ -112,6 +118,15 @@ func (w *CosVM) Run() (ret uint32, err error) {
 		err = e
 	}
 	return
+}
+
+func (w *CosVM) Validate() error {
+	vmModule, err := w.readModule()
+	if err != nil {
+		return err
+	}
+	err = vmvalidator.VerifyModule(vmModule)
+	return err
 }
 
 func (w *CosVM) Register(funcName string, function interface{}) {

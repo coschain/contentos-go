@@ -88,6 +88,26 @@ func TestCosVM_StrLen(t *testing.T) {
 	myassert.Equal(ret, uint32(101))
 }
 
+func TestCosVM_Validate(t *testing.T) {
+	wasmFile := "./testdata/float.wasm"
+	data, _ := ioutil.ReadFile(wasmFile)
+	myassert := assert.New(t)
+	context := vmcontext.Context{Code: data}
+	vm := NewCosVM(&context, nil, nil, log15.New())
+	err := vm.Validate()
+	myassert.Error(err)
+}
+
+func TestCosVm_NotExportFunc(t *testing.T) {
+	wasmFile := "./testdata/notexport.wasm"
+	data, _ := ioutil.ReadFile(wasmFile)
+	myassert := assert.New(t)
+	context := vmcontext.Context{Code: data}
+	vm := NewCosVM(&context, nil, nil, log15.New())
+	err := vm.Validate()
+	myassert.Error(err)
+}
+
 func TestCosVM_Print(t *testing.T) {
 	wasmFile := "./testdata/print.wasm"
 	myassert := assert.New(t)
