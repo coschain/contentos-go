@@ -259,24 +259,16 @@ func Test_list(t *testing.T) {
 	// check and delete
 
 	sortWrap := table.STransactionObjectExpirationWrap{Dba: db}
-	itr := sortWrap.QueryListByOrder(nil, nil) // query all
-	if itr != nil {
-		for itr.Next() {
-
-			subPtr := sortWrap.GetSubVal(itr)
-			if subPtr == nil {
-				break
-			}
-
-			k := sortWrap.GetMainVal(itr)
-			objWrap := table.NewSoTransactionObjectWrap(db, k)
-			if !objWrap.RemoveTransactionObject() {
-				panic("RemoveTransactionObject error")
-			}
-
-		}
-		sortWrap.DelIterater(itr)
-	}
+	sortWrap.ForEachByOrder(nil, nil,
+		func(mVal *prototype.Sha256, sVal *prototype.TimePointSec, idx uint32) bool {
+		   if sVal != nil {
+			   objWrap := table.NewSoTransactionObjectWrap(db, mVal)
+			   if !objWrap.RemoveTransactionObject() {
+				   panic("RemoveTransactionObject error")
+			   }
+		   }
+		   return true
+	})
 }
 
 func TestController_GetWitnessTopN(t *testing.T) {

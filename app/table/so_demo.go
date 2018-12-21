@@ -1358,7 +1358,7 @@ func NewDemoOwnerWrap(db iservices.IDatabaseService) *SDemoOwnerWrap {
 	return &wrap
 }
 
-func (s *SDemoOwnerWrap) DelIterater(iterator iservices.IDatabaseIterator) {
+func (s *SDemoOwnerWrap) DelIterator(iterator iservices.IDatabaseIterator) {
 	if iterator == nil || !iterator.Valid() {
 		return
 	}
@@ -1420,8 +1420,18 @@ func (m *SoListDemoByOwner) OpeEncode() ([]byte, error) {
 }
 
 //Query sort by reverse order
-func (s *SDemoOwnerWrap) QueryListByRevOrder(start *prototype.AccountName, end *prototype.AccountName) iservices.IDatabaseIterator {
+//
+//f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
+//as arguments to the callback function
+//if the return value of f is true,continue iterating until the end iteration;
+//otherwise stop iteration immediately
+//
+func (s *SDemoOwnerWrap) ForEachByRevOrder(start *prototype.AccountName, end *prototype.AccountName,
+	f func(mVal *prototype.AccountName, sVal *prototype.AccountName, idx uint32) bool) error {
 	if s.Dba == nil {
+		return errors.New("the db is nil")
+	}
+	if f == nil {
 		return nil
 	}
 	pre := DemoOwnerTable
@@ -1433,7 +1443,7 @@ func (s *SDemoOwnerWrap) QueryListByRevOrder(start *prototype.AccountName, end *
 	}
 	sBuf, cErr := kope.EncodeSlice(skeyList)
 	if cErr != nil {
-		return nil
+		return cErr
 	}
 	eKeyList := []interface{}{pre}
 	if end != nil {
@@ -1441,11 +1451,22 @@ func (s *SDemoOwnerWrap) QueryListByRevOrder(start *prototype.AccountName, end *
 	}
 	eBuf, cErr := kope.EncodeSlice(eKeyList)
 	if cErr != nil {
-		return nil
+		return cErr
 	}
 	//reverse the start and end when create ReversedIterator to query by reverse order
-	iter := s.Dba.NewReversedIterator(eBuf, sBuf)
-	return iter
+	iterator := s.Dba.NewReversedIterator(eBuf, sBuf)
+	if iterator == nil {
+		return errors.New("there is no data in range")
+	}
+	var idx uint32 = 0
+	for iterator.Next() {
+		idx++
+		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
+			break
+		}
+	}
+	s.DelIterator(iterator)
+	return nil
 }
 
 ////////////// SECTION List Keys ///////////////
@@ -1461,7 +1482,7 @@ func NewDemoPostTimeWrap(db iservices.IDatabaseService) *SDemoPostTimeWrap {
 	return &wrap
 }
 
-func (s *SDemoPostTimeWrap) DelIterater(iterator iservices.IDatabaseIterator) {
+func (s *SDemoPostTimeWrap) DelIterator(iterator iservices.IDatabaseIterator) {
 	if iterator == nil || !iterator.Valid() {
 		return
 	}
@@ -1523,11 +1544,22 @@ func (m *SoListDemoByPostTime) OpeEncode() ([]byte, error) {
 }
 
 //Query sort by order
+//
 //start = nil  end = nil (query the db from start to end)
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
-func (s *SDemoPostTimeWrap) QueryListByOrder(start *prototype.TimePointSec, end *prototype.TimePointSec) iservices.IDatabaseIterator {
+//
+//f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
+//as arguments to the callback function
+//if the return value of f is true,continue iterating until the end iteration;
+//otherwise stop iteration immediately
+//
+func (s *SDemoPostTimeWrap) ForEachByOrder(start *prototype.TimePointSec, end *prototype.TimePointSec,
+	f func(mVal *prototype.AccountName, sVal *prototype.TimePointSec, idx uint32) bool) error {
 	if s.Dba == nil {
+		return errors.New("the db is nil")
+	}
+	if f == nil {
 		return nil
 	}
 	pre := DemoPostTimeTable
@@ -1537,7 +1569,7 @@ func (s *SDemoPostTimeWrap) QueryListByOrder(start *prototype.TimePointSec, end 
 	}
 	sBuf, cErr := kope.EncodeSlice(skeyList)
 	if cErr != nil {
-		return nil
+		return cErr
 	}
 	eKeyList := []interface{}{pre}
 	if end != nil {
@@ -1547,14 +1579,36 @@ func (s *SDemoPostTimeWrap) QueryListByOrder(start *prototype.TimePointSec, end 
 	}
 	eBuf, cErr := kope.EncodeSlice(eKeyList)
 	if cErr != nil {
-		return nil
+		return cErr
 	}
-	return s.Dba.NewIterator(sBuf, eBuf)
+	iterator := s.Dba.NewIterator(sBuf, eBuf)
+	if iterator == nil {
+		return errors.New("there is no data in range")
+	}
+	var idx uint32 = 0
+	for iterator.Next() {
+		idx++
+		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
+			break
+		}
+	}
+	s.DelIterator(iterator)
+	return nil
 }
 
 //Query sort by reverse order
-func (s *SDemoPostTimeWrap) QueryListByRevOrder(start *prototype.TimePointSec, end *prototype.TimePointSec) iservices.IDatabaseIterator {
+//
+//f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
+//as arguments to the callback function
+//if the return value of f is true,continue iterating until the end iteration;
+//otherwise stop iteration immediately
+//
+func (s *SDemoPostTimeWrap) ForEachByRevOrder(start *prototype.TimePointSec, end *prototype.TimePointSec,
+	f func(mVal *prototype.AccountName, sVal *prototype.TimePointSec, idx uint32) bool) error {
 	if s.Dba == nil {
+		return errors.New("the db is nil")
+	}
+	if f == nil {
 		return nil
 	}
 	pre := DemoPostTimeTable
@@ -1566,7 +1620,7 @@ func (s *SDemoPostTimeWrap) QueryListByRevOrder(start *prototype.TimePointSec, e
 	}
 	sBuf, cErr := kope.EncodeSlice(skeyList)
 	if cErr != nil {
-		return nil
+		return cErr
 	}
 	eKeyList := []interface{}{pre}
 	if end != nil {
@@ -1574,11 +1628,22 @@ func (s *SDemoPostTimeWrap) QueryListByRevOrder(start *prototype.TimePointSec, e
 	}
 	eBuf, cErr := kope.EncodeSlice(eKeyList)
 	if cErr != nil {
-		return nil
+		return cErr
 	}
 	//reverse the start and end when create ReversedIterator to query by reverse order
-	iter := s.Dba.NewReversedIterator(eBuf, sBuf)
-	return iter
+	iterator := s.Dba.NewReversedIterator(eBuf, sBuf)
+	if iterator == nil {
+		return errors.New("there is no data in range")
+	}
+	var idx uint32 = 0
+	for iterator.Next() {
+		idx++
+		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
+			break
+		}
+	}
+	s.DelIterator(iterator)
+	return nil
 }
 
 ////////////// SECTION List Keys ///////////////
@@ -1594,7 +1659,7 @@ func NewDemoLikeCountWrap(db iservices.IDatabaseService) *SDemoLikeCountWrap {
 	return &wrap
 }
 
-func (s *SDemoLikeCountWrap) DelIterater(iterator iservices.IDatabaseIterator) {
+func (s *SDemoLikeCountWrap) DelIterator(iterator iservices.IDatabaseIterator) {
 	if iterator == nil || !iterator.Valid() {
 		return
 	}
@@ -1654,8 +1719,18 @@ func (m *SoListDemoByLikeCount) OpeEncode() ([]byte, error) {
 }
 
 //Query sort by reverse order
-func (s *SDemoLikeCountWrap) QueryListByRevOrder(start *int64, end *int64) iservices.IDatabaseIterator {
+//
+//f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
+//as arguments to the callback function
+//if the return value of f is true,continue iterating until the end iteration;
+//otherwise stop iteration immediately
+//
+func (s *SDemoLikeCountWrap) ForEachByRevOrder(start *int64, end *int64,
+	f func(mVal *prototype.AccountName, sVal *int64, idx uint32) bool) error {
 	if s.Dba == nil {
+		return errors.New("the db is nil")
+	}
+	if f == nil {
 		return nil
 	}
 	pre := DemoLikeCountTable
@@ -1667,7 +1742,7 @@ func (s *SDemoLikeCountWrap) QueryListByRevOrder(start *int64, end *int64) iserv
 	}
 	sBuf, cErr := kope.EncodeSlice(skeyList)
 	if cErr != nil {
-		return nil
+		return cErr
 	}
 	eKeyList := []interface{}{pre}
 	if end != nil {
@@ -1675,11 +1750,22 @@ func (s *SDemoLikeCountWrap) QueryListByRevOrder(start *int64, end *int64) iserv
 	}
 	eBuf, cErr := kope.EncodeSlice(eKeyList)
 	if cErr != nil {
-		return nil
+		return cErr
 	}
 	//reverse the start and end when create ReversedIterator to query by reverse order
-	iter := s.Dba.NewReversedIterator(eBuf, sBuf)
-	return iter
+	iterator := s.Dba.NewReversedIterator(eBuf, sBuf)
+	if iterator == nil {
+		return errors.New("there is no data in range")
+	}
+	var idx uint32 = 0
+	for iterator.Next() {
+		idx++
+		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
+			break
+		}
+	}
+	s.DelIterator(iterator)
+	return nil
 }
 
 ////////////// SECTION List Keys ///////////////
@@ -1695,7 +1781,7 @@ func NewDemoIdxWrap(db iservices.IDatabaseService) *SDemoIdxWrap {
 	return &wrap
 }
 
-func (s *SDemoIdxWrap) DelIterater(iterator iservices.IDatabaseIterator) {
+func (s *SDemoIdxWrap) DelIterator(iterator iservices.IDatabaseIterator) {
 	if iterator == nil || !iterator.Valid() {
 		return
 	}
@@ -1755,8 +1841,18 @@ func (m *SoListDemoByIdx) OpeEncode() ([]byte, error) {
 }
 
 //Query sort by reverse order
-func (s *SDemoIdxWrap) QueryListByRevOrder(start *int64, end *int64) iservices.IDatabaseIterator {
+//
+//f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
+//as arguments to the callback function
+//if the return value of f is true,continue iterating until the end iteration;
+//otherwise stop iteration immediately
+//
+func (s *SDemoIdxWrap) ForEachByRevOrder(start *int64, end *int64,
+	f func(mVal *prototype.AccountName, sVal *int64, idx uint32) bool) error {
 	if s.Dba == nil {
+		return errors.New("the db is nil")
+	}
+	if f == nil {
 		return nil
 	}
 	pre := DemoIdxTable
@@ -1768,7 +1864,7 @@ func (s *SDemoIdxWrap) QueryListByRevOrder(start *int64, end *int64) iservices.I
 	}
 	sBuf, cErr := kope.EncodeSlice(skeyList)
 	if cErr != nil {
-		return nil
+		return cErr
 	}
 	eKeyList := []interface{}{pre}
 	if end != nil {
@@ -1776,11 +1872,22 @@ func (s *SDemoIdxWrap) QueryListByRevOrder(start *int64, end *int64) iservices.I
 	}
 	eBuf, cErr := kope.EncodeSlice(eKeyList)
 	if cErr != nil {
-		return nil
+		return cErr
 	}
 	//reverse the start and end when create ReversedIterator to query by reverse order
-	iter := s.Dba.NewReversedIterator(eBuf, sBuf)
-	return iter
+	iterator := s.Dba.NewReversedIterator(eBuf, sBuf)
+	if iterator == nil {
+		return errors.New("there is no data in range")
+	}
+	var idx uint32 = 0
+	for iterator.Next() {
+		idx++
+		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
+			break
+		}
+	}
+	s.DelIterator(iterator)
+	return nil
 }
 
 ////////////// SECTION List Keys ///////////////
@@ -1796,7 +1903,7 @@ func NewDemoReplayCountWrap(db iservices.IDatabaseService) *SDemoReplayCountWrap
 	return &wrap
 }
 
-func (s *SDemoReplayCountWrap) DelIterater(iterator iservices.IDatabaseIterator) {
+func (s *SDemoReplayCountWrap) DelIterator(iterator iservices.IDatabaseIterator) {
 	if iterator == nil || !iterator.Valid() {
 		return
 	}
@@ -1856,11 +1963,22 @@ func (m *SoListDemoByReplayCount) OpeEncode() ([]byte, error) {
 }
 
 //Query sort by order
+//
 //start = nil  end = nil (query the db from start to end)
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
-func (s *SDemoReplayCountWrap) QueryListByOrder(start *int64, end *int64) iservices.IDatabaseIterator {
+//
+//f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
+//as arguments to the callback function
+//if the return value of f is true,continue iterating until the end iteration;
+//otherwise stop iteration immediately
+//
+func (s *SDemoReplayCountWrap) ForEachByOrder(start *int64, end *int64,
+	f func(mVal *prototype.AccountName, sVal *int64, idx uint32) bool) error {
 	if s.Dba == nil {
+		return errors.New("the db is nil")
+	}
+	if f == nil {
 		return nil
 	}
 	pre := DemoReplayCountTable
@@ -1870,7 +1988,7 @@ func (s *SDemoReplayCountWrap) QueryListByOrder(start *int64, end *int64) iservi
 	}
 	sBuf, cErr := kope.EncodeSlice(skeyList)
 	if cErr != nil {
-		return nil
+		return cErr
 	}
 	eKeyList := []interface{}{pre}
 	if end != nil {
@@ -1880,9 +1998,21 @@ func (s *SDemoReplayCountWrap) QueryListByOrder(start *int64, end *int64) iservi
 	}
 	eBuf, cErr := kope.EncodeSlice(eKeyList)
 	if cErr != nil {
-		return nil
+		return cErr
 	}
-	return s.Dba.NewIterator(sBuf, eBuf)
+	iterator := s.Dba.NewIterator(sBuf, eBuf)
+	if iterator == nil {
+		return errors.New("there is no data in range")
+	}
+	var idx uint32 = 0
+	for iterator.Next() {
+		idx++
+		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
+			break
+		}
+	}
+	s.DelIterator(iterator)
+	return nil
 }
 
 ////////////// SECTION List Keys ///////////////
@@ -1898,7 +2028,7 @@ func NewDemoTaglistWrap(db iservices.IDatabaseService) *SDemoTaglistWrap {
 	return &wrap
 }
 
-func (s *SDemoTaglistWrap) DelIterater(iterator iservices.IDatabaseIterator) {
+func (s *SDemoTaglistWrap) DelIterator(iterator iservices.IDatabaseIterator) {
 	if iterator == nil || !iterator.Valid() {
 		return
 	}
@@ -1958,11 +2088,22 @@ func (m *SoListDemoByTaglist) OpeEncode() ([]byte, error) {
 }
 
 //Query sort by order
+//
 //start = nil  end = nil (query the db from start to end)
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
-func (s *SDemoTaglistWrap) QueryListByOrder(start *[]string, end *[]string) iservices.IDatabaseIterator {
+//
+//f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
+//as arguments to the callback function
+//if the return value of f is true,continue iterating until the end iteration;
+//otherwise stop iteration immediately
+//
+func (s *SDemoTaglistWrap) ForEachByOrder(start *[]string, end *[]string,
+	f func(mVal *prototype.AccountName, sVal *[]string, idx uint32) bool) error {
 	if s.Dba == nil {
+		return errors.New("the db is nil")
+	}
+	if f == nil {
 		return nil
 	}
 	pre := DemoTaglistTable
@@ -1972,7 +2113,7 @@ func (s *SDemoTaglistWrap) QueryListByOrder(start *[]string, end *[]string) iser
 	}
 	sBuf, cErr := kope.EncodeSlice(skeyList)
 	if cErr != nil {
-		return nil
+		return cErr
 	}
 	eKeyList := []interface{}{pre}
 	if end != nil {
@@ -1982,9 +2123,21 @@ func (s *SDemoTaglistWrap) QueryListByOrder(start *[]string, end *[]string) iser
 	}
 	eBuf, cErr := kope.EncodeSlice(eKeyList)
 	if cErr != nil {
-		return nil
+		return cErr
 	}
-	return s.Dba.NewIterator(sBuf, eBuf)
+	iterator := s.Dba.NewIterator(sBuf, eBuf)
+	if iterator == nil {
+		return errors.New("there is no data in range")
+	}
+	var idx uint32 = 0
+	for iterator.Next() {
+		idx++
+		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
+			break
+		}
+	}
+	s.DelIterator(iterator)
+	return nil
 }
 
 /////////////// SECTION Private function ////////////////

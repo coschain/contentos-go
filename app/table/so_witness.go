@@ -1400,7 +1400,7 @@ func NewWitnessOwnerWrap(db iservices.IDatabaseService) *SWitnessOwnerWrap {
 	return &wrap
 }
 
-func (s *SWitnessOwnerWrap) DelIterater(iterator iservices.IDatabaseIterator) {
+func (s *SWitnessOwnerWrap) DelIterator(iterator iservices.IDatabaseIterator) {
 	if iterator == nil || !iterator.Valid() {
 		return
 	}
@@ -1462,11 +1462,22 @@ func (m *SoListWitnessByOwner) OpeEncode() ([]byte, error) {
 }
 
 //Query sort by order
+//
 //start = nil  end = nil (query the db from start to end)
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
-func (s *SWitnessOwnerWrap) QueryListByOrder(start *prototype.AccountName, end *prototype.AccountName) iservices.IDatabaseIterator {
+//
+//f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
+//as arguments to the callback function
+//if the return value of f is true,continue iterating until the end iteration;
+//otherwise stop iteration immediately
+//
+func (s *SWitnessOwnerWrap) ForEachByOrder(start *prototype.AccountName, end *prototype.AccountName,
+	f func(mVal *prototype.AccountName, sVal *prototype.AccountName, idx uint32) bool) error {
 	if s.Dba == nil {
+		return errors.New("the db is nil")
+	}
+	if f == nil {
 		return nil
 	}
 	pre := WitnessOwnerTable
@@ -1476,7 +1487,7 @@ func (s *SWitnessOwnerWrap) QueryListByOrder(start *prototype.AccountName, end *
 	}
 	sBuf, cErr := kope.EncodeSlice(skeyList)
 	if cErr != nil {
-		return nil
+		return cErr
 	}
 	eKeyList := []interface{}{pre}
 	if end != nil {
@@ -1486,9 +1497,21 @@ func (s *SWitnessOwnerWrap) QueryListByOrder(start *prototype.AccountName, end *
 	}
 	eBuf, cErr := kope.EncodeSlice(eKeyList)
 	if cErr != nil {
-		return nil
+		return cErr
 	}
-	return s.Dba.NewIterator(sBuf, eBuf)
+	iterator := s.Dba.NewIterator(sBuf, eBuf)
+	if iterator == nil {
+		return errors.New("there is no data in range")
+	}
+	var idx uint32 = 0
+	for iterator.Next() {
+		idx++
+		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
+			break
+		}
+	}
+	s.DelIterator(iterator)
+	return nil
 }
 
 ////////////// SECTION List Keys ///////////////
@@ -1504,7 +1527,7 @@ func NewWitnessVoteCountWrap(db iservices.IDatabaseService) *SWitnessVoteCountWr
 	return &wrap
 }
 
-func (s *SWitnessVoteCountWrap) DelIterater(iterator iservices.IDatabaseIterator) {
+func (s *SWitnessVoteCountWrap) DelIterator(iterator iservices.IDatabaseIterator) {
 	if iterator == nil || !iterator.Valid() {
 		return
 	}
@@ -1564,8 +1587,18 @@ func (m *SoListWitnessByVoteCount) OpeEncode() ([]byte, error) {
 }
 
 //Query sort by reverse order
-func (s *SWitnessVoteCountWrap) QueryListByRevOrder(start *uint64, end *uint64) iservices.IDatabaseIterator {
+//
+//f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
+//as arguments to the callback function
+//if the return value of f is true,continue iterating until the end iteration;
+//otherwise stop iteration immediately
+//
+func (s *SWitnessVoteCountWrap) ForEachByRevOrder(start *uint64, end *uint64,
+	f func(mVal *prototype.AccountName, sVal *uint64, idx uint32) bool) error {
 	if s.Dba == nil {
+		return errors.New("the db is nil")
+	}
+	if f == nil {
 		return nil
 	}
 	pre := WitnessVoteCountTable
@@ -1577,7 +1610,7 @@ func (s *SWitnessVoteCountWrap) QueryListByRevOrder(start *uint64, end *uint64) 
 	}
 	sBuf, cErr := kope.EncodeSlice(skeyList)
 	if cErr != nil {
-		return nil
+		return cErr
 	}
 	eKeyList := []interface{}{pre}
 	if end != nil {
@@ -1585,11 +1618,22 @@ func (s *SWitnessVoteCountWrap) QueryListByRevOrder(start *uint64, end *uint64) 
 	}
 	eBuf, cErr := kope.EncodeSlice(eKeyList)
 	if cErr != nil {
-		return nil
+		return cErr
 	}
 	//reverse the start and end when create ReversedIterator to query by reverse order
-	iter := s.Dba.NewReversedIterator(eBuf, sBuf)
-	return iter
+	iterator := s.Dba.NewReversedIterator(eBuf, sBuf)
+	if iterator == nil {
+		return errors.New("there is no data in range")
+	}
+	var idx uint32 = 0
+	for iterator.Next() {
+		idx++
+		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
+			break
+		}
+	}
+	s.DelIterator(iterator)
+	return nil
 }
 
 /////////////// SECTION Private function ////////////////

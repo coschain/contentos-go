@@ -1,0 +1,71 @@
+(module
+ (type $FUNCSIG$vii (func (param i32 i32)))
+ (type $FUNCSIG$vi (func (param i32)))
+ (type $FUNCSIG$vj (func (param i64)))
+ (import "env" "print_bool" (func $print_bool (param i32)))
+ (import "env" "print_string" (func $print_string (param i32 i32)))
+ (import "env" "print_uint32" (func $print_uint32 (param i32)))
+ (import "env" "print_uint64" (func $print_uint64 (param i64)))
+ (table 0 anyfunc)
+ (memory $0 1)
+ (data (i32.const 4) " @\00\00")
+ (data (i32.const 16) "hello world\00")
+ (export "memory" (memory $0))
+ (export "main" (func $main))
+ (func $main (result i32)
+  (local $0 i32)
+  (i32.store offset=4
+   (i32.const 0)
+   (tee_local $0
+    (i32.sub
+     (i32.load offset=4
+      (i32.const 0)
+     )
+     (i32.const 16)
+    )
+   )
+  )
+  (i32.store
+   (i32.add
+    (get_local $0)
+    (i32.const 12)
+   )
+   (i32.load offset=24 align=1
+    (i32.const 0)
+   )
+  )
+  (i64.store offset=4 align=4
+   (get_local $0)
+   (i64.load offset=16 align=1
+    (i32.const 0)
+   )
+  )
+  (call $print_string
+   (i32.add
+    (get_local $0)
+    (i32.const 4)
+   )
+   (i32.const 11)
+  )
+  (call $print_uint32
+   (i32.const 42)
+  )
+  (call $print_uint64
+   (i64.const 1000)
+  )
+  (call $print_bool
+   (i32.const 1)
+  )
+  (call $print_bool
+   (i32.const 0)
+  )
+  (i32.store offset=4
+   (i32.const 0)
+   (i32.add
+    (get_local $0)
+    (i32.const 16)
+   )
+  )
+  (i32.const 0)
+ )
+)

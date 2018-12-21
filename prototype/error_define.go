@@ -9,4 +9,6 @@ var (
 	ErrSigLength    = errors.New("Signature Length Error")
 	ErrCoinOverflow = errors.New("Coin Overflow")
 	ErrVestOverflow = errors.New("Vest Overflow")
+	ErrPubKeyFormatErr = errors.New("Public Key Format Error")
+
 )

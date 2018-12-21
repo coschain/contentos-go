@@ -434,7 +434,7 @@ func NewExtPostCreatedCreatedOrderWrap(db iservices.IDatabaseService) *SExtPostC
 	return &wrap
 }
 
-func (s *SExtPostCreatedCreatedOrderWrap) DelIterater(iterator iservices.IDatabaseIterator) {
+func (s *SExtPostCreatedCreatedOrderWrap) DelIterator(iterator iservices.IDatabaseIterator) {
 	if iterator == nil || !iterator.Valid() {
 		return
 	}
@@ -495,8 +495,18 @@ func (m *SoListExtPostCreatedByCreatedOrder) OpeEncode() ([]byte, error) {
 }
 
 //Query sort by reverse order
-func (s *SExtPostCreatedCreatedOrderWrap) QueryListByRevOrder(start *prototype.PostCreatedOrder, end *prototype.PostCreatedOrder) iservices.IDatabaseIterator {
+//
+//f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
+//as arguments to the callback function
+//if the return value of f is true,continue iterating until the end iteration;
+//otherwise stop iteration immediately
+//
+func (s *SExtPostCreatedCreatedOrderWrap) ForEachByRevOrder(start *prototype.PostCreatedOrder, end *prototype.PostCreatedOrder,
+	f func(mVal *uint64, sVal *prototype.PostCreatedOrder, idx uint32) bool) error {
 	if s.Dba == nil {
+		return errors.New("the db is nil")
+	}
+	if f == nil {
 		return nil
 	}
 	pre := ExtPostCreatedCreatedOrderTable
@@ -508,7 +518,7 @@ func (s *SExtPostCreatedCreatedOrderWrap) QueryListByRevOrder(start *prototype.P
 	}
 	sBuf, cErr := kope.EncodeSlice(skeyList)
 	if cErr != nil {
-		return nil
+		return cErr
 	}
 	eKeyList := []interface{}{pre}
 	if end != nil {
@@ -516,11 +526,22 @@ func (s *SExtPostCreatedCreatedOrderWrap) QueryListByRevOrder(start *prototype.P
 	}
 	eBuf, cErr := kope.EncodeSlice(eKeyList)
 	if cErr != nil {
-		return nil
+		return cErr
 	}
 	//reverse the start and end when create ReversedIterator to query by reverse order
-	iter := s.Dba.NewReversedIterator(eBuf, sBuf)
-	return iter
+	iterator := s.Dba.NewReversedIterator(eBuf, sBuf)
+	if iterator == nil {
+		return errors.New("there is no data in range")
+	}
+	var idx uint32 = 0
+	for iterator.Next() {
+		idx++
+		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
+			break
+		}
+	}
+	s.DelIterator(iterator)
+	return nil
 }
 
 /////////////// SECTION Private function ////////////////

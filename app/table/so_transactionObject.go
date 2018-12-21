@@ -439,7 +439,7 @@ func NewTransactionObjectExpirationWrap(db iservices.IDatabaseService) *STransac
 	return &wrap
 }
 
-func (s *STransactionObjectExpirationWrap) DelIterater(iterator iservices.IDatabaseIterator) {
+func (s *STransactionObjectExpirationWrap) DelIterator(iterator iservices.IDatabaseIterator) {
 	if iterator == nil || !iterator.Valid() {
 		return
 	}
@@ -501,11 +501,22 @@ func (m *SoListTransactionObjectByExpiration) OpeEncode() ([]byte, error) {
 }
 
 //Query sort by order
+//
 //start = nil  end = nil (query the db from start to end)
 //start = nil (query from start the db)
 //end = nil (query to the end of db)
-func (s *STransactionObjectExpirationWrap) QueryListByOrder(start *prototype.TimePointSec, end *prototype.TimePointSec) iservices.IDatabaseIterator {
+//
+//f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
+//as arguments to the callback function
+//if the return value of f is true,continue iterating until the end iteration;
+//otherwise stop iteration immediately
+//
+func (s *STransactionObjectExpirationWrap) ForEachByOrder(start *prototype.TimePointSec, end *prototype.TimePointSec,
+	f func(mVal *prototype.Sha256, sVal *prototype.TimePointSec, idx uint32) bool) error {
 	if s.Dba == nil {
+		return errors.New("the db is nil")
+	}
+	if f == nil {
 		return nil
 	}
 	pre := TransactionObjectExpirationTable
@@ -515,7 +526,7 @@ func (s *STransactionObjectExpirationWrap) QueryListByOrder(start *prototype.Tim
 	}
 	sBuf, cErr := kope.EncodeSlice(skeyList)
 	if cErr != nil {
-		return nil
+		return cErr
 	}
 	eKeyList := []interface{}{pre}
 	if end != nil {
@@ -525,9 +536,21 @@ func (s *STransactionObjectExpirationWrap) QueryListByOrder(start *prototype.Tim
 	}
 	eBuf, cErr := kope.EncodeSlice(eKeyList)
 	if cErr != nil {
-		return nil
+		return cErr
 	}
-	return s.Dba.NewIterator(sBuf, eBuf)
+	iterator := s.Dba.NewIterator(sBuf, eBuf)
+	if iterator == nil {
+		return errors.New("there is no data in range")
+	}
+	var idx uint32 = 0
+	for iterator.Next() {
+		idx++
+		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
+			break
+		}
+	}
+	s.DelIterator(iterator)
+	return nil
 }
 
 /////////////// SECTION Private function ////////////////

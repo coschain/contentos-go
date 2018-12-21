@@ -6,7 +6,7 @@ import (
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/prototype"
-	"github.com/coschain/contentos-go/vm"
+	"github.com/coschain/contentos-go/vm/context"
 )
 
 func mustSuccess(b bool, val string) {
@@ -92,8 +92,8 @@ type ContractDeployEvaluator struct {
 
 type ContractApplyEvaluator struct {
 	BaseEvaluator
-	ctx      *ApplyContext
-	op       *prototype.ContractApplyOperation
+	ctx *ApplyContext
+	op  *prototype.ContractApplyOperation
 }
 
 func (ev *AccountCreateEvaluator) Apply() {
@@ -490,6 +490,6 @@ func (ev *ContractApplyEvaluator) Apply() {
 	// TODO Load code from database
 
 	code := scid.GetCode()
-	vmCtx := vm.NewContextFromApplyOp(op, code, ev.ctx.trxCtx)
+	vmCtx := vmcontext.NewContextFromApplyOp(op, code, ev.ctx.trxCtx)
 	vmCtx.Run()
 }

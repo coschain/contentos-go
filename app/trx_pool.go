@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app/table"
+	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/common/eventloop"
 	"github.com/coschain/contentos-go/iservices"
@@ -40,6 +41,7 @@ type TrxPool struct {
 	currentBlockNum        uint64
 	currentTrxInBlock      int16
 	havePendingTransaction bool
+	shuffle                common.ShuffleFunc
 }
 
 func (c *TrxPool) getDb() (iservices.IDatabaseService, error) {
@@ -58,6 +60,10 @@ func (c *TrxPool) getLog() (iservices.ILog, error) {
 	}
 	log := s.(iservices.ILog)
 	return log, nil
+}
+
+func (c *TrxPool) SetShuffle(s common.ShuffleFunc) {
+	c.shuffle = s
 }
 
 // for easy test
@@ -507,31 +513,8 @@ func (c *TrxPool) applyOperation(trxCtx *TrxContext, op *prototype.Operation) {
 	c.notifyOpPostExecute(n)
 }
 
-func (c *TrxPool) requireAuth(name string) {
-	fmt.Println(name, " require auth")
-}
-
-func (c *TrxPool) vmTransfer(from, to string, amount uint64, memo string) {
-	ctx := &ApplyContext{db: c.db, control: c}
-	transferOp := &prototype.TransferOperation{
-		From:   &prototype.AccountName{Value: from},
-		To:     &prototype.AccountName{Value: to},
-		Amount: prototype.NewCoin(amount),
-		Memo:   memo,
-	}
-	op := &prototype.Operation{}
-	op2 := &prototype.Operation_Op2{}
-	op2.Op2 = transferOp
-	op.Op = op2
-	n := &prototype.OperationNotification{Op: op}
-	c.notifyOpPreExecute(n)
-	eva := &TransferEvaluator{ctx: ctx, op: transferOp}
-	eva.Apply()
-	c.notifyOpPostExecute(n)
-}
-
 func (c *TrxPool) getEvaluator(trxCtx *TrxContext, op *prototype.Operation) BaseEvaluator {
-	ctx := &ApplyContext{db: c.db, control: c, trxCtx:trxCtx}
+	ctx := &ApplyContext{db: c.db, control: c, trxCtx: trxCtx}
 	return GetBaseEvaluator(ctx, op)
 }
 
@@ -592,6 +575,7 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 
 	c.updateGlobalDynamicData(blk)
 	//c.updateSigningWitness(blk)
+	c.shuffle(blk)
 	// @ update_last_irreversible_block
 	c.createBlockSummary(blk)
 	c.clearExpiredTransactions()
@@ -871,43 +855,34 @@ func (c *TrxPool) createBlockSummary(blk *prototype.SignedBlock) {
 
 func (c *TrxPool) clearExpiredTransactions() {
 	sortWrap := table.STransactionObjectExpirationWrap{Dba: c.db}
-	itr := sortWrap.QueryListByOrder(nil, nil) // query all
-	if itr != nil {
-		for itr.Next() {
-			headTime := c.headBlockTime().UtcSeconds
-			subPtr := sortWrap.GetSubVal(itr)
-			if subPtr == nil {
-				break
+	sortWrap.ForEachByOrder(nil, nil,
+		func(mVal *prototype.Sha256, sVal *prototype.TimePointSec, idx uint32) bool {
+			if sVal != nil {
+				headTime := c.headBlockTime().UtcSeconds
+				if headTime > sVal.UtcSeconds {
+					// delete trx ...
+					k := mVal
+					objWrap := table.NewSoTransactionObjectWrap(c.db, k)
+					mustSuccess(objWrap.RemoveTransactionObject(), "RemoveTransactionObject error")
+				}
+				return true
 			}
-			if headTime > subPtr.UtcSeconds {
-				// delete trx ...
-				k := sortWrap.GetMainVal(itr)
-				objWrap := table.NewSoTransactionObjectWrap(c.db, k)
-				mustSuccess(objWrap.RemoveTransactionObject(), "RemoveTransactionObject error")
-			}
-		}
-		sortWrap.DelIterater(itr)
-	}
+			return false
+		})
 }
 
 func (c *TrxPool) GetWitnessTopN(n uint32) []string {
 	ret := []string{}
 	revList := table.SWitnessVoteCountWrap{Dba: c.db}
-	itr := revList.QueryListByRevOrder(nil, nil)
-	if itr != nil {
-		i := uint32(0)
-		for itr.Next() && i < n {
-			mainPtr := revList.GetMainVal(itr)
-			if mainPtr != nil {
-				ret = append(ret, mainPtr.Value)
-			} else {
-				// panic() ?
-				//c.log.GetLog().Warnf("reverse get witness meet nil value")
-			}
-			i++
+	revList.ForEachByRevOrder(nil, nil, func(mVal *prototype.AccountName, sVal *uint64, idx uint32) bool {
+		if mVal != nil {
+			ret = append(ret, mVal.Value)
 		}
-		revList.DelIterater(itr)
-	}
+		if idx < n {
+			return true
+		}
+		return false
+	})
 	return ret
 }
 

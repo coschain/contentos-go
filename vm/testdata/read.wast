@@ -1,6 +1,6 @@
 (module
  (type $FUNCSIG$iii (func (param i32 i32) (result i32)))
- (import "env" "readt" (func $readt (param i32 i32) (result i32)))
+ (import "env" "readt1" (func $readt1 (param i32 i32) (result i32)))
  (table 0 anyfunc)
  (memory $0 1)
  (data (i32.const 4) " @\00\00")
@@ -37,7 +37,7 @@
    )
   )
   (set_local $0
-   (call $readt
+   (call $readt1
     (i32.add
      (get_local $1)
      (i32.const 4)

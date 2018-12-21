@@ -1,5 +1,7 @@
 (module
  (type $FUNCSIG$viiii (func (param i32 i32 i32 i32)))
+ (type $FUNCSIG$vii (func (param i32 i32)))
+ (import "env" "print_string" (func $print_string (param i32 i32)))
  (import "env" "sha256" (func $sha256 (param i32 i32 i32 i32)))
  (table 0 anyfunc)
  (memory $0 1)
@@ -35,34 +37,16 @@
     (i32.const 0)
    )
   )
-  (i64.store
-   (i32.add
-    (get_local $0)
-    (i32.const 24)
-   )
-   (i64.const 0)
-  )
-  (i64.store
-   (i32.add
-    (get_local $0)
-    (i32.const 16)
-   )
-   (i64.const 0)
-  )
-  (i64.store offset=8
-   (get_local $0)
-   (i64.const 0)
-  )
-  (i64.store
-   (get_local $0)
-   (i64.const 0)
-  )
   (call $sha256
    (i32.add
     (get_local $0)
     (i32.const 36)
    )
    (i32.const 11)
+   (get_local $0)
+   (i32.const 32)
+  )
+  (call $print_string
    (get_local $0)
    (i32.const 32)
   )

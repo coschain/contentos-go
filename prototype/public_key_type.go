@@ -3,7 +3,6 @@ package prototype
 import (
 	"bytes"
 	"crypto/sha256"
-	"errors"
 	"fmt"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/common/encoding/kope"
@@ -20,15 +19,15 @@ func PublicKeyFromBytes(buffer []byte) *PublicKeyType {
 
 func PublicKeyFromWIF(encoded string) (*PublicKeyType, error) {
 	if encoded == "" {
-		return nil, errors.New("invalid address 1")
+		return nil, ErrKeyLength
 	}
 
 	if len(encoded) < len(constants.COIN_SYMBOL) {
-		return nil, errors.New("invalid address 2")
+		return nil, ErrPubKeyFormatErr
 	}
 
 	if !strings.HasPrefix(encoded, constants.COIN_SYMBOL) {
-		return nil, errors.New("invalid address 3")
+		return nil, ErrPubKeyFormatErr
 	}
 
 	buffer := ([]byte(encoded))[3:]
@@ -39,19 +38,19 @@ func PublicKeyFromWIF(encoded string) (*PublicKeyType, error) {
 
 	x, ok := new(big.Int).SetString(string(decoded), 10)
 	if !ok {
-		return nil, errors.New("invalid address 4")
+		return nil, ErrPubKeyFormatErr
 	}
 
 	buf := x.Bytes()
 	if len(buf) <= 4 {
-		return nil, errors.New("invalid address 5")
+		return nil, ErrPubKeyFormatErr
 	}
 
 	temp := sha256.Sum256(buf[:len(buf)-4])
 	temps := sha256.Sum256(temp[:])
 
 	if !bytes.Equal(temps[0:4], buf[len(buf)-4:]) {
-		return nil, errors.New("invalid address 6")
+		return nil, ErrPubKeyFormatErr
 	}
 
 	return PublicKeyFromBytes(buf[:len(buf)-4]), nil
@@ -85,13 +84,13 @@ func (m *PublicKeyType) MarshalJSON() ([]byte, error) {
 func (m *PublicKeyType) UnmarshalJSON(input []byte) error {
 
 	if len(input) < 2 {
-		return errors.New("public key length error")
+		return ErrPubKeyFormatErr
 	}
 	if input[0] != '"' {
-		return errors.New("public key error")
+		return ErrPubKeyFormatErr
 	}
 	if input[len(input)-1] != '"' {
-		return errors.New("public key error")
+		return ErrPubKeyFormatErr
 	}
 
 	res, err := PublicKeyFromWIF(string(input[1 : len(input)-1]))

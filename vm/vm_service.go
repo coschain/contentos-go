@@ -7,6 +7,7 @@ import (
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/prototype"
+	"github.com/coschain/contentos-go/vm/context"
 	"github.com/inconshreveable/log15"
 )
 
@@ -18,13 +19,15 @@ var (
 type WasmVmService struct {
 	ctx           *node.ServiceContext
 	registerFuncs map[string]interface{}
+	registerFuncGas map[string]uint64
+
 	logger        log15.Logger
 	db            iservices.IDatabaseService
 	globalProps   *prototype.DynamicProperties
 }
 
 func (w *WasmVmService) getDb() (iservices.IDatabaseService, error) {
-	s, err := w.ctx.Service("db")
+	s, err := w.ctx.Service(iservices.DbServerName)
 	if err != nil {
 		return nil, err
 	}
@@ -33,13 +36,16 @@ func (w *WasmVmService) getDb() (iservices.IDatabaseService, error) {
 }
 
 func New(ctx *node.ServiceContext) (*WasmVmService, error) {
-	return &WasmVmService{ctx: ctx, registerFuncs: make(map[string]interface{}), logger: log15.New()}, nil
+	return &WasmVmService{ctx: ctx,
+		registerFuncs: make(map[string]interface{}),
+		registerFuncGas: make(map[string]uint64),
+		logger: log15.New()}, nil
 }
 
-func (w *WasmVmService) Run(ctx *Context) (uint32, error) {
+func (w *WasmVmService) Run(ctx *vmcontext.Context) (uint32, error) {
 	cosVM := NewCosVM(ctx, w.db, w.globalProps, w.logger)
 	for funcName, function := range w.registerFuncs {
-		cosVM.Register(funcName, function)
+		cosVM.Register(funcName, function, w.registerFuncGas[funcName] )
 	}
 	ret, err := cosVM.Run()
 	if err != nil {
@@ -48,8 +54,9 @@ func (w *WasmVmService) Run(ctx *Context) (uint32, error) {
 	return ret, err
 }
 
-func (w *WasmVmService) Register(funcName string, function interface{}) {
+func (w *WasmVmService) Register(funcName string, function interface{}, gas uint64) {
 	w.registerFuncs[funcName] = function
+	w.registerFuncGas[funcName] = gas
 }
 
 func (w *WasmVmService) Start(node *node.Node) error {

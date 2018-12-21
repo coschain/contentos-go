@@ -17,21 +17,22 @@ type FollowService struct {
 	db  iservices.IDatabaseService
 	log iservices.ILog
 	ev  EventBus.Bus
+	ctx *node.ServiceContext
 }
 
 // service constructor
 func NewFollowService(ctx *node.ServiceContext) (*FollowService, error) {
-	return &FollowService{}, nil
+	return &FollowService{ctx:ctx}, nil
 }
 
 func (p *FollowService) Start(node *node.Node) error {
-	log, err := node.Service(iservices.LogServerName)
+	log, err := p.ctx.Service(iservices.LogServerName)
 	if err != nil {
 		return err
 	}
 	p.log = log.(iservices.ILog)
 
-	db, err := node.Service(iservices.DbServerName)
+	db, err := p.ctx.Service(iservices.DbServerName)
 	if err != nil {
 		return err
 	}
