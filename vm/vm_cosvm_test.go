@@ -93,6 +93,27 @@ func TestCosVM_StrLen(t *testing.T) {
 	myassert.Equal(ret, uint32(101))
 }
 
+func TestCosVM_StrLen2(t *testing.T) {
+	wasmFile := "./testdata/strlen2.wasm"
+	myassert := assert.New(t)
+	data, _ := ioutil.ReadFile(wasmFile)
+	context := vmcontext.Context{Code: data}
+	vm := NewCosVM(&context, nil, nil, log15.New())
+	ret, _ := vm.Run()
+	myassert.Equal(ret, uint32(101))
+}
+
+// why the value passed into byte array is zero??????
+func TestCosVM_Memset(t *testing.T) {
+	wasmFile := "./testdata/strlen3.wasm"
+	myassert := assert.New(t)
+	data, _ := ioutil.ReadFile(wasmFile)
+	context := vmcontext.Context{Code: data}
+	vm := NewCosVM(&context, nil, nil, log15.New())
+	ret, _ := vm.Run()
+	myassert.Equal(ret, uint32(0))
+}
+
 func TestCosVM_ValidateFloat(t *testing.T) {
 	wasmFile := "./testdata/float.wasm"
 	data, _ := ioutil.ReadFile(wasmFile)

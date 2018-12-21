@@ -25,7 +25,6 @@ const (
 )
 
 type CosVM struct {
-
 	nativeFuncName []string
 	nativeFuncSigs []wasm.FunctionSig
 	nativeFuncs    []wasm.Function
@@ -37,7 +36,7 @@ type CosVM struct {
 }
 
 func NewCosVM(ctx *vmcontext.Context, db iservices.IDatabaseService, props *prototype.DynamicProperties, logger log15.Logger) *CosVM {
-	return &CosVM{ nativeFuncName: []string{}, nativeFuncSigs: []wasm.FunctionSig{},
+	return &CosVM{nativeFuncName: []string{}, nativeFuncSigs: []wasm.FunctionSig{},
 		nativeFuncs: []wasm.Function{}, ctx: ctx, logger: logger, db: db, props: props}
 }
 
@@ -61,10 +60,15 @@ func (w *CosVM) initNativeFuncs() {
 	w.Register("contract_transfer", w.contractTransfer, 800)
 	w.Register("get_sender_value", w.getSenderValue, 100)
 
+	// for memeory
+	w.Register("memcpy", w.memcpy, 100)
+	w.Register("memset", w.memset, 100)
+
 	// for test
 	w.Register("readt1", w.readT1, 10)
 	w.Register("readt2", w.readT2, 10)
-	w.Register("writet1", w.writeT1,30)
+	w.Register("readt3", w.readT3, 10)
+	w.Register("writet1", w.writeT1, 30)
 }
 
 func (w *CosVM) readModule() (*wasm.Module, error) {
@@ -149,7 +153,7 @@ func (w *CosVM) Register(funcName string, function interface{}, gas uint64) {
 		w.logger.Error("exactFuncSig error:", funcName, err)
 		return
 	}
-	f := wasm.Function{Sig: &funcSig, Host: reflect.ValueOf(function), Body: &wasm.FunctionBody{}, Gas:gas}
+	f := wasm.Function{Sig: &funcSig, Host: reflect.ValueOf(function), Body: &wasm.FunctionBody{}, Gas: gas}
 	w.nativeFuncName = append(w.nativeFuncName, funcName)
 	w.nativeFuncSigs = append(w.nativeFuncSigs, funcSig)
 	w.nativeFuncs = append(w.nativeFuncs, f)
@@ -175,6 +179,12 @@ func (w *CosVM) readT2(proc *exec.Process, pointer int32) int32 {
 	fmt.Printf("length %d\n", length)
 	fmt.Println(string(msg))
 	return length
+}
+
+func (w *CosVM) readT3(proc *exec.Process, pointer, pos int32) int32 {
+	data := make([]byte, 1)
+	_, _ = proc.ReadAt(data, int64(pointer+pos))
+	return int32(data[0])
 }
 
 func (w *CosVM) writeT1(proc *exec.Process, spointer int32, dpointer int32) int32 {
@@ -576,4 +586,25 @@ func (w *CosVM) GetSenderValue() uint64 {
 
 func (w *CosVM) getSenderValue(proc *exec.Process) int64 {
 	return int64(w.GetSenderValue())
+}
+
+func (w *CosVM) memcpy(proc *exec.Process, dst, src, size int32) int32 {
+	data := make([]byte, size)
+	// ErrShortBuffer should be ignored ?
+	length, _ := proc.ReadAt(data, int64(src))
+	// as so on ErrShortWrite ?
+	_, _ = proc.WriteAt(data[:length], int64(dst))
+	return dst
+}
+
+func (w *CosVM) memset(proc *exec.Process, ptr, value, size int32) int32 {
+	data := make([]byte, size)
+	if value < 0 || value > 255 {
+		w.CosAssert(false, "value should between 0 and 255")
+	}
+	for i := range data {
+		data[i] = byte(value)
+	}
+	_, _ = proc.WriteAt(data, int64(ptr))
+	return ptr
 }
