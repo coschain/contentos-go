@@ -5,10 +5,6 @@ import (
 	"encoding/binary"
 )
 
-const (
-	is32bitPlatform = ^uint(0)>>32 == 0
-)
-
 // type marks
 const (
 	typeInvalid = byte(iota)

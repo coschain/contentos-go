@@ -1,11 +1,13 @@
 package common
 
 import (
+	"encoding/binary"
 	"fmt"
 	"github.com/coschain/contentos-go/common/constants"
 	"io"
 	"os"
 	"runtime"
+	"unsafe"
 )
 
 func Int2Bytes(n uint32) []byte {
@@ -45,4 +47,23 @@ func Fatalf(format string, args ...interface{}) {
 
 func GetBucket(timestamp uint32) uint32 {
 	return timestamp / uint32(constants.BLOCK_INTERVAL)
+}
+
+const Is32bitPlatform = ^uint(0)>>32 == 0
+
+var (
+	endianTesting = int(1)
+	isLittleEndianPlatform = *(*byte)(unsafe.Pointer(&endianTesting)) != 0
+)
+
+func IsLittleEndianPlatform() bool {
+	return isLittleEndianPlatform
+}
+
+func HostByteOrder() binary.ByteOrder {
+	if IsLittleEndianPlatform() {
+		return binary.LittleEndian
+	} else {
+		return binary.BigEndian
+	}
 }
