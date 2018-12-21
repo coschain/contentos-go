@@ -91,14 +91,14 @@ type IContractABI interface {
 }
 
 //
-// IContractABISerializer is a serializer of IContractABI.
+// ISerializableContractABI is a IContractABI which supports marshal/unmarshal.
 //
-type IContractABISerializer interface {
+type ISerializableContractABI interface {
+	IContractABI
+
 	// Marshal() encodes the given ABI to a byte slice.
-	// If any error occurs, Marshal() returns (nil, error).
-	Marshal(abi IContractABI) ([]byte, error)
+	Marshal() ([]byte, error)
 
 	// Unmarshal() decodes the ABI from a byte slice.
-	// If any error occurs, Marshal() returns (nil, error).
-	Unmarshal(data []byte) (IContractABI, error)
+	Unmarshal(data []byte) error
 }
