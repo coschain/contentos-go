@@ -44,4 +44,7 @@ require (
 	golang.org/x/net v0.0.0-20181011144130-49bb7cea24b1
 	google.golang.org/genproto v0.0.0-20181101192439-c830210a61df
 	google.golang.org/grpc v1.16.0
+
 )
+
+replace github.com/go-interpreter/wagon v0.3.0 => github.com/coschain/wagon v0.3.1-0.20181220140958-de48523e6e62

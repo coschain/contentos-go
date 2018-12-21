@@ -15,6 +15,7 @@ import (
 	"github.com/inconshreveable/log15"
 	"hash/crc32"
 	"io"
+	"math"
 	"reflect"
 	"sync"
 )
@@ -24,6 +25,7 @@ const (
 )
 
 type CosVM struct {
+
 	nativeFuncName []string
 	nativeFuncSigs []wasm.FunctionSig
 	nativeFuncs    []wasm.Function
@@ -35,34 +37,34 @@ type CosVM struct {
 }
 
 func NewCosVM(ctx *vmcontext.Context, db iservices.IDatabaseService, props *prototype.DynamicProperties, logger log15.Logger) *CosVM {
-	return &CosVM{nativeFuncName: []string{}, nativeFuncSigs: []wasm.FunctionSig{},
+	return &CosVM{ nativeFuncName: []string{}, nativeFuncSigs: []wasm.FunctionSig{},
 		nativeFuncs: []wasm.Function{}, ctx: ctx, logger: logger, db: db, props: props}
 }
 
 func (w *CosVM) initNativeFuncs() {
-	w.Register("sha256", w.sha256)
-	w.Register("current_block_number", w.currentBlockNumber)
-	w.Register("current_timestamp", w.currentTimestamp)
-	w.Register("current_witness", w.currentWitness)
-	w.Register("print_string", w.printString)
-	w.Register("print_uint32", w.printUint32)
-	w.Register("print_uint64", w.printUint64)
-	w.Register("print_bool", w.printBool)
-	w.Register("require_auth", w.requiredAuth)
-	w.Register("get_balance_by_name", w.getBalanceByName)
-	w.Register("get_contract_balance", w.getContractBalance)
-	w.Register("save_to_storage", w.saveToStorage)
-	w.Register("read_from_storage", w.readFromStorage)
-	w.Register("cos_assert", w.cosAssert)
-	w.Register("read_contract_owner", w.readContractOwner)
-	w.Register("read_contract_caller", w.readContractCaller)
-	w.Register("contract_transfer", w.contractTransfer)
-	w.Register("get_sender_value", w.getSenderValue)
+	w.Register("sha256", w.sha256, 500)
+	w.Register("current_block_number", w.currentBlockNumber, 100)
+	w.Register("current_timestamp", w.currentTimestamp, 100)
+	w.Register("current_witness", w.currentWitness, 150)
+	w.Register("print_string", w.printString, 100)
+	w.Register("print_uint32", w.printUint32, 100)
+	w.Register("print_uint64", w.printUint64, 100)
+	w.Register("print_bool", w.printBool, 100)
+	w.Register("require_auth", w.requiredAuth, 200)
+	w.Register("get_balance_by_name", w.getBalanceByName, 100)
+	w.Register("get_contract_balance", w.getContractBalance, 100)
+	w.Register("save_to_storage", w.saveToStorage, 1000)
+	w.Register("read_from_storage", w.readFromStorage, 300)
+	w.Register("cos_assert", w.cosAssert, 100)
+	w.Register("read_contract_owner", w.readContractOwner, 100)
+	w.Register("read_contract_caller", w.readContractCaller, 100)
+	w.Register("contract_transfer", w.contractTransfer, 800)
+	w.Register("get_sender_value", w.getSenderValue, 100)
 
 	// for test
-	w.Register("readt1", w.readT1)
-	w.Register("readt2", w.readT2)
-	w.Register("writet1", w.writeT1)
+	w.Register("readt1", w.readT1, 10)
+	w.Register("readt2", w.readT2, 10)
+	w.Register("writet1", w.writeT1,30)
 }
 
 func (w *CosVM) readModule() (*wasm.Module, error) {
@@ -105,7 +107,7 @@ func (w *CosVM) Run() (ret uint32, err error) {
 		ret = 1
 		return
 	}
-
+	vm.InitGasTable(math.MaxUint64)
 	var entryIndex = -1
 	for name, entry := range vmModule.Export.Entries {
 		if name == "main" && entry.Kind == wasm.ExternalFunction {
@@ -129,7 +131,7 @@ func (w *CosVM) Validate() error {
 	return err
 }
 
-func (w *CosVM) Register(funcName string, function interface{}) {
+func (w *CosVM) Register(funcName string, function interface{}, gas uint64) {
 	w.lock.RLock()
 	defer w.lock.RUnlock()
 	rfunc := reflect.TypeOf(function)
@@ -147,7 +149,7 @@ func (w *CosVM) Register(funcName string, function interface{}) {
 		w.logger.Error("exactFuncSig error:", funcName, err)
 		return
 	}
-	f := wasm.Function{Sig: &funcSig, Host: reflect.ValueOf(function), Body: &wasm.FunctionBody{}}
+	f := wasm.Function{Sig: &funcSig, Host: reflect.ValueOf(function), Body: &wasm.FunctionBody{}, Gas:gas}
 	w.nativeFuncName = append(w.nativeFuncName, funcName)
 	w.nativeFuncSigs = append(w.nativeFuncSigs, funcSig)
 	w.nativeFuncs = append(w.nativeFuncs, f)

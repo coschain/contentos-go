@@ -51,7 +51,7 @@ func TestContext_Run(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	vm.Register("add", add)
+	vm.Register("add", add, 100)
 	err = vm.Start(nil)
 	if err != nil {
 		t.Error(err)
@@ -75,8 +75,8 @@ func TestContext_Run2(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	vm.Register("add", add)
-	vm.Register("mul", mul)
+	vm.Register("add", add, 100)
+	vm.Register("mul", mul, 100)
 	err = vm.Start(nil)
 	if err != nil {
 		t.Error(err)

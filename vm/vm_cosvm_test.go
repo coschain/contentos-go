@@ -28,7 +28,7 @@ func TestCosVM_simpleAdd(t *testing.T) {
 	data, _ := ioutil.ReadFile(wasmFile)
 	context := vmcontext.Context{Code: data}
 	vm := NewCosVM(&context, nil, nil, log15.New())
-	vm.Register("add", add)
+	vm.Register("add", add, 3000)
 	ret, _ := vm.Run()
 	myassert.Equal(ret, uint32(6))
 }
@@ -99,7 +99,7 @@ func TestCosVM_ValidateFloat(t *testing.T) {
 	myassert := assert.New(t)
 	context := vmcontext.Context{Code: data}
 	vm := NewCosVM(&context, nil, nil, log15.New())
-	vm.Register("add", fadd)
+	vm.Register("add", fadd, 3000)
 	err := vm.Validate()
 	myassert.Error(err)
 }
