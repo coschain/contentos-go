@@ -47,4 +47,4 @@ require (
 
 )
 
-replace github.com/go-interpreter/wagon v0.3.0 => github.com/coschain/wagon v0.3.1-0.20181220140958-de48523e6e62
+replace github.com/go-interpreter/wagon v0.3.0 => github.com/coschain/wagon v0.3.1-0.20181221030614-464a8d748a78

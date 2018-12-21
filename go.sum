@@ -12,8 +12,8 @@ github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1/go.mod h1:Q3SI9o4m/ZMn
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
 github.com/coschain/cobra v0.0.0-20181106130408-77bf516f51a1 h1:S9wazRgjac3MulSBIcFRqpEoR1CM9kJY1TyW1IhazUw=
 github.com/coschain/cobra v0.0.0-20181106130408-77bf516f51a1/go.mod h1:9cl4pbRcSRS1EMEWXDoQW8jrLNI2vyISOMrX73ZjXy0=
-github.com/coschain/wagon v0.3.1-0.20181220140958-de48523e6e62 h1:8g/rdxdnvcvXJrmG/mV2op7YdqAK3tS/WLLcYmB7BoE=
-github.com/coschain/wagon v0.3.1-0.20181220140958-de48523e6e62/go.mod h1:zHOMvbitcZek8oshsMO5VpyBjWjV9X8cn8WTZwdebpM=
+github.com/coschain/wagon v0.3.1-0.20181221030614-464a8d748a78 h1:iwmxZiIig9oQF1vAAcPFRCVw/ylLgXUK2Mi0jNY+uVk=
+github.com/coschain/wagon v0.3.1-0.20181221030614-464a8d748a78/go.mod h1:zHOMvbitcZek8oshsMO5VpyBjWjV9X8cn8WTZwdebpM=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/deckarep/golang-set v1.7.1 h1:SCQV0S6gTtp6itiFrTqI+pfmJ4LN85S1YzhDf9rTHJQ=
