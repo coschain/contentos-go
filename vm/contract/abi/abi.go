@@ -10,6 +10,7 @@ import (
 type ABIBaseType struct {
 	name string
 	rt reflect.Type
+	kope bool
 }
 
 func (t *ABIBaseType) Name() string {
@@ -22,6 +23,10 @@ func (t *ABIBaseType) Type() reflect.Type {
 
 func (t *ABIBaseType) IsStruct() bool {
 	return t.rt.Kind() == reflect.Struct
+}
+
+func (t *ABIBaseType) SupportsKope() bool {
+	return t.kope
 }
 
 type ABIStructType struct {
@@ -61,7 +66,7 @@ func NewStruct(name string, base *ABIStructType, fields...ABIStructField) *ABISt
 		sf = append(sf, reflect.StructField{
 			Name: "Base__",
 			Type: base.Type(),
-			Tag: reflect.StructTag(fmt.Sprintf(`json:"__base__"`)),
+			Tag: reflect.StructTag(fmt.Sprintf(`json:"[%s]"`, base.name)),
 		})
 	}
 	for i := range fields {
@@ -72,7 +77,7 @@ func NewStruct(name string, base *ABIStructType, fields...ABIStructField) *ABISt
 		})
 	}
 	return &ABIStructType{
-		ABIBaseType: ABIBaseType{name, reflect.StructOf(sf) },
+		ABIBaseType: ABIBaseType{ name: name, rt: reflect.StructOf(sf), kope: false },
 		fields:      fields,
 	}
 }
@@ -128,6 +133,10 @@ func (a *abiTypeAlias) Type() reflect.Type {
 
 func (a *abiTypeAlias) IsStruct() bool {
 	return a.origin.IsStruct()
+}
+
+func (a *abiTypeAlias) SupportsKope() bool {
+	return a.origin.SupportsKope()
 }
 
 func (a *abiTypeAlias) FieldNum() int {
@@ -213,7 +222,12 @@ func (abi *abi) TableByName(name string) IContractTable {
 }
 
 func (abi *abi) Marshal() ([]byte, error) {
-	ja := new(JsonABI)
+	ja := &JsonABI{
+		Types: []jsonAbiTypedef{},
+		Structs: []jsonAbiStruct{},
+		Methods: []jsonAbiMethod{},
+		Tables: []jsonAbiTable{},
+	}
 	ja.Version = abi.version
 	for _, t := range abi.types {
 		if ot, isAlias := abi.typedefs[t.Name()]; isAlias {
@@ -297,20 +311,20 @@ func (abi *abi) Unmarshal(data []byte) error {
 //
 
 var builtinNonInheritableTypes = map[string]IContractType {
-	"bool": 	&ABIBaseType{"bool", 	vme.BoolType() },
-	"int8":  	&ABIBaseType{"int8", 	vme.Int8Type() },
-	"int16":  	&ABIBaseType{"int16", 	vme.Int16Type() },
-	"int32":  	&ABIBaseType{"int32", 	vme.Int32Type() },
-	"int64":  	&ABIBaseType{"int64", 	vme.Int64Type() },
-	"uint8":  	&ABIBaseType{"uint8", 	vme.Uint8Type() },
-	"uint16":  	&ABIBaseType{"uint16", 	vme.Uint16Type() },
-	"uint32":  	&ABIBaseType{"uint32", 	vme.Uint32Type() },
-	"uint64":  	&ABIBaseType{"uint64", 	vme.Uint64Type() },
-	"float":  	&ABIBaseType{"float", 	vme.Float32Type() },
-	"double":  	&ABIBaseType{"double", 	vme.Float64Type() },
+	"bool": 	&ABIBaseType{ name: "bool", 	rt: vme.BoolType(),		kope: true },
+	"int8":  	&ABIBaseType{ name: "int8", 	rt: vme.Int8Type(), 	kope: true },
+	"int16":  	&ABIBaseType{ name: "int16", 	rt: vme.Int16Type(), 	kope: true },
+	"int32":  	&ABIBaseType{ name: "int32", 	rt: vme.Int32Type(), 	kope: true },
+	"int64":  	&ABIBaseType{ name: "int64", 	rt: vme.Int64Type(), 	kope: true },
+	"uint8":  	&ABIBaseType{ name: "uint8", 	rt: vme.Uint8Type(), 	kope: true },
+	"uint16":  	&ABIBaseType{ name: "uint16", 	rt: vme.Uint16Type(), 	kope: true },
+	"uint32":  	&ABIBaseType{ name: "uint32", 	rt: vme.Uint32Type(), 	kope: true },
+	"uint64":  	&ABIBaseType{ name: "uint64", 	rt: vme.Uint64Type(), 	kope: true },
+	"float":  	&ABIBaseType{ name: "float", 	rt: vme.Float32Type(), 	kope: true },
+	"double":  	&ABIBaseType{ name: "double", 	rt: vme.Float64Type(), 	kope: true },
 
-	"string":  	&ABIBaseType{"string", 	vme.StringType() },
-	"cosio::account_name": &ABIBaseType{"cosio::account_name", vme.StringType() },
+	"string":  	&ABIBaseType{ name: "string", 	rt: vme.StringType(),	kope: true },
+	"cosio::account_name": &ABIBaseType{ name: "cosio::account_name", rt: vme.StringType(), kope: true },
 }
 
 var builtinInheritableTypes = map[string]IContractType {

@@ -14,6 +14,9 @@ type IContractType interface {
 
 	// IsStruct() indicates whether it's a struct or not.
 	IsStruct() bool
+
+	// SupportsKope() indicates whether the type supports kope.
+	SupportsKope() bool
 }
 
 //

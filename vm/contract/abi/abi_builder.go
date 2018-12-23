@@ -100,6 +100,9 @@ func (b *abiBuilder) Build() (*abi, error) {
 	abi := new(abi)
 
 	// version
+	if len(b.version) == 0 {
+		return nil, errors.New("abiBuilder: empty version string.")
+	}
 	abi.version = b.version
 
 	// typedefs
@@ -438,13 +441,18 @@ func (ctx *abiBuildContext) validate() error {
 	// table's record type must be a struct, and indexing fields must be valid.
 	for name, t := range ctx.b.tables {
 		// record type must be a struct
-		if !ctx.resolvedTypes[t].IsStruct() {
+		rt := ctx.resolvedTypes[t]
+		if !rt.IsStruct() {
 			return errors.New(fmt.Sprintf("abiBuilder: record type of table %s is not a struct: %s", name, t))
 		}
+		st := rt.(IContractStruct)
+
 		// primary key field must be valid.
 		primary := ctx.b.primaries[name]
-		if _, ok := ctx.typeFieldNames[name][primary]; !ok {
+		if ord, ok := ctx.typeFieldNames[name][primary]; !ok {
 			return errors.New(fmt.Sprintf("abiBuilder: unknown primary field %s of table %s", primary, name))
+		} else if !st.FieldType(ord).SupportsKope() {
+			return errors.New(fmt.Sprintf("abiBuilder: primary field %s of table %s cannot be indexed.", primary, name))
 		}
 		// secondary indexing fields must be valid, and not the same as primary key.
 		for f, ok := range ctx.b.secondaries[name] {
@@ -454,8 +462,10 @@ func (ctx *abiBuildContext) validate() error {
 			if f == primary {
 				return errors.New(fmt.Sprintf("abiBuilder: field %s used in both primary and secondary indices of table %s", primary, name))
 			}
-			if _, ok := ctx.typeFieldNames[name][f]; !ok {
+			if ord, ok := ctx.typeFieldNames[name][f]; !ok {
 				return errors.New(fmt.Sprintf("abiBuilder: unknown secondary index field %s of table %s", f, name))
+			} else if !st.FieldType(ord).SupportsKope() {
+				return errors.New(fmt.Sprintf("abiBuilder: secondary index field %s of table %s cannot be indexed.", f, name))
 			}
 		}
 	}
