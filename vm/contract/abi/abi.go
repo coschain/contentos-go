@@ -7,55 +7,55 @@ import (
 	"strings"
 )
 
-type abiBaseType struct {
+type ABIBaseType struct {
 	name string
 	rt reflect.Type
 }
 
-func (t *abiBaseType) Name() string {
+func (t *ABIBaseType) Name() string {
 	return t.name
 }
 
-func (t *abiBaseType) Type() reflect.Type {
+func (t *ABIBaseType) Type() reflect.Type {
 	return t.rt
 }
 
-func (t *abiBaseType) IsStruct() bool {
+func (t *ABIBaseType) IsStruct() bool {
 	return t.rt.Kind() == reflect.Struct
 }
 
-type abiStructType struct {
-	abiBaseType
-	base *abiStructType
-	fields []abiStructField
+type ABIStructType struct {
+	ABIBaseType
+	base *ABIStructType
+	fields []ABIStructField
 }
-type abiStructField struct {
-	name string
-	typ IContractType
+type ABIStructField struct {
+	Name string
+	Type IContractType
 }
 
-func (t *abiStructType) FieldNum() int {
+func (t *ABIStructType) FieldNum() int {
 	if t.base != nil {
 		return len(t.fields) + 1
 	}
 	return len(t.fields)
 }
 
-func (t *abiStructType) FieldType(i int) IContractType {
+func (t *ABIStructType) FieldType(i int) IContractType {
 	if i >= 0 && i < t.FieldNum() {
 		if t.base != nil {
 			if i == 0 {
 				return t.base
 			} else {
-				return t.fields[i - 1].typ
+				return t.fields[i - 1].Type
 			}
 		}
-		return t.fields[i].typ
+		return t.fields[i].Type
 	}
 	return nil
 }
 
-func NewStruct(name string, base *abiStructType, fields...abiStructField) *abiStructType {
+func NewStruct(name string, base *ABIStructType, fields...ABIStructField) *ABIStructType {
 	sf := make([]reflect.StructField, 0, len(fields) + 1)
 	if base != nil {
 		sf = append(sf, reflect.StructField{
@@ -66,20 +66,20 @@ func NewStruct(name string, base *abiStructType, fields...abiStructField) *abiSt
 	}
 	for i := range fields {
 		sf = append(sf, reflect.StructField{
-			Name: strings.Title(fields[i].name),
-			Type: fields[i].typ.Type(),
-			Tag: reflect.StructTag(fmt.Sprintf(`json:"%s"`, fields[i].name)),
+			Name: strings.Title(fields[i].Name),
+			Type: fields[i].Type.Type(),
+			Tag: reflect.StructTag(fmt.Sprintf(`json:"%s"`, fields[i].Name)),
 		})
 	}
-	return &abiStructType{
-		abiBaseType: abiBaseType{ name, reflect.StructOf(sf) },
-		fields: fields,
+	return &ABIStructType{
+		ABIBaseType: ABIBaseType{name, reflect.StructOf(sf) },
+		fields:      fields,
 	}
 }
 
 type abiMethod struct {
 	name string
-	args *abiStructType
+	args *ABIStructType
 }
 
 func (m *abiMethod) Name() string {
@@ -92,7 +92,7 @@ func (m *abiMethod) Args() IContractStruct {
 
 type abiTable struct {
 	name string
-	record *abiStructType
+	record *ABIStructType
 	primary int
 	secondary []int
 }
@@ -111,6 +111,39 @@ func (t *abiTable) PrimaryIndex() int {
 
 func (t *abiTable) SecondaryIndices() []int {
 	return t.secondary
+}
+
+type abiTypeAlias struct {
+	name string
+	origin IContractType
+}
+
+func (a *abiTypeAlias) Name() string {
+	return a.name
+}
+
+func (a *abiTypeAlias) Type() reflect.Type {
+	return a.origin.Type()
+}
+
+func (a *abiTypeAlias) IsStruct() bool {
+	return a.origin.IsStruct()
+}
+
+func (a *abiTypeAlias) FieldNum() int {
+	if s, ok := a.origin.(IContractStruct); ok {
+		return s.FieldNum()
+	} else {
+		return 0
+	}
+}
+
+func (a *abiTypeAlias) FieldType(i int) IContractType {
+	if s, ok := a.origin.(IContractStruct); ok {
+		return s.FieldType(i)
+	} else {
+		return nil
+	}
 }
 
 
@@ -188,12 +221,12 @@ func (abi *abi) Marshal() ([]byte, error) {
 				Name: t.Name(),
 				Type: ot,
 			})
-		} else if s, isStruct := t.(*abiStructType); isStruct {
+		} else if s, isStruct := t.(*ABIStructType); isStruct {
 			fs := make([]jsonAbiStructField, len(s.fields))
 			for i := range fs {
 				fs[i] = jsonAbiStructField{
-					Name: s.fields[i].name,
-					Type: s.fields[i].typ.Name(),
+					Name: s.fields[i].Name,
+					Type: s.fields[i].Type.Name(),
 				}
 			}
 			ja.Structs = append(ja.Structs, jsonAbiStruct{
@@ -212,12 +245,12 @@ func (abi *abi) Marshal() ([]byte, error) {
 	for _, t := range abi.tables {
 		si := make([]string, len(t.secondary))
 		for i := range si {
-			si[i] = t.record.fields[t.secondary[i]].name
+			si[i] = t.record.fields[t.secondary[i]].Name
 		}
 		ja.Tables = append(ja.Tables, jsonAbiTable{
 			Name: t.name,
 			Type: t.record.name,
-			Primary: t.record.fields[t.primary].name,
+			Primary: t.record.fields[t.primary].Name,
 			Secondary: si,
 		})
 	}
@@ -263,41 +296,58 @@ func (abi *abi) Unmarshal(data []byte) error {
 // built-in definitions
 //
 
-var builtinPrimitiveTypes = map[string]IContractType {
-	"bool": 	&abiBaseType{ "bool", 	vme.BoolType() },
-	"int8":  	&abiBaseType{ "int8", 	vme.Int8Type() },
-	"int16":  	&abiBaseType{ "int16", 	vme.Int16Type() },
-	"int32":  	&abiBaseType{ "int32", 	vme.Int32Type() },
-	"int64":  	&abiBaseType{ "int64", 	vme.Int64Type() },
-	"uint8":  	&abiBaseType{ "uint8", 	vme.Uint8Type() },
-	"uint16":  	&abiBaseType{ "uint16", 	vme.Uint16Type() },
-	"uint32":  	&abiBaseType{ "uint32", 	vme.Uint32Type() },
-	"uint64":  	&abiBaseType{ "uint64", 	vme.Uint64Type() },
-	"float":  	&abiBaseType{ "float", 	vme.Float32Type() },
-	"double":  	&abiBaseType{ "double", 	vme.Float64Type() },
+var builtinNonInheritableTypes = map[string]IContractType {
+	"bool": 	&ABIBaseType{"bool", 	vme.BoolType() },
+	"int8":  	&ABIBaseType{"int8", 	vme.Int8Type() },
+	"int16":  	&ABIBaseType{"int16", 	vme.Int16Type() },
+	"int32":  	&ABIBaseType{"int32", 	vme.Int32Type() },
+	"int64":  	&ABIBaseType{"int64", 	vme.Int64Type() },
+	"uint8":  	&ABIBaseType{"uint8", 	vme.Uint8Type() },
+	"uint16":  	&ABIBaseType{"uint16", 	vme.Uint16Type() },
+	"uint32":  	&ABIBaseType{"uint32", 	vme.Uint32Type() },
+	"uint64":  	&ABIBaseType{"uint64", 	vme.Uint64Type() },
+	"float":  	&ABIBaseType{"float", 	vme.Float32Type() },
+	"double":  	&ABIBaseType{"double", 	vme.Float64Type() },
 
-	"string":  	&abiBaseType{ "string", 	vme.StringType() },
-	"cosio::account_name": &abiBaseType{ "string", vme.StringType() },
+	"string":  	&ABIBaseType{"string", 	vme.StringType() },
+	"cosio::account_name": &ABIBaseType{"cosio::account_name", vme.StringType() },
 }
 
-var builtinClasses = map[string]IContractType {
-	"string":  	&abiBaseType{ "string", 	vme.StringType() },
-	"cosio::account_name": &abiBaseType{ "cosio::account_name", vme.StringType() },
+var builtinInheritableTypes = map[string]IContractType {
+
 }
 
-func ABIBuiltinPrimitiveType(name string) IContractType {
-	if t, ok := builtinPrimitiveTypes[name]; ok {
+func abiBuiltinType(name string, inheritable bool) IContractType {
+	types := builtinNonInheritableTypes
+	if inheritable {
+		types = builtinInheritableTypes
+	}
+	if t, ok := types[name]; ok {
 		return t
 	}
 	return nil
+}
+
+func ABIBuiltinInheritableType(name string) IContractType {
+	return abiBuiltinType(name, true)
+}
+
+func ABIBuiltinNonInheritableType(name string) IContractType {
+	return abiBuiltinType(name, false)
 }
 
 func ABIBuiltinType(name string) IContractType {
-	if t := ABIBuiltinPrimitiveType(name); t != nil {
+	if t := ABIBuiltinInheritableType(name); t != nil {
 		return t
 	}
-	if t, ok := builtinClasses[name]; ok {
-		return t
+	return ABIBuiltinNonInheritableType(name)
+}
+
+func ABIBuiltinTypeEnum(callback func(t IContractType)) {
+	for _, t := range builtinNonInheritableTypes {
+		callback(t)
 	}
-	return nil
+	for _, t := range builtinInheritableTypes {
+		callback(t)
+	}
 }
