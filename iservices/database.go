@@ -111,6 +111,8 @@ type IDatabaseService interface {
 
 	Squash(tag string) error
 
+	RollBackToTag(tag string) error
+
 	//
 	// data reversion feature
 	//

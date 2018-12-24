@@ -127,7 +127,9 @@ func (c *TrxPool) setProducing(b bool) {
 func (c *TrxPool) PushTrxToPending(trx *prototype.SignedTransaction) {
 
 	if !c.havePendingTransaction {
-		c.db.BeginTransaction()
+		//c.db.BeginTransaction()
+		tag := c.getBlockTag(c.headBlockNum()+1)
+		c.db.BeginTransactionWithTag(tag)
 		c.havePendingTransaction = true
 	}
 
@@ -172,8 +174,8 @@ func (c *TrxPool) pushTrx(trx *prototype.SignedTransaction) *prototype.Transacti
 	}()
 	// start a new undo session when first transaction come after push block
 	if !c.havePendingTransaction {
-		c.db.BeginTransaction()
 		//	c.log.GetLog().Debug("@@@@@@ pushTrx havePendingTransaction=true")
+		c.db.BeginTransactionWithTag(c.getBlockTag(c.headBlockNum()+1))
 		c.havePendingTransaction = true
 	}
 
@@ -226,13 +228,14 @@ func (c *TrxPool) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag)
 	}()
 
 	if skip&prototype.Skip_apply_transaction == 0 {
-		c.db.BeginTransaction()
+		//c.db.BeginTransaction()
+		c.db.BeginTransactionWithTag(c.getBlockTag(blk.Id().BlockNum()))
 		c.applyBlock(blk, skip)
 		mustNoError(c.db.EndTransaction(true), "EndTransaction error")
 	} else {
 		// we have do a BeginTransaction at GenerateBlock
 		c.applyBlock(blk, skip)
-		mustNoError(c.db.EndTransaction(true), "EndTransaction error")
+		//mustNoError(c.db.EndTransaction(true), "EndTransaction error")
 		c.havePendingTransaction = false
 	}
 
@@ -340,8 +343,10 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 	if c.havePendingTransaction {
 		mustNoError(c.db.EndTransaction(false), "EndTransaction error")
 	}
-	c.db.BeginTransaction()
+	//c.db.BeginTransaction()
 	//c.log.GetLog().Debug("@@@@@@ GeneratBlock havePendingTransaction=true")
+	tag := c.getBlockTag(uint64(c.headBlockNum())+1)
+	c.db.BeginTransactionWithTag(tag)
 	c.havePendingTransaction = true
 
 	var postponeTrx uint64 = 0
@@ -586,7 +591,9 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 
 func (c *TrxPool) initGenesis() {
 
-	c.db.BeginTransaction()
+	//c.db.BeginTransaction()
+	tag := c.getBlockTag(c.currentBlockNum+1)
+	c.db.BeginTransactionWithTag(tag)
 	defer func() {
 		if err := recover(); err != nil {
 			mustNoError(c.db.EndTransaction(false), "EndTransaction error")
@@ -926,14 +933,24 @@ func (c *TrxPool) PopBlockTo(num uint64) {
 		//c.log.GetLog().Debug("@@@@@@ PopBlockTo havePendingTransaction=false")
 	}*/
 	// get reversion
-	rev := c.getReversion(num)
-	mustNoError(c.db.RevertToRevision(rev), fmt.Sprintf("RebaseToRevision error: tag:%d, reversion:%d", num, rev))
+	//rev := c.getReversion(num)
+	//mustNoError(c.db.RevertToRevision(rev), fmt.Sprintf("RebaseToRevision error: tag:%d, reversion:%d", num, rev))
+	tag := c.getBlockTag(num)
+	mustSuccess(c.db.RollBackToTag(tag)==nil, fmt.Sprintf("RevertToRevision error: tag:%d", num,))
 }
 
 func (c *TrxPool) Commit(num uint64) {
 	// this block can not be revert over, so it's irreversible
-	rev := c.getReversion(num)
+	//rev := c.getReversion(num)
 	//c.log.GetLog().Debug("### Commit, tag:", num, " rev:", rev)
 	//c.log.GetLog().Debug("$$$ dump reversion array:",c.numToRev)
-	mustNoError(c.db.RebaseToRevision(rev), fmt.Sprintf("RebaseToRevision: tag:%d, reversion:%d", num, rev))
+	//mustNoError(c.db.RebaseToRevision(rev), fmt.Sprintf("RebaseToRevision: tag:%d, reversion:%d", num, rev))
+	tag := c.getBlockTag(num)
+	mustSuccess(c.db.Squash(tag)==nil,fmt.Sprintf("SquashBlock: tag:%d",num))
+
+}
+
+func (c *TrxPool) getBlockTag(num uint64) string {
+	tag := strconv.FormatUint(num, 10)
+	return tag
 }
