@@ -305,6 +305,13 @@ func (abi *abi) Unmarshal(data []byte) error {
 	}
 }
 
+func UnmarshalABI(data []byte) (ISerializableContractABI, error) {
+	abi := new(abi)
+	if err := abi.Unmarshal(data); err != nil {
+		return nil, err
+	}
+	return abi, nil
+}
 
 //
 // built-in definitions
