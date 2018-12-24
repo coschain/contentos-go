@@ -39,18 +39,37 @@ message signed_transaction{
     repeated signature_type signatures = 2;
 }
 
-message transaction_invoice{
+message operation_receipt_with_info{
     uint32 status = 1;
-    bool vm_error = 2;
-    uint32 vm_error_code = 3;
-    string vm_error_msg = 4;
     uint64 gas_usage = 5;
     string vm_console = 6;
 }
 
+message operation_receipt{
+    uint32 status = 1;
+}
+
+message transaction_receipt{
+    uint32 status = 1;
+    uint64 total_gas_usage = 2;
+    repeated operation_receipt op_results = 3;
+}
+
+message transaction_receipt_with_info{
+    uint32 status = 1;
+    uint64 total_gas_usage = 2;
+    string error_info = 3;
+    repeated operation_receipt_with_info op_results = 4;
+}
+
+message estimate_trx_result{
+    signed_transaction sig_trx = 1;
+    transaction_receipt_with_info receipt = 2;
+}
+
 message transaction_wrapper{
     signed_transaction sig_trx = 1;
-    transaction_invoice invoice = 2;
+    transaction_receipt invoice = 2;
 }
 
 // block

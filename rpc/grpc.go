@@ -317,13 +317,13 @@ func (as *APIService) GetTrxById(ctx context.Context, req *grpcpb.GetTrxByIdRequ
 
 func (as *APIService) BroadcastTrx(ctx context.Context, req *grpcpb.BroadcastTrxRequest) (*grpcpb.BroadcastTrxResponse, error) {
 
-	var result *prototype.TransactionInvoice = nil
+	var result *prototype.TransactionReceiptWithInfo = nil
 	as.mainLoop.Send(func() {
 		r := as.consensus.PushTransaction(req.GetTransaction(), true, true)
 		as.log.Infof("BroadcastTrx Result: %s", result)
 
 		if r != nil {
-			result = r.(*prototype.TransactionInvoice)
+			result = r.(*prototype.TransactionReceiptWithInfo)
 		}
 	})
 

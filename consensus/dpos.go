@@ -371,12 +371,12 @@ func (d *DPoS) PushBlock(b common.ISignedBlock) {
 	}(b)
 }
 
-func (d *DPoS) PushTransaction(trx common.ISignedTransaction, wait bool, broadcast bool) common.ITransactionInvoice {
+func (d *DPoS) PushTransaction(trx common.ISignedTransaction, wait bool, broadcast bool) common.ITransactionReceiptWithInfo {
 
-	var waitChan chan common.ITransactionInvoice
+	var waitChan chan common.ITransactionReceiptWithInfo
 
 	if wait {
-		waitChan = make(chan common.ITransactionInvoice)
+		waitChan = make(chan common.ITransactionReceiptWithInfo)
 	}
 
 	d.trxCh <- func() {

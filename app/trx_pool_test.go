@@ -12,11 +12,11 @@ import (
 )
 
 const (
-	accountNameBob = "bob"
+	accountNameBob = "bobob"
 	pubKeyBob      = "COS6oLVaFEtHZmPDuCvuB48NpSKytjyavPk5MwtN4HqKG16oSA2wS"
 	priKeyBob      = "EpgwWxboEdaWfEBdWswobsBt8pBF6xoYQPayBs4eVysMGGGYL"
 
-	accountNameTom = "tom"
+	accountNameTom = "tomom"
 	pubKeyTom      = "COS5LgGC16xurDrmfC7Yv5RGUeWeCPUP4tdW627vqXk9eQ97ZEJ7P"
 	priKeyTom      = "aFovWd8qS1yUAr94ULbG6ASwUsfPS3GX1ebPGDzowrUxQp1ta"
 )
@@ -27,7 +27,7 @@ func makeBlock(pre *prototype.Sha256, blockTimestamp uint32, signedTrx *prototyp
 	// add trx wraper
 	trxWraper := &prototype.TransactionWrapper{
 		SigTrx:  signedTrx,
-		Invoice: &prototype.TransactionInvoice{Status: 200},
+		Invoice: &prototype.TransactionReceipt{Status: prototype.StatusSuccess},
 	}
 	sigBlk.Transactions = append(sigBlk.Transactions, trxWraper)
 
@@ -130,7 +130,7 @@ func Test_PushTrx(t *testing.T) {
 	}
 
 	invoice := c.PushTrx(signedTrx)
-	if invoice.Status != 200 {
+	if invoice.Status != prototype.StatusSuccess {
 		t.Error("PushTrx return status error:", invoice.Status)
 	}
 
@@ -194,7 +194,7 @@ func TestController_GenerateAndApplyBlock(t *testing.T) {
 	}
 
 	invoice := c.PushTrx(signedTrx)
-	if invoice.Status != 200 {
+	if invoice.Status != prototype.StatusSuccess {
 		t.Error("PushTrx return status error:", invoice.Status)
 	}
 

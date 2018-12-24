@@ -34,7 +34,7 @@ type TrxPool struct {
 	noticer EventBus.Bus
 	skip    prototype.SkipFlag
 
-	pendingTx              []*prototype.TransactionWrapper
+	pendingTx              []*prototype.EstimateTrxResult
 
 	// TODO delete ??
 	isProducing            bool
@@ -133,19 +133,20 @@ func (c *TrxPool) PushTrxToPending(trx *prototype.SignedTransaction) {
 		c.havePendingTransaction = true
 	}
 
-	trxWrp := &prototype.TransactionWrapper{}
+	trxWrp := &prototype.EstimateTrxResult{}
 	trxWrp.SigTrx = trx
-	trxWrp.Invoice = &prototype.TransactionInvoice{}
+	trxWrp.Receipt = &prototype.TransactionReceiptWithInfo{}
 
 	c.pendingTx = append(c.pendingTx, trxWrp)
 }
 
-func (c *TrxPool) PushTrx(trx *prototype.SignedTransaction) (invoice *prototype.TransactionInvoice) {
+func (c *TrxPool) PushTrx(trx *prototype.SignedTransaction) (invoice *prototype.TransactionReceiptWithInfo) {
 	// this function may be cross routines ? use channel or lock ?
 	oldSkip := c.skip
 	defer func() {
 		if err := recover(); err != nil {
-			invoice = &prototype.TransactionInvoice{Status: uint32(500)}
+			invoice = &prototype.TransactionReceiptWithInfo{Status: uint32(prototype.StatusError)}
+			invoice.ErrorInfo = fmt.Sprintf("%v", err)
 			//c.log.GetLog().Errorf("PushTrx Error: %v", err)
 		}
 		c.setProducing(false)
@@ -164,7 +165,7 @@ func (c *TrxPool) GetProps() *prototype.DynamicProperties {
 	return dgpWrap.GetProps()
 }
 
-func (c *TrxPool) pushTrx(trx *prototype.SignedTransaction) *prototype.TransactionInvoice {
+func (c *TrxPool) pushTrx(trx *prototype.SignedTransaction) *prototype.TransactionReceiptWithInfo {
 	defer func() {
 		// undo sub session
 		if err := recover(); err != nil {
@@ -179,22 +180,22 @@ func (c *TrxPool) pushTrx(trx *prototype.SignedTransaction) *prototype.Transacti
 		c.havePendingTransaction = true
 	}
 
-	trxWrp := &prototype.TransactionWrapper{}
-	trxWrp.SigTrx = trx
-	trxWrp.Invoice = &prototype.TransactionInvoice{}
+	trxEst := &prototype.EstimateTrxResult{}
+	trxEst.SigTrx = trx
+	trxEst.Receipt = &prototype.TransactionReceiptWithInfo{}
 
 	// start a sub undo session for applyTransaction
 	c.db.BeginTransaction()
 
-	c.applyTransactionInner(trxWrp)
-	c.pendingTx = append(c.pendingTx, trxWrp)
+	c.applyTransactionInner(trxEst)
+	c.pendingTx = append(c.pendingTx, trxEst)
 
 	// commit sub session
 	mustNoError(c.db.EndTransaction(true), "EndTransaction error")
 
 	// @ not use yet
 	//c.notifyTrxPending(trx)
-	return trxWrp.Invoice
+	return trxEst.Receipt
 }
 
 func (c *TrxPool) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag) error {
@@ -243,10 +244,10 @@ func (c *TrxPool) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag)
 	return err
 }
 
-func (c *TrxPool) ClearPending() []*prototype.TransactionWrapper {
+func (c *TrxPool) ClearPending() []*prototype.EstimateTrxResult {
 	// @
 	mustSuccess(len(c.pendingTx) == 0 || c.havePendingTransaction, "can not clear pending")
-	res := make([]*prototype.TransactionWrapper, len(c.pendingTx))
+	res := make([]*prototype.EstimateTrxResult, len(c.pendingTx))
 	copy(res, c.pendingTx)
 
 	c.pendingTx = c.pendingTx[:0]
@@ -264,7 +265,7 @@ func (c *TrxPool) ClearPending() []*prototype.TransactionWrapper {
 	return res
 }
 
-func (c *TrxPool) restorePending(pending []*prototype.TransactionWrapper) {
+func (c *TrxPool) restorePending(pending []*prototype.EstimateTrxResult) {
 	for _, tw := range pending {
 		id, err := tw.SigTrx.Id()
 		mustNoError(err, "get transaction id error")
@@ -369,7 +370,7 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 			mustNoError(c.db.EndTransaction(true), "EndTransaction error")
 
 			totalSize += uint32(proto.Size(trxWraper))
-			signBlock.Transactions = append(signBlock.Transactions, trxWraper)
+			signBlock.Transactions = append(signBlock.Transactions, trxWraper.ToTrxWrapper())
 			//c.currentTrxInBlock++
 		}()
 	}
@@ -429,25 +430,26 @@ func (c *TrxPool) notifyBlockApply(block *prototype.SignedBlock) {
 	c.noticer.Publish(constants.NOTICE_BLOCK_APPLY, block)
 }
 
-func (c *TrxPool) applyTransaction(trxWrp *prototype.TransactionWrapper) {
-	c.applyTransactionInner(trxWrp)
+func (c *TrxPool) applyTransaction(trxEst *prototype.EstimateTrxResult) {
+	c.applyTransactionInner(trxEst)
 	// @ not use yet
 	//c.notifyTrxPostExecute(trxWrp.SigTrx)
 }
 
-func (c *TrxPool) applyTransactionInner(trxWrp *prototype.TransactionWrapper) {
-	trxContext := NewTrxContext(trxWrp, c.db)
+func (c *TrxPool) applyTransactionInner(trxEst *prototype.EstimateTrxResult) {
+	trxContext := NewTrxContext(trxEst, c.db)
 	defer func() {
 		if err := recover(); err != nil {
-			trxWrp.Invoice.Status = 500
-			panic(fmt.Sprintf("applyTransaction failed : %v", err))
+			trxEst.Receipt.Status = 500
+			trxEst.Receipt.ErrorInfo = fmt.Sprintf("applyTransaction failed : %v", err)
+			panic(trxEst.Receipt.ErrorInfo)
 		} else {
-			trxWrp.Invoice.Status = 200
+			trxEst.Receipt.Status = 200
 			return
 		}
 	}()
 
-	trx := trxWrp.SigTrx
+	trx := trxEst.SigTrx
 	var err error
 	currentTrxId, err := trx.Id()
 	mustNoError(err, "get trx id failed")
@@ -561,16 +563,16 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 
 	// @ hardfork_state
 
-	trxWrp := &prototype.TransactionWrapper{}
-	trxWrp.Invoice = &prototype.TransactionInvoice{}
+	trxEst := &prototype.EstimateTrxResult{}
+	trxEst.Receipt = &prototype.TransactionReceiptWithInfo{}
 
 	if skip&prototype.Skip_apply_transaction == 0 {
 
 		for _, tw := range blk.Transactions {
-			trxWrp.SigTrx = tw.SigTrx
-			trxWrp.Invoice.Status = 200
-			c.applyTransaction(trxWrp)
-			mustSuccess(trxWrp.Invoice.Status == tw.Invoice.Status, "mismatched invoice")
+			trxEst.SigTrx = tw.SigTrx
+			trxEst.Receipt.Status = prototype.StatusSuccess
+			c.applyTransaction(trxEst)
+			mustSuccess(trxEst.Receipt.Status == tw.Invoice.Status, "mismatched invoice")
 			//c.currentTrxInBlock++
 		}
 	}
