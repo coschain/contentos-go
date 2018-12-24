@@ -323,8 +323,12 @@ var builtinNonInheritableTypes = map[string]IContractType {
 	"float":  	&ABIBaseType{ name: "float", 	rt: vme.Float32Type(), 	kope: true },
 	"double":  	&ABIBaseType{ name: "double", 	rt: vme.Float64Type(), 	kope: true },
 
-	"string":  	&ABIBaseType{ name: "string", 	rt: vme.StringType(),	kope: true },
-	"cosio::account_name": &ABIBaseType{ name: "cosio::account_name", rt: vme.StringType(), kope: true },
+	"std::string":  			&ABIBaseType{ name: "std::string", 				rt: vme.StringType(),		kope: true },
+
+	"cosio::account_name": 		&ABIBaseType{ name: "cosio::account_name", 		rt: vme.StringType(), 		kope: true },
+	"cosio::contract_name": 	&ABIBaseType{ name: "cosio::contract_name", 	rt: vme.StringType(), 		kope: true },
+	"cosio::method_name": 		&ABIBaseType{ name: "cosio::method_name", 		rt: vme.StringType(), 		kope: true },
+	"cosio::coin_amount": 		&ABIBaseType{ name: "cosio::coin_amount", 		rt: vme.Uint64Type(), 		kope: true },
 }
 
 var builtinInheritableTypes = map[string]IContractType {
