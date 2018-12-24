@@ -228,8 +228,8 @@ func (c *TrxPool) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag)
 	}()
 
 	if skip&prototype.Skip_apply_transaction == 0 {
-		//c.db.BeginTransaction()
 		c.db.BeginTransactionWithTag(c.getBlockTag(blk.Id().BlockNum()))
+		c.db.BeginTransaction()
 		c.applyBlock(blk, skip)
 		mustNoError(c.db.EndTransaction(true), "EndTransaction error")
 	} else {
@@ -347,6 +347,7 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 	//c.log.GetLog().Debug("@@@@@@ GeneratBlock havePendingTransaction=true")
 	tag := c.getBlockTag(uint64(c.headBlockNum())+1)
 	c.db.BeginTransactionWithTag(tag)
+	c.db.BeginTransaction()
 	c.havePendingTransaction = true
 
 	var postponeTrx uint64 = 0

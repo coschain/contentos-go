@@ -62,13 +62,15 @@ var (
 type So{{.ClsName}}Wrap struct {
 	dba 		iservices.IDatabaseService
 	mainKey 	*{{formatStr .MainKeyType}}
+    mKeyFlag    int //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf     []byte //the buffer after the main key is encoded
 }
 
 func NewSo{{.ClsName}}Wrap(dba iservices.IDatabaseService, key *{{formatStr .MainKeyType}}) *So{{.ClsName}}Wrap{
 	if dba == nil || key == nil {
        return nil
     }
-    result := &So{{.ClsName}}Wrap{ dba, key}
+    result := &So{{.ClsName}}Wrap{ dba, key, -1, nil}
 	return result
 }
 
@@ -76,6 +78,13 @@ func (s *So{{.ClsName}}Wrap) CheckExist() bool {
     if s.dba ==  nil {
        return false
     }
+    if s.mKeyFlag != -1 {
+		//f you have already obtained the existence status of the primary key, use it directly
+		if s.mKeyFlag == 0 {
+			return false
+		}
+		return true
+	}
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
 		return false
@@ -85,7 +94,11 @@ func (s *So{{.ClsName}}Wrap) CheckExist() bool {
 	if err != nil {
 		return false
 	}
-    
+    if res == false {
+    	s.mKeyFlag = 0
+	}else {
+		s.mKeyFlag = 1
+	}
 	return res
 }
 
@@ -341,7 +354,13 @@ func (s *So{{.ClsName}}Wrap) Remove{{.ClsName}}() bool {
     }
     {{end}}
     err := s.delAllMemKeys(true,val)
-    return err == nil
+    if err == nil {
+		s.mKeyBuf = nil
+		s.mKeyFlag = -1
+		return true
+	}else{
+		return false
+	}
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
@@ -724,14 +743,18 @@ func (s *So{{$.ClsName}}Wrap) get{{$.ClsName}}() *So{{$.ClsName}} {
 }
 
 func (s *So{{$.ClsName}}Wrap) encodeMainKey() ([]byte, error) {
+    if s.mKeyBuf != nil {
+		return s.mKeyBuf,nil
+	}
     pre := "{{.ClsName}}" + "{{.MainKeyName}}" + "cell"
     sub := s.mainKey
     if sub == nil {
        return nil,errors.New("the mainKey is nil")
     }
     kList := []interface{}{pre,sub}
-    kBuf,cErr := kope.EncodeSlice(kList)
-    return kBuf,cErr
+    var cErr error = nil
+	s.mKeyBuf,cErr = kope.EncodeSlice(kList)
+	return s.mKeyBuf, cErr
 }
 
 ////////////// Unique Query delete/insert/query ///////////////

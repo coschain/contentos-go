@@ -23,21 +23,30 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoVoteWrap struct {
-	dba     iservices.IDatabaseService
-	mainKey *prototype.VoterId
+	dba      iservices.IDatabaseService
+	mainKey  *prototype.VoterId
+	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf  []byte //the buffer after the main key is encoded
 }
 
 func NewSoVoteWrap(dba iservices.IDatabaseService, key *prototype.VoterId) *SoVoteWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoVoteWrap{dba, key}
+	result := &SoVoteWrap{dba, key, -1, nil}
 	return result
 }
 
 func (s *SoVoteWrap) CheckExist() bool {
 	if s.dba == nil {
 		return false
+	}
+	if s.mKeyFlag != -1 {
+		//f you have already obtained the existence status of the primary key, use it directly
+		if s.mKeyFlag == 0 {
+			return false
+		}
+		return true
 	}
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
@@ -48,7 +57,11 @@ func (s *SoVoteWrap) CheckExist() bool {
 	if err != nil {
 		return false
 	}
-
+	if res == false {
+		s.mKeyFlag = 0
+	} else {
+		s.mKeyFlag = 1
+	}
 	return res
 }
 
@@ -429,7 +442,13 @@ func (s *SoVoteWrap) RemoveVote() bool {
 	}
 
 	err := s.delAllMemKeys(true, val)
-	return err == nil
+	if err == nil {
+		s.mKeyBuf = nil
+		s.mKeyFlag = -1
+		return true
+	} else {
+		return false
+	}
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
@@ -1249,14 +1268,18 @@ func (s *SoVoteWrap) getVote() *SoVote {
 }
 
 func (s *SoVoteWrap) encodeMainKey() ([]byte, error) {
+	if s.mKeyBuf != nil {
+		return s.mKeyBuf, nil
+	}
 	pre := "Vote" + "Voter" + "cell"
 	sub := s.mainKey
 	if sub == nil {
 		return nil, errors.New("the mainKey is nil")
 	}
 	kList := []interface{}{pre, sub}
-	kBuf, cErr := kope.EncodeSlice(kList)
-	return kBuf, cErr
+	var cErr error = nil
+	s.mKeyBuf, cErr = kope.EncodeSlice(kList)
+	return s.mKeyBuf, cErr
 }
 
 ////////////// Unique Query delete/insert/query ///////////////
