@@ -5,7 +5,6 @@ import (
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
-	"github.com/coschain/contentos-go/common/encoding/vme"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/vm"
 	"github.com/coschain/contentos-go/vm/context"
@@ -469,10 +468,10 @@ func (ev *ContractDeployEvaluator) Apply() {
 
 	opAssert(!scid.CheckExist(), "contract name exist")
 
-	_, err := abi.UnmarshalABI([]byte(op.GetAbi()))
-	if err != nil {
-		opAssertE(err, "invalid contract abi")
-	}
+	//_, err := abi.UnmarshalABI([]byte(op.GetAbi()))
+	//if err != nil {
+	//	opAssertE(err, "invalid contract abi")
+	//}
 
 	vmCtx := vmcontext.NewContextFromDeployOp(op, nil)
 
@@ -502,17 +501,17 @@ func (ev *ContractApplyEvaluator) Apply() {
 	var abiInterface abi.IContractABI
 	var paramsData []byte
 
-	if abiInterface, err = abi.UnmarshalABI([]byte(scid.GetAbi())); err != nil {
-		opAssertE(err, "invalid contract abi")
-	}
-	if m := abiInterface.MethodByName(op.Method); m != nil {
-		paramsData, err = vme.EncodeFromJson([]byte(op.Params), m.Args().Type())
-		if err != nil {
-			opAssertE(err, "invalid contract parameters")
-		}
-	} else {
-		opAssert(false, "unknown contract method: " + op.Method)
-	}
+	//if abiInterface, err = abi.UnmarshalABI([]byte(scid.GetAbi())); err != nil {
+	//	opAssertE(err, "invalid contract abi")
+	//}
+	//if m := abiInterface.MethodByName(op.Method); m != nil {
+	//	paramsData, err = vme.EncodeFromJson([]byte(op.Params), m.Args().Type())
+	//	if err != nil {
+	//		opAssertE(err, "invalid contract parameters")
+	//	}
+	//} else {
+	//	opAssert(false, "unknown contract method: " + op.Method)
+	//}
 
 	vmCtx := vmcontext.NewContextFromApplyOp(op, paramsData, code, abiInterface, ev.ctx.trxCtx)
 
