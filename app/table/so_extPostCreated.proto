@@ -5,7 +5,7 @@ package table;
 
 option go_package = "github.com/coschain/contentos-go/table";
 
-import "prototype/type.proto";
+import "prototype/multi_id.proto";
 
 message so_extPostCreated {
 	uint64                                 post_id                 =      1;

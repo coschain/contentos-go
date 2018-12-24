@@ -67,28 +67,6 @@ message chain_properties{
     uint32 maximum_block_size = 2;
 }
 
-message follower_relation{
-    account_name account = 1;
-    account_name follower = 2;
-}
-
-message following_relation{
-    account_name account = 1;
-    account_name following = 2;
-}
-
-message follower_created_order{
-    account_name account = 1;
-    time_point_sec created_time = 2;
-    account_name follower = 3;
-}
-
-message following_created_order{
-    account_name account = 1;
-    time_point_sec created_time = 2;
-    account_name following = 3;
-}
-
 message witness_schedule_type{
     enum witness_schedule_type{
         top19 = 0;
@@ -99,41 +77,6 @@ message witness_schedule_type{
     witness_schedule_type value = 1;
 }
 
-message post_created_order{
-    prototype.time_point_sec created = 1;
-    uint64 parent_id = 2;
-}
-
-message voter_id{
-    account_name    voter   = 1;
-    uint64          post_id = 2;
-}
-
-message bp_voter_id{
-    account_name    voter   = 1;
-    account_name    witness = 2;
-}
-
-message bp_witness_id{
-    account_name    voter   = 1;
-    account_name    witness = 2;
-}
-
-message contract_id{
-    account_name    owner   = 1;
-    string    cname = 2;
-}
-
-message contract_data_id{
-    account_name    owner   = 1;
-    string  cname = 2;
-    int32   pos = 3;                // crc-value of data
-}
-
-message reply_created_order{
-    uint64 parent_id = 1;
-    prototype.time_point_sec created = 2;
-}
 
 message dynamic_properties {
     int32                        id                            =      1;
