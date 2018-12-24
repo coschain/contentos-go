@@ -35,11 +35,13 @@ type TrxPool struct {
 	skip    prototype.SkipFlag
 
 	pendingTx              []*prototype.TransactionWrapper
+
+	// TODO delete ??
 	isProducing            bool
-	currentTrxId           *prototype.Sha256
-	currentOpInTrx         uint16
-	currentBlockNum        uint64
-	currentTrxInBlock      int16
+	//currentTrxId           *prototype.Sha256
+	//currentOpInTrx         uint16
+	//currentBlockNum        uint64
+	//currentTrxInBlock      int16
 	havePendingTransaction bool
 	shuffle                common.ShuffleFunc
 }
@@ -334,7 +336,7 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 	signBlock := &prototype.SignedBlock{}
 	signBlock.SignedHeader = &prototype.SignedBlockHeader{}
 	signBlock.SignedHeader.Header = &prototype.BlockHeader{}
-	c.currentTrxInBlock = 0
+	//c.currentTrxInBlock = 0
 
 	// undo all pending in DB
 	if c.havePendingTransaction {
@@ -368,7 +370,7 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 
 			totalSize += uint32(proto.Size(trxWraper))
 			signBlock.Transactions = append(signBlock.Transactions, trxWraper)
-			c.currentTrxInBlock++
+			//c.currentTrxInBlock++
 		}()
 	}
 	if postponeTrx > 0 {
@@ -447,13 +449,13 @@ func (c *TrxPool) applyTransactionInner(trxWrp *prototype.TransactionWrapper) {
 
 	trx := trxWrp.SigTrx
 	var err error
-	c.currentTrxId, err = trx.Id()
+	currentTrxId, err := trx.Id()
 	mustNoError(err, "get trx id failed")
 
 	trx.Validate()
 
 	// trx duplicate check
-	transactionObjWrap := table.NewSoTransactionObjectWrap(c.db, c.currentTrxId)
+	transactionObjWrap := table.NewSoTransactionObjectWrap(c.db, currentTrxId)
 	mustSuccess(!transactionObjWrap.CheckExist(), "Duplicate transaction check failed")
 
 	if c.skip&prototype.Skip_transaction_signatures == 0 {
@@ -483,7 +485,7 @@ func (c *TrxPool) applyTransactionInner(trxWrp *prototype.TransactionWrapper) {
 
 	// insert trx into DB unique table
 	cErr := transactionObjWrap.Create(func(tInfo *table.SoTransactionObject) {
-		tInfo.TrxId = c.currentTrxId
+		tInfo.TrxId = currentTrxId
 		tInfo.Expiration = trx.Trx.Expiration
 	})
 	mustNoError(cErr, "create transactionObject failed")
@@ -492,13 +494,13 @@ func (c *TrxPool) applyTransactionInner(trxWrp *prototype.TransactionWrapper) {
 	//c.notifyTrxPreExecute(trx)
 
 	// process operation
-	c.currentOpInTrx = 0
+	//c.currentOpInTrx = 0
 	for _, op := range trx.Trx.Operations {
 		c.applyOperation(trxContext, op)
-		c.currentOpInTrx++
+		//c.currentOpInTrx++
 	}
 
-	c.currentTrxId = &prototype.Sha256{}
+	//c.currentTrxId = &prototype.Sha256{}
 }
 
 func (c *TrxPool) applyOperation(trxCtx *TrxContext, op *prototype.Operation) {
@@ -531,7 +533,7 @@ func (c *TrxPool) applyBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag
 }
 
 func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.SkipFlag) {
-	nextBlockNum := blk.Id().BlockNum()
+	//nextBlockNum := blk.Id().BlockNum()
 
 	merkleRoot := blk.CalculateMerkleRoot()
 	mustSuccess(bytes.Equal(merkleRoot.Data[:], blk.SignedHeader.Header.TransactionMerkleRoot.Hash), "Merkle check failed")
@@ -539,8 +541,8 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 	// validate_block_header
 	c.validateBlockHeader(blk)
 
-	c.currentBlockNum = nextBlockNum
-	c.currentTrxInBlock = 0
+	//c.currentBlockNum = nextBlockNum
+	//c.currentTrxInBlock = 0
 
 	blockSize := proto.Size(blk)
 	mustSuccess(uint32(blockSize) <= c.GetProps().GetMaximumBlockSize(), "Block size is too big")
@@ -569,7 +571,7 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 			trxWrp.Invoice.Status = 200
 			c.applyTransaction(trxWrp)
 			mustSuccess(trxWrp.Invoice.Status == tw.Invoice.Status, "mismatched invoice")
-			c.currentTrxInBlock++
+			//c.currentTrxInBlock++
 		}
 	}
 
@@ -872,7 +874,7 @@ func (c *TrxPool) clearExpiredTransactions() {
 }
 
 func (c *TrxPool) GetWitnessTopN(n uint32) []string {
-	ret := []string{}
+	var ret []string
 	revList := table.SWitnessVoteCountWrap{Dba: c.db}
 	revList.ForEachByRevOrder(nil, nil, func(mVal *prototype.AccountName, sVal *uint64, idx uint32) bool {
 		if mVal != nil {
