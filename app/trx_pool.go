@@ -440,11 +440,11 @@ func (c *TrxPool) applyTransactionInner(trxEst *prototype.EstimateTrxResult) {
 	trxContext := NewTrxContext(trxEst, c.db)
 	defer func() {
 		if err := recover(); err != nil {
-			trxEst.Receipt.Status = 500
+			trxEst.Receipt.Status = prototype.StatusError
 			trxEst.Receipt.ErrorInfo = fmt.Sprintf("applyTransaction failed : %v", err)
 			panic(trxEst.Receipt.ErrorInfo)
 		} else {
-			trxEst.Receipt.Status = 200
+			trxEst.Receipt.Status = prototype.StatusSuccess
 			return
 		}
 	}()
