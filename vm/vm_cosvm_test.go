@@ -7,7 +7,7 @@ import (
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/vm/context"
 	"github.com/go-interpreter/wagon/exec"
-	"github.com/inconshreveable/log15"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"os"
@@ -27,7 +27,7 @@ func TestCosVM_simpleAdd(t *testing.T) {
 	myassert := assert.New(t)
 	data, _ := ioutil.ReadFile(wasmFile)
 	context := vmcontext.Context{Code: data}
-	vm := NewCosVM(&context, nil, nil, log15.New())
+	vm := NewCosVM(&context, nil, nil, logrus.New())
 	vm.Register("add", add, 3000)
 	ret, _ := vm.Run()
 	myassert.Equal(ret, uint32(6))
@@ -38,7 +38,7 @@ func TestCosVM_readBytes1(t *testing.T) {
 	myassert := assert.New(t)
 	data, _ := ioutil.ReadFile(wasmFile)
 	context := vmcontext.Context{Code: data}
-	vm := NewCosVM(&context, nil, nil, log15.New())
+	vm := NewCosVM(&context, nil, nil, logrus.New())
 	ret, _ := vm.Run()
 	myassert.Equal(ret, uint32(11))
 }
@@ -48,7 +48,7 @@ func TestCosVM_readBytes2(t *testing.T) {
 	myassert := assert.New(t)
 	data, _ := ioutil.ReadFile(wasmFile)
 	context := vmcontext.Context{Code: data}
-	vm := NewCosVM(&context, nil, nil, log15.New())
+	vm := NewCosVM(&context, nil, nil, logrus.New())
 	ret, _ := vm.Run()
 	myassert.Equal(ret, uint32(11))
 }
@@ -58,7 +58,7 @@ func TestCosVM_readBytes3(t *testing.T) {
 	myassert := assert.New(t)
 	data, _ := ioutil.ReadFile(wasmFile)
 	context := vmcontext.Context{Code: data}
-	vm := NewCosVM(&context, nil, nil, log15.New())
+	vm := NewCosVM(&context, nil, nil, logrus.New())
 	ret, _ := vm.Run()
 	myassert.Equal(ret, uint32(5))
 }
@@ -68,7 +68,7 @@ func TestCosVm_writeByte1(t *testing.T) {
 	myassert := assert.New(t)
 	data, _ := ioutil.ReadFile(wasmFile)
 	context := vmcontext.Context{Code: data}
-	vm := NewCosVM(&context, nil, nil, log15.New())
+	vm := NewCosVM(&context, nil, nil, logrus.New())
 	ret, _ := vm.Run()
 	myassert.Equal(ret, uint32(11))
 }
@@ -78,7 +78,7 @@ func TestCosVm_writeByte2(t *testing.T) {
 	myassert := assert.New(t)
 	data, _ := ioutil.ReadFile(wasmFile)
 	context := vmcontext.Context{Code: data}
-	vm := NewCosVM(&context, nil, nil, log15.New())
+	vm := NewCosVM(&context, nil, nil, logrus.New())
 	ret, _ := vm.Run()
 	myassert.Equal(ret, uint32(5))
 }
@@ -88,7 +88,7 @@ func TestCosVM_StrLen(t *testing.T) {
 	myassert := assert.New(t)
 	data, _ := ioutil.ReadFile(wasmFile)
 	context := vmcontext.Context{Code: data}
-	vm := NewCosVM(&context, nil, nil, log15.New())
+	vm := NewCosVM(&context, nil, nil, logrus.New())
 	ret, _ := vm.Run()
 	myassert.Equal(ret, uint32(101))
 }
@@ -98,7 +98,7 @@ func TestCosVM_StrLen2(t *testing.T) {
 	myassert := assert.New(t)
 	data, _ := ioutil.ReadFile(wasmFile)
 	context := vmcontext.Context{Code: data}
-	vm := NewCosVM(&context, nil, nil, log15.New())
+	vm := NewCosVM(&context, nil, nil, logrus.New())
 	ret, _ := vm.Run()
 	myassert.Equal(ret, uint32(101))
 }
@@ -109,7 +109,7 @@ func TestCosVM_Memset(t *testing.T) {
 	myassert := assert.New(t)
 	data, _ := ioutil.ReadFile(wasmFile)
 	context := vmcontext.Context{Code: data}
-	vm := NewCosVM(&context, nil, nil, log15.New())
+	vm := NewCosVM(&context, nil, nil, logrus.New())
 	ret, _ := vm.Run()
 	myassert.Equal(ret, uint32(0))
 }
@@ -119,7 +119,7 @@ func TestCosVM_ValidateFloat(t *testing.T) {
 	data, _ := ioutil.ReadFile(wasmFile)
 	myassert := assert.New(t)
 	context := vmcontext.Context{Code: data}
-	vm := NewCosVM(&context, nil, nil, log15.New())
+	vm := NewCosVM(&context, nil, nil, logrus.New())
 	vm.Register("add", fadd, 3000)
 	err := vm.Validate()
 	myassert.Error(err)
@@ -130,7 +130,7 @@ func TestCosVM_ValidateFloatGlobal(t *testing.T) {
 	data, _ := ioutil.ReadFile(wasmFile)
 	myassert := assert.New(t)
 	context := vmcontext.Context{Code: data}
-	vm := NewCosVM(&context, nil, nil, log15.New())
+	vm := NewCosVM(&context, nil, nil, logrus.New())
 	err := vm.Validate()
 	myassert.Error(err)
 }
@@ -140,7 +140,7 @@ func TestCosVm_NotExportFunc(t *testing.T) {
 	data, _ := ioutil.ReadFile(wasmFile)
 	myassert := assert.New(t)
 	context := vmcontext.Context{Code: data}
-	vm := NewCosVM(&context, nil, nil, log15.New())
+	vm := NewCosVM(&context, nil, nil, logrus.New())
 	err := vm.Validate()
 	myassert.Error(err)
 }
@@ -150,7 +150,7 @@ func TestCosVM_Print(t *testing.T) {
 	myassert := assert.New(t)
 	data, _ := ioutil.ReadFile(wasmFile)
 	context := vmcontext.Context{Code: data}
-	vm := NewCosVM(&context, nil, nil, log15.New())
+	vm := NewCosVM(&context, nil, nil, logrus.New())
 	ret, _ := vm.Run()
 	// assert no error
 	myassert.Equal(ret, uint32(0))
@@ -161,7 +161,7 @@ func TestCosVM_Sha256(t *testing.T) {
 	myassert := assert.New(t)
 	data, _ := ioutil.ReadFile(wasmFile)
 	context := vmcontext.Context{Code: data}
-	vm := NewCosVM(&context, nil, nil, log15.New())
+	vm := NewCosVM(&context, nil, nil, logrus.New())
 	ret, _ := vm.Run()
 	myassert.Equal(ret, uint32(0))
 }
@@ -173,7 +173,7 @@ func TestCosVM_Props(t *testing.T) {
 	context := vmcontext.Context{Code: data}
 	props := &prototype.DynamicProperties{CurrentWitness: &prototype.AccountName{Value: "initminer"}, HeadBlockNumber: 1,
 		Time: &prototype.TimePointSec{UtcSeconds: 42}}
-	vm := NewCosVM(&context, nil, props, log15.New())
+	vm := NewCosVM(&context, nil, props, logrus.New())
 	ret, _ := vm.Run()
 	myassert.Equal(ret, uint32(0))
 }
@@ -183,7 +183,7 @@ func TestCosVM_CosAssert(t *testing.T) {
 	myassert := assert.New(t)
 	data, _ := ioutil.ReadFile(wasmFile)
 	context := vmcontext.Context{Code: data}
-	vm := NewCosVM(&context, nil, nil, log15.New())
+	vm := NewCosVM(&context, nil, nil, logrus.New())
 	ret, _ := vm.Run()
 	myassert.Equal(ret, uint32(1))
 }
@@ -205,7 +205,7 @@ func TestCosVM_RWStorage(t *testing.T) {
 	myassert := assert.New(t)
 	data, _ := ioutil.ReadFile(wasmFile)
 	context := vmcontext.Context{Code: data}
-	vm := NewCosVM(&context, db, nil, log15.New())
+	vm := NewCosVM(&context, db, nil, logrus.New())
 	ret, _ := vm.Run()
 	myassert.Equal(ret, uint32(0))
 }
@@ -247,7 +247,7 @@ func TestCosVM_Contract(t *testing.T) {
 	data, _ := ioutil.ReadFile(wasmFile)
 	context := vmcontext.Context{Code: data, Caller: &prototype.AccountName{Value: "alice"}, Contract: "hello",
 		Owner: &prototype.AccountName{Value: "initminer"}, Amount: &prototype.Coin{Value: 100}}
-	vm := NewCosVM(&context, db, nil, log15.New())
+	vm := NewCosVM(&context, db, nil, logrus.New())
 	ret, _ := vm.Run()
 	myassert.Equal(ret, uint32(0))
 }
@@ -303,7 +303,7 @@ func TestCosVM_ContractTransfer(t *testing.T) {
 	context := vmcontext.Context{Code: data, Caller: &prototype.AccountName{Value: "alice"},
 		Owner: &prototype.AccountName{Value: "initminer"}, Amount: &prototype.Coin{Value: 100}, Contract: "hello",
 		Injector: trxContext}
-	vm := NewCosVM(&context, db, nil, log15.New())
+	vm := NewCosVM(&context, db, nil, logrus.New())
 	ret, _ := vm.Run()
 	myassert.Equal(ret, uint32(0))
 }

@@ -6,7 +6,9 @@ import (
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/prototype"
+	"github.com/coschain/contentos-go/vm"
 	"github.com/coschain/contentos-go/vm/context"
+	"github.com/sirupsen/logrus"
 )
 
 func mustSuccess(b bool, val string) {
@@ -460,13 +462,16 @@ func (ev *ClaimAllEvaluator) Apply() {
 func (ev *ContractDeployEvaluator) Apply() {
 	op := ev.op
 
-	// TODO Check code and abi
-	// TODO Save code/abi to database
-
 	cid := prototype.ContractId{Owner: op.Owner, Cname: op.Contract}
 	scid := table.NewSoContractWrap(ev.ctx.db, &cid)
 
 	opAssert(!scid.CheckExist(), "contract name exist")
+
+	vmCtx := vmcontext.NewContextFromDeployOp(op, nil)
+
+	cosVM := vm.NewCosVM(vmCtx, nil, nil, nil)
+
+	opAssertE(cosVM.Validate(), "validate code failed")
 
 	opAssertE(scid.Create(func(t *table.SoContract) {
 		t.Code = op.Code
@@ -475,9 +480,6 @@ func (ev *ContractDeployEvaluator) Apply() {
 		t.Abi = op.Abi
 		t.Balance = prototype.NewCoin(0)
 	}), "create contract data error")
-
-	//vmCtx := vm.NewContextFromDeployOp(op)
-	//vmCtx.Run()
 }
 
 func (ev *ContractApplyEvaluator) Apply() {
@@ -485,11 +487,15 @@ func (ev *ContractApplyEvaluator) Apply() {
 
 	cid := prototype.ContractId{Owner: op.Owner, Cname: op.Contract}
 	scid := table.NewSoContractWrap(ev.ctx.db, &cid)
-	opAssert(scid.CheckExist(), "contract name exist")
-
-	// TODO Load code from database
+	opAssert(scid.CheckExist(), "contract name doesn't exist")
 
 	code := scid.GetCode()
 	vmCtx := vmcontext.NewContextFromApplyOp(op, code, ev.ctx.trxCtx)
-	vmCtx.Run()
+
+	cosVM := vm.NewCosVM(vmCtx, ev.ctx.db, ev.ctx.control.GetProps(), logrus.New())
+
+	_, err := cosVM.Run()
+	if err != nil {
+		opAssertE(err, err.Error())
+	}
 }

@@ -20,6 +20,15 @@ type Context struct {
 	Injector  vminjector.Injector
 }
 
+func NewContextFromDeployOp(op *prototype.ContractDeployOperation, injector vminjector.Injector) *Context {
+	return &Context{
+		Owner:    op.Owner,
+		Contract: op.Contract,
+		Code:     op.Code,
+		Injector: injector,
+	}
+}
+
 func NewContextFromApplyOp(op *prototype.ContractApplyOperation, code []byte, injector vminjector.Injector) *Context {
 	return &Context{
 		Caller:    op.Caller,
@@ -33,8 +42,4 @@ func NewContextFromApplyOp(op *prototype.ContractApplyOperation, code []byte, in
 		Code:      code,
 		Injector:  injector,
 	}
-}
-
-func (c *Context) Run() error {
-	return nil
 }

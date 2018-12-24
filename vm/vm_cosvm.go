@@ -12,7 +12,7 @@ import (
 	"github.com/coschain/contentos-go/vm/validator"
 	"github.com/go-interpreter/wagon/exec"
 	"github.com/go-interpreter/wagon/wasm"
-	"github.com/inconshreveable/log15"
+	"github.com/sirupsen/logrus"
 	"hash/crc32"
 	"io"
 	"math"
@@ -32,10 +32,10 @@ type CosVM struct {
 	db             iservices.IDatabaseService
 	props          *prototype.DynamicProperties
 	lock           sync.RWMutex
-	logger         log15.Logger
+	logger         *logrus.Logger
 }
 
-func NewCosVM(ctx *vmcontext.Context, db iservices.IDatabaseService, props *prototype.DynamicProperties, logger log15.Logger) *CosVM {
+func NewCosVM(ctx *vmcontext.Context, db iservices.IDatabaseService, props *prototype.DynamicProperties, logger *logrus.Logger) *CosVM {
 	return &CosVM{nativeFuncName: []string{}, nativeFuncSigs: []wasm.FunctionSig{},
 		nativeFuncs: []wasm.Function{}, ctx: ctx, logger: logger, db: db, props: props}
 }
@@ -467,9 +467,7 @@ func (w *CosVM) SaveToStorage(key []byte, value []byte) {
 		tInfo.Key = key
 		tInfo.Value = value
 	})
-	if err != nil {
-		w.logger.Error("save to storage error, contract: %s, owner: %s", w.ctx.Contract, w.ctx.Owner.Value)
-	}
+	w.CosAssert(err == nil, fmt.Sprintf("save to storage error"))
 }
 
 func (w *CosVM) saveToStorage(proc *exec.Process, pKey int32, kLen int32, pValue int32, vLen int32) {

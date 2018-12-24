@@ -148,6 +148,8 @@ func addCommands() {
 	rootCmd.AddCommand(commands.StressCreAccountCmd())
 	rootCmd.AddCommand(commands.ClaimAllCmd())
 	rootCmd.AddCommand(commands.ClaimCmd())
+	rootCmd.AddCommand(commands.DeployCmd())
+	rootCmd.AddCommand(commands.CallCmd())
 }
 
 func init() {
