@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
-	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/vm/context"
@@ -13,7 +12,6 @@ import (
 	"github.com/go-interpreter/wagon/exec"
 	"github.com/go-interpreter/wagon/wasm"
 	"github.com/sirupsen/logrus"
-	"hash/crc32"
 	"io"
 	"math"
 	"reflect"
@@ -36,29 +34,31 @@ type CosVM struct {
 }
 
 func NewCosVM(ctx *vmcontext.Context, db iservices.IDatabaseService, props *prototype.DynamicProperties, logger *logrus.Logger) *CosVM {
-	return &CosVM{nativeFuncName: []string{}, nativeFuncSigs: []wasm.FunctionSig{},
+	cosVM := &CosVM{nativeFuncName: []string{}, nativeFuncSigs: []wasm.FunctionSig{},
 		nativeFuncs: []wasm.Function{}, ctx: ctx, logger: logger, db: db, props: props}
+	return cosVM
 }
 
 func (w *CosVM) initNativeFuncs() {
+	exports := &CosVMExport{&CosVMNative{cosVM: w}}
 	w.Register("sha256", w.sha256, 500)
-	w.Register("current_block_number", w.currentBlockNumber, 100)
-	w.Register("current_timestamp", w.currentTimestamp, 100)
-	w.Register("current_witness", w.currentWitness, 150)
-	w.Register("print_string", w.printString, 100)
-	w.Register("print_uint32", w.printUint32, 100)
-	w.Register("print_uint64", w.printUint64, 100)
-	w.Register("print_bool", w.printBool, 100)
-	w.Register("require_auth", w.requiredAuth, 200)
-	w.Register("get_balance_by_name", w.getBalanceByName, 100)
-	w.Register("get_contract_balance", w.getContractBalance, 100)
-	w.Register("save_to_storage", w.saveToStorage, 1000)
-	w.Register("read_from_storage", w.readFromStorage, 300)
-	w.Register("cos_assert", w.cosAssert, 100)
-	w.Register("read_contract_owner", w.readContractOwner, 100)
-	w.Register("read_contract_caller", w.readContractCaller, 100)
-	w.Register("contract_transfer", w.contractTransfer, 800)
-	w.Register("get_sender_value", w.getSenderValue, 100)
+	w.Register("current_block_number", exports.currentBlockNumber, 100)
+	w.Register("current_timestamp", exports.currentTimestamp, 100)
+	w.Register("current_witness", exports.currentWitness, 150)
+	w.Register("print_string", exports.printString, 100)
+	w.Register("print_uint32", exports.printUint32, 100)
+	w.Register("print_uint64", exports.printUint64, 100)
+	w.Register("print_bool", exports.printBool, 100)
+	w.Register("require_auth", exports.requiredAuth, 200)
+	w.Register("get_balance_by_name", exports.getBalanceByName, 100)
+	w.Register("get_contract_balance", exports.getContractBalance, 100)
+	w.Register("save_to_storage", exports.saveToStorage, 1000)
+	w.Register("read_from_storage", exports.readFromStorage, 300)
+	w.Register("cos_assert", exports.cosAssert, 100)
+	w.Register("read_contract_owner", exports.readContractOwner, 100)
+	w.Register("read_contract_caller", exports.readContractCaller, 100)
+	w.Register("contract_transfer", exports.contractTransfer, 800)
+	w.Register("get_sender_value", exports.getSenderValue, 100)
 
 	// for memeory
 	w.Register("memcpy", w.memcpy, 100)
@@ -313,12 +313,6 @@ func (w *CosVM) exactFuncSig(p reflect.Type) (wasm.FunctionSig, error) {
 	return wasm.FunctionSig{ParamTypes: paramTypes, ReturnTypes: returnTypes}, nil
 }
 
-// private version methods as interface and public version as implement
-// isn't it strange ?
-func (w *CosVM) Sha256(in []byte) [32]byte {
-	return sha256.Sum256(in)
-}
-
 func (w *CosVM) sha256(proc *exec.Process, pSrc int32, lenSrc int32, pDst int32, lenDst int32) {
 	var srcBuf []byte
 	_, err := w.readStrAt(proc, pSrc, lenSrc, &srcBuf)
@@ -333,249 +327,6 @@ func (w *CosVM) sha256(proc *exec.Process, pSrc int32, lenSrc int32, pDst int32,
 	}
 }
 
-func (w *CosVM) CurrentBlockNumber() uint64 {
-	return w.props.HeadBlockNumber
-}
-
-func (w *CosVM) currentBlockNumber(proc *exec.Process) int64 {
-	return int64(w.CurrentBlockNumber())
-}
-
-func (w *CosVM) CurrentTimestamp() uint64 {
-	return uint64(w.props.Time.UtcSeconds)
-}
-
-func (w *CosVM) currentTimestamp(proc *exec.Process) int64 {
-	return int64(w.CurrentTimestamp())
-}
-
-func (w *CosVM) CurrentWitness() string {
-	return w.props.CurrentWitness.Value
-}
-
-func (w *CosVM) currentWitness(proc *exec.Process, pDst int32) (length int32) {
-	witness := w.CurrentWitness()
-	buf := []byte(witness)
-	length, err := w.writeStrAt(proc, buf, pDst, int32(maxReadLength))
-	w.CosAssert(err == nil, "get current witness error")
-	return length
-}
-
-func (w *CosVM) PrintString(str string) {
-	w.ctx.Injector.Log(str)
-}
-
-func (w *CosVM) printString(proc *exec.Process, pStr int32, lenStr int32) {
-	var str []byte
-	_, err := w.readStrAt(proc, pStr, lenStr, &str)
-	if err != nil {
-		panic(errors.New("read pre print str error"))
-	}
-	w.PrintString(string(str))
-}
-
-func (w *CosVM) PrintUint32(value uint32) {
-	w.ctx.Injector.Log(fmt.Sprintf("%d", value))
-}
-
-func (w *CosVM) printUint32(proc *exec.Process, value int32) {
-	w.PrintUint32(uint32(value))
-}
-
-func (w *CosVM) PrintUint64(value uint64) {
-	w.ctx.Injector.Log(fmt.Sprintf("%d", value))
-}
-
-func (w *CosVM) printUint64(proc *exec.Process, value int64) {
-	w.PrintUint64(uint64(value))
-}
-
-func (w *CosVM) PrintBool(value bool) {
-	if value {
-		w.ctx.Injector.Log("true")
-	} else {
-		w.ctx.Injector.Log("false")
-	}
-}
-
-func (w *CosVM) printBool(proc *exec.Process, value int32) {
-	w.PrintBool(value > 0)
-}
-
-func (w *CosVM) RequiredAuth(name string) {
-	err := w.ctx.Injector.RequireAuth(name)
-	w.CosAssert(err == nil, "require auth error")
-}
-
-func (w *CosVM) requiredAuth(proc *exec.Process, pStr int32, pLen int32) {
-	var name []byte
-	_, err := w.readStrAt(proc, pStr, pLen, &name)
-	if err != nil {
-		panic("read auth name error")
-	}
-	w.RequiredAuth(string(name))
-}
-
-func (w *CosVM) GetBalanceByName(name string) uint64 {
-	acc := table.NewSoAccountWrap(w.db, &prototype.AccountName{Value: name})
-	return acc.GetBalance().Value
-}
-
-func (w *CosVM) getBalanceByName(proc *exec.Process, ptr int32, len int32) int64 {
-	var name []byte
-	_, err := w.readStrAt(proc, ptr, len, &name)
-	if err != nil {
-		panic(err)
-	}
-	return int64(w.GetBalanceByName(string(name)))
-}
-
-func (w *CosVM) GetContractBalance(contract string, name string) uint64 {
-	ctct := table.NewSoContractWrap(w.db, &prototype.ContractId{Owner: &prototype.AccountName{Value: name}, Cname: contract})
-	return ctct.GetBalance().Value
-}
-
-func (w *CosVM) getContractBalance(proc *exec.Process, cPtr int32, cLen int32, nPtr int32, nLen int32) int64 {
-	var contract []byte
-	_, err := w.readStrAt(proc, cPtr, cLen, &contract)
-	if err != nil {
-		panic(err)
-	}
-	var name []byte
-	_, err = w.readStrAt(proc, nPtr, nLen, &name)
-	if err != nil {
-		w.logger.Error("get contract balance error when read name:", err)
-	}
-	return int64(w.GetContractBalance(string(contract), string(name)))
-}
-
-func (w *CosVM) SaveToStorage(key []byte, value []byte) {
-	crc32q := crc32.MakeTable(0xD5828281)
-	pos := int32(crc32.Checksum(key, crc32q))
-	contractDB := table.NewSoContractDataWrap(w.db, &prototype.ContractDataId{Owner: w.ctx.Owner, Cname: w.ctx.Contract, Pos: pos})
-	err := contractDB.Create(func(tInfo *table.SoContractData) {
-		tInfo.Key = key
-		tInfo.Value = value
-	})
-	w.CosAssert(err == nil, fmt.Sprintf("save to storage error"))
-}
-
-func (w *CosVM) saveToStorage(proc *exec.Process, pKey int32, kLen int32, pValue int32, vLen int32) {
-	var key []byte
-	_, err := w.readStrAt(proc, pKey, kLen, &key)
-	w.CosAssert(err == nil, "read key failed when save to storage")
-	var value []byte
-	_, err = w.readStrAt(proc, pValue, vLen, &value)
-	w.CosAssert(err == nil, "read value failed when save to storage")
-	w.SaveToStorage(key, value)
-}
-
-func (w *CosVM) ReadFromStorage(key []byte) (value []byte) {
-	crc32q := crc32.MakeTable(0xD5828281)
-	pos := int32(crc32.Checksum(key, crc32q))
-	contractDB := table.NewSoContractDataWrap(w.db, &prototype.ContractDataId{Owner: w.ctx.Owner, Cname: w.ctx.Contract, Pos: pos})
-	value = contractDB.GetValue()
-	return
-}
-
-func (w *CosVM) readFromStorage(proc *exec.Process, pKey int32, kLen int32, pValue int32, vLen int32) {
-	var key []byte
-	_, err := w.readStrAt(proc, pKey, kLen, &key)
-	w.CosAssert(err == nil, "read key failed when read from stroage")
-	value := w.ReadFromStorage(key)
-	if len(value) > int(vLen) {
-		value = value[:vLen]
-	}
-	_, err = w.writeStrAt(proc, value, pValue, vLen)
-	w.CosAssert(err == nil, "write value failed when read from storage")
-}
-
-func (w *CosVM) CosAssert(condition bool, msg string) {
-	if !condition {
-		panic(msg)
-	}
-}
-
-func (w *CosVM) cosAssert(proc *exec.Process, condition int32, pStr int32, len int32) {
-	var msg []byte
-	_, err := w.readStrAt(proc, pStr, len, &msg)
-	if err != nil {
-		panic("read msg when assert failed")
-	}
-	w.CosAssert(condition > 0, string(msg))
-}
-
-func (w *CosVM) ReadContractOpParams() string {
-	return w.ctx.Params
-}
-
-func (w *CosVM) readContractOpParams(proc *exec.Process, ptr, length int32) {
-	params := w.ReadContractOpParams()
-	b := []byte(params)
-	if len(b) > int(length) {
-		b = b[:length]
-	}
-	_, err := w.writeStrAt(proc, b, ptr, length)
-	w.CosAssert(err == nil, "read contract params error")
-}
-
-func (w *CosVM) ReadContractOpParamsLength() int {
-	return len(w.ctx.Params)
-}
-
-func (w *CosVM) readContractOpParamsLength(proc *exec.Process) int32 {
-	length := int32(w.ReadContractOpParamsLength())
-	return length
-}
-
-func (w *CosVM) ReadContractOwner() string {
-	return w.ctx.Owner.Value
-}
-
-func (w *CosVM) readContractOwner(proc *exec.Process, pStr int32, length int32) {
-	owner := w.ReadContractOwner()
-	byteOwner := []byte(owner)
-	if len(byteOwner) > int(length) {
-		byteOwner = byteOwner[:length]
-	}
-	_, err := w.writeStrAt(proc, byteOwner, pStr, length)
-	w.CosAssert(err == nil, "write owner into memory err")
-}
-
-func (w *CosVM) ReadContractCaller() string {
-	return w.ctx.Caller.Value
-}
-
-func (w *CosVM) readContractCaller(proc *exec.Process, pStr int32, length int32) {
-	caller := w.ReadContractCaller()
-	byteCaller := []byte(caller)
-	if len(byteCaller) > int(length) {
-		byteCaller = byteCaller[:length]
-	}
-	_, err := w.writeStrAt(proc, byteCaller, pStr, length)
-	w.CosAssert(err == nil, "read contract caller error")
-}
-
-func (w *CosVM) ContractTransfer(to string, amount uint64) {
-	err := w.ctx.Injector.ContractTransfer(w.ctx.Contract, w.ctx.Owner.Value, to, amount)
-	w.CosAssert(err == nil, fmt.Sprintf("transfer error: %v", err))
-}
-
-func (w *CosVM) contractTransfer(proc *exec.Process, pTo, pToLen int32, amount int64) {
-	var to []byte
-	_, err := w.readStrAt(proc, pTo, pToLen, &to)
-	w.CosAssert(err == nil, "read to err when transfer")
-	w.ContractTransfer(string(to), uint64(amount))
-}
-
-func (w *CosVM) GetSenderValue() uint64 {
-	return w.ctx.Amount.Value
-}
-
-func (w *CosVM) getSenderValue(proc *exec.Process) int64 {
-	return int64(w.GetSenderValue())
-}
-
 func (w *CosVM) memcpy(proc *exec.Process, dst, src, size int32) int32 {
 	data := make([]byte, size)
 	// ErrShortBuffer should be ignored ?
@@ -588,7 +339,7 @@ func (w *CosVM) memcpy(proc *exec.Process, dst, src, size int32) int32 {
 func (w *CosVM) memset(proc *exec.Process, ptr, value, size int32) int32 {
 	data := make([]byte, size)
 	if value < 0 || value > 255 {
-		w.CosAssert(false, "value should between 0 and 255")
+		panic("value should between 0 and 255")
 	}
 	for i := range data {
 		data[i] = byte(value)
