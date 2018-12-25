@@ -52,6 +52,10 @@ func packList(e [][]byte) []byte {
 	return buf.Bytes()
 }
 
+func PackList(e [][]byte) []byte{
+	return packList(e)
+}
+
 func unpackList(d []byte) [][]byte {
 	s := len(d)
 	r := [][]byte{}

@@ -25,13 +25,20 @@ type SoTransactionObjectWrap struct {
 	mainKey  *prototype.Sha256
 	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
 	mKeyBuf  []byte //the buffer after the main key is encoded
+	mBuf     []byte //the value after the main key is encoded
 }
 
 func NewSoTransactionObjectWrap(dba iservices.IDatabaseService, key *prototype.Sha256) *SoTransactionObjectWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoTransactionObjectWrap{dba, key, -1, nil}
+	result := &SoTransactionObjectWrap{
+		dba,
+		key,
+		-1,
+		nil,
+		nil,
+	}
 	return result
 }
 
@@ -108,17 +115,37 @@ func (s *SoTransactionObjectWrap) Create(f func(tInfo *SoTransactionObject)) err
 	return nil
 }
 
+func (s *SoTransactionObjectWrap) getMainKeyBuf() ([]byte, error) {
+	if s.mainKey == nil {
+		return nil, errors.New("the main key is nil")
+	}
+	if s.mBuf == nil {
+		var err error = nil
+		s.mBuf, err = kope.Encode(s.mainKey)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return s.mBuf, nil
+}
+
 func (s *SoTransactionObjectWrap) encodeMemKey(fName string) ([]byte, error) {
 	if len(fName) < 1 || s.mainKey == nil {
 		return nil, errors.New("field name or main key is empty")
 	}
 	pre := "TransactionObject" + fName + "cell"
-	kList := []interface{}{pre, s.mainKey}
-	key, err := kope.EncodeSlice(kList)
+	preBuf, err := kope.Encode(pre)
 	if err != nil {
 		return nil, err
 	}
-	return key, nil
+	mBuf, err := s.getMainKeyBuf()
+	if err != nil {
+		return nil, err
+	}
+	list := make([][]byte, 2)
+	list[0] = preBuf
+	list[1] = mBuf
+	return kope.PackList(list), nil
 }
 
 func (so *SoTransactionObjectWrap) saveAllMemKeys(tInfo *SoTransactionObject, br bool) error {
@@ -621,10 +648,19 @@ func (s *SoTransactionObjectWrap) encodeMainKey() ([]byte, error) {
 	if sub == nil {
 		return nil, errors.New("the mainKey is nil")
 	}
-	kList := []interface{}{pre, sub}
-	var cErr error = nil
-	s.mKeyBuf, cErr = kope.EncodeSlice(kList)
-	return s.mKeyBuf, cErr
+	preBuf, err := kope.Encode(pre)
+	if err != nil {
+		return nil, err
+	}
+	mBuf, err := s.getMainKeyBuf()
+	if err != nil {
+		return nil, err
+	}
+	list := make([][]byte, 2)
+	list[0] = preBuf
+	list[1] = mBuf
+	s.mKeyBuf = kope.PackList(list)
+	return s.mKeyBuf, nil
 }
 
 ////////////// Unique Query delete/insert/query ///////////////
