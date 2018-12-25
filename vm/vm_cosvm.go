@@ -98,7 +98,7 @@ func (w *CosVM) Run() (ret uint32, err error) {
 	defer func() {
 		if e := recover(); e != nil {
 			ret = 1
-			err = errors.New("cosvm exit by exception")
+			err = errors.New(fmt.Sprintf("%v", e))
 		}
 	}()
 	vmModule, err := w.readModule()
@@ -165,7 +165,7 @@ func (w *CosVM) readT1(proc *exec.Process, pointer int32, maxLength int32) int32
 	if err != nil {
 		fmt.Println("read error:", err)
 	}
-	fmt.Printf("length %d\n", length)
+	fmt.Println(fmt.Sprintf("length %d", length))
 	fmt.Println(string(msg))
 	return length
 }
@@ -362,7 +362,7 @@ func (w *CosVM) currentWitness(proc *exec.Process, pDst int32) (length int32) {
 }
 
 func (w *CosVM) PrintString(str string) {
-	fmt.Println(str)
+	w.ctx.Injector.Log(str)
 }
 
 func (w *CosVM) printString(proc *exec.Process, pStr int32, lenStr int32) {
@@ -374,18 +374,8 @@ func (w *CosVM) printString(proc *exec.Process, pStr int32, lenStr int32) {
 	w.PrintString(string(str))
 }
 
-// need support indirect uint32
-//func (w *CosVM) PrintIndirectUint32(pointer int32) {
-//
-//}
-//
-//func (w *CosVM) printIndirectUint32(proc *exec.Process, pointer int32) {
-//	value := w.readUint32(proc, pointer)
-//
-//}
-
 func (w *CosVM) PrintUint32(value uint32) {
-	fmt.Printf("%d\n", value)
+	w.ctx.Injector.Log(fmt.Sprintf("%d", value))
 }
 
 func (w *CosVM) printUint32(proc *exec.Process, value int32) {
@@ -393,7 +383,7 @@ func (w *CosVM) printUint32(proc *exec.Process, value int32) {
 }
 
 func (w *CosVM) PrintUint64(value uint64) {
-	fmt.Printf("%d\n", value)
+	w.ctx.Injector.Log(fmt.Sprintf("%d", value))
 }
 
 func (w *CosVM) printUint64(proc *exec.Process, value int64) {
@@ -402,9 +392,9 @@ func (w *CosVM) printUint64(proc *exec.Process, value int64) {
 
 func (w *CosVM) PrintBool(value bool) {
 	if value {
-		fmt.Println("true")
+		w.ctx.Injector.Log("true")
 	} else {
-		fmt.Println("false")
+		w.ctx.Injector.Log("false")
 	}
 }
 

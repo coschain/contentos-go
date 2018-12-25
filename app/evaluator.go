@@ -517,8 +517,8 @@ func (ev *ContractApplyEvaluator) Apply() {
 
 	cosVM := vm.NewCosVM(vmCtx, ev.ctx.db, ev.ctx.control.GetProps(), logrus.New())
 
-	_, err = cosVM.Run()
+	ret, err := cosVM.Run()
 	if err != nil {
-		opAssertE(err, err.Error())
+		vmCtx.Injector.Error(ret, err.Error())
 	}
 }

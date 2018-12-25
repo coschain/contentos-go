@@ -146,6 +146,7 @@ func addCommands() {
 	rootCmd.AddCommand(commands.ChainStateCmd())
 	rootCmd.AddCommand(commands.StressCmd())
 	rootCmd.AddCommand(commands.StressCreAccountCmd())
+	rootCmd.AddCommand(commands.StressVMCmd())
 	rootCmd.AddCommand(commands.ClaimAllCmd())
 	rootCmd.AddCommand(commands.ClaimCmd())
 	rootCmd.AddCommand(commands.DeployCmd())

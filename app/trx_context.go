@@ -11,9 +11,9 @@ import (
 
 type TrxContext struct {
 	vminjector.Injector
-	Wrapper *prototype.EstimateTrxResult
-	db      iservices.IDatabaseService
-
+	Wrapper     *prototype.EstimateTrxResult
+	db          iservices.IDatabaseService
+	msg         []string
 	recoverPubs []*prototype.PublicKeyType
 }
 
@@ -47,6 +47,15 @@ func (p *TrxContext) authGetter(name string) *prototype.Authority {
 		panic("no owner auth")
 	}
 	return auth
+}
+
+func (p *TrxContext) Error(code uint32, msg string) {
+	p.Wrapper.Receipt.ErrorInfo = msg
+	p.Wrapper.Receipt.Status = 500
+}
+
+func (p *TrxContext) Log(msg string) {
+	p.Wrapper.Receipt.OpResults = append(p.Wrapper.Receipt.OpResults, &prototype.OperationReceiptWithInfo{VmConsole: msg})
 }
 
 func (p *TrxContext) RequireAuth(name string) (err error) {
