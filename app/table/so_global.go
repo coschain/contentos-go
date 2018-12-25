@@ -511,11 +511,15 @@ func (s *SoGlobalWrap) insertUniKeyId(sa *SoGlobal) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
-	uniWrap := UniGlobalIdWrap{}
-	uniWrap.Dba = s.dba
-	res := uniWrap.UniQueryId(&sa.Id)
-
-	if res != nil {
+	pre := GlobalIdUniTable
+	sub := sa.Id
+	kList := []interface{}{pre, sub}
+	kBuf, err := kope.EncodeSlice(kList)
+	if err != nil {
+		return false
+	}
+	res, err := s.dba.Has(kBuf)
+	if err == nil && res == true {
 		//the unique key is already exist
 		return false
 	}
@@ -528,13 +532,6 @@ func (s *SoGlobalWrap) insertUniKeyId(sa *SoGlobal) bool {
 		return false
 	}
 
-	pre := GlobalIdUniTable
-	sub := sa.Id
-	kList := []interface{}{pre, sub}
-	kBuf, err := kope.EncodeSlice(kList)
-	if err != nil {
-		return false
-	}
 	return s.dba.Put(kBuf, buf) == nil
 
 }

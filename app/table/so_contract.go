@@ -988,11 +988,15 @@ func (s *SoContractWrap) insertUniKeyId(sa *SoContract) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
-	uniWrap := UniContractIdWrap{}
-	uniWrap.Dba = s.dba
-
-	res := uniWrap.UniQueryId(sa.Id)
-	if res != nil {
+	pre := ContractIdUniTable
+	sub := sa.Id
+	kList := []interface{}{pre, sub}
+	kBuf, err := kope.EncodeSlice(kList)
+	if err != nil {
+		return false
+	}
+	res, err := s.dba.Has(kBuf)
+	if err == nil && res == true {
 		//the unique key is already exist
 		return false
 	}
@@ -1005,13 +1009,6 @@ func (s *SoContractWrap) insertUniKeyId(sa *SoContract) bool {
 		return false
 	}
 
-	pre := ContractIdUniTable
-	sub := sa.Id
-	kList := []interface{}{pre, sub}
-	kBuf, err := kope.EncodeSlice(kList)
-	if err != nil {
-		return false
-	}
 	return s.dba.Put(kBuf, buf) == nil
 
 }

@@ -718,11 +718,15 @@ func (s *SoExtFollowerWrap) insertUniKeyFollowerInfo(sa *SoExtFollower) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
-	uniWrap := UniExtFollowerFollowerInfoWrap{}
-	uniWrap.Dba = s.dba
-
-	res := uniWrap.UniQueryFollowerInfo(sa.FollowerInfo)
-	if res != nil {
+	pre := ExtFollowerFollowerInfoUniTable
+	sub := sa.FollowerInfo
+	kList := []interface{}{pre, sub}
+	kBuf, err := kope.EncodeSlice(kList)
+	if err != nil {
+		return false
+	}
+	res, err := s.dba.Has(kBuf)
+	if err == nil && res == true {
 		//the unique key is already exist
 		return false
 	}
@@ -735,13 +739,6 @@ func (s *SoExtFollowerWrap) insertUniKeyFollowerInfo(sa *SoExtFollower) bool {
 		return false
 	}
 
-	pre := ExtFollowerFollowerInfoUniTable
-	sub := sa.FollowerInfo
-	kList := []interface{}{pre, sub}
-	kBuf, err := kope.EncodeSlice(kList)
-	if err != nil {
-		return false
-	}
 	return s.dba.Put(kBuf, buf) == nil
 
 }

@@ -1954,11 +1954,15 @@ func (s *SoPostWrap) insertUniKeyPostId(sa *SoPost) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
-	uniWrap := UniPostPostIdWrap{}
-	uniWrap.Dba = s.dba
-	res := uniWrap.UniQueryPostId(&sa.PostId)
-
-	if res != nil {
+	pre := PostPostIdUniTable
+	sub := sa.PostId
+	kList := []interface{}{pre, sub}
+	kBuf, err := kope.EncodeSlice(kList)
+	if err != nil {
+		return false
+	}
+	res, err := s.dba.Has(kBuf)
+	if err == nil && res == true {
 		//the unique key is already exist
 		return false
 	}
@@ -1971,13 +1975,6 @@ func (s *SoPostWrap) insertUniKeyPostId(sa *SoPost) bool {
 		return false
 	}
 
-	pre := PostPostIdUniTable
-	sub := sa.PostId
-	kList := []interface{}{pre, sub}
-	kBuf, err := kope.EncodeSlice(kList)
-	if err != nil {
-		return false
-	}
 	return s.dba.Put(kBuf, buf) == nil
 
 }

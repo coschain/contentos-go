@@ -1801,11 +1801,15 @@ func (s *SoWitnessWrap) insertUniKeyOwner(sa *SoWitness) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
-	uniWrap := UniWitnessOwnerWrap{}
-	uniWrap.Dba = s.dba
-
-	res := uniWrap.UniQueryOwner(sa.Owner)
-	if res != nil {
+	pre := WitnessOwnerUniTable
+	sub := sa.Owner
+	kList := []interface{}{pre, sub}
+	kBuf, err := kope.EncodeSlice(kList)
+	if err != nil {
+		return false
+	}
+	res, err := s.dba.Has(kBuf)
+	if err == nil && res == true {
 		//the unique key is already exist
 		return false
 	}
@@ -1818,13 +1822,6 @@ func (s *SoWitnessWrap) insertUniKeyOwner(sa *SoWitness) bool {
 		return false
 	}
 
-	pre := WitnessOwnerUniTable
-	sub := sa.Owner
-	kList := []interface{}{pre, sub}
-	kBuf, err := kope.EncodeSlice(kList)
-	if err != nil {
-		return false
-	}
 	return s.dba.Put(kBuf, buf) == nil
 
 }

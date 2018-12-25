@@ -1943,11 +1943,15 @@ func (s *SoAccountWrap) insertUniKeyName(sa *SoAccount) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
-	uniWrap := UniAccountNameWrap{}
-	uniWrap.Dba = s.dba
-
-	res := uniWrap.UniQueryName(sa.Name)
-	if res != nil {
+	pre := AccountNameUniTable
+	sub := sa.Name
+	kList := []interface{}{pre, sub}
+	kBuf, err := kope.EncodeSlice(kList)
+	if err != nil {
+		return false
+	}
+	res, err := s.dba.Has(kBuf)
+	if err == nil && res == true {
 		//the unique key is already exist
 		return false
 	}
@@ -1960,13 +1964,6 @@ func (s *SoAccountWrap) insertUniKeyName(sa *SoAccount) bool {
 		return false
 	}
 
-	pre := AccountNameUniTable
-	sub := sa.Name
-	kList := []interface{}{pre, sub}
-	kBuf, err := kope.EncodeSlice(kList)
-	if err != nil {
-		return false
-	}
 	return s.dba.Put(kBuf, buf) == nil
 
 }

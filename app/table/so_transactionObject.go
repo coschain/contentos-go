@@ -718,11 +718,15 @@ func (s *SoTransactionObjectWrap) insertUniKeyTrxId(sa *SoTransactionObject) boo
 	if s.dba == nil || sa == nil {
 		return false
 	}
-	uniWrap := UniTransactionObjectTrxIdWrap{}
-	uniWrap.Dba = s.dba
-
-	res := uniWrap.UniQueryTrxId(sa.TrxId)
-	if res != nil {
+	pre := TransactionObjectTrxIdUniTable
+	sub := sa.TrxId
+	kList := []interface{}{pre, sub}
+	kBuf, err := kope.EncodeSlice(kList)
+	if err != nil {
+		return false
+	}
+	res, err := s.dba.Has(kBuf)
+	if err == nil && res == true {
 		//the unique key is already exist
 		return false
 	}
@@ -735,13 +739,6 @@ func (s *SoTransactionObjectWrap) insertUniKeyTrxId(sa *SoTransactionObject) boo
 		return false
 	}
 
-	pre := TransactionObjectTrxIdUniTable
-	sub := sa.TrxId
-	kList := []interface{}{pre, sub}
-	kBuf, err := kope.EncodeSlice(kList)
-	if err != nil {
-		return false
-	}
 	return s.dba.Put(kBuf, buf) == nil
 
 }

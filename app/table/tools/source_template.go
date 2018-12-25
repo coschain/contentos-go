@@ -857,19 +857,18 @@ func (s *So{{$.ClsName}}Wrap) insertUniKey{{$k}}(sa *So{{$.ClsName}}) bool {
     if s.dba == nil || sa == nil{
        return false
     }
-    uniWrap  := Uni{{$.ClsName}}{{$k}}Wrap{}
-     uniWrap.Dba = s.dba
-   {{$baseType := (DetectBaseType $v) -}}
-   {{if $baseType -}} 
-   	res := uniWrap.UniQuery{{$k}}(&sa.{{UperFirstChar $k}})
-   {{end}}
-   {{if not $baseType -}} 
-   	res := uniWrap.UniQuery{{$k}}(sa.{{UperFirstChar $k}})
-   {{end -}}
-	if res != nil {
-		//the unique key is already exist
+    pre := {{$.ClsName}}{{$k}}UniTable
+    sub := sa.{{UperFirstChar $k}}
+    kList := []interface{}{pre,sub}
+    kBuf,err := kope.EncodeSlice(kList)
+	if err != nil {
 		return false
 	}
+    res,err := s.dba.Has(kBuf)
+    if err == nil && res == true {
+       //the unique key is already exist
+		return false
+    }
     val := SoUnique{{$.ClsName}}By{{$k}}{}
     {{if ne $.MainKeyName $k -}}
    	val.{{UperFirstChar $.MainKeyName}} = sa.{{UperFirstChar $.MainKeyName}}
@@ -881,14 +880,7 @@ func (s *So{{$.ClsName}}Wrap) insertUniKey{{$k}}(sa *So{{$.ClsName}}) bool {
 	if err != nil {
 		return false
 	}
-    
-    pre := {{$.ClsName}}{{$k}}UniTable
-    sub := sa.{{UperFirstChar $k}}
-    kList := []interface{}{pre,sub}
-    kBuf,err := kope.EncodeSlice(kList)
-	if err != nil {
-		return false
-	}
+
 	return s.dba.Put(kBuf, buf) == nil
 
 }
@@ -929,6 +921,7 @@ func (s *Uni{{$.ClsName}}{{$k}}Wrap) UniQuery{{$k}}(start *{{formatStr $v}}) *So
 	}
     return nil
 }
+
 
 {{end}}
 

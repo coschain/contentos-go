@@ -609,11 +609,15 @@ func (s *SoAccountAuthorityObjectWrap) insertUniKeyAccount(sa *SoAccountAuthorit
 	if s.dba == nil || sa == nil {
 		return false
 	}
-	uniWrap := UniAccountAuthorityObjectAccountWrap{}
-	uniWrap.Dba = s.dba
-
-	res := uniWrap.UniQueryAccount(sa.Account)
-	if res != nil {
+	pre := AccountAuthorityObjectAccountUniTable
+	sub := sa.Account
+	kList := []interface{}{pre, sub}
+	kBuf, err := kope.EncodeSlice(kList)
+	if err != nil {
+		return false
+	}
+	res, err := s.dba.Has(kBuf)
+	if err == nil && res == true {
 		//the unique key is already exist
 		return false
 	}
@@ -626,13 +630,6 @@ func (s *SoAccountAuthorityObjectWrap) insertUniKeyAccount(sa *SoAccountAuthorit
 		return false
 	}
 
-	pre := AccountAuthorityObjectAccountUniTable
-	sub := sa.Account
-	kList := []interface{}{pre, sub}
-	kBuf, err := kope.EncodeSlice(kList)
-	if err != nil {
-		return false
-	}
 	return s.dba.Put(kBuf, buf) == nil
 
 }

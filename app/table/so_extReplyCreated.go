@@ -705,11 +705,15 @@ func (s *SoExtReplyCreatedWrap) insertUniKeyPostId(sa *SoExtReplyCreated) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
-	uniWrap := UniExtReplyCreatedPostIdWrap{}
-	uniWrap.Dba = s.dba
-	res := uniWrap.UniQueryPostId(&sa.PostId)
-
-	if res != nil {
+	pre := ExtReplyCreatedPostIdUniTable
+	sub := sa.PostId
+	kList := []interface{}{pre, sub}
+	kBuf, err := kope.EncodeSlice(kList)
+	if err != nil {
+		return false
+	}
+	res, err := s.dba.Has(kBuf)
+	if err == nil && res == true {
 		//the unique key is already exist
 		return false
 	}
@@ -722,13 +726,6 @@ func (s *SoExtReplyCreatedWrap) insertUniKeyPostId(sa *SoExtReplyCreated) bool {
 		return false
 	}
 
-	pre := ExtReplyCreatedPostIdUniTable
-	sub := sa.PostId
-	kList := []interface{}{pre, sub}
-	kBuf, err := kope.EncodeSlice(kList)
-	if err != nil {
-		return false
-	}
 	return s.dba.Put(kBuf, buf) == nil
 
 }

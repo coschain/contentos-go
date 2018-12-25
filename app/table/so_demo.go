@@ -2333,11 +2333,15 @@ func (s *SoDemoWrap) insertUniKeyIdx(sa *SoDemo) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
-	uniWrap := UniDemoIdxWrap{}
-	uniWrap.Dba = s.dba
-	res := uniWrap.UniQueryIdx(&sa.Idx)
-
-	if res != nil {
+	pre := DemoIdxUniTable
+	sub := sa.Idx
+	kList := []interface{}{pre, sub}
+	kBuf, err := kope.EncodeSlice(kList)
+	if err != nil {
+		return false
+	}
+	res, err := s.dba.Has(kBuf)
+	if err == nil && res == true {
 		//the unique key is already exist
 		return false
 	}
@@ -2351,13 +2355,6 @@ func (s *SoDemoWrap) insertUniKeyIdx(sa *SoDemo) bool {
 		return false
 	}
 
-	pre := DemoIdxUniTable
-	sub := sa.Idx
-	kList := []interface{}{pre, sub}
-	kBuf, err := kope.EncodeSlice(kList)
-	if err != nil {
-		return false
-	}
 	return s.dba.Put(kBuf, buf) == nil
 
 }
@@ -2433,11 +2430,15 @@ func (s *SoDemoWrap) insertUniKeyLikeCount(sa *SoDemo) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
-	uniWrap := UniDemoLikeCountWrap{}
-	uniWrap.Dba = s.dba
-	res := uniWrap.UniQueryLikeCount(&sa.LikeCount)
-
-	if res != nil {
+	pre := DemoLikeCountUniTable
+	sub := sa.LikeCount
+	kList := []interface{}{pre, sub}
+	kBuf, err := kope.EncodeSlice(kList)
+	if err != nil {
+		return false
+	}
+	res, err := s.dba.Has(kBuf)
+	if err == nil && res == true {
 		//the unique key is already exist
 		return false
 	}
@@ -2451,13 +2452,6 @@ func (s *SoDemoWrap) insertUniKeyLikeCount(sa *SoDemo) bool {
 		return false
 	}
 
-	pre := DemoLikeCountUniTable
-	sub := sa.LikeCount
-	kList := []interface{}{pre, sub}
-	kBuf, err := kope.EncodeSlice(kList)
-	if err != nil {
-		return false
-	}
 	return s.dba.Put(kBuf, buf) == nil
 
 }
@@ -2537,11 +2531,15 @@ func (s *SoDemoWrap) insertUniKeyOwner(sa *SoDemo) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
-	uniWrap := UniDemoOwnerWrap{}
-	uniWrap.Dba = s.dba
-
-	res := uniWrap.UniQueryOwner(sa.Owner)
-	if res != nil {
+	pre := DemoOwnerUniTable
+	sub := sa.Owner
+	kList := []interface{}{pre, sub}
+	kBuf, err := kope.EncodeSlice(kList)
+	if err != nil {
+		return false
+	}
+	res, err := s.dba.Has(kBuf)
+	if err == nil && res == true {
 		//the unique key is already exist
 		return false
 	}
@@ -2554,13 +2552,6 @@ func (s *SoDemoWrap) insertUniKeyOwner(sa *SoDemo) bool {
 		return false
 	}
 
-	pre := DemoOwnerUniTable
-	sub := sa.Owner
-	kList := []interface{}{pre, sub}
-	kBuf, err := kope.EncodeSlice(kList)
-	if err != nil {
-		return false
-	}
 	return s.dba.Put(kBuf, buf) == nil
 
 }

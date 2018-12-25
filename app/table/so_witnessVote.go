@@ -797,11 +797,15 @@ func (s *SoWitnessVoteWrap) insertUniKeyVoterId(sa *SoWitnessVote) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
-	uniWrap := UniWitnessVoteVoterIdWrap{}
-	uniWrap.Dba = s.dba
-
-	res := uniWrap.UniQueryVoterId(sa.VoterId)
-	if res != nil {
+	pre := WitnessVoteVoterIdUniTable
+	sub := sa.VoterId
+	kList := []interface{}{pre, sub}
+	kBuf, err := kope.EncodeSlice(kList)
+	if err != nil {
+		return false
+	}
+	res, err := s.dba.Has(kBuf)
+	if err == nil && res == true {
 		//the unique key is already exist
 		return false
 	}
@@ -814,13 +818,6 @@ func (s *SoWitnessVoteWrap) insertUniKeyVoterId(sa *SoWitnessVote) bool {
 		return false
 	}
 
-	pre := WitnessVoteVoterIdUniTable
-	sub := sa.VoterId
-	kList := []interface{}{pre, sub}
-	kBuf, err := kope.EncodeSlice(kList)
-	if err != nil {
-		return false
-	}
 	return s.dba.Put(kBuf, buf) == nil
 
 }
