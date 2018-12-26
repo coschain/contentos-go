@@ -65,5 +65,8 @@ const (
 	REPLY_REWARD  = 2000
 	BP_REWARD     = 1000
 
+	// 10 ** 18 ?
+	BASE_RATE = 1
+
 	Contract_Construct = "construct"
 )

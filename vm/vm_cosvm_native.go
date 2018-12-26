@@ -128,8 +128,7 @@ func (w *CosVMNative) ReadContractSenderValue() uint64 {
 }
 
 func (w *CosVMNative) ContractTransfer(to string, amount uint64) {
-	err := w.cosVM.ctx.Injector.ContractTransfer(w.cosVM.ctx.Contract, w.cosVM.ctx.Owner.Value, to, amount)
-	w.CosAssert(err == nil, fmt.Sprintf("transfer error: %v", err))
+	w.cosVM.ctx.Injector.ContractTransfer(w.cosVM.ctx.Contract, w.cosVM.ctx.Owner.Value, to, amount)
 }
 
 func (w *CosVMNative) TableGetRecord(tableName string, primary []byte) []byte {

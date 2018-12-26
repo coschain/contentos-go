@@ -72,8 +72,18 @@ func (p *TrxContext) RequireAuth(name string) (err error) {
 	return nil
 }
 
+func (p *TrxContext) DeductGasFee(caller string, spent uint64) {
+	acc := table.NewSoAccountWrap(p.db, &prototype.AccountName{Value: caller})
+	balance := acc.GetBalance().Value
+	if balance < spent {
+		panic(fmt.Sprintf("Endanger deduction Operation: %s, %d", caller, spent))
+	}
+	acc.MdBalance(&prototype.Coin{Value: balance - spent})
+	return
+}
+
 // vm transfer just modify db data
-func (p *TrxContext) ContractTransfer(contract, owner, to string, amount uint64) error {
+func (p *TrxContext) ContractTransfer(contract, owner, to string, amount uint64) {
 	// need authority?
 	c := table.NewSoContractWrap(p.db, &prototype.ContractId{Owner: &prototype.AccountName{Value: owner}, Cname: contract})
 	balance := c.GetBalance().Value
@@ -84,7 +94,19 @@ func (p *TrxContext) ContractTransfer(contract, owner, to string, amount uint64)
 	// need atomic ?
 	c.MdBalance(&prototype.Coin{Value: balance - amount})
 	acc.MdBalance(&prototype.Coin{Value: acc.GetBalance().Value + amount})
-	return nil
+	return
+}
+
+func (p *TrxContext) UserTransfer(from, contract, owner string, amount uint64) {
+	acc := table.NewSoAccountWrap(p.db, &prototype.AccountName{Value: from})
+	balance := acc.GetBalance().Value
+	if balance < amount {
+		panic(fmt.Sprintf("Endanger Transfer Operation: %s, %s, %s, %d", contract, owner, from, amount))
+	}
+	c := table.NewSoContractWrap(p.db, &prototype.ContractId{Owner: &prototype.AccountName{Value: owner}, Cname: contract})
+	c.MdBalance(&prototype.Coin{Value: balance + amount})
+	acc.MdBalance(&prototype.Coin{Value: balance - amount})
+	return
 }
 
 func obtainKeyMap(ops []*prototype.Operation) map[string]bool {

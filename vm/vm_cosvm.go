@@ -13,7 +13,6 @@ import (
 	"github.com/go-interpreter/wagon/wasm"
 	"github.com/sirupsen/logrus"
 	"io"
-	"math"
 	"reflect"
 	"sync"
 )
@@ -31,11 +30,13 @@ type CosVM struct {
 	props          *prototype.DynamicProperties
 	lock           sync.RWMutex
 	logger         *logrus.Logger
+	spentGas       uint64
 }
 
 func NewCosVM(ctx *vmcontext.Context, db iservices.IDatabaseService, props *prototype.DynamicProperties, logger *logrus.Logger) *CosVM {
+	// spentGas should be 0 or maxint?
 	cosVM := &CosVM{nativeFuncName: []string{}, nativeFuncSigs: []wasm.FunctionSig{},
-		nativeFuncs: []wasm.Function{}, ctx: ctx, logger: logger, db: db, props: props}
+		nativeFuncs: []wasm.Function{}, ctx: ctx, logger: logger, db: db, props: props, spentGas: 0}
 	return cosVM
 }
 
@@ -114,11 +115,14 @@ func (w *CosVM) Run() (ret uint32, err error) {
 		return
 	}
 	vm, err := exec.NewVM(vmModule)
+	defer func() {
+		w.spentGas = vm.CostGas
+	}()
 	if err != nil {
 		ret = 1
 		return
 	}
-	vm.InitGasTable(math.MaxUint64)
+	vm.InitGasTable(w.ctx.Gas.Value)
 	var entryIndex = -1
 	for name, entry := range vmModule.Export.Entries {
 		if name == "main" && entry.Kind == wasm.ExternalFunction {
@@ -131,6 +135,10 @@ func (w *CosVM) Run() (ret uint32, err error) {
 		err = e
 	}
 	return
+}
+
+func (w *CosVM) SpentGas() uint64 {
+	return w.spentGas
 }
 
 func (w *CosVM) Validate() error {

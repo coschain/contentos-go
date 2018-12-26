@@ -496,6 +496,20 @@ func (ev *ContractApplyEvaluator) Apply() {
 	scid := table.NewSoContractWrap(ev.ctx.db, &cid)
 	opAssert(scid.CheckExist(), "contract name doesn't exist")
 
+	acc := table.NewSoAccountWrap(ev.ctx.db, op.Caller)
+	opAssert(acc.CheckExist(), "account doesn't exist")
+
+	balance := acc.GetBalance().Value
+	// fixme, should base on minicos
+	balanceExchange := balance * constants.BASE_RATE
+
+	opAssert(balanceExchange >= op.Gas.Value, "balance can not pay gas fee")
+
+	// the amount is also minicos or cos ?
+	// here I assert it is minicos
+	// also, I think balance base on minicos is far more reliable.
+	opAssert(balanceExchange-op.Gas.Value > op.Amount.Value, "balance does not have enough fund to transfer after paid gas fee")
+
 	code := scid.GetCode()
 
 	var err error
@@ -519,11 +533,24 @@ func (ev *ContractApplyEvaluator) Apply() {
 	}
 
 	vmCtx := vmcontext.NewContextFromApplyOp(op, paramsData, code, abiInterface, tables, ev.ctx.trxCtx)
+	// should be active ?
+	//defer func() {
+	//	_ := recover()
+	//}()
 
 	cosVM := vm.NewCosVM(vmCtx, ev.ctx.db, ev.ctx.control.GetProps(), logrus.New())
 
 	ret, err := cosVM.Run()
+	spentGas := cosVM.SpentGas()
+	// need extra query db, is it a good way or should I pass account object as parameter?
+	// deductgasfee and usertranfer could be panic (rarely, I can't image how it happens)
+	// the panic should catch then return or bubble it ?
+	vmCtx.Injector.DeductGasFee(op.Caller.Value, spentGas)
 	if err != nil {
 		vmCtx.Injector.Error(ret, err.Error())
+	} else {
+		if op.Amount.Value > 0 {
+			vmCtx.Injector.UserTransfer(op.Caller.Value, op.Contract, op.Owner.Value, op.Amount.Value)
+		}
 	}
 }
