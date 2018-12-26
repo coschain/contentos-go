@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"github.com/go-interpreter/wagon/exec"
 )
@@ -30,6 +31,11 @@ func (w *CosVMExport) write(proc *exec.Process, data []byte, buffer int32, buffe
 	return int32(n)
 }
 
+func (w *CosVMExport) sha256(proc *exec.Process, pSrc int32, lenSrc int32, pDst int32, lenDst int32) {
+	srcBuf := w.read(proc, pSrc, lenSrc, "sha256().read")
+	out := sha256.Sum256(srcBuf)
+	w.write(proc, out[:], pDst, lenDst, "sha256().write")
+}
 
 func (w *CosVMExport) currentBlockNumber(proc *exec.Process) int64 {
 	return int64(w.CurrentBlockNumber())
@@ -67,7 +73,7 @@ func (w *CosVMExport) getContractBalance(proc *exec.Process, nPtr int32, nLen in
 	return int64(w.GetContractBalance(
 		string(w.read(proc, cPtr, cLen, "getContractBalance().contract")),
 		string(w.read(proc, nPtr, nLen, "getContractBalance().owner")),
-		))
+	))
 }
 
 func (w *CosVMExport) saveToStorage(proc *exec.Process, pKey int32, kLen int32, pValue int32, vLen int32) {
@@ -84,7 +90,7 @@ func (w *CosVMExport) readFromStorage(proc *exec.Process, pKey int32, kLen int32
 		pValue,
 		vLen,
 		"readFromStorage().value",
-		)
+	)
 }
 
 func (w *CosVMExport) cosAssert(proc *exec.Process, condition int32, pStr int32, len int32) {

@@ -2,7 +2,6 @@ package vm
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"errors"
 	"fmt"
 	"github.com/coschain/contentos-go/iservices"
@@ -42,7 +41,7 @@ func NewCosVM(ctx *vmcontext.Context, db iservices.IDatabaseService, props *prot
 
 func (w *CosVM) initNativeFuncs() {
 	exports := &CosVMExport{&CosVMNative{cosVM: w}}
-	w.Register("sha256", w.sha256, 500)
+	w.Register("sha256", exports.sha256, 500)
 	w.Register("current_block_number", exports.currentBlockNumber, 100)
 	w.Register("current_timestamp", exports.currentTimestamp, 100)
 	w.Register("current_witness", exports.currentWitness, 150)
@@ -326,20 +325,6 @@ func (w *CosVM) exactFuncSig(p reflect.Type) (wasm.FunctionSig, error) {
 		}
 	}
 	return wasm.FunctionSig{ParamTypes: paramTypes, ReturnTypes: returnTypes}, nil
-}
-
-func (w *CosVM) sha256(proc *exec.Process, pSrc int32, lenSrc int32, pDst int32, lenDst int32) {
-	var srcBuf []byte
-	_, err := w.readStrAt(proc, pSrc, lenSrc, &srcBuf)
-	if err != nil {
-		w.logger.Error("sha256 read error:", err)
-		return
-	}
-	out := sha256.Sum256(srcBuf)
-	_, err = w.writeStrAt(proc, out[:], pDst, lenDst)
-	if err != nil {
-		panic(errors.New("write sha256 error"))
-	}
 }
 
 func (w *CosVM) memcpy(proc *exec.Process, dst, src, size int32) int32 {

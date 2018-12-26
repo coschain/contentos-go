@@ -1,7 +1,7 @@
 (module
  (type $FUNCSIG$viiii (func (param i32 i32 i32 i32)))
  (type $FUNCSIG$vii (func (param i32 i32)))
- (import "env" "print_string" (func $print_string (param i32 i32)))
+ (import "env" "print_str" (func $print_str (param i32 i32)))
  (import "env" "read_from_storage" (func $read_from_storage (param i32 i32 i32 i32)))
  (import "env" "save_to_storage" (func $save_to_storage (param i32 i32 i32 i32)))
  (table 0 anyfunc)
@@ -36,12 +36,6 @@
     (i32.const 0)
    )
   )
-  (i32.store offset=24
-   (get_local $0)
-   (i32.load offset=16 align=1
-    (i32.const 0)
-   )
-  )
   (i32.store16
    (i32.add
     (i32.add
@@ -51,6 +45,12 @@
     (i32.const 4)
    )
    (i32.load16_u offset=36 align=1
+    (i32.const 0)
+   )
+  )
+  (i32.store offset=24
+   (get_local $0)
+   (i32.load offset=16 align=1
     (i32.const 0)
    )
   )
@@ -84,7 +84,7 @@
    )
    (i32.const 5)
   )
-  (call $print_string
+  (call $print_str
    (i32.add
     (get_local $0)
     (i32.const 11)
