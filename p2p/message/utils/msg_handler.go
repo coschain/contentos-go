@@ -674,10 +674,17 @@ func ReqIdHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	remotePeer := p2p.GetPeerFromAddr(data.Addr)
 
 	var reqmsg msgTypes.TransferMsg
+	var idlength int
 	reqdata := new(msgTypes.IdMsg)
 	reqdata.Msgtype = msgTypes.IdMsg_request_id_ack
 
-	for i:=0;i<len(ids);i++ {
+	if len(ids) <= msgCommon.MAX_ID_LENGTH {
+		idlength = len(ids)
+	} else {
+		idlength = msgCommon.MAX_ID_LENGTH
+	}
+
+	for i:=0;i<idlength;i++ {
 		var tmp []byte
 		reqdata.Value = append(reqdata.Value, tmp)
 		reqdata.Value[i] = make([]byte, prototype.Size)

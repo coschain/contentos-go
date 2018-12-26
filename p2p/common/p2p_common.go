@@ -76,6 +76,8 @@ const (
 const (
 	MAX_TRX_CACHE = 2048   // the max trx hash cached in p2p
 	HASH_LENGTH = 64       // byte array length of each trx hash
+
+	MAX_ID_LENGTH = 2000   // max id length in require id ack message
 )
 
 //ParseIPAddr return ip address
