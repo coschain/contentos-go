@@ -49,20 +49,12 @@ func (w *CosVMNative) PrintString(str string) {
 	w.cosVM.ctx.Injector.Log(str)
 }
 
-func (w *CosVMNative) PrintUint32(value uint32) {
+func (w *CosVMNative) PrintInt64(value int64) {
 	w.cosVM.ctx.Injector.Log(fmt.Sprintf("%d", value))
 }
 
 func (w *CosVMNative) PrintUint64(value uint64) {
 	w.cosVM.ctx.Injector.Log(fmt.Sprintf("%d", value))
-}
-
-func (w *CosVMNative) PrintBool(value bool) {
-	if value {
-		w.cosVM.ctx.Injector.Log("true")
-	} else {
-		w.cosVM.ctx.Injector.Log("false")
-	}
 }
 
 func (w *CosVMNative) RequiredAuth(name string) {
@@ -107,12 +99,12 @@ func (w *CosVMNative) CosAssert(condition bool, msg string) {
 	}
 }
 
-func (w *CosVMNative) ReadContractOpParams() string {
-	return w.cosVM.ctx.Params
+func (w *CosVMNative) CosAbort() {
+	w.CosAssert(false, "abort() called.")
 }
 
-func (w *CosVMNative) ReadContractOpParamsLength() int {
-	return len(w.cosVM.ctx.Params)
+func (w *CosVMNative) ReadContractOpParams() string {
+	return w.cosVM.ctx.Params
 }
 
 func (w *CosVMNative) ReadContractOwner() string {
@@ -123,11 +115,19 @@ func (w *CosVMNative) ReadContractCaller() string {
 	return w.cosVM.ctx.Caller.Value
 }
 
+func (w *CosVMNative) ReadContractName() string {
+	return w.cosVM.ctx.Contract
+}
+
+func (w *CosVMNative) ReadContractMethod() string {
+	return w.cosVM.ctx.Method
+}
+
+func (w *CosVMNative) ReadContractSenderValue() uint64 {
+	return w.cosVM.ctx.Amount.Value
+}
+
 func (w *CosVMNative) ContractTransfer(to string, amount uint64) {
 	err := w.cosVM.ctx.Injector.ContractTransfer(w.cosVM.ctx.Contract, w.cosVM.ctx.Owner.Value, to, amount)
 	w.CosAssert(err == nil, fmt.Sprintf("transfer error: %v", err))
-}
-
-func (w *CosVMNative) GetSenderValue() uint64 {
-	return w.cosVM.ctx.Amount.Value
 }
