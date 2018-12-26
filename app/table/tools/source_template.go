@@ -62,13 +62,16 @@ var (
 type So{{.ClsName}}Wrap struct {
 	dba 		iservices.IDatabaseService
 	mainKey 	*{{formatStr .MainKeyType}}
+    mKeyFlag    int //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf     []byte //the buffer after the main key is encoded with prefix
+	mBuf        []byte //the value after the main key is encoded
 }
 
 func NewSo{{.ClsName}}Wrap(dba iservices.IDatabaseService, key *{{formatStr .MainKeyType}}) *So{{.ClsName}}Wrap{
 	if dba == nil || key == nil {
        return nil
     }
-    result := &So{{.ClsName}}Wrap{ dba, key}
+    result := &So{{.ClsName}}Wrap{dba,key,-1,nil,nil}
 	return result
 }
 
@@ -76,6 +79,13 @@ func (s *So{{.ClsName}}Wrap) CheckExist() bool {
     if s.dba ==  nil {
        return false
     }
+    if s.mKeyFlag != -1 {
+		//if you have already obtained the existence status of the primary key, use it directly
+		if s.mKeyFlag == 0 {
+			return false
+		}
+		return true
+	}
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
 		return false
@@ -85,7 +95,11 @@ func (s *So{{.ClsName}}Wrap) CheckExist() bool {
 	if err != nil {
 		return false
 	}
-    
+    if res == false {
+    	s.mKeyFlag = 0
+	}else {
+		s.mKeyFlag = 1
+	}
 	return res
 }
 
@@ -139,17 +153,37 @@ func (s *So{{.ClsName}}Wrap) Create(f func(tInfo *So{{.ClsName}})) error {
 	return nil
 }
 
+func (s *So{{.ClsName}}Wrap) getMainKeyBuf() ([]byte, error) {
+	if s.mainKey == nil {
+		return nil,errors.New("the main key is nil")
+	}
+	if s.mBuf == nil {
+		var err error = nil
+		s.mBuf,err = kope.Encode(s.mainKey)
+		if err != nil {
+			return nil,err
+		}
+	}
+	return s.mBuf,nil
+}
+
 func (s *So{{.ClsName}}Wrap) encodeMemKey(fName string) ([]byte,error) {
 	if len(fName) < 1 || s.mainKey == nil {
 		return nil,errors.New("field name or main key is empty")
 	}
 	pre := "{{.ClsName}}" + fName + "cell"
-	kList := []interface{}{pre, s.mainKey}
-	key, err := kope.EncodeSlice(kList)
+	preBuf,err := kope.Encode(pre)
 	if err != nil {
 		return nil,err
 	}
-	return key,nil
+	mBuf,err := s.getMainKeyBuf()
+	if err != nil {
+		return nil,err
+	}
+	list := make([][]byte,2)
+	list[0] = preBuf
+	list[1] = mBuf
+	return kope.PackList(list),nil
 }
 
 func (so *So{{$.ClsName}}Wrap) saveAllMemKeys(tInfo *So{{.ClsName}} ,br bool) error {
@@ -341,7 +375,13 @@ func (s *So{{.ClsName}}Wrap) Remove{{.ClsName}}() bool {
     }
     {{end}}
     err := s.delAllMemKeys(true,val)
-    return err == nil
+    if err == nil {
+		s.mKeyBuf = nil
+		s.mKeyFlag = -1
+		return true
+	}else{
+		return false
+	}
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
@@ -724,14 +764,27 @@ func (s *So{{$.ClsName}}Wrap) get{{$.ClsName}}() *So{{$.ClsName}} {
 }
 
 func (s *So{{$.ClsName}}Wrap) encodeMainKey() ([]byte, error) {
+    if s.mKeyBuf != nil {
+		return s.mKeyBuf,nil
+	}
     pre := "{{.ClsName}}" + "{{.MainKeyName}}" + "cell"
     sub := s.mainKey
     if sub == nil {
        return nil,errors.New("the mainKey is nil")
     }
-    kList := []interface{}{pre,sub}
-    kBuf,cErr := kope.EncodeSlice(kList)
-    return kBuf,cErr
+    preBuf,err := kope.Encode(pre)
+	if err != nil {
+		return nil,err
+	}
+    mBuf,err := s.getMainKeyBuf()
+    if err != nil {
+       return nil,err
+    }
+	list := make([][]byte,2)
+	list[0] = preBuf
+	list[1] = mBuf
+	s.mKeyBuf = kope.PackList(list)
+	return s.mKeyBuf, nil
 }
 
 ////////////// Unique Query delete/insert/query ///////////////
@@ -834,19 +887,18 @@ func (s *So{{$.ClsName}}Wrap) insertUniKey{{$k}}(sa *So{{$.ClsName}}) bool {
     if s.dba == nil || sa == nil{
        return false
     }
-    uniWrap  := Uni{{$.ClsName}}{{$k}}Wrap{}
-     uniWrap.Dba = s.dba
-   {{$baseType := (DetectBaseType $v) -}}
-   {{if $baseType -}} 
-   	res := uniWrap.UniQuery{{$k}}(&sa.{{UperFirstChar $k}})
-   {{end}}
-   {{if not $baseType -}} 
-   	res := uniWrap.UniQuery{{$k}}(sa.{{UperFirstChar $k}})
-   {{end -}}
-	if res != nil {
-		//the unique key is already exist
+    pre := {{$.ClsName}}{{$k}}UniTable
+    sub := sa.{{UperFirstChar $k}}
+    kList := []interface{}{pre,sub}
+    kBuf,err := kope.EncodeSlice(kList)
+	if err != nil {
 		return false
 	}
+    res,err := s.dba.Has(kBuf)
+    if err == nil && res == true {
+       //the unique key is already exist
+		return false
+    }
     val := SoUnique{{$.ClsName}}By{{$k}}{}
     {{if ne $.MainKeyName $k -}}
    	val.{{UperFirstChar $.MainKeyName}} = sa.{{UperFirstChar $.MainKeyName}}
@@ -858,14 +910,7 @@ func (s *So{{$.ClsName}}Wrap) insertUniKey{{$k}}(sa *So{{$.ClsName}}) bool {
 	if err != nil {
 		return false
 	}
-    
-    pre := {{$.ClsName}}{{$k}}UniTable
-    sub := sa.{{UperFirstChar $k}}
-    kList := []interface{}{pre,sub}
-    kBuf,err := kope.EncodeSlice(kList)
-	if err != nil {
-		return false
-	}
+
 	return s.dba.Put(kBuf, buf) == nil
 
 }
@@ -907,6 +952,7 @@ func (s *Uni{{$.ClsName}}{{$k}}Wrap) UniQuery{{$k}}(start *{{formatStr $v}}) *So
     return nil
 }
 
+
 {{end}}
 
 `
@@ -920,7 +966,7 @@ func (s *Uni{{$.ClsName}}{{$k}}Wrap) UniQuery{{$k}}(start *{{formatStr $v}}) *So
 			"formatQueryParamStr": formatQueryParamStr,
 			"formatSliceType":     formatSliceType,
 			"getMapCount":         getMapCount,
-		    "getMemMsgName":       getMemFiledName,
+			"getMemMsgName":       getMemFiledName,
 		}
 		t := template.New("go_template")
 		t = t.Funcs(funcMapUper)
@@ -1116,5 +1162,5 @@ func getMapCount(m map[string]string) int {
 }
 
 func getMemFiledName(fName string) string  {
-	 return fName
+	return fName
 }

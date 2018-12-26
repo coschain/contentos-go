@@ -21,21 +21,31 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoExtFollowerWrap struct {
-	dba     iservices.IDatabaseService
-	mainKey *prototype.FollowerRelation
+	dba      iservices.IDatabaseService
+	mainKey  *prototype.FollowerRelation
+	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf  []byte //the buffer after the main key is encoded with prefix
+	mBuf     []byte //the value after the main key is encoded
 }
 
 func NewSoExtFollowerWrap(dba iservices.IDatabaseService, key *prototype.FollowerRelation) *SoExtFollowerWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoExtFollowerWrap{dba, key}
+	result := &SoExtFollowerWrap{dba, key, -1, nil, nil}
 	return result
 }
 
 func (s *SoExtFollowerWrap) CheckExist() bool {
 	if s.dba == nil {
 		return false
+	}
+	if s.mKeyFlag != -1 {
+		//if you have already obtained the existence status of the primary key, use it directly
+		if s.mKeyFlag == 0 {
+			return false
+		}
+		return true
 	}
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
@@ -46,7 +56,11 @@ func (s *SoExtFollowerWrap) CheckExist() bool {
 	if err != nil {
 		return false
 	}
-
+	if res == false {
+		s.mKeyFlag = 0
+	} else {
+		s.mKeyFlag = 1
+	}
 	return res
 }
 
@@ -95,17 +109,37 @@ func (s *SoExtFollowerWrap) Create(f func(tInfo *SoExtFollower)) error {
 	return nil
 }
 
+func (s *SoExtFollowerWrap) getMainKeyBuf() ([]byte, error) {
+	if s.mainKey == nil {
+		return nil, errors.New("the main key is nil")
+	}
+	if s.mBuf == nil {
+		var err error = nil
+		s.mBuf, err = kope.Encode(s.mainKey)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return s.mBuf, nil
+}
+
 func (s *SoExtFollowerWrap) encodeMemKey(fName string) ([]byte, error) {
 	if len(fName) < 1 || s.mainKey == nil {
 		return nil, errors.New("field name or main key is empty")
 	}
 	pre := "ExtFollower" + fName + "cell"
-	kList := []interface{}{pre, s.mainKey}
-	key, err := kope.EncodeSlice(kList)
+	preBuf, err := kope.Encode(pre)
 	if err != nil {
 		return nil, err
 	}
-	return key, nil
+	mBuf, err := s.getMainKeyBuf()
+	if err != nil {
+		return nil, err
+	}
+	list := make([][]byte, 2)
+	list[0] = preBuf
+	list[1] = mBuf
+	return kope.PackList(list), nil
 }
 
 func (so *SoExtFollowerWrap) saveAllMemKeys(tInfo *SoExtFollower, br bool) error {
@@ -282,7 +316,13 @@ func (s *SoExtFollowerWrap) RemoveExtFollower() bool {
 	}
 
 	err := s.delAllMemKeys(true, val)
-	return err == nil
+	if err == nil {
+		s.mKeyBuf = nil
+		s.mKeyFlag = -1
+		return true
+	} else {
+		return false
+	}
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
@@ -594,14 +634,27 @@ func (s *SoExtFollowerWrap) getExtFollower() *SoExtFollower {
 }
 
 func (s *SoExtFollowerWrap) encodeMainKey() ([]byte, error) {
+	if s.mKeyBuf != nil {
+		return s.mKeyBuf, nil
+	}
 	pre := "ExtFollower" + "FollowerInfo" + "cell"
 	sub := s.mainKey
 	if sub == nil {
 		return nil, errors.New("the mainKey is nil")
 	}
-	kList := []interface{}{pre, sub}
-	kBuf, cErr := kope.EncodeSlice(kList)
-	return kBuf, cErr
+	preBuf, err := kope.Encode(pre)
+	if err != nil {
+		return nil, err
+	}
+	mBuf, err := s.getMainKeyBuf()
+	if err != nil {
+		return nil, err
+	}
+	list := make([][]byte, 2)
+	list[0] = preBuf
+	list[1] = mBuf
+	s.mKeyBuf = kope.PackList(list)
+	return s.mKeyBuf, nil
 }
 
 ////////////// Unique Query delete/insert/query ///////////////
@@ -695,11 +748,15 @@ func (s *SoExtFollowerWrap) insertUniKeyFollowerInfo(sa *SoExtFollower) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
-	uniWrap := UniExtFollowerFollowerInfoWrap{}
-	uniWrap.Dba = s.dba
-
-	res := uniWrap.UniQueryFollowerInfo(sa.FollowerInfo)
-	if res != nil {
+	pre := ExtFollowerFollowerInfoUniTable
+	sub := sa.FollowerInfo
+	kList := []interface{}{pre, sub}
+	kBuf, err := kope.EncodeSlice(kList)
+	if err != nil {
+		return false
+	}
+	res, err := s.dba.Has(kBuf)
+	if err == nil && res == true {
 		//the unique key is already exist
 		return false
 	}
@@ -712,13 +769,6 @@ func (s *SoExtFollowerWrap) insertUniKeyFollowerInfo(sa *SoExtFollower) bool {
 		return false
 	}
 
-	pre := ExtFollowerFollowerInfoUniTable
-	sub := sa.FollowerInfo
-	kList := []interface{}{pre, sub}
-	kBuf, err := kope.EncodeSlice(kList)
-	if err != nil {
-		return false
-	}
 	return s.dba.Put(kBuf, buf) == nil
 
 }

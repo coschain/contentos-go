@@ -28,21 +28,31 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoDemoWrap struct {
-	dba     iservices.IDatabaseService
-	mainKey *prototype.AccountName
+	dba      iservices.IDatabaseService
+	mainKey  *prototype.AccountName
+	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf  []byte //the buffer after the main key is encoded with prefix
+	mBuf     []byte //the value after the main key is encoded
 }
 
 func NewSoDemoWrap(dba iservices.IDatabaseService, key *prototype.AccountName) *SoDemoWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoDemoWrap{dba, key}
+	result := &SoDemoWrap{dba, key, -1, nil, nil}
 	return result
 }
 
 func (s *SoDemoWrap) CheckExist() bool {
 	if s.dba == nil {
 		return false
+	}
+	if s.mKeyFlag != -1 {
+		//if you have already obtained the existence status of the primary key, use it directly
+		if s.mKeyFlag == 0 {
+			return false
+		}
+		return true
 	}
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
@@ -53,7 +63,11 @@ func (s *SoDemoWrap) CheckExist() bool {
 	if err != nil {
 		return false
 	}
-
+	if res == false {
+		s.mKeyFlag = 0
+	} else {
+		s.mKeyFlag = 1
+	}
 	return res
 }
 
@@ -102,17 +116,37 @@ func (s *SoDemoWrap) Create(f func(tInfo *SoDemo)) error {
 	return nil
 }
 
+func (s *SoDemoWrap) getMainKeyBuf() ([]byte, error) {
+	if s.mainKey == nil {
+		return nil, errors.New("the main key is nil")
+	}
+	if s.mBuf == nil {
+		var err error = nil
+		s.mBuf, err = kope.Encode(s.mainKey)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return s.mBuf, nil
+}
+
 func (s *SoDemoWrap) encodeMemKey(fName string) ([]byte, error) {
 	if len(fName) < 1 || s.mainKey == nil {
 		return nil, errors.New("field name or main key is empty")
 	}
 	pre := "Demo" + fName + "cell"
-	kList := []interface{}{pre, s.mainKey}
-	key, err := kope.EncodeSlice(kList)
+	preBuf, err := kope.Encode(pre)
 	if err != nil {
 		return nil, err
 	}
-	return key, nil
+	mBuf, err := s.getMainKeyBuf()
+	if err != nil {
+		return nil, err
+	}
+	list := make([][]byte, 2)
+	list[0] = preBuf
+	list[1] = mBuf
+	return kope.PackList(list), nil
 }
 
 func (so *SoDemoWrap) saveAllMemKeys(tInfo *SoDemo, br bool) error {
@@ -647,7 +681,13 @@ func (s *SoDemoWrap) RemoveDemo() bool {
 	}
 
 	err := s.delAllMemKeys(true, val)
-	return err == nil
+	if err == nil {
+		s.mKeyBuf = nil
+		s.mKeyFlag = -1
+		return true
+	} else {
+		return false
+	}
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
@@ -2181,14 +2221,27 @@ func (s *SoDemoWrap) getDemo() *SoDemo {
 }
 
 func (s *SoDemoWrap) encodeMainKey() ([]byte, error) {
+	if s.mKeyBuf != nil {
+		return s.mKeyBuf, nil
+	}
 	pre := "Demo" + "Owner" + "cell"
 	sub := s.mainKey
 	if sub == nil {
 		return nil, errors.New("the mainKey is nil")
 	}
-	kList := []interface{}{pre, sub}
-	kBuf, cErr := kope.EncodeSlice(kList)
-	return kBuf, cErr
+	preBuf, err := kope.Encode(pre)
+	if err != nil {
+		return nil, err
+	}
+	mBuf, err := s.getMainKeyBuf()
+	if err != nil {
+		return nil, err
+	}
+	list := make([][]byte, 2)
+	list[0] = preBuf
+	list[1] = mBuf
+	s.mKeyBuf = kope.PackList(list)
+	return s.mKeyBuf, nil
 }
 
 ////////////// Unique Query delete/insert/query ///////////////
@@ -2310,11 +2363,15 @@ func (s *SoDemoWrap) insertUniKeyIdx(sa *SoDemo) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
-	uniWrap := UniDemoIdxWrap{}
-	uniWrap.Dba = s.dba
-	res := uniWrap.UniQueryIdx(&sa.Idx)
-
-	if res != nil {
+	pre := DemoIdxUniTable
+	sub := sa.Idx
+	kList := []interface{}{pre, sub}
+	kBuf, err := kope.EncodeSlice(kList)
+	if err != nil {
+		return false
+	}
+	res, err := s.dba.Has(kBuf)
+	if err == nil && res == true {
 		//the unique key is already exist
 		return false
 	}
@@ -2328,13 +2385,6 @@ func (s *SoDemoWrap) insertUniKeyIdx(sa *SoDemo) bool {
 		return false
 	}
 
-	pre := DemoIdxUniTable
-	sub := sa.Idx
-	kList := []interface{}{pre, sub}
-	kBuf, err := kope.EncodeSlice(kList)
-	if err != nil {
-		return false
-	}
 	return s.dba.Put(kBuf, buf) == nil
 
 }
@@ -2410,11 +2460,15 @@ func (s *SoDemoWrap) insertUniKeyLikeCount(sa *SoDemo) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
-	uniWrap := UniDemoLikeCountWrap{}
-	uniWrap.Dba = s.dba
-	res := uniWrap.UniQueryLikeCount(&sa.LikeCount)
-
-	if res != nil {
+	pre := DemoLikeCountUniTable
+	sub := sa.LikeCount
+	kList := []interface{}{pre, sub}
+	kBuf, err := kope.EncodeSlice(kList)
+	if err != nil {
+		return false
+	}
+	res, err := s.dba.Has(kBuf)
+	if err == nil && res == true {
 		//the unique key is already exist
 		return false
 	}
@@ -2428,13 +2482,6 @@ func (s *SoDemoWrap) insertUniKeyLikeCount(sa *SoDemo) bool {
 		return false
 	}
 
-	pre := DemoLikeCountUniTable
-	sub := sa.LikeCount
-	kList := []interface{}{pre, sub}
-	kBuf, err := kope.EncodeSlice(kList)
-	if err != nil {
-		return false
-	}
 	return s.dba.Put(kBuf, buf) == nil
 
 }
@@ -2514,11 +2561,15 @@ func (s *SoDemoWrap) insertUniKeyOwner(sa *SoDemo) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
-	uniWrap := UniDemoOwnerWrap{}
-	uniWrap.Dba = s.dba
-
-	res := uniWrap.UniQueryOwner(sa.Owner)
-	if res != nil {
+	pre := DemoOwnerUniTable
+	sub := sa.Owner
+	kList := []interface{}{pre, sub}
+	kBuf, err := kope.EncodeSlice(kList)
+	if err != nil {
+		return false
+	}
+	res, err := s.dba.Has(kBuf)
+	if err == nil && res == true {
 		//the unique key is already exist
 		return false
 	}
@@ -2531,13 +2582,6 @@ func (s *SoDemoWrap) insertUniKeyOwner(sa *SoDemo) bool {
 		return false
 	}
 
-	pre := DemoOwnerUniTable
-	sub := sa.Owner
-	kList := []interface{}{pre, sub}
-	kBuf, err := kope.EncodeSlice(kList)
-	if err != nil {
-		return false
-	}
 	return s.dba.Put(kBuf, buf) == nil
 
 }

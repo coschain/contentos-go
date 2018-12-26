@@ -21,21 +21,31 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoTransactionObjectWrap struct {
-	dba     iservices.IDatabaseService
-	mainKey *prototype.Sha256
+	dba      iservices.IDatabaseService
+	mainKey  *prototype.Sha256
+	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf  []byte //the buffer after the main key is encoded with prefix
+	mBuf     []byte //the value after the main key is encoded
 }
 
 func NewSoTransactionObjectWrap(dba iservices.IDatabaseService, key *prototype.Sha256) *SoTransactionObjectWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoTransactionObjectWrap{dba, key}
+	result := &SoTransactionObjectWrap{dba, key, -1, nil, nil}
 	return result
 }
 
 func (s *SoTransactionObjectWrap) CheckExist() bool {
 	if s.dba == nil {
 		return false
+	}
+	if s.mKeyFlag != -1 {
+		//if you have already obtained the existence status of the primary key, use it directly
+		if s.mKeyFlag == 0 {
+			return false
+		}
+		return true
 	}
 	keyBuf, err := s.encodeMainKey()
 	if err != nil {
@@ -46,7 +56,11 @@ func (s *SoTransactionObjectWrap) CheckExist() bool {
 	if err != nil {
 		return false
 	}
-
+	if res == false {
+		s.mKeyFlag = 0
+	} else {
+		s.mKeyFlag = 1
+	}
 	return res
 }
 
@@ -95,17 +109,37 @@ func (s *SoTransactionObjectWrap) Create(f func(tInfo *SoTransactionObject)) err
 	return nil
 }
 
+func (s *SoTransactionObjectWrap) getMainKeyBuf() ([]byte, error) {
+	if s.mainKey == nil {
+		return nil, errors.New("the main key is nil")
+	}
+	if s.mBuf == nil {
+		var err error = nil
+		s.mBuf, err = kope.Encode(s.mainKey)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return s.mBuf, nil
+}
+
 func (s *SoTransactionObjectWrap) encodeMemKey(fName string) ([]byte, error) {
 	if len(fName) < 1 || s.mainKey == nil {
 		return nil, errors.New("field name or main key is empty")
 	}
 	pre := "TransactionObject" + fName + "cell"
-	kList := []interface{}{pre, s.mainKey}
-	key, err := kope.EncodeSlice(kList)
+	preBuf, err := kope.Encode(pre)
 	if err != nil {
 		return nil, err
 	}
-	return key, nil
+	mBuf, err := s.getMainKeyBuf()
+	if err != nil {
+		return nil, err
+	}
+	list := make([][]byte, 2)
+	list[0] = preBuf
+	list[1] = mBuf
+	return kope.PackList(list), nil
 }
 
 func (so *SoTransactionObjectWrap) saveAllMemKeys(tInfo *SoTransactionObject, br bool) error {
@@ -282,7 +316,13 @@ func (s *SoTransactionObjectWrap) RemoveTransactionObject() bool {
 	}
 
 	err := s.delAllMemKeys(true, val)
-	return err == nil
+	if err == nil {
+		s.mKeyBuf = nil
+		s.mKeyFlag = -1
+		return true
+	} else {
+		return false
+	}
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
@@ -594,14 +634,27 @@ func (s *SoTransactionObjectWrap) getTransactionObject() *SoTransactionObject {
 }
 
 func (s *SoTransactionObjectWrap) encodeMainKey() ([]byte, error) {
+	if s.mKeyBuf != nil {
+		return s.mKeyBuf, nil
+	}
 	pre := "TransactionObject" + "TrxId" + "cell"
 	sub := s.mainKey
 	if sub == nil {
 		return nil, errors.New("the mainKey is nil")
 	}
-	kList := []interface{}{pre, sub}
-	kBuf, cErr := kope.EncodeSlice(kList)
-	return kBuf, cErr
+	preBuf, err := kope.Encode(pre)
+	if err != nil {
+		return nil, err
+	}
+	mBuf, err := s.getMainKeyBuf()
+	if err != nil {
+		return nil, err
+	}
+	list := make([][]byte, 2)
+	list[0] = preBuf
+	list[1] = mBuf
+	s.mKeyBuf = kope.PackList(list)
+	return s.mKeyBuf, nil
 }
 
 ////////////// Unique Query delete/insert/query ///////////////
@@ -695,11 +748,15 @@ func (s *SoTransactionObjectWrap) insertUniKeyTrxId(sa *SoTransactionObject) boo
 	if s.dba == nil || sa == nil {
 		return false
 	}
-	uniWrap := UniTransactionObjectTrxIdWrap{}
-	uniWrap.Dba = s.dba
-
-	res := uniWrap.UniQueryTrxId(sa.TrxId)
-	if res != nil {
+	pre := TransactionObjectTrxIdUniTable
+	sub := sa.TrxId
+	kList := []interface{}{pre, sub}
+	kBuf, err := kope.EncodeSlice(kList)
+	if err != nil {
+		return false
+	}
+	res, err := s.dba.Has(kBuf)
+	if err == nil && res == true {
 		//the unique key is already exist
 		return false
 	}
@@ -712,13 +769,6 @@ func (s *SoTransactionObjectWrap) insertUniKeyTrxId(sa *SoTransactionObject) boo
 		return false
 	}
 
-	pre := TransactionObjectTrxIdUniTable
-	sub := sa.TrxId
-	kList := []interface{}{pre, sub}
-	kBuf, err := kope.EncodeSlice(kList)
-	if err != nil {
-		return false
-	}
 	return s.dba.Put(kBuf, buf) == nil
 
 }
