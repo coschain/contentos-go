@@ -283,7 +283,7 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 	}
 	this.connectLock.Lock()
 	if added := this.AddOutConnectingList(addr); added == false {
-		log.GetLog().Debug("[p2p] node exist in connecting list", addr)
+		log.GetLog().Debug("[p2p] node exist in connecting list ", addr)
 	}
 	this.connectLock.Unlock()
 
@@ -568,7 +568,7 @@ func (this *NetServer) AddOutConnectingList(addr string) (added bool) {
 			return false
 		}
 	}
-	log.GetLog().Debug("[p2p] add to out connecting list", addr)
+	log.GetLog().Debug("[p2p] add to out connecting list ", addr)
 	this.ConnectingAddrs = append(this.ConnectingAddrs, addr)
 	return true
 }
@@ -589,7 +589,7 @@ func (this *NetServer) RemoveFromConnectingList(addr string) {
 			addrs = append(addrs, a)
 		}
 	}
-	log.GetLog().Debug("[p2p] remove from out connecting list", addr)
+	log.GetLog().Debug("[p2p] remove from out connecting list ", addr)
 	this.ConnectingAddrs = addrs
 }
 

@@ -246,7 +246,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) 
 
 		}
 		if version.Nonce == p2p.GetID() {
-			log.GetLog().Warn("[p2p] the node handshake with itself", data.Addr)
+			log.GetLog().Warn("[p2p] the node handshake with itself ", data.Addr)
 			p2p.SetOwnAddress(nodeAddr)
 			p2p.RemoveFromInConnRecord(remotePeer.GetAddr())
 			p2p.RemoveFromOutConnRecord(remotePeer.GetAddr())
@@ -316,7 +316,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) 
 				//same id and same ip
 				n, ret := p2p.DelNbrNode(p)
 				if ret == true {
-					log.GetLog().Infof("[p2p] peer reconnect %d", version.Nonce, data.Addr)
+					log.GetLog().Infof("[p2p] peer reconnect %d ", version.Nonce, data.Addr)
 					// Close the connection and release the node source
 					n.CloseSync()
 					n.CloseCons()
@@ -365,7 +365,7 @@ func VerAckHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 
 	remotePeer := p2p.GetPeer(data.Id)
 	if remotePeer == nil {
-		log.GetLog().Error("[p2p] nbr node is not exist", data.Id, data.Addr)
+		log.GetLog().Error("[p2p] nbr node is not exist ", data.Id, " ", data.Addr)
 		return
 	}
 	ctx := p2p.GetContex()
@@ -475,7 +475,7 @@ func DisconnectHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{
 		panic(err)
 	}
 	log := logs.(iservices.ILog)
-	log.GetLog().Info("[p2p] receive disconnect message", data.Addr, data.Id)
+	log.GetLog().Info("[p2p] receive disconnect message ", data.Addr, " ", data.Id)
 
 	p2p.RemoveFromInConnRecord(data.Addr)
 	p2p.RemoveFromOutConnRecord(data.Addr)
