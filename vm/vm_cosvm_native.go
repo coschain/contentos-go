@@ -131,3 +131,32 @@ func (w *CosVMNative) ContractTransfer(to string, amount uint64) {
 	err := w.cosVM.ctx.Injector.ContractTransfer(w.cosVM.ctx.Contract, w.cosVM.ctx.Owner.Value, to, amount)
 	w.CosAssert(err == nil, fmt.Sprintf("transfer error: %v", err))
 }
+
+func (w *CosVMNative) TableGetRecord(tableName string, primary []byte) []byte {
+	tables := w.cosVM.ctx.Tables
+	w.CosAssert(tables != nil, "TableGetRecord(): context tables not ready.")
+	data, err := tables.Table(tableName).GetRecord(primary)
+	w.CosAssert(err == nil, fmt.Sprintf("TableGetRecord(): table.GetRecord() failed. %v", err))
+	return data
+}
+
+func (w *CosVMNative) TableNewRecord(tableName string, record []byte) {
+	tables := w.cosVM.ctx.Tables
+	w.CosAssert(tables != nil, "TableNewRecord(): context tables not ready.")
+	err := tables.Table(tableName).NewRecord(record)
+	w.CosAssert(err == nil, fmt.Sprintf("TableNewRecord(): table.NewRecord() failed. %v", err))
+}
+
+func (w *CosVMNative) TableUpdateRecord(tableName string, primary []byte, record []byte) {
+	tables := w.cosVM.ctx.Tables
+	w.CosAssert(tables != nil, "TableUpdateRecord(): context tables not ready.")
+	err := tables.Table(tableName).UpdateRecord(primary, record)
+	w.CosAssert(err == nil, fmt.Sprintf("TableUpdateRecord(): table.UpdateRecord() failed. %v", err))
+}
+
+func (w *CosVMNative) TableDeleteRecord(tableName string, primary []byte) {
+	tables := w.cosVM.ctx.Tables
+	w.CosAssert(tables != nil, "TableDeleteRecord(): context tables not ready.")
+	err := tables.Table(tableName).DeleteRecord(primary)
+	w.CosAssert(err == nil, fmt.Sprintf("TableDeleteRecord(): table.DeleteRecord() failed. %v", err))
+}

@@ -3,6 +3,7 @@ package vmcontext
 import (
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/vm/contract/abi"
+	"github.com/coschain/contentos-go/vm/contract/table"
 	"github.com/coschain/contentos-go/vm/injector"
 )
 
@@ -21,6 +22,7 @@ type Context struct {
 	Code      []byte
 	Abi       string
 	AbiInterface abi.IContractABI
+	Tables    *table.ContractTables
 	Injector  vminjector.Injector
 }
 
@@ -34,7 +36,7 @@ func NewContextFromDeployOp(op *prototype.ContractDeployOperation, injector vmin
 	}
 }
 
-func NewContextFromApplyOp(op *prototype.ContractApplyOperation, params []byte, code []byte, abi abi.IContractABI, injector vminjector.Injector) *Context {
+func NewContextFromApplyOp(op *prototype.ContractApplyOperation, params []byte, code []byte, abi abi.IContractABI, tables *table.ContractTables, injector vminjector.Injector) *Context {
 	return &Context{
 		Caller:    op.Caller,
 		Owner:     op.Owner,
@@ -47,6 +49,7 @@ func NewContextFromApplyOp(op *prototype.ContractApplyOperation, params []byte, 
 		Construct: false,
 		Code:      code,
 		AbiInterface: abi,
+		Tables: tables,
 		Injector:  injector,
 	}
 }

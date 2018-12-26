@@ -9,6 +9,7 @@ import (
 	"github.com/coschain/contentos-go/vm"
 	"github.com/coschain/contentos-go/vm/context"
 	"github.com/coschain/contentos-go/vm/contract/abi"
+	ct "github.com/coschain/contentos-go/vm/contract/table"
 	"github.com/sirupsen/logrus"
 )
 
@@ -500,6 +501,7 @@ func (ev *ContractApplyEvaluator) Apply() {
 	var err error
 	var abiInterface abi.IContractABI
 	var paramsData []byte
+	var tables *ct.ContractTables
 
 	//if abiInterface, err = abi.UnmarshalABI([]byte(scid.GetAbi())); err != nil {
 	//	opAssertE(err, "invalid contract abi")
@@ -512,8 +514,11 @@ func (ev *ContractApplyEvaluator) Apply() {
 	//} else {
 	//	opAssert(false, "unknown contract method: " + op.Method)
 	//}
+	if abiInterface != nil {
+		tables = ct.NewContractTables(op.Owner.Value, op.Contract, abiInterface, ev.ctx.db)
+	}
 
-	vmCtx := vmcontext.NewContextFromApplyOp(op, paramsData, code, abiInterface, ev.ctx.trxCtx)
+	vmCtx := vmcontext.NewContextFromApplyOp(op, paramsData, code, abiInterface, tables, ev.ctx.trxCtx)
 
 	cosVM := vm.NewCosVM(vmCtx, ev.ctx.db, ev.ctx.control.GetProps(), logrus.New())
 

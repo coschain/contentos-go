@@ -122,3 +122,34 @@ func (w *CosVMExport) contractTransfer(proc *exec.Process, pTo, pToLen int32, am
 func (w *CosVMExport) readContractSenderValue(proc *exec.Process) int64 {
 	return int64(w.ReadContractSenderValue())
 }
+
+func (w *CosVMExport) tableGetRecord(proc *exec.Process, tableName, tableNameLen int32, primary, primaryLen int32, value, valueLen int32) int32 {
+	return w.write(proc,
+		w.TableGetRecord(
+			string(w.read(proc, tableName, tableNameLen, "tableGetRecord().table_name")),
+			w.read(proc, primary, primaryLen, "tableGetRecord().primary"),
+		),
+		value, valueLen, "tableGetRecord()")
+}
+
+func (w *CosVMExport) tableNewRecord(proc *exec.Process, tableName, tableNameLen int32, value, valueLen int32) {
+	w.TableNewRecord(
+		string(w.read(proc, tableName, tableNameLen, "tableNewRecord().table_name")),
+		w.read(proc, value, valueLen, "tableNewRecord().value"),
+	)
+}
+
+func (w *CosVMExport) tableUpdateRecord(proc *exec.Process, tableName, tableNameLen int32, primary, primaryLen int32, value, valueLen int32) {
+	w.TableUpdateRecord(
+		string(w.read(proc, tableName, tableNameLen, "tableUpdateRecord().table_name")),
+		w.read(proc, primary, primaryLen, "tableUpdateRecord().primary"),
+		w.read(proc, value, valueLen, "tableUpdateRecord().value"),
+	)
+}
+
+func (w *CosVMExport) tableDeleteRecord(proc *exec.Process, tableName, tableNameLen int32, primary, primaryLen int32) {
+	w.TableDeleteRecord(
+		string(w.read(proc, tableName, tableNameLen, "tableDeleteRecord().table_name")),
+		w.read(proc, primary, primaryLen, "tableDeleteRecord().primary"),
+	)
+}

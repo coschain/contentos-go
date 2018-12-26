@@ -62,6 +62,10 @@ func (w *CosVM) initNativeFuncs() {
 	w.Register("read_contract_caller", exports.readContractCaller, 100)
 	w.Register("read_contract_sender_value", exports.readContractSenderValue, 100)
 	w.Register("transfer", exports.contractTransfer, 800)
+	w.Register("table_get_record", exports.tableGetRecord, 800)
+	w.Register("table_new_record", exports.tableNewRecord, 800)
+	w.Register("table_update_record", exports.tableUpdateRecord, 800)
+	w.Register("table_delete_record", exports.tableDeleteRecord, 800)
 
 	// for memeory
 	w.Register("memcpy", w.memcpy, 100)
