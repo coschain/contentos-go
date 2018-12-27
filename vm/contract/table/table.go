@@ -21,12 +21,21 @@ type ContractTable struct {
 	db iservices.IDatabaseService
 }
 
+func (t *ContractTable) fieldValue(record reflect.Value, i int) reflect.Value {
+	f := t.abiTable.Record().Field(i)
+	v := record
+	for i := 0; i < f.Depth(); i++ {
+		v = v.Field(0)
+	}
+	return v.Field(f.Ordinal())
+}
+
 func (t *ContractTable) NewRecord(encodedRecord []byte) error {
 	r, err := t.decodeRecord(encodedRecord)
 	if err != nil {
 		return err
 	}
-	p := reflect.ValueOf(r).Field(t.abiTable.PrimaryIndex()).Interface()
+	p := t.fieldValue(reflect.ValueOf(r), t.abiTable.PrimaryIndex()).Interface()
 	pk := kope.AppendKey(t.primary, p)
 	if dup, err := t.db.Has(pk); err != nil {
 		return err
@@ -118,7 +127,7 @@ func (t *ContractTable) DeleteRecord(encodedPK []byte) error {
 
 func (t *ContractTable) EnumRecords(field string, start interface{}, limit interface{}, reverse bool, maxCount int, callback func(r interface{})bool) int {
 	st := t.abiTable.Record()
-	if st.FieldType(t.abiTable.PrimaryIndex()).Name() == field {
+	if st.Field(t.abiTable.PrimaryIndex()).Name() == field {
 		return t.scanDatabase(t.primary, start, limit, reverse, maxCount, func(k, v []byte) (bool, error) {
 			if r, err := t.decodeRecord(v); err != nil {
 				return false, err
@@ -130,7 +139,7 @@ func (t *ContractTable) EnumRecords(field string, start interface{}, limit inter
 	si := t.abiTable.SecondaryIndices()
 	idx := -1
 	for i := range si {
-		if st.FieldType(si[i]).Name() == field {
+		if st.Field(si[i]).Name() == field {
 			idx = i
 			break
 		}
@@ -153,7 +162,7 @@ func (t *ContractTable) EnumRecords(field string, start interface{}, limit inter
 }
 
 func (t *ContractTable) primaryKey(encodedPK []byte) (kope.Key, error) {
-	p, err := vme.DecodeWithType(encodedPK, t.abiTable.Record().FieldType(t.abiTable.PrimaryIndex()).Type())
+	p, err := vme.DecodeWithType(encodedPK, t.abiTable.Record().Field(t.abiTable.PrimaryIndex()).Type().Type())
 	if err != nil {
 		return nil, err
 	}
@@ -180,7 +189,7 @@ func (t *ContractTable) enumSecondaryIndexFields(record interface{}, callback fu
 	rv := reflect.ValueOf(record)
 	si := t.abiTable.SecondaryIndices()
 	for i, j := range si {
-		if err := callback(i, rv.Field(j).Interface()); err != nil {
+		if err := callback(i, t.fieldValue(rv, j).Interface()); err != nil {
 			return err
 		}
 	}

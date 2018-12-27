@@ -29,56 +29,133 @@ func (t *ABIBaseType) SupportsKope() bool {
 	return t.kope
 }
 
+
+type abiStructField struct {
+	name string
+	typ IContractType
+	depth int
+	ordinal int
+}
+
+func (f *abiStructField) Name() string {
+	return f.name
+}
+
+func (f *abiStructField) Type() IContractType {
+	return f.typ
+}
+
+func (f *abiStructField) Depth() int {
+	return f.depth
+}
+
+func (f *abiStructField) Ordinal() int {
+	return f.ordinal
+}
+
+
 type ABIStructType struct {
 	ABIBaseType
-	base *ABIStructType
-	fields []ABIStructField
+	base *abiStructField
+	fields []*abiStructField
+	localFields []int
 }
+
+func (t *ABIStructType) FieldNum() int {
+	return len(t.fields)
+}
+
+func (t *ABIStructType) Field(i int) IContractStructField {
+	if i >= 0 && i < t.FieldNum() {
+		return t.fields[i]
+	}
+	return nil
+}
+
+func (t *ABIStructType) LocalFieldNum() int {
+	return len(t.localFields)
+}
+
+func (t *ABIStructType) LocalField(i int) IContractStructField {
+	if i >= 0 && i < t.LocalFieldNum() {
+		return t.Field(t.localFields[i])
+	}
+	return nil
+}
+
+func (t *ABIStructType) Base() IContractStructField {
+	return t.base
+}
+
 type ABIStructField struct {
 	Name string
 	Type IContractType
 }
 
-func (t *ABIStructType) FieldNum() int {
-	if t.base != nil {
-		return len(t.fields) + 1
-	}
-	return len(t.fields)
-}
-
-func (t *ABIStructType) FieldType(i int) IContractType {
-	if i >= 0 && i < t.FieldNum() {
-		if t.base != nil {
-			if i == 0 {
-				return t.base
-			} else {
-				return t.fields[i - 1].Type
-			}
-		}
-		return t.fields[i].Type
-	}
-	return nil
-}
-
 func NewStruct(name string, base *ABIStructType, fields...ABIStructField) *ABIStructType {
-	sf := make([]reflect.StructField, 0, len(fields) + 1)
+	var (
+		locals []int
+		total []*abiStructField
+		rfields []reflect.StructField
+		baseField *abiStructField
+		seen map[string]bool
+	)
+	seen = make(map[string]bool)
 	if base != nil {
-		sf = append(sf, reflect.StructField{
-			Name: "Base__",
-			Type: base.Type(),
-			Tag: reflect.StructTag(fmt.Sprintf(`json:"[%s]"`, base.name)),
+		for i := 0; i < base.FieldNum(); i++ {
+			f := base.Field(i)
+			fn := f.Name()
+			if seen[fn] {
+				return nil
+			}
+			seen[fn] = true
+			total = append(total, &abiStructField{
+				name: fn,
+				typ: f.Type(),
+				depth: f.Depth() + 1,
+				ordinal: f.Ordinal(),
+			})
+		}
+		baseField = &abiStructField{
+			name: "[base]",
+			typ: base,
+			depth: 0,
+			ordinal: 0,
+		}
+		rfields = append(rfields, reflect.StructField{
+			Name: "Base_Field__",
+			Type: baseField.typ.Type(),
+			Tag: reflect.StructTag(`json:"[base]"`),
 		})
 	}
-	for i := range fields {
-		sf = append(sf, reflect.StructField{
-			Name: strings.Title(fields[i].Name),
-			Type: fields[i].Type.Type(),
-			Tag: reflect.StructTag(fmt.Sprintf(`json:"%s"`, fields[i].Name)),
+	for _, f := range fields {
+		if seen[f.Name] {
+			return nil
+		}
+		seen[f.Name] = true
+		sf := &abiStructField{
+			name: f.Name,
+			typ: f.Type,
+			depth: 0,
+			ordinal: len(locals),
+		}
+		locals = append(locals, len(total))
+		total = append(total, sf)
+		rfields = append(rfields, reflect.StructField{
+			Name: strings.Title(f.Name),
+			Type: f.Type.Type(),
+			Tag: reflect.StructTag(fmt.Sprintf(`json:"%s"`, f.Name)),
 		})
 	}
-	return &ABIStructType{
-		ABIBaseType: ABIBaseType{ name: name, rt: reflect.StructOf(sf), kope: false },
-		fields:      fields,
+	return &ABIStructType {
+		ABIBaseType: ABIBaseType{
+			name: name,
+			rt: reflect.StructOf(rfields),
+			kope: false,
+		},
+		base: baseField,
+		fields: total,
+		localFields: locals,
 	}
 }
 
@@ -147,9 +224,33 @@ func (a *abiTypeAlias) FieldNum() int {
 	}
 }
 
-func (a *abiTypeAlias) FieldType(i int) IContractType {
+func (a *abiTypeAlias) Field(i int) IContractStructField {
 	if s, ok := a.origin.(IContractStruct); ok {
-		return s.FieldType(i)
+		return s.Field(i)
+	} else {
+		return nil
+	}
+}
+
+func (a *abiTypeAlias) LocalFieldNum() int {
+	if s, ok := a.origin.(IContractStruct); ok {
+		return s.LocalFieldNum()
+	} else {
+		return 0
+	}
+}
+
+func (a *abiTypeAlias) LocalField(i int) IContractStructField {
+	if s, ok := a.origin.(IContractStruct); ok {
+		return s.LocalField(i)
+	} else {
+		return nil
+	}
+}
+
+func (a *abiTypeAlias) Base() IContractStructField {
+	if s, ok := a.origin.(IContractStruct); ok {
+		return s.Base()
 	} else {
 		return nil
 	}
@@ -236,16 +337,20 @@ func (abi *abi) Marshal() ([]byte, error) {
 				Type: ot,
 			})
 		} else if s, isStruct := t.(*ABIStructType); isStruct {
-			fs := make([]jsonAbiStructField, len(s.fields))
+			fs := make([]jsonAbiStructField, len(s.localFields))
 			for i := range fs {
 				fs[i] = jsonAbiStructField{
-					Name: s.fields[i].Name,
-					Type: s.fields[i].Type.Name(),
+					Name: s.fields[s.localFields[i]].Name(),
+					Type: s.fields[s.localFields[i]].typ.Name(),
 				}
+			}
+			base := ""
+			if s.base != nil {
+				base = s.base.Type().Name()
 			}
 			ja.Structs = append(ja.Structs, jsonAbiStruct{
 				Name: s.name,
-				Base: s.base.name,
+				Base: base,
 				Fields: fs,
 			})
 		}
@@ -259,12 +364,12 @@ func (abi *abi) Marshal() ([]byte, error) {
 	for _, t := range abi.tables {
 		si := make([]string, len(t.secondary))
 		for i := range si {
-			si[i] = t.record.fields[t.secondary[i]].Name
+			si[i] = t.record.fields[t.secondary[i]].Name()
 		}
 		ja.Tables = append(ja.Tables, jsonAbiTable{
 			Name: t.name,
 			Type: t.record.name,
-			Primary: t.record.fields[t.primary].Name,
+			Primary: t.record.fields[t.primary].Name(),
 			Secondary: si,
 		})
 	}

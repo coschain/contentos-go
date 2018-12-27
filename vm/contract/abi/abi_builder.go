@@ -408,7 +408,12 @@ func (ctx *abiBuildContext) resolveType(name string, flags map[string]int) error
 			Type: ctx.resolvedTypes[fs[i].typ],
 		}
 	}
-	ctx.resolvedTypes[name] = NewStruct(name, baseType.(*ABIStructType), fields...)
+	s := NewStruct(name, baseType.(*ABIStructType), fields...)
+	if s == nil {
+		flags[name] = unresolved
+		return errors.New(fmt.Sprintf("abiBuilder: failed creating struct %s. duplicate field names.", name))
+	}
+	ctx.resolvedTypes[name] = s
 	flags[name] = resolved
 	return nil
 }
@@ -423,7 +428,7 @@ func (ctx *abiBuildContext) resolveFields() error {
 		s := t.(IContractStruct)
 		count := s.FieldNum()
 		for i := 0; i < count; i++ {
-			fields[s.Name()] = i
+			fields[s.Field(i).Name()] = i
 		}
 		ctx.typeFieldNames[name] = fields
 	}
@@ -451,7 +456,7 @@ func (ctx *abiBuildContext) validate() error {
 		primary := ctx.b.primaries[name]
 		if ord, ok := ctx.typeFieldNames[name][primary]; !ok {
 			return errors.New(fmt.Sprintf("abiBuilder: unknown primary field %s of table %s", primary, name))
-		} else if !st.FieldType(ord).SupportsKope() {
+		} else if !st.Field(ord).Type().SupportsKope() {
 			return errors.New(fmt.Sprintf("abiBuilder: primary field %s of table %s cannot be indexed.", primary, name))
 		}
 		// secondary indexing fields must be valid, and not the same as primary key.
@@ -464,7 +469,7 @@ func (ctx *abiBuildContext) validate() error {
 			}
 			if ord, ok := ctx.typeFieldNames[name][f]; !ok {
 				return errors.New(fmt.Sprintf("abiBuilder: unknown secondary index field %s of table %s", f, name))
-			} else if !st.FieldType(ord).SupportsKope() {
+			} else if !st.Field(ord).Type().SupportsKope() {
 				return errors.New(fmt.Sprintf("abiBuilder: secondary index field %s of table %s cannot be indexed.", f, name))
 			}
 		}
