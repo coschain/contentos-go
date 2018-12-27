@@ -383,7 +383,7 @@ func (abi *abi) Unmarshal(data []byte) error {
 		return err
 	}
 	b := NewAbiBuilder()
-	b.Version(abi.version)
+	b.Version(ja.Version)
 	for _, t := range ja.Types {
 		b.Typedef(t.Name, t.Type)
 	}
