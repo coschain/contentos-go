@@ -163,6 +163,24 @@ func decodeStruct(data []byte, typ reflect.Type) (interface{}, int) {
 	return rv.Interface(), offset
 }
 
+func decodeSlice(data []byte, typ reflect.Type) (interface{}, int) {
+	count, offset := decodeCount(data)
+	if offset <= 0 {
+		return nil, 0
+	}
+	size := int(count)
+	rv := reflect.MakeSlice(reflect.SliceOf(typ), size, size)
+	for i := 0; i < size; i++ {
+		dv, n := decodeValue(data[offset:], typ)
+		if n <= 0 {
+			return nil, n
+		}
+		rv.Index(i).Set(reflect.ValueOf(dv))
+		offset += n
+	}
+	return rv.Interface(), offset
+}
+
 func decodeValue(data []byte, typ reflect.Type) (interface{}, int) {
 	switch typ.Kind() {
 	case reflect.Bool:
@@ -197,6 +215,8 @@ func decodeValue(data []byte, typ reflect.Type) (interface{}, int) {
 		et := typ.Elem()
 		if et.Kind() == reflect.Uint8 {
 			return decodeBytes(data)
+		} else {
+			return decodeSlice(data, et)
 		}
 	case reflect.Struct:
 		return decodeStruct(data, typ)

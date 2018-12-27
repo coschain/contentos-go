@@ -100,6 +100,20 @@ func encodeStruct(rv reflect.Value) ([]byte, error) {
 	return bytes.Join(parts, nil), nil
 }
 
+func encodeSlice(rv reflect.Value) ([]byte, error) {
+	count := rv.Len()
+	parts := make([][]byte, 0, count + 1)
+	parts = append(parts, varInt(uint64(count)))
+	for i := 0; i < count; i++ {
+		if data, err := encodeValue(rv.Index(i)); err != nil {
+			return nil, err
+		} else {
+			parts = append(parts, data)
+		}
+	}
+	return bytes.Join(parts, nil), nil
+}
+
 func encodeValue(rv reflect.Value) ([]byte, error) {
 	k := rv.Kind()
 	if k == reflect.Invalid {
@@ -144,6 +158,8 @@ func encodeValue(rv reflect.Value) ([]byte, error) {
 	case reflect.Slice:
 		if rt.Elem().Kind() == reflect.Uint8 {
 			return encodeBytes(rv.Bytes())
+		} else {
+			return encodeSlice(rv)
 		}
 	case reflect.Struct:
 		return encodeStruct(rv)
