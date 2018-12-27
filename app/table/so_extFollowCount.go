@@ -14,8 +14,11 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	ExtFollowCountTable           = []byte("ExtFollowCountTable")
-	ExtFollowCountAccountUniTable = []byte("ExtFollowCountAccountUniTable")
+	ExtFollowCountAccountUniTable  = uint32(1673144335)
+	ExtFollowCountAccountCell      = uint32(1566200049)
+	ExtFollowCountFollowerCntCell  = uint32(1498166425)
+	ExtFollowCountFollowingCntCell = uint32(2815839799)
+	ExtFollowCountUpdateTimeCell   = uint32(252784892)
 )
 
 ////////////// SECTION Wrap Define ///////////////
@@ -85,10 +88,11 @@ func (s *SoExtFollowCountWrap) Create(f func(tInfo *SoExtFollowCount)) error {
 	}
 	err = s.saveAllMemKeys(val, true)
 	if err != nil {
+		s.delAllMemKeys(false, val)
 		return err
 	}
 
-	// update sort list keys
+	// update srt list keys
 	if err = s.insertAllSortKeys(val); err != nil {
 		s.delAllSortKeys(false, val)
 		s.dba.Delete(keyBuf)
@@ -120,109 +124,6 @@ func (s *SoExtFollowCountWrap) getMainKeyBuf() ([]byte, error) {
 		}
 	}
 	return s.mBuf, nil
-}
-
-func (s *SoExtFollowCountWrap) encodeMemKey(fName string) ([]byte, error) {
-	if len(fName) < 1 || s.mainKey == nil {
-		return nil, errors.New("field name or main key is empty")
-	}
-	pre := "ExtFollowCount" + fName + "cell"
-	preBuf, err := kope.Encode(pre)
-	if err != nil {
-		return nil, err
-	}
-	mBuf, err := s.getMainKeyBuf()
-	if err != nil {
-		return nil, err
-	}
-	list := make([][]byte, 2)
-	list[0] = preBuf
-	list[1] = mBuf
-	return kope.PackList(list), nil
-}
-
-func (so *SoExtFollowCountWrap) saveAllMemKeys(tInfo *SoExtFollowCount, br bool) error {
-	if so.dba == nil {
-		return errors.New("save member Field fail , the db is nil")
-	}
-
-	if tInfo == nil {
-		return errors.New("save member Field fail , the data is nil ")
-	}
-	var err error = nil
-	errDes := ""
-	if err = so.saveMemKeyAccount(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Account", err)
-		}
-	}
-	if err = so.saveMemKeyFollowerCnt(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "FollowerCnt", err)
-		}
-	}
-	if err = so.saveMemKeyFollowingCnt(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "FollowingCnt", err)
-		}
-	}
-	if err = so.saveMemKeyUpdateTime(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "UpdateTime", err)
-		}
-	}
-
-	if len(errDes) > 0 {
-		return errors.New(errDes)
-	}
-	return err
-}
-
-func (so *SoExtFollowCountWrap) delAllMemKeys(br bool, tInfo *SoExtFollowCount) error {
-	if so.dba == nil {
-		return errors.New("the db is nil")
-	}
-	t := reflect.TypeOf(*tInfo)
-	errDesc := ""
-	for k := 0; k < t.NumField(); k++ {
-		name := t.Field(k).Name
-		if len(name) > 0 && !strings.HasPrefix(name, "XXX_") {
-			err := so.delMemKey(name)
-			if err != nil {
-				if br {
-					return err
-				}
-				errDesc += fmt.Sprintf("delete the Field %s fail,error is %s;\n", name, err)
-			}
-		}
-	}
-	if len(errDesc) > 0 {
-		return errors.New(errDesc)
-	}
-	return nil
-}
-
-func (so *SoExtFollowCountWrap) delMemKey(fName string) error {
-	if so.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if len(fName) <= 0 {
-		return errors.New("the field name is empty ")
-	}
-	key, err := so.encodeMemKey(fName)
-	if err != nil {
-		return err
-	}
-	err = so.dba.Delete(key)
-	return err
 }
 
 ////////////// SECTION LKeys delete/insert ///////////////
@@ -275,6 +176,126 @@ func (s *SoExtFollowCountWrap) RemoveExtFollowCount() bool {
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
+func (s *SoExtFollowCountWrap) getMemKeyPrefix(fName string) uint32 {
+	if fName == "Account" {
+		return ExtFollowCountAccountCell
+	}
+	if fName == "FollowerCnt" {
+		return ExtFollowCountFollowerCntCell
+	}
+	if fName == "FollowingCnt" {
+		return ExtFollowCountFollowingCntCell
+	}
+	if fName == "UpdateTime" {
+		return ExtFollowCountUpdateTimeCell
+	}
+
+	return 0
+}
+
+func (s *SoExtFollowCountWrap) encodeMemKey(fName string) ([]byte, error) {
+	if len(fName) < 1 || s.mainKey == nil {
+		return nil, errors.New("field name or main key is empty")
+	}
+	pre := s.getMemKeyPrefix(fName)
+	preBuf, err := kope.Encode(pre)
+	if err != nil {
+		return nil, err
+	}
+	mBuf, err := s.getMainKeyBuf()
+	if err != nil {
+		return nil, err
+	}
+	list := make([][]byte, 2)
+	list[0] = preBuf
+	list[1] = mBuf
+	return kope.PackList(list), nil
+}
+
+func (s *SoExtFollowCountWrap) saveAllMemKeys(tInfo *SoExtFollowCount, br bool) error {
+	if s.dba == nil {
+		return errors.New("save member Field fail , the db is nil")
+	}
+
+	if tInfo == nil {
+		return errors.New("save member Field fail , the data is nil ")
+	}
+	var err error = nil
+	errDes := ""
+	if err = s.saveMemKeyAccount(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Account", err)
+		}
+	}
+	if err = s.saveMemKeyFollowerCnt(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "FollowerCnt", err)
+		}
+	}
+	if err = s.saveMemKeyFollowingCnt(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "FollowingCnt", err)
+		}
+	}
+	if err = s.saveMemKeyUpdateTime(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "UpdateTime", err)
+		}
+	}
+
+	if len(errDes) > 0 {
+		return errors.New(errDes)
+	}
+	return err
+}
+
+func (s *SoExtFollowCountWrap) delAllMemKeys(br bool, tInfo *SoExtFollowCount) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	t := reflect.TypeOf(*tInfo)
+	errDesc := ""
+	for k := 0; k < t.NumField(); k++ {
+		name := t.Field(k).Name
+		if len(name) > 0 && !strings.HasPrefix(name, "XXX_") {
+			err := s.delMemKey(name)
+			if err != nil {
+				if br {
+					return err
+				}
+				errDesc += fmt.Sprintf("delete the Field %s fail,error is %s;\n", name, err)
+			}
+		}
+	}
+	if len(errDesc) > 0 {
+		return errors.New(errDesc)
+	}
+	return nil
+}
+
+func (s *SoExtFollowCountWrap) delMemKey(fName string) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if len(fName) <= 0 {
+		return errors.New("the field name is empty ")
+	}
+	key, err := s.encodeMemKey(fName)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Delete(key)
+	return err
+}
+
 func (s *SoExtFollowCountWrap) saveMemKeyAccount(tInfo *SoExtFollowCount) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
@@ -618,7 +639,7 @@ func (s *SoExtFollowCountWrap) encodeMainKey() ([]byte, error) {
 	if s.mKeyBuf != nil {
 		return s.mKeyBuf, nil
 	}
-	pre := "ExtFollowCount" + "Account" + "cell"
+	pre := s.getMemKeyPrefix("Account")
 	sub := s.mainKey
 	if sub == nil {
 		return nil, errors.New("the mainKey is nil")

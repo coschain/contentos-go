@@ -14,9 +14,10 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	ExtPostCreatedTable             = []byte("ExtPostCreatedTable")
-	ExtPostCreatedCreatedOrderTable = []byte("ExtPostCreatedCreatedOrderTable")
-	ExtPostCreatedPostIdUniTable    = []byte("ExtPostCreatedPostIdUniTable")
+	ExtPostCreatedCreatedOrderTable = uint32(2563559990)
+	ExtPostCreatedPostIdUniTable    = uint32(2848909971)
+	ExtPostCreatedCreatedOrderCell  = uint32(1172050037)
+	ExtPostCreatedPostIdCell        = uint32(3316593906)
 )
 
 ////////////// SECTION Wrap Define ///////////////
@@ -83,10 +84,11 @@ func (s *SoExtPostCreatedWrap) Create(f func(tInfo *SoExtPostCreated)) error {
 	}
 	err = s.saveAllMemKeys(val, true)
 	if err != nil {
+		s.delAllMemKeys(false, val)
 		return err
 	}
 
-	// update sort list keys
+	// update srt list keys
 	if err = s.insertAllSortKeys(val); err != nil {
 		s.delAllSortKeys(false, val)
 		s.dba.Delete(keyBuf)
@@ -118,95 +120,6 @@ func (s *SoExtPostCreatedWrap) getMainKeyBuf() ([]byte, error) {
 		}
 	}
 	return s.mBuf, nil
-}
-
-func (s *SoExtPostCreatedWrap) encodeMemKey(fName string) ([]byte, error) {
-	if len(fName) < 1 || s.mainKey == nil {
-		return nil, errors.New("field name or main key is empty")
-	}
-	pre := "ExtPostCreated" + fName + "cell"
-	preBuf, err := kope.Encode(pre)
-	if err != nil {
-		return nil, err
-	}
-	mBuf, err := s.getMainKeyBuf()
-	if err != nil {
-		return nil, err
-	}
-	list := make([][]byte, 2)
-	list[0] = preBuf
-	list[1] = mBuf
-	return kope.PackList(list), nil
-}
-
-func (so *SoExtPostCreatedWrap) saveAllMemKeys(tInfo *SoExtPostCreated, br bool) error {
-	if so.dba == nil {
-		return errors.New("save member Field fail , the db is nil")
-	}
-
-	if tInfo == nil {
-		return errors.New("save member Field fail , the data is nil ")
-	}
-	var err error = nil
-	errDes := ""
-	if err = so.saveMemKeyCreatedOrder(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "CreatedOrder", err)
-		}
-	}
-	if err = so.saveMemKeyPostId(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "PostId", err)
-		}
-	}
-
-	if len(errDes) > 0 {
-		return errors.New(errDes)
-	}
-	return err
-}
-
-func (so *SoExtPostCreatedWrap) delAllMemKeys(br bool, tInfo *SoExtPostCreated) error {
-	if so.dba == nil {
-		return errors.New("the db is nil")
-	}
-	t := reflect.TypeOf(*tInfo)
-	errDesc := ""
-	for k := 0; k < t.NumField(); k++ {
-		name := t.Field(k).Name
-		if len(name) > 0 && !strings.HasPrefix(name, "XXX_") {
-			err := so.delMemKey(name)
-			if err != nil {
-				if br {
-					return err
-				}
-				errDesc += fmt.Sprintf("delete the Field %s fail,error is %s;\n", name, err)
-			}
-		}
-	}
-	if len(errDesc) > 0 {
-		return errors.New(errDesc)
-	}
-	return nil
-}
-
-func (so *SoExtPostCreatedWrap) delMemKey(fName string) error {
-	if so.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if len(fName) <= 0 {
-		return errors.New("the field name is empty ")
-	}
-	key, err := so.encodeMemKey(fName)
-	if err != nil {
-		return err
-	}
-	err = so.dba.Delete(key)
-	return err
 }
 
 ////////////// SECTION LKeys delete/insert ///////////////
@@ -322,6 +235,106 @@ func (s *SoExtPostCreatedWrap) RemoveExtPostCreated() bool {
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
+func (s *SoExtPostCreatedWrap) getMemKeyPrefix(fName string) uint32 {
+	if fName == "CreatedOrder" {
+		return ExtPostCreatedCreatedOrderCell
+	}
+	if fName == "PostId" {
+		return ExtPostCreatedPostIdCell
+	}
+
+	return 0
+}
+
+func (s *SoExtPostCreatedWrap) encodeMemKey(fName string) ([]byte, error) {
+	if len(fName) < 1 || s.mainKey == nil {
+		return nil, errors.New("field name or main key is empty")
+	}
+	pre := s.getMemKeyPrefix(fName)
+	preBuf, err := kope.Encode(pre)
+	if err != nil {
+		return nil, err
+	}
+	mBuf, err := s.getMainKeyBuf()
+	if err != nil {
+		return nil, err
+	}
+	list := make([][]byte, 2)
+	list[0] = preBuf
+	list[1] = mBuf
+	return kope.PackList(list), nil
+}
+
+func (s *SoExtPostCreatedWrap) saveAllMemKeys(tInfo *SoExtPostCreated, br bool) error {
+	if s.dba == nil {
+		return errors.New("save member Field fail , the db is nil")
+	}
+
+	if tInfo == nil {
+		return errors.New("save member Field fail , the data is nil ")
+	}
+	var err error = nil
+	errDes := ""
+	if err = s.saveMemKeyCreatedOrder(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "CreatedOrder", err)
+		}
+	}
+	if err = s.saveMemKeyPostId(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "PostId", err)
+		}
+	}
+
+	if len(errDes) > 0 {
+		return errors.New(errDes)
+	}
+	return err
+}
+
+func (s *SoExtPostCreatedWrap) delAllMemKeys(br bool, tInfo *SoExtPostCreated) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	t := reflect.TypeOf(*tInfo)
+	errDesc := ""
+	for k := 0; k < t.NumField(); k++ {
+		name := t.Field(k).Name
+		if len(name) > 0 && !strings.HasPrefix(name, "XXX_") {
+			err := s.delMemKey(name)
+			if err != nil {
+				if br {
+					return err
+				}
+				errDesc += fmt.Sprintf("delete the Field %s fail,error is %s;\n", name, err)
+			}
+		}
+	}
+	if len(errDesc) > 0 {
+		return errors.New(errDesc)
+	}
+	return nil
+}
+
+func (s *SoExtPostCreatedWrap) delMemKey(fName string) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if len(fName) <= 0 {
+		return errors.New("the field name is empty ")
+	}
+	key, err := s.encodeMemKey(fName)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Delete(key)
+	return err
+}
+
 func (s *SoExtPostCreatedWrap) saveMemKeyCreatedOrder(tInfo *SoExtPostCreated) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
@@ -534,7 +547,7 @@ func (m *SoListExtPostCreatedByCreatedOrder) OpeEncode() ([]byte, error) {
 	return kBuf, cErr
 }
 
-//Query sort by reverse order
+//Query srt by reverse order
 //
 //f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
 //as arguments to the callback function
@@ -628,7 +641,7 @@ func (s *SoExtPostCreatedWrap) encodeMainKey() ([]byte, error) {
 	if s.mKeyBuf != nil {
 		return s.mKeyBuf, nil
 	}
-	pre := "ExtPostCreated" + "PostId" + "cell"
+	pre := s.getMemKeyPrefix("PostId")
 	sub := s.mainKey
 	if sub == nil {
 		return nil, errors.New("the mainKey is nil")

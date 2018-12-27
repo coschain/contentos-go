@@ -3,20 +3,38 @@ package main
 import (
 	"fmt"
 	"github.com/syndtr/goleveldb/leveldb/errors"
+	"hash/crc32"
 	"log"
 	"os/exec"
+	"reflect"
+	"regexp"
 	"strings"
 	"text/template"
 	"unicode"
 )
 
-var tbMask uint64 = 1
+var prefixMap = map[uint32]string{}
 
-type SortPro struct {
-	PType string
-	PName string
+type FieldType int
+const (
+	FieldTypeMem  FieldType = iota //common member field in the table
+	FieldTypeSort                  //a field which is supported srting
+	FieldTypeUni                   //a field which is supported unique query
+)
+
+//the base field of a table
+type Field struct {
+	PName string   //the name of the field
+	PType string   //the type of the field
+	Prefix uint32  //the prefix for a key in the database
+}
+
+//the member field of a table
+type SortField struct {
+    Field
 	SType int //1:support order 2:support reverse order 3:support order and reverse order
 }
+
 
 type Params struct {
 	ClsName     string
@@ -24,21 +42,20 @@ type Params struct {
 	MainKeyName string
 
 	LKeys          []string
-	MemberKeyMap   map[string]string
+	MemberKeyMap   map[string]Field
 	LKeyWithType   map[string]string
-	UniqueFieldMap map[string]string
-	TBMask         string
-	SortList       []SortPro
+	UniqueFieldMap map[string]Field
+	SortList       []SortField
 	SListCount     int
 }
 
-func CreateGoFile(tIfno TableInfo) (bool, error) {
+func CreateGoFile(tInfo TableInfo) (bool, error) {
 	var err error = nil
-	if tIfno.Name == "" {
+	if tInfo.Name == "" {
 		err = errors.New("table name is empty")
 		return false, err
-	} else if len(tIfno.PList) < 1 {
-		err = errors.New("table datas are empty")
+	} else if len(tInfo.PList) < 1 {
+		err = errors.New("table data is empty")
 		return false, err
 	}
 
@@ -49,12 +66,14 @@ package table
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	{{.ClsName}}Table        = []byte("{{.ClsName}}Table")
     {{range $k, $v := .SortList -}}
-    {{$.ClsName}}{{$v.PName}}Table = []byte("{{$.ClsName}}{{$v.PName}}Table")
+    {{$.ClsName}}{{$v.PName}}Table  = uint32({{$v.Prefix}})
     {{end -}}
     {{range $k, $v := .UniqueFieldMap -}}
-	{{$.ClsName}}{{$k}}UniTable = []byte("{{$.ClsName}}{{$k}}UniTable")
+	{{$.ClsName}}{{$k}}UniTable = uint32({{$v.Prefix}})
+    {{end -}}
+    {{range $k, $v := .MemberKeyMap -}}
+    {{$.ClsName}}{{$k}}Cell  = uint32({{$v.Prefix}})
     {{end -}}
 )
 
@@ -128,11 +147,12 @@ func (s *So{{.ClsName}}Wrap) Create(f func(tInfo *So{{.ClsName}})) error {
 	}
     err = s.saveAllMemKeys(val,true)
     if err != nil {
+       s.delAllMemKeys(false,val)
        return err
     }
 
     {{if ge  $.SListCount 0 -}}
-	// update sort list keys
+	// update srt list keys
 	if err = s.insertAllSortKeys(val); err != nil {
        s.delAllSortKeys(false,val)
        s.dba.Delete(keyBuf)
@@ -165,90 +185,6 @@ func (s *So{{.ClsName}}Wrap) getMainKeyBuf() ([]byte, error) {
 		}
 	}
 	return s.mBuf,nil
-}
-
-func (s *So{{.ClsName}}Wrap) encodeMemKey(fName string) ([]byte,error) {
-	if len(fName) < 1 || s.mainKey == nil {
-		return nil,errors.New("field name or main key is empty")
-	}
-	pre := "{{.ClsName}}" + fName + "cell"
-	preBuf,err := kope.Encode(pre)
-	if err != nil {
-		return nil,err
-	}
-	mBuf,err := s.getMainKeyBuf()
-	if err != nil {
-		return nil,err
-	}
-	list := make([][]byte,2)
-	list[0] = preBuf
-	list[1] = mBuf
-	return kope.PackList(list),nil
-}
-
-func (so *So{{$.ClsName}}Wrap) saveAllMemKeys(tInfo *So{{.ClsName}} ,br bool) error {
-     if so.dba == nil {
-       return errors.New("save member Field fail , the db is nil")
-     }
-     
-	if tInfo == nil {
-		return errors.New("save member Field fail , the data is nil ")
-	}
-    var err error = nil
-    errDes := ""
-    {{range $k, $v := .MemberKeyMap -}}
-	if err = so.saveMemKey{{$k}}(tInfo); err != nil {
-       if br {
-          return err
-       }else {
-          errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "{{$k}}", err)
-       }
-	}
-	{{end}} 
-    if len(errDes) > 0 {
-       return errors.New(errDes)
-    }
-    return err
-}
-
-
-func (so *So{{$.ClsName}}Wrap) delAllMemKeys(br bool,tInfo *So{{.ClsName}}) error {
-	if so.dba == nil {
-		return errors.New("the db is nil")
-	}
-	t := reflect.TypeOf(*tInfo)
-	errDesc := ""
-	for k := 0; k < t.NumField(); k++ {
-		name := t.Field(k).Name
-		if len(name) > 0 && !strings.HasPrefix(name, "XXX_") {
-            err := so.delMemKey(name)
-            if err != nil {
-               if br {
-                  return err
-               }
-               errDesc += fmt.Sprintf("delete the Field %s fail,error is %s;\n",name,err)
-            }
-		}
-	}
-	if len(errDesc) > 0 {
-		return errors.New(errDesc)
-	}
-	return nil
-}
-
-func (so *So{{$.ClsName}}Wrap)delMemKey(fName string) error  {
-	if so.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if len(fName) <= 0 {
-		return errors.New("the field name is empty ")
-	}
-    key,err := so.encodeMemKey(fName) 
-    if err != nil {
-    	return err
-	}
-    err = so.dba.Delete(key)
-    return err
 }
 
 ////////////// SECTION LKeys delete/insert ///////////////
@@ -385,6 +321,100 @@ func (s *So{{.ClsName}}Wrap) Remove{{.ClsName}}() bool {
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
+func (s *So{{.ClsName}}Wrap) getMemKeyPrefix(fName string) uint32 {
+     {{range $k,$v := .MemberKeyMap -}}
+     if fName == "{{$v.PName}}" {
+        return {{$.ClsName}}{{$v.PName}}Cell
+     }
+     {{end}}
+     return 0
+}
+
+func (s *So{{.ClsName}}Wrap) encodeMemKey(fName string) ([]byte,error) {
+	if len(fName) < 1 || s.mainKey == nil {
+		return nil,errors.New("field name or main key is empty")
+	}
+	pre := s.getMemKeyPrefix(fName)
+	preBuf,err := kope.Encode(pre)
+	if err != nil {
+		return nil,err
+	}
+	mBuf,err := s.getMainKeyBuf()
+	if err != nil {
+		return nil,err
+	}
+	list := make([][]byte,2)
+	list[0] = preBuf
+	list[1] = mBuf
+	return kope.PackList(list),nil
+}
+
+func (s *So{{$.ClsName}}Wrap) saveAllMemKeys(tInfo *So{{.ClsName}} ,br bool) error {
+     if s.dba == nil {
+       return errors.New("save member Field fail , the db is nil")
+     }
+     
+	if tInfo == nil {
+		return errors.New("save member Field fail , the data is nil ")
+	}
+    var err error = nil
+    errDes := ""
+    {{range $k, $v := .MemberKeyMap -}}
+	if err = s.saveMemKey{{$k}}(tInfo); err != nil {
+       if br {
+          return err
+       }else {
+          errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "{{$k}}", err)
+       }
+	}
+	{{end}} 
+    if len(errDes) > 0 {
+       return errors.New(errDes)
+    }
+    return err
+}
+
+
+func (s *So{{$.ClsName}}Wrap) delAllMemKeys(br bool,tInfo *So{{.ClsName}}) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	t := reflect.TypeOf(*tInfo)
+	errDesc := ""
+	for k := 0; k < t.NumField(); k++ {
+		name := t.Field(k).Name
+		if len(name) > 0 && !strings.HasPrefix(name, "XXX_") {
+            err := s.delMemKey(name)
+            if err != nil {
+               if br {
+                  return err
+               }
+               errDesc += fmt.Sprintf("delete the Field %s fail,error is %s;\n",name,err)
+            }
+		}
+	}
+	if len(errDesc) > 0 {
+		return errors.New(errDesc)
+	}
+	return nil
+}
+
+func (s *So{{$.ClsName}}Wrap)delMemKey(fName string) error  {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if len(fName) <= 0 {
+		return errors.New("the field name is empty ")
+	}
+    key,err := s.encodeMemKey(fName) 
+    if err != nil {
+    	return err
+	}
+    err = s.dba.Delete(key)
+    return err
+}
+
+
 {{range $k1, $v1 := .MemberKeyMap -}}
 func (s *So{{$.ClsName}}Wrap)saveMemKey{{$k1}}(tInfo *So{{$.ClsName}}) error {
 	 if s.dba == nil {
@@ -408,7 +438,7 @@ func (s *So{{$.ClsName}}Wrap)saveMemKey{{$k1}}(tInfo *So{{$.ClsName}}) error {
 }
 
 
-func (s *So{{$.ClsName}}Wrap) Get{{$k1}}() {{formatRTypeStr $v1}} {
+func (s *So{{$.ClsName}}Wrap) Get{{$k1}}() {{formatRTypeStr $v1.PType}} {
    res := true
    msg := &SoMem{{$.ClsName}}By{{$k1}}{}
    if s.dba == nil { 
@@ -431,9 +461,9 @@ func (s *So{{$.ClsName}}Wrap) Get{{$k1}}() {{formatRTypeStr $v1}} {
       }
    }
    if !res {
-      {{$baseType := (DetectBaseType $v1) -}}
+      {{$baseType := (DetectBaseType $v1.PType) -}}
       {{- if $baseType -}} 
-      var tmpValue {{formatRTypeStr $v1}} 
+      var tmpValue {{formatRTypeStr $v1.PType}} 
       return tmpValue
       {{- end -}}
       {{if not $baseType -}} 
@@ -445,7 +475,7 @@ func (s *So{{$.ClsName}}Wrap) Get{{$k1}}() {{formatRTypeStr $v1}} {
 
 {{if ne $k1 $.MainKeyName}}
 
-func (s *So{{$.ClsName}}Wrap) Md{{$k1}}(p {{formatRTypeStr $v1}}) bool {
+func (s *So{{$.ClsName}}Wrap) Md{{$k1}}(p {{formatRTypeStr $v1.PType}}) bool {
     if s.dba == nil {
        return false
     }
@@ -473,7 +503,7 @@ func (s *So{{$.ClsName}}Wrap) Md{{$k1}}(p {{formatRTypeStr $v1}}) bool {
     //judge the unique value if is exist
     uniWrap  := Uni{{$.ClsName}}{{$k2}}Wrap{}
     uniWrap.Dba = s.dba
-   {{ $baseType := (DetectBaseType $v2) -}}
+   {{ $baseType := (DetectBaseType $v2.PType) -}}
    {{- if $baseType -}} 
    	res := uniWrap.UniQuery{{$k1}}(&p)
    {{- end -}}
@@ -617,7 +647,7 @@ func (m *SoList{{$.ClsName}}By{{$v.PName}}) OpeEncode() ([]byte,error) {
 }
 
 {{if or (eq $v.SType 1) (eq $v.SType 3) -}}
-//Query sort by order 
+//Query srt by order 
 //
 //start = nil  end = nil (query the db from start to end)
 //start = nil (query from start the db)
@@ -671,7 +701,7 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) ForEachByOrder(start *{{$v.PType}}, end
 }
 {{end}}
 {{if or (eq $v.SType 2) (eq $v.SType 3) -}}
-//Query sort by reverse order 
+//Query srt by reverse order 
 //
 //f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated) 
 //as arguments to the callback function 
@@ -767,7 +797,7 @@ func (s *So{{$.ClsName}}Wrap) encodeMainKey() ([]byte, error) {
     if s.mKeyBuf != nil {
 		return s.mKeyBuf,nil
 	}
-    pre := "{{.ClsName}}" + "{{.MainKeyName}}" + "cell"
+    pre := s.getMemKeyPrefix("{{.MainKeyName}}")
     sub := s.mainKey
     if sub == nil {
        return nil,errors.New("the mainKey is nil")
@@ -849,7 +879,7 @@ func (s *So{{$.ClsName}}Wrap) delUniKey{{$k}}(sa *So{{$.ClsName}}) bool {
     pre := {{$.ClsName}}{{$k}}UniTable
     kList := []interface{}{pre}
     if sa != nil {
-       {{ $baseType := (DetectBaseType $v) -}}
+       {{ $baseType := (DetectBaseType $v.PType) -}}
        {{if not $baseType }} 
        if sa.{{UperFirstChar $k}} == nil {
           return false
@@ -927,7 +957,7 @@ func NewUni{{$.ClsName}}{{$k}}Wrap (db iservices.IDatabaseService) *Uni{{$.ClsNa
      return &wrap
 }
 
-func (s *Uni{{$.ClsName}}{{$k}}Wrap) UniQuery{{$k}}(start *{{formatStr $v}}) *So{{$.ClsName}}Wrap{
+func (s *Uni{{$.ClsName}}{{$k}}Wrap) UniQuery{{$k}}(start *{{formatStr $v.PType}}) *So{{$.ClsName}}Wrap{
     if start == nil || s.Dba == nil {
        return nil
     }
@@ -956,7 +986,7 @@ func (s *Uni{{$.ClsName}}{{$k}}Wrap) UniQuery{{$k}}(start *{{formatStr $v}}) *So
 {{end}}
 
 `
-	fName := TmlFolder + "so_" + tIfno.Name + ".go"
+	fName := TmlFolder + "so_" + tInfo.Name + ".go"
 	if fPtr := CreateFile(fName); fPtr != nil {
 		funcMapUper := template.FuncMap{"UperFirstChar": UpperFirstChar,
 			"formatStr":           formatStr,
@@ -966,16 +996,15 @@ func (s *Uni{{$.ClsName}}{{$k}}Wrap) UniQuery{{$k}}(start *{{formatStr $v}}) *So
 			"formatQueryParamStr": formatQueryParamStr,
 			"formatSliceType":     formatSliceType,
 			"getMapCount":         getMapCount,
-			"getMemMsgName":       getMemFiledName,
 		}
 		t := template.New("go_template")
 		t = t.Funcs(funcMapUper)
 		t.Parse(tmpl)
-		t.Execute(fPtr, createParamsFromTableInfo(tIfno))
+		t.Execute(fPtr, createParamsFromTableInfo(tInfo))
 		cmd := exec.Command("goimports", "-w", fName)
 		err := cmd.Run()
 		if err != nil {
-			panic(fmt.Sprintf("auto import package fail,the error is %s", err))
+			panic(fmt.Sprintf("Table %s: auto import package fail,the error is %s", tInfo.Name, err))
 		}
 		defer fPtr.Close()
 		return true, nil
@@ -990,40 +1019,84 @@ func (s *Uni{{$.ClsName}}{{$k}}Wrap) UniQuery{{$k}}(start *{{formatStr $v}}) *So
 func createParamsFromTableInfo(tInfo TableInfo) Params {
 	para := Params{}
 	para.ClsName = UpperFirstChar(tInfo.Name)
-	para.TBMask = fmt.Sprintf("%d", tbMask)
-	tbMask++
 	para.LKeys = []string{}
 	para.LKeyWithType = make(map[string]string)
-	para.MemberKeyMap = make(map[string]string)
-	para.UniqueFieldMap = make(map[string]string)
-	para.SortList = make([]SortPro, 0)
+	para.MemberKeyMap = make(map[string]Field)
+	para.UniqueFieldMap = make(map[string]Field)
+	para.SortList = make([]SortField, 0)
 	for _, v := range tInfo.PList {
-		fType := strings.Replace(v.VarType, " ", "", -1)
-		if fType == "bytes" {
-			fType = "[]byte"
+		tType := DelDirtyCharacter(v.VarType)
+		if tType == "bytes" {
+			tType = "[]byte"
 		}
-		fName := strings.Replace(v.VarName, " ", "", -1)
+		tName := DelDirtyCharacter(v.VarName)
+		fName := rValueFormStr(tName)
+		fType :=  formatStr(tType)
 		if v.BMainKey {
-			para.MainKeyName = rValueFormStr(fName)
-			para.MainKeyType = formatStr(fType)
+			para.MainKeyName = fName
+			para.MainKeyType = fType
 		}
 		if v.SortType > 0 {
-			para.LKeys = append(para.LKeys, rValueFormStr(fName))
-			para.LKeyWithType[rValueFormStr(fName)] = formatStr(fType)
-			para.SortList = append(para.SortList, SortPro{
-				PName: rValueFormStr(fName),
-				PType: formatStr(fType),
-				SType: v.SortType,
+			pre := getFieldPrefix(fName, tInfo.Name, FieldTypeSort)
+			para.LKeys = append(para.LKeys, fName)
+			para.LKeyWithType[fName] = fType
+			para.SortList = append(para.SortList, SortField{
+				Field{
+					fName,
+					fType,
+					pre,
+				},
+				v.SortType,
 			})
 		}
-
 		if v.BUnique || v.BMainKey {
-			para.UniqueFieldMap[rValueFormStr(fName)] = formatStr(fType)
+			pre := getFieldPrefix(fName, tInfo.Name, FieldTypeUni)
+			para.UniqueFieldMap[fName] = Field{fName, fType, pre}
 		}
-		para.MemberKeyMap[rValueFormStr(fName)] = formatStr(fType)
+		para.MemberKeyMap[fName] =  Field{
+			fName,
+		    fType,
+			getFieldPrefix(fName, tInfo.Name, FieldTypeMem),
+		}
 	}
 	para.SListCount = len(para.SortList)
 	return para
+}
+
+//delete space and tab character in a string
+func DelDirtyCharacter(str string) string {
+	res := ""
+	if len(str) > 0 {
+		reg, _ := regexp.Compile("[ \f\n\r\t\v ]+")
+		res = reg.ReplaceAllString(str, "")
+	}
+	return res
+}
+
+func getFieldPrefix(fName,tName string,fType FieldType) uint32 {
+	if len(fName) < 1 || len(tName) < 1 {
+		return 0
+	}
+	preStr := ""
+	if fType == FieldTypeMem {
+		preStr = tName + fName + "Cell"
+	}else if fType == FieldTypeSort {
+		preStr = tName + fName + "Table"
+	}else if fType == FieldTypeUni {
+		preStr = tName + fName + "UniTable"
+	}
+	if len(preStr) < 1 {
+		return 0
+	}
+	prefix := crc32.ChecksumIEEE([]byte(preStr))
+	if  _,ok := prefixMap[prefix]; ok {
+		str := fmt.Sprintf("the field %s in table %s will generate the same key as other fields," +
+			"please change the filed or table name",fName,tName)
+		panic(str)
+	}else {
+		prefixMap[prefix] = fName
+	}
+	return prefix
 }
 
 /* uppercase first character of string */
@@ -1067,7 +1140,7 @@ func formatStr(str string) string {
 	return formStr
 }
 
-/* the return value format of Pb struct format(the first Charater is upper case) */
+/* the return value format of Pb struct format(the first Character is upper case) */
 func rValueFormStr(str string) string {
 	formStr := ""
 	if str != "" {
@@ -1137,7 +1210,7 @@ func formatRTypeStr(str string) string {
 	return str
 }
 
-/* format the type of querylist params to ptr (if the type is base data type,the type add *)*/
+/* format the type of query list params to ptr (if the type is base data type,the type add *)*/
 func formatQueryParamStr(str string) string {
 	if str != "" {
 		if DetectBaseType(str) {
@@ -1157,10 +1230,10 @@ func formatSliceType(str string) string {
 	return str
 }
 
-func getMapCount(m map[string]string) int {
-	return len(m)
+func getMapCount(m interface{}) int {
+	if reflect.TypeOf(m).Kind() == reflect.Map {
+		return len(reflect.ValueOf(m).MapKeys())
+	}
+	return 0
 }
 
-func getMemFiledName(fName string) string  {
-	return fName
-}

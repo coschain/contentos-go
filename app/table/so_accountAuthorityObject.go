@@ -14,8 +14,10 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	AccountAuthorityObjectTable           = []byte("AccountAuthorityObjectTable")
-	AccountAuthorityObjectAccountUniTable = []byte("AccountAuthorityObjectAccountUniTable")
+	AccountAuthorityObjectAccountUniTable     = uint32(2018962083)
+	AccountAuthorityObjectAccountCell         = uint32(2847932568)
+	AccountAuthorityObjectLastOwnerUpdateCell = uint32(3724354934)
+	AccountAuthorityObjectOwnerCell           = uint32(1910772053)
 )
 
 ////////////// SECTION Wrap Define ///////////////
@@ -85,10 +87,11 @@ func (s *SoAccountAuthorityObjectWrap) Create(f func(tInfo *SoAccountAuthorityOb
 	}
 	err = s.saveAllMemKeys(val, true)
 	if err != nil {
+		s.delAllMemKeys(false, val)
 		return err
 	}
 
-	// update sort list keys
+	// update srt list keys
 	if err = s.insertAllSortKeys(val); err != nil {
 		s.delAllSortKeys(false, val)
 		s.dba.Delete(keyBuf)
@@ -120,102 +123,6 @@ func (s *SoAccountAuthorityObjectWrap) getMainKeyBuf() ([]byte, error) {
 		}
 	}
 	return s.mBuf, nil
-}
-
-func (s *SoAccountAuthorityObjectWrap) encodeMemKey(fName string) ([]byte, error) {
-	if len(fName) < 1 || s.mainKey == nil {
-		return nil, errors.New("field name or main key is empty")
-	}
-	pre := "AccountAuthorityObject" + fName + "cell"
-	preBuf, err := kope.Encode(pre)
-	if err != nil {
-		return nil, err
-	}
-	mBuf, err := s.getMainKeyBuf()
-	if err != nil {
-		return nil, err
-	}
-	list := make([][]byte, 2)
-	list[0] = preBuf
-	list[1] = mBuf
-	return kope.PackList(list), nil
-}
-
-func (so *SoAccountAuthorityObjectWrap) saveAllMemKeys(tInfo *SoAccountAuthorityObject, br bool) error {
-	if so.dba == nil {
-		return errors.New("save member Field fail , the db is nil")
-	}
-
-	if tInfo == nil {
-		return errors.New("save member Field fail , the data is nil ")
-	}
-	var err error = nil
-	errDes := ""
-	if err = so.saveMemKeyAccount(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Account", err)
-		}
-	}
-	if err = so.saveMemKeyLastOwnerUpdate(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "LastOwnerUpdate", err)
-		}
-	}
-	if err = so.saveMemKeyOwner(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Owner", err)
-		}
-	}
-
-	if len(errDes) > 0 {
-		return errors.New(errDes)
-	}
-	return err
-}
-
-func (so *SoAccountAuthorityObjectWrap) delAllMemKeys(br bool, tInfo *SoAccountAuthorityObject) error {
-	if so.dba == nil {
-		return errors.New("the db is nil")
-	}
-	t := reflect.TypeOf(*tInfo)
-	errDesc := ""
-	for k := 0; k < t.NumField(); k++ {
-		name := t.Field(k).Name
-		if len(name) > 0 && !strings.HasPrefix(name, "XXX_") {
-			err := so.delMemKey(name)
-			if err != nil {
-				if br {
-					return err
-				}
-				errDesc += fmt.Sprintf("delete the Field %s fail,error is %s;\n", name, err)
-			}
-		}
-	}
-	if len(errDesc) > 0 {
-		return errors.New(errDesc)
-	}
-	return nil
-}
-
-func (so *SoAccountAuthorityObjectWrap) delMemKey(fName string) error {
-	if so.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if len(fName) <= 0 {
-		return errors.New("the field name is empty ")
-	}
-	key, err := so.encodeMemKey(fName)
-	if err != nil {
-		return err
-	}
-	err = so.dba.Delete(key)
-	return err
 }
 
 ////////////// SECTION LKeys delete/insert ///////////////
@@ -268,6 +175,116 @@ func (s *SoAccountAuthorityObjectWrap) RemoveAccountAuthorityObject() bool {
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
+func (s *SoAccountAuthorityObjectWrap) getMemKeyPrefix(fName string) uint32 {
+	if fName == "Account" {
+		return AccountAuthorityObjectAccountCell
+	}
+	if fName == "LastOwnerUpdate" {
+		return AccountAuthorityObjectLastOwnerUpdateCell
+	}
+	if fName == "Owner" {
+		return AccountAuthorityObjectOwnerCell
+	}
+
+	return 0
+}
+
+func (s *SoAccountAuthorityObjectWrap) encodeMemKey(fName string) ([]byte, error) {
+	if len(fName) < 1 || s.mainKey == nil {
+		return nil, errors.New("field name or main key is empty")
+	}
+	pre := s.getMemKeyPrefix(fName)
+	preBuf, err := kope.Encode(pre)
+	if err != nil {
+		return nil, err
+	}
+	mBuf, err := s.getMainKeyBuf()
+	if err != nil {
+		return nil, err
+	}
+	list := make([][]byte, 2)
+	list[0] = preBuf
+	list[1] = mBuf
+	return kope.PackList(list), nil
+}
+
+func (s *SoAccountAuthorityObjectWrap) saveAllMemKeys(tInfo *SoAccountAuthorityObject, br bool) error {
+	if s.dba == nil {
+		return errors.New("save member Field fail , the db is nil")
+	}
+
+	if tInfo == nil {
+		return errors.New("save member Field fail , the data is nil ")
+	}
+	var err error = nil
+	errDes := ""
+	if err = s.saveMemKeyAccount(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Account", err)
+		}
+	}
+	if err = s.saveMemKeyLastOwnerUpdate(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "LastOwnerUpdate", err)
+		}
+	}
+	if err = s.saveMemKeyOwner(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Owner", err)
+		}
+	}
+
+	if len(errDes) > 0 {
+		return errors.New(errDes)
+	}
+	return err
+}
+
+func (s *SoAccountAuthorityObjectWrap) delAllMemKeys(br bool, tInfo *SoAccountAuthorityObject) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	t := reflect.TypeOf(*tInfo)
+	errDesc := ""
+	for k := 0; k < t.NumField(); k++ {
+		name := t.Field(k).Name
+		if len(name) > 0 && !strings.HasPrefix(name, "XXX_") {
+			err := s.delMemKey(name)
+			if err != nil {
+				if br {
+					return err
+				}
+				errDesc += fmt.Sprintf("delete the Field %s fail,error is %s;\n", name, err)
+			}
+		}
+	}
+	if len(errDesc) > 0 {
+		return errors.New(errDesc)
+	}
+	return nil
+}
+
+func (s *SoAccountAuthorityObjectWrap) delMemKey(fName string) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if len(fName) <= 0 {
+		return errors.New("the field name is empty ")
+	}
+	key, err := s.encodeMemKey(fName)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Delete(key)
+	return err
+}
+
 func (s *SoAccountAuthorityObjectWrap) saveMemKeyAccount(tInfo *SoAccountAuthorityObject) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
@@ -528,7 +545,7 @@ func (s *SoAccountAuthorityObjectWrap) encodeMainKey() ([]byte, error) {
 	if s.mKeyBuf != nil {
 		return s.mKeyBuf, nil
 	}
-	pre := "AccountAuthorityObject" + "Account" + "cell"
+	pre := s.getMemKeyPrefix("Account")
 	sub := s.mainKey
 	if sub == nil {
 		return nil, errors.New("the mainKey is nil")

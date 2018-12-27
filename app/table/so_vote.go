@@ -14,11 +14,15 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	VoteTable         = []byte("VoteTable")
-	VoteVoterTable    = []byte("VoteVoterTable")
-	VoteVoteTimeTable = []byte("VoteVoteTimeTable")
-	VotePostIdTable   = []byte("VotePostIdTable")
-	VoteVoterUniTable = []byte("VoteVoterUniTable")
+	VoteVoterTable     = uint32(2638131561)
+	VoteVoteTimeTable  = uint32(277775897)
+	VotePostIdTable    = uint32(3923440502)
+	VoteVoterUniTable  = uint32(1965941220)
+	VotePostIdCell     = uint32(3799570737)
+	VoteUpvoteCell     = uint32(3751109702)
+	VoteVoteTimeCell   = uint32(265476525)
+	VoteVoterCell      = uint32(3085458610)
+	VoteWeightedVpCell = uint32(334607886)
 )
 
 ////////////// SECTION Wrap Define ///////////////
@@ -88,10 +92,11 @@ func (s *SoVoteWrap) Create(f func(tInfo *SoVote)) error {
 	}
 	err = s.saveAllMemKeys(val, true)
 	if err != nil {
+		s.delAllMemKeys(false, val)
 		return err
 	}
 
-	// update sort list keys
+	// update srt list keys
 	if err = s.insertAllSortKeys(val); err != nil {
 		s.delAllSortKeys(false, val)
 		s.dba.Delete(keyBuf)
@@ -123,116 +128,6 @@ func (s *SoVoteWrap) getMainKeyBuf() ([]byte, error) {
 		}
 	}
 	return s.mBuf, nil
-}
-
-func (s *SoVoteWrap) encodeMemKey(fName string) ([]byte, error) {
-	if len(fName) < 1 || s.mainKey == nil {
-		return nil, errors.New("field name or main key is empty")
-	}
-	pre := "Vote" + fName + "cell"
-	preBuf, err := kope.Encode(pre)
-	if err != nil {
-		return nil, err
-	}
-	mBuf, err := s.getMainKeyBuf()
-	if err != nil {
-		return nil, err
-	}
-	list := make([][]byte, 2)
-	list[0] = preBuf
-	list[1] = mBuf
-	return kope.PackList(list), nil
-}
-
-func (so *SoVoteWrap) saveAllMemKeys(tInfo *SoVote, br bool) error {
-	if so.dba == nil {
-		return errors.New("save member Field fail , the db is nil")
-	}
-
-	if tInfo == nil {
-		return errors.New("save member Field fail , the data is nil ")
-	}
-	var err error = nil
-	errDes := ""
-	if err = so.saveMemKeyPostId(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "PostId", err)
-		}
-	}
-	if err = so.saveMemKeyUpvote(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Upvote", err)
-		}
-	}
-	if err = so.saveMemKeyVoteTime(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "VoteTime", err)
-		}
-	}
-	if err = so.saveMemKeyVoter(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Voter", err)
-		}
-	}
-	if err = so.saveMemKeyWeightedVp(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "WeightedVp", err)
-		}
-	}
-
-	if len(errDes) > 0 {
-		return errors.New(errDes)
-	}
-	return err
-}
-
-func (so *SoVoteWrap) delAllMemKeys(br bool, tInfo *SoVote) error {
-	if so.dba == nil {
-		return errors.New("the db is nil")
-	}
-	t := reflect.TypeOf(*tInfo)
-	errDesc := ""
-	for k := 0; k < t.NumField(); k++ {
-		name := t.Field(k).Name
-		if len(name) > 0 && !strings.HasPrefix(name, "XXX_") {
-			err := so.delMemKey(name)
-			if err != nil {
-				if br {
-					return err
-				}
-				errDesc += fmt.Sprintf("delete the Field %s fail,error is %s;\n", name, err)
-			}
-		}
-	}
-	if len(errDesc) > 0 {
-		return errors.New(errDesc)
-	}
-	return nil
-}
-
-func (so *SoVoteWrap) delMemKey(fName string) error {
-	if so.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if len(fName) <= 0 {
-		return errors.New("the field name is empty ")
-	}
-	key, err := so.encodeMemKey(fName)
-	if err != nil {
-		return err
-	}
-	err = so.dba.Delete(key)
-	return err
 }
 
 ////////////// SECTION LKeys delete/insert ///////////////
@@ -473,6 +368,136 @@ func (s *SoVoteWrap) RemoveVote() bool {
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
+func (s *SoVoteWrap) getMemKeyPrefix(fName string) uint32 {
+	if fName == "PostId" {
+		return VotePostIdCell
+	}
+	if fName == "Upvote" {
+		return VoteUpvoteCell
+	}
+	if fName == "VoteTime" {
+		return VoteVoteTimeCell
+	}
+	if fName == "Voter" {
+		return VoteVoterCell
+	}
+	if fName == "WeightedVp" {
+		return VoteWeightedVpCell
+	}
+
+	return 0
+}
+
+func (s *SoVoteWrap) encodeMemKey(fName string) ([]byte, error) {
+	if len(fName) < 1 || s.mainKey == nil {
+		return nil, errors.New("field name or main key is empty")
+	}
+	pre := s.getMemKeyPrefix(fName)
+	preBuf, err := kope.Encode(pre)
+	if err != nil {
+		return nil, err
+	}
+	mBuf, err := s.getMainKeyBuf()
+	if err != nil {
+		return nil, err
+	}
+	list := make([][]byte, 2)
+	list[0] = preBuf
+	list[1] = mBuf
+	return kope.PackList(list), nil
+}
+
+func (s *SoVoteWrap) saveAllMemKeys(tInfo *SoVote, br bool) error {
+	if s.dba == nil {
+		return errors.New("save member Field fail , the db is nil")
+	}
+
+	if tInfo == nil {
+		return errors.New("save member Field fail , the data is nil ")
+	}
+	var err error = nil
+	errDes := ""
+	if err = s.saveMemKeyPostId(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "PostId", err)
+		}
+	}
+	if err = s.saveMemKeyUpvote(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Upvote", err)
+		}
+	}
+	if err = s.saveMemKeyVoteTime(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "VoteTime", err)
+		}
+	}
+	if err = s.saveMemKeyVoter(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Voter", err)
+		}
+	}
+	if err = s.saveMemKeyWeightedVp(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "WeightedVp", err)
+		}
+	}
+
+	if len(errDes) > 0 {
+		return errors.New(errDes)
+	}
+	return err
+}
+
+func (s *SoVoteWrap) delAllMemKeys(br bool, tInfo *SoVote) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	t := reflect.TypeOf(*tInfo)
+	errDesc := ""
+	for k := 0; k < t.NumField(); k++ {
+		name := t.Field(k).Name
+		if len(name) > 0 && !strings.HasPrefix(name, "XXX_") {
+			err := s.delMemKey(name)
+			if err != nil {
+				if br {
+					return err
+				}
+				errDesc += fmt.Sprintf("delete the Field %s fail,error is %s;\n", name, err)
+			}
+		}
+	}
+	if len(errDesc) > 0 {
+		return errors.New(errDesc)
+	}
+	return nil
+}
+
+func (s *SoVoteWrap) delMemKey(fName string) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if len(fName) <= 0 {
+		return errors.New("the field name is empty ")
+	}
+	key, err := s.encodeMemKey(fName)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Delete(key)
+	return err
+}
+
 func (s *SoVoteWrap) saveMemKeyPostId(tInfo *SoVote) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
@@ -943,7 +968,7 @@ func (m *SoListVoteByVoter) OpeEncode() ([]byte, error) {
 	return kBuf, cErr
 }
 
-//Query sort by order
+//Query srt by order
 //
 //start = nil  end = nil (query the db from start to end)
 //start = nil (query from start the db)
@@ -1070,7 +1095,7 @@ func (m *SoListVoteByVoteTime) OpeEncode() ([]byte, error) {
 	return kBuf, cErr
 }
 
-//Query sort by order
+//Query srt by order
 //
 //start = nil  end = nil (query the db from start to end)
 //start = nil (query from start the db)
@@ -1195,7 +1220,7 @@ func (m *SoListVoteByPostId) OpeEncode() ([]byte, error) {
 	return kBuf, cErr
 }
 
-//Query sort by order
+//Query srt by order
 //
 //start = nil  end = nil (query the db from start to end)
 //start = nil (query from start the db)
@@ -1292,7 +1317,7 @@ func (s *SoVoteWrap) encodeMainKey() ([]byte, error) {
 	if s.mKeyBuf != nil {
 		return s.mKeyBuf, nil
 	}
-	pre := "Vote" + "Voter" + "cell"
+	pre := s.getMemKeyPrefix("Voter")
 	sub := s.mainKey
 	if sub == nil {
 		return nil, errors.New("the mainKey is nil")

@@ -14,16 +14,23 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	DemoTable             = []byte("DemoTable")
-	DemoOwnerTable        = []byte("DemoOwnerTable")
-	DemoPostTimeTable     = []byte("DemoPostTimeTable")
-	DemoLikeCountTable    = []byte("DemoLikeCountTable")
-	DemoIdxTable          = []byte("DemoIdxTable")
-	DemoReplayCountTable  = []byte("DemoReplayCountTable")
-	DemoTaglistTable      = []byte("DemoTaglistTable")
-	DemoIdxUniTable       = []byte("DemoIdxUniTable")
-	DemoLikeCountUniTable = []byte("DemoLikeCountUniTable")
-	DemoOwnerUniTable     = []byte("DemoOwnerUniTable")
+	DemoOwnerTable        = uint32(1920714703)
+	DemoPostTimeTable     = uint32(2261075900)
+	DemoLikeCountTable    = uint32(418391101)
+	DemoIdxTable          = uint32(2303787796)
+	DemoReplayCountTable  = uint32(1154759843)
+	DemoTaglistTable      = uint32(918597048)
+	DemoIdxUniTable       = uint32(586852864)
+	DemoLikeCountUniTable = uint32(1853028069)
+	DemoOwnerUniTable     = uint32(3607866294)
+	DemoContentCell       = uint32(2061030034)
+	DemoIdxCell           = uint32(3641077422)
+	DemoLikeCountCell     = uint32(474861792)
+	DemoOwnerCell         = uint32(663671025)
+	DemoPostTimeCell      = uint32(1304163047)
+	DemoReplayCountCell   = uint32(2336180827)
+	DemoTaglistCell       = uint32(2563363997)
+	DemoTitleCell         = uint32(1447818910)
 )
 
 ////////////// SECTION Wrap Define ///////////////
@@ -93,10 +100,11 @@ func (s *SoDemoWrap) Create(f func(tInfo *SoDemo)) error {
 	}
 	err = s.saveAllMemKeys(val, true)
 	if err != nil {
+		s.delAllMemKeys(false, val)
 		return err
 	}
 
-	// update sort list keys
+	// update srt list keys
 	if err = s.insertAllSortKeys(val); err != nil {
 		s.delAllSortKeys(false, val)
 		s.dba.Delete(keyBuf)
@@ -128,137 +136,6 @@ func (s *SoDemoWrap) getMainKeyBuf() ([]byte, error) {
 		}
 	}
 	return s.mBuf, nil
-}
-
-func (s *SoDemoWrap) encodeMemKey(fName string) ([]byte, error) {
-	if len(fName) < 1 || s.mainKey == nil {
-		return nil, errors.New("field name or main key is empty")
-	}
-	pre := "Demo" + fName + "cell"
-	preBuf, err := kope.Encode(pre)
-	if err != nil {
-		return nil, err
-	}
-	mBuf, err := s.getMainKeyBuf()
-	if err != nil {
-		return nil, err
-	}
-	list := make([][]byte, 2)
-	list[0] = preBuf
-	list[1] = mBuf
-	return kope.PackList(list), nil
-}
-
-func (so *SoDemoWrap) saveAllMemKeys(tInfo *SoDemo, br bool) error {
-	if so.dba == nil {
-		return errors.New("save member Field fail , the db is nil")
-	}
-
-	if tInfo == nil {
-		return errors.New("save member Field fail , the data is nil ")
-	}
-	var err error = nil
-	errDes := ""
-	if err = so.saveMemKeyContent(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Content", err)
-		}
-	}
-	if err = so.saveMemKeyIdx(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Idx", err)
-		}
-	}
-	if err = so.saveMemKeyLikeCount(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "LikeCount", err)
-		}
-	}
-	if err = so.saveMemKeyOwner(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Owner", err)
-		}
-	}
-	if err = so.saveMemKeyPostTime(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "PostTime", err)
-		}
-	}
-	if err = so.saveMemKeyReplayCount(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "ReplayCount", err)
-		}
-	}
-	if err = so.saveMemKeyTaglist(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Taglist", err)
-		}
-	}
-	if err = so.saveMemKeyTitle(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Title", err)
-		}
-	}
-
-	if len(errDes) > 0 {
-		return errors.New(errDes)
-	}
-	return err
-}
-
-func (so *SoDemoWrap) delAllMemKeys(br bool, tInfo *SoDemo) error {
-	if so.dba == nil {
-		return errors.New("the db is nil")
-	}
-	t := reflect.TypeOf(*tInfo)
-	errDesc := ""
-	for k := 0; k < t.NumField(); k++ {
-		name := t.Field(k).Name
-		if len(name) > 0 && !strings.HasPrefix(name, "XXX_") {
-			err := so.delMemKey(name)
-			if err != nil {
-				if br {
-					return err
-				}
-				errDesc += fmt.Sprintf("delete the Field %s fail,error is %s;\n", name, err)
-			}
-		}
-	}
-	if len(errDesc) > 0 {
-		return errors.New(errDesc)
-	}
-	return nil
-}
-
-func (so *SoDemoWrap) delMemKey(fName string) error {
-	if so.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if len(fName) <= 0 {
-		return errors.New("the field name is empty ")
-	}
-	key, err := so.encodeMemKey(fName)
-	if err != nil {
-		return err
-	}
-	err = so.dba.Delete(key)
-	return err
 }
 
 ////////////// SECTION LKeys delete/insert ///////////////
@@ -691,6 +568,166 @@ func (s *SoDemoWrap) RemoveDemo() bool {
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
+func (s *SoDemoWrap) getMemKeyPrefix(fName string) uint32 {
+	if fName == "Content" {
+		return DemoContentCell
+	}
+	if fName == "Idx" {
+		return DemoIdxCell
+	}
+	if fName == "LikeCount" {
+		return DemoLikeCountCell
+	}
+	if fName == "Owner" {
+		return DemoOwnerCell
+	}
+	if fName == "PostTime" {
+		return DemoPostTimeCell
+	}
+	if fName == "ReplayCount" {
+		return DemoReplayCountCell
+	}
+	if fName == "Taglist" {
+		return DemoTaglistCell
+	}
+	if fName == "Title" {
+		return DemoTitleCell
+	}
+
+	return 0
+}
+
+func (s *SoDemoWrap) encodeMemKey(fName string) ([]byte, error) {
+	if len(fName) < 1 || s.mainKey == nil {
+		return nil, errors.New("field name or main key is empty")
+	}
+	pre := s.getMemKeyPrefix(fName)
+	preBuf, err := kope.Encode(pre)
+	if err != nil {
+		return nil, err
+	}
+	mBuf, err := s.getMainKeyBuf()
+	if err != nil {
+		return nil, err
+	}
+	list := make([][]byte, 2)
+	list[0] = preBuf
+	list[1] = mBuf
+	return kope.PackList(list), nil
+}
+
+func (s *SoDemoWrap) saveAllMemKeys(tInfo *SoDemo, br bool) error {
+	if s.dba == nil {
+		return errors.New("save member Field fail , the db is nil")
+	}
+
+	if tInfo == nil {
+		return errors.New("save member Field fail , the data is nil ")
+	}
+	var err error = nil
+	errDes := ""
+	if err = s.saveMemKeyContent(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Content", err)
+		}
+	}
+	if err = s.saveMemKeyIdx(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Idx", err)
+		}
+	}
+	if err = s.saveMemKeyLikeCount(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "LikeCount", err)
+		}
+	}
+	if err = s.saveMemKeyOwner(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Owner", err)
+		}
+	}
+	if err = s.saveMemKeyPostTime(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "PostTime", err)
+		}
+	}
+	if err = s.saveMemKeyReplayCount(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "ReplayCount", err)
+		}
+	}
+	if err = s.saveMemKeyTaglist(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Taglist", err)
+		}
+	}
+	if err = s.saveMemKeyTitle(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Title", err)
+		}
+	}
+
+	if len(errDes) > 0 {
+		return errors.New(errDes)
+	}
+	return err
+}
+
+func (s *SoDemoWrap) delAllMemKeys(br bool, tInfo *SoDemo) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	t := reflect.TypeOf(*tInfo)
+	errDesc := ""
+	for k := 0; k < t.NumField(); k++ {
+		name := t.Field(k).Name
+		if len(name) > 0 && !strings.HasPrefix(name, "XXX_") {
+			err := s.delMemKey(name)
+			if err != nil {
+				if br {
+					return err
+				}
+				errDesc += fmt.Sprintf("delete the Field %s fail,error is %s;\n", name, err)
+			}
+		}
+	}
+	if len(errDesc) > 0 {
+		return errors.New(errDesc)
+	}
+	return nil
+}
+
+func (s *SoDemoWrap) delMemKey(fName string) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if len(fName) <= 0 {
+		return errors.New("the field name is empty ")
+	}
+	key, err := s.encodeMemKey(fName)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Delete(key)
+	return err
+}
+
 func (s *SoDemoWrap) saveMemKeyContent(tInfo *SoDemo) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
@@ -1459,7 +1496,7 @@ func (m *SoListDemoByOwner) OpeEncode() ([]byte, error) {
 	return kBuf, cErr
 }
 
-//Query sort by reverse order
+//Query srt by reverse order
 //
 //f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
 //as arguments to the callback function
@@ -1583,7 +1620,7 @@ func (m *SoListDemoByPostTime) OpeEncode() ([]byte, error) {
 	return kBuf, cErr
 }
 
-//Query sort by order
+//Query srt by order
 //
 //start = nil  end = nil (query the db from start to end)
 //start = nil (query from start the db)
@@ -1636,7 +1673,7 @@ func (s *SDemoPostTimeWrap) ForEachByOrder(start *prototype.TimePointSec, end *p
 	return nil
 }
 
-//Query sort by reverse order
+//Query srt by reverse order
 //
 //f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
 //as arguments to the callback function
@@ -1758,7 +1795,7 @@ func (m *SoListDemoByLikeCount) OpeEncode() ([]byte, error) {
 	return kBuf, cErr
 }
 
-//Query sort by reverse order
+//Query srt by reverse order
 //
 //f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
 //as arguments to the callback function
@@ -1880,7 +1917,7 @@ func (m *SoListDemoByIdx) OpeEncode() ([]byte, error) {
 	return kBuf, cErr
 }
 
-//Query sort by reverse order
+//Query srt by reverse order
 //
 //f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
 //as arguments to the callback function
@@ -2002,7 +2039,7 @@ func (m *SoListDemoByReplayCount) OpeEncode() ([]byte, error) {
 	return kBuf, cErr
 }
 
-//Query sort by order
+//Query srt by order
 //
 //start = nil  end = nil (query the db from start to end)
 //start = nil (query from start the db)
@@ -2127,7 +2164,7 @@ func (m *SoListDemoByTaglist) OpeEncode() ([]byte, error) {
 	return kBuf, cErr
 }
 
-//Query sort by order
+//Query srt by order
 //
 //start = nil  end = nil (query the db from start to end)
 //start = nil (query from start the db)
@@ -2224,7 +2261,7 @@ func (s *SoDemoWrap) encodeMainKey() ([]byte, error) {
 	if s.mKeyBuf != nil {
 		return s.mKeyBuf, nil
 	}
-	pre := "Demo" + "Owner" + "cell"
+	pre := s.getMemKeyPrefix("Owner")
 	sub := s.mainKey
 	if sub == nil {
 		return nil, errors.New("the mainKey is nil")
