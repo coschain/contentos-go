@@ -18,7 +18,7 @@ var prefixMap = map[uint32]string{}
 type FieldType int
 const (
 	FieldTypeMem  FieldType = iota //common member field in the table
-	FieldTypeSort                  //a field which is supported srting
+	FieldTypeSort                  //a field which is supported sorting
 	FieldTypeUni                   //a field which is supported unique query
 )
 
