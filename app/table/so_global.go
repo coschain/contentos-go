@@ -14,9 +14,9 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	GlobalIdUniTable = uint32(155819495)
-	GlobalIdCell     = uint32(1911245461)
-	GlobalPropsCell  = uint32(30903401)
+	GlobalIdUniTable uint32 = 155819495
+	GlobalIdCell     uint32 = 1911245461
+	GlobalPropsCell  uint32 = 30903401
 )
 
 ////////////// SECTION Wrap Define ///////////////

@@ -14,21 +14,21 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	WitnessOwnerTable                = uint32(3588322158)
-	WitnessVoteCountTable            = uint32(2256540653)
-	WitnessOwnerUniTable             = uint32(2680327584)
-	WitnessCreatedTimeCell           = uint32(732260124)
-	WitnessLastAslotCell             = uint32(2989050122)
-	WitnessLastConfirmedBlockNumCell = uint32(4183878646)
-	WitnessLastWorkCell              = uint32(3441432781)
-	WitnessOwnerCell                 = uint32(3659272213)
-	WitnessPowWorkerCell             = uint32(217317251)
-	WitnessRunningVersionCell        = uint32(3359126320)
-	WitnessSigningKeyCell            = uint32(2433568317)
-	WitnessTotalMissedCell           = uint32(348210894)
-	WitnessUrlCell                   = uint32(261756480)
-	WitnessVoteCountCell             = uint32(149922791)
-	WitnessWitnessScheduleTypeCell   = uint32(1680633675)
+	WitnessOwnerTable                uint32 = 3588322158
+	WitnessVoteCountTable            uint32 = 2256540653
+	WitnessOwnerUniTable             uint32 = 2680327584
+	WitnessCreatedTimeCell           uint32 = 732260124
+	WitnessLastAslotCell             uint32 = 2989050122
+	WitnessLastConfirmedBlockNumCell uint32 = 4183878646
+	WitnessLastWorkCell              uint32 = 3441432781
+	WitnessOwnerCell                 uint32 = 3659272213
+	WitnessPowWorkerCell             uint32 = 217317251
+	WitnessRunningVersionCell        uint32 = 3359126320
+	WitnessSigningKeyCell            uint32 = 2433568317
+	WitnessTotalMissedCell           uint32 = 348210894
+	WitnessUrlCell                   uint32 = 261756480
+	WitnessVoteCountCell             uint32 = 149922791
+	WitnessWitnessScheduleTypeCell   uint32 = 1680633675
 )
 
 ////////////// SECTION Wrap Define ///////////////

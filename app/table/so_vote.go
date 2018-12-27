@@ -14,15 +14,15 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	VoteVoterTable     = uint32(2638131561)
-	VoteVoteTimeTable  = uint32(277775897)
-	VotePostIdTable    = uint32(3923440502)
-	VoteVoterUniTable  = uint32(1965941220)
-	VotePostIdCell     = uint32(3799570737)
-	VoteUpvoteCell     = uint32(3751109702)
-	VoteVoteTimeCell   = uint32(265476525)
-	VoteVoterCell      = uint32(3085458610)
-	VoteWeightedVpCell = uint32(334607886)
+	VoteVoterTable     uint32 = 2638131561
+	VoteVoteTimeTable  uint32 = 277775897
+	VotePostIdTable    uint32 = 3923440502
+	VoteVoterUniTable  uint32 = 1965941220
+	VotePostIdCell     uint32 = 3799570737
+	VoteUpvoteCell     uint32 = 3751109702
+	VoteVoteTimeCell   uint32 = 265476525
+	VoteVoterCell      uint32 = 3085458610
+	VoteWeightedVpCell uint32 = 334607886
 )
 
 ////////////// SECTION Wrap Define ///////////////

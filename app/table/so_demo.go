@@ -14,23 +14,23 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	DemoOwnerTable        = uint32(1920714703)
-	DemoPostTimeTable     = uint32(2261075900)
-	DemoLikeCountTable    = uint32(418391101)
-	DemoIdxTable          = uint32(2303787796)
-	DemoReplayCountTable  = uint32(1154759843)
-	DemoTaglistTable      = uint32(918597048)
-	DemoIdxUniTable       = uint32(586852864)
-	DemoLikeCountUniTable = uint32(1853028069)
-	DemoOwnerUniTable     = uint32(3607866294)
-	DemoContentCell       = uint32(2061030034)
-	DemoIdxCell           = uint32(3641077422)
-	DemoLikeCountCell     = uint32(474861792)
-	DemoOwnerCell         = uint32(663671025)
-	DemoPostTimeCell      = uint32(1304163047)
-	DemoReplayCountCell   = uint32(2336180827)
-	DemoTaglistCell       = uint32(2563363997)
-	DemoTitleCell         = uint32(1447818910)
+	DemoOwnerTable        uint32 = 1920714703
+	DemoPostTimeTable     uint32 = 2261075900
+	DemoLikeCountTable    uint32 = 418391101
+	DemoIdxTable          uint32 = 2303787796
+	DemoReplayCountTable  uint32 = 1154759843
+	DemoTaglistTable      uint32 = 918597048
+	DemoIdxUniTable       uint32 = 586852864
+	DemoLikeCountUniTable uint32 = 1853028069
+	DemoOwnerUniTable     uint32 = 3607866294
+	DemoContentCell       uint32 = 2061030034
+	DemoIdxCell           uint32 = 3641077422
+	DemoLikeCountCell     uint32 = 474861792
+	DemoOwnerCell         uint32 = 663671025
+	DemoPostTimeCell      uint32 = 1304163047
+	DemoReplayCountCell   uint32 = 2336180827
+	DemoTaglistCell       uint32 = 2563363997
+	DemoTitleCell         uint32 = 1447818910
 )
 
 ////////////// SECTION Wrap Define ///////////////

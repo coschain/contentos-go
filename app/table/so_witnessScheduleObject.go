@@ -13,9 +13,9 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	WitnessScheduleObjectIdUniTable                 = uint32(1331115827)
-	WitnessScheduleObjectCurrentShuffledWitnessCell = uint32(628088000)
-	WitnessScheduleObjectIdCell                     = uint32(73273412)
+	WitnessScheduleObjectIdUniTable                 uint32 = 1331115827
+	WitnessScheduleObjectCurrentShuffledWitnessCell uint32 = 628088000
+	WitnessScheduleObjectIdCell                     uint32 = 73273412
 )
 
 ////////////// SECTION Wrap Define ///////////////

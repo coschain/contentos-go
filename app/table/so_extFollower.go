@@ -14,10 +14,10 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	ExtFollowerFollowerCreatedOrderTable = uint32(1742944534)
-	ExtFollowerFollowerInfoUniTable      = uint32(15777514)
-	ExtFollowerFollowerCreatedOrderCell  = uint32(1700610220)
-	ExtFollowerFollowerInfoCell          = uint32(2385804611)
+	ExtFollowerFollowerCreatedOrderTable uint32 = 1742944534
+	ExtFollowerFollowerInfoUniTable      uint32 = 15777514
+	ExtFollowerFollowerCreatedOrderCell  uint32 = 1700610220
+	ExtFollowerFollowerInfoCell          uint32 = 2385804611
 )
 
 ////////////// SECTION Wrap Define ///////////////

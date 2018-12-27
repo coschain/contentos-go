@@ -14,20 +14,20 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	AccountCreatedTimeTable   = uint32(2128286283)
-	AccountBalanceTable       = uint32(4012029019)
-	AccountVestingSharesTable = uint32(3830877790)
-	AccountBpVoteCountTable   = uint32(2264397557)
-	AccountNameUniTable       = uint32(2528390520)
-	AccountBalanceCell        = uint32(2894785396)
-	AccountBpVoteCountCell    = uint32(2131409895)
-	AccountCreatedTimeCell    = uint32(826305594)
-	AccountCreatorCell        = uint32(1804791917)
-	AccountLastPostTimeCell   = uint32(3226532373)
-	AccountLastVoteTimeCell   = uint32(1980371646)
-	AccountNameCell           = uint32(1725869739)
-	AccountVestingSharesCell  = uint32(57659323)
-	AccountVotePowerCell      = uint32(2246508735)
+	AccountCreatedTimeTable   uint32 = 2128286283
+	AccountBalanceTable       uint32 = 4012029019
+	AccountVestingSharesTable uint32 = 3830877790
+	AccountBpVoteCountTable   uint32 = 2264397557
+	AccountNameUniTable       uint32 = 2528390520
+	AccountBalanceCell        uint32 = 2894785396
+	AccountBpVoteCountCell    uint32 = 2131409895
+	AccountCreatedTimeCell    uint32 = 826305594
+	AccountCreatorCell        uint32 = 1804791917
+	AccountLastPostTimeCell   uint32 = 3226532373
+	AccountLastVoteTimeCell   uint32 = 1980371646
+	AccountNameCell           uint32 = 1725869739
+	AccountVestingSharesCell  uint32 = 57659323
+	AccountVotePowerCell      uint32 = 2246508735
 )
 
 ////////////// SECTION Wrap Define ///////////////

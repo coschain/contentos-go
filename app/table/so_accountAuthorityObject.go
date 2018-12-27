@@ -14,10 +14,10 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	AccountAuthorityObjectAccountUniTable     = uint32(2018962083)
-	AccountAuthorityObjectAccountCell         = uint32(2847932568)
-	AccountAuthorityObjectLastOwnerUpdateCell = uint32(3724354934)
-	AccountAuthorityObjectOwnerCell           = uint32(1910772053)
+	AccountAuthorityObjectAccountUniTable     uint32 = 2018962083
+	AccountAuthorityObjectAccountCell         uint32 = 2847932568
+	AccountAuthorityObjectLastOwnerUpdateCell uint32 = 3724354934
+	AccountAuthorityObjectOwnerCell           uint32 = 1910772053
 )
 
 ////////////// SECTION Wrap Define ///////////////

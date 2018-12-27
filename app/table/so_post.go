@@ -14,24 +14,24 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	PostCreatedTable      = uint32(3346451556)
-	PostPostIdUniTable    = uint32(157486700)
-	PostAuthorCell        = uint32(1681275280)
-	PostBeneficiariesCell = uint32(2794141504)
-	PostBodyCell          = uint32(395462793)
-	PostCashoutTimeCell   = uint32(1916224103)
-	PostCategoryCell      = uint32(2849013589)
-	PostChildrenCell      = uint32(3908796047)
-	PostCreatedCell       = uint32(4199172684)
-	PostDepthCell         = uint32(4080627723)
-	PostLastPayoutCell    = uint32(3845986349)
-	PostParentIdCell      = uint32(1393772380)
-	PostPostIdCell        = uint32(22700035)
-	PostRootIdCell        = uint32(784045146)
-	PostTagsCell          = uint32(828203383)
-	PostTitleCell         = uint32(3943450465)
-	PostVoteCntCell       = uint32(2947124424)
-	PostWeightedVpCell    = uint32(502117977)
+	PostCreatedTable      uint32 = 3346451556
+	PostPostIdUniTable    uint32 = 157486700
+	PostAuthorCell        uint32 = 1681275280
+	PostBeneficiariesCell uint32 = 2794141504
+	PostBodyCell          uint32 = 395462793
+	PostCashoutTimeCell   uint32 = 1916224103
+	PostCategoryCell      uint32 = 2849013589
+	PostChildrenCell      uint32 = 3908796047
+	PostCreatedCell       uint32 = 4199172684
+	PostDepthCell         uint32 = 4080627723
+	PostLastPayoutCell    uint32 = 3845986349
+	PostParentIdCell      uint32 = 1393772380
+	PostPostIdCell        uint32 = 22700035
+	PostRootIdCell        uint32 = 784045146
+	PostTagsCell          uint32 = 828203383
+	PostTitleCell         uint32 = 3943450465
+	PostVoteCntCell       uint32 = 2947124424
+	PostWeightedVpCell    uint32 = 502117977
 )
 
 ////////////// SECTION Wrap Define ///////////////

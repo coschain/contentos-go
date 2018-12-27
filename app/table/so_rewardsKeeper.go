@@ -14,9 +14,9 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	RewardsKeeperIdUniTable = uint32(2520403197)
-	RewardsKeeperIdCell     = uint32(1882072357)
-	RewardsKeeperKeeperCell = uint32(2020863782)
+	RewardsKeeperIdUniTable uint32 = 2520403197
+	RewardsKeeperIdCell     uint32 = 1882072357
+	RewardsKeeperKeeperCell uint32 = 2020863782
 )
 
 ////////////// SECTION Wrap Define ///////////////

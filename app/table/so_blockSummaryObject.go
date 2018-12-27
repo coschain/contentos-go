@@ -14,9 +14,9 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	BlockSummaryObjectIdUniTable  = uint32(1471985338)
-	BlockSummaryObjectBlockIdCell = uint32(2342746998)
-	BlockSummaryObjectIdCell      = uint32(2690819292)
+	BlockSummaryObjectIdUniTable  uint32 = 1471985338
+	BlockSummaryObjectBlockIdCell uint32 = 2342746998
+	BlockSummaryObjectIdCell      uint32 = 2690819292
 )
 
 ////////////// SECTION Wrap Define ///////////////

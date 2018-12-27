@@ -14,10 +14,10 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	TransactionObjectExpirationTable = uint32(3273070683)
-	TransactionObjectTrxIdUniTable   = uint32(482982412)
-	TransactionObjectExpirationCell  = uint32(1085825226)
-	TransactionObjectTrxIdCell       = uint32(3384783386)
+	TransactionObjectExpirationTable uint32 = 3273070683
+	TransactionObjectTrxIdUniTable   uint32 = 482982412
+	TransactionObjectExpirationCell  uint32 = 1085825226
+	TransactionObjectTrxIdCell       uint32 = 3384783386
 )
 
 ////////////// SECTION Wrap Define ///////////////

@@ -14,13 +14,13 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	ContractCreatedTimeTable = uint32(1292005739)
-	ContractIdUniTable       = uint32(4175408872)
-	ContractAbiCell          = uint32(562884560)
-	ContractBalanceCell      = uint32(1230027001)
-	ContractCodeCell         = uint32(1267857519)
-	ContractCreatedTimeCell  = uint32(3946752343)
-	ContractIdCell           = uint32(1995418866)
+	ContractCreatedTimeTable uint32 = 1292005739
+	ContractIdUniTable       uint32 = 4175408872
+	ContractAbiCell          uint32 = 562884560
+	ContractBalanceCell      uint32 = 1230027001
+	ContractCodeCell         uint32 = 1267857519
+	ContractCreatedTimeCell  uint32 = 3946752343
+	ContractIdCell           uint32 = 1995418866
 )
 
 ////////////// SECTION Wrap Define ///////////////

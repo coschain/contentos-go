@@ -67,13 +67,13 @@ package table
 ////////////// SECTION Prefix Mark ///////////////
 var (
     {{range $k, $v := .SortList -}}
-    {{$.ClsName}}{{$v.PName}}Table  = uint32({{$v.Prefix}})
+    {{$.ClsName}}{{$v.PName}}Table uint32 = {{$v.Prefix}}
     {{end -}}
     {{range $k, $v := .UniqueFieldMap -}}
-	{{$.ClsName}}{{$k}}UniTable = uint32({{$v.Prefix}})
+	{{$.ClsName}}{{$k}}UniTable uint32 = {{$v.Prefix}}
     {{end -}}
     {{range $k, $v := .MemberKeyMap -}}
-    {{$.ClsName}}{{$k}}Cell  = uint32({{$v.Prefix}})
+    {{$.ClsName}}{{$k}}Cell uint32 = {{$v.Prefix}}
     {{end -}}
 )
 

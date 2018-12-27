@@ -14,11 +14,11 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	ExtFollowCountAccountUniTable  = uint32(1673144335)
-	ExtFollowCountAccountCell      = uint32(1566200049)
-	ExtFollowCountFollowerCntCell  = uint32(1498166425)
-	ExtFollowCountFollowingCntCell = uint32(2815839799)
-	ExtFollowCountUpdateTimeCell   = uint32(252784892)
+	ExtFollowCountAccountUniTable  uint32 = 1673144335
+	ExtFollowCountAccountCell      uint32 = 1566200049
+	ExtFollowCountFollowerCntCell  uint32 = 1498166425
+	ExtFollowCountFollowingCntCell uint32 = 2815839799
+	ExtFollowCountUpdateTimeCell   uint32 = 252784892
 )
 
 ////////////// SECTION Wrap Define ///////////////

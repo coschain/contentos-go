@@ -14,10 +14,10 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	ExtReplyCreatedCreatedOrderTable = uint32(874612931)
-	ExtReplyCreatedPostIdUniTable    = uint32(457271836)
-	ExtReplyCreatedCreatedOrderCell  = uint32(343909726)
-	ExtReplyCreatedPostIdCell        = uint32(192570554)
+	ExtReplyCreatedCreatedOrderTable uint32 = 874612931
+	ExtReplyCreatedPostIdUniTable    uint32 = 457271836
+	ExtReplyCreatedCreatedOrderCell  uint32 = 343909726
+	ExtReplyCreatedPostIdCell        uint32 = 192570554
 )
 
 ////////////// SECTION Wrap Define ///////////////

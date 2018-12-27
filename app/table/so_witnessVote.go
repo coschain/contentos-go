@@ -14,11 +14,11 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	WitnessVoteVoterIdTable    = uint32(1793351735)
-	WitnessVoteVoterIdUniTable = uint32(3978964285)
-	WitnessVoteVoteTimeCell    = uint32(1470511888)
-	WitnessVoteVoterIdCell     = uint32(258891558)
-	WitnessVoteWitnessIdCell   = uint32(729420006)
+	WitnessVoteVoterIdTable    uint32 = 1793351735
+	WitnessVoteVoterIdUniTable uint32 = 3978964285
+	WitnessVoteVoteTimeCell    uint32 = 1470511888
+	WitnessVoteVoterIdCell     uint32 = 258891558
+	WitnessVoteWitnessIdCell   uint32 = 729420006
 )
 
 ////////////// SECTION Wrap Define ///////////////
