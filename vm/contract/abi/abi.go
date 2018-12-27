@@ -339,6 +339,7 @@ var builtinNonInheritableTypes = map[string]IContractType {
 }
 
 var builtinInheritableTypes = map[string]IContractType {
+	"cosio::singleton_record": 	NewStruct("cosio::singleton_record", nil, ABIStructField{ "id", builtinNonInheritableTypes["int32"]}),
 
 }
 
