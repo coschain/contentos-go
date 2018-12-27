@@ -69,7 +69,8 @@ func (w *CosVMNative) GetBalanceByName(name string) uint64 {
 
 func (w *CosVMNative) GetContractBalance(contract string, name string) uint64 {
 	ctct := table.NewSoContractWrap(w.cosVM.db, &prototype.ContractId{Owner: &prototype.AccountName{Value: name}, Cname: contract})
-	return ctct.GetBalance().Value
+	value := ctct.GetBalance().Value
+	return value
 }
 
 func (w *CosVMNative) SaveToStorage(key []byte, value []byte) {

@@ -1,10 +1,8 @@
 (module
- (type $FUNCSIG$iii (func (param i32 i32) (result i32)))
  (type $FUNCSIG$viii (func (param i32 i32 i32)))
  (type $FUNCSIG$iiii (func (param i32 i32 i32) (result i32)))
  (import "env" "cos_assert" (func $cos_assert (param i32 i32 i32)))
  (import "env" "memset" (func $memset (param i32 i32 i32) (result i32)))
- (import "env" "readt3" (func $readt3 (param i32 i32) (result i32)))
  (table 0 anyfunc)
  (memory $0 1)
  (data (i32.const 4) " @\00\00")
@@ -55,12 +53,8 @@
   )
   (call $cos_assert
    (i32.eq
-    (call $readt3
-     (i32.add
-      (get_local $0)
-      (i32.const 16)
-     )
-     (i32.const 0)
+    (i32.load8_s offset=16
+     (get_local $0)
     )
     (i32.const 2)
    )
@@ -72,12 +66,8 @@
   )
   (call $cos_assert
    (i32.eq
-    (call $readt3
-     (i32.add
-      (get_local $0)
-      (i32.const 16)
-     )
-     (i32.const 1)
+    (i32.load8_s offset=17
+     (get_local $0)
     )
     (i32.const 3)
    )
@@ -89,12 +79,8 @@
   )
   (call $cos_assert
    (i32.eqz
-    (call $readt3
-     (i32.add
-      (get_local $0)
-      (i32.const 16)
-     )
-     (i32.const 99)
+    (i32.load8_s offset=115
+     (get_local $0)
     )
    )
    (i32.add
