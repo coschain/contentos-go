@@ -125,10 +125,36 @@ func (t *ContractTable) DeleteRecord(encodedPK []byte) error {
 	return b.Write()
 }
 
+func (t *ContractTable) queryValue(val interface{}, typ reflect.Type) (interface{}, error) {
+	rv := reflect.ValueOf(val)
+	if rv.Kind() == reflect.Invalid {
+		return nil, nil
+	}
+	if rv.Type().ConvertibleTo(typ) {
+		qv := reflect.New(typ).Elem()
+		qv.Set(rv.Convert(typ))
+		return qv.Interface(), nil
+	}
+	return nil, errors.New("incompatible query value.")
+}
+
 func (t *ContractTable) EnumRecords(field string, start interface{}, limit interface{}, reverse bool, maxCount int, callback func(r interface{})bool) int {
+	var (
+		qStart, qLimit interface{}
+		ft reflect.Type
+		err error
+	)
+
 	st := t.abiTable.Record()
 	if st.Field(t.abiTable.PrimaryIndex()).Name() == field {
-		return t.scanDatabase(t.primary, start, limit, reverse, maxCount, func(k, v []byte) (bool, error) {
+		ft = st.Field(t.abiTable.PrimaryIndex()).Type().Type()
+		if qStart, err = t.queryValue(start, ft); err != nil {
+			return 0
+		}
+		if qLimit, err = t.queryValue(limit, ft); err != nil {
+			return 0
+		}
+		return t.scanDatabase(t.primary, qStart, qLimit, reverse, maxCount, func(k, v []byte) (bool, error) {
 			if r, err := t.decodeRecord(v); err != nil {
 				return false, err
 			} else {
@@ -147,7 +173,14 @@ func (t *ContractTable) EnumRecords(field string, start interface{}, limit inter
 	if idx < 0 {
 		return 0
 	}
-	return t.scanDatabase(t.secondaries[idx], start, limit, reverse, maxCount, func(k, v []byte) (bool, error) {
+	ft = st.Field(si[idx]).Type().Type()
+	if qStart, err = t.queryValue(start, ft); err != nil {
+		return 0
+	}
+	if qLimit, err = t.queryValue(limit, ft); err != nil {
+		return 0
+	}
+	return t.scanDatabase(t.secondaries[idx], qStart, qLimit, reverse, maxCount, func(k, v []byte) (bool, error) {
 		pk := kope.IndexedPrimaryKey(k)
 		if data, err := t.db.Get(pk); err != nil {
 			return false, err

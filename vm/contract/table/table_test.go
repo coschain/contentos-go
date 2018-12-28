@@ -112,7 +112,7 @@ func testTableGreetings(a *assert.Assertions, table *ContractTable) {
 	// range scan by secondary index
 	var result []string
 	a.Equal(5,
-		table.EnumRecords("count", uint32(20), nil, true, 5, func(r interface{})bool {
+		table.EnumRecords("count", 20, nil, true, 5, func(r interface{})bool {
 			result = append(result, reflect.ValueOf(r).Field(table.abiTable.PrimaryIndex()).String())
 			return true
 		} ))
