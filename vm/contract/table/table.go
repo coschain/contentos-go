@@ -98,7 +98,7 @@ func (t *ContractTable) UpdateRecord(encodedPK []byte, encodedRecord []byte) err
 	if err = t.writeSecondaryIndices(b, newRec, pk); err != nil {
 		return err
 	}
-	return nil
+	return b.Write()
 }
 
 func (t *ContractTable) DeleteRecord(encodedPK []byte) error {
@@ -122,7 +122,7 @@ func (t *ContractTable) DeleteRecord(encodedPK []byte) error {
 	if err = t.deleteSecondaryIndices(b, oldRec, pk); err != nil {
 		return err
 	}
-	return nil
+	return b.Write()
 }
 
 func (t *ContractTable) EnumRecords(field string, start interface{}, limit interface{}, reverse bool, maxCount int, callback func(r interface{})bool) int {

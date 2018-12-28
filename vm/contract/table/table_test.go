@@ -10,6 +10,8 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -45,8 +47,6 @@ func TestContractTable(t *testing.T) {
 
 	tables := NewContractTables("someone", "hello", helloAbi, db)
 	testTableGreetings(a, tables.Table("table_greetings"))
-	testTableHello(a, tables.Table("hello"))
-	testTableGlobalCounters(a, tables.Table("global_counters"))
 }
 
 func encodedPrimaryKey(a *assert.Assertions, table *ContractTable, jsonstr string) []byte {
@@ -63,19 +63,85 @@ func encodedRecord(a *assert.Assertions, table *ContractTable, jsonstr string) [
 	return data
 }
 
+func decodeRecord(a *assert.Assertions, table *ContractTable, data []byte) string {
+	data, err := vme.DecodeToJson(data, table.abiTable.Record().Type(), true)
+	a.NoError(err)
+	a.NotNil(data)
+	return string(data)
+}
+
 func testTableGreetings(a *assert.Assertions, table *ContractTable) {
 	a.NotNil(table)
 
-	for i := 0; i < 1000; i++ {
+	var (
+		data []byte
+		err error
+	)
+
+	// normal insertions
+	for i := 0; i < 100; i++ {
 		jsonStr := fmt.Sprintf(`["account%d",%d,%d]`, i, i, i * 2)
 		a.NoError(table.NewRecord(encodedRecord(a, table, jsonStr)))
 	}
-}
 
-func testTableHello(a *assert.Assertions, table *ContractTable) {
-	a.NotNil(table)
-}
+	// duplicate primary key
+	a.Error(table.NewRecord(encodedRecord(a, table, `["account7",102,233]`)))
 
-func testTableGlobalCounters(a *assert.Assertions, table *ContractTable) {
-	a.NotNil(table)
+	// normal query
+	data, err = table.GetRecord(encodedPrimaryKey(a, table, `"account10"`))
+	a.NoError(err)
+	a.NotNil(data)
+	a.Equal(`["account10",10,20]`, decodeRecord(a, table, data))
+
+	// query non-existent records
+	data, err = table.GetRecord(encodedPrimaryKey(a, table, `"sldkfjs"`))
+	a.Error(err)
+
+	// updates
+	a.NoError(table.UpdateRecord(
+		encodedPrimaryKey(a, table, `"account40"`),
+		encodedRecord(a, table, `["account40",40000,80000]`),
+		))
+
+	// update non-existent records
+	a.Error(table.UpdateRecord(
+		encodedPrimaryKey(a, table, `"sldkfjs"`),
+		encodedRecord(a, table, `["sldkfjs",40000,80000]`),
+	))
+
+	// range scan by secondary index
+	var result []string
+	a.Equal(5,
+		table.EnumRecords("count", uint32(20), nil, true, 5, func(r interface{})bool {
+			result = append(result, reflect.ValueOf(r).Field(table.abiTable.PrimaryIndex()).String())
+			return true
+		} ))
+	a.Equal("account40,account99,account98,account97,account96", strings.Join(result, ","))
+
+	// range scan by primary key
+	result = result[:0]
+	a.Equal(3,
+		table.EnumRecords("name", "account60", "account63", false, 5, func(r interface{})bool {
+			result = append(result, reflect.ValueOf(r).Field(table.abiTable.PrimaryIndex()).String())
+			return true
+		} ))
+	a.Equal("account60,account61,account62", strings.Join(result, ","))
+
+	// range scan by invalid field "xxxx"
+	a.Equal(0,
+		table.EnumRecords("xxxx", nil, nil, false, 5, func(r interface{})bool {
+			return true
+		} ))
+
+	// delete
+	a.NoError(table.DeleteRecord(encodedPrimaryKey(a, table, `"account55"`)))
+	_, err = table.GetRecord(encodedPrimaryKey(a, table, `"account55"`))
+	a.Error(err)
+	a.Equal(8,
+		table.EnumRecords("name", "account50", "account59", false, 100, func(r interface{})bool {
+			return true
+		} ))
+
+	// deleting non-existent records must return success.
+	a.NoError(table.DeleteRecord(encodedPrimaryKey(a, table, `"sdfsdfsdf"`)))
 }

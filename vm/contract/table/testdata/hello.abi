@@ -4,6 +4,10 @@
         {
             "new_type_name":"timestamp_t",
             "type":"uint64"
+        },
+        {
+            "new_type_name":"str",
+            "type":"std::string"
         }
     ],
     "structs":[
@@ -48,6 +52,20 @@
                     "type":"cosio::account_name"
                 }
             ]
+        },
+        {
+            "name":"test_array",
+            "base":"",
+            "fields":[
+                {
+                    "name":"a",
+                    "type":"int32"
+                },
+                {
+                    "name":"b",
+                    "type":"str[]"
+                }
+            ]
         }
     ],
     "actions":[
@@ -78,6 +96,14 @@
             "name":"global_counters",
             "type":"stats",
             "primary":"id",
+            "secondary":[
+
+            ]
+        },
+        {
+            "name":"table_test_array",
+            "type":"test_array",
+            "primary":"a",
             "secondary":[
 
             ]
