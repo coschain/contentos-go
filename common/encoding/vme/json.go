@@ -28,18 +28,33 @@ func fromJsonValue(jval reflect.Value, typ reflect.Type) (interface{}, error) {
 	if jt.ConvertibleTo(typ) {
 		return jval.Convert(typ).Interface(), nil
 	}
-	if jt.Kind() == reflect.Slice && jt.Elem().Kind() == reflect.Interface && typ.Kind() == reflect.Struct && jval.Len() == typ.NumField() {
+	if jt.Kind() == reflect.Slice && jt.Elem().Kind() == reflect.Interface {
 		count := jval.Len()
-		v := reflect.New(typ).Elem()
 		jslice := jval.Interface().([]interface{})
-		for i := 0; i < count; i++ {
-			fv, err := fromJsonValue(reflect.ValueOf(jslice[i]), typ.Field(i).Type)
-			if err != nil {
-				return nil, errors.New("vme-json: incompatible json.")
+
+		if typ.Kind() == reflect.Struct && count == typ.NumField() {
+			v := reflect.New(typ).Elem()
+			for i := 0; i < count; i++ {
+				fv, err := fromJsonValue(reflect.ValueOf(jslice[i]), typ.Field(i).Type)
+				if err != nil {
+					return nil, errors.New("vme-json: incompatible json.")
+				}
+				v.Field(i).Set(reflect.ValueOf(fv))
 			}
-			v.Field(i).Set(reflect.ValueOf(fv))
+			return v.Interface(), nil
 		}
-		return v.Interface(), nil
+		if typ.Kind() == reflect.Slice {
+			et := typ.Elem()
+			v := reflect.MakeSlice(typ, count, count)
+			for i := 0; i < count; i++ {
+				ev, err := fromJsonValue(reflect.ValueOf(jslice[i]), et)
+				if err != nil {
+					return nil, errors.New("vme-json: incompatible json.")
+				}
+				v.Index(i).Set(reflect.ValueOf(ev))
+			}
+			return v.Interface(), nil
+		}
 	}
 	return nil, errors.New("vme-json: incompatible json.")
 }
@@ -68,6 +83,13 @@ func toJsonValue(value reflect.Value) interface{} {
 		jval := make([]interface{}, value.NumField())
 		for i := range jval {
 			jval[i] = toJsonValue(value.Field(i))
+		}
+		return jval
+	}
+	if value.Kind() == reflect.Slice {
+		jval := make([]interface{}, value.Len())
+		for i := range jval {
+			jval[i] = toJsonValue(value.Index(i))
 		}
 		return jval
 	}
