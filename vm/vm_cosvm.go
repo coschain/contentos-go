@@ -35,6 +35,8 @@ func NewCosVM(ctx *vmcontext.Context, db iservices.IDatabaseService, props *prot
 	// spentGas should be 0 or maxint?
 	cosVM := &CosVM{nativeFuncName: []string{}, nativeFuncSigs: []wasm.FunctionSig{},
 		nativeFuncs: []wasm.Function{}, ctx: ctx, logger: logger, db: db, props: props, spentGas: 0}
+	// can replace native func
+	cosVM.initNativeFuncs()
 	return cosVM
 }
 
@@ -76,7 +78,6 @@ func (w *CosVM) initNativeFuncs() {
 }
 
 func (w *CosVM) readModule() (*wasm.Module, error) {
-	w.initNativeFuncs()
 	m := wasm.NewModule()
 	m.Types = &wasm.SectionTypes{Entries: w.nativeFuncSigs}
 	m.FunctionIndexSpace = w.nativeFuncs

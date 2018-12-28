@@ -4,7 +4,7 @@ func (m *ContractApplyOperation) GetAuthorities(auths *[]Authority) {
 
 }
 func (m *ContractApplyOperation) GetRequiredOwner(auths *map[string]bool) {
-	(*auths)[m.Owner.Value] = true
+	(*auths)[m.Caller.Value] = true
 }
 func (m *ContractApplyOperation) GetAdmin(*[]AccountAdminPair) {
 
