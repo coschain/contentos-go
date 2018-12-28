@@ -15,10 +15,23 @@ type IContractType interface {
 	// IsStruct() indicates whether it's a struct or not.
 	IsStruct() bool
 
+	// IsArray() indicates whether it's an array or not.
+	IsArray() bool
+
 	// SupportsKope() indicates whether the type supports kope.
 	SupportsKope() bool
 }
 
+
+//
+// IContractArray is an array of some type.
+//
+type IContractArray interface {
+	IContractType
+
+	// Elem() return type of elements.
+	Elem() IContractType
+}
 
 //
 // IContractStructField is a field of a struct

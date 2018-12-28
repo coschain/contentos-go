@@ -3,6 +3,7 @@ package abi
 import (
 	"errors"
 	"fmt"
+	"strings"
 )
 
 // ABI builder
@@ -215,6 +216,10 @@ func (ctx *abiBuildContext) prepare() error {
 
 	// types seen in a type alias.
 	for newName, oldName := range ctx.b.typedef {
+		// an array can't be an alias
+		if arr, _ := ctx.isArray(newName); arr {
+			return errors.New(newName + " can't be an type alias.")
+		}
 		types[newName] = true
 		types[oldName] = true
 	}
@@ -250,6 +255,8 @@ func (ctx *abiBuildContext) prepare() error {
 			return errors.New("abiBuilder: unknown table name: " + t)
 		}
 	}
+	// add element types of arrays
+	ctx.resolveArrays(types)
 
 	// step 2, we find the real names of all types, and save'em in ctx.realTypeNames.
 	if err := ctx.resolveRealNames(types); err != nil {
@@ -273,6 +280,38 @@ func (ctx *abiBuildContext) prepare() error {
 	return nil
 }
 
+func (ctx *abiBuildContext) isArray(name string) (bool, string) {
+	if strings.HasSuffix(name, "[]") {
+		return true, name[:len(name) - 2]
+	}
+	return false, ""
+}
+
+// pick up array types and feed their element types back
+func (ctx *abiBuildContext) resolveArrays(types map[string]bool) {
+	for {
+		changed := false
+		newTypes := make(map[string]bool)
+		for t := range types {
+			if !types[t] {
+				continue
+			}
+			if arr, e := ctx.isArray(t); arr {
+				newTypes[e] = true
+			}
+		}
+		for t := range newTypes {
+			if !types[t] {
+				types[t] = true
+				changed = true
+			}
+		}
+		if !changed {
+			break
+		}
+	}
+}
+
 // find the real names of given types
 func (ctx *abiBuildContext) resolveRealNames(types map[string]bool) error {
 	// find the real name of given types one by one
@@ -292,6 +331,11 @@ func (ctx *abiBuildContext) realName(name string) (string, error) {
 	origin, ok := ctx.realTypeNames[name]
 	if ok {
 		return origin, nil
+	}
+
+	// an array can't be an alias.
+	if arr, _ := ctx.isArray(name); arr {
+		return name, nil
 	}
 
 	// working map is used for cyclic reference detection
@@ -374,7 +418,19 @@ func (ctx *abiBuildContext) resolveType(name string, flags map[string]int) error
 		return nil
 	}
 
-	// the type is not an alias, and not a builtin type since all builtin types were resolved beforehand.
+	// if the type is an array, we will resolve its element type first,
+	// and then create an array based on the element type.
+	if arr, e := ctx.isArray(name); arr {
+		if err := ctx.resolveType(e, flags); err != nil {
+			flags[name] = unresolved
+			return err
+		}
+		ctx.resolvedTypes[name] = NewArray(ctx.resolvedTypes[e])
+		flags[name] = resolved
+		return nil
+	}
+
+	// the type is not an alias, not an array, and not a builtin type since all builtin types were resolved beforehand.
 	// hence it must be a custom struct, which depends on its base type and field types.
 
 	// resolve the base type

@@ -21,6 +21,10 @@ func (t *ABIBaseType) Type() reflect.Type {
 	return t.rt
 }
 
+func (t *ABIBaseType) IsArray() bool {
+	return t.rt.Kind() == reflect.Slice
+}
+
 func (t *ABIBaseType) IsStruct() bool {
 	return t.rt.Kind() == reflect.Struct
 }
@@ -29,6 +33,25 @@ func (t *ABIBaseType) SupportsKope() bool {
 	return t.kope
 }
 
+type abiArray struct {
+	ABIBaseType
+	elem IContractType
+}
+
+func (a *abiArray) Elem() IContractType {
+	return a.elem
+}
+
+func NewArray(elemType IContractType) *abiArray {
+	return &abiArray{
+		ABIBaseType: ABIBaseType{
+			name: elemType.Name() + "[]",
+			rt: reflect.SliceOf(elemType.Type()),
+			kope: false,
+		},
+		elem: elemType,
+	}
+}
 
 type abiStructField struct {
 	name string
@@ -208,12 +231,24 @@ func (a *abiTypeAlias) Type() reflect.Type {
 	return a.origin.Type()
 }
 
+func (a *abiTypeAlias) IsArray() bool {
+	return a.origin.IsArray()
+}
+
 func (a *abiTypeAlias) IsStruct() bool {
 	return a.origin.IsStruct()
 }
 
 func (a *abiTypeAlias) SupportsKope() bool {
 	return a.origin.SupportsKope()
+}
+
+func (a *abiTypeAlias) Elem() IContractType {
+	if arr, ok := a.origin.(IContractArray); ok {
+		return arr.Elem()
+	} else {
+		return nil
+	}
 }
 
 func (a *abiTypeAlias) FieldNum() int {
