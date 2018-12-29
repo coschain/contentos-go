@@ -13,10 +13,51 @@ import (
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/prototype"
+	"github.com/coschain/gobft/custom"
 	//"github.com/coschain/gobft"
 	"github.com/coschain/gobft/message"
-	"github.com/coschain/gobft/custom"
 )
+
+/********* implements gobft IPubValidator ***********/
+
+type publicValidator struct {
+	sabft *SABFT
+	accountName string
+}
+
+func (pv *publicValidator) VerifySig(digest, signature []byte) bool {
+	return true
+}
+
+func (pv *publicValidator) GetPubKey() message.PubKey {
+	return ""
+}
+
+func (pv *publicValidator) GetVotingPower() int64{
+	return 1
+}
+
+func (pv *publicValidator) SetVotingPower(int64){
+	
+}
+
+/********* end gobft IPubValidator ***********/
+
+/********* implements gobft IPrivValidator ***********/
+
+type privateValidator struct {
+
+}
+
+func (pv *privateValidator) Sign(digest []byte) []byte {
+	return nil
+}
+
+func (pv *privateValidator) GetPubKey() message.PubKey {
+	return ""
+}
+
+/********* end gobft IPrivValidator ***********/
 
 // SABFT: self-adaptive BFT
 // It generates blocks in the same manner of DPoS and adopts bft
@@ -24,7 +65,6 @@ import (
 // that it can adjust the frequency of bft process based on the
 // load of the network.
 type SABFT struct {
-	iservices.IConsensus
 	node   *node.Node
 	ForkDB *forkdb.DB
 	blog   blocklog.BLog
