@@ -15,8 +15,40 @@ type IContractType interface {
 	// IsStruct() indicates whether it's a struct or not.
 	IsStruct() bool
 
+	// IsArray() indicates whether it's an array or not.
+	IsArray() bool
+
 	// SupportsKope() indicates whether the type supports kope.
 	SupportsKope() bool
+}
+
+
+//
+// IContractArray is an array of some type.
+//
+type IContractArray interface {
+	IContractType
+
+	// Elem() return type of elements.
+	Elem() IContractType
+}
+
+//
+// IContractStructField is a field of a struct
+//
+type IContractStructField interface {
+	// Name() returns name of the field.
+	Name() string
+
+	// Type() returns type of the field.
+	Type() IContractType
+
+	// Depth() returns the depth of the field.
+	// e.g. 0: local fields. 1: fields of base. 2: fields of base's base...
+	Depth() int
+
+	// Ordinal() returns ordinal of the field in its defining struct.
+	Ordinal() int
 }
 
 //
@@ -25,11 +57,24 @@ type IContractType interface {
 type IContractStruct interface {
 	IContractType
 
-	// FieldNum() returns number of fields in the struct.
+	// FieldNum() returns number of fields.
+	// Involving fields are both local fields and fields of all bases in hierachy.
 	FieldNum() int
 
-	// FieldType(i) returns type of the i-th field of the struct.
-	FieldType(i int) IContractType
+	// Field(i) returns the i-th field of the struct.
+	// i must be in range [ 0, FieldNum() ), otherwise Field(i) returns nil.
+	Field(i int) IContractStructField
+
+	// LocalFieldNum() returns number of local fields.
+	LocalFieldNum() int
+
+	// LocalField(i) returns the i-th local field.
+	// i must be in range [ 0, LocalFieldNum() ), otherwise LocalField(i) returns nil.
+	LocalField(i int) IContractStructField
+
+	// Base() returns the base of the struct as an embedded field.
+	// If the struct has no base type, Base() returns nil.
+	Base() IContractStructField
 }
 
 //
@@ -53,10 +98,10 @@ type IContractTable interface {
 	// Record() returns a struct type representing columns of the table.
 	Record() IContractStruct
 
-	// PrimaryIndex() returns the ordinal of the primary-key column.
+	// PrimaryIndex() returns the field number of the primary-key column.
 	PrimaryIndex() int
 
-	// SecondaryIndices() returns ordinal of each secondary index column.
+	// SecondaryIndices() returns field number of each secondary index column.
 	// Secondary indices are always non-unique and single. Neither unique nor composite indices are supported.
 	SecondaryIndices() []int
 }

@@ -89,6 +89,16 @@ func TestEncodeFromJson(t *testing.T) {
 		StructOf(StringType(), StructOf(StringType(), Int16Type(), Float32Type())),
 		[]byte("\x02\x03bob\x03\x05alice\x64\x00\xd0\x0f\x49\x40")...)
 
+	requireEncodeJsonResult(t, `[1,2,3]`, reflect.TypeOf([]int16{}), 3,1,0,2,0,3,0)
+	requireEncodeJsonResult(t, `["hello","world"]`, reflect.TypeOf([]string{}), []byte("\x02\x05hello\x05world")...)
+
+	requireEncodeJsonResult(t,
+		`[["bob", ["alice", 100, 3.14159]], ["tom", ["jim", 200, 3.14159]]]`,
+		reflect.SliceOf( StructOf(StringType(), StructOf(StringType(), Int16Type(), Float32Type())) ),
+		[]byte("\x02" +
+			"\x02\x03bob\x03\x05alice\x64\x00\xd0\x0f\x49\x40" +
+			"\x02\x03tom\x03\x03jim\xc8\x00\xd0\x0f\x49\x40")...)
+
 	requireEncodeJsonError(t, `0`, BoolType())
 	requireEncodeJsonError(t, `123`, StringType())
 }
@@ -118,4 +128,14 @@ func TestDecodeToJson(t *testing.T) {
 		`["bob",["alice",100,3.14159]]`,
 		StructOf(StringType(), StructOf(StringType(), Int16Type(), Float32Type())),
 		[]byte("\x02\x03bob\x03\x05alice\x64\x00\xd0\x0f\x49\x40")...)
+
+	requireDecodeJsonResult(t, `[1,2,3]`, reflect.TypeOf([]int16{}), 3,1,0,2,0,3,0)
+	requireDecodeJsonResult(t, `["hello","world"]`, reflect.TypeOf([]string{}), []byte("\x02\x05hello\x05world")...)
+
+	requireDecodeJsonResult(t,
+		`[["bob",["alice",100,3.14159]],["tom",["jim",200,3.14159]]]`,
+		reflect.SliceOf( StructOf(StringType(), StructOf(StringType(), Int16Type(), Float32Type())) ),
+		[]byte("\x02" +
+			"\x02\x03bob\x03\x05alice\x64\x00\xd0\x0f\x49\x40" +
+			"\x02\x03tom\x03\x03jim\xc8\x00\xd0\x0f\x49\x40")...)
 }

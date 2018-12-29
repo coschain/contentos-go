@@ -14,10 +14,21 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	WitnessTable          = []byte("WitnessTable")
-	WitnessOwnerTable     = []byte("WitnessOwnerTable")
-	WitnessVoteCountTable = []byte("WitnessVoteCountTable")
-	WitnessOwnerUniTable  = []byte("WitnessOwnerUniTable")
+	WitnessOwnerTable                uint32 = 3588322158
+	WitnessVoteCountTable            uint32 = 2256540653
+	WitnessOwnerUniTable             uint32 = 2680327584
+	WitnessCreatedTimeCell           uint32 = 732260124
+	WitnessLastAslotCell             uint32 = 2989050122
+	WitnessLastConfirmedBlockNumCell uint32 = 4183878646
+	WitnessLastWorkCell              uint32 = 3441432781
+	WitnessOwnerCell                 uint32 = 3659272213
+	WitnessPowWorkerCell             uint32 = 217317251
+	WitnessRunningVersionCell        uint32 = 3359126320
+	WitnessSigningKeyCell            uint32 = 2433568317
+	WitnessTotalMissedCell           uint32 = 348210894
+	WitnessUrlCell                   uint32 = 261756480
+	WitnessVoteCountCell             uint32 = 149922791
+	WitnessWitnessScheduleTypeCell   uint32 = 1680633675
 )
 
 ////////////// SECTION Wrap Define ///////////////
@@ -87,10 +98,11 @@ func (s *SoWitnessWrap) Create(f func(tInfo *SoWitness)) error {
 	}
 	err = s.saveAllMemKeys(val, true)
 	if err != nil {
+		s.delAllMemKeys(false, val)
 		return err
 	}
 
-	// update sort list keys
+	// update srt list keys
 	if err = s.insertAllSortKeys(val); err != nil {
 		s.delAllSortKeys(false, val)
 		s.dba.Delete(keyBuf)
@@ -122,165 +134,6 @@ func (s *SoWitnessWrap) getMainKeyBuf() ([]byte, error) {
 		}
 	}
 	return s.mBuf, nil
-}
-
-func (s *SoWitnessWrap) encodeMemKey(fName string) ([]byte, error) {
-	if len(fName) < 1 || s.mainKey == nil {
-		return nil, errors.New("field name or main key is empty")
-	}
-	pre := "Witness" + fName + "cell"
-	preBuf, err := kope.Encode(pre)
-	if err != nil {
-		return nil, err
-	}
-	mBuf, err := s.getMainKeyBuf()
-	if err != nil {
-		return nil, err
-	}
-	list := make([][]byte, 2)
-	list[0] = preBuf
-	list[1] = mBuf
-	return kope.PackList(list), nil
-}
-
-func (so *SoWitnessWrap) saveAllMemKeys(tInfo *SoWitness, br bool) error {
-	if so.dba == nil {
-		return errors.New("save member Field fail , the db is nil")
-	}
-
-	if tInfo == nil {
-		return errors.New("save member Field fail , the data is nil ")
-	}
-	var err error = nil
-	errDes := ""
-	if err = so.saveMemKeyCreatedTime(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "CreatedTime", err)
-		}
-	}
-	if err = so.saveMemKeyLastAslot(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "LastAslot", err)
-		}
-	}
-	if err = so.saveMemKeyLastConfirmedBlockNum(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "LastConfirmedBlockNum", err)
-		}
-	}
-	if err = so.saveMemKeyLastWork(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "LastWork", err)
-		}
-	}
-	if err = so.saveMemKeyOwner(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Owner", err)
-		}
-	}
-	if err = so.saveMemKeyPowWorker(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "PowWorker", err)
-		}
-	}
-	if err = so.saveMemKeyRunningVersion(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "RunningVersion", err)
-		}
-	}
-	if err = so.saveMemKeySigningKey(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "SigningKey", err)
-		}
-	}
-	if err = so.saveMemKeyTotalMissed(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "TotalMissed", err)
-		}
-	}
-	if err = so.saveMemKeyUrl(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Url", err)
-		}
-	}
-	if err = so.saveMemKeyVoteCount(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "VoteCount", err)
-		}
-	}
-	if err = so.saveMemKeyWitnessScheduleType(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "WitnessScheduleType", err)
-		}
-	}
-
-	if len(errDes) > 0 {
-		return errors.New(errDes)
-	}
-	return err
-}
-
-func (so *SoWitnessWrap) delAllMemKeys(br bool, tInfo *SoWitness) error {
-	if so.dba == nil {
-		return errors.New("the db is nil")
-	}
-	t := reflect.TypeOf(*tInfo)
-	errDesc := ""
-	for k := 0; k < t.NumField(); k++ {
-		name := t.Field(k).Name
-		if len(name) > 0 && !strings.HasPrefix(name, "XXX_") {
-			err := so.delMemKey(name)
-			if err != nil {
-				if br {
-					return err
-				}
-				errDesc += fmt.Sprintf("delete the Field %s fail,error is %s;\n", name, err)
-			}
-		}
-	}
-	if len(errDesc) > 0 {
-		return errors.New(errDesc)
-	}
-	return nil
-}
-
-func (so *SoWitnessWrap) delMemKey(fName string) error {
-	if so.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if len(fName) <= 0 {
-		return errors.New("the field name is empty ")
-	}
-	key, err := so.encodeMemKey(fName)
-	if err != nil {
-		return err
-	}
-	err = so.dba.Delete(key)
-	return err
 }
 
 ////////////// SECTION LKeys delete/insert ///////////////
@@ -457,6 +310,206 @@ func (s *SoWitnessWrap) RemoveWitness() bool {
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
+func (s *SoWitnessWrap) getMemKeyPrefix(fName string) uint32 {
+	if fName == "CreatedTime" {
+		return WitnessCreatedTimeCell
+	}
+	if fName == "LastAslot" {
+		return WitnessLastAslotCell
+	}
+	if fName == "LastConfirmedBlockNum" {
+		return WitnessLastConfirmedBlockNumCell
+	}
+	if fName == "LastWork" {
+		return WitnessLastWorkCell
+	}
+	if fName == "Owner" {
+		return WitnessOwnerCell
+	}
+	if fName == "PowWorker" {
+		return WitnessPowWorkerCell
+	}
+	if fName == "RunningVersion" {
+		return WitnessRunningVersionCell
+	}
+	if fName == "SigningKey" {
+		return WitnessSigningKeyCell
+	}
+	if fName == "TotalMissed" {
+		return WitnessTotalMissedCell
+	}
+	if fName == "Url" {
+		return WitnessUrlCell
+	}
+	if fName == "VoteCount" {
+		return WitnessVoteCountCell
+	}
+	if fName == "WitnessScheduleType" {
+		return WitnessWitnessScheduleTypeCell
+	}
+
+	return 0
+}
+
+func (s *SoWitnessWrap) encodeMemKey(fName string) ([]byte, error) {
+	if len(fName) < 1 || s.mainKey == nil {
+		return nil, errors.New("field name or main key is empty")
+	}
+	pre := s.getMemKeyPrefix(fName)
+	preBuf, err := kope.Encode(pre)
+	if err != nil {
+		return nil, err
+	}
+	mBuf, err := s.getMainKeyBuf()
+	if err != nil {
+		return nil, err
+	}
+	list := make([][]byte, 2)
+	list[0] = preBuf
+	list[1] = mBuf
+	return kope.PackList(list), nil
+}
+
+func (s *SoWitnessWrap) saveAllMemKeys(tInfo *SoWitness, br bool) error {
+	if s.dba == nil {
+		return errors.New("save member Field fail , the db is nil")
+	}
+
+	if tInfo == nil {
+		return errors.New("save member Field fail , the data is nil ")
+	}
+	var err error = nil
+	errDes := ""
+	if err = s.saveMemKeyCreatedTime(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "CreatedTime", err)
+		}
+	}
+	if err = s.saveMemKeyLastAslot(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "LastAslot", err)
+		}
+	}
+	if err = s.saveMemKeyLastConfirmedBlockNum(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "LastConfirmedBlockNum", err)
+		}
+	}
+	if err = s.saveMemKeyLastWork(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "LastWork", err)
+		}
+	}
+	if err = s.saveMemKeyOwner(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Owner", err)
+		}
+	}
+	if err = s.saveMemKeyPowWorker(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "PowWorker", err)
+		}
+	}
+	if err = s.saveMemKeyRunningVersion(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "RunningVersion", err)
+		}
+	}
+	if err = s.saveMemKeySigningKey(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "SigningKey", err)
+		}
+	}
+	if err = s.saveMemKeyTotalMissed(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "TotalMissed", err)
+		}
+	}
+	if err = s.saveMemKeyUrl(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Url", err)
+		}
+	}
+	if err = s.saveMemKeyVoteCount(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "VoteCount", err)
+		}
+	}
+	if err = s.saveMemKeyWitnessScheduleType(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "WitnessScheduleType", err)
+		}
+	}
+
+	if len(errDes) > 0 {
+		return errors.New(errDes)
+	}
+	return err
+}
+
+func (s *SoWitnessWrap) delAllMemKeys(br bool, tInfo *SoWitness) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	t := reflect.TypeOf(*tInfo)
+	errDesc := ""
+	for k := 0; k < t.NumField(); k++ {
+		name := t.Field(k).Name
+		if len(name) > 0 && !strings.HasPrefix(name, "XXX_") {
+			err := s.delMemKey(name)
+			if err != nil {
+				if br {
+					return err
+				}
+				errDesc += fmt.Sprintf("delete the Field %s fail,error is %s;\n", name, err)
+			}
+		}
+	}
+	if len(errDesc) > 0 {
+		return errors.New(errDesc)
+	}
+	return nil
+}
+
+func (s *SoWitnessWrap) delMemKey(fName string) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if len(fName) <= 0 {
+		return errors.New("the field name is empty ")
+	}
+	key, err := s.encodeMemKey(fName)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Delete(key)
+	return err
+}
+
 func (s *SoWitnessWrap) saveMemKeyCreatedTime(tInfo *SoWitness) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
@@ -1501,7 +1554,7 @@ func (m *SoListWitnessByOwner) OpeEncode() ([]byte, error) {
 	return kBuf, cErr
 }
 
-//Query sort by order
+//Query srt by order
 //
 //start = nil  end = nil (query the db from start to end)
 //start = nil (query from start the db)
@@ -1626,7 +1679,7 @@ func (m *SoListWitnessByVoteCount) OpeEncode() ([]byte, error) {
 	return kBuf, cErr
 }
 
-//Query sort by reverse order
+//Query srt by reverse order
 //
 //f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
 //as arguments to the callback function
@@ -1720,7 +1773,7 @@ func (s *SoWitnessWrap) encodeMainKey() ([]byte, error) {
 	if s.mKeyBuf != nil {
 		return s.mKeyBuf, nil
 	}
-	pre := "Witness" + "Owner" + "cell"
+	pre := s.getMemKeyPrefix("Owner")
 	sub := s.mainKey
 	if sub == nil {
 		return nil, errors.New("the mainKey is nil")

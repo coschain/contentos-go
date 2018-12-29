@@ -14,9 +14,24 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	PostTable          = []byte("PostTable")
-	PostCreatedTable   = []byte("PostCreatedTable")
-	PostPostIdUniTable = []byte("PostPostIdUniTable")
+	PostCreatedTable      uint32 = 3346451556
+	PostPostIdUniTable    uint32 = 157486700
+	PostAuthorCell        uint32 = 1681275280
+	PostBeneficiariesCell uint32 = 2794141504
+	PostBodyCell          uint32 = 395462793
+	PostCashoutTimeCell   uint32 = 1916224103
+	PostCategoryCell      uint32 = 2849013589
+	PostChildrenCell      uint32 = 3908796047
+	PostCreatedCell       uint32 = 4199172684
+	PostDepthCell         uint32 = 4080627723
+	PostLastPayoutCell    uint32 = 3845986349
+	PostParentIdCell      uint32 = 1393772380
+	PostPostIdCell        uint32 = 22700035
+	PostRootIdCell        uint32 = 784045146
+	PostTagsCell          uint32 = 828203383
+	PostTitleCell         uint32 = 3943450465
+	PostVoteCntCell       uint32 = 2947124424
+	PostWeightedVpCell    uint32 = 502117977
 )
 
 ////////////// SECTION Wrap Define ///////////////
@@ -83,10 +98,11 @@ func (s *SoPostWrap) Create(f func(tInfo *SoPost)) error {
 	}
 	err = s.saveAllMemKeys(val, true)
 	if err != nil {
+		s.delAllMemKeys(false, val)
 		return err
 	}
 
-	// update sort list keys
+	// update srt list keys
 	if err = s.insertAllSortKeys(val); err != nil {
 		s.delAllSortKeys(false, val)
 		s.dba.Delete(keyBuf)
@@ -118,193 +134,6 @@ func (s *SoPostWrap) getMainKeyBuf() ([]byte, error) {
 		}
 	}
 	return s.mBuf, nil
-}
-
-func (s *SoPostWrap) encodeMemKey(fName string) ([]byte, error) {
-	if len(fName) < 1 || s.mainKey == nil {
-		return nil, errors.New("field name or main key is empty")
-	}
-	pre := "Post" + fName + "cell"
-	preBuf, err := kope.Encode(pre)
-	if err != nil {
-		return nil, err
-	}
-	mBuf, err := s.getMainKeyBuf()
-	if err != nil {
-		return nil, err
-	}
-	list := make([][]byte, 2)
-	list[0] = preBuf
-	list[1] = mBuf
-	return kope.PackList(list), nil
-}
-
-func (so *SoPostWrap) saveAllMemKeys(tInfo *SoPost, br bool) error {
-	if so.dba == nil {
-		return errors.New("save member Field fail , the db is nil")
-	}
-
-	if tInfo == nil {
-		return errors.New("save member Field fail , the data is nil ")
-	}
-	var err error = nil
-	errDes := ""
-	if err = so.saveMemKeyAuthor(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Author", err)
-		}
-	}
-	if err = so.saveMemKeyBeneficiaries(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Beneficiaries", err)
-		}
-	}
-	if err = so.saveMemKeyBody(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Body", err)
-		}
-	}
-	if err = so.saveMemKeyCashoutTime(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "CashoutTime", err)
-		}
-	}
-	if err = so.saveMemKeyCategory(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Category", err)
-		}
-	}
-	if err = so.saveMemKeyChildren(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Children", err)
-		}
-	}
-	if err = so.saveMemKeyCreated(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Created", err)
-		}
-	}
-	if err = so.saveMemKeyDepth(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Depth", err)
-		}
-	}
-	if err = so.saveMemKeyLastPayout(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "LastPayout", err)
-		}
-	}
-	if err = so.saveMemKeyParentId(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "ParentId", err)
-		}
-	}
-	if err = so.saveMemKeyPostId(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "PostId", err)
-		}
-	}
-	if err = so.saveMemKeyRootId(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "RootId", err)
-		}
-	}
-	if err = so.saveMemKeyTags(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Tags				", err)
-		}
-	}
-	if err = so.saveMemKeyTitle(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Title", err)
-		}
-	}
-	if err = so.saveMemKeyVoteCnt(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "VoteCnt", err)
-		}
-	}
-	if err = so.saveMemKeyWeightedVp(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "WeightedVp", err)
-		}
-	}
-
-	if len(errDes) > 0 {
-		return errors.New(errDes)
-	}
-	return err
-}
-
-func (so *SoPostWrap) delAllMemKeys(br bool, tInfo *SoPost) error {
-	if so.dba == nil {
-		return errors.New("the db is nil")
-	}
-	t := reflect.TypeOf(*tInfo)
-	errDesc := ""
-	for k := 0; k < t.NumField(); k++ {
-		name := t.Field(k).Name
-		if len(name) > 0 && !strings.HasPrefix(name, "XXX_") {
-			err := so.delMemKey(name)
-			if err != nil {
-				if br {
-					return err
-				}
-				errDesc += fmt.Sprintf("delete the Field %s fail,error is %s;\n", name, err)
-			}
-		}
-	}
-	if len(errDesc) > 0 {
-		return errors.New(errDesc)
-	}
-	return nil
-}
-
-func (so *SoPostWrap) delMemKey(fName string) error {
-	if so.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if len(fName) <= 0 {
-		return errors.New("the field name is empty ")
-	}
-	key, err := so.encodeMemKey(fName)
-	if err != nil {
-		return err
-	}
-	err = so.dba.Delete(key)
-	return err
 }
 
 ////////////// SECTION LKeys delete/insert ///////////////
@@ -420,6 +249,246 @@ func (s *SoPostWrap) RemovePost() bool {
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
+func (s *SoPostWrap) getMemKeyPrefix(fName string) uint32 {
+	if fName == "Author" {
+		return PostAuthorCell
+	}
+	if fName == "Beneficiaries" {
+		return PostBeneficiariesCell
+	}
+	if fName == "Body" {
+		return PostBodyCell
+	}
+	if fName == "CashoutTime" {
+		return PostCashoutTimeCell
+	}
+	if fName == "Category" {
+		return PostCategoryCell
+	}
+	if fName == "Children" {
+		return PostChildrenCell
+	}
+	if fName == "Created" {
+		return PostCreatedCell
+	}
+	if fName == "Depth" {
+		return PostDepthCell
+	}
+	if fName == "LastPayout" {
+		return PostLastPayoutCell
+	}
+	if fName == "ParentId" {
+		return PostParentIdCell
+	}
+	if fName == "PostId" {
+		return PostPostIdCell
+	}
+	if fName == "RootId" {
+		return PostRootIdCell
+	}
+	if fName == "Tags" {
+		return PostTagsCell
+	}
+	if fName == "Title" {
+		return PostTitleCell
+	}
+	if fName == "VoteCnt" {
+		return PostVoteCntCell
+	}
+	if fName == "WeightedVp" {
+		return PostWeightedVpCell
+	}
+
+	return 0
+}
+
+func (s *SoPostWrap) encodeMemKey(fName string) ([]byte, error) {
+	if len(fName) < 1 || s.mainKey == nil {
+		return nil, errors.New("field name or main key is empty")
+	}
+	pre := s.getMemKeyPrefix(fName)
+	preBuf, err := kope.Encode(pre)
+	if err != nil {
+		return nil, err
+	}
+	mBuf, err := s.getMainKeyBuf()
+	if err != nil {
+		return nil, err
+	}
+	list := make([][]byte, 2)
+	list[0] = preBuf
+	list[1] = mBuf
+	return kope.PackList(list), nil
+}
+
+func (s *SoPostWrap) saveAllMemKeys(tInfo *SoPost, br bool) error {
+	if s.dba == nil {
+		return errors.New("save member Field fail , the db is nil")
+	}
+
+	if tInfo == nil {
+		return errors.New("save member Field fail , the data is nil ")
+	}
+	var err error = nil
+	errDes := ""
+	if err = s.saveMemKeyAuthor(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Author", err)
+		}
+	}
+	if err = s.saveMemKeyBeneficiaries(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Beneficiaries", err)
+		}
+	}
+	if err = s.saveMemKeyBody(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Body", err)
+		}
+	}
+	if err = s.saveMemKeyCashoutTime(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "CashoutTime", err)
+		}
+	}
+	if err = s.saveMemKeyCategory(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Category", err)
+		}
+	}
+	if err = s.saveMemKeyChildren(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Children", err)
+		}
+	}
+	if err = s.saveMemKeyCreated(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Created", err)
+		}
+	}
+	if err = s.saveMemKeyDepth(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Depth", err)
+		}
+	}
+	if err = s.saveMemKeyLastPayout(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "LastPayout", err)
+		}
+	}
+	if err = s.saveMemKeyParentId(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "ParentId", err)
+		}
+	}
+	if err = s.saveMemKeyPostId(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "PostId", err)
+		}
+	}
+	if err = s.saveMemKeyRootId(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "RootId", err)
+		}
+	}
+	if err = s.saveMemKeyTags(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Tags", err)
+		}
+	}
+	if err = s.saveMemKeyTitle(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Title", err)
+		}
+	}
+	if err = s.saveMemKeyVoteCnt(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "VoteCnt", err)
+		}
+	}
+	if err = s.saveMemKeyWeightedVp(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "WeightedVp", err)
+		}
+	}
+
+	if len(errDes) > 0 {
+		return errors.New(errDes)
+	}
+	return err
+}
+
+func (s *SoPostWrap) delAllMemKeys(br bool, tInfo *SoPost) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	t := reflect.TypeOf(*tInfo)
+	errDesc := ""
+	for k := 0; k < t.NumField(); k++ {
+		name := t.Field(k).Name
+		if len(name) > 0 && !strings.HasPrefix(name, "XXX_") {
+			err := s.delMemKey(name)
+			if err != nil {
+				if br {
+					return err
+				}
+				errDesc += fmt.Sprintf("delete the Field %s fail,error is %s;\n", name, err)
+			}
+		}
+	}
+	if len(errDesc) > 0 {
+		return errors.New(errDesc)
+	}
+	return nil
+}
+
+func (s *SoPostWrap) delMemKey(fName string) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if len(fName) <= 0 {
+		return errors.New("the field name is empty ")
+	}
+	key, err := s.encodeMemKey(fName)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Delete(key)
+	return err
+}
+
 func (s *SoPostWrap) saveMemKeyAuthor(tInfo *SoPost) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
@@ -1388,7 +1457,7 @@ func (s *SoPostWrap) saveMemKeyTags(tInfo *SoPost) error {
 	}
 	val := SoMemPostByTags{}
 	val.Tags = tInfo.Tags
-	key, err := s.encodeMemKey("Tags				")
+	key, err := s.encodeMemKey("Tags")
 	if err != nil {
 		return err
 	}
@@ -1406,7 +1475,7 @@ func (s *SoPostWrap) GetTags() []string {
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Tags				")
+		key, err := s.encodeMemKey("Tags")
 		if err != nil {
 			res = false
 		} else {
@@ -1433,7 +1502,7 @@ func (s *SoPostWrap) MdTags(p []string) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("Tags				")
+	key, err := s.encodeMemKey("Tags")
 	if err != nil {
 		return false
 	}
@@ -1780,7 +1849,7 @@ func (m *SoListPostByCreated) OpeEncode() ([]byte, error) {
 	return kBuf, cErr
 }
 
-//Query sort by order
+//Query srt by order
 //
 //start = nil  end = nil (query the db from start to end)
 //start = nil (query from start the db)
@@ -1877,7 +1946,7 @@ func (s *SoPostWrap) encodeMainKey() ([]byte, error) {
 	if s.mKeyBuf != nil {
 		return s.mKeyBuf, nil
 	}
-	pre := "Post" + "PostId" + "cell"
+	pre := s.getMemKeyPrefix("PostId")
 	sub := s.mainKey
 	if sub == nil {
 		return nil, errors.New("the mainKey is nil")

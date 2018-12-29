@@ -52,6 +52,9 @@ func (d *GreenDandelion) OpenDatabase() error {
 		return err
 	}
 	c, err := app.NewController(nil)
+	c.SetShuffle(func(head common.ISignedBlock) {
+
+	})
 	if err != nil {
 		d.logger.Error("create new controller failed")
 	}
@@ -198,6 +201,10 @@ func (d *GreenDandelion) GetProduced() uint32 {
 
 func (d *GreenDandelion) GetTimestamp() uint32 {
 	return d.timestamp
+}
+
+func (d *GreenDandelion) InitminerPrivKey() string {
+	return d.privKey.ToWIF()
 }
 
 func (d *GreenDandelion) GeneralPrivKey() string {

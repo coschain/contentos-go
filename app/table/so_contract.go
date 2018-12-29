@@ -14,9 +14,13 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	ContractTable            = []byte("ContractTable")
-	ContractCreatedTimeTable = []byte("ContractCreatedTimeTable")
-	ContractIdUniTable       = []byte("ContractIdUniTable")
+	ContractCreatedTimeTable uint32 = 1292005739
+	ContractIdUniTable       uint32 = 4175408872
+	ContractAbiCell          uint32 = 562884560
+	ContractBalanceCell      uint32 = 1230027001
+	ContractCodeCell         uint32 = 1267857519
+	ContractCreatedTimeCell  uint32 = 3946752343
+	ContractIdCell           uint32 = 1995418866
 )
 
 ////////////// SECTION Wrap Define ///////////////
@@ -86,10 +90,11 @@ func (s *SoContractWrap) Create(f func(tInfo *SoContract)) error {
 	}
 	err = s.saveAllMemKeys(val, true)
 	if err != nil {
+		s.delAllMemKeys(false, val)
 		return err
 	}
 
-	// update sort list keys
+	// update srt list keys
 	if err = s.insertAllSortKeys(val); err != nil {
 		s.delAllSortKeys(false, val)
 		s.dba.Delete(keyBuf)
@@ -121,116 +126,6 @@ func (s *SoContractWrap) getMainKeyBuf() ([]byte, error) {
 		}
 	}
 	return s.mBuf, nil
-}
-
-func (s *SoContractWrap) encodeMemKey(fName string) ([]byte, error) {
-	if len(fName) < 1 || s.mainKey == nil {
-		return nil, errors.New("field name or main key is empty")
-	}
-	pre := "Contract" + fName + "cell"
-	preBuf, err := kope.Encode(pre)
-	if err != nil {
-		return nil, err
-	}
-	mBuf, err := s.getMainKeyBuf()
-	if err != nil {
-		return nil, err
-	}
-	list := make([][]byte, 2)
-	list[0] = preBuf
-	list[1] = mBuf
-	return kope.PackList(list), nil
-}
-
-func (so *SoContractWrap) saveAllMemKeys(tInfo *SoContract, br bool) error {
-	if so.dba == nil {
-		return errors.New("save member Field fail , the db is nil")
-	}
-
-	if tInfo == nil {
-		return errors.New("save member Field fail , the data is nil ")
-	}
-	var err error = nil
-	errDes := ""
-	if err = so.saveMemKeyAbi(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Abi", err)
-		}
-	}
-	if err = so.saveMemKeyBalance(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Balance", err)
-		}
-	}
-	if err = so.saveMemKeyCode(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Code", err)
-		}
-	}
-	if err = so.saveMemKeyCreatedTime(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "CreatedTime", err)
-		}
-	}
-	if err = so.saveMemKeyId(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Id", err)
-		}
-	}
-
-	if len(errDes) > 0 {
-		return errors.New(errDes)
-	}
-	return err
-}
-
-func (so *SoContractWrap) delAllMemKeys(br bool, tInfo *SoContract) error {
-	if so.dba == nil {
-		return errors.New("the db is nil")
-	}
-	t := reflect.TypeOf(*tInfo)
-	errDesc := ""
-	for k := 0; k < t.NumField(); k++ {
-		name := t.Field(k).Name
-		if len(name) > 0 && !strings.HasPrefix(name, "XXX_") {
-			err := so.delMemKey(name)
-			if err != nil {
-				if br {
-					return err
-				}
-				errDesc += fmt.Sprintf("delete the Field %s fail,error is %s;\n", name, err)
-			}
-		}
-	}
-	if len(errDesc) > 0 {
-		return errors.New(errDesc)
-	}
-	return nil
-}
-
-func (so *SoContractWrap) delMemKey(fName string) error {
-	if so.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if len(fName) <= 0 {
-		return errors.New("the field name is empty ")
-	}
-	key, err := so.encodeMemKey(fName)
-	if err != nil {
-		return err
-	}
-	err = so.dba.Delete(key)
-	return err
 }
 
 ////////////// SECTION LKeys delete/insert ///////////////
@@ -347,6 +242,136 @@ func (s *SoContractWrap) RemoveContract() bool {
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
+func (s *SoContractWrap) getMemKeyPrefix(fName string) uint32 {
+	if fName == "Abi" {
+		return ContractAbiCell
+	}
+	if fName == "Balance" {
+		return ContractBalanceCell
+	}
+	if fName == "Code" {
+		return ContractCodeCell
+	}
+	if fName == "CreatedTime" {
+		return ContractCreatedTimeCell
+	}
+	if fName == "Id" {
+		return ContractIdCell
+	}
+
+	return 0
+}
+
+func (s *SoContractWrap) encodeMemKey(fName string) ([]byte, error) {
+	if len(fName) < 1 || s.mainKey == nil {
+		return nil, errors.New("field name or main key is empty")
+	}
+	pre := s.getMemKeyPrefix(fName)
+	preBuf, err := kope.Encode(pre)
+	if err != nil {
+		return nil, err
+	}
+	mBuf, err := s.getMainKeyBuf()
+	if err != nil {
+		return nil, err
+	}
+	list := make([][]byte, 2)
+	list[0] = preBuf
+	list[1] = mBuf
+	return kope.PackList(list), nil
+}
+
+func (s *SoContractWrap) saveAllMemKeys(tInfo *SoContract, br bool) error {
+	if s.dba == nil {
+		return errors.New("save member Field fail , the db is nil")
+	}
+
+	if tInfo == nil {
+		return errors.New("save member Field fail , the data is nil ")
+	}
+	var err error = nil
+	errDes := ""
+	if err = s.saveMemKeyAbi(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Abi", err)
+		}
+	}
+	if err = s.saveMemKeyBalance(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Balance", err)
+		}
+	}
+	if err = s.saveMemKeyCode(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Code", err)
+		}
+	}
+	if err = s.saveMemKeyCreatedTime(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "CreatedTime", err)
+		}
+	}
+	if err = s.saveMemKeyId(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Id", err)
+		}
+	}
+
+	if len(errDes) > 0 {
+		return errors.New(errDes)
+	}
+	return err
+}
+
+func (s *SoContractWrap) delAllMemKeys(br bool, tInfo *SoContract) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	t := reflect.TypeOf(*tInfo)
+	errDesc := ""
+	for k := 0; k < t.NumField(); k++ {
+		name := t.Field(k).Name
+		if len(name) > 0 && !strings.HasPrefix(name, "XXX_") {
+			err := s.delMemKey(name)
+			if err != nil {
+				if br {
+					return err
+				}
+				errDesc += fmt.Sprintf("delete the Field %s fail,error is %s;\n", name, err)
+			}
+		}
+	}
+	if len(errDesc) > 0 {
+		return errors.New(errDesc)
+	}
+	return nil
+}
+
+func (s *SoContractWrap) delMemKey(fName string) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if len(fName) <= 0 {
+		return errors.New("the field name is empty ")
+	}
+	key, err := s.encodeMemKey(fName)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Delete(key)
+	return err
+}
+
 func (s *SoContractWrap) saveMemKeyAbi(tInfo *SoContract) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
@@ -810,7 +835,7 @@ func (m *SoListContractByCreatedTime) OpeEncode() ([]byte, error) {
 	return kBuf, cErr
 }
 
-//Query sort by order
+//Query srt by order
 //
 //start = nil  end = nil (query the db from start to end)
 //start = nil (query from start the db)
@@ -907,7 +932,7 @@ func (s *SoContractWrap) encodeMainKey() ([]byte, error) {
 	if s.mKeyBuf != nil {
 		return s.mKeyBuf, nil
 	}
-	pre := "Contract" + "Id" + "cell"
+	pre := s.getMemKeyPrefix("Id")
 	sub := s.mainKey
 	if sub == nil {
 		return nil, errors.New("the mainKey is nil")

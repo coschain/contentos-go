@@ -13,8 +13,9 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	WitnessScheduleObjectTable      = []byte("WitnessScheduleObjectTable")
-	WitnessScheduleObjectIdUniTable = []byte("WitnessScheduleObjectIdUniTable")
+	WitnessScheduleObjectIdUniTable                 uint32 = 1331115827
+	WitnessScheduleObjectCurrentShuffledWitnessCell uint32 = 628088000
+	WitnessScheduleObjectIdCell                     uint32 = 73273412
 )
 
 ////////////// SECTION Wrap Define ///////////////
@@ -81,10 +82,11 @@ func (s *SoWitnessScheduleObjectWrap) Create(f func(tInfo *SoWitnessScheduleObje
 	}
 	err = s.saveAllMemKeys(val, true)
 	if err != nil {
+		s.delAllMemKeys(false, val)
 		return err
 	}
 
-	// update sort list keys
+	// update srt list keys
 	if err = s.insertAllSortKeys(val); err != nil {
 		s.delAllSortKeys(false, val)
 		s.dba.Delete(keyBuf)
@@ -116,95 +118,6 @@ func (s *SoWitnessScheduleObjectWrap) getMainKeyBuf() ([]byte, error) {
 		}
 	}
 	return s.mBuf, nil
-}
-
-func (s *SoWitnessScheduleObjectWrap) encodeMemKey(fName string) ([]byte, error) {
-	if len(fName) < 1 || s.mainKey == nil {
-		return nil, errors.New("field name or main key is empty")
-	}
-	pre := "WitnessScheduleObject" + fName + "cell"
-	preBuf, err := kope.Encode(pre)
-	if err != nil {
-		return nil, err
-	}
-	mBuf, err := s.getMainKeyBuf()
-	if err != nil {
-		return nil, err
-	}
-	list := make([][]byte, 2)
-	list[0] = preBuf
-	list[1] = mBuf
-	return kope.PackList(list), nil
-}
-
-func (so *SoWitnessScheduleObjectWrap) saveAllMemKeys(tInfo *SoWitnessScheduleObject, br bool) error {
-	if so.dba == nil {
-		return errors.New("save member Field fail , the db is nil")
-	}
-
-	if tInfo == nil {
-		return errors.New("save member Field fail , the data is nil ")
-	}
-	var err error = nil
-	errDes := ""
-	if err = so.saveMemKeyCurrentShuffledWitness(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "CurrentShuffledWitness", err)
-		}
-	}
-	if err = so.saveMemKeyId(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Id", err)
-		}
-	}
-
-	if len(errDes) > 0 {
-		return errors.New(errDes)
-	}
-	return err
-}
-
-func (so *SoWitnessScheduleObjectWrap) delAllMemKeys(br bool, tInfo *SoWitnessScheduleObject) error {
-	if so.dba == nil {
-		return errors.New("the db is nil")
-	}
-	t := reflect.TypeOf(*tInfo)
-	errDesc := ""
-	for k := 0; k < t.NumField(); k++ {
-		name := t.Field(k).Name
-		if len(name) > 0 && !strings.HasPrefix(name, "XXX_") {
-			err := so.delMemKey(name)
-			if err != nil {
-				if br {
-					return err
-				}
-				errDesc += fmt.Sprintf("delete the Field %s fail,error is %s;\n", name, err)
-			}
-		}
-	}
-	if len(errDesc) > 0 {
-		return errors.New(errDesc)
-	}
-	return nil
-}
-
-func (so *SoWitnessScheduleObjectWrap) delMemKey(fName string) error {
-	if so.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if len(fName) <= 0 {
-		return errors.New("the field name is empty ")
-	}
-	key, err := so.encodeMemKey(fName)
-	if err != nil {
-		return err
-	}
-	err = so.dba.Delete(key)
-	return err
 }
 
 ////////////// SECTION LKeys delete/insert ///////////////
@@ -257,6 +170,106 @@ func (s *SoWitnessScheduleObjectWrap) RemoveWitnessScheduleObject() bool {
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
+func (s *SoWitnessScheduleObjectWrap) getMemKeyPrefix(fName string) uint32 {
+	if fName == "CurrentShuffledWitness" {
+		return WitnessScheduleObjectCurrentShuffledWitnessCell
+	}
+	if fName == "Id" {
+		return WitnessScheduleObjectIdCell
+	}
+
+	return 0
+}
+
+func (s *SoWitnessScheduleObjectWrap) encodeMemKey(fName string) ([]byte, error) {
+	if len(fName) < 1 || s.mainKey == nil {
+		return nil, errors.New("field name or main key is empty")
+	}
+	pre := s.getMemKeyPrefix(fName)
+	preBuf, err := kope.Encode(pre)
+	if err != nil {
+		return nil, err
+	}
+	mBuf, err := s.getMainKeyBuf()
+	if err != nil {
+		return nil, err
+	}
+	list := make([][]byte, 2)
+	list[0] = preBuf
+	list[1] = mBuf
+	return kope.PackList(list), nil
+}
+
+func (s *SoWitnessScheduleObjectWrap) saveAllMemKeys(tInfo *SoWitnessScheduleObject, br bool) error {
+	if s.dba == nil {
+		return errors.New("save member Field fail , the db is nil")
+	}
+
+	if tInfo == nil {
+		return errors.New("save member Field fail , the data is nil ")
+	}
+	var err error = nil
+	errDes := ""
+	if err = s.saveMemKeyCurrentShuffledWitness(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "CurrentShuffledWitness", err)
+		}
+	}
+	if err = s.saveMemKeyId(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Id", err)
+		}
+	}
+
+	if len(errDes) > 0 {
+		return errors.New(errDes)
+	}
+	return err
+}
+
+func (s *SoWitnessScheduleObjectWrap) delAllMemKeys(br bool, tInfo *SoWitnessScheduleObject) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	t := reflect.TypeOf(*tInfo)
+	errDesc := ""
+	for k := 0; k < t.NumField(); k++ {
+		name := t.Field(k).Name
+		if len(name) > 0 && !strings.HasPrefix(name, "XXX_") {
+			err := s.delMemKey(name)
+			if err != nil {
+				if br {
+					return err
+				}
+				errDesc += fmt.Sprintf("delete the Field %s fail,error is %s;\n", name, err)
+			}
+		}
+	}
+	if len(errDesc) > 0 {
+		return errors.New(errDesc)
+	}
+	return nil
+}
+
+func (s *SoWitnessScheduleObjectWrap) delMemKey(fName string) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if len(fName) <= 0 {
+		return errors.New("the field name is empty ")
+	}
+	key, err := s.encodeMemKey(fName)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Delete(key)
+	return err
+}
+
 func (s *SoWitnessScheduleObjectWrap) saveMemKeyCurrentShuffledWitness(tInfo *SoWitnessScheduleObject) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
@@ -433,7 +446,7 @@ func (s *SoWitnessScheduleObjectWrap) encodeMainKey() ([]byte, error) {
 	if s.mKeyBuf != nil {
 		return s.mKeyBuf, nil
 	}
-	pre := "WitnessScheduleObject" + "Id" + "cell"
+	pre := s.getMemKeyPrefix("Id")
 	sub := s.mainKey
 	if sub == nil {
 		return nil, errors.New("the mainKey is nil")

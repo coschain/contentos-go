@@ -53,7 +53,7 @@ message so_mem_post_by_body {
 }
 
 
-message so_mem_post_by_tags				 {
+message so_mem_post_by_tags {
 	repeated  	string                            	tags				 = 1;
 }
 

@@ -3,6 +3,7 @@ package abi
 import (
 	"errors"
 	"fmt"
+	"strings"
 )
 
 // ABI builder
@@ -179,9 +180,9 @@ func (b *abiBuilder) buildMethods(ctx *abiBuildContext) []*abiMethod {
 func (b *abiBuilder) buildTables(ctx *abiBuildContext) []*abiTable {
 	result := make([]*abiTable, len(b.tables))
 	idx := 0
-	for t := range b.tables {
+	for name, t := range b.tables {
 		// prepare secondary indices
-		s := b.secondaries[t]
+		s := b.secondaries[name]
 		si := make([]int, len(s))
 		cnt := 0
 		for f := range s {
@@ -189,9 +190,9 @@ func (b *abiBuilder) buildTables(ctx *abiBuildContext) []*abiTable {
 			cnt++
 		}
 		result[idx] = &abiTable{
-			name: t,
-			record: ctx.resolvedTypes[t].(*ABIStructType),
-			primary: ctx.typeFieldNames[t][b.primaries[t]],
+			name:      name,
+			record:    ctx.resolvedTypes[t].(*ABIStructType),
+			primary:   ctx.typeFieldNames[t][b.primaries[name]],
 			secondary: si,
 		}
 		idx++
@@ -215,6 +216,10 @@ func (ctx *abiBuildContext) prepare() error {
 
 	// types seen in a type alias.
 	for newName, oldName := range ctx.b.typedef {
+		// an array can't be an alias
+		if arr, _ := ctx.isArray(newName); arr {
+			return errors.New(newName + " can't be an type alias.")
+		}
 		types[newName] = true
 		types[oldName] = true
 	}
@@ -238,16 +243,20 @@ func (ctx *abiBuildContext) prepare() error {
 	for _, t := range ctx.b.tables {
 		types[t] = true
 	}
-	// types on which a primary index will be created.
-	// these types should be the same as table record types, but we don't trust builder codes at all.
+	// check if we're building primary index on non-existent tables.
 	for t := range ctx.b.primaries {
-		types[t] = true
+		if _, ok := ctx.b.tables[t]; !ok {
+			return errors.New("abiBuilder: unknown table name: " + t)
+		}
 	}
-	// types on which a secondary index will be created.
-	// these types should be the a subset of table record types, but we don't trust builder codes at all.
+	// check if we're building secondary indices on non-existent tables.
 	for t := range ctx.b.secondaries {
-		types[t] = true
+		if _, ok := ctx.b.tables[t]; !ok {
+			return errors.New("abiBuilder: unknown table name: " + t)
+		}
 	}
+	// add element types of arrays
+	ctx.resolveArrays(types)
 
 	// step 2, we find the real names of all types, and save'em in ctx.realTypeNames.
 	if err := ctx.resolveRealNames(types); err != nil {
@@ -271,6 +280,38 @@ func (ctx *abiBuildContext) prepare() error {
 	return nil
 }
 
+func (ctx *abiBuildContext) isArray(name string) (bool, string) {
+	if strings.HasSuffix(name, "[]") {
+		return true, name[:len(name) - 2]
+	}
+	return false, ""
+}
+
+// pick up array types and feed their element types back
+func (ctx *abiBuildContext) resolveArrays(types map[string]bool) {
+	for {
+		changed := false
+		newTypes := make(map[string]bool)
+		for t := range types {
+			if !types[t] {
+				continue
+			}
+			if arr, e := ctx.isArray(t); arr {
+				newTypes[e] = true
+			}
+		}
+		for t := range newTypes {
+			if !types[t] {
+				types[t] = true
+				changed = true
+			}
+		}
+		if !changed {
+			break
+		}
+	}
+}
+
 // find the real names of given types
 func (ctx *abiBuildContext) resolveRealNames(types map[string]bool) error {
 	// find the real name of given types one by one
@@ -290,6 +331,11 @@ func (ctx *abiBuildContext) realName(name string) (string, error) {
 	origin, ok := ctx.realTypeNames[name]
 	if ok {
 		return origin, nil
+	}
+
+	// an array can't be an alias.
+	if arr, _ := ctx.isArray(name); arr {
+		return name, nil
 	}
 
 	// working map is used for cyclic reference detection
@@ -372,23 +418,36 @@ func (ctx *abiBuildContext) resolveType(name string, flags map[string]int) error
 		return nil
 	}
 
-	// the type is not an alias, and not a builtin type since all builtin types were resolved beforehand.
+	// if the type is an array, we will resolve its element type first,
+	// and then create an array based on the element type.
+	if arr, e := ctx.isArray(name); arr {
+		if err := ctx.resolveType(e, flags); err != nil {
+			flags[name] = unresolved
+			return err
+		}
+		ctx.resolvedTypes[name] = NewArray(ctx.resolvedTypes[e])
+		flags[name] = resolved
+		return nil
+	}
+
+	// the type is not an alias, not an array, and not a builtin type since all builtin types were resolved beforehand.
 	// hence it must be a custom struct, which depends on its base type and field types.
 
 	// resolve the base type
-	var baseType IContractType
+	var baseStruct *ABIStructType
 	if base := ctx.b.bases[name]; len(base) > 0 {
 		if err := ctx.resolveType(base, flags); err != nil {
 			flags[name] = unresolved
 			return err
 		}
-		baseType = ctx.resolvedTypes[base]
+		baseType := ctx.resolvedTypes[base]
 
 		// the base type must be inheritable. if not, reports an error.
 		if !baseType.IsStruct() || ABIBuiltinNonInheritableType(base) != nil {
 			flags[name] = unresolved
 			return errors.New(fmt.Sprintf("abiBuilder: base of %s is a non-inheritable type: %s", name, base))
 		}
+		baseStruct = baseType.(*ABIStructType)
 	}
 
 	// resolve field types
@@ -408,7 +467,12 @@ func (ctx *abiBuildContext) resolveType(name string, flags map[string]int) error
 			Type: ctx.resolvedTypes[fs[i].typ],
 		}
 	}
-	ctx.resolvedTypes[name] = NewStruct(name, baseType.(*ABIStructType), fields...)
+	s := NewStruct(name, baseStruct, fields...)
+	if s == nil {
+		flags[name] = unresolved
+		return errors.New(fmt.Sprintf("abiBuilder: failed creating struct %s. duplicate field names.", name))
+	}
+	ctx.resolvedTypes[name] = s
 	flags[name] = resolved
 	return nil
 }
@@ -423,7 +487,7 @@ func (ctx *abiBuildContext) resolveFields() error {
 		s := t.(IContractStruct)
 		count := s.FieldNum()
 		for i := 0; i < count; i++ {
-			fields[s.Name()] = i
+			fields[s.Field(i).Name()] = i
 		}
 		ctx.typeFieldNames[name] = fields
 	}
@@ -449,9 +513,9 @@ func (ctx *abiBuildContext) validate() error {
 
 		// primary key field must be valid.
 		primary := ctx.b.primaries[name]
-		if ord, ok := ctx.typeFieldNames[name][primary]; !ok {
+		if ord, ok := ctx.typeFieldNames[t][primary]; !ok {
 			return errors.New(fmt.Sprintf("abiBuilder: unknown primary field %s of table %s", primary, name))
-		} else if !st.FieldType(ord).SupportsKope() {
+		} else if !st.Field(ord).Type().SupportsKope() {
 			return errors.New(fmt.Sprintf("abiBuilder: primary field %s of table %s cannot be indexed.", primary, name))
 		}
 		// secondary indexing fields must be valid, and not the same as primary key.
@@ -462,9 +526,9 @@ func (ctx *abiBuildContext) validate() error {
 			if f == primary {
 				return errors.New(fmt.Sprintf("abiBuilder: field %s used in both primary and secondary indices of table %s", primary, name))
 			}
-			if ord, ok := ctx.typeFieldNames[name][f]; !ok {
+			if ord, ok := ctx.typeFieldNames[t][f]; !ok {
 				return errors.New(fmt.Sprintf("abiBuilder: unknown secondary index field %s of table %s", f, name))
-			} else if !st.FieldType(ord).SupportsKope() {
+			} else if !st.Field(ord).Type().SupportsKope() {
 				return errors.New(fmt.Sprintf("abiBuilder: secondary index field %s of table %s cannot be indexed.", f, name))
 			}
 		}

@@ -87,11 +87,12 @@ func TestEncode(t *testing.T) {
 		),
 		[]byte("\x02\x03bob\x03\x05alice\x64\x00\xd0\x0f\x49\x40")...)
 
+	requireEncodeResult(t, []int32{3,4,5,6}, 4, 3,0,0,0, 4,0,0,0, 5,0,0,0, 6,0,0,0)
+	requireEncodeResult(t, []string{"nice", "to", "meet", "you"}, []byte("\x04\x04nice\x02to\x04meet\x03you")...)
+
 	requireEncodeError(t, map[int]int{1:2, 3:4})
-	requireEncodeError(t, []int{3,4,5,6})
-	requireEncodeError(t, []string{"nice", "to", "meet", "you"})
 	requireEncodeError(t, nil)
-	requireEncodeError(t, []interface{}{})
+	requireEncodeError(t, []interface{}{3})
 }
 
 func TestDecode(t *testing.T) {
@@ -143,5 +144,11 @@ func TestDecode(t *testing.T) {
 	Decode([]byte("\x02\x03bob\x03\x05alice\x64\x00\xd0\x0f\x49\x40"), p3)
 	if reflect.ValueOf(p3).Elem().Field(0).String() != "bob" {
 		t.Fatal("decoding result error on structures")
+	}
+
+	ss, _ := DecodeWithType([]byte("\x04\x04nice\x02to\x04meet\x03you"), reflect.SliceOf(reflect.TypeOf("")))
+	s4 := ss.([]string)
+	if len(s4) != 4 || s4[0] != "nice" || s4[1] != "to" || s4[2] != "meet" || s4[3] != "you" {
+		t.Fatal("decoding []string error")
 	}
 }

@@ -31,6 +31,7 @@ type PropList struct {
 
 var TmlFolder = "./app/table/"
 
+
 func (p *PropList) ToString() string {
 	s := ""
 	if checkIsSliceType(p.VarType) {
@@ -302,8 +303,7 @@ func createKeyTpl(t TableInfo) string {
 			for _, v := range memList {
 				tempTpl := ""
 				msgName := fmt.Sprintf("\nmessage so_mem_%s_by_%s {\n",
-					strings.Replace(t.Name, " ", "", -1),
-					strings.Replace(v.VarName, " ", "", -1))
+					DelDirtyCharacter(t.Name), DelDirtyCharacter(v.VarName))
 				 tempTpl = creSubTabMsgTpl(v, msgName, PropList{})
 				if tempTpl != "" {
 					tpl += tempTpl
@@ -315,8 +315,7 @@ func createKeyTpl(t TableInfo) string {
 			for _, v := range sortList {
 				tempTpl := ""
 				msgName := fmt.Sprintf("\nmessage so_list_%s_by_%s {\n",
-					strings.Replace(t.Name, " ", "", -1),
-					strings.Replace(v.VarName, " ", "", -1))
+					DelDirtyCharacter(t.Name), DelDirtyCharacter(v.VarName))
 				//tempTpl := creSubTabMsgTpl(v, msgName, mKeyPro)
 				if !v.BMainKey {
 					tempTpl = creSubTabMsgTpl(v, msgName, mKeyPro)
@@ -333,8 +332,7 @@ func createKeyTpl(t TableInfo) string {
 			for _, v := range uniList {
 				tempTpl := ""
 				msgName := fmt.Sprintf("\nmessage so_unique_%s_by_%s {\n",
-					strings.Replace(t.Name, " ", "", -1),
-					strings.Replace(v.VarName, " ", "", -1))
+					DelDirtyCharacter(t.Name), DelDirtyCharacter(v.VarName))
 				if !v.BMainKey {
 					tempTpl = creSubTabMsgTpl(v, msgName, mKeyPro)
 				} else {

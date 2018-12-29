@@ -21,12 +21,21 @@ type ContractTable struct {
 	db iservices.IDatabaseService
 }
 
+func (t *ContractTable) fieldValue(record reflect.Value, i int) reflect.Value {
+	f := t.abiTable.Record().Field(i)
+	v := record
+	for i := 0; i < f.Depth(); i++ {
+		v = v.Field(0)
+	}
+	return v.Field(f.Ordinal())
+}
+
 func (t *ContractTable) NewRecord(encodedRecord []byte) error {
 	r, err := t.decodeRecord(encodedRecord)
 	if err != nil {
 		return err
 	}
-	p := reflect.ValueOf(r).Field(t.abiTable.PrimaryIndex()).Interface()
+	p := t.fieldValue(reflect.ValueOf(r), t.abiTable.PrimaryIndex()).Interface()
 	pk := kope.AppendKey(t.primary, p)
 	if dup, err := t.db.Has(pk); err != nil {
 		return err
@@ -89,7 +98,7 @@ func (t *ContractTable) UpdateRecord(encodedPK []byte, encodedRecord []byte) err
 	if err = t.writeSecondaryIndices(b, newRec, pk); err != nil {
 		return err
 	}
-	return nil
+	return b.Write()
 }
 
 func (t *ContractTable) DeleteRecord(encodedPK []byte) error {
@@ -113,13 +122,39 @@ func (t *ContractTable) DeleteRecord(encodedPK []byte) error {
 	if err = t.deleteSecondaryIndices(b, oldRec, pk); err != nil {
 		return err
 	}
-	return nil
+	return b.Write()
+}
+
+func (t *ContractTable) queryValue(val interface{}, typ reflect.Type) (interface{}, error) {
+	rv := reflect.ValueOf(val)
+	if rv.Kind() == reflect.Invalid {
+		return nil, nil
+	}
+	if rv.Type().ConvertibleTo(typ) {
+		qv := reflect.New(typ).Elem()
+		qv.Set(rv.Convert(typ))
+		return qv.Interface(), nil
+	}
+	return nil, errors.New("incompatible query value.")
 }
 
 func (t *ContractTable) EnumRecords(field string, start interface{}, limit interface{}, reverse bool, maxCount int, callback func(r interface{})bool) int {
+	var (
+		qStart, qLimit interface{}
+		ft reflect.Type
+		err error
+	)
+
 	st := t.abiTable.Record()
-	if st.FieldType(t.abiTable.PrimaryIndex()).Name() == field {
-		return t.scanDatabase(t.primary, start, limit, reverse, maxCount, func(k, v []byte) (bool, error) {
+	if st.Field(t.abiTable.PrimaryIndex()).Name() == field {
+		ft = st.Field(t.abiTable.PrimaryIndex()).Type().Type()
+		if qStart, err = t.queryValue(start, ft); err != nil {
+			return 0
+		}
+		if qLimit, err = t.queryValue(limit, ft); err != nil {
+			return 0
+		}
+		return t.scanDatabase(t.primary, qStart, qLimit, reverse, maxCount, func(k, v []byte) (bool, error) {
 			if r, err := t.decodeRecord(v); err != nil {
 				return false, err
 			} else {
@@ -130,7 +165,7 @@ func (t *ContractTable) EnumRecords(field string, start interface{}, limit inter
 	si := t.abiTable.SecondaryIndices()
 	idx := -1
 	for i := range si {
-		if st.FieldType(si[i]).Name() == field {
+		if st.Field(si[i]).Name() == field {
 			idx = i
 			break
 		}
@@ -138,7 +173,14 @@ func (t *ContractTable) EnumRecords(field string, start interface{}, limit inter
 	if idx < 0 {
 		return 0
 	}
-	return t.scanDatabase(t.secondaries[idx], start, limit, reverse, maxCount, func(k, v []byte) (bool, error) {
+	ft = st.Field(si[idx]).Type().Type()
+	if qStart, err = t.queryValue(start, ft); err != nil {
+		return 0
+	}
+	if qLimit, err = t.queryValue(limit, ft); err != nil {
+		return 0
+	}
+	return t.scanDatabase(t.secondaries[idx], qStart, qLimit, reverse, maxCount, func(k, v []byte) (bool, error) {
 		pk := kope.IndexedPrimaryKey(k)
 		if data, err := t.db.Get(pk); err != nil {
 			return false, err
@@ -153,7 +195,7 @@ func (t *ContractTable) EnumRecords(field string, start interface{}, limit inter
 }
 
 func (t *ContractTable) primaryKey(encodedPK []byte) (kope.Key, error) {
-	p, err := vme.DecodeWithType(encodedPK, t.abiTable.Record().FieldType(t.abiTable.PrimaryIndex()).Type())
+	p, err := vme.DecodeWithType(encodedPK, t.abiTable.Record().Field(t.abiTable.PrimaryIndex()).Type().Type())
 	if err != nil {
 		return nil, err
 	}
@@ -180,7 +222,7 @@ func (t *ContractTable) enumSecondaryIndexFields(record interface{}, callback fu
 	rv := reflect.ValueOf(record)
 	si := t.abiTable.SecondaryIndices()
 	for i, j := range si {
-		if err := callback(i, rv.Field(j).Interface()); err != nil {
+		if err := callback(i, t.fieldValue(rv, j).Interface()); err != nil {
 			return err
 		}
 	}
