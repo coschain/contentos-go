@@ -71,6 +71,8 @@ func (w *CosVM) initNativeFuncs() {
 	// for memeory
 	w.Register("memcpy", w.memcpy, 100)
 	w.Register("memset", w.memset, 100)
+	w.Register("memmove", w.memmove, 100)
+	w.Register("memcmp", w.memcmp, 100)
 
 	// for io
 	w.Register("copy", w.copy, 100)
@@ -243,22 +245,21 @@ func (w *CosVM) exactFuncSig(p reflect.Type) (wasm.FunctionSig, error) {
 }
 
 func (w *CosVM) memcpy(proc *exec.Process, dst, src, size int32) int32 {
-	data := make([]byte, size)
-	// ErrShortBuffer should be ignored ?
-	length, _ := proc.ReadAt(data, int64(src))
-	// as so on ErrShortWrite ?
-	_, _ = proc.WriteAt(data[:length], int64(dst))
+	w.write(proc, w.read(proc, src, size, "memcpy().src"), dst, size, "memcpy().dst")
 	return dst
 }
 
-func (w *CosVM) memset(proc *exec.Process, ptr, value, size int32) int32 {
-	data := make([]byte, size)
-	if value < 0 || value > 255 {
-		panic("value should between 0 and 255")
-	}
-	for i := range data {
-		data[i] = byte(value)
-	}
-	_, _ = proc.WriteAt(data, int64(ptr))
-	return ptr
+func (w *CosVM) memset(proc *exec.Process, dst, value, size int32) int32 {
+	w.write(proc, bytes.Repeat([]byte{ byte(value) }, int(size)), dst, size, "memset().dst")
+	return dst
+}
+
+func (w *CosVM) memmove(proc *exec.Process, dst, src, size int32) int32 {
+	return w.memcpy(proc, dst, src, size)
+}
+
+func (w *CosVM) memcmp(proc *exec.Process, lhs, rhs, size int32) int32 {
+	return int32(bytes.Compare(
+		w.read(proc, lhs, size, "memcmp().lhs"),
+		w.read(proc, rhs, size, "memcmp().rhs")))
 }
