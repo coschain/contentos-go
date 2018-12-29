@@ -2,6 +2,7 @@ package consensus
 
 import (
 	"fmt"
+	"github.com/coschain/gobft"
 	"strings"
 	"sync"
 	"time"
@@ -14,14 +15,13 @@ import (
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/gobft/custom"
-	//"github.com/coschain/gobft"
 	"github.com/coschain/gobft/message"
 )
 
 /********* implements gobft IPubValidator ***********/
 
 type publicValidator struct {
-	sabft *SABFT
+	sabft       *SABFT
 	accountName string
 }
 
@@ -33,12 +33,12 @@ func (pv *publicValidator) GetPubKey() message.PubKey {
 	return ""
 }
 
-func (pv *publicValidator) GetVotingPower() int64{
+func (pv *publicValidator) GetVotingPower() int64 {
 	return 1
 }
 
-func (pv *publicValidator) SetVotingPower(int64){
-	
+func (pv *publicValidator) SetVotingPower(int64) {
+
 }
 
 /********* end gobft IPubValidator ***********/
@@ -46,7 +46,6 @@ func (pv *publicValidator) SetVotingPower(int64){
 /********* implements gobft IPrivValidator ***********/
 
 type privateValidator struct {
-
 }
 
 func (pv *privateValidator) Sign(digest []byte) []byte {
@@ -69,8 +68,10 @@ type SABFT struct {
 	ForkDB *forkdb.DB
 	blog   blocklog.BLog
 
-	Producers []string
-	Name      string
+	validators []*publicValidator
+	priv       *privateValidator
+	Name       string
+	bft        *gobft.Core
 
 	privKey        *prototype.PrivateKeyType
 	readyToProduce bool
@@ -99,16 +100,20 @@ func NewSABFT(ctx *node.ServiceContext) *SABFT {
 		panic(err)
 	}
 	ret := &SABFT{
-		ForkDB:    forkdb.NewDB(),
-		Producers: make([]string, 0, 1),
-		prodTimer: time.NewTimer(1 * time.Millisecond),
-		trxCh:     make(chan func()),
+		ForkDB:     forkdb.NewDB(),
+		validators: make([]*publicValidator, 0, 1),
+		prodTimer:  time.NewTimer(1 * time.Millisecond),
+		trxCh:      make(chan func()),
 		//trxRetCh:  make(chan common.ITransactionInvoice),
 		blkCh:  make(chan common.ISignedBlock),
 		ctx:    ctx,
 		stopCh: make(chan struct{}),
 		log:    logService.(iservices.ILog),
 	}
+	ret.priv = &privateValidator{
+		// TODO:
+	}
+	ret.bft = gobft.NewCore(ret, ret.priv)
 	ret.SetBootstrap(ctx.Config().Consensus.BootStrap)
 	ret.Name = ctx.Config().Consensus.LocalBpName
 	ret.log.GetLog().Info("[SABFT bootstrap] ", ctx.Config().Consensus.BootStrap)
@@ -147,8 +152,19 @@ func (sabft *SABFT) CurrentProducer() string {
 	return sabft.getScheduledProducer(slot)
 }
 
+func (sabft *SABFT) makeValidators(names []string) []*publicValidator {
+	ret := make([]*publicValidator, len(names))
+	for i := range ret {
+		ret[i] = &publicValidator{
+			sabft:       sabft,
+			accountName: names[i],
+		}
+	}
+	return ret
+}
+
 func (sabft *SABFT) shuffle(head common.ISignedBlock) {
-	if !sabft.ForkDB.Empty() && sabft.ForkDB.Head().Id().BlockNum()%uint64(len(sabft.Producers)) != 0 {
+	if !sabft.ForkDB.Empty() && sabft.ForkDB.Head().Id().BlockNum()%uint64(len(sabft.validators)) != 0 {
 		return
 	}
 
@@ -171,21 +187,25 @@ func (sabft *SABFT) shuffle(head common.ISignedBlock) {
 		prods[i], prods[j] = prods[j], prods[i]
 	}
 
-	sabft.Producers = prods
-	sabft.log.GetLog().Debug("[SABFT shuffle] active producers: ", sabft.Producers)
+	sabft.validators = sabft.makeValidators(prods)
+	sabft.log.GetLog().Debug("[SABFT shuffle] active producers: ", sabft.validators)
 	sabft.ctrl.SetShuffledWitness(prods)
 
 	sabft.suffledID = head.Id()
 }
 
 func (sabft *SABFT) restoreProducers() {
-	sabft.Producers = sabft.ctrl.GetShuffledWitness()
+	sabft.validators = sabft.makeValidators(sabft.ctrl.GetShuffledWitness())
 }
 
 func (sabft *SABFT) ActiveProducers() []string {
 	//sabft.RLock()
 	//defer sabft.RUnlock()
-	return sabft.Producers
+	ret := make([]string, 0, constants.MAX_WITNESSES)
+	for i := range sabft.validators {
+		ret = append(ret, sabft.validators[i].accountName)
+	}
+	return ret
 }
 
 func (sabft *SABFT) Start(node *node.Node) error {
@@ -197,12 +217,25 @@ func (sabft *SABFT) Start(node *node.Node) error {
 	sabft.p2p = p2p.(iservices.IP2P)
 	cfg := sabft.ctx.Config()
 	sabft.blog.Open(cfg.ResolvePath("blog"))
-	forkdbPath := cfg.ResolvePath("forkdb_snapshot")
 	sabft.ctrl.SetShuffle(func(block common.ISignedBlock) {
 		sabft.shuffle(block)
 	})
-	go sabft.start(forkdbPath)
-	// TODO: start bft
+
+	// reload ForkDB
+	snapshotPath := cfg.ResolvePath("forkdb_snapshot")
+	// TODO: fuck!! this is fugly
+	var avatar []common.ISignedBlock
+	for i := 0; i < constants.MAX_WITNESSES; i++ {
+		// deep copy hell
+		avatar = append(avatar, &prototype.SignedBlock{})
+	}
+	sabft.ForkDB.LoadSnapshot(avatar, snapshotPath)
+
+	// start block generation process
+	go sabft.start()
+
+	// start the bft process
+	sabft.bft.Start()
 	return nil
 }
 
@@ -235,21 +268,11 @@ func (sabft *SABFT) scheduleProduce() bool {
 	return true
 }
 
-func (sabft *SABFT) start(snapshotPath string) {
+func (sabft *SABFT) start() {
 	sabft.wg.Add(1)
 	defer sabft.wg.Done()
 	time.Sleep(4 * time.Second)
 	sabft.log.GetLog().Info("[SABFT] starting...")
-
-	// TODO: fuck!! this is fugly
-	var avatar []common.ISignedBlock
-	for i := 0; i < constants.MAX_WITNESSES; i++ {
-		// deep copy hell
-		avatar = append(avatar, &prototype.SignedBlock{})
-	}
-	//cfg := sabft.ctx.Config()
-	//sabft.ForkDB.LoadSnapshot(avatar, cfg.ResolvePath("forkdb_snapshot"))
-	sabft.ForkDB.LoadSnapshot(avatar, snapshotPath)
 
 	if sabft.bootstrap && sabft.ForkDB.Empty() && sabft.blog.Empty() {
 		sabft.log.GetLog().Info("[SABFT] bootstrapping...")
@@ -285,30 +308,20 @@ func (sabft *SABFT) start(snapshotPath string) {
 				sabft.log.GetLog().Error("[SABFT] pushBlock push generated block failed: ", err)
 			}
 
-			// broadcast block
-			//if b.Id().BlockNum() % 10 == 0 {
-			//	go func() {
-			//		time.Sleep(4*time.Second)
-			//		sabft.p2p.Broadcast(b)
-			//	}()
-			//} else {
-			//	sabft.p2p.Broadcast(b)
-			//}
 			sabft.p2p.Broadcast(b)
 		}
 	}
 }
 
 func (sabft *SABFT) Stop() error {
-	// TODO: stop bft
 	sabft.log.GetLog().Info("SABFT consensus stopped.")
+
+	// stop bft process
+	sabft.bft.Stop()
+
 	// restore uncommitted forkdb
 	cfg := sabft.ctx.Config()
 	snapshotPath := cfg.ResolvePath("forkdb_snapshot")
-	return sabft.stop(snapshotPath)
-}
-
-func (sabft *SABFT) stop(snapshotPath string) error {
 	sabft.ForkDB.Snapshot(snapshotPath)
 	sabft.prodTimer.Stop()
 	close(sabft.stopCh)
@@ -376,10 +389,10 @@ func (sabft *SABFT) checkOurTurn() bool {
 
 func (sabft *SABFT) getScheduledProducer(slot uint64) string {
 	if sabft.ForkDB.Empty() {
-		return sabft.Producers[0]
+		return sabft.validators[0].accountName
 	}
 	absSlot := (sabft.ForkDB.Head().Timestamp() - constants.GenesisTime) / constants.BLOCK_INTERVAL
-	return sabft.Producers[(absSlot+slot)%uint64(len(sabft.Producers))]
+	return sabft.validators[(absSlot+slot)%uint64(len(sabft.validators))].accountName
 }
 
 // returns false if we're out of sync
