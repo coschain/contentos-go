@@ -7,6 +7,7 @@ require (
 	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e
 	github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1 // indirect
 	github.com/coschain/cobra v0.0.0-20181106130408-77bf516f51a1
+	github.com/coschain/gobft v0.0.0-20181229034240-c106bbaf16ff // indirect
 	github.com/deckarep/golang-set v1.7.1
 	github.com/fastly/go-utils v0.0.0-20180712184237-d95a45783239 // indirect
 	github.com/go-interpreter/wagon v0.3.0
@@ -40,6 +41,7 @@ require (
 	github.com/stretchr/testify v1.2.2
 	github.com/syndtr/goleveldb v0.0.0-20181012014443-6b91fda63f2e
 	github.com/tebeka/strftime v0.0.0-20140926081919-3f9c7761e312 // indirect
+	github.com/tendermint/go-amino v0.14.1 // indirect
 	golang.org/x/crypto v0.0.0-20181106171534-e4dc69e5b2fd
 	golang.org/x/net v0.0.0-20181011144130-49bb7cea24b1
 	google.golang.org/genproto v0.0.0-20181101192439-c830210a61df
