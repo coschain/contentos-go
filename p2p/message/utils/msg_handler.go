@@ -699,3 +699,15 @@ func ReqIdHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	}
 	//log.GetLog().Info("[p2p] send a message to:   v%   data:   v%\n", remotePeer, reqmsg)
 }
+
+func ConsMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
+	var msgdata = data.Payload.(*msgTypes.ConsMsg)
+
+	logs , err := p2p.GetService(iservices.LogServerName)
+	if err != nil {
+		panic(err)
+	}
+	log := logs.(iservices.ILog)
+
+	log.GetLog().Info("receive a consensus message, message data: ", msgdata)
+}

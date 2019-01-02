@@ -71,6 +71,8 @@ const (
 	REQ_ID_TYPE     = "req_id"
 	TX_TYPE         = "sig_trx"    //transaction
 	DISCONNECT_TYPE = "disconnect" //peer disconnect info raise by link
+
+	CONSENSUS_TYPE  = "consensus"
 )
 
 const (

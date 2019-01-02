@@ -6,6 +6,7 @@ import (
 	mt "github.com/coschain/contentos-go/p2p/message/types"
 	"github.com/coschain/contentos-go/p2p/net/protocol"
 	"github.com/coschain/contentos-go/prototype"
+	"github.com/coschain/gobft/message"
 )
 
 //Peer address package
@@ -112,4 +113,13 @@ func NewVersion(n p2p.P2P, isCons bool, height uint64) mt.Message {
 
 	 reqmsg.Msg = &mt.TransferMsg_Msg11{Msg11:data}
 	 return &reqmsg
+}
+
+// consensus package
+func NewConsMsg(msg message.ConsensusMessage) mt.Message {
+	var reqmsg mt.ConsMsg
+
+	reqmsg.MsgData = msg
+
+	return &reqmsg
 }

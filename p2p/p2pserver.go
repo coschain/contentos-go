@@ -21,6 +21,7 @@ import (
 	"github.com/coschain/contentos-go/p2p/net/protocol"
 	"github.com/coschain/contentos-go/p2p/peer"
 	"github.com/coschain/contentos-go/prototype"
+	consmsg "github.com/coschain/gobft/message"
 	"github.com/sirupsen/logrus"
 )
 
@@ -408,6 +409,9 @@ func (this *P2PServer) Broadcast(message interface{}) {
 	case *prototype.SignedBlock:
 		block := message.(*prototype.SignedBlock)
 		msg = msgpack.NewSigBlkIdMsg(block)
+	case consmsg.ConsensusMessage:
+		cmsg := message.(consmsg.ConsensusMessage)
+		msg = msgpack.NewConsMsg(cmsg)
 	default:
 		this.log.Warnf("[p2p] Unknown Xmit message %v , type %v", message,
 			reflect.TypeOf(message))
