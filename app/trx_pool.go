@@ -34,10 +34,10 @@ type TrxPool struct {
 	noticer EventBus.Bus
 	skip    prototype.SkipFlag
 
-	pendingTx              []*prototype.EstimateTrxResult
+	pendingTx []*prototype.EstimateTrxResult
 
 	// TODO delete ??
-	isProducing            bool
+	isProducing bool
 	//currentTrxId           *prototype.Sha256
 	//currentOpInTrx         uint16
 	//currentBlockNum        uint64
@@ -147,7 +147,7 @@ func (c *TrxPool) PushTrx(trx *prototype.SignedTransaction) (invoice *prototype.
 		if err := recover(); err != nil {
 			invoice = &prototype.TransactionReceiptWithInfo{Status: uint32(prototype.StatusError)}
 			invoice.ErrorInfo = fmt.Sprintf("%v", err)
-			//c.log.GetLog().Errorf("PushTrx Error: %v", err)
+			c.log.GetLog().Errorf("PushTrx Error: %v", err)
 		}
 		c.setProducing(false)
 		c.skip = oldSkip

@@ -49,4 +49,4 @@ require (
 
 )
 
-replace github.com/go-interpreter/wagon v0.3.0 => github.com/coschain/wagon v0.3.1-0.20181221120801-0d07c507dc80
+replace github.com/go-interpreter/wagon v0.3.0 => github.com/coschain/wagon v0.0.0-20190102065443-ad16f10108ac

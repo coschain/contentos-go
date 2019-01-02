@@ -74,6 +74,13 @@ message contract_apply_operation{
     coin   gas = 7;                 // max permit gas cost when apply
 }
 
+message contract_estimate_apply_operation{
+    account_name caller = 1;          // who apply this op
+    account_name owner = 2;         // who owner this contract
+    string contract = 3;            // contract name
+    string params = 4;              // param list, encoded as a single json string. e.g. '[]' or '["hello", 3, true]'
+}
+
 message post_operation{
     uint64 uuid             = 1;
     account_name owner      = 2;

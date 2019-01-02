@@ -23,6 +23,7 @@ message operation{
         claim_all_operation op12 = 12;
         contract_deploy_operation op13 = 13;
         contract_apply_operation op14 = 14;
+        contract_estimate_apply_operation op15=15;
     }
 }
 

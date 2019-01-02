@@ -23,12 +23,11 @@ func mustNoError(err error, val string) {
 	}
 }
 
-
 // TODO replace applyContext to TrxContext
 type ApplyContext struct {
 	db      iservices.IDatabaseService
 	control iservices.ITrxPool
-	trxCtx *TrxContext
+	trxCtx  *TrxContext
 }
 
 type BaseEvaluator interface {
@@ -77,8 +76,12 @@ func GetBaseEvaluator(ctx *ApplyContext, op *prototype.Operation) BaseEvaluator 
 		eva := &ContractDeployEvaluator{ctx: ctx, op: op.GetOp13()}
 		return BaseEvaluator(eva)
 	case *prototype.Operation_Op14:
-		eva := &ContractApplyEvaluator{ctx: ctx, op: op.GetOp14() }
+		eva := &ContractApplyEvaluator{ctx: ctx, op: op.GetOp14()}
 		return BaseEvaluator(eva)
+	case *prototype.Operation_Op15:
+		eva := &ContractEstimateApplyEvaluator{ctx: ctx, op: op.GetOp15()}
+		return BaseEvaluator(eva)
+
 	default:
 		panic("no matchable evaluator")
 	}

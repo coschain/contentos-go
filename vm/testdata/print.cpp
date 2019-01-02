@@ -1,6 +1,6 @@
 extern "C" {
     void print_str(char*, int);
-    void print_uint(int);
+    void print_uint(long long);
 
     int main() {
         char in[] = "hello world\n";

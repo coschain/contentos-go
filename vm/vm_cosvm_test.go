@@ -41,6 +41,10 @@ func (i *FakeInjector) DeductGasFee(caller string, spent uint64) {
 	fmt.Println("deduct gas fee", caller, spent)
 }
 
+func add(proc *exec.Process, a, b int32) int32 {
+	return a + b
+}
+
 func (i *FakeInjector) ContractTransfer(contract, owner, to string, amount uint64) {
 	c := table.NewSoContractWrap(i.db, &prototype.ContractId{Owner: &prototype.AccountName{Value: owner}, Cname: contract})
 	balance := c.GetBalance().Value
@@ -67,9 +71,9 @@ func TestCosVM_simpleAdd(t *testing.T) {
 	data, _ := ioutil.ReadFile(wasmFile)
 	context := vmcontext.Context{Code: data, Gas: &prototype.Coin{Value: math.MaxUint64}}
 	vm := NewCosVM(&context, nil, nil, logrus.New())
-	vm.Register("add", add, 3000)
+	vm.Register("add", add, 200)
 	ret, _ := vm.Run()
-	myassert.Equal(ret, uint32(6))
+	myassert.Equal(ret, uint32(10))
 }
 
 func TestCosVM_copy(t *testing.T) {

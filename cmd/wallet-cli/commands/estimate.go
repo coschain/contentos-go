@@ -10,23 +10,19 @@ import (
 	"github.com/coschain/contentos-go/rpc/pb"
 )
 
-var fundToContract uint64 = 0
-var maxGas uint64 = 0
-
-var CallCmd = func() *cobra.Command {
+var EstimateCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "call",
-		Short:   "call a deployed contract",
-		Example: "call [caller] [owner] [contract_name] [args]",
+		Use:     "estimate",
+		Short:   "estimate gas of call contract",
+		Long:    "estimate gas of call contract. the result is lower bound, recommend add extra gas to avoid overdraft",
+		Example: "estimate [caller] [owner] [contract_name] [args]",
 		Args:    cobra.ExactArgs(4),
-		Run:     call,
+		Run:     estimate,
 	}
-	cmd.Flags().Uint64VarP(&fundToContract, "fund", "f", 0, `call [caller] [owner] [contract_name] [args]  -f 300`)
-	cmd.Flags().Uint64VarP(&maxGas, "gas", "g", 0, `call [caller] [owner] [contract_name] [args]  -g 300`)
 	return cmd
 }
 
-func call(cmd *cobra.Command, args []string) {
+func estimate(cmd *cobra.Command, args []string) {
 	defer func() {
 		fundToContract = 0
 		maxGas = 0
@@ -44,11 +40,9 @@ func call(cmd *cobra.Command, args []string) {
 	owner := args[1]
 	cname := args[2]
 	params := args[3]
-	contractDeployOp := &prototype.ContractApplyOperation{
+	contractDeployOp := &prototype.ContractEstimateApplyOperation{
 		Caller:   &prototype.AccountName{Value: caller},
 		Owner:    &prototype.AccountName{Value: owner},
-		Amount:   &prototype.Coin{Value: fundToContract},
-		Gas:      &prototype.Coin{Value: maxGas},
 		Contract: cname,
 		Params:   params,
 	}

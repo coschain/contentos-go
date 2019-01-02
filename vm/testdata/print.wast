@@ -1,8 +1,8 @@
 (module
  (type $FUNCSIG$vii (func (param i32 i32)))
- (type $FUNCSIG$vi (func (param i32)))
+ (type $FUNCSIG$vj (func (param i64)))
  (import "env" "print_str" (func $print_str (param i32 i32)))
- (import "env" "print_uint" (func $print_uint (param i32)))
+ (import "env" "print_uint" (func $print_uint (param i64)))
  (table 0 anyfunc)
  (memory $0 1)
  (data (i32.const 4) " @\00\00")
@@ -51,7 +51,7 @@
    (i32.const 11)
   )
   (call $print_uint
-   (i32.const 42)
+   (i64.const 42)
   )
   (i32.store offset=4
    (i32.const 0)
