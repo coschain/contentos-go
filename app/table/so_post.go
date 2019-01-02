@@ -15,6 +15,7 @@ import (
 ////////////// SECTION Prefix Mark ///////////////
 var (
 	PostCreatedTable      uint32 = 3346451556
+	PostCashoutTimeTable  uint32 = 1799505964
 	PostPostIdUniTable    uint32 = 157486700
 	PostAuthorCell        uint32 = 1681275280
 	PostBeneficiariesCell uint32 = 2794141504
@@ -191,12 +192,72 @@ func (s *SoPostWrap) insertSortKeyCreated(sa *SoPost) bool {
 	return ordErr == nil
 }
 
+func (s *SoPostWrap) delSortKeyCashoutTime(sa *SoPost) bool {
+	if s.dba == nil || s.mainKey == nil {
+		return false
+	}
+	val := SoListPostByCashoutTime{}
+	if sa == nil {
+		key, err := s.encodeMemKey("CashoutTime")
+		if err != nil {
+			return false
+		}
+		buf, err := s.dba.Get(key)
+		if err != nil {
+			return false
+		}
+		ori := &SoMemPostByCashoutTime{}
+		err = proto.Unmarshal(buf, ori)
+		if err != nil {
+			return false
+		}
+		val.CashoutTime = ori.CashoutTime
+		val.PostId = *s.mainKey
+	} else {
+		val.CashoutTime = sa.CashoutTime
+		val.PostId = sa.PostId
+	}
+
+	subBuf, err := val.OpeEncode()
+	if err != nil {
+		return false
+	}
+	ordErr := s.dba.Delete(subBuf)
+	return ordErr == nil
+}
+
+func (s *SoPostWrap) insertSortKeyCashoutTime(sa *SoPost) bool {
+	if s.dba == nil || sa == nil {
+		return false
+	}
+	val := SoListPostByCashoutTime{}
+	val.PostId = sa.PostId
+	val.CashoutTime = sa.CashoutTime
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return false
+	}
+	subBuf, err := val.OpeEncode()
+	if err != nil {
+		return false
+	}
+	ordErr := s.dba.Put(subBuf, buf)
+	return ordErr == nil
+}
+
 func (s *SoPostWrap) delAllSortKeys(br bool, val *SoPost) bool {
 	if s.dba == nil {
 		return false
 	}
 	res := true
 	if !s.delSortKeyCreated(val) {
+		if br {
+			return false
+		} else {
+			res = false
+		}
+	}
+	if !s.delSortKeyCashoutTime(val) {
 		if br {
 			return false
 		} else {
@@ -216,6 +277,9 @@ func (s *SoPostWrap) insertAllSortKeys(val *SoPost) error {
 	}
 	if !s.insertSortKeyCreated(val) {
 		return errors.New("insert sort Field Created fail while insert table ")
+	}
+	if !s.insertSortKeyCashoutTime(val) {
+		return errors.New("insert sort Field CashoutTime fail while insert table ")
 	}
 
 	return nil
@@ -803,6 +867,9 @@ func (s *SoPostWrap) MdCashoutTime(p *prototype.TimePointSec) bool {
 	sa.PostId = *s.mainKey
 	sa.CashoutTime = ori.CashoutTime
 
+	if !s.delSortKeyCashoutTime(sa) {
+		return false
+	}
 	ori.CashoutTime = p
 	val, err := proto.Marshal(ori)
 	if err != nil {
@@ -813,6 +880,10 @@ func (s *SoPostWrap) MdCashoutTime(p *prototype.TimePointSec) bool {
 		return false
 	}
 	sa.CashoutTime = p
+
+	if !s.insertSortKeyCashoutTime(sa) {
+		return false
+	}
 
 	return true
 }
@@ -1869,6 +1940,132 @@ func (s *SPostCreatedWrap) ForEachByOrder(start *prototype.TimePointSec, end *pr
 		return nil
 	}
 	pre := PostCreatedTable
+	skeyList := []interface{}{pre}
+	if start != nil {
+		skeyList = append(skeyList, start)
+	}
+	sBuf, cErr := kope.EncodeSlice(skeyList)
+	if cErr != nil {
+		return cErr
+	}
+	eKeyList := []interface{}{pre}
+	if end != nil {
+		eKeyList = append(eKeyList, end)
+	} else {
+		eKeyList = append(eKeyList, kope.MaximumKey)
+	}
+	eBuf, cErr := kope.EncodeSlice(eKeyList)
+	if cErr != nil {
+		return cErr
+	}
+	iterator := s.Dba.NewIterator(sBuf, eBuf)
+	if iterator == nil {
+		return errors.New("there is no data in range")
+	}
+	var idx uint32 = 0
+	for iterator.Next() {
+		idx++
+		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
+			break
+		}
+	}
+	s.DelIterator(iterator)
+	return nil
+}
+
+////////////// SECTION List Keys ///////////////
+type SPostCashoutTimeWrap struct {
+	Dba iservices.IDatabaseService
+}
+
+func NewPostCashoutTimeWrap(db iservices.IDatabaseService) *SPostCashoutTimeWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := SPostCashoutTimeWrap{Dba: db}
+	return &wrap
+}
+
+func (s *SPostCashoutTimeWrap) DelIterator(iterator iservices.IDatabaseIterator) {
+	if iterator == nil || !iterator.Valid() {
+		return
+	}
+	s.Dba.DeleteIterator(iterator)
+}
+
+func (s *SPostCashoutTimeWrap) GetMainVal(iterator iservices.IDatabaseIterator) *uint64 {
+	if iterator == nil || !iterator.Valid() {
+		return nil
+	}
+	val, err := iterator.Value()
+
+	if err != nil {
+		return nil
+	}
+
+	res := &SoListPostByCashoutTime{}
+	err = proto.Unmarshal(val, res)
+
+	if err != nil {
+		return nil
+	}
+
+	return &res.PostId
+
+}
+
+func (s *SPostCashoutTimeWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.TimePointSec {
+	if iterator == nil || !iterator.Valid() {
+		return nil
+	}
+
+	val, err := iterator.Value()
+
+	if err != nil {
+		return nil
+	}
+	res := &SoListPostByCashoutTime{}
+	err = proto.Unmarshal(val, res)
+	if err != nil {
+		return nil
+	}
+	return res.CashoutTime
+
+}
+
+func (m *SoListPostByCashoutTime) OpeEncode() ([]byte, error) {
+	pre := PostCashoutTimeTable
+	sub := m.CashoutTime
+	if sub == nil {
+		return nil, errors.New("the pro CashoutTime is nil")
+	}
+	sub1 := m.PostId
+
+	kList := []interface{}{pre, sub, sub1}
+	kBuf, cErr := kope.EncodeSlice(kList)
+	return kBuf, cErr
+}
+
+//Query srt by order
+//
+//start = nil  end = nil (query the db from start to end)
+//start = nil (query from start the db)
+//end = nil (query to the end of db)
+//
+//f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
+//as arguments to the callback function
+//if the return value of f is true,continue iterating until the end iteration;
+//otherwise stop iteration immediately
+//
+func (s *SPostCashoutTimeWrap) ForEachByOrder(start *prototype.TimePointSec, end *prototype.TimePointSec,
+	f func(mVal *uint64, sVal *prototype.TimePointSec, idx uint32) bool) error {
+	if s.Dba == nil {
+		return errors.New("the db is nil")
+	}
+	if f == nil {
+		return nil
+	}
+	pre := PostCashoutTimeTable
 	skeyList := []interface{}{pre}
 	if start != nil {
 		skeyList = append(skeyList, start)

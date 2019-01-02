@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app/table"
-	"github.com/coschain/contentos-go/common"
-	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/db/storage"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/mylog"
@@ -17,7 +15,7 @@ import (
 )
 
 const (
-	dbPath = "./pbTool.db"
+	dbPath  = "./pbTool.db"
 	logPath = "./logs"
 )
 
@@ -149,10 +147,6 @@ func TestPostEvaluator_ApplyNormal(t *testing.T) {
 	authorWrap := table.NewSoAccountWrap(ev.ctx.db, &prototype.AccountName{Value: "initminer"})
 	// author last post time should be modified
 	myassert.Equal(authorWrap.GetLastPostTime().UtcSeconds, uint32(time.Now().Unix()))
-	timestamp := ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.POST_CASHPUT_DELAY_TIME) - uint32(constants.GenesisTime)
-	key := fmt.Sprintf("cashout:%d_%d", common.GetBucket(timestamp), uuid)
-	value, _ := ev.ctx.db.Get([]byte(key))
-	myassert.Equal(value, []byte("post"))
 }
 
 func TestPostEvaluator_ApplyPostExistId(t *testing.T) {
@@ -310,12 +304,7 @@ func TestReplyEvaluator_ApplyNormal(t *testing.T) {
 	myassert.Equal(postWrap.GetParentId(), uint64(111))
 
 	authorWrap := table.NewSoAccountWrap(ev.ctx.db, &prototype.AccountName{Value: "initminer"})
-	// author last post time should be modified
 	myassert.Equal(authorWrap.GetLastPostTime().UtcSeconds, currentTimestamp+1000)
-	timestamp := currentTimestamp + 1000 + uint32(constants.POST_CASHPUT_DELAY_TIME) - uint32(constants.GenesisTime)
-	key := fmt.Sprintf("cashout:%d_%d", common.GetBucket(timestamp), uuid)
-	value, _ := ev.ctx.db.Get([]byte(key))
-	myassert.Equal(value, []byte("reply"))
 }
 
 func TestVoteEvaluator_ApplyNormal(t *testing.T) {
@@ -391,8 +380,8 @@ func startController(db iservices.IDatabaseService) *TrxPool {
 	c, _ := NewController(nil)
 	c.SetDB(db)
 	c.SetBus(EventBus.New())
-	log,err := mylog.NewMyLog( logPath, mylog.DebugLevel, 0)
-	mustNoError(err,"new log error")
+	log, err := mylog.NewMyLog(logPath, mylog.DebugLevel, 0)
+	mustNoError(err, "new log error")
 	c.SetLog(log)
 	c.Open()
 	return c

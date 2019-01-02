@@ -3,7 +3,6 @@ package app
 import (
 	"fmt"
 	"github.com/coschain/contentos-go/app/table"
-	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/vm"
@@ -198,10 +197,10 @@ func (ev *PostEvaluator) Apply() {
 
 	authorWrap.MdLastPostTime(ev.ctx.control.HeadBlockTime())
 
-	timestamp := ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.POST_CASHPUT_DELAY_TIME) - uint32(constants.GenesisTime)
-	key := fmt.Sprintf("cashout:%d_%d", common.GetBucket(timestamp), op.Uuid)
-	value := "post"
-	opAssertE(ev.ctx.db.Put([]byte(key), []byte(value)), "put post key into db error")
+	//timestamp := ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.POST_CASHPUT_DELAY_TIME) - uint32(constants.GenesisTime)
+	//key := fmt.Sprintf("cashout:%d_%d", common.GetBucket(timestamp), op.Uuid)
+	//value := "post"
+	//opAssertE(ev.ctx.db.Put([]byte(key), []byte(value)), "put post key into db error")
 
 }
 
@@ -246,10 +245,10 @@ func (ev *ReplyEvaluator) Apply() {
 	// Modify Parent Object
 	opAssert(pidWrap.MdChildren(pidWrap.GetChildren()+1), "Modify Parent Children Error")
 
-	timestamp := ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.POST_CASHPUT_DELAY_TIME) - uint32(constants.GenesisTime)
-	key := fmt.Sprintf("cashout:%d_%d", common.GetBucket(timestamp), op.Uuid)
-	value := "reply"
-	opAssertE(ev.ctx.db.Put([]byte(key), []byte(value)), "put reply key into db error")
+	//timestamp := ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.POST_CASHPUT_DELAY_TIME) - uint32(constants.GenesisTime)
+	//key := fmt.Sprintf("cashout:%d_%d", common.GetBucket(timestamp), op.Uuid)
+	//value := "reply"
+	//opAssertE(ev.ctx.db.Put([]byte(key), []byte(value)), "put reply key into db error")
 }
 
 // upvote is true: upvote otherwise downvote

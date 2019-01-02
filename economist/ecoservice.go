@@ -1,16 +1,13 @@
 package economist
 
 import (
-	"fmt"
 	"github.com/coschain/contentos-go/app/table"
-	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/pkg/errors"
-	"regexp"
-	"strconv"
+	"math"
 )
 
 var (
@@ -96,46 +93,79 @@ func (e *Economist) Mint() error {
 	return nil
 }
 
+//func (e *Economist) Do() error {
+//	e.decayGlobalVotePower()
+//	timestamp := e.globalProps.Time.UtcSeconds - uint32(constants.GenesisTime)
+//	keyPrefix := fmt.Sprintf("cashout:%d_", common.GetBucket(timestamp))
+//	postCashoutList := []string{}
+//	replyCashoutList := []string{}
+//	r := regexp.MustCompile(`cashout:(?P<bucket>\d+)_(?P<idx>\d+)`)
+//	iter := e.db.NewIterator([]byte(keyPrefix), nil)
+//	for iter.Next() {
+//		if !iter.Valid() {
+//			break
+//		}
+//		key, err := iter.Key()
+//		if err != nil {
+//			return err
+//		}
+//		value, err := iter.Value()
+//		if err != nil {
+//			return err
+//		}
+//		match := r.FindStringSubmatch(string(key))
+//		if len(match) > 0 {
+//			idx := match[2]
+//			switch string(value) {
+//			case "post":
+//				postCashoutList = append(postCashoutList, idx)
+//			case "reply":
+//				replyCashoutList = append(replyCashoutList, idx)
+//			}
+//		}
+//	}
+//	if len(postCashoutList) > 0 {
+//		e.postCashout(postCashoutList)
+//	}
+//
+//	if len(replyCashoutList) > 0 {
+//		e.replyCashout(replyCashoutList)
+//	}
+//
+//	err := e.updateRewardsKeeper()
+//	return err
+//}
+
 func (e *Economist) Do() error {
 	e.decayGlobalVotePower()
-	timestamp := e.globalProps.Time.UtcSeconds - uint32(constants.GenesisTime)
-	keyPrefix := fmt.Sprintf("cashout:%d_", common.GetBucket(timestamp))
-	postCashoutList := []string{}
-	replyCashoutList := []string{}
-	r := regexp.MustCompile(`cashout:(?P<bucket>\d+)_(?P<idx>\d+)`)
-	iter := e.db.NewIterator([]byte(keyPrefix), nil)
-	for iter.Next() {
-		if !iter.Valid() {
-			break
-		}
-		key, err := iter.Key()
-		if err != nil {
-			return err
-		}
-		value, err := iter.Value()
-		if err != nil {
-			return err
-		}
-		match := r.FindStringSubmatch(string(key))
-		if len(match) > 0 {
-			idx := match[2]
-			switch string(value) {
-			case "post":
-				postCashoutList = append(postCashoutList, idx)
-			case "reply":
-				replyCashoutList = append(replyCashoutList, idx)
-			}
+	timestamp := e.globalProps.Time.UtcSeconds
+	iterator := table.NewPostCashoutTimeWrap(e.db)
+	var pids []*uint64
+	err := iterator.ForEachByOrder(nil, &prototype.TimePointSec{UtcSeconds: timestamp}, func(mVal *uint64, sVal *prototype.TimePointSec, idx uint32) bool {
+		pids = append(pids, mVal)
+		return true
+	})
+	if err != nil {
+		return err
+	}
+	var posts []*table.SoPostWrap
+	var replies []*table.SoPostWrap
+	for _, pid := range pids {
+		post := table.NewSoPostWrap(e.db, pid)
+		if post.GetParentId() == 0 {
+			posts = append(posts, post)
+		} else {
+			replies = append(replies, post)
 		}
 	}
-	if len(postCashoutList) > 0 {
-		e.postCashout(postCashoutList)
+	if len(posts) > 0 {
+		e.postCashout(posts)
 	}
 
-	if len(replyCashoutList) > 0 {
-		e.replyCashout(replyCashoutList)
+	if len(replies) > 0 {
+		e.replyCashout(replies)
 	}
-
-	err := e.updateRewardsKeeper()
+	err = e.updateRewardsKeeper()
 	return err
 }
 
@@ -143,14 +173,10 @@ func (e *Economist) decayGlobalVotePower() {
 	e.globalProps.WeightedVps -= e.globalProps.WeightedVps * constants.BLOCK_INTERVAL / constants.VP_DECAY_TIME
 }
 
-func (e *Economist) postCashout(pids []string) {
-	posts := []*table.SoPostWrap{}
+func (e *Economist) postCashout(posts []*table.SoPostWrap) {
 	var vpAccumulator uint64 = 0
-	for _, pidStr := range pids {
-		pid, _ := strconv.ParseUint(pidStr, 10, 64)
-		post := table.NewSoPostWrap(e.db, &pid)
+	for _, post := range posts {
 		vpAccumulator += post.GetWeightedVp()
-		posts = append(posts, post)
 	}
 	blockReward := vpAccumulator * e.globalProps.PostRewards.Value / e.globalProps.WeightedVps
 	innerRewards := e.rewardsKeeper.Rewards
@@ -162,18 +188,15 @@ func (e *Economist) postCashout(pids []string) {
 		} else {
 			vest.Value += reward
 		}
+		post.MdCashoutTime(&prototype.TimePointSec{UtcSeconds: math.MaxUint32})
 	}
 }
 
 // use same algorithm to simplify
-func (e *Economist) replyCashout(rids []string) {
-	replies := []*table.SoPostWrap{}
+func (e *Economist) replyCashout(replies []*table.SoPostWrap) {
 	var vpAccumulator uint64 = 0
-	for _, ridStr := range rids {
-		rid, _ := strconv.ParseUint(ridStr, 10, 64)
-		reply := table.NewSoPostWrap(e.db, &rid)
+	for _, reply := range replies {
 		vpAccumulator += reply.GetWeightedVp()
-		replies = append(replies, reply)
 	}
 	blockReward := vpAccumulator * e.globalProps.ReplyRewards.Value / e.globalProps.WeightedVps
 	innerRewards := e.rewardsKeeper.Rewards
@@ -185,5 +208,6 @@ func (e *Economist) replyCashout(rids []string) {
 		} else {
 			vest.Value += reward
 		}
+		reply.MdCashoutTime(&prototype.TimePointSec{UtcSeconds: math.MaxUint32})
 	}
 }

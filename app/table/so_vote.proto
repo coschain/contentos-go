@@ -5,8 +5,8 @@ package table;
 
 option go_package = "github.com/coschain/contentos-go/table";
 
-import "prototype/type.proto";
 import "prototype/multi_id.proto";
+import "prototype/type.proto";
 
 message so_vote {
 	prototype.voter_id          				   voter                   =      1;
