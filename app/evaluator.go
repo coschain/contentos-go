@@ -413,7 +413,8 @@ func (ev *ClaimEvaluator) Apply() {
 	keeperWrap := table.NewSoRewardsKeeperWrap(ev.ctx.db, &i)
 	opAssert(keeperWrap.CheckExist(), "reward keeper do not exist")
 
-	innerRewards := keeperWrap.GetKeeper().Rewards
+	keeper := keeperWrap.GetKeeper()
+	innerRewards := keeper.Rewards
 
 	amount := op.Amount
 
@@ -429,6 +430,7 @@ func (ev *ClaimEvaluator) Apply() {
 			vestingBalance := accWrap.GetVestingShares()
 			accWrap.MdVestingShares(&prototype.Vest{Value: vestingBalance.Value + reward})
 			val.Value -= reward
+			keeperWrap.MdKeeper(keeper)
 		} else {
 			// do nothing
 		}
@@ -450,7 +452,8 @@ func (ev *ClaimAllEvaluator) Apply() {
 	keeperWrap := table.NewSoRewardsKeeperWrap(ev.ctx.db, &i)
 	opAssert(keeperWrap.CheckExist(), "reward keeper do not exist")
 
-	innerRewards := keeperWrap.GetKeeper().Rewards
+	keeper := keeperWrap.GetKeeper()
+	innerRewards := keeper.Rewards
 
 	if val, ok := innerRewards[account.Value]; ok {
 		reward := val.Value
@@ -458,6 +461,7 @@ func (ev *ClaimAllEvaluator) Apply() {
 			vestingBalance := accWrap.GetVestingShares()
 			accWrap.MdVestingShares(&prototype.Vest{Value: vestingBalance.Value + reward})
 			val.Value -= reward
+			keeperWrap.MdKeeper(keeper)
 		} else {
 			// do nothing
 		}

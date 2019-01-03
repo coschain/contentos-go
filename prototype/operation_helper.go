@@ -28,10 +28,10 @@ func GetBaseOperation(op *Operation) BaseOperation {
 	case *Operation_Op10:
 		return BaseOperation(t.Op10)
 	// TODO @zengli
-	//case *Operation_Op11:
-	//	return BaseOperation(t.Op11)
-	//case *Operation_Op12:
-	//	return BaseOperation(t.Op12)
+	case *Operation_Op11:
+		return BaseOperation(t.Op11)
+	case *Operation_Op12:
+		return BaseOperation(t.Op12)
 	case *Operation_Op13:
 		return BaseOperation(t.Op13)
 	case *Operation_Op14:

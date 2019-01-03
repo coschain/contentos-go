@@ -19,6 +19,10 @@ const (
 	logPath = "./logs"
 )
 
+var (
+	SINGLE_ID int32 = 1
+)
+
 func Test_ApplyAccountCreate(t *testing.T) {
 	clearDB()
 	acop := &prototype.AccountCreateOperation{

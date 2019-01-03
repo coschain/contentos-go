@@ -5,7 +5,6 @@ import (
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app"
 	"github.com/coschain/contentos-go/app/table"
-	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/db/storage"
 	"github.com/coschain/contentos-go/iservices"
@@ -110,14 +109,8 @@ func TestEconomist_Do(t *testing.T) {
 
 	myassert.NoError(err, "create post success")
 
-	timestamp := postWrap.GetCashoutTime().UtcSeconds - uint32(constants.GenesisTime)
-	key := fmt.Sprintf("cashout:%d_%d", common.GetBucket(timestamp), post_operation.Uuid)
-	value := "post"
-	err = db.Put([]byte(key), []byte(value))
-	myassert.NoError(err, "put into db error")
-
 	// jump to cashout time
-	globalProps.Time = &prototype.TimePointSec{UtcSeconds: c.HeadBlockTime().UtcSeconds + uint32(constants.POST_CASHPUT_DELAY_TIME)}
+	globalProps.Time = &prototype.TimePointSec{UtcSeconds: c.HeadBlockTime().UtcSeconds + uint32(constants.POST_CASHPUT_DELAY_TIME) + 1}
 	dgpWrap.MdProps(globalProps)
 
 	err = e.Do()
