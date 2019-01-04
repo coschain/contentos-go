@@ -521,7 +521,7 @@ func (ev *ContractDeployEvaluator) Apply() {
 
 func (ev *ContractEstimateApplyEvaluator) Apply() {
 	//panic("not yet implement")
-	ev.ctx.trxCtx.Error(500, "high risk as contract contains infinite loop, deprecated.")
+	ev.ctx.trxCtx.Error(500, "high risk as malicious contract, deprecated.")
 }
 
 func (ev *ContractApplyEvaluator) Apply() {
