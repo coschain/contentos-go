@@ -1,7 +1,6 @@
 package app
 
 import (
-	"fmt"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/prototype"
@@ -10,7 +9,6 @@ import (
 	"github.com/coschain/contentos-go/vm/contract/abi"
 	ct "github.com/coschain/contentos-go/vm/contract/table"
 	"github.com/sirupsen/logrus"
-	"math"
 )
 
 func mustSuccess(b bool, val string) {
@@ -499,26 +497,31 @@ func (ev *ContractDeployEvaluator) Apply() {
 	}), "create contract data error")
 }
 
-func (ev *ContractEstimateApplyEvaluator) Apply() {
-	op := ev.op
-	cid := prototype.ContractId{Owner: op.Owner, Cname: op.Contract}
-	scid := table.NewSoContractWrap(ev.ctx.db, &cid)
-	opAssert(scid.CheckExist(), "contract name doesn't exist")
-	acc := table.NewSoAccountWrap(ev.ctx.db, op.Caller)
-	opAssert(acc.CheckExist(), "account doesn't exist")
+//func (ev *ContractEstimateApplyEvaluator) Apply() {
+//	op := ev.op
+//	cid := prototype.ContractId{Owner: op.Owner, Cname: op.Contract}
+//	scid := table.NewSoContractWrap(ev.ctx.db, &cid)
+//	opAssert(scid.CheckExist(), "contract name doesn't exist")
+//	acc := table.NewSoAccountWrap(ev.ctx.db, op.Caller)
+//	opAssert(acc.CheckExist(), "account doesn't exist")
+//
+//	code := scid.GetCode()
+//	vmCtx := &vmcontext.Context{Code: code, Caller: op.Caller,
+//		Owner: op.Owner, Gas: &prototype.Coin{Value: math.MaxUint64}, Contract: op.Contract, Injector: ev.ctx.trxCtx}
+//	cosVM := vm.NewCosVM(vmCtx, ev.ctx.db, ev.ctx.control.GetProps(), logrus.New())
+//	spent, err := cosVM.Estimate()
+//	if err != nil {
+//		vmCtx.Injector.Error(500, err.Error())
+//	} else {
+//		vmCtx.Injector.Log(fmt.Sprintf("Estimate the operation would spent %d gas, "+
+//			"the result does not include storage cost, and some edge fee. "+
+//			"Recommend you pay some extra tips to cover the charge", spent))
+//	}
+//}
 
-	code := scid.GetCode()
-	vmCtx := &vmcontext.Context{Code: code, Caller: op.Caller,
-		Owner: op.Owner, Gas: &prototype.Coin{Value: math.MaxUint64}, Contract: op.Contract, Injector: ev.ctx.trxCtx}
-	cosVM := vm.NewCosVM(vmCtx, ev.ctx.db, ev.ctx.control.GetProps(), logrus.New())
-	spent, err := cosVM.Estimate()
-	if err != nil {
-		vmCtx.Injector.Error(500, err.Error())
-	} else {
-		vmCtx.Injector.Log(fmt.Sprintf("Estimate the operation would spent %d gas, "+
-			"the result does not include storage cost, and some edge fee. "+
-			"Recommend you pay some extra tips to cover the charge", spent))
-	}
+func (ev *ContractEstimateApplyEvaluator) Apply() {
+	//panic("not yet implement")
+	ev.ctx.trxCtx.Error(500, "high risk as contract contains infinite loop, deprecated.")
 }
 
 func (ev *ContractApplyEvaluator) Apply() {
