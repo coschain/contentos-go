@@ -191,7 +191,7 @@ func (d *DPoS) scheduleProduce() bool {
 func (d *DPoS) start(snapshotPath string) {
 	d.wg.Add(1)
 	defer d.wg.Done()
-	time.Sleep(4 * time.Second)
+	//time.Sleep(4 * time.Second)
 	d.log.GetLog().Info("[DPoS] starting...")
 
 	// TODO: fuck!! this is fugly
