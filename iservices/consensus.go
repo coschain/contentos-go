@@ -16,11 +16,7 @@ type IConsensus interface {
 	// SetBootstrap determines if the current node starts a new block chain
 	SetBootstrap(b bool)
 
-	// GenerateBlock generates a new block, possible implementation: Producer.Produce()
-	// GenerateBlock() (common.ISignedBlock, error)
-	// PushTransaction accepts the trx if and only if
-	// 1. it's valid
-	// 2. the current node is a producer
+	// PushTransaction accepts the trx
 	PushTransaction(trx common.ISignedTransaction, wait bool, broadcast bool) common.ITransactionReceiptWithInfo
 
 	// PushBlock adds b to the block fork DB, called if ValidateBlock returns true

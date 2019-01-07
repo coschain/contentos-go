@@ -19,18 +19,22 @@ import (
 )
 
 /********* implements gobft IPubValidator ***********/
-
+// TODO:
 type publicValidator struct {
-	sabft       *SABFT
+	sab         *SABFT
 	accountName string
 }
 
 func (pv *publicValidator) VerifySig(digest, signature []byte) bool {
+	// Warning: DO NOT remove the lock unless you know what you're doing
+	pv.sab.RLock()
+	defer pv.sab.RUnlock()
+
 	return true
 }
 
 func (pv *publicValidator) GetPubKey() message.PubKey {
-	return ""
+	return message.PubKey(pv.accountName)
 }
 
 func (pv *publicValidator) GetVotingPower() int64 {
@@ -44,16 +48,23 @@ func (pv *publicValidator) SetVotingPower(int64) {
 /********* end gobft IPubValidator ***********/
 
 /********* implements gobft IPrivValidator ***********/
-
+// TODO:
 type privateValidator struct {
+	sab     *SABFT
+	privKey *prototype.PrivateKeyType
+	name    string
 }
 
 func (pv *privateValidator) Sign(digest []byte) []byte {
-	return nil
+	// Warning: DO NOT remove the lock unless you know what you're doing
+	pv.sab.RLock()
+	defer pv.sab.RUnlock()
+
+	return digest
 }
 
 func (pv *privateValidator) GetPubKey() message.PubKey {
-	return ""
+	return message.PubKey(pv.name)
 }
 
 /********* end gobft IPrivValidator ***********/
@@ -68,21 +79,20 @@ type SABFT struct {
 	ForkDB *forkdb.DB
 	blog   blocklog.BLog
 
-	validators []*publicValidator
-	priv       *privateValidator
-	Name       string
-	bft        *gobft.Core
+	Name string
 
-	privKey        *prototype.PrivateKeyType
+	validators    []*publicValidator
+	priv          *privateValidator
+	bft           *gobft.Core
+	lastCommitted common.BlockID
+	suffledID     common.BlockID
+
 	readyToProduce bool
 	prodTimer      *time.Timer
 	trxCh          chan func()
 	blkCh          chan common.ISignedBlock
 	bootstrap      bool
 	slot           uint64
-
-	lastCommitted common.BlockID
-	suffledID     common.BlockID
 
 	ctx  *node.ServiceContext
 	ctrl iservices.ITrxPool
@@ -104,24 +114,25 @@ func NewSABFT(ctx *node.ServiceContext) *SABFT {
 		validators: make([]*publicValidator, 0, 1),
 		prodTimer:  time.NewTimer(1 * time.Millisecond),
 		trxCh:      make(chan func()),
-		//trxRetCh:  make(chan common.ITransactionInvoice),
-		blkCh:  make(chan common.ISignedBlock),
-		ctx:    ctx,
-		stopCh: make(chan struct{}),
-		log:    logService.(iservices.ILog),
+		blkCh:      make(chan common.ISignedBlock),
+		ctx:        ctx,
+		stopCh:     make(chan struct{}),
+		log:        logService.(iservices.ILog),
 	}
-	ret.priv = &privateValidator{
-		// TODO:
-	}
+
 	ret.bft = gobft.NewCore(ret, ret.priv)
 	ret.SetBootstrap(ctx.Config().Consensus.BootStrap)
 	ret.Name = ctx.Config().Consensus.LocalBpName
 	ret.log.GetLog().Info("[SABFT bootstrap] ", ctx.Config().Consensus.BootStrap)
 
+	ret.priv = &privateValidator{
+		sab:  ret,
+		name: ret.Name,
+	}
 	privateKey := ctx.Config().Consensus.LocalBpPrivateKey
 	if len(privateKey) > 0 {
 		var err error
-		ret.privKey, err = prototype.PrivateKeyFromWIF(ctx.Config().Consensus.LocalBpPrivateKey)
+		ret.priv.privKey, err = prototype.PrivateKeyFromWIF(privateKey)
 		if err != nil {
 			panic(err)
 		}
@@ -156,7 +167,7 @@ func (sabft *SABFT) makeValidators(names []string) []*publicValidator {
 	ret := make([]*publicValidator, len(names))
 	for i := range ret {
 		ret[i] = &publicValidator{
-			sabft:       sabft,
+			sab:         sabft,
 			accountName: names[i],
 		}
 	}
@@ -339,7 +350,7 @@ func (sabft *SABFT) generateAndApplyBlock() (common.ISignedBlock, error) {
 		prev.Hash = make([]byte, 32)
 	}
 	//sabft.log.GetLog().Debugf("generating block. <prev %v>, <ts %sabft>", prev.Hash, ts)
-	return sabft.ctrl.GenerateAndApplyBlock(sabft.Name, prev, uint32(ts), sabft.privKey, prototype.Skip_nothing)
+	return sabft.ctrl.GenerateAndApplyBlock(sabft.Name, prev, uint32(ts), sabft.priv.privKey, prototype.Skip_nothing)
 }
 
 func (sabft *SABFT) checkGenesis() bool {
@@ -483,8 +494,9 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 		// 2. out of range block or
 		// 3. head of a non-main branch or
 		// 4. illegal block
-		sabft.log.GetLog().Debugf("[pushBlock]possibly detached block. prev: got %v, want %v", b.Id(), head.Id())
+
 		if b.Id().BlockNum() > head.Id().BlockNum() {
+			sabft.log.GetLog().Debugf("[SABFT][pushBlock]possibly detached block. prev: got %v, want %v", b.Id(), head.Id())
 			sabft.p2p.TriggerSync(head.Id())
 		}
 		return nil
@@ -506,25 +518,69 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 }
 
 /********* implements gobft ICommittee ***********/
+// All the methods below will be called by gobft
 
 // Commit sets b as the last irreversible block
-func (sabft *SABFT) Commit(b message.ProposedData) error {
-	sabft.log.GetLog().Debug("[SABFT] commit block #", b)
+func (sabft *SABFT) Commit(data message.ProposedData) error {
+	blockID := common.BlockID{
+		Data: data,
+	}
+	sabft.log.GetLog().Debug("[SABFT] commit block #", blockID)
+
+	// if we're committing a block we don't have
+	blk, err := sabft.ForkDB.FetchBlock(blockID)
+	if err != nil {
+		panic(err)
+	}
+
+	// if blockID points to a block that is not on the current
+	// longest chain, switch fork first
+	blkMain, err := sabft.ForkDB.FetchBlockFromMainBranch(blockID.BlockNum())
+	if err != nil {
+		panic(err)
+	}
+	if blkMain.Id() != blockID {
+		switchErr := sabft.switchFork(sabft.ForkDB.Head().Id(), blockID)
+		if switchErr == true {
+			panic("there's an error while switching to committed block")
+		}
+		// also need to reset new head
+		sabft.ForkDB.ResetHead(blockID)
+	}
+
+	sabft.ctrl.Commit(blockID.BlockNum())
+
+	if err = sabft.blog.Append(blk); err != nil {
+		panic(err)
+	}
+
+	sabft.ForkDB.Commit(blockID)
+
 	return nil
 }
 
 // GetValidator returns the validator correspond to the PubKey
 func (sabft *SABFT) GetValidator(key message.PubKey) custom.IPubValidator {
+	for i := range sabft.validators {
+		if sabft.validators[i].accountName == string(key) {
+			return sabft.validators[i]
+		}
+	}
 	return nil
 }
 
 // IsValidator returns true if key is a validator
 func (sabft *SABFT) IsValidator(key message.PubKey) bool {
-	return true
+	for i := range sabft.validators {
+		if sabft.validators[i].accountName == string(key) {
+			return true
+		}
+	}
+	return false
 }
 
 func (sabft *SABFT) TotalVotingPower() int64 {
-	return 0
+	return int64(len(sabft.validators))
 }
 
 func (sabft *SABFT) GetCurrentProposer(round int) message.PubKey {
@@ -537,7 +593,7 @@ func (sabft *SABFT) DecidesProposal() message.ProposedData {
 }
 
 // ValidateProposed validates the proposed data
-func (sabft *SABFT) ValidateProposed(data message.ProposedData) bool {
+func (sabft *SABFT) ValidateProposal(data message.ProposedData) bool {
 	return true
 }
 
@@ -552,8 +608,7 @@ func (sabft *SABFT) BroadCast(msg message.ConsensusMessage) error {
 
 /********* end gobft ICommittee ***********/
 
-func (sabft *SABFT) switchFork(old, new common.BlockID) {
-	// TODO: what about bft process???
+func (sabft *SABFT) switchFork(old, new common.BlockID) bool {
 	branches, err := sabft.ForkDB.FetchBranch(old, new)
 	if err != nil {
 		panic(err)
@@ -600,6 +655,8 @@ func (sabft *SABFT) switchFork(old, new common.BlockID) {
 		// restore the good old head of ForkDB
 		sabft.ForkDB.ResetHead(branches[0][0])
 	}
+
+	return errWhileSwitch
 }
 
 func (sabft *SABFT) applyBlock(b common.ISignedBlock) error {

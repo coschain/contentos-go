@@ -12,8 +12,8 @@ github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1/go.mod h1:Q3SI9o4m/ZMn
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
 github.com/coschain/cobra v0.0.0-20181106130408-77bf516f51a1 h1:S9wazRgjac3MulSBIcFRqpEoR1CM9kJY1TyW1IhazUw=
 github.com/coschain/cobra v0.0.0-20181106130408-77bf516f51a1/go.mod h1:9cl4pbRcSRS1EMEWXDoQW8jrLNI2vyISOMrX73ZjXy0=
-github.com/coschain/gobft v0.0.0-20181229093124-fa99b62b82e3 h1:pghjrtxwegP0PhTwauZVML2v9fcD/ZShzesz5+tfQzE=
-github.com/coschain/gobft v0.0.0-20181229093124-fa99b62b82e3/go.mod h1:lNT59IugSOVjDJSp9GrqmS5sAoegqfAGQ0sNBCb+iZQ=
+github.com/coschain/gobft v0.0.0-20190107081937-cb9f7882d45c h1:MCxsqJAlgxHJUAlhFe7SXKjzlgo7D8rCpzj5iBCjsJ4=
+github.com/coschain/gobft v0.0.0-20190107081937-cb9f7882d45c/go.mod h1:lNT59IugSOVjDJSp9GrqmS5sAoegqfAGQ0sNBCb+iZQ=
 github.com/coschain/wagon v0.0.0-20190102065443-ad16f10108ac h1:slDIgFJPkdUUmN21hN5RXsYTCIUaeGepyEm+xLPv+j4=
 github.com/coschain/wagon v0.0.0-20190102065443-ad16f10108ac/go.mod h1:zHOMvbitcZek8oshsMO5VpyBjWjV9X8cn8WTZwdebpM=
 github.com/coschain/wagon v0.3.1-0.20181221030614-464a8d748a78 h1:iwmxZiIig9oQF1vAAcPFRCVw/ylLgXUK2Mi0jNY+uVk=
