@@ -15,6 +15,8 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 	"strconv"
+	"github.com/coschain/contentos-go/common/crypto/secp256k1"
+	"github.com/coschain/contentos-go/common/crypto"
 )
 
 var (
@@ -940,4 +942,47 @@ func (c *TrxPool) Commit(num uint64) {
 	//c.log.GetLog().Debug("### Commit, tag:", num, " rev:", rev)
 	//c.log.GetLog().Debug("$$$ dump reversion array:",c.numToRev)
 	mustNoError(c.db.RebaseToRevision(rev), fmt.Sprintf("RebaseToRevision: tag:%d, reversion:%d", num, rev))
+}
+
+func (c *TrxPool) VerifySig(name *prototype.AccountName, digest []byte, sig []byte) bool {
+	// public key from db
+	authorityWrap := table.NewSoAccountAuthorityObjectWrap(c.db, name)
+	if !authorityWrap.CheckExist() {
+		return false
+	}
+	authority := authorityWrap.GetOwner()
+	if authority == nil {
+		return false
+	}
+
+	// public key from parameter
+	buffer, err := secp256k1.RecoverPubkey(digest, sig)
+
+	if err != nil {
+		return false
+	}
+
+	ecPubKey, err := crypto.UnmarshalPubkey(buffer)
+	if err != nil {
+		return false
+	}
+	keyBuffer := secp256k1.CompressPubkey(ecPubKey.X, ecPubKey.Y)
+	result := new(prototype.PublicKeyType)
+	result.Data = keyBuffer
+
+	// compare bytes
+	for _, pub := range authority.KeyAuths {
+		if bytes.Equal(pub.Key.Data,result.Data) {
+			return true
+		}
+	}
+	return false
+}
+
+func (c *TrxPool) Sign(priv *prototype.PrivateKeyType, digest []byte) []byte {
+	res, err := secp256k1.Sign(digest[:], priv.Data)
+	if err != nil {
+		return nil
+	}
+	return res
 }

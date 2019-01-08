@@ -17,8 +17,8 @@ var DeployCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "deploy",
 		Short:   "deploy a new contract",
-		Example: "deploy [author] [contract_name] [local_path]",
-		Args:    cobra.ExactArgs(3),
+		Example: "deploy [author] [contract_name] [local_wasm_path] [local_abi_path]",
+		Args:    cobra.ExactArgs(4),
 		Run:     deploy,
 	}
 	return cmd
@@ -37,7 +37,11 @@ func deploy(cmd *cobra.Command, args []string) {
 	}
 	cname := args[1]
 	path := args[2]
+	pathAbi := args[3]
+
 	code, _ := ioutil.ReadFile(path)
+	abi, _ := ioutil.ReadFile(pathAbi)
+
 	ctx := vmcontext.Context{Code: code}
 	cosVM := vm.NewCosVM(&ctx, nil, nil, nil)
 	err := cosVM.Validate()
@@ -48,7 +52,7 @@ func deploy(cmd *cobra.Command, args []string) {
 	contractDeployOp := &prototype.ContractDeployOperation{
 		Owner:    &prototype.AccountName{Value: author},
 		Contract: cname,
-		Abi:      "",
+		Abi:      string(abi),
 		Code:     code,
 	}
 	signTx, err := utils.GenerateSignedTxAndValidate([]interface{}{contractDeployOp}, acc)

@@ -17,8 +17,8 @@ var CallCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "call",
 		Short:   "call a deployed contract",
-		Example: "call [caller] [owner] [contract_name] [args]",
-		Args:    cobra.ExactArgs(4),
+		Example: "call [caller] [owner] [contract_name] [method] [args]",
+		Args:    cobra.ExactArgs(5),
 		Run:     call,
 	}
 	cmd.Flags().Uint64VarP(&fundToContract, "fund", "f", 0, `call [caller] [owner] [contract_name] [args]  -f 300`)
@@ -43,7 +43,9 @@ func call(cmd *cobra.Command, args []string) {
 	}
 	owner := args[1]
 	cname := args[2]
-	params := args[3]
+	method := args[3]
+
+	params := args[4]
 	contractDeployOp := &prototype.ContractApplyOperation{
 		Caller:   &prototype.AccountName{Value: caller},
 		Owner:    &prototype.AccountName{Value: owner},
@@ -51,6 +53,7 @@ func call(cmd *cobra.Command, args []string) {
 		Gas:      &prototype.Coin{Value: maxGas},
 		Contract: cname,
 		Params:   params,
+		Method:	  method,
 	}
 	signTx, err := utils.GenerateSignedTxAndValidate([]interface{}{contractDeployOp}, acc)
 	if err != nil {

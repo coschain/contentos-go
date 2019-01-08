@@ -22,9 +22,18 @@ type IConsensus interface {
 	// PushBlock adds b to the block fork DB, called if ValidateBlock returns true
 	PushBlock(b common.ISignedBlock)
 
+
+	// GetHeadBlockId returns the block id of the head block
 	GetHeadBlockId() common.BlockID
+
+	// GetIDs returns a list of block ids which remote peer may not have
 	GetIDs(start, end common.BlockID) ([]common.BlockID, error)
+
+	// FetchBlock returns the block whose id is the given param
 	FetchBlock(id common.BlockID) (common.ISignedBlock, error)
+
+	// HasBlock query the local blockchain whether it has the given block id
 	HasBlock(id common.BlockID) bool
+
 	FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, error)
 }
