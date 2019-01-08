@@ -22,6 +22,7 @@ type IConsensus interface {
 	// PushBlock adds b to the block fork DB, called if ValidateBlock returns true
 	PushBlock(b common.ISignedBlock)
 
+	Push(msg interface{})
 
 	// GetHeadBlockId returns the block id of the head block
 	GetHeadBlockId() common.BlockID

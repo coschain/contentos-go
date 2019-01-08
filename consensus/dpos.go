@@ -365,6 +365,8 @@ func (d *DPoS) getSlotAtTime(t time.Time) uint64 {
 	return (uint64(t.Unix())-nextSlotTime)/constants.BLOCK_INTERVAL + 1
 }
 
+func (d *DPoS) Push(msg interface{}) {}
+
 func (d *DPoS) PushBlock(b common.ISignedBlock) {
 	go func(blk common.ISignedBlock) {
 		d.blkCh <- b

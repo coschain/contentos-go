@@ -128,6 +128,10 @@ func NewSABFT(ctx *node.ServiceContext) *SABFT {
 	ret.SetBootstrap(ctx.Config().Consensus.BootStrap)
 	ret.Name = ctx.Config().Consensus.LocalBpName
 	ret.log.GetLog().Info("[SABFT bootstrap] ", ctx.Config().Consensus.BootStrap)
+	ret.appState = &message.AppState{
+		LastHeight:       0,
+		LastProposedData: message.NilData,
+	}
 
 	ret.priv = &privateValidator{
 		sab:  ret,
@@ -458,6 +462,14 @@ func (sabft *SABFT) PushBlock(b common.ISignedBlock) {
 	}(b)
 }
 
+func (sabft *SABFT) Push(msg interface{}) {
+	switch msg := msg.(type) {
+	case message.ConsensusMessage:
+		sabft.bft.RecvMsg(msg)
+	default:
+	}
+}
+
 func (sabft *SABFT) PushTransaction(trx common.ISignedTransaction, wait bool, broadcast bool) common.ITransactionReceiptWithInfo {
 
 	var waitChan chan common.ITransactionReceiptWithInfo
@@ -578,6 +590,7 @@ func (sabft *SABFT) Commit(data message.ProposedData, commitRecords *message.Com
 	if commitRecords != nil {
 		sabft.lastCommitted = commitRecords
 		sabft.BroadCast(commitRecords)
+		//sabft.appState.LastCommitTime = commitRecords.CommitTime
 	}
 
 	return nil
