@@ -16,8 +16,8 @@ import (
 	//"github.com/coschain/contentos-go/app"
 )
 
-func timeToNextSec() time.Duration {
-	now := time.Now()
+func (d *DPoS) timeToNextSec() time.Duration {
+	now := d.Ticker.Now()
 	ceil := now.Add(time.Millisecond * 500).Round(time.Second)
 	return ceil.Sub(now)
 }
@@ -44,6 +44,8 @@ type DPoS struct {
 	p2p  iservices.IP2P
 	log  iservices.ILog
 
+	Ticker TimerDriver
+
 	stopCh chan struct{}
 	wg     sync.WaitGroup
 	sync.RWMutex
@@ -64,6 +66,7 @@ func NewDPoS(ctx *node.ServiceContext) *DPoS {
 		ctx:    ctx,
 		stopCh: make(chan struct{}),
 		log:    logService.(iservices.ILog),
+		Ticker: &Timer{},
 	}
 	ret.SetBootstrap(ctx.Config().Consensus.BootStrap)
 	ret.Name = ctx.Config().Consensus.LocalBpName
@@ -98,7 +101,7 @@ func (d *DPoS) SetBootstrap(b bool) {
 func (d *DPoS) CurrentProducer() string {
 	//d.RLock()
 	//defer d.RUnlock()
-	now := time.Now().Round(time.Second)
+	now := d.Ticker.Now().Round(time.Second)
 	slot := d.getSlotAtTime(now)
 	return d.getScheduledProducer(slot)
 }
@@ -159,22 +162,22 @@ func (d *DPoS) Start(node *node.Node) error {
 	return nil
 }
 
-func (d *DPoS) scheduleProduce(t []time.Time) bool {
-	if !d.checkGenesis(t) {
+func (d *DPoS) scheduleProduce() bool {
+	if !d.checkGenesis() {
 		//d.log.GetLog().Info("checkGenesis failed.")
-		if len(t) == 0 {
-			d.prodTimer.Reset(timeToNextSec())
+		if _, ok := d.Ticker.(*Timer); ok {
+			d.prodTimer.Reset(d.timeToNextSec())
 		}
 		//d.prodTimer.Reset(timeToNextSec())
 		return false
 	}
 
 	if !d.readyToProduce {
-		if d.checkSync(t) {
+		if d.checkSync() {
 			d.readyToProduce = true
 		} else {
-			if len(t) == 0 {
-				d.prodTimer.Reset(timeToNextSec())
+			if _, ok := d.Ticker.(*Timer); ok {
+				d.prodTimer.Reset(d.timeToNextSec())
 			}
 			//d.prodTimer.Reset(timeToNextSec())
 			var headID common.BlockID
@@ -187,9 +190,9 @@ func (d *DPoS) scheduleProduce(t []time.Time) bool {
 			return false
 		}
 	}
-	if !d.checkProducingTiming(t) || !d.checkOurTurn() {
-		if len(t) == 0 {
-			d.prodTimer.Reset(timeToNextSec())
+	if !d.checkProducingTiming() || !d.checkOurTurn() {
+		if _, ok := d.Ticker.(*Timer); ok {
+			d.prodTimer.Reset(d.timeToNextSec())
 		}
 		//d.prodTimer.Reset(timeToNextSec())
 		return false
@@ -266,8 +269,8 @@ func (d *DPoS) generateAndApplyBlock() (common.ISignedBlock, error) {
 	return d.ctrl.GenerateAndApplyBlock(d.Name, prev, uint32(ts), d.privKey, prototype.Skip_nothing)
 }
 
-func (d *DPoS) checkGenesis(t []time.Time) bool {
-	now := GetCurrentTime(t)
+func (d *DPoS) checkGenesis() bool {
+	now := d.Ticker.Now()
 	genesisTime := time.Unix(constants.GenesisTime, 0)
 	if now.After(genesisTime) || now.Equal(genesisTime) {
 		return true
@@ -288,8 +291,8 @@ func (d *DPoS) checkGenesis(t []time.Time) bool {
 
 // this'll only be called by the start routine,
 // no need to lock
-func (d *DPoS) checkProducingTiming(t []time.Time) bool {
-	now := GetCurrentTime(t).Round(time.Second)
+func (d *DPoS) checkProducingTiming() bool {
+	now := d.Ticker.Now().Round(time.Second)
 	d.slot = d.getSlotAtTime(now)
 	if d.slot == 0 {
 		// not time yet, wait till the next block producing
@@ -320,8 +323,8 @@ func (d *DPoS) getScheduledProducer(slot uint64) string {
 }
 
 // returns false if we're out of sync
-func (d *DPoS) checkSync(t []time.Time) bool {
-	now := GetCurrentTime(t).Round(time.Second).Unix()
+func (d *DPoS) checkSync() bool {
+	now := d.Ticker.Now().Round(time.Second).Unix()
 	if d.getSlotTime(1) < uint64(now) {
 		//time.Sleep(time.Second)
 		return false
@@ -634,7 +637,10 @@ func (d *DPoS) ResetProdTimer(t time.Duration) {
 }
 
 func (d *DPoS) MaybeProduceBlock(t ...time.Time) {
-	if !d.scheduleProduce(t) {
+	if len(t) != 0 {
+		d.Ticker = &FakeTimer {t : t[0]}
+	}
+	if !d.scheduleProduce() {
 		return
 	}
 
@@ -643,8 +649,8 @@ func (d *DPoS) MaybeProduceBlock(t ...time.Time) {
 		d.log.GetLog().Error("[DPoS] generateAndApplyBlock error: ", err)
 		return
 	}
-	if len(t) == 0 {
-		d.prodTimer.Reset(timeToNextSec())
+	if _, ok := d.Ticker.(*Timer); ok {
+		d.prodTimer.Reset(d.timeToNextSec())
 	}
 	//d.prodTimer.Reset(timeToNextSec())
 	d.log.GetLog().Debugf("[DPoS] generated block: <num %d> <ts %d>", b.Id().BlockNum(), b.Timestamp())
@@ -661,13 +667,5 @@ func (d *DPoS) MaybeProduceBlock(t ...time.Time) {
 	//} else {
 	//	d.p2p.Broadcast(b)
 	//}
-	fmt.Println("before bcast block")
 	d.p2p.Broadcast(b)
-}
-
-func GetCurrentTime(t []time.Time) time.Time {
-	if len(t) == 0 {
-		return time.Now()
-	}
-	return t[0]
 }

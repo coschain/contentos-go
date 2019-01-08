@@ -25,6 +25,12 @@ type publicValidator struct {
 	accountName string
 }
 
+func (sabft *SABFT) timeToNextSec() time.Duration {
+	now := time.Now()
+	ceil := now.Add(time.Millisecond * 500).Round(time.Second)
+	return ceil.Sub(now)
+}
+
 func (pv *publicValidator) VerifySig(digest, signature []byte) bool {
 	// Warning: DO NOT remove the lock unless you know what you're doing
 	pv.sab.RLock()
@@ -253,7 +259,7 @@ func (sabft *SABFT) Start(node *node.Node) error {
 func (sabft *SABFT) scheduleProduce() bool {
 	if !sabft.checkGenesis() {
 		//sabft.log.GetLog().Info("checkGenesis failed.")
-		sabft.prodTimer.Reset(timeToNextSec())
+		sabft.prodTimer.Reset(sabft.timeToNextSec())
 		return false
 	}
 
@@ -261,7 +267,7 @@ func (sabft *SABFT) scheduleProduce() bool {
 		if sabft.checkSync() {
 			sabft.readyToProduce = true
 		} else {
-			sabft.prodTimer.Reset(timeToNextSec())
+			sabft.prodTimer.Reset(sabft.timeToNextSec())
 			var headID common.BlockID
 			if !sabft.ForkDB.Empty() {
 				headID = sabft.ForkDB.Head().Id()
@@ -273,7 +279,7 @@ func (sabft *SABFT) scheduleProduce() bool {
 		}
 	}
 	if !sabft.checkProducingTiming() || !sabft.checkOurTurn() {
-		sabft.prodTimer.Reset(timeToNextSec())
+		sabft.prodTimer.Reset(sabft.timeToNextSec())
 		return false
 	}
 	return true
@@ -313,7 +319,7 @@ func (sabft *SABFT) start() {
 				sabft.log.GetLog().Error("[SABFT] generateAndApplyBlock error: ", err)
 				continue
 			}
-			sabft.prodTimer.Reset(timeToNextSec())
+			sabft.prodTimer.Reset(sabft.timeToNextSec())
 			sabft.log.GetLog().Debugf("[SABFT] generated block: <num %sabft> <ts %sabft>", b.Id().BlockNum(), b.Timestamp())
 			if err := sabft.pushBlock(b, false); err != nil {
 				sabft.log.GetLog().Error("[SABFT] pushBlock push generated block failed: ", err)
