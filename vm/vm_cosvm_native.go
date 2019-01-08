@@ -136,7 +136,10 @@ func (w *CosVMNative) TableGetRecord(tableName string, primary []byte) []byte {
 	tables := w.cosVM.ctx.Tables
 	w.CosAssert(tables != nil, "TableGetRecord(): context tables not ready.")
 	data, err := tables.Table(tableName).GetRecord(primary)
-	w.CosAssert(err == nil, fmt.Sprintf("TableGetRecord(): table.GetRecord() failed. %v", err))
+	//w.CosAssert(err == nil, fmt.Sprintf("TableGetRecord(): table.GetRecord() failed. %v", err))
+	if err != nil {
+		return nil
+	}
 	return data
 }
 
