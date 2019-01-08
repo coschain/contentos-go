@@ -24,7 +24,7 @@ type DatabaseService struct {
 	path string
 	db   *LevelDatabase
 	rdb  *RevertibleDatabase
-	tdb  *SquashableDatabase
+	tdb  *TransactionalDatabase
 }
 
 // service constructor
@@ -60,7 +60,7 @@ func (s *DatabaseService) Start(node *node.Node) error {
 		db.Close()
 		return errors.New("failed to create reversible database")
 	}
-	tdb := NewSquashableDatabase(db, true)
+	tdb := NewTransactionalDatabase(rdb, true)
 	if tdb == nil {
 		tdb.Close()
 		db.Close()
@@ -116,7 +116,7 @@ func (s *DatabaseService) RebaseToTag(tag string) error {
 }
 
 //
-// implementation of Squashable interface
+// implementation of Transactional interface
 //
 
 func (s *DatabaseService) BeginTransaction() {
@@ -129,18 +129,6 @@ func (s *DatabaseService) EndTransaction(commit bool) error {
 
 func (s *DatabaseService) TransactionHeight() uint {
 	return s.tdb.TransactionHeight()
-}
-
-func (s *DatabaseService) BeginTransactionWithTag(tag string) {
-	s.tdb.BeginTransactionWithTag(tag)
-}
-
-func (s *DatabaseService) Squash(tag string) error {
-	return s.tdb.Squash(tag)
-}
-
-func (s *DatabaseService) RollBackToTag(tag string) error {
-	return s.tdb.RollBackToTag(tag)
 }
 
 //

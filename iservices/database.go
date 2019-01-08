@@ -107,12 +107,6 @@ type IDatabaseService interface {
 	// current transaction height
 	TransactionHeight() uint
 
-	BeginTransactionWithTag(tag string)
-
-	Squash(tag string) error
-
-	RollBackToTag(tag string) error
-
 	//
 	// data reversion feature
 	//
