@@ -105,7 +105,7 @@ func (w *CosVMNative) CosAbort() {
 }
 
 func (w *CosVMNative) ReadContractOpParams() string {
-	return w.cosVM.ctx.Params
+	return string(w.cosVM.ctx.ParamsData)
 }
 
 func (w *CosVMNative) ReadContractOwner() string {
