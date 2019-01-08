@@ -1,6 +1,7 @@
 package iservices
 
 import (
+	"time"
 	"github.com/coschain/contentos-go/common"
 )
 
@@ -36,4 +37,9 @@ type IConsensus interface {
 	HasBlock(id common.BlockID) bool
 
 	FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, error)
+
+
+	// NOTE: the following methods are testing methods and should only be called by multinodetester2
+	// ResetProdTimer reset the prodTimer in dpos
+	ResetProdTimer(t time.Duration)
 }

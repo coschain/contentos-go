@@ -639,3 +639,11 @@ func (d *DPoS) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, error
 	ret = append(ret, blocksInForkDB...)
 	return ret, nil
 }
+
+
+func (d *DPoS) ResetProdTimer(t time.Duration) {
+	if !d.prodTimer.Stop() {
+		<-d.prodTimer.C
+	}
+	d.prodTimer.Reset(t)
+}

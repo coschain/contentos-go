@@ -108,7 +108,9 @@ func startNode(app *node.Node, cfg node.Config) {
 	if err != nil {
 		panic(err)
 	}
-	globalObj.dposList = append(globalObj.dposList, it.(iservices.IConsensus))
+	Icons := it.(iservices.IConsensus)
+	Icons.ResetProdTimer( 86400 * time.Second )
+	globalObj.dposList = append(globalObj.dposList, Icons)
 	fmt.Println("append one to list")
 	globalObj.Unlock()
 
