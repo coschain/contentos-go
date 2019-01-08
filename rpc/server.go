@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	GRPCMaxRecvMsgSize = 4096
+	GRPCMaxRecvMsgSize = 4096*1024
 	GRPCServerType     = "tcp"
 )
 

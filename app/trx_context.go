@@ -55,6 +55,7 @@ func (p *TrxContext) Error(code uint32, msg string) {
 }
 
 func (p *TrxContext) Log(msg string) {
+	fmt.Println(msg)
 	p.Wrapper.Receipt.OpResults = append(p.Wrapper.Receipt.OpResults, &prototype.OperationReceiptWithInfo{VmConsole: msg})
 }
 
