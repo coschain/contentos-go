@@ -44,10 +44,12 @@ func stressCreAccount(cmd *cobra.Command, args []string) {
 		fmt.Println(fmt.Sprintf("account: %s should be loaded or created first", creator))
 		return
 	}
-	isWait,err := strconv.ParseBool(args[2])
-	if err != nil {
-		isWait = false
+	isWait := true
+	if len(args) > 2 {
+		isWait,_ = strconv.ParseBool(args[2])
+
 	}
+
 	wg := &sync.WaitGroup{}
 	for i := 0; i < tCount; i++  {
 		tid := i
