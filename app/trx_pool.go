@@ -37,6 +37,7 @@ type TrxPool struct {
 	skip    prototype.SkipFlag
 
 	pendingTx []*prototype.EstimateTrxResult
+	extraTx []*prototype.EstimateTrxResult   //the Extra transactions when generate block
 
 	// TODO delete ??
 	isProducing bool
@@ -77,6 +78,7 @@ func (c *TrxPool) SetDB(db iservices.IDatabaseService) {
 
 func (c *TrxPool) SetBus(bus EventBus.Bus) {
 	c.noticer = bus
+	fmt.Printf("the noticer is %p \n",bus)
 }
 
 func (c *TrxPool) SetLog(log iservices.ILog) {
@@ -102,7 +104,7 @@ func (c *TrxPool) Start(node *node.Node) error {
 	c.db = db
 	c.evLoop = node.MainLoop
 	c.noticer = node.EvBus
-
+	fmt.Printf("the noticer is %p \n",c.noticer)
 	c.Open()
 	return nil
 }
@@ -224,10 +226,19 @@ func (c *TrxPool) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag)
 			if skip&prototype.Skip_apply_transaction != 0 {
 				c.havePendingTransaction = false
 			}
+			c.restorePending(tmpPending)
+		}else {
+			// restorePending will call pushTrx, will start new transaction for pending
+			if skip&prototype.Skip_apply_transaction == 0 {
+				c.restorePending(tmpPending)
+			}else if len(c.extraTx) > 0 {
+				//just need restore extra trx
+				c.restorePending(c.extraTx)
+				c.extraTx = c.extraTx[0:0]
+			}
 		}
 		c.skip = oldFlag
-		// restorePending will call pushTrx, will start new transaction for pending
-		c.restorePending(tmpPending)
+
 	}()
 
 	if skip&prototype.Skip_apply_transaction == 0 {
@@ -274,7 +285,7 @@ func (c *TrxPool) restorePending(pending []*prototype.EstimateTrxResult) {
 
 		objWrap := table.NewSoTransactionObjectWrap(c.db, id)
 		if !objWrap.CheckExist() {
-			c.pushTrx(tw.SigTrx)
+			c.PushTrxToPending(tw.SigTrx)
 		}
 	}
 }
@@ -350,13 +361,20 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 	c.havePendingTransaction = true
 
 	var postponeTrx uint64 = 0
+	tmpTrx,idx := make([]*prototype.EstimateTrxResult, len(c.pendingTx)),0
+	if len(c.extraTx) > 0 {
+		c.extraTx = c.extraTx[0:0]
+	}
 	for _, trxWraper := range c.pendingTx {
 		if trxWraper.SigTrx.Trx.Expiration.UtcSeconds < timestamp {
 			continue
 		}
+		tmpTrx[idx] = trxWraper
+		idx++
 		var newTotalSize uint64 = uint64(totalSize) + uint64(proto.Size(trxWraper))
 		if newTotalSize > uint64(maxBlockSize) {
 			postponeTrx++
+            c.extraTx = append(c.extraTx, trxWraper)
 			continue
 		}
 
@@ -370,7 +388,6 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 			c.db.BeginTransaction()
 			c.applyTransactionInner(trxWraper)
 			mustNoError(c.db.EndTransaction(true), "EndTransaction error")
-
 			totalSize += uint32(proto.Size(trxWraper))
 			signBlock.Transactions = append(signBlock.Transactions, trxWraper.ToTrxWrapper())
 			//c.currentTrxInBlock++
@@ -404,7 +421,10 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 	} else {
 		c.db.EndTransaction(false)
 	}*/
-
+	if len(tmpTrx) > 0 {
+		c.pendingTx = nil
+		c.pendingTx = tmpTrx
+	}
 	return signBlock
 }
 
@@ -432,6 +452,12 @@ func (c *TrxPool) notifyBlockApply(block *prototype.SignedBlock) {
 	c.noticer.Publish(constants.NOTICE_BLOCK_APPLY, block)
 }
 
+func (c *TrxPool) notifyTrxApplyResult(trx *prototype.SignedTransaction, res bool,
+	receipt *prototype.TransactionReceiptWithInfo){
+	 trxMgr := GetTrxMgrInstance()
+	 trxMgr.NotifyTrxApplyResult(trx, res, receipt)
+}
+
 func (c *TrxPool) applyTransaction(trxEst *prototype.EstimateTrxResult) {
 	c.applyTransactionInner(trxEst)
 	// @ not use yet
@@ -444,9 +470,11 @@ func (c *TrxPool) applyTransactionInner(trxEst *prototype.EstimateTrxResult) {
 		if err := recover(); err != nil {
 			trxEst.Receipt.Status = prototype.StatusError
 			trxEst.Receipt.ErrorInfo = fmt.Sprintf("applyTransaction failed : %v", err)
+			c.notifyTrxApplyResult(trxEst.SigTrx, false, trxEst.Receipt)
 			panic(trxEst.Receipt.ErrorInfo)
 		} else {
 			trxEst.Receipt.Status = prototype.StatusSuccess
+			c.notifyTrxApplyResult(trxEst.SigTrx, true, trxEst.Receipt)
 			return
 		}
 	}()

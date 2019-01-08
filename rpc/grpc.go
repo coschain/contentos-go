@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"context"
+	"github.com/coschain/contentos-go/app"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
@@ -15,6 +16,7 @@ import (
 
 var (
 	ErrPanicResp = errors.New("rpc panic")
+	trxMap  =  map[*prototype.SignedTransaction]chan *prototype.TransactionReceiptWithInfo{}
 )
 
 type APIService struct {
@@ -22,6 +24,7 @@ type APIService struct {
 	mainLoop  *eventloop.EventLoop
 	db        iservices.IDatabaseService
 	log       *logrus.Logger
+
 }
 
 func (as *APIService) GetAccountByName(ctx context.Context, req *grpcpb.GetAccountByNameRequest) (*grpcpb.AccountResponse, error) {
@@ -317,17 +320,19 @@ func (as *APIService) GetTrxById(ctx context.Context, req *grpcpb.GetTrxByIdRequ
 
 func (as *APIService) BroadcastTrx(ctx context.Context, req *grpcpb.BroadcastTrxRequest) (*grpcpb.BroadcastTrxResponse, error) {
 
-	var result *prototype.TransactionReceiptWithInfo = nil
+	//var result chan *prototype.TransactionReceiptWithInfo
+	result := make(chan *prototype.TransactionReceiptWithInfo)
+	trx := req.GetTransaction()
+
 	as.mainLoop.Send(func() {
-		r := as.consensus.PushTransaction(req.GetTransaction(), true, true)
-		as.log.Infof("BroadcastTrx Result: %s", result)
-
-		if r != nil {
-			result = r.(*prototype.TransactionReceiptWithInfo)
-		}
+		 as.consensus.PushTransactionToPending(trx)
+		 as.log.Infof("BroadcastTrx Result: %s", result)
 	})
-
-	return &grpcpb.BroadcastTrxResponse{Invoice: result}, nil
+	go func() {
+		result <- app.GetTrxMgrInstance().PushNewTrx(trx, func(response *grpcpb.BroadcastTrxResponse, e error) {
+		})
+	}()
+    return &grpcpb.BroadcastTrxResponse{Invoice:<-result},nil
 }
 
 func checkLimit(limit uint32) uint32 {

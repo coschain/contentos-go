@@ -16,6 +16,7 @@ const (
 	NOTICE_TRX_PRE     = "trxpre"
 	NOTICE_TRX_POST    = "trxpost"
 	NOTICE_TRX_PENDING = "trxpending"
+	NOTICE_TRX_APLLY_RESULT = "trxapplyresult"
 	NOTICE_BLOCK_APPLY = "blockapply"
 
 	ProducerNum = 21
