@@ -42,4 +42,7 @@ type IConsensus interface {
 	// NOTE: the following methods are testing methods and should only be called by multinodetester2
 	// ResetProdTimer reset the prodTimer in dpos
 	ResetProdTimer(t time.Duration)
+
+	// MaybeProduceBlock check whether should produce a block
+	MaybeProduceBlock(t ...time.Time)
 }

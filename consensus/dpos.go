@@ -159,18 +159,24 @@ func (d *DPoS) Start(node *node.Node) error {
 	return nil
 }
 
-func (d *DPoS) scheduleProduce() bool {
-	if !d.checkGenesis() {
+func (d *DPoS) scheduleProduce(t []time.Time) bool {
+	if !d.checkGenesis(t) {
 		//d.log.GetLog().Info("checkGenesis failed.")
-		d.prodTimer.Reset(timeToNextSec())
+		if len(t) == 0 {
+			d.prodTimer.Reset(timeToNextSec())
+		}
+		//d.prodTimer.Reset(timeToNextSec())
 		return false
 	}
 
 	if !d.readyToProduce {
-		if d.checkSync() {
+		if d.checkSync(t) {
 			d.readyToProduce = true
 		} else {
-			d.prodTimer.Reset(timeToNextSec())
+			if len(t) == 0 {
+				d.prodTimer.Reset(timeToNextSec())
+			}
+			//d.prodTimer.Reset(timeToNextSec())
 			var headID common.BlockID
 			if !d.ForkDB.Empty() {
 				headID = d.ForkDB.Head().Id()
@@ -181,8 +187,11 @@ func (d *DPoS) scheduleProduce() bool {
 			return false
 		}
 	}
-	if !d.checkProducingTiming() || !d.checkOurTurn() {
-		d.prodTimer.Reset(timeToNextSec())
+	if !d.checkProducingTiming(t) || !d.checkOurTurn() {
+		if len(t) == 0 {
+			d.prodTimer.Reset(timeToNextSec())
+		}
+		//d.prodTimer.Reset(timeToNextSec())
 		return false
 	}
 	return true
@@ -223,31 +232,7 @@ func (d *DPoS) start(snapshotPath string) {
 			trxFn()
 			continue
 		case <-d.prodTimer.C:
-			if !d.scheduleProduce() {
-				continue
-			}
-
-			b, err := d.generateAndApplyBlock()
-			if err != nil {
-				d.log.GetLog().Error("[DPoS] generateAndApplyBlock error: ", err)
-				continue
-			}
-			d.prodTimer.Reset(timeToNextSec())
-			d.log.GetLog().Debugf("[DPoS] generated block: <num %d> <ts %d>", b.Id().BlockNum(), b.Timestamp())
-			if err := d.pushBlock(b, false); err != nil {
-				d.log.GetLog().Error("[DPoS] pushBlock push generated block failed: ", err)
-			}
-
-			// broadcast block
-			//if b.Id().BlockNum() % 10 == 0 {
-			//	go func() {
-			//		time.Sleep(4*time.Second)
-			//		d.p2p.Broadcast(b)
-			//	}()
-			//} else {
-			//	d.p2p.Broadcast(b)
-			//}
-			d.p2p.Broadcast(b)
+			d.MaybeProduceBlock()
 		}
 	}
 }
@@ -281,8 +266,8 @@ func (d *DPoS) generateAndApplyBlock() (common.ISignedBlock, error) {
 	return d.ctrl.GenerateAndApplyBlock(d.Name, prev, uint32(ts), d.privKey, prototype.Skip_nothing)
 }
 
-func (d *DPoS) checkGenesis() bool {
-	now := time.Now()
+func (d *DPoS) checkGenesis(t []time.Time) bool {
+	now := GetCurrentTime(t)
 	genesisTime := time.Unix(constants.GenesisTime, 0)
 	if now.After(genesisTime) || now.Equal(genesisTime) {
 		return true
@@ -303,8 +288,8 @@ func (d *DPoS) checkGenesis() bool {
 
 // this'll only be called by the start routine,
 // no need to lock
-func (d *DPoS) checkProducingTiming() bool {
-	now := time.Now().Round(time.Second)
+func (d *DPoS) checkProducingTiming(t []time.Time) bool {
+	now := GetCurrentTime(t).Round(time.Second)
 	d.slot = d.getSlotAtTime(now)
 	if d.slot == 0 {
 		// not time yet, wait till the next block producing
@@ -335,8 +320,8 @@ func (d *DPoS) getScheduledProducer(slot uint64) string {
 }
 
 // returns false if we're out of sync
-func (d *DPoS) checkSync() bool {
-	now := time.Now().Round(time.Second).Unix()
+func (d *DPoS) checkSync(t []time.Time) bool {
+	now := GetCurrentTime(t).Round(time.Second).Unix()
 	if d.getSlotTime(1) < uint64(now) {
 		//time.Sleep(time.Second)
 		return false
@@ -646,4 +631,43 @@ func (d *DPoS) ResetProdTimer(t time.Duration) {
 		<-d.prodTimer.C
 	}
 	d.prodTimer.Reset(t)
+}
+
+func (d *DPoS) MaybeProduceBlock(t ...time.Time) {
+	if !d.scheduleProduce(t) {
+		return
+	}
+
+	b, err := d.generateAndApplyBlock()
+	if err != nil {
+		d.log.GetLog().Error("[DPoS] generateAndApplyBlock error: ", err)
+		return
+	}
+	if len(t) == 0 {
+		d.prodTimer.Reset(timeToNextSec())
+	}
+	//d.prodTimer.Reset(timeToNextSec())
+	d.log.GetLog().Debugf("[DPoS] generated block: <num %d> <ts %d>", b.Id().BlockNum(), b.Timestamp())
+	if err := d.pushBlock(b, false); err != nil {
+		d.log.GetLog().Error("[DPoS] pushBlock push generated block failed: ", err)
+	}
+
+	// broadcast block
+	//if b.Id().BlockNum() % 10 == 0 {
+	//	go func() {
+	//		time.Sleep(4*time.Second)
+	//		d.p2p.Broadcast(b)
+	//	}()
+	//} else {
+	//	d.p2p.Broadcast(b)
+	//}
+	fmt.Println("before bcast block")
+	d.p2p.Broadcast(b)
+}
+
+func GetCurrentTime(t []time.Time) time.Time {
+	if len(t) == 0 {
+		return time.Now()
+	}
+	return t[0]
 }
