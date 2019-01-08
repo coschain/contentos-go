@@ -4,17 +4,19 @@ import (
 	"fmt"
 	"github.com/coschain/cobra"
 	cmd "github.com/coschain/contentos-go/cmd/cosd/commands"
-	"github.com/coschain/contentos-go/cmd/multinodetester/commands"
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/pprof"
 	"github.com/coschain/contentos-go/config"
+	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/mylog"
 	"github.com/coschain/contentos-go/node"
 	"github.com/spf13/viper"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"sync"
 	"syscall"
+	"time"
 )
 
 var StartCmd = func() *cobra.Command {
@@ -27,13 +29,30 @@ var StartCmd = func() *cobra.Command {
 	return cmd
 }
 
-var arr []*node.Node
+type GlobalObject struct {
+	sync.Mutex
+	arr []*node.Node
+	dposList []iservices.IConsensus
+}
+
+var globalObj GlobalObject
 
 func StartNode(cmd *cobra.Command, args []string) {
 	for i:=0;i<int(NodeCnt);i++{
 		fmt.Println("i: ", i," NodeCnt: ", NodeCnt)
 		app, cfg := makeNode(i)
+
 		go startNode(app, cfg)
+	}
+
+	time.Sleep(5 * time.Second)
+	fmt.Println("mian func")
+	for i:=0;i<len(globalObj.dposList);i++ {
+		fmt.Println()
+		fmt.Println()
+		fmt.Println("main func active producers:   ", globalObj.dposList[i].ActiveProducers())
+		fmt.Println()
+		fmt.Println()
 	}
 
 	WaitSignal()
@@ -41,7 +60,7 @@ func StartNode(cmd *cobra.Command, args []string) {
 
 func makeNode(index int) (*node.Node, node.Config) {
 	var cfg node.Config
-	confdir := filepath.Join(config.DefaultDataDir(), fmt.Sprintf("%s_%d", commands.TesterClientIdentifier, index))
+	confdir := filepath.Join(config.DefaultDataDir(), fmt.Sprintf("%s_%d", TesterClientIdentifier, index))
 	fmt.Println("config dir: ", confdir)
 	viper.Reset()
 	viper.AddConfigPath(confdir)
@@ -78,11 +97,20 @@ func startNode(app *node.Node, cfg node.Config) {
 	pprof.StartPprof()
 
 	cmd.RegisterService(app, cfg)
-	arr = append(arr, app)
 
 	if err := app.Start(); err != nil {
 		common.Fatalf("start node failed, err: %v\n", err)
 	}
+
+	globalObj.Lock()
+	globalObj.arr = append(globalObj.arr, app)
+	it, err := app.Service(iservices.ConsensusServerName)
+	if err != nil {
+		panic(err)
+	}
+	globalObj.dposList = append(globalObj.dposList, it.(iservices.IConsensus))
+	fmt.Println("append one to list")
+	globalObj.Unlock()
 
 	app.Wait()
 }
@@ -96,9 +124,9 @@ func WaitSignal() {
 		fmt.Printf("get a signal %s\n", s.String())
 		switch s {
 		case syscall.SIGQUIT, syscall.SIGTERM, SIGSTOP, syscall.SIGINT:
-			for i:=0;i<len(arr);i++ {
-				arr[i].MainLoop.Stop()
-				arr[i].Stop()
+			for i:=0;i<len(globalObj.arr);i++ {
+				globalObj.arr[i].MainLoop.Stop()
+				globalObj.arr[i].Stop()
 			}
 			fmt.Println("Got interrupt, shutting down...")
 			return
