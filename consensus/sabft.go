@@ -33,7 +33,7 @@ func (pv *publicValidator) VerifySig(digest, signature []byte) bool {
 	acc := &prototype.AccountName{
 		Value: pv.accountName,
 	}
-	return pv.sab.ctrl.VerifySig(acc,digest, signature)
+	return pv.sab.ctrl.VerifySig(acc, digest, signature)
 }
 
 func (pv *publicValidator) GetPubKey() message.PubKey {
@@ -89,6 +89,7 @@ type SABFT struct {
 	bft           *gobft.Core
 	lastCommitted *message.Commit
 	suffledID     common.BlockID
+	appState      *message.AppState
 
 	readyToProduce bool
 	prodTimer      *time.Timer
@@ -571,6 +572,9 @@ func (sabft *SABFT) Commit(data message.ProposedData, commitRecords *message.Com
 
 	sabft.ForkDB.Commit(blockID)
 
+	sabft.appState.LastHeight++
+	sabft.appState.LastProposedData = data
+
 	if commitRecords != nil {
 		sabft.lastCommitted = commitRecords
 		sabft.BroadCast(commitRecords)
@@ -622,20 +626,51 @@ func (sabft *SABFT) GetCurrentProposer(round int) message.PubKey {
 
 // DecidesProposal decides what will be proposed if this validator is the current proposer.
 func (sabft *SABFT) DecidesProposal() message.ProposedData {
-	return message.NilData
+	sabft.RLock()
+	defer sabft.RUnlock()
+
+	if sabft.ForkDB.Empty() {
+		return message.NilData
+	}
+
+	return sabft.ForkDB.Head().Id().Data
 }
 
 // ValidateProposed validates the proposed data
 func (sabft *SABFT) ValidateProposal(data message.ProposedData) bool {
+	blockID := common.BlockID{
+		Data: data,
+	}
+	sabft.RLock()
+	defer sabft.RUnlock()
+
+	if sabft.lastCommitted != nil {
+		committedID := common.BlockID{
+			Data: sabft.lastCommitted.Precommits[0].Proposed,
+		}
+		if committedID.BlockNum() >= blockID.BlockNum() {
+			return false
+		}
+	}
+	if _, err := sabft.ForkDB.FetchBlockFromMainBranch(blockID.BlockNum()); err != nil {
+		return false
+	}
 	return true
 }
 
 func (sabft *SABFT) GetAppState() *message.AppState {
-	return nil
+	sabft.RLock()
+	defer sabft.RUnlock()
+
+	return sabft.appState
 }
 
 // BroadCast sends msg to other validators
 func (sabft *SABFT) BroadCast(msg message.ConsensusMessage) error {
+	sabft.RLock()
+	defer sabft.RUnlock()
+
+	sabft.p2p.Broadcast(msg)
 	return nil
 }
 
