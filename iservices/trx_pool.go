@@ -34,4 +34,6 @@ type ITrxPool interface {
 	// put trx into pending directly, no return value, so should be used by witness node to collect p2p trx
 	PushTrxToPending(trx *prototype.SignedTransaction)
 	GenerateAndApplyBlock(witness string, pre *prototype.Sha256, timestamp uint32, priKey *prototype.PrivateKeyType, skip prototype.SkipFlag) (*prototype.SignedBlock, error)
+	VerifySig(name *prototype.AccountName, digest []byte, sig []byte) bool
+	Sign(priv *prototype.PrivateKeyType, digest []byte) []byte
 }
