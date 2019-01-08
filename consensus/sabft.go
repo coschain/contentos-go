@@ -19,7 +19,7 @@ import (
 )
 
 /********* implements gobft IPubValidator ***********/
-// TODO:
+
 type publicValidator struct {
 	sab         *SABFT
 	accountName string
@@ -30,7 +30,10 @@ func (pv *publicValidator) VerifySig(digest, signature []byte) bool {
 	pv.sab.RLock()
 	defer pv.sab.RUnlock()
 
-	return true
+	acc := &prototype.AccountName{
+		Value: pv.accountName,
+	}
+	return pv.sab.ctrl.VerifySig(acc,digest, signature)
 }
 
 func (pv *publicValidator) GetPubKey() message.PubKey {
@@ -48,7 +51,7 @@ func (pv *publicValidator) SetVotingPower(int64) {
 /********* end gobft IPubValidator ***********/
 
 /********* implements gobft IPrivValidator ***********/
-// TODO:
+
 type privateValidator struct {
 	sab     *SABFT
 	privKey *prototype.PrivateKeyType
@@ -60,7 +63,7 @@ func (pv *privateValidator) Sign(digest []byte) []byte {
 	pv.sab.RLock()
 	defer pv.sab.RUnlock()
 
-	return digest
+	return pv.sab.ctrl.Sign(pv.privKey, digest)
 }
 
 func (pv *privateValidator) GetPubKey() message.PubKey {
