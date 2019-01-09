@@ -105,7 +105,7 @@ func (w *CosVMNative) CosAbort() {
 }
 
 func (w *CosVMNative) ReadContractOpParams() string {
-	return w.cosVM.ctx.Params
+	return string(w.cosVM.ctx.ParamsData)
 }
 
 func (w *CosVMNative) ReadContractOwner() string {
@@ -136,7 +136,10 @@ func (w *CosVMNative) TableGetRecord(tableName string, primary []byte) []byte {
 	tables := w.cosVM.ctx.Tables
 	w.CosAssert(tables != nil, "TableGetRecord(): context tables not ready.")
 	data, err := tables.Table(tableName).GetRecord(primary)
-	w.CosAssert(err == nil, fmt.Sprintf("TableGetRecord(): table.GetRecord() failed. %v", err))
+	//w.CosAssert(err == nil, fmt.Sprintf("TableGetRecord(): table.GetRecord() failed. %v", err))
+	if err != nil {
+		return nil
+	}
 	return data
 }
 

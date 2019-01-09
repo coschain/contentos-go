@@ -51,10 +51,11 @@ func (p *TrxContext) authGetter(name string) *prototype.Authority {
 
 func (p *TrxContext) Error(code uint32, msg string) {
 	p.Wrapper.Receipt.ErrorInfo = msg
-	p.Wrapper.Receipt.Status = 500
+	//p.Wrapper.Receipt.Status = 500
 }
 
 func (p *TrxContext) Log(msg string) {
+	fmt.Println(msg)
 	p.Wrapper.Receipt.OpResults = append(p.Wrapper.Receipt.OpResults, &prototype.OperationReceiptWithInfo{VmConsole: msg})
 }
 

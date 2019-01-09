@@ -1,6 +1,7 @@
 package table
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/coschain/contentos-go/common/encoding/kope"
@@ -8,6 +9,7 @@ import (
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/vm/contract/abi"
 	"reflect"
+	"strings"
 )
 
 const (
@@ -125,6 +127,48 @@ func (t *ContractTable) DeleteRecord(encodedPK []byte) error {
 	return b.Write()
 }
 
+func (t *ContractTable) EnumRecords(field string, start interface{}, limit interface{}, reverse bool, maxCount int, callback func(r interface{})bool) int {
+	count, _ := t.enumRecords(field, start, limit, reverse, maxCount, callback)
+	return count
+}
+
+func (t *ContractTable) QueryRecords(field string, start interface{}, limit interface{}, reverse bool, maxCount int) ([]interface{}, error) {
+	records := []interface{}{}
+	_, err := t.enumRecords(field, start, limit, reverse, maxCount, func(r interface{}) bool {
+		records = append(records, r)
+		return true
+	})
+	return records, err
+}
+
+func (t *ContractTable) QueryRecordsJson(field string, startJson string, limitJson string, reverse bool, maxCount int) (string, error) {
+	var (
+		start, limit interface{}
+		records []interface{}
+		result []byte
+		err error
+	)
+	if len(startJson) == 0 {
+		startJson = "null"
+	}
+	if len(limitJson) == 0 {
+		limitJson = "null"
+	}
+	if err = json.Unmarshal([]byte(startJson), &start); err != nil {
+		return "", errors.New(fmt.Sprintf("failed to decode json: \"%s\". %s", startJson, err.Error()))
+	}
+	if err = json.Unmarshal([]byte(limitJson), &limit); err != nil {
+		return "", errors.New(fmt.Sprintf("failed to decode json: \"%s\". %s", limitJson, err.Error()))
+	}
+	if records, err = t.QueryRecords(field, start, limit, reverse, maxCount); err != nil {
+		return "", errors.New(fmt.Sprintf("failed to query: %s", err.Error()))
+	}
+	if result, err = json.MarshalIndent(records, "", strings.Repeat(" ", 4)); err != nil {
+		return "", errors.New(fmt.Sprintf("failed to encode result to json: %s", err.Error()))
+	}
+	return string(result), nil
+}
+
 func (t *ContractTable) queryValue(val interface{}, typ reflect.Type) (interface{}, error) {
 	rv := reflect.ValueOf(val)
 	if rv.Kind() == reflect.Invalid {
@@ -138,7 +182,7 @@ func (t *ContractTable) queryValue(val interface{}, typ reflect.Type) (interface
 	return nil, errors.New("incompatible query value.")
 }
 
-func (t *ContractTable) EnumRecords(field string, start interface{}, limit interface{}, reverse bool, maxCount int, callback func(r interface{})bool) int {
+func (t *ContractTable) enumRecords(field string, start interface{}, limit interface{}, reverse bool, maxCount int, callback func(r interface{})bool) (int, error) {
 	var (
 		qStart, qLimit interface{}
 		ft reflect.Type
@@ -149,10 +193,10 @@ func (t *ContractTable) EnumRecords(field string, start interface{}, limit inter
 	if st.Field(t.abiTable.PrimaryIndex()).Name() == field {
 		ft = st.Field(t.abiTable.PrimaryIndex()).Type().Type()
 		if qStart, err = t.queryValue(start, ft); err != nil {
-			return 0
+			return 0, err
 		}
 		if qLimit, err = t.queryValue(limit, ft); err != nil {
-			return 0
+			return 0, err
 		}
 		return t.scanDatabase(t.primary, qStart, qLimit, reverse, maxCount, func(k, v []byte) (bool, error) {
 			if r, err := t.decodeRecord(v); err != nil {
@@ -171,14 +215,14 @@ func (t *ContractTable) EnumRecords(field string, start interface{}, limit inter
 		}
 	}
 	if idx < 0 {
-		return 0
+		return 0, errors.New("unknown query field: " + field)
 	}
 	ft = st.Field(si[idx]).Type().Type()
 	if qStart, err = t.queryValue(start, ft); err != nil {
-		return 0
+		return 0, err
 	}
 	if qLimit, err = t.queryValue(limit, ft); err != nil {
-		return 0
+		return 0, err
 	}
 	return t.scanDatabase(t.secondaries[idx], qStart, qLimit, reverse, maxCount, func(k, v []byte) (bool, error) {
 		pk := kope.IndexedPrimaryKey(k)
@@ -229,10 +273,13 @@ func (t *ContractTable) enumSecondaryIndexFields(record interface{}, callback fu
 	return nil
 }
 
-func (t *ContractTable) scanDatabase(prefix kope.Key, start interface{}, limit interface{}, reverse bool, maxCount int, callback func(k, v []byte)(bool, error)) int {
+func (t *ContractTable) scanDatabase(prefix kope.Key, start interface{}, limit interface{}, reverse bool, maxCount int, callback func(k, v []byte)(bool, error)) (int, error) {
 	var (
 		startKey, limitKey kope.Key
 		it iservices.IDatabaseIterator
+		k, v []byte
+		err error
+		goAhead bool
 	)
 	if start != nil {
 		startKey = kope.AppendKey(prefix, start)
@@ -255,9 +302,9 @@ func (t *ContractTable) scanDatabase(prefix kope.Key, start interface{}, limit i
 		if count >= maxCount && maxCount > 0 {
 			break
 		}
-		if k, err := it.Key(); err == nil {
-			if v, err := it.Value(); err == nil {
-				goAhead, err := callback(k, v)
+		if k, err = it.Key(); err == nil {
+			if v, err = it.Value(); err == nil {
+				goAhead, err = callback(k, v)
 				if err == nil {
 					count++
 				}
@@ -267,7 +314,7 @@ func (t *ContractTable) scanDatabase(prefix kope.Key, start interface{}, limit i
 			}
 		}
 	}
-	return count
+	return count, err
 }
 
 
