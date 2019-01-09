@@ -725,9 +725,6 @@ func (sabft *SABFT) GetAppState() *message.AppState {
 
 // BroadCast sends msg to other validators
 func (sabft *SABFT) BroadCast(msg message.ConsensusMessage) error {
-	sabft.RLock()
-	defer sabft.RUnlock()
-
 	sabft.p2p.Broadcast(msg)
 	return nil
 }
