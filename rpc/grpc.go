@@ -2,7 +2,7 @@ package rpc
 
 import (
 	"context"
-	"github.com/coschain/contentos-go/app"
+	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
@@ -12,6 +12,7 @@ import (
 	"github.com/coschain/contentos-go/rpc/pb"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"time"
 )
 
 var (
@@ -24,7 +25,7 @@ type APIService struct {
 	mainLoop  *eventloop.EventLoop
 	db        iservices.IDatabaseService
 	log       *logrus.Logger
-
+	eb        EventBus.Bus
 }
 
 func (as *APIService) GetAccountByName(ctx context.Context, req *grpcpb.GetAccountByNameRequest) (*grpcpb.AccountResponse, error) {
@@ -328,10 +329,8 @@ func (as *APIService) BroadcastTrx(ctx context.Context, req *grpcpb.BroadcastTrx
 		 as.consensus.PushTransactionToPending(trx)
 		 as.log.Infof("BroadcastTrx Result: %s", result)
 	})
-	go func() {
-		result <- app.GetTrxMgrInstance().PushNewTrx(trx, func(response *grpcpb.BroadcastTrxResponse, e error) {
-		})
-	}()
+	result <- prototype.FetchTrxApplyResult(as.eb , 30*time.Second ,trx)
+
     return &grpcpb.BroadcastTrxResponse{Invoice:<-result},nil
 }
 

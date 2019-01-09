@@ -361,7 +361,9 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 	c.havePendingTransaction = true
 
 	var postponeTrx uint64 = 0
-	tmpTrx,idx := make([]*prototype.EstimateTrxResult, len(c.pendingTx)),0
+
+	cnt := len(c.pendingTx)
+	tmpTrx,idx := make([]*prototype.EstimateTrxResult, cnt),0
 	if len(c.extraTx) > 0 {
 		c.extraTx = c.extraTx[0:0]
 	}
@@ -369,7 +371,9 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 		if trxWraper.SigTrx.Trx.Expiration.UtcSeconds < timestamp {
 			continue
 		}
-		tmpTrx[idx] = trxWraper
+		if idx < cnt {
+			tmpTrx[idx] = trxWraper
+		}
 		idx++
 		var newTotalSize uint64 = uint64(totalSize) + uint64(proto.Size(trxWraper))
 		if newTotalSize > uint64(maxBlockSize) {
@@ -454,8 +458,7 @@ func (c *TrxPool) notifyBlockApply(block *prototype.SignedBlock) {
 
 func (c *TrxPool) notifyTrxApplyResult(trx *prototype.SignedTransaction, res bool,
 	receipt *prototype.TransactionReceiptWithInfo){
-	 trxMgr := GetTrxMgrInstance()
-	 trxMgr.NotifyTrxApplyResult(trx, res, receipt)
+	 c.noticer.Publish(constants.NOTICE_TRX_APLLY_RESULT, trx, receipt)
 }
 
 func (c *TrxPool) applyTransaction(trxEst *prototype.EstimateTrxResult) {
