@@ -53,3 +53,21 @@ func NewContextFromApplyOp(op *prototype.ContractApplyOperation, params []byte, 
 		Injector:  injector,
 	}
 }
+
+func NewContextFromInternalApplyOp(op *prototype.InternalContractApplyOperation, code []byte, abi abi.IContractABI, tables *table.ContractTables, injector vminjector.Injector) *Context {
+	return &Context{
+		Caller:    op.FromCaller,
+		Owner:     op.ToOwner,
+		Contract:  op.ToContract,
+		Method:    op.ToMethod,
+		Params:    "",
+		ParamsData: op.Params,
+		Amount:    op.Amount,
+		Gas:       op.Gas,
+		Construct: false,
+		Code:      code,
+		AbiInterface: abi,
+		Tables: tables,
+		Injector:  injector,
+	}
+}

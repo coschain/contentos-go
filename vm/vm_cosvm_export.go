@@ -107,6 +107,16 @@ func (w *CosVMExport) readContractSenderValue(proc *exec.Process) int64 {
 	return int64(w.ReadContractSenderValue())
 }
 
+func (w *CosVMExport) contractCall(proc *exec.Process, owner, ownerSize, contract, contractSize, method, methodSize, param, paramSize int32, coins int64) {
+	w.ContractCall(
+		string(w.cosVM.read(proc, owner, ownerSize, "contractCall().owner")),
+		string(w.cosVM.read(proc, contract, contractSize, "contractCall().contract")),
+		string(w.cosVM.read(proc, method, methodSize, "contractCall().method")),
+		w.cosVM.read(proc, param, paramSize, "contractCall().param"),
+		uint64(coins),
+		)
+}
+
 func (w *CosVMExport) tableGetRecord(proc *exec.Process, tableName, tableNameLen int32, primary, primaryLen int32, value, valueLen int32) int32 {
 	return w.cosVM.write(proc,
 		w.TableGetRecord(

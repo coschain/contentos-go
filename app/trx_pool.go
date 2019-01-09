@@ -439,7 +439,7 @@ func (c *TrxPool) applyTransaction(trxEst *prototype.EstimateTrxResult) {
 }
 
 func (c *TrxPool) applyTransactionInner(trxEst *prototype.EstimateTrxResult) {
-	trxContext := NewTrxContext(trxEst, c.db)
+	trxContext := NewTrxContext(trxEst, c.db, c)
 	defer func() {
 		if err := recover(); err != nil {
 			trxEst.Receipt.Status = prototype.StatusError

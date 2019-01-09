@@ -15,10 +15,11 @@ type TrxContext struct {
 	db          iservices.IDatabaseService
 	msg         []string
 	recoverPubs []*prototype.PublicKeyType
+	control     iservices.ITrxPool
 }
 
-func NewTrxContext(wrapper *prototype.EstimateTrxResult, db iservices.IDatabaseService) *TrxContext {
-	return &TrxContext{Wrapper: wrapper, db: db}
+func NewTrxContext(wrapper *prototype.EstimateTrxResult, db iservices.IDatabaseService, control iservices.ITrxPool) *TrxContext {
+	return &TrxContext{Wrapper: wrapper, db: db, control: control }
 }
 
 func (p *TrxContext) InitSigState(cid prototype.ChainId) error {
@@ -84,7 +85,7 @@ func (p *TrxContext) DeductGasFee(caller string, spent uint64) {
 }
 
 // vm transfer just modify db data
-func (p *TrxContext) ContractTransfer(contract, owner, to string, amount uint64) {
+func (p *TrxContext) TransferFromContractToUser(contract, owner, to string, amount uint64) {
 	// need authority?
 	c := table.NewSoContractWrap(p.db, &prototype.ContractId{Owner: &prototype.AccountName{Value: owner}, Cname: contract})
 	balance := c.GetBalance().Value
@@ -98,7 +99,7 @@ func (p *TrxContext) ContractTransfer(contract, owner, to string, amount uint64)
 	return
 }
 
-func (p *TrxContext) UserTransfer(from, contract, owner string, amount uint64) {
+func (p *TrxContext) TransferFromUserToContract(from, contract, owner string, amount uint64) {
 	acc := table.NewSoAccountWrap(p.db, &prototype.AccountName{Value: from})
 	balance := acc.GetBalance().Value
 	if balance < amount {
@@ -108,6 +109,36 @@ func (p *TrxContext) UserTransfer(from, contract, owner string, amount uint64) {
 	c.MdBalance(&prototype.Coin{Value: balance + amount})
 	acc.MdBalance(&prototype.Coin{Value: balance - amount})
 	return
+}
+
+func (p *TrxContext) TransferFromContractToContract(fromContract, fromOwner, toContract, toOwner string, amount uint64) {
+	from := table.NewSoContractWrap(p.db, &prototype.ContractId{Owner: &prototype.AccountName{Value: fromOwner}, Cname: fromContract})
+	to := table.NewSoContractWrap(p.db, &prototype.ContractId{Owner: &prototype.AccountName{Value: toOwner}, Cname: toContract})
+	fromBalance := from.GetBalance().Value
+	if fromBalance < amount {
+		panic(fmt.Sprintf("Insufficient balance of contract: %s.%s, %d < %d", fromOwner, fromContract, fromBalance, amount))
+	}
+	toBalance := to.GetBalance().Value
+	from.MdBalance(&prototype.Coin{Value: fromBalance - amount})
+	to.MdBalance(&prototype.Coin{Value: toBalance + amount})
+}
+
+func (p *TrxContext) ContractCall(caller, owner, contract, method string, params []byte, coins, maxGas uint64) {
+	// fixme: parameter not ready. 
+	op := &prototype.InternalContractApplyOperation{
+		FromCaller: &prototype.AccountName{ Value: caller },
+		FromOwner: nil,
+		FromContract: "",
+		FromMethod: "",
+		ToOwner: &prototype.AccountName{ Value: caller },
+		ToContract: contract,
+		ToMethod: method,
+		Params: params,
+		Amount: &prototype.Coin{ Value: coins },
+		Gas: &prototype.Coin{ Value: maxGas },
+	}
+	eval := &InternalContractApplyEvaluator{ ctx: &ApplyContext{ db: p.db, trxCtx: p, control: p.control }, op: op }
+	eval.Apply()
 }
 
 func obtainKeyMap(ops []*prototype.Operation) map[string]bool {

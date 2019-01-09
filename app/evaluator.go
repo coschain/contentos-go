@@ -105,6 +105,12 @@ type ContractEstimateApplyEvaluator struct {
 	op  *prototype.ContractEstimateApplyOperation
 }
 
+type InternalContractApplyEvaluator struct {
+	BaseEvaluator
+	ctx *ApplyContext
+	op  *prototype.InternalContractApplyOperation
+}
+
 func (ev *AccountCreateEvaluator) Apply() {
 	op := ev.op
 	creatorWrap := table.NewSoAccountWrap(ev.ctx.db, op.Creator)
@@ -587,7 +593,58 @@ func (ev *ContractApplyEvaluator) Apply() {
 		vmCtx.Injector.Error(ret, err.Error())
 	} else {
 		if op.Amount.Value > 0 {
-			vmCtx.Injector.UserTransfer(op.Caller.Value, op.Contract, op.Owner.Value, op.Amount.Value)
+			vmCtx.Injector.TransferFromUserToContract(op.Caller.Value, op.Contract, op.Owner.Value, op.Amount.Value)
+		}
+	}
+}
+
+func (ev *InternalContractApplyEvaluator) Apply() {
+	op := ev.op
+
+	fromContract := table.NewSoContractWrap(ev.ctx.db, &prototype.ContractId{Owner: op.FromOwner, Cname: op.FromContract})
+	opAssert(fromContract.CheckExist(), "fromContract contract doesn't exist")
+
+	toContract := table.NewSoContractWrap(ev.ctx.db, &prototype.ContractId{Owner: op.ToOwner, Cname: op.ToContract})
+	opAssert(toContract.CheckExist(), "toContract contract doesn't exist")
+
+	caller := table.NewSoAccountWrap(ev.ctx.db, op.FromCaller)
+	opAssert(caller.CheckExist(), "caller account doesn't exist")
+
+	opAssert(caller.GetBalance().Value * constants.BASE_RATE >= op.Gas.Value, "caller balance less than gas")
+	opAssert(fromContract.GetBalance().Value >= op.Amount.Value, "fromContract balance less than transfer amount")
+
+	code := toContract.GetCode()
+
+	var err error
+	var abiInterface abi.IContractABI
+	var tables *ct.ContractTables
+
+	if abiInterface, err = abi.UnmarshalABI([]byte(toContract.GetAbi())); err != nil {
+		opAssertE(err, "invalid toContract abi")
+	}
+	if m := abiInterface.MethodByName(op.ToMethod); m != nil {
+		_, err = vme.DecodeToJson(op.Params, m.Args().Type(), false)
+		if err != nil {
+			opAssertE(err, "invalid contract parameters")
+		}
+	} else {
+		opAssert(false, "unknown contract method: " + op.ToMethod)
+	}
+
+	if abiInterface != nil {
+		tables = ct.NewContractTables(op.ToOwner.Value, op.ToContract, abiInterface, ev.ctx.db)
+	}
+
+	vmCtx := vmcontext.NewContextFromInternalApplyOp(op, code, abiInterface, tables, ev.ctx.trxCtx)
+	cosVM := vm.NewCosVM(vmCtx, ev.ctx.db, ev.ctx.control.GetProps(), logrus.New())
+	ret, err := cosVM.Run()
+
+	vmCtx.Injector.DeductGasFee(op.FromCaller.Value, cosVM.SpentGas())
+	if err != nil {
+		vmCtx.Injector.Error(ret, err.Error())
+	} else {
+		if op.Amount.Value > 0 {
+			vmCtx.Injector.TransferFromContractToContract(op.FromContract, op.FromOwner.Value, op.ToContract, op.ToOwner.Value, op.Amount.Value)
 		}
 	}
 }

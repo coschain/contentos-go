@@ -63,6 +63,7 @@ func (w *CosVM) initNativeFuncs() {
 	w.Register("read_contract_owner", exports.readContractOwner, 100)
 	w.Register("read_contract_caller", exports.readContractCaller, 100)
 	w.Register("read_contract_sender_value", exports.readContractSenderValue, 100)
+	w.Register("contract_call", exports.contractCall, 1000)
 	w.Register("transfer", exports.contractTransfer, 800)
 	w.Register("table_get_record", exports.tableGetRecord, 800)
 	w.Register("table_new_record", exports.tableNewRecord, 800)
