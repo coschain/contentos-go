@@ -90,6 +90,7 @@ type SABFT struct {
 	lastCommitted *message.Commit
 	suffledID     common.BlockID
 	appState      *message.AppState
+	//startBFTCh    chan struct{}
 
 	readyToProduce bool
 	prodTimer      *time.Timer
@@ -121,6 +122,7 @@ func NewSABFT(ctx *node.ServiceContext) *SABFT {
 		blkCh:      make(chan common.ISignedBlock),
 		ctx:        ctx,
 		stopCh:     make(chan struct{}),
+		//startBFTCh: make(chan struct{}),
 		log:        logService.(iservices.ILog),
 	}
 
@@ -208,7 +210,11 @@ func (sabft *SABFT) shuffle(head common.ISignedBlock) {
 	}
 
 	sabft.validators = sabft.makeValidators(prods)
-	sabft.log.GetLog().Debug("[SABFT shuffle] active producers: ", sabft.validators)
+	validatorNames := ""
+	for i:=range sabft.validators {
+		validatorNames += sabft.validators[i].accountName + " "
+	}
+	sabft.log.GetLog().Debug("[SABFT shuffle] active producers: ", validatorNames)
 	sabft.ctrl.SetShuffledWitness(prods)
 
 	sabft.suffledID = head.Id()
@@ -250,7 +256,7 @@ func (sabft *SABFT) Start(node *node.Node) error {
 		// deep copy hell
 		avatar = append(avatar, &prototype.SignedBlock{})
 	}
-	sabft.ForkDB.LoadSnapshot(avatar, snapshotPath)
+	sabft.ForkDB.LoadSnapshot(avatar, snapshotPath, &sabft.blog)
 
 	sabft.log.GetLog().Info("[SABFT] starting...")
 	if sabft.bootstrap && sabft.ForkDB.Empty() && sabft.blog.Empty() {
@@ -261,9 +267,9 @@ func (sabft *SABFT) Start(node *node.Node) error {
 	// start block generation process
 	go sabft.start()
 
-	// start the bft process
-	// TODO: only start bft if num of validators is > 4
+	// start bft process
 	sabft.bft.Start()
+
 	return nil
 }
 
@@ -509,7 +515,7 @@ func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 
 	sabft.lastCommitted = records
 	sabft.appState = &message.AppState{
-		LastHeight: records.FirstPrecommit().Height,
+		LastHeight:       records.FirstPrecommit().Height,
 		LastProposedData: records.ProposedData,
 	}
 	// TODO: if the gobft haven't reach +2/3, push records to bft core??

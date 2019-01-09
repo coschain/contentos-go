@@ -151,11 +151,26 @@ func (d *DPoS) Start(node *node.Node) error {
 	d.p2p = p2p.(iservices.IP2P)
 	cfg := d.ctx.Config()
 	d.blog.Open(cfg.ResolvePath("blog"))
-	forkdbPath := cfg.ResolvePath("forkdb_snapshot")
 	d.ctrl.SetShuffle(func(block common.ISignedBlock) {
 		d.shuffle(block)
 	})
-	go d.start(forkdbPath)
+
+	d.log.GetLog().Info("[DPoS] starting...")
+
+	// TODO: fuck!! this is fugly
+	var avatar []common.ISignedBlock
+	for i := 0; i < constants.MAX_WITNESSES+1; i++ {
+		// deep copy hell
+		avatar = append(avatar, &prototype.SignedBlock{})
+	}
+	d.ForkDB.LoadSnapshot(avatar, cfg.ResolvePath("forkdb_snapshot"), &d.blog)
+
+	if d.bootstrap && d.ForkDB.Empty() && d.blog.Empty() {
+		d.log.GetLog().Info("[DPoS] bootstrapping...")
+	}
+	d.restoreProducers()
+	
+	go d.start()
 	return nil
 }
 
@@ -188,26 +203,11 @@ func (d *DPoS) scheduleProduce() bool {
 	return true
 }
 
-func (d *DPoS) start(snapshotPath string) {
+func (d *DPoS) start() {
 	d.wg.Add(1)
 	defer d.wg.Done()
 	//time.Sleep(4 * time.Second)
-	d.log.GetLog().Info("[DPoS] starting...")
-
-	// TODO: fuck!! this is fugly
-	var avatar []common.ISignedBlock
-	for i := 0; i < constants.MAX_WITNESSES; i++ {
-		// deep copy hell
-		avatar = append(avatar, &prototype.SignedBlock{})
-	}
-	//cfg := d.ctx.Config()
-	//d.ForkDB.LoadSnapshot(avatar, cfg.ResolvePath("forkdb_snapshot"))
-	d.ForkDB.LoadSnapshot(avatar, snapshotPath)
-
-	if d.bootstrap && d.ForkDB.Empty() && d.blog.Empty() {
-		d.log.GetLog().Info("[DPoS] bootstrapping...")
-	}
-	d.restoreProducers()
+	
 
 	d.log.GetLog().Info("[DPoS] started")
 	for {

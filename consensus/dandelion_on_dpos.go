@@ -53,7 +53,7 @@ func (d *DPoS) DandelionDposOpenBlog(path string) {
 }
 
 func (d *DPoS) DandelionDposStart() {
-	go d.start(snapshotPath)
+	//go d.start(snapshotPath)
 }
 
 func (d *DPoS) DandelionDposGenerateBlock(timestamp uint64) error {
