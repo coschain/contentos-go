@@ -14,7 +14,6 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"sync"
 	"syscall"
 	"time"
 )
@@ -30,9 +29,10 @@ var StartCmd = func() *cobra.Command {
 }
 
 type GlobalObject struct {
-	sync.Mutex
-	arr []*node.Node
+	arr      []*node.Node
+	cfgList  []node.Config
 	dposList []iservices.IConsensus
+	dbList   []iservices.IDatabaseService
 }
 
 var globalObj GlobalObject
@@ -95,17 +95,20 @@ func startNode(app *node.Node, cfg node.Config) {
 		common.Fatalf("start node failed, err: %v\n", err)
 	}
 
-	globalObj.Lock()
-	globalObj.arr = append(globalObj.arr, app)
 	it, err := app.Service(iservices.ConsensusServerName)
 	if err != nil {
 		panic(err)
 	}
 	Icons := it.(iservices.IConsensus)
 	Icons.ResetProdTimer( 86400 * time.Second )
+	idb, err := app.Service(iservices.DbServerName)
+	if err != nil {
+		panic(err)
+	}
+	globalObj.arr = append(globalObj.arr, app)
+	globalObj.cfgList = append(globalObj.cfgList, cfg)
 	globalObj.dposList = append(globalObj.dposList, Icons)
-	fmt.Println("append one to list")
-	globalObj.Unlock()
+	globalObj.dbList = append(globalObj.dbList, idb.(iservices.IDatabaseService))
 
 	go app.Wait()
 }
