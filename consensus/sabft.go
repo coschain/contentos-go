@@ -262,6 +262,7 @@ func (sabft *SABFT) Start(node *node.Node) error {
 	go sabft.start()
 
 	// start the bft process
+	// TODO: only start bft if num of validators is > 4
 	sabft.bft.Start()
 	return nil
 }
@@ -478,20 +479,28 @@ func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 	}
 
 	sabft.RLock()
-	oldID := common.BlockID{
-		Data: sabft.lastCommitted.ProposedData,
-	}
-	newID := common.BlockID{
-		Data: records.ProposedData,
-	}
-	if oldID.BlockNum() >= newID.BlockNum() {
-		return
+	if sabft.lastCommitted != nil {
+		oldID := common.BlockID{
+			Data: sabft.lastCommitted.ProposedData,
+		}
+		newID := common.BlockID{
+			Data: records.ProposedData,
+		}
+		if oldID.BlockNum() >= newID.BlockNum() {
+			return
+		}
 	}
 	sabft.RUnlock()
 
 	// check signature
+	for i := range records.Precommits {
+		val := sabft.GetValidator(records.Precommits[i].Address)
+		if !val.VerifySig(records.Precommits[i].Digest(), records.Precommits[i].Signature) {
+			return
+		}
+	}
 	val := sabft.GetValidator(records.Address)
-	if val.VerifySig(records.Digest(), records.Signature) == false {
+	if !val.VerifySig(records.Digest(), records.Signature) {
 		return
 	}
 
@@ -499,6 +508,10 @@ func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 	defer sabft.Unlock()
 
 	sabft.lastCommitted = records
+	sabft.appState = &message.AppState{
+		LastHeight: records.FirstPrecommit().Height,
+		LastProposedData: records.ProposedData,
+	}
 	// TODO: if the gobft haven't reach +2/3, push records to bft core??
 }
 
@@ -622,8 +635,7 @@ func (sabft *SABFT) Commit(data message.ProposedData, commitRecords *message.Com
 
 	if commitRecords != nil {
 		sabft.lastCommitted = commitRecords
-		//sabft.BroadCast(commitRecords)
-		//sabft.appState.LastCommitTime = commitRecords.CommitTime
+		sabft.BroadCast(commitRecords)
 	}
 
 	return nil
