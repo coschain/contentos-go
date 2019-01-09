@@ -203,6 +203,22 @@ func (d *DPoS) scheduleProduce() bool {
 	return true
 }
 
+func (d *DPoS) testStart(path string) {
+	// TODO: fuck!! this is fugly
+	var avatar []common.ISignedBlock
+	for i := 0; i < constants.MAX_WITNESSES+1; i++ {
+		// deep copy hell
+		avatar = append(avatar, &prototype.SignedBlock{})
+	}
+	d.ForkDB.LoadSnapshot(avatar, path, &d.blog)
+
+	if d.bootstrap && d.ForkDB.Empty() && d.blog.Empty() {
+		d.log.GetLog().Info("[DPoS] bootstrapping...")
+	}
+	d.restoreProducers()
+	d.start()
+}
+
 func (d *DPoS) start() {
 	d.wg.Add(1)
 	defer d.wg.Done()
