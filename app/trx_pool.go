@@ -177,8 +177,9 @@ func (c *TrxPool) pushTrx(trx *prototype.SignedTransaction) *prototype.Transacti
 	}()
 	// start a new undo session when first transaction come after push block
 	if !c.havePendingTransaction {
-		c.db.BeginTransaction()
-		//	c.log.GetLog().Debug("@@@@@@ pushTrx havePendingTransaction=true")
+		tag := c.getBlockTag(uint64(c.headBlockNum())+1)
+		c.db.BeginTransactionWithTag(tag)
+		//	logging.CLog().Debug("@@@@@@ pushTrx havePendingTransaction=true")
 		c.havePendingTransaction = true
 	}
 
@@ -231,6 +232,8 @@ func (c *TrxPool) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag)
 	}()
 
 	if skip&prototype.Skip_apply_transaction == 0 {
+		tag := c.getBlockTag(blk.Id().BlockNum())
+		c.db.BeginTransactionWithTag(tag)
 		c.db.BeginTransaction()
 		c.applyBlock(blk, skip)
 		mustNoError(c.db.EndTransaction(true), "EndTransaction error")
@@ -307,7 +310,7 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 	defer func() {
 		c.skip = oldSkip
 		if err := recover(); err != nil {
-			//mustNoError(c.db.EndTransaction(false), "EndTransaction error")
+			mustNoError(c.db.EndTransaction(false), "EndTransaction error")
 			//c.log.GetLog().Errorf("GenerateBlock Error: %v", err)
 			panic(err)
 		}
@@ -345,6 +348,8 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 	if c.havePendingTransaction {
 		mustNoError(c.db.EndTransaction(false), "EndTransaction error")
 	}
+	tag := c.getBlockTag(uint64(c.headBlockNum())+1)
+	c.db.BeginTransactionWithTag(tag)
 	c.db.BeginTransaction()
 	//c.log.GetLog().Debug("@@@@@@ GeneratBlock havePendingTransaction=true")
 	c.havePendingTransaction = true
@@ -923,6 +928,11 @@ func (c *TrxPool) getReversion(num uint64) uint64 {
 	return rev
 }
 
+func (c *TrxPool) getBlockTag(num uint64) string {
+	tag := strconv.FormatUint(num, 10)
+	return tag
+}
+
 func (c *TrxPool) PopBlockTo(num uint64) {
 	// undo pending trx
 	c.ClearPending()
@@ -932,16 +942,17 @@ func (c *TrxPool) PopBlockTo(num uint64) {
 		//c.log.GetLog().Debug("@@@@@@ PopBlockTo havePendingTransaction=false")
 	}*/
 	// get reversion
-	rev := c.getReversion(num)
-	mustNoError(c.db.RevertToRevision(rev), fmt.Sprintf("RebaseToRevision error: tag:%d, reversion:%d", num, rev))
+	//rev := c.getReversion(num)
+	//mustNoError(c.db.RevertToRevision(rev), fmt.Sprintf("RebaseToRevision error: tag:%d, reversion:%d", num, rev))
+	tag := c.getBlockTag(num)
+	mustSuccess(c.db.RollBackToTag(tag)==nil, fmt.Sprintf("RevertToRevision error: tag:%d", num,))
 }
 
 func (c *TrxPool) Commit(num uint64) {
 	// this block can not be revert over, so it's irreversible
-	rev := c.getReversion(num)
-	//c.log.GetLog().Debug("### Commit, tag:", num, " rev:", rev)
-	//c.log.GetLog().Debug("$$$ dump reversion array:",c.numToRev)
-	mustNoError(c.db.RebaseToRevision(rev), fmt.Sprintf("RebaseToRevision: tag:%d, reversion:%d", num, rev))
+	tag := c.getBlockTag(uint64(num))
+	err := c.db.Squash(tag)
+	mustSuccess(err == nil,fmt.Sprintf("SquashBlock: tag:%d,error is %s",num,err))
 }
 
 func (c *TrxPool) VerifySig(name *prototype.AccountName, digest []byte, sig []byte) bool {
