@@ -17,7 +17,6 @@ import (
 
 var (
 	ErrPanicResp = errors.New("rpc panic")
-	QueryTableContentErr = errors.New("query table error")
 )
 
 type APIService struct {
@@ -37,13 +36,16 @@ func (as *APIService) QueryTableContent(ctx context.Context, req *grpcpb.GetTabl
 	abiString := scid.GetAbi()
 	abiInterface, err := abi.UnmarshalABI([]byte(abiString));
 	if err != nil {
-		return nil, QueryTableContentErr
+		return nil, err
 	}
 
 	tables := contractTable.NewContractTables(req.Owner,req.Contranct,abiInterface,as.db)
 	aimTable := tables.Table(req.Table)
-	aimTable.EnumRecords(req.Field,req.Begin,req.End,false,1,nil)
-
+	jsonStr,err := aimTable.QueryRecordsJson(req.Field,req.Begin,req.End,false,-1)
+	if err != nil {
+		return nil, err
+	}
+	res.TableContent = jsonStr
 	return res, nil
 }
 
