@@ -152,6 +152,7 @@ func addCommands() {
 	rootCmd.AddCommand(commands.DeployCmd())
 	rootCmd.AddCommand(commands.CallCmd())
 	rootCmd.AddCommand(commands.EstimateCmd())
+	rootCmd.AddCommand(commands.VmTableCmd())
 }
 
 func init() {

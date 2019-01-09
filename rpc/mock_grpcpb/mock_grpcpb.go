@@ -5,9 +5,9 @@
 package mock_grpcpb
 
 import (
-	context "context"
 	pb "github.com/coschain/contentos-go/rpc/pb"
 	gomock "github.com/golang/mock/gomock"
+	context "golang.org/x/net/context"
 	grpc "google.golang.org/grpc"
 	reflect "reflect"
 )
@@ -35,8 +35,29 @@ func (m *MockApiServiceClient) EXPECT() *MockApiServiceClientMockRecorder {
 	return m.recorder
 }
 
+// QueryTableContent mocks base method
+func (m *MockApiServiceClient) QueryTableContent(ctx context.Context, in *pb.GetTableContentRequest, opts ...grpc.CallOption) (*pb.TableContentResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "QueryTableContent", varargs...)
+	ret0, _ := ret[0].(*pb.TableContentResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// QueryTableContent indicates an expected call of QueryTableContent
+func (mr *MockApiServiceClientMockRecorder) QueryTableContent(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryTableContent", reflect.TypeOf((*MockApiServiceClient)(nil).QueryTableContent), varargs...)
+}
+
 // GetAccountByName mocks base method
 func (m *MockApiServiceClient) GetAccountByName(ctx context.Context, in *pb.GetAccountByNameRequest, opts ...grpc.CallOption) (*pb.AccountResponse, error) {
+	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
 	for _, a := range opts {
 		varargs = append(varargs, a)
@@ -49,12 +70,14 @@ func (m *MockApiServiceClient) GetAccountByName(ctx context.Context, in *pb.GetA
 
 // GetAccountByName indicates an expected call of GetAccountByName
 func (mr *MockApiServiceClientMockRecorder) GetAccountByName(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccountByName", reflect.TypeOf((*MockApiServiceClient)(nil).GetAccountByName), varargs...)
 }
 
 // GetAccountRewardByName mocks base method
 func (m *MockApiServiceClient) GetAccountRewardByName(ctx context.Context, in *pb.GetAccountRewardByNameRequest, opts ...grpc.CallOption) (*pb.AccountRewardResponse, error) {
+	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
 	for _, a := range opts {
 		varargs = append(varargs, a)
@@ -67,12 +90,14 @@ func (m *MockApiServiceClient) GetAccountRewardByName(ctx context.Context, in *p
 
 // GetAccountRewardByName indicates an expected call of GetAccountRewardByName
 func (mr *MockApiServiceClientMockRecorder) GetAccountRewardByName(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccountRewardByName", reflect.TypeOf((*MockApiServiceClient)(nil).GetAccountRewardByName), varargs...)
 }
 
 // GetFollowerListByName mocks base method
 func (m *MockApiServiceClient) GetFollowerListByName(ctx context.Context, in *pb.GetFollowerListByNameRequest, opts ...grpc.CallOption) (*pb.GetFollowerListByNameResponse, error) {
+	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
 	for _, a := range opts {
 		varargs = append(varargs, a)
@@ -85,12 +110,14 @@ func (m *MockApiServiceClient) GetFollowerListByName(ctx context.Context, in *pb
 
 // GetFollowerListByName indicates an expected call of GetFollowerListByName
 func (mr *MockApiServiceClientMockRecorder) GetFollowerListByName(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFollowerListByName", reflect.TypeOf((*MockApiServiceClient)(nil).GetFollowerListByName), varargs...)
 }
 
 // GetFollowingListByName mocks base method
 func (m *MockApiServiceClient) GetFollowingListByName(ctx context.Context, in *pb.GetFollowingListByNameRequest, opts ...grpc.CallOption) (*pb.GetFollowingListByNameResponse, error) {
+	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
 	for _, a := range opts {
 		varargs = append(varargs, a)
@@ -103,12 +130,14 @@ func (m *MockApiServiceClient) GetFollowingListByName(ctx context.Context, in *p
 
 // GetFollowingListByName indicates an expected call of GetFollowingListByName
 func (mr *MockApiServiceClientMockRecorder) GetFollowingListByName(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFollowingListByName", reflect.TypeOf((*MockApiServiceClient)(nil).GetFollowingListByName), varargs...)
 }
 
 // GetFollowCountByName mocks base method
 func (m *MockApiServiceClient) GetFollowCountByName(ctx context.Context, in *pb.GetFollowCountByNameRequest, opts ...grpc.CallOption) (*pb.GetFollowCountByNameResponse, error) {
+	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
 	for _, a := range opts {
 		varargs = append(varargs, a)
@@ -121,12 +150,14 @@ func (m *MockApiServiceClient) GetFollowCountByName(ctx context.Context, in *pb.
 
 // GetFollowCountByName indicates an expected call of GetFollowCountByName
 func (mr *MockApiServiceClientMockRecorder) GetFollowCountByName(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFollowCountByName", reflect.TypeOf((*MockApiServiceClient)(nil).GetFollowCountByName), varargs...)
 }
 
 // GetWitnessList mocks base method
 func (m *MockApiServiceClient) GetWitnessList(ctx context.Context, in *pb.GetWitnessListRequest, opts ...grpc.CallOption) (*pb.GetWitnessListResponse, error) {
+	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
 	for _, a := range opts {
 		varargs = append(varargs, a)
@@ -139,12 +170,14 @@ func (m *MockApiServiceClient) GetWitnessList(ctx context.Context, in *pb.GetWit
 
 // GetWitnessList indicates an expected call of GetWitnessList
 func (mr *MockApiServiceClientMockRecorder) GetWitnessList(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetWitnessList", reflect.TypeOf((*MockApiServiceClient)(nil).GetWitnessList), varargs...)
 }
 
 // GetPostListByCreated mocks base method
 func (m *MockApiServiceClient) GetPostListByCreated(ctx context.Context, in *pb.GetPostListByCreatedRequest, opts ...grpc.CallOption) (*pb.GetPostListByCreatedResponse, error) {
+	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
 	for _, a := range opts {
 		varargs = append(varargs, a)
@@ -157,12 +190,14 @@ func (m *MockApiServiceClient) GetPostListByCreated(ctx context.Context, in *pb.
 
 // GetPostListByCreated indicates an expected call of GetPostListByCreated
 func (mr *MockApiServiceClientMockRecorder) GetPostListByCreated(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPostListByCreated", reflect.TypeOf((*MockApiServiceClient)(nil).GetPostListByCreated), varargs...)
 }
 
 // GetReplyListByPostId mocks base method
 func (m *MockApiServiceClient) GetReplyListByPostId(ctx context.Context, in *pb.GetReplyListByPostIdRequest, opts ...grpc.CallOption) (*pb.GetReplyListByPostIdResponse, error) {
+	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
 	for _, a := range opts {
 		varargs = append(varargs, a)
@@ -175,12 +210,14 @@ func (m *MockApiServiceClient) GetReplyListByPostId(ctx context.Context, in *pb.
 
 // GetReplyListByPostId indicates an expected call of GetReplyListByPostId
 func (mr *MockApiServiceClientMockRecorder) GetReplyListByPostId(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetReplyListByPostId", reflect.TypeOf((*MockApiServiceClient)(nil).GetReplyListByPostId), varargs...)
 }
 
 // GetBlockTransactionsByNum mocks base method
 func (m *MockApiServiceClient) GetBlockTransactionsByNum(ctx context.Context, in *pb.GetBlockTransactionsByNumRequest, opts ...grpc.CallOption) (*pb.GetBlockTransactionsByNumResponse, error) {
+	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
 	for _, a := range opts {
 		varargs = append(varargs, a)
@@ -193,12 +230,14 @@ func (m *MockApiServiceClient) GetBlockTransactionsByNum(ctx context.Context, in
 
 // GetBlockTransactionsByNum indicates an expected call of GetBlockTransactionsByNum
 func (mr *MockApiServiceClientMockRecorder) GetBlockTransactionsByNum(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockTransactionsByNum", reflect.TypeOf((*MockApiServiceClient)(nil).GetBlockTransactionsByNum), varargs...)
 }
 
 // GetTrxById mocks base method
 func (m *MockApiServiceClient) GetTrxById(ctx context.Context, in *pb.GetTrxByIdRequest, opts ...grpc.CallOption) (*pb.GetTrxByIdResponse, error) {
+	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
 	for _, a := range opts {
 		varargs = append(varargs, a)
@@ -211,12 +250,14 @@ func (m *MockApiServiceClient) GetTrxById(ctx context.Context, in *pb.GetTrxById
 
 // GetTrxById indicates an expected call of GetTrxById
 func (mr *MockApiServiceClientMockRecorder) GetTrxById(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTrxById", reflect.TypeOf((*MockApiServiceClient)(nil).GetTrxById), varargs...)
 }
 
 // GetChainState mocks base method
 func (m *MockApiServiceClient) GetChainState(ctx context.Context, in *pb.NonParamsRequest, opts ...grpc.CallOption) (*pb.GetChainStateResponse, error) {
+	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
 	for _, a := range opts {
 		varargs = append(varargs, a)
@@ -229,12 +270,14 @@ func (m *MockApiServiceClient) GetChainState(ctx context.Context, in *pb.NonPara
 
 // GetChainState indicates an expected call of GetChainState
 func (mr *MockApiServiceClientMockRecorder) GetChainState(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetChainState", reflect.TypeOf((*MockApiServiceClient)(nil).GetChainState), varargs...)
 }
 
 // BroadcastTrx mocks base method
 func (m *MockApiServiceClient) BroadcastTrx(ctx context.Context, in *pb.BroadcastTrxRequest, opts ...grpc.CallOption) (*pb.BroadcastTrxResponse, error) {
+	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
 	for _, a := range opts {
 		varargs = append(varargs, a)
@@ -247,6 +290,7 @@ func (m *MockApiServiceClient) BroadcastTrx(ctx context.Context, in *pb.Broadcas
 
 // BroadcastTrx indicates an expected call of BroadcastTrx
 func (mr *MockApiServiceClientMockRecorder) BroadcastTrx(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BroadcastTrx", reflect.TypeOf((*MockApiServiceClient)(nil).BroadcastTrx), varargs...)
 }
@@ -274,8 +318,24 @@ func (m *MockApiServiceServer) EXPECT() *MockApiServiceServerMockRecorder {
 	return m.recorder
 }
 
+// QueryTableContent mocks base method
+func (m *MockApiServiceServer) QueryTableContent(arg0 context.Context, arg1 *pb.GetTableContentRequest) (*pb.TableContentResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "QueryTableContent", arg0, arg1)
+	ret0, _ := ret[0].(*pb.TableContentResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// QueryTableContent indicates an expected call of QueryTableContent
+func (mr *MockApiServiceServerMockRecorder) QueryTableContent(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryTableContent", reflect.TypeOf((*MockApiServiceServer)(nil).QueryTableContent), arg0, arg1)
+}
+
 // GetAccountByName mocks base method
 func (m *MockApiServiceServer) GetAccountByName(arg0 context.Context, arg1 *pb.GetAccountByNameRequest) (*pb.AccountResponse, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetAccountByName", arg0, arg1)
 	ret0, _ := ret[0].(*pb.AccountResponse)
 	ret1, _ := ret[1].(error)
@@ -284,11 +344,13 @@ func (m *MockApiServiceServer) GetAccountByName(arg0 context.Context, arg1 *pb.G
 
 // GetAccountByName indicates an expected call of GetAccountByName
 func (mr *MockApiServiceServerMockRecorder) GetAccountByName(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccountByName", reflect.TypeOf((*MockApiServiceServer)(nil).GetAccountByName), arg0, arg1)
 }
 
 // GetAccountRewardByName mocks base method
 func (m *MockApiServiceServer) GetAccountRewardByName(arg0 context.Context, arg1 *pb.GetAccountRewardByNameRequest) (*pb.AccountRewardResponse, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetAccountRewardByName", arg0, arg1)
 	ret0, _ := ret[0].(*pb.AccountRewardResponse)
 	ret1, _ := ret[1].(error)
@@ -297,11 +359,13 @@ func (m *MockApiServiceServer) GetAccountRewardByName(arg0 context.Context, arg1
 
 // GetAccountRewardByName indicates an expected call of GetAccountRewardByName
 func (mr *MockApiServiceServerMockRecorder) GetAccountRewardByName(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccountRewardByName", reflect.TypeOf((*MockApiServiceServer)(nil).GetAccountRewardByName), arg0, arg1)
 }
 
 // GetFollowerListByName mocks base method
 func (m *MockApiServiceServer) GetFollowerListByName(arg0 context.Context, arg1 *pb.GetFollowerListByNameRequest) (*pb.GetFollowerListByNameResponse, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetFollowerListByName", arg0, arg1)
 	ret0, _ := ret[0].(*pb.GetFollowerListByNameResponse)
 	ret1, _ := ret[1].(error)
@@ -310,11 +374,13 @@ func (m *MockApiServiceServer) GetFollowerListByName(arg0 context.Context, arg1 
 
 // GetFollowerListByName indicates an expected call of GetFollowerListByName
 func (mr *MockApiServiceServerMockRecorder) GetFollowerListByName(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFollowerListByName", reflect.TypeOf((*MockApiServiceServer)(nil).GetFollowerListByName), arg0, arg1)
 }
 
 // GetFollowingListByName mocks base method
 func (m *MockApiServiceServer) GetFollowingListByName(arg0 context.Context, arg1 *pb.GetFollowingListByNameRequest) (*pb.GetFollowingListByNameResponse, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetFollowingListByName", arg0, arg1)
 	ret0, _ := ret[0].(*pb.GetFollowingListByNameResponse)
 	ret1, _ := ret[1].(error)
@@ -323,11 +389,13 @@ func (m *MockApiServiceServer) GetFollowingListByName(arg0 context.Context, arg1
 
 // GetFollowingListByName indicates an expected call of GetFollowingListByName
 func (mr *MockApiServiceServerMockRecorder) GetFollowingListByName(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFollowingListByName", reflect.TypeOf((*MockApiServiceServer)(nil).GetFollowingListByName), arg0, arg1)
 }
 
 // GetFollowCountByName mocks base method
 func (m *MockApiServiceServer) GetFollowCountByName(arg0 context.Context, arg1 *pb.GetFollowCountByNameRequest) (*pb.GetFollowCountByNameResponse, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetFollowCountByName", arg0, arg1)
 	ret0, _ := ret[0].(*pb.GetFollowCountByNameResponse)
 	ret1, _ := ret[1].(error)
@@ -336,11 +404,13 @@ func (m *MockApiServiceServer) GetFollowCountByName(arg0 context.Context, arg1 *
 
 // GetFollowCountByName indicates an expected call of GetFollowCountByName
 func (mr *MockApiServiceServerMockRecorder) GetFollowCountByName(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFollowCountByName", reflect.TypeOf((*MockApiServiceServer)(nil).GetFollowCountByName), arg0, arg1)
 }
 
 // GetWitnessList mocks base method
 func (m *MockApiServiceServer) GetWitnessList(arg0 context.Context, arg1 *pb.GetWitnessListRequest) (*pb.GetWitnessListResponse, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetWitnessList", arg0, arg1)
 	ret0, _ := ret[0].(*pb.GetWitnessListResponse)
 	ret1, _ := ret[1].(error)
@@ -349,11 +419,13 @@ func (m *MockApiServiceServer) GetWitnessList(arg0 context.Context, arg1 *pb.Get
 
 // GetWitnessList indicates an expected call of GetWitnessList
 func (mr *MockApiServiceServerMockRecorder) GetWitnessList(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetWitnessList", reflect.TypeOf((*MockApiServiceServer)(nil).GetWitnessList), arg0, arg1)
 }
 
 // GetPostListByCreated mocks base method
 func (m *MockApiServiceServer) GetPostListByCreated(arg0 context.Context, arg1 *pb.GetPostListByCreatedRequest) (*pb.GetPostListByCreatedResponse, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetPostListByCreated", arg0, arg1)
 	ret0, _ := ret[0].(*pb.GetPostListByCreatedResponse)
 	ret1, _ := ret[1].(error)
@@ -362,11 +434,13 @@ func (m *MockApiServiceServer) GetPostListByCreated(arg0 context.Context, arg1 *
 
 // GetPostListByCreated indicates an expected call of GetPostListByCreated
 func (mr *MockApiServiceServerMockRecorder) GetPostListByCreated(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPostListByCreated", reflect.TypeOf((*MockApiServiceServer)(nil).GetPostListByCreated), arg0, arg1)
 }
 
 // GetReplyListByPostId mocks base method
 func (m *MockApiServiceServer) GetReplyListByPostId(arg0 context.Context, arg1 *pb.GetReplyListByPostIdRequest) (*pb.GetReplyListByPostIdResponse, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetReplyListByPostId", arg0, arg1)
 	ret0, _ := ret[0].(*pb.GetReplyListByPostIdResponse)
 	ret1, _ := ret[1].(error)
@@ -375,11 +449,13 @@ func (m *MockApiServiceServer) GetReplyListByPostId(arg0 context.Context, arg1 *
 
 // GetReplyListByPostId indicates an expected call of GetReplyListByPostId
 func (mr *MockApiServiceServerMockRecorder) GetReplyListByPostId(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetReplyListByPostId", reflect.TypeOf((*MockApiServiceServer)(nil).GetReplyListByPostId), arg0, arg1)
 }
 
 // GetBlockTransactionsByNum mocks base method
 func (m *MockApiServiceServer) GetBlockTransactionsByNum(arg0 context.Context, arg1 *pb.GetBlockTransactionsByNumRequest) (*pb.GetBlockTransactionsByNumResponse, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetBlockTransactionsByNum", arg0, arg1)
 	ret0, _ := ret[0].(*pb.GetBlockTransactionsByNumResponse)
 	ret1, _ := ret[1].(error)
@@ -388,11 +464,13 @@ func (m *MockApiServiceServer) GetBlockTransactionsByNum(arg0 context.Context, a
 
 // GetBlockTransactionsByNum indicates an expected call of GetBlockTransactionsByNum
 func (mr *MockApiServiceServerMockRecorder) GetBlockTransactionsByNum(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockTransactionsByNum", reflect.TypeOf((*MockApiServiceServer)(nil).GetBlockTransactionsByNum), arg0, arg1)
 }
 
 // GetTrxById mocks base method
 func (m *MockApiServiceServer) GetTrxById(arg0 context.Context, arg1 *pb.GetTrxByIdRequest) (*pb.GetTrxByIdResponse, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetTrxById", arg0, arg1)
 	ret0, _ := ret[0].(*pb.GetTrxByIdResponse)
 	ret1, _ := ret[1].(error)
@@ -401,11 +479,13 @@ func (m *MockApiServiceServer) GetTrxById(arg0 context.Context, arg1 *pb.GetTrxB
 
 // GetTrxById indicates an expected call of GetTrxById
 func (mr *MockApiServiceServerMockRecorder) GetTrxById(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTrxById", reflect.TypeOf((*MockApiServiceServer)(nil).GetTrxById), arg0, arg1)
 }
 
 // GetChainState mocks base method
 func (m *MockApiServiceServer) GetChainState(arg0 context.Context, arg1 *pb.NonParamsRequest) (*pb.GetChainStateResponse, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetChainState", arg0, arg1)
 	ret0, _ := ret[0].(*pb.GetChainStateResponse)
 	ret1, _ := ret[1].(error)
@@ -414,11 +494,13 @@ func (m *MockApiServiceServer) GetChainState(arg0 context.Context, arg1 *pb.NonP
 
 // GetChainState indicates an expected call of GetChainState
 func (mr *MockApiServiceServerMockRecorder) GetChainState(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetChainState", reflect.TypeOf((*MockApiServiceServer)(nil).GetChainState), arg0, arg1)
 }
 
 // BroadcastTrx mocks base method
 func (m *MockApiServiceServer) BroadcastTrx(arg0 context.Context, arg1 *pb.BroadcastTrxRequest) (*pb.BroadcastTrxResponse, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "BroadcastTrx", arg0, arg1)
 	ret0, _ := ret[0].(*pb.BroadcastTrxResponse)
 	ret1, _ := ret[1].(error)
@@ -427,5 +509,6 @@ func (m *MockApiServiceServer) BroadcastTrx(arg0 context.Context, arg1 *pb.Broad
 
 // BroadcastTrx indicates an expected call of BroadcastTrx
 func (mr *MockApiServiceServerMockRecorder) BroadcastTrx(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BroadcastTrx", reflect.TypeOf((*MockApiServiceServer)(nil).BroadcastTrx), arg0, arg1)
 }
