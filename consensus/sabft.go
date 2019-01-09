@@ -124,19 +124,19 @@ func NewSABFT(ctx *node.ServiceContext) *SABFT {
 		log:        logService.(iservices.ILog),
 	}
 
-	ret.bft = gobft.NewCore(ret, ret.priv)
 	ret.SetBootstrap(ctx.Config().Consensus.BootStrap)
 	ret.Name = ctx.Config().Consensus.LocalBpName
+	ret.priv = &privateValidator{
+		sab:  ret,
+		name: ret.Name,
+	}
+	ret.bft = gobft.NewCore(ret, ret.priv)
 	ret.log.GetLog().Info("[SABFT bootstrap] ", ctx.Config().Consensus.BootStrap)
 	ret.appState = &message.AppState{
 		LastHeight:       0,
 		LastProposedData: message.NilData,
 	}
 
-	ret.priv = &privateValidator{
-		sab:  ret,
-		name: ret.Name,
-	}
 	privateKey := ctx.Config().Consensus.LocalBpPrivateKey
 	if len(privateKey) > 0 {
 		var err error
@@ -464,10 +464,42 @@ func (sabft *SABFT) PushBlock(b common.ISignedBlock) {
 
 func (sabft *SABFT) Push(msg interface{}) {
 	switch msg := msg.(type) {
-	case message.ConsensusMessage:
+	case *message.Vote:
 		sabft.bft.RecvMsg(msg)
+	case *message.Commit:
+		sabft.handleCommitRecords(msg)
 	default:
 	}
+}
+
+func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
+	if err := records.ValidateBasic(); err != nil {
+		sabft.log.GetLog().Error(err)
+	}
+
+	sabft.RLock()
+	oldID := common.BlockID{
+		Data: sabft.lastCommitted.ProposedData,
+	}
+	newID := common.BlockID{
+		Data: records.ProposedData,
+	}
+	if oldID.BlockNum() >= newID.BlockNum() {
+		return
+	}
+	sabft.RUnlock()
+
+	// check signature
+	val := sabft.GetValidator(records.Address)
+	if val.VerifySig(records.Digest(), records.Signature) == false {
+		return
+	}
+
+	sabft.Lock()
+	defer sabft.Unlock()
+
+	sabft.lastCommitted = records
+	// TODO: if the gobft haven't reach +2/3, push records to bft core??
 }
 
 func (sabft *SABFT) PushTransaction(trx common.ISignedTransaction, wait bool, broadcast bool) common.ITransactionReceiptWithInfo {
@@ -539,6 +571,7 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 			return err
 		}
 	}
+	sabft.log.GetLog().Debug("pushBlock FINISHED #", b.Id().BlockNum())
 	return nil
 }
 
@@ -589,7 +622,7 @@ func (sabft *SABFT) Commit(data message.ProposedData, commitRecords *message.Com
 
 	if commitRecords != nil {
 		sabft.lastCommitted = commitRecords
-		sabft.BroadCast(commitRecords)
+		//sabft.BroadCast(commitRecords)
 		//sabft.appState.LastCommitTime = commitRecords.CommitTime
 	}
 
