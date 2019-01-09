@@ -427,8 +427,11 @@ func (this *P2PServer) TriggerSync(current_head_blk_id coomn.BlockID) {
 	reqdata.HeadBlockId = current_head_blk_id.Data[:]
 	reqmsg.Msg = &msgtypes.TransferMsg_Msg4{Msg4:reqdata}
 	//this.log.Info("enter TriggerSync func")
-	for _, p := range this.Network.GetNp().List {
+	np := this.Network.GetNp()
+	np.RLock()
+	for _, p := range np.List {
 		//this.log.Info("[p2p] cons call TriggerSync func, head id :  ", reqmsg.HeadBlockId)
 		go p.Send(reqmsg, false, this.ctx.Config().P2P.NetworkMagic)
 	}
+	np.RUnlock()
 }
