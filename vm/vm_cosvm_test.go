@@ -65,8 +65,8 @@ func (i *FakeInjector) TransferFromContractToContract(fromContract, fromOwner, t
 	fmt.Println("transfer", fromOwner, fromContract, toOwner, toContract, amount)
 }
 
-func (i *FakeInjector) ContractCall(caller, owner, contract, method string, params []byte, coins, maxGas uint64) {
-	fmt.Printf("ContractCall: caller=%s, contract_owner=%s, contract=%s, method=%s, params=%v, coins=%d, max_gas=%d", caller, owner, contract, method, params, coins, maxGas)
+func (i *FakeInjector) ContractCall(caller, fromOwner, fromContract, fromMethod, toOwner, toContract, toMethod string, params []byte, coins, maxGas uint64) {
+	fmt.Printf("ContractCall: caller=%s, from=%s.%s.%s to=%s.%s.%s, params=%v, coins=%d, max_gas=%d", caller, fromOwner, fromContract, fromMethod, toOwner, toContract, toMethod, params, coins, maxGas)
 }
 
 func fadd(proc *exec.Process, a, b float32) float32 {

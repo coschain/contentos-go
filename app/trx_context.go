@@ -56,7 +56,7 @@ func (p *TrxContext) Error(code uint32, msg string) {
 }
 
 func (p *TrxContext) Log(msg string) {
-	fmt.Println(msg)
+	fmt.Print(msg)
 	p.Wrapper.Receipt.OpResults = append(p.Wrapper.Receipt.OpResults, &prototype.OperationReceiptWithInfo{VmConsole: msg})
 }
 
@@ -123,16 +123,15 @@ func (p *TrxContext) TransferFromContractToContract(fromContract, fromOwner, toC
 	to.MdBalance(&prototype.Coin{Value: toBalance + amount})
 }
 
-func (p *TrxContext) ContractCall(caller, owner, contract, method string, params []byte, coins, maxGas uint64) {
-	// fixme: parameter not ready. 
+func (p *TrxContext) ContractCall(caller, fromOwner, fromContract, fromMethod, toOwner, toContract, toMethod string, params []byte, coins, maxGas uint64) {
 	op := &prototype.InternalContractApplyOperation{
 		FromCaller: &prototype.AccountName{ Value: caller },
-		FromOwner: nil,
-		FromContract: "",
-		FromMethod: "",
-		ToOwner: &prototype.AccountName{ Value: caller },
-		ToContract: contract,
-		ToMethod: method,
+		FromOwner: &prototype.AccountName{ Value: fromOwner },
+		FromContract: fromContract,
+		FromMethod: fromMethod,
+		ToOwner: &prototype.AccountName{ Value: toOwner },
+		ToContract: toContract,
+		ToMethod: toMethod,
 		Params: params,
 		Amount: &prototype.Coin{ Value: coins },
 		Gas: &prototype.Coin{ Value: maxGas },
