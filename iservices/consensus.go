@@ -44,6 +44,9 @@ type IConsensus interface {
 	// ResetProdTimer reset the prodTimer in dpos
 	ResetProdTimer(t time.Duration)
 
+	// ResetTicker reset the Ticker in DPoS
+	ResetTicker(t time.Time)
+
 	// MaybeProduceBlock check whether should produce a block
-	MaybeProduceBlock(t ...time.Time)
+	MaybeProduceBlock()
 }

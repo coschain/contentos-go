@@ -59,7 +59,7 @@ func NewDPoS(ctx *node.ServiceContext) *DPoS {
 	ret := &DPoS{
 		ForkDB:    forkdb.NewDB(),
 		Producers: make([]string, 0, 1),
-		prodTimer: time.NewTimer(1 * time.Millisecond),
+		prodTimer: time.NewTimer(100 * time.Millisecond),
 		trxCh:     make(chan func()),
 		//trxRetCh:  make(chan common.ITransactionInvoice),
 		blkCh:  make(chan common.ISignedBlock),
@@ -654,10 +654,11 @@ func (d *DPoS) ResetProdTimer(t time.Duration) {
 	d.prodTimer.Reset(t)
 }
 
-func (d *DPoS) MaybeProduceBlock(t ...time.Time) {
-	if len(t) != 0 {
-		d.Ticker = &FakeTimer {t : t[0]}
-	}
+func (d *DPoS) ResetTicker(ts time.Time) {
+	d.Ticker = &FakeTimer {t : ts}
+}
+
+func (d *DPoS) MaybeProduceBlock() {
 	if !d.scheduleProduce() {
 		return
 	}

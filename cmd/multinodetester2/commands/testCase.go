@@ -23,9 +23,9 @@ func autoTest () {
 	}
 
 	now := time.Now()
-	globalObj.dposList[0].MaybeProduceBlock(now)
-	globalObj.dposList[0].MaybeProduceBlock(now.Add( 3 * time.Second))
-	globalObj.dposList[0].MaybeProduceBlock(now.Add( 6 * time.Second))
+	produceBlk(globalObj.dposList[0], now)
+	produceBlk(globalObj.dposList[0], now.Add( 3 * time.Second))
+	produceBlk(globalObj.dposList[0], now.Add( 6 * time.Second))
 	time.Sleep(10*time.Second)
 	fmt.Println("head block id:   ", globalObj.dposList[0].GetHeadBlockId())
 	fmt.Println("head block id:   ", globalObj.dposList[1].GetHeadBlockId())
@@ -41,7 +41,7 @@ func autoTest () {
 
 	createAccount(globalObj.dposList[2],  "initminer1")
 	time.Sleep(5 * time.Second)
-	globalObj.dposList[0].MaybeProduceBlock(now.Add( 9 * time.Second))
+	produceBlk(globalObj.dposList[0], now.Add( 9 * time.Second))
 
 	time.Sleep(5 * time.Second)
 	acc := getAccount(globalObj.dbList[1], "initminer1")
@@ -50,6 +50,11 @@ func autoTest () {
 	}
 
 	fmt.Println("test done")
+}
+
+func produceBlk (icons iservices.IConsensus, t time.Time) {
+	icons.ResetTicker(t)
+	icons.MaybeProduceBlock()
 }
 
 func getAccount(idb iservices.IDatabaseService, name string) *table.SoAccountWrap {
