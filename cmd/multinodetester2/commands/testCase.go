@@ -25,6 +25,7 @@ func autoTest () {
 	prodTime := time.Now()
 	count := 8
 
+	// produce count blocks and check every chain's head block number, the number should be equal to count
 	for i:=0;i<count;i++ {
 		prodTime = prodTime.Add( time.Duration( 3 * i ) * time.Second )
 		produceBlk(globalObj.dposList[0], prodTime)
@@ -38,24 +39,44 @@ func autoTest () {
 		}
 	}
 
-	for i:=1;i<int(NodeCnt);i++ {
-		acc := getAccount(globalObj.dbList[i], fmt.Sprintf("initminer%d", i))
-		if acc != nil {
-			panic(errors.New("this account should not exist"))
+	// check every chain, initminer1, initminer2......, these accounts should not exist
+	for i:=0;i<int(NodeCnt);i++ {
+		for j:=1;j<int(NodeCnt);j++ {
+			acc := getAccount(globalObj.dbList[i], fmt.Sprintf("initminer%d", j))
+			if acc != nil {
+				panic(errors.New("this account should not exist"))
+			}
 		}
 	}
 
+	// create account initminer1, initminer2,......, and then check every chain whether these accounts exist
 	for i:=1;i<int(NodeCnt);i++ {
 		createAccount(globalObj.dposList[i],  fmt.Sprintf("initminer%d", i))
 	}
-	produceBlk(globalObj.dposList[0], prodTime.Add( 3 * time.Second))
-
+	prodTime = prodTime.Add(3 * time.Second)
+	produceBlk(globalObj.dposList[0], prodTime)
 	time.Sleep(5 * time.Second)
 	for i:=0;i<int(NodeCnt);i++ {
 		for j:=1;j<int(NodeCnt);j++ {
 			acc := getAccount(globalObj.dbList[i], fmt.Sprintf("initminer%d", j))
 			if acc == nil {
 				panic(errors.New("account should exist"))
+			}
+		}
+	}
+
+	// transfer 10 coin from initminer to initminer1, initminer2......, and then check every chain the account's value
+	for i:=1;i<int(NodeCnt);i++ {
+		transfer(globalObj.dposList[i], "initminer", fmt.Sprintf("initminer%d", i), 10 , "")
+	}
+	prodTime = prodTime.Add(3 * time.Second)
+	produceBlk(globalObj.dposList[0], prodTime)
+	time.Sleep(5 * time.Second)
+	for i:=0;i<int(NodeCnt);i++ {
+		for j:=1;j<int(NodeCnt);j++ {
+			acc := getAccount(globalObj.dbList[i], fmt.Sprintf("initminer%d", j))
+			if acc.GetBalance().Value != 10 {
+				panic(errors.New("account value mismached"))
 			}
 		}
 	}
@@ -128,4 +149,24 @@ func signTrx(icons iservices.IConsensus, privKeyStr string, ops ...interface{}) 
 		return nil, err
 	}
 	return &signTx, nil
+}
+
+func transfer(icons iservices.IConsensus, from, to string, amount uint64, memo string) {
+	defaultPrivKey, err := prototype.PrivateKeyFromWIF(constants.INITMINER_PRIKEY)
+	if err != nil {
+		panic(err)
+	}
+	top := &prototype.TransferOperation{
+		From:   &prototype.AccountName{Value: from},
+		To:     &prototype.AccountName{Value: to},
+		Amount: prototype.NewCoin(amount),
+		Memo:   memo,
+	}
+	var signTx *prototype.SignedTransaction
+	signTx, err = signTrx(icons, defaultPrivKey.ToWIF(), top)
+	if err != nil {
+		panic(err)
+	}
+	icons.PushTransaction(signTx, true, true)
+	time.Sleep(3 * time.Second)
 }
