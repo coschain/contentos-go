@@ -12,8 +12,8 @@ import (
 )
 
 func autoTest () {
+	// this sleep let the whole net to be constructed
 	time.Sleep(10 * time.Second)
-	fmt.Println("mian func")
 	for i:=0;i<len(globalObj.dposList);i++ {
 		fmt.Println()
 		fmt.Println()
@@ -22,15 +22,21 @@ func autoTest () {
 		fmt.Println()
 	}
 
-	now := time.Now()
-	produceBlk(globalObj.dposList[0], now)
-	produceBlk(globalObj.dposList[0], now.Add( 3 * time.Second))
-	produceBlk(globalObj.dposList[0], now.Add( 6 * time.Second))
-	time.Sleep(10*time.Second)
-	fmt.Println("head block id:   ", globalObj.dposList[0].GetHeadBlockId())
-	fmt.Println("head block id:   ", globalObj.dposList[1].GetHeadBlockId())
-	fmt.Println("head block id:   ", globalObj.dposList[2].GetHeadBlockId())
+	prodTime := time.Now()
+	count := 8
 
+	for i:=0;i<count;i++ {
+		prodTime = prodTime.Add( time.Duration( 3 * i ) * time.Second )
+		produceBlk(globalObj.dposList[0], prodTime)
+
+	}
+	time.Sleep(5 * time.Second)
+	for i:=0;i<int(NodeCnt);i++ {
+		fmt.Println("head block id:   ", globalObj.dposList[i].GetHeadBlockId())
+		if int( globalObj.dposList[i].GetHeadBlockId().Data[0] ) != count {
+			panic(errors.New("head block number mismached"))
+		}
+	}
 
 	for i:=1;i<int(NodeCnt);i++ {
 		acc := getAccount(globalObj.dbList[i], fmt.Sprintf("initminer%d", i))
@@ -39,14 +45,19 @@ func autoTest () {
 		}
 	}
 
-	createAccount(globalObj.dposList[2],  "initminer1")
-	time.Sleep(5 * time.Second)
-	produceBlk(globalObj.dposList[0], now.Add( 9 * time.Second))
+	for i:=1;i<int(NodeCnt);i++ {
+		createAccount(globalObj.dposList[i],  fmt.Sprintf("initminer%d", i))
+	}
+	produceBlk(globalObj.dposList[0], prodTime.Add( 3 * time.Second))
 
 	time.Sleep(5 * time.Second)
-	acc := getAccount(globalObj.dbList[1], "initminer1")
-	if acc == nil {
-		panic(errors.New("account should exist"))
+	for i:=0;i<int(NodeCnt);i++ {
+		for j:=1;j<int(NodeCnt);j++ {
+			acc := getAccount(globalObj.dbList[i], fmt.Sprintf("initminer%d", j))
+			if acc == nil {
+				panic(errors.New("account should exist"))
+			}
+		}
 	}
 
 	fmt.Println("test done")
@@ -90,6 +101,7 @@ func createAccount(icons iservices.IConsensus, name string) {
 		panic(err)
 	}
 	icons.PushTransaction(signTx, true, true)
+	time.Sleep(3 * time.Second)
 }
 
 func signTrx(icons iservices.IConsensus, privKeyStr string, ops ...interface{}) (*prototype.SignedTransaction, error) {
