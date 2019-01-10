@@ -65,20 +65,38 @@ func (db *DB) Snapshot(dir string) {
 }
 
 // LoadSnapshot...
-func (db *DB) LoadSnapshot(avatar []common.ISignedBlock, dir string) {
+func (db *DB) LoadSnapshot(avatar []common.ISignedBlock, dir string, blog *blocklog.BLog) {
 	db.Lock()
 	defer db.Unlock()
 
+	defer func() {
+		everCommitted := false
+		if !blog.Empty() {
+			if err := blog.ReadBlock(avatar[len(avatar)-1], blog.Size()-1); err != nil {
+				panic(err)
+			}
+			everCommitted = true
+		}
+		if r := recover(); r != nil {
+			// restore from blog by reading the last committed block
+			if everCommitted {
+				db.pushBlock(avatar[len(avatar)-1])
+			}
+		}
+		if everCommitted {
+			db.lastCommitted = avatar[len(avatar)-1].Id()
+		}
+		db.snapshot.Remove(dir)
+	}()
+
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		return
+		panic("dir not exist")
 	}
 	if err := db.snapshot.Open(dir); err != nil {
 		panic(err)
 	}
-	defer db.snapshot.Remove(dir)
-
 	if db.snapshot.Empty() {
-		return
+		panic("snapshot empty")
 	}
 
 	// clear
@@ -93,10 +111,6 @@ func (db *DB) LoadSnapshot(avatar []common.ISignedBlock, dir string) {
 	for i = 0; i < size; i++ {
 		if err := db.snapshot.ReadBlock(avatar[i], i); err != nil {
 			panic(err)
-		}
-		if i == 0 {
-			// TODO: it's gonna be a problem if the node never committed any block
-			db.lastCommitted = avatar[i].Id()
 		}
 		//db.log.Debug("loading block #", avatar[i].Id().BlockNum())
 		db.pushBlock(avatar[i])

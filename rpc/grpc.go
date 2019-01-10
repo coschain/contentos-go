@@ -9,8 +9,10 @@ import (
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/rpc/pb"
+	"github.com/coschain/contentos-go/vm/contract/abi"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	contractTable "github.com/coschain/contentos-go/vm/contract/table"
 )
 
 var (
@@ -22,6 +24,29 @@ type APIService struct {
 	mainLoop  *eventloop.EventLoop
 	db        iservices.IDatabaseService
 	log       *logrus.Logger
+}
+
+func (as *APIService) QueryTableContent(ctx context.Context, req *grpcpb.GetTableContentRequest) (*grpcpb.TableContentResponse, error) {
+
+	res := &grpcpb.TableContentResponse{}
+
+	cid := prototype.ContractId{Owner: &prototype.AccountName{Value:req.Owner}, Cname: req.Contranct}
+	scid := table.NewSoContractWrap(as.db, &cid)
+
+	abiString := scid.GetAbi()
+	abiInterface, err := abi.UnmarshalABI([]byte(abiString));
+	if err != nil {
+		return nil, err
+	}
+
+	tables := contractTable.NewContractTables(req.Owner,req.Contranct,abiInterface,as.db)
+	aimTable := tables.Table(req.Table)
+	jsonStr,err := aimTable.QueryRecordsJson(req.Field,req.Begin,req.End,false,-1)
+	if err != nil {
+		return nil, err
+	}
+	res.TableContent = jsonStr
+	return res, nil
 }
 
 func (as *APIService) GetAccountByName(ctx context.Context, req *grpcpb.GetAccountByNameRequest) (*grpcpb.AccountResponse, error) {

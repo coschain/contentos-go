@@ -134,6 +134,8 @@ func RegisterService(app *node.Node, cfg node.Config) {
 		switch ctx.Config().Consensus.Type {
 		case "DPoS":
 			s = consensus.NewDPoS(ctx)
+		case "SABFT":
+			s = consensus.NewSABFT(ctx)
 		default:
 			s = consensus.NewDPoS(ctx)
 		}

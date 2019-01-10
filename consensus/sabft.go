@@ -96,6 +96,7 @@ type SABFT struct {
 	lastCommitted *message.Commit
 	suffledID     common.BlockID
 	appState      *message.AppState
+	//startBFTCh    chan struct{}
 
 	readyToProduce bool
 	prodTimer      *time.Timer
@@ -127,22 +128,23 @@ func NewSABFT(ctx *node.ServiceContext) *SABFT {
 		blkCh:      make(chan common.ISignedBlock),
 		ctx:        ctx,
 		stopCh:     make(chan struct{}),
+		//startBFTCh: make(chan struct{}),
 		log:        logService.(iservices.ILog),
 	}
 
-	ret.bft = gobft.NewCore(ret, ret.priv)
 	ret.SetBootstrap(ctx.Config().Consensus.BootStrap)
 	ret.Name = ctx.Config().Consensus.LocalBpName
+	ret.priv = &privateValidator{
+		sab:  ret,
+		name: ret.Name,
+	}
+	ret.bft = gobft.NewCore(ret, ret.priv)
 	ret.log.GetLog().Info("[SABFT bootstrap] ", ctx.Config().Consensus.BootStrap)
 	ret.appState = &message.AppState{
 		LastHeight:       0,
 		LastProposedData: message.NilData,
 	}
 
-	ret.priv = &privateValidator{
-		sab:  ret,
-		name: ret.Name,
-	}
 	privateKey := ctx.Config().Consensus.LocalBpPrivateKey
 	if len(privateKey) > 0 {
 		var err error
@@ -214,7 +216,11 @@ func (sabft *SABFT) shuffle(head common.ISignedBlock) {
 	}
 
 	sabft.validators = sabft.makeValidators(prods)
-	sabft.log.GetLog().Debug("[SABFT shuffle] active producers: ", sabft.validators)
+	validatorNames := ""
+	for i:=range sabft.validators {
+		validatorNames += sabft.validators[i].accountName + " "
+	}
+	sabft.log.GetLog().Debug("[SABFT shuffle] active producers: ", validatorNames)
 	sabft.ctrl.SetShuffledWitness(prods)
 
 	sabft.suffledID = head.Id()
@@ -256,7 +262,7 @@ func (sabft *SABFT) Start(node *node.Node) error {
 		// deep copy hell
 		avatar = append(avatar, &prototype.SignedBlock{})
 	}
-	sabft.ForkDB.LoadSnapshot(avatar, snapshotPath)
+	sabft.ForkDB.LoadSnapshot(avatar, snapshotPath, &sabft.blog)
 
 	sabft.log.GetLog().Info("[SABFT] starting...")
 	if sabft.bootstrap && sabft.ForkDB.Empty() && sabft.blog.Empty() {
@@ -267,8 +273,9 @@ func (sabft *SABFT) Start(node *node.Node) error {
 	// start block generation process
 	go sabft.start()
 
-	// start the bft process
+	// start bft process
 	sabft.bft.Start()
+
 	return nil
 }
 
@@ -470,10 +477,54 @@ func (sabft *SABFT) PushBlock(b common.ISignedBlock) {
 
 func (sabft *SABFT) Push(msg interface{}) {
 	switch msg := msg.(type) {
-	case message.ConsensusMessage:
+	case *message.Vote:
 		sabft.bft.RecvMsg(msg)
+	case *message.Commit:
+		sabft.handleCommitRecords(msg)
 	default:
 	}
+}
+
+func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
+	if err := records.ValidateBasic(); err != nil {
+		sabft.log.GetLog().Error(err)
+	}
+
+	sabft.RLock()
+	if sabft.lastCommitted != nil {
+		oldID := common.BlockID{
+			Data: sabft.lastCommitted.ProposedData,
+		}
+		newID := common.BlockID{
+			Data: records.ProposedData,
+		}
+		if oldID.BlockNum() >= newID.BlockNum() {
+			return
+		}
+	}
+	sabft.RUnlock()
+
+	// check signature
+	for i := range records.Precommits {
+		val := sabft.GetValidator(records.Precommits[i].Address)
+		if !val.VerifySig(records.Precommits[i].Digest(), records.Precommits[i].Signature) {
+			return
+		}
+	}
+	val := sabft.GetValidator(records.Address)
+	if !val.VerifySig(records.Digest(), records.Signature) {
+		return
+	}
+
+	sabft.Lock()
+	defer sabft.Unlock()
+
+	sabft.lastCommitted = records
+	sabft.appState = &message.AppState{
+		LastHeight:       records.FirstPrecommit().Height,
+		LastProposedData: records.ProposedData,
+	}
+	// TODO: if the gobft haven't reach +2/3, push records to bft core??
 }
 
 func (sabft *SABFT) PushTransaction(trx common.ISignedTransaction, wait bool, broadcast bool) common.ITransactionReceiptWithInfo {
@@ -545,6 +596,7 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 			return err
 		}
 	}
+	sabft.log.GetLog().Debug("pushBlock FINISHED #", b.Id().BlockNum())
 	return nil
 }
 
@@ -596,7 +648,6 @@ func (sabft *SABFT) Commit(data message.ProposedData, commitRecords *message.Com
 	if commitRecords != nil {
 		sabft.lastCommitted = commitRecords
 		sabft.BroadCast(commitRecords)
-		//sabft.appState.LastCommitTime = commitRecords.CommitTime
 	}
 
 	return nil
@@ -686,9 +737,6 @@ func (sabft *SABFT) GetAppState() *message.AppState {
 
 // BroadCast sends msg to other validators
 func (sabft *SABFT) BroadCast(msg message.ConsensusMessage) error {
-	sabft.RLock()
-	defer sabft.RUnlock()
-
 	sabft.p2p.Broadcast(msg)
 	return nil
 }

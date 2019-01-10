@@ -709,5 +709,14 @@ func ConsMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) 
 	}
 	log := logs.(iservices.ILog)
 
+	s, err := p2p.GetService(iservices.ConsensusServerName)
+	if err != nil {
+		log.GetLog().Error("[p2p] can't get other service, service name: ", iservices.ConsensusServerName)
+		return
+	}
+	ctrl := s.(iservices.IConsensus)
+
 	log.GetLog().Info("receive a consensus message, message data: ", msgdata)
+
+	ctrl.Push(msgdata.MsgData)
 }
