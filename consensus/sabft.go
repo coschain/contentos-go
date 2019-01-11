@@ -333,8 +333,8 @@ func (sabft *SABFT) start() {
 			sabft.RUnlock()
 
 			if !sabft.started {
+				sabft.started = true
 				go func() {
-					sabft.started = true
 					time.Sleep(3 * time.Second)
 					sabft.bft.Start()
 				}()
