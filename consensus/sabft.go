@@ -2,7 +2,6 @@ package consensus
 
 import (
 	"fmt"
-	"github.com/coschain/gobft"
 	"strings"
 	"sync"
 	"time"
@@ -14,6 +13,7 @@ import (
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/prototype"
+	"github.com/coschain/gobft"
 	"github.com/coschain/gobft/custom"
 	"github.com/coschain/gobft/message"
 )
@@ -91,6 +91,7 @@ type SABFT struct {
 	suffledID     common.BlockID
 	appState      *message.AppState
 	//startBFTCh    chan struct{}
+	started bool
 
 	readyToProduce bool
 	prodTimer      *time.Timer
@@ -123,7 +124,7 @@ func NewSABFT(ctx *node.ServiceContext) *SABFT {
 		ctx:        ctx,
 		stopCh:     make(chan struct{}),
 		//startBFTCh: make(chan struct{}),
-		log:        logService.(iservices.ILog),
+		log: logService.(iservices.ILog),
 	}
 
 	ret.SetBootstrap(ctx.Config().Consensus.BootStrap)
@@ -211,7 +212,7 @@ func (sabft *SABFT) shuffle(head common.ISignedBlock) {
 
 	sabft.validators = sabft.makeValidators(prods)
 	validatorNames := ""
-	for i:=range sabft.validators {
+	for i := range sabft.validators {
 		validatorNames += sabft.validators[i].accountName + " "
 	}
 	sabft.log.GetLog().Debug("[SABFT shuffle] active producers: ", validatorNames)
@@ -252,7 +253,10 @@ func (sabft *SABFT) Start(node *node.Node) error {
 	snapshotPath := cfg.ResolvePath("forkdb_snapshot")
 	// TODO: fuck!! this is fugly
 	var avatar []common.ISignedBlock
-	for i := 0; i < constants.MAX_WITNESSES; i++ {
+	for i := 0; i < constants.MAX_WITNESSES+1; i++ {
+		// TODO: if the bft process falls behind too much, the number
+		// TODO: of the avatar might not be sufficient
+
 		// deep copy hell
 		avatar = append(avatar, &prototype.SignedBlock{})
 	}
@@ -266,9 +270,6 @@ func (sabft *SABFT) Start(node *node.Node) error {
 
 	// start block generation process
 	go sabft.start()
-
-	// start bft process
-	sabft.bft.Start()
 
 	return nil
 }
@@ -330,6 +331,14 @@ func (sabft *SABFT) start() {
 				continue
 			}
 			sabft.RUnlock()
+
+			if !sabft.started {
+				go func() {
+					sabft.started = true
+					time.Sleep(3 * time.Second)
+					sabft.bft.Start()
+				}()
+			}
 
 			sabft.Lock()
 			b, err := sabft.generateAndApplyBlock()
@@ -594,16 +603,23 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 	return nil
 }
 
+func (sabft *SABFT) GetLastBFTCommit() (evidence interface{}) {
+	sabft.RLock()
+	defer sabft.RUnlock()
+
+	return sabft.lastCommitted
+}
+
 /********* implements gobft ICommittee ***********/
 // All the methods below will be called by gobft
 
 // Commit sets b as the last irreversible block
-func (sabft *SABFT) Commit(data message.ProposedData, commitRecords *message.Commit) error {
+func (sabft *SABFT) Commit(commitRecords *message.Commit) error {
 	sabft.Lock()
 	defer sabft.Unlock()
 
 	blockID := common.BlockID{
-		Data: data,
+		Data: commitRecords.ProposedData,
 	}
 	sabft.log.GetLog().Debug("[SABFT] commit block #", blockID)
 
@@ -636,12 +652,11 @@ func (sabft *SABFT) Commit(data message.ProposedData, commitRecords *message.Com
 
 	sabft.ForkDB.Commit(blockID)
 
-	sabft.appState.LastHeight++
-	sabft.appState.LastProposedData = data
+	sabft.appState.LastHeight = commitRecords.FirstPrecommit().Height
+	sabft.appState.LastProposedData = commitRecords.ProposedData
 
-	if commitRecords != nil {
+	if commitRecords.Signature != nil {
 		sabft.lastCommitted = commitRecords
-		sabft.BroadCast(commitRecords)
 	}
 
 	return nil
@@ -733,6 +748,13 @@ func (sabft *SABFT) GetAppState() *message.AppState {
 func (sabft *SABFT) BroadCast(msg message.ConsensusMessage) error {
 	sabft.p2p.Broadcast(msg)
 	return nil
+}
+
+func (sabft *SABFT) GetValidatorNum() int {
+	sabft.RLock()
+	defer sabft.RUnlock()
+
+	return len(sabft.validators)
 }
 
 /********* end gobft ICommittee ***********/

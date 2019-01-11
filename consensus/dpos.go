@@ -222,8 +222,6 @@ func (d *DPoS) testStart(path string) {
 func (d *DPoS) start() {
 	d.wg.Add(1)
 	defer d.wg.Done()
-	//time.Sleep(4 * time.Second)
-	
 
 	d.log.GetLog().Info("[DPoS] started")
 	for {
@@ -551,6 +549,10 @@ func (d *DPoS) applyBlock(b common.ISignedBlock) error {
 
 func (d *DPoS) popBlock(id common.BlockID) error {
 	d.ctrl.PopBlockTo(id.BlockNum())
+	return nil
+}
+
+func (d *DPoS) GetLastBFTCommit() (evidence interface{}) {
 	return nil
 }
 

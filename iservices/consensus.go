@@ -22,7 +22,14 @@ type IConsensus interface {
 	// PushBlock adds b to the block fork DB, called if ValidateBlock returns true
 	PushBlock(b common.ISignedBlock)
 
+	// Push sends a user defined msg to consensus
 	Push(msg interface{})
+
+	// GetLastBFTCommit get the last irreversible block info. @evidence
+	// is the information that can prove the id is indeed the last irreversible one.
+	// e.g. if user uses bft to achieve fast ack, @evidence can simply be the collection
+	// of the vote message
+	GetLastBFTCommit() (evidence interface{})
 
 	// GetHeadBlockId returns the block id of the head block
 	GetHeadBlockId() common.BlockID

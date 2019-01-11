@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"github.com/coschain/gobft/message"
 	"net"
 	"strconv"
 	"strings"
@@ -698,6 +699,18 @@ func ReqIdHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 		return
 	}
 	//log.GetLog().Info("[p2p] send a message to:   v%   data:   v%\n", remotePeer, reqmsg)
+
+	commitEvidence := ctrl.GetLastBFTCommit()
+	if commitEvidence != nil {
+		bftCommit := &msgTypes.ConsMsg {
+			MsgData: commitEvidence.(*message.Commit),
+		}
+		err = p2p.Send(remotePeer, bftCommit, false)
+		if err != nil {
+			log.GetLog().Error("[p2p] send message error: ", err)
+			return
+		}
+	}
 }
 
 func ConsMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
