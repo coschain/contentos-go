@@ -646,8 +646,14 @@ func (sabft *SABFT) Commit(commitRecords *message.Commit) error {
 
 	sabft.ctrl.Commit(blockID.BlockNum())
 
-	if err = sabft.blog.Append(blk); err != nil {
-		panic(err)
+	blks, _, err := sabft.ForkDB.FetchBlocksSince(sabft.ForkDB.LastCommitted())
+	for i := range blks {
+		if err = sabft.blog.Append(blks[i]); err != nil {
+			panic(err)
+		}
+		if blks[i] == blk {
+			break
+		}
 	}
 
 	sabft.ForkDB.Commit(blockID)
@@ -842,7 +848,10 @@ func (sabft *SABFT) GetIDs(start, end common.BlockID) ([]common.BlockID, error) 
 	length := end.BlockNum() - start.BlockNum() + 1
 	ret := make([]common.BlockID, 0, length)
 	if start != blocks[0].Previous() {
-		sabft.log.GetLog().Debugf("[GetIDs] <from: %v, to: %v> start %v", start, end, blocks[0].Previous())
+		//for ii := range blocks {
+		//	sabft.log.GetLog().Warn(blocks[ii].Id())
+		//}
+		sabft.log.GetLog().Warnf("[GetIDs] <from: %v, to: %v> start %v", start, end, blocks[0].Previous())
 		return nil, fmt.Errorf("[SABFT GetIDs] internal error")
 	}
 
@@ -900,17 +909,18 @@ func (sabft *SABFT) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, 
 	start := idNum + 1
 
 	end := uint64(sabft.blog.Size())
+	//sabft.log.GetLog().Errorf("fetch from blog: from %d to %d", start, end)
 	for start <= end {
-		var b prototype.SignedBlock
-		if err := sabft.blog.ReadBlock(&b, int64(start-1)); err != nil {
+		b := &prototype.SignedBlock{}
+		if err := sabft.blog.ReadBlock(b, int64(start-1)); err != nil {
 			return nil, err
 		}
 
 		if start == idNum && b.Id() != id {
 			return nil, fmt.Errorf("blockchain doesn't have block with id %v", id)
 		}
-
-		ret = append(ret, &b)
+		
+		ret = append(ret, b)
 		start++
 
 		if start > end && b.Id() != sabft.ForkDB.LastCommitted() {
