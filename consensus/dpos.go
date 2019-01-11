@@ -16,8 +16,6 @@ import (
 	//"github.com/coschain/contentos-go/app"
 )
 
-var isNeedReplay = false
-
 func timeToNextSec() time.Duration {
 	now := time.Now()
 	ceil := now.Add(time.Millisecond * 500).Round(time.Second)
@@ -51,7 +49,7 @@ type DPoS struct {
 	sync.RWMutex
 }
 
-func NewDPoS(ctx *node.ServiceContext, isReplay bool) *DPoS {
+func NewDPoS(ctx *node.ServiceContext) *DPoS {
 	logService, err := ctx.Service(iservices.LogServerName)
 	if err != nil {
 		panic(err)
@@ -67,7 +65,6 @@ func NewDPoS(ctx *node.ServiceContext, isReplay bool) *DPoS {
 		stopCh: make(chan struct{}),
 		log:    logService.(iservices.ILog),
 	}
-	isNeedReplay = isReplay
 	ret.SetBootstrap(ctx.Config().Consensus.BootStrap)
 	ret.Name = ctx.Config().Consensus.LocalBpName
 	ret.log.GetLog().Info("[DPoS bootstrap] ", ctx.Config().Consensus.BootStrap)
@@ -183,7 +180,7 @@ func (d *DPoS) Start(node *node.Node) error {
 	d.restoreProducers()
 
 	//sync blocks to squash db
-	d.syncDataToSquashDB(isNeedReplay)
+	d.syncDataToSquashDB()
 	
 	go d.start()
 	return nil
@@ -670,7 +667,7 @@ func (d *DPoS) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, error
 	return ret, nil
 }
 
-func (d *DPoS) syncDataToSquashDB(isReplay bool) {
+func (d *DPoS) syncDataToSquashDB() {
 	 if d.ForkDB.Head() == nil {
 		return
 	 }

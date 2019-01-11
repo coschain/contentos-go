@@ -22,8 +22,7 @@ import (
 	"syscall"
 )
 
-var (
-	StartCmd = func() *cobra.Command {
+var StartCmd = func() *cobra.Command {
 		cmd := &cobra.Command{
 			Use:   "start",
 			Short: "start cosd node",
@@ -34,8 +33,7 @@ var (
 		cmd.Flags().StringVarP(&cfgName, "name", "n", "", "node name (default is cosd)")
 		return cmd
 	}
-	isReplay = false
-)
+
 
 func makeNode() (*node.Node, node.Config) {
 	var cfg node.Config
@@ -76,21 +74,25 @@ func startNode(cmd *cobra.Command, args []string) {
 	// _ is cfg as below process has't used
 
 	_, _ = cmd, args
+	if len(args) > 0 && args[0] == "replay"{
+		//sync block to db
+		err := os.RemoveAll(filepath.Join(config.DefaultDataDir(), ClientIdentifier,"db"))
+		if err != nil {
+			panic("remove db fail when node replay")
+		}
+	}
 	app, cfg := makeNode()
 	app.Log = mylog.Init(cfg.ResolvePath("logs"), mylog.DebugLevel, 0)
 
 	pprof.StartPprof()
-
-	if len(args) > 0 && args[0] == "replay"{
-		//sync block to db
-		isReplay = true
-	}
 
 	RegisterService(app, cfg)
 
 	if err := app.Start(); err != nil {
 		common.Fatalf("start node failed, err: %v\n", err)
 	}
+
+
 
 	go func() {
 		SIGSTOP := syscall.Signal(0x13) //for windows compile
@@ -143,11 +145,11 @@ func RegisterService(app *node.Node, cfg node.Config) {
 		var s node.Service
 		switch ctx.Config().Consensus.Type {
 		case "DPoS":
-			s = consensus.NewDPoS(ctx,isReplay)
+			s = consensus.NewDPoS(ctx)
 		case "SABFT":
 			s = consensus.NewSABFT(ctx)
 		default:
-			s = consensus.NewDPoS(ctx,isReplay)
+			s = consensus.NewDPoS(ctx)
 		}
 		return s, nil
 	})
