@@ -16,6 +16,8 @@ import (
 	//"github.com/coschain/contentos-go/app"
 )
 
+var isNeedReplay = false
+
 func timeToNextSec() time.Duration {
 	now := time.Now()
 	ceil := now.Add(time.Millisecond * 500).Round(time.Second)
@@ -47,7 +49,6 @@ type DPoS struct {
 	stopCh chan struct{}
 	wg     sync.WaitGroup
 	sync.RWMutex
-	isReplay  bool
 }
 
 func NewDPoS(ctx *node.ServiceContext, isReplay bool) *DPoS {
@@ -65,8 +66,8 @@ func NewDPoS(ctx *node.ServiceContext, isReplay bool) *DPoS {
 		ctx:    ctx,
 		stopCh: make(chan struct{}),
 		log:    logService.(iservices.ILog),
-		isReplay: isReplay,
 	}
+	isNeedReplay = isReplay
 	ret.SetBootstrap(ctx.Config().Consensus.BootStrap)
 	ret.Name = ctx.Config().Consensus.LocalBpName
 	ret.log.GetLog().Info("[DPoS bootstrap] ", ctx.Config().Consensus.BootStrap)
@@ -182,7 +183,7 @@ func (d *DPoS) Start(node *node.Node) error {
 	d.restoreProducers()
 
 	//sync blocks to squash db
-	d.syncDataToSquashDB(d.isReplay)
+	d.syncDataToSquashDB(isNeedReplay)
 	
 	go d.start()
 	return nil
