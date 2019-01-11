@@ -693,26 +693,26 @@ func (d *DPoS) syncDataToSquashDB(isReplay bool) {
 	 //Fetch the head block number in chain
 	 headNum := d.ForkDB.Head().Id().BlockNum()
 
-	 //syncNum is the start number need to fetch from ForkDB,if need replay , the syncNum is equal to real commit number
+	 //syncNum is the start number need to fetch from ForkDB
 	 syncNum := num
 
-	 if isReplay && num == 0 && realNum > 0 {
+	 if  num == 0 && realNum > 0 {
 		 //The block data in squash db has been deleted,so need sync lost blocks to squash db
 		 //Because ForkDB will not continue to store commit blocks,so we need load commit blocks from block log,
 		 //meanWhile add block to squash db
 		 commitBlk := d.reloadCommitBlocks(&d.blog)
 		 cnt := len(commitBlk)
 		 if cnt > 0 {
-			 d.log.GetLog().Debugf("[Replay] start sync commit lost blocks from block log,start: %v,end:%v," +
+			 d.log.GetLog().Debugf("[Sync add commit] start sync commit lost blocks from block log,start: %v,end:%v," +
 			 	"real commit num " +
 				 "is %v", syncNum+1, headNum, realNum)
 			 for i := 0; i < cnt; i++{
 			 	 blk := commitBlk[i]
-				 d.log.GetLog().Debugf("[Replay] sync block,blockNum is: " +
+				 d.log.GetLog().Debugf("[Sync add commit] sync block,blockNum is: " +
 				 	"%v", blk.(*prototype.SignedBlock).Id().BlockNum())
 				 err = d.ctrl.PushBlock(blk.(*prototype.SignedBlock),prototype.Skip_nothing)
 				 if err != nil {
-					 d.log.GetLog().Debugf("[Replay] push the block which num is %v fail,error is %s", i, err)
+					 d.log.GetLog().Debugf("[Sync Add] push the block which num is %v fail,error is %s", i, err)
 				 }
 			 }
 			 syncNum = uint64(cnt)
@@ -721,29 +721,29 @@ func (d *DPoS) syncDataToSquashDB(isReplay bool) {
 	 }
 	 //1.Synchronous all the lost blocks from DorkDB to squash db
 	 if headNum > syncNum {
-		 d.log.GetLog().Debugf("[sync Block]: start sync lost blocks,start: %v,end:%v,real commit num " +
+		 d.log.GetLog().Debugf("[sync pushed]: start sync lost blocks,start: %v,end:%v,real commit num " +
 		 	"is %v", syncNum+1, headNum, realNum)
 		 for i := syncNum+1; i <= headNum ; i++ {
 			 blk,err := d.ForkDB.FetchBlockFromMainBranch(i)
 			 if err != nil {
-				 desc := fmt.Sprintf("[sync Block]: Failed to fetch the pushed block by num %v,the " +
-					 "error is %s , or try start replay", i, err)
+				 desc := fmt.Sprintf("[sync pushed]: Failed to fetch the pushed block by num %v,the " +
+					 "error is %s", i, err)
 				 panic(desc)
 			 }
-			 d.log.GetLog().Debugf("[sync Block]: sync block,num: %v,blockNum: %v",
+			 d.log.GetLog().Debugf("[sync pushed]: sync block,num: %v,blockNum: %v",
 			 	i, blk.(*prototype.SignedBlock).Id().BlockNum())
 			 err = d.ctrl.PushBlock(blk.(*prototype.SignedBlock),prototype.Skip_nothing)
 			 if err != nil {
-				d.log.GetLog().Debugf("[sync Block]: push the block which num is %v fail,error is %s", i, err)
+				d.log.GetLog().Debugf("[sync pushed]: push the block which num is %v fail,error is %s", i, err)
 			 }
 		 }
 
 	 }
 
 	 //2.Synchronous the lost commit blocks to squash db
-	 if realNum > num {
+	 if realNum > num  && realNum <= headNum{
 		//Need synchronous commit
-		 d.log.GetLog().Debugf("[sync Block]: start sync commit block num %v ",realNum)
+		 d.log.GetLog().Debugf("[sync commit]: start sync commit block num %v ",realNum)
 		 d.ctrl.Commit(realNum)
 	 }
 
