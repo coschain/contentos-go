@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"github.com/sasha-s/go-deadlock"
 	"time"
 
 	"github.com/coschain/contentos-go/common"
@@ -107,7 +108,7 @@ type SABFT struct {
 
 	stopCh chan struct{}
 	wg     sync.WaitGroup
-	sync.RWMutex
+	deadlock.RWMutex
 }
 
 func NewSABFT(ctx *node.ServiceContext) *SABFT {
@@ -314,6 +315,7 @@ func (sabft *SABFT) start() {
 			sabft.log.GetLog().Debug("[SABFT] routine stopped.")
 			return
 		case b := <-sabft.blkCh:
+			sabft.log.GetLog().Warn("99999999999999")
 			sabft.Lock()
 			if err := sabft.pushBlock(b, true); err != nil {
 				sabft.log.GetLog().Error("[SABFT] pushBlock failed: ", err)
@@ -331,6 +333,7 @@ func (sabft *SABFT) start() {
 				continue
 			}
 			sabft.RUnlock()
+
 
 			if !sabft.started {
 				sabft.started = true
@@ -502,6 +505,7 @@ func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 			Data: records.ProposedData,
 		}
 		if oldID.BlockNum() >= newID.BlockNum() {
+			sabft.RUnlock()
 			return
 		}
 	}
@@ -919,7 +923,7 @@ func (sabft *SABFT) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, 
 		if start == idNum && b.Id() != id {
 			return nil, fmt.Errorf("blockchain doesn't have block with id %v", id)
 		}
-		
+
 		ret = append(ret, b)
 		start++
 
