@@ -22,15 +22,20 @@ import (
 	"syscall"
 )
 
-var StartCmd = func() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "start",
-		Short: "start cosd node",
-		Run:   startNode,
+var (
+	StartCmd = func() *cobra.Command {
+		cmd := &cobra.Command{
+			Use:   "start",
+			Short: "start cosd node",
+			Long:  "start cosd node,if has arg 'replay',will sync the lost block to db",
+			ValidArgs: []string{"replay"},
+			Run:   startNode,
+		}
+		cmd.Flags().StringVarP(&cfgName, "name", "n", "", "node name (default is cosd)")
+		return cmd
 	}
-	cmd.Flags().StringVarP(&cfgName, "name", "n", "", "node name (default is cosd)")
-	return cmd
-}
+	isReplay = false
+)
 
 func makeNode() (*node.Node, node.Config) {
 	var cfg node.Config
@@ -75,6 +80,11 @@ func startNode(cmd *cobra.Command, args []string) {
 	app.Log = mylog.Init(cfg.ResolvePath("logs"), mylog.DebugLevel, 0)
 
 	pprof.StartPprof()
+
+	if len(args) > 0 && args[0] == "replay"{
+		//sync block to db
+		isReplay = true
+	}
 
 	RegisterService(app, cfg)
 
@@ -133,11 +143,11 @@ func RegisterService(app *node.Node, cfg node.Config) {
 		var s node.Service
 		switch ctx.Config().Consensus.Type {
 		case "DPoS":
-			s = consensus.NewDPoS(ctx)
+			s = consensus.NewDPoS(ctx,isReplay)
 		case "SABFT":
 			s = consensus.NewSABFT(ctx)
 		default:
-			s = consensus.NewDPoS(ctx)
+			s = consensus.NewDPoS(ctx,isReplay)
 		}
 		return s, nil
 	})

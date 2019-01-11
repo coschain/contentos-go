@@ -451,11 +451,11 @@ func dbTestSquashFeature(t *testing.T, db SquashDatabase, dirtyRead bool) {
 	requireSuccessGet(t, db, []byte("key_two"), []byte("value_two"))
 	requireSuccessGet(t, db, []byte("key_three"), []byte("value_three"))
 
-	if err := db.Squash("xxxxxxxxx"); err == nil {
+	if err := db.Squash("xxxxxxxxx",0); err == nil {
 		t.Fatal("squash should return error")
 	}
 
-	if err := db.Squash("block2"); err != nil {
+	if err := db.Squash("block2", 2); err != nil {
 		t.Fatal("squash error: " + err.Error())
 	}
 
@@ -463,7 +463,7 @@ func dbTestSquashFeature(t *testing.T, db SquashDatabase, dirtyRead bool) {
 	requireSuccessGet(t, db, []byte("key_two"), []byte("value_two"))
 	requireSuccessGet(t, db, []byte("key_three"), []byte("value_three"))
 
-	if err := db.Squash("block1"); err == nil {
+	if err := db.Squash("block1",1); err == nil {
 		t.Fatal("squash should return error")
 	}
 

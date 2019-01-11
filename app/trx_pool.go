@@ -951,7 +951,7 @@ func (c *TrxPool) PopBlockTo(num uint64) {
 func (c *TrxPool) Commit(num uint64) {
 	// this block can not be revert over, so it's irreversible
 	tag := c.getBlockTag(uint64(num))
-	err := c.db.Squash(tag)
+	err := c.db.Squash(tag,num)
 	mustSuccess(err == nil,fmt.Sprintf("SquashBlock: tag:%d,error is %s",num,err))
 }
 

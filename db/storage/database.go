@@ -125,7 +125,7 @@ type TrxDatabase interface {
 type Squashable interface {
 	Transactional
 	BeginTransactionWithTag(tag string)
-	Squash(tag string) error
+	Squash(tag string, num uint64) error
 }
 
 type SquashDatabase interface {

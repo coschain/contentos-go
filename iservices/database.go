@@ -109,9 +109,12 @@ type IDatabaseService interface {
 
 	BeginTransactionWithTag(tag string)
 
-	Squash(tag string) error
+	Squash(tag string, num uint64) error
 
 	RollBackToTag(tag string) error
+
+	//get the block number of latest commit
+	GetCommitNum() (uint64,error)
 
 	//
 	// data reversion feature

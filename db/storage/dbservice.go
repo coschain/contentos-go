@@ -135,12 +135,16 @@ func (s *DatabaseService) BeginTransactionWithTag(tag string) {
 	s.tdb.BeginTransactionWithTag(tag)
 }
 
-func (s *DatabaseService) Squash(tag string) error {
-	return s.tdb.Squash(tag)
+func (s *DatabaseService) Squash(tag string, num uint64) error {
+	return s.tdb.Squash(tag,num)
 }
 
 func (s *DatabaseService) RollBackToTag(tag string) error {
 	return s.tdb.RollBackToTag(tag)
+}
+
+func (s *DatabaseService) GetCommitNum() (uint64,error) {
+	return s.tdb.GetCommitNum()
 }
 
 //
