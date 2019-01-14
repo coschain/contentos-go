@@ -697,32 +697,39 @@ func (d *DPoS) syncDataToSquashDB() {
 	 syncNum := num
 
 	 //Reload lost commit blocks
-	 if (num == 0 && realNum > 0) || (num < realNum && headNum <= num) {
+	 if (num == 0 && realNum > 0) || (realNum > 0 && num < realNum && headNum <= num) {
 		 commitBlk := d.reloadCommitBlocks(&d.blog)
 		 cnt := len(commitBlk)
-		 //Scene 1: The block data in squash db has been deleted,so need sync lost blocks to squash db
-		 //Because ForkDB will not continue to store commit blocks,so we need load all commit blocks from block log,
-		 //meanWhile add block to squash db
-		 start := 0
+		 if cnt > 0  {
+			 //Scene 1: The block data in squash db has been deleted,so need sync lost blocks to squash db
+			 //Because ForkDB will not continue to store commit blocks,so we need load all commit blocks from block log,
+			 //meanWhile add block to squash db,so the start value is 0
+			 start := 0
 
-		 if num < realNum && headNum <= num {
-			 //Scene 2: there are some blocks lost in squash db,meanWhile lost in snapshot,so we can't get these blocks
-			 //from forkDB,so we just can get lost blocks from block log
-			 d.log.GetLog().Debugf("[Reload commit] start sync lost commit blocks from block log under scene " +
-			 	"2,start: %v,real commit num is %v,headNum is:%v", start, realNum, headNum)
-			 start = int(num) + 1
-		 }
-
-		 if cnt > 0 {
-			 d.log.GetLog().Debugf("[Reload commit] start sync lost commit blocks from block log,start: %v," +
-			 	"end:%v,real commit num is %v", syncNum+1, headNum, realNum)
-			 for i := start; i < cnt; i++ {
-			 	 blk := commitBlk[i]
-				 d.log.GetLog().Debugf("[Reload commit] push block,blockNum is: " +
-				 	"%v", blk.(*prototype.SignedBlock).Id().BlockNum())
-				 err = d.ctrl.PushBlock(blk.(*prototype.SignedBlock),prototype.Skip_nothing)
-				 if err != nil {
-					 d.log.GetLog().Debugf("[Reload commit] push the block which num is %v fail,error is %s", i, err)
+			 if realNum > 0 && num < realNum && headNum <= num {
+				 //Scene 2: there are some blocks lost in squash db,meanWhile lost in snapshot,so we can't get these
+				 // blocks from forkDB,so we just can get lost blocks from block log,wo the start is the block number of
+				 //the first lost block
+				 d.log.GetLog().Debugf("[Reload commit] start sync lost commit blocks from block log under " +
+				 	"scene 2,start: %v,real commit num is %v,headNum is:%v", num+1, realNum, headNum)
+				 start = int(num) + 1
+			 }
+			 if start >= cnt {
+				 d.log.GetLog().Errorf("[Reload commit] start index %v out range of reload" +
+				 	" block count %v",start,cnt)
+			 }else {
+				 d.log.GetLog().Debugf("[Reload commit] start sync lost commit blocks from block log,start: " +
+				 	"%v,end:%v,real commit num is %v", start, headNum, realNum)
+				 for i := start; i < cnt; i++ {
+					 blk := commitBlk[i]
+					 d.log.GetLog().Debugf("[Reload commit] push block,blockNum is: " +
+						 "%v", blk.(*prototype.SignedBlock).Id().BlockNum())
+					 err = d.ctrl.PushBlock(blk.(*prototype.SignedBlock),prototype.Skip_nothing)
+					 if err != nil {
+					 	desc := fmt.Sprintf("[Reload commit] push the block which num is %v fail,error " +
+							"is %s", i, err)
+						 panic(desc)
+					 }
 				 }
 			 }
 			 syncNum = uint64(cnt)
