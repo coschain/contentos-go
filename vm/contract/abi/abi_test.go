@@ -74,6 +74,13 @@ func TestAbi2(t *testing.T) {
 	r := assert.New(t)
 
 	data, _ := ioutil.ReadFile("testdata/test.abi")
-	_, err := UnmarshalABI(data)
+	abi, err := UnmarshalABI(data)
 	r.NoError(err, "Unmarshal failed.")
+
+	jsonStr := `[[[["alice",20,false,[["maths",10],["chemistry",5]]],"swim"]]]`
+	data, err = vme.EncodeFromJson([]byte(jsonStr), abi.TypeByName("test_arg").Type())
+	r.NoError(err)
+	data, err = vme.DecodeToJson(data, abi.TypeByName("test_arg").Type(), true)
+	r.NoError(err)
+	r.Equal(jsonStr, string(data))
 }
