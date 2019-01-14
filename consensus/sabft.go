@@ -135,6 +135,7 @@ func NewSABFT(ctx *node.ServiceContext) *SABFT {
 		name: ret.Name,
 	}
 	ret.bft = gobft.NewCore(ret, ret.priv)
+	ret.bft.SetLogLevel(5)
 	ret.log.GetLog().Info("[SABFT bootstrap] ", ctx.Config().Consensus.BootStrap)
 	ret.appState = &message.AppState{
 		LastHeight:       0,
@@ -220,6 +221,11 @@ func (sabft *SABFT) shuffle(head common.ISignedBlock) {
 	sabft.ctrl.SetShuffledWitness(prods)
 
 	sabft.suffledID = head.Id()
+
+	if prodNum >= 4 {
+		sabft.bft.Start()
+		sabft.log.GetLog().Info("sabft gobft started...")
+	}
 }
 
 func (sabft *SABFT) restoreProducers() {
@@ -315,7 +321,6 @@ func (sabft *SABFT) start() {
 			sabft.log.GetLog().Debug("[SABFT] routine stopped.")
 			return
 		case b := <-sabft.blkCh:
-			sabft.log.GetLog().Warn("99999999999999")
 			sabft.Lock()
 			if err := sabft.pushBlock(b, true); err != nil {
 				sabft.log.GetLog().Error("[SABFT] pushBlock failed: ", err)
@@ -332,16 +337,18 @@ func (sabft *SABFT) start() {
 				sabft.RUnlock()
 				continue
 			}
+
+			//if !sabft.started {
+			//	sabft.log.GetLog().Info("sabft gobft starting 0...")
+			//	sabft.started = true
+			//	go func() {
+			//		time.Sleep(3 * time.Second)
+			//		sabft.log.GetLog().Info("sabft gobft starting 1...")
+			//		sabft.bft.Start()
+			//		sabft.log.GetLog().Info("sabft gobft started...")
+			//	}()
+			//}
 			sabft.RUnlock()
-
-
-			if !sabft.started {
-				sabft.started = true
-				go func() {
-					time.Sleep(3 * time.Second)
-					sabft.bft.Start()
-				}()
-			}
 
 			sabft.Lock()
 			b, err := sabft.generateAndApplyBlock()
@@ -484,7 +491,11 @@ func (sabft *SABFT) PushBlock(b common.ISignedBlock) {
 func (sabft *SABFT) Push(msg interface{}) {
 	switch msg := msg.(type) {
 	case *message.Vote:
-		sabft.bft.RecvMsg(msg)
+		sabft.RLock()
+		if sabft.started {
+			sabft.bft.RecvMsg(msg)
+		}
+		sabft.RUnlock()
 	case *message.Commit:
 		sabft.handleCommitRecords(msg)
 	default:
@@ -492,6 +503,7 @@ func (sabft *SABFT) Push(msg interface{}) {
 }
 
 func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
+	sabft.log.GetLog().Warn("handleCommitRecords: ", records.ProposedData, records.Address)
 	if err := records.ValidateBasic(); err != nil {
 		sabft.log.GetLog().Error(err)
 	}
@@ -515,11 +527,13 @@ func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 	for i := range records.Precommits {
 		val := sabft.GetValidator(records.Precommits[i].Address)
 		if !val.VerifySig(records.Precommits[i].Digest(), records.Precommits[i].Signature) {
+			sabft.log.GetLog().Error("handleCommitRecords precommits verification failed")
 			return
 		}
 	}
 	val := sabft.GetValidator(records.Address)
 	if !val.VerifySig(records.Digest(), records.Signature) {
+		sabft.log.GetLog().Error("handleCommitRecords verification failed")
 		return
 	}
 
@@ -531,6 +545,7 @@ func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 		LastHeight:       records.FirstPrecommit().Height,
 		LastProposedData: records.ProposedData,
 	}
+	sabft.log.GetLog().Info("handleCommitRecords height = ", sabft.appState.LastHeight)
 	// TODO: if the gobft haven't reach +2/3, push records to bft core??
 }
 
