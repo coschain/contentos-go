@@ -11,6 +11,9 @@ type ContractName string
 
 type Context struct {
 	Caller    *prototype.AccountName
+	CallingContractOwner *prototype.AccountName
+	CallingContractName string
+	CallingContractMethod string
 	Owner     *prototype.AccountName
 	Contract  string
 	Method    string
@@ -39,6 +42,9 @@ func NewContextFromDeployOp(op *prototype.ContractDeployOperation, injector vmin
 func NewContextFromApplyOp(op *prototype.ContractApplyOperation, params []byte, code []byte, abi abi.IContractABI, tables *table.ContractTables, injector vminjector.Injector) *Context {
 	return &Context{
 		Caller:    op.Caller,
+		CallingContractOwner: nil,
+		CallingContractName: "",
+		CallingContractMethod: "",
 		Owner:     op.Owner,
 		Contract:  op.Contract,
 		Method:    op.Method,
@@ -57,6 +63,9 @@ func NewContextFromApplyOp(op *prototype.ContractApplyOperation, params []byte, 
 func NewContextFromInternalApplyOp(op *prototype.InternalContractApplyOperation, code []byte, abi abi.IContractABI, tables *table.ContractTables, injector vminjector.Injector) *Context {
 	return &Context{
 		Caller:    op.FromCaller,
+		CallingContractOwner: op.FromOwner,
+		CallingContractName: op.FromContract,
+		CallingContractMethod: op.FromMethod,
 		Owner:     op.ToOwner,
 		Contract:  op.ToContract,
 		Method:    op.ToMethod,

@@ -99,8 +99,31 @@ func (w *CosVMExport) readContractCaller(proc *exec.Process, pStr int32, length 
 	return w.cosVM.write(proc, []byte(w.ReadContractCaller()), pStr, length, "readContractCaller()")
 }
 
-func (w *CosVMExport) contractTransfer(proc *exec.Process, pTo, pToLen int32, amount int64, pMemo, pMemoLen int32) {
-	w.ContractTransfer(string(w.cosVM.read(proc, pTo, pToLen, "contractTransfer().to")), uint64(amount))
+func (w *CosVMExport) contractCalledByUser(proc *exec.Process) int32 {
+	r := int32(0)
+	if w.ContractCalledByUser() {
+		r = 1
+	}
+	return r
+}
+
+func (w *CosVMExport) readCallingContractOwner(proc *exec.Process, pStr int32, length int32) int32 {
+	return w.cosVM.write(proc, []byte(w.ReadCallingContractOwner()), pStr, length, "readCallingContractOwner()")
+}
+
+func (w *CosVMExport) readCallingContractName(proc *exec.Process, pStr int32, length int32) int32 {
+	return w.cosVM.write(proc, []byte(w.ReadCallingContractName()), pStr, length, "readCallingContractName()")
+}
+
+func (w *CosVMExport) contractTransferToUser(proc *exec.Process, pTo, pToLen int32, amount int64, pMemo, pMemoLen int32) {
+	w.ContractTransferToUser(string(w.cosVM.read(proc, pTo, pToLen, "contractTransferToUser().to")), uint64(amount))
+}
+
+func (w *CosVMExport) contractTransferToContract(proc *exec.Process, pToOwner, pToOwnerLen, pToContract, pToContractLen int32, amount int64, pMemo, pMemoLen int32) {
+	w.ContractTransferToContract(
+		string(w.cosVM.read(proc, pToOwner, pToOwnerLen, "contractTransferToContract().toOwner")),
+		string(w.cosVM.read(proc, pToContract, pToContractLen, "contractTransferToContract().toContract")),
+		uint64(amount))
 }
 
 func (w *CosVMExport) readContractSenderValue(proc *exec.Process) int64 {
