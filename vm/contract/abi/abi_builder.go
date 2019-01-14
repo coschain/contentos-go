@@ -166,10 +166,10 @@ func (b *abiBuilder) buildStructs(ctx *abiBuildContext) []IContractType {
 func (b *abiBuilder) buildMethods(ctx *abiBuildContext) []*abiMethod {
 	result := make([]*abiMethod, len(b.methods))
 	idx := 0
-	for m := range b.methods {
+	for m, args := range b.methods {
 		result[idx] = &abiMethod{
 			name: m,
-			args: ctx.resolvedTypes[m].(*ABIStructType),
+			args: ctx.resolvedTypes[args].(*ABIStructType),
 		}
 		idx++
 	}
@@ -333,11 +333,6 @@ func (ctx *abiBuildContext) realName(name string) (string, error) {
 		return origin, nil
 	}
 
-	// an array can't be an alias.
-	if arr, _ := ctx.isArray(name); arr {
-		return name, nil
-	}
-
 	// working map is used for cyclic reference detection
 	working := make(map[string]bool)
 	for {
@@ -347,6 +342,11 @@ func (ctx *abiBuildContext) realName(name string) (string, error) {
 		}
 		// mark that we are working on the type
 		working[name] = true
+
+		// an array can't be an alias.
+		if arr, _ := ctx.isArray(name); arr {
+			break
+		}
 
 		if origin, ok = ctx.b.typedef[name]; ok {
 			// follow the typedef chain

@@ -69,3 +69,11 @@ func TestAbi(t *testing.T) {
 	r.NoError(err)
 	r.Equal(jsonStr, string(data))
 }
+
+func TestAbi2(t *testing.T) {
+	r := assert.New(t)
+
+	data, _ := ioutil.ReadFile("testdata/test.abi")
+	_, err := UnmarshalABI(data)
+	r.NoError(err, "Unmarshal failed.")
+}
