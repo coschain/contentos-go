@@ -748,7 +748,8 @@ func (d *DPoS) syncDataToSquashDB() {
 			 	i, blk.(*prototype.SignedBlock).Id().BlockNum())
 			 err = d.ctrl.PushBlock(blk.(*prototype.SignedBlock),prototype.Skip_nothing)
 			 if err != nil {
-				d.log.GetLog().Debugf("[sync pushed]: push the block which num is %v fail,error is %s", i, err)
+			 	desc := fmt.Sprintf("[sync pushed]: push the block which num is %v fail,error is %s", i, err)
+			 	panic(desc)
 			 }
 		 }
 
