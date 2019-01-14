@@ -75,7 +75,7 @@ func startNode(cmd *cobra.Command, args []string) {
 
 	_, _ = cmd, args
 	if len(args) > 0 && args[0] == "replay"{
-		//sync block to db
+		//If replay, remove level db first then  sync blocks from block log and snapshot to db
 		err := os.RemoveAll(filepath.Join(config.DefaultDataDir(), ClientIdentifier,"db"))
 		if err != nil {
 			panic("remove db fail when node replay")
