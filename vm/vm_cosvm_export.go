@@ -9,10 +9,10 @@ type CosVMExport struct {
 	*CosVMNative
 }
 
-func (w *CosVMExport) sha256(proc *exec.Process, pSrc int32, lenSrc int32, pDst int32, lenDst int32) {
+func (w *CosVMExport) sha256(proc *exec.Process, pSrc int32, lenSrc int32, pDst int32, lenDst int32) int32 {
 	srcBuf := w.cosVM.read(proc, pSrc, lenSrc, "sha256().read")
 	out := sha256.Sum256(srcBuf)
-	w.cosVM.write(proc, out[:], pDst, lenDst, "sha256().write")
+	return w.cosVM.write(proc, out[:], pDst, lenDst, "sha256().write")
 }
 
 func (w *CosVMExport) currentBlockNumber(proc *exec.Process) int64 {
@@ -43,8 +43,8 @@ func (w *CosVMExport) requiredAuth(proc *exec.Process, pStr int32, pLen int32) {
 	w.RequiredAuth(string(w.cosVM.read(proc, pStr, pLen, "requiredAuth()")))
 }
 
-func (w *CosVMExport) getBalanceByName(proc *exec.Process, ptr int32, len int32) int64 {
-	return int64(w.GetBalanceByName(string(w.cosVM.read(proc, ptr, len, "getBalanceByName()"))))
+func (w *CosVMExport) getUserBalance(proc *exec.Process, ptr int32, len int32) int64 {
+	return int64(w.GetUserBalance(string(w.cosVM.read(proc, ptr, len, "getUserBalance()"))))
 }
 
 func (w *CosVMExport) getContractBalance(proc *exec.Process, cPtr int32, cLen int32, nPtr int32, nLen int32) int64 {

@@ -474,6 +474,9 @@ var builtinNonInheritableTypes = map[string]IContractType {
 
 	"cosio::name": 				&ABIBaseType{ name: "cosio::name", 				rt: vme.StringType(), 		kope: true },
 	"cosio::coin_amount": 		&ABIBaseType{ name: "cosio::coin_amount", 		rt: vme.Uint64Type(), 		kope: true },
+	"cosio::checksum160": 		&ABIBaseType{ name: "cosio::checksum160", 		rt: vme.BytesType(), 		kope: true },
+	"cosio::checksum256": 		&ABIBaseType{ name: "cosio::checksum256", 		rt: vme.BytesType(), 		kope: true },
+	"cosio::checksum512": 		&ABIBaseType{ name: "cosio::checksum512", 		rt: vme.BytesType(), 		kope: true },
 }
 
 var builtinInheritableTypes = map[string]IContractType {

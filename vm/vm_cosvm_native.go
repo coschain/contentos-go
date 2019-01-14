@@ -62,7 +62,7 @@ func (w *CosVMNative) RequiredAuth(name string) {
 	w.CosAssert(err == nil, "require auth error")
 }
 
-func (w *CosVMNative) GetBalanceByName(name string) uint64 {
+func (w *CosVMNative) GetUserBalance(name string) uint64 {
 	acc := table.NewSoAccountWrap(w.cosVM.db, &prototype.AccountName{Value: name})
 	return acc.GetBalance().Value
 }

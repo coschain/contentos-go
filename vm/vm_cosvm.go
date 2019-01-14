@@ -51,7 +51,7 @@ func (w *CosVM) initNativeFuncs() {
 	w.Register("print_int", exports.printInt64, 100)
 	w.Register("print_uint", exports.printUint64, 100)
 	w.Register("require_auth", exports.requiredAuth, 200)
-	w.Register("get_balance_by_name", exports.getBalanceByName, 100)
+	w.Register("get_user_balance", exports.getUserBalance, 100)
 	w.Register("get_contract_balance", exports.getContractBalance, 100)
 	w.Register("save_to_storage", exports.saveToStorage, 1000)
 	w.Register("read_from_storage", exports.readFromStorage, 300)
