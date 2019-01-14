@@ -23,14 +23,17 @@ import (
 )
 
 var StartCmd = func() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "start",
-		Short: "start cosd node",
-		Run:   startNode,
+		cmd := &cobra.Command{
+			Use:   "start",
+			Short: "start cosd node",
+			Long:  "start cosd node,if has arg 'replay',will sync the lost block to db",
+			ValidArgs: []string{"replay"},
+			Run:   startNode,
+		}
+		cmd.Flags().StringVarP(&cfgName, "name", "n", "", "node name (default is cosd)")
+		return cmd
 	}
-	cmd.Flags().StringVarP(&cfgName, "name", "n", "", "node name (default is cosd)")
-	return cmd
-}
+
 
 func makeNode() (*node.Node, node.Config) {
 	var cfg node.Config
@@ -71,6 +74,13 @@ func startNode(cmd *cobra.Command, args []string) {
 	// _ is cfg as below process has't used
 
 	_, _ = cmd, args
+	if len(args) > 0 && args[0] == "replay"{
+		//If replay, remove level db first then  sync blocks from block log and snapshot to db
+		err := os.RemoveAll(filepath.Join(config.DefaultDataDir(), ClientIdentifier,"db"))
+		if err != nil {
+			panic("remove db fail when node replay")
+		}
+	}
 	app, cfg := makeNode()
 	app.Log = mylog.Init(cfg.ResolvePath("logs"), mylog.DebugLevel, 0)
 
@@ -81,6 +91,8 @@ func startNode(cmd *cobra.Command, args []string) {
 	if err := app.Start(); err != nil {
 		common.Fatalf("start node failed, err: %v\n", err)
 	}
+
+
 
 	go func() {
 		SIGSTOP := syscall.Signal(0x13) //for windows compile
