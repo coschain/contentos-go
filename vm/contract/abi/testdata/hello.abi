@@ -8,6 +8,14 @@
         {
             "new_type_name":"str",
             "type":"std::string"
+        },
+        {
+            "new_type_name":"mymap",
+            "type":"{str,test_array}"
+        },
+        {
+            "new_type_name":"int2str",
+            "type":"{int32,str}"
         }
     ],
     "structs":[
@@ -17,7 +25,7 @@
             "fields":[
                 {
                     "name":"name",
-                    "type":"cosio::account_name"
+                    "type":"cosio::name"
                 },
                 {
                     "name":"count",
@@ -49,7 +57,7 @@
             "fields":[
                 {
                     "name":"user",
-                    "type":"cosio::account_name"
+                    "type":"cosio::name"
                 }
             ]
         },
@@ -64,6 +72,20 @@
                 {
                     "name":"b",
                     "type":"str[]"
+                }
+            ]
+        },
+        {
+            "name":"test_map",
+            "base":"",
+            "fields":[
+                {
+                    "name":"a",
+                    "type":"int32"
+                },
+                {
+                    "name":"b",
+                    "type":"mymap"
                 }
             ]
         }

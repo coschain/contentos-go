@@ -122,6 +122,17 @@ type TrxDatabase interface {
 	Database
 }
 
+type Squashable interface {
+	Transactional
+	BeginTransactionWithTag(tag string)
+	Squash(tag string, num uint64) error
+}
+
+type SquashDatabase interface {
+	Squashable
+	Database
+}
+
 // interface for revertible feature
 // methods must be thread safe
 type Revertible interface {

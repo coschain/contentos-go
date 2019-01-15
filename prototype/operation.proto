@@ -74,6 +74,19 @@ message contract_apply_operation{
     coin   gas = 7;                 // max permit gas cost when apply
 }
 
+message internal_contract_apply_operation{
+    account_name from_caller = 1;       // caller of the calling contract
+    account_name from_owner = 2;        // owner of the calling contract
+    string from_contract = 3;           // name of the calling contract
+    string from_method = 4;             // method of the calling contract
+    account_name to_owner = 5;          // owner of the called contract
+    string to_contract = 6;             // name of the called contract
+    string to_method = 7;               // method of the called contract
+    bytes params = 8;                   // parameters encoded by internal serialization protocol between contract VM & host
+    coin amount = 9;                    // amount of coins to transfer from caller contract to called contract
+    coin gas = 10;                      // max gas cost for this operation
+}
+
 message contract_estimate_apply_operation{
     account_name caller = 1;          // who apply this op
     account_name owner = 2;         // who owner this contract

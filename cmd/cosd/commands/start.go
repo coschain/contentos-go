@@ -23,14 +23,17 @@ import (
 )
 
 var StartCmd = func() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "start",
-		Short: "start cosd node",
-		Run:   startNode,
+		cmd := &cobra.Command{
+			Use:   "start",
+			Short: "start cosd node",
+			Long:  "start cosd node,if has arg 'replay',will sync the lost block to db",
+			ValidArgs: []string{"replay"},
+			Run:   startNode,
+		}
+		cmd.Flags().StringVarP(&cfgName, "name", "n", "", "node name (default is cosd)")
+		return cmd
 	}
-	cmd.Flags().StringVarP(&cfgName, "name", "n", "", "node name (default is cosd)")
-	return cmd
-}
+
 
 func makeNode() (*node.Node, node.Config) {
 	var cfg node.Config
@@ -71,8 +74,15 @@ func startNode(cmd *cobra.Command, args []string) {
 	// _ is cfg as below process has't used
 
 	_, _ = cmd, args
+	if len(args) > 0 && args[0] == "replay"{
+		//If replay, remove level db first then  sync blocks from block log and snapshot to db
+		err := os.RemoveAll(filepath.Join(config.DefaultDataDir(), ClientIdentifier,"db"))
+		if err != nil {
+			panic("remove db fail when node replay")
+		}
+	}
 	app, cfg := makeNode()
-	app.Log = mylog.Init(cfg.ResolvePath("logs"), mylog.DebugLevel, 0)
+	app.Log = mylog.Init(cfg.ResolvePath("logs"), cfg.LogLevel, 0)
 
 	pprof.StartPprof()
 
@@ -81,6 +91,8 @@ func startNode(cmd *cobra.Command, args []string) {
 	if err := app.Start(); err != nil {
 		common.Fatalf("start node failed, err: %v\n", err)
 	}
+
+
 
 	go func() {
 		SIGSTOP := syscall.Signal(0x13) //for windows compile
@@ -112,38 +124,33 @@ func startNode(cmd *cobra.Command, args []string) {
 }
 
 func RegisterService(app *node.Node, cfg node.Config) {
-
-	_ = app.Register(iservices.LogServerName, func(ctx *node.ServiceContext) (node.Service, error) {
-		return mylog.NewMyLog( cfg.ResolvePath("logs"), mylog.DebugLevel, 0)
-	})
-
 	_ = app.Register(iservices.DbServerName, func(ctx *node.ServiceContext) (node.Service, error) {
 		return storage.NewGuardedDatabaseService(ctx, "./db/")
 	})
 
 	_ = app.Register(iservices.P2PServerName, func(ctx *node.ServiceContext) (node.Service, error) {
-		return p2p.NewServer(ctx)
+		return p2p.NewServer(ctx, app.Log)
 	})
 
 	_ = app.Register(iservices.TxPoolServerName, func(ctx *node.ServiceContext) (node.Service, error) {
-		return ctrl.NewController(ctx)
+		return ctrl.NewController(ctx, app.Log)
 	})
 
 	_ = app.Register(iservices.ConsensusServerName, func(ctx *node.ServiceContext) (node.Service, error) {
 		var s node.Service
 		switch ctx.Config().Consensus.Type {
 		case "DPoS":
-			s = consensus.NewDPoS(ctx)
+			s = consensus.NewDPoS(ctx, app.Log)
 		case "SABFT":
-			s = consensus.NewSABFT(ctx)
+			s = consensus.NewSABFT(ctx, app.Log)
 		default:
-			s = consensus.NewDPoS(ctx)
+			s = consensus.NewDPoS(ctx, app.Log)
 		}
 		return s, nil
 	})
 
 	_ = app.Register(plugins.FollowServiceName, func(ctx *node.ServiceContext) (node.Service, error) {
-		return plugins.NewFollowService(ctx)
+		return plugins.NewFollowService(ctx, app.Log)
 	})
 	_ = app.Register(plugins.PostServiceName, func(ctx *node.ServiceContext) (node.Service, error) {
 		return plugins.NewPostService(ctx)
@@ -153,6 +160,6 @@ func RegisterService(app *node.Node, cfg node.Config) {
 	})
 
 	_ = app.Register(iservices.RpcServerName, func(ctx *node.ServiceContext) (node.Service, error) {
-		return rpc.NewGRPCServer(ctx, ctx.Config().GRPC)
+		return rpc.NewGRPCServer(ctx, ctx.Config().GRPC, app.Log)
 	})
 }

@@ -18,6 +18,9 @@ type IContractType interface {
 	// IsArray() indicates whether it's an array or not.
 	IsArray() bool
 
+	// IsMap() indicates whether it's a map or not.
+	IsMap() bool
+
 	// SupportsKope() indicates whether the type supports kope.
 	SupportsKope() bool
 }
@@ -31,6 +34,19 @@ type IContractArray interface {
 
 	// Elem() return type of elements.
 	Elem() IContractType
+}
+
+//
+// IContractMap is a map of specified key-value types.
+//
+type IContractMap interface {
+	IContractType
+
+	// Key() returns key type.
+	Key() IContractType
+
+	// Value() returns value type.
+	Value() IContractType
 }
 
 //

@@ -107,6 +107,15 @@ type IDatabaseService interface {
 	// current transaction height
 	TransactionHeight() uint
 
+	BeginTransactionWithTag(tag string)
+
+	Squash(tag string, num uint64) error
+
+	RollBackToTag(tag string) error
+
+	//get the block number of latest commit
+	GetCommitNum() (uint64,error)
+
 	//
 	// data reversion feature
 	//

@@ -2,6 +2,7 @@ package p2p
 
 import (
 	"errors"
+	"io/ioutil"
 	"math/rand"
 	"net"
 	"reflect"
@@ -45,19 +46,18 @@ type ReconnectAddrs struct {
 }
 
 //NewServer return a new p2pserver according to the pubkey
-func NewServer(ctx *node.ServiceContext) (*P2PServer, error) {
-	n := netserver.NewNetServer(ctx)
-	logs , err := ctx.Service(iservices.LogServerName)
-	if err != nil {
-		panic(err)
+func NewServer(ctx *node.ServiceContext, lg *logrus.Logger) (*P2PServer, error) {
+	if lg == nil {
+		lg = logrus.New()
+		lg.SetOutput(ioutil.Discard)
 	}
-	log := logs.(iservices.ILog)
+	n := netserver.NewNetServer(ctx, lg)
 
 	p := &P2PServer{
 		Network: n,
 	}
 
-	p.log = log.GetLog()
+	p.log = lg
 	p.ctx = ctx
 	p.msgRouter = utils.NewMsgRouter(p.Network)
 	p.quitOnline = make(chan bool)

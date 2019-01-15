@@ -7,6 +7,7 @@ import (
 	"github.com/coschain/contentos-go/rpc/pb"
 	"github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/sirupsen/logrus"
+	"io/ioutil"
 	"net"
 
 	"google.golang.org/grpc"
@@ -25,13 +26,13 @@ type GRPCServer struct {
 	log       *logrus.Logger
 }
 
-func NewGRPCServer(ctx *node.ServiceContext, config service_configs.GRPCConfig) (*GRPCServer, error) {
-	logService, err := ctx.Service(iservices.LogServerName)
-	if err != nil {
-		panic(err)
+func NewGRPCServer(ctx *node.ServiceContext, config service_configs.GRPCConfig, lg *logrus.Logger) (*GRPCServer, error) {
+	if lg == nil {
+		lg = logrus.New()
+		lg.SetOutput(ioutil.Discard)
 	}
 
-	gi := NewGRPCIntercepter(logService.(iservices.ILog))
+	gi := NewGRPCIntercepter(lg)
 
 	rpc := grpc.NewServer(
 		grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(gi.streamRecoveryLoggingInterceptor)),
@@ -41,7 +42,7 @@ func NewGRPCServer(ctx *node.ServiceContext, config service_configs.GRPCConfig) 
 	grpcpb.RegisterApiServiceServer(rpc, api)
 	srv := &GRPCServer{rpcServer: rpc, ctx: ctx, api: api, config: &config}
 
-	srv.log = logService.(iservices.ILog).GetLog()
+	srv.log = lg
 	srv.api.log = srv.log
 	return srv, nil
 }

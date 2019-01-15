@@ -29,8 +29,8 @@ func TestAbi(t *testing.T) {
 		r.NoError(err, "Marshal failed.")
 	}
 
-	r.Equal(6, abi.TypesCount())
-	for i := 0; i < 6; i++ {
+	r.Equal(9, abi.TypesCount())
+	for i := 0; i < 9; i++ {
 		r.NotNil(abi.TypeByIndex(i))
 	}
 	r.NotNil(abi.TypeByName("timestamp_t"))
@@ -39,6 +39,9 @@ func TestAbi(t *testing.T) {
 	r.NotNil(abi.TypeByName("stats"))
 	r.NotNil(abi.TypeByName("str"))
 	r.NotNil(abi.TypeByName("test_array"))
+	r.NotNil(abi.TypeByName("int2str"))
+	r.NotNil(abi.TypeByName("mymap"))
+	r.NotNil(abi.TypeByName("test_map"))
 
 	r.Equal(1, abi.MethodsCount())
 	for i := 0; i < 1; i++ {
@@ -66,6 +69,35 @@ func TestAbi(t *testing.T) {
 	data, err = vme.EncodeFromJson([]byte(jsonStr), abi.TypeByName("test_array").Type())
 	r.NoError(err)
 	data, err = vme.DecodeToJson(data, abi.TypeByName("test_array").Type(), true)
+	r.NoError(err)
+	r.Equal(jsonStr, string(data))
+
+	jsonStr = `[[1,"one"],[2,"two"],[3,"three"]]`
+	data, err = vme.EncodeFromJson([]byte(jsonStr), abi.TypeByName("int2str").Type())
+	r.NoError(err)
+	data, err = vme.DecodeToJson(data, abi.TypeByName("int2str").Type(), true)
+	r.NoError(err)
+	r.Equal(jsonStr, string(data))
+
+	jsonStr = `[100,[["key1",[456,["nice","to","meet","you"]]],["key2",[123,["hello","world"]]]]]`
+	data, err = vme.EncodeFromJson([]byte(jsonStr), abi.TypeByName("test_map").Type())
+	r.NoError(err)
+	data, err = vme.DecodeToJson(data, abi.TypeByName("test_map").Type(), true)
+	r.NoError(err)
+	r.Equal(jsonStr, string(data))
+}
+
+func TestAbi2(t *testing.T) {
+	r := assert.New(t)
+
+	data, _ := ioutil.ReadFile("testdata/test.abi")
+	abi, err := UnmarshalABI(data)
+	r.NoError(err, "Unmarshal failed.")
+
+	jsonStr := `[[[["alice",20,false,[["maths",10],["chemistry",5]]],"swim"]]]`
+	data, err = vme.EncodeFromJson([]byte(jsonStr), abi.TypeByName("test_arg").Type())
+	r.NoError(err)
+	data, err = vme.DecodeToJson(data, abi.TypeByName("test_arg").Type(), true)
 	r.NoError(err)
 	r.Equal(jsonStr, string(data))
 }

@@ -62,7 +62,7 @@ func (w *CosVMNative) RequiredAuth(name string) {
 	w.CosAssert(err == nil, "require auth error")
 }
 
-func (w *CosVMNative) GetBalanceByName(name string) uint64 {
+func (w *CosVMNative) GetUserBalance(name string) uint64 {
 	acc := table.NewSoAccountWrap(w.cosVM.db, &prototype.AccountName{Value: name})
 	return acc.GetBalance().Value
 }
@@ -128,8 +128,41 @@ func (w *CosVMNative) ReadContractSenderValue() uint64 {
 	return w.cosVM.ctx.Amount.Value
 }
 
-func (w *CosVMNative) ContractTransfer(to string, amount uint64) {
-	w.cosVM.ctx.Injector.ContractTransfer(w.cosVM.ctx.Contract, w.cosVM.ctx.Owner.Value, to, amount)
+func (w *CosVMNative) ContractCalledByUser() bool {
+	return w.cosVM.ctx.CallingContractOwner == nil
+}
+
+func (w *CosVMNative) ReadCallingContractOwner() string {
+	if !w.ContractCalledByUser() {
+		return w.cosVM.ctx.CallingContractOwner.Value
+	}
+	return ""
+}
+
+func (w *CosVMNative) ReadCallingContractName() string {
+	if !w.ContractCalledByUser() {
+		return w.cosVM.ctx.CallingContractName
+	}
+	return ""
+}
+
+func (w *CosVMNative) ContractTransferToUser(to string, amount uint64) {
+	w.cosVM.ctx.Injector.TransferFromContractToUser(w.cosVM.ctx.Contract, w.cosVM.ctx.Owner.Value, to, amount)
+}
+
+func (w *CosVMNative) ContractTransferToContract(owner, contract string, amount uint64) {
+	w.cosVM.ctx.Injector.TransferFromContractToContract(w.cosVM.ctx.Contract, w.cosVM.ctx.Owner.Value, contract, owner, amount)
+}
+
+func (w *CosVMNative) ContractCall(owner, contract, method string, paramsData []byte, coins uint64) {
+	maxGas, spentGas := w.cosVM.ctx.Gas.Value, w.cosVM.SpentGas()
+	w.CosAssert(maxGas > spentGas, "ContractCall(): out of gas.")
+	w.cosVM.ctx.Injector.ContractCall(
+		w.ReadContractCaller(),
+		w.ReadContractOwner(),
+		w.ReadContractName(),
+		w.ReadContractMethod(),
+		owner, contract, method, paramsData, coins, maxGas - spentGas)
 }
 
 func (w *CosVMNative) TableGetRecord(tableName string, primary []byte) []byte {

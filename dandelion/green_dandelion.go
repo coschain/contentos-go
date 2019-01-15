@@ -51,7 +51,7 @@ func (d *GreenDandelion) OpenDatabase() error {
 		d.logger.Error("open database error")
 		return err
 	}
-	c, err := app.NewController(nil)
+	c, err := app.NewController(nil, nil)
 	c.SetShuffle(func(head common.ISignedBlock) {
 
 	})

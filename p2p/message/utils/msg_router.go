@@ -1,10 +1,10 @@
 package utils
 
 import (
-	"fmt"
 	msgCommon "github.com/coschain/contentos-go/p2p/common"
 	"github.com/coschain/contentos-go/p2p/message/types"
 	"github.com/coschain/contentos-go/p2p/net/protocol"
+	"github.com/sirupsen/logrus"
 )
 
 // MessageHandler defines the unified api for each net message
@@ -19,6 +19,7 @@ type MessageRouter struct {
 	stopSyncCh   chan bool                 // To stop sync channel
 	stopConsCh   chan bool                 // To stop consensus channel
 	p2p          p2p.P2P                   // Refer to the p2p network
+	log          *logrus.Logger
 }
 
 // NewMsgRouter returns a message router object
@@ -36,6 +37,7 @@ func (this *MessageRouter) init(p2p p2p.P2P) {
 	this.stopSyncCh = make(chan bool)
 	this.stopConsCh = make(chan bool)
 	this.p2p = p2p
+	this.log = p2p.GetLog()
 
 	// Register message handler
 	this.RegisterMsgHandler(msgCommon.VERSION_TYPE, VersionHandle)
@@ -83,8 +85,7 @@ func (this *MessageRouter) hookChan(channel chan *types.MsgPayload,
 				if ok {
 					go handler(data, this.p2p)
 				} else {
-					//logging.CLog().Warn("unknown message handler for the msg: ", msgType)
-					fmt.Println("unknown message handler for the msg: ", msgType)
+					this.log.Warn("unknown message handler for the msg: ", msgType)
 				}
 			}
 		case <-stopCh:

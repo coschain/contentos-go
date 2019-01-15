@@ -6,6 +6,8 @@ type Injector interface {
 	RequireAuth(name string) error
 	DeductGasFee(caller string, spent uint64)
 	// only panic, no error return
-	ContractTransfer(contract, owner, to string, amount uint64)
-	UserTransfer(from, contract, owner string, amount uint64)
+	TransferFromContractToUser(contract, owner, to string, amount uint64)
+	TransferFromUserToContract(from, contract, owner string, amount uint64)
+	TransferFromContractToContract(fromContract, fromOwner, toContract, toOwner string, amount uint64)
+	ContractCall(caller, fromOwner, fromContract, fromMethod, toOwner, toContract, toMethod string, params []byte, coins, maxGas uint64)
 }

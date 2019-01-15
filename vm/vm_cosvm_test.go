@@ -45,7 +45,7 @@ func add(proc *exec.Process, a, b int32) int32 {
 	return a + b
 }
 
-func (i *FakeInjector) ContractTransfer(contract, owner, to string, amount uint64) {
+func (i *FakeInjector) TransferFromContractToUser(contract, owner, to string, amount uint64) {
 	c := table.NewSoContractWrap(i.db, &prototype.ContractId{Owner: &prototype.AccountName{Value: owner}, Cname: contract})
 	balance := c.GetBalance().Value
 	if balance < amount {
@@ -57,8 +57,16 @@ func (i *FakeInjector) ContractTransfer(contract, owner, to string, amount uint6
 	acc.MdBalance(&prototype.Coin{Value: acc.GetBalance().Value + amount})
 }
 
-func (i *FakeInjector) UserTransfer(from, contract, owner string, amount uint64) {
+func (i *FakeInjector) TransferFromUserToContract(from, contract, owner string, amount uint64) {
 	fmt.Println("user transfer", from, contract, owner, amount)
+}
+
+func (i *FakeInjector) TransferFromContractToContract(fromContract, fromOwner, toContract, toOwner string, amount uint64) {
+	fmt.Println("transfer", fromOwner, fromContract, toOwner, toContract, amount)
+}
+
+func (i *FakeInjector) ContractCall(caller, fromOwner, fromContract, fromMethod, toOwner, toContract, toMethod string, params []byte, coins, maxGas uint64) {
+	fmt.Printf("ContractCall: caller=%s, from=%s.%s.%s to=%s.%s.%s, params=%v, coins=%d, max_gas=%d", caller, fromOwner, fromContract, fromMethod, toOwner, toContract, toMethod, params, coins, maxGas)
 }
 
 func fadd(proc *exec.Process, a, b float32) float32 {

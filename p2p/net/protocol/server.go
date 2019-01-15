@@ -4,6 +4,7 @@ import (
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/p2p/message/types"
 	"github.com/coschain/contentos-go/p2p/peer"
+	"github.com/sirupsen/logrus"
 )
 
 //P2P represent the net interface of p2p package
@@ -48,4 +49,5 @@ type P2P interface {
 
 	GetService(string) (interface{}, error)
 	GetContex() *node.ServiceContext
+	GetLog() *logrus.Logger
 }

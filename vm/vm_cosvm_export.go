@@ -9,10 +9,10 @@ type CosVMExport struct {
 	*CosVMNative
 }
 
-func (w *CosVMExport) sha256(proc *exec.Process, pSrc int32, lenSrc int32, pDst int32, lenDst int32) {
+func (w *CosVMExport) sha256(proc *exec.Process, pSrc int32, lenSrc int32, pDst int32, lenDst int32) int32 {
 	srcBuf := w.cosVM.read(proc, pSrc, lenSrc, "sha256().read")
 	out := sha256.Sum256(srcBuf)
-	w.cosVM.write(proc, out[:], pDst, lenDst, "sha256().write")
+	return w.cosVM.write(proc, out[:], pDst, lenDst, "sha256().write")
 }
 
 func (w *CosVMExport) currentBlockNumber(proc *exec.Process) int64 {
@@ -43,8 +43,8 @@ func (w *CosVMExport) requiredAuth(proc *exec.Process, pStr int32, pLen int32) {
 	w.RequiredAuth(string(w.cosVM.read(proc, pStr, pLen, "requiredAuth()")))
 }
 
-func (w *CosVMExport) getBalanceByName(proc *exec.Process, ptr int32, len int32) int64 {
-	return int64(w.GetBalanceByName(string(w.cosVM.read(proc, ptr, len, "getBalanceByName()"))))
+func (w *CosVMExport) getUserBalance(proc *exec.Process, ptr int32, len int32) int64 {
+	return int64(w.GetUserBalance(string(w.cosVM.read(proc, ptr, len, "getUserBalance()"))))
 }
 
 func (w *CosVMExport) getContractBalance(proc *exec.Process, cPtr int32, cLen int32, nPtr int32, nLen int32) int64 {
@@ -99,12 +99,45 @@ func (w *CosVMExport) readContractCaller(proc *exec.Process, pStr int32, length 
 	return w.cosVM.write(proc, []byte(w.ReadContractCaller()), pStr, length, "readContractCaller()")
 }
 
-func (w *CosVMExport) contractTransfer(proc *exec.Process, pTo, pToLen int32, amount int64, pMemo, pMemoLen int32) {
-	w.ContractTransfer(string(w.cosVM.read(proc, pTo, pToLen, "contractTransfer().to")), uint64(amount))
+func (w *CosVMExport) contractCalledByUser(proc *exec.Process) int32 {
+	r := int32(0)
+	if w.ContractCalledByUser() {
+		r = 1
+	}
+	return r
+}
+
+func (w *CosVMExport) readCallingContractOwner(proc *exec.Process, pStr int32, length int32) int32 {
+	return w.cosVM.write(proc, []byte(w.ReadCallingContractOwner()), pStr, length, "readCallingContractOwner()")
+}
+
+func (w *CosVMExport) readCallingContractName(proc *exec.Process, pStr int32, length int32) int32 {
+	return w.cosVM.write(proc, []byte(w.ReadCallingContractName()), pStr, length, "readCallingContractName()")
+}
+
+func (w *CosVMExport) contractTransferToUser(proc *exec.Process, pTo, pToLen int32, amount int64, pMemo, pMemoLen int32) {
+	w.ContractTransferToUser(string(w.cosVM.read(proc, pTo, pToLen, "contractTransferToUser().to")), uint64(amount))
+}
+
+func (w *CosVMExport) contractTransferToContract(proc *exec.Process, pToOwner, pToOwnerLen, pToContract, pToContractLen int32, amount int64, pMemo, pMemoLen int32) {
+	w.ContractTransferToContract(
+		string(w.cosVM.read(proc, pToOwner, pToOwnerLen, "contractTransferToContract().toOwner")),
+		string(w.cosVM.read(proc, pToContract, pToContractLen, "contractTransferToContract().toContract")),
+		uint64(amount))
 }
 
 func (w *CosVMExport) readContractSenderValue(proc *exec.Process) int64 {
 	return int64(w.ReadContractSenderValue())
+}
+
+func (w *CosVMExport) contractCall(proc *exec.Process, owner, ownerSize, contract, contractSize, method, methodSize, param, paramSize int32, coins int64) {
+	w.ContractCall(
+		string(w.cosVM.read(proc, owner, ownerSize, "contractCall().owner")),
+		string(w.cosVM.read(proc, contract, contractSize, "contractCall().contract")),
+		string(w.cosVM.read(proc, method, methodSize, "contractCall().method")),
+		w.cosVM.read(proc, param, paramSize, "contractCall().param"),
+		uint64(coins),
+		)
 }
 
 func (w *CosVMExport) tableGetRecord(proc *exec.Process, tableName, tableNameLen int32, primary, primaryLen int32, value, valueLen int32) int32 {
