@@ -4,7 +4,6 @@ import (
 	"os"
 
 	"github.com/sirupsen/logrus"
-	"github.com/coschain/contentos-go/node"
 )
 
 // const
@@ -70,19 +69,4 @@ func Init(path string, level string, age uint32) *logrus.Logger {
 	clog.Level = convertLevel(level)
 
 	return clog
-}
-
-func (t *MyLog) Start(node *node.Node) error {
-	return nil
-}
-
-func (t *MyLog) Stop() error {
-	return nil
-}
-
-func (t *MyLog) GetLog() *logrus.Logger {
-	if t.Logger == nil {
-		t.Logger = logrus.New()
-	}
-	return t.Logger
 }

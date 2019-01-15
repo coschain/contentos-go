@@ -14,6 +14,8 @@ import (
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+	"io/ioutil"
 	"strconv"
 	"github.com/coschain/contentos-go/common/crypto/secp256k1"
 	"github.com/coschain/contentos-go/common/crypto"
@@ -32,7 +34,7 @@ type TrxPool struct {
 	evLoop *eventloop.EventLoop
 
 	db      iservices.IDatabaseService
-	log     iservices.ILog
+	log     *logrus.Logger
 	noticer EventBus.Bus
 	skip    prototype.SkipFlag
 
@@ -57,15 +59,6 @@ func (c *TrxPool) getDb() (iservices.IDatabaseService, error) {
 	return db, nil
 }
 
-func (c *TrxPool) getLog() (iservices.ILog, error) {
-	s, err := c.ctx.Service(iservices.LogServerName)
-	if err != nil {
-		return nil, err
-	}
-	log := s.(iservices.ILog)
-	return log, nil
-}
-
 func (c *TrxPool) SetShuffle(s common.ShuffleFunc) {
 	c.shuffle = s
 }
@@ -79,22 +72,20 @@ func (c *TrxPool) SetBus(bus EventBus.Bus) {
 	c.noticer = bus
 }
 
-func (c *TrxPool) SetLog(log iservices.ILog) {
+func (c *TrxPool) SetLog(log *logrus.Logger) {
 	c.log = log
 }
 
 // service constructor
-func NewController(ctx *node.ServiceContext) (*TrxPool, error) {
-	return &TrxPool{ctx: ctx}, nil
+func NewController(ctx *node.ServiceContext, lg *logrus.Logger) (*TrxPool, error) {
+	if lg == nil {
+		lg = logrus.New()
+		lg.SetOutput(ioutil.Discard)
+	}
+	return &TrxPool{ctx: ctx, log: lg}, nil
 }
 
 func (c *TrxPool) Start(node *node.Node) error {
-	log, err := c.getLog()
-	if err != nil {
-		return err
-	}
-	c.log = log
-
 	db, err := c.getDb()
 	if err != nil {
 		return err
@@ -113,10 +104,10 @@ func (c *TrxPool) Open() {
 
 		mustNoError(c.db.DeleteAll(), "truncate database error")
 
-		//c.log.GetLog().Info("start initGenesis")
+		//c.log.Info("start initGenesis")
 		c.initGenesis()
 		c.saveReversion(0)
-		//c.log.GetLog().Info("finish initGenesis")
+		//c.log.Info("finish initGenesis")
 	}
 }
 
@@ -149,7 +140,7 @@ func (c *TrxPool) PushTrx(trx *prototype.SignedTransaction) (invoice *prototype.
 		if err := recover(); err != nil {
 			invoice = &prototype.TransactionReceiptWithInfo{Status: uint32(prototype.StatusError)}
 			invoice.ErrorInfo = fmt.Sprintf("%v", err)
-			c.log.GetLog().Errorf("PushTrx Error: %v", err)
+			c.log.Errorf("PushTrx Error: %v", err)
 		}
 		c.setProducing(false)
 		c.skip = oldSkip
@@ -213,10 +204,10 @@ func (c *TrxPool) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag)
 			switch x := r.(type) {
 			case error:
 				err = x
-				//c.log.GetLog().Errorf("push block error : %v", x.Error())
+				//c.log.Errorf("push block error : %v", x.Error())
 			case string:
 				err = errors.New(x)
-				//c.log.GetLog().Errorf("push block error : %v ", x)
+				//c.log.Errorf("push block error : %v ", x)
 			default:
 				err = errors.New("unknown panic type")
 			}
@@ -263,7 +254,7 @@ func (c *TrxPool) ClearPending() []*prototype.EstimateTrxResult {
 		if c.havePendingTransaction == true {
 			mustNoError(c.db.EndTransaction(false), "EndTransaction error")
 			c.havePendingTransaction = false
-			//		c.log.GetLog().Debug("@@@@@@ ClearPending havePendingTransaction=false")
+			//		c.log.Debug("@@@@@@ ClearPending havePendingTransaction=false")
 		}
 	}
 
@@ -311,7 +302,7 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 		c.skip = oldSkip
 		if err := recover(); err != nil {
 			mustNoError(c.db.EndTransaction(false), "EndTransaction error")
-			//c.log.GetLog().Errorf("GenerateBlock Error: %v", err)
+			//c.log.Errorf("GenerateBlock Error: %v", err)
 			panic(err)
 		}
 	}()
@@ -351,7 +342,7 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 	tag := c.getBlockTag(uint64(c.headBlockNum())+1)
 	c.db.BeginTransactionWithTag(tag)
 	c.db.BeginTransaction()
-	//c.log.GetLog().Debug("@@@@@@ GeneratBlock havePendingTransaction=true")
+	//c.log.Debug("@@@@@@ GeneratBlock havePendingTransaction=true")
 	c.havePendingTransaction = true
 
 	var postponeTrx uint64 = 0
@@ -382,7 +373,7 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 		}()
 	}
 	if postponeTrx > 0 {
-		//c.log.GetLog().Warnf("postponed %d trx due to max block size", postponeTrx)
+		//c.log.Warnf("postponed %d trx due to max block size", postponeTrx)
 	}
 
 	signBlock.SignedHeader.Header.Previous = pre
@@ -399,7 +390,7 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 
 	/*mustNoError(c.db.EndTransaction(false), "EndTransaction error")
 	c.havePendingTransaction = false*/
-	//c.log.GetLog().Debug("@@@@@@ GenerateBlock havePendingTransaction=false")
+	//c.log.Debug("@@@@@@ GenerateBlock havePendingTransaction=false")
 
 	/*c.PushBlock(signBlock,c.skip | prototype.Skip_apply_transaction)
 
@@ -918,7 +909,7 @@ func (c *TrxPool) saveReversion(num uint64) {
 	tag := strconv.FormatUint(num, 10)
 	currentRev := c.db.GetRevision()
 	mustNoError(c.db.TagRevision(currentRev, tag), fmt.Sprintf("TagRevision:  tag:%d, reversion%d", num, currentRev))
-	//c.log.GetLog().Debug("### saveReversion, num:", num, " rev:", currentRev)
+	//c.log.Debug("### saveReversion, num:", num, " rev:", currentRev)
 }
 
 func (c *TrxPool) getReversion(num uint64) uint64 {
@@ -939,7 +930,7 @@ func (c *TrxPool) PopBlockTo(num uint64) {
 	/*if c.havePendingTransaction {
 		mustNoError(c.db.EndTransaction(false), "EndTransaction error")
 		c.havePendingTransaction = false
-		//c.log.GetLog().Debug("@@@@@@ PopBlockTo havePendingTransaction=false")
+		//c.log.Debug("@@@@@@ PopBlockTo havePendingTransaction=false")
 	}*/
 	// get reversion
 	//rev := c.getReversion(num)

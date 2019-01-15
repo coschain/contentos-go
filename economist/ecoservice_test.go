@@ -32,7 +32,7 @@ func startDB() iservices.IDatabaseService {
 }
 
 func startController(db iservices.IDatabaseService) *app.TrxPool {
-	c, _ := app.NewController(nil)
+	c, _ := app.NewController(nil, nil)
 	c.SetDB(db)
 	c.SetBus(EventBus.New())
 	c.Open()

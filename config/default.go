@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/iservices/service-configs"
+	"github.com/coschain/contentos-go/mylog"
 	"github.com/coschain/contentos-go/node"
 	"github.com/pelletier/go-toml"
 	"io/ioutil"
@@ -15,7 +16,6 @@ import (
 const (
 	DefaultRPCEndPoint  = "127.0.0.1:8888"
 	DefaultHTTPEndPoint = "127.0.0.1:8080"
-	DefaultLogLevel     = "debug"
 )
 
 const (
@@ -72,10 +72,7 @@ func GetNetworkName(id uint32) string {
 // DefaultConfig contains reasonable default settings.
 var DefaultNodeConfig = node.Config{
 	DataDir: DefaultDataDir(),
-	LogLevel:         DefaultLogLevel,
-	//P2PPort:          20200,
-	//P2PPortConsensus: 20201,
-	//P2PSeeds:         []string{},
+	LogLevel:         mylog.DebugLevel,
 	P2P: service_configs.P2PConfig{
 		Genesis:                   MainNetConfig,
 		EnableConsensus:           true,

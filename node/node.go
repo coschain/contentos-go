@@ -4,7 +4,6 @@ import (
 	"errors"
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/common/eventloop"
-	log "github.com/inconshreveable/log15"
 	"github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
@@ -53,15 +52,14 @@ func New(conf *Config) (*Node, error) {
 	if strings.ContainsAny(conf.Name, `/\`) {
 		return nil, errors.New(`Config.Name must not contain '/' or '\'`)
 	}
-	if conf.Logger == nil {
-		conf.Logger = log.New()
-	}
+	//if conf.Logger == nil {
+	//	conf.Logger = log.New()
+	//}
 
 	return &Node{
 		config:       conf,
 		serviceNames: []string{},
 		serviceFuncs: []NamedServiceConstructor{},
-		//log:          conf.Logger,
 	}, nil
 }
 

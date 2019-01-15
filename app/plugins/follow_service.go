@@ -7,6 +7,8 @@ import (
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/prototype"
+	"github.com/sirupsen/logrus"
+	"io/ioutil"
 	"time"
 )
 
@@ -15,23 +17,21 @@ var FollowServiceName = "followsrv"
 type FollowService struct {
 	node.Service
 	db  iservices.IDatabaseService
-	log iservices.ILog
+	log *logrus.Logger
 	ev  EventBus.Bus
 	ctx *node.ServiceContext
 }
 
 // service constructor
-func NewFollowService(ctx *node.ServiceContext) (*FollowService, error) {
-	return &FollowService{ctx:ctx}, nil
+func NewFollowService(ctx *node.ServiceContext, lg *logrus.Logger) (*FollowService, error) {
+	if lg == nil {
+		lg = logrus.New()
+		lg.SetOutput(ioutil.Discard)
+	}
+	return &FollowService{ctx:ctx, log:lg}, nil
 }
 
 func (p *FollowService) Start(node *node.Node) error {
-	log, err := p.ctx.Service(iservices.LogServerName)
-	if err != nil {
-		return err
-	}
-	p.log = log.(iservices.ILog)
-
 	db, err := p.ctx.Service(iservices.DbServerName)
 	if err != nil {
 		return err
@@ -58,7 +58,7 @@ func (p *FollowService) onPostOperation(notification *prototype.OperationNotific
 
 	switch notification.Op.GetOp().(type) {
 	case *prototype.Operation_Op8:
-		p.log.GetLog().Debugf("receive follow operation [%x]", notification.Op.GetOp8())
+		p.log.Debugf("receive follow operation [%x]", notification.Op.GetOp8())
 		p.executeFollowOperation(notification.Op.GetOp8())
 	default:
 

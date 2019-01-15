@@ -10,13 +10,13 @@ require (
 	github.com/coschain/gobft v0.0.0-20190114070801-60edfe84d27d
 	github.com/deckarep/golang-set v1.7.1
 	github.com/fastly/go-utils v0.0.0-20180712184237-d95a45783239 // indirect
-	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-interpreter/wagon v0.3.0
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/gogo/protobuf v1.1.1
 	github.com/golang/mock v1.2.0
 	github.com/golang/protobuf v1.2.0
 	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db // indirect
+	github.com/google/gofuzz v0.0.0-20170612174753-24818f796faf // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0
 	github.com/grpc-ecosystem/grpc-gateway v1.6.4
 	github.com/inconshreveable/log15 v0.0.0-20180818164646-67afb5ed74ec

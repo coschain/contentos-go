@@ -82,7 +82,7 @@ func startNode(cmd *cobra.Command, args []string) {
 		}
 	}
 	app, cfg := makeNode()
-	app.Log = mylog.Init(cfg.ResolvePath("logs"), mylog.DebugLevel, 0)
+	app.Log = mylog.Init(cfg.ResolvePath("logs"), cfg.LogLevel, 0)
 
 	pprof.StartPprof()
 
@@ -124,38 +124,33 @@ func startNode(cmd *cobra.Command, args []string) {
 }
 
 func RegisterService(app *node.Node, cfg node.Config) {
-
-	_ = app.Register(iservices.LogServerName, func(ctx *node.ServiceContext) (node.Service, error) {
-		return mylog.NewMyLog( cfg.ResolvePath("logs"), mylog.DebugLevel, 0)
-	})
-
 	_ = app.Register(iservices.DbServerName, func(ctx *node.ServiceContext) (node.Service, error) {
 		return storage.NewGuardedDatabaseService(ctx, "./db/")
 	})
 
 	_ = app.Register(iservices.P2PServerName, func(ctx *node.ServiceContext) (node.Service, error) {
-		return p2p.NewServer(ctx)
+		return p2p.NewServer(ctx, app.Log)
 	})
 
 	_ = app.Register(iservices.TxPoolServerName, func(ctx *node.ServiceContext) (node.Service, error) {
-		return ctrl.NewController(ctx)
+		return ctrl.NewController(ctx, app.Log)
 	})
 
 	_ = app.Register(iservices.ConsensusServerName, func(ctx *node.ServiceContext) (node.Service, error) {
 		var s node.Service
 		switch ctx.Config().Consensus.Type {
 		case "DPoS":
-			s = consensus.NewDPoS(ctx)
+			s = consensus.NewDPoS(ctx, app.Log)
 		case "SABFT":
-			s = consensus.NewSABFT(ctx)
+			s = consensus.NewSABFT(ctx, app.Log)
 		default:
-			s = consensus.NewDPoS(ctx)
+			s = consensus.NewDPoS(ctx, app.Log)
 		}
 		return s, nil
 	})
 
 	_ = app.Register(plugins.FollowServiceName, func(ctx *node.ServiceContext) (node.Service, error) {
-		return plugins.NewFollowService(ctx)
+		return plugins.NewFollowService(ctx, app.Log)
 	})
 	_ = app.Register(plugins.PostServiceName, func(ctx *node.ServiceContext) (node.Service, error) {
 		return plugins.NewPostService(ctx)
@@ -165,6 +160,6 @@ func RegisterService(app *node.Node, cfg node.Config) {
 	})
 
 	_ = app.Register(iservices.RpcServerName, func(ctx *node.ServiceContext) (node.Service, error) {
-		return rpc.NewGRPCServer(ctx, ctx.Config().GRPC)
+		return rpc.NewGRPCServer(ctx, ctx.Config().GRPC, app.Log)
 	})
 }

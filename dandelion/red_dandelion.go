@@ -8,9 +8,9 @@ import (
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/consensus"
 	"github.com/coschain/contentos-go/db/storage"
-	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/mylog"
 	"github.com/coschain/contentos-go/prototype"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -29,37 +29,37 @@ type RedDandelion struct {
 	privKey   *prototype.PrivateKeyType
 	produced  uint32
 	timestamp uint64
-	logger    iservices.ILog
+	logger    *logrus.Logger
 }
 
 func NewRedDandelion() (*RedDandelion, error) {
 	db, err := storage.NewDatabase(dbPath)
 	log, err := mylog.NewMyLog(logPath, "info", 0)
 	if err != nil {
-		log.GetLog().Error(err)
+		log.Logger.Error(err)
 		return nil, err
 	}
 	if err != nil {
-		log.GetLog().Error(err)
+		log.Logger.Error(err)
 		return nil, err
 	}
 	privKey, err := prototype.PrivateKeyFromWIF(constants.INITMINER_PRIKEY)
 	if err != nil {
-		log.GetLog().Error(err)
+		log.Logger.Error(err)
 		return nil, err
 	}
-	return &RedDandelion{path: dbPath, db: db, witness: "initminer", privKey: privKey, logger: log, timestamp: 3}, nil
+	return &RedDandelion{path: dbPath, db: db, witness: "initminer", privKey: privKey, logger: log.Logger, timestamp: 3}, nil
 }
 
 func (d *RedDandelion) OpenDatabase() error {
 	err := d.db.Start(nil)
 	if err != nil {
-		d.logger.GetLog().Error("open database error")
+		d.logger.Error("open database error")
 		return err
 	}
-	c, err := app.NewController(nil)
+	c, err := app.NewController(nil, nil)
 	if err != nil {
-		d.logger.GetLog().Error("create new controller failed")
+		d.logger.Error("create new controller failed")
 		return err
 	}
 	c.SetDB(d.db)
@@ -75,7 +75,7 @@ func (d *RedDandelion) OpenDatabase() error {
 	dpos.DandelionDposStart()
 	d.DPoS = dpos
 	if err != nil {
-		d.logger.GetLog().Error("dpos start error")
+		d.logger.Error("dpos start error")
 		return err
 	}
 	return nil
@@ -84,7 +84,7 @@ func (d *RedDandelion) OpenDatabase() error {
 func (d *RedDandelion) GenerateBlock() {
 	err := d.DPoS.DandelionDposGenerateBlock(d.timestamp)
 	if err != nil {
-		d.logger.GetLog().Error("error:", err)
+		d.logger.Error("error:", err)
 	}
 	d.produced += 1
 	d.timestamp += constants.BLOCK_INTERVAL
@@ -111,12 +111,12 @@ func (d *RedDandelion) GenerateBlockFor(timestamp uint32) {
 func (d *RedDandelion) CreateAccount(name string) error {
 	defaultPrivKey, err := prototype.GenerateNewKeyFromBytes([]byte(initPrivKey))
 	if err != nil {
-		d.logger.GetLog().Error("error:", err)
+		d.logger.Error("error:", err)
 		return err
 	}
 	defaultPubKey, err := defaultPrivKey.PubKey()
 	if err != nil {
-		d.logger.GetLog().Error("error:", err)
+		d.logger.Error("error:", err)
 		return err
 	}
 
@@ -132,7 +132,7 @@ func (d *RedDandelion) CreateAccount(name string) error {
 	// use initminer's priv key sign
 	signTx, err := d.Sign(d.privKey.ToWIF(), acop)
 	if err != nil {
-		d.logger.GetLog().Error("error:", err)
+		d.logger.Error("error:", err)
 		return err
 	}
 	d.DPoS.PushTransaction(signTx, true, true)
@@ -143,7 +143,7 @@ func (d *RedDandelion) CreateAccount(name string) error {
 func (d *RedDandelion) Transfer(from, to string, amount uint64, memo string) error {
 	defaultPrivKey, err := prototype.GenerateNewKeyFromBytes([]byte(initPrivKey))
 	if err != nil {
-		d.logger.GetLog().Error("error:", err)
+		d.logger.Error("error:", err)
 		return err
 	}
 	top := &prototype.TransferOperation{
@@ -159,7 +159,7 @@ func (d *RedDandelion) Transfer(from, to string, amount uint64, memo string) err
 		signTx, err = d.Sign(defaultPrivKey.ToWIF(), top)
 	}
 	if err != nil {
-		d.logger.GetLog().Error("error:", err)
+		d.logger.Error("error:", err)
 		return err
 	}
 	d.DPoS.PushTransaction(signTx, true, true)
@@ -197,7 +197,7 @@ func (d *RedDandelion) Sign(privKeyStr string, ops ...interface{}) (*prototype.S
 	res := signTx.Sign(privKey, prototype.ChainId{Value: 0})
 	signTx.Signatures = append(signTx.Signatures, &prototype.SignatureType{Sig: res})
 	if err := signTx.Validate(); err != nil {
-		d.logger.GetLog().Error("error:", err)
+		d.logger.Error("error:", err)
 		return nil, err
 	}
 	return &signTx, nil
@@ -224,7 +224,7 @@ func (d *RedDandelion) Clean() error {
 	d.DandelionDposStop()
 	err := d.db.Stop()
 	if err != nil {
-		d.logger.GetLog().Error("error:", err)
+		d.logger.Error("error:", err)
 		return err
 	}
 	return nil

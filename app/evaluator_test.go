@@ -381,12 +381,11 @@ func startDB() iservices.IDatabaseService {
 }
 
 func startController(db iservices.IDatabaseService) *TrxPool {
-	c, _ := NewController(nil)
-	c.SetDB(db)
-	c.SetBus(EventBus.New())
 	log, err := mylog.NewMyLog(logPath, mylog.DebugLevel, 0)
 	mustNoError(err, "new log error")
-	c.SetLog(log)
+	c, _ := NewController(nil, log.Logger)
+	c.SetDB(db)
+	c.SetBus(EventBus.New())
 	c.Open()
 	return c
 }

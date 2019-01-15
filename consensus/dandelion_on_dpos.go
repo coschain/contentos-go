@@ -6,6 +6,7 @@ import (
 	"github.com/coschain/contentos-go/db/forkdb"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
+	"github.com/sirupsen/logrus"
 	"time"
 )
 
@@ -41,7 +42,7 @@ func (d *DPoS) DandelionDposSetP2P(p2p iservices.IP2P) {
 	d.p2p = p2p
 }
 
-func (d *DPoS) DandelionDposSetLog(log iservices.ILog) {
+func (d *DPoS) DandelionDposSetLog(log *logrus.Logger) {
 	d.log = log
 }
 

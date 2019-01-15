@@ -2,7 +2,6 @@ package rpc
 
 import (
 	"context"
-	"github.com/coschain/contentos-go/iservices"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"strings"
@@ -12,8 +11,8 @@ type GRPCIntercepter struct {
 	log       *logrus.Logger
 }
 
-func NewGRPCIntercepter(ilog iservices.ILog) *GRPCIntercepter {
-	return &GRPCIntercepter{log: ilog.GetLog()}
+func NewGRPCIntercepter(log *logrus.Logger) *GRPCIntercepter {
+	return &GRPCIntercepter{log: log}
 }
 
 func (gi *GRPCIntercepter) streamRecoveryLoggingInterceptor(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) (err error) {

@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/p2p/common"
@@ -18,9 +19,10 @@ import (
 )
 
 //NewNetServer return the net object in p2p
-func NewNetServer(ctx *node.ServiceContext) p2p.P2P {
+func NewNetServer(ctx *node.ServiceContext, lg *logrus.Logger) p2p.P2P {
 	n := &NetServer{
 		ctx:      ctx,
+		log:      lg,
 		SyncChan: make(chan *types.MsgPayload, common.CHAN_CAPABILITY),
 		ConsChan: make(chan *types.MsgPayload, common.CHAN_CAPABILITY),
 	}
@@ -34,6 +36,7 @@ func NewNetServer(ctx *node.ServiceContext) p2p.P2P {
 //NetServer represent all the actions in net layer
 type NetServer struct {
 	ctx          *node.ServiceContext
+	log          *logrus.Logger
 	base         peer.PeerCom
 	synclistener net.Listener
 	conslistener net.Listener
@@ -75,11 +78,6 @@ type PeerAddrMap struct {
 
 //init initializes attribute of network server
 func (this *NetServer) init() error {
-	logs , err := this.GetService(iservices.LogServerName)
-	if err != nil {
-		panic(err)
-	}
-	log := logs.(iservices.ILog)
 	this.base.SetVersion(common.PROTOCOL_VERSION)
 
 	if this.ctx.Config().P2P.EnableConsensus {
@@ -89,7 +87,7 @@ func (this *NetServer) init() error {
 	}
 
 	if this.ctx.Config().P2P.NodePort == 0 {
-		log.GetLog().Error("[p2p] link port invalid")
+		this.log.Error("[p2p] link port invalid")
 		return errors.New("[p2p] invalid link port")
 	}
 
@@ -97,7 +95,7 @@ func (this *NetServer) init() error {
 
 	if this.ctx.Config().P2P.DualPortSupport {
 		if this.ctx.Config().P2P.NodeConsensusPort == 0 {
-			log.GetLog().Error("[p2p] consensus port invalid")
+			this.log.Error("[p2p] consensus port invalid")
 			return errors.New("[p2p] invalid consensus port")
 		}
 
@@ -113,7 +111,7 @@ func (this *NetServer) init() error {
 
 	this.base.SetID(id)
 
-	log.GetLog().Infof("[p2p] init peer ID to %d", this.base.GetID())
+	this.log.Infof("[p2p] init peer ID to %d", this.base.GetID())
 	this.Np = &peer.NbrPeers{}
 	this.Np.Init()
 
@@ -227,18 +225,13 @@ func (this *NetServer) GetMsgChan(isConsensus bool) chan *types.MsgPayload {
 
 //Tx send data buf to peer
 func (this *NetServer) Send(p *peer.Peer, msg types.Message, isConsensus bool) error {
-	logs , err := this.GetService(iservices.LogServerName)
-	if err != nil {
-		panic(err)
-	}
-	log := logs.(iservices.ILog)
 	if p != nil {
 		if this.ctx.Config().P2P.DualPortSupport == false {
 			return p.Send(msg, false, this.ctx.Config().P2P.NetworkMagic)
 		}
 		return p.Send(msg, isConsensus, this.ctx.Config().P2P.NetworkMagic)
 	}
-	log.GetLog().Warn("[p2p] send to a invalid peer")
+	this.log.Warn("[p2p] send to a invalid peer")
 	return errors.New("[p2p] send to a invalid peer")
 }
 
@@ -252,13 +245,8 @@ func (this *NetServer) IsPeerEstablished(p *peer.Peer) bool {
 
 //Connect used to connect net address under sync or cons mode
 func (this *NetServer) Connect(addr string, isConsensus bool) error {
-	logs , err := this.GetService(iservices.LogServerName)
-	if err != nil {
-		panic(err)
-	}
-	log := logs.(iservices.ILog)
 	if this.IsAddrInOutConnRecord(addr) {
-		log.GetLog().Debugf("[p2p] Address: %s Consensus: %v is in OutConnectionRecord,", addr, isConsensus)
+		this.log.Debugf("[p2p] Address: %s Consensus: %v is in OutConnectionRecord,", addr, isConsensus)
 		return nil
 	}
 	if this.IsOwnAddress(addr) {
@@ -271,7 +259,7 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 	this.connectLock.Lock()
 	connCount := uint(this.GetOutConnRecordLen())
 	if connCount >= this.ctx.Config().P2P.MaxConnOutBound {
-		log.GetLog().Warnf("[p2p] Connect: out connections(%d) reach the max limit(%d)", connCount,
+		this.log.Warnf("[p2p] Connect: out connections(%d) reach the max limit(%d)", connCount,
 			this.ctx.Config().P2P.MaxConnOutBound)
 		this.connectLock.Unlock()
 		return errors.New("[p2p] connect: out connections reach the max limit")
@@ -283,31 +271,32 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 	}
 	this.connectLock.Lock()
 	if added := this.AddOutConnectingList(addr); added == false {
-		log.GetLog().Debug("[p2p] node exist in connecting list ", addr)
+		this.log.Debug("[p2p] node exist in connecting list ", addr)
 	}
 	this.connectLock.Unlock()
 
 	isTls := this.ctx.Config().P2P.IsTLS
 	var conn net.Conn
+	var err error
 	var remotePeer *peer.Peer
 	if isTls {
 		conn, err = TLSDial(addr, this.ctx.Config().P2P.CertPath, this.ctx.Config().P2P.KeyPath, this.ctx.Config().P2P.CAPath)
 		if err != nil {
 			this.RemoveFromConnectingList(addr)
-			log.GetLog().Debugf("[p2p] connect %s failed:%s", addr, err.Error())
+			this.log.Debugf("[p2p] connect %s failed:%s", addr, err.Error())
 			return err
 		}
 	} else {
 		conn, err = nonTLSDial(addr)
 		if err != nil {
 			this.RemoveFromConnectingList(addr)
-			log.GetLog().Debugf("[p2p] connect %s failed:%s", addr, err.Error())
+			this.log.Debugf("[p2p] connect %s failed:%s", addr, err.Error())
 			return err
 		}
 	}
 
 	addr = conn.RemoteAddr().String()
-	log.GetLog().Debugf("[p2p] peer %s connect with %s with %s",
+	this.log.Debugf("[p2p] peer %s connect with %s with %s",
 		conn.LocalAddr().String(), conn.RemoteAddr().String(),
 		conn.RemoteAddr().Network())
 
@@ -333,7 +322,7 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 
 	service, err := this.GetService(iservices.ConsensusServerName)
 	if err != nil {
-		log.GetLog().Error("[p2p] can't get other service, service name: ", iservices.ConsensusServerName)
+		this.log.Error("[p2p] can't get other service, service name: ", iservices.ConsensusServerName)
 		return err
 	}
 	ctrl := service.(iservices.IConsensus)
@@ -343,7 +332,7 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 		if !isConsensus {
 			this.RemoveFromOutConnRecord(addr)
 		}
-		log.GetLog().Error("[p2p] send message error: ", err)
+		this.log.Error("[p2p] send message error: ", err)
 		return err
 	}
 	return nil
@@ -366,34 +355,29 @@ func (this *NetServer) Halt() {
 
 //establishing the connection to remote peers and listening for inbound peers
 func (this *NetServer) startListening() error {
-	logs , err := this.GetService(iservices.LogServerName)
-	if err != nil {
-		panic(err)
-	}
-	log := logs.(iservices.ILog)
 
 	syncPort := this.base.GetSyncPort()
 	consPort := this.base.GetConsPort()
 
 	if syncPort == 0 {
-		log.GetLog().Error("[p2p] sync port invalid")
+		this.log.Error("[p2p] sync port invalid")
 		return errors.New("[p2p] sync port invalid")
 	}
 
-	err = this.startSyncListening(syncPort)
+	err := this.startSyncListening(syncPort)
 	if err != nil {
-		log.GetLog().Error("[p2p] start sync listening fail")
+		this.log.Error("[p2p] start sync listening fail")
 		return err
 	}
 
 	//consensus
 	if this.ctx.Config().P2P.DualPortSupport == false {
-		log.GetLog().Debug("[p2p] dual port mode not supported,keep single link")
+		this.log.Debug("[p2p] dual port mode not supported,keep single link")
 		return nil
 	}
 	if consPort == 0 || consPort == syncPort {
 		//still work
-		log.GetLog().Warn("[p2p] consensus port invalid,keep single link")
+		this.log.Warn("[p2p] consensus port invalid,keep single link")
 	} else {
 		err = this.startConsListening(consPort)
 		if err != nil {
@@ -405,67 +389,54 @@ func (this *NetServer) startListening() error {
 
 // startSyncListening starts a sync listener on the port for the inbound peer
 func (this *NetServer) startSyncListening(port uint32) error {
-	logs , err := this.GetService(iservices.LogServerName)
-	if err != nil {
-		panic(err)
-	}
-	log := logs.(iservices.ILog)
+	var err error
 	this.synclistener, err = createListener(port,
 											this.ctx.Config().P2P.IsTLS,
 											this.ctx.Config().P2P.CertPath,
 											this.ctx.Config().P2P.KeyPath,
 											this.ctx.Config().P2P.CAPath)
 	if err != nil {
-		log.GetLog().Error("[p2p] failed to create sync listener")
+		this.log.Error("[p2p] failed to create sync listener")
 		return errors.New("[p2p] failed to create sync listener")
 	}
 
 	go this.startSyncAccept(this.synclistener)
-	log.GetLog().Infof("[p2p] start listen on sync port %d", port)
+	this.log.Infof("[p2p] start listen on sync port %d", port)
 	return nil
 }
 
 // startConsListening starts a sync listener on the port for the inbound peer
 func (this *NetServer) startConsListening(port uint32) error {
-	logs , err := this.GetService(iservices.LogServerName)
-	if err != nil {
-		panic(err)
-	}
-	log := logs.(iservices.ILog)
+	var err error
 	this.conslistener, err = createListener(port,
 											this.ctx.Config().P2P.IsTLS,
 											this.ctx.Config().P2P.CertPath,
 											this.ctx.Config().P2P.KeyPath,
 											this.ctx.Config().P2P.CAPath)
 	if err != nil {
-		log.GetLog().Error("[p2p] failed to create cons listener")
+		this.log.Error("[p2p] failed to create cons listener")
 		return errors.New("[p2p] failed to create cons listener")
 	}
 
 	go this.startConsAccept(this.conslistener)
-	log.GetLog().Infof("[p2p] Start listen on consensus port %d", port)
+	this.log.Infof("[p2p] Start listen on consensus port %d", port)
 	return nil
 }
 
 //startSyncAccept accepts the sync connection from the inbound peer
 func (this *NetServer) startSyncAccept(listener net.Listener) {
-	logs , err := this.GetService(iservices.LogServerName)
-	if err != nil {
-		panic(err)
-	}
-	log := logs.(iservices.ILog)
 	for {
 		conn, err := listener.Accept()
 
 		if err != nil {
-			log.GetLog().Error("[p2p] error accepting ", err.Error())
+			this.log.Error("[p2p] error accepting ", err.Error())
 			return
 		}
 
-		log.GetLog().Debug("[p2p] remote sync node connect with ",
+		this.log.Debug("[p2p] remote sync node connect with ",
 			conn.RemoteAddr(), conn.LocalAddr())
 		if !this.AddrValid(conn.RemoteAddr().String()) {
-			log.GetLog().Warnf("[p2p] remote %s not in reserved list, close it ", conn.RemoteAddr())
+			this.log.Warnf("[p2p] remote %s not in reserved list, close it ", conn.RemoteAddr())
 			conn.Close()
 			continue
 		}
@@ -477,7 +448,7 @@ func (this *NetServer) startSyncAccept(listener net.Listener) {
 
 		syncAddrCount := uint(this.GetInConnRecordLen())
 		if syncAddrCount >= this.ctx.Config().P2P.MaxConnInBound {
-			log.GetLog().Warnf("[p2p] SyncAccept: total connections(%d) reach the max limit(%d), conn closed",
+			this.log.Warnf("[p2p] SyncAccept: total connections(%d) reach the max limit(%d), conn closed",
 				syncAddrCount, this.ctx.Config().P2P.MaxConnInBound)
 			conn.Close()
 			continue
@@ -485,13 +456,13 @@ func (this *NetServer) startSyncAccept(listener net.Listener) {
 
 		remoteIp, err := common.ParseIPAddr(conn.RemoteAddr().String())
 		if err != nil {
-			log.GetLog().Warn("[p2p] parse ip error ", err.Error())
+			this.log.Warn("[p2p] parse ip error ", err.Error())
 			conn.Close()
 			continue
 		}
 		connNum := this.GetIpCountInInConnRecord(remoteIp)
 		if connNum >= this.ctx.Config().P2P.MaxConnInBoundForSingleIP {
-			log.GetLog().Warnf("[p2p] SyncAccept: connections(%d) with ip(%s) has reach the max limit(%d), "+
+			this.log.Warnf("[p2p] SyncAccept: connections(%d) with ip(%s) has reach the max limit(%d), "+
 				"conn closed", connNum, remoteIp, this.ctx.Config().P2P.MaxConnInBoundForSingleIP)
 			conn.Close()
 			continue
@@ -512,28 +483,23 @@ func (this *NetServer) startSyncAccept(listener net.Listener) {
 
 //startConsAccept accepts the consensus connnection from the inbound peer
 func (this *NetServer) startConsAccept(listener net.Listener) {
-	logs , err := this.GetService(iservices.LogServerName)
-	if err != nil {
-		panic(err)
-	}
-	log := logs.(iservices.ILog)
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
-			log.GetLog().Error("[p2p] error accepting ", err.Error())
+			this.log.Error("[p2p] error accepting ", err.Error())
 			return
 		}
-		log.GetLog().Debug("[p2p] remote cons node connect with ",
+		this.log.Debug("[p2p] remote cons node connect with ",
 			conn.RemoteAddr(), conn.LocalAddr())
 		if !this.AddrValid(conn.RemoteAddr().String()) {
-			log.GetLog().Warnf("[p2p] remote %s not in reserved list, close it ", conn.RemoteAddr())
+			this.log.Warnf("[p2p] remote %s not in reserved list, close it ", conn.RemoteAddr())
 			conn.Close()
 			continue
 		}
 
 		remoteIp, err := common.ParseIPAddr(conn.RemoteAddr().String())
 		if err != nil {
-			log.GetLog().Warn("[p2p] parse ip error ", err.Error())
+			this.log.Warn("[p2p] parse ip error ", err.Error())
 			conn.Close()
 			continue
 		}
@@ -555,12 +521,6 @@ func (this *NetServer) startConsAccept(listener net.Listener) {
 
 //record the peer which is going to be dialed and sent version message but not in establish state
 func (this *NetServer) AddOutConnectingList(addr string) (added bool) {
-	logs , err := this.GetService(iservices.LogServerName)
-	if err != nil {
-		panic(err)
-	}
-	log := logs.(iservices.ILog)
-
 	this.ConnectingNodes.Lock()
 	defer this.ConnectingNodes.Unlock()
 	for _, a := range this.ConnectingAddrs {
@@ -568,19 +528,13 @@ func (this *NetServer) AddOutConnectingList(addr string) (added bool) {
 			return false
 		}
 	}
-	log.GetLog().Debug("[p2p] add to out connecting list ", addr)
+	this.log.Debug("[p2p] add to out connecting list ", addr)
 	this.ConnectingAddrs = append(this.ConnectingAddrs, addr)
 	return true
 }
 
 //Remove the peer from connecting list if the connection is established
 func (this *NetServer) RemoveFromConnectingList(addr string) {
-	logs , err := this.GetService(iservices.LogServerName)
-	if err != nil {
-		panic(err)
-	}
-	log := logs.(iservices.ILog)
-
 	this.ConnectingNodes.Lock()
 	defer this.ConnectingNodes.Unlock()
 	addrs := this.ConnectingAddrs[:0]
@@ -589,7 +543,7 @@ func (this *NetServer) RemoveFromConnectingList(addr string) {
 			addrs = append(addrs, a)
 		}
 	}
-	log.GetLog().Debug("[p2p] remove from out connecting list ", addr)
+	this.log.Debug("[p2p] remove from out connecting list ", addr)
 	this.ConnectingAddrs = addrs
 }
 
@@ -652,61 +606,37 @@ func (this *NetServer) IsNbrPeerAddr(addr string, isConsensus bool) bool {
 
 //AddPeerSyncAddress add sync addr to peer-addr map
 func (this *NetServer) AddPeerSyncAddress(addr string, p *peer.Peer) {
-	logs , err := this.GetService(iservices.LogServerName)
-	if err != nil {
-		panic(err)
-	}
-	log := logs.(iservices.ILog)
-
 	this.PeerAddrMap.Lock()
 	defer this.PeerAddrMap.Unlock()
-	log.GetLog().Debugf("[p2p] AddPeerSyncAddress %s", addr)
+	this.log.Debugf("[p2p] AddPeerSyncAddress %s", addr)
 	this.PeerSyncAddress[addr] = p
 }
 
 //AddPeerConsAddress add cons addr to peer-addr map
 func (this *NetServer) AddPeerConsAddress(addr string, p *peer.Peer) {
-	logs , err := this.GetService(iservices.LogServerName)
-	if err != nil {
-		panic(err)
-	}
-	log := logs.(iservices.ILog)
-
 	this.PeerAddrMap.Lock()
 	defer this.PeerAddrMap.Unlock()
-	log.GetLog().Debugf("[p2p] AddPeerConsAddress %s", addr)
+	this.log.Debugf("[p2p] AddPeerConsAddress %s", addr)
 	this.PeerConsAddress[addr] = p
 }
 
 //RemovePeerSyncAddress remove sync addr from peer-addr map
 func (this *NetServer) RemovePeerSyncAddress(addr string) {
-	logs , err := this.GetService(iservices.LogServerName)
-	if err != nil {
-		panic(err)
-	}
-	log := logs.(iservices.ILog)
-
 	this.PeerAddrMap.Lock()
 	defer this.PeerAddrMap.Unlock()
 	if _, ok := this.PeerSyncAddress[addr]; ok {
 		delete(this.PeerSyncAddress, addr)
-		log.GetLog().Debugf("[p2p] delete Sync Address %s", addr)
+		this.log.Debugf("[p2p] delete Sync Address %s", addr)
 	}
 }
 
 //RemovePeerConsAddress remove cons addr from peer-addr map
 func (this *NetServer) RemovePeerConsAddress(addr string) {
-	logs , err := this.GetService(iservices.LogServerName)
-	if err != nil {
-		panic(err)
-	}
-	log := logs.(iservices.ILog)
-
 	this.PeerAddrMap.Lock()
 	defer this.PeerAddrMap.Unlock()
 	if _, ok := this.PeerConsAddress[addr]; ok {
 		delete(this.PeerConsAddress, addr)
-		log.GetLog().Debugf("[p2p] delete Cons Address %s", addr)
+		this.log.Debugf("[p2p] delete Cons Address %s", addr)
 	}
 }
 
@@ -719,12 +649,6 @@ func (this *NetServer) GetPeerSyncAddressCount() (count uint) {
 
 //AddInConnRecord add in connection to inConnRecord
 func (this *NetServer) AddInConnRecord(addr string) {
-	logs , err := this.GetService(iservices.LogServerName)
-	if err != nil {
-		panic(err)
-	}
-	log := logs.(iservices.ILog)
-
 	this.inConnRecord.Lock()
 	defer this.inConnRecord.Unlock()
 	for _, a := range this.inConnRecord.InConnectingAddrs {
@@ -733,7 +657,7 @@ func (this *NetServer) AddInConnRecord(addr string) {
 		}
 	}
 	this.inConnRecord.InConnectingAddrs = append(this.inConnRecord.InConnectingAddrs, addr)
-	log.GetLog().Debugf("[p2p] add in record  %s", addr)
+	this.log.Debugf("[p2p] add in record  %s", addr)
 }
 
 //IsAddrInInConnRecord return result whether addr is in inConnRecordList
@@ -764,12 +688,6 @@ func (this *NetServer) IsIPInInConnRecord(ip string) bool {
 
 //RemoveInConnRecord remove in connection from inConnRecordList
 func (this *NetServer) RemoveFromInConnRecord(addr string) {
-	logs , err := this.GetService(iservices.LogServerName)
-	if err != nil {
-		panic(err)
-	}
-	log := logs.(iservices.ILog)
-
 	this.inConnRecord.Lock()
 	defer this.inConnRecord.Unlock()
 	addrs := []string{}
@@ -778,7 +696,7 @@ func (this *NetServer) RemoveFromInConnRecord(addr string) {
 			addrs = append(addrs, a)
 		}
 	}
-	log.GetLog().Debugf("[p2p] remove in record  %s", addr)
+	this.log.Debugf("[p2p] remove in record  %s", addr)
 	this.inConnRecord.InConnectingAddrs = addrs
 }
 
@@ -806,12 +724,6 @@ func (this *NetServer) GetIpCountInInConnRecord(ip string) uint {
 
 //AddOutConnRecord add out connection to outConnRecord
 func (this *NetServer) AddOutConnRecord(addr string) {
-	logs , err := this.GetService(iservices.LogServerName)
-	if err != nil {
-		panic(err)
-	}
-	log := logs.(iservices.ILog)
-
 	this.outConnRecord.Lock()
 	defer this.outConnRecord.Unlock()
 	for _, a := range this.outConnRecord.OutConnectingAddrs {
@@ -820,7 +732,7 @@ func (this *NetServer) AddOutConnRecord(addr string) {
 		}
 	}
 	this.outConnRecord.OutConnectingAddrs = append(this.outConnRecord.OutConnectingAddrs, addr)
-	log.GetLog().Debugf("[p2p] add out record  %s", addr)
+	this.log.Debugf("[p2p] add out record  %s", addr)
 }
 
 //IsAddrInOutConnRecord return result whether addr is in outConnRecord
@@ -837,12 +749,6 @@ func (this *NetServer) IsAddrInOutConnRecord(addr string) bool {
 
 //RemoveOutConnRecord remove out connection from outConnRecord
 func (this *NetServer) RemoveFromOutConnRecord(addr string) {
-	logs , err := this.GetService(iservices.LogServerName)
-	if err != nil {
-		panic(err)
-	}
-	log := logs.(iservices.ILog)
-
 	this.outConnRecord.Lock()
 	defer this.outConnRecord.Unlock()
 	addrs := []string{}
@@ -851,7 +757,7 @@ func (this *NetServer) RemoveFromOutConnRecord(addr string) {
 			addrs = append(addrs, a)
 		}
 	}
-	log.GetLog().Debugf("[p2p] remove out record  %s", addr)
+	this.log.Debugf("[p2p] remove out record  %s", addr)
 	this.outConnRecord.OutConnectingAddrs = addrs
 }
 
@@ -864,16 +770,10 @@ func (this *NetServer) GetOutConnRecordLen() int {
 
 //AddrValid whether the addr could be connect or accept
 func (this *NetServer) AddrValid(addr string) bool {
-	logs , err := this.GetService(iservices.LogServerName)
-	if err != nil {
-		panic(err)
-	}
-	log := logs.(iservices.ILog)
-
 	if this.ctx.Config().P2P.ReservedPeersOnly && len( this.ctx.Config().P2P.ReservedCfg.ReservedPeers ) > 0 {
 		for _, ip := range this.ctx.Config().P2P.ReservedCfg.ReservedPeers {
 			if strings.HasPrefix(addr, ip) {
-				log.GetLog().Info("[p2p] found reserved peer :", addr)
+				this.log.Info("[p2p] found reserved peer :", addr)
 				return true
 			}
 		}
@@ -892,14 +792,8 @@ func (this *NetServer) IsOwnAddress(addr string) bool {
 
 //Set own network address
 func (this *NetServer) SetOwnAddress(addr string) {
-	logs , err := this.GetService(iservices.LogServerName)
-	if err != nil {
-		panic(err)
-	}
-	log := logs.(iservices.ILog)
-
 	if addr != this.OwnAddress {
-		log.GetLog().Infof("[p2p] set own address %s", addr)
+		this.log.Infof("[p2p] set own address %s", addr)
 		this.OwnAddress = addr
 	}
 
@@ -915,4 +809,8 @@ func (this *NetServer) GetService(str string) (interface{}, error) {
 
 func (this *NetServer) GetContex() *node.ServiceContext{
 	return this.ctx
+}
+
+func (this *NetServer) GetLog() *logrus.Logger{
+	return this.log
 }
