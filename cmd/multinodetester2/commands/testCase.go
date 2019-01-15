@@ -11,8 +11,10 @@ import (
 	"time"
 )
 
-func autoTest () {
-	// this sleep let the whole net to be constructed
+func createAndTransfer () {
+	StartNode()
+	defer clearAll()
+
 	time.Sleep(10 * time.Second)
 	for i:=0;i<len(globalObj.dposList);i++ {
 		fmt.Println()
@@ -80,8 +82,6 @@ func autoTest () {
 			}
 		}
 	}
-
-	fmt.Println("test done")
 }
 
 func produceBlk (icons iservices.IConsensus, t time.Time) {
