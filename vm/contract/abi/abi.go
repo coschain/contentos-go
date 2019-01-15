@@ -22,7 +22,11 @@ func (t *ABIBaseType) Type() reflect.Type {
 }
 
 func (t *ABIBaseType) IsArray() bool {
-	return t.rt.Kind() == reflect.Slice
+	return false
+}
+
+func (t *ABIBaseType) IsMap() bool {
+	return false
 }
 
 func (t *ABIBaseType) IsStruct() bool {
@@ -36,6 +40,10 @@ func (t *ABIBaseType) SupportsKope() bool {
 type abiArray struct {
 	ABIBaseType
 	elem IContractType
+}
+
+func (a *abiArray) IsArray() bool {
+	return true
 }
 
 func (a *abiArray) Elem() IContractType {
@@ -182,6 +190,44 @@ func NewStruct(name string, base *ABIStructType, fields...ABIStructField) *ABISt
 	}
 }
 
+type abiMap struct {
+	ABIBaseType
+	pairs *abiArray
+}
+
+func (m *abiMap) IsMap() bool {
+	return true
+}
+
+func (m *abiMap) Key() IContractType {
+	pair := m.pairs.Elem().(IContractStruct)
+	return pair.Field(0).Type()
+}
+
+func (m *abiMap) Value() IContractType {
+	pair := m.pairs.Elem().(IContractStruct)
+	return pair.Field(1).Type()
+}
+
+func NewMap(key, value IContractType) *abiMap {
+	pair := NewStruct(
+		fmt.Sprintf("__abi_key_value_pair_%s_%s", key.Name(), value.Name()),
+		nil,
+		ABIStructField{ Name: "key", Type: key },
+		ABIStructField{ Name: "value", Type: value },
+		)
+	pairs := NewArray(pair)
+
+	return &abiMap{
+		ABIBaseType: ABIBaseType{
+			name: fmt.Sprintf("{%s,%s}", key.Name(), value.Name()),
+			rt: pairs.Type(),
+			kope: false,
+		},
+		pairs: pairs,
+	}
+}
+
 type abiMethod struct {
 	name string
 	args *ABIStructType
@@ -235,6 +281,10 @@ func (a *abiTypeAlias) IsArray() bool {
 	return a.origin.IsArray()
 }
 
+func (a *abiTypeAlias) IsMap() bool {
+	return a.origin.IsMap()
+}
+
 func (a *abiTypeAlias) IsStruct() bool {
 	return a.origin.IsStruct()
 }
@@ -246,6 +296,22 @@ func (a *abiTypeAlias) SupportsKope() bool {
 func (a *abiTypeAlias) Elem() IContractType {
 	if arr, ok := a.origin.(IContractArray); ok {
 		return arr.Elem()
+	} else {
+		return nil
+	}
+}
+
+func (a *abiTypeAlias) Key() IContractType {
+	if m, ok := a.origin.(IContractMap); ok {
+		return m.Key()
+	} else {
+		return nil
+	}
+}
+
+func (a *abiTypeAlias) Value() IContractType {
+	if m, ok := a.origin.(IContractMap); ok {
+		return m.Value()
 	} else {
 		return nil
 	}

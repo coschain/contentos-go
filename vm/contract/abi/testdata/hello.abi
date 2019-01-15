@@ -8,6 +8,14 @@
         {
             "new_type_name":"str",
             "type":"std::string"
+        },
+        {
+            "new_type_name":"mymap",
+            "type":"{str,test_array}"
+        },
+        {
+            "new_type_name":"int2str",
+            "type":"{int32,str}"
         }
     ],
     "structs":[
@@ -64,6 +72,20 @@
                 {
                     "name":"b",
                     "type":"str[]"
+                }
+            ]
+        },
+        {
+            "name":"test_map",
+            "base":"",
+            "fields":[
+                {
+                    "name":"a",
+                    "type":"int32"
+                },
+                {
+                    "name":"b",
+                    "type":"mymap"
                 }
             ]
         }

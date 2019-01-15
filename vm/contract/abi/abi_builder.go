@@ -220,6 +220,11 @@ func (ctx *abiBuildContext) prepare() error {
 		if arr, _ := ctx.isArray(newName); arr {
 			return errors.New(newName + " can't be an type alias.")
 		}
+		// a map can't be an alias
+		if m, _, _ := ctx.isMap(newName); m {
+			return errors.New(newName + " can't be an type alias.")
+		}
+
 		types[newName] = true
 		types[oldName] = true
 	}
@@ -255,8 +260,8 @@ func (ctx *abiBuildContext) prepare() error {
 			return errors.New("abiBuilder: unknown table name: " + t)
 		}
 	}
-	// add element types of arrays
-	ctx.resolveArrays(types)
+	// add element types of arrays and maps
+	ctx.resolveArraysAndMaps(types)
 
 	// step 2, we find the real names of all types, and save'em in ctx.realTypeNames.
 	if err := ctx.resolveRealNames(types); err != nil {
@@ -287,8 +292,19 @@ func (ctx *abiBuildContext) isArray(name string) (bool, string) {
 	return false, ""
 }
 
-// pick up array types and feed their element types back
-func (ctx *abiBuildContext) resolveArrays(types map[string]bool) {
+func (ctx *abiBuildContext) isMap(name string) (bool, string, string) {
+	if strings.HasPrefix(name, "{") && strings.HasSuffix(name, "}") {
+		parts := strings.Split(name[1: len(name) - 1], ",")
+		if len(parts) == 2 {
+			cs := " \t\r\n"
+			return true, strings.Trim(parts[0], cs), strings.Trim(parts[1], cs)
+		}
+	}
+	return false, "", ""
+}
+
+// pick up array & map types and feed their element types back
+func (ctx *abiBuildContext) resolveArraysAndMaps(types map[string]bool) {
 	for {
 		changed := false
 		newTypes := make(map[string]bool)
@@ -298,6 +314,9 @@ func (ctx *abiBuildContext) resolveArrays(types map[string]bool) {
 			}
 			if arr, e := ctx.isArray(t); arr {
 				newTypes[e] = true
+			} else if m, k, v := ctx.isMap(t); m {
+				newTypes[k] = true
+				newTypes[v] = true
 			}
 		}
 		for t := range newTypes {
@@ -345,6 +364,11 @@ func (ctx *abiBuildContext) realName(name string) (string, error) {
 
 		// an array can't be an alias.
 		if arr, _ := ctx.isArray(name); arr {
+			break
+		}
+
+		// a map can't be an alias.
+		if m, _, _ := ctx.isMap(name); m {
 			break
 		}
 
@@ -430,7 +454,28 @@ func (ctx *abiBuildContext) resolveType(name string, flags map[string]int) error
 		return nil
 	}
 
-	// the type is not an alias, not an array, and not a builtin type since all builtin types were resolved beforehand.
+	// if the type is a map, we will resolve its key type and value type first,
+	// and then create a map based on the key and value types.
+	if m, k, v := ctx.isMap(name); m {
+		if err := ctx.resolveType(k, flags); err != nil {
+			flags[name] = unresolved
+			return err
+		}
+		keyType := ctx.resolvedTypes[k]
+		if !keyType.SupportsKope() {
+			flags[name] = unresolved
+			return errors.New(fmt.Sprintf("abiBuilder: %s can't be used as a map key.", keyType.Name()))
+		}
+		if err := ctx.resolveType(v, flags); err != nil {
+			flags[name] = unresolved
+			return err
+		}
+		ctx.resolvedTypes[name] = NewMap(keyType, ctx.resolvedTypes[v]);
+		flags[name] = resolved
+		return nil
+	}
+
+	// the type is not an alias, not an array, not a map, and not a builtin type since all builtin types were resolved beforehand.
 	// hence it must be a custom struct, which depends on its base type and field types.
 
 	// resolve the base type
