@@ -9,7 +9,7 @@ import (
 )
 
 func FetchTrxApplyResult(eb EventBus.Bus, timeout time.Duration, trx *SignedTransaction) *TransactionReceiptWithInfo {
-     if eb == nil || trx == nil {
+	if eb == nil || trx == nil {
      	return  &TransactionReceiptWithInfo{Status:StatusError,
 			 ErrorInfo:"the trx or the event bus is nil"}
 	 }
@@ -37,7 +37,7 @@ func FetchTrxApplyResult(eb EventBus.Bus, timeout time.Duration, trx *SignedTran
      	  	 rec <- result
 		  }
 	 }
-     eb.Subscribe(constants.NOTICE_TRX_APLLY_RESULT,handler)
+     eb.SubscribeOnceAsync(constants.NOTICE_TRX_APLLY_RESULT,handler)
 	 go func() {
 	 	tOut := time.NewTimer(timeout)
 	 	for {

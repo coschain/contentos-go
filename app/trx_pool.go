@@ -37,7 +37,6 @@ type TrxPool struct {
 	skip    prototype.SkipFlag
 
 	pendingTx []*prototype.EstimateTrxResult
-	extraTx []*prototype.EstimateTrxResult   //the Extra transactions when generate block
 
 	// TODO delete ??
 	isProducing bool
@@ -227,17 +226,10 @@ func (c *TrxPool) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag)
 			if skip&prototype.Skip_apply_transaction != 0 {
 				c.havePendingTransaction = false
 			}
-			c.restorePending(tmpPending)
-		}else {
-			// restorePending will call pushTrx, will start new transaction for pending
-			if skip&prototype.Skip_apply_transaction == 0 {
-				c.restorePending(tmpPending)
-			}else if len(c.extraTx) > 0 {
-				//just need restore extra trx
-				c.restorePending(c.extraTx)
-				c.extraTx = c.extraTx[0:0]
-			}
 		}
+		// restorePending will call pushTrx, will start new transaction for pending
+		c.restorePending(tmpPending)
+
 		c.skip = oldFlag
 
 	}()
@@ -367,23 +359,13 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 
 	var postponeTrx uint64 = 0
 
-	cnt := len(c.pendingTx)
-	tmpTrx,idx := make([]*prototype.EstimateTrxResult, cnt),0
-	if len(c.extraTx) > 0 {
-		c.extraTx = c.extraTx[0:0]
-	}
 	for _, trxWraper := range c.pendingTx {
 		if trxWraper.SigTrx.Trx.Expiration.UtcSeconds < timestamp {
 			continue
 		}
-		if idx < cnt {
-			tmpTrx[idx] = trxWraper
-		}
-		idx++
 		var newTotalSize uint64 = uint64(totalSize) + uint64(proto.Size(trxWraper))
 		if newTotalSize > uint64(maxBlockSize) {
 			postponeTrx++
-            c.extraTx = append(c.extraTx, trxWraper)
 			continue
 		}
 
@@ -430,10 +412,7 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 	} else {
 		c.db.EndTransaction(false)
 	}*/
-	if len(tmpTrx) > 0 {
-		c.pendingTx = nil
-		c.pendingTx = tmpTrx
-	}
+
 	return signBlock
 }
 

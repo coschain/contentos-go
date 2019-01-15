@@ -25,7 +25,7 @@ type APIService struct {
 	mainLoop  *eventloop.EventLoop
 	db        iservices.IDatabaseService
 	log       *logrus.Logger
-	eb        EventBus.Bus
+	eBus       EventBus.Bus
 }
 
 func (as *APIService) GetAccountByName(ctx context.Context, req *grpcpb.GetAccountByNameRequest) (*grpcpb.AccountResponse, error) {
@@ -329,7 +329,7 @@ func (as *APIService) BroadcastTrx(ctx context.Context, req *grpcpb.BroadcastTrx
 		 as.consensus.PushTransactionToPending(trx)
 		 as.log.Infof("BroadcastTrx Result: %s", result)
 	})
-	result <- prototype.FetchTrxApplyResult(as.eb , 30*time.Second ,trx)
+	result <- prototype.FetchTrxApplyResult(as.eBus , 30*time.Second ,trx)
 
     return &grpcpb.BroadcastTrxResponse{Invoice:<-result},nil
 }
