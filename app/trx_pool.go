@@ -948,12 +948,12 @@ func (c *TrxPool) Commit(num uint64) {
 
 func (c *TrxPool) VerifySig(name *prototype.AccountName, digest []byte, sig []byte) bool {
 	// public key from db
-	authorityWrap := table.NewSoAccountAuthorityObjectWrap(c.db, name)
-	if !authorityWrap.CheckExist() {
+	witnessWrap := table.NewSoWitnessWrap(c.db, name)
+	if !witnessWrap.CheckExist() {
 		return false
 	}
-	authority := authorityWrap.GetOwner()
-	if authority == nil {
+	dbPubKey := witnessWrap.GetSigningKey()
+	if dbPubKey == nil {
 		return false
 	}
 
@@ -973,11 +973,10 @@ func (c *TrxPool) VerifySig(name *prototype.AccountName, digest []byte, sig []by
 	result.Data = keyBuffer
 
 	// compare bytes
-	for _, pub := range authority.KeyAuths {
-		if bytes.Equal(pub.Key.Data,result.Data) {
-			return true
-		}
+	if bytes.Equal(dbPubKey.Data,result.Data) {
+		return true
 	}
+
 	return false
 }
 
