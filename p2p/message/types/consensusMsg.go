@@ -1,7 +1,6 @@
 package types
 
 import (
-	"fmt"
 	"github.com/coschain/contentos-go/p2p/common"
 	"github.com/coschain/gobft/message"
 )
@@ -12,7 +11,6 @@ type ConsMsg struct {
 
 //Serialize message payload
 func (this *ConsMsg) Serialization(sink *common.ZeroCopySink) error {
-	fmt.Println("before Serialization: ", this)
 	data := this.MsgData.Bytes()
 	sink.WriteBytes(data)
 	return nil
