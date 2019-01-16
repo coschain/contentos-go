@@ -342,14 +342,15 @@ func NewContractTables(owner string, contract string, abi abi.IContractABI, db i
 	count := abi.TablesCount()
 	for i := 0; i < count; i++ {
 		abiTable := abi.TableByIndex(i)
+		tablePrefix := kope.AppendKey(prefix, abiTable.Name())
 		si := abiTable.SecondaryIndices()
 		sk := make([]kope.Key, len(si))
 		for j := range sk {
-			sk[j] = kope.AppendKey(prefix, "ix", si[j])
+			sk[j] = kope.AppendKey(tablePrefix, "ix", si[j])
 		}
 		tables.tables[abiTable.Name()] = &ContractTable{
 			abiTable: abiTable,
-			primary: kope.AppendKey(prefix, "pk"),
+			primary: kope.AppendKey(tablePrefix, "pk"),
 			secondaries: sk,
 			db: db,
 		}
