@@ -36,4 +36,7 @@ type ITrxPool interface {
 	GenerateAndApplyBlock(witness string, pre *prototype.Sha256, timestamp uint32, priKey *prototype.PrivateKeyType, skip prototype.SkipFlag) (*prototype.SignedBlock, error)
 	VerifySig(name *prototype.AccountName, digest []byte, sig []byte) bool
 	Sign(priv *prototype.PrivateKeyType, digest []byte) []byte
+	//Sync blocks to db when node restart
+	SyncBlockDataToDB (pushedBlk []common.ISignedBlock,commitBlk []common.ISignedBlock, realCommit uint64,
+		headBlk common.ISignedBlock)
 }
