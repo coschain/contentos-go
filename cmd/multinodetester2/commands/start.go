@@ -10,11 +10,9 @@ import (
 	"github.com/coschain/contentos-go/consensus"
 	"github.com/coschain/contentos-go/db/storage"
 	"github.com/coschain/contentos-go/iservices"
-	"github.com/coschain/contentos-go/mylog"
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/p2p"
 	"github.com/spf13/viper"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
@@ -89,8 +87,8 @@ func makeNode(index int) (*node.Node, node.Config) {
 }
 
 func startNode(app *node.Node, cfg node.Config) {
-	app.Log = mylog.Init(cfg.ResolvePath("logs"), mylog.DebugLevel, 0)
-	app.Log.SetOutput(ioutil.Discard)
+	//app.Log = mylog.Init(cfg.ResolvePath("logs"), mylog.DebugLevel, 0)
+	//app.Log.SetOutput(ioutil.Discard)
 
 	pprof.StartPprof()
 
@@ -124,22 +122,22 @@ func RegisterService(app *node.Node, cfg node.Config) {
 	})
 
 	_ = app.Register(iservices.P2PServerName, func(ctx *node.ServiceContext) (node.Service, error) {
-		return p2p.NewServer(ctx, app.Log)
+		return p2p.NewServer(ctx, nil)
 	})
 
 	_ = app.Register(iservices.TxPoolServerName, func(ctx *node.ServiceContext) (node.Service, error) {
-		return ctrl.NewController(ctx, app.Log)
+		return ctrl.NewController(ctx, nil)
 	})
 
 	_ = app.Register(iservices.ConsensusServerName, func(ctx *node.ServiceContext) (node.Service, error) {
 		var s node.Service
 		switch ctx.Config().Consensus.Type {
 		case "DPoS":
-			s = consensus.NewDPoS(ctx, app.Log)
+			s = consensus.NewDPoS(ctx, nil)
 		case "SABFT":
-			s = consensus.NewSABFT(ctx, app.Log)
+			s = consensus.NewSABFT(ctx, nil)
 		default:
-			s = consensus.NewDPoS(ctx, app.Log)
+			s = consensus.NewDPoS(ctx, nil)
 		}
 		return s, nil
 	})
@@ -173,5 +171,5 @@ func clearPath(home string, index int) {
 	_ = os.RemoveAll( filepath.Join(home, fmt.Sprintf(".coschain/testcosd_%d/blog", index) ) )
 	_ = os.RemoveAll( filepath.Join(home, fmt.Sprintf(".coschain/testcosd_%d/db", index) ) )
 	_ = os.RemoveAll( filepath.Join(home, fmt.Sprintf(".coschain/testcosd_%d/forkdb_snapshot", index) ) )
-	_ = os.RemoveAll( filepath.Join(home, fmt.Sprintf(".coschain/testcosd_%d/logs", index) ) )
+	//_ = os.RemoveAll( filepath.Join(home, fmt.Sprintf(".coschain/testcosd_%d/logs", index) ) )
 }
