@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"strings"
 	"sync"
-	"github.com/sasha-s/go-deadlock"
 	"time"
 
 	"github.com/coschain/contentos-go/common"
@@ -19,6 +18,7 @@ import (
 	"github.com/coschain/gobft"
 	"github.com/coschain/gobft/custom"
 	"github.com/coschain/gobft/message"
+	"github.com/sasha-s/go-deadlock"
 )
 
 /********* implements gobft IPubValidator ***********/
@@ -29,6 +29,7 @@ type publicValidator struct {
 }
 
 func (pv *publicValidator) VerifySig(digest, signature []byte) bool {
+	return true
 	// Warning: DO NOT remove the lock unless you know what you're doing
 	pv.sab.RLock()
 	defer pv.sab.RUnlock()
@@ -62,6 +63,7 @@ type privateValidator struct {
 }
 
 func (pv *privateValidator) Sign(digest []byte) []byte {
+	return digest
 	// Warning: DO NOT remove the lock unless you know what you're doing
 	pv.sab.RLock()
 	defer pv.sab.RUnlock()
@@ -93,8 +95,8 @@ type SABFT struct {
 	lastCommitted *message.Commit
 	suffledID     common.BlockID
 	appState      *message.AppState
-	//startBFTCh    chan struct{}
-	started bool
+	startBFTCh    chan struct{}
+	bftStarted    bool
 
 	readyToProduce bool
 	prodTimer      *time.Timer
@@ -126,7 +128,7 @@ func NewSABFT(ctx *node.ServiceContext, lg *logrus.Logger) *SABFT {
 		blkCh:      make(chan common.ISignedBlock),
 		ctx:        ctx,
 		stopCh:     make(chan struct{}),
-		//startBFTCh: make(chan struct{}),
+		startBFTCh: make(chan struct{}),
 		log:        lg,
 	}
 
@@ -225,8 +227,12 @@ func (sabft *SABFT) shuffle(head common.ISignedBlock) {
 	sabft.suffledID = head.Id()
 
 	if prodNum >= 4 {
-		sabft.bft.Start()
-		sabft.log.Info("sabft gobft started...")
+		if !sabft.bftStarted {
+			sabft.bftStarted = true
+			go func() {
+				sabft.startBFTCh <- struct{}{}
+			}()
+		}
 	}
 }
 
@@ -319,6 +325,10 @@ func (sabft *SABFT) start() {
 	sabft.log.Info("[SABFT] DPoS routine started")
 	for {
 		select {
+		case <-sabft.startBFTCh:
+			sabft.log.Info("sabft gobft starting...")
+			sabft.bft.Start()
+			sabft.log.Info("sabft gobft started...")
 		case <-sabft.stopCh:
 			sabft.log.Debug("[SABFT] routine stopped.")
 			return
@@ -494,7 +504,7 @@ func (sabft *SABFT) Push(msg interface{}) {
 	switch msg := msg.(type) {
 	case *message.Vote:
 		sabft.RLock()
-		if sabft.started {
+		if sabft.bftStarted {
 			sabft.bft.RecvMsg(msg)
 		}
 		sabft.RUnlock()
@@ -628,6 +638,9 @@ func (sabft *SABFT) GetLastBFTCommit() (evidence interface{}) {
 	sabft.RLock()
 	defer sabft.RUnlock()
 
+	if sabft.lastCommitted == nil {
+		return nil
+	}
 	return sabft.lastCommitted
 }
 
