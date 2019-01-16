@@ -29,7 +29,6 @@ type publicValidator struct {
 }
 
 func (pv *publicValidator) VerifySig(digest, signature []byte) bool {
-	return true
 	// Warning: DO NOT remove the lock unless you know what you're doing
 	pv.sab.RLock()
 	defer pv.sab.RUnlock()
@@ -63,7 +62,6 @@ type privateValidator struct {
 }
 
 func (pv *privateValidator) Sign(digest []byte) []byte {
-	return digest
 	// Warning: DO NOT remove the lock unless you know what you're doing
 	pv.sab.RLock()
 	defer pv.sab.RUnlock()
@@ -139,7 +137,7 @@ func NewSABFT(ctx *node.ServiceContext, lg *logrus.Logger) *SABFT {
 		name: ret.Name,
 	}
 	ret.bft = gobft.NewCore(ret, ret.priv)
-	ret.bft.SetLogLevel(5)
+	ret.bft.SetLogLevel(4)
 	ret.log.Info("[SABFT bootstrap] ", ctx.Config().Consensus.BootStrap)
 	ret.appState = &message.AppState{
 		LastHeight:       0,
