@@ -114,7 +114,7 @@ func (d *DPoS) CurrentProducer() string {
 }
 
 func (d *DPoS) shuffle(head common.ISignedBlock) {
-	if !d.ForkDB.Empty() && d.ForkDB.Head().Id().BlockNum()%uint64(len(d.Producers)) != 0 {
+	if head.Id().BlockNum()%uint64(len(d.Producers)) != 0 {
 		return
 	}
 

@@ -193,7 +193,7 @@ func (sabft *SABFT) makeValidators(names []string) []*publicValidator {
 }
 
 func (sabft *SABFT) shuffle(head common.ISignedBlock) {
-	if !sabft.ForkDB.Empty() && sabft.ForkDB.Head().Id().BlockNum()%uint64(len(sabft.validators)) != 0 {
+	if head.Id().BlockNum()%uint64(len(sabft.validators)) != 0 {
 		return
 	}
 
@@ -283,6 +283,8 @@ func (sabft *SABFT) Start(node *node.Node) error {
 	}
 	sabft.restoreProducers()
 
+	sabft.syncDataToSquashDB()
+
 	// start block generation process
 	go sabft.start()
 
@@ -349,17 +351,6 @@ func (sabft *SABFT) start() {
 				sabft.RUnlock()
 				continue
 			}
-
-			//if !sabft.started {
-			//	sabft.log.Info("sabft gobft starting 0...")
-			//	sabft.started = true
-			//	go func() {
-			//		time.Sleep(3 * time.Second)
-			//		sabft.log.Info("sabft gobft starting 1...")
-			//		sabft.bft.Start()
-			//		sabft.log.Info("sabft gobft started...")
-			//	}()
-			//}
 			sabft.RUnlock()
 
 			sabft.Lock()
@@ -671,14 +662,13 @@ func (sabft *SABFT) Commit(commitRecords *message.Commit) error {
 	}
 	if blkMain.Id() != blockID {
 		switchErr := sabft.switchFork(sabft.ForkDB.Head().Id(), blockID)
-		if switchErr == true {
+		if switchErr {
 			panic("there's an error while switching to committed block")
+			// TODO: just discard current commit process, not panic
 		}
 		// also need to reset new head
 		sabft.ForkDB.ResetHead(blockID)
 	}
-
-	sabft.ctrl.Commit(blockID.BlockNum())
 
 	blks, _, err := sabft.ForkDB.FetchBlocksSince(sabft.ForkDB.LastCommitted())
 	for i := range blks {
@@ -689,6 +679,8 @@ func (sabft *SABFT) Commit(commitRecords *message.Commit) error {
 			break
 		}
 	}
+
+	sabft.ctrl.Commit(blockID.BlockNum())
 
 	sabft.ForkDB.Commit(blockID)
 
@@ -968,4 +960,126 @@ func (sabft *SABFT) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, 
 	}
 	ret = append(ret, blocksInForkDB...)
 	return ret, nil
+}
+
+func (sabft *SABFT) getSquashDB() (iservices.IDatabaseService, error) {
+	ctrl, err := sabft.ctx.Service(iservices.DbServerName)
+	if err != nil {
+		return nil,err
+	}
+	return ctrl.(iservices.IDatabaseService),nil
+}
+
+func (sabft *SABFT) syncDataToSquashDB() {
+	if sabft.ForkDB.Head() == nil {
+		return
+	}
+
+	db,err := sabft.getSquashDB()
+	if err != nil {
+		sabft.log.Debug("[sync Block]: Failed to get squash db")
+		return
+	}
+
+	//Fetch the latest commit block number in squash db
+	num,err := db.GetCommitNum()
+	if err != nil {
+		sabft.log.Debug("[sync Block]: Failed to get latest commit block number")
+		return
+	}
+
+	//Fetch the real commit block number in chain
+	realNum := sabft.ForkDB.LastCommitted().BlockNum()
+	//Fetch the head block number in chain
+	headNum := sabft.ForkDB.Head().Id().BlockNum()
+
+	//syncNum is the start number need to fetch from ForkDB
+	syncNum := num
+
+	//Reload lost commit blocks
+	if num == 0 && realNum > 0 {
+		commitBlk := sabft.reloadCommitBlocks(&sabft.blog)
+		cnt := len(commitBlk)
+		if cnt > 0  {
+			//Scene 1: The block data in squash db has been deleted,so need sync lost blocks to squash db
+			//Because ForkDB will not continue to store commit blocks,so we need load all commit blocks from block log,
+			//meanWhile add block to squash db,so the start value is 0
+			start := 0
+			if start >= cnt {
+				sabft.log.Errorf("[Reload commit] start index %v out range of reload" +
+					" block count %v",start,cnt)
+			}else {
+				sabft.log.Debugf("[Reload commit] start sync lost commit blocks from block log,start: " +
+					"%v,end:%v,real commit num is %v", start, headNum, realNum)
+				for i := start; i < cnt; i++ {
+					blk := commitBlk[i]
+					sabft.log.Debugf("[Reload commit] push block,blockNum is: " +
+						"%v", blk.(*prototype.SignedBlock).Id().BlockNum())
+					err = sabft.ctrl.PushBlock(blk.(*prototype.SignedBlock),prototype.Skip_nothing)
+					if err != nil {
+						desc := fmt.Sprintf("[Reload commit] push the block which num is %v fail,error " +
+							"is %s", i, err)
+						panic(desc)
+					}
+				}
+			}
+			syncNum = uint64(cnt)
+		}else {
+			sabft.log.Errorf("[Sync commit] Failed to get lost commit blocks from block log," +
+				"start: %v," + "end:%v,real commit num is %v", syncNum+1, headNum, realNum)
+		}
+
+	}
+
+	//1.Synchronous all the lost blocks from DorkDB to squash db
+	if headNum > syncNum {
+		sabft.log.Debugf("[sync pushed]: start sync lost blocks,start: %v,end:%v,real commit num " +
+			"is %v", syncNum+1, headNum, realNum)
+		for i := syncNum+1; i <= headNum ; i++ {
+			blk,err := sabft.ForkDB.FetchBlockFromMainBranch(i)
+			if err != nil {
+				desc := fmt.Sprintf("[sync pushed]: Failed to fetch the pushed block by num %v,the " +
+					"error is %s", i, err)
+				panic(desc)
+			}
+			sabft.log.Debugf("[sync pushed]: sync block,num: %v,blockNum: %v",
+				i, blk.(*prototype.SignedBlock).Id().BlockNum())
+			err = sabft.ctrl.PushBlock(blk.(*prototype.SignedBlock),prototype.Skip_nothing)
+			if err != nil {
+				desc := fmt.Sprintf("[sync pushed]: push the block which num is %v fail,error is %s", i, err)
+				panic(desc)
+			}
+		}
+
+	}
+
+	//2.Synchronous the lost commit blocks to squash db
+	if realNum > num {
+		//Need synchronous commit
+		sabft.log.Debugf("[sync commit] start sync commit block num %v ",realNum)
+		sabft.ctrl.Commit(realNum)
+	}
+
+}
+
+//Load commit block from block log when Replay
+func (sabft *SABFT) reloadCommitBlocks(blog *blocklog.BLog) []common.ISignedBlock {
+	if blog == nil {
+		return nil
+	}
+	if !blog.Empty() {
+		var (
+			i int64
+			blkSli  = make([]common.ISignedBlock,blog.Size())
+		)
+		for i = 0; i < blog.Size(); i++ {
+			blk := &prototype.SignedBlock{}
+			if err := blog.ReadBlock(blk,i); err != nil {
+				panic(err)
+			}
+			blkSli[i] = blk
+		}
+		return blkSli
+	}
+	return nil
 }
