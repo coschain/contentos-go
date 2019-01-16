@@ -129,7 +129,7 @@ func decodeString(data []byte) (string, int) {
 		return "", 0
 	}
 	strSize, dataSize := int(count), len(data)
-	if offset < dataSize && strSize > 0 && strSize < dataSize && offset + strSize <= dataSize {
+	if offset <= dataSize && strSize >= 0 && strSize < dataSize && offset + strSize <= dataSize {
 		return string(data[offset:offset + strSize]), offset + strSize
 	} else {
 		return "", 0

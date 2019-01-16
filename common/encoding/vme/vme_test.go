@@ -78,7 +78,9 @@ func TestEncode(t *testing.T) {
 	requireEncodeResult(t, float32(3.14159), 0xd0, 0x0f, 0x49, 0x40)
 	requireEncodeResult(t, float64(3.14159265359), 0xea, 0x2e, 0x44, 0x54, 0xfb, 0x21, 0x09, 0x40)
 	requireEncodeResult(t, "hello", []byte("\x05hello")...)
+	requireEncodeResult(t, "", 0)
 	requireEncodeResult(t, []byte("hello"), []byte("\x05hello")...)
+	requireEncodeResult(t, []byte{}, 0)
 
 	requireEncodeResult(t, StructValue("alice", int16(100), float32(3.14159)), []byte("\x03\x05alice\x64\x00\xd0\x0f\x49\x40")...)
 	requireEncodeResult(t,
@@ -110,8 +112,13 @@ func TestDecode(t *testing.T) {
 	requireDecodeResult(t, float32(3.14159), 0xd0, 0x0f, 0x49, 0x40)
 	requireDecodeResult(t, float64(3.14159265359), 0xea, 0x2e, 0x44, 0x54, 0xfb, 0x21, 0x09, 0x40)
 	requireDecodeResult(t, "hello", []byte("\x05hello")...)
+	requireDecodeResult(t, "", 0)
 
 	var d interface{}
+	d = requireDecodeOK(t, BytesType(), 0)
+	if bytes.Compare(d.([]byte), []byte{}) != 0 {
+		t.Fatalf("decoding result error. got %v, expecting %v", d, []byte("hello"))
+	}
 	d = requireDecodeOK(t, BytesType(), []byte("\x05hello")...)
 	if bytes.Compare(d.([]byte), []byte("hello")) != 0 {
 		t.Fatalf("decoding result error. got %v, expecting %v", d, []byte("hello"))
