@@ -2,4 +2,8 @@ language: go
 go_import_path: github.com/coschain/contentos-go
 go:
   - 1.11.2
-script: make build_cosd build_wallet
+script:
+  - make build_cosd build_wallet
+  - go test -race -coverprofile=coverage.txt -covermode=atomic github.com/coschain/contentos-go/vm/contract/table
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
