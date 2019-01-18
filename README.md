@@ -16,7 +16,7 @@ Join discussion at https://t.me/ContentoOfficialGroup
 
 **WARNING:** For now, the branch is under active developing. Thus mostly it stabilized, but we are still introducing some breaking changes.
 
-**Note*:* Requires [Go 1.11+](https://golang.org/dl/)
+**Note*:* Requires [Go 1.11.4+](https://golang.org/dl/)
 
 ## Building the source
 
