@@ -1,6 +1,8 @@
 
 # Contentos-go
 
+[![Build Status](https://travis-ci.com/coschain/contentos-go.svg?branch=master)](https://travis-ci.com/coschain/contentos-go)
+
 official golang impementation of the Contentos protocol
 
 Contentos Website: https://www.contentos.io
