@@ -1,5 +1,5 @@
 language: go
 go_import_path: github.com/coschain/contentos-go
 go:
-  - 1.11.x
+  - 1.11.2
 script: make build_cosd build_wallet
