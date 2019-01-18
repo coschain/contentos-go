@@ -1,8 +1,8 @@
 package consensus
 
 import (
+	"errors"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"strings"
 	"sync"
@@ -15,6 +15,7 @@ import (
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/prototype"
+	"github.com/sirupsen/logrus"
 	//"github.com/coschain/contentos-go/app"
 )
 
@@ -175,7 +176,7 @@ func (d *DPoS) Start(node *node.Node) error {
 
 	////sync blocks to squash db
 	d.handleBlockSync()
-	
+
 	go d.start()
 	return nil
 }
@@ -644,7 +645,7 @@ func (d *DPoS) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, error
 			return nil, err
 		}
 
-		if start == idNum && b.Id() != id {
+		if start == idNum+1 && b.Previous() != id {
 			return nil, fmt.Errorf("blockchain doesn't have block with id %v", id)
 		}
 
@@ -652,7 +653,8 @@ func (d *DPoS) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, error
 		start++
 
 		if start > end && b.Id() != d.ForkDB.LastCommitted() {
-			panic("ForkDB and BLog inconsistent state")
+			// there probably is a new committed block during the execution of this process
+			return nil, errors.New("ForkDB and BLog inconsistent state")
 		}
 	}
 
@@ -664,18 +666,18 @@ func (d *DPoS) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, error
 	return ret, nil
 }
 
-func (d *DPoS) handleBlockSync()  {
+func (d *DPoS) handleBlockSync() {
 	var (
 		i int64
 		//commit blocks in block log
-		commitSli = make([]common.ISignedBlock,d.blog.Size())
+		commitSli = make([]common.ISignedBlock, d.blog.Size())
 		//Fetch pushed blocks in snapshot
-		blkSli,_,_  = d.ForkDB.FetchBlocksSince(d.ForkDB.LastCommitted())
+		blkSli, _, _ = d.ForkDB.FetchBlocksSince(d.ForkDB.LastCommitted())
 	)
 	if d.blog.Size() > 0 {
 		for i = 0; i < d.blog.Size(); i++ {
 			blk := &prototype.SignedBlock{}
-			if err := d.blog.ReadBlock(blk,i); err != nil {
+			if err := d.blog.ReadBlock(blk, i); err != nil {
 				panic(err)
 			}
 			commitSli[i] = blk

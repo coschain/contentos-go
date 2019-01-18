@@ -1,11 +1,12 @@
 package consensus
 
 import (
+	"errors"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/coschain/contentos-go/common"
@@ -19,6 +20,7 @@ import (
 	"github.com/coschain/gobft/custom"
 	"github.com/coschain/gobft/message"
 	"github.com/sasha-s/go-deadlock"
+	"github.com/sirupsen/logrus"
 )
 
 /********* implements gobft IPubValidator ***********/
@@ -94,7 +96,9 @@ type SABFT struct {
 	suffledID     common.BlockID
 	appState      *message.AppState
 	startBFTCh    chan struct{}
-	bftStarted    bool
+	chainUpToDate bool
+	bftStarting   uint32
+	bftStarted    uint32
 
 	readyToProduce bool
 	prodTimer      *time.Timer
@@ -119,15 +123,17 @@ func NewSABFT(ctx *node.ServiceContext, lg *logrus.Logger) *SABFT {
 		lg.SetOutput(ioutil.Discard)
 	}
 	ret := &SABFT{
-		ForkDB:     forkdb.NewDB(),
-		validators: make([]*publicValidator, 0, 1),
-		prodTimer:  time.NewTimer(1 * time.Millisecond),
-		trxCh:      make(chan func()),
-		blkCh:      make(chan common.ISignedBlock),
-		ctx:        ctx,
-		stopCh:     make(chan struct{}),
-		startBFTCh: make(chan struct{}),
-		log:        lg,
+		ForkDB:      forkdb.NewDB(),
+		validators:  make([]*publicValidator, 0, 1),
+		prodTimer:   time.NewTimer(1 * time.Millisecond),
+		trxCh:       make(chan func()),
+		blkCh:       make(chan common.ISignedBlock),
+		ctx:         ctx,
+		stopCh:      make(chan struct{}),
+		startBFTCh:  make(chan struct{}),
+		log:         lg,
+		bftStarted:  0,
+		bftStarting: 0,
 	}
 
 	ret.SetBootstrap(ctx.Config().Consensus.BootStrap)
@@ -167,6 +173,7 @@ func (sabft *SABFT) SetBootstrap(b bool) {
 	sabft.bootstrap = b
 	if sabft.bootstrap {
 		sabft.readyToProduce = true
+		sabft.chainUpToDate = true
 	}
 }
 
@@ -224,9 +231,9 @@ func (sabft *SABFT) shuffle(head common.ISignedBlock) {
 
 	sabft.suffledID = head.Id()
 
-	if prodNum >= 4 {
-		if !sabft.bftStarted {
-			sabft.bftStarted = true
+	if sabft.chainUpToDate && prodNum >= 4 {
+		if atomic.LoadUint32(&sabft.bftStarting) == 0 {
+			atomic.StoreUint32(&sabft.bftStarting, 1)
 			go func() {
 				sabft.startBFTCh <- struct{}{}
 			}()
@@ -299,6 +306,7 @@ func (sabft *SABFT) scheduleProduce() bool {
 	if !sabft.readyToProduce {
 		if sabft.checkSync() {
 			sabft.readyToProduce = true
+			sabft.chainUpToDate = true
 		} else {
 			sabft.prodTimer.Reset(timeToNextSec())
 			var headID common.BlockID
@@ -311,6 +319,7 @@ func (sabft *SABFT) scheduleProduce() bool {
 			return false
 		}
 	}
+
 	if !sabft.checkProducingTiming() || !sabft.checkOurTurn() {
 		sabft.prodTimer.Reset(timeToNextSec())
 		return false
@@ -328,6 +337,7 @@ func (sabft *SABFT) start() {
 		case <-sabft.startBFTCh:
 			sabft.log.Info("sabft gobft starting...")
 			sabft.bft.Start()
+			atomic.StoreUint32(&sabft.bftStarted, 1)
 			sabft.log.Info("sabft gobft started...")
 		case <-sabft.stopCh:
 			sabft.log.Debug("[SABFT] routine stopped.")
@@ -492,11 +502,9 @@ func (sabft *SABFT) PushBlock(b common.ISignedBlock) {
 func (sabft *SABFT) Push(msg interface{}) {
 	switch msg := msg.(type) {
 	case *message.Vote:
-		sabft.RLock()
-		if sabft.bftStarted {
+		if atomic.LoadUint32(&sabft.bftStarted) == 1 {
 			sabft.bft.RecvMsg(msg)
 		}
-		sabft.RUnlock()
 	case *message.Commit:
 		sabft.handleCommitRecords(msg)
 	default:
@@ -527,14 +535,22 @@ func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 	// check signature
 	for i := range records.Precommits {
 		val := sabft.GetValidator(records.Precommits[i].Address)
+		if val == nil {
+			sabft.log.Errorf("[handleCommitRecords] error while checking precommits: %s is not a validator", records.Precommits[i].Address)
+			return
+		}
 		if !val.VerifySig(records.Precommits[i].Digest(), records.Precommits[i].Signature) {
-			sabft.log.Error("handleCommitRecords precommits verification failed")
+			sabft.log.Error("[handleCommitRecords] precommits verification failed")
 			return
 		}
 	}
 	val := sabft.GetValidator(records.Address)
+	if val == nil {
+		sabft.log.Errorf("[handleCommitRecords] error while checking commits %s is not a validator", records.Address)
+		return
+	}
 	if !val.VerifySig(records.Digest(), records.Signature) {
-		sabft.log.Error("handleCommitRecords verification failed")
+		sabft.log.Error("[handleCommitRecords] verification failed")
 		return
 	}
 
@@ -940,7 +956,7 @@ func (sabft *SABFT) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, 
 			return nil, err
 		}
 
-		if start == idNum && b.Id() != id {
+		if start == idNum+1 && b.Previous() != id {
 			return nil, fmt.Errorf("blockchain doesn't have block with id %v", id)
 		}
 
@@ -948,7 +964,8 @@ func (sabft *SABFT) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, 
 		start++
 
 		if start > end && b.Id() != sabft.ForkDB.LastCommitted() {
-			panic("ForkDB and BLog inconsistent state")
+			// there probably is a new committed block during the execution of this process
+			return nil, errors.New("ForkDB and BLog inconsistent state")
 		}
 	}
 
@@ -960,18 +977,18 @@ func (sabft *SABFT) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, 
 	return ret, nil
 }
 
-func (sabft *SABFT) handleBlockSync()  {
+func (sabft *SABFT) handleBlockSync() {
 	var (
 		i int64
 		//commit blocks in block log
-		commitSli = make([]common.ISignedBlock,sabft.blog.Size())
+		commitSli = make([]common.ISignedBlock, sabft.blog.Size())
 		//Fetch pushed blocks in snapshot
-		blkSli,_,_  = sabft.ForkDB.FetchBlocksSince(sabft.ForkDB.LastCommitted())
+		blkSli, _, _ = sabft.ForkDB.FetchBlocksSince(sabft.ForkDB.LastCommitted())
 	)
 	if sabft.blog.Size() > 0 {
 		for i = 0; i < sabft.blog.Size(); i++ {
 			blk := &prototype.SignedBlock{}
-			if err := sabft.blog.ReadBlock(blk,i); err != nil {
+			if err := sabft.blog.ReadBlock(blk, i); err != nil {
 				panic(err)
 			}
 			commitSli[i] = blk
