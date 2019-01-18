@@ -1,0 +1,4 @@
+language: go
+go_import_path: github.com/coschain/contentos-go
+go:
+  - 1.11.x
