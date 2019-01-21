@@ -327,7 +327,7 @@ func (as *APIService) BroadcastTrx(ctx context.Context, req *grpcpb.BroadcastTrx
 
 	as.mainLoop.Send(func() {
 		 as.consensus.PushTransactionToPending(trx)
-		 as.log.Infof("BroadcastTrx Result: %s", result)
+		 //as.log.Infof("BroadcastTrx Result: %s", result)
 	})
 	result <- prototype.FetchTrxApplyResult(as.eBus , 30*time.Second ,trx)
 
