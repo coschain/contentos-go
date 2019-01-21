@@ -17,6 +17,7 @@ import (
 	"strconv"
 	"github.com/coschain/contentos-go/common/crypto/secp256k1"
 	"github.com/coschain/contentos-go/common/crypto"
+	"time"
 )
 
 var (
@@ -351,14 +352,17 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 	if c.havePendingTransaction {
 		mustNoError(c.db.EndTransaction(false), "EndTransaction error")
 	}
-	tag := c.getBlockTag(uint64(c.headBlockNum())+1)
+	bNum := c.headBlockNum()+1
+	tag := c.getBlockTag(bNum)
 	c.db.BeginTransactionWithTag(tag)
 	c.db.BeginTransaction()
 	//c.log.GetLog().Debug("@@@@@@ GeneratBlock havePendingTransaction=true")
 	c.havePendingTransaction = true
 
 	var postponeTrx uint64 = 0
-
+    gCnt,applyNum := len(c.pendingTx),0
+	s := time.Now()
+	fmt.Printf("[Generate]:start apply trx，count in pending is %v,the block number is %d \n", len(c.pendingTx),bNum)
 	for _, trxWraper := range c.pendingTx {
 		if trxWraper.SigTrx.Trx.Expiration.UtcSeconds < timestamp {
 			continue
@@ -375,7 +379,7 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 					mustNoError(c.db.EndTransaction(false), "EndTransaction error")
 				}
 			}()
-
+			applyNum++
 			c.db.BeginTransaction()
 			c.applyTransactionInner(trxWraper)
 			mustNoError(c.db.EndTransaction(true), "EndTransaction error")
@@ -384,6 +388,9 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 			//c.currentTrxInBlock++
 		}()
 	}
+	e := time.Now()
+	fmt.Printf("apply range cost time is %v,gen count is %v ,apply number is %v,total count " +
+		"in pending is %v \n ",e.Sub(s).Seconds(), gCnt, applyNum, len(c.pendingTx))
 	if postponeTrx > 0 {
 		//c.log.GetLog().Warnf("postponed %d trx due to max block size", postponeTrx)
 	}
