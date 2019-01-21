@@ -401,7 +401,6 @@ func (d *DPoS) PushTransaction(trx common.ISignedTransaction, wait bool, broadca
 
 func (d *DPoS) PushTransactionToPending(trx common.ISignedTransaction) {
 	d.ctrl.PushTrxToPending(trx.(*prototype.SignedTransaction))
-	d.log.GetLog().Debug("DPoS Broadcast trx.")
 	d.p2p.Broadcast(trx.(*prototype.SignedTransaction))
 }
 
