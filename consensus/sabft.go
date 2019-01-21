@@ -95,9 +95,6 @@ type SABFT struct {
 	lastCommitted *message.Commit
 	suffledID     common.BlockID
 	appState      *message.AppState
-	startBFTCh    chan struct{}
-	chainUpToDate bool
-	bftStarting   uint32
 	bftStarted    uint32
 
 	readyToProduce bool
@@ -123,17 +120,15 @@ func NewSABFT(ctx *node.ServiceContext, lg *logrus.Logger) *SABFT {
 		lg.SetOutput(ioutil.Discard)
 	}
 	ret := &SABFT{
-		ForkDB:      forkdb.NewDB(),
-		validators:  make([]*publicValidator, 0, 1),
-		prodTimer:   time.NewTimer(1 * time.Millisecond),
-		trxCh:       make(chan func()),
-		blkCh:       make(chan common.ISignedBlock),
-		ctx:         ctx,
-		stopCh:      make(chan struct{}),
-		startBFTCh:  make(chan struct{}),
-		log:         lg,
-		bftStarted:  0,
-		bftStarting: 0,
+		ForkDB:     forkdb.NewDB(),
+		validators: make([]*publicValidator, 0, 1),
+		prodTimer:  time.NewTimer(1 * time.Millisecond),
+		trxCh:      make(chan func()),
+		blkCh:      make(chan common.ISignedBlock),
+		ctx:        ctx,
+		stopCh:     make(chan struct{}),
+		log:        lg,
+		bftStarted: 0,
 	}
 
 	ret.SetBootstrap(ctx.Config().Consensus.BootStrap)
@@ -173,7 +168,6 @@ func (sabft *SABFT) SetBootstrap(b bool) {
 	sabft.bootstrap = b
 	if sabft.bootstrap {
 		sabft.readyToProduce = true
-		sabft.chainUpToDate = true
 	}
 }
 
@@ -231,14 +225,22 @@ func (sabft *SABFT) shuffle(head common.ISignedBlock) {
 
 	sabft.suffledID = head.Id()
 
-	if sabft.chainUpToDate && prodNum >= 4 {
-		if atomic.LoadUint32(&sabft.bftStarting) == 0 {
-			atomic.StoreUint32(&sabft.bftStarting, 1)
-			go func() {
-				sabft.startBFTCh <- struct{}{}
-			}()
+	if sabft.readyToProduce && prodNum >= 3 && sabft.isValidator(sabft.Name) {
+		if atomic.LoadUint32(&sabft.bftStarted) == 0 {
+			sabft.Unlock()
+			sabft.bft.Start()
+			sabft.log.Info("sabft gobft started...")
+			atomic.StoreUint32(&sabft.bftStarted, 1)
+			sabft.Lock()
+		}
+	} else {
+		if atomic.LoadUint32(&sabft.bftStarted) == 1 {
+			sabft.bft.Stop()
+			sabft.log.Info("sabft gobft stopped...")
+			atomic.StoreUint32(&sabft.bftStarted, 0)
 		}
 	}
+
 }
 
 func (sabft *SABFT) restoreProducers() {
@@ -306,7 +308,6 @@ func (sabft *SABFT) scheduleProduce() bool {
 	if !sabft.readyToProduce {
 		if sabft.checkSync() {
 			sabft.readyToProduce = true
-			sabft.chainUpToDate = true
 		} else {
 			sabft.prodTimer.Reset(timeToNextSec())
 			var headID common.BlockID
@@ -334,11 +335,6 @@ func (sabft *SABFT) start() {
 	sabft.log.Info("[SABFT] DPoS routine started")
 	for {
 		select {
-		case <-sabft.startBFTCh:
-			sabft.log.Info("sabft gobft starting...")
-			sabft.bft.Start()
-			atomic.StoreUint32(&sabft.bftStarted, 1)
-			sabft.log.Info("sabft gobft started...")
 		case <-sabft.stopCh:
 			sabft.log.Debug("[SABFT] routine stopped.")
 			return
@@ -506,7 +502,9 @@ func (sabft *SABFT) Push(msg interface{}) {
 			sabft.bft.RecvMsg(msg)
 		}
 	case *message.Commit:
-		sabft.handleCommitRecords(msg)
+		if !sabft.IsValidator(message.PubKey(sabft.Name)) {
+			sabft.handleCommitRecords(msg)
+		}
 	default:
 	}
 }
@@ -562,8 +560,7 @@ func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 		LastHeight:       records.FirstPrecommit().Height,
 		LastProposedData: records.ProposedData,
 	}
-	sabft.log.Info("handleCommitRecords height = ", sabft.appState.LastHeight)
-	// TODO: if the gobft haven't reach +2/3, push records to bft core??
+
 }
 
 func (sabft *SABFT) PushTransaction(trx common.ISignedTransaction, wait bool, broadcast bool) common.ITransactionReceiptWithInfo {
@@ -726,8 +723,12 @@ func (sabft *SABFT) IsValidator(key message.PubKey) bool {
 	sabft.RLock()
 	defer sabft.RUnlock()
 
+	return sabft.isValidator(string(key))
+}
+
+func (sabft *SABFT) isValidator(name string) bool {
 	for i := range sabft.validators {
-		if sabft.validators[i].accountName == string(key) {
+		if sabft.validators[i].accountName == name {
 			return true
 		}
 	}
