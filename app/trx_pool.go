@@ -102,7 +102,7 @@ func (c *TrxPool) Open() {
 	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
 	if !dgpWrap.CheckExist() {
 
-		mustNoError(c.db.DeleteAll(), "truncate database error")
+		mustNoError(c.db.DeleteAll(), "truncate database error", prototype.StatusErrorDbTruncate)
 
 		//c.log.Info("start initGenesis")
 		c.initGenesis()
@@ -138,8 +138,16 @@ func (c *TrxPool) PushTrx(trx *prototype.SignedTransaction) (invoice *prototype.
 	oldSkip := c.skip
 	defer func() {
 		if err := recover(); err != nil {
-			invoice = &prototype.TransactionReceiptWithInfo{Status: uint32(prototype.StatusError)}
-			invoice.ErrorInfo = fmt.Sprintf("%v", err)
+			// !
+			invoice = &prototype.TransactionReceiptWithInfo{}
+			switch x := err.(type) {
+			case prototype.Exception:
+				invoice.Status = uint32(x.ErrorType)
+				invoice.ErrorInfo = x.ToString()
+			default:
+				invoice.Status = prototype.StatusError
+				invoice.ErrorInfo = "unknown error type"
+			}
 			c.log.Errorf("PushTrx Error: %v", err)
 		}
 		c.setProducing(false)
@@ -147,7 +155,7 @@ func (c *TrxPool) PushTrx(trx *prototype.SignedTransaction) (invoice *prototype.
 	}()
 
 	// check maximum_block_size
-	mustSuccess(proto.Size(trx) <= int(c.GetProps().MaximumBlockSize-256), "transaction is too large")
+	mustSuccess(proto.Size(trx) <= int(c.GetProps().MaximumBlockSize-256), "transaction is too large",prototype.StatusErrorTrxSize)
 
 	c.setProducing(true)
 	return c.pushTrx(trx)
@@ -162,7 +170,7 @@ func (c *TrxPool) pushTrx(trx *prototype.SignedTransaction) *prototype.Transacti
 	defer func() {
 		// undo sub session
 		if err := recover(); err != nil {
-			mustNoError(c.db.EndTransaction(false), "EndTransaction error")
+			mustNoError(c.db.EndTransaction(false), "EndTransaction error",prototype.StatusErrorDbEndTrx)
 			panic(err)
 		}
 	}()
@@ -177,6 +185,7 @@ func (c *TrxPool) pushTrx(trx *prototype.SignedTransaction) *prototype.Transacti
 	trxEst := &prototype.EstimateTrxResult{}
 	trxEst.SigTrx = trx
 	trxEst.Receipt = &prototype.TransactionReceiptWithInfo{}
+	trxEst.Receipt.Status = prototype.StatusSuccess
 
 	// start a sub undo session for applyTransaction
 	c.db.BeginTransaction()
@@ -185,7 +194,7 @@ func (c *TrxPool) pushTrx(trx *prototype.SignedTransaction) *prototype.Transacti
 	c.pendingTx = append(c.pendingTx, trxEst)
 
 	// commit sub session
-	mustNoError(c.db.EndTransaction(true), "EndTransaction error")
+	mustNoError(c.db.EndTransaction(true), "EndTransaction error",prototype.StatusErrorDbEndTrx)
 
 	// @ not use yet
 	//c.notifyTrxPending(trx)
@@ -202,6 +211,9 @@ func (c *TrxPool) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag)
 	defer func() {
 		if r := recover(); r != nil {
 			switch x := r.(type) {
+
+			case prototype.Exception:
+				err = errors.New(x.ToString())
 			case error:
 				err = x
 				//c.log.Errorf("push block error : %v", x.Error())
@@ -209,7 +221,7 @@ func (c *TrxPool) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag)
 				err = errors.New(x)
 				//c.log.Errorf("push block error : %v ", x)
 			default:
-				err = errors.New("unknown panic type")
+				err = errors.New("unknown error type")
 			}
 			// undo changes
 			c.db.EndTransaction(false)
@@ -227,11 +239,11 @@ func (c *TrxPool) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag)
 		c.db.BeginTransactionWithTag(tag)
 		c.db.BeginTransaction()
 		c.applyBlock(blk, skip)
-		mustNoError(c.db.EndTransaction(true), "EndTransaction error")
+		mustNoError(c.db.EndTransaction(true), "EndTransaction error",prototype.StatusErrorDbEndTrx)
 	} else {
 		// we have do a BeginTransaction at GenerateBlock
 		c.applyBlock(blk, skip)
-		mustNoError(c.db.EndTransaction(true), "EndTransaction error")
+		mustNoError(c.db.EndTransaction(true), "EndTransaction error",prototype.StatusErrorDbEndTrx)
 		c.havePendingTransaction = false
 	}
 
@@ -242,7 +254,7 @@ func (c *TrxPool) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag)
 
 func (c *TrxPool) ClearPending() []*prototype.EstimateTrxResult {
 	// @
-	mustSuccess(len(c.pendingTx) == 0 || c.havePendingTransaction, "can not clear pending")
+	mustSuccess(len(c.pendingTx) == 0 || c.havePendingTransaction, "can not clear pending",prototype.StatusErrorTrxClearPending)
 	res := make([]*prototype.EstimateTrxResult, len(c.pendingTx))
 	copy(res, c.pendingTx)
 
@@ -252,7 +264,7 @@ func (c *TrxPool) ClearPending() []*prototype.EstimateTrxResult {
 	// 2. block from local generate, we keep it
 	if c.skip&prototype.Skip_apply_transaction == 0 {
 		if c.havePendingTransaction == true {
-			mustNoError(c.db.EndTransaction(false), "EndTransaction error")
+			mustNoError(c.db.EndTransaction(false), "EndTransaction error",prototype.StatusErrorDbEndTrx)
 			c.havePendingTransaction = false
 			//		c.log.Debug("@@@@@@ ClearPending havePendingTransaction=false")
 		}
@@ -264,7 +276,7 @@ func (c *TrxPool) ClearPending() []*prototype.EstimateTrxResult {
 func (c *TrxPool) restorePending(pending []*prototype.EstimateTrxResult) {
 	for _, tw := range pending {
 		id, err := tw.SigTrx.Id()
-		mustNoError(err, "get transaction id error")
+		mustNoError(err, "get transaction id error",prototype.StatusErrorTrxId)
 
 		objWrap := table.NewSoTransactionObjectWrap(c.db, id)
 		if !objWrap.CheckExist() {
@@ -301,7 +313,7 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 	defer func() {
 		c.skip = oldSkip
 		if err := recover(); err != nil {
-			mustNoError(c.db.EndTransaction(false), "EndTransaction error")
+			mustNoError(c.db.EndTransaction(false), "EndTransaction error",prototype.StatusErrorDbEndTrx)
 			//c.log.Errorf("GenerateBlock Error: %v", err)
 			panic(err)
 		}
@@ -316,10 +328,10 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 		mustSuccess(witnessName.Value == witness,"not this witness")*/
 
 	pubkey, err := priKey.PubKey()
-	mustNoError(err, "get public key error")
+	mustNoError(err, "get public key error",prototype.StatusErrorTrxPriKeyToPubKey)
 
 	witnessWrap := table.NewSoWitnessWrap(c.db, &prototype.AccountName{Value: witness})
-	mustSuccess(bytes.Equal(witnessWrap.GetSigningKey().Data[:], pubkey.Data[:]), "public key not equal")
+	mustSuccess(bytes.Equal(witnessWrap.GetSigningKey().Data[:], pubkey.Data[:]), "public key not equal",prototype.StatusErrorTrxPubKeyCmp)
 
 	// @ signHeader size is zero, must have some content
 	signHeader := &prototype.SignedBlockHeader{}
@@ -337,7 +349,7 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 
 	// undo all pending in DB
 	if c.havePendingTransaction {
-		mustNoError(c.db.EndTransaction(false), "EndTransaction error")
+		mustNoError(c.db.EndTransaction(false), "EndTransaction error",prototype.StatusErrorDbEndTrx)
 	}
 	tag := c.getBlockTag(uint64(c.headBlockNum())+1)
 	c.db.BeginTransactionWithTag(tag)
@@ -359,13 +371,13 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 		func() {
 			defer func() {
 				if err := recover(); err != nil {
-					mustNoError(c.db.EndTransaction(false), "EndTransaction error")
+					mustNoError(c.db.EndTransaction(false), "EndTransaction error",prototype.StatusErrorDbEndTrx)
 				}
 			}()
 
 			c.db.BeginTransaction()
 			c.applyTransactionInner(trxWraper)
-			mustNoError(c.db.EndTransaction(true), "EndTransaction error")
+			mustNoError(c.db.EndTransaction(true), "EndTransaction error",prototype.StatusErrorDbEndTrx)
 
 			totalSize += uint32(proto.Size(trxWraper))
 			signBlock.Transactions = append(signBlock.Transactions, trxWraper.ToTrxWrapper())
@@ -384,7 +396,7 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 	signBlock.SignedHeader.WitnessSignature = &prototype.SignatureType{}
 	signBlock.SignedHeader.Sign(priKey)
 
-	mustSuccess(proto.Size(signBlock) <= constants.MAX_BLOCK_SIZE, "block size too big")
+	mustSuccess(proto.Size(signBlock) <= constants.MAX_BLOCK_SIZE, "block size too big",prototype.StatusErrorTrxMaxBlockSize)
 	// clearpending then let dpos call PushBlock, the point is without restore pending step when PushBlock
 	//c.ClearPending()
 
@@ -436,31 +448,21 @@ func (c *TrxPool) applyTransaction(trxEst *prototype.EstimateTrxResult) {
 
 func (c *TrxPool) applyTransactionInner(trxEst *prototype.EstimateTrxResult) {
 	trxContext := NewTrxContext(trxEst, c.db, c)
-	defer func() {
-		if err := recover(); err != nil {
-			trxEst.Receipt.Status = prototype.StatusError
-			trxEst.Receipt.ErrorInfo = fmt.Sprintf("applyTransaction failed : %v", err)
-			panic(trxEst.Receipt.ErrorInfo)
-		} else {
-			trxEst.Receipt.Status = prototype.StatusSuccess
-			return
-		}
-	}()
 
 	trx := trxEst.SigTrx
 	var err error
 	currentTrxId, err := trx.Id()
-	mustNoError(err, "get trx id failed")
+	mustNoError(err, "get trx id failed", prototype.StatusErrorTrxId)
 
 	trx.Validate()
 
 	// trx duplicate check
 	transactionObjWrap := table.NewSoTransactionObjectWrap(c.db, currentTrxId)
-	mustSuccess(!transactionObjWrap.CheckExist(), "Duplicate transaction check failed")
+	mustSuccess(!transactionObjWrap.CheckExist(), "Duplicate transaction check failed",prototype.StatusErrorTrxDuplicateCheck)
 
 	if c.skip&prototype.Skip_transaction_signatures == 0 {
 		tmpChainId := prototype.ChainId{Value: 0}
-		mustNoError(trxContext.InitSigState(tmpChainId), "signature export error")
+		mustNoError(trxContext.InitSigState(tmpChainId), "signature export error", prototype.StatusErrorTrxExportPubKey)
 		trxContext.VerifySignature()
 		// @ check_admin
 	}
@@ -470,17 +472,18 @@ func (c *TrxPool) applyTransactionInner(trxEst *prototype.EstimateTrxResult) {
 		uniWrap := table.UniBlockSummaryObjectIdWrap{Dba: c.db}
 		idWrap := uniWrap.UniQueryId(&trx.Trx.RefBlockNum)
 		if !idWrap.CheckExist() {
-			panic("no refBlockNum founded")
+			e := &prototype.Exception{HelpString:"TaPos RefBlockNum missing",ErrorType:prototype.StatusErrorTrxTaPos}
+			panic(e)
 		} else {
 			blockId := idWrap.GetBlockId()
 			summaryId := binary.BigEndian.Uint32(blockId.Hash[8:12])
-			mustSuccess(trx.Trx.RefBlockPrefix == summaryId, "transaction tapos failed")
+			mustSuccess(trx.Trx.RefBlockPrefix == summaryId, "TaPos RefBlockNum not equal",prototype.StatusErrorTrxTaPos)
 		}
 
 		now := c.GetProps().Time
 		// get head time
-		mustSuccess(trx.Trx.Expiration.UtcSeconds <= uint32(now.UtcSeconds+constants.TRX_MAX_EXPIRATION_TIME), "transaction expiration too long")
-		mustSuccess(now.UtcSeconds < trx.Trx.Expiration.UtcSeconds, "transaction has expired")
+		mustSuccess(trx.Trx.Expiration.UtcSeconds <= uint32(now.UtcSeconds+constants.TRX_MAX_EXPIRATION_TIME), "transaction expiration too long",prototype.StatusErrorTrxExpire)
+		mustSuccess(now.UtcSeconds < trx.Trx.Expiration.UtcSeconds, "transaction has expired",prototype.StatusErrorTrxExpire)
 	}
 
 	// insert trx into DB unique table
@@ -488,7 +491,7 @@ func (c *TrxPool) applyTransactionInner(trxEst *prototype.EstimateTrxResult) {
 		tInfo.TrxId = currentTrxId
 		tInfo.Expiration = trx.Trx.Expiration
 	})
-	mustNoError(cErr, "create transactionObject failed")
+	mustNoError(cErr, "create transactionObject failed", prototype.StatusErrorDbCreate)
 
 	// @ not use yet
 	//c.notifyTrxPreExecute(trx)
@@ -536,7 +539,7 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 	//nextBlockNum := blk.Id().BlockNum()
 
 	merkleRoot := blk.CalculateMerkleRoot()
-	mustSuccess(bytes.Equal(merkleRoot.Data[:], blk.SignedHeader.Header.TransactionMerkleRoot.Hash), "Merkle check failed")
+	mustSuccess(bytes.Equal(merkleRoot.Data[:], blk.SignedHeader.Header.TransactionMerkleRoot.Hash), "Merkle check failed", prototype.StatusErrorTrxMerkleCheck)
 
 	// validate_block_header
 	c.validateBlockHeader(blk)
@@ -545,7 +548,7 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 	//c.currentTrxInBlock = 0
 
 	blockSize := proto.Size(blk)
-	mustSuccess(uint32(blockSize) <= c.GetProps().GetMaximumBlockSize(), "Block size is too big")
+	mustSuccess(uint32(blockSize) <= c.GetProps().GetMaximumBlockSize(), "Block size is too big",prototype.StatusErrorTrxMaxBlockSize)
 
 	if uint32(blockSize) < constants.MIN_BLOCK_SIZE {
 		// elog("Block size is too small")
@@ -570,7 +573,7 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 			trxEst.SigTrx = tw.SigTrx
 			trxEst.Receipt.Status = prototype.StatusSuccess
 			c.applyTransaction(trxEst)
-			mustSuccess(trxEst.Receipt.Status == tw.Invoice.Status, "mismatched invoice")
+			mustSuccess(trxEst.Receipt.Status == tw.Invoice.Status, "mismatched invoice",prototype.StatusErrorTrxApplyInvoice)
 			//c.currentTrxInBlock++
 		}
 	}
@@ -591,10 +594,10 @@ func (c *TrxPool) initGenesis() {
 	c.db.BeginTransaction()
 	defer func() {
 		if err := recover(); err != nil {
-			mustNoError(c.db.EndTransaction(false), "EndTransaction error")
+			mustNoError(c.db.EndTransaction(false), "EndTransaction error", prototype.StatusErrorDbEndTrx)
 			panic(err)
 		} else {
-			mustNoError(c.db.EndTransaction(true), "EndTransaction error")
+			mustNoError(c.db.EndTransaction(true), "EndTransaction error", prototype.StatusErrorDbEndTrx)
 		}
 	}()
 	// create initminer
@@ -608,7 +611,7 @@ func (c *TrxPool) initGenesis() {
 		tInfo.VestingShares = prototype.NewVest(1000)
 		tInfo.LastPostTime = &prototype.TimePointSec{UtcSeconds: 0}
 		tInfo.LastVoteTime = &prototype.TimePointSec{UtcSeconds: 0}
-	}), "CreateAccount error")
+	}), "CreateAccount error", prototype.StatusErrorDbCreate)
 
 	// create account authority
 	authorityWrap := table.NewSoAccountAuthorityObjectWrap(c.db, name)
@@ -617,7 +620,7 @@ func (c *TrxPool) initGenesis() {
 	mustNoError(authorityWrap.Create(func(tInfo *table.SoAccountAuthorityObject) {
 		tInfo.Account = name
 		tInfo.Owner = ownerAuth
-	}), "CreateAccountAuthorityObject error ")
+	}), "CreateAccountAuthorityObject error ", prototype.StatusErrorDbCreate)
 
 	// create witness_object
 	witnessWrap := table.NewSoWitnessWrap(c.db, name)
@@ -627,7 +630,7 @@ func (c *TrxPool) initGenesis() {
 		tInfo.CreatedTime = &prototype.TimePointSec{UtcSeconds: 0}
 		tInfo.SigningKey = pubKey
 		tInfo.LastWork = &prototype.Sha256{Hash: []byte{0}}
-	}), "Witness Create Error")
+	}), "Witness Create Error", prototype.StatusErrorDbCreate)
 
 	// create dynamic global properties
 	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
@@ -643,7 +646,7 @@ func (c *TrxPool) initGenesis() {
 		tInfo.Props.TotalCos = prototype.NewCoin(constants.COS_INIT_SUPPLY)
 		tInfo.Props.MaximumBlockSize = constants.MAX_BLOCK_SIZE
 		tInfo.Props.TotalVestingShares = prototype.NewVest(0)
-	}), "CreateDynamicGlobalProperties error")
+	}), "CreateDynamicGlobalProperties error", prototype.StatusErrorDbCreate)
 
 	//create rewards keeper
 	keeperWrap := table.NewSoRewardsKeeperWrap(c.db, &SingleId)
@@ -653,7 +656,7 @@ func (c *TrxPool) initGenesis() {
 		tInfo.Id = SingleId
 		//tInfo.Keeper.Rewards = map[string]*prototype.Vest{}
 		tInfo.Keeper = &prototype.InternalRewardsKeeper{Rewards: rewards}
-	}), "Create Rewards Keeper error")
+	}), "Create Rewards Keeper error", prototype.StatusErrorDbCreate)
 
 	// create block summary buffer 2048
 	for i := uint32(0); i < 0x800; i++ {
@@ -661,7 +664,7 @@ func (c *TrxPool) initGenesis() {
 		mustNoError(wrap.Create(func(tInfo *table.SoBlockSummaryObject) {
 			tInfo.Id = i
 			tInfo.BlockId = &prototype.Sha256{Hash: make([]byte, 32)}
-		}), "CreateBlockSummaryObject error")
+		}), "CreateBlockSummaryObject error", prototype.StatusErrorDbCreate)
 	}
 
 	// create witness scheduler
@@ -669,7 +672,7 @@ func (c *TrxPool) initGenesis() {
 	mustNoError(witnessScheduleWrap.Create(func(tInfo *table.SoWitnessScheduleObject) {
 		tInfo.Id = SingleId
 		tInfo.CurrentShuffledWitness = append(tInfo.CurrentShuffledWitness, constants.COS_INIT_MINER)
-	}), "CreateWitnessScheduleObject error")
+	}), "CreateWitnessScheduleObject error", prototype.StatusErrorDbCreate)
 }
 
 func (c *TrxPool) TransferToVest(value *prototype.Coin) {
@@ -679,10 +682,10 @@ func (c *TrxPool) TransferToVest(value *prototype.Coin) {
 	vest := dgpo.GetTotalVestingShares()
 	addVest := value.ToVest()
 
-	mustNoError(cos.Sub(value), "TotalCos overflow")
+	mustNoError(cos.Sub(value), "TotalCos overflow", prototype.StatusErrorTrxOverflow)
 	dgpo.TotalCos = cos
 
-	mustNoError(vest.Add(addVest), "TotalVestingShares overflow")
+	mustNoError(vest.Add(addVest), "TotalVestingShares overflow", prototype.StatusErrorTrxOverflow)
 	dgpo.TotalVestingShares = vest
 
 	c.updateGlobalDataToDB(dgpo)
@@ -695,10 +698,10 @@ func (c *TrxPool) TransferFromVest(value *prototype.Vest) {
 	vest := dgpo.GetTotalVestingShares()
 	addCos := value.ToCoin()
 
-	mustNoError(cos.Add(addCos), "TotalCos overflow")
+	mustNoError(cos.Add(addCos), "TotalCos overflow", prototype.StatusErrorTrxOverflow)
 	dgpo.TotalCos = cos
 
-	mustNoError(vest.Sub(value), "TotalVestingShares overflow")
+	mustNoError(vest.Sub(value), "TotalVestingShares overflow", prototype.StatusErrorTrxOverflow)
 	dgpo.TotalVestingShares = vest
 
 	// TODO if op execute failed ???? how to revert ??
@@ -708,11 +711,13 @@ func (c *TrxPool) TransferFromVest(value *prototype.Vest) {
 func (c *TrxPool) validateBlockHeader(blk *prototype.SignedBlock) {
 	headID := c.headBlockID()
 	if !bytes.Equal(headID.Hash, blk.SignedHeader.Header.Previous.Hash) {
-		panic("hash not equal")
+		e := &prototype.Exception{HelpString:"hash not equal",ErrorType:prototype.StatusErrorTrxBlockHeaderCheck}
+		panic(e)
 	}
 	headTime := c.headBlockTime()
 	if headTime.UtcSeconds >= blk.SignedHeader.Header.Timestamp.UtcSeconds {
-		panic("block time is invalid")
+		e := &prototype.Exception{HelpString:"block time is invalid",ErrorType:prototype.StatusErrorTrxBlockHeaderCheck}
+		panic(e)
 	}
 
 	// witness sig check
@@ -721,7 +726,8 @@ func (c *TrxPool) validateBlockHeader(blk *prototype.SignedBlock) {
 	pubKey := witnessWrap.GetSigningKey()
 	res, err := blk.SignedHeader.ValidateSig(pubKey)
 	if !res || err != nil {
-		panic("ValidateSig error")
+		e := &prototype.Exception{ErrorString:err.Error(),HelpString:"block signature check error",ErrorType:prototype.StatusErrorTrxBlockHeaderCheck}
+		panic(e)
 	}
 
 	// witness schedule check
@@ -794,7 +800,7 @@ func (c *TrxPool) GetScheduledWitness(slot uint32) *prototype.AccountName {
 
 func (c *TrxPool) updateGlobalDataToDB(dgpo *prototype.DynamicProperties) {
 	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
-	mustSuccess(dgpWrap.MdProps(dgpo), "")
+	mustSuccess(dgpWrap.MdProps(dgpo), "update global data error",prototype.StatusErrorDbUpdate)
 }
 
 func (c *TrxPool) updateGlobalDynamicData(blk *prototype.SignedBlock) {
@@ -831,7 +837,7 @@ func (c *TrxPool) updateGlobalDynamicData(blk *prototype.SignedBlock) {
 	//c.dgpo.CurrentAslot       = c.dgpo.CurrentAslot + missedBlock+1
 
 	// this check is useful ?
-	mustSuccess(dgpo.GetHeadBlockNumber()-dgpo.GetIrreversibleBlockNum() < constants.MAX_UNDO_HISTORY, "The database does not have enough undo history to support a blockchain with so many missed blocks.")
+	mustSuccess(dgpo.GetHeadBlockNumber()-dgpo.GetIrreversibleBlockNum() < constants.MAX_UNDO_HISTORY, "The database does not have enough undo history to support a blockchain with so many missed blocks.",prototype.StatusErrorTrxMaxUndo)
 	c.updateGlobalDataToDB(dgpo)
 }
 
@@ -849,10 +855,10 @@ func (c *TrxPool) createBlockSummary(blk *prototype.SignedBlock) {
 	blockNumSuffix := uint32(blockNum & 0x7ff)
 
 	blockSummaryWrap := table.NewSoBlockSummaryObjectWrap(c.db, &blockNumSuffix)
-	mustSuccess(blockSummaryWrap.CheckExist(), "can not get block summary object")
+	mustSuccess(blockSummaryWrap.CheckExist(), "can not get block summary object",prototype.StatusErrorDbExist)
 	blockIDArray := blk.Id().Data
 	blockID := &prototype.Sha256{Hash: blockIDArray[:]}
-	mustSuccess(blockSummaryWrap.MdBlockId(blockID), "update block summary object error")
+	mustSuccess(blockSummaryWrap.MdBlockId(blockID), "update block summary object error",prototype.StatusErrorDbUpdate)
 }
 
 func (c *TrxPool) clearExpiredTransactions() {
@@ -865,7 +871,7 @@ func (c *TrxPool) clearExpiredTransactions() {
 					// delete trx ...
 					k := mVal
 					objWrap := table.NewSoTransactionObjectWrap(c.db, k)
-					mustSuccess(objWrap.RemoveTransactionObject(), "RemoveTransactionObject error")
+					mustSuccess(objWrap.RemoveTransactionObject(), "RemoveTransactionObject error",prototype.StatusErrorDbDelete)
 				}
 				return true
 			}
@@ -890,7 +896,7 @@ func (c *TrxPool) GetWitnessTopN(n uint32) []string {
 
 func (c *TrxPool) SetShuffledWitness(names []string) {
 	witnessScheduleWrap := table.NewSoWitnessScheduleObjectWrap(c.db, &SingleId)
-	mustSuccess(witnessScheduleWrap.MdCurrentShuffledWitness(names), "SetWitness error")
+	mustSuccess(witnessScheduleWrap.MdCurrentShuffledWitness(names), "SetWitness error",prototype.StatusErrorDbUpdate)
 }
 
 func (c *TrxPool) GetShuffledWitness() []string {
@@ -908,14 +914,14 @@ func (c *TrxPool) AddWeightedVP(value uint64) {
 func (c *TrxPool) saveReversion(num uint64) {
 	tag := strconv.FormatUint(num, 10)
 	currentRev := c.db.GetRevision()
-	mustNoError(c.db.TagRevision(currentRev, tag), fmt.Sprintf("TagRevision:  tag:%d, reversion%d", num, currentRev))
+	mustNoError(c.db.TagRevision(currentRev, tag), fmt.Sprintf("TagRevision:  tag:%d, reversion%d", num, currentRev), prototype.StatusErrorDbTag)
 	//c.log.Debug("### saveReversion, num:", num, " rev:", currentRev)
 }
 
 func (c *TrxPool) getReversion(num uint64) uint64 {
 	tag := strconv.FormatUint(num, 10)
 	rev, err := c.db.GetTagRevision(tag)
-	mustNoError(err, fmt.Sprintf("GetTagRevision: tag:%d, reversion:%d", num, rev))
+	mustNoError(err, fmt.Sprintf("GetTagRevision: tag:%d, reversion:%d", num, rev), prototype.StatusErrorDbTag)
 	return rev
 }
 
@@ -936,14 +942,14 @@ func (c *TrxPool) PopBlockTo(num uint64) {
 	//rev := c.getReversion(num)
 	//mustNoError(c.db.RevertToRevision(rev), fmt.Sprintf("RebaseToRevision error: tag:%d, reversion:%d", num, rev))
 	tag := c.getBlockTag(num)
-	mustSuccess(c.db.RollBackToTag(tag)==nil, fmt.Sprintf("RevertToRevision error: tag:%d", num,))
+	mustSuccess(c.db.RollBackToTag(tag)==nil, fmt.Sprintf("RevertToRevision error: tag:%d", num,),prototype.StatusErrorDbTag)
 }
 
 func (c *TrxPool) Commit(num uint64) {
 	// this block can not be revert over, so it's irreversible
 	tag := c.getBlockTag(uint64(num))
 	err := c.db.Squash(tag,num)
-	mustSuccess(err == nil,fmt.Sprintf("SquashBlock: tag:%d,error is %s",num,err))
+	mustSuccess(err == nil,fmt.Sprintf("SquashBlock: tag:%d,error is %s",num,err),prototype.StatusErrorDbTag)
 }
 
 func (c *TrxPool) VerifySig(name *prototype.AccountName, digest []byte, sig []byte) bool {

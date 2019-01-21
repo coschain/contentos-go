@@ -12,9 +12,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func mustSuccess(b bool, val string) {
+func mustSuccess(b bool, val string, errorType int) {
 	if !b {
-		panic(val)
+		e := &prototype.Exception{HelpString:val,ErrorType:errorType}
+		panic(e)
 	}
 }
 

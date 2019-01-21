@@ -17,9 +17,11 @@ func opAssert(b bool, val string) {
 	}
 }
 
-func mustNoError(err error, val string) {
+func mustNoError(err error, val string, errorType int) {
 	if err != nil {
-		panic(val + " : " + err.Error())
+		e := &prototype.Exception{HelpString:val,ErrorString:err.Error(),ErrorType:errorType}
+		panic(e)
+		//panic(val + " : " + err.Error())
 	}
 }
 

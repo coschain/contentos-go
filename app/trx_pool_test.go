@@ -212,7 +212,7 @@ func TestController_GenerateAndApplyBlock(t *testing.T) {
 	pre := &prototype.Sha256{Hash: make([]byte,32)}
 	block,err := c.GenerateAndApplyBlock(constants.INIT_MINER_NAME, pre, 18, pri, 0)
 	dgpWrap := table.NewSoGlobalWrap(db,&SingleId)
-	mustSuccess(block.Id().BlockNum() == dgpWrap.GetProps().HeadBlockNumber,"block number error")
+	mustSuccess(block.Id().BlockNum() == dgpWrap.GetProps().HeadBlockNumber,"block number error",prototype.StatusError)
 	bobWrap2 := table.NewSoAccountWrap(db, bobName)
 	if !bobWrap2.CheckExist() {
 		t.Error("create account failed")
@@ -287,7 +287,7 @@ func TestController_GetWitnessTopN(t *testing.T) {
 		tInfo.CreatedTime = &prototype.TimePointSec{UtcSeconds: 0}
 		tInfo.SigningKey = &prototype.PublicKeyType{Data: []byte{1}}
 		tInfo.LastWork = &prototype.Sha256{Hash: []byte{0}}
-	}), "Witness Create Error")
+	}), "Witness Create Error",prototype.StatusError)
 
 	name2 := &prototype.AccountName{Value: "wit2"}
 	witnessWrap2 := table.NewSoWitnessWrap(db, name2)
@@ -297,7 +297,7 @@ func TestController_GetWitnessTopN(t *testing.T) {
 		tInfo.CreatedTime = &prototype.TimePointSec{UtcSeconds: 0}
 		tInfo.SigningKey = &prototype.PublicKeyType{Data: []byte{2}}
 		tInfo.LastWork = &prototype.Sha256{Hash: []byte{0}}
-	}), "Witness Create Error")
+	}), "Witness Create Error",prototype.StatusError)
 
 	witnesses := c.GetWitnessTopN(10)
 

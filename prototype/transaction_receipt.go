@@ -1,8 +1,5 @@
 package prototype
 
-const StatusSuccess  = 200
-const StatusError  = 500
-
 func (m *TransactionReceipt) Validate() error {
 	return nil
 }
