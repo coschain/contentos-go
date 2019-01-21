@@ -96,6 +96,7 @@ type SABFT struct {
 	suffledID     common.BlockID
 	appState      *message.AppState
 	bftStarted    uint32
+	commitCh      chan message.Commit
 
 	readyToProduce bool
 	prodTimer      *time.Timer
@@ -129,6 +130,7 @@ func NewSABFT(ctx *node.ServiceContext, lg *logrus.Logger) *SABFT {
 		stopCh:     make(chan struct{}),
 		log:        lg,
 		bftStarted: 0,
+		commitCh:   make(chan message.Commit),
 	}
 
 	ret.SetBootstrap(ctx.Config().Consensus.BootStrap)
@@ -349,6 +351,8 @@ func (sabft *SABFT) start() {
 			trxFn()
 			sabft.Unlock()
 			continue
+		case commit := <-sabft.commitCh:
+			sabft.handleCommitRecords(&commit)
 		case <-sabft.prodTimer.C:
 			sabft.RLock()
 			if !sabft.scheduleProduce() {
@@ -503,7 +507,9 @@ func (sabft *SABFT) Push(msg interface{}) {
 		}
 	case *message.Commit:
 		if !sabft.IsValidator(message.PubKey(sabft.Name)) {
-			sabft.handleCommitRecords(msg)
+			go func(){
+				sabft.commitCh <- *msg
+			}()
 		}
 	default:
 	}
@@ -515,20 +521,23 @@ func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 		sabft.log.Error(err)
 	}
 
-	sabft.RLock()
+	// make sure we haven't committed it already
+	newID := common.BlockID{
+		Data: records.ProposedData,
+	}
 	if sabft.lastCommitted != nil {
 		oldID := common.BlockID{
 			Data: sabft.lastCommitted.ProposedData,
 		}
-		newID := common.BlockID{
-			Data: records.ProposedData,
-		}
 		if oldID.BlockNum() >= newID.BlockNum() {
-			sabft.RUnlock()
 			return
 		}
 	}
-	sabft.RUnlock()
+
+	// make sure we have the block about to be committed
+	if sabft.ForkDB.Empty() || sabft.ForkDB.Head().Id().BlockNum() < newID.BlockNum() {
+		return
+	}
 
 	// check signature
 	for i := range records.Precommits {
@@ -552,15 +561,7 @@ func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 		return
 	}
 
-	sabft.Lock()
-	defer sabft.Unlock()
-
-	sabft.lastCommitted = records
-	sabft.appState = &message.AppState{
-		LastHeight:       records.FirstPrecommit().Height,
-		LastProposedData: records.ProposedData,
-	}
-
+	sabft.commit(records)
 }
 
 func (sabft *SABFT) PushTransaction(trx common.ISignedTransaction, wait bool, broadcast bool) common.ITransactionReceiptWithInfo {
@@ -654,6 +655,10 @@ func (sabft *SABFT) Commit(commitRecords *message.Commit) error {
 	sabft.Lock()
 	defer sabft.Unlock()
 
+	return sabft.commit(commitRecords)
+}
+
+func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 	blockID := common.BlockID{
 		Data: commitRecords.ProposedData,
 	}
@@ -682,11 +687,15 @@ func (sabft *SABFT) Commit(commitRecords *message.Commit) error {
 	}
 
 	blks, _, err := sabft.ForkDB.FetchBlocksSince(sabft.ForkDB.LastCommitted())
+	if err != nil {
+		panic(err)
+	}
 	for i := range blks {
 		if err = sabft.blog.Append(blks[i]); err != nil {
 			panic(err)
 		}
 		if blks[i] == blk {
+			sabft.log.Debugf("[SABFT] committed from block #%d to #%d", blks[0].Id().BlockNum(), blk.Id().BlockNum())
 			break
 		}
 	}
@@ -698,9 +707,7 @@ func (sabft *SABFT) Commit(commitRecords *message.Commit) error {
 	sabft.appState.LastHeight = commitRecords.FirstPrecommit().Height
 	sabft.appState.LastProposedData = commitRecords.ProposedData
 
-	if commitRecords.Signature != nil {
-		sabft.lastCommitted = commitRecords
-	}
+	sabft.lastCommitted = commitRecords
 
 	return nil
 }
