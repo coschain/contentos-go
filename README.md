@@ -1,6 +1,9 @@
 
 # Contentos-go
 
+[![Build Status](https://travis-ci.com/coschain/contentos-go.svg?branch=master)](https://travis-ci.com/coschain/contentos-go)
+[![Code Coverage](https://codecov.io/gh/coschain/contentos-go/branch/master/graph/badge.svg)](https://codecov.io/gh/coschain/contentos-go)
+
 official golang impementation of the Contentos protocol
 
 Contentos Website: https://www.contentos.io
@@ -13,7 +16,7 @@ Join discussion at https://t.me/ContentoOfficialGroup
 
 **WARNING:** For now, the branch is under active developing. Thus mostly it stabilized, but we are still introducing some breaking changes.
 
-**Note*:* Requires [Go 1.11+](https://golang.org/dl/)
+**Note*:* Requires [Go 1.11.4+](https://golang.org/dl/)
 
 ## Building the source
 

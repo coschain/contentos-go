@@ -1,8 +1,8 @@
 package consensus
 
 import (
+	"errors"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"strings"
 	"sync"
@@ -15,6 +15,7 @@ import (
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/prototype"
+	"github.com/sirupsen/logrus"
 	//"github.com/coschain/contentos-go/app"
 )
 
@@ -93,14 +94,6 @@ func (d *DPoS) getController() iservices.ITrxPool {
 	return ctrl.(iservices.ITrxPool)
 }
 
-func (d *DPoS) getSquashDB() (iservices.IDatabaseService, error) {
-	ctrl, err := d.ctx.Service(iservices.DbServerName)
-	if err != nil {
-		return nil,err
-	}
-	return ctrl.(iservices.IDatabaseService),nil
-}
-
 func (d *DPoS) SetBootstrap(b bool) {
 	d.bootstrap = b
 	if d.bootstrap {
@@ -117,7 +110,7 @@ func (d *DPoS) CurrentProducer() string {
 }
 
 func (d *DPoS) shuffle(head common.ISignedBlock) {
-	if !d.ForkDB.Empty() && d.ForkDB.Head().Id().BlockNum()%uint64(len(d.Producers)) != 0 {
+	if head.Id().BlockNum()%uint64(len(d.Producers)) != 0 {
 		return
 	}
 
@@ -184,9 +177,9 @@ func (d *DPoS) Start(node *node.Node) error {
 
 	d.restoreProducers()
 
-	//sync blocks to squash db
-	d.syncDataToSquashDB()
-	
+	////sync blocks to squash db
+	d.handleBlockSync()
+
 	go d.start()
 	return nil
 }
@@ -640,7 +633,7 @@ func (d *DPoS) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, error
 			return nil, err
 		}
 
-		if start == idNum && b.Id() != id {
+		if start == idNum+1 && b.Previous() != id {
 			return nil, fmt.Errorf("blockchain doesn't have block with id %v", id)
 		}
 
@@ -648,7 +641,8 @@ func (d *DPoS) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, error
 		start++
 
 		if start > end && b.Id() != d.ForkDB.LastCommitted() {
-			panic("ForkDB and BLog inconsistent state")
+			// there probably is a new committed block during the execution of this process
+			return nil, errors.New("ForkDB and BLog inconsistent state")
 		}
 	}
 
@@ -703,125 +697,23 @@ func (d *DPoS) MaybeProduceBlock() {
 	d.p2p.Broadcast(b)
 }
 
-func (d *DPoS) syncDataToSquashDB() {
-	 if d.ForkDB.Head() == nil {
-		return
-	 }
-
-	 db,err := d.getSquashDB()
-	 if err != nil {
-		d.log.Debug("[sync Block]: Failed to get squash db")
-		 return
-	 }
-
-	 //Fetch the latest commit block number in squash db
-	 num,err := db.GetCommitNum()
-	 if err != nil {
-		 d.log.Debug("[sync Block]: Failed to get latest commit block number")
-		 return
-	 }
-
-	 //Fetch the real commit block number in chain
-	 realNum := d.ForkDB.LastCommitted().BlockNum()
-	 //Fetch the head block number in chain
-	 headNum := d.ForkDB.Head().Id().BlockNum()
-
-	 //syncNum is the start number need to fetch from ForkDB
-	 syncNum := num
-
-	 //Reload lost commit blocks
-	 if (num == 0 && realNum > 0) || (realNum > 0 && num < realNum && headNum <= num) {
-		 commitBlk := d.reloadCommitBlocks(&d.blog)
-		 cnt := len(commitBlk)
-		 if cnt > 0  {
-			 //Scene 1: The block data in squash db has been deleted,so need sync lost blocks to squash db
-			 //Because ForkDB will not continue to store commit blocks,so we need load all commit blocks from block log,
-			 //meanWhile add block to squash db,so the start value is 0
-			 start := 0
-
-			 if realNum > 0 && num < realNum && headNum <= num {
-				 //Scene 2: there are some blocks lost in squash db,meanWhile lost in snapshot,so we can't get these
-				 // blocks from forkDB,so we just can get lost blocks from block log,wo the start is the block number of
-				 //the first lost block
-				 d.log.Debugf("[Reload commit] start sync lost commit blocks from block log under " +
-				 	"scene 2,start: %v,real commit num is %v,headNum is:%v", num+1, realNum, headNum)
-				 start = int(num) + 1
-			 }
-			 if start >= cnt {
-				 d.log.Errorf("[Reload commit] start index %v out range of reload" +
-				 	" block count %v",start,cnt)
-			 }else {
-				 d.log.Debugf("[Reload commit] start sync lost commit blocks from block log,start: " +
-				 	"%v,end:%v,real commit num is %v", start, headNum, realNum)
-				 for i := start; i < cnt; i++ {
-					 blk := commitBlk[i]
-					 d.log.Debugf("[Reload commit] push block,blockNum is: " +
-						 "%v", blk.(*prototype.SignedBlock).Id().BlockNum())
-					 err = d.ctrl.PushBlock(blk.(*prototype.SignedBlock),prototype.Skip_nothing)
-					 if err != nil {
-					 	desc := fmt.Sprintf("[Reload commit] push the block which num is %v fail,error " +
-							"is %s", i, err)
-						 panic(desc)
-					 }
-				 }
-			 }
-			 syncNum = uint64(cnt)
-		 }else {
-		 	d.log.Errorf("[Sync commit] Failed to get lost commit blocks from block log," +
-		 		"start: %v," + "end:%v,real commit num is %v", syncNum+1, headNum, realNum)
-		 }
-
-	 }
-
-	 //1.Synchronous all the lost blocks from DorkDB to squash db
-	 if headNum > syncNum {
-		 d.log.Debugf("[sync pushed]: start sync lost blocks,start: %v,end:%v,real commit num " +
-		 	"is %v", syncNum+1, headNum, realNum)
-		 for i := syncNum+1; i <= headNum ; i++ {
-			 blk,err := d.ForkDB.FetchBlockFromMainBranch(i)
-			 if err != nil {
-				 desc := fmt.Sprintf("[sync pushed]: Failed to fetch the pushed block by num %v,the " +
-					 "error is %s", i, err)
-				 panic(desc)
-			 }
-			 d.log.Debugf("[sync pushed]: sync block,num: %v,blockNum: %v",
-			 	i, blk.(*prototype.SignedBlock).Id().BlockNum())
-			 err = d.ctrl.PushBlock(blk.(*prototype.SignedBlock),prototype.Skip_nothing)
-			 if err != nil {
-			 	desc := fmt.Sprintf("[sync pushed]: push the block which num is %v fail,error is %s", i, err)
-			 	panic(desc)
-			 }
-		 }
-
-	 }
-
-	 //2.Synchronous the lost commit blocks to squash db
-	 if realNum > num {
-		//Need synchronous commit
-		 d.log.Debugf("[sync commit] start sync commit block num %v ",realNum)
-		 d.ctrl.Commit(realNum)
-	 }
-
-}
-
-//Load commit block from block log when Replay
-func (d *DPoS) reloadCommitBlocks(blog *blocklog.BLog) []common.ISignedBlock {
-	if blog == nil {
-		return nil
-	}
-	if !blog.Empty() {
-		var (
-			i int64
-			blkSli  = make([]common.ISignedBlock,blog.Size())
-		)
-		for i = 0; i < blog.Size(); i++ {
+func (d *DPoS) handleBlockSync() {
+	var (
+		i int64
+		//commit blocks in block log
+		commitSli = make([]common.ISignedBlock, d.blog.Size())
+		//Fetch pushed blocks in snapshot
+		blkSli, _, _ = d.ForkDB.FetchBlocksSince(d.ForkDB.LastCommitted())
+	)
+	if d.blog.Size() > 0 {
+		for i = 0; i < d.blog.Size(); i++ {
 			blk := &prototype.SignedBlock{}
-			if err := blog.ReadBlock(blk,i); err != nil {
+			if err := d.blog.ReadBlock(blk, i); err != nil {
 				panic(err)
 			}
-			blkSli[i] = blk
+			commitSli[i] = blk
 		}
-		return blkSli
 	}
-	return nil
+
+	d.ctrl.SyncBlockDataToDB(blkSli, commitSli, d.ForkDB.LastCommitted().BlockNum(), d.ForkDB.Head())
 }

@@ -103,6 +103,22 @@ func testTableGreetings(a *assert.Assertions, table *ContractTable) {
 		encodedRecord(a, table, `["account40",40000,80000]`),
 		))
 
+	// update changing primary key
+	a.NoError(table.UpdateRecord(
+		encodedPrimaryKey(a, table, `"account41"`),
+		encodedRecord(a, table, `["accountXXXX",30000,70000]`),
+	))
+	data, err = table.GetRecord(encodedPrimaryKey(a, table, `"account41"`))
+	a.Error(err)
+	data, err = table.GetRecord(encodedPrimaryKey(a, table, `"accountXXXX"`))
+	a.NoError(err)
+	a.NotNil(data)
+
+	a.NoError(table.UpdateRecord(
+		encodedPrimaryKey(a, table, `"accountXXXX"`),
+		encodedRecord(a, table, `["account40",40000,80000]`),
+	))
+
 	// update non-existent records
 	a.Error(table.UpdateRecord(
 		encodedPrimaryKey(a, table, `"sldkfjs"`),

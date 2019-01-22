@@ -13,7 +13,7 @@ var VmTableCmd = func() *cobra.Command {
 		Use: "table",
 		Short: "query vm table content",
 		Example: "table owner_name contract_name table_name field_name field_begin field_end",
-		Args:    cobra.MinimumNArgs(6),
+		Args:    cobra.MinimumNArgs(3),
 		Run: queryTable,
 	}
 
@@ -23,20 +23,32 @@ var VmTableCmd = func() *cobra.Command {
 func queryTable(cmd *cobra.Command, args []string) {
 	c := cmd.Context["rpcclient"]
 	rpc := c.(grpcpb.ApiServiceClient)
+	argsLen := len(args)
+	if argsLen != 6 && argsLen != 3 {
+		fmt.Println("invalid parameter count, should be 3 or 6")
+		return
+	}
+
 	owner := args[0]
 	contract := args[1]
 	table := args[2]
-	field := args[3]
-	begin := args[4]
-	end := args[5]
+	field := "id"
+	begin := ""
+	end := ""
+
+	if argsLen == 6 {
+		field = args[3]
+		begin = args[4]
+		end = args[5]
+	}
 
 	req := &grpcpb.GetTableContentRequest{
-		Owner:owner,
-		Contranct:contract,
-		Table:table,
-		Field:field,
-		Begin:begin,
-		End:end,
+		Owner:     owner,
+		Contranct: contract,
+		Table:     table,
+		Field:     field,
+		Begin:     begin,
+		End:       end,
 	}
 	resp, err := rpc.QueryTableContent(context.Background(), req)
 	if err != nil {
@@ -45,4 +57,5 @@ func queryTable(cmd *cobra.Command, args []string) {
 		buf, _ := json.MarshalIndent(resp, "", "\t")
 		fmt.Println(fmt.Sprintf("queryTable detail: %s", buf))
 	}
+
 }

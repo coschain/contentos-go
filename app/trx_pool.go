@@ -948,12 +948,12 @@ func (c *TrxPool) Commit(num uint64) {
 
 func (c *TrxPool) VerifySig(name *prototype.AccountName, digest []byte, sig []byte) bool {
 	// public key from db
-	authorityWrap := table.NewSoAccountAuthorityObjectWrap(c.db, name)
-	if !authorityWrap.CheckExist() {
+	witnessWrap := table.NewSoWitnessWrap(c.db, name)
+	if !witnessWrap.CheckExist() {
 		return false
 	}
-	authority := authorityWrap.GetOwner()
-	if authority == nil {
+	dbPubKey := witnessWrap.GetSigningKey()
+	if dbPubKey == nil {
 		return false
 	}
 
@@ -973,11 +973,10 @@ func (c *TrxPool) VerifySig(name *prototype.AccountName, digest []byte, sig []by
 	result.Data = keyBuffer
 
 	// compare bytes
-	for _, pub := range authority.KeyAuths {
-		if bytes.Equal(pub.Key.Data,result.Data) {
-			return true
-		}
+	if bytes.Equal(dbPubKey.Data,result.Data) {
+		return true
 	}
+
 	return false
 }
 
@@ -987,4 +986,92 @@ func (c *TrxPool) Sign(priv *prototype.PrivateKeyType, digest []byte) []byte {
 		return nil
 	}
 	return res
+}
+
+//Sync blocks to squash db when node reStart
+//pushedBlk: the already pushed blocks
+//commitBlk: the already commit blocks what are stored in block log
+//realCommit: the latest commit number of block in block log
+//headBlk: the head block in main chain
+func (c *TrxPool) SyncBlockDataToDB (pushedBlk []common.ISignedBlock, commitBlk []common.ISignedBlock,
+	realCommit uint64, headBlk common.ISignedBlock) {
+	if headBlk == nil {
+		return
+	}
+
+	//Fetch the latest commit block number in squash db
+	num,err := c.db.GetCommitNum()
+	if err != nil {
+		c.log.Debug("[sync Block]: Failed to get latest commit block number")
+		return
+	}
+
+	//Fetch the real commit block number in chain
+	realNum := realCommit
+	//Fetch the head block number in chain
+	headNum := headBlk.Id().BlockNum()
+
+	//syncNum is the start number need to fetch from ForkDB
+	syncNum := num
+
+	//Reload lost commit blocks
+	if realNum > 0 && num < realNum {
+		cnt := uint64(len(commitBlk))
+		if cnt > 0  {
+			//Scene 1: The block data in squash db has been deleted,so need sync lost blocks to squash db
+			//Because ForkDB will not continue to store commit blocks,so we need load all commit blocks from block log,
+			//meanWhile add block to squash db
+			var start = num
+			if start >= cnt {
+				c.log.Errorf("[Reload commit] start index %v out range of reload block count %v",start,cnt)
+			}else {
+				c.log.Debugf("[Reload commit] start sync lost commit blocks from block log,db commit num is: " +
+					"%v,end:%v,real commit num is %v", start, headNum, realNum)
+				for i := start ; i < uint64(cnt); i++ {
+					blk := commitBlk[i]
+					c.log.Debugf("[Reload commit] push block,blockNum is: " +
+						"%v", blk.(*prototype.SignedBlock).Id().BlockNum())
+					err = c.PushBlock(blk.(*prototype.SignedBlock),prototype.Skip_nothing)
+					if err != nil {
+						desc := fmt.Sprintf("[Reload commit] push the block which num is %v fail,error " +
+							"is %s", i, err)
+						panic(desc)
+					}
+				}
+			}
+			syncNum = uint64(cnt)
+		}else {
+			c.log.Errorf("[Reload commit] Failed to get lost commit blocks from block log," +
+				"start: %v," + "end:%v,real commit num is %v", syncNum+1, headNum, realNum)
+		}
+
+	}
+
+	//1.Synchronous all the lost pushed blocks from ForkDB to squash db
+	if headNum > syncNum {
+		if headNum-syncNum > uint64(len(pushedBlk)) {
+			desc := fmt.Sprintf("[sync pushed]: the lost blocks range %v from forkDB is less than " +
+				"real lost range [%v %v] ",len(pushedBlk), syncNum+1, headNum)
+			panic(desc)
+		}
+		c.log.Debugf("[sync pushed]: start sync lost blocks,start: %v,end:%v,real commit num " +
+			"is %v", syncNum+1, headNum, realNum)
+		for i := range pushedBlk {
+			blk := pushedBlk[i]
+			c.log.Debugf("[sync pushed]: sync pushed block,blockNum is: " +
+				"%v", blk.(*prototype.SignedBlock).Id().BlockNum())
+			err = c.PushBlock(blk.(*prototype.SignedBlock),prototype.Skip_nothing)
+			if err != nil {
+				desc := fmt.Sprintf("[sync pushed]: push the block which num is %v fail,error is %s", i, err)
+				panic(desc)
+			}
+		}
+	}
+
+	//2.Synchronous the lost commit blocks to squash db
+	if realNum > num {
+		//Need synchronous commit
+		c.log.Debugf("[sync commit] start sync commit block num %v ",realNum)
+		c.Commit(realNum)
+	}
 }

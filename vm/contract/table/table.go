@@ -1,6 +1,7 @@
 package table
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -85,19 +86,30 @@ func (t *ContractTable) UpdateRecord(encodedPK []byte, encodedRecord []byte) err
 	if err != nil {
 		return err
 	}
-	pk, err := t.primaryKey(encodedPK)
+	oldPk, err := t.primaryKey(encodedPK)
 	if err != nil {
 		return err
 	}
+
+	newPkVal := t.fieldValue(reflect.ValueOf(newRec), t.abiTable.PrimaryIndex()).Interface()
+	newPk := kope.AppendKey(t.primary, newPkVal)
+	pkChanged := bytes.Compare(oldPk, newPk) != 0
+
 	b := t.db.NewBatch()
 	defer t.db.DeleteBatch(b)
-	if err = b.Put(pk, encodedRecord); err != nil {
+
+	if pkChanged {
+		if err = b.Delete(oldPk); err != nil {
+			return err
+		}
+	}
+	if err = b.Put(newPk, encodedRecord); err != nil {
 		return err
 	}
-	if err = t.deleteSecondaryIndices(b, oldRec, pk); err != nil {
+	if err = t.deleteSecondaryIndices(b, oldRec, oldPk); err != nil {
 		return err
 	}
-	if err = t.writeSecondaryIndices(b, newRec, pk); err != nil {
+	if err = t.writeSecondaryIndices(b, newRec, newPk); err != nil {
 		return err
 	}
 	return b.Write()
@@ -330,14 +342,15 @@ func NewContractTables(owner string, contract string, abi abi.IContractABI, db i
 	count := abi.TablesCount()
 	for i := 0; i < count; i++ {
 		abiTable := abi.TableByIndex(i)
+		tablePrefix := kope.AppendKey(prefix, abiTable.Name())
 		si := abiTable.SecondaryIndices()
 		sk := make([]kope.Key, len(si))
 		for j := range sk {
-			sk[j] = kope.AppendKey(prefix, "ix", si[j])
+			sk[j] = kope.AppendKey(tablePrefix, "ix", si[j])
 		}
 		tables.tables[abiTable.Name()] = &ContractTable{
 			abiTable: abiTable,
-			primary: kope.AppendKey(prefix, "pk"),
+			primary: kope.AppendKey(tablePrefix, "pk"),
 			secondaries: sk,
 			db: db,
 		}
