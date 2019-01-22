@@ -8,7 +8,8 @@ PACKAGES= github.com/coschain/contentos-go/cmd/wallet-cli/commands \
 	github.com/coschain/contentos-go/p2p/message/types \
 	github.com/coschain/contentos-go/tests/db \
 	github.com/coschain/contentos-go/vm/contract/abi \
-	github.com/coschain/contentos-go/vm/contract/table
+	github.com/coschain/contentos-go/vm/contract/table \
+	github.com/coschain/contentos-go/vm
 
 
 COSD = github.com/coschain/contentos-go/cmd/cosd
