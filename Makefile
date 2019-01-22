@@ -1,17 +1,24 @@
 PACKAGES= github.com/coschain/contentos-go/cmd/wallet-cli/commands \
 	github.com/coschain/contentos-go/cmd/wallet-cli/wallet \
-	github.com/coschain/contentos-go/dandelion \
-    github.com/coschain/contentos-go/economist
+	github.com/coschain/contentos-go/common/encoding/kope \
+	github.com/coschain/contentos-go/common/encoding/vme \
+	github.com/coschain/contentos-go/common/logging \
+	github.com/coschain/contentos-go/db/table \
+	github.com/coschain/contentos-go/economist \
+	github.com/coschain/contentos-go/p2p/message/types \
+	github.com/coschain/contentos-go/tests/db \
+	github.com/coschain/contentos-go/vm/contract/abi \
+	github.com/coschain/contentos-go/vm/contract/table
+
 
 COSD = github.com/coschain/contentos-go/cmd/cosd
 WALLET = github.com/coschain/contentos-go/cmd/wallet-cli
 
 test:
 	@echo "--> Running go test"
-	@GO111MODULE=on go test -race -coverprofile=cc0.txt -covermode=atomic github.com/coschain/contentos-go/vm/contract/table
+	@GO111MODULE=on go test -coverprofile=cc0.txt $(PACKAGES)
 	@echo "--> Total code coverage"
 	@GO111MODULE=on go run utils/totalcov/main.go . cc0.txt >coverage.txt
-	# @GO111MODULE=on go test  $(PACKAGES)
 
 test_cover:
 	@echo "--> Running go test with coverage"
