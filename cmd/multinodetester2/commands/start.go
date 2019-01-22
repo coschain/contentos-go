@@ -83,6 +83,7 @@ func makeNode(index int) (*node.Node, node.Config) {
 	fmt.Println("Name: ", cfg.Name)
 	fmt.Println("p2p node port: ", cfg.P2P.NodePort)
 	fmt.Println("p2p consensus port: ", cfg.P2P.NodeConsensusPort)
+	fmt.Println("consensus type: ", cfg.Consensus.Type)
 	return app, cfg
 }
 
