@@ -9,6 +9,7 @@ WALLET = github.com/coschain/contentos-go/cmd/wallet-cli
 test:
 	@echo "--> Running go test"
 	@GO111MODULE=on go test -race -coverprofile=coverage.txt -covermode=atomic github.com/coschain/contentos-go/vm/contract/table
+	@GO111MODULE=on go run utils/totalcov/main.go . coverage.txt >coverage.txt
 	# @GO111MODULE=on go test  $(PACKAGES)
 
 test_cover:
