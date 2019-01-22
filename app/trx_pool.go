@@ -17,6 +17,7 @@ import (
 	"strconv"
 	"github.com/coschain/contentos-go/common/crypto/secp256k1"
 	"github.com/coschain/contentos-go/common/crypto"
+	"sync"
 	"time"
 )
 
@@ -47,6 +48,7 @@ type TrxPool struct {
 	//currentTrxInBlock      int16
 	havePendingTransaction bool
 	shuffle                common.ShuffleFunc
+	lock    sync.RWMutex
 }
 
 func (c *TrxPool) getDb() (iservices.IDatabaseService, error) {
@@ -87,7 +89,7 @@ func (c *TrxPool) SetLog(log iservices.ILog) {
 
 // service constructor
 func NewController(ctx *node.ServiceContext) (*TrxPool, error) {
-	return &TrxPool{ctx: ctx}, nil
+	return &TrxPool{ctx: ctx, lock:sync.RWMutex{}}, nil
 }
 
 func (c *TrxPool) Start(node *node.Node) error {
@@ -131,7 +133,8 @@ func (c *TrxPool) setProducing(b bool) {
 }
 
 func (c *TrxPool) PushTrxToPending(trx *prototype.SignedTransaction) {
-
+    c.lock.Lock()
+    defer c.lock.Unlock()
 	if !c.havePendingTransaction {
 		c.db.BeginTransaction()
 		c.havePendingTransaction = true
@@ -310,6 +313,8 @@ func (c *TrxPool) GenerateAndApplyBlock(witness string, pre *prototype.Sha256, t
 
 func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp uint32,
 	priKey *prototype.PrivateKeyType, skip prototype.SkipFlag) *prototype.SignedBlock {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
 	oldSkip := c.skip
 	defer func() {
 		c.skip = oldSkip
