@@ -3,6 +3,7 @@ PACKAGES= github.com/coschain/contentos-go/cmd/wallet-cli/commands \
 	github.com/coschain/contentos-go/common/encoding/kope \
 	github.com/coschain/contentos-go/common/encoding/vme \
 	github.com/coschain/contentos-go/common/logging \
+	github.com/coschain/contentos-go/db/storage \
 	github.com/coschain/contentos-go/db/table \
 	github.com/coschain/contentos-go/economist \
 	github.com/coschain/contentos-go/p2p/message/types \
