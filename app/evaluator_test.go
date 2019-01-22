@@ -9,7 +9,11 @@ import (
 	"github.com/coschain/contentos-go/mylog"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/stretchr/testify/assert"
+	"io/ioutil"
+	"math/rand"
 	"os"
+	"path/filepath"
+	"strconv"
 	"testing"
 	"time"
 )
@@ -23,12 +27,11 @@ var (
 	SINGLE_ID int32 = 1
 )
 
-func Test_ApplyAccountCreate(t *testing.T) {
-	clearDB()
+func tryCreateAccount(t *testing.T, acc string, ctrl *TrxPool) {
 	acop := &prototype.AccountCreateOperation{
 		Fee:            prototype.NewCoin(1),
 		Creator:        &prototype.AccountName{Value: "initminer"},
-		NewAccountName: &prototype.AccountName{Value: "alice"},
+		NewAccountName: &prototype.AccountName{Value: acc},
 		Owner: &prototype.Authority{
 			WeightThreshold: 1,
 			AccountAuths: []*prototype.KvAccountAuth{
@@ -53,22 +56,25 @@ func Test_ApplyAccountCreate(t *testing.T) {
 	op1.Op1 = acop
 	op.Op = op1
 
-	// init context
-
-	db := startDB()
-	defer db.Close()
-	c := startController(db)
-
-	ctx := &ApplyContext{db: db, control: c}
+	ctx := &ApplyContext{db: ctrl.db, control: ctrl}
 	ev := &AccountCreateEvaluator{ctx: ctx, op: op.GetOp1()}
 	ev.Apply()
 
 	// verify
 	name := &prototype.AccountName{Value: "alice"}
-	accountWrap := table.NewSoAccountWrap(db, name)
+	accountWrap := table.NewSoAccountWrap(ctrl.db, name)
 	if !accountWrap.CheckExist() {
 		t.Error("create new account failed ")
 	}
+}
+
+func Test_ApplyAccountCreate(t *testing.T) {
+	// init context
+	db := startDB()
+	defer clearDB(db)
+
+	c := startController(db)
+	tryCreateAccount(t, "alice", c)
 }
 
 func Test_ApplyTransfer(t *testing.T) {
@@ -79,8 +85,11 @@ func Test_ApplyTransfer(t *testing.T) {
 	}
 
 	db := startDB()
-	defer db.Close()
+	defer clearDB(db)
+
 	c := startController(db)
+
+	tryCreateAccount(t, "alice", c)
 
 	alice := &prototype.AccountName{Value: "alice"}
 	aliceWrap := table.NewSoAccountWrap(db, alice)
@@ -115,7 +124,6 @@ func Test_ApplyTransfer(t *testing.T) {
 }
 
 func TestPostEvaluator_ApplyNormal(t *testing.T) {
-	clearDB()
 	operation := &prototype.PostOperation{
 		Uuid:          uint64(111),
 		Owner:         &prototype.AccountName{Value: "initminer"},
@@ -125,7 +133,7 @@ func TestPostEvaluator_ApplyNormal(t *testing.T) {
 		Beneficiaries: []*prototype.BeneficiaryRouteType{},
 	}
 	db := startDB()
-	defer db.Close()
+	defer clearDB(db)
 
 	op := &prototype.Operation{}
 	opPost := &prototype.Operation_Op6{}
@@ -154,7 +162,6 @@ func TestPostEvaluator_ApplyNormal(t *testing.T) {
 }
 
 func TestPostEvaluator_ApplyPostExistId(t *testing.T) {
-	clearDB()
 	operation := &prototype.PostOperation{
 		Uuid:          uint64(111),
 		Owner:         &prototype.AccountName{Value: "initminer"},
@@ -164,7 +171,7 @@ func TestPostEvaluator_ApplyPostExistId(t *testing.T) {
 		Beneficiaries: []*prototype.BeneficiaryRouteType{},
 	}
 	db := startDB()
-	defer db.Close()
+	defer clearDB(db)
 
 	op := &prototype.Operation{}
 	opPost := &prototype.Operation_Op6{}
@@ -198,7 +205,6 @@ func TestPostEvaluator_ApplyPostExistId(t *testing.T) {
 }
 
 func TestPostEvaluator_ApplyPostFrequently(t *testing.T) {
-	clearDB()
 	operation := &prototype.PostOperation{
 		Uuid:          uint64(111),
 		Owner:         &prototype.AccountName{Value: "initminer"},
@@ -208,7 +214,7 @@ func TestPostEvaluator_ApplyPostFrequently(t *testing.T) {
 		Beneficiaries: []*prototype.BeneficiaryRouteType{},
 	}
 	db := startDB()
-	defer db.Close()
+	defer clearDB(db)
 
 	op := &prototype.Operation{}
 	opPost := &prototype.Operation_Op6{}
@@ -251,7 +257,6 @@ func TestPostEvaluator_ApplyPostFrequently(t *testing.T) {
 }
 
 func TestReplyEvaluator_ApplyNormal(t *testing.T) {
-	clearDB()
 	post_operation := &prototype.PostOperation{
 		Uuid:          uint64(111),
 		Owner:         &prototype.AccountName{Value: "initminer"},
@@ -261,7 +266,7 @@ func TestReplyEvaluator_ApplyNormal(t *testing.T) {
 		Beneficiaries: []*prototype.BeneficiaryRouteType{},
 	}
 	db := startDB()
-	defer db.Close()
+	defer clearDB(db)
 
 	op := &prototype.Operation{}
 	opPost := &prototype.Operation_Op6{}
@@ -312,7 +317,6 @@ func TestReplyEvaluator_ApplyNormal(t *testing.T) {
 }
 
 func TestVoteEvaluator_ApplyNormal(t *testing.T) {
-	clearDB()
 	post_operation := &prototype.PostOperation{
 		Uuid:          uint64(111),
 		Owner:         &prototype.AccountName{Value: "initminer"},
@@ -322,7 +326,7 @@ func TestVoteEvaluator_ApplyNormal(t *testing.T) {
 		Beneficiaries: []*prototype.BeneficiaryRouteType{},
 	}
 	db := startDB()
-	defer db.Close()
+	defer clearDB(db)
 
 	op := &prototype.Operation{}
 	opPost := &prototype.Operation_Op6{}
@@ -368,7 +372,8 @@ func TestVoteEvaluator_ApplyNormal(t *testing.T) {
 }
 
 func startDB() iservices.IDatabaseService {
-	db, err := storage.NewDatabase(dbPath)
+	dir, _ := ioutil.TempDir("", "db")
+	db, err := storage.NewDatabase(filepath.Join(dir, strconv.FormatUint(rand.Uint64(), 16)))
 	if err != nil {
 		return nil
 	}
@@ -380,6 +385,12 @@ func startDB() iservices.IDatabaseService {
 	return db
 }
 
+func clearDB(db iservices.IDatabaseService) {
+	db.Close()
+	dir, _ := ioutil.TempDir("", "db")
+	os.RemoveAll(dir)
+}
+
 func startController(db iservices.IDatabaseService) *TrxPool {
 	log, err := mylog.NewMyLog(logPath, mylog.DebugLevel, 0)
 	mustNoError(err, "new log error")
@@ -388,8 +399,4 @@ func startController(db iservices.IDatabaseService) *TrxPool {
 	c.SetBus(EventBus.New())
 	c.Open()
 	return c
-}
-
-func clearDB() {
-	os.RemoveAll(dbPath)
 }

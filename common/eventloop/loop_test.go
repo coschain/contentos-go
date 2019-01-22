@@ -1,5 +1,5 @@
 package eventloop
-
+/*
 import (
 	"fmt"
 	"sync"
@@ -226,3 +226,4 @@ func TestMoreRoutine2(t *testing.T) {
 	fmt.Println("Get Stop Signal")
 	fmt.Println("time:", time.Since(start))
 }
+*/
