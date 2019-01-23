@@ -121,8 +121,8 @@ func MaxSharedKeyLength(pub *PublicKey) int {
 func (prv *PrivateKey) GenerateShared(pub *PublicKey, skLen, macLen int) (sk []byte, err error) {
 	if prv.PublicKey.Curve != pub.Curve {
 		fmt.Println("generate key error here")
-		fmt.Println("prv.PublicKey.Curve：%+v", prv.PublicKey.Curve.Params())
-		fmt.Println("pub.Curve: %+v", pub.Curve.Params())
+		fmt.Printf("prv.PublicKey.Curve：%+v\n", prv.PublicKey.Curve.Params())
+		fmt.Printf("pub.Curve: %+v\n", pub.Curve.Params())
 		return nil, ErrInvalidCurve
 	}
 	if skLen+macLen > MaxSharedKeyLength(pub) {

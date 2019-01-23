@@ -107,7 +107,7 @@ func (w *CosVM) readModule() (*wasm.Module, error) {
 	return vmModule, err
 }
 
-func (w *CosVM) Run() (ret uint32, err error) {
+func (w *CosVM) runEntry(entryName string) (ret uint32, err error) {
 	defer func() {
 		if e := recover(); e != nil {
 			ret = 1
@@ -130,7 +130,7 @@ func (w *CosVM) Run() (ret uint32, err error) {
 	vm.InitGasTable(w.ctx.Gas.Value)
 	var entryIndex = -1
 	for name, entry := range vmModule.Export.Entries {
-		if name == "apply" && entry.Kind == wasm.ExternalFunction {
+		if name == entryName && entry.Kind == wasm.ExternalFunction {
 			entryIndex = int(entry.Index)
 		}
 	}
@@ -140,6 +140,14 @@ func (w *CosVM) Run() (ret uint32, err error) {
 		err = e
 	}
 	return
+}
+
+func (w *CosVM) RunMain() (ret uint32, err error) {
+	return w.runEntry("main")
+}
+
+func (w *CosVM) Run() (ret uint32, err error) {
+	return w.runEntry("apply")
 }
 
 func (w *CosVM) SpentGas() uint64 {

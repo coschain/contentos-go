@@ -1006,6 +1006,7 @@ func (sabft *SABFT) MaybeProduceBlock() {
 
 	if err != nil {
 		sabft.log.Error("[SABFT] generateAndApplyBlock error: ", err)
+		sabft.Unlock()
 		return
 	}
 	if _, ok := sabft.Ticker.(*Timer); ok {

@@ -1,25 +1,6 @@
 package rpc
 
-import (
-	"bytes"
-	"context"
-	"fmt"
-	"github.com/coschain/contentos-go/common/constants"
-	"github.com/coschain/contentos-go/common/logging"
-	"github.com/coschain/contentos-go/prototype"
-	"github.com/coschain/contentos-go/rpc/mock_grpcpb"
-	"github.com/coschain/contentos-go/rpc/pb"
-	"github.com/golang/mock/gomock"
-	"hash/crc32"
-	"math"
-	"math/rand"
-	"net/http"
-	"os"
-	"strings"
-	"testing"
-	"time"
-)
-
+/*
 var asc grpcpb.ApiServiceClient
 
 func TestMain(m *testing.M) {
@@ -476,12 +457,12 @@ func randStr(n int) string {
 }
 
 func RandomString(randLength int, randType string) (result string) {
-	/**
-		eg:
-		RandomString(8, "A")
-    	RandomString(8, "a0")
-    	RandomString(20, "Aa0")
-	*/
+
+	//eg:
+	//RandomString(8, "A")
+	//RandomString(8, "a0")
+	//RandomString(20, "Aa0")
+
 
 	var num string = "0123456789"
 	var lower string = "abcdefghijklmnopqrstuvwxyz"
@@ -540,3 +521,5 @@ func http_client(rtype, url, reqJson string) error {
 
 	return nil
 }
+
+*/

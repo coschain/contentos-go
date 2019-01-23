@@ -1,5 +1,5 @@
 extern "C" {
-    long long get_balance_by_name(char*, int);
+    long long get_user_balance(char*, int);
     long long get_contract_balance(char*, int, char*, int);
     void read_contract_owner(char*, int);
     void read_contract_caller(char*, int);
@@ -9,7 +9,7 @@ extern "C" {
 
     int main() {
         char name[] = "initminer";
-        long long balance = get_balance_by_name(name, 9);
+        long long balance = get_user_balance(name, 9);
         print_uint(balance);
         char contract_owner[] = "initminer";
         char cname[] = "hello";

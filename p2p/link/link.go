@@ -162,7 +162,7 @@ func (this *Link) Tx(msg types.Message, magic uint32) error {
 	sink := common.NewZeroCopySink(nil)
 	err := types.WriteMessage(sink, msg, magic)
 	if err != nil {
-		return errors.New( fmt.Sprintf("[p2p] error serialize messge ", err) )
+		return errors.New( fmt.Sprintf("[p2p] error serialize messge: %v", err) )
 	}
 
 	payload := sink.Bytes()

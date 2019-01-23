@@ -1,5 +1,5 @@
 package node
-
+/*
 import (
 	"github.com/coschain/contentos-go/config"
 	"testing"
@@ -30,3 +30,4 @@ func TestNodeLifeCycle(t *testing.T) {
 	}
 
 }
+*/

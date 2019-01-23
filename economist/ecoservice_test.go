@@ -10,16 +10,18 @@ import (
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/stretchr/testify/assert"
+	"io/ioutil"
+	"math/rand"
 	"os"
+	"path/filepath"
+	"strconv"
 	"testing"
 )
 
-const (
-	dbPath = "./pbTool.db"
-)
 
 func startDB() iservices.IDatabaseService {
-	db, err := storage.NewDatabase(dbPath)
+	dir, _ := ioutil.TempDir("", "db")
+	db, err := storage.NewDatabase(filepath.Join(dir, strconv.FormatUint(rand.Uint64(), 16)))
 	if err != nil {
 		return nil
 	}
@@ -31,6 +33,12 @@ func startDB() iservices.IDatabaseService {
 	return db
 }
 
+func clearDB(db iservices.IDatabaseService) {
+	db.Close()
+	dir, _ := ioutil.TempDir("", "db")
+	os.RemoveAll(dir)
+}
+
 func startController(db iservices.IDatabaseService) *app.TrxPool {
 	c, _ := app.NewController(nil, nil)
 	c.SetDB(db)
@@ -39,14 +47,10 @@ func startController(db iservices.IDatabaseService) *app.TrxPool {
 	return c
 }
 
-func clearDB() {
-	_ = os.RemoveAll(dbPath)
-}
-
 func TestEconomist_Do(t *testing.T) {
-	clearDB()
 	db := startDB()
-	defer db.Close()
+	defer clearDB(db)
+
 	myassert := assert.New(t)
 
 	c := startController(db)
