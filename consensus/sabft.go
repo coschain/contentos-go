@@ -366,6 +366,7 @@ func (sabft *SABFT) start() {
 
 			if err != nil {
 				sabft.log.Error("[SABFT] generateAndApplyBlock error: ", err)
+				sabft.Unlock()
 				continue
 			}
 			sabft.prodTimer.Reset(timeToNextSec())

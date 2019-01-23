@@ -24,7 +24,7 @@ const (
 var (
 	MinimalKey        = &minKeyPlaceholder
 	MaximumKey        = &maxKeyPlaceholder
-	minKeyPlaceholder = "I'm lesser than all real keys"
+	minKeyPlaceholder = "I'm less than all real keys"
 	maxKeyPlaceholder = "I'm greater than all real keys"
 	separator         = []byte{0, extSeparator}
 	listBegin         = []byte{0, extListBegin}
