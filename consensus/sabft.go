@@ -305,7 +305,7 @@ func (sabft *SABFT) start() {
 		case trxFn := <-sabft.trxCh:
 			trxFn()
 			continue
-		case pendingFn := <- d.pendingCh:
+		case pendingFn := <- sabft.pendingCh:
 			pendingFn()
 			continue
 		case <-sabft.prodTimer.C:
