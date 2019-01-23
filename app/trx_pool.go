@@ -133,8 +133,12 @@ func (c *TrxPool) setProducing(b bool) {
 }
 
 func (c *TrxPool) PushTrxToPending(trx *prototype.SignedTransaction) {
-    c.lock.Lock()
-    defer c.lock.Unlock()
+   c.addTrxToPending(trx,false)
+}
+
+func (c *TrxPool) addTrxToPending(trx *prototype.SignedTransaction,isVerified bool) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
 	if !c.havePendingTransaction {
 		c.db.BeginTransaction()
 		c.havePendingTransaction = true
@@ -144,6 +148,14 @@ func (c *TrxPool) PushTrxToPending(trx *prototype.SignedTransaction) {
 	trxWrp.SigTrx = trx
 	trxWrp.Receipt = &prototype.TransactionReceiptWithInfo{}
 
+	if !isVerified {
+		//verify the signature
+		trxContext := NewTrxContext(trxWrp, c.db)
+		trx.Validate()
+		tmpChainId := prototype.ChainId{Value: 0}
+		mustNoError(trxContext.InitSigState(tmpChainId), "signature export error")
+		trxContext.VerifySignature()
+	}
 	c.pendingTx = append(c.pendingTx, trxWrp)
 }
 
@@ -195,7 +207,7 @@ func (c *TrxPool) pushTrx(trx *prototype.SignedTransaction) *prototype.Transacti
 	// start a sub undo session for applyTransaction
 	c.db.BeginTransaction()
 
-	c.applyTransactionInner(trxEst)
+	c.applyTransactionInner(trxEst,true)
 	c.pendingTx = append(c.pendingTx, trxEst)
 
 	// commit sub session
@@ -284,7 +296,7 @@ func (c *TrxPool) restorePending(pending []*prototype.EstimateTrxResult) {
 
 		objWrap := table.NewSoTransactionObjectWrap(c.db, id)
 		if !objWrap.CheckExist() {
-			c.PushTrxToPending(tw.SigTrx)
+			c.addTrxToPending(tw.SigTrx,true)
 		}
 	}
 }
@@ -365,13 +377,10 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 	c.havePendingTransaction = true
 
 	var postponeTrx uint64 = 0
-    gCnt,applyNum := len(c.pendingTx),0
-	s := time.Now()
 	isFinish := false
 	time.AfterFunc(2500*time.Millisecond,func() {
 		isFinish = true
 	})
-	fmt.Printf("[Generate]:start apply trx，count in pending is %v,the block number is %d \n", len(c.pendingTx),bNum)
 	for _, trxWraper := range c.pendingTx {
 		if isFinish {
 			break
@@ -390,19 +399,16 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 				if err := recover(); err != nil {
 					mustNoError(c.db.EndTransaction(false), "EndTransaction error")
 				}
+
 			}()
-			applyNum++
 			c.db.BeginTransaction()
-			c.applyTransactionInner(trxWraper)
+			c.applyTransactionInner(trxWraper,false)
 			mustNoError(c.db.EndTransaction(true), "EndTransaction error")
 			totalSize += uint32(proto.Size(trxWraper))
 			signBlock.Transactions = append(signBlock.Transactions, trxWraper.ToTrxWrapper())
 			//c.currentTrxInBlock++
 		}()
 	}
-	e := time.Now()
-	fmt.Printf("apply range cost time is %v,gen count is %v ,apply number is %v,total count " +
-		"in pending is %v \n ",e.Sub(s).Seconds(), gCnt, applyNum, len(c.pendingTx))
 	if postponeTrx > 0 {
 		//c.log.GetLog().Warnf("postponed %d trx due to max block size", postponeTrx)
 	}
@@ -465,12 +471,12 @@ func (c *TrxPool) notifyTrxApplyResult(trx *prototype.SignedTransaction, res boo
 }
 
 func (c *TrxPool) applyTransaction(trxEst *prototype.EstimateTrxResult) {
-	c.applyTransactionInner(trxEst)
+	c.applyTransactionInner(trxEst, c.skip&prototype.Skip_transaction_signatures == 0)
 	// @ not use yet
 	//c.notifyTrxPostExecute(trxWrp.SigTrx)
 }
 
-func (c *TrxPool) applyTransactionInner(trxEst *prototype.EstimateTrxResult) {
+func (c *TrxPool) applyTransactionInner(trxEst *prototype.EstimateTrxResult,isNeedVerify bool) {
 	trxContext := NewTrxContext(trxEst, c.db)
 	defer func() {
 		if err := recover(); err != nil {
@@ -496,7 +502,7 @@ func (c *TrxPool) applyTransactionInner(trxEst *prototype.EstimateTrxResult) {
 	transactionObjWrap := table.NewSoTransactionObjectWrap(c.db, currentTrxId)
 	mustSuccess(!transactionObjWrap.CheckExist(), "Duplicate transaction check failed")
 
-	if c.skip&prototype.Skip_transaction_signatures == 0 {
+	if isNeedVerify {
 		tmpChainId := prototype.ChainId{Value: 0}
 		mustNoError(trxContext.InitSigState(tmpChainId), "signature export error")
 		trxContext.VerifySignature()
