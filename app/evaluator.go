@@ -584,19 +584,24 @@ func (ev *ContractApplyEvaluator) Apply() {
 
 	cosVM := vm.NewCosVM(vmCtx, ev.ctx.db, ev.ctx.control.GetProps(), logrus.New())
 
+	ev.ctx.db.BeginTransaction()
 	ret, err := cosVM.Run()
 	spentGas := cosVM.SpentGas()
 	// need extra query db, is it a good way or should I pass account object as parameter?
 	// deductgasfee and usertranfer could be panic (rarely, I can't image how it happens)
 	// the panic should catch then return or bubble it ?
-	vmCtx.Injector.DeductGasFee(op.Caller.Value, spentGas)
+
 	if err != nil {
 		vmCtx.Injector.Error(ret, err.Error())
+		vmCtx.Injector.AddOpReceipt(prototype.StatusErrorVmOp,spentGas,err.Error())
+		ev.ctx.db.EndTransaction(false)
 	} else {
 		if op.Amount.Value > 0 {
 			vmCtx.Injector.TransferFromUserToContract(op.Caller.Value, op.Contract, op.Owner.Value, op.Amount.Value)
 		}
+		ev.ctx.db.EndTransaction(true)
 	}
+	vmCtx.Injector.RecordGasFee(op.Caller.Value, spentGas)
 }
 
 func (ev *InternalContractApplyEvaluator) Apply() {
@@ -638,14 +643,23 @@ func (ev *InternalContractApplyEvaluator) Apply() {
 
 	vmCtx := vmcontext.NewContextFromInternalApplyOp(op, code, abiInterface, tables, ev.ctx.trxCtx)
 	cosVM := vm.NewCosVM(vmCtx, ev.ctx.db, ev.ctx.control.GetProps(), logrus.New())
-	ret, err := cosVM.Run()
 
-	vmCtx.Injector.DeductGasFee(op.FromCaller.Value, cosVM.SpentGas())
+	ev.ctx.db.BeginTransaction()
+	ret, err := cosVM.Run()
+	spentGas := cosVM.SpentGas()
+
 	if err != nil {
 		vmCtx.Injector.Error(ret, err.Error())
+		vmCtx.Injector.AddOpReceipt(prototype.StatusErrorVmOp,spentGas,err.Error())
+		ev.ctx.db.EndTransaction(false)
+		vmCtx.Injector.RecordGasFee(op.FromCaller.Value, spentGas)
+		// throw a panic, this panic should recover by upper contract vm context
+		opAssertE(err,"internal contract apply failed")
 	} else {
 		if op.Amount.Value > 0 {
 			vmCtx.Injector.TransferFromContractToContract(op.FromContract, op.FromOwner.Value, op.ToContract, op.ToOwner.Value, op.Amount.Value)
 		}
+		ev.ctx.db.EndTransaction(true)
+		vmCtx.Injector.RecordGasFee(op.FromCaller.Value, spentGas)
 	}
 }

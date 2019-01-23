@@ -24,6 +24,7 @@ func (e *Exception) ToString() string  {
 }
 
 const StatusSuccess  = 200
+const StatusDeductGas  = 201
 const StatusError  = 500
 
 // trx error
@@ -41,7 +42,7 @@ const StatusErrorTrxDuplicateCheck = 100010
 const StatusErrorTrxExpire = 100011
 const StatusErrorTrxMerkleCheck = 100012
 const StatusErrorTrxApplyInvoice = 100013
-const StatusErrorTrxMaxUndo = 100013
+const StatusErrorTrxMaxUndo = 100014
 
 // Db error
 const StatusErrorDbEndTrx = 200000
@@ -53,6 +54,7 @@ const StatusErrorDbExist = 200005
 const StatusErrorDbDelete = 200006
 
 // op error
-const StatusErrorOp = 300000
-const StatusErrorOpWithVmRun = 300001
-const StatusErrorVmOp = 300002
+const StatusOpNotExcute = 300000
+const StatusErrorOp = 300001
+const StatusErrorOpWithVmRun = 300002
+const StatusErrorVmOp = 300003

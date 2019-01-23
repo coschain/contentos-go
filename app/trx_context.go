@@ -16,10 +16,11 @@ type TrxContext struct {
 	msg         []string
 	recoverPubs []*prototype.PublicKeyType
 	control     iservices.ITrxPool
+	gasMap		map[string]uint64
 }
 
 func NewTrxContext(wrapper *prototype.EstimateTrxResult, db iservices.IDatabaseService, control iservices.ITrxPool) *TrxContext {
-	return &TrxContext{Wrapper: wrapper, db: db, control: control }
+	return &TrxContext{Wrapper: wrapper, db: db, control: control, gasMap:make(map[string]uint64) }
 }
 
 func (p *TrxContext) InitSigState(cid prototype.ChainId) error {
@@ -55,6 +56,11 @@ func (p *TrxContext) Error(code uint32, msg string) {
 	//p.Wrapper.Receipt.Status = 500
 }
 
+func (p *TrxContext) AddOpReceipt(code uint32,gas uint64,msg string) {
+	r := &prototype.OperationReceiptWithInfo{Status:code,GasUsage:gas,VmConsole:msg}
+	p.Wrapper.Receipt.OpResults = append(p.Wrapper.Receipt.OpResults, r)
+}
+
 func (p *TrxContext) Log(msg string) {
 	fmt.Print(msg)
 	p.Wrapper.Receipt.OpResults = append(p.Wrapper.Receipt.OpResults, &prototype.OperationReceiptWithInfo{VmConsole: msg})
@@ -75,13 +81,36 @@ func (p *TrxContext) RequireAuth(name string) (err error) {
 }
 
 func (p *TrxContext) DeductGasFee(caller string, spent uint64) {
+
 	acc := table.NewSoAccountWrap(p.db, &prototype.AccountName{Value: caller})
 	balance := acc.GetBalance().Value
 	if balance < spent {
 		panic(fmt.Sprintf("Endanger deduction Operation: %s, %d", caller, spent))
 	}
 	acc.MdBalance(&prototype.Coin{Value: balance - spent})
-	return
+}
+
+func (p *TrxContext) DeductAllGasFee() bool {
+
+	useGas := false
+	for caller,spent := range p.gasMap {
+		acc := table.NewSoAccountWrap(p.db, &prototype.AccountName{Value: caller})
+		balance := acc.GetBalance().Value
+		if balance < spent {
+			panic(fmt.Sprintf("Endanger deduction Operation: %s, %d", caller, spent))
+		}
+		acc.MdBalance(&prototype.Coin{Value: balance - spent})
+		useGas = true
+	}
+	return useGas
+}
+
+func (p *TrxContext) RecordGasFee(caller string, spent uint64) {
+	p.gasMap[caller] = spent
+}
+
+func (p *TrxContext) HasGasFee() bool {
+	return len(p.gasMap) > 0
 }
 
 // vm transfer just modify db data
