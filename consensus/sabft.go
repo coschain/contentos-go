@@ -90,6 +90,7 @@ type SABFT struct {
 	readyToProduce bool
 	prodTimer      *time.Timer
 	trxCh          chan func()
+	pendingCh      chan func()
 	blkCh          chan common.ISignedBlock
 	bootstrap      bool
 	slot           uint64
@@ -114,6 +115,7 @@ func NewSABFT(ctx *node.ServiceContext) *SABFT {
 		validators: make([]*publicValidator, 0, 1),
 		prodTimer:  time.NewTimer(1 * time.Millisecond),
 		trxCh:      make(chan func()),
+		pendingCh:  make(chan func()),
 		blkCh:      make(chan common.ISignedBlock),
 		ctx:        ctx,
 		stopCh:     make(chan struct{}),
@@ -303,6 +305,9 @@ func (sabft *SABFT) start() {
 		case trxFn := <-sabft.trxCh:
 			trxFn()
 			continue
+		case pendingFn := <- d.pendingCh:
+			pendingFn()
+			continue
 		case <-sabft.prodTimer.C:
 			if !sabft.scheduleProduce() {
 				continue
@@ -469,6 +474,14 @@ func (sabft *SABFT) PushTransaction(trx common.ISignedTransaction, wait bool, br
 	} else {
 		return nil
 	}
+}
+
+func (sabft *SABFT) PushTransactionToPending(trx common.ISignedTransaction) {
+	sabft.pendingCh <- func(){
+		sabft.ctrl.PushTrxToPending(trx.(*prototype.SignedTransaction))
+		sabft.p2p.Broadcast(trx.(*prototype.SignedTransaction))
+	}
+
 }
 
 func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {

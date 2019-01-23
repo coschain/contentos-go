@@ -367,8 +367,15 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 	var postponeTrx uint64 = 0
     gCnt,applyNum := len(c.pendingTx),0
 	s := time.Now()
+	isFinish := false
+	time.AfterFunc(2500*time.Millisecond,func() {
+		isFinish = true
+	})
 	fmt.Printf("[Generate]:start apply trx，count in pending is %v,the block number is %d \n", len(c.pendingTx),bNum)
 	for _, trxWraper := range c.pendingTx {
+		if isFinish {
+			break
+		}
 		if trxWraper.SigTrx.Trx.Expiration.UtcSeconds < timestamp {
 			continue
 		}
