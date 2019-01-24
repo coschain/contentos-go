@@ -9,7 +9,8 @@ const (
 	COIN_SYMBOL = "COS"
 	VEST_SYMBOL = "VEST"
 
-	BLOCK_INTERVAL = 3 // 3000 ms for one block produce
+	BLOCK_INTERVAL = 1 // 1000 ms for one block produce
+	BLOCK_PROD_REPETITION = 10 // each producer produces 10 blocks in a row
 
 	NOTICE_OP_PRE      = "oppre"
 	NOTICE_OP_POST     = "oppost"

@@ -194,7 +194,10 @@ func (sabft *SABFT) makeValidators(names []string) []*publicValidator {
 }
 
 func (sabft *SABFT) shuffle(head common.ISignedBlock) {
-	if head.Id().BlockNum()%uint64(len(sabft.validators)) != 0 {
+	//if head.Id().BlockNum()%uint64(len(sabft.validators)) != 0 {
+	blockNum := head.Id().BlockNum()
+	if blockNum%constants.BLOCK_PROD_REPETITION != 0 ||
+		blockNum/constants.BLOCK_PROD_REPETITION%uint64(len(sabft.validators)) != 0 {
 		return
 	}
 
@@ -460,7 +463,7 @@ func (sabft *SABFT) getScheduledProducer(slot uint64) string {
 		return sabft.validators[0].accountName
 	}
 	absSlot := (sabft.ForkDB.Head().Timestamp() - constants.GenesisTime) / constants.BLOCK_INTERVAL
-	return sabft.validators[(absSlot+slot)%uint64(len(sabft.validators))].accountName
+	return sabft.validators[(absSlot+slot)/constants.BLOCK_PROD_REPETITION%uint64(len(sabft.validators))].accountName
 }
 
 // returns false if we're out of sync
