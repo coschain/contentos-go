@@ -182,18 +182,12 @@ func (c *TrxPool) pushTrx(trx *prototype.SignedTransaction) *prototype.Transacti
 				if x.ErrorType != prototype.StatusDeductGas {
 					panic(err)
 				} else {
-					c.db.BeginTransaction()
-					trxContext.DeductAllGasFee()
-					mustNoError(c.db.EndTransaction(true), "EndTransaction error",prototype.StatusErrorDbEndTrx)
-					c.pendingTx = append(c.pendingTx, trxEst)
 					trxEst.Receipt.Status = prototype.StatusDeductGas
 				}
 			}
-		} else {
-			c.db.BeginTransaction()
-			trxContext.DeductAllGasFee()
-			mustNoError(c.db.EndTransaction(true), "EndTransaction error",prototype.StatusErrorDbEndTrx)
 		}
+		c.PayGas(trxContext)
+		c.pendingTx = append(c.pendingTx, trxEst)
 	}()
 
 	// start a new undo session when first transaction come after push block
@@ -207,7 +201,7 @@ func (c *TrxPool) pushTrx(trx *prototype.SignedTransaction) *prototype.Transacti
 	// start a sub undo session for transaction
 	c.db.BeginTransaction()
 	c.applyTransactionInner(trxEst,trxContext)
-	c.pendingTx = append(c.pendingTx, trxEst)
+	//c.pendingTx = append(c.pendingTx, trxEst)
 
 	// commit sub session
 	mustNoError(c.db.EndTransaction(true), "EndTransaction error",prototype.StatusErrorDbEndTrx)
@@ -391,29 +385,22 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 					mustNoError(c.db.EndTransaction(false), "EndTransaction error",prototype.StatusErrorDbEndTrx)
 					switch x := err.(type) {
 					case prototype.Exception:
-						if x.ErrorType == prototype.StatusDeductGas {
-							c.db.BeginTransaction()
-							trxContext.DeductAllGasFee()
-							mustNoError(c.db.EndTransaction(true), "EndTransaction error",prototype.StatusErrorDbEndTrx)
-							totalSize += uint32(proto.Size(trxWraper))
-							signBlock.Transactions = append(signBlock.Transactions, trxWraper.ToTrxWrapper())
+						if x.ErrorType != prototype.StatusDeductGas {
+							return
 						}
 					}
-				} else {
-					c.db.BeginTransaction()
-					trxContext.DeductAllGasFee()
-					mustNoError(c.db.EndTransaction(true), "EndTransaction error",prototype.StatusErrorDbEndTrx)
-					totalSize += uint32(proto.Size(trxWraper))
-					signBlock.Transactions = append(signBlock.Transactions, trxWraper.ToTrxWrapper())
 				}
+				c.PayGas(trxContext)
+				totalSize += uint32(proto.Size(trxWraper))
+				signBlock.Transactions = append(signBlock.Transactions, trxWraper.ToTrxWrapper())
 			}()
 
 			c.db.BeginTransaction()
 			c.applyTransactionInner(trxWraper,trxContext)
 			mustNoError(c.db.EndTransaction(true), "EndTransaction error",prototype.StatusErrorDbEndTrx)
 
-			totalSize += uint32(proto.Size(trxWraper))
-			signBlock.Transactions = append(signBlock.Transactions, trxWraper.ToTrxWrapper())
+			//totalSize += uint32(proto.Size(trxWraper))
+			//signBlock.Transactions = append(signBlock.Transactions, trxWraper.ToTrxWrapper())
 			//c.currentTrxInBlock++
 		}()
 	}
@@ -623,17 +610,10 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 						case prototype.Exception:
 							if x.ErrorType != prototype.StatusDeductGas {
 								panic(err)
-							} else {
-								c.db.BeginTransaction()
-								trxContext.DeductAllGasFee()
-								mustNoError(c.db.EndTransaction(true), "EndTransaction error",prototype.StatusErrorDbEndTrx)
 							}
 						}
-					} else {
-						c.db.BeginTransaction()
-						trxContext.DeductAllGasFee()
-						mustNoError(c.db.EndTransaction(true), "EndTransaction error",prototype.StatusErrorDbEndTrx)
 					}
+					c.PayGas(trxContext)
 				}()
 				trxEst.SigTrx = tw.SigTrx
 				trxEst.Receipt.Status = prototype.StatusSuccess
@@ -653,6 +633,20 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 	// @ ...
 
 	// @ notify_applied_block
+}
+
+func (c *TrxPool) PayGas(trxContext *TrxContext) (i interface{}) {
+	i = nil
+	defer func() {
+		if err := recover(); err != nil {
+			mustNoError(c.db.EndTransaction(false), "EndTransaction error", prototype.StatusErrorDbEndTrx)
+			i =  err
+		}
+	}()
+	c.db.BeginTransaction()
+	trxContext.DeductAllGasFee()
+	mustNoError(c.db.EndTransaction(true), "EndTransaction error",prototype.StatusErrorDbEndTrx)
+	return
 }
 
 func (c *TrxPool) initGenesis() {
