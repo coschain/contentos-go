@@ -30,6 +30,12 @@ type publicValidator struct {
 	accountName string
 }
 
+func (sabft *SABFT) timeToNextSec() time.Duration {
+	now := sabft.Ticker.Now()
+	ceil := now.Add(time.Millisecond * 500).Round(time.Second)
+	return ceil.Sub(now)
+}
+
 func (pv *publicValidator) VerifySig(digest, signature []byte) bool {
 	// Warning: DO NOT remove the lock unless you know what you're doing
 	pv.sab.RLock()
@@ -110,6 +116,8 @@ type SABFT struct {
 	p2p  iservices.IP2P
 	log  *logrus.Logger
 
+	Ticker TimerDriver
+
 	stopCh chan struct{}
 	wg     sync.WaitGroup
 	deadlock.RWMutex
@@ -131,6 +139,7 @@ func NewSABFT(ctx *node.ServiceContext, lg *logrus.Logger) *SABFT {
 		log:        lg,
 		bftStarted: 0,
 		commitCh:   make(chan message.Commit),
+		Ticker:     &Timer{},
 	}
 
 	ret.SetBootstrap(ctx.Config().Consensus.BootStrap)
@@ -177,7 +186,7 @@ func (sabft *SABFT) CurrentProducer() string {
 	sabft.RLock()
 	defer sabft.RUnlock()
 
-	now := time.Now().Round(time.Second)
+	now := sabft.Ticker.Now().Round(time.Second)
 	slot := sabft.getSlotAtTime(now)
 	return sabft.getScheduledProducer(slot)
 }
@@ -306,7 +315,10 @@ func (sabft *SABFT) Start(node *node.Node) error {
 func (sabft *SABFT) scheduleProduce() bool {
 	if !sabft.checkGenesis() {
 		//sabft.log.Info("checkGenesis failed.")
-		sabft.prodTimer.Reset(timeToNextSec())
+		if _, ok := sabft.Ticker.(*Timer); ok {
+			sabft.prodTimer.Reset(sabft.timeToNextSec())
+		}
+		//sabft.prodTimer.Reset(sabft.timeToNextSec())
 		return false
 	}
 
@@ -314,7 +326,10 @@ func (sabft *SABFT) scheduleProduce() bool {
 		if sabft.checkSync() {
 			sabft.readyToProduce = true
 		} else {
-			sabft.prodTimer.Reset(timeToNextSec())
+			if _, ok := sabft.Ticker.(*Timer); ok {
+				sabft.prodTimer.Reset(sabft.timeToNextSec())
+			}
+			//sabft.prodTimer.Reset(sabft.timeToNextSec())
 			var headID common.BlockID
 			if !sabft.ForkDB.Empty() {
 				headID = sabft.ForkDB.Head().Id()
@@ -327,7 +342,10 @@ func (sabft *SABFT) scheduleProduce() bool {
 	}
 
 	if !sabft.checkProducingTiming() || !sabft.checkOurTurn() {
-		sabft.prodTimer.Reset(timeToNextSec())
+		if _, ok := sabft.Ticker.(*Timer); ok {
+			sabft.prodTimer.Reset(sabft.timeToNextSec())
+		}
+		//sabft.prodTimer.Reset(sabft.timeToNextSec())
 		return false
 	}
 	return true
@@ -357,29 +375,7 @@ func (sabft *SABFT) start() {
 		case commit := <-sabft.commitCh:
 			sabft.handleCommitRecords(&commit)
 		case <-sabft.prodTimer.C:
-			sabft.RLock()
-			if !sabft.scheduleProduce() {
-				sabft.RUnlock()
-				continue
-			}
-			sabft.RUnlock()
-
-			sabft.Lock()
-			b, err := sabft.generateAndApplyBlock()
-
-			if err != nil {
-				sabft.log.Error("[SABFT] generateAndApplyBlock error: ", err)
-				sabft.Unlock()
-				continue
-			}
-			sabft.prodTimer.Reset(timeToNextSec())
-			sabft.log.Debugf("[SABFT] generated block: <num %d> <ts %d>", b.Id().BlockNum(), b.Timestamp())
-			if err := sabft.pushBlock(b, false); err != nil {
-				sabft.log.Error("[SABFT] pushBlock push generated block failed: ", err)
-			}
-			sabft.Unlock()
-
-			sabft.p2p.Broadcast(b)
+			sabft.MaybeProduceBlock()
 		}
 	}
 }
@@ -414,7 +410,7 @@ func (sabft *SABFT) generateAndApplyBlock() (common.ISignedBlock, error) {
 }
 
 func (sabft *SABFT) checkGenesis() bool {
-	now := time.Now()
+	now := sabft.Ticker.Now()
 	genesisTime := time.Unix(constants.GenesisTime, 0)
 	if now.After(genesisTime) || now.Equal(genesisTime) {
 		return true
@@ -436,7 +432,7 @@ func (sabft *SABFT) checkGenesis() bool {
 // this'll only be called by the start routine,
 // no need to lock
 func (sabft *SABFT) checkProducingTiming() bool {
-	now := time.Now().Round(time.Second)
+	now := sabft.Ticker.Now().Round(time.Second)
 	sabft.slot = sabft.getSlotAtTime(now)
 	if sabft.slot == 0 {
 		// not time yet, wait till the next block producing
@@ -468,7 +464,7 @@ func (sabft *SABFT) getScheduledProducer(slot uint64) string {
 
 // returns false if we're out of sync
 func (sabft *SABFT) checkSync() bool {
-	now := time.Now().Round(time.Second).Unix()
+	now := sabft.Ticker.Now().Round(time.Second).Unix()
 	if sabft.getSlotTime(1) < uint64(now) {
 		//time.Sleep(time.Second)
 		return false
@@ -987,6 +983,46 @@ func (sabft *SABFT) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, 
 	}
 	ret = append(ret, blocksInForkDB...)
 	return ret, nil
+}
+
+func (sabft *SABFT) ResetProdTimer(t time.Duration) {
+	if !sabft.prodTimer.Stop() {
+		<-sabft.prodTimer.C
+	}
+	sabft.prodTimer.Reset(t)
+}
+
+func (sabft *SABFT) ResetTicker(ts time.Time) {
+	sabft.Ticker = &FakeTimer {t : ts}
+}
+
+func (sabft *SABFT) MaybeProduceBlock() {
+	sabft.RLock()
+	if !sabft.scheduleProduce() {
+		sabft.RUnlock()
+		return
+	}
+	sabft.RUnlock()
+
+	sabft.Lock()
+	b, err := sabft.generateAndApplyBlock()
+
+	if err != nil {
+		sabft.log.Error("[SABFT] generateAndApplyBlock error: ", err)
+		sabft.Unlock()
+		return
+	}
+	if _, ok := sabft.Ticker.(*Timer); ok {
+		sabft.prodTimer.Reset(sabft.timeToNextSec())
+	}
+	//sabft.prodTimer.Reset(sabft.timeToNextSec())
+	sabft.log.Debugf("[SABFT] generated block: <num %d> <ts %d>", b.Id().BlockNum(), b.Timestamp())
+	if err := sabft.pushBlock(b, false); err != nil {
+		sabft.log.Error("[SABFT] pushBlock push generated block failed: ", err)
+	}
+	sabft.Unlock()
+
+	sabft.p2p.Broadcast(b)
 }
 
 func (sabft *SABFT) handleBlockSync() {

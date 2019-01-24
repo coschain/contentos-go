@@ -19,8 +19,8 @@ import (
 	//"github.com/coschain/contentos-go/app"
 )
 
-func timeToNextSec() time.Duration {
-	now := time.Now()
+func (d *DPoS) timeToNextSec() time.Duration {
+	now := d.Ticker.Now()
 	ceil := now.Add(time.Millisecond * 500).Round(time.Second)
 	return ceil.Sub(now)
 }
@@ -47,6 +47,8 @@ type DPoS struct {
 	p2p  iservices.IP2P
 	log  *logrus.Logger
 
+	Ticker TimerDriver
+
 	stopCh chan struct{}
 	wg     sync.WaitGroup
 	sync.RWMutex
@@ -60,13 +62,14 @@ func NewDPoS(ctx *node.ServiceContext, lg *logrus.Logger) *DPoS {
 	ret := &DPoS{
 		ForkDB:    forkdb.NewDB(),
 		Producers: make([]string, 0, 1),
-		prodTimer: time.NewTimer(1 * time.Millisecond),
+		prodTimer: time.NewTimer(100 * time.Millisecond),
 		trxCh:     make(chan func()),
 		//trxRetCh:  make(chan common.ITransactionInvoice),
 		blkCh:  make(chan common.ISignedBlock),
 		ctx:    ctx,
 		stopCh: make(chan struct{}),
 		log:    lg,
+		Ticker: &Timer{},
 	}
 	ret.SetBootstrap(ctx.Config().Consensus.BootStrap)
 	ret.Name = ctx.Config().Consensus.LocalBpName
@@ -101,7 +104,7 @@ func (d *DPoS) SetBootstrap(b bool) {
 func (d *DPoS) CurrentProducer() string {
 	//d.RLock()
 	//defer d.RUnlock()
-	now := time.Now().Round(time.Second)
+	now := d.Ticker.Now().Round(time.Second)
 	slot := d.getSlotAtTime(now)
 	return d.getScheduledProducer(slot)
 }
@@ -184,7 +187,10 @@ func (d *DPoS) Start(node *node.Node) error {
 func (d *DPoS) scheduleProduce() bool {
 	if !d.checkGenesis() {
 		//d.log.Info("checkGenesis failed.")
-		d.prodTimer.Reset(timeToNextSec())
+		if _, ok := d.Ticker.(*Timer); ok {
+			d.prodTimer.Reset(d.timeToNextSec())
+		}
+		//d.prodTimer.Reset(timeToNextSec())
 		return false
 	}
 
@@ -192,7 +198,10 @@ func (d *DPoS) scheduleProduce() bool {
 		if d.checkSync() {
 			d.readyToProduce = true
 		} else {
-			d.prodTimer.Reset(timeToNextSec())
+			if _, ok := d.Ticker.(*Timer); ok {
+				d.prodTimer.Reset(d.timeToNextSec())
+			}
+			//d.prodTimer.Reset(timeToNextSec())
 			var headID common.BlockID
 			if !d.ForkDB.Empty() {
 				headID = d.ForkDB.Head().Id()
@@ -204,7 +213,10 @@ func (d *DPoS) scheduleProduce() bool {
 		}
 	}
 	if !d.checkProducingTiming() || !d.checkOurTurn() {
-		d.prodTimer.Reset(timeToNextSec())
+		if _, ok := d.Ticker.(*Timer); ok {
+			d.prodTimer.Reset(d.timeToNextSec())
+		}
+		//d.prodTimer.Reset(timeToNextSec())
 		return false
 	}
 	return true
@@ -244,31 +256,7 @@ func (d *DPoS) start() {
 			trxFn()
 			continue
 		case <-d.prodTimer.C:
-			if !d.scheduleProduce() {
-				continue
-			}
-
-			b, err := d.generateAndApplyBlock()
-			if err != nil {
-				d.log.Error("[DPoS] generateAndApplyBlock error: ", err)
-				continue
-			}
-			d.prodTimer.Reset(timeToNextSec())
-			d.log.Debugf("[DPoS] generated block: <num %d> <ts %d>", b.Id().BlockNum(), b.Timestamp())
-			if err := d.pushBlock(b, false); err != nil {
-				d.log.Error("[DPoS] pushBlock push generated block failed: ", err)
-			}
-
-			// broadcast block
-			//if b.Id().BlockNum() % 10 == 0 {
-			//	go func() {
-			//		time.Sleep(4*time.Second)
-			//		d.p2p.Broadcast(b)
-			//	}()
-			//} else {
-			//	d.p2p.Broadcast(b)
-			//}
-			d.p2p.Broadcast(b)
+			d.MaybeProduceBlock()
 		}
 	}
 }
@@ -303,7 +291,7 @@ func (d *DPoS) generateAndApplyBlock() (common.ISignedBlock, error) {
 }
 
 func (d *DPoS) checkGenesis() bool {
-	now := time.Now()
+	now := d.Ticker.Now()
 	genesisTime := time.Unix(constants.GenesisTime, 0)
 	if now.After(genesisTime) || now.Equal(genesisTime) {
 		return true
@@ -325,7 +313,7 @@ func (d *DPoS) checkGenesis() bool {
 // this'll only be called by the start routine,
 // no need to lock
 func (d *DPoS) checkProducingTiming() bool {
-	now := time.Now().Round(time.Second)
+	now := d.Ticker.Now().Round(time.Second)
 	d.slot = d.getSlotAtTime(now)
 	if d.slot == 0 {
 		// not time yet, wait till the next block producing
@@ -357,7 +345,7 @@ func (d *DPoS) getScheduledProducer(slot uint64) string {
 
 // returns false if we're out of sync
 func (d *DPoS) checkSync() bool {
-	now := time.Now().Round(time.Second).Unix()
+	now := d.Ticker.Now().Round(time.Second).Unix()
 	if d.getSlotTime(1) < uint64(now) {
 		//time.Sleep(time.Second)
 		return false
@@ -664,6 +652,49 @@ func (d *DPoS) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, error
 	}
 	ret = append(ret, blocksInForkDB...)
 	return ret, nil
+}
+
+
+func (d *DPoS) ResetProdTimer(t time.Duration) {
+	if !d.prodTimer.Stop() {
+		<-d.prodTimer.C
+	}
+	d.prodTimer.Reset(t)
+}
+
+func (d *DPoS) ResetTicker(ts time.Time) {
+	d.Ticker = &FakeTimer {t : ts}
+}
+
+func (d *DPoS) MaybeProduceBlock() {
+	if !d.scheduleProduce() {
+		return
+	}
+
+	b, err := d.generateAndApplyBlock()
+	if err != nil {
+		d.log.Error("[DPoS] generateAndApplyBlock error: ", err)
+		return
+	}
+	if _, ok := d.Ticker.(*Timer); ok {
+		d.prodTimer.Reset(d.timeToNextSec())
+	}
+	//d.prodTimer.Reset(timeToNextSec())
+	d.log.Debugf("[DPoS] generated block: <num %d> <ts %d>", b.Id().BlockNum(), b.Timestamp())
+	if err := d.pushBlock(b, false); err != nil {
+		d.log.Error("[DPoS] pushBlock push generated block failed: ", err)
+	}
+
+	// broadcast block
+	//if b.Id().BlockNum() % 10 == 0 {
+	//	go func() {
+	//		time.Sleep(4*time.Second)
+	//		d.p2p.Broadcast(b)
+	//	}()
+	//} else {
+	//	d.p2p.Broadcast(b)
+	//}
+	d.p2p.Broadcast(b)
 }
 
 func (d *DPoS) handleBlockSync() {

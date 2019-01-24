@@ -3,45 +3,59 @@ package commands
 import (
 	"fmt"
 	"github.com/coschain/cobra"
-	cmd "github.com/coschain/contentos-go/cmd/cosd/commands"
-	"github.com/coschain/contentos-go/cmd/multinodetester/commands"
+	ctrl "github.com/coschain/contentos-go/app"
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/pprof"
 	"github.com/coschain/contentos-go/config"
-	"github.com/coschain/contentos-go/mylog"
+	"github.com/coschain/contentos-go/consensus"
+	"github.com/coschain/contentos-go/db/storage"
+	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
+	"github.com/coschain/contentos-go/p2p"
 	"github.com/spf13/viper"
 	"os"
-	"os/signal"
 	"path/filepath"
-	"syscall"
+	"time"
 )
 
 var StartCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "start cosd-path count(default 3)",
 		Short: "start multi cosd node",
-		Run:   StartNode,
+		Run:   AutoTest,
 	}
 	cmd.Flags().Int64VarP(&NodeCnt, "number", "n", 3, "number of cosd thread")
 	return cmd
 }
 
-var arr []*node.Node
+type GlobalObject struct {
+	arr      []*node.Node
+	cfgList  []node.Config
+	dposList []iservices.IConsensus
+	dbList   []iservices.IDatabaseService
+}
 
-func StartNode(cmd *cobra.Command, args []string) {
+var globalObj GlobalObject
+
+func AutoTest(cmd *cobra.Command, args []string) {
+	createAndTransfer()
+
+	fmt.Println("test done")
+}
+
+func StartNode() {
 	for i:=0;i<int(NodeCnt);i++{
 		fmt.Println("i: ", i," NodeCnt: ", NodeCnt)
 		app, cfg := makeNode(i)
-		go startNode(app, cfg)
-	}
 
-	WaitSignal()
+		startNode(app, cfg)
+	}
+	time.Sleep(10 * time.Second) // this sleep wait the whole net to be constructed
 }
 
 func makeNode(index int) (*node.Node, node.Config) {
 	var cfg node.Config
-	confdir := filepath.Join(config.DefaultDataDir(), fmt.Sprintf("%s_%d", commands.TesterClientIdentifier, index))
+	confdir := filepath.Join(config.DefaultDataDir(), fmt.Sprintf("%s_%d", TesterClientIdentifier, index))
 	fmt.Println("config dir: ", confdir)
 	viper.Reset()
 	viper.AddConfigPath(confdir)
@@ -69,47 +83,94 @@ func makeNode(index int) (*node.Node, node.Config) {
 	fmt.Println("Name: ", cfg.Name)
 	fmt.Println("p2p node port: ", cfg.P2P.NodePort)
 	fmt.Println("p2p consensus port: ", cfg.P2P.NodeConsensusPort)
+	fmt.Println("consensus type: ", cfg.Consensus.Type)
 	return app, cfg
 }
 
 func startNode(app *node.Node, cfg node.Config) {
-	app.Log = mylog.Init(cfg.ResolvePath("logs"), mylog.DebugLevel, 0)
+	//app.Log = mylog.Init(cfg.ResolvePath("logs"), mylog.DebugLevel, 0)
+	//app.Log.SetOutput(ioutil.Discard)
 
 	pprof.StartPprof()
 
-	cmd.RegisterService(app, cfg)
-	arr = append(arr, app)
+	RegisterService(app, cfg)
 
 	if err := app.Start(); err != nil {
 		common.Fatalf("start node failed, err: %v\n", err)
 	}
 
-	app.Wait()
+	it, err := app.Service(iservices.ConsensusServerName)
+	if err != nil {
+		panic(err)
+	}
+	Icons := it.(iservices.IConsensus)
+	Icons.ResetProdTimer( 86400 * time.Second )
+	idb, err := app.Service(iservices.DbServerName)
+	if err != nil {
+		panic(err)
+	}
+	globalObj.arr = append(globalObj.arr, app)
+	globalObj.cfgList = append(globalObj.cfgList, cfg)
+	globalObj.dposList = append(globalObj.dposList, Icons)
+	globalObj.dbList = append(globalObj.dbList, idb.(iservices.IDatabaseService))
+
+	go app.Wait()
 }
 
-func WaitSignal() {
-	SIGSTOP := syscall.Signal(0x13) //for windows compile
-	sigc := make(chan os.Signal, 1)
-	signal.Notify(sigc, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT, SIGSTOP, syscall.SIGUSR1, syscall.SIGUSR2)
-	for {
-		s := <-sigc
-		fmt.Printf("get a signal %s\n", s.String())
-		switch s {
-		case syscall.SIGQUIT, syscall.SIGTERM, SIGSTOP, syscall.SIGINT:
-			for i:=0;i<len(arr);i++ {
-				arr[i].MainLoop.Stop()
-				arr[i].Stop()
-			}
-			fmt.Println("Got interrupt, shutting down...")
-			return
-		case syscall.SIGHUP:
-			fmt.Println("syscall.SIGHUP custom operation")
-		case syscall.SIGUSR1:
-			fmt.Println("syscall.SIGUSR1 custom operation")
-		case syscall.SIGUSR2:
-			fmt.Println("syscall.SIGUSR2 custom operation")
+func RegisterService(app *node.Node, cfg node.Config) {
+	_ = app.Register(iservices.DbServerName, func(ctx *node.ServiceContext) (node.Service, error) {
+		return storage.NewGuardedDatabaseService(ctx, "./db/")
+	})
+
+	_ = app.Register(iservices.P2PServerName, func(ctx *node.ServiceContext) (node.Service, error) {
+		return p2p.NewServer(ctx, nil)
+	})
+
+	_ = app.Register(iservices.TxPoolServerName, func(ctx *node.ServiceContext) (node.Service, error) {
+		return ctrl.NewController(ctx, nil)
+	})
+
+	_ = app.Register(iservices.ConsensusServerName, func(ctx *node.ServiceContext) (node.Service, error) {
+		var s node.Service
+		switch ctx.Config().Consensus.Type {
+		case "DPoS":
+			s = consensus.NewDPoS(ctx, nil)
+		case "SABFT":
+			s = consensus.NewSABFT(ctx, nil)
 		default:
-			return
+			s = consensus.NewDPoS(ctx, nil)
 		}
+		return s, nil
+	})
+}
+
+func clearAll() {
+	stopEachNode()
+	home := os.Getenv("HOME")
+	for i:=0;i<int(NodeCnt);i++ {
+		clearPath(home, i)
 	}
+	globalObj.arr = globalObj.arr[:0]
+	globalObj.cfgList = globalObj.cfgList[:0]
+	globalObj.dposList = globalObj.dposList[:0]
+	globalObj.dbList = globalObj.dbList[:0]
+	time.Sleep(10 * time.Second)
+}
+
+func stopEachNode() {
+	for i:=0;i<int(NodeCnt);i++ {
+		stopNode(globalObj.arr[i])
+	}
+}
+
+func stopNode(app *node.Node) {
+	app.MainLoop.Stop()
+	app.Stop()
+}
+
+func clearPath(home string, index int) {
+	_ = os.RemoveAll( filepath.Join(home, fmt.Sprintf(".coschain/testcosd_%d/blog", index) ) )
+	_ = os.RemoveAll( filepath.Join(home, fmt.Sprintf(".coschain/testcosd_%d/db", index) ) )
+	_ = os.RemoveAll( filepath.Join(home, fmt.Sprintf(".coschain/testcosd_%d/forkdb_snapshot", index) ) )
+	//_ = os.RemoveAll( filepath.Join(home, fmt.Sprintf(".coschain/testcosd_%d/logs", index) ) )
 }
