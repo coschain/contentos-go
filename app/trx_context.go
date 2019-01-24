@@ -46,7 +46,7 @@ func (p *TrxContext) authGetter(name string) *prototype.Authority {
 	authWrap := table.NewSoAccountAuthorityObjectWrap(p.db, account)
 	auth := authWrap.GetOwner()
 	if auth == nil {
-		panic("no owner auth")
+		mustSuccess(false,"no owner auth",prototype.StatusErrorDbExist)
 	}
 	return auth
 }
@@ -84,9 +84,7 @@ func (p *TrxContext) DeductGasFee(caller string, spent uint64) {
 
 	acc := table.NewSoAccountWrap(p.db, &prototype.AccountName{Value: caller})
 	balance := acc.GetBalance().Value
-	if balance < spent {
-		panic(fmt.Sprintf("Endanger deduction Operation: %s, %d", caller, spent))
-	}
+	mustSuccess(spent <= balance,fmt.Sprintf("Endanger deduction Operation: %s, %d", caller, spent),prototype.StatusErrorTrxValueCompare)
 	acc.MdBalance(&prototype.Coin{Value: balance - spent})
 }
 
@@ -96,9 +94,7 @@ func (p *TrxContext) DeductAllGasFee() bool {
 	for caller,spent := range p.gasMap {
 		acc := table.NewSoAccountWrap(p.db, &prototype.AccountName{Value: caller})
 		balance := acc.GetBalance().Value
-		if balance < spent {
-			panic(fmt.Sprintf("Endanger deduction Operation: %s, %d", caller, spent))
-		}
+		mustSuccess(spent <= balance,fmt.Sprintf("Endanger deduction Operation: %s, %d", caller, spent),prototype.StatusErrorTrxValueCompare)
 		acc.MdBalance(&prototype.Coin{Value: balance - spent})
 		useGas = true
 	}
@@ -118,9 +114,7 @@ func (p *TrxContext) TransferFromContractToUser(contract, owner, to string, amou
 	// need authority?
 	c := table.NewSoContractWrap(p.db, &prototype.ContractId{Owner: &prototype.AccountName{Value: owner}, Cname: contract})
 	balance := c.GetBalance().Value
-	if balance < amount {
-		panic(fmt.Sprintf("Endanger Transfer Operation: %s, %s, %s, %d", contract, owner, to, amount))
-	}
+	mustSuccess(balance >= amount,fmt.Sprintf("Endanger Transfer Operation: %s, %s, %s, %d", contract, owner, to, amount),prototype.StatusErrorTrxPubKeyCmp)
 	acc := table.NewSoAccountWrap(p.db, &prototype.AccountName{Value: to})
 	// need atomic ?
 	c.MdBalance(&prototype.Coin{Value: balance - amount})
@@ -131,9 +125,7 @@ func (p *TrxContext) TransferFromContractToUser(contract, owner, to string, amou
 func (p *TrxContext) TransferFromUserToContract(from, contract, owner string, amount uint64) {
 	acc := table.NewSoAccountWrap(p.db, &prototype.AccountName{Value: from})
 	balance := acc.GetBalance().Value
-	if balance < amount {
-		panic(fmt.Sprintf("Endanger Transfer Operation: %s, %s, %s, %d", contract, owner, from, amount))
-	}
+	mustSuccess(balance >= amount,fmt.Sprintf("Endanger Transfer Operation: %s, %s, %s, %d", contract, owner, from, amount),prototype.StatusErrorTrxPubKeyCmp)
 	c := table.NewSoContractWrap(p.db, &prototype.ContractId{Owner: &prototype.AccountName{Value: owner}, Cname: contract})
 	c.MdBalance(&prototype.Coin{Value: balance + amount})
 	acc.MdBalance(&prototype.Coin{Value: balance - amount})
@@ -144,9 +136,7 @@ func (p *TrxContext) TransferFromContractToContract(fromContract, fromOwner, toC
 	from := table.NewSoContractWrap(p.db, &prototype.ContractId{Owner: &prototype.AccountName{Value: fromOwner}, Cname: fromContract})
 	to := table.NewSoContractWrap(p.db, &prototype.ContractId{Owner: &prototype.AccountName{Value: toOwner}, Cname: toContract})
 	fromBalance := from.GetBalance().Value
-	if fromBalance < amount {
-		panic(fmt.Sprintf("Insufficient balance of contract: %s.%s, %d < %d", fromOwner, fromContract, fromBalance, amount))
-	}
+	mustSuccess(fromBalance >= amount,fmt.Sprintf("Insufficient balance of contract: %s.%s, %d < %d", fromOwner, fromContract, fromBalance, amount),prototype.StatusErrorTrxPubKeyCmp)
 	toBalance := to.GetBalance().Value
 	from.MdBalance(&prototype.Coin{Value: fromBalance - amount})
 	to.MdBalance(&prototype.Coin{Value: toBalance + amount})
@@ -190,7 +180,7 @@ func verifyAuthority(keyMaps map[string]bool, trxPubs []*prototype.PublicKeyType
 
 	for k := range keyMaps {
 		if !s.CheckAuthorityByName(k, 0, Owner) {
-			panic("check owner authority failed")
+			mustSuccess(false,"check owner authority failed",prototype.StatusErrorTrxVerifyAuth)
 		}
 	}
 }

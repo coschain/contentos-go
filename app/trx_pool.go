@@ -490,7 +490,7 @@ func (c *TrxPool) applyTransactionInner(trxEst *prototype.EstimateTrxResult,trxC
 
 	// trx duplicate check
 	transactionObjWrap := table.NewSoTransactionObjectWrap(c.db, currentTrxId)
-	mustSuccess(!transactionObjWrap.CheckExist(), "Duplicate transaction check failed",prototype.StatusErrorTrxDuplicateCheck)
+	mustSuccess(!transactionObjWrap.CheckExist(), "Duplicate transaction check failed",prototype.StatusErrorDbExist)
 
 	if c.skip&prototype.Skip_transaction_signatures == 0 {
 		tmpChainId := prototype.ChainId{Value: 0}

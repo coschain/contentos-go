@@ -38,11 +38,14 @@ const StatusErrorTrxSize = 100006
 const StatusErrorTrxClearPending = 100007
 const StatusErrorTrxPubKeyCmp = 100008
 const StatusErrorTrxMaxBlockSize = 100009
-const StatusErrorTrxDuplicateCheck = 100010
-const StatusErrorTrxExpire = 100011
-const StatusErrorTrxMerkleCheck = 100012
-const StatusErrorTrxApplyInvoice = 100013
-const StatusErrorTrxMaxUndo = 100014
+const StatusErrorTrxExpire = 100010
+const StatusErrorTrxMerkleCheck = 100011
+const StatusErrorTrxApplyInvoice = 100012
+const StatusErrorTrxMaxUndo = 100013
+const StatusErrorTrxValueCompare = 100014
+const StatusErrorTrxValueEqual = 100015
+const StatusErrorTrxVerifyAuth = 100016
+const StatusErrorTrxTypeCast = 100016
 
 // Db error
 const StatusErrorDbEndTrx = 200000

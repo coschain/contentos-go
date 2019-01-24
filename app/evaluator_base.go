@@ -85,6 +85,7 @@ func GetBaseEvaluator(ctx *ApplyContext, op *prototype.Operation) BaseEvaluator 
 		return BaseEvaluator(eva)
 
 	default:
-		panic("no matchable evaluator")
+		e := &prototype.Exception{HelpString:"no matchable evaluator",ErrorType:prototype.StatusErrorTrxTypeCast}
+		panic(e)
 	}
 }
