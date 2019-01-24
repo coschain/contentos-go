@@ -116,6 +116,20 @@ func BlockHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 		return
 	}
 	ctrl := s.(iservices.IConsensus)
+
+	if ctrl.HasBlock(block.SigBlk.Id()) {
+		log.Info("[p2p] we alerady have this SignedBlock, block number :   ", block.SigBlk.Id().BlockNum())
+		return
+	}
+
+	blockNum := block.SigBlk.Id().BlockNum()
+	localHeadId := ctrl.GetHeadBlockId()
+	localHeadNum := localHeadId.BlockNum()
+	if blockNum > localHeadNum + 1 {
+		log.Info("[p2p] get a SignedBlock can't link to the local chain, block number: ", blockNum, " local head number: ", localHeadNum)
+		return
+	}
+
 	ctrl.PushBlock(block.SigBlk)
 }
 

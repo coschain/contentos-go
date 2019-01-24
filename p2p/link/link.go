@@ -162,7 +162,7 @@ func (this *Link) Tx(msg types.Message, magic uint32) error {
 
 	// TODO just for test,should be deleted when test is done
 	// **********************************
-	sleepRandomTime()
+	//sleepRandomTime()
 	// **********************************
 
 	sink := common.NewZeroCopySink(nil)
