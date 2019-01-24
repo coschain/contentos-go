@@ -5,15 +5,10 @@ import (
 	"github.com/coschain/contentos-go/prototype"
 )
 
-func opAssertE(err error, val string) {
-	if err != nil {
-		panic(val + " : " + err.Error())
-	}
-}
-
-func opAssert(b bool, val string) {
+func mustSuccess(b bool, val string, errorType int) {
 	if !b {
-		panic(val)
+		e := &prototype.Exception{HelpString:val,ErrorType:errorType}
+		panic(e)
 	}
 }
 

@@ -138,10 +138,8 @@ func (c *TrxPool) PushTrx(trx *prototype.SignedTransaction) (invoice *prototype.
 	oldSkip := c.skip
 	defer func() {
 		if err := recover(); err != nil {
-			// !
-			invoice = &prototype.TransactionReceiptWithInfo{}
 			switch x := err.(type) {
-			case prototype.Exception:
+			case *prototype.Exception:
 				invoice.Status = uint32(x.ErrorType)
 				invoice.ErrorInfo = x.ToString()
 			default:
@@ -158,7 +156,8 @@ func (c *TrxPool) PushTrx(trx *prototype.SignedTransaction) (invoice *prototype.
 	mustSuccess(proto.Size(trx) <= int(c.GetProps().MaximumBlockSize-256), "transaction is too large",prototype.StatusErrorTrxSize)
 
 	c.setProducing(true)
-	return c.pushTrx(trx)
+	invoice = c.pushTrx(trx)
+	return
 }
 
 func (c *TrxPool) GetProps() *prototype.DynamicProperties {
@@ -166,19 +165,19 @@ func (c *TrxPool) GetProps() *prototype.DynamicProperties {
 	return dgpWrap.GetProps()
 }
 
-func (c *TrxPool) pushTrx(trx *prototype.SignedTransaction) *prototype.TransactionReceiptWithInfo {
+func (c *TrxPool) pushTrx(trx *prototype.SignedTransaction) (ret *prototype.TransactionReceiptWithInfo) {
 	trxEst := &prototype.EstimateTrxResult{}
 	trxEst.SigTrx = trx
 	trxEst.Receipt = &prototype.TransactionReceiptWithInfo{}
 	trxEst.Receipt.Status = prototype.StatusSuccess
 	trxContext := NewTrxContext(trxEst, c.db, c)
-
+	ret = trxEst.Receipt
 	defer func() {
 		// undo sub session
 		if err := recover(); err != nil {
 			mustNoError(c.db.EndTransaction(false), "EndTransaction error",prototype.StatusErrorDbEndTrx)
 			switch x := err.(type) {
-			case prototype.Exception:
+			case *prototype.Exception:
 				if x.ErrorType != prototype.StatusDeductGas {
 					panic(err)
 				} else {
@@ -222,7 +221,7 @@ func (c *TrxPool) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag)
 		if r := recover(); r != nil {
 			switch x := r.(type) {
 
-			case prototype.Exception:
+			case *prototype.Exception:
 				err = errors.New(x.ToString())
 			case error:
 				err = x
@@ -384,7 +383,7 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 				if err := recover(); err != nil {
 					mustNoError(c.db.EndTransaction(false), "EndTransaction error",prototype.StatusErrorDbEndTrx)
 					switch x := err.(type) {
-					case prototype.Exception:
+					case *prototype.Exception:
 						if x.ErrorType != prototype.StatusDeductGas {
 							return
 						}
@@ -607,7 +606,7 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 				defer func() {
 					if err := recover();err != nil {
 						switch x := err.(type) {
-						case prototype.Exception:
+						case *prototype.Exception:
 							if x.ErrorType != prototype.StatusDeductGas {
 								panic(err)
 							}

@@ -46,6 +46,7 @@ const StatusErrorTrxValueCompare = 100014
 const StatusErrorTrxValueEqual = 100015
 const StatusErrorTrxVerifyAuth = 100016
 const StatusErrorTrxTypeCast = 100016
+const StatusErrorTrxMath = 100017
 
 // Db error
 const StatusErrorDbEndTrx = 200000
@@ -61,3 +62,8 @@ const StatusOpNotExcute = 300000
 const StatusErrorOp = 300001
 const StatusErrorOpWithVmRun = 300002
 const StatusErrorVmOp = 300003
+
+// wasm error
+const StatusErrorAbi = 400000
+const StatusErrorWasm = 400001
+const StatusErrorMethod = 400002

@@ -12,13 +12,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func mustSuccess(b bool, val string, errorType int) {
-	if !b {
-		e := &prototype.Exception{HelpString:val,ErrorType:errorType}
-		panic(e)
-	}
-}
-
 type AccountCreateEvaluator struct {
 	BaseEvaluator
 	ctx *ApplyContext
@@ -116,24 +109,24 @@ func (ev *AccountCreateEvaluator) Apply() {
 	op := ev.op
 	creatorWrap := table.NewSoAccountWrap(ev.ctx.db, op.Creator)
 
-	opAssert(creatorWrap.CheckExist(), "creator not exist ")
+	mustSuccess(creatorWrap.CheckExist(), "creator not exist ",prototype.StatusErrorDbExist)
 
-	opAssert(creatorWrap.GetBalance().Value >= op.Fee.Value, "Insufficient balance to create account.")
+	mustSuccess(creatorWrap.GetBalance().Value >= op.Fee.Value, "Insufficient balance to create account.",prototype.StatusErrorTrxValueCompare)
 
 	// check auth accounts
 	for _, a := range op.Owner.AccountAuths {
 		tmpAccountWrap := table.NewSoAccountWrap(ev.ctx.db, a.Name)
-		opAssert(tmpAccountWrap.CheckExist(), "owner auth account not exist")
+		mustSuccess(tmpAccountWrap.CheckExist(), "owner auth account not exist",prototype.StatusErrorDbExist)
 	}
 
 	// sub creator's fee
 	originBalance := creatorWrap.GetBalance()
-	opAssertE(originBalance.Sub(op.Fee), "creator balance overflow")
-	opAssert(creatorWrap.MdBalance(originBalance), "")
+	mustNoError(originBalance.Sub(op.Fee),"creator balance overflow",prototype.StatusErrorTrxMath)
+	mustSuccess(creatorWrap.MdBalance(originBalance), "modify balance failed",prototype.StatusErrorDbUpdate)
 
 	// create account
 	newAccountWrap := table.NewSoAccountWrap(ev.ctx.db, op.NewAccountName)
-	opAssertE(newAccountWrap.Create(func(tInfo *table.SoAccount) {
+	mustNoError(newAccountWrap.Create(func(tInfo *table.SoAccount) {
 		tInfo.Name = op.NewAccountName
 		tInfo.Creator = op.Creator
 		tInfo.CreatedTime = ev.ctx.control.HeadBlockTime()
@@ -141,15 +134,15 @@ func (ev *AccountCreateEvaluator) Apply() {
 		tInfo.VestingShares = op.Fee.ToVest()
 		tInfo.LastPostTime = ev.ctx.control.HeadBlockTime()
 		tInfo.LastVoteTime = ev.ctx.control.HeadBlockTime()
-	}), "duplicate create account object")
+	}), "duplicate create account object",prototype.StatusErrorDbCreate)
 
 	// create account authority
 	authorityWrap := table.NewSoAccountAuthorityObjectWrap(ev.ctx.db, op.NewAccountName)
-	opAssertE(authorityWrap.Create(func(tInfo *table.SoAccountAuthorityObject) {
+	mustNoError(authorityWrap.Create(func(tInfo *table.SoAccountAuthorityObject) {
 		tInfo.Account = op.NewAccountName
 		tInfo.Owner = op.Owner
 		tInfo.LastOwnerUpdate = prototype.NewTimePointSec(0)
-	}), "duplicate create account authority object")
+	}), "duplicate create account authority object",prototype.StatusErrorDbCreate)
 
 	// sub dynamic glaobal properties's total fee
 	ev.ctx.control.TransferToVest(op.Fee)
@@ -162,28 +155,28 @@ func (ev *TransferEvaluator) Apply() {
 	fromWrap := table.NewSoAccountWrap(ev.ctx.db, op.From)
 	toWrap := table.NewSoAccountWrap(ev.ctx.db, op.To)
 
-	opAssert(toWrap.CheckExist(), "To account do not exist ")
+	mustSuccess(toWrap.CheckExist(), "To account do not exist ",prototype.StatusErrorDbExist)
 
 	fBalance := fromWrap.GetBalance()
 	tBalance := toWrap.GetBalance()
 
-	opAssertE(fBalance.Sub(op.Amount), "Insufficient balance to transfer.")
-	opAssert(fromWrap.MdBalance(fBalance), "")
+	mustNoError(fBalance.Sub(op.Amount), "Insufficient balance to transfer.",prototype.StatusErrorTrxMath)
+	mustSuccess(fromWrap.MdBalance(fBalance), "modify balance failed",prototype.StatusErrorDbUpdate)
 
-	opAssertE(tBalance.Add(op.Amount), "balance overflow")
-	opAssert(toWrap.MdBalance(tBalance), "")
+	mustNoError(tBalance.Add(op.Amount), "balance overflow",prototype.StatusErrorTrxMath)
+	mustSuccess(toWrap.MdBalance(tBalance), "modify balance failed",prototype.StatusErrorDbUpdate)
 }
 
 func (ev *PostEvaluator) Apply() {
 	op := ev.op
 	idWrap := table.NewSoPostWrap(ev.ctx.db, &op.Uuid)
-	opAssert(!idWrap.CheckExist(), "post uuid exist")
+	mustSuccess(!idWrap.CheckExist(), "post uuid exist",prototype.StatusErrorDbExist)
 
 	authorWrap := table.NewSoAccountWrap(ev.ctx.db, op.Owner)
 	elapsedSeconds := ev.ctx.control.HeadBlockTime().UtcSeconds - authorWrap.GetLastPostTime().UtcSeconds
-	opAssert(elapsedSeconds > constants.MIN_POST_INTERVAL, "posting frequently")
+	mustSuccess(elapsedSeconds > constants.MIN_POST_INTERVAL, "posting frequently",prototype.StatusErrorTrxValueCompare)
 
-	opAssertE(idWrap.Create(func(t *table.SoPost) {
+	mustNoError(idWrap.Create(func(t *table.SoPost) {
 		t.PostId = op.Uuid
 		t.Tags = op.Tags
 		t.Title = op.Title
@@ -199,7 +192,7 @@ func (ev *PostEvaluator) Apply() {
 		t.Beneficiaries = op.Beneficiaries
 		t.WeightedVp = 0
 		t.VoteCnt = 0
-	}), "create post error")
+	}), "create post error",prototype.StatusErrorDbCreate)
 
 	authorWrap.MdLastPostTime(ev.ctx.control.HeadBlockTime())
 
@@ -215,14 +208,14 @@ func (ev *ReplyEvaluator) Apply() {
 	cidWrap := table.NewSoPostWrap(ev.ctx.db, &op.Uuid)
 	pidWrap := table.NewSoPostWrap(ev.ctx.db, &op.ParentUuid)
 
-	opAssert(!cidWrap.CheckExist(), "post uuid exist")
-	opAssert(pidWrap.CheckExist(), "parent uuid do not exist")
+	mustSuccess(!cidWrap.CheckExist(), "post uuid exist",prototype.StatusErrorDbExist)
+	mustSuccess(pidWrap.CheckExist(), "parent uuid do not exist",prototype.StatusErrorDbExist)
 
-	opAssert(pidWrap.GetDepth()+1 < constants.POST_MAX_DEPTH, "reply depth error")
+	mustSuccess(pidWrap.GetDepth()+1 < constants.POST_MAX_DEPTH, "reply depth error",prototype.StatusErrorTrxValueCompare)
 
 	authorWrap := table.NewSoAccountWrap(ev.ctx.db, op.Owner)
 	elapsedSeconds := ev.ctx.control.HeadBlockTime().UtcSeconds - authorWrap.GetLastPostTime().UtcSeconds
-	opAssert(elapsedSeconds > constants.MIN_POST_INTERVAL, "reply frequently")
+	mustSuccess(elapsedSeconds > constants.MIN_POST_INTERVAL, "reply frequently",prototype.StatusErrorTrxValueCompare)
 
 	var rootId uint64
 	if pidWrap.GetRootId() == 0 {
@@ -231,7 +224,7 @@ func (ev *ReplyEvaluator) Apply() {
 		rootId = pidWrap.GetRootId()
 	}
 
-	opAssertE(cidWrap.Create(func(t *table.SoPost) {
+	mustNoError(cidWrap.Create(func(t *table.SoPost) {
 		t.PostId = op.Uuid
 		t.Tags = nil
 		t.Title = ""
@@ -245,11 +238,11 @@ func (ev *ReplyEvaluator) Apply() {
 		t.ParentId = op.ParentUuid
 		t.VoteCnt = 0
 		t.Beneficiaries = op.Beneficiaries
-	}), "create reply error")
+	}), "create reply error",prototype.StatusErrorDbCreate)
 
 	authorWrap.MdLastPostTime(ev.ctx.control.HeadBlockTime())
 	// Modify Parent Object
-	opAssert(pidWrap.MdChildren(pidWrap.GetChildren()+1), "Modify Parent Children Error")
+	mustSuccess(pidWrap.MdChildren(pidWrap.GetChildren()+1), "Modify Parent Children Error",prototype.StatusErrorDbUpdate)
 
 	//timestamp := ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.POST_CASHPUT_DELAY_TIME) - uint32(constants.GenesisTime)
 	//key := fmt.Sprintf("cashout:%d_%d", common.GetBucket(timestamp), op.Uuid)
@@ -264,14 +257,14 @@ func (ev *VoteEvaluator) Apply() {
 
 	voterWrap := table.NewSoAccountWrap(ev.ctx.db, op.Voter)
 	elapsedSeconds := ev.ctx.control.HeadBlockTime().UtcSeconds - voterWrap.GetLastVoteTime().UtcSeconds
-	opAssert(elapsedSeconds > constants.MIN_VOTE_INTERVAL, "voting frequently")
+	mustSuccess(elapsedSeconds > constants.MIN_VOTE_INTERVAL, "voting frequently",prototype.StatusErrorTrxValueCompare)
 
 	voterId := prototype.VoterId{Voter: op.Voter, PostId: op.Idx}
 	voteWrap := table.NewSoVoteWrap(ev.ctx.db, &voterId)
 	postWrap := table.NewSoPostWrap(ev.ctx.db, &op.Idx)
 
-	opAssert(postWrap.CheckExist(), "post invalid")
-	opAssert(!voteWrap.CheckExist(), "vote info exist")
+	mustSuccess(postWrap.CheckExist(), "post invalid",prototype.StatusErrorDbExist)
+	mustSuccess(!voteWrap.CheckExist(), "vote info exist",prototype.StatusErrorDbExist)
 
 	//votePostWrap := table.NewVotePostIdWrap(ev.ctx.db)
 
@@ -305,15 +298,15 @@ func (ev *VoteEvaluator) Apply() {
 		// update post's weighted vp
 		postWrap.MdWeightedVp(votePower)
 
-		opAssertE(voteWrap.Create(func(t *table.SoVote) {
+		mustNoError(voteWrap.Create(func(t *table.SoVote) {
 			t.Voter = &voterId
 			t.PostId = op.Idx
 			t.Upvote = true
 			t.WeightedVp = weightedVp
 			t.VoteTime = ev.ctx.control.HeadBlockTime()
-		}), "create voter object error")
+		}), "create voter object error",prototype.StatusErrorDbCreate)
 
-		opAssert(postWrap.MdVoteCnt(postWrap.GetVoteCnt()+1), "set vote count error")
+		mustSuccess(postWrap.MdVoteCnt(postWrap.GetVoteCnt()+1), "set vote count error",prototype.StatusErrorDbUpdate)
 	}
 }
 
@@ -321,16 +314,16 @@ func (ev *BpRegisterEvaluator) Apply() {
 	op := ev.op
 	witnessWrap := table.NewSoWitnessWrap(ev.ctx.db, op.Owner)
 
-	opAssert(!witnessWrap.CheckExist(), "witness already exist")
+	mustSuccess(!witnessWrap.CheckExist(), "witness already exist",prototype.StatusErrorDbExist)
 
-	opAssertE(witnessWrap.Create(func(t *table.SoWitness) {
+	mustNoError(witnessWrap.Create(func(t *table.SoWitness) {
 		t.Owner = op.Owner
 		t.CreatedTime = ev.ctx.control.HeadBlockTime()
 		t.Url = op.Url
 		t.SigningKey = op.BlockSigningKey
 
 		// TODO add others
-	}), "add witness record error")
+	}), "add witness record error",prototype.StatusErrorDbCreate)
 }
 
 func (ev *BpUnregisterEvaluator) Apply() {
@@ -350,28 +343,28 @@ func (ev *BpVoteEvaluator) Apply() {
 	vidWrap := table.NewSoWitnessVoteWrap(ev.ctx.db, voterId)
 
 	witAccWrap := table.NewSoAccountWrap(ev.ctx.db, op.Voter)
-	opAssert(witAccWrap.CheckExist(), "witness account do not exist ")
+	mustSuccess(witAccWrap.CheckExist(), "witness account do not exist ",prototype.StatusErrorDbExist)
 
 	witnessWrap := table.NewSoWitnessWrap(ev.ctx.db, op.Witness)
 
 	if op.Cancel {
-		opAssert(voteCnt > 0, "vote count must not be 0")
-		opAssert(vidWrap.CheckExist(), "vote record not exist")
-		opAssert(vidWrap.RemoveWitnessVote(), "remove vote record error")
-		opAssert(witnessWrap.GetVoteCount() > 0, "witness data error")
-		opAssert(witnessWrap.MdVoteCount(witnessWrap.GetVoteCount()-1), "set witness data error")
-		opAssert(voterAccount.MdBpVoteCount(voteCnt-1), "set voter data error")
+		mustSuccess(voteCnt > 0, "vote count must not be 0",prototype.StatusErrorTrxValueCompare)
+		mustSuccess(vidWrap.CheckExist(), "vote record not exist",prototype.StatusErrorDbExist)
+		mustSuccess(vidWrap.RemoveWitnessVote(), "remove vote record error",prototype.StatusErrorDbDelete)
+		mustSuccess(witnessWrap.GetVoteCount() > 0, "witness data error",prototype.StatusErrorTrxValueCompare)
+		mustSuccess(witnessWrap.MdVoteCount(witnessWrap.GetVoteCount()-1), "set witness data error",prototype.StatusErrorDbUpdate)
+		mustSuccess(voterAccount.MdBpVoteCount(voteCnt-1), "set voter data error",prototype.StatusErrorDbUpdate)
 	} else {
-		opAssert(voteCnt < constants.MAX_BP_VOTE_COUNT, "vote count exceeding")
+		mustSuccess(voteCnt < constants.MAX_BP_VOTE_COUNT, "vote count exceeding",prototype.StatusErrorTrxValueCompare)
 
-		opAssertE(vidWrap.Create(func(t *table.SoWitnessVote) {
+		mustNoError(vidWrap.Create(func(t *table.SoWitnessVote) {
 			t.VoteTime = ev.ctx.control.HeadBlockTime()
 			t.VoterId = voterId
 			t.WitnessId = witnessId
-		}), "add vote record error")
+		}), "add vote record error",prototype.StatusErrorDbCreate)
 
-		opAssert(voterAccount.MdBpVoteCount(voteCnt+1), "set voter data error")
-		opAssert(witnessWrap.MdVoteCount(witnessWrap.GetVoteCount()+1), "set witness data error")
+		mustSuccess(voterAccount.MdBpVoteCount(voteCnt+1), "set voter data error",prototype.StatusErrorDbUpdate)
+		mustSuccess(witnessWrap.MdVoteCount(witnessWrap.GetVoteCount()+1), "set witness data error",prototype.StatusErrorDbUpdate)
 	}
 
 }
@@ -380,10 +373,10 @@ func (ev *FollowEvaluator) Apply() {
 	op := ev.op
 
 	acctWrap := table.NewSoAccountWrap(ev.ctx.db, op.Account)
-	opAssert(acctWrap.CheckExist(), "follow account do not exist ")
+	mustSuccess(acctWrap.CheckExist(), "follow account do not exist ",prototype.StatusErrorDbExist)
 
 	acctWrap = table.NewSoAccountWrap(ev.ctx.db, op.FAccount)
-	opAssert(acctWrap.CheckExist(), "follow f_account do not exist ")
+	mustSuccess(acctWrap.CheckExist(), "follow f_account do not exist ",prototype.StatusErrorDbExist)
 }
 
 func (ev *TransferToVestingEvaluator) Apply() {
@@ -392,17 +385,17 @@ func (ev *TransferToVestingEvaluator) Apply() {
 	fidWrap := table.NewSoAccountWrap(ev.ctx.db, op.From)
 	tidWrap := table.NewSoAccountWrap(ev.ctx.db, op.To)
 
-	opAssert(tidWrap.CheckExist(), "to account do not exist")
+	mustSuccess(tidWrap.CheckExist(), "to account do not exist",prototype.StatusErrorDbExist)
 
 	fBalance := fidWrap.GetBalance()
 	tVests := tidWrap.GetVestingShares()
 	addVests := prototype.NewVest(op.Amount.Value)
 
-	opAssertE(fBalance.Sub(op.Amount), "balance not enough")
-	opAssert(fidWrap.MdBalance(fBalance), "set from new balance error")
+	mustNoError(fBalance.Sub(op.Amount), "balance not enough",prototype.StatusErrorTrxMath)
+	mustSuccess(fidWrap.MdBalance(fBalance), "set from new balance error",prototype.StatusErrorDbUpdate)
 
-	opAssertE(tVests.Add(addVests), "vests error")
-	opAssert(tidWrap.MdVestingShares(tVests), "set to new vests error")
+	mustNoError(tVests.Add(addVests), "vests error",prototype.StatusErrorTrxMath)
+	mustSuccess(tidWrap.MdVestingShares(tVests), "set to new vests error",prototype.StatusErrorDbUpdate)
 
 	ev.ctx.control.TransferToVest(op.Amount)
 }
@@ -413,11 +406,11 @@ func (ev *ClaimEvaluator) Apply() {
 	account := op.Account
 	accWrap := table.NewSoAccountWrap(ev.ctx.db, account)
 
-	opAssert(accWrap.CheckExist(), "claim account do not exist")
+	mustSuccess(accWrap.CheckExist(), "claim account do not exist",prototype.StatusErrorDbExist)
 
 	var i int32 = 1
 	keeperWrap := table.NewSoRewardsKeeperWrap(ev.ctx.db, &i)
-	opAssert(keeperWrap.CheckExist(), "reward keeper do not exist")
+	mustSuccess(keeperWrap.CheckExist(), "reward keeper do not exist",prototype.StatusErrorDbExist)
 
 	keeper := keeperWrap.GetKeeper()
 	innerRewards := keeper.Rewards
@@ -441,7 +434,7 @@ func (ev *ClaimEvaluator) Apply() {
 			// do nothing
 		}
 	} else {
-		opAssert(ok, "No remains reward on chain")
+		mustSuccess(ok, "No remains reward on chain",prototype.StatusError)
 	}
 
 }
@@ -452,11 +445,11 @@ func (ev *ClaimAllEvaluator) Apply() {
 	account := op.Account
 	accWrap := table.NewSoAccountWrap(ev.ctx.db, account)
 
-	opAssert(accWrap.CheckExist(), "claim account do not exist")
+	mustSuccess(accWrap.CheckExist(), "claim account do not exist",prototype.StatusErrorDbExist)
 
 	var i int32 = 1
 	keeperWrap := table.NewSoRewardsKeeperWrap(ev.ctx.db, &i)
-	opAssert(keeperWrap.CheckExist(), "reward keeper do not exist")
+	mustSuccess(keeperWrap.CheckExist(), "reward keeper do not exist",prototype.StatusErrorDbExist)
 
 	keeper := keeperWrap.GetKeeper()
 	innerRewards := keeper.Rewards
@@ -472,7 +465,7 @@ func (ev *ClaimAllEvaluator) Apply() {
 			// do nothing
 		}
 	} else {
-		opAssert(ok, "No remains reward on chain")
+		mustSuccess(ok, "No remains reward on chain",prototype.StatusError)
 	}
 
 }
@@ -483,26 +476,26 @@ func (ev *ContractDeployEvaluator) Apply() {
 	cid := prototype.ContractId{Owner: op.Owner, Cname: op.Contract}
 	scid := table.NewSoContractWrap(ev.ctx.db, &cid)
 
-	opAssert(!scid.CheckExist(), "contract name exist")
+	mustSuccess(!scid.CheckExist(), "contract name exist",prototype.StatusErrorDbExist)
 
 	_, err := abi.UnmarshalABI([]byte(op.GetAbi()))
 	if err != nil {
-		opAssertE(err, "invalid contract abi")
+		mustNoError(err, "invalid contract abi",prototype.StatusErrorAbi)
 	}
 
 	vmCtx := vmcontext.NewContextFromDeployOp(op, nil)
 
 	cosVM := vm.NewCosVM(vmCtx, nil, nil, nil)
 
-	opAssertE(cosVM.Validate(), "validate code failed")
+	mustNoError(cosVM.Validate(), "validate code failed",prototype.StatusErrorWasm)
 
-	opAssertE(scid.Create(func(t *table.SoContract) {
+	mustNoError(scid.Create(func(t *table.SoContract) {
 		t.Code = op.Code
 		t.Id = &cid
 		t.CreatedTime = ev.ctx.control.HeadBlockTime()
 		t.Abi = op.Abi
 		t.Balance = prototype.NewCoin(0)
-	}), "create contract data error")
+	}), "create contract data error",prototype.StatusErrorDbCreate)
 }
 
 //func (ev *ContractEstimateApplyEvaluator) Apply() {
@@ -537,22 +530,23 @@ func (ev *ContractApplyEvaluator) Apply() {
 
 	cid := prototype.ContractId{Owner: op.Owner, Cname: op.Contract}
 	scid := table.NewSoContractWrap(ev.ctx.db, &cid)
-	opAssert(scid.CheckExist(), "contract name doesn't exist")
+	mustSuccess(scid.CheckExist(), "contract name doesn't exist",prototype.StatusErrorDbExist)
 
 	acc := table.NewSoAccountWrap(ev.ctx.db, op.Caller)
-	opAssert(acc.CheckExist(), "account doesn't exist")
+	mustSuccess(acc.CheckExist(), "account doesn't exist",prototype.StatusErrorDbExist)
 
 	balance := acc.GetBalance().Value
 	// fixme, should base on minicos
 	balanceExchange := balance * constants.BASE_RATE
 
-	opAssert(balanceExchange >= op.Gas.Value, "balance can not pay gas fee")
+	mustSuccess(balanceExchange >= op.Gas.Value, "balance can not pay gas fee",prototype.StatusErrorTrxValueCompare)
 
 	// the amount is also minicos or cos ?
 	// here I assert it is minicos
 	// also, I think balance base on minicos is far more reliable.
-	opAssert(balanceExchange-op.Gas.Value > op.Amount.Value, "balance does not have enough fund to transfer after paid gas fee")
-
+	if op.Amount != nil {
+		mustSuccess(balanceExchange-op.Gas.Value > op.Amount.Value, "balance does not have enough fund to transfer after paid gas fee",prototype.StatusErrorTrxValueCompare)
+	}
 	code := scid.GetCode()
 
 	var err error
@@ -561,15 +555,15 @@ func (ev *ContractApplyEvaluator) Apply() {
 	var tables *ct.ContractTables
 
 	if abiInterface, err = abi.UnmarshalABI([]byte(scid.GetAbi())); err != nil {
-		opAssertE(err, "invalid contract abi")
+		mustNoError(err, "invalid contract abi",prototype.StatusErrorAbi)
 	}
 	if m := abiInterface.MethodByName(op.Method); m != nil {
 		paramsData, err = vme.EncodeFromJson([]byte(op.Params), m.Args().Type())
 		if err != nil {
-			opAssertE(err, "invalid contract parameters")
+			mustNoError(err, "invalid contract parameters",prototype.StatusErrorAbi)
 		}
 	} else {
-		opAssert(false, "unknown contract method: " + op.Method)
+		mustSuccess(false, "unknown contract method: " + op.Method,prototype.StatusErrorMethod)
 	}
 
 	if abiInterface != nil {
@@ -596,7 +590,7 @@ func (ev *ContractApplyEvaluator) Apply() {
 		vmCtx.Injector.AddOpReceipt(prototype.StatusErrorVmOp,spentGas,err.Error())
 		ev.ctx.db.EndTransaction(false)
 	} else {
-		if op.Amount.Value > 0 {
+		if op.Amount != nil && op.Amount.Value > 0 {
 			vmCtx.Injector.TransferFromUserToContract(op.Caller.Value, op.Contract, op.Owner.Value, op.Amount.Value)
 		}
 		ev.ctx.db.EndTransaction(true)
@@ -608,17 +602,19 @@ func (ev *InternalContractApplyEvaluator) Apply() {
 	op := ev.op
 
 	fromContract := table.NewSoContractWrap(ev.ctx.db, &prototype.ContractId{Owner: op.FromOwner, Cname: op.FromContract})
-	opAssert(fromContract.CheckExist(), "fromContract contract doesn't exist")
+	mustSuccess(fromContract.CheckExist(), "fromContract contract doesn't exist",prototype.StatusErrorDbExist)
 
 	toContract := table.NewSoContractWrap(ev.ctx.db, &prototype.ContractId{Owner: op.ToOwner, Cname: op.ToContract})
-	opAssert(toContract.CheckExist(), "toContract contract doesn't exist")
+	mustSuccess(toContract.CheckExist(), "toContract contract doesn't exist",prototype.StatusErrorDbExist)
 
 	caller := table.NewSoAccountWrap(ev.ctx.db, op.FromCaller)
-	opAssert(caller.CheckExist(), "caller account doesn't exist")
+	mustSuccess(caller.CheckExist(), "caller account doesn't exist",prototype.StatusErrorDbExist)
 
-	opAssert(caller.GetBalance().Value * constants.BASE_RATE >= op.Gas.Value, "caller balance less than gas")
-	opAssert(fromContract.GetBalance().Value >= op.Amount.Value, "fromContract balance less than transfer amount")
+	mustSuccess(caller.GetBalance().Value * constants.BASE_RATE >= op.Gas.Value, "caller balance less than gas",prototype.StatusErrorTrxValueCompare)
 
+	if op.Amount != nil {
+		mustSuccess(fromContract.GetBalance().Value >= op.Amount.Value, "fromContract balance less than transfer amount",prototype.StatusErrorTrxValueCompare)
+	}
 	code := toContract.GetCode()
 
 	var err error
@@ -626,15 +622,15 @@ func (ev *InternalContractApplyEvaluator) Apply() {
 	var tables *ct.ContractTables
 
 	if abiInterface, err = abi.UnmarshalABI([]byte(toContract.GetAbi())); err != nil {
-		opAssertE(err, "invalid toContract abi")
+		mustNoError(err, "invalid toContract abi",prototype.StatusErrorAbi)
 	}
 	if m := abiInterface.MethodByName(op.ToMethod); m != nil {
 		_, err = vme.DecodeToJson(op.Params, m.Args().Type(), false)
 		if err != nil {
-			opAssertE(err, "invalid contract parameters")
+			mustNoError(err, "invalid contract parameters",prototype.StatusErrorAbi)
 		}
 	} else {
-		opAssert(false, "unknown contract method: " + op.ToMethod)
+		mustSuccess(false, "unknown contract method: " + op.ToMethod,prototype.StatusErrorMethod)
 	}
 
 	if abiInterface != nil {
@@ -654,9 +650,9 @@ func (ev *InternalContractApplyEvaluator) Apply() {
 		ev.ctx.db.EndTransaction(false)
 		vmCtx.Injector.RecordGasFee(op.FromCaller.Value, spentGas)
 		// throw a panic, this panic should recover by upper contract vm context
-		opAssertE(err,"internal contract apply failed")
+		mustNoError(err,"internal contract apply failed",prototype.StatusErrorWasm)
 	} else {
-		if op.Amount.Value > 0 {
+		if op.Amount != nil && op.Amount.Value > 0 {
 			vmCtx.Injector.TransferFromContractToContract(op.FromContract, op.FromOwner.Value, op.ToContract, op.ToOwner.Value, op.Amount.Value)
 		}
 		ev.ctx.db.EndTransaction(true)
