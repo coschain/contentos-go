@@ -19,11 +19,11 @@ func makeOp() *TransferOperation {
 func makeFixKeyMap() map[string]string {
 	fixKeys := make(map[string]string)
 
-	fixKeys["123456"] = "2AvYqihDZjq7pFeZNuBYjBW1hQyPUw36xZB25g8UYfRLKwh7k9"
-	fixKeys["initminer"] = "28PFDCwkDWNFYSeFEyN5mct1J75v5ZxwpVtAb3mb3XySJBrGSj"
-	fixKeys["initminer1"] = "2su2nYzmkfT7p1JbiStegUN3Prrkr36p6CPQSvGG3TmRbEVEqy"
-	fixKeys["initminer2"] = "bM8zkJXxvdfyKCweWZaT6vgEPCtWCEX3S4EspmiiSjwgRzgcF"
-	fixKeys["1"] = "2CL5gdFyX4XF4sq6yoxPBpX92xHtnyz7K5JG9gGSKDzqmzgyzp"
+	fixKeys["123456"] = "47fj5Aj4zR4FdqMTxXBW3nGvp2h3BmutbdHGEN2UCfopx1fZtZ"
+	fixKeys["initminer"] = "458RSeybeBbPN2M9pbN36DevQioZnQqjTZzQjjfahYMvvFpib9"
+	fixKeys["initminer1"] = "4peD212dBLgFdb1WJ4tc158xWUaQYsybjGVebcAFhU9vDJTgzP"
+	fixKeys["initminer2"] = "3Y6KECLPPbronturE8ZXmhhbLzvYD37JgWAV2WfiNT8SJVy8kf"
+	fixKeys["1"] = "495Fv5HpwjkNtTY1ZRxLWRJ49a1YVprtx9QWJNARyEPLQ4fS9E"
 
 	return fixKeys
 }
@@ -50,6 +50,22 @@ func TestFixGenKey(t *testing.T) {
 		if !res1.Equal(res2) {
 			t.Fatal("key Error")
 		}
+	}
+}
+
+// test for private keys that start with 0x00's
+func TestVerifySig_00(t *testing.T) {
+	sigKey := &PrivateKeyType{
+		Data: []byte{ 0, 194, 14, 189, 29, 16, 93, 75, 11, 144, 186, 152, 74, 222, 8, 40, 249, 115, 66, 160, 178, 41, 67, 235, 31, 9, 213, 64, 41, 148, 218, 181 },
+	}
+	sigKey2, err := PrivateKeyFromWIF(sigKey.ToWIF())
+	if err != nil {
+		fmt.Println(err)
+		t.FailNow()
+	}
+	if !sigKey.Equal(sigKey2) {
+		fmt.Println("error wif convert")
+		t.FailNow()
 	}
 }
 
