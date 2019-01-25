@@ -25,9 +25,9 @@ func TestVote(t *testing.T) {
 	priv_account := &wallet.PrivAccount{
 		Account: wallet.Account{
 			Name:   "initminer",
-			PubKey: "COS6oKUcS7jNfPk48SEHENfeHbkWWjH7QAJt6C5tzGyL46yTWWBBv",
+			PubKey: "COS5JVLLcTPhq4Unr194JzWPDNSYGoMcam8yxnsjgRVo3Nb7ioyFW",
 		},
-		PrivKey: "27Pah3aJ8XbaQxgU1jxmYdUzWaBbBbbxLbZ9whSH9Zc8GbPMhw",
+		PrivKey: "4DjYx2KAGh1NP3dai7MZTLUBMMhMBPmwouKE8jhVSESywccpVZ",
 	}
 	mywallet.EXPECT().GetUnlockedAccount("initminer").Return(priv_account, true)
 	resp := &grpcpb.BroadcastTrxResponse{Status: 1, Msg: "success"}

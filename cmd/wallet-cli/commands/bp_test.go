@@ -23,13 +23,13 @@ func TestBpRegisterWithoutFlags(t *testing.T) {
 	for _, child := range cmd.Commands() {
 		child.Context = cmd.Context
 	}
-	cmd.SetArgs([]string{"register", "initminer", "COS6oKUcS7jNfPk48SEHENfeHbkWWjH7QAJt6C5tzGyL46yTWWBBv"})
+	cmd.SetArgs([]string{"register", "initminer", "COS5JVLLcTPhq4Unr194JzWPDNSYGoMcam8yxnsjgRVo3Nb7ioyFW"})
 	priv_account := &wallet.PrivAccount{
 		Account: wallet.Account{
 			Name:   "initminer",
-			PubKey: "COS6oKUcS7jNfPk48SEHENfeHbkWWjH7QAJt6C5tzGyL46yTWWBBv",
+			PubKey: "COS5JVLLcTPhq4Unr194JzWPDNSYGoMcam8yxnsjgRVo3Nb7ioyFW",
 		},
-		PrivKey: "27Pah3aJ8XbaQxgU1jxmYdUzWaBbBbbxLbZ9whSH9Zc8GbPMhw",
+		PrivKey: "4DjYx2KAGh1NP3dai7MZTLUBMMhMBPmwouKE8jhVSESywccpVZ",
 	}
 	mywallet.EXPECT().GetUnlockedAccount("initminer").Return(priv_account, true)
 	resp := &grpcpb.BroadcastTrxResponse{Status: 1, Msg: "success"}
@@ -53,13 +53,13 @@ func TestBpRegisterWithUrl(t *testing.T) {
 	for _, child := range cmd.Commands() {
 		child.Context = cmd.Context
 	}
-	cmd.SetArgs([]string{"register", "initminer", "COS6oKUcS7jNfPk48SEHENfeHbkWWjH7QAJt6C5tzGyL46yTWWBBv", "--url", "http://example.com"})
+	cmd.SetArgs([]string{"register", "initminer", "COS5JVLLcTPhq4Unr194JzWPDNSYGoMcam8yxnsjgRVo3Nb7ioyFW", "--url", "http://example.com"})
 	priv_account := &wallet.PrivAccount{
 		Account: wallet.Account{
 			Name:   "initminer",
-			PubKey: "COS6oKUcS7jNfPk48SEHENfeHbkWWjH7QAJt6C5tzGyL46yTWWBBv",
+			PubKey: "COS5JVLLcTPhq4Unr194JzWPDNSYGoMcam8yxnsjgRVo3Nb7ioyFW",
 		},
-		PrivKey: "27Pah3aJ8XbaQxgU1jxmYdUzWaBbBbbxLbZ9whSH9Zc8GbPMhw",
+		PrivKey: "4DjYx2KAGh1NP3dai7MZTLUBMMhMBPmwouKE8jhVSESywccpVZ",
 	}
 	mywallet.EXPECT().GetUnlockedAccount("initminer").Return(priv_account, true)
 	resp := &grpcpb.BroadcastTrxResponse{Status: 1, Msg: "success"}
@@ -88,13 +88,13 @@ func TestBpRegisterWithDesc(t *testing.T) {
 	for _, child := range cmd.Commands() {
 		child.Context = cmd.Context
 	}
-	cmd.SetArgs([]string{"register", "initminer", "COS6oKUcS7jNfPk48SEHENfeHbkWWjH7QAJt6C5tzGyL46yTWWBBv", "--desc", "hello world"})
+	cmd.SetArgs([]string{"register", "initminer", "COS5JVLLcTPhq4Unr194JzWPDNSYGoMcam8yxnsjgRVo3Nb7ioyFW", "--desc", "hello world"})
 	priv_account := &wallet.PrivAccount{
 		Account: wallet.Account{
 			Name:   "initminer",
-			PubKey: "COS6oKUcS7jNfPk48SEHENfeHbkWWjH7QAJt6C5tzGyL46yTWWBBv",
+			PubKey: "COS5JVLLcTPhq4Unr194JzWPDNSYGoMcam8yxnsjgRVo3Nb7ioyFW",
 		},
-		PrivKey: "27Pah3aJ8XbaQxgU1jxmYdUzWaBbBbbxLbZ9whSH9Zc8GbPMhw",
+		PrivKey: "4DjYx2KAGh1NP3dai7MZTLUBMMhMBPmwouKE8jhVSESywccpVZ",
 	}
 	mywallet.EXPECT().GetUnlockedAccount("initminer").Return(priv_account, true)
 	resp := &grpcpb.BroadcastTrxResponse{Status: 1, Msg: "success"}
@@ -123,13 +123,13 @@ func TestBpRegisterWithFee(t *testing.T) {
 	for _, child := range cmd.Commands() {
 		child.Context = cmd.Context
 	}
-	cmd.SetArgs([]string{"register", "initminer", "COS6oKUcS7jNfPk48SEHENfeHbkWWjH7QAJt6C5tzGyL46yTWWBBv", "--fee", "100"})
+	cmd.SetArgs([]string{"register", "initminer", "COS5JVLLcTPhq4Unr194JzWPDNSYGoMcam8yxnsjgRVo3Nb7ioyFW", "--fee", "100"})
 	priv_account := &wallet.PrivAccount{
 		Account: wallet.Account{
 			Name:   "initminer",
-			PubKey: "COS6oKUcS7jNfPk48SEHENfeHbkWWjH7QAJt6C5tzGyL46yTWWBBv",
+			PubKey: "COS5JVLLcTPhq4Unr194JzWPDNSYGoMcam8yxnsjgRVo3Nb7ioyFW",
 		},
-		PrivKey: "27Pah3aJ8XbaQxgU1jxmYdUzWaBbBbbxLbZ9whSH9Zc8GbPMhw",
+		PrivKey: "4DjYx2KAGh1NP3dai7MZTLUBMMhMBPmwouKE8jhVSESywccpVZ",
 	}
 	mywallet.EXPECT().GetUnlockedAccount("initminer").Return(priv_account, true)
 	resp := &grpcpb.BroadcastTrxResponse{Status: 1, Msg: "success"}
@@ -158,13 +158,13 @@ func TestBpRegisterWithBlockSize(t *testing.T) {
 	for _, child := range cmd.Commands() {
 		child.Context = cmd.Context
 	}
-	cmd.SetArgs([]string{"register", "initminer", "COS6oKUcS7jNfPk48SEHENfeHbkWWjH7QAJt6C5tzGyL46yTWWBBv", "--blocksize", "1000"})
+	cmd.SetArgs([]string{"register", "initminer", "COS5JVLLcTPhq4Unr194JzWPDNSYGoMcam8yxnsjgRVo3Nb7ioyFW", "--blocksize", "1000"})
 	priv_account := &wallet.PrivAccount{
 		Account: wallet.Account{
 			Name:   "initminer",
-			PubKey: "COS6oKUcS7jNfPk48SEHENfeHbkWWjH7QAJt6C5tzGyL46yTWWBBv",
+			PubKey: "COS5JVLLcTPhq4Unr194JzWPDNSYGoMcam8yxnsjgRVo3Nb7ioyFW",
 		},
-		PrivKey: "27Pah3aJ8XbaQxgU1jxmYdUzWaBbBbbxLbZ9whSH9Zc8GbPMhw",
+		PrivKey: "4DjYx2KAGh1NP3dai7MZTLUBMMhMBPmwouKE8jhVSESywccpVZ",
 	}
 	mywallet.EXPECT().GetUnlockedAccount("initminer").Return(priv_account, true)
 	resp := &grpcpb.BroadcastTrxResponse{Status: 1, Msg: "success"}
@@ -197,9 +197,9 @@ func TestBpUnRegister(t *testing.T) {
 	priv_account := &wallet.PrivAccount{
 		Account: wallet.Account{
 			Name:   "initminer",
-			PubKey: "COS6oKUcS7jNfPk48SEHENfeHbkWWjH7QAJt6C5tzGyL46yTWWBBv",
+			PubKey: "COS5JVLLcTPhq4Unr194JzWPDNSYGoMcam8yxnsjgRVo3Nb7ioyFW",
 		},
-		PrivKey: "27Pah3aJ8XbaQxgU1jxmYdUzWaBbBbbxLbZ9whSH9Zc8GbPMhw",
+		PrivKey: "4DjYx2KAGh1NP3dai7MZTLUBMMhMBPmwouKE8jhVSESywccpVZ",
 	}
 	mywallet.EXPECT().GetUnlockedAccount("initminer").Return(priv_account, true)
 	resp := &grpcpb.BroadcastTrxResponse{Status: 1, Msg: "success"}
@@ -231,9 +231,9 @@ func TestBpVoteWithoutFlags(t *testing.T) {
 	priv_account := &wallet.PrivAccount{
 		Account: wallet.Account{
 			Name:   "initminer",
-			PubKey: "COS6oKUcS7jNfPk48SEHENfeHbkWWjH7QAJt6C5tzGyL46yTWWBBv",
+			PubKey: "COS5JVLLcTPhq4Unr194JzWPDNSYGoMcam8yxnsjgRVo3Nb7ioyFW",
 		},
-		PrivKey: "27Pah3aJ8XbaQxgU1jxmYdUzWaBbBbbxLbZ9whSH9Zc8GbPMhw",
+		PrivKey: "4DjYx2KAGh1NP3dai7MZTLUBMMhMBPmwouKE8jhVSESywccpVZ",
 	}
 	mywallet.EXPECT().GetUnlockedAccount("initminer").Return(priv_account, true)
 	resp := &grpcpb.BroadcastTrxResponse{Status: 1, Msg: "success"}
@@ -265,9 +265,9 @@ func TestBpVoteCancel(t *testing.T) {
 	priv_account := &wallet.PrivAccount{
 		Account: wallet.Account{
 			Name:   "initminer",
-			PubKey: "COS6oKUcS7jNfPk48SEHENfeHbkWWjH7QAJt6C5tzGyL46yTWWBBv",
+			PubKey: "COS5JVLLcTPhq4Unr194JzWPDNSYGoMcam8yxnsjgRVo3Nb7ioyFW",
 		},
-		PrivKey: "27Pah3aJ8XbaQxgU1jxmYdUzWaBbBbbxLbZ9whSH9Zc8GbPMhw",
+		PrivKey: "4DjYx2KAGh1NP3dai7MZTLUBMMhMBPmwouKE8jhVSESywccpVZ",
 	}
 	mywallet.EXPECT().GetUnlockedAccount("initminer").Return(priv_account, true)
 	resp := &grpcpb.BroadcastTrxResponse{Status: 1, Msg: "success"}
@@ -299,9 +299,9 @@ func TestBpVoteUnsetFlag(t *testing.T) {
 	priv_account := &wallet.PrivAccount{
 		Account: wallet.Account{
 			Name:   "initminer",
-			PubKey: "COS6oKUcS7jNfPk48SEHENfeHbkWWjH7QAJt6C5tzGyL46yTWWBBv",
+			PubKey: "COS5JVLLcTPhq4Unr194JzWPDNSYGoMcam8yxnsjgRVo3Nb7ioyFW",
 		},
-		PrivKey: "27Pah3aJ8XbaQxgU1jxmYdUzWaBbBbbxLbZ9whSH9Zc8GbPMhw",
+		PrivKey: "4DjYx2KAGh1NP3dai7MZTLUBMMhMBPmwouKE8jhVSESywccpVZ",
 	}
 	mywallet.EXPECT().GetUnlockedAccount("initminer").Return(priv_account, true).MaxTimes(100)
 	resp := &grpcpb.BroadcastTrxResponse{Status: 1, Msg: "success"}
