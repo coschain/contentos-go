@@ -589,13 +589,15 @@ func (ev *ContractApplyEvaluator) Apply() {
 		vmCtx.Injector.Error(ret, err.Error())
 		vmCtx.Injector.AddOpReceipt(prototype.StatusErrorVmOp,spentGas,err.Error())
 		ev.ctx.db.EndTransaction(false)
+		vmCtx.Injector.RecordGasFee(op.Caller.Value, spentGas)
+		mustNoError(err,"internal contract apply failed",prototype.StatusErrorWasm)
 	} else {
 		if op.Amount != nil && op.Amount.Value > 0 {
 			vmCtx.Injector.TransferFromUserToContract(op.Caller.Value, op.Contract, op.Owner.Value, op.Amount.Value)
 		}
 		ev.ctx.db.EndTransaction(true)
+		vmCtx.Injector.RecordGasFee(op.Caller.Value, spentGas)
 	}
-	vmCtx.Injector.RecordGasFee(op.Caller.Value, spentGas)
 }
 
 func (ev *InternalContractApplyEvaluator) Apply() {

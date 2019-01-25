@@ -102,7 +102,13 @@ func (p *TrxContext) DeductAllGasFee() bool {
 }
 
 func (p *TrxContext) RecordGasFee(caller string, spent uint64) {
-	p.gasMap[caller] = spent
+	// if same caller call multi times
+	if v, ok := p.gasMap[caller]; ok {
+		newSpent := v + spent
+		p.gasMap[caller] = newSpent
+	} else {
+		p.gasMap[caller] = spent
+	}
 }
 
 func (p *TrxContext) HasGasFee() bool {
