@@ -109,7 +109,7 @@ type IDatabaseService interface {
 
 	BeginTransactionWithTag(tag string)
 
-	Squash(tag string, num uint64) error
+	Squash(tag string) error
 
 	RollBackToTag(tag string) error
 

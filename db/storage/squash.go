@@ -5,6 +5,7 @@ import (
 	"encoding/gob"
 	"fmt"
 	"github.com/pkg/errors"
+	"strconv"
 	"sync"
 )
 
@@ -63,7 +64,7 @@ func (db *SquashableDatabase) BeginTransactionWithTag(tag string) {
 	db.tagsByIdx[frontIdx] = tag
 }
 
-func (db *SquashableDatabase) Squash(tag string, num uint64) error {
+func (db *SquashableDatabase) Squash(tag string) error {
 	db.lock.Lock()
 	defer db.lock.Unlock()
 
@@ -85,7 +86,7 @@ func (db *SquashableDatabase) Squash(tag string, num uint64) error {
 		}
 		db.tags, db.tagsByIdx = newTags, newTagsByIdx
 		//save the current commit number
-		buf,err := encodeCommitNum(num)
+		buf,err := encodeCommitNum(tag)
 		if err != nil {
 			return err
 		}
@@ -135,12 +136,16 @@ func (db *SquashableDatabase) GetCommitNum() (uint64,error) {
 		return 0, nil
 	}
 	if buf,err := db.db.Get(key); err == nil {
-		 num,err = decodeCommitNum(buf)
+		 val,dErr := decodeCommitNum(buf)
+		 if dErr != nil {
+		 	return 0,dErr
+		 }
+		 num,err = strconv.ParseUint(val,10,64)
 	}
 	return num,err
 }
 
-func encodeCommitNum(num uint64) ([]byte,error) {
+func encodeCommitNum(num string) ([]byte,error) {
 	buf := new(bytes.Buffer)
 	enc := gob.NewEncoder(buf)
 	err := enc.Encode(num)
@@ -150,12 +155,12 @@ func encodeCommitNum(num uint64) ([]byte,error) {
 	return buf.Bytes(),nil
 }
 
-func decodeCommitNum(data []byte) (uint64,error) {
+func decodeCommitNum(data []byte) (string,error) {
 	buf := bytes.NewBuffer(data)
 	dec := gob.NewDecoder(buf)
-	var num uint64 = 0
+	var num  = "0"
 	if err := dec.Decode(&num); err != nil {
-		return 0,err
+		return "0",err
 	}
 	return num,nil
 }

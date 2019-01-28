@@ -85,7 +85,7 @@ func makePushBlocksBenchmark(dbs *dbService, dataPtr *sort.StringSlice, revertib
 			if revertible {
 				dbs.db.EndTransaction(true)
 			} else if i >= bmDelaySquash {
-				dbs.db.Squash("block" + strconv.Itoa(i - bmDelaySquash), 0)
+				dbs.db.Squash("block" + strconv.Itoa(i - bmDelaySquash))
 			}
 		}
 	}

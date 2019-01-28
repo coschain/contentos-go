@@ -23,6 +23,7 @@ import (
 
 var (
 	SingleId int32 = 1
+	cmtNum   uint64 = 0
 )
 
 type TrxPool struct {
@@ -192,8 +193,8 @@ func (c *TrxPool) pushTrx(trx *prototype.SignedTransaction) *prototype.Transacti
 	return trxEst.Receipt
 }
 
-func (c *TrxPool) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag) error {
-	var err error = nil
+func (c *TrxPool) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag) (err error) {
+	//var err error = nil
 	oldFlag := c.skip
 	c.skip = skip
 
@@ -216,6 +217,7 @@ func (c *TrxPool) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag)
 			if skip&prototype.Skip_apply_transaction != 0 {
 				c.havePendingTransaction = false
 			}
+			fmt.Printf("push block fail,the error is %v,the block num is %v \n",r,blk.Id().BlockNum())
 		}
 		c.skip = oldFlag
 		// restorePending will call pushTrx, will start new transaction for pending
@@ -831,7 +833,7 @@ func (c *TrxPool) updateGlobalDynamicData(blk *prototype.SignedBlock) {
 	//c.dgpo.CurrentAslot       = c.dgpo.CurrentAslot + missedBlock+1
 
 	// this check is useful ?
-	mustSuccess(dgpo.GetHeadBlockNumber()-dgpo.GetIrreversibleBlockNum() < constants.MAX_UNDO_HISTORY, "The database does not have enough undo history to support a blockchain with so many missed blocks.")
+	//mustSuccess(dgpo.GetHeadBlockNumber()-dgpo.GetIrreversibleBlockNum() < constants.MAX_UNDO_HISTORY, "The database does not have enough undo history to support a blockchain with so many missed blocks.")
 	c.updateGlobalDataToDB(dgpo)
 }
 
@@ -942,8 +944,9 @@ func (c *TrxPool) PopBlockTo(num uint64) {
 func (c *TrxPool) Commit(num uint64) {
 	// this block can not be revert over, so it's irreversible
 	tag := c.getBlockTag(uint64(num))
-	err := c.db.Squash(tag,num)
+	err := c.db.Squash(tag)
 	mustSuccess(err == nil,fmt.Sprintf("SquashBlock: tag:%d,error is %s",num,err))
+	cmtNum = num
 }
 
 func (c *TrxPool) VerifySig(name *prototype.AccountName, digest []byte, sig []byte) bool {
@@ -988,90 +991,80 @@ func (c *TrxPool) Sign(priv *prototype.PrivateKeyType, digest []byte) []byte {
 	return res
 }
 
-//Sync blocks to squash db when node reStart
-//pushedBlk: the already pushed blocks
-//commitBlk: the already commit blocks what are stored in block log
-//realCommit: the latest commit number of block in block log
-//headBlk: the head block in main chain
-func (c *TrxPool) SyncBlockDataToDB (pushedBlk []common.ISignedBlock, commitBlk []common.ISignedBlock,
-	realCommit uint64, headBlk common.ISignedBlock) {
-	if headBlk == nil {
-		return
+func (c *TrxPool) GetCommitBlockNum() (uint64,error) {
+	if cmtNum != 0 {
+		return cmtNum,nil
 	}
-
 	//Fetch the latest commit block number in squash db
 	num,err := c.db.GetCommitNum()
+	if err == nil && num > cmtNum {
+		cmtNum = num
+	}
+	return num,err
+}
+
+//Sync committed blocks to squash db when node reStart
+func (c *TrxPool) SyncCommittedBlockToDB(blk common.ISignedBlock) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			desc := fmt.Sprintf("[Sync commit]:Faile to commit,the error is %v",err)
+			err = errors.New(desc)
+		}
+	}()
+	if blk == nil {
+		return errors.New("[Sync commit]:Fail to sync commit nil block")
+	}
+	cmtNum,err := c.GetCommitBlockNum()
 	if err != nil {
-		c.log.Debug("[sync Block]: Failed to get latest commit block number")
-		return
+		return err
 	}
+	num := blk.Id().BlockNum()
+	if num <= cmtNum {
+		desc := fmt.Sprintf("[Sync commit]: the block of num %d has already commit,current " +
+			"commit num is %d",num,cmtNum)
+		err = errors.New(desc)
+		return err
+	}
+	c.log.Debugf("[Reload commit] :sync lost commit block which num is %d", num)
+	pErr := c.PushBlock(blk.(*prototype.SignedBlock),prototype.Skip_nothing)
+	if pErr != nil {
+		desc := fmt.Sprintf("[Sync commit]: push the block which num is %v fail,error is %s", num, pErr)
+		err = errors.New(desc)
+		return err
+	}
+	c.Commit(num)
+	return err
+}
 
-	//Fetch the real commit block number in chain
-	realNum := realCommit
-	//Fetch the head block number in chain
-	headNum := headBlk.Id().BlockNum()
-
-	//syncNum is the start number need to fetch from ForkDB
-	syncNum := num
-
-	//Reload lost commit blocks
-	if realNum > 0 && num < realNum {
-		cnt := uint64(len(commitBlk))
-		if cnt > 0  {
-			//Scene 1: The block data in squash db has been deleted,so need sync lost blocks to squash db
-			//Because ForkDB will not continue to store commit blocks,so we need load all commit blocks from block log,
-			//meanWhile add block to squash db
-			var start = num
-			if start >= cnt {
-				c.log.Errorf("[Reload commit] start index %v out range of reload block count %v",start,cnt)
-			}else {
-				c.log.Debugf("[Reload commit] start sync lost commit blocks from block log,db commit num is: " +
-					"%v,end:%v,real commit num is %v", start, headNum, realNum)
-				for i := start ; i < uint64(cnt); i++ {
-					blk := commitBlk[i]
-					c.log.Debugf("[Reload commit] push block,blockNum is: " +
-						"%v", blk.(*prototype.SignedBlock).Id().BlockNum())
-					err = c.PushBlock(blk.(*prototype.SignedBlock),prototype.Skip_nothing)
-					if err != nil {
-						desc := fmt.Sprintf("[Reload commit] push the block which num is %v fail,error " +
-							"is %s", i, err)
-						panic(desc)
-					}
-				}
+//Sync pushed blocks to squash db when node reStart
+func (c *TrxPool) SyncPushedBlocksToDB(blkList []common.ISignedBlock) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			desc := fmt.Sprintf("[Sync pushed]:Faile to push block,the error is %v",err)
+			err = errors.New(desc)
+		}
+	}()
+	if blkList != nil {
+		cmtNum,err := c.GetCommitBlockNum()
+		if err != nil {
+			return err
+		}
+		for i := range blkList {
+			blk := blkList[i]
+			num := blk.Id().BlockNum()
+			if cmtNum >= num {
+				desc := fmt.Sprintf("[sync pushed]: the block num %v is not greater than " +
+					"the latest commit block num %v",num,cmtNum)
+				return errors.New(desc)
 			}
-			syncNum = uint64(cnt)
-		}else {
-			c.log.Errorf("[Reload commit] Failed to get lost commit blocks from block log," +
-				"start: %v," + "end:%v,real commit num is %v", syncNum+1, headNum, realNum)
-		}
-
-	}
-
-	//1.Synchronous all the lost pushed blocks from ForkDB to squash db
-	if headNum > syncNum {
-		if headNum-syncNum > uint64(len(pushedBlk)) {
-			desc := fmt.Sprintf("[sync pushed]: the lost blocks range %v from forkDB is less than " +
-				"real lost range [%v %v] ",len(pushedBlk), syncNum+1, headNum)
-			panic(desc)
-		}
-		c.log.Debugf("[sync pushed]: start sync lost blocks,start: %v,end:%v,real commit num " +
-			"is %v", syncNum+1, headNum, realNum)
-		for i := range pushedBlk {
-			blk := pushedBlk[i]
 			c.log.Debugf("[sync pushed]: sync pushed block,blockNum is: " +
 				"%v", blk.(*prototype.SignedBlock).Id().BlockNum())
-			err = c.PushBlock(blk.(*prototype.SignedBlock),prototype.Skip_nothing)
+			err := c.PushBlock(blk.(*prototype.SignedBlock),prototype.Skip_nothing)
 			if err != nil {
 				desc := fmt.Sprintf("[sync pushed]: push the block which num is %v fail,error is %s", i, err)
-				panic(desc)
+				return errors.New(desc)
 			}
 		}
 	}
-
-	//2.Synchronous the lost commit blocks to squash db
-	if realNum > num {
-		//Need synchronous commit
-		c.log.Debugf("[sync commit] start sync commit block num %v ",realNum)
-		c.Commit(realNum)
-	}
+	return err
 }

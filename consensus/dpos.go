@@ -178,7 +178,10 @@ func (d *DPoS) Start(node *node.Node) error {
 	d.restoreProducers()
 
 	////sync blocks to squash db
-	d.handleBlockSync()
+	err = d.handleBlockSync()
+    if err != nil {
+    	return err
+	}
 
 	go d.start()
 	return nil
@@ -479,6 +482,7 @@ func (d *DPoS) commit(b common.ISignedBlock) error {
 		// something went really wrong if we got here
 		panic(err)
 	}
+
 	d.ctrl.Commit(b.Id().BlockNum())
 	d.ForkDB.Commit(b.Id())
 	return nil
@@ -697,23 +701,46 @@ func (d *DPoS) MaybeProduceBlock() {
 	d.p2p.Broadcast(b)
 }
 
-func (d *DPoS) handleBlockSync() {
-	var (
-		i int64
-		//commit blocks in block log
-		commitSli = make([]common.ISignedBlock, d.blog.Size())
-		//Fetch pushed blocks in snapshot
-		blkSli, _, _ = d.ForkDB.FetchBlocksSince(d.ForkDB.LastCommitted())
-	)
-	if d.blog.Size() > 0 {
-		for i = 0; i < d.blog.Size(); i++ {
+func (d *DPoS) handleBlockSync() error {
+	if d.ForkDB.Head() == nil {
+		//Not need to sync
+		return nil
+	}
+	var err error = nil
+	lastCommit := d.ForkDB.LastCommitted().BlockNum()
+	//Fetch the commit block num in db
+	dbCommit,err := d.ctrl.GetCommitBlockNum()
+	if err != nil {
+		return err
+	}
+	//Fetch the commit block numbers saved in block log
+	commitNum := d.blog.Size()
+	//1.sync commit blocks
+	if dbCommit < lastCommit && commitNum > 0  && commitNum >= int64(lastCommit) {
+		d.log.Debugf("[Reload commit] start sync lost commit blocks from block log,db commit num is: " +
+							"%v,end:%v,real commit num is %v", dbCommit, d.ForkDB.Head().Id().BlockNum(), lastCommit)
+		for i := int64(dbCommit); i < int64(lastCommit); i++ {
 			blk := &prototype.SignedBlock{}
 			if err := d.blog.ReadBlock(blk, i); err != nil {
-				panic(err)
+				return err
 			}
-			commitSli[i] = blk
+			err = d.ctrl.SyncCommittedBlockToDB(blk)
+			if err != nil {
+				return err
+			}
 		}
 	}
-
-	d.ctrl.SyncBlockDataToDB(blkSli, commitSli, d.ForkDB.LastCommitted().BlockNum(), d.ForkDB.Head())
+	//2.sync pushed blocks
+	//Fetch pushed blocks in snapshot
+	pSli, _, err := d.ForkDB.FetchBlocksSince(d.ForkDB.LastCommitted())
+	if err != nil {
+		return err
+	}
+	if len(pSli) > 0 {
+		d.log.Debugf("[sync pushed]: start sync lost blocks,start: %v,end:%v",
+			lastCommit+1, d.ForkDB.Head().Id().BlockNum())
+		err = d.ctrl.SyncPushedBlocksToDB(pSli)
+	}
+	
+	return err
 }

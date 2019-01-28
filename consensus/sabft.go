@@ -304,7 +304,10 @@ func (sabft *SABFT) Start(node *node.Node) error {
 	}
 	sabft.restoreProducers()
 
-	sabft.handleBlockSync()
+	err = sabft.handleBlockSync()
+	if err != nil {
+		return err
+	}
 
 	// start block generation process
 	go sabft.start()
@@ -1025,23 +1028,43 @@ func (sabft *SABFT) MaybeProduceBlock() {
 	sabft.p2p.Broadcast(b)
 }
 
-func (sabft *SABFT) handleBlockSync() {
-	var (
-		i int64
-		//commit blocks in block log
-		commitSli = make([]common.ISignedBlock, sabft.blog.Size())
-		//Fetch pushed blocks in snapshot
-		blkSli, _, _ = sabft.ForkDB.FetchBlocksSince(sabft.ForkDB.LastCommitted())
-	)
-	if sabft.blog.Size() > 0 {
-		for i = 0; i < sabft.blog.Size(); i++ {
+func (sabft *SABFT) handleBlockSync() error {
+	if sabft.ForkDB.Head() == nil {
+		//Not need to sync
+		return nil
+	}
+	var err error = nil
+	lastCommit := sabft.ForkDB.LastCommitted().BlockNum()
+	//Fetch the commit block num in db
+	dbCommit,err := sabft.ctrl.GetCommitBlockNum()
+	if err != nil {
+		return err
+	}
+	//Fetch the commit block numbers saved in block log
+	commitNum := sabft.blog.Size()
+	//1.sync commit blocks
+	if dbCommit < lastCommit && commitNum > 0  && commitNum >= int64(lastCommit) {
+		sabft.log.Debugf("[Reload commit] start sync lost commit blocks from block log,db commit num is: " +
+			"%v,end:%v,real commit num is %v", dbCommit, sabft.ForkDB.Head().Id().BlockNum(), lastCommit)
+		for i := int64(dbCommit); i < int64(lastCommit); i++ {
 			blk := &prototype.SignedBlock{}
 			if err := sabft.blog.ReadBlock(blk, i); err != nil {
-				panic(err)
+				return err
 			}
-			commitSli[i] = blk
+			err = sabft.ctrl.SyncCommittedBlockToDB(blk)
 		}
 	}
+	//2.sync pushed blocks
+	//Fetch pushed blocks in snapshot
+	pSli, _, err := sabft.ForkDB.FetchBlocksSince(sabft.ForkDB.LastCommitted())
+	if err != nil {
+		return err
+	}
+	if len(pSli) > 0 {
+		sabft.log.Debugf("[sync pushed]: start sync lost blocks,start: %v,end:%v",
+			lastCommit+1, sabft.ForkDB.Head().Id().BlockNum())
+		err = sabft.ctrl.SyncPushedBlocksToDB(pSli)
+	}
 
-	sabft.ctrl.SyncBlockDataToDB(blkSli, commitSli, sabft.ForkDB.LastCommitted().BlockNum(), sabft.ForkDB.Head())
+	return err
 }
