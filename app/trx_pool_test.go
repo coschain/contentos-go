@@ -1,5 +1,5 @@
 package app
-/*
+
 import (
 	"errors"
 	"fmt"
@@ -109,11 +109,9 @@ func makeCreateAccountOP(accountName string, pubKey string) (*prototype.AccountC
 }
 
 func Test_PushTrx(t *testing.T) {
-	clearDB()
-
 	// set up controller
 	db := startDB()
-	defer db.Close()
+	defer clearDB(db)
 	c := startController(db)
 
 	acop, err := makeCreateAccountOP(accountNameBob, pubKeyBob)
@@ -142,11 +140,10 @@ func Test_PushTrx(t *testing.T) {
 }
 
 func Test_PushBlock(t *testing.T) {
-	clearDB()
 
 	// set up controller
 	db := startDB()
-	defer db.Close()
+	defer clearDB(db)
 	c := startController(db)
 
 	createOP, err := makeCreateAccountOP(accountNameBob, pubKeyBob)
@@ -175,14 +172,13 @@ func Test_PushBlock(t *testing.T) {
 }
 
 func TestController_GenerateAndApplyBlock(t *testing.T) {
-	clearDB()
 	createOP, err := makeCreateAccountOP(accountNameBob, pubKeyBob)
 	if err != nil {
 		t.Error("makeCreateAccountOP error:", err)
 	}
 	// set up controller
 	db := startDB()
-	defer db.Close()
+	defer clearDB(db)
 	c := startController(db)
 
 	headBlockID := c.GetProps().GetHeadBlockId()
@@ -220,11 +216,10 @@ func TestController_GenerateAndApplyBlock(t *testing.T) {
 }
 
 func Test_list(t *testing.T) {
-	clearDB()
 
 	// set up controller
 	db := startDB()
-	defer db.Close()
+	defer clearDB(db)
 	c := startController(db)
 
 	// make trx
@@ -272,11 +267,10 @@ func Test_list(t *testing.T) {
 }
 
 func TestController_GetWitnessTopN(t *testing.T) {
-	clearDB()
 
 	// set up controller
 	db := startDB()
-	defer db.Close()
+	defer clearDB(db)
 	c := startController(db)
 
 	name := &prototype.AccountName{Value: "wit1"}
@@ -307,11 +301,10 @@ func TestController_GetWitnessTopN(t *testing.T) {
 }
 
 func TestController_PopBlock(t *testing.T) {
-	clearDB()
 
 	// set up controller
 	db := startDB()
-	defer db.Close()
+	defer clearDB(db)
 	c := startController(db)
 
 	createOP, err := makeCreateAccountOP(accountNameBob, pubKeyBob)
@@ -377,11 +370,10 @@ func TestController_PopBlock(t *testing.T) {
 }
 
 func TestController_Commit(t *testing.T) {
-	clearDB()
 
 	// set up controller
 	db := startDB()
-	defer db.Close()
+	defer clearDB(db)
 	c := startController(db)
 
 	createOP, err := makeCreateAccountOP(accountNameBob, pubKeyBob)
@@ -449,4 +441,3 @@ func TestController_Commit(t *testing.T) {
 	}()
 	c.PopBlockTo(1)
 }
-*/

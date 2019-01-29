@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app/table"
+	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/db/storage"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/mylog"
@@ -398,5 +399,7 @@ func startController(db iservices.IDatabaseService) *TrxPool {
 	c.SetDB(db)
 	c.SetBus(EventBus.New())
 	c.Open()
+	c.SetShuffle(func(block common.ISignedBlock) {
+	})
 	return c
 }
