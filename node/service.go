@@ -29,3 +29,11 @@ type Service interface {
 	// blocking until all of them are terminated.
 	Stop() error
 }
+
+func (ctx *ServiceContext) ResetConfig(cfg *Config) {
+	ctx.config = cfg
+}
+
+func (ctx *ServiceContext) ResetServices(s map[string]Service) {
+	ctx.services = s
+}
