@@ -670,7 +670,9 @@ func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 	// if we're committing a block we don't have
 	blk, err := sabft.ForkDB.FetchBlock(blockID)
 	if err != nil {
-		panic(err)
+		// we're falling behind, just wait for next commit
+		sabft.log.Warn("[SABFT] committing a missing block", blockID)
+		return nil
 	}
 
 	// if blockID points to a block that is not on the current
@@ -683,9 +685,9 @@ func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 		switchErr := sabft.switchFork(sabft.ForkDB.Head().Id(), blockID)
 		if switchErr {
 			panic("there's an error while switching to committed block")
-			// TODO: just discard current commit process, not panic
 		}
 		// also need to reset new head
+		// fixme: find the real head of the branch we just switched on
 		sabft.ForkDB.ResetHead(blockID)
 	}
 
