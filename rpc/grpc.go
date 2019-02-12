@@ -26,6 +26,15 @@ type APIService struct {
 	log       *logrus.Logger
 }
 
+func NewAPIService(con iservices.IConsensus, loop *eventloop.EventLoop, db iservices.IDatabaseService, log *logrus.Logger) *APIService {
+	return &APIService{
+		consensus:con,
+		mainLoop:loop,
+		db:db,
+		log:log,
+	}
+}
+
 func (as *APIService) QueryTableContent(ctx context.Context, req *grpcpb.GetTableContentRequest) (*grpcpb.TableContentResponse, error) {
 
 	res := &grpcpb.TableContentResponse{}
