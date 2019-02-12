@@ -14,7 +14,7 @@ Follow us on https://twitter.com/contentosio
 
 Join discussion at https://t.me/ContentoOfficialGroup
 
-**WARNING:** For now, the branch is under active developing. Thus mostly it stabilized, but we are still introducing some breaking changes.
+**WARNING:** The branch is under heavy development. Breaking changes are actively added.
 
 **Note*:* Requires [Go 1.11.4+](https://golang.org/dl/)
 
@@ -62,7 +62,7 @@ make test
 
 ## Executables
 
-the contento-go composed with two executables as above.
+The contento-go contains two executables as follow:
 
 **cosd**: the daemon to run a local blockchain
 
@@ -70,13 +70,13 @@ the contento-go composed with two executables as above.
 
 ## Running cosd
 
-### Initializing
+### Initialization
 
 ```bash
 cosd init
 ```
 
-it will use *cosd* as default node name. If you prefer your own name, using:
+*cosd* is adopted in default as the node name. To change it, use:
 
 ```bash
 cosd init -n yourownname
@@ -84,11 +84,11 @@ cosd init -n yourownname
 
 ### Configuration
 
-After being initialized, configurations will be found in homedir/.cosd/nodename
+After initialization, configurations will be found under homedir/.cosd/nodename
 
 The nodename is cosd or yourownname.
 
-You can modify it if you like as you know actually what you are doing.
+You can modify it if you like as long as you know what you are doing.
 
 
 ## Running
@@ -139,6 +139,6 @@ you can add `--help` or `help [command]` to get more detail infos.
 
 ## Contribution
 
-Thank you for considering to help out with the source code! We welcome contributions from anyone on the internet, and are grateful for even the smallest of fixes!
+Contributions are welcomed.
 
-If you'd like to contribute to contento-go, please fork, fix, commit and send a pull request for the maintainers to review and merge into the main code base. Or you can contact us directly by join telegram.
+If you'd like to help out with the source code, please send a pull request. Or you can contact us directly by joining telegram.
