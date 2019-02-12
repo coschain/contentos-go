@@ -1,12 +1,21 @@
 package rpc
 
+import (
+	"context"
+	"github.com/coschain/contentos-go/prototype"
+	"github.com/coschain/contentos-go/rpc/mock_grpcpb"
+	"github.com/coschain/contentos-go/rpc/pb"
+	"github.com/golang/mock/gomock"
+	"testing"
+)
+
 /*
 var asc grpcpb.ApiServiceClient
 
 func TestMain(m *testing.M) {
 	logging.Init("logs	", "debug", 0)
 
-	//os.RemoveAll("/Users/eagle/.coschain/cosd/db")
+	os.RemoveAll("/Users/eagle/.coschain/cosd/db")
 
 	addr := fmt.Sprintf("127.0.0.1:%d", uint32(8888))
 	conn, err := Dial(addr)
@@ -22,89 +31,6 @@ func TestMain(m *testing.M) {
 	asc = nil
 
 	os.Exit(exitCode)
-}
-
-func TestMockGRPCApi_GetAccountByName(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	client := mock_grpcpb.NewMockApiServiceClient(ctrl)
-
-	{
-		req := &grpcpb.GetAccountByNameRequest{}
-		resp := &grpcpb.AccountResponse{}
-		expected := &grpcpb.AccountResponse{AccountName: &prototype.AccountName{Value: "Jack"}}
-		client.EXPECT().GetAccountByName(gomock.Any(), gomock.Any()).Return(expected, nil)
-
-		resp, err := client.GetAccountByName(context.Background(), req)
-		if err != nil {
-			t.Logf("GetAccountByName failed: %x", err)
-		} else {
-			t.Logf("GetAccountByName detail: %v", resp.AccountName)
-		}
-	}
-}
-
-func TestMockGPRCApi_GetFollowerListByName(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	client := mock_grpcpb.NewMockApiServiceClient(ctrl)
-
-	{
-		req := &grpcpb.GetFollowerListByNameRequest{}
-		resp := &grpcpb.GetFollowerListByNameResponse{}
-
-		expected := &grpcpb.GetFollowerListByNameResponse{}
-		client.EXPECT().GetFollowerListByName(gomock.Any(), gomock.Any()).Return(expected, nil)
-
-		resp, err := client.GetFollowerListByName(context.Background(), req)
-		if err != nil {
-			t.Logf("GetFollowerListByName failed: %x", err)
-		} else {
-			t.Logf("GetFollowerListByName detail: %v", resp.FollowerList)
-		}
-	}
-}
-
-func TestMockGRPCApi_GetFollowingListByName(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	client := mock_grpcpb.NewMockApiServiceClient(ctrl)
-
-	{
-		req := &grpcpb.GetFollowingListByNameRequest{}
-		resp := &grpcpb.GetFollowingListByNameResponse{}
-
-		expected := &grpcpb.GetFollowingListByNameResponse{}
-		client.EXPECT().GetFollowingListByName(gomock.Any(), gomock.Any()).Return(expected, nil)
-
-		resp, err := client.GetFollowingListByName(context.Background(), req)
-		if err != nil {
-			t.Logf("GetFollowingListByName failed: %x", err)
-		} else {
-			t.Logf("GetFollowingListByName detail: %v", resp.FollowingList)
-		}
-	}
-}
-
-func TestMockGPRCApi_GetWitnessList(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	client := mock_grpcpb.NewMockApiServiceClient(ctrl)
-
-	{
-		req := &grpcpb.GetWitnessListRequest{}
-		resp := &grpcpb.GetWitnessListResponse{}
-
-		expected := &grpcpb.GetWitnessListResponse{}
-		client.EXPECT().GetWitnessList(gomock.Any(), gomock.Any()).Return(expected, nil)
-
-		resp, err := client.GetWitnessList(context.Background(), req)
-		if err != nil {
-			t.Logf("GetWitnessListByName failed: %x", err)
-		} else {
-			t.Logf("GetWitnessListByName detail: %v", resp.WitnessList)
-		}
-	}
 }
 
 func TestGRPCApi_GetAccountByName(t *testing.T) {
@@ -523,3 +449,105 @@ func http_client(rtype, url, reqJson string) error {
 }
 
 */
+
+func TestMockGRPCApi_GetAccountByName(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	db := mock_grpcpb.NewMockIDatabaseService(ctrl)
+
+	db.EXPECT().Has(gomock.Any()).Return(true , nil)
+	expected := &grpcpb.AccountResponse{AccountName: &prototype.AccountName{Value: "Jack"}}
+	db.EXPECT().Get(gomock.Any()).Return(expected, nil)
+
+	cs := mock_grpcpb.NewMockIConsensus(ctrl)
+
+	as := NewAPIService(cs, nil, db, nil)
+
+	req := &grpcpb.GetAccountByNameRequest{AccountName:&prototype.AccountName{Value:"Jack"}}
+	resp, err := as.GetAccountByName(context.Background(), req)
+
+	if err != nil {
+		t.Logf("GetAccountByName failed: %x", err)
+	} else {
+		t.Logf("GetAccountByName detail: %v", resp.AccountName)
+	}
+
+	//client := mock_grpcpb.NewMockApiServiceClient(ctrl)
+	//{
+	//	req := &grpcpb.GetAccountByNameRequest{AccountName:&prototype.AccountName{Value:"Jack"}}
+	//	resp := &grpcpb.AccountResponse{}
+	//	expected := &grpcpb.AccountResponse{AccountName: &prototype.AccountName{Value: "Jack"}}
+	//	client.EXPECT().GetAccountByName(gomock.Any(), gomock.Any()).Return(expected, nil)
+	//
+	//	resp, err := client.GetAccountByName(context.Background(), req)
+	//	if err != nil {
+	//		t.Logf("GetAccountByName failed: %x", err)
+	//	} else {
+	//		t.Logf("GetAccountByName detail: %v", resp.AccountName)
+	//	}
+	//}
+}
+
+func TestMockGPRCApi_GetFollowerListByName(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	client := mock_grpcpb.NewMockApiServiceClient(ctrl)
+
+	{
+		req := &grpcpb.GetFollowerListByNameRequest{}
+		resp := &grpcpb.GetFollowerListByNameResponse{}
+
+		expected := &grpcpb.GetFollowerListByNameResponse{}
+		client.EXPECT().GetFollowerListByName(gomock.Any(), gomock.Any()).Return(expected, nil)
+
+		resp, err := client.GetFollowerListByName(context.Background(), req)
+		if err != nil {
+			t.Logf("GetFollowerListByName failed: %x", err)
+		} else {
+			t.Logf("GetFollowerListByName detail: %v", resp.FollowerList)
+		}
+	}
+}
+
+func TestMockGRPCApi_GetFollowingListByName(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	client := mock_grpcpb.NewMockApiServiceClient(ctrl)
+
+	{
+		req := &grpcpb.GetFollowingListByNameRequest{}
+		resp := &grpcpb.GetFollowingListByNameResponse{}
+
+		expected := &grpcpb.GetFollowingListByNameResponse{}
+		client.EXPECT().GetFollowingListByName(gomock.Any(), gomock.Any()).Return(expected, nil)
+
+		resp, err := client.GetFollowingListByName(context.Background(), req)
+		if err != nil {
+			t.Logf("GetFollowingListByName failed: %x", err)
+		} else {
+			t.Logf("GetFollowingListByName detail: %v", resp.FollowingList)
+		}
+	}
+}
+
+func TestMockGPRCApi_GetWitnessList(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	client := mock_grpcpb.NewMockApiServiceClient(ctrl)
+
+	{
+		req := &grpcpb.GetWitnessListRequest{}
+		resp := &grpcpb.GetWitnessListResponse{}
+
+		expected := &grpcpb.GetWitnessListResponse{}
+		client.EXPECT().GetWitnessList(gomock.Any(), gomock.Any()).Return(expected, nil)
+
+		resp, err := client.GetWitnessList(context.Background(), req)
+		if err != nil {
+			t.Logf("GetWitnessListByName failed: %x", err)
+		} else {
+			t.Logf("GetWitnessListByName detail: %v", resp.WitnessList)
+		}
+	}
+}
