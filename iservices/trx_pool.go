@@ -35,6 +35,7 @@ type ITrxPool interface {
 	PushTrxToPending(trx *prototype.SignedTransaction)
 	GenerateAndApplyBlock(witness string, pre *prototype.Sha256, timestamp uint32, priKey *prototype.PrivateKeyType, skip prototype.SkipFlag) (*prototype.SignedBlock, error)
 	VerifySig(name *prototype.AccountName, digest []byte, sig []byte) bool
+	ValidateAddress(name string, pubKey *prototype.PublicKeyType) bool
 	Sign(priv *prototype.PrivateKeyType, digest []byte) []byte
 	//Fetch the latest commit block number
 	GetCommitBlockNum() (uint64,error)

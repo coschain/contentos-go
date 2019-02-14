@@ -8,6 +8,8 @@ import (
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
+	"github.com/coschain/contentos-go/common/crypto"
+	"github.com/coschain/contentos-go/common/crypto/secp256k1"
 	"github.com/coschain/contentos-go/common/eventloop"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
@@ -17,8 +19,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"strconv"
-	"github.com/coschain/contentos-go/common/crypto/secp256k1"
-	"github.com/coschain/contentos-go/common/crypto"
 )
 
 var (
@@ -586,6 +586,38 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 	// @ ...
 
 	// @ notify_applied_block
+}
+
+func (c *TrxPool) ValidateAddress(name string, pubKey *prototype.PublicKeyType) bool {
+	account := &prototype.AccountName{Value: name}
+	witnessWrap := table.NewSoWitnessWrap(c.db, account)
+	if !witnessWrap.CheckExist() {
+		return false
+	}
+	dbPubKey := witnessWrap.GetSigningKey()
+	if dbPubKey == nil {
+		return false
+	}
+
+	return pubKey.Equal(dbPubKey)
+
+
+	//authWrap := table.NewSoAccountAuthorityObjectWrap(c.db, account)
+	//auth := authWrap.GetOwner()
+	//if auth == nil {
+	//	panic("no owner auth")
+	//}
+	//for _, k := range auth.KeyAuths {
+	//	if pubKey.Equal(k.Key) {
+	//		return true
+	//	}
+	//}
+	//fmt.Println("ValidateAddress failed, ", name)
+	//for _, k := range auth.KeyAuths {
+	//	fmt.Println(k.Key.ToWIF())
+	//}
+	//fmt.Println("want ", pubKey.ToWIF())
+	//return false
 }
 
 func (c *TrxPool) initGenesis() {

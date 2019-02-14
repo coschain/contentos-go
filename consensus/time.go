@@ -7,22 +7,20 @@ type TimerDriver interface {
 }
 
 type Timer struct {
-	TimerDriver
 }
 
 type FakeTimer struct {
 	t time.Time
-	TimerDriver
 }
 
 func (d *Timer) Now() time.Time {
-	return time.Now();
+	return time.Now()
 }
 
 func (d *FakeTimer) Now() time.Time {
-	return d.t;
+	return d.t
 }
 
 func (d *FakeTimer) SetTime(t time.Time) {
-	d.t = t;
+	d.t = t
 }

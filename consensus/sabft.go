@@ -595,12 +595,31 @@ func (sabft *SABFT) PushTransaction(trx common.ISignedTransaction, wait bool, br
 	}
 }
 
+func (sabft *SABFT) validateProducer(b common.ISignedBlock) bool {
+	slot := sabft.getSlotAtTime(time.Unix(int64(b.Timestamp()), 0))
+	validProducer := sabft.getScheduledProducer(slot)
+	producer, err := b.GetSignee()
+	if err != nil {
+		sabft.log.Error(err)
+		return false
+	}
+	pubKey := producer.(*prototype.PublicKeyType)
+	res := sabft.ctrl.ValidateAddress(validProducer, pubKey)
+	return res
+}
+
 func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 	sabft.log.Debug("pushBlock #", b.Id().BlockNum())
 	// TODO: check signee & merkle
 
 	if b.Timestamp() < sabft.getSlotTime(1) {
 		sabft.log.Debugf("the timestamp of the new block is less than that of the head block.")
+	}
+
+	if applyStateDB {
+		if !sabft.validateProducer(b) {
+			return nil
+		}
 	}
 
 	head := sabft.ForkDB.Head()
