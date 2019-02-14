@@ -75,12 +75,12 @@ func (gs *GRPCServer) Start(node *node.Node) error {
 		gs.log.Infof("GPRC Server Start [ %s ]", gs.config.RPCListen)
 	}
 
-	err = gs.startGateway()
-	if err != nil {
-		return err
-	} else {
-		gs.log.Infof("Gateway Server Start [ %s ]", gs.config.HTTPListen)
-	}
+	//err = gs.startGateway()
+	//if err != nil {
+	//	return err
+	//} else {
+	//	gs.log.Infof("Gateway Server Start [ %s ]", gs.config.HTTPListen)
+	//}
 
 	return nil
 }

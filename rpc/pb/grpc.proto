@@ -9,130 +9,45 @@ import "prototype/type.proto";
 import "prototype/multi_id.proto";
 import "prototype/transaction.proto";
 
-/*
-Installation
-First you need to install ProtocolBuffers 3.0.0 or later.
-
-mkdir tmp
-cd tmp
-git clone https://github.com/google/protobuf
-cd protobuf
-./autogen.sh
-./configure
-make
-make check
-sudo make install
-Then, go get -u as usual the following packages:
-
-go get -u github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
-go get -u github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger
-go get -u github.com/golang/protobuf/protoc-gen-go
-
-protoc -I. -I$GOPATH/src -I$GOPATH/src/github.com/coschain/contentos-go --go_out=plugins=grpc:. grpc.proto
-protoc -I. -I$GOPATH/src -I$GOPATH/src/github.com/coschain/contentos-go --grpc-gateway_out=logtostderr=true:. grpc.proto
-
-protoc -I/usr/local/include -I. -I$GOPATH/src -I$GOPATH/src/github.com/coschain/contentos-go --go_out=plugins=grpc:. grpc.proto
-protoc -I/usr/local/include -I. -I$GOPATH/src -I$GOPATH/src/github.com/coschain/contentos-go --grpc-gateway_out=logtostderr=true:. grpc.proto
-
-compile:
-protoc -I/usr/local/include -I. -I$GOPATH/src -I$GOPATH/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis -I$GOPATH/src/github.com/coschain/contentos-go --go_out=plugins=grpc:. grpc.proto
-protoc -I/usr/local/include -I. -I$GOPATH/src -I$GOPATH/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis -I$GOPATH/src/github.com/coschain/contentos-go --grpc-gateway_out=logtostderr=true:. grpc.proto
-
-mockgen -source=grpc.pb.go > ../mock_grpcpb/mock_grpcpb.go
-
-protoc --go_out=paths=source_relative:. prototype/*.proto
-*/
-
 service ApiService {
     rpc QueryTableContent (GetTableContentRequest) returns (TableContentResponse) {
-        option (google.api.http) = {
-            post: "/v1/vm/get_table_content"
-            body: "*"
-        };
     }
 
     rpc GetAccountByName (GetAccountByNameRequest) returns (AccountResponse) {
-        option (google.api.http) = {
-            post: "/v1/user/get_account_by_name"
-            body: "*"
-        };
     }
 
     rpc GetAccountRewardByName (GetAccountRewardByNameRequest) returns (AccountRewardResponse) {
-        option (google.api.http) = {
-            post: "/v1/user/get_account_reward_by_name"
-            body: "*"
-        };
     }
 
     rpc GetFollowerListByName (GetFollowerListByNameRequest) returns (GetFollowerListByNameResponse) {
-        option (google.api.http) = {
-            post: "/v1/user/get_follower_list_by_name"
-            body: "*"
-        };
     }
 
     rpc GetFollowingListByName (GetFollowingListByNameRequest) returns (GetFollowingListByNameResponse) {
-        option (google.api.http) = {
-            post: "/v1/user/get_following_list_by_name"
-            body: "*"
-        };
     }
 
     rpc GetFollowCountByName (GetFollowCountByNameRequest) returns (GetFollowCountByNameResponse) {
-        option (google.api.http) = {
-            post: "/v1/user/get_follow_count_by_name"
-            body: "*"
-        };
     }
 
     rpc GetWitnessList (GetWitnessListRequest) returns (GetWitnessListResponse) {
-        option (google.api.http) = {
-            get: "/v1/user/get_witness_list"
-        };
     }
 
     rpc GetPostListByCreated (GetPostListByCreatedRequest) returns (GetPostListByCreatedResponse) {
-        option (google.api.http) = {
-            post: "/v1/post/get_post_list_by_created"
-            body: "*"
-        };
     }
 
     rpc GetReplyListByPostId (GetReplyListByPostIdRequest) returns (GetReplyListByPostIdResponse) {
-        option (google.api.http) = {
-            post: "/v1/post/get_reply_list_by_post_id"
-            body: "*"
-        };
     }
 
     rpc GetBlockTransactionsByNum (GetBlockTransactionsByNumRequest) returns (GetBlockTransactionsByNumResponse) {
-        option (google.api.http) = {
-            post: "/v1/trx/get_block_transactions_by_num"
-            body: "*"
-        };
     }
 
     rpc GetTrxById (GetTrxByIdRequest) returns (GetTrxByIdResponse) {
-        option (google.api.http) = {
-            post: "/v1/trx/get_trx_by_id"
-            body: "*"
-        };
     }
 
     rpc GetChainState (NonParamsRequest) returns (GetChainStateResponse) {
-        option (google.api.http) = {
-            post: "/v1/trx/get_chain_state"
-            body: "*"
-        };
     }
 
 
     rpc BroadcastTrx (BroadcastTrxRequest) returns (BroadcastTrxResponse) {
-        option (google.api.http) = {
-            post: "/v1/trx/broadcast_trx"
-            body: "*"
-        };
     }
 }
 
