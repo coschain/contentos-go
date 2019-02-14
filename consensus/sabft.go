@@ -107,6 +107,7 @@ type SABFT struct {
 	readyToProduce bool
 	prodTimer      *time.Timer
 	trxCh          chan func()
+	pendingCh      chan func()
 	blkCh          chan common.ISignedBlock
 	bootstrap      bool
 	slot           uint64
@@ -133,6 +134,7 @@ func NewSABFT(ctx *node.ServiceContext, lg *logrus.Logger) *SABFT {
 		validators: make([]*publicValidator, 0, 1),
 		prodTimer:  time.NewTimer(1 * time.Millisecond),
 		trxCh:      make(chan func()),
+		pendingCh:  make(chan func()),
 		blkCh:      make(chan common.ISignedBlock),
 		ctx:        ctx,
 		stopCh:     make(chan struct{}),
@@ -377,6 +379,9 @@ func (sabft *SABFT) start() {
 			continue
 		case commit := <-sabft.commitCh:
 			sabft.handleCommitRecords(&commit)
+		case pendingFn := <- sabft.pendingCh:
+			pendingFn()
+			continue
 		case <-sabft.prodTimer.C:
 			sabft.MaybeProduceBlock()
 		}
@@ -606,6 +611,13 @@ func (sabft *SABFT) validateProducer(b common.ISignedBlock) bool {
 	pubKey := producer.(*prototype.PublicKeyType)
 	res := sabft.ctrl.ValidateAddress(validProducer, pubKey)
 	return res
+}
+
+func (sabft *SABFT) PushTransactionToPending(trx common.ISignedTransaction) {
+	sabft.pendingCh <- func(){
+		sabft.ctrl.PushTrxToPending(trx.(*prototype.SignedTransaction))
+		sabft.p2p.Broadcast(trx.(*prototype.SignedTransaction))
+	}
 }
 
 func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {

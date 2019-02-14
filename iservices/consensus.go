@@ -20,6 +20,8 @@ type IConsensus interface {
 	// PushTransaction accepts the trx
 	PushTransaction(trx common.ISignedTransaction, wait bool, broadcast bool) common.ITransactionReceiptWithInfo
 
+	//Add transaction to pending list,the transaction will be applied when generate a block
+	PushTransactionToPending(trx common.ISignedTransaction)
 	// PushBlock adds b to the block fork DB, called if ValidateBlock returns true
 	PushBlock(b common.ISignedBlock)
 

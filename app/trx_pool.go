@@ -19,6 +19,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"strconv"
+	"time"
 )
 
 var (
@@ -94,7 +95,6 @@ func (c *TrxPool) Start(node *node.Node) error {
 	c.db = db
 	c.evLoop = node.MainLoop
 	c.noticer = node.EvBus
-
 	c.Open()
 	return nil
 }
@@ -121,7 +121,10 @@ func (c *TrxPool) setProducing(b bool) {
 }
 
 func (c *TrxPool) PushTrxToPending(trx *prototype.SignedTransaction) {
+   c.addTrxToPending(trx,false)
+}
 
+func (c *TrxPool) addTrxToPending(trx *prototype.SignedTransaction,isVerified bool) {
 	if !c.havePendingTransaction {
 		c.db.BeginTransaction()
 		c.havePendingTransaction = true
@@ -131,6 +134,14 @@ func (c *TrxPool) PushTrxToPending(trx *prototype.SignedTransaction) {
 	trxWrp.SigTrx = trx
 	trxWrp.Receipt = &prototype.TransactionReceiptWithInfo{}
 
+	if !isVerified {
+		//verify the signature
+		trxContext := NewTrxContext(trxWrp, c.db, c)
+		trx.Validate()
+		tmpChainId := prototype.ChainId{Value: 0}
+		mustNoError(trxContext.InitSigState(tmpChainId), "signature export error")
+		trxContext.VerifySignature()
+	}
 	c.pendingTx = append(c.pendingTx, trxWrp)
 }
 
@@ -182,7 +193,7 @@ func (c *TrxPool) pushTrx(trx *prototype.SignedTransaction) *prototype.Transacti
 	// start a sub undo session for applyTransaction
 	c.db.BeginTransaction()
 
-	c.applyTransactionInner(trxEst)
+	c.applyTransactionInner(trxEst,true)
 	c.pendingTx = append(c.pendingTx, trxEst)
 
 	// commit sub session
@@ -219,9 +230,11 @@ func (c *TrxPool) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag)
 			}
 			fmt.Printf("push block fail,the error is %v,the block num is %v \n",r,blk.Id().BlockNum())
 		}
-		c.skip = oldFlag
 		// restorePending will call pushTrx, will start new transaction for pending
 		c.restorePending(tmpPending)
+
+		c.skip = oldFlag
+
 	}()
 
 	if skip&prototype.Skip_apply_transaction == 0 {
@@ -270,7 +283,7 @@ func (c *TrxPool) restorePending(pending []*prototype.EstimateTrxResult) {
 
 		objWrap := table.NewSoTransactionObjectWrap(c.db, id)
 		if !objWrap.CheckExist() {
-			c.pushTrx(tw.SigTrx)
+			c.addTrxToPending(tw.SigTrx,true)
 		}
 	}
 }
@@ -341,14 +354,22 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 	if c.havePendingTransaction {
 		mustNoError(c.db.EndTransaction(false), "EndTransaction error")
 	}
-	tag := c.getBlockTag(uint64(c.headBlockNum())+1)
+	bNum := c.headBlockNum()+1
+	tag := c.getBlockTag(bNum)
 	c.db.BeginTransactionWithTag(tag)
 	c.db.BeginTransaction()
 	//c.log.Debug("@@@@@@ GeneratBlock havePendingTransaction=true")
 	c.havePendingTransaction = true
 
 	var postponeTrx uint64 = 0
+	isFinish := false
+	time.AfterFunc(650*time.Millisecond,func() {
+		isFinish = true
+	})
 	for _, trxWraper := range c.pendingTx {
+		if isFinish {
+			break
+		}
 		if trxWraper.SigTrx.Trx.Expiration.UtcSeconds < timestamp {
 			continue
 		}
@@ -363,12 +384,11 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 				if err := recover(); err != nil {
 					mustNoError(c.db.EndTransaction(false), "EndTransaction error")
 				}
+
 			}()
-
 			c.db.BeginTransaction()
-			c.applyTransactionInner(trxWraper)
+			c.applyTransactionInner(trxWraper,false)
 			mustNoError(c.db.EndTransaction(true), "EndTransaction error")
-
 			totalSize += uint32(proto.Size(trxWraper))
 			signBlock.Transactions = append(signBlock.Transactions, trxWraper.ToTrxWrapper())
 			//c.currentTrxInBlock++
@@ -430,21 +450,28 @@ func (c *TrxPool) notifyBlockApply(block *prototype.SignedBlock) {
 	c.noticer.Publish(constants.NOTICE_BLOCK_APPLY, block)
 }
 
+func (c *TrxPool) notifyTrxApplyResult(trx *prototype.SignedTransaction, res bool,
+	receipt *prototype.TransactionReceiptWithInfo){
+	 c.noticer.Publish(constants.NOTICE_TRX_APLLY_RESULT, trx, receipt)
+}
+
 func (c *TrxPool) applyTransaction(trxEst *prototype.EstimateTrxResult) {
-	c.applyTransactionInner(trxEst)
+	c.applyTransactionInner(trxEst, c.skip&prototype.Skip_transaction_signatures == 0)
 	// @ not use yet
 	//c.notifyTrxPostExecute(trxWrp.SigTrx)
 }
 
-func (c *TrxPool) applyTransactionInner(trxEst *prototype.EstimateTrxResult) {
+func (c *TrxPool) applyTransactionInner(trxEst *prototype.EstimateTrxResult,isNeedVerify bool) {
 	trxContext := NewTrxContext(trxEst, c.db, c)
 	defer func() {
 		if err := recover(); err != nil {
 			trxEst.Receipt.Status = prototype.StatusError
 			trxEst.Receipt.ErrorInfo = fmt.Sprintf("applyTransaction failed : %v", err)
+			c.notifyTrxApplyResult(trxEst.SigTrx, false, trxEst.Receipt)
 			panic(trxEst.Receipt.ErrorInfo)
 		} else {
 			trxEst.Receipt.Status = prototype.StatusSuccess
+			c.notifyTrxApplyResult(trxEst.SigTrx, true, trxEst.Receipt)
 			return
 		}
 	}()
@@ -460,7 +487,7 @@ func (c *TrxPool) applyTransactionInner(trxEst *prototype.EstimateTrxResult) {
 	transactionObjWrap := table.NewSoTransactionObjectWrap(c.db, currentTrxId)
 	mustSuccess(!transactionObjWrap.CheckExist(), "Duplicate transaction check failed")
 
-	if c.skip&prototype.Skip_transaction_signatures == 0 {
+	if isNeedVerify {
 		tmpChainId := prototype.ChainId{Value: 0}
 		mustNoError(trxContext.InitSigState(tmpChainId), "signature export error")
 		trxContext.VerifySignature()
@@ -975,7 +1002,7 @@ func (c *TrxPool) PopBlockTo(num uint64) {
 
 func (c *TrxPool) Commit(num uint64) {
 	// this block can not be revert over, so it's irreversible
-	tag := c.getBlockTag(uint64(num))
+	tag := c.getBlockTag(num)
 	err := c.db.Squash(tag)
 	mustSuccess(err == nil,fmt.Sprintf("SquashBlock: tag:%d,error is %s",num,err))
 	cmtNum = num

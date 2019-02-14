@@ -21,7 +21,7 @@ var StressCreAccountCmd = func() *cobra.Command {
 		Use:     "stressaccount",
 		Short:   "create a new random account ",
 		Long:    "use thread-count thread to stress test create new random account by a exist creator(initminer)",
-		Example: "stressaccount 2 initminer",
+		Example: "stressaccount 2 initminer 0",
 		Args:    cobra.MinimumNArgs(2),
 		Run:     stressCreAccount,
 	}
@@ -44,6 +44,12 @@ func stressCreAccount(cmd *cobra.Command, args []string) {
 		fmt.Println(fmt.Sprintf("account: %s should be loaded or created first", creator))
 		return
 	}
+	isWait := true
+	if len(args) > 2 {
+		isWait,_ = strconv.ParseBool(args[2])
+
+	}
+
 	wg := &sync.WaitGroup{}
 	for i := 0; i < tCount; i++  {
 		tid := i
@@ -75,17 +81,32 @@ func stressCreAccount(cmd *cobra.Command, args []string) {
 				}
 
 				req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
-				res, err := client.BroadcastTrx(context.Background(), req)
+				if isWait {
+					res, err := client.BroadcastTrx(context.Background(), req)
+					if err != nil {
+						fmt.Println(err)
+						break
+					}
 
-				if err != nil {
-					fmt.Println(err)
-					break
+					if !res.Invoice.IsSuccess() {
+						fmt.Println(res)
+						break
+					}
+				}else {
+					go func() {
+						res, err := client.BroadcastTrx(context.Background(), req)
+						if err != nil {
+							fmt.Println(err)
+							return
+						}
+
+						if !res.Invoice.IsSuccess() {
+							fmt.Println(res)
+							return
+						}
+					}()
 				}
 
-				if !res.Invoice.IsSuccess() {
-					fmt.Println(res)
-					break
-				}
 			}
 			wg.Done()
 		}()

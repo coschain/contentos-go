@@ -66,6 +66,7 @@ func (gs *GRPCServer) Start(node *node.Node) error {
 	}
 
 	gs.api.mainLoop = node.MainLoop
+	gs.api.eBus = node.EvBus
 
 	err = gs.startGRPC()
 	if err != nil {

@@ -38,6 +38,7 @@ type DPoS struct {
 	readyToProduce bool
 	prodTimer      *time.Timer
 	trxCh          chan func()
+	pendingCh      chan func()
 	blkCh          chan common.ISignedBlock
 	bootstrap      bool
 	slot           uint64
@@ -64,6 +65,7 @@ func NewDPoS(ctx *node.ServiceContext, lg *logrus.Logger) *DPoS {
 		Producers: make([]string, 0, 1),
 		prodTimer: time.NewTimer(100 * time.Millisecond),
 		trxCh:     make(chan func()),
+		pendingCh: make(chan func()),
 		//trxRetCh:  make(chan common.ITransactionInvoice),
 		blkCh:  make(chan common.ISignedBlock),
 		ctx:    ctx,
@@ -258,6 +260,9 @@ func (d *DPoS) start() {
 		case trxFn := <-d.trxCh:
 			trxFn()
 			continue
+		case pendingFn := <- d.pendingCh:
+			pendingFn()
+		    continue
 		case <-d.prodTimer.C:
 			d.MaybeProduceBlock()
 		}
@@ -411,6 +416,14 @@ func (d *DPoS) PushTransaction(trx common.ISignedTransaction, wait bool, broadca
 	} else {
 		return nil
 	}
+}
+
+func (d *DPoS) PushTransactionToPending(trx common.ISignedTransaction) {
+	d.pendingCh <- func(){
+		d.ctrl.PushTrxToPending(trx.(*prototype.SignedTransaction))
+		d.p2p.Broadcast(trx.(*prototype.SignedTransaction))
+	}
+
 }
 
 func (d *DPoS) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
