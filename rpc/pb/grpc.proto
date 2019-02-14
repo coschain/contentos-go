@@ -4,7 +4,6 @@ package grpcpb;
 
 //option go_package = "github.com/coschain/contentos-go/grpcpb";
 
-import "google/api/annotations.proto";
 import "prototype/type.proto";
 import "prototype/multi_id.proto";
 import "prototype/transaction.proto";
