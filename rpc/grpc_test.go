@@ -1,14 +1,5 @@
 package rpc
 
-import (
-	"context"
-	"github.com/coschain/contentos-go/prototype"
-	"github.com/coschain/contentos-go/rpc/mock_grpcpb"
-	"github.com/coschain/contentos-go/rpc/pb"
-	"github.com/golang/mock/gomock"
-	"testing"
-)
-
 /*
 var asc grpcpb.ApiServiceClient
 
@@ -450,6 +441,8 @@ func http_client(rtype, url, reqJson string) error {
 
 */
 
+/*
+
 func TestMockGRPCApi_GetAccountByName(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -551,3 +544,5 @@ func TestMockGPRCApi_GetWitnessList(t *testing.T) {
 		}
 	}
 }
+
+*/
