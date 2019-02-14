@@ -1,6 +1,23 @@
 package rpc
 
 /*
+import (
+	"bytes"
+	"context"
+	"fmt"
+	"github.com/coschain/contentos-go/common/constants"
+	"github.com/coschain/contentos-go/common/logging"
+	"github.com/coschain/contentos-go/prototype"
+	"github.com/coschain/contentos-go/rpc/pb"
+	"hash/crc32"
+	"math"
+	"math/rand"
+	"os"
+	"strings"
+	"testing"
+	"time"
+)
+
 var asc grpcpb.ApiServiceClient
 
 func TestMain(m *testing.M) {
@@ -410,7 +427,9 @@ func RandomString(randLength int, randType string) (result string) {
 	result = b.String()
 	return
 }
+*/
 
+/*
 func TestHTTPApi_GetAccountByName(t *testing.T) {
 	postValue := "{\"account_name\": {\"value\":\"jack's test info\"}}"
 	http_client("POST", "http://127.0.0.1:8080/v1/user/get_account_by_name", postValue)
@@ -438,10 +457,6 @@ func http_client(rtype, url, reqJson string) error {
 
 	return nil
 }
-
-*/
-
-/*
 
 func TestMockGRPCApi_GetAccountByName(t *testing.T) {
 	ctrl := gomock.NewController(t)
