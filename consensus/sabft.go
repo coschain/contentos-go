@@ -533,14 +533,18 @@ func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 	newID := common.BlockID{
 		Data: records.ProposedData,
 	}
+
+	sabft.RLock()
 	if sabft.lastCommitted != nil {
 		oldID := common.BlockID{
 			Data: sabft.lastCommitted.ProposedData,
 		}
 		if oldID.BlockNum() >= newID.BlockNum() {
+			sabft.RUnlock()
 			return
 		}
 	}
+	sabft.RUnlock()
 
 	// make sure we have the block about to be committed
 	if sabft.ForkDB.Empty() || sabft.ForkDB.Head().Id().BlockNum() < newID.BlockNum() {
@@ -569,7 +573,7 @@ func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 		return
 	}
 
-	sabft.commit(records)
+	sabft.Commit(records)
 }
 
 func (sabft *SABFT) PushTransaction(trx common.ISignedTransaction, wait bool, broadcast bool) common.ITransactionReceiptWithInfo {
