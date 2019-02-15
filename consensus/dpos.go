@@ -472,7 +472,7 @@ func (d *DPoS) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 	lastCommitted := d.ForkDB.LastCommitted()
 	//d.log.Debug("last committed: ", lastCommitted.BlockNum())
 	var commitIdx uint64
-	if newHead.Id().BlockNum()-lastCommitted.BlockNum() > 3 /*constants.MAX_WITNESSES*2/3*/ {
+	if newHead.Id().BlockNum()-lastCommitted.BlockNum() > constants.MAX_WITNESSES*2/3 {
 		if lastCommitted == common.EmptyBlockID {
 			commitIdx = 1
 		} else {
@@ -564,6 +564,10 @@ func (d *DPoS) popBlock(id common.BlockID) error {
 
 func (d *DPoS) GetLastBFTCommit() (evidence interface{}) {
 	return nil
+}
+
+func (d *DPoS) GetLIB() common.BlockID {
+	return d.ForkDB.LastCommitted()
 }
 
 func (d *DPoS) GetHeadBlockId() common.BlockID {

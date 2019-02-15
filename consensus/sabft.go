@@ -256,7 +256,6 @@ func (sabft *SABFT) shuffle(head common.ISignedBlock) {
 			atomic.StoreUint32(&sabft.bftStarted, 0)
 		}
 	}
-
 }
 
 func (sabft *SABFT) restoreProducers() {
@@ -683,6 +682,15 @@ func (sabft *SABFT) GetLastBFTCommit() (evidence interface{}) {
 		return nil
 	}
 	return sabft.lastCommitted
+}
+
+func (sabft *SABFT) GetLIB() common.BlockID {
+	if sabft.lastCommitted == nil {
+		return common.EmptyBlockID
+	}
+	return common.BlockID{
+		Data: sabft.lastCommitted.ProposedData,
+	}
 }
 
 /********* implements gobft ICommittee ***********/

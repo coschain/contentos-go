@@ -56,6 +56,8 @@ type IConsensus interface {
 	// ResetTicker reset the Ticker in DPoS
 	ResetTicker(t time.Time)
 
+	GetLIB() common.BlockID
+
 	// MaybeProduceBlock check whether should produce a block
 	MaybeProduceBlock()
 }
