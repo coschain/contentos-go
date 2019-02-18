@@ -60,9 +60,10 @@ func (s *DatabaseService) Start(node *node.Node) error {
 		db.Close()
 		return errors.New("failed to create reversible database")
 	}
-	tdb := NewSquashableDatabase(db, true)
+	tdb := NewSquashableDatabase(rdb, true)
 	if tdb == nil {
 		tdb.Close()
+		rdb.Close()
 		db.Close()
 		return errors.New("failed to create transactional database")
 	}
