@@ -85,7 +85,7 @@ func (db *SquashableDatabase) Squash(tag string) error {
 	return errors.New("unknown tag: " + tag)
 }
 
-func (db *SquashableDatabase) RollBackToTag(tag string) error {
+func (db *SquashableDatabase) RollbackTag(tag string) error {
 	db.lock.Lock()
 	defer db.lock.Unlock()
 

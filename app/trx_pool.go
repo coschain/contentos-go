@@ -987,13 +987,13 @@ func (c *TrxPool) getBlockTag(num uint64) string {
 	return tag
 }
 
-func (c *TrxPool) PopBlockTo(num uint64) {
+func (c *TrxPool) PopBlock(num uint64) {
 	// undo pending trx
 	c.ClearPending()
 	/*if c.havePendingTransaction {
 		mustNoError(c.db.EndTransaction(false), "EndTransaction error")
 		c.havePendingTransaction = false
-		//c.log.Debug("@@@@@@ PopBlockTo havePendingTransaction=false")
+		//c.log.Debug("@@@@@@ PopBlock havePendingTransaction=false")
 	}*/
 	// get reversion
 	//rev := c.getReversion(num)

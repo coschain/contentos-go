@@ -118,9 +118,9 @@ func (b *BlockIceberg) RevertBlock(blockNum uint64) error {
 		return fmt.Errorf("cannot revert a future block %d since latest block is %d", blockNum, b.next-1)
 	}
 	if blockNum >= b.seaLevel {
-		b.db.RollBackToTag(blockNumberToString(blockNum))
+		b.db.RollbackTag(blockNumberToString(blockNum))
 	} else {
-		b.db.RollBackToTag(blockNumberToString(b.seaLevel))
+		b.db.RollbackTag(blockNumberToString(b.seaLevel))
 		if blockNum > 1 {
 			b.db.RevertToTag(blockNumberToString(blockNum - 1))
 		} else {

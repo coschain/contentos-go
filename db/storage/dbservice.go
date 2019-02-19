@@ -140,8 +140,8 @@ func (s *DatabaseService) Squash(tag string) error {
 	return s.tdb.Squash(tag)
 }
 
-func (s *DatabaseService) RollBackToTag(tag string) error {
-	return s.tdb.RollBackToTag(tag)
+func (s *DatabaseService) RollbackTag(tag string) error {
+	return s.tdb.RollbackTag(tag)
 }
 
 //

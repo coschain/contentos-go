@@ -20,9 +20,9 @@ type ITrxPool interface {
 	SetShuffledWitness(names []string)
 	GetShuffledWitness() []string
 	SetShuffle(s common.ShuffleFunc)
-	// will set DB status to num
-	PopBlockTo(num uint64)
-	// will cut off DB status that before num
+	// PopBlock() rollbacks the state db to the moment just before applying block @num.
+	PopBlock(num uint64)
+	// Commit() finalizes block @num.
 	Commit(num uint64)
 
 	GetProps() *prototype.DynamicProperties
