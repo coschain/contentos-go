@@ -116,14 +116,6 @@ func (s *DatabaseService) RebaseToTag(tag string) error {
 	return s.rdb.RebaseToTag(tag)
 }
 
-func (s *DatabaseService) EnableReversion(b bool) error {
-	return s.rdb.EnableReversion(b)
-}
-
-func (s *DatabaseService) ReversionEnabled() bool {
-	return s.rdb.ReversionEnabled()
-}
-
 //
 // implementation of Squashable interface
 //
