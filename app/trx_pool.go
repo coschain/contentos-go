@@ -109,7 +109,6 @@ func (c *TrxPool) Open() {
 
 		//c.log.Info("start initGenesis")
 		c.initGenesis()
-		c.saveReversion(0)
 		//c.log.Info("finish initGenesis")
 	}
 }
@@ -252,8 +251,6 @@ func (c *TrxPool) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag)
 		c.havePendingTransaction = false
 	}
 
-	blockNum := blk.Id().BlockNum()
-	c.saveReversion(blockNum)
 	return err
 }
 
@@ -966,20 +963,6 @@ func (c *TrxPool) AddWeightedVP(value uint64) {
 	dgpo.WeightedVps += value
 	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
 	dgpWrap.MdProps(dgpo)
-}
-
-func (c *TrxPool) saveReversion(num uint64) {
-	tag := strconv.FormatUint(num, 10)
-	currentRev := c.db.GetRevision()
-	mustNoError(c.db.TagRevision(currentRev, tag), fmt.Sprintf("TagRevision:  tag:%d, reversion%d", num, currentRev))
-	//c.log.Debug("### saveReversion, num:", num, " rev:", currentRev)
-}
-
-func (c *TrxPool) getReversion(num uint64) uint64 {
-	tag := strconv.FormatUint(num, 10)
-	rev, err := c.db.GetTagRevision(tag)
-	mustNoError(err, fmt.Sprintf("GetTagRevision: tag:%d, reversion:%d", num, rev))
-	return rev
 }
 
 func (c *TrxPool) getBlockTag(num uint64) string {
