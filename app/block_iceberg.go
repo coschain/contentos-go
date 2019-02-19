@@ -183,7 +183,7 @@ func (b *BlockIceberg) LastFinalizedBlock() (blockNum uint64, err error) {
 	if b.hasFinalized {
 		blockNum, err = b.finalized, nil
 	} else {
-		blockNum, err = 0, errors.New("no finalized blocks yet")
+		blockNum, err = 0, nil
 	}
 	return
 }
@@ -195,5 +195,5 @@ func (b *BlockIceberg) LatestBlock() (blockNum uint64, inProgress bool, err erro
 	if b.next > 1 {
 		return b.next - 1, b.inProgress, nil
 	}
-	return 0, false, errors.New("no block")
+	return 0, false, nil
 }

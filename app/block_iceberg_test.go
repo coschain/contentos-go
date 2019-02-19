@@ -13,6 +13,7 @@ import (
 )
 
 func TestBlockIceberg(t *testing.T) {
+	var n uint64
 	a := assert.New(t)
 
 	dir, err := ioutil.TempDir("", "block_iceberg")
@@ -30,10 +31,10 @@ func TestBlockIceberg(t *testing.T) {
 	a.NotNil(berg, "iceberg creation failed")
 
 	// only BeginBlock(1) is allowed for an empty db. everything else must returns error.
-	_, err = berg.LastFinalizedBlock()
-	a.Error(err, "incorrect finalized block on empty db")
-	_, _, err = berg.LatestBlock()
-	a.Error(err, "incorrect latest block on empty db")
+	n, _ = berg.LastFinalizedBlock()
+	a.Equal(uint64(0), n, "finalized block on empty db should be 0 (meaning no finalized block yet)")
+	n, _, err = berg.LatestBlock()
+	a.Equal(uint64(0), n, "latest block on empty db should be 0 (meaning no block yet)")
 	a.Error(berg.BeginBlock(0), "invalid block number 0")
 	a.Error(berg.BeginBlock(2), "block number 2 is illegal without block #1")
 	a.Error(berg.EndBlock(false), "invalid EndBlock(false)")
@@ -106,8 +107,6 @@ func TestBlockIceberg(t *testing.T) {
 		_, err = db.Get([]byte(fmt.Sprintf("k%d", i)))
 		a.NoErrorf(err, "k%d should exist", i)
 	}
-
-	var n uint64
 
 	// revert to some in-memory block
 	a.NoError(berg.RevertBlock(990))
