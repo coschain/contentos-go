@@ -37,20 +37,20 @@ type BlockIceberg struct {
 
 // NewBlockIceberg() returns an instance of block iceberg.
 func NewBlockIceberg(db iservices.IDatabaseService) *BlockIceberg {
+	var (
+		hasBlock, hasFinalized, latest, finalized = false, false, uint64(0), uint64(0)
+		err error
+	)
 	current, base := db.GetRevisionAndBase()
-	hasBlock, hasFinalized, latest, finalized := current > 0, base > 0, uint64(0), uint64(0)
-	var err error
-	if hasBlock {
-		latest, err = blockNumberFromString(db.GetRevisionTag(current))
-		if err != nil {
-			return nil
-		}
+	latest, err = blockNumberFromString(db.GetRevisionTag(current))
+	hasBlock = err == nil
+	if !hasBlock {
+		latest = 0
 	}
-	if hasFinalized {
-		finalized, err = blockNumberFromString(db.GetRevisionTag(base))
-		if err != nil {
-			return nil
-		}
+	finalized, err = blockNumberFromString(db.GetRevisionTag(base))
+	hasFinalized = err == nil
+	if !hasFinalized {
+		finalized = 0
 	}
 	return &BlockIceberg{
 		db:           db,
