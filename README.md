@@ -64,22 +64,44 @@ The contento-go contains two executables as follow:
 **cosd**: the daemon to run a local blockchain
 
 **wallet**: the cli to interactive with chain.
+
 ## Run in docker
+
 ### Build the image from source with docker
-Move to the root directory of source code and run the following command
+
+Move to the root directory of source code and run the following command:
+
 ```bash
 docker build -t=contentos .
 ```
+
 Don’t forget the dot at the end of the line, it indicates the build target is in the current directory.
+
 When the build process is over you can see a message indicating that it is ‘successfully built’.
+
 ### Run the container
+
 The below command will start the container as a daemonized instance. When the container is started, cosd started simultaneously.
+
 ```bash
-docker run -d --name contentosd-exchange -v /path/to/cosd:/root/.coschain/cosd contentos
+docker run -d --name contentosd-exchange -v /path/to/coschain:/root/.coschain contentos
+
 ```
 The `--name` flag assigns a name to the container, and the `-v` flag indicates how you map directories outside of the container to the inside, the path before the `:` is the directory on your disk.
-You can see the running container by using the command  `docker ps`
-To follow along with the logs, use `docker logs -f contentosd-exchange`
+
+You can see the running container by using the command  `docker ps`.
+
+To follow along with the logs, use `docker logs -f contentosd-exchange`.
+
+### Run the wallet-cli
+
+The following command will run the wallet-cli from inside the running container:
+
+```bash
+docker exec -it contentosd-exchange /usr/local/src/contentos-go/bin/wallet-cli
+
+```
+
 ## Running cosd
 
 ### Initialization
