@@ -60,7 +60,10 @@ func (cp *BFTCheckPoint) AcceptCheckPoint(commit *message.Commit) {
 		Data: commit.ProposedData,
 	}
 	blockNum := blockID.BlockNum()
-	// TODO: validate +2/3
+	// check +2/3
+	if len(cp.sabft.validators)*2/3 > len(commit.Precommits) {
+		return
+	}
 	if blockNum >= cp.lastCP+cp.interval && blockNum < cp.lastCP+cp.interval*2 {
 		// fixme: what if there's no consensus reached during [lastCP+interval, lastCP+interval*2)
 		cp.nextCP = commit
