@@ -355,16 +355,16 @@ func (as *APIService) GetTrxById(ctx context.Context, req *grpcpb.GetTrxByIdRequ
 func (as *APIService) BroadcastTrx(ctx context.Context, req *grpcpb.BroadcastTrxRequest) (*grpcpb.BroadcastTrxResponse, error) {
 
 	//var result chan *prototype.TransactionReceiptWithInfo
-	result := make(chan *prototype.TransactionReceiptWithInfo)
+	//result := make(chan *prototype.TransactionReceiptWithInfo)
 	trx := req.GetTransaction()
 
 	as.mainLoop.Send(func() {
 		 as.consensus.PushTransactionToPending(trx)
 		 //as.log.Infof("BroadcastTrx Result: %s", result)
 	})
-	result <- prototype.FetchTrxApplyResult(as.eBus , 30*time.Second ,trx)
+	//result <- prototype.FetchTrxApplyResult(as.eBus , 30*time.Second ,trx)
 
-    return &grpcpb.BroadcastTrxResponse{Invoice:<-result},nil
+    return &grpcpb.BroadcastTrxResponse{Invoice:prototype.FetchTrxApplyResult(as.eBus , 30*time.Second ,trx)},nil
 }
 
 func checkLimit(limit uint32) uint32 {
