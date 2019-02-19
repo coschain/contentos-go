@@ -558,7 +558,7 @@ func (d *DPoS) applyBlock(b common.ISignedBlock) error {
 }
 
 func (d *DPoS) popBlock(id common.BlockID) error {
-	d.ctrl.PopBlockTo(id.BlockNum())
+	d.ctrl.PopBlock(id.BlockNum())
 	return nil
 }
 

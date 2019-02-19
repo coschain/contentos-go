@@ -122,10 +122,20 @@ type TrxDatabase interface {
 	Database
 }
 
+// interface for squashable transactional feature
 type Squashable interface {
 	Transactional
+
+	// start a new transaction session named @tag
 	BeginTransactionWithTag(tag string)
+
+	// Squash() commits the transaction named @tag.
+	// If the transaction is nested, its ancestor transactions will get committed too.
 	Squash(tag string) error
+
+	// RollbackTag() discards the transaction named @tag.
+	// If any nested transactions were atop the target transaction, they will get discarded too.
+	RollbackTag(tag string) error
 }
 
 type SquashDatabase interface {

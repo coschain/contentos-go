@@ -920,7 +920,7 @@ func (sabft *SABFT) applyBlock(b common.ISignedBlock) error {
 }
 
 func (sabft *SABFT) popBlock(id common.BlockID) error {
-	sabft.ctrl.PopBlockTo(id.BlockNum())
+	sabft.ctrl.PopBlock(id.BlockNum())
 	return nil
 }
 

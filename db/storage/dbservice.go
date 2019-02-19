@@ -60,9 +60,10 @@ func (s *DatabaseService) Start(node *node.Node) error {
 		db.Close()
 		return errors.New("failed to create reversible database")
 	}
-	tdb := NewSquashableDatabase(db, true)
+	tdb := NewSquashableDatabase(rdb, true)
 	if tdb == nil {
 		tdb.Close()
+		rdb.Close()
 		db.Close()
 		return errors.New("failed to create transactional database")
 	}
@@ -139,12 +140,8 @@ func (s *DatabaseService) Squash(tag string) error {
 	return s.tdb.Squash(tag)
 }
 
-func (s *DatabaseService) RollBackToTag(tag string) error {
-	return s.tdb.RollBackToTag(tag)
-}
-
-func (s *DatabaseService) GetCommitNum() (uint64,error) {
-	return s.tdb.GetCommitNum()
+func (s *DatabaseService) RollbackTag(tag string) error {
+	return s.tdb.RollbackTag(tag)
 }
 
 //

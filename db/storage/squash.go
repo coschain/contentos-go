@@ -1,15 +1,10 @@
 package storage
 
 import (
-	"bytes"
-	"encoding/gob"
 	"fmt"
 	"github.com/pkg/errors"
-	"strconv"
 	"sync"
 )
-
-const SQUASH_COMMIT_NUM  = "commit_num"
 
 type SquashableDatabase struct {
 	TransactionalDatabase
@@ -85,21 +80,12 @@ func (db *SquashableDatabase) Squash(tag string) error {
 			}
 		}
 		db.tags, db.tagsByIdx = newTags, newTagsByIdx
-		//save the current commit number
-		buf,err := encodeCommitNum(tag)
-		if err != nil {
-			return err
-		}
-		err = db.db.Put([]byte(SQUASH_COMMIT_NUM),buf)
-		if err != nil {
-			return err
-		}
 		return nil
 	}
 	return errors.New("unknown tag: " + tag)
 }
 
-func (db *SquashableDatabase) RollBackToTag(tag string) error {
+func (db *SquashableDatabase) RollbackTag(tag string) error {
 	db.lock.Lock()
 	defer db.lock.Unlock()
 
@@ -122,45 +108,4 @@ func (db *SquashableDatabase) RollBackToTag(tag string) error {
 		return nil
 	}
 	return errors.New("unknown tag: " + tag)
-}
-
-func (db *SquashableDatabase) GetCommitNum() (uint64,error) {
-	key := []byte(SQUASH_COMMIT_NUM)
-	var num uint64 = 0
-	exi,err := db.db.Has(key)
-	if err != nil {
-		return 0, err
-	}
-	if exi == false {
-		//has not commit any block
-		return 0, nil
-	}
-	if buf,err := db.db.Get(key); err == nil {
-		 val,dErr := decodeCommitNum(buf)
-		 if dErr != nil {
-		 	return 0,dErr
-		 }
-		 num,err = strconv.ParseUint(val,10,64)
-	}
-	return num,err
-}
-
-func encodeCommitNum(num string) ([]byte,error) {
-	buf := new(bytes.Buffer)
-	enc := gob.NewEncoder(buf)
-	err := enc.Encode(num)
-	if err != nil {
-		return nil,err
-	}
-	return buf.Bytes(),nil
-}
-
-func decodeCommitNum(data []byte) (string,error) {
-	buf := bytes.NewBuffer(data)
-	dec := gob.NewDecoder(buf)
-	var num  = "0"
-	if err := dec.Decode(&num); err != nil {
-		return "0",err
-	}
-	return num,nil
 }
