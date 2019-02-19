@@ -79,6 +79,8 @@ func (b *BlockIceberg) BeginBlock(blockNum uint64) error {
 	}
 	b.inProgress = true
 	b.next++
+
+	// if we got too many non-finalized blocks in memory, move some into reversible db
 	if b.next-b.seaLevel >= b.highWM {
 		b.sink(b.next - b.seaLevel - b.lowWM)
 	}
@@ -118,9 +120,15 @@ func (b *BlockIceberg) RevertBlock(blockNum uint64) error {
 		return fmt.Errorf("cannot revert a future block %d since latest block is %d", blockNum, b.next-1)
 	}
 	if blockNum >= b.seaLevel {
+		// we're reverting an in-memory block
 		b.db.RollbackTag(blockNumberToString(blockNum))
 	} else {
+		// we're reverting a block in reversible db.
+
+		// all in-memory blocks should be erased since they are offspring of our target.
 		b.db.RollbackTag(blockNumberToString(b.seaLevel))
+
+		// now we rollback the db
 		if blockNum > 1 {
 			b.db.RevertToTag(blockNumberToString(blockNum - 1))
 		} else {
@@ -154,10 +162,18 @@ func (b *BlockIceberg) FinalizeBlock(blockNum uint64) error {
 	}
 	tag := blockNumberToString(blockNum)
 	if blockNum < b.seaLevel {
+		// we're finalizing a block in reversible db.
 		b.db.RebaseToTag(tag)
 	} else {
-		b.sink(blockNum - b.seaLevel + 1)
-		b.db.RebaseToTag(tag)
+		// we're finalizing a block in memory.
+
+		// basically it needs 2 steps,
+		// step 1, move every in-memory finalized block into reversible db
+		// step 2, finalize everything in reversible db
+		b.db.EnableReversion(false)
+		b.db.Squash(tag)
+		b.db.TagRevision(b.db.GetRevision(), tag)
+		b.db.EnableReversion(true)
 	}
 
 	b.hasFinalized, b.finalized = true, blockNum
