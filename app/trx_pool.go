@@ -24,7 +24,6 @@ import (
 
 var (
 	SingleId int32 = 1
-	cmtNum   uint64 = 0
 )
 
 type TrxPool struct {
@@ -50,6 +49,8 @@ type TrxPool struct {
 	//currentTrxInBlock      int16
 	havePendingTransaction bool
 	shuffle                common.ShuffleFunc
+
+	iceberg		*BlockIceberg
 }
 
 func (c *TrxPool) getDb() (iservices.IDatabaseService, error) {
@@ -95,6 +96,7 @@ func (c *TrxPool) Start(node *node.Node) error {
 	c.db = db
 	c.evLoop = node.MainLoop
 	c.noticer = node.EvBus
+	c.iceberg = NewBlockIceberg(c.db)
 	c.Open()
 	return nil
 }
@@ -996,16 +998,14 @@ func (c *TrxPool) PopBlockTo(num uint64) {
 	// get reversion
 	//rev := c.getReversion(num)
 	//mustNoError(c.db.RevertToRevision(rev), fmt.Sprintf("RebaseToRevision error: tag:%d, reversion:%d", num, rev))
-	tag := c.getBlockTag(num)
-	mustSuccess(c.db.RollBackToTag(tag)==nil, fmt.Sprintf("RevertToRevision error: tag:%d", num,))
+	err := c.iceberg.RevertBlock(num)
+	mustSuccess(err == nil, fmt.Sprintf("revert block %d, error: %s", num, err.Error()))
 }
 
 func (c *TrxPool) Commit(num uint64) {
 	// this block can not be revert over, so it's irreversible
-	tag := c.getBlockTag(num)
-	err := c.db.Squash(tag)
-	mustSuccess(err == nil,fmt.Sprintf("SquashBlock: tag:%d,error is %s",num,err))
-	cmtNum = num
+	err := c.iceberg.FinalizeBlock(num)
+	mustSuccess(err == nil,fmt.Sprintf("commit block: %d, error is %s", num, err.Error()))
 }
 
 func (c *TrxPool) VerifySig(name *prototype.AccountName, digest []byte, sig []byte) bool {
@@ -1051,15 +1051,7 @@ func (c *TrxPool) Sign(priv *prototype.PrivateKeyType, digest []byte) []byte {
 }
 
 func (c *TrxPool) GetCommitBlockNum() (uint64,error) {
-	if cmtNum != 0 {
-		return cmtNum,nil
-	}
-	//Fetch the latest commit block number in squash db
-	num,err := c.db.GetCommitNum()
-	if err == nil && num > cmtNum {
-		cmtNum = num
-	}
-	return num,err
+	return c.iceberg.LastFinalizedBlock()
 }
 
 //Sync committed blocks to squash db when node reStart

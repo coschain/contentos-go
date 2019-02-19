@@ -144,10 +144,6 @@ func (s *DatabaseService) RollBackToTag(tag string) error {
 	return s.tdb.RollBackToTag(tag)
 }
 
-func (s *DatabaseService) GetCommitNum() (uint64,error) {
-	return s.tdb.GetCommitNum()
-}
-
 //
 // implementation of Database interface
 //

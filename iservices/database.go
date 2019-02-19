@@ -113,9 +113,6 @@ type IDatabaseService interface {
 
 	RollBackToTag(tag string) error
 
-	//get the block number of latest commit
-	GetCommitNum() (uint64,error)
-
 	//
 	// data reversion feature
 	//
