@@ -362,7 +362,9 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 	time.AfterFunc(650*time.Millisecond,func() {
 		isFinish = true
 	})
-	for _, trxWraper := range c.pendingTx {
+	 failTrxMap := make(map[int]int)
+
+	for k, trxWraper := range c.pendingTx {
 		if isFinish {
 			break
 		}
@@ -379,6 +381,7 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 			defer func() {
 				if err := recover(); err != nil {
 					mustNoError(c.db.EndTransaction(false), "EndTransaction error")
+					failTrxMap[k] = k
 				}
 
 			}()
@@ -418,7 +421,17 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 	} else {
 		c.db.EndTransaction(false)
 	}*/
+    if len(failTrxMap) > 0 {
+		copyPending := make([]*prototype.EstimateTrxResult, 0, len(c.pendingTx))
+		for k,v := range c.pendingTx {
+			if _,ok := failTrxMap[k]; !ok {
+				copyPending = append(copyPending,v)
+			}
+		}
+		c.pendingTx = c.pendingTx[:0]
+		c.pendingTx = append(c.pendingTx,copyPending...)
 
+	}
 	return signBlock
 }
 
