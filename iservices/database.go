@@ -132,6 +132,9 @@ type IDatabaseService interface {
 	// after rebased to revision r, r will be the minimal revision you can revert to.
 	RebaseToRevision(r uint64) error
 
+	EnableReversion(b bool) error
+	ReversionEnabled() bool
+
 	//
 	// revision tagging feature
 	//
