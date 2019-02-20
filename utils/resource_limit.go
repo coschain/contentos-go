@@ -1,43 +1,47 @@
 package utils
 
-// net resource limiter
-type NetManager interface {
-	// lock up cos to net vesting for net resource
-	LockCosToNet(name string, cos uint64) bool
-	// release up cos from net vesting
-	ReleaseCosFromNet(name string, cos uint64) bool
-	// get net resource value
-	GetNet(name string) uint64
-	// recover net value, return true if recover value > 0
-	RecoverNet(name string) bool
-	// consume net value, return true if account left value >= num
-	ConsumeNet(name string, num uint64) bool
+// stake resource limiter
+type IStakeManager interface {
+	LockUpCos(name string, cos uint64)
+	ReleaseCos(name string, cos uint64)
+	Get(name string) uint64
+	Recover(name string)
 }
-
-// cpu resource limiter
-type CpuManager interface {
-	LockCosToCpu(name string, cos uint64) bool
-	ReleaseCosFromCpu(name string, cos uint64) bool
-	GetCpu(name string) uint64
-	RecoverCpu(name string) bool
-	ConsumeCpu(name string, num uint64) bool
+// consumer resource
+type IConsumer interface {
+	Consume(name string, num uint64)
 }
 
 // free resource limiter
-type FreeManager interface {
+type IFreeManager interface {
 	// recover free net value, return true if success
-	RecoverFreeNet(name string) bool
-	RecoverFreeCpu(name string) bool
-	ConsumeFreeNet(name string, num uint64) bool
-	ConsumeFreeCpu(name string, num uint64) bool
-	GetFreeNet(name string) bool
-	GetFreeCpu(name string) bool
+	RecoverFree(name string)
+	ConsumeFree(name string, num uint64)
+	GetFree(name string)
 }
 
-type ResourceManager interface {
-	NetManager
-	CpuManager
+// StakeManager impl all IStakeManager's api
+type StakeManager struct {
+
+}
+
+// FreeManager impl all IFreeManager's api
+type FreeManager struct {
+
+}
+
+// cpu use StakeManager and impl cpu Consume api
+type CpuManager struct {
+	StakeManager
 	FreeManager
+	IConsumer
+}
+
+// net use StakeManager and impl net Consume api
+type NetManager struct {
+	StakeManager
+	FreeManager
+	IConsumer
 }
 
 /* below is pseudo code */
@@ -52,60 +56,49 @@ const RECOVER_WINDOW = 60 * 60 * 24
 const FREE_CPU_VALUE = 10000
 
 // resource present each account's resource
-type resource struct {
-	name string
-	cpu,net uint64
-	cpuFree,netFree uint64
-	cpuLastUseTime,netLastUseTime uint32
-	cpuFreeLastUseTime,netFreeLastUseTime uint32
+type Resource struct {
+	Name string
+	Stamina uint64
+	StaminaFree uint64
+	StaminaUseTime uint32
+	StaminaFreeUseTime uint32
 }
 
-// implemention of ResourceManager
-type ResourceManagerImpl struct {
-
-}
-
-func (rm *ResourceManagerImpl) LockCosToCpu(name string, cos uint64) {
+// StakeManager implemention
+func (s *StakeManager) LockUpCos(name string, cos uint64) {
 	/*  1.get account from db
-		2.transfer cos to cpu vesting
-		3.update db
-	*/
+			2.transfer cos to cpu vesting
+			3.update db
+		*/
 }
 
-func (rm *ResourceManagerImpl) ReleaseCosFromCpu(name string, cos uint64) {
+func (s *StakeManager) ReleaseCos(name string, cos uint64) {
 	/*  1.get account from db
-		2.transfer cpu vesting to cos
-		3.update db
-	*/
+			2.transfer cpu vesting to cos
+			3.update db
+		*/
 }
 
-func (rm *ResourceManagerImpl) GetCpu(name string) {
+func (s *StakeManager) Get(name string) {
 	/*  1.get account resource from db
-		2.return resource.cpu
-	*/
+			2.return resource.cpu
+		*/
 }
 
-func (rm *ResourceManagerImpl) RecoverCpu(name string) {
+func (s *StakeManager) Recover(name string) {
 	/*  1.get all system vesting from db
-		2.get account from db
-		3.get account cpu vesting
-		4.accountCpu = (accountVesting/allVesting) * virtualMaxCpuValue
-		5.calculate recover value according to formula:
-			newcpu = cpu + ((now - cpuLastUseTime) / RECOVER_WINDOW) * accountCpu
-			newcpu = max(newcpu,accountCpu)
-		6.get account resource from db, resource.cpu += newcpu
-	*/
+			2.get account from db
+			3.get account cpu vesting
+			4.accountCpu = (accountVesting/allVesting) * virtualMaxCpuValue
+			5.calculate recover value according to formula:
+				newcpu = cpu + ((now - cpuLastUseTime) / RECOVER_WINDOW) * accountCpu
+				newcpu = max(newcpu,accountCpu)
+			6.get account resource from db, resource.cpu += newcpu
+		*/
 }
 
-func (rm *ResourceManagerImpl) ConsumeCpu(name string, num uint64) {
-	/*  1.get account resource from db
-		2.resource.cpu -= num
-		3.resource.cpu = min(resource.cpu,0)
-		3.if (resource.cpu - num >= 0) return true else return false
-	*/
-}
-
-func (rm *ResourceManagerImpl) RecoverFreeCpu(name string) {
+// FreeManager implemention
+func (f *FreeManager) RecoverFree(name string) {
 	/*  1.get account resource from db
 		2.calculate recover value according to formula:
 			newfreecpu = (now - cpuFreeLastUseTime) > 0 ? FREE_CPU_VALUE : resource.cpuFree
@@ -113,7 +106,7 @@ func (rm *ResourceManagerImpl) RecoverFreeCpu(name string) {
 	*/
 }
 
-func (rm *ResourceManagerImpl) ConsumeFreeCpu(name string) {
+func (f *FreeManager) ConsumeFree(name string) {
 	/*  1.get account resource from db
 		2.resource.cpuFree -= num
 		3.resource.cpuFree = min(resource.cpuFree,0)
@@ -121,8 +114,24 @@ func (rm *ResourceManagerImpl) ConsumeFreeCpu(name string) {
 	*/
 }
 
-func (rm *ResourceManagerImpl) GetFreeCpu(name string) {
+func (f *FreeManager) GetFree(name string) {
 	/*  1.get account resource from db
 		2.return resource.cpuFree
 	*/
+}
+
+func (c *CpuManager) Consume(name string, num uint64) {
+	/*  1.get account resource from db
+			2.resource.cpu -= num
+			3.resource.cpu = min(resource.cpu,0)
+			3.if (resource.cpu - num >= 0) return true else return false
+		*/
+}
+
+func (n *NetManager) Consume(name string, num uint64) {
+	/*  1.get account resource from db
+			2.resource.cpu -= num
+			3.resource.cpu = min(resource.cpu,0)
+			3.if (resource.cpu - num >= 0) return true else return false
+		*/
 }
