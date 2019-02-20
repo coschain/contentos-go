@@ -4,6 +4,8 @@ RUN yum update -y --security && \
     yum install -y \
                 wget \
                 git \
+                tar \
+                make \
                 gcc
 
 RUN wget -nv https://golang.org/dl/go1.11.4.linux-amd64.tar.gz -O /tmp/go1.11.4.linux-amd64.tar.gz && \
