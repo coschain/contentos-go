@@ -418,12 +418,14 @@ func (d *DPoS) PushTransaction(trx common.ISignedTransaction, wait bool, broadca
 	}
 }
 
-func (d *DPoS) PushTransactionToPending(trx common.ISignedTransaction) {
+func (d *DPoS) PushTransactionToPending(trx common.ISignedTransaction, callBack func(err error)) {
 	d.pendingCh <- func(){
-		d.ctrl.PushTrxToPending(trx.(*prototype.SignedTransaction))
-		d.p2p.Broadcast(trx.(*prototype.SignedTransaction))
+		err := d.ctrl.PushTrxToPending(trx.(*prototype.SignedTransaction))
+		if err == nil {
+			d.p2p.Broadcast(trx.(*prototype.SignedTransaction))
+		}
+		callBack(err)
 	}
-
 }
 
 func (d *DPoS) pushBlock(b common.ISignedBlock, applyStateDB bool) error {

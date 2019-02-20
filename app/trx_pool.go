@@ -120,8 +120,21 @@ func (c *TrxPool) setProducing(b bool) {
 	c.isProducing = b
 }
 
-func (c *TrxPool) PushTrxToPending(trx *prototype.SignedTransaction) {
-   c.addTrxToPending(trx,false)
+func (c *TrxPool) PushTrxToPending(trx *prototype.SignedTransaction) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			switch val := r.(type) {
+			case error:
+				err = val
+			case string:
+				err = errors.New(val)
+			default:
+				err = errors.New("unknown panic type when push trx to pending list")
+			}
+		}
+	}()
+    c.addTrxToPending(trx,false)
+	return err
 }
 
 func (c *TrxPool) addTrxToPending(trx *prototype.SignedTransaction,isVerified bool) {

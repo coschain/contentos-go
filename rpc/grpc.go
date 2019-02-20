@@ -11,9 +11,9 @@ import (
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/rpc/pb"
 	"github.com/coschain/contentos-go/vm/contract/abi"
+	contractTable "github.com/coschain/contentos-go/vm/contract/table"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	contractTable "github.com/coschain/contentos-go/vm/contract/table"
 	"time"
 )
 
@@ -358,13 +358,15 @@ func (as *APIService) BroadcastTrx(ctx context.Context, req *grpcpb.BroadcastTrx
 	//result := make(chan *prototype.TransactionReceiptWithInfo)
 	trx := req.GetTransaction()
 
+	var pErr error
 	as.mainLoop.Send(func() {
-		 as.consensus.PushTransactionToPending(trx)
+		 as.consensus.PushTransactionToPending(trx, func(err error) {
+			 pErr = err
+		 })
 		 //as.log.Infof("BroadcastTrx Result: %s", result)
 	})
 	//result <- prototype.FetchTrxApplyResult(as.eBus , 30*time.Second ,trx)
-
-    return &grpcpb.BroadcastTrxResponse{Invoice:prototype.FetchTrxApplyResult(as.eBus , 30*time.Second ,trx)},nil
+    return &grpcpb.BroadcastTrxResponse{Invoice:prototype.FetchTrxApplyResult(as.eBus , 30*time.Second ,trx)},pErr
 }
 
 func checkLimit(limit uint32) uint32 {

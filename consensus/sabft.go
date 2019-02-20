@@ -685,10 +685,13 @@ func (sabft *SABFT) validateProducer(b common.ISignedBlock) bool {
 	return res
 }
 
-func (sabft *SABFT) PushTransactionToPending(trx common.ISignedTransaction) {
+func (sabft *SABFT) PushTransactionToPending(trx common.ISignedTransaction,callBack func(err error)) {
 	sabft.pendingCh <- func() {
-		sabft.ctrl.PushTrxToPending(trx.(*prototype.SignedTransaction))
-		sabft.p2p.Broadcast(trx.(*prototype.SignedTransaction))
+		err := sabft.ctrl.PushTrxToPending(trx.(*prototype.SignedTransaction))
+		if err == nil {
+			sabft.p2p.Broadcast(trx.(*prototype.SignedTransaction))
+		}
+		callBack(err)
 	}
 }
 

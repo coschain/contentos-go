@@ -32,7 +32,7 @@ type ITrxPool interface {
 
 	AddWeightedVP(value uint64)
 	// put trx into pending directly, no return value, so should be used by witness node to collect p2p trx
-	PushTrxToPending(trx *prototype.SignedTransaction)
+	PushTrxToPending(trx *prototype.SignedTransaction) error
 	GenerateAndApplyBlock(witness string, pre *prototype.Sha256, timestamp uint32, priKey *prototype.PrivateKeyType, skip prototype.SkipFlag) (*prototype.SignedBlock, error)
 	VerifySig(name *prototype.AccountName, digest []byte, sig []byte) bool
 	ValidateAddress(name string, pubKey *prototype.PublicKeyType) bool
