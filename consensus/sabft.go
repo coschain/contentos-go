@@ -41,6 +41,10 @@ func (pv *publicValidator) VerifySig(digest, signature []byte) bool {
 	pv.sab.RLock()
 	defer pv.sab.RUnlock()
 
+	return pv.verifySig(digest, signature)
+}
+
+func (pv *publicValidator) verifySig(digest, signature []byte) bool {
 	acc := &prototype.AccountName{
 		Value: pv.accountName,
 	}
@@ -74,6 +78,10 @@ func (pv *privateValidator) Sign(digest []byte) []byte {
 	pv.sab.RLock()
 	defer pv.sab.RUnlock()
 
+	return pv.sign(digest)
+}
+
+func (pv *privateValidator) sign(digest []byte) []byte {
 	return pv.sab.ctrl.Sign(pv.privKey, digest)
 }
 
@@ -359,6 +367,17 @@ func (sabft *SABFT) scheduleProduce() bool {
 }
 
 func (sabft *SABFT) revertToLastCheckPoint() {
+	if sabft.lastCommitted == nil {
+		b, err := sabft.ForkDB.FetchBlockFromMainBranch(1)
+		if err != nil {
+			panic(err)
+		}
+		sabft.popBlock(b.Id())
+		sabft.ForkDB = forkdb.NewDB()
+		sabft.log.Info("truncate ForkDB and storage")
+		return
+	}
+
 	lastCommittedID := common.BlockID{
 		Data: sabft.lastCommitted.ProposedData,
 	}
@@ -369,6 +388,7 @@ func (sabft *SABFT) revertToLastCheckPoint() {
 	}
 	sabft.ForkDB = forkdb.NewDB()
 	sabft.ForkDB.PushBlock(lastCommittedBlock)
+	sabft.log.Info("revert to last committed block ", lastCommittedID.BlockNum())
 }
 
 func (sabft *SABFT) start() {
@@ -384,7 +404,7 @@ func (sabft *SABFT) start() {
 		case b := <-sabft.blkCh:
 			sabft.Lock()
 			if err := sabft.pushBlock(b, true); err != nil {
-				sabft.log.Error("[SABFT] pushBlock failed: ", err)
+				// sabft.log.Error("[SABFT] pushBlock failed: ", err)
 			} else if !sabft.readyToProduce {
 				head := sabft.ForkDB.Head()
 				if !sabft.cp.ValidateAndCommit(head) {
@@ -545,22 +565,28 @@ func (sabft *SABFT) Push(msg interface{}) {
 
 func (sabft *SABFT) verifyCommitSig(records *message.Commit) bool {
 	for i := range records.Precommits {
-		val := sabft.GetValidator(records.Precommits[i].Address)
+		val := sabft.getValidator(records.Precommits[i].Address)
 		if val == nil {
 			sabft.log.Errorf("[handleCommitRecords] error while checking precommits: %s is not a validator", records.Precommits[i].Address)
 			return false
 		}
-		if !val.VerifySig(records.Precommits[i].Digest(), records.Precommits[i].Signature) {
+		sabft.Unlock()
+		v := val.VerifySig(records.Precommits[i].Digest(), records.Precommits[i].Signature)
+		sabft.Lock()
+		if !v {
 			sabft.log.Error("[handleCommitRecords] precommits verification failed")
 			return false
 		}
 	}
-	val := sabft.GetValidator(records.Address)
+	val := sabft.getValidator(records.Address)
 	if val == nil {
 		sabft.log.Errorf("[handleCommitRecords] error while checking commits %s is not a validator", records.Address)
 		return false
 	}
-	if !val.VerifySig(records.Digest(), records.Signature) {
+	sabft.Unlock()
+	v := val.VerifySig(records.Digest(), records.Signature)
+	sabft.Lock()
+	if !v {
 		sabft.log.Error("[handleCommitRecords] verification failed")
 		return false
 	}
@@ -587,7 +613,7 @@ func (sabft *SABFT) checkCommittedAlready(id common.BlockID) bool {
 }
 
 func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
-	sabft.log.Warn("handleCommitRecords: ", records.ProposedData, records.Address)
+	//sabft.log.Warn("handleCommitRecords: ", records.ProposedData, records.Address)
 	if err := records.ValidateBasic(); err != nil {
 		sabft.log.Error(err)
 	}
@@ -667,22 +693,22 @@ func (sabft *SABFT) PushTransactionToPending(trx common.ISignedTransaction) {
 }
 
 func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
-	sabft.log.Debug("pushBlock #", b.Id().BlockNum())
+	//sabft.log.Debug("pushBlock #", b.Id().BlockNum())
 	// TODO: check signee & merkle
 
 	if b.Timestamp() < sabft.getSlotTime(1) {
-		sabft.log.Debugf("the timestamp of the new block is less than that of the head block.")
+		// sabft.log.Debugf("the timestamp of the new block is less than that of the head block.")
 	}
 
 	if applyStateDB {
 		if !sabft.validateProducer(b) {
-			return nil
+			return fmt.Errorf("invalid producer")
 		}
 	}
 
 	head := sabft.ForkDB.Head()
 	if head == nil && b.Id().BlockNum() != 1 {
-		sabft.log.Errorf("[SABFT] the first block pushed should have number of 1, got %d", b.Id().BlockNum())
+		// sabft.log.Errorf("[SABFT] the first block pushed should have number of 1, got %d", b.Id().BlockNum())
 		return fmt.Errorf("invalid block number")
 	}
 
@@ -695,7 +721,7 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 		// 4. illegal block
 
 		if b.Id().BlockNum() > head.Id().BlockNum() {
-			sabft.log.Debugf("[SABFT][pushBlock]possibly detached block. prev: got %v, want %v", b.Id(), head.Id())
+			// sabft.log.Debugf("[SABFT][pushBlock]possibly detached block. prev: got %v, want %v", b.Id(), head.Id())
 			sabft.p2p.TriggerSync(head.Id())
 		}
 		return nil
@@ -828,6 +854,10 @@ func (sabft *SABFT) GetValidator(key message.PubKey) custom.IPubValidator {
 	sabft.RLock()
 	defer sabft.RUnlock()
 
+	return sabft.getValidator(key)
+}
+
+func (sabft *SABFT) getValidator(key message.PubKey) custom.IPubValidator {
 	for i := range sabft.validators {
 		if sabft.validators[i].accountName == string(key) {
 			return sabft.validators[i]

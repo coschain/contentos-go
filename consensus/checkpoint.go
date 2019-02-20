@@ -28,6 +28,7 @@ func NewBFTCheckPoint(dir string, sabft *SABFT) *BFTCheckPoint {
 		db:       db,
 		interval: 5,
 		lastCP:   0,
+		nextCP:   nil,
 	}
 }
 
@@ -46,29 +47,35 @@ func (cp *BFTCheckPoint) Make(commit *message.Commit) error {
 		return err
 	}
 	cp.lastCP = blockNum
+	cp.sabft.log.Info("checkpoint made at block height ", blockNum)
 	return nil
 }
 
 func (cp *BFTCheckPoint) AcceptCheckPoint(commit *message.Commit) {
-	if cp.nextCP != nil {
-		return
-	}
+	//cp.sabft.log.Info("adding checkpoint/////", commit.ProposedData)
 	if err := commit.ValidateBasic(); err != nil {
+		cp.sabft.log.Error(err)
 		return
 	}
 	blockID := &common.BlockID{
 		Data: commit.ProposedData,
 	}
 
-	// check +2/3
-	if len(cp.sabft.validators)*2/3 > len(commit.Precommits) {
+	blockNum := blockID.BlockNum()
+	if blockNum < cp.lastCP || !cp.sabft.ForkDB.Empty() && blockNum <= cp.sabft.ForkDB.Head().Id().BlockNum() {
 		return
 	}
 
-	blockNum := blockID.BlockNum()
-	if blockNum >= cp.lastCP+cp.interval && blockNum < cp.lastCP+cp.interval*2 {
-		// fixme: what if there's no consensus reached during [lastCP+interval, lastCP+interval*2)
+	var nextBlockNum uint64
+	if cp.nextCP != nil {
+		nextBlockNum = common.BlockID{
+			Data: cp.nextCP.ProposedData,
+		}.BlockNum()
+	}
+
+	if nextBlockNum == 0 || blockNum < nextBlockNum {
 		cp.nextCP = commit
+		cp.sabft.log.Infof("next checkpoint at block height %d received.", blockNum)
 	}
 }
 
@@ -89,7 +96,7 @@ func (cp *BFTCheckPoint) GetNext(blockNum uint64) (*message.Commit, error) {
 }
 
 func (cp *BFTCheckPoint) ValidateAndCommit(block common.ISignedBlock) bool {
-	if cp.nextCP == nil {
+	if cp.nextCP == nil || block == nil {
 		return true
 	}
 	nextBlockID := common.BlockID{
@@ -98,11 +105,18 @@ func (cp *BFTCheckPoint) ValidateAndCommit(block common.ISignedBlock) bool {
 	if nextBlockID != block.Id() {
 		return true
 	}
+
+	// check +2/3
+	if len(cp.sabft.validators)*2/3 > len(cp.nextCP.Precommits) {
+		return false
+	}
+
 	if !cp.sabft.verifyCommitSig(cp.nextCP) {
 		return false
 	}
 	cp.sabft.commit(cp.nextCP)
 	cp.lastCP = nextBlockID.BlockNum()
 	cp.nextCP = nil
+	cp.sabft.log.Infof("checkpoint at block height %v validated.", nextBlockID.BlockNum())
 	return true
 }
