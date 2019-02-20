@@ -7,7 +7,10 @@ import (
 
 //Serialize message payload
 func (this *TransferMsg) Serialization(sink *common.ZeroCopySink) error {
-	data, _ := proto.Marshal(this)
+	data, err := proto.Marshal(this)
+	if err != nil {
+		return err
+	}
 	sink.WriteBytes(data)
 	return nil
 }
