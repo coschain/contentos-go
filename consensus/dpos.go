@@ -566,6 +566,10 @@ func (d *DPoS) GetLastBFTCommit() (evidence interface{}) {
 	return nil
 }
 
+func (d *DPoS) GetNextBFTCheckPoint(blockNum uint64) (evidence interface{}) {
+	return nil
+}
+
 func (d *DPoS) GetLIB() common.BlockID {
 	return d.ForkDB.LastCommitted()
 }

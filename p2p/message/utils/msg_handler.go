@@ -674,7 +674,7 @@ func ReqIdHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	}
 	//log.Info("[p2p] send a message to:   v%   data:   v%\n", remotePeer, reqmsg)
 
-	commitEvidence := ctrl.GetLastBFTCommit()
+	commitEvidence := ctrl.GetNextBFTCheckPoint(remote_head_blk_id.BlockNum())
 	if commitEvidence != nil {
 		bftCommit := &msgTypes.ConsMsg {
 			MsgData: commitEvidence.(*message.Commit),

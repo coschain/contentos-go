@@ -26,7 +26,7 @@ func NewBFTCheckPoint(dir string, sabft *SABFT) *BFTCheckPoint {
 		sabft:    sabft,
 		dataDir:  dir,
 		db:       db,
-		interval: 2000,
+		interval: 5,
 		lastCP:   0,
 	}
 }
@@ -59,11 +59,13 @@ func (cp *BFTCheckPoint) AcceptCheckPoint(commit *message.Commit) {
 	blockID := &common.BlockID{
 		Data: commit.ProposedData,
 	}
-	blockNum := blockID.BlockNum()
+
 	// check +2/3
 	if len(cp.sabft.validators)*2/3 > len(commit.Precommits) {
 		return
 	}
+
+	blockNum := blockID.BlockNum()
 	if blockNum >= cp.lastCP+cp.interval && blockNum < cp.lastCP+cp.interval*2 {
 		// fixme: what if there's no consensus reached during [lastCP+interval, lastCP+interval*2)
 		cp.nextCP = commit

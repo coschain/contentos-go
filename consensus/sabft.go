@@ -720,7 +720,7 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 	return nil
 }
 
-func (sabft *SABFT) GetLastBFTCommit() (evidence interface{}) {
+func (sabft *SABFT) GetLastBFTCommit() interface{} {
 	sabft.RLock()
 	defer sabft.RUnlock()
 
@@ -728,6 +728,18 @@ func (sabft *SABFT) GetLastBFTCommit() (evidence interface{}) {
 		return nil
 	}
 	return sabft.lastCommitted
+}
+
+func (sabft *SABFT) GetNextBFTCheckPoint(blockNum uint64) interface{} {
+	sabft.RLock()
+	defer sabft.RUnlock()
+
+	commit, err := sabft.cp.GetNext(blockNum)
+	if err != nil {
+		sabft.log.Error(err)
+		return nil
+	}
+	return commit
 }
 
 func (sabft *SABFT) GetLIB() common.BlockID {

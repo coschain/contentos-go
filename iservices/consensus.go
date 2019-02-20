@@ -34,6 +34,8 @@ type IConsensus interface {
 	// of the vote message
 	GetLastBFTCommit() (evidence interface{})
 
+	GetNextBFTCheckPoint(blockNum uint64) (evidence interface{})
+
 	// GetHeadBlockId returns the block id of the head block
 	GetHeadBlockId() common.BlockID
 
