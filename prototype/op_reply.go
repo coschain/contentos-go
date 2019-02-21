@@ -2,20 +2,9 @@ package prototype
 
 import "github.com/pkg/errors"
 
-func (m *ReplyOperation) GetAuthorities(auths *[]Authority) {
-
-}
-
 func (m *ReplyOperation) GetRequiredOwner(auths *map[string]bool) {
 	(*auths)[m.Owner.Value] = true
 }
-func (m *ReplyOperation) GetAdmin(*[]AccountAdminPair) {
-
-}
-func (m *ReplyOperation) IsVirtual() {
-
-}
-
 
 func (m *ReplyOperation) Validate() error {
 	if m == nil {

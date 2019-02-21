@@ -2,17 +2,9 @@ package prototype
 
 import "github.com/pkg/errors"
 
-func (m *VoteOperation) GetAuthorities(auths *[]Authority) {
 
-}
 func (m *VoteOperation) GetRequiredOwner(auths *map[string]bool) {
 	(*auths)[m.Voter.Value] = true
-}
-func (m *VoteOperation) GetAdmin(*[]AccountAdminPair) {
-
-}
-func (m *VoteOperation) IsVirtual() {
-
 }
 
 func (m *VoteOperation) Validate() error {
