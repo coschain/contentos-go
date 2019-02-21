@@ -990,9 +990,6 @@ func (sabft *SABFT) switchFork(old, new common.BlockID) bool {
 	poppedNum := len(branches[0]) - 1
 	sabft.popBlock(branches[0][poppedNum-1].BlockNum())
 
-	// producers fixup
-	sabft.restoreProducers()
-
 	appendedNum := len(branches[1]) - 1
 	errWhileSwitch := false
 	var newBranchIdx int
@@ -1013,9 +1010,6 @@ func (sabft *SABFT) switchFork(old, new common.BlockID) bool {
 	if errWhileSwitch {
 		sabft.log.Info("[SABFT][switchFork] switch back to original fork")
 		sabft.popBlock(branches[0][poppedNum-1].BlockNum())
-
-		// producers fixup
-		sabft.restoreProducers()
 
 		for i := poppedNum - 1; i >= 0; i-- {
 			b, err := sabft.ForkDB.FetchBlock(branches[0][i])
@@ -1044,6 +1038,8 @@ func (sabft *SABFT) applyBlock(b common.ISignedBlock) error {
 
 func (sabft *SABFT) popBlock(num uint64) error {
 	sabft.ctrl.PopBlock(num)
+	// producers fixup
+	sabft.restoreProducers()
 	return nil
 }
 
