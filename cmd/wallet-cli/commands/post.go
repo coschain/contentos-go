@@ -83,7 +83,7 @@ func post(cmd *cobra.Command, args []string) {
 		Tags:          tags,
 		Beneficiaries: beneficiaries,
 	}
-	signTx, err := utils.GenerateSignedTxAndValidate([]interface{}{post_op}, authorAccount)
+	signTx, err := utils.GenerateSignedTxAndValidate2(client, []interface{}{post_op}, authorAccount)
 	if err != nil {
 		fmt.Println(err)
 		return

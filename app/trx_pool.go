@@ -917,6 +917,13 @@ func (c *TrxPool) updateGlobalDynamicData(blk *prototype.SignedBlock) {
 	dgpo.Time = blk.SignedHeader.Header.Timestamp
 	//c.dgpo.CurrentAslot       = c.dgpo.CurrentAslot + missedBlock+1
 
+	trxCount := len(blk.Transactions)
+	dgpo.TotalTrxCnt += uint64( trxCount )
+	dgpo.Tps = uint32( trxCount / constants.BLOCK_INTERVAL )
+
+	if dgpo.MaxTps < dgpo.Tps{
+		dgpo.MaxTps = dgpo.Tps
+	}
 	// this check is useful ?
 	//mustSuccess(dgpo.GetHeadBlockNumber()-dgpo.GetIrreversibleBlockNum() < constants.MAX_UNDO_HISTORY, "The database does not have enough undo history to support a blockchain with so many missed blocks.")
 	c.updateGlobalDataToDB(dgpo)

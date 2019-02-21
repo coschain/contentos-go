@@ -55,7 +55,7 @@ func deploy(cmd *cobra.Command, args []string) {
 		Abi:      string(abi),
 		Code:     code,
 	}
-	signTx, err := utils.GenerateSignedTxAndValidate([]interface{}{contractDeployOp}, acc)
+	signTx, err := utils.GenerateSignedTxAndValidate2(client, []interface{}{contractDeployOp}, acc)
 	if err != nil {
 		fmt.Println(err)
 		return

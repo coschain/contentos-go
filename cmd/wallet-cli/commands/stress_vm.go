@@ -59,7 +59,7 @@ func stressVM(cmd *cobra.Command, args []string) {
 					Contract: cname,
 					Params:   strconv.Itoa(tid) + "*t*" + strconv.Itoa(index),
 				}
-				signTx, err := utils.GenerateSignedTxAndValidate([]interface{}{contractApplyOp}, acc)
+				signTx, err := utils.GenerateSignedTxAndValidate2(client, []interface{}{contractApplyOp}, acc)
 				if err != nil {
 					fmt.Println(err)
 					return

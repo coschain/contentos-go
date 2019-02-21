@@ -90,7 +90,7 @@ func rewardClaim(cmd *cobra.Command, args []string) {
 		Amount:  amount,
 	}
 
-	signTx, err := utils.GenerateSignedTxAndValidate([]interface{}{claimOp}, account)
+	signTx, err := utils.GenerateSignedTxAndValidate2(rpc, []interface{}{claimOp}, account)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -122,7 +122,7 @@ func rewardClaimAll(cmd *cobra.Command, args []string) {
 		Account: &prototype.AccountName{Value: name},
 	}
 
-	signTx, err := utils.GenerateSignedTxAndValidate([]interface{}{claimOp}, account)
+	signTx, err := utils.GenerateSignedTxAndValidate2(rpc, []interface{}{claimOp}, account)
 	if err != nil {
 		fmt.Println(err)
 		return

@@ -73,7 +73,6 @@ message witness_schedule_type{
     witness_schedule_type value = 1;
 }
 
-
 message dynamic_properties {
     int32                        id                            =      1;
     prototype.sha256             head_block_id                 =      2;
@@ -90,6 +89,10 @@ message dynamic_properties {
     uint64   weighted_vps = 13;
     prototype.vest     post_rewards = 14;
     prototype.vest     reply_rewards = 15;
+    uint64   total_trx_cnt = 16;
+    uint64   total_post_cnt = 17;
+    uint64   total_user_cnt = 18;
+    uint32   max_tps = 19;
 }
 
 message internal_rewards_keeper {

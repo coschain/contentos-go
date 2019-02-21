@@ -226,6 +226,29 @@ func (as *APIService) GetChainState(ctx context.Context, req *grpcpb.NonParamsRe
 	return ret, nil
 }
 
+func (as *APIService) GetStatInfo(ctx context.Context, req *grpcpb.NonParamsRequest) (*grpcpb.GetStatResponse, error) {
+	var (
+		i int32 = 1
+	)
+
+	globalVar := table.NewSoGlobalWrap(as.db, &i)
+
+	ret := &grpcpb.GetStatResponse{}
+
+	// TODO add daily trx count
+	//blks, err := as.consensus.FetchBlocksSince(common.EmptyBlockID)
+	//if err == nil {
+	//	for _, v := range blks {
+	//
+	//		res := &prototype.EmptySignedBlock{ SignedHeader:v.(*prototype.SignedBlock).SignedHeader, TrxCount:uint32(len(v.(*prototype.SignedBlock).Transactions)) }
+	//		ret.Blocks = append(ret.Blocks, res )
+	//	}
+	//}
+	ret.Props = globalVar.GetProps()
+
+	return ret, nil
+}
+
 func (as *APIService) GetWitnessList(ctx context.Context, req *grpcpb.GetWitnessListRequest) (*grpcpb.GetWitnessListResponse, error) {
 	as.db.RLock()
 	defer as.db.RUnlock()
@@ -395,7 +418,12 @@ func (as *APIService) BroadcastTrx(ctx context.Context, req *grpcpb.BroadcastTrx
 		 //as.log.Infof("BroadcastTrx Result: %s", result)
 	})
 	//result <- prototype.FetchTrxApplyResult(as.eBus , 30*time.Second ,trx)
-    return &grpcpb.BroadcastTrxResponse{Invoice:prototype.FetchTrxApplyResult(as.eBus , 30*time.Second ,trx)},pErr
+
+	if !req.OnlyDeliver {
+		return &grpcpb.BroadcastTrxResponse{Invoice:prototype.FetchTrxApplyResult(as.eBus , 30*time.Second ,trx)},pErr
+	} else {
+		return &grpcpb.BroadcastTrxResponse{Invoice:nil, Status:prototype.StatusSuccess },pErr
+	}
 }
 
 func checkLimit(limit uint32) uint32 {
