@@ -17,6 +17,7 @@ import (
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
 	"os"
+	"sync"
 )
 
 // the service type
@@ -25,6 +26,7 @@ type DatabaseService struct {
 	db   *LevelDatabase
 	rdb  *RevertibleDatabase
 	tdb  *SquashableDatabase
+	lock sync.RWMutex
 }
 
 // service constructor
@@ -213,4 +215,20 @@ func (s *DatabaseService) DeleteAll() error {
 		err = s.Start(nil)
 	}
 	return err
+}
+
+func (s *DatabaseService) Lock() {
+	s.lock.Lock()
+}
+
+func (s *DatabaseService) Unlock() {
+	s.lock.Unlock()
+}
+
+func (s *DatabaseService) RLock() {
+	s.lock.RLock()
+}
+
+func (s *DatabaseService) RUnlock() {
+	s.lock.RUnlock()
 }

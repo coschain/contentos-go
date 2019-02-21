@@ -485,7 +485,11 @@ func (c *TrxPool) applyTransaction(trxEst *prototype.EstimateTrxResult) {
 
 func (c *TrxPool) applyTransactionInner(trxEst *prototype.EstimateTrxResult,isNeedVerify bool) {
 	trxContext := NewTrxContext(trxEst, c.db, c)
+
+	c.db.Lock()
+
 	defer func() {
+		c.db.Unlock()
 		if err := recover(); err != nil {
 			trxEst.Receipt.Status = prototype.StatusError
 			trxEst.Receipt.ErrorInfo = fmt.Sprintf("applyTransaction failed : %v", err)

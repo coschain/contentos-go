@@ -39,6 +39,8 @@ func NewAPIService(con iservices.IConsensus, loop *eventloop.EventLoop, db iserv
 }
 
 func (as *APIService) QueryTableContent(ctx context.Context, req *grpcpb.GetTableContentRequest) (*grpcpb.TableContentResponse, error) {
+	as.db.RLock()
+	defer as.db.RUnlock()
 
 	res := &grpcpb.TableContentResponse{}
 
@@ -62,6 +64,8 @@ func (as *APIService) QueryTableContent(ctx context.Context, req *grpcpb.GetTabl
 }
 
 func (as *APIService) GetAccountByName(ctx context.Context, req *grpcpb.GetAccountByNameRequest) (*grpcpb.AccountResponse, error) {
+	as.db.RLock()
+	defer as.db.RUnlock()
 
 	accWrap := table.NewSoAccountWrap(as.db, req.GetAccountName())
 	acct := &grpcpb.AccountResponse{}
@@ -99,6 +103,8 @@ func (as *APIService) GetAccountByName(ctx context.Context, req *grpcpb.GetAccou
 }
 
 func (as *APIService) GetAccountRewardByName(ctx context.Context, req *grpcpb.GetAccountRewardByNameRequest) (*grpcpb.AccountRewardResponse, error) {
+	as.db.RLock()
+	defer as.db.RUnlock()
 
 	var i int32 = 1
 
@@ -114,6 +120,8 @@ func (as *APIService) GetAccountRewardByName(ctx context.Context, req *grpcpb.Ge
 }
 
 func (as *APIService) GetFollowerListByName(ctx context.Context, req *grpcpb.GetFollowerListByNameRequest) (*grpcpb.GetFollowerListByNameResponse, error) {
+	as.db.RLock()
+	defer as.db.RUnlock()
 
 	var (
 		ferList []*prototype.AccountName
@@ -144,6 +152,8 @@ func (as *APIService) GetFollowerListByName(ctx context.Context, req *grpcpb.Get
 }
 
 func (as *APIService) GetFollowingListByName(ctx context.Context, req *grpcpb.GetFollowingListByNameRequest) (*grpcpb.GetFollowingListByNameResponse, error) {
+	as.db.RLock()
+	defer as.db.RUnlock()
 
 	var (
 		fingList []*prototype.AccountName
@@ -174,6 +184,8 @@ func (as *APIService) GetFollowingListByName(ctx context.Context, req *grpcpb.Ge
 }
 
 func (as *APIService) GetFollowCountByName(ctx context.Context, req *grpcpb.GetFollowCountByNameRequest) (*grpcpb.GetFollowCountByNameResponse, error) {
+	as.db.RLock()
+	defer as.db.RUnlock()
 
 	var (
 		ferCnt, fingCnt uint32
@@ -191,6 +203,9 @@ func (as *APIService) GetFollowCountByName(ctx context.Context, req *grpcpb.GetF
 
 }
 func (as *APIService) GetChainState(ctx context.Context, req *grpcpb.NonParamsRequest) (*grpcpb.GetChainStateResponse, error) {
+	as.db.RLock()
+	defer as.db.RUnlock()
+
 	var (
 		i int32 = 1
 	)
@@ -212,6 +227,9 @@ func (as *APIService) GetChainState(ctx context.Context, req *grpcpb.NonParamsRe
 }
 
 func (as *APIService) GetWitnessList(ctx context.Context, req *grpcpb.GetWitnessListRequest) (*grpcpb.GetWitnessListResponse, error) {
+	as.db.RLock()
+	defer as.db.RUnlock()
+
 	var (
 		witList []*grpcpb.WitnessResponse
 		limit   uint32
@@ -246,6 +264,9 @@ func (as *APIService) GetWitnessList(ctx context.Context, req *grpcpb.GetWitness
 }
 
 func (as *APIService) GetPostListByCreated(ctx context.Context, req *grpcpb.GetPostListByCreatedRequest) (*grpcpb.GetPostListByCreatedResponse, error) {
+	as.db.RLock()
+	defer as.db.RUnlock()
+
 	var (
 		postList []*grpcpb.PostResponse
 		limit    uint32
@@ -292,6 +313,9 @@ func (as *APIService) GetPostListByCreated(ctx context.Context, req *grpcpb.GetP
 }
 
 func (as *APIService) GetReplyListByPostId(ctx context.Context, req *grpcpb.GetReplyListByPostIdRequest) (*grpcpb.GetReplyListByPostIdResponse, error) {
+	as.db.RLock()
+	defer as.db.RUnlock()
+
 	var (
 		replyList []*grpcpb.PostResponse
 		limit     uint32
@@ -335,10 +359,15 @@ func (as *APIService) GetReplyListByPostId(ctx context.Context, req *grpcpb.GetR
 }
 
 func (as *APIService) GetBlockTransactionsByNum(ctx context.Context, req *grpcpb.GetBlockTransactionsByNumRequest) (*grpcpb.GetBlockTransactionsByNumResponse, error) {
+	as.db.RLock()
+	defer as.db.RUnlock()
+
 	return &grpcpb.GetBlockTransactionsByNumResponse{}, nil
 }
 
 func (as *APIService) GetTrxById(ctx context.Context, req *grpcpb.GetTrxByIdRequest) (*grpcpb.GetTrxByIdResponse, error) {
+	as.db.RLock()
+	defer as.db.RUnlock()
 
 	trxWrap := table.NewSoTransactionObjectWrap(as.db, req.GetTrxId())
 	resp := &grpcpb.GetTrxByIdResponse{}

@@ -165,4 +165,10 @@ type IDatabaseService interface {
 	// - all iterators released by DeleteIterator() before calling DeleteAll()
 	// - no service calls before successful return of DeleteAll()
 	DeleteAll() error
+
+	// R/W locking
+	Lock()
+	Unlock()
+	RLock()
+	RUnlock()
 }
