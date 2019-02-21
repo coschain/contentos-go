@@ -66,7 +66,7 @@ func (cp *BFTCheckPoint) AcceptCheckPoint(commit *message.Commit) {
 		return
 	}
 
-	var nextBlockNum uint64
+	nextBlockNum := cp.lastCP
 	if cp.nextCP != nil {
 		nextBlockNum = common.BlockID{
 			Data: cp.nextCP.ProposedData,
@@ -95,26 +95,32 @@ func (cp *BFTCheckPoint) GetNext(blockNum uint64) (*message.Commit, error) {
 	return commit.(*message.Commit), nil
 }
 
-func (cp *BFTCheckPoint) ValidateAndCommit(block common.ISignedBlock) bool {
+func (cp *BFTCheckPoint) ReachCheckPoint(block common.ISignedBlock) (*message.Commit, bool) {
 	if cp.nextCP == nil || block == nil {
-		return true
+		return nil, false
 	}
 	nextBlockID := common.BlockID{
 		Data: cp.nextCP.ProposedData,
 	}
 	if nextBlockID != block.Id() {
-		return true
+		return nil, false
 	}
+	return cp.nextCP, true
+}
 
+func (cp *BFTCheckPoint) Validate(block common.ISignedBlock) bool {
 	// check +2/3
 	if len(cp.sabft.validators)*2/3 > len(cp.nextCP.Precommits) {
 		return false
 	}
 
-	if !cp.sabft.verifyCommitSig(cp.nextCP) {
+	if !cp.sabft.VerifyCommitSig(cp.nextCP) {
 		return false
 	}
-	cp.sabft.commit(cp.nextCP)
+
+	nextBlockID := common.BlockID{
+		Data: cp.nextCP.ProposedData,
+	}
 	cp.lastCP = nextBlockID.BlockNum()
 	cp.nextCP = nil
 	cp.sabft.log.Infof("checkpoint at block height %v validated.", nextBlockID.BlockNum())

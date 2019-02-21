@@ -367,28 +367,30 @@ func (sabft *SABFT) scheduleProduce() bool {
 }
 
 func (sabft *SABFT) revertToLastCheckPoint() {
-	if sabft.lastCommitted == nil {
-		b, err := sabft.ForkDB.FetchBlockFromMainBranch(1)
-		if err != nil {
-			panic(err)
-		}
-		sabft.popBlock(b.Id())
-		sabft.ForkDB = forkdb.NewDB()
-		sabft.log.Info("truncate ForkDB and storage")
-		return
-	}
+	sabft.Lock()
+	defer sabft.Unlock()
 
-	lastCommittedID := common.BlockID{
-		Data: sabft.lastCommitted.ProposedData,
+	var popNum uint64
+	if sabft.lastCommitted == nil {
+		popNum = 2
+	} else {
+		popNum = common.BlockID{
+			Data: sabft.lastCommitted.ProposedData,
+		}.BlockNum() + 1
 	}
-	sabft.popBlock(lastCommittedID)
-	lastCommittedBlock, err := sabft.ForkDB.FetchBlock(lastCommittedID)
+	sabft.popBlock(popNum)
+	lastCommittedBlock, err := sabft.ForkDB.FetchBlockFromMainBranch(popNum - 1)
 	if err != nil {
 		panic(err)
 	}
 	sabft.ForkDB = forkdb.NewDB()
 	sabft.ForkDB.PushBlock(lastCommittedBlock)
-	sabft.log.Info("revert to last committed block ", lastCommittedID.BlockNum())
+	sabft.log.Infof("[checkpoint] revert to last committed block %d. producer list: %v", popNum-1)
+	validatorNames := ""
+	for i := range sabft.validators {
+		validatorNames += sabft.validators[i].accountName + " "
+	}
+	sabft.log.Info("[checkpoint] active producers: ", validatorNames)
 }
 
 func (sabft *SABFT) start() {
@@ -403,15 +405,25 @@ func (sabft *SABFT) start() {
 			return
 		case b := <-sabft.blkCh:
 			sabft.Lock()
-			if err := sabft.pushBlock(b, true); err != nil {
+			err := sabft.pushBlock(b, true)
+			sabft.Unlock()
+			if err != nil {
 				// sabft.log.Error("[SABFT] pushBlock failed: ", err)
-			} else if !sabft.readyToProduce {
+				continue
+			}
+			if !sabft.readyToProduce {
 				head := sabft.ForkDB.Head()
-				if !sabft.cp.ValidateAndCommit(head) {
-					sabft.revertToLastCheckPoint()
+				commit, reached := sabft.cp.ReachCheckPoint(head)
+				if reached {
+					success := sabft.cp.Validate(head)
+					if !success {
+						sabft.revertToLastCheckPoint()
+					} else {
+						sabft.Commit(commit)
+					}
 				}
 			}
-			sabft.Unlock()
+
 		case trxFn := <-sabft.trxCh:
 			sabft.Lock()
 			trxFn()
@@ -563,6 +575,13 @@ func (sabft *SABFT) Push(msg interface{}) {
 	}
 }
 
+func (sabft *SABFT) VerifyCommitSig(records *message.Commit) bool {
+	sabft.RLock()
+	defer sabft.RUnlock()
+
+	return sabft.verifyCommitSig(records)
+}
+
 func (sabft *SABFT) verifyCommitSig(records *message.Commit) bool {
 	for i := range records.Precommits {
 		val := sabft.getValidator(records.Precommits[i].Address)
@@ -570,9 +589,9 @@ func (sabft *SABFT) verifyCommitSig(records *message.Commit) bool {
 			sabft.log.Errorf("[handleCommitRecords] error while checking precommits: %s is not a validator", records.Precommits[i].Address)
 			return false
 		}
-		sabft.Unlock()
+		sabft.RUnlock()
 		v := val.VerifySig(records.Precommits[i].Digest(), records.Precommits[i].Signature)
-		sabft.Lock()
+		sabft.RLock()
 		if !v {
 			sabft.log.Error("[handleCommitRecords] precommits verification failed")
 			return false
@@ -580,12 +599,12 @@ func (sabft *SABFT) verifyCommitSig(records *message.Commit) bool {
 	}
 	val := sabft.getValidator(records.Address)
 	if val == nil {
-		sabft.log.Errorf("[handleCommitRecords] error while checking commits %s is not a validator", records.Address)
+		sabft.log.Errorf("[handleCommitRecords] error while checking commits. %s is not a validator", string(records.Address))
 		return false
 	}
-	sabft.Unlock()
+	sabft.RUnlock()
 	v := val.VerifySig(records.Digest(), records.Signature)
-	sabft.Lock()
+	sabft.RLock()
 	if !v {
 		sabft.log.Error("[handleCommitRecords] verification failed")
 		return false
@@ -637,7 +656,7 @@ func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 	}
 
 	// check signature
-	if !sabft.verifyCommitSig(records) {
+	if !sabft.VerifyCommitSig(records) {
 		return
 	}
 
@@ -682,6 +701,12 @@ func (sabft *SABFT) validateProducer(b common.ISignedBlock) bool {
 	}
 	pubKey := producer.(*prototype.PublicKeyType)
 	res := sabft.ctrl.ValidateAddress(validProducer, pubKey)
+	if !res {
+		if !sabft.ForkDB.Empty() && b.Id().BlockNum() == sabft.ForkDB.Head().Id().BlockNum()+1 {
+			sabft.log.Errorf("block %v's valid producer should be %s, but the block's pub_key is %s",
+				b.Id(), validProducer, pubKey.ToWIF())
+		}
+	}
 	return res
 }
 
@@ -787,7 +812,6 @@ func (sabft *SABFT) GetLIB() common.BlockID {
 func (sabft *SABFT) Commit(commitRecords *message.Commit) error {
 	sabft.Lock()
 	defer sabft.Unlock()
-
 
 	err := sabft.commit(commitRecords)
 	if err == nil {
@@ -964,7 +988,7 @@ func (sabft *SABFT) switchFork(old, new common.BlockID) bool {
 	}
 	sabft.log.Debug("[SABFT][switchFork] fork branches: ", branches)
 	poppedNum := len(branches[0]) - 1
-	sabft.popBlock(branches[0][poppedNum])
+	sabft.popBlock(branches[0][poppedNum-1].BlockNum())
 
 	// producers fixup
 	sabft.restoreProducers()
@@ -988,7 +1012,7 @@ func (sabft *SABFT) switchFork(old, new common.BlockID) bool {
 	// switch back
 	if errWhileSwitch {
 		sabft.log.Info("[SABFT][switchFork] switch back to original fork")
-		sabft.popBlock(branches[0][poppedNum])
+		sabft.popBlock(branches[0][poppedNum-1].BlockNum())
 
 		// producers fixup
 		sabft.restoreProducers()
@@ -998,7 +1022,9 @@ func (sabft *SABFT) switchFork(old, new common.BlockID) bool {
 			if err != nil {
 				panic(err)
 			}
-			sabft.applyBlock(b)
+			if err := sabft.applyBlock(b); err != nil {
+				panic(err)
+			}
 		}
 
 		// restore the good old head of ForkDB
@@ -1016,8 +1042,8 @@ func (sabft *SABFT) applyBlock(b common.ISignedBlock) error {
 	return err
 }
 
-func (sabft *SABFT) popBlock(id common.BlockID) error {
-	sabft.ctrl.PopBlock(id.BlockNum())
+func (sabft *SABFT) popBlock(num uint64) error {
+	sabft.ctrl.PopBlock(num)
 	return nil
 }
 
