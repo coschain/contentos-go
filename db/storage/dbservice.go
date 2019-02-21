@@ -62,7 +62,6 @@ func (s *DatabaseService) Start(node *node.Node) error {
 	}
 	tdb := NewSquashableDatabase(rdb, true)
 	if tdb == nil {
-		tdb.Close()
 		rdb.Close()
 		db.Close()
 		return errors.New("failed to create transactional database")
