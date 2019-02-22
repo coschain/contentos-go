@@ -160,7 +160,7 @@ func NewSABFT(ctx *node.ServiceContext, lg *logrus.Logger) *SABFT {
 		name: ret.Name,
 	}
 	ret.bft = gobft.NewCore(ret, ret.priv)
-	ret.bft.SetLogLevel(3)
+	ret.bft.SetLogLevel(0)
 	ret.log.Info("[SABFT bootstrap] ", ctx.Config().Consensus.BootStrap)
 	ret.appState = &message.AppState{
 		LastHeight:       0,
@@ -466,7 +466,10 @@ func (sabft *SABFT) generateAndApplyBlock() (common.ISignedBlock, error) {
 		prev.Hash = make([]byte, 32)
 	}
 	//sabft.log.Debugf("generating block. <prev %v>, <ts %d>", prev.Hash, ts)
-	return sabft.ctrl.GenerateAndApplyBlock(sabft.Name, prev, uint32(ts), sabft.priv.privKey, prototype.Skip_nothing)
+	//sabft.log.Info("about to generateAndApplyBlock ", time.Now())
+	b, err := sabft.ctrl.GenerateAndApplyBlock(sabft.Name, prev, uint32(ts), sabft.priv.privKey, prototype.Skip_nothing)
+	//sabft.log.Info("generateAndApplyBlock done ", time.Now())
+	return b, err
 }
 
 func (sabft *SABFT) checkGenesis() bool {
@@ -1149,7 +1152,7 @@ func fetchBlocks(from, to uint64, forkDB *forkdb.DB, blog *blocklog.BLog) ([]com
 	}
 	blogTo := to
 	if blogTo >= lastCommittedNum {
-		blogTo = lastCommittedNum-1
+		blogTo = lastCommittedNum - 1
 	}
 
 	var blocksInForkDB []common.ISignedBlock
