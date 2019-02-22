@@ -132,4 +132,9 @@ func TestUnpackBufNode(t *testing.T) {
 	demsg, _, err := mt.ReadMessage(buf, 0x12345)
 	assert.NotNil(t, demsg)
 	assert.Nil(t, err)
+
+	cliLink.Tx(msg, 0x123456)
+	serverLink.Rx(0x123456)
+
+	serverLink.disconnectNotify()
 }
