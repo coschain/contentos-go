@@ -32,7 +32,7 @@ func GenerateSignedTxAndValidate2(client grpcpb.ApiServiceClient, ops []interfac
 	refBlockPrefix := binary.BigEndian.Uint32(resp.Props.HeadBlockId.Hash[8:12])
 	// occupant implement
 	refBlockNum := uint32(resp.Props.HeadBlockNumber & 0x7ff)
-	tx := &prototype.Transaction{RefBlockNum: refBlockNum, RefBlockPrefix: refBlockPrefix, Expiration: &prototype.TimePointSec{UtcSeconds: uint32(time.Now().Unix()) + 30}}
+	tx := &prototype.Transaction{RefBlockNum: refBlockNum, RefBlockPrefix: refBlockPrefix, Expiration: &prototype.TimePointSec{UtcSeconds: resp.Props.Time.UtcSeconds + 30}}
 	for _, op := range ops {
 		tx.AddOperation(op)
 	}
