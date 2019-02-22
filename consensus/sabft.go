@@ -369,7 +369,7 @@ func (sabft *SABFT) scheduleProduce() bool {
 func (sabft *SABFT) revertToLastCheckPoint() {
 	sabft.Lock()
 	defer sabft.Unlock()
-	
+
 	lastCommittedID := sabft.ForkDB.LastCommitted()
 	popNum := lastCommittedID.BlockNum() + 1
 	sabft.popBlock(popNum)
