@@ -160,7 +160,7 @@ func NewSABFT(ctx *node.ServiceContext, lg *logrus.Logger) *SABFT {
 		name: ret.Name,
 	}
 	ret.bft = gobft.NewCore(ret, ret.priv)
-	ret.bft.SetLogLevel(4)
+	ret.bft.SetLogLevel(0)
 	ret.log.Info("[SABFT bootstrap] ", ctx.Config().Consensus.BootStrap)
 	ret.appState = &message.AppState{
 		LastHeight:       0,
@@ -370,22 +370,32 @@ func (sabft *SABFT) revertToLastCheckPoint() {
 	sabft.Lock()
 	defer sabft.Unlock()
 
-	var popNum uint64
-	if sabft.lastCommitted == nil {
-		popNum = 2
-	} else {
-		popNum = common.BlockID{
-			Data: sabft.lastCommitted.ProposedData,
-		}.BlockNum() + 1
-	}
+	//var popNum uint64
+	//if sabft.lastCommitted == nil {
+	//	popNum = 2
+	//} else {
+	//	popNum = common.BlockID{
+	//		Data: sabft.lastCommitted.ProposedData,
+	//	}.BlockNum() + 1
+	//}
+	lastCommittedID := sabft.ForkDB.LastCommitted()
+	popNum := lastCommittedID.BlockNum() + 1
 	sabft.popBlock(popNum)
-	lastCommittedBlock, err := sabft.ForkDB.FetchBlockFromMainBranch(popNum - 1)
-	if err != nil {
-		panic(err)
+
+	var lastCommittedBlock common.ISignedBlock = nil
+	var err error
+	if popNum > 1 {
+		lastCommittedBlock, err = sabft.ForkDB.FetchBlock(lastCommittedID)
+		if err != nil {
+			panic(err)
+		}
 	}
 	sabft.ForkDB = forkdb.NewDB()
-	sabft.ForkDB.PushBlock(lastCommittedBlock)
-	sabft.log.Infof("[checkpoint] revert to last committed block %d. producer list: %v", popNum-1)
+	if popNum > 1 {
+		sabft.ForkDB.PushBlock(lastCommittedBlock)
+	}
+
+	sabft.log.Infof("[checkpoint] revert to last committed block %d.", popNum-1)
 	validatorNames := ""
 	for i := range sabft.validators {
 		validatorNames += sabft.validators[i].accountName + " "
@@ -466,7 +476,10 @@ func (sabft *SABFT) generateAndApplyBlock() (common.ISignedBlock, error) {
 		prev.Hash = make([]byte, 32)
 	}
 	//sabft.log.Debugf("generating block. <prev %v>, <ts %d>", prev.Hash, ts)
-	return sabft.ctrl.GenerateAndApplyBlock(sabft.Name, prev, uint32(ts), sabft.priv.privKey, prototype.Skip_nothing)
+	//sabft.log.Info("about to generateAndApplyBlock ", time.Now())
+	b, err := sabft.ctrl.GenerateAndApplyBlock(sabft.Name, prev, uint32(ts), sabft.priv.privKey, prototype.Skip_nothing)
+	//sabft.log.Info("generateAndApplyBlock done ", time.Now())
+	return b, err
 }
 
 func (sabft *SABFT) checkGenesis() bool {
@@ -710,7 +723,7 @@ func (sabft *SABFT) validateProducer(b common.ISignedBlock) bool {
 	return res
 }
 
-func (sabft *SABFT) PushTransactionToPending(trx common.ISignedTransaction,callBack func(err error)) {
+func (sabft *SABFT) PushTransactionToPending(trx common.ISignedTransaction, callBack func(err error)) {
 	sabft.pendingCh <- func() {
 		err := sabft.ctrl.PushTrxToPending(trx.(*prototype.SignedTransaction))
 		if err == nil {
@@ -741,6 +754,7 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 	}
 
 	newHead := sabft.ForkDB.PushBlock(b)
+	//sabft.log.Warn("forkdb PushBlock returned....")
 	if newHead == head {
 		// this implies that b is a:
 		// 1. detached block or
