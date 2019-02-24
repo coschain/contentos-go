@@ -8,6 +8,8 @@ import (
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
+	"github.com/coschain/contentos-go/common/crypto"
+	"github.com/coschain/contentos-go/common/crypto/secp256k1"
 	"github.com/coschain/contentos-go/common/eventloop"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
@@ -16,9 +18,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"io/ioutil"
-	"strconv"
-	"github.com/coschain/contentos-go/common/crypto/secp256k1"
-	"github.com/coschain/contentos-go/common/crypto"
+	"time"
 )
 
 var (
@@ -48,6 +48,8 @@ type TrxPool struct {
 	//currentTrxInBlock      int16
 	havePendingTransaction bool
 	shuffle                common.ShuffleFunc
+
+	iceberg		*BlockIceberg
 }
 
 func (c *TrxPool) getDb() (iservices.IDatabaseService, error) {
@@ -93,12 +95,12 @@ func (c *TrxPool) Start(node *node.Node) error {
 	c.db = db
 	c.evLoop = node.MainLoop
 	c.noticer = node.EvBus
-
 	c.Open()
 	return nil
 }
 
 func (c *TrxPool) Open() {
+	c.iceberg = NewBlockIceberg(c.db)
 	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
 	if !dgpWrap.CheckExist() {
 
@@ -106,7 +108,6 @@ func (c *TrxPool) Open() {
 
 		//c.log.Info("start initGenesis")
 		c.initGenesis()
-		c.saveReversion(0)
 		//c.log.Info("finish initGenesis")
 	}
 }
@@ -119,8 +120,24 @@ func (c *TrxPool) setProducing(b bool) {
 	c.isProducing = b
 }
 
-func (c *TrxPool) PushTrxToPending(trx *prototype.SignedTransaction) {
+func (c *TrxPool) PushTrxToPending(trx *prototype.SignedTransaction) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			switch val := r.(type) {
+			case error:
+				err = val
+			case string:
+				err = errors.New(val)
+			default:
+				err = errors.New("unknown panic type when push trx to pending list")
+			}
+		}
+	}()
+    c.addTrxToPending(trx,false)
+	return err
+}
 
+func (c *TrxPool) addTrxToPending(trx *prototype.SignedTransaction,isVerified bool) {
 	if !c.havePendingTransaction {
 		c.db.BeginTransaction()
 		c.havePendingTransaction = true
@@ -130,6 +147,14 @@ func (c *TrxPool) PushTrxToPending(trx *prototype.SignedTransaction) {
 	trxWrp.SigTrx = trx
 	trxWrp.Receipt = &prototype.TransactionReceiptWithInfo{}
 
+	if !isVerified {
+		//verify the signature
+		trxContext := NewTrxContext(trxWrp, c.db, c)
+		trx.Validate()
+		tmpChainId := prototype.ChainId{Value: 0}
+		mustNoError(trxContext.InitSigState(tmpChainId), "signature export error",prototype.StatusError)
+		trxContext.VerifySignature()
+	}
 	c.pendingTx = append(c.pendingTx, trxWrp)
 }
 
@@ -191,16 +216,16 @@ func (c *TrxPool) pushTrx(trx *prototype.SignedTransaction) (ret *prototype.Tran
 
 	// start a new undo session when first transaction come after push block
 	if !c.havePendingTransaction {
-		tag := c.getBlockTag(uint64(c.headBlockNum())+1)
-		c.db.BeginTransactionWithTag(tag)
+		c.db.BeginTransaction()
 		//	logging.CLog().Debug("@@@@@@ pushTrx havePendingTransaction=true")
 		c.havePendingTransaction = true
 	}
 
 	// start a sub undo session for transaction
 	c.db.BeginTransaction()
-	c.applyTransactionInner(trxEst,trxContext)
-	//c.pendingTx = append(c.pendingTx, trxEst)
+
+	c.applyTransactionInner(trxEst,true,trxContext)
+	c.pendingTx = append(c.pendingTx, trxEst)
 
 	// commit sub session
 	mustNoError(c.db.EndTransaction(true), "EndTransaction error",prototype.StatusErrorDbEndTrx)
@@ -210,8 +235,8 @@ func (c *TrxPool) pushTrx(trx *prototype.SignedTransaction) (ret *prototype.Tran
 	return trxEst.Receipt
 }
 
-func (c *TrxPool) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag) error {
-	var err error = nil
+func (c *TrxPool) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag) (err error) {
+	//var err error = nil
 	oldFlag := c.skip
 	c.skip = skip
 
@@ -233,31 +258,33 @@ func (c *TrxPool) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag)
 				err = errors.New("unknown error type")
 			}
 			// undo changes
-			c.db.EndTransaction(false)
+			c.iceberg.EndBlock(false)
 			if skip&prototype.Skip_apply_transaction != 0 {
 				c.havePendingTransaction = false
 			}
+			fmt.Printf("push block fail,the error is %v,the block num is %v \n",r,blk.Id().BlockNum())
 		}
-		c.skip = oldFlag
 		// restorePending will call pushTrx, will start new transaction for pending
 		c.restorePending(tmpPending)
+
+		c.skip = oldFlag
+
 	}()
 
 	if skip&prototype.Skip_apply_transaction == 0 {
-		tag := c.getBlockTag(blk.Id().BlockNum())
-		c.db.BeginTransactionWithTag(tag)
+		c.iceberg.BeginBlock(blk.Id().BlockNum())
 		c.db.BeginTransaction()
 		c.applyBlock(blk, skip)
 		mustNoError(c.db.EndTransaction(true), "EndTransaction error",prototype.StatusErrorDbEndTrx)
+		c.iceberg.EndBlock(true)
 	} else {
 		// we have do a BeginTransaction at GenerateBlock
 		c.applyBlock(blk, skip)
 		mustNoError(c.db.EndTransaction(true), "EndTransaction error",prototype.StatusErrorDbEndTrx)
+		c.iceberg.EndBlock(true)
 		c.havePendingTransaction = false
 	}
 
-	blockNum := blk.Id().BlockNum()
-	c.saveReversion(blockNum)
 	return err
 }
 
@@ -289,7 +316,7 @@ func (c *TrxPool) restorePending(pending []*prototype.EstimateTrxResult) {
 
 		objWrap := table.NewSoTransactionObjectWrap(c.db, id)
 		if !objWrap.CheckExist() {
-			c.pushTrx(tw.SigTrx)
+			c.addTrxToPending(tw.SigTrx,true)
 		}
 	}
 }
@@ -360,14 +387,22 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 	if c.havePendingTransaction {
 		mustNoError(c.db.EndTransaction(false), "EndTransaction error",prototype.StatusErrorDbEndTrx)
 	}
-	tag := c.getBlockTag(uint64(c.headBlockNum())+1)
-	c.db.BeginTransactionWithTag(tag)
+	c.iceberg.BeginBlock(c.headBlockNum() + 1)
 	c.db.BeginTransaction()
 	//c.log.Debug("@@@@@@ GeneratBlock havePendingTransaction=true")
 	c.havePendingTransaction = true
 
 	var postponeTrx uint64 = 0
-	for _, trxWraper := range c.pendingTx {
+	isFinish := false
+	time.AfterFunc(650*time.Millisecond,func() {
+		isFinish = true
+	})
+	 failTrxMap := make(map[int]int)
+
+	for k, trxWraper := range c.pendingTx {
+		if isFinish {
+			break
+		}
 		if trxWraper.SigTrx.Trx.Expiration.UtcSeconds < timestamp {
 			continue
 		}
@@ -381,6 +416,7 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 			trxContext := NewTrxContext(trxWraper, c.db, c)
 			defer func() {
 				if err := recover(); err != nil {
+					failTrxMap[k] = k
 					mustNoError(c.db.EndTransaction(false), "EndTransaction error",prototype.StatusErrorDbEndTrx)
 					switch x := err.(type) {
 					case *prototype.Exception:
@@ -395,11 +431,10 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 			}()
 
 			c.db.BeginTransaction()
-			c.applyTransactionInner(trxWraper,trxContext)
+			c.applyTransactionInner(trxWraper,false,trxContext)
 			mustNoError(c.db.EndTransaction(true), "EndTransaction error",prototype.StatusErrorDbEndTrx)
-
-			//totalSize += uint32(proto.Size(trxWraper))
-			//signBlock.Transactions = append(signBlock.Transactions, trxWraper.ToTrxWrapper())
+			totalSize += uint32(proto.Size(trxWraper))
+			signBlock.Transactions = append(signBlock.Transactions, trxWraper.ToTrxWrapper())
 			//c.currentTrxInBlock++
 		}()
 	}
@@ -431,7 +466,17 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 	} else {
 		c.db.EndTransaction(false)
 	}*/
+    if len(failTrxMap) > 0 {
+		copyPending := make([]*prototype.EstimateTrxResult, 0, len(c.pendingTx))
+		for k,v := range c.pendingTx {
+			if _,ok := failTrxMap[k]; !ok {
+				copyPending = append(copyPending,v)
+			}
+		}
+		c.pendingTx = c.pendingTx[:0]
+		c.pendingTx = append(c.pendingTx,copyPending...)
 
+	}
 	return signBlock
 }
 
@@ -459,16 +504,27 @@ func (c *TrxPool) notifyBlockApply(block *prototype.SignedBlock) {
 	c.noticer.Publish(constants.NOTICE_BLOCK_APPLY, block)
 }
 
+func (c *TrxPool) notifyTrxApplyResult(trx *prototype.SignedTransaction, res bool,
+	receipt *prototype.TransactionReceiptWithInfo){
+	 c.noticer.Publish(constants.NOTICE_TRX_APLLY_RESULT, trx, receipt)
+}
+
 func (c *TrxPool) applyTransaction(trxEst *prototype.EstimateTrxResult,trxContext *TrxContext) {
-	c.applyTransactionInner(trxEst,trxContext)
+	c.applyTransactionInner(trxEst, c.skip&prototype.Skip_transaction_signatures == 0,trxContext)
 	// @ not use yet
 	//c.notifyTrxPostExecute(trxWrp.SigTrx)
 }
 
-func (c *TrxPool) applyTransactionInner(trxEst *prototype.EstimateTrxResult,trxContext *TrxContext) {
+func (c *TrxPool) applyTransactionInner(trxEst *prototype.EstimateTrxResult,isNeedVerify bool,trxContext *TrxContext) {
+	c.db.Lock()
+
 	defer func() {
+		c.db.Unlock()
 		useGas := trxContext.HasGasFee()
-		if err := recover();err != nil {
+		if err := recover(); err != nil {
+
+			c.notifyTrxApplyResult(trxEst.SigTrx, false, trxEst.Receipt)
+
 			if useGas {
 				e := &prototype.Exception{HelpString:"apply transaction failed",ErrorType:prototype.StatusDeductGas}
 				panic(e)
@@ -476,6 +532,8 @@ func (c *TrxPool) applyTransactionInner(trxEst *prototype.EstimateTrxResult,trxC
 				panic(err)
 			}
 		} else {
+			trxEst.Receipt.Status = prototype.StatusSuccess
+			c.notifyTrxApplyResult(trxEst.SigTrx, true, trxEst.Receipt)
 			return
 		}
 	}()
@@ -491,7 +549,7 @@ func (c *TrxPool) applyTransactionInner(trxEst *prototype.EstimateTrxResult,trxC
 	transactionObjWrap := table.NewSoTransactionObjectWrap(c.db, currentTrxId)
 	mustSuccess(!transactionObjWrap.CheckExist(), "Duplicate transaction check failed",prototype.StatusErrorDbExist)
 
-	if c.skip&prototype.Skip_transaction_signatures == 0 {
+	if isNeedVerify {
 		tmpChainId := prototype.ChainId{Value: 0}
 		mustNoError(trxContext.InitSigState(tmpChainId), "signature export error", prototype.StatusErrorTrxExportPubKey)
 		trxContext.VerifySignature()
@@ -616,7 +674,7 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 				}()
 				trxEst.SigTrx = tw.SigTrx
 				trxEst.Receipt.Status = prototype.StatusSuccess
-				c.applyTransaction(trxEst, trxContext)
+				c.applyTransaction(trxEst,trxContext)
 				mustSuccess(trxEst.Receipt.Status == tw.Invoice.Status, "mismatched invoice", prototype.StatusErrorTrxApplyInvoice)
 				//c.currentTrxInBlock++
 			}()
@@ -636,9 +694,9 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 
 func (c *TrxPool) PayGas(trxContext *TrxContext) (i interface{}) {
 	i = nil
-	defer func() {
-		if err := recover(); err != nil {
-			mustNoError(c.db.EndTransaction(false), "EndTransaction error", prototype.StatusErrorDbEndTrx)
+	defer func () {
+	if err := recover(); err != nil {
+		mustNoError(c.db.EndTransaction(false), "EndTransaction error", prototype.StatusErrorDbEndTrx)
 			i =  err
 		}
 	}()
@@ -646,6 +704,38 @@ func (c *TrxPool) PayGas(trxContext *TrxContext) (i interface{}) {
 	trxContext.DeductAllGasFee()
 	mustNoError(c.db.EndTransaction(true), "EndTransaction error",prototype.StatusErrorDbEndTrx)
 	return
+}
+
+func (c *TrxPool) ValidateAddress(name string, pubKey *prototype.PublicKeyType) bool {
+	account := &prototype.AccountName{Value: name}
+	witnessWrap := table.NewSoWitnessWrap(c.db, account)
+	if !witnessWrap.CheckExist() {
+		return false
+	}
+	dbPubKey := witnessWrap.GetSigningKey()
+	if dbPubKey == nil {
+		return false
+	}
+
+	return pubKey.Equal(dbPubKey)
+
+
+	//authWrap := table.NewSoAccountAuthorityObjectWrap(c.db, account)
+	//auth := authWrap.GetOwner()
+	//if auth == nil {
+	//	panic("no owner auth")
+	//}
+	//for _, k := range auth.KeyAuths {
+	//	if pubKey.Equal(k.Key) {
+	//		return true
+	//	}
+	//}
+	//fmt.Println("ValidateAddress failed, ", name)
+	//for _, k := range auth.KeyAuths {
+	//	fmt.Println(k.Key.ToWIF())
+	//}
+	//fmt.Println("want ", pubKey.ToWIF())
+	//return false
 }
 
 func (c *TrxPool) initGenesis() {
@@ -895,8 +985,16 @@ func (c *TrxPool) updateGlobalDynamicData(blk *prototype.SignedBlock) {
 	dgpo.Time = blk.SignedHeader.Header.Timestamp
 	//c.dgpo.CurrentAslot       = c.dgpo.CurrentAslot + missedBlock+1
 
+	trxCount := len(blk.Transactions)
+	dgpo.TotalTrxCnt += uint64( trxCount )
+	dgpo.Tps = uint32( trxCount / constants.BLOCK_INTERVAL )
+
+	if dgpo.MaxTps < dgpo.Tps{
+		dgpo.MaxTps = dgpo.Tps
+	}
 	// this check is useful ?
-	mustSuccess(dgpo.GetHeadBlockNumber()-dgpo.GetIrreversibleBlockNum() < constants.MAX_UNDO_HISTORY, "The database does not have enough undo history to support a blockchain with so many missed blocks.",prototype.StatusErrorTrxMaxUndo)
+
+	//mustSuccess(dgpo.GetHeadBlockNumber()-dgpo.GetIrreversibleBlockNum() < constants.MAX_UNDO_HISTORY, "The database does not have enough undo history to support a blockchain with so many missed blocks.",prototype.StatusErrorTrxMaxUndo)
 	c.updateGlobalDataToDB(dgpo)
 }
 
@@ -970,45 +1068,25 @@ func (c *TrxPool) AddWeightedVP(value uint64) {
 	dgpWrap.MdProps(dgpo)
 }
 
-func (c *TrxPool) saveReversion(num uint64) {
-	tag := strconv.FormatUint(num, 10)
-	currentRev := c.db.GetRevision()
-	mustNoError(c.db.TagRevision(currentRev, tag), fmt.Sprintf("TagRevision:  tag:%d, reversion%d", num, currentRev), prototype.StatusErrorDbTag)
-	//c.log.Debug("### saveReversion, num:", num, " rev:", currentRev)
-}
-
-func (c *TrxPool) getReversion(num uint64) uint64 {
-	tag := strconv.FormatUint(num, 10)
-	rev, err := c.db.GetTagRevision(tag)
-	mustNoError(err, fmt.Sprintf("GetTagRevision: tag:%d, reversion:%d", num, rev), prototype.StatusErrorDbTag)
-	return rev
-}
-
-func (c *TrxPool) getBlockTag(num uint64) string {
-	tag := strconv.FormatUint(num, 10)
-	return tag
-}
-
-func (c *TrxPool) PopBlockTo(num uint64) {
+func (c *TrxPool) PopBlock(num uint64) {
 	// undo pending trx
 	c.ClearPending()
 	/*if c.havePendingTransaction {
 		mustNoError(c.db.EndTransaction(false), "EndTransaction error")
 		c.havePendingTransaction = false
-		//c.log.Debug("@@@@@@ PopBlockTo havePendingTransaction=false")
+		//c.log.Debug("@@@@@@ PopBlock havePendingTransaction=false")
 	}*/
 	// get reversion
 	//rev := c.getReversion(num)
 	//mustNoError(c.db.RevertToRevision(rev), fmt.Sprintf("RebaseToRevision error: tag:%d, reversion:%d", num, rev))
-	tag := c.getBlockTag(num)
-	mustSuccess(c.db.RollBackToTag(tag)==nil, fmt.Sprintf("RevertToRevision error: tag:%d", num,),prototype.StatusErrorDbTag)
+	err := c.iceberg.RevertBlock(num)
+	mustSuccess(err == nil, fmt.Sprintf("revert block %d, error: %v", num, err),prototype.StatusErrorDbTag)
 }
 
 func (c *TrxPool) Commit(num uint64) {
 	// this block can not be revert over, so it's irreversible
-	tag := c.getBlockTag(uint64(num))
-	err := c.db.Squash(tag,num)
-	mustSuccess(err == nil,fmt.Sprintf("SquashBlock: tag:%d,error is %s",num,err),prototype.StatusErrorDbTag)
+	err := c.iceberg.FinalizeBlock(num)
+	mustSuccess(err == nil,fmt.Sprintf("commit block: %d, error is %v", num, err),prototype.StatusErrorDbTag)
 }
 
 func (c *TrxPool) VerifySig(name *prototype.AccountName, digest []byte, sig []byte) bool {
@@ -1053,90 +1131,72 @@ func (c *TrxPool) Sign(priv *prototype.PrivateKeyType, digest []byte) []byte {
 	return res
 }
 
-//Sync blocks to squash db when node reStart
-//pushedBlk: the already pushed blocks
-//commitBlk: the already commit blocks what are stored in block log
-//realCommit: the latest commit number of block in block log
-//headBlk: the head block in main chain
-func (c *TrxPool) SyncBlockDataToDB (pushedBlk []common.ISignedBlock, commitBlk []common.ISignedBlock,
-	realCommit uint64, headBlk common.ISignedBlock) {
-	if headBlk == nil {
-		return
-	}
+func (c *TrxPool) GetCommitBlockNum() (uint64,error) {
+	return c.iceberg.LastFinalizedBlock()
+}
 
-	//Fetch the latest commit block number in squash db
-	num,err := c.db.GetCommitNum()
+//Sync committed blocks to squash db when node reStart
+func (c *TrxPool) SyncCommittedBlockToDB(blk common.ISignedBlock) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			desc := fmt.Sprintf("[Sync commit]:Faile to commit,the error is %v",err)
+			err = errors.New(desc)
+		}
+	}()
+	if blk == nil {
+		return errors.New("[Sync commit]:Fail to sync commit nil block")
+	}
+	cmtNum,err := c.GetCommitBlockNum()
 	if err != nil {
-		c.log.Debug("[sync Block]: Failed to get latest commit block number")
-		return
+		return err
 	}
+	num := blk.Id().BlockNum()
+	if num <= cmtNum {
+		desc := fmt.Sprintf("[Sync commit]: the block of num %d has already commit,current " +
+			"commit num is %d",num,cmtNum)
+		err = errors.New(desc)
+		return err
+	}
+	c.log.Debugf("[Reload commit] :sync lost commit block which num is %d", num)
+	pErr := c.PushBlock(blk.(*prototype.SignedBlock),prototype.Skip_nothing)
+	if pErr != nil {
+		desc := fmt.Sprintf("[Sync commit]: push the block which num is %v fail,error is %s", num, pErr)
+		err = errors.New(desc)
+		return err
+	}
+	c.Commit(num)
+	return err
+}
 
-	//Fetch the real commit block number in chain
-	realNum := realCommit
-	//Fetch the head block number in chain
-	headNum := headBlk.Id().BlockNum()
-
-	//syncNum is the start number need to fetch from ForkDB
-	syncNum := num
-
-	//Reload lost commit blocks
-	if realNum > 0 && num < realNum {
-		cnt := uint64(len(commitBlk))
-		if cnt > 0  {
-			//Scene 1: The block data in squash db has been deleted,so need sync lost blocks to squash db
-			//Because ForkDB will not continue to store commit blocks,so we need load all commit blocks from block log,
-			//meanWhile add block to squash db
-			var start = num
-			if start >= cnt {
-				c.log.Errorf("[Reload commit] start index %v out range of reload block count %v",start,cnt)
-			}else {
-				c.log.Debugf("[Reload commit] start sync lost commit blocks from block log,db commit num is: " +
-					"%v,end:%v,real commit num is %v", start, headNum, realNum)
-				for i := start ; i < uint64(cnt); i++ {
-					blk := commitBlk[i]
-					c.log.Debugf("[Reload commit] push block,blockNum is: " +
-						"%v", blk.(*prototype.SignedBlock).Id().BlockNum())
-					err = c.PushBlock(blk.(*prototype.SignedBlock),prototype.Skip_nothing)
-					if err != nil {
-						desc := fmt.Sprintf("[Reload commit] push the block which num is %v fail,error " +
-							"is %s", i, err)
-						panic(desc)
-					}
-				}
+//Sync pushed blocks to squash db when node reStart
+func (c *TrxPool) SyncPushedBlocksToDB(blkList []common.ISignedBlock) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			desc := fmt.Sprintf("[Sync pushed]:Faile to push block,the error is %v",err)
+			err = errors.New(desc)
+		}
+	}()
+	if blkList != nil {
+		cmtNum,err := c.GetCommitBlockNum()
+		if err != nil {
+			return err
+		}
+		for i := range blkList {
+			blk := blkList[i]
+			num := blk.Id().BlockNum()
+			if cmtNum >= num {
+				desc := fmt.Sprintf("[sync pushed]: the block num %v is not greater than " +
+					"the latest commit block num %v",num,cmtNum)
+				return errors.New(desc)
 			}
-			syncNum = uint64(cnt)
-		}else {
-			c.log.Errorf("[Reload commit] Failed to get lost commit blocks from block log," +
-				"start: %v," + "end:%v,real commit num is %v", syncNum+1, headNum, realNum)
-		}
-
-	}
-
-	//1.Synchronous all the lost pushed blocks from ForkDB to squash db
-	if headNum > syncNum {
-		if headNum-syncNum > uint64(len(pushedBlk)) {
-			desc := fmt.Sprintf("[sync pushed]: the lost blocks range %v from forkDB is less than " +
-				"real lost range [%v %v] ",len(pushedBlk), syncNum+1, headNum)
-			panic(desc)
-		}
-		c.log.Debugf("[sync pushed]: start sync lost blocks,start: %v,end:%v,real commit num " +
-			"is %v", syncNum+1, headNum, realNum)
-		for i := range pushedBlk {
-			blk := pushedBlk[i]
 			c.log.Debugf("[sync pushed]: sync pushed block,blockNum is: " +
 				"%v", blk.(*prototype.SignedBlock).Id().BlockNum())
-			err = c.PushBlock(blk.(*prototype.SignedBlock),prototype.Skip_nothing)
+			err := c.PushBlock(blk.(*prototype.SignedBlock),prototype.Skip_nothing)
 			if err != nil {
 				desc := fmt.Sprintf("[sync pushed]: push the block which num is %v fail,error is %s", i, err)
-				panic(desc)
+				return errors.New(desc)
 			}
 		}
 	}
-
-	//2.Synchronous the lost commit blocks to squash db
-	if realNum > num {
-		//Need synchronous commit
-		c.log.Debugf("[sync commit] start sync commit block num %v ",realNum)
-		c.Commit(realNum)
-	}
+	return err
 }

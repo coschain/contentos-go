@@ -1,16 +1,20 @@
 package utils
 
 import (
+	"context"
+	"encoding/binary"
 	"fmt"
 	"github.com/coschain/contentos-go/cmd/wallet-cli/wallet"
 	"github.com/coschain/contentos-go/prototype"
+	"github.com/coschain/contentos-go/rpc/pb"
 	"hash/crc32"
 	"math/rand"
 	"syscall"
 	"time"
 )
 
-func GenerateSignedTxAndValidate(ops []interface{}, signers ...*wallet.PrivAccount) (*prototype.SignedTransaction, error) {
+
+func GenerateSignedTxAndValidate2(client grpcpb.ApiServiceClient, ops []interface{}, signers ...*wallet.PrivAccount) (*prototype.SignedTransaction, error) {
 	privKeys := []*prototype.PrivateKeyType{}
 	for _, acc := range signers {
 		privKey, err := prototype.PrivateKeyFromWIF(acc.PrivKey)
@@ -19,8 +23,16 @@ func GenerateSignedTxAndValidate(ops []interface{}, signers ...*wallet.PrivAccou
 		}
 		privKeys = append(privKeys, privKey)
 	}
+
+	req := &grpcpb.NonParamsRequest{}
+	resp, err := client.GetStatInfo(context.Background(), req)
+	if err != nil {
+		return nil, err
+	}
+	refBlockPrefix := binary.BigEndian.Uint32(resp.Props.HeadBlockId.Hash[8:12])
 	// occupant implement
-	tx := &prototype.Transaction{RefBlockNum: 0, RefBlockPrefix: 0, Expiration: &prototype.TimePointSec{UtcSeconds: uint32(time.Now().Unix()) + 30}}
+	refBlockNum := uint32(resp.Props.HeadBlockNumber & 0x7ff)
+	tx := &prototype.Transaction{RefBlockNum: refBlockNum, RefBlockPrefix: refBlockPrefix, Expiration: &prototype.TimePointSec{UtcSeconds: uint32(time.Now().Unix()) + 30}}
 	for _, op := range ops {
 		tx.AddOperation(op)
 	}

@@ -116,6 +116,20 @@ func BlockHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 		return
 	}
 	ctrl := s.(iservices.IConsensus)
+
+	if ctrl.HasBlock(block.SigBlk.Id()) {
+		log.Info("[p2p] we alerady have this SignedBlock, block number :   ", block.SigBlk.Id().BlockNum())
+		return
+	}
+
+	//blockNum := block.SigBlk.Id().BlockNum()
+	//localHeadId := ctrl.GetHeadBlockId()
+	//localHeadNum := localHeadId.BlockNum()
+	//if blockNum > localHeadNum + 1 {
+	//	log.Info("[p2p] get a SignedBlock can't link to the local chain, block number: ", blockNum, " local head number: ", localHeadNum)
+	//	return
+	//}
+
 	ctrl.PushBlock(block.SigBlk)
 }
 
@@ -295,7 +309,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) 
 				//same id and same ip
 				n, ret := p2p.DelNbrNode(p)
 				if ret == true {
-					log.Infof("[p2p] peer reconnect %d ", version.Nonce, data.Addr)
+					log.Infof("[p2p] peer reconnect %d, %s ", version.Nonce, data.Addr)
 					// Close the connection and release the node source
 					n.CloseSync()
 					n.CloseCons()
@@ -660,7 +674,7 @@ func ReqIdHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	}
 	//log.Info("[p2p] send a message to:   v%   data:   v%\n", remotePeer, reqmsg)
 
-	commitEvidence := ctrl.GetLastBFTCommit()
+	commitEvidence := ctrl.GetNextBFTCheckPoint(remote_head_blk_id.BlockNum())
 	if commitEvidence != nil {
 		bftCommit := &msgTypes.ConsMsg {
 			MsgData: commitEvidence.(*message.Commit),

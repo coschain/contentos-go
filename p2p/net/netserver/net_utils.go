@@ -47,7 +47,7 @@ func TLSDial(nodeAddr, CertPath, KeyPath, CAPath string) (net.Conn, error) {
 
 	cacert, err := ioutil.ReadFile(CAPath)
 	if err != nil {
-		return nil, errors.New( fmt.Sprintf("[p2p] load CA file fail ", err) )
+		return nil, errors.New( fmt.Sprintf("[p2p] load CA file fail: %v ", err) )
 	}
 	cert, err := tls.LoadX509KeyPair(CertPath, KeyPath)
 	if err != nil {
@@ -87,12 +87,12 @@ func initTlsListen(port uint32, CertPath, KeyPath, CAPath string) (net.Listener,
 	// load cert
 	cert, err := tls.LoadX509KeyPair(CertPath, KeyPath)
 	if err != nil {
-		return nil, errors.New( fmt.Sprintf("[p2p] load keys fail ", err) )
+		return nil, errors.New( fmt.Sprintf("[p2p] load keys fail: %v ", err) )
 	}
 	// load root ca
 	caData, err := ioutil.ReadFile(CAPath)
 	if err != nil {
-		return nil, errors.New( fmt.Sprintf("[p2p] read ca fail ", err) )
+		return nil, errors.New( fmt.Sprintf("[p2p] read ca fail: %v ", err) )
 	}
 	pool := x509.NewCertPool()
 	ret := pool.AppendCertsFromPEM(caData)
@@ -109,7 +109,7 @@ func initTlsListen(port uint32, CertPath, KeyPath, CAPath string) (net.Listener,
 
 	listener, err := tls.Listen("tcp", ":"+strconv.Itoa(int(port)), tlsConfig)
 	if err != nil {
-		return nil, errors.New( fmt.Sprintf("[p2p] tls listen error ", err) )
+		return nil, errors.New( fmt.Sprintf("[p2p] tls listen error: %v ", err) )
 	}
 	return listener, nil
 }

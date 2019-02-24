@@ -46,7 +46,7 @@ func estimate(cmd *cobra.Command, args []string) {
 		Contract: cname,
 		Params:   params,
 	}
-	signTx, err := utils.GenerateSignedTxAndValidate([]interface{}{contractDeployOp}, acc)
+	signTx, err := utils.GenerateSignedTxAndValidate2(client, []interface{}{contractDeployOp}, acc)
 	if err != nil {
 		fmt.Println(err)
 		return

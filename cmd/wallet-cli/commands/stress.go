@@ -67,13 +67,14 @@ func stress(cmd *cobra.Command, args []string) {
 					Amount: prototype.NewCoin(uint64(amount)),
 					Memo:   strconv.Itoa(tid) + "*t*" + memo + strconv.Itoa(index),
 				}
-				signTx, err := utils.GenerateSignedTxAndValidate([]interface{}{transferOp}, fromAccount)
+				signTx, err := utils.GenerateSignedTxAndValidate2(client, []interface{}{transferOp}, fromAccount)
 				if err != nil {
 					fmt.Println(err)
 					return
 				}
 
 				req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
+				req.OnlyDeliver = true
 				res, err := client.BroadcastTrx(context.Background(), req)
 
 				if err != nil {
@@ -81,7 +82,7 @@ func stress(cmd *cobra.Command, args []string) {
 					break
 				}
 
-				if !res.Invoice.IsSuccess() {
+				if res.Status != prototype.StatusSuccess {
 					fmt.Println(res)
 					break
 				}

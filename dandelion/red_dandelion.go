@@ -11,6 +11,10 @@ import (
 	"github.com/coschain/contentos-go/mylog"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/sirupsen/logrus"
+	"io/ioutil"
+	"math/rand"
+	"path/filepath"
+	"strconv"
 )
 
 const (
@@ -33,6 +37,8 @@ type RedDandelion struct {
 }
 
 func NewRedDandelion() (*RedDandelion, error) {
+	dir, _ := ioutil.TempDir("", "dandelion")
+	dbPath := filepath.Join(dir, strconv.FormatUint(rand.Uint64(), 16))
 	db, err := storage.NewDatabase(dbPath)
 	log, err := mylog.NewMyLog(logPath, "info", 0)
 	if err != nil {

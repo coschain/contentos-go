@@ -105,16 +105,12 @@ func (db *DB) LoadSnapshot(avatar []common.ISignedBlock, dir string, blog *block
 	db.detachedLink = make(map[common.BlockID]common.ISignedBlock)
 
 	size := db.snapshot.Size()
-	//db.log.Info("DPoS Loading ForkDB snapshot...")
-	//db.log.Debugf("[ForkDB][LoadSnapshot] %d blocks detected.", size)
 	var i int64
 	for i = 0; i < size; i++ {
 		if err := db.snapshot.ReadBlock(avatar[i], i); err != nil {
 			panic(err)
 		}
-		//db.log.Debug("loading block #", avatar[i].Id().BlockNum())
 		db.pushBlock(avatar[i])
-		//db.log.Debugf("[ForkDB][LoadSnapshot] restore #%d, id %v, prev %d", avatar[i].Id().BlockNum(), avatar[i].Id(), avatar[i].Previous())
 	}
 	//db.log.Debugf("[ForkDB][LoadSnapshot] %d blocks loaded.", size)
 }

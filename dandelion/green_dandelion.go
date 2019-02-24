@@ -9,11 +9,14 @@ import (
 	"github.com/coschain/contentos-go/db/storage"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/inconshreveable/log15"
+	"io/ioutil"
+	"math/rand"
 	"os"
+	"path/filepath"
+	"strconv"
 )
 
 const (
-	dbPath      = "/tmp/cos.db"
 	initPrivKey = "2AvYqihDZjq7pFeZNuBYjBW1hQyPUw36xZB25g8UYfRLKwh7k9"
 )
 
@@ -30,6 +33,8 @@ type GreenDandelion struct {
 }
 
 func NewGreenDandelion() (*GreenDandelion, error) {
+	dir, _ := ioutil.TempDir("", "dandelion")
+	dbPath := filepath.Join(dir, strconv.FormatUint(rand.Uint64(), 16))
 	db, err := storage.NewDatabase(dbPath)
 	log := log15.New()
 	if err != nil {

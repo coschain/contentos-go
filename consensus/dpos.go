@@ -1,8 +1,8 @@
 package consensus
 
 import (
+	"errors"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"strings"
 	"sync"
@@ -15,11 +15,12 @@ import (
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/prototype"
+	"github.com/sirupsen/logrus"
 	//"github.com/coschain/contentos-go/app"
 )
 
-func timeToNextSec() time.Duration {
-	now := time.Now()
+func (d *DPoS) timeToNextSec() time.Duration {
+	now := d.Ticker.Now()
 	ceil := now.Add(time.Millisecond * 500).Round(time.Second)
 	return ceil.Sub(now)
 }
@@ -37,6 +38,7 @@ type DPoS struct {
 	readyToProduce bool
 	prodTimer      *time.Timer
 	trxCh          chan func()
+	pendingCh      chan func()
 	blkCh          chan common.ISignedBlock
 	bootstrap      bool
 	slot           uint64
@@ -45,6 +47,8 @@ type DPoS struct {
 	ctrl iservices.ITrxPool
 	p2p  iservices.IP2P
 	log  *logrus.Logger
+
+	Ticker TimerDriver
 
 	stopCh chan struct{}
 	wg     sync.WaitGroup
@@ -59,13 +63,15 @@ func NewDPoS(ctx *node.ServiceContext, lg *logrus.Logger) *DPoS {
 	ret := &DPoS{
 		ForkDB:    forkdb.NewDB(),
 		Producers: make([]string, 0, 1),
-		prodTimer: time.NewTimer(1 * time.Millisecond),
+		prodTimer: time.NewTimer(100 * time.Millisecond),
 		trxCh:     make(chan func()),
+		pendingCh: make(chan func()),
 		//trxRetCh:  make(chan common.ITransactionInvoice),
 		blkCh:  make(chan common.ISignedBlock),
 		ctx:    ctx,
 		stopCh: make(chan struct{}),
 		log:    lg,
+		Ticker: &Timer{},
 	}
 	ret.SetBootstrap(ctx.Config().Consensus.BootStrap)
 	ret.Name = ctx.Config().Consensus.LocalBpName
@@ -100,7 +106,7 @@ func (d *DPoS) SetBootstrap(b bool) {
 func (d *DPoS) CurrentProducer() string {
 	//d.RLock()
 	//defer d.RUnlock()
-	now := time.Now().Round(time.Second)
+	now := d.Ticker.Now().Round(time.Second)
 	slot := d.getSlotAtTime(now)
 	return d.getScheduledProducer(slot)
 }
@@ -174,8 +180,11 @@ func (d *DPoS) Start(node *node.Node) error {
 	d.restoreProducers()
 
 	////sync blocks to squash db
-	d.handleBlockSync()
-	
+	err = d.handleBlockSync()
+    if err != nil {
+    	return err
+	}
+
 	go d.start()
 	return nil
 }
@@ -183,7 +192,10 @@ func (d *DPoS) Start(node *node.Node) error {
 func (d *DPoS) scheduleProduce() bool {
 	if !d.checkGenesis() {
 		//d.log.Info("checkGenesis failed.")
-		d.prodTimer.Reset(timeToNextSec())
+		if _, ok := d.Ticker.(*Timer); ok {
+			d.prodTimer.Reset(d.timeToNextSec())
+		}
+		//d.prodTimer.Reset(timeToNextSec())
 		return false
 	}
 
@@ -191,7 +203,10 @@ func (d *DPoS) scheduleProduce() bool {
 		if d.checkSync() {
 			d.readyToProduce = true
 		} else {
-			d.prodTimer.Reset(timeToNextSec())
+			if _, ok := d.Ticker.(*Timer); ok {
+				d.prodTimer.Reset(d.timeToNextSec())
+			}
+			//d.prodTimer.Reset(timeToNextSec())
 			var headID common.BlockID
 			if !d.ForkDB.Empty() {
 				headID = d.ForkDB.Head().Id()
@@ -203,7 +218,10 @@ func (d *DPoS) scheduleProduce() bool {
 		}
 	}
 	if !d.checkProducingTiming() || !d.checkOurTurn() {
-		d.prodTimer.Reset(timeToNextSec())
+		if _, ok := d.Ticker.(*Timer); ok {
+			d.prodTimer.Reset(d.timeToNextSec())
+		}
+		//d.prodTimer.Reset(timeToNextSec())
 		return false
 	}
 	return true
@@ -242,32 +260,11 @@ func (d *DPoS) start() {
 		case trxFn := <-d.trxCh:
 			trxFn()
 			continue
+		case pendingFn := <- d.pendingCh:
+			pendingFn()
+		    continue
 		case <-d.prodTimer.C:
-			if !d.scheduleProduce() {
-				continue
-			}
-
-			b, err := d.generateAndApplyBlock()
-			if err != nil {
-				d.log.Error("[DPoS] generateAndApplyBlock error: ", err)
-				continue
-			}
-			d.prodTimer.Reset(timeToNextSec())
-			d.log.Debugf("[DPoS] generated block: <num %d> <ts %d>", b.Id().BlockNum(), b.Timestamp())
-			if err := d.pushBlock(b, false); err != nil {
-				d.log.Error("[DPoS] pushBlock push generated block failed: ", err)
-			}
-
-			// broadcast block
-			//if b.Id().BlockNum() % 10 == 0 {
-			//	go func() {
-			//		time.Sleep(4*time.Second)
-			//		d.p2p.Broadcast(b)
-			//	}()
-			//} else {
-			//	d.p2p.Broadcast(b)
-			//}
-			d.p2p.Broadcast(b)
+			d.MaybeProduceBlock()
 		}
 	}
 }
@@ -302,7 +299,7 @@ func (d *DPoS) generateAndApplyBlock() (common.ISignedBlock, error) {
 }
 
 func (d *DPoS) checkGenesis() bool {
-	now := time.Now()
+	now := d.Ticker.Now()
 	genesisTime := time.Unix(constants.GenesisTime, 0)
 	if now.After(genesisTime) || now.Equal(genesisTime) {
 		return true
@@ -324,7 +321,7 @@ func (d *DPoS) checkGenesis() bool {
 // this'll only be called by the start routine,
 // no need to lock
 func (d *DPoS) checkProducingTiming() bool {
-	now := time.Now().Round(time.Second)
+	now := d.Ticker.Now().Round(time.Second)
 	d.slot = d.getSlotAtTime(now)
 	if d.slot == 0 {
 		// not time yet, wait till the next block producing
@@ -356,7 +353,7 @@ func (d *DPoS) getScheduledProducer(slot uint64) string {
 
 // returns false if we're out of sync
 func (d *DPoS) checkSync() bool {
-	now := time.Now().Round(time.Second).Unix()
+	now := d.Ticker.Now().Round(time.Second).Unix()
 	if d.getSlotTime(1) < uint64(now) {
 		//time.Sleep(time.Second)
 		return false
@@ -421,6 +418,16 @@ func (d *DPoS) PushTransaction(trx common.ISignedTransaction, wait bool, broadca
 	}
 }
 
+func (d *DPoS) PushTransactionToPending(trx common.ISignedTransaction, callBack func(err error)) {
+	d.pendingCh <- func(){
+		err := d.ctrl.PushTrxToPending(trx.(*prototype.SignedTransaction))
+		if err == nil {
+			d.p2p.Broadcast(trx.(*prototype.SignedTransaction))
+		}
+		callBack(err)
+	}
+}
+
 func (d *DPoS) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 	d.log.Debug("pushBlock #", b.Id().BlockNum())
 	//d.Lock()
@@ -467,7 +474,7 @@ func (d *DPoS) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 	lastCommitted := d.ForkDB.LastCommitted()
 	//d.log.Debug("last committed: ", lastCommitted.BlockNum())
 	var commitIdx uint64
-	if newHead.Id().BlockNum()-lastCommitted.BlockNum() > 3 /*constants.MAX_WITNESSES*2/3*/ {
+	if newHead.Id().BlockNum()-lastCommitted.BlockNum() > constants.MAX_WITNESSES*2/3 {
 		if lastCommitted == common.EmptyBlockID {
 			commitIdx = 1
 		} else {
@@ -490,6 +497,7 @@ func (d *DPoS) commit(b common.ISignedBlock) error {
 		// something went really wrong if we got here
 		panic(err)
 	}
+
 	d.ctrl.Commit(b.Id().BlockNum())
 	d.ForkDB.Commit(b.Id())
 	return nil
@@ -552,12 +560,20 @@ func (d *DPoS) applyBlock(b common.ISignedBlock) error {
 }
 
 func (d *DPoS) popBlock(id common.BlockID) error {
-	d.ctrl.PopBlockTo(id.BlockNum())
+	d.ctrl.PopBlock(id.BlockNum())
 	return nil
 }
 
 func (d *DPoS) GetLastBFTCommit() (evidence interface{}) {
 	return nil
+}
+
+func (d *DPoS) GetNextBFTCheckPoint(blockNum uint64) (evidence interface{}) {
+	return nil
+}
+
+func (d *DPoS) GetLIB() common.BlockID {
+	return d.ForkDB.LastCommitted()
 }
 
 func (d *DPoS) GetHeadBlockId() common.BlockID {
@@ -644,7 +660,7 @@ func (d *DPoS) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, error
 			return nil, err
 		}
 
-		if start == idNum && b.Id() != id {
+		if start == idNum+1 && b.Previous() != id {
 			return nil, fmt.Errorf("blockchain doesn't have block with id %v", id)
 		}
 
@@ -652,7 +668,8 @@ func (d *DPoS) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, error
 		start++
 
 		if start > end && b.Id() != d.ForkDB.LastCommitted() {
-			panic("ForkDB and BLog inconsistent state")
+			// there probably is a new committed block during the execution of this process
+			return nil, errors.New("ForkDB and BLog inconsistent state")
 		}
 	}
 
@@ -664,23 +681,89 @@ func (d *DPoS) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, error
 	return ret, nil
 }
 
-func (d *DPoS) handleBlockSync()  {
-	var (
-		i int64
-		//commit blocks in block log
-		commitSli = make([]common.ISignedBlock,d.blog.Size())
-		//Fetch pushed blocks in snapshot
-		blkSli,_,_  = d.ForkDB.FetchBlocksSince(d.ForkDB.LastCommitted())
-	)
-	if d.blog.Size() > 0 {
-		for i = 0; i < d.blog.Size(); i++ {
-			blk := &prototype.SignedBlock{}
-			if err := d.blog.ReadBlock(blk,i); err != nil {
-				panic(err)
-			}
-			commitSli[i] = blk
-		}
+
+func (d *DPoS) ResetProdTimer(t time.Duration) {
+	if !d.prodTimer.Stop() {
+		<-d.prodTimer.C
+	}
+	d.prodTimer.Reset(t)
+}
+
+func (d *DPoS) ResetTicker(ts time.Time) {
+	d.Ticker = &FakeTimer {t : ts}
+}
+
+func (d *DPoS) MaybeProduceBlock() {
+	if !d.scheduleProduce() {
+		return
 	}
 
-	d.ctrl.SyncBlockDataToDB(blkSli, commitSli, d.ForkDB.LastCommitted().BlockNum(), d.ForkDB.Head())
+	b, err := d.generateAndApplyBlock()
+	if err != nil {
+		d.log.Error("[DPoS] generateAndApplyBlock error: ", err)
+		return
+	}
+	if _, ok := d.Ticker.(*Timer); ok {
+		d.prodTimer.Reset(d.timeToNextSec())
+	}
+	//d.prodTimer.Reset(timeToNextSec())
+	d.log.Debugf("[DPoS] generated block: <num %d> <ts %d>", b.Id().BlockNum(), b.Timestamp())
+	if err := d.pushBlock(b, false); err != nil {
+		d.log.Error("[DPoS] pushBlock push generated block failed: ", err)
+	}
+
+	// broadcast block
+	//if b.Id().BlockNum() % 10 == 0 {
+	//	go func() {
+	//		time.Sleep(4*time.Second)
+	//		d.p2p.Broadcast(b)
+	//	}()
+	//} else {
+	//	d.p2p.Broadcast(b)
+	//}
+	d.p2p.Broadcast(b)
+}
+
+func (d *DPoS) handleBlockSync() error {
+	if d.ForkDB.Head() == nil {
+		//Not need to sync
+		return nil
+	}
+	var err error = nil
+	lastCommit := d.ForkDB.LastCommitted().BlockNum()
+	//Fetch the commit block num in db
+	dbCommit,err := d.ctrl.GetCommitBlockNum()
+	if err != nil {
+		return err
+	}
+	//Fetch the commit block numbers saved in block log
+	commitNum := d.blog.Size()
+	//1.sync commit blocks
+	if dbCommit < lastCommit && commitNum > 0  && commitNum >= int64(lastCommit) {
+		d.log.Debugf("[Reload commit] start sync lost commit blocks from block log,db commit num is: " +
+							"%v,end:%v,real commit num is %v", dbCommit, d.ForkDB.Head().Id().BlockNum(), lastCommit)
+		for i := int64(dbCommit); i < int64(lastCommit); i++ {
+			blk := &prototype.SignedBlock{}
+			if err := d.blog.ReadBlock(blk, i); err != nil {
+				return err
+			}
+			err = d.ctrl.SyncCommittedBlockToDB(blk)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	//2.sync pushed blocks
+	//Fetch pushed blocks in snapshot
+	pSli, _, err := d.ForkDB.FetchBlocksSince(d.ForkDB.LastCommitted())
+	if err != nil {
+		return err
+	}
+	if len(pSli) > 0 {
+		d.log.Debugf("[sync pushed]: start sync lost blocks,start: %v,end:%v",
+			lastCommit+1, d.ForkDB.Head().Id().BlockNum())
+		err = d.ctrl.SyncPushedBlocksToDB(pSli)
+	}
+	
+	return err
 }

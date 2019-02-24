@@ -1,5 +1,5 @@
 package dandelion
-
+/*
 import (
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -108,3 +108,4 @@ func TestRedDandelion_GenerateEmptyBlocks(t *testing.T) {
 	dandelion.GenerateBlocks(10)
 	myassert.Equal(dandelion.GetProduced(), uint32(10))
 }
+*/

@@ -46,7 +46,7 @@ func follow(cmd *cobra.Command, args []string) {
 		Cancel:   followCancel,
 	}
 
-	signTx, err := utils.GenerateSignedTxAndValidate([]interface{}{follow_op}, followerAccount)
+	signTx, err := utils.GenerateSignedTxAndValidate2(client, []interface{}{follow_op}, followerAccount)
 	if err != nil {
 		fmt.Println(err)
 		return

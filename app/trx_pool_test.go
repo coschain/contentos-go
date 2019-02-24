@@ -112,11 +112,9 @@ func makeCreateAccountOP(accountName string, pubKey string) (*prototype.AccountC
 }
 
 func Test_PushTrx(t *testing.T) {
-	clearDB()
-
 	// set up controller
 	db := startDB()
-	defer db.Close()
+	defer clearDB(db)
 	c := startController(db)
 
 	acop, err := makeCreateAccountOP(accountNameBob, pubKeyBob)
@@ -146,11 +144,10 @@ func Test_PushTrx(t *testing.T) {
 }
 
 func Test_PushBlock(t *testing.T) {
-	clearDB()
 
 	// set up controller
 	db := startDB()
-	defer db.Close()
+	defer clearDB(db)
 	c := startController(db)
 
 	createOP, err := makeCreateAccountOP(accountNameBob, pubKeyBob)
@@ -182,14 +179,13 @@ func Test_PushBlock(t *testing.T) {
 }
 
 func TestController_GenerateAndApplyBlock(t *testing.T) {
-	clearDB()
 	createOP, err := makeCreateAccountOP(accountNameBob, pubKeyBob)
 	if err != nil {
 		t.Error("makeCreateAccountOP error:", err)
 	}
 	// set up controller
 	db := startDB()
-	defer db.Close()
+	defer clearDB(db)
 	c := startController(db)
 
 	headBlockID := c.GetProps().GetHeadBlockId()
@@ -230,11 +226,10 @@ func TestController_GenerateAndApplyBlock(t *testing.T) {
 }
 
 func Test_list(t *testing.T) {
-	clearDB()
 
 	// set up controller
 	db := startDB()
-	defer db.Close()
+	defer clearDB(db)
 	c := startController(db)
 
 	// make trx
@@ -284,11 +279,10 @@ func Test_list(t *testing.T) {
 }
 
 func TestController_GetWitnessTopN(t *testing.T) {
-	clearDB()
 
 	// set up controller
 	db := startDB()
-	defer db.Close()
+	defer clearDB(db)
 	c := startController(db)
 
 	name := &prototype.AccountName{Value: "wit1"}
@@ -319,11 +313,10 @@ func TestController_GetWitnessTopN(t *testing.T) {
 }
 
 func TestController_PopBlock(t *testing.T) {
-	clearDB()
 
 	// set up controller
 	db := startDB()
-	defer db.Close()
+	defer clearDB(db)
 	c := startController(db)
 
 	createOP, err := makeCreateAccountOP(accountNameBob, pubKeyBob)
@@ -378,13 +371,13 @@ func TestController_PopBlock(t *testing.T) {
 	}
 
 
-	c.PopBlockTo(block2.Id().BlockNum())
+	c.PopBlock(block2.Id().BlockNum())
 	tomNoExistWrap := table.NewSoAccountWrap(db, tomName)
 	if tomNoExistWrap.CheckExist() || c.GetProps().HeadBlockNumber != 1 { // need check c.dgpo.HeadBlockNumber
 		t.Error("pop block error")
 	}
 
-	c.PopBlockTo(block.Id().BlockNum())
+	c.PopBlock(block.Id().BlockNum())
 	bobNoExistWrap := table.NewSoAccountWrap(db, bobName)
 	if bobNoExistWrap.CheckExist() || c.GetProps().HeadBlockNumber != 0 { // need check c.dgpo.HeadBlockNumber
 		t.Error("pop block error")
@@ -393,11 +386,10 @@ func TestController_PopBlock(t *testing.T) {
 }
 
 func TestController_Commit(t *testing.T) {
-	clearDB()
 
 	// set up controller
 	db := startDB()
-	defer db.Close()
+	defer clearDB(db)
 	c := startController(db)
 
 	createOP, err := makeCreateAccountOP(accountNameBob, pubKeyBob)
@@ -467,15 +459,13 @@ func TestController_Commit(t *testing.T) {
 			t.Error("pop a irreversible block but no panic")
 		}
 	}()
-	c.PopBlockTo(1)
+	c.PopBlock(1)
 }
 
 func Test_MixOp(t *testing.T) {
-	clearDB()
 
-	// set up controller
 	db := startDB()
-	defer db.Close()
+	defer clearDB(db)
 	c := startController(db)
 
 	// deploy contract

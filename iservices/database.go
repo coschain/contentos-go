@@ -109,12 +109,9 @@ type IDatabaseService interface {
 
 	BeginTransactionWithTag(tag string)
 
-	Squash(tag string, num uint64) error
+	Squash(tag string) error
 
-	RollBackToTag(tag string) error
-
-	//get the block number of latest commit
-	GetCommitNum() (uint64,error)
+	RollbackTag(tag string) error
 
 	//
 	// data reversion feature
@@ -134,6 +131,9 @@ type IDatabaseService interface {
 	// rebase to the given revision
 	// after rebased to revision r, r will be the minimal revision you can revert to.
 	RebaseToRevision(r uint64) error
+
+	EnableReversion(b bool) error
+	ReversionEnabled() bool
 
 	//
 	// revision tagging feature
@@ -165,4 +165,10 @@ type IDatabaseService interface {
 	// - all iterators released by DeleteIterator() before calling DeleteAll()
 	// - no service calls before successful return of DeleteAll()
 	DeleteAll() error
+
+	// R/W locking
+	Lock()
+	Unlock()
+	RLock()
+	RUnlock()
 }

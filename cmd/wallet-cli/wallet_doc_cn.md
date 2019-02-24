@@ -9,7 +9,7 @@
 ### 创建账号
 
     //首先需要引入一个已经存在的账号
-    import initminer 27Pah3aJ8XbaQxgU1jxmYdUzWaBbBbbxLbZ9whSH9Zc8GbPMhw
+    import initminer 4DjYx2KAGh1NP3dai7MZTLUBMMhMBPmwouKE8jhVSESywccpVZ
             // 此处需要输入密码，后面如有需要使用 unlock initminer 来解锁账号
             ====> enterpassword
     

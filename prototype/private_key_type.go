@@ -33,9 +33,10 @@ func PrivateKeyFromWIF(encoded string) (*PrivateKeyType, error) {
 	}
 
 	buf := x.Bytes()
-	if len(buf) <= 4 {
+	if len(buf) <= 5 || buf[0] != 1 {
 		return nil, errors.New("invalid address 3")
 	}
+	buf = buf[1:]
 
 	temp := sha256.Sum256(buf[:len(buf)-4])
 	temps := sha256.Sum256(temp[:])
@@ -109,7 +110,11 @@ func (m *PrivateKeyType) ToBase58() string {
 	temps := sha256.Sum256(temp[:])
 	data = append(data, temps[0:4]...)
 
-	bi := new(big.Int).SetBytes(data).String()
+	// this avoids any data with leading 0x00 bytes,
+	// because leading 0x00 bytes can't survive the base58->private_key decoding.
+	xdata := bytes.Join([][]byte{ {1}, data }, nil)
+
+	bi := new(big.Int).SetBytes(xdata).String()
 	encoded, _ := base58.BitcoinEncoding.Encode([]byte(bi))
 	return string(encoded)
 }

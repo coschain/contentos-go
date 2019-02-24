@@ -80,7 +80,7 @@ func TestCosVM_simpleAdd(t *testing.T) {
 	context := vmcontext.Context{Code: data, Gas: &prototype.Coin{Value: math.MaxUint64}}
 	vm := NewCosVM(&context, nil, nil, logrus.New())
 	vm.Register("add", add, 200)
-	ret, _ := vm.Run()
+	ret, _ := vm.RunMain()
 	myassert.Equal(ret, uint32(10))
 }
 
@@ -90,7 +90,7 @@ func TestCosVM_copy(t *testing.T) {
 	data, _ := ioutil.ReadFile(wasmFile)
 	context := vmcontext.Context{Code: data, Gas: &prototype.Coin{Value: math.MaxUint64}, Injector: &FakeInjector{nil}}
 	vm := NewCosVM(&context, nil, nil, logrus.New())
-	ret, err := vm.Run()
+	ret, err := vm.RunMain()
 	myassert.NoError(err)
 	myassert.Equal(ret, uint32(0))
 }
@@ -101,7 +101,7 @@ func TestCosVM_Memset(t *testing.T) {
 	data, _ := ioutil.ReadFile(wasmFile)
 	context := vmcontext.Context{Code: data, Gas: &prototype.Coin{Value: math.MaxUint64}, Injector: &FakeInjector{nil}}
 	vm := NewCosVM(&context, nil, nil, logrus.New())
-	ret, err := vm.Run()
+	ret, err := vm.RunMain()
 	myassert.NoError(err)
 	myassert.Equal(ret, uint32(0))
 }
@@ -143,7 +143,7 @@ func TestCosVM_Print(t *testing.T) {
 	data, _ := ioutil.ReadFile(wasmFile)
 	context := vmcontext.Context{Code: data, Gas: &prototype.Coin{Value: math.MaxUint64}, Injector: &FakeInjector{nil}}
 	vm := NewCosVM(&context, nil, nil, logrus.New())
-	ret, err := vm.Run()
+	ret, err := vm.RunMain()
 	myassert.NoError(err)
 	myassert.Equal(ret, uint32(0))
 }
@@ -155,7 +155,7 @@ func TestCosVM_SpentGas(t *testing.T) {
 	context := vmcontext.Context{Code: data, Gas: &prototype.Coin{Value: math.MaxUint64}, Injector: &FakeInjector{nil}}
 	vm := NewCosVM(&context, nil, nil, logrus.New())
 	vm.Register("add", add, 200)
-	_, _ = vm.Run()
+	_, _ = vm.RunMain()
 	gas := vm.SpentGas()
 	myassert.True(gas > 200)
 }
@@ -166,7 +166,7 @@ func TestCosVM_Sha256(t *testing.T) {
 	data, _ := ioutil.ReadFile(wasmFile)
 	context := vmcontext.Context{Code: data, Gas: &prototype.Coin{Value: math.MaxUint64}, Injector: &FakeInjector{nil}}
 	vm := NewCosVM(&context, nil, nil, logrus.New())
-	ret, err := vm.Run()
+	ret, err := vm.RunMain()
 	myassert.NoError(err)
 	myassert.Equal(ret, uint32(0))
 }
@@ -179,7 +179,7 @@ func TestCosVM_Props(t *testing.T) {
 	props := &prototype.DynamicProperties{CurrentWitness: &prototype.AccountName{Value: "initminer"}, HeadBlockNumber: 1,
 		Time: &prototype.TimePointSec{UtcSeconds: 42}}
 	vm := NewCosVM(&context, nil, props, logrus.New())
-	ret, err := vm.Run()
+	ret, err := vm.RunMain()
 	myassert.NoError(err)
 	myassert.Equal(ret, uint32(0))
 }
@@ -190,7 +190,7 @@ func TestCosVM_CosAssert(t *testing.T) {
 	data, _ := ioutil.ReadFile(wasmFile)
 	context := vmcontext.Context{Code: data, Gas: &prototype.Coin{Value: math.MaxUint64}}
 	vm := NewCosVM(&context, nil, nil, logrus.New())
-	ret, _ := vm.Run()
+	ret, _ := vm.RunMain()
 	myassert.Equal(ret, uint32(1))
 }
 
@@ -212,7 +212,7 @@ func TestCosVM_RWStorage(t *testing.T) {
 	data, _ := ioutil.ReadFile(wasmFile)
 	context := vmcontext.Context{Code: data, Gas: &prototype.Coin{Value: math.MaxUint64}, Injector: &FakeInjector{nil}}
 	vm := NewCosVM(&context, db, nil, logrus.New())
-	ret, err := vm.Run()
+	ret, err := vm.RunMain()
 	myassert.NoError(err)
 	myassert.Equal(ret, uint32(0))
 }
@@ -256,7 +256,7 @@ func TestCosVM_Contract(t *testing.T) {
 		Owner: &prototype.AccountName{Value: "initminer"}, Amount: &prototype.Coin{Value: 100}, Gas: &prototype.Coin{Value: math.MaxUint64},
 		Injector: &FakeInjector{nil}}
 	vm := NewCosVM(&context, db, nil, logrus.New())
-	ret, err := vm.Run()
+	ret, err := vm.RunMain()
 	myassert.NoError(err)
 	myassert.Equal(ret, uint32(0))
 }
@@ -313,7 +313,7 @@ func TestCosVM_ContractTransfer(t *testing.T) {
 		Gas: &prototype.Coin{Value: math.MaxUint64}, Contract: "hello",
 		Injector: &FakeInjector{db: db}}
 	vm := NewCosVM(&context, db, nil, logrus.New())
-	ret, err := vm.Run()
+	ret, err := vm.RunMain()
 	myassert.NoError(err)
 	myassert.Equal(ret, uint32(0))
 }

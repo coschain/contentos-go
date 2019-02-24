@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"math/rand"
 	"net"
 	"time"
 
@@ -159,10 +160,15 @@ func (this *Link) Tx(msg types.Message, magic uint32) error {
 		return errors.New("[p2p]tx link invalid")
 	}
 
+	// TODO just for test,should be deleted when test is done
+	// **********************************
+	//sleepRandomTime()
+	// **********************************
+
 	sink := common.NewZeroCopySink(nil)
 	err := types.WriteMessage(sink, msg, magic)
 	if err != nil {
-		return errors.New( fmt.Sprintf("[p2p] error serialize messge ", err) )
+		return errors.New( fmt.Sprintf("[p2p] error serialize messge: %v", err) )
 	}
 
 	payload := sink.Bytes()
@@ -180,6 +186,12 @@ func (this *Link) Tx(msg types.Message, magic uint32) error {
 	}
 
 	return nil
+}
+
+func sleepRandomTime() {
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	delay := 500 + r.Intn(501)
+	time.Sleep( time.Duration(delay) * time.Millisecond )
 }
 
 //needSendMsg check whether the msg is needed to push to channel

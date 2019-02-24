@@ -55,7 +55,7 @@ func call(cmd *cobra.Command, args []string) {
 		Params:   params,
 		Method:	  method,
 	}
-	signTx, err := utils.GenerateSignedTxAndValidate([]interface{}{contractDeployOp}, acc)
+	signTx, err := utils.GenerateSignedTxAndValidate2(client, []interface{}{contractDeployOp}, acc)
 	if err != nil {
 		fmt.Println(err)
 		return

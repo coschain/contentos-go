@@ -80,7 +80,7 @@ func reply(cmd *cobra.Command, args []string) {
 		ParentUuid:    postId,
 		Beneficiaries: beneficiaries,
 	}
-	signTx, err := utils.GenerateSignedTxAndValidate([]interface{}{reply_op}, authorAccount)
+	signTx, err := utils.GenerateSignedTxAndValidate2(client, []interface{}{reply_op}, authorAccount)
 	if err != nil {
 		fmt.Println(err)
 		return

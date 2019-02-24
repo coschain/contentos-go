@@ -9,13 +9,15 @@ const (
 	COIN_SYMBOL = "COS"
 	VEST_SYMBOL = "VEST"
 
-	BLOCK_INTERVAL = 3 // 3000 ms for one block produce
+	BLOCK_INTERVAL = 1 // 1000 ms for one block produce
+	BLOCK_PROD_REPETITION = 10 // each producer produces 10 blocks in a row
 
 	NOTICE_OP_PRE      = "oppre"
 	NOTICE_OP_POST     = "oppost"
 	NOTICE_TRX_PRE     = "trxpre"
 	NOTICE_TRX_POST    = "trxpost"
 	NOTICE_TRX_PENDING = "trxpending"
+	NOTICE_TRX_APLLY_RESULT = "trxapplyresult"
 	NOTICE_BLOCK_APPLY = "blockapply"
 
 	ProducerNum = 21
@@ -30,8 +32,8 @@ const (
 	GENESIS_TIME = 0
 	INIT_SUPPLY  = 10000000000
 
-	INITMINER_PUBKEY = "COS6oKUcS7jNfPk48SEHENfeHbkWWjH7QAJt6C5tzGyL46yTWWBBv"
-	INITMINER_PRIKEY = "27Pah3aJ8XbaQxgU1jxmYdUzWaBbBbbxLbZ9whSH9Zc8GbPMhw"
+	INITMINER_PUBKEY = "COS5JVLLcTPhq4Unr194JzWPDNSYGoMcam8yxnsjgRVo3Nb7ioyFW"
+	INITMINER_PRIKEY = "4DjYx2KAGh1NP3dai7MZTLUBMMhMBPmwouKE8jhVSESywccpVZ"
 
 	RPC_PAGE_SIZE_LIMIT = 100
 
