@@ -1,0 +1,108 @@
+{
+    "actions": [
+        {
+            "name": "hi",
+            "type": "hi"
+        }
+    ],
+    "structs": [
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "name",
+                    "type": "cosio::name"
+                },
+                {
+                    "name": "count",
+                    "type": "uint32"
+                },
+                {
+                    "name": "last_seen",
+                    "type": "timestamp_t"
+                },
+                {
+                    "name": "this_is_string",
+                    "type": "std::string"
+                },
+                {
+                    "name": "c_name",
+                    "type": "cosio::name"
+                },
+                {
+                    "name": "m_name",
+                    "type": "cosio::name"
+                },
+                {
+                    "name": "amount",
+                    "type": "cosio::coin_amount"
+                }
+            ],
+            "name": "greeting"
+        },
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "int32"
+                }
+            ],
+            "name": "singleton_record"
+        },
+        {
+            "base": "cosio::singleton_record",
+            "fields": [
+                {
+                    "name": "users",
+                    "type": "uint32"
+                },
+                {
+                    "name": "visits",
+                    "type": "uint32"
+                }
+            ],
+            "name": "stats"
+        },
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "user",
+                    "type": "cosio::name"
+                }
+            ],
+            "name": "hi"
+        }
+    ],
+    "tables": [
+        {
+            "name": "table_greetings",
+            "primary": "name",
+            "secondary": [
+                "count",
+                "last_seen"
+            ],
+            "type": "greeting"
+        },
+        {
+            "name": "hello",
+            "primary": "name",
+            "secondary": [],
+            "type": "greeting"
+        },
+        {
+            "name": "global_counters",
+            "primary": "id",
+            "secondary": [],
+            "type": "stats"
+        }
+    ],
+    "types": [
+        {
+            "new_type_name": "timestamp_t",
+            "type": "uint64"
+        }
+    ],
+    "version": "contentos::abi-1.0"
+}

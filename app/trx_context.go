@@ -16,10 +16,11 @@ type TrxContext struct {
 	msg         []string
 	recoverPubs []*prototype.PublicKeyType
 	control     iservices.ITrxPool
+	gasMap		map[string]uint64
 }
 
 func NewTrxContext(wrapper *prototype.EstimateTrxResult, db iservices.IDatabaseService, control iservices.ITrxPool) *TrxContext {
-	return &TrxContext{Wrapper: wrapper, db: db, control: control }
+	return &TrxContext{Wrapper: wrapper, db: db, control: control, gasMap:make(map[string]uint64) }
 }
 
 func (p *TrxContext) InitSigState(cid prototype.ChainId) error {
@@ -45,7 +46,7 @@ func (p *TrxContext) authGetter(name string) *prototype.Authority {
 	authWrap := table.NewSoAccountAuthorityObjectWrap(p.db, account)
 	auth := authWrap.GetOwner()
 	if auth == nil {
-		panic("no owner auth")
+		mustSuccess(false,"no owner auth",prototype.StatusErrorDbExist)
 	}
 	return auth
 }
@@ -53,6 +54,11 @@ func (p *TrxContext) authGetter(name string) *prototype.Authority {
 func (p *TrxContext) Error(code uint32, msg string) {
 	p.Wrapper.Receipt.ErrorInfo = msg
 	//p.Wrapper.Receipt.Status = 500
+}
+
+func (p *TrxContext) AddOpReceipt(code uint32,gas uint64,msg string) {
+	r := &prototype.OperationReceiptWithInfo{Status:code,GasUsage:gas,VmConsole:msg}
+	p.Wrapper.Receipt.OpResults = append(p.Wrapper.Receipt.OpResults, r)
 }
 
 func (p *TrxContext) Log(msg string) {
@@ -75,13 +81,38 @@ func (p *TrxContext) RequireAuth(name string) (err error) {
 }
 
 func (p *TrxContext) DeductGasFee(caller string, spent uint64) {
+
 	acc := table.NewSoAccountWrap(p.db, &prototype.AccountName{Value: caller})
 	balance := acc.GetBalance().Value
-	if balance < spent {
-		panic(fmt.Sprintf("Endanger deduction Operation: %s, %d", caller, spent))
-	}
+	mustSuccess(spent <= balance,fmt.Sprintf("Endanger deduction Operation: %s, %d", caller, spent),prototype.StatusErrorTrxValueCompare)
 	acc.MdBalance(&prototype.Coin{Value: balance - spent})
-	return
+}
+
+func (p *TrxContext) DeductAllGasFee() bool {
+
+	useGas := false
+	for caller,spent := range p.gasMap {
+		acc := table.NewSoAccountWrap(p.db, &prototype.AccountName{Value: caller})
+		balance := acc.GetBalance().Value
+		mustSuccess(spent <= balance,fmt.Sprintf("Endanger deduction Operation: %s, %d", caller, spent),prototype.StatusErrorTrxValueCompare)
+		acc.MdBalance(&prototype.Coin{Value: balance - spent})
+		useGas = true
+	}
+	return useGas
+}
+
+func (p *TrxContext) RecordGasFee(caller string, spent uint64) {
+	// if same caller call multi times
+	if v, ok := p.gasMap[caller]; ok {
+		newSpent := v + spent
+		p.gasMap[caller] = newSpent
+	} else {
+		p.gasMap[caller] = spent
+	}
+}
+
+func (p *TrxContext) HasGasFee() bool {
+	return len(p.gasMap) > 0
 }
 
 // vm transfer just modify db data
@@ -89,9 +120,7 @@ func (p *TrxContext) TransferFromContractToUser(contract, owner, to string, amou
 	// need authority?
 	c := table.NewSoContractWrap(p.db, &prototype.ContractId{Owner: &prototype.AccountName{Value: owner}, Cname: contract})
 	balance := c.GetBalance().Value
-	if balance < amount {
-		panic(fmt.Sprintf("Endanger Transfer Operation: %s, %s, %s, %d", contract, owner, to, amount))
-	}
+	mustSuccess(balance >= amount,fmt.Sprintf("Endanger Transfer Operation: %s, %s, %s, %d", contract, owner, to, amount),prototype.StatusErrorTrxPubKeyCmp)
 	acc := table.NewSoAccountWrap(p.db, &prototype.AccountName{Value: to})
 	// need atomic ?
 	c.MdBalance(&prototype.Coin{Value: balance - amount})
@@ -102,9 +131,7 @@ func (p *TrxContext) TransferFromContractToUser(contract, owner, to string, amou
 func (p *TrxContext) TransferFromUserToContract(from, contract, owner string, amount uint64) {
 	acc := table.NewSoAccountWrap(p.db, &prototype.AccountName{Value: from})
 	balance := acc.GetBalance().Value
-	if balance < amount {
-		panic(fmt.Sprintf("Endanger Transfer Operation: %s, %s, %s, %d", contract, owner, from, amount))
-	}
+	mustSuccess(balance >= amount,fmt.Sprintf("Endanger Transfer Operation: %s, %s, %s, %d", contract, owner, from, amount),prototype.StatusErrorTrxPubKeyCmp)
 	c := table.NewSoContractWrap(p.db, &prototype.ContractId{Owner: &prototype.AccountName{Value: owner}, Cname: contract})
 	c.MdBalance(&prototype.Coin{Value: balance + amount})
 	acc.MdBalance(&prototype.Coin{Value: balance - amount})
@@ -115,9 +142,7 @@ func (p *TrxContext) TransferFromContractToContract(fromContract, fromOwner, toC
 	from := table.NewSoContractWrap(p.db, &prototype.ContractId{Owner: &prototype.AccountName{Value: fromOwner}, Cname: fromContract})
 	to := table.NewSoContractWrap(p.db, &prototype.ContractId{Owner: &prototype.AccountName{Value: toOwner}, Cname: toContract})
 	fromBalance := from.GetBalance().Value
-	if fromBalance < amount {
-		panic(fmt.Sprintf("Insufficient balance of contract: %s.%s, %d < %d", fromOwner, fromContract, fromBalance, amount))
-	}
+	mustSuccess(fromBalance >= amount,fmt.Sprintf("Insufficient balance of contract: %s.%s, %d < %d", fromOwner, fromContract, fromBalance, amount),prototype.StatusErrorTrxPubKeyCmp)
 	toBalance := to.GetBalance().Value
 	from.MdBalance(&prototype.Coin{Value: fromBalance - amount})
 	to.MdBalance(&prototype.Coin{Value: toBalance + amount})
@@ -161,7 +186,7 @@ func verifyAuthority(keyMaps map[string]bool, trxPubs []*prototype.PublicKeyType
 
 	for k := range keyMaps {
 		if !s.CheckAuthorityByName(k, 0, Owner) {
-			panic("check owner authority failed")
+			mustSuccess(false,"check owner authority failed",prototype.StatusErrorTrxVerifyAuth)
 		}
 	}
 }

@@ -38,6 +38,7 @@ type DPoS struct {
 	readyToProduce bool
 	prodTimer      *time.Timer
 	trxCh          chan func()
+	pendingCh      chan func()
 	blkCh          chan common.ISignedBlock
 	bootstrap      bool
 	slot           uint64
@@ -64,6 +65,7 @@ func NewDPoS(ctx *node.ServiceContext, lg *logrus.Logger) *DPoS {
 		Producers: make([]string, 0, 1),
 		prodTimer: time.NewTimer(100 * time.Millisecond),
 		trxCh:     make(chan func()),
+		pendingCh: make(chan func()),
 		//trxRetCh:  make(chan common.ITransactionInvoice),
 		blkCh:  make(chan common.ISignedBlock),
 		ctx:    ctx,
@@ -258,6 +260,9 @@ func (d *DPoS) start() {
 		case trxFn := <-d.trxCh:
 			trxFn()
 			continue
+		case pendingFn := <- d.pendingCh:
+			pendingFn()
+		    continue
 		case <-d.prodTimer.C:
 			d.MaybeProduceBlock()
 		}
@@ -413,6 +418,16 @@ func (d *DPoS) PushTransaction(trx common.ISignedTransaction, wait bool, broadca
 	}
 }
 
+func (d *DPoS) PushTransactionToPending(trx common.ISignedTransaction, callBack func(err error)) {
+	d.pendingCh <- func(){
+		err := d.ctrl.PushTrxToPending(trx.(*prototype.SignedTransaction))
+		if err == nil {
+			d.p2p.Broadcast(trx.(*prototype.SignedTransaction))
+		}
+		callBack(err)
+	}
+}
+
 func (d *DPoS) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 	d.log.Debug("pushBlock #", b.Id().BlockNum())
 	//d.Lock()
@@ -459,7 +474,7 @@ func (d *DPoS) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 	lastCommitted := d.ForkDB.LastCommitted()
 	//d.log.Debug("last committed: ", lastCommitted.BlockNum())
 	var commitIdx uint64
-	if newHead.Id().BlockNum()-lastCommitted.BlockNum() > 3 /*constants.MAX_WITNESSES*2/3*/ {
+	if newHead.Id().BlockNum()-lastCommitted.BlockNum() > constants.MAX_WITNESSES*2/3 {
 		if lastCommitted == common.EmptyBlockID {
 			commitIdx = 1
 		} else {
@@ -545,12 +560,20 @@ func (d *DPoS) applyBlock(b common.ISignedBlock) error {
 }
 
 func (d *DPoS) popBlock(id common.BlockID) error {
-	d.ctrl.PopBlockTo(id.BlockNum())
+	d.ctrl.PopBlock(id.BlockNum())
 	return nil
 }
 
 func (d *DPoS) GetLastBFTCommit() (evidence interface{}) {
 	return nil
+}
+
+func (d *DPoS) GetNextBFTCheckPoint(blockNum uint64) (evidence interface{}) {
+	return nil
+}
+
+func (d *DPoS) GetLIB() common.BlockID {
+	return d.ForkDB.LastCommitted()
 }
 
 func (d *DPoS) GetHeadBlockId() common.BlockID {

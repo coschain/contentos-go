@@ -44,7 +44,7 @@ func vote(cmd *cobra.Command, args []string) {
 		Idx:   idx,
 	}
 
-	signTx, err := utils.GenerateSignedTxAndValidate([]interface{}{vote_op}, voterAccount)
+	signTx, err := utils.GenerateSignedTxAndValidate2(client, []interface{}{vote_op}, voterAccount)
 	if err != nil {
 		fmt.Println(err)
 		return

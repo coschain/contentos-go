@@ -2,16 +2,6 @@ package prototype
 
 import "github.com/pkg/errors"
 
-func (m *TransferToVestingOperation) GetAuthorities(auths *[]Authority) {
-
-}
-
-func (m *TransferToVestingOperation) GetAdmin(*[]AccountAdminPair) {
-
-}
-func (m *TransferToVestingOperation) IsVirtual() {
-
-}
 
 func (m *TransferToVestingOperation) GetRequiredOwner(auths *map[string]bool) {
 	(*auths)[m.From.Value] = true

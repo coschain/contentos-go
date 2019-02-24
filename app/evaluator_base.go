@@ -5,21 +5,18 @@ import (
 	"github.com/coschain/contentos-go/prototype"
 )
 
-func opAssertE(err error, val string) {
-	if err != nil {
-		panic(val + " : " + err.Error())
-	}
-}
-
-func opAssert(b bool, val string) {
+func mustSuccess(b bool, val string, errorType int) {
 	if !b {
-		panic(val)
+		e := &prototype.Exception{HelpString:val,ErrorType:errorType}
+		panic(e)
 	}
 }
 
-func mustNoError(err error, val string) {
+func mustNoError(err error, val string, errorType int) {
 	if err != nil {
-		panic(val + " : " + err.Error())
+		e := &prototype.Exception{HelpString:val,ErrorString:err.Error(),ErrorType:errorType}
+		panic(e)
+		//panic(val + " : " + err.Error())
 	}
 }
 
@@ -81,8 +78,12 @@ func GetBaseEvaluator(ctx *ApplyContext, op *prototype.Operation) BaseEvaluator 
 	case *prototype.Operation_Op15:
 		eva := &ContractEstimateApplyEvaluator{ctx: ctx, op: op.GetOp15()}
 		return BaseEvaluator(eva)
+	case *prototype.Operation_Op16:
+		eva := &StakeEvaluator{ctx: ctx, op: op.GetOp16()}
+		return BaseEvaluator(eva)
 
 	default:
-		panic("no matchable evaluator")
+		e := &prototype.Exception{HelpString:"no matchable evaluator",ErrorType:prototype.StatusErrorTrxTypeCast}
+		panic(e)
 	}
 }

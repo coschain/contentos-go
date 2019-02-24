@@ -17,6 +17,12 @@ func PublicKeyFromBytes(buffer []byte) *PublicKeyType {
 	return result
 }
 
+// fixme: ToBase58()/PublicKeyFromWIF() work well for now, but they are vulnerable.
+//
+// This pair of functions can't work with key data prefixed by 0x00 bytes, but fortunately
+// ecc compressed public keys are always prefixed by 0x02 or 0x03.
+// Review this code if we switched to a key scheme other than ecc in future.
+// The same problem has already been fixed in private_key_type.go by git commit 1f7fe10.
 func PublicKeyFromWIF(encoded string) (*PublicKeyType, error) {
 	if encoded == "" {
 		return nil, ErrKeyLength
@@ -65,6 +71,12 @@ func (m *PublicKeyType) ToWIF() string {
 }
 
 // ToBase58 returns base58 encoded address string
+// fixme: ToBase58()/PublicKeyFromWIF() work well for now, but they are vulnerable.
+//
+// This pair of functions can't work with key data prefixed by 0x00 bytes, but fortunately
+// ecc compressed public keys are always prefixed by 0x02 or 0x03.
+// Review this code if we switched to a key scheme other than ecc in future.
+// The same problem has already been fixed in private_key_type.go by git commit 1f7fe10.
 func (m *PublicKeyType) ToBase58() string {
 	data := m.Data
 	temp := sha256.Sum256(data)

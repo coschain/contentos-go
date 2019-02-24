@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"context"
+	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
@@ -10,9 +11,10 @@ import (
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/rpc/pb"
 	"github.com/coschain/contentos-go/vm/contract/abi"
+	contractTable "github.com/coschain/contentos-go/vm/contract/table"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	contractTable "github.com/coschain/contentos-go/vm/contract/table"
+	"time"
 )
 
 var (
@@ -24,9 +26,21 @@ type APIService struct {
 	mainLoop  *eventloop.EventLoop
 	db        iservices.IDatabaseService
 	log       *logrus.Logger
+	eBus       EventBus.Bus
+}
+
+func NewAPIService(con iservices.IConsensus, loop *eventloop.EventLoop, db iservices.IDatabaseService, log *logrus.Logger) *APIService {
+	return &APIService{
+		consensus:con,
+		mainLoop:loop,
+		db:db,
+		log:log,
+	}
 }
 
 func (as *APIService) QueryTableContent(ctx context.Context, req *grpcpb.GetTableContentRequest) (*grpcpb.TableContentResponse, error) {
+	as.db.RLock()
+	defer as.db.RUnlock()
 
 	res := &grpcpb.TableContentResponse{}
 
@@ -50,6 +64,8 @@ func (as *APIService) QueryTableContent(ctx context.Context, req *grpcpb.GetTabl
 }
 
 func (as *APIService) GetAccountByName(ctx context.Context, req *grpcpb.GetAccountByNameRequest) (*grpcpb.AccountResponse, error) {
+	as.db.RLock()
+	defer as.db.RUnlock()
 
 	accWrap := table.NewSoAccountWrap(as.db, req.GetAccountName())
 	acct := &grpcpb.AccountResponse{}
@@ -87,6 +103,8 @@ func (as *APIService) GetAccountByName(ctx context.Context, req *grpcpb.GetAccou
 }
 
 func (as *APIService) GetAccountRewardByName(ctx context.Context, req *grpcpb.GetAccountRewardByNameRequest) (*grpcpb.AccountRewardResponse, error) {
+	as.db.RLock()
+	defer as.db.RUnlock()
 
 	var i int32 = 1
 
@@ -102,6 +120,8 @@ func (as *APIService) GetAccountRewardByName(ctx context.Context, req *grpcpb.Ge
 }
 
 func (as *APIService) GetFollowerListByName(ctx context.Context, req *grpcpb.GetFollowerListByNameRequest) (*grpcpb.GetFollowerListByNameResponse, error) {
+	as.db.RLock()
+	defer as.db.RUnlock()
 
 	var (
 		ferList []*prototype.AccountName
@@ -132,6 +152,8 @@ func (as *APIService) GetFollowerListByName(ctx context.Context, req *grpcpb.Get
 }
 
 func (as *APIService) GetFollowingListByName(ctx context.Context, req *grpcpb.GetFollowingListByNameRequest) (*grpcpb.GetFollowingListByNameResponse, error) {
+	as.db.RLock()
+	defer as.db.RUnlock()
 
 	var (
 		fingList []*prototype.AccountName
@@ -162,6 +184,8 @@ func (as *APIService) GetFollowingListByName(ctx context.Context, req *grpcpb.Ge
 }
 
 func (as *APIService) GetFollowCountByName(ctx context.Context, req *grpcpb.GetFollowCountByNameRequest) (*grpcpb.GetFollowCountByNameResponse, error) {
+	as.db.RLock()
+	defer as.db.RUnlock()
 
 	var (
 		ferCnt, fingCnt uint32
@@ -179,6 +203,9 @@ func (as *APIService) GetFollowCountByName(ctx context.Context, req *grpcpb.GetF
 
 }
 func (as *APIService) GetChainState(ctx context.Context, req *grpcpb.NonParamsRequest) (*grpcpb.GetChainStateResponse, error) {
+	as.db.RLock()
+	defer as.db.RUnlock()
+
 	var (
 		i int32 = 1
 	)
@@ -199,7 +226,33 @@ func (as *APIService) GetChainState(ctx context.Context, req *grpcpb.NonParamsRe
 	return ret, nil
 }
 
+func (as *APIService) GetStatInfo(ctx context.Context, req *grpcpb.NonParamsRequest) (*grpcpb.GetStatResponse, error) {
+	var (
+		i int32 = 1
+	)
+
+	globalVar := table.NewSoGlobalWrap(as.db, &i)
+
+	ret := &grpcpb.GetStatResponse{}
+
+	// TODO add daily trx count
+	//blks, err := as.consensus.FetchBlocksSince(common.EmptyBlockID)
+	//if err == nil {
+	//	for _, v := range blks {
+	//
+	//		res := &prototype.EmptySignedBlock{ SignedHeader:v.(*prototype.SignedBlock).SignedHeader, TrxCount:uint32(len(v.(*prototype.SignedBlock).Transactions)) }
+	//		ret.Blocks = append(ret.Blocks, res )
+	//	}
+	//}
+	ret.Props = globalVar.GetProps()
+
+	return ret, nil
+}
+
 func (as *APIService) GetWitnessList(ctx context.Context, req *grpcpb.GetWitnessListRequest) (*grpcpb.GetWitnessListResponse, error) {
+	as.db.RLock()
+	defer as.db.RUnlock()
+
 	var (
 		witList []*grpcpb.WitnessResponse
 		limit   uint32
@@ -234,6 +287,9 @@ func (as *APIService) GetWitnessList(ctx context.Context, req *grpcpb.GetWitness
 }
 
 func (as *APIService) GetPostListByCreated(ctx context.Context, req *grpcpb.GetPostListByCreatedRequest) (*grpcpb.GetPostListByCreatedResponse, error) {
+	as.db.RLock()
+	defer as.db.RUnlock()
+
 	var (
 		postList []*grpcpb.PostResponse
 		limit    uint32
@@ -280,6 +336,9 @@ func (as *APIService) GetPostListByCreated(ctx context.Context, req *grpcpb.GetP
 }
 
 func (as *APIService) GetReplyListByPostId(ctx context.Context, req *grpcpb.GetReplyListByPostIdRequest) (*grpcpb.GetReplyListByPostIdResponse, error) {
+	as.db.RLock()
+	defer as.db.RUnlock()
+
 	var (
 		replyList []*grpcpb.PostResponse
 		limit     uint32
@@ -323,10 +382,15 @@ func (as *APIService) GetReplyListByPostId(ctx context.Context, req *grpcpb.GetR
 }
 
 func (as *APIService) GetBlockTransactionsByNum(ctx context.Context, req *grpcpb.GetBlockTransactionsByNumRequest) (*grpcpb.GetBlockTransactionsByNumResponse, error) {
+	as.db.RLock()
+	defer as.db.RUnlock()
+
 	return &grpcpb.GetBlockTransactionsByNumResponse{}, nil
 }
 
 func (as *APIService) GetTrxById(ctx context.Context, req *grpcpb.GetTrxByIdRequest) (*grpcpb.GetTrxByIdResponse, error) {
+	as.db.RLock()
+	defer as.db.RUnlock()
 
 	trxWrap := table.NewSoTransactionObjectWrap(as.db, req.GetTrxId())
 	resp := &grpcpb.GetTrxByIdResponse{}
@@ -342,17 +406,24 @@ func (as *APIService) GetTrxById(ctx context.Context, req *grpcpb.GetTrxByIdRequ
 
 func (as *APIService) BroadcastTrx(ctx context.Context, req *grpcpb.BroadcastTrxRequest) (*grpcpb.BroadcastTrxResponse, error) {
 
-	var result *prototype.TransactionReceiptWithInfo = nil
+	//var result chan *prototype.TransactionReceiptWithInfo
+	//result := make(chan *prototype.TransactionReceiptWithInfo)
+	trx := req.GetTransaction()
+
+	var pErr error
 	as.mainLoop.Send(func() {
-		r := as.consensus.PushTransaction(req.GetTransaction(), true, true)
-		as.log.Infof("BroadcastTrx Result: %s", result)
-
-		if r != nil {
-			result = r.(*prototype.TransactionReceiptWithInfo)
-		}
+		 as.consensus.PushTransactionToPending(trx, func(err error) {
+			 pErr = err
+		 })
+		 //as.log.Infof("BroadcastTrx Result: %s", result)
 	})
+	//result <- prototype.FetchTrxApplyResult(as.eBus , 30*time.Second ,trx)
 
-	return &grpcpb.BroadcastTrxResponse{Invoice: result}, nil
+	if !req.OnlyDeliver {
+		return &grpcpb.BroadcastTrxResponse{Invoice:prototype.FetchTrxApplyResult(as.eBus , 30*time.Second ,trx)},pErr
+	} else {
+		return &grpcpb.BroadcastTrxResponse{Invoice:nil, Status:prototype.StatusSuccess },pErr
+	}
 }
 
 func checkLimit(limit uint32) uint32 {

@@ -9,16 +9,16 @@ test:
 
 build:
 	@echo "--> build all"
-	@GO111MODULE=on go build $(COSD)
-	@GO111MODULE=on go build $(WALLET)
+	@GO111MODULE=on go build -o ./bin/cosd $(COSD)
+	@GO111MODULE=on go build -o ./bin/wallet-cli $(WALLET)
 
 build_cosd:
 	@echo "--> build cosd"
-	@GO111MODULE=on go build $(COSD)
+	@GO111MODULE=on go build -o ./bin/cosd $(COSD)
 
 build_wallet:
 	@echo "--> build wallet"
-	@GO111MODULE=on go build $(WALLET)
+	@GO111MODULE=on go build -o ./bin/wallet-cli $(WALLET)
 
 install:
 	@echo "--> build all"

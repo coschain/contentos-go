@@ -20,9 +20,9 @@ type ITrxPool interface {
 	SetShuffledWitness(names []string)
 	GetShuffledWitness() []string
 	SetShuffle(s common.ShuffleFunc)
-	// will set DB status to num
-	PopBlockTo(num uint64)
-	// will cut off DB status that before num
+	// PopBlock() rollbacks the state db to the moment just before applying block @num.
+	PopBlock(num uint64)
+	// Commit() finalizes block @num.
 	Commit(num uint64)
 
 	GetProps() *prototype.DynamicProperties
@@ -32,9 +32,10 @@ type ITrxPool interface {
 
 	AddWeightedVP(value uint64)
 	// put trx into pending directly, no return value, so should be used by witness node to collect p2p trx
-	PushTrxToPending(trx *prototype.SignedTransaction)
+	PushTrxToPending(trx *prototype.SignedTransaction) error
 	GenerateAndApplyBlock(witness string, pre *prototype.Sha256, timestamp uint32, priKey *prototype.PrivateKeyType, skip prototype.SkipFlag) (*prototype.SignedBlock, error)
 	VerifySig(name *prototype.AccountName, digest []byte, sig []byte) bool
+	ValidateAddress(name string, pubKey *prototype.PublicKeyType) bool
 	Sign(priv *prototype.PrivateKeyType, digest []byte) []byte
 	//Fetch the latest commit block number
 	GetCommitBlockNum() (uint64,error)

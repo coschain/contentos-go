@@ -1,12 +1,29 @@
 package rpc
 
 /*
+import (
+	"bytes"
+	"context"
+	"fmt"
+	"github.com/coschain/contentos-go/common/constants"
+	"github.com/coschain/contentos-go/common/logging"
+	"github.com/coschain/contentos-go/prototype"
+	"github.com/coschain/contentos-go/rpc/pb"
+	"hash/crc32"
+	"math"
+	"math/rand"
+	"os"
+	"strings"
+	"testing"
+	"time"
+)
+
 var asc grpcpb.ApiServiceClient
 
 func TestMain(m *testing.M) {
 	logging.Init("logs	", "debug", 0)
 
-	//os.RemoveAll("/Users/eagle/.coschain/cosd/db")
+	os.RemoveAll("/Users/eagle/.coschain/cosd/db")
 
 	addr := fmt.Sprintf("127.0.0.1:%d", uint32(8888))
 	conn, err := Dial(addr)
@@ -22,89 +39,6 @@ func TestMain(m *testing.M) {
 	asc = nil
 
 	os.Exit(exitCode)
-}
-
-func TestMockGRPCApi_GetAccountByName(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	client := mock_grpcpb.NewMockApiServiceClient(ctrl)
-
-	{
-		req := &grpcpb.GetAccountByNameRequest{}
-		resp := &grpcpb.AccountResponse{}
-		expected := &grpcpb.AccountResponse{AccountName: &prototype.AccountName{Value: "Jack"}}
-		client.EXPECT().GetAccountByName(gomock.Any(), gomock.Any()).Return(expected, nil)
-
-		resp, err := client.GetAccountByName(context.Background(), req)
-		if err != nil {
-			t.Logf("GetAccountByName failed: %x", err)
-		} else {
-			t.Logf("GetAccountByName detail: %v", resp.AccountName)
-		}
-	}
-}
-
-func TestMockGPRCApi_GetFollowerListByName(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	client := mock_grpcpb.NewMockApiServiceClient(ctrl)
-
-	{
-		req := &grpcpb.GetFollowerListByNameRequest{}
-		resp := &grpcpb.GetFollowerListByNameResponse{}
-
-		expected := &grpcpb.GetFollowerListByNameResponse{}
-		client.EXPECT().GetFollowerListByName(gomock.Any(), gomock.Any()).Return(expected, nil)
-
-		resp, err := client.GetFollowerListByName(context.Background(), req)
-		if err != nil {
-			t.Logf("GetFollowerListByName failed: %x", err)
-		} else {
-			t.Logf("GetFollowerListByName detail: %v", resp.FollowerList)
-		}
-	}
-}
-
-func TestMockGRPCApi_GetFollowingListByName(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	client := mock_grpcpb.NewMockApiServiceClient(ctrl)
-
-	{
-		req := &grpcpb.GetFollowingListByNameRequest{}
-		resp := &grpcpb.GetFollowingListByNameResponse{}
-
-		expected := &grpcpb.GetFollowingListByNameResponse{}
-		client.EXPECT().GetFollowingListByName(gomock.Any(), gomock.Any()).Return(expected, nil)
-
-		resp, err := client.GetFollowingListByName(context.Background(), req)
-		if err != nil {
-			t.Logf("GetFollowingListByName failed: %x", err)
-		} else {
-			t.Logf("GetFollowingListByName detail: %v", resp.FollowingList)
-		}
-	}
-}
-
-func TestMockGPRCApi_GetWitnessList(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	client := mock_grpcpb.NewMockApiServiceClient(ctrl)
-
-	{
-		req := &grpcpb.GetWitnessListRequest{}
-		resp := &grpcpb.GetWitnessListResponse{}
-
-		expected := &grpcpb.GetWitnessListResponse{}
-		client.EXPECT().GetWitnessList(gomock.Any(), gomock.Any()).Return(expected, nil)
-
-		resp, err := client.GetWitnessList(context.Background(), req)
-		if err != nil {
-			t.Logf("GetWitnessListByName failed: %x", err)
-		} else {
-			t.Logf("GetWitnessListByName detail: %v", resp.WitnessList)
-		}
-	}
 }
 
 func TestGRPCApi_GetAccountByName(t *testing.T) {
@@ -493,7 +427,9 @@ func RandomString(randLength int, randType string) (result string) {
 	result = b.String()
 	return
 }
+*/
 
+/*
 func TestHTTPApi_GetAccountByName(t *testing.T) {
 	postValue := "{\"account_name\": {\"value\":\"jack's test info\"}}"
 	http_client("POST", "http://127.0.0.1:8080/v1/user/get_account_by_name", postValue)
@@ -520,6 +456,237 @@ func http_client(rtype, url, reqJson string) error {
 	//logging.CLog().Println("response Body:", string(body))
 
 	return nil
+}
+
+func TestMockGRPCApi_GetAccountByName(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	db := mock_grpcpb.NewMockIDatabaseService(ctrl)
+
+	db.EXPECT().Has(gomock.Any()).Return(true , nil)
+	expected := &grpcpb.AccountResponse{AccountName: &prototype.AccountName{Value: "Jack"}}
+	db.EXPECT().Get(gomock.Any()).Return(expected, nil)
+
+	cs := mock_grpcpb.NewMockIConsensus(ctrl)
+
+	as := NewAPIService(cs, nil, db, nil)
+
+	req := &grpcpb.GetAccountByNameRequest{AccountName:&prototype.AccountName{Value:"Jack"}}
+	resp, err := as.GetAccountByName(context.Background(), req)
+
+	if err != nil {
+		t.Logf("GetAccountByName failed: %x", err)
+	} else {
+		t.Logf("GetAccountByName detail: %v", resp.AccountName)
+	}
+
+	//client := mock_grpcpb.NewMockApiServiceClient(ctrl)
+	//{
+	//	req := &grpcpb.GetAccountByNameRequest{AccountName:&prototype.AccountName{Value:"Jack"}}
+	//	resp := &grpcpb.AccountResponse{}
+	//	expected := &grpcpb.AccountResponse{AccountName: &prototype.AccountName{Value: "Jack"}}
+	//	client.EXPECT().GetAccountByName(gomock.Any(), gomock.Any()).Return(expected, nil)
+	//
+	//	resp, err := client.GetAccountByName(context.Background(), req)
+	//	if err != nil {
+	//		t.Logf("GetAccountByName failed: %x", err)
+	//	} else {
+	//		t.Logf("GetAccountByName detail: %v", resp.AccountName)
+	//	}
+	//}
+}
+
+func TestMockGPRCApi_GetFollowerListByName(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	client := mock_grpcpb.NewMockApiServiceClient(ctrl)
+
+	{
+		req := &grpcpb.GetFollowerListByNameRequest{}
+		resp := &grpcpb.GetFollowerListByNameResponse{}
+
+		expected := &grpcpb.GetFollowerListByNameResponse{}
+		client.EXPECT().GetFollowerListByName(gomock.Any(), gomock.Any()).Return(expected, nil)
+
+		resp, err := client.GetFollowerListByName(context.Background(), req)
+		if err != nil {
+			t.Logf("GetFollowerListByName failed: %x", err)
+		} else {
+			t.Logf("GetFollowerListByName detail: %v", resp.FollowerList)
+		}
+	}
+}
+
+func TestMockGRPCApi_GetFollowingListByName(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	client := mock_grpcpb.NewMockApiServiceClient(ctrl)
+
+	{
+		req := &grpcpb.GetFollowingListByNameRequest{}
+		resp := &grpcpb.GetFollowingListByNameResponse{}
+
+		expected := &grpcpb.GetFollowingListByNameResponse{}
+		client.EXPECT().GetFollowingListByName(gomock.Any(), gomock.Any()).Return(expected, nil)
+
+		resp, err := client.GetFollowingListByName(context.Background(), req)
+		if err != nil {
+			t.Logf("GetFollowingListByName failed: %x", err)
+		} else {
+			t.Logf("GetFollowingListByName detail: %v", resp.FollowingList)
+		}
+	}
+}
+
+func TestMockGPRCApi_GetWitnessList(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	client := mock_grpcpb.NewMockApiServiceClient(ctrl)
+
+	{
+		req := &grpcpb.GetWitnessListRequest{}
+		resp := &grpcpb.GetWitnessListResponse{}
+
+		expected := &grpcpb.GetWitnessListResponse{}
+		client.EXPECT().GetWitnessList(gomock.Any(), gomock.Any()).Return(expected, nil)
+
+		resp, err := client.GetWitnessList(context.Background(), req)
+		if err != nil {
+			t.Logf("GetWitnessListByName failed: %x", err)
+		} else {
+			t.Logf("GetWitnessListByName detail: %v", resp.WitnessList)
+		}
+	}
+}
+
+*/
+
+/*
+Installation
+First you need to install ProtocolBuffers 3.0.0 or later.
+
+mkdir tmp
+cd tmp
+git clone https://github.com/google/protobuf
+cd protobuf
+./autogen.sh
+./configure
+make
+make check
+sudo make install
+Then, go get -u as usual the following packages:
+
+go get -u github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
+go get -u github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger
+go get -u github.com/golang/protobuf/protoc-gen-go
+
+protoc -I. -I$GOPATH/src -I$GOPATH/src/github.com/coschain/contentos-go --go_out=plugins=grpc:. grpc.proto
+protoc -I. -I$GOPATH/src -I$GOPATH/src/github.com/coschain/contentos-go --grpc-gateway_out=logtostderr=true:. grpc.proto
+
+protoc -I/usr/local/include -I. -I$GOPATH/src -I$GOPATH/src/github.com/coschain/contentos-go --go_out=plugins=grpc:. grpc.proto
+protoc -I/usr/local/include -I. -I$GOPATH/src -I$GOPATH/src/github.com/coschain/contentos-go --grpc-gateway_out=logtostderr=true:. grpc.proto
+
+compile:
+protoc -I/usr/local/include -I. -I$GOPATH/src -I$GOPATH/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis -I$GOPATH/src/github.com/coschain/contentos-go --go_out=plugins=grpc:. grpc.proto
+protoc -I/usr/local/include -I. -I$GOPATH/src -I$GOPATH/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis -I$GOPATH/src/github.com/coschain/contentos-go --grpc-gateway_out=logtostderr=true:. grpc.proto
+
+mockgen -source=grpc.pb.go > ../mock_grpcpb/mock_grpcpb.go
+
+protoc --go_out=paths=source_relative:. prototype/*.proto
+*/
+/*
+service ApiService {
+    rpc QueryTableContent (GetTableContentRequest) returns (TableContentResponse) {
+        option (google.api.http) = {
+            post: "/v1/vm/get_table_content"
+            body: "*"
+        };
+    }
+
+    rpc GetAccountByName (GetAccountByNameRequest) returns (AccountResponse) {
+        option (google.api.http) = {
+            post: "/v1/user/get_account_by_name"
+            body: "*"
+        };
+    }
+
+    rpc GetAccountRewardByName (GetAccountRewardByNameRequest) returns (AccountRewardResponse) {
+        option (google.api.http) = {
+            post: "/v1/user/get_account_reward_by_name"
+            body: "*"
+        };
+    }
+
+    rpc GetFollowerListByName (GetFollowerListByNameRequest) returns (GetFollowerListByNameResponse) {
+        option (google.api.http) = {
+            post: "/v1/user/get_follower_list_by_name"
+            body: "*"
+        };
+    }
+
+    rpc GetFollowingListByName (GetFollowingListByNameRequest) returns (GetFollowingListByNameResponse) {
+        option (google.api.http) = {
+            post: "/v1/user/get_following_list_by_name"
+            body: "*"
+        };
+    }
+
+    rpc GetFollowCountByName (GetFollowCountByNameRequest) returns (GetFollowCountByNameResponse) {
+        option (google.api.http) = {
+            post: "/v1/user/get_follow_count_by_name"
+            body: "*"
+        };
+    }
+
+    rpc GetWitnessList (GetWitnessListRequest) returns (GetWitnessListResponse) {
+        option (google.api.http) = {
+            get: "/v1/user/get_witness_list"
+        };
+    }
+
+    rpc GetPostListByCreated (GetPostListByCreatedRequest) returns (GetPostListByCreatedResponse) {
+        option (google.api.http) = {
+            post: "/v1/post/get_post_list_by_created"
+            body: "*"
+        };
+    }
+
+    rpc GetReplyListByPostId (GetReplyListByPostIdRequest) returns (GetReplyListByPostIdResponse) {
+        option (google.api.http) = {
+            post: "/v1/post/get_reply_list_by_post_id"
+            body: "*"
+        };
+    }
+
+    rpc GetBlockTransactionsByNum (GetBlockTransactionsByNumRequest) returns (GetBlockTransactionsByNumResponse) {
+        option (google.api.http) = {
+            post: "/v1/trx/get_block_transactions_by_num"
+            body: "*"
+        };
+    }
+
+    rpc GetTrxById (GetTrxByIdRequest) returns (GetTrxByIdResponse) {
+        option (google.api.http) = {
+            post: "/v1/trx/get_trx_by_id"
+            body: "*"
+        };
+    }
+
+    rpc GetChainState (NonParamsRequest) returns (GetChainStateResponse) {
+        option (google.api.http) = {
+            post: "/v1/trx/get_chain_state"
+            body: "*"
+        };
+    }
+
+
+    rpc BroadcastTrx (BroadcastTrxRequest) returns (BroadcastTrxResponse) {
+        option (google.api.http) = {
+            post: "/v1/trx/broadcast_trx"
+            body: "*"
+        };
+    }
 }
 
 */

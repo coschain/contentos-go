@@ -17,6 +17,7 @@ import (
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
 	"os"
+	"sync"
 )
 
 // the service type
@@ -25,6 +26,7 @@ type DatabaseService struct {
 	db   *LevelDatabase
 	rdb  *RevertibleDatabase
 	tdb  *SquashableDatabase
+	lock sync.RWMutex
 }
 
 // service constructor
@@ -60,9 +62,9 @@ func (s *DatabaseService) Start(node *node.Node) error {
 		db.Close()
 		return errors.New("failed to create reversible database")
 	}
-	tdb := NewSquashableDatabase(db, true)
+	tdb := NewSquashableDatabase(rdb, true)
 	if tdb == nil {
-		tdb.Close()
+		rdb.Close()
 		db.Close()
 		return errors.New("failed to create transactional database")
 	}
@@ -115,6 +117,14 @@ func (s *DatabaseService) RebaseToTag(tag string) error {
 	return s.rdb.RebaseToTag(tag)
 }
 
+func (s *DatabaseService) EnableReversion(b bool) error {
+	return s.rdb.EnableReversion(b)
+}
+
+func (s *DatabaseService) ReversionEnabled() bool {
+	return s.rdb.ReversionEnabled()
+}
+
 //
 // implementation of Squashable interface
 //
@@ -139,12 +149,8 @@ func (s *DatabaseService) Squash(tag string) error {
 	return s.tdb.Squash(tag)
 }
 
-func (s *DatabaseService) RollBackToTag(tag string) error {
-	return s.tdb.RollBackToTag(tag)
-}
-
-func (s *DatabaseService) GetCommitNum() (uint64,error) {
-	return s.tdb.GetCommitNum()
+func (s *DatabaseService) RollbackTag(tag string) error {
+	return s.tdb.RollbackTag(tag)
 }
 
 //
@@ -209,4 +215,20 @@ func (s *DatabaseService) DeleteAll() error {
 		err = s.Start(nil)
 	}
 	return err
+}
+
+func (s *DatabaseService) Lock() {
+	s.lock.Lock()
+}
+
+func (s *DatabaseService) Unlock() {
+	s.lock.Unlock()
+}
+
+func (s *DatabaseService) RLock() {
+	s.lock.RLock()
+}
+
+func (s *DatabaseService) RUnlock() {
+	s.lock.RUnlock()
 }

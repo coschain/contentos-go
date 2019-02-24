@@ -8,6 +8,7 @@ import (
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/golang/protobuf/proto"
+	"io/ioutil"
 	"testing"
 )
 
@@ -55,7 +56,7 @@ func makeBlock(pre *prototype.Sha256, blockTimestamp uint32, signedTrx *prototyp
 	return sigBlk
 }
 
-func createSigTrx(op interface{}, headBlockID *prototype.Sha256, expire uint32) (*prototype.SignedTransaction, error) {
+func createSigTrx(ops []interface{}, headBlockID *prototype.Sha256, expire uint32) (*prototype.SignedTransaction, error) {
 
 	privKey, err := prototype.PrivateKeyFromWIF(constants.INITMINER_PRIKEY)
 	if err != nil {
@@ -64,7 +65,9 @@ func createSigTrx(op interface{}, headBlockID *prototype.Sha256, expire uint32) 
 
 	tx := &prototype.Transaction{RefBlockNum: 0, RefBlockPrefix: 0,
 		Expiration: &prototype.TimePointSec{UtcSeconds: expire}}
-	tx.AddOperation(op)
+	for _,op := range ops {
+		tx.AddOperation(op)
+	}
 
 	// set reference
 	id := &common.BlockID{}
@@ -118,11 +121,12 @@ func Test_PushTrx(t *testing.T) {
 	if err != nil {
 		t.Error("makeCreateAccountOP error:", err)
 	}
-
+	ops := []interface{}{}
+	ops = append(ops,acop)
 	headBlockID := c.GetProps().GetHeadBlockId()
 	headTime := c.GetProps().Time.UtcSeconds;
 	headTime += 20;
-	signedTrx, err := createSigTrx(acop, headBlockID, headTime)
+	signedTrx, err := createSigTrx(ops, headBlockID, headTime)
 	if err != nil {
 		t.Error("createSigTrx error:", err)
 	}
@@ -153,7 +157,10 @@ func Test_PushBlock(t *testing.T) {
 	headBlockID := c.GetProps().GetHeadBlockId()
 	headTime := c.GetProps().Time.UtcSeconds;
 	headTime += 20;
-	signedTrx, err := createSigTrx(createOP, headBlockID, headTime)
+
+	ops := []interface{}{}
+	ops = append(ops,createOP)
+	signedTrx, err := createSigTrx(ops, headBlockID, headTime)
 	if err != nil {
 		t.Error("createSigTrx error:", err)
 	}
@@ -184,7 +191,10 @@ func TestController_GenerateAndApplyBlock(t *testing.T) {
 	headBlockID := c.GetProps().GetHeadBlockId()
 	headTime := c.GetProps().Time.UtcSeconds;
 	headTime += 20;
-	signedTrx, err := createSigTrx(createOP, headBlockID, headTime)
+
+	ops := []interface{}{}
+	ops = append(ops,createOP)
+	signedTrx, err := createSigTrx(ops, headBlockID, headTime)
 	if err != nil {
 		t.Error("createSigTrx error:", err)
 	}
@@ -208,7 +218,7 @@ func TestController_GenerateAndApplyBlock(t *testing.T) {
 	pre := &prototype.Sha256{Hash: make([]byte,32)}
 	block,err := c.GenerateAndApplyBlock(constants.INIT_MINER_NAME, pre, 18, pri, 0)
 	dgpWrap := table.NewSoGlobalWrap(db,&SingleId)
-	mustSuccess(block.Id().BlockNum() == dgpWrap.GetProps().HeadBlockNumber,"block number error")
+	mustSuccess(block.Id().BlockNum() == dgpWrap.GetProps().HeadBlockNumber,"block number error",prototype.StatusError)
 	bobWrap2 := table.NewSoAccountWrap(db, bobName)
 	if !bobWrap2.CheckExist() {
 		t.Error("create account failed")
@@ -231,7 +241,9 @@ func Test_list(t *testing.T) {
 	headBlockID := c.GetProps().GetHeadBlockId()
 	headTime := c.GetProps().Time.UtcSeconds;
 	headTime += 20;
-	signedTrx, err := createSigTrx(acop, headBlockID, headTime)
+	ops := []interface{}{}
+	ops = append(ops,acop)
+	signedTrx, err := createSigTrx(ops, headBlockID, headTime)
 	if err != nil {
 		t.Error("createSigTrx error:", err)
 	}
@@ -281,7 +293,7 @@ func TestController_GetWitnessTopN(t *testing.T) {
 		tInfo.CreatedTime = &prototype.TimePointSec{UtcSeconds: 0}
 		tInfo.SigningKey = &prototype.PublicKeyType{Data: []byte{1}}
 		tInfo.LastWork = &prototype.Sha256{Hash: []byte{0}}
-	}), "Witness Create Error")
+	}), "Witness Create Error",prototype.StatusError)
 
 	name2 := &prototype.AccountName{Value: "wit2"}
 	witnessWrap2 := table.NewSoWitnessWrap(db, name2)
@@ -291,7 +303,7 @@ func TestController_GetWitnessTopN(t *testing.T) {
 		tInfo.CreatedTime = &prototype.TimePointSec{UtcSeconds: 0}
 		tInfo.SigningKey = &prototype.PublicKeyType{Data: []byte{2}}
 		tInfo.LastWork = &prototype.Sha256{Hash: []byte{0}}
-	}), "Witness Create Error")
+	}), "Witness Create Error",prototype.StatusError)
 
 	witnesses := c.GetWitnessTopN(10)
 
@@ -314,7 +326,9 @@ func TestController_PopBlock(t *testing.T) {
 	headBlockID := c.GetProps().GetHeadBlockId()
 	headTime := c.GetProps().Time.UtcSeconds;
 	headTime += 20;
-	signedTrx, err := createSigTrx(createOP, headBlockID, headTime)
+	ops := []interface{}{}
+	ops = append(ops,createOP)
+	signedTrx, err := createSigTrx(ops, headBlockID, headTime)
 	if err != nil {
 		t.Error("createSigTrx error:", err)
 	}
@@ -333,7 +347,9 @@ func TestController_PopBlock(t *testing.T) {
 	headBlockID2 := c.GetProps().GetHeadBlockId()
 	headTime2 := c.GetProps().Time.UtcSeconds;
 	headTime2 += 20;
-	signedTrx2, err := createSigTrx(createOP2, headBlockID2, headTime2)
+
+	ops[0] = createOP2
+	signedTrx2, err := createSigTrx(ops, headBlockID2, headTime2)
 	if err != nil {
 		t.Error("createSigTrx error:", err)
 	}
@@ -355,13 +371,13 @@ func TestController_PopBlock(t *testing.T) {
 	}
 
 
-	c.PopBlockTo(block2.Id().BlockNum())
+	c.PopBlock(block2.Id().BlockNum())
 	tomNoExistWrap := table.NewSoAccountWrap(db, tomName)
 	if tomNoExistWrap.CheckExist() || c.GetProps().HeadBlockNumber != 1 { // need check c.dgpo.HeadBlockNumber
 		t.Error("pop block error")
 	}
 
-	c.PopBlockTo(block.Id().BlockNum())
+	c.PopBlock(block.Id().BlockNum())
 	bobNoExistWrap := table.NewSoAccountWrap(db, bobName)
 	if bobNoExistWrap.CheckExist() || c.GetProps().HeadBlockNumber != 0 { // need check c.dgpo.HeadBlockNumber
 		t.Error("pop block error")
@@ -383,7 +399,9 @@ func TestController_Commit(t *testing.T) {
 	headBlockID := c.GetProps().GetHeadBlockId()
 	headTime := c.GetProps().Time.UtcSeconds;
 	headTime += 20;
-	signedTrx, err := createSigTrx(createOP, headBlockID, headTime)
+	ops := []interface{}{}
+	ops = append(ops,createOP)
+	signedTrx, err := createSigTrx(ops, headBlockID, headTime)
 	if err != nil {
 		t.Error("createSigTrx error:", err)
 	}
@@ -402,7 +420,9 @@ func TestController_Commit(t *testing.T) {
 	headBlockID2 := c.GetProps().GetHeadBlockId()
 	headTime2 := c.GetProps().Time.UtcSeconds;
 	headTime2 += 20;
-	signedTrx2, err := createSigTrx(createOP2, headBlockID2, headTime2)
+
+	ops[0] = createOP2
+	signedTrx2, err := createSigTrx(ops, headBlockID2, headTime2)
 	if err != nil {
 		t.Error("createSigTrx error:", err)
 	}
@@ -439,5 +459,90 @@ func TestController_Commit(t *testing.T) {
 			t.Error("pop a irreversible block but no panic")
 		}
 	}()
-	c.PopBlockTo(1)
+	c.PopBlock(1)
+}
+
+func Test_MixOp(t *testing.T) {
+
+	db := startDB()
+	defer clearDB(db)
+	c := startController(db)
+
+	// deploy contract
+	data, _ := ioutil.ReadFile("./test_data/hello.wasm")
+	abi, _ := ioutil.ReadFile("./test_data/hello.abi")
+	deployOp := &prototype.ContractDeployOperation{
+		Owner:    &prototype.AccountName{Value: "initminer"},
+		Contract: "hello",
+		Abi:      string(abi),
+		Code:     data,
+	}
+	ops := []interface{}{}
+	ops = append(ops,deployOp)
+
+	headBlockID2 := c.GetProps().GetHeadBlockId()
+	headTime2 := c.GetProps().Time.UtcSeconds;
+	headTime2 += 20;
+	signedTrx, err := createSigTrx(ops, headBlockID2, headTime2)
+	if err != nil {
+		t.Error("createSigTrx error:", err)
+	}
+
+	invoice := c.PushTrx(signedTrx)
+	if invoice.Status != prototype.StatusSuccess {
+		t.Error("PushTrx return status error:", invoice.Status)
+	}
+
+	// first op : call contract
+	applyOp := &prototype.ContractApplyOperation{
+		Caller:   &prototype.AccountName{Value: "initminer"},
+		Owner:    &prototype.AccountName{Value: "initminer"},
+		Contract: "hello",
+		Method: "hi",
+		Params: "[\"contentos\"]",
+		//Amount:   &prototype.Coin{Value: 1000},
+		Gas:      &prototype.Coin{Value: 300000},
+	}
+
+	ops = ops[:0]
+	ops = append(ops,applyOp)
+
+	//
+	miner := &prototype.AccountName{Value: "initminer"}
+	minerWrap := table.NewSoAccountWrap(db, miner)
+	b := minerWrap.GetBalance()
+	t.Log("before initminer balance:",b.Value)
+	//
+
+	const value = 1000000000
+	// second op : transfer to a invalid account, should failed
+	transOp := &prototype.TransferOperation{
+		From:   &prototype.AccountName{Value: "initminer"},
+		To:     &prototype.AccountName{Value: "someone"},
+		Amount: prototype.NewCoin(value),
+	}
+	ops = append(ops,transOp)
+
+	signedTrx2, err := createSigTrx(ops, headBlockID2, headTime2)
+	if err != nil {
+		t.Error("createSigTrx error:", err)
+	}
+
+	invoice2 := c.PushTrx(signedTrx2)
+	if invoice2.Status != prototype.StatusSuccess &&  invoice2.Status != prototype.StatusDeductGas{
+		t.Error("PushTrx return status error:", invoice2.Status)
+	}
+
+	//
+	minerWrap2 := table.NewSoAccountWrap(db, miner)
+	b2 := minerWrap2.GetBalance()
+	t.Log("after initminer balance:",b2.Value)
+	//
+
+	// right result:
+	// 1. gas should be deduct
+	// 2. transfer should be revert
+	if b.Value <= b2.Value && b2.Value > b.Value - value{
+		t.Error("gas error or db error")
+	}
 }

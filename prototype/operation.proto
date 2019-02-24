@@ -120,3 +120,7 @@ message claim_operation {
     uint64 amount = 2;
 }
 
+message stake_operation{
+    account_name account = 1;
+    uint64 amount = 2;
+}

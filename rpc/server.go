@@ -66,6 +66,7 @@ func (gs *GRPCServer) Start(node *node.Node) error {
 	}
 
 	gs.api.mainLoop = node.MainLoop
+	gs.api.eBus = node.EvBus
 
 	err = gs.startGRPC()
 	if err != nil {
@@ -74,11 +75,12 @@ func (gs *GRPCServer) Start(node *node.Node) error {
 		gs.log.Infof("GPRC Server Start [ %s ]", gs.config.RPCListen)
 	}
 
-	err = gs.startGateway()
+
+	err = gs.startWebProxy()
 	if err != nil {
 		return err
 	} else {
-		gs.log.Infof("Gateway Server Start [ %s ]", gs.config.HTTPListen)
+		gs.log.Infof("WebProxy Server Start [ %s ]", gs.config.HTTPListen)
 	}
 
 	return nil
@@ -108,13 +110,21 @@ func (gs *GRPCServer) Stop() error {
 	return nil
 }
 
-func (gs *GRPCServer) startGateway() error {
+func (gs *GRPCServer) startWebProxy() error {
 	go func() {
-		if err := Run(gs.config); err != nil {
-			gs.log.Error("rpc gateway start failure")
+		if err := RunWebProxy(gs.rpcServer, gs.config); err != nil {
+			gs.log.Error("rpc WebProxy start success")
 		} else {
-			gs.log.Info("rpc gateway start failure")
+			gs.log.Info("rpc WebProxy start failure")
 		}
 	}()
 	return nil
+}
+
+func Dial(target string) (*grpc.ClientConn, error) {
+	conn, err := grpc.Dial(target, grpc.WithInsecure())
+	if err != nil {
+		//logging.VLog().Error("rpc.Dial() failed: ", err)
+	}
+	return conn, err
 }

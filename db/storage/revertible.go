@@ -26,6 +26,7 @@ type RevertibleDatabase struct {
 	db   Database
 	rev  revNumber
 	tag  revTags
+	enable_rev bool
 	lock sync.RWMutex
 }
 
@@ -69,11 +70,35 @@ func NewRevertibleDatabase(db Database) *RevertibleDatabase {
 
 	rdb.loadRevNum()
 	rdb.loadRevTags()
+	rdb.enable_rev = true
 	return &rdb
 }
 
 func keyOfReversionOp(rev uint64) []byte {
 	return []byte(fmt.Sprintf("%s%016x", rev_op_prefix, ^rev))
+}
+
+func (db *RevertibleDatabase) EnableReversion(b bool) error {
+	db.lock.Lock()
+	defer db.lock.Unlock()
+
+	if db.enable_rev == b {
+		return nil
+	}
+	if !b {
+		if err := db.rebaseToRevision(db.rev.Current); err != nil {
+			return err
+		}
+	}
+	db.enable_rev = b
+	return nil
+}
+
+func (db *RevertibleDatabase) ReversionEnabled() bool {
+	db.lock.RLock()
+	defer db.lock.RUnlock()
+
+	return db.enable_rev
 }
 
 func (db *RevertibleDatabase) GetRevision() uint64 {
@@ -88,10 +113,7 @@ func (db *RevertibleDatabase) GetRevisionAndBase() (current uint64, base uint64)
 	return db.rev.Current, db.rev.Base
 }
 
-func (db *RevertibleDatabase) RevertToRevision(r uint64) error {
-	db.lock.Lock()
-	defer db.lock.Unlock()
-
+func (db *RevertibleDatabase) revertToRevision(r uint64) error {
 	if r > db.rev.Current {
 		return errors.New(fmt.Sprintf("cannot revert to a future revision %d. current revision is %d",
 			r, db.rev.Current))
@@ -148,10 +170,16 @@ func (db *RevertibleDatabase) RevertToRevision(r uint64) error {
 	return err
 }
 
-func (db *RevertibleDatabase) RebaseToRevision(r uint64) error {
+func (db *RevertibleDatabase) RevertToRevision(r uint64) error {
 	db.lock.Lock()
 	defer db.lock.Unlock()
+	if !db.enable_rev {
+		return errors.New("reversion is not enabled")
+	}
+	return db.revertToRevision(r)
+}
 
+func (db *RevertibleDatabase) rebaseToRevision(r uint64) error {
 	if r > db.rev.Current {
 		return errors.New(fmt.Sprintf("cannot rebase to a future revision %d. current revision is %d",
 			r, db.rev.Current))
@@ -195,6 +223,12 @@ func (db *RevertibleDatabase) RebaseToRevision(r uint64) error {
 	return err
 }
 
+func (db *RevertibleDatabase) RebaseToRevision(r uint64) error {
+	db.lock.Lock()
+	defer db.lock.Unlock()
+	return db.rebaseToRevision(r)
+}
+
 func (db *RevertibleDatabase) Close() {
 
 }
@@ -235,6 +269,9 @@ func (db *RevertibleDatabase) Put(key []byte, value []byte) error {
 	db.lock.Lock()
 	defer db.lock.Unlock()
 
+	if !db.enable_rev {
+		return db.db.Put(key, value)
+	}
 	return db.put(key, value)
 }
 
@@ -259,6 +296,9 @@ func (db *RevertibleDatabase) Delete(key []byte) error {
 	db.lock.Lock()
 	defer db.lock.Unlock()
 
+	if !db.enable_rev {
+		return db.db.Delete(key)
+	}
 	return db.delete(key)
 }
 
@@ -297,6 +337,18 @@ func (b *revdbBatch) Write() error {
 	b.shrink()
 	opCount := len(b.op)
 	if opCount > 0 {
+
+		if !b.db.enable_rev {
+			for _, op := range b.op {
+				if op.Del {
+					batch.Delete(op.Key)
+				} else {
+					batch.Put(op.Key, op.Value)
+				}
+			}
+			return batch.Write()
+		}
+
 		reverts, reverts_idx := make([]writeOp, opCount), opCount - 1
 		for _, op := range b.op {
 			oldValue, err := b.db.db.Get(op.Key)

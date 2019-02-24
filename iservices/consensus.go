@@ -20,6 +20,8 @@ type IConsensus interface {
 	// PushTransaction accepts the trx
 	PushTransaction(trx common.ISignedTransaction, wait bool, broadcast bool) common.ITransactionReceiptWithInfo
 
+	//Add transaction to pending list,the transaction will be applied when generate a block
+	PushTransactionToPending(trx common.ISignedTransaction, callBack func(err error))
 	// PushBlock adds b to the block fork DB, called if ValidateBlock returns true
 	PushBlock(b common.ISignedBlock)
 
@@ -31,6 +33,8 @@ type IConsensus interface {
 	// e.g. if user uses bft to achieve fast ack, @evidence can simply be the collection
 	// of the vote message
 	GetLastBFTCommit() (evidence interface{})
+
+	GetNextBFTCheckPoint(blockNum uint64) (evidence interface{})
 
 	// GetHeadBlockId returns the block id of the head block
 	GetHeadBlockId() common.BlockID
@@ -53,6 +57,8 @@ type IConsensus interface {
 
 	// ResetTicker reset the Ticker in DPoS
 	ResetTicker(t time.Time)
+
+	GetLIB() common.BlockID
 
 	// MaybeProduceBlock check whether should produce a block
 	MaybeProduceBlock()
