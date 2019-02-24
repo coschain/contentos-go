@@ -105,6 +105,12 @@ type InternalContractApplyEvaluator struct {
 	op  *prototype.InternalContractApplyOperation
 }
 
+type StakeEvaluator struct {
+	BaseEvaluator
+	ctx *ApplyContext
+	op *prototype.StakeOperation
+}
+
 func (ev *AccountCreateEvaluator) Apply() {
 	op := ev.op
 	creatorWrap := table.NewSoAccountWrap(ev.ctx.db, op.Creator)
@@ -660,4 +666,22 @@ func (ev *InternalContractApplyEvaluator) Apply() {
 		ev.ctx.db.EndTransaction(true)
 		vmCtx.Injector.RecordGasFee(op.FromCaller.Value, spentGas)
 	}
+}
+
+func (ev *StakeEvaluator) Apply() {
+	op := ev.op
+
+	accountWrap := table.NewSoAccountWrap(ev.ctx.db, op.Account)
+
+	value := &prototype.Coin{Value:op.Amount}
+
+	fBalance := accountWrap.GetBalance()
+	mustNoError(fBalance.Sub(value), "Insufficient balance to transfer.", prototype.StatusErrorTrxMath)
+	mustSuccess(accountWrap.MdBalance(fBalance), "modify balance failed",prototype.StatusErrorDbUpdate)
+
+	vest := accountWrap.GetVestingShares()
+	mustNoError(vest.Add(value.ToVest()),"vesting over flow.",prototype.StatusErrorTrxMath)
+	mustSuccess(accountWrap.MdVestingShares(vest),"modify vesting failed",prototype.StatusErrorDbUpdate)
+
+	ev.ctx.control.TransferToVest(value) // if failed ?
 }
