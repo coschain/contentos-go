@@ -268,7 +268,9 @@ func (sabft *SABFT) shuffle(head common.ISignedBlock) {
 }
 
 func (sabft *SABFT) restoreProducers() {
-	sabft.validators = sabft.makeValidators(sabft.ctrl.GetShuffledWitness())
+	prods := sabft.ctrl.GetShuffledWitness()
+	sabft.validators = sabft.makeValidators(prods)
+	sabft.log.Info("active producers: ", prods)
 }
 
 func (sabft *SABFT) ActiveProducers() []string {
@@ -385,14 +387,10 @@ func (sabft *SABFT) revertToLastCheckPoint() {
 	sabft.ForkDB = forkdb.NewDB()
 	if popNum > 1 {
 		sabft.ForkDB.PushBlock(lastCommittedBlock)
+		sabft.ForkDB.Commit(lastCommittedID)
 	}
 
 	sabft.log.Infof("[checkpoint] revert to last committed block %d.", popNum-1)
-	validatorNames := ""
-	for i := range sabft.validators {
-		validatorNames += sabft.validators[i].accountName + " "
-	}
-	sabft.log.Info("[checkpoint] active producers: ", validatorNames)
 }
 
 func (sabft *SABFT) start() {
@@ -468,9 +466,9 @@ func (sabft *SABFT) generateAndApplyBlock() (common.ISignedBlock, error) {
 		prev.Hash = make([]byte, 32)
 	}
 	//sabft.log.Debugf("generating block. <prev %v>, <ts %d>", prev.Hash, ts)
-	//sabft.log.Info("about to generateAndApplyBlock ", time.Now())
+	sabft.log.Info("about to generateAndApplyBlock ", time.Now())
 	b, err := sabft.ctrl.GenerateAndApplyBlock(sabft.Name, prev, uint32(ts), sabft.priv.privKey, prototype.Skip_nothing)
-	//sabft.log.Info("generateAndApplyBlock done ", time.Now())
+	sabft.log.Info("generateAndApplyBlock done ", time.Now())
 	return b, err
 }
 
@@ -870,9 +868,13 @@ func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 		}
 	}
 
+	sabft.log.Info(" storage commit")
 	sabft.ctrl.Commit(blockID.BlockNum())
+	sabft.log.Info(" storage commit done..")
 
+	sabft.log.Info(" ForkDB commit")
 	sabft.ForkDB.Commit(blockID)
+	sabft.log.Info(" ForkDB commit done...")
 
 	sabft.appState.LastHeight = commitRecords.FirstPrecommit().Height
 	sabft.appState.LastProposedData = commitRecords.ProposedData
