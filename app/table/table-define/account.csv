@@ -7,7 +7,8 @@ prototype.vest           ,vesting_shares,0   ,0     ,1   ,0          ,prototype/
 uint32                   ,bp_vote_count ,0   ,0     ,1   ,0          ,
 prototype.time_point_sec ,last_vote_time ,0   ,0     ,0   ,0          ,prototype/type.proto
 prototype.time_point_sec ,last_post_time ,0   ,0     ,0   ,0          ,prototype/type.proto
-uint32                   ,vote_power,0   ,0     ,0   ,0          ,
-
-
-
+uint32                   ,vote_power     ,0   ,0    ,0    ,0          ,
+uint64                   ,stamina        ,0  ,0    ,0    ,0          ,
+uint64                   ,stamina_use_block ,0   ,0   ,0   ,0         ,
+uint64                   ,stamina_free    ,0   ,0    ,0     ,0         ,
+uint64                   ,stamina_free_use_block ,0   ,0   ,0   ,0     ,

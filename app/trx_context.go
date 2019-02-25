@@ -6,7 +6,13 @@ import (
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
+	"github.com/coschain/contentos-go/utils"
 	"github.com/coschain/contentos-go/vm/injector"
+)
+
+const (
+	netConsumePoint = 10
+	cpuConsumePoint = 1
 )
 
 type TrxContext struct {
@@ -17,10 +23,11 @@ type TrxContext struct {
 	recoverPubs []*prototype.PublicKeyType
 	control     iservices.ITrxPool
 	gasMap		map[string]uint64
+	stakeLimiter	*utils.StakeManager
 }
 
 func NewTrxContext(wrapper *prototype.EstimateTrxResult, db iservices.IDatabaseService, control iservices.ITrxPool) *TrxContext {
-	return &TrxContext{Wrapper: wrapper, db: db, control: control, gasMap:make(map[string]uint64) }
+	return &TrxContext{Wrapper: wrapper, db: db, control: control, gasMap:make(map[string]uint64), stakeLimiter:utils.NewStakeManager(db) }
 }
 
 func (p *TrxContext) InitSigState(cid prototype.ChainId) error {
@@ -30,6 +37,16 @@ func (p *TrxContext) InitSigState(cid prototype.ChainId) error {
 	}
 	p.recoverPubs = append(p.recoverPubs, pubs...)
 	return nil
+}
+
+func (p *TrxContext) CheckNet(sizeInBytes uint64) {
+	keyMaps := obtainKeyMap(p.Wrapper.SigTrx.Trx.Operations)
+	netUse := sizeInBytes * netConsumePoint
+	for name := range keyMaps {
+		if !p.stakeLimiter.Consume(name,netUse,p.control.GetProps().HeadBlockNumber) {
+			mustSuccess(false,"net resource not enough",prototype.StatusError)
+		}
+	}
 }
 
 func (p *TrxContext) VerifySignature() {
@@ -96,6 +113,20 @@ func (p *TrxContext) DeductAllGasFee() bool {
 		balance := acc.GetBalance().Value
 		mustSuccess(spent <= balance,fmt.Sprintf("Endanger deduction Operation: %s, %d", caller, spent),prototype.StatusErrorTrxValueCompare)
 		acc.MdBalance(&prototype.Coin{Value: balance - spent})
+		useGas = true
+	}
+	return useGas
+}
+
+func (p *TrxContext) DeductAllStamina() bool {
+
+	useGas := false
+	for caller,spent := range p.gasMap {
+		cpuUse := spent * cpuConsumePoint
+		if !p.stakeLimiter.Consume(caller,cpuUse,p.control.GetProps().HeadBlockNumber) {
+			// never failed ?
+			p.stakeLimiter.ConsumeLeft(caller,p.control.GetProps().HeadBlockNumber)
+		}
 		useGas = true
 	}
 	return useGas

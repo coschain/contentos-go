@@ -1,5 +1,11 @@
 package utils
 
+import (
+	"github.com/coschain/contentos-go/app/table"
+	"github.com/coschain/contentos-go/iservices"
+	"github.com/coschain/contentos-go/prototype"
+)
+
 type IConsumer interface {
 	Consume(name string, num uint64, now uint64) bool
 }
@@ -26,20 +32,20 @@ type IFreeManager interface {
 
 // StakeManager impl all IStakeManager's api
 type StakeManager struct {
-
+	db      iservices.IDatabaseService
 }
 
-func NewStakeManager() *StakeManager {
-	return &StakeManager{}
+func NewStakeManager(db iservices.IDatabaseService) *StakeManager {
+	return &StakeManager{db:db}
 }
 
 // FreeManager impl all IFreeManager's api
 type FreeManager struct {
-
+	db      iservices.IDatabaseService
 }
 
-func NewFreeManager() *FreeManager {
-	return &FreeManager{}
+func NewFreeManager(db iservices.IDatabaseService) *FreeManager {
+	return &FreeManager{db:db}
 }
 
 /* below is pseudo code */
@@ -95,73 +101,101 @@ func (s *StakeManager) ReleaseCos(name string, cos uint64) bool {
 }
 
 func (s *StakeManager) Get(name string) uint64{
-	/*  1.get account resource from db
-			2.return resource.cpu
-		*/
-		if _,ok := db[name];!ok {
-			return 0
-		}
-		return db[name].stamina
+	accountWrap := table.NewSoAccountWrap(s.db, &prototype.AccountName{Value:name})
+	if !accountWrap.CheckExist() {
+		return 0
+	}
+	return accountWrap.GetStamina()
 }
 
-func (c *StakeManager) GetCapacity(name string) uint64 {
-	return calculateUserMaxStamina(name)
+func (s *StakeManager) GetCapacity(name string) uint64 {
+	return s.calculateUserMaxStamina(name)
 }
 
-func (c *StakeManager) Consume(name string, num uint64, now uint64) bool {
-	/*  1.get account resource from db
-			2.resource.cpu -= num
-			3.resource.cpu = min(resource.cpu,0)
-			3.if (resource.cpu - num >= 0) return true else return false
-		*/
-	if _,ok := db[name];!ok {
+var SINGLE int32 = 1
+func (s *StakeManager) calculateUserMaxStamina(name string) uint64 {
+	accountWrap := table.NewSoAccountWrap(s.db, &prototype.AccountName{Value:name})
+	if !accountWrap.CheckExist() {
+		return 0
+	}
+	dgpWrap := table.NewSoGlobalWrap(s.db,&SINGLE)
+
+	userMax := float64(accountWrap.GetVestingShares().Value * CHAIN_STAMINA)/float64(dgpWrap.GetProps().TotalVestingShares.Value)
+	return uint64(userMax)
+}
+
+func (s *StakeManager) Consume(name string, num uint64, now uint64) bool {
+	accountWrap := table.NewSoAccountWrap(s.db, &prototype.AccountName{Value:name})
+	if !accountWrap.CheckExist() {
 		return false
 	}
-	a,_ := db[name]
-	newStamina := calculateNewStamina(a.stamina,0,a.staminaUseTime,now)
-	maxStamina := calculateUserMaxStamina(a.name)
+
+	newStamina := calculateNewStamina(accountWrap.GetStamina(),0,accountWrap.GetStaminaUseBlock(),now)
+	maxStamina := s.calculateUserMaxStamina(name)
 	if maxStamina - newStamina < num {
 		return false
 	}
 	newStamina = calculateNewStamina(newStamina,num,now,now)
 
-	db[name].stamina = newStamina
-	db[name].staminaUseTime = now
+	accountWrap.MdStamina(newStamina)
+	accountWrap.MdStaminaUseBlock(now)
+	return true
+}
+
+func (s *StakeManager) ConsumeLeft(name string, now uint64) bool {
+	accountWrap := table.NewSoAccountWrap(s.db, &prototype.AccountName{Value:name})
+	if !accountWrap.CheckExist() {
+		return false
+	}
+
+	maxStamina := s.calculateUserMaxStamina(name)
+
+	accountWrap.MdStamina(maxStamina)
+	accountWrap.MdStaminaUseBlock(now)
 	return true
 }
 
 // FreeManager implemention
 func (f *FreeManager) Consume(name string,num uint64, now uint64) bool {
-	/*  1.get account resource from db
-		2.resource.cpuFree -= num
-		3.resource.cpuFree = min(resource.cpuFree,0)
-		3.if (resource.cpuFree - num >= 0) return true else return false
-	*/
-	if _,ok := db[name];!ok {
+	accountWrap := table.NewSoAccountWrap(f.db, &prototype.AccountName{Value:name})
+	if !accountWrap.CheckExist() {
 		return false
 	}
-	a,_ := db[name]
-	newFreeStamina := calculateNewStamina(a.staminaFree,0,a.staminaFreeUseTime,now)
+	newFreeStamina := calculateNewStamina(accountWrap.GetStaminaFree(),0,accountWrap.GetStaminaFreeUseBlock(),now)
 	if uint64(FREE_STAMINA) - newFreeStamina < num {
 		return false
 	}
 	newFreeStamina = calculateNewStamina(newFreeStamina,num,now,now)
 
-	db[name].staminaFree = newFreeStamina
-	db[name].staminaFreeUseTime = now
+	accountWrap.MdStaminaFree(newFreeStamina)
+	accountWrap.MdStaminaFreeUseBlock(now)
 	return true
 }
 
 func (f *FreeManager) Get(name string) uint64 {
-	/*  1.get account resource from db
-		2.return resource.cpuFree
-	*/
-	if _,ok := db[name];!ok {
+	accountWrap := table.NewSoAccountWrap(f.db, &prototype.AccountName{Value:name})
+	if !accountWrap.CheckExist() {
 		return 0
 	}
-	return db[name].staminaFree
+	return accountWrap.GetStaminaFree()
 }
 
-func (c *FreeManager) GetCapacity(name string) uint64 {
+func (f *FreeManager) GetCapacity(name string) uint64 {
 	return FREE_STAMINA
+}
+
+func calculateNewStamina(oldStamina uint64, useStamina uint64, lastTime uint64, now uint64) uint64 {
+	blocks := uint64(RECOVER_WINDOW/3)
+	if now > lastTime { // assert ?
+		if now < lastTime + blocks {
+			delta := now - lastTime
+			decay := float64(blocks - delta) / float64(blocks)
+			newStamina := float64(oldStamina) * decay
+			oldStamina = uint64(newStamina)
+		} else {
+			oldStamina = 0
+		}
+	}
+	oldStamina += useStamina
+	return oldStamina
 }

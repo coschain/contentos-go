@@ -224,6 +224,9 @@ func (c *TrxPool) pushTrx(trx *prototype.SignedTransaction) (ret *prototype.Tran
 	// start a sub undo session for transaction
 	c.db.BeginTransaction()
 
+	// check net resource
+	trxContext.CheckNet(uint64(proto.Size(trx)))
+
 	c.applyTransactionInner(trxEst,true,trxContext)
 	c.pendingTx = append(c.pendingTx, trxEst)
 
@@ -431,6 +434,8 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 			}()
 
 			c.db.BeginTransaction()
+			// check net resource
+			trxContext.CheckNet(uint64(proto.Size(trxWraper.SigTrx)))
 			c.applyTransactionInner(trxWraper,false,trxContext)
 			mustNoError(c.db.EndTransaction(true), "EndTransaction error",prototype.StatusErrorDbEndTrx)
 			totalSize += uint32(proto.Size(trxWraper))
@@ -701,7 +706,8 @@ func (c *TrxPool) PayGas(trxContext *TrxContext) (i interface{}) {
 		}
 	}()
 	c.db.BeginTransaction()
-	trxContext.DeductAllGasFee()
+	//trxContext.DeductAllGasFee()
+	trxContext.DeductAllStamina()
 	mustNoError(c.db.EndTransaction(true), "EndTransaction error",prototype.StatusErrorDbEndTrx)
 	return
 }
