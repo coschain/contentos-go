@@ -26,6 +26,7 @@ var (
 	AccountLastPostTimeCell        uint32 = 3226532373
 	AccountLastVoteTimeCell        uint32 = 1980371646
 	AccountNameCell                uint32 = 1725869739
+	AccountStakeVestingCell        uint32 = 1603133992
 	AccountStaminaCell             uint32 = 674022235
 	AccountStaminaFreeCell         uint32 = 676517039
 	AccountStaminaFreeUseBlockCell uint32 = 985510361
@@ -467,6 +468,9 @@ func (s *SoAccountWrap) getMemKeyPrefix(fName string) uint32 {
 	if fName == "Name" {
 		return AccountNameCell
 	}
+	if fName == "StakeVesting" {
+		return AccountStakeVestingCell
+	}
 	if fName == "Stamina" {
 		return AccountStaminaCell
 	}
@@ -565,6 +569,13 @@ func (s *SoAccountWrap) saveAllMemKeys(tInfo *SoAccount, br bool) error {
 			return err
 		} else {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Name", err)
+		}
+	}
+	if err = s.saveMemKeyStakeVesting(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "StakeVesting", err)
 		}
 	}
 	if err = s.saveMemKeyStamina(tInfo); err != nil {
@@ -1222,6 +1233,89 @@ func (s *SoAccountWrap) GetName() *prototype.AccountName {
 
 	}
 	return msg.Name
+}
+
+func (s *SoAccountWrap) saveMemKeyStakeVesting(tInfo *SoAccount) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemAccountByStakeVesting{}
+	val.StakeVesting = tInfo.StakeVesting
+	key, err := s.encodeMemKey("StakeVesting")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
+
+func (s *SoAccountWrap) GetStakeVesting() *prototype.Vest {
+	res := true
+	msg := &SoMemAccountByStakeVesting{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("StakeVesting")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.StakeVesting
+			}
+		}
+	}
+	if !res {
+		return nil
+
+	}
+	return msg.StakeVesting
+}
+
+func (s *SoAccountWrap) MdStakeVesting(p *prototype.Vest) bool {
+	if s.dba == nil {
+		return false
+	}
+	key, err := s.encodeMemKey("StakeVesting")
+	if err != nil {
+		return false
+	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemAccountByStakeVesting{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoAccount{}
+	sa.Name = s.mainKey
+
+	sa.StakeVesting = ori.StakeVesting
+
+	ori.StakeVesting = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
+		return false
+	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.StakeVesting = p
+
+	return true
 }
 
 func (s *SoAccountWrap) saveMemKeyStamina(tInfo *SoAccount) error {

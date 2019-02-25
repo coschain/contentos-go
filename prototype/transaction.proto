@@ -25,6 +25,7 @@ message operation{
         contract_apply_operation op14 = 14;
         contract_estimate_apply_operation op15=15;
         stake_operation op16 = 16;
+        un_stake_operation op17 = 17;
     }
 }
 

@@ -124,3 +124,8 @@ message stake_operation{
     account_name account = 1;
     uint64 amount = 2;
 }
+
+message un_stake_operation{
+    account_name account = 1;
+    uint64 amount = 2;
+}

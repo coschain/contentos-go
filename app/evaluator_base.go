@@ -81,6 +81,9 @@ func GetBaseEvaluator(ctx *ApplyContext, op *prototype.Operation) BaseEvaluator 
 	case *prototype.Operation_Op16:
 		eva := &StakeEvaluator{ctx: ctx, op: op.GetOp16()}
 		return BaseEvaluator(eva)
+	case *prototype.Operation_Op17:
+		eva := &UnStakeEvaluator{ctx: ctx, op: op.GetOp17()}
+		return BaseEvaluator(eva)
 
 	default:
 		e := &prototype.Exception{HelpString:"no matchable evaluator",ErrorType:prototype.StatusErrorTrxTypeCast}

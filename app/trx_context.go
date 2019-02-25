@@ -23,11 +23,12 @@ type TrxContext struct {
 	recoverPubs []*prototype.PublicKeyType
 	control     iservices.ITrxPool
 	gasMap		map[string]uint64
+	netMap      map[string]uint64
 	stakeLimiter	*utils.StakeManager
 }
 
 func NewTrxContext(wrapper *prototype.EstimateTrxResult, db iservices.IDatabaseService, control iservices.ITrxPool) *TrxContext {
-	return &TrxContext{Wrapper: wrapper, db: db, control: control, gasMap:make(map[string]uint64), stakeLimiter:utils.NewStakeManager(db) }
+	return &TrxContext{Wrapper: wrapper, db: db, control: control, gasMap:make(map[string]uint64), netMap:make(map[string]uint64),stakeLimiter:utils.NewStakeManager(db) }
 }
 
 func (p *TrxContext) InitSigState(cid prototype.ChainId) error {
@@ -43,8 +44,11 @@ func (p *TrxContext) CheckNet(sizeInBytes uint64) {
 	keyMaps := obtainKeyMap(p.Wrapper.SigTrx.Trx.Operations)
 	netUse := sizeInBytes * netConsumePoint
 	for name := range keyMaps {
-		if !p.stakeLimiter.Consume(name,netUse,p.control.GetProps().HeadBlockNumber) {
+		if !p.stakeLimiter.Check(name,netUse,p.control.GetProps().HeadBlockNumber) {
+			p.netMap = make(map[string]uint64)
 			mustSuccess(false,"net resource not enough",prototype.StatusError)
+		} else {
+			p.netMap[name] = sizeInBytes
 		}
 	}
 }
@@ -118,8 +122,16 @@ func (p *TrxContext) DeductAllGasFee() bool {
 	return useGas
 }
 
-func (p *TrxContext) DeductAllStamina() bool {
+func (p *TrxContext) DeductAllNet() {
+	for caller,spent := range p.netMap {
+		netUse := spent * netConsumePoint
+		if !p.stakeLimiter.Consume(caller,netUse,p.control.GetProps().HeadBlockNumber) {
+			p.stakeLimiter.ConsumeLeft(caller,p.control.GetProps().HeadBlockNumber)
+		}
+	}
+}
 
+func (p *TrxContext) DeductAllCpu() bool {
 	useGas := false
 	for caller,spent := range p.gasMap {
 		cpuUse := spent * cpuConsumePoint

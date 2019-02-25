@@ -223,10 +223,6 @@ func (c *TrxPool) pushTrx(trx *prototype.SignedTransaction) (ret *prototype.Tran
 
 	// start a sub undo session for transaction
 	c.db.BeginTransaction()
-
-	// check net resource
-	trxContext.CheckNet(uint64(proto.Size(trx)))
-
 	c.applyTransactionInner(trxEst,true,trxContext)
 	c.pendingTx = append(c.pendingTx, trxEst)
 
@@ -434,8 +430,6 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 			}()
 
 			c.db.BeginTransaction()
-			// check net resource
-			trxContext.CheckNet(uint64(proto.Size(trxWraper.SigTrx)))
 			c.applyTransactionInner(trxWraper,false,trxContext)
 			mustNoError(c.db.EndTransaction(true), "EndTransaction error",prototype.StatusErrorDbEndTrx)
 			totalSize += uint32(proto.Size(trxWraper))
@@ -525,6 +519,7 @@ func (c *TrxPool) applyTransactionInner(trxEst *prototype.EstimateTrxResult,isNe
 
 	defer func() {
 		c.db.Unlock()
+
 		useGas := trxContext.HasGasFee()
 		if err := recover(); err != nil {
 
@@ -542,6 +537,9 @@ func (c *TrxPool) applyTransactionInner(trxEst *prototype.EstimateTrxResult,isNe
 			return
 		}
 	}()
+
+	// check net resource
+	trxContext.CheckNet(uint64(proto.Size(trxEst.SigTrx)))
 
 	trx := trxEst.SigTrx
 	var err error
@@ -706,8 +704,8 @@ func (c *TrxPool) PayGas(trxContext *TrxContext) (i interface{}) {
 		}
 	}()
 	c.db.BeginTransaction()
-	//trxContext.DeductAllGasFee()
-	trxContext.DeductAllStamina()
+	trxContext.DeductAllCpu()
+	trxContext.DeductAllNet()
 	mustNoError(c.db.EndTransaction(true), "EndTransaction error",prototype.StatusErrorDbEndTrx)
 	return
 }
@@ -762,7 +760,7 @@ func (c *TrxPool) initGenesis() {
 	mustNoError(newAccountWrap.Create(func(tInfo *table.SoAccount) {
 		tInfo.Name = name
 		tInfo.CreatedTime = &prototype.TimePointSec{UtcSeconds: 0}
-		tInfo.Balance = prototype.NewCoin(constants.INIT_SUPPLY - 1000)
+		tInfo.Balance = prototype.NewCoin(constants.COS_INIT_SUPPLY - 1000)
 		tInfo.VestingShares = prototype.NewVest(1000)
 		tInfo.LastPostTime = &prototype.TimePointSec{UtcSeconds: 0}
 		tInfo.LastVoteTime = &prototype.TimePointSec{UtcSeconds: 0}
@@ -797,10 +795,10 @@ func (c *TrxPool) initGenesis() {
 		tInfo.Props.HeadBlockId = &prototype.Sha256{Hash: make([]byte, 32)}
 		// @ recent_slots_filled
 		// @ participation_count
-		tInfo.Props.CurrentSupply = prototype.NewCoin(constants.COS_INIT_SUPPLY)
-		tInfo.Props.TotalCos = prototype.NewCoin(constants.COS_INIT_SUPPLY)
+		tInfo.Props.CurrentSupply = prototype.NewCoin(constants.COS_INIT_SUPPLY - 1000)
+		tInfo.Props.TotalCos = prototype.NewCoin(constants.COS_INIT_SUPPLY - 1000)
 		tInfo.Props.MaximumBlockSize = constants.MAX_BLOCK_SIZE
-		tInfo.Props.TotalVestingShares = prototype.NewVest(0)
+		tInfo.Props.TotalVestingShares = prototype.NewVest(1000)
 	}), "CreateDynamicGlobalProperties error", prototype.StatusErrorDbCreate)
 
 	//create rewards keeper

@@ -120,8 +120,24 @@ func (s *StakeManager) calculateUserMaxStamina(name string) uint64 {
 	}
 	dgpWrap := table.NewSoGlobalWrap(s.db,&SINGLE)
 
-	userMax := float64(accountWrap.GetVestingShares().Value * CHAIN_STAMINA)/float64(dgpWrap.GetProps().TotalVestingShares.Value)
+	totalVest := accountWrap.GetVestingShares().Value + accountWrap.GetStakeVesting().Value
+	userMax := float64( totalVest * CHAIN_STAMINA)/float64(dgpWrap.GetProps().TotalVestingShares.Value)
 	return uint64(userMax)
+}
+
+func (s *StakeManager) Check(name string, num uint64, now uint64) bool {
+	accountWrap := table.NewSoAccountWrap(s.db, &prototype.AccountName{Value:name})
+	if !accountWrap.CheckExist() {
+		return false
+	}
+
+	newStamina := calculateNewStamina(accountWrap.GetStamina(),0,accountWrap.GetStaminaUseBlock(),now)
+	maxStamina := s.calculateUserMaxStamina(name)
+	if maxStamina - newStamina < num {
+		return false
+	}
+
+	return true
 }
 
 func (s *StakeManager) Consume(name string, num uint64, now uint64) bool {

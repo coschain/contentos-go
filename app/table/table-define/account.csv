@@ -12,3 +12,4 @@ uint64                   ,stamina        ,0  ,0    ,0    ,0          ,
 uint64                   ,stamina_use_block ,0   ,0   ,0   ,0         ,
 uint64                   ,stamina_free    ,0   ,0    ,0     ,0         ,
 uint64                   ,stamina_free_use_block ,0   ,0   ,0   ,0     ,
+prototype.vest           ,stake_vesting,0   ,0     ,0   ,0          ,prototype/type.proto

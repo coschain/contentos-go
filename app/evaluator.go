@@ -111,6 +111,12 @@ type StakeEvaluator struct {
 	op *prototype.StakeOperation
 }
 
+type UnStakeEvaluator struct {
+	BaseEvaluator
+	ctx *ApplyContext
+	op *prototype.UnStakeOperation
+}
+
 func (ev *AccountCreateEvaluator) Apply() {
 	op := ev.op
 	creatorWrap := table.NewSoAccountWrap(ev.ctx.db, op.Creator)
@@ -679,9 +685,27 @@ func (ev *StakeEvaluator) Apply() {
 	mustNoError(fBalance.Sub(value), "Insufficient balance to transfer.", prototype.StatusErrorTrxMath)
 	mustSuccess(accountWrap.MdBalance(fBalance), "modify balance failed",prototype.StatusErrorDbUpdate)
 
-	vest := accountWrap.GetVestingShares()
+	vest := accountWrap.GetStakeVesting()
 	mustNoError(vest.Add(value.ToVest()),"vesting over flow.",prototype.StatusErrorTrxMath)
-	mustSuccess(accountWrap.MdVestingShares(vest),"modify vesting failed",prototype.StatusErrorDbUpdate)
+	mustSuccess(accountWrap.MdStakeVesting(vest),"modify vesting failed",prototype.StatusErrorDbUpdate)
 
-	ev.ctx.control.TransferToVest(value) // if failed ?
+	ev.ctx.control.TransferToVest(value)
+}
+
+func (ev *UnStakeEvaluator) Apply() {
+	op := ev.op
+
+	accountWrap := table.NewSoAccountWrap(ev.ctx.db, op.Account)
+
+	value := &prototype.Coin{Value:op.Amount}
+
+	vest := accountWrap.GetStakeVesting()
+	mustNoError(vest.Sub(value.ToVest()),"vesting over flow.",prototype.StatusErrorTrxMath)
+	mustSuccess(accountWrap.MdStakeVesting(vest),"modify vesting failed",prototype.StatusErrorDbUpdate)
+
+	fBalance := accountWrap.GetBalance()
+	mustNoError(fBalance.Add(value), "Insufficient balance to transfer.", prototype.StatusErrorTrxMath)
+	mustSuccess(accountWrap.MdBalance(fBalance), "modify balance failed",prototype.StatusErrorDbUpdate)
+
+	ev.ctx.control.TransferFromVest(value.ToVest())
 }
