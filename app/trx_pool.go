@@ -884,6 +884,12 @@ func (c *TrxPool) updateGlobalDataToDB(dgpo *prototype.DynamicProperties) {
 	mustSuccess(dgpWrap.MdProps(dgpo), "")
 }
 
+func (c *TrxPool) modifyGlobalDynamicData( f func(props *prototype.DynamicProperties) ) {
+	props := c.GetProps()
+	f(props)
+	c.updateGlobalDataToDB(props)
+}
+
 func (c *TrxPool) updateGlobalDynamicData(blk *prototype.SignedBlock) {
 	/*var missedBlock uint32 = 0
 

@@ -15,10 +15,10 @@ type TrxContext struct {
 	db          iservices.IDatabaseService
 	msg         []string
 	recoverPubs []*prototype.PublicKeyType
-	control     iservices.ITrxPool
+	control     *TrxPool
 }
 
-func NewTrxContext(wrapper *prototype.EstimateTrxResult, db iservices.IDatabaseService, control iservices.ITrxPool) *TrxContext {
+func NewTrxContext(wrapper *prototype.EstimateTrxResult, db iservices.IDatabaseService, control *TrxPool) *TrxContext {
 	return &TrxContext{Wrapper: wrapper, db: db, control: control }
 }
 

@@ -201,6 +201,10 @@ func (ev *PostEvaluator) Apply() {
 	}), "create post error")
 
 	authorWrap.MdLastPostTime(ev.ctx.control.HeadBlockTime())
+	
+	ev.ctx.control.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
+		props.TotalPostCnt++
+	})
 
 	//timestamp := ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.POST_CASHPUT_DELAY_TIME) - uint32(constants.GenesisTime)
 	//key := fmt.Sprintf("cashout:%d_%d", common.GetBucket(timestamp), op.Uuid)
