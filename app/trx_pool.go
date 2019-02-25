@@ -108,6 +108,10 @@ func (c *TrxPool) Open() {
 
 		//c.log.Info("start initGenesis")
 		c.initGenesis()
+
+		mustNoError(c.db.TagRevision(c.db.GetRevision(), GENESIS_TAG), "genesis tagging failed")
+		c.iceberg = NewBlockIceberg(c.db)
+
 		//c.log.Info("finish initGenesis")
 	}
 }
