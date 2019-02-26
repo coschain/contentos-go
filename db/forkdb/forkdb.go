@@ -404,7 +404,7 @@ func (db *DB) Commit(id common.BlockID) {
 	startNum := commitNum + 1
 	endNum := db.head.BlockNum()
 
-	// copy all the valid block after the committed block
+	// copy all valid blocks after the committed block
 	newList[0] = append(newList[0], id)
 	newBranches[id] = db.branches[id]
 	for startNum <= endNum {

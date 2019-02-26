@@ -33,6 +33,10 @@ func NewBFTCheckPoint(dir string, sabft *SABFT) *BFTCheckPoint {
 }
 
 func (cp *BFTCheckPoint) Make(commit *message.Commit) error {
+	if err := commit.ValidateBasic(); err != nil {
+		cp.sabft.log.Error(err)
+		return err
+	}
 	blockID := &common.BlockID{
 		Data: commit.ProposedData,
 	}
@@ -90,6 +94,10 @@ func (cp *BFTCheckPoint) GetNext(blockNum uint64) (*message.Commit, error) {
 	}
 	commit, err := message.DecodeConsensusMsg(val)
 	if err != nil {
+		return nil, err
+	}
+	if err = commit.(*message.Commit).ValidateBasic(); err != nil {
+		cp.sabft.log.Error(err)
 		return nil, err
 	}
 	return commit.(*message.Commit), nil

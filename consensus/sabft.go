@@ -160,7 +160,7 @@ func NewSABFT(ctx *node.ServiceContext, lg *logrus.Logger) *SABFT {
 		name: ret.Name,
 	}
 	ret.bft = gobft.NewCore(ret, ret.priv)
-	ret.bft.SetLogLevel(0)
+	ret.bft.SetLogLevel(3)
 	ret.log.Info("[SABFT bootstrap] ", ctx.Config().Consensus.BootStrap)
 	ret.appState = &message.AppState{
 		LastHeight:       0,
@@ -466,10 +466,7 @@ func (sabft *SABFT) generateAndApplyBlock() (common.ISignedBlock, error) {
 		prev.Hash = make([]byte, 32)
 	}
 	//sabft.log.Debugf("generating block. <prev %v>, <ts %d>", prev.Hash, ts)
-	sabft.log.Info("about to generateAndApplyBlock ", time.Now())
-	b, err := sabft.ctrl.GenerateAndApplyBlock(sabft.Name, prev, uint32(ts), sabft.priv.privKey, prototype.Skip_nothing)
-	sabft.log.Info("generateAndApplyBlock done ", time.Now())
-	return b, err
+	return sabft.ctrl.GenerateAndApplyBlock(sabft.Name, prev, uint32(ts), sabft.priv.privKey, prototype.Skip_nothing)
 }
 
 func (sabft *SABFT) checkGenesis() bool {
@@ -638,6 +635,7 @@ func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 	//sabft.log.Warn("handleCommitRecords: ", records.ProposedData, records.Address)
 	if err := records.ValidateBasic(); err != nil {
 		sabft.log.Error(err)
+		return
 	}
 
 	if !sabft.readyToProduce {
@@ -828,7 +826,6 @@ func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 	blockID := common.BlockID{
 		Data: commitRecords.ProposedData,
 	}
-	sabft.log.Debug("[SABFT] commit block #", blockID)
 
 	// if we're committing a block we don't have
 	blk, err := sabft.ForkDB.FetchBlock(blockID)
@@ -868,19 +865,16 @@ func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 		}
 	}
 
-	sabft.log.Info(" storage commit")
 	sabft.ctrl.Commit(blockID.BlockNum())
-	sabft.log.Info(" storage commit done..")
 
-	sabft.log.Info(" ForkDB commit")
 	sabft.ForkDB.Commit(blockID)
-	sabft.log.Info(" ForkDB commit done...")
 
 	sabft.appState.LastHeight = commitRecords.FirstPrecommit().Height
 	sabft.appState.LastProposedData = commitRecords.ProposedData
 
 	sabft.lastCommitted = commitRecords
 
+	sabft.log.Debug("[SABFT] committed block #", blockID)
 	return nil
 }
 
