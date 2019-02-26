@@ -32,7 +32,7 @@ func addActors() {
 func TestStakeManager_LockUpCos(t *testing.T) {
 	initEvn()
 
-	sm := NewStakeManager()
+	sm := NewResourceLimiter()
 	name := "0"
 	oldCos := db[name].cos
 	oldVest := db[name].vest
@@ -51,7 +51,7 @@ func TestStakeManager_LockUpCos(t *testing.T) {
 func TestStakeManager_LockUpCos2(t *testing.T) {
 	initEvn()
 
-	sm := NewStakeManager()
+	sm := NewResourceLimiter()
 	name := "0"
 	oldCos := db[name].cos
 	stakeCos := oldCos + 1
@@ -63,7 +63,7 @@ func TestStakeManager_LockUpCos2(t *testing.T) {
 func TestStakeManager_ReleaseCos(t *testing.T) {
 	initEvn()
 
-	sm := NewStakeManager()
+	sm := NewResourceLimiter()
 	name := "0"
 	oldCos := db[name].cos
 	oldVest := db[name].vest
@@ -88,7 +88,7 @@ func TestStakeManager_ReleaseCos(t *testing.T) {
 func TestStakeManager_ReleaseCos2(t *testing.T) {
 	initEvn()
 
-	sm := NewStakeManager()
+	sm := NewResourceLimiter()
 	name := "0"
 	oldCos := db[name].cos
 	oldVest := db[name].vest
@@ -115,7 +115,7 @@ func TestStakeManager_ReleaseCos2(t *testing.T) {
 func TestStakeManager_Consume1(t *testing.T) {
 	initEvn()
 
-	sm := NewStakeManager()
+	sm := NewResourceLimiter()
 	name := "0"
 	stakeCos := uint64(100)
 
@@ -158,7 +158,7 @@ func TestStakeManager_Consume1(t *testing.T) {
 func TestStakeManager_Consume2(t *testing.T) {
 	initEvn()
 
-	sm := NewStakeManager()
+	sm := NewResourceLimiter()
 	stakeCos := uint64(50)
 	for i := 0; i < actorsNum; i++ {
 		name := strconv.Itoa(i)
@@ -189,7 +189,7 @@ func TestStakeManager_Consume2(t *testing.T) {
 func TestStakeManager_Consume3(t *testing.T) {
 	initEvn()
 
-	sm := NewStakeManager()
+	sm := NewResourceLimiter()
 	stakeCos := uint64(1)
 	name := "0"
 	if !sm.LockUpCos(name,stakeCos) {
@@ -204,7 +204,7 @@ func TestStakeManager_Consume3(t *testing.T) {
 // each user lock up different cos, but use same stamina, their recover should same
 func TestStakeManager_Consume4(t *testing.T) {
 	initEvn()
-	sm := NewStakeManager()
+	sm := NewResourceLimiter()
 	stakeCos := uint64(1)
 	for i := 0; i < actorsNum; i++ {
 		name := strconv.Itoa(i)
@@ -253,7 +253,7 @@ func TestStakeManager_Consume4(t *testing.T) {
 func TestStakeManager_Consume5(t *testing.T) {
 	initEvn()
 
-	sm := NewStakeManager()
+	sm := NewResourceLimiter()
 	stakeCos := uint64(1)
 	for i := 0; i < actorsNum; i++ {
 		name := strconv.Itoa(i)
@@ -301,7 +301,7 @@ func TestStakeManager_Consume5(t *testing.T) {
 func TestStakeManager_GetCapacity(t *testing.T) {
 	initEvn()
 
-	sm := NewStakeManager()
+	sm := NewResourceLimiter()
 	stakeCos := uint64(1)
 	for i := 0; i < actorsNum; i++ {
 		name := strconv.Itoa(i)

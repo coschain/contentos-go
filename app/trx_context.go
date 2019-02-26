@@ -17,18 +17,18 @@ const (
 
 type TrxContext struct {
 	vminjector.Injector
-	Wrapper     *prototype.EstimateTrxResult
-	db          iservices.IDatabaseService
-	msg         []string
-	recoverPubs []*prototype.PublicKeyType
-	control     iservices.ITrxPool
-	gasMap		map[string]uint64
-	netMap      map[string]uint64
-	stakeLimiter	*utils.StakeManager
+	Wrapper         *prototype.EstimateTrxResult
+	db              iservices.IDatabaseService
+	msg             []string
+	recoverPubs     []*prototype.PublicKeyType
+	control         iservices.ITrxPool
+	gasMap          map[string]uint64
+	netMap          map[string]uint64
+	resourceLimiter utils.IResourceLimiter
 }
 
 func NewTrxContext(wrapper *prototype.EstimateTrxResult, db iservices.IDatabaseService, control iservices.ITrxPool) *TrxContext {
-	return &TrxContext{Wrapper: wrapper, db: db, control: control, gasMap:make(map[string]uint64), netMap:make(map[string]uint64),stakeLimiter:utils.NewStakeManager(db) }
+	return &TrxContext{Wrapper: wrapper, db: db, control: control, gasMap:make(map[string]uint64), netMap:make(map[string]uint64), resourceLimiter:utils.IResourceLimiter(utils.NewResourceLimiter(db)) }
 }
 
 func (p *TrxContext) InitSigState(cid prototype.ChainId) error {
@@ -44,11 +44,19 @@ func (p *TrxContext) CheckNet(sizeInBytes uint64) {
 	keyMaps := obtainKeyMap(p.Wrapper.SigTrx.Trx.Operations)
 	netUse := sizeInBytes * netConsumePoint
 	for name := range keyMaps {
-		if !p.stakeLimiter.Check(name,netUse,p.control.GetProps().HeadBlockNumber) {
-			p.netMap = make(map[string]uint64)
-			mustSuccess(false,"net resource not enough",prototype.StatusError)
-		} else {
+		freeLeft := p.resourceLimiter.GetFreeLeft(name,p.control.GetProps().HeadBlockNumber)
+		stakeLeft := p.resourceLimiter.GetStakeLeft(name,p.control.GetProps().HeadBlockNumber)
+		if freeLeft >= netUse {
 			p.netMap[name] = sizeInBytes
+			continue
+		} else {
+			if stakeLeft >= netUse - freeLeft {
+				p.netMap[name] = sizeInBytes
+				continue
+			} else {
+				p.netMap = make(map[string]uint64)
+				mustSuccess(false,"net resource not enough",prototype.StatusError)
+			}
 		}
 	}
 }
@@ -125,8 +133,16 @@ func (p *TrxContext) DeductAllGasFee() bool {
 func (p *TrxContext) DeductAllNet() {
 	for caller,spent := range p.netMap {
 		netUse := spent * netConsumePoint
-		if !p.stakeLimiter.Consume(caller,netUse,p.control.GetProps().HeadBlockNumber) {
-			p.stakeLimiter.ConsumeLeft(caller,p.control.GetProps().HeadBlockNumber)
+
+		if !p.resourceLimiter.ConsumeFree(caller,netUse,p.control.GetProps().HeadBlockNumber) {
+			p.resourceLimiter.ConsumeFreeLeft(caller,p.control.GetProps().HeadBlockNumber)
+		} else {
+			// free resource already enough
+			continue
+		}
+
+		if !p.resourceLimiter.Consume(caller,netUse,p.control.GetProps().HeadBlockNumber) {
+			p.resourceLimiter.ConsumeLeft(caller,p.control.GetProps().HeadBlockNumber)
 		}
 	}
 }
@@ -135,9 +151,17 @@ func (p *TrxContext) DeductAllCpu() bool {
 	useGas := false
 	for caller,spent := range p.gasMap {
 		cpuUse := spent * cpuConsumePoint
-		if !p.stakeLimiter.Consume(caller,cpuUse,p.control.GetProps().HeadBlockNumber) {
+
+		if !p.resourceLimiter.ConsumeFree(caller,cpuUse,p.control.GetProps().HeadBlockNumber) {
+			p.resourceLimiter.ConsumeFreeLeft(caller,p.control.GetProps().HeadBlockNumber)
+		} else {
+			// free resource already enough
+			continue
+		}
+
+		if !p.resourceLimiter.Consume(caller,cpuUse,p.control.GetProps().HeadBlockNumber) {
 			// never failed ?
-			p.stakeLimiter.ConsumeLeft(caller,p.control.GetProps().HeadBlockNumber)
+			p.resourceLimiter.ConsumeLeft(caller,p.control.GetProps().HeadBlockNumber)
 		}
 		useGas = true
 	}

@@ -8,44 +8,41 @@ import (
 
 type IConsumer interface {
 	Consume(name string, num uint64, now uint64) bool
+	ConsumeLeft(name string, now uint64) bool
+}
+
+type IFreeConsumer interface {
+	ConsumeFree(name string, num uint64, now uint64) bool
+	ConsumeFreeLeft(name string, now uint64) bool
 }
 
 type IGetter interface {
 	Get(name string) uint64
 	GetCapacity(name string) uint64
+	GetStakeLeft(name string, now uint64) uint64
+}
+
+type IFreeGetter interface {
+	GetFree(name string) uint64
+	GetCapacityFree(name string) uint64
+	GetFreeLeft(name string, now uint64) uint64
 }
 
 // stake resource interface
-type IStakeManager interface {
+type IResourceLimiter interface {
 	IConsumer
+	IFreeConsumer
 	IGetter
-	LockUpCos(name string, cos uint64) bool
-	ReleaseCos(name string, cos uint64)
+	IFreeGetter
 }
 
-// free resource interface
-type IFreeManager interface {
-	// recover free net value, return true if success
-	IConsumer
-	IGetter
-}
-
-// StakeManager impl all IStakeManager's api
-type StakeManager struct {
+// ResourceLimiter impl all IResourceLimiter's api
+type ResourceLimiter struct {
 	db      iservices.IDatabaseService
 }
 
-func NewStakeManager(db iservices.IDatabaseService) *StakeManager {
-	return &StakeManager{db:db}
-}
-
-// FreeManager impl all IFreeManager's api
-type FreeManager struct {
-	db      iservices.IDatabaseService
-}
-
-func NewFreeManager(db iservices.IDatabaseService) *FreeManager {
-	return &FreeManager{db:db}
+func NewResourceLimiter(db iservices.IDatabaseService) *ResourceLimiter {
+	return &ResourceLimiter{db: db}
 }
 
 /* below is pseudo code */
@@ -63,44 +60,9 @@ const RECOVER_WINDOW = 60 * 60 * 24
 // free resource every 24H
 const FREE_STAMINA = 10000
 
-// StakeManager implemention
-func (s *StakeManager) LockUpCos(name string, cos uint64) bool {
-	/*  1.get account from db
-			2.transfer cos to cpu vesting
-			3.update db
-		*/
-		if _,ok := db[name]; !ok {
-			return  false
-		}
-		a,_ := db[name]
-		if a.cos < cos{
-			return false
-		}
-		a.cos -= cos
-		a.vest += cos
-		global.totalVest += cos
-		return true
-}
+// ResourceLimiter implemention
 
-func (s *StakeManager) ReleaseCos(name string, cos uint64) bool {
-	/*  1.get account from db
-			2.transfer cpu vesting to cos
-			3.update db
-		*/
-	if _,ok := db[name]; !ok {
-		return false
-	}
-	a,_ := db[name]
-	if a.vest < cos{
-		return false
-	}
-	a.cos += cos
-	a.vest -= cos
-	global.totalVest -= cos
-	return true
-}
-
-func (s *StakeManager) Get(name string) uint64{
+func (s *ResourceLimiter) Get(name string) uint64{
 	accountWrap := table.NewSoAccountWrap(s.db, &prototype.AccountName{Value:name})
 	if !accountWrap.CheckExist() {
 		return 0
@@ -108,12 +70,12 @@ func (s *StakeManager) Get(name string) uint64{
 	return accountWrap.GetStamina()
 }
 
-func (s *StakeManager) GetCapacity(name string) uint64 {
+func (s *ResourceLimiter) GetCapacity(name string) uint64 {
 	return s.calculateUserMaxStamina(name)
 }
 
 var SINGLE int32 = 1
-func (s *StakeManager) calculateUserMaxStamina(name string) uint64 {
+func (s *ResourceLimiter) calculateUserMaxStamina(name string) uint64 {
 	accountWrap := table.NewSoAccountWrap(s.db, &prototype.AccountName{Value:name})
 	if !accountWrap.CheckExist() {
 		return 0
@@ -125,22 +87,7 @@ func (s *StakeManager) calculateUserMaxStamina(name string) uint64 {
 	return uint64(userMax)
 }
 
-func (s *StakeManager) Check(name string, num uint64, now uint64) bool {
-	accountWrap := table.NewSoAccountWrap(s.db, &prototype.AccountName{Value:name})
-	if !accountWrap.CheckExist() {
-		return false
-	}
-
-	newStamina := calculateNewStamina(accountWrap.GetStamina(),0,accountWrap.GetStaminaUseBlock(),now)
-	maxStamina := s.calculateUserMaxStamina(name)
-	if maxStamina - newStamina < num {
-		return false
-	}
-
-	return true
-}
-
-func (s *StakeManager) Consume(name string, num uint64, now uint64) bool {
+func (s *ResourceLimiter) Consume(name string, num uint64, now uint64) bool {
 	accountWrap := table.NewSoAccountWrap(s.db, &prototype.AccountName{Value:name})
 	if !accountWrap.CheckExist() {
 		return false
@@ -158,7 +105,7 @@ func (s *StakeManager) Consume(name string, num uint64, now uint64) bool {
 	return true
 }
 
-func (s *StakeManager) ConsumeLeft(name string, now uint64) bool {
+func (s *ResourceLimiter) ConsumeLeft(name string, now uint64) bool {
 	accountWrap := table.NewSoAccountWrap(s.db, &prototype.AccountName{Value:name})
 	if !accountWrap.CheckExist() {
 		return false
@@ -172,8 +119,8 @@ func (s *StakeManager) ConsumeLeft(name string, now uint64) bool {
 }
 
 // FreeManager implemention
-func (f *FreeManager) Consume(name string,num uint64, now uint64) bool {
-	accountWrap := table.NewSoAccountWrap(f.db, &prototype.AccountName{Value:name})
+func (s *ResourceLimiter) ConsumeFree(name string,num uint64, now uint64) bool {
+	accountWrap := table.NewSoAccountWrap(s.db, &prototype.AccountName{Value:name})
 	if !accountWrap.CheckExist() {
 		return false
 	}
@@ -188,16 +135,48 @@ func (f *FreeManager) Consume(name string,num uint64, now uint64) bool {
 	return true
 }
 
-func (f *FreeManager) Get(name string) uint64 {
-	accountWrap := table.NewSoAccountWrap(f.db, &prototype.AccountName{Value:name})
+func (s *ResourceLimiter) GetFree(name string) uint64 {
+	accountWrap := table.NewSoAccountWrap(s.db, &prototype.AccountName{Value:name})
 	if !accountWrap.CheckExist() {
 		return 0
 	}
 	return accountWrap.GetStaminaFree()
 }
 
-func (f *FreeManager) GetCapacity(name string) uint64 {
+func (s *ResourceLimiter) GetCapacityFree(name string) uint64 {
 	return FREE_STAMINA
+}
+
+func (s *ResourceLimiter) GetStakeLeft(name string, now uint64) uint64 {
+	accountWrap := table.NewSoAccountWrap(s.db, &prototype.AccountName{Value:name})
+	if !accountWrap.CheckExist() {
+		return 0
+	}
+
+	newStamina := calculateNewStamina(accountWrap.GetStamina(),0,accountWrap.GetStaminaUseBlock(),now)
+	maxStamina := s.calculateUserMaxStamina(name)
+	return maxStamina - newStamina
+}
+
+func (s *ResourceLimiter) GetFreeLeft(name string, now uint64) uint64 {
+	accountWrap := table.NewSoAccountWrap(s.db, &prototype.AccountName{Value:name})
+	if !accountWrap.CheckExist() {
+		return 0
+	}
+
+	newStamina := calculateNewStamina(accountWrap.GetStaminaFree(),0,accountWrap.GetStaminaFreeUseBlock(),now)
+	return FREE_STAMINA - newStamina
+}
+
+func (s *ResourceLimiter) ConsumeFreeLeft(name string, now uint64) bool {
+	accountWrap := table.NewSoAccountWrap(s.db, &prototype.AccountName{Value:name})
+	if !accountWrap.CheckExist() {
+		return false
+	}
+
+	accountWrap.MdStaminaFree(FREE_STAMINA)
+	accountWrap.MdStaminaFreeUseBlock(now)
+	return true
 }
 
 func calculateNewStamina(oldStamina uint64, useStamina uint64, lastTime uint64, now uint64) uint64 {
