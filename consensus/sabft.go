@@ -216,14 +216,14 @@ func (sabft *SABFT) makeValidators(names []string) []*publicValidator {
 func (sabft *SABFT) shuffle(head common.ISignedBlock) {
 	//if head.Id().BlockNum()%uint64(len(sabft.validators)) != 0 {
 	blockNum := head.Id().BlockNum()
-	if blockNum%constants.BLOCK_PROD_REPETITION != 0 ||
-		blockNum/constants.BLOCK_PROD_REPETITION%uint64(len(sabft.validators)) != 0 {
+	if blockNum%constants.BlockProdRepetition != 0 ||
+		blockNum/constants.BlockProdRepetition%uint64(len(sabft.validators)) != 0 {
 		return
 	}
 
 	// When a produce round complete, it adds new producers,
 	// remove unqualified producers and shuffle the block-producing order
-	prods := sabft.ctrl.GetWitnessTopN(constants.MAX_WITNESSES)
+	prods := sabft.ctrl.GetWitnessTopN(constants.MaxWitnessCount)
 	var seed uint64
 	if head != nil {
 		seed = head.Timestamp() << 32
@@ -277,7 +277,7 @@ func (sabft *SABFT) ActiveProducers() []string {
 	sabft.RLock()
 	defer sabft.RUnlock()
 
-	ret := make([]string, 0, constants.MAX_WITNESSES)
+	ret := make([]string, 0, constants.MaxWitnessCount)
 	for i := range sabft.validators {
 		ret = append(ret, sabft.validators[i].accountName)
 	}
@@ -303,7 +303,7 @@ func (sabft *SABFT) Start(node *node.Node) error {
 	snapshotPath := cfg.ResolvePath("forkdb_snapshot")
 	// TODO: fuck!! this is fugly
 	var avatar []common.ISignedBlock
-	for i := 0; i < constants.MAX_WITNESSES+1; i++ {
+	for i := 0; i < constants.MaxWitnessCount+1; i++ {
 		// TODO: if the bft process falls behind too much, the number
 		// TODO: of the avatar might not be sufficient
 
@@ -518,8 +518,8 @@ func (sabft *SABFT) getScheduledProducer(slot uint64) string {
 	if sabft.ForkDB.Empty() {
 		return sabft.validators[0].accountName
 	}
-	absSlot := (sabft.ForkDB.Head().Timestamp() - constants.GenesisTime) / constants.BLOCK_INTERVAL
-	return sabft.validators[(absSlot+slot)/constants.BLOCK_PROD_REPETITION%uint64(len(sabft.validators))].accountName
+	absSlot := (sabft.ForkDB.Head().Timestamp() - constants.GenesisTime) / constants.BlockInterval
+	return sabft.validators[(absSlot+slot)/constants.BlockProdRepetition%uint64(len(sabft.validators))].accountName
 }
 
 // returns false if we're out of sync
@@ -538,11 +538,11 @@ func (sabft *SABFT) getSlotTime(slot uint64) uint64 {
 	}
 	head := sabft.ForkDB.Head()
 	if head == nil {
-		return constants.GenesisTime + slot*constants.BLOCK_INTERVAL
+		return constants.GenesisTime + slot*constants.BlockInterval
 	}
 
-	headSlotTime := head.Timestamp() / constants.BLOCK_INTERVAL * constants.BLOCK_INTERVAL
-	return headSlotTime + slot*constants.BLOCK_INTERVAL
+	headSlotTime := head.Timestamp() / constants.BlockInterval * constants.BlockInterval
+	return headSlotTime + slot*constants.BlockInterval
 }
 
 func (sabft *SABFT) getSlotAtTime(t time.Time) uint64 {
@@ -550,7 +550,7 @@ func (sabft *SABFT) getSlotAtTime(t time.Time) uint64 {
 	if uint64(t.Unix()) < nextSlotTime {
 		return 0
 	}
-	return (uint64(t.Unix())-nextSlotTime)/constants.BLOCK_INTERVAL + 1
+	return (uint64(t.Unix())-nextSlotTime)/constants.BlockInterval + 1
 }
 
 func (sabft *SABFT) PushBlock(b common.ISignedBlock) {

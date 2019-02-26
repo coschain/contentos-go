@@ -112,7 +112,7 @@ func InitShell(rootCmd *cobra.Command) {
 	var cmdStr string
 	for i:=0;i<2;i++ {
 		if i == 0 {
-			cmdStr = "import -f initminer " + constants.INITMINER_PRIKEY
+			cmdStr = "import -f initminer " + constants.InitminerPrivKey
 		} else {
 			cmdStr = "create initminer initminer1"
 		}
@@ -129,7 +129,7 @@ func RunShell(rootCmd *cobra.Command) {
 
 	for i:=0;;i++{
 		if i == 0 {
-			cmdStr = "import -f initminer " + constants.INITMINER_PRIKEY
+			cmdStr = "import -f initminer " + constants.InitminerPrivKey
 		} else {
 			//r := rand.New(rand.NewSource(time.Now().UnixNano()))
 			//idx := r.Intn(len(CmdRawStrlist))

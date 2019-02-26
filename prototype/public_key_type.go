@@ -28,11 +28,11 @@ func PublicKeyFromWIF(encoded string) (*PublicKeyType, error) {
 		return nil, ErrKeyLength
 	}
 
-	if len(encoded) < len(constants.COIN_SYMBOL) {
+	if len(encoded) < len(constants.CoinSymbol) {
 		return nil, ErrPubKeyFormatErr
 	}
 
-	if !strings.HasPrefix(encoded, constants.COIN_SYMBOL) {
+	if !strings.HasPrefix(encoded, constants.CoinSymbol) {
 		return nil, ErrPubKeyFormatErr
 	}
 
@@ -67,7 +67,7 @@ func (m *PublicKeyType) Equal(other *PublicKeyType) bool {
 }
 
 func (m *PublicKeyType) ToWIF() string {
-	return fmt.Sprintf("%s%s", constants.COIN_SYMBOL, m.ToBase58())
+	return fmt.Sprintf("%s%s", constants.CoinSymbol, m.ToBase58())
 }
 
 // ToBase58 returns base58 encoded address string

@@ -40,12 +40,12 @@ func makeBlock(pre *prototype.Sha256, blockTimestamp uint32, signedTrx *prototyp
 	sigBlkHdr.Header = new(prototype.BlockHeader)
 	sigBlkHdr.Header.Previous = pre
 	sigBlkHdr.Header.Timestamp = &prototype.TimePointSec{UtcSeconds: blockTimestamp}
-	sigBlkHdr.Header.Witness = &prototype.AccountName{Value: constants.INIT_MINER_NAME}
+	sigBlkHdr.Header.Witness = &prototype.AccountName{Value: constants.COSInitMiner}
 	sigBlkHdr.Header.TransactionMerkleRoot = &prototype.Sha256{Hash: id.Data[:]}
 	sigBlkHdr.WitnessSignature = &prototype.SignatureType{}
 
 	// signature
-	pri, err := prototype.PrivateKeyFromWIF(constants.INITMINER_PRIKEY)
+	pri, err := prototype.PrivateKeyFromWIF(constants.InitminerPrivKey)
 	if err != nil {
 		panic("PrivateKeyFromWIF error")
 	}
@@ -57,7 +57,7 @@ func makeBlock(pre *prototype.Sha256, blockTimestamp uint32, signedTrx *prototyp
 
 func createSigTrx(op interface{}, headBlockID *prototype.Sha256, expire uint32) (*prototype.SignedTransaction, error) {
 
-	privKey, err := prototype.PrivateKeyFromWIF(constants.INITMINER_PRIKEY)
+	privKey, err := prototype.PrivateKeyFromWIF(constants.InitminerPrivKey)
 	if err != nil {
 		return nil, err
 	}
@@ -86,13 +86,13 @@ func makeCreateAccountOP(accountName string, pubKey string) (*prototype.AccountC
 	}
 	acop := &prototype.AccountCreateOperation{
 		Fee:            prototype.NewCoin(1),
-		Creator:        &prototype.AccountName{Value: constants.COS_INIT_MINER},
+		Creator:        &prototype.AccountName{Value: constants.COSInitMiner},
 		NewAccountName: &prototype.AccountName{Value: accountName},
 		Owner: &prototype.Authority{
 			WeightThreshold: 1,
 			AccountAuths: []*prototype.KvAccountAuth{
 				&prototype.KvAccountAuth{
-					Name:   &prototype.AccountName{Value: constants.COS_INIT_MINER},
+					Name:   &prototype.AccountName{Value: constants.COSInitMiner},
 					Weight: 3,
 				},
 			},
@@ -200,13 +200,13 @@ func TestController_GenerateAndApplyBlock(t *testing.T) {
 		t.Error("create account failed")
 	}
 
-	pri, err := prototype.PrivateKeyFromWIF(constants.INITMINER_PRIKEY)
+	pri, err := prototype.PrivateKeyFromWIF(constants.InitminerPrivKey)
 	if err != nil {
 		t.Error("PrivateKeyFromWIF error")
 	}
 
 	pre := &prototype.Sha256{Hash: make([]byte,32)}
-	block,err := c.GenerateAndApplyBlock(constants.INIT_MINER_NAME, pre, 18, pri, 0)
+	block,err := c.GenerateAndApplyBlock(constants.COSInitMiner, pre, 18, pri, 0)
 	dgpWrap := table.NewSoGlobalWrap(db,&SingleId)
 	mustSuccess(block.Id().BlockNum() == dgpWrap.GetProps().HeadBlockNumber,"block number error")
 	bobWrap2 := table.NewSoAccountWrap(db, bobName)

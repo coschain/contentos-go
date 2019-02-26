@@ -422,7 +422,7 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 	signBlock.SignedHeader.WitnessSignature = &prototype.SignatureType{}
 	signBlock.SignedHeader.Sign(priKey)
 
-	mustSuccess(proto.Size(signBlock) <= constants.MAX_BLOCK_SIZE, "block size too big")
+	mustSuccess(proto.Size(signBlock) <= constants.MaxBlockSize, "block size too big")
 	// clearpending then let dpos call PushBlock, the point is without restore pending step when PushBlock
 	//c.ClearPending()
 
@@ -453,32 +453,32 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 }
 
 func (c *TrxPool) notifyOpPreExecute(on *prototype.OperationNotification) {
-	c.noticer.Publish(constants.NOTICE_OP_PRE, on)
+	c.noticer.Publish(constants.NoticeOpPre, on)
 }
 
 func (c *TrxPool) notifyOpPostExecute(on *prototype.OperationNotification) {
-	c.noticer.Publish(constants.NOTICE_OP_POST, on)
+	c.noticer.Publish(constants.NoticeOpPost, on)
 }
 
 func (c *TrxPool) notifyTrxPreExecute(trx *prototype.SignedTransaction) {
-	c.noticer.Publish(constants.NOTICE_TRX_PRE, trx)
+	c.noticer.Publish(constants.NoticeTrxPre, trx)
 }
 
 func (c *TrxPool) notifyTrxPostExecute(trx *prototype.SignedTransaction) {
-	c.noticer.Publish(constants.NOTICE_TRX_POST, trx)
+	c.noticer.Publish(constants.NoticeTrxPost, trx)
 }
 
 func (c *TrxPool) notifyTrxPending(trx *prototype.SignedTransaction) {
-	c.noticer.Publish(constants.NOTICE_TRX_PENDING, trx)
+	c.noticer.Publish(constants.NoticeTrxPending, trx)
 }
 
 func (c *TrxPool) notifyBlockApply(block *prototype.SignedBlock) {
-	c.noticer.Publish(constants.NOTICE_BLOCK_APPLY, block)
+	c.noticer.Publish(constants.NoticeBlockApplied, block)
 }
 
 func (c *TrxPool) notifyTrxApplyResult(trx *prototype.SignedTransaction, res bool,
 	receipt *prototype.TransactionReceiptWithInfo){
-	 c.noticer.Publish(constants.NOTICE_TRX_APLLY_RESULT, trx, receipt)
+	 c.noticer.Publish(constants.NoticeTrxApplied, trx, receipt)
 }
 
 func (c *TrxPool) applyTransaction(trxEst *prototype.EstimateTrxResult) {
@@ -538,7 +538,7 @@ func (c *TrxPool) applyTransactionInner(trxEst *prototype.EstimateTrxResult,isNe
 
 		now := c.GetProps().Time
 		// get head time
-		mustSuccess(trx.Trx.Expiration.UtcSeconds <= uint32(now.UtcSeconds+constants.TRX_MAX_EXPIRATION_TIME), "transaction expiration too long")
+		mustSuccess(trx.Trx.Expiration.UtcSeconds <= uint32(now.UtcSeconds+constants.TrxMaxExpirationTime), "transaction expiration too long")
 		mustSuccess(now.UtcSeconds < trx.Trx.Expiration.UtcSeconds, "transaction has expired")
 	}
 
@@ -606,7 +606,7 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 	blockSize := proto.Size(blk)
 	mustSuccess(uint32(blockSize) <= c.GetProps().GetMaximumBlockSize(), "Block size is too big")
 
-	if uint32(blockSize) < constants.MIN_BLOCK_SIZE {
+	if uint32(blockSize) < constants.MinBlockSize {
 		// elog("Block size is too small")
 	}
 
@@ -689,13 +689,13 @@ func (c *TrxPool) initGenesis() {
 		}
 	}()
 	// create initminer
-	pubKey, _ := prototype.PublicKeyFromWIF(constants.INITMINER_PUBKEY)
-	name := &prototype.AccountName{Value: constants.INIT_MINER_NAME}
+	pubKey, _ := prototype.PublicKeyFromWIF(constants.InitminerPubKey)
+	name := &prototype.AccountName{Value: constants.COSInitMiner}
 	newAccountWrap := table.NewSoAccountWrap(c.db, name)
 	mustNoError(newAccountWrap.Create(func(tInfo *table.SoAccount) {
 		tInfo.Name = name
 		tInfo.CreatedTime = &prototype.TimePointSec{UtcSeconds: 0}
-		tInfo.Balance = prototype.NewCoin(constants.INIT_SUPPLY - 1000)
+		tInfo.Balance = prototype.NewCoin(constants.COSInitSupply - 1000)
 		tInfo.VestingShares = prototype.NewVest(1000)
 		tInfo.LastPostTime = &prototype.TimePointSec{UtcSeconds: 0}
 		tInfo.LastVoteTime = &prototype.TimePointSec{UtcSeconds: 0}
@@ -726,13 +726,13 @@ func (c *TrxPool) initGenesis() {
 		tInfo.Id = SingleId
 		tInfo.Props = &prototype.DynamicProperties{}
 		tInfo.Props.CurrentWitness = name
-		tInfo.Props.Time = &prototype.TimePointSec{UtcSeconds: constants.GENESIS_TIME}
+		tInfo.Props.Time = &prototype.TimePointSec{UtcSeconds: constants.GenesisTime}
 		tInfo.Props.HeadBlockId = &prototype.Sha256{Hash: make([]byte, 32)}
 		// @ recent_slots_filled
 		// @ participation_count
-		tInfo.Props.CurrentSupply = prototype.NewCoin(constants.COS_INIT_SUPPLY)
-		tInfo.Props.TotalCos = prototype.NewCoin(constants.COS_INIT_SUPPLY)
-		tInfo.Props.MaximumBlockSize = constants.MAX_BLOCK_SIZE
+		tInfo.Props.CurrentSupply = prototype.NewCoin(constants.COSInitSupply)
+		tInfo.Props.TotalCos = prototype.NewCoin(constants.COSInitSupply)
+		tInfo.Props.MaximumBlockSize = constants.MaxBlockSize
 		tInfo.Props.TotalVestingShares = prototype.NewVest(0)
 	}), "CreateDynamicGlobalProperties error")
 
@@ -759,7 +759,7 @@ func (c *TrxPool) initGenesis() {
 	witnessScheduleWrap := table.NewSoWitnessScheduleObjectWrap(c.db, &SingleId)
 	mustNoError(witnessScheduleWrap.Create(func(tInfo *table.SoWitnessScheduleObject) {
 		tInfo.Id = SingleId
-		tInfo.CurrentShuffledWitness = append(tInfo.CurrentShuffledWitness, constants.COS_INIT_MINER)
+		tInfo.CurrentShuffledWitness = append(tInfo.CurrentShuffledWitness, constants.COSInitMiner)
 	}), "CreateWitnessScheduleObject error")
 }
 
@@ -850,14 +850,14 @@ func (c *TrxPool) GetSlotTime(slot uint32) *prototype.TimePointSec {
 
 	if c.headBlockNum() == 0 {
 		genesisTime := c.headBlockTime()
-		genesisTime.UtcSeconds += slot * constants.BLOCK_INTERVAL
+		genesisTime.UtcSeconds += slot * constants.BlockInterval
 		return genesisTime
 	}
 
-	headBlockAbsSlot := c.headBlockTime().UtcSeconds / constants.BLOCK_INTERVAL
-	slotTime := &prototype.TimePointSec{UtcSeconds: headBlockAbsSlot * constants.BLOCK_INTERVAL}
+	headBlockAbsSlot := c.headBlockTime().UtcSeconds / constants.BlockInterval
+	slotTime := &prototype.TimePointSec{UtcSeconds: headBlockAbsSlot * constants.BlockInterval}
 
-	slotTime.UtcSeconds += slot * constants.BLOCK_INTERVAL
+	slotTime.UtcSeconds += slot * constants.BlockInterval
 	return slotTime
 }
 
@@ -866,7 +866,7 @@ func (c *TrxPool) GetIncrementSlotAtTime(t *prototype.TimePointSec) uint32 {
 	if t.UtcSeconds < nextBlockSlotTime.UtcSeconds {
 		return 0
 	}
-	return (t.UtcSeconds-nextBlockSlotTime.UtcSeconds)/constants.BLOCK_INTERVAL + 1*/
+	return (t.UtcSeconds-nextBlockSlotTime.UtcSeconds)/constants.BlockInterval + 1*/
 	return 0
 }
 
@@ -908,7 +908,7 @@ func (c *TrxPool) updateGlobalDynamicData(blk *prototype.SignedBlock) {
 				oldMissed := witnessWrap.GetTotalMissed()
 				oldMissed++
 				witnessWrap.MdTotalMissed(oldMissed)
-				if c.headBlockNum() - witnessWrap.GetLastConfirmedBlockNum() > constants.BLOCKS_PER_DAY {
+				if c.headBlockNum() - witnessWrap.GetLastConfirmedBlockNum() > constants.BlocksPerDay {
 					emptyKey := &prototype.PublicKeyType{Data:[]byte{0}}
 					witnessWrap.MdSigningKey(emptyKey)
 					// @ push push_virtual_operation shutdown_witness_operation
@@ -929,13 +929,13 @@ func (c *TrxPool) updateGlobalDynamicData(blk *prototype.SignedBlock) {
 
 	trxCount := len(blk.Transactions)
 	dgpo.TotalTrxCnt += uint64( trxCount )
-	dgpo.Tps = uint32( trxCount / constants.BLOCK_INTERVAL )
+	dgpo.Tps = uint32( trxCount / constants.BlockInterval )
 
 	if dgpo.MaxTps < dgpo.Tps{
 		dgpo.MaxTps = dgpo.Tps
 	}
 	// this check is useful ?
-	//mustSuccess(dgpo.GetHeadBlockNumber()-dgpo.GetIrreversibleBlockNum() < constants.MAX_UNDO_HISTORY, "The database does not have enough undo history to support a blockchain with so many missed blocks.")
+	//mustSuccess(dgpo.GetHeadBlockNumber()-dgpo.GetIrreversibleBlockNum() < constants.MaxUndoHistory, "The database does not have enough undo history to support a blockchain with so many missed blocks.")
 	c.updateGlobalDataToDB(dgpo)
 }
 

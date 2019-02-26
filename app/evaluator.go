@@ -180,7 +180,7 @@ func (ev *PostEvaluator) Apply() {
 
 	authorWrap := table.NewSoAccountWrap(ev.ctx.db, op.Owner)
 	elapsedSeconds := ev.ctx.control.HeadBlockTime().UtcSeconds - authorWrap.GetLastPostTime().UtcSeconds
-	opAssert(elapsedSeconds > constants.MIN_POST_INTERVAL, "posting frequently")
+	opAssert(elapsedSeconds > constants.MinPostInterval, "posting frequently")
 
 	opAssertE(idWrap.Create(func(t *table.SoPost) {
 		t.PostId = op.Uuid
@@ -189,7 +189,7 @@ func (ev *PostEvaluator) Apply() {
 		t.Author = op.Owner
 		t.Body = op.Content
 		t.Created = ev.ctx.control.HeadBlockTime()
-		t.CashoutTime = &prototype.TimePointSec{UtcSeconds: ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.POST_CASHPUT_DELAY_TIME)}
+		t.CashoutTime = &prototype.TimePointSec{UtcSeconds: ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.PostCashOutDelayTime)}
 		t.Depth = 0
 		t.Children = 0
 		t.RootId = t.PostId
@@ -206,7 +206,7 @@ func (ev *PostEvaluator) Apply() {
 		props.TotalPostCnt++
 	})
 
-	//timestamp := ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.POST_CASHPUT_DELAY_TIME) - uint32(constants.GenesisTime)
+	//timestamp := ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.PostCashOutDelayTime) - uint32(constants.GenesisTime)
 	//key := fmt.Sprintf("cashout:%d_%d", common.GetBucket(timestamp), op.Uuid)
 	//value := "post"
 	//opAssertE(ev.ctx.db.Put([]byte(key), []byte(value)), "put post key into db error")
@@ -221,11 +221,11 @@ func (ev *ReplyEvaluator) Apply() {
 	opAssert(!cidWrap.CheckExist(), "post uuid exist")
 	opAssert(pidWrap.CheckExist(), "parent uuid do not exist")
 
-	opAssert(pidWrap.GetDepth()+1 < constants.POST_MAX_DEPTH, "reply depth error")
+	opAssert(pidWrap.GetDepth()+1 < constants.PostMaxDepth, "reply depth error")
 
 	authorWrap := table.NewSoAccountWrap(ev.ctx.db, op.Owner)
 	elapsedSeconds := ev.ctx.control.HeadBlockTime().UtcSeconds - authorWrap.GetLastPostTime().UtcSeconds
-	opAssert(elapsedSeconds > constants.MIN_POST_INTERVAL, "reply frequently")
+	opAssert(elapsedSeconds > constants.MinPostInterval, "reply frequently")
 
 	var rootId uint64
 	if pidWrap.GetRootId() == 0 {
@@ -241,7 +241,7 @@ func (ev *ReplyEvaluator) Apply() {
 		t.Author = op.Owner
 		t.Body = op.Content
 		t.Created = ev.ctx.control.HeadBlockTime()
-		t.CashoutTime = &prototype.TimePointSec{UtcSeconds: ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.POST_CASHPUT_DELAY_TIME)}
+		t.CashoutTime = &prototype.TimePointSec{UtcSeconds: ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.PostCashOutDelayTime)}
 		t.Depth = pidWrap.GetDepth() + 1
 		t.Children = 0
 		t.RootId = rootId
@@ -254,7 +254,7 @@ func (ev *ReplyEvaluator) Apply() {
 	// Modify Parent Object
 	opAssert(pidWrap.MdChildren(pidWrap.GetChildren()+1), "Modify Parent Children Error")
 
-	//timestamp := ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.POST_CASHPUT_DELAY_TIME) - uint32(constants.GenesisTime)
+	//timestamp := ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.PostCashOutDelayTime) - uint32(constants.GenesisTime)
 	//key := fmt.Sprintf("cashout:%d_%d", common.GetBucket(timestamp), op.Uuid)
 	//value := "reply"
 	//opAssertE(ev.ctx.db.Put([]byte(key), []byte(value)), "put reply key into db error")
@@ -267,7 +267,7 @@ func (ev *VoteEvaluator) Apply() {
 
 	voterWrap := table.NewSoAccountWrap(ev.ctx.db, op.Voter)
 	elapsedSeconds := ev.ctx.control.HeadBlockTime().UtcSeconds - voterWrap.GetLastVoteTime().UtcSeconds
-	opAssert(elapsedSeconds > constants.MIN_VOTE_INTERVAL, "voting frequently")
+	opAssert(elapsedSeconds > constants.MinVoteInterval, "voting frequently")
 
 	voterId := prototype.VoterId{Voter: op.Voter, PostId: op.Idx}
 	voteWrap := table.NewSoVoteWrap(ev.ctx.db, &voterId)
@@ -285,7 +285,7 @@ func (ev *VoteEvaluator) Apply() {
 	//	}
 	//}
 
-	regeneratedPower := constants.PERCENT * elapsedSeconds / constants.VOTE_REGENERATE_TIME
+	regeneratedPower := constants.PERCENT * elapsedSeconds / constants.VoteRegenerateTime
 	var currentVp uint32
 	votePower := voterWrap.GetVotePower() + regeneratedPower
 	if votePower > constants.PERCENT {
@@ -293,7 +293,7 @@ func (ev *VoteEvaluator) Apply() {
 	} else {
 		currentVp = votePower
 	}
-	usedVp := (currentVp + constants.VOTE_LIMITE_DURING_REGENERATE - 1) / constants.VOTE_LIMITE_DURING_REGENERATE
+	usedVp := (currentVp + constants.VoteLimitDuringRegenerate - 1) / constants.VoteLimitDuringRegenerate
 
 	voterWrap.MdVotePower(currentVp - usedVp)
 	voterWrap.MdLastVoteTime(ev.ctx.control.HeadBlockTime())
@@ -365,7 +365,7 @@ func (ev *BpVoteEvaluator) Apply() {
 		opAssert(witnessWrap.MdVoteCount(witnessWrap.GetVoteCount()-1), "set witness data error")
 		opAssert(voterAccount.MdBpVoteCount(voteCnt-1), "set voter data error")
 	} else {
-		opAssert(voteCnt < constants.MAX_BP_VOTE_COUNT, "vote count exceeding")
+		opAssert(voteCnt < constants.MaxBpVoteCount, "vote count exceeding")
 
 		opAssertE(vidWrap.Create(func(t *table.SoWitnessVote) {
 			t.VoteTime = ev.ctx.control.HeadBlockTime()
@@ -547,7 +547,7 @@ func (ev *ContractApplyEvaluator) Apply() {
 
 	balance := acc.GetBalance().Value
 	// fixme, should base on minicos
-	balanceExchange := balance * constants.BASE_RATE
+	balanceExchange := balance * constants.BaseRate
 
 	opAssert(balanceExchange >= op.Gas.Value, "balance can not pay gas fee")
 
@@ -614,7 +614,7 @@ func (ev *InternalContractApplyEvaluator) Apply() {
 	caller := table.NewSoAccountWrap(ev.ctx.db, op.FromCaller)
 	opAssert(caller.CheckExist(), "caller account doesn't exist")
 
-	opAssert(caller.GetBalance().Value * constants.BASE_RATE >= op.Gas.Value, "caller balance less than gas")
+	opAssert(caller.GetBalance().Value * constants.BaseRate >= op.Gas.Value, "caller balance less than gas")
 	opAssert(fromContract.GetBalance().Value >= op.Amount.Value, "fromContract balance less than transfer amount")
 
 	code := toContract.GetCode()

@@ -427,9 +427,9 @@ func (as *APIService) BroadcastTrx(ctx context.Context, req *grpcpb.BroadcastTrx
 }
 
 func checkLimit(limit uint32) uint32 {
-	if limit <= constants.RPC_PAGE_SIZE_LIMIT {
+	if limit <= constants.RpcPageSizeLimit {
 		return limit
 	} else {
-		return constants.RPC_PAGE_SIZE_LIMIT
+		return constants.RpcPageSizeLimit
 	}
 }

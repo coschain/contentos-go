@@ -35,10 +35,10 @@ func (p *DemoService) Start(node *node.Node) error {
 }
 
 func (p *DemoService) hookEvent() {
-	p.ev.Subscribe(constants.NOTICE_OP_POST, p.onPostOperation)
+	p.ev.Subscribe(constants.NoticeOpPost, p.onPostOperation)
 }
 func (p *DemoService) unhookEvent() {
-	p.ev.Unsubscribe(constants.NOTICE_OP_POST, p.onPostOperation)
+	p.ev.Unsubscribe(constants.NoticeOpPost, p.onPostOperation)
 }
 
 func (p *DemoService) onPostOperation(notification *prototype.OperationNotification) {
