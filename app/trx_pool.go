@@ -634,7 +634,7 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 		}
 	}
 
-	c.updateGlobalDynamicData(blk)
+	c.updateGlobalProperties(blk)
 	//c.updateSigningWitness(blk)
 	c.shuffle(blk)
 	// @ update_last_irreversible_block
@@ -764,36 +764,31 @@ func (c *TrxPool) initGenesis() {
 }
 
 func (c *TrxPool) TransferToVest(value *prototype.Coin) {
+	c.modifyGlobalDynamicData(func(dgpo *prototype.DynamicProperties) {
+		cos := dgpo.GetTotalCos()
+		vest := dgpo.GetTotalVestingShares()
+		addVest := value.ToVest()
 
-	dgpo := c.GetProps()
-	cos := dgpo.GetTotalCos()
-	vest := dgpo.GetTotalVestingShares()
-	addVest := value.ToVest()
+		mustNoError(cos.Sub(value), "TotalCos overflow")
+		dgpo.TotalCos = cos
 
-	mustNoError(cos.Sub(value), "TotalCos overflow")
-	dgpo.TotalCos = cos
-
-	mustNoError(vest.Add(addVest), "TotalVestingShares overflow")
-	dgpo.TotalVestingShares = vest
-
-	c.updateGlobalDataToDB(dgpo)
+		mustNoError(vest.Add(addVest), "TotalVestingShares overflow")
+		dgpo.TotalVestingShares = vest
+	})
 }
 
 func (c *TrxPool) TransferFromVest(value *prototype.Vest) {
-	dgpo := c.GetProps()
+	c.modifyGlobalDynamicData(func(dgpo *prototype.DynamicProperties) {
+		cos := dgpo.GetTotalCos()
+		vest := dgpo.GetTotalVestingShares()
+		addCos := value.ToCoin()
 
-	cos := dgpo.GetTotalCos()
-	vest := dgpo.GetTotalVestingShares()
-	addCos := value.ToCoin()
+		mustNoError(cos.Add(addCos), "TotalCos overflow")
+		dgpo.TotalCos = cos
 
-	mustNoError(cos.Add(addCos), "TotalCos overflow")
-	dgpo.TotalCos = cos
-
-	mustNoError(vest.Sub(value), "TotalVestingShares overflow")
-	dgpo.TotalVestingShares = vest
-
-	// TODO if op execute failed ???? how to revert ??
-	c.updateGlobalDataToDB(dgpo)
+		mustNoError(vest.Sub(value), "TotalVestingShares overflow")
+		dgpo.TotalVestingShares = vest
+	})
 }
 
 func (c *TrxPool) validateBlockHeader(blk *prototype.SignedBlock) {
@@ -889,12 +884,15 @@ func (c *TrxPool) updateGlobalDataToDB(dgpo *prototype.DynamicProperties) {
 }
 
 func (c *TrxPool) modifyGlobalDynamicData( f func(props *prototype.DynamicProperties) ) {
-	props := c.GetProps()
+	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
+	props 	:= dgpWrap.GetProps()
+
 	f(props)
-	c.updateGlobalDataToDB(props)
+
+	mustSuccess(dgpWrap.MdProps(props), "")
 }
 
-func (c *TrxPool) updateGlobalDynamicData(blk *prototype.SignedBlock) {
+func (c *TrxPool) updateGlobalProperties(blk *prototype.SignedBlock) {
 	/*var missedBlock uint32 = 0
 
 	if false && c.headBlockTime().UtcSeconds != 0 {
@@ -921,22 +919,22 @@ func (c *TrxPool) updateGlobalDynamicData(blk *prototype.SignedBlock) {
 	id := blk.Id()
 	blockID := &prototype.Sha256{Hash: id.Data[:]}
 
-	dgpo := c.GetProps()
-	dgpo.HeadBlockNumber = blk.Id().BlockNum()
-	dgpo.HeadBlockId = blockID
-	dgpo.Time = blk.SignedHeader.Header.Timestamp
-	//c.dgpo.CurrentAslot       = c.dgpo.CurrentAslot + missedBlock+1
+	c.modifyGlobalDynamicData(func(dgpo *prototype.DynamicProperties) {
+		dgpo.HeadBlockNumber = blk.Id().BlockNum()
+		dgpo.HeadBlockId = blockID
+		dgpo.Time = blk.SignedHeader.Header.Timestamp
 
-	trxCount := len(blk.Transactions)
-	dgpo.TotalTrxCnt += uint64( trxCount )
-	dgpo.Tps = uint32( trxCount / constants.BlockInterval )
+		trxCount := len(blk.Transactions)
+		dgpo.TotalTrxCnt += uint64( trxCount )
+		dgpo.Tps = uint32( trxCount / constants.BlockInterval )
 
-	if dgpo.MaxTps < dgpo.Tps{
-		dgpo.MaxTps = dgpo.Tps
-	}
+		if dgpo.MaxTps < dgpo.Tps{
+			dgpo.MaxTps = dgpo.Tps
+		}
+	})
+
 	// this check is useful ?
 	//mustSuccess(dgpo.GetHeadBlockNumber()-dgpo.GetIrreversibleBlockNum() < constants.MaxUndoHistory, "The database does not have enough undo history to support a blockchain with so many missed blocks.")
-	c.updateGlobalDataToDB(dgpo)
 }
 
 func (c *TrxPool) updateSigningWitness(blk *prototype.SignedBlock) {
