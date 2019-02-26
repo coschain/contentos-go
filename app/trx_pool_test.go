@@ -56,9 +56,13 @@ func makeBlock(pre *prototype.Sha256, blockTimestamp uint32, signedTrx *prototyp
 	return sigBlk
 }
 
-func createSigTrx(ops []interface{}, headBlockID *prototype.Sha256, expire uint32) (*prototype.SignedTransaction, error) {
+func createSigTrx(ops []interface{}, c *TrxPool,priKey string) (*prototype.SignedTransaction, error) {
 
-	privKey, err := prototype.PrivateKeyFromWIF(constants.INITMINER_PRIKEY)
+	headBlockID := c.GetProps().GetHeadBlockId()
+	expire := c.GetProps().Time.UtcSeconds + 20;
+	expire += 20;
+
+	privKey, err := prototype.PrivateKeyFromWIF(priKey)
 	if err != nil {
 		return nil, err
 	}
@@ -123,10 +127,8 @@ func Test_PushTrx(t *testing.T) {
 	}
 	ops := []interface{}{}
 	ops = append(ops,acop)
-	headBlockID := c.GetProps().GetHeadBlockId()
-	headTime := c.GetProps().Time.UtcSeconds;
-	headTime += 20;
-	signedTrx, err := createSigTrx(ops, headBlockID, headTime)
+
+	signedTrx, err := createSigTrx(ops, c, constants.INITMINER_PRIKEY)
 	if err != nil {
 		t.Error("createSigTrx error:", err)
 	}
@@ -154,13 +156,10 @@ func Test_PushBlock(t *testing.T) {
 	if err != nil {
 		t.Error("makeCreateAccountOP error:", err)
 	}
-	headBlockID := c.GetProps().GetHeadBlockId()
-	headTime := c.GetProps().Time.UtcSeconds;
-	headTime += 20;
 
 	ops := []interface{}{}
 	ops = append(ops,createOP)
-	signedTrx, err := createSigTrx(ops, headBlockID, headTime)
+	signedTrx, err := createSigTrx(ops, c, constants.INITMINER_PRIKEY)
 	if err != nil {
 		t.Error("createSigTrx error:", err)
 	}
@@ -188,13 +187,9 @@ func TestController_GenerateAndApplyBlock(t *testing.T) {
 	defer clearDB(db)
 	c := startController(db)
 
-	headBlockID := c.GetProps().GetHeadBlockId()
-	headTime := c.GetProps().Time.UtcSeconds;
-	headTime += 20;
-
 	ops := []interface{}{}
 	ops = append(ops,createOP)
-	signedTrx, err := createSigTrx(ops, headBlockID, headTime)
+	signedTrx, err := createSigTrx(ops, c, constants.INITMINER_PRIKEY)
 	if err != nil {
 		t.Error("createSigTrx error:", err)
 	}
@@ -238,12 +233,9 @@ func Test_list(t *testing.T) {
 		t.Error("makeCreateAccountOP error:", err)
 	}
 
-	headBlockID := c.GetProps().GetHeadBlockId()
-	headTime := c.GetProps().Time.UtcSeconds;
-	headTime += 20;
 	ops := []interface{}{}
 	ops = append(ops,acop)
-	signedTrx, err := createSigTrx(ops, headBlockID, headTime)
+	signedTrx, err := createSigTrx(ops, c, constants.INITMINER_PRIKEY)
 	if err != nil {
 		t.Error("createSigTrx error:", err)
 	}
@@ -323,12 +315,10 @@ func TestController_PopBlock(t *testing.T) {
 	if err != nil {
 		t.Error("makeCreateAccountOP error:", err)
 	}
-	headBlockID := c.GetProps().GetHeadBlockId()
-	headTime := c.GetProps().Time.UtcSeconds;
-	headTime += 20;
+
 	ops := []interface{}{}
 	ops = append(ops,createOP)
-	signedTrx, err := createSigTrx(ops, headBlockID, headTime)
+	signedTrx, err := createSigTrx(ops, c, constants.INITMINER_PRIKEY)
 	if err != nil {
 		t.Error("createSigTrx error:", err)
 	}
@@ -344,12 +334,9 @@ func TestController_PopBlock(t *testing.T) {
 	if err != nil {
 		t.Error("makeCreateAccountOP error:", err)
 	}
-	headBlockID2 := c.GetProps().GetHeadBlockId()
-	headTime2 := c.GetProps().Time.UtcSeconds;
-	headTime2 += 20;
 
 	ops[0] = createOP2
-	signedTrx2, err := createSigTrx(ops, headBlockID2, headTime2)
+	signedTrx2, err := createSigTrx(ops, c, constants.INITMINER_PRIKEY)
 	if err != nil {
 		t.Error("createSigTrx error:", err)
 	}
@@ -396,12 +383,10 @@ func TestController_Commit(t *testing.T) {
 	if err != nil {
 		t.Error("makeCreateAccountOP error:", err)
 	}
-	headBlockID := c.GetProps().GetHeadBlockId()
-	headTime := c.GetProps().Time.UtcSeconds;
-	headTime += 20;
+
 	ops := []interface{}{}
 	ops = append(ops,createOP)
-	signedTrx, err := createSigTrx(ops, headBlockID, headTime)
+	signedTrx, err := createSigTrx(ops, c,constants.INITMINER_PRIKEY)
 	if err != nil {
 		t.Error("createSigTrx error:", err)
 	}
@@ -417,12 +402,9 @@ func TestController_Commit(t *testing.T) {
 	if err != nil {
 		t.Error("makeCreateAccountOP error:", err)
 	}
-	headBlockID2 := c.GetProps().GetHeadBlockId()
-	headTime2 := c.GetProps().Time.UtcSeconds;
-	headTime2 += 20;
 
 	ops[0] = createOP2
-	signedTrx2, err := createSigTrx(ops, headBlockID2, headTime2)
+	signedTrx2, err := createSigTrx(ops, c, constants.INITMINER_PRIKEY)
 	if err != nil {
 		t.Error("createSigTrx error:", err)
 	}
@@ -480,10 +462,7 @@ func Test_MixOp(t *testing.T) {
 	ops := []interface{}{}
 	ops = append(ops,deployOp)
 
-	headBlockID2 := c.GetProps().GetHeadBlockId()
-	headTime2 := c.GetProps().Time.UtcSeconds;
-	headTime2 += 20;
-	signedTrx, err := createSigTrx(ops, headBlockID2, headTime2)
+	signedTrx, err := createSigTrx(ops, c, constants.INITMINER_PRIKEY)
 	if err != nil {
 		t.Error("createSigTrx error:", err)
 	}
@@ -523,7 +502,7 @@ func Test_MixOp(t *testing.T) {
 	}
 	ops = append(ops,transOp)
 
-	signedTrx2, err := createSigTrx(ops, headBlockID2, headTime2)
+	signedTrx2, err := createSigTrx(ops, c, constants.INITMINER_PRIKEY)
 	if err != nil {
 		t.Error("createSigTrx error:", err)
 	}
@@ -542,7 +521,39 @@ func Test_MixOp(t *testing.T) {
 	// right result:
 	// 1. gas should be deduct
 	// 2. transfer should be revert
-	//if b.Value <= b2.Value && b2.Value > b.Value - value{
-	//	t.Error("gas error or db error")
-	//}
+	if b > b2{
+		t.Error("gas error or db error")
+	}
+}
+
+func Test_Stake(t *testing.T) {
+	db := startDB()
+	defer clearDB(db)
+	c := startController(db)
+
+	wraper := table.NewSoAccountWrap(db,prototype.NewAccountName(constants.COS_INIT_MINER))
+	if wraper.GetStakeVesting().Value != 0 {
+		t.Error("stake vesting error")
+	}
+
+	stakeOp := &prototype.StakeOperation{
+		Account:prototype.NewAccountName(constants.COS_INIT_MINER),
+		Amount:100,
+	}
+	ops := []interface{}{}
+	ops = append(ops,stakeOp)
+
+	signedTrx, err := createSigTrx(ops, c, constants.INITMINER_PRIKEY)
+	if err != nil {
+		t.Error("createSigTrx error:", err)
+	}
+
+	invoice := c.PushTrx(signedTrx)
+	if invoice.Status != prototype.StatusSuccess {
+		t.Error("PushTrx return status error:", invoice.Status)
+	}
+
+	if wraper.GetStakeVesting().Value == 0 {
+		t.Error("stake vesting error")
+	}
 }

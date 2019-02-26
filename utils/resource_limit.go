@@ -45,8 +45,6 @@ func NewResourceLimiter(db iservices.IDatabaseService) *ResourceLimiter {
 	return &ResourceLimiter{db: db}
 }
 
-/* below is pseudo code */
-
 const CHAIN_STAMINA = 100000000
 
 const PRECISION = 10000
@@ -82,7 +80,10 @@ func (s *ResourceLimiter) calculateUserMaxStamina(name string) uint64 {
 	}
 	dgpWrap := table.NewSoGlobalWrap(s.db,&SINGLE)
 
-	totalVest := accountWrap.GetVestingShares().Value + accountWrap.GetStakeVesting().Value
+	vest := accountWrap.GetVestingShares().Value
+	stakeVest := accountWrap.GetStakeVesting().Value
+
+	totalVest := vest + stakeVest
 	userMax := float64( totalVest * CHAIN_STAMINA)/float64(dgpWrap.GetProps().TotalVestingShares.Value)
 	return uint64(userMax)
 }

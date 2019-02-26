@@ -764,6 +764,7 @@ func (c *TrxPool) initGenesis() {
 		tInfo.VestingShares = prototype.NewVest(1000)
 		tInfo.LastPostTime = &prototype.TimePointSec{UtcSeconds: 0}
 		tInfo.LastVoteTime = &prototype.TimePointSec{UtcSeconds: 0}
+		tInfo.StakeVesting = prototype.NewVest(0)
 	}), "CreateAccount error", prototype.StatusErrorDbCreate)
 
 	// create account authority
