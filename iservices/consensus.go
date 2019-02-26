@@ -48,6 +48,7 @@ type IConsensus interface {
 	// HasBlock query the local blockchain whether it has the given block id
 	HasBlock(id common.BlockID) bool
 
+	// FetchBlocksSince returns blocks in the range of (id, max(headID, id+1024))
 	FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, error)
 
 

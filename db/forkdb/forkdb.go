@@ -356,7 +356,7 @@ func (db *DB) FetchBlockFromMainBranch(num uint64) (common.ISignedBlock, error) 
 	return ret, nil
 }
 
-// FetchBlocksSince fetches the main branch starting from id
+// FetchBlocksSince fetches the main branch starting from id.next
 func (db *DB) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, []common.BlockID, error) {
 	db.RLock()
 	defer db.RUnlock()

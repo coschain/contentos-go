@@ -1110,23 +1110,37 @@ func (sabft *SABFT) HasBlock(id common.BlockID) bool {
 	return false
 }
 
+// return blocks in the range of (id, max(headID, id+1024))
 func (sabft *SABFT) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, error) {
+	if sabft.ForkDB.Empty() {
+		return nil, errors.New("ForkDB is empty, try again later")
+	}
 	length := int64(sabft.ForkDB.Head().Id().BlockNum()) - int64(id.BlockNum())
 	if length < 1 {
 		return nil, nil
 	}
 
-	if id.BlockNum() >= sabft.ForkDB.LastCommitted().BlockNum() {
+	lastCommitted := sabft.ForkDB.LastCommitted()
+
+	if id.BlockNum() >= lastCommitted.BlockNum() {
 		blocks, _, err := sabft.ForkDB.FetchBlocksSince(id)
+		if err != nil {
+			// there probably is a new committed block during the execution of this process, just try again
+			return sabft.FetchBlocksSince(id)
+		}
 		return blocks, err
 	}
 
 	ret := make([]common.ISignedBlock, 0, length)
 	idNum := id.BlockNum()
 	start := idNum + 1
+	blocksInForkDB, _, err := sabft.ForkDB.FetchBlocksSince(lastCommitted)
+	if err != nil {
+		// there probably is a new committed block during the execution of this process, just try again
+		return sabft.FetchBlocksSince(id)
+	}
+	end := lastCommitted.BlockNum()
 
-	end := uint64(sabft.blog.Size())
-	//sabft.log.Errorf("fetch from blog: from %d to %d", start, end)
 	for start <= end {
 		b := &prototype.SignedBlock{}
 		if err := sabft.blog.ReadBlock(b, int64(start-1)); err != nil {
@@ -1139,17 +1153,8 @@ func (sabft *SABFT) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, 
 
 		ret = append(ret, b)
 		start++
-
-		if start > end && b.Id() != sabft.ForkDB.LastCommitted() {
-			// there probably is a new committed block during the execution of this process
-			return nil, errors.New("ForkDB and BLog inconsistent state")
-		}
 	}
 
-	blocksInForkDB, _, err := sabft.ForkDB.FetchBlocksSince(sabft.ForkDB.LastCommitted())
-	if err != nil {
-		return nil, err
-	}
 	ret = append(ret, blocksInForkDB...)
 	return ret, nil
 }
