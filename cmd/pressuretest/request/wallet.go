@@ -31,7 +31,7 @@ func InitEnv() {
 		InitShell(rootCmd)
 	}
 
-	MakeWallet(-1, rootCmd)
+	MakeWallet(0, rootCmd)
 }
 
 
