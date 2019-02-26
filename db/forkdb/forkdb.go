@@ -356,6 +356,29 @@ func (db *DB) FetchBlockFromMainBranch(num uint64) (common.ISignedBlock, error) 
 	return ret, nil
 }
 
+func (db *DB) FetchBlocksFromMainBranch(num uint64) ([]common.ISignedBlock, error) {
+	db.RLock()
+	defer db.RUnlock()
+
+	if num < db.lastCommitted.BlockNum() {
+		num = db.lastCommitted.BlockNum()
+	}
+
+	size := db.head.BlockNum() - num + 1
+	ret := make([]common.ISignedBlock, size, size)
+	cur := db.head
+	for cur.BlockNum() >= num {
+		b, err := db.fetchBlock(cur)
+		if err != nil {
+			return nil, err
+		}
+		size--
+		ret[size] = b
+		cur = b.Previous()
+	}
+	return ret, nil
+}
+
 // FetchBlocksSince fetches the main branch starting from id.next
 func (db *DB) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, []common.BlockID, error) {
 	db.RLock()

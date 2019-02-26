@@ -51,6 +51,8 @@ type IConsensus interface {
 	// FetchBlocksSince returns blocks in the range of (id, max(headID, id+1024))
 	FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, error)
 
+	// FetchBlocks returns blocks in the range of [from, to]
+	FetchBlocks(from, to uint64) ([]common.ISignedBlock, error)
 
 	// NOTE: the following methods are testing methods and should only be called by multinodetester2
 	// ResetProdTimer reset the prodTimer in dpos

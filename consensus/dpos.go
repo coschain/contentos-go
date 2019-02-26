@@ -681,6 +681,10 @@ func (d *DPoS) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, error
 	return ret, nil
 }
 
+func (d *DPoS) FetchBlocks(from, to uint64) ([]common.ISignedBlock, error) {
+	return fetchBlocks(from, to, d.ForkDB, &d.blog)
+}
+
 
 func (d *DPoS) ResetProdTimer(t time.Duration) {
 	if !d.prodTimer.Stop() {
