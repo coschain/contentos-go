@@ -161,28 +161,35 @@ func (c *TrxPool) addTrxToPending(trx *prototype.SignedTransaction,isVerified bo
 func (c *TrxPool) PushTrx(trx *prototype.SignedTransaction) (invoice *prototype.TransactionReceiptWithInfo) {
 	// this function may be cross routines ? use channel or lock ?
 	oldSkip := c.skip
+	trxEst := &prototype.EstimateTrxResult{}
 	defer func() {
 		if err := recover(); err != nil {
 			switch x := err.(type) {
 			case *prototype.Exception:
-				invoice.Status = uint32(x.ErrorType)
-				invoice.ErrorInfo = x.ToString()
+				trxEst.Receipt.Status = uint32(x.ErrorType)
+				trxEst.Receipt.ErrorInfo = x.ToString()
 			default:
-				invoice.Status = prototype.StatusError
-				invoice.ErrorInfo = "unknown error type"
+				trxEst.Receipt.Status = prototype.StatusError
+				trxEst.Receipt.ErrorInfo = "unknown error type"
 			}
 			c.log.Errorf("PushTrx Error: %v", err)
 		}
 		c.setProducing(false)
 		c.skip = oldSkip
+		invoice = trxEst.Receipt
 	}()
 
 	// check maximum_block_size
 	mustSuccess(proto.Size(trx) <= int(c.GetProps().MaximumBlockSize-256), "transaction is too large",prototype.StatusErrorTrxSize)
 
 	c.setProducing(true)
-	invoice = c.pushTrx(trx)
-	return
+
+	trxEst.SigTrx = trx
+	trxEst.Receipt = &prototype.TransactionReceiptWithInfo{}
+	trxEst.Receipt.Status = prototype.StatusSuccess
+
+	c.pushTrx(trxEst)
+	return trxEst.Receipt
 }
 
 func (c *TrxPool) GetProps() *prototype.DynamicProperties {
@@ -190,13 +197,8 @@ func (c *TrxPool) GetProps() *prototype.DynamicProperties {
 	return dgpWrap.GetProps()
 }
 
-func (c *TrxPool) pushTrx(trx *prototype.SignedTransaction) (ret *prototype.TransactionReceiptWithInfo) {
-	trxEst := &prototype.EstimateTrxResult{}
-	trxEst.SigTrx = trx
-	trxEst.Receipt = &prototype.TransactionReceiptWithInfo{}
-	trxEst.Receipt.Status = prototype.StatusSuccess
+func (c *TrxPool) pushTrx(trxEst *prototype.EstimateTrxResult) {
 	trxContext := NewTrxContext(trxEst, c.db, c)
-	ret = trxEst.Receipt
 	defer func() {
 		// undo sub session
 		if err := recover(); err != nil {
@@ -231,7 +233,6 @@ func (c *TrxPool) pushTrx(trx *prototype.SignedTransaction) (ret *prototype.Tran
 
 	// @ not use yet
 	//c.notifyTrxPending(trx)
-	return trxEst.Receipt
 }
 
 func (c *TrxPool) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag) (err error) {

@@ -146,6 +146,7 @@ func (ev *AccountCreateEvaluator) Apply() {
 		tInfo.VestingShares = op.Fee.ToVest()
 		tInfo.LastPostTime = ev.ctx.control.HeadBlockTime()
 		tInfo.LastVoteTime = ev.ctx.control.HeadBlockTime()
+		tInfo.StakeVesting = prototype.NewVest(0)
 	}), "duplicate create account object",prototype.StatusErrorDbCreate)
 
 	// create account authority

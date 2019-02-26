@@ -181,7 +181,7 @@ func (s *ResourceLimiter) ConsumeFreeLeft(name string, now uint64) bool {
 }
 
 func calculateNewStamina(oldStamina uint64, useStamina uint64, lastTime uint64, now uint64) uint64 {
-	blocks := uint64(RECOVER_WINDOW/3)
+	blocks := uint64(RECOVER_WINDOW)
 	if now > lastTime { // assert ?
 		if now < lastTime + blocks {
 			delta := now - lastTime
