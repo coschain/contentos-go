@@ -423,7 +423,21 @@ func (as *APIService) getState() *grpcpb.ChainState {
 	result.Dgpo = table.NewSoGlobalWrap(as.db, &i).GetProps()
 	result.LastIrreversibleBlockNumber = as.consensus.GetLIB().BlockNum()
 	return result
+}
 
+func (as *APIService) GetBlockList(ctx context.Context, req *grpcpb.GetBlockListRequest) (*grpcpb.GetBlockListResponse, error) {
+	from := req.Start
+    to := req.End
+    list,err := as.consensus.FetchBlocks(from,to)
+    if err != nil {
+    	return &grpcpb.GetBlockListResponse{Blocks:make([]*prototype.SignedBlock,0)},err
+	}
+     blkList := make([]*prototype.SignedBlock,len(list))
+     for i,blk := range list {
+		blkList[i] = blk.(*prototype.SignedBlock)
+	 }
+
+    return &grpcpb.GetBlockListResponse{Blocks:blkList},nil
 }
 
 func checkLimit(limit uint32) uint32 {
