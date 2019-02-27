@@ -17,11 +17,17 @@ type accountList struct {
 	arr  []*wallet.PrivAccount
 }
 
+type IdList struct {
+	sync.RWMutex
+	arr []uint64
+}
+
 const (
 	CREATE_CMD   = "create"
 	TRANSFER_CMD = "transfer"
 	POST_CMD     = "post"
 	FOLLOW_CMD   = "follow"
+	VOTE_CMD     = "vote"
 )
 
 var IPList []string = []string{
@@ -33,9 +39,11 @@ var CmdTypeList []string = []string{
 	TRANSFER_CMD,
 	POST_CMD ,
 	FOLLOW_CMD,
+	VOTE_CMD,
 }
 
 var GlobalAccountLIst accountList
+var PostIdList IdList
 
 var Wg = &sync.WaitGroup{}
 
@@ -95,6 +103,8 @@ func StartEachRoutine(index int) {
 			postArticle(rpcClient, nil)
 		case FOLLOW_CMD:
 			follow(rpcClient, nil, nil)
+		case VOTE_CMD:
+			voteArticle(rpcClient, nil, 0)
 		}
 	}
 }

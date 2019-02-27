@@ -119,6 +119,9 @@ func transfer(rpcClient grpcpb.ApiServiceClient, fromAccount, toAccount  *wallet
 		fmt.Println(err)
 		return
 	}
+
+	fmt.Println("Request command: ", fmt.Sprintf("transfer %s %s %d", fromAccount.Name, toAccount.Name, amount))
+
 	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
 	resp, err := rpcClient.BroadcastTrx(context.Background(), req)
 	if err != nil {
@@ -183,6 +186,18 @@ func postArticle(rpcClient grpcpb.ApiServiceClient, authorAccount *wallet.PrivAc
 	if err != nil {
 		fmt.Println(err)
 	} else {
+		if resp.Invoice.Status == 200 {
+			PostIdList.Lock()
+			PostIdList.arr = append(PostIdList.arr, uuid)
+			PostIdList.Unlock()
+		}
+
+		if strings.Contains(resp.Invoice.ErrorInfo, "Insufficient") {
+			transfer(rpcClient, GlobalAccountLIst.arr[0], authorAccount, 10)
+			postArticle(rpcClient, authorAccount)
+			return
+		}
+
 		fmt.Println(fmt.Sprintf("Result: %v", resp))
 	}
 }
@@ -225,6 +240,48 @@ func follow(rpcClient grpcpb.ApiServiceClient, followerAccount, followingAccount
 	if err != nil {
 		fmt.Println(err)
 	} else {
+		fmt.Println(fmt.Sprintf("Result: %v", resp))
+	}
+}
+
+func voteArticle(rpcClient grpcpb.ApiServiceClient, voterAccount *wallet.PrivAccount, postId uint64) {
+	if voterAccount == nil {
+		GlobalAccountLIst.RLock()
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		idx := r.Intn( len(GlobalAccountLIst.arr) )
+		voterAccount = GlobalAccountLIst.arr[idx]
+		GlobalAccountLIst.RUnlock()
+	}
+
+	if postId == 0 {
+		PostIdList.RLock()
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		idx := r.Intn( len(PostIdList.arr) )
+		postId = PostIdList.arr[idx]
+		PostIdList.RUnlock()
+	}
+
+	vote_op := &prototype.VoteOperation{
+		Voter: &prototype.AccountName{Value: voterAccount.Name},
+		Idx:   postId,
+	}
+
+	signTx, err := utils.GenerateSignedTxAndValidate2(rpcClient, []interface{}{vote_op}, voterAccount)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
+	resp, err := rpcClient.BroadcastTrx(context.Background(), req)
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		if strings.Contains(resp.Invoice.ErrorInfo, "Insufficient") {
+			transfer(rpcClient, GlobalAccountLIst.arr[0], voterAccount, 10)
+			voteArticle(rpcClient, voterAccount, postId)
+			return
+		}
+
 		fmt.Println(fmt.Sprintf("Result: %v", resp))
 	}
 }
