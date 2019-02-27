@@ -146,7 +146,7 @@ func obtainKeyMap(ops []*prototype.Operation) map[string]bool {
 		baseOp := prototype.GetBaseOperation(op)
 
 		//baseOp.GetAuthorities(&other)
-		baseOp.GetRequiredOwner(&keyMaps)
+		baseOp.GetSigner(&keyMaps)
 	}
 	return keyMaps
 }

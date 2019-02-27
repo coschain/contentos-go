@@ -5,7 +5,7 @@ import (
 )
 
 
-func (a *AccountCreateOperation) GetRequiredOwner(auths *map[string]bool) {
+func (a *AccountCreateOperation) GetSigner(auths *map[string]bool) {
 	(*auths)[a.Creator.Value] = true
 }
 

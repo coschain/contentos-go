@@ -20,7 +20,7 @@ const (
 	NoticeTrxApplied = "trxapplyresult"
 	NoticeBlockApplied = "blockapply"
 
-	GenesisTime = 11111
+	GenesisTime = 0
 
 	MaxTransactionSize = 1024 * 256
 
