@@ -8,6 +8,7 @@ import "prototype/type.proto";
 import "prototype/multi_id.proto";
 import "prototype/transaction.proto";
 
+
 service ApiService {
     rpc QueryTableContent (GetTableContentRequest) returns (TableContentResponse) {
     }
@@ -52,6 +53,9 @@ service ApiService {
     }
 
     rpc GetBlockList (GetBlockListRequest) returns (GetBlockListResponse) {
+    }
+
+    rpc GetAccountListByBalance (NonParamsRequest) returns (GetAccountListResponse) {
     }
 }
 
@@ -240,4 +244,9 @@ message GetBlockListRequest {
 
 message GetBlockListResponse {
     repeated prototype.signed_block blocks = 1;
+}
+
+
+message GetAccountListResponse {
+    repeated AccountResponse list = 1;
 }
