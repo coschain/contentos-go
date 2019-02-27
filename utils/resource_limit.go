@@ -24,7 +24,7 @@ type IGetter interface {
 
 type IFreeGetter interface {
 	GetFree(name string) uint64
-	GetCapacityFree(name string) uint64
+	GetCapacityFree() uint64
 	GetFreeLeft(name string, now uint64) uint64
 }
 
@@ -144,7 +144,7 @@ func (s *ResourceLimiter) GetFree(name string) uint64 {
 	return accountWrap.GetStaminaFree()
 }
 
-func (s *ResourceLimiter) GetCapacityFree(name string) uint64 {
+func (s *ResourceLimiter) GetCapacityFree() uint64 {
 	return FREE_STAMINA
 }
 
@@ -194,4 +194,21 @@ func calculateNewStamina(oldStamina uint64, useStamina uint64, lastTime uint64, 
 	}
 	oldStamina += useStamina
 	return oldStamina
+}
+
+func calculateNewStaminaEMA(avgOld, useStamina uint64, lastTime uint64, now uint64) uint64 {
+	blocks := uint64(RECOVER_WINDOW)
+	avgUse := useStamina/blocks
+	if now > lastTime { // assert ?
+		if now < lastTime + blocks {
+			delta := now - lastTime
+			decay := float64(blocks - delta) / float64(blocks)
+			newStamina := float64(avgOld) * decay
+			avgOld = uint64(newStamina)
+		} else {
+			avgOld = 0
+		}
+	}
+	avgOld += avgUse
+	return avgOld
 }

@@ -2,8 +2,10 @@ package utils
 
 import (
 	"fmt"
+	"math/rand"
 	"strconv"
 	"testing"
+	"time"
 )
 
 var lockErr = "lock error"
@@ -29,97 +31,11 @@ func addActors() {
 	}
 }
 
-func TestStakeManager_LockUpCos(t *testing.T) {
-	initEvn()
-
-	sm := NewResourceLimiter()
-	name := "0"
-	oldCos := db[name].cos
-	oldVest := db[name].vest
-	stakeCos := uint64(99)
-	if !sm.LockUpCos(name,stakeCos) {
-		t.Error(lockErr)
-	}
-	if db[name].cos != (oldCos - stakeCos) {
-		t.Error(lockErr)
-	}
-	if db[name].vest != (oldVest + stakeCos) {
-		t.Error(lockErr)
-	}
-}
-
-func TestStakeManager_LockUpCos2(t *testing.T) {
-	initEvn()
-
-	sm := NewResourceLimiter()
-	name := "0"
-	oldCos := db[name].cos
-	stakeCos := oldCos + 1
-	if sm.LockUpCos(name,stakeCos) {
-		t.Error(lockErr)
-	}
-}
-
-func TestStakeManager_ReleaseCos(t *testing.T) {
-	initEvn()
-
-	sm := NewResourceLimiter()
-	name := "0"
-	oldCos := db[name].cos
-	oldVest := db[name].vest
-	stakeCos := uint64(99)
-	sm.LockUpCos(name,stakeCos)
-	if db[name].cos != (oldCos - stakeCos) {
-		t.Error(lockErr)
-	}
-	if db[name].vest != (oldVest + stakeCos) {
-		t.Error(lockErr)
-	}
-
-	sm.ReleaseCos(name,stakeCos)
-	if db[name].cos != oldCos {
-		t.Error(releaseErr)
-	}
-	if db[name].vest != oldVest {
-		t.Error(releaseErr)
-	}
-}
-
-func TestStakeManager_ReleaseCos2(t *testing.T) {
-	initEvn()
-
-	sm := NewResourceLimiter()
-	name := "0"
-	oldCos := db[name].cos
-	oldVest := db[name].vest
-	stakeCos := uint64(99)
-	sm.LockUpCos(name,stakeCos)
-	if db[name].cos != (oldCos - stakeCos) {
-		t.Error(lockErr)
-	}
-	if db[name].vest != (oldVest + stakeCos) {
-		t.Error(lockErr)
-	}
-
-	if sm.ReleaseCos(name,stakeCos+1) {
-		t.Error(releaseErr)
-	}
-	if db[name].cos == oldCos {
-		t.Error(releaseErr)
-	}
-	if db[name].vest == oldVest {
-		t.Error(releaseErr)
-	}
-}
-
 func TestStakeManager_Consume1(t *testing.T) {
 	initEvn()
 
-	sm := NewResourceLimiter()
+	sm := NewResourceLimiter(nil)
 	name := "0"
-	stakeCos := uint64(100)
-
-	sm.LockUpCos(name,stakeCos)
 
 	if sm.Get(name) != 0 {
 		t.Error("init stamina error")
@@ -135,18 +51,21 @@ func TestStakeManager_Consume1(t *testing.T) {
 	if sm.Get(name) != 100 {
 		t.Error(consumeErr)
 	}
+	// recover and consume check
 	step := uint64(oneDayBlocks * 0.5)
 	global.addBlockNum(step)
 	sm.Consume(name,1,global.getBlockNum())
 	if sm.Get(name) != 51 {
 		t.Error(consumeErr)
 	}
+	// recover check
 	step = uint64(oneDayBlocks * 0.5)
 	global.addBlockNum(step)
 	sm.Consume(name,0,global.getBlockNum())
 	if sm.Get(name) != 25 {
 		t.Error(consumeErr)
 	}
+	// recover all check
 	step = uint64(oneDayBlocks)
 	global.addBlockNum(step)
 	sm.Consume(name,0,global.getBlockNum())
@@ -158,20 +77,16 @@ func TestStakeManager_Consume1(t *testing.T) {
 func TestStakeManager_Consume2(t *testing.T) {
 	initEvn()
 
-	sm := NewResourceLimiter()
-	stakeCos := uint64(50)
+	sm := NewResourceLimiter(nil)
+	// stake same, consume same
 	for i := 0; i < actorsNum; i++ {
-		name := strconv.Itoa(i)
-		sm.LockUpCos(name,stakeCos)
-		sm.Consume(name,25,global.getBlockNum())
 	}
+
 	step := uint64(oneDayBlocks * 0.3)
 	global.addBlockNum(step)
 
+	// recover same
 	for i := 0; i < actorsNum; i++ {
-		name := strconv.Itoa(i)
-		sm.LockUpCos(name,stakeCos)
-		sm.Consume(name,0,global.getBlockNum())
 	}
 
 	for i := 0; i < actorsNum; i++ {
@@ -186,38 +101,17 @@ func TestStakeManager_Consume2(t *testing.T) {
 	}
 }
 
-func TestStakeManager_Consume3(t *testing.T) {
-	initEvn()
-
-	sm := NewResourceLimiter()
-	stakeCos := uint64(1)
-	name := "0"
-	if !sm.LockUpCos(name,stakeCos) {
-		t.Error(lockErr)
-	}
-
-	if sm.Consume(name,sm.GetCapacity(name)+1,global.getBlockNum()) {
-		t.Error(consumeErr)
-	}
-}
-
 // each user lock up different cos, but use same stamina, their recover should same
 func TestStakeManager_Consume4(t *testing.T) {
 	initEvn()
-	sm := NewResourceLimiter()
-	stakeCos := uint64(1)
-	for i := 0; i < actorsNum; i++ {
-		name := strconv.Itoa(i)
-		if !sm.LockUpCos(name,stakeCos) {
-			t.Error(lockErr)
-		}
-		stakeCos++
-	}
-	// use minimum as consume value
+	sm := NewResourceLimiter(nil)
+	// stake different
+
+	//
 	consume := sm.GetCapacity("0")
 	fmt.Println("minimum capacity:",consume)
 
-	// consume
+	// consume same
 	for i := 0; i < actorsNum; i++ {
 		name := strconv.Itoa(i)
 		if !sm.Consume(name,consume,global.getBlockNum()) {
@@ -228,7 +122,7 @@ func TestStakeManager_Consume4(t *testing.T) {
 	step := uint64(oneDayBlocks * 0.3)
 	global.addBlockNum(step)
 
-	// recover
+	// recover same
 	for i := 0; i < actorsNum; i++ {
 		name := strconv.Itoa(i)
 		if !sm.Consume(name,0,global.getBlockNum()) {
@@ -236,7 +130,7 @@ func TestStakeManager_Consume4(t *testing.T) {
 		}
 	}
 
-	// check
+	// each should same
 	for i := 0; i < actorsNum; i++ {
 		if i == actorsNum - 1 {
 			break
@@ -253,19 +147,15 @@ func TestStakeManager_Consume4(t *testing.T) {
 func TestStakeManager_Consume5(t *testing.T) {
 	initEvn()
 
-	sm := NewResourceLimiter()
-	stakeCos := uint64(1)
-	for i := 0; i < actorsNum; i++ {
-		name := strconv.Itoa(i)
-		if !sm.LockUpCos(name,stakeCos) {
-			t.Error(lockErr)
-		}
-	}
+	sm := NewResourceLimiter(nil)
+
+	// stake same
+
 	// use minimum as consume value
 	consume := sm.GetCapacity("0")
 	fmt.Println("minimum capacity:",consume)
 
-	// consume
+	// consume different
 	for i := 0; i < actorsNum; i++ {
 		name := strconv.Itoa(i)
 		if !sm.Consume(name,consume,global.getBlockNum()) {
@@ -277,7 +167,7 @@ func TestStakeManager_Consume5(t *testing.T) {
 	step := uint64(oneDayBlocks * 0.3)
 	global.addBlockNum(step)
 
-	// recover
+	// recover same
 	for i := 0; i < actorsNum; i++ {
 		name := strconv.Itoa(i)
 		if !sm.Consume(name,0,global.getBlockNum()) {
@@ -285,7 +175,7 @@ func TestStakeManager_Consume5(t *testing.T) {
 		}
 	}
 
-	// check
+	// each should different
 	for i := 0; i < actorsNum; i++ {
 		if i == actorsNum - 1 {
 			break
@@ -301,13 +191,10 @@ func TestStakeManager_Consume5(t *testing.T) {
 func TestStakeManager_GetCapacity(t *testing.T) {
 	initEvn()
 
-	sm := NewResourceLimiter()
-	stakeCos := uint64(1)
-	for i := 0; i < actorsNum; i++ {
-		name := strconv.Itoa(i)
-		sm.LockUpCos(name,stakeCos)
-	}
+	sm := NewResourceLimiter(nil)
+	// stake same
 
+	// capacity should same
 	for i := 0; i < actorsNum; i++ {
 		if i == actorsNum - 1 {
 			break
@@ -320,6 +207,33 @@ func TestStakeManager_GetCapacity(t *testing.T) {
 	}
 }
 
-func TestFreeManager_ConsumeFree(t *testing.T) {
+func Test_EMA(t *testing.T) {
 
+	var startBlock uint64 = 1
+	var endBlock uint64 = 86400
+	var avg uint64= 1
+
+	rand.Seed(time.Now().UnixNano())
+
+	data := []uint64{}
+	for i:= startBlock; i <= endBlock; i++ {
+		data = append(data,uint64(rand.Intn(100000000)))
+	}
+
+	for i := startBlock; i < endBlock;i++ {
+		avg = calculateNewStaminaEMA(avg,data[i],i-1,i)
+		if i < 10 {
+			println("trace EMA:",avg*RECOVER_WINDOW)
+		}
+	}
+	fmt.Println("EMA avg:",avg," EMA all:",avg * RECOVER_WINDOW)
+
+	avg = 1
+	for i:= startBlock; i < endBlock; i++ {
+		avg = calculateNewStamina(avg,data[i],i-1,i)
+		if i < 10 {
+			println("trace:",avg)
+		}
+	}
+	fmt.Println("avg:",avg/RECOVER_WINDOW," all:",avg)
 }

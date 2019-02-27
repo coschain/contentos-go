@@ -14,6 +14,7 @@ import (
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/prototype"
+	"github.com/coschain/contentos-go/utils"
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -1205,4 +1206,28 @@ func (c *TrxPool) SyncPushedBlocksToDB(blkList []common.ISignedBlock) (err error
 		}
 	}
 	return err
+}
+
+func (c *TrxPool) GetRemainStamina(name string) uint64 {
+	rcl := utils.NewResourceLimiter(c.db)
+	wraper := table.NewSoGlobalWrap(c.db,&SingleId)
+	gp := wraper.GetProps()
+	return rcl.GetStakeLeft(name,gp.HeadBlockNumber)
+}
+
+func (c *TrxPool) GetRemainFreeStamina(name string) uint64 {
+	rcl := utils.NewResourceLimiter(c.db)
+	wraper := table.NewSoGlobalWrap(c.db,&SingleId)
+	gp := wraper.GetProps()
+	return rcl.GetFreeLeft(name,gp.HeadBlockNumber)
+}
+
+func (c *TrxPool) GetStaminaMax(name string) uint64 {
+	rcl := utils.NewResourceLimiter(c.db)
+	return rcl.GetCapacity(name)
+}
+
+func (c *TrxPool) GetStaminaFreeMax() uint64 {
+	rcl := utils.NewResourceLimiter(c.db)
+	return rcl.GetCapacityFree()
 }

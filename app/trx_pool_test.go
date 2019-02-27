@@ -626,11 +626,11 @@ func Test_Consume1(t *testing.T) {
 	if err != nil {
 		t.Error("makeCreateAccountOP error:", err)
 	}
-
+	var value uint64 = 10000000
 	transOp := &prototype.TransferOperation{
 		From:   &prototype.AccountName{Value: constants.COS_INIT_MINER},
 		To:     &prototype.AccountName{Value: accountNameBob},
-		Amount: prototype.NewCoin(100000000),
+		Amount: prototype.NewCoin(value),
 	}
 
 	ops := []interface{}{}
@@ -648,7 +648,6 @@ func Test_Consume1(t *testing.T) {
 	}
 
 	// stake
-	var value uint64 = 10000000
 	stakeOp := &prototype.StakeOperation{
 		Account:prototype.NewAccountName(accountNameBob),
 		Amount:value,
@@ -681,7 +680,117 @@ func Test_Consume1(t *testing.T) {
 	}
 
 	netSize := proto.Size(signedTrx2)
-	if bobWrap.GetStaminaFree() + bobWrap.GetStamina() != uint64(netSize * 10) {
+	useStamina := bobWrap.GetStaminaFree() + bobWrap.GetStamina()
+	if useStamina != uint64(netSize * 10) {
 		t.Error("stamina error")
+	}
+
+	// unstake need a pool's api to check remain stamina
+	unStakeOp := &prototype.UnStakeOperation{
+		Account:prototype.NewAccountName(accountNameBob),
+		Amount:value,
+	}
+	ops = ops[:0]
+	ops = append(ops,unStakeOp)
+	signedTrx3, err := createSigTrx(ops, c, priKeyBob)
+	if err != nil {
+		t.Error("createSigTrx error:", err)
+	}
+	invoice3 := c.PushTrx(signedTrx3)
+	if invoice3.Status != prototype.StatusSuccess {
+		t.Error("PushTrx return status error:", invoice3.Status)
+	}
+	if c.GetRemainStamina(accountNameBob) != c.GetStaminaMax(accountNameBob) {
+		t.Error("unstake error")
+	}
+}
+
+func Test_Recover1(t *testing.T) {
+	// set up controller
+	db := startDB()
+	defer clearDB(db)
+	c := startController(db)
+
+	acop, err := makeCreateAccountOP(accountNameBob, pubKeyBob)
+	if err != nil {
+		t.Error("makeCreateAccountOP error:", err)
+	}
+	var value uint64 = 10000000
+	transOp := &prototype.TransferOperation{
+		From:   &prototype.AccountName{Value: constants.COS_INIT_MINER},
+		To:     &prototype.AccountName{Value: accountNameBob},
+		Amount: prototype.NewCoin(value),
+	}
+
+	ops := []interface{}{}
+	ops = append(ops,acop)
+	ops = append(ops,transOp)
+
+	signedTrx, err := createSigTrx(ops, c, constants.INITMINER_PRIKEY)
+	if err != nil {
+		t.Error("createSigTrx error:", err)
+	}
+
+	invoice := c.PushTrx(signedTrx)
+	if invoice.Status != prototype.StatusSuccess {
+		t.Error("PushTrx return status error:", invoice.Status)
+	}
+
+	//
+	stakeOp := &prototype.StakeOperation{
+		Account:prototype.NewAccountName(accountNameBob),
+		Amount:value-1,
+	}
+
+	ops = ops[:0]
+	ops = append(ops,stakeOp)
+
+	signedTrx2, err := createSigTrx(ops, c, priKeyBob)
+	if err != nil {
+		t.Error("createSigTrx error:", err)
+	}
+	invoice2 := c.PushTrx(signedTrx2)
+	if invoice2.Status != prototype.StatusSuccess {
+		t.Error("PushTrx return status error:", invoice2.Status)
+	}
+
+	bobName := &prototype.AccountName{Value: accountNameBob}
+	bobWrap := table.NewSoAccountWrap(db, bobName)
+	if bobWrap.GetStakeVesting().Value != value - 1 {
+		t.Error("stake error")
+	}
+	useStamina := bobWrap.GetStaminaFree() + bobWrap.GetStamina()
+	if useStamina == 0 {
+		t.Error("stamina error")
+	}
+
+	// recover
+	var ID int32 = 1
+	const oneDayBlocks = 60*60*24
+	wrap := table.NewSoGlobalWrap(db,&ID)
+	gp := wrap.GetProps()
+	gp.HeadBlockNumber = gp.HeadBlockNumber + oneDayBlocks
+	wrap.MdProps(gp)
+
+	transOp2 := &prototype.TransferOperation{
+		From:   &prototype.AccountName{Value: accountNameBob},
+		To:     &prototype.AccountName{Value: constants.COS_INIT_MINER},
+		Amount: prototype.NewCoin(1),
+	}
+	ops = ops[:0]
+	ops = append(ops,transOp2)
+	signedTrx3, err := createSigTrx(ops, c, constants.INITMINER_PRIKEY)
+	if err != nil {
+		t.Error("createSigTrx error:", err)
+	}
+	netSize := proto.Size(signedTrx3)
+
+	invoice3 := c.PushTrx(signedTrx3)
+	if invoice3.Status != prototype.StatusSuccess {
+		t.Error("PushTrx return status error:", invoice3.Status)
+	}
+	all := bobWrap.GetStamina() + bobWrap.GetStaminaFree()
+	if all != uint64(netSize*10) {
+		t.Error("recover or consume error")
 	}
 }
