@@ -45,41 +45,11 @@ func (s *SignState) CheckAuthorityByName(name string, depth uint32, at Authority
 }
 
 func (s *SignState) CheckAuthority(auth *prototype.Authority, depth uint32, at AuthorityType) bool {
-
-	var total_weight uint32 = 0
-	for _, k := range auth.KeyAuths {
-		if s.checkPub(k.Key) {
-			total_weight += k.Weight
-			if total_weight >= auth.WeightThreshold {
-				return true
-			}
-		}
+	if s.checkPub(auth.Key) {
+		return true
+	} else {
+		return false
 	}
-
-	for _, a := range auth.AccountAuths {
-		username := a.Name.Value
-		if _, ok := s.approved[username]; !ok {
-			if depth == s.max_recursion {
-				continue
-			}
-			auth := s.getAuthority(username, at)
-			if s.CheckAuthority(auth, depth+1, at) {
-				s.approved[username] = true
-				total_weight += a.Weight
-				if total_weight >= auth.WeightThreshold {
-					return true
-				}
-			}
-
-		} else {
-			total_weight += a.Weight
-			if total_weight >= auth.WeightThreshold {
-				return true
-			}
-		}
-	}
-
-	return total_weight >= auth.WeightThreshold
 }
 
 func (s *SignState) Init(pubs []*prototype.PublicKeyType, maxDepth uint32, owner AuthorityGetter) {

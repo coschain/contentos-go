@@ -8,13 +8,7 @@ func (this *Authority) add_authority(k *PublicKeyType, w uint32) {
 
 func NewAuthorityFromPubKey(pubKey *PublicKeyType) *Authority {
 	m := &Authority{
-		WeightThreshold: 1,
-		KeyAuths: []*KvKeyAuth{
-			{
-				Key:    pubKey,
-				Weight: 1,
-			},
-		},
+		Key:    pubKey,
 	}
 	return m
 }

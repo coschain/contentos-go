@@ -89,19 +89,7 @@ func makeCreateAccountOP(accountName string, pubKey string) (*prototype.AccountC
 		Creator:        &prototype.AccountName{Value: constants.COSInitMiner},
 		NewAccountName: &prototype.AccountName{Value: accountName},
 		Owner: &prototype.Authority{
-			WeightThreshold: 1,
-			AccountAuths: []*prototype.KvAccountAuth{
-				&prototype.KvAccountAuth{
-					Name:   &prototype.AccountName{Value: constants.COSInitMiner},
-					Weight: 3,
-				},
-			},
-			KeyAuths: []*prototype.KvKeyAuth{
-				&prototype.KvKeyAuth{
-					Key:    pub, // owner key
-					Weight: 1,
-				},
-			},
+			Key:    pub,
 		},
 	}
 
