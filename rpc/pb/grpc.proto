@@ -85,7 +85,7 @@ message AccountResponse {
     repeated prototype.public_key_type      public_keys     = 4;
     prototype.time_point_sec                created_time    = 5;
     WitnessResponse                         witness         = 6;
-    prototype.dynamic_properties            dgpo            = 7;
+    ChainState                              state            = 7;
 }
 
 message GetFollowerListByNameRequest {
@@ -195,12 +195,12 @@ message GetTrxByIdResponse {
 }
 
 message GetChainStateResponse {
-    prototype.dynamic_properties props = 1;
+    ChainState state = 1;
     repeated prototype.empty_signed_block blocks = 2;
 }
 
 message GetStatResponse {
-    prototype.dynamic_properties props = 1;
+    ChainState state = 1;
     repeated int32 daily_trx_counts = 2;
 }
 
@@ -224,3 +224,7 @@ message CallResponse {
     string      estimate_gas    = 3;
 }
 
+message ChainState {
+    uint64 last_irreversible_block_number = 1;
+    prototype.dynamic_properties            dgpo            = 2;
+}

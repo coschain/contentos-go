@@ -92,11 +92,8 @@ func (as *APIService) GetAccountByName(ctx context.Context, req *grpcpb.GetAccou
 				RunningVersion:        witWrap.GetRunningVersion(),
 			}
 		}
-		var (
-			i int32 = 1
-		)
-		acct.Dgpo = table.NewSoGlobalWrap(as.db, &i).GetProps()
 	}
+	acct.State = as.getState()
 
 	return acct, nil
 
@@ -206,12 +203,6 @@ func (as *APIService) GetChainState(ctx context.Context, req *grpcpb.NonParamsRe
 	as.db.RLock()
 	defer as.db.RUnlock()
 
-	var (
-		i int32 = 1
-	)
-
-	globalVar := table.NewSoGlobalWrap(as.db, &i)
-
 	ret := &grpcpb.GetChainStateResponse{}
 	blks, err := as.consensus.FetchBlocksSince(common.EmptyBlockID)
 	if err == nil {
@@ -221,17 +212,12 @@ func (as *APIService) GetChainState(ctx context.Context, req *grpcpb.NonParamsRe
 			ret.Blocks = append(ret.Blocks, res )
 		}
 	}
-	ret.Props = globalVar.GetProps()
+	ret.State = as.getState()
 
 	return ret, nil
 }
 
 func (as *APIService) GetStatInfo(ctx context.Context, req *grpcpb.NonParamsRequest) (*grpcpb.GetStatResponse, error) {
-	var (
-		i int32 = 1
-	)
-
-	globalVar := table.NewSoGlobalWrap(as.db, &i)
 
 	ret := &grpcpb.GetStatResponse{}
 
@@ -244,7 +230,7 @@ func (as *APIService) GetStatInfo(ctx context.Context, req *grpcpb.NonParamsRequ
 	//		ret.Blocks = append(ret.Blocks, res )
 	//	}
 	//}
-	ret.Props = globalVar.GetProps()
+	ret.State = as.getState()
 
 	return ret, nil
 }
@@ -424,6 +410,20 @@ func (as *APIService) BroadcastTrx(ctx context.Context, req *grpcpb.BroadcastTrx
 	} else {
 		return &grpcpb.BroadcastTrxResponse{Invoice:nil, Status:prototype.StatusSuccess },pErr
 	}
+}
+
+
+
+func (as *APIService) getState() *grpcpb.ChainState {
+	result := &grpcpb.ChainState{}
+
+	var (
+		i int32 = 1
+	)
+	result.Dgpo = table.NewSoGlobalWrap(as.db, &i).GetProps()
+	result.LastIrreversibleBlockNumber = as.consensus.GetLIB().BlockNum()
+	return result
+
 }
 
 func checkLimit(limit uint32) uint32 {
