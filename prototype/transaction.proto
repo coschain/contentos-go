@@ -37,7 +37,7 @@ message transaction{
 
 message signed_transaction{
     transaction trx = 1;
-    repeated signature_type signatures = 2;
+    signature_type signature = 2;
 }
 
 message operation_receipt_with_info{

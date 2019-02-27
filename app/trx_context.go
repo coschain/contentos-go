@@ -23,11 +23,11 @@ func NewTrxContext(wrapper *prototype.EstimateTrxResult, db iservices.IDatabaseS
 }
 
 func (p *TrxContext) InitSigState(cid prototype.ChainId) error {
-	pubs, err := p.Wrapper.SigTrx.ExportPubKeys(cid)
+	pub, err := p.Wrapper.SigTrx.ExportPubKeys(cid)
 	if err != nil {
 		return err
 	}
-	p.recoverPubs = append(p.recoverPubs, pubs...)
+	p.recoverPubs = append(p.recoverPubs, pub)
 	return nil
 }
 

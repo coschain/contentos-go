@@ -74,7 +74,7 @@ func createSigTrx(op interface{}, headBlockID *prototype.Sha256, expire uint32) 
 	signTx := prototype.SignedTransaction{Trx: tx}
 
 	res := signTx.Sign(privKey, prototype.ChainId{Value: 0})
-	signTx.Signatures = append(signTx.Signatures, &prototype.SignatureType{Sig: res})
+	signTx.Signature = &prototype.SignatureType{Sig: res}
 
 	return &signTx, nil
 }
