@@ -74,7 +74,7 @@ func (as *APIService) GetAccountByName(ctx context.Context, req *grpcpb.GetAccou
 		acct.AccountName = &prototype.AccountName{Value: accWrap.GetName().Value}
 		acct.Coin = accWrap.GetBalance()
 		acct.Vest = accWrap.GetVestingShares()
-		//acct.PublicKeys = accWrap.GetPubKey()
+		//acct.PublicKeys =
 		acct.CreatedTime = accWrap.GetCreatedTime()
 
 		witWrap := table.NewSoWitnessWrap(as.db, accWrap.GetName())
@@ -91,6 +91,12 @@ func (as *APIService) GetAccountByName(ctx context.Context, req *grpcpb.GetAccou
 				LastWork:              witWrap.GetLastWork(),
 				RunningVersion:        witWrap.GetRunningVersion(),
 			}
+		}
+
+		keyWrap := table.NewSoAccountAuthorityObjectWrap(as.db, req.GetAccountName())
+
+		if keyWrap.CheckExist(){
+			acct.PublicKeys = append(acct.PublicKeys, keyWrap.GetOwner().KeyAuths[0].Key)
 		}
 	}
 	acct.State = as.getState()
