@@ -108,33 +108,33 @@ type InternalContractApplyEvaluator struct {
 type StakeEvaluator struct {
 	BaseEvaluator
 	ctx *ApplyContext
-	op *prototype.StakeOperation
+	op  *prototype.StakeOperation
 }
 
 type UnStakeEvaluator struct {
 	BaseEvaluator
 	ctx *ApplyContext
-	op *prototype.UnStakeOperation
+	op  *prototype.UnStakeOperation
 }
 
 func (ev *AccountCreateEvaluator) Apply() {
 	op := ev.op
 	creatorWrap := table.NewSoAccountWrap(ev.ctx.db, op.Creator)
 
-	mustSuccess(creatorWrap.CheckExist(), "creator not exist ",prototype.StatusErrorDbExist)
+	mustSuccess(creatorWrap.CheckExist(), "creator not exist ", prototype.StatusErrorDbExist)
 
-	mustSuccess(creatorWrap.GetBalance().Value >= op.Fee.Value, "Insufficient balance to create account.",prototype.StatusErrorTrxValueCompare)
+	mustSuccess(creatorWrap.GetBalance().Value >= op.Fee.Value, "Insufficient balance to create account.", prototype.StatusErrorTrxValueCompare)
 
 	// check auth accounts
 	for _, a := range op.Owner.AccountAuths {
 		tmpAccountWrap := table.NewSoAccountWrap(ev.ctx.db, a.Name)
-		mustSuccess(tmpAccountWrap.CheckExist(), "owner auth account not exist",prototype.StatusErrorDbExist)
+		mustSuccess(tmpAccountWrap.CheckExist(), "owner auth account not exist", prototype.StatusErrorDbExist)
 	}
 
 	// sub creator's fee
 	originBalance := creatorWrap.GetBalance()
-	mustNoError(originBalance.Sub(op.Fee),"creator balance overflow",prototype.StatusErrorTrxMath)
-	mustSuccess(creatorWrap.MdBalance(originBalance), "modify balance failed",prototype.StatusErrorDbUpdate)
+	mustNoError(originBalance.Sub(op.Fee), "creator balance overflow", prototype.StatusErrorTrxMath)
+	mustSuccess(creatorWrap.MdBalance(originBalance), "modify balance failed", prototype.StatusErrorDbUpdate)
 
 	// create account
 	newAccountWrap := table.NewSoAccountWrap(ev.ctx.db, op.NewAccountName)
@@ -147,7 +147,7 @@ func (ev *AccountCreateEvaluator) Apply() {
 		tInfo.LastPostTime = ev.ctx.control.HeadBlockTime()
 		tInfo.LastVoteTime = ev.ctx.control.HeadBlockTime()
 		tInfo.StakeVesting = prototype.NewVest(0)
-	}), "duplicate create account object",prototype.StatusErrorDbCreate)
+	}), "duplicate create account object", prototype.StatusErrorDbCreate)
 
 	// create account authority
 	authorityWrap := table.NewSoAccountAuthorityObjectWrap(ev.ctx.db, op.NewAccountName)
@@ -155,7 +155,7 @@ func (ev *AccountCreateEvaluator) Apply() {
 		tInfo.Account = op.NewAccountName
 		tInfo.Owner = op.Owner
 		tInfo.LastOwnerUpdate = prototype.NewTimePointSec(0)
-	}), "duplicate create account authority object",prototype.StatusErrorDbCreate)
+	}), "duplicate create account authority object", prototype.StatusErrorDbCreate)
 
 	// sub dynamic glaobal properties's total fee
 	ev.ctx.control.TransferToVest(op.Fee)
@@ -168,26 +168,26 @@ func (ev *TransferEvaluator) Apply() {
 	fromWrap := table.NewSoAccountWrap(ev.ctx.db, op.From)
 	toWrap := table.NewSoAccountWrap(ev.ctx.db, op.To)
 
-	mustSuccess(toWrap.CheckExist(), "To account do not exist ",prototype.StatusErrorDbExist)
+	mustSuccess(toWrap.CheckExist(), "To account do not exist ", prototype.StatusErrorDbExist)
 
 	fBalance := fromWrap.GetBalance()
 	tBalance := toWrap.GetBalance()
 
-	mustNoError(fBalance.Sub(op.Amount), "Insufficient balance to transfer.",prototype.StatusErrorTrxMath)
-	mustSuccess(fromWrap.MdBalance(fBalance), "modify balance failed",prototype.StatusErrorDbUpdate)
+	mustNoError(fBalance.Sub(op.Amount), "Insufficient balance to transfer.", prototype.StatusErrorTrxMath)
+	mustSuccess(fromWrap.MdBalance(fBalance), "modify balance failed", prototype.StatusErrorDbUpdate)
 
-	mustNoError(tBalance.Add(op.Amount), "balance overflow",prototype.StatusErrorTrxMath)
-	mustSuccess(toWrap.MdBalance(tBalance), "modify balance failed",prototype.StatusErrorDbUpdate)
+	mustNoError(tBalance.Add(op.Amount), "balance overflow", prototype.StatusErrorTrxMath)
+	mustSuccess(toWrap.MdBalance(tBalance), "modify balance failed", prototype.StatusErrorDbUpdate)
 }
 
 func (ev *PostEvaluator) Apply() {
 	op := ev.op
 	idWrap := table.NewSoPostWrap(ev.ctx.db, &op.Uuid)
-	mustSuccess(!idWrap.CheckExist(), "post uuid exist",prototype.StatusErrorDbExist)
+	mustSuccess(!idWrap.CheckExist(), "post uuid exist", prototype.StatusErrorDbExist)
 
 	authorWrap := table.NewSoAccountWrap(ev.ctx.db, op.Owner)
 	elapsedSeconds := ev.ctx.control.HeadBlockTime().UtcSeconds - authorWrap.GetLastPostTime().UtcSeconds
-	mustSuccess(elapsedSeconds > constants.MIN_POST_INTERVAL, "posting frequently",prototype.StatusErrorTrxValueCompare)
+	mustSuccess(elapsedSeconds > constants.MinPostInterval, "posting frequently", prototype.StatusErrorTrxValueCompare)
 
 	mustNoError(idWrap.Create(func(t *table.SoPost) {
 		t.PostId = op.Uuid
@@ -196,7 +196,7 @@ func (ev *PostEvaluator) Apply() {
 		t.Author = op.Owner
 		t.Body = op.Content
 		t.Created = ev.ctx.control.HeadBlockTime()
-		t.CashoutTime = &prototype.TimePointSec{UtcSeconds: ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.POST_CASHPUT_DELAY_TIME)}
+		t.CashoutTime = &prototype.TimePointSec{UtcSeconds: ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.PostCashOutDelayTime)}
 		t.Depth = 0
 		t.Children = 0
 		t.RootId = t.PostId
@@ -205,11 +205,15 @@ func (ev *PostEvaluator) Apply() {
 		t.Beneficiaries = op.Beneficiaries
 		t.WeightedVp = 0
 		t.VoteCnt = 0
-	}), "create post error",prototype.StatusErrorDbCreate)
+	}), "create post error", prototype.StatusErrorDbCreate)
 
 	authorWrap.MdLastPostTime(ev.ctx.control.HeadBlockTime())
 
-	//timestamp := ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.POST_CASHPUT_DELAY_TIME) - uint32(constants.GenesisTime)
+	ev.ctx.control.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
+		props.TotalPostCnt++
+	})
+
+	//timestamp := ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.PostCashOutDelayTime) - uint32(constants.GenesisTime)
 	//key := fmt.Sprintf("cashout:%d_%d", common.GetBucket(timestamp), op.Uuid)
 	//value := "post"
 	//opAssertE(ev.ctx.db.Put([]byte(key), []byte(value)), "put post key into db error")
@@ -221,14 +225,14 @@ func (ev *ReplyEvaluator) Apply() {
 	cidWrap := table.NewSoPostWrap(ev.ctx.db, &op.Uuid)
 	pidWrap := table.NewSoPostWrap(ev.ctx.db, &op.ParentUuid)
 
-	mustSuccess(!cidWrap.CheckExist(), "post uuid exist",prototype.StatusErrorDbExist)
-	mustSuccess(pidWrap.CheckExist(), "parent uuid do not exist",prototype.StatusErrorDbExist)
+	mustSuccess(!cidWrap.CheckExist(), "post uuid exist", prototype.StatusErrorDbExist)
+	mustSuccess(pidWrap.CheckExist(), "parent uuid do not exist", prototype.StatusErrorDbExist)
 
-	mustSuccess(pidWrap.GetDepth()+1 < constants.POST_MAX_DEPTH, "reply depth error",prototype.StatusErrorTrxValueCompare)
+	mustSuccess(pidWrap.GetDepth()+1 < constants.PostMaxDepth, "reply depth error", prototype.StatusErrorTrxValueCompare)
 
 	authorWrap := table.NewSoAccountWrap(ev.ctx.db, op.Owner)
 	elapsedSeconds := ev.ctx.control.HeadBlockTime().UtcSeconds - authorWrap.GetLastPostTime().UtcSeconds
-	mustSuccess(elapsedSeconds > constants.MIN_POST_INTERVAL, "reply frequently",prototype.StatusErrorTrxValueCompare)
+	mustSuccess(elapsedSeconds > constants.MinPostInterval, "reply frequently", prototype.StatusErrorTrxValueCompare)
 
 	var rootId uint64
 	if pidWrap.GetRootId() == 0 {
@@ -244,20 +248,20 @@ func (ev *ReplyEvaluator) Apply() {
 		t.Author = op.Owner
 		t.Body = op.Content
 		t.Created = ev.ctx.control.HeadBlockTime()
-		t.CashoutTime = &prototype.TimePointSec{UtcSeconds: ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.POST_CASHPUT_DELAY_TIME)}
+		t.CashoutTime = &prototype.TimePointSec{UtcSeconds: ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.PostCashOutDelayTime)}
 		t.Depth = pidWrap.GetDepth() + 1
 		t.Children = 0
 		t.RootId = rootId
 		t.ParentId = op.ParentUuid
 		t.VoteCnt = 0
 		t.Beneficiaries = op.Beneficiaries
-	}), "create reply error",prototype.StatusErrorDbCreate)
+	}), "create reply error", prototype.StatusErrorDbCreate)
 
 	authorWrap.MdLastPostTime(ev.ctx.control.HeadBlockTime())
 	// Modify Parent Object
-	mustSuccess(pidWrap.MdChildren(pidWrap.GetChildren()+1), "Modify Parent Children Error",prototype.StatusErrorDbUpdate)
+	mustSuccess(pidWrap.MdChildren(pidWrap.GetChildren()+1), "Modify Parent Children Error", prototype.StatusErrorDbUpdate)
 
-	//timestamp := ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.POST_CASHPUT_DELAY_TIME) - uint32(constants.GenesisTime)
+	//timestamp := ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.PostCashOutDelayTime) - uint32(constants.GenesisTime)
 	//key := fmt.Sprintf("cashout:%d_%d", common.GetBucket(timestamp), op.Uuid)
 	//value := "reply"
 	//opAssertE(ev.ctx.db.Put([]byte(key), []byte(value)), "put reply key into db error")
@@ -270,14 +274,14 @@ func (ev *VoteEvaluator) Apply() {
 
 	voterWrap := table.NewSoAccountWrap(ev.ctx.db, op.Voter)
 	elapsedSeconds := ev.ctx.control.HeadBlockTime().UtcSeconds - voterWrap.GetLastVoteTime().UtcSeconds
-	mustSuccess(elapsedSeconds > constants.MIN_VOTE_INTERVAL, "voting frequently",prototype.StatusErrorTrxValueCompare)
+	mustSuccess(elapsedSeconds > constants.MinVoteInterval, "voting frequently", prototype.StatusErrorTrxValueCompare)
 
 	voterId := prototype.VoterId{Voter: op.Voter, PostId: op.Idx}
 	voteWrap := table.NewSoVoteWrap(ev.ctx.db, &voterId)
 	postWrap := table.NewSoPostWrap(ev.ctx.db, &op.Idx)
 
-	mustSuccess(postWrap.CheckExist(), "post invalid",prototype.StatusErrorDbExist)
-	mustSuccess(!voteWrap.CheckExist(), "vote info exist",prototype.StatusErrorDbExist)
+	mustSuccess(postWrap.CheckExist(), "post invalid", prototype.StatusErrorDbExist)
+	mustSuccess(!voteWrap.CheckExist(), "vote info exist", prototype.StatusErrorDbExist)
 
 	//votePostWrap := table.NewVotePostIdWrap(ev.ctx.db)
 
@@ -288,7 +292,7 @@ func (ev *VoteEvaluator) Apply() {
 	//	}
 	//}
 
-	regeneratedPower := constants.PERCENT * elapsedSeconds / constants.VOTE_REGENERATE_TIME
+	regeneratedPower := constants.PERCENT * elapsedSeconds / constants.VoteRegenerateTime
 	var currentVp uint32
 	votePower := voterWrap.GetVotePower() + regeneratedPower
 	if votePower > constants.PERCENT {
@@ -296,7 +300,7 @@ func (ev *VoteEvaluator) Apply() {
 	} else {
 		currentVp = votePower
 	}
-	usedVp := (currentVp + constants.VOTE_LIMITE_DURING_REGENERATE - 1) / constants.VOTE_LIMITE_DURING_REGENERATE
+	usedVp := (currentVp + constants.VoteLimitDuringRegenerate - 1) / constants.VoteLimitDuringRegenerate
 
 	voterWrap.MdVotePower(currentVp - usedVp)
 	voterWrap.MdLastVoteTime(ev.ctx.control.HeadBlockTime())
@@ -317,9 +321,9 @@ func (ev *VoteEvaluator) Apply() {
 			t.Upvote = true
 			t.WeightedVp = weightedVp
 			t.VoteTime = ev.ctx.control.HeadBlockTime()
-		}), "create voter object error",prototype.StatusErrorDbCreate)
+		}), "create voter object error", prototype.StatusErrorDbCreate)
 
-		mustSuccess(postWrap.MdVoteCnt(postWrap.GetVoteCnt()+1), "set vote count error",prototype.StatusErrorDbUpdate)
+		mustSuccess(postWrap.MdVoteCnt(postWrap.GetVoteCnt()+1), "set vote count error", prototype.StatusErrorDbUpdate)
 	}
 }
 
@@ -327,7 +331,7 @@ func (ev *BpRegisterEvaluator) Apply() {
 	op := ev.op
 	witnessWrap := table.NewSoWitnessWrap(ev.ctx.db, op.Owner)
 
-	mustSuccess(!witnessWrap.CheckExist(), "witness already exist",prototype.StatusErrorDbExist)
+	mustSuccess(!witnessWrap.CheckExist(), "witness already exist", prototype.StatusErrorDbExist)
 
 	mustNoError(witnessWrap.Create(func(t *table.SoWitness) {
 		t.Owner = op.Owner
@@ -336,7 +340,7 @@ func (ev *BpRegisterEvaluator) Apply() {
 		t.SigningKey = op.BlockSigningKey
 
 		// TODO add others
-	}), "add witness record error",prototype.StatusErrorDbCreate)
+	}), "add witness record error", prototype.StatusErrorDbCreate)
 }
 
 func (ev *BpUnregisterEvaluator) Apply() {
@@ -356,28 +360,28 @@ func (ev *BpVoteEvaluator) Apply() {
 	vidWrap := table.NewSoWitnessVoteWrap(ev.ctx.db, voterId)
 
 	witAccWrap := table.NewSoAccountWrap(ev.ctx.db, op.Voter)
-	mustSuccess(witAccWrap.CheckExist(), "witness account do not exist ",prototype.StatusErrorDbExist)
+	mustSuccess(witAccWrap.CheckExist(), "witness account do not exist ", prototype.StatusErrorDbExist)
 
 	witnessWrap := table.NewSoWitnessWrap(ev.ctx.db, op.Witness)
 
 	if op.Cancel {
-		mustSuccess(voteCnt > 0, "vote count must not be 0",prototype.StatusErrorTrxValueCompare)
-		mustSuccess(vidWrap.CheckExist(), "vote record not exist",prototype.StatusErrorDbExist)
-		mustSuccess(vidWrap.RemoveWitnessVote(), "remove vote record error",prototype.StatusErrorDbDelete)
-		mustSuccess(witnessWrap.GetVoteCount() > 0, "witness data error",prototype.StatusErrorTrxValueCompare)
-		mustSuccess(witnessWrap.MdVoteCount(witnessWrap.GetVoteCount()-1), "set witness data error",prototype.StatusErrorDbUpdate)
-		mustSuccess(voterAccount.MdBpVoteCount(voteCnt-1), "set voter data error",prototype.StatusErrorDbUpdate)
+		mustSuccess(voteCnt > 0, "vote count must not be 0", prototype.StatusErrorTrxValueCompare)
+		mustSuccess(vidWrap.CheckExist(), "vote record not exist", prototype.StatusErrorDbExist)
+		mustSuccess(vidWrap.RemoveWitnessVote(), "remove vote record error", prototype.StatusErrorDbDelete)
+		mustSuccess(witnessWrap.GetVoteCount() > 0, "witness data error", prototype.StatusErrorTrxValueCompare)
+		mustSuccess(witnessWrap.MdVoteCount(witnessWrap.GetVoteCount()-1), "set witness data error", prototype.StatusErrorDbUpdate)
+		mustSuccess(voterAccount.MdBpVoteCount(voteCnt-1), "set voter data error", prototype.StatusErrorDbUpdate)
 	} else {
-		mustSuccess(voteCnt < constants.MAX_BP_VOTE_COUNT, "vote count exceeding",prototype.StatusErrorTrxValueCompare)
+		mustSuccess(voteCnt < constants.MaxBpVoteCount, "vote count exceeding", prototype.StatusErrorTrxValueCompare)
 
 		mustNoError(vidWrap.Create(func(t *table.SoWitnessVote) {
 			t.VoteTime = ev.ctx.control.HeadBlockTime()
 			t.VoterId = voterId
 			t.WitnessId = witnessId
-		}), "add vote record error",prototype.StatusErrorDbCreate)
+		}), "add vote record error", prototype.StatusErrorDbCreate)
 
-		mustSuccess(voterAccount.MdBpVoteCount(voteCnt+1), "set voter data error",prototype.StatusErrorDbUpdate)
-		mustSuccess(witnessWrap.MdVoteCount(witnessWrap.GetVoteCount()+1), "set witness data error",prototype.StatusErrorDbUpdate)
+		mustSuccess(voterAccount.MdBpVoteCount(voteCnt+1), "set voter data error", prototype.StatusErrorDbUpdate)
+		mustSuccess(witnessWrap.MdVoteCount(witnessWrap.GetVoteCount()+1), "set witness data error", prototype.StatusErrorDbUpdate)
 	}
 
 }
@@ -386,10 +390,10 @@ func (ev *FollowEvaluator) Apply() {
 	op := ev.op
 
 	acctWrap := table.NewSoAccountWrap(ev.ctx.db, op.Account)
-	mustSuccess(acctWrap.CheckExist(), "follow account do not exist ",prototype.StatusErrorDbExist)
+	mustSuccess(acctWrap.CheckExist(), "follow account do not exist ", prototype.StatusErrorDbExist)
 
 	acctWrap = table.NewSoAccountWrap(ev.ctx.db, op.FAccount)
-	mustSuccess(acctWrap.CheckExist(), "follow f_account do not exist ",prototype.StatusErrorDbExist)
+	mustSuccess(acctWrap.CheckExist(), "follow f_account do not exist ", prototype.StatusErrorDbExist)
 }
 
 func (ev *TransferToVestingEvaluator) Apply() {
@@ -398,17 +402,17 @@ func (ev *TransferToVestingEvaluator) Apply() {
 	fidWrap := table.NewSoAccountWrap(ev.ctx.db, op.From)
 	tidWrap := table.NewSoAccountWrap(ev.ctx.db, op.To)
 
-	mustSuccess(tidWrap.CheckExist(), "to account do not exist",prototype.StatusErrorDbExist)
+	mustSuccess(tidWrap.CheckExist(), "to account do not exist", prototype.StatusErrorDbExist)
 
 	fBalance := fidWrap.GetBalance()
 	tVests := tidWrap.GetVestingShares()
 	addVests := prototype.NewVest(op.Amount.Value)
 
-	mustNoError(fBalance.Sub(op.Amount), "balance not enough",prototype.StatusErrorTrxMath)
-	mustSuccess(fidWrap.MdBalance(fBalance), "set from new balance error",prototype.StatusErrorDbUpdate)
+	mustNoError(fBalance.Sub(op.Amount), "balance not enough", prototype.StatusErrorTrxMath)
+	mustSuccess(fidWrap.MdBalance(fBalance), "set from new balance error", prototype.StatusErrorDbUpdate)
 
-	mustNoError(tVests.Add(addVests), "vests error",prototype.StatusErrorTrxMath)
-	mustSuccess(tidWrap.MdVestingShares(tVests), "set to new vests error",prototype.StatusErrorDbUpdate)
+	mustNoError(tVests.Add(addVests), "vests error", prototype.StatusErrorTrxMath)
+	mustSuccess(tidWrap.MdVestingShares(tVests), "set to new vests error", prototype.StatusErrorDbUpdate)
 
 	ev.ctx.control.TransferToVest(op.Amount)
 }
@@ -419,11 +423,11 @@ func (ev *ClaimEvaluator) Apply() {
 	account := op.Account
 	accWrap := table.NewSoAccountWrap(ev.ctx.db, account)
 
-	mustSuccess(accWrap.CheckExist(), "claim account do not exist",prototype.StatusErrorDbExist)
+	mustSuccess(accWrap.CheckExist(), "claim account do not exist", prototype.StatusErrorDbExist)
 
 	var i int32 = 1
 	keeperWrap := table.NewSoRewardsKeeperWrap(ev.ctx.db, &i)
-	mustSuccess(keeperWrap.CheckExist(), "reward keeper do not exist",prototype.StatusErrorDbExist)
+	mustSuccess(keeperWrap.CheckExist(), "reward keeper do not exist", prototype.StatusErrorDbExist)
 
 	keeper := keeperWrap.GetKeeper()
 	innerRewards := keeper.Rewards
@@ -447,7 +451,7 @@ func (ev *ClaimEvaluator) Apply() {
 			// do nothing
 		}
 	} else {
-		mustSuccess(ok, "No remains reward on chain",prototype.StatusError)
+		mustSuccess(ok, "No remains reward on chain", prototype.StatusError)
 	}
 
 }
@@ -458,11 +462,11 @@ func (ev *ClaimAllEvaluator) Apply() {
 	account := op.Account
 	accWrap := table.NewSoAccountWrap(ev.ctx.db, account)
 
-	mustSuccess(accWrap.CheckExist(), "claim account do not exist",prototype.StatusErrorDbExist)
+	mustSuccess(accWrap.CheckExist(), "claim account do not exist", prototype.StatusErrorDbExist)
 
 	var i int32 = 1
 	keeperWrap := table.NewSoRewardsKeeperWrap(ev.ctx.db, &i)
-	mustSuccess(keeperWrap.CheckExist(), "reward keeper do not exist",prototype.StatusErrorDbExist)
+	mustSuccess(keeperWrap.CheckExist(), "reward keeper do not exist", prototype.StatusErrorDbExist)
 
 	keeper := keeperWrap.GetKeeper()
 	innerRewards := keeper.Rewards
@@ -478,7 +482,7 @@ func (ev *ClaimAllEvaluator) Apply() {
 			// do nothing
 		}
 	} else {
-		mustSuccess(ok, "No remains reward on chain",prototype.StatusError)
+		mustSuccess(ok, "No remains reward on chain", prototype.StatusError)
 	}
 
 }
@@ -489,18 +493,18 @@ func (ev *ContractDeployEvaluator) Apply() {
 	cid := prototype.ContractId{Owner: op.Owner, Cname: op.Contract}
 	scid := table.NewSoContractWrap(ev.ctx.db, &cid)
 
-	mustSuccess(!scid.CheckExist(), "contract name exist",prototype.StatusErrorDbExist)
+	mustSuccess(!scid.CheckExist(), "contract name exist", prototype.StatusErrorDbExist)
 
 	_, err := abi.UnmarshalABI([]byte(op.GetAbi()))
 	if err != nil {
-		mustNoError(err, "invalid contract abi",prototype.StatusErrorAbi)
+		mustNoError(err, "invalid contract abi", prototype.StatusErrorAbi)
 	}
 
 	vmCtx := vmcontext.NewContextFromDeployOp(op, nil)
 
 	cosVM := vm.NewCosVM(vmCtx, nil, nil, nil)
 
-	mustNoError(cosVM.Validate(), "validate code failed",prototype.StatusErrorWasm)
+	mustNoError(cosVM.Validate(), "validate code failed", prototype.StatusErrorWasm)
 
 	mustNoError(scid.Create(func(t *table.SoContract) {
 		t.Code = op.Code
@@ -508,7 +512,7 @@ func (ev *ContractDeployEvaluator) Apply() {
 		t.CreatedTime = ev.ctx.control.HeadBlockTime()
 		t.Abi = op.Abi
 		t.Balance = prototype.NewCoin(0)
-	}), "create contract data error",prototype.StatusErrorDbCreate)
+	}), "create contract data error", prototype.StatusErrorDbCreate)
 }
 
 //func (ev *ContractEstimateApplyEvaluator) Apply() {
@@ -543,22 +547,22 @@ func (ev *ContractApplyEvaluator) Apply() {
 
 	cid := prototype.ContractId{Owner: op.Owner, Cname: op.Contract}
 	scid := table.NewSoContractWrap(ev.ctx.db, &cid)
-	mustSuccess(scid.CheckExist(), "contract name doesn't exist",prototype.StatusErrorDbExist)
+	mustSuccess(scid.CheckExist(), "contract name doesn't exist", prototype.StatusErrorDbExist)
 
 	acc := table.NewSoAccountWrap(ev.ctx.db, op.Caller)
-	mustSuccess(acc.CheckExist(), "account doesn't exist",prototype.StatusErrorDbExist)
+	mustSuccess(acc.CheckExist(), "account doesn't exist", prototype.StatusErrorDbExist)
 
 	balance := acc.GetBalance().Value
 	// fixme, should base on minicos
-	balanceExchange := balance * constants.BASE_RATE
+	balanceExchange := balance * constants.BaseRate
 
-	mustSuccess(balanceExchange >= op.Gas.Value, "balance can not pay gas fee",prototype.StatusErrorTrxValueCompare)
+	mustSuccess(balanceExchange >= op.Gas.Value, "balance can not pay gas fee", prototype.StatusErrorTrxValueCompare)
 
 	// the amount is also minicos or cos ?
 	// here I assert it is minicos
 	// also, I think balance base on minicos is far more reliable.
 	if op.Amount != nil {
-		mustSuccess(balanceExchange-op.Gas.Value > op.Amount.Value, "balance does not have enough fund to transfer after paid gas fee",prototype.StatusErrorTrxValueCompare)
+		mustSuccess(balanceExchange-op.Gas.Value > op.Amount.Value, "balance does not have enough fund to transfer after paid gas fee", prototype.StatusErrorTrxValueCompare)
 	}
 	code := scid.GetCode()
 
@@ -568,15 +572,15 @@ func (ev *ContractApplyEvaluator) Apply() {
 	var tables *ct.ContractTables
 
 	if abiInterface, err = abi.UnmarshalABI([]byte(scid.GetAbi())); err != nil {
-		mustNoError(err, "invalid contract abi",prototype.StatusErrorAbi)
+		mustNoError(err, "invalid contract abi", prototype.StatusErrorAbi)
 	}
 	if m := abiInterface.MethodByName(op.Method); m != nil {
 		paramsData, err = vme.EncodeFromJson([]byte(op.Params), m.Args().Type())
 		if err != nil {
-			mustNoError(err, "invalid contract parameters",prototype.StatusErrorAbi)
+			mustNoError(err, "invalid contract parameters", prototype.StatusErrorAbi)
 		}
 	} else {
-		mustSuccess(false, "unknown contract method: " + op.Method,prototype.StatusErrorMethod)
+		mustSuccess(false, "unknown contract method: "+op.Method, prototype.StatusErrorMethod)
 	}
 
 	if abiInterface != nil {
@@ -600,10 +604,10 @@ func (ev *ContractApplyEvaluator) Apply() {
 
 	if err != nil {
 		vmCtx.Injector.Error(ret, err.Error())
-		vmCtx.Injector.AddOpReceipt(prototype.StatusErrorVmOp,spentGas,err.Error())
+		vmCtx.Injector.AddOpReceipt(prototype.StatusErrorVmOp, spentGas, err.Error())
 		ev.ctx.db.EndTransaction(false)
 		vmCtx.Injector.RecordGasFee(op.Caller.Value, spentGas)
-		mustNoError(err,"internal contract apply failed",prototype.StatusErrorWasm)
+		mustNoError(err, "internal contract apply failed", prototype.StatusErrorWasm)
 	} else {
 		if op.Amount != nil && op.Amount.Value > 0 {
 			vmCtx.Injector.TransferFromUserToContract(op.Caller.Value, op.Contract, op.Owner.Value, op.Amount.Value)
@@ -617,18 +621,19 @@ func (ev *InternalContractApplyEvaluator) Apply() {
 	op := ev.op
 
 	fromContract := table.NewSoContractWrap(ev.ctx.db, &prototype.ContractId{Owner: op.FromOwner, Cname: op.FromContract})
-	mustSuccess(fromContract.CheckExist(), "fromContract contract doesn't exist",prototype.StatusErrorDbExist)
+	mustSuccess(fromContract.CheckExist(), "fromContract contract doesn't exist", prototype.StatusErrorDbExist)
 
 	toContract := table.NewSoContractWrap(ev.ctx.db, &prototype.ContractId{Owner: op.ToOwner, Cname: op.ToContract})
-	mustSuccess(toContract.CheckExist(), "toContract contract doesn't exist",prototype.StatusErrorDbExist)
+	mustSuccess(toContract.CheckExist(), "toContract contract doesn't exist", prototype.StatusErrorDbExist)
 
 	caller := table.NewSoAccountWrap(ev.ctx.db, op.FromCaller)
-	mustSuccess(caller.CheckExist(), "caller account doesn't exist",prototype.StatusErrorDbExist)
+	mustSuccess(caller.CheckExist(), "caller account doesn't exist", prototype.StatusErrorDbExist)
 
-	mustSuccess(caller.GetBalance().Value * constants.BASE_RATE >= op.Gas.Value, "caller balance less than gas",prototype.StatusErrorTrxValueCompare)
+	mustSuccess(caller.GetBalance().Value*constants.BaseRate >= op.Gas.Value, "caller balance less than gas", prototype.StatusErrorTrxValueCompare)
+	mustSuccess(fromContract.GetBalance().Value >= op.Amount.Value, "fromContract balance less than transfer amount", prototype.StatusErrorTrxValueCompare)
 
 	if op.Amount != nil {
-		mustSuccess(fromContract.GetBalance().Value >= op.Amount.Value, "fromContract balance less than transfer amount",prototype.StatusErrorTrxValueCompare)
+		mustSuccess(fromContract.GetBalance().Value >= op.Amount.Value, "fromContract balance less than transfer amount", prototype.StatusErrorTrxValueCompare)
 	}
 	code := toContract.GetCode()
 
@@ -637,15 +642,15 @@ func (ev *InternalContractApplyEvaluator) Apply() {
 	var tables *ct.ContractTables
 
 	if abiInterface, err = abi.UnmarshalABI([]byte(toContract.GetAbi())); err != nil {
-		mustNoError(err, "invalid toContract abi",prototype.StatusErrorAbi)
+		mustNoError(err, "invalid toContract abi", prototype.StatusErrorAbi)
 	}
 	if m := abiInterface.MethodByName(op.ToMethod); m != nil {
 		_, err = vme.DecodeToJson(op.Params, m.Args().Type(), false)
 		if err != nil {
-			mustNoError(err, "invalid contract parameters",prototype.StatusErrorAbi)
+			mustNoError(err, "invalid contract parameters", prototype.StatusErrorAbi)
 		}
 	} else {
-		mustSuccess(false, "unknown contract method: " + op.ToMethod,prototype.StatusErrorMethod)
+		mustSuccess(false, "unknown contract method: "+op.ToMethod, prototype.StatusErrorMethod)
 	}
 
 	if abiInterface != nil {
@@ -661,11 +666,11 @@ func (ev *InternalContractApplyEvaluator) Apply() {
 
 	if err != nil {
 		vmCtx.Injector.Error(ret, err.Error())
-		vmCtx.Injector.AddOpReceipt(prototype.StatusErrorVmOp,spentGas,err.Error())
+		vmCtx.Injector.AddOpReceipt(prototype.StatusErrorVmOp, spentGas, err.Error())
 		ev.ctx.db.EndTransaction(false)
 		vmCtx.Injector.RecordGasFee(op.FromCaller.Value, spentGas)
 		// throw a panic, this panic should recover by upper contract vm context
-		mustNoError(err,"internal contract apply failed",prototype.StatusErrorWasm)
+		mustNoError(err, "internal contract apply failed", prototype.StatusErrorWasm)
 	} else {
 		if op.Amount != nil && op.Amount.Value > 0 {
 			vmCtx.Injector.TransferFromContractToContract(op.FromContract, op.FromOwner.Value, op.ToContract, op.ToOwner.Value, op.Amount.Value)
@@ -680,15 +685,15 @@ func (ev *StakeEvaluator) Apply() {
 
 	accountWrap := table.NewSoAccountWrap(ev.ctx.db, op.Account)
 
-	value := &prototype.Coin{Value:op.Amount}
+	value := &prototype.Coin{Value: op.Amount}
 
 	fBalance := accountWrap.GetBalance()
 	mustNoError(fBalance.Sub(value), "Insufficient balance to transfer.", prototype.StatusErrorTrxMath)
-	mustSuccess(accountWrap.MdBalance(fBalance), "modify balance failed",prototype.StatusErrorDbUpdate)
+	mustSuccess(accountWrap.MdBalance(fBalance), "modify balance failed", prototype.StatusErrorDbUpdate)
 
 	vest := accountWrap.GetStakeVesting()
-	mustNoError(vest.Add(value.ToVest()),"vesting over flow.",prototype.StatusErrorTrxMath)
-	mustSuccess(accountWrap.MdStakeVesting(vest),"modify vesting failed",prototype.StatusErrorDbUpdate)
+	mustNoError(vest.Add(value.ToVest()), "vesting over flow.", prototype.StatusErrorTrxMath)
+	mustSuccess(accountWrap.MdStakeVesting(vest), "modify vesting failed", prototype.StatusErrorDbUpdate)
 
 	ev.ctx.control.TransferToVest(value)
 }
@@ -698,15 +703,15 @@ func (ev *UnStakeEvaluator) Apply() {
 
 	accountWrap := table.NewSoAccountWrap(ev.ctx.db, op.Account)
 
-	value := &prototype.Coin{Value:op.Amount}
+	value := &prototype.Coin{Value: op.Amount}
 
 	vest := accountWrap.GetStakeVesting()
-	mustNoError(vest.Sub(value.ToVest()),"vesting over flow.",prototype.StatusErrorTrxMath)
-	mustSuccess(accountWrap.MdStakeVesting(vest),"modify vesting failed",prototype.StatusErrorDbUpdate)
+	mustNoError(vest.Sub(value.ToVest()), "vesting over flow.", prototype.StatusErrorTrxMath)
+	mustSuccess(accountWrap.MdStakeVesting(vest), "modify vesting failed", prototype.StatusErrorDbUpdate)
 
 	fBalance := accountWrap.GetBalance()
 	mustNoError(fBalance.Add(value), "Insufficient balance to transfer.", prototype.StatusErrorTrxMath)
-	mustSuccess(accountWrap.MdBalance(fBalance), "modify balance failed",prototype.StatusErrorDbUpdate)
+	mustSuccess(accountWrap.MdBalance(fBalance), "modify balance failed", prototype.StatusErrorDbUpdate)
 
 	ev.ctx.control.TransferFromVest(value.ToVest())
 }

@@ -103,8 +103,8 @@ var DefaultNodeConfig = node.Config{
 	Consensus: service_configs.ConsensusConfig{
 		Type:              "DPoS",
 		BootStrap:         true,
-		LocalBpName:       constants.INIT_MINER_NAME,
-		LocalBpPrivateKey: constants.INITMINER_PRIKEY,
+		LocalBpName:       constants.COSInitMiner,
+		LocalBpPrivateKey: constants.InitminerPrivKey,
 	},
 }
 

@@ -118,7 +118,7 @@ func (d *DPoS) shuffle(head common.ISignedBlock) {
 
 	// When a produce round complete, it adds new producers,
 	// remove unqualified producers and shuffle the block-producing order
-	prods := d.ctrl.GetWitnessTopN(constants.MAX_WITNESSES)
+	prods := d.ctrl.GetWitnessTopN(constants.MaxWitnessCount)
 	var seed uint64
 	if head != nil {
 		seed = head.Timestamp() << 32
@@ -167,7 +167,7 @@ func (d *DPoS) Start(node *node.Node) error {
 
 	// TODO: fuck!! this is fugly
 	var avatar []common.ISignedBlock
-	for i := 0; i < constants.MAX_WITNESSES+1; i++ {
+	for i := 0; i < constants.MaxWitnessCount+1; i++ {
 		// deep copy hell
 		avatar = append(avatar, &prototype.SignedBlock{})
 	}
@@ -230,7 +230,7 @@ func (d *DPoS) scheduleProduce() bool {
 func (d *DPoS) testStart(path string) {
 	// TODO: fuck!! this is fugly
 	var avatar []common.ISignedBlock
-	for i := 0; i < constants.MAX_WITNESSES+1; i++ {
+	for i := 0; i < constants.MaxWitnessCount+1; i++ {
 		// deep copy hell
 		avatar = append(avatar, &prototype.SignedBlock{})
 	}
@@ -347,7 +347,7 @@ func (d *DPoS) getScheduledProducer(slot uint64) string {
 	if d.ForkDB.Empty() {
 		return d.Producers[0]
 	}
-	absSlot := (d.ForkDB.Head().Timestamp() - constants.GenesisTime) / constants.BLOCK_INTERVAL
+	absSlot := (d.ForkDB.Head().Timestamp() - constants.GenesisTime) / constants.BlockInterval
 	return d.Producers[(absSlot+slot)%uint64(len(d.Producers))]
 }
 
@@ -367,11 +367,11 @@ func (d *DPoS) getSlotTime(slot uint64) uint64 {
 	}
 	head := d.ForkDB.Head()
 	if head == nil {
-		return constants.GenesisTime + slot*constants.BLOCK_INTERVAL
+		return constants.GenesisTime + slot*constants.BlockInterval
 	}
 
-	headSlotTime := head.Timestamp() / constants.BLOCK_INTERVAL * constants.BLOCK_INTERVAL
-	return headSlotTime + slot*constants.BLOCK_INTERVAL
+	headSlotTime := head.Timestamp() / constants.BlockInterval * constants.BlockInterval
+	return headSlotTime + slot*constants.BlockInterval
 }
 
 func (d *DPoS) getSlotAtTime(t time.Time) uint64 {
@@ -379,7 +379,7 @@ func (d *DPoS) getSlotAtTime(t time.Time) uint64 {
 	if uint64(t.Unix()) < nextSlotTime {
 		return 0
 	}
-	return (uint64(t.Unix())-nextSlotTime)/constants.BLOCK_INTERVAL + 1
+	return (uint64(t.Unix())-nextSlotTime)/constants.BlockInterval + 1
 }
 
 func (d *DPoS) Push(msg interface{}) {}
@@ -474,7 +474,7 @@ func (d *DPoS) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 	lastCommitted := d.ForkDB.LastCommitted()
 	//d.log.Debug("last committed: ", lastCommitted.BlockNum())
 	var commitIdx uint64
-	if newHead.Id().BlockNum()-lastCommitted.BlockNum() > constants.MAX_WITNESSES*2/3 {
+	if newHead.Id().BlockNum()-lastCommitted.BlockNum() > constants.MaxWitnessCount*2/3 {
 		if lastCommitted == common.EmptyBlockID {
 			commitIdx = 1
 		} else {
@@ -679,6 +679,10 @@ func (d *DPoS) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, error
 	}
 	ret = append(ret, blocksInForkDB...)
 	return ret, nil
+}
+
+func (d *DPoS) FetchBlocks(from, to uint64) ([]common.ISignedBlock, error) {
+	return fetchBlocks(from, to, d.ForkDB, &d.blog)
 }
 
 

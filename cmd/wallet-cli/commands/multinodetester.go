@@ -29,9 +29,9 @@ func makeMultiNodeTeseterTrx(count int64, onlyCreate bool) (*prototype.SignedTra
 	tx := &prototype.Transaction{RefBlockNum: 0, RefBlockPrefix: 0, Expiration: &prototype.TimePointSec{UtcSeconds: uint32(time.Now().Unix()) + 30}}
 	trx := &prototype.SignedTransaction{Trx: tx}
 
-	creator := prototype.NewAccountName(constants.INIT_MINER_NAME)
+	creator := prototype.NewAccountName(constants.COSInitMiner)
 
-	creatorPriKey, err := prototype.PrivateKeyFromWIF(constants.INITMINER_PRIKEY)
+	creatorPriKey, err := prototype.PrivateKeyFromWIF(constants.InitminerPrivKey)
 	if err != nil {
 		return nil, err
 	}
@@ -43,7 +43,7 @@ func makeMultiNodeTeseterTrx(count int64, onlyCreate bool) (*prototype.SignedTra
 	}
 
 	for index := int64(1); index < count; index++ {
-		bpName := fmt.Sprintf("%s%d", constants.INIT_MINER_NAME, index)
+		bpName := fmt.Sprintf("%s%d", constants.COSInitMiner, index)
 		keys, err := prototype.GenerateNewKeyFromBytes([]byte(bpName))
 		if err != nil {
 			return nil, err
@@ -72,7 +72,7 @@ func makeMultiNodeTeseterTrx(count int64, onlyCreate bool) (*prototype.SignedTra
 			},
 		}
 
-		opBpVote := &prototype.BpVoteOperation{Voter: prototype.NewAccountName(constants.INIT_MINER_NAME), Witness: prototype.NewAccountName(bpName), Cancel: false}
+		opBpVote := &prototype.BpVoteOperation{Voter: prototype.NewAccountName(constants.COSInitMiner), Witness: prototype.NewAccountName(bpName), Cancel: false}
 
 		if !onlyCreate {
 			trx.Trx.AddOperation(opBpReg)

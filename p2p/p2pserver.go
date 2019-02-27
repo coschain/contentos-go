@@ -317,7 +317,7 @@ func (this *P2PServer) reqNbrList(p *peer.Peer) {
 //heartBeat send ping to nbr peers and check the timeout
 func (this *P2PServer) heartBeatService() {
 	var periodTime uint
-	periodTime = constants.BLOCK_INTERVAL
+	periodTime = constants.BlockInterval
 	t := time.NewTicker(time.Second * (time.Duration(periodTime)))
 
 	for {
@@ -360,7 +360,7 @@ func (this *P2PServer) pingTo(peers []*peer.Peer) {
 func (this *P2PServer) timeout() {
 	peers := this.Network.GetNeighbors()
 	var periodTime uint
-	periodTime = constants.BLOCK_INTERVAL
+	periodTime = constants.BlockInterval
 	for _, p := range peers {
 		if p.GetSyncState() == common.ESTABLISH {
 			t := p.GetContactTime()

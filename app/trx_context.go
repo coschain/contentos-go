@@ -21,14 +21,14 @@ type TrxContext struct {
 	db              iservices.IDatabaseService
 	msg             []string
 	recoverPubs     []*prototype.PublicKeyType
-	control         iservices.ITrxPool
+	control         *TrxPool
 	gasMap          map[string]uint64
 	netMap          map[string]uint64
 	resourceLimiter utils.IResourceLimiter
 }
 
-func NewTrxContext(wrapper *prototype.EstimateTrxResult, db iservices.IDatabaseService, control iservices.ITrxPool) *TrxContext {
-	return &TrxContext{Wrapper: wrapper, db: db, control: control, gasMap:make(map[string]uint64), netMap:make(map[string]uint64), resourceLimiter:utils.IResourceLimiter(utils.NewResourceLimiter(db)) }
+func NewTrxContext(wrapper *prototype.EstimateTrxResult, db iservices.IDatabaseService, control *TrxPool) *TrxContext {
+	return &TrxContext{Wrapper: wrapper, db: db, control: control, gasMap: make(map[string]uint64), netMap: make(map[string]uint64), resourceLimiter: utils.IResourceLimiter(utils.NewResourceLimiter(db))}
 }
 
 func (p *TrxContext) InitSigState(cid prototype.ChainId) error {
@@ -44,18 +44,18 @@ func (p *TrxContext) CheckNet(sizeInBytes uint64) {
 	keyMaps := obtainKeyMap(p.Wrapper.SigTrx.Trx.Operations)
 	netUse := sizeInBytes * netConsumePoint
 	for name := range keyMaps {
-		freeLeft := p.resourceLimiter.GetFreeLeft(name,p.control.GetProps().HeadBlockNumber)
-		stakeLeft := p.resourceLimiter.GetStakeLeft(name,p.control.GetProps().HeadBlockNumber)
+		freeLeft := p.resourceLimiter.GetFreeLeft(name, p.control.GetProps().HeadBlockNumber)
+		stakeLeft := p.resourceLimiter.GetStakeLeft(name, p.control.GetProps().HeadBlockNumber)
 		if freeLeft >= netUse {
 			p.netMap[name] = sizeInBytes
 			continue
 		} else {
-			if stakeLeft >= netUse - freeLeft {
+			if stakeLeft >= netUse-freeLeft {
 				p.netMap[name] = sizeInBytes
 				continue
 			} else {
 				p.netMap = make(map[string]uint64)
-				mustSuccess(false,"net resource not enough",prototype.StatusError)
+				mustSuccess(false, "net resource not enough", prototype.StatusError)
 			}
 		}
 	}
@@ -75,7 +75,7 @@ func (p *TrxContext) authGetter(name string) *prototype.Authority {
 	authWrap := table.NewSoAccountAuthorityObjectWrap(p.db, account)
 	auth := authWrap.GetOwner()
 	if auth == nil {
-		mustSuccess(false,"no owner auth",prototype.StatusErrorDbExist)
+		mustSuccess(false, "no owner auth", prototype.StatusErrorDbExist)
 	}
 	return auth
 }
@@ -85,8 +85,8 @@ func (p *TrxContext) Error(code uint32, msg string) {
 	//p.Wrapper.Receipt.Status = 500
 }
 
-func (p *TrxContext) AddOpReceipt(code uint32,gas uint64,msg string) {
-	r := &prototype.OperationReceiptWithInfo{Status:code,GasUsage:gas,VmConsole:msg}
+func (p *TrxContext) AddOpReceipt(code uint32, gas uint64, msg string) {
+	r := &prototype.OperationReceiptWithInfo{Status: code, GasUsage: gas, VmConsole: msg}
 	p.Wrapper.Receipt.OpResults = append(p.Wrapper.Receipt.OpResults, r)
 }
 
@@ -113,17 +113,17 @@ func (p *TrxContext) DeductGasFee(caller string, spent uint64) {
 
 	acc := table.NewSoAccountWrap(p.db, &prototype.AccountName{Value: caller})
 	balance := acc.GetBalance().Value
-	mustSuccess(spent <= balance,fmt.Sprintf("Endanger deduction Operation: %s, %d", caller, spent),prototype.StatusErrorTrxValueCompare)
+	mustSuccess(spent <= balance, fmt.Sprintf("Endanger deduction Operation: %s, %d", caller, spent), prototype.StatusErrorTrxValueCompare)
 	acc.MdBalance(&prototype.Coin{Value: balance - spent})
 }
 
 func (p *TrxContext) DeductAllGasFee() bool {
 
 	useGas := false
-	for caller,spent := range p.gasMap {
+	for caller, spent := range p.gasMap {
 		acc := table.NewSoAccountWrap(p.db, &prototype.AccountName{Value: caller})
 		balance := acc.GetBalance().Value
-		mustSuccess(spent <= balance,fmt.Sprintf("Endanger deduction Operation: %s, %d", caller, spent),prototype.StatusErrorTrxValueCompare)
+		mustSuccess(spent <= balance, fmt.Sprintf("Endanger deduction Operation: %s, %d", caller, spent), prototype.StatusErrorTrxValueCompare)
 		acc.MdBalance(&prototype.Coin{Value: balance - spent})
 		useGas = true
 	}
@@ -131,37 +131,37 @@ func (p *TrxContext) DeductAllGasFee() bool {
 }
 
 func (p *TrxContext) DeductAllNet() {
-	for caller,spent := range p.netMap {
+	for caller, spent := range p.netMap {
 		netUse := spent * netConsumePoint
 
-		if !p.resourceLimiter.ConsumeFree(caller,netUse,p.control.GetProps().HeadBlockNumber) {
-			p.resourceLimiter.ConsumeFreeLeft(caller,p.control.GetProps().HeadBlockNumber)
+		if !p.resourceLimiter.ConsumeFree(caller, netUse, p.control.GetProps().HeadBlockNumber) {
+			p.resourceLimiter.ConsumeFreeLeft(caller, p.control.GetProps().HeadBlockNumber)
 		} else {
 			// free resource already enough
 			continue
 		}
 
-		if !p.resourceLimiter.Consume(caller,netUse,p.control.GetProps().HeadBlockNumber) {
-			p.resourceLimiter.ConsumeLeft(caller,p.control.GetProps().HeadBlockNumber)
+		if !p.resourceLimiter.Consume(caller, netUse, p.control.GetProps().HeadBlockNumber) {
+			p.resourceLimiter.ConsumeLeft(caller, p.control.GetProps().HeadBlockNumber)
 		}
 	}
 }
 
 func (p *TrxContext) DeductAllCpu() bool {
 	useGas := false
-	for caller,spent := range p.gasMap {
+	for caller, spent := range p.gasMap {
 		cpuUse := spent * cpuConsumePoint
 
-		if !p.resourceLimiter.ConsumeFree(caller,cpuUse,p.control.GetProps().HeadBlockNumber) {
-			p.resourceLimiter.ConsumeFreeLeft(caller,p.control.GetProps().HeadBlockNumber)
+		if !p.resourceLimiter.ConsumeFree(caller, cpuUse, p.control.GetProps().HeadBlockNumber) {
+			p.resourceLimiter.ConsumeFreeLeft(caller, p.control.GetProps().HeadBlockNumber)
 		} else {
 			// free resource already enough
 			continue
 		}
 
-		if !p.resourceLimiter.Consume(caller,cpuUse,p.control.GetProps().HeadBlockNumber) {
+		if !p.resourceLimiter.Consume(caller, cpuUse, p.control.GetProps().HeadBlockNumber) {
 			// never failed ?
-			p.resourceLimiter.ConsumeLeft(caller,p.control.GetProps().HeadBlockNumber)
+			p.resourceLimiter.ConsumeLeft(caller, p.control.GetProps().HeadBlockNumber)
 		}
 		useGas = true
 	}
@@ -187,7 +187,7 @@ func (p *TrxContext) TransferFromContractToUser(contract, owner, to string, amou
 	// need authority?
 	c := table.NewSoContractWrap(p.db, &prototype.ContractId{Owner: &prototype.AccountName{Value: owner}, Cname: contract})
 	balance := c.GetBalance().Value
-	mustSuccess(balance >= amount,fmt.Sprintf("Endanger Transfer Operation: %s, %s, %s, %d", contract, owner, to, amount),prototype.StatusErrorTrxPubKeyCmp)
+	mustSuccess(balance >= amount, fmt.Sprintf("Endanger Transfer Operation: %s, %s, %s, %d", contract, owner, to, amount), prototype.StatusErrorTrxPubKeyCmp)
 	acc := table.NewSoAccountWrap(p.db, &prototype.AccountName{Value: to})
 	// need atomic ?
 	c.MdBalance(&prototype.Coin{Value: balance - amount})
@@ -198,7 +198,7 @@ func (p *TrxContext) TransferFromContractToUser(contract, owner, to string, amou
 func (p *TrxContext) TransferFromUserToContract(from, contract, owner string, amount uint64) {
 	acc := table.NewSoAccountWrap(p.db, &prototype.AccountName{Value: from})
 	balance := acc.GetBalance().Value
-	mustSuccess(balance >= amount,fmt.Sprintf("Endanger Transfer Operation: %s, %s, %s, %d", contract, owner, from, amount),prototype.StatusErrorTrxPubKeyCmp)
+	mustSuccess(balance >= amount, fmt.Sprintf("Endanger Transfer Operation: %s, %s, %s, %d", contract, owner, from, amount), prototype.StatusErrorTrxPubKeyCmp)
 	c := table.NewSoContractWrap(p.db, &prototype.ContractId{Owner: &prototype.AccountName{Value: owner}, Cname: contract})
 	c.MdBalance(&prototype.Coin{Value: balance + amount})
 	acc.MdBalance(&prototype.Coin{Value: balance - amount})
@@ -209,7 +209,7 @@ func (p *TrxContext) TransferFromContractToContract(fromContract, fromOwner, toC
 	from := table.NewSoContractWrap(p.db, &prototype.ContractId{Owner: &prototype.AccountName{Value: fromOwner}, Cname: fromContract})
 	to := table.NewSoContractWrap(p.db, &prototype.ContractId{Owner: &prototype.AccountName{Value: toOwner}, Cname: toContract})
 	fromBalance := from.GetBalance().Value
-	mustSuccess(fromBalance >= amount,fmt.Sprintf("Insufficient balance of contract: %s.%s, %d < %d", fromOwner, fromContract, fromBalance, amount),prototype.StatusErrorTrxPubKeyCmp)
+	mustSuccess(fromBalance >= amount, fmt.Sprintf("Insufficient balance of contract: %s.%s, %d < %d", fromOwner, fromContract, fromBalance, amount), prototype.StatusErrorTrxPubKeyCmp)
 	toBalance := to.GetBalance().Value
 	from.MdBalance(&prototype.Coin{Value: fromBalance - amount})
 	to.MdBalance(&prototype.Coin{Value: toBalance + amount})
@@ -217,18 +217,18 @@ func (p *TrxContext) TransferFromContractToContract(fromContract, fromOwner, toC
 
 func (p *TrxContext) ContractCall(caller, fromOwner, fromContract, fromMethod, toOwner, toContract, toMethod string, params []byte, coins, maxGas uint64) {
 	op := &prototype.InternalContractApplyOperation{
-		FromCaller: &prototype.AccountName{ Value: caller },
-		FromOwner: &prototype.AccountName{ Value: fromOwner },
+		FromCaller:   &prototype.AccountName{Value: caller},
+		FromOwner:    &prototype.AccountName{Value: fromOwner},
 		FromContract: fromContract,
-		FromMethod: fromMethod,
-		ToOwner: &prototype.AccountName{ Value: toOwner },
-		ToContract: toContract,
-		ToMethod: toMethod,
-		Params: params,
-		Amount: &prototype.Coin{ Value: coins },
-		Gas: &prototype.Coin{ Value: maxGas },
+		FromMethod:   fromMethod,
+		ToOwner:      &prototype.AccountName{Value: toOwner},
+		ToContract:   toContract,
+		ToMethod:     toMethod,
+		Params:       params,
+		Amount:       &prototype.Coin{Value: coins},
+		Gas:          &prototype.Coin{Value: maxGas},
 	}
-	eval := &InternalContractApplyEvaluator{ ctx: &ApplyContext{ db: p.db, trxCtx: p, control: p.control }, op: op }
+	eval := &InternalContractApplyEvaluator{ctx: &ApplyContext{db: p.db, trxCtx: p, control: p.control}, op: op}
 	eval.Apply()
 }
 
@@ -253,7 +253,7 @@ func verifyAuthority(keyMaps map[string]bool, trxPubs []*prototype.PublicKeyType
 
 	for k := range keyMaps {
 		if !s.CheckAuthorityByName(k, 0, Owner) {
-			mustSuccess(false,"check owner authority failed",prototype.StatusErrorTrxVerifyAuth)
+			mustSuccess(false, "check owner authority failed", prototype.StatusErrorTrxVerifyAuth)
 		}
 	}
 }

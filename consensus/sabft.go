@@ -216,14 +216,14 @@ func (sabft *SABFT) makeValidators(names []string) []*publicValidator {
 func (sabft *SABFT) shuffle(head common.ISignedBlock) {
 	//if head.Id().BlockNum()%uint64(len(sabft.validators)) != 0 {
 	blockNum := head.Id().BlockNum()
-	if blockNum%constants.BLOCK_PROD_REPETITION != 0 ||
-		blockNum/constants.BLOCK_PROD_REPETITION%uint64(len(sabft.validators)) != 0 {
+	if blockNum%constants.BlockProdRepetition != 0 ||
+		blockNum/constants.BlockProdRepetition%uint64(len(sabft.validators)) != 0 {
 		return
 	}
 
 	// When a produce round complete, it adds new producers,
 	// remove unqualified producers and shuffle the block-producing order
-	prods := sabft.ctrl.GetWitnessTopN(constants.MAX_WITNESSES)
+	prods := sabft.ctrl.GetWitnessTopN(constants.MaxWitnessCount)
 	var seed uint64
 	if head != nil {
 		seed = head.Timestamp() << 32
@@ -268,14 +268,16 @@ func (sabft *SABFT) shuffle(head common.ISignedBlock) {
 }
 
 func (sabft *SABFT) restoreProducers() {
-	sabft.validators = sabft.makeValidators(sabft.ctrl.GetShuffledWitness())
+	prods := sabft.ctrl.GetShuffledWitness()
+	sabft.validators = sabft.makeValidators(prods)
+	sabft.log.Info("active producers: ", prods)
 }
 
 func (sabft *SABFT) ActiveProducers() []string {
 	sabft.RLock()
 	defer sabft.RUnlock()
 
-	ret := make([]string, 0, constants.MAX_WITNESSES)
+	ret := make([]string, 0, constants.MaxWitnessCount)
 	for i := range sabft.validators {
 		ret = append(ret, sabft.validators[i].accountName)
 	}
@@ -301,7 +303,7 @@ func (sabft *SABFT) Start(node *node.Node) error {
 	snapshotPath := cfg.ResolvePath("forkdb_snapshot")
 	// TODO: fuck!! this is fugly
 	var avatar []common.ISignedBlock
-	for i := 0; i < constants.MAX_WITNESSES+1; i++ {
+	for i := 0; i < constants.MaxWitnessCount+1; i++ {
 		// TODO: if the bft process falls behind too much, the number
 		// TODO: of the avatar might not be sufficient
 
@@ -370,14 +372,6 @@ func (sabft *SABFT) revertToLastCheckPoint() {
 	sabft.Lock()
 	defer sabft.Unlock()
 
-	//var popNum uint64
-	//if sabft.lastCommitted == nil {
-	//	popNum = 2
-	//} else {
-	//	popNum = common.BlockID{
-	//		Data: sabft.lastCommitted.ProposedData,
-	//	}.BlockNum() + 1
-	//}
 	lastCommittedID := sabft.ForkDB.LastCommitted()
 	popNum := lastCommittedID.BlockNum() + 1
 	sabft.popBlock(popNum)
@@ -393,14 +387,10 @@ func (sabft *SABFT) revertToLastCheckPoint() {
 	sabft.ForkDB = forkdb.NewDB()
 	if popNum > 1 {
 		sabft.ForkDB.PushBlock(lastCommittedBlock)
+		sabft.ForkDB.Commit(lastCommittedID)
 	}
 
 	sabft.log.Infof("[checkpoint] revert to last committed block %d.", popNum-1)
-	validatorNames := ""
-	for i := range sabft.validators {
-		validatorNames += sabft.validators[i].accountName + " "
-	}
-	sabft.log.Info("[checkpoint] active producers: ", validatorNames)
 }
 
 func (sabft *SABFT) start() {
@@ -531,8 +521,8 @@ func (sabft *SABFT) getScheduledProducer(slot uint64) string {
 	if sabft.ForkDB.Empty() {
 		return sabft.validators[0].accountName
 	}
-	absSlot := (sabft.ForkDB.Head().Timestamp() - constants.GenesisTime) / constants.BLOCK_INTERVAL
-	return sabft.validators[(absSlot+slot)/constants.BLOCK_PROD_REPETITION%uint64(len(sabft.validators))].accountName
+	absSlot := (sabft.ForkDB.Head().Timestamp() - constants.GenesisTime) / constants.BlockInterval
+	return sabft.validators[(absSlot+slot)/constants.BlockProdRepetition%uint64(len(sabft.validators))].accountName
 }
 
 // returns false if we're out of sync
@@ -551,11 +541,11 @@ func (sabft *SABFT) getSlotTime(slot uint64) uint64 {
 	}
 	head := sabft.ForkDB.Head()
 	if head == nil {
-		return constants.GenesisTime + slot*constants.BLOCK_INTERVAL
+		return constants.GenesisTime + slot*constants.BlockInterval
 	}
 
-	headSlotTime := head.Timestamp() / constants.BLOCK_INTERVAL * constants.BLOCK_INTERVAL
-	return headSlotTime + slot*constants.BLOCK_INTERVAL
+	headSlotTime := head.Timestamp() / constants.BlockInterval * constants.BlockInterval
+	return headSlotTime + slot*constants.BlockInterval
 }
 
 func (sabft *SABFT) getSlotAtTime(t time.Time) uint64 {
@@ -563,7 +553,7 @@ func (sabft *SABFT) getSlotAtTime(t time.Time) uint64 {
 	if uint64(t.Unix()) < nextSlotTime {
 		return 0
 	}
-	return (uint64(t.Unix())-nextSlotTime)/constants.BLOCK_INTERVAL + 1
+	return (uint64(t.Unix())-nextSlotTime)/constants.BlockInterval + 1
 }
 
 func (sabft *SABFT) PushBlock(b common.ISignedBlock) {
@@ -648,6 +638,7 @@ func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 	//sabft.log.Warn("handleCommitRecords: ", records.ProposedData, records.Address)
 	if err := records.ValidateBasic(); err != nil {
 		sabft.log.Error(err)
+		return
 	}
 
 	if !sabft.readyToProduce {
@@ -838,7 +829,6 @@ func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 	blockID := common.BlockID{
 		Data: commitRecords.ProposedData,
 	}
-	sabft.log.Debug("[SABFT] commit block #", blockID)
 
 	// if we're committing a block we don't have
 	blk, err := sabft.ForkDB.FetchBlock(blockID)
@@ -887,6 +877,7 @@ func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 
 	sabft.lastCommitted = commitRecords
 
+	sabft.log.Debug("[SABFT] committed block #", blockID)
 	return nil
 }
 
@@ -1122,23 +1113,107 @@ func (sabft *SABFT) HasBlock(id common.BlockID) bool {
 	return false
 }
 
+func (sabft *SABFT) FetchBlocks(from, to uint64) ([]common.ISignedBlock, error) {
+	return fetchBlocks(from, to, sabft.ForkDB, &sabft.blog)
+}
+
+func fetchBlocks(from, to uint64, forkDB *forkdb.DB, blog *blocklog.BLog) ([]common.ISignedBlock, error) {
+	if from >= to {
+		return nil, nil
+	}
+
+	if forkDB.Empty() {
+		return nil, errors.New("ForkDB is empty, try again later")
+	}
+
+	lastCommitted := forkDB.LastCommitted()
+	lastCommittedNum := lastCommitted.BlockNum()
+	headNum := forkDB.Head().Id().BlockNum()
+
+	if from == 0 {
+		from = 1
+	}
+	if to > headNum {
+		to = headNum
+	}
+
+	forkDBFrom := uint64(0)
+	forkDBTo := to
+	if to >= lastCommittedNum {
+		forkDBFrom = lastCommittedNum
+		if from > forkDBFrom {
+			forkDBFrom = from
+		}
+	}
+
+	blogFrom := uint64(0)
+	if from < lastCommittedNum {
+		blogFrom = from
+	}
+	blogTo := to
+	if blogTo >= lastCommittedNum {
+		blogTo = lastCommittedNum - 1
+	}
+
+	var blocksInForkDB []common.ISignedBlock
+	if forkDBFrom > 0 {
+		blocksInForkDB, err := forkDB.FetchBlocksFromMainBranch(forkDBFrom)
+		if err != nil {
+			// there probably is a new committed block during the execution of this process, just try again
+			return fetchBlocks(from, to, forkDB, blog)
+		}
+		if int(forkDBTo-forkDBFrom+1) < len(blocksInForkDB) {
+			blocksInForkDB = blocksInForkDB[:forkDBTo-forkDBFrom+1]
+		}
+	}
+
+	blocksInBlog := make([]common.ISignedBlock, 0, blogTo-blogFrom+1)
+	if blogFrom > 0 {
+		for blogFrom <= blogTo {
+			b := &prototype.SignedBlock{}
+			if err := blog.ReadBlock(b, int64(blogFrom-1)); err != nil {
+				return nil, err
+			}
+
+			blocksInBlog = append(blocksInBlog, b)
+			blogFrom++
+		}
+	}
+
+	return append(blocksInBlog, blocksInForkDB...), nil
+}
+
+// return blocks in the range of (id, max(headID, id+1024))
 func (sabft *SABFT) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, error) {
+	if sabft.ForkDB.Empty() {
+		return nil, errors.New("ForkDB is empty, try again later")
+	}
 	length := int64(sabft.ForkDB.Head().Id().BlockNum()) - int64(id.BlockNum())
 	if length < 1 {
 		return nil, nil
 	}
 
-	if id.BlockNum() >= sabft.ForkDB.LastCommitted().BlockNum() {
+	lastCommitted := sabft.ForkDB.LastCommitted()
+
+	if id.BlockNum() >= lastCommitted.BlockNum() {
 		blocks, _, err := sabft.ForkDB.FetchBlocksSince(id)
+		if err != nil {
+			// there probably is a new committed block during the execution of this process, just try again
+			return sabft.FetchBlocksSince(id)
+		}
 		return blocks, err
 	}
 
 	ret := make([]common.ISignedBlock, 0, length)
 	idNum := id.BlockNum()
 	start := idNum + 1
+	blocksInForkDB, _, err := sabft.ForkDB.FetchBlocksSince(lastCommitted)
+	if err != nil {
+		// there probably is a new committed block during the execution of this process, just try again
+		return sabft.FetchBlocksSince(id)
+	}
+	end := lastCommitted.BlockNum()
 
-	end := uint64(sabft.blog.Size())
-	//sabft.log.Errorf("fetch from blog: from %d to %d", start, end)
 	for start <= end {
 		b := &prototype.SignedBlock{}
 		if err := sabft.blog.ReadBlock(b, int64(start-1)); err != nil {
@@ -1151,17 +1226,8 @@ func (sabft *SABFT) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, 
 
 		ret = append(ret, b)
 		start++
-
-		if start > end && b.Id() != sabft.ForkDB.LastCommitted() {
-			// there probably is a new committed block during the execution of this process
-			return nil, errors.New("ForkDB and BLog inconsistent state")
-		}
 	}
 
-	blocksInForkDB, _, err := sabft.ForkDB.FetchBlocksSince(sabft.ForkDB.LastCommitted())
-	if err != nil {
-		return nil, err
-	}
 	ret = append(ret, blocksInForkDB...)
 	return ret, nil
 }

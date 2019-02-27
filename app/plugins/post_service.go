@@ -43,10 +43,10 @@ func (p *PostService) Start(node *node.Node) error {
 }
 
 func (p *PostService) hookEvent() {
-	p.ev.Subscribe(constants.NOTICE_OP_POST, p.onPostOperation)
+	p.ev.Subscribe(constants.NoticeOpPost, p.onPostOperation)
 }
 func (p *PostService) unhookEvent() {
-	p.ev.Unsubscribe(constants.NOTICE_OP_POST, p.onPostOperation)
+	p.ev.Unsubscribe(constants.NoticeOpPost, p.onPostOperation)
 }
 
 func (p *PostService) onPostOperation(notification *prototype.OperationNotification) {
@@ -75,7 +75,7 @@ func (p *PostService) executePostOperation(op *prototype.PostOperation) {
 			exPost.PostId = uuid
 			exPost.CreatedOrder = &prototype.PostCreatedOrder{
 				Created: p.pool.HeadBlockTime(),
-				ParentId: constants.POST_INVALID_ID,
+				ParentId: constants.PostInvalidId,
 			}
 		})
 	}

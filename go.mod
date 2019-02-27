@@ -7,7 +7,7 @@ require (
 	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e
 	github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1 // indirect
 	github.com/coschain/cobra v0.0.0-20181106130408-77bf516f51a1
-	github.com/coschain/gobft v0.0.0-20190123032642-eb80f6d20c81
+	github.com/coschain/gobft v0.0.0-20190226065302-b96d65379acc
 	github.com/deckarep/golang-set v1.7.1
 	github.com/fastly/go-utils v0.0.0-20180712184237-d95a45783239 // indirect
 	github.com/go-interpreter/wagon v0.3.0
