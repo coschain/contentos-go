@@ -287,6 +287,42 @@ func (mr *MockApiServiceClientMockRecorder) BroadcastTrx(ctx, in interface{}, op
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BroadcastTrx", reflect.TypeOf((*MockApiServiceClient)(nil).BroadcastTrx), varargs...)
 }
 
+// GetBlockList mocks base method
+func (m *MockApiServiceClient) GetBlockList(ctx context.Context, in *pb.GetBlockListRequest, opts ...grpc.CallOption) (*pb.GetBlockListResponse, error) {
+	varargs := []interface{}{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetBlockList", varargs...)
+	ret0, _ := ret[0].(*pb.GetBlockListResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetBlockList indicates an expected call of GetBlockList
+func (mr *MockApiServiceClientMockRecorder) GetBlockList(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	varargs := append([]interface{}{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockList", reflect.TypeOf((*MockApiServiceClient)(nil).GetBlockList), varargs...)
+}
+
+// GetAccountListByBalance mocks base method
+func (m *MockApiServiceClient) GetAccountListByBalance(ctx context.Context, in *pb.NonParamsRequest, opts ...grpc.CallOption) (*pb.GetAccountListResponse, error) {
+	varargs := []interface{}{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetAccountListByBalance", varargs...)
+	ret0, _ := ret[0].(*pb.GetAccountListResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAccountListByBalance indicates an expected call of GetAccountListByBalance
+func (mr *MockApiServiceClientMockRecorder) GetAccountListByBalance(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	varargs := append([]interface{}{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccountListByBalance", reflect.TypeOf((*MockApiServiceClient)(nil).GetAccountListByBalance), varargs...)
+}
+
 // MockApiServiceServer is a mock of ApiServiceServer interface
 type MockApiServiceServer struct {
 	ctrl     *gomock.Controller
@@ -490,4 +526,30 @@ func (m *MockApiServiceServer) BroadcastTrx(arg0 context.Context, arg1 *pb.Broad
 // BroadcastTrx indicates an expected call of BroadcastTrx
 func (mr *MockApiServiceServerMockRecorder) BroadcastTrx(arg0, arg1 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BroadcastTrx", reflect.TypeOf((*MockApiServiceServer)(nil).BroadcastTrx), arg0, arg1)
+}
+
+// GetBlockList mocks base method
+func (m *MockApiServiceServer) GetBlockList(arg0 context.Context, arg1 *pb.GetBlockListRequest) (*pb.GetBlockListResponse, error) {
+	ret := m.ctrl.Call(m, "GetBlockList", arg0, arg1)
+	ret0, _ := ret[0].(*pb.GetBlockListResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetBlockList indicates an expected call of GetBlockList
+func (mr *MockApiServiceServerMockRecorder) GetBlockList(arg0, arg1 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockList", reflect.TypeOf((*MockApiServiceServer)(nil).GetBlockList), arg0, arg1)
+}
+
+// GetAccountListByBalance mocks base method
+func (m *MockApiServiceServer) GetAccountListByBalance(arg0 context.Context, arg1 *pb.NonParamsRequest) (*pb.GetAccountListResponse, error) {
+	ret := m.ctrl.Call(m, "GetAccountListByBalance", arg0, arg1)
+	ret0, _ := ret[0].(*pb.GetAccountListResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAccountListByBalance indicates an expected call of GetAccountListByBalance
+func (mr *MockApiServiceServerMockRecorder) GetAccountListByBalance(arg0, arg1 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccountListByBalance", reflect.TypeOf((*MockApiServiceServer)(nil).GetAccountListByBalance), arg0, arg1)
 }

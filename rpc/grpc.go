@@ -96,7 +96,7 @@ func (as *APIService) GetAccountByName(ctx context.Context, req *grpcpb.GetAccou
 		keyWrap := table.NewSoAccountAuthorityObjectWrap(as.db, req.GetAccountName())
 
 		if keyWrap.CheckExist(){
-			acct.PublicKeys = append(acct.PublicKeys, keyWrap.GetOwner().KeyAuths[0].Key)
+			acct.PublicKey = keyWrap.GetOwner().GetKey()
 		}
 	}
 	acct.State = as.getState()
