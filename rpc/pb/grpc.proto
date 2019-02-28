@@ -57,7 +57,17 @@ service ApiService {
 
     rpc GetAccountListByBalance (NonParamsRequest) returns (GetAccountListResponse) {
     }
+
+    rpc GetDailyTotalTrxInfo  (GetDailyTotalTrxRequest) returns (GetDailyTotalTrxResponse) {
+    }
+
+    rpc GetTrxInfoById (GetTrxInfoByIdRequest) returns (GetTrxInfoByIdResponse) {
+    }
+
+    rpc GetTrxListByTime (GetTrxListByTimeRequest) returns (GetTrxListByTimeResponse) {
+    }
 }
+
 
 message GetTableContentRequest {
     string owner = 1;
@@ -249,4 +259,44 @@ message GetBlockListResponse {
 
 message GetAccountListResponse {
     repeated AccountResponse list = 1;
+}
+
+
+message GetDailyTotalTrxRequest {
+    int64     start              = 1;
+    int64     end                = 2;
+}
+
+message DailyTotalTrx {
+    int64     date               = 1;
+    uint64     count              = 2;
+}
+
+message GetDailyTotalTrxResponse {
+    repeated  DailyTotalTrx   list   = 1;
+}
+
+message TrxInfo {
+    prototype.sha256                trx_id     =1;
+    uint64                          block_height =  2;
+    prototype.transaction_wrapper   trx_wrap    = 3;
+    prototype.time_point_sec        block_time  = 4;
+}
+
+message GetTrxInfoByIdRequest {
+    prototype.sha256      trx_id    = 1;
+}
+
+message GetTrxInfoByIdResponse {
+    TrxInfo             info        = 1;
+}
+
+
+message GetTrxListByTimeRequest {
+    prototype.time_point_sec     start     = 1;
+    prototype.time_point_sec     end       = 2;
+}
+
+message GetTrxListByTimeResponse {
+    repeated        TrxInfo     list  = 1;
 }

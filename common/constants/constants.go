@@ -19,6 +19,7 @@ const (
 	NoticeTrxPending = "trxpending"
 	NoticeTrxApplied = "trxapplyresult"
 	NoticeBlockApplied = "blockapply"
+	NoticeAddTrx     = "addTrx"
 
 	GenesisTime = 0
 

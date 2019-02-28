@@ -451,7 +451,7 @@ func (as *APIService) GetAccountListByBalance(ctx context.Context, req *grpcpb.N
 	defer as.db.RUnlock()
 
 	sortWrap := table.NewAccountBalanceWrap(as.db)
-	list := make([]*grpcpb.AccountResponse,0)
+	var list []*grpcpb.AccountResponse
 	res := &grpcpb.GetAccountListResponse{}
 	var err error
 	if sortWrap != nil {
@@ -496,3 +496,82 @@ func checkLimit(limit uint32) uint32 {
 	}
 }
 
+
+func (as *APIService) GetDailyTotalTrxInfo(ctx context.Context, req *grpcpb.GetDailyTotalTrxRequest) (*grpcpb.GetDailyTotalTrxResponse,error) {
+	as.db.RLock()
+	defer as.db.RUnlock()
+	var list []*grpcpb.DailyTotalTrx
+	list = make([]*grpcpb.DailyTotalTrx,0)
+	res := &grpcpb.GetDailyTotalTrxResponse{}
+	wrap := table.NewExtDailyTrxDateWrap(as.db)
+	var err error
+	if wrap != nil {
+		start := req.Start
+		end := req.End
+		s := &start
+		e := &end
+
+		if start == 0 {
+			s = nil
+		}
+		if end == 0 {
+			e = nil
+		}
+		err =  wrap.ForEachByOrder(s, e, func(mVal *int64, sVal *int64, idx uint32) bool {
+            if mVal != nil && sVal != nil {
+				info := &grpcpb.DailyTotalTrx{}
+				info.Date = *mVal
+				dWrap := table.NewSoExtDailyTrxWrap(as.db,mVal)
+				if dWrap != nil {
+					info.Count =  dWrap.GetCount()
+				}
+				list = append(list,info)
+			}
+			return true
+		})
+	}
+	res.List = list
+	return res,err
+}
+
+func (as *APIService) GetTrxInfoById (ctx context.Context, req *grpcpb.GetTrxInfoByIdRequest) (*grpcpb.GetTrxInfoByIdResponse,error){
+	as.db.RLock()
+	defer as.db.RUnlock()
+	res := &grpcpb.GetTrxInfoByIdResponse{}
+	var err error
+	wrap := table.NewSoExtTrxWrap(as.db,req.TrxId)
+	if wrap != nil {
+		info := &grpcpb.TrxInfo{}
+		info.TrxId = req.TrxId
+		info.BlockHeight= wrap.GetBlockHeight()
+		info.BlockTime = wrap.GetBlockTime()
+		info.TrxWrap = wrap.GetTrxWrap()
+		res.Info = info
+	}
+	return res,err
+}
+
+func (as *APIService) GetTrxListByTime (ctx context.Context, req *grpcpb.GetTrxListByTimeRequest) (*grpcpb.GetTrxListByTimeResponse,error) {
+	as.db.RLock()
+	defer as.db.RUnlock()
+	res := &grpcpb.GetTrxListByTimeResponse{}
+	var infoList []*grpcpb.TrxInfo
+	var err error
+	sWrap := table.NewExtTrxBlockTimeWrap(as.db)
+	if sWrap != nil {
+		err = sWrap.ForEachByRevOrder(req.Start,req.End, func(mVal *prototype.Sha256, sVal *prototype.TimePointSec, idx uint32) bool {
+			wrap := table.NewSoExtTrxWrap(as.db,mVal)
+			info := &grpcpb.TrxInfo{}
+			if wrap != nil {
+				info.TrxId = mVal
+				info.BlockHeight= wrap.GetBlockHeight()
+				info.BlockTime = wrap.GetBlockTime()
+				info.TrxWrap = wrap.GetTrxWrap()
+				infoList = append(infoList,info)
+			}
+			return true
+		})
+	}
+	res.List = infoList
+	return res,err
+}
