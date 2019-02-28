@@ -18,7 +18,7 @@ type IConsensus interface {
 	SetBootstrap(b bool)
 
 	// PushTransaction accepts the trx
-	PushTransaction(trx common.ISignedTransaction, wait bool, broadcast bool) common.ITransactionReceiptWithInfo
+	PushTransaction(trx common.ISignedTransaction, wait bool, broadcast bool) common.ITransactionReceipt
 
 	//Add transaction to pending list,the transaction will be applied when generate a block
 	PushTransactionToPending(trx common.ISignedTransaction, callBack func(err error))

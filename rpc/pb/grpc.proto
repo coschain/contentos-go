@@ -213,7 +213,7 @@ message BroadcastTrxRequest {
 }
 
 message BroadcastTrxResponse {
-    prototype.transaction_receipt_with_info  invoice = 1;
+    prototype.transaction_receipt  invoice = 1;
     uint32                          status  = 2;
     string                          msg     = 3;
 }

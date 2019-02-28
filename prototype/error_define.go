@@ -14,7 +14,7 @@ var (
 )
 
 type Exception struct {
-	ErrorType int
+	ErrorType uint32
 	HelpString string
 	ErrorString string
 }
@@ -40,7 +40,7 @@ const StatusErrorTrxPubKeyCmp = 100008
 const StatusErrorTrxMaxBlockSize = 100009
 const StatusErrorTrxExpire = 100010
 const StatusErrorTrxMerkleCheck = 100011
-const StatusErrorTrxApplyInvoice = 100012
+const StatusErrorTrxApplyReceipt = 100012
 const StatusErrorTrxMaxUndo = 100013
 const StatusErrorTrxValueCompare = 100014
 const StatusErrorTrxValueEqual = 100015

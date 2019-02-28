@@ -15,20 +15,25 @@ const (
 	cpuConsumePoint = 1
 )
 
+type resourceUnit struct {
+	raw	uint64 // may be net in byte or cpu gas
+	realCost uint64 // real cost resource
+}
+
 type TrxContext struct {
 	vminjector.Injector
-	Wrapper         *prototype.EstimateTrxResult
+	Wrapper         *prototype.TransactionWrapper
 	db              iservices.IDatabaseService
 	msg             []string
 	recoverPubs     []*prototype.PublicKeyType
 	control         *TrxPool
-	gasMap          map[string]uint64
-	netMap          map[string]uint64
+	gasMap          map[string]*resourceUnit
+	netMap          map[string]*resourceUnit
 	resourceLimiter utils.IResourceLimiter
 }
 
-func NewTrxContext(wrapper *prototype.EstimateTrxResult, db iservices.IDatabaseService, control *TrxPool) *TrxContext {
-	return &TrxContext{Wrapper: wrapper, db: db, control: control, gasMap: make(map[string]uint64), netMap: make(map[string]uint64), resourceLimiter: utils.IResourceLimiter(utils.NewResourceLimiter(db))}
+func NewTrxContext(wrapper *prototype.TransactionWrapper, db iservices.IDatabaseService, control *TrxPool) *TrxContext {
+	return &TrxContext{Wrapper: wrapper, db: db, control: control, gasMap: make(map[string]*resourceUnit), netMap: make(map[string]*resourceUnit), resourceLimiter: utils.IResourceLimiter(utils.NewResourceLimiter(db))}
 }
 
 func (p *TrxContext) InitSigState(cid prototype.ChainId) error {
@@ -44,21 +49,38 @@ func (p *TrxContext) CheckNet(sizeInBytes uint64) {
 	keyMaps := obtainKeyMap(p.Wrapper.SigTrx.Trx.Operations)
 	netUse := sizeInBytes * netConsumePoint
 	for name := range keyMaps {
+		p.netMap[name] = &resourceUnit{}
 		freeLeft := p.resourceLimiter.GetFreeLeft(name, p.control.GetProps().HeadBlockNumber)
 		stakeLeft := p.resourceLimiter.GetStakeLeft(name, p.control.GetProps().HeadBlockNumber)
 		if freeLeft >= netUse {
-			p.netMap[name] = sizeInBytes
+			p.netMap[name].raw = sizeInBytes
 			continue
 		} else {
 			if stakeLeft >= netUse-freeLeft {
-				p.netMap[name] = sizeInBytes
+				p.netMap[name].raw = sizeInBytes
 				continue
 			} else {
-				p.netMap = make(map[string]uint64)
+				p.netMap = make(map[string]*resourceUnit)
 				mustSuccess(false, "net resource not enough", prototype.StatusError)
 			}
 		}
 	}
+}
+
+func (p *TrxContext) GetNetUse() uint64 {
+	all := uint64(0)
+	for _,use := range p.netMap {
+		all += use.realCost
+	}
+	return all
+}
+
+func (p *TrxContext) GetCpuUse() uint64 {
+	all := uint64(0)
+	for _,use := range p.gasMap {
+		all += use.realCost
+	}
+	return all
 }
 
 func (p *TrxContext) VerifySignature() {
@@ -85,14 +107,8 @@ func (p *TrxContext) Error(code uint32, msg string) {
 	//p.Wrapper.Receipt.Status = 500
 }
 
-func (p *TrxContext) AddOpReceipt(code uint32, gas uint64, msg string) {
-	r := &prototype.OperationReceiptWithInfo{Status: code, GasUsage: gas, VmConsole: msg}
-	p.Wrapper.Receipt.OpResults = append(p.Wrapper.Receipt.OpResults, r)
-}
-
 func (p *TrxContext) Log(msg string) {
 	fmt.Print(msg)
-	p.Wrapper.Receipt.OpResults = append(p.Wrapper.Receipt.OpResults, &prototype.OperationReceiptWithInfo{VmConsole: msg})
 }
 
 func (p *TrxContext) RequireAuth(name string) (err error) {
@@ -117,64 +133,60 @@ func (p *TrxContext) DeductGasFee(caller string, spent uint64) {
 	acc.MdBalance(&prototype.Coin{Value: balance - spent})
 }
 
-func (p *TrxContext) DeductAllGasFee() bool {
+func (p *TrxContext) deductStamina(m map[string]*resourceUnit,rate uint64) {
+	for caller, spent := range m {
+		cpuUse := spent.raw * rate
+		now := p.control.GetProps().HeadBlockNumber
+		var paid uint64 = 0
+		if !p.resourceLimiter.ConsumeFree(caller, cpuUse, now) {
+			paid += p.resourceLimiter.GetFreeLeft(caller,now)
+			p.resourceLimiter.ConsumeFreeLeft(caller,now)
+		} else {
+			paid = cpuUse
+			// free resource already enough
+			m[caller].realCost = paid
+			continue
+		}
 
-	useGas := false
-	for caller, spent := range p.gasMap {
-		acc := table.NewSoAccountWrap(p.db, &prototype.AccountName{Value: caller})
-		balance := acc.GetBalance().Value
-		mustSuccess(spent <= balance, fmt.Sprintf("Endanger deduction Operation: %s, %d", caller, spent), prototype.StatusErrorTrxValueCompare)
-		acc.MdBalance(&prototype.Coin{Value: balance - spent})
-		useGas = true
+		left := cpuUse - paid
+		if !p.resourceLimiter.Consume(caller, left, now) {
+			// never failed ?
+			paid += p.resourceLimiter.GetStakeLeft(caller, now)
+			p.resourceLimiter.ConsumeLeft(caller, now)
+		} else {
+			paid += left
+		}
+		m[caller].realCost = paid
 	}
-	return useGas
 }
 
 func (p *TrxContext) DeductAllNet() {
-	for caller, spent := range p.netMap {
-		netUse := spent * netConsumePoint
-
-		if !p.resourceLimiter.ConsumeFree(caller, netUse, p.control.GetProps().HeadBlockNumber) {
-			p.resourceLimiter.ConsumeFreeLeft(caller, p.control.GetProps().HeadBlockNumber)
-		} else {
-			// free resource already enough
-			continue
-		}
-
-		if !p.resourceLimiter.Consume(caller, netUse, p.control.GetProps().HeadBlockNumber) {
-			p.resourceLimiter.ConsumeLeft(caller, p.control.GetProps().HeadBlockNumber)
-		}
-	}
+	p.deductStamina(p.netMap,netConsumePoint)
 }
 
-func (p *TrxContext) DeductAllCpu() bool {
-	useGas := false
-	for caller, spent := range p.gasMap {
-		cpuUse := spent * cpuConsumePoint
+func (p *TrxContext) DeductAllCpu() {
+	p.deductStamina(p.gasMap,cpuConsumePoint)
+}
 
-		if !p.resourceLimiter.ConsumeFree(caller, cpuUse, p.control.GetProps().HeadBlockNumber) {
-			p.resourceLimiter.ConsumeFreeLeft(caller, p.control.GetProps().HeadBlockNumber)
-		} else {
-			// free resource already enough
-			continue
-		}
-
-		if !p.resourceLimiter.Consume(caller, cpuUse, p.control.GetProps().HeadBlockNumber) {
-			// never failed ?
-			p.resourceLimiter.ConsumeLeft(caller, p.control.GetProps().HeadBlockNumber)
-		}
-		useGas = true
-	}
-	return useGas
+func (p *TrxContext) Finalize() {
+	p.setUsage()
+}
+func (p *TrxContext) SetStatus(s uint32) {
+	p.Wrapper.Receipt.Status = s
+}
+func (p *TrxContext) setUsage() {
+	p.Wrapper.Receipt.NetUsage = p.GetNetUse()
+	p.Wrapper.Receipt.CpuUsage = p.GetCpuUse()
 }
 
 func (p *TrxContext) RecordGasFee(caller string, spent uint64) {
 	// if same caller call multi times
 	if v, ok := p.gasMap[caller]; ok {
-		newSpent := v + spent
-		p.gasMap[caller] = newSpent
+		newSpent := v.raw + spent
+		p.gasMap[caller].raw = newSpent
 	} else {
-		p.gasMap[caller] = spent
+		p.netMap[caller] = &resourceUnit{}
+		p.gasMap[caller].raw = spent
 	}
 }
 

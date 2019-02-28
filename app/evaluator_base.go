@@ -5,14 +5,14 @@ import (
 	"github.com/coschain/contentos-go/prototype"
 )
 
-func mustSuccess(b bool, val string, errorType int) {
+func mustSuccess(b bool, val string, errorType uint32) {
 	if !b {
 		e := &prototype.Exception{HelpString:val,ErrorType:errorType}
 		panic(e)
 	}
 }
 
-func mustNoError(err error, val string, errorType int) {
+func mustNoError(err error, val string, errorType uint32) {
 	if err != nil {
 		e := &prototype.Exception{HelpString:val,ErrorString:err.Error(),ErrorType:errorType}
 		panic(e)

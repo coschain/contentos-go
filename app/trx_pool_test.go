@@ -28,8 +28,10 @@ func makeBlock(pre *prototype.Sha256, blockTimestamp uint32, signedTrx *prototyp
 	// add trx wraper
 	trxWraper := &prototype.TransactionWrapper{
 		SigTrx:  signedTrx,
-		Invoice: &prototype.TransactionReceipt{Status: prototype.StatusSuccess},
+		Receipt: &prototype.TransactionReceipt{Status: prototype.StatusSuccess},
 	}
+	trxWraper.Receipt.NetUsage = uint64(proto.Size(signedTrx)*10)
+	//trxWraper.Receipt.CpuUsage = ?
 	sigBlk.Transactions = append(sigBlk.Transactions, trxWraper)
 
 	// calculate merkle

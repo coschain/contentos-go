@@ -12,7 +12,7 @@ import (
 var TxPoolServerName = "ctrl"
 
 type ITrxPool interface {
-	PushTrx(trx *prototype.SignedTransaction) *prototype.TransactionReceiptWithInfo
+	PushTrx(trx *prototype.SignedTransaction) *prototype.TransactionReceipt
 	PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag) error
 	HeadBlockTime() *prototype.TimePointSec
 	GenerateBlock(witness string, pre *prototype.Sha256, timestamp uint32, priKey *prototype.PrivateKeyType, skip prototype.SkipFlag) *prototype.SignedBlock

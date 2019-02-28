@@ -392,8 +392,8 @@ func (as *APIService) GetTrxById(ctx context.Context, req *grpcpb.GetTrxByIdRequ
 
 func (as *APIService) BroadcastTrx(ctx context.Context, req *grpcpb.BroadcastTrxRequest) (*grpcpb.BroadcastTrxResponse, error) {
 
-	//var result chan *prototype.TransactionReceiptWithInfo
-	//result := make(chan *prototype.TransactionReceiptWithInfo)
+	//var result chan *prototype.TransactionReceipt
+	//result := make(chan *prototype.TransactionReceipt)
 	trx := req.GetTransaction()
 
 	var pErr error

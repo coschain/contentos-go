@@ -46,7 +46,7 @@ type ITransaction interface {
 	Validate() error
 }
 
-type ITransactionReceiptWithInfo interface {
+type ITransactionReceipt interface {
 }
 
 type ISignedTransaction interface {
