@@ -81,6 +81,9 @@ func GetBaseEvaluator(ctx *ApplyContext, op *prototype.Operation) BaseEvaluator 
 	case *prototype.Operation_Op15:
 		eva := &ContractEstimateApplyEvaluator{ctx: ctx, op: op.GetOp15()}
 		return BaseEvaluator(eva)
+	case *prototype.Operation_Op16:
+		eva := &ReportEvaluator{ctx: ctx, op: op.GetOp16()}
+		return BaseEvaluator(eva)
 
 	default:
 		panic("no matchable evaluator")

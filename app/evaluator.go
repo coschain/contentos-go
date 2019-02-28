@@ -10,6 +10,7 @@ import (
 	"github.com/coschain/contentos-go/vm/contract/abi"
 	ct "github.com/coschain/contentos-go/vm/contract/table"
 	"github.com/sirupsen/logrus"
+	"sort"
 )
 
 func mustSuccess(b bool, val string) {
@@ -78,6 +79,12 @@ type ClaimEvaluator struct {
 	BaseEvaluator
 	ctx *ApplyContext
 	op  *prototype.ClaimOperation
+}
+
+type ReportEvaluator struct {
+	BaseEvaluator
+	ctx *ApplyContext
+	op  *prototype.ReportOperation
 }
 
 // I can cat out this awkward claimall operation until I can get value from rpc resp
@@ -441,6 +448,95 @@ func (ev *ClaimEvaluator) Apply() {
 		opAssert(ok, "No remains reward on chain")
 	}
 
+}
+
+type byTag []int32
+
+func (c byTag) Len() int {
+	return len(c)
+}
+func (c byTag) Swap(i, j int) {
+	c[i], c[j] = c[j], c[i]
+}
+func (c byTag) Less(i, j int) bool {
+	return c[i] < c[j]
+}
+
+func mergeTags(existed []int32, new []prototype.ReportOperationTag) []int32 {
+	len1 := len(existed)
+	len2 := len(new)
+	tmp := make([]int32, 0, len2)
+	for i:=0; i<len2; i++ {
+		tmp[i] = int32(new[i])
+	}
+	sort.Sort(byTag(existed))
+	sort.Sort(byTag(tmp))
+
+	res := make([]int32, 0, len1+len2)
+	i := 0
+	j := 0
+	for {
+		if i==len1 || j==len2 {
+			break
+		}
+		if existed[i]<=tmp[j] {
+			res = append(res, existed[i])
+			if existed[i] == tmp[j] {
+				j++
+			}
+			i++
+		} else if existed[i]>tmp[j] {
+			res = append(res, tmp[j])
+			j++
+		}
+	}
+	if i<len1 {
+		res = append(res, existed[i:]...)
+	}
+	if j<len2 {
+		res = append(res, tmp[i:]...)
+	}
+
+	return res
+}
+
+func (ev *ReportEvaluator) Apply() {
+	op := ev.op
+	post := table.NewSoPostWrap(ev.ctx.db, &op.Reported)
+	opAssert(post.CheckExist(), "the reported post doesn't exist")
+	report := table.NewSoReportListWrap(ev.ctx.db, &op.Reported)
+	if op.IsArbitration {
+		opAssert(report.CheckExist(), "cannot arbitrate a non-existed post")
+		if op.IsApproved {
+			post.RemovePost()
+			report.RemoveReportList()
+			return
+		}
+
+		report.MdIsArbitrated(true)
+	} else {
+		if report.CheckExist() {
+			if report.GetIsArbitrated() {
+				opAssert(false, "cannot report a legal post")
+			}
+			report.MdReportedTimes(report.GetReportedTimes()+1)
+			existedTags := report.GetTags()
+			newTags := op.ReportTag
+			report.MdTags(mergeTags(existedTags, newTags))
+			return
+		}
+
+		report.Create(func(tInfo *table.SoReportList) {
+			tInfo.Uuid = op.Reported
+			tInfo.ReportedTimes = 1
+			tags := make([]int32, len(op.ReportTag))
+			for i:= range op.ReportTag {
+				tags[i] = int32(op.ReportTag[i])
+			}
+			tInfo.Tags = tags
+			tInfo.IsArbitrated = false
+		})
+	}
 }
 
 func (ev *ClaimAllEvaluator) Apply() {

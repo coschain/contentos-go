@@ -1,0 +1,6 @@
+type                     ,pName           ,mKey,unique,sort,reverseSort,importPath
+uint64                   ,uuid            ,1   ,1     ,0   ,0          ,prototype/type.proto
+uint32                   ,reported_times  ,0   ,0     ,1   ,0          ,prototype/type.proto
+[]int32                  ,tags            ,0   ,0     ,0   ,0          ,prototype/type.proto
+bool                     ,is_arbitrated   ,0   ,0     ,0   ,0          ,prototype/type.proto
+
