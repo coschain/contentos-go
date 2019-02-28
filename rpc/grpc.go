@@ -508,6 +508,7 @@ func (as *APIService) GetDailyTotalTrxInfo(ctx context.Context, req *grpcpb.GetD
 	if wrap != nil {
 		s := req.Start
 		e := req.End
+		//convert the unix timestamp to day index
 		if req.Start != nil {
 			s = &prototype.TimePointSec{UtcSeconds:req.Start.UtcSeconds/86400}
 		}
@@ -518,7 +519,8 @@ func (as *APIService) GetDailyTotalTrxInfo(ctx context.Context, req *grpcpb.GetD
 			idx uint32) bool {
             if mVal != nil && sVal != nil {
 				info := &grpcpb.DailyTotalTrx{}
-				info.Date = mVal
+				//return the normal timestamp not the index
+				info.Date = &prototype.TimePointSec{UtcSeconds:mVal.UtcSeconds*86400}
 				dWrap := table.NewSoExtDailyTrxWrap(as.db,mVal)
 				if dWrap != nil {
 					info.Count =  dWrap.GetCount()
