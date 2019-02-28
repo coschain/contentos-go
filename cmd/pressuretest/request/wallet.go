@@ -28,6 +28,9 @@ const (
 	POST_CMD     = "post"
 	FOLLOW_CMD   = "follow"
 	VOTE_CMD     = "vote"
+
+	MAX_ACCOUNT_NUM  = 10000000  // 10 million
+	MAX_POSTID_NUM   = 10000000  // 10 million
 )
 
 var IPList []string = []string{
@@ -100,10 +103,22 @@ func StartEachRoutine(index int) {
 
 		switch cmdType {
 		case CREATE_CMD:
+			GlobalAccountLIst.RLock()
+			if len(GlobalAccountLIst.arr) > MAX_ACCOUNT_NUM {
+				GlobalAccountLIst.RUnlock()
+				continue
+			}
+			GlobalAccountLIst.RUnlock()
 			createAccount(localWallet, rpcClient, nil, "")
 		case TRANSFER_CMD:
 			transfer(rpcClient, nil, nil, 0)
 		case POST_CMD:
+			PostIdList.RLock()
+			if len(PostIdList.arr) > MAX_POSTID_NUM {
+				PostIdList.RUnlock()
+				continue
+			}
+			PostIdList.RUnlock()
 			postArticle(rpcClient, nil)
 		case FOLLOW_CMD:
 			follow(rpcClient, nil, nil)
