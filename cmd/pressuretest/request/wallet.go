@@ -69,6 +69,10 @@ func InitEnv() {
 	for i:=1;i<=10;i++ {
 		createAccount(localWallet, rpcClient, GlobalAccountLIst.arr[0], fmt.Sprintf("initminer%d", i))
 	}
+
+	for i:=1;i<=10;i++ {
+		postArticle(rpcClient, GlobalAccountLIst.arr[0])
+	}
 }
 
 func StartEachRoutine(index int) {
