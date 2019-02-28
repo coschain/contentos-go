@@ -85,7 +85,10 @@ func createAccount(mywallet *wallet.BaseWallet, rpcClient grpcpb.ApiServiceClien
 			createAccount(mywallet, rpcClient, creatorAccount, newAccountName)
 			return
 		}
-		fmt.Println(fmt.Sprintf("Result: %v", resp))
+		fmt.Println("Request command: ",
+			fmt.Sprintf("create %s %s", creatorAccount.Name, newAccountName),
+			" ",
+			fmt.Sprintf("Result: %v", resp))
 	}
 }
 
@@ -149,7 +152,10 @@ func transfer(rpcClient grpcpb.ApiServiceClient, fromAccount, toAccount  *wallet
 			return nil
 		}
 
-		fmt.Println(fmt.Sprintf("Result: %v", resp))
+		fmt.Println("Request command: ",
+			fmt.Sprintf("transfer %s %s %d", fromAccount.Name, toAccount.Name, amount),
+			" ",
+			fmt.Sprintf("Result: %v", resp))
 	}
 	return nil
 }
@@ -222,7 +228,10 @@ func postArticle(rpcClient grpcpb.ApiServiceClient, authorAccount *wallet.PrivAc
 			return
 		}
 
-		fmt.Println(fmt.Sprintf("Result: %v", resp))
+		fmt.Println("Request command: ",
+			fmt.Sprintf("%s post an article", authorAccount.Name),
+			" ",
+			fmt.Sprintf("Result: %v", resp))
 	}
 }
 
@@ -267,7 +276,10 @@ func follow(rpcClient grpcpb.ApiServiceClient, followerAccount, followingAccount
 	if err != nil {
 		fmt.Println(err)
 	} else {
-		fmt.Println(fmt.Sprintf("Result: %v", resp))
+		fmt.Println("Request command: ",
+			fmt.Sprintf("follow %s %s", followerAccount.Name, followingAccount.Name),
+			" ",
+			fmt.Sprintf("Result: %v", resp))
 	}
 }
 
@@ -316,6 +328,9 @@ func voteArticle(rpcClient grpcpb.ApiServiceClient, voterAccount *wallet.PrivAcc
 			return
 		}
 
-		fmt.Println(fmt.Sprintf("Result: %v", resp))
+		fmt.Println("Request command: ",
+			fmt.Sprintf("vote %s %d", voterAccount.Name, postId),
+			" ",
+			fmt.Sprintf("Result: %v", resp))
 	}
 }
