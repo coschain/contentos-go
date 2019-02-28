@@ -79,6 +79,7 @@ message dynamic_properties {
     uint64   total_post_cnt = 17;
     uint64   total_user_cnt = 18;
     uint32   max_tps = 19;
+    uint32                       head_block_prefix             =      20;
 }
 
 message internal_rewards_keeper {
