@@ -8,6 +8,7 @@ import (
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
+	prototype "github.com/coschain/contentos-go/prototype"
 	proto "github.com/golang/protobuf/proto"
 )
 
@@ -23,13 +24,13 @@ var (
 ////////////// SECTION Wrap Define ///////////////
 type SoExtDailyTrxWrap struct {
 	dba      iservices.IDatabaseService
-	mainKey  *int64
+	mainKey  *prototype.TimePointSec
 	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
 	mKeyBuf  []byte //the buffer after the main key is encoded with prefix
 	mBuf     []byte //the value after the main key is encoded
 }
 
-func NewSoExtDailyTrxWrap(dba iservices.IDatabaseService, key *int64) *SoExtDailyTrxWrap {
+func NewSoExtDailyTrxWrap(dba iservices.IDatabaseService, key *prototype.TimePointSec) *SoExtDailyTrxWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
@@ -74,6 +75,9 @@ func (s *SoExtDailyTrxWrap) Create(f func(tInfo *SoExtDailyTrx)) error {
 	}
 	val := &SoExtDailyTrx{}
 	f(val)
+	if val.Date == nil {
+		val.Date = s.mainKey
+	}
 	if s.CheckExist() {
 		return errors.New("the main key is already exist")
 	}
@@ -194,7 +198,8 @@ func (s *SoExtDailyTrxWrap) delSortKeyCount(sa *SoExtDailyTrx) bool {
 			return false
 		}
 		val.Count = ori.Count
-		val.Date = *s.mainKey
+		val.Date = s.mainKey
+
 	} else {
 		val.Count = sa.Count
 		val.Date = sa.Date
@@ -460,7 +465,8 @@ func (s *SoExtDailyTrxWrap) MdCount(p uint64) bool {
 	ori := &SoMemExtDailyTrxByCount{}
 	err = proto.Unmarshal(buf, ori)
 	sa := &SoExtDailyTrx{}
-	sa.Date = *s.mainKey
+	sa.Date = s.mainKey
+
 	sa.Count = ori.Count
 
 	if !s.delSortKeyCount(sa) {
@@ -505,7 +511,7 @@ func (s *SoExtDailyTrxWrap) saveMemKeyDate(tInfo *SoExtDailyTrx) error {
 	return err
 }
 
-func (s *SoExtDailyTrxWrap) GetDate() int64 {
+func (s *SoExtDailyTrxWrap) GetDate() *prototype.TimePointSec {
 	res := true
 	msg := &SoMemExtDailyTrxByDate{}
 	if s.dba == nil {
@@ -528,8 +534,8 @@ func (s *SoExtDailyTrxWrap) GetDate() int64 {
 		}
 	}
 	if !res {
-		var tmpValue int64
-		return tmpValue
+		return nil
+
 	}
 	return msg.Date
 }
@@ -554,7 +560,7 @@ func (s *SExtDailyTrxDateWrap) DelIterator(iterator iservices.IDatabaseIterator)
 	s.Dba.DeleteIterator(iterator)
 }
 
-func (s *SExtDailyTrxDateWrap) GetMainVal(iterator iservices.IDatabaseIterator) *int64 {
+func (s *SExtDailyTrxDateWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.TimePointSec {
 	if iterator == nil || !iterator.Valid() {
 		return nil
 	}
@@ -570,12 +576,11 @@ func (s *SExtDailyTrxDateWrap) GetMainVal(iterator iservices.IDatabaseIterator) 
 	if err != nil {
 		return nil
 	}
-
-	return &res.Date
+	return res.Date
 
 }
 
-func (s *SExtDailyTrxDateWrap) GetSubVal(iterator iservices.IDatabaseIterator) *int64 {
+func (s *SExtDailyTrxDateWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.TimePointSec {
 	if iterator == nil || !iterator.Valid() {
 		return nil
 	}
@@ -590,16 +595,20 @@ func (s *SExtDailyTrxDateWrap) GetSubVal(iterator iservices.IDatabaseIterator) *
 	if err != nil {
 		return nil
 	}
-	return &res.Date
+	return res.Date
 
 }
 
 func (m *SoListExtDailyTrxByDate) OpeEncode() ([]byte, error) {
 	pre := ExtDailyTrxDateTable
 	sub := m.Date
-
+	if sub == nil {
+		return nil, errors.New("the pro Date is nil")
+	}
 	sub1 := m.Date
-
+	if sub1 == nil {
+		return nil, errors.New("the mainkey Date is nil")
+	}
 	kList := []interface{}{pre, sub, sub1}
 	kBuf, cErr := kope.EncodeSlice(kList)
 	return kBuf, cErr
@@ -616,8 +625,8 @@ func (m *SoListExtDailyTrxByDate) OpeEncode() ([]byte, error) {
 //if the return value of f is true,continue iterating until the end iteration;
 //otherwise stop iteration immediately
 //
-func (s *SExtDailyTrxDateWrap) ForEachByOrder(start *int64, end *int64,
-	f func(mVal *int64, sVal *int64, idx uint32) bool) error {
+func (s *SExtDailyTrxDateWrap) ForEachByOrder(start *prototype.TimePointSec, end *prototype.TimePointSec,
+	f func(mVal *prototype.TimePointSec, sVal *prototype.TimePointSec, idx uint32) bool) error {
 	if s.Dba == nil {
 		return errors.New("the db is nil")
 	}
@@ -678,7 +687,7 @@ func (s *SExtDailyTrxCountWrap) DelIterator(iterator iservices.IDatabaseIterator
 	s.Dba.DeleteIterator(iterator)
 }
 
-func (s *SExtDailyTrxCountWrap) GetMainVal(iterator iservices.IDatabaseIterator) *int64 {
+func (s *SExtDailyTrxCountWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.TimePointSec {
 	if iterator == nil || !iterator.Valid() {
 		return nil
 	}
@@ -694,8 +703,7 @@ func (s *SExtDailyTrxCountWrap) GetMainVal(iterator iservices.IDatabaseIterator)
 	if err != nil {
 		return nil
 	}
-
-	return &res.Date
+	return res.Date
 
 }
 
@@ -723,7 +731,9 @@ func (m *SoListExtDailyTrxByCount) OpeEncode() ([]byte, error) {
 	sub := m.Count
 
 	sub1 := m.Date
-
+	if sub1 == nil {
+		return nil, errors.New("the mainkey Date is nil")
+	}
 	kList := []interface{}{pre, sub, sub1}
 	kBuf, cErr := kope.EncodeSlice(kList)
 	return kBuf, cErr
@@ -741,7 +751,7 @@ func (m *SoListExtDailyTrxByCount) OpeEncode() ([]byte, error) {
 //otherwise stop iteration immediately
 //
 func (s *SExtDailyTrxCountWrap) ForEachByOrder(start *uint64, end *uint64,
-	f func(mVal *int64, sVal *uint64, idx uint32) bool) error {
+	f func(mVal *prototype.TimePointSec, sVal *uint64, idx uint32) bool) error {
 	if s.Dba == nil {
 		return errors.New("the db is nil")
 	}
@@ -902,6 +912,10 @@ func (s *SoExtDailyTrxWrap) delUniKeyDate(sa *SoExtDailyTrx) bool {
 	kList := []interface{}{pre}
 	if sa != nil {
 
+		if sa.Date == nil {
+			return false
+		}
+
 		sub := sa.Date
 		kList = append(kList, sub)
 	} else {
@@ -970,7 +984,7 @@ func NewUniExtDailyTrxDateWrap(db iservices.IDatabaseService) *UniExtDailyTrxDat
 	return &wrap
 }
 
-func (s *UniExtDailyTrxDateWrap) UniQueryDate(start *int64) *SoExtDailyTrxWrap {
+func (s *UniExtDailyTrxDateWrap) UniQueryDate(start *prototype.TimePointSec) *SoExtDailyTrxWrap {
 	if start == nil || s.Dba == nil {
 		return nil
 	}
@@ -982,7 +996,8 @@ func (s *UniExtDailyTrxDateWrap) UniQueryDate(start *int64) *SoExtDailyTrxWrap {
 		res := &SoUniqueExtDailyTrxByDate{}
 		rErr := proto.Unmarshal(val, res)
 		if rErr == nil {
-			wrap := NewSoExtDailyTrxWrap(s.Dba, &res.Date)
+			wrap := NewSoExtDailyTrxWrap(s.Dba, res.Date)
+
 			return wrap
 		}
 	}

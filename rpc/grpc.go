@@ -506,21 +506,19 @@ func (as *APIService) GetDailyTotalTrxInfo(ctx context.Context, req *grpcpb.GetD
 	wrap := table.NewExtDailyTrxDateWrap(as.db)
 	var err error
 	if wrap != nil {
-		start := req.Start
-		end := req.End
-		s := &start
-		e := &end
-
-		if start == 0 {
-			s = nil
+		s := req.Start
+		e := req.End
+		if req.Start != nil {
+			s = &prototype.TimePointSec{UtcSeconds:req.Start.UtcSeconds/86400}
 		}
-		if end == 0 {
-			e = nil
+		if req.End != nil {
+			e = &prototype.TimePointSec{UtcSeconds:req.End.UtcSeconds/86400}
 		}
-		err =  wrap.ForEachByOrder(s, e, func(mVal *int64, sVal *int64, idx uint32) bool {
+		err =  wrap.ForEachByOrder(s, e, func(mVal *prototype.TimePointSec, sVal *prototype.TimePointSec,
+			idx uint32) bool {
             if mVal != nil && sVal != nil {
 				info := &grpcpb.DailyTotalTrx{}
-				info.Date = *mVal
+				info.Date = mVal
 				dWrap := table.NewSoExtDailyTrxWrap(as.db,mVal)
 				if dWrap != nil {
 					info.Count =  dWrap.GetCount()

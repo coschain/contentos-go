@@ -5,16 +5,17 @@ package table;
 
 option go_package = "github.com/coschain/contentos-go/table";
 
+import "prototype/type.proto";
 
 message so_extDailyTrx {
-	int64																										   date           =      1;
+	prototype.time_point_sec       	   date           =      1;
     uint64                   							   count          =      2;
       
 }
 
 
 message so_mem_extDailyTrx_by_date {
-	int64																											date       = 1;
+	prototype.time_point_sec       		date       = 1;
 }
 
 
@@ -24,16 +25,16 @@ message so_mem_extDailyTrx_by_count {
 
 
 message so_list_extDailyTrx_by_date {
-	int64																											date       = 1;
+	prototype.time_point_sec       		date       = 1;
 }
 
 
 message so_list_extDailyTrx_by_count {
 	uint64                   								count      = 1;
-	int64																											date       = 2;
+	prototype.time_point_sec       		date       = 2;
 }
 
 
 message so_unique_extDailyTrx_by_date {
-	int64																											date       = 1;
+	prototype.time_point_sec       		date       = 1;
 }

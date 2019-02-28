@@ -8,7 +8,6 @@ import (
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/sirupsen/logrus"
-	"time"
 )
 
 var TrxServiceName = "trxsrv"
@@ -50,16 +49,15 @@ func (t *TrxService) unhookEvent() {
 func (t *TrxService) handleAddTrxNotification (blk *prototype.SignedBlock){
 	if blk != nil && len(blk.Transactions) > 0 {
 		count := uint64(len(blk.Transactions))
-		now := time.Now()
-		//Convert to time at 0 o'clock
-		sTime := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-		unixVal := sTime.Unix()
-		wrap := table.NewSoExtDailyTrxWrap(t.db,&unixVal)
+
+		timestamp := blk.SignedHeader.Header.Timestamp
+		index := timestamp.UtcSeconds/86400
+		wrap := table.NewSoExtDailyTrxWrap(t.db,&prototype.TimePointSec{UtcSeconds:index})
 		//update daily total trx count
 		if wrap != nil {
 			if !wrap.CheckExist() {
 				wrap.Create(func(tInfo *table.SoExtDailyTrx) {
-					tInfo.Date = unixVal
+					tInfo.Date = &prototype.TimePointSec{UtcSeconds:index}
 					tInfo.Count = count
 				})
 			}else {
