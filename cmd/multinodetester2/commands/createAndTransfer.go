@@ -144,7 +144,7 @@ func signTrx(icons iservices.IConsensus, privKeyStr string, ops ...interface{}) 
 	}
 	signTx := prototype.SignedTransaction{Trx: tx}
 	res := signTx.Sign(privKey, prototype.ChainId{Value: 0})
-	signTx.Signatures = append(signTx.Signatures, &prototype.SignatureType{Sig: res})
+	signTx.Signature = &prototype.SignatureType{Sig: res}
 	if err := signTx.Validate(); err != nil {
 		return nil, err
 	}

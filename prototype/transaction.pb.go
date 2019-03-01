@@ -722,11 +722,11 @@ func (m *Transaction) GetOperations() []*Operation {
 }
 
 type SignedTransaction struct {
-	Trx                  *Transaction     `protobuf:"bytes,1,opt,name=trx,proto3" json:"trx,omitempty"`
-	Signatures           []*SignatureType `protobuf:"bytes,2,rep,name=signatures,proto3" json:"signatures,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}         `json:"-"`
-	XXX_unrecognized     []byte           `json:"-"`
-	XXX_sizecache        int32            `json:"-"`
+	Trx                  *Transaction   `protobuf:"bytes,1,opt,name=trx,proto3" json:"trx,omitempty"`
+	Signature            *SignatureType `protobuf:"bytes,2,opt,name=signature,proto3" json:"signature,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
+	XXX_unrecognized     []byte         `json:"-"`
+	XXX_sizecache        int32          `json:"-"`
 }
 
 func (m *SignedTransaction) Reset()         { *m = SignedTransaction{} }
@@ -760,9 +760,9 @@ func (m *SignedTransaction) GetTrx() *Transaction {
 	return nil
 }
 
-func (m *SignedTransaction) GetSignatures() []*SignatureType {
+func (m *SignedTransaction) GetSignature() *SignatureType {
 	if m != nil {
-		return m.Signatures
+		return m.Signature
 	}
 	return nil
 }

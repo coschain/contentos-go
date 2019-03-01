@@ -3,7 +3,7 @@ package prototype
 import "github.com/pkg/errors"
 
 
-func (m *PostOperation) GetRequiredOwner(auths *map[string]bool) {
+func (m *PostOperation) GetSigner(auths *map[string]bool) {
 	(*auths)[m.Owner.Value] = true
 }
 

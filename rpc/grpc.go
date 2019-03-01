@@ -440,6 +440,48 @@ func (as *APIService) GetBlockList(ctx context.Context, req *grpcpb.GetBlockList
     return &grpcpb.GetBlockListResponse{Blocks:blkList},nil
 }
 
+func (as *APIService) GetAccountListByBalance(ctx context.Context, req *grpcpb.NonParamsRequest) (*grpcpb.GetAccountListResponse, error) {
+	as.db.RLock()
+	defer as.db.RUnlock()
+
+	sortWrap := table.NewAccountBalanceWrap(as.db)
+	list := make([]*grpcpb.AccountResponse,0)
+	res := &grpcpb.GetAccountListResponse{}
+	var err error
+	if sortWrap != nil {
+		err = sortWrap.ForEachByOrder(nil, nil, func(mVal *prototype.AccountName, sVal *prototype.Coin, idx uint32) bool {
+			acct := &grpcpb.AccountResponse{}
+			accWrap := table.NewSoAccountWrap(as.db, mVal)
+			if accWrap != nil  {
+				acct.AccountName = &prototype.AccountName{Value: mVal.Value}
+				acct.Coin = accWrap.GetBalance()
+				acct.Vest = accWrap.GetVestingShares()
+				acct.CreatedTime = accWrap.GetCreatedTime()
+				witWrap := table.NewSoWitnessWrap(as.db, mVal)
+				if witWrap != nil && witWrap.CheckExist() {
+					acct.Witness = &grpcpb.WitnessResponse{
+						Owner:                 witWrap.GetOwner(),
+						WitnessScheduleType:   witWrap.GetWitnessScheduleType(),
+						CreatedTime:           witWrap.GetCreatedTime(),
+						Url:                   witWrap.GetUrl(),
+						LastConfirmedBlockNum: witWrap.GetLastConfirmedBlockNum(),
+						TotalMissed:           witWrap.GetTotalMissed(),
+						VoteCount:             witWrap.GetVoteCount(),
+						SigningKey:            witWrap.GetSigningKey(),
+						LastWork:              witWrap.GetLastWork(),
+						RunningVersion:        witWrap.GetRunningVersion(),
+					}
+				}
+				acct.State = as.getState()
+				list = append(list,acct)
+			}
+			return true
+		})
+	}
+	res.List = list
+	return res, err
+}
+
 func checkLimit(limit uint32) uint32 {
 	if limit <= constants.RpcPageSizeLimit {
 		return limit
@@ -447,3 +489,4 @@ func checkLimit(limit uint32) uint32 {
 		return constants.RpcPageSizeLimit
 	}
 }
+

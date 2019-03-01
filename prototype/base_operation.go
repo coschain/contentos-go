@@ -2,6 +2,6 @@ package prototype
 
 
 type BaseOperation interface {
-	GetRequiredOwner(*map[string]bool)
+	GetSigner(*map[string]bool)
 	Validate() error
 }

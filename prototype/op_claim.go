@@ -1,7 +1,7 @@
 package prototype
 
 
-func (m *ClaimOperation) GetRequiredOwner(auths *map[string]bool) {
+func (m *ClaimOperation) GetSigner(auths *map[string]bool) {
 	(*auths)[m.Account.Value] = true
 }
 
@@ -10,7 +10,7 @@ func (m *ClaimOperation) Validate() error {
 }
 
 
-func (m *ClaimAllOperation) GetRequiredOwner(auths *map[string]bool) {
+func (m *ClaimAllOperation) GetSigner(auths *map[string]bool) {
 	(*auths)[m.Account.Value] = true
 }
 

@@ -2,7 +2,7 @@ package prototype
 
 import "github.com/pkg/errors"
 
-func (m *BpVoteOperation) GetRequiredOwner(auths *map[string]bool) {
+func (m *BpVoteOperation) GetSigner(auths *map[string]bool) {
 	(*auths)[m.Voter.Value] = true
 }
 

@@ -34,20 +34,8 @@ func tryCreateAccount(t *testing.T, acc string, ctrl *TrxPool) {
 		Creator:        &prototype.AccountName{Value: "initminer"},
 		NewAccountName: &prototype.AccountName{Value: acc},
 		Owner: &prototype.Authority{
-			WeightThreshold: 1,
-			AccountAuths: []*prototype.KvAccountAuth{
-				&prototype.KvAccountAuth{
-					Name:   &prototype.AccountName{Value: "initminer"},
-					Weight: 3,
-				},
-			},
-			KeyAuths: []*prototype.KvKeyAuth{
-				&prototype.KvKeyAuth{
-					Key: &prototype.PublicKeyType{
-						Data: []byte{0},
-					},
-					Weight: 23,
-				},
+			Key: &prototype.PublicKeyType{
+				Data: []byte{0},
 			},
 		},
 	}

@@ -83,7 +83,7 @@ func createSigTrx(ops []interface{}, c *TrxPool, priKey string) (*prototype.Sign
 	signTx := prototype.SignedTransaction{Trx: tx}
 
 	res := signTx.Sign(privKey, prototype.ChainId{Value: 0})
-	signTx.Signatures = append(signTx.Signatures, &prototype.SignatureType{Sig: res})
+	signTx.Signature = &prototype.SignatureType{Sig: res}
 
 	return &signTx, nil
 }
@@ -98,19 +98,7 @@ func makeCreateAccountOP(accountName string, pubKey string) (*prototype.AccountC
 		Creator:        &prototype.AccountName{Value: constants.COSInitMiner},
 		NewAccountName: &prototype.AccountName{Value: accountName},
 		Owner: &prototype.Authority{
-			WeightThreshold: 1,
-			AccountAuths: []*prototype.KvAccountAuth{
-				&prototype.KvAccountAuth{
-					Name:   &prototype.AccountName{Value: constants.COSInitMiner},
-					Weight: 3,
-				},
-			},
-			KeyAuths: []*prototype.KvKeyAuth{
-				&prototype.KvKeyAuth{
-					Key:    pub, // owner key
-					Weight: 1,
-				},
-			},
+			Key:    pub,
 		},
 	}
 
@@ -522,7 +510,7 @@ func Test_MixOp(t *testing.T) {
 	// right result:
 	// 1. gas should be deduct
 	// 2. transfer should be revert
-	if b > b2 {
+	if b >= b2 {
 		t.Error("gas error or db error")
 	}
 }
@@ -706,7 +694,7 @@ func Test_Recover1(t *testing.T) {
 	}
 	ops := []interface{}{}
 	ops = append(ops, transOp2)
-	signedTrx3, err := createSigTrx(ops, c, constants.InitminerPrivKey)
+	signedTrx3, err := createSigTrx(ops, c, priKeyBob)
 	if err != nil {
 		t.Error("createSigTrx error:", err)
 	}
