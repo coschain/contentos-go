@@ -84,11 +84,22 @@ When the build process is over you can see a message indicating that it is ‘su
 The below command will start the container as a daemonized instance. When the container is started, cosd started simultaneously.
 
 ```bash
-docker run -d --name contentosd-exchange -p 8888:8888 -p 20338:20338 -v /path/to/coschain:/root/.coschain contentos
+
+docker run -d --name contentosd-exchange -p 8888:8888 -p 20338:20338 -v /path/to/blockchain:/root/.coschain -v /path/to/project/home/directory/config.toml:/root/.coschain/cosd/config.toml contentos
 
 ```
 
-The `--name` flag assigns a name to the container, and the `-v` flag indicates how you map directories outside of the container to the inside, the path before the `:` is the directory on your disk.`-p` flag publishes a container’s port to the host
+The `--name` flag assigns a name to the container, and the `-v` flag indicates how you map directories outside of the container to the inside, the path before the `:` is the directory on your disk.`-p` flag publishes a container’s port to the host.
+
+If you want to run the node as a block producer,please modify the following things in the file config.toml:
+
+```bash
+
+  BootStrap : whether produce block or not
+  LocalBpName : your account name
+  LocalBpPrivateKey : private key of your account
+
+```
 
 You can see the running container by using the command  `docker ps`.
 

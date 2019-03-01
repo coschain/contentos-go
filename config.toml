@@ -1,0 +1,40 @@
+DataDir = "/root/.coschain"
+LogLevel = "debug"
+Name = "cosd"
+
+[Consensus]
+  BootStrap = false
+  LocalBpName = ""
+  LocalBpPrivateKey = ""
+  Type = "DPoS"
+
+[GRPC]
+  HTTPCors = ["*"]
+  HTTPLimit = 100
+  HTTPListen = "127.0.0.1:8080"
+  RPCListen = "127.0.0.1:8888"
+  RPCName = "rpc"
+
+[P2P]
+  CAPath = ""
+  CertPath = ""
+  DualPortSupport = true
+  EnableConsensus = true
+  IsTLS = false
+  KeyPath = ""
+  MaxConnInBound = 1024
+  MaxConnInBoundForSingleIP = 16
+  MaxConnOutBound = 1024
+  NetworkId = 1
+  NetworkMagic = 2356652902
+  NetworkName = "contentos"
+  NodeConsensusPort = 20339
+  NodePort = 20338
+  ReservedPeersOnly = false
+
+  [P2P.Genesis]
+    SeedList = ["34.232.46.177:20338"]
+
+  [P2P.ReservedCfg]
+    MaskPeers = []
+    ReservedPeers = []
