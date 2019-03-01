@@ -28,7 +28,6 @@ var (
 	WitnessTotalMissedCell           uint32 = 348210894
 	WitnessUrlCell                   uint32 = 261756480
 	WitnessVoteCountCell             uint32 = 149922791
-	WitnessWitnessScheduleTypeCell   uint32 = 1680633675
 )
 
 ////////////// SECTION Wrap Define ///////////////
@@ -344,9 +343,6 @@ func (s *SoWitnessWrap) getMemKeyPrefix(fName string) uint32 {
 	if fName == "VoteCount" {
 		return WitnessVoteCountCell
 	}
-	if fName == "WitnessScheduleType" {
-		return WitnessWitnessScheduleTypeCell
-	}
 
 	return 0
 }
@@ -455,13 +451,6 @@ func (s *SoWitnessWrap) saveAllMemKeys(tInfo *SoWitness, br bool) error {
 			return err
 		} else {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "VoteCount", err)
-		}
-	}
-	if err = s.saveMemKeyWitnessScheduleType(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "WitnessScheduleType", err)
 		}
 	}
 
@@ -1393,89 +1382,6 @@ func (s *SoWitnessWrap) MdVoteCount(p uint64) bool {
 	if !s.insertSortKeyVoteCount(sa) {
 		return false
 	}
-
-	return true
-}
-
-func (s *SoWitnessWrap) saveMemKeyWitnessScheduleType(tInfo *SoWitness) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemWitnessByWitnessScheduleType{}
-	val.WitnessScheduleType = tInfo.WitnessScheduleType
-	key, err := s.encodeMemKey("WitnessScheduleType")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
-
-func (s *SoWitnessWrap) GetWitnessScheduleType() *prototype.WitnessScheduleType {
-	res := true
-	msg := &SoMemWitnessByWitnessScheduleType{}
-	if s.dba == nil {
-		res = false
-	} else {
-		key, err := s.encodeMemKey("WitnessScheduleType")
-		if err != nil {
-			res = false
-		} else {
-			buf, err := s.dba.Get(key)
-			if err != nil {
-				res = false
-			}
-			err = proto.Unmarshal(buf, msg)
-			if err != nil {
-				res = false
-			} else {
-				return msg.WitnessScheduleType
-			}
-		}
-	}
-	if !res {
-		return nil
-
-	}
-	return msg.WitnessScheduleType
-}
-
-func (s *SoWitnessWrap) MdWitnessScheduleType(p *prototype.WitnessScheduleType) bool {
-	if s.dba == nil {
-		return false
-	}
-	key, err := s.encodeMemKey("WitnessScheduleType")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemWitnessByWitnessScheduleType{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoWitness{}
-	sa.Owner = s.mainKey
-
-	sa.WitnessScheduleType = ori.WitnessScheduleType
-
-	ori.WitnessScheduleType = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.WitnessScheduleType = p
 
 	return true
 }

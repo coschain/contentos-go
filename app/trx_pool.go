@@ -713,7 +713,6 @@ func (c *TrxPool) initGenesis() {
 	witnessWrap := table.NewSoWitnessWrap(c.db, name)
 	mustNoError(witnessWrap.Create(func(tInfo *table.SoWitness) {
 		tInfo.Owner = name
-		tInfo.WitnessScheduleType = &prototype.WitnessScheduleType{Value: prototype.WitnessScheduleType_miner}
 		tInfo.CreatedTime = &prototype.TimePointSec{UtcSeconds: 0}
 		tInfo.SigningKey = pubKey
 		tInfo.LastWork = &prototype.Sha256{Hash: []byte{0}}

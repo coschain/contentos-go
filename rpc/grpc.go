@@ -81,7 +81,6 @@ func (as *APIService) GetAccountByName(ctx context.Context, req *grpcpb.GetAccou
 		if witWrap != nil && witWrap.CheckExist() {
 			acct.Witness = &grpcpb.WitnessResponse{
 				Owner:                 witWrap.GetOwner(),
-				WitnessScheduleType:   witWrap.GetWitnessScheduleType(),
 				CreatedTime:           witWrap.GetCreatedTime(),
 				Url:                   witWrap.GetUrl(),
 				LastConfirmedBlockNum: witWrap.GetLastConfirmedBlockNum(),
@@ -258,7 +257,6 @@ func (as *APIService) GetWitnessList(ctx context.Context, req *grpcpb.GetWitness
 			if witWrap != nil && witWrap.CheckExist() {
 				witList = append(witList, &grpcpb.WitnessResponse{
 					Owner:                 witWrap.GetOwner(),
-					WitnessScheduleType:   witWrap.GetWitnessScheduleType(),
 					CreatedTime:           witWrap.GetCreatedTime(),
 					Url:                   witWrap.GetUrl(),
 					LastConfirmedBlockNum: witWrap.GetLastConfirmedBlockNum(),
@@ -467,7 +465,6 @@ func (as *APIService) GetAccountListByBalance(ctx context.Context, req *grpcpb.N
 				if witWrap != nil && witWrap.CheckExist() {
 					acct.Witness = &grpcpb.WitnessResponse{
 						Owner:                 witWrap.GetOwner(),
-						WitnessScheduleType:   witWrap.GetWitnessScheduleType(),
 						CreatedTime:           witWrap.GetCreatedTime(),
 						Url:                   witWrap.GetUrl(),
 						LastConfirmedBlockNum: witWrap.GetLastConfirmedBlockNum(),

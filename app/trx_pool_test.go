@@ -265,7 +265,6 @@ func TestController_GetWitnessTopN(t *testing.T) {
 	witnessWrap := table.NewSoWitnessWrap(db, name)
 	mustNoError(witnessWrap.Create(func(tInfo *table.SoWitness) {
 		tInfo.Owner = name
-		tInfo.WitnessScheduleType = &prototype.WitnessScheduleType{Value: prototype.WitnessScheduleType_miner}
 		tInfo.CreatedTime = &prototype.TimePointSec{UtcSeconds: 0}
 		tInfo.SigningKey = &prototype.PublicKeyType{Data: []byte{1}}
 		tInfo.LastWork = &prototype.Sha256{Hash: []byte{0}}
@@ -275,7 +274,6 @@ func TestController_GetWitnessTopN(t *testing.T) {
 	witnessWrap2 := table.NewSoWitnessWrap(db, name2)
 	mustNoError(witnessWrap2.Create(func(tInfo *table.SoWitness) {
 		tInfo.Owner = name2
-		tInfo.WitnessScheduleType = &prototype.WitnessScheduleType{Value: prototype.WitnessScheduleType_miner}
 		tInfo.CreatedTime = &prototype.TimePointSec{UtcSeconds: 0}
 		tInfo.SigningKey = &prototype.PublicKeyType{Data: []byte{2}}
 		tInfo.LastWork = &prototype.Sha256{Hash: []byte{0}}
