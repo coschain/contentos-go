@@ -6,7 +6,7 @@ Name = "cosd"
   BootStrap = false
   LocalBpName = ""
   LocalBpPrivateKey = ""
-  Type = "DPoS"
+  Type = "SABFT"
 
 [GRPC]
   HTTPCors = ["*"]
