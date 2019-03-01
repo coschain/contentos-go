@@ -33,7 +33,7 @@ Name = "cosd"
   ReservedPeersOnly = false
 
   [P2P.Genesis]
-    SeedList = ["34.232.46.177:20338"]
+    SeedList = ["34.232.46.177:20338", "52.87.162.125:20338", "52.87.243.47:20338", "35.168.10.117:20338"]
 
   [P2P.ReservedCfg]
     MaskPeers = []
