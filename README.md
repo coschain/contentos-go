@@ -95,7 +95,6 @@ If you want to run the node as a block producer,please modify the following thin
 
 ```bash
 
-  BootStrap : whether produce block or not
   LocalBpName : your account name
   LocalBpPrivateKey : private key of your account
 
