@@ -28,6 +28,8 @@ type Config struct {
 
 	LogLevel string `toml:",omitempty"`
 
+	ResourceCheck bool `toml:",omitempty"`
+
 	// Logger is a custom logger
 	//Logger log.Logger `toml:"-"`
 

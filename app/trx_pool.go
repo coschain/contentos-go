@@ -546,7 +546,9 @@ func (c *TrxPool) applyTransactionInner(isNeedVerify bool, trxContext *TrxContex
 	}()
 
 	// check net resource
-	trxContext.CheckNet(uint64(proto.Size(tw.SigTrx)))
+	if c.ctx.Config().ResourceCheck {
+		trxContext.CheckNet(uint64(proto.Size(tw.SigTrx)))
+	}
 
 	trx := tw.SigTrx
 	var err error

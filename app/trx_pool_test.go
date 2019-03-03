@@ -959,7 +959,7 @@ func Test_MixOp2(t *testing.T) {
 	//
 	miner := &prototype.AccountName{Value: "initminer"}
 	minerWrap := table.NewSoAccountWrap(db, miner)
-	b := minerWrap.GetStamina()
+	b := minerWrap.GetStamina() + minerWrap.GetStaminaFree()
 	t.Log("before initminer stamina:", b)
 	//
 
@@ -983,7 +983,7 @@ func Test_MixOp2(t *testing.T) {
 
 	//
 	minerWrap2 := table.NewSoAccountWrap(db, miner)
-	b2 := minerWrap2.GetStamina()
+	b2 := minerWrap2.GetStamina() + minerWrap.GetStaminaFree()
 	t.Log("after initminer stamina:", b2)
 	//
 
