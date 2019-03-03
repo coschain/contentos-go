@@ -135,20 +135,20 @@ func (p *TrxContext) DeductGasFee(caller string, spent uint64) {
 
 func (p *TrxContext) deductStamina(m map[string]*resourceUnit,rate uint64) {
 	for caller, spent := range m {
-		cpuUse := spent.raw * rate
+		staminaUse := spent.raw * rate
 		now := p.control.GetProps().HeadBlockNumber
 		var paid uint64 = 0
-		if !p.resourceLimiter.ConsumeFree(caller, cpuUse, now) {
+		if !p.resourceLimiter.ConsumeFree(caller, staminaUse, now) {
 			paid += p.resourceLimiter.GetFreeLeft(caller,now)
 			p.resourceLimiter.ConsumeFreeLeft(caller,now)
 		} else {
-			paid = cpuUse
+			paid = staminaUse
 			// free resource already enough
 			m[caller].realCost = paid
 			continue
 		}
 
-		left := cpuUse - paid
+		left := staminaUse - paid
 		if !p.resourceLimiter.Consume(caller, left, now) {
 			// never failed ?
 			paid += p.resourceLimiter.GetStakeLeft(caller, now)

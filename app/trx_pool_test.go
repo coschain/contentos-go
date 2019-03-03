@@ -58,7 +58,7 @@ func makeBlock(pre *prototype.Sha256, blockTimestamp uint32, signedTrx *prototyp
 	return sigBlk
 }
 
-func createSigTrx(ops []interface{}, c *TrxPool, priKey string) (*prototype.SignedTransaction, error) {
+func createSigTrx(c *TrxPool, priKey string,ops ...interface{}) (*prototype.SignedTransaction, error) {
 
 	headBlockID := c.GetProps().GetHeadBlockId()
 	expire := c.GetProps().Time.UtcSeconds + 20
@@ -115,10 +115,8 @@ func Test_PushTrx(t *testing.T) {
 	if err != nil {
 		t.Error("makeCreateAccountOP error:", err)
 	}
-	ops := []interface{}{}
-	ops = append(ops, acop)
 
-	signedTrx, err := createSigTrx(ops, c, constants.InitminerPrivKey)
+	signedTrx, err := createSigTrx( c, constants.InitminerPrivKey,acop)
 	if err != nil {
 		t.Error("createSigTrx error:", err)
 	}
@@ -147,9 +145,7 @@ func Test_PushBlock(t *testing.T) {
 		t.Error("makeCreateAccountOP error:", err)
 	}
 
-	ops := []interface{}{}
-	ops = append(ops, createOP)
-	signedTrx, err := createSigTrx(ops, c, constants.InitminerPrivKey)
+	signedTrx, err := createSigTrx(c, constants.InitminerPrivKey,createOP)
 	if err != nil {
 		t.Error("createSigTrx error:", err)
 	}
@@ -177,9 +173,7 @@ func TestController_GenerateAndApplyBlock(t *testing.T) {
 	defer clearDB(db)
 	c := startController(db)
 
-	ops := []interface{}{}
-	ops = append(ops, createOP)
-	signedTrx, err := createSigTrx(ops, c, constants.InitminerPrivKey)
+	signedTrx, err := createSigTrx(c, constants.InitminerPrivKey,createOP)
 	if err != nil {
 		t.Error("createSigTrx error:", err)
 	}
@@ -223,9 +217,7 @@ func Test_list(t *testing.T) {
 		t.Error("makeCreateAccountOP error:", err)
 	}
 
-	ops := []interface{}{}
-	ops = append(ops, acop)
-	signedTrx, err := createSigTrx(ops, c, constants.InitminerPrivKey)
+	signedTrx, err := createSigTrx(c, constants.InitminerPrivKey,acop)
 	if err != nil {
 		t.Error("createSigTrx error:", err)
 	}
@@ -306,9 +298,7 @@ func TestController_PopBlock(t *testing.T) {
 		t.Error("makeCreateAccountOP error:", err)
 	}
 
-	ops := []interface{}{}
-	ops = append(ops, createOP)
-	signedTrx, err := createSigTrx(ops, c, constants.InitminerPrivKey)
+	signedTrx, err := createSigTrx(c, constants.InitminerPrivKey,createOP)
 	if err != nil {
 		t.Error("createSigTrx error:", err)
 	}
@@ -325,8 +315,7 @@ func TestController_PopBlock(t *testing.T) {
 		t.Error("makeCreateAccountOP error:", err)
 	}
 
-	ops[0] = createOP2
-	signedTrx2, err := createSigTrx(ops, c, constants.InitminerPrivKey)
+	signedTrx2, err := createSigTrx(c, constants.InitminerPrivKey,createOP2)
 	if err != nil {
 		t.Error("createSigTrx error:", err)
 	}
@@ -373,9 +362,7 @@ func TestController_Commit(t *testing.T) {
 		t.Error("makeCreateAccountOP error:", err)
 	}
 
-	ops := []interface{}{}
-	ops = append(ops, createOP)
-	signedTrx, err := createSigTrx(ops, c, constants.InitminerPrivKey)
+	signedTrx, err := createSigTrx(c, constants.InitminerPrivKey,createOP)
 	if err != nil {
 		t.Error("createSigTrx error:", err)
 	}
@@ -392,8 +379,7 @@ func TestController_Commit(t *testing.T) {
 		t.Error("makeCreateAccountOP error:", err)
 	}
 
-	ops[0] = createOP2
-	signedTrx2, err := createSigTrx(ops, c, constants.InitminerPrivKey)
+	signedTrx2, err := createSigTrx(c, constants.InitminerPrivKey,createOP2)
 	if err != nil {
 		t.Error("createSigTrx error:", err)
 	}
@@ -448,10 +434,8 @@ func Test_MixOp(t *testing.T) {
 		Abi:      string(abi),
 		Code:     data,
 	}
-	ops := []interface{}{}
-	ops = append(ops, deployOp)
 
-	signedTrx, err := createSigTrx(ops, c, constants.InitminerPrivKey)
+	signedTrx, err := createSigTrx(c, constants.InitminerPrivKey,deployOp)
 	if err != nil {
 		t.Error("createSigTrx error:", err)
 	}
@@ -472,9 +456,6 @@ func Test_MixOp(t *testing.T) {
 		Gas: &prototype.Coin{Value: 300000},
 	}
 
-	ops = ops[:0]
-	ops = append(ops, applyOp)
-
 	//
 	miner := &prototype.AccountName{Value: "initminer"}
 	minerWrap := table.NewSoAccountWrap(db, miner)
@@ -482,16 +463,7 @@ func Test_MixOp(t *testing.T) {
 	t.Log("before initminer stamina:", b)
 	//
 
-	const value = 1000000000
-	// second op : transfer to a invalid account, should failed
-	transOp := &prototype.TransferOperation{
-		From:   &prototype.AccountName{Value: "initminer"},
-		To:     &prototype.AccountName{Value: "someone"},
-		Amount: prototype.NewCoin(value),
-	}
-	ops = append(ops, transOp)
-
-	signedTrx2, err := createSigTrx(ops, c, constants.InitminerPrivKey)
+	signedTrx2, err := createSigTrx(c, constants.InitminerPrivKey,applyOp)
 	if err != nil {
 		t.Error("createSigTrx error:", err)
 	}
@@ -529,10 +501,8 @@ func Test_Stake_UnStake(t *testing.T) {
 		Account: prototype.NewAccountName(constants.COSInitMiner),
 		Amount:  100,
 	}
-	ops := []interface{}{}
-	ops = append(ops, stakeOp)
 
-	signedTrx, err := createSigTrx(ops, c, constants.InitminerPrivKey)
+	signedTrx, err := createSigTrx(c, constants.InitminerPrivKey,stakeOp)
 	if err != nil {
 		t.Error("createSigTrx error:", err)
 	}
@@ -551,10 +521,8 @@ func Test_Stake_UnStake(t *testing.T) {
 		Account: prototype.NewAccountName(constants.COSInitMiner),
 		Amount:  100,
 	}
-	ops = ops[:0]
-	ops = append(ops, unStakeOp)
 
-	signedTrx2, err := createSigTrx(ops, c, constants.InitminerPrivKey)
+	signedTrx2, err := createSigTrx(c, constants.InitminerPrivKey,unStakeOp)
 	if err != nil {
 		t.Error("createSigTrx error:", err)
 	}
@@ -573,10 +541,8 @@ func Test_Stake_UnStake(t *testing.T) {
 		Account: prototype.NewAccountName(constants.COSInitMiner),
 		Amount:  10000000001,
 	}
-	ops = ops[:0]
-	ops = append(ops, stakeOp2)
 
-	signedTrx3, err := createSigTrx(ops, c, constants.InitminerPrivKey)
+	signedTrx3, err := createSigTrx(c, constants.InitminerPrivKey,stakeOp2)
 	if err != nil {
 		t.Error("createSigTrx error:", err)
 	}
@@ -591,10 +557,8 @@ func Test_Stake_UnStake(t *testing.T) {
 		Account: prototype.NewAccountName(constants.COSInitMiner),
 		Amount:  1,
 	}
-	ops = ops[:0]
-	ops = append(ops, unStakeOp2)
 
-	signedTrx4, err := createSigTrx(ops, c, constants.InitminerPrivKey)
+	signedTrx4, err := createSigTrx(c, constants.InitminerPrivKey,unStakeOp2)
 	if err != nil {
 		t.Error("createSigTrx error:", err)
 	}
@@ -635,9 +599,8 @@ func Test_Consume1(t *testing.T) {
 		Account: prototype.NewAccountName(accountNameBob),
 		Amount:  value,
 	}
-	ops := []interface{}{}
-	ops = append(ops, unStakeOp)
-	signedTrx3, err := createSigTrx(ops, c, priKeyBob)
+
+	signedTrx3, err := createSigTrx(c, priKeyBob,unStakeOp)
 	if err != nil {
 		t.Error("createSigTrx error:", err)
 	}
@@ -692,9 +655,8 @@ func Test_Recover1(t *testing.T) {
 		To:     &prototype.AccountName{Value: constants.COSInitMiner},
 		Amount: prototype.NewCoin(1),
 	}
-	ops := []interface{}{}
-	ops = append(ops, transOp2)
-	signedTrx3, err := createSigTrx(ops, c, priKeyBob)
+
+	signedTrx3, err := createSigTrx(c, priKeyBob,transOp2)
 	if err != nil {
 		t.Error("createSigTrx error:", err)
 	}
@@ -770,10 +732,7 @@ func transfer(c *TrxPool, from string, to string, fromPrikey string, value uint6
 		Amount: prototype.NewCoin(value),
 	}
 
-	ops := []interface{}{}
-	ops = append(ops, transOp)
-
-	signedTrx, err := createSigTrx(ops, c, fromPrikey)
+	signedTrx, err := createSigTrx(c, fromPrikey,transOp)
 	if err != nil {
 		return false
 	}
@@ -797,11 +756,7 @@ func create_and_transfer(c *TrxPool, name string, pubkey string, value uint64) b
 		Amount: prototype.NewCoin(value),
 	}
 
-	ops := []interface{}{}
-	ops = append(ops, acop)
-	ops = append(ops, transOp)
-
-	signedTrx, err := createSigTrx(ops, c, constants.InitminerPrivKey)
+	signedTrx, err := createSigTrx(c, constants.InitminerPrivKey,acop,transOp)
 	if err != nil {
 		return false
 	}
@@ -819,10 +774,7 @@ func stake(c *TrxPool, name string, prikey string, value uint64) bool {
 		Amount:  value,
 	}
 
-	ops := []interface{}{}
-	ops = append(ops, stakeOp)
-
-	signedTrx2, err := createSigTrx(ops, c, prikey)
+	signedTrx2, err := createSigTrx(c, prikey,stakeOp)
 	if err != nil {
 		return false
 	}
@@ -839,4 +791,206 @@ func stake(c *TrxPool, name string, prikey string, value uint64) bool {
 		return false
 	}
 	return true
+}
+
+func Test_TrxSize(t *testing.T) {
+	db := startDB()
+	defer clearDB(db)
+	c := startController(db)
+
+	createOP, err := makeCreateAccountOP(accountNameBob, pubKeyBob)
+	if err != nil {
+		t.Error("makeCreateAccountOP error:", err)
+	}
+	trx1,_ := createSigTrx(c,constants.InitminerPrivKey,createOP)
+	fmt.Println(proto.Size(trx1))
+
+	top := &prototype.TransferOperation{
+		From:prototype.NewAccountName("aaa"),
+		To:prototype.NewAccountName("bbb"),
+		Amount:prototype.NewCoin(100),
+		Memo:"hello this is a transfer",
+	}
+	trx2,_ := createSigTrx(c,constants.InitminerPrivKey,top)
+	fmt.Println(proto.Size(trx2))
+
+	pub,_ := prototype.PublicKeyFromWIF(pubKeyBob)
+	cp := &prototype.ChainProperties{AccountCreationFee:prototype.NewCoin(100),MaximumBlockSize:100}
+	bpRegistOp := &prototype.BpRegisterOperation{
+		Owner:prototype.NewAccountName("aaa"),
+		Url:"www.google.com",
+		BlockSigningKey:pub,
+		Props:cp,
+	}
+	trx3,_ := createSigTrx(c,constants.InitminerPrivKey,bpRegistOp)
+	fmt.Println(proto.Size(trx3))
+
+	bpUnReOp := &prototype.BpUnregisterOperation{Owner:prototype.NewAccountName("aaa")}
+	trx4,_ := createSigTrx(c,constants.InitminerPrivKey,bpUnReOp)
+	fmt.Println(proto.Size(trx4))
+
+	bpV := &prototype.BpVoteOperation{
+		Voter:prototype.NewAccountName("aaa"),
+	Witness:prototype.NewAccountName("bbb"),
+	}
+	trx5,_ := createSigTrx(c,constants.InitminerPrivKey,bpV)
+	fmt.Println(proto.Size(trx5))
+
+	// 1kb
+	post := &prototype.PostOperation{Uuid:1,Owner:prototype.NewAccountName("aaa"),Title:"aaa",Content:"asaasdadsaddsasdad" +
+		"asdasdadasdasdasdasdasdasdasdasdasdadadasdasdasdadasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdadasdadasdasdasdasda" +
+		"asdasdadasdasdasdasdasdasdasdasdasdadadasdasdasdadasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdadasdadasdasdasdasda" +
+		"asdasdadasdasdasdasdasdasdasdasdasdadadasdasdasdadasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdadasdadasdasdasdasda" +
+		"asdasdadasdasdasdasdasdasdasdasdasdadadasdasdasdadasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdadasdadasdasdasdasda" +
+		"asdasdadasdasdasdasdasdasdasdasdasdadadasdasdasdadasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdadasdadasdasdasdasda" +
+		"asdasdadasdasdasdasdasdasdasdasdasdadadasdasdasdadasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdadasdadasdasdasdasda" +
+		"asdasdadasdasdasdasdasdasdasdasdasdadadasdasdasdadasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdadasdadasdasdasdasda" +
+		"asdasdadasdasdasdasdasdasdasdasdasdadadasdasdasdadasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdadasdadasdasdasdasda",
+	}
+	trx6,_ := createSigTrx(c,constants.InitminerPrivKey,post)
+	fmt.Println(proto.Size(trx6))
+
+	reply := &prototype.ReplyOperation{Uuid:1,Owner:prototype.NewAccountName("aaa"),Content:"asdasdadasdasdasdasdasdasdasdasdasdadadasdasdasdadasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdadasdadasdasdasdasda",
+	ParentUuid:1,}
+	trx7,_ := createSigTrx(c,constants.InitminerPrivKey,reply)
+	fmt.Println(proto.Size(trx7))
+
+	follow := &prototype.FollowOperation{Account:prototype.NewAccountName("aaa"),FAccount:prototype.NewAccountName("bbb")}
+	trx8,_ := createSigTrx(c,constants.InitminerPrivKey,follow)
+	fmt.Println(proto.Size(trx8))
+
+	vote := &prototype.VoteOperation{Voter:prototype.NewAccountName("aaa"),Idx:1}
+	trx9,_ := createSigTrx(c,constants.InitminerPrivKey,vote)
+	fmt.Println(proto.Size(trx9))
+
+	tranToV := &prototype.TransferToVestingOperation{From:prototype.NewAccountName("aaa"),To:prototype.NewAccountName("bbb"),Amount:prototype.NewCoin(100)}
+	trx10,_ := createSigTrx(c,constants.InitminerPrivKey,tranToV)
+	fmt.Println(proto.Size(trx10))
+
+	claim := &prototype.ClaimOperation{Account:prototype.NewAccountName("aaa"),Amount:1}
+	trx11,_ := createSigTrx(c,constants.InitminerPrivKey,claim)
+	fmt.Println(proto.Size(trx11))
+
+	claimAll := &prototype.ClaimAllOperation{Account:prototype.NewAccountName("aaa")}
+	trx12,_ := createSigTrx(c,constants.InitminerPrivKey,claimAll)
+	fmt.Println(proto.Size(trx12))
+
+	//
+	data, _ := ioutil.ReadFile("./test_data/hello.wasm")
+	abi, _ := ioutil.ReadFile("./test_data/hello.abi")
+	deployOp := &prototype.ContractDeployOperation{
+		Owner:    &prototype.AccountName{Value: "initminer"},
+		Contract: "hello",
+		Abi:      string(abi),
+		Code:     data,
+	}
+
+	trx13,_ := createSigTrx(c, constants.InitminerPrivKey,deployOp)
+	fmt.Println(proto.Size(trx13))
+
+	//
+	applyOp := &prototype.ContractApplyOperation{
+		Caller:   &prototype.AccountName{Value: "initminer"},
+		Owner:    &prototype.AccountName{Value: "initminer"},
+		Contract: "hello",
+		Method:   "hi",
+		Params:   "[\"contentos\"]",
+		//Amount:   &prototype.Coin{Value: 1000},
+		Gas: &prototype.Coin{Value: 300000},
+	}
+	trx14,_ := createSigTrx(c, constants.InitminerPrivKey,applyOp)
+	fmt.Println(proto.Size(trx14))
+
+	estimate := &prototype.ContractEstimateApplyOperation{
+		Caller:prototype.NewAccountName("aaa"),
+		Owner:prototype.NewAccountName("bbb"),
+		Contract:"hello",
+		Params:"123",
+	}
+	trx15,_ := createSigTrx(c, constants.InitminerPrivKey,estimate)
+	fmt.Println(proto.Size(trx15))
+
+	stake := &prototype.StakeOperation{Account:prototype.NewAccountName("aaa"),Amount:1}
+	trx16,_ := createSigTrx(c, constants.InitminerPrivKey,stake)
+	fmt.Println(proto.Size(trx16))
+
+	unStake := &prototype.UnStakeOperation{Account:prototype.NewAccountName("aaa"),Amount:1}
+	trx17,_ := createSigTrx(c, constants.InitminerPrivKey,unStake)
+	fmt.Println(proto.Size(trx17))
+}
+
+func Test_MixOp2(t *testing.T) {
+
+	db := startDB()
+	defer clearDB(db)
+	c := startController(db)
+
+	// deploy contract
+	data, _ := ioutil.ReadFile("./test_data/hello.wasm")
+	abi, _ := ioutil.ReadFile("./test_data/hello.abi")
+	deployOp := &prototype.ContractDeployOperation{
+		Owner:    &prototype.AccountName{Value: "initminer"},
+		Contract: "hello",
+		Abi:      string(abi),
+		Code:     data,
+	}
+
+	signedTrx, err := createSigTrx(c, constants.InitminerPrivKey,deployOp)
+	if err != nil {
+		t.Error("createSigTrx error:", err)
+	}
+
+	invoice := c.PushTrx(signedTrx)
+	if invoice.Status != prototype.StatusSuccess {
+		t.Error("PushTrx return status error:", invoice.Status)
+	}
+
+	// first op : call contract
+	applyOp := &prototype.ContractApplyOperation{
+		Caller:   &prototype.AccountName{Value: "initminer"},
+		Owner:    &prototype.AccountName{Value: "initminer"},
+		Contract: "hello",
+		Method:   "hi",
+		Params:   "[\"contentos\"]",
+		//Amount:   &prototype.Coin{Value: 1000},
+		Gas: &prototype.Coin{Value: 300000},
+	}
+
+	//
+	miner := &prototype.AccountName{Value: "initminer"}
+	minerWrap := table.NewSoAccountWrap(db, miner)
+	b := minerWrap.GetStamina()
+	t.Log("before initminer stamina:", b)
+	//
+
+	const value = 1000000000
+	// second op : transfer to a invalid account, should failed
+	transOp := &prototype.TransferOperation{
+		From:   &prototype.AccountName{Value: "initminer"},
+		To:     &prototype.AccountName{Value: "someone"},
+		Amount: prototype.NewCoin(value),
+	}
+
+	signedTrx2, err := createSigTrx(c, constants.InitminerPrivKey,applyOp,transOp)
+	if err != nil {
+		t.Error("createSigTrx error:", err)
+	}
+
+	invoice2 := c.PushTrx(signedTrx2)
+	if invoice2.Status != prototype.StatusSuccess && invoice2.Status != prototype.StatusDeductGas {
+		t.Error("PushTrx return status error:", invoice2.Status)
+	}
+
+	//
+	minerWrap2 := table.NewSoAccountWrap(db, miner)
+	b2 := minerWrap2.GetStamina()
+	t.Log("after initminer stamina:", b2)
+	//
+
+	// right result:
+	// 1. gas should be deduct
+	// 2. transfer should be revert
+	if b >= b2 {
+		t.Error("gas error or db error")
+	}
 }
