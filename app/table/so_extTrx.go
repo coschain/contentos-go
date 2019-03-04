@@ -885,10 +885,16 @@ func (m *SoListExtTrxByTrxId) OpeEncode() ([]byte, error) {
 //if the return value of f is true,continue iterating until the end iteration;
 //otherwise stop iteration immediately
 //
-func (s *SExtTrxTrxIdWrap) ForEachByOrder(start *prototype.Sha256, end *prototype.Sha256,
-	f func(mVal *prototype.Sha256, sVal *prototype.Sha256, idx uint32) bool) error {
+//lastMainKey: the main key of the last one of last page
+//lastSubVal: the value  of the last one of last page
+//
+func (s *SExtTrxTrxIdWrap) ForEachByOrder(start *prototype.Sha256, end *prototype.Sha256, lastMainKey *prototype.Sha256,
+	lastSubVal *prototype.Sha256, f func(mVal *prototype.Sha256, sVal *prototype.Sha256, idx uint32) bool) error {
 	if s.Dba == nil {
 		return errors.New("the db is nil")
+	}
+	if (lastSubVal != nil && lastMainKey == nil) || (lastSubVal == nil && lastMainKey != nil) {
+		return errors.New("last query param error")
 	}
 	if f == nil {
 		return nil
@@ -897,6 +903,14 @@ func (s *SExtTrxTrxIdWrap) ForEachByOrder(start *prototype.Sha256, end *prototyp
 	skeyList := []interface{}{pre}
 	if start != nil {
 		skeyList = append(skeyList, start)
+		if lastMainKey != nil {
+			skeyList = append(skeyList, lastMainKey, kope.MinimalKey)
+		}
+	} else {
+		if lastMainKey != nil && lastSubVal != nil {
+			skeyList = append(skeyList, lastSubVal, lastMainKey, kope.MinimalKey)
+		}
+		skeyList = append(skeyList, kope.MinimalKey)
 	}
 	sBuf, cErr := kope.EncodeSlice(skeyList)
 	if cErr != nil {
@@ -1010,10 +1024,16 @@ func (m *SoListExtTrxByBlockHeight) OpeEncode() ([]byte, error) {
 //if the return value of f is true,continue iterating until the end iteration;
 //otherwise stop iteration immediately
 //
-func (s *SExtTrxBlockHeightWrap) ForEachByOrder(start *uint64, end *uint64,
-	f func(mVal *prototype.Sha256, sVal *uint64, idx uint32) bool) error {
+//lastMainKey: the main key of the last one of last page
+//lastSubVal: the value  of the last one of last page
+//
+func (s *SExtTrxBlockHeightWrap) ForEachByOrder(start *uint64, end *uint64, lastMainKey *prototype.Sha256,
+	lastSubVal *uint64, f func(mVal *prototype.Sha256, sVal *uint64, idx uint32) bool) error {
 	if s.Dba == nil {
 		return errors.New("the db is nil")
+	}
+	if (lastSubVal != nil && lastMainKey == nil) || (lastSubVal == nil && lastMainKey != nil) {
+		return errors.New("last query param error")
 	}
 	if f == nil {
 		return nil
@@ -1022,6 +1042,14 @@ func (s *SExtTrxBlockHeightWrap) ForEachByOrder(start *uint64, end *uint64,
 	skeyList := []interface{}{pre}
 	if start != nil {
 		skeyList = append(skeyList, start)
+		if lastMainKey != nil {
+			skeyList = append(skeyList, lastMainKey, kope.MinimalKey)
+		}
+	} else {
+		if lastMainKey != nil && lastSubVal != nil {
+			skeyList = append(skeyList, lastSubVal, lastMainKey, kope.MinimalKey)
+		}
+		skeyList = append(skeyList, kope.MinimalKey)
 	}
 	sBuf, cErr := kope.EncodeSlice(skeyList)
 	if cErr != nil {
@@ -1137,10 +1165,16 @@ func (m *SoListExtTrxByBlockTime) OpeEncode() ([]byte, error) {
 //if the return value of f is true,continue iterating until the end iteration;
 //otherwise stop iteration immediately
 //
-func (s *SExtTrxBlockTimeWrap) ForEachByOrder(start *prototype.TimePointSec, end *prototype.TimePointSec,
-	f func(mVal *prototype.Sha256, sVal *prototype.TimePointSec, idx uint32) bool) error {
+//lastMainKey: the main key of the last one of last page
+//lastSubVal: the value  of the last one of last page
+//
+func (s *SExtTrxBlockTimeWrap) ForEachByOrder(start *prototype.TimePointSec, end *prototype.TimePointSec, lastMainKey *prototype.Sha256,
+	lastSubVal *prototype.TimePointSec, f func(mVal *prototype.Sha256, sVal *prototype.TimePointSec, idx uint32) bool) error {
 	if s.Dba == nil {
 		return errors.New("the db is nil")
+	}
+	if (lastSubVal != nil && lastMainKey == nil) || (lastSubVal == nil && lastMainKey != nil) {
+		return errors.New("last query param error")
 	}
 	if f == nil {
 		return nil
@@ -1149,6 +1183,14 @@ func (s *SExtTrxBlockTimeWrap) ForEachByOrder(start *prototype.TimePointSec, end
 	skeyList := []interface{}{pre}
 	if start != nil {
 		skeyList = append(skeyList, start)
+		if lastMainKey != nil {
+			skeyList = append(skeyList, lastMainKey, kope.MinimalKey)
+		}
+	} else {
+		if lastMainKey != nil && lastSubVal != nil {
+			skeyList = append(skeyList, lastSubVal, lastMainKey, kope.MinimalKey)
+		}
+		skeyList = append(skeyList, kope.MinimalKey)
 	}
 	sBuf, cErr := kope.EncodeSlice(skeyList)
 	if cErr != nil {
@@ -1186,10 +1228,16 @@ func (s *SExtTrxBlockTimeWrap) ForEachByOrder(start *prototype.TimePointSec, end
 //if the return value of f is true,continue iterating until the end iteration;
 //otherwise stop iteration immediately
 //
-func (s *SExtTrxBlockTimeWrap) ForEachByRevOrder(start *prototype.TimePointSec, end *prototype.TimePointSec,
-	f func(mVal *prototype.Sha256, sVal *prototype.TimePointSec, idx uint32) bool) error {
+//lastMainKey: the main key of the last one of last page
+//lastSubVal: the value  of the last one of last page
+//
+func (s *SExtTrxBlockTimeWrap) ForEachByRevOrder(start *prototype.TimePointSec, end *prototype.TimePointSec, lastMainKey *prototype.Sha256,
+	lastSubVal *prototype.TimePointSec, f func(mVal *prototype.Sha256, sVal *prototype.TimePointSec, idx uint32) bool) error {
 	if s.Dba == nil {
 		return errors.New("the db is nil")
+	}
+	if (lastSubVal != nil && lastMainKey == nil) || (lastSubVal == nil && lastMainKey != nil) {
+		return errors.New("last query param error")
 	}
 	if f == nil {
 		return nil
@@ -1198,7 +1246,13 @@ func (s *SExtTrxBlockTimeWrap) ForEachByRevOrder(start *prototype.TimePointSec, 
 	skeyList := []interface{}{pre}
 	if start != nil {
 		skeyList = append(skeyList, start)
+		if lastMainKey != nil {
+			skeyList = append(skeyList, lastMainKey)
+		}
 	} else {
+		if lastMainKey != nil && lastSubVal != nil {
+			skeyList = append(skeyList, lastSubVal, lastMainKey)
+		}
 		skeyList = append(skeyList, kope.MaximumKey)
 	}
 	sBuf, cErr := kope.EncodeSlice(skeyList)

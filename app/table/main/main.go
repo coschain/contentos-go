@@ -144,7 +144,7 @@ func main() {
 	//the total count of data in result,traverse all data;otherwise traverse part of the data
 	//if query by order the start value can't greater than end value
 	err = tSortWrap.ForEachByOrder(creTimeSecondPoint(20120401),
-		creTimeSecondPoint(20120415), func(mVal *prototype.AccountName, sVal *prototype.TimePointSec, 
+		creTimeSecondPoint(20120415),nil ,nil,func(mVal *prototype.AccountName, sVal *prototype.TimePointSec,
 			idx uint32) bool {
 			//we can get the main key and sub key from the callBack
 			if mKey == nil {
@@ -174,7 +174,7 @@ func main() {
 	//end = nil (query to the end of db)
 	//if query by reverse order the start value can't less than end value
 	err = tSortWrap.ForEachByRevOrder(creTimeSecondPoint(20120415),
-		creTimeSecondPoint(20120401), func(mVal *prototype.AccountName, sVal *prototype.TimePointSec,
+		creTimeSecondPoint(20120401),nil,nil, func(mVal *prototype.AccountName, sVal *prototype.TimePointSec,
 			idx uint32) bool {
 			if mVal == nil {
 				fmt.Println("query by reverse order get main key fail")
@@ -196,7 +196,7 @@ func main() {
 	}
 
 	//query without start
-	err = tSortWrap.ForEachByOrder(nil, creTimeSecondPoint(20120422),
+	err = tSortWrap.ForEachByOrder(nil, creTimeSecondPoint(20120422),nil,nil,
 		func(mVal *prototype.AccountName, sVal *prototype.TimePointSec, idx uint32) bool {
 			if mVal == nil {
 				fmt.Println("get main key fail in range when query without start 1111")
@@ -213,7 +213,7 @@ func main() {
 	}
 
 	//query without end
-	err = tSortWrap.ForEachByOrder(creTimeSecondPoint(20120000), nil,
+	err = tSortWrap.ForEachByOrder(creTimeSecondPoint(20120000), nil,nil,nil,
 		func(mVal *prototype.AccountName, sVal *prototype.TimePointSec, idx uint32) bool  {
 			if mVal == nil {
 				fmt.Println("get main key fail in range when query without end")
@@ -227,7 +227,7 @@ func main() {
 	}
 
 	//query without start and end
-	err = tSortWrap.ForEachByOrder(nil, nil, 
+	err = tSortWrap.ForEachByOrder(nil, nil,nil,nil,
 		func(mVal *prototype.AccountName, sVal *prototype.TimePointSec, idx uint32) bool {
 			if mVal == nil {
 				fmt.Println("get main key fail in range when query without start and end")
@@ -242,7 +242,7 @@ func main() {
 
 
 	//query without start and end by reverse order
-	err = tSortWrap.ForEachByRevOrder(nil, nil,
+	err = tSortWrap.ForEachByRevOrder(nil, nil,nil,nil,
 		func(mVal *prototype.AccountName, sVal *prototype.TimePointSec, idx uint32) bool {
 			if mVal == nil {
 				fmt.Println("get main key fail in range when query without start and end by reverse sort ")

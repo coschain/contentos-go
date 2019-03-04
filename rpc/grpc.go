@@ -19,6 +19,7 @@ import (
 
 var (
 	ErrPanicResp = errors.New("rpc panic")
+	maxPageSizeLimit = 30
 )
 
 type APIService struct {
@@ -139,7 +140,7 @@ func (as *APIService) GetFollowerListByName(ctx context.Context, req *grpcpb.Get
 		end = nil
 	}
 	limit = checkLimit(req.GetLimit())
-	ferOrderWrap.ForEachByOrder(start, end,
+	ferOrderWrap.ForEachByOrder(start, end,nil,nil,
 		func(mVal *prototype.FollowerRelation, sVal *prototype.FollowerCreatedOrder, idx uint32) bool {
 			if mVal != nil {
 				ferList = append(ferList, mVal.Follower)
@@ -171,7 +172,7 @@ func (as *APIService) GetFollowingListByName(ctx context.Context, req *grpcpb.Ge
 		end = nil
 	}
 	limit = checkLimit(req.GetLimit())
-	fingOrderWrap.ForEachByOrder(start, end,
+	fingOrderWrap.ForEachByOrder(start, end,nil,nil,
 		func(mVal *prototype.FollowingRelation, sVal *prototype.FollowingCreatedOrder, idx uint32) bool {
 			if mVal != nil {
 				fingList = append(fingList, mVal.Following)
@@ -251,7 +252,7 @@ func (as *APIService) GetWitnessList(ctx context.Context, req *grpcpb.GetWitness
 
 	witOrderWrap := &table.SWitnessOwnerWrap{as.db}
 	limit = checkLimit(req.GetLimit())
-	witOrderWrap.ForEachByOrder(req.GetStart(),nil,
+	witOrderWrap.ForEachByOrder(req.GetStart(),nil,nil,nil,
 		func(mVal *prototype.AccountName, sVal *prototype.AccountName, idx uint32) bool {
 			witWrap := table.NewSoWitnessWrap(as.db, mVal)
 			if witWrap != nil && witWrap.CheckExist() {
@@ -295,7 +296,7 @@ func (as *APIService) GetPostListByCreated(ctx context.Context, req *grpcpb.GetP
 	}
 
 	limit = checkLimit(req.GetLimit())
-    postOrderWrap.ForEachByRevOrder(start, end,
+    postOrderWrap.ForEachByRevOrder(start, end,nil,nil,
 		func(mVal *uint64, sVal *prototype.PostCreatedOrder, idx uint32) bool {
 			postWrap := table.NewSoPostWrap(as.db, mVal)
 			if postWrap != nil && postWrap.CheckExist() {
@@ -343,7 +344,7 @@ func (as *APIService) GetReplyListByPostId(ctx context.Context, req *grpcpb.GetR
     	end = nil
 	}
 	limit = checkLimit(req.GetLimit())
-    replyOrderWrap.ForEachByRevOrder(start, end, 
+    replyOrderWrap.ForEachByRevOrder(start, end, nil,nil,
     	func(mVal *uint64, sVal *prototype.ReplyCreatedOrder, idx uint32) bool {
 			postWrap := table.NewSoPostWrap(as.db, mVal)
 			if postWrap != nil && postWrap.CheckExist() {
@@ -465,7 +466,7 @@ func (as *APIService) GetAccountListByBalance(ctx context.Context, req *grpcpb.N
 	res := &grpcpb.GetAccountListResponse{}
 	var err error
 	if sortWrap != nil {
-		err = sortWrap.ForEachByOrder(nil, nil, func(mVal *prototype.AccountName, sVal *prototype.Coin, idx uint32) bool {
+		err = sortWrap.ForEachByOrder(nil, nil,nil,nil, func(mVal *prototype.AccountName, sVal *prototype.Coin, idx uint32) bool {
 			acct := &grpcpb.AccountResponse{}
 			accWrap := table.NewSoAccountWrap(as.db, mVal)
 			if accWrap != nil  {
@@ -524,7 +525,7 @@ func (as *APIService) GetDailyTotalTrxInfo(ctx context.Context, req *grpcpb.GetD
 		if req.End != nil {
 			e = &prototype.TimePointSec{UtcSeconds:req.End.UtcSeconds/86400}
 		}
-		err =  wrap.ForEachByOrder(s, e, func(mVal *prototype.TimePointSec, sVal *prototype.TimePointSec,
+		err =  wrap.ForEachByOrder(s, e,nil,nil, func(mVal *prototype.TimePointSec, sVal *prototype.TimePointSec,
 			idx uint32) bool {
             if mVal != nil && sVal != nil {
 				info := &grpcpb.DailyTotalTrx{}
@@ -566,9 +567,15 @@ func (as *APIService) GetTrxListByTime (ctx context.Context, req *grpcpb.GetTrxL
 	res := &grpcpb.GetTrxListByTimeResponse{}
 	var infoList []*grpcpb.TrxInfo
 	var err error
+	var lastMainKey *prototype.Sha256
+	var lastSubVal *prototype.TimePointSec
+	if req.LastInfo != nil && req.LastInfo.TrxId != nil && req.LastInfo.BlockTime != nil {
+		lastMainKey = req.LastInfo.TrxId
+		lastSubVal = req.LastInfo.BlockTime
+	}
 	sWrap := table.NewExtTrxBlockTimeWrap(as.db)
 	if sWrap != nil {
-		err = sWrap.ForEachByRevOrder(req.Start,req.End, func(mVal *prototype.Sha256, sVal *prototype.TimePointSec, idx uint32) bool {
+		err = sWrap.ForEachByRevOrder(req.Start,req.End,lastMainKey,lastSubVal, func(mVal *prototype.Sha256, sVal *prototype.TimePointSec, idx uint32) bool {
 			wrap := table.NewSoExtTrxWrap(as.db,mVal)
 			info := &grpcpb.TrxInfo{}
 			if wrap != nil {
@@ -577,6 +584,9 @@ func (as *APIService) GetTrxListByTime (ctx context.Context, req *grpcpb.GetTrxL
 				info.BlockTime = wrap.GetBlockTime()
 				info.TrxWrap = wrap.GetTrxWrap()
 				infoList = append(infoList,info)
+			}
+			if idx >= uint32(maxPageSizeLimit) {
+				return false
 			}
 			return true
 		})

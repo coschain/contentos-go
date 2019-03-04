@@ -294,6 +294,7 @@ message GetTrxInfoByIdResponse {
 message GetTrxListByTimeRequest {
     prototype.time_point_sec     start     = 1;
     prototype.time_point_sec     end       = 2;
+    TrxInfo                  last_info   = 3;
 }
 
 message GetTrxListByTimeResponse {

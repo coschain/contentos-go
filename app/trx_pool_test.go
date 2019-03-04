@@ -242,7 +242,7 @@ func Test_list(t *testing.T) {
 	// check and delete
 
 	sortWrap := table.STransactionObjectExpirationWrap{Dba: db}
-	sortWrap.ForEachByOrder(nil, nil,
+	sortWrap.ForEachByOrder(nil, nil,nil,nil,
 		func(mVal *prototype.Sha256, sVal *prototype.TimePointSec, idx uint32) bool {
 		   if sVal != nil {
 			   objWrap := table.NewSoTransactionObjectWrap(db, mVal)

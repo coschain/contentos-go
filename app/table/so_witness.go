@@ -1471,10 +1471,16 @@ func (m *SoListWitnessByOwner) OpeEncode() ([]byte, error) {
 //if the return value of f is true,continue iterating until the end iteration;
 //otherwise stop iteration immediately
 //
-func (s *SWitnessOwnerWrap) ForEachByOrder(start *prototype.AccountName, end *prototype.AccountName,
-	f func(mVal *prototype.AccountName, sVal *prototype.AccountName, idx uint32) bool) error {
+//lastMainKey: the main key of the last one of last page
+//lastSubVal: the value  of the last one of last page
+//
+func (s *SWitnessOwnerWrap) ForEachByOrder(start *prototype.AccountName, end *prototype.AccountName, lastMainKey *prototype.AccountName,
+	lastSubVal *prototype.AccountName, f func(mVal *prototype.AccountName, sVal *prototype.AccountName, idx uint32) bool) error {
 	if s.Dba == nil {
 		return errors.New("the db is nil")
+	}
+	if (lastSubVal != nil && lastMainKey == nil) || (lastSubVal == nil && lastMainKey != nil) {
+		return errors.New("last query param error")
 	}
 	if f == nil {
 		return nil
@@ -1483,6 +1489,14 @@ func (s *SWitnessOwnerWrap) ForEachByOrder(start *prototype.AccountName, end *pr
 	skeyList := []interface{}{pre}
 	if start != nil {
 		skeyList = append(skeyList, start)
+		if lastMainKey != nil {
+			skeyList = append(skeyList, lastMainKey, kope.MinimalKey)
+		}
+	} else {
+		if lastMainKey != nil && lastSubVal != nil {
+			skeyList = append(skeyList, lastSubVal, lastMainKey, kope.MinimalKey)
+		}
+		skeyList = append(skeyList, kope.MinimalKey)
 	}
 	sBuf, cErr := kope.EncodeSlice(skeyList)
 	if cErr != nil {
@@ -1592,10 +1606,16 @@ func (m *SoListWitnessByVoteCount) OpeEncode() ([]byte, error) {
 //if the return value of f is true,continue iterating until the end iteration;
 //otherwise stop iteration immediately
 //
-func (s *SWitnessVoteCountWrap) ForEachByRevOrder(start *uint64, end *uint64,
-	f func(mVal *prototype.AccountName, sVal *uint64, idx uint32) bool) error {
+//lastMainKey: the main key of the last one of last page
+//lastSubVal: the value  of the last one of last page
+//
+func (s *SWitnessVoteCountWrap) ForEachByRevOrder(start *uint64, end *uint64, lastMainKey *prototype.AccountName,
+	lastSubVal *uint64, f func(mVal *prototype.AccountName, sVal *uint64, idx uint32) bool) error {
 	if s.Dba == nil {
 		return errors.New("the db is nil")
+	}
+	if (lastSubVal != nil && lastMainKey == nil) || (lastSubVal == nil && lastMainKey != nil) {
+		return errors.New("last query param error")
 	}
 	if f == nil {
 		return nil
@@ -1604,7 +1624,13 @@ func (s *SWitnessVoteCountWrap) ForEachByRevOrder(start *uint64, end *uint64,
 	skeyList := []interface{}{pre}
 	if start != nil {
 		skeyList = append(skeyList, start)
+		if lastMainKey != nil {
+			skeyList = append(skeyList, lastMainKey)
+		}
 	} else {
+		if lastMainKey != nil && lastSubVal != nil {
+			skeyList = append(skeyList, lastSubVal, lastMainKey)
+		}
 		skeyList = append(skeyList, kope.MaximumKey)
 	}
 	sBuf, cErr := kope.EncodeSlice(skeyList)

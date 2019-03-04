@@ -625,10 +625,16 @@ func (m *SoListExtDailyTrxByDate) OpeEncode() ([]byte, error) {
 //if the return value of f is true,continue iterating until the end iteration;
 //otherwise stop iteration immediately
 //
-func (s *SExtDailyTrxDateWrap) ForEachByOrder(start *prototype.TimePointSec, end *prototype.TimePointSec,
-	f func(mVal *prototype.TimePointSec, sVal *prototype.TimePointSec, idx uint32) bool) error {
+//lastMainKey: the main key of the last one of last page
+//lastSubVal: the value  of the last one of last page
+//
+func (s *SExtDailyTrxDateWrap) ForEachByOrder(start *prototype.TimePointSec, end *prototype.TimePointSec, lastMainKey *prototype.TimePointSec,
+	lastSubVal *prototype.TimePointSec, f func(mVal *prototype.TimePointSec, sVal *prototype.TimePointSec, idx uint32) bool) error {
 	if s.Dba == nil {
 		return errors.New("the db is nil")
+	}
+	if (lastSubVal != nil && lastMainKey == nil) || (lastSubVal == nil && lastMainKey != nil) {
+		return errors.New("last query param error")
 	}
 	if f == nil {
 		return nil
@@ -637,6 +643,14 @@ func (s *SExtDailyTrxDateWrap) ForEachByOrder(start *prototype.TimePointSec, end
 	skeyList := []interface{}{pre}
 	if start != nil {
 		skeyList = append(skeyList, start)
+		if lastMainKey != nil {
+			skeyList = append(skeyList, lastMainKey, kope.MinimalKey)
+		}
+	} else {
+		if lastMainKey != nil && lastSubVal != nil {
+			skeyList = append(skeyList, lastSubVal, lastMainKey, kope.MinimalKey)
+		}
+		skeyList = append(skeyList, kope.MinimalKey)
 	}
 	sBuf, cErr := kope.EncodeSlice(skeyList)
 	if cErr != nil {
@@ -750,10 +764,16 @@ func (m *SoListExtDailyTrxByCount) OpeEncode() ([]byte, error) {
 //if the return value of f is true,continue iterating until the end iteration;
 //otherwise stop iteration immediately
 //
-func (s *SExtDailyTrxCountWrap) ForEachByOrder(start *uint64, end *uint64,
-	f func(mVal *prototype.TimePointSec, sVal *uint64, idx uint32) bool) error {
+//lastMainKey: the main key of the last one of last page
+//lastSubVal: the value  of the last one of last page
+//
+func (s *SExtDailyTrxCountWrap) ForEachByOrder(start *uint64, end *uint64, lastMainKey *prototype.TimePointSec,
+	lastSubVal *uint64, f func(mVal *prototype.TimePointSec, sVal *uint64, idx uint32) bool) error {
 	if s.Dba == nil {
 		return errors.New("the db is nil")
+	}
+	if (lastSubVal != nil && lastMainKey == nil) || (lastSubVal == nil && lastMainKey != nil) {
+		return errors.New("last query param error")
 	}
 	if f == nil {
 		return nil
@@ -762,6 +782,14 @@ func (s *SExtDailyTrxCountWrap) ForEachByOrder(start *uint64, end *uint64,
 	skeyList := []interface{}{pre}
 	if start != nil {
 		skeyList = append(skeyList, start)
+		if lastMainKey != nil {
+			skeyList = append(skeyList, lastMainKey, kope.MinimalKey)
+		}
+	} else {
+		if lastMainKey != nil && lastSubVal != nil {
+			skeyList = append(skeyList, lastSubVal, lastMainKey, kope.MinimalKey)
+		}
+		skeyList = append(skeyList, kope.MinimalKey)
 	}
 	sBuf, cErr := kope.EncodeSlice(skeyList)
 	if cErr != nil {
