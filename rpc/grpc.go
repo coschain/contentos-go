@@ -25,6 +25,7 @@ type APIService struct {
 	consensus iservices.IConsensus
 	mainLoop  *eventloop.EventLoop
 	db        iservices.IDatabaseService
+	pool 	  iservices.ITrxPool
 	log       *logrus.Logger
 	eBus       EventBus.Bus
 }
@@ -74,6 +75,8 @@ func (as *APIService) GetAccountByName(ctx context.Context, req *grpcpb.GetAccou
 		acct.AccountName = &prototype.AccountName{Value: accWrap.GetName().Value}
 		acct.Coin = accWrap.GetBalance()
 		acct.Vest = accWrap.GetVestingShares()
+		acct.StaminaRemain = as.pool.GetAllRemainStamina(accWrap.GetName().Value)
+		acct.StaminaMax = as.pool.GetAllStaminaMax(accWrap.GetName().Value)
 		//acct.PublicKeys = accWrap.GetPubKey()
 		acct.CreatedTime = accWrap.GetCreatedTime()
 

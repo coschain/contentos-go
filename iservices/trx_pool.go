@@ -43,4 +43,8 @@ type ITrxPool interface {
 	SyncCommittedBlockToDB(blk common.ISignedBlock) error
 	//Sync pushed blocks to DB
 	SyncPushedBlocksToDB(blkList []common.ISignedBlock) error
+
+	GetAllRemainStamina(name string) uint64
+
+	GetAllStaminaMax(name string) uint64
 }

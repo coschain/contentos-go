@@ -33,7 +33,7 @@ type TrxContext struct {
 }
 
 func NewTrxContext(wrapper *prototype.TransactionWrapper, db iservices.IDatabaseService, control *TrxPool) *TrxContext {
-	return &TrxContext{Wrapper: wrapper, db: db, control: control, gasMap: make(map[string]*resourceUnit), netMap: make(map[string]*resourceUnit), resourceLimiter: utils.IResourceLimiter(utils.NewResourceLimiter(db))}
+	return &TrxContext{Wrapper: wrapper, db: db, control: control, gasMap: make(map[string]*resourceUnit), netMap: make(map[string]*resourceUnit), resourceLimiter: control.resourceLimiter}
 }
 
 func (p *TrxContext) InitSigState(cid prototype.ChainId) error {

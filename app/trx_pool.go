@@ -51,6 +51,7 @@ type TrxPool struct {
 	shuffle                common.ShuffleFunc
 
 	iceberg *BlockIceberg
+	resourceLimiter utils.IResourceLimiter
 }
 
 func (c *TrxPool) getDb() (iservices.IDatabaseService, error) {
@@ -115,6 +116,7 @@ func (c *TrxPool) Open() {
 
 		//c.log.Info("finish initGenesis")
 	}
+	c.resourceLimiter = utils.IResourceLimiter(utils.NewResourceLimiter(c.db))
 }
 
 func (c *TrxPool) Stop() error {
@@ -1217,25 +1219,29 @@ func (c *TrxPool) SyncPushedBlocksToDB(blkList []common.ISignedBlock) (err error
 }
 
 func (c *TrxPool) GetRemainStamina(name string) uint64 {
-	rcl := utils.NewResourceLimiter(c.db)
 	wraper := table.NewSoGlobalWrap(c.db, &SingleId)
 	gp := wraper.GetProps()
-	return rcl.GetStakeLeft(name, gp.HeadBlockNumber)
+	return c.resourceLimiter.GetStakeLeft(name, gp.HeadBlockNumber)
 }
 
 func (c *TrxPool) GetRemainFreeStamina(name string) uint64 {
-	rcl := utils.NewResourceLimiter(c.db)
 	wraper := table.NewSoGlobalWrap(c.db, &SingleId)
 	gp := wraper.GetProps()
-	return rcl.GetFreeLeft(name, gp.HeadBlockNumber)
+	return c.resourceLimiter.GetFreeLeft(name, gp.HeadBlockNumber)
 }
 
 func (c *TrxPool) GetStaminaMax(name string) uint64 {
-	rcl := utils.NewResourceLimiter(c.db)
-	return rcl.GetCapacity(name)
+	return c.resourceLimiter.GetCapacity(name)
 }
 
 func (c *TrxPool) GetStaminaFreeMax() uint64 {
-	rcl := utils.NewResourceLimiter(c.db)
-	return rcl.GetCapacityFree()
+	return c.resourceLimiter.GetCapacityFree()
+}
+
+func (c *TrxPool) GetAllRemainStamina(name string) uint64 {
+	return c.GetRemainStamina(name) + c.GetRemainFreeStamina(name)
+}
+
+func (c *TrxPool) GetAllStaminaMax(name string) uint64 {
+	return c.GetStaminaMax(name) + c.GetStaminaFreeMax()
 }

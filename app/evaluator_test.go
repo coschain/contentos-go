@@ -8,6 +8,7 @@ import (
 	"github.com/coschain/contentos-go/db/storage"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/mylog"
+	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
@@ -383,7 +384,8 @@ func clearDB(db iservices.IDatabaseService) {
 func startController(db iservices.IDatabaseService) *TrxPool {
 	log, err := mylog.NewMyLog(logPath, mylog.DebugLevel, 0)
 	mustNoError(err, "new log error",prototype.StatusError)
-	c, _ := NewController(nil, log.Logger)
+	ctx := makeCtx()
+	c, _ := NewController(ctx, log.Logger)
 	c.SetDB(db)
 	c.SetBus(EventBus.New())
 	c.Open()
@@ -391,4 +393,13 @@ func startController(db iservices.IDatabaseService) *TrxPool {
 
 	})
 	return c
+}
+
+func makeCtx() (*node.ServiceContext) {
+	var cfg = &node.Config{}
+	cfg.ResourceCheck = true
+	ctx := &node.ServiceContext{}
+	ctx.ResetConfig(cfg)
+	ctx.ResetServices(nil)
+	return ctx
 }

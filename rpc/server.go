@@ -65,6 +65,13 @@ func (gs *GRPCServer) Start(node *node.Node) error {
 		gs.api.db = db.(iservices.IDatabaseService)
 	}
 
+	pool, err := gs.ctx.Service(iservices.TxPoolServerName)
+	if err != nil {
+
+	} else {
+		gs.api.pool = pool.(iservices.ITrxPool)
+	}
+
 	gs.api.mainLoop = node.MainLoop
 	gs.api.eBus = node.EvBus
 
