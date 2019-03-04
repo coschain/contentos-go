@@ -106,6 +106,9 @@ type Peer struct {
 	consState        uint32
 	SendTrxCache     mapset.Set
 	RecvTrxCache     mapset.Set
+
+	lastSeenBlkNum   uint64
+
 	connLock         sync.RWMutex
 }
 
@@ -325,4 +328,19 @@ func (this *Peer) UpdateInfo(t time.Time, version uint32, services uint64,
 		this.base.SetRelay(true)
 	}
 	this.SetHeight(uint64(height))
+}
+
+func (this *Peer) SetLastSeenBlkNum(num uint64) {
+	this.connLock.Lock()
+	if this.lastSeenBlkNum < num {
+		this.lastSeenBlkNum = num
+	}
+	this.connLock.Unlock()
+}
+
+func (this *Peer) GetLastSeenBlkNum() uint64 {
+	this.connLock.RLock()
+	defer this.connLock.RUnlock()
+
+	return this.lastSeenBlkNum
 }

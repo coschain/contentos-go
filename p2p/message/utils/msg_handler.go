@@ -122,13 +122,13 @@ func BlockHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 		return
 	}
 
-	//blockNum := block.SigBlk.Id().BlockNum()
-	//localHeadId := ctrl.GetHeadBlockId()
-	//localHeadNum := localHeadId.BlockNum()
-	//if blockNum > localHeadNum + 1 {
-	//	log.Info("[p2p] get a SignedBlock can't link to the local chain, block number: ", blockNum, " local head number: ", localHeadNum)
-	//	return
-	//}
+	remotePeer := p2p.GetPeerFromAddr(data.Addr)
+	if remotePeer == nil {
+		log.Error("[p2p] peer is not exist: ", data.Addr)
+		return
+	}
+	blkNum := block.SigBlk.Id().BlockNum()
+	remotePeer.SetLastSeenBlkNum(blkNum)
 
 	ctrl.PushBlock(block.SigBlk)
 }
