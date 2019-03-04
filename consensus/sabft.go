@@ -790,8 +790,8 @@ func (sabft *SABFT) GetLastBFTCommit() interface{} {
 }
 
 func (sabft *SABFT) GetNextBFTCheckPoint(blockNum uint64) interface{} {
-	sabft.RLock()
-	defer sabft.RUnlock()
+	//sabft.RLock()
+	//defer sabft.RUnlock()
 
 	commit, err := sabft.cp.GetNext(blockNum)
 	if err != nil {
@@ -802,6 +802,9 @@ func (sabft *SABFT) GetNextBFTCheckPoint(blockNum uint64) interface{} {
 }
 
 func (sabft *SABFT) GetLIB() common.BlockID {
+	sabft.RLock()
+	defer sabft.RUnlock()
+
 	if sabft.lastCommitted == nil {
 		return common.EmptyBlockID
 	}
