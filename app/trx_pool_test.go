@@ -998,6 +998,76 @@ func Test_Gas(t *testing.T) {
 	//
 }
 
+func Test_Transfer(t *testing.T) {
+
+	db := startDB()
+	defer clearDB(db)
+	c := startController(db)
+
+	//
+	miner := &prototype.AccountName{Value: "initminer"}
+	minerWrap := table.NewSoAccountWrap(db, miner)
+	s0 := minerWrap.GetStamina() + minerWrap.GetStaminaFree()
+	t.Log("before initminer stamina use:", s0)
+	//
+
+	// deploy contract
+	cop,err := makeCreateAccountOP(accountNameTom,pubKeyTom)
+
+	signedTrx, err := createSigTrx(c, constants.InitminerPrivKey,cop)
+	if err != nil {
+		t.Error("createSigTrx error:", err)
+	}
+
+	invoice := c.PushTrx(signedTrx)
+	if invoice.Status != prototype.StatusSuccess {
+		t.Error("PushTrx return status error:", invoice.Status)
+	}
+
+	pri, err := prototype.PrivateKeyFromWIF(constants.InitminerPrivKey)
+	if err != nil {
+		t.Error("PrivateKeyFromWIF error")
+	}
+	pre := &prototype.Sha256{Hash: make([]byte, 32)}
+	block1, err := c.GenerateAndApplyBlock(constants.COSInitMiner, pre, 18, pri, 0)
+
+	//
+	s1 := minerWrap.GetStamina() + minerWrap.GetStaminaFree()
+	t.Log("after deploy initminer stamina use:", s1)
+	//
+
+	// call contract
+	from := prototype.NewAccountName(constants.COSInitMiner)
+	to := prototype.NewAccountName(accountNameTom)
+	applyOp := &prototype.TransferOperation{
+		From:from,
+		To:to,
+		Amount:prototype.NewCoin(1),
+	}
+
+	// call contract repeated
+	for i := 0; i< 5000; i++ {
+		signedTrx2, err := createSigTrxTmp(c, constants.InitminerPrivKey,uint32(i+1),applyOp)
+		if err != nil {
+			t.Error("createSigTrx error:", err)
+		}
+		invoice2 := c.PushTrx(signedTrx2)
+		if invoice2.Status != prototype.StatusSuccess && invoice2.Status != prototype.StatusDeductGas {
+			t.Error("PushTrx return status error:", invoice2.Status)
+		}
+	}
+
+	id := block1.Id()
+	pre = &prototype.Sha256{Hash: id.Data[:]}
+	block2, err := c.GenerateAndApplyBlock(constants.COSInitMiner, pre, 21, pri, 0)
+	fmt.Println()
+	fmt.Println("block size:",len(block2.Transactions))
+	//
+	s2 := minerWrap.GetStamina() + minerWrap.GetStaminaFree()
+	t.Log("after call contract initminer stamina use:", s2)
+	//
+}
+
 func createSigTrxTmp(c *TrxPool, priKey string,step uint32,ops ...interface{}) (*prototype.SignedTransaction, error) {
 
 	headBlockID := c.GetProps().GetHeadBlockId()
