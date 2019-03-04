@@ -432,15 +432,27 @@ func (as *APIService) getState() *grpcpb.ChainState {
 func (as *APIService) GetBlockList(ctx context.Context, req *grpcpb.GetBlockListRequest) (*grpcpb.GetBlockListResponse, error) {
 	from := req.Start
     to := req.End
+    isFetchOne := false
+    if from == to {
+		isFetchOne = true
+		to = from + 1
+	}
     list,err := as.consensus.FetchBlocks(from,to)
     if err != nil {
     	return &grpcpb.GetBlockListResponse{Blocks:make([]*prototype.SignedBlock,0)},err
 	}
-     blkList := make([]*prototype.SignedBlock,len(list))
-     for i,blk := range list {
-		blkList[i] = blk.(*prototype.SignedBlock)
+     var blkList []*prototype.SignedBlock
+     for _,blk := range list {
+     	b := blk.(*prototype.SignedBlock)
+		 if isFetchOne && b.Id().BlockNum() == from {
+			 blkList = append(blkList,b)
+			 break
+		 }
+		 blkList = append(blkList,b)
 	 }
-
+     if blkList == nil {
+     	blkList = make([]*prototype.SignedBlock,0)
+	 }
     return &grpcpb.GetBlockListResponse{Blocks:blkList},nil
 }
 
