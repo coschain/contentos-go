@@ -11,8 +11,8 @@ Name = "cosd"
 [GRPC]
   HTTPCors = ["*"]
   HTTPLimit = 100
-  HTTPListen = "127.0.0.1:8080"
-  RPCListen = "127.0.0.1:8888"
+  HTTPListen = "0.0.0.0:8080"
+  RPCListen = "0.0.0.0:8888"
   RPCName = "rpc"
 
 [P2P]
