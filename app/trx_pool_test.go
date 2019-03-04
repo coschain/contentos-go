@@ -919,11 +919,18 @@ func Test_TrxSize(t *testing.T) {
 	fmt.Println(proto.Size(trx17))
 }
 
-func Test_MixOp2(t *testing.T) {
+func Test_Gas(t *testing.T) {
 
 	db := startDB()
 	defer clearDB(db)
 	c := startController(db)
+
+	//
+	miner := &prototype.AccountName{Value: "initminer"}
+	minerWrap := table.NewSoAccountWrap(db, miner)
+	s0 := minerWrap.GetStamina() + minerWrap.GetStaminaFree()
+	t.Log("before initminer stamina use:", s0)
+	//
 
 	// deploy contract
 	data, _ := ioutil.ReadFile("./test_data/hello.wasm")
@@ -945,10 +952,22 @@ func Test_MixOp2(t *testing.T) {
 		t.Error("PushTrx return status error:", invoice.Status)
 	}
 
-	// first op : call contract
+	pri, err := prototype.PrivateKeyFromWIF(constants.InitminerPrivKey)
+	if err != nil {
+		t.Error("PrivateKeyFromWIF error")
+	}
+	pre := &prototype.Sha256{Hash: make([]byte, 32)}
+	block1, err := c.GenerateAndApplyBlock(constants.COSInitMiner, pre, 18, pri, 0)
+
+	//
+	s1 := minerWrap.GetStamina() + minerWrap.GetStaminaFree()
+	t.Log("after deploy initminer stamina use:", s1)
+	//
+
+	// call contract
 	applyOp := &prototype.ContractApplyOperation{
-		Caller:   &prototype.AccountName{Value: "initminer"},
-		Owner:    &prototype.AccountName{Value: "initminer"},
+		Caller:   &prototype.AccountName{Value: constants.COSInitMiner},
+		Owner:    &prototype.AccountName{Value: constants.COSInitMiner},
 		Contract: "hello",
 		Method:   "hi",
 		Params:   "[\"contentos\"]",
@@ -956,41 +975,55 @@ func Test_MixOp2(t *testing.T) {
 		Gas: &prototype.Coin{Value: 300000},
 	}
 
-	//
-	miner := &prototype.AccountName{Value: "initminer"}
-	minerWrap := table.NewSoAccountWrap(db, miner)
-	b := minerWrap.GetStamina() + minerWrap.GetStaminaFree()
-	t.Log("before initminer stamina:", b)
-	//
-
-	const value = 1000000000
-	// second op : transfer to a invalid account, should failed
-	transOp := &prototype.TransferOperation{
-		From:   &prototype.AccountName{Value: "initminer"},
-		To:     &prototype.AccountName{Value: "someone"},
-		Amount: prototype.NewCoin(value),
+	// call contract repeated
+	for i := 0; i< 50; i++ {
+		signedTrx2, err := createSigTrxTmp(c, constants.InitminerPrivKey,uint32(i+1),applyOp)
+		if err != nil {
+			t.Error("createSigTrx error:", err)
+		}
+		invoice2 := c.PushTrx(signedTrx2)
+		if invoice2.Status != prototype.StatusSuccess && invoice2.Status != prototype.StatusDeductGas {
+			t.Error("PushTrx return status error:", invoice2.Status)
+		}
 	}
 
-	signedTrx2, err := createSigTrx(c, constants.InitminerPrivKey,applyOp,transOp)
+	id := block1.Id()
+	pre = &prototype.Sha256{Hash: id.Data[:]}
+	block2, err := c.GenerateAndApplyBlock(constants.COSInitMiner, pre, 21, pri, 0)
+	fmt.Println()
+	fmt.Println("block size:",len(block2.Transactions))
+	//
+	s2 := minerWrap.GetStamina() + minerWrap.GetStaminaFree()
+	t.Log("after call contract initminer stamina use:", s2)
+	//
+}
+
+func createSigTrxTmp(c *TrxPool, priKey string,step uint32,ops ...interface{}) (*prototype.SignedTransaction, error) {
+
+	headBlockID := c.GetProps().GetHeadBlockId()
+	expire := c.GetProps().Time.UtcSeconds
+	expire += step
+
+	privKey, err := prototype.PrivateKeyFromWIF(priKey)
 	if err != nil {
-		t.Error("createSigTrx error:", err)
+		return nil, err
 	}
 
-	invoice2 := c.PushTrx(signedTrx2)
-	if invoice2.Status != prototype.StatusSuccess && invoice2.Status != prototype.StatusDeductGas {
-		t.Error("PushTrx return status error:", invoice2.Status)
+	tx := &prototype.Transaction{RefBlockNum: 0, RefBlockPrefix: 0,
+		Expiration: &prototype.TimePointSec{UtcSeconds: expire}}
+	for _, op := range ops {
+		tx.AddOperation(op)
 	}
 
-	//
-	minerWrap2 := table.NewSoAccountWrap(db, miner)
-	b2 := minerWrap2.GetStamina() + minerWrap.GetStaminaFree()
-	t.Log("after initminer stamina:", b2)
-	//
+	// set reference
+	id := &common.BlockID{}
+	copy(id.Data[:], headBlockID.Hash[:])
+	tx.SetReferenceBlock(id)
 
-	// right result:
-	// 1. gas should be deduct
-	// 2. transfer should be revert
-	if b >= b2 {
-		t.Error("gas error or db error")
-	}
+	signTx := prototype.SignedTransaction{Trx: tx}
+
+	res := signTx.Sign(privKey, prototype.ChainId{Value: 0})
+	signTx.Signature = &prototype.SignatureType{Sig: res}
+
+	return &signTx, nil
 }

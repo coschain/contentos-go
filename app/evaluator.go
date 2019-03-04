@@ -547,16 +547,12 @@ func (ev *ContractApplyEvaluator) Apply() {
 	mustSuccess(acc.CheckExist(), "account doesn't exist", prototype.StatusErrorDbExist)
 
 	balance := acc.GetBalance().Value
-	// fixme, should base on minicos
-	balanceExchange := balance * constants.BaseRate
-
-	mustSuccess(balanceExchange >= op.Gas.Value, "balance can not pay gas fee", prototype.StatusErrorTrxValueCompare)
 
 	// the amount is also minicos or cos ?
 	// here I assert it is minicos
 	// also, I think balance base on minicos is far more reliable.
 	if op.Amount != nil {
-		mustSuccess(balanceExchange-op.Gas.Value > op.Amount.Value, "balance does not have enough fund to transfer after paid gas fee", prototype.StatusErrorTrxValueCompare)
+		mustSuccess(balance > op.Amount.Value, "balance does not have enough fund to transfer", prototype.StatusErrorTrxValueCompare)
 	}
 	code := scid.GetCode()
 
@@ -623,7 +619,6 @@ func (ev *InternalContractApplyEvaluator) Apply() {
 	caller := table.NewSoAccountWrap(ev.ctx.db, op.FromCaller)
 	mustSuccess(caller.CheckExist(), "caller account doesn't exist", prototype.StatusErrorDbExist)
 
-	mustSuccess(caller.GetBalance().Value*constants.BaseRate >= op.Gas.Value, "caller balance less than gas", prototype.StatusErrorTrxValueCompare)
 	mustSuccess(fromContract.GetBalance().Value >= op.Amount.Value, "fromContract balance less than transfer amount", prototype.StatusErrorTrxValueCompare)
 
 	if op.Amount != nil {
