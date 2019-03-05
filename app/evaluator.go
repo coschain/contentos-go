@@ -153,6 +153,9 @@ func (ev *AccountCreateEvaluator) Apply() {
 
 	// sub dynamic glaobal properties's total fee
 	ev.ctx.control.TransferToVest(op.Fee)
+	ev.ctx.control.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
+		props.TotalUserCnt++
+	})
 }
 
 func (ev *TransferEvaluator) Apply() {

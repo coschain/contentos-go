@@ -66,6 +66,9 @@ service ApiService {
 
     rpc GetTrxListByTime (GetTrxListByTimeRequest) returns (GetTrxListByTimeResponse) {
     }
+
+    rpc GetPostListByCreateTime (GetPostListByCreateTimeRequest) returns (GetPostListByCreateTimeResponse) {
+    }
 }
 
 
@@ -305,4 +308,14 @@ message GetTrxListByTimeRequest {
 
 message GetTrxListByTimeResponse {
     repeated        TrxInfo     list  = 1;
+}
+
+message GetPostListByCreateTimeRequest {
+    prototype.time_point_sec     start      = 1;
+    prototype.time_point_sec     end        = 2;
+    PostResponse                 last_post  = 3;
+}
+
+message GetPostListByCreateTimeResponse {
+    repeated PostResponse posted_list = 1;
 }

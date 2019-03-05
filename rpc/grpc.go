@@ -585,11 +585,14 @@ func (as *APIService) GetTrxInfoById (ctx context.Context, req *grpcpb.GetTrxInf
 func (as *APIService) GetTrxListByTime (ctx context.Context, req *grpcpb.GetTrxListByTimeRequest) (*grpcpb.GetTrxListByTimeResponse,error) {
 	as.db.RLock()
 	defer as.db.RUnlock()
+	var (
+		infoList []*grpcpb.TrxInfo
+         err error
+	     lastMainKey *prototype.Sha256
+	     lastSubVal *prototype.TimePointSec
+	)
+
 	res := &grpcpb.GetTrxListByTimeResponse{}
-	var infoList []*grpcpb.TrxInfo
-	var err error
-	var lastMainKey *prototype.Sha256
-	var lastSubVal *prototype.TimePointSec
 	if req.LastInfo != nil && req.LastInfo.TrxId != nil && req.LastInfo.BlockTime != nil {
 		lastMainKey = req.LastInfo.TrxId
 		lastSubVal = req.LastInfo.BlockTime
@@ -606,7 +609,7 @@ func (as *APIService) GetTrxListByTime (ctx context.Context, req *grpcpb.GetTrxL
 				info.TrxWrap = wrap.GetTrxWrap()
 				infoList = append(infoList,info)
 			}
-			if idx >= uint32(maxPageSizeLimit) {
+			if len(infoList) >= (maxPageSizeLimit) {
 				return false
 			}
 			return true
@@ -614,4 +617,60 @@ func (as *APIService) GetTrxListByTime (ctx context.Context, req *grpcpb.GetTrxL
 	}
 	res.List = infoList
 	return res,err
+}
+
+func (as *APIService) GetPostListByCreateTime(ctx context.Context, req *grpcpb.GetPostListByCreateTimeRequest) (*grpcpb.GetPostListByCreateTimeResponse, error) {
+	as.db.RLock()
+	defer as.db.RUnlock()
+	var (
+	    postList []*grpcpb.PostResponse
+	    lastPost *grpcpb.PostResponse
+	    lastPostId *uint64
+	    lastPostTime *prototype.TimePointSec
+	    err error
+	)
+
+	res := &grpcpb.GetPostListByCreateTimeResponse{}
+	if req.LastPost != nil {
+		lastPost = req.LastPost
+		if lastPost.Created != nil {
+			lastPostId = &lastPost.PostId
+			lastPostTime = lastPost.Created
+		}
+	}
+	sWrap := table.NewPostCreatedWrap(as.db)
+	if sWrap != nil {
+		err = sWrap.ForEachByRevOrder(req.Start,req.End,lastPostId,lastPostTime,
+			func(mVal *uint64, sVal *prototype.TimePointSec, idx uint32) bool {
+				 if mVal != nil {
+				 	postWrap := table.NewSoPostWrap(as.db,mVal)
+				 	if postWrap != nil && postWrap.CheckExist() {
+						postInfo := &grpcpb.PostResponse{
+							PostId:        postWrap.GetPostId(),
+							Category:      postWrap.GetCategory(),
+							ParentAuthor:  postWrap.GetAuthor(),
+							Author:        postWrap.GetAuthor(),
+							Title:         postWrap.GetTitle(),
+							Body:          postWrap.GetBody(),
+							Created:       postWrap.GetCreated(),
+							LastPayout:    postWrap.GetLastPayout(),
+							Depth:         postWrap.GetDepth(),
+							Children:      postWrap.GetChildren(),
+							RootId:        postWrap.GetRootId(),
+							ParentId:      postWrap.GetParentId(),
+							Tags:          postWrap.GetTags(),
+							Beneficiaries: postWrap.GetBeneficiaries(),
+						}
+						postList = append(postList, postInfo)
+					}
+				 }
+				 if len(postList) >= maxPageSizeLimit {
+				 	return false
+				 }
+			     return true
+		})
+	}
+
+	res.PostedList = postList
+    return res,err
 }
