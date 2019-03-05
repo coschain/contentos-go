@@ -107,9 +107,9 @@ func (this *Link) Rx(magic uint32) {
 		t := time.Now()
 		this.UpdateRXTime(t)
 
-		if !this.needSendMsg(msg) {
-			continue
-		}
+		//if !this.needSendMsg(msg) {
+		//	continue
+		//}
 
 		this.recvChan <- &types.MsgPayload{
 			Id:          this.id,

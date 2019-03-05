@@ -101,7 +101,7 @@ var DefaultNodeConfig = node.Config{
 		HTTPLimit:  100,
 	},
 	Consensus: service_configs.ConsensusConfig{
-		Type:              "DPoS",
+		Type:              "SABFT",
 		BootStrap:         true,
 		LocalBpName:       constants.COSInitMiner,
 		LocalBpPrivateKey: constants.InitminerPrivKey,
