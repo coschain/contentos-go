@@ -434,9 +434,18 @@ func (as *APIService) GetBlockList(ctx context.Context, req *grpcpb.GetBlockList
 	from := req.Start
     to := req.End
     isFetchOne := false
-    if from == to {
+    if from == to && from != 0{
 		isFetchOne = true
 		to = from + 1
+	}
+	headNum :=  as.consensus.GetHeadBlockId().BlockNum()
+	if from == 0 && to == 0 && !isFetchOne {
+		if headNum >= uint64(maxPageSizeLimit) {
+			from = headNum - uint64(maxPageSizeLimit)
+		}
+	    to = headNum
+	}else if from >= 0 && to == 0 {
+		to = headNum
 	}
     list,err := as.consensus.FetchBlocks(from,to)
     if err != nil {
