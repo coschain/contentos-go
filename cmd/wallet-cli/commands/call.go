@@ -50,7 +50,6 @@ func call(cmd *cobra.Command, args []string) {
 		Caller:   &prototype.AccountName{Value: caller},
 		Owner:    &prototype.AccountName{Value: owner},
 		Amount:   &prototype.Coin{Value: fundToContract},
-		Gas:      &prototype.Coin{Value: maxGas},
 		Contract: cname,
 		Params:   params,
 		Method:	  method,

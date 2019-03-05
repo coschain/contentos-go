@@ -64,4 +64,13 @@ const (
 
 	// 10 ** 18 ?
 	BaseRate = 1
+
+	// resource parameter
+	NetConsumePoint = 10
+	CpuConsumePoint = 1
+	MaxGasPerCall = 500000
+	MaxStaminaPerBlock = 3500000
+	WindowSize = 60 * 60 * 24
+	FreeStamina = 10000
+	OneDayStamina = MaxStaminaPerBlock * WindowSize
 )

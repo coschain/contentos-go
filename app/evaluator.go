@@ -103,6 +103,7 @@ type InternalContractApplyEvaluator struct {
 	BaseEvaluator
 	ctx *ApplyContext
 	op  *prototype.InternalContractApplyOperation
+	remainGas uint64
 }
 
 type StakeEvaluator struct {
@@ -578,6 +579,8 @@ func (ev *ContractApplyEvaluator) Apply() {
 	}
 
 	vmCtx := vmcontext.NewContextFromApplyOp(op, paramsData, code, abiInterface, tables, ev.ctx.trxCtx)
+	// set max gas
+	vmCtx.Gas = constants.MaxGasPerCall
 	// should be active ?
 	//defer func() {
 	//	_ := recover()
@@ -647,6 +650,8 @@ func (ev *InternalContractApplyEvaluator) Apply() {
 	}
 
 	vmCtx := vmcontext.NewContextFromInternalApplyOp(op, code, abiInterface, tables, ev.ctx.trxCtx)
+	// set remain gas
+	vmCtx.Gas = ev.remainGas
 	cosVM := vm.NewCosVM(vmCtx, ev.ctx.db, ev.ctx.control.GetProps(), logrus.New())
 
 	ev.ctx.db.BeginTransaction()

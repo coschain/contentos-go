@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"github.com/coschain/contentos-go/common/constants"
 	"math/rand"
 	"strconv"
 	"testing"
@@ -223,10 +224,10 @@ func Test_EMA(t *testing.T) {
 	for i := startBlock; i < endBlock;i++ {
 		avg = calculateNewStaminaEMA(avg,data[i],i-1,i)
 		if i < 10 {
-			println("trace EMA:",avg*RECOVER_WINDOW)
+			println("trace EMA:",avg*constants.WindowSize)
 		}
 	}
-	fmt.Println("EMA avg:",avg," EMA all:",avg * RECOVER_WINDOW)
+	fmt.Println("EMA avg:",avg," EMA all:",avg * constants.WindowSize)
 
 	avg = 1
 	for i:= startBlock; i < endBlock; i++ {
@@ -235,5 +236,5 @@ func Test_EMA(t *testing.T) {
 			println("trace:",avg)
 		}
 	}
-	fmt.Println("avg:",avg/RECOVER_WINDOW," all:",avg)
+	fmt.Println("avg:",avg/constants.WindowSize," all:",avg)
 }

@@ -2,6 +2,7 @@ package utils
 
 import (
 	"github.com/coschain/contentos-go/app/table"
+	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
 )
@@ -45,21 +46,12 @@ func NewResourceLimiter(db iservices.IDatabaseService) *ResourceLimiter {
 	return &ResourceLimiter{db: db}
 }
 
-const CHAIN_STAMINA = 100000000
-
 const PRECISION = 10000
 
 // recover minimum time gap
 const MIN_RECOVER_DURATION = 45
 
-// resource recover in every 24H
-const RECOVER_WINDOW = 60 * 60 * 24
-
-// free resource every 24H
-const FREE_STAMINA = 10000
-
 // ResourceLimiter implemention
-
 func (s *ResourceLimiter) Get(name string) uint64{
 	accountWrap := table.NewSoAccountWrap(s.db, &prototype.AccountName{Value:name})
 	if !accountWrap.CheckExist() {
@@ -84,7 +76,7 @@ func (s *ResourceLimiter) calculateUserMaxStamina(name string) uint64 {
 	stakeVest := accountWrap.GetStakeVesting().Value
 
 	totalVest := vest + stakeVest
-	userMax := float64( totalVest * CHAIN_STAMINA)/float64(dgpWrap.GetProps().TotalVestingShares.Value)
+	userMax := float64( totalVest * constants.OneDayStamina)/float64(dgpWrap.GetProps().TotalVestingShares.Value)
 	return uint64(userMax)
 }
 
@@ -126,7 +118,7 @@ func (s *ResourceLimiter) ConsumeFree(name string,num uint64, now uint64) bool {
 		return false
 	}
 	newFreeStamina := calculateNewStamina(accountWrap.GetStaminaFree(),0,accountWrap.GetStaminaFreeUseBlock(),now)
-	if uint64(FREE_STAMINA) - newFreeStamina < num {
+	if uint64(constants.FreeStamina) - newFreeStamina < num {
 		return false
 	}
 	newFreeStamina = calculateNewStamina(newFreeStamina,num,now,now)
@@ -145,7 +137,7 @@ func (s *ResourceLimiter) GetFree(name string) uint64 {
 }
 
 func (s *ResourceLimiter) GetCapacityFree() uint64 {
-	return FREE_STAMINA
+	return constants.FreeStamina
 }
 
 func (s *ResourceLimiter) GetStakeLeft(name string, now uint64) uint64 {
@@ -166,7 +158,7 @@ func (s *ResourceLimiter) GetFreeLeft(name string, now uint64) uint64 {
 	}
 
 	newStamina := calculateNewStamina(accountWrap.GetStaminaFree(),0,accountWrap.GetStaminaFreeUseBlock(),now)
-	return FREE_STAMINA - newStamina
+	return constants.FreeStamina - newStamina
 }
 
 func (s *ResourceLimiter) ConsumeFreeLeft(name string, now uint64) bool {
@@ -175,13 +167,13 @@ func (s *ResourceLimiter) ConsumeFreeLeft(name string, now uint64) bool {
 		return false
 	}
 
-	accountWrap.MdStaminaFree(FREE_STAMINA)
+	accountWrap.MdStaminaFree(constants.FreeStamina)
 	accountWrap.MdStaminaFreeUseBlock(now)
 	return true
 }
 
 func calculateNewStamina(oldStamina uint64, useStamina uint64, lastTime uint64, now uint64) uint64 {
-	blocks := uint64(RECOVER_WINDOW)
+	blocks := uint64(constants.WindowSize)
 	if now > lastTime { // assert ?
 		if now < lastTime + blocks {
 			delta := now - lastTime
@@ -197,7 +189,7 @@ func calculateNewStamina(oldStamina uint64, useStamina uint64, lastTime uint64, 
 }
 
 func calculateNewStaminaEMA(avgOld, useStamina uint64, lastTime uint64, now uint64) uint64 {
-	blocks := uint64(RECOVER_WINDOW)
+	blocks := uint64(constants.WindowSize)
 	avgUse := useStamina/blocks
 	if now > lastTime { // assert ?
 		if now < lastTime + blocks {

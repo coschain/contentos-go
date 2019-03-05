@@ -453,7 +453,6 @@ func Test_MixOp(t *testing.T) {
 		Method:   "hi",
 		Params:   "[\"contentos\"]",
 		//Amount:   &prototype.Coin{Value: 1000},
-		Gas: &prototype.Coin{Value: 300000},
 	}
 
 	//
@@ -896,7 +895,6 @@ func Test_TrxSize(t *testing.T) {
 		Method:   "hi",
 		Params:   "[\"contentos\"]",
 		//Amount:   &prototype.Coin{Value: 1000},
-		Gas: &prototype.Coin{Value: 300000},
 	}
 	trx14,_ := createSigTrx(c, constants.InitminerPrivKey,applyOp)
 	fmt.Println(proto.Size(trx14))
@@ -972,7 +970,6 @@ func Test_Gas(t *testing.T) {
 		Method:   "hi",
 		Params:   "[\"contentos\"]",
 		//Amount:   &prototype.Coin{Value: 1000},
-		Gas: &prototype.Coin{Value: 300000},
 	}
 
 	// call contract repeated
@@ -1046,7 +1043,7 @@ func Test_Transfer(t *testing.T) {
 	}
 
 	// call contract repeated
-	for i := 0; i< 5000; i++ {
+	for i := 0; i< 1800; i++ { // 1800 is trx max expiration limit
 		signedTrx2, err := createSigTrxTmp(c, constants.InitminerPrivKey,uint32(i+1),applyOp)
 		if err != nil {
 			t.Error("createSigTrx error:", err)

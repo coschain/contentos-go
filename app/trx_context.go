@@ -4,15 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"github.com/coschain/contentos-go/app/table"
+	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/utils"
 	"github.com/coschain/contentos-go/vm/injector"
-)
-
-const (
-	netConsumePoint = 10
-	cpuConsumePoint = 1
 )
 
 type resourceUnit struct {
@@ -47,7 +43,7 @@ func (p *TrxContext) InitSigState(cid prototype.ChainId) error {
 
 func (p *TrxContext) CheckNet(sizeInBytes uint64) {
 	keyMaps := obtainKeyMap(p.Wrapper.SigTrx.Trx.Operations)
-	netUse := sizeInBytes * netConsumePoint
+	netUse := sizeInBytes * constants.NetConsumePoint
 	for name := range keyMaps {
 		p.netMap[name] = &resourceUnit{}
 		freeLeft := p.resourceLimiter.GetFreeLeft(name, p.control.GetProps().HeadBlockNumber)
@@ -161,11 +157,11 @@ func (p *TrxContext) deductStamina(m map[string]*resourceUnit,rate uint64) {
 }
 
 func (p *TrxContext) DeductAllNet() {
-	p.deductStamina(p.netMap,netConsumePoint)
+	p.deductStamina(p.netMap,constants.NetConsumePoint)
 }
 
 func (p *TrxContext) DeductAllCpu() {
-	p.deductStamina(p.gasMap,cpuConsumePoint)
+	p.deductStamina(p.gasMap,constants.CpuConsumePoint)
 }
 
 func (p *TrxContext) Finalize() {
@@ -227,7 +223,7 @@ func (p *TrxContext) TransferFromContractToContract(fromContract, fromOwner, toC
 	to.MdBalance(&prototype.Coin{Value: toBalance + amount})
 }
 
-func (p *TrxContext) ContractCall(caller, fromOwner, fromContract, fromMethod, toOwner, toContract, toMethod string, params []byte, coins, maxGas uint64) {
+func (p *TrxContext) ContractCall(caller, fromOwner, fromContract, fromMethod, toOwner, toContract, toMethod string, params []byte, coins, remainGas uint64) {
 	op := &prototype.InternalContractApplyOperation{
 		FromCaller:   &prototype.AccountName{Value: caller},
 		FromOwner:    &prototype.AccountName{Value: fromOwner},
@@ -238,9 +234,8 @@ func (p *TrxContext) ContractCall(caller, fromOwner, fromContract, fromMethod, t
 		ToMethod:     toMethod,
 		Params:       params,
 		Amount:       &prototype.Coin{Value: coins},
-		Gas:          &prototype.Coin{Value: maxGas},
 	}
-	eval := &InternalContractApplyEvaluator{ctx: &ApplyContext{db: p.db, trxCtx: p, control: p.control}, op: op}
+	eval := &InternalContractApplyEvaluator{ctx: &ApplyContext{db: p.db, trxCtx: p, control: p.control}, op: op,remainGas:remainGas}
 	eval.Apply()
 }
 

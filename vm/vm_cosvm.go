@@ -127,7 +127,7 @@ func (w *CosVM) runEntry(entryName string) (ret uint32, err error) {
 		ret = 1
 		return
 	}
-	vm.InitGasTable(w.ctx.Gas.Value)
+	vm.InitGasTable(w.ctx.Gas)
 	var entryIndex = -1
 	for name, entry := range vmModule.Export.Entries {
 		if name == entryName && entry.Kind == wasm.ExternalFunction {
