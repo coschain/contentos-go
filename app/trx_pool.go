@@ -241,6 +241,9 @@ func (c *TrxPool) pushTrx(tw *prototype.TransactionWrapper) {
 }
 
 func (c *TrxPool) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag) (err error) {
+	if blk == nil {
+		return errors.New("block is nil")
+	}
 	//var err error = nil
 	oldFlag := c.skip
 	c.skip = skip
@@ -356,7 +359,6 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 		if err := recover(); err != nil {
 			mustNoError(c.db.EndTransaction(false), "EndTransaction error", prototype.StatusErrorDbEndTrx)
 			//c.log.Errorf("GenerateBlock Error: %v", err)
-			panic(err)
 		}
 	}()
 
@@ -381,7 +383,7 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 
 	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
 	maxBlockSize := dgpWrap.GetProps().MaximumBlockSize
-	var totalSize uint32 = uint32(maxBlockHeaderSize)
+	var totalSize uint32 = uint32(maxBlockHeaderSize) + 2048 // block size will expand after sign
 
 	signBlock := &prototype.SignedBlock{}
 	signBlock.SignedHeader = &prototype.SignedBlockHeader{}
@@ -454,7 +456,8 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 	signBlock.SignedHeader.WitnessSignature = &prototype.SignatureType{}
 	signBlock.SignedHeader.Sign(priKey)
 
-	mustSuccess(proto.Size(signBlock) <= constants.MaxBlockSize, "block size too big", prototype.StatusErrorTrxMaxBlockSize)
+	size := proto.Size(signBlock)
+	mustSuccess(size <= constants.MaxBlockSize, "block size too big", prototype.StatusErrorTrxMaxBlockSize)
 	// clearpending then let dpos call PushBlock, the point is without restore pending step when PushBlock
 	//c.ClearPending()
 

@@ -1040,6 +1040,35 @@ func Test_Transfer(t *testing.T) {
 		From:from,
 		To:to,
 		Amount:prototype.NewCoin(1),
+		Memo:"asaasdadsaddsasdad" +
+			"asdasdadasdasdasdasdasdasdasdasdasdadadasdasdasdadasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdadasdadasdasdasdasda" +
+			"asdasdadasdasdasdasdasdasdasdasdasdadadasdasdasdadasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdadasdadasdasdasdasda" +
+			"asdasdadasdasdasdasdasdasdasdasdasdadadasdasdasdadasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdadasdadasdasdasdasda" +
+			"asdasdadasdasdasdasdasdasdasdasdasdadadasdasdasdadasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdadasdadasdasdasdasda" +
+			"asdasdadasdasdasdasdasdasdasdasdasdadadasdasdasdadasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdadasdadasdasdasdasda" +
+			"asdasdadasdasdasdasdasdasdasdasdasdadadasdasdasdadasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdadasdadasdasdasdasda" +
+			"asdasdadasdasdasdasdasdasdasdasdasdadadasdasdasdadasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdadasdadasdasdasdasda" +
+			"asdasdadasdasdasdasdasdasdasdasdasdadadasdasdasdadasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdadasdadasdasdasdasda" +
+			"asdasdadasdasdasdasdasdasdasdasdasdadadasdasdasdadasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdadasdadasdasdasdasda" +
+			"asdasdadasdasdasdasdasdasdasdasdasdadadasdasdasdadasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdadasdadasdasdasdasda" +
+			"asdasdadasdasdasdasdasdasdasdasdasdadadasdasdasdadasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdadasdadasdasdasdasda" +
+			"asdasdadasdasdasdasdasdasdasdasdasdadadasdasdasdadasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdadasdadasdasdasdasda" +
+			"asdasdadasdasdasdasdasdasdasdasdasdadadasdasdasdadasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdadasdadasdasdasdasda" +
+			"asdasdadasdasdasdasdasdasdasdasdasdadadasdasdasdadasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdadasdadasdasdasdasda" +
+			"asdasdadasdasdasdasdasdasdasdasdasdadadasdasdasdadasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdadasdadasdasdasdasda" +
+			"asdasdadasdasdasdasdasdasdasdasdasdadadasdasdasdadasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdadasdadasdasdasdasda" +
+			"asdasdadasdasdasdasdasdasdasdasdasdadadasdasdasdadasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdadasdadasdasdasdasda" +
+			"asdasdadasdasdasdasdasdasdasdasdasdadadasdasdasdadasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdadasdadasdasdasdasda" +
+			"asdasdadasdasdasdasdasdasdasdasdasdadadasdasdasdadasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdadasdadasdasdasdasda" +
+			"asdasdadasdasdasdasdasdasdasdasdasdadadasdasdasdadasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdadasdadasdasdasdasda" +
+			"asdasdadasdasdasdasdasdasdasdasdasdadadasdasdasdadasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdadasdadasdasdasdasda" +
+			"asdasdadasdasdasdasdasdasdasdasdasdadadasdasdasdadasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdadasdadasdasdasdasda" +
+			"asdasdadasdasdasdasdasdasdasdasdasdadadasdasdasdadasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdadasdadasdasdasdasda" +
+			"asdasdadasdasdasdasdasdasdasdasdasdadadasdasdasdadasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdadasdadasdasdasdasda" +
+			"asdasdadasdasdasdasdasdasdasdasdasdadadasdasdasdadasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdadasdadasdasdasdasda" +
+			"asdasdadasdasdasdasdasdasdasdasdasdadadasdasdasdadasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdadasdadasdasdasdasda" +
+			"asdasdadasdasdasdasdasdasdasdasdasdadadasdasdasdadasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdadasdadasdasdasdasda" +
+			"asdasdadasdasdasdasdasdasdasdasdasdadadasdasdasdadasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdadasdadasdasdasdasda",
 	}
 
 	// call contract repeated
@@ -1057,6 +1086,10 @@ func Test_Transfer(t *testing.T) {
 	id := block1.Id()
 	pre = &prototype.Sha256{Hash: id.Data[:]}
 	block2, err := c.GenerateAndApplyBlock(constants.COSInitMiner, pre, 21, pri, 0)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
 	fmt.Println()
 	fmt.Println("block size:",len(block2.Transactions))
 	//

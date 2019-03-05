@@ -24,7 +24,7 @@ const (
 
 	MaxTransactionSize = 1024 * 256
 
-	MaxBlockSize = MaxTransactionSize * BlockInterval * 2000
+	MaxBlockSize = 1024 * 1024 * 2
 	MinBlockSize = 115
 
 	InitminerPubKey  = "COS5JVLLcTPhq4Unr194JzWPDNSYGoMcam8yxnsjgRVo3Nb7ioyFW"
