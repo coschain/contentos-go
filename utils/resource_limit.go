@@ -86,12 +86,12 @@ func (s *ResourceLimiter) Consume(name string, num uint64, now uint64) bool {
 		return false
 	}
 
-	newStamina := calculateNewStamina(accountWrap.GetStamina(),0,accountWrap.GetStaminaUseBlock(),now)
+	newStamina := calculateNewStaminaEMA(accountWrap.GetStamina(),0,accountWrap.GetStaminaUseBlock(),now)
 	maxStamina := s.calculateUserMaxStamina(name)
 	if maxStamina - newStamina < num {
 		return false
 	}
-	newStamina = calculateNewStamina(newStamina,num,now,now)
+	newStamina = calculateNewStaminaEMA(newStamina,num,now,now)
 
 	accountWrap.MdStamina(newStamina)
 	accountWrap.MdStaminaUseBlock(now)
@@ -117,11 +117,11 @@ func (s *ResourceLimiter) ConsumeFree(name string,num uint64, now uint64) bool {
 	if !accountWrap.CheckExist() {
 		return false
 	}
-	newFreeStamina := calculateNewStamina(accountWrap.GetStaminaFree(),0,accountWrap.GetStaminaFreeUseBlock(),now)
+	newFreeStamina := calculateNewStaminaEMA(accountWrap.GetStaminaFree(),0,accountWrap.GetStaminaFreeUseBlock(),now)
 	if uint64(constants.FreeStamina) - newFreeStamina < num {
 		return false
 	}
-	newFreeStamina = calculateNewStamina(newFreeStamina,num,now,now)
+	newFreeStamina = calculateNewStaminaEMA(newFreeStamina,num,now,now)
 
 	accountWrap.MdStaminaFree(newFreeStamina)
 	accountWrap.MdStaminaFreeUseBlock(now)
@@ -146,7 +146,7 @@ func (s *ResourceLimiter) GetStakeLeft(name string, now uint64) uint64 {
 		return 0
 	}
 
-	newStamina := calculateNewStamina(accountWrap.GetStamina(),0,accountWrap.GetStaminaUseBlock(),now)
+	newStamina := calculateNewStaminaEMA(accountWrap.GetStamina(),0,accountWrap.GetStaminaUseBlock(),now)
 	maxStamina := s.calculateUserMaxStamina(name)
 	return maxStamina - newStamina
 }
@@ -157,7 +157,7 @@ func (s *ResourceLimiter) GetFreeLeft(name string, now uint64) uint64 {
 		return 0
 	}
 
-	newStamina := calculateNewStamina(accountWrap.GetStaminaFree(),0,accountWrap.GetStaminaFreeUseBlock(),now)
+	newStamina := calculateNewStaminaEMA(accountWrap.GetStaminaFree(),0,accountWrap.GetStaminaFreeUseBlock(),now)
 	return constants.FreeStamina - newStamina
 }
 
@@ -188,9 +188,18 @@ func calculateNewStamina(oldStamina uint64, useStamina uint64, lastTime uint64, 
 	return oldStamina
 }
 
-func calculateNewStaminaEMA(avgOld, useStamina uint64, lastTime uint64, now uint64) uint64 {
+func divideCeil(num,den uint64) uint64 {
+	v := num / den
+	if num % den > 0{
+		v += 1
+	}
+	return v
+}
+
+func calculateNewStaminaEMA(oldStamina, useStamina uint64, lastTime uint64, now uint64) uint64 {
 	blocks := uint64(constants.WindowSize)
-	avgUse := useStamina/blocks
+	avgOld := divideCeil(oldStamina*constants.LimitPrecision,blocks)
+	avgUse := divideCeil(useStamina*constants.LimitPrecision,blocks)
 	if now > lastTime { // assert ?
 		if now < lastTime + blocks {
 			delta := now - lastTime
@@ -202,5 +211,5 @@ func calculateNewStaminaEMA(avgOld, useStamina uint64, lastTime uint64, now uint
 		}
 	}
 	avgOld += avgUse
-	return avgOld
+	return avgOld * constants.WindowSize / constants.LimitPrecision
 }

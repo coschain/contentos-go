@@ -66,6 +66,7 @@ const (
 	BaseRate = 1
 
 	// resource parameter
+	LimitPrecision = 1000 * 1000
 	NetConsumePoint = 10
 	CpuConsumePoint = 1
 	MaxGasPerCall = 500000

@@ -224,10 +224,10 @@ func Test_EMA(t *testing.T) {
 	for i := startBlock; i < endBlock;i++ {
 		avg = calculateNewStaminaEMA(avg,data[i],i-1,i)
 		if i < 10 {
-			println("trace EMA:",avg*constants.WindowSize)
+			println("new EMA:",avg)
 		}
 	}
-	fmt.Println("EMA avg:",avg," EMA all:",avg * constants.WindowSize)
+	fmt.Println("new EMA avg:",avg/constants.WindowSize,"new EMA all:",avg)
 
 	avg = 1
 	for i:= startBlock; i < endBlock; i++ {
