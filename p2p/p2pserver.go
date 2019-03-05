@@ -340,16 +340,17 @@ func (this *P2PServer) ping() {
 
 //pings send pkgs to get pong msg from others
 func (this *P2PServer) pingTo(peers []*peer.Peer) {
-	service, err := this.Network.GetService(iservices.ConsensusServerName)
-	if err != nil {
-		this.log.Error("[p2p] can't get other service, service name: ", iservices.ConsensusServerName)
-		return
-	}
-	ctrl := service.(iservices.IConsensus)
+	//service, err := this.Network.GetService(iservices.ConsensusServerName)
+	//if err != nil {
+	//	this.log.Error("[p2p] can't get other service, service name: ", iservices.ConsensusServerName)
+	//	return
+	//}
+	//ctrl := service.(iservices.IConsensus)
 	for _, p := range peers {
 		if p.GetSyncState() == common.ESTABLISH {
 
-			height := ctrl.GetHeadBlockId().BlockNum()
+			//height := ctrl.GetHeadBlockId().BlockNum()
+			var height uint64 = 0
 			ping := msgpack.NewPingMsg(height)
 			go this.Send(p, ping, false)
 		}
