@@ -55,7 +55,7 @@ service ApiService {
     rpc GetBlockList (GetBlockListRequest) returns (GetBlockListResponse) {
     }
 
-    rpc GetAccountListByBalance (NonParamsRequest) returns (GetAccountListResponse) {
+    rpc GetAccountListByBalance (GetAccountListByBalanceRequest) returns (GetAccountListResponse) {
     }
 
     rpc GetDailyTotalTrxInfo  (GetDailyTotalTrxRequest) returns (GetDailyTotalTrxResponse) {
@@ -255,6 +255,12 @@ message GetBlockListResponse {
     repeated prototype.signed_block blocks = 1;
 }
 
+
+message GetAccountListByBalanceRequest {
+    prototype.coin   start     = 1;
+    prototype.coin   end       = 2;
+    AccountResponse  last_account = 3;
+}
 
 message GetAccountListResponse {
     repeated AccountResponse list = 1;

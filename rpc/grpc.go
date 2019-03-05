@@ -466,7 +466,7 @@ func (as *APIService) GetBlockList(ctx context.Context, req *grpcpb.GetBlockList
     return &grpcpb.GetBlockListResponse{Blocks:blkList},nil
 }
 
-func (as *APIService) GetAccountListByBalance(ctx context.Context, req *grpcpb.NonParamsRequest) (*grpcpb.GetAccountListResponse, error) {
+func (as *APIService) GetAccountListByBalance(ctx context.Context, req *grpcpb.GetAccountListByBalanceRequest) (*grpcpb.GetAccountListResponse, error) {
 	as.db.RLock()
 	defer as.db.RUnlock()
 
@@ -474,8 +474,17 @@ func (as *APIService) GetAccountListByBalance(ctx context.Context, req *grpcpb.N
 	var list []*grpcpb.AccountResponse
 	res := &grpcpb.GetAccountListResponse{}
 	var err error
+	var lastAcctNam *prototype.AccountName
+	var lastAcctCoin *prototype.Coin
+	if req.LastAccount != nil {
+		account := req.LastAccount
+		if account.AccountName != nil && account.Coin != nil {
+			lastAcctNam = account.AccountName
+			lastAcctCoin = account.Coin
+		}
+	}
 	if sortWrap != nil {
-		err = sortWrap.ForEachByOrder(nil, nil,nil,nil, func(mVal *prototype.AccountName, sVal *prototype.Coin, idx uint32) bool {
+		err = sortWrap.ForEachByRevOrder(req.Start, req.End,lastAcctNam,lastAcctCoin, func(mVal *prototype.AccountName, sVal *prototype.Coin, idx uint32) bool {
 			acct := &grpcpb.AccountResponse{}
 			accWrap := table.NewSoAccountWrap(as.db, mVal)
 			if accWrap != nil  {
@@ -499,6 +508,9 @@ func (as *APIService) GetAccountListByBalance(ctx context.Context, req *grpcpb.N
 				}
 				acct.State = as.getState()
 				list = append(list,acct)
+			}
+			if len(list) >= maxPageSizeLimit {
+				return false
 			}
 			return true
 		})
