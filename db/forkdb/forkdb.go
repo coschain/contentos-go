@@ -356,6 +356,7 @@ func (db *DB) FetchBlockFromMainBranch(num uint64) (common.ISignedBlock, error) 
 	return ret, nil
 }
 
+// FetchBlocksFromMainBranch fetches blocks from [num, head]
 func (db *DB) FetchBlocksFromMainBranch(num uint64) ([]common.ISignedBlock, error) {
 	db.RLock()
 	defer db.RUnlock()
