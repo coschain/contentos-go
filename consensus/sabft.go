@@ -303,7 +303,7 @@ func (sabft *SABFT) Start(node *node.Node) error {
 	snapshotPath := cfg.ResolvePath("forkdb_snapshot")
 	// TODO: fuck!! this is fugly
 	var avatar []common.ISignedBlock
-	for i := 0; i < constants.MaxWitnessCount+1; i++ {
+	for i := 0; i < 2001; i++ {
 		// TODO: if the bft process falls behind too much, the number
 		// TODO: of the avatar might not be sufficient
 
