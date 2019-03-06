@@ -1159,8 +1159,9 @@ func fetchBlocks(from, to uint64, forkDB *forkdb.DB, blog *blocklog.BLog) ([]com
 	}
 
 	var blocksInForkDB []common.ISignedBlock
+	var err error
 	if forkDBFrom > 0 {
-		blocksInForkDB, err := forkDB.FetchBlocksFromMainBranch(forkDBFrom)
+		blocksInForkDB, err = forkDB.FetchBlocksFromMainBranch(forkDBFrom)
 		if err != nil {
 			// there probably is a new committed block during the execution of this process, just try again
 			return fetchBlocks(from, to, forkDB, blog)
