@@ -214,7 +214,7 @@ func (as *APIService) GetChainState(ctx context.Context, req *grpcpb.NonParamsRe
 	return ret, nil
 }
 
-func (as *APIService) GetStatInfo(ctx context.Context, req *grpcpb.NonParamsRequest) (*grpcpb.GetStatResponse, error) {
+func (as *APIService) GetStatisticsInfo(ctx context.Context, req *grpcpb.NonParamsRequest) (*grpcpb.GetStatResponse, error) {
 
 	ret := &grpcpb.GetStatResponse{}
 
@@ -661,4 +661,58 @@ func (as *APIService) GetPostListByCreateTime(ctx context.Context, req *grpcpb.G
 
 	res.PostedList = postList
 	return res, err
+}
+
+func (as *APIService) GetPostListByName(ctx context.Context, req *grpcpb.GetPostListByNameRequest) (*grpcpb.GetPostListByCreateTimeResponse, error) {
+	as.db.RLock()
+	defer as.db.RUnlock()
+	var (
+		postList []*grpcpb.PostResponse
+		lastPostId *uint64
+		lastPostOrder *prototype.UserPostCreateOrder
+		err error
+	)
+	if req.LastPost != nil {
+		post := req.LastPost
+		lastPostId = &post.PostId
+		lastPostOrder = &prototype.UserPostCreateOrder{Author:post.Author,Create:post.Created}
+	}
+
+    wrap := table.NewExtUserPostPostCreatedOrderWrap(as.db)
+	res := &grpcpb.GetPostListByCreateTimeResponse{}
+	if wrap != nil {
+    	err = wrap.ForEachByRevOrder(req.Start, req.End, lastPostId, lastPostOrder, func(mVal *uint64, sVal *prototype.UserPostCreateOrder, idx uint32) bool {
+    		if mVal != nil {
+    			postWrap := table.NewSoPostWrap(as.db,mVal)
+    			if postWrap != nil && postWrap.CheckExist() {
+					postInfo := &grpcpb.PostResponse{
+						PostId:        postWrap.GetPostId(),
+						Category:      postWrap.GetCategory(),
+						ParentAuthor:  postWrap.GetAuthor(),
+						Author:        postWrap.GetAuthor(),
+						Title:         postWrap.GetTitle(),
+						Body:          postWrap.GetBody(),
+						Created:       postWrap.GetCreated(),
+						LastPayout:    postWrap.GetLastPayout(),
+						Depth:         postWrap.GetDepth(),
+						Children:      postWrap.GetChildren(),
+						RootId:        postWrap.GetRootId(),
+						ParentId:      postWrap.GetParentId(),
+						Tags:          postWrap.GetTags(),
+						Beneficiaries: postWrap.GetBeneficiaries(),
+					}
+					postList = append(postList, postInfo)
+				}
+			}
+			if len(postList) >= maxPageSizeLimit {
+				return false
+			}
+			return true
+		})
+	}
+	if postList == nil {
+		postList = make([]*grpcpb.PostResponse,0)
+	}
+	res.PostedList = postList
+	return res,err
 }

@@ -46,7 +46,7 @@ service ApiService {
     rpc GetChainState (NonParamsRequest) returns (GetChainStateResponse) {
     }
 
-    rpc GetStatInfo (NonParamsRequest) returns (GetStatResponse) {
+    rpc GetStatisticsInfo (NonParamsRequest) returns (GetStatResponse) {
     }
 
     rpc BroadcastTrx (BroadcastTrxRequest) returns (BroadcastTrxResponse) {
@@ -68,6 +68,9 @@ service ApiService {
     }
 
     rpc GetPostListByCreateTime (GetPostListByCreateTimeRequest) returns (GetPostListByCreateTimeResponse) {
+    }
+
+    rpc GetPostListByName (GetPostListByNameRequest) returns (GetPostListByCreateTimeResponse){
     }
 }
 
@@ -317,4 +320,10 @@ message GetPostListByCreateTimeRequest {
 
 message GetPostListByCreateTimeResponse {
     repeated PostResponse posted_list = 1;
+}
+
+message GetPostListByNameRequest {
+    prototype.user_post_create_order  start  = 1;
+    prototype.user_post_create_order  end    = 2;
+    PostResponse  last_post = 3;
 }

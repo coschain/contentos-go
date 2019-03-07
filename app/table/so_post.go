@@ -2002,7 +2002,6 @@ func (s *SPostCreatedWrap) ForEachByRevOrder(start *prototype.TimePointSec, end 
 	if s.Dba == nil {
 		return errors.New("the db is nil")
 	}
-	fmt.Printf("main key is %v,sub val is %v",lastMainKey,lastSubVal)
 	if (lastSubVal != nil && lastMainKey == nil) || (lastSubVal == nil && lastMainKey != nil) {
 		return errors.New("last query param error")
 	}
