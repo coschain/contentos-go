@@ -1,7 +1,6 @@
 package prototype
 
 import (
-	"fmt"
 	"github.com/coschain/contentos-go/common/encoding/kope"
 )
 
@@ -14,6 +13,5 @@ func (m *ReplyCreatedOrder) OpeEncode() ([]byte, error) {
 }
 
 func (m *UserPostCreateOrder) OpeEncode () ([]byte, error) {
-	fmt.Println("endcode UserPostCreateOrder")
 	return kope.Encode(m.Author, m.Create)
 }

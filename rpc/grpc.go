@@ -11,6 +11,7 @@ import (
 	"github.com/coschain/contentos-go/rpc/pb"
 	"github.com/coschain/contentos-go/vm/contract/abi"
 	contractTable "github.com/coschain/contentos-go/vm/contract/table"
+	"github.com/coschain/gobft/message"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"time"
@@ -76,6 +77,7 @@ func (as *APIService) GetAccountByName(ctx context.Context, req *grpcpb.GetAccou
 		acct.Vest = accWrap.GetVestingShares()
 		//acct.PublicKeys =
 		acct.CreatedTime = accWrap.GetCreatedTime()
+		acct.PostCount = accWrap.GetPostCount()
 
 		witWrap := table.NewSoWitnessWrap(as.db, accWrap.GetName())
 		if witWrap != nil && witWrap.CheckExist() {
@@ -416,6 +418,10 @@ func (as *APIService) getState() *grpcpb.ChainState {
 	)
 	result.Dgpo = table.NewSoGlobalWrap(as.db, &i).GetProps()
 	result.LastIrreversibleBlockNumber = as.consensus.GetLIB().BlockNum()
+	lastCommit := as.consensus.GetLastBFTCommit()
+	if lastCommit != nil {
+		result.LastIrreversibleBlockTime = uint64(lastCommit.(*message.Commit).CommitTime.Unix())
+	}
 	return result
 }
 
@@ -481,6 +487,7 @@ func (as *APIService) GetAccountListByBalance(ctx context.Context, req *grpcpb.G
 				acct.Coin = accWrap.GetBalance()
 				acct.Vest = accWrap.GetVestingShares()
 				acct.CreatedTime = accWrap.GetCreatedTime()
+				acct.PostCount = accWrap.GetPostCount()
 				witWrap := table.NewSoWitnessWrap(as.db, mVal)
 				if witWrap != nil && witWrap.CheckExist() {
 					acct.Witness = &grpcpb.WitnessResponse{

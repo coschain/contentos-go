@@ -17,6 +17,7 @@ message so_account {
     prototype.time_point_sec    last_vote_time      =      7;
     prototype.time_point_sec    last_post_time      =      8;
     uint32                      vote_power     =      9;
+    uint32                      post_count     =      10;
       
 }
 
@@ -63,6 +64,11 @@ message so_mem_account_by_last_post_time {
 
 message so_mem_account_by_vote_power {
 	uint32                   	vote_power = 1;
+}
+
+
+message so_mem_account_by_post_count {
+	uint32                   	post_count = 1;
 }
 
 

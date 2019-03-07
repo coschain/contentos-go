@@ -91,6 +91,12 @@ func (p *PostService) executePostOperation(op *prototype.PostOperation) {
 		})
 
 	}
+
+	acctWrap := table.NewSoAccountWrap(p.db,op.Owner)
+	if acctWrap != nil && acctWrap.CheckExist() {
+		cnt := acctWrap.GetPostCount()
+		acctWrap.MdPostCount(cnt+1)
+	}
 }
 
 func (p *PostService) executeReplyOperation(op *prototype.ReplyOperation) {

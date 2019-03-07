@@ -109,6 +109,7 @@ message AccountResponse {
     prototype.time_point_sec                created_time    = 5;
     WitnessResponse                         witness         = 6;
     ChainState                              state           = 7;
+    uint32                                  post_count      = 8;
 }
 
 message GetFollowerListByNameRequest {
@@ -247,7 +248,8 @@ message CallResponse {
 
 message ChainState {
     uint64 last_irreversible_block_number = 1;
-    prototype.dynamic_properties            dgpo            = 2;
+    uint64 last_irreversible_block_time   = 2;
+    prototype.dynamic_properties            dgpo            = 3;
 }
 
 message GetBlockListRequest {

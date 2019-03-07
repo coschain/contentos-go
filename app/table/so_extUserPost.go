@@ -173,7 +173,6 @@ func (s *SoExtUserPostWrap) insertSortKeyPostCreatedOrder(sa *SoExtUserPost) boo
 	if err != nil {
 		return false
 	}
-	fmt.Printf("sort key is %x \n",subBuf)
 	ordErr := s.dba.Put(subBuf, buf)
 	return ordErr == nil
 }
@@ -630,7 +629,6 @@ func (s *SExtUserPostPostCreatedOrderWrap) ForEachByRevOrder(start *prototype.Us
 	if s.Dba == nil {
 		return errors.New("the db is nil")
 	}
-	fmt.Printf("start is %v ,end is %v,last mainkey is %v, lastSubVal is %v \n",start,end,lastMainKey,lastSubVal)
 	if (lastSubVal != nil && lastMainKey == nil) || (lastSubVal == nil && lastMainKey != nil) {
 		return errors.New("last query param error")
 	}
@@ -663,15 +661,12 @@ func (s *SExtUserPostPostCreatedOrderWrap) ForEachByRevOrder(start *prototype.Us
 		return cErr
 	}
 	//reverse the start and end when create ReversedIterator to query by reverse order
-	fmt.Printf("start key is %x ,end key is %x \n",sBuf,eBuf)
 	iterator := s.Dba.NewReversedIterator(eBuf, sBuf)
 	if iterator == nil {
 		return errors.New("there is no data in range")
 	}
 	var idx uint32 = 0
-	fmt.Println("start iterator")
 	for iterator.Next() {
-		fmt.Printf("iterator \n")
 		idx++
 		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
 			break
