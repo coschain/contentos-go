@@ -276,13 +276,13 @@ func (mr *MockApiServiceClientMockRecorder) GetChainState(ctx, in interface{}, o
 }
 
 // GetStatInfo mocks base method
-func (m *MockApiServiceClient) GetStatInfo(ctx context.Context, in *x.NonParamsRequest, opts ...grpc.CallOption) (*x.GetStatResponse, error) {
+func (m *MockApiServiceClient) GetStatisticsInfo(ctx context.Context, in *x.NonParamsRequest, opts ...grpc.CallOption) (*x.GetStatResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
 	for _, a := range opts {
 		varargs = append(varargs, a)
 	}
-	ret := m.ctrl.Call(m, "GetStatInfo", varargs...)
+	ret := m.ctrl.Call(m, "GetStatisticsInfo", varargs...)
 	ret0, _ := ret[0].(*x.GetStatResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
@@ -292,7 +292,7 @@ func (m *MockApiServiceClient) GetStatInfo(ctx context.Context, in *x.NonParamsR
 func (mr *MockApiServiceClientMockRecorder) GetStatInfo(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStatInfo", reflect.TypeOf((*MockApiServiceClient)(nil).GetStatInfo), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStatisticsInfo", reflect.TypeOf((*MockApiServiceClient)(nil).GetStatInfo), varargs...)
 }
 
 // BroadcastTrx mocks base method
@@ -639,7 +639,7 @@ func (mr *MockApiServiceServerMockRecorder) GetChainState(arg0, arg1 interface{}
 }
 
 // GetStatInfo mocks base method
-func (m *MockApiServiceServer) GetStatInfo(arg0 context.Context, arg1 *x.NonParamsRequest) (*x.GetStatResponse, error) {
+func (m *MockApiServiceServer) GetStatisticsInfo(arg0 context.Context, arg1 *x.NonParamsRequest) (*x.GetStatResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetStatInfo", arg0, arg1)
 	ret0, _ := ret[0].(*x.GetStatResponse)
@@ -648,7 +648,7 @@ func (m *MockApiServiceServer) GetStatInfo(arg0 context.Context, arg1 *x.NonPara
 }
 
 // GetStatInfo indicates an expected call of GetStatInfo
-func (mr *MockApiServiceServerMockRecorder) GetStatInfo(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockApiServiceServerMockRecorder) GetStatisticsInfo(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStatInfo", reflect.TypeOf((*MockApiServiceServer)(nil).GetStatInfo), arg0, arg1)
 }
