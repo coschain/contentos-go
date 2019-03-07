@@ -153,6 +153,7 @@ func addCommands() {
 	rootCmd.AddCommand(commands.CallCmd())
 	rootCmd.AddCommand(commands.EstimateCmd())
 	rootCmd.AddCommand(commands.VmTableCmd())
+	rootCmd.AddCommand(commands.BatchCmd())
 }
 
 func init() {
