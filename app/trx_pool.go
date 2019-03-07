@@ -531,15 +531,15 @@ func (c *TrxPool) applyTransactionInner(isNeedVerify bool, trxContext *TrxContex
 		useGas := trxContext.HasGasFee()
 		if err := recover(); err != nil {
 
-			c.notifyTrxApplyResult(tw.SigTrx, false, tw.Receipt)
-
 			if useGas {
 				trxContext.SetStatus(prototype.StatusDeductGas)
 				e := &prototype.Exception{HelpString: "apply transaction failed", ErrorType: prototype.StatusDeductGas}
+				c.notifyTrxApplyResult(tw.SigTrx, true, tw.Receipt)
 				panic(e)
 			} else {
 				e := err.(*prototype.Exception)
 				trxContext.SetStatus(e.ErrorType)
+				c.notifyTrxApplyResult(tw.SigTrx, false, tw.Receipt)
 				panic(err)
 			}
 		} else {

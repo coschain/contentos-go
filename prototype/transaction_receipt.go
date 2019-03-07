@@ -5,5 +5,5 @@ func (m *TransactionReceipt) Validate() error {
 }
 
 func (m *TransactionReceipt) IsSuccess() bool {
-	return m.Status == StatusSuccess
+	return m.Status == StatusSuccess || m.Status == StatusDeductGas
 }
