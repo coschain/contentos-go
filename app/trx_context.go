@@ -43,7 +43,7 @@ func (p *TrxContext) InitSigState(cid prototype.ChainId) error {
 
 func (p *TrxContext) CheckNet(sizeInBytes uint64) {
 	keyMaps := obtainKeyMap(p.Wrapper.SigTrx.Trx.Operations)
-	netUse := sizeInBytes * constants.NetConsumePoint
+	netUse := sizeInBytes * uint64(float64(constants.NetConsumePointNum)/float64(constants.NetConsumePointDen))
 	for name := range keyMaps {
 		p.netMap[name] = &resourceUnit{}
 		freeLeft := p.resourceLimiter.GetFreeLeft(name, p.control.GetProps().HeadBlockNumber)
@@ -129,9 +129,10 @@ func (p *TrxContext) DeductGasFee(caller string, spent uint64) {
 	acc.MdBalance(&prototype.Coin{Value: balance - spent})
 }
 
-func (p *TrxContext) deductStamina(m map[string]*resourceUnit,rate uint64) {
+func (p *TrxContext) deductStamina(m map[string]*resourceUnit,num,den uint64) {
+	rate := float64(num)/float64(den)
 	for caller, spent := range m {
-		staminaUse := spent.raw * rate
+		staminaUse := uint64(float64(spent.raw) * rate)
 		now := p.control.GetProps().HeadBlockNumber
 		var paid uint64 = 0
 		if !p.resourceLimiter.ConsumeFree(caller, staminaUse, now) {
@@ -157,11 +158,11 @@ func (p *TrxContext) deductStamina(m map[string]*resourceUnit,rate uint64) {
 }
 
 func (p *TrxContext) DeductAllNet() {
-	p.deductStamina(p.netMap,constants.NetConsumePoint)
+	p.deductStamina(p.netMap,constants.NetConsumePointNum,constants.NetConsumePointDen)
 }
 
 func (p *TrxContext) DeductAllCpu() {
-	p.deductStamina(p.gasMap,constants.CpuConsumePoint)
+	p.deductStamina(p.gasMap,constants.CpuConsumePointNum,constants.CpuConsumePointDen)
 }
 
 func (p *TrxContext) Finalize() {

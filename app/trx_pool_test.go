@@ -30,7 +30,7 @@ func makeBlock(pre *prototype.Sha256, blockTimestamp uint32, signedTrx *prototyp
 		SigTrx:  signedTrx,
 		Receipt: &prototype.TransactionReceipt{Status: prototype.StatusSuccess},
 	}
-	trxWraper.Receipt.NetUsage = uint64(proto.Size(signedTrx)*10)
+	trxWraper.Receipt.NetUsage = uint64(proto.Size(signedTrx)* int(float64(constants.NetConsumePointNum)/float64(constants.NetConsumePointDen)))
 	//trxWraper.Receipt.CpuUsage = ?
 	sigBlk.Transactions = append(sigBlk.Transactions, trxWraper)
 
@@ -62,7 +62,6 @@ func createSigTrx(c *TrxPool, priKey string,ops ...interface{}) (*prototype.Sign
 
 	headBlockID := c.GetProps().GetHeadBlockId()
 	expire := c.GetProps().Time.UtcSeconds + 20
-	expire += 20
 
 	privKey, err := prototype.PrivateKeyFromWIF(priKey)
 	if err != nil {
@@ -459,7 +458,7 @@ func Test_MixOp(t *testing.T) {
 	miner := &prototype.AccountName{Value: "initminer"}
 	minerWrap := table.NewSoAccountWrap(db, miner)
 	b := minerWrap.GetStamina()
-	t.Log("before initminer stamina:", b)
+	t.Log("before call initminer stamina:", b)
 	//
 
 	signedTrx2, err := createSigTrx(c, constants.InitminerPrivKey,applyOp)
@@ -475,7 +474,7 @@ func Test_MixOp(t *testing.T) {
 	//
 	minerWrap2 := table.NewSoAccountWrap(db, miner)
 	b2 := minerWrap2.GetStamina()
-	t.Log("after initminer stamina:", b2)
+	t.Log("after call initminer stamina:", b2)
 	//
 
 	// right result:
@@ -666,7 +665,7 @@ func Test_Recover1(t *testing.T) {
 		t.Error("PushTrx return status error:", invoice3.Status)
 	}
 	all := bobWrap.GetStamina() + bobWrap.GetStaminaFree()
-	if all != uint64(netSize*10) {
+	if all != uint64(netSize * int(float64(constants.NetConsumePointNum)/float64(constants.NetConsumePointDen))) {
 		t.Error("recover or consume error")
 	}
 }
@@ -955,7 +954,8 @@ func Test_Gas(t *testing.T) {
 		t.Error("PrivateKeyFromWIF error")
 	}
 	pre := &prototype.Sha256{Hash: make([]byte, 32)}
-	block1, err := c.GenerateAndApplyBlock(constants.COSInitMiner, pre, 18, pri, 0)
+	headBlockTime := 18
+	block1, err := c.GenerateAndApplyBlock(constants.COSInitMiner, pre, uint32(headBlockTime), pri, 0)
 
 	//
 	s1 := minerWrap.GetStamina() + minerWrap.GetStaminaFree()
@@ -973,8 +973,10 @@ func Test_Gas(t *testing.T) {
 	}
 
 	// call contract repeated
+	headBlockTime = 21
 	for i := 0; i< 50; i++ {
-		signedTrx2, err := createSigTrxTmp(c, constants.InitminerPrivKey,uint32(i+1),applyOp)
+		headBlockTime += i
+		signedTrx2, err := createSigTrxTmp(c, constants.InitminerPrivKey,uint32(headBlockTime),applyOp)
 		if err != nil {
 			t.Error("createSigTrx error:", err)
 		}
@@ -986,7 +988,7 @@ func Test_Gas(t *testing.T) {
 
 	id := block1.Id()
 	pre = &prototype.Sha256{Hash: id.Data[:]}
-	block2, err := c.GenerateAndApplyBlock(constants.COSInitMiner, pre, 21, pri, 0)
+	block2, err := c.GenerateAndApplyBlock(constants.COSInitMiner, pre, uint32(headBlockTime), pri, 0)
 	fmt.Println()
 	fmt.Println("block size:",len(block2.Transactions))
 	//
@@ -1096,6 +1098,64 @@ func Test_Transfer(t *testing.T) {
 	s2 := minerWrap.GetStamina() + minerWrap.GetStaminaFree()
 	t.Log("after call contract initminer stamina use:", s2)
 	//
+}
+
+func Test_proportion(t *testing.T) {
+
+	db := startDB()
+	defer clearDB(db)
+	c := startController(db)
+
+	var value uint64 = 5000000000 // 2 billion each
+	var v uint64 = 1000000000
+	if ok := create_and_transfer(c, accountNameBob, pubKeyBob, v); !ok {
+		t.Error("create_and_transfer error")
+		return
+	}
+	if ok := create_and_transfer(c, accountNameTom, pubKeyTom, value); !ok {
+		t.Error("create_and_transfer error")
+		return
+	}
+
+
+	tmpValue := uint64(1000)
+	if ok := stake(c, accountNameBob, priKeyBob, tmpValue); !ok {
+		t.Error("stake error")
+		return
+	}
+
+	for i:=0;i<=50;i++ {
+
+		step := uint64(100000000)
+		if ok := stake(c, accountNameTom, priKeyTom, value); !ok {
+			t.Error("stake error")
+			return
+		}
+
+		bobMax := c.GetStaminaMax(accountNameBob)
+		fmt.Println("bob stake:",tmpValue," tom stake:",value," bob max stake stamina:",bobMax)
+
+		tomMax := c.GetStaminaMax(accountNameTom)
+		fmt.Println("            total max stake stamina:",tomMax+bobMax)
+
+		unstakeOp := &prototype.UnStakeOperation{
+			Account: prototype.NewAccountName(accountNameTom),
+			Amount:  value,
+		}
+		signedTrx2, err := createSigTrx(c, priKeyTom, unstakeOp)
+		if err != nil {
+			t.Error(err.Error())
+			return
+		}
+
+		invoice2 := c.PushTrx(signedTrx2)
+		if invoice2.Status != prototype.StatusSuccess {
+			t.Error("invoice error")
+			return
+		}
+
+		value -= step
+	}
 }
 
 func createSigTrxTmp(c *TrxPool, priKey string,step uint32,ops ...interface{}) (*prototype.SignedTransaction, error) {

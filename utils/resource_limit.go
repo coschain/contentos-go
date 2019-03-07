@@ -76,7 +76,8 @@ func (s *ResourceLimiter) calculateUserMaxStamina(name string) uint64 {
 	stakeVest := accountWrap.GetStakeVesting().Value
 
 	totalVest := vest + stakeVest
-	userMax := float64( totalVest * constants.OneDayStamina)/float64(dgpWrap.GetProps().TotalVestingShares.Value)
+	allVest := dgpWrap.GetProps().TotalVestingShares.Value
+	userMax := float64( totalVest)/float64(allVest) * constants.OneDayStamina
 	return uint64(userMax)
 }
 

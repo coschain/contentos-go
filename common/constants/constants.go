@@ -67,11 +67,13 @@ const (
 
 	// resource parameter
 	LimitPrecision = 1000 * 1000
-	NetConsumePoint = 10
-	CpuConsumePoint = 1
-	MaxGasPerCall = 500000
-	MaxStaminaPerBlock = 3500000
+	NetConsumePointNum = 10
+	NetConsumePointDen = 1
+	CpuConsumePointNum = 1
+	CpuConsumePointDen = 100
+	MaxGasPerCall = 5000
+	MaxStaminaPerBlock = 250000
 	WindowSize = 60 * 60 * 24
-	FreeStamina = 10000
+	FreeStamina = 100000
 	OneDayStamina = MaxStaminaPerBlock * WindowSize
 )
