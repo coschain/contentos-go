@@ -3,7 +3,7 @@ self-adaptive bft
 ------
 It generates blocks in the same manner of DPoS and adopts bft to achieve fast block confirmation. It's self adaptive in a way that it can adjust the frequency of bft process based on the load of the blockchain and network traffic.
 
-![cmd-markdown-logo](resource/goBFT-dataflow.jpeg)
+![SABFT-flow-chart](SABFT.jpeg)
 ## terminology
 * node: a server running contentos daemon(cosd)
 * validator: a node that generates blocks and participates in bft consensus
