@@ -215,7 +215,6 @@ message GetTrxByIdResponse {
 
 message GetChainStateResponse {
     ChainState state = 1;
-    repeated prototype.empty_signed_block blocks = 2;
 }
 
 message GetStatResponse {
