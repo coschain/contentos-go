@@ -7,14 +7,14 @@ import (
 
 func mustSuccess(b bool, val string, errorType uint32) {
 	if !b {
-		e := &prototype.Exception{HelpString:val,ErrorType:errorType}
+		e := &prototype.Exception{HelpString: val, ErrorType: errorType}
 		panic(e)
 	}
 }
 
 func mustNoError(err error, val string, errorType uint32) {
 	if err != nil {
-		e := &prototype.Exception{HelpString:val,ErrorString:err.Error(),ErrorType:errorType}
+		e := &prototype.Exception{HelpString: val, ErrorString: err.Error(), ErrorType: errorType}
 		panic(e)
 		//panic(val + " : " + err.Error())
 	}
@@ -84,9 +84,12 @@ func GetBaseEvaluator(ctx *ApplyContext, op *prototype.Operation) BaseEvaluator 
 	case *prototype.Operation_Op17:
 		eva := &UnStakeEvaluator{ctx: ctx, op: op.GetOp17()}
 		return BaseEvaluator(eva)
+	case *prototype.Operation_Op18:
+		eva := &ReportEvaluator{ctx: ctx, op: op.GetOp18()}
+		return BaseEvaluator(eva)
 
 	default:
-		e := &prototype.Exception{HelpString:"no matchable evaluator",ErrorType:prototype.StatusErrorTrxTypeCast}
+		e := &prototype.Exception{HelpString: "no matchable evaluator", ErrorType: prototype.StatusErrorTrxTypeCast}
 		panic(e)
 	}
 }

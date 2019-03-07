@@ -22,3 +22,5 @@ cmd/cosd/cosd
 cmd/multinodetester/multinodetester
 
 coverage.*
+build
+js_proto.sh

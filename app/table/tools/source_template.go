@@ -658,10 +658,16 @@ func (m *SoList{{$.ClsName}}By{{$v.PName}}) OpeEncode() ([]byte,error) {
 //if the return value of f is true,continue iterating until the end iteration;
 //otherwise stop iteration immediately
 //
-func (s *S{{$.ClsName}}{{$v.PName}}Wrap) ForEachByOrder(start *{{$v.PType}}, end *{{$v.PType}},
-     f func(mVal *{{formatStr $.MainKeyType}},sVal *{{formatSliceType $v.PType}},idx uint32) bool ) error {
+//lastMainKey: the main key of the last one of last page
+//lastSubVal: the value  of the last one of last page
+//
+func (s *S{{$.ClsName}}{{$v.PName}}Wrap) ForEachByOrder(start *{{$v.PType}}, end *{{$v.PType}}, lastMainKey *{{formatStr $.MainKeyType}},
+     lastSubVal *{{formatSliceType $v.PType}},f func(mVal *{{formatStr $.MainKeyType}},sVal *{{formatSliceType $v.PType}},idx uint32) bool ) error {
     if s.Dba == nil {
        return errors.New("the db is nil")
+    }
+    if (lastSubVal != nil && lastMainKey == nil ) || (lastSubVal == nil && lastMainKey != nil) {
+       return errors.New("last query param error")
     }
     if f == nil {
        return nil
@@ -670,6 +676,14 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) ForEachByOrder(start *{{$v.PType}}, end
     skeyList := []interface{}{pre}
     if start != nil {
        skeyList = append(skeyList,start)
+       if lastMainKey != nil {
+          skeyList = append(skeyList,lastMainKey,kope.MinimalKey)
+       }
+    }else {
+        if lastMainKey != nil && lastSubVal != nil {
+            skeyList = append(skeyList,lastSubVal,lastMainKey,kope.MinimalKey)
+        }
+        skeyList = append(skeyList,kope.MinimalKey)
     }
     sBuf,cErr := kope.EncodeSlice(skeyList)
     if cErr != nil {
@@ -708,10 +722,16 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) ForEachByOrder(start *{{$v.PType}}, end
 //if the return value of f is true,continue iterating until the end iteration;
 //otherwise stop iteration immediately
 //
-func (s *S{{$.ClsName}}{{$v.PName}}Wrap) ForEachByRevOrder(start *{{$v.PType}}, end *{{$v.PType}},
-     f func(mVal *{{formatStr $.MainKeyType}},sVal *{{formatSliceType $v.PType}}, idx uint32) bool) error {
+//lastMainKey: the main key of the last one of last page
+//lastSubVal: the value  of the last one of last page
+//
+func (s *S{{$.ClsName}}{{$v.PName}}Wrap) ForEachByRevOrder(start *{{$v.PType}}, end *{{$v.PType}},lastMainKey *{{formatStr $.MainKeyType}},
+     lastSubVal *{{formatSliceType $v.PType}}, f func(mVal *{{formatStr $.MainKeyType}},sVal *{{formatSliceType $v.PType}}, idx uint32) bool) error {
     if s.Dba == nil {
        return errors.New("the db is nil")
+    }
+    if (lastSubVal != nil && lastMainKey == nil ) || (lastSubVal == nil && lastMainKey != nil) {
+       return errors.New("last query param error")
     }
     if f == nil {
        return nil
@@ -720,7 +740,13 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) ForEachByRevOrder(start *{{$v.PType}}, 
     skeyList := []interface{}{pre}
     if start != nil {
        skeyList = append(skeyList,start)
+       if lastMainKey != nil {
+            skeyList = append(skeyList,lastMainKey)
+       }
     } else {
+       if lastMainKey != nil && lastSubVal != nil {
+           skeyList = append(skeyList,lastSubVal,lastMainKey)
+       } 
        skeyList = append(skeyList, kope.MaximumKey)
 	}
     sBuf,cErr := kope.EncodeSlice(skeyList)

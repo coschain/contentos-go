@@ -9,28 +9,22 @@ import "prototype/type.proto";
 
 message so_witness {
 	prototype.account_name            owner                        =      1;
-    prototype.witness_schedule_type   witness_schedule_type        =      2;
-    prototype.time_point_sec          created_time                 =      3;
-    string                            url                          =      4;
-    uint64                            vote_count                   =      5;
-    uint32                            last_confirmed_block_num     =      6;
-    uint32                            total_missed                 =      7;
-    uint32                            pow_worker                   =      8;
-    prototype.public_key_type         signing_key                  =      9;
-    prototype.sha256                  last_work                    =      10;
-    uint32                            running_version              =      11;
-    uint32                            last_aslot                   =      12;
+    prototype.time_point_sec          created_time                 =      2;
+    string                            url                          =      3;
+    uint64                            vote_count                   =      4;
+    uint32                            last_confirmed_block_num     =      5;
+    uint32                            total_missed                 =      6;
+    uint32                            pow_worker                   =      7;
+    prototype.public_key_type         signing_key                  =      8;
+    prototype.sha256                  last_work                    =      9;
+    uint32                            running_version              =      10;
+    uint32                            last_aslot                   =      11;
       
 }
 
 
 message so_mem_witness_by_owner {
 	prototype.account_name         	owner                    = 1;
-}
-
-
-message so_mem_witness_by_witness_schedule_type {
-	prototype.witness_schedule_type	witness_schedule_type    = 1;
 }
 
 

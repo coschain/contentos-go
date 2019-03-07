@@ -162,4 +162,8 @@ func RegisterService(app *node.Node, cfg node.Config) {
 	_ = app.Register(iservices.RpcServerName, func(ctx *node.ServiceContext) (node.Service, error) {
 		return rpc.NewGRPCServer(ctx, ctx.Config().GRPC, app.Log)
 	})
+
+	_ = app.Register(plugins.TrxServiceName, func(ctx *node.ServiceContext) (node.Service, error) {
+		return plugins.NewTrxSerVice(ctx)
+	})
 }

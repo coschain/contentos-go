@@ -239,7 +239,7 @@ func Test_list(t *testing.T) {
 	// check and delete
 
 	sortWrap := table.STransactionObjectExpirationWrap{Dba: db}
-	sortWrap.ForEachByOrder(nil, nil,
+	sortWrap.ForEachByOrder(nil, nil,nil,nil,
 		func(mVal *prototype.Sha256, sVal *prototype.TimePointSec, idx uint32) bool {
 			if sVal != nil {
 				objWrap := table.NewSoTransactionObjectWrap(db, mVal)
@@ -262,7 +262,6 @@ func TestController_GetWitnessTopN(t *testing.T) {
 	witnessWrap := table.NewSoWitnessWrap(db, name)
 	mustNoError(witnessWrap.Create(func(tInfo *table.SoWitness) {
 		tInfo.Owner = name
-		tInfo.WitnessScheduleType = &prototype.WitnessScheduleType{Value: prototype.WitnessScheduleType_miner}
 		tInfo.CreatedTime = &prototype.TimePointSec{UtcSeconds: 0}
 		tInfo.SigningKey = &prototype.PublicKeyType{Data: []byte{1}}
 		tInfo.LastWork = &prototype.Sha256{Hash: []byte{0}}
@@ -272,7 +271,6 @@ func TestController_GetWitnessTopN(t *testing.T) {
 	witnessWrap2 := table.NewSoWitnessWrap(db, name2)
 	mustNoError(witnessWrap2.Create(func(tInfo *table.SoWitness) {
 		tInfo.Owner = name2
-		tInfo.WitnessScheduleType = &prototype.WitnessScheduleType{Value: prototype.WitnessScheduleType_miner}
 		tInfo.CreatedTime = &prototype.TimePointSec{UtcSeconds: 0}
 		tInfo.SigningKey = &prototype.PublicKeyType{Data: []byte{2}}
 		tInfo.LastWork = &prototype.Sha256{Hash: []byte{0}}
@@ -537,7 +535,7 @@ func Test_Stake_UnStake(t *testing.T) {
 	// stake wrong amount
 	stakeOp2 := &prototype.StakeOperation{
 		Account: prototype.NewAccountName(constants.COSInitMiner),
-		Amount:  10000000001,
+		Amount:  10000000001 * constants.COSTokenDecimals,
 	}
 
 	signedTrx3, err := createSigTrx(c, constants.InitminerPrivKey,stakeOp2)

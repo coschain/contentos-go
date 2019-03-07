@@ -110,6 +110,8 @@ func (db *DB) LoadSnapshot(avatar []common.ISignedBlock, dir string, blog *block
 		if err := db.snapshot.ReadBlock(avatar[i], i); err != nil {
 			panic(err)
 		}
+	}
+	for i=0; i<size; i++ {
 		db.pushBlock(avatar[i])
 	}
 	//db.log.Debugf("[ForkDB][LoadSnapshot] %d blocks loaded.", size)
@@ -356,6 +358,7 @@ func (db *DB) FetchBlockFromMainBranch(num uint64) (common.ISignedBlock, error) 
 	return ret, nil
 }
 
+// FetchBlocksFromMainBranch fetches blocks from [num, head]
 func (db *DB) FetchBlocksFromMainBranch(num uint64) ([]common.ISignedBlock, error) {
 	db.RLock()
 	defer db.RUnlock()

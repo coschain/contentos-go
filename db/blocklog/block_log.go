@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"sync"
 
 	"github.com/coschain/contentos-go/common"
 )
@@ -37,10 +38,15 @@ const maxPayloadLen = 1024 * 1024 * 256
 type BLog struct {
 	logFile   *os.File
 	indexFile *os.File
+
+	sync.RWMutex
 }
 
 // Open opens the block log & index file
 func (bl *BLog) Open(dir string) (err error) {
+	bl.Lock()
+	defer bl.Unlock()
+
 	_, err = os.Stat(dir)
 
 	if err != nil {
@@ -91,6 +97,9 @@ func (bl *BLog) Open(dir string) (err error) {
 
 // Remove remove log and index file
 func (bl *BLog) Remove(dir string) {
+	bl.Lock()
+	defer bl.Unlock()
+
 	bl.logFile.Close()
 	bl.indexFile.Close()
 	os.Remove(dir + "/block.bin")
@@ -99,6 +108,9 @@ func (bl *BLog) Remove(dir string) {
 
 // Append appends a common.SignedBlock to the BLog
 func (bl *BLog) Append(sb common.ISignedBlock) error {
+	bl.Lock()
+	defer bl.Unlock()
+
 	logFileOffset, _ := bl.logFile.Seek(0, 2)
 	bl.indexFile.Seek(0, 2)
 	// TODO: check index cnt and sb block num
@@ -144,6 +156,9 @@ func (bl *BLog) Append(sb common.ISignedBlock) error {
 
 // Size...
 func (bl *BLog) Size() int64 {
+	bl.RLock()
+	defer bl.RUnlock()
+
 	idxInfo, err := bl.indexFile.Stat()
 	if err != nil {
 		panic(err)
@@ -154,6 +169,9 @@ func (bl *BLog) Size() int64 {
 
 // Empty returns true if it contains no block
 func (bl *BLog) Empty() bool {
+	bl.RLock()
+	defer bl.RUnlock()
+
 	logInfo, err := bl.logFile.Stat()
 	if err != nil {
 		panic(err)
@@ -164,6 +182,9 @@ func (bl *BLog) Empty() bool {
 
 // ReadBlock reads a block at blockNum, blockNum start at 0
 func (bl *BLog) ReadBlock(sb common.ISignedBlock, blockNum int64) error {
+	bl.RLock()
+	defer bl.RUnlock()
+	
 	indexOffset := blockNum * indexSize
 	// read index
 	indexByte := make([]byte, indexSize)

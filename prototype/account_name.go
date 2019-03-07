@@ -1,6 +1,7 @@
 package prototype
 
 import (
+	"fmt"
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/pkg/errors"
 )
@@ -43,6 +44,27 @@ func (m *AccountName) Validate() error {
 	}
 	return nil
 }
+
+func (m *AccountName) ToString() string {
+	return m.Value
+}
+
+func (m *AccountName) MarshalJSON() ([]byte, error) {
+	val := fmt.Sprintf("\"%s\"", m.ToString())
+	return []byte(val), nil
+}
+
+func (m *AccountName) UnmarshalJSON(input []byte) error {
+
+	buffer, err := stripJsonQuota(input)
+	if err != nil {
+		return err
+	}
+
+	m.Value = string(buffer)
+	return nil
+}
+
 
 func NewAccountName(value string) *AccountName {
 	return &AccountName{Value: value}

@@ -20,12 +20,12 @@ type Link struct {
 	port      uint32                 // The server port of the node
 	time      time.Time              // The latest time the node activity
 	recvChan  chan *types.MsgPayload //msgpayload channel
-	reqRecord map[string]int64       //Map RequestId to Timestamp, using for rejecting duplicate request in specific time
+	reqIdRecord int64                //Map RequestId to Timestamp, using for rejecting too fast REQ_ID request in specific time
 }
 
 func NewLink() *Link {
 	link := &Link{
-		reqRecord: make(map[string]int64, 0),
+		reqIdRecord: 0,
 	}
 	return link
 }
@@ -110,7 +110,6 @@ func (this *Link) Rx(magic uint32) {
 		//if !this.needSendMsg(msg) {
 		//	continue
 		//}
-		//this.addReqRecord(msg)
 
 		this.recvChan <- &types.MsgPayload{
 			Id:          this.id,
@@ -195,37 +194,16 @@ func sleepRandomTime() {
 }
 
 //needSendMsg check whether the msg is needed to push to channel
-//func (this *Link) needSendMsg(msg types.Message) bool {
-//	if msg.CmdType() != common.GET_DATA_TYPE {
-//		return true
-//	}
-//	var dataReq = msg.(*types.DataReq)
-//	reqID := fmt.Sprintf("%x%s", dataReq.DataType, dataReq.Hash.ToHexString())
-//	now := time.Now().Unix()
-//
-//	if t, ok := this.reqRecord[reqID]; ok {
-//		if int(now-t) < common.REQ_INTERVAL {
-//			return false
-//		}
-//	}
-//	return true
-//}
+func (this *Link) needSendMsg(msg types.Message) bool {
+	if msg.CmdType() != common.REQ_ID_TYPE {
+		return true
+	}
+	now := time.Now().Unix()
 
-//addReqRecord add request record by removing outdated request records
-//func (this *Link) addReqRecord(msg types.Message) {
-//	if msg.CmdType() != common.GET_DATA_TYPE {
-//		return
-//	}
-//	now := time.Now().Unix()
-//	if len(this.reqRecord) >= common.MAX_REQ_RECORD_SIZE-1 {
-//		for id := range this.reqRecord {
-//			t := this.reqRecord[id]
-//			if int(now-t) > common.REQ_INTERVAL {
-//				delete(this.reqRecord, id)
-//			}
-//		}
-//	}
-//	var dataReq = msg.(*types.DataReq)
-//	reqID := fmt.Sprintf("%x%s", dataReq.DataType, dataReq.Hash.ToHexString())
-//	this.reqRecord[reqID] = now
-//}
+	if now - this.reqIdRecord < common.REQ_INTERVAL {
+		return false
+	}
+
+	this.reqIdRecord = now
+	return true
+}

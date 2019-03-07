@@ -28,7 +28,6 @@ var (
 	WitnessTotalMissedCell           uint32 = 348210894
 	WitnessUrlCell                   uint32 = 261756480
 	WitnessVoteCountCell             uint32 = 149922791
-	WitnessWitnessScheduleTypeCell   uint32 = 1680633675
 )
 
 ////////////// SECTION Wrap Define ///////////////
@@ -344,9 +343,6 @@ func (s *SoWitnessWrap) getMemKeyPrefix(fName string) uint32 {
 	if fName == "VoteCount" {
 		return WitnessVoteCountCell
 	}
-	if fName == "WitnessScheduleType" {
-		return WitnessWitnessScheduleTypeCell
-	}
 
 	return 0
 }
@@ -455,13 +451,6 @@ func (s *SoWitnessWrap) saveAllMemKeys(tInfo *SoWitness, br bool) error {
 			return err
 		} else {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "VoteCount", err)
-		}
-	}
-	if err = s.saveMemKeyWitnessScheduleType(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "WitnessScheduleType", err)
 		}
 	}
 
@@ -1397,89 +1386,6 @@ func (s *SoWitnessWrap) MdVoteCount(p uint64) bool {
 	return true
 }
 
-func (s *SoWitnessWrap) saveMemKeyWitnessScheduleType(tInfo *SoWitness) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemWitnessByWitnessScheduleType{}
-	val.WitnessScheduleType = tInfo.WitnessScheduleType
-	key, err := s.encodeMemKey("WitnessScheduleType")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
-
-func (s *SoWitnessWrap) GetWitnessScheduleType() *prototype.WitnessScheduleType {
-	res := true
-	msg := &SoMemWitnessByWitnessScheduleType{}
-	if s.dba == nil {
-		res = false
-	} else {
-		key, err := s.encodeMemKey("WitnessScheduleType")
-		if err != nil {
-			res = false
-		} else {
-			buf, err := s.dba.Get(key)
-			if err != nil {
-				res = false
-			}
-			err = proto.Unmarshal(buf, msg)
-			if err != nil {
-				res = false
-			} else {
-				return msg.WitnessScheduleType
-			}
-		}
-	}
-	if !res {
-		return nil
-
-	}
-	return msg.WitnessScheduleType
-}
-
-func (s *SoWitnessWrap) MdWitnessScheduleType(p *prototype.WitnessScheduleType) bool {
-	if s.dba == nil {
-		return false
-	}
-	key, err := s.encodeMemKey("WitnessScheduleType")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemWitnessByWitnessScheduleType{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoWitness{}
-	sa.Owner = s.mainKey
-
-	sa.WitnessScheduleType = ori.WitnessScheduleType
-
-	ori.WitnessScheduleType = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.WitnessScheduleType = p
-
-	return true
-}
-
 ////////////// SECTION List Keys ///////////////
 type SWitnessOwnerWrap struct {
 	Dba iservices.IDatabaseService
@@ -1565,10 +1471,16 @@ func (m *SoListWitnessByOwner) OpeEncode() ([]byte, error) {
 //if the return value of f is true,continue iterating until the end iteration;
 //otherwise stop iteration immediately
 //
-func (s *SWitnessOwnerWrap) ForEachByOrder(start *prototype.AccountName, end *prototype.AccountName,
-	f func(mVal *prototype.AccountName, sVal *prototype.AccountName, idx uint32) bool) error {
+//lastMainKey: the main key of the last one of last page
+//lastSubVal: the value  of the last one of last page
+//
+func (s *SWitnessOwnerWrap) ForEachByOrder(start *prototype.AccountName, end *prototype.AccountName, lastMainKey *prototype.AccountName,
+	lastSubVal *prototype.AccountName, f func(mVal *prototype.AccountName, sVal *prototype.AccountName, idx uint32) bool) error {
 	if s.Dba == nil {
 		return errors.New("the db is nil")
+	}
+	if (lastSubVal != nil && lastMainKey == nil) || (lastSubVal == nil && lastMainKey != nil) {
+		return errors.New("last query param error")
 	}
 	if f == nil {
 		return nil
@@ -1577,6 +1489,14 @@ func (s *SWitnessOwnerWrap) ForEachByOrder(start *prototype.AccountName, end *pr
 	skeyList := []interface{}{pre}
 	if start != nil {
 		skeyList = append(skeyList, start)
+		if lastMainKey != nil {
+			skeyList = append(skeyList, lastMainKey, kope.MinimalKey)
+		}
+	} else {
+		if lastMainKey != nil && lastSubVal != nil {
+			skeyList = append(skeyList, lastSubVal, lastMainKey, kope.MinimalKey)
+		}
+		skeyList = append(skeyList, kope.MinimalKey)
 	}
 	sBuf, cErr := kope.EncodeSlice(skeyList)
 	if cErr != nil {
@@ -1686,10 +1606,16 @@ func (m *SoListWitnessByVoteCount) OpeEncode() ([]byte, error) {
 //if the return value of f is true,continue iterating until the end iteration;
 //otherwise stop iteration immediately
 //
-func (s *SWitnessVoteCountWrap) ForEachByRevOrder(start *uint64, end *uint64,
-	f func(mVal *prototype.AccountName, sVal *uint64, idx uint32) bool) error {
+//lastMainKey: the main key of the last one of last page
+//lastSubVal: the value  of the last one of last page
+//
+func (s *SWitnessVoteCountWrap) ForEachByRevOrder(start *uint64, end *uint64, lastMainKey *prototype.AccountName,
+	lastSubVal *uint64, f func(mVal *prototype.AccountName, sVal *uint64, idx uint32) bool) error {
 	if s.Dba == nil {
 		return errors.New("the db is nil")
+	}
+	if (lastSubVal != nil && lastMainKey == nil) || (lastSubVal == nil && lastMainKey != nil) {
+		return errors.New("last query param error")
 	}
 	if f == nil {
 		return nil
@@ -1698,7 +1624,13 @@ func (s *SWitnessVoteCountWrap) ForEachByRevOrder(start *uint64, end *uint64,
 	skeyList := []interface{}{pre}
 	if start != nil {
 		skeyList = append(skeyList, start)
+		if lastMainKey != nil {
+			skeyList = append(skeyList, lastMainKey)
+		}
 	} else {
+		if lastMainKey != nil && lastSubVal != nil {
+			skeyList = append(skeyList, lastSubVal, lastMainKey)
+		}
 		skeyList = append(skeyList, kope.MaximumKey)
 	}
 	sBuf, cErr := kope.EncodeSlice(skeyList)

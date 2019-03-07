@@ -17,8 +17,9 @@ func main() {
 	}
 	fmt.Println("robot count: ", walletCnt)
 
-	// create 10 accounts initminer1 ... initminer10
+	// create 10 accounts initminer1 ... initminer10 and initminer post 10 articles
 	request.InitEnv()
+	fmt.Println("init base enviroment over")
 
 	for i:=0;i<walletCnt;i++ {
 		request.Wg.Add(1)

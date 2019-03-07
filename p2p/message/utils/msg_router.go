@@ -5,7 +5,6 @@ import (
 	"github.com/coschain/contentos-go/p2p/message/types"
 	"github.com/coschain/contentos-go/p2p/net/protocol"
 	"github.com/sirupsen/logrus"
-	"runtime"
 )
 
 // MessageHandler defines the unified api for each net message
@@ -80,10 +79,6 @@ func (this *MessageRouter) hookChan(channel chan *types.MsgPayload,
 		select {
 		case data, ok := <-channel:
 			if ok {
-				if runtime.NumGoroutine() > msgCommon.MAX_ROUTINE_NUM {
-					continue
-				}
-
 				msgType := data.Payload.CmdType()
 
 				handler, ok := this.msgHandlers[msgType]

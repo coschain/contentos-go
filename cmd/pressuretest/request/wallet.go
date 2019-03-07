@@ -8,6 +8,7 @@ import (
 	"github.com/coschain/contentos-go/rpc"
 	"github.com/coschain/contentos-go/rpc/pb"
 	"math/rand"
+	"os"
 	"sync"
 	"time"
 )
@@ -28,6 +29,11 @@ const (
 	POST_CMD     = "post"
 	FOLLOW_CMD   = "follow"
 	VOTE_CMD     = "vote"
+
+	INIT_ACCOUNT_LENGTH = 10
+	INIT_POSTID_LENGTH  = 10
+	MAX_ACCOUNT_NUM     = 10000000  // 10 million
+	MAX_POSTID_NUM      = 10000000  // 10 million
 )
 
 var IPList []string = []string{
@@ -66,8 +72,20 @@ func InitEnv() {
 	}
 	rpcClient := grpcpb.NewApiServiceClient(conn)
 
-	for i:=1;i<=10;i++ {
+	for i:=1;i<=INIT_ACCOUNT_LENGTH-1;i++ {
 		createAccount(localWallet, rpcClient, GlobalAccountLIst.arr[0], fmt.Sprintf("initminer%d", i))
+	}
+	if len(GlobalAccountLIst.arr) < INIT_ACCOUNT_LENGTH {
+		fmt.Println("init account list failed, account list length: ", len(GlobalAccountLIst.arr))
+		os.Exit(1)
+	}
+
+	for i:=1;i<=INIT_POSTID_LENGTH;i++ {
+		postArticle(rpcClient, GlobalAccountLIst.arr[0])
+	}
+	if len(PostIdList.arr) < INIT_POSTID_LENGTH {
+		fmt.Println("init postid list failed, postid length: ", len(PostIdList.arr))
+		os.Exit(1)
 	}
 }
 
@@ -96,10 +114,22 @@ func StartEachRoutine(index int) {
 
 		switch cmdType {
 		case CREATE_CMD:
+			GlobalAccountLIst.RLock()
+			if len(GlobalAccountLIst.arr) > MAX_ACCOUNT_NUM {
+				GlobalAccountLIst.RUnlock()
+				continue
+			}
+			GlobalAccountLIst.RUnlock()
 			createAccount(localWallet, rpcClient, nil, "")
 		case TRANSFER_CMD:
 			transfer(rpcClient, nil, nil, 0)
 		case POST_CMD:
+			PostIdList.RLock()
+			if len(PostIdList.arr) > MAX_POSTID_NUM {
+				PostIdList.RUnlock()
+				continue
+			}
+			PostIdList.RUnlock()
 			postArticle(rpcClient, nil)
 		case FOLLOW_CMD:
 			follow(rpcClient, nil, nil)

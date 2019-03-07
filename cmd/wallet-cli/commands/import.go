@@ -67,13 +67,9 @@ func importAccount(cmd *cobra.Command, args []string) {
 	if err != nil {
 		fmt.Println(err)
 	} else {
-		pubkeys := resp.PublicKeys
-		is_exist := false
-		for _, key := range pubkeys {
-			if pubKeyStr == key.ToWIF() {
-				is_exist = true
-			}
-		}
+		pubkey := resp.PublicKey
+		is_exist := pubKeyStr == pubkey.ToWIF()
+
 		// Todo: uncomment me
 		//if is_exist {
 		//	// the pubkey and account name should be check by api

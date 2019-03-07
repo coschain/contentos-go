@@ -55,9 +55,22 @@ service ApiService {
     rpc GetBlockList (GetBlockListRequest) returns (GetBlockListResponse) {
     }
 
-    rpc GetAccountListByBalance (NonParamsRequest) returns (GetAccountListResponse) {
+    rpc GetAccountListByBalance (GetAccountListByBalanceRequest) returns (GetAccountListResponse) {
+    }
+
+    rpc GetDailyTotalTrxInfo  (GetDailyTotalTrxRequest) returns (GetDailyTotalTrxResponse) {
+    }
+
+    rpc GetTrxInfoById (GetTrxInfoByIdRequest) returns (GetTrxInfoByIdResponse) {
+    }
+
+    rpc GetTrxListByTime (GetTrxListByTimeRequest) returns (GetTrxListByTimeResponse) {
+    }
+
+    rpc GetPostListByCreateTime (GetPostListByCreateTimeRequest) returns (GetPostListByCreateTimeResponse) {
     }
 }
+
 
 message GetTableContentRequest {
     string owner = 1;
@@ -91,7 +104,7 @@ message AccountResponse {
     prototype.vest                          vest            = 3;
     uint64                                  stamina_remain  = 4;
     uint64                                  stamina_max     = 5;
-    repeated prototype.public_key_type      public_keys     = 6;
+    prototype.public_key_type               public_key      = 6;
     prototype.time_point_sec                created_time    = 7;
     WitnessResponse                         witness         = 8;
     ChainState                              state            = 9;
@@ -128,7 +141,6 @@ message GetFollowCountByNameResponse {
 
 message WitnessResponse {
     prototype.account_name             owner                           = 1;
-    prototype.witness_schedule_type    witness_schedule_type           = 2;
     prototype.time_point_sec           created_time                    = 3;
     string                             url                             = 4;
     uint32                             last_confirmed_block_num        = 5;
@@ -136,7 +148,7 @@ message WitnessResponse {
     uint64                             vote_count                      = 7;
     prototype.public_key_type          signing_key                     = 8;
     prototype.sha256                   last_work                       = 9;
-    uint32                             running_version                 = 10;
+    uint32                             running_version                 = 2;
 }
 
 message GetWitnessListRequest {
@@ -249,6 +261,63 @@ message GetBlockListResponse {
 }
 
 
+message GetAccountListByBalanceRequest {
+    prototype.coin   start     = 1;
+    prototype.coin   end       = 2;
+    AccountResponse  last_account = 3;
+}
+
 message GetAccountListResponse {
     repeated AccountResponse list = 1;
+}
+
+
+message GetDailyTotalTrxRequest {
+    prototype.time_point_sec     start              = 1;
+    prototype.time_point_sec     end                = 2;
+}
+
+message DailyTotalTrx {
+    prototype.time_point_sec     date               = 1;
+    uint64     count              = 2;
+}
+
+message GetDailyTotalTrxResponse {
+    repeated  DailyTotalTrx   list   = 1;
+}
+
+message TrxInfo {
+    prototype.sha256                trx_id     =1;
+    uint64                          block_height =  2;
+    prototype.transaction_wrapper   trx_wrap    = 3;
+    prototype.time_point_sec        block_time  = 4;
+}
+
+message GetTrxInfoByIdRequest {
+    prototype.sha256      trx_id    = 1;
+}
+
+message GetTrxInfoByIdResponse {
+    TrxInfo             info        = 1;
+}
+
+
+message GetTrxListByTimeRequest {
+    prototype.time_point_sec     start     = 1;
+    prototype.time_point_sec     end       = 2;
+    TrxInfo                  last_info   = 3;
+}
+
+message GetTrxListByTimeResponse {
+    repeated        TrxInfo     list  = 1;
+}
+
+message GetPostListByCreateTimeRequest {
+    prototype.time_point_sec     start      = 1;
+    prototype.time_point_sec     end        = 2;
+    PostResponse                 last_post  = 3;
+}
+
+message GetPostListByCreateTimeResponse {
+    repeated PostResponse posted_list = 1;
 }

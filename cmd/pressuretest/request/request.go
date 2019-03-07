@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"strings"
 	"time"
+	"errors"
 )
 
 var nameLib = "abcdefghijklmnopqrstuvwxyz01234567890"
@@ -57,6 +58,9 @@ func createAccount(mywallet *wallet.BaseWallet, rpcClient grpcpb.ApiServiceClien
 		fmt.Println(err)
 		return
 	}
+
+	fmt.Println("Request command: ", fmt.Sprintf("create %s %s", creatorAccount.Name, newAccountName) )
+
 	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
 	resp, err := rpcClient.BroadcastTrx(context.Background(), req)
 	if err != nil {
@@ -73,15 +77,22 @@ func createAccount(mywallet *wallet.BaseWallet, rpcClient grpcpb.ApiServiceClien
 		}
 
 		if strings.Contains(resp.Invoice.ErrorInfo, "Insufficient") {
-			transfer(rpcClient, GlobalAccountLIst.arr[0], creatorAccount, 10)
+			err := transfer(rpcClient, GlobalAccountLIst.arr[0], creatorAccount, 10)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
 			createAccount(mywallet, rpcClient, creatorAccount, newAccountName)
 			return
 		}
-		fmt.Println(fmt.Sprintf("Result: %v", resp))
+		fmt.Println("Request command: ",
+			fmt.Sprintf("create %s %s", creatorAccount.Name, newAccountName),
+			" ",
+			fmt.Sprintf("Result: %v", resp))
 	}
 }
 
-func transfer(rpcClient grpcpb.ApiServiceClient, fromAccount, toAccount  *wallet.PrivAccount, amount int) {
+func transfer(rpcClient grpcpb.ApiServiceClient, fromAccount, toAccount  *wallet.PrivAccount, amount int) error {
 	if fromAccount == nil {
 		GlobalAccountLIst.RLock()
 		r := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -117,24 +128,36 @@ func transfer(rpcClient grpcpb.ApiServiceClient, fromAccount, toAccount  *wallet
 	signTx, err := utils.GenerateSignedTxAndValidate2(rpcClient, []interface{}{transfer_op}, fromAccount)
 	if err != nil {
 		fmt.Println(err)
-		return
+		return err
 	}
 
-	fmt.Println("Request command: ", fmt.Sprintf("transfer %s %s %d", fromAccount.Name, toAccount.Name, amount))
+	fmt.Println("Request command: ", fmt.Sprintf("transfer %s %s %d", fromAccount.Name, toAccount.Name, amount) )
 
 	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
 	resp, err := rpcClient.BroadcastTrx(context.Background(), req)
 	if err != nil {
 		fmt.Println(err)
+		return err
 	} else {
 		if strings.Contains(resp.Invoice.ErrorInfo, "Insufficient") {
-			transfer(rpcClient, GlobalAccountLIst.arr[0], fromAccount, 10)
-			transfer(rpcClient, fromAccount, toAccount, 0)
-			return
+			if fromAccount == GlobalAccountLIst.arr[0] {
+				return errors.New("initminer has no money left")
+			}
+			err := transfer(rpcClient, GlobalAccountLIst.arr[0], fromAccount, 10)
+			if err != nil {
+				fmt.Println(err)
+				return err
+			}
+			transfer(rpcClient, fromAccount, toAccount, amount)
+			return nil
 		}
 
-		fmt.Println(fmt.Sprintf("Result: %v", resp))
+		fmt.Println("Request command: ",
+			fmt.Sprintf("transfer %s %s %d", fromAccount.Name, toAccount.Name, amount),
+			" ",
+			fmt.Sprintf("Result: %v", resp))
 	}
+	return nil
 }
 
 func postArticle(rpcClient grpcpb.ApiServiceClient, authorAccount *wallet.PrivAccount) {
@@ -181,6 +204,9 @@ func postArticle(rpcClient grpcpb.ApiServiceClient, authorAccount *wallet.PrivAc
 		fmt.Println(err)
 		return
 	}
+
+	fmt.Println("Request command: ", fmt.Sprintf("%s post an article", authorAccount.Name) )
+
 	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
 	resp, err := rpcClient.BroadcastTrx(context.Background(), req)
 	if err != nil {
@@ -193,12 +219,19 @@ func postArticle(rpcClient grpcpb.ApiServiceClient, authorAccount *wallet.PrivAc
 		}
 
 		if strings.Contains(resp.Invoice.ErrorInfo, "Insufficient") {
-			transfer(rpcClient, GlobalAccountLIst.arr[0], authorAccount, 10)
+			err := transfer(rpcClient, GlobalAccountLIst.arr[0], authorAccount, 10)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
 			postArticle(rpcClient, authorAccount)
 			return
 		}
 
-		fmt.Println(fmt.Sprintf("Result: %v", resp))
+		fmt.Println("Request command: ",
+			fmt.Sprintf("%s post an article", authorAccount.Name),
+			" ",
+			fmt.Sprintf("Result: %v", resp))
 	}
 }
 
@@ -235,12 +268,18 @@ func follow(rpcClient grpcpb.ApiServiceClient, followerAccount, followingAccount
 		fmt.Println(err)
 		return
 	}
+
+	fmt.Println("Request command: ", fmt.Sprintf("follow %s %s", followerAccount.Name, followingAccount.Name) )
+
 	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
 	resp, err := rpcClient.BroadcastTrx(context.Background(), req)
 	if err != nil {
 		fmt.Println(err)
 	} else {
-		fmt.Println(fmt.Sprintf("Result: %v", resp))
+		fmt.Println("Request command: ",
+			fmt.Sprintf("follow %s %s", followerAccount.Name, followingAccount.Name),
+			" ",
+			fmt.Sprintf("Result: %v", resp))
 	}
 }
 
@@ -271,17 +310,27 @@ func voteArticle(rpcClient grpcpb.ApiServiceClient, voterAccount *wallet.PrivAcc
 		fmt.Println(err)
 		return
 	}
+
+	fmt.Println("Request command: ", fmt.Sprintf("vote %s %d", voterAccount.Name, postId) )
+
 	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
 	resp, err := rpcClient.BroadcastTrx(context.Background(), req)
 	if err != nil {
 		fmt.Println(err)
 	} else {
 		if strings.Contains(resp.Invoice.ErrorInfo, "Insufficient") {
-			transfer(rpcClient, GlobalAccountLIst.arr[0], voterAccount, 10)
+			err := transfer(rpcClient, GlobalAccountLIst.arr[0], voterAccount, 10)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
 			voteArticle(rpcClient, voterAccount, postId)
 			return
 		}
 
-		fmt.Println(fmt.Sprintf("Result: %v", resp))
+		fmt.Println("Request command: ",
+			fmt.Sprintf("vote %s %d", voterAccount.Name, postId),
+			" ",
+			fmt.Sprintf("Result: %v", resp))
 	}
 }
