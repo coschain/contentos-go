@@ -195,7 +195,7 @@ func TestController_GenerateAndApplyBlock(t *testing.T) {
 
 	pre := &prototype.Sha256{Hash: make([]byte, 32)}
 	block, err := c.GenerateAndApplyBlock(constants.COSInitMiner, pre, 18, pri, 0)
-	dgpWrap := table.NewSoGlobalWrap(db, &SingleId)
+	dgpWrap := table.NewSoGlobalWrap(db, &constants.GlobalId)
 	mustSuccess(block.Id().BlockNum() == dgpWrap.GetProps().HeadBlockNumber, "block number error", prototype.StatusError)
 	bobWrap2 := table.NewSoAccountWrap(db, bobName)
 	if !bobWrap2.CheckExist() {

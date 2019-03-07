@@ -696,7 +696,6 @@ func (ev *ContractApplyEvaluator) Apply() {
 
 	if err != nil {
 		vmCtx.Injector.Error(ret, err.Error())
-		vmCtx.Injector.AddOpReceipt(prototype.StatusErrorVmOp, spentGas, err.Error())
 		ev.ctx.db.EndTransaction(false)
 		vmCtx.Injector.RecordGasFee(op.Caller.Value, spentGas)
 		mustNoError(err, "internal contract apply failed", prototype.StatusErrorWasm)
@@ -759,7 +758,6 @@ func (ev *InternalContractApplyEvaluator) Apply() {
 
 	if err != nil {
 		vmCtx.Injector.Error(ret, err.Error())
-		vmCtx.Injector.AddOpReceipt(prototype.StatusErrorVmOp, spentGas, err.Error())
 		ev.ctx.db.EndTransaction(false)
 		vmCtx.Injector.RecordGasFee(op.FromCaller.Value, spentGas)
 		// throw a panic, this panic should recover by upper contract vm context

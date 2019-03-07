@@ -42,8 +42,8 @@ type ResourceLimiter struct {
 	db      iservices.IDatabaseService
 }
 
-func NewResourceLimiter(db iservices.IDatabaseService) *ResourceLimiter {
-	return &ResourceLimiter{db: db}
+func NewResourceLimiter(db iservices.IDatabaseService) IResourceLimiter {
+	return IResourceLimiter(&ResourceLimiter{db: db})
 }
 
 const PRECISION = 10000

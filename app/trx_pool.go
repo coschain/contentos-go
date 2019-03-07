@@ -22,10 +22,6 @@ import (
 	"time"
 )
 
-var (
-	SingleId int32 = 1
-)
-
 type TrxPool struct {
 	iservices.ITrxPool
 	// lock for db write
@@ -103,7 +99,7 @@ func (c *TrxPool) Start(node *node.Node) error {
 
 func (c *TrxPool) Open() {
 	c.iceberg = NewBlockIceberg(c.db)
-	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
+	dgpWrap := table.NewSoGlobalWrap(c.db, &constants.GlobalId)
 	if !dgpWrap.CheckExist() {
 
 		mustNoError(c.db.DeleteAll(), "truncate database error", prototype.StatusErrorDbTruncate)
@@ -116,7 +112,7 @@ func (c *TrxPool) Open() {
 
 		//c.log.Info("finish initGenesis")
 	}
-	c.resourceLimiter = utils.IResourceLimiter(utils.NewResourceLimiter(c.db))
+	c.resourceLimiter = utils.NewResourceLimiter(c.db)
 }
 
 func (c *TrxPool) Stop() error {
@@ -200,7 +196,7 @@ func (c *TrxPool) PushTrx(trx *prototype.SignedTransaction) (receipt *prototype.
 }
 
 func (c *TrxPool) GetProps() *prototype.DynamicProperties {
-	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
+	dgpWrap := table.NewSoGlobalWrap(c.db, &constants.GlobalId)
 	return dgpWrap.GetProps()
 }
 
@@ -381,7 +377,7 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 	emptyHeader(signHeader)
 	maxBlockHeaderSize := proto.Size(signHeader) + 4
 
-	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
+	dgpWrap := table.NewSoGlobalWrap(c.db, &constants.GlobalId)
 	maxBlockSize := dgpWrap.GetProps().MaximumBlockSize
 	var totalSize uint32 = uint32(maxBlockHeaderSize) + 2048 // block size will expand after sign
 
@@ -663,7 +659,7 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 	w := blk.SignedHeader.Header.Witness
 	dgpo := c.GetProps()
 	dgpo.CurrentWitness = w
-	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
+	dgpWrap := table.NewSoGlobalWrap(c.db, &constants.GlobalId)
 	dgpWrap.MdProps(dgpo)
 
 	// @ process extension
@@ -802,9 +798,9 @@ func (c *TrxPool) initGenesis() {
 	}), "Witness Create Error", prototype.StatusErrorDbCreate)
 
 	// create dynamic global properties
-	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
+	dgpWrap := table.NewSoGlobalWrap(c.db, &constants.GlobalId)
 	mustNoError(dgpWrap.Create(func(tInfo *table.SoGlobal) {
-		tInfo.Id = SingleId
+		tInfo.Id = constants.GlobalId
 		tInfo.Props = &prototype.DynamicProperties{}
 		tInfo.Props.CurrentWitness = name
 		tInfo.Props.Time = &prototype.TimePointSec{UtcSeconds: constants.GenesisTime}
@@ -818,11 +814,11 @@ func (c *TrxPool) initGenesis() {
 	}), "CreateDynamicGlobalProperties error", prototype.StatusErrorDbCreate)
 
 	//create rewards keeper
-	keeperWrap := table.NewSoRewardsKeeperWrap(c.db, &SingleId)
+	keeperWrap := table.NewSoRewardsKeeperWrap(c.db, &constants.GlobalId)
 	rewards := make(map[string]*prototype.Vest)
 	rewards["initminer"] = &prototype.Vest{Value: 0}
 	mustNoError(keeperWrap.Create(func(tInfo *table.SoRewardsKeeper) {
-		tInfo.Id = SingleId
+		tInfo.Id = constants.GlobalId
 		//tInfo.Keeper.Rewards = map[string]*prototype.Vest{}
 		tInfo.Keeper = &prototype.InternalRewardsKeeper{Rewards: rewards}
 	}), "Create Rewards Keeper error", prototype.StatusErrorDbCreate)
@@ -837,9 +833,9 @@ func (c *TrxPool) initGenesis() {
 	}
 
 	// create witness scheduler
-	witnessScheduleWrap := table.NewSoWitnessScheduleObjectWrap(c.db, &SingleId)
+	witnessScheduleWrap := table.NewSoWitnessScheduleObjectWrap(c.db, &constants.GlobalId)
 	mustNoError(witnessScheduleWrap.Create(func(tInfo *table.SoWitnessScheduleObject) {
-		tInfo.Id = SingleId
+		tInfo.Id = constants.GlobalId
 		tInfo.CurrentShuffledWitness = append(tInfo.CurrentShuffledWitness, constants.COSInitMiner)
 	}), "CreateWitnessScheduleObject error", prototype.StatusErrorDbCreate)
 }
@@ -959,12 +955,12 @@ func (c *TrxPool) GetScheduledWitness(slot uint32) *prototype.AccountName {
 }
 
 func (c *TrxPool) updateGlobalDataToDB(dgpo *prototype.DynamicProperties) {
-	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
+	dgpWrap := table.NewSoGlobalWrap(c.db, &constants.GlobalId)
 	mustSuccess(dgpWrap.MdProps(dgpo), "update global data error", prototype.StatusErrorDbUpdate)
 }
 
 func (c *TrxPool) modifyGlobalDynamicData(f func(props *prototype.DynamicProperties)) {
-	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
+	dgpWrap := table.NewSoGlobalWrap(c.db, &constants.GlobalId)
 	props := dgpWrap.GetProps()
 
 	f(props)
@@ -1073,19 +1069,19 @@ func (c *TrxPool) GetWitnessTopN(n uint32) []string {
 }
 
 func (c *TrxPool) SetShuffledWitness(names []string) {
-	witnessScheduleWrap := table.NewSoWitnessScheduleObjectWrap(c.db, &SingleId)
+	witnessScheduleWrap := table.NewSoWitnessScheduleObjectWrap(c.db, &constants.GlobalId)
 	mustSuccess(witnessScheduleWrap.MdCurrentShuffledWitness(names), "SetWitness error", prototype.StatusErrorDbUpdate)
 }
 
 func (c *TrxPool) GetShuffledWitness() []string {
-	witnessScheduleWrap := table.NewSoWitnessScheduleObjectWrap(c.db, &SingleId)
+	witnessScheduleWrap := table.NewSoWitnessScheduleObjectWrap(c.db, &constants.GlobalId)
 	return witnessScheduleWrap.GetCurrentShuffledWitness()
 }
 
 func (c *TrxPool) AddWeightedVP(value uint64) {
 	dgpo := c.GetProps()
 	dgpo.WeightedVps += value
-	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
+	dgpWrap := table.NewSoGlobalWrap(c.db, &constants.GlobalId)
 	dgpWrap.MdProps(dgpo)
 }
 
@@ -1223,13 +1219,13 @@ func (c *TrxPool) SyncPushedBlocksToDB(blkList []common.ISignedBlock) (err error
 }
 
 func (c *TrxPool) GetRemainStamina(name string) uint64 {
-	wraper := table.NewSoGlobalWrap(c.db, &SingleId)
+	wraper := table.NewSoGlobalWrap(c.db, &constants.GlobalId)
 	gp := wraper.GetProps()
 	return c.resourceLimiter.GetStakeLeft(name, gp.HeadBlockNumber)
 }
 
 func (c *TrxPool) GetRemainFreeStamina(name string) uint64 {
-	wraper := table.NewSoGlobalWrap(c.db, &SingleId)
+	wraper := table.NewSoGlobalWrap(c.db, &constants.GlobalId)
 	gp := wraper.GetProps()
 	return c.resourceLimiter.GetFreeLeft(name, gp.HeadBlockNumber)
 }

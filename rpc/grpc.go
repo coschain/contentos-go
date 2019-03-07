@@ -10,6 +10,7 @@ import (
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/rpc/pb"
+	"github.com/coschain/contentos-go/utils"
 	"github.com/coschain/contentos-go/vm/contract/abi"
 	contractTable "github.com/coschain/contentos-go/vm/contract/table"
 	"github.com/pkg/errors"
@@ -26,7 +27,6 @@ type APIService struct {
 	consensus iservices.IConsensus
 	mainLoop  *eventloop.EventLoop
 	db        iservices.IDatabaseService
-	pool      iservices.ITrxPool
 	log       *logrus.Logger
 	eBus      EventBus.Bus
 }
@@ -71,13 +71,17 @@ func (as *APIService) GetAccountByName(ctx context.Context, req *grpcpb.GetAccou
 
 	accWrap := table.NewSoAccountWrap(as.db, req.GetAccountName())
 	acct := &grpcpb.AccountResponse{}
+	rc := utils.NewResourceLimiter(as.db)
+	wraper := table.NewSoGlobalWrap(as.db, &constants.GlobalId)
+	gp := wraper.GetProps()
 
 	if accWrap != nil && accWrap.CheckExist() {
 		acct.AccountName = &prototype.AccountName{Value: accWrap.GetName().Value}
 		acct.Coin = accWrap.GetBalance()
 		acct.Vest = accWrap.GetVestingShares()
-		acct.StaminaRemain = as.pool.GetAllRemainStamina(accWrap.GetName().Value)
-		acct.StaminaMax = as.pool.GetAllStaminaMax(accWrap.GetName().Value)
+
+		acct.StaminaRemain = rc.GetStakeLeft(accWrap.GetName().Value, gp.HeadBlockNumber) + rc.GetFreeLeft(accWrap.GetName().Value, gp.HeadBlockNumber)
+		acct.StaminaMax = rc.GetCapacity(accWrap.GetName().Value) + rc.GetCapacityFree()
 		//acct.PublicKeys =
 		acct.CreatedTime = accWrap.GetCreatedTime()
 

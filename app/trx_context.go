@@ -121,14 +121,6 @@ func (p *TrxContext) RequireAuth(name string) (err error) {
 	return nil
 }
 
-func (p *TrxContext) DeductGasFee(caller string, spent uint64) {
-
-	acc := table.NewSoAccountWrap(p.db, &prototype.AccountName{Value: caller})
-	balance := acc.GetBalance().Value
-	mustSuccess(spent <= balance, fmt.Sprintf("Endanger deduction Operation: %s, %d", caller, spent), prototype.StatusErrorTrxValueCompare)
-	acc.MdBalance(&prototype.Coin{Value: balance - spent})
-}
-
 func (p *TrxContext) deductStamina(m map[string]*resourceUnit,num,den uint64) {
 	rate := float64(num)/float64(den)
 	for caller, spent := range m {
@@ -177,6 +169,9 @@ func (p *TrxContext) setUsage() {
 }
 
 func (p *TrxContext) RecordGasFee(caller string, spent uint64) {
+	if !p.control.ctx.Config().ResourceCheck {
+		return
+	}
 	// if same caller call multi times
 	if v, ok := p.gasMap[caller]; ok {
 		newSpent := v.raw + spent

@@ -73,9 +73,11 @@ const (
 	NetConsumePointDen = 1
 	CpuConsumePointNum = 1
 	CpuConsumePointDen = 100
-	MaxGasPerCall = 5000
+	MaxGasPerCall = 500000
 	MaxStaminaPerBlock = 250000
 	WindowSize = 60 * 60 * 24
 	FreeStamina = 100000
 	OneDayStamina = MaxStaminaPerBlock * WindowSize
 )
+
+var GlobalId int32 = 1
