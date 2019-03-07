@@ -31,12 +31,12 @@ SABFT reaches consensus in 1~2 seconds in LAN. The bft process adopts 3-phase-co
 
 ### 3. how it's different
 * SABFT's block produing process and bft process are completely decoupled. i.e. validator can generate blocks despite the state of the bft process. Let's say the current block height is 100 and the bft process only committed the block with height of 90, validator can start generating the 101's block without waiting for block 91-100 to be committed.
-> **Comparison** with other blockchain
-$$tendermint/ont/neo$$
-The block producing procedure is tied with bft process. During the `propose` stage of the bft, the proposer first generate a block and broadcast it. A new block can be generated only after the previous one is committed. A standard bft process generally takes a few seconds, during this time no new block can be generated which compromises the performance.
-$$EOS$$
-EOS's approach is interesting but I personally consider it as a step back. Its implementation is called pipelined bft instead of realtime bft. The voting message of the bft process is embedded in later blocks. Say the chain has `3f+1` validators and up to `f` can be byzantine. In the 2-phase-commit step, each step requires `2f+1` votes, so the minimum time needed for the system to reach consensus is `2*(2f+1)*t`. `t` is the time span a single validator takes to generate blocks. That's why EOS needs about `2*(2*6.7+1)*6s`, `3min` to confirm a block.
 * Another significant diffrence is that the bft process does't have to reach consensus on every block. The height difference of two consecutive blocks that reached consensus is called `margin step`. It is adjusted by SABFT automatically according to the network condition and load of the Contentos chain. SABFT can usually reach consensus every 1 or 2 seconds, the margin step increases due to heavier load, network traffic or the presence of byzantine nodes.
+* **tendermint/ont/neo**
+The block producing procedure is tied with bft process. During the `propose` stage of the bft, the proposer first generate a block and broadcast it. A new block can be generated only after the previous one is committed. A standard bft process generally takes a few seconds, during this time no new block can be generated which compromises the performance.
+* **EOS**
+EOS's approach is interesting but I personally consider it as a step back. Its implementation is called pipelined bft instead of realtime bft. The voting message of the bft process is embedded in later blocks. Say the chain has `3f+1` validators and up to `f` can be byzantine. In the 2-phase-commit step, each step requires `2f+1` votes, so the minimum time needed for the system to reach consensus is `2*(2f+1)*t`. `t` is the time span a single validator takes to generate blocks. That's why EOS needs about `2*(2*6.7+1)*6s`, `3min` to confirm a block.
+
 
 ### 4. behaviour
 #### propose
@@ -49,6 +49,7 @@ it's possible that a block that is about to be committed is not on the main bran
 
 ### 5. worst case scenario
 According to **FLP impossibility**, in a asynchronous network, there's no **deterministic** way to achieve consensus with one faulty process. In each round of the bft process, there always exists a critical failure like crash, network jam or malicious nodes broadcast bad message which mess up the vote process. Theoretically there's a situation where every single bft round ends up failure but the possibility decrease exponentially. It's a bit too paranoid to worry about this.
+
 Bottom line, there is no perfect way to guarentee both safety and liveness. We take safety as our priority, the only thing need to be worried about is that too many uncommitted blocks might eventually eat up the memory resource. But we can easily come up with a **retention policy** to discard far out blocks, which is out of the scope of this discussion.
 
 ### 6. bad behavious punishment
