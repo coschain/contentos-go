@@ -95,7 +95,7 @@ func (pv *privateValidator) GetPubKey() message.PubKey {
 // It generates blocks in the same manner of DPoS and adopts bft
 // to achieve fast block confirmation. It's self adaptive in a way
 // that it can adjust the frequency of bft process based on the
-// load of the network.
+// load of the blockchain and network traffic.
 type SABFT struct {
 	node   *node.Node
 	ForkDB *forkdb.DB
