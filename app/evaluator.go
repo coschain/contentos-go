@@ -686,6 +686,10 @@ func (ev *ContractApplyEvaluator) Apply() {
 	} else {
 		vmCtx.Gas = remainGas
 	}
+	// turn off gas limit
+	if !ev.ctx.control.ctx.Config().ResourceCheck {
+		vmCtx.Gas = constants.OneDayStamina * constants.CpuConsumePointDen
+	}
 	// should be active ?
 	//defer func() {
 	//	_ := recover()
