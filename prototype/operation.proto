@@ -94,7 +94,7 @@ message contract_estimate_apply_operation{
 }
 
 message post_operation{
-    uint64 uuid             = 1;
+    uint64 uuid             = 1 [jstype = JS_STRING];
     account_name owner      = 2;
     string title            = 3;
     string content          = 4;
