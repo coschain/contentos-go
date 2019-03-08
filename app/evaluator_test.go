@@ -397,7 +397,7 @@ func startController(db iservices.IDatabaseService) *TrxPool {
 
 func makeCtx() (*node.ServiceContext) {
 	var cfg = &node.Config{}
-	cfg.ResourceCheck = false
+	cfg.ResourceCheck = true
 	ctx := &node.ServiceContext{}
 	ctx.ResetConfig(cfg)
 	ctx.ResetServices(nil)

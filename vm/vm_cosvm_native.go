@@ -4,7 +4,6 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"github.com/coschain/contentos-go/app/table"
-	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/prototype"
 	"hash/crc32"
 )
@@ -157,13 +156,13 @@ func (w *CosVMNative) ContractTransferToContract(owner, contract string, amount 
 
 func (w *CosVMNative) ContractCall(owner, contract, method string, paramsData []byte, coins uint64) {
 	spentGas := w.cosVM.SpentGas()
-	w.CosAssert(constants.MaxGasPerCall > spentGas, "ContractCall(): out of gas.")
+	w.CosAssert(w.cosVM.ctx.Gas > spentGas, "ContractCall(): out of gas.")
 	w.cosVM.ctx.Injector.ContractCall(
 		w.ReadContractCaller(),
 		w.ReadContractOwner(),
 		w.ReadContractName(),
 		w.ReadContractMethod(),
-		owner, contract, method, paramsData, coins, constants.MaxGasPerCall - spentGas)
+		owner, contract, method, paramsData, coins, w.cosVM.ctx.Gas - spentGas)
 }
 
 func (w *CosVMNative) TableGetRecord(tableName string, primary []byte) []byte {

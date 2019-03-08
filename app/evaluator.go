@@ -679,7 +679,13 @@ func (ev *ContractApplyEvaluator) Apply() {
 
 	vmCtx := vmcontext.NewContextFromApplyOp(op, paramsData, code, abiInterface, tables, ev.ctx.trxCtx)
 	// set max gas
-	vmCtx.Gas = constants.MaxGasPerCall
+	remain := ev.ctx.trxCtx.GetVmRemainCpuStamina(op.Caller.Value)
+	remainGas := remain * constants.CpuConsumePointDen
+	if remainGas > constants.MaxGasPerCall {
+		vmCtx.Gas = constants.MaxGasPerCall
+	} else {
+		vmCtx.Gas = remainGas
+	}
 	// should be active ?
 	//defer func() {
 	//	_ := recover()

@@ -41,6 +41,10 @@ func (p *TrxContext) InitSigState(cid prototype.ChainId) error {
 	return nil
 }
 
+func (p *TrxContext) GetVmRemainCpuStamina(name string) uint64 {
+	return p.control.GetAllRemainStamina(name) - (p.netMap[name].raw * constants.NetConsumePointNum/constants.NetConsumePointDen)
+}
+
 func (p *TrxContext) CheckNet(sizeInBytes uint64) {
 	keyMaps := obtainKeyMap(p.Wrapper.SigTrx.Trx.Operations)
 	netUse := sizeInBytes * uint64(float64(constants.NetConsumePointNum)/float64(constants.NetConsumePointDen))
