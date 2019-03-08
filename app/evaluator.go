@@ -127,16 +127,8 @@ type UnStakeEvaluator struct {
 
 func (ev *AccountCreateEvaluator) Apply() {
 	op := ev.op
-	defer func() {
-		ev.ctx.trxCtx.RecordGasFee(op.Creator.Value,constants.CommonOpGas)
-		if err := recover(); err != nil {
-			ev.ctx.db.EndTransaction(false)
-			panic(err)
-		} else {
-			ev.ctx.db.EndTransaction(true)
-		}
-	}()
-	ev.ctx.db.BeginTransaction()
+	ev.ctx.trxCtx.RecordGasFee(op.Creator.Value,constants.CommonOpGas)
+
 	creatorWrap := table.NewSoAccountWrap(ev.ctx.db, op.Creator)
 
 	mustSuccess(creatorWrap.CheckExist(), "creator not exist ", prototype.StatusErrorDbExist)
@@ -178,16 +170,7 @@ func (ev *AccountCreateEvaluator) Apply() {
 
 func (ev *TransferEvaluator) Apply() {
 	op := ev.op
-	defer func() {
-		ev.ctx.trxCtx.RecordGasFee(op.From.Value,constants.CommonOpGas)
-		if err := recover(); err != nil {
-			ev.ctx.db.EndTransaction(false)
-			panic(err)
-		} else {
-			ev.ctx.db.EndTransaction(true)
-		}
-	}()
-	ev.ctx.db.BeginTransaction()
+	ev.ctx.trxCtx.RecordGasFee(op.From.Value,constants.CommonOpGas)
 
 	// @ active_challenged
 	fromWrap := table.NewSoAccountWrap(ev.ctx.db, op.From)
@@ -207,16 +190,8 @@ func (ev *TransferEvaluator) Apply() {
 
 func (ev *PostEvaluator) Apply() {
 	op := ev.op
-	defer func() {
-		ev.ctx.trxCtx.RecordGasFee(op.Owner.Value,constants.CommonOpGas)
-		if err := recover(); err != nil {
-			ev.ctx.db.EndTransaction(false)
-			panic(err)
-		} else {
-			ev.ctx.db.EndTransaction(true)
-		}
-	}()
-	ev.ctx.db.BeginTransaction()
+	ev.ctx.trxCtx.RecordGasFee(op.Owner.Value,constants.CommonOpGas)
+
 	idWrap := table.NewSoPostWrap(ev.ctx.db, &op.Uuid)
 	mustSuccess(!idWrap.CheckExist(), "post uuid exist", prototype.StatusErrorDbExist)
 
@@ -257,16 +232,7 @@ func (ev *PostEvaluator) Apply() {
 
 func (ev *ReplyEvaluator) Apply() {
 	op := ev.op
-	defer func() {
-		ev.ctx.trxCtx.RecordGasFee(op.Owner.Value,constants.CommonOpGas)
-		if err := recover(); err != nil {
-			ev.ctx.db.EndTransaction(false)
-			panic(err)
-		} else {
-			ev.ctx.db.EndTransaction(true)
-		}
-	}()
-	ev.ctx.db.BeginTransaction()
+	ev.ctx.trxCtx.RecordGasFee(op.Owner.Value,constants.CommonOpGas)
 	cidWrap := table.NewSoPostWrap(ev.ctx.db, &op.Uuid)
 	pidWrap := table.NewSoPostWrap(ev.ctx.db, &op.ParentUuid)
 
@@ -316,16 +282,7 @@ func (ev *ReplyEvaluator) Apply() {
 // no downvote has been supplied by command, so I ignore it
 func (ev *VoteEvaluator) Apply() {
 	op := ev.op
-	defer func() {
-		ev.ctx.trxCtx.RecordGasFee(op.Voter.Value,constants.CommonOpGas)
-		if err := recover(); err != nil {
-			ev.ctx.db.EndTransaction(false)
-			panic(err)
-		} else {
-			ev.ctx.db.EndTransaction(true)
-		}
-	}()
-	ev.ctx.db.BeginTransaction()
+	ev.ctx.trxCtx.RecordGasFee(op.Voter.Value,constants.CommonOpGas)
 	voterWrap := table.NewSoAccountWrap(ev.ctx.db, op.Voter)
 	elapsedSeconds := ev.ctx.control.HeadBlockTime().UtcSeconds - voterWrap.GetLastVoteTime().UtcSeconds
 	mustSuccess(elapsedSeconds > constants.MinVoteInterval, "voting frequently", prototype.StatusErrorTrxValueCompare)
@@ -383,16 +340,7 @@ func (ev *VoteEvaluator) Apply() {
 
 func (ev *BpRegisterEvaluator) Apply() {
 	op := ev.op
-	defer func() {
-		ev.ctx.trxCtx.RecordGasFee(op.Owner.Value,constants.CommonOpGas)
-		if err := recover(); err != nil {
-			ev.ctx.db.EndTransaction(false)
-			panic(err)
-		} else {
-			ev.ctx.db.EndTransaction(true)
-		}
-	}()
-	ev.ctx.db.BeginTransaction()
+	ev.ctx.trxCtx.RecordGasFee(op.Owner.Value,constants.CommonOpGas)
 	witnessWrap := table.NewSoWitnessWrap(ev.ctx.db, op.Owner)
 
 	mustSuccess(!witnessWrap.CheckExist(), "witness already exist", prototype.StatusErrorDbExist)
@@ -415,16 +363,7 @@ func (ev *BpUnregisterEvaluator) Apply() {
 
 func (ev *BpVoteEvaluator) Apply() {
 	op := ev.op
-	defer func() {
-		ev.ctx.trxCtx.RecordGasFee(op.Voter.Value,constants.CommonOpGas)
-		if err := recover(); err != nil {
-			ev.ctx.db.EndTransaction(false)
-			panic(err)
-		} else {
-			ev.ctx.db.EndTransaction(true)
-		}
-	}()
-	ev.ctx.db.BeginTransaction()
+	ev.ctx.trxCtx.RecordGasFee(op.Voter.Value,constants.CommonOpGas)
 	voterAccount := table.NewSoAccountWrap(ev.ctx.db, op.Voter)
 	voteCnt := voterAccount.GetBpVoteCount()
 
@@ -461,16 +400,7 @@ func (ev *BpVoteEvaluator) Apply() {
 
 func (ev *FollowEvaluator) Apply() {
 	op := ev.op
-	defer func() {
-		ev.ctx.trxCtx.RecordGasFee(op.Account.Value,constants.CommonOpGas)
-		if err := recover(); err != nil {
-			ev.ctx.db.EndTransaction(false)
-			panic(err)
-		} else {
-			ev.ctx.db.EndTransaction(true)
-		}
-	}()
-	ev.ctx.db.BeginTransaction()
+	ev.ctx.trxCtx.RecordGasFee(op.Account.Value,constants.CommonOpGas)
 	acctWrap := table.NewSoAccountWrap(ev.ctx.db, op.Account)
 	mustSuccess(acctWrap.CheckExist(), "follow account do not exist ", prototype.StatusErrorDbExist)
 
@@ -480,16 +410,7 @@ func (ev *FollowEvaluator) Apply() {
 
 func (ev *TransferToVestingEvaluator) Apply() {
 	op := ev.op
-	defer func() {
-		ev.ctx.trxCtx.RecordGasFee(op.From.Value,constants.CommonOpGas)
-		if err := recover(); err != nil {
-			ev.ctx.db.EndTransaction(false)
-			panic(err)
-		} else {
-			ev.ctx.db.EndTransaction(true)
-		}
-	}()
-	ev.ctx.db.BeginTransaction()
+	ev.ctx.trxCtx.RecordGasFee(op.From.Value,constants.CommonOpGas)
 	fidWrap := table.NewSoAccountWrap(ev.ctx.db, op.From)
 	tidWrap := table.NewSoAccountWrap(ev.ctx.db, op.To)
 
@@ -510,16 +431,7 @@ func (ev *TransferToVestingEvaluator) Apply() {
 
 func (ev *ClaimEvaluator) Apply() {
 	op := ev.op
-	defer func() {
-		ev.ctx.trxCtx.RecordGasFee(op.Account.Value,constants.CommonOpGas)
-		if err := recover(); err != nil {
-			ev.ctx.db.EndTransaction(false)
-			panic(err)
-		} else {
-			ev.ctx.db.EndTransaction(true)
-		}
-	}()
-	ev.ctx.db.BeginTransaction()
+	ev.ctx.trxCtx.RecordGasFee(op.Account.Value,constants.CommonOpGas)
 	account := op.Account
 	accWrap := table.NewSoAccountWrap(ev.ctx.db, account)
 
@@ -608,16 +520,7 @@ func mergeTags(existed []int32, new []prototype.ReportOperationTag) []int32 {
 
 func (ev *ReportEvaluator) Apply() {
 	op := ev.op
-	defer func() {
-		ev.ctx.trxCtx.RecordGasFee(op.Reporter.Value,constants.CommonOpGas)
-		if err := recover(); err != nil {
-			ev.ctx.db.EndTransaction(false)
-			panic(err)
-		} else {
-			ev.ctx.db.EndTransaction(true)
-		}
-	}()
-	ev.ctx.db.BeginTransaction()
+	ev.ctx.trxCtx.RecordGasFee(op.Reporter.Value,constants.CommonOpGas)
 	post := table.NewSoPostWrap(ev.ctx.db, &op.Reported)
 	mustSuccess(post.CheckExist(), "the reported post doesn't exist",prototype.StatusErrorDbExist)
 	report := table.NewSoReportListWrap(ev.ctx.db, &op.Reported)
@@ -657,16 +560,7 @@ func (ev *ReportEvaluator) Apply() {
 
 func (ev *ClaimAllEvaluator) Apply() {
 	op := ev.op
-	defer func() {
-		ev.ctx.trxCtx.RecordGasFee(op.Account.Value,constants.CommonOpGas)
-		if err := recover(); err != nil {
-			ev.ctx.db.EndTransaction(false)
-			panic(err)
-		} else {
-			ev.ctx.db.EndTransaction(true)
-		}
-	}()
-	ev.ctx.db.BeginTransaction()
+	ev.ctx.trxCtx.RecordGasFee(op.Account.Value,constants.CommonOpGas)
 	account := op.Account
 	accWrap := table.NewSoAccountWrap(ev.ctx.db, account)
 
@@ -697,16 +591,9 @@ func (ev *ClaimAllEvaluator) Apply() {
 
 func (ev *ContractDeployEvaluator) Apply() {
 	op := ev.op
-	defer func() {
-		ev.ctx.trxCtx.RecordGasFee(op.Owner.Value,constants.CommonOpGas)
-		if err := recover(); err != nil {
-			ev.ctx.db.EndTransaction(false)
-			panic(err)
-		} else {
-			ev.ctx.db.EndTransaction(true)
-		}
-	}()
-	ev.ctx.db.BeginTransaction()
+
+	ev.ctx.trxCtx.RecordGasFee(op.Owner.Value,constants.CommonOpGas)
+
 	cid := prototype.ContractId{Owner: op.Owner, Cname: op.Contract}
 	scid := table.NewSoContractWrap(ev.ctx.db, &cid)
 
@@ -820,24 +707,19 @@ func (ev *ContractApplyEvaluator) Apply() {
 
 	cosVM := vm.NewCosVM(vmCtx, ev.ctx.db, ev.ctx.control.GetProps(), logrus.New())
 
-	ev.ctx.db.BeginTransaction()
 	ret, err := cosVM.Run()
 	spentGas := cosVM.SpentGas()
 	// need extra query db, is it a good way or should I pass account object as parameter?
 	// deductgasfee and usertranfer could be panic (rarely, I can't image how it happens)
 	// the panic should catch then return or bubble it ?
-
+	vmCtx.Injector.RecordGasFee(op.Caller.Value, spentGas)
 	if err != nil {
 		vmCtx.Injector.Error(ret, err.Error())
-		ev.ctx.db.EndTransaction(false)
-		vmCtx.Injector.RecordGasFee(op.Caller.Value, spentGas)
 		mustNoError(err, "internal contract apply failed", prototype.StatusErrorWasm)
 	} else {
 		if op.Amount != nil && op.Amount.Value > 0 {
 			vmCtx.Injector.TransferFromUserToContract(op.Caller.Value, op.Contract, op.Owner.Value, op.Amount.Value)
 		}
-		ev.ctx.db.EndTransaction(true)
-		vmCtx.Injector.RecordGasFee(op.Caller.Value, spentGas)
 	}
 }
 
@@ -888,11 +770,10 @@ func (ev *InternalContractApplyEvaluator) Apply() {
 	ev.ctx.db.BeginTransaction()
 	ret, err := cosVM.Run()
 	spentGas := cosVM.SpentGas()
-
+	vmCtx.Injector.RecordGasFee(op.FromCaller.Value, spentGas)
 	if err != nil {
 		vmCtx.Injector.Error(ret, err.Error())
 		ev.ctx.db.EndTransaction(false)
-		vmCtx.Injector.RecordGasFee(op.FromCaller.Value, spentGas)
 		// throw a panic, this panic should recover by upper contract vm context
 		mustNoError(err, "internal contract apply failed", prototype.StatusErrorWasm)
 	} else {
@@ -900,22 +781,12 @@ func (ev *InternalContractApplyEvaluator) Apply() {
 			vmCtx.Injector.TransferFromContractToContract(op.FromContract, op.FromOwner.Value, op.ToContract, op.ToOwner.Value, op.Amount.Value)
 		}
 		ev.ctx.db.EndTransaction(true)
-		vmCtx.Injector.RecordGasFee(op.FromCaller.Value, spentGas)
 	}
 }
 
 func (ev *StakeEvaluator) Apply() {
 	op := ev.op
-	defer func() {
-		ev.ctx.trxCtx.RecordGasFee(op.Account.Value,constants.CommonOpGas)
-		if err := recover(); err != nil {
-			ev.ctx.db.EndTransaction(false)
-			panic(err)
-		} else {
-			ev.ctx.db.EndTransaction(true)
-		}
-	}()
-	ev.ctx.db.BeginTransaction()
+	ev.ctx.trxCtx.RecordGasFee(op.Account.Value,constants.CommonOpGas)
 	accountWrap := table.NewSoAccountWrap(ev.ctx.db, op.Account)
 
 	value := &prototype.Coin{Value: op.Amount}
@@ -933,16 +804,8 @@ func (ev *StakeEvaluator) Apply() {
 
 func (ev *UnStakeEvaluator) Apply() {
 	op := ev.op
-	defer func() {
-		ev.ctx.trxCtx.RecordGasFee(op.Account.Value,constants.CommonOpGas)
-		if err := recover(); err != nil {
-			ev.ctx.db.EndTransaction(false)
-			panic(err)
-		} else {
-			ev.ctx.db.EndTransaction(true)
-		}
-	}()
-	ev.ctx.db.BeginTransaction()
+	ev.ctx.trxCtx.RecordGasFee(op.Account.Value,constants.CommonOpGas)
+
 	accountWrap := table.NewSoAccountWrap(ev.ctx.db, op.Account)
 
 	value := &prototype.Coin{Value: op.Amount}

@@ -444,8 +444,8 @@ func Test_MixOp(t *testing.T) {
 
 	// first op : call contract
 	applyOp := &prototype.ContractApplyOperation{
-		Caller:   &prototype.AccountName{Value: "initminer"},
-		Owner:    &prototype.AccountName{Value: "initminer"},
+		Caller:   &prototype.AccountName{Value: constants.COSInitMiner},
+		Owner:    &prototype.AccountName{Value: constants.COSInitMiner},
 		Contract: "hello",
 		Method:   "hi",
 		Params:   "[\"contentos\"]",
@@ -453,19 +453,27 @@ func Test_MixOp(t *testing.T) {
 	}
 
 	//
-	miner := &prototype.AccountName{Value: "initminer"}
+	miner := &prototype.AccountName{Value: constants.COSInitMiner}
 	minerWrap := table.NewSoAccountWrap(db, miner)
 	b := minerWrap.GetStamina()
 	t.Log("before call initminer stamina:", b)
 	//
 
-	signedTrx2, err := createSigTrx(c, constants.InitminerPrivKey,applyOp)
+	oldBalance := minerWrap.GetBalance()
+
+	transferOp := &prototype.TransferOperation{
+		From: prototype.NewAccountName(constants.COSInitMiner),
+		To: prototype.NewAccountName("someone"),
+		Amount:prototype.NewCoin(1),
+	}
+
+	signedTrx2, err := createSigTrx(c, constants.InitminerPrivKey,applyOp,transferOp)
 	if err != nil {
 		t.Error("createSigTrx error:", err)
 	}
 
 	invoice2 := c.PushTrx(signedTrx2)
-	if invoice2.Status != prototype.StatusSuccess && invoice2.Status != prototype.StatusDeductGas {
+	if  invoice2.Status != prototype.StatusDeductGas {
 		t.Error("PushTrx return status error:", invoice2.Status)
 	}
 
@@ -480,6 +488,10 @@ func Test_MixOp(t *testing.T) {
 	// 2. transfer should be revert
 	if b >= b2 {
 		t.Error("gas error or db error")
+	}
+	newBalance := minerWrap.GetBalance()
+	if newBalance.Value != oldBalance.Value {
+		t.Error("db not revert")
 	}
 }
 

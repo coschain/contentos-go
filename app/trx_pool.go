@@ -609,6 +609,16 @@ func (c *TrxPool) applyTransactionInner(isNeedVerify bool, trxContext *TrxContex
 }
 
 func (c *TrxPool) applyOperation(trxCtx *TrxContext, op *prototype.Operation) {
+	defer func() {
+		if err := recover(); err != nil {
+			c.db.EndTransaction(false)
+			panic(err)
+		} else {
+			c.db.EndTransaction(true)
+		}
+	}()
+	c.db.BeginTransaction()
+
 	// @ not use yet
 	n := &prototype.OperationNotification{Op: op}
 	c.notifyOpPreExecute(n)
