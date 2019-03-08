@@ -6,6 +6,8 @@ case $choice in
     delete)
         cd /root/.coschain
         rm -rf *
+        mkdir -p /root/.coschain/cosd
+        cp /tmp/config.toml /root/.coschain/cosd/
         ;;
     reserve)
         ;;
