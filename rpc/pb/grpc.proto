@@ -274,14 +274,15 @@ message GetAccountListResponse {
 }
 
 
-message GetDailyTotalTrxRequest {
-    prototype.time_point_sec     start              = 1;
-    prototype.time_point_sec     end                = 2;
-}
-
 message DailyTotalTrx {
     prototype.time_point_sec     date               = 1;
     uint64     count              = 2;
+}
+
+message GetDailyTotalTrxRequest {
+    prototype.time_point_sec     start              = 1;
+    prototype.time_point_sec     end                = 2;
+    DailyTotalTrx                last_info          = 3;
 }
 
 message GetDailyTotalTrxResponse {

@@ -526,11 +526,22 @@ func checkLimit(limit uint32) uint32 {
 func (as *APIService) GetDailyTotalTrxInfo(ctx context.Context, req *grpcpb.GetDailyTotalTrxRequest) (*grpcpb.GetDailyTotalTrxResponse, error) {
 	as.db.RLock()
 	defer as.db.RUnlock()
-	var list []*grpcpb.DailyTotalTrx
+	var (
+		list []*grpcpb.DailyTotalTrx
+		err error
+		lastTime *prototype.TimePointSec
+		lastVal  *prototype.TimePointSec
+	)
 	list = make([]*grpcpb.DailyTotalTrx, 0)
 	res := &grpcpb.GetDailyTotalTrxResponse{}
 	wrap := table.NewExtDailyTrxDateWrap(as.db)
-	var err error
+	if req.LastInfo != nil {
+		info := req.LastInfo
+		if info.Date != nil {
+			lastTime = info.Date
+			lastVal =  info.Date
+		}
+	}
 	if wrap != nil {
 		s := req.Start
 		e := req.End
@@ -541,7 +552,7 @@ func (as *APIService) GetDailyTotalTrxInfo(ctx context.Context, req *grpcpb.GetD
 		if req.End != nil {
 			e = &prototype.TimePointSec{UtcSeconds: req.End.UtcSeconds / 86400}
 		}
-		err = wrap.ForEachByOrder(s, e, nil, nil, func(mVal *prototype.TimePointSec, sVal *prototype.TimePointSec,
+		err = wrap.ForEachByOrder(s, e, lastTime, lastVal, func(mVal *prototype.TimePointSec, sVal *prototype.TimePointSec,
 			idx uint32) bool {
 			if mVal != nil && sVal != nil {
 				info := &grpcpb.DailyTotalTrx{}
