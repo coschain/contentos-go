@@ -37,7 +37,10 @@ const (
 )
 
 var IPList []string = []string{
-	"localhost:8888",
+	"34.230.216.41:8888",
+	"107.23.54.2:8888",
+	"52.20.31.199:8888",
+	"100.24.80.16:8888",
 }
 
 var CmdTypeList []string = []string{
