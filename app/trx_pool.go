@@ -731,6 +731,7 @@ func (c *TrxPool) initGenesis() {
 		tInfo.Props.CurrentSupply = prototype.NewCoin(constants.COSInitSupply)
 		tInfo.Props.TotalCos = prototype.NewCoin(constants.COSInitSupply)
 		tInfo.Props.MaximumBlockSize = constants.MaxBlockSize
+		tInfo.Props.TotalUserCnt = 1
 		tInfo.Props.TotalVestingShares = prototype.NewVest(0)
 	}), "CreateDynamicGlobalProperties error")
 
