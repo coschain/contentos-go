@@ -22,7 +22,7 @@ const (
 	priKeyTom      = "3u6RCpDUEEUmB9QsFMNKCfEY54WWtmcXvqyD2NcHCDzhuhrP8F"
 )
 
-func makeBlock(pre *prototype.Sha256, blockTimestamp uint32, signedTrx *prototype.SignedTransaction) *prototype.SignedBlock {
+func makeBlockWithCommonTrx(pre *prototype.Sha256, blockTimestamp uint32, signedTrx *prototype.SignedTransaction) *prototype.SignedBlock {
 	sigBlk := new(prototype.SignedBlock)
 
 	// add trx wraper
@@ -31,7 +31,7 @@ func makeBlock(pre *prototype.Sha256, blockTimestamp uint32, signedTrx *prototyp
 		Receipt: &prototype.TransactionReceipt{Status: prototype.StatusSuccess},
 	}
 	trxWraper.Receipt.NetUsage = uint64(proto.Size(signedTrx)* int(float64(constants.NetConsumePointNum)/float64(constants.NetConsumePointDen)))
-	//trxWraper.Receipt.CpuUsage = ?
+	trxWraper.Receipt.CpuUsage = 1 // now we set 1 stamina for common operation
 	sigBlk.Transactions = append(sigBlk.Transactions, trxWraper)
 
 	// calculate merkle
@@ -149,7 +149,7 @@ func Test_PushBlock(t *testing.T) {
 		t.Error("createSigTrx error:", err)
 	}
 
-	sigBlk := makeBlock(c.GetProps().GetHeadBlockId(), 10, signedTrx)
+	sigBlk := makeBlockWithCommonTrx(c.GetProps().GetHeadBlockId(), 10, signedTrx)
 
 	fmt.Println("block size:", proto.Size(sigBlk))
 
@@ -300,7 +300,7 @@ func TestController_PopBlock(t *testing.T) {
 		t.Error("createSigTrx error:", err)
 	}
 
-	block := makeBlock(c.GetProps().GetHeadBlockId(), 6, signedTrx)
+	block := makeBlockWithCommonTrx(c.GetProps().GetHeadBlockId(), 6, signedTrx)
 
 	fmt.Println("block size:", proto.Size(block))
 
@@ -317,7 +317,7 @@ func TestController_PopBlock(t *testing.T) {
 		t.Error("createSigTrx error:", err)
 	}
 
-	block2 := makeBlock(c.GetProps().GetHeadBlockId(), 9, signedTrx2)
+	block2 := makeBlockWithCommonTrx(c.GetProps().GetHeadBlockId(), 9, signedTrx2)
 
 	c.PushBlock(block2, prototype.Skip_nothing)
 
@@ -364,7 +364,7 @@ func TestController_Commit(t *testing.T) {
 		t.Error("createSigTrx error:", err)
 	}
 
-	block := makeBlock(c.GetProps().GetHeadBlockId(), 6, signedTrx)
+	block := makeBlockWithCommonTrx(c.GetProps().GetHeadBlockId(), 6, signedTrx)
 
 	fmt.Println("block size:", proto.Size(block))
 
@@ -381,7 +381,7 @@ func TestController_Commit(t *testing.T) {
 		t.Error("createSigTrx error:", err)
 	}
 
-	block2 := makeBlock(c.GetProps().GetHeadBlockId(), 9, signedTrx2)
+	block2 := makeBlockWithCommonTrx(c.GetProps().GetHeadBlockId(), 9, signedTrx2)
 
 	c.PushBlock(block2, prototype.Skip_nothing)
 
@@ -544,7 +544,7 @@ func Test_Stake_UnStake(t *testing.T) {
 	}
 
 	invoice3 := c.PushTrx(signedTrx3)
-	if invoice3.Status != prototype.StatusErrorTrxMath {
+	if invoice3.Status != prototype.StatusDeductGas {
 		t.Error("PushTrx return status error:", invoice3.Status)
 	}
 
@@ -663,7 +663,8 @@ func Test_Recover1(t *testing.T) {
 		t.Error("PushTrx return status error:", invoice3.Status)
 	}
 	all := bobWrap.GetStamina() + bobWrap.GetStaminaFree()
-	if all != uint64(netSize * int(float64(constants.NetConsumePointNum)/float64(constants.NetConsumePointDen))) {
+	commonCpuGas := constants.CommonOpGas/constants.CpuConsumePointDen
+	if all != uint64(commonCpuGas) + uint64(netSize * int(float64(constants.NetConsumePointNum)/float64(constants.NetConsumePointDen))) {
 		t.Error("recover or consume error")
 	}
 }

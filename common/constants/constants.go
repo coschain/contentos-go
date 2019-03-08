@@ -78,6 +78,7 @@ const (
 	WindowSize = 60 * 60 * 24
 	FreeStamina = 100000
 	OneDayStamina = MaxStaminaPerBlock * WindowSize
+	CommonOpGas = 100
 )
 
 var GlobalId int32 = 1
