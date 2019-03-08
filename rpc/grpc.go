@@ -577,7 +577,7 @@ func (as *APIService) GetTrxInfoById(ctx context.Context, req *grpcpb.GetTrxInfo
 	res := &grpcpb.GetTrxInfoByIdResponse{}
 	var err error
 	wrap := table.NewSoExtTrxWrap(as.db, req.TrxId)
-	if wrap != nil {
+	if wrap != nil && wrap.CheckExist() {
 		info := &grpcpb.TrxInfo{}
 		info.TrxId = req.TrxId
 		info.BlockHeight = wrap.GetBlockHeight()
