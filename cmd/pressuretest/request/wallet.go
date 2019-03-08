@@ -73,7 +73,7 @@ func InitEnv() {
 	rpcClient := grpcpb.NewApiServiceClient(conn)
 
 	for i:=1;i<=INIT_ACCOUNT_LENGTH-1;i++ {
-		createAccount(localWallet, rpcClient, GlobalAccountLIst.arr[0], fmt.Sprintf("initminer%d", i))
+		createAccount(localWallet, rpcClient, GlobalAccountLIst.arr[0], fmt.Sprintf("baseaccount%d", i))
 	}
 	if len(GlobalAccountLIst.arr) < INIT_ACCOUNT_LENGTH {
 		fmt.Println("init account list failed, account list length: ", len(GlobalAccountLIst.arr))
