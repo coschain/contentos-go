@@ -442,6 +442,9 @@ func (as *APIService) GetBlockList(ctx context.Context, req *grpcpb.GetBlockList
 	} else if from >= 0 && to == 0 {
 		to = headNum
 	}
+	if  headNum < from {
+		return nil, errors.New("The start block number in range exceed the head block")
+	}
 	list, err := as.consensus.FetchBlocks(from, to)
 	if err != nil {
 		return &grpcpb.GetBlockListResponse{Blocks: make([]*prototype.SignedBlock, 0)}, err
