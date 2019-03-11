@@ -308,6 +308,7 @@ func (as *APIService) GetPostListByCreated(ctx context.Context, req *grpcpb.GetP
 					ParentId:      postWrap.GetParentId(),
 					Tags:          postWrap.GetTags(),
 					Beneficiaries: postWrap.GetBeneficiaries(),
+					VoteCnt:       postWrap.GetVoteCnt(),
 				})
 			}
 			if idx < limit {
@@ -354,6 +355,7 @@ func (as *APIService) GetReplyListByPostId(ctx context.Context, req *grpcpb.GetR
 					Children:     postWrap.GetChildren(),
 					RootId:       postWrap.GetRootId(),
 					ParentId:     postWrap.GetParentId(),
+					VoteCnt:      postWrap.GetVoteCnt(),
 				})
 			}
 			if idx < limit {
@@ -721,6 +723,7 @@ func (as *APIService) GetPostListByName(ctx context.Context, req *grpcpb.GetPost
 						ParentId:      postWrap.GetParentId(),
 						Tags:          postWrap.GetTags(),
 						Beneficiaries: postWrap.GetBeneficiaries(),
+						VoteCnt:       postWrap.GetVoteCnt(),
 					}
 					postList = append(postList, postInfo)
 				}

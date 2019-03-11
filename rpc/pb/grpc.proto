@@ -177,6 +177,7 @@ message PostResponse {
     uint64                                      parent_id               =      17 [jstype = JS_STRING];
     repeated string                             tags                    =      18;
     repeated prototype.beneficiary_route_type   beneficiaries           =      19;
+    uint64                                      vote_cnt                =      20;
 }
 
 message GetPostListByCreatedRequest {
