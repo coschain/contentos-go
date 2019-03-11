@@ -217,6 +217,8 @@ func (as *APIService) GetChainState(ctx context.Context, req *grpcpb.NonParamsRe
 }
 
 func (as *APIService) GetStatisticsInfo(ctx context.Context, req *grpcpb.NonParamsRequest) (*grpcpb.GetStatResponse, error) {
+	as.db.RLock()
+	defer as.db.RUnlock()
 
 	ret := &grpcpb.GetStatResponse{}
 
@@ -418,9 +420,13 @@ func (as *APIService) getState() *grpcpb.ChainState {
 	var (
 		i int32 = 1
 	)
-	result.Dgpo = table.NewSoGlobalWrap(as.db, &i).GetProps()
+	as.db.RUnlock()
 	result.LastIrreversibleBlockNumber = as.consensus.GetLIB().BlockNum()
 	lastCommit := as.consensus.GetLastBFTCommit()
+	as.db.RLock()
+
+	result.Dgpo = table.NewSoGlobalWrap(as.db, &i).GetProps()
+
 	if lastCommit != nil {
 		result.LastIrreversibleBlockTime = uint64(lastCommit.(*message.Commit).CommitTime.Unix())
 	}
