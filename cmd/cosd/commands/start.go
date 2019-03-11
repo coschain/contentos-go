@@ -11,6 +11,7 @@ import (
 	"github.com/coschain/contentos-go/consensus"
 	"github.com/coschain/contentos-go/db/storage"
 	"github.com/coschain/contentos-go/iservices"
+	"github.com/coschain/contentos-go/myhttp"
 	"github.com/coschain/contentos-go/mylog"
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/p2p"
@@ -165,5 +166,9 @@ func RegisterService(app *node.Node, cfg node.Config) {
 
 	_ = app.Register(plugins.TrxServiceName, func(ctx *node.ServiceContext) (node.Service, error) {
 		return plugins.NewTrxSerVice(ctx)
+	})
+
+	_ = app.Register(myhttp.HealthCheckName, func(ctx *node.ServiceContext) (node.Service, error) {
+		return myhttp.NewMyHttp(ctx, app.Log)
 	})
 }
