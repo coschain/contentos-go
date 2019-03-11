@@ -1072,7 +1072,8 @@ func (c *TrxPool) Sign(priv *prototype.PrivateKeyType, digest []byte) []byte {
 }
 
 func (c *TrxPool) GetCommitBlockNum() (uint64, error) {
-	return c.iceberg.LastFinalizedBlock()
+	num, _, err := c.iceberg.LatestBlock()
+	return num, err
 }
 
 //Sync committed blocks to squash db when node reStart

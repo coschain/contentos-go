@@ -1285,6 +1285,10 @@ func (sabft *SABFT) handleBlockSync() error {
 	lastCommit := sabft.ForkDB.LastCommitted().BlockNum()
 	//Fetch the commit block num in db
 	dbCommit, err := sabft.ctrl.GetCommitBlockNum()
+
+	sabft.log.Debugf("[sync pushed]: dbCommit: %v, %v, %v",
+		dbCommit, lastCommit, err)
+
 	if err != nil {
 		return err
 	}
@@ -1300,17 +1304,35 @@ func (sabft *SABFT) handleBlockSync() error {
 				return err
 			}
 			err = sabft.ctrl.SyncCommittedBlockToDB(blk)
+
+			if err != nil{
+				sabft.log.Debugf("[Reload commit] SyncCommittedBlockToDB Failed: "+
+					"%v", i )
+				return err
+			}
 		}
 	}
 	//2.sync pushed blocks
 	//Fetch pushed blocks in snapshot
-	pSli, _, err := sabft.ForkDB.FetchBlocksSince(sabft.ForkDB.LastCommitted())
+	//pSli, _, err := sabft.ForkDB.FetchBlocksSince(sabft.ForkDB.LastCommitted())
+
+	dbCommit, err = sabft.ctrl.GetCommitBlockNum()
+	latestNumber := sabft.ForkDB.Head().Id().BlockNum()
+
+	sabft.log.Debugf("[sync pushed 2]: dbCommit: %v, %v, %v",
+		dbCommit, latestNumber, err)
+
+	if err != nil {
+		return err
+	}
+
+	pSli, err := sabft.FetchBlocks(dbCommit + 1, latestNumber + 1)
 	if err != nil {
 		return err
 	}
 	if len(pSli) > 0 {
-		sabft.log.Debugf("[sync pushed]: start sync lost blocks,start: %v,end:%v",
-			lastCommit+1, sabft.ForkDB.Head().Id().BlockNum())
+		sabft.log.Debugf("[sync pushed2]: start sync lost blocks,start: %v,end:%v, count: %v",
+			dbCommit+1, sabft.ForkDB.Head().Id().BlockNum(), len(pSli) )
 		err = sabft.ctrl.SyncPushedBlocksToDB(pSli)
 	}
 
