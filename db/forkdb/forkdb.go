@@ -2,11 +2,10 @@ package forkdb
 
 import (
 	"fmt"
-	"os"
-	"sync"
-
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/db/blocklog"
+	"github.com/sasha-s/go-deadlock"
+	"os"
 )
 
 const defaultSize = 1024
@@ -25,7 +24,7 @@ type DB struct {
 	detachedLink map[common.BlockID]common.ISignedBlock
 
 	snapshot blocklog.BLog
-	sync.RWMutex
+	deadlock.RWMutex
 }
 
 // NewDB ...

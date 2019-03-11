@@ -21,7 +21,7 @@ func addCommands() {
 }
 
 func main() {
-	fmt.Println("Start cosd version XXXXX")
+	fmt.Println("Start cosd version XXXXX222")
 	addCommands()
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
