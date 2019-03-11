@@ -103,10 +103,10 @@ message post_operation{
 }
 
 message reply_operation{
-    uint64 uuid             = 1;
+    uint64 uuid             = 1 [jstype = JS_STRING];
     account_name owner      = 2;
     string content          = 3;
-    uint64 parent_uuid      = 4;
+    uint64 parent_uuid      = 4 [jstype = JS_STRING];
     repeated beneficiary_route_type beneficiaries = 6;
 }
 
