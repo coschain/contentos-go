@@ -557,7 +557,7 @@ func IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 				log.Error("[p2p] send message error: ", err)
 				return
 			}
-			time.Sleep(100 * time.Millisecond)
+			time.Sleep(5 * time.Millisecond)
 			//log.Infof("send a SignedBlock msg to   v%   data   v%\n", data.Addr, msg)
 		}
 	case msgTypes.IdMsg_request_id_ack:
