@@ -163,7 +163,7 @@ message GetWitnessListResponse {
 }
 
 message PostResponse {
-    uint64                                      post_id                 =      1;
+    uint64                                      post_id                 =      1 [jstype = JS_STRING];
     string                                      category                =      2;
     prototype.account_name                      parent_author           =      3;
     prototype.account_name                      author                  =      5;
@@ -173,8 +173,8 @@ message PostResponse {
     prototype.time_point_sec                    last_payout             =      13;
     uint32                                      depth                   =      14;
     uint32                                      children                =      15;
-    uint64                                      root_id                 =      16;
-    uint64                                      parent_id               =      17;
+    uint64                                      root_id                 =      16 [jstype = JS_STRING];
+    uint64                                      parent_id               =      17 [jstype = JS_STRING];
     repeated string                             tags                    =      18;
     repeated prototype.beneficiary_route_type   beneficiaries           =      19;
 }
