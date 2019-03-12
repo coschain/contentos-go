@@ -134,6 +134,7 @@ func (db *DB) TotalBlockNum() int {
 func (db *DB) FetchBlock(id common.BlockID) (common.ISignedBlock, error) {
 	db.RLock()
 	defer db.RUnlock()
+
 	return db.fetchBlock(id)
 }
 
@@ -399,7 +400,7 @@ func (db *DB) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, []comm
 	cur := db.head
 	var idx int
 	for idx = int(length - 1); idx >= 0; idx-- {
-		b, err := db.FetchBlock(cur)
+		b, err := db.fetchBlock(cur)
 		if err != nil {
 			return nil, nil, err
 		}
