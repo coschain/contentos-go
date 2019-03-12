@@ -106,6 +106,9 @@ var DefaultNodeConfig = node.Config{
 		LocalBpName:       constants.COSInitMiner,
 		LocalBpPrivateKey: constants.InitminerPrivKey,
 	},
+	HealthCheck: service_configs.HCheck{
+		Port: "9090",
+	},
 }
 
 func DefaultDataDir() string {

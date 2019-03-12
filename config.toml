@@ -15,6 +15,9 @@ Name = "cosd"
   RPCListen = "0.0.0.0:8888"
   RPCName = "rpc"
 
+[HealthCheck]
+  Port = "9090"
+
 [P2P]
   CAPath = ""
   CertPath = ""

@@ -16,7 +16,7 @@ type myhttp struct{
 }
 
 func NewMyHttp(ctx *node.ServiceContext, lg *logrus.Logger) (*myhttp, error) {
-	s := &http.Server{Addr: ":9090"}
+	s := &http.Server{Addr: fmt.Sprintf(":%s", ctx.Config().HealthCheck.Port)}
 	return &myhttp{srv:s,log:lg}, nil
 }
 
