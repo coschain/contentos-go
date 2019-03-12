@@ -106,12 +106,6 @@ type ContractApplyEvaluator struct {
 	op  *prototype.ContractApplyOperation
 }
 
-type ContractEstimateApplyEvaluator struct {
-	BaseEvaluator
-	ctx *ApplyContext
-	op  *prototype.ContractEstimateApplyOperation
-}
-
 type InternalContractApplyEvaluator struct {
 	BaseEvaluator
 	ctx *ApplyContext
@@ -205,7 +199,7 @@ func (ev *PostEvaluator) Apply() {
 	}), "create post error")
 
 	authorWrap.MdLastPostTime(ev.ctx.control.HeadBlockTime())
-	
+
 	ev.ctx.control.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
 		props.TotalPostCnt++
 	})
@@ -469,7 +463,7 @@ func mergeTags(existed []int32, new []prototype.ReportOperationTag) []int32 {
 	len1 := len(existed)
 	len2 := len(new)
 	tmp := make([]int32, 0, len2)
-	for i:=0; i<len2; i++ {
+	for i := 0; i < len2; i++ {
 		tmp[i] = int32(new[i])
 	}
 	sort.Sort(byTag(existed))
@@ -479,24 +473,24 @@ func mergeTags(existed []int32, new []prototype.ReportOperationTag) []int32 {
 	i := 0
 	j := 0
 	for {
-		if i==len1 || j==len2 {
+		if i == len1 || j == len2 {
 			break
 		}
-		if existed[i]<=tmp[j] {
+		if existed[i] <= tmp[j] {
 			res = append(res, existed[i])
 			if existed[i] == tmp[j] {
 				j++
 			}
 			i++
-		} else if existed[i]>tmp[j] {
+		} else if existed[i] > tmp[j] {
 			res = append(res, tmp[j])
 			j++
 		}
 	}
-	if i<len1 {
+	if i < len1 {
 		res = append(res, existed[i:]...)
 	}
-	if j<len2 {
+	if j < len2 {
 		res = append(res, tmp[i:]...)
 	}
 
@@ -522,7 +516,7 @@ func (ev *ReportEvaluator) Apply() {
 			if report.GetIsArbitrated() {
 				opAssert(false, "cannot report a legal post")
 			}
-			report.MdReportedTimes(report.GetReportedTimes()+1)
+			report.MdReportedTimes(report.GetReportedTimes() + 1)
 			existedTags := report.GetTags()
 			newTags := op.ReportTag
 			report.MdTags(mergeTags(existedTags, newTags))
@@ -533,7 +527,7 @@ func (ev *ReportEvaluator) Apply() {
 			tInfo.Uuid = op.Reported
 			tInfo.ReportedTimes = 1
 			tags := make([]int32, len(op.ReportTag))
-			for i:= range op.ReportTag {
+			for i := range op.ReportTag {
 				tags[i] = int32(op.ReportTag[i])
 			}
 			tInfo.Tags = tags
@@ -601,33 +595,6 @@ func (ev *ContractDeployEvaluator) Apply() {
 	}), "create contract data error")
 }
 
-//func (ev *ContractEstimateApplyEvaluator) Apply() {
-//	op := ev.op
-//	cid := prototype.ContractId{Owner: op.Owner, Cname: op.Contract}
-//	scid := table.NewSoContractWrap(ev.ctx.db, &cid)
-//	opAssert(scid.CheckExist(), "contract name doesn't exist")
-//	acc := table.NewSoAccountWrap(ev.ctx.db, op.Caller)
-//	opAssert(acc.CheckExist(), "account doesn't exist")
-//
-//	code := scid.GetCode()
-//	vmCtx := &vmcontext.Context{Code: code, Caller: op.Caller,
-//		Owner: op.Owner, Gas: &prototype.Coin{Value: math.MaxUint64}, Contract: op.Contract, Injector: ev.ctx.trxCtx}
-//	cosVM := vm.NewCosVM(vmCtx, ev.ctx.db, ev.ctx.control.GetProps(), logrus.New())
-//	spent, err := cosVM.Estimate()
-//	if err != nil {
-//		vmCtx.Injector.Error(500, err.Error())
-//	} else {
-//		vmCtx.Injector.Log(fmt.Sprintf("Estimate the operation would spent %d gas, "+
-//			"the result does not include storage cost, and some edge fee. "+
-//			"Recommend you pay some extra tips to cover the charge", spent))
-//	}
-//}
-
-func (ev *ContractEstimateApplyEvaluator) Apply() {
-	//panic("not yet implement")
-	ev.ctx.trxCtx.Error(500, "high risk as malicious contract, deprecated.")
-}
-
 func (ev *ContractApplyEvaluator) Apply() {
 	op := ev.op
 
@@ -665,7 +632,7 @@ func (ev *ContractApplyEvaluator) Apply() {
 			opAssertE(err, "invalid contract parameters")
 		}
 	} else {
-		opAssert(false, "unknown contract method: " + op.Method)
+		opAssert(false, "unknown contract method: "+op.Method)
 	}
 
 	if abiInterface != nil {
@@ -707,7 +674,7 @@ func (ev *InternalContractApplyEvaluator) Apply() {
 	caller := table.NewSoAccountWrap(ev.ctx.db, op.FromCaller)
 	opAssert(caller.CheckExist(), "caller account doesn't exist")
 
-	opAssert(caller.GetBalance().Value * constants.BaseRate >= op.Gas.Value, "caller balance less than gas")
+	opAssert(caller.GetBalance().Value*constants.BaseRate >= op.Gas.Value, "caller balance less than gas")
 	opAssert(fromContract.GetBalance().Value >= op.Amount.Value, "fromContract balance less than transfer amount")
 
 	code := toContract.GetCode()
@@ -725,7 +692,7 @@ func (ev *InternalContractApplyEvaluator) Apply() {
 			opAssertE(err, "invalid contract parameters")
 		}
 	} else {
-		opAssert(false, "unknown contract method: " + op.ToMethod)
+		opAssert(false, "unknown contract method: "+op.ToMethod)
 	}
 
 	if abiInterface != nil {

@@ -11,7 +11,6 @@ import (
 	"github.com/go-interpreter/wagon/exec"
 	"github.com/go-interpreter/wagon/wasm"
 	"github.com/sirupsen/logrus"
-	"math"
 	"reflect"
 	"sync"
 )
@@ -161,40 +160,6 @@ func (w *CosVM) Validate() error {
 	}
 	err = vmvalidator.VerifyModule(vmModule)
 	return err
-}
-
-func (w *CosVM) Estimate() (gas uint64, err error) {
-	defer func() {
-		if e := recover(); e != nil {
-			gas = math.MaxUint64
-			err = errors.New(fmt.Sprintf("estimate error: %v", e))
-			return
-		}
-	}()
-	vmModule, err := w.readModule()
-	if err != nil {
-		return math.MaxUint64, err
-	}
-	vm, err := exec.NewEstimator(vmModule)
-	defer func() {
-		w.spentGas = vm.CostGas
-	}()
-	var entryIndex = -1
-	for name, entry := range vmModule.Export.Entries {
-		if name == "main" && entry.Kind == wasm.ExternalFunction {
-			entryIndex = int(entry.Index)
-		}
-	}
-	if entryIndex >= 0 {
-		_, err = vm.ExecCode(int64(entryIndex))
-		if err != nil {
-			return math.MaxUint64, err
-		}
-		gas = vm.CostGas
-		return gas, nil
-	} else {
-		return 0, errors.New("unable to execute code")
-	}
 }
 
 func (w *CosVM) Register(funcName string, function interface{}, gas uint64) {

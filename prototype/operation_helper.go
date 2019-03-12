@@ -105,9 +105,6 @@ func GetPbOperation(op interface{}) *Operation {
 		ptr := op.(*ContractApplyOperation)
 		res.Op = &Operation_Op14{Op14: ptr}
 		break
-	case *ContractEstimateApplyOperation:
-		ptr := op.(*ContractEstimateApplyOperation)
-		res.Op = &Operation_Op15{Op15: ptr}
 	default:
 		panic(fmt.Sprintf("error op type %v", op))
 	}
