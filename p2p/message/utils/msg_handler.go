@@ -558,7 +558,7 @@ func IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 				log.Error("[p2p] send message error: ", err)
 				return
 			}
-			time.Sleep(5 * time.Millisecond)
+			time.Sleep(50 * time.Millisecond)
 			//log.Infof("send a SignedBlock msg to   v%   data   v%\n", data.Addr, msg)
 		}
 	case msgTypes.IdMsg_request_id_ack:
@@ -632,14 +632,11 @@ func ReqIdHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	end := current_head_blk_id.BlockNum()
 
 	if start >= end {
-		log.Info("[p2p] no need to get ids")
-		log.Info("[p2p] remote_head_blk_id:   v%", remote_head_blk_id)
-		log.Info("[p2p] current_head_blk_id:   v%", current_head_blk_id)
+		log.Debug("[p2p] no need to get ids, remote head block num: ", start, " current head block num: ", end)
 		return
 	}
 
-	log.Info("[p2p] start: ", remote_head_blk_id)
-	log.Info("[p2p] end: ", current_head_blk_id)
+	log.Debug("[p2p] sync start num: ", start, " end num: ", end)
 
 	fmt.Println("before GetIDs timestamp: ", time.Now())
 	ids, err := ctrl.GetIDs(remote_head_blk_id, current_head_blk_id)
@@ -648,7 +645,7 @@ func ReqIdHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 		return
 	}
 	if len(ids) == 0 {
-		log.Info("[p2p] we have same blocks, no need to request from me")
+		log.Debug("[p2p] we have same blocks, no need to request from me")
 		return
 	}
 	fmt.Println("after GetIDs timestamp: ", time.Now())
