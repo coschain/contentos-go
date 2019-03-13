@@ -20,6 +20,7 @@ require (
 	github.com/gorilla/websocket v1.4.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0
 	github.com/grpc-ecosystem/grpc-gateway v1.6.4
+	github.com/hashicorp/golang-lru v0.5.1
 	github.com/improbable-eng/grpc-web v0.9.1-0.20190220152735-5d060c951c08
 	github.com/inconshreveable/log15 v0.0.0-20180818164646-67afb5ed74ec
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
