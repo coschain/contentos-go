@@ -997,6 +997,7 @@ func Test_Gas(t *testing.T) {
 		}
 	}
 
+	headBlockTime = 21
 	id := block1.Id()
 	pre = &prototype.Sha256{Hash: id.Data[:]}
 	block2, err := c.GenerateAndApplyBlock(constants.COSInitMiner, pre, uint32(headBlockTime), pri, 0)
