@@ -1214,7 +1214,7 @@ func (sabft *SABFT) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, 
 	blocksInForkDB, _, err := sabft.ForkDB.FetchBlocksSince(lastCommitted)
 	if err != nil {
 		// there probably is a new committed block during the execution of this process, just try again
-		return return nil, errors.New("ForkDB changed, please try again")
+		return nil, errors.New("ForkDB changed, please try again")
 	}
 	end := lastCommitted.BlockNum()
 
