@@ -455,21 +455,50 @@ func (as *APIService) GetBlockList(ctx context.Context, req *grpcpb.GetBlockList
 	}
 	list, err := as.consensus.FetchBlocks(from, to)
 	if err != nil {
-		return &grpcpb.GetBlockListResponse{Blocks: make([]*prototype.SignedBlock, 0)}, err
+		return &grpcpb.GetBlockListResponse{Blocks: make([]*grpcpb.BlockInfo, 0)}, err
 	}
-	var blkList []*prototype.SignedBlock
+	var blkList []*grpcpb.BlockInfo
 	for _, blk := range list {
 		b := blk.(*prototype.SignedBlock)
+		blkInfo := &grpcpb.BlockInfo{}
+		blkInfo.Timestamp = b.SignedHeader.Header.Timestamp
+		blkInfo.BlockHeight = b.Id().BlockNum()
+		blkInfo.Witness = b.SignedHeader.Header.Witness
+		blkInfo.TrxCount = uint32(len(b.Transactions))
+		blkInfo.BlockId = &prototype.Sha256{}
+		blkInfo.BlockId.FromBlockID(b.Id())
+		blkInfo.PreId = b.SignedHeader.Header.Previous
 		if isFetchOne && b.Id().BlockNum() == from {
-			blkList = append(blkList, b)
+			blkList = append(blkList, blkInfo)
 			break
 		}
-		blkList = append(blkList, b)
+		blkList = append(blkList, blkInfo)
 	}
 	if blkList == nil {
-		blkList = make([]*prototype.SignedBlock, 0)
+		blkList = make([]*grpcpb.BlockInfo, 0)
 	}
 	return &grpcpb.GetBlockListResponse{Blocks: blkList}, nil
+}
+
+func (as *APIService) GetSignedBlock(ctx context.Context, req *grpcpb.GetSignedBlockRequest) (*grpcpb.GetSignedBlockResponse, error) {
+	headNum := as.consensus.GetHeadBlockId().BlockNum()
+    if req.Start > headNum {
+    	return &grpcpb.GetSignedBlockResponse{Block:nil},errors.New("the block not exist")
+	}
+	from := req.Start
+	var block *prototype.SignedBlock
+	list, err := as.consensus.FetchBlocks(from, from+1)
+	if err != nil {
+		return &grpcpb.GetSignedBlockResponse{Block:nil},err
+	}
+	for _,blk := range list {
+		b := blk.(*prototype.SignedBlock)
+		if b.Id().BlockNum() == from {
+			block = b
+		}
+	}
+	return &grpcpb.GetSignedBlockResponse{Block:block},nil
+
 }
 
 func (as *APIService) GetAccountListByBalance(ctx context.Context, req *grpcpb.GetAccountListByBalanceRequest) (*grpcpb.GetAccountListResponse, error) {

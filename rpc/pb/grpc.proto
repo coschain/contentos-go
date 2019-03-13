@@ -55,6 +55,9 @@ service ApiService {
     rpc GetBlockList (GetBlockListRequest) returns (GetBlockListResponse) {
     }
 
+    rpc GetSignedBlock (GetSignedBlockRequest)  returns (GetSignedBlockResponse) {
+    }
+
     rpc GetAccountListByBalance (GetAccountListByBalanceRequest) returns (GetAccountListResponse) {
     }
 
@@ -259,8 +262,26 @@ message GetBlockListRequest {
 }
 
 
+message BlockInfo {
+    prototype.time_point_sec     timestamp  = 1;
+    uint64                       block_height = 2 [jstype = JS_STRING];
+    uint32                       trx_count   = 3;
+    prototype.account_name       witness     = 4;
+    prototype.sha256             block_id    = 5;
+    prototype.sha256             pre_id      = 6;
+
+}
+
 message GetBlockListResponse {
-    repeated prototype.signed_block blocks = 1;
+   repeated    BlockInfo   blocks = 1;
+}
+
+message GetSignedBlockRequest {
+    uint64    start        = 1;
+}
+
+message GetSignedBlockResponse {
+    prototype.signed_block  block = 1;
 }
 
 
