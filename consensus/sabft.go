@@ -827,6 +827,11 @@ func (sabft *SABFT) Commit(commitRecords *message.Commit) error {
 }
 
 func (sabft *SABFT) commit(commitRecords *message.Commit) error {
+	defer func() {
+		sabft.appState.LastHeight = commitRecords.FirstPrecommit().Height
+		sabft.appState.LastProposedData = commitRecords.ProposedData
+	}()
+
 	blockID := common.BlockID{
 		Data: commitRecords.ProposedData,
 	}
@@ -873,12 +878,7 @@ func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 	}
 
 	sabft.ctrl.Commit(blockID.BlockNum())
-
 	sabft.ForkDB.Commit(blockID)
-
-	sabft.appState.LastHeight = commitRecords.FirstPrecommit().Height
-	sabft.appState.LastProposedData = commitRecords.ProposedData
-
 	sabft.lastCommitted = commitRecords
 
 	sabft.log.Debug("[SABFT] committed block #", blockID)
