@@ -302,12 +302,12 @@ func (db *DB) FetchBranch(id1, id2 common.BlockID) ([2][]common.BlockID, error) 
 	for tid1 != tid2 && tid1.BlockNum()+defaultSize > headNum {
 		ret[0] = append(ret[0], tid1)
 		ret[1] = append(ret[1], tid2)
-		tmp, err := db.FetchBlock(tid1)
+		tmp, err := db.fetchBlock(tid1)
 		if err != nil {
 			return ret, err
 		}
 		tid1 = tmp.Previous()
-		tmp, err = db.FetchBlock(tid2)
+		tmp, err = db.fetchBlock(tid2)
 		if err != nil {
 			return ret, err
 		}
