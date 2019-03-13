@@ -835,20 +835,21 @@ func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 	blk, err := sabft.ForkDB.FetchBlock(blockID)
 	if err != nil {
 		// we're falling behind, just wait for next commit
-		sabft.log.Warn("[SABFT] committing a missing block", blockID)
-		return nil
+		sabft.log.Error("[SABFT] committing a missing block", blockID)
+		return ErrCommittingNonExistBlock
 	}
 
 	// if blockID points to a block that is not on the current
 	// longest chain, switch fork first
 	blkMain, err := sabft.ForkDB.FetchBlockFromMainBranch(blockID.BlockNum())
 	if err != nil {
-		panic(err)
+		sabft.log.Error(err)
+		return ErrInternal
 	}
 	if blkMain.Id() != blockID {
 		switchSuccess := sabft.switchFork(sabft.ForkDB.Head().Id(), blockID)
 		if !switchSuccess {
-			panic("there's an error while switching to committed block")
+			return ErrSwitchFork
 		}
 		// also need to reset new head
 		// fixme: find the real head of the branch we just switched on
@@ -857,11 +858,13 @@ func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 
 	blks, _, err := sabft.ForkDB.FetchBlocksSince(sabft.ForkDB.LastCommitted())
 	if err != nil {
-		panic(err)
+		sabft.log.Error(err)
+		return ErrInternal
 	}
 	for i := range blks {
 		if err = sabft.blog.Append(blks[i]); err != nil {
-			panic(err)
+			sabft.log.Error(err)
+			return ErrInternal
 		}
 		if blks[i] == blk {
 			sabft.log.Debugf("[SABFT] committed from block #%d to #%d", blks[0].Id().BlockNum(), blk.Id().BlockNum())
