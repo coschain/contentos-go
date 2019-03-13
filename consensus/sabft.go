@@ -1164,7 +1164,7 @@ func fetchBlocks(from, to uint64, forkDB *forkdb.DB, blog *blocklog.BLog) ([]com
 		blocksInForkDB, err = forkDB.FetchBlocksFromMainBranch(forkDBFrom)
 		if err != nil {
 			// there probably is a new committed block during the execution of this process, just try again
-			return fetchBlocks(from, to, forkDB, blog)
+			return nil, errors.New("ForkDB changed, please try again")
 		}
 		if int(forkDBTo-forkDBFrom+1) < len(blocksInForkDB) {
 			blocksInForkDB = blocksInForkDB[:forkDBTo-forkDBFrom+1]
@@ -1203,7 +1203,7 @@ func (sabft *SABFT) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, 
 		blocks, _, err := sabft.ForkDB.FetchBlocksSince(id)
 		if err != nil {
 			// there probably is a new committed block during the execution of this process, just try again
-			return sabft.FetchBlocksSince(id)
+			return nil, errors.New("ForkDB changed, please try again")
 		}
 		return blocks, err
 	}
@@ -1214,7 +1214,7 @@ func (sabft *SABFT) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, 
 	blocksInForkDB, _, err := sabft.ForkDB.FetchBlocksSince(lastCommitted)
 	if err != nil {
 		// there probably is a new committed block during the execution of this process, just try again
-		return sabft.FetchBlocksSince(id)
+		return return nil, errors.New("ForkDB changed, please try again")
 	}
 	end := lastCommitted.BlockNum()
 
