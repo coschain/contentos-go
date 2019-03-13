@@ -56,4 +56,4 @@ require (
 	google.golang.org/grpc v1.16.0
 )
 
-replace github.com/go-interpreter/wagon v0.3.0 => github.com/coschain/wagon v0.0.0-20190102065443-ad16f10108ac
+replace github.com/go-interpreter/wagon v0.3.0 => github.com/coschain/wagon v0.3.1-0.20190313105030-01faf85b3ff0
