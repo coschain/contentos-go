@@ -18,8 +18,8 @@ func FetchTrxApplyResult(eb EventBus.Bus, timeout time.Duration, trx *SignedTran
      	return &TransactionReceiptWithInfo{Status:StatusError,
 			ErrorInfo:"Get id of new trx fail"}
 	 }
-	rec := make(chan *TransactionReceiptWithInfo)
-    done := make(chan bool)
+	rec := make(chan *TransactionReceiptWithInfo,10)
+    done := make(chan bool,10)
 
 	handler := func(trx *SignedTransaction, result *TransactionReceiptWithInfo) {
 		  if trx == nil {
