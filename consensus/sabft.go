@@ -349,7 +349,7 @@ func (sabft *SABFT) scheduleProduce() bool {
 			if !sabft.ForkDB.Empty() {
 				headID = sabft.ForkDB.Head().Id()
 			}
-			sabft.p2p.TriggerSync(headID)
+			sabft.p2p.TriggerSync(headID, false)
 			// TODO:  if we are not on the main branch, pop until the head is on main branch
 			sabft.log.Debug("[SABFT TriggerSync]: start from ", headID.BlockNum())
 			return false
@@ -740,6 +740,8 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 	newNum := newID.BlockNum()
 
 	if newNum > headNum + 1 {
+		sabft.p2p.TriggerSync( b.Previous() , true)
+		sabft.log.Debug("[SABFT TriggerSync]: out-of range from ", b.Previous().BlockNum())
 		return ErrBlockOutOfScope
 	}
 
@@ -764,8 +766,17 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 		// 4. illegal block
 
 		if b.Id().BlockNum() > headNum {
-			// sabft.log.Debugf("[SABFT][pushBlock]possibly detached block. prev: got %v, want %v", b.Id(), head.Id())
-			sabft.p2p.TriggerSync(head.Id())
+
+			sabft.log.Debugf("[SABFT][pushBlock]possibly detached block. prev: got %v, want %v", b.Id(), head.Id())
+
+			tailId, errTail := sabft.ForkDB.FetchUnlinkBlockTail()
+
+			if errTail == nil {
+				sabft.p2p.TriggerSync( *tailId , true)
+				sabft.log.Debug("[SABFT TriggerSync]: pre-start from ", tailId.BlockNum())
+			} else {
+				sabft.log.Debug("[SABFT TriggerSync]: not found:", errTail )
+			}
 		}
 		sabft.log.Info("[SABFT] pushed a block that is detached or off-main-branch, head block: ", head.Id())
 		return nil

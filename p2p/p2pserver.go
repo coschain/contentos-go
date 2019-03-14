@@ -422,7 +422,13 @@ func (this *P2PServer) Broadcast(message interface{}) {
 	this.Network.Broadcast(msg, isConsensus)
 }
 
-func (this *P2PServer) TriggerSync(current_head_blk_id coomn.BlockID) {
+func (this *P2PServer) TriggerSync(current_head_blk_id coomn.BlockID, onlyOneBlock bool) {
+
+	if onlyOneBlock{
+		this.requestBlockById(current_head_blk_id);
+		return
+	}
+
 	reqmsg := new(msgtypes.TransferMsg)
 	reqdata := new(msgtypes.ReqIdMsg)
 	reqdata.HeadBlockId = current_head_blk_id.Data[:]
@@ -444,6 +450,36 @@ func (this *P2PServer) TriggerSync(current_head_blk_id coomn.BlockID) {
 
 	for _, p := range np.List {
 		go p.Send(reqmsg, false, this.ctx.Config().P2P.NetworkMagic)
+		return
+	}
+}
+
+func (this *P2PServer) requestBlockById(current_head_blk_id coomn.BlockID) {
+	var reqmsg msgtypes.TransferMsg
+	reqdata := new(msgtypes.IdMsg)
+	reqdata.Msgtype = msgtypes.IdMsg_request_sigblk_by_id
+
+
+	reqdata.Value = append(reqdata.Value, current_head_blk_id.Data[:])
+	reqmsg.Msg = &msgtypes.TransferMsg_Msg2{Msg2:reqdata}
+
+	currentHeadNum := current_head_blk_id.BlockNum()
+	//this.log.Info("enter TriggerSync func")
+	np := this.Network.GetNp()
+	np.RLock()
+	defer np.RUnlock()
+
+	for _, p := range np.List {
+		//this.log.Info("[p2p] cons call TriggerSync func, head id :  ", reqmsg.HeadBlockId)
+		num := p.GetLastSeenBlkNum()
+		if currentHeadNum < num {
+			go p.Send(&reqmsg, false, this.ctx.Config().P2P.NetworkMagic)
+			return
+		}
+	}
+
+	for _, p := range np.List {
+		go p.Send(&reqmsg, false, this.ctx.Config().P2P.NetworkMagic)
 		return
 	}
 }

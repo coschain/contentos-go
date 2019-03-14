@@ -1,6 +1,7 @@
 package forkdb
 
 import (
+	"errors"
 	"fmt"
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/db/blocklog"
@@ -462,6 +463,29 @@ func (db *DB) Commit(id common.BlockID) {
 	db.branches = newBranches
 	db.start = id.BlockNum()
 	db.lastCommitted = id
+}
+
+func (db *DB) FetchUnlinkBlockTail() ( *common.BlockID, error) {
+	db.RLock()
+	defer db.RUnlock()
+
+	if len(db.detachedLink) == 0{
+		return nil, errors.New("No More Unlinked block1")
+	}
+
+	for _ , v := range db.detachedLink {
+		prev := v.Previous()
+
+		for ; ;  {
+			if  value, ok := db.detachedLink[prev]; ok{
+				prev = value.Previous()
+			} else {
+				return &prev, nil
+			}
+		}
+		break
+	}
+	return nil, errors.New("No More Unlinked block2" )
 }
 
 // Illegal determines if the block has illegal transactions
