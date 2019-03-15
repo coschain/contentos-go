@@ -76,13 +76,16 @@ func GetBaseEvaluator(ctx *ApplyContext, op *prototype.Operation) BaseEvaluator 
 		eva := &ContractApplyEvaluator{ctx: ctx, op: op.GetOp14()}
 		return BaseEvaluator(eva)
 	case *prototype.Operation_Op15:
-		eva := &StakeEvaluator{ctx: ctx, op: op.GetOp15()}
+		eva := &ContractEstimateApplyEvaluator{ctx: ctx, op: op.GetOp15()}
 		return BaseEvaluator(eva)
 	case *prototype.Operation_Op16:
-		eva := &UnStakeEvaluator{ctx: ctx, op: op.GetOp16()}
+		eva := &StakeEvaluator{ctx: ctx, op: op.GetOp16()}
 		return BaseEvaluator(eva)
 	case *prototype.Operation_Op17:
-		eva := &ReportEvaluator{ctx: ctx, op: op.GetOp17()}
+		eva := &UnStakeEvaluator{ctx: ctx, op: op.GetOp17()}
+		return BaseEvaluator(eva)
+	case *prototype.Operation_Op18:
+		eva := &ReportEvaluator{ctx: ctx, op: op.GetOp18()}
 		return BaseEvaluator(eva)
 
 	default:

@@ -109,16 +109,16 @@ func GetPbOperation(op interface{}) *Operation {
 		ptr := op.(*ContractApplyOperation)
 		res.Op = &Operation_Op14{Op14: ptr}
 		break
+	case *ContractEstimateApplyOperation:
+		ptr := op.(*ContractEstimateApplyOperation)
+		res.Op = &Operation_Op15{Op15: ptr}
+		break
 	case *StakeOperation:
 		ptr := op.(*StakeOperation)
-		res.Op = &Operation_Op15{Op15: ptr}
+		res.Op = &Operation_Op16{Op16: ptr}
 		break
 	case *UnStakeOperation:
 		ptr := op.(*UnStakeOperation)
-		res.Op = &Operation_Op16{Op16: ptr}
-		break
-	case *ReportOperation:
-		ptr := op.(*ReportOperation)
 		res.Op = &Operation_Op17{Op17: ptr}
 		break
 	default:

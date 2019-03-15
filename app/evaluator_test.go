@@ -29,12 +29,6 @@ var (
 	SINGLE_ID int32 = 1
 )
 
-func initCtx(p *TrxPool) *ApplyContext {
-	ctx := &ApplyContext{db: p.db, control: p}
-	ctx.trxCtx = NewTrxContext(nil,p.db,p)
-	return ctx
-}
-
 func tryCreateAccount(t *testing.T, acc string, ctrl *TrxPool) {
 	acop := &prototype.AccountCreateOperation{
 		Fee:            prototype.NewCoin(1),
@@ -52,7 +46,7 @@ func tryCreateAccount(t *testing.T, acc string, ctrl *TrxPool) {
 	op1.Op1 = acop
 	op.Op = op1
 
-	ctx := initCtx(ctrl)
+	ctx := &ApplyContext{db: ctrl.db, control: ctrl}
 	ev := &AccountCreateEvaluator{ctx: ctx, op: op.GetOp1()}
 	ev.Apply()
 
@@ -103,7 +97,7 @@ func Test_ApplyTransfer(t *testing.T) {
 	op2.Op2 = top
 	op.Op = op2
 
-	ctx := initCtx(c)
+	ctx := &ApplyContext{db: db, control: c}
 	ev := &TransferEvaluator{ctx: ctx, op: op.GetOp2()}
 	ev.Apply()
 
@@ -141,7 +135,7 @@ func TestPostEvaluator_ApplyNormal(t *testing.T) {
 	props := c.GetProps()
 	props.Time = &prototype.TimePointSec{UtcSeconds: uint32(time.Now().Unix())}
 	c.updateGlobalDataToDB(props)
-	ctx := initCtx(c)
+	ctx := &ApplyContext{db: db, control: c}
 	ev := &PostEvaluator{ctx: ctx, op: op.GetOp6()}
 	ev.Apply()
 
@@ -180,14 +174,14 @@ func TestPostEvaluator_ApplyPostExistId(t *testing.T) {
 	props.Time = &prototype.TimePointSec{UtcSeconds: uint32(time.Now().Unix())}
 	c.updateGlobalDataToDB(props)
 
-	ctx := initCtx(c)
+	ctx := &ApplyContext{db: db, control: c}
 	ev := &PostEvaluator{ctx: ctx, op: op.GetOp6()}
 	ev.Apply()
 
 	// avoid frequently
 	props.Time = &prototype.TimePointSec{UtcSeconds: uint32(time.Now().Unix() + 1000)}
 	c.updateGlobalDataToDB(props)
-
+	ctx = &ApplyContext{db: db, control: c}
 	ev = &PostEvaluator{ctx: ctx, op: op.GetOp6()}
 	func() {
 		defer func() {
@@ -223,7 +217,7 @@ func TestPostEvaluator_ApplyPostFrequently(t *testing.T) {
 	props.Time = &prototype.TimePointSec{UtcSeconds: uint32(time.Now().Unix())}
 	c.updateGlobalDataToDB(props)
 
-	ctx := initCtx(c)
+	ctx := &ApplyContext{db: db, control: c}
 	ev := &PostEvaluator{ctx: ctx, op: op.GetOp6()}
 	ev.Apply()
 
@@ -239,6 +233,7 @@ func TestPostEvaluator_ApplyPostFrequently(t *testing.T) {
 	opPost.Op6 = operation
 	op.Op = opPost
 
+	ctx = &ApplyContext{db: db, control: c}
 	ev = &PostEvaluator{ctx: ctx, op: op.GetOp6()}
 
 	func() {
@@ -275,13 +270,13 @@ func TestReplyEvaluator_ApplyNormal(t *testing.T) {
 	props := c.GetProps()
 	props.Time = &prototype.TimePointSec{UtcSeconds: currentTimestamp}
 	c.updateGlobalDataToDB(props)
-
-	ctx := initCtx(c)
+	ctx := &ApplyContext{db: db, control: c}
 	ev := &PostEvaluator{ctx: ctx, op: op.GetOp6()}
 	ev.Apply()
 
 	props.Time = &prototype.TimePointSec{UtcSeconds: currentTimestamp + 1000}
 	c.updateGlobalDataToDB(props)
+	ctx = &ApplyContext{db: db, control: c}
 
 	reply_operation := &prototype.ReplyOperation{
 		Uuid:          uint64(112),
@@ -336,8 +331,7 @@ func TestVoteEvaluator_ApplyNormal(t *testing.T) {
 	//props.Time = &prototype.TimePointSec{UtcSeconds: currentTimestamp}
 	props.Time = &prototype.TimePointSec{UtcSeconds: currentTimestamp}
 	c.updateGlobalDataToDB(props)
-
-	ctx := initCtx(c)
+	ctx := &ApplyContext{db: db, control: c}
 	ev := &PostEvaluator{ctx: ctx, op: op.GetOp6()}
 	ev.Apply()
 

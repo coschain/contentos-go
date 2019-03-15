@@ -13,11 +13,11 @@ message chain_id{
 }
 
 message coin{
-    uint64 value = 1 [jstype = JS_STRING];
+    uint64 value = 1;
 }
 
 message vest{
-    uint64 value = 1 [jstype = JS_STRING];
+    uint64 value = 1;
 }
 
 message public_key_type{

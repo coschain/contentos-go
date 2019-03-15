@@ -42,7 +42,6 @@ func addConf(confdir string, cfg node.Config, index int) {
 	cfg.P2P.NodePort = uint(p2pPortStart + index*2 + 0)
 	cfg.P2P.NodeConsensusPort = uint(p2pPortStart + index*2 + 1)
 	cfg.P2P.Genesis.SeedList = seeds
-	cfg.HealthCheck.Port = fmt.Sprintf("%d", 9090+index)
 
 	if index > 0 {
 		cfg.Consensus.LocalBpName = fmt.Sprintf("%s%d", constants.COSInitMiner, index)

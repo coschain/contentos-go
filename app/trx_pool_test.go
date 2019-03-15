@@ -909,6 +909,15 @@ func Test_TrxSize(t *testing.T) {
 	trx14,_ := createSigTrx(c, constants.InitminerPrivKey,applyOp)
 	fmt.Println(proto.Size(trx14))
 
+	estimate := &prototype.ContractEstimateApplyOperation{
+		Caller:prototype.NewAccountName("aaa"),
+		Owner:prototype.NewAccountName("bbb"),
+		Contract:"hello",
+		Params:"123",
+	}
+	trx15,_ := createSigTrx(c, constants.InitminerPrivKey,estimate)
+	fmt.Println(proto.Size(trx15))
+
 	stake := &prototype.StakeOperation{Account:prototype.NewAccountName("aaa"),Amount:1}
 	trx16,_ := createSigTrx(c, constants.InitminerPrivKey,stake)
 	fmt.Println(proto.Size(trx16))

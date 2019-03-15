@@ -2,10 +2,11 @@ package forkdb
 
 import (
 	"fmt"
+	"os"
+	"sync"
+
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/db/blocklog"
-	"github.com/sasha-s/go-deadlock"
-	"os"
 )
 
 const defaultSize = 1024
@@ -24,7 +25,7 @@ type DB struct {
 	detachedLink map[common.BlockID]common.ISignedBlock
 
 	snapshot blocklog.BLog
-	deadlock.RWMutex
+	sync.RWMutex
 }
 
 // NewDB ...
@@ -134,7 +135,6 @@ func (db *DB) TotalBlockNum() int {
 func (db *DB) FetchBlock(id common.BlockID) (common.ISignedBlock, error) {
 	db.RLock()
 	defer db.RUnlock()
-
 	return db.fetchBlock(id)
 }
 
@@ -302,12 +302,12 @@ func (db *DB) FetchBranch(id1, id2 common.BlockID) ([2][]common.BlockID, error) 
 	for tid1 != tid2 && tid1.BlockNum()+defaultSize > headNum {
 		ret[0] = append(ret[0], tid1)
 		ret[1] = append(ret[1], tid2)
-		tmp, err := db.fetchBlock(tid1)
+		tmp, err := db.FetchBlock(tid1)
 		if err != nil {
 			return ret, err
 		}
 		tid1 = tmp.Previous()
-		tmp, err = db.fetchBlock(tid2)
+		tmp, err = db.FetchBlock(tid2)
 		if err != nil {
 			return ret, err
 		}
@@ -400,7 +400,7 @@ func (db *DB) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, []comm
 	cur := db.head
 	var idx int
 	for idx = int(length - 1); idx >= 0; idx-- {
-		b, err := db.fetchBlock(cur)
+		b, err := db.FetchBlock(cur)
 		if err != nil {
 			return nil, nil, err
 		}

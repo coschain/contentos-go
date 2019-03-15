@@ -26,7 +26,9 @@ var BatchCmd = func() *cobra.Command {
 }
 
 func conductBatch(cmd *cobra.Command, args []string) {
-	var client grpcpb.ApiServiceClient
+	c := cmd.Context["rpcclient"]
+
+	var client = c.(grpcpb.ApiServiceClient)
 	var err error
 	var signTx *prototype.SignedTransaction
 	var path = args[0]

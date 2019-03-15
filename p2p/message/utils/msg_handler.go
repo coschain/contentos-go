@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"fmt"
 	"github.com/coschain/gobft/message"
 	"net"
 	"strconv"
@@ -558,7 +557,7 @@ func IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 				log.Error("[p2p] send message error: ", err)
 				return
 			}
-			time.Sleep(50 * time.Millisecond)
+			time.Sleep(100 * time.Millisecond)
 			//log.Infof("send a SignedBlock msg to   v%   data   v%\n", data.Addr, msg)
 		}
 	case msgTypes.IdMsg_request_id_ack:
@@ -632,23 +631,24 @@ func ReqIdHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	end := current_head_blk_id.BlockNum()
 
 	if start >= end {
-		log.Debug("[p2p] no need to get ids, remote head block num: ", start, " current head block num: ", end)
+		log.Info("[p2p] no need to get ids")
+		log.Info("[p2p] remote_head_blk_id:   v%", remote_head_blk_id)
+		log.Info("[p2p] current_head_blk_id:   v%", current_head_blk_id)
 		return
 	}
 
-	log.Debug("[p2p] sync start num: ", start, " end num: ", end)
+	log.Info("[p2p] start: ", remote_head_blk_id)
+	log.Info("[p2p] end: ", current_head_blk_id)
 
-	fmt.Println("before GetIDs timestamp: ", time.Now())
 	ids, err := ctrl.GetIDs(remote_head_blk_id, current_head_blk_id)
 	if err != nil {
 		log.Error("[p2p] can't get gap ids from consessus, start number:", remote_head_blk_id.BlockNum(), " end number: ",current_head_blk_id.BlockNum(), "error: ", err )
 		return
 	}
 	if len(ids) == 0 {
-		log.Debug("[p2p] we have same blocks, no need to request from me")
+		log.Info("[p2p] we have same blocks, no need to request from me")
 		return
 	}
-	fmt.Println("after GetIDs timestamp: ", time.Now())
 
 	remotePeer := p2p.GetPeerFromAddr(data.Addr)
 

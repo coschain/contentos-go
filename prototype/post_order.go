@@ -1,8 +1,6 @@
 package prototype
 
-import (
-	"github.com/coschain/contentos-go/common/encoding/kope"
-)
+import "github.com/coschain/contentos-go/common/encoding/kope"
 
 func (m *PostCreatedOrder) OpeEncode() ([]byte, error) {
 	return kope.Encode(m.Created, m.ParentId)
@@ -10,8 +8,4 @@ func (m *PostCreatedOrder) OpeEncode() ([]byte, error) {
 
 func (m *ReplyCreatedOrder) OpeEncode() ([]byte, error) {
 	return kope.Encode(m.ParentId, m.Created)
-}
-
-func (m *UserPostCreateOrder) OpeEncode () ([]byte, error) {
-	return kope.Encode(m.Author, m.Create)
 }

@@ -121,7 +121,7 @@ func (p *SignedTransaction) Sign(secKey *PrivateKeyType, cid ChainId) []byte {
 }
 
 func (p *SignedTransaction) Id() (*Sha256, error) {
-	buf, err := proto.Marshal(p)
+	buf, err := proto.Marshal(p.Trx)
 	if err != nil {
 		return nil, err
 	}

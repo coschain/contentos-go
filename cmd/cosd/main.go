@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/coschain/cobra"
 	"github.com/coschain/contentos-go/cmd/cosd/commands"
 	"os"
@@ -21,7 +20,6 @@ func addCommands() {
 }
 
 func main() {
-	fmt.Println("Start cosd version XXXXX222")
 	addCommands()
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)

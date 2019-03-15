@@ -28,7 +28,3 @@ type P2PRsvConfig struct {
 	ReservedPeers []string
 	MaskPeers     []string
 }
-
-type HCheck struct {
-	Port string
-}

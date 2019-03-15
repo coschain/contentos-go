@@ -22,7 +22,6 @@ message so_account {
     uint64                      stamina_free         =      12;
     uint64                      stamina_free_use_block      =      13;
     prototype.vest              stake_vesting     =      14;
-    uint32                      post_count     =      15;
       
 }
 
@@ -94,11 +93,6 @@ message so_mem_account_by_stamina_free_use_block {
 
 message so_mem_account_by_stake_vesting {
 	prototype.vest           	stake_vesting = 1;
-}
-
-
-message so_mem_account_by_post_count {
-	uint32                   	post_count = 1;
 }
 
 
