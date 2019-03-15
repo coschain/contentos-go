@@ -674,17 +674,17 @@ func (sabft *SABFT) PushTransaction(trx common.ISignedTransaction, wait bool, br
 	}
 
 	sabft.trxCh <- func() {
-		ret := sabft.ctrl.PushTrx(trx.(*prototype.SignedTransaction))
+		ret := sabft.ctrl.PushTrxToPending(trx.(*prototype.SignedTransaction))
 
 		if wait {
 			waitChan <- ret
 		}
-		if ret.IsSuccess() {
+		//if ret.IsSuccess() {
 			//	if broadcast {
 			sabft.log.Debug("SABFT Broadcast trx.")
 			sabft.p2p.Broadcast(trx.(*prototype.SignedTransaction))
 			//	}
-		}
+		//}
 	}
 	if wait {
 		return <-waitChan
