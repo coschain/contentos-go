@@ -46,13 +46,16 @@ service ApiService {
     rpc GetChainState (NonParamsRequest) returns (GetChainStateResponse) {
     }
 
-    rpc GetStatInfo (NonParamsRequest) returns (GetStatResponse) {
+    rpc GetStatisticsInfo (NonParamsRequest) returns (GetStatResponse) {
     }
 
     rpc BroadcastTrx (BroadcastTrxRequest) returns (BroadcastTrxResponse) {
     }
 
     rpc GetBlockList (GetBlockListRequest) returns (GetBlockListResponse) {
+    }
+
+    rpc GetSignedBlock (GetSignedBlockRequest)  returns (GetSignedBlockResponse) {
     }
 
     rpc GetAccountListByBalance (GetAccountListByBalanceRequest) returns (GetAccountListResponse) {
@@ -68,6 +71,9 @@ service ApiService {
     }
 
     rpc GetPostListByCreateTime (GetPostListByCreateTimeRequest) returns (GetPostListByCreateTimeResponse) {
+    }
+
+    rpc GetPostListByName (GetPostListByNameRequest) returns (GetPostListByCreateTimeResponse){
     }
 }
 
@@ -108,6 +114,7 @@ message AccountResponse {
     prototype.time_point_sec                created_time    = 7;
     WitnessResponse                         witness         = 8;
     ChainState                              state            = 9;
+    uint32                                  post_count      = 10;
 }
 
 message GetFollowerListByNameRequest {
@@ -161,7 +168,7 @@ message GetWitnessListResponse {
 }
 
 message PostResponse {
-    uint64                                      post_id                 =      1;
+    uint64                                      post_id                 =      1 [jstype = JS_STRING];
     string                                      category                =      2;
     prototype.account_name                      parent_author           =      3;
     prototype.account_name                      author                  =      5;
@@ -171,10 +178,11 @@ message PostResponse {
     prototype.time_point_sec                    last_payout             =      13;
     uint32                                      depth                   =      14;
     uint32                                      children                =      15;
-    uint64                                      root_id                 =      16;
-    uint64                                      parent_id               =      17;
+    uint64                                      root_id                 =      16 [jstype = JS_STRING];
+    uint64                                      parent_id               =      17 [jstype = JS_STRING];
     repeated string                             tags                    =      18;
     repeated prototype.beneficiary_route_type   beneficiaries           =      19;
+    uint64                                      vote_cnt                =      20;
 }
 
 message GetPostListByCreatedRequest {
@@ -217,7 +225,6 @@ message GetTrxByIdResponse {
 
 message GetChainStateResponse {
     ChainState state = 1;
-    repeated prototype.empty_signed_block blocks = 2;
 }
 
 message GetStatResponse {
@@ -247,7 +254,8 @@ message CallResponse {
 
 message ChainState {
     uint64 last_irreversible_block_number = 1;
-    prototype.dynamic_properties            dgpo            = 2;
+    uint64 last_irreversible_block_time   = 2;
+    prototype.dynamic_properties            dgpo            = 3;
 }
 
 message GetBlockListRequest {
@@ -256,8 +264,26 @@ message GetBlockListRequest {
 }
 
 
+message BlockInfo {
+    prototype.time_point_sec     timestamp  = 1;
+    uint64                       block_height = 2 [jstype = JS_STRING];
+    uint32                       trx_count   = 3;
+    prototype.account_name       witness     = 4;
+    prototype.sha256             block_id    = 5;
+    prototype.sha256             pre_id      = 6;
+
+}
+
 message GetBlockListResponse {
-    repeated prototype.signed_block blocks = 1;
+   repeated    BlockInfo   blocks = 1;
+}
+
+message GetSignedBlockRequest {
+    uint64    start        = 1;
+}
+
+message GetSignedBlockResponse {
+    prototype.signed_block  block = 1;
 }
 
 
@@ -272,14 +298,15 @@ message GetAccountListResponse {
 }
 
 
-message GetDailyTotalTrxRequest {
-    prototype.time_point_sec     start              = 1;
-    prototype.time_point_sec     end                = 2;
-}
-
 message DailyTotalTrx {
     prototype.time_point_sec     date               = 1;
     uint64     count              = 2;
+}
+
+message GetDailyTotalTrxRequest {
+    prototype.time_point_sec     start              = 1;
+    prototype.time_point_sec     end                = 2;
+    DailyTotalTrx                last_info          = 3;
 }
 
 message GetDailyTotalTrxResponse {
@@ -320,4 +347,10 @@ message GetPostListByCreateTimeRequest {
 
 message GetPostListByCreateTimeResponse {
     repeated PostResponse posted_list = 1;
+}
+
+message GetPostListByNameRequest {
+    prototype.user_post_create_order  start  = 1;
+    prototype.user_post_create_order  end    = 2;
+    PostResponse  last_post = 3;
 }

@@ -817,10 +817,11 @@ func (c *TrxPool) initGenesis() {
 		tInfo.Props.HeadBlockId = &prototype.Sha256{Hash: make([]byte, 32)}
 		// @ recent_slots_filled
 		// @ participation_count
-		tInfo.Props.CurrentSupply = prototype.NewCoin(constants.COSInitSupply - 1000)
-		tInfo.Props.TotalCos = prototype.NewCoin(constants.COSInitSupply - 1000)
+		tInfo.Props.CurrentSupply = prototype.NewCoin(constants.COSInitSupply)
+		tInfo.Props.TotalCos = prototype.NewCoin(constants.COSInitSupply)
 		tInfo.Props.MaximumBlockSize = constants.MaxBlockSize
-		tInfo.Props.TotalVestingShares = prototype.NewVest(1000)
+		tInfo.Props.TotalUserCnt = 1
+		tInfo.Props.TotalVestingShares = prototype.NewVest(0)
 	}), "CreateDynamicGlobalProperties error", prototype.StatusErrorDbCreate)
 
 	//create rewards keeper
@@ -1159,7 +1160,8 @@ func (c *TrxPool) Sign(priv *prototype.PrivateKeyType, digest []byte) []byte {
 }
 
 func (c *TrxPool) GetCommitBlockNum() (uint64, error) {
-	return c.iceberg.LastFinalizedBlock()
+	num, _, err := c.iceberg.LatestBlock()
+	return num, err
 }
 
 //Sync committed blocks to squash db when node reStart

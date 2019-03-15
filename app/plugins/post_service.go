@@ -69,15 +69,33 @@ func (p *PostService) executePostOperation(op *prototype.PostOperation) {
 	uuid := op.GetUuid()
 
 
+	createTime := p.pool.HeadBlockTime()
 	exPostWrap := table.NewSoExtPostCreatedWrap(p.db, &uuid)
 	if exPostWrap != nil && !exPostWrap.CheckExist() {
 		exPostWrap.Create(func(exPost *table.SoExtPostCreated) {
 			exPost.PostId = uuid
 			exPost.CreatedOrder = &prototype.PostCreatedOrder{
-				Created: p.pool.HeadBlockTime(),
+				Created: createTime,
 				ParentId: constants.PostInvalidId,
 			}
 		})
+	}
+	userPostWrap := table.NewSoExtUserPostWrap(p.db,&op.Uuid)
+	if userPostWrap != nil && !userPostWrap.CheckExist() {
+		 userPostWrap.Create(func(tInfo *table.SoExtUserPost) {
+			tInfo.PostId = op.Uuid
+			tInfo.PostCreatedOrder = &prototype.UserPostCreateOrder{
+				Author:op.Owner,
+				Create:createTime,
+			}
+		})
+
+	}
+
+	acctWrap := table.NewSoAccountWrap(p.db,op.Owner)
+	if acctWrap != nil && acctWrap.CheckExist() {
+		cnt := acctWrap.GetPostCount()
+		acctWrap.MdPostCount(cnt+1)
 	}
 }
 

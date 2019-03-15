@@ -1,8 +1,6 @@
 package consensus
 
 import (
-	"errors"
-	"fmt"
 	"io/ioutil"
 	"strings"
 	"sync"
@@ -676,17 +674,17 @@ func (sabft *SABFT) PushTransaction(trx common.ISignedTransaction, wait bool, br
 	}
 
 	sabft.trxCh <- func() {
-		ret := sabft.ctrl.PushTrx(trx.(*prototype.SignedTransaction))
+		ret := sabft.ctrl.PushTrxToPending(trx.(*prototype.SignedTransaction))
 
 		if wait {
 			waitChan <- ret
 		}
-		if ret.IsSuccess() {
+		//if ret.IsSuccess() {
 			//	if broadcast {
 			sabft.log.Debug("SABFT Broadcast trx.")
 			sabft.p2p.Broadcast(trx.(*prototype.SignedTransaction))
 			//	}
-		}
+		//}
 	}
 	if wait {
 		return <-waitChan
@@ -734,14 +732,14 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 
 	if applyStateDB {
 		if !sabft.validateProducer(b) {
-			return fmt.Errorf("invalid producer")
+			return ErrInvalidProducer
 		}
 	}
 
 	head := sabft.ForkDB.Head()
 	if head == nil && b.Id().BlockNum() != 1 {
 		// sabft.log.Errorf("[SABFT] the first block pushed should have number of 1, got %d", b.Id().BlockNum())
-		return fmt.Errorf("invalid block number")
+		return ErrInvalidBlockNum
 	}
 
 	newHead := sabft.ForkDB.PushBlock(b)
@@ -829,6 +827,11 @@ func (sabft *SABFT) Commit(commitRecords *message.Commit) error {
 }
 
 func (sabft *SABFT) commit(commitRecords *message.Commit) error {
+	defer func() {
+		sabft.appState.LastHeight = commitRecords.FirstPrecommit().Height
+		sabft.appState.LastProposedData = commitRecords.ProposedData
+	}()
+
 	blockID := common.BlockID{
 		Data: commitRecords.ProposedData,
 	}
@@ -837,20 +840,21 @@ func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 	blk, err := sabft.ForkDB.FetchBlock(blockID)
 	if err != nil {
 		// we're falling behind, just wait for next commit
-		sabft.log.Warn("[SABFT] committing a missing block", blockID)
-		return nil
+		sabft.log.Error("[SABFT] committing a missing block", blockID)
+		return ErrCommittingNonExistBlock
 	}
 
 	// if blockID points to a block that is not on the current
 	// longest chain, switch fork first
 	blkMain, err := sabft.ForkDB.FetchBlockFromMainBranch(blockID.BlockNum())
 	if err != nil {
-		panic(err)
+		sabft.log.Error(err)
+		return ErrInternal
 	}
 	if blkMain.Id() != blockID {
 		switchSuccess := sabft.switchFork(sabft.ForkDB.Head().Id(), blockID)
 		if !switchSuccess {
-			panic("there's an error while switching to committed block")
+			return ErrSwitchFork
 		}
 		// also need to reset new head
 		// fixme: find the real head of the branch we just switched on
@@ -859,11 +863,13 @@ func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 
 	blks, _, err := sabft.ForkDB.FetchBlocksSince(sabft.ForkDB.LastCommitted())
 	if err != nil {
-		panic(err)
+		sabft.log.Error(err)
+		return ErrInternal
 	}
 	for i := range blks {
 		if err = sabft.blog.Append(blks[i]); err != nil {
-			panic(err)
+			sabft.log.Error(err)
+			return ErrInternal
 		}
 		if blks[i] == blk {
 			sabft.log.Debugf("[SABFT] committed from block #%d to #%d", blks[0].Id().BlockNum(), blk.Id().BlockNum())
@@ -872,12 +878,7 @@ func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 	}
 
 	sabft.ctrl.Commit(blockID.BlockNum())
-
 	sabft.ForkDB.Commit(blockID)
-
-	sabft.appState.LastHeight = commitRecords.FirstPrecommit().Height
-	sabft.appState.LastProposedData = commitRecords.ProposedData
-
 	sabft.lastCommitted = commitRecords
 
 	sabft.log.Debug("[SABFT] committed block #", blockID)
@@ -1075,7 +1076,7 @@ func (sabft *SABFT) GetIDs(start, end common.BlockID) ([]common.BlockID, error) 
 		//	sabft.log.Warn(blocks[ii].Id())
 		//}
 		sabft.log.Warnf("[GetIDs] <from: %v, to: %v> start %v", start, end, blocks[0].Previous())
-		return nil, fmt.Errorf("[SABFT GetIDs] internal error")
+		return nil, ErrInternal
 	}
 
 	ret = append(ret, start)
@@ -1098,7 +1099,8 @@ func (sabft *SABFT) FetchBlock(id common.BlockID) (common.ISignedBlock, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("[SABFT FetchBlock] block with id %v doesn't exist", id)
+	sabft.log.Errorf("[SABFT FetchBlock] block with id %v doesn't exist", id)
+	return nil, ErrBlockNotExist
 }
 
 func (sabft *SABFT) HasBlock(id common.BlockID) bool {
@@ -1126,7 +1128,7 @@ func fetchBlocks(from, to uint64, forkDB *forkdb.DB, blog *blocklog.BLog) ([]com
 	}
 
 	if forkDB.Empty() {
-		return nil, errors.New("ForkDB is empty, try again later")
+		return nil, ErrEmptyForkDB
 	}
 
 	lastCommitted := forkDB.LastCommitted()
@@ -1164,7 +1166,7 @@ func fetchBlocks(from, to uint64, forkDB *forkdb.DB, blog *blocklog.BLog) ([]com
 		blocksInForkDB, err = forkDB.FetchBlocksFromMainBranch(forkDBFrom)
 		if err != nil {
 			// there probably is a new committed block during the execution of this process, just try again
-			return fetchBlocks(from, to, forkDB, blog)
+			return nil, ErrForkDBChanged
 		}
 		if int(forkDBTo-forkDBFrom+1) < len(blocksInForkDB) {
 			blocksInForkDB = blocksInForkDB[:forkDBTo-forkDBFrom+1]
@@ -1190,7 +1192,7 @@ func fetchBlocks(from, to uint64, forkDB *forkdb.DB, blog *blocklog.BLog) ([]com
 // return blocks in the range of (id, max(headID, id+1024))
 func (sabft *SABFT) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, error) {
 	if sabft.ForkDB.Empty() {
-		return nil, errors.New("ForkDB is empty, try again later")
+		return nil, ErrEmptyForkDB
 	}
 	length := int64(sabft.ForkDB.Head().Id().BlockNum()) - int64(id.BlockNum())
 	if length < 1 {
@@ -1203,7 +1205,7 @@ func (sabft *SABFT) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, 
 		blocks, _, err := sabft.ForkDB.FetchBlocksSince(id)
 		if err != nil {
 			// there probably is a new committed block during the execution of this process, just try again
-			return sabft.FetchBlocksSince(id)
+			return nil, ErrForkDBChanged
 		}
 		return blocks, err
 	}
@@ -1214,7 +1216,7 @@ func (sabft *SABFT) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, 
 	blocksInForkDB, _, err := sabft.ForkDB.FetchBlocksSince(lastCommitted)
 	if err != nil {
 		// there probably is a new committed block during the execution of this process, just try again
-		return sabft.FetchBlocksSince(id)
+		return nil, ErrForkDBChanged
 	}
 	end := lastCommitted.BlockNum()
 
@@ -1225,7 +1227,8 @@ func (sabft *SABFT) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, 
 		}
 
 		if start == idNum+1 && b.Previous() != id {
-			return nil, fmt.Errorf("blockchain doesn't have block with id %v", id)
+			sabft.log.Errorf("blockchain doesn't have block with id %v", id)
+			return nil, ErrBlockNotExist
 		}
 
 		ret = append(ret, b)
@@ -1285,6 +1288,10 @@ func (sabft *SABFT) handleBlockSync() error {
 	lastCommit := sabft.ForkDB.LastCommitted().BlockNum()
 	//Fetch the commit block num in db
 	dbCommit, err := sabft.ctrl.GetCommitBlockNum()
+
+	sabft.log.Debugf("[sync pushed]: dbCommit: %v, %v, %v",
+		dbCommit, lastCommit, err)
+
 	if err != nil {
 		return err
 	}
@@ -1300,17 +1307,35 @@ func (sabft *SABFT) handleBlockSync() error {
 				return err
 			}
 			err = sabft.ctrl.SyncCommittedBlockToDB(blk)
+
+			if err != nil{
+				sabft.log.Debugf("[Reload commit] SyncCommittedBlockToDB Failed: "+
+					"%v", i )
+				return err
+			}
 		}
 	}
 	//2.sync pushed blocks
 	//Fetch pushed blocks in snapshot
-	pSli, _, err := sabft.ForkDB.FetchBlocksSince(sabft.ForkDB.LastCommitted())
+	//pSli, _, err := sabft.ForkDB.FetchBlocksSince(sabft.ForkDB.LastCommitted())
+
+	dbCommit, err = sabft.ctrl.GetCommitBlockNum()
+	latestNumber := sabft.ForkDB.Head().Id().BlockNum()
+
+	sabft.log.Debugf("[sync pushed 2]: dbCommit: %v, %v, %v",
+		dbCommit, latestNumber, err)
+
+	if err != nil {
+		return err
+	}
+
+	pSli, err := sabft.FetchBlocks(dbCommit + 1, latestNumber + 1)
 	if err != nil {
 		return err
 	}
 	if len(pSli) > 0 {
-		sabft.log.Debugf("[sync pushed]: start sync lost blocks,start: %v,end:%v",
-			lastCommit+1, sabft.ForkDB.Head().Id().BlockNum())
+		sabft.log.Debugf("[sync pushed2]: start sync lost blocks,start: %v,end:%v, count: %v",
+			dbCommit+1, sabft.ForkDB.Head().Id().BlockNum(), len(pSli) )
 		err = sabft.ctrl.SyncPushedBlocksToDB(pSli)
 	}
 

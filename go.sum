@@ -9,8 +9,8 @@ github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1/go.mod h1:Q3SI9o4m/ZMn
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
 github.com/coschain/cobra v0.0.0-20181106130408-77bf516f51a1 h1:S9wazRgjac3MulSBIcFRqpEoR1CM9kJY1TyW1IhazUw=
 github.com/coschain/cobra v0.0.0-20181106130408-77bf516f51a1/go.mod h1:9cl4pbRcSRS1EMEWXDoQW8jrLNI2vyISOMrX73ZjXy0=
-github.com/coschain/gobft v0.0.0-20190226065302-b96d65379acc h1:Hjj+4LWYzTOq4XZV1KucEiWMwDKjReMukeIu5MFVvmA=
-github.com/coschain/gobft v0.0.0-20190226065302-b96d65379acc/go.mod h1:lNT59IugSOVjDJSp9GrqmS5sAoegqfAGQ0sNBCb+iZQ=
+github.com/coschain/gobft v0.0.0-20190311061626-9e4330321af1 h1:SdQbbZXUYXGQPacZKYxcqZzDVFdUR3K8sS/QSRB6i24=
+github.com/coschain/gobft v0.0.0-20190311061626-9e4330321af1/go.mod h1:lNT59IugSOVjDJSp9GrqmS5sAoegqfAGQ0sNBCb+iZQ=
 github.com/coschain/wagon v0.0.0-20190102065443-ad16f10108ac h1:slDIgFJPkdUUmN21hN5RXsYTCIUaeGepyEm+xLPv+j4=
 github.com/coschain/wagon v0.0.0-20190102065443-ad16f10108ac/go.mod h1:zHOMvbitcZek8oshsMO5VpyBjWjV9X8cn8WTZwdebpM=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
