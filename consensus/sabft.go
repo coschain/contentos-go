@@ -253,14 +253,14 @@ func (sabft *SABFT) shuffle(head common.ISignedBlock) {
 		if atomic.LoadUint32(&sabft.bftStarted) == 0 {
 			sabft.Unlock()
 			sabft.bft.Start()
-			sabft.log.Info("sabft gobft started...")
+			sabft.log.Info("[SABFT] gobft started...")
 			atomic.StoreUint32(&sabft.bftStarted, 1)
 			sabft.Lock()
 		}
 	} else {
 		if atomic.LoadUint32(&sabft.bftStarted) == 1 {
 			sabft.bft.Stop()
-			sabft.log.Info("sabft gobft stopped...")
+			sabft.log.Info("[SABFT] gobft stopped...")
 			atomic.StoreUint32(&sabft.bftStarted, 0)
 		}
 	}
@@ -269,7 +269,7 @@ func (sabft *SABFT) shuffle(head common.ISignedBlock) {
 func (sabft *SABFT) restoreProducers() {
 	prods := sabft.ctrl.GetShuffledWitness()
 	sabft.validators = sabft.makeValidators(prods)
-	sabft.log.Info("active producers: ", prods)
+	sabft.log.Info("[SABFT] active producers: ", prods)
 }
 
 func (sabft *SABFT) ActiveProducers() []string {
@@ -389,7 +389,7 @@ func (sabft *SABFT) revertToLastCheckPoint() {
 		sabft.ForkDB.Commit(lastCommittedID)
 	}
 
-	sabft.log.Infof("[checkpoint] revert to last committed block %d.", popNum-1)
+	sabft.log.Infof("[SABFT][checkpoint] revert to last committed block %d.", popNum-1)
 }
 
 func (sabft *SABFT) start() {
@@ -447,7 +447,7 @@ func (sabft *SABFT) Stop() error {
 
 	// restore uncommitted forkdb
 	cfg := sabft.ctx.Config()
-	snapshotPath := cfg.ResolvePath("forkdb_snapshot")
+	snapshotPath := cfg.ResolvePath("[SABFT] forkdb_snapshot")
 	sabft.ForkDB.Snapshot(snapshotPath)
 	sabft.prodTimer.Stop()
 	close(sabft.stopCh)
@@ -589,27 +589,27 @@ func (sabft *SABFT) verifyCommitSig(records *message.Commit) bool {
 	for i := range records.Precommits {
 		val := sabft.getValidator(records.Precommits[i].Address)
 		if val == nil {
-			sabft.log.Errorf("[handleCommitRecords] error while checking precommits: %s is not a validator", records.Precommits[i].Address)
+			sabft.log.Errorf("[SABFT][handleCommitRecords] error while checking precommits: %s is not a validator", records.Precommits[i].Address)
 			return false
 		}
 		sabft.RUnlock()
 		v := val.VerifySig(records.Precommits[i].Digest(), records.Precommits[i].Signature)
 		sabft.RLock()
 		if !v {
-			sabft.log.Error("[handleCommitRecords] precommits verification failed")
+			sabft.log.Error("[SABFT][handleCommitRecords] precommits verification failed")
 			return false
 		}
 	}
 	val := sabft.getValidator(records.Address)
 	if val == nil {
-		sabft.log.Errorf("[handleCommitRecords] error while checking commits. %s is not a validator", string(records.Address))
+		sabft.log.Errorf("[SABFT][handleCommitRecords] error while checking commits. %s is not a validator", string(records.Address))
 		return false
 	}
 	sabft.RUnlock()
 	v := val.VerifySig(records.Digest(), records.Signature)
 	sabft.RLock()
 	if !v {
-		sabft.log.Error("[handleCommitRecords] verification failed")
+		sabft.log.Error("[SABFT][handleCommitRecords] verification failed")
 		return false
 	}
 	return true
@@ -740,11 +740,11 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 	newID := b.Id()
 	newNum := newID.BlockNum()
 
-	if b.Id().BlockNum() > headNum + 1 {
+	if newNum > headNum + 1 {
 		return ErrBlockOutOfScope
 	}
 
-	if newNum == headNum+1 && applyStateDB {
+	if head != nil && b.Previous() == head.Id() && applyStateDB {
 		if !sabft.validateProducer(b) {
 			return ErrInvalidProducer
 		}
@@ -774,7 +774,7 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 		sabft.log.Debug("[SABFT] start to switch fork.")
 		switchSuccess := sabft.switchFork(head.Id(), newHead.Id())
 		if !switchSuccess {
-			sabft.log.Error("there's an error while switching to new branch. new head", newHead.Id())
+			sabft.log.Error("[SABFT] there's an error while switching to new branch. new head", newHead.Id())
 		}
 		return nil
 	}
@@ -787,7 +787,7 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 			return err
 		}
 	}
-	sabft.log.Debug("pushBlock FINISHED #", b.Id().BlockNum(), " id ", b.Id())
+	sabft.log.Debug("[SABFT] pushBlock FINISHED #", b.Id().BlockNum(), " id ", b.Id())
 	return nil
 }
 
