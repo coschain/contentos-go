@@ -5,7 +5,6 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
-	"math/rand"
 	"time"
 
 	"github.com/coschain/contentos-go/common"
@@ -1295,11 +1294,11 @@ func (sabft *SABFT) MaybeProduceBlock() {
 	}
 	sabft.Unlock()
 
-	go func() {
-		time.Sleep( time.Duration( time.Duration(rand.Int() % 10) * time.Second / 10 ) )
-		sabft.p2p.Broadcast(b)
-	}()
-	//sabft.p2p.Broadcast(b)
+	//go func() {
+	//	time.Sleep( time.Duration( time.Duration(rand.Int() % 10) * time.Second / 10 ) )
+	//	sabft.p2p.Broadcast(b)
+	//}()
+	sabft.p2p.Broadcast(b)
 }
 
 func (sabft *SABFT) handleBlockSync() error {
