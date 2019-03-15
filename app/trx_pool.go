@@ -383,6 +383,7 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 
 	for k, trxWraper := range c.pendingTx {
 		if isFinish {
+			c.log.Warnf("[trxpool] Generate block timeout, total pending: ", len(c.pendingTx) )
 			break
 		}
 		if trxWraper.SigTrx.Trx.Expiration.UtcSeconds < timestamp {
@@ -411,7 +412,7 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 		}()
 	}
 	if postponeTrx > 0 {
-		//c.log.Warnf("postponed %d trx due to max block size", postponeTrx)
+		c.log.Warnf("[trxpool] postponed %d trx due to max block size", postponeTrx)
 	}
 
 	signBlock.SignedHeader.Header.Previous = pre
@@ -793,7 +794,7 @@ func (c *TrxPool) TransferFromVest(value *prototype.Vest) {
 func (c *TrxPool) validateBlockHeader(blk *prototype.SignedBlock) {
 	headID := c.headBlockID()
 	if !bytes.Equal(headID.Hash, blk.SignedHeader.Header.Previous.Hash) {
-		c.log.Error("[trx_pool]:" , "validateBlockHeader Error: ", headID.ToString(), " prev:", blk.SignedHeader.Header.Previous.ToString())
+		c.log.Error("[trxpool]:" , "validateBlockHeader Error: ", headID.ToString(), " prev:", blk.SignedHeader.Header.Previous.ToString())
 		panic("hash not equal")
 	}
 	headTime := c.headBlockTime()

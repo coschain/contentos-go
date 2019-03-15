@@ -463,6 +463,8 @@ func (db *DB) Commit(id common.BlockID) {
 	db.branches = newBranches
 	db.start = id.BlockNum()
 	db.lastCommitted = id
+
+	db.dropUnlinkBlock( id.BlockNum() )
 }
 
 func (db *DB) fetchUnlinkBlockById(id common.BlockID) common.ISignedBlock {
@@ -472,6 +474,14 @@ func (db *DB) fetchUnlinkBlockById(id common.BlockID) common.ISignedBlock {
 		}
 	}
 	return nil
+}
+
+func (db *DB) dropUnlinkBlock(commitNum uint64) {
+	for k , v := range db.detachedLink {
+		if v.Id().BlockNum() < commitNum {
+			delete(db.detachedLink, k)
+		}
+	}
 }
 
 func (db *DB) FetchUnlinkBlockTail() ( *common.BlockID, error) {
