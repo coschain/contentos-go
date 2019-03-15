@@ -866,6 +866,10 @@ func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 		return ErrInternal
 	}
 	if blkMain.Id() != blockID {
+		// Committing a block off the main branch, we don't just switch fork here. Instead we
+		// abort the commit process and let the fork branch out grows the current branch
+		return ErrCommittingBlockOnFork
+		/*
 		switchSuccess := sabft.switchFork(sabft.ForkDB.Head().Id(), blockID)
 		if !switchSuccess {
 			return ErrSwitchFork
@@ -873,6 +877,7 @@ func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 		// also need to reset new head
 		// fixme: find the real head of the branch we just switched on
 		sabft.ForkDB.ResetHead(blockID)
+		*/
 	}
 
 	blks, _, err := sabft.ForkDB.FetchBlocksSince(sabft.ForkDB.LastCommitted())

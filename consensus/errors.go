@@ -13,5 +13,6 @@ var (
 	ErrEmptyForkDB             = errors.New("ForkDB is empty")
 	ErrForkDBChanged           = errors.New("ForkDB changed, please try again")
 	ErrCommittingNonExistBlock = errors.New("committing a non-existed block")
+	ErrCommittingBlockOnFork   = errors.New("committing a block on fork")
 	ErrSwitchFork = errors.New("switch fork error")
 )
