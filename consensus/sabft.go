@@ -2,6 +2,7 @@ package consensus
 
 import (
 	"io/ioutil"
+	"math/rand"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -406,7 +407,7 @@ func (sabft *SABFT) start() {
 			err := sabft.pushBlock(b, true)
 			sabft.Unlock()
 			if err != nil {
-				// sabft.log.Error("[SABFT] pushBlock failed: ", err)
+				sabft.log.Error("[SABFT] pushBlock failed: ", err)
 				continue
 			}
 			if !sabft.readyToProduce {
@@ -555,6 +556,7 @@ func (sabft *SABFT) getSlotAtTime(t time.Time) uint64 {
 }
 
 func (sabft *SABFT) PushBlock(b common.ISignedBlock) {
+	sabft.log.Debug("[SABFT] recv block from p2p: ", b.Id().BlockNum() )
 	go func(blk common.ISignedBlock) {
 		sabft.blkCh <- b
 	}(b)
@@ -732,7 +734,7 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 
 	if applyStateDB {
 		if !sabft.validateProducer(b) {
-			return ErrInvalidProducer
+		//	return ErrInvalidProducer
 		}
 	}
 
@@ -750,6 +752,7 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 		// 2. out of range block or
 		// 3. head of a non-main branch or
 		// 4. illegal block
+		sabft.log.Debug("[SABFT] maybe fork:" , b.Id().BlockNum(), " local: ",  head.Id().BlockNum())
 
 		if b.Id().BlockNum() > head.Id().BlockNum() {
 			// sabft.log.Debugf("[SABFT][pushBlock]possibly detached block. prev: got %v, want %v", b.Id(), head.Id())
