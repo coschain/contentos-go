@@ -773,7 +773,7 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 			return err
 		}
 	}
-	sabft.log.Debug("pushBlock FINISHED #", b.Id().BlockNum())
+	sabft.log.Debug("pushBlock FINISHED #", b.Id().BlockNum(), " id ", b.Id())
 	return nil
 }
 
