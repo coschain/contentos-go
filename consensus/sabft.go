@@ -5,6 +5,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"math/rand"
 	"time"
 
 	"github.com/coschain/contentos-go/common"
@@ -682,7 +683,7 @@ func (sabft *SABFT) PushTransaction(trx common.ISignedTransaction, wait bool, br
 		}
 		//if ret.IsSuccess() {
 			//	if broadcast {
-			sabft.log.Debug("SABFT Broadcast trx.")
+			//sabft.log.Debug("SABFT Broadcast trx.")
 			sabft.p2p.Broadcast(trx.(*prototype.SignedTransaction))
 			//	}
 		//}
@@ -724,22 +725,30 @@ func (sabft *SABFT) PushTransactionToPending(trx common.ISignedTransaction, call
 }
 
 func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
-	//sabft.log.Debug("pushBlock #", b.Id().BlockNum())
+	sabft.log.Debug("[SABFT] start pushBlock #", b.Id().BlockNum())
 	// TODO: check signee & merkle
 
-	if b.Timestamp() < sabft.getSlotTime(1) {
-		// sabft.log.Debugf("the timestamp of the new block is less than that of the head block.")
+	//if b.Timestamp() < sabft.getSlotTime(1) {
+	//	// sabft.log.Debugf("the timestamp of the new block is less than that of the head block.")
+	//}
+
+	head := sabft.ForkDB.Head()
+	headNum := head.Id().BlockNum()
+	newID := b.Id()
+	newNum := newID.BlockNum()
+
+	if b.Id().BlockNum() > headNum + 1 {
+		return ErrBlockOutOfScope
 	}
 
-	if applyStateDB {
+	if newNum == headNum+1 && applyStateDB {
 		if !sabft.validateProducer(b) {
-		//	return ErrInvalidProducer
+			return ErrInvalidProducer
 		}
 	}
 
-	head := sabft.ForkDB.Head()
-	if head == nil && b.Id().BlockNum() != 1 {
-		// sabft.log.Errorf("[SABFT] the first block pushed should have number of 1, got %d", b.Id().BlockNum())
+	if head == nil && newNum != 1 {
+		sabft.log.Errorf("[SABFT] the first block pushed should have number of 1, got %d", b.Id().BlockNum())
 		return ErrInvalidBlockNum
 	}
 
@@ -751,12 +760,12 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 		// 2. out of range block or
 		// 3. head of a non-main branch or
 		// 4. illegal block
-		sabft.log.Debug("[SABFT] maybe fork:" , b.Id().BlockNum(), " local: ",  head.Id().BlockNum())
 
-		if b.Id().BlockNum() > head.Id().BlockNum() {
+		if b.Id().BlockNum() > headNum {
 			// sabft.log.Debugf("[SABFT][pushBlock]possibly detached block. prev: got %v, want %v", b.Id(), head.Id())
 			sabft.p2p.TriggerSync(head.Id())
 		}
+		sabft.log.Info("[SABFT] pushed a block that is detached or off-main-branch, head block: ", head.Id())
 		return nil
 	} else if head != nil && newHead.Previous() != head.Id() {
 		sabft.log.Debug("[SABFT] start to switch fork.")
@@ -1278,7 +1287,11 @@ func (sabft *SABFT) MaybeProduceBlock() {
 	}
 	sabft.Unlock()
 
-	sabft.p2p.Broadcast(b)
+	go func() {
+		time.Sleep( time.Duration( time.Duration(rand.Int() % 10) * time.Second / 10 ) )
+		sabft.p2p.Broadcast(b)
+	}()
+	//sabft.p2p.Broadcast(b)
 }
 
 func (sabft *SABFT) handleBlockSync() error {
