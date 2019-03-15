@@ -465,27 +465,40 @@ func (db *DB) Commit(id common.BlockID) {
 	db.lastCommitted = id
 }
 
+func (db *DB) fetchUnlinkBlockById(id common.BlockID) common.ISignedBlock {
+	for _ , v := range db.detachedLink {
+		if v.Id() == id {
+			return v
+		}
+	}
+	return nil
+}
+
 func (db *DB) FetchUnlinkBlockTail() ( *common.BlockID, error) {
 	db.RLock()
 	defer db.RUnlock()
 
 	if len(db.detachedLink) == 0{
-		return nil, errors.New("No More Unlinked block1")
+		return nil, errors.New("No More Unlinked block")
 	}
 
+	var firstKey common.BlockID
 	for _ , v := range db.detachedLink {
-		prev := v.Previous()
-
-		for ; ;  {
-			if  value, ok := db.detachedLink[prev]; ok{
-				prev = value.Previous()
-			} else {
-				return &prev, nil
-			}
-		}
+		firstKey = v.Previous()
 		break
 	}
-	return nil, errors.New("No More Unlinked block2" )
+
+	for ; ;  {
+		preBlock := db.fetchUnlinkBlockById(firstKey)
+
+		if preBlock != nil {
+			firstKey = preBlock.Previous()
+		} else {
+			return &firstKey, nil
+		}
+	}
+
+	return nil, errors.New("No More Unlinked block" )
 }
 
 // Illegal determines if the block has illegal transactions
