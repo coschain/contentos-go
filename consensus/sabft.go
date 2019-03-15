@@ -732,8 +732,11 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 	//	// sabft.log.Debugf("the timestamp of the new block is less than that of the head block.")
 	//}
 
+	var headNum uint64
 	head := sabft.ForkDB.Head()
-	headNum := head.Id().BlockNum()
+	if head != nil {
+		headNum = head.Id().BlockNum()
+	}
 	newID := b.Id()
 	newNum := newID.BlockNum()
 
