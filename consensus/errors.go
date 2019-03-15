@@ -7,6 +7,7 @@ import (
 var (
 	ErrInvalidProducer         = errors.New("invalid producer")
 	ErrInvalidBlockNum         = errors.New("invalid block number")
+	ErrBlockOutOfScope		   = errors.New("block number out of scope")
 	ErrInternal                = errors.New("internal error")
 	ErrBlockNotExist           = errors.New("block doesn't exist")
 	ErrEmptyForkDB             = errors.New("ForkDB is empty")
