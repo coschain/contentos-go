@@ -2,7 +2,6 @@ package consensus
 
 import (
 	"io/ioutil"
-	"math/rand"
 	"strings"
 	"sync"
 	"sync/atomic"
