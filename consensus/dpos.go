@@ -211,7 +211,7 @@ func (d *DPoS) scheduleProduce() bool {
 			if !d.ForkDB.Empty() {
 				headID = d.ForkDB.Head().Id()
 			}
-			d.p2p.TriggerSync(headID, false)
+			d.p2p.TriggerSync(headID)
 			// TODO:  if we are not on the main branch, pop until the head is on main branch
 			d.log.Debug("[DPoS TriggerSync]: start from ", headID.BlockNum())
 			return false
@@ -453,7 +453,7 @@ func (d *DPoS) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 		// 4. illegal block
 		d.log.Debugf("[pushBlock]possibly detached block. prev: got %v, want %v", b.Id(), head.Id())
 		if b.Id().BlockNum() > head.Id().BlockNum() {
-			d.p2p.TriggerSync(head.Id(), false)
+			d.p2p.FetchUnlinkedBlock(b.Previous())
 		}
 		return nil
 	} else if head != nil && newHead.Previous() != head.Id() {

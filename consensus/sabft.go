@@ -349,7 +349,7 @@ func (sabft *SABFT) scheduleProduce() bool {
 			if !sabft.ForkDB.Empty() {
 				headID = sabft.ForkDB.Head().Id()
 			}
-			sabft.p2p.TriggerSync(headID, false)
+			sabft.p2p.TriggerSync(headID)
 			// TODO:  if we are not on the main branch, pop until the head is on main branch
 			sabft.log.Debug("[SABFT TriggerSync]: start from ", headID.BlockNum())
 			return false
@@ -740,7 +740,7 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 	newNum := newID.BlockNum()
 
 	if newNum > headNum + 1 {
-		sabft.p2p.TriggerSync( b.Previous() , true)
+		sabft.p2p.FetchUnlinkedBlock( b.Previous() )
 		sabft.log.Debug("[SABFT TriggerSync]: out-of range from ", b.Previous().BlockNum())
 		return ErrBlockOutOfScope
 	}
@@ -772,7 +772,7 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 			tailId, errTail := sabft.ForkDB.FetchUnlinkBlockTail()
 
 			if errTail == nil {
-				sabft.p2p.TriggerSync( *tailId , true)
+				sabft.p2p.FetchUnlinkedBlock( *tailId )
 				sabft.log.Debug("[SABFT TriggerSync]: pre-start from ", tailId.BlockNum())
 			} else {
 				sabft.log.Debug("[SABFT TriggerSync]: not found:", errTail )

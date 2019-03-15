@@ -14,7 +14,10 @@ type IP2P interface {
 	Broadcast(message interface{})
 
 	// trigger sync request remote peer the block hashes we do not have
-	TriggerSync(HeadId comn.BlockID, onlyOneBlock bool)
+	TriggerSync(HeadId comn.BlockID)
+
+	// when got one unlinked block, to fetch its previous block
+	FetchUnlinkedBlock(prevId comn.BlockID)
 
 	// Send msg to specific peer
 	Send(p *peer.Peer, msg types.Message, isConsensus bool) error
