@@ -447,7 +447,7 @@ func (sabft *SABFT) Stop() error {
 
 	// restore uncommitted forkdb
 	cfg := sabft.ctx.Config()
-	snapshotPath := cfg.ResolvePath("[SABFT] forkdb_snapshot")
+	snapshotPath := cfg.ResolvePath("forkdb_snapshot")
 	sabft.ForkDB.Snapshot(snapshotPath)
 	sabft.prodTimer.Stop()
 	close(sabft.stopCh)
