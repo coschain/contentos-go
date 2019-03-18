@@ -911,6 +911,8 @@ func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 	if blkMain.Id() != blockID {
 		// Committing a block off the main branch, we don't just switch fork here. Instead we
 		// abort the commit process and let the fork branch out grows the current branch
+		sabft.log.Error("[SABFT] committing a forked block", blockID, " main:", blkMain.Id())
+
 		return ErrCommittingBlockOnFork
 		/*
 		switchSuccess := sabft.switchFork(sabft.ForkDB.Head().Id(), blockID)

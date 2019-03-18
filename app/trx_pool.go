@@ -292,6 +292,12 @@ func (c *TrxPool) ClearPending() []*prototype.EstimateTrxResult {
 }
 
 func (c *TrxPool) restorePending(pending []*prototype.EstimateTrxResult) {
+
+	s := time.Now()
+	defer func() {
+		c.log.Debug("[trxpol] restorePending cost: ", time.Now().Sub(s), " Count: ", len(pending))
+	}()
+
 	for _, tw := range pending {
 		id, err := tw.SigTrx.Id()
 		mustNoError(err, "get transaction id error")
@@ -314,6 +320,11 @@ func emptyHeader(signHeader *prototype.SignedBlockHeader) {
 
 func (c *TrxPool) GenerateAndApplyBlock(witness string, pre *prototype.Sha256, timestamp uint32,
 	priKey *prototype.PrivateKeyType, skip prototype.SkipFlag) (*prototype.SignedBlock, error) {
+
+	s := time.Now()
+	defer func() {
+		c.log.Debug("[trxpool] GenerateAndApplyBlock cost: ", time.Now().Sub(s))
+	}()
 
 	newBlock := c.GenerateBlock(witness, pre, timestamp, priKey, skip)
 
@@ -1026,9 +1037,16 @@ func (c *TrxPool) PopBlock(num uint64) {
 }
 
 func (c *TrxPool) Commit(num uint64) {
-	// this block can not be revert over, so it's irreversible
-	err := c.iceberg.FinalizeBlock(num)
-	mustSuccess(err == nil, fmt.Sprintf("commit block: %d, error is %v", num, err))
+
+	func(){
+	    s := time.Now()
+	    defer func() {
+	        c.log.Debug("[trxpool] Commit cost: ", time.Now().Sub(s))
+	    }()
+		// this block can not be revert over, so it's irreversible
+		err := c.iceberg.FinalizeBlock(num)
+		mustSuccess(err == nil, fmt.Sprintf("commit block: %d, error is %v", num, err))
+	}()
 }
 
 func (c *TrxPool) VerifySig(name *prototype.AccountName, digest []byte, sig []byte) bool {
