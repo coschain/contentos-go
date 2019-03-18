@@ -24,6 +24,7 @@ var (
 	AccountCreatedTimeCell         uint32 = 826305594
 	AccountCreatorCell             uint32 = 1804791917
 	AccountLastPostTimeCell        uint32 = 3226532373
+	AccountLastStakeTimeCell       uint32 = 3774075190
 	AccountLastVoteTimeCell        uint32 = 1980371646
 	AccountNameCell                uint32 = 1725869739
 	AccountStakeVestingCell        uint32 = 1603133992
@@ -462,6 +463,9 @@ func (s *SoAccountWrap) getMemKeyPrefix(fName string) uint32 {
 	if fName == "LastPostTime" {
 		return AccountLastPostTimeCell
 	}
+	if fName == "LastStakeTime" {
+		return AccountLastStakeTimeCell
+	}
 	if fName == "LastVoteTime" {
 		return AccountLastVoteTimeCell
 	}
@@ -555,6 +559,13 @@ func (s *SoAccountWrap) saveAllMemKeys(tInfo *SoAccount, br bool) error {
 			return err
 		} else {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "LastPostTime", err)
+		}
+	}
+	if err = s.saveMemKeyLastStakeTime(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "LastStakeTime", err)
 		}
 	}
 	if err = s.saveMemKeyLastVoteTime(tInfo); err != nil {
@@ -1098,6 +1109,89 @@ func (s *SoAccountWrap) MdLastPostTime(p *prototype.TimePointSec) bool {
 		return false
 	}
 	sa.LastPostTime = p
+
+	return true
+}
+
+func (s *SoAccountWrap) saveMemKeyLastStakeTime(tInfo *SoAccount) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemAccountByLastStakeTime{}
+	val.LastStakeTime = tInfo.LastStakeTime
+	key, err := s.encodeMemKey("LastStakeTime")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
+
+func (s *SoAccountWrap) GetLastStakeTime() *prototype.TimePointSec {
+	res := true
+	msg := &SoMemAccountByLastStakeTime{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("LastStakeTime")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.LastStakeTime
+			}
+		}
+	}
+	if !res {
+		return nil
+
+	}
+	return msg.LastStakeTime
+}
+
+func (s *SoAccountWrap) MdLastStakeTime(p *prototype.TimePointSec) bool {
+	if s.dba == nil {
+		return false
+	}
+	key, err := s.encodeMemKey("LastStakeTime")
+	if err != nil {
+		return false
+	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemAccountByLastStakeTime{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoAccount{}
+	sa.Name = s.mainKey
+
+	sa.LastStakeTime = ori.LastStakeTime
+
+	ori.LastStakeTime = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
+		return false
+	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.LastStakeTime = p
 
 	return true
 }

@@ -577,6 +577,48 @@ func Test_Stake_UnStake(t *testing.T) {
 	}
 }
 
+func Test_StakeFreezeTime(t *testing.T) {
+	db := startDB()
+	defer clearDB(db)
+	c := startController(db)
+
+	wraper := table.NewSoAccountWrap(db, prototype.NewAccountName(constants.COSInitMiner))
+	if wraper.GetStakeVesting().Value != 0 {
+		t.Error("stake vesting error")
+	}
+
+	stake(c,constants.COSInitMiner,constants.InitminerPrivKey,100000)
+	stakeTime := wraper.GetLastStakeTime()
+	fmt.Println(stakeTime.UtcSeconds)
+
+	// unstake immediately should error
+	unStakeOp := &prototype.UnStakeOperation{
+		Account: prototype.NewAccountName(constants.COSInitMiner),
+		Amount:  1,
+	}
+	signedTrx, err := createSigTrx(c, constants.InitminerPrivKey,unStakeOp)
+	if err != nil {
+		t.Error("createSigTrx error:", err)
+	}
+
+	invoice := c.PushTrx(signedTrx)
+	if invoice.Status == prototype.StatusSuccess {
+		t.Error("PushTrx return status error:", invoice.Status)
+	}
+
+	// unstake after freeze
+	const oneDayBlocks = 60 * 60 * 24 * 3 + 1
+	wrap := table.NewSoGlobalWrap(db, &constants.GlobalId)
+	gp := wrap.GetProps()
+	gp.Time.UtcSeconds += oneDayBlocks
+	wrap.MdProps(gp)
+
+	invoice2 := c.PushTrx(signedTrx)
+	if invoice2.Status != prototype.StatusSuccess {
+		t.Error("PushTrx return status error:", invoice2.Status)
+	}
+}
+
 func Test_Consume1(t *testing.T) {
 	// set up controller
 	db := startDB()
@@ -651,9 +693,8 @@ func Test_Recover1(t *testing.T) {
 	}
 
 	// recover
-	var ID int32 = 1
 	const oneDayBlocks = 60 * 60 * 24
-	wrap := table.NewSoGlobalWrap(db, &ID)
+	wrap := table.NewSoGlobalWrap(db, &constants.GlobalId)
 	gp := wrap.GetProps()
 	gp.HeadBlockNumber = gp.HeadBlockNumber + oneDayBlocks
 	wrap.MdProps(gp)

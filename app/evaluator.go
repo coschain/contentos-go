@@ -799,6 +799,9 @@ func (ev *StakeEvaluator) Apply() {
 	mustNoError(vest.Add(value.ToVest()), "vesting over flow.", prototype.StatusErrorTrxMath)
 	mustSuccess(accountWrap.MdStakeVesting(vest), "modify vesting failed", prototype.StatusErrorDbUpdate)
 
+	headBlockTime := ev.ctx.control.headBlockTime()
+	accountWrap.MdLastStakeTime(headBlockTime)
+
 	ev.ctx.control.TransferToVest(value)
 }
 
@@ -807,6 +810,10 @@ func (ev *UnStakeEvaluator) Apply() {
 	ev.ctx.trxCtx.RecordGasFee(op.Account.Value,constants.CommonOpGas)
 
 	accountWrap := table.NewSoAccountWrap(ev.ctx.db, op.Account)
+
+	headBlockTime := ev.ctx.control.headBlockTime()
+	stakeTime := accountWrap.GetLastStakeTime()
+	mustSuccess(headBlockTime.UtcSeconds - stakeTime.UtcSeconds > constants.StakeFreezeTime,"can not unstake when freeze",prototype.StatusError)
 
 	value := &prototype.Coin{Value: op.Amount}
 
