@@ -295,7 +295,7 @@ func (c *TrxPool) restorePending(pending []*prototype.EstimateTrxResult) {
 
 	s := time.Now()
 	defer func() {
-		c.log.Debug("[trxpol] restorePending cost: ", time.Now().Sub(s), " Count: ", len(pending))
+		c.log.Debug("[trxpool] restorePending cost: ", time.Now().Sub(s), " Count: ", len(pending))
 	}()
 
 	for _, tw := range pending {
@@ -394,10 +394,11 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 
 	for k, trxWraper := range c.pendingTx {
 		if isFinish {
-			c.log.Warnf("[trxpool] Generate block timeout, total pending: ", len(c.pendingTx) )
+			c.log.Warn("[trxpool] Generate block timeout, total pending: ", len(c.pendingTx) )
 			break
 		}
 		if trxWraper.SigTrx.Trx.Expiration.UtcSeconds < timestamp {
+			failTrxMap[k] = k
 			continue
 		}
 		var newTotalSize uint64 = uint64(totalSize) + uint64(proto.Size(trxWraper))
@@ -551,7 +552,7 @@ func (c *TrxPool) applyTransactionInner(trxEst *prototype.EstimateTrxResult, isN
 		now := c.GetProps().Time
 		// get head time
 		mustSuccess(trx.Trx.Expiration.UtcSeconds <= uint32(now.UtcSeconds+constants.TrxMaxExpirationTime), "transaction expiration too long")
-		mustSuccess(now.UtcSeconds < trx.Trx.Expiration.UtcSeconds, "transaction has expired")
+		mustSuccess(now.UtcSeconds <= trx.Trx.Expiration.UtcSeconds, "transaction has expired")
 	}
 
 	// insert trx into DB unique table

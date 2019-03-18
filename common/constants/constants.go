@@ -57,7 +57,7 @@ const (
 
 	VpDecayTime = (60 * 60 * 24) * 15
 
-	TrxMaxExpirationTime = 30 * 60
+	TrxMaxExpirationTime = 60
 
 	PerBlockCurrent = 10
 
