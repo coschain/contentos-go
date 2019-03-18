@@ -761,7 +761,17 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 	switch rc {
 	case forkdb.RTDetached:
 		sabft.log.Debugf("[SABFT][pushBlock]possibly detached block. prev: got %v, want %v", b.Id(), head.Id())
+		tailId, errTail := sabft.ForkDB.FetchUnlinkBlockTail()
+
+		if errTail == nil {
+			sabft.p2p.FetchUnlinkedBlock( *tailId )
+			sabft.log.Debug("[SABFT TriggerSync]: pre-start from ", tailId.BlockNum())
+		} else {
+			sabft.log.Debug("[SABFT TriggerSync]: not found:", errTail )
+		}
+		return nil
 	case forkdb.RTOutOfRange:
+		return ErrBlockOutOfScope
 	case forkdb.RTOnFork:
 		if newHead.Previous() != head.Id() {
 			sabft.log.Debug("[SABFT] start to switch fork.")
