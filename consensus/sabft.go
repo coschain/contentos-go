@@ -773,7 +773,7 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 	case forkdb.RTOutOfRange:
 		return ErrBlockOutOfScope
 	case forkdb.RTOnFork:
-		if newHead.Previous() != head.Id() {
+		if newHead != head && newHead.Previous() != head.Id() {
 			sabft.log.Debug("[SABFT] start to switch fork.")
 			switchSuccess := sabft.switchFork(head.Id(), newHead.Id())
 			if !switchSuccess {
