@@ -24,7 +24,7 @@ func blockNumberFromString(s string) (uint64, error) {
 
 const (
 	defaultBlockIcebergHighWM = 128
-	defaultBlockIcebergLowWM  = 32
+	defaultBlockIcebergLowWM  = 127
 )
 
 // the block iceberg

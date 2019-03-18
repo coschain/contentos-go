@@ -252,14 +252,14 @@ func (sabft *SABFT) shuffle(head common.ISignedBlock) {
 		if atomic.LoadUint32(&sabft.bftStarted) == 0 {
 			sabft.Unlock()
 			sabft.bft.Start()
-			sabft.log.Info("sabft gobft started...")
+			sabft.log.Info("[SABFT] gobft started...")
 			atomic.StoreUint32(&sabft.bftStarted, 1)
 			sabft.Lock()
 		}
 	} else {
 		if atomic.LoadUint32(&sabft.bftStarted) == 1 {
 			sabft.bft.Stop()
-			sabft.log.Info("sabft gobft stopped...")
+			sabft.log.Info("[SABFT] gobft stopped...")
 			atomic.StoreUint32(&sabft.bftStarted, 0)
 		}
 	}
@@ -268,7 +268,7 @@ func (sabft *SABFT) shuffle(head common.ISignedBlock) {
 func (sabft *SABFT) restoreProducers() {
 	prods := sabft.ctrl.GetShuffledWitness()
 	sabft.validators = sabft.makeValidators(prods)
-	sabft.log.Info("active producers: ", prods)
+	sabft.log.Info("[SABFT] active producers: ", prods)
 }
 
 func (sabft *SABFT) ActiveProducers() []string {
@@ -388,7 +388,7 @@ func (sabft *SABFT) revertToLastCheckPoint() {
 		sabft.ForkDB.Commit(lastCommittedID)
 	}
 
-	sabft.log.Infof("[checkpoint] revert to last committed block %d.", popNum-1)
+	sabft.log.Infof("[SABFT][checkpoint] revert to last committed block %d.", popNum-1)
 }
 
 func (sabft *SABFT) start() {
@@ -406,7 +406,7 @@ func (sabft *SABFT) start() {
 			err := sabft.pushBlock(b, true)
 			sabft.Unlock()
 			if err != nil {
-				// sabft.log.Error("[SABFT] pushBlock failed: ", err)
+				sabft.log.Error("[SABFT] pushBlock failed: ", err)
 				continue
 			}
 			if !sabft.readyToProduce {
@@ -555,6 +555,7 @@ func (sabft *SABFT) getSlotAtTime(t time.Time) uint64 {
 }
 
 func (sabft *SABFT) PushBlock(b common.ISignedBlock) {
+	sabft.log.Debug("[SABFT] recv block from p2p: ", b.Id().BlockNum() )
 	go func(blk common.ISignedBlock) {
 		sabft.blkCh <- b
 	}(b)
@@ -587,27 +588,27 @@ func (sabft *SABFT) verifyCommitSig(records *message.Commit) bool {
 	for i := range records.Precommits {
 		val := sabft.getValidator(records.Precommits[i].Address)
 		if val == nil {
-			sabft.log.Errorf("[handleCommitRecords] error while checking precommits: %s is not a validator", records.Precommits[i].Address)
+			sabft.log.Errorf("[SABFT][handleCommitRecords] error while checking precommits: %s is not a validator", records.Precommits[i].Address)
 			return false
 		}
 		sabft.RUnlock()
 		v := val.VerifySig(records.Precommits[i].Digest(), records.Precommits[i].Signature)
 		sabft.RLock()
 		if !v {
-			sabft.log.Error("[handleCommitRecords] precommits verification failed")
+			sabft.log.Error("[SABFT][handleCommitRecords] precommits verification failed")
 			return false
 		}
 	}
 	val := sabft.getValidator(records.Address)
 	if val == nil {
-		sabft.log.Errorf("[handleCommitRecords] error while checking commits. %s is not a validator", string(records.Address))
+		sabft.log.Errorf("[SABFT][handleCommitRecords] error while checking commits. %s is not a validator", string(records.Address))
 		return false
 	}
 	sabft.RUnlock()
 	v := val.VerifySig(records.Digest(), records.Signature)
 	sabft.RLock()
 	if !v {
-		sabft.log.Error("[handleCommitRecords] verification failed")
+		sabft.log.Error("[SABFT][handleCommitRecords] verification failed")
 		return false
 	}
 	return true
@@ -680,10 +681,10 @@ func (sabft *SABFT) PushTransaction(trx common.ISignedTransaction, wait bool, br
 			waitChan <- ret
 		}
 		//if ret.IsSuccess() {
-		//	if broadcast {
-		sabft.log.Debug("SABFT Broadcast trx.")
-		sabft.p2p.Broadcast(trx.(*prototype.SignedTransaction))
-		//	}
+			//	if broadcast {
+			//sabft.log.Debug("SABFT Broadcast trx.")
+			sabft.p2p.Broadcast(trx.(*prototype.SignedTransaction))
+			//	}
 		//}
 	}
 	if wait {
@@ -723,27 +724,72 @@ func (sabft *SABFT) PushTransactionToPending(trx common.ISignedTransaction, call
 }
 
 func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
-	//sabft.log.Debug("pushBlock #", b.Id().BlockNum())
+	sabft.log.Debug("[SABFT] start pushBlock #", b.Id().BlockNum())
 	// TODO: check signee & merkle
 
-	if b.Timestamp() < sabft.getSlotTime(1) {
-		// sabft.log.Debugf("the timestamp of the new block is less than that of the head block.")
+	//if b.Timestamp() < sabft.getSlotTime(1) {
+	//	// sabft.log.Debugf("the timestamp of the new block is less than that of the head block.")
+	//}
+
+	var headNum uint64
+	head := sabft.ForkDB.Head()
+	if head != nil {
+		headNum = head.Id().BlockNum()
+	}
+	newID := b.Id()
+	newNum := newID.BlockNum()
+
+	if newNum > headNum + 1 {
+		sabft.p2p.FetchUnlinkedBlock( b.Previous() )
+		sabft.log.Debug("[SABFT TriggerSync]: out-of range from ", b.Previous().BlockNum())
+		return ErrBlockOutOfScope
 	}
 
-	if applyStateDB {
+	if head != nil && b.Previous() == head.Id() && applyStateDB {
 		if !sabft.validateProducer(b) {
 			return ErrInvalidProducer
 		}
 	}
 
-	head := sabft.ForkDB.Head()
-	if head == nil && b.Id().BlockNum() != 1 {
-		// sabft.log.Errorf("[SABFT] the first block pushed should have number of 1, got %d", b.Id().BlockNum())
+	if head == nil && newNum != 1 {
+		sabft.log.Errorf("[SABFT] the first block pushed should have number of 1, got %d", b.Id().BlockNum())
 		return ErrInvalidBlockNum
 	}
 
-	newHead := sabft.ForkDB.PushBlock(b)
-	//sabft.log.Warn("forkdb PushBlock returned....")
+	rc := sabft.ForkDB.PushBlock(b)
+	newHead := sabft.ForkDB.Head()
+	switch rc {
+	case forkdb.RTDetached:
+		sabft.log.Debugf("[SABFT][pushBlock]possibly detached block. prev: got %v, want %v", b.Id(), head.Id())
+		tailId, errTail := sabft.ForkDB.FetchUnlinkBlockTail()
+
+		if errTail == nil {
+			sabft.p2p.FetchUnlinkedBlock( *tailId )
+			sabft.log.Debug("[SABFT TriggerSync]: pre-start from ", tailId.BlockNum())
+		} else {
+			sabft.log.Debug("[SABFT TriggerSync]: not found:", errTail )
+		}
+		return nil
+	case forkdb.RTOutOfRange:
+		return ErrBlockOutOfScope
+	case forkdb.RTOnFork:
+		if newHead != head && newHead.Previous() != head.Id() {
+			sabft.log.Debug("[SABFT] start to switch fork.")
+			switchSuccess := sabft.switchFork(head.Id(), newHead.Id())
+			if !switchSuccess {
+				sabft.log.Error("[SABFT] there's an error while switching to new branch. new head", newHead.Id())
+			}
+			return nil
+		}
+	case forkdb.RTInvalid:
+		return ErrInvalidBlock
+	case forkdb.RTDuplicated:
+		return ErrDupBlock
+	case forkdb.RTSuccess:
+	default:
+		return ErrInternal
+	}
+	/*
 	if newHead == head {
 		// this implies that b is a:
 		// 1. detached block or
@@ -751,19 +797,30 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 		// 3. head of a non-main branch or
 		// 4. illegal block
 
-		if b.Id().BlockNum() > head.Id().BlockNum() {
-			// sabft.log.Debugf("[SABFT][pushBlock]possibly detached block. prev: got %v, want %v", b.Id(), head.Id())
-			sabft.p2p.TriggerSync(head.Id())
+		if b.Id().BlockNum() > headNum {
+
+
+
+			tailId, errTail := sabft.ForkDB.FetchUnlinkBlockTail()
+
+			if errTail == nil {
+				sabft.p2p.FetchUnlinkedBlock( *tailId )
+				sabft.log.Debug("[SABFT TriggerSync]: pre-start from ", tailId.BlockNum())
+			} else {
+				sabft.log.Debug("[SABFT TriggerSync]: not found:", errTail )
+			}
 		}
+		sabft.log.Info("[SABFT] pushed a block that is detached or off-main-branch, head block: ", head.Id())
 		return nil
 	} else if head != nil && newHead.Previous() != head.Id() {
 		sabft.log.Debug("[SABFT] start to switch fork.")
 		switchSuccess := sabft.switchFork(head.Id(), newHead.Id())
 		if !switchSuccess {
-			sabft.log.Error("there's an error while switching to new branch. new head", newHead.Id())
+			sabft.log.Error("[SABFT] there's an error while switching to new branch. new head", newHead.Id())
 		}
 		return nil
 	}
+	*/
 
 	if applyStateDB {
 		if err := sabft.applyBlock(b); err != nil {
@@ -773,7 +830,7 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 			return err
 		}
 	}
-	sabft.log.Debug("pushBlock FINISHED #", b.Id().BlockNum(), " id ", b.Id())
+	sabft.log.Debug("[SABFT] pushBlock FINISHED #", b.Id().BlockNum(), " id ", b.Id())
 	return nil
 }
 
@@ -852,6 +909,12 @@ func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 		return ErrInternal
 	}
 	if blkMain.Id() != blockID {
+		// Committing a block off the main branch, we don't just switch fork here. Instead we
+		// abort the commit process and let the fork branch out grows the current branch
+		sabft.log.Error("[SABFT] committing a forked block", blockID, " main:", blkMain.Id())
+
+		return ErrCommittingBlockOnFork
+		/*
 		switchSuccess := sabft.switchFork(sabft.ForkDB.Head().Id(), blockID)
 		if !switchSuccess {
 			return ErrSwitchFork
@@ -859,6 +922,7 @@ func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 		// also need to reset new head
 		// fixme: find the real head of the branch we just switched on
 		sabft.ForkDB.ResetHead(blockID)
+		*/
 	}
 
 	blks, _, err := sabft.ForkDB.FetchBlocksSince(sabft.ForkDB.LastCommitted())
@@ -1123,7 +1187,7 @@ func (sabft *SABFT) FetchBlocks(from, to uint64) ([]common.ISignedBlock, error) 
 }
 
 func fetchBlocks(from, to uint64, forkDB *forkdb.DB, blog *blocklog.BLog) ([]common.ISignedBlock, error) {
-	if from > to {
+	if from >= to {
 		return nil, nil
 	}
 
@@ -1276,6 +1340,10 @@ func (sabft *SABFT) MaybeProduceBlock() {
 	}
 	sabft.Unlock()
 
+	//go func() {
+	//	time.Sleep( time.Duration( time.Duration(rand.Int() % 10) * time.Second / 10 ) )
+	//	sabft.p2p.Broadcast(b)
+	//}()
 	sabft.p2p.Broadcast(b)
 }
 
@@ -1308,9 +1376,9 @@ func (sabft *SABFT) handleBlockSync() error {
 			}
 			err = sabft.ctrl.SyncCommittedBlockToDB(blk)
 
-			if err != nil {
+			if err != nil{
 				sabft.log.Debugf("[Reload commit] SyncCommittedBlockToDB Failed: "+
-					"%v", i)
+					"%v", i )
 				return err
 			}
 		}
@@ -1329,13 +1397,13 @@ func (sabft *SABFT) handleBlockSync() error {
 		return err
 	}
 
-	pSli, err := sabft.FetchBlocks(dbCommit+1, latestNumber+1)
+	pSli, err := sabft.FetchBlocks(dbCommit + 1, latestNumber + 1)
 	if err != nil {
 		return err
 	}
 	if len(pSli) > 0 {
 		sabft.log.Debugf("[sync pushed2]: start sync lost blocks,start: %v,end:%v, count: %v",
-			dbCommit+1, sabft.ForkDB.Head().Id().BlockNum(), len(pSli))
+			dbCommit+1, sabft.ForkDB.Head().Id().BlockNum(), len(pSli) )
 		err = sabft.ctrl.SyncPushedBlocksToDB(pSli)
 	}
 

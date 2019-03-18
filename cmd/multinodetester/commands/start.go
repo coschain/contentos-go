@@ -44,7 +44,7 @@ func startNode(cmd *cobra.Command, args []string) {
 			fmt.Println(cosdPath, " start -n ", subDir)
 			c := exec.Command(cosdPath, "start", "-n", subDir)
 
-			c.Stdout = os.Stdout
+			//c.Stdout = os.Stdout
 			c.Stderr = os.Stderr
 
 			err := c.Start()
