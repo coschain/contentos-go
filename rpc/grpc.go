@@ -436,21 +436,34 @@ func (as *APIService) getState() *grpcpb.ChainState {
 func (as *APIService) GetBlockList(ctx context.Context, req *grpcpb.GetBlockListRequest) (*grpcpb.GetBlockListResponse, error) {
 	from := req.Start
 	to := req.End
-	isFetchOne := false
-	if from == to && from != 0 {
-		isFetchOne = true
-		to = from + 1
-	}
+	limit := req.Limit
+	//isFetchOne := false
+	//if from == to && from != 0 {
+	//	isFetchOne = true
+	//	to = from + 1
+	//}
 	headNum := as.consensus.GetHeadBlockId().BlockNum()
-	if from == 0 && to == 0 && !isFetchOne {
-		if headNum >= uint64(maxPageSizeLimit) {
-			from = headNum - uint64(maxPageSizeLimit)
-		}
-		to = headNum
-	} else if from >= 0 && to == 0 {
+	//if from == 0 && to == 0 {
+	//	if headNum >= uint64(limit) {
+	//		from = headNum - uint64(limit) + 1
+	//	}
+	//	to = headNum
+	//} else if from >= 0 && to == 0 {
+	//	to = headNum
+	//}
+	if to == 0 {
 		to = headNum
 	}
-	if  headNum < from {
+	if from == 0 {
+		from = headNum
+	}
+	if from == to {
+		from = to - 1
+	}
+	if to-from > uint64(limit) {
+		from = to - uint64(limit) + 1
+	}
+	if headNum < from {
 		return nil, errors.New("The start block number in range exceed the head block")
 	}
 	list, err := as.consensus.FetchBlocks(from, to)
@@ -468,10 +481,10 @@ func (as *APIService) GetBlockList(ctx context.Context, req *grpcpb.GetBlockList
 		blkInfo.BlockId = &prototype.Sha256{}
 		blkInfo.BlockId.FromBlockID(b.Id())
 		blkInfo.PreId = b.SignedHeader.Header.Previous
-		if isFetchOne && b.Id().BlockNum() == from {
-			blkList = append(blkList, blkInfo)
-			break
-		}
+		//if isFetchOne && b.Id().BlockNum() == from {
+		//	blkList = append(blkList, blkInfo)
+		//	break
+		//}
 		blkList = append(blkList, blkInfo)
 	}
 	if blkList == nil {
@@ -482,22 +495,22 @@ func (as *APIService) GetBlockList(ctx context.Context, req *grpcpb.GetBlockList
 
 func (as *APIService) GetSignedBlock(ctx context.Context, req *grpcpb.GetSignedBlockRequest) (*grpcpb.GetSignedBlockResponse, error) {
 	headNum := as.consensus.GetHeadBlockId().BlockNum()
-    if req.Start > headNum {
-    	return &grpcpb.GetSignedBlockResponse{Block:nil},errors.New("the block not exist")
+	if req.Start > headNum {
+		return &grpcpb.GetSignedBlockResponse{Block: nil}, errors.New("the block not exist")
 	}
 	from := req.Start
 	var block *prototype.SignedBlock
 	list, err := as.consensus.FetchBlocks(from, from+1)
 	if err != nil {
-		return &grpcpb.GetSignedBlockResponse{Block:nil},err
+		return &grpcpb.GetSignedBlockResponse{Block: nil}, err
 	}
-	for _,blk := range list {
+	for _, blk := range list {
 		b := blk.(*prototype.SignedBlock)
 		if b.Id().BlockNum() == from {
 			block = b
 		}
 	}
-	return &grpcpb.GetSignedBlockResponse{Block:block},nil
+	return &grpcpb.GetSignedBlockResponse{Block: block}, nil
 
 }
 
@@ -567,8 +580,8 @@ func (as *APIService) GetDailyTotalTrxInfo(ctx context.Context, req *grpcpb.GetD
 	as.db.RLock()
 	defer as.db.RUnlock()
 	var (
-		list []*grpcpb.DailyTotalTrx
-		err error
+		list     []*grpcpb.DailyTotalTrx
+		err      error
 		lastTime *prototype.TimePointSec
 		lastVal  *prototype.TimePointSec
 	)
@@ -579,7 +592,7 @@ func (as *APIService) GetDailyTotalTrxInfo(ctx context.Context, req *grpcpb.GetD
 		info := req.LastInfo
 		if info.Date != nil {
 			lastTime = info.Date
-			lastVal =  info.Date
+			lastVal = info.Date
 		}
 	}
 	if wrap != nil {
@@ -637,7 +650,7 @@ func (as *APIService) GetTrxListByTime(ctx context.Context, req *grpcpb.GetTrxLi
 		lastMainKey *prototype.Sha256
 		lastSubVal  *prototype.TimePointSec
 	)
-
+	limit := req.Limit
 	res := &grpcpb.GetTrxListByTimeResponse{}
 	if req.LastInfo != nil && req.LastInfo.TrxId != nil && req.LastInfo.BlockTime != nil {
 		lastMainKey = req.LastInfo.TrxId
@@ -655,7 +668,10 @@ func (as *APIService) GetTrxListByTime(ctx context.Context, req *grpcpb.GetTrxLi
 				info.TrxWrap = wrap.GetTrxWrap()
 				infoList = append(infoList, info)
 			}
-			if len(infoList) >= (maxPageSizeLimit) {
+			//if len(infoList) >= (maxPageSizeLimit) {
+			//	return false
+			//}
+			if limit != 0 && len(infoList) >= int(limit) {
 				return false
 			}
 			return true
@@ -725,24 +741,24 @@ func (as *APIService) GetPostListByName(ctx context.Context, req *grpcpb.GetPost
 	as.db.RLock()
 	defer as.db.RUnlock()
 	var (
-		postList []*grpcpb.PostResponse
-		lastPostId *uint64
+		postList      []*grpcpb.PostResponse
+		lastPostId    *uint64
 		lastPostOrder *prototype.UserPostCreateOrder
-		err error
+		err           error
 	)
 	if req.LastPost != nil {
 		post := req.LastPost
 		lastPostId = &post.PostId
-		lastPostOrder = &prototype.UserPostCreateOrder{Author:post.Author,Create:post.Created}
+		lastPostOrder = &prototype.UserPostCreateOrder{Author: post.Author, Create: post.Created}
 	}
 
-    wrap := table.NewExtUserPostPostCreatedOrderWrap(as.db)
+	wrap := table.NewExtUserPostPostCreatedOrderWrap(as.db)
 	res := &grpcpb.GetPostListByCreateTimeResponse{}
 	if wrap != nil {
-    	err = wrap.ForEachByRevOrder(req.Start, req.End, lastPostId, lastPostOrder, func(mVal *uint64, sVal *prototype.UserPostCreateOrder, idx uint32) bool {
-    		if mVal != nil {
-    			postWrap := table.NewSoPostWrap(as.db,mVal)
-    			if postWrap != nil && postWrap.CheckExist() {
+		err = wrap.ForEachByRevOrder(req.Start, req.End, lastPostId, lastPostOrder, func(mVal *uint64, sVal *prototype.UserPostCreateOrder, idx uint32) bool {
+			if mVal != nil {
+				postWrap := table.NewSoPostWrap(as.db, mVal)
+				if postWrap != nil && postWrap.CheckExist() {
 					postInfo := &grpcpb.PostResponse{
 						PostId:        postWrap.GetPostId(),
 						Category:      postWrap.GetCategory(),
@@ -770,8 +786,8 @@ func (as *APIService) GetPostListByName(ctx context.Context, req *grpcpb.GetPost
 		})
 	}
 	if postList == nil {
-		postList = make([]*grpcpb.PostResponse,0)
+		postList = make([]*grpcpb.PostResponse, 0)
 	}
 	res.PostedList = postList
-	return res,err
+	return res, err
 }

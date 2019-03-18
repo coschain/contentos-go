@@ -259,6 +259,7 @@ message ChainState {
 message GetBlockListRequest {
     uint64     start            = 1;
     uint64     end              = 2;
+    uint32     limit            = 3;
 }
 
 
@@ -330,7 +331,8 @@ message GetTrxInfoByIdResponse {
 message GetTrxListByTimeRequest {
     prototype.time_point_sec     start     = 1;
     prototype.time_point_sec     end       = 2;
-    TrxInfo                  last_info   = 3;
+    uint32                       limit    = 3;
+    TrxInfo                  last_info   = 4;
 }
 
 message GetTrxListByTimeResponse {

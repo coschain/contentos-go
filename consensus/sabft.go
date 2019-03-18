@@ -680,10 +680,10 @@ func (sabft *SABFT) PushTransaction(trx common.ISignedTransaction, wait bool, br
 			waitChan <- ret
 		}
 		//if ret.IsSuccess() {
-			//	if broadcast {
-			sabft.log.Debug("SABFT Broadcast trx.")
-			sabft.p2p.Broadcast(trx.(*prototype.SignedTransaction))
-			//	}
+		//	if broadcast {
+		sabft.log.Debug("SABFT Broadcast trx.")
+		sabft.p2p.Broadcast(trx.(*prototype.SignedTransaction))
+		//	}
 		//}
 	}
 	if wait {
@@ -1123,7 +1123,7 @@ func (sabft *SABFT) FetchBlocks(from, to uint64) ([]common.ISignedBlock, error) 
 }
 
 func fetchBlocks(from, to uint64, forkDB *forkdb.DB, blog *blocklog.BLog) ([]common.ISignedBlock, error) {
-	if from >= to {
+	if from > to {
 		return nil, nil
 	}
 
@@ -1308,9 +1308,9 @@ func (sabft *SABFT) handleBlockSync() error {
 			}
 			err = sabft.ctrl.SyncCommittedBlockToDB(blk)
 
-			if err != nil{
+			if err != nil {
 				sabft.log.Debugf("[Reload commit] SyncCommittedBlockToDB Failed: "+
-					"%v", i )
+					"%v", i)
 				return err
 			}
 		}
@@ -1329,13 +1329,13 @@ func (sabft *SABFT) handleBlockSync() error {
 		return err
 	}
 
-	pSli, err := sabft.FetchBlocks(dbCommit + 1, latestNumber + 1)
+	pSli, err := sabft.FetchBlocks(dbCommit+1, latestNumber+1)
 	if err != nil {
 		return err
 	}
 	if len(pSli) > 0 {
 		sabft.log.Debugf("[sync pushed2]: start sync lost blocks,start: %v,end:%v, count: %v",
-			dbCommit+1, sabft.ForkDB.Head().Id().BlockNum(), len(pSli) )
+			dbCommit+1, sabft.ForkDB.Head().Id().BlockNum(), len(pSli))
 		err = sabft.ctrl.SyncPushedBlocksToDB(pSli)
 	}
 
