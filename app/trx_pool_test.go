@@ -6,6 +6,7 @@ import (
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
+	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/golang/protobuf/proto"
 	"io/ioutil"
@@ -21,6 +22,50 @@ const (
 	pubKeyTom      = "COS5E2vDnf245ydZBBUgQ8RkjNBzoKvGyr9kW4rfMMQcnkiD8JnEd"
 	priKeyTom      = "3u6RCpDUEEUmB9QsFMNKCfEY54WWtmcXvqyD2NcHCDzhuhrP8F"
 )
+
+func addGlobalTime(db iservices.IDatabaseService,delta uint32) {
+	wrap := table.NewSoGlobalWrap(db, &constants.GlobalId)
+	gp := wrap.GetProps()
+	gp.Time.UtcSeconds += delta
+	wrap.MdProps(gp)
+}
+
+func addGlobalHeadNumer(db iservices.IDatabaseService,delta uint64) {
+	wrap := table.NewSoGlobalWrap(db, &constants.GlobalId)
+	gp := wrap.GetProps()
+	gp.HeadBlockNumber += delta
+	wrap.MdProps(gp)
+}
+
+func createSigTrxTmp(c *TrxPool, priKey string,step uint32,ops ...interface{}) (*prototype.SignedTransaction, error) {
+
+	headBlockID := c.GetProps().GetHeadBlockId()
+	expire := c.GetProps().Time.UtcSeconds
+	expire += step
+
+	privKey, err := prototype.PrivateKeyFromWIF(priKey)
+	if err != nil {
+		return nil, err
+	}
+
+	tx := &prototype.Transaction{RefBlockNum: 0, RefBlockPrefix: 0,
+		Expiration: &prototype.TimePointSec{UtcSeconds: expire}}
+	for _, op := range ops {
+		tx.AddOperation(op)
+	}
+
+	// set reference
+	id := &common.BlockID{}
+	copy(id.Data[:], headBlockID.Hash[:])
+	tx.SetReferenceBlock(id)
+
+	signTx := prototype.SignedTransaction{Trx: tx}
+
+	res := signTx.Sign(privKey, prototype.ChainId{Value: 0})
+	signTx.Signature = &prototype.SignatureType{Sig: res}
+
+	return &signTx, nil
+}
 
 func makeBlockWithCommonTrx(pre *prototype.Sha256, blockTimestamp uint32, signedTrx *prototype.SignedTransaction) *prototype.SignedBlock {
 	sigBlk := new(prototype.SignedBlock)
@@ -535,6 +580,8 @@ func Test_Stake_UnStake(t *testing.T) {
 		t.Error("createSigTrx error:", err)
 	}
 
+	addGlobalTime(db,constants.WindowSize*3+1)
+
 	invoice2 := c.PushTrx(signedTrx2)
 	if invoice2.Status != prototype.StatusSuccess {
 		t.Error("PushTrx return status error:", invoice2.Status)
@@ -607,11 +654,7 @@ func Test_StakeFreezeTime(t *testing.T) {
 	}
 
 	// unstake after freeze
-	const oneDayBlocks = 60 * 60 * 24 * 3 + 1
-	wrap := table.NewSoGlobalWrap(db, &constants.GlobalId)
-	gp := wrap.GetProps()
-	gp.Time.UtcSeconds += oneDayBlocks
-	wrap.MdProps(gp)
+	addGlobalTime(db,constants.WindowSize*3+1)
 
 	invoice2 := c.PushTrx(signedTrx)
 	if invoice2.Status != prototype.StatusSuccess {
@@ -650,6 +693,8 @@ func Test_Consume1(t *testing.T) {
 		Amount:  value,
 	}
 
+	addGlobalTime(db,constants.WindowSize*3+1)
+
 	signedTrx3, err := createSigTrx(c, priKeyBob,unStakeOp)
 	if err != nil {
 		t.Error("createSigTrx error:", err)
@@ -676,7 +721,6 @@ func Test_Recover1(t *testing.T) {
 		return
 	}
 
-	//
 	if ok := stake(c, accountNameBob, priKeyBob, value-1); !ok {
 		t.Error("stake error")
 		return
@@ -693,11 +737,7 @@ func Test_Recover1(t *testing.T) {
 	}
 
 	// recover
-	const oneDayBlocks = 60 * 60 * 24
-	wrap := table.NewSoGlobalWrap(db, &constants.GlobalId)
-	gp := wrap.GetProps()
-	gp.HeadBlockNumber = gp.HeadBlockNumber + oneDayBlocks
-	wrap.MdProps(gp)
+	addGlobalHeadNumer(db,constants.WindowSize)
 
 	transOp2 := &prototype.TransferOperation{
 		From:   &prototype.AccountName{Value: accountNameBob},
@@ -828,13 +868,6 @@ func stake(c *TrxPool, name string, prikey string, value uint64) bool {
 	if err != nil {
 		return false
 	}
-	/*
-		var ID int32 = 1
-		const oneDayBlocks = 60*60*24
-		wrap := table.NewSoGlobalWrap(db,&ID)
-		gp := wrap.GetProps()
-		gp.HeadBlockNumber = gp.HeadBlockNumber + oneDayBlocks * 0.5
-		wrap.MdProps(gp)*/
 
 	invoice2 := c.PushTrx(signedTrx2)
 	if invoice2.Status != prototype.StatusSuccess {
@@ -1191,6 +1224,8 @@ func Test_proportion(t *testing.T) {
 		tomMax := c.GetStaminaMax(accountNameTom)
 		fmt.Println("            total max stake stamina:",tomMax+bobMax)
 
+		addGlobalTime(db,constants.WindowSize*3+1)
+
 		unstakeOp := &prototype.UnStakeOperation{
 			Account: prototype.NewAccountName(accountNameTom),
 			Amount:  value,
@@ -1203,40 +1238,10 @@ func Test_proportion(t *testing.T) {
 
 		invoice2 := c.PushTrx(signedTrx2)
 		if invoice2.Status != prototype.StatusSuccess {
-			t.Error("invoice error")
+			t.Error("invoice error",invoice2.Status)
 			return
 		}
 
 		value -= step
 	}
-}
-
-func createSigTrxTmp(c *TrxPool, priKey string,step uint32,ops ...interface{}) (*prototype.SignedTransaction, error) {
-
-	headBlockID := c.GetProps().GetHeadBlockId()
-	expire := c.GetProps().Time.UtcSeconds
-	expire += step
-
-	privKey, err := prototype.PrivateKeyFromWIF(priKey)
-	if err != nil {
-		return nil, err
-	}
-
-	tx := &prototype.Transaction{RefBlockNum: 0, RefBlockPrefix: 0,
-		Expiration: &prototype.TimePointSec{UtcSeconds: expire}}
-	for _, op := range ops {
-		tx.AddOperation(op)
-	}
-
-	// set reference
-	id := &common.BlockID{}
-	copy(id.Data[:], headBlockID.Hash[:])
-	tx.SetReferenceBlock(id)
-
-	signTx := prototype.SignedTransaction{Trx: tx}
-
-	res := signTx.Sign(privKey, prototype.ChainId{Value: 0})
-	signTx.Signature = &prototype.SignatureType{Sig: res}
-
-	return &signTx, nil
 }
