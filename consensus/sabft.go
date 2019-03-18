@@ -762,6 +762,9 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 	case forkdb.RTDetached:
 		sabft.log.Debugf("[SABFT][pushBlock]possibly detached block. prev: got %v, want %v", b.Id(), head.Id())
 		tailId, errTail := sabft.ForkDB.FetchUnlinkBlockTail()
+		if sabft.HasBlock(*tailId) {
+			panic("sssssddddddddddddddddddddddddddddddddddddddd")
+		}
 
 		if errTail == nil {
 			sabft.p2p.FetchUnlinkedBlock(*tailId)
@@ -779,8 +782,8 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 			if !switchSuccess {
 				sabft.log.Error("[SABFT] there's an error while switching to new branch. new head", newHead.Id())
 			}
-			return nil
 		}
+		return nil
 	case forkdb.RTInvalid:
 		return ErrInvalidBlock
 	case forkdb.RTDuplicated:

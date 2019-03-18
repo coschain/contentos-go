@@ -203,7 +203,7 @@ func (db *DB) pushBlock(b common.ISignedBlock) RetCode {
 		return RTDuplicated
 	}
 
-	if num > db.head.BlockNum()+1 || num < db.start {
+	if num > db.head.BlockNum()+1 || num <= db.start {
 		return RTOutOfRange
 	}
 	db.list[num-db.start] = append(db.list[num-db.start], id)
