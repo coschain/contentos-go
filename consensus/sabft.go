@@ -774,6 +774,8 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 		}
 		return nil
 	case forkdb.RTOutOfRange:
+		sabft.p2p.FetchUnlinkedBlock(b.Previous())
+		sabft.log.Debug("[SABFT TriggerSync]: out-of range2 from ", b.Previous().BlockNum())
 		return ErrBlockOutOfScope
 	case forkdb.RTOnFork:
 		if newHead != head && newHead.Previous() != head.Id() {
@@ -1344,7 +1346,7 @@ func (sabft *SABFT) MaybeProduceBlock() {
 	sabft.Unlock()
 
 	//go func() {
-	//	time.Sleep( time.Duration( time.Duration(rand.Int() % 10) * time.Second / 10 ) )
+	//	time.Sleep( time.Duration( time.Duration(rand.Int() % 13) * time.Second / 10 ) )
 	//	sabft.p2p.Broadcast(b)
 	//}()
 	sabft.p2p.Broadcast(b)
