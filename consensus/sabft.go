@@ -756,8 +756,30 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 		return ErrInvalidBlockNum
 	}
 
-	newHead := sabft.ForkDB.PushBlock(b)
-	//sabft.log.Warn("forkdb PushBlock returned....")
+	rc := sabft.ForkDB.PushBlock(b)
+	newHead := sabft.ForkDB.Head()
+	switch rc {
+	case forkdb.RTDetached:
+		sabft.log.Debugf("[SABFT][pushBlock]possibly detached block. prev: got %v, want %v", b.Id(), head.Id())
+	case forkdb.RTOutOfRange:
+	case forkdb.RTOnFork:
+		if newHead.Previous() != head.Id() {
+			sabft.log.Debug("[SABFT] start to switch fork.")
+			switchSuccess := sabft.switchFork(head.Id(), newHead.Id())
+			if !switchSuccess {
+				sabft.log.Error("[SABFT] there's an error while switching to new branch. new head", newHead.Id())
+			}
+			return nil
+		}
+	case forkdb.RTInvalid:
+		return ErrInvalidBlock
+	case forkdb.RTDuplicated:
+		return ErrDupBlock
+	case forkdb.RTSuccess:
+	default:
+		return ErrInternal
+	}
+	/*
 	if newHead == head {
 		// this implies that b is a:
 		// 1. detached block or
@@ -767,7 +789,7 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 
 		if b.Id().BlockNum() > headNum {
 
-			sabft.log.Debugf("[SABFT][pushBlock]possibly detached block. prev: got %v, want %v", b.Id(), head.Id())
+
 
 			tailId, errTail := sabft.ForkDB.FetchUnlinkBlockTail()
 
@@ -788,6 +810,7 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 		}
 		return nil
 	}
+	*/
 
 	if applyStateDB {
 		if err := sabft.applyBlock(b); err != nil {
