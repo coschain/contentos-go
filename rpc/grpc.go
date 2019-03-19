@@ -398,6 +398,7 @@ func (as *APIService) BroadcastTrx(ctx context.Context, req *grpcpb.BroadcastTrx
 	//var result chan *prototype.TransactionReceiptWithInfo
 	//result := make(chan *prototype.TransactionReceiptWithInfo)
 	trx := req.GetTransaction()
+	req.OnlyDeliver = true
 
 	var pErr error
 	as.mainLoop.Send(func() {
