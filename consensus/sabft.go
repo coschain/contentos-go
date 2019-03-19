@@ -898,6 +898,7 @@ func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 		Data: commitRecords.ProposedData,
 	}
 
+	sabft.log.Info("[SABFT] start to commit block #%d %v", blockID.BlockNum(), blockID)
 	// if we're committing a block we don't have
 	blk, err := sabft.ForkDB.FetchBlock(blockID)
 	if err != nil {
@@ -932,12 +933,12 @@ func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 
 	blks, _, err := sabft.ForkDB.FetchBlocksSince(sabft.ForkDB.LastCommitted())
 	if err != nil {
-		sabft.log.Error(err)
+		sabft.log.Errorf("[SABFT] internal error when committing %v, err: %v", blockID, err)
 		return ErrInternal
 	}
 	for i := range blks {
 		if err = sabft.blog.Append(blks[i]); err != nil {
-			sabft.log.Error(err)
+			sabft.log.Errorf("[SABFT] internal error when committing %v, err: %v", blockID, err)
 			return ErrInternal
 		}
 		if blks[i] == blk {

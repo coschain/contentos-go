@@ -476,10 +476,10 @@ func (db *DB) Commit(id common.BlockID) {
 	// purge the branches
 	db.list = newList
 	db.branches = newBranches
-	db.start = id.BlockNum()
+	db.start = commitNum
 	db.lastCommitted = id
 
-	db.purgeDetached(id.BlockNum())
+	db.purgeDetached(commitNum)
 }
 
 func (db *DB) fetchUnlinkBlockById(id common.BlockID) common.ISignedBlock {
