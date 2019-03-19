@@ -152,7 +152,7 @@ func TransactionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface
 	var hash [msgCommon.HASH_LENGTH]byte
 	copy(hash[:], id.Hash[:])
 	if remotePeer.SendTrxCache.Contains(hash) || remotePeer.RecvTrxCache.Contains(hash) {
-		log.Info("[p2p] we alerady have this transaction, transaction hash: ", id.Hash)
+		//log.Info("[p2p] we alerady have this transaction, transaction hash: ", id.Hash)
 		return
 	}
 	if remotePeer.RecvTrxCache.Cardinality() > msgCommon.MAX_TRX_CACHE {
