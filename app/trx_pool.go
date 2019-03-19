@@ -227,7 +227,10 @@ func (c *TrxPool) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag)
 
 	tmpPending := c.ClearPending()
 
+	c.db.Lock()
 	defer func() {
+		c.db.Unlock()
+		
 		if r := recover(); r != nil {
 			switch x := r.(type) {
 			case error:
@@ -339,7 +342,11 @@ func (c *TrxPool) GenerateAndApplyBlock(witness string, pre *prototype.Sha256, t
 func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp uint32,
 	priKey *prototype.PrivateKeyType, skip prototype.SkipFlag) *prototype.SignedBlock {
 	oldSkip := c.skip
+	c.db.Lock()
+
 	defer func() {
+		c.db.Unlock()
+
 		c.skip = oldSkip
 		if err := recover(); err != nil {
 			mustNoError(c.db.EndTransaction(false), "EndTransaction error")
@@ -503,10 +510,7 @@ func (c *TrxPool) applyTransaction(trxEst *prototype.EstimateTrxResult) {
 func (c *TrxPool) applyTransactionInner(trxEst *prototype.EstimateTrxResult, isNeedVerify bool) {
 	trxContext := NewTrxContext(trxEst, c.db, c)
 
-	c.db.Lock()
-
 	defer func() {
-		c.db.Unlock()
 		if err := recover(); err != nil {
 			trxEst.Receipt.Status = prototype.StatusError
 			trxEst.Receipt.ErrorInfo = fmt.Sprintf("applyTransaction failed : %v", err)
