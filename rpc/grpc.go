@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"context"
+	"fmt"
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common/constants"
@@ -18,7 +19,7 @@ import (
 )
 
 var (
-	ErrPanicResp     = errors.New("rpc panic")
+	ErrPanicResp         = errors.New("rpc panic")
 	defaultPageSizeLimit = 30
 )
 
@@ -662,9 +663,13 @@ func (as *APIService) TrxStatByHour(ctx context.Context, req *grpcpb.TrxStatByHo
 	}
 	h, _ := time.ParseDuration("-1h")
 	hourData := make(map[int]int, req.Hours)
+	var hours []int
 	for i := 0; i < int(req.Hours); i++ {
 		then := now.Add(time.Duration(i) * h)
-		hourData[then.Hour()] = 0
+		hours = append(hours, then.Hour())
+	}
+	for _, hour := range hours {
+		fmt.Println(hour)
 	}
 	for _, trx := range infoList {
 		timestamp := trx.GetBlockTime().UtcSeconds
@@ -672,8 +677,9 @@ func (as *APIService) TrxStatByHour(ctx context.Context, req *grpcpb.TrxStatByHo
 		hourData[hour] += 1
 	}
 	var hourStat []*grpcpb.StatByHour
-	for hour, count := range hourData {
-		h := &grpcpb.StatByHour{Hour: uint32(hour), Count: uint32(count)}
+	// make it sequence
+	for _, hour := range hours {
+		h := &grpcpb.StatByHour{Hour: uint32(hour), Count: uint32(hourData[hour])}
 		hourStat = append(hourStat, h)
 	}
 	res.Stat = hourStat
@@ -819,10 +825,10 @@ func (as *APIService) GetPostListByName(ctx context.Context, req *grpcpb.GetPost
 		if limit == 0 {
 			limit = uint32(defaultPageSizeLimit)
 		}
-    	err = wrap.ForEachByRevOrder(req.Start, req.End, lastPostId, lastPostOrder, func(mVal *uint64, sVal *prototype.UserPostCreateOrder, idx uint32) bool {
-    		if mVal != nil {
-    			postWrap := table.NewSoPostWrap(as.db,mVal)
-    			if postWrap != nil && postWrap.CheckExist() {
+		err = wrap.ForEachByRevOrder(req.Start, req.End, lastPostId, lastPostOrder, func(mVal *uint64, sVal *prototype.UserPostCreateOrder, idx uint32) bool {
+			if mVal != nil {
+				postWrap := table.NewSoPostWrap(as.db, mVal)
+				if postWrap != nil && postWrap.CheckExist() {
 					postInfo := &grpcpb.PostResponse{
 						PostId:        postWrap.GetPostId(),
 						Category:      postWrap.GetCategory(),
