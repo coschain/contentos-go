@@ -172,7 +172,7 @@ func (as *APIService) GetFollowingListByName(ctx context.Context, req *grpcpb.Ge
 		start = nil
 		end = nil
 	}
-	limit = (req.GetLimit())
+	limit = checkLimit(req.GetLimit())
 	fingOrderWrap.ForEachByOrder(start, end, nil, nil,
 		func(mVal *prototype.FollowingRelation, sVal *prototype.FollowingCreatedOrder, idx uint32) bool {
 			if mVal != nil {
