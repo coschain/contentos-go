@@ -913,11 +913,9 @@ func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 		return ErrCommittingNonExistBlock
 	}
 
-	// if blockID points to a block that is not on the current
-	// longest chain, switch fork first
 	blkMain, err := sabft.ForkDB.FetchBlockFromMainBranch(blockID.BlockNum())
 	if err != nil {
-		sabft.log.Error(err)
+		sabft.log.Errorf("[SABFT] internal error when committing %v, err: %v", blockID, err)
 		return ErrInternal
 	}
 	if blkMain.Id() != blockID {
@@ -1031,23 +1029,6 @@ func (sabft *SABFT) ValidateProposal(data message.ProposedData) bool {
 
 	sabft.RLock()
 	defer sabft.RUnlock()
-
-	if sabft.lastCommitted != nil {
-		committedID := common.BlockID{
-			Data: sabft.lastCommitted.Precommits[0].Proposed,
-		}
-		if blockNum <= committedID.BlockNum() {
-			return false
-		}
-	}
-
-	var headNum uint64
-	if !sabft.ForkDB.Empty() {
-		headNum = sabft.ForkDB.Head().Id().BlockNum()
-	}
-	if blockNum > headNum {
-		return false
-	}
 
 	if b, err := sabft.ForkDB.FetchBlockFromMainBranch(blockNum); err != nil {
 		return false

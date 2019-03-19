@@ -356,7 +356,7 @@ func (db *DB) FetchBlockFromMainBranch(num uint64) (common.ISignedBlock, error) 
 	db.RLock()
 	defer db.RUnlock()
 	headNum := db.head.BlockNum()
-	if num > headNum || num < db.start {
+	if num > headNum || num <= db.start {
 		return nil, fmt.Errorf("[ForkDB] num out of scope: %d [%d, %d]", num, db.start, headNum)
 	}
 
