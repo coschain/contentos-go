@@ -624,6 +624,50 @@ func (as *APIService) GetDailyTotalTrxInfo(ctx context.Context, req *grpcpb.GetD
 	return res, err
 }
 
+func (as *APIService) TrxStatByHour(ctx context.Context, req *grpcpb.TrxStatByHourRequest) (*grpcpb.TrxStatByHourResponse, error) {
+	var lastMainKey *prototype.Sha256
+	var lastSubVal *prototype.TimePointSec
+	var infoList []*grpcpb.TrxInfo
+	var err error
+	res := &grpcpb.TrxStatByHourResponse{}
+	sWrap := table.NewExtTrxBlockTimeWrap(as.db)
+	// reverse order
+	now := time.Now()
+	end := &prototype.TimePointSec{UtcSeconds: uint32(now.Unix() - int64(3600*req.Hours))}
+	if sWrap != nil {
+		err = sWrap.ForEachByRevOrder(nil, end, lastMainKey, lastSubVal, func(mVal *prototype.Sha256, sVal *prototype.TimePointSec, idx uint32) bool {
+			wrap := table.NewSoExtTrxWrap(as.db, mVal)
+			info := &grpcpb.TrxInfo{}
+			if wrap != nil {
+				info.TrxId = mVal
+				info.BlockHeight = wrap.GetBlockHeight()
+				info.BlockTime = wrap.GetBlockTime()
+				info.TrxWrap = wrap.GetTrxWrap()
+				infoList = append(infoList, info)
+			}
+			return true
+		})
+	}
+	h, _ := time.ParseDuration("-1h")
+	hourData := make(map[int]int, req.Hours)
+	for i := 0; i < int(req.Hours); i++ {
+		then := now.Add(time.Duration(i) * h)
+		hourData[then.Hour()] = 0
+	}
+	for _, trx := range infoList {
+		timestamp := trx.GetBlockTime().UtcSeconds
+		hour := time.Unix(int64(timestamp), 0).Hour()
+		hourData[hour] += 1
+	}
+	var hourStat []*grpcpb.StatByHour
+	for hour, count := range hourData {
+		h := &grpcpb.StatByHour{Hour: uint32(hour), Count: uint32(count)}
+		hourStat = append(hourStat, h)
+	}
+	res.Stat = hourStat
+	return res, err
+}
+
 func (as *APIService) GetTrxInfoById(ctx context.Context, req *grpcpb.GetTrxInfoByIdRequest) (*grpcpb.GetTrxInfoByIdResponse, error) {
 	as.db.RLock()
 	defer as.db.RUnlock()

@@ -75,6 +75,9 @@ service ApiService {
 
     rpc GetPostListByName (GetPostListByNameRequest) returns (GetPostListByCreateTimeResponse){
     }
+
+    rpc TrxStatByHour (TrxStatByHourRequest) returns (TrxStatByHourResponse) {
+    }
 }
 
 
@@ -310,6 +313,19 @@ message GetDailyTotalTrxRequest {
 
 message GetDailyTotalTrxResponse {
     repeated  DailyTotalTrx   list   = 1;
+}
+
+message StatByHour {
+    uint32     hour               = 1;
+    uint32     count              = 2;
+}
+
+message TrxStatByHourRequest {
+    uint32 hours = 1;
+}
+
+message TrxStatByHourResponse {
+    repeated StatByHour stat = 1;
 }
 
 message TrxInfo {
