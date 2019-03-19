@@ -8,13 +8,14 @@ import (
 	"github.com/coschain/contentos-go/rpc/pb"
 	"google.golang.org/grpc"
 	"strconv"
+	"strings"
 )
 
 var SwitchPortcmd = func() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "switchport",
-		Short:   "switchport port",
-		Example: "switchport port",
+		Short:   "switchport address",
+		Example: "switchport [ip:]port",
 		Args:    cobra.ExactArgs(1),
 		Run:     switchport,
 	}
@@ -22,14 +23,20 @@ var SwitchPortcmd = func() *cobra.Command {
 }
 
 func switchport(cmd *cobra.Command, args []string) {
+	address := args[0]
+	var conn *grpc.ClientConn
+	var err error
 
-	port, err := strconv.ParseInt(args[0], 10, 64)
-	if err != nil {
-		fmt.Println(err)
-		return
+	if strings.Contains(address, ":"){
+		conn, err = rpc.Dial(address)
+	} else {
+		port, err := strconv.ParseInt(args[0], 10, 64)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		conn, err = rpc.Dial(fmt.Sprintf("localhost:%d", port))
 	}
-
-	conn, err := rpc.Dial(fmt.Sprintf("localhost:%d", port))
 	if err != nil {
 		common.Fatalf("Chain should have been run first")
 	} else {
