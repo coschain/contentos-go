@@ -454,9 +454,9 @@ func (as *APIService) GetBlockList(ctx context.Context, req *grpcpb.GetBlockList
 	if to == 0 {
 		to = headNum
 	}
-	if from == 0 {
-		from = headNum
-	}
+	//if from == 0 {
+	//	from = headNum
+	//}
 	if from == to {
 		from = to - 1
 	}
