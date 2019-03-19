@@ -1027,6 +1027,8 @@ func (sabft *SABFT) ValidateProposal(data message.ProposedData) bool {
 	blockID := common.BlockID{
 		Data: data,
 	}
+	blockNum := blockID.BlockNum()
+
 	sabft.RLock()
 	defer sabft.RUnlock()
 
@@ -1034,13 +1036,25 @@ func (sabft *SABFT) ValidateProposal(data message.ProposedData) bool {
 		committedID := common.BlockID{
 			Data: sabft.lastCommitted.Precommits[0].Proposed,
 		}
-		if committedID.BlockNum() >= blockID.BlockNum() {
+		if blockNum <= committedID.BlockNum() {
 			return false
 		}
 	}
-	if _, err := sabft.ForkDB.FetchBlockFromMainBranch(blockID.BlockNum()); err != nil {
+
+	var headNum uint64
+	if !sabft.ForkDB.Empty() {
+		headNum = sabft.ForkDB.Head().Id().BlockNum()
+	}
+	if blockNum > headNum {
 		return false
 	}
+
+	if b, err := sabft.ForkDB.FetchBlockFromMainBranch(blockNum); err != nil {
+		return false
+	} else if b.Id() != blockID {
+		return false
+	}
+
 	return true
 }
 
