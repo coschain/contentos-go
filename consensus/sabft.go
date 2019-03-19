@@ -2,6 +2,7 @@ package consensus
 
 import (
 	"io/ioutil"
+	"math/rand"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -763,7 +764,7 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 		sabft.log.Debugf("[SABFT][pushBlock]possibly detached block. prev: got %v, want %v", b.Id(), head.Id())
 		tailId, errTail := sabft.ForkDB.FetchUnlinkBlockTail()
 		if sabft.HasBlock(*tailId) {
-			panic("sssssddddddddddddddddddddddddddddddddddddddd")
+			panic("GOT unlinked but exist")
 		}
 
 		if errTail == nil {
@@ -774,6 +775,11 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 		}
 		return nil
 	case forkdb.RTOutOfRange:
+		if b.Id().BlockNum() <= sabft.ForkDB.LastCommitted().BlockNum() {
+			sabft.log.Warnf("[SABFT]: RTOutOfRange: %v, committed: %v", b.Previous(),
+				sabft.ForkDB.LastCommitted())
+			return nil
+		}
 		sabft.p2p.FetchUnlinkedBlock(b.Previous())
 		sabft.log.Debug("[SABFT TriggerSync]: out-of range2 from ", b.Previous().BlockNum())
 		return ErrBlockOutOfScope
@@ -1346,11 +1352,11 @@ func (sabft *SABFT) MaybeProduceBlock() {
 	}
 	sabft.Unlock()
 
-	//go func() {
-	//	time.Sleep( time.Duration( time.Duration(rand.Int() % 13) * time.Second / 10 ) )
-	//	sabft.p2p.Broadcast(b)
-	//}()
-	sabft.p2p.Broadcast(b)
+	go func() {
+		time.Sleep( time.Duration( 0 * time.Duration(rand.Int() % 13) * time.Second / 10 ) )
+		sabft.p2p.Broadcast(b)
+	}()
+	//sabft.p2p.Broadcast(b)
 }
 
 func (sabft *SABFT) handleBlockSync() error {
