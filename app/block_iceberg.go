@@ -179,6 +179,8 @@ func (b *BlockIceberg) FinalizeBlock(blockNum uint64) error {
 		b.db.Squash(tag)
 		b.db.TagRevision(b.db.GetRevision(), tag)
 		b.db.EnableReversion(true)
+
+		b.seaLevel = blockNum + 1
 	}
 
 	b.hasFinalized, b.finalized = true, blockNum
