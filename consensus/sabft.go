@@ -158,7 +158,7 @@ func NewSABFT(ctx *node.ServiceContext, lg *logrus.Logger) *SABFT {
 		name: ret.Name,
 	}
 	ret.bft = gobft.NewCore(ret, ret.priv)
-	ret.bft.SetLogLevel(4)
+	ret.bft.SetLogLevel(5)
 	ret.log.Info("[SABFT bootstrap] ", ctx.Config().Consensus.BootStrap)
 	ret.appState = &message.AppState{
 		LastHeight:       0,
