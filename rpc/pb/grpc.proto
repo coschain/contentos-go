@@ -293,6 +293,7 @@ message GetAccountListByBalanceRequest {
     prototype.coin   start     = 1;
     prototype.coin   end       = 2;
     AccountResponse  last_account = 3;
+    uint32           limit     = 4;
 }
 
 message GetAccountListResponse {
@@ -309,6 +310,7 @@ message GetDailyTotalTrxRequest {
     prototype.time_point_sec     start              = 1;
     prototype.time_point_sec     end                = 2;
     DailyTotalTrx                last_info          = 3;
+    uint32                       limit              = 4;
 }
 
 message GetDailyTotalTrxResponse {
@@ -359,6 +361,7 @@ message GetPostListByCreateTimeRequest {
     prototype.time_point_sec     start      = 1;
     prototype.time_point_sec     end        = 2;
     PostResponse                 last_post  = 3;
+    uint32                        limit     = 4;
 }
 
 message GetPostListByCreateTimeResponse {
@@ -369,4 +372,5 @@ message GetPostListByNameRequest {
     prototype.user_post_create_order  start  = 1;
     prototype.user_post_create_order  end    = 2;
     PostResponse  last_post = 3;
+    uint32                         limit     = 4;
 }

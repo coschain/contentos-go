@@ -19,7 +19,7 @@ import (
 
 var (
 	ErrPanicResp     = errors.New("rpc panic")
-	maxPageSizeLimit = 30
+	defaultPageSizeLimit = 30
 )
 
 type APIService struct {
@@ -172,7 +172,7 @@ func (as *APIService) GetFollowingListByName(ctx context.Context, req *grpcpb.Ge
 		start = nil
 		end = nil
 	}
-	limit = checkLimit(req.GetLimit())
+	limit = (req.GetLimit())
 	fingOrderWrap.ForEachByOrder(start, end, nil, nil,
 		func(mVal *prototype.FollowingRelation, sVal *prototype.FollowingCreatedOrder, idx uint32) bool {
 			if mVal != nil {
@@ -486,6 +486,7 @@ func (as *APIService) GetBlockList(ctx context.Context, req *grpcpb.GetBlockList
 		//	break
 		//}
 		blkList = append(blkList, blkInfo)
+
 	}
 	if blkList == nil {
 		blkList = make([]*grpcpb.BlockInfo, 0)
@@ -524,6 +525,10 @@ func (as *APIService) GetAccountListByBalance(ctx context.Context, req *grpcpb.G
 	var err error
 	var lastAcctNam *prototype.AccountName
 	var lastAcctCoin *prototype.Coin
+	limit := checkLimit(req.Limit)
+	if limit == 0 {
+		limit = uint32(defaultPageSizeLimit)
+	}
 	if req.LastAccount != nil {
 		account := req.LastAccount
 		if account.AccountName != nil && account.Coin != nil {
@@ -558,7 +563,7 @@ func (as *APIService) GetAccountListByBalance(ctx context.Context, req *grpcpb.G
 				acct.State = as.getState()
 				list = append(list, acct)
 			}
-			if len(list) >= maxPageSizeLimit {
+			if uint32(len(list)) >= limit {
 				return false
 			}
 			return true
@@ -596,6 +601,10 @@ func (as *APIService) GetDailyTotalTrxInfo(ctx context.Context, req *grpcpb.GetD
 		}
 	}
 	if wrap != nil {
+		limit := checkLimit(req.Limit)
+		if limit == 0 {
+			limit = uint32(defaultPageSizeLimit)
+		}
 		s := req.Start
 		e := req.End
 		//convert the unix timestamp to day index
@@ -616,6 +625,9 @@ func (as *APIService) GetDailyTotalTrxInfo(ctx context.Context, req *grpcpb.GetD
 					info.Count = dWrap.GetCount()
 				}
 				list = append(list, info)
+			}
+			if uint32(len(list)) >= limit {
+				return false
 			}
 			return true
 		})
@@ -746,6 +758,10 @@ func (as *APIService) GetPostListByCreateTime(ctx context.Context, req *grpcpb.G
 	}
 	sWrap := table.NewPostCreatedWrap(as.db)
 	if sWrap != nil {
+		limit := checkLimit(req.Limit)
+		if limit == 0 {
+			limit = uint32(defaultPageSizeLimit)
+		}
 		err = sWrap.ForEachByRevOrder(req.Start, req.End, lastPostId, lastPostTime,
 			func(mVal *uint64, sVal *prototype.TimePointSec, idx uint32) bool {
 				if mVal != nil {
@@ -770,7 +786,7 @@ func (as *APIService) GetPostListByCreateTime(ctx context.Context, req *grpcpb.G
 						postList = append(postList, postInfo)
 					}
 				}
-				if len(postList) >= maxPageSizeLimit {
+				if uint32(len(postList)) >= limit {
 					return false
 				}
 				return true
@@ -799,10 +815,14 @@ func (as *APIService) GetPostListByName(ctx context.Context, req *grpcpb.GetPost
 	wrap := table.NewExtUserPostPostCreatedOrderWrap(as.db)
 	res := &grpcpb.GetPostListByCreateTimeResponse{}
 	if wrap != nil {
-		err = wrap.ForEachByRevOrder(req.Start, req.End, lastPostId, lastPostOrder, func(mVal *uint64, sVal *prototype.UserPostCreateOrder, idx uint32) bool {
-			if mVal != nil {
-				postWrap := table.NewSoPostWrap(as.db, mVal)
-				if postWrap != nil && postWrap.CheckExist() {
+		limit := checkLimit(req.Limit)
+		if limit == 0 {
+			limit = uint32(defaultPageSizeLimit)
+		}
+    	err = wrap.ForEachByRevOrder(req.Start, req.End, lastPostId, lastPostOrder, func(mVal *uint64, sVal *prototype.UserPostCreateOrder, idx uint32) bool {
+    		if mVal != nil {
+    			postWrap := table.NewSoPostWrap(as.db,mVal)
+    			if postWrap != nil && postWrap.CheckExist() {
 					postInfo := &grpcpb.PostResponse{
 						PostId:        postWrap.GetPostId(),
 						Category:      postWrap.GetCategory(),
@@ -823,7 +843,7 @@ func (as *APIService) GetPostListByName(ctx context.Context, req *grpcpb.GetPost
 					postList = append(postList, postInfo)
 				}
 			}
-			if len(postList) >= maxPageSizeLimit {
+			if uint32(len(postList)) >= limit {
 				return false
 			}
 			return true
