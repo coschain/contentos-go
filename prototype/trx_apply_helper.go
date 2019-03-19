@@ -37,7 +37,7 @@ func FetchTrxApplyResult(eb EventBus.Bus, timeout time.Duration, trx *SignedTran
      	  	 rec <- result
 		  }
 	 }
-	eb.SubscribeAsync(constants.NoticeTrxApplied,handler, true)
+	eb.SubscribeAsync(constants.NoticeTrxApplied,handler, false)
 	go func() {
 	 	tOut := time.NewTimer(timeout)
 	 	for {
