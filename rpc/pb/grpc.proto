@@ -273,7 +273,7 @@ message BlockInfo {
     prototype.account_name       witness     = 4;
     prototype.sha256             block_id    = 5;
     prototype.sha256             pre_id      = 6;
-
+    uint32                       block_size  = 7;
 }
 
 message GetBlockListResponse {

@@ -161,3 +161,7 @@ func calculatePairHash(a *Sha256, b *Sha256) (*Sha256, error) {
 	id := &Sha256{Hash: bs}
 	return id, nil
 }
+
+func (sb *SignedBlock) GetBlockSize() int {
+	return proto.Size(sb)
+}

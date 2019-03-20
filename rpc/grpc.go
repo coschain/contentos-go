@@ -482,6 +482,7 @@ func (as *APIService) GetBlockList(ctx context.Context, req *grpcpb.GetBlockList
 		blkInfo.BlockId = &prototype.Sha256{}
 		blkInfo.BlockId.FromBlockID(b.Id())
 		blkInfo.PreId = b.SignedHeader.Header.Previous
+		blkInfo.BlockSize = uint32(b.GetBlockSize())
 		//if isFetchOne && b.Id().BlockNum() == from {
 		//	blkList = append(blkList, blkInfo)
 		//	break
