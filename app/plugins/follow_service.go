@@ -58,7 +58,7 @@ func (p *FollowService) onPostOperation(notification *prototype.OperationNotific
 
 	switch notification.Op.GetOp().(type) {
 	case *prototype.Operation_Op8:
-		p.log.Debugf("receive follow operation [%x]", notification.Op.GetOp8())
+		//p.log.Debugf("receive follow operation [%x]", notification.Op.GetOp8())
 		p.executeFollowOperation(notification.Op.GetOp8())
 	default:
 

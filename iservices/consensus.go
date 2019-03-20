@@ -17,11 +17,12 @@ type IConsensus interface {
 	// SetBootstrap determines if the current node starts a new block chain
 	SetBootstrap(b bool)
 
-	// PushTransaction accepts the trx
-	PushTransaction(trx common.ISignedTransaction, wait bool, broadcast bool) common.ITransactionReceiptWithInfo
+	//// PushTransaction accepts the trx
+	//PushTransaction(trx common.ISignedTransaction, wait bool, broadcast bool) common.ITransactionReceiptWithInfo
 
 	//Add transaction to pending list,the transaction will be applied when generate a block
-	PushTransactionToPending(trx common.ISignedTransaction, callBack func(err error))
+	PushTransactionToPending(trx common.ISignedTransaction) error
+
 	// PushBlock adds b to the block fork DB, called if ValidateBlock returns true
 	PushBlock(b common.ISignedBlock)
 

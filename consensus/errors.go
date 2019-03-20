@@ -8,6 +8,7 @@ var (
 	ErrInvalidProducer         = errors.New("invalid producer")
 	ErrInvalidBlockNum         = errors.New("invalid block number")
 	ErrBlockOutOfScope         = errors.New("block number out of scope")
+	ErrConsensusNotReady       = errors.New("consensus not ready")
 	ErrInternal                = errors.New("internal error")
 	ErrBlockNotExist           = errors.New("block doesn't exist")
 	ErrDupBlock                = errors.New("duplicated block")

@@ -399,19 +399,15 @@ func (as *APIService) BroadcastTrx(ctx context.Context, req *grpcpb.BroadcastTrx
 	//result := make(chan *prototype.TransactionReceiptWithInfo)
 	trx := req.GetTransaction()
 
-	var pErr error
-	as.mainLoop.Send(func() {
-		as.consensus.PushTransactionToPending(trx, func(err error) {
-			pErr = err
-		})
-		//as.log.Infof("BroadcastTrx Result: %s", result)
-	})
-	//result <- prototype.FetchTrxApplyResult(as.eBus , 30*time.Second ,trx)
+	err := as.consensus.PushTransactionToPending(trx)
+	if err != nil {
+		return &grpcpb.BroadcastTrxResponse{Invoice: nil, Status: prototype.StatusError}, err
+	}
 
 	if !req.OnlyDeliver {
-		return &grpcpb.BroadcastTrxResponse{Invoice: prototype.FetchTrxApplyResult(as.eBus, 30*time.Second, trx)}, pErr
+		return &grpcpb.BroadcastTrxResponse{Invoice: prototype.FetchTrxApplyResult(as.eBus, 30*time.Second, trx)}, nil
 	} else {
-		return &grpcpb.BroadcastTrxResponse{Invoice: nil, Status: prototype.StatusSuccess}, pErr
+		return &grpcpb.BroadcastTrxResponse{Invoice: nil, Status: prototype.StatusSuccess}, nil
 	}
 }
 

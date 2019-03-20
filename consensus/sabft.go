@@ -557,9 +557,7 @@ func (sabft *SABFT) getSlotAtTime(t time.Time) uint64 {
 
 func (sabft *SABFT) PushBlock(b common.ISignedBlock) {
 	sabft.log.Debug("[SABFT] recv block from p2p: ", b.Id().BlockNum())
-	go func(blk common.ISignedBlock) {
-		sabft.blkCh <- b
-	}(b)
+	sabft.blkCh <- b
 }
 
 func (sabft *SABFT) Push(msg interface{}) {
@@ -666,34 +664,38 @@ func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 
 	sabft.Commit(records)
 }
-
-func (sabft *SABFT) PushTransaction(trx common.ISignedTransaction, wait bool, broadcast bool) common.ITransactionReceiptWithInfo {
-
-	var waitChan chan common.ITransactionReceiptWithInfo
-
-	if wait {
-		waitChan = make(chan common.ITransactionReceiptWithInfo)
-	}
-
-	sabft.trxCh <- func() {
-		ret := sabft.ctrl.PushTrxToPending(trx.(*prototype.SignedTransaction))
-
-		if wait {
-			waitChan <- ret
-		}
-		//if ret.IsSuccess() {
-		//	if broadcast {
-		//sabft.log.Debug("SABFT Broadcast trx.")
-		sabft.p2p.Broadcast(trx.(*prototype.SignedTransaction))
-		//	}
-		//}
-	}
-	if wait {
-		return <-waitChan
-	} else {
-		return nil
-	}
-}
+//
+//func (sabft *SABFT) PushTransaction(trx common.ISignedTransaction, wait bool, broadcast bool) common.ITransactionReceiptWithInfo {
+//
+//	if !sabft.readyToProduce {
+//
+//	}
+//
+//	var waitChan chan common.ITransactionReceiptWithInfo
+//
+//	if wait {
+//		waitChan = make(chan common.ITransactionReceiptWithInfo)
+//	}
+//
+//	sabft.trxCh <- func() {
+//		ret := sabft.ctrl.PushTrxToPending(trx.(*prototype.SignedTransaction))
+//
+//		if wait {
+//			waitChan <- ret
+//		}
+//		//if ret.IsSuccess() {
+//		//	if broadcast {
+//		//sabft.log.Debug("SABFT Broadcast trx.")
+//		sabft.p2p.Broadcast(trx.(*prototype.SignedTransaction))
+//		//	}
+//		//}
+//	}
+//	if wait {
+//		return <-waitChan
+//	} else {
+//		return nil
+//	}
+//}
 
 func (sabft *SABFT) validateProducer(b common.ISignedBlock) bool {
 	slot := sabft.getSlotAtTime(time.Unix(int64(b.Timestamp()), 0))
@@ -714,14 +716,22 @@ func (sabft *SABFT) validateProducer(b common.ISignedBlock) bool {
 	return res
 }
 
-func (sabft *SABFT) PushTransactionToPending(trx common.ISignedTransaction, callBack func(err error)) {
+func (sabft *SABFT) PushTransactionToPending(trx common.ISignedTransaction) error {
+
+	if !sabft.readyToProduce {
+		return ErrConsensusNotReady
+	}
+
+	chanError := make(chan error)
 	sabft.pendingCh <- func() {
 		err := sabft.ctrl.PushTrxToPending(trx.(*prototype.SignedTransaction))
 		if err == nil {
 			sabft.p2p.Broadcast(trx.(*prototype.SignedTransaction))
 		}
-		callBack(err)
+		chanError <- err
 	}
+
+	return <- chanError
 }
 
 func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
@@ -741,8 +751,11 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 	newNum := newID.BlockNum()
 
 	if newNum > headNum+1 {
-		sabft.p2p.FetchUnlinkedBlock(b.Previous())
-		sabft.log.Debug("[SABFT TriggerSync]: out-of range from ", b.Previous().BlockNum())
+
+		if sabft.readyToProduce{
+			sabft.p2p.FetchUnlinkedBlock(b.Previous())
+			sabft.log.Debug("[SABFT TriggerSync]: out-of range from ", b.Previous().BlockNum())
+		}
 		return ErrBlockOutOfScope
 	}
 
@@ -1390,6 +1403,9 @@ func (sabft *SABFT) handleBlockSync() error {
 			}
 		}
 	}
+
+	// TODO if dbCommit > latestNumber then revert statedb to latestNumber
+
 	//2.sync pushed blocks
 	//Fetch pushed blocks in snapshot
 	//pSli, _, err := sabft.ForkDB.FetchBlocksSince(sabft.ForkDB.LastCommitted())
