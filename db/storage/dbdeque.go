@@ -2,14 +2,14 @@ package storage
 
 import (
 	"errors"
-	"sync"
+	"github.com/sasha-s/go-deadlock"
 )
 
 type dbDeque struct {
 	db Database
 	readFront bool
 	sessions []*dbSession
-	lock sync.RWMutex
+	lock deadlock.RWMutex
 }
 
 func NewDBDeque(db Database, readFront bool) *dbDeque {

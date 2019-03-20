@@ -10,7 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/coschain/contentos-go/common"
-	"sync"
+	"github.com/sasha-s/go-deadlock"
 )
 
 const (
@@ -27,7 +27,7 @@ type RevertibleDatabase struct {
 	rev  revNumber
 	tag  revTags
 	enable_rev bool
-	lock sync.RWMutex
+	lock deadlock.RWMutex
 }
 
 type revNumber struct {

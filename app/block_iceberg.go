@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/coschain/contentos-go/iservices"
+	"github.com/sasha-s/go-deadlock"
 	"strconv"
-	"sync"
 )
 
 const (
@@ -29,7 +29,7 @@ const (
 
 // the block iceberg
 type BlockIceberg struct {
-	lock          sync.RWMutex               // lock for internal state
+	lock          deadlock.RWMutex           // lock for internal state
 	db            iservices.IDatabaseService // database service
 	inProgress    bool                       // indicating if there's a on-going block
 	next          uint64                     // next block number

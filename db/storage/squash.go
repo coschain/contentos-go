@@ -3,7 +3,7 @@ package storage
 import (
 	"fmt"
 	"github.com/pkg/errors"
-	"sync"
+	"github.com/sasha-s/go-deadlock"
 )
 
 type SquashableDatabase struct {
@@ -11,7 +11,7 @@ type SquashableDatabase struct {
 
 	tags map[string]uint
 	tagsByIdx map[uint]string
-	lock sync.RWMutex
+	lock deadlock.RWMutex
 }
 
 func NewSquashableDatabase(db Database, dirtyRead bool) *SquashableDatabase {

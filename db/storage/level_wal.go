@@ -2,13 +2,13 @@ package storage
 
 import (
 	"fmt"
+	"github.com/sasha-s/go-deadlock"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/syndtr/goleveldb/leveldb/filter"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 	"github.com/syndtr/goleveldb/leveldb/util"
 	"strconv"
-	"sync"
 )
 
 var (
@@ -20,7 +20,7 @@ type LevelWriteAheadLog struct {
 	file       string
 	db         *leveldb.DB
 	nextTaskId uint64
-	lock       sync.RWMutex
+	lock       deadlock.RWMutex
 }
 
 func NewLevelWriteAheadLog(file string) (*LevelWriteAheadLog, error) {
