@@ -23,7 +23,7 @@ func GenerateSignedTxAndValidate2(client grpcpb.ApiServiceClient, ops []interfac
 	privKey = pk
 
 	req := &grpcpb.NonParamsRequest{}
-	resp, err := client.GetStatInfo(context.Background(), req)
+	resp, err := client.GetStatisticsInfo(context.Background(), req)
 	if err != nil {
 		return nil, err
 	}

@@ -24,7 +24,7 @@ func blockNumberFromString(s string) (uint64, error) {
 
 const (
 	defaultBlockIcebergHighWM = 128
-	defaultBlockIcebergLowWM  = 32
+	defaultBlockIcebergLowWM  = 127
 )
 
 // the block iceberg
@@ -179,6 +179,8 @@ func (b *BlockIceberg) FinalizeBlock(blockNum uint64) error {
 		b.db.Squash(tag)
 		b.db.TagRevision(b.db.GetRevision(), tag)
 		b.db.EnableReversion(true)
+
+		b.seaLevel = blockNum + 1
 	}
 
 	b.hasFinalized, b.finalized = true, blockNum

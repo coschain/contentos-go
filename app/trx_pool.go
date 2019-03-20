@@ -246,7 +246,10 @@ func (c *TrxPool) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag)
 
 	tmpPending := c.ClearPending()
 
+	c.db.Lock()
 	defer func() {
+		c.db.Unlock()
+
 		if r := recover(); r != nil {
 			switch x := r.(type) {
 
@@ -314,6 +317,12 @@ func (c *TrxPool) ClearPending() []*prototype.TransactionWrapper {
 }
 
 func (c *TrxPool) restorePending(pending []*prototype.TransactionWrapper) {
+
+	s := time.Now()
+	defer func() {
+		c.log.Debug("[trxpool] restorePending cost: ", time.Now().Sub(s), " Count: ", len(pending))
+	}()
+
 	for _, tw := range pending {
 		id, err := tw.SigTrx.Id()
 		mustNoError(err, "get transaction id error", prototype.StatusErrorTrxId)
@@ -337,6 +346,11 @@ func emptyHeader(signHeader *prototype.SignedBlockHeader) {
 func (c *TrxPool) GenerateAndApplyBlock(witness string, pre *prototype.Sha256, timestamp uint32,
 	priKey *prototype.PrivateKeyType, skip prototype.SkipFlag) (*prototype.SignedBlock, error) {
 
+	s := time.Now()
+	defer func() {
+		c.log.Debug("[trxpool] GenerateAndApplyBlock cost: ", time.Now().Sub(s))
+	}()
+
 	newBlock := c.GenerateBlock(witness, pre, timestamp, priKey, skip)
 
 	err := c.PushBlock(newBlock, c.skip|prototype.Skip_apply_transaction)
@@ -350,7 +364,11 @@ func (c *TrxPool) GenerateAndApplyBlock(witness string, pre *prototype.Sha256, t
 func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp uint32,
 	priKey *prototype.PrivateKeyType, skip prototype.SkipFlag) *prototype.SignedBlock {
 	oldSkip := c.skip
+	c.db.Lock()
+
 	defer func() {
+		c.db.Unlock()
+
 		c.skip = oldSkip
 		if err := recover(); err != nil {
 			mustNoError(c.db.EndTransaction(false), "EndTransaction error", prototype.StatusErrorDbEndTrx)
@@ -404,9 +422,11 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 
 	for k, trxWraper := range c.pendingTx {
 		if isFinish {
+			c.log.Warn("[trxpool] Generate block timeout, total pending: ", len(c.pendingTx))
 			break
 		}
 		if trxWraper.SigTrx.Trx.Expiration.UtcSeconds < timestamp {
+			failTrxMap[k] = k
 			continue
 		}
 		var newTotalSize uint64 = uint64(totalSize) + uint64(proto.Size(trxWraper))
@@ -441,7 +461,7 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 		}()
 	}
 	if postponeTrx > 0 {
-		//c.log.Warnf("postponed %d trx due to max block size", postponeTrx)
+		c.log.Warnf("[trxpool] postponed %d trx due to max block size", postponeTrx)
 	}
 
 	signBlock.SignedHeader.Header.Previous = pre
@@ -519,11 +539,8 @@ func (c *TrxPool) applyTransaction(trxContext *TrxContext) {
 }
 
 func (c *TrxPool) applyTransactionInner(isNeedVerify bool, trxContext *TrxContext) {
-	c.db.Lock()
 	tw := trxContext.Wrapper
 	defer func() {
-		c.db.Unlock()
-
 		useGas := trxContext.HasGasFee()
 		if err := recover(); err != nil {
 
@@ -585,7 +602,7 @@ func (c *TrxPool) applyTransactionInner(isNeedVerify bool, trxContext *TrxContex
 		now := c.GetProps().Time
 		// get head time
 		mustSuccess(trx.Trx.Expiration.UtcSeconds <= uint32(now.UtcSeconds+constants.TrxMaxExpirationTime), "transaction expiration too long", prototype.StatusErrorTrxExpire)
-		mustSuccess(now.UtcSeconds < trx.Trx.Expiration.UtcSeconds, "transaction has expired", prototype.StatusErrorTrxExpire)
+		mustSuccess(now.UtcSeconds <= trx.Trx.Expiration.UtcSeconds, "transaction has expired", prototype.StatusErrorTrxExpire)
 	}
 
 	// insert trx into DB unique table
@@ -782,8 +799,8 @@ func (c *TrxPool) initGenesis() {
 	mustNoError(newAccountWrap.Create(func(tInfo *table.SoAccount) {
 		tInfo.Name = name
 		tInfo.CreatedTime = &prototype.TimePointSec{UtcSeconds: 0}
-		tInfo.Balance = prototype.NewCoin(constants.COSInitSupply - 1000)
-		tInfo.VestingShares = prototype.NewVest(1000)
+		tInfo.Balance = prototype.NewCoin(constants.COSInitSupply)
+		tInfo.VestingShares = prototype.NewVest(0)
 		tInfo.LastPostTime = &prototype.TimePointSec{UtcSeconds: 0}
 		tInfo.LastVoteTime = &prototype.TimePointSec{UtcSeconds: 0}
 		tInfo.StakeVesting = prototype.NewVest(0)
@@ -817,10 +834,11 @@ func (c *TrxPool) initGenesis() {
 		tInfo.Props.HeadBlockId = &prototype.Sha256{Hash: make([]byte, 32)}
 		// @ recent_slots_filled
 		// @ participation_count
-		tInfo.Props.CurrentSupply = prototype.NewCoin(constants.COSInitSupply - 1000)
-		tInfo.Props.TotalCos = prototype.NewCoin(constants.COSInitSupply - 1000)
+		tInfo.Props.CurrentSupply = prototype.NewCoin(constants.COSInitSupply)
+		tInfo.Props.TotalCos = prototype.NewCoin(constants.COSInitSupply)
 		tInfo.Props.MaximumBlockSize = constants.MaxBlockSize
-		tInfo.Props.TotalVestingShares = prototype.NewVest(1000)
+		tInfo.Props.TotalUserCnt = 1
+		tInfo.Props.TotalVestingShares = prototype.NewVest(0)
 	}), "CreateDynamicGlobalProperties error", prototype.StatusErrorDbCreate)
 
 	//create rewards keeper
@@ -877,6 +895,7 @@ func (c *TrxPool) TransferFromVest(value *prototype.Vest) {
 func (c *TrxPool) validateBlockHeader(blk *prototype.SignedBlock) {
 	headID := c.headBlockID()
 	if !bytes.Equal(headID.Hash, blk.SignedHeader.Header.Previous.Hash) {
+		c.log.Error("[trxpool]:", "validateBlockHeader Error: ", headID.ToString(), " prev:", blk.SignedHeader.Header.Previous.ToString())
 		e := &prototype.Exception{HelpString: "hash not equal", ErrorType: prototype.StatusErrorTrxBlockHeaderCheck}
 		panic(e)
 	}
@@ -1111,9 +1130,15 @@ func (c *TrxPool) PopBlock(num uint64) {
 }
 
 func (c *TrxPool) Commit(num uint64) {
-	// this block can not be revert over, so it's irreversible
-	err := c.iceberg.FinalizeBlock(num)
-	mustSuccess(err == nil, fmt.Sprintf("commit block: %d, error is %v", num, err), prototype.StatusErrorDbTag)
+	func() {
+		s := time.Now()
+		defer func() {
+			c.log.Debug("[trxpool] Commit cost: ", time.Now().Sub(s))
+		}()
+		// this block can not be revert over, so it's irreversible
+		err := c.iceberg.FinalizeBlock(num)
+		mustSuccess(err == nil, fmt.Sprintf("commit block: %d, error is %v", num, err), prototype.StatusErrorDbTag)
+	}()
 }
 
 func (c *TrxPool) VerifySig(name *prototype.AccountName, digest []byte, sig []byte) bool {
@@ -1159,7 +1184,8 @@ func (c *TrxPool) Sign(priv *prototype.PrivateKeyType, digest []byte) []byte {
 }
 
 func (c *TrxPool) GetCommitBlockNum() (uint64, error) {
-	return c.iceberg.LastFinalizedBlock()
+	num, _, err := c.iceberg.LatestBlock()
+	return num, err
 }
 
 //Sync committed blocks to squash db when node reStart

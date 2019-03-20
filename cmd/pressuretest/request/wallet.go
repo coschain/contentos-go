@@ -37,7 +37,10 @@ const (
 )
 
 var IPList []string = []string{
-	"localhost:8888",
+	"34.200.75.66:8888",
+	"34.195.63.116:8888",
+	"34.193.131.213:8888",
+	"34.193.58.34:8888",
 }
 
 var CmdTypeList []string = []string{
@@ -73,7 +76,7 @@ func InitEnv() {
 	rpcClient := grpcpb.NewApiServiceClient(conn)
 
 	for i:=1;i<=INIT_ACCOUNT_LENGTH-1;i++ {
-		createAccount(localWallet, rpcClient, GlobalAccountLIst.arr[0], fmt.Sprintf("initminer%d", i))
+		createAccount(localWallet, rpcClient, GlobalAccountLIst.arr[0], fmt.Sprintf("baseaccount%d", i))
 	}
 	if len(GlobalAccountLIst.arr) < INIT_ACCOUNT_LENGTH {
 		fmt.Println("init account list failed, account list length: ", len(GlobalAccountLIst.arr))

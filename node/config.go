@@ -38,6 +38,8 @@ type Config struct {
 	Consensus service_configs.ConsensusConfig
 
 	P2P   service_configs.P2PConfig
+
+	HealthCheck service_configs.HCheck
 }
 
 // DB returns the path to the discovery database.

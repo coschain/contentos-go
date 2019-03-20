@@ -2,9 +2,9 @@ package rpc
 
 import (
 	"context"
+	"fmt"
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app/table"
-	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/common/eventloop"
 	"github.com/coschain/contentos-go/iservices"
@@ -13,14 +13,15 @@ import (
 	"github.com/coschain/contentos-go/utils"
 	"github.com/coschain/contentos-go/vm/contract/abi"
 	contractTable "github.com/coschain/contentos-go/vm/contract/table"
+	"github.com/coschain/gobft/message"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"time"
 )
 
 var (
-	ErrPanicResp     = errors.New("rpc panic")
-	maxPageSizeLimit = 30
+	ErrPanicResp         = errors.New("rpc panic")
+	defaultPageSizeLimit = 30
 )
 
 type APIService struct {
@@ -84,6 +85,7 @@ func (as *APIService) GetAccountByName(ctx context.Context, req *grpcpb.GetAccou
 		acct.StaminaMax = rc.GetCapacity(accWrap.GetName().Value) + rc.GetCapacityFree()
 		//acct.PublicKeys =
 		acct.CreatedTime = accWrap.GetCreatedTime()
+		acct.PostCount = accWrap.GetPostCount()
 
 		witWrap := table.NewSoWitnessWrap(as.db, accWrap.GetName())
 		if witWrap != nil && witWrap.CheckExist() {
@@ -217,20 +219,14 @@ func (as *APIService) GetChainState(ctx context.Context, req *grpcpb.NonParamsRe
 	defer as.db.RUnlock()
 
 	ret := &grpcpb.GetChainStateResponse{}
-	blks, err := as.consensus.FetchBlocksSince(common.EmptyBlockID)
-	if err == nil {
-		for _, v := range blks {
-
-			res := &prototype.EmptySignedBlock{SignedHeader: v.(*prototype.SignedBlock).SignedHeader, TrxCount: uint32(len(v.(*prototype.SignedBlock).Transactions))}
-			ret.Blocks = append(ret.Blocks, res)
-		}
-	}
 	ret.State = as.getState()
 
 	return ret, nil
 }
 
-func (as *APIService) GetStatInfo(ctx context.Context, req *grpcpb.NonParamsRequest) (*grpcpb.GetStatResponse, error) {
+func (as *APIService) GetStatisticsInfo(ctx context.Context, req *grpcpb.NonParamsRequest) (*grpcpb.GetStatResponse, error) {
+	as.db.RLock()
+	defer as.db.RUnlock()
 
 	ret := &grpcpb.GetStatResponse{}
 
@@ -322,6 +318,7 @@ func (as *APIService) GetPostListByCreated(ctx context.Context, req *grpcpb.GetP
 					ParentId:      postWrap.GetParentId(),
 					Tags:          postWrap.GetTags(),
 					Beneficiaries: postWrap.GetBeneficiaries(),
+					VoteCnt:       postWrap.GetVoteCnt(),
 				})
 			}
 			if idx < limit {
@@ -368,6 +365,7 @@ func (as *APIService) GetReplyListByPostId(ctx context.Context, req *grpcpb.GetR
 					Children:     postWrap.GetChildren(),
 					RootId:       postWrap.GetRootId(),
 					ParentId:     postWrap.GetParentId(),
+					VoteCnt:      postWrap.GetVoteCnt(),
 				})
 			}
 			if idx < limit {
@@ -430,45 +428,98 @@ func (as *APIService) getState() *grpcpb.ChainState {
 	var (
 		i int32 = 1
 	)
-	result.Dgpo = table.NewSoGlobalWrap(as.db, &i).GetProps()
+	as.db.RUnlock()
 	result.LastIrreversibleBlockNumber = as.consensus.GetLIB().BlockNum()
+	lastCommit := as.consensus.GetLastBFTCommit()
+	as.db.RLock()
+
+	result.Dgpo = table.NewSoGlobalWrap(as.db, &i).GetProps()
+
+	if lastCommit != nil {
+		result.LastIrreversibleBlockTime = uint64(lastCommit.(*message.Commit).CommitTime.Unix())
+	}
 	return result
 }
 
 func (as *APIService) GetBlockList(ctx context.Context, req *grpcpb.GetBlockListRequest) (*grpcpb.GetBlockListResponse, error) {
 	from := req.Start
 	to := req.End
-	isFetchOne := false
-	if from == to && from != 0 {
-		isFetchOne = true
-		to = from + 1
-	}
+	limit := req.Limit
+	//isFetchOne := false
+	//if from == to && from != 0 {
+	//	isFetchOne = true
+	//	to = from + 1
+	//}
 	headNum := as.consensus.GetHeadBlockId().BlockNum()
-	if from == 0 && to == 0 && !isFetchOne {
-		if headNum >= uint64(maxPageSizeLimit) {
-			from = headNum - uint64(maxPageSizeLimit)
-		}
+	//if from == 0 && to == 0 {
+	//	if headNum >= uint64(limit) {
+	//		from = headNum - uint64(limit) + 1
+	//	}
+	//	to = headNum
+	//} else if from >= 0 && to == 0 {
+	//	to = headNum
+	//}
+	if to == 0 {
 		to = headNum
-	} else if from >= 0 && to == 0 {
-		to = headNum
+	}
+	//if from == 0 {
+	//	from = headNum
+	//}
+	if from == to {
+		from = to - 1
+	}
+	if to-from > uint64(limit) {
+		from = to - uint64(limit) + 1
+	}
+	if headNum < from {
+		return nil, errors.New("The start block number in range exceed the head block")
 	}
 	list, err := as.consensus.FetchBlocks(from, to)
 	if err != nil {
-		return &grpcpb.GetBlockListResponse{Blocks: make([]*prototype.SignedBlock, 0)}, err
+		return &grpcpb.GetBlockListResponse{Blocks: make([]*grpcpb.BlockInfo, 0)}, err
 	}
-	var blkList []*prototype.SignedBlock
+	var blkList []*grpcpb.BlockInfo
 	for _, blk := range list {
 		b := blk.(*prototype.SignedBlock)
-		if isFetchOne && b.Id().BlockNum() == from {
-			blkList = append(blkList, b)
-			break
-		}
-		blkList = append(blkList, b)
+		blkInfo := &grpcpb.BlockInfo{}
+		blkInfo.Timestamp = b.SignedHeader.Header.Timestamp
+		blkInfo.BlockHeight = b.Id().BlockNum()
+		blkInfo.Witness = b.SignedHeader.Header.Witness
+		blkInfo.TrxCount = uint32(len(b.Transactions))
+		blkInfo.BlockId = &prototype.Sha256{}
+		blkInfo.BlockId.FromBlockID(b.Id())
+		blkInfo.PreId = b.SignedHeader.Header.Previous
+		//if isFetchOne && b.Id().BlockNum() == from {
+		//	blkList = append(blkList, blkInfo)
+		//	break
+		//}
+		blkList = append(blkList, blkInfo)
+
 	}
 	if blkList == nil {
-		blkList = make([]*prototype.SignedBlock, 0)
+		blkList = make([]*grpcpb.BlockInfo, 0)
 	}
 	return &grpcpb.GetBlockListResponse{Blocks: blkList}, nil
+}
+
+func (as *APIService) GetSignedBlock(ctx context.Context, req *grpcpb.GetSignedBlockRequest) (*grpcpb.GetSignedBlockResponse, error) {
+	headNum := as.consensus.GetHeadBlockId().BlockNum()
+	if req.Start > headNum {
+		return &grpcpb.GetSignedBlockResponse{Block: nil}, errors.New("the block not exist")
+	}
+	from := req.Start
+	var block *prototype.SignedBlock
+	list, err := as.consensus.FetchBlocks(from, from+1)
+	if err != nil {
+		return &grpcpb.GetSignedBlockResponse{Block: nil}, err
+	}
+	for _, blk := range list {
+		b := blk.(*prototype.SignedBlock)
+		if b.Id().BlockNum() == from {
+			block = b
+		}
+	}
+	return &grpcpb.GetSignedBlockResponse{Block: block}, nil
 }
 
 func (as *APIService) GetAccountListByBalance(ctx context.Context, req *grpcpb.GetAccountListByBalanceRequest) (*grpcpb.GetAccountListResponse, error) {
@@ -481,6 +532,10 @@ func (as *APIService) GetAccountListByBalance(ctx context.Context, req *grpcpb.G
 	var err error
 	var lastAcctNam *prototype.AccountName
 	var lastAcctCoin *prototype.Coin
+	limit := checkLimit(req.Limit)
+	if limit == 0 {
+		limit = uint32(defaultPageSizeLimit)
+	}
 	if req.LastAccount != nil {
 		account := req.LastAccount
 		if account.AccountName != nil && account.Coin != nil {
@@ -497,6 +552,7 @@ func (as *APIService) GetAccountListByBalance(ctx context.Context, req *grpcpb.G
 				acct.Coin = accWrap.GetBalance()
 				acct.Vest = accWrap.GetVestingShares()
 				acct.CreatedTime = accWrap.GetCreatedTime()
+				acct.PostCount = accWrap.GetPostCount()
 				witWrap := table.NewSoWitnessWrap(as.db, mVal)
 				if witWrap != nil && witWrap.CheckExist() {
 					acct.Witness = &grpcpb.WitnessResponse{
@@ -514,7 +570,7 @@ func (as *APIService) GetAccountListByBalance(ctx context.Context, req *grpcpb.G
 				acct.State = as.getState()
 				list = append(list, acct)
 			}
-			if len(list) >= maxPageSizeLimit {
+			if uint32(len(list)) >= limit {
 				return false
 			}
 			return true
@@ -535,12 +591,27 @@ func checkLimit(limit uint32) uint32 {
 func (as *APIService) GetDailyTotalTrxInfo(ctx context.Context, req *grpcpb.GetDailyTotalTrxRequest) (*grpcpb.GetDailyTotalTrxResponse, error) {
 	as.db.RLock()
 	defer as.db.RUnlock()
-	var list []*grpcpb.DailyTotalTrx
+	var (
+		list     []*grpcpb.DailyTotalTrx
+		err      error
+		lastTime *prototype.TimePointSec
+		lastVal  *prototype.TimePointSec
+	)
 	list = make([]*grpcpb.DailyTotalTrx, 0)
 	res := &grpcpb.GetDailyTotalTrxResponse{}
 	wrap := table.NewExtDailyTrxDateWrap(as.db)
-	var err error
+	if req.LastInfo != nil {
+		info := req.LastInfo
+		if info.Date != nil {
+			lastTime = info.Date
+			lastVal = info.Date
+		}
+	}
 	if wrap != nil {
+		limit := checkLimit(req.Limit)
+		if limit == 0 {
+			limit = uint32(defaultPageSizeLimit)
+		}
 		s := req.Start
 		e := req.End
 		//convert the unix timestamp to day index
@@ -550,7 +621,7 @@ func (as *APIService) GetDailyTotalTrxInfo(ctx context.Context, req *grpcpb.GetD
 		if req.End != nil {
 			e = &prototype.TimePointSec{UtcSeconds: req.End.UtcSeconds / 86400}
 		}
-		err = wrap.ForEachByOrder(s, e, nil, nil, func(mVal *prototype.TimePointSec, sVal *prototype.TimePointSec,
+		err = wrap.ForEachByOrder(s, e, lastTime, lastVal, func(mVal *prototype.TimePointSec, sVal *prototype.TimePointSec,
 			idx uint32) bool {
 			if mVal != nil && sVal != nil {
 				info := &grpcpb.DailyTotalTrx{}
@@ -562,10 +633,62 @@ func (as *APIService) GetDailyTotalTrxInfo(ctx context.Context, req *grpcpb.GetD
 				}
 				list = append(list, info)
 			}
+			if uint32(len(list)) >= limit {
+				return false
+			}
 			return true
 		})
 	}
 	res.List = list
+	return res, err
+}
+
+func (as *APIService) TrxStatByHour(ctx context.Context, req *grpcpb.TrxStatByHourRequest) (*grpcpb.TrxStatByHourResponse, error) {
+	var lastMainKey *prototype.Sha256
+	var lastSubVal *prototype.TimePointSec
+	var infoList []*grpcpb.TrxInfo
+	var err error
+	res := &grpcpb.TrxStatByHourResponse{}
+	sWrap := table.NewExtTrxBlockTimeWrap(as.db)
+	// reverse order
+	now := time.Now()
+	end := &prototype.TimePointSec{UtcSeconds: uint32(now.Unix() - int64(3600*req.Hours))}
+	if sWrap != nil {
+		err = sWrap.ForEachByRevOrder(nil, end, lastMainKey, lastSubVal, func(mVal *prototype.Sha256, sVal *prototype.TimePointSec, idx uint32) bool {
+			wrap := table.NewSoExtTrxWrap(as.db, mVal)
+			info := &grpcpb.TrxInfo{}
+			if wrap != nil {
+				info.TrxId = mVal
+				info.BlockHeight = wrap.GetBlockHeight()
+				info.BlockTime = wrap.GetBlockTime()
+				info.TrxWrap = wrap.GetTrxWrap()
+				infoList = append(infoList, info)
+			}
+			return true
+		})
+	}
+	h, _ := time.ParseDuration("-1h")
+	hourData := make(map[int]int, req.Hours)
+	var hours []int
+	for i := 0; i < int(req.Hours); i++ {
+		then := now.Add(time.Duration(i) * h)
+		hours = append(hours, then.Hour())
+	}
+	for _, hour := range hours {
+		fmt.Println(hour)
+	}
+	for _, trx := range infoList {
+		timestamp := trx.GetBlockTime().UtcSeconds
+		hour := time.Unix(int64(timestamp), 0).Hour()
+		hourData[hour] += 1
+	}
+	var hourStat []*grpcpb.StatByHour
+	// make it sequence
+	for _, hour := range hours {
+		h := &grpcpb.StatByHour{Hour: uint32(hour), Count: uint32(hourData[hour])}
+		hourStat = append(hourStat, h)
+	}
+	res.Stat = hourStat
 	return res, err
 }
 
@@ -575,7 +698,7 @@ func (as *APIService) GetTrxInfoById(ctx context.Context, req *grpcpb.GetTrxInfo
 	res := &grpcpb.GetTrxInfoByIdResponse{}
 	var err error
 	wrap := table.NewSoExtTrxWrap(as.db, req.TrxId)
-	if wrap != nil {
+	if wrap != nil && wrap.CheckExist() {
 		info := &grpcpb.TrxInfo{}
 		info.TrxId = req.TrxId
 		info.BlockHeight = wrap.GetBlockHeight()
@@ -595,7 +718,7 @@ func (as *APIService) GetTrxListByTime(ctx context.Context, req *grpcpb.GetTrxLi
 		lastMainKey *prototype.Sha256
 		lastSubVal  *prototype.TimePointSec
 	)
-
+	limit := req.Limit
 	res := &grpcpb.GetTrxListByTimeResponse{}
 	if req.LastInfo != nil && req.LastInfo.TrxId != nil && req.LastInfo.BlockTime != nil {
 		lastMainKey = req.LastInfo.TrxId
@@ -613,7 +736,10 @@ func (as *APIService) GetTrxListByTime(ctx context.Context, req *grpcpb.GetTrxLi
 				info.TrxWrap = wrap.GetTrxWrap()
 				infoList = append(infoList, info)
 			}
-			if len(infoList) >= (maxPageSizeLimit) {
+			//if len(infoList) >= (maxPageSizeLimit) {
+			//	return false
+			//}
+			if limit != 0 && len(infoList) >= int(limit) {
 				return false
 			}
 			return true
@@ -644,6 +770,10 @@ func (as *APIService) GetPostListByCreateTime(ctx context.Context, req *grpcpb.G
 	}
 	sWrap := table.NewPostCreatedWrap(as.db)
 	if sWrap != nil {
+		limit := checkLimit(req.Limit)
+		if limit == 0 {
+			limit = uint32(defaultPageSizeLimit)
+		}
 		err = sWrap.ForEachByRevOrder(req.Start, req.End, lastPostId, lastPostTime,
 			func(mVal *uint64, sVal *prototype.TimePointSec, idx uint32) bool {
 				if mVal != nil {
@@ -668,13 +798,72 @@ func (as *APIService) GetPostListByCreateTime(ctx context.Context, req *grpcpb.G
 						postList = append(postList, postInfo)
 					}
 				}
-				if len(postList) >= maxPageSizeLimit {
+				if uint32(len(postList)) >= limit {
 					return false
 				}
 				return true
 			})
 	}
 
+	res.PostedList = postList
+	return res, err
+}
+
+func (as *APIService) GetPostListByName(ctx context.Context, req *grpcpb.GetPostListByNameRequest) (*grpcpb.GetPostListByCreateTimeResponse, error) {
+	as.db.RLock()
+	defer as.db.RUnlock()
+	var (
+		postList      []*grpcpb.PostResponse
+		lastPostId    *uint64
+		lastPostOrder *prototype.UserPostCreateOrder
+		err           error
+	)
+	if req.LastPost != nil {
+		post := req.LastPost
+		lastPostId = &post.PostId
+		lastPostOrder = &prototype.UserPostCreateOrder{Author: post.Author, Create: post.Created}
+	}
+
+	wrap := table.NewExtUserPostPostCreatedOrderWrap(as.db)
+	res := &grpcpb.GetPostListByCreateTimeResponse{}
+	if wrap != nil {
+		limit := checkLimit(req.Limit)
+		if limit == 0 {
+			limit = uint32(defaultPageSizeLimit)
+		}
+		err = wrap.ForEachByRevOrder(req.Start, req.End, lastPostId, lastPostOrder, func(mVal *uint64, sVal *prototype.UserPostCreateOrder, idx uint32) bool {
+			if mVal != nil {
+				postWrap := table.NewSoPostWrap(as.db, mVal)
+				if postWrap != nil && postWrap.CheckExist() {
+					postInfo := &grpcpb.PostResponse{
+						PostId:        postWrap.GetPostId(),
+						Category:      postWrap.GetCategory(),
+						ParentAuthor:  postWrap.GetAuthor(),
+						Author:        postWrap.GetAuthor(),
+						Title:         postWrap.GetTitle(),
+						Body:          postWrap.GetBody(),
+						Created:       postWrap.GetCreated(),
+						LastPayout:    postWrap.GetLastPayout(),
+						Depth:         postWrap.GetDepth(),
+						Children:      postWrap.GetChildren(),
+						RootId:        postWrap.GetRootId(),
+						ParentId:      postWrap.GetParentId(),
+						Tags:          postWrap.GetTags(),
+						Beneficiaries: postWrap.GetBeneficiaries(),
+						VoteCnt:       postWrap.GetVoteCnt(),
+					}
+					postList = append(postList, postInfo)
+				}
+			}
+			if uint32(len(postList)) >= limit {
+				return false
+			}
+			return true
+		})
+	}
+	if postList == nil {
+		postList = make([]*grpcpb.PostResponse, 0)
+	}
 	res.PostedList = postList
 	return res, err
 }

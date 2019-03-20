@@ -494,7 +494,6 @@ func Test_MixOp(t *testing.T) {
 		Contract: "hello",
 		Method:   "hi",
 		Params:   "[\"contentos\"]",
-		//Amount:   &prototype.Coin{Value: 1000},
 	}
 
 	//
@@ -983,15 +982,6 @@ func Test_TrxSize(t *testing.T) {
 	trx14,_ := createSigTrx(c, constants.InitminerPrivKey,applyOp)
 	fmt.Println(proto.Size(trx14))
 
-	estimate := &prototype.ContractEstimateApplyOperation{
-		Caller:prototype.NewAccountName("aaa"),
-		Owner:prototype.NewAccountName("bbb"),
-		Contract:"hello",
-		Params:"123",
-	}
-	trx15,_ := createSigTrx(c, constants.InitminerPrivKey,estimate)
-	fmt.Println(proto.Size(trx15))
-
 	stake := &prototype.StakeOperation{Account:prototype.NewAccountName("aaa"),Amount:1}
 	trx16,_ := createSigTrx(c, constants.InitminerPrivKey,stake)
 	fmt.Println(proto.Size(trx16))
@@ -1039,9 +1029,13 @@ func Test_Gas(t *testing.T) {
 		t.Error("PrivateKeyFromWIF error")
 	}
 	pre := &prototype.Sha256{Hash: make([]byte, 32)}
-	headBlockTime := 18
-	block1, err := c.GenerateAndApplyBlock(constants.COSInitMiner, pre, uint32(headBlockTime), pri, 0)
 
+	headBlockTime := c.headBlockTime().UtcSeconds
+	headBlockTime += 1
+	block1, err := c.GenerateAndApplyBlock(constants.COSInitMiner, pre, uint32(headBlockTime), pri, 0)
+	if err != nil {
+		t.Error("GenerateAndApplyBlock error:",err)
+	}
 	//
 	s1 := minerWrap.GetStamina() + minerWrap.GetStaminaFree()
 	t.Log("after deploy initminer stamina use:", s1)
@@ -1058,10 +1052,10 @@ func Test_Gas(t *testing.T) {
 	}
 
 	// call contract repeated
-	headBlockTime = 21
-	for i := 0; i< 50; i++ {
-		headBlockTime += i
-		signedTrx2, err := createSigTrxTmp(c, constants.InitminerPrivKey,uint32(headBlockTime),applyOp)
+	//addGlobalTime(db,3)
+	trxExpireTime := headBlockTime
+	for i := 0; i< constants.TrxMaxExpirationTime; i++ {
+		signedTrx2, err := createSigTrxTmp(c, constants.InitminerPrivKey,uint32(trxExpireTime),applyOp)
 		if err != nil {
 			t.Error("createSigTrx error:", err)
 		}
@@ -1069,9 +1063,10 @@ func Test_Gas(t *testing.T) {
 		if invoice2.Status != prototype.StatusSuccess && invoice2.Status != prototype.StatusDeductGas {
 			t.Error("PushTrx return status error:", invoice2.Status)
 		}
+		trxExpireTime += 1
 	}
 
-	headBlockTime = 21
+	headBlockTime += 1
 	id := block1.Id()
 	pre = &prototype.Sha256{Hash: id.Data[:]}
 	block2, err := c.GenerateAndApplyBlock(constants.COSInitMiner, pre, uint32(headBlockTime), pri, 0)
@@ -1088,6 +1083,10 @@ func Test_Transfer(t *testing.T) {
 	db := startDB()
 	defer clearDB(db)
 	c := startController(db)
+
+	if !stake(c,constants.COSInitMiner,constants.InitminerPrivKey,1000000) {
+		t.Error("stake error")
+	}
 
 	//
 	miner := &prototype.AccountName{Value: "initminer"}
@@ -1160,7 +1159,7 @@ func Test_Transfer(t *testing.T) {
 	}
 
 	// call contract repeated
-	for i := 0; i< 1800; i++ { // 1800 is trx max expiration limit
+	for i := 0; i< 10; i++ { // 1800 is trx max expiration limit
 		signedTrx2, err := createSigTrxTmp(c, constants.InitminerPrivKey,uint32(i+1),applyOp)
 		if err != nil {
 			t.Error("createSigTrx error:", err)

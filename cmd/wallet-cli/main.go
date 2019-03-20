@@ -70,7 +70,7 @@ shell_loop:
 		}
 		cmd, flags, err := rootCmd.Find(argv)
 		if err != nil {
-			shell.Terminal.Write([]byte(err.Error()))
+			_, _ = shell.Terminal.Write([]byte(err.Error()))
 		}
 		cmd.InitDefaultHelpFlag()
 		cmd.InitDefaultVersionFlag()
@@ -89,8 +89,8 @@ shell_loop:
 		}
 
 		if helpVal {
-			cmd.UsageFunc()(cmd)
-			cmd.Flags().Lookup("help").Value.Set("false")
+			_ = cmd.UsageFunc()(cmd)
+			_ = cmd.Flags().Lookup("help").Value.Set("false")
 			continue
 		}
 		argWoFlags := cmd.Flags().Args()
@@ -151,7 +151,6 @@ func addCommands() {
 	rootCmd.AddCommand(commands.ClaimCmd())
 	rootCmd.AddCommand(commands.DeployCmd())
 	rootCmd.AddCommand(commands.CallCmd())
-	rootCmd.AddCommand(commands.EstimateCmd())
 	rootCmd.AddCommand(commands.VmTableCmd())
 	rootCmd.AddCommand(commands.BatchCmd())
 }
@@ -166,8 +165,8 @@ func init() {
 func main() {
 	localWallet := wallet.NewBaseWallet("default", DefaultDataDir())
 	preader := utils.MyPasswordReader{}
-	localWallet.LoadAll()
-	localWallet.Start()
+	_ = localWallet.LoadAll()
+	_ = localWallet.Start()
 	rootCmd.SetContext("wallet", localWallet)
 	rootCmd.SetContext("preader", preader)
 	defer localWallet.Close()

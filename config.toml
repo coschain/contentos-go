@@ -15,6 +15,9 @@ Name = "cosd"
   RPCListen = "0.0.0.0:8888"
   RPCName = "rpc"
 
+[HealthCheck]
+  Port = "9090"
+
 [P2P]
   CAPath = ""
   CertPath = ""
@@ -33,7 +36,7 @@ Name = "cosd"
   ReservedPeersOnly = false
 
   [P2P.Genesis]
-    SeedList = ["34.232.46.177:20338", "52.87.162.125:20338", "52.87.243.47:20338", "35.168.10.117:20338"]
+    SeedList = ["34.230.216.41:20338", "107.23.54.2:20338", "52.20.31.199:20338", "100.24.80.16:20338"]
 
   [P2P.ReservedCfg]
     MaskPeers = []

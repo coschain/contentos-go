@@ -1,15 +1,26 @@
 package forkdb
 
 import (
+	"errors"
 	"fmt"
-	"os"
-	"sync"
-
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/db/blocklog"
+	"github.com/sasha-s/go-deadlock"
+	"os"
 )
 
 const defaultSize = 1024
+
+type RetCode string
+
+const (
+	RTDetached   RetCode = "detached block"
+	RTDuplicated RetCode = "duplicated block"
+	RTOnFork     RetCode = "block is pushed on fork branch"
+	RTSuccess    RetCode = "block is pushed on main branch"
+	RTInvalid    RetCode = "block is invalid"
+	RTOutOfRange RetCode = "block number is out of range"
+)
 
 // DB ...
 type DB struct {
@@ -25,7 +36,7 @@ type DB struct {
 	detachedLink map[common.BlockID]common.ISignedBlock
 
 	snapshot blocklog.BLog
-	sync.RWMutex
+	deadlock.RWMutex
 }
 
 // NewDB ...
@@ -111,7 +122,7 @@ func (db *DB) LoadSnapshot(avatar []common.ISignedBlock, dir string, blog *block
 			panic(err)
 		}
 	}
-	for i=0; i<size; i++ {
+	for i = 0; i < size; i++ {
 		db.pushBlock(avatar[i])
 	}
 	//db.log.Debugf("[ForkDB][LoadSnapshot] %d blocks loaded.", size)
@@ -135,6 +146,7 @@ func (db *DB) TotalBlockNum() int {
 func (db *DB) FetchBlock(id common.BlockID) (common.ISignedBlock, error) {
 	db.RLock()
 	defer db.RUnlock()
+
 	return db.fetchBlock(id)
 }
 
@@ -164,17 +176,18 @@ func (db *DB) FetchBlockByNum(num uint64) []common.ISignedBlock {
 
 // PushBlock adds a block. If any of the forkchain has more than
 // defaultSize blocks, purge will be triggered.
-func (db *DB) PushBlock(b common.ISignedBlock) common.ISignedBlock {
+func (db *DB) PushBlock(b common.ISignedBlock) RetCode {
 	db.Lock()
 	defer db.Unlock()
 
 	return db.pushBlock(b)
 }
 
-func (db *DB) pushBlock(b common.ISignedBlock) common.ISignedBlock {
+func (db *DB) pushBlock(b common.ISignedBlock) RetCode {
 	id := b.Id()
+	oldHead := db.head
 	if db.Illegal(id) {
-		return db.branches[db.head]
+		return RTInvalid
 	}
 
 	num := id.BlockNum()
@@ -183,27 +196,30 @@ func (db *DB) pushBlock(b common.ISignedBlock) common.ISignedBlock {
 		db.start = num
 		db.list[0] = append(db.list[0], db.head)
 		db.branches[id] = b
-		return b
+		return RTSuccess
 	}
 
 	if _, ok := db.branches[id]; ok {
-		return db.branches[db.head]
+		return RTDuplicated
 	}
 
-	if num > db.head.BlockNum()+1 || num < db.start {
-		return db.branches[db.head]
+	if num > db.head.BlockNum()+1 || num <= db.start {
+		return RTOutOfRange
 	}
 	db.list[num-db.start] = append(db.list[num-db.start], id)
 	prev := b.Previous()
 	if _, ok := db.branches[prev]; !ok {
 		db.detachedLink[prev] = b
-		//db.detached[id] = b
+		return RTDetached
 	} else {
 		db.branches[id] = b
 		db.tryNewHead(id)
 		db.pushDetached(id)
+		if oldHead != b.Previous() {
+			return RTOnFork
+		}
 	}
-	return db.branches[db.head]
+	return RTSuccess
 }
 
 func (db *DB) pushDetached(id common.BlockID) {
@@ -302,12 +318,12 @@ func (db *DB) FetchBranch(id1, id2 common.BlockID) ([2][]common.BlockID, error) 
 	for tid1 != tid2 && tid1.BlockNum()+defaultSize > headNum {
 		ret[0] = append(ret[0], tid1)
 		ret[1] = append(ret[1], tid2)
-		tmp, err := db.FetchBlock(tid1)
+		tmp, err := db.fetchBlock(tid1)
 		if err != nil {
 			return ret, err
 		}
 		tid1 = tmp.Previous()
-		tmp, err = db.FetchBlock(tid2)
+		tmp, err = db.fetchBlock(tid2)
 		if err != nil {
 			return ret, err
 		}
@@ -340,7 +356,7 @@ func (db *DB) FetchBlockFromMainBranch(num uint64) (common.ISignedBlock, error) 
 	db.RLock()
 	defer db.RUnlock()
 	headNum := db.head.BlockNum()
-	if num > headNum || num < db.start {
+	if num > headNum || num <= db.start {
 		return nil, fmt.Errorf("[ForkDB] num out of scope: %d [%d, %d]", num, db.start, headNum)
 	}
 
@@ -400,7 +416,7 @@ func (db *DB) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, []comm
 	cur := db.head
 	var idx int
 	for idx = int(length - 1); idx >= 0; idx-- {
-		b, err := db.FetchBlock(cur)
+		b, err := db.fetchBlock(cur)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -460,8 +476,54 @@ func (db *DB) Commit(id common.BlockID) {
 	// purge the branches
 	db.list = newList
 	db.branches = newBranches
-	db.start = id.BlockNum()
+	db.start = commitNum
 	db.lastCommitted = id
+
+	db.purgeDetached(commitNum)
+}
+
+func (db *DB) fetchUnlinkBlockById(id common.BlockID) common.ISignedBlock {
+	for _, v := range db.detachedLink {
+		if v.Id() == id {
+			return v
+		}
+	}
+	return nil
+}
+
+func (db *DB) purgeDetached(commitNum uint64) {
+	for k, v := range db.detachedLink {
+		if v.Id().BlockNum() <= commitNum {
+			delete(db.detachedLink, k)
+		}
+	}
+}
+
+func (db *DB) FetchUnlinkBlockTail() (*common.BlockID, error) {
+	db.RLock()
+	defer db.RUnlock()
+
+	if len(db.detachedLink) == 0 {
+		return nil, errors.New("No More Unlinked block")
+	}
+
+	var firstKey common.BlockID
+	for _, v := range db.detachedLink {
+		firstKey = v.Previous()
+		break
+	}
+
+	for {
+		preBlock := db.fetchUnlinkBlockById(firstKey)
+
+		if preBlock != nil {
+			firstKey = preBlock.Previous()
+		} else {
+			return &firstKey, nil
+		}
+	}
+
+	return nil, errors.New("No More Unlinked block")
 }
 
 // Illegal determines if the block has illegal transactions
