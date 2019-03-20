@@ -10,7 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/coschain/contentos-go/common"
-	"github.com/sasha-s/go-deadlock"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -54,7 +53,7 @@ func (dp *KeyHashDispatcher) DatabasesForKeyRange(start []byte, limit []byte) []
 type SimpleDatabaseGroup struct {
 	dp      DatabaseDispatcher // key dispatching policy
 	crashed int32              // non-zero if the group should stop service due to fatal errors
-	lock    deadlock.RWMutex   // lock for db operations
+	lock    sync.RWMutex       // lock for db operations
 	wal     WriteAheadLog      // write ahead log
 }
 
@@ -287,7 +286,7 @@ type sdgBatch struct {
 	g    *SimpleDatabaseGroup // the db group
 	ops  map[int][]writeOp    // operations of this batch, grouped by member db index
 	rev  map[int][]writeOp    // reversed operations of this batch, grouped by member db index
-	lock deadlock.RWMutex
+	lock sync.RWMutex
 }
 
 func (b *sdgBatch) Put(key []byte, value []byte) error {

@@ -16,8 +16,8 @@ import (
 	"fmt"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
-	"github.com/sasha-s/go-deadlock"
 	"os"
+	"sync"
 )
 
 // the service type
@@ -26,7 +26,7 @@ type DatabaseService struct {
 	db   *LevelDatabase
 	rdb  *RevertibleDatabase
 	tdb  *SquashableDatabase
-	lock deadlock.RWMutex
+	lock sync.RWMutex
 }
 
 // service constructor

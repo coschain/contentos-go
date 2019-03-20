@@ -7,13 +7,13 @@ package storage
 import (
 	"errors"
 	"github.com/coschain/contentos-go/common"
-	"github.com/sasha-s/go-deadlock"
 	"sort"
+	"sync"
 )
 
 type MemoryDatabase struct {
 	db   map[string][]byte
-	lock deadlock.RWMutex
+	lock sync.RWMutex
 }
 
 func NewMemoryDatabase() *MemoryDatabase {

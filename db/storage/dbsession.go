@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"github.com/coschain/contentos-go/common"
-	"github.com/sasha-s/go-deadlock"
+	"sync"
 )
 
 type dbSession struct {
@@ -12,8 +12,8 @@ type dbSession struct {
 	mem *MemoryDatabase
 	changes []writeOp
 	removals map[string]bool
-	lock deadlock.RWMutex				// for internal struct data
-	dblock deadlock.RWMutex				// for database operations
+	lock sync.RWMutex				// for internal struct data
+	dblock sync.RWMutex				// for database operations
 }
 
 
