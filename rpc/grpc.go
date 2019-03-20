@@ -2,7 +2,6 @@ package rpc
 
 import (
 	"context"
-	"fmt"
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common/constants"
@@ -21,6 +20,7 @@ import (
 var (
 	ErrPanicResp         = errors.New("rpc panic")
 	defaultPageSizeLimit = 30
+	defaultHourStatLimit = 24
 )
 
 type APIService struct {
@@ -638,47 +638,54 @@ func (as *APIService) GetDailyTotalTrxInfo(ctx context.Context, req *grpcpb.GetD
 }
 
 func (as *APIService) TrxStatByHour(ctx context.Context, req *grpcpb.TrxStatByHourRequest) (*grpcpb.TrxStatByHourResponse, error) {
-	var lastMainKey *prototype.Sha256
+	var lastMainKey *prototype.TimePointSec
 	var lastSubVal *prototype.TimePointSec
-	var infoList []*grpcpb.TrxInfo
+	var hourStat []*grpcpb.StatByHour
 	var err error
 	res := &grpcpb.TrxStatByHourResponse{}
-	sWrap := table.NewExtTrxBlockTimeWrap(as.db)
-	// reverse order
+	wrap := table.NewExtHourTrxHourWrap(as.db)
+	hours := int(req.Hours)
+	if hours > defaultHourStatLimit {
+		hours = defaultHourStatLimit
+	}
+	//convert the unix timestamp to day index
 	now := time.Now()
-	end := &prototype.TimePointSec{UtcSeconds: uint32(now.Unix() - int64(3600*req.Hours))}
-	if sWrap != nil {
-		err = sWrap.ForEachByRevOrder(nil, end, lastMainKey, lastSubVal, func(mVal *prototype.Sha256, sVal *prototype.TimePointSec, idx uint32) bool {
-			wrap := table.NewSoExtTrxWrap(as.db, mVal)
-			info := &grpcpb.TrxInfo{}
-			if wrap != nil {
-				info.TrxId = mVal
-				info.BlockHeight = wrap.GetBlockHeight()
-				info.BlockTime = wrap.GetBlockTime()
-				info.TrxWrap = wrap.GetTrxWrap()
-				infoList = append(infoList, info)
+	end := now.Unix()/3600 + 1
+	//	end := &prototype.TimePointSec{UtcSeconds: uint32(now.Unix() - int64(3600*req.Hours))}
+	start := end - int64(hours)
+	s := &prototype.TimePointSec{UtcSeconds: uint32(start)}
+	e := &prototype.TimePointSec{UtcSeconds: uint32(end)}
+	h, _ := time.ParseDuration("-1h")
+	// init from s to e map, hour as key count as value
+	// default set value to zero
+	var hoursList []uint32
+	hourData := make(map[uint32]uint32, hours)
+	for i := 0; i < hours; i++ {
+		then := now.Add(time.Duration(i) * h)
+		hour := uint32(then.Hour())
+		hoursList = append(hoursList, hour)
+		hourData[hour] = 0
+	}
+	if wrap != nil {
+		err = wrap.ForEachByOrder(s, e, lastMainKey, lastSubVal, func(mVal *prototype.TimePointSec, sVal *prototype.TimePointSec,
+			idx uint32) bool {
+			if mVal != nil && sVal != nil {
+				//info := &grpcpb.StatByHour{}
+				dWrap := table.NewSoExtHourTrxWrap(as.db, mVal)
+				count := uint32(0)
+				if dWrap != nil {
+					count = uint32(dWrap.GetCount())
+				}
+				rawHour := dWrap.GetHour().GetUtcSeconds()
+				delta := now.Unix()/3600 - int64(rawHour)
+				then := now.Add(time.Duration(delta) * h)
+				hour := uint32(then.Hour())
+				hourData[hour] = count
 			}
 			return true
 		})
 	}
-	h, _ := time.ParseDuration("-1h")
-	hourData := make(map[int]int, req.Hours)
-	var hours []int
-	for i := 0; i < int(req.Hours); i++ {
-		then := now.Add(time.Duration(i) * h)
-		hours = append(hours, then.Hour())
-	}
-	for _, hour := range hours {
-		fmt.Println(hour)
-	}
-	for _, trx := range infoList {
-		timestamp := trx.GetBlockTime().UtcSeconds
-		hour := time.Unix(int64(timestamp), 0).Hour()
-		hourData[hour] += 1
-	}
-	var hourStat []*grpcpb.StatByHour
-	// make it sequence
-	for _, hour := range hours {
+	for _, hour := range hoursList {
 		h := &grpcpb.StatByHour{Hour: uint32(hour), Count: uint32(hourData[hour])}
 		hourStat = append(hourStat, h)
 	}

@@ -1,0 +1,40 @@
+
+syntax = "proto3";
+
+package table;
+
+option go_package = "github.com/coschain/contentos-go/table";
+
+import "prototype/type.proto";
+
+message so_extHourTrx {
+	prototype.time_point_sec       	   hour       =      1;
+    uint64                   							   count          =      2;
+      
+}
+
+
+message so_mem_extHourTrx_by_hour {
+	prototype.time_point_sec       		hour   = 1;
+}
+
+
+message so_mem_extHourTrx_by_count {
+	uint64                   								count      = 1;
+}
+
+
+message so_list_extHourTrx_by_hour {
+	prototype.time_point_sec       		hour   = 1;
+}
+
+
+message so_list_extHourTrx_by_count {
+	uint64                   								count      = 1;
+	prototype.time_point_sec       		hour   = 2;
+}
+
+
+message so_unique_extHourTrx_by_hour {
+	prototype.time_point_sec       		hour   = 1;
+}
