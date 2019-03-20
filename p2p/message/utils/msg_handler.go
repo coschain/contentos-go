@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"fmt"
 	"github.com/coschain/gobft/message"
 	"net"
 	"strconv"
@@ -636,19 +635,29 @@ func ReqIdHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 		return
 	}
 
+	if end - start > msgCommon.MAX_ID_LENGTH {
+		end = start + msgCommon.MAX_ID_LENGTH
+	}
+
 	log.Debug("[p2p] sync start num: ", start, " end num: ", end)
 
-	fmt.Println("before GetIDs timestamp: ", time.Now())
-	ids, err := ctrl.GetIDs(remote_head_blk_id, current_head_blk_id)
+	beginTime := time.Now()
+	blockList, err := ctrl.FetchBlocks(start, end)
 	if err != nil {
-		log.Error("[p2p] can't get gap ids from consessus, start number:", remote_head_blk_id.BlockNum(), " end number: ",current_head_blk_id.BlockNum(), "error: ", err )
+		log.Error("[p2p] can't fetch blocks from consessus, start number: ", start, " end number: ",end, " error: ", err )
 		return
 	}
-	if len(ids) == 0 {
+	endTime := time.Now()
+	log.Debug("[p2p] consensus FetchBlocks cost time, start: ", beginTime, " end: ", endTime)
+	if len(blockList) == 0 {
 		log.Debug("[p2p] we have same blocks, no need to request from me")
 		return
 	}
-	fmt.Println("after GetIDs timestamp: ", time.Now())
+
+	var ids []common.BlockID
+	for i:=0;i<len(blockList);i++ {
+		ids = append(ids, blockList[i].Id())
+	}
 
 	remotePeer := p2p.GetPeerFromAddr(data.Addr)
 
