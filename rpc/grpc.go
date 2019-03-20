@@ -720,6 +720,9 @@ func (as *APIService) GetTrxListByTime(ctx context.Context, req *grpcpb.GetTrxLi
 		lastSubVal  *prototype.TimePointSec
 	)
 	limit := req.Limit
+	if limit > uint32(defaultPageSizeLimit) {
+		limit = uint32(defaultPageSizeLimit)
+	}
 	res := &grpcpb.GetTrxListByTimeResponse{}
 	if req.LastInfo != nil && req.LastInfo.TrxId != nil && req.LastInfo.BlockTime != nil {
 		lastMainKey = req.LastInfo.TrxId
