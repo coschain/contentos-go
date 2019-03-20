@@ -214,7 +214,6 @@ func (c *TrxPool) pushTrx(tw *prototype.TransactionWrapper) {
 			}
 		}
 		c.PayGas(trxContext)
-		trxContext.Finalize()
 		c.pendingTx = append(c.pendingTx, tw)
 	}()
 
@@ -449,7 +448,6 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 					}
 				}
 				c.PayGas(trxContext)
-				trxContext.Finalize()
 				totalSize += uint32(proto.Size(trxWraper))
 				signBlock.Transactions = append(signBlock.Transactions, trxWraper)
 			}()
@@ -557,7 +555,6 @@ func (c *TrxPool) applyTransactionInner(isNeedVerify bool, trxContext *TrxContex
 			}
 		} else {
 			trxContext.SetStatus(prototype.StatusSuccess)
-			trxContext.Finalize()
 			c.notifyTrxApplyResult(tw.SigTrx, true, tw.Receipt)
 			return
 		}
@@ -711,7 +708,6 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 						}
 					}
 					c.PayGas(trxContext)
-					trxContext.Finalize()
 					mustSuccess(tmpTrx.Receipt.Status == tw.Receipt.Status, "mismatched status", prototype.StatusErrorTrxApplyReceipt)
 					mustSuccess(tmpTrx.Receipt.NetUsage == tw.Receipt.NetUsage, "mismatch net use", prototype.StatusErrorTrxApplyReceipt)
 					mustSuccess(tmpTrx.Receipt.CpuUsage == tw.Receipt.CpuUsage, "mismatch cpu use", prototype.StatusErrorTrxApplyReceipt)
@@ -746,6 +742,7 @@ func (c *TrxPool) PayGas(trxContext *TrxContext) (i interface{}) {
 	c.db.BeginTransaction()
 	trxContext.DeductAllCpu()
 	trxContext.DeductAllNet()
+	trxContext.Finalize()
 	mustNoError(c.db.EndTransaction(true), "EndTransaction error", prototype.StatusErrorDbEndTrx)
 	return
 }
