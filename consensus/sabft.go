@@ -251,11 +251,11 @@ func (sabft *SABFT) shuffle(head common.ISignedBlock) {
 
 	if sabft.readyToProduce && prodNum >= 3 && sabft.isValidator(sabft.Name) {
 		if atomic.LoadUint32(&sabft.bftStarted) == 0 {
-			sabft.Unlock()
+			//sabft.Unlock()
 			sabft.bft.Start()
 			sabft.log.Info("[SABFT] gobft started...")
 			atomic.StoreUint32(&sabft.bftStarted, 1)
-			sabft.Lock()
+			//sabft.Lock()
 		}
 	} else {
 		if atomic.LoadUint32(&sabft.bftStarted) == 1 {
@@ -1040,8 +1040,8 @@ func (sabft *SABFT) ValidateProposal(data message.ProposedData) bool {
 }
 
 func (sabft *SABFT) GetAppState() *message.AppState {
-	sabft.RLock()
-	defer sabft.RUnlock()
+	//sabft.RLock()
+	//defer sabft.RUnlock()
 
 	return sabft.appState
 }
