@@ -73,9 +73,13 @@ func (d *GreenDandelion) OpenDatabase() error {
 
 func (d *GreenDandelion) GenerateBlock() {
 	d.timestamp += constants.BlockInterval
-	current := d.TrxPool.GenerateBlock(d.witness, d.TrxPool.GetProps().GetHeadBlockId(), d.timestamp, d.privKey, 0)
+	current, err := d.TrxPool.GenerateBlock(d.witness, d.TrxPool.GetProps().GetHeadBlockId(), d.timestamp, d.privKey, 0)
+	if err != nil {
+		d.logger.Error("generate block error", err)
+		return
+	}
 	d.produced += 1
-	err := d.PushBlock(current, prototype.Skip_nothing)
+	err = d.PushBlock(current, prototype.Skip_nothing)
 	if err != nil {
 		d.logger.Error("error", err)
 	}

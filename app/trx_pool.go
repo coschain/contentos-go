@@ -329,9 +329,13 @@ func (c *TrxPool) GenerateAndApplyBlock(witness string, pre *prototype.Sha256, t
 		c.log.Debug("[trxpool] GenerateAndApplyBlock cost: ", time.Now().Sub(s))
 	}()
 
-	newBlock := c.GenerateBlock(witness, pre, timestamp, priKey, skip)
 
-	err := c.PushBlock(newBlock, c.skip|prototype.Skip_apply_transaction)
+	newBlock, err := c.GenerateBlock(witness, pre, timestamp, priKey, skip)
+	if err != nil {
+		return nil, err
+	}
+
+	err = c.PushBlock(newBlock, c.skip|prototype.Skip_apply_transaction)
 	if err != nil {
 		return nil, err
 	}
@@ -340,7 +344,7 @@ func (c *TrxPool) GenerateAndApplyBlock(witness string, pre *prototype.Sha256, t
 }
 
 func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp uint32,
-	priKey *prototype.PrivateKeyType, skip prototype.SkipFlag) *prototype.SignedBlock {
+	priKey *prototype.PrivateKeyType, skip prototype.SkipFlag) (b *prototype.SignedBlock, e error) {
 	oldSkip := c.skip
 	c.db.Lock()
 
@@ -351,7 +355,8 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 		if err := recover(); err != nil {
 			mustNoError(c.db.EndTransaction(false), "EndTransaction error")
 			//c.log.Errorf("GenerateBlock Error: %v", err)
-			panic(err)
+			//panic(err)
+			b, e = nil, fmt.Errorf("%v", err)
 		}
 	}()
 
@@ -469,7 +474,8 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 		c.pendingTx = append(c.pendingTx, copyPending...)
 
 	}
-	return signBlock
+	b, e = signBlock, nil
+	return
 }
 
 func (c *TrxPool) notifyOpPreExecute(on *prototype.OperationNotification) {
