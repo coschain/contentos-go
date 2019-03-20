@@ -567,7 +567,7 @@ func (sabft *SABFT) Push(msg interface{}) {
 			sabft.bft.RecvMsg(msg)
 		}
 	case *message.Commit:
-		if !sabft.IsValidator(message.PubKey(sabft.Name)) {
+		if !sabft.readyToProduce || !sabft.IsValidator(message.PubKey(sabft.Name)) {
 			go func() {
 				sabft.commitCh <- *msg
 			}()
