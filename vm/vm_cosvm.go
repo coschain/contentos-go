@@ -24,14 +24,14 @@ type CosVM struct {
 	nativeFuncSigs []wasm.FunctionSig
 	nativeFuncs    []wasm.Function
 	ctx            *vmcontext.Context
-	db             iservices.IDatabaseService
+	db             iservices.IDatabaseRW
 	props          *prototype.DynamicProperties
 	lock           sync.RWMutex
 	logger         *logrus.Logger
 	spentGas       uint64
 }
 
-func NewCosVM(ctx *vmcontext.Context, db iservices.IDatabaseService, props *prototype.DynamicProperties, logger *logrus.Logger) *CosVM {
+func NewCosVM(ctx *vmcontext.Context, db iservices.IDatabaseRW, props *prototype.DynamicProperties, logger *logrus.Logger) *CosVM {
 	// spentGas should be 0 or maxint?
 	cosVM := &CosVM{nativeFuncName: []string{}, nativeFuncSigs: []wasm.FunctionSig{},
 		nativeFuncs: []wasm.Function{}, ctx: ctx, logger: logger, db: db, props: props, spentGas: 0}

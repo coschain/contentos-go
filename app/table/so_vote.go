@@ -27,14 +27,14 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoVoteWrap struct {
-	dba      iservices.IDatabaseService
+	dba      iservices.IDatabaseRW
 	mainKey  *prototype.VoterId
 	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
 	mKeyBuf  []byte //the buffer after the main key is encoded with prefix
 	mBuf     []byte //the value after the main key is encoded
 }
 
-func NewSoVoteWrap(dba iservices.IDatabaseService, key *prototype.VoterId) *SoVoteWrap {
+func NewSoVoteWrap(dba iservices.IDatabaseRW, key *prototype.VoterId) *SoVoteWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
@@ -896,10 +896,10 @@ func (s *SoVoteWrap) MdWeightedVp(p uint64) bool {
 
 ////////////// SECTION List Keys ///////////////
 type SVoteVoterWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewVoteVoterWrap(db iservices.IDatabaseService) *SVoteVoterWrap {
+func NewVoteVoterWrap(db iservices.IDatabaseRW) *SVoteVoterWrap {
 	if db == nil {
 		return nil
 	}
@@ -1037,10 +1037,10 @@ func (s *SVoteVoterWrap) ForEachByOrder(start *prototype.VoterId, end *prototype
 
 ////////////// SECTION List Keys ///////////////
 type SVoteVoteTimeWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewVoteVoteTimeWrap(db iservices.IDatabaseService) *SVoteVoteTimeWrap {
+func NewVoteVoteTimeWrap(db iservices.IDatabaseRW) *SVoteVoteTimeWrap {
 	if db == nil {
 		return nil
 	}
@@ -1178,10 +1178,10 @@ func (s *SVoteVoteTimeWrap) ForEachByOrder(start *prototype.TimePointSec, end *p
 
 ////////////// SECTION List Keys ///////////////
 type SVotePostIdWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewVotePostIdWrap(db iservices.IDatabaseService) *SVotePostIdWrap {
+func NewVotePostIdWrap(db iservices.IDatabaseRW) *SVotePostIdWrap {
 	if db == nil {
 		return nil
 	}
@@ -1496,10 +1496,10 @@ func (s *SoVoteWrap) insertUniKeyVoter(sa *SoVote) bool {
 }
 
 type UniVoteVoterWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewUniVoteVoterWrap(db iservices.IDatabaseService) *UniVoteVoterWrap {
+func NewUniVoteVoterWrap(db iservices.IDatabaseRW) *UniVoteVoterWrap {
 	if db == nil {
 		return nil
 	}

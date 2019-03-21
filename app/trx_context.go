@@ -12,13 +12,13 @@ import (
 type TrxContext struct {
 	vminjector.Injector
 	Wrapper     *prototype.EstimateTrxResult
-	db          iservices.IDatabaseService
+	db          iservices.IDatabaseRW
 	msg         []string
 	recoverPubs []*prototype.PublicKeyType
 	control     *TrxPool
 }
 
-func NewTrxContext(wrapper *prototype.EstimateTrxResult, db iservices.IDatabaseService, control *TrxPool) *TrxContext {
+func NewTrxContext(wrapper *prototype.EstimateTrxResult, db iservices.IDatabaseRW, control *TrxPool) *TrxContext {
 	return &TrxContext{Wrapper: wrapper, db: db, control: control }
 }
 

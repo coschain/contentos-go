@@ -25,14 +25,14 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoContractWrap struct {
-	dba      iservices.IDatabaseService
+	dba      iservices.IDatabaseRW
 	mainKey  *prototype.ContractId
 	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
 	mKeyBuf  []byte //the buffer after the main key is encoded with prefix
 	mBuf     []byte //the value after the main key is encoded
 }
 
-func NewSoContractWrap(dba iservices.IDatabaseService, key *prototype.ContractId) *SoContractWrap {
+func NewSoContractWrap(dba iservices.IDatabaseRW, key *prototype.ContractId) *SoContractWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
@@ -763,10 +763,10 @@ func (s *SoContractWrap) GetId() *prototype.ContractId {
 
 ////////////// SECTION List Keys ///////////////
 type SContractCreatedTimeWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewContractCreatedTimeWrap(db iservices.IDatabaseService) *SContractCreatedTimeWrap {
+func NewContractCreatedTimeWrap(db iservices.IDatabaseRW) *SContractCreatedTimeWrap {
 	if db == nil {
 		return nil
 	}
@@ -1083,10 +1083,10 @@ func (s *SoContractWrap) insertUniKeyId(sa *SoContract) bool {
 }
 
 type UniContractIdWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewUniContractIdWrap(db iservices.IDatabaseService) *UniContractIdWrap {
+func NewUniContractIdWrap(db iservices.IDatabaseRW) *UniContractIdWrap {
 	if db == nil {
 		return nil
 	}

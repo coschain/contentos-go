@@ -23,14 +23,14 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoExtHourTrxWrap struct {
-	dba      iservices.IDatabaseService
+	dba      iservices.IDatabaseRW
 	mainKey  *prototype.TimePointSec
 	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
 	mKeyBuf  []byte //the buffer after the main key is encoded with prefix
 	mBuf     []byte //the value after the main key is encoded
 }
 
-func NewSoExtHourTrxWrap(dba iservices.IDatabaseService, key *prototype.TimePointSec) *SoExtHourTrxWrap {
+func NewSoExtHourTrxWrap(dba iservices.IDatabaseRW, key *prototype.TimePointSec) *SoExtHourTrxWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
@@ -542,10 +542,10 @@ func (s *SoExtHourTrxWrap) GetHour() *prototype.TimePointSec {
 
 ////////////// SECTION List Keys ///////////////
 type SExtHourTrxHourWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewExtHourTrxHourWrap(db iservices.IDatabaseService) *SExtHourTrxHourWrap {
+func NewExtHourTrxHourWrap(db iservices.IDatabaseRW) *SExtHourTrxHourWrap {
 	if db == nil {
 		return nil
 	}
@@ -683,10 +683,10 @@ func (s *SExtHourTrxHourWrap) ForEachByOrder(start *prototype.TimePointSec, end 
 
 ////////////// SECTION List Keys ///////////////
 type SExtHourTrxCountWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewExtHourTrxCountWrap(db iservices.IDatabaseService) *SExtHourTrxCountWrap {
+func NewExtHourTrxCountWrap(db iservices.IDatabaseRW) *SExtHourTrxCountWrap {
 	if db == nil {
 		return nil
 	}
@@ -1001,10 +1001,10 @@ func (s *SoExtHourTrxWrap) insertUniKeyHour(sa *SoExtHourTrx) bool {
 }
 
 type UniExtHourTrxHourWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewUniExtHourTrxHourWrap(db iservices.IDatabaseService) *UniExtHourTrxHourWrap {
+func NewUniExtHourTrxHourWrap(db iservices.IDatabaseRW) *UniExtHourTrxHourWrap {
 	if db == nil {
 		return nil
 	}

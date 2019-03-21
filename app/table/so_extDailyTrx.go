@@ -23,14 +23,14 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoExtDailyTrxWrap struct {
-	dba      iservices.IDatabaseService
+	dba      iservices.IDatabaseRW
 	mainKey  *prototype.TimePointSec
 	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
 	mKeyBuf  []byte //the buffer after the main key is encoded with prefix
 	mBuf     []byte //the value after the main key is encoded
 }
 
-func NewSoExtDailyTrxWrap(dba iservices.IDatabaseService, key *prototype.TimePointSec) *SoExtDailyTrxWrap {
+func NewSoExtDailyTrxWrap(dba iservices.IDatabaseRW, key *prototype.TimePointSec) *SoExtDailyTrxWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
@@ -542,10 +542,10 @@ func (s *SoExtDailyTrxWrap) GetDate() *prototype.TimePointSec {
 
 ////////////// SECTION List Keys ///////////////
 type SExtDailyTrxDateWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewExtDailyTrxDateWrap(db iservices.IDatabaseService) *SExtDailyTrxDateWrap {
+func NewExtDailyTrxDateWrap(db iservices.IDatabaseRW) *SExtDailyTrxDateWrap {
 	if db == nil {
 		return nil
 	}
@@ -683,10 +683,10 @@ func (s *SExtDailyTrxDateWrap) ForEachByOrder(start *prototype.TimePointSec, end
 
 ////////////// SECTION List Keys ///////////////
 type SExtDailyTrxCountWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewExtDailyTrxCountWrap(db iservices.IDatabaseService) *SExtDailyTrxCountWrap {
+func NewExtDailyTrxCountWrap(db iservices.IDatabaseRW) *SExtDailyTrxCountWrap {
 	if db == nil {
 		return nil
 	}
@@ -1001,10 +1001,10 @@ func (s *SoExtDailyTrxWrap) insertUniKeyDate(sa *SoExtDailyTrx) bool {
 }
 
 type UniExtDailyTrxDateWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewUniExtDailyTrxDateWrap(db iservices.IDatabaseService) *UniExtDailyTrxDateWrap {
+func NewUniExtDailyTrxDateWrap(db iservices.IDatabaseRW) *UniExtDailyTrxDateWrap {
 	if db == nil {
 		return nil
 	}

@@ -79,14 +79,14 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type So{{.ClsName}}Wrap struct {
-	dba 		iservices.IDatabaseService
+	dba 		iservices.IDatabaseRW
 	mainKey 	*{{formatStr .MainKeyType}}
     mKeyFlag    int //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
 	mKeyBuf     []byte //the buffer after the main key is encoded with prefix
 	mBuf        []byte //the value after the main key is encoded
 }
 
-func NewSo{{.ClsName}}Wrap(dba iservices.IDatabaseService, key *{{formatStr .MainKeyType}}) *So{{.ClsName}}Wrap{
+func NewSo{{.ClsName}}Wrap(dba iservices.IDatabaseRW, key *{{formatStr .MainKeyType}}) *So{{.ClsName}}Wrap{
 	if dba == nil || key == nil {
        return nil
     }
@@ -558,10 +558,10 @@ func (s *So{{$.ClsName}}Wrap) Md{{$k1}}(p {{formatRTypeStr $v1.PType}}) bool {
 {{range $k, $v := .SortList}}
 ////////////// SECTION List Keys ///////////////
 type S{{$.ClsName}}{{$v.PName}}Wrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func New{{$.ClsName}}{{$v.PName}}Wrap(db iservices.IDatabaseService) *S{{$.ClsName}}{{$v.PName}}Wrap {
+func New{{$.ClsName}}{{$v.PName}}Wrap(db iservices.IDatabaseRW) *S{{$.ClsName}}{{$v.PName}}Wrap {
      if db == nil {
         return nil
      }
@@ -972,10 +972,10 @@ func (s *So{{$.ClsName}}Wrap) insertUniKey{{$k}}(sa *So{{$.ClsName}}) bool {
 }
 
 type Uni{{$.ClsName}}{{$k}}Wrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewUni{{$.ClsName}}{{$k}}Wrap (db iservices.IDatabaseService) *Uni{{$.ClsName}}{{$k}}Wrap{
+func NewUni{{$.ClsName}}{{$k}}Wrap (db iservices.IDatabaseRW) *Uni{{$.ClsName}}{{$k}}Wrap{
      if db == nil {
         return nil
      }

@@ -52,14 +52,7 @@ type IDatabaseBatch interface {
 	Reset()
 }
 
-//
-// Database Service
-//
-type IDatabaseService interface {
-	//
-	// basic database operations
-	//
-
+type IDatabaseRW interface {
 	// check existence of the given key
 	Has(key []byte) (bool, error)
 
@@ -90,6 +83,13 @@ type IDatabaseService interface {
 
 	// release a Batch
 	DeleteBatch(b IDatabaseBatch)
+}
+
+//
+// Database Service
+//
+type IDatabaseService interface {
+	IDatabaseRW
 
 	// close a database
 	Close()

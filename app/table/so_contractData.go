@@ -22,14 +22,14 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoContractDataWrap struct {
-	dba      iservices.IDatabaseService
+	dba      iservices.IDatabaseRW
 	mainKey  *prototype.ContractDataId
 	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
 	mKeyBuf  []byte //the buffer after the main key is encoded with prefix
 	mBuf     []byte //the value after the main key is encoded
 }
 
-func NewSoContractDataWrap(dba iservices.IDatabaseService, key *prototype.ContractDataId) *SoContractDataWrap {
+func NewSoContractDataWrap(dba iservices.IDatabaseRW, key *prototype.ContractDataId) *SoContractDataWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
@@ -682,10 +682,10 @@ func (s *SoContractDataWrap) insertUniKeyId(sa *SoContractData) bool {
 }
 
 type UniContractDataIdWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewUniContractDataIdWrap(db iservices.IDatabaseService) *UniContractDataIdWrap {
+func NewUniContractDataIdWrap(db iservices.IDatabaseRW) *UniContractDataIdWrap {
 	if db == nil {
 		return nil
 	}

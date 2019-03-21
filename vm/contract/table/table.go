@@ -21,7 +21,7 @@ type ContractTable struct {
 	abiTable abi.IContractTable
 	primary kope.Key
 	secondaries []kope.Key
-	db iservices.IDatabaseService
+	db iservices.IDatabaseRW
 }
 
 func (t *ContractTable) fieldValue(record reflect.Value, i int) reflect.Value {
@@ -334,7 +334,7 @@ type ContractTables struct {
 	tables map[string]*ContractTable
 }
 
-func NewContractTables(owner string, contract string, abi abi.IContractABI, db iservices.IDatabaseService) *ContractTables {
+func NewContractTables(owner string, contract string, abi abi.IContractABI, db iservices.IDatabaseRW) *ContractTables {
 	tables := &ContractTables{
 		tables: make(map[string]*ContractTable),
 	}

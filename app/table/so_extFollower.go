@@ -22,14 +22,14 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoExtFollowerWrap struct {
-	dba      iservices.IDatabaseService
+	dba      iservices.IDatabaseRW
 	mainKey  *prototype.FollowerRelation
 	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
 	mKeyBuf  []byte //the buffer after the main key is encoded with prefix
 	mBuf     []byte //the value after the main key is encoded
 }
 
-func NewSoExtFollowerWrap(dba iservices.IDatabaseService, key *prototype.FollowerRelation) *SoExtFollowerWrap {
+func NewSoExtFollowerWrap(dba iservices.IDatabaseRW, key *prototype.FollowerRelation) *SoExtFollowerWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
@@ -481,10 +481,10 @@ func (s *SoExtFollowerWrap) GetFollowerInfo() *prototype.FollowerRelation {
 
 ////////////// SECTION List Keys ///////////////
 type SExtFollowerFollowerCreatedOrderWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewExtFollowerFollowerCreatedOrderWrap(db iservices.IDatabaseService) *SExtFollowerFollowerCreatedOrderWrap {
+func NewExtFollowerFollowerCreatedOrderWrap(db iservices.IDatabaseRW) *SExtFollowerFollowerCreatedOrderWrap {
 	if db == nil {
 		return nil
 	}
@@ -801,10 +801,10 @@ func (s *SoExtFollowerWrap) insertUniKeyFollowerInfo(sa *SoExtFollower) bool {
 }
 
 type UniExtFollowerFollowerInfoWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewUniExtFollowerFollowerInfoWrap(db iservices.IDatabaseService) *UniExtFollowerFollowerInfoWrap {
+func NewUniExtFollowerFollowerInfoWrap(db iservices.IDatabaseRW) *UniExtFollowerFollowerInfoWrap {
 	if db == nil {
 		return nil
 	}
