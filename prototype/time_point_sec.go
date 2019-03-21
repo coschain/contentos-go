@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-var timeFormat = "2006-01-01 00:00:00"
+var constTimeFormat = "2006/1/2 15:04:05"
 
 func (m *TimePointSec) OpeEncode() ([]byte, error) {
 	return kope.Encode(m.UtcSeconds)
@@ -18,7 +18,7 @@ func (m TimePointSec) Add(value uint32) TimePointSec {
 }
 
 func (m *TimePointSec) ToString() string {
-	return time.Unix( int64(m.UtcSeconds), 0).Format(timeFormat)
+	return time.Unix( int64(m.UtcSeconds), 0).UTC().Format(constTimeFormat)
 }
 
 
@@ -39,7 +39,7 @@ func stripJsonQuota(input []byte)([]byte, error)  {
 }
 
 func TimePointSecFromString(str string) (*TimePointSec, error) {
-	value, err := time.Parse(timeFormat, str)
+	value, err := time.Parse(constTimeFormat, str)
 	if err != nil {
 		return nil, err
 	}
