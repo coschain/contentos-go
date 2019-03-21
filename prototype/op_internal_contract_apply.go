@@ -9,3 +9,7 @@ func (op *InternalContractApplyOperation) Validate() error {
 	// TODO
 	return nil
 }
+
+func (m *InternalContractApplyOperation) GetAffectedProps(props *map[string]bool) {
+
+}

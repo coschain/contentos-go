@@ -26,3 +26,7 @@ func (m *ReportOperation) Validate() error {
 
 	return nil
 }
+
+func (m *ReportOperation) GetAffectedProps(props *map[string]bool) {
+
+}

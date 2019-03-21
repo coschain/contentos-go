@@ -26,3 +26,7 @@ func (m *TransferToVestingOperation) Validate() error {
 
 	return nil
 }
+
+func (m *TransferToVestingOperation) GetAffectedProps(props *map[string]bool) {
+
+}

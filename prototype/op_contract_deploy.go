@@ -25,3 +25,7 @@ func (m *ContractDeployOperation) Validate() error {
 
 	return nil
 }
+
+func (m *ContractDeployOperation) GetAffectedProps(props *map[string]bool) {
+
+}

@@ -21,3 +21,7 @@ func (m *FollowOperation) Validate() error {
 
 	return nil
 }
+
+func (m *FollowOperation) GetAffectedProps(props *map[string]bool) {
+
+}

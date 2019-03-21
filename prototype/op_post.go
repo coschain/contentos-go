@@ -38,3 +38,7 @@ func (m *PostOperation) Validate() error {
 
 	return nil
 }
+
+func (m *PostOperation) GetAffectedProps(props *map[string]bool) {
+
+}
