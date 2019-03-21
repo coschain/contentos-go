@@ -38,8 +38,8 @@ func (this *MessageRouter) init(p2p p2p.P2P) {
 	this.msgSyncMode = make(map[string]bool)
 	this.RecvSyncChan = p2p.GetMsgChan(false)
 	this.RecvConsChan = p2p.GetMsgChan(true)
-	this.stopSyncCh = make(chan bool)
-	this.stopConsCh = make(chan bool)
+	this.stopSyncCh = make(chan bool, 1)
+	this.stopConsCh = make(chan bool, 1)
 	this.p2p = p2p
 	this.log = p2p.GetLog()
 	this.handler = NewMsgHandler()
