@@ -5,6 +5,7 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/coschain/contentos-go/common"
@@ -16,8 +17,42 @@ import (
 	"github.com/coschain/contentos-go/prototype"
 )
 
+type MsgHandler struct {
+	blockCache map[common.BlockID]common.ISignedBlock
+	sync.Mutex
+}
+
+func NewMsgHandler() *MsgHandler  {
+	blockCache := make(map[common.BlockID]common.ISignedBlock)
+
+	return &MsgHandler{ blockCache:blockCache }
+}
+
+func (p *MsgHandler) popFirstBlock() common.ISignedBlock {
+
+	var retV common.ISignedBlock = nil
+	var retK = common.EmptyBlockID
+
+	for k, v := range p.blockCache {
+
+		if retK == common.EmptyBlockID{
+			retK = k
+			retV = v
+		} else if k.BlockNum() < retK.BlockNum() {
+			retK = k
+			retV = v
+		}
+	}
+
+	if retK != common.EmptyBlockID{
+		delete( p.blockCache, retK)
+	}
+
+	return retV
+}
+
 // AddrReqHandle handles the neighbor address request from peer
-func AddrReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
+func (p *MsgHandler)AddrReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	log := p2p.GetLog()
 	remotePeer := p2p.GetPeer(data.Id)
 	if remotePeer == nil {
@@ -58,7 +93,7 @@ func AddrReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) 
 }
 
 //PingHandle handle ping msg from peer
-func PingHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
+func (p *MsgHandler)PingHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	log := p2p.GetLog()
 
 	var raw = data.Payload.(*msgTypes.TransferMsg)
@@ -89,7 +124,7 @@ func PingHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 }
 
 ///PongHandle handle pong msg from peer
-func PongHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
+func (p *MsgHandler)PongHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	var raw = data.Payload.(*msgTypes.TransferMsg)
 	pong := raw.Msg.(*msgTypes.TransferMsg_Msg9).Msg9
 
@@ -104,7 +139,7 @@ func PongHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 }
 
 // BlockHandle handles the block message from peer
-func BlockHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
+func (p *MsgHandler)BlockHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	var raw = data.Payload.(*msgTypes.TransferMsg)
 	var block = raw.Msg.(*msgTypes.TransferMsg_Msg3).Msg3
 
@@ -131,11 +166,28 @@ func BlockHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	blkNum := block.SigBlk.Id().BlockNum()
 	remotePeer.SetLastSeenBlkNum(blkNum)
 
-	ctrl.PushBlock(block.SigBlk)
+	func(){
+		p.Lock()
+		defer p.Unlock()
+		p.blockCache[ block.SigBlk.Id() ] = block.SigBlk
+
+		go func() {
+			time.Sleep(time.Millisecond)
+			p.Lock()
+			defer p.Unlock()
+
+			block := p.popFirstBlock()
+			if block != nil{
+				ctrl.PushBlock(block)
+			}
+		}()
+	}()
+
+	//ctrl.PushBlock(block.SigBlk)
 }
 
 // TransactionHandle handles the transaction message from peer
-func TransactionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
+func (p *MsgHandler)TransactionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	var raw = data.Payload.(*msgTypes.TransferMsg)
 	var trn = raw.Msg.(*msgTypes.TransferMsg_Msg1).Msg1
 
@@ -169,7 +221,7 @@ func TransactionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface
 }
 
 // VersionHandle handles version handshake protocol from peer
-func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
+func (p *MsgHandler)VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	var raw = data.Payload.(*msgTypes.TransferMsg)
 	version := raw.Msg.(*msgTypes.TransferMsg_Msg11).Msg11
 
@@ -349,7 +401,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) 
 }
 
 // VerAckHandle handles the version ack from peer
-func VerAckHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
+func (p *MsgHandler)VerAckHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	var raw = data.Payload.(*msgTypes.TransferMsg)
 	verAck := raw.Msg.(*msgTypes.TransferMsg_Msg10).Msg10
 
@@ -422,7 +474,7 @@ func VerAckHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 }
 
 // AddrHandle handles the neighbor address response message from peer
-func AddrHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
+func (p *MsgHandler)AddrHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	var raw = data.Payload.(*msgTypes.TransferMsg)
 	var msgdata = raw.Msg.(*msgTypes.TransferMsg_Msg5).Msg5
 
@@ -457,7 +509,7 @@ func AddrHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 }
 
 // DisconnectHandle handles the disconnect events
-func DisconnectHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
+func (p *MsgHandler)DisconnectHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	log := p2p.GetLog()
 	log.Info("[p2p] receive disconnect message ", data.Addr, " ", data.Id)
 
@@ -482,7 +534,7 @@ func DisconnectHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{
 	}
 }
 
-func IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
+func (p *MsgHandler)IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	var raw = data.Payload.(*msgTypes.TransferMsg)
 	var msgdata = raw.Msg.(*msgTypes.TransferMsg_Msg2).Msg2
 
@@ -525,6 +577,12 @@ func IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 		}
 	case msgTypes.IdMsg_request_sigblk_by_id:
 		//log.Infof("receive a msg from:    v%    data:   %v\n", data.Addr, *msgdata)
+		if !remotePeer.LockBusy() {
+			return
+		} else {
+			defer remotePeer.UnlockBusy()
+		}
+
 		for i, id := range msgdata.Value {
 			length := len(msgdata.Value[i])
 			if length > prototype.Size {
@@ -557,7 +615,7 @@ func IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 				log.Error("[p2p] send message error: ", err)
 				return
 			}
-			time.Sleep(50 * time.Millisecond)
+			//time.Sleep(50 * time.Millisecond)
 			//log.Infof("send a SignedBlock msg to   v%   data   v%\n", data.Addr, msg)
 		}
 	case msgTypes.IdMsg_request_id_ack:
@@ -603,9 +661,16 @@ func IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	}
 }
 
-func ReqIdHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
+func (p *MsgHandler)ReqIdHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	var raw = data.Payload.(*msgTypes.TransferMsg)
 	var msgdata = raw.Msg.(*msgTypes.TransferMsg_Msg4).Msg4
+	remotePeer := p2p.GetPeerFromAddr(data.Addr)
+
+	if !remotePeer.LockBusy() {
+		return
+	} else {
+		defer remotePeer.UnlockBusy()
+	}
 
 	log := p2p.GetLog()
 
@@ -659,8 +724,6 @@ func ReqIdHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 		ids = append(ids, blockList[i].Id())
 	}
 
-	remotePeer := p2p.GetPeerFromAddr(data.Addr)
-
 	var reqmsg msgTypes.TransferMsg
 	var idlength int
 	reqdata := new(msgTypes.IdMsg)
@@ -700,7 +763,7 @@ func ReqIdHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	}
 }
 
-func ConsMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
+func (p *MsgHandler)ConsMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	var msgdata = data.Payload.(*msgTypes.ConsMsg)
 
 	log := p2p.GetLog()

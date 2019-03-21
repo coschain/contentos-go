@@ -110,6 +110,7 @@ type Peer struct {
 	lastSeenBlkNum   uint64
 
 	connLock         sync.RWMutex
+	busy			 int32
 }
 
 //NewPeer return new peer without publickey initial
@@ -117,6 +118,7 @@ func NewPeer() *Peer {
 	p := &Peer{
 		syncState: common.INIT,
 		consState: common.INIT,
+		busy: 0,
 	}
 	p.SyncLink = conn.NewLink()
 	p.ConsLink = conn.NewLink()
@@ -130,6 +132,17 @@ func NewPeer() *Peer {
 func rmPeer(p *Peer) {
 	//logging.CLog().Debugf("[p2p] Remove unused peer: %d", p.GetID())
 }
+
+func (this *Peer) LockBusy() bool {
+	return atomic.CompareAndSwapInt32( &this.busy, 0, 1 )
+}
+
+func (this *Peer) UnlockBusy()  {
+	if ! atomic.CompareAndSwapInt32( &this.busy, 1, 0 ) {
+		panic("cant unlock, should lock success first")
+	}
+}
+
 
 //DumpInfo print all information of peer
 func (this *Peer) DumpInfo(log *logrus.Logger) {

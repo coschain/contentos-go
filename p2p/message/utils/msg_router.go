@@ -20,6 +20,7 @@ type MessageRouter struct {
 	stopConsCh   chan bool                 // To stop consensus channel
 	p2p          p2p.P2P                   // Refer to the p2p network
 	log          *logrus.Logger
+	handler		 *MsgHandler
 }
 
 // NewMsgRouter returns a message router object
@@ -38,20 +39,21 @@ func (this *MessageRouter) init(p2p p2p.P2P) {
 	this.stopConsCh = make(chan bool)
 	this.p2p = p2p
 	this.log = p2p.GetLog()
+	this.handler = NewMsgHandler()
 
 	// Register message handler
-	this.RegisterMsgHandler(msgCommon.VERSION_TYPE, VersionHandle)
-	this.RegisterMsgHandler(msgCommon.VERACK_TYPE, VerAckHandle)
-	this.RegisterMsgHandler(msgCommon.GetADDR_TYPE, AddrReqHandle)
-	this.RegisterMsgHandler(msgCommon.ADDR_TYPE, AddrHandle)
-	this.RegisterMsgHandler(msgCommon.PING_TYPE, PingHandle)
-	this.RegisterMsgHandler(msgCommon.PONG_TYPE, PongHandle)
-	this.RegisterMsgHandler(msgCommon.REQ_ID_TYPE, ReqIdHandle)
-	this.RegisterMsgHandler(msgCommon.ID_TYPE, IdMsgHandle)
-	this.RegisterMsgHandler(msgCommon.BLOCK_TYPE, BlockHandle)
-	this.RegisterMsgHandler(msgCommon.TX_TYPE, TransactionHandle)
-	this.RegisterMsgHandler(msgCommon.DISCONNECT_TYPE, DisconnectHandle)
-	this.RegisterMsgHandler(msgCommon.CONSENSUS_TYPE, ConsMsgHandle)
+	this.RegisterMsgHandler(msgCommon.VERSION_TYPE, this.handler.VersionHandle)
+	this.RegisterMsgHandler(msgCommon.VERACK_TYPE, this.handler.VerAckHandle)
+	this.RegisterMsgHandler(msgCommon.GetADDR_TYPE, this.handler.AddrReqHandle)
+	this.RegisterMsgHandler(msgCommon.ADDR_TYPE, this.handler.AddrHandle)
+	this.RegisterMsgHandler(msgCommon.PING_TYPE, this.handler.PingHandle)
+	this.RegisterMsgHandler(msgCommon.PONG_TYPE, this.handler.PongHandle)
+	this.RegisterMsgHandler(msgCommon.REQ_ID_TYPE, this.handler.ReqIdHandle)
+	this.RegisterMsgHandler(msgCommon.ID_TYPE, this.handler.IdMsgHandle)
+	this.RegisterMsgHandler(msgCommon.BLOCK_TYPE, this.handler.BlockHandle)
+	this.RegisterMsgHandler(msgCommon.TX_TYPE, this.handler.TransactionHandle)
+	this.RegisterMsgHandler(msgCommon.DISCONNECT_TYPE, this.handler.DisconnectHandle)
+	this.RegisterMsgHandler(msgCommon.CONSENSUS_TYPE, this.handler.ConsMsgHandle)
 }
 
 // RegisterMsgHandler registers msg handler with the msg type
