@@ -85,6 +85,13 @@ type IDatabaseRW interface {
 	DeleteBatch(b IDatabaseBatch)
 }
 
+type IDatabasePatch interface {
+	IDatabaseRW
+
+	// apply the patch
+	Apply() error
+}
+
 //
 // Database Service
 //
@@ -171,4 +178,6 @@ type IDatabaseService interface {
 	Unlock()
 	RLock()
 	RUnlock()
+
+	NewPatch() IDatabasePatch
 }
