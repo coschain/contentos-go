@@ -40,5 +40,5 @@ func (m *PostOperation) Validate() error {
 }
 
 func (m *PostOperation) GetAffectedProps(props *map[string]bool) {
-
+	(*props)["*"] = true
 }

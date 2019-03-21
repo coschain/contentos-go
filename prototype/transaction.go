@@ -52,3 +52,17 @@ func (m *Transaction) AddOperation(op interface{}) {
 	res := GetPbOperation(op)
 	m.Operations = append(m.Operations, res)
 }
+
+func (tx *Transaction) GetAffectedProps(props *map[string]bool) {
+	p := make(map[string]bool)
+	for _, op := range tx.GetOperations() {
+		GetBaseOperation(op).GetAffectedProps(&p)
+	}
+	if p["*"] {
+		(*props)["*"] = true
+	} else {
+		for k, v := range p {
+			(*props)[k] = v
+		}
+	}
+}

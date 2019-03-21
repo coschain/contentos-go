@@ -28,5 +28,5 @@ func (m *ReportOperation) Validate() error {
 }
 
 func (m *ReportOperation) GetAffectedProps(props *map[string]bool) {
-
+	(*props)["*"] = true
 }

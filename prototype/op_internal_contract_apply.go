@@ -11,5 +11,5 @@ func (op *InternalContractApplyOperation) Validate() error {
 }
 
 func (m *InternalContractApplyOperation) GetAffectedProps(props *map[string]bool) {
-
+	(*props)["*"] = true
 }

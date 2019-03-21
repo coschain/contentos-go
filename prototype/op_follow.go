@@ -23,5 +23,5 @@ func (m *FollowOperation) Validate() error {
 }
 
 func (m *FollowOperation) GetAffectedProps(props *map[string]bool) {
-
+	(*props)["*"] = true
 }

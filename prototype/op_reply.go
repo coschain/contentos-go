@@ -30,5 +30,5 @@ func (m *ReplyOperation) Validate() error {
 }
 
 func (m *ReplyOperation) GetAffectedProps(props *map[string]bool) {
-
+	(*props)["*"] = true
 }

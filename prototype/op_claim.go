@@ -10,7 +10,7 @@ func (m *ClaimOperation) Validate() error {
 }
 
 func (m *ClaimOperation) GetAffectedProps(props *map[string]bool) {
-
+	(*props)["*"] = true
 }
 
 
@@ -23,5 +23,5 @@ func (m *ClaimAllOperation) Validate() error {
 }
 
 func (m *ClaimAllOperation) GetAffectedProps(props *map[string]bool) {
-
+	(*props)["*"] = true
 }

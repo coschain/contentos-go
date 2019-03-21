@@ -167,3 +167,7 @@ func (tx *SignedTransaction) Deserialization(source *common.ZeroCopySource) erro
 	tx = tmp
 	return nil
 }
+
+func (tx *SignedTransaction) GetAffectedProps(props *map[string]bool) {
+	tx.Trx.GetAffectedProps(props)
+}

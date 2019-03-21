@@ -28,5 +28,5 @@ func (m *TransferToVestingOperation) Validate() error {
 }
 
 func (m *TransferToVestingOperation) GetAffectedProps(props *map[string]bool) {
-
+	(*props)["*"] = true
 }

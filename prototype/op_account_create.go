@@ -40,5 +40,5 @@ func (a *AccountCreateOperation) Validate() error {
 }
 
 func (a *AccountCreateOperation) GetAffectedProps(props *map[string]bool) {
-
+	(*props)["*"] = true
 }
