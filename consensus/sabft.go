@@ -159,7 +159,7 @@ func NewSABFT(ctx *node.ServiceContext, lg *logrus.Logger) *SABFT {
 		name: ret.Name,
 	}
 	ret.bft = gobft.NewCore(ret, ret.priv)
-	ret.bft.SetLogLevel(0)
+	ret.bft.SetLogLevel(3)
 	ret.log.Info("[SABFT bootstrap] ", ctx.Config().Consensus.BootStrap)
 	ret.appState = &message.AppState{
 		LastHeight:       0,
@@ -917,7 +917,7 @@ func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 		Data: commitRecords.ProposedData,
 	}
 
-	sabft.log.Info("[SABFT] start to commit block #%d %v", blockID.BlockNum(), blockID)
+	sabft.log.Infof("[SABFT] start to commit block #%d %v", blockID.BlockNum(), blockID)
 	// if we're committing a block we don't have
 	blk, err := sabft.ForkDB.FetchBlock(blockID)
 	if err != nil {

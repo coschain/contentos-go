@@ -45,7 +45,7 @@ func (cp *BFTCheckPoint) Make(commit *message.Commit) error {
 		return nil
 	}
 	key := make([]byte, 8)
-	binary.LittleEndian.PutUint64(key, blockNum)
+	binary.BigEndian.PutUint64(key, blockNum)
 	err := cp.db.Put(key, commit.Bytes())
 	if err != nil {
 		return err
@@ -85,7 +85,7 @@ func (cp *BFTCheckPoint) AcceptCheckPoint(commit *message.Commit) {
 
 func (cp *BFTCheckPoint) GetNext(blockNum uint64) (*message.Commit, error) {
 	key := make([]byte, 8)
-	binary.LittleEndian.PutUint64(key, blockNum+1)
+	binary.BigEndian.PutUint64(key, blockNum+1)
 	it := cp.db.NewIterator(key, nil)
 	it.Next()
 	val, err := it.Value()
