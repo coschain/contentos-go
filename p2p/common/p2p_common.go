@@ -79,7 +79,7 @@ const (
 	MAX_TRX_CACHE = 2048   // the max trx hash cached in p2p
 	HASH_LENGTH = 64       // byte array length of each trx hash
 
-	MAX_ID_LENGTH = 20   // max id length in require id ack message
+	MAX_ID_LENGTH = 50   // max id length in require id ack message
 	MAX_ROUTINE_NUM = 50 // max goroutine number
 )
 

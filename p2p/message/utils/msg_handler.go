@@ -139,7 +139,9 @@ func (p *MsgHandler)PongHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...i
 }
 
 // BlockHandle handles the block message from peer
-func (p *MsgHandler)BlockHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
+
+func (p *MsgHandler)BlockSyncHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
+
 	var raw = data.Payload.(*msgTypes.TransferMsg)
 	var block = raw.Msg.(*msgTypes.TransferMsg_Msg3).Msg3
 
@@ -166,24 +168,25 @@ func (p *MsgHandler)BlockHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...
 	blkNum := block.SigBlk.Id().BlockNum()
 	remotePeer.SetLastSeenBlkNum(blkNum)
 
-	func(){
-		p.Lock()
-		defer p.Unlock()
-		p.blockCache[ block.SigBlk.Id() ] = block.SigBlk
+	p.Lock()
+	defer p.Unlock()
 
-		go func() {
-			time.Sleep(time.Millisecond)
-			p.Lock()
-			defer p.Unlock()
+	p.blockCache[ block.SigBlk.Id() ] = block.SigBlk
 
-			block := p.popFirstBlock()
-			if block != nil{
-				ctrl.PushBlock(block)
-			}
-		}()
+	go func() {
+		p.blockHandle(ctrl)
 	}()
+}
 
-	//ctrl.PushBlock(block.SigBlk)
+func (p *MsgHandler)blockHandle(ctrl iservices.IConsensus) {
+
+	p.Lock()
+	defer p.Unlock()
+
+	block := p.popFirstBlock()
+	if block != nil{
+		ctrl.PushBlock(block)
+	}
 }
 
 // TransactionHandle handles the transaction message from peer
