@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"context"
+	"fmt"
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common/constants"
@@ -646,9 +647,8 @@ func (as *APIService) TrxStatByHour(ctx context.Context, req *grpcpb.TrxStatByHo
 		hours = defaultHourStatLimit
 	}
 	//convert the unix timestamp to day index
-	now := time.Now()
+	now := time.Now().UTC()
 	end := now.Unix()/3600 + 1
-	//	end := &prototype.TimePointSec{UtcSeconds: uint32(now.Unix() - int64(3600*req.Hours))}
 	start := end - int64(hours)
 	s := &prototype.TimePointSec{UtcSeconds: uint32(start)}
 	e := &prototype.TimePointSec{UtcSeconds: uint32(end)}
