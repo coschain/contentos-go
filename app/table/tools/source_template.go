@@ -570,7 +570,7 @@ func New{{$.ClsName}}{{$v.PName}}Wrap(db iservices.IDatabaseService) *S{{$.ClsNa
 }
 
 func (s *S{{$.ClsName}}{{$v.PName}}Wrap)DelIterator(iterator iservices.IDatabaseIterator){
-   if iterator == nil || !iterator.Valid() {
+   if iterator == nil {
 		return 
 	}
    s.Dba.DeleteIterator(iterator)

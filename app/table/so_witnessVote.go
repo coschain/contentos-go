@@ -576,7 +576,7 @@ func NewWitnessVoteVoterIdWrap(db iservices.IDatabaseService) *SWitnessVoteVoter
 }
 
 func (s *SWitnessVoteVoterIdWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil || !iterator.Valid() {
+	if iterator == nil {
 		return
 	}
 	s.Dba.DeleteIterator(iterator)

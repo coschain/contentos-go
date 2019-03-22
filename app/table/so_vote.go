@@ -908,7 +908,7 @@ func NewVoteVoterWrap(db iservices.IDatabaseService) *SVoteVoterWrap {
 }
 
 func (s *SVoteVoterWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil || !iterator.Valid() {
+	if iterator == nil {
 		return
 	}
 	s.Dba.DeleteIterator(iterator)
@@ -1049,7 +1049,7 @@ func NewVoteVoteTimeWrap(db iservices.IDatabaseService) *SVoteVoteTimeWrap {
 }
 
 func (s *SVoteVoteTimeWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil || !iterator.Valid() {
+	if iterator == nil {
 		return
 	}
 	s.Dba.DeleteIterator(iterator)
@@ -1190,7 +1190,7 @@ func NewVotePostIdWrap(db iservices.IDatabaseService) *SVotePostIdWrap {
 }
 
 func (s *SVotePostIdWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil || !iterator.Valid() {
+	if iterator == nil {
 		return
 	}
 	s.Dba.DeleteIterator(iterator)

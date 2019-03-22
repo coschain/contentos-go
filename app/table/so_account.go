@@ -1461,7 +1461,7 @@ func NewAccountCreatedTimeWrap(db iservices.IDatabaseService) *SAccountCreatedTi
 }
 
 func (s *SAccountCreatedTimeWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil || !iterator.Valid() {
+	if iterator == nil {
 		return
 	}
 	s.Dba.DeleteIterator(iterator)
@@ -1602,7 +1602,7 @@ func NewAccountBalanceWrap(db iservices.IDatabaseService) *SAccountBalanceWrap {
 }
 
 func (s *SAccountBalanceWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil || !iterator.Valid() {
+	if iterator == nil {
 		return
 	}
 	s.Dba.DeleteIterator(iterator)
@@ -1805,7 +1805,7 @@ func NewAccountVestingSharesWrap(db iservices.IDatabaseService) *SAccountVesting
 }
 
 func (s *SAccountVestingSharesWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil || !iterator.Valid() {
+	if iterator == nil {
 		return
 	}
 	s.Dba.DeleteIterator(iterator)
@@ -1946,7 +1946,7 @@ func NewAccountBpVoteCountWrap(db iservices.IDatabaseService) *SAccountBpVoteCou
 }
 
 func (s *SAccountBpVoteCountWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil || !iterator.Valid() {
+	if iterator == nil {
 		return
 	}
 	s.Dba.DeleteIterator(iterator)

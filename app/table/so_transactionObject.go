@@ -493,7 +493,7 @@ func NewTransactionObjectExpirationWrap(db iservices.IDatabaseService) *STransac
 }
 
 func (s *STransactionObjectExpirationWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil || !iterator.Valid() {
+	if iterator == nil {
 		return
 	}
 	s.Dba.DeleteIterator(iterator)

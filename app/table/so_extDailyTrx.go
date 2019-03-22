@@ -554,7 +554,7 @@ func NewExtDailyTrxDateWrap(db iservices.IDatabaseService) *SExtDailyTrxDateWrap
 }
 
 func (s *SExtDailyTrxDateWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil || !iterator.Valid() {
+	if iterator == nil {
 		return
 	}
 	s.Dba.DeleteIterator(iterator)
@@ -695,7 +695,7 @@ func NewExtDailyTrxCountWrap(db iservices.IDatabaseService) *SExtDailyTrxCountWr
 }
 
 func (s *SExtDailyTrxCountWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil || !iterator.Valid() {
+	if iterator == nil {
 		return
 	}
 	s.Dba.DeleteIterator(iterator)
