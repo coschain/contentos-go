@@ -3,35 +3,79 @@ package app
 import "github.com/coschain/contentos-go/prototype"
 
 type ITrxScheduler interface {
-	ScheduleTrxs(trxs []*prototype.SignedTransaction) [][]*prototype.SignedTransaction
+	ScheduleTrxWrappers(trxs []*prototype.TransactionWrapper) [][]*prototype.TransactionWrapper
+	ScheduleTrxEstResults(trxs []*prototype.EstimateTrxResult) [][]*prototype.EstimateTrxResult
 }
 
 type DefaultTrxScheduler struct{}
 
-func (s DefaultTrxScheduler) ScheduleTrxs(trxs []*prototype.SignedTransaction) [][]*prototype.SignedTransaction {
-	return [][]*prototype.SignedTransaction{ trxs }
+func (s DefaultTrxScheduler) ScheduleTrxWrappers(trxs []*prototype.TransactionWrapper) [][]*prototype.TransactionWrapper {
+	return [][]*prototype.TransactionWrapper{ trxs }
+}
+
+func (s DefaultTrxScheduler) ScheduleTrxEstResults(trxs []*prototype.EstimateTrxResult) [][]*prototype.EstimateTrxResult {
+	return [][]*prototype.EstimateTrxResult{ trxs }
 }
 
 type PropBasedTrxScheduler struct{}
 
-func (s PropBasedTrxScheduler) ScheduleTrxs(trxs []*prototype.SignedTransaction) [][]*prototype.SignedTransaction {
-	lines := [][]*prototype.SignedTransaction{ nil }
+func (s PropBasedTrxScheduler) ScheduleTrxWrappers(trxs []*prototype.TransactionWrapper) [][]*prototype.TransactionWrapper {
+	groups := s.schedule(len(trxs), func(idx int) *prototype.SignedTransaction {
+		return trxs[idx].SigTrx
+	})
+	if len(groups) <= 1 {
+		return [][]*prototype.TransactionWrapper{trxs}
+	}
+	g := make([][]*prototype.TransactionWrapper, len(groups))
+	for i := range g {
+		a := groups[i]
+		b := make([]*prototype.TransactionWrapper, len(a))
+		for j, k := range a {
+			b[j] = trxs[k]
+		}
+		g[i] = b
+	}
+	return g
+}
+
+func (s PropBasedTrxScheduler) ScheduleTrxEstResults(trxs []*prototype.EstimateTrxResult) [][]*prototype.EstimateTrxResult {
+	groups := s.schedule(len(trxs), func(idx int) *prototype.SignedTransaction {
+		return trxs[idx].SigTrx
+	})
+	if len(groups) <= 1 {
+		return [][]*prototype.EstimateTrxResult{trxs}
+	}
+	g := make([][]*prototype.EstimateTrxResult, len(groups))
+	for i := range g {
+		a := groups[i]
+		b := make([]*prototype.EstimateTrxResult, len(a))
+		for j, k := range a {
+			b[j] = trxs[k]
+		}
+		g[i] = b
+	}
+	return g
+}
+
+func (s PropBasedTrxScheduler) schedule(count int, trxGetter func(idx int)*prototype.SignedTransaction) [][]int {
+	groups := [][]int{nil}
 	props := make(map[string]int)
 	possibleIndeps := make(map[int]map[string]bool)
-	for i, tx := range trxs {
+	for i := 0; i < count; i++ {
 		p := make(map[string]bool)
-		tx.GetAffectedProps(&p)
-		dep := p["*"]
-		if !dep {
-			for k := range p {
-				if props[k] > 0 {
-					dep = true
-				}
-				props[k]++
+		trxGetter(i).GetAffectedProps(&p)
+		if p["*"] {
+			return nil
+		}
+		dep := false
+		for k := range p {
+			if props[k] > 0 {
+				dep = true
 			}
+			props[k]++
 		}
 		if dep {
-			lines[0] = append(lines[0], tx)
+			groups[0] = append(groups[0], i)
 		} else {
 			possibleIndeps[i] = p
 		}
@@ -41,11 +85,14 @@ func (s PropBasedTrxScheduler) ScheduleTrxs(trxs []*prototype.SignedTransaction)
 		for k := range p {
 			s += props[k]
 		}
-		if s == len(p) {
-			lines[0] = append(lines[0], trxs[i])
+		if s > len(p) {
+			groups[0] = append(groups[0], i)
 		} else {
-			lines = append(lines, []*prototype.SignedTransaction{ trxs[i] })
+			groups = append(groups, []int{i})
 		}
 	}
-	return lines
+	if len(groups) == 1 {
+		groups = nil
+	}
+	return groups
 }
