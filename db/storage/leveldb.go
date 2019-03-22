@@ -100,7 +100,9 @@ func (db *LevelDatabase) NewReversedIterator(start []byte, limit []byte) Iterato
 }
 
 func (db *LevelDatabase) DeleteIterator(it Iterator) {
-	it.(*LevelDatabaseIterator).it.Release()
+	if levelIt, ok := it.(*LevelDatabaseIterator); ok {
+		levelIt.it.Release()
+	}
 }
 
 //
