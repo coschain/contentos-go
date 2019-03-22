@@ -7,6 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"net/http"
 	"context"
+	"time"
 )
 
 var HealthCheckName = "healthcheck"
@@ -37,6 +38,7 @@ func (this *myhttp) Start(node *node.Node) error {
 				}
 				break
 			}
+			time.Sleep(time.Second / 10)
 		}
 	}()
 	return nil

@@ -642,6 +642,15 @@ func (p *MsgHandler)IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...
 				log.Error("[p2p] can't get other service, service name: ", iservices.ConsensusServerName)
 				return
 			}
+
+			p.Lock()
+			_, existInCache := p.blockCache[blkId]
+			p.Unlock()
+
+			if existInCache{
+				continue
+			}
+
 			ctrl := s.(iservices.IConsensus)
 			if !ctrl.HasBlock(blkId) {
 				var tmp []byte
