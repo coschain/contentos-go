@@ -153,7 +153,7 @@ func (c *TrxPool) addTrxToPending(trx *prototype.SignedTransaction, isVerified b
 
 	if !isVerified {
 		//verify the signature
-		trxContext := NewTrxContext(trxWrp, c.db, c)
+		trxContext := NewTrxContext(trxWrp, c.db)
 		trx.Validate()
 		tmpChainId := prototype.ChainId{Value: 0}
 		mustNoError(trxContext.InitSigState(tmpChainId), "signature export error")
@@ -532,7 +532,7 @@ func (c *TrxPool) applyTransactionInner(trxEst *prototype.EstimateTrxResult, isN
 }
 
 func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabaseRW, trxEst *prototype.EstimateTrxResult, isNeedVerify bool) {
-	trxContext := NewTrxContext(trxEst, db, c)
+	trxContext := NewTrxContext(trxEst, db)
 
 	defer func() {
 		if err := recover(); err != nil {
@@ -565,7 +565,7 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabaseRW, trxEst *prototy
 		// @ check_admin
 	}
 
-	blockNum := c.GetProps().GetHeadBlockNumber()
+	blockNum := trxContext.GetProps().GetHeadBlockNumber()
 	if blockNum > 0 {
 		uniWrap := table.UniBlockSummaryObjectIdWrap{Dba: db}
 		idWrap := uniWrap.UniQueryId(&trx.Trx.RefBlockNum)
@@ -577,7 +577,7 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabaseRW, trxEst *prototy
 			mustSuccess(trx.Trx.RefBlockPrefix == summaryId, "transaction tapos failed")
 		}
 
-		now := c.GetProps().Time
+		now := trxContext.GetProps().Time
 		// get head time
 		mustSuccess(trx.Trx.Expiration.UtcSeconds <= uint32(now.UtcSeconds+constants.TrxMaxExpirationTime), "transaction expiration too long")
 		mustSuccess(now.UtcSeconds <= trx.Trx.Expiration.UtcSeconds, "transaction has expired")
@@ -616,7 +616,7 @@ func (c *TrxPool) applyOperation(trxCtx *TrxContext, op *prototype.Operation) {
 }
 
 func (c *TrxPool) getEvaluator(trxCtx *TrxContext, op *prototype.Operation) BaseEvaluator {
-	ctx := &ApplyContext{db: trxCtx.db, control: c, trxCtx: trxCtx}
+	ctx := &ApplyContext{db: trxCtx.db, control: trxCtx, vmInjector: trxCtx}
 	return GetBaseEvaluator(ctx, op)
 }
 

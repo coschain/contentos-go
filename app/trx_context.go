@@ -11,15 +11,17 @@ import (
 
 type TrxContext struct {
 	vminjector.Injector
+	DynamicGlobalPropsRW
 	Wrapper     *prototype.EstimateTrxResult
-	db          iservices.IDatabaseRW
 	msg         []string
 	recoverPubs []*prototype.PublicKeyType
-	control     iservices.IGlobalPropRW
 }
 
-func NewTrxContext(wrapper *prototype.EstimateTrxResult, db iservices.IDatabaseRW, control *TrxPool) *TrxContext {
-	return &TrxContext{Wrapper: wrapper, db: db, control: control }
+func NewTrxContext(wrapper *prototype.EstimateTrxResult, db iservices.IDatabaseRW) *TrxContext {
+	return &TrxContext{
+		DynamicGlobalPropsRW: DynamicGlobalPropsRW{ db:db },
+		Wrapper: wrapper,
+	}
 }
 
 func (p *TrxContext) InitSigState(cid prototype.ChainId) error {
@@ -136,7 +138,7 @@ func (p *TrxContext) ContractCall(caller, fromOwner, fromContract, fromMethod, t
 		Amount: &prototype.Coin{ Value: coins },
 		Gas: &prototype.Coin{ Value: maxGas },
 	}
-	eval := &InternalContractApplyEvaluator{ ctx: &ApplyContext{ db: p.db, trxCtx: p, control: p.control }, op: op }
+	eval := &InternalContractApplyEvaluator{ ctx: &ApplyContext{ db: p.db, vmInjector: p, control: p }, op: op }
 	eval.Apply()
 }
 
