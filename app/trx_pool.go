@@ -682,6 +682,7 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 	// @ ...
 
 	// @ notify_applied_block
+	c.notifyBlockApply(blk)
 }
 
 func (c *TrxPool) ValidateAddress(name string, pubKey *prototype.PublicKeyType) bool {
@@ -973,7 +974,6 @@ func (c *TrxPool) updateGlobalProperties(blk *prototype.SignedBlock) {
 		}
 	})
 
-	c.noticer.Publish(constants.NoticeAddTrx,blk)
 	// this check is useful ?
 	//mustSuccess(dgpo.GetHeadBlockNumber()-dgpo.GetIrreversibleBlockNum() < constants.MaxUndoHistory, "The database does not have enough undo history to support a blockchain with so many missed blocks.")
 }

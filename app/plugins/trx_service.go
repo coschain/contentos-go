@@ -40,10 +40,10 @@ func (t *TrxService) Start(node *node.Node) error {
 }
 
 func (t *TrxService) hookEvent() {
-	t.ev.Subscribe(constants.NoticeAddTrx, t.handleAddTrxNotification)
+	t.ev.Subscribe(constants.NoticeBlockApplied, t.handleAddTrxNotification)
 }
 func (t *TrxService) unhookEvent() {
-	t.ev.Unsubscribe(constants.NoticeAddTrx, t.handleAddTrxNotification)
+	t.ev.Unsubscribe(constants.NoticeBlockApplied, t.handleAddTrxNotification)
 }
 
 func (t *TrxService) handleAddTrxNotification(blk *prototype.SignedBlock) {
