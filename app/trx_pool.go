@@ -485,27 +485,33 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 	return
 }
 
-func (c *TrxPool) notifyOpPreExecute(on *prototype.OperationNotification) {
-	c.noticer.Publish(constants.NoticeOpPre, on)
-}
+//func (c *TrxPool) notifyOpPreExecute(on *prototype.OperationNotification) {
+//	c.noticer.Publish(constants.NoticeOpPre, on)
+//}
 
-func (c *TrxPool) notifyOpPostExecute(on *prototype.OperationNotification) {
-	c.noticer.Publish(constants.NoticeOpPost, on)
-}
+//func (c *TrxPool) notifyOpPostExecute(on *prototype.OperationNotification) {
+//	c.noticer.Publish(constants.NoticeOpPost, on)
+//}
 
-func (c *TrxPool) notifyTrxPreExecute(trx *prototype.SignedTransaction) {
-	c.noticer.Publish(constants.NoticeTrxPre, trx)
-}
+//func (c *TrxPool) notifyTrxPreExecute(trx *prototype.SignedTransaction) {
+//	c.noticer.Publish(constants.NoticeTrxPre, trx)
+//}
 
-func (c *TrxPool) notifyTrxPostExecute(trx *prototype.SignedTransaction) {
-	c.noticer.Publish(constants.NoticeTrxPost, trx)
-}
+//func (c *TrxPool) notifyTrxPostExecute(trx *prototype.SignedTransaction) {
+//	c.noticer.Publish(constants.NoticeTrxPost, trx)
+//}
 
-func (c *TrxPool) notifyTrxPending(trx *prototype.SignedTransaction) {
-	c.noticer.Publish(constants.NoticeTrxPending, trx)
-}
+//func (c *TrxPool) notifyTrxPending(trx *prototype.SignedTransaction) {
+//	c.noticer.Publish(constants.NoticeTrxPending, trx)
+//}
 
 func (c *TrxPool) notifyBlockApply(block *prototype.SignedBlock) {
+	for _, trx := range block.Transactions {
+		for _, op := range trx.SigTrx.Trx.Operations {
+			c.noticer.Publish(constants.NoticeOpPost, &prototype.OperationNotification{Op: op})
+		}
+		c.noticer.Publish(constants.NoticeTrxPost, trx.SigTrx)
+	}
 	c.noticer.Publish(constants.NoticeBlockApplied, block)
 }
 
@@ -598,14 +604,14 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabaseRW, trxEst *prototy
 
 func (c *TrxPool) applyOperation(trxCtx *TrxContext, op *prototype.Operation) {
 	// @ not use yet
-	n := &prototype.OperationNotification{Op: op}
-	c.notifyOpPreExecute(n)
+	//n := &prototype.OperationNotification{Op: op}
+	//c.notifyOpPreExecute(n)
 
 	eva := c.getEvaluator(trxCtx, op)
 	eva.Apply()
 
 	// @ not use yet
-	c.notifyOpPostExecute(n)
+	//c.notifyOpPostExecute(n)
 }
 
 func (c *TrxPool) getEvaluator(trxCtx *TrxContext, op *prototype.Operation) BaseEvaluator {

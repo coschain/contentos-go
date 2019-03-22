@@ -13,9 +13,9 @@ const (
 	BlockInterval = 1 // 1000 ms for one block produce
 	BlockProdRepetition = 10 // each producer produces 10 blocks in a row
 
-	NoticeOpPre      = "oppre"
+	//NoticeOpPre      = "oppre"
 	NoticeOpPost     = "oppost"
-	NoticeTrxPre     = "trxpre"
+	//NoticeTrxPre     = "trxpre"
 	NoticeTrxPost    = "trxpost"
 	NoticeTrxPending = "trxpending"
 	NoticeTrxApplied = "trxapplyresult"
