@@ -939,6 +939,10 @@ func (c *TrxPool) modifyGlobalDynamicData(f func(props *prototype.DynamicPropert
 	mustSuccess(dgpWrap.MdProps(props), "")
 }
 
+func (c *TrxPool) ModifyProps(modifier func(oldProps *prototype.DynamicProperties)) {
+	c.modifyGlobalDynamicData(modifier)
+}
+
 func (c *TrxPool) updateGlobalProperties(blk *prototype.SignedBlock) {
 	/*var missedBlock uint32 = 0
 

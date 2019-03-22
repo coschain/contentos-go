@@ -15,7 +15,7 @@ type TrxContext struct {
 	db          iservices.IDatabaseRW
 	msg         []string
 	recoverPubs []*prototype.PublicKeyType
-	control     *TrxPool
+	control     iservices.IGlobalPropRW
 }
 
 func NewTrxContext(wrapper *prototype.EstimateTrxResult, db iservices.IDatabaseRW, control *TrxPool) *TrxContext {

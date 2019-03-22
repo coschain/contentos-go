@@ -147,7 +147,7 @@ func (ev *AccountCreateEvaluator) Apply() {
 
 	// sub dynamic glaobal properties's total fee
 	ev.ctx.control.TransferToVest(op.Fee)
-	ev.ctx.control.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
+	ev.ctx.control.ModifyProps(func(props *prototype.DynamicProperties) {
 		props.TotalUserCnt++
 	})
 }
@@ -200,7 +200,7 @@ func (ev *PostEvaluator) Apply() {
 
 	authorWrap.MdLastPostTime(ev.ctx.control.HeadBlockTime())
 
-	ev.ctx.control.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
+	ev.ctx.control.ModifyProps(func(props *prototype.DynamicProperties) {
 		props.TotalPostCnt++
 	})
 
