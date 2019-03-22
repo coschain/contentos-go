@@ -20,12 +20,14 @@ import (
 type MsgHandler struct {
 	blockCache map[common.BlockID]common.ISignedBlock
 	sync.Mutex
+
+	syncPushBlock sync.Mutex
 }
 
 func NewMsgHandler() *MsgHandler  {
 	blockCache := make(map[common.BlockID]common.ISignedBlock)
 
-	return &MsgHandler{ blockCache:blockCache }
+	return &MsgHandler{ blockCache:blockCache, syncPushBlock:sync.Mutex{} }
 }
 
 func (p *MsgHandler) popFirstBlock() common.ISignedBlock {
@@ -147,6 +149,18 @@ func (p *MsgHandler)BlockSyncHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args
 
 	log := p2p.GetLog()
 	log.Info("[p2p] receive a SignedBlock msg, block number :   ", block.SigBlk.Id().BlockNum())
+	blkNum := block.SigBlk.Id().BlockNum()
+
+	remotePeer := p2p.GetPeerFromAddr(data.Addr)
+	if remotePeer == nil {
+		log.Error("[p2p] peer is not exist: ", data.Addr)
+		return
+	}
+	remotePeer.SetLastSeenBlkNum(blkNum)
+
+	p.Lock()
+	p.blockCache[ block.SigBlk.Id() ] = block.SigBlk
+	p.Unlock()
 
 	s, err := p2p.GetService(iservices.ConsensusServerName)
 	if err != nil {
@@ -155,24 +169,6 @@ func (p *MsgHandler)BlockSyncHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args
 	}
 	ctrl := s.(iservices.IConsensus)
 
-	if ctrl.HasBlock(block.SigBlk.Id()) {
-		log.Info("[p2p] we alerady have this SignedBlock, block number :   ", block.SigBlk.Id().BlockNum())
-		return
-	}
-
-	remotePeer := p2p.GetPeerFromAddr(data.Addr)
-	if remotePeer == nil {
-		log.Error("[p2p] peer is not exist: ", data.Addr)
-		return
-	}
-	blkNum := block.SigBlk.Id().BlockNum()
-	remotePeer.SetLastSeenBlkNum(blkNum)
-
-	p.Lock()
-	defer p.Unlock()
-
-	p.blockCache[ block.SigBlk.Id() ] = block.SigBlk
-
 	go func() {
 		p.blockHandle(ctrl)
 	}()
@@ -180,11 +176,17 @@ func (p *MsgHandler)BlockSyncHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args
 
 func (p *MsgHandler)blockHandle(ctrl iservices.IConsensus) {
 
-	p.Lock()
-	defer p.Unlock()
+	p.syncPushBlock.Lock()
+	defer p.syncPushBlock.Unlock()
 
+	p.Lock()
 	block := p.popFirstBlock()
+	p.Unlock()
+
 	if block != nil{
+		if ctrl.HasBlock(block.Id()) {
+			return
+		}
 		ctrl.PushBlock(block)
 	}
 }
@@ -669,13 +671,19 @@ func (p *MsgHandler)ReqIdHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...
 	var msgdata = raw.Msg.(*msgTypes.TransferMsg_Msg4).Msg4
 	remotePeer := p2p.GetPeerFromAddr(data.Addr)
 
+	log := p2p.GetLog()
+
+	if remotePeer == nil {
+		log.Error("[p2p] remotePeer invalid in ReqIdHandle")
+		return
+	}
+
 	if !remotePeer.LockBusy() {
 		return
 	} else {
 		defer remotePeer.UnlockBusy()
 	}
 
-	log := p2p.GetLog()
 
 	length := len(msgdata.HeadBlockId)
 	if length > prototype.Size {

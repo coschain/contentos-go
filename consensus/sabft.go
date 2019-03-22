@@ -1432,3 +1432,7 @@ func (sabft *SABFT) handleBlockSync() error {
 
 	return err
 }
+
+func (d *SABFT) CheckSyncFinished() bool{
+	return d.readyToProduce
+}

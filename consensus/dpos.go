@@ -793,3 +793,7 @@ func (d *DPoS) handleBlockSync() error {
 	
 	return err
 }
+
+func (d *DPoS)CheckSyncFinished() bool{
+	return d.readyToProduce
+}
