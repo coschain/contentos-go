@@ -90,6 +90,9 @@ type IDatabasePatch interface {
 
 	// apply the patch
 	Apply() error
+
+	// patch on patch
+	NewPatch() IDatabasePatch
 }
 
 //

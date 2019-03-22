@@ -404,6 +404,12 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 	})
 	failTrxMap := make(map[int]int)
 
+	const batchCount = 64
+	estTrx := make([]*prototype.EstimateTrxResult, 0, batchCount)
+	estTrxIdx := make([]int, 0, batchCount)
+	ma := NewMultiTrxsApplier(c.db, func(db iservices.IDatabaseRW, trx *prototype.EstimateTrxResult) {
+		c.applyTransactionOnDb(db, trx, false)
+	})
 	for k, trxWraper := range c.pendingTx {
 		if isFinish {
 			c.log.Warn("[trxpool] Generate block timeout, total pending: ", len(c.pendingTx) )
@@ -419,21 +425,22 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 			continue
 		}
 
-		func() {
-			defer func() {
-				if err := recover(); err != nil {
-					mustNoError(c.db.EndTransaction(false), "EndTransaction error")
-					failTrxMap[k] = k
-				}
-
-			}()
-			c.db.BeginTransaction()
-			c.applyTransactionInner(trxWraper, false)
-			mustNoError(c.db.EndTransaction(true), "EndTransaction error")
-			totalSize += uint32(proto.Size(trxWraper))
-			signBlock.Transactions = append(signBlock.Transactions, trxWraper.ToTrxWrapper())
-			//c.currentTrxInBlock++
-		}()
+		estTrx = append(estTrx, trxWraper)
+		estTrxIdx = append(estTrxIdx, k)
+		if len(estTrx) != batchCount {
+			continue
+		}
+		ma.Apply(estTrx)
+		for i, result := range estTrx {
+			if result.Receipt.Status == prototype.StatusError {
+				failTrxMap[estTrxIdx[i]] = estTrxIdx[i]
+			} else {
+				totalSize += uint32(proto.Size(result))
+				signBlock.Transactions = append(signBlock.Transactions, result.ToTrxWrapper())
+			}
+		}
+		estTrx = estTrx[:0]
+		estTrxIdx = estTrxIdx[:0]
 	}
 	if postponeTrx > 0 {
 		c.log.Warnf("[trxpool] postponed %d trx due to max block size", postponeTrx)
@@ -514,7 +521,11 @@ func (c *TrxPool) applyTransaction(trxEst *prototype.EstimateTrxResult) {
 }
 
 func (c *TrxPool) applyTransactionInner(trxEst *prototype.EstimateTrxResult, isNeedVerify bool) {
-	trxContext := NewTrxContext(trxEst, c.db, c)
+	c.applyTransactionOnDb(c.db, trxEst, isNeedVerify)
+}
+
+func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabaseRW, trxEst *prototype.EstimateTrxResult, isNeedVerify bool) {
+	trxContext := NewTrxContext(trxEst, db, c)
 
 	defer func() {
 		if err := recover(); err != nil {
@@ -537,7 +548,7 @@ func (c *TrxPool) applyTransactionInner(trxEst *prototype.EstimateTrxResult, isN
 	trx.Validate()
 
 	// trx duplicate check
-	transactionObjWrap := table.NewSoTransactionObjectWrap(c.db, currentTrxId)
+	transactionObjWrap := table.NewSoTransactionObjectWrap(db, currentTrxId)
 	mustSuccess(!transactionObjWrap.CheckExist(), "Duplicate transaction check failed")
 
 	if isNeedVerify {
@@ -549,7 +560,7 @@ func (c *TrxPool) applyTransactionInner(trxEst *prototype.EstimateTrxResult, isN
 
 	blockNum := c.GetProps().GetHeadBlockNumber()
 	if blockNum > 0 {
-		uniWrap := table.UniBlockSummaryObjectIdWrap{Dba: c.db}
+		uniWrap := table.UniBlockSummaryObjectIdWrap{Dba: db}
 		idWrap := uniWrap.UniQueryId(&trx.Trx.RefBlockNum)
 		if !idWrap.CheckExist() {
 			panic("no refBlockNum founded")
@@ -643,17 +654,22 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 
 	// @ hardfork_state
 
-	trxEst := &prototype.EstimateTrxResult{}
-	trxEst.Receipt = &prototype.TransactionReceiptWithInfo{}
-
 	if skip&prototype.Skip_apply_transaction == 0 {
-
-		for _, tw := range blk.Transactions {
-			trxEst.SigTrx = tw.SigTrx
-			trxEst.Receipt.Status = prototype.StatusSuccess
-			c.applyTransaction(trxEst)
-			mustSuccess(trxEst.Receipt.Status == tw.Invoice.Status, "mismatched invoice")
-			//c.currentTrxInBlock++
+		ma := NewMultiTrxsApplier(c.db, func(db iservices.IDatabaseRW, trx *prototype.EstimateTrxResult) {
+			c.applyTransactionOnDb(db, trx, (c.skip & prototype.Skip_transaction_signatures) == 0)
+		})
+		estTrx := make([]*prototype.EstimateTrxResult, len(blk.Transactions))
+		for i := range blk.Transactions {
+			estTrx[i] = &prototype.EstimateTrxResult{
+				SigTrx: blk.Transactions[i].SigTrx,
+				Receipt: &prototype.TransactionReceiptWithInfo{
+					Status: prototype.StatusSuccess,
+				},
+			}
+		}
+		ma.Apply(estTrx)
+		for i := range blk.Transactions {
+			mustSuccess(estTrx[i].Receipt.Status == blk.Transactions[i].Invoice.Status, "mismatched invoice")
 		}
 	}
 
