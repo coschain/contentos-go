@@ -818,38 +818,6 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 	default:
 		return ErrInternal
 	}
-	/*
-		if newHead == head {
-			// this implies that b is a:
-			// 1. detached block or
-			// 2. out of range block or
-			// 3. head of a non-main branch or
-			// 4. illegal block
-
-			if b.Id().BlockNum() > headNum {
-
-
-
-				tailId, errTail := sabft.ForkDB.FetchUnlinkBlockTail()
-
-				if errTail == nil {
-					sabft.p2p.FetchUnlinkedBlock( *tailId )
-					sabft.log.Debug("[SABFT TriggerSync]: pre-start from ", tailId.BlockNum())
-				} else {
-					sabft.log.Debug("[SABFT TriggerSync]: not found:", errTail )
-				}
-			}
-			sabft.log.Info("[SABFT] pushed a block that is detached or off-main-branch, head block: ", head.Id())
-			return nil
-		} else if head != nil && newHead.Previous() != head.Id() {
-			sabft.log.Debug("[SABFT] start to switch fork.")
-			switchSuccess := sabft.switchFork(head.Id(), newHead.Id())
-			if !switchSuccess {
-				sabft.log.Error("[SABFT] there's an error while switching to new branch. new head", newHead.Id())
-			}
-			return nil
-		}
-	*/
 
 	if applyStateDB {
 		if err := sabft.applyBlock(b); err != nil {
@@ -937,20 +905,15 @@ func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 		return ErrInternal
 	}
 	if blkMain.Id() != blockID {
-		// Committing a block off the main branch, we don't just switch fork here. Instead we
-		// abort the commit process and let the fork branch out grows the current branch
 		sabft.log.Error("[SABFT] committing a forked block", blockID, " main:", blkMain.Id())
 
-		return ErrCommittingBlockOnFork
-		/*
-			switchSuccess := sabft.switchFork(sabft.ForkDB.Head().Id(), blockID)
-			if !switchSuccess {
-				return ErrSwitchFork
-			}
-			// also need to reset new head
-			// fixme: find the real head of the branch we just switched on
-			sabft.ForkDB.ResetHead(blockID)
-		*/
+		switchSuccess := sabft.switchFork(sabft.ForkDB.Head().Id(), blockID)
+		if !switchSuccess {
+			return ErrSwitchFork
+		}
+		// also need to reset new head
+		sabft.ForkDB.ResetHead(blockID)
+		sabft.ForkDB.PurgeBranch()
 	}
 
 	blks, _, err := sabft.ForkDB.FetchBlocksSince(sabft.ForkDB.LastCommitted())
@@ -1438,6 +1401,6 @@ func (sabft *SABFT) handleBlockSync() error {
 	return err
 }
 
-func (d *SABFT) CheckSyncFinished() bool{
+func (d *SABFT) CheckSyncFinished() bool {
 	return d.readyToProduce
 }
