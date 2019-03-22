@@ -159,7 +159,7 @@ func NewSABFT(ctx *node.ServiceContext, lg *logrus.Logger) *SABFT {
 		name: ret.Name,
 	}
 	ret.bft = gobft.NewCore(ret, ret.priv)
-	ret.bft.SetLogLevel(3)
+	ret.bft.SetLogger(ret.log)
 	ret.log.Info("[SABFT bootstrap] ", ctx.Config().Consensus.BootStrap)
 	ret.appState = &message.AppState{
 		LastHeight:       0,
@@ -567,11 +567,9 @@ func (sabft *SABFT) Push(msg interface{}) {
 			sabft.bft.RecvMsg(msg)
 		}
 	case *message.Commit:
-		if !sabft.readyToProduce || !sabft.IsValidator(message.PubKey(sabft.Name)) {
-			go func() {
-				sabft.commitCh <- *msg
-			}()
-		}
+		go func() {
+			sabft.commitCh <- *msg
+		}()
 	default:
 	}
 }
@@ -652,6 +650,12 @@ func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 		return
 	}
 
+	// if we're a validator, pass it to gobft so that it can catch up
+	if sabft.IsValidator(message.PubKey(sabft.Name)) {
+		sabft.bft.RecvMsg(records)
+		return
+	}
+
 	// make sure we have the block about to be committed
 	if sabft.ForkDB.Empty() || sabft.ForkDB.Head().Id().BlockNum() < newID.BlockNum() {
 		return
@@ -664,6 +668,7 @@ func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 
 	sabft.Commit(records)
 }
+
 //
 //func (sabft *SABFT) PushTransaction(trx common.ISignedTransaction, wait bool, broadcast bool) common.ITransactionReceiptWithInfo {
 //
@@ -731,7 +736,7 @@ func (sabft *SABFT) PushTransactionToPending(trx common.ISignedTransaction) erro
 		chanError <- err
 	}
 
-	return <- chanError
+	return <-chanError
 }
 
 func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
@@ -752,7 +757,7 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 
 	if newNum > headNum+1 {
 
-		if sabft.readyToProduce{
+		if sabft.readyToProduce {
 			sabft.p2p.FetchUnlinkedBlock(b.Previous())
 			sabft.log.Debug("[SABFT TriggerSync]: out-of range from ", b.Previous().BlockNum())
 		}
@@ -1361,7 +1366,7 @@ func (sabft *SABFT) MaybeProduceBlock() {
 	sabft.Unlock()
 
 	go func() {
-		time.Sleep( time.Duration( 0 * time.Duration(rand.Int() % 13) * time.Second / 10 ) )
+		time.Sleep(time.Duration(0 * time.Duration(rand.Int()%13) * time.Second / 10))
 		sabft.p2p.Broadcast(b)
 	}()
 	//sabft.p2p.Broadcast(b)
