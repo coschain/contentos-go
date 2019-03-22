@@ -410,6 +410,7 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 	ma := NewMultiTrxsApplier(c.db, func(db iservices.IDatabaseRW, trx *prototype.EstimateTrxResult) {
 		c.applyTransactionOnDb(db, trx, false)
 	})
+	lastIdx := len(c.pendingTx) - 1
 	for k, trxWraper := range c.pendingTx {
 		if isFinish {
 			c.log.Warn("[trxpool] Generate block timeout, total pending: ", len(c.pendingTx) )
@@ -427,7 +428,7 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 
 		estTrx = append(estTrx, trxWraper)
 		estTrxIdx = append(estTrxIdx, k)
-		if len(estTrx) != batchCount {
+		if len(estTrx) != batchCount && k != lastIdx {
 			continue
 		}
 		ma.Apply(estTrx)
