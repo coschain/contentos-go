@@ -10,6 +10,12 @@ import (
 )
 
 func main() {
+
+	if len(os.Args) != 4{
+		fmt.Println("params count error\n Example: pressuretest thread-count basename privateKey")
+		return
+	}
+
 	walletCnt, err := strconv.Atoi(os.Args[1])
 	if err != nil {
 		fmt.Println("param error: ", err)
@@ -18,7 +24,7 @@ func main() {
 	fmt.Println("robot count: ", walletCnt)
 
 	// create 10 accounts initminer1 ... initminer10 and initminer post 10 articles
-	request.InitEnv()
+	request.InitEnv( os.Args[2], os.Args[3])
 	fmt.Println("init base enviroment over")
 
 	for i:=0;i<walletCnt;i++ {

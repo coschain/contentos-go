@@ -59,10 +59,10 @@ var Wg = &sync.WaitGroup{}
 var Mu = &sync.RWMutex{}
 var StopSig = false
 
-func InitEnv() {
+func InitEnv( baseName string, privKey string) {
 	obj := &wallet.PrivAccount{
 		Account: wallet.Account{Name: "initminer", PubKey: constants.InitminerPubKey},
-		PrivKey: constants.InitminerPrivKey,
+		PrivKey: privKey,
 	}
 	GlobalAccountLIst.arr = append(GlobalAccountLIst.arr, obj)
 
@@ -76,7 +76,7 @@ func InitEnv() {
 	rpcClient := grpcpb.NewApiServiceClient(conn)
 
 	for i:=1;i<=INIT_ACCOUNT_LENGTH-1;i++ {
-		createAccount(localWallet, rpcClient, GlobalAccountLIst.arr[0], fmt.Sprintf("baseaccount%d", i))
+		createAccount(localWallet, rpcClient, GlobalAccountLIst.arr[0], fmt.Sprintf("%s%d", baseName, i))
 	}
 	if len(GlobalAccountLIst.arr) < INIT_ACCOUNT_LENGTH {
 		fmt.Println("init account list failed, account list length: ", len(GlobalAccountLIst.arr))
