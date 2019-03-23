@@ -116,26 +116,41 @@ message AccountResponse {
     WitnessResponse                         witness         = 6;
     ChainState                              state           = 7;
     uint32                                  post_count      = 8;
+    uint32                                  follower_count    = 9;
+    uint32                                  following_count   = 10;
 }
 
 message GetFollowerListByNameRequest {
     prototype.follower_created_order    start = 1;
     prototype.follower_created_order    end   = 2;
     uint32                              limit = 3;
+    prototype.follower_created_order    last_order = 4;
+}
+
+message FollowerListInfo {
+    AccountResponse                     account = 1;
+    prototype.follower_created_order    create_order = 2;
 }
 
 message GetFollowerListByNameResponse {
-    repeated prototype.account_name follower_list = 1;
+    repeated FollowerListInfo follower_list = 1;
 }
 
 message GetFollowingListByNameRequest {
     prototype.following_created_order   start = 1;
     prototype.following_created_order   end   = 2;
     uint32                              limit = 3;
+    prototype.following_created_order   last_order = 4;
 }
 
+message FollowingListInfo {
+    AccountResponse                    account = 1;
+    prototype.following_created_order  create_order = 2;
+}
+
+
 message GetFollowingListByNameResponse {
-    repeated prototype.account_name following_list = 1;
+    repeated FollowingListInfo following_list = 1;
 }
 
 message GetFollowCountByNameRequest {
