@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/coschain/contentos-go/cmd/wallet-cli/wallet"
 	"github.com/coschain/contentos-go/common"
-	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/rpc"
 	"github.com/coschain/contentos-go/rpc/pb"
 	"math/rand"
@@ -59,9 +58,9 @@ var Wg = &sync.WaitGroup{}
 var Mu = &sync.RWMutex{}
 var StopSig = false
 
-func InitEnv( baseName string, privKey string) {
+func InitEnv( baseName string, accountName string, publicKey string, privKey string, ) {
 	obj := &wallet.PrivAccount{
-		Account: wallet.Account{Name: "initminer", PubKey: constants.InitminerPubKey},
+		Account: wallet.Account{Name: accountName, PubKey: publicKey},
 		PrivKey: privKey,
 	}
 	GlobalAccountLIst.arr = append(GlobalAccountLIst.arr, obj)
