@@ -318,8 +318,25 @@ func (ev *VoteEvaluator) Apply() {
 	}
 }
 
+func (ev *BpRegisterEvaluator) BpInWhiteList(bpName string) bool {
+	switch bpName {
+	case "initminer1":
+		return true
+	case "initminer2":
+		return true
+	case "initminer3":
+		return true
+	case "initminer4":
+		return true
+	}
+	return false
+}
+
 func (ev *BpRegisterEvaluator) Apply() {
 	op := ev.op
+
+	opAssert(ev.BpInWhiteList(op.Owner.Value), "bp name not in white list")
+
 	witnessWrap := table.NewSoWitnessWrap(ev.ctx.db, op.Owner)
 
 	opAssert(!witnessWrap.CheckExist(), "witness already exist")
