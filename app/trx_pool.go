@@ -189,17 +189,16 @@ func (c *TrxPool) checkTrxValid(trx *prototype.SignedTransaction, doVerifySig bo
 
 func (c *TrxPool) addTrxToPending(trx *prototype.SignedTransaction, isVerified bool) {
 
-	if !c.havePendingTransaction {
-		c.db.BeginTransaction()
-		c.havePendingTransaction = true
-	}
-
 	c.checkTrxValid( trx, !isVerified )
 
 	trxWrp := &prototype.EstimateTrxResult{}
 	trxWrp.SigTrx = trx
 	trxWrp.Receipt = &prototype.TransactionReceiptWithInfo{}
 
+	if !c.havePendingTransaction {
+		c.db.BeginTransaction()
+		c.havePendingTransaction = true
+	}
 	c.pendingTx = append(c.pendingTx, trxWrp)
 }
 
