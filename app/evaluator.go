@@ -161,6 +161,9 @@ func (ev *TransferEvaluator) Apply() {
 
 	opAssert(toWrap.CheckExist(), "To account do not exist ")
 
+	opAssert( op.From.Value != op.To.Value , "Transfer must between two different accounts")
+
+
 	fBalance := fromWrap.GetBalance()
 	tBalance := toWrap.GetBalance()
 
