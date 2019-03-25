@@ -99,7 +99,7 @@ func (rt *RandTransfer) do() {
 		}
 	}
 
-	transferCount := rt.threads * 1000
+	transferCount := rt.threads * 5000
 	fmt.Printf("generating %d random transfer trxs\n", transferCount)
 	state, err := utils.GetChainState(rt.client)
 	if err != nil {
