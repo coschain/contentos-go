@@ -151,14 +151,14 @@ func (c *TrxPool) addTrxToPending(trx *prototype.SignedTransaction, isVerified b
 	trxWrp.SigTrx = trx
 	trxWrp.Receipt = &prototype.TransactionReceiptWithInfo{}
 
-	if !isVerified {
-		//verify the signature
-		trxContext := NewTrxContext(trxWrp, c.db)
-		trx.Validate()
-		tmpChainId := prototype.ChainId{Value: 0}
-		mustNoError(trxContext.InitSigState(tmpChainId), "signature export error")
-		trxContext.VerifySignature()
-	}
+	//if !isVerified {
+	//	//verify the signature
+	//	trxContext := NewTrxContext(trxWrp, c.db)
+	//	trx.Validate()
+	//	tmpChainId := prototype.ChainId{Value: 0}
+	//	mustNoError(trxContext.InitSigState(tmpChainId), "signature export error")
+	//	trxContext.VerifySignature()
+	//}
 	c.pendingTx = append(c.pendingTx, trxWrp)
 }
 
@@ -496,9 +496,9 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 	}
 
 	t4 := time.Now()
-	c.log.Debugf("GENBLOCK: %v|%v|%v(%v)|%v|%v, pending=%d, failed=%d, postponed=%d\n",
+	c.log.Debugf("GENBLOCK: %v|%v|%v(%v)|%v|%v, pending=%d, inblk=%d, failed=%d\n",
 		t4.Sub(t0), t1.Sub(t0), t2.Sub(t1), time.Duration(applyTime), t3.Sub(t2), t4.Sub(t3),
-		lastIdx + 1, len(failTrxMap), postponeTrx)
+		lastIdx + 1, len(signBlock.Transactions), len(failTrxMap))
 
 	b, e = signBlock, nil
 	return
@@ -707,12 +707,12 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 	// @ update_last_irreversible_block
 	c.createBlockSummary(blk)
 	t3 := time.Now()
-	c.clearExpiredTransactions()
+	//c.clearExpiredTransactions()
 	t4 := time.Now()
 	// @ ...
 
 	// @ notify_applied_block
-	c.notifyBlockApply(blk)
+	//c.notifyBlockApply(blk)
 	t5 := time.Now()
 
 	c.log.Debugf("AFTER_BLOCK: %v|%v|%v|%v|%v|%v\n", t5.Sub(t0), t1.Sub(t0), t2.Sub(t1), t3.Sub(t2), t4.Sub(t3), t5.Sub(t4))
