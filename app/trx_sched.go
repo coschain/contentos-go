@@ -114,6 +114,10 @@ func (s PropBasedTrxScheduler) schedule(count int, trxGetter func(idx int)*proto
 	// if we got only 1 sub-group, just return nil, which means on concurrency.
 	if len(groups) == 1 {
 		groups = nil
+	} else if len(groups[0]) == 0 {
+		// groups[0] is for dependent trxs
+		// if all trxs are independent, groups[0] will remain nil.
+		groups = groups[1:]
 	}
 	return groups
 }
