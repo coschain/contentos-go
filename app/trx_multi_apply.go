@@ -18,7 +18,7 @@ func NewMultiTrxsApplier(db iservices.IDatabaseService, singleApplier func(iserv
 	return &MultiTrxsApplier{
 		db: db,
 		singleApplier: singleApplier,
-		sched: DefaultTrxScheduler{},
+		sched: PropBasedTrxScheduler{},
 	}
 }
 
