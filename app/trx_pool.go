@@ -368,6 +368,8 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 		witnessName := c.GetScheduledWitness(slotNum)
 		mustSuccess(witnessName.Value == witness,"not this witness")*/
 
+	t0 := time.Now()
+
 	pubkey, err := priKey.PubKey()
 	mustNoError(err, "get public key error")
 
@@ -411,6 +413,10 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 		c.applyTransactionOnDb(db, trx, false)
 	})
 	lastIdx := len(c.pendingTx) - 1
+
+	t1 := time.Now()
+
+	applyTime := int64(0)
 	for k, trxWraper := range c.pendingTx {
 		if isFinish {
 			c.log.Warn("[trxpool] Generate block timeout, total pending: ", len(c.pendingTx) )
@@ -431,7 +437,9 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 		if len(estTrx) != batchCount && k != lastIdx {
 			continue
 		}
+		t00 := time.Now()
 		ma.Apply(estTrx)
+		applyTime += int64(time.Now().Sub(t00))
 		for i, result := range estTrx {
 			if result.Receipt.Status == prototype.StatusError {
 				failTrxMap[estTrxIdx[i]] = estTrxIdx[i]
@@ -446,6 +454,8 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 	if postponeTrx > 0 {
 		c.log.Warnf("[trxpool] postponed %d trx due to max block size", postponeTrx)
 	}
+
+	t2 := time.Now()
 
 	signBlock.SignedHeader.Header.Previous = pre
 	signBlock.SignedHeader.Header.Timestamp = &prototype.TimePointSec{UtcSeconds: timestamp}
@@ -471,6 +481,8 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 	} else {
 		c.db.EndTransaction(false)
 	}*/
+
+	t3 := time.Now()
 	if len(failTrxMap) > 0 {
 		copyPending := make([]*prototype.EstimateTrxResult, 0, len(c.pendingTx))
 		for k, v := range c.pendingTx {
@@ -482,6 +494,12 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 		c.pendingTx = append(c.pendingTx, copyPending...)
 
 	}
+
+	t4 := time.Now()
+	c.log.Debugf("GENBLOCK: %v|%v|%v(%v)|%v|%v, pending=%d, failed=%d, postponed=%d\n",
+		t4.Sub(t0), t1.Sub(t0), t2.Sub(t1), time.Duration(applyTime), t3.Sub(t2), t4.Sub(t3),
+		lastIdx + 1, len(failTrxMap), postponeTrx)
+
 	b, e = signBlock, nil
 	return
 }
@@ -680,16 +698,24 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 		}
 	}
 
+	t0 := time.Now()
 	c.updateGlobalProperties(blk)
+	t1 := time.Now()
 	//c.updateSigningWitness(blk)
 	c.shuffle(blk)
+	t2 := time.Now()
 	// @ update_last_irreversible_block
 	c.createBlockSummary(blk)
+	t3 := time.Now()
 	c.clearExpiredTransactions()
+	t4 := time.Now()
 	// @ ...
 
 	// @ notify_applied_block
 	c.notifyBlockApply(blk)
+	t5 := time.Now()
+
+	c.log.Debugf("AFTER_BLOCK: %v|%v|%v|%v|%v|%v\n", t5.Sub(t0), t1.Sub(t0), t2.Sub(t1), t3.Sub(t2), t4.Sub(t3), t5.Sub(t4))
 }
 
 func (c *TrxPool) ValidateAddress(name string, pubKey *prototype.PublicKeyType) bool {
