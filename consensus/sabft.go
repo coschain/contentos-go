@@ -669,39 +669,6 @@ func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 	sabft.Commit(records)
 }
 
-//
-//func (sabft *SABFT) PushTransaction(trx common.ISignedTransaction, wait bool, broadcast bool) common.ITransactionReceiptWithInfo {
-//
-//	if !sabft.readyToProduce {
-//
-//	}
-//
-//	var waitChan chan common.ITransactionReceiptWithInfo
-//
-//	if wait {
-//		waitChan = make(chan common.ITransactionReceiptWithInfo)
-//	}
-//
-//	sabft.trxCh <- func() {
-//		ret := sabft.ctrl.PushTrxToPending(trx.(*prototype.SignedTransaction))
-//
-//		if wait {
-//			waitChan <- ret
-//		}
-//		//if ret.IsSuccess() {
-//		//	if broadcast {
-//		//sabft.log.Debug("SABFT Broadcast trx.")
-//		sabft.p2p.Broadcast(trx.(*prototype.SignedTransaction))
-//		//	}
-//		//}
-//	}
-//	if wait {
-//		return <-waitChan
-//	} else {
-//		return nil
-//	}
-//}
-
 func (sabft *SABFT) validateProducer(b common.ISignedBlock) bool {
 	slot := sabft.getSlotAtTime(time.Unix(int64(b.Timestamp()), 0))
 	validProducer := sabft.getScheduledProducer(slot)
@@ -731,7 +698,7 @@ func (sabft *SABFT) PushTransactionToPending(trx common.ISignedTransaction) erro
 	sabft.pendingCh <- func() {
 		err := sabft.ctrl.PushTrxToPending(trx.(*prototype.SignedTransaction))
 		if err == nil {
-			sabft.p2p.Broadcast(trx.(*prototype.SignedTransaction))
+			go sabft.p2p.Broadcast(trx.(*prototype.SignedTransaction))
 		}
 		chanError <- err
 	}
@@ -1345,7 +1312,7 @@ func (sabft *SABFT) handleBlockSync() error {
 	//Fetch the commit block num in db
 	dbCommit, err := sabft.ctrl.GetCommitBlockNum()
 
-	sabft.log.Debugf("[sync pushed]: dbCommit: %v, %v, %v",
+	sabft.log.Debugf("[sync pushed]: progress 1: dbCommit: %v, %v, %v",
 		dbCommit, lastCommit, err)
 
 	if err != nil {
@@ -1372,33 +1339,33 @@ func (sabft *SABFT) handleBlockSync() error {
 		}
 	}
 
-	// TODO if dbCommit > latestNumber then revert statedb to latestNumber
-
-	//2.sync pushed blocks
-	//Fetch pushed blocks in snapshot
-	//pSli, _, err := sabft.ForkDB.FetchBlocksSince(sabft.ForkDB.LastCommitted())
-
 	dbCommit, err = sabft.ctrl.GetCommitBlockNum()
 	latestNumber := sabft.ForkDB.Head().Id().BlockNum()
 
-	sabft.log.Debugf("[sync pushed 2]: dbCommit: %v, %v, %v",
+	sabft.log.Debugf("[sync pushed]: progress 2: dbCommit: %v, %v, %v",
 		dbCommit, latestNumber, err)
 
-	if err != nil {
-		return err
+	if dbCommit < latestNumber {
+		pSli, err := sabft.FetchBlocks(dbCommit+1, latestNumber+1)
+		if err != nil {
+			return err
+		}
+		if len(pSli) > 0 {
+			sabft.log.Debugf("[sync pushed]: start sync uncommitted blocks,start: %v,end:%v, count: %v",
+				dbCommit+1, sabft.ForkDB.Head().Id().BlockNum(), len(pSli))
+			err = sabft.ctrl.SyncPushedBlocksToDB(pSli)
+		}
+		return nil
+
+	} else if dbCommit > latestNumber {
+
+		sabft.log.Infof("[Revert commit] start revert invalid commit to statedb: "+
+			"%v,end:%v,real commit num is %v", dbCommit, latestNumber)
+
+		sabft.ctrl.PopBlock(latestNumber)
 	}
 
-	pSli, err := sabft.FetchBlocks(dbCommit+1, latestNumber+1)
-	if err != nil {
-		return err
-	}
-	if len(pSli) > 0 {
-		sabft.log.Debugf("[sync pushed2]: start sync lost blocks,start: %v,end:%v, count: %v",
-			dbCommit+1, sabft.ForkDB.Head().Id().BlockNum(), len(pSli))
-		err = sabft.ctrl.SyncPushedBlocksToDB(pSli)
-	}
-
-	return err
+	return nil
 }
 
 func (d *SABFT) CheckSyncFinished() bool {
