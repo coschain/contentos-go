@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	randAccounts = 10000
+	randAccounts = 5000
 )
 
 var RandomTransferCmd = func() *cobra.Command {
@@ -76,7 +76,7 @@ func (rt *RandTransfer) do() {
 	)
 
 	fmt.Printf("create/fund %d random accounts: %s%d - %s%d\n", randAccounts, rt.prefix, 0, rt.prefix, randAccounts-1)
-	groupSize := 100
+	groupSize := 200
 	for i := 0; i < randAccounts; i+=groupSize {
 		d := randAccounts - i
 		if d > groupSize {
@@ -99,37 +99,49 @@ func (rt *RandTransfer) do() {
 		}
 	}
 
-	fmt.Printf("random transfers with %d threads\n", rt.threads)
-	wg.Add(rt.threads)
-	for i := 0; i < rt.threads; i++ {
-		go func() {
+	transferCount := rt.threads * 1000
+	fmt.Printf("generating %d random transfer trxs\n", transferCount)
+	state, err := utils.GetChainState(rt.client)
+	if err != nil {
+		return
+	}
+	trxs = make([]*prototype.SignedTransaction, transferCount)
+	for i := 0; i < transferCount; i++ {
+		a, b := 0, 0
+		for a == b {
+			a, b = rand.Intn(randAccounts), rand.Intn(randAccounts)
+		}
+		from := fmt.Sprintf("%s%d", rt.prefix, a)
+		to := fmt.Sprintf("%s%d", rt.prefix, b)
+		op := &prototype.TransferOperation{
+			From:   &prototype.AccountName{Value: from},
+			To:     &prototype.AccountName{Value: to},
+			Amount: prototype.NewCoin(1),
+			Memo:   randStr(8),
+		}
+		trx, err := utils.GenerateSignedTxAndValidate4(state.Dgpo, 30, []interface{}{op}, keys[from])
+		if err != nil {
+			fmt.Printf("failed generating transfer trx %s -> %s: %s\n", from, to, err.Error())
+			return
+		}
+		trxs[i] = trx
+	}
+
+	threads := rt.threads
+	threadJobs := transferCount / threads
+	fmt.Printf("sending transfers with %d threads\n", threads)
+	wg.Add(threads)
+	for i := 0; i < threads; i++ {
+		go func(idx int) {
 			defer wg.Done()
-			for i := 0; i < 1000; i++ {
-				a, b := 0, 0
-				for a == b {
-					a, b = rand.Intn(randAccounts), rand.Intn(randAccounts)
-				}
-				from := fmt.Sprintf("%s%d", rt.prefix, a)
-				to := fmt.Sprintf("%s%d", rt.prefix, b)
-				err, tx := rt.transfer(from, to, keys[from])
-				if err != nil {
-					fmt.Printf("failed generating transfer trx %s -> %s: %s\n", from, to, err.Error())
-					break
-				}
-				res, err := rt.client.BroadcastTrx(context.Background(), &grpcpb.BroadcastTrxRequest{
-					Transaction: tx,
+			base := idx * threadJobs
+			for i := 0; i < threadJobs; i++ {
+				rt.client.BroadcastTrx(context.Background(), &grpcpb.BroadcastTrxRequest{
+					Transaction: trxs[base + i],
 					OnlyDeliver: true,
 				})
-				if err != nil {
-					fmt.Printf("%s->%s: %v\n", from, to, err.Error())
-					break
-				}
-				if res.Status != prototype.StatusSuccess {
-					fmt.Printf("%s->%s: %v\n", from, to, res)
-					break
-				}
 			}
-		}()
+		}(i)
 	}
 	wg.Wait()
 }
@@ -185,18 +197,4 @@ func (rt *RandTransfer) createAndFundAccount(account string) (error, *prototype.
 		return err, nil, nil
 	}
 	return nil, trx, prvKey
-}
-
-func (rt *RandTransfer) transfer(from, to string, fromKey *prototype.PrivateKeyType) (error, *prototype.SignedTransaction) {
-	op := &prototype.TransferOperation{
-		From:   &prototype.AccountName{Value: from},
-		To:     &prototype.AccountName{Value: to},
-		Amount: prototype.NewCoin(1),
-		Memo:   randStr(8),
-	}
-	trx, err := utils.GenerateSignedTxAndValidate3(rt.client, []interface{}{op}, fromKey)
-	if err != nil {
-		return err, nil
-	}
-	return nil, trx
 }
