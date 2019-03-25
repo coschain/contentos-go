@@ -69,7 +69,7 @@ func (as *APIService) GetAccountByName(ctx context.Context, req *grpcpb.GetAccou
 	as.db.RLock()
 	defer as.db.RUnlock()
 
-	acct := as.getAccountInfoByName(req.GetAccountName(),false,true);
+	acct := as.getAccountResponseByName(req.GetAccountName(),false)
 
 	return acct, nil
 
@@ -121,10 +121,12 @@ func (as *APIService) GetFollowerListByName(ctx context.Context, req *grpcpb.Get
 		func(mVal *prototype.FollowerRelation, sVal *prototype.FollowerCreatedOrder, idx uint32) bool {
 			if mVal != nil {
 				acctInfo := &grpcpb.FollowerListInfo{}
-				acct := as.getAccountInfoByName(mVal.Follower,false,false)
-				acctInfo.Account = acct
-				acctInfo.CreateOrder = sVal
-				ferList = append(ferList,acctInfo)
+				acct := as.getAccountResponseByName(mVal.Follower,false)
+				if acct != nil {
+					acctInfo.Account = acct
+					acctInfo.CreateOrder = sVal
+					ferList = append(ferList,acctInfo)
+				}
 			}
 			if uint32(len(ferList)) < limit {
 				return true
@@ -165,10 +167,12 @@ func (as *APIService) GetFollowingListByName(ctx context.Context, req *grpcpb.Ge
 		func(mVal *prototype.FollowingRelation, sVal *prototype.FollowingCreatedOrder, idx uint32) bool {
 			if mVal != nil {
 				acctInfo := &grpcpb.FollowingListInfo{}
-				acct := as.getAccountInfoByName(mVal.Following,false,false)
-				acctInfo.Account = acct
-				acctInfo.CreateOrder = sVal
-				fingList = append(fingList,acctInfo)
+				acct := as.getAccountResponseByName(mVal.Following,false)
+				if acct != nil {
+					acctInfo.Account = acct
+					acctInfo.CreateOrder = sVal
+					fingList = append(fingList,acctInfo)
+				}
 			}
 			if uint32(len(fingList)) < limit {
 				return true
@@ -527,29 +531,8 @@ func (as *APIService) GetAccountListByBalance(ctx context.Context, req *grpcpb.G
 	}
 	if sortWrap != nil {
 		err = sortWrap.ForEachByRevOrder(req.Start, req.End, lastAcctNam, lastAcctCoin, func(mVal *prototype.AccountName, sVal *prototype.Coin, idx uint32) bool {
-			acct := &grpcpb.AccountResponse{}
-			accWrap := table.NewSoAccountWrap(as.db, mVal)
-			if accWrap != nil {
-				acct.AccountName = &prototype.AccountName{Value: mVal.Value}
-				acct.Coin = accWrap.GetBalance()
-				acct.Vest = accWrap.GetVestingShares()
-				acct.CreatedTime = accWrap.GetCreatedTime()
-				acct.PostCount = accWrap.GetPostCount()
-				witWrap := table.NewSoWitnessWrap(as.db, mVal)
-				if witWrap != nil && witWrap.CheckExist() {
-					acct.Witness = &grpcpb.WitnessResponse{
-						Owner:                 witWrap.GetOwner(),
-						CreatedTime:           witWrap.GetCreatedTime(),
-						Url:                   witWrap.GetUrl(),
-						LastConfirmedBlockNum: witWrap.GetLastConfirmedBlockNum(),
-						TotalMissed:           witWrap.GetTotalMissed(),
-						VoteCount:             witWrap.GetVoteCount(),
-						SigningKey:            witWrap.GetSigningKey(),
-						LastWork:              witWrap.GetLastWork(),
-						RunningVersion:        witWrap.GetRunningVersion(),
-					}
-				}
-				acct.State = as.getState()
+			acct := as.getAccountResponseByName(mVal,false)
+			if acct != nil {
 				list = append(list, acct)
 			}
 			if uint32(len(list)) >= limit {
@@ -859,24 +842,25 @@ func (as *APIService) GetPostListByName(ctx context.Context, req *grpcpb.GetPost
 	return res, err
 }
 
-func (as *APIService) getAccountInfoByName(name *prototype.AccountName, isNeedLock bool, isGetChainState bool) *grpcpb.AccountResponse {
+func (as *APIService) getAccountResponseByName(name *prototype.AccountName, isNeedLock bool) *grpcpb.AccountResponse {
 	if isNeedLock {
 		as.db.RLock()
 		defer as.db.RUnlock()
 	}
 	accWrap := table.NewSoAccountWrap(as.db, name)
 	acct := &grpcpb.AccountResponse{}
+	acctInfo := &grpcpb.AccountInfo{}
 
 	if accWrap != nil && accWrap.CheckExist() {
-		acct.AccountName = &prototype.AccountName{Value: accWrap.GetName().Value}
-		acct.Coin = accWrap.GetBalance()
-		acct.Vest = accWrap.GetVestingShares()
-		acct.CreatedTime = accWrap.GetCreatedTime()
-		acct.PostCount = accWrap.GetPostCount()
+		acctInfo.AccountName = &prototype.AccountName{Value: accWrap.GetName().Value}
+		acctInfo.Coin = accWrap.GetBalance()
+		acctInfo.Vest = accWrap.GetVestingShares()
+		acctInfo.CreatedTime = accWrap.GetCreatedTime()
+		acctInfo.PostCount = accWrap.GetPostCount()
 
 		witWrap := table.NewSoWitnessWrap(as.db, accWrap.GetName())
 		if witWrap != nil && witWrap.CheckExist() {
-			acct.Witness = &grpcpb.WitnessResponse{
+			acctInfo.Witness = &grpcpb.WitnessResponse{
 				Owner:                 witWrap.GetOwner(),
 				CreatedTime:           witWrap.GetCreatedTime(),
 				Url:                   witWrap.GetUrl(),
@@ -892,18 +876,20 @@ func (as *APIService) getAccountInfoByName(name *prototype.AccountName, isNeedLo
 		keyWrap := table.NewSoAccountAuthorityObjectWrap(as.db, name)
 
 		if keyWrap.CheckExist() {
-			acct.PublicKey = keyWrap.GetOwner().GetKey()
+			acctInfo.PublicKey = keyWrap.GetOwner().GetKey()
 		}
 
 		followWrap := table.NewSoExtFollowCountWrap(as.db, name)
 		if followWrap != nil && followWrap.CheckExist() {
-			acct.FollowerCount = followWrap.GetFollowerCnt()
-			acct.FollowingCount = followWrap.GetFollowingCnt()
+			acctInfo.FollowerCount = followWrap.GetFollowerCnt()
+			acctInfo.FollowingCount = followWrap.GetFollowingCnt()
 		}
-
-	}
-	if isGetChainState {
+		acct.Info = acctInfo
 		acct.State = as.getState()
+
+	}else {
+		return nil
 	}
+
 	return acct
 }
