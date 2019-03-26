@@ -406,7 +406,7 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 	})
 	failTrxMap := make(map[int]int)
 
-	const batchCount = 128
+	const batchCount = 64
 	estTrx := make([]*prototype.EstimateTrxResult, 0, batchCount)
 	estTrxIdx := make([]int, 0, batchCount)
 	ma := NewMultiTrxsApplier(c.db, func(db iservices.IDatabaseRW, trx *prototype.EstimateTrxResult) {
