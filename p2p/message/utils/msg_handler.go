@@ -205,16 +205,11 @@ func (p *MsgHandler)TransactionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, ar
 		log.Error("[p2p] peer is not exist: ", data.Addr)
 		return
 	}
-	var hash [msgCommon.HASH_LENGTH]byte
-	copy(hash[:], id.Hash[:])
-	if remotePeer.SendTrxCache.Contains(hash) || remotePeer.RecvTrxCache.Contains(hash) {
+	if remotePeer.HasTrx(id.Hash) {
 		//log.Info("[p2p] we alerady have this transaction, transaction hash: ", id.Hash)
 		return
 	}
-	if remotePeer.RecvTrxCache.Cardinality() > msgCommon.MAX_TRX_CACHE {
-		remotePeer.RecvTrxCache.Pop()
-	}
-	remotePeer.RecvTrxCache.Add(hash)
+	remotePeer.RecordTrxCache(id.Hash)
 
 	s, err := p2p.GetService(iservices.ConsensusServerName)
 	if err != nil {

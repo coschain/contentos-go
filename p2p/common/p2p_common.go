@@ -76,11 +76,11 @@ const (
 )
 
 const (
-	MAX_TRX_CACHE = 2048   // the max trx hash cached in p2p
-	HASH_LENGTH = 64       // byte array length of each trx hash
+	MaxTrxCountInBloomFiler       = 1000000    // max cache trx count
+	BloomFilterOfRecvTrxArgM      = 14377588   // bloom filter bit size
+	BloomFilterOfRecvTrxArgK      = 10         // bloom filter hash func num
 
 	MAX_ID_LENGTH = 50   // max id length in require id ack message
-	MAX_ROUTINE_NUM = 50 // max goroutine number
 )
 
 //ParseIPAddr return ip address
