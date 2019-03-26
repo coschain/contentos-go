@@ -21,19 +21,15 @@ func (this *NbrPeers) Broadcast(mesg types.Message, isConsensus bool, magic uint
 
 	if data, ok := mesg.(*types.TransferMsg); ok {
 		if msgdata, ok := data.Msg.(*types.TransferMsg_Msg1); ok {
-			var hash [common.HASH_LENGTH]byte
 			id, _ := msgdata.Msg1.SigTrx.Id()
-			copy(hash[:], id.Hash[:])
 			for _, node := range this.List {
 				if node.syncState == common.ESTABLISH && node.GetRelay() == true {
-					if node.SendTrxCache.Contains(hash) || node.RecvTrxCache.Contains(hash) {
-						continue
+					hasTrx := node.HasTrx(id.Hash)
+
+					if !hasTrx {
+						node.RecordTrxCache(id.Hash)
+						go node.Send(mesg, isConsensus, magic)
 					}
-					if node.SendTrxCache.Cardinality() > common.MAX_TRX_CACHE {
-						node.SendTrxCache.Pop()
-					}
-					node.SendTrxCache.Add(hash)
-					go node.Send(mesg, isConsensus, magic)
 				}
 			}
 		} else {

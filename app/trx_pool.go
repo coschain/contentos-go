@@ -401,7 +401,7 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 
 	var postponeTrx uint64 = 0
 	isFinish := false
-	time.AfterFunc(650*time.Millisecond, func() {
+	time.AfterFunc(700*time.Millisecond, func() {
 		isFinish = true
 	})
 	failTrxMap := make(map[int]int)

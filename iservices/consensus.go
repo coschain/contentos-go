@@ -66,4 +66,7 @@ type IConsensus interface {
 
 	// MaybeProduceBlock check whether should produce a block
 	MaybeProduceBlock()
+
+	// check whether sync progress is finished
+	CheckSyncFinished() bool
 }

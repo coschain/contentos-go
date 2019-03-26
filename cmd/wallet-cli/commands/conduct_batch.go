@@ -10,6 +10,7 @@ import (
 	"github.com/coschain/contentos-go/rpc/pb"
 	"github.com/coschain/contentos-go/rpc"
 	"os"
+	"strconv"
 	"strings"
 	"context"
 )
@@ -109,6 +110,33 @@ func conductBatch(cmd *cobra.Command, args []string) {
 			}
 
 			signTx, err = utils.GenerateSignedTxAndValidate2(client, []interface{}{bpRegister_op}, bpAccount)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+		case "transfer":
+			fromAccountName := cmdArgs[1]
+			fromAccountPubKeyStr := cmdArgs[2]
+			fromAccountPriKeyStr := cmdArgs[3]
+			toAccountName := cmdArgs[4]
+			amount, err := strconv.ParseUint(cmdArgs[5], 10, 64)
+			if err != nil {
+				panic(err)
+			}
+
+			fromAccount := &wallet.PrivAccount{
+				Account: wallet.Account{Name: fromAccountName, PubKey: fromAccountPubKeyStr},
+				PrivKey: fromAccountPriKeyStr,
+			}
+
+			transfer_op := &prototype.TransferOperation{
+				From:   &prototype.AccountName{Value: fromAccountName},
+				To:     &prototype.AccountName{Value: toAccountName},
+				Amount: prototype.NewCoin(amount),
+				Memo:   "",
+			}
+
+			signTx, err = utils.GenerateSignedTxAndValidate2(client, []interface{}{transfer_op}, fromAccount)
 			if err != nil {
 				fmt.Println(err)
 				return

@@ -7,8 +7,7 @@ require (
 	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e
 	github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1 // indirect
 	github.com/coschain/cobra v0.0.0-20181106130408-77bf516f51a1
-	github.com/coschain/gobft v0.0.0-20190311061626-9e4330321af1
-	github.com/deckarep/golang-set v1.7.1
+	github.com/coschain/gobft v0.0.0-20190322075930-942ff9d9760d
 	github.com/fastly/go-utils v0.0.0-20180712184237-d95a45783239 // indirect
 	github.com/go-interpreter/wagon v0.3.0
 	github.com/go-stack/stack v1.8.0 // indirect
@@ -43,15 +42,17 @@ require (
 	github.com/rs/cors v1.6.0
 	github.com/sasha-s/go-deadlock v0.2.0
 	github.com/sirupsen/logrus v1.2.0
+	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.3 // indirect
 	github.com/spf13/viper v1.2.1
 	github.com/stretchr/testify v1.2.2
 	github.com/syndtr/goleveldb v0.0.0-20181012014443-6b91fda63f2e
 	github.com/tebeka/strftime v0.0.0-20140926081919-3f9c7761e312 // indirect
 	github.com/tendermint/go-amino v0.14.1 // indirect
+	github.com/willf/bitset v1.1.10 // indirect
+	github.com/willf/bloom v2.0.3+incompatible
 	golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2
 	golang.org/x/net v0.0.0-20190311183353-d8887717615a
-	golang.org/x/tools v0.0.0-20190318200714-bb1270c20edf // indirect
 	google.golang.org/genproto v0.0.0-20181101192439-c830210a61df // indirect
 	google.golang.org/grpc v1.16.0
 )

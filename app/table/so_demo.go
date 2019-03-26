@@ -1436,7 +1436,7 @@ func NewDemoOwnerWrap(db iservices.IDatabaseRW) *SDemoOwnerWrap {
 }
 
 func (s *SDemoOwnerWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil || !iterator.Valid() {
+	if iterator == nil {
 		return
 	}
 	s.Dba.DeleteIterator(iterator)
@@ -1572,7 +1572,7 @@ func NewDemoPostTimeWrap(db iservices.IDatabaseRW) *SDemoPostTimeWrap {
 }
 
 func (s *SDemoPostTimeWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil || !iterator.Valid() {
+	if iterator == nil {
 		return
 	}
 	s.Dba.DeleteIterator(iterator)
@@ -1775,7 +1775,7 @@ func NewDemoLikeCountWrap(db iservices.IDatabaseRW) *SDemoLikeCountWrap {
 }
 
 func (s *SDemoLikeCountWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil || !iterator.Valid() {
+	if iterator == nil {
 		return
 	}
 	s.Dba.DeleteIterator(iterator)
@@ -1909,7 +1909,7 @@ func NewDemoIdxWrap(db iservices.IDatabaseRW) *SDemoIdxWrap {
 }
 
 func (s *SDemoIdxWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil || !iterator.Valid() {
+	if iterator == nil {
 		return
 	}
 	s.Dba.DeleteIterator(iterator)
@@ -2043,7 +2043,7 @@ func NewDemoReplayCountWrap(db iservices.IDatabaseRW) *SDemoReplayCountWrap {
 }
 
 func (s *SDemoReplayCountWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil || !iterator.Valid() {
+	if iterator == nil {
 		return
 	}
 	s.Dba.DeleteIterator(iterator)
@@ -2182,7 +2182,7 @@ func NewDemoTaglistWrap(db iservices.IDatabaseRW) *SDemoTaglistWrap {
 }
 
 func (s *SDemoTaglistWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil || !iterator.Valid() {
+	if iterator == nil {
 		return
 	}
 	s.Dba.DeleteIterator(iterator)

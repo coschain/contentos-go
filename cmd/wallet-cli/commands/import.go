@@ -67,7 +67,7 @@ func importAccount(cmd *cobra.Command, args []string) {
 	if err != nil {
 		fmt.Println(err)
 	} else {
-		pubkey := resp.PublicKey
+		pubkey := resp.Info.PublicKey
 		is_exist := pubKeyStr == pubkey.ToWIF()
 
 		// Todo: uncomment me

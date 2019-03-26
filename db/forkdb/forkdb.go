@@ -482,6 +482,22 @@ func (db *DB) Commit(id common.BlockID) {
 	db.purgeDetached(commitNum)
 }
 
+func (db *DB) PurgeBranch() {
+	db.Lock()
+	defer db.Unlock()
+
+	headNum := db.head.BlockNum()
+	for k := range db.branches {
+		if k.BlockNum() > headNum {
+			delete(db.branches, k)
+		}
+	}
+
+	for i := headNum + 1; i-db.start < defaultSize; i++ {
+		db.list[i-db.start] = nil
+	}
+}
+
 func (db *DB) fetchUnlinkBlockById(id common.BlockID) common.ISignedBlock {
 	for _, v := range db.detachedLink {
 		if v.Id() == id {

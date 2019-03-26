@@ -107,35 +107,54 @@ message AccountRewardResponse {
     prototype.vest reward = 2;
 }
 
-message AccountResponse {
+message AccountInfo {
     prototype.account_name                  account_name    = 1;
     prototype.coin                          coin            = 2;
     prototype.vest                          vest            = 3;
     prototype.public_key_type               public_key      = 4;
     prototype.time_point_sec                created_time    = 5;
     WitnessResponse                         witness         = 6;
-    ChainState                              state           = 7;
-    uint32                                  post_count      = 8;
+    uint32                                  post_count      = 7;
+    uint32                                  follower_count    = 8;
+    uint32                                  following_count   = 9;
+}
+
+message AccountResponse {
+    AccountInfo info = 1;
+    ChainState  state = 2;
 }
 
 message GetFollowerListByNameRequest {
     prototype.follower_created_order    start = 1;
     prototype.follower_created_order    end   = 2;
     uint32                              limit = 3;
+    prototype.follower_created_order    last_order = 4;
+}
+
+message FollowerListInfo {
+    AccountResponse                     account = 1;
+    prototype.follower_created_order    create_order = 2;
 }
 
 message GetFollowerListByNameResponse {
-    repeated prototype.account_name follower_list = 1;
+    repeated FollowerListInfo follower_list = 1;
 }
 
 message GetFollowingListByNameRequest {
     prototype.following_created_order   start = 1;
     prototype.following_created_order   end   = 2;
     uint32                              limit = 3;
+    prototype.following_created_order   last_order = 4;
 }
 
+message FollowingListInfo {
+    AccountResponse                    account = 1;
+    prototype.following_created_order  create_order = 2;
+}
+
+
 message GetFollowingListByNameResponse {
-    repeated prototype.account_name following_list = 1;
+    repeated FollowingListInfo following_list = 1;
 }
 
 message GetFollowCountByNameRequest {
@@ -292,7 +311,7 @@ message GetSignedBlockResponse {
 message GetAccountListByBalanceRequest {
     prototype.coin   start     = 1;
     prototype.coin   end       = 2;
-    AccountResponse  last_account = 3;
+    AccountInfo  last_account = 3;
     uint32           limit     = 4;
 }
 

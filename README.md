@@ -100,6 +100,8 @@ If you want to run the node as a block producer,please modify the following thin
 
 ```
 
+The content in the home directory file set.txt indicates whether you delete local blockchain when the container start up.If you don't want to delete it, please change `delete` to `reserve`.
+
 You can see the running container by using the command  `docker ps`.
 
 To follow along with the logs, use `docker logs -f contentosd-exchange`.

@@ -1400,7 +1400,7 @@ func NewWitnessOwnerWrap(db iservices.IDatabaseRW) *SWitnessOwnerWrap {
 }
 
 func (s *SWitnessOwnerWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil || !iterator.Valid() {
+	if iterator == nil {
 		return
 	}
 	s.Dba.DeleteIterator(iterator)
@@ -1541,7 +1541,7 @@ func NewWitnessVoteCountWrap(db iservices.IDatabaseRW) *SWitnessVoteCountWrap {
 }
 
 func (s *SWitnessVoteCountWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil || !iterator.Valid() {
+	if iterator == nil {
 		return
 	}
 	s.Dba.DeleteIterator(iterator)

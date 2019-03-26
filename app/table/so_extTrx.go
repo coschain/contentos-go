@@ -814,7 +814,7 @@ func NewExtTrxTrxIdWrap(db iservices.IDatabaseRW) *SExtTrxTrxIdWrap {
 }
 
 func (s *SExtTrxTrxIdWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil || !iterator.Valid() {
+	if iterator == nil {
 		return
 	}
 	s.Dba.DeleteIterator(iterator)
@@ -955,7 +955,7 @@ func NewExtTrxBlockHeightWrap(db iservices.IDatabaseRW) *SExtTrxBlockHeightWrap 
 }
 
 func (s *SExtTrxBlockHeightWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil || !iterator.Valid() {
+	if iterator == nil {
 		return
 	}
 	s.Dba.DeleteIterator(iterator)
@@ -1094,7 +1094,7 @@ func NewExtTrxBlockTimeWrap(db iservices.IDatabaseRW) *SExtTrxBlockTimeWrap {
 }
 
 func (s *SExtTrxBlockTimeWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil || !iterator.Valid() {
+	if iterator == nil {
 		return
 	}
 	s.Dba.DeleteIterator(iterator)

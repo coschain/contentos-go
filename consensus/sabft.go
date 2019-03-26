@@ -159,7 +159,7 @@ func NewSABFT(ctx *node.ServiceContext, lg *logrus.Logger) *SABFT {
 		name: ret.Name,
 	}
 	ret.bft = gobft.NewCore(ret, ret.priv)
-	ret.bft.SetLogLevel(3)
+	ret.bft.SetLogger(ret.log)
 	ret.log.Info("[SABFT bootstrap] ", ctx.Config().Consensus.BootStrap)
 	ret.appState = &message.AppState{
 		LastHeight:       0,
@@ -567,11 +567,9 @@ func (sabft *SABFT) Push(msg interface{}) {
 			sabft.bft.RecvMsg(msg)
 		}
 	case *message.Commit:
-		if !sabft.readyToProduce || !sabft.IsValidator(message.PubKey(sabft.Name)) {
-			go func() {
-				sabft.commitCh <- *msg
-			}()
-		}
+		go func() {
+			sabft.commitCh <- *msg
+		}()
 	default:
 	}
 }
@@ -652,6 +650,12 @@ func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 		return
 	}
 
+	// if we're a validator, pass it to gobft so that it can catch up
+	if sabft.IsValidator(message.PubKey(sabft.Name)) {
+		sabft.bft.RecvMsg(records)
+		return
+	}
+
 	// make sure we have the block about to be committed
 	if sabft.ForkDB.Empty() || sabft.ForkDB.Head().Id().BlockNum() < newID.BlockNum() {
 		return
@@ -664,38 +668,6 @@ func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 
 	sabft.Commit(records)
 }
-//
-//func (sabft *SABFT) PushTransaction(trx common.ISignedTransaction, wait bool, broadcast bool) common.ITransactionReceiptWithInfo {
-//
-//	if !sabft.readyToProduce {
-//
-//	}
-//
-//	var waitChan chan common.ITransactionReceiptWithInfo
-//
-//	if wait {
-//		waitChan = make(chan common.ITransactionReceiptWithInfo)
-//	}
-//
-//	sabft.trxCh <- func() {
-//		ret := sabft.ctrl.PushTrxToPending(trx.(*prototype.SignedTransaction))
-//
-//		if wait {
-//			waitChan <- ret
-//		}
-//		//if ret.IsSuccess() {
-//		//	if broadcast {
-//		//sabft.log.Debug("SABFT Broadcast trx.")
-//		sabft.p2p.Broadcast(trx.(*prototype.SignedTransaction))
-//		//	}
-//		//}
-//	}
-//	if wait {
-//		return <-waitChan
-//	} else {
-//		return nil
-//	}
-//}
 
 func (sabft *SABFT) validateProducer(b common.ISignedBlock) bool {
 	slot := sabft.getSlotAtTime(time.Unix(int64(b.Timestamp()), 0))
@@ -726,12 +698,12 @@ func (sabft *SABFT) PushTransactionToPending(trx common.ISignedTransaction) erro
 	sabft.pendingCh <- func() {
 		err := sabft.ctrl.PushTrxToPending(trx.(*prototype.SignedTransaction))
 		if err == nil {
-			sabft.p2p.Broadcast(trx.(*prototype.SignedTransaction))
+			go sabft.p2p.Broadcast(trx.(*prototype.SignedTransaction))
 		}
 		chanError <- err
 	}
 
-	return <- chanError
+	return <-chanError
 }
 
 func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
@@ -752,7 +724,7 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 
 	if newNum > headNum+1 {
 
-		if sabft.readyToProduce{
+		if sabft.readyToProduce {
 			sabft.p2p.FetchUnlinkedBlock(b.Previous())
 			sabft.log.Debug("[SABFT TriggerSync]: out-of range from ", b.Previous().BlockNum())
 		}
@@ -813,38 +785,6 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 	default:
 		return ErrInternal
 	}
-	/*
-		if newHead == head {
-			// this implies that b is a:
-			// 1. detached block or
-			// 2. out of range block or
-			// 3. head of a non-main branch or
-			// 4. illegal block
-
-			if b.Id().BlockNum() > headNum {
-
-
-
-				tailId, errTail := sabft.ForkDB.FetchUnlinkBlockTail()
-
-				if errTail == nil {
-					sabft.p2p.FetchUnlinkedBlock( *tailId )
-					sabft.log.Debug("[SABFT TriggerSync]: pre-start from ", tailId.BlockNum())
-				} else {
-					sabft.log.Debug("[SABFT TriggerSync]: not found:", errTail )
-				}
-			}
-			sabft.log.Info("[SABFT] pushed a block that is detached or off-main-branch, head block: ", head.Id())
-			return nil
-		} else if head != nil && newHead.Previous() != head.Id() {
-			sabft.log.Debug("[SABFT] start to switch fork.")
-			switchSuccess := sabft.switchFork(head.Id(), newHead.Id())
-			if !switchSuccess {
-				sabft.log.Error("[SABFT] there's an error while switching to new branch. new head", newHead.Id())
-			}
-			return nil
-		}
-	*/
 
 	if applyStateDB {
 		if err := sabft.applyBlock(b); err != nil {
@@ -932,20 +872,15 @@ func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 		return ErrInternal
 	}
 	if blkMain.Id() != blockID {
-		// Committing a block off the main branch, we don't just switch fork here. Instead we
-		// abort the commit process and let the fork branch out grows the current branch
 		sabft.log.Error("[SABFT] committing a forked block", blockID, " main:", blkMain.Id())
 
-		return ErrCommittingBlockOnFork
-		/*
-			switchSuccess := sabft.switchFork(sabft.ForkDB.Head().Id(), blockID)
-			if !switchSuccess {
-				return ErrSwitchFork
-			}
-			// also need to reset new head
-			// fixme: find the real head of the branch we just switched on
-			sabft.ForkDB.ResetHead(blockID)
-		*/
+		switchSuccess := sabft.switchFork(sabft.ForkDB.Head().Id(), blockID)
+		if !switchSuccess {
+			return ErrSwitchFork
+		}
+		// also need to reset new head
+		sabft.ForkDB.ResetHead(blockID)
+		sabft.ForkDB.PurgeBranch()
 	}
 
 	blks, _, err := sabft.ForkDB.FetchBlocksSince(sabft.ForkDB.LastCommitted())
@@ -1361,7 +1296,7 @@ func (sabft *SABFT) MaybeProduceBlock() {
 	sabft.Unlock()
 
 	go func() {
-		time.Sleep( time.Duration( 0 * time.Duration(rand.Int() % 13) * time.Second / 10 ) )
+		time.Sleep(time.Duration(0 * time.Duration(rand.Int()%13) * time.Second / 10))
 		sabft.p2p.Broadcast(b)
 	}()
 	//sabft.p2p.Broadcast(b)
@@ -1377,7 +1312,7 @@ func (sabft *SABFT) handleBlockSync() error {
 	//Fetch the commit block num in db
 	dbCommit, err := sabft.ctrl.GetCommitBlockNum()
 
-	sabft.log.Debugf("[sync pushed]: dbCommit: %v, %v, %v",
+	sabft.log.Debugf("[sync pushed]: progress 1: dbCommit: %v, %v, %v",
 		dbCommit, lastCommit, err)
 
 	if err != nil {
@@ -1404,31 +1339,35 @@ func (sabft *SABFT) handleBlockSync() error {
 		}
 	}
 
-	// TODO if dbCommit > latestNumber then revert statedb to latestNumber
-
-	//2.sync pushed blocks
-	//Fetch pushed blocks in snapshot
-	//pSli, _, err := sabft.ForkDB.FetchBlocksSince(sabft.ForkDB.LastCommitted())
-
 	dbCommit, err = sabft.ctrl.GetCommitBlockNum()
 	latestNumber := sabft.ForkDB.Head().Id().BlockNum()
 
-	sabft.log.Debugf("[sync pushed 2]: dbCommit: %v, %v, %v",
+	sabft.log.Debugf("[sync pushed]: progress 2: dbCommit: %v, %v, %v",
 		dbCommit, latestNumber, err)
 
-	if err != nil {
-		return err
+	if dbCommit < latestNumber {
+		pSli, err := sabft.FetchBlocks(dbCommit+1, latestNumber+1)
+		if err != nil {
+			return err
+		}
+		if len(pSli) > 0 {
+			sabft.log.Debugf("[sync pushed]: start sync uncommitted blocks,start: %v,end:%v, count: %v",
+				dbCommit+1, sabft.ForkDB.Head().Id().BlockNum(), len(pSli))
+			err = sabft.ctrl.SyncPushedBlocksToDB(pSli)
+		}
+		return nil
+
+	} else if dbCommit > latestNumber {
+
+		sabft.log.Infof("[Revert commit] start revert invalid commit to statedb: "+
+			"%v,end:%v,real commit num is %v", dbCommit, latestNumber)
+
+		sabft.ctrl.PopBlock(latestNumber)
 	}
 
-	pSli, err := sabft.FetchBlocks(dbCommit+1, latestNumber+1)
-	if err != nil {
-		return err
-	}
-	if len(pSli) > 0 {
-		sabft.log.Debugf("[sync pushed2]: start sync lost blocks,start: %v,end:%v, count: %v",
-			dbCommit+1, sabft.ForkDB.Head().Id().BlockNum(), len(pSli))
-		err = sabft.ctrl.SyncPushedBlocksToDB(pSli)
-	}
+	return nil
+}
 
-	return err
+func (d *SABFT) CheckSyncFinished() bool {
+	return d.readyToProduce
 }

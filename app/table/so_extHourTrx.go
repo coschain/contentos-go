@@ -554,7 +554,7 @@ func NewExtHourTrxHourWrap(db iservices.IDatabaseRW) *SExtHourTrxHourWrap {
 }
 
 func (s *SExtHourTrxHourWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil || !iterator.Valid() {
+	if iterator == nil {
 		return
 	}
 	s.Dba.DeleteIterator(iterator)
@@ -695,7 +695,7 @@ func NewExtHourTrxCountWrap(db iservices.IDatabaseRW) *SExtHourTrxCountWrap {
 }
 
 func (s *SExtHourTrxCountWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil || !iterator.Valid() {
+	if iterator == nil {
 		return
 	}
 	s.Dba.DeleteIterator(iterator)

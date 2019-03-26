@@ -1861,7 +1861,7 @@ func NewPostCreatedWrap(db iservices.IDatabaseRW) *SPostCreatedWrap {
 }
 
 func (s *SPostCreatedWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil || !iterator.Valid() {
+	if iterator == nil {
 		return
 	}
 	s.Dba.DeleteIterator(iterator)
@@ -2063,7 +2063,7 @@ func NewPostCashoutTimeWrap(db iservices.IDatabaseRW) *SPostCashoutTimeWrap {
 }
 
 func (s *SPostCashoutTimeWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil || !iterator.Valid() {
+	if iterator == nil {
 		return
 	}
 	s.Dba.DeleteIterator(iterator)

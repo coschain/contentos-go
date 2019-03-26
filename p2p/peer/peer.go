@@ -11,8 +11,8 @@ import (
 	"github.com/coschain/contentos-go/p2p/common"
 	conn "github.com/coschain/contentos-go/p2p/link"
 	"github.com/coschain/contentos-go/p2p/message/types"
-	"github.com/deckarep/golang-set"
 	"github.com/sirupsen/logrus"
+	"github.com/willf/bloom"
 )
 
 // PeerCom provides the basic information of a peer
@@ -96,6 +96,14 @@ func (this *PeerCom) GetHeight() uint64 {
 	return this.height
 }
 
+type trxCache struct {
+	trxCount         int
+	bloomFilter1     *bloom.BloomFilter
+	bloomFilter2     *bloom.BloomFilter
+	useFilter2       bool
+	sync.Mutex
+}
+
 //Peer represent the node in p2p
 type Peer struct {
 	base             PeerCom
@@ -104,8 +112,8 @@ type Peer struct {
 	ConsLink         *conn.Link
 	syncState        uint32
 	consState        uint32
-	SendTrxCache     mapset.Set
-	RecvTrxCache     mapset.Set
+
+	TrxCache         trxCache
 
 	lastSeenBlkNum   uint64
 
@@ -120,10 +128,14 @@ func NewPeer() *Peer {
 		consState: common.INIT,
 		busy: 0,
 	}
+
+	p.TrxCache.bloomFilter1 = bloom.New(common.BloomFilterOfRecvTrxArgM, common.BloomFilterOfRecvTrxArgK)
+	p.TrxCache.bloomFilter2 = bloom.New(common.BloomFilterOfRecvTrxArgM, common.BloomFilterOfRecvTrxArgK)
+	p.TrxCache.trxCount = 0
+	p.TrxCache.useFilter2 = false
+
 	p.SyncLink = conn.NewLink()
 	p.ConsLink = conn.NewLink()
-	p.SendTrxCache = mapset.NewSet()
-	p.RecvTrxCache = mapset.NewSet()
 	runtime.SetFinalizer(p, rmPeer)
 	return p
 }
@@ -143,6 +155,41 @@ func (this *Peer) UnlockBusy()  {
 	}
 }
 
+func (this *Peer) HasTrx(hash []byte) bool {
+	this.TrxCache.Lock()
+	defer this.TrxCache.Unlock()
+
+	if this.TrxCache.useFilter2 == true {
+		return this.TrxCache.bloomFilter2.Test(hash)
+	}
+
+	return this.TrxCache.bloomFilter1.Test(hash)
+}
+
+func (this *Peer) RecordTrxCache(hash []byte) {
+	this.TrxCache.Lock()
+	defer this.TrxCache.Unlock()
+
+	this.TrxCache.trxCount++
+
+	if this.TrxCache.trxCount <= common.MaxTrxCountInBloomFiler / 2 {
+		this.TrxCache.bloomFilter1.Add(hash)
+	} else {
+		this.TrxCache.bloomFilter1.Add(hash)
+		this.TrxCache.bloomFilter2.Add(hash)
+
+		if this.TrxCache.trxCount == common.MaxTrxCountInBloomFiler {
+			if this.TrxCache.useFilter2 == true {
+				this.TrxCache.useFilter2 = false
+				this.TrxCache.bloomFilter2 = bloom.New(common.BloomFilterOfRecvTrxArgM, common.BloomFilterOfRecvTrxArgK)
+			} else {
+				this.TrxCache.useFilter2 = true
+				this.TrxCache.bloomFilter1 = bloom.New(common.BloomFilterOfRecvTrxArgM, common.BloomFilterOfRecvTrxArgK)
+			}
+			this.TrxCache.trxCount = common.MaxTrxCountInBloomFiler / 2
+		}
+	}
+}
 
 //DumpInfo print all information of peer
 func (this *Peer) DumpInfo(log *logrus.Logger) {

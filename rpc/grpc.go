@@ -69,39 +69,7 @@ func (as *APIService) GetAccountByName(ctx context.Context, req *grpcpb.GetAccou
 	as.db.RLock()
 	defer as.db.RUnlock()
 
-	accWrap := table.NewSoAccountWrap(as.db, req.GetAccountName())
-	acct := &grpcpb.AccountResponse{}
-
-	if accWrap != nil && accWrap.CheckExist() {
-		acct.AccountName = &prototype.AccountName{Value: accWrap.GetName().Value}
-		acct.Coin = accWrap.GetBalance()
-		acct.Vest = accWrap.GetVestingShares()
-		//acct.PublicKeys =
-		acct.CreatedTime = accWrap.GetCreatedTime()
-		acct.PostCount = accWrap.GetPostCount()
-
-		witWrap := table.NewSoWitnessWrap(as.db, accWrap.GetName())
-		if witWrap != nil && witWrap.CheckExist() {
-			acct.Witness = &grpcpb.WitnessResponse{
-				Owner:                 witWrap.GetOwner(),
-				CreatedTime:           witWrap.GetCreatedTime(),
-				Url:                   witWrap.GetUrl(),
-				LastConfirmedBlockNum: witWrap.GetLastConfirmedBlockNum(),
-				TotalMissed:           witWrap.GetTotalMissed(),
-				VoteCount:             witWrap.GetVoteCount(),
-				SigningKey:            witWrap.GetSigningKey(),
-				LastWork:              witWrap.GetLastWork(),
-				RunningVersion:        witWrap.GetRunningVersion(),
-			}
-		}
-
-		keyWrap := table.NewSoAccountAuthorityObjectWrap(as.db, req.GetAccountName())
-
-		if keyWrap.CheckExist() {
-			acct.PublicKey = keyWrap.GetOwner().GetKey()
-		}
-	}
-	acct.State = as.getState()
+	acct := as.getAccountResponseByName(req.GetAccountName(),false)
 
 	return acct, nil
 
@@ -129,30 +97,43 @@ func (as *APIService) GetFollowerListByName(ctx context.Context, req *grpcpb.Get
 	defer as.db.RUnlock()
 
 	var (
-		ferList []*prototype.AccountName
+		ferList []*grpcpb.FollowerListInfo
 		limit   uint32
+		lastRelation  *prototype.FollowerRelation
+		lastCreOrder  *prototype.FollowerCreatedOrder
 	)
 
 	ferOrderWrap := table.NewExtFollowerFollowerCreatedOrderWrap(as.db)
-
 	start := req.GetStart()
 	end := req.GetEnd()
-	if start == nil || end == nil {
-		start = nil
-		end = nil
+	if req.LastOrder != nil {
+		lastOrder := req.LastOrder
+		if lastOrder.Account != nil && lastOrder.Follower != nil {
+			lastRelation = &prototype.FollowerRelation{Account:lastOrder.Account,Follower:lastOrder.Follower}
+			lastCreOrder = lastOrder
+		}
 	}
 	limit = checkLimit(req.GetLimit())
-	ferOrderWrap.ForEachByOrder(start, end, nil, nil,
+	if limit == 0 {
+		limit = uint32(defaultPageSizeLimit)
+	}
+	err := ferOrderWrap.ForEachByOrder(start, end, lastRelation, lastCreOrder,
 		func(mVal *prototype.FollowerRelation, sVal *prototype.FollowerCreatedOrder, idx uint32) bool {
 			if mVal != nil {
-				ferList = append(ferList, mVal.Follower)
+				acctInfo := &grpcpb.FollowerListInfo{}
+				acct := as.getAccountResponseByName(mVal.Follower,false)
+				if acct != nil {
+					acctInfo.Account = acct
+					acctInfo.CreateOrder = sVal
+					ferList = append(ferList,acctInfo)
+				}
 			}
-			if idx < limit {
+			if uint32(len(ferList)) < limit {
 				return true
 			}
 			return false
 		})
-	return &grpcpb.GetFollowerListByNameResponse{FollowerList: ferList}, nil
+	return &grpcpb.GetFollowerListByNameResponse{FollowerList: ferList}, err
 
 }
 
@@ -161,30 +142,44 @@ func (as *APIService) GetFollowingListByName(ctx context.Context, req *grpcpb.Ge
 	defer as.db.RUnlock()
 
 	var (
-		fingList []*prototype.AccountName
+		fingList []*grpcpb.FollowingListInfo
 		limit    uint32
+		lastRelation  *prototype.FollowingRelation
+		lastCreOrder  *prototype.FollowingCreatedOrder
 	)
 
 	fingOrderWrap := table.NewExtFollowingFollowingCreatedOrderWrap(as.db)
-
 	start := req.GetStart()
 	end := req.GetEnd()
-	if start == nil || end == nil {
-		start = nil
-		end = nil
+	if req.LastOrder != nil {
+		lastOrder := req.LastOrder
+		if lastOrder.Account != nil && lastOrder.Following != nil {
+			lastRelation = &prototype.FollowingRelation{Account:lastOrder.Account,Following:lastOrder.Following}
+			lastCreOrder = lastOrder
+		}
 	}
 	limit = checkLimit(req.GetLimit())
-	fingOrderWrap.ForEachByOrder(start, end, nil, nil,
+	if limit == 0 {
+		limit = uint32(defaultPageSizeLimit)
+	}
+
+	err := fingOrderWrap.ForEachByOrder(start, end, lastRelation, lastCreOrder,
 		func(mVal *prototype.FollowingRelation, sVal *prototype.FollowingCreatedOrder, idx uint32) bool {
 			if mVal != nil {
-				fingList = append(fingList, mVal.Following)
+				acctInfo := &grpcpb.FollowingListInfo{}
+				acct := as.getAccountResponseByName(mVal.Following,false)
+				if acct != nil {
+					acctInfo.Account = acct
+					acctInfo.CreateOrder = sVal
+					fingList = append(fingList,acctInfo)
+				}
 			}
-			if idx < limit {
+			if uint32(len(fingList)) < limit {
 				return true
 			}
 			return false
 		})
-	return &grpcpb.GetFollowingListByNameResponse{FollowingList: fingList}, nil
+	return &grpcpb.GetFollowingListByNameResponse{FollowingList: fingList}, err
 
 }
 
@@ -536,29 +531,8 @@ func (as *APIService) GetAccountListByBalance(ctx context.Context, req *grpcpb.G
 	}
 	if sortWrap != nil {
 		err = sortWrap.ForEachByRevOrder(req.Start, req.End, lastAcctNam, lastAcctCoin, func(mVal *prototype.AccountName, sVal *prototype.Coin, idx uint32) bool {
-			acct := &grpcpb.AccountResponse{}
-			accWrap := table.NewSoAccountWrap(as.db, mVal)
-			if accWrap != nil {
-				acct.AccountName = &prototype.AccountName{Value: mVal.Value}
-				acct.Coin = accWrap.GetBalance()
-				acct.Vest = accWrap.GetVestingShares()
-				acct.CreatedTime = accWrap.GetCreatedTime()
-				acct.PostCount = accWrap.GetPostCount()
-				witWrap := table.NewSoWitnessWrap(as.db, mVal)
-				if witWrap != nil && witWrap.CheckExist() {
-					acct.Witness = &grpcpb.WitnessResponse{
-						Owner:                 witWrap.GetOwner(),
-						CreatedTime:           witWrap.GetCreatedTime(),
-						Url:                   witWrap.GetUrl(),
-						LastConfirmedBlockNum: witWrap.GetLastConfirmedBlockNum(),
-						TotalMissed:           witWrap.GetTotalMissed(),
-						VoteCount:             witWrap.GetVoteCount(),
-						SigningKey:            witWrap.GetSigningKey(),
-						LastWork:              witWrap.GetLastWork(),
-						RunningVersion:        witWrap.GetRunningVersion(),
-					}
-				}
-				acct.State = as.getState()
+			acct := as.getAccountResponseByName(mVal,false)
+			if acct != nil {
 				list = append(list, acct)
 			}
 			if uint32(len(list)) >= limit {
@@ -646,9 +620,8 @@ func (as *APIService) TrxStatByHour(ctx context.Context, req *grpcpb.TrxStatByHo
 		hours = defaultHourStatLimit
 	}
 	//convert the unix timestamp to day index
-	now := time.Now()
+	now := time.Now().UTC()
 	end := now.Unix()/3600 + 1
-	//	end := &prototype.TimePointSec{UtcSeconds: uint32(now.Unix() - int64(3600*req.Hours))}
 	start := end - int64(hours)
 	s := &prototype.TimePointSec{UtcSeconds: uint32(start)}
 	e := &prototype.TimePointSec{UtcSeconds: uint32(end)}
@@ -867,4 +840,56 @@ func (as *APIService) GetPostListByName(ctx context.Context, req *grpcpb.GetPost
 	}
 	res.PostedList = postList
 	return res, err
+}
+
+func (as *APIService) getAccountResponseByName(name *prototype.AccountName, isNeedLock bool) *grpcpb.AccountResponse {
+	if isNeedLock {
+		as.db.RLock()
+		defer as.db.RUnlock()
+	}
+	accWrap := table.NewSoAccountWrap(as.db, name)
+	acct := &grpcpb.AccountResponse{}
+	acctInfo := &grpcpb.AccountInfo{}
+
+	if accWrap != nil && accWrap.CheckExist() {
+		acctInfo.AccountName = &prototype.AccountName{Value: accWrap.GetName().Value}
+		acctInfo.Coin = accWrap.GetBalance()
+		acctInfo.Vest = accWrap.GetVestingShares()
+		acctInfo.CreatedTime = accWrap.GetCreatedTime()
+		acctInfo.PostCount = accWrap.GetPostCount()
+
+		witWrap := table.NewSoWitnessWrap(as.db, accWrap.GetName())
+		if witWrap != nil && witWrap.CheckExist() {
+			acctInfo.Witness = &grpcpb.WitnessResponse{
+				Owner:                 witWrap.GetOwner(),
+				CreatedTime:           witWrap.GetCreatedTime(),
+				Url:                   witWrap.GetUrl(),
+				LastConfirmedBlockNum: witWrap.GetLastConfirmedBlockNum(),
+				TotalMissed:           witWrap.GetTotalMissed(),
+				VoteCount:             witWrap.GetVoteCount(),
+				SigningKey:            witWrap.GetSigningKey(),
+				LastWork:              witWrap.GetLastWork(),
+				RunningVersion:        witWrap.GetRunningVersion(),
+			}
+		}
+
+		keyWrap := table.NewSoAccountAuthorityObjectWrap(as.db, name)
+
+		if keyWrap.CheckExist() {
+			acctInfo.PublicKey = keyWrap.GetOwner().GetKey()
+		}
+
+		followWrap := table.NewSoExtFollowCountWrap(as.db, name)
+		if followWrap != nil && followWrap.CheckExist() {
+			acctInfo.FollowerCount = followWrap.GetFollowerCnt()
+			acctInfo.FollowingCount = followWrap.GetFollowingCnt()
+		}
+		acct.Info = acctInfo
+		acct.State = as.getState()
+
+	}else {
+		return nil
+	}
+
+	return acct
 }
