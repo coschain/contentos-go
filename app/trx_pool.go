@@ -683,18 +683,26 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 		ma := NewMultiTrxsApplier(c.db, func(db iservices.IDatabaseRW, trx *prototype.EstimateTrxResult) {
 			c.applyTransactionOnDb(db, trx, (c.skip & prototype.Skip_transaction_signatures) == 0)
 		})
-		estTrx := make([]*prototype.EstimateTrxResult, len(blk.Transactions))
-		for i := range blk.Transactions {
-			estTrx[i] = &prototype.EstimateTrxResult{
-				SigTrx: blk.Transactions[i].SigTrx,
-				Receipt: &prototype.TransactionReceiptWithInfo{
-					Status: prototype.StatusSuccess,
-				},
+		batchCount := 64
+		totalCount := len(blk.Transactions)
+		estTrx := make([]*prototype.EstimateTrxResult, batchCount)
+		for i := 0; i < totalCount; i += batchCount {
+			d := totalCount - i
+			if d > batchCount {
+				d = batchCount
 			}
-		}
-		ma.Apply(estTrx)
-		for i := range blk.Transactions {
-			mustSuccess(estTrx[i].Receipt.Status == blk.Transactions[i].Invoice.Status, "mismatched invoice")
+			for j := 0; j < d; j++ {
+				estTrx[j] = &prototype.EstimateTrxResult{
+					SigTrx: blk.Transactions[i + j].SigTrx,
+					Receipt: &prototype.TransactionReceiptWithInfo{
+						Status: prototype.StatusSuccess,
+					},
+				}
+			}
+			ma.Apply(estTrx[:d])
+			for j := 0; j < d; j++ {
+				mustSuccess(estTrx[j].Receipt.Status == blk.Transactions[i + j].Invoice.Status, "mismatched invoice")
+			}
 		}
 	}
 
