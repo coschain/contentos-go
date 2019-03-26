@@ -21,7 +21,6 @@ func addCommands() {
 }
 
 func main() {
-	//defer profile.Start().Stop()
 	fmt.Println("Start cosd version XXXXX222")
 	addCommands()
 	if err := rootCmd.Execute(); err != nil {
