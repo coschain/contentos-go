@@ -154,6 +154,8 @@ func addCommands() {
 	rootCmd.AddCommand(commands.VmTableCmd())
 	rootCmd.AddCommand(commands.BatchCmd())
 	rootCmd.AddCommand(commands.RandomTransferCmd())
+	rootCmd.AddCommand(commands.CreateFundAccountCmd())
+	rootCmd.AddCommand(commands.RTransferCmd())
 }
 
 func init() {
