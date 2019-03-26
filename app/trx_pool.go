@@ -680,6 +680,8 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 	// @ hardfork_state
 
 	if skip&prototype.Skip_apply_transaction == 0 {
+		t0 := time.Now()
+		applyTime := int64(0)
 		ma := NewMultiTrxsApplier(c.db, func(db iservices.IDatabaseRW, trx *prototype.EstimateTrxResult) {
 			c.applyTransactionOnDb(db, trx, (c.skip & prototype.Skip_transaction_signatures) == 0)
 		})
@@ -699,11 +701,15 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 					},
 				}
 			}
+			t00 := time.Now()
 			ma.Apply(estTrx[:d])
+			applyTime += int64(time.Now().Sub(t00))
 			for j := 0; j < d; j++ {
 				mustSuccess(estTrx[j].Receipt.Status == blk.Transactions[i + j].Invoice.Status, "mismatched invoice")
 			}
 		}
+		t1 := time.Now()
+		c.log.Debugf("PUSHBLOCK: %v(%v), #tx=%d", t1.Sub(t0), time.Duration(applyTime), totalCount)
 	}
 
 	t0 := time.Now()
