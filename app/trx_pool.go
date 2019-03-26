@@ -125,9 +125,6 @@ func (c *TrxPool) setProducing(b bool) {
 }
 
 func (c *TrxPool) PushTrxToPending(trx *prototype.SignedTransaction) (err error) {
-	c.db.RLock()
-	defer c.db.RUnlock()
-
 	defer func() {
 		if r := recover(); r != nil {
 			switch val := r.(type) {
@@ -144,40 +141,17 @@ func (c *TrxPool) PushTrxToPending(trx *prototype.SignedTransaction) (err error)
 	return err
 }
 
-func (c *TrxPool) checkTrxValid(trx *prototype.SignedTransaction, doVerifySig bool) {
-
-	currentTrxId, err := trx.Id()
-	mustNoError(err, "get trx id failed")
-
-	mustNoError( trx.Validate(), "trx params error")
-
-	// trx duplicate check
-	transactionObjWrap := table.NewSoTransactionObjectWrap(c.db, currentTrxId)
-	mustSuccess(!transactionObjWrap.CheckExist(), "Duplicate transaction check failed")
-
-	blockNum := c.GetProps().GetHeadBlockNumber()
-	if blockNum > 0 {
-		uniWrap := table.UniBlockSummaryObjectIdWrap{Dba: c.db}
-		idWrap := uniWrap.UniQueryId(&trx.Trx.RefBlockNum)
-		if !idWrap.CheckExist() {
-			panic("no refBlockNum founded")
-		} else {
-			blockId := idWrap.GetBlockId()
-			summaryId := binary.BigEndian.Uint32(blockId.Hash[8:12])
-			mustSuccess(trx.Trx.RefBlockPrefix == summaryId, "transaction tapos failed")
-		}
-
-		now := c.GetProps().Time
-		// get head time
-		mustSuccess(trx.Trx.Expiration.UtcSeconds <= uint32(now.UtcSeconds+constants.TrxMaxExpirationTime), "transaction expiration too long")
-		mustSuccess(now.UtcSeconds <= trx.Trx.Expiration.UtcSeconds, "transaction has expired")
+func (c *TrxPool) addTrxToPending(trx *prototype.SignedTransaction, isVerified bool) {
+	if !c.havePendingTransaction {
+		c.db.BeginTransaction()
+		c.havePendingTransaction = true
 	}
 
-	if doVerifySig {
-		trxWrp := &prototype.EstimateTrxResult{}
-		trxWrp.SigTrx = trx
-		trxWrp.Receipt = &prototype.TransactionReceiptWithInfo{}
+	trxWrp := &prototype.EstimateTrxResult{}
+	trxWrp.SigTrx = trx
+	trxWrp.Receipt = &prototype.TransactionReceiptWithInfo{}
 
+	if !isVerified {
 		//verify the signature
 		trxContext := NewTrxContext(trxWrp, c.db, c)
 		trx.Validate()
@@ -185,21 +159,6 @@ func (c *TrxPool) checkTrxValid(trx *prototype.SignedTransaction, doVerifySig bo
 		mustNoError(trxContext.InitSigState(tmpChainId), "signature export error")
 		trxContext.VerifySignature()
 	}
-}
-
-func (c *TrxPool) addTrxToPending(trx *prototype.SignedTransaction, isVerified bool) {
-
-	if !c.havePendingTransaction {
-		c.db.BeginTransaction()
-		c.havePendingTransaction = true
-	}
-
-	c.checkTrxValid( trx, !isVerified )
-
-	trxWrp := &prototype.EstimateTrxResult{}
-	trxWrp.SigTrx = trx
-	trxWrp.Receipt = &prototype.TransactionReceiptWithInfo{}
-
 	c.pendingTx = append(c.pendingTx, trxWrp)
 }
 
@@ -270,6 +229,8 @@ func (c *TrxPool) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag)
 
 	c.db.Lock()
 	defer func() {
+		c.db.Unlock()
+		
 		if r := recover(); r != nil {
 			switch x := r.(type) {
 			case error:
@@ -292,7 +253,7 @@ func (c *TrxPool) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag)
 		c.restorePending(tmpPending)
 
 		c.skip = oldFlag
-		c.db.Unlock()
+
 	}()
 
 	if skip&prototype.Skip_apply_transaction == 0 {
@@ -341,16 +302,12 @@ func (c *TrxPool) restorePending(pending []*prototype.EstimateTrxResult) {
 	}()
 
 	for _, tw := range pending {
-		id, _ := tw.SigTrx.Id()
+		id, err := tw.SigTrx.Id()
+		mustNoError(err, "get transaction id error")
+
 		objWrap := table.NewSoTransactionObjectWrap(c.db, id)
 		if !objWrap.CheckExist() {
-
-			if !c.havePendingTransaction {
-				c.db.BeginTransaction()
-				c.havePendingTransaction = true
-			}
-
-			c.pendingTx = append(c.pendingTx, tw)
+			c.addTrxToPending(tw.SigTrx, true)
 		}
 	}
 }
