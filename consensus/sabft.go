@@ -652,6 +652,7 @@ func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 
 	// if we're a validator, pass it to gobft so that it can catch up
 	if sabft.IsValidator(message.PubKey(sabft.Name)) {
+		sabft.log.Warn("pass commits to gobft ", records.ProposedData)
 		sabft.bft.RecvMsg(records)
 		return
 	}
