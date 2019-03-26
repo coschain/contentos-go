@@ -1050,9 +1050,19 @@ func (c *TrxPool) createBlockSummary(blk *prototype.SignedBlock) {
 }
 
 func (c *TrxPool) clearExpiredTransactions() {
+	t0 := time.Now()
+	cbTime := int64(0)
+	cbCount := 0
+
 	sortWrap := table.STransactionObjectExpirationWrap{Dba: c.db}
 	sortWrap.ForEachByOrder(nil, nil,nil,nil,
 		func(mVal *prototype.Sha256, sVal *prototype.TimePointSec, idx uint32) bool {
+			t00 := time.Now()
+			cbCount++
+			defer func() {
+				cbTime += int64(time.Now().Sub(t00))
+			}()
+
 			if sVal != nil {
 				headTime := c.headBlockTime().UtcSeconds
 				if headTime > sVal.UtcSeconds {
@@ -1065,6 +1075,7 @@ func (c *TrxPool) clearExpiredTransactions() {
 			}
 			return false
 		})
+	c.log.Debugf("CLEAREXP: %v(%v), #cb=%d", time.Now().Sub(t0), time.Duration(cbTime), cbCount)
 }
 
 func (c *TrxPool) GetWitnessTopN(n uint32) []string {
