@@ -345,8 +345,13 @@ func (c *TrxPool) GenerateAndApplyBlock(witness string, pre *prototype.Sha256, t
 
 func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp uint32,
 	priKey *prototype.PrivateKeyType, skip prototype.SkipFlag) (b *prototype.SignedBlock, e error) {
+
+	t0 := time.Now()
+
 	oldSkip := c.skip
 	c.db.Lock()
+
+	t1 := time.Now()
 
 	defer func() {
 		c.db.Unlock()
@@ -404,6 +409,8 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 	})
 	failTrxMap := make(map[int]int)
 
+	t2 := time.Now()
+	applyTime := int64(0)
 	for k, trxWraper := range c.pendingTx {
 		if isFinish {
 			c.log.Warn("[trxpool] Generate block timeout, total pending: ", len(c.pendingTx) )
@@ -419,6 +426,7 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 			continue
 		}
 
+		t00 := time.Now()
 		func() {
 			defer func() {
 				if err := recover(); err != nil {
@@ -434,7 +442,12 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 			signBlock.Transactions = append(signBlock.Transactions, trxWraper.ToTrxWrapper())
 			//c.currentTrxInBlock++
 		}()
+
+		applyTime += int64(time.Now().Sub(t00))
 	}
+
+	t3 := time.Now()
+
 	if postponeTrx > 0 {
 		c.log.Warnf("[trxpool] postponed %d trx due to max block size", postponeTrx)
 	}
@@ -474,6 +487,9 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 		c.pendingTx = append(c.pendingTx, copyPending...)
 
 	}
+	t4 := time.Now()
+	c.log.Debugf("GENBLOCK: %v|%v|%v|%v(%v)|%v, #tx=%d", t4.Sub(t0), t1.Sub(t0), t2.Sub(t1), t3.Sub(t2), time.Duration(applyTime), t4.Sub(t3), len(signBlock.Transactions))
+
 	b, e = signBlock, nil
 	return
 }
@@ -647,7 +663,7 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 	trxEst.Receipt = &prototype.TransactionReceiptWithInfo{}
 
 	if skip&prototype.Skip_apply_transaction == 0 {
-
+		t00 := time.Now()
 		for _, tw := range blk.Transactions {
 			trxEst.SigTrx = tw.SigTrx
 			trxEst.Receipt.Status = prototype.StatusSuccess
@@ -655,17 +671,25 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 			mustSuccess(trxEst.Receipt.Status == tw.Invoice.Status, "mismatched invoice")
 			//c.currentTrxInBlock++
 		}
+		c.log.Debugf("PUSHBLOCK: %v, #tx=%d", time.Now().Sub(t00), len(blk.Transactions))
 	}
 
+	t0 := time.Now()
 	c.updateGlobalProperties(blk)
 	//c.updateSigningWitness(blk)
+	t1 := time.Now()
 	c.shuffle(blk)
 	// @ update_last_irreversible_block
+	t2 := time.Now()
 	c.createBlockSummary(blk)
+	t3 := time.Now()
 	c.clearExpiredTransactions()
 	// @ ...
 
 	// @ notify_applied_block
+
+	t4 := time.Now()
+	c.log.Debugf("AFTERBLOCK: %v|%v|%v|%v|%v", t4.Sub(t0), t1.Sub(t0), t2.Sub(t1), t3.Sub(t2), t4.Sub(t3))
 }
 
 func (c *TrxPool) ValidateAddress(name string, pubKey *prototype.PublicKeyType) bool {
