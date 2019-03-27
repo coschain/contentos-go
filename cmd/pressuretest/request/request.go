@@ -334,3 +334,58 @@ func voteArticle(rpcClient grpcpb.ApiServiceClient, voterAccount *wallet.PrivAcc
 			fmt.Sprintf("Result: %v", resp))
 	}
 }
+
+func replyArticle(rpcClient grpcpb.ApiServiceClient, fromAccount *wallet.PrivAccount, postId uint64) {
+	if fromAccount == nil {
+		GlobalAccountLIst.RLock()
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		idx := r.Intn( len(GlobalAccountLIst.arr) )
+		fromAccount = GlobalAccountLIst.arr[idx]
+		GlobalAccountLIst.RUnlock()
+	}
+
+	if postId == 0 {
+		PostIdList.RLock()
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		idx := r.Intn( len(PostIdList.arr) )
+		postId = PostIdList.arr[idx]
+		PostIdList.RUnlock()
+	}
+
+	var content = ""
+	for i:=0;i<128;i++ {
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		idx := r.Intn(len(nameLib))
+		content += string(nameLib[idx])
+	}
+
+	uuid := utils.GenerateUUID(fromAccount.Name)
+	beneficiaries := []*prototype.BeneficiaryRouteType{}
+
+	reply_op := &prototype.ReplyOperation{
+		Uuid:          uuid,
+		Owner:         &prototype.AccountName{Value: fromAccount.Name},
+		Content:       content,
+		ParentUuid:    postId,
+		Beneficiaries: beneficiaries,
+	}
+
+	signTx, err := utils.GenerateSignedTxAndValidate2(rpcClient, []interface{}{reply_op}, fromAccount)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	fmt.Println("Request command: ", fmt.Sprintf("reply %s %d", fromAccount.Name, postId) )
+
+	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
+	resp, err := rpcClient.BroadcastTrx(context.Background(), req)
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println("Request command: ",
+			fmt.Sprintf("reply %s %d", fromAccount.Name, postId),
+			" ",
+			fmt.Sprintf("Result: %v", resp))
+	}
+}

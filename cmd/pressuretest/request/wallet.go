@@ -28,6 +28,7 @@ const (
 	POST_CMD     = "post"
 	FOLLOW_CMD   = "follow"
 	VOTE_CMD     = "vote"
+	REPLY_CMD    = "reply"
 
 	INIT_ACCOUNT_LENGTH = 10
 	INIT_POSTID_LENGTH  = 10
@@ -48,6 +49,7 @@ var CmdTypeList []string = []string{
 	POST_CMD ,
 	FOLLOW_CMD,
 	VOTE_CMD,
+	REPLY_CMD,
 }
 
 var GlobalAccountLIst accountList
@@ -137,6 +139,8 @@ func StartEachRoutine(index int) {
 			follow(rpcClient, nil, nil)
 		case VOTE_CMD:
 			voteArticle(rpcClient, nil, 0)
+		case REPLY_CMD:
+			replyArticle(rpcClient, nil, 0)
 		}
 	}
 }
