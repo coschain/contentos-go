@@ -348,9 +348,11 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 		minTimeout = 100 * time.Millisecond
 	)
 	entryTime := time.Now()
-	oldSkip := c.skip
 
+	oldSkip := c.skip
 	c.db.Lock()
+
+	t0 := time.Now()
 
 	defer func() {
 		c.db.Unlock()
@@ -371,8 +373,6 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 		mustSuccess(slotNum > 0,"slot num must > 0")
 		witnessName := c.GetScheduledWitness(slotNum)
 		mustSuccess(witnessName.Value == witness,"not this witness")*/
-
-	t0 := time.Now()
 
 	pubkey, err := priKey.PubKey()
 	mustNoError(err, "get public key error")
@@ -459,12 +459,14 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 		}
 		estTrx = estTrx[:0]
 		estTrxIdx = estTrxIdx[:0]
-	}
-	if postponeTrx > 0 {
-		c.log.Warnf("[trxpool] postponed %d trx due to max block size", postponeTrx)
+
 	}
 
 	t2 := time.Now()
+
+	if postponeTrx > 0 {
+		c.log.Warnf("[trxpool] postponed %d trx due to max block size", postponeTrx)
+	}
 
 	signBlock.SignedHeader.Header.Previous = pre
 	signBlock.SignedHeader.Header.Timestamp = &prototype.TimePointSec{UtcSeconds: timestamp}
@@ -491,7 +493,6 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 		c.db.EndTransaction(false)
 	}*/
 
-	t3 := time.Now()
 	if len(failTrxMap) > 0 {
 		copyPending := make([]*prototype.EstimateTrxResult, 0, len(c.pendingTx))
 		for k, v := range c.pendingTx {
@@ -503,10 +504,9 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 		c.pendingTx = append(c.pendingTx, copyPending...)
 
 	}
-
-	t4 := time.Now()
-	c.log.Debugf("GENBLOCK: %v|%v|%v(%v)|%v|%v, timeout=%v, pending=%d, failed=%d, inblk=%d\n",
-		t4.Sub(t0), t1.Sub(t0), t2.Sub(t1), time.Duration(applyTime), t3.Sub(t2), t4.Sub(t3), timeOut,
+	t3 := time.Now()
+	c.log.Debugf("GENBLOCK: %v|%v|%v(%v)|%v, timeout=%v, pending=%d, failed=%d, inblk=%d\n",
+		t3.Sub(t0), t1.Sub(t0), t2.Sub(t1), time.Duration(applyTime), t3.Sub(t2), timeOut,
 		lastIdx + 1, len(failTrxMap), len(signBlock.Transactions))
 
 	b, e = signBlock, nil
@@ -727,11 +727,11 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 
 	t0 := time.Now()
 	c.updateGlobalProperties(blk)
-	t1 := time.Now()
 	//c.updateSigningWitness(blk)
+	t1 := time.Now()
 	c.shuffle(blk)
-	t2 := time.Now()
 	// @ update_last_irreversible_block
+	t2 := time.Now()
 	c.createBlockSummary(blk)
 	t3 := time.Now()
 	c.clearExpiredTransactions()
@@ -1035,6 +1035,7 @@ func (c *TrxPool) updateGlobalProperties(blk *prototype.SignedBlock) {
 
 		if dgpo.MaxTps < dgpo.Tps {
 			dgpo.MaxTps = dgpo.Tps
+			dgpo.MaxTpsBlockNum = blk.Id().BlockNum()
 		}
 	})
 

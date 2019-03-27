@@ -328,6 +328,18 @@ func (sabft *SABFT) Start(node *node.Node) error {
 	return nil
 }
 
+func (sabft *SABFT) tooManyUncommittedBlocks() bool {
+	if sabft.ForkDB.Empty() {
+		return false
+	}
+	headNum := sabft.ForkDB.Head().Id().BlockNum()
+	lastCommittedNum := sabft.ForkDB.LastCommitted().BlockNum()
+	if headNum-lastCommittedNum > constants.MaxUncommittedBlockNum {
+		return true
+	}
+	return false
+}
+
 func (sabft *SABFT) scheduleProduce() bool {
 	if !sabft.checkGenesis() {
 		//sabft.log.Info("checkGenesis failed.")
@@ -355,6 +367,12 @@ func (sabft *SABFT) scheduleProduce() bool {
 			sabft.log.Debug("[SABFT TriggerSync]: start from ", headID.BlockNum())
 			return false
 		}
+	}
+
+	if sabft.tooManyUncommittedBlocks() {
+		sabft.RUnlock()
+		sabft.revertToLastCheckPoint()
+		sabft.RLock()
 	}
 
 	if !sabft.checkProducingTiming() || !sabft.checkOurTurn() {

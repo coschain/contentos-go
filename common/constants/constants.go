@@ -7,37 +7,38 @@ const (
 	COSConsensusName = "iBFT"
 	COSInitMiner     = "initminer"
 
-	CoinSymbol  = "COS"
+	CoinSymbol = "COS"
 	VestSymbol = "VEST"
 
-	BlockInterval = 1 // 1000 ms for one block produce
+	BlockInterval       = 1  // 1000 ms for one block produce
 	BlockProdRepetition = 10 // each producer produces 10 blocks in a row
 
-	//NoticeOpPre      = "oppre"
-	NoticeOpPost     = "oppost"
-	//NoticeTrxPre     = "trxpre"
-	NoticeTrxPost    = "trxpost"
-	NoticeTrxPending = "trxpending"
-	NoticeTrxApplied = "trxapplyresult"
+	NoticeOpPre        = "oppre"
+	NoticeOpPost       = "oppost"
+	NoticeTrxPre       = "trxpre"
+	NoticeTrxPost      = "trxpost"
+	NoticeTrxPending   = "trxpending"
+	NoticeTrxApplied   = "trxapplyresult"
 	NoticeBlockApplied = "blockapply"
+	NoticeAddTrx       = "addTrx"
 
 	GenesisTime = 0
 
 	MaxTransactionSize = 1024 * 256
 
-	MaxBlockSize = MaxTransactionSize * BlockInterval * 2000
-	MinBlockSize = 115
+	MaxBlockSize           = MaxTransactionSize * BlockInterval * 2000
+	MaxUncommittedBlockNum = 64
+	MinBlockSize           = 115
 
-
-	InitminerPubKey = "COS5JVLLcTPhq4Unr194JzWPDNSYGoMcam8yxnsjgRVo3Nb7ioyFW"
+	InitminerPubKey  = "COS5JVLLcTPhq4Unr194JzWPDNSYGoMcam8yxnsjgRVo3Nb7ioyFW"
 	InitminerPrivKey = "4DjYx2KAGh1NP3dai7MZTLUBMMhMBPmwouKE8jhVSESywccpVZ"
 
 	RpcPageSizeLimit = 100
 
 	MaxWitnessCount = 21
 
-	PostInvalidId           = 0
-	PostMaxDepth            = 8
+	PostInvalidId        = 0
+	PostMaxDepth         = 8
 	PostCashOutDelayTime = 60 * 60 * 24 * 7
 	MaxBpVoteCount       = 30
 
