@@ -335,17 +335,21 @@ func (c *TrxPool) GenerateAndApplyBlock(witness string, pre *prototype.Sha256, t
 		return nil, err
 	}
 
-	err = c.PushBlock(newBlock, c.skip|prototype.Skip_apply_transaction)
-	if err != nil {
-		return nil, err
-	}
+	go c.PushBlock(newBlock, c.skip|prototype.Skip_apply_transaction)
 
 	return newBlock, nil
 }
 
 func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp uint32,
 	priKey *prototype.PrivateKeyType, skip prototype.SkipFlag) (b *prototype.SignedBlock, e error) {
+
+	const (
+		maxTimeout = 700 * time.Millisecond
+		minTimeout = 100 * time.Millisecond
+	)
+	entryTime := time.Now()
 	oldSkip := c.skip
+
 	c.db.Lock()
 
 	defer func() {
@@ -401,7 +405,12 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 
 	var postponeTrx uint64 = 0
 	isFinish := false
-	time.AfterFunc(700*time.Millisecond, func() {
+
+	timeOut := maxTimeout - time.Since(entryTime)
+	if timeOut < minTimeout {
+		timeOut = minTimeout
+	}
+	time.AfterFunc(timeOut, func() {
 		isFinish = true
 	})
 	failTrxMap := make(map[int]int)
@@ -496,9 +505,9 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 	}
 
 	t4 := time.Now()
-	c.log.Debugf("GENBLOCK: %v|%v|%v(%v)|%v|%v, pending=%d, failed=%d, postponed=%d\n",
-		t4.Sub(t0), t1.Sub(t0), t2.Sub(t1), time.Duration(applyTime), t3.Sub(t2), t4.Sub(t3),
-		lastIdx + 1, len(failTrxMap), postponeTrx)
+	c.log.Debugf("GENBLOCK: %v|%v|%v(%v)|%v|%v, timeout=%v, pending=%d, failed=%d, inblk=%d\n",
+		t4.Sub(t0), t1.Sub(t0), t2.Sub(t1), time.Duration(applyTime), t3.Sub(t2), t4.Sub(t3), timeOut,
+		lastIdx + 1, len(failTrxMap), len(signBlock.Transactions))
 
 	b, e = signBlock, nil
 	return
