@@ -978,6 +978,7 @@ func (c *TrxPool) updateGlobalProperties(blk *prototype.SignedBlock) {
 
 		if dgpo.MaxTps < dgpo.Tps {
 			dgpo.MaxTps = dgpo.Tps
+			dgpo.MaxTpsBlockNum = blk.Id().BlockNum()
 		}
 	})
 
