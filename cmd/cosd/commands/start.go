@@ -161,7 +161,7 @@ func RegisterService(app *node.Node, cfg node.Config) {
 	})
 
 	_ = app.Register(plugins.TrxServiceName, func(ctx *node.ServiceContext) (node.Service, error) {
-		return plugins.NewTrxSerVice(ctx)
+		return plugins.NewTrxSerVice(ctx, app.Log)
 	})
 
 	_ = app.Register(myhttp.HealthCheckName, func(ctx *node.ServiceContext) (node.Service, error) {

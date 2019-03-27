@@ -525,13 +525,17 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 //}
 
 func (c *TrxPool) notifyBlockApply(block *prototype.SignedBlock) {
+	t0 := time.Now()
 	for _, trx := range block.Transactions {
 		for _, op := range trx.SigTrx.Trx.Operations {
 			c.noticer.Publish(constants.NoticeOpPost, &prototype.OperationNotification{Op: op})
 		}
 		c.noticer.Publish(constants.NoticeTrxPost, trx.SigTrx)
 	}
+	t1 := time.Now()
 	c.noticer.Publish(constants.NoticeBlockApplied, block)
+	t2 := time.Now()
+	c.log.Debugf("NOTIFYBLOCK: %v|%v|%v, #tx=%d", t2.Sub(t0), t1.Sub(t0), t2.Sub(t1), len(block.Transactions))
 }
 
 func (c *TrxPool) notifyTrxApplyResult(trx *prototype.SignedTransaction, res bool,
