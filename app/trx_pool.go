@@ -151,14 +151,14 @@ func (c *TrxPool) addTrxToPending(trx *prototype.SignedTransaction, isVerified b
 	trxWrp.SigTrx = trx
 	trxWrp.Receipt = &prototype.TransactionReceiptWithInfo{}
 
-	//if !isVerified {
-	//	//verify the signature
-	//	trxContext := NewTrxContext(trxWrp, c.db)
-	//	trx.Validate()
-	//	tmpChainId := prototype.ChainId{Value: 0}
-	//	mustNoError(trxContext.InitSigState(tmpChainId), "signature export error")
-	//	trxContext.VerifySignature()
-	//}
+	if !isVerified {
+		//verify the signature
+		trxContext := NewTrxContext(trxWrp, c.db)
+		trx.Validate()
+		tmpChainId := prototype.ChainId{Value: 0}
+		mustNoError(trxContext.InitSigState(tmpChainId), "signature export error")
+		trxContext.VerifySignature()
+	}
 	c.pendingTx = append(c.pendingTx, trxWrp)
 }
 
