@@ -335,7 +335,7 @@ func (c *TrxPool) GenerateAndApplyBlock(witness string, pre *prototype.Sha256, t
 		return nil, err
 	}
 
-	go c.PushBlock(newBlock, c.skip|prototype.Skip_apply_transaction)
+	c.PushBlock(newBlock, c.skip|prototype.Skip_apply_transaction)
 
 	return newBlock, nil
 }
@@ -410,7 +410,7 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 	if timeOut < minTimeout {
 		timeOut = minTimeout
 	}
-	time.AfterFunc(timeOut, func() {
+	time.AfterFunc(maxTimeout, func() {
 		isFinish = true
 	})
 	failTrxMap := make(map[int]int)
