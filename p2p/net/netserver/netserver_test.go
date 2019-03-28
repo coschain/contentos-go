@@ -28,7 +28,7 @@ func creatPeers(cnt uint32) []*peer.Peer {
 		id = 0x12345 + uint64(i)
 		height = 10086 + uint64(i)
 		p := peer.NewPeer()
-		p.UpdateInfo(time.Now(), 2, 3, syncport, consport, id, 0, height)
+		p.UpdateInfo(time.Now(), 2, 3, syncport, consport, id, 0, height, "abc")
 		p.SetConsState(2)
 		p.SetSyncState(4)
 		p.SyncLink.SetAddr("127.0.0.1:10338")

@@ -34,6 +34,8 @@ var StartCmd = func() *cobra.Command {
 	return cmd
 }
 
+var VERSION string = "defaultVersion"
+
 func makeNode() (*node.Node, node.Config) {
 	var cfg node.Config
 	if cfgName == "" {
@@ -59,6 +61,7 @@ func makeNode() (*node.Node, node.Config) {
 		}
 		cfg.DataDir = dir
 	}
+	cfg.P2P.RunningCodeVersion = VERSION
 	app, err := node.New(&cfg)
 	if err != nil {
 		fmt.Println("Fatal: ", err)

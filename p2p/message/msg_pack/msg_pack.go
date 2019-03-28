@@ -92,18 +92,19 @@ func NewVerAck(isConsensus bool) mt.Message {
 }
 
 //Version package
-func NewVersion(n p2p.P2P, isCons bool, height uint64) mt.Message {
+func NewVersion(n p2p.P2P, isCons bool, height uint64, runningVersion string) mt.Message {
 	var reqmsg mt.TransferMsg
 
 	 data := &mt.Version{
-		Version:     n.GetVersion(),
-		Services:    n.GetServices(),
-		SyncPort:    n.GetSyncPort(),
-		ConsPort:    n.GetConsPort(),
-		Nonce:       n.GetID(),
-		IsConsensus: isCons,
-		StartHeight: uint64(height),
-		Timestamp:   time.Now().UnixNano(),
+		Version            : n.GetVersion(),
+		Services           : n.GetServices(),
+		SyncPort           : n.GetSyncPort(),
+		ConsPort           : n.GetConsPort(),
+		Nonce              : n.GetID(),
+		IsConsensus        : isCons,
+		StartHeight        : uint64(height),
+		Timestamp          : time.Now().UnixNano(),
+		RunningCodeVersion : runningVersion,
 	}
 	if n.GetRelay() {
 		data.Relay = 1

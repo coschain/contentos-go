@@ -326,7 +326,7 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 	//}
 	//ctrl := service.(iservices.IConsensus)
 	//version := msgpack.NewVersion(this, isConsensus, ctrl.GetHeadBlockId().BlockNum())
-	version := msgpack.NewVersion(this, isConsensus, uint64(0))
+	version := msgpack.NewVersion(this, isConsensus, uint64(0), this.ctx.Config().P2P.RunningCodeVersion )
 	err = remotePeer.Send(version, isConsensus, this.ctx.Config().P2P.NetworkMagic)
 	if err != nil {
 		if !isConsensus {
