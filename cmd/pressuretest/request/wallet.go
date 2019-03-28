@@ -140,7 +140,7 @@ func StartEachRoutine(index int) {
 		case VOTE_CMD:
 			voteArticle(rpcClient, nil, 0)
 		case REPLY_CMD:
-			replyArticle(rpcClient, nil, 0)
+			//replyArticle(rpcClient, nil, 0)
 		}
 	}
 }

@@ -59,6 +59,7 @@ message version {
     uint64  startHeight = 8;
     uint32  relay = 9;
     bool    IsConsensus = 10;
+    string  RunningCodeVersion = 11;
 }
 
 message transfer_msg {

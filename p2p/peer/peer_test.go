@@ -87,7 +87,7 @@ func TestGetPeerComInfo(t *testing.T) {
 }
 
 func TestUpdatePeer(t *testing.T) {
-	p.UpdateInfo(time.Now(), 3, 3, 30338, 30339, 0x65535, 0, 13579)
+	p.UpdateInfo(time.Now(), 3, 3, 30338, 30339, 0x65535, 0, 13579, "abc")
 	p.SetConsState(2)
 	p.SetSyncState(3)
 	p.SyncLink.SetAddr("127.0.0.1:20338")

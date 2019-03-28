@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
+	"github.com/coschain/contentos-go/vm/cache"
 	"github.com/coschain/contentos-go/vm/context"
 	"github.com/coschain/contentos-go/vm/validator"
 	"github.com/go-interpreter/wagon/exec"
@@ -118,7 +119,16 @@ func (w *CosVM) runEntry(entryName string) (ret uint32, err error) {
 		ret = 1
 		return
 	}
-	vm, err := exec.NewVM(vmModule)
+
+	vc := vmcache.GetVmCache()
+	vm, ok := vc.Get(w.ctx.Owner.Value,w.ctx.Contract)
+	if ok {
+		vm.Reset()
+	} else {
+		vm, err = exec.NewVM(vmModule)
+		vc.Add(w.ctx.Owner.Value,w.ctx.Contract,vm)
+	}
+
 	defer func() {
 		w.spentGas = vm.CostGas
 	}()

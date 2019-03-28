@@ -106,19 +106,20 @@ type trxCache struct {
 
 //Peer represent the node in p2p
 type Peer struct {
-	base             PeerCom
-	cap              [32]byte
-	SyncLink         *conn.Link
-	ConsLink         *conn.Link
-	syncState        uint32
-	consState        uint32
+	base               PeerCom
+	cap                [32]byte
+	SyncLink           *conn.Link
+	ConsLink           *conn.Link
+	syncState          uint32
+	consState          uint32
+	runningCosdVersion string
 
-	TrxCache         trxCache
+	TrxCache           trxCache
 
-	lastSeenBlkNum   uint64
+	lastSeenBlkNum     uint64
 
-	connLock         sync.RWMutex
-	busy			 int32
+	connLock           sync.RWMutex
+	busy			   int32
 }
 
 //NewPeer return new peer without publickey initial
@@ -205,6 +206,7 @@ func (this *Peer) DumpInfo(log *logrus.Logger) {
 	log.Debug("[p2p] \t consPort = ", this.GetConsPort())
 	log.Debug("[p2p] \t relay = ", this.GetRelay())
 	log.Debug("[p2p] \t height = ", this.GetHeight())
+	log.Debug("[p2p] \t runningCosdVersion = ", this.runningCosdVersion)
 }
 
 //GetVersion return peer`s version
@@ -372,7 +374,7 @@ func (this *Peer) Send(msg types.Message, isConsensus bool, magic uint32) error 
 
 //UpdateInfo update peer`s information
 func (this *Peer) UpdateInfo(t time.Time, version uint32, services uint64,
-	syncPort uint32, consPort uint32, nonce uint64, relay uint32, height uint64) {
+	syncPort uint32, consPort uint32, nonce uint64, relay uint32, height uint64, runningVersion string) {
 
 	this.SyncLink.UpdateRXTime(t)
 	this.base.SetID(nonce)
@@ -382,6 +384,7 @@ func (this *Peer) UpdateInfo(t time.Time, version uint32, services uint64,
 	this.base.SetConsPort(consPort)
 	this.SyncLink.SetPort(syncPort)
 	this.ConsLink.SetPort(consPort)
+	this.runningCosdVersion = runningVersion
 	if relay == 0 {
 		this.base.SetRelay(false)
 	} else {

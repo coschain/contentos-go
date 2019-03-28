@@ -8,6 +8,7 @@ type P2PConfig struct {
 	NetworkMagic              uint32
 	NetworkId                 uint32
 	NetworkName               string
+	RunningCodeVersion        string
 	NodePort                  uint
 	NodeConsensusPort         uint
 	DualPortSupport           bool

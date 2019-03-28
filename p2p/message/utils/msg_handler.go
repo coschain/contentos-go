@@ -311,13 +311,13 @@ func (p *MsgHandler)VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args .
 		remotePeer.UpdateInfo(time.Now(), version.Version,
 			version.Services, version.SyncPort,
 			version.ConsPort, version.Nonce,
-			version.Relay, version.StartHeight)
+			version.Relay, version.StartHeight, version.RunningCodeVersion)
 
 		var msg msgTypes.Message
 		if s == msgCommon.INIT {
 			remotePeer.SetConsState(msgCommon.HAND_SHAKE)
 			//msg = msgpack.NewVersion(p2p, true, ctrl.GetHeadBlockId().BlockNum())
-			msg = msgpack.NewVersion(p2p, true, uint64(0) )
+			msg = msgpack.NewVersion(p2p, true, uint64(0), ctx.Config().P2P.RunningCodeVersion )
 		} else if s == msgCommon.HAND {
 			remotePeer.SetConsState(msgCommon.HAND_SHAKED)
 			msg = msgpack.NewVerAck(true)
@@ -379,7 +379,7 @@ func (p *MsgHandler)VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args .
 		remotePeer.UpdateInfo(time.Now(), version.Version,
 			version.Services, version.SyncPort,
 			version.ConsPort, version.Nonce,
-			version.Relay, version.StartHeight)
+			version.Relay, version.StartHeight, version.RunningCodeVersion)
 		remotePeer.SyncLink.SetID(version.Nonce)
 		p2p.AddNbrNode(remotePeer)
 
@@ -387,7 +387,7 @@ func (p *MsgHandler)VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args .
 		if s == msgCommon.INIT {
 			remotePeer.SetSyncState(msgCommon.HAND_SHAKE)
 			//msg = msgpack.NewVersion(p2p, false, ctrl.GetHeadBlockId().BlockNum())
-			msg = msgpack.NewVersion(p2p, false, uint64(0))
+			msg = msgpack.NewVersion(p2p, false, uint64(0), ctx.Config().P2P.RunningCodeVersion )
 		} else if s == msgCommon.HAND {
 			remotePeer.SetSyncState(msgCommon.HAND_SHAKED)
 			msg = msgpack.NewVerAck(false)
