@@ -256,7 +256,7 @@ syntax = "proto3";
 
 package table;
 
-option go_package = "github.com/coschain/contentos-go/table";
+option go_package = "github.com/coschain/contentos-go/app/table";
 
 {{$path := (getPbImpPaths .PList) -}}
 {{if ne $path "" -}}
