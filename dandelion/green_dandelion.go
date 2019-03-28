@@ -212,6 +212,24 @@ func (d *GreenDandelion) GetTimestamp() uint32 {
 	return d.timestamp
 }
 
+func (d *GreenDandelion) GetProps() *prototype.DynamicProperties {
+	var SingleId int32 = 1
+	dgpWrap := table.NewSoGlobalWrap(d.db, &SingleId)
+	if !dgpWrap.CheckExist() {
+		return nil
+	}
+	return dgpWrap.GetProps()
+}
+
+func (d *GreenDandelion) GetPropsWrap() *table.SoGlobalWrap {
+	var SingleId int32 = 1
+	dgpWrap := table.NewSoGlobalWrap(d.db, &SingleId)
+	if !dgpWrap.CheckExist() {
+		return nil
+	}
+	return dgpWrap
+}
+
 func (d *GreenDandelion) InitminerPrivKey() string {
 	return d.privKey.ToWIF()
 }

@@ -18,6 +18,10 @@ message so_account {
     prototype.time_point_sec    last_post_time      =      8;
     uint32                      vote_power     =      9;
     uint32                      post_count     =      10;
+    prototype.time_point_sec    next_powerdown_time     =      11;
+    prototype.vest              each_powerdown_rate     =      12;
+    prototype.vest              to_powerdown     =      13;
+    prototype.vest              has_powerdown     =      14;
       
 }
 
@@ -72,6 +76,26 @@ message so_mem_account_by_post_count {
 }
 
 
+message so_mem_account_by_next_powerdown_time {
+	prototype.time_point_sec 	next_powerdown_time = 1;
+}
+
+
+message so_mem_account_by_each_powerdown_rate {
+	prototype.vest           	each_powerdown_rate = 1;
+}
+
+
+message so_mem_account_by_to_powerdown {
+	prototype.vest           	to_powerdown = 1;
+}
+
+
+message so_mem_account_by_has_powerdown {
+	prototype.vest           	has_powerdown = 1;
+}
+
+
 message so_list_account_by_created_time {
 	prototype.time_point_sec 	created_time   = 1;
 	prototype.account_name   	name           = 2;
@@ -92,6 +116,12 @@ message so_list_account_by_vesting_shares {
 
 message so_list_account_by_bp_vote_count {
 	uint32                   	bp_vote_count  = 1;
+	prototype.account_name   	name           = 2;
+}
+
+
+message so_list_account_by_next_powerdown_time {
+	prototype.time_point_sec 	next_powerdown_time = 1;
 	prototype.account_name   	name           = 2;
 }
 

@@ -21,6 +21,10 @@ func (d *DandelionP2P) TriggerSync(HeadId common.BlockID) {
 
 }
 
+func (d *DandelionP2P) FetchUnlinkedBlock(prevId common.BlockID) {
+
+}
+
 func (d *DandelionP2P) Send(p *peer.Peer, msg types.Message, isConsensus bool) error {
 	return nil
 }

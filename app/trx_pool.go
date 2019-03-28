@@ -11,6 +11,9 @@ import (
 	"github.com/coschain/contentos-go/common/crypto"
 	"github.com/coschain/contentos-go/common/crypto/secp256k1"
 	"github.com/coschain/contentos-go/common/eventloop"
+	"math"
+
+	//"github.com/coschain/contentos-go/economist"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/prototype"
@@ -50,6 +53,7 @@ type TrxPool struct {
 	shuffle                common.ShuffleFunc
 
 	iceberg *BlockIceberg
+	//economist *economist.Economist
 }
 
 func (c *TrxPool) getDb() (iservices.IDatabaseService, error) {
@@ -101,6 +105,7 @@ func (c *TrxPool) Start(node *node.Node) error {
 
 func (c *TrxPool) Open() {
 	c.iceberg = NewBlockIceberg(c.db)
+	//c.economist = economist.New(c.db, &SingleId)
 	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
 	if !dgpWrap.CheckExist() {
 
@@ -111,7 +116,7 @@ func (c *TrxPool) Open() {
 
 		mustNoError(c.db.TagRevision(c.db.GetRevision(), GENESIS_TAG), "genesis tagging failed")
 		c.iceberg = NewBlockIceberg(c.db)
-
+		//c.economist = economist.New(c.db, &SingleId)
 		//c.log.Info("finish initGenesis")
 	}
 }
@@ -230,7 +235,7 @@ func (c *TrxPool) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag)
 	c.db.Lock()
 	defer func() {
 		c.db.Unlock()
-		
+
 		if r := recover(); r != nil {
 			switch x := r.(type) {
 			case error:
@@ -329,7 +334,6 @@ func (c *TrxPool) GenerateAndApplyBlock(witness string, pre *prototype.Sha256, t
 		c.log.Debug("[trxpool] GenerateAndApplyBlock cost: ", time.Now().Sub(s))
 	}()
 
-
 	newBlock, err := c.GenerateBlock(witness, pre, timestamp, priKey, skip)
 	if err != nil {
 		return nil, err
@@ -413,7 +417,7 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 	applyTime := int64(0)
 	for k, trxWraper := range c.pendingTx {
 		if isFinish {
-			c.log.Warn("[trxpool] Generate block timeout, total pending: ", len(c.pendingTx) )
+			c.log.Warn("[trxpool] Generate block timeout, total pending: ", len(c.pendingTx))
 			break
 		}
 		if trxWraper.SigTrx.Trx.Expiration.UtcSeconds < timestamp {
@@ -673,6 +677,8 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 		}
 		c.log.Debugf("PUSHBLOCK: %v, #tx=%d", time.Now().Sub(t00), len(blk.Transactions))
 	}
+	//c.economist.Mint()
+	//c.economist.Do()
 
 	t0 := time.Now()
 	c.updateGlobalProperties(blk)
@@ -745,6 +751,10 @@ func (c *TrxPool) initGenesis() {
 		tInfo.VestingShares = prototype.NewVest(1000)
 		tInfo.LastPostTime = &prototype.TimePointSec{UtcSeconds: 0}
 		tInfo.LastVoteTime = &prototype.TimePointSec{UtcSeconds: 0}
+		tInfo.NextPowerdownTime = &prototype.TimePointSec{UtcSeconds: math.MaxUint32}
+		tInfo.EachPowerdownRate = &prototype.Vest{Value: 0}
+		tInfo.ToPowerdown = &prototype.Vest{Value: 0}
+		tInfo.HasPowerdown = &prototype.Vest{Value: 0}
 	}), "CreateAccount error")
 
 	// create account authority
@@ -780,6 +790,9 @@ func (c *TrxPool) initGenesis() {
 		tInfo.Props.MaximumBlockSize = constants.MaxBlockSize
 		tInfo.Props.TotalUserCnt = 1
 		tInfo.Props.TotalVestingShares = prototype.NewVest(0)
+		tInfo.Props.PostRewards = prototype.NewVest(0)
+		tInfo.Props.WeightedVps = 0
+		tInfo.Props.ReplyRewards = prototype.NewVest(0)
 	}), "CreateDynamicGlobalProperties error")
 
 	//create rewards keeper
@@ -840,7 +853,7 @@ func (c *TrxPool) TransferFromVest(value *prototype.Vest) {
 func (c *TrxPool) validateBlockHeader(blk *prototype.SignedBlock) {
 	headID := c.headBlockID()
 	if !bytes.Equal(headID.Hash, blk.SignedHeader.Header.Previous.Hash) {
-		c.log.Error("[trxpool]:" , "validateBlockHeader Error: ", headID.ToString(), " prev:", blk.SignedHeader.Header.Previous.ToString())
+		c.log.Error("[trxpool]:", "validateBlockHeader Error: ", headID.ToString(), " prev:", blk.SignedHeader.Header.Previous.ToString())
 		panic("hash not equal")
 	}
 	headTime := c.headBlockTime()
@@ -982,7 +995,7 @@ func (c *TrxPool) updateGlobalProperties(blk *prototype.SignedBlock) {
 		}
 	})
 
-	c.noticer.Publish(constants.NoticeAddTrx,blk)
+	c.noticer.Publish(constants.NoticeAddTrx, blk)
 	// this check is useful ?
 	//mustSuccess(dgpo.GetHeadBlockNumber()-dgpo.GetIrreversibleBlockNum() < constants.MaxUndoHistory, "The database does not have enough undo history to support a blockchain with so many missed blocks.")
 }
@@ -1009,7 +1022,7 @@ func (c *TrxPool) createBlockSummary(blk *prototype.SignedBlock) {
 
 func (c *TrxPool) clearExpiredTransactions() {
 	sortWrap := table.STransactionObjectExpirationWrap{Dba: c.db}
-	sortWrap.ForEachByOrder(nil, nil,nil,nil,
+	sortWrap.ForEachByOrder(nil, nil, nil, nil,
 		func(mVal *prototype.Sha256, sVal *prototype.TimePointSec, idx uint32) bool {
 			if sVal != nil {
 				headTime := c.headBlockTime().UtcSeconds
@@ -1028,7 +1041,7 @@ func (c *TrxPool) clearExpiredTransactions() {
 func (c *TrxPool) GetWitnessTopN(n uint32) []string {
 	var ret []string
 	revList := table.SWitnessVoteCountWrap{Dba: c.db}
-	revList.ForEachByRevOrder(nil, nil,nil,nil, func(mVal *prototype.AccountName, sVal *uint64, idx uint32) bool {
+	revList.ForEachByRevOrder(nil, nil, nil, nil, func(mVal *prototype.AccountName, sVal *uint64, idx uint32) bool {
 		if mVal != nil {
 			ret = append(ret, mVal.Value)
 		}
@@ -1074,11 +1087,11 @@ func (c *TrxPool) PopBlock(num uint64) {
 
 func (c *TrxPool) Commit(num uint64) {
 
-	func(){
-	    s := time.Now()
-	    defer func() {
-	        c.log.Debug("[trxpool] Commit cost: ", time.Now().Sub(s))
-	    }()
+	func() {
+		s := time.Now()
+		defer func() {
+			c.log.Debug("[trxpool] Commit cost: ", time.Now().Sub(s))
+		}()
 		// this block can not be revert over, so it's irreversible
 		err := c.iceberg.FinalizeBlock(num)
 		mustSuccess(err == nil, fmt.Sprintf("commit block: %d, error is %v", num, err))

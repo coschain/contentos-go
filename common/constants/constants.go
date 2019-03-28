@@ -59,12 +59,13 @@ const (
 
 	TrxMaxExpirationTime = 60
 
-	PerBlockCurrent = 10
+	PerBlockCurrent = 10 * 1e6 // precision: 6
 
-	RewardRateAuthor = 7000
-	RewardRateReply  = 2000
-	RewardRateBP     = 1000
+	RewardRateAuthor = 6300
+	RewardRateReply  = 1350
+	RewardRateBP     = 900
+	ReportRate       = 450
 
-	// 10 ** 18 ?
-	BaseRate = 1
+	BaseRate            = 1e6
+	POWER_DOWN_INTERVAL = (60 * 60 * 24) * 7
 )

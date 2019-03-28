@@ -10,6 +10,7 @@ import (
 	"github.com/coschain/contentos-go/vm/contract/abi"
 	ct "github.com/coschain/contentos-go/vm/contract/table"
 	"github.com/sirupsen/logrus"
+	"math"
 	"sort"
 )
 
@@ -135,6 +136,10 @@ func (ev *AccountCreateEvaluator) Apply() {
 		tInfo.VestingShares = op.Fee.ToVest()
 		tInfo.LastPostTime = ev.ctx.control.HeadBlockTime()
 		tInfo.LastVoteTime = ev.ctx.control.HeadBlockTime()
+		tInfo.NextPowerdownTime = &prototype.TimePointSec{UtcSeconds: math.MaxUint32}
+		tInfo.EachPowerdownRate = &prototype.Vest{Value: 0}
+		tInfo.ToPowerdown = &prototype.Vest{Value: 0}
+		tInfo.HasPowerdown = &prototype.Vest{Value: 0}
 	}), "duplicate create account object")
 
 	// create account authority
@@ -161,8 +166,7 @@ func (ev *TransferEvaluator) Apply() {
 
 	opAssert(toWrap.CheckExist(), "To account do not exist ")
 
-	opAssert( op.From.Value != op.To.Value , "Transfer must between two different accounts")
-
+	opAssert(op.From.Value != op.To.Value, "Transfer must between two different accounts")
 
 	fBalance := fromWrap.GetBalance()
 	tBalance := toWrap.GetBalance()
