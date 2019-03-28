@@ -335,7 +335,9 @@ func (c *TrxPool) GenerateAndApplyBlock(witness string, pre *prototype.Sha256, t
 		return nil, err
 	}
 
-	c.PushBlock(newBlock, c.skip|prototype.Skip_apply_transaction)
+	if err := c.PushBlock(newBlock, c.skip|prototype.Skip_apply_transaction); err != nil {
+		return nil, err
+	}
 
 	return newBlock, nil
 }
