@@ -679,7 +679,7 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 	}
 	c.economist.Mint()
 	c.economist.Do()
-
+	c.economist.PowerDown()
 	t0 := time.Now()
 	c.updateGlobalProperties(blk)
 	//c.updateSigningWitness(blk)

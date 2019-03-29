@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/coschain/contentos-go/app/table"
 	dande "github.com/coschain/contentos-go/dandelion"
+	"github.com/coschain/contentos-go/economist"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -171,6 +172,13 @@ func TestConvertVestingEvaluator_DandelionNormal(t *testing.T) {
 	myassert.Nil(err)
 	dandelion.PushTrx(signTx)
 	dandelion.GenerateBlock()
+	fmt.Println(accWrap.GetNextPowerdownTime())
+	fmt.Println(accWrap.GetToPowerdown())
+	fmt.Println(accWrap.GetHasPowerdown())
+	fmt.Println(accWrap.GetEachPowerdownRate())
+	accWrap.MdNextPowerdownTime(&prototype.TimePointSec{UtcSeconds: 0})
+	e := economist.New(db, &SINGLE_ID)
+	e.PowerDown()
 	fmt.Println(accWrap.GetNextPowerdownTime())
 	fmt.Println(accWrap.GetToPowerdown())
 	fmt.Println(accWrap.GetHasPowerdown())
