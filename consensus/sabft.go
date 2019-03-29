@@ -315,12 +315,13 @@ func (sabft *SABFT) Start(node *node.Node) error {
 	if sabft.bootstrap && sabft.ForkDB.Empty() && sabft.blog.Empty() {
 		sabft.log.Info("[SABFT] bootstrapping...")
 	}
-	sabft.restoreProducers()
 
 	err = sabft.handleBlockSync()
 	if err != nil {
 		return err
 	}
+
+	sabft.restoreProducers()
 
 	// start block generation process
 	go sabft.start()
@@ -1381,7 +1382,7 @@ func (sabft *SABFT) handleBlockSync() error {
 		sabft.log.Infof("[Revert commit] start revert invalid commit to statedb: "+
 			"%v,end:%v,real commit num is %v", dbCommit, latestNumber)
 
-		sabft.ctrl.PopBlock(latestNumber)
+		sabft.ctrl.PopBlock(latestNumber + 1)
 	}
 
 	return nil
