@@ -23,7 +23,7 @@ If another branch out grows the main branch, `swichFork` is taken place.
 ### 1. why we need BFT
 Instant transactions are required in many scenarios, especially when it involves asset transfer.
 In bitcoin world, there is no guarantee to finalize a certain block because theoretically any node with enough resource can generate a longer chain and cause a fork switch. This is a direct violation of safety in the realm of distributed system.
-Hence we adopts BFT to achieve fast consensus. Once a consensus is reached on a certain block, it can never be reverted.
+Hence we adopt BFT to achieve fast consensus. Once a consensus is reached on a certain block, it can never be reverted.
 
 ### 2. Performance
 SABFT reaches consensus in 1~2 seconds in LAN. The bft process adopts 3-phase-commit(propose, prevote, precommit), in the propose phase, validators wait synchronously for the proposer to broadcast proposal, the rest two phases are completely asynchronous.
@@ -40,7 +40,7 @@ EOS's approach is interesting but I personally consider it as a step back. Its i
 
 ### 4. behaviour
 #### propose
-* how to choose a proposer: a new proposer is chosen among all validators in every bft voting round in round-robin manner
+* how to choose a proposer: a new proposer is chosen among all validators in every bft voting round in round-robin
 * how to pick a proposal: proposer simply propose its head block
 #### commit
 it's possible that a block that is about to be committed is not on the main branch, hence a fork switch is needed.
