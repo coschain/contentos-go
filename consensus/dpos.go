@@ -758,7 +758,7 @@ func (d *DPoS) handleBlockSync() error {
 	var err error = nil
 	lastCommit := d.ForkDB.LastCommitted().BlockNum()
 	//Fetch the commit block num in db
-	dbCommit,err := d.ctrl.GetCommitBlockNum()
+	dbCommit,err := d.ctrl.GetLastPushedBlockNum()
 	if err != nil {
 		return err
 	}

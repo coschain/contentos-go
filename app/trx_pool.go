@@ -1127,7 +1127,7 @@ func (c *TrxPool) Sign(priv *prototype.PrivateKeyType, digest []byte) []byte {
 	return res
 }
 
-func (c *TrxPool) GetCommitBlockNum() (uint64, error) {
+func (c *TrxPool) GetLastPushedBlockNum() (uint64, error) {
 	num, _, err := c.iceberg.LatestBlock()
 	return num, err
 }
@@ -1143,7 +1143,7 @@ func (c *TrxPool) SyncCommittedBlockToDB(blk common.ISignedBlock) (err error) {
 	if blk == nil {
 		return errors.New("[Sync commit]:Fail to sync commit nil block")
 	}
-	cmtNum, err := c.GetCommitBlockNum()
+	cmtNum, err := c.GetLastPushedBlockNum()
 	if err != nil {
 		return err
 	}
@@ -1174,7 +1174,7 @@ func (c *TrxPool) SyncPushedBlocksToDB(blkList []common.ISignedBlock) (err error
 		}
 	}()
 	if blkList != nil {
-		cmtNum, err := c.GetCommitBlockNum()
+		cmtNum, err := c.GetLastPushedBlockNum()
 		if err != nil {
 			return err
 		}
