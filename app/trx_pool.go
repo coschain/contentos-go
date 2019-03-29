@@ -18,6 +18,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"io/ioutil"
+	"sync"
 	"time"
 )
 
@@ -47,6 +48,8 @@ type TrxPool struct {
 	//currentBlockNum        uint64
 	//currentTrxInBlock      int16
 	havePendingTransaction bool
+	pendingLock sync.RWMutex
+
 	shuffle                common.ShuffleFunc
 
 	iceberg *BlockIceberg
@@ -125,7 +128,9 @@ func (c *TrxPool) setProducing(b bool) {
 }
 
 func (c *TrxPool) PushTrxToPending(trx *prototype.SignedTransaction) (err error) {
+	c.pendingLock.Lock()
 	defer func() {
+		c.pendingLock.Unlock()
 		if r := recover(); r != nil {
 			switch val := r.(type) {
 			case error:
@@ -224,6 +229,9 @@ func (c *TrxPool) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag)
 	//var err error = nil
 	oldFlag := c.skip
 	c.skip = skip
+
+	c.pendingLock.Lock()
+	defer c.pendingLock.Unlock()
 
 	tmpPending := c.ClearPending()
 
@@ -347,6 +355,9 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 	priKey *prototype.PrivateKeyType, skip prototype.SkipFlag) (b *prototype.SignedBlock, e error) {
 
 	t0 := time.Now()
+
+	c.pendingLock.Lock()
+	defer c.pendingLock.Unlock()
 
 	oldSkip := c.skip
 	c.db.Lock()
@@ -1058,6 +1069,12 @@ func (c *TrxPool) AddWeightedVP(value uint64) {
 }
 
 func (c *TrxPool) PopBlock(num uint64) error {
+	c.db.Lock()
+	defer c.db.Unlock()
+
+	c.pendingLock.Lock()
+	defer c.pendingLock.Unlock()
+
 	// undo pending trx
 	c.ClearPending()
 	/*if c.havePendingTransaction {
