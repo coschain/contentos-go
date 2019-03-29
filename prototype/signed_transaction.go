@@ -167,3 +167,18 @@ func (tx *SignedTransaction) Deserialization(source *common.ZeroCopySource) erro
 	tx = tmp
 	return nil
 }
+
+func (tx *SignedTransaction) GetOpCreatorsMap() map[string]bool  {
+	usrMap := map[string]bool{}
+	trx := tx.GetTrx()
+	if trx != nil {
+		ops := trx.GetOperations()
+		if len(ops) > 0 {
+			for _, op := range ops {
+				baseOp := GetBaseOperation(op)
+				baseOp.GetSigner(&usrMap)
+			}
+		}
+	}
+	return usrMap
+}

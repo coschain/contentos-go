@@ -68,3 +68,8 @@ message user_post_create_order {
     account_name  author = 1;
     prototype.time_point_sec create = 2;
 }
+
+message user_trx_create_order {
+    account_name  creator = 1;
+    prototype.time_point_sec create_time = 2;
+}
