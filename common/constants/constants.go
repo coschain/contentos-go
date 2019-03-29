@@ -66,6 +66,8 @@ const (
 	RewardRateBP     = 900
 	ReportRate       = 450
 
+	ConvertWeeks = 13
+
 	BaseRate            = 1e6
 	POWER_DOWN_INTERVAL = (60 * 60 * 24) * 7
 

@@ -88,6 +88,12 @@ type ReportEvaluator struct {
 	op  *prototype.ReportOperation
 }
 
+type ConvertVestingEvaluator struct {
+	BaseEvaluator
+	ctx *ApplyContext
+	op  *prototype.ConvertVestingOperation
+}
+
 // I can cat out this awkward claimall operation until I can get value from rpc resp
 type ClaimAllEvaluator struct {
 	BaseEvaluator
@@ -430,6 +436,22 @@ func (ev *TransferToVestingEvaluator) Apply() {
 	opAssert(tidWrap.MdVestingShares(tVests), "set to new vests error")
 
 	ev.ctx.control.TransferToVest(op.Amount)
+}
+
+func (ev *ConvertVestingEvaluator) Apply() {
+	op := ev.op
+	accWrap := table.NewSoAccountWrap(ev.ctx.db, op.From)
+	opAssert(accWrap.CheckExist(), "account do not exist")
+	opAssert(op.Amount.Value >= uint64(1e6), "At least 1 vesting should be converted")
+	opAssert(accWrap.GetVestingShares().Value >= op.Amount.Value, "vesting balance not enough")
+	globalProps := ev.ctx.control.GetProps()
+	timestamp := globalProps.Time.UtcSeconds
+	eachRate := op.Amount.Value / constants.ConvertWeeks
+
+	accWrap.MdNextPowerdownTime(&prototype.TimePointSec{UtcSeconds: timestamp + constants.POWER_DOWN_INTERVAL})
+	accWrap.MdEachPowerdownRate(&prototype.Vest{Value: eachRate})
+	accWrap.MdHasPowerdown(&prototype.Vest{Value: 0})
+	accWrap.MdToPowerdown(op.Amount)
 }
 
 func (ev *ClaimEvaluator) Apply() {

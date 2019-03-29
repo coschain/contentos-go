@@ -360,6 +360,32 @@ func TestVoteEvaluator_ApplyNormal(t *testing.T) {
 
 }
 
+func TestConvertVestingEvaluator_Apply(t *testing.T) {
+	cv_operation := &prototype.ConvertVestingOperation{
+		From:   &prototype.AccountName{Value: "initminer"},
+		Amount: &prototype.Vest{Value: 1e6},
+	}
+	db := startDB()
+	defer clearDB(db)
+
+	op := &prototype.Operation{}
+	opCV := &prototype.Operation_Op16{}
+	opCV.Op16 = cv_operation
+	op.Op = opCV
+
+	c := startController(db)
+
+	ctx := &ApplyContext{db: db, control: c}
+	ev := &ConvertVestingEvaluator{ctx: ctx, op: op.GetOp16()}
+	accWrap := table.NewSoAccountWrap(ev.ctx.db, &prototype.AccountName{Value: "initminer"})
+	accWrap.MdVestingShares(&prototype.Vest{Value: 10 * 1e6})
+	ev.Apply()
+	fmt.Println(accWrap.GetNextPowerdownTime())
+	fmt.Println(accWrap.GetToPowerdown())
+	fmt.Println(accWrap.GetHasPowerdown())
+	fmt.Println(accWrap.GetEachPowerdownRate())
+}
+
 func startDB() iservices.IDatabaseService {
 	dir, _ := ioutil.TempDir("", "db")
 	db, err := storage.NewDatabase(filepath.Join(dir, strconv.FormatUint(rand.Uint64(), 16)))

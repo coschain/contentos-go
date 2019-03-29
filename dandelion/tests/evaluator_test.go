@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"fmt"
 	"github.com/coschain/contentos-go/app/table"
 	dande "github.com/coschain/contentos-go/dandelion"
 	"github.com/coschain/contentos-go/prototype"
@@ -145,4 +146,33 @@ func TestClaimallEvaluator_DandelionNormal(t *testing.T) {
 	keeper = keeperWrapper.GetKeeper()
 	reward := keeper.Rewards
 	myassert.Equal(reward["kochiya"].Value, uint64(0))
+}
+
+func TestConvertVestingEvaluator_DandelionNormal(t *testing.T) {
+	myassert := assert.New(t)
+	dandelion, _ := dande.NewGreenDandelion()
+	_ = dandelion.OpenDatabase()
+	defer func() {
+		err := dandelion.Clean()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
+	db := dandelion.GetDB()
+	_ = dandelion.CreateAccount("kochiya")
+	accWrap := table.NewSoAccountWrap(db, &prototype.AccountName{Value: "kochiya"})
+	accWrap.MdVestingShares(&prototype.Vest{Value: 10 * 1e6})
+	privKey := dandelion.GeneralPrivKey()
+	operation := &prototype.ConvertVestingOperation{
+		From:   &prototype.AccountName{Value: "kochiya"},
+		Amount: &prototype.Vest{Value: 1e6},
+	}
+	signTx, err := dandelion.Sign(privKey, operation)
+	myassert.Nil(err)
+	dandelion.PushTrx(signTx)
+	dandelion.GenerateBlock()
+	fmt.Println(accWrap.GetNextPowerdownTime())
+	fmt.Println(accWrap.GetToPowerdown())
+	fmt.Println(accWrap.GetHasPowerdown())
+	fmt.Println(accWrap.GetEachPowerdownRate())
 }

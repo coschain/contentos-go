@@ -129,3 +129,7 @@ message report_operation {
     bool is_approved = 5;
 }
 
+message convert_vesting_operation {
+    account_name from = 1;
+    vest amount = 2;
+}
