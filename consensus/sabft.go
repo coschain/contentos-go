@@ -316,11 +316,12 @@ func (sabft *SABFT) Start(node *node.Node) error {
 		sabft.log.Info("[SABFT] bootstrapping...")
 	}
 
+	sabft.restoreProducers()
+
 	err = sabft.handleBlockSync()
 	if err != nil {
 		return err
 	}
-
 	sabft.restoreProducers()
 
 	// start block generation process
