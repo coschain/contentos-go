@@ -354,6 +354,7 @@ func (sabft *SABFT) scheduleProduce() bool {
 	if !sabft.readyToProduce {
 		if sabft.checkSync() {
 			sabft.readyToProduce = true
+			sabft.log.Debugf("head block id: %d, timestamp %v", sabft.ForkDB.Head().Id().BlockNum(), time.Unix(int64(sabft.ForkDB.Head().Timestamp()), 0))
 		} else {
 			if _, ok := sabft.Ticker.(*Timer); ok {
 				sabft.prodTimer.Reset(sabft.timeToNextSec())
