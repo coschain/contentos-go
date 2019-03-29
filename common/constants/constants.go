@@ -68,4 +68,6 @@ const (
 
 	BaseRate            = 1e6
 	POWER_DOWN_INTERVAL = (60 * 60 * 24) * 7
+
+	ReportCashout = 1000
 )

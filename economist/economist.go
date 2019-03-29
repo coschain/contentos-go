@@ -68,6 +68,7 @@ func (e *Economist) Mint() {
 	authorReward := blockCurrent * constants.RewardRateAuthor / constants.PERCENT
 	replyReward := blockCurrent * constants.RewardRateReply / constants.PERCENT
 	bpReward := blockCurrent * constants.RewardRateBP / constants.PERCENT
+	reportReward := blockCurrent - authorReward - replyReward - bpReward
 
 	globalProps, err := e.GetProps()
 	if err != nil {
@@ -89,15 +90,27 @@ func (e *Economist) Mint() {
 	e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
 		props.PostRewards.Value += uint64(authorReward)
 		props.ReplyRewards.Value += uint64(replyReward)
+		props.ReportRewards.Value += uint64(reportReward)
 	})
 
 }
 
+// Should be claiming or direct modify the balance?
 func (e *Economist) Do() {
 	e.decayGlobalVotePower()
 	globalProps, err := e.GetProps()
 	if err != nil {
 		panic("economist do failed when get props")
+	}
+	if globalProps.HeadBlockNumber%constants.ReportCashout == 0 {
+		reportRewards := globalProps.ReportRewards.Value
+		postRewards := reportRewards / 2
+		replyRewards := reportRewards - postRewards
+		e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
+			props.ReportRewards.Value = 0
+			props.PostRewards.Value += postRewards
+			props.ReplyRewards.Value += replyRewards
+		})
 	}
 	timestamp := globalProps.Time.UtcSeconds
 	iterator := table.NewPostCashoutTimeWrap(e.db)
