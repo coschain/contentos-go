@@ -257,7 +257,7 @@ func (c *TrxPool) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag)
 			if skip&prototype.Skip_apply_transaction != 0 {
 				c.havePendingTransaction = false
 			}
-			c.log.Errorf("push block fail,the error is %v,the block num is %v \n", r, blk.Id().BlockNum())
+			c.log.Errorf("push block fail,the error is %v,the block num is %v", r, blk.Id().BlockNum())
 			//fmt.Printf("push block fail,the error is %v,the block num is %v \n", r, blk.Id().BlockNum())
 		}
 		// restorePending will call pushTrx, will start new transaction for pending
@@ -773,7 +773,7 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 	c.notifyBlockApply(blk)
 	t5 := time.Now()
 
-	c.log.Debugf("AFTER_BLOCK %d: %v|%v|%v|%v|%v|%v\n", blk.Id().BlockNum(), t5.Sub(t0), t1.Sub(t0), t2.Sub(t1), t3.Sub(t2), t4.Sub(t3), t5.Sub(t4))
+	c.log.Debugf("AFTER_BLOCK %d: %v|%v|%v|%v|%v|%v", blk.Id().BlockNum(), t5.Sub(t0), t1.Sub(t0), t2.Sub(t1), t3.Sub(t2), t4.Sub(t3), t5.Sub(t4))
 }
 
 func (c *TrxPool) ValidateAddress(name string, pubKey *prototype.PublicKeyType) bool {
