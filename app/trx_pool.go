@@ -143,6 +143,7 @@ func (c *TrxPool) PushTrxToPending(trx *prototype.SignedTransaction) (err error)
 
 func (c *TrxPool) addTrxToPending(trx *prototype.SignedTransaction, isVerified bool) {
 	if !c.havePendingTransaction {
+		c.log.Debug("BeginTransaction: for pendings")
 		c.db.BeginTransaction()
 		c.havePendingTransaction = true
 	}
@@ -244,10 +245,12 @@ func (c *TrxPool) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag)
 			}
 			// undo changes
 			c.iceberg.EndBlock(false)
+			c.log.Debug("ICEBERG: EndBlock FALSE")
 			if skip&prototype.Skip_apply_transaction != 0 {
 				c.havePendingTransaction = false
 			}
-			fmt.Printf("push block fail,the error is %v,the block num is %v \n", r, blk.Id().BlockNum())
+			c.log.Errorf("push block fail,the error is %v,the block num is %v \n", r, blk.Id().BlockNum())
+			//fmt.Printf("push block fail,the error is %v,the block num is %v \n", r, blk.Id().BlockNum())
 		}
 		// restorePending will call pushTrx, will start new transaction for pending
 		c.restorePending(tmpPending)
@@ -257,15 +260,22 @@ func (c *TrxPool) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag)
 	}()
 
 	if skip&prototype.Skip_apply_transaction == 0 {
-		c.iceberg.BeginBlock(blk.Id().BlockNum())
+		blkNum := blk.Id().BlockNum()
+		c.log.Debugf("ICEBERG: BeginBlock %d", blkNum)
+		c.iceberg.BeginBlock(blkNum)
+		c.log.Debugf("BeginTransaction: for block %d", blkNum)
 		c.db.BeginTransaction()
 		c.applyBlock(blk, skip)
+		c.log.Debug("EndTransaction TRUE: apply block ok")
 		mustNoError(c.db.EndTransaction(true), "EndTransaction error")
+		c.log.Debug("ICEBERG: EndBlock TRUE")
 		c.iceberg.EndBlock(true)
 	} else {
 		// we have do a BeginTransaction at GenerateBlock
 		c.applyBlock(blk, skip)
+		c.log.Debug("EndTransaction TRUE: apply block ok")
 		mustNoError(c.db.EndTransaction(true), "EndTransaction error")
+		c.log.Debug("ICEBERG: EndBlock TRUE")
 		c.iceberg.EndBlock(true)
 		c.havePendingTransaction = false
 	}
@@ -285,6 +295,7 @@ func (c *TrxPool) ClearPending() []*prototype.EstimateTrxResult {
 	// 2. block from local generate, we keep it
 	if c.skip&prototype.Skip_apply_transaction == 0 {
 		if c.havePendingTransaction == true {
+			c.log.Debug("EndTransaction FALSE: clear pendings")
 			mustNoError(c.db.EndTransaction(false), "EndTransaction error")
 			c.havePendingTransaction = false
 			//		c.log.Debug("@@@@@@ ClearPending havePendingTransaction=false")
@@ -361,6 +372,7 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 
 		c.skip = oldSkip
 		if err := recover(); err != nil {
+			c.log.Debug("EndTransaction FALSE: failed block")
 			mustNoError(c.db.EndTransaction(false), "EndTransaction error")
 			//c.log.Errorf("GenerateBlock Error: %v", err)
 			//panic(err)
@@ -398,9 +410,14 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 
 	// undo all pending in DB
 	if c.havePendingTransaction {
+		c.log.Debug("EndTransaction FALSE: clear pendings")
 		mustNoError(c.db.EndTransaction(false), "EndTransaction error")
 	}
-	c.iceberg.BeginBlock(c.headBlockNum() + 1)
+	blkNum := c.headBlockNum() + 1
+	c.log.Debugf("ICEBERG: BeginBlock %d", blkNum)
+	c.iceberg.BeginBlock(blkNum)
+
+	c.log.Debugf("BeginTransaction: for block %d", blkNum)
 	c.db.BeginTransaction()
 	//c.log.Debug("@@@@@@ GeneratBlock havePendingTransaction=true")
 	c.havePendingTransaction = true
@@ -507,7 +524,8 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 
 	}
 	t3 := time.Now()
-	c.log.Debugf("GENBLOCK: %v|%v|%v(%v)|%v, timeout=%v, pending=%d, failed=%d, inblk=%d\n",
+	c.log.Debugf("GENBLOCK %d: %v|%v|%v(%v)|%v, timeout=%v, pending=%d, failed=%d, inblk=%d\n",
+		signBlock.Id().BlockNum(),
 		t3.Sub(t0), t1.Sub(t0), t2.Sub(t1), time.Duration(applyTime), t3.Sub(t2), timeOut,
 		lastIdx + 1, len(failTrxMap), len(signBlock.Transactions))
 
@@ -546,7 +564,7 @@ func (c *TrxPool) notifyBlockApply(block *prototype.SignedBlock) {
 	t1 := time.Now()
 	c.noticer.Publish(constants.NoticeBlockApplied, block)
 	t2 := time.Now()
-	c.log.Debugf("NOTIFYBLOCK: %v|%v|%v, #tx=%d", t2.Sub(t0), t1.Sub(t0), t2.Sub(t1), len(block.Transactions))
+	c.log.Debugf("NOTIFYBLOCK %d: %v|%v|%v, #tx=%d", block.Id().BlockNum(), t2.Sub(t0), t1.Sub(t0), t2.Sub(t1), len(block.Transactions))
 }
 
 func (c *TrxPool) notifyTrxApplyResult(trx *prototype.SignedTransaction, res bool,
@@ -724,7 +742,7 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 			}
 		}
 		t1 := time.Now()
-		c.log.Debugf("PUSHBLOCK: %v(%v), #tx=%d", t1.Sub(t0), time.Duration(applyTime), totalCount)
+		c.log.Debugf("PUSHBLOCK %d: %v(%v), #tx=%d", blk.Id().BlockNum(), t1.Sub(t0), time.Duration(applyTime), totalCount)
 	}
 
 	t0 := time.Now()
@@ -744,7 +762,7 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 	c.notifyBlockApply(blk)
 	t5 := time.Now()
 
-	c.log.Debugf("AFTER_BLOCK: %v|%v|%v|%v|%v|%v\n", t5.Sub(t0), t1.Sub(t0), t2.Sub(t1), t3.Sub(t2), t4.Sub(t3), t5.Sub(t4))
+	c.log.Debugf("AFTER_BLOCK %d: %v|%v|%v|%v|%v|%v\n", blk.Id().BlockNum(), t5.Sub(t0), t1.Sub(t0), t2.Sub(t1), t3.Sub(t2), t4.Sub(t3), t5.Sub(t4))
 }
 
 func (c *TrxPool) ValidateAddress(name string, pubKey *prototype.PublicKeyType) bool {
@@ -1039,6 +1057,8 @@ func (c *TrxPool) updateGlobalProperties(blk *prototype.SignedBlock) {
 			dgpo.MaxTps = dgpo.Tps
 			dgpo.MaxTpsBlockNum = blk.Id().BlockNum()
 		}
+
+		c.log.Debugf("UPDATEDGP %d: headNum=%d, headId=%v", id.BlockNum(), dgpo.HeadBlockNumber, dgpo.HeadBlockId.Hash)
 	})
 
 	// this check is useful ?
