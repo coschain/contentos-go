@@ -1,7 +1,6 @@
 package economist
 
 import (
-	"fmt"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/dandelion"
 	"github.com/coschain/contentos-go/prototype"
@@ -83,5 +82,5 @@ func TestEconomist_Do(t *testing.T) {
 	//fmt.Println(postWrap.GetCashoutTime())
 	eco.Do()
 	keeper, _ := eco.GetRewardsKeeper()
-	fmt.Println(keeper.Rewards)
+	myassert.Equal(keeper.Rewards["kochiya"].Value, uint64(333))
 }

@@ -157,11 +157,18 @@ func (e *Economist) postCashout(rewardKeeper *prototype.InternalRewardsKeeper, p
 	for _, post := range posts {
 		vpAccumulator += post.GetWeightedVp()
 	}
-	blockReward := vpAccumulator * globalProps.PostRewards.Value / globalProps.WeightedVps
+	var blockReward uint64 = 0
+	if globalProps.WeightedVps > 0 {
+		blockReward = vpAccumulator * globalProps.PostRewards.Value / globalProps.WeightedVps
+	}
 	innerRewards := rewardKeeper.Rewards
 	for _, post := range posts {
 		author := post.GetAuthor().Value
-		reward := post.GetWeightedVp() * blockReward / vpAccumulator
+		var reward uint64 = 0
+		// divide zero exception
+		if vpAccumulator > 0 {
+			reward = post.GetWeightedVp() * blockReward / vpAccumulator
+		}
 		if vest, ok := innerRewards[author]; !ok {
 			innerRewards[author] = &prototype.Vest{Value: reward}
 		} else {
@@ -184,11 +191,18 @@ func (e *Economist) replyCashout(rewardKeeper *prototype.InternalRewardsKeeper, 
 	e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
 		props.WeightedVps += vpAccumulator
 	})
-	blockReward := vpAccumulator * globalProps.ReplyRewards.Value / globalProps.WeightedVps
+	var blockReward uint64 = 0
+	if globalProps.WeightedVps > 0 {
+		blockReward = vpAccumulator * globalProps.PostRewards.Value / globalProps.WeightedVps
+	}
 	innerRewards := rewardKeeper.Rewards
 	for _, reply := range replies {
 		author := reply.GetAuthor().Value
-		reward := reply.GetWeightedVp() * blockReward / vpAccumulator
+		var reward uint64 = 0
+		// divide zero exception
+		if vpAccumulator > 0 {
+			reward = reply.GetWeightedVp() * blockReward / vpAccumulator
+		}
 		if vest, ok := rewardKeeper.Rewards[author]; !ok {
 			innerRewards[author] = &prototype.Vest{Value: reward}
 		} else {
