@@ -1057,7 +1057,7 @@ func (c *TrxPool) AddWeightedVP(value uint64) {
 	dgpWrap.MdProps(dgpo)
 }
 
-func (c *TrxPool) PopBlock(num uint64) {
+func (c *TrxPool) PopBlock(num uint64) error {
 	// undo pending trx
 	c.ClearPending()
 	/*if c.havePendingTransaction {
@@ -1069,7 +1069,11 @@ func (c *TrxPool) PopBlock(num uint64) {
 	//rev := c.getReversion(num)
 	//mustNoError(c.db.RevertToRevision(rev), fmt.Sprintf("RebaseToRevision error: tag:%d, reversion:%d", num, rev))
 	err := c.iceberg.RevertBlock(num)
-	mustSuccess(err == nil, fmt.Sprintf("revert block %d, error: %v", num, err))
+	if err != nil {
+		c.log.Errorf("PopBlock %d failed, error: %v", num, err)
+	}
+	//mustSuccess(err == nil, fmt.Sprintf("revert block %d, error: %v", num, err))
+	return err
 }
 
 func (c *TrxPool) Commit(num uint64) {

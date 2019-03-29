@@ -21,7 +21,7 @@ type ITrxPool interface {
 	GetShuffledWitness() []string
 	SetShuffle(s common.ShuffleFunc)
 	// PopBlock() rollbacks the state db to the moment just before applying block @num.
-	PopBlock(num uint64)
+	PopBlock(num uint64) error
 	// Commit() finalizes block @num.
 	Commit(num uint64)
 
