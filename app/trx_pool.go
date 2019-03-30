@@ -227,19 +227,23 @@ func (c *TrxPool) pushTrx(trx *prototype.SignedTransaction) *prototype.Transacti
 }
 
 func (c *TrxPool) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag) (err error) {
+	c.pendingLock.Lock()
+	defer c.pendingLock.Unlock()
+
+	c.db.Lock()
+	defer c.db.Unlock()
+
+	return c.pushBlockNoLock(blk, skip)
+}
+
+func (c *TrxPool) pushBlockNoLock(blk *prototype.SignedBlock, skip prototype.SkipFlag) (err error) {
 	//var err error = nil
 	oldFlag := c.skip
 	c.skip = skip
 
-	c.pendingLock.Lock()
-	defer c.pendingLock.Unlock()
-
 	tmpPending := c.ClearPending()
 
-	c.db.Lock()
 	defer func() {
-		c.db.Unlock()
-		
 		if r := recover(); r != nil {
 			switch x := r.(type) {
 			case error:
@@ -344,43 +348,68 @@ func (c *TrxPool) GenerateAndApplyBlock(witness string, pre *prototype.Sha256, t
 	priKey *prototype.PrivateKeyType, skip prototype.SkipFlag) (*prototype.SignedBlock, error) {
 
 	s := time.Now()
-	defer func() {
-		c.log.Debug("[trxpool] GenerateAndApplyBlock cost: ", time.Now().Sub(s))
+	blockChan := make(chan interface{})
+
+	go func() {
+		defer func() {
+			c.log.Debug("[trxpool] GenerateAndApplyBlock cost: ", time.Now().Sub(s))
+		}()
+
+		c.pendingLock.Lock()
+		defer c.pendingLock.Unlock()
+
+		c.db.Lock()
+		defer c.db.Unlock()
+
+		newBlock, err := c.generateBlockNoLock(witness, pre, timestamp, priKey, skip, s)
+		if err != nil {
+			blockChan <- err
+		} else {
+			blockChan <- newBlock
+		}
+		close(blockChan)
+
+		if err == nil {
+			if err = c.pushBlockNoLock(newBlock, c.skip|prototype.Skip_apply_transaction); err != nil {
+				c.log.Errorf("pushBlockNoLock failed: %v", err)
+			}
+		}
 	}()
 
-
-	newBlock, err := c.GenerateBlock(witness, pre, timestamp, priKey, skip)
-	if err != nil {
-		return nil, err
+	blockOrError := <- blockChan
+	if b, ok := blockOrError.(*prototype.SignedBlock); ok {
+		return b, nil
+	} else {
+		return nil, blockOrError.(error)
 	}
-
-	if err := c.PushBlock(newBlock, c.skip|prototype.Skip_apply_transaction); err != nil {
-		return nil, err
-	}
-
-	return newBlock, nil
 }
 
 func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp uint32,
 	priKey *prototype.PrivateKeyType, skip prototype.SkipFlag) (b *prototype.SignedBlock, e error) {
 
-	const (
-		maxTimeout = 700 * time.Millisecond
-		minTimeout = 100 * time.Millisecond
-	)
 	entryTime := time.Now()
 
 	c.pendingLock.Lock()
 	defer c.pendingLock.Unlock()
 
-	oldSkip := c.skip
 	c.db.Lock()
+	defer c.db.Unlock()
+
+	return c.generateBlockNoLock(witness, pre, timestamp, priKey, skip, entryTime)
+}
+
+func (c *TrxPool) generateBlockNoLock(witness string, pre *prototype.Sha256, timestamp uint32,
+	priKey *prototype.PrivateKeyType, skip prototype.SkipFlag, entryTime time.Time) (b *prototype.SignedBlock, e error) {
+
+	const (
+		maxTimeout = 700 * time.Millisecond
+		minTimeout = 100 * time.Millisecond
+	)
+	oldSkip := c.skip
 
 	t0 := time.Now()
 
 	defer func() {
-		c.db.Unlock()
-
 		c.skip = oldSkip
 		if err := recover(); err != nil {
 			c.log.Debug("EndTransaction FALSE: failed block")
@@ -440,7 +469,7 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 	if timeOut < minTimeout {
 		timeOut = minTimeout
 	}
-	time.AfterFunc(maxTimeout, func() {
+	time.AfterFunc(timeOut, func() {
 		isFinish = true
 	})
 	failTrxMap := make(map[int]int)
