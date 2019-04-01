@@ -14,14 +14,16 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	ExtTrxTrxIdTable       uint32 = 1916120438
-	ExtTrxBlockHeightTable uint32 = 3799341326
-	ExtTrxBlockTimeTable   uint32 = 1025113122
-	ExtTrxTrxIdUniTable    uint32 = 334659987
-	ExtTrxBlockHeightCell  uint32 = 2517467390
-	ExtTrxBlockTimeCell    uint32 = 2588372818
-	ExtTrxTrxIdCell        uint32 = 1776577009
-	ExtTrxTrxWrapCell      uint32 = 2374486278
+	ExtTrxTrxIdTable          uint32 = 1916120438
+	ExtTrxBlockHeightTable    uint32 = 3799341326
+	ExtTrxBlockTimeTable      uint32 = 1025113122
+	ExtTrxTrxCreateOrderTable uint32 = 1760958085
+	ExtTrxTrxIdUniTable       uint32 = 334659987
+	ExtTrxBlockHeightCell     uint32 = 2517467390
+	ExtTrxBlockTimeCell       uint32 = 2588372818
+	ExtTrxTrxCreateOrderCell  uint32 = 1888217061
+	ExtTrxTrxIdCell           uint32 = 1776577009
+	ExtTrxTrxWrapCell         uint32 = 2374486278
 )
 
 ////////////// SECTION Wrap Define ///////////////
@@ -289,6 +291,60 @@ func (s *SoExtTrxWrap) insertSortKeyBlockTime(sa *SoExtTrx) bool {
 	return ordErr == nil
 }
 
+func (s *SoExtTrxWrap) delSortKeyTrxCreateOrder(sa *SoExtTrx) bool {
+	if s.dba == nil || s.mainKey == nil {
+		return false
+	}
+	val := SoListExtTrxByTrxCreateOrder{}
+	if sa == nil {
+		key, err := s.encodeMemKey("TrxCreateOrder")
+		if err != nil {
+			return false
+		}
+		buf, err := s.dba.Get(key)
+		if err != nil {
+			return false
+		}
+		ori := &SoMemExtTrxByTrxCreateOrder{}
+		err = proto.Unmarshal(buf, ori)
+		if err != nil {
+			return false
+		}
+		val.TrxCreateOrder = ori.TrxCreateOrder
+		val.TrxId = s.mainKey
+
+	} else {
+		val.TrxCreateOrder = sa.TrxCreateOrder
+		val.TrxId = sa.TrxId
+	}
+
+	subBuf, err := val.OpeEncode()
+	if err != nil {
+		return false
+	}
+	ordErr := s.dba.Delete(subBuf)
+	return ordErr == nil
+}
+
+func (s *SoExtTrxWrap) insertSortKeyTrxCreateOrder(sa *SoExtTrx) bool {
+	if s.dba == nil || sa == nil {
+		return false
+	}
+	val := SoListExtTrxByTrxCreateOrder{}
+	val.TrxId = sa.TrxId
+	val.TrxCreateOrder = sa.TrxCreateOrder
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return false
+	}
+	subBuf, err := val.OpeEncode()
+	if err != nil {
+		return false
+	}
+	ordErr := s.dba.Put(subBuf, buf)
+	return ordErr == nil
+}
+
 func (s *SoExtTrxWrap) delAllSortKeys(br bool, val *SoExtTrx) bool {
 	if s.dba == nil {
 		return false
@@ -315,6 +371,13 @@ func (s *SoExtTrxWrap) delAllSortKeys(br bool, val *SoExtTrx) bool {
 			res = false
 		}
 	}
+	if !s.delSortKeyTrxCreateOrder(val) {
+		if br {
+			return false
+		} else {
+			res = false
+		}
+	}
 
 	return res
 }
@@ -334,6 +397,9 @@ func (s *SoExtTrxWrap) insertAllSortKeys(val *SoExtTrx) error {
 	}
 	if !s.insertSortKeyBlockTime(val) {
 		return errors.New("insert sort Field BlockTime fail while insert table ")
+	}
+	if !s.insertSortKeyTrxCreateOrder(val) {
+		return errors.New("insert sort Field TrxCreateOrder fail while insert table ")
 	}
 
 	return nil
@@ -373,6 +439,9 @@ func (s *SoExtTrxWrap) getMemKeyPrefix(fName string) uint32 {
 	}
 	if fName == "BlockTime" {
 		return ExtTrxBlockTimeCell
+	}
+	if fName == "TrxCreateOrder" {
+		return ExtTrxTrxCreateOrderCell
 	}
 	if fName == "TrxId" {
 		return ExtTrxTrxIdCell
@@ -425,6 +494,13 @@ func (s *SoExtTrxWrap) saveAllMemKeys(tInfo *SoExtTrx, br bool) error {
 			return err
 		} else {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "BlockTime", err)
+		}
+	}
+	if err = s.saveMemKeyTrxCreateOrder(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "TrxCreateOrder", err)
 		}
 	}
 	if err = s.saveMemKeyTrxId(tInfo); err != nil {
@@ -661,6 +737,96 @@ func (s *SoExtTrxWrap) MdBlockTime(p *prototype.TimePointSec) bool {
 	sa.BlockTime = p
 
 	if !s.insertSortKeyBlockTime(sa) {
+		return false
+	}
+
+	return true
+}
+
+func (s *SoExtTrxWrap) saveMemKeyTrxCreateOrder(tInfo *SoExtTrx) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemExtTrxByTrxCreateOrder{}
+	val.TrxCreateOrder = tInfo.TrxCreateOrder
+	key, err := s.encodeMemKey("TrxCreateOrder")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
+
+func (s *SoExtTrxWrap) GetTrxCreateOrder() *prototype.UserTrxCreateOrder {
+	res := true
+	msg := &SoMemExtTrxByTrxCreateOrder{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("TrxCreateOrder")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.TrxCreateOrder
+			}
+		}
+	}
+	if !res {
+		return nil
+
+	}
+	return msg.TrxCreateOrder
+}
+
+func (s *SoExtTrxWrap) MdTrxCreateOrder(p *prototype.UserTrxCreateOrder) bool {
+	if s.dba == nil {
+		return false
+	}
+	key, err := s.encodeMemKey("TrxCreateOrder")
+	if err != nil {
+		return false
+	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemExtTrxByTrxCreateOrder{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoExtTrx{}
+	sa.TrxId = s.mainKey
+
+	sa.TrxCreateOrder = ori.TrxCreateOrder
+
+	if !s.delSortKeyTrxCreateOrder(sa) {
+		return false
+	}
+	ori.TrxCreateOrder = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
+		return false
+	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.TrxCreateOrder = p
+
+	if !s.insertSortKeyTrxCreateOrder(sa) {
 		return false
 	}
 
@@ -1243,6 +1409,209 @@ func (s *SExtTrxBlockTimeWrap) ForEachByRevOrder(start *prototype.TimePointSec, 
 		return nil
 	}
 	pre := ExtTrxBlockTimeTable
+	skeyList := []interface{}{pre}
+	if start != nil {
+		skeyList = append(skeyList, start)
+		if lastMainKey != nil {
+			skeyList = append(skeyList, lastMainKey)
+		}
+	} else {
+		if lastMainKey != nil && lastSubVal != nil {
+			skeyList = append(skeyList, lastSubVal, lastMainKey)
+		}
+		skeyList = append(skeyList, kope.MaximumKey)
+	}
+	sBuf, cErr := kope.EncodeSlice(skeyList)
+	if cErr != nil {
+		return cErr
+	}
+	eKeyList := []interface{}{pre}
+	if end != nil {
+		eKeyList = append(eKeyList, end)
+	}
+	eBuf, cErr := kope.EncodeSlice(eKeyList)
+	if cErr != nil {
+		return cErr
+	}
+	//reverse the start and end when create ReversedIterator to query by reverse order
+	iterator := s.Dba.NewReversedIterator(eBuf, sBuf)
+	if iterator == nil {
+		return errors.New("there is no data in range")
+	}
+	var idx uint32 = 0
+	for iterator.Next() {
+		idx++
+		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
+			break
+		}
+	}
+	s.DelIterator(iterator)
+	return nil
+}
+
+////////////// SECTION List Keys ///////////////
+type SExtTrxTrxCreateOrderWrap struct {
+	Dba iservices.IDatabaseService
+}
+
+func NewExtTrxTrxCreateOrderWrap(db iservices.IDatabaseService) *SExtTrxTrxCreateOrderWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := SExtTrxTrxCreateOrderWrap{Dba: db}
+	return &wrap
+}
+
+func (s *SExtTrxTrxCreateOrderWrap) DelIterator(iterator iservices.IDatabaseIterator) {
+	if iterator == nil {
+		return
+	}
+	s.Dba.DeleteIterator(iterator)
+}
+
+func (s *SExtTrxTrxCreateOrderWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.Sha256 {
+	if iterator == nil || !iterator.Valid() {
+		return nil
+	}
+	val, err := iterator.Value()
+
+	if err != nil {
+		return nil
+	}
+
+	res := &SoListExtTrxByTrxCreateOrder{}
+	err = proto.Unmarshal(val, res)
+
+	if err != nil {
+		return nil
+	}
+	return res.TrxId
+
+}
+
+func (s *SExtTrxTrxCreateOrderWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.UserTrxCreateOrder {
+	if iterator == nil || !iterator.Valid() {
+		return nil
+	}
+
+	val, err := iterator.Value()
+
+	if err != nil {
+		return nil
+	}
+	res := &SoListExtTrxByTrxCreateOrder{}
+	err = proto.Unmarshal(val, res)
+	if err != nil {
+		return nil
+	}
+	return res.TrxCreateOrder
+
+}
+
+func (m *SoListExtTrxByTrxCreateOrder) OpeEncode() ([]byte, error) {
+	pre := ExtTrxTrxCreateOrderTable
+	sub := m.TrxCreateOrder
+	if sub == nil {
+		return nil, errors.New("the pro TrxCreateOrder is nil")
+	}
+	sub1 := m.TrxId
+	if sub1 == nil {
+		return nil, errors.New("the mainkey TrxId is nil")
+	}
+	kList := []interface{}{pre, sub, sub1}
+	kBuf, cErr := kope.EncodeSlice(kList)
+	return kBuf, cErr
+}
+
+//Query srt by order
+//
+//start = nil  end = nil (query the db from start to end)
+//start = nil (query from start the db)
+//end = nil (query to the end of db)
+//
+//f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
+//as arguments to the callback function
+//if the return value of f is true,continue iterating until the end iteration;
+//otherwise stop iteration immediately
+//
+//lastMainKey: the main key of the last one of last page
+//lastSubVal: the value  of the last one of last page
+//
+func (s *SExtTrxTrxCreateOrderWrap) ForEachByOrder(start *prototype.UserTrxCreateOrder, end *prototype.UserTrxCreateOrder, lastMainKey *prototype.Sha256,
+	lastSubVal *prototype.UserTrxCreateOrder, f func(mVal *prototype.Sha256, sVal *prototype.UserTrxCreateOrder, idx uint32) bool) error {
+	if s.Dba == nil {
+		return errors.New("the db is nil")
+	}
+	if (lastSubVal != nil && lastMainKey == nil) || (lastSubVal == nil && lastMainKey != nil) {
+		return errors.New("last query param error")
+	}
+	if f == nil {
+		return nil
+	}
+	pre := ExtTrxTrxCreateOrderTable
+	skeyList := []interface{}{pre}
+	if start != nil {
+		skeyList = append(skeyList, start)
+		if lastMainKey != nil {
+			skeyList = append(skeyList, lastMainKey, kope.MinimalKey)
+		}
+	} else {
+		if lastMainKey != nil && lastSubVal != nil {
+			skeyList = append(skeyList, lastSubVal, lastMainKey, kope.MinimalKey)
+		}
+		skeyList = append(skeyList, kope.MinimalKey)
+	}
+	sBuf, cErr := kope.EncodeSlice(skeyList)
+	if cErr != nil {
+		return cErr
+	}
+	eKeyList := []interface{}{pre}
+	if end != nil {
+		eKeyList = append(eKeyList, end)
+	} else {
+		eKeyList = append(eKeyList, kope.MaximumKey)
+	}
+	eBuf, cErr := kope.EncodeSlice(eKeyList)
+	if cErr != nil {
+		return cErr
+	}
+	iterator := s.Dba.NewIterator(sBuf, eBuf)
+	if iterator == nil {
+		return errors.New("there is no data in range")
+	}
+	var idx uint32 = 0
+	for iterator.Next() {
+		idx++
+		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
+			break
+		}
+	}
+	s.DelIterator(iterator)
+	return nil
+}
+
+//Query srt by reverse order
+//
+//f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
+//as arguments to the callback function
+//if the return value of f is true,continue iterating until the end iteration;
+//otherwise stop iteration immediately
+//
+//lastMainKey: the main key of the last one of last page
+//lastSubVal: the value  of the last one of last page
+//
+func (s *SExtTrxTrxCreateOrderWrap) ForEachByRevOrder(start *prototype.UserTrxCreateOrder, end *prototype.UserTrxCreateOrder, lastMainKey *prototype.Sha256,
+	lastSubVal *prototype.UserTrxCreateOrder, f func(mVal *prototype.Sha256, sVal *prototype.UserTrxCreateOrder, idx uint32) bool) error {
+	if s.Dba == nil {
+		return errors.New("the db is nil")
+	}
+	if (lastSubVal != nil && lastMainKey == nil) || (lastSubVal == nil && lastMainKey != nil) {
+		return errors.New("last query param error")
+	}
+	if f == nil {
+		return nil
+	}
+	pre := ExtTrxTrxCreateOrderTable
 	skeyList := []interface{}{pre}
 	if start != nil {
 		skeyList = append(skeyList, start)

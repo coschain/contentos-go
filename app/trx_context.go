@@ -38,7 +38,11 @@ func (p *TrxContext) VerifySignature() {
 }
 
 func (p *TrxContext) verifyAuthority(maxDepth uint32, owner AuthorityGetter) {
-	keyMaps := obtainKeyMap(p.Wrapper.SigTrx.Trx.Operations)
+	//keyMaps := obtainKeyMap(p.Wrapper.SigTrx.Trx.Operations)
+	keyMaps := p.Wrapper.SigTrx.GetOpCreatorsMap()
+	if len(keyMaps) != 1 {
+		panic("trx creator is not unique")
+	}
 	verifyAuthority(keyMaps, p.recoverPubs, maxDepth, owner)
 }
 

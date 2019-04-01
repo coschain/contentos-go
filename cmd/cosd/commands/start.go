@@ -136,6 +136,16 @@ func RegisterService(app *node.Node, cfg node.Config) {
 		return ctrl.NewController(ctx, app.Log)
 	})
 
+	_ = app.Register(plugins.FollowServiceName, func(ctx *node.ServiceContext) (node.Service, error) {
+		return plugins.NewFollowService(ctx, app.Log)
+	})
+	_ = app.Register(plugins.PostServiceName, func(ctx *node.ServiceContext) (node.Service, error) {
+		return plugins.NewPostService(ctx)
+	})
+	_ = app.Register(plugins.TrxServiceName, func(ctx *node.ServiceContext) (node.Service, error) {
+		return plugins.NewTrxSerVice(ctx, app.Log)
+	})
+
 	_ = app.Register(iservices.ConsensusServerName, func(ctx *node.ServiceContext) (node.Service, error) {
 		var s node.Service
 		switch ctx.Config().Consensus.Type {
@@ -149,22 +159,9 @@ func RegisterService(app *node.Node, cfg node.Config) {
 		return s, nil
 	})
 
-	_ = app.Register(plugins.FollowServiceName, func(ctx *node.ServiceContext) (node.Service, error) {
-		return plugins.NewFollowService(ctx, app.Log)
-	})
-	_ = app.Register(plugins.PostServiceName, func(ctx *node.ServiceContext) (node.Service, error) {
-		return plugins.NewPostService(ctx)
-	})
-	_ = app.Register(plugins.DemoServiceName, func(ctx *node.ServiceContext) (node.Service, error) {
-		return plugins.NewDemoService(ctx)
-	})
 
 	_ = app.Register(iservices.RpcServerName, func(ctx *node.ServiceContext) (node.Service, error) {
 		return rpc.NewGRPCServer(ctx, ctx.Config().GRPC, app.Log)
-	})
-
-	_ = app.Register(plugins.TrxServiceName, func(ctx *node.ServiceContext) (node.Service, error) {
-		return plugins.NewTrxSerVice(ctx, app.Log)
 	})
 
 	_ = app.Register(myhttp.HealthCheckName, func(ctx *node.ServiceContext) (node.Service, error) {

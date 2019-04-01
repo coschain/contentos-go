@@ -14,6 +14,7 @@ import (
 	"github.com/coschain/gobft/message"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"math"
 	"time"
 )
 
@@ -703,7 +704,7 @@ func (as *APIService) GetTrxListByTime(ctx context.Context, req *grpcpb.GetTrxLi
 		err = sWrap.ForEachByRevOrder(req.Start, req.End, lastMainKey, lastSubVal, func(mVal *prototype.Sha256, sVal *prototype.TimePointSec, idx uint32) bool {
 			wrap := table.NewSoExtTrxWrap(as.db, mVal)
 			info := &grpcpb.TrxInfo{}
-			if wrap != nil {
+			if wrap != nil && wrap.CheckExist(){
 				info.TrxId = mVal
 				info.BlockHeight = wrap.GetBlockHeight()
 				info.BlockTime = wrap.GetBlockTime()
@@ -857,6 +858,7 @@ func (as *APIService) getAccountResponseByName(name *prototype.AccountName, isNe
 		acctInfo.Vest = accWrap.GetVestingShares()
 		acctInfo.CreatedTime = accWrap.GetCreatedTime()
 		acctInfo.PostCount = accWrap.GetPostCount()
+		acctInfo.TrxCount = accWrap.GetCreatedTrxCount()
 
 		witWrap := table.NewSoWitnessWrap(as.db, accWrap.GetName())
 		if witWrap != nil && witWrap.CheckExist() {
@@ -892,4 +894,69 @@ func (as *APIService) getAccountResponseByName(name *prototype.AccountName, isNe
 	}
 
 	return acct
+}
+
+func (as *APIService) GetUserTrxListByTime(ctx context.Context, req *grpcpb.GetUserTrxListByTimeRequest) (*grpcpb.GetUserTrxListByTimeResponse, error) {
+	as.db.RLock()
+	defer as.db.RUnlock()
+	var (
+		trxList []*grpcpb.TrxInfo
+		err error
+		lastTrxId *prototype.Sha256
+		lastCreOrder *prototype.UserTrxCreateOrder
+	)
+	acct := req.Name
+	if acct == nil {
+		return &grpcpb.GetUserTrxListByTimeResponse{},errors.New("Account name is empty")
+	}
+	res := &grpcpb.GetUserTrxListByTimeResponse{}
+	wrap := table.NewExtTrxTrxCreateOrderWrap(as.db)
+	if wrap != nil {
+		limit := checkLimit(req.Limit)
+		if limit == 0 {
+			limit = uint32(defaultPageSizeLimit)
+		}
+		start := &prototype.UserTrxCreateOrder{Creator:acct}
+		end   := &prototype.UserTrxCreateOrder{Creator:acct}
+		if req.Start == nil {
+			start.CreateTime = &prototype.TimePointSec{UtcSeconds: math.MaxUint32}
+		}else {
+			start.CreateTime = req.Start
+		}
+
+		if req.End == nil {
+			end.CreateTime = &prototype.TimePointSec{UtcSeconds:1}
+		}else {
+			end.CreateTime = req.End
+		}
+
+		if req.LastTrx != nil {
+			trx := req.LastTrx
+			lastTrxId =  trx.TrxId
+			lastCreOrder = &prototype.UserTrxCreateOrder{Creator:acct,CreateTime:trx.BlockTime}
+		}
+		err = wrap.ForEachByRevOrder(start, end, lastTrxId, lastCreOrder, func(mVal *prototype.Sha256, sVal *prototype.UserTrxCreateOrder, idx uint32) bool {
+			if mVal != nil {
+				wrap := table.NewSoExtTrxWrap(as.db, mVal)
+				info := &grpcpb.TrxInfo{}
+				if wrap != nil && wrap.CheckExist(){
+					info.TrxId = mVal
+					info.BlockHeight = wrap.GetBlockHeight()
+					info.BlockTime = wrap.GetBlockTime()
+					info.TrxWrap = wrap.GetTrxWrap()
+					trxList = append(trxList, info)
+				}
+			}
+			if uint32(len(trxList)) >= limit {
+				return false
+			}
+			return true
+		})
+
+	}
+	if len(trxList) < 1 {
+		trxList = make([]*grpcpb.TrxInfo, 0)
+	}
+	res.TrxList = trxList
+	return res,err
 }

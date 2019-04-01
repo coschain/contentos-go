@@ -78,6 +78,9 @@ service ApiService {
 
     rpc TrxStatByHour (TrxStatByHourRequest) returns (TrxStatByHourResponse) {
     }
+
+    rpc GetUserTrxListByTime (GetUserTrxListByTimeRequest) returns (GetUserTrxListByTimeResponse) {
+    }
 }
 
 
@@ -117,6 +120,7 @@ message AccountInfo {
     uint32                                  post_count      = 7;
     uint32                                  follower_count    = 8;
     uint32                                  following_count   = 9;
+    uint32                                  trx_count        = 10;
 }
 
 message AccountResponse {
@@ -392,4 +396,17 @@ message GetPostListByNameRequest {
     prototype.user_post_create_order  end    = 2;
     PostResponse  last_post = 3;
     uint32                         limit     = 4;
+}
+
+
+message GetUserTrxListByTimeRequest {
+    prototype.account_name     name    = 1;
+    prototype.time_point_sec   start   = 2;
+    prototype.time_point_sec   end     = 3;
+    TrxInfo                    last_trx = 4;
+    uint32                     limit     = 5;
+}
+
+message GetUserTrxListByTimeResponse {
+    repeated        TrxInfo     trx_list  = 1;
 }

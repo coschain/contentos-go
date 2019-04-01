@@ -315,12 +315,14 @@ func (sabft *SABFT) Start(node *node.Node) error {
 	if sabft.bootstrap && sabft.ForkDB.Empty() && sabft.blog.Empty() {
 		sabft.log.Info("[SABFT] bootstrapping...")
 	}
+
 	sabft.restoreProducers()
 
 	err = sabft.handleBlockSync()
 	if err != nil {
 		return err
 	}
+	sabft.restoreProducers()
 
 	// start block generation process
 	go sabft.start()
@@ -353,6 +355,7 @@ func (sabft *SABFT) scheduleProduce() bool {
 	if !sabft.readyToProduce {
 		if sabft.checkSync() {
 			sabft.readyToProduce = true
+			sabft.log.Debugf("head block id: %d, timestamp %v", sabft.ForkDB.Head().Id().BlockNum(), time.Unix(int64(sabft.ForkDB.Head().Timestamp()), 0))
 		} else {
 			if _, ok := sabft.Ticker.(*Timer); ok {
 				sabft.prodTimer.Reset(sabft.timeToNextSec())
@@ -1329,10 +1332,10 @@ func (sabft *SABFT) handleBlockSync() error {
 	var err error = nil
 	lastCommit := sabft.ForkDB.LastCommitted().BlockNum()
 	//Fetch the commit block num in db
-	dbCommit, err := sabft.ctrl.GetCommitBlockNum()
+	dbLastPushed, err := sabft.ctrl.GetLastPushedBlockNum()
 
-	sabft.log.Debugf("[sync pushed]: progress 1: dbCommit: %v, %v, %v",
-		dbCommit, lastCommit, err)
+	sabft.log.Debugf("[sync pushed]: progress 1: dbLastPushed: %v, %v, %v",
+		dbLastPushed, lastCommit, err)
 
 	if err != nil {
 		return err
@@ -1340,10 +1343,10 @@ func (sabft *SABFT) handleBlockSync() error {
 	//Fetch the commit block numbers saved in block log
 	commitNum := sabft.blog.Size()
 	//1.sync commit blocks
-	if dbCommit < lastCommit && commitNum > 0 && commitNum >= int64(lastCommit) {
+	if dbLastPushed < lastCommit && commitNum > 0 && commitNum >= int64(lastCommit) {
 		sabft.log.Debugf("[Reload commit] start sync lost commit blocks from block log,db commit num is: "+
-			"%v,end:%v,real commit num is %v", dbCommit, sabft.ForkDB.Head().Id().BlockNum(), lastCommit)
-		for i := int64(dbCommit); i < int64(lastCommit); i++ {
+			"%v,end:%v,real commit num is %v", dbLastPushed, sabft.ForkDB.Head().Id().BlockNum(), lastCommit)
+		for i := int64(dbLastPushed); i < int64(lastCommit); i++ {
 			blk := &prototype.SignedBlock{}
 			if err := sabft.blog.ReadBlock(blk, i); err != nil {
 				return err
@@ -1358,30 +1361,30 @@ func (sabft *SABFT) handleBlockSync() error {
 		}
 	}
 
-	dbCommit, err = sabft.ctrl.GetCommitBlockNum()
+	dbLastPushed, err = sabft.ctrl.GetLastPushedBlockNum()
 	latestNumber := sabft.ForkDB.Head().Id().BlockNum()
 
-	sabft.log.Debugf("[sync pushed]: progress 2: dbCommit: %v, %v, %v",
-		dbCommit, latestNumber, err)
+	sabft.log.Debugf("[sync pushed]: progress 2: dbLastPushed: %v, %v, %v",
+		dbLastPushed, latestNumber, err)
 
-	if dbCommit < latestNumber {
-		pSli, err := sabft.FetchBlocks(dbCommit+1, latestNumber+1)
+	if dbLastPushed < latestNumber {
+		pSli, err := sabft.FetchBlocks(dbLastPushed+1, latestNumber+1)
 		if err != nil {
 			return err
 		}
 		if len(pSli) > 0 {
 			sabft.log.Debugf("[sync pushed]: start sync uncommitted blocks,start: %v,end:%v, count: %v",
-				dbCommit+1, sabft.ForkDB.Head().Id().BlockNum(), len(pSli))
+				dbLastPushed+1, sabft.ForkDB.Head().Id().BlockNum(), len(pSli))
 			err = sabft.ctrl.SyncPushedBlocksToDB(pSli)
 		}
 		return nil
 
-	} else if dbCommit > latestNumber {
+	} else if dbLastPushed > latestNumber {
 
 		sabft.log.Infof("[Revert commit] start revert invalid commit to statedb: "+
-			"%v,end:%v,real commit num is %v", dbCommit, latestNumber)
+			"%v,end:%v,real commit num is %v", dbLastPushed, latestNumber)
 
-		sabft.ctrl.PopBlock(latestNumber)
+		sabft.ctrl.PopBlock(latestNumber + 1)
 	}
 
 	return nil

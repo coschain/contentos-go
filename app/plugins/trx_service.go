@@ -90,12 +90,24 @@ func (t *TrxService) handleAddTrxNotification(blk *prototype.SignedBlock) {
 				wrap := table.NewSoExtTrxWrap(t.db, trxId)
 				if wrap != nil {
 					if !wrap.CheckExist() {
+						creator := t.GetTrxCreator(trxWrap.SigTrx.GetOpCreatorsMap())
+						creAcct := prototype.NewAccountName(creator)
 						wrap.Create(func(tInfo *table.SoExtTrx) {
 							tInfo.BlockTime = blk.SignedHeader.Header.Timestamp
 							tInfo.BlockHeight = blk.Id().BlockNum()
 							tInfo.TrxId = trxId
 							tInfo.TrxWrap = trxWrap
+							tInfo.TrxCreateOrder = &prototype.UserTrxCreateOrder{
+								Creator:creAcct,
+								CreateTime:tInfo.BlockTime,
+							}
 						})
+						//update user's created trx count
+						acctWrap := table.NewSoAccountWrap(t.db,creAcct)
+						if acctWrap != nil && acctWrap.CheckExist() {
+							curCnt := acctWrap.GetCreatedTrxCount()
+							acctWrap.MdCreatedTrxCount(curCnt+1)
+						}
 					}
 				}
 			}
@@ -104,6 +116,15 @@ func (t *TrxService) handleAddTrxNotification(blk *prototype.SignedBlock) {
 		t.log.Debugf("TXSVC: %v|%v|%v", t2.Sub(t0), t1.Sub(t0), t2.Sub(t1))
 	}
 
+}
+
+func (t *TrxService) GetTrxCreator(usrMap map[string]bool) string {
+	if len(usrMap) > 0 {
+		for k := range usrMap {
+			return k
+		}
+	}
+	return ""
 }
 
 func (t *TrxService) Stop() error {

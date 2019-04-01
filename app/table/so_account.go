@@ -14,21 +14,24 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	AccountCreatedTimeTable   uint32 = 2128286283
-	AccountBalanceTable       uint32 = 4012029019
-	AccountVestingSharesTable uint32 = 3830877790
-	AccountBpVoteCountTable   uint32 = 2264397557
-	AccountNameUniTable       uint32 = 2528390520
-	AccountBalanceCell        uint32 = 2894785396
-	AccountBpVoteCountCell    uint32 = 2131409895
-	AccountCreatedTimeCell    uint32 = 826305594
-	AccountCreatorCell        uint32 = 1804791917
-	AccountLastPostTimeCell   uint32 = 3226532373
-	AccountLastVoteTimeCell   uint32 = 1980371646
-	AccountNameCell           uint32 = 1725869739
-	AccountPostCountCell      uint32 = 587221705
-	AccountVestingSharesCell  uint32 = 57659323
-	AccountVotePowerCell      uint32 = 2246508735
+	AccountCreatedTimeTable     uint32 = 2128286283
+	AccountBalanceTable         uint32 = 4012029019
+	AccountVestingSharesTable   uint32 = 3830877790
+	AccountBpVoteCountTable     uint32 = 2264397557
+	AccountPostCountTable       uint32 = 1518203339
+	AccountCreatedTrxCountTable uint32 = 2604810499
+	AccountNameUniTable         uint32 = 2528390520
+	AccountBalanceCell          uint32 = 2894785396
+	AccountBpVoteCountCell      uint32 = 2131409895
+	AccountCreatedTimeCell      uint32 = 826305594
+	AccountCreatedTrxCountCell  uint32 = 2108500471
+	AccountCreatorCell          uint32 = 1804791917
+	AccountLastPostTimeCell     uint32 = 3226532373
+	AccountLastVoteTimeCell     uint32 = 1980371646
+	AccountNameCell             uint32 = 1725869739
+	AccountPostCountCell        uint32 = 587221705
+	AccountVestingSharesCell    uint32 = 57659323
+	AccountVotePowerCell        uint32 = 2246508735
 )
 
 ////////////// SECTION Wrap Define ///////////////
@@ -354,6 +357,114 @@ func (s *SoAccountWrap) insertSortKeyBpVoteCount(sa *SoAccount) bool {
 	return ordErr == nil
 }
 
+func (s *SoAccountWrap) delSortKeyPostCount(sa *SoAccount) bool {
+	if s.dba == nil || s.mainKey == nil {
+		return false
+	}
+	val := SoListAccountByPostCount{}
+	if sa == nil {
+		key, err := s.encodeMemKey("PostCount")
+		if err != nil {
+			return false
+		}
+		buf, err := s.dba.Get(key)
+		if err != nil {
+			return false
+		}
+		ori := &SoMemAccountByPostCount{}
+		err = proto.Unmarshal(buf, ori)
+		if err != nil {
+			return false
+		}
+		val.PostCount = ori.PostCount
+		val.Name = s.mainKey
+
+	} else {
+		val.PostCount = sa.PostCount
+		val.Name = sa.Name
+	}
+
+	subBuf, err := val.OpeEncode()
+	if err != nil {
+		return false
+	}
+	ordErr := s.dba.Delete(subBuf)
+	return ordErr == nil
+}
+
+func (s *SoAccountWrap) insertSortKeyPostCount(sa *SoAccount) bool {
+	if s.dba == nil || sa == nil {
+		return false
+	}
+	val := SoListAccountByPostCount{}
+	val.Name = sa.Name
+	val.PostCount = sa.PostCount
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return false
+	}
+	subBuf, err := val.OpeEncode()
+	if err != nil {
+		return false
+	}
+	ordErr := s.dba.Put(subBuf, buf)
+	return ordErr == nil
+}
+
+func (s *SoAccountWrap) delSortKeyCreatedTrxCount(sa *SoAccount) bool {
+	if s.dba == nil || s.mainKey == nil {
+		return false
+	}
+	val := SoListAccountByCreatedTrxCount{}
+	if sa == nil {
+		key, err := s.encodeMemKey("CreatedTrxCount")
+		if err != nil {
+			return false
+		}
+		buf, err := s.dba.Get(key)
+		if err != nil {
+			return false
+		}
+		ori := &SoMemAccountByCreatedTrxCount{}
+		err = proto.Unmarshal(buf, ori)
+		if err != nil {
+			return false
+		}
+		val.CreatedTrxCount = ori.CreatedTrxCount
+		val.Name = s.mainKey
+
+	} else {
+		val.CreatedTrxCount = sa.CreatedTrxCount
+		val.Name = sa.Name
+	}
+
+	subBuf, err := val.OpeEncode()
+	if err != nil {
+		return false
+	}
+	ordErr := s.dba.Delete(subBuf)
+	return ordErr == nil
+}
+
+func (s *SoAccountWrap) insertSortKeyCreatedTrxCount(sa *SoAccount) bool {
+	if s.dba == nil || sa == nil {
+		return false
+	}
+	val := SoListAccountByCreatedTrxCount{}
+	val.Name = sa.Name
+	val.CreatedTrxCount = sa.CreatedTrxCount
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return false
+	}
+	subBuf, err := val.OpeEncode()
+	if err != nil {
+		return false
+	}
+	ordErr := s.dba.Put(subBuf, buf)
+	return ordErr == nil
+}
+
 func (s *SoAccountWrap) delAllSortKeys(br bool, val *SoAccount) bool {
 	if s.dba == nil {
 		return false
@@ -387,6 +498,20 @@ func (s *SoAccountWrap) delAllSortKeys(br bool, val *SoAccount) bool {
 			res = false
 		}
 	}
+	if !s.delSortKeyPostCount(val) {
+		if br {
+			return false
+		} else {
+			res = false
+		}
+	}
+	if !s.delSortKeyCreatedTrxCount(val) {
+		if br {
+			return false
+		} else {
+			res = false
+		}
+	}
 
 	return res
 }
@@ -409,6 +534,12 @@ func (s *SoAccountWrap) insertAllSortKeys(val *SoAccount) error {
 	}
 	if !s.insertSortKeyBpVoteCount(val) {
 		return errors.New("insert sort Field BpVoteCount fail while insert table ")
+	}
+	if !s.insertSortKeyPostCount(val) {
+		return errors.New("insert sort Field PostCount fail while insert table ")
+	}
+	if !s.insertSortKeyCreatedTrxCount(val) {
+		return errors.New("insert sort Field CreatedTrxCount fail while insert table ")
 	}
 
 	return nil
@@ -451,6 +582,9 @@ func (s *SoAccountWrap) getMemKeyPrefix(fName string) uint32 {
 	}
 	if fName == "CreatedTime" {
 		return AccountCreatedTimeCell
+	}
+	if fName == "CreatedTrxCount" {
+		return AccountCreatedTrxCountCell
 	}
 	if fName == "Creator" {
 		return AccountCreatorCell
@@ -525,6 +659,13 @@ func (s *SoAccountWrap) saveAllMemKeys(tInfo *SoAccount, br bool) error {
 			return err
 		} else {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "CreatedTime", err)
+		}
+	}
+	if err = s.saveMemKeyCreatedTrxCount(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "CreatedTrxCount", err)
 		}
 	}
 	if err = s.saveMemKeyCreator(tInfo); err != nil {
@@ -886,6 +1027,96 @@ func (s *SoAccountWrap) MdCreatedTime(p *prototype.TimePointSec) bool {
 	sa.CreatedTime = p
 
 	if !s.insertSortKeyCreatedTime(sa) {
+		return false
+	}
+
+	return true
+}
+
+func (s *SoAccountWrap) saveMemKeyCreatedTrxCount(tInfo *SoAccount) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemAccountByCreatedTrxCount{}
+	val.CreatedTrxCount = tInfo.CreatedTrxCount
+	key, err := s.encodeMemKey("CreatedTrxCount")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
+
+func (s *SoAccountWrap) GetCreatedTrxCount() uint32 {
+	res := true
+	msg := &SoMemAccountByCreatedTrxCount{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("CreatedTrxCount")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.CreatedTrxCount
+			}
+		}
+	}
+	if !res {
+		var tmpValue uint32
+		return tmpValue
+	}
+	return msg.CreatedTrxCount
+}
+
+func (s *SoAccountWrap) MdCreatedTrxCount(p uint32) bool {
+	if s.dba == nil {
+		return false
+	}
+	key, err := s.encodeMemKey("CreatedTrxCount")
+	if err != nil {
+		return false
+	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemAccountByCreatedTrxCount{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoAccount{}
+	sa.Name = s.mainKey
+
+	sa.CreatedTrxCount = ori.CreatedTrxCount
+
+	if !s.delSortKeyCreatedTrxCount(sa) {
+		return false
+	}
+	ori.CreatedTrxCount = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
+		return false
+	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.CreatedTrxCount = p
+
+	if !s.insertSortKeyCreatedTrxCount(sa) {
 		return false
 	}
 
@@ -1260,6 +1491,9 @@ func (s *SoAccountWrap) MdPostCount(p uint32) bool {
 
 	sa.PostCount = ori.PostCount
 
+	if !s.delSortKeyPostCount(sa) {
+		return false
+	}
 	ori.PostCount = p
 	val, err := proto.Marshal(ori)
 	if err != nil {
@@ -1270,6 +1504,10 @@ func (s *SoAccountWrap) MdPostCount(p uint32) bool {
 		return false
 	}
 	sa.PostCount = p
+
+	if !s.insertSortKeyPostCount(sa) {
+		return false
+	}
 
 	return true
 }
@@ -2030,6 +2268,284 @@ func (s *SAccountBpVoteCountWrap) ForEachByOrder(start *uint32, end *uint32, las
 		return nil
 	}
 	pre := AccountBpVoteCountTable
+	skeyList := []interface{}{pre}
+	if start != nil {
+		skeyList = append(skeyList, start)
+		if lastMainKey != nil {
+			skeyList = append(skeyList, lastMainKey, kope.MinimalKey)
+		}
+	} else {
+		if lastMainKey != nil && lastSubVal != nil {
+			skeyList = append(skeyList, lastSubVal, lastMainKey, kope.MinimalKey)
+		}
+		skeyList = append(skeyList, kope.MinimalKey)
+	}
+	sBuf, cErr := kope.EncodeSlice(skeyList)
+	if cErr != nil {
+		return cErr
+	}
+	eKeyList := []interface{}{pre}
+	if end != nil {
+		eKeyList = append(eKeyList, end)
+	} else {
+		eKeyList = append(eKeyList, kope.MaximumKey)
+	}
+	eBuf, cErr := kope.EncodeSlice(eKeyList)
+	if cErr != nil {
+		return cErr
+	}
+	iterator := s.Dba.NewIterator(sBuf, eBuf)
+	if iterator == nil {
+		return errors.New("there is no data in range")
+	}
+	var idx uint32 = 0
+	for iterator.Next() {
+		idx++
+		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
+			break
+		}
+	}
+	s.DelIterator(iterator)
+	return nil
+}
+
+////////////// SECTION List Keys ///////////////
+type SAccountPostCountWrap struct {
+	Dba iservices.IDatabaseService
+}
+
+func NewAccountPostCountWrap(db iservices.IDatabaseService) *SAccountPostCountWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := SAccountPostCountWrap{Dba: db}
+	return &wrap
+}
+
+func (s *SAccountPostCountWrap) DelIterator(iterator iservices.IDatabaseIterator) {
+	if iterator == nil {
+		return
+	}
+	s.Dba.DeleteIterator(iterator)
+}
+
+func (s *SAccountPostCountWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.AccountName {
+	if iterator == nil || !iterator.Valid() {
+		return nil
+	}
+	val, err := iterator.Value()
+
+	if err != nil {
+		return nil
+	}
+
+	res := &SoListAccountByPostCount{}
+	err = proto.Unmarshal(val, res)
+
+	if err != nil {
+		return nil
+	}
+	return res.Name
+
+}
+
+func (s *SAccountPostCountWrap) GetSubVal(iterator iservices.IDatabaseIterator) *uint32 {
+	if iterator == nil || !iterator.Valid() {
+		return nil
+	}
+
+	val, err := iterator.Value()
+
+	if err != nil {
+		return nil
+	}
+	res := &SoListAccountByPostCount{}
+	err = proto.Unmarshal(val, res)
+	if err != nil {
+		return nil
+	}
+	return &res.PostCount
+
+}
+
+func (m *SoListAccountByPostCount) OpeEncode() ([]byte, error) {
+	pre := AccountPostCountTable
+	sub := m.PostCount
+
+	sub1 := m.Name
+	if sub1 == nil {
+		return nil, errors.New("the mainkey Name is nil")
+	}
+	kList := []interface{}{pre, sub, sub1}
+	kBuf, cErr := kope.EncodeSlice(kList)
+	return kBuf, cErr
+}
+
+//Query srt by order
+//
+//start = nil  end = nil (query the db from start to end)
+//start = nil (query from start the db)
+//end = nil (query to the end of db)
+//
+//f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
+//as arguments to the callback function
+//if the return value of f is true,continue iterating until the end iteration;
+//otherwise stop iteration immediately
+//
+//lastMainKey: the main key of the last one of last page
+//lastSubVal: the value  of the last one of last page
+//
+func (s *SAccountPostCountWrap) ForEachByOrder(start *uint32, end *uint32, lastMainKey *prototype.AccountName,
+	lastSubVal *uint32, f func(mVal *prototype.AccountName, sVal *uint32, idx uint32) bool) error {
+	if s.Dba == nil {
+		return errors.New("the db is nil")
+	}
+	if (lastSubVal != nil && lastMainKey == nil) || (lastSubVal == nil && lastMainKey != nil) {
+		return errors.New("last query param error")
+	}
+	if f == nil {
+		return nil
+	}
+	pre := AccountPostCountTable
+	skeyList := []interface{}{pre}
+	if start != nil {
+		skeyList = append(skeyList, start)
+		if lastMainKey != nil {
+			skeyList = append(skeyList, lastMainKey, kope.MinimalKey)
+		}
+	} else {
+		if lastMainKey != nil && lastSubVal != nil {
+			skeyList = append(skeyList, lastSubVal, lastMainKey, kope.MinimalKey)
+		}
+		skeyList = append(skeyList, kope.MinimalKey)
+	}
+	sBuf, cErr := kope.EncodeSlice(skeyList)
+	if cErr != nil {
+		return cErr
+	}
+	eKeyList := []interface{}{pre}
+	if end != nil {
+		eKeyList = append(eKeyList, end)
+	} else {
+		eKeyList = append(eKeyList, kope.MaximumKey)
+	}
+	eBuf, cErr := kope.EncodeSlice(eKeyList)
+	if cErr != nil {
+		return cErr
+	}
+	iterator := s.Dba.NewIterator(sBuf, eBuf)
+	if iterator == nil {
+		return errors.New("there is no data in range")
+	}
+	var idx uint32 = 0
+	for iterator.Next() {
+		idx++
+		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
+			break
+		}
+	}
+	s.DelIterator(iterator)
+	return nil
+}
+
+////////////// SECTION List Keys ///////////////
+type SAccountCreatedTrxCountWrap struct {
+	Dba iservices.IDatabaseService
+}
+
+func NewAccountCreatedTrxCountWrap(db iservices.IDatabaseService) *SAccountCreatedTrxCountWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := SAccountCreatedTrxCountWrap{Dba: db}
+	return &wrap
+}
+
+func (s *SAccountCreatedTrxCountWrap) DelIterator(iterator iservices.IDatabaseIterator) {
+	if iterator == nil {
+		return
+	}
+	s.Dba.DeleteIterator(iterator)
+}
+
+func (s *SAccountCreatedTrxCountWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.AccountName {
+	if iterator == nil || !iterator.Valid() {
+		return nil
+	}
+	val, err := iterator.Value()
+
+	if err != nil {
+		return nil
+	}
+
+	res := &SoListAccountByCreatedTrxCount{}
+	err = proto.Unmarshal(val, res)
+
+	if err != nil {
+		return nil
+	}
+	return res.Name
+
+}
+
+func (s *SAccountCreatedTrxCountWrap) GetSubVal(iterator iservices.IDatabaseIterator) *uint32 {
+	if iterator == nil || !iterator.Valid() {
+		return nil
+	}
+
+	val, err := iterator.Value()
+
+	if err != nil {
+		return nil
+	}
+	res := &SoListAccountByCreatedTrxCount{}
+	err = proto.Unmarshal(val, res)
+	if err != nil {
+		return nil
+	}
+	return &res.CreatedTrxCount
+
+}
+
+func (m *SoListAccountByCreatedTrxCount) OpeEncode() ([]byte, error) {
+	pre := AccountCreatedTrxCountTable
+	sub := m.CreatedTrxCount
+
+	sub1 := m.Name
+	if sub1 == nil {
+		return nil, errors.New("the mainkey Name is nil")
+	}
+	kList := []interface{}{pre, sub, sub1}
+	kBuf, cErr := kope.EncodeSlice(kList)
+	return kBuf, cErr
+}
+
+//Query srt by order
+//
+//start = nil  end = nil (query the db from start to end)
+//start = nil (query from start the db)
+//end = nil (query to the end of db)
+//
+//f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
+//as arguments to the callback function
+//if the return value of f is true,continue iterating until the end iteration;
+//otherwise stop iteration immediately
+//
+//lastMainKey: the main key of the last one of last page
+//lastSubVal: the value  of the last one of last page
+//
+func (s *SAccountCreatedTrxCountWrap) ForEachByOrder(start *uint32, end *uint32, lastMainKey *prototype.AccountName,
+	lastSubVal *uint32, f func(mVal *prototype.AccountName, sVal *uint32, idx uint32) bool) error {
+	if s.Dba == nil {
+		return errors.New("the db is nil")
+	}
+	if (lastSubVal != nil && lastMainKey == nil) || (lastSubVal == nil && lastMainKey != nil) {
+		return errors.New("last query param error")
+	}
+	if f == nil {
+		return nil
+	}
+	pre := AccountCreatedTrxCountTable
 	skeyList := []interface{}{pre}
 	if start != nil {
 		skeyList = append(skeyList, start)
