@@ -193,6 +193,7 @@ func (ev *PostEvaluator) Apply() {
 	elapsedSeconds := ev.ctx.control.HeadBlockTime().UtcSeconds - authorWrap.GetLastPostTime().UtcSeconds
 	opAssert(elapsedSeconds > constants.MinPostInterval, "posting frequently")
 
+	// default source is contentos
 	opAssertE(idWrap.Create(func(t *table.SoPost) {
 		t.PostId = op.Uuid
 		t.Tags = op.Tags
@@ -209,6 +210,7 @@ func (ev *PostEvaluator) Apply() {
 		t.Beneficiaries = op.Beneficiaries
 		t.WeightedVp = 0
 		t.VoteCnt = 0
+		t.Source = &prototype.AccountName{Value: "contentos"}
 	}), "create post error")
 
 	authorWrap.MdLastPostTime(ev.ctx.control.HeadBlockTime())

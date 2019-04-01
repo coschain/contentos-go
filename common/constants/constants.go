@@ -61,10 +61,10 @@ const (
 
 	PerBlockCurrent = 10 * 1e6 // precision: 6
 
-	RewardRateAuthor = 6300
-	RewardRateReply  = 1350
-	RewardRateBP     = 900
-	ReportRate       = 450
+	RewardRateAuthor = 7000
+	RewardRateReply  = 1500
+	RewardRateBP     = 1000
+	ReportRate       = 500
 
 	ConvertWeeks = 13
 
@@ -73,6 +73,6 @@ const (
 
 	ReportCashout = 1000
 
-	// 3.5 billion
-	TotalRelease = 35 * 1e8
+	// 10 billion
+	TotalCurrency = 100 * 1e8
 )

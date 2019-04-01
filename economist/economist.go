@@ -66,7 +66,7 @@ func (e *Economist) BaseBudget(ith uint32) uint64 {
 	if ith > 12 {
 		return 0
 	}
-	return uint64(ith) * uint64(constants.TotalRelease) * uint64(448) / 1000 / 100 * constants.BaseRate
+	return uint64(ith) * uint64(constants.TotalCurrency) * uint64(448) / 1000 / 100 * constants.BaseRate
 
 }
 
@@ -111,16 +111,23 @@ func (e *Economist) Mint() {
 			props.AnnualBudget.Value = annualBudget
 			props.AnnualMinted.Value = 0
 		})
+		// reload props
+		globalProps, err = e.GetProps()
 	}
 	blockCurrent := e.CalculatePerBlockBudget(annualBudget)
 	// prevent deficit
-	if globalProps.GetAnnualBudget().Value < (globalProps.GetAnnualMinted().Value + blockCurrent) {
+	if globalProps.GetAnnualBudget().Value > globalProps.GetAnnualMinted().Value &&
+		globalProps.GetAnnualBudget().Value <= (globalProps.GetAnnualMinted().Value + blockCurrent) {
 		blockCurrent = globalProps.GetAnnualBudget().Value - globalProps.GetAnnualMinted().Value
-		// it is impossible
-		if blockCurrent < 0 {
-			blockCurrent = 0
-		}
 		// time to update year
+		e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
+			props.IthYear = props.IthYear + 1
+		})
+	}
+
+	// it is impossible
+	if globalProps.GetAnnualBudget().Value <= globalProps.GetAnnualMinted().Value {
+		blockCurrent = 0
 		e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
 			props.IthYear = props.IthYear + 1
 		})
@@ -243,10 +250,18 @@ func (e *Economist) postCashout(rewardKeeper *prototype.InternalRewardsKeeper, p
 		if vpAccumulator > 0 {
 			reward = post.GetWeightedVp() * blockReward / vpAccumulator
 		}
+		realReward := reward * 90 / 100
+		dappAuthor := post.GetSource().Value
+		dappAuthorReward := reward - realReward
 		if vest, ok := innerRewards[author]; !ok {
-			innerRewards[author] = &prototype.Vest{Value: reward}
+			innerRewards[author] = &prototype.Vest{Value: realReward}
 		} else {
-			vest.Value += reward
+			vest.Value += realReward
+		}
+		if vest, ok := rewardKeeper.Rewards[dappAuthor]; !ok {
+			innerRewards[dappAuthor] = &prototype.Vest{Value: dappAuthorReward}
+		} else {
+			vest.Value += dappAuthorReward
 		}
 		post.MdCashoutTime(&prototype.TimePointSec{UtcSeconds: math.MaxUint32})
 	}
@@ -277,10 +292,18 @@ func (e *Economist) replyCashout(rewardKeeper *prototype.InternalRewardsKeeper, 
 		if vpAccumulator > 0 {
 			reward = reply.GetWeightedVp() * blockReward / vpAccumulator
 		}
+		realReward := reward * 90 / 100
+		dappAuthor := reply.GetSource().Value
+		dappAuthorReward := reward - realReward
 		if vest, ok := rewardKeeper.Rewards[author]; !ok {
-			innerRewards[author] = &prototype.Vest{Value: reward}
+			innerRewards[author] = &prototype.Vest{Value: realReward}
 		} else {
-			vest.Value += reward
+			vest.Value += realReward
+		}
+		if vest, ok := rewardKeeper.Rewards[dappAuthor]; !ok {
+			innerRewards[dappAuthor] = &prototype.Vest{Value: dappAuthorReward}
+		} else {
+			vest.Value += dappAuthorReward
 		}
 		reply.MdCashoutTime(&prototype.TimePointSec{UtcSeconds: math.MaxUint32})
 	}
@@ -298,21 +321,25 @@ func (e *Economist) PowerDown() {
 		accountNames = append(accountNames, mVal)
 		return true
 	})
-	var powerdown_quota uint64 = 0
+	var powerdownQuota uint64 = 0
 	for _, accountName := range accountNames {
 		accountWrap := table.NewSoAccountWrap(e.db, accountName)
 		if accountWrap.GetToPowerdown().Value-accountWrap.GetHasPowerdown().Value < accountWrap.GetEachPowerdownRate().Value {
-			powerdown_quota = Min(accountWrap.GetVestingShares().Value, accountWrap.GetToPowerdown().Value-accountWrap.GetHasPowerdown().Value)
+			powerdownQuota = Min(accountWrap.GetVestingShares().Value, accountWrap.GetToPowerdown().Value-accountWrap.GetHasPowerdown().Value)
 		} else {
-			powerdown_quota = Min(accountWrap.GetVestingShares().Value, accountWrap.GetEachPowerdownRate().Value)
+			powerdownQuota = Min(accountWrap.GetVestingShares().Value, accountWrap.GetEachPowerdownRate().Value)
 		}
-		vesting := accountWrap.GetVestingShares().Value - powerdown_quota
-		balance := accountWrap.GetBalance().Value + powerdown_quota
-		hasPowerDown := accountWrap.GetHasPowerdown().Value + powerdown_quota
-
+		vesting := accountWrap.GetVestingShares().Value - powerdownQuota
+		balance := accountWrap.GetBalance().Value + powerdownQuota
+		hasPowerDown := accountWrap.GetHasPowerdown().Value + powerdownQuota
 		accountWrap.MdVestingShares(&prototype.Vest{Value: vesting})
 		accountWrap.MdBalance(&prototype.Coin{Value: balance})
 		accountWrap.MdHasPowerdown(&prototype.Vest{Value: hasPowerDown})
+		// update total cos and total vesting shares
+		e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
+			props.TotalCos.Value += powerdownQuota
+			props.TotalVestingShares.Value -= powerdownQuota
+		})
 		if accountWrap.GetHasPowerdown().Value >= accountWrap.GetToPowerdown().Value || accountWrap.GetVestingShares().Value == 0 {
 			accountWrap.MdEachPowerdownRate(&prototype.Vest{Value: 0})
 			accountWrap.MdNextPowerdownTime(&prototype.TimePointSec{UtcSeconds: math.MaxUint32})
