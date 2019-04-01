@@ -9,7 +9,6 @@ import (
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/sirupsen/logrus"
 	"io/ioutil"
-	"time"
 )
 
 var FollowServiceName = "followsrv"
@@ -20,6 +19,7 @@ type FollowService struct {
 	log *logrus.Logger
 	ev  EventBus.Bus
 	ctx *node.ServiceContext
+	pool iservices.ITrxPool
 }
 
 // service constructor
@@ -37,6 +37,11 @@ func (p *FollowService) Start(node *node.Node) error {
 		return err
 	}
 	p.db = db.(iservices.IDatabaseService)
+	pool, err := p.ctx.Service(iservices.TxPoolServerName)
+	if err != nil {
+		return err
+	}
+	p.pool = pool.(iservices.ITrxPool)
 	p.ev = node.EvBus
 
 	p.hookEvent()
@@ -78,7 +83,7 @@ func (p *FollowService) executeFollowOperation(op *prototype.FollowOperation) {
 		2. if Cancel == true, meaning A cancel follow B
 	*/
 
-	currTime := time.Now().Second()
+	currTime := p.pool.HeadBlockTime()
 
 	// A's following
 	fingWrap := table.NewSoExtFollowingWrap(p.db, &prototype.FollowingRelation{
@@ -112,7 +117,7 @@ func (p *FollowService) executeFollowOperation(op *prototype.FollowOperation) {
 				}
 				fing.FollowingCreatedOrder = &prototype.FollowingCreatedOrder{
 					Account:     &prototype.AccountName{Value: op.Account.Value},
-					CreatedTime: &prototype.TimePointSec{UtcSeconds: uint32(currTime)},
+					CreatedTime: currTime,
 					Following:   &prototype.AccountName{Value: op.FAccount.Value},
 				}
 			})
@@ -124,7 +129,7 @@ func (p *FollowService) executeFollowOperation(op *prototype.FollowOperation) {
 				}
 				fer.FollowerCreatedOrder = &prototype.FollowerCreatedOrder{
 					Account:     &prototype.AccountName{Value: op.FAccount.Value},
-					CreatedTime: &prototype.TimePointSec{UtcSeconds: uint32(currTime)},
+					CreatedTime: currTime,
 					Follower:    &prototype.AccountName{Value: op.Account.Value},
 				}
 			})
