@@ -1212,16 +1212,15 @@ func (c *TrxPool) PopBlock(num uint64) error {
 }
 
 func (c *TrxPool) Commit(num uint64) {
-
-	func(){
-	    s := time.Now()
-	    defer func() {
-	        c.log.Debug("[trxpool] Commit cost: ", time.Now().Sub(s))
-	    }()
-		// this block can not be revert over, so it's irreversible
-		err := c.iceberg.FinalizeBlock(num)
-		mustSuccess(err == nil, fmt.Sprintf("commit block: %d, error is %v", num, err))
+	s := time.Now()
+	c.db.Lock()
+	defer func() {
+		c.db.Unlock()
+		c.log.Debug("[trxpool] Commit cost: ", time.Now().Sub(s))
 	}()
+	// this block can not be revert over, so it's irreversible
+	err := c.iceberg.FinalizeBlock(num)
+	mustSuccess(err == nil, fmt.Sprintf("commit block: %d, error is %v", num, err))
 }
 
 func (c *TrxPool) VerifySig(name *prototype.AccountName, digest []byte, sig []byte) bool {
