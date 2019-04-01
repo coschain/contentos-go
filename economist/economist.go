@@ -62,15 +62,75 @@ func (e *Economist) modifyGlobalDynamicData(f func(props *prototype.DynamicPrope
 	}
 }
 
+func (e *Economist) BaseBudget(ith uint32) uint64 {
+	if ith > 12 {
+		return 0
+	}
+	return uint64(ith) * uint64(constants.TotalRelease) * uint64(448) / 1000 / 100 * constants.BaseRate
+
+}
+
+// whitepaper p16
+func (e *Economist) InitialBonus(ith uint32) uint64 {
+	if ith > 5 {
+		return 0
+	}
+	switch ith {
+	case 0:
+		return 0
+	case 1:
+		return 169580103 * constants.BaseRate
+	case 2:
+		return 106993132 * constants.BaseRate
+	case 3:
+		return 84790051 * constants.BaseRate
+	case 4:
+		return 73034175 * constants.BaseRate
+	case 5:
+		return 65602539 * constants.BaseRate
+	}
+	return 0
+}
+
+func (e *Economist) CalculateBudget(ith uint32) uint64 {
+	return e.BaseBudget(ith) + e.InitialBonus(ith)
+}
+
+func (e *Economist) CalculatePerBlockBudget(annalBudget uint64) uint64 {
+	return annalBudget / (86400 / 3 * 365)
+}
+
 func (e *Economist) Mint() {
-	blockCurrent := constants.PerBlockCurrent
+	//blockCurrent := constants.PerBlockCurrent
+	globalProps, err := e.GetProps()
+	ith := globalProps.GetIthYear()
+	annualBudget := e.CalculateBudget(ith)
+	// new year arrived
+	if globalProps.GetAnnualBudget().Value != annualBudget {
+		e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
+			props.AnnualBudget.Value = annualBudget
+			props.AnnualMinted.Value = 0
+		})
+	}
+	blockCurrent := e.CalculatePerBlockBudget(annualBudget)
+	// prevent deficit
+	if globalProps.GetAnnualBudget().Value < (globalProps.GetAnnualMinted().Value + blockCurrent) {
+		blockCurrent = globalProps.GetAnnualBudget().Value - globalProps.GetAnnualMinted().Value
+		// it is impossible
+		if blockCurrent < 0 {
+			blockCurrent = 0
+		}
+		// time to update year
+		e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
+			props.IthYear = props.IthYear + 1
+		})
+	}
 
 	authorReward := blockCurrent * constants.RewardRateAuthor / constants.PERCENT
 	replyReward := blockCurrent * constants.RewardRateReply / constants.PERCENT
 	bpReward := blockCurrent * constants.RewardRateBP / constants.PERCENT
 	reportReward := blockCurrent - authorReward - replyReward - bpReward
 
-	globalProps, err := e.GetProps()
 	if err != nil {
 		panic("Mint failed when getprops")
 	}
@@ -91,6 +151,7 @@ func (e *Economist) Mint() {
 		props.PostRewards.Value += uint64(authorReward)
 		props.ReplyRewards.Value += uint64(replyReward)
 		props.ReportRewards.Value += uint64(reportReward)
+		props.AnnualMinted.Value += blockCurrent
 	})
 
 }

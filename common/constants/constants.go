@@ -72,4 +72,7 @@ const (
 	POWER_DOWN_INTERVAL = (60 * 60 * 24) * 7
 
 	ReportCashout = 1000
+
+	// 3.5 billion
+	TotalRelease = 35 * 1e8
 )
