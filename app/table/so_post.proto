@@ -24,7 +24,6 @@ message so_post {
     repeated                      prototype.beneficiary_route_type     beneficiaries           =      14;
     prototype.time_point_sec               cashout_time            =      15;
     uint64                                 weighted_vp             =      16;
-    prototype.account_name                 source                  =      17;
       
 }
 
@@ -106,11 +105,6 @@ message so_mem_post_by_cashout_time {
 
 message so_mem_post_by_weighted_vp {
 	uint64                              	weighted_vp         = 1;
-}
-
-
-message so_mem_post_by_source {
-	prototype.account_name              	source              = 1;
 }
 
 

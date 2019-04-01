@@ -29,7 +29,6 @@ var (
 	PostParentIdCell      uint32 = 1393772380
 	PostPostIdCell        uint32 = 22700035
 	PostRootIdCell        uint32 = 784045146
-	PostSourceCell        uint32 = 3565545565
 	PostTagsCell          uint32 = 828203383
 	PostTitleCell         uint32 = 3943450465
 	PostVoteCntCell       uint32 = 2947124424
@@ -351,9 +350,6 @@ func (s *SoPostWrap) getMemKeyPrefix(fName string) uint32 {
 	if fName == "RootId" {
 		return PostRootIdCell
 	}
-	if fName == "Source" {
-		return PostSourceCell
-	}
 	if fName == "Tags" {
 		return PostTagsCell
 	}
@@ -481,13 +477,6 @@ func (s *SoPostWrap) saveAllMemKeys(tInfo *SoPost, br bool) error {
 			return err
 		} else {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "RootId", err)
-		}
-	}
-	if err = s.saveMemKeySource(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Source", err)
 		}
 	}
 	if err = s.saveMemKeyTags(tInfo); err != nil {
@@ -1526,88 +1515,6 @@ func (s *SoPostWrap) MdRootId(p uint64) bool {
 		return false
 	}
 	sa.RootId = p
-
-	return true
-}
-
-func (s *SoPostWrap) saveMemKeySource(tInfo *SoPost) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemPostBySource{}
-	val.Source = tInfo.Source
-	key, err := s.encodeMemKey("Source")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
-
-func (s *SoPostWrap) GetSource() *prototype.AccountName {
-	res := true
-	msg := &SoMemPostBySource{}
-	if s.dba == nil {
-		res = false
-	} else {
-		key, err := s.encodeMemKey("Source")
-		if err != nil {
-			res = false
-		} else {
-			buf, err := s.dba.Get(key)
-			if err != nil {
-				res = false
-			}
-			err = proto.Unmarshal(buf, msg)
-			if err != nil {
-				res = false
-			} else {
-				return msg.Source
-			}
-		}
-	}
-	if !res {
-		return nil
-
-	}
-	return msg.Source
-}
-
-func (s *SoPostWrap) MdSource(p *prototype.AccountName) bool {
-	if s.dba == nil {
-		return false
-	}
-	key, err := s.encodeMemKey("Source")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemPostBySource{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoPost{}
-	sa.PostId = *s.mainKey
-	sa.Source = ori.Source
-
-	ori.Source = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.Source = p
 
 	return true
 }

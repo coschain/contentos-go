@@ -251,17 +251,26 @@ func (e *Economist) postCashout(rewardKeeper *prototype.InternalRewardsKeeper, p
 			reward = post.GetWeightedVp() * blockReward / vpAccumulator
 		}
 		realReward := reward * 90 / 100
-		dappAuthor := post.GetSource().Value
-		dappAuthorReward := reward - realReward
+		beneficiaryReward := reward - realReward
+		beneficiaries := post.GetBeneficiaries()
+		var spentBeneficiaryReward uint64 = 0
+		for _, beneficiary := range beneficiaries {
+			name := beneficiary.Name.Value
+			weight := beneficiary.Weight
+			// one of ten thousands
+			r := beneficiaryReward * uint64(weight) / 10000
+			if vest, ok := rewardKeeper.Rewards[name]; !ok {
+				innerRewards[name] = &prototype.Vest{Value: r}
+			} else {
+				vest.Value += r
+			}
+			spentBeneficiaryReward += r
+		}
+		realReward += beneficiaryReward - spentBeneficiaryReward
 		if vest, ok := innerRewards[author]; !ok {
 			innerRewards[author] = &prototype.Vest{Value: realReward}
 		} else {
 			vest.Value += realReward
-		}
-		if vest, ok := rewardKeeper.Rewards[dappAuthor]; !ok {
-			innerRewards[dappAuthor] = &prototype.Vest{Value: dappAuthorReward}
-		} else {
-			vest.Value += dappAuthorReward
 		}
 		post.MdCashoutTime(&prototype.TimePointSec{UtcSeconds: math.MaxUint32})
 	}
@@ -292,18 +301,28 @@ func (e *Economist) replyCashout(rewardKeeper *prototype.InternalRewardsKeeper, 
 		if vpAccumulator > 0 {
 			reward = reply.GetWeightedVp() * blockReward / vpAccumulator
 		}
+		// base revenue: 0.9
 		realReward := reward * 90 / 100
-		dappAuthor := reply.GetSource().Value
-		dappAuthorReward := reward - realReward
+		beneficiaryReward := reward - realReward
+		beneficiaries := reply.GetBeneficiaries()
+		var spentBeneficiaryReward uint64 = 0
+		for _, beneficiary := range beneficiaries {
+			name := beneficiary.Name.Value
+			weight := beneficiary.Weight
+			// one of ten thousands
+			r := beneficiaryReward * uint64(weight) / 10000
+			if vest, ok := rewardKeeper.Rewards[name]; !ok {
+				innerRewards[name] = &prototype.Vest{Value: r}
+			} else {
+				vest.Value += r
+			}
+			spentBeneficiaryReward += r
+		}
+		realReward += beneficiaryReward - spentBeneficiaryReward
 		if vest, ok := rewardKeeper.Rewards[author]; !ok {
 			innerRewards[author] = &prototype.Vest{Value: realReward}
 		} else {
 			vest.Value += realReward
-		}
-		if vest, ok := rewardKeeper.Rewards[dappAuthor]; !ok {
-			innerRewards[dappAuthor] = &prototype.Vest{Value: dappAuthorReward}
-		} else {
-			vest.Value += dappAuthorReward
 		}
 		reply.MdCashoutTime(&prototype.TimePointSec{UtcSeconds: math.MaxUint32})
 	}

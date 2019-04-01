@@ -15,4 +15,3 @@ uint64                              ,vote_cnt           ,0      ,0      ,0      
 []prototype.beneficiary_route_type  ,beneficiaries      ,0      ,0      ,0      ,0           ,
 prototype.time_point_sec            ,cashout_time       ,0      ,0      ,1      ,0           ,
 uint64                              ,weighted_vp        ,0      ,0      ,0      ,0           ,
-prototype.account_name              ,source             ,0      ,0      ,0      ,0           ,prototype/type.proto
