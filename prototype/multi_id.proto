@@ -68,3 +68,8 @@ message user_post_create_order {
     account_name  author = 1;
     prototype.time_point_sec create = 2;
 }
+
+message reward_cashout_id {
+    account_name  account = 1;
+    uint64        block_height = 2;
+}

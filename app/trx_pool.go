@@ -105,7 +105,7 @@ func (c *TrxPool) Start(node *node.Node) error {
 
 func (c *TrxPool) Open() {
 	c.iceberg = NewBlockIceberg(c.db)
-	c.economist = economist.New(c.db, &SingleId)
+	c.economist = economist.New(c.db, c.noticer, &SingleId)
 	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
 	if !dgpWrap.CheckExist() {
 
@@ -116,7 +116,7 @@ func (c *TrxPool) Open() {
 
 		mustNoError(c.db.TagRevision(c.db.GetRevision(), GENESIS_TAG), "genesis tagging failed")
 		c.iceberg = NewBlockIceberg(c.db)
-		c.economist = economist.New(c.db, &SingleId)
+		c.economist = economist.New(c.db, c.noticer, &SingleId)
 		//c.log.Info("finish initGenesis")
 	}
 }

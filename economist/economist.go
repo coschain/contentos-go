@@ -1,6 +1,7 @@
 package economist
 
 import (
+	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/iservices"
@@ -19,11 +20,12 @@ func Min(x, y uint64) uint64 {
 
 type Economist struct {
 	db       iservices.IDatabaseService
+	noticer  EventBus.Bus
 	singleId *int32
 }
 
-func New(db iservices.IDatabaseService, singleId *int32) *Economist {
-	return &Economist{db: db, singleId: singleId}
+func New(db iservices.IDatabaseService, noticer EventBus.Bus, singleId *int32) *Economist {
+	return &Economist{db: db, noticer:noticer, singleId: singleId}
 }
 
 func (e *Economist) GetProps() (*prototype.DynamicProperties, error) {
@@ -265,6 +267,7 @@ func (e *Economist) postCashout(rewardKeeper *prototype.InternalRewardsKeeper, p
 				vest.Value += r
 			}
 			spentBeneficiaryReward += r
+			e.noticer.Publish("rewards", name, r, globalProps.GetHeadBlockNumber())
 		}
 		realReward += beneficiaryReward - spentBeneficiaryReward
 		if vest, ok := innerRewards[author]; !ok {
@@ -272,6 +275,7 @@ func (e *Economist) postCashout(rewardKeeper *prototype.InternalRewardsKeeper, p
 		} else {
 			vest.Value += realReward
 		}
+		e.noticer.Publish("rewards", author, realReward, globalProps.GetHeadBlockNumber())
 		post.MdCashoutTime(&prototype.TimePointSec{UtcSeconds: math.MaxUint32})
 	}
 }
@@ -317,6 +321,7 @@ func (e *Economist) replyCashout(rewardKeeper *prototype.InternalRewardsKeeper, 
 				vest.Value += r
 			}
 			spentBeneficiaryReward += r
+			e.noticer.Publish("rewards", name, r, globalProps.GetHeadBlockNumber())
 		}
 		realReward += beneficiaryReward - spentBeneficiaryReward
 		if vest, ok := rewardKeeper.Rewards[author]; !ok {
@@ -324,6 +329,7 @@ func (e *Economist) replyCashout(rewardKeeper *prototype.InternalRewardsKeeper, 
 		} else {
 			vest.Value += realReward
 		}
+		e.noticer.Publish("rewards", author, realReward, globalProps.GetHeadBlockNumber())
 		reply.MdCashoutTime(&prototype.TimePointSec{UtcSeconds: math.MaxUint32})
 	}
 }
