@@ -128,12 +128,18 @@ func RegisterService(app *node.Node, cfg node.Config) {
 		return storage.NewGuardedDatabaseService(ctx, "./db/")
 	})
 
-	_ = app.Register(iservices.P2PServerName, func(ctx *node.ServiceContext) (node.Service, error) {
-		return p2p.NewServer(ctx, app.Log)
-	})
-
 	_ = app.Register(iservices.TxPoolServerName, func(ctx *node.ServiceContext) (node.Service, error) {
 		return ctrl.NewController(ctx, app.Log)
+	})
+
+	_ = app.Register(plugins.FollowServiceName, func(ctx *node.ServiceContext) (node.Service, error) {
+		return plugins.NewFollowService(ctx, app.Log)
+	})
+	_ = app.Register(plugins.PostServiceName, func(ctx *node.ServiceContext) (node.Service, error) {
+		return plugins.NewPostService(ctx)
+	})
+	_ = app.Register(plugins.TrxServiceName, func(ctx *node.ServiceContext) (node.Service, error) {
+		return plugins.NewTrxSerVice(ctx)
 	})
 
 	_ = app.Register(iservices.ConsensusServerName, func(ctx *node.ServiceContext) (node.Service, error) {
@@ -149,15 +155,6 @@ func RegisterService(app *node.Node, cfg node.Config) {
 		return s, nil
 	})
 
-	_ = app.Register(plugins.FollowServiceName, func(ctx *node.ServiceContext) (node.Service, error) {
-		return plugins.NewFollowService(ctx, app.Log)
-	})
-	_ = app.Register(plugins.PostServiceName, func(ctx *node.ServiceContext) (node.Service, error) {
-		return plugins.NewPostService(ctx)
-	})
-	_ = app.Register(plugins.DemoServiceName, func(ctx *node.ServiceContext) (node.Service, error) {
-		return plugins.NewDemoService(ctx)
-	})
 
 	_ = app.Register(plugins.RewardServiceName, func(ctx *node.ServiceContext) (service node.Service, e error) {
 		return plugins.NewRewardService(ctx)
@@ -167,9 +164,10 @@ func RegisterService(app *node.Node, cfg node.Config) {
 		return rpc.NewGRPCServer(ctx, ctx.Config().GRPC, app.Log)
 	})
 
-	_ = app.Register(plugins.TrxServiceName, func(ctx *node.ServiceContext) (node.Service, error) {
-		return plugins.NewTrxSerVice(ctx)
+	_ = app.Register(iservices.P2PServerName, func(ctx *node.ServiceContext) (node.Service, error) {
+		return p2p.NewServer(ctx, app.Log)
 	})
+
 
 	_ = app.Register(myhttp.HealthCheckName, func(ctx *node.ServiceContext) (node.Service, error) {
 		return myhttp.NewMyHttp(ctx, app.Log)

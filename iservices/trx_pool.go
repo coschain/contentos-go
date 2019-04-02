@@ -37,8 +37,8 @@ type ITrxPool interface {
 	VerifySig(name *prototype.AccountName, digest []byte, sig []byte) bool
 	ValidateAddress(name string, pubKey *prototype.PublicKeyType) bool
 	Sign(priv *prototype.PrivateKeyType, digest []byte) []byte
-	//Fetch the latest commit block number
-	GetCommitBlockNum() (uint64,error)
+	//Fetch the latest pushed block number
+	GetLastPushedBlockNum() (uint64,error)
 	//Sync commit blocks to db
 	SyncCommittedBlockToDB(blk common.ISignedBlock) error
 	//Sync pushed blocks to DB

@@ -583,6 +583,14 @@ func (p *MsgHandler)IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...
 			defer remotePeer.UnlockBusy()
 		}
 
+		var startBlockId common.BlockID
+		s, err := p2p.GetService(iservices.ConsensusServerName)
+		if err != nil {
+			log.Error("[p2p] can't get other service, service name: ", iservices.ConsensusServerName)
+			return
+		}
+		ctrl := s.(iservices.IConsensus)
+
 		for i, id := range msgdata.Value {
 			length := len(msgdata.Value[i])
 			if length > prototype.Size {
@@ -595,12 +603,7 @@ func (p *MsgHandler)IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...
 				continue
 			}
 
-			s, err := p2p.GetService(iservices.ConsensusServerName)
-			if err != nil {
-				log.Error("[p2p] can't get other service, service name: ", iservices.ConsensusServerName)
-				return
-			}
-			ctrl := s.(iservices.IConsensus)
+			copy(startBlockId.Data[:], id)
 
 			IsigBlk, err := ctrl.FetchBlock(blkId)
 			if err != nil {
@@ -615,8 +618,19 @@ func (p *MsgHandler)IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...
 				log.Error("[p2p] send message error: ", err)
 				return
 			}
-			//time.Sleep(50 * time.Millisecond)
 			//log.Infof("send a SignedBlock msg to   v%   data   v%\n", data.Addr, msg)
+		}
+
+		commitEvidence := ctrl.GetNextBFTCheckPoint(startBlockId.BlockNum())
+		if commitEvidence != nil {
+			bftCommit := &msgTypes.ConsMsg {
+				MsgData: commitEvidence.(*message.Commit),
+			}
+			err = p2p.Send(remotePeer, bftCommit, false)
+			if err != nil {
+				log.Error("[p2p] send message error: ", err)
+				return
+			}
 		}
 	case msgTypes.IdMsg_request_id_ack:
 		//log.Infof("receive a msg from:    v%    data:   %v\n", data.Addr, *msgdata)

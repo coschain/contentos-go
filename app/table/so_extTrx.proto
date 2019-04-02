@@ -5,14 +5,16 @@ package table;
 
 option go_package = "github.com/coschain/contentos-go/app/table";
 
-import "prototype/transaction.proto";
 import "prototype/type.proto";
+import "prototype/transaction.proto";
+import "prototype/multi_id.proto";
 
 message so_extTrx {
 	prototype.sha256                   trx_id          =      1;
-    uint64                   							   block_height      =      2;
+    uint64                             block_height      =      2;
     prototype.transaction_wrapper       trx_wrap          =      3;
     prototype.time_point_sec           block_time        =      4;
+    prototype.user_trx_create_order    trx_create_order       =      5;
       
 }
 
@@ -23,7 +25,7 @@ message so_mem_extTrx_by_trx_id {
 
 
 message so_mem_extTrx_by_block_height {
-	uint64                   								block_height  = 1;
+	uint64                          	block_height  = 1;
 }
 
 
@@ -37,19 +39,30 @@ message so_mem_extTrx_by_block_time {
 }
 
 
+message so_mem_extTrx_by_trx_create_order {
+	prototype.user_trx_create_order 	trx_create_order   = 1;
+}
+
+
 message so_list_extTrx_by_trx_id {
 	prototype.sha256                	trx_id      = 1;
 }
 
 
 message so_list_extTrx_by_block_height {
-	uint64                   								block_height  = 1;
+	uint64                          	block_height  = 1;
 	prototype.sha256                	trx_id      = 2;
 }
 
 
 message so_list_extTrx_by_block_time {
 	prototype.time_point_sec        	block_time    = 1;
+	prototype.sha256                	trx_id      = 2;
+}
+
+
+message so_list_extTrx_by_trx_create_order {
+	prototype.user_trx_create_order 	trx_create_order   = 1;
 	prototype.sha256                	trx_id      = 2;
 }
 

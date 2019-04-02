@@ -14,26 +14,24 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	AccountCreatedTimeTable       uint32 = 2128286283
-	AccountBalanceTable           uint32 = 4012029019
-	AccountVestingSharesTable     uint32 = 3830877790
-	AccountBpVoteCountTable       uint32 = 2264397557
-	AccountNextPowerdownTimeTable uint32 = 824876516
-	AccountNameUniTable           uint32 = 2528390520
-	AccountBalanceCell            uint32 = 2894785396
-	AccountBpVoteCountCell        uint32 = 2131409895
-	AccountCreatedTimeCell        uint32 = 826305594
-	AccountCreatorCell            uint32 = 1804791917
-	AccountEachPowerdownRateCell  uint32 = 1435132114
-	AccountHasPowerdownCell       uint32 = 2131027332
-	AccountLastPostTimeCell       uint32 = 3226532373
-	AccountLastVoteTimeCell       uint32 = 1980371646
-	AccountNameCell               uint32 = 1725869739
-	AccountNextPowerdownTimeCell  uint32 = 524128665
-	AccountPostCountCell          uint32 = 587221705
-	AccountToPowerdownCell        uint32 = 3115587115
-	AccountVestingSharesCell      uint32 = 57659323
-	AccountVotePowerCell          uint32 = 2246508735
+	AccountCreatedTimeTable     uint32 = 2128286283
+	AccountBalanceTable         uint32 = 4012029019
+	AccountVestingSharesTable   uint32 = 3830877790
+	AccountBpVoteCountTable     uint32 = 2264397557
+	AccountPostCountTable       uint32 = 1518203339
+	AccountCreatedTrxCountTable uint32 = 2604810499
+	AccountNameUniTable         uint32 = 2528390520
+	AccountBalanceCell          uint32 = 2894785396
+	AccountBpVoteCountCell      uint32 = 2131409895
+	AccountCreatedTimeCell      uint32 = 826305594
+	AccountCreatedTrxCountCell  uint32 = 2108500471
+	AccountCreatorCell          uint32 = 1804791917
+	AccountLastPostTimeCell     uint32 = 3226532373
+	AccountLastVoteTimeCell     uint32 = 1980371646
+	AccountNameCell             uint32 = 1725869739
+	AccountPostCountCell        uint32 = 587221705
+	AccountVestingSharesCell    uint32 = 57659323
+	AccountVotePowerCell        uint32 = 2246508735
 )
 
 ////////////// SECTION Wrap Define ///////////////
@@ -359,13 +357,13 @@ func (s *SoAccountWrap) insertSortKeyBpVoteCount(sa *SoAccount) bool {
 	return ordErr == nil
 }
 
-func (s *SoAccountWrap) delSortKeyNextPowerdownTime(sa *SoAccount) bool {
+func (s *SoAccountWrap) delSortKeyPostCount(sa *SoAccount) bool {
 	if s.dba == nil || s.mainKey == nil {
 		return false
 	}
-	val := SoListAccountByNextPowerdownTime{}
+	val := SoListAccountByPostCount{}
 	if sa == nil {
-		key, err := s.encodeMemKey("NextPowerdownTime")
+		key, err := s.encodeMemKey("PostCount")
 		if err != nil {
 			return false
 		}
@@ -373,16 +371,16 @@ func (s *SoAccountWrap) delSortKeyNextPowerdownTime(sa *SoAccount) bool {
 		if err != nil {
 			return false
 		}
-		ori := &SoMemAccountByNextPowerdownTime{}
+		ori := &SoMemAccountByPostCount{}
 		err = proto.Unmarshal(buf, ori)
 		if err != nil {
 			return false
 		}
-		val.NextPowerdownTime = ori.NextPowerdownTime
+		val.PostCount = ori.PostCount
 		val.Name = s.mainKey
 
 	} else {
-		val.NextPowerdownTime = sa.NextPowerdownTime
+		val.PostCount = sa.PostCount
 		val.Name = sa.Name
 	}
 
@@ -394,13 +392,67 @@ func (s *SoAccountWrap) delSortKeyNextPowerdownTime(sa *SoAccount) bool {
 	return ordErr == nil
 }
 
-func (s *SoAccountWrap) insertSortKeyNextPowerdownTime(sa *SoAccount) bool {
+func (s *SoAccountWrap) insertSortKeyPostCount(sa *SoAccount) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
-	val := SoListAccountByNextPowerdownTime{}
+	val := SoListAccountByPostCount{}
 	val.Name = sa.Name
-	val.NextPowerdownTime = sa.NextPowerdownTime
+	val.PostCount = sa.PostCount
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return false
+	}
+	subBuf, err := val.OpeEncode()
+	if err != nil {
+		return false
+	}
+	ordErr := s.dba.Put(subBuf, buf)
+	return ordErr == nil
+}
+
+func (s *SoAccountWrap) delSortKeyCreatedTrxCount(sa *SoAccount) bool {
+	if s.dba == nil || s.mainKey == nil {
+		return false
+	}
+	val := SoListAccountByCreatedTrxCount{}
+	if sa == nil {
+		key, err := s.encodeMemKey("CreatedTrxCount")
+		if err != nil {
+			return false
+		}
+		buf, err := s.dba.Get(key)
+		if err != nil {
+			return false
+		}
+		ori := &SoMemAccountByCreatedTrxCount{}
+		err = proto.Unmarshal(buf, ori)
+		if err != nil {
+			return false
+		}
+		val.CreatedTrxCount = ori.CreatedTrxCount
+		val.Name = s.mainKey
+
+	} else {
+		val.CreatedTrxCount = sa.CreatedTrxCount
+		val.Name = sa.Name
+	}
+
+	subBuf, err := val.OpeEncode()
+	if err != nil {
+		return false
+	}
+	ordErr := s.dba.Delete(subBuf)
+	return ordErr == nil
+}
+
+func (s *SoAccountWrap) insertSortKeyCreatedTrxCount(sa *SoAccount) bool {
+	if s.dba == nil || sa == nil {
+		return false
+	}
+	val := SoListAccountByCreatedTrxCount{}
+	val.Name = sa.Name
+	val.CreatedTrxCount = sa.CreatedTrxCount
 	buf, err := proto.Marshal(&val)
 	if err != nil {
 		return false
@@ -446,7 +498,14 @@ func (s *SoAccountWrap) delAllSortKeys(br bool, val *SoAccount) bool {
 			res = false
 		}
 	}
-	if !s.delSortKeyNextPowerdownTime(val) {
+	if !s.delSortKeyPostCount(val) {
+		if br {
+			return false
+		} else {
+			res = false
+		}
+	}
+	if !s.delSortKeyCreatedTrxCount(val) {
 		if br {
 			return false
 		} else {
@@ -476,8 +535,11 @@ func (s *SoAccountWrap) insertAllSortKeys(val *SoAccount) error {
 	if !s.insertSortKeyBpVoteCount(val) {
 		return errors.New("insert sort Field BpVoteCount fail while insert table ")
 	}
-	if !s.insertSortKeyNextPowerdownTime(val) {
-		return errors.New("insert sort Field NextPowerdownTime fail while insert table ")
+	if !s.insertSortKeyPostCount(val) {
+		return errors.New("insert sort Field PostCount fail while insert table ")
+	}
+	if !s.insertSortKeyCreatedTrxCount(val) {
+		return errors.New("insert sort Field CreatedTrxCount fail while insert table ")
 	}
 
 	return nil
@@ -521,14 +583,11 @@ func (s *SoAccountWrap) getMemKeyPrefix(fName string) uint32 {
 	if fName == "CreatedTime" {
 		return AccountCreatedTimeCell
 	}
+	if fName == "CreatedTrxCount" {
+		return AccountCreatedTrxCountCell
+	}
 	if fName == "Creator" {
 		return AccountCreatorCell
-	}
-	if fName == "EachPowerdownRate" {
-		return AccountEachPowerdownRateCell
-	}
-	if fName == "HasPowerdown" {
-		return AccountHasPowerdownCell
 	}
 	if fName == "LastPostTime" {
 		return AccountLastPostTimeCell
@@ -539,14 +598,8 @@ func (s *SoAccountWrap) getMemKeyPrefix(fName string) uint32 {
 	if fName == "Name" {
 		return AccountNameCell
 	}
-	if fName == "NextPowerdownTime" {
-		return AccountNextPowerdownTimeCell
-	}
 	if fName == "PostCount" {
 		return AccountPostCountCell
-	}
-	if fName == "ToPowerdown" {
-		return AccountToPowerdownCell
 	}
 	if fName == "VestingShares" {
 		return AccountVestingSharesCell
@@ -608,25 +661,18 @@ func (s *SoAccountWrap) saveAllMemKeys(tInfo *SoAccount, br bool) error {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "CreatedTime", err)
 		}
 	}
+	if err = s.saveMemKeyCreatedTrxCount(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "CreatedTrxCount", err)
+		}
+	}
 	if err = s.saveMemKeyCreator(tInfo); err != nil {
 		if br {
 			return err
 		} else {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Creator", err)
-		}
-	}
-	if err = s.saveMemKeyEachPowerdownRate(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "EachPowerdownRate", err)
-		}
-	}
-	if err = s.saveMemKeyHasPowerdown(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "HasPowerdown", err)
 		}
 	}
 	if err = s.saveMemKeyLastPostTime(tInfo); err != nil {
@@ -650,25 +696,11 @@ func (s *SoAccountWrap) saveAllMemKeys(tInfo *SoAccount, br bool) error {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Name", err)
 		}
 	}
-	if err = s.saveMemKeyNextPowerdownTime(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "NextPowerdownTime", err)
-		}
-	}
 	if err = s.saveMemKeyPostCount(tInfo); err != nil {
 		if br {
 			return err
 		} else {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "PostCount", err)
-		}
-	}
-	if err = s.saveMemKeyToPowerdown(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "ToPowerdown", err)
 		}
 	}
 	if err = s.saveMemKeyVestingShares(tInfo); err != nil {
@@ -1001,6 +1033,96 @@ func (s *SoAccountWrap) MdCreatedTime(p *prototype.TimePointSec) bool {
 	return true
 }
 
+func (s *SoAccountWrap) saveMemKeyCreatedTrxCount(tInfo *SoAccount) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemAccountByCreatedTrxCount{}
+	val.CreatedTrxCount = tInfo.CreatedTrxCount
+	key, err := s.encodeMemKey("CreatedTrxCount")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
+
+func (s *SoAccountWrap) GetCreatedTrxCount() uint32 {
+	res := true
+	msg := &SoMemAccountByCreatedTrxCount{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("CreatedTrxCount")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.CreatedTrxCount
+			}
+		}
+	}
+	if !res {
+		var tmpValue uint32
+		return tmpValue
+	}
+	return msg.CreatedTrxCount
+}
+
+func (s *SoAccountWrap) MdCreatedTrxCount(p uint32) bool {
+	if s.dba == nil {
+		return false
+	}
+	key, err := s.encodeMemKey("CreatedTrxCount")
+	if err != nil {
+		return false
+	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemAccountByCreatedTrxCount{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoAccount{}
+	sa.Name = s.mainKey
+
+	sa.CreatedTrxCount = ori.CreatedTrxCount
+
+	if !s.delSortKeyCreatedTrxCount(sa) {
+		return false
+	}
+	ori.CreatedTrxCount = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
+		return false
+	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.CreatedTrxCount = p
+
+	if !s.insertSortKeyCreatedTrxCount(sa) {
+		return false
+	}
+
+	return true
+}
+
 func (s *SoAccountWrap) saveMemKeyCreator(tInfo *SoAccount) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
@@ -1080,172 +1202,6 @@ func (s *SoAccountWrap) MdCreator(p *prototype.AccountName) bool {
 		return false
 	}
 	sa.Creator = p
-
-	return true
-}
-
-func (s *SoAccountWrap) saveMemKeyEachPowerdownRate(tInfo *SoAccount) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemAccountByEachPowerdownRate{}
-	val.EachPowerdownRate = tInfo.EachPowerdownRate
-	key, err := s.encodeMemKey("EachPowerdownRate")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
-
-func (s *SoAccountWrap) GetEachPowerdownRate() *prototype.Vest {
-	res := true
-	msg := &SoMemAccountByEachPowerdownRate{}
-	if s.dba == nil {
-		res = false
-	} else {
-		key, err := s.encodeMemKey("EachPowerdownRate")
-		if err != nil {
-			res = false
-		} else {
-			buf, err := s.dba.Get(key)
-			if err != nil {
-				res = false
-			}
-			err = proto.Unmarshal(buf, msg)
-			if err != nil {
-				res = false
-			} else {
-				return msg.EachPowerdownRate
-			}
-		}
-	}
-	if !res {
-		return nil
-
-	}
-	return msg.EachPowerdownRate
-}
-
-func (s *SoAccountWrap) MdEachPowerdownRate(p *prototype.Vest) bool {
-	if s.dba == nil {
-		return false
-	}
-	key, err := s.encodeMemKey("EachPowerdownRate")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemAccountByEachPowerdownRate{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoAccount{}
-	sa.Name = s.mainKey
-
-	sa.EachPowerdownRate = ori.EachPowerdownRate
-
-	ori.EachPowerdownRate = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.EachPowerdownRate = p
-
-	return true
-}
-
-func (s *SoAccountWrap) saveMemKeyHasPowerdown(tInfo *SoAccount) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemAccountByHasPowerdown{}
-	val.HasPowerdown = tInfo.HasPowerdown
-	key, err := s.encodeMemKey("HasPowerdown")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
-
-func (s *SoAccountWrap) GetHasPowerdown() *prototype.Vest {
-	res := true
-	msg := &SoMemAccountByHasPowerdown{}
-	if s.dba == nil {
-		res = false
-	} else {
-		key, err := s.encodeMemKey("HasPowerdown")
-		if err != nil {
-			res = false
-		} else {
-			buf, err := s.dba.Get(key)
-			if err != nil {
-				res = false
-			}
-			err = proto.Unmarshal(buf, msg)
-			if err != nil {
-				res = false
-			} else {
-				return msg.HasPowerdown
-			}
-		}
-	}
-	if !res {
-		return nil
-
-	}
-	return msg.HasPowerdown
-}
-
-func (s *SoAccountWrap) MdHasPowerdown(p *prototype.Vest) bool {
-	if s.dba == nil {
-		return false
-	}
-	key, err := s.encodeMemKey("HasPowerdown")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemAccountByHasPowerdown{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoAccount{}
-	sa.Name = s.mainKey
-
-	sa.HasPowerdown = ori.HasPowerdown
-
-	ori.HasPowerdown = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.HasPowerdown = p
 
 	return true
 }
@@ -1466,96 +1422,6 @@ func (s *SoAccountWrap) GetName() *prototype.AccountName {
 	return msg.Name
 }
 
-func (s *SoAccountWrap) saveMemKeyNextPowerdownTime(tInfo *SoAccount) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemAccountByNextPowerdownTime{}
-	val.NextPowerdownTime = tInfo.NextPowerdownTime
-	key, err := s.encodeMemKey("NextPowerdownTime")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
-
-func (s *SoAccountWrap) GetNextPowerdownTime() *prototype.TimePointSec {
-	res := true
-	msg := &SoMemAccountByNextPowerdownTime{}
-	if s.dba == nil {
-		res = false
-	} else {
-		key, err := s.encodeMemKey("NextPowerdownTime")
-		if err != nil {
-			res = false
-		} else {
-			buf, err := s.dba.Get(key)
-			if err != nil {
-				res = false
-			}
-			err = proto.Unmarshal(buf, msg)
-			if err != nil {
-				res = false
-			} else {
-				return msg.NextPowerdownTime
-			}
-		}
-	}
-	if !res {
-		return nil
-
-	}
-	return msg.NextPowerdownTime
-}
-
-func (s *SoAccountWrap) MdNextPowerdownTime(p *prototype.TimePointSec) bool {
-	if s.dba == nil {
-		return false
-	}
-	key, err := s.encodeMemKey("NextPowerdownTime")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemAccountByNextPowerdownTime{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoAccount{}
-	sa.Name = s.mainKey
-
-	sa.NextPowerdownTime = ori.NextPowerdownTime
-
-	if !s.delSortKeyNextPowerdownTime(sa) {
-		return false
-	}
-	ori.NextPowerdownTime = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.NextPowerdownTime = p
-
-	if !s.insertSortKeyNextPowerdownTime(sa) {
-		return false
-	}
-
-	return true
-}
-
 func (s *SoAccountWrap) saveMemKeyPostCount(tInfo *SoAccount) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
@@ -1625,6 +1491,9 @@ func (s *SoAccountWrap) MdPostCount(p uint32) bool {
 
 	sa.PostCount = ori.PostCount
 
+	if !s.delSortKeyPostCount(sa) {
+		return false
+	}
 	ori.PostCount = p
 	val, err := proto.Marshal(ori)
 	if err != nil {
@@ -1636,88 +1505,9 @@ func (s *SoAccountWrap) MdPostCount(p uint32) bool {
 	}
 	sa.PostCount = p
 
-	return true
-}
-
-func (s *SoAccountWrap) saveMemKeyToPowerdown(tInfo *SoAccount) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemAccountByToPowerdown{}
-	val.ToPowerdown = tInfo.ToPowerdown
-	key, err := s.encodeMemKey("ToPowerdown")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
-
-func (s *SoAccountWrap) GetToPowerdown() *prototype.Vest {
-	res := true
-	msg := &SoMemAccountByToPowerdown{}
-	if s.dba == nil {
-		res = false
-	} else {
-		key, err := s.encodeMemKey("ToPowerdown")
-		if err != nil {
-			res = false
-		} else {
-			buf, err := s.dba.Get(key)
-			if err != nil {
-				res = false
-			}
-			err = proto.Unmarshal(buf, msg)
-			if err != nil {
-				res = false
-			} else {
-				return msg.ToPowerdown
-			}
-		}
-	}
-	if !res {
-		return nil
-
-	}
-	return msg.ToPowerdown
-}
-
-func (s *SoAccountWrap) MdToPowerdown(p *prototype.Vest) bool {
-	if s.dba == nil {
+	if !s.insertSortKeyPostCount(sa) {
 		return false
 	}
-	key, err := s.encodeMemKey("ToPowerdown")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemAccountByToPowerdown{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoAccount{}
-	sa.Name = s.mainKey
-
-	sa.ToPowerdown = ori.ToPowerdown
-
-	ori.ToPowerdown = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.ToPowerdown = p
 
 	return true
 }
@@ -2520,26 +2310,26 @@ func (s *SAccountBpVoteCountWrap) ForEachByOrder(start *uint32, end *uint32, las
 }
 
 ////////////// SECTION List Keys ///////////////
-type SAccountNextPowerdownTimeWrap struct {
+type SAccountPostCountWrap struct {
 	Dba iservices.IDatabaseService
 }
 
-func NewAccountNextPowerdownTimeWrap(db iservices.IDatabaseService) *SAccountNextPowerdownTimeWrap {
+func NewAccountPostCountWrap(db iservices.IDatabaseService) *SAccountPostCountWrap {
 	if db == nil {
 		return nil
 	}
-	wrap := SAccountNextPowerdownTimeWrap{Dba: db}
+	wrap := SAccountPostCountWrap{Dba: db}
 	return &wrap
 }
 
-func (s *SAccountNextPowerdownTimeWrap) DelIterator(iterator iservices.IDatabaseIterator) {
+func (s *SAccountPostCountWrap) DelIterator(iterator iservices.IDatabaseIterator) {
 	if iterator == nil {
 		return
 	}
 	s.Dba.DeleteIterator(iterator)
 }
 
-func (s *SAccountNextPowerdownTimeWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.AccountName {
+func (s *SAccountPostCountWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.AccountName {
 	if iterator == nil || !iterator.Valid() {
 		return nil
 	}
@@ -2549,7 +2339,7 @@ func (s *SAccountNextPowerdownTimeWrap) GetMainVal(iterator iservices.IDatabaseI
 		return nil
 	}
 
-	res := &SoListAccountByNextPowerdownTime{}
+	res := &SoListAccountByPostCount{}
 	err = proto.Unmarshal(val, res)
 
 	if err != nil {
@@ -2559,7 +2349,7 @@ func (s *SAccountNextPowerdownTimeWrap) GetMainVal(iterator iservices.IDatabaseI
 
 }
 
-func (s *SAccountNextPowerdownTimeWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.TimePointSec {
+func (s *SAccountPostCountWrap) GetSubVal(iterator iservices.IDatabaseIterator) *uint32 {
 	if iterator == nil || !iterator.Valid() {
 		return nil
 	}
@@ -2569,21 +2359,19 @@ func (s *SAccountNextPowerdownTimeWrap) GetSubVal(iterator iservices.IDatabaseIt
 	if err != nil {
 		return nil
 	}
-	res := &SoListAccountByNextPowerdownTime{}
+	res := &SoListAccountByPostCount{}
 	err = proto.Unmarshal(val, res)
 	if err != nil {
 		return nil
 	}
-	return res.NextPowerdownTime
+	return &res.PostCount
 
 }
 
-func (m *SoListAccountByNextPowerdownTime) OpeEncode() ([]byte, error) {
-	pre := AccountNextPowerdownTimeTable
-	sub := m.NextPowerdownTime
-	if sub == nil {
-		return nil, errors.New("the pro NextPowerdownTime is nil")
-	}
+func (m *SoListAccountByPostCount) OpeEncode() ([]byte, error) {
+	pre := AccountPostCountTable
+	sub := m.PostCount
+
 	sub1 := m.Name
 	if sub1 == nil {
 		return nil, errors.New("the mainkey Name is nil")
@@ -2607,8 +2395,8 @@ func (m *SoListAccountByNextPowerdownTime) OpeEncode() ([]byte, error) {
 //lastMainKey: the main key of the last one of last page
 //lastSubVal: the value  of the last one of last page
 //
-func (s *SAccountNextPowerdownTimeWrap) ForEachByOrder(start *prototype.TimePointSec, end *prototype.TimePointSec, lastMainKey *prototype.AccountName,
-	lastSubVal *prototype.TimePointSec, f func(mVal *prototype.AccountName, sVal *prototype.TimePointSec, idx uint32) bool) error {
+func (s *SAccountPostCountWrap) ForEachByOrder(start *uint32, end *uint32, lastMainKey *prototype.AccountName,
+	lastSubVal *uint32, f func(mVal *prototype.AccountName, sVal *uint32, idx uint32) bool) error {
 	if s.Dba == nil {
 		return errors.New("the db is nil")
 	}
@@ -2618,7 +2406,146 @@ func (s *SAccountNextPowerdownTimeWrap) ForEachByOrder(start *prototype.TimePoin
 	if f == nil {
 		return nil
 	}
-	pre := AccountNextPowerdownTimeTable
+	pre := AccountPostCountTable
+	skeyList := []interface{}{pre}
+	if start != nil {
+		skeyList = append(skeyList, start)
+		if lastMainKey != nil {
+			skeyList = append(skeyList, lastMainKey, kope.MinimalKey)
+		}
+	} else {
+		if lastMainKey != nil && lastSubVal != nil {
+			skeyList = append(skeyList, lastSubVal, lastMainKey, kope.MinimalKey)
+		}
+		skeyList = append(skeyList, kope.MinimalKey)
+	}
+	sBuf, cErr := kope.EncodeSlice(skeyList)
+	if cErr != nil {
+		return cErr
+	}
+	eKeyList := []interface{}{pre}
+	if end != nil {
+		eKeyList = append(eKeyList, end)
+	} else {
+		eKeyList = append(eKeyList, kope.MaximumKey)
+	}
+	eBuf, cErr := kope.EncodeSlice(eKeyList)
+	if cErr != nil {
+		return cErr
+	}
+	iterator := s.Dba.NewIterator(sBuf, eBuf)
+	if iterator == nil {
+		return errors.New("there is no data in range")
+	}
+	var idx uint32 = 0
+	for iterator.Next() {
+		idx++
+		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
+			break
+		}
+	}
+	s.DelIterator(iterator)
+	return nil
+}
+
+////////////// SECTION List Keys ///////////////
+type SAccountCreatedTrxCountWrap struct {
+	Dba iservices.IDatabaseService
+}
+
+func NewAccountCreatedTrxCountWrap(db iservices.IDatabaseService) *SAccountCreatedTrxCountWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := SAccountCreatedTrxCountWrap{Dba: db}
+	return &wrap
+}
+
+func (s *SAccountCreatedTrxCountWrap) DelIterator(iterator iservices.IDatabaseIterator) {
+	if iterator == nil {
+		return
+	}
+	s.Dba.DeleteIterator(iterator)
+}
+
+func (s *SAccountCreatedTrxCountWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.AccountName {
+	if iterator == nil || !iterator.Valid() {
+		return nil
+	}
+	val, err := iterator.Value()
+
+	if err != nil {
+		return nil
+	}
+
+	res := &SoListAccountByCreatedTrxCount{}
+	err = proto.Unmarshal(val, res)
+
+	if err != nil {
+		return nil
+	}
+	return res.Name
+
+}
+
+func (s *SAccountCreatedTrxCountWrap) GetSubVal(iterator iservices.IDatabaseIterator) *uint32 {
+	if iterator == nil || !iterator.Valid() {
+		return nil
+	}
+
+	val, err := iterator.Value()
+
+	if err != nil {
+		return nil
+	}
+	res := &SoListAccountByCreatedTrxCount{}
+	err = proto.Unmarshal(val, res)
+	if err != nil {
+		return nil
+	}
+	return &res.CreatedTrxCount
+
+}
+
+func (m *SoListAccountByCreatedTrxCount) OpeEncode() ([]byte, error) {
+	pre := AccountCreatedTrxCountTable
+	sub := m.CreatedTrxCount
+
+	sub1 := m.Name
+	if sub1 == nil {
+		return nil, errors.New("the mainkey Name is nil")
+	}
+	kList := []interface{}{pre, sub, sub1}
+	kBuf, cErr := kope.EncodeSlice(kList)
+	return kBuf, cErr
+}
+
+//Query srt by order
+//
+//start = nil  end = nil (query the db from start to end)
+//start = nil (query from start the db)
+//end = nil (query to the end of db)
+//
+//f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
+//as arguments to the callback function
+//if the return value of f is true,continue iterating until the end iteration;
+//otherwise stop iteration immediately
+//
+//lastMainKey: the main key of the last one of last page
+//lastSubVal: the value  of the last one of last page
+//
+func (s *SAccountCreatedTrxCountWrap) ForEachByOrder(start *uint32, end *uint32, lastMainKey *prototype.AccountName,
+	lastSubVal *uint32, f func(mVal *prototype.AccountName, sVal *uint32, idx uint32) bool) error {
+	if s.Dba == nil {
+		return errors.New("the db is nil")
+	}
+	if (lastSubVal != nil && lastMainKey == nil) || (lastSubVal == nil && lastMainKey != nil) {
+		return errors.New("last query param error")
+	}
+	if f == nil {
+		return nil
+	}
+	pre := AccountCreatedTrxCountTable
 	skeyList := []interface{}{pre}
 	if start != nil {
 		skeyList = append(skeyList, start)
