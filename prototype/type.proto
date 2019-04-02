@@ -75,6 +75,8 @@ message dynamic_properties {
     uint32   ith_year = 23;
     prototype.vest   annual_budget = 24;
     prototype.vest   annual_minted = 25;
+    prototype.vest   dapp_rewards = 26;
+    prototype.vest   voter_rewards = 27;
 }
 
 message internal_rewards_keeper {

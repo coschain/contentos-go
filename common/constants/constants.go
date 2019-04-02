@@ -21,6 +21,7 @@ const (
 	NoticeTrxApplied   = "trxapplyresult"
 	NoticeBlockApplied = "blockapply"
 	NoticeAddTrx       = "addTrx"
+	NoticeCashout      = "rewardCashout"
 
 	GenesisTime = 0
 
@@ -61,10 +62,16 @@ const (
 
 	PerBlockCurrent = 10 * 1e6 // precision: 6
 
+	// from total minted
+	RewardRateCreator = 7500
+	RewardRateBP     = 1500
+	RewardRateDapp   = 1000
+
+	// from Creator
 	RewardRateAuthor = 7000
-	RewardRateReply  = 1500
-	RewardRateBP     = 1000
-	ReportRate       = 500
+	RewardRateReply = 1500
+	RewardRateVoter = 1000
+	RewardRateReport = 500
 
 	ConvertWeeks = 13
 

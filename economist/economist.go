@@ -73,29 +73,30 @@ func (e *Economist) BaseBudget(ith uint32) uint64 {
 }
 
 // whitepaper p16
-func (e *Economist) InitialBonus(ith uint32) uint64 {
-	if ith > 5 {
-		return 0
-	}
-	switch ith {
-	case 0:
-		return 0
-	case 1:
-		return 169580103 * constants.BaseRate
-	case 2:
-		return 106993132 * constants.BaseRate
-	case 3:
-		return 84790051 * constants.BaseRate
-	case 4:
-		return 73034175 * constants.BaseRate
-	case 5:
-		return 65602539 * constants.BaseRate
-	}
-	return 0
-}
+//func (e *Economist) InitialBonus(ith uint32) uint64 {
+//	if ith > 5 {
+//		return 0
+//	}
+//	switch ith {
+//	case 0:
+//		return 0
+//	case 1:
+//		return 169580103 * constants.BaseRate
+//	case 2:
+//		return 106993132 * constants.BaseRate
+//	case 3:
+//		return 84790051 * constants.BaseRate
+//	case 4:
+//		return 73034175 * constants.BaseRate
+//	case 5:
+//		return 65602539 * constants.BaseRate
+//	}
+//	return 0
+//}
 
+// InitialBonus does not be managed by chain
 func (e *Economist) CalculateBudget(ith uint32) uint64 {
-	return e.BaseBudget(ith) + e.InitialBonus(ith)
+	return e.BaseBudget(ith)
 }
 
 func (e *Economist) CalculatePerBlockBudget(annalBudget uint64) uint64 {
@@ -135,10 +136,14 @@ func (e *Economist) Mint() {
 		})
 	}
 
-	authorReward := blockCurrent * constants.RewardRateAuthor / constants.PERCENT
-	replyReward := blockCurrent * constants.RewardRateReply / constants.PERCENT
-	bpReward := blockCurrent * constants.RewardRateBP / constants.PERCENT
-	reportReward := blockCurrent - authorReward - replyReward - bpReward
+	creatorReward := blockCurrent * constants.RewardRateCreator / constants.PERCENT
+	dappReward := blockCurrent * constants.RewardRateDapp / constants.PERCENT
+	bpReward := blockCurrent - creatorReward - dappReward
+
+	authorReward := creatorReward * constants.RewardRateAuthor / constants.PERCENT
+	replyReward := creatorReward * constants.RewardRateReply / constants.PERCENT
+	voterReward := creatorReward * constants.RewardRateVoter / constants.PERCENT
+	reportReward := creatorReward * constants.RewardRateReport / constants.PERCENT
 
 	if err != nil {
 		panic("Mint failed when getprops")
@@ -160,6 +165,8 @@ func (e *Economist) Mint() {
 		props.PostRewards.Value += uint64(authorReward)
 		props.ReplyRewards.Value += uint64(replyReward)
 		props.ReportRewards.Value += uint64(reportReward)
+		props.DappRewards.Value += uint64(dappReward)
+		props.VoterRewards.Value += uint64(voterReward)
 		props.AnnualMinted.Value += blockCurrent
 	})
 
@@ -172,7 +179,8 @@ func (e *Economist) Do() {
 	if err != nil {
 		panic("economist do failed when get props")
 	}
-	if globalProps.HeadBlockNumber%constants.ReportCashout == 0 {
+	// for now, report reward does not calculate
+	if globalProps.HeadBlockNumber % constants.ReportCashout == 0 {
 		reportRewards := globalProps.ReportRewards.Value
 		postRewards := reportRewards / 2
 		replyRewards := reportRewards - postRewards
@@ -241,19 +249,21 @@ func (e *Economist) postCashout(rewardKeeper *prototype.InternalRewardsKeeper, p
 		vpAccumulator += post.GetWeightedVp()
 	}
 	var blockReward uint64 = 0
+	var blockDappReward uint64 = 0
 	if globalProps.WeightedVps > 0 {
 		blockReward = vpAccumulator * globalProps.PostRewards.Value / globalProps.WeightedVps
+		blockDappReward = vpAccumulator * globalProps.DappRewards.Value / globalProps.WeightedVps
 	}
 	innerRewards := rewardKeeper.Rewards
 	for _, post := range posts {
 		author := post.GetAuthor().Value
 		var reward uint64 = 0
+		var beneficiaryReward uint64 = 0
 		// divide zero exception
 		if vpAccumulator > 0 {
 			reward = post.GetWeightedVp() * blockReward / vpAccumulator
+			beneficiaryReward = post.GetWeightedVp() * blockDappReward / vpAccumulator
 		}
-		realReward := reward * 90 / 100
-		beneficiaryReward := reward - realReward
 		beneficiaries := post.GetBeneficiaries()
 		var spentBeneficiaryReward uint64 = 0
 		for _, beneficiary := range beneficiaries {
@@ -267,15 +277,15 @@ func (e *Economist) postCashout(rewardKeeper *prototype.InternalRewardsKeeper, p
 				vest.Value += r
 			}
 			spentBeneficiaryReward += r
-			e.noticer.Publish("rewards", name, r, globalProps.GetHeadBlockNumber())
+			e.noticer.Publish(constants.NoticeCashout, name, r, globalProps.GetHeadBlockNumber())
 		}
-		realReward += beneficiaryReward - spentBeneficiaryReward
+		reward += beneficiaryReward - spentBeneficiaryReward
 		if vest, ok := innerRewards[author]; !ok {
-			innerRewards[author] = &prototype.Vest{Value: realReward}
+			innerRewards[author] = &prototype.Vest{Value: reward}
 		} else {
-			vest.Value += realReward
+			vest.Value += reward
 		}
-		e.noticer.Publish("rewards", author, realReward, globalProps.GetHeadBlockNumber())
+		e.noticer.Publish(constants.NoticeCashout, author, reward, globalProps.GetHeadBlockNumber())
 		post.MdCashoutTime(&prototype.TimePointSec{UtcSeconds: math.MaxUint32})
 	}
 }
@@ -294,20 +304,21 @@ func (e *Economist) replyCashout(rewardKeeper *prototype.InternalRewardsKeeper, 
 		props.WeightedVps += vpAccumulator
 	})
 	var blockReward uint64 = 0
+	var blockDappReward uint64 = 0
 	if globalProps.WeightedVps > 0 {
-		blockReward = vpAccumulator * globalProps.PostRewards.Value / globalProps.WeightedVps
+		blockReward = vpAccumulator * globalProps.ReplyRewards.Value / globalProps.WeightedVps
+		blockDappReward = vpAccumulator * globalProps.DappRewards.Value / globalProps.WeightedVps
 	}
 	innerRewards := rewardKeeper.Rewards
 	for _, reply := range replies {
 		author := reply.GetAuthor().Value
 		var reward uint64 = 0
+		var beneficiaryReward uint64 = 0
 		// divide zero exception
 		if vpAccumulator > 0 {
 			reward = reply.GetWeightedVp() * blockReward / vpAccumulator
+			beneficiaryReward = reply.GetWeightedVp() * blockDappReward / vpAccumulator
 		}
-		// base revenue: 0.9
-		realReward := reward * 90 / 100
-		beneficiaryReward := reward - realReward
 		beneficiaries := reply.GetBeneficiaries()
 		var spentBeneficiaryReward uint64 = 0
 		for _, beneficiary := range beneficiaries {
@@ -321,15 +332,15 @@ func (e *Economist) replyCashout(rewardKeeper *prototype.InternalRewardsKeeper, 
 				vest.Value += r
 			}
 			spentBeneficiaryReward += r
-			e.noticer.Publish("rewards", name, r, globalProps.GetHeadBlockNumber())
+			e.noticer.Publish(constants.NoticeCashout, name, r, globalProps.GetHeadBlockNumber())
 		}
-		realReward += beneficiaryReward - spentBeneficiaryReward
+		reward += beneficiaryReward - spentBeneficiaryReward
 		if vest, ok := rewardKeeper.Rewards[author]; !ok {
-			innerRewards[author] = &prototype.Vest{Value: realReward}
+			innerRewards[author] = &prototype.Vest{Value: reward}
 		} else {
-			vest.Value += realReward
+			vest.Value += reward
 		}
-		e.noticer.Publish("rewards", author, realReward, globalProps.GetHeadBlockNumber())
+		e.noticer.Publish(constants.NoticeCashout, author, reward, globalProps.GetHeadBlockNumber())
 		reply.MdCashoutTime(&prototype.TimePointSec{UtcSeconds: math.MaxUint32})
 	}
 }

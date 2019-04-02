@@ -3,6 +3,7 @@ package plugins
 import (
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app/table"
+	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/prototype"
@@ -42,12 +43,12 @@ func (p *RewardService) Start(node *node.Node) error {
 }
 
 func (p *RewardService) hookEvent() {
-	p.ev.Subscribe("rewards", p.onReward)
+	p.ev.Subscribe(constants.NoticeCashout, p.onReward)
 }
 
 // author, realReward, globalProps.GetHeadBlockNumber(), globalProps.GetTime())
 func (p *RewardService) unhookEvent() {
-	p.ev.Unsubscribe("rewards", p.onReward)
+	p.ev.Unsubscribe(constants.NoticeCashout, p.onReward)
 }
 
 func (p *RewardService) onReward(name string, reward uint64, blockHeight uint64) {
