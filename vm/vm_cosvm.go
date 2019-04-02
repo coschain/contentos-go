@@ -126,7 +126,7 @@ func (w *CosVM) runEntry(entryName string) (ret uint32, err error) {
 		vm.Reset()
 	} else {
 		vm, err = exec.NewVM(vmModule)
-		vc.Add(w.ctx.Owner.Value,w.ctx.Contract,vm)
+		//vc.Add(w.ctx.Owner.Value,w.ctx.Contract,vm)
 	}
 
 	defer func() {

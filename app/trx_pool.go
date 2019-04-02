@@ -436,7 +436,7 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 
 			}()
 			c.db.BeginTransaction()
-			c.applyTransactionInner(trxWraper, false)
+			c.applyTransactionInner(trxWraper, true)
 			mustNoError(c.db.EndTransaction(true), "EndTransaction error")
 			totalSize += uint32(proto.Size(trxWraper))
 			signBlock.Transactions = append(signBlock.Transactions, trxWraper.ToTrxWrapper())
