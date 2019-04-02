@@ -128,10 +128,6 @@ func RegisterService(app *node.Node, cfg node.Config) {
 		return storage.NewGuardedDatabaseService(ctx, "./db/")
 	})
 
-	_ = app.Register(iservices.P2PServerName, func(ctx *node.ServiceContext) (node.Service, error) {
-		return p2p.NewServer(ctx, app.Log)
-	})
-
 	_ = app.Register(iservices.TxPoolServerName, func(ctx *node.ServiceContext) (node.Service, error) {
 		return ctrl.NewController(ctx, app.Log)
 	})
@@ -162,6 +158,10 @@ func RegisterService(app *node.Node, cfg node.Config) {
 
 	_ = app.Register(iservices.RpcServerName, func(ctx *node.ServiceContext) (node.Service, error) {
 		return rpc.NewGRPCServer(ctx, ctx.Config().GRPC, app.Log)
+	})
+
+	_ = app.Register(iservices.P2PServerName, func(ctx *node.ServiceContext) (node.Service, error) {
+		return p2p.NewServer(ctx, app.Log)
 	})
 
 	_ = app.Register(myhttp.HealthCheckName, func(ctx *node.ServiceContext) (node.Service, error) {
