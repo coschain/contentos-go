@@ -48,10 +48,13 @@ it's possible that a block that is about to be committed is not on the main bran
 > the voting process is completely controlled by gobft, to get more details please refer to [gobft doc](https://github.com/coschain/gobft)
 
 ### 5. self adaptation explained
-In the case of network jam, validators crash or byzantine validators, block confirmation can be delayed. The self adaptive mechanism makes sure that the system can quickly confirm the latest generated block in later rounds.
-A new proposer is chosen among all validators in every bft voting round in round-robin. The proposer simply propose the latest block it knows, when it’s confirmed, all the blocks before it will be confirmed too. In the case of network latency, other validators may not receive the proposed block or its votes. If validators always propose the latest block, bft consensus may not be reached in a very long time. To overcome this, block with smaller block number than the head block is proposed if consensus is not reached in several voting rounds.
-The bft process can be considered a state machine. The state consists of height, round and step. Step is omitted here to simplify the process. In each height, one or more rounds exist. The round start from 0 in each height and increases if bft consensus is not reached in this round. H1R0 indicates the current state is at height of 1 and round of 0.
-The following picture illustrates how SABFT adjust its bft process if any of the abnormal situations we mentioned earlier occurs.
+In the case of network jam, validators crash or byzantine validators, block confirmation can be delayed. The self adaptive mechanism makes sure that the system can quickly confirm the latest generated block in later rounds. 
+
+A new proposer is chosen among all validators in every bft voting round in round-robin. The proposer simply proposes the latest block it knows, when it’s confirmed, all the blocks before it will be confirmed too. In the case of network latency, other validators may not receive the proposed block or its votes. If validators always propose the latest block, bft consensus may not be reached in a very long time. To overcome this, block with smaller block number than the head block is proposed if consensus is not reached in several voting rounds. 
+
+The bft process can be considered a state machine. The state consists of height, round and step. Step is omitted here to simplify the process. In each height, one or more rounds exist. Round starts from 0 in each height and increases if bft consensus is not reached in this round. H1R0 indicates the current state is at height of 1 and round of 0.
+
+The following picture illustrates how SABFT adjusts its bft process if any of the abnormal situations we mentioned earlier occurs.
 
 ![SA-chart](https://github.com/coschain/contentos-go/blob/master/consensus/sabft_in_general.jpg)
 At t1 block 1 is generated, meanwhile the bft process starts and the proposer proposed block 1.  Soon at t1’(t1<t1’<t2), consensus is reached and block 1 is committed.  At t2, block 2 is generated and it’s proposed. However things get messy and no consensus is reached in round 0 before timeout. At t4 the state enters H2R1 and block 4 is proposed. Finally at t2’ consensus is reached on block 4 and block 2-4 is committed at once. From t6 things go back to normal and all blocks after block 5 are committed within 1 second. As is shown above the margin step in height 2 is 4, after that it quickly drops to 1.
