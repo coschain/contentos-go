@@ -143,7 +143,7 @@ func (e *Economist) Mint() {
 	authorReward := creatorReward * constants.RewardRateAuthor / constants.PERCENT
 	replyReward := creatorReward * constants.RewardRateReply / constants.PERCENT
 	voterReward := creatorReward * constants.RewardRateVoter / constants.PERCENT
-	reportReward := creatorReward * constants.RewardRateReport / constants.PERCENT
+	//reportReward := creatorReward * constants.RewardRateReport / constants.PERCENT
 
 	if err != nil {
 		panic("Mint failed when getprops")
@@ -164,7 +164,7 @@ func (e *Economist) Mint() {
 	e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
 		props.PostRewards.Value += uint64(authorReward)
 		props.ReplyRewards.Value += uint64(replyReward)
-		props.ReportRewards.Value += uint64(reportReward)
+		//props.ReportRewards.Value += uint64(reportReward)
 		props.DappRewards.Value += uint64(dappReward)
 		props.VoterRewards.Value += uint64(voterReward)
 		props.AnnualMinted.Value += blockCurrent
@@ -250,20 +250,25 @@ func (e *Economist) postCashout(rewardKeeper *prototype.InternalRewardsKeeper, p
 	}
 	var blockReward uint64 = 0
 	var blockDappReward uint64 = 0
+	//var blockVoterReward uint64 = 0
 	if globalProps.WeightedVps > 0 {
 		blockReward = vpAccumulator * globalProps.PostRewards.Value / globalProps.WeightedVps
 		blockDappReward = vpAccumulator * globalProps.DappRewards.Value / globalProps.WeightedVps
+		//blockVoterReward = vpAccumulator * globalProps.VoterRewards.Value / globalProps.WeightedVps
 	}
 	innerRewards := rewardKeeper.Rewards
 	for _, post := range posts {
 		author := post.GetAuthor().Value
 		var reward uint64 = 0
 		var beneficiaryReward uint64 = 0
+		//var voterReward uint64 = 0
 		// divide zero exception
 		if vpAccumulator > 0 {
 			reward = post.GetWeightedVp() * blockReward / vpAccumulator
 			beneficiaryReward = post.GetWeightedVp() * blockDappReward / vpAccumulator
+			//voterReward = post.GetWeightedVp() * blockVoterReward / vpAccumulator
 		}
+		//e.voterCashout(post.GetPostId(), voterReward, post.GetWeightedVp(), innerRewards)
 		beneficiaries := post.GetBeneficiaries()
 		var spentBeneficiaryReward uint64 = 0
 		for _, beneficiary := range beneficiaries {
@@ -305,20 +310,25 @@ func (e *Economist) replyCashout(rewardKeeper *prototype.InternalRewardsKeeper, 
 	})
 	var blockReward uint64 = 0
 	var blockDappReward uint64 = 0
+	//var blockVoterReward uint64 = 0
 	if globalProps.WeightedVps > 0 {
 		blockReward = vpAccumulator * globalProps.ReplyRewards.Value / globalProps.WeightedVps
 		blockDappReward = vpAccumulator * globalProps.DappRewards.Value / globalProps.WeightedVps
+		//blockVoterReward = vpAccumulator * globalProps.VoterRewards.Value / globalProps.WeightedVps
 	}
 	innerRewards := rewardKeeper.Rewards
 	for _, reply := range replies {
 		author := reply.GetAuthor().Value
 		var reward uint64 = 0
 		var beneficiaryReward uint64 = 0
+		//var voterReward uint64 = 0
 		// divide zero exception
 		if vpAccumulator > 0 {
 			reward = reply.GetWeightedVp() * blockReward / vpAccumulator
 			beneficiaryReward = reply.GetWeightedVp() * blockDappReward / vpAccumulator
+			//voterReward = reply.GetWeightedVp() * blockVoterReward / vpAccumulator
 		}
+		//e.voterCashout(reply.GetPostId(), voterReward, reply.GetWeightedVp(), innerRewards)
 		beneficiaries := reply.GetBeneficiaries()
 		var spentBeneficiaryReward uint64 = 0
 		for _, beneficiary := range beneficiaries {
@@ -342,6 +352,28 @@ func (e *Economist) replyCashout(rewardKeeper *prototype.InternalRewardsKeeper, 
 		}
 		e.noticer.Publish(constants.NoticeCashout, author, reward, globalProps.GetHeadBlockNumber())
 		reply.MdCashoutTime(&prototype.TimePointSec{UtcSeconds: math.MaxUint32})
+	}
+}
+
+func (e *Economist) voterCashout(postId uint64, totalReward uint64, totalVp uint64, keeper map[string]*prototype.Vest) {
+	iterator := table.NewVotePostIdWrap(e.db)
+	start := postId
+	end := postId + 1
+	var voterIds []*prototype.VoterId
+	_ = iterator.ForEachByOrder(&start, &end, nil, nil, func(mVal *prototype.VoterId, sVal *uint64, idx uint32) bool {
+		voterIds = append(voterIds, mVal)
+		return true
+	})
+	for _, voterId := range voterIds {
+		wrap := table.NewSoVoteWrap(e.db, voterId)
+		vp := wrap.GetWeightedVp()
+		voter := voterId.Voter.Value
+		reward := totalReward * vp / totalVp
+		if vest, ok := keeper[voter]; !ok {
+			keeper[voter] = &prototype.Vest{Value: reward}
+		} else {
+			keeper[voter] = &prototype.Vest{Value: vest.Value + reward}
+		}
 	}
 }
 

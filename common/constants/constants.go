@@ -68,10 +68,11 @@ const (
 	RewardRateDapp   = 1000
 
 	// from Creator
-	RewardRateAuthor = 7000
+	//RewardRateAuthor = 7000
+	RewardRateAuthor = 7500
 	RewardRateReply = 1500
 	RewardRateVoter = 1000
-	RewardRateReport = 500
+	//RewardRateReport = 500
 
 	ConvertWeeks = 13
 
