@@ -1,6 +1,7 @@
 package economist
 
 import (
+	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/dandelion"
 	"github.com/coschain/contentos-go/prototype"
@@ -23,20 +24,21 @@ func TestEconomist_Mint(t *testing.T) {
 	myassert.Equal(prop1.PostRewards.Value, uint64(0))
 	myassert.Equal(prop1.ReplyRewards.Value, uint64(0))
 	var SingleId int32 = 1
-	eco := Economist{dande.GetDB(), &SingleId}
+	eco := Economist{dande.GetDB(), EventBus.New(), &SingleId}
 	eco.Mint()
 	prop2 := dande.GetProps()
-	myassert.Equal(prop2.PostRewards.Value, uint64(6300000))
-	myassert.Equal(prop2.ReplyRewards.Value, uint64(1350000))
+	myassert.Equal(prop2.PostRewards.Value, uint64(2237442))
+	myassert.Equal(prop2.ReplyRewards.Value, uint64(479452))
 	keeper, _ := eco.GetRewardsKeeper()
-	myassert.Equal(keeper.Rewards["initminer"].Value, uint64(900000))
+	myassert.Equal(keeper.Rewards["initminer"].Value, uint64(639270))
 	eco.Mint()
 	prop3 := dande.GetProps()
-	myassert.Equal(prop3.PostRewards.Value, uint64(12600000))
-	myassert.Equal(prop3.ReplyRewards.Value, uint64(2700000))
+	myassert.Equal(prop3.PostRewards.Value, uint64(4474884))
+	myassert.Equal(prop3.ReplyRewards.Value, uint64(958904))
 	keeper2, _ := eco.GetRewardsKeeper()
-	myassert.Equal(keeper2.Rewards["initminer"].Value, uint64(1800000))
+	myassert.Equal(keeper2.Rewards["initminer"].Value, uint64(1278540))
 }
+
 
 func TestEconomist_Do(t *testing.T) {
 	myassert := assert.New(t)
@@ -52,7 +54,7 @@ func TestEconomist_Do(t *testing.T) {
 	privKey := dande.GeneralPrivKey()
 	db := dande.GetDB()
 	var SingleId int32 = 1
-	eco := Economist{dande.GetDB(), &SingleId}
+	eco := Economist{dande.GetDB(), EventBus.New(),&SingleId}
 	operation := &prototype.PostOperation{
 		Uuid:          uint64(111),
 		Owner:         &prototype.AccountName{Value: "kochiya"},

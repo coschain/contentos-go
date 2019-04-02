@@ -283,7 +283,7 @@ func (e *Economist) postCashout(rewardKeeper *prototype.InternalRewardsKeeper, p
 		if vest, ok := innerRewards[author]; !ok {
 			innerRewards[author] = &prototype.Vest{Value: reward}
 		} else {
-			vest.Value += reward
+			innerRewards[author] = &prototype.Vest{Value: vest.Value + reward}
 		}
 		e.noticer.Publish(constants.NoticeCashout, author, reward, globalProps.GetHeadBlockNumber())
 		post.MdCashoutTime(&prototype.TimePointSec{UtcSeconds: math.MaxUint32})
@@ -338,7 +338,7 @@ func (e *Economist) replyCashout(rewardKeeper *prototype.InternalRewardsKeeper, 
 		if vest, ok := rewardKeeper.Rewards[author]; !ok {
 			innerRewards[author] = &prototype.Vest{Value: reward}
 		} else {
-			vest.Value += reward
+			innerRewards[author] = &prototype.Vest{Value: vest.Value + reward}
 		}
 		e.noticer.Publish(constants.NoticeCashout, author, reward, globalProps.GetHeadBlockNumber())
 		reply.MdCashoutTime(&prototype.TimePointSec{UtcSeconds: math.MaxUint32})
