@@ -241,6 +241,9 @@ func (c *TrxPool) pushBlockNoLock(blk *prototype.SignedBlock, skip prototype.Ski
 	oldFlag := c.skip
 	c.skip = skip
 
+	c.pendingLock.Lock()
+	defer c.pendingLock.Unlock()
+
 	tmpPending := c.ClearPending()
 
 	defer func() {
