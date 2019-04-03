@@ -2311,10 +2311,10 @@ func (s *SAccountBpVoteCountWrap) ForEachByOrder(start *uint32, end *uint32, las
 
 ////////////// SECTION List Keys ///////////////
 type SAccountPostCountWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewAccountPostCountWrap(db iservices.IDatabaseService) *SAccountPostCountWrap {
+func NewAccountPostCountWrap(db iservices.IDatabaseRW) *SAccountPostCountWrap {
 	if db == nil {
 		return nil
 	}
@@ -2450,10 +2450,10 @@ func (s *SAccountPostCountWrap) ForEachByOrder(start *uint32, end *uint32, lastM
 
 ////////////// SECTION List Keys ///////////////
 type SAccountCreatedTrxCountWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewAccountCreatedTrxCountWrap(db iservices.IDatabaseService) *SAccountCreatedTrxCountWrap {
+func NewAccountCreatedTrxCountWrap(db iservices.IDatabaseRW) *SAccountCreatedTrxCountWrap {
 	if db == nil {
 		return nil
 	}

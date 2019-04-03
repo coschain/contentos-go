@@ -1451,10 +1451,10 @@ func (s *SExtTrxBlockTimeWrap) ForEachByRevOrder(start *prototype.TimePointSec, 
 
 ////////////// SECTION List Keys ///////////////
 type SExtTrxTrxCreateOrderWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewExtTrxTrxCreateOrderWrap(db iservices.IDatabaseService) *SExtTrxTrxCreateOrderWrap {
+func NewExtTrxTrxCreateOrderWrap(db iservices.IDatabaseRW) *SExtTrxTrxCreateOrderWrap {
 	if db == nil {
 		return nil
 	}
