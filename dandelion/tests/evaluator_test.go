@@ -2,6 +2,7 @@ package tests
 
 import (
 	"fmt"
+	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app/table"
 	dande "github.com/coschain/contentos-go/dandelion"
 	"github.com/coschain/contentos-go/economist"
@@ -177,7 +178,7 @@ func TestConvertVestingEvaluator_DandelionNormal(t *testing.T) {
 	fmt.Println(accWrap.GetHasPowerdown())
 	fmt.Println(accWrap.GetEachPowerdownRate())
 	accWrap.MdNextPowerdownTime(&prototype.TimePointSec{UtcSeconds: 0})
-	e := economist.New(db, &SINGLE_ID)
+	e := economist.New(db, EventBus.New(), &SINGLE_ID)
 	e.PowerDown()
 	fmt.Println(accWrap.GetNextPowerdownTime())
 	fmt.Println(accWrap.GetToPowerdown())

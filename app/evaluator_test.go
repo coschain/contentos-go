@@ -358,6 +358,21 @@ func TestVoteEvaluator_ApplyNormal(t *testing.T) {
 	myassert.Equal(postWrap.GetWeightedVp(), uint64(2000))
 	myassert.Equal(c.GetProps().WeightedVps, uint64(2000))
 
+	iterator := table.NewVotePostIdWrap(ev.ctx.db)
+	start := uuid
+	end := start + 1
+	var voterIds []*prototype.VoterId
+	_ = iterator.ForEachByOrder(&start, &end, nil, nil, func(mVal *prototype.VoterId, sVal *uint64, idx uint32) bool {
+		voterIds = append(voterIds, mVal)
+		return true
+	})
+	totalVp := postWrap.GetWeightedVp()
+	fmt.Println(totalVp)
+	for _, voterId := range voterIds {
+		wrap := table.NewSoVoteWrap(ev.ctx.db, voterId)
+		fmt.Println(wrap.GetWeightedVp())
+	}
+
 }
 
 func TestConvertVestingEvaluator_Apply(t *testing.T) {
