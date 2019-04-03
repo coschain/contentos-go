@@ -120,8 +120,6 @@ type TrxMgr struct {
 	waitingLock 	sync.RWMutex
 	fetched 		map[string]*TrxEntry
 	fetchedLock 	sync.RWMutex
-	byUser			map[string]map[string]bool
-	byUserLock  	sync.RWMutex
 	auth 			*AuthFetcher
 	tapos 			*TaposChecker
 	history 		*InBlockTrxChecker
@@ -137,7 +135,6 @@ func NewTrxMgr(db iservices.IDatabaseRW, lastBlock, commitBlock uint64) *TrxMgr 
 		headTime: (&DynamicGlobalPropsRW{db:db}).GetProps().GetTime().GetUtcSeconds(),
 		waiting:  make(map[string]*TrxEntry),
 		fetched:  make(map[string]*TrxEntry),
-		byUser:   make(map[string]map[string]bool),
 		auth: auth,
 		tapos: tapos,
 		history: history,
@@ -145,19 +142,21 @@ func NewTrxMgr(db iservices.IDatabaseRW, lastBlock, commitBlock uint64) *TrxMgr 
 	}
 }
 
-func (m *TrxMgr) AddTrx(trx *prototype.SignedTransaction, callback TrxCallback) {
+func (m *TrxMgr) AddTrx(trx *prototype.SignedTransaction, callback TrxCallback) error {
 	entry := NewTrxMgrEntry(trx, callback)
 	if trx == nil || trx.Signature == nil {
-		_ = entry.SetError(errors.New("invalid trx"))
+		err := entry.SetError(errors.New("invalid trx"))
 		m.deliverEntry(entry)
-		return
+		return err
 	}
 	if m.isProcessingTrx(trx) {
-		_ = entry.SetError(errors.New("trx already in process"))
+		err := entry.SetError(errors.New("trx already in process"))
 		m.deliverEntry(entry)
-		return
+		return err
 	}
+	c := make(chan error)
 	go func() {
+		ok := false
 		if entry.InitCheck() != nil || !m.checkTrx(entry, atomic.LoadUint32(&m.headTime)) {
 			m.deliverEntry(entry)
 		} else {
@@ -165,9 +164,19 @@ func (m *TrxMgr) AddTrx(trx *prototype.SignedTransaction, callback TrxCallback) 
 			defer m.waitingLock.Unlock()
 			m.fetchedLock.RLock()
 			defer m.fetchedLock.RUnlock()
-			m.addToWaiting(entry)
+			ok = m.addToWaiting(entry) > 0
+		}
+		if !ok {
+			c <- errors.New(entry.result.Receipt.ErrorInfo)
 		}
 	}()
+	return <-c
+}
+
+func (m *TrxMgr) WaitingCount() int {
+	m.waitingLock.RLock()
+	defer m.waitingLock.RUnlock()
+	return len(m.waiting)
 }
 
 func (m *TrxMgr) FetchTrx(blockTime uint32, maxCount, maxSize int) (results []*prototype.EstimateTrxResult) {
@@ -258,7 +267,7 @@ func (m *TrxMgr) BlockReverted(blockNum uint64) {
 	})
 }
 
-func (m *TrxMgr) addToWaiting(entries...*TrxEntry) {
+func (m *TrxMgr) addToWaiting(entries...*TrxEntry) (count int) {
 	for _, e := range entries {
 		if len(m.waiting) > sMaxWaitingCount {
 			_ = e.SetError(errors.New("too many waiting trxs"))
@@ -271,8 +280,9 @@ func (m *TrxMgr) addToWaiting(entries...*TrxEntry) {
 			continue
 		}
 		m.waiting[e.sig] = e
-		m.addTrxByUser(e)
+		count++
 	}
+	return
 }
 
 func (m *TrxMgr) isProcessingTrx(trx *prototype.SignedTransaction) bool {
@@ -295,30 +305,8 @@ func (m *TrxMgr) checkTrx(e *TrxEntry, blockTime uint32) bool {
 		e.CheckInBlockTrxs(m.history) == nil
 }
 
-func (m *TrxMgr) addTrxByUser(e *TrxEntry) {
-	if e != nil && len(e.sig) > 0 && len(e.signer) > 0 {
-		m.byUserLock.Lock()
-		defer m.byUserLock.Unlock()
-		sigs := m.byUser[e.signer]
-		if sigs == nil {
-			sigs = make(map[string]bool)
-			m.byUser[e.signer] = sigs
-		}
-		sigs[e.sig] = true
-	}
-}
-
-func (m *TrxMgr) removeTrxByUser(e *TrxEntry) {
-	if e != nil && len(e.sig) > 0 && len(e.signer) > 0 {
-		m.byUserLock.Lock()
-		defer m.byUserLock.Unlock()
-		delete(m.byUser[e.signer], e.sig)
-	}
-}
-
 func (m *TrxMgr) deliverEntry(e *TrxEntry) {
 	go func() {
-		m.removeTrxByUser(e)
 		e.Deliver()
 	}()
 }
