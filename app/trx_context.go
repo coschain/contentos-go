@@ -15,6 +15,7 @@ type TrxContext struct {
 	Wrapper     *prototype.EstimateTrxResult
 	msg         []string
 	recoverPubs []*prototype.PublicKeyType
+	output *prototype.OperationReceiptWithInfo
 }
 
 func NewTrxContext(wrapper *prototype.EstimateTrxResult, db iservices.IDatabaseRW) *TrxContext {
@@ -61,9 +62,15 @@ func (p *TrxContext) Error(code uint32, msg string) {
 	//p.Wrapper.Receipt.Status = 500
 }
 
+func (p *TrxContext) StartNextOp() {
+
+	p.output = &prototype.OperationReceiptWithInfo{VmConsole: ""}
+
+	p.Wrapper.Receipt.OpResults = append(p.Wrapper.Receipt.OpResults, p.output)
+}
+
 func (p *TrxContext) Log(msg string) {
-	fmt.Print(msg)
-	p.Wrapper.Receipt.OpResults = append(p.Wrapper.Receipt.OpResults, &prototype.OperationReceiptWithInfo{VmConsole: msg})
+	p.output.VmConsole += msg
 }
 
 func (p *TrxContext) RequireAuth(name string) (err error) {
@@ -92,20 +99,23 @@ func (p *TrxContext) DeductGasFee(caller string, spent uint64) {
 
 // vm transfer just modify db data
 func (p *TrxContext) TransferFromContractToUser(contract, owner, to string, amount uint64) {
-	// need authority?
+	// TODO need authority
 	c := table.NewSoContractWrap(p.db, &prototype.ContractId{Owner: &prototype.AccountName{Value: owner}, Cname: contract})
 	balance := c.GetBalance().Value
 	if balance < amount {
 		panic(fmt.Sprintf("Endanger Transfer Operation: %s, %s, %s, %d", contract, owner, to, amount))
 	}
 	acc := table.NewSoAccountWrap(p.db, &prototype.AccountName{Value: to})
-	// need atomic ?
+
 	c.MdBalance(&prototype.Coin{Value: balance - amount})
 	acc.MdBalance(&prototype.Coin{Value: acc.GetBalance().Value + amount})
 	return
 }
 
 func (p *TrxContext) TransferFromUserToContract(from, contract, owner string, amount uint64) {
+
+	p.RequireAuth( from )
+
 	acc := table.NewSoAccountWrap(p.db, &prototype.AccountName{Value: from})
 	balance := acc.GetBalance().Value
 	if balance < amount {
@@ -118,6 +128,9 @@ func (p *TrxContext) TransferFromUserToContract(from, contract, owner string, am
 }
 
 func (p *TrxContext) TransferFromContractToContract(fromContract, fromOwner, toContract, toOwner string, amount uint64) {
+
+	// TODO checkAuth
+
 	from := table.NewSoContractWrap(p.db, &prototype.ContractId{Owner: &prototype.AccountName{Value: fromOwner}, Cname: fromContract})
 	to := table.NewSoContractWrap(p.db, &prototype.ContractId{Owner: &prototype.AccountName{Value: toOwner}, Cname: toContract})
 	fromBalance := from.GetBalance().Value
@@ -144,17 +157,6 @@ func (p *TrxContext) ContractCall(caller, fromOwner, fromContract, fromMethod, t
 	}
 	eval := &InternalContractApplyEvaluator{ ctx: &ApplyContext{ db: p.db, vmInjector: p, control: p }, op: op }
 	eval.Apply()
-}
-
-func obtainKeyMap(ops []*prototype.Operation) map[string]bool {
-	keyMaps := map[string]bool{}
-	for _, op := range ops {
-		baseOp := prototype.GetBaseOperation(op)
-
-		//baseOp.GetAuthorities(&other)
-		baseOp.GetSigner(&keyMaps)
-	}
-	return keyMaps
 }
 
 func verifyAuthority(keyMaps map[string]bool, trxPubs []*prototype.PublicKeyType, max_recursion_depth uint32, owner AuthorityGetter) {

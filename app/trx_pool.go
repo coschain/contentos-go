@@ -477,7 +477,7 @@ func (c *TrxPool) generateBlockNoLock(witness string, pre *prototype.Sha256, tim
 	estTrx := make([]*prototype.EstimateTrxResult, 0, batchCount)
 	estTrxIdx := make([]int, 0, batchCount)
 	ma := NewMultiTrxsApplier(c.db, func(db iservices.IDatabaseRW, trx *prototype.EstimateTrxResult) {
-		c.applyTransactionOnDb(db, trx, false)
+		c.applyTransactionOnDb(db, trx, true)
 	})
 	lastIdx := len(c.pendingTx) - 1
 
@@ -686,6 +686,7 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabaseRW, trxEst *prototy
 	// process operation
 	//c.currentOpInTrx = 0
 	for _, op := range trx.Trx.Operations {
+		trxContext.StartNextOp()
 		c.applyOperation(trxContext, op)
 		//c.currentOpInTrx++
 	}

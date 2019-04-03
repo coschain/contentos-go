@@ -672,6 +672,10 @@ func (ev *ContractApplyEvaluator) Apply() {
 	// need extra query db, is it a good way or should I pass account object as parameter?
 	// deductgasfee and usertranfer could be panic (rarely, I can't image how it happens)
 	// the panic should catch then return or bubble it ?
+
+	// TODO merge, temp fix
+	opAssertE(err, "execute vm error")
+
 	vmCtx.Injector.DeductGasFee(op.Caller.Value, spentGas)
 	if err != nil {
 		vmCtx.Injector.Error(ret, err.Error())
