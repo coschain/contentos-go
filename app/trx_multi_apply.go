@@ -3,18 +3,19 @@ package app
 import (
 	"fmt"
 	"github.com/coschain/contentos-go/iservices"
-	"github.com/coschain/contentos-go/prototype"
 	"sync"
 )
+
+type SingleTrxApplier func(iservices.IDatabaseRW, *TrxEntry)
 
 // MultiTrxsApplier concurrently applies multiple transactions.
 type MultiTrxsApplier struct {
 	db            iservices.IDatabaseService
-	singleApplier func(db iservices.IDatabaseRW, trx *prototype.EstimateTrxResult)
+	singleApplier SingleTrxApplier
 	sched         ITrxScheduler
 }
 
-func NewMultiTrxsApplier(db iservices.IDatabaseService, singleApplier func(iservices.IDatabaseRW, *prototype.EstimateTrxResult)) *MultiTrxsApplier {
+func NewMultiTrxsApplier(db iservices.IDatabaseService, singleApplier SingleTrxApplier) *MultiTrxsApplier {
 	return &MultiTrxsApplier{
 		db: db,
 		singleApplier: singleApplier,
@@ -22,9 +23,9 @@ func NewMultiTrxsApplier(db iservices.IDatabaseService, singleApplier func(iserv
 	}
 }
 
-func (a *MultiTrxsApplier) Apply(trxs []*prototype.EstimateTrxResult) {
+func (a *MultiTrxsApplier) Apply(trxs []*TrxEntry) {
 	// split incoming trxs into independent sub-groups.
-	g := a.sched.ScheduleTrxEstResults(trxs)
+	g := a.sched.ScheduleTrxs(trxs)
 
 	// apply each group concurrently
 	var wg sync.WaitGroup
@@ -39,7 +40,7 @@ func (a *MultiTrxsApplier) Apply(trxs []*prototype.EstimateTrxResult) {
 }
 
 // applyGroup applies transaction of given group one by one.
-func (a *MultiTrxsApplier) applyGroup(group []*prototype.EstimateTrxResult) {
+func (a *MultiTrxsApplier) applyGroup(group []*TrxEntry) {
 	// first, set up a database patch to save all changes
 	groupDb := a.db.NewPatch()
 	for _, trx := range group {
@@ -53,10 +54,10 @@ func (a *MultiTrxsApplier) applyGroup(group []*prototype.EstimateTrxResult) {
 		}
 	}
 	// finally, commit the changes
-	groupDb.Apply()
+	_ = groupDb.Apply()
 }
 
-func (a *MultiTrxsApplier) applySingle(db iservices.IDatabaseRW, trx *prototype.EstimateTrxResult) (err error) {
+func (a *MultiTrxsApplier) applySingle(db iservices.IDatabaseRW, trx *TrxEntry) (err error) {
 	defer func() {
 		// recover from panic and return an error
 		if e := recover(); e != nil {

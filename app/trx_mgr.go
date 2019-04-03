@@ -103,6 +103,19 @@ func (e *TrxEntry) CheckInBlockTrxs(checker *InBlockTrxChecker) error {
 	return nil
 }
 
+func (e *TrxEntry) GetTrxResult() *prototype.EstimateTrxResult {
+	return e.result
+}
+func (e *TrxEntry) GetTrxSize() int {
+	return e.size
+}
+func (e *TrxEntry) GetTrxSigner() string {
+	return e.signer
+}
+func (e *TrxEntry) GetTrxSigningKey() *prototype.PublicKeyType {
+	return e.signerKey
+}
+
 const (
 	sMaxWaitingCount  = constants.TrxMaxExpirationTime * 20000
 )
@@ -157,7 +170,7 @@ func (m *TrxMgr) AddTrx(trx *prototype.SignedTransaction, callback TrxCallback) 
 	c := make(chan error)
 	go func() {
 		ok := false
-		if entry.InitCheck() != nil || !m.checkTrx(entry, atomic.LoadUint32(&m.headTime)) {
+		if entry.InitCheck() != nil || m.checkTrx(entry, atomic.LoadUint32(&m.headTime)) != nil {
 			m.deliverEntry(entry)
 		} else {
 			m.waitingLock.Lock()
@@ -179,7 +192,7 @@ func (m *TrxMgr) WaitingCount() int {
 	return len(m.waiting)
 }
 
-func (m *TrxMgr) FetchTrx(blockTime uint32, maxCount, maxSize int) (results []*prototype.EstimateTrxResult) {
+func (m *TrxMgr) FetchTrx(blockTime uint32, maxCount, maxSize int) (entries []*TrxEntry) {
 	m.waitingLock.Lock()
 	defer m.waitingLock.Unlock()
 
@@ -194,11 +207,11 @@ func (m *TrxMgr) FetchTrx(blockTime uint32, maxCount, maxSize int) (results []*p
 		if maxSize > 0 && size >= maxSize {
 			break
 		}
-		if m.checkTrx(e, blockTime) {
+		if m.checkTrx(e, blockTime) != nil {
 			m.deliverEntry(e)
 			continue
 		}
-		results = append(results, e.result)
+		entries = append(entries, e)
 		m.fetched[s] = e
 		delete(m.waiting, s)
 		counter++
@@ -207,19 +220,19 @@ func (m *TrxMgr) FetchTrx(blockTime uint32, maxCount, maxSize int) (results []*p
 	return
 }
 
-func (m *TrxMgr) ReturnTrx(failed bool, results...*prototype.EstimateTrxResult) {
+func (m *TrxMgr) ReturnTrx(failed bool, entries ...*TrxEntry) {
 	m.fetchedLock.Lock()
 	defer m.fetchedLock.Unlock()
 
 	var waits []*TrxEntry
-	for _, r := range results {
-		s := string(r.SigTrx.Signature.Sig)
-		e := m.fetched[s]
-		if e != nil {
+	for _, e := range entries {
+		s := string(e.result.SigTrx.Signature.Sig)
+		f := m.fetched[s]
+		if f != nil {
 			if failed {
-				m.deliverEntry(e)
+				m.deliverEntry(f)
 			} else {
-				waits = append(waits, e)
+				waits = append(waits, f)
 			}
 			delete(m.fetched, s)
 		}
@@ -229,6 +242,39 @@ func (m *TrxMgr) ReturnTrx(failed bool, results...*prototype.EstimateTrxResult) 
 		defer m.waitingLock.Unlock()
 		m.addToWaiting(waits...)
 	}
+}
+
+func (m *TrxMgr) CheckBlockTrxs(b *prototype.SignedBlock) (entries []*TrxEntry, err error) {
+	if count := len(b.Transactions); count > 0 {
+		blockTime := b.SignedHeader.Header.Timestamp.UtcSeconds
+		errs := make([]error, count)
+		entries = make([]*TrxEntry, count)
+		errIdx := int32(-1)
+		var wg sync.WaitGroup
+		wg.Add(count)
+		for i := 0; i < count; i++ {
+			go func(idx int) {
+				defer wg.Done()
+				var err error
+				e := NewTrxMgrEntry(b.Transactions[idx].SigTrx, nil)
+				if err = e.InitCheck(); err == nil {
+					err = m.checkTrx(e, blockTime)
+				}
+				if err != nil {
+					errs[idx] = err
+					atomic.CompareAndSwapInt32(&errIdx, -1, int32(idx))
+				} else {
+					entries[idx] = e
+				}
+			}(i)
+		}
+		wg.Wait()
+		if errIdx >= 0 {
+			entries = nil
+			err = fmt.Errorf("block %d trxs[%d] check failed: %s", b.SignedHeader.Number(), errIdx, errs[errIdx].Error())
+		}
+	}
+	return
 }
 
 func (m *TrxMgr) BlockApplied(b *prototype.SignedBlock) {
@@ -298,11 +344,17 @@ func (m *TrxMgr) isProcessingNoLock(trx *prototype.SignedTransaction) bool {
 	return m.waiting[s] != nil || m.fetched[s] != nil
 }
 
-func (m *TrxMgr) checkTrx(e *TrxEntry, blockTime uint32) bool {
-	return e.CheckExpiration(blockTime) == nil &&
-		e.CheckTapos(m.tapos) == nil &&
-		e.CheckSignerKey(m.auth) == nil &&
-		e.CheckInBlockTrxs(m.history) == nil
+func (m *TrxMgr) checkTrx(e *TrxEntry, blockTime uint32) (err error) {
+	if err = e.CheckExpiration(blockTime); err != nil {
+		return err
+	} else if err = e.CheckTapos(m.tapos); err != nil {
+		return err
+	} else if err = e.CheckSignerKey(m.auth); err != nil {
+		return err
+	} else if err = e.CheckInBlockTrxs(m.history); err != nil {
+		return err
+	}
+	return
 }
 
 func (m *TrxMgr) deliverEntry(e *TrxEntry) {

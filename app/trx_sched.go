@@ -7,56 +7,31 @@ import "github.com/coschain/contentos-go/prototype"
 // Sub-groups are safe for concurrent application while transactions of the same sub-group
 // are dependent and must be applied in order.
 type ITrxScheduler interface {
-	ScheduleTrxWrappers(trxs []*prototype.TransactionWrapper) [][]*prototype.TransactionWrapper
-	ScheduleTrxEstResults(trxs []*prototype.EstimateTrxResult) [][]*prototype.EstimateTrxResult
+	ScheduleTrxs(trxs []*TrxEntry) [][]*TrxEntry
 }
 
 // DefaultTrxScheduler schedules nothing.
 // It just outputs a single sub-group with all incoming transactions.
 type DefaultTrxScheduler struct{}
 
-func (s DefaultTrxScheduler) ScheduleTrxWrappers(trxs []*prototype.TransactionWrapper) [][]*prototype.TransactionWrapper {
-	return [][]*prototype.TransactionWrapper{ trxs }
+func (s DefaultTrxScheduler) ScheduleTrxs(trxs []*TrxEntry) [][]*TrxEntry {
+	return [][]*TrxEntry{ trxs }
 }
-
-func (s DefaultTrxScheduler) ScheduleTrxEstResults(trxs []*prototype.EstimateTrxResult) [][]*prototype.EstimateTrxResult {
-	return [][]*prototype.EstimateTrxResult{ trxs }
-}
-
 
 // PropBasedTrxScheduler split sub-groups based on affected properties of each transaction.
 type PropBasedTrxScheduler struct{}
 
-func (s PropBasedTrxScheduler) ScheduleTrxWrappers(trxs []*prototype.TransactionWrapper) [][]*prototype.TransactionWrapper {
+func (s PropBasedTrxScheduler) ScheduleTrxs(trxs []*TrxEntry) [][]*TrxEntry {
 	groups := s.schedule(len(trxs), func(idx int) *prototype.SignedTransaction {
-		return trxs[idx].SigTrx
+		return trxs[idx].result.SigTrx
 	})
 	if len(groups) <= 1 {
-		return [][]*prototype.TransactionWrapper{trxs}
+		return [][]*TrxEntry{trxs}
 	}
-	g := make([][]*prototype.TransactionWrapper, len(groups))
+	g := make([][]*TrxEntry, len(groups))
 	for i := range g {
 		a := groups[i]
-		b := make([]*prototype.TransactionWrapper, len(a))
-		for j, k := range a {
-			b[j] = trxs[k]
-		}
-		g[i] = b
-	}
-	return g
-}
-
-func (s PropBasedTrxScheduler) ScheduleTrxEstResults(trxs []*prototype.EstimateTrxResult) [][]*prototype.EstimateTrxResult {
-	groups := s.schedule(len(trxs), func(idx int) *prototype.SignedTransaction {
-		return trxs[idx].SigTrx
-	})
-	if len(groups) <= 1 {
-		return [][]*prototype.EstimateTrxResult{trxs}
-	}
-	g := make([][]*prototype.EstimateTrxResult, len(groups))
-	for i := range g {
-		a := groups[i]
-		b := make([]*prototype.EstimateTrxResult, len(a))
+		b := make([]*TrxEntry, len(a))
 		for j, k := range a {
 			b[j] = trxs[k]
 		}

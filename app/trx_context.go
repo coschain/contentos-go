@@ -24,6 +24,14 @@ func NewTrxContext(wrapper *prototype.EstimateTrxResult, db iservices.IDatabaseR
 	}
 }
 
+func NewTrxContextWithSigningKey(wrapper *prototype.EstimateTrxResult, db iservices.IDatabaseRW, key *prototype.PublicKeyType) *TrxContext {
+	return &TrxContext{
+		DynamicGlobalPropsRW: DynamicGlobalPropsRW{ db:db },
+		Wrapper: wrapper,
+		recoverPubs: []*prototype.PublicKeyType{ key },
+	}
+}
+
 func (p *TrxContext) InitSigState(cid prototype.ChainId) error {
 	pub, err := p.Wrapper.SigTrx.ExportPubKeys(cid)
 	if err != nil {
