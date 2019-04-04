@@ -24,10 +24,12 @@ var (
 	PostCategoryCell      uint32 = 2849013589
 	PostChildrenCell      uint32 = 3908796047
 	PostCreatedCell       uint32 = 4199172684
+	PostDappRewardsCell   uint32 = 3278808896
 	PostDepthCell         uint32 = 4080627723
 	PostLastPayoutCell    uint32 = 3845986349
 	PostParentIdCell      uint32 = 1393772380
 	PostPostIdCell        uint32 = 22700035
+	PostRewardsCell       uint32 = 2822376492
 	PostRootIdCell        uint32 = 784045146
 	PostTagsCell          uint32 = 828203383
 	PostTitleCell         uint32 = 3943450465
@@ -335,6 +337,9 @@ func (s *SoPostWrap) getMemKeyPrefix(fName string) uint32 {
 	if fName == "Created" {
 		return PostCreatedCell
 	}
+	if fName == "DappRewards" {
+		return PostDappRewardsCell
+	}
 	if fName == "Depth" {
 		return PostDepthCell
 	}
@@ -346,6 +351,9 @@ func (s *SoPostWrap) getMemKeyPrefix(fName string) uint32 {
 	}
 	if fName == "PostId" {
 		return PostPostIdCell
+	}
+	if fName == "Rewards" {
+		return PostRewardsCell
 	}
 	if fName == "RootId" {
 		return PostRootIdCell
@@ -444,6 +452,13 @@ func (s *SoPostWrap) saveAllMemKeys(tInfo *SoPost, br bool) error {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Created", err)
 		}
 	}
+	if err = s.saveMemKeyDappRewards(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "DappRewards", err)
+		}
+	}
 	if err = s.saveMemKeyDepth(tInfo); err != nil {
 		if br {
 			return err
@@ -470,6 +485,13 @@ func (s *SoPostWrap) saveAllMemKeys(tInfo *SoPost, br bool) error {
 			return err
 		} else {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "PostId", err)
+		}
+	}
+	if err = s.saveMemKeyRewards(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Rewards", err)
 		}
 	}
 	if err = s.saveMemKeyRootId(tInfo); err != nil {
@@ -1141,6 +1163,88 @@ func (s *SoPostWrap) MdCreated(p *prototype.TimePointSec) bool {
 	return true
 }
 
+func (s *SoPostWrap) saveMemKeyDappRewards(tInfo *SoPost) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemPostByDappRewards{}
+	val.DappRewards = tInfo.DappRewards
+	key, err := s.encodeMemKey("DappRewards")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
+
+func (s *SoPostWrap) GetDappRewards() *prototype.Vest {
+	res := true
+	msg := &SoMemPostByDappRewards{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("DappRewards")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.DappRewards
+			}
+		}
+	}
+	if !res {
+		return nil
+
+	}
+	return msg.DappRewards
+}
+
+func (s *SoPostWrap) MdDappRewards(p *prototype.Vest) bool {
+	if s.dba == nil {
+		return false
+	}
+	key, err := s.encodeMemKey("DappRewards")
+	if err != nil {
+		return false
+	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemPostByDappRewards{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoPost{}
+	sa.PostId = *s.mainKey
+	sa.DappRewards = ori.DappRewards
+
+	ori.DappRewards = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
+		return false
+	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.DappRewards = p
+
+	return true
+}
+
 func (s *SoPostWrap) saveMemKeyDepth(tInfo *SoPost) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
@@ -1435,6 +1539,88 @@ func (s *SoPostWrap) GetPostId() uint64 {
 		return tmpValue
 	}
 	return msg.PostId
+}
+
+func (s *SoPostWrap) saveMemKeyRewards(tInfo *SoPost) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemPostByRewards{}
+	val.Rewards = tInfo.Rewards
+	key, err := s.encodeMemKey("Rewards")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
+
+func (s *SoPostWrap) GetRewards() *prototype.Vest {
+	res := true
+	msg := &SoMemPostByRewards{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("Rewards")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.Rewards
+			}
+		}
+	}
+	if !res {
+		return nil
+
+	}
+	return msg.Rewards
+}
+
+func (s *SoPostWrap) MdRewards(p *prototype.Vest) bool {
+	if s.dba == nil {
+		return false
+	}
+	key, err := s.encodeMemKey("Rewards")
+	if err != nil {
+		return false
+	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemPostByRewards{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoPost{}
+	sa.PostId = *s.mainKey
+	sa.Rewards = ori.Rewards
+
+	ori.Rewards = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
+		return false
+	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.Rewards = p
+
+	return true
 }
 
 func (s *SoPostWrap) saveMemKeyRootId(tInfo *SoPost) error {

@@ -288,6 +288,8 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap) {
 		}
 		e.noticer.Publish(constants.NoticeCashout, author, reward, globalProps.GetHeadBlockNumber())
 		post.MdCashoutTime(&prototype.TimePointSec{UtcSeconds: math.MaxUint32})
+		post.MdRewards(&prototype.Vest{Value: reward})
+		post.MdDappRewards(&prototype.Vest{Value: beneficiaryReward})
 	}
 	e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
 		props.PostRewards.Value -= spentPostReward
@@ -360,6 +362,8 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap) {
 		}
 		e.noticer.Publish(constants.NoticeCashout, author, reward, globalProps.GetHeadBlockNumber())
 		reply.MdCashoutTime(&prototype.TimePointSec{UtcSeconds: math.MaxUint32})
+		reply.MdRewards(&prototype.Vest{Value: reward})
+		reply.MdDappRewards(&prototype.Vest{Value: beneficiaryReward})
 	}
 	e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
 		props.ReplyRewards.Value -= spentReplyReward

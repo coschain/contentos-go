@@ -210,6 +210,8 @@ func (ev *PostEvaluator) Apply() {
 		t.Beneficiaries = op.Beneficiaries
 		t.WeightedVp = 0
 		t.VoteCnt = 0
+		t.Rewards = &prototype.Vest{Value: 0}
+		t.DappRewards = &prototype.Vest{Value: 0}
 	}), "create post error")
 
 	authorWrap.MdLastPostTime(ev.ctx.control.HeadBlockTime())

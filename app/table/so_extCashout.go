@@ -23,14 +23,14 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoExtCashoutWrap struct {
-	dba      iservices.IDatabaseService
+	dba      iservices.IDatabaseRW
 	mainKey  *prototype.RewardCashoutId
 	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
 	mKeyBuf  []byte //the buffer after the main key is encoded with prefix
 	mBuf     []byte //the value after the main key is encoded
 }
 
-func NewSoExtCashoutWrap(dba iservices.IDatabaseService, key *prototype.RewardCashoutId) *SoExtCashoutWrap {
+func NewSoExtCashoutWrap(dba iservices.IDatabaseRW, key *prototype.RewardCashoutId) *SoExtCashoutWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
@@ -575,10 +575,10 @@ func (s *SoExtCashoutWrap) MdReward(p *prototype.Vest) bool {
 
 ////////////// SECTION List Keys ///////////////
 type SExtCashoutBlockHeightWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewExtCashoutBlockHeightWrap(db iservices.IDatabaseService) *SExtCashoutBlockHeightWrap {
+func NewExtCashoutBlockHeightWrap(db iservices.IDatabaseRW) *SExtCashoutBlockHeightWrap {
 	if db == nil {
 		return nil
 	}
@@ -955,10 +955,10 @@ func (s *SoExtCashoutWrap) insertUniKeyId(sa *SoExtCashout) bool {
 }
 
 type UniExtCashoutIdWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewUniExtCashoutIdWrap(db iservices.IDatabaseService) *UniExtCashoutIdWrap {
+func NewUniExtCashoutIdWrap(db iservices.IDatabaseRW) *UniExtCashoutIdWrap {
 	if db == nil {
 		return nil
 	}

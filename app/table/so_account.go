@@ -3037,10 +3037,10 @@ func (s *SAccountCreatedTrxCountWrap) ForEachByOrder(start *uint32, end *uint32,
 
 ////////////// SECTION List Keys ///////////////
 type SAccountNextPowerdownTimeWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewAccountNextPowerdownTimeWrap(db iservices.IDatabaseService) *SAccountNextPowerdownTimeWrap {
+func NewAccountNextPowerdownTimeWrap(db iservices.IDatabaseRW) *SAccountNextPowerdownTimeWrap {
 	if db == nil {
 		return nil
 	}
