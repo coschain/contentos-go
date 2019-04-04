@@ -76,11 +76,11 @@ type TransferToVestingEvaluator struct {
 	op  *prototype.TransferToVestingOperation
 }
 
-type ClaimEvaluator struct {
-	BaseEvaluator
-	ctx *ApplyContext
-	op  *prototype.ClaimOperation
-}
+//type ClaimEvaluator struct {
+//	BaseEvaluator
+//	ctx *ApplyContext
+//	op  *prototype.ClaimOperation
+//}
 
 type ReportEvaluator struct {
 	BaseEvaluator
@@ -95,11 +95,11 @@ type ConvertVestingEvaluator struct {
 }
 
 // I can cat out this awkward claimall operation until I can get value from rpc resp
-type ClaimAllEvaluator struct {
-	BaseEvaluator
-	ctx *ApplyContext
-	op  *prototype.ClaimAllOperation
-}
+//type ClaimAllEvaluator struct {
+//	BaseEvaluator
+//	ctx *ApplyContext
+//	op  *prototype.ClaimAllOperation
+//}
 
 type ContractDeployEvaluator struct {
 	BaseEvaluator
@@ -455,44 +455,44 @@ func (ev *ConvertVestingEvaluator) Apply() {
 	accWrap.MdToPowerdown(op.Amount)
 }
 
-func (ev *ClaimEvaluator) Apply() {
-	op := ev.op
-
-	account := op.Account
-	accWrap := table.NewSoAccountWrap(ev.ctx.db, account)
-
-	opAssert(accWrap.CheckExist(), "claim account do not exist")
-
-	var i int32 = 1
-	keeperWrap := table.NewSoRewardsKeeperWrap(ev.ctx.db, &i)
-	opAssert(keeperWrap.CheckExist(), "reward keeper do not exist")
-
-	keeper := keeperWrap.GetKeeper()
-	innerRewards := keeper.Rewards
-
-	amount := op.Amount
-
-	if val, ok := innerRewards[account.Value]; ok {
-		rewardBalance := val.Value
-		var reward uint64
-		if rewardBalance >= amount && rewardBalance-amount <= rewardBalance {
-			reward = amount
-		} else {
-			reward = rewardBalance
-		}
-		if reward > 0 {
-			vestingBalance := accWrap.GetVestingShares()
-			accWrap.MdVestingShares(&prototype.Vest{Value: vestingBalance.Value + reward})
-			val.Value -= reward
-			keeperWrap.MdKeeper(keeper)
-		} else {
-			// do nothing
-		}
-	} else {
-		opAssert(ok, "No remains reward on chain")
-	}
-
-}
+//func (ev *ClaimEvaluator) Apply() {
+//	op := ev.op
+//
+//	account := op.Account
+//	accWrap := table.NewSoAccountWrap(ev.ctx.db, account)
+//
+//	opAssert(accWrap.CheckExist(), "claim account do not exist")
+//
+//	var i int32 = 1
+//	keeperWrap := table.NewSoRewardsKeeperWrap(ev.ctx.db, &i)
+//	opAssert(keeperWrap.CheckExist(), "reward keeper do not exist")
+//
+//	keeper := keeperWrap.GetKeeper()
+//	innerRewards := keeper.Rewards
+//
+//	amount := op.Amount
+//
+//	if val, ok := innerRewards[account.Value]; ok {
+//		rewardBalance := val.Value
+//		var reward uint64
+//		if rewardBalance >= amount && rewardBalance-amount <= rewardBalance {
+//			reward = amount
+//		} else {
+//			reward = rewardBalance
+//		}
+//		if reward > 0 {
+//			vestingBalance := accWrap.GetVestingShares()
+//			accWrap.MdVestingShares(&prototype.Vest{Value: vestingBalance.Value + reward})
+//			val.Value -= reward
+//			keeperWrap.MdKeeper(keeper)
+//		} else {
+//			// do nothing
+//		}
+//	} else {
+//		opAssert(ok, "No remains reward on chain")
+//	}
+//
+//}
 
 type byTag []int32
 
@@ -582,37 +582,37 @@ func (ev *ReportEvaluator) Apply() {
 		})
 	}
 }
-
-func (ev *ClaimAllEvaluator) Apply() {
-	op := ev.op
-
-	account := op.Account
-	accWrap := table.NewSoAccountWrap(ev.ctx.db, account)
-
-	opAssert(accWrap.CheckExist(), "claim account do not exist")
-
-	var i int32 = 1
-	keeperWrap := table.NewSoRewardsKeeperWrap(ev.ctx.db, &i)
-	opAssert(keeperWrap.CheckExist(), "reward keeper do not exist")
-
-	keeper := keeperWrap.GetKeeper()
-	innerRewards := keeper.Rewards
-
-	if val, ok := innerRewards[account.Value]; ok {
-		reward := val.Value
-		if reward > 0 {
-			vestingBalance := accWrap.GetVestingShares()
-			accWrap.MdVestingShares(&prototype.Vest{Value: vestingBalance.Value + reward})
-			val.Value -= reward
-			keeperWrap.MdKeeper(keeper)
-		} else {
-			// do nothing
-		}
-	} else {
-		opAssert(ok, "No remains reward on chain")
-	}
-
-}
+//
+//func (ev *ClaimAllEvaluator) Apply() {
+//	op := ev.op
+//
+//	account := op.Account
+//	accWrap := table.NewSoAccountWrap(ev.ctx.db, account)
+//
+//	opAssert(accWrap.CheckExist(), "claim account do not exist")
+//
+//	var i int32 = 1
+//	keeperWrap := table.NewSoRewardsKeeperWrap(ev.ctx.db, &i)
+//	opAssert(keeperWrap.CheckExist(), "reward keeper do not exist")
+//
+//	keeper := keeperWrap.GetKeeper()
+//	innerRewards := keeper.Rewards
+//
+//	if val, ok := innerRewards[account.Value]; ok {
+//		reward := val.Value
+//		if reward > 0 {
+//			vestingBalance := accWrap.GetVestingShares()
+//			accWrap.MdVestingShares(&prototype.Vest{Value: vestingBalance.Value + reward})
+//			val.Value -= reward
+//			keeperWrap.MdKeeper(keeper)
+//		} else {
+//			// do nothing
+//		}
+//	} else {
+//		opAssert(ok, "No remains reward on chain")
+//	}
+//
+//}
 
 func (ev *ContractDeployEvaluator) Apply() {
 	op := ev.op

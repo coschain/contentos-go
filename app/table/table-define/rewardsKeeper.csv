@@ -1,3 +1,0 @@
-type                        ,pName,mKey,unique,sort,reverseSort,importPath
-int32                       ,id   ,1   ,0     ,0   ,0          ,
-prototype.internal_rewards_keeper,keeper,0   ,0     ,0   ,0          ,prototype/type.proto

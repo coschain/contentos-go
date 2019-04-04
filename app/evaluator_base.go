@@ -66,12 +66,12 @@ func GetBaseEvaluator(ctx *ApplyContext, op *prototype.Operation) BaseEvaluator 
 	case *prototype.Operation_Op10:
 		eva := &TransferToVestingEvaluator{ctx: ctx, op: op.GetOp10()}
 		return BaseEvaluator(eva)
-	case *prototype.Operation_Op11:
-		eva := &ClaimEvaluator{ctx: ctx, op: op.GetOp11()}
-		return BaseEvaluator(eva)
-	case *prototype.Operation_Op12:
-		eva := &ClaimAllEvaluator{ctx: ctx, op: op.GetOp12()}
-		return BaseEvaluator(eva)
+	//case *prototype.Operation_Op11:
+	//	eva := &ClaimEvaluator{ctx: ctx, op: op.GetOp11()}
+	//	return BaseEvaluator(eva)
+	//case *prototype.Operation_Op12:
+	//	eva := &ClaimAllEvaluator{ctx: ctx, op: op.GetOp12()}
+	//	return BaseEvaluator(eva)
 	case *prototype.Operation_Op13:
 		eva := &ContractDeployEvaluator{ctx: ctx, op: op.GetOp13()}
 		return BaseEvaluator(eva)
