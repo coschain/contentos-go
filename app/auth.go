@@ -7,7 +7,10 @@ import (
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
+	"github.com/sirupsen/logrus"
+	"math/big"
 	"sync"
+	"sync/atomic"
 )
 
 const (
@@ -20,11 +23,14 @@ type AuthFetcher struct {
 	changes map[uint64][]string
 	last, commit uint64
 	lock sync.RWMutex
+	log *logrus.Logger
+	totalQueries, totalHit int64
 }
 
-func NewAuthFetcher(db iservices.IDatabaseRW, headBlockNum, lastCommitBlockNum uint64) *AuthFetcher {
+func NewAuthFetcher(db iservices.IDatabaseRW, logger *logrus.Logger, headBlockNum, lastCommitBlockNum uint64) *AuthFetcher {
 	return &AuthFetcher{
 		db: db,
+		log: logger,
 		cache: freecache.NewCache(sAuthCacheMaxSize),
 		changes: make(map[uint64][]string),
 		last: headBlockNum,
@@ -36,6 +42,7 @@ func (f *AuthFetcher) GetPublicKey(account string) (*prototype.PublicKeyType, er
 	f.lock.RLock()
 	defer f.lock.RUnlock()
 
+	atomic.AddInt64(&f.totalQueries, 1)
 	data, err := f.cache.Get([]byte(account))
 	if err != nil {
 		auth := table.NewUniAccountAuthorityObjectAccountWrap(f.db).UniQueryAccount(prototype.NewAccountName(account))
@@ -46,7 +53,20 @@ func (f *AuthFetcher) GetPublicKey(account string) (*prototype.PublicKeyType, er
 		_ = f.cache.Set([]byte(account), key.Data, 0)
 		return key, nil
 	}
+	atomic.AddInt64(&f.totalHit, 1)
 	return &prototype.PublicKeyType{ Data: data }, nil
+}
+
+func (f *AuthFetcher) HitRate() (rate float64) {
+	a, b := atomic.LoadInt64(&f.totalHit), atomic.LoadInt64(&f.totalQueries)
+	if a > 0 && b > 0 && a <= b {
+		rate, _ = big.NewRat(a, b).Float64()
+	}
+	return
+}
+
+func (f *AuthFetcher) CacheCount() int64 {
+	return f.cache.EntryCount()
 }
 
 func (f *AuthFetcher) CheckPublicKey(account string, key *prototype.PublicKeyType) error {

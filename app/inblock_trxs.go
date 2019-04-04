@@ -6,6 +6,7 @@ import (
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
+	"github.com/sirupsen/logrus"
 	"sync"
 )
 
@@ -36,11 +37,13 @@ type InBlockTrxChecker struct {
 	trxs map[uint64]*InBlockTrxEntry
 	last uint64
 	lock sync.RWMutex
+	log *logrus.Logger
 }
 
-func NewInBlockTrxChecker(db iservices.IDatabaseRW, last uint64) *InBlockTrxChecker {
+func NewInBlockTrxChecker(db iservices.IDatabaseRW, logger *logrus.Logger, last uint64) *InBlockTrxChecker {
 	c := &InBlockTrxChecker{
 		db: db,
+		log: logger,
 		trxs: make(map[uint64]*InBlockTrxEntry),
 		last: last,
 	}

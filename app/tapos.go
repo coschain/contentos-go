@@ -6,6 +6,7 @@ import (
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
+	"github.com/sirupsen/logrus"
 	"sync"
 )
 
@@ -14,11 +15,13 @@ type TaposChecker struct {
 	blockIds [common.TaposMaxBlockCount][]byte
 	lastBlock uint64
 	lock sync.RWMutex
+	log *logrus.Logger
 }
 
-func NewTaposChecker(db iservices.IDatabaseRW, lastBlock uint64) *TaposChecker {
+func NewTaposChecker(db iservices.IDatabaseRW, logger *logrus.Logger, lastBlock uint64) *TaposChecker {
 	c := &TaposChecker{
 		db: db,
+		log: logger,
 		lastBlock: lastBlock,
 	}
 	_ = c.loadAllBlockIds()
@@ -26,6 +29,7 @@ func NewTaposChecker(db iservices.IDatabaseRW, lastBlock uint64) *TaposChecker {
 }
 
 func (c *TaposChecker) loadBlockId(fromBlockNum, toBlockNum uint64) error {
+	c.log.Debugf("TAPOS: load block refs [%d, %d]", common.TaposRefBlockNum(fromBlockNum), common.TaposRefBlockNum(toBlockNum))
 	for i := fromBlockNum; i <= toBlockNum; i++ {
 		n := common.TaposRefBlockNum(i)
 		if b := table.NewUniBlockSummaryObjectIdWrap(c.db).UniQueryId(&n); b == nil {

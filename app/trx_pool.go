@@ -103,7 +103,7 @@ func (c *TrxPool) Open() {
 	}
 	commit, _ := c.iceberg.LastFinalizedBlock()
 	latest, _, _ := c.iceberg.LatestBlock()
-	c.tm = NewTrxMgr(c.db, latest, commit)
+	c.tm = NewTrxMgr(c.db, c.log, latest, commit)
 }
 
 func (c *TrxPool) Stop() error {

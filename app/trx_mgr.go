@@ -7,8 +7,10 @@ import (
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/gogo/protobuf/proto"
+	"github.com/sirupsen/logrus"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 type TrxCallback func(result *prototype.EstimateTrxResult)
@@ -128,6 +130,7 @@ type ITrxMgrPlugin interface {
 
 type TrxMgr struct {
 	db 				iservices.IDatabaseRW
+	log             *logrus.Logger
 	headTime		uint32
 	waiting 		map[string]*TrxEntry
 	waitingLock 	sync.RWMutex
@@ -139,12 +142,13 @@ type TrxMgr struct {
 	plugins         []ITrxMgrPlugin
 }
 
-func NewTrxMgr(db iservices.IDatabaseRW, lastBlock, commitBlock uint64) *TrxMgr {
-	auth := NewAuthFetcher(db, lastBlock, commitBlock)
-	tapos := NewTaposChecker(db, lastBlock)
-	history := NewInBlockTrxChecker(db, lastBlock)
+func NewTrxMgr(db iservices.IDatabaseRW, logger *logrus.Logger, lastBlock, commitBlock uint64) *TrxMgr {
+	auth := NewAuthFetcher(db, logger, lastBlock, commitBlock)
+	tapos := NewTaposChecker(db, logger, lastBlock)
+	history := NewInBlockTrxChecker(db, logger, lastBlock)
 	return &TrxMgr{
 		db:       db,
+		log:      logger,
 		headTime: (&DynamicGlobalPropsRW{db:db}).GetProps().GetTime().GetUtcSeconds(),
 		waiting:  make(map[string]*TrxEntry),
 		fetched:  make(map[string]*TrxEntry),
@@ -156,6 +160,7 @@ func NewTrxMgr(db iservices.IDatabaseRW, lastBlock, commitBlock uint64) *TrxMgr 
 }
 
 func (m *TrxMgr) AddTrx(trx *prototype.SignedTransaction, callback TrxCallback) error {
+	t0 := time.Now()
 	entry := NewTrxMgrEntry(trx, callback)
 	if trx == nil || trx.Signature == nil {
 		err := entry.SetError(errors.New("invalid trx"))
@@ -168,11 +173,16 @@ func (m *TrxMgr) AddTrx(trx *prototype.SignedTransaction, callback TrxCallback) 
 		return err
 	}
 	c := make(chan error)
+	t1 := time.Now()
+	checkTime := int64(0)
 	go func() {
+		t00 := time.Now()
 		ok := false
 		if entry.InitCheck() != nil || m.checkTrx(entry, atomic.LoadUint32(&m.headTime)) != nil {
+			checkTime += int64(time.Now().Sub(t00))
 			m.deliverEntry(entry)
 		} else {
+			checkTime += int64(time.Now().Sub(t00))
 			m.waitingLock.Lock()
 			m.fetchedLock.RLock()
 
@@ -187,7 +197,12 @@ func (m *TrxMgr) AddTrx(trx *prototype.SignedTransaction, callback TrxCallback) 
 			c <- nil
 		}
 	}()
-	return <-c
+	err := <-c
+	t2 := time.Now()
+	m.log.Debugf("TRXMGR AddTrx: %v|%v|%v(%v), err=%v",
+		t2.Sub(t0), t1.Sub(t0), t2.Sub(t1), time.Duration(checkTime),
+		err)
+	return err
 }
 
 func (m *TrxMgr) WaitingCount() int {
@@ -197,12 +212,15 @@ func (m *TrxMgr) WaitingCount() int {
 }
 
 func (m *TrxMgr) FetchTrx(blockTime uint32, maxCount, maxSize int) (entries []*TrxEntry) {
+	m.log.Debugf("TRXMGR: FetchTrx begin: maxCount=%d, maxSize=%d", maxCount, maxSize)
+	t0 := time.Now()
 	m.waitingLock.Lock()
 	defer m.waitingLock.Unlock()
 
 	m.fetchedLock.Lock()
 	defer m.fetchedLock.Unlock()
 
+	t1 := time.Now()
 	counter, size := 0, 0
 	for s, e := range m.waiting {
 		if maxCount > 0 && counter >= maxCount {
@@ -221,11 +239,17 @@ func (m *TrxMgr) FetchTrx(blockTime uint32, maxCount, maxSize int) (entries []*T
 		counter++
 		size += e.size
 	}
+	t2 := time.Now()
+	m.log.Debugf("TRXMGR: FetchTrx end: maxCount=%d, maxSize=%d, count=%d, size=%d, %v|%v|%v",
+		maxCount, maxSize, counter, size,
+		t2.Sub(t0), t1.Sub(t0), t2.Sub(t1))
 	return
 }
 
 func (m *TrxMgr) ReturnTrx(failed bool, entries ...*TrxEntry) {
+	m.log.Debug("TRXMGR: ReturnTrx begin")
 	dispatch := m.deliverEntry
+	t0 := time.Now()
 	if !failed {
 		m.waitingLock.Lock()
 		defer m.waitingLock.Unlock()
@@ -236,6 +260,7 @@ func (m *TrxMgr) ReturnTrx(failed bool, entries ...*TrxEntry) {
 	m.fetchedLock.Lock()
 	defer m.fetchedLock.Unlock()
 
+	t1 := time.Now()
 	for _, e := range entries {
 		s := string(e.result.SigTrx.Signature.Sig)
 		f := m.fetched[s]
@@ -244,9 +269,13 @@ func (m *TrxMgr) ReturnTrx(failed bool, entries ...*TrxEntry) {
 			delete(m.fetched, s)
 		}
 	}
+	t2 := time.Now()
+	m.log.Debug("TRXMGR: ReturnTrx end: #tx=%d, %v|%v|%v", len(entries), t2.Sub(t0), t1.Sub(t0), t2.Sub(t1))
 }
 
 func (m *TrxMgr) CheckBlockTrxs(b *prototype.SignedBlock) (entries []*TrxEntry, err error) {
+	m.log.Debugf("TRXMGR: CheckBlockTrxs begin %d", b.SignedHeader.Number())
+	t0 := time.Now()
 	if count := len(b.Transactions); count > 0 {
 		blockTime := b.SignedHeader.Header.Timestamp.UtcSeconds
 		errs := make([]error, count)
@@ -276,14 +305,19 @@ func (m *TrxMgr) CheckBlockTrxs(b *prototype.SignedBlock) (entries []*TrxEntry, 
 			err = fmt.Errorf("block %d trxs[%d] check failed: %s", b.SignedHeader.Number(), errIdx, errs[errIdx].Error())
 		}
 	}
+	t1 := time.Now()
+	m.log.Debugf("TRXMGR: CheckBlockTrxs end %d: #tx=%d, %v", b.SignedHeader.Number(), len(b.Transactions), t1.Sub(t0))
 	return
 }
 
 func (m *TrxMgr) BlockApplied(b *prototype.SignedBlock) {
+	m.log.Debugf("TRXMGR: BlockApplied begin %d", b.SignedHeader.Number())
+	t0 := time.Now()
 	atomic.StoreUint32(&m.headTime, b.SignedHeader.Header.Timestamp.UtcSeconds)
 
 	m.waitingLock.Lock()
 	m.fetchedLock.Lock()
+	t1 := time.Now()
 	for _, txw := range b.Transactions {
 		s := string(txw.SigTrx.Signature.Sig)
 		if e := m.fetched[s]; e != nil {
@@ -295,24 +329,36 @@ func (m *TrxMgr) BlockApplied(b *prototype.SignedBlock) {
 			delete(m.waiting, s)
 		}
 	}
+	t2 := time.Now()
 	m.fetchedLock.Unlock()
 	m.waitingLock.Unlock()
 
 	m.callPlugins(func(plugin ITrxMgrPlugin) {
 		plugin.BlockApplied(b)
 	})
+	t3 := time.Now()
+	m.log.Debugf("TRXMGR: BlockApplied end %d: #tx=%d, %v|%v|%v|%v", b.SignedHeader.Number(), len(b.Transactions), t3.Sub(t0), t1.Sub(t0), t2.Sub(t1), t3.Sub(t2))
+	m.log.Debugf("TRXMGR: auth-hit=%v", m.auth.HitRate())
 }
 
 func (m *TrxMgr) BlockCommitted(blockNum uint64) {
+	m.log.Debugf("TRXMGR: BlockCommitted begin %d", blockNum)
+	t0 := time.Now()
 	m.callPlugins(func(plugin ITrxMgrPlugin) {
 		plugin.BlockCommitted(blockNum)
 	})
+	t1 := time.Now()
+	m.log.Debugf("TRXMGR: BlockCommitted end %d: %v", blockNum, t1.Sub(t0))
 }
 
 func (m *TrxMgr) BlockReverted(blockNum uint64) {
+	m.log.Debugf("TRXMGR: BlockReverted begin %d", blockNum)
+	t0 := time.Now()
 	m.callPlugins(func(plugin ITrxMgrPlugin) {
 		plugin.BlockReverted(blockNum)
 	})
+	t1 := time.Now()
+	m.log.Debugf("TRXMGR: BlockReverted end %d: %v", blockNum, t1.Sub(t0))
 }
 
 func (m *TrxMgr) addToWaiting(entries...*TrxEntry) (count int) {
