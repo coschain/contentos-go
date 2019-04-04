@@ -218,15 +218,16 @@ func (m *TrxMgr) FetchTrx(blockTime uint32, maxCount, maxSize int) (entries []*T
 		if maxSize > 0 && size >= maxSize {
 			break
 		}
-		if m.checkTrx(e, blockTime) != nil {
+		if err := m.checkTrx(e, blockTime); err != nil {
+			m.log.Debugf("TRXMGR: FetchTrx check failed: %v, sig=%x", err, []byte(e.sig))
 			m.deliverEntry(e)
-			continue
+		} else {
+			entries = append(entries, e)
+			m.fetched[s] = e
+			counter++
+			size += e.size
 		}
-		entries = append(entries, e)
-		m.fetched[s] = e
 		delete(m.waiting, s)
-		counter++
-		size += e.size
 	}
 	t2 := time.Now()
 	m.log.Debugf("TRXMGR: FetchTrx end: maxCount=%d, maxSize=%d, count=%d, size=%d, %v|%v|%v",
