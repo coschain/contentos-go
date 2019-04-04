@@ -174,13 +174,17 @@ func (m *TrxMgr) AddTrx(trx *prototype.SignedTransaction, callback TrxCallback) 
 			m.deliverEntry(entry)
 		} else {
 			m.waitingLock.Lock()
-			defer m.waitingLock.Unlock()
 			m.fetchedLock.RLock()
-			defer m.fetchedLock.RUnlock()
+
 			ok = m.addToWaiting(entry) > 0
+
+			m.fetchedLock.RUnlock()
+			m.waitingLock.Unlock()
 		}
 		if !ok {
 			c <- errors.New(entry.result.Receipt.ErrorInfo)
+		} else {
+			c <- nil
 		}
 	}()
 	return <-c
@@ -221,26 +225,24 @@ func (m *TrxMgr) FetchTrx(blockTime uint32, maxCount, maxSize int) (entries []*T
 }
 
 func (m *TrxMgr) ReturnTrx(failed bool, entries ...*TrxEntry) {
+	dispatch := m.deliverEntry
+	if !failed {
+		m.waitingLock.Lock()
+		defer m.waitingLock.Unlock()
+		dispatch = func(e *TrxEntry) {
+			m.addToWaiting(e)
+		}
+	}
 	m.fetchedLock.Lock()
 	defer m.fetchedLock.Unlock()
 
-	var waits []*TrxEntry
 	for _, e := range entries {
 		s := string(e.result.SigTrx.Signature.Sig)
 		f := m.fetched[s]
 		if f != nil {
-			if failed {
-				m.deliverEntry(f)
-			} else {
-				waits = append(waits, f)
-			}
+			dispatch(f)
 			delete(m.fetched, s)
 		}
-	}
-	if len(waits) > 0 {
-		m.waitingLock.Lock()
-		defer m.waitingLock.Unlock()
-		m.addToWaiting(waits...)
 	}
 }
 
@@ -280,8 +282,8 @@ func (m *TrxMgr) CheckBlockTrxs(b *prototype.SignedBlock) (entries []*TrxEntry, 
 func (m *TrxMgr) BlockApplied(b *prototype.SignedBlock) {
 	atomic.StoreUint32(&m.headTime, b.SignedHeader.Header.Timestamp.UtcSeconds)
 
-	m.fetchedLock.Lock()
 	m.waitingLock.Lock()
+	m.fetchedLock.Lock()
 	for _, txw := range b.Transactions {
 		s := string(txw.SigTrx.Signature.Sig)
 		if e := m.fetched[s]; e != nil {
@@ -293,8 +295,8 @@ func (m *TrxMgr) BlockApplied(b *prototype.SignedBlock) {
 			delete(m.waiting, s)
 		}
 	}
-	m.waitingLock.Unlock()
 	m.fetchedLock.Unlock()
+	m.waitingLock.Unlock()
 
 	m.callPlugins(func(plugin ITrxMgrPlugin) {
 		plugin.BlockApplied(b)
