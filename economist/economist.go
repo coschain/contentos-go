@@ -1,12 +1,14 @@
 package economist
 
 import (
+	"fmt"
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"math"
 )
 
@@ -22,10 +24,11 @@ type Economist struct {
 	db       iservices.IDatabaseService
 	noticer  EventBus.Bus
 	singleId *int32
+	log *logrus.Logger
 }
 
-func New(db iservices.IDatabaseService, noticer EventBus.Bus, singleId *int32) *Economist {
-	return &Economist{db: db, noticer:noticer, singleId: singleId}
+func New(db iservices.IDatabaseService, noticer EventBus.Bus, singleId *int32, log *logrus.Logger) *Economist {
+	return &Economist{db: db, noticer:noticer, singleId: singleId, log: log}
 }
 
 func (e *Economist) GetProps() (*prototype.DynamicProperties, error) {
@@ -34,6 +37,14 @@ func (e *Economist) GetProps() (*prototype.DynamicProperties, error) {
 		return nil, errors.New("the mainkey is already exist")
 	}
 	return dgpWrap.GetProps(), nil
+}
+
+func (e *Economist) GetAccount(account *prototype.AccountName) (*table.SoAccountWrap, error) {
+	accountWrap := table.NewSoAccountWrap(e.db, account)
+	if !accountWrap.CheckExist() {
+		return nil, errors.New(fmt.Sprintf("cannot find account %s", account.Value))
+	}
+	return accountWrap, nil
 }
 
 func (e *Economist) GetRewardsKeeper() (*prototype.InternalRewardsKeeper, error) {
@@ -68,31 +79,14 @@ func (e *Economist) BaseBudget(ith uint32) uint64 {
 	if ith > 12 {
 		return 0
 	}
-	return uint64(ith) * uint64(constants.TotalCurrency) * uint64(448) / 1000 / 100 * constants.BaseRate
-
+	var remain uint64 = 0
+	// 56 == 35000 - 448 * 13 * 12 / 2
+	if ith == 12 {
+		remain = uint64(constants.TotalCurrency) * uint64(56) / 1000 / 100 * constants.BaseRate
+	}
+	return uint64(ith) * uint64(constants.TotalCurrency) * uint64(448) / 1000 / 100 * constants.BaseRate + remain
 }
 
-// whitepaper p16
-//func (e *Economist) InitialBonus(ith uint32) uint64 {
-//	if ith > 5 {
-//		return 0
-//	}
-//	switch ith {
-//	case 0:
-//		return 0
-//	case 1:
-//		return 169580103 * constants.BaseRate
-//	case 2:
-//		return 106993132 * constants.BaseRate
-//	case 3:
-//		return 84790051 * constants.BaseRate
-//	case 4:
-//		return 73034175 * constants.BaseRate
-//	case 5:
-//		return 65602539 * constants.BaseRate
-//	}
-//	return 0
-//}
 
 // InitialBonus does not be managed by chain
 func (e *Economist) CalculateBudget(ith uint32) uint64 {
@@ -105,6 +99,7 @@ func (e *Economist) CalculatePerBlockBudget(annalBudget uint64) uint64 {
 
 func (e *Economist) Mint() {
 	//blockCurrent := constants.PerBlockCurrent
+	//t0 := time.Now()
 	globalProps, err := e.GetProps()
 	ith := globalProps.GetIthYear()
 	annualBudget := e.CalculateBudget(ith)
@@ -148,18 +143,13 @@ func (e *Economist) Mint() {
 	if err != nil {
 		panic("Mint failed when getprops")
 	}
-	keeper, err := e.GetRewardsKeeper()
 
-	_ = bpReward
-	currentBp := globalProps.GetCurrentWitness().Value
-	rewards := keeper.GetRewards()
-	if vest, ok := rewards[currentBp]; !ok {
-		rewards[currentBp] = &prototype.Vest{Value: uint64(bpReward)}
-	} else {
-		vest.Value += uint64(bpReward)
+	bpWrap, err := e.GetAccount(globalProps.CurrentWitness)
+	if err != nil {
+		panic("Mint failed when get bp wrap")
 	}
-	keeper.Rewards = rewards
-	e.updateRewardsKeeper(keeper)
+	reward := bpWrap.GetVestingShares()
+	bpWrap.MdVestingShares(&prototype.Vest{Value: reward.Value + bpReward})
 
 	e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
 		props.PostRewards.Value += uint64(authorReward)
@@ -169,7 +159,6 @@ func (e *Economist) Mint() {
 		props.VoterRewards.Value += uint64(voterReward)
 		props.AnnualMinted.Value += blockCurrent
 	})
-
 }
 
 // Should be claiming or direct modify the balance?
@@ -180,16 +169,16 @@ func (e *Economist) Do() {
 		panic("economist do failed when get props")
 	}
 	// for now, report reward does not calculate
-	if globalProps.HeadBlockNumber % constants.ReportCashout == 0 {
-		reportRewards := globalProps.ReportRewards.Value
-		postRewards := reportRewards / 2
-		replyRewards := reportRewards - postRewards
-		e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
-			props.ReportRewards.Value = 0
-			props.PostRewards.Value += postRewards
-			props.ReplyRewards.Value += replyRewards
-		})
-	}
+	//if globalProps.HeadBlockNumber % constants.ReportCashout == 0 {
+	//	reportRewards := globalProps.ReportRewards.Value
+	//	postRewards := reportRewards / 2
+	//	replyRewards := reportRewards - postRewards
+	//	e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
+	//		props.ReportRewards.Value = 0
+	//		props.PostRewards.Value += postRewards
+	//		props.ReplyRewards.Value += replyRewards
+	//	})
+	//}
 	timestamp := globalProps.Time.UtcSeconds
 	iterator := table.NewPostCashoutTimeWrap(e.db)
 	var pids []*uint64
@@ -204,6 +193,7 @@ func (e *Economist) Do() {
 	var replies []*table.SoPostWrap
 
 	var vpAccumulator uint64 = 0
+	// posts accumulate by linear, replies by sqrt
 	for _, pid := range pids {
 		post := table.NewSoPostWrap(e.db, pid)
 		if post.GetParentId() == 0 {
@@ -217,9 +207,10 @@ func (e *Economist) Do() {
 	e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
 		props.WeightedVps += vpAccumulator
 	})
-	keeper, err := e.GetRewardsKeeper()
+	//keeper, err := e.GetRewardsKeeper()
+	//e.log.Debugf("cashout length: %d", len(posts))
 	if len(posts) > 0 {
-		e.postCashout(keeper, posts)
+		e.postCashout(posts)
 	}
 
 	if err != nil {
@@ -227,9 +218,9 @@ func (e *Economist) Do() {
 	}
 
 	if len(replies) > 0 {
-		e.replyCashout(keeper, replies)
+		e.replyCashout(replies)
 	}
-	e.updateRewardsKeeper(keeper)
+	//e.updateRewardsKeeper(keeper)
 }
 
 func (e *Economist) decayGlobalVotePower() {
@@ -238,7 +229,7 @@ func (e *Economist) decayGlobalVotePower() {
 	})
 }
 
-func (e *Economist) postCashout(rewardKeeper *prototype.InternalRewardsKeeper, posts []*table.SoPostWrap) {
+func (e *Economist) postCashout(posts []*table.SoPostWrap) {
 	globalProps, err := e.GetProps()
 	if err != nil {
 		panic("post cashout get props failed")
@@ -256,7 +247,9 @@ func (e *Economist) postCashout(rewardKeeper *prototype.InternalRewardsKeeper, p
 		blockDappReward = vpAccumulator * globalProps.DappRewards.Value / globalProps.WeightedVps
 		//blockVoterReward = vpAccumulator * globalProps.VoterRewards.Value / globalProps.WeightedVps
 	}
-	innerRewards := rewardKeeper.Rewards
+	var spentPostReward uint64 = 0
+	var spentDappReward uint64 = 0
+	//var spentVoterReward uint64 = 0
 	for _, post := range posts {
 		author := post.GetAuthor().Value
 		var reward uint64 = 0
@@ -267,6 +260,10 @@ func (e *Economist) postCashout(rewardKeeper *prototype.InternalRewardsKeeper, p
 			reward = post.GetWeightedVp() * blockReward / vpAccumulator
 			beneficiaryReward = post.GetWeightedVp() * blockDappReward / vpAccumulator
 			//voterReward = post.GetWeightedVp() * blockVoterReward / vpAccumulator
+			// discount from reward pool
+			spentPostReward += reward
+			spentDappReward += beneficiaryReward
+			//spentVoterReward += voterReward
 		}
 		//e.voterCashout(post.GetPostId(), voterReward, post.GetWeightedVp(), innerRewards)
 		beneficiaries := post.GetBeneficiaries()
@@ -276,27 +273,35 @@ func (e *Economist) postCashout(rewardKeeper *prototype.InternalRewardsKeeper, p
 			weight := beneficiary.Weight
 			// one of ten thousands
 			r := beneficiaryReward * uint64(weight) / 10000
-			if vest, ok := rewardKeeper.Rewards[name]; !ok {
-				innerRewards[name] = &prototype.Vest{Value: r}
+			beneficiaryWrap, err := e.GetAccount(&prototype.AccountName{Value: name})
+			if err != nil {
+				e.log.Debugf("beneficiary get account %s failed", name)
 			} else {
-				vest.Value += r
+				beneficiaryWrap.MdVestingShares(&prototype.Vest{ Value: r + beneficiaryWrap.GetVestingShares().Value})
+				spentBeneficiaryReward += r
+				e.noticer.Publish(constants.NoticeCashout, name, r, globalProps.GetHeadBlockNumber())
 			}
-			spentBeneficiaryReward += r
-			e.noticer.Publish(constants.NoticeCashout, name, r, globalProps.GetHeadBlockNumber())
 		}
 		reward += beneficiaryReward - spentBeneficiaryReward
-		if vest, ok := innerRewards[author]; !ok {
-			innerRewards[author] = &prototype.Vest{Value: reward}
+		authorWrap, err := e.GetAccount(&prototype.AccountName{Value: author})
+		if err != nil {
+			e.log.Debugf("post cashout get account %s failed", author)
+			continue
 		} else {
-			innerRewards[author] = &prototype.Vest{Value: vest.Value + reward}
+			authorWrap.MdVestingShares(&prototype.Vest{ Value: reward + authorWrap.GetVestingShares().Value})
 		}
 		e.noticer.Publish(constants.NoticeCashout, author, reward, globalProps.GetHeadBlockNumber())
 		post.MdCashoutTime(&prototype.TimePointSec{UtcSeconds: math.MaxUint32})
 	}
+	e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
+		props.PostRewards.Value -= spentPostReward
+		//props.VoterRewards.Value -= spentVoterReward
+		props.DappRewards.Value -= spentDappReward
+	})
 }
 
 // use same algorithm to simplify
-func (e *Economist) replyCashout(rewardKeeper *prototype.InternalRewardsKeeper, replies []*table.SoPostWrap) {
+func (e *Economist) replyCashout(replies []*table.SoPostWrap) {
 	globalProps, err := e.GetProps()
 	if err != nil {
 		panic("reply cashout get props failed")
@@ -310,23 +315,29 @@ func (e *Economist) replyCashout(rewardKeeper *prototype.InternalRewardsKeeper, 
 	})
 	var blockReward uint64 = 0
 	var blockDappReward uint64 = 0
-	//var blockVoterReward uint64 = 0
+	var blockVoterReward uint64 = 0
 	if globalProps.WeightedVps > 0 {
 		blockReward = vpAccumulator * globalProps.ReplyRewards.Value / globalProps.WeightedVps
 		blockDappReward = vpAccumulator * globalProps.DappRewards.Value / globalProps.WeightedVps
-		//blockVoterReward = vpAccumulator * globalProps.VoterRewards.Value / globalProps.WeightedVps
+		blockVoterReward = vpAccumulator * globalProps.VoterRewards.Value / globalProps.WeightedVps
 	}
-	innerRewards := rewardKeeper.Rewards
+	var spentReplyReward uint64 = 0
+	var spentDappReward uint64 = 0
+	var spentVoterReward uint64 = 0
 	for _, reply := range replies {
 		author := reply.GetAuthor().Value
 		var reward uint64 = 0
 		var beneficiaryReward uint64 = 0
-		//var voterReward uint64 = 0
+		var voterReward uint64 = 0
 		// divide zero exception
 		if vpAccumulator > 0 {
-			reward = reply.GetWeightedVp() * blockReward / vpAccumulator
-			beneficiaryReward = reply.GetWeightedVp() * blockDappReward / vpAccumulator
-			//voterReward = reply.GetWeightedVp() * blockVoterReward / vpAccumulator
+			weightedVp := uint64(math.Ceil(math.Sqrt(float64(reply.GetWeightedVp()))))
+			reward = weightedVp * blockReward / vpAccumulator
+			beneficiaryReward = weightedVp * blockDappReward / vpAccumulator
+			voterReward = weightedVp * blockVoterReward / vpAccumulator
+			spentReplyReward += reward
+			spentDappReward += beneficiaryReward
+			spentVoterReward += voterReward
 		}
 		//e.voterCashout(reply.GetPostId(), voterReward, reply.GetWeightedVp(), innerRewards)
 		beneficiaries := reply.GetBeneficiaries()
@@ -334,25 +345,32 @@ func (e *Economist) replyCashout(rewardKeeper *prototype.InternalRewardsKeeper, 
 		for _, beneficiary := range beneficiaries {
 			name := beneficiary.Name.Value
 			weight := beneficiary.Weight
-			// one of ten thousands
 			r := beneficiaryReward * uint64(weight) / 10000
-			if vest, ok := rewardKeeper.Rewards[name]; !ok {
-				innerRewards[name] = &prototype.Vest{Value: r}
+			beneficiaryWrap, err := e.GetAccount(&prototype.AccountName{Value: name})
+			if err != nil {
+				e.log.Debugf("beneficiary get account %s failed", name)
 			} else {
-				vest.Value += r
+				beneficiaryWrap.MdVestingShares(&prototype.Vest{ Value: r + beneficiaryWrap.GetVestingShares().Value})
+				spentBeneficiaryReward += r
+				e.noticer.Publish(constants.NoticeCashout, name, r, globalProps.GetHeadBlockNumber())
 			}
-			spentBeneficiaryReward += r
-			e.noticer.Publish(constants.NoticeCashout, name, r, globalProps.GetHeadBlockNumber())
 		}
 		reward += beneficiaryReward - spentBeneficiaryReward
-		if vest, ok := rewardKeeper.Rewards[author]; !ok {
-			innerRewards[author] = &prototype.Vest{Value: reward}
+		authorWrap, err := e.GetAccount(&prototype.AccountName{Value: author})
+		if err != nil {
+			e.log.Debugf("reply cashout get account %s failed", author)
+			continue
 		} else {
-			innerRewards[author] = &prototype.Vest{Value: vest.Value + reward}
+			authorWrap.MdVestingShares(&prototype.Vest{ Value: reward + authorWrap.GetVestingShares().Value})
 		}
 		e.noticer.Publish(constants.NoticeCashout, author, reward, globalProps.GetHeadBlockNumber())
 		reply.MdCashoutTime(&prototype.TimePointSec{UtcSeconds: math.MaxUint32})
 	}
+	e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
+		props.ReplyRewards.Value -= spentReplyReward
+		props.VoterRewards.Value -= spentVoterReward
+		props.DappRewards.Value -= spentDappReward
+	})
 }
 
 func (e *Economist) voterCashout(postId uint64, totalReward uint64, totalVp uint64, keeper map[string]*prototype.Vest) {
@@ -369,11 +387,8 @@ func (e *Economist) voterCashout(postId uint64, totalReward uint64, totalVp uint
 		vp := wrap.GetWeightedVp()
 		voter := voterId.Voter.Value
 		reward := totalReward * vp / totalVp
-		if vest, ok := keeper[voter]; !ok {
-			keeper[voter] = &prototype.Vest{Value: reward}
-		} else {
-			keeper[voter] = &prototype.Vest{Value: vest.Value + reward}
-		}
+		voterWrap, _ := e.GetAccount(&prototype.AccountName{Value: voter})
+		voterWrap.MdVestingShares(&prototype.Vest{Value: reward + voterWrap.GetVestingShares().Value})
 	}
 }
 

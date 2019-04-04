@@ -105,7 +105,7 @@ func (c *TrxPool) Start(node *node.Node) error {
 
 func (c *TrxPool) Open() {
 	c.iceberg = NewBlockIceberg(c.db)
-	c.economist = economist.New(c.db, c.noticer, &SingleId)
+	c.economist = economist.New(c.db, c.noticer, &SingleId, c.log)
 	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
 	if !dgpWrap.CheckExist() {
 
@@ -116,7 +116,7 @@ func (c *TrxPool) Open() {
 
 		mustNoError(c.db.TagRevision(c.db.GetRevision(), GENESIS_TAG), "genesis tagging failed")
 		c.iceberg = NewBlockIceberg(c.db)
-		c.economist = economist.New(c.db, c.noticer, &SingleId)
+		c.economist = economist.New(c.db, c.noticer, &SingleId, c.log)
 		//c.log.Info("finish initGenesis")
 	}
 }
@@ -677,9 +677,14 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 		}
 		c.log.Debugf("PUSHBLOCK: %v, #tx=%d", time.Now().Sub(t00), len(blk.Transactions))
 	}
+	tinit := time.Now()
 	c.economist.Mint()
+	tmint := time.Now()
 	c.economist.Do()
+	tdo := time.Now()
 	c.economist.PowerDown()
+	tpd := time.Now()
+	c.log.Debugf("Economist: %v|%v|%v|%v", tpd.Sub(tinit), tmint.Sub(tinit), tdo.Sub(tmint), tpd.Sub(tdo))
 	t0 := time.Now()
 	c.updateGlobalProperties(blk)
 	//c.updateSigningWitness(blk)

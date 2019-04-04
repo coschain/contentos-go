@@ -5,6 +5,7 @@ import (
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/dandelion"
 	"github.com/coschain/contentos-go/prototype"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 
 	"testing"
@@ -24,7 +25,7 @@ func TestEconomist_Mint(t *testing.T) {
 	myassert.Equal(prop1.PostRewards.Value, uint64(0))
 	myassert.Equal(prop1.ReplyRewards.Value, uint64(0))
 	var SingleId int32 = 1
-	eco := Economist{dande.GetDB(), EventBus.New(), &SingleId}
+	eco := Economist{dande.GetDB(), EventBus.New(), &SingleId, logrus.New()}
 	eco.Mint()
 	prop2 := dande.GetProps()
 	myassert.Equal(prop2.PostRewards.Value, uint64(2237442))
@@ -38,7 +39,6 @@ func TestEconomist_Mint(t *testing.T) {
 	keeper2, _ := eco.GetRewardsKeeper()
 	myassert.Equal(keeper2.Rewards["initminer"].Value, uint64(1278540))
 }
-
 
 func TestEconomist_Do(t *testing.T) {
 	myassert := assert.New(t)
@@ -54,7 +54,7 @@ func TestEconomist_Do(t *testing.T) {
 	privKey := dande.GeneralPrivKey()
 	db := dande.GetDB()
 	var SingleId int32 = 1
-	eco := Economist{dande.GetDB(), EventBus.New(),&SingleId}
+	eco := Economist{dande.GetDB(), EventBus.New(),&SingleId, logrus.New()}
 	operation := &prototype.PostOperation{
 		Uuid:          uint64(111),
 		Owner:         &prototype.AccountName{Value: "kochiya"},

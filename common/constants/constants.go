@@ -60,8 +60,6 @@ const (
 
 	TrxMaxExpirationTime = 60
 
-	PerBlockCurrent = 10 * 1e6 // precision: 6
-
 	// from total minted
 	RewardRateCreator = 7500
 	RewardRateBP     = 1500
