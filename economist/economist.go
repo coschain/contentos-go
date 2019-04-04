@@ -176,7 +176,12 @@ func (e *Economist) Do() {
 	timestamp := globalProps.Time.UtcSeconds
 	iterator := table.NewPostCashoutTimeWrap(e.db)
 	var pids []*uint64
-	err = iterator.ForEachByOrder(nil, &prototype.TimePointSec{UtcSeconds: timestamp}, nil, nil, func(mVal *uint64, sVal *prototype.TimePointSec, idx uint32) bool {
+	end := timestamp
+	start := timestamp - 10
+	if start < 0 {
+		start = 0
+	}
+	err = iterator.ForEachByOrder(&prototype.TimePointSec{UtcSeconds: start}, &prototype.TimePointSec{UtcSeconds: end}, nil, nil, func(mVal *uint64, sVal *prototype.TimePointSec, idx uint32) bool {
 		pids = append(pids, mVal)
 		return true
 	})
@@ -406,7 +411,12 @@ func (e *Economist) PowerDown() {
 	iterator := table.NewAccountNextPowerdownTimeWrap(e.db)
 	var accountNames []*prototype.AccountName
 	t0 := time.Now()
-	err = iterator.ForEachByOrder(nil, &prototype.TimePointSec{UtcSeconds: timestamp}, nil, nil, func(mVal *prototype.AccountName, sVal *prototype.TimePointSec, idx uint32) bool {
+	end := timestamp
+	start := timestamp - 10
+	if start < 0 {
+		start = 0
+	}
+	err = iterator.ForEachByOrder(&prototype.TimePointSec{UtcSeconds: start}, &prototype.TimePointSec{UtcSeconds: end}, nil, nil, func(mVal *prototype.AccountName, sVal *prototype.TimePointSec, idx uint32) bool {
 		accountNames = append(accountNames, mVal)
 		return true
 	})
