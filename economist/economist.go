@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"math"
+	"time"
 )
 
 func Min(x, y uint64) uint64 {
@@ -201,17 +202,22 @@ func (e *Economist) Do() {
 		props.WeightedVps += vpAccumulator
 	})
 	//keeper, err := e.GetRewardsKeeper()
-	//e.log.Debugf("cashout length: %d", len(posts))
+	e.log.Debugf("cashout posts length: %d", len(posts))
 	if len(posts) > 0 {
+		t := time.Now()
 		e.postCashout(posts)
+		e.log.Debugf("cashout posts spend: %v", time.Now().Sub(t))
 	}
 
 	if err != nil {
 		panic("economist do failed when get reward keeper")
 	}
 
+	e.log.Debugf("cashout replies length: %d", len(posts))
 	if len(replies) > 0 {
+		t := time.Now()
 		e.replyCashout(replies)
+		e.log.Debugf("cashout reply spend: %v", time.Now().Sub(t))
 	}
 	//e.updateRewardsKeeper(keeper)
 }
@@ -399,10 +405,12 @@ func (e *Economist) PowerDown() {
 	timestamp := globalProps.Time.UtcSeconds
 	iterator := table.NewAccountNextPowerdownTimeWrap(e.db)
 	var accountNames []*prototype.AccountName
+	t0 := time.Now()
 	err = iterator.ForEachByOrder(nil, &prototype.TimePointSec{UtcSeconds: timestamp}, nil, nil, func(mVal *prototype.AccountName, sVal *prototype.TimePointSec, idx uint32) bool {
 		accountNames = append(accountNames, mVal)
 		return true
 	})
+	t1 := time.Now()
 	var powerdownQuota uint64 = 0
 	for _, accountName := range accountNames {
 		accountWrap := table.NewSoAccountWrap(e.db, accountName)
@@ -429,4 +437,6 @@ func (e *Economist) PowerDown() {
 			accountWrap.MdNextPowerdownTime(&prototype.TimePointSec{UtcSeconds: timestamp + constants.POWER_DOWN_INTERVAL})
 		}
 	}
+	t2 := time.Now()
+	e.log.Debugf("powerdown: %v|%v|%v", t2.Sub(t0), t1.Sub(t0), t2.Sub(t1))
 }
