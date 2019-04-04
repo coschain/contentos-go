@@ -21,3 +21,8 @@ func (t *TransferOperation) Validate() error {
 	}
 	return nil
 }
+
+func (m *TransferOperation) GetAffectedProps(props *map[string]bool) {
+	(*props)[m.GetFrom().GetValue()] = true
+	(*props)[m.GetTo().GetValue()] = true
+}

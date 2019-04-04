@@ -3,6 +3,7 @@ package app
 import (
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
+	"github.com/coschain/contentos-go/vm/injector"
 )
 
 func opAssertE(err error, val string) {
@@ -25,9 +26,9 @@ func mustNoError(err error, val string) {
 
 // TODO replace applyContext to TrxContext
 type ApplyContext struct {
-	db      iservices.IDatabaseService
-	control *TrxPool
-	trxCtx  *TrxContext
+	db         iservices.IDatabaseRW
+	control    iservices.IGlobalPropRW
+	vmInjector vminjector.Injector
 }
 
 type BaseEvaluator interface {

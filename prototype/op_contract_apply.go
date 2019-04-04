@@ -8,3 +8,7 @@ func (m *ContractApplyOperation) Validate() error {
 	// TODO
 	return nil
 }
+
+func (m *ContractApplyOperation) GetAffectedProps(props *map[string]bool) {
+	(*props)["*"] = true
+}

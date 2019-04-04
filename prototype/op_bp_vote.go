@@ -20,3 +20,7 @@ func (m *BpVoteOperation) Validate() error {
 
 	return nil
 }
+
+func (m *BpVoteOperation) GetAffectedProps(props *map[string]bool) {
+	(*props)["*"] = true
+}

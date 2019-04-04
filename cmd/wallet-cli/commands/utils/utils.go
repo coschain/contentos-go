@@ -21,16 +21,31 @@ func GenerateSignedTxAndValidate2(client grpcpb.ApiServiceClient, ops []interfac
 		return nil, err
 	}
 	privKey = pk
+	return GenerateSignedTxAndValidate3(client, ops, privKey)
+}
 
+func GenerateSignedTxAndValidate3(client grpcpb.ApiServiceClient, ops []interface{}, privKey *prototype.PrivateKeyType) (*prototype.SignedTransaction, error) {
+	chainState, err := GetChainState(client)
+	if err != nil {
+		return nil, err
+	}
+	return GenerateSignedTxAndValidate4(chainState.Dgpo, 30, ops, privKey)
+}
+
+func GetChainState(client grpcpb.ApiServiceClient) (*grpcpb.ChainState, error) {
 	req := &grpcpb.NonParamsRequest{}
 	resp, err := client.GetStatisticsInfo(context.Background(), req)
 	if err != nil {
 		return nil, err
 	}
-	refBlockPrefix := binary.BigEndian.Uint32(resp.State.Dgpo.HeadBlockId.Hash[8:12])
+	return resp.State, nil
+}
+
+func GenerateSignedTxAndValidate4(dgp *prototype.DynamicProperties, expiration uint32, ops []interface{}, privKey *prototype.PrivateKeyType) (*prototype.SignedTransaction, error) {
+	refBlockPrefix := binary.BigEndian.Uint32(dgp.HeadBlockId.Hash[8:12])
 	// occupant implement
-	refBlockNum := uint32(resp.State.Dgpo.HeadBlockNumber & 0x7ff)
-	tx := &prototype.Transaction{RefBlockNum: refBlockNum, RefBlockPrefix: refBlockPrefix, Expiration: &prototype.TimePointSec{UtcSeconds: resp.State.Dgpo.Time.UtcSeconds + 30}}
+	refBlockNum := uint32(dgp.HeadBlockNumber & 0x7ff)
+	tx := &prototype.Transaction{RefBlockNum: refBlockNum, RefBlockPrefix: refBlockPrefix, Expiration: &prototype.TimePointSec{UtcSeconds: dgp.Time.UtcSeconds + expiration}}
 	for _, op := range ops {
 		tx.AddOperation(op)
 	}

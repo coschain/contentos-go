@@ -16,6 +16,8 @@ github.com/coschain/gobft v0.0.0-20190402044717-8f6ce3584c46 h1:aAh06vEkvXtr6d6I
 github.com/coschain/gobft v0.0.0-20190402044717-8f6ce3584c46/go.mod h1:lNT59IugSOVjDJSp9GrqmS5sAoegqfAGQ0sNBCb+iZQ=
 github.com/coschain/wagon v0.3.1-0.20190313105030-01faf85b3ff0 h1:xkkM5bnBbwS4r6ulopSAHJzj7pMIoOT06afyF6HU/5Q=
 github.com/coschain/wagon v0.3.1-0.20190313105030-01faf85b3ff0/go.mod h1:zHOMvbitcZek8oshsMO5VpyBjWjV9X8cn8WTZwdebpM=
+github.com/coschain/wagon v0.3.1-0.20190404031614-dc0354856933 h1:uZOoXvwhaFP+Ouh2wekduB1tud0d00cJAddu6U+QS48=
+github.com/coschain/wagon v0.3.1-0.20190404031614-dc0354856933/go.mod h1:zHOMvbitcZek8oshsMO5VpyBjWjV9X8cn8WTZwdebpM=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/fastly/go-utils v0.0.0-20180712184237-d95a45783239 h1:Ghm4eQYC0nEPnSJdVkTrXpu9KtoVCSo1hg7mtI7G9KU=

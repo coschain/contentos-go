@@ -8,6 +8,7 @@ import (
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/sirupsen/logrus"
+	"time"
 )
 
 var TrxServiceName = "trxsrv"
@@ -20,8 +21,8 @@ type TrxService struct {
 	ctx *node.ServiceContext
 }
 
-func NewTrxSerVice(ctx *node.ServiceContext) (*TrxService, error) {
-	return &TrxService{ctx: ctx}, nil
+func NewTrxSerVice(ctx *node.ServiceContext, log *logrus.Logger) (*TrxService, error) {
+	return &TrxService{ctx: ctx, log: log}, nil
 }
 
 func (t *TrxService) Start(node *node.Node) error {
@@ -40,14 +41,16 @@ func (t *TrxService) Start(node *node.Node) error {
 }
 
 func (t *TrxService) hookEvent() {
-	t.ev.Subscribe(constants.NoticeAddTrx, t.handleAddTrxNotification)
+	t.ev.Subscribe(constants.NoticeBlockApplied, t.handleAddTrxNotification)
 }
 func (t *TrxService) unhookEvent() {
-	t.ev.Unsubscribe(constants.NoticeAddTrx, t.handleAddTrxNotification)
+	t.ev.Unsubscribe(constants.NoticeBlockApplied, t.handleAddTrxNotification)
 }
 
 func (t *TrxService) handleAddTrxNotification(blk *prototype.SignedBlock) {
 	if blk != nil && len(blk.Transactions) > 0 {
+		t0 := time.Now()
+
 		count := uint64(len(blk.Transactions))
 
 		timestamp := blk.SignedHeader.Header.Timestamp
@@ -79,6 +82,7 @@ func (t *TrxService) handleAddTrxNotification(blk *prototype.SignedBlock) {
 			}
 		}
 
+		t1 := time.Now()
 		//save trx info to db
 		for _, trxWrap := range blk.Transactions {
 			trxId, err := trxWrap.SigTrx.Id()
@@ -108,6 +112,8 @@ func (t *TrxService) handleAddTrxNotification(blk *prototype.SignedBlock) {
 				}
 			}
 		}
+		t2 := time.Now()
+		t.log.Debugf("TXSVC: %v|%v|%v", t2.Sub(t0), t1.Sub(t0), t2.Sub(t1))
 	}
 
 }

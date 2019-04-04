@@ -28,14 +28,14 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoExtTrxWrap struct {
-	dba      iservices.IDatabaseService
+	dba      iservices.IDatabaseRW
 	mainKey  *prototype.Sha256
 	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
 	mKeyBuf  []byte //the buffer after the main key is encoded with prefix
 	mBuf     []byte //the value after the main key is encoded
 }
 
-func NewSoExtTrxWrap(dba iservices.IDatabaseService, key *prototype.Sha256) *SoExtTrxWrap {
+func NewSoExtTrxWrap(dba iservices.IDatabaseRW, key *prototype.Sha256) *SoExtTrxWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
@@ -968,10 +968,10 @@ func (s *SoExtTrxWrap) MdTrxWrap(p *prototype.TransactionWrapper) bool {
 
 ////////////// SECTION List Keys ///////////////
 type SExtTrxTrxIdWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewExtTrxTrxIdWrap(db iservices.IDatabaseService) *SExtTrxTrxIdWrap {
+func NewExtTrxTrxIdWrap(db iservices.IDatabaseRW) *SExtTrxTrxIdWrap {
 	if db == nil {
 		return nil
 	}
@@ -1109,10 +1109,10 @@ func (s *SExtTrxTrxIdWrap) ForEachByOrder(start *prototype.Sha256, end *prototyp
 
 ////////////// SECTION List Keys ///////////////
 type SExtTrxBlockHeightWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewExtTrxBlockHeightWrap(db iservices.IDatabaseService) *SExtTrxBlockHeightWrap {
+func NewExtTrxBlockHeightWrap(db iservices.IDatabaseRW) *SExtTrxBlockHeightWrap {
 	if db == nil {
 		return nil
 	}
@@ -1248,10 +1248,10 @@ func (s *SExtTrxBlockHeightWrap) ForEachByOrder(start *uint64, end *uint64, last
 
 ////////////// SECTION List Keys ///////////////
 type SExtTrxBlockTimeWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewExtTrxBlockTimeWrap(db iservices.IDatabaseService) *SExtTrxBlockTimeWrap {
+func NewExtTrxBlockTimeWrap(db iservices.IDatabaseRW) *SExtTrxBlockTimeWrap {
 	if db == nil {
 		return nil
 	}
@@ -1451,10 +1451,10 @@ func (s *SExtTrxBlockTimeWrap) ForEachByRevOrder(start *prototype.TimePointSec, 
 
 ////////////// SECTION List Keys ///////////////
 type SExtTrxTrxCreateOrderWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewExtTrxTrxCreateOrderWrap(db iservices.IDatabaseService) *SExtTrxTrxCreateOrderWrap {
+func NewExtTrxTrxCreateOrderWrap(db iservices.IDatabaseRW) *SExtTrxTrxCreateOrderWrap {
 	if db == nil {
 		return nil
 	}
@@ -1833,10 +1833,10 @@ func (s *SoExtTrxWrap) insertUniKeyTrxId(sa *SoExtTrx) bool {
 }
 
 type UniExtTrxTrxIdWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewUniExtTrxTrxIdWrap(db iservices.IDatabaseService) *UniExtTrxTrxIdWrap {
+func NewUniExtTrxTrxIdWrap(db iservices.IDatabaseRW) *UniExtTrxTrxIdWrap {
 	if db == nil {
 		return nil
 	}

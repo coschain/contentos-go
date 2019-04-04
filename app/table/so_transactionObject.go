@@ -22,14 +22,14 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoTransactionObjectWrap struct {
-	dba      iservices.IDatabaseService
+	dba      iservices.IDatabaseRW
 	mainKey  *prototype.Sha256
 	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
 	mKeyBuf  []byte //the buffer after the main key is encoded with prefix
 	mBuf     []byte //the value after the main key is encoded
 }
 
-func NewSoTransactionObjectWrap(dba iservices.IDatabaseService, key *prototype.Sha256) *SoTransactionObjectWrap {
+func NewSoTransactionObjectWrap(dba iservices.IDatabaseRW, key *prototype.Sha256) *SoTransactionObjectWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
@@ -481,10 +481,10 @@ func (s *SoTransactionObjectWrap) GetTrxId() *prototype.Sha256 {
 
 ////////////// SECTION List Keys ///////////////
 type STransactionObjectExpirationWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewTransactionObjectExpirationWrap(db iservices.IDatabaseService) *STransactionObjectExpirationWrap {
+func NewTransactionObjectExpirationWrap(db iservices.IDatabaseRW) *STransactionObjectExpirationWrap {
 	if db == nil {
 		return nil
 	}
@@ -801,10 +801,10 @@ func (s *SoTransactionObjectWrap) insertUniKeyTrxId(sa *SoTransactionObject) boo
 }
 
 type UniTransactionObjectTrxIdWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewUniTransactionObjectTrxIdWrap(db iservices.IDatabaseService) *UniTransactionObjectTrxIdWrap {
+func NewUniTransactionObjectTrxIdWrap(db iservices.IDatabaseRW) *UniTransactionObjectTrxIdWrap {
 	if db == nil {
 		return nil
 	}

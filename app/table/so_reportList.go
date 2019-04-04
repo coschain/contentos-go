@@ -23,14 +23,14 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoReportListWrap struct {
-	dba      iservices.IDatabaseService
+	dba      iservices.IDatabaseRW
 	mainKey  *uint64
 	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
 	mKeyBuf  []byte //the buffer after the main key is encoded with prefix
 	mBuf     []byte //the value after the main key is encoded
 }
 
-func NewSoReportListWrap(dba iservices.IDatabaseService, key *uint64) *SoReportListWrap {
+func NewSoReportListWrap(dba iservices.IDatabaseRW, key *uint64) *SoReportListWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
@@ -661,10 +661,10 @@ func (s *SoReportListWrap) GetUuid() uint64 {
 
 ////////////// SECTION List Keys ///////////////
 type SReportListReportedTimesWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewReportListReportedTimesWrap(db iservices.IDatabaseService) *SReportListReportedTimesWrap {
+func NewReportListReportedTimesWrap(db iservices.IDatabaseRW) *SReportListReportedTimesWrap {
 	if db == nil {
 		return nil
 	}
@@ -974,10 +974,10 @@ func (s *SoReportListWrap) insertUniKeyUuid(sa *SoReportList) bool {
 }
 
 type UniReportListUuidWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewUniReportListUuidWrap(db iservices.IDatabaseService) *UniReportListUuidWrap {
+func NewUniReportListUuidWrap(db iservices.IDatabaseRW) *UniReportListUuidWrap {
 	if db == nil {
 		return nil
 	}

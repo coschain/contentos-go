@@ -23,14 +23,14 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoWitnessVoteWrap struct {
-	dba      iservices.IDatabaseService
+	dba      iservices.IDatabaseRW
 	mainKey  *prototype.BpVoterId
 	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
 	mKeyBuf  []byte //the buffer after the main key is encoded with prefix
 	mBuf     []byte //the value after the main key is encoded
 }
 
-func NewSoWitnessVoteWrap(dba iservices.IDatabaseService, key *prototype.BpVoterId) *SoWitnessVoteWrap {
+func NewSoWitnessVoteWrap(dba iservices.IDatabaseRW, key *prototype.BpVoterId) *SoWitnessVoteWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
@@ -564,10 +564,10 @@ func (s *SoWitnessVoteWrap) MdWitnessId(p *prototype.BpWitnessId) bool {
 
 ////////////// SECTION List Keys ///////////////
 type SWitnessVoteVoterIdWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewWitnessVoteVoterIdWrap(db iservices.IDatabaseService) *SWitnessVoteVoterIdWrap {
+func NewWitnessVoteVoterIdWrap(db iservices.IDatabaseRW) *SWitnessVoteVoterIdWrap {
 	if db == nil {
 		return nil
 	}
@@ -884,10 +884,10 @@ func (s *SoWitnessVoteWrap) insertUniKeyVoterId(sa *SoWitnessVote) bool {
 }
 
 type UniWitnessVoteVoterIdWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewUniWitnessVoteVoterIdWrap(db iservices.IDatabaseService) *UniWitnessVoteVoterIdWrap {
+func NewUniWitnessVoteVoterIdWrap(db iservices.IDatabaseRW) *UniWitnessVoteVoterIdWrap {
 	if db == nil {
 		return nil
 	}

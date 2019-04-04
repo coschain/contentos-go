@@ -413,10 +413,9 @@ func (as *APIService) getState() *grpcpb.ChainState {
 	var (
 		i int32 = 1
 	)
-	as.db.RUnlock()
+
 	result.LastIrreversibleBlockNumber = as.consensus.GetLIB().BlockNum()
 	lastCommit := as.consensus.GetLastBFTCommit()
-	as.db.RLock()
 
 	result.Dgpo = table.NewSoGlobalWrap(as.db, &i).GetProps()
 

@@ -21,14 +21,14 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoRewardsKeeperWrap struct {
-	dba      iservices.IDatabaseService
+	dba      iservices.IDatabaseRW
 	mainKey  *int32
 	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
 	mKeyBuf  []byte //the buffer after the main key is encoded with prefix
 	mBuf     []byte //the value after the main key is encoded
 }
 
-func NewSoRewardsKeeperWrap(dba iservices.IDatabaseService, key *int32) *SoRewardsKeeperWrap {
+func NewSoRewardsKeeperWrap(dba iservices.IDatabaseRW, key *int32) *SoRewardsKeeperWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
@@ -580,10 +580,10 @@ func (s *SoRewardsKeeperWrap) insertUniKeyId(sa *SoRewardsKeeper) bool {
 }
 
 type UniRewardsKeeperIdWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewUniRewardsKeeperIdWrap(db iservices.IDatabaseService) *UniRewardsKeeperIdWrap {
+func NewUniRewardsKeeperIdWrap(db iservices.IDatabaseRW) *UniRewardsKeeperIdWrap {
 	if db == nil {
 		return nil
 	}

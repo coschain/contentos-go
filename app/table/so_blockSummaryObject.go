@@ -21,14 +21,14 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoBlockSummaryObjectWrap struct {
-	dba      iservices.IDatabaseService
+	dba      iservices.IDatabaseRW
 	mainKey  *uint32
 	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
 	mKeyBuf  []byte //the buffer after the main key is encoded with prefix
 	mBuf     []byte //the value after the main key is encoded
 }
 
-func NewSoBlockSummaryObjectWrap(dba iservices.IDatabaseService, key *uint32) *SoBlockSummaryObjectWrap {
+func NewSoBlockSummaryObjectWrap(dba iservices.IDatabaseRW, key *uint32) *SoBlockSummaryObjectWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
@@ -580,10 +580,10 @@ func (s *SoBlockSummaryObjectWrap) insertUniKeyId(sa *SoBlockSummaryObject) bool
 }
 
 type UniBlockSummaryObjectIdWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewUniBlockSummaryObjectIdWrap(db iservices.IDatabaseService) *UniBlockSummaryObjectIdWrap {
+func NewUniBlockSummaryObjectIdWrap(db iservices.IDatabaseRW) *UniBlockSummaryObjectIdWrap {
 	if db == nil {
 		return nil
 	}

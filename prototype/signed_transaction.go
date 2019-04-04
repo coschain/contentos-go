@@ -168,6 +168,10 @@ func (tx *SignedTransaction) Deserialization(source *common.ZeroCopySource) erro
 	return nil
 }
 
+func (tx *SignedTransaction) GetAffectedProps(props *map[string]bool) {
+	tx.Trx.GetAffectedProps(props)
+}
+
 func (tx *SignedTransaction) GetOpCreatorsMap() map[string]bool  {
 	usrMap := map[string]bool{}
 	trx := tx.GetTrx()

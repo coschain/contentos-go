@@ -22,14 +22,14 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoExtUserPostWrap struct {
-	dba      iservices.IDatabaseService
+	dba      iservices.IDatabaseRW
 	mainKey  *uint64
 	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
 	mKeyBuf  []byte //the buffer after the main key is encoded with prefix
 	mBuf     []byte //the value after the main key is encoded
 }
 
-func NewSoExtUserPostWrap(dba iservices.IDatabaseService, key *uint64) *SoExtUserPostWrap {
+func NewSoExtUserPostWrap(dba iservices.IDatabaseRW, key *uint64) *SoExtUserPostWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
@@ -476,10 +476,10 @@ func (s *SoExtUserPostWrap) GetPostId() uint64 {
 
 ////////////// SECTION List Keys ///////////////
 type SExtUserPostPostCreatedOrderWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewExtUserPostPostCreatedOrderWrap(db iservices.IDatabaseService) *SExtUserPostPostCreatedOrderWrap {
+func NewExtUserPostPostCreatedOrderWrap(db iservices.IDatabaseRW) *SExtUserPostPostCreatedOrderWrap {
 	if db == nil {
 		return nil
 	}
@@ -853,10 +853,10 @@ func (s *SoExtUserPostWrap) insertUniKeyPostId(sa *SoExtUserPost) bool {
 }
 
 type UniExtUserPostPostIdWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewUniExtUserPostPostIdWrap(db iservices.IDatabaseService) *UniExtUserPostPostIdWrap {
+func NewUniExtUserPostPostIdWrap(db iservices.IDatabaseRW) *UniExtUserPostPostIdWrap {
 	if db == nil {
 		return nil
 	}

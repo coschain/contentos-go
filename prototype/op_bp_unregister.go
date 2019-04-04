@@ -17,3 +17,7 @@ func (m *BpUnregisterOperation) Validate() error {
 	}
 	return nil
 }
+
+func (m *BpUnregisterOperation) GetAffectedProps(props *map[string]bool) {
+	(*props)["*"] = true
+}

@@ -41,14 +41,14 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoAccountWrap struct {
-	dba      iservices.IDatabaseService
+	dba      iservices.IDatabaseRW
 	mainKey  *prototype.AccountName
 	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
 	mKeyBuf  []byte //the buffer after the main key is encoded with prefix
 	mBuf     []byte //the value after the main key is encoded
 }
 
-func NewSoAccountWrap(dba iservices.IDatabaseService, key *prototype.AccountName) *SoAccountWrap {
+func NewSoAccountWrap(dba iservices.IDatabaseRW, key *prototype.AccountName) *SoAccountWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
@@ -2135,10 +2135,10 @@ func (s *SoAccountWrap) MdVotePower(p uint32) bool {
 
 ////////////// SECTION List Keys ///////////////
 type SAccountCreatedTimeWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewAccountCreatedTimeWrap(db iservices.IDatabaseService) *SAccountCreatedTimeWrap {
+func NewAccountCreatedTimeWrap(db iservices.IDatabaseRW) *SAccountCreatedTimeWrap {
 	if db == nil {
 		return nil
 	}
@@ -2276,10 +2276,10 @@ func (s *SAccountCreatedTimeWrap) ForEachByOrder(start *prototype.TimePointSec, 
 
 ////////////// SECTION List Keys ///////////////
 type SAccountBalanceWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewAccountBalanceWrap(db iservices.IDatabaseService) *SAccountBalanceWrap {
+func NewAccountBalanceWrap(db iservices.IDatabaseRW) *SAccountBalanceWrap {
 	if db == nil {
 		return nil
 	}
@@ -2479,10 +2479,10 @@ func (s *SAccountBalanceWrap) ForEachByRevOrder(start *prototype.Coin, end *prot
 
 ////////////// SECTION List Keys ///////////////
 type SAccountVestingSharesWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewAccountVestingSharesWrap(db iservices.IDatabaseService) *SAccountVestingSharesWrap {
+func NewAccountVestingSharesWrap(db iservices.IDatabaseRW) *SAccountVestingSharesWrap {
 	if db == nil {
 		return nil
 	}
@@ -2620,10 +2620,10 @@ func (s *SAccountVestingSharesWrap) ForEachByOrder(start *prototype.Vest, end *p
 
 ////////////// SECTION List Keys ///////////////
 type SAccountBpVoteCountWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewAccountBpVoteCountWrap(db iservices.IDatabaseService) *SAccountBpVoteCountWrap {
+func NewAccountBpVoteCountWrap(db iservices.IDatabaseRW) *SAccountBpVoteCountWrap {
 	if db == nil {
 		return nil
 	}
@@ -2759,10 +2759,10 @@ func (s *SAccountBpVoteCountWrap) ForEachByOrder(start *uint32, end *uint32, las
 
 ////////////// SECTION List Keys ///////////////
 type SAccountPostCountWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewAccountPostCountWrap(db iservices.IDatabaseService) *SAccountPostCountWrap {
+func NewAccountPostCountWrap(db iservices.IDatabaseRW) *SAccountPostCountWrap {
 	if db == nil {
 		return nil
 	}
@@ -2898,10 +2898,10 @@ func (s *SAccountPostCountWrap) ForEachByOrder(start *uint32, end *uint32, lastM
 
 ////////////// SECTION List Keys ///////////////
 type SAccountCreatedTrxCountWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewAccountCreatedTrxCountWrap(db iservices.IDatabaseService) *SAccountCreatedTrxCountWrap {
+func NewAccountCreatedTrxCountWrap(db iservices.IDatabaseRW) *SAccountCreatedTrxCountWrap {
 	if db == nil {
 		return nil
 	}
@@ -3357,10 +3357,10 @@ func (s *SoAccountWrap) insertUniKeyName(sa *SoAccount) bool {
 }
 
 type UniAccountNameWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewUniAccountNameWrap(db iservices.IDatabaseService) *UniAccountNameWrap {
+func NewUniAccountNameWrap(db iservices.IDatabaseRW) *UniAccountNameWrap {
 	if db == nil {
 		return nil
 	}

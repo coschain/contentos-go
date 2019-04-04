@@ -105,7 +105,7 @@ type SABFT struct {
 	validators    []*publicValidator
 	priv          *privateValidator
 	bft           *gobft.Core
-	lastCommitted *message.Commit
+	lastCommitted atomic.Value
 	suffledID     common.BlockID
 	appState      *message.AppState
 	bftStarted    uint32
@@ -633,16 +633,10 @@ func (sabft *SABFT) verifyCommitSig(records *message.Commit) bool {
 }
 
 func (sabft *SABFT) CheckCommittedAlready(id common.BlockID) bool {
-	sabft.RLock()
-	defer sabft.RUnlock()
-
-	return sabft.checkCommittedAlready(id)
-}
-
-func (sabft *SABFT) checkCommittedAlready(id common.BlockID) bool {
-	if sabft.lastCommitted != nil {
+	lastCommitted := sabft.lastCommitted.Load()
+	if lastCommitted != nil {
 		oldID := common.BlockID{
-			Data: sabft.lastCommitted.ProposedData,
+			Data: lastCommitted.(*message.Commit).ProposedData,
 		}
 		if oldID.BlockNum() >= id.BlockNum() {
 			return true
@@ -821,13 +815,12 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 }
 
 func (sabft *SABFT) GetLastBFTCommit() interface{} {
-	sabft.RLock()
-	defer sabft.RUnlock()
+	lastCommitted := sabft.lastCommitted.Load()
 
-	if sabft.lastCommitted == nil {
+	if lastCommitted == nil {
 		return nil
 	}
-	return sabft.lastCommitted
+	return lastCommitted.(*message.Commit)
 }
 
 func (sabft *SABFT) GetNextBFTCheckPoint(blockNum uint64) interface{} {
@@ -843,14 +836,12 @@ func (sabft *SABFT) GetNextBFTCheckPoint(blockNum uint64) interface{} {
 }
 
 func (sabft *SABFT) GetLIB() common.BlockID {
-	sabft.RLock()
-	defer sabft.RUnlock()
-
-	if sabft.lastCommitted == nil {
+	lastCommitted := sabft.lastCommitted.Load()
+	if lastCommitted == nil {
 		return common.EmptyBlockID
 	}
 	return common.BlockID{
-		Data: sabft.lastCommitted.ProposedData,
+		Data: lastCommitted.(*message.Commit).ProposedData,
 	}
 }
 
@@ -923,7 +914,7 @@ func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 
 	sabft.ctrl.Commit(blockID.BlockNum())
 	sabft.ForkDB.Commit(blockID)
-	sabft.lastCommitted = commitRecords
+	sabft.lastCommitted.Store(commitRecords)
 
 	sabft.log.Debug("[SABFT] committed block #", blockID)
 	return nil

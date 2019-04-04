@@ -20,14 +20,14 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoWitnessScheduleObjectWrap struct {
-	dba      iservices.IDatabaseService
+	dba      iservices.IDatabaseRW
 	mainKey  *int32
 	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
 	mKeyBuf  []byte //the buffer after the main key is encoded with prefix
 	mBuf     []byte //the value after the main key is encoded
 }
 
-func NewSoWitnessScheduleObjectWrap(dba iservices.IDatabaseService, key *int32) *SoWitnessScheduleObjectWrap {
+func NewSoWitnessScheduleObjectWrap(dba iservices.IDatabaseRW, key *int32) *SoWitnessScheduleObjectWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
@@ -579,10 +579,10 @@ func (s *SoWitnessScheduleObjectWrap) insertUniKeyId(sa *SoWitnessScheduleObject
 }
 
 type UniWitnessScheduleObjectIdWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewUniWitnessScheduleObjectIdWrap(db iservices.IDatabaseService) *UniWitnessScheduleObjectIdWrap {
+func NewUniWitnessScheduleObjectIdWrap(db iservices.IDatabaseRW) *UniWitnessScheduleObjectIdWrap {
 	if db == nil {
 		return nil
 	}

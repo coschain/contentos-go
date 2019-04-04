@@ -52,3 +52,21 @@ func (m *Transaction) AddOperation(op interface{}) {
 	res := GetPbOperation(op)
 	m.Operations = append(m.Operations, res)
 }
+
+// GetAffectedProps sets affected properties into given map.
+func (tx *Transaction) GetAffectedProps(props *map[string]bool) {
+	// collect affected props from each operation
+	p := make(map[string]bool)
+	for _, op := range tx.GetOperations() {
+		GetBaseOperation(op).GetAffectedProps(&p)
+	}
+	if p["*"] {
+		// "*" means everything. we don't need other props if "*" is found.
+		(*props)["*"] = true
+	} else {
+		// otherwise, copy props.
+		for k, v := range p {
+			(*props)[k] = v
+		}
+	}
+}

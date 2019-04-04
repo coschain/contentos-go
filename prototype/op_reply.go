@@ -28,3 +28,7 @@ func (m *ReplyOperation) Validate() error {
 
 	return nil
 }
+
+func (m *ReplyOperation) GetAffectedProps(props *map[string]bool) {
+	(*props)["*"] = true
+}

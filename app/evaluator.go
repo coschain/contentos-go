@@ -158,7 +158,7 @@ func (ev *AccountCreateEvaluator) Apply() {
 
 	// sub dynamic glaobal properties's total fee
 	ev.ctx.control.TransferToVest(op.Fee)
-	ev.ctx.control.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
+	ev.ctx.control.ModifyProps(func(props *prototype.DynamicProperties) {
 		props.TotalUserCnt++
 	})
 }
@@ -214,7 +214,7 @@ func (ev *PostEvaluator) Apply() {
 
 	authorWrap.MdLastPostTime(ev.ctx.control.HeadBlockTime())
 
-	ev.ctx.control.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
+	ev.ctx.control.ModifyProps(func(props *prototype.DynamicProperties) {
 		props.TotalPostCnt++
 	})
 
@@ -686,7 +686,7 @@ func (ev *ContractApplyEvaluator) Apply() {
 		tables = ct.NewContractTables(op.Owner.Value, op.Contract, abiInterface, ev.ctx.db)
 	}
 
-	vmCtx := vmcontext.NewContextFromApplyOp(op, paramsData, code, abiInterface, tables, ev.ctx.trxCtx)
+	vmCtx := vmcontext.NewContextFromApplyOp(op, paramsData, code, abiInterface, tables, ev.ctx.vmInjector)
 	// should be active ?
 	//defer func() {
 	//	_ := recover()
@@ -699,6 +699,10 @@ func (ev *ContractApplyEvaluator) Apply() {
 	// need extra query db, is it a good way or should I pass account object as parameter?
 	// deductgasfee and usertranfer could be panic (rarely, I can't image how it happens)
 	// the panic should catch then return or bubble it ?
+
+	// TODO merge, temp fix
+	opAssertE(err, "execute vm error")
+
 	vmCtx.Injector.DeductGasFee(op.Caller.Value, spentGas)
 	if err != nil {
 		vmCtx.Injector.Error(ret, err.Error())
@@ -746,7 +750,7 @@ func (ev *InternalContractApplyEvaluator) Apply() {
 		tables = ct.NewContractTables(op.ToOwner.Value, op.ToContract, abiInterface, ev.ctx.db)
 	}
 
-	vmCtx := vmcontext.NewContextFromInternalApplyOp(op, code, abiInterface, tables, ev.ctx.trxCtx)
+	vmCtx := vmcontext.NewContextFromInternalApplyOp(op, code, abiInterface, tables, ev.ctx.vmInjector)
 	cosVM := vm.NewCosVM(vmCtx, ev.ctx.db, ev.ctx.control.GetProps(), logrus.New())
 	ret, err := cosVM.Run()
 

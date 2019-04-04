@@ -32,14 +32,14 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoWitnessWrap struct {
-	dba      iservices.IDatabaseService
+	dba      iservices.IDatabaseRW
 	mainKey  *prototype.AccountName
 	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
 	mKeyBuf  []byte //the buffer after the main key is encoded with prefix
 	mBuf     []byte //the value after the main key is encoded
 }
 
-func NewSoWitnessWrap(dba iservices.IDatabaseService, key *prototype.AccountName) *SoWitnessWrap {
+func NewSoWitnessWrap(dba iservices.IDatabaseRW, key *prototype.AccountName) *SoWitnessWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
@@ -1388,10 +1388,10 @@ func (s *SoWitnessWrap) MdVoteCount(p uint64) bool {
 
 ////////////// SECTION List Keys ///////////////
 type SWitnessOwnerWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewWitnessOwnerWrap(db iservices.IDatabaseService) *SWitnessOwnerWrap {
+func NewWitnessOwnerWrap(db iservices.IDatabaseRW) *SWitnessOwnerWrap {
 	if db == nil {
 		return nil
 	}
@@ -1529,10 +1529,10 @@ func (s *SWitnessOwnerWrap) ForEachByOrder(start *prototype.AccountName, end *pr
 
 ////////////// SECTION List Keys ///////////////
 type SWitnessVoteCountWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewWitnessVoteCountWrap(db iservices.IDatabaseService) *SWitnessVoteCountWrap {
+func NewWitnessVoteCountWrap(db iservices.IDatabaseRW) *SWitnessVoteCountWrap {
 	if db == nil {
 		return nil
 	}
@@ -1842,10 +1842,10 @@ func (s *SoWitnessWrap) insertUniKeyOwner(sa *SoWitness) bool {
 }
 
 type UniWitnessOwnerWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewUniWitnessOwnerWrap(db iservices.IDatabaseService) *UniWitnessOwnerWrap {
+func NewUniWitnessOwnerWrap(db iservices.IDatabaseRW) *UniWitnessOwnerWrap {
 	if db == nil {
 		return nil
 	}

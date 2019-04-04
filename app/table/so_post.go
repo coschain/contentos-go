@@ -37,14 +37,14 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoPostWrap struct {
-	dba      iservices.IDatabaseService
+	dba      iservices.IDatabaseRW
 	mainKey  *uint64
 	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
 	mKeyBuf  []byte //the buffer after the main key is encoded with prefix
 	mBuf     []byte //the value after the main key is encoded
 }
 
-func NewSoPostWrap(dba iservices.IDatabaseService, key *uint64) *SoPostWrap {
+func NewSoPostWrap(dba iservices.IDatabaseRW, key *uint64) *SoPostWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
@@ -1849,10 +1849,10 @@ func (s *SoPostWrap) MdWeightedVp(p uint64) bool {
 
 ////////////// SECTION List Keys ///////////////
 type SPostCreatedWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewPostCreatedWrap(db iservices.IDatabaseService) *SPostCreatedWrap {
+func NewPostCreatedWrap(db iservices.IDatabaseRW) *SPostCreatedWrap {
 	if db == nil {
 		return nil
 	}
@@ -2051,10 +2051,10 @@ func (s *SPostCreatedWrap) ForEachByRevOrder(start *prototype.TimePointSec, end 
 
 ////////////// SECTION List Keys ///////////////
 type SPostCashoutTimeWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewPostCashoutTimeWrap(db iservices.IDatabaseService) *SPostCashoutTimeWrap {
+func NewPostCashoutTimeWrap(db iservices.IDatabaseRW) *SPostCashoutTimeWrap {
 	if db == nil {
 		return nil
 	}
@@ -2366,10 +2366,10 @@ func (s *SoPostWrap) insertUniKeyPostId(sa *SoPost) bool {
 }
 
 type UniPostPostIdWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewUniPostPostIdWrap(db iservices.IDatabaseService) *UniPostPostIdWrap {
+func NewUniPostPostIdWrap(db iservices.IDatabaseRW) *UniPostPostIdWrap {
 	if db == nil {
 		return nil
 	}

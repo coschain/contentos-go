@@ -232,3 +232,7 @@ func (s *DatabaseService) RLock() {
 func (s *DatabaseService) RUnlock() {
 	s.lock.RUnlock()
 }
+
+func (s *DatabaseService) NewPatch() iservices.IDatabasePatch {
+	return NewDatabasePatch(s.tdb)
+}

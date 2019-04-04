@@ -35,14 +35,14 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoDemoWrap struct {
-	dba      iservices.IDatabaseService
+	dba      iservices.IDatabaseRW
 	mainKey  *prototype.AccountName
 	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
 	mKeyBuf  []byte //the buffer after the main key is encoded with prefix
 	mBuf     []byte //the value after the main key is encoded
 }
 
-func NewSoDemoWrap(dba iservices.IDatabaseService, key *prototype.AccountName) *SoDemoWrap {
+func NewSoDemoWrap(dba iservices.IDatabaseRW, key *prototype.AccountName) *SoDemoWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
@@ -1424,10 +1424,10 @@ func (s *SoDemoWrap) MdTitle(p string) bool {
 
 ////////////// SECTION List Keys ///////////////
 type SDemoOwnerWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewDemoOwnerWrap(db iservices.IDatabaseService) *SDemoOwnerWrap {
+func NewDemoOwnerWrap(db iservices.IDatabaseRW) *SDemoOwnerWrap {
 	if db == nil {
 		return nil
 	}
@@ -1560,10 +1560,10 @@ func (s *SDemoOwnerWrap) ForEachByRevOrder(start *prototype.AccountName, end *pr
 
 ////////////// SECTION List Keys ///////////////
 type SDemoPostTimeWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewDemoPostTimeWrap(db iservices.IDatabaseService) *SDemoPostTimeWrap {
+func NewDemoPostTimeWrap(db iservices.IDatabaseRW) *SDemoPostTimeWrap {
 	if db == nil {
 		return nil
 	}
@@ -1763,10 +1763,10 @@ func (s *SDemoPostTimeWrap) ForEachByRevOrder(start *prototype.TimePointSec, end
 
 ////////////// SECTION List Keys ///////////////
 type SDemoLikeCountWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewDemoLikeCountWrap(db iservices.IDatabaseService) *SDemoLikeCountWrap {
+func NewDemoLikeCountWrap(db iservices.IDatabaseRW) *SDemoLikeCountWrap {
 	if db == nil {
 		return nil
 	}
@@ -1897,10 +1897,10 @@ func (s *SDemoLikeCountWrap) ForEachByRevOrder(start *int64, end *int64, lastMai
 
 ////////////// SECTION List Keys ///////////////
 type SDemoIdxWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewDemoIdxWrap(db iservices.IDatabaseService) *SDemoIdxWrap {
+func NewDemoIdxWrap(db iservices.IDatabaseRW) *SDemoIdxWrap {
 	if db == nil {
 		return nil
 	}
@@ -2031,10 +2031,10 @@ func (s *SDemoIdxWrap) ForEachByRevOrder(start *int64, end *int64, lastMainKey *
 
 ////////////// SECTION List Keys ///////////////
 type SDemoReplayCountWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewDemoReplayCountWrap(db iservices.IDatabaseService) *SDemoReplayCountWrap {
+func NewDemoReplayCountWrap(db iservices.IDatabaseRW) *SDemoReplayCountWrap {
 	if db == nil {
 		return nil
 	}
@@ -2170,10 +2170,10 @@ func (s *SDemoReplayCountWrap) ForEachByOrder(start *int64, end *int64, lastMain
 
 ////////////// SECTION List Keys ///////////////
 type SDemoTaglistWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewDemoTaglistWrap(db iservices.IDatabaseService) *SDemoTaglistWrap {
+func NewDemoTaglistWrap(db iservices.IDatabaseRW) *SDemoTaglistWrap {
 	if db == nil {
 		return nil
 	}
@@ -2517,10 +2517,10 @@ func (s *SoDemoWrap) insertUniKeyIdx(sa *SoDemo) bool {
 }
 
 type UniDemoIdxWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewUniDemoIdxWrap(db iservices.IDatabaseService) *UniDemoIdxWrap {
+func NewUniDemoIdxWrap(db iservices.IDatabaseRW) *UniDemoIdxWrap {
 	if db == nil {
 		return nil
 	}
@@ -2614,10 +2614,10 @@ func (s *SoDemoWrap) insertUniKeyLikeCount(sa *SoDemo) bool {
 }
 
 type UniDemoLikeCountWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewUniDemoLikeCountWrap(db iservices.IDatabaseService) *UniDemoLikeCountWrap {
+func NewUniDemoLikeCountWrap(db iservices.IDatabaseRW) *UniDemoLikeCountWrap {
 	if db == nil {
 		return nil
 	}
@@ -2714,10 +2714,10 @@ func (s *SoDemoWrap) insertUniKeyOwner(sa *SoDemo) bool {
 }
 
 type UniDemoOwnerWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewUniDemoOwnerWrap(db iservices.IDatabaseService) *UniDemoOwnerWrap {
+func NewUniDemoOwnerWrap(db iservices.IDatabaseRW) *UniDemoOwnerWrap {
 	if db == nil {
 		return nil
 	}

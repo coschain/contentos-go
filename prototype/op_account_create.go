@@ -38,3 +38,7 @@ func (a *AccountCreateOperation) Validate() error {
 
 	return nil
 }
+
+func (a *AccountCreateOperation) GetAffectedProps(props *map[string]bool) {
+	(*props)["*"] = true
+}

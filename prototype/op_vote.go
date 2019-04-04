@@ -22,3 +22,7 @@ func (m *VoteOperation) Validate() error {
 
 	return nil
 }
+
+func (m *VoteOperation) GetAffectedProps(props *map[string]bool) {
+	(*props)["*"] = true
+}

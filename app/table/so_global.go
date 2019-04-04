@@ -21,14 +21,14 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoGlobalWrap struct {
-	dba      iservices.IDatabaseService
+	dba      iservices.IDatabaseRW
 	mainKey  *int32
 	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
 	mKeyBuf  []byte //the buffer after the main key is encoded with prefix
 	mBuf     []byte //the value after the main key is encoded
 }
 
-func NewSoGlobalWrap(dba iservices.IDatabaseService, key *int32) *SoGlobalWrap {
+func NewSoGlobalWrap(dba iservices.IDatabaseRW, key *int32) *SoGlobalWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
@@ -580,10 +580,10 @@ func (s *SoGlobalWrap) insertUniKeyId(sa *SoGlobal) bool {
 }
 
 type UniGlobalIdWrap struct {
-	Dba iservices.IDatabaseService
+	Dba iservices.IDatabaseRW
 }
 
-func NewUniGlobalIdWrap(db iservices.IDatabaseService) *UniGlobalIdWrap {
+func NewUniGlobalIdWrap(db iservices.IDatabaseRW) *UniGlobalIdWrap {
 	if db == nil {
 		return nil
 	}

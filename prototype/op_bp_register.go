@@ -25,3 +25,7 @@ func (m *BpRegisterOperation) Validate() error {
 	// TODO chain property valid check
 	return nil
 }
+
+func (m *BpRegisterOperation) GetAffectedProps(props *map[string]bool) {
+	(*props)["*"] = true
+}
