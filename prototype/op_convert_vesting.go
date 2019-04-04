@@ -18,3 +18,7 @@ func (t *ConvertVestingOperation) Validate() error {
 	}
 	return nil
 }
+
+func (m *ConvertVestingOperation) GetAffectedProps(props *map[string]bool) {
+	(*props)["*"] = true
+}

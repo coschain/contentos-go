@@ -26,18 +26,19 @@ func TestEconomist_Mint(t *testing.T) {
 	myassert.Equal(prop1.ReplyRewards.Value, uint64(0))
 	var SingleId int32 = 1
 	eco := Economist{dande.GetDB(), EventBus.New(), &SingleId, logrus.New()}
+	bp, _ := eco.GetAccount(&prototype.AccountName{Value: "initminer"})
 	eco.Mint()
 	prop2 := dande.GetProps()
-	myassert.Equal(prop2.PostRewards.Value, uint64(2237442))
+	myassert.Equal(prop2.PostRewards.Value, uint64(2397260))
 	myassert.Equal(prop2.ReplyRewards.Value, uint64(479452))
-	keeper, _ := eco.GetRewardsKeeper()
-	myassert.Equal(keeper.Rewards["initminer"].Value, uint64(639270))
+	myassert.Equal(bp.GetVestingShares().Value, uint64(640270))
 	eco.Mint()
 	prop3 := dande.GetProps()
-	myassert.Equal(prop3.PostRewards.Value, uint64(4474884))
+	myassert.Equal(prop3.PostRewards.Value, uint64(4794520))
 	myassert.Equal(prop3.ReplyRewards.Value, uint64(958904))
-	keeper2, _ := eco.GetRewardsKeeper()
-	myassert.Equal(keeper2.Rewards["initminer"].Value, uint64(1278540))
+	//keeper2, _ := eco.GetRewardsKeeper()
+	//myassert.Equal(keeper2.Rewards["initminer"].Value, uint64(1278540))
+	myassert.Equal(bp.GetVestingShares().Value, uint64(1279540))
 }
 
 func TestEconomist_Do(t *testing.T) {
@@ -83,6 +84,7 @@ func TestEconomist_Do(t *testing.T) {
 	propsWrap.MdProps(props2)
 	//fmt.Println(postWrap.GetCashoutTime())
 	eco.Do()
-	keeper, _ := eco.GetRewardsKeeper()
-	myassert.Equal(keeper.Rewards["kochiya"].Value, uint64(333))
+	author, _ := eco.GetAccount(&prototype.AccountName{Value: "kochiya"})
+	myassert.Equal(author.GetVestingShares().Value, uint64(334))
+
 }
