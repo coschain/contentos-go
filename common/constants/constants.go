@@ -40,7 +40,9 @@ const (
 
 	PostInvalidId        = 0
 	PostMaxDepth         = 8
-	PostCashOutDelayTime = 60 * 60 * 24 * 7
+	//PostCashOutDelayTime = 60 * 60 * 24 * 7
+	// for rapidly cashout
+	PostCashOutDelayTime = 60 * 60
 	MaxBpVoteCount       = 30
 
 	BlocksPerDay = 24 * 60 * 60 / BlockInterval
@@ -56,7 +58,9 @@ const (
 
 	VoteLimitDuringRegenerate = 30
 
-	VpDecayTime = (60 * 60 * 24) * 15
+	// for rapidly decay
+	//VpDecayTime = (60 * 60 * 24) * 15
+	VpDecayTime = 60 * 60 * 3
 
 	TrxMaxExpirationTime = 60
 
