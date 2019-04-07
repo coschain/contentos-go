@@ -11,23 +11,27 @@ import (
 )
 
 type TaposChecker struct {
-	db iservices.IDatabaseRW
-	blockIds [common.TaposMaxBlockCount][]byte
-	lastBlock uint64
-	lock sync.RWMutex
-	log *logrus.Logger
+	db        iservices.IDatabaseRW						// the database
+	log       *logrus.Logger							// the logger
+	blockIds  [common.TaposMaxBlockCount][]byte			// recent block ids
+	lastBlock uint64									// latest block number
+	lock      sync.RWMutex								// for thread safety
+
 }
 
+// NewTaposChecker creates an instance of TaposChecker
 func NewTaposChecker(db iservices.IDatabaseRW, logger *logrus.Logger, lastBlock uint64) *TaposChecker {
 	c := &TaposChecker{
-		db: db,
-		log: logger,
+		db:        db,
+		log:       logger,
 		lastBlock: lastBlock,
 	}
+	// load all recent block ids from database
 	_ = c.loadAllBlockIds()
 	return c
 }
 
+// loadBlockId loads ids of given block range.
 func (c *TaposChecker) loadBlockId(fromBlockNum, toBlockNum uint64) error {
 	c.log.Debugf("TAPOS: load block refs [%d, %d]", common.TaposRefBlockNum(fromBlockNum), common.TaposRefBlockNum(toBlockNum))
 	for i := fromBlockNum; i <= toBlockNum; i++ {
@@ -41,11 +45,12 @@ func (c *TaposChecker) loadBlockId(fromBlockNum, toBlockNum uint64) error {
 	return nil
 }
 
+// loadAllBlockIds loads all recent block ids.
 func (c *TaposChecker) loadAllBlockIds() error {
 	return c.loadBlockId(1, common.TaposMaxBlockCount)
 }
 
-
+// Check checks if given transaction's tapos data is valid.
 func (c *TaposChecker) Check(trx *prototype.Transaction) error {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
@@ -56,6 +61,7 @@ func (c *TaposChecker) Check(trx *prototype.Transaction) error {
 	return nil
 }
 
+// BlockApplied *MUST* be called *AFTER* a block was successfully applied.
 func (c *TaposChecker) BlockApplied(b *prototype.SignedBlock) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -64,14 +70,16 @@ func (c *TaposChecker) BlockApplied(b *prototype.SignedBlock) {
 	if blockNum > c.lastBlock {
 		count := blockNum - c.lastBlock
 		if count < common.TaposMaxBlockCount {
-			_ = c.loadBlockId(c.lastBlock + 1, blockNum)
+			_ = c.loadBlockId(c.lastBlock+1, blockNum)
 		} else {
 			_ = c.loadAllBlockIds()
 		}
+		// fix latest block number
 		c.lastBlock = blockNum
 	}
 }
 
+// BlockReverted *MUST* be called *AFTER* a block was successfully reverted.
 func (c *TaposChecker) BlockReverted(blockNum uint64) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -83,10 +91,12 @@ func (c *TaposChecker) BlockReverted(blockNum uint64) {
 		} else {
 			_ = c.loadAllBlockIds()
 		}
+		// fix latest block number
 		c.lastBlock = blockNum - 1
 	}
 }
 
+// BlockCommitted *MUST* be called *AFTER* a block was successfully committed.
 func (c *TaposChecker) BlockCommitted(blockNum uint64) {
 
 }

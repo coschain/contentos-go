@@ -343,7 +343,7 @@ func (c *TrxPool) generateBlockNoLock(witness string, pre *prototype.Sha256, tim
 	mustSuccess(proto.Size(signBlock) <= constants.MaxBlockSize, "block size too big")
 
 	if len(failedTrx) > 0 {
-		c.tm.ReturnTrx(true, failedTrx...)
+		c.tm.ReturnTrx(failedTrx...)
 		failedTrx = failedTrx[:0]
 	}
 
