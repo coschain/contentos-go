@@ -232,15 +232,15 @@ func (m *TrxMgr) WaitingCount() int {
 // FetchTrx fetches a batch of transactions from waiting pool.
 // Block producer should call FetchTrx to collect transactions of new blocks.
 func (m *TrxMgr) FetchTrx(blockTime uint32, maxCount, maxSize int) (entries []*TrxEntry) {
-	m.log.Debugf("TRXMGR: FetchTrx begin: maxCount=%d, maxSize=%d", maxCount, maxSize)
-	t0 := time.Now()
+	//m.log.Debugf("TRXMGR: FetchTrx begin: maxCount=%d, maxSize=%d", maxCount, maxSize)
+	//t0 := time.Now()
 	m.waitingLock.Lock()
 	defer m.waitingLock.Unlock()
 
 	m.fetchedLock.Lock()
 	defer m.fetchedLock.Unlock()
 
-	t1 := time.Now()
+	//t1 := time.Now()
 	counter, size := 0, 0
 	// traverse the waiting pool
 	for s, e := range m.waiting {
@@ -270,10 +270,10 @@ func (m *TrxMgr) FetchTrx(blockTime uint32, maxCount, maxSize int) (entries []*T
 		// remove from waiting pool
 		delete(m.waiting, s)
 	}
-	t2 := time.Now()
-	m.log.Debugf("TRXMGR: FetchTrx end: maxCount=%d, maxSize=%d, count=%d, size=%d, %v|%v|%v",
-		maxCount, maxSize, counter, size,
-		t2.Sub(t0), t1.Sub(t0), t2.Sub(t1))
+	//t2 := time.Now()
+	//m.log.Debugf("TRXMGR: FetchTrx end: maxCount=%d, maxSize=%d, count=%d, size=%d, %v|%v|%v",
+	//	maxCount, maxSize, counter, size,
+	//	t2.Sub(t0), t1.Sub(t0), t2.Sub(t1))
 	return
 }
 
