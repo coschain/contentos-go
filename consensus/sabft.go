@@ -711,13 +711,13 @@ func (sabft *SABFT) PushTransactionToPending(trx common.ISignedTransaction) erro
 	}
 
 	chanError := make(chan error)
-	sabft.pendingCh <- func() {
+	go func() {
 		err := sabft.ctrl.PushTrxToPending(trx.(*prototype.SignedTransaction))
 		if err == nil {
 			go sabft.p2p.Broadcast(trx.(*prototype.SignedTransaction))
 		}
 		chanError <- err
-	}
+	}()
 
 	return <-chanError
 }

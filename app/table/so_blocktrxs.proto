@@ -1,0 +1,28 @@
+
+syntax = "proto3";
+
+package table;
+
+option go_package = "github.com/coschain/contentos-go/app/table";
+
+
+message so_blocktrxs {
+	uint64                     block            =      1;
+    bytes                      trxs             =      2;
+      
+}
+
+
+message so_mem_blocktrxs_by_block {
+	uint64                  	block        = 1;
+}
+
+
+message so_mem_blocktrxs_by_trxs {
+	bytes                   	trxs         = 1;
+}
+
+
+message so_unique_blocktrxs_by_block {
+	uint64                  	block        = 1;
+}
