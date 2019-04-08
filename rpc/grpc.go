@@ -66,7 +66,7 @@ func (as *APIService) QueryTableContent(ctx context.Context, req *grpcpb.GetTabl
 	return res, nil
 }
 
-func (as *APIService) GetAccountByName(ctx context.Context, req *grpcpb.GetAccountByNameRequest) (*grpcpb.AccountResponse, error) {
+func (as *APIService) qGetAccountByName(ctx context.Context, req *grpcpb.GetAccountByNameRequest) (*grpcpb.AccountResponse, error) {
 	as.db.RLock()
 	defer as.db.RUnlock()
 
@@ -958,4 +958,17 @@ func (as *APIService) GetUserTrxListByTime(ctx context.Context, req *grpcpb.GetU
 	}
 	res.TrxList = trxList
 	return res,err
+}
+
+func (as *APIService) GetAccountCashout(ctx context.Context, req *grpcpb.GetAccountCashoutRequest) (*grpcpb.AccountCashoutResponse, error) {
+	as.db.RLock()
+	defer as.db.RUnlock()
+
+	cashOutWrap := table.NewSoExtCashoutWrap(as.db, &prototype.RewardCashoutId{Account:req.AccountName, BlockHeight:req.BlockHeight})
+
+	if cashOutWrap != nil && cashOutWrap.CheckExist() {
+		reward := cashOutWrap.GetReward()
+		return &grpcpb.AccountCashoutResponse{AccountName: req.AccountName, Reward: reward}, nil
+	}
+	return &grpcpb.AccountCashoutResponse{AccountName: req.AccountName, Reward: &prototype.Vest{Value: 0}}, nil
 }
