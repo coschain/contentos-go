@@ -964,10 +964,10 @@ func (as *APIService) GetAccountCashout(ctx context.Context, req *grpcpb.GetAcco
 	as.db.RLock()
 	defer as.db.RUnlock()
 
-	cashOutWrap := table.NewSoExtCashoutWrap(as.db, &prototype.RewardCashoutId{Account:req.AccountName, BlockHeight:req.BlockHeight})
+	rewardWrap := table.NewSoExtRewardWrap(as.db, &prototype.RewardCashoutId{Account:req.AccountName, PostId:req.PostId})
 
-	if cashOutWrap != nil && cashOutWrap.CheckExist() {
-		reward := cashOutWrap.GetReward()
+	if rewardWrap != nil && rewardWrap.CheckExist() {
+		reward := rewardWrap.GetReward()
 		return &grpcpb.AccountCashoutResponse{AccountName: req.AccountName, Reward: reward}, nil
 	}
 	return &grpcpb.AccountCashoutResponse{AccountName: req.AccountName, Reward: &prototype.Vest{Value: 0}}, nil
@@ -977,13 +977,13 @@ func (as *APIService) GetBlockCashout(ctx context.Context, req *grpcpb.GetBlockC
 	as.db.RLock()
 	defer as.db.RUnlock()
 	blockHeight := req.BlockHeight
-	cashoutWrap := table.NewExtCashoutBlockHeightWrap(as.db)
+	cashoutWrap := table.NewExtRewardBlockHeightWrap(as.db)
 	var cashouts []*grpcpb.AccountCashoutResponse
 	if cashoutWrap != nil {
 		start := blockHeight
 		end := blockHeight + 1
 		_ = cashoutWrap.ForEachByOrder(&start, &end, nil, nil, func(mVal *prototype.RewardCashoutId, sVal *uint64, idx uint32) bool {
-			cWrap := table.NewSoExtCashoutWrap(as.db, mVal)
+			cWrap := table.NewSoExtRewardWrap(as.db, mVal)
 			if cWrap != nil && cWrap.CheckExist() {
 				reward := cWrap.GetReward()
 				cashout := &grpcpb.AccountCashoutResponse{AccountName: mVal.Account, Reward: reward}

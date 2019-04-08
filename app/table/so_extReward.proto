@@ -8,7 +8,7 @@ option go_package = "github.com/coschain/contentos-go/app/table";
 import "prototype/multi_id.proto";
 import "prototype/type.proto";
 
-message so_extCashout {
+message so_extReward {
 	prototype.reward_cashout_id    id                   =      1;
     uint64                         block_height         =      2;
     prototype.vest                 reward               =      3;
@@ -16,27 +16,27 @@ message so_extCashout {
 }
 
 
-message so_mem_extCashout_by_id {
+message so_mem_extReward_by_id {
 	prototype.reward_cashout_id 	id               = 1;
 }
 
 
-message so_mem_extCashout_by_block_height {
+message so_mem_extReward_by_block_height {
 	uint64                      	block_height     = 1;
 }
 
 
-message so_mem_extCashout_by_reward {
+message so_mem_extReward_by_reward {
 	prototype.vest              	reward           = 1;
 }
 
 
-message so_list_extCashout_by_block_height {
+message so_list_extReward_by_block_height {
 	uint64                      	block_height     = 1;
 	prototype.reward_cashout_id 	id               = 2;
 }
 
 
-message so_unique_extCashout_by_id {
+message so_unique_extReward_by_id {
 	prototype.reward_cashout_id 	id               = 1;
 }

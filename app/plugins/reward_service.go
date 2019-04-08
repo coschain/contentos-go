@@ -51,14 +51,14 @@ func (p *RewardService) unhookEvent() {
 	p.ev.Unsubscribe(constants.NoticeCashout, p.onReward)
 }
 
-func (p *RewardService) onReward(name string, reward uint64, blockHeight uint64) {
-	exRewardWrap := table.NewSoExtCashoutWrap(p.db, &prototype.RewardCashoutId{Account:&prototype.AccountName{Value:name}, BlockHeight:blockHeight})
+func (p *RewardService) onReward(name string, postId uint64, reward uint64, blockHeight uint64) {
+	exRewardWrap := table.NewSoExtRewardWrap(p.db, &prototype.RewardCashoutId{Account:&prototype.AccountName{Value:name}, PostId:postId})
 	if exRewardWrap != nil {
 		if !exRewardWrap.CheckExist() {
-			_ = exRewardWrap.Create(func(tInfo *table.SoExtCashout) {
+			_ = exRewardWrap.Create(func(tInfo *table.SoExtReward) {
 				tInfo.Id = &prototype.RewardCashoutId{
 					Account:     &prototype.AccountName{Value: name},
-					BlockHeight: blockHeight,
+					PostId: postId,
 				}
 				tInfo.BlockHeight = blockHeight
 				tInfo.Reward = &prototype.Vest{Value: reward}

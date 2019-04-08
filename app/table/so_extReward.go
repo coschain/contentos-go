@@ -14,15 +14,15 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	ExtCashoutBlockHeightTable uint32 = 2077961991
-	ExtCashoutIdUniTable       uint32 = 694919221
-	ExtCashoutBlockHeightCell  uint32 = 824849405
-	ExtCashoutIdCell           uint32 = 4071408789
-	ExtCashoutRewardCell       uint32 = 316496097
+	ExtRewardBlockHeightTable uint32 = 82025141
+	ExtRewardIdUniTable       uint32 = 1999553764
+	ExtRewardBlockHeightCell  uint32 = 1670527665
+	ExtRewardIdCell           uint32 = 885470707
+	ExtRewardRewardCell       uint32 = 1285045296
 )
 
 ////////////// SECTION Wrap Define ///////////////
-type SoExtCashoutWrap struct {
+type SoExtRewardWrap struct {
 	dba      iservices.IDatabaseRW
 	mainKey  *prototype.RewardCashoutId
 	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
@@ -30,15 +30,15 @@ type SoExtCashoutWrap struct {
 	mBuf     []byte //the value after the main key is encoded
 }
 
-func NewSoExtCashoutWrap(dba iservices.IDatabaseRW, key *prototype.RewardCashoutId) *SoExtCashoutWrap {
+func NewSoExtRewardWrap(dba iservices.IDatabaseRW, key *prototype.RewardCashoutId) *SoExtRewardWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoExtCashoutWrap{dba, key, -1, nil, nil}
+	result := &SoExtRewardWrap{dba, key, -1, nil, nil}
 	return result
 }
 
-func (s *SoExtCashoutWrap) CheckExist() bool {
+func (s *SoExtRewardWrap) CheckExist() bool {
 	if s.dba == nil {
 		return false
 	}
@@ -66,14 +66,14 @@ func (s *SoExtCashoutWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoExtCashoutWrap) Create(f func(tInfo *SoExtCashout)) error {
+func (s *SoExtRewardWrap) Create(f func(tInfo *SoExtReward)) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
 	if s.mainKey == nil {
 		return errors.New("the main key is nil")
 	}
-	val := &SoExtCashout{}
+	val := &SoExtReward{}
 	f(val)
 	if val.Id == nil {
 		val.Id = s.mainKey
@@ -112,7 +112,7 @@ func (s *SoExtCashoutWrap) Create(f func(tInfo *SoExtCashout)) error {
 	return nil
 }
 
-func (s *SoExtCashoutWrap) getMainKeyBuf() ([]byte, error) {
+func (s *SoExtRewardWrap) getMainKeyBuf() ([]byte, error) {
 	if s.mainKey == nil {
 		return nil, errors.New("the main key is nil")
 	}
@@ -128,11 +128,11 @@ func (s *SoExtCashoutWrap) getMainKeyBuf() ([]byte, error) {
 
 ////////////// SECTION LKeys delete/insert ///////////////
 
-func (s *SoExtCashoutWrap) delSortKeyBlockHeight(sa *SoExtCashout) bool {
+func (s *SoExtRewardWrap) delSortKeyBlockHeight(sa *SoExtReward) bool {
 	if s.dba == nil || s.mainKey == nil {
 		return false
 	}
-	val := SoListExtCashoutByBlockHeight{}
+	val := SoListExtRewardByBlockHeight{}
 	if sa == nil {
 		key, err := s.encodeMemKey("BlockHeight")
 		if err != nil {
@@ -142,7 +142,7 @@ func (s *SoExtCashoutWrap) delSortKeyBlockHeight(sa *SoExtCashout) bool {
 		if err != nil {
 			return false
 		}
-		ori := &SoMemExtCashoutByBlockHeight{}
+		ori := &SoMemExtRewardByBlockHeight{}
 		err = proto.Unmarshal(buf, ori)
 		if err != nil {
 			return false
@@ -163,11 +163,11 @@ func (s *SoExtCashoutWrap) delSortKeyBlockHeight(sa *SoExtCashout) bool {
 	return ordErr == nil
 }
 
-func (s *SoExtCashoutWrap) insertSortKeyBlockHeight(sa *SoExtCashout) bool {
+func (s *SoExtRewardWrap) insertSortKeyBlockHeight(sa *SoExtReward) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
-	val := SoListExtCashoutByBlockHeight{}
+	val := SoListExtRewardByBlockHeight{}
 	val.Id = sa.Id
 	val.BlockHeight = sa.BlockHeight
 	buf, err := proto.Marshal(&val)
@@ -182,7 +182,7 @@ func (s *SoExtCashoutWrap) insertSortKeyBlockHeight(sa *SoExtCashout) bool {
 	return ordErr == nil
 }
 
-func (s *SoExtCashoutWrap) delAllSortKeys(br bool, val *SoExtCashout) bool {
+func (s *SoExtRewardWrap) delAllSortKeys(br bool, val *SoExtReward) bool {
 	if s.dba == nil {
 		return false
 	}
@@ -198,12 +198,12 @@ func (s *SoExtCashoutWrap) delAllSortKeys(br bool, val *SoExtCashout) bool {
 	return res
 }
 
-func (s *SoExtCashoutWrap) insertAllSortKeys(val *SoExtCashout) error {
+func (s *SoExtRewardWrap) insertAllSortKeys(val *SoExtReward) error {
 	if s.dba == nil {
 		return errors.New("insert sort Field fail,the db is nil ")
 	}
 	if val == nil {
-		return errors.New("insert sort Field fail,get the SoExtCashout fail ")
+		return errors.New("insert sort Field fail,get the SoExtReward fail ")
 	}
 	if !s.insertSortKeyBlockHeight(val) {
 		return errors.New("insert sort Field BlockHeight fail while insert table ")
@@ -214,11 +214,11 @@ func (s *SoExtCashoutWrap) insertAllSortKeys(val *SoExtCashout) error {
 
 ////////////// SECTION LKeys delete/insert //////////////
 
-func (s *SoExtCashoutWrap) RemoveExtCashout() bool {
+func (s *SoExtRewardWrap) RemoveExtReward() bool {
 	if s.dba == nil {
 		return false
 	}
-	val := &SoExtCashout{}
+	val := &SoExtReward{}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
 		return false
@@ -240,21 +240,21 @@ func (s *SoExtCashoutWrap) RemoveExtCashout() bool {
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
-func (s *SoExtCashoutWrap) getMemKeyPrefix(fName string) uint32 {
+func (s *SoExtRewardWrap) getMemKeyPrefix(fName string) uint32 {
 	if fName == "BlockHeight" {
-		return ExtCashoutBlockHeightCell
+		return ExtRewardBlockHeightCell
 	}
 	if fName == "Id" {
-		return ExtCashoutIdCell
+		return ExtRewardIdCell
 	}
 	if fName == "Reward" {
-		return ExtCashoutRewardCell
+		return ExtRewardRewardCell
 	}
 
 	return 0
 }
 
-func (s *SoExtCashoutWrap) encodeMemKey(fName string) ([]byte, error) {
+func (s *SoExtRewardWrap) encodeMemKey(fName string) ([]byte, error) {
 	if len(fName) < 1 || s.mainKey == nil {
 		return nil, errors.New("field name or main key is empty")
 	}
@@ -273,7 +273,7 @@ func (s *SoExtCashoutWrap) encodeMemKey(fName string) ([]byte, error) {
 	return kope.PackList(list), nil
 }
 
-func (s *SoExtCashoutWrap) saveAllMemKeys(tInfo *SoExtCashout, br bool) error {
+func (s *SoExtRewardWrap) saveAllMemKeys(tInfo *SoExtReward, br bool) error {
 	if s.dba == nil {
 		return errors.New("save member Field fail , the db is nil")
 	}
@@ -311,7 +311,7 @@ func (s *SoExtCashoutWrap) saveAllMemKeys(tInfo *SoExtCashout, br bool) error {
 	return err
 }
 
-func (s *SoExtCashoutWrap) delAllMemKeys(br bool, tInfo *SoExtCashout) error {
+func (s *SoExtRewardWrap) delAllMemKeys(br bool, tInfo *SoExtReward) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
@@ -335,7 +335,7 @@ func (s *SoExtCashoutWrap) delAllMemKeys(br bool, tInfo *SoExtCashout) error {
 	return nil
 }
 
-func (s *SoExtCashoutWrap) delMemKey(fName string) error {
+func (s *SoExtRewardWrap) delMemKey(fName string) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
@@ -350,14 +350,14 @@ func (s *SoExtCashoutWrap) delMemKey(fName string) error {
 	return err
 }
 
-func (s *SoExtCashoutWrap) saveMemKeyBlockHeight(tInfo *SoExtCashout) error {
+func (s *SoExtRewardWrap) saveMemKeyBlockHeight(tInfo *SoExtReward) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
 	if tInfo == nil {
 		return errors.New("the data is nil")
 	}
-	val := SoMemExtCashoutByBlockHeight{}
+	val := SoMemExtRewardByBlockHeight{}
 	val.BlockHeight = tInfo.BlockHeight
 	key, err := s.encodeMemKey("BlockHeight")
 	if err != nil {
@@ -371,9 +371,9 @@ func (s *SoExtCashoutWrap) saveMemKeyBlockHeight(tInfo *SoExtCashout) error {
 	return err
 }
 
-func (s *SoExtCashoutWrap) GetBlockHeight() uint64 {
+func (s *SoExtRewardWrap) GetBlockHeight() uint64 {
 	res := true
-	msg := &SoMemExtCashoutByBlockHeight{}
+	msg := &SoMemExtRewardByBlockHeight{}
 	if s.dba == nil {
 		res = false
 	} else {
@@ -400,7 +400,7 @@ func (s *SoExtCashoutWrap) GetBlockHeight() uint64 {
 	return msg.BlockHeight
 }
 
-func (s *SoExtCashoutWrap) MdBlockHeight(p uint64) bool {
+func (s *SoExtRewardWrap) MdBlockHeight(p uint64) bool {
 	if s.dba == nil {
 		return false
 	}
@@ -412,9 +412,9 @@ func (s *SoExtCashoutWrap) MdBlockHeight(p uint64) bool {
 	if err != nil {
 		return false
 	}
-	ori := &SoMemExtCashoutByBlockHeight{}
+	ori := &SoMemExtRewardByBlockHeight{}
 	err = proto.Unmarshal(buf, ori)
-	sa := &SoExtCashout{}
+	sa := &SoExtReward{}
 	sa.Id = s.mainKey
 
 	sa.BlockHeight = ori.BlockHeight
@@ -440,14 +440,14 @@ func (s *SoExtCashoutWrap) MdBlockHeight(p uint64) bool {
 	return true
 }
 
-func (s *SoExtCashoutWrap) saveMemKeyId(tInfo *SoExtCashout) error {
+func (s *SoExtRewardWrap) saveMemKeyId(tInfo *SoExtReward) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
 	if tInfo == nil {
 		return errors.New("the data is nil")
 	}
-	val := SoMemExtCashoutById{}
+	val := SoMemExtRewardById{}
 	val.Id = tInfo.Id
 	key, err := s.encodeMemKey("Id")
 	if err != nil {
@@ -461,9 +461,9 @@ func (s *SoExtCashoutWrap) saveMemKeyId(tInfo *SoExtCashout) error {
 	return err
 }
 
-func (s *SoExtCashoutWrap) GetId() *prototype.RewardCashoutId {
+func (s *SoExtRewardWrap) GetId() *prototype.RewardCashoutId {
 	res := true
-	msg := &SoMemExtCashoutById{}
+	msg := &SoMemExtRewardById{}
 	if s.dba == nil {
 		res = false
 	} else {
@@ -490,14 +490,14 @@ func (s *SoExtCashoutWrap) GetId() *prototype.RewardCashoutId {
 	return msg.Id
 }
 
-func (s *SoExtCashoutWrap) saveMemKeyReward(tInfo *SoExtCashout) error {
+func (s *SoExtRewardWrap) saveMemKeyReward(tInfo *SoExtReward) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
 	if tInfo == nil {
 		return errors.New("the data is nil")
 	}
-	val := SoMemExtCashoutByReward{}
+	val := SoMemExtRewardByReward{}
 	val.Reward = tInfo.Reward
 	key, err := s.encodeMemKey("Reward")
 	if err != nil {
@@ -511,9 +511,9 @@ func (s *SoExtCashoutWrap) saveMemKeyReward(tInfo *SoExtCashout) error {
 	return err
 }
 
-func (s *SoExtCashoutWrap) GetReward() *prototype.Vest {
+func (s *SoExtRewardWrap) GetReward() *prototype.Vest {
 	res := true
-	msg := &SoMemExtCashoutByReward{}
+	msg := &SoMemExtRewardByReward{}
 	if s.dba == nil {
 		res = false
 	} else {
@@ -540,7 +540,7 @@ func (s *SoExtCashoutWrap) GetReward() *prototype.Vest {
 	return msg.Reward
 }
 
-func (s *SoExtCashoutWrap) MdReward(p *prototype.Vest) bool {
+func (s *SoExtRewardWrap) MdReward(p *prototype.Vest) bool {
 	if s.dba == nil {
 		return false
 	}
@@ -552,9 +552,9 @@ func (s *SoExtCashoutWrap) MdReward(p *prototype.Vest) bool {
 	if err != nil {
 		return false
 	}
-	ori := &SoMemExtCashoutByReward{}
+	ori := &SoMemExtRewardByReward{}
 	err = proto.Unmarshal(buf, ori)
-	sa := &SoExtCashout{}
+	sa := &SoExtReward{}
 	sa.Id = s.mainKey
 
 	sa.Reward = ori.Reward
@@ -574,26 +574,26 @@ func (s *SoExtCashoutWrap) MdReward(p *prototype.Vest) bool {
 }
 
 ////////////// SECTION List Keys ///////////////
-type SExtCashoutBlockHeightWrap struct {
+type SExtRewardBlockHeightWrap struct {
 	Dba iservices.IDatabaseRW
 }
 
-func NewExtCashoutBlockHeightWrap(db iservices.IDatabaseRW) *SExtCashoutBlockHeightWrap {
+func NewExtRewardBlockHeightWrap(db iservices.IDatabaseRW) *SExtRewardBlockHeightWrap {
 	if db == nil {
 		return nil
 	}
-	wrap := SExtCashoutBlockHeightWrap{Dba: db}
+	wrap := SExtRewardBlockHeightWrap{Dba: db}
 	return &wrap
 }
 
-func (s *SExtCashoutBlockHeightWrap) DelIterator(iterator iservices.IDatabaseIterator) {
+func (s *SExtRewardBlockHeightWrap) DelIterator(iterator iservices.IDatabaseIterator) {
 	if iterator == nil {
 		return
 	}
 	s.Dba.DeleteIterator(iterator)
 }
 
-func (s *SExtCashoutBlockHeightWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.RewardCashoutId {
+func (s *SExtRewardBlockHeightWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.RewardCashoutId {
 	if iterator == nil || !iterator.Valid() {
 		return nil
 	}
@@ -603,7 +603,7 @@ func (s *SExtCashoutBlockHeightWrap) GetMainVal(iterator iservices.IDatabaseIter
 		return nil
 	}
 
-	res := &SoListExtCashoutByBlockHeight{}
+	res := &SoListExtRewardByBlockHeight{}
 	err = proto.Unmarshal(val, res)
 
 	if err != nil {
@@ -613,7 +613,7 @@ func (s *SExtCashoutBlockHeightWrap) GetMainVal(iterator iservices.IDatabaseIter
 
 }
 
-func (s *SExtCashoutBlockHeightWrap) GetSubVal(iterator iservices.IDatabaseIterator) *uint64 {
+func (s *SExtRewardBlockHeightWrap) GetSubVal(iterator iservices.IDatabaseIterator) *uint64 {
 	if iterator == nil || !iterator.Valid() {
 		return nil
 	}
@@ -623,7 +623,7 @@ func (s *SExtCashoutBlockHeightWrap) GetSubVal(iterator iservices.IDatabaseItera
 	if err != nil {
 		return nil
 	}
-	res := &SoListExtCashoutByBlockHeight{}
+	res := &SoListExtRewardByBlockHeight{}
 	err = proto.Unmarshal(val, res)
 	if err != nil {
 		return nil
@@ -632,8 +632,8 @@ func (s *SExtCashoutBlockHeightWrap) GetSubVal(iterator iservices.IDatabaseItera
 
 }
 
-func (m *SoListExtCashoutByBlockHeight) OpeEncode() ([]byte, error) {
-	pre := ExtCashoutBlockHeightTable
+func (m *SoListExtRewardByBlockHeight) OpeEncode() ([]byte, error) {
+	pre := ExtRewardBlockHeightTable
 	sub := m.BlockHeight
 
 	sub1 := m.Id
@@ -659,7 +659,7 @@ func (m *SoListExtCashoutByBlockHeight) OpeEncode() ([]byte, error) {
 //lastMainKey: the main key of the last one of last page
 //lastSubVal: the value  of the last one of last page
 //
-func (s *SExtCashoutBlockHeightWrap) ForEachByOrder(start *uint64, end *uint64, lastMainKey *prototype.RewardCashoutId,
+func (s *SExtRewardBlockHeightWrap) ForEachByOrder(start *uint64, end *uint64, lastMainKey *prototype.RewardCashoutId,
 	lastSubVal *uint64, f func(mVal *prototype.RewardCashoutId, sVal *uint64, idx uint32) bool) error {
 	if s.Dba == nil {
 		return errors.New("the db is nil")
@@ -670,7 +670,7 @@ func (s *SExtCashoutBlockHeightWrap) ForEachByOrder(start *uint64, end *uint64, 
 	if f == nil {
 		return nil
 	}
-	pre := ExtCashoutBlockHeightTable
+	pre := ExtRewardBlockHeightTable
 	skeyList := []interface{}{pre}
 	if start != nil {
 		skeyList = append(skeyList, start)
@@ -722,7 +722,7 @@ func (s *SExtCashoutBlockHeightWrap) ForEachByOrder(start *uint64, end *uint64, 
 //lastMainKey: the main key of the last one of last page
 //lastSubVal: the value  of the last one of last page
 //
-func (s *SExtCashoutBlockHeightWrap) ForEachByRevOrder(start *uint64, end *uint64, lastMainKey *prototype.RewardCashoutId,
+func (s *SExtRewardBlockHeightWrap) ForEachByRevOrder(start *uint64, end *uint64, lastMainKey *prototype.RewardCashoutId,
 	lastSubVal *uint64, f func(mVal *prototype.RewardCashoutId, sVal *uint64, idx uint32) bool) error {
 	if s.Dba == nil {
 		return errors.New("the db is nil")
@@ -733,7 +733,7 @@ func (s *SExtCashoutBlockHeightWrap) ForEachByRevOrder(start *uint64, end *uint6
 	if f == nil {
 		return nil
 	}
-	pre := ExtCashoutBlockHeightTable
+	pre := ExtRewardBlockHeightTable
 	skeyList := []interface{}{pre}
 	if start != nil {
 		skeyList = append(skeyList, start)
@@ -776,7 +776,7 @@ func (s *SExtCashoutBlockHeightWrap) ForEachByRevOrder(start *uint64, end *uint6
 
 /////////////// SECTION Private function ////////////////
 
-func (s *SoExtCashoutWrap) update(sa *SoExtCashout) bool {
+func (s *SoExtRewardWrap) update(sa *SoExtReward) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
@@ -793,7 +793,7 @@ func (s *SoExtCashoutWrap) update(sa *SoExtCashout) bool {
 	return s.dba.Put(keyBuf, buf) == nil
 }
 
-func (s *SoExtCashoutWrap) getExtCashout() *SoExtCashout {
+func (s *SoExtRewardWrap) getExtReward() *SoExtReward {
 	if s.dba == nil {
 		return nil
 	}
@@ -807,14 +807,14 @@ func (s *SoExtCashoutWrap) getExtCashout() *SoExtCashout {
 		return nil
 	}
 
-	res := &SoExtCashout{}
+	res := &SoExtReward{}
 	if proto.Unmarshal(resBuf, res) != nil {
 		return nil
 	}
 	return res
 }
 
-func (s *SoExtCashoutWrap) encodeMainKey() ([]byte, error) {
+func (s *SoExtRewardWrap) encodeMainKey() ([]byte, error) {
 	if s.mKeyBuf != nil {
 		return s.mKeyBuf, nil
 	}
@@ -840,7 +840,7 @@ func (s *SoExtCashoutWrap) encodeMainKey() ([]byte, error) {
 
 ////////////// Unique Query delete/insert/query ///////////////
 
-func (s *SoExtCashoutWrap) delAllUniKeys(br bool, val *SoExtCashout) bool {
+func (s *SoExtRewardWrap) delAllUniKeys(br bool, val *SoExtReward) bool {
 	if s.dba == nil {
 		return false
 	}
@@ -856,7 +856,7 @@ func (s *SoExtCashoutWrap) delAllUniKeys(br bool, val *SoExtCashout) bool {
 	return res
 }
 
-func (s *SoExtCashoutWrap) delUniKeysWithNames(names map[string]string, val *SoExtCashout) bool {
+func (s *SoExtRewardWrap) delUniKeysWithNames(names map[string]string, val *SoExtReward) bool {
 	if s.dba == nil {
 		return false
 	}
@@ -870,12 +870,12 @@ func (s *SoExtCashoutWrap) delUniKeysWithNames(names map[string]string, val *SoE
 	return res
 }
 
-func (s *SoExtCashoutWrap) insertAllUniKeys(val *SoExtCashout) (map[string]string, error) {
+func (s *SoExtRewardWrap) insertAllUniKeys(val *SoExtReward) (map[string]string, error) {
 	if s.dba == nil {
 		return nil, errors.New("insert uniuqe Field fail,the db is nil ")
 	}
 	if val == nil {
-		return nil, errors.New("insert uniuqe Field fail,get the SoExtCashout fail ")
+		return nil, errors.New("insert uniuqe Field fail,get the SoExtReward fail ")
 	}
 	sucFields := map[string]string{}
 	if !s.insertUniKeyId(val) {
@@ -886,11 +886,11 @@ func (s *SoExtCashoutWrap) insertAllUniKeys(val *SoExtCashout) (map[string]strin
 	return sucFields, nil
 }
 
-func (s *SoExtCashoutWrap) delUniKeyId(sa *SoExtCashout) bool {
+func (s *SoExtRewardWrap) delUniKeyId(sa *SoExtReward) bool {
 	if s.dba == nil {
 		return false
 	}
-	pre := ExtCashoutIdUniTable
+	pre := ExtRewardIdUniTable
 	kList := []interface{}{pre}
 	if sa != nil {
 
@@ -909,7 +909,7 @@ func (s *SoExtCashoutWrap) delUniKeyId(sa *SoExtCashout) bool {
 		if err != nil {
 			return false
 		}
-		ori := &SoMemExtCashoutById{}
+		ori := &SoMemExtRewardById{}
 		err = proto.Unmarshal(buf, ori)
 		if err != nil {
 			return false
@@ -925,11 +925,11 @@ func (s *SoExtCashoutWrap) delUniKeyId(sa *SoExtCashout) bool {
 	return s.dba.Delete(kBuf) == nil
 }
 
-func (s *SoExtCashoutWrap) insertUniKeyId(sa *SoExtCashout) bool {
+func (s *SoExtRewardWrap) insertUniKeyId(sa *SoExtReward) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
-	pre := ExtCashoutIdUniTable
+	pre := ExtRewardIdUniTable
 	sub := sa.Id
 	kList := []interface{}{pre, sub}
 	kBuf, err := kope.EncodeSlice(kList)
@@ -941,7 +941,7 @@ func (s *SoExtCashoutWrap) insertUniKeyId(sa *SoExtCashout) bool {
 		//the unique key is already exist
 		return false
 	}
-	val := SoUniqueExtCashoutById{}
+	val := SoUniqueExtRewardById{}
 	val.Id = sa.Id
 
 	buf, err := proto.Marshal(&val)
@@ -954,31 +954,31 @@ func (s *SoExtCashoutWrap) insertUniKeyId(sa *SoExtCashout) bool {
 
 }
 
-type UniExtCashoutIdWrap struct {
+type UniExtRewardIdWrap struct {
 	Dba iservices.IDatabaseRW
 }
 
-func NewUniExtCashoutIdWrap(db iservices.IDatabaseRW) *UniExtCashoutIdWrap {
+func NewUniExtRewardIdWrap(db iservices.IDatabaseRW) *UniExtRewardIdWrap {
 	if db == nil {
 		return nil
 	}
-	wrap := UniExtCashoutIdWrap{Dba: db}
+	wrap := UniExtRewardIdWrap{Dba: db}
 	return &wrap
 }
 
-func (s *UniExtCashoutIdWrap) UniQueryId(start *prototype.RewardCashoutId) *SoExtCashoutWrap {
+func (s *UniExtRewardIdWrap) UniQueryId(start *prototype.RewardCashoutId) *SoExtRewardWrap {
 	if start == nil || s.Dba == nil {
 		return nil
 	}
-	pre := ExtCashoutIdUniTable
+	pre := ExtRewardIdUniTable
 	kList := []interface{}{pre, start}
 	bufStartkey, err := kope.EncodeSlice(kList)
 	val, err := s.Dba.Get(bufStartkey)
 	if err == nil {
-		res := &SoUniqueExtCashoutById{}
+		res := &SoUniqueExtRewardById{}
 		rErr := proto.Unmarshal(val, res)
 		if rErr == nil {
-			wrap := NewSoExtCashoutWrap(s.Dba, res.Id)
+			wrap := NewSoExtRewardWrap(s.Dba, res.Id)
 
 			return wrap
 		}

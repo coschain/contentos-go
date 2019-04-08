@@ -110,7 +110,7 @@ message GetAccountByNameRequest {
 
 message GetAccountCashoutRequest{
     prototype.account_name account_name = 1;
-    uint64 block_height =  2;
+    uint64 post_id =  2;
 }
 
 message AccountCashoutResponse {

@@ -16,8 +16,9 @@ var CashoutCmd = func() *cobra.Command {
 	}
 
 	accountCmd := &cobra.Command{
-		Use: "account",
-		Short: "get account reward in block",
+		Use: "post",
+		Short: "get account reward in post",
+		Example: "cashout post [post_id] [author]",
 		Args: cobra.ExactArgs(2),
 		Run: cashout,
 	}
@@ -25,6 +26,7 @@ var CashoutCmd = func() *cobra.Command {
 	blockCmd := &cobra.Command{
 		Use:   "block",
 		Short: "get accounts info in block",
+		Example: "cashout block [block_id]",
 		Args:  cobra.ExactArgs(1),
 		Run:   cashoutBlock,
 	}
@@ -38,15 +40,16 @@ var CashoutCmd = func() *cobra.Command {
 func cashout(cmd *cobra.Command, args []string) {
 	c := cmd.Context["rpcclient"]
 	rpc := c.(grpcpb.ApiServiceClient)
-	name := args[0]
+	postIdStr := args[0]
+	name := args[1]
 
-	height, err := strconv.ParseUint(args[1], 10, 64)
+	postId, err := strconv.ParseUint(postIdStr, 10, 64)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	req := &grpcpb.GetAccountCashoutRequest{AccountName: &prototype.AccountName{Value: name},BlockHeight:height}
+	req := &grpcpb.GetAccountCashoutRequest{AccountName: &prototype.AccountName{Value: name}, PostId:postId}
 	resp, err := rpc.GetAccountCashout(context.Background(), req)
 	if err != nil {
 		fmt.Println(err)

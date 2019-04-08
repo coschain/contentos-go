@@ -71,7 +71,7 @@ message user_post_create_order {
 
 message reward_cashout_id {
     account_name  account = 1;
-    uint64        block_height = 2;
+    uint64        post_id = 2;
 }
 
 message user_trx_create_order {
