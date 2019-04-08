@@ -492,25 +492,9 @@ func NewExtFollowingFollowingCreatedOrderWrap(db iservices.IDatabaseRW) *SExtFol
 	return &wrap
 }
 
-func (s *SExtFollowingFollowingCreatedOrderWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil {
-		return
-	}
-	s.Dba.DeleteIterator(iterator)
-}
-
-func (s *SExtFollowingFollowingCreatedOrderWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.FollowingRelation {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
-
+func (s *SExtFollowingFollowingCreatedOrderWrap) GetMainVal(val []byte) *prototype.FollowingRelation {
 	res := &SoListExtFollowingByFollowingCreatedOrder{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 
 	if err != nil {
 		return nil
@@ -519,18 +503,9 @@ func (s *SExtFollowingFollowingCreatedOrderWrap) GetMainVal(iterator iservices.I
 
 }
 
-func (s *SExtFollowingFollowingCreatedOrderWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.FollowingCreatedOrder {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
+func (s *SExtFollowingFollowingCreatedOrderWrap) GetSubVal(val []byte) *prototype.FollowingCreatedOrder {
 	res := &SoListExtFollowingByFollowingCreatedOrder{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 	if err != nil {
 		return nil
 	}
@@ -605,18 +580,11 @@ func (s *SExtFollowingFollowingCreatedOrderWrap) ForEachByOrder(start *prototype
 	if cErr != nil {
 		return cErr
 	}
-	iterator := s.Dba.NewIterator(sBuf, eBuf)
-	if iterator == nil {
-		return errors.New("there is no data in range")
-	}
 	var idx uint32 = 0
-	for iterator.Next() {
+	s.Dba.Iterate(sBuf, eBuf, false, func(key, value []byte) bool {
 		idx++
-		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
-			break
-		}
-	}
-	s.DelIterator(iterator)
+		return f(s.GetMainVal(value), s.GetSubVal(value), idx)
+	})
 	return nil
 }
 

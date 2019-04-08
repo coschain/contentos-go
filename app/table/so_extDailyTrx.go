@@ -553,25 +553,9 @@ func NewExtDailyTrxDateWrap(db iservices.IDatabaseRW) *SExtDailyTrxDateWrap {
 	return &wrap
 }
 
-func (s *SExtDailyTrxDateWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil {
-		return
-	}
-	s.Dba.DeleteIterator(iterator)
-}
-
-func (s *SExtDailyTrxDateWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.TimePointSec {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
-
+func (s *SExtDailyTrxDateWrap) GetMainVal(val []byte) *prototype.TimePointSec {
 	res := &SoListExtDailyTrxByDate{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 
 	if err != nil {
 		return nil
@@ -580,18 +564,9 @@ func (s *SExtDailyTrxDateWrap) GetMainVal(iterator iservices.IDatabaseIterator) 
 
 }
 
-func (s *SExtDailyTrxDateWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.TimePointSec {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
+func (s *SExtDailyTrxDateWrap) GetSubVal(val []byte) *prototype.TimePointSec {
 	res := &SoListExtDailyTrxByDate{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 	if err != nil {
 		return nil
 	}
@@ -666,18 +641,11 @@ func (s *SExtDailyTrxDateWrap) ForEachByOrder(start *prototype.TimePointSec, end
 	if cErr != nil {
 		return cErr
 	}
-	iterator := s.Dba.NewIterator(sBuf, eBuf)
-	if iterator == nil {
-		return errors.New("there is no data in range")
-	}
 	var idx uint32 = 0
-	for iterator.Next() {
+	s.Dba.Iterate(sBuf, eBuf, false, func(key, value []byte) bool {
 		idx++
-		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
-			break
-		}
-	}
-	s.DelIterator(iterator)
+		return f(s.GetMainVal(value), s.GetSubVal(value), idx)
+	})
 	return nil
 }
 
@@ -694,25 +662,9 @@ func NewExtDailyTrxCountWrap(db iservices.IDatabaseRW) *SExtDailyTrxCountWrap {
 	return &wrap
 }
 
-func (s *SExtDailyTrxCountWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil {
-		return
-	}
-	s.Dba.DeleteIterator(iterator)
-}
-
-func (s *SExtDailyTrxCountWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.TimePointSec {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
-
+func (s *SExtDailyTrxCountWrap) GetMainVal(val []byte) *prototype.TimePointSec {
 	res := &SoListExtDailyTrxByCount{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 
 	if err != nil {
 		return nil
@@ -721,18 +673,9 @@ func (s *SExtDailyTrxCountWrap) GetMainVal(iterator iservices.IDatabaseIterator)
 
 }
 
-func (s *SExtDailyTrxCountWrap) GetSubVal(iterator iservices.IDatabaseIterator) *uint64 {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
+func (s *SExtDailyTrxCountWrap) GetSubVal(val []byte) *uint64 {
 	res := &SoListExtDailyTrxByCount{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 	if err != nil {
 		return nil
 	}
@@ -805,18 +748,11 @@ func (s *SExtDailyTrxCountWrap) ForEachByOrder(start *uint64, end *uint64, lastM
 	if cErr != nil {
 		return cErr
 	}
-	iterator := s.Dba.NewIterator(sBuf, eBuf)
-	if iterator == nil {
-		return errors.New("there is no data in range")
-	}
 	var idx uint32 = 0
-	for iterator.Next() {
+	s.Dba.Iterate(sBuf, eBuf, false, func(key, value []byte) bool {
 		idx++
-		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
-			break
-		}
-	}
-	s.DelIterator(iterator)
+		return f(s.GetMainVal(value), s.GetSubVal(value), idx)
+	})
 	return nil
 }
 
