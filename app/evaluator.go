@@ -318,7 +318,7 @@ func (ev *VoteEvaluator) Apply() {
 		lastVp := postWrap.GetWeightedVp()
 		votePower := lastVp + weightedVp
 		// add new vp into global
-		ev.ctx.control.AddWeightedVP(weightedVp)
+		//ev.ctx.control.AddWeightedVP(weightedVp)
 		// update post's weighted vp
 		postWrap.MdWeightedVp(votePower)
 

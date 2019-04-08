@@ -249,6 +249,7 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap) {
 		blockDappReward = vpAccumulator * globalProps.DappRewards.Value / globalProps.WeightedVps
 		//blockVoterReward = vpAccumulator * globalProps.VoterRewards.Value / globalProps.WeightedVps
 	}
+	e.log.Debugf("current block post total vp:%d, global vp:%d", vpAccumulator, globalProps.WeightedVps)
 	var spentPostReward uint64 = 0
 	var spentDappReward uint64 = 0
 	//var spentVoterReward uint64 = 0
@@ -330,6 +331,7 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap) {
 		blockDappReward = vpAccumulator * globalProps.DappRewards.Value / globalProps.WeightedVps
 		//blockVoterReward = vpAccumulator * globalProps.VoterRewards.Value / globalProps.WeightedVps
 	}
+	e.log.Debugf("current block reply total vp:%d, global vp:%d", vpAccumulator, globalProps.WeightedVps)
 	var spentReplyReward uint64 = 0
 	var spentDappReward uint64 = 0
 	//var spentVoterReward uint64 = 0
