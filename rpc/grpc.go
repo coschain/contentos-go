@@ -292,7 +292,7 @@ func (as *APIService) GetPostListByCreated(ctx context.Context, req *grpcpb.GetP
 		func(mVal *uint64, sVal *prototype.PostCreatedOrder, idx uint32) bool {
 			postWrap := table.NewSoPostWrap(as.db, mVal)
 			if postWrap != nil && postWrap.CheckExist() {
-				post := as.FetchPostInfoResponseById(*mVal,false)
+				post := as.fetchPostInfoResponseById(*mVal,false)
 				if post != nil {
 					postList = append(postList,post)
 				}
@@ -326,7 +326,7 @@ func (as *APIService) GetReplyListByPostId(ctx context.Context, req *grpcpb.GetR
 	limit = checkLimit(req.GetLimit())
 	replyOrderWrap.ForEachByRevOrder(start, end, nil, nil,
 		func(mVal *uint64, sVal *prototype.ReplyCreatedOrder, idx uint32) bool {
-			post := as.FetchPostInfoResponseById(*mVal,false)
+			post := as.fetchPostInfoResponseById(*mVal,false)
 			if post != nil {
 				replyList = append(replyList, post)
 			}
@@ -726,8 +726,9 @@ func (as *APIService) GetPostListByCreateTime(ctx context.Context, req *grpcpb.G
 				if mVal != nil {
 					postWrap := table.NewSoPostWrap(as.db, mVal)
 					if postWrap != nil && postWrap.CheckExist() {
-						postInfo := as.FetchPostInfoResponseById(*mVal,false)
-						if postInfo != nil {
+						postInfo := as.fetchPostInfoResponseById(*mVal,false)
+						if postInfo != nil && postInfo.ParentId <= 0 {
+							//Filter reply
 							postList = append(postList, postInfo)
 						}
 					}
@@ -767,7 +768,7 @@ func (as *APIService) GetPostListByName(ctx context.Context, req *grpcpb.GetPost
 		}
 		err = wrap.ForEachByRevOrder(req.Start, req.End, lastPostId, lastPostOrder, func(mVal *uint64, sVal *prototype.UserPostCreateOrder, idx uint32) bool {
 			if mVal != nil {
-				postInfo := as.FetchPostInfoResponseById(*mVal,false)
+				postInfo := as.fetchPostInfoResponseById(*mVal,false)
 				if postInfo != nil {
 					postList = append(postList, postInfo)
 				}
@@ -944,7 +945,7 @@ func (as *APIService) GetBlockCashout(ctx context.Context, req *grpcpb.GetBlockC
 	return blockCashout, nil
 }
 
-func (as *APIService) FetchPostInfoResponseById(postId uint64,isNeedLock bool) *grpcpb.PostResponse {
+func (as *APIService) fetchPostInfoResponseById(postId uint64,isNeedLock bool) *grpcpb.PostResponse {
 	if isNeedLock {
 		as.db.RLock()
 		defer as.db.RUnlock()
@@ -984,7 +985,7 @@ func (as *APIService) GetPostInfoById (ctx context.Context, req *grpcpb.GetPostI
 	res := &grpcpb.GetPostInfoByIdResponse{}
 
 	pId := &req.PostId
-	postInfo := as.FetchPostInfoResponseById(req.PostId,false)
+	postInfo := as.fetchPostInfoResponseById(req.PostId,false)
 	res.PostInfo = postInfo
 	if postInfo != nil {
 		voterLimit := checkLimit(req.VoterListLimit)
@@ -1026,7 +1027,7 @@ func (as *APIService) GetPostInfoById (ctx context.Context, req *grpcpb.GetPostI
 				end := &prototype.ReplyCreatedOrder{ParentId:req.PostId,Created:prototype.NewTimePointSec(1)}
 				err := replyOrderWrap.ForEachByRevOrder(start,end,nil,nil, func(mVal *uint64, sVal *prototype.ReplyCreatedOrder, idx uint32) bool {
 					if mVal != nil {
-                       reply :=  as.FetchPostInfoResponseById(*mVal,false)
+                       reply :=  as.fetchPostInfoResponseById(*mVal,false)
                        if reply != nil {
 						   replyList = append(replyList,reply)
 					   }
