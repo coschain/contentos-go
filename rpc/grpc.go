@@ -980,8 +980,11 @@ func (as *APIService) GetBlockCashout(ctx context.Context, req *grpcpb.GetBlockC
 	cashoutWrap := table.NewExtRewardBlockHeightWrap(as.db)
 	var cashouts []*grpcpb.AccountCashoutResponse
 	if cashoutWrap != nil {
-		start := blockHeight
-		end := blockHeight + 1
+		start := blockHeight - 1
+		end := blockHeight
+		if start < 0 {
+			start = 0
+		}
 		_ = cashoutWrap.ForEachByOrder(&start, &end, nil, nil, func(mVal *prototype.RewardCashoutId, sVal *uint64, idx uint32) bool {
 			cWrap := table.NewSoExtRewardWrap(as.db, mVal)
 			if cWrap != nil && cWrap.CheckExist() {
