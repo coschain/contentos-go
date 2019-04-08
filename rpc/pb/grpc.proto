@@ -22,6 +22,10 @@ service ApiService {
     rpc GetAccountCashout (GetAccountCashoutRequest) returns (AccountCashoutResponse) {
     }
 
+    rpc GetBlockCashout (GetBlockCashoutRequest) returns (BlockCashoutResponse) {
+
+    }
+
     rpc GetFollowerListByName (GetFollowerListByNameRequest) returns (GetFollowerListByNameResponse) {
     }
 
@@ -112,6 +116,14 @@ message GetAccountCashoutRequest{
 message AccountCashoutResponse {
     prototype.account_name account_name = 1;
     prototype.vest reward = 2;
+}
+
+message GetBlockCashoutRequest {
+    uint64 block_height = 1;
+}
+
+message BlockCashoutResponse {
+    repeated AccountCashoutResponse cashout_list = 1;
 }
 
 message GetAccountRewardByNameRequest{

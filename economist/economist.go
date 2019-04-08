@@ -177,12 +177,8 @@ func (e *Economist) Do() {
 	iterator := table.NewPostCashoutTimeWrap(e.db)
 	var pids []*uint64
 	end := timestamp
-	start := timestamp - 10
-	if start < 0 {
-		start = 0
-	}
 	t0 := time.Now()
-	err = iterator.ForEachByOrder(&prototype.TimePointSec{UtcSeconds: start}, &prototype.TimePointSec{UtcSeconds: end}, nil, nil, func(mVal *uint64, sVal *prototype.TimePointSec, idx uint32) bool {
+	err = iterator.ForEachByOrder(nil, &prototype.TimePointSec{UtcSeconds: end}, nil, nil, func(mVal *uint64, sVal *prototype.TimePointSec, idx uint32) bool {
 		pids = append(pids, mVal)
 		return true
 	})
@@ -414,12 +410,8 @@ func (e *Economist) PowerDown() {
 	var accountNames []*prototype.AccountName
 	t0 := time.Now()
 	end := timestamp
-	start := timestamp - 10
-	if start < 0 {
-		start = 0
-	}
 	t0 = time.Now()
-	err = iterator.ForEachByOrder(&prototype.TimePointSec{UtcSeconds: start}, &prototype.TimePointSec{UtcSeconds: end}, nil, nil, func(mVal *prototype.AccountName, sVal *prototype.TimePointSec, idx uint32) bool {
+	err = iterator.ForEachByOrder(nil, &prototype.TimePointSec{UtcSeconds: end}, nil, nil, func(mVal *prototype.AccountName, sVal *prototype.TimePointSec, idx uint32) bool {
 		accountNames = append(accountNames, mVal)
 		return true
 	})

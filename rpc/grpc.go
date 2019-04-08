@@ -972,3 +972,27 @@ func (as *APIService) GetAccountCashout(ctx context.Context, req *grpcpb.GetAcco
 	}
 	return &grpcpb.AccountCashoutResponse{AccountName: req.AccountName, Reward: &prototype.Vest{Value: 0}}, nil
 }
+
+func (as *APIService) GetBlockCashout(ctx context.Context, req *grpcpb.GetBlockCashoutRequest) (*grpcpb.BlockCashoutResponse, error) {
+	as.db.RLock()
+	defer as.db.RUnlock()
+	blockHeight := req.BlockHeight
+	cashoutWrap := table.NewExtCashoutBlockHeightWrap(as.db)
+	var cashouts []*grpcpb.AccountCashoutResponse
+	if cashoutWrap != nil {
+		start := blockHeight
+		end := blockHeight + 1
+		_ = cashoutWrap.ForEachByOrder(&start, &end, nil, nil, func(mVal *prototype.RewardCashoutId, sVal *uint64, idx uint32) bool {
+			cWrap := table.NewSoExtCashoutWrap(as.db, mVal)
+			if cWrap != nil && cWrap.CheckExist() {
+				reward := cWrap.GetReward()
+				cashout := &grpcpb.AccountCashoutResponse{AccountName: mVal.Account, Reward: reward}
+				cashouts = append(cashouts, cashout)
+				return true
+			}
+			return false
+		})
+	}
+	blockCashout := &grpcpb.BlockCashoutResponse{CashoutList: cashouts}
+	return blockCashout, nil
+}
