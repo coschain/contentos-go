@@ -181,10 +181,12 @@ func (e *Economist) Do() {
 	if start < 0 {
 		start = 0
 	}
+	t0 := time.Now()
 	err = iterator.ForEachByOrder(&prototype.TimePointSec{UtcSeconds: start}, &prototype.TimePointSec{UtcSeconds: end}, nil, nil, func(mVal *uint64, sVal *prototype.TimePointSec, idx uint32) bool {
 		pids = append(pids, mVal)
 		return true
 	})
+	e.log.Debugf("Do iterator spent: %v", time.Now().Sub(t0))
 	if err != nil {
 		panic("economist do failed when iterator")
 	}
@@ -416,10 +418,12 @@ func (e *Economist) PowerDown() {
 	if start < 0 {
 		start = 0
 	}
+	t0 = time.Now()
 	err = iterator.ForEachByOrder(&prototype.TimePointSec{UtcSeconds: start}, &prototype.TimePointSec{UtcSeconds: end}, nil, nil, func(mVal *prototype.AccountName, sVal *prototype.TimePointSec, idx uint32) bool {
 		accountNames = append(accountNames, mVal)
 		return true
 	})
+	e.log.Debugf("PowerDown iterator spent: %v", time.Now().Sub(t0))
 	t1 := time.Now()
 	var powerdownQuota uint64 = 0
 	for _, accountName := range accountNames {
