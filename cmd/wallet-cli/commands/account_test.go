@@ -23,7 +23,8 @@ func TestGetAccount(t *testing.T) {
 	}
 	accCmd.SetArgs([]string{"get", "initminer"})
 	req := &grpcpb.GetAccountByNameRequest{AccountName: &prototype.AccountName{Value: "initminer"}}
-	resp := &grpcpb.AccountResponse{AccountName: &prototype.AccountName{Value: "initminer"}}
+	//resp := &grpcpb.AccountResponse{AccountName: &prototype.AccountName{Value: "initminer"}}
+	resp := &grpcpb.AccountResponse{Info: &grpcpb.AccountInfo{AccountName: &prototype.AccountName{Value: "initminer"}}, State: &grpcpb.ChainState{}}
 	client.EXPECT().GetAccountByName(gomock.Any(), req).Return(resp, nil)
 	_, err := accCmd.ExecuteC()
 	assert.NoError(t, err, accCmd)

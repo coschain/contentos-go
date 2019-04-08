@@ -1373,7 +1373,7 @@ func (sabft *SABFT) handleBlockSync() error {
 	} else if dbLastPushed > latestNumber {
 
 		sabft.log.Infof("[Revert commit] start revert invalid commit to statedb: "+
-			"%v,end:%v,real commit num is %v", dbLastPushed, latestNumber)
+			"%v,end:%v,real commit num is %v", dbLastPushed, sabft.ForkDB.Head().Id().BlockNum(), latestNumber)
 
 		sabft.ctrl.PopBlock(latestNumber + 1)
 	}

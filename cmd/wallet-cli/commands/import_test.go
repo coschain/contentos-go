@@ -29,8 +29,7 @@ func TestImportAccount(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	resp := &grpcpb.AccountResponse{AccountName: &prototype.AccountName{Value: "initminer"},
-		PublicKeys: []*prototype.PublicKeyType{pubKey}}
+	resp := &grpcpb.AccountResponse{Info: &grpcpb.AccountInfo{AccountName: &prototype.AccountName{Value: "initminer"}, PublicKey:pubKey}, State: &grpcpb.ChainState{}}
 	client.EXPECT().GetAccountByName(gomock.Any(), gomock.Any()).Return(resp, nil)
 	_, err = cmd.ExecuteC()
 	if err != nil {

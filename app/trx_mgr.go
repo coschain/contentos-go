@@ -296,7 +296,7 @@ func (m *TrxMgr) ReturnTrx(entries ...*TrxEntry) {
 		}
 	}
 	t2 := time.Now()
-	m.log.Debug("TRXMGR: ReturnTrx end: #tx=%d, %v|%v|%v", len(entries), t2.Sub(t0), t1.Sub(t0), t2.Sub(t1))
+	m.log.Debugf("TRXMGR: ReturnTrx end: #tx=%d, %v|%v|%v", len(entries), t2.Sub(t0), t1.Sub(t0), t2.Sub(t1))
 }
 
 // CheckBlockTrxs checks if transactions of a block are valid.
