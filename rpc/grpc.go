@@ -66,7 +66,7 @@ func (as *APIService) QueryTableContent(ctx context.Context, req *grpcpb.GetTabl
 	return res, nil
 }
 
-func (as *APIService) qGetAccountByName(ctx context.Context, req *grpcpb.GetAccountByNameRequest) (*grpcpb.AccountResponse, error) {
+func (as *APIService) GetAccountByName(ctx context.Context, req *grpcpb.GetAccountByNameRequest) (*grpcpb.AccountResponse, error) {
 	as.db.RLock()
 	defer as.db.RUnlock()
 
