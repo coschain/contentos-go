@@ -5,7 +5,7 @@
 package mock_grpcpb
 
 import (
-	x "."
+	pb "github.com/coschain/contentos-go/rpc/pb"
 	gomock "github.com/golang/mock/gomock"
 	context "golang.org/x/net/context"
 	grpc "google.golang.org/grpc"
@@ -36,403 +36,471 @@ func (m *MockApiServiceClient) EXPECT() *MockApiServiceClientMockRecorder {
 }
 
 // QueryTableContent mocks base method
-func (m *MockApiServiceClient) QueryTableContent(ctx context.Context, in *x.GetTableContentRequest, opts ...grpc.CallOption) (*x.TableContentResponse, error) {
-	m.ctrl.T.Helper()
+func (m *MockApiServiceClient) QueryTableContent(ctx context.Context, in *pb.GetTableContentRequest, opts ...grpc.CallOption) (*pb.TableContentResponse, error) {
 	varargs := []interface{}{ctx, in}
 	for _, a := range opts {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "QueryTableContent", varargs...)
-	ret0, _ := ret[0].(*x.TableContentResponse)
+	ret0, _ := ret[0].(*pb.TableContentResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // QueryTableContent indicates an expected call of QueryTableContent
 func (mr *MockApiServiceClientMockRecorder) QueryTableContent(ctx, in interface{}, opts ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryTableContent", reflect.TypeOf((*MockApiServiceClient)(nil).QueryTableContent), varargs...)
 }
 
 // GetAccountByName mocks base method
-func (m *MockApiServiceClient) GetAccountByName(ctx context.Context, in *x.GetAccountByNameRequest, opts ...grpc.CallOption) (*x.AccountResponse, error) {
-	m.ctrl.T.Helper()
+func (m *MockApiServiceClient) GetAccountByName(ctx context.Context, in *pb.GetAccountByNameRequest, opts ...grpc.CallOption) (*pb.AccountResponse, error) {
 	varargs := []interface{}{ctx, in}
 	for _, a := range opts {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "GetAccountByName", varargs...)
-	ret0, _ := ret[0].(*x.AccountResponse)
+	ret0, _ := ret[0].(*pb.AccountResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetAccountByName indicates an expected call of GetAccountByName
 func (mr *MockApiServiceClientMockRecorder) GetAccountByName(ctx, in interface{}, opts ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccountByName", reflect.TypeOf((*MockApiServiceClient)(nil).GetAccountByName), varargs...)
 }
 
 // GetAccountRewardByName mocks base method
-func (m *MockApiServiceClient) GetAccountRewardByName(ctx context.Context, in *x.GetAccountRewardByNameRequest, opts ...grpc.CallOption) (*x.AccountRewardResponse, error) {
-	m.ctrl.T.Helper()
+func (m *MockApiServiceClient) GetAccountRewardByName(ctx context.Context, in *pb.GetAccountRewardByNameRequest, opts ...grpc.CallOption) (*pb.AccountRewardResponse, error) {
 	varargs := []interface{}{ctx, in}
 	for _, a := range opts {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "GetAccountRewardByName", varargs...)
-	ret0, _ := ret[0].(*x.AccountRewardResponse)
+	ret0, _ := ret[0].(*pb.AccountRewardResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetAccountRewardByName indicates an expected call of GetAccountRewardByName
 func (mr *MockApiServiceClientMockRecorder) GetAccountRewardByName(ctx, in interface{}, opts ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccountRewardByName", reflect.TypeOf((*MockApiServiceClient)(nil).GetAccountRewardByName), varargs...)
 }
 
+// GetAccountCashout mocks base method
+func (m *MockApiServiceClient) GetAccountCashout(ctx context.Context, in *pb.GetAccountCashoutRequest, opts ...grpc.CallOption) (*pb.AccountCashoutResponse, error) {
+	varargs := []interface{}{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetAccountCashout", varargs...)
+	ret0, _ := ret[0].(*pb.AccountCashoutResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAccountCashout indicates an expected call of GetAccountCashout
+func (mr *MockApiServiceClientMockRecorder) GetAccountCashout(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	varargs := append([]interface{}{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccountCashout", reflect.TypeOf((*MockApiServiceClient)(nil).GetAccountCashout), varargs...)
+}
+
+// GetBlockCashout mocks base method
+func (m *MockApiServiceClient) GetBlockCashout(ctx context.Context, in *pb.GetBlockCashoutRequest, opts ...grpc.CallOption) (*pb.BlockCashoutResponse, error) {
+	varargs := []interface{}{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetBlockCashout", varargs...)
+	ret0, _ := ret[0].(*pb.BlockCashoutResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetBlockCashout indicates an expected call of GetBlockCashout
+func (mr *MockApiServiceClientMockRecorder) GetBlockCashout(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	varargs := append([]interface{}{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockCashout", reflect.TypeOf((*MockApiServiceClient)(nil).GetBlockCashout), varargs...)
+}
+
 // GetFollowerListByName mocks base method
-func (m *MockApiServiceClient) GetFollowerListByName(ctx context.Context, in *x.GetFollowerListByNameRequest, opts ...grpc.CallOption) (*x.GetFollowerListByNameResponse, error) {
-	m.ctrl.T.Helper()
+func (m *MockApiServiceClient) GetFollowerListByName(ctx context.Context, in *pb.GetFollowerListByNameRequest, opts ...grpc.CallOption) (*pb.GetFollowerListByNameResponse, error) {
 	varargs := []interface{}{ctx, in}
 	for _, a := range opts {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "GetFollowerListByName", varargs...)
-	ret0, _ := ret[0].(*x.GetFollowerListByNameResponse)
+	ret0, _ := ret[0].(*pb.GetFollowerListByNameResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetFollowerListByName indicates an expected call of GetFollowerListByName
 func (mr *MockApiServiceClientMockRecorder) GetFollowerListByName(ctx, in interface{}, opts ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFollowerListByName", reflect.TypeOf((*MockApiServiceClient)(nil).GetFollowerListByName), varargs...)
 }
 
 // GetFollowingListByName mocks base method
-func (m *MockApiServiceClient) GetFollowingListByName(ctx context.Context, in *x.GetFollowingListByNameRequest, opts ...grpc.CallOption) (*x.GetFollowingListByNameResponse, error) {
-	m.ctrl.T.Helper()
+func (m *MockApiServiceClient) GetFollowingListByName(ctx context.Context, in *pb.GetFollowingListByNameRequest, opts ...grpc.CallOption) (*pb.GetFollowingListByNameResponse, error) {
 	varargs := []interface{}{ctx, in}
 	for _, a := range opts {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "GetFollowingListByName", varargs...)
-	ret0, _ := ret[0].(*x.GetFollowingListByNameResponse)
+	ret0, _ := ret[0].(*pb.GetFollowingListByNameResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetFollowingListByName indicates an expected call of GetFollowingListByName
 func (mr *MockApiServiceClientMockRecorder) GetFollowingListByName(ctx, in interface{}, opts ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFollowingListByName", reflect.TypeOf((*MockApiServiceClient)(nil).GetFollowingListByName), varargs...)
 }
 
 // GetFollowCountByName mocks base method
-func (m *MockApiServiceClient) GetFollowCountByName(ctx context.Context, in *x.GetFollowCountByNameRequest, opts ...grpc.CallOption) (*x.GetFollowCountByNameResponse, error) {
-	m.ctrl.T.Helper()
+func (m *MockApiServiceClient) GetFollowCountByName(ctx context.Context, in *pb.GetFollowCountByNameRequest, opts ...grpc.CallOption) (*pb.GetFollowCountByNameResponse, error) {
 	varargs := []interface{}{ctx, in}
 	for _, a := range opts {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "GetFollowCountByName", varargs...)
-	ret0, _ := ret[0].(*x.GetFollowCountByNameResponse)
+	ret0, _ := ret[0].(*pb.GetFollowCountByNameResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetFollowCountByName indicates an expected call of GetFollowCountByName
 func (mr *MockApiServiceClientMockRecorder) GetFollowCountByName(ctx, in interface{}, opts ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFollowCountByName", reflect.TypeOf((*MockApiServiceClient)(nil).GetFollowCountByName), varargs...)
 }
 
 // GetWitnessList mocks base method
-func (m *MockApiServiceClient) GetWitnessList(ctx context.Context, in *x.GetWitnessListRequest, opts ...grpc.CallOption) (*x.GetWitnessListResponse, error) {
-	m.ctrl.T.Helper()
+func (m *MockApiServiceClient) GetWitnessList(ctx context.Context, in *pb.GetWitnessListRequest, opts ...grpc.CallOption) (*pb.GetWitnessListResponse, error) {
 	varargs := []interface{}{ctx, in}
 	for _, a := range opts {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "GetWitnessList", varargs...)
-	ret0, _ := ret[0].(*x.GetWitnessListResponse)
+	ret0, _ := ret[0].(*pb.GetWitnessListResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetWitnessList indicates an expected call of GetWitnessList
 func (mr *MockApiServiceClientMockRecorder) GetWitnessList(ctx, in interface{}, opts ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetWitnessList", reflect.TypeOf((*MockApiServiceClient)(nil).GetWitnessList), varargs...)
 }
 
 // GetPostListByCreated mocks base method
-func (m *MockApiServiceClient) GetPostListByCreated(ctx context.Context, in *x.GetPostListByCreatedRequest, opts ...grpc.CallOption) (*x.GetPostListByCreatedResponse, error) {
-	m.ctrl.T.Helper()
+func (m *MockApiServiceClient) GetPostListByCreated(ctx context.Context, in *pb.GetPostListByCreatedRequest, opts ...grpc.CallOption) (*pb.GetPostListByCreatedResponse, error) {
 	varargs := []interface{}{ctx, in}
 	for _, a := range opts {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "GetPostListByCreated", varargs...)
-	ret0, _ := ret[0].(*x.GetPostListByCreatedResponse)
+	ret0, _ := ret[0].(*pb.GetPostListByCreatedResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetPostListByCreated indicates an expected call of GetPostListByCreated
 func (mr *MockApiServiceClientMockRecorder) GetPostListByCreated(ctx, in interface{}, opts ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPostListByCreated", reflect.TypeOf((*MockApiServiceClient)(nil).GetPostListByCreated), varargs...)
 }
 
 // GetReplyListByPostId mocks base method
-func (m *MockApiServiceClient) GetReplyListByPostId(ctx context.Context, in *x.GetReplyListByPostIdRequest, opts ...grpc.CallOption) (*x.GetReplyListByPostIdResponse, error) {
-	m.ctrl.T.Helper()
+func (m *MockApiServiceClient) GetReplyListByPostId(ctx context.Context, in *pb.GetReplyListByPostIdRequest, opts ...grpc.CallOption) (*pb.GetReplyListByPostIdResponse, error) {
 	varargs := []interface{}{ctx, in}
 	for _, a := range opts {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "GetReplyListByPostId", varargs...)
-	ret0, _ := ret[0].(*x.GetReplyListByPostIdResponse)
+	ret0, _ := ret[0].(*pb.GetReplyListByPostIdResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetReplyListByPostId indicates an expected call of GetReplyListByPostId
 func (mr *MockApiServiceClientMockRecorder) GetReplyListByPostId(ctx, in interface{}, opts ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetReplyListByPostId", reflect.TypeOf((*MockApiServiceClient)(nil).GetReplyListByPostId), varargs...)
 }
 
 // GetBlockTransactionsByNum mocks base method
-func (m *MockApiServiceClient) GetBlockTransactionsByNum(ctx context.Context, in *x.GetBlockTransactionsByNumRequest, opts ...grpc.CallOption) (*x.GetBlockTransactionsByNumResponse, error) {
-	m.ctrl.T.Helper()
+func (m *MockApiServiceClient) GetBlockTransactionsByNum(ctx context.Context, in *pb.GetBlockTransactionsByNumRequest, opts ...grpc.CallOption) (*pb.GetBlockTransactionsByNumResponse, error) {
 	varargs := []interface{}{ctx, in}
 	for _, a := range opts {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "GetBlockTransactionsByNum", varargs...)
-	ret0, _ := ret[0].(*x.GetBlockTransactionsByNumResponse)
+	ret0, _ := ret[0].(*pb.GetBlockTransactionsByNumResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetBlockTransactionsByNum indicates an expected call of GetBlockTransactionsByNum
 func (mr *MockApiServiceClientMockRecorder) GetBlockTransactionsByNum(ctx, in interface{}, opts ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockTransactionsByNum", reflect.TypeOf((*MockApiServiceClient)(nil).GetBlockTransactionsByNum), varargs...)
 }
 
 // GetTrxById mocks base method
-func (m *MockApiServiceClient) GetTrxById(ctx context.Context, in *x.GetTrxByIdRequest, opts ...grpc.CallOption) (*x.GetTrxByIdResponse, error) {
-	m.ctrl.T.Helper()
+func (m *MockApiServiceClient) GetTrxById(ctx context.Context, in *pb.GetTrxByIdRequest, opts ...grpc.CallOption) (*pb.GetTrxByIdResponse, error) {
 	varargs := []interface{}{ctx, in}
 	for _, a := range opts {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "GetTrxById", varargs...)
-	ret0, _ := ret[0].(*x.GetTrxByIdResponse)
+	ret0, _ := ret[0].(*pb.GetTrxByIdResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetTrxById indicates an expected call of GetTrxById
 func (mr *MockApiServiceClientMockRecorder) GetTrxById(ctx, in interface{}, opts ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTrxById", reflect.TypeOf((*MockApiServiceClient)(nil).GetTrxById), varargs...)
 }
 
 // GetChainState mocks base method
-func (m *MockApiServiceClient) GetChainState(ctx context.Context, in *x.NonParamsRequest, opts ...grpc.CallOption) (*x.GetChainStateResponse, error) {
-	m.ctrl.T.Helper()
+func (m *MockApiServiceClient) GetChainState(ctx context.Context, in *pb.NonParamsRequest, opts ...grpc.CallOption) (*pb.GetChainStateResponse, error) {
 	varargs := []interface{}{ctx, in}
 	for _, a := range opts {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "GetChainState", varargs...)
-	ret0, _ := ret[0].(*x.GetChainStateResponse)
+	ret0, _ := ret[0].(*pb.GetChainStateResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetChainState indicates an expected call of GetChainState
 func (mr *MockApiServiceClientMockRecorder) GetChainState(ctx, in interface{}, opts ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetChainState", reflect.TypeOf((*MockApiServiceClient)(nil).GetChainState), varargs...)
 }
 
-// GetStatInfo mocks base method
-func (m *MockApiServiceClient) GetStatisticsInfo(ctx context.Context, in *x.NonParamsRequest, opts ...grpc.CallOption) (*x.GetStatResponse, error) {
-	m.ctrl.T.Helper()
+// GetStatisticsInfo mocks base method
+func (m *MockApiServiceClient) GetStatisticsInfo(ctx context.Context, in *pb.NonParamsRequest, opts ...grpc.CallOption) (*pb.GetStatResponse, error) {
 	varargs := []interface{}{ctx, in}
 	for _, a := range opts {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "GetStatisticsInfo", varargs...)
-	ret0, _ := ret[0].(*x.GetStatResponse)
+	ret0, _ := ret[0].(*pb.GetStatResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetStatInfo indicates an expected call of GetStatInfo
-func (mr *MockApiServiceClientMockRecorder) GetStatInfo(ctx, in interface{}, opts ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
+// GetStatisticsInfo indicates an expected call of GetStatisticsInfo
+func (mr *MockApiServiceClientMockRecorder) GetStatisticsInfo(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	varargs := append([]interface{}{ctx, in}, opts...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStatisticsInfo", reflect.TypeOf((*MockApiServiceClient)(nil).GetStatInfo), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStatisticsInfo", reflect.TypeOf((*MockApiServiceClient)(nil).GetStatisticsInfo), varargs...)
 }
 
 // BroadcastTrx mocks base method
-func (m *MockApiServiceClient) BroadcastTrx(ctx context.Context, in *x.BroadcastTrxRequest, opts ...grpc.CallOption) (*x.BroadcastTrxResponse, error) {
-	m.ctrl.T.Helper()
+func (m *MockApiServiceClient) BroadcastTrx(ctx context.Context, in *pb.BroadcastTrxRequest, opts ...grpc.CallOption) (*pb.BroadcastTrxResponse, error) {
 	varargs := []interface{}{ctx, in}
 	for _, a := range opts {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "BroadcastTrx", varargs...)
-	ret0, _ := ret[0].(*x.BroadcastTrxResponse)
+	ret0, _ := ret[0].(*pb.BroadcastTrxResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // BroadcastTrx indicates an expected call of BroadcastTrx
 func (mr *MockApiServiceClientMockRecorder) BroadcastTrx(ctx, in interface{}, opts ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BroadcastTrx", reflect.TypeOf((*MockApiServiceClient)(nil).BroadcastTrx), varargs...)
 }
 
 // GetBlockList mocks base method
-func (m *MockApiServiceClient) GetBlockList(ctx context.Context, in *x.GetBlockListRequest, opts ...grpc.CallOption) (*x.GetBlockListResponse, error) {
-	m.ctrl.T.Helper()
+func (m *MockApiServiceClient) GetBlockList(ctx context.Context, in *pb.GetBlockListRequest, opts ...grpc.CallOption) (*pb.GetBlockListResponse, error) {
 	varargs := []interface{}{ctx, in}
 	for _, a := range opts {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "GetBlockList", varargs...)
-	ret0, _ := ret[0].(*x.GetBlockListResponse)
+	ret0, _ := ret[0].(*pb.GetBlockListResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetBlockList indicates an expected call of GetBlockList
 func (mr *MockApiServiceClientMockRecorder) GetBlockList(ctx, in interface{}, opts ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockList", reflect.TypeOf((*MockApiServiceClient)(nil).GetBlockList), varargs...)
 }
 
+// GetSignedBlock mocks base method
+func (m *MockApiServiceClient) GetSignedBlock(ctx context.Context, in *pb.GetSignedBlockRequest, opts ...grpc.CallOption) (*pb.GetSignedBlockResponse, error) {
+	varargs := []interface{}{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetSignedBlock", varargs...)
+	ret0, _ := ret[0].(*pb.GetSignedBlockResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetSignedBlock indicates an expected call of GetSignedBlock
+func (mr *MockApiServiceClientMockRecorder) GetSignedBlock(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	varargs := append([]interface{}{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSignedBlock", reflect.TypeOf((*MockApiServiceClient)(nil).GetSignedBlock), varargs...)
+}
+
 // GetAccountListByBalance mocks base method
-func (m *MockApiServiceClient) GetAccountListByBalance(ctx context.Context, in *x.GetAccountListByBalanceRequest, opts ...grpc.CallOption) (*x.GetAccountListResponse, error) {
-	m.ctrl.T.Helper()
+func (m *MockApiServiceClient) GetAccountListByBalance(ctx context.Context, in *pb.GetAccountListByBalanceRequest, opts ...grpc.CallOption) (*pb.GetAccountListResponse, error) {
 	varargs := []interface{}{ctx, in}
 	for _, a := range opts {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "GetAccountListByBalance", varargs...)
-	ret0, _ := ret[0].(*x.GetAccountListResponse)
+	ret0, _ := ret[0].(*pb.GetAccountListResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetAccountListByBalance indicates an expected call of GetAccountListByBalance
 func (mr *MockApiServiceClientMockRecorder) GetAccountListByBalance(ctx, in interface{}, opts ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccountListByBalance", reflect.TypeOf((*MockApiServiceClient)(nil).GetAccountListByBalance), varargs...)
 }
 
 // GetDailyTotalTrxInfo mocks base method
-func (m *MockApiServiceClient) GetDailyTotalTrxInfo(ctx context.Context, in *x.GetDailyTotalTrxRequest, opts ...grpc.CallOption) (*x.GetDailyTotalTrxResponse, error) {
-	m.ctrl.T.Helper()
+func (m *MockApiServiceClient) GetDailyTotalTrxInfo(ctx context.Context, in *pb.GetDailyTotalTrxRequest, opts ...grpc.CallOption) (*pb.GetDailyTotalTrxResponse, error) {
 	varargs := []interface{}{ctx, in}
 	for _, a := range opts {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "GetDailyTotalTrxInfo", varargs...)
-	ret0, _ := ret[0].(*x.GetDailyTotalTrxResponse)
+	ret0, _ := ret[0].(*pb.GetDailyTotalTrxResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetDailyTotalTrxInfo indicates an expected call of GetDailyTotalTrxInfo
 func (mr *MockApiServiceClientMockRecorder) GetDailyTotalTrxInfo(ctx, in interface{}, opts ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDailyTotalTrxInfo", reflect.TypeOf((*MockApiServiceClient)(nil).GetDailyTotalTrxInfo), varargs...)
 }
 
 // GetTrxInfoById mocks base method
-func (m *MockApiServiceClient) GetTrxInfoById(ctx context.Context, in *x.GetTrxInfoByIdRequest, opts ...grpc.CallOption) (*x.GetTrxInfoByIdResponse, error) {
-	m.ctrl.T.Helper()
+func (m *MockApiServiceClient) GetTrxInfoById(ctx context.Context, in *pb.GetTrxInfoByIdRequest, opts ...grpc.CallOption) (*pb.GetTrxInfoByIdResponse, error) {
 	varargs := []interface{}{ctx, in}
 	for _, a := range opts {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "GetTrxInfoById", varargs...)
-	ret0, _ := ret[0].(*x.GetTrxInfoByIdResponse)
+	ret0, _ := ret[0].(*pb.GetTrxInfoByIdResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetTrxInfoById indicates an expected call of GetTrxInfoById
 func (mr *MockApiServiceClientMockRecorder) GetTrxInfoById(ctx, in interface{}, opts ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTrxInfoById", reflect.TypeOf((*MockApiServiceClient)(nil).GetTrxInfoById), varargs...)
 }
 
 // GetTrxListByTime mocks base method
-func (m *MockApiServiceClient) GetTrxListByTime(ctx context.Context, in *x.GetTrxListByTimeRequest, opts ...grpc.CallOption) (*x.GetTrxListByTimeResponse, error) {
-	m.ctrl.T.Helper()
+func (m *MockApiServiceClient) GetTrxListByTime(ctx context.Context, in *pb.GetTrxListByTimeRequest, opts ...grpc.CallOption) (*pb.GetTrxListByTimeResponse, error) {
 	varargs := []interface{}{ctx, in}
 	for _, a := range opts {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "GetTrxListByTime", varargs...)
-	ret0, _ := ret[0].(*x.GetTrxListByTimeResponse)
+	ret0, _ := ret[0].(*pb.GetTrxListByTimeResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetTrxListByTime indicates an expected call of GetTrxListByTime
 func (mr *MockApiServiceClientMockRecorder) GetTrxListByTime(ctx, in interface{}, opts ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTrxListByTime", reflect.TypeOf((*MockApiServiceClient)(nil).GetTrxListByTime), varargs...)
 }
 
 // GetPostListByCreateTime mocks base method
-func (m *MockApiServiceClient) GetPostListByCreateTime(ctx context.Context, in *x.GetPostListByCreateTimeRequest, opts ...grpc.CallOption) (*x.GetPostListByCreateTimeResponse, error) {
-	m.ctrl.T.Helper()
+func (m *MockApiServiceClient) GetPostListByCreateTime(ctx context.Context, in *pb.GetPostListByCreateTimeRequest, opts ...grpc.CallOption) (*pb.GetPostListByCreateTimeResponse, error) {
 	varargs := []interface{}{ctx, in}
 	for _, a := range opts {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "GetPostListByCreateTime", varargs...)
-	ret0, _ := ret[0].(*x.GetPostListByCreateTimeResponse)
+	ret0, _ := ret[0].(*pb.GetPostListByCreateTimeResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetPostListByCreateTime indicates an expected call of GetPostListByCreateTime
 func (mr *MockApiServiceClientMockRecorder) GetPostListByCreateTime(ctx, in interface{}, opts ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPostListByCreateTime", reflect.TypeOf((*MockApiServiceClient)(nil).GetPostListByCreateTime), varargs...)
+}
+
+// GetPostListByName mocks base method
+func (m *MockApiServiceClient) GetPostListByName(ctx context.Context, in *pb.GetPostListByNameRequest, opts ...grpc.CallOption) (*pb.GetPostListByCreateTimeResponse, error) {
+	varargs := []interface{}{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetPostListByName", varargs...)
+	ret0, _ := ret[0].(*pb.GetPostListByCreateTimeResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPostListByName indicates an expected call of GetPostListByName
+func (mr *MockApiServiceClientMockRecorder) GetPostListByName(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	varargs := append([]interface{}{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPostListByName", reflect.TypeOf((*MockApiServiceClient)(nil).GetPostListByName), varargs...)
+}
+
+// TrxStatByHour mocks base method
+func (m *MockApiServiceClient) TrxStatByHour(ctx context.Context, in *pb.TrxStatByHourRequest, opts ...grpc.CallOption) (*pb.TrxStatByHourResponse, error) {
+	varargs := []interface{}{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "TrxStatByHour", varargs...)
+	ret0, _ := ret[0].(*pb.TrxStatByHourResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// TrxStatByHour indicates an expected call of TrxStatByHour
+func (mr *MockApiServiceClientMockRecorder) TrxStatByHour(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	varargs := append([]interface{}{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TrxStatByHour", reflect.TypeOf((*MockApiServiceClient)(nil).TrxStatByHour), varargs...)
+}
+
+// GetUserTrxListByTime mocks base method
+func (m *MockApiServiceClient) GetUserTrxListByTime(ctx context.Context, in *pb.GetUserTrxListByTimeRequest, opts ...grpc.CallOption) (*pb.GetUserTrxListByTimeResponse, error) {
+	varargs := []interface{}{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetUserTrxListByTime", varargs...)
+	ret0, _ := ret[0].(*pb.GetUserTrxListByTimeResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUserTrxListByTime indicates an expected call of GetUserTrxListByTime
+func (mr *MockApiServiceClientMockRecorder) GetUserTrxListByTime(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	varargs := append([]interface{}{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserTrxListByTime", reflect.TypeOf((*MockApiServiceClient)(nil).GetUserTrxListByTime), varargs...)
 }
 
 // MockApiServiceServer is a mock of ApiServiceServer interface
@@ -459,301 +527,339 @@ func (m *MockApiServiceServer) EXPECT() *MockApiServiceServerMockRecorder {
 }
 
 // QueryTableContent mocks base method
-func (m *MockApiServiceServer) QueryTableContent(arg0 context.Context, arg1 *x.GetTableContentRequest) (*x.TableContentResponse, error) {
-	m.ctrl.T.Helper()
+func (m *MockApiServiceServer) QueryTableContent(arg0 context.Context, arg1 *pb.GetTableContentRequest) (*pb.TableContentResponse, error) {
 	ret := m.ctrl.Call(m, "QueryTableContent", arg0, arg1)
-	ret0, _ := ret[0].(*x.TableContentResponse)
+	ret0, _ := ret[0].(*pb.TableContentResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // QueryTableContent indicates an expected call of QueryTableContent
 func (mr *MockApiServiceServerMockRecorder) QueryTableContent(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryTableContent", reflect.TypeOf((*MockApiServiceServer)(nil).QueryTableContent), arg0, arg1)
 }
 
 // GetAccountByName mocks base method
-func (m *MockApiServiceServer) GetAccountByName(arg0 context.Context, arg1 *x.GetAccountByNameRequest) (*x.AccountResponse, error) {
-	m.ctrl.T.Helper()
+func (m *MockApiServiceServer) GetAccountByName(arg0 context.Context, arg1 *pb.GetAccountByNameRequest) (*pb.AccountResponse, error) {
 	ret := m.ctrl.Call(m, "GetAccountByName", arg0, arg1)
-	ret0, _ := ret[0].(*x.AccountResponse)
+	ret0, _ := ret[0].(*pb.AccountResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetAccountByName indicates an expected call of GetAccountByName
 func (mr *MockApiServiceServerMockRecorder) GetAccountByName(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccountByName", reflect.TypeOf((*MockApiServiceServer)(nil).GetAccountByName), arg0, arg1)
 }
 
 // GetAccountRewardByName mocks base method
-func (m *MockApiServiceServer) GetAccountRewardByName(arg0 context.Context, arg1 *x.GetAccountRewardByNameRequest) (*x.AccountRewardResponse, error) {
-	m.ctrl.T.Helper()
+func (m *MockApiServiceServer) GetAccountRewardByName(arg0 context.Context, arg1 *pb.GetAccountRewardByNameRequest) (*pb.AccountRewardResponse, error) {
 	ret := m.ctrl.Call(m, "GetAccountRewardByName", arg0, arg1)
-	ret0, _ := ret[0].(*x.AccountRewardResponse)
+	ret0, _ := ret[0].(*pb.AccountRewardResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetAccountRewardByName indicates an expected call of GetAccountRewardByName
 func (mr *MockApiServiceServerMockRecorder) GetAccountRewardByName(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccountRewardByName", reflect.TypeOf((*MockApiServiceServer)(nil).GetAccountRewardByName), arg0, arg1)
 }
 
+// GetAccountCashout mocks base method
+func (m *MockApiServiceServer) GetAccountCashout(arg0 context.Context, arg1 *pb.GetAccountCashoutRequest) (*pb.AccountCashoutResponse, error) {
+	ret := m.ctrl.Call(m, "GetAccountCashout", arg0, arg1)
+	ret0, _ := ret[0].(*pb.AccountCashoutResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAccountCashout indicates an expected call of GetAccountCashout
+func (mr *MockApiServiceServerMockRecorder) GetAccountCashout(arg0, arg1 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccountCashout", reflect.TypeOf((*MockApiServiceServer)(nil).GetAccountCashout), arg0, arg1)
+}
+
+// GetBlockCashout mocks base method
+func (m *MockApiServiceServer) GetBlockCashout(arg0 context.Context, arg1 *pb.GetBlockCashoutRequest) (*pb.BlockCashoutResponse, error) {
+	ret := m.ctrl.Call(m, "GetBlockCashout", arg0, arg1)
+	ret0, _ := ret[0].(*pb.BlockCashoutResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetBlockCashout indicates an expected call of GetBlockCashout
+func (mr *MockApiServiceServerMockRecorder) GetBlockCashout(arg0, arg1 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockCashout", reflect.TypeOf((*MockApiServiceServer)(nil).GetBlockCashout), arg0, arg1)
+}
+
 // GetFollowerListByName mocks base method
-func (m *MockApiServiceServer) GetFollowerListByName(arg0 context.Context, arg1 *x.GetFollowerListByNameRequest) (*x.GetFollowerListByNameResponse, error) {
-	m.ctrl.T.Helper()
+func (m *MockApiServiceServer) GetFollowerListByName(arg0 context.Context, arg1 *pb.GetFollowerListByNameRequest) (*pb.GetFollowerListByNameResponse, error) {
 	ret := m.ctrl.Call(m, "GetFollowerListByName", arg0, arg1)
-	ret0, _ := ret[0].(*x.GetFollowerListByNameResponse)
+	ret0, _ := ret[0].(*pb.GetFollowerListByNameResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetFollowerListByName indicates an expected call of GetFollowerListByName
 func (mr *MockApiServiceServerMockRecorder) GetFollowerListByName(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFollowerListByName", reflect.TypeOf((*MockApiServiceServer)(nil).GetFollowerListByName), arg0, arg1)
 }
 
 // GetFollowingListByName mocks base method
-func (m *MockApiServiceServer) GetFollowingListByName(arg0 context.Context, arg1 *x.GetFollowingListByNameRequest) (*x.GetFollowingListByNameResponse, error) {
-	m.ctrl.T.Helper()
+func (m *MockApiServiceServer) GetFollowingListByName(arg0 context.Context, arg1 *pb.GetFollowingListByNameRequest) (*pb.GetFollowingListByNameResponse, error) {
 	ret := m.ctrl.Call(m, "GetFollowingListByName", arg0, arg1)
-	ret0, _ := ret[0].(*x.GetFollowingListByNameResponse)
+	ret0, _ := ret[0].(*pb.GetFollowingListByNameResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetFollowingListByName indicates an expected call of GetFollowingListByName
 func (mr *MockApiServiceServerMockRecorder) GetFollowingListByName(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFollowingListByName", reflect.TypeOf((*MockApiServiceServer)(nil).GetFollowingListByName), arg0, arg1)
 }
 
 // GetFollowCountByName mocks base method
-func (m *MockApiServiceServer) GetFollowCountByName(arg0 context.Context, arg1 *x.GetFollowCountByNameRequest) (*x.GetFollowCountByNameResponse, error) {
-	m.ctrl.T.Helper()
+func (m *MockApiServiceServer) GetFollowCountByName(arg0 context.Context, arg1 *pb.GetFollowCountByNameRequest) (*pb.GetFollowCountByNameResponse, error) {
 	ret := m.ctrl.Call(m, "GetFollowCountByName", arg0, arg1)
-	ret0, _ := ret[0].(*x.GetFollowCountByNameResponse)
+	ret0, _ := ret[0].(*pb.GetFollowCountByNameResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetFollowCountByName indicates an expected call of GetFollowCountByName
 func (mr *MockApiServiceServerMockRecorder) GetFollowCountByName(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFollowCountByName", reflect.TypeOf((*MockApiServiceServer)(nil).GetFollowCountByName), arg0, arg1)
 }
 
 // GetWitnessList mocks base method
-func (m *MockApiServiceServer) GetWitnessList(arg0 context.Context, arg1 *x.GetWitnessListRequest) (*x.GetWitnessListResponse, error) {
-	m.ctrl.T.Helper()
+func (m *MockApiServiceServer) GetWitnessList(arg0 context.Context, arg1 *pb.GetWitnessListRequest) (*pb.GetWitnessListResponse, error) {
 	ret := m.ctrl.Call(m, "GetWitnessList", arg0, arg1)
-	ret0, _ := ret[0].(*x.GetWitnessListResponse)
+	ret0, _ := ret[0].(*pb.GetWitnessListResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetWitnessList indicates an expected call of GetWitnessList
 func (mr *MockApiServiceServerMockRecorder) GetWitnessList(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetWitnessList", reflect.TypeOf((*MockApiServiceServer)(nil).GetWitnessList), arg0, arg1)
 }
 
 // GetPostListByCreated mocks base method
-func (m *MockApiServiceServer) GetPostListByCreated(arg0 context.Context, arg1 *x.GetPostListByCreatedRequest) (*x.GetPostListByCreatedResponse, error) {
-	m.ctrl.T.Helper()
+func (m *MockApiServiceServer) GetPostListByCreated(arg0 context.Context, arg1 *pb.GetPostListByCreatedRequest) (*pb.GetPostListByCreatedResponse, error) {
 	ret := m.ctrl.Call(m, "GetPostListByCreated", arg0, arg1)
-	ret0, _ := ret[0].(*x.GetPostListByCreatedResponse)
+	ret0, _ := ret[0].(*pb.GetPostListByCreatedResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetPostListByCreated indicates an expected call of GetPostListByCreated
 func (mr *MockApiServiceServerMockRecorder) GetPostListByCreated(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPostListByCreated", reflect.TypeOf((*MockApiServiceServer)(nil).GetPostListByCreated), arg0, arg1)
 }
 
 // GetReplyListByPostId mocks base method
-func (m *MockApiServiceServer) GetReplyListByPostId(arg0 context.Context, arg1 *x.GetReplyListByPostIdRequest) (*x.GetReplyListByPostIdResponse, error) {
-	m.ctrl.T.Helper()
+func (m *MockApiServiceServer) GetReplyListByPostId(arg0 context.Context, arg1 *pb.GetReplyListByPostIdRequest) (*pb.GetReplyListByPostIdResponse, error) {
 	ret := m.ctrl.Call(m, "GetReplyListByPostId", arg0, arg1)
-	ret0, _ := ret[0].(*x.GetReplyListByPostIdResponse)
+	ret0, _ := ret[0].(*pb.GetReplyListByPostIdResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetReplyListByPostId indicates an expected call of GetReplyListByPostId
 func (mr *MockApiServiceServerMockRecorder) GetReplyListByPostId(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetReplyListByPostId", reflect.TypeOf((*MockApiServiceServer)(nil).GetReplyListByPostId), arg0, arg1)
 }
 
 // GetBlockTransactionsByNum mocks base method
-func (m *MockApiServiceServer) GetBlockTransactionsByNum(arg0 context.Context, arg1 *x.GetBlockTransactionsByNumRequest) (*x.GetBlockTransactionsByNumResponse, error) {
-	m.ctrl.T.Helper()
+func (m *MockApiServiceServer) GetBlockTransactionsByNum(arg0 context.Context, arg1 *pb.GetBlockTransactionsByNumRequest) (*pb.GetBlockTransactionsByNumResponse, error) {
 	ret := m.ctrl.Call(m, "GetBlockTransactionsByNum", arg0, arg1)
-	ret0, _ := ret[0].(*x.GetBlockTransactionsByNumResponse)
+	ret0, _ := ret[0].(*pb.GetBlockTransactionsByNumResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetBlockTransactionsByNum indicates an expected call of GetBlockTransactionsByNum
 func (mr *MockApiServiceServerMockRecorder) GetBlockTransactionsByNum(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockTransactionsByNum", reflect.TypeOf((*MockApiServiceServer)(nil).GetBlockTransactionsByNum), arg0, arg1)
 }
 
 // GetTrxById mocks base method
-func (m *MockApiServiceServer) GetTrxById(arg0 context.Context, arg1 *x.GetTrxByIdRequest) (*x.GetTrxByIdResponse, error) {
-	m.ctrl.T.Helper()
+func (m *MockApiServiceServer) GetTrxById(arg0 context.Context, arg1 *pb.GetTrxByIdRequest) (*pb.GetTrxByIdResponse, error) {
 	ret := m.ctrl.Call(m, "GetTrxById", arg0, arg1)
-	ret0, _ := ret[0].(*x.GetTrxByIdResponse)
+	ret0, _ := ret[0].(*pb.GetTrxByIdResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetTrxById indicates an expected call of GetTrxById
 func (mr *MockApiServiceServerMockRecorder) GetTrxById(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTrxById", reflect.TypeOf((*MockApiServiceServer)(nil).GetTrxById), arg0, arg1)
 }
 
 // GetChainState mocks base method
-func (m *MockApiServiceServer) GetChainState(arg0 context.Context, arg1 *x.NonParamsRequest) (*x.GetChainStateResponse, error) {
-	m.ctrl.T.Helper()
+func (m *MockApiServiceServer) GetChainState(arg0 context.Context, arg1 *pb.NonParamsRequest) (*pb.GetChainStateResponse, error) {
 	ret := m.ctrl.Call(m, "GetChainState", arg0, arg1)
-	ret0, _ := ret[0].(*x.GetChainStateResponse)
+	ret0, _ := ret[0].(*pb.GetChainStateResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetChainState indicates an expected call of GetChainState
 func (mr *MockApiServiceServerMockRecorder) GetChainState(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetChainState", reflect.TypeOf((*MockApiServiceServer)(nil).GetChainState), arg0, arg1)
 }
 
-// GetStatInfo mocks base method
-func (m *MockApiServiceServer) GetStatisticsInfo(arg0 context.Context, arg1 *x.NonParamsRequest) (*x.GetStatResponse, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetStatInfo", arg0, arg1)
-	ret0, _ := ret[0].(*x.GetStatResponse)
+// GetStatisticsInfo mocks base method
+func (m *MockApiServiceServer) GetStatisticsInfo(arg0 context.Context, arg1 *pb.NonParamsRequest) (*pb.GetStatResponse, error) {
+	ret := m.ctrl.Call(m, "GetStatisticsInfo", arg0, arg1)
+	ret0, _ := ret[0].(*pb.GetStatResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetStatInfo indicates an expected call of GetStatInfo
+// GetStatisticsInfo indicates an expected call of GetStatisticsInfo
 func (mr *MockApiServiceServerMockRecorder) GetStatisticsInfo(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStatInfo", reflect.TypeOf((*MockApiServiceServer)(nil).GetStatInfo), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStatisticsInfo", reflect.TypeOf((*MockApiServiceServer)(nil).GetStatisticsInfo), arg0, arg1)
 }
 
 // BroadcastTrx mocks base method
-func (m *MockApiServiceServer) BroadcastTrx(arg0 context.Context, arg1 *x.BroadcastTrxRequest) (*x.BroadcastTrxResponse, error) {
-	m.ctrl.T.Helper()
+func (m *MockApiServiceServer) BroadcastTrx(arg0 context.Context, arg1 *pb.BroadcastTrxRequest) (*pb.BroadcastTrxResponse, error) {
 	ret := m.ctrl.Call(m, "BroadcastTrx", arg0, arg1)
-	ret0, _ := ret[0].(*x.BroadcastTrxResponse)
+	ret0, _ := ret[0].(*pb.BroadcastTrxResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // BroadcastTrx indicates an expected call of BroadcastTrx
 func (mr *MockApiServiceServerMockRecorder) BroadcastTrx(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BroadcastTrx", reflect.TypeOf((*MockApiServiceServer)(nil).BroadcastTrx), arg0, arg1)
 }
 
 // GetBlockList mocks base method
-func (m *MockApiServiceServer) GetBlockList(arg0 context.Context, arg1 *x.GetBlockListRequest) (*x.GetBlockListResponse, error) {
-	m.ctrl.T.Helper()
+func (m *MockApiServiceServer) GetBlockList(arg0 context.Context, arg1 *pb.GetBlockListRequest) (*pb.GetBlockListResponse, error) {
 	ret := m.ctrl.Call(m, "GetBlockList", arg0, arg1)
-	ret0, _ := ret[0].(*x.GetBlockListResponse)
+	ret0, _ := ret[0].(*pb.GetBlockListResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetBlockList indicates an expected call of GetBlockList
 func (mr *MockApiServiceServerMockRecorder) GetBlockList(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockList", reflect.TypeOf((*MockApiServiceServer)(nil).GetBlockList), arg0, arg1)
 }
 
+// GetSignedBlock mocks base method
+func (m *MockApiServiceServer) GetSignedBlock(arg0 context.Context, arg1 *pb.GetSignedBlockRequest) (*pb.GetSignedBlockResponse, error) {
+	ret := m.ctrl.Call(m, "GetSignedBlock", arg0, arg1)
+	ret0, _ := ret[0].(*pb.GetSignedBlockResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetSignedBlock indicates an expected call of GetSignedBlock
+func (mr *MockApiServiceServerMockRecorder) GetSignedBlock(arg0, arg1 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSignedBlock", reflect.TypeOf((*MockApiServiceServer)(nil).GetSignedBlock), arg0, arg1)
+}
+
 // GetAccountListByBalance mocks base method
-func (m *MockApiServiceServer) GetAccountListByBalance(arg0 context.Context, arg1 *x.GetAccountListByBalanceRequest) (*x.GetAccountListResponse, error) {
-	m.ctrl.T.Helper()
+func (m *MockApiServiceServer) GetAccountListByBalance(arg0 context.Context, arg1 *pb.GetAccountListByBalanceRequest) (*pb.GetAccountListResponse, error) {
 	ret := m.ctrl.Call(m, "GetAccountListByBalance", arg0, arg1)
-	ret0, _ := ret[0].(*x.GetAccountListResponse)
+	ret0, _ := ret[0].(*pb.GetAccountListResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetAccountListByBalance indicates an expected call of GetAccountListByBalance
 func (mr *MockApiServiceServerMockRecorder) GetAccountListByBalance(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccountListByBalance", reflect.TypeOf((*MockApiServiceServer)(nil).GetAccountListByBalance), arg0, arg1)
 }
 
 // GetDailyTotalTrxInfo mocks base method
-func (m *MockApiServiceServer) GetDailyTotalTrxInfo(arg0 context.Context, arg1 *x.GetDailyTotalTrxRequest) (*x.GetDailyTotalTrxResponse, error) {
-	m.ctrl.T.Helper()
+func (m *MockApiServiceServer) GetDailyTotalTrxInfo(arg0 context.Context, arg1 *pb.GetDailyTotalTrxRequest) (*pb.GetDailyTotalTrxResponse, error) {
 	ret := m.ctrl.Call(m, "GetDailyTotalTrxInfo", arg0, arg1)
-	ret0, _ := ret[0].(*x.GetDailyTotalTrxResponse)
+	ret0, _ := ret[0].(*pb.GetDailyTotalTrxResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetDailyTotalTrxInfo indicates an expected call of GetDailyTotalTrxInfo
 func (mr *MockApiServiceServerMockRecorder) GetDailyTotalTrxInfo(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDailyTotalTrxInfo", reflect.TypeOf((*MockApiServiceServer)(nil).GetDailyTotalTrxInfo), arg0, arg1)
 }
 
 // GetTrxInfoById mocks base method
-func (m *MockApiServiceServer) GetTrxInfoById(arg0 context.Context, arg1 *x.GetTrxInfoByIdRequest) (*x.GetTrxInfoByIdResponse, error) {
-	m.ctrl.T.Helper()
+func (m *MockApiServiceServer) GetTrxInfoById(arg0 context.Context, arg1 *pb.GetTrxInfoByIdRequest) (*pb.GetTrxInfoByIdResponse, error) {
 	ret := m.ctrl.Call(m, "GetTrxInfoById", arg0, arg1)
-	ret0, _ := ret[0].(*x.GetTrxInfoByIdResponse)
+	ret0, _ := ret[0].(*pb.GetTrxInfoByIdResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetTrxInfoById indicates an expected call of GetTrxInfoById
 func (mr *MockApiServiceServerMockRecorder) GetTrxInfoById(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTrxInfoById", reflect.TypeOf((*MockApiServiceServer)(nil).GetTrxInfoById), arg0, arg1)
 }
 
 // GetTrxListByTime mocks base method
-func (m *MockApiServiceServer) GetTrxListByTime(arg0 context.Context, arg1 *x.GetTrxListByTimeRequest) (*x.GetTrxListByTimeResponse, error) {
-	m.ctrl.T.Helper()
+func (m *MockApiServiceServer) GetTrxListByTime(arg0 context.Context, arg1 *pb.GetTrxListByTimeRequest) (*pb.GetTrxListByTimeResponse, error) {
 	ret := m.ctrl.Call(m, "GetTrxListByTime", arg0, arg1)
-	ret0, _ := ret[0].(*x.GetTrxListByTimeResponse)
+	ret0, _ := ret[0].(*pb.GetTrxListByTimeResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetTrxListByTime indicates an expected call of GetTrxListByTime
 func (mr *MockApiServiceServerMockRecorder) GetTrxListByTime(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTrxListByTime", reflect.TypeOf((*MockApiServiceServer)(nil).GetTrxListByTime), arg0, arg1)
 }
 
 // GetPostListByCreateTime mocks base method
-func (m *MockApiServiceServer) GetPostListByCreateTime(arg0 context.Context, arg1 *x.GetPostListByCreateTimeRequest) (*x.GetPostListByCreateTimeResponse, error) {
-	m.ctrl.T.Helper()
+func (m *MockApiServiceServer) GetPostListByCreateTime(arg0 context.Context, arg1 *pb.GetPostListByCreateTimeRequest) (*pb.GetPostListByCreateTimeResponse, error) {
 	ret := m.ctrl.Call(m, "GetPostListByCreateTime", arg0, arg1)
-	ret0, _ := ret[0].(*x.GetPostListByCreateTimeResponse)
+	ret0, _ := ret[0].(*pb.GetPostListByCreateTimeResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetPostListByCreateTime indicates an expected call of GetPostListByCreateTime
 func (mr *MockApiServiceServerMockRecorder) GetPostListByCreateTime(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPostListByCreateTime", reflect.TypeOf((*MockApiServiceServer)(nil).GetPostListByCreateTime), arg0, arg1)
+}
+
+// GetPostListByName mocks base method
+func (m *MockApiServiceServer) GetPostListByName(arg0 context.Context, arg1 *pb.GetPostListByNameRequest) (*pb.GetPostListByCreateTimeResponse, error) {
+	ret := m.ctrl.Call(m, "GetPostListByName", arg0, arg1)
+	ret0, _ := ret[0].(*pb.GetPostListByCreateTimeResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPostListByName indicates an expected call of GetPostListByName
+func (mr *MockApiServiceServerMockRecorder) GetPostListByName(arg0, arg1 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPostListByName", reflect.TypeOf((*MockApiServiceServer)(nil).GetPostListByName), arg0, arg1)
+}
+
+// TrxStatByHour mocks base method
+func (m *MockApiServiceServer) TrxStatByHour(arg0 context.Context, arg1 *pb.TrxStatByHourRequest) (*pb.TrxStatByHourResponse, error) {
+	ret := m.ctrl.Call(m, "TrxStatByHour", arg0, arg1)
+	ret0, _ := ret[0].(*pb.TrxStatByHourResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// TrxStatByHour indicates an expected call of TrxStatByHour
+func (mr *MockApiServiceServerMockRecorder) TrxStatByHour(arg0, arg1 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TrxStatByHour", reflect.TypeOf((*MockApiServiceServer)(nil).TrxStatByHour), arg0, arg1)
+}
+
+// GetUserTrxListByTime mocks base method
+func (m *MockApiServiceServer) GetUserTrxListByTime(arg0 context.Context, arg1 *pb.GetUserTrxListByTimeRequest) (*pb.GetUserTrxListByTimeResponse, error) {
+	ret := m.ctrl.Call(m, "GetUserTrxListByTime", arg0, arg1)
+	ret0, _ := ret[0].(*pb.GetUserTrxListByTimeResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUserTrxListByTime indicates an expected call of GetUserTrxListByTime
+func (mr *MockApiServiceServerMockRecorder) GetUserTrxListByTime(arg0, arg1 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserTrxListByTime", reflect.TypeOf((*MockApiServiceServer)(nil).GetUserTrxListByTime), arg0, arg1)
 }
