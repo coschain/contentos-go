@@ -220,7 +220,7 @@ func (e *Economist) Do() {
 		panic("economist do failed when get reward keeper")
 	}
 
-	e.log.Debugf("cashout replies length: %d", len(posts))
+	e.log.Debugf("cashout replies length: %d", len(replies))
 	if len(replies) > 0 {
 		t := time.Now()
 		e.replyCashout(replies)
