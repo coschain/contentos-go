@@ -200,7 +200,7 @@ func (m *TrxMgr) AddTrx(trx *prototype.SignedTransaction, callback TrxCallback) 
 	go func() {
 		ok := false
 		// check the transaction
-		if entry.InitCheck() != nil || m.checkTrx(entry, atomic.LoadUint32(&m.headTime)) != nil {
+		if entry.InitCheck() != nil || m.checkTrx(entry, atomic.LoadUint32(&m.headTime), false) != nil {
 			// deliver if failed
 			m.deliverEntry(entry)
 		} else {
@@ -255,7 +255,7 @@ func (m *TrxMgr) FetchTrx(blockTime uint32, maxCount, maxSize int) (entries []*T
 		// check the transaction again
 		// although transactions in the waiting pool had passed checks when they entered,
 		// but chain state is keep changing, we have to redo state-dependent checks.
-		if err := m.checkTrx(e, blockTime); err != nil {
+		if err := m.checkTrx(e, blockTime, true); err != nil {
 			// if failed, deliver the transaction.
 			m.log.Debugf("TRXMGR: FetchTrx check failed: %v, sig=%x", err, []byte(e.sig))
 			m.deliverEntry(e)
@@ -339,7 +339,7 @@ func (m *TrxMgr) CheckBlockTrxs(b *prototype.SignedBlock) (entries []*TrxEntry, 
 				}
 				// do state-dependent checks
 				if err == nil {
-					err = m.checkTrx(e, blockTime)
+					err = m.checkTrx(e, blockTime, true)
 				}
 				// finalization works
 				if err != nil {
@@ -463,14 +463,19 @@ func (m *TrxMgr) isProcessingNoLock(trx *prototype.SignedTransaction) *TrxEntry 
 }
 
 // checkTrx does state-dependent checks on given transaction.
-func (m *TrxMgr) checkTrx(e *TrxEntry, blockTime uint32) (err error) {
+func (m *TrxMgr) checkTrx(e *TrxEntry, blockTime uint32, checkTapos bool) (err error) {
 	if err = e.CheckExpiration(blockTime); err != nil {
 		return err
-	} else if err = e.CheckTapos(m.tapos); err != nil {
+	}
+	if checkTapos {
+		if err = e.CheckTapos(m.tapos); err != nil {
+			return err
+		}
+	}
+	if err = e.CheckSignerKey(m.auth); err != nil {
 		return err
-	} else if err = e.CheckSignerKey(m.auth); err != nil {
-		return err
-	} else if err = e.CheckInBlockTrxs(m.history); err != nil {
+	}
+	if err = e.CheckInBlockTrxs(m.history); err != nil {
 		return err
 	}
 	return
