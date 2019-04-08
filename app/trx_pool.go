@@ -874,13 +874,6 @@ func (c *TrxPool) GetShuffledWitness() []string {
 	return witnessScheduleWrap.GetCurrentShuffledWitness()
 }
 
-func (c *TrxPool) AddWeightedVP(value uint64) {
-	dgpo := c.GetProps()
-	dgpo.WeightedVps += value
-	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
-	dgpWrap.MdProps(dgpo)
-}
-
 func (c *TrxPool) PopBlock(num uint64) error {
 	c.db.Lock()
 	defer c.db.Unlock()

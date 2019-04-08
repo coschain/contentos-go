@@ -19,7 +19,6 @@ type IGlobalPropReader interface {
 type IGlobalPropWriter interface {
 	TransferToVest(value *prototype.Coin)
 	TransferFromVest(value *prototype.Vest)
-	AddWeightedVP(value uint64)
 	ModifyProps(modifier func(oldProps *prototype.DynamicProperties))
 }
 
