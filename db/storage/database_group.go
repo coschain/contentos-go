@@ -5,7 +5,6 @@ package storage
 //
 
 import (
-	"bytes"
 	"crypto/md5"
 	"errors"
 	"fmt"
@@ -141,129 +140,17 @@ func (g *SimpleDatabaseGroup) Delete(key []byte) error {
 	return g.dbForKey(key).Delete(key)
 }
 
-func (g *SimpleDatabaseGroup) makeIterator(start []byte, limit []byte, reversed bool) Iterator {
+func (g *SimpleDatabaseGroup) Iterate(start, limit []byte, reverse bool, callback func(key, value []byte) bool) {
 	g.lock.RLock()
 	defer g.lock.RUnlock()
 
 	if g.Crashed() {
-		return nil
+		return
 	}
 
-	indices := g.dp.DatabasesForKeyRange(start, limit)
-	var items []sdgIteratorItem
-	for idx := range indices {
-		var itemIt Iterator
-		if reversed {
-			itemIt = g.dbAt(idx).NewReversedIterator(start, limit)
-		} else {
-			itemIt = g.dbAt(idx).NewIterator(start, limit)
-		}
-		items = append(items, sdgIteratorItem{
-			itemIt,
-			false,
-			nil, nil,
-		})
+	if it := NewMergedIterator(g.dp.MemberDatabases()); it != nil {
+		it.Iterate(start, limit, reverse, callback)
 	}
-	return &sdgIterator{g, items, nil, reversed}
-}
-
-func (g *SimpleDatabaseGroup) NewIterator(start []byte, limit []byte) Iterator {
-	return g.makeIterator(start, limit, false)
-}
-
-func (g *SimpleDatabaseGroup) NewReversedIterator(start []byte, limit []byte) Iterator {
-	return g.makeIterator(start, limit, true)
-}
-
-func (g *SimpleDatabaseGroup) DeleteIterator(it Iterator) {
-
-}
-
-// db group iterator
-type sdgIterator struct {
-	g        *SimpleDatabaseGroup // the db group
-	items    []sdgIteratorItem    // member iterators
-	selected *sdgIteratorItem     // current selected member
-	reversed bool
-}
-
-// iterator wrapper for a member database
-type sdgIteratorItem struct {
-	it  Iterator // iterator of member database
-	end bool     // reached end
-	key []byte   // key of current position
-	val []byte   // value of current position
-}
-
-func (it *sdgIterator) Valid() bool {
-	return it.selected != nil && it.selected.key != nil
-}
-
-func (it *sdgIterator) Key() ([]byte, error) {
-	if it.Valid() {
-		return it.selected.key, nil
-	}
-	return nil, errors.New("invalid iterator")
-}
-
-func (it *sdgIterator) Value() ([]byte, error) {
-	if it.Valid() {
-		return it.selected.val, nil
-	}
-	return nil, errors.New("invalid iterator")
-}
-
-func (it *sdgIterator) Next() bool {
-	// we'll move on and perform a re-selection
-	// invalid old selection first
-	if it.selected != nil {
-		it.selected.key = nil
-		it.selected.val = nil
-		it.selected = nil
-	}
-
-	// move member iterators necessarily, i.e. move a member iterator iff its key is nil
-	// all member iterators can be moved concurrently
-	var wg sync.WaitGroup
-	wg.Add(len(it.items))
-	for i := range it.items {
-		go func(idx int) {
-			defer wg.Done()
-
-			item := &(it.items[idx])
-			if !item.end {
-				if item.key == nil {
-					if item.it.Next() {
-						item.key, _ = item.it.Key()
-						item.val, _ = item.it.Value()
-					}
-				}
-				item.end = item.key == nil
-			}
-		}(i)
-	}
-	wg.Wait()
-
-	// re-select the minimal member
-	// or when reversed, select the maximum one
-	multiplier := 1
-	if it.reversed {
-		multiplier = -1
-	}
-	minItem := (*sdgIteratorItem)(nil)
-	for i := range it.items {
-		item := &(it.items[i])
-		if item.end || item.key == nil {
-			continue
-		}
-		if minItem == nil || bytes.Compare(minItem.key, item.key)*multiplier > 0 {
-			minItem = item
-		}
-	}
-	if minItem != nil {
-		it.selected = minItem
-	}
-	return it.Valid()
 }
 
 func (g *SimpleDatabaseGroup) NewBatch() Batch {

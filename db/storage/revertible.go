@@ -133,39 +133,36 @@ func (db *RevertibleDatabase) revertToRevision(r uint64) error {
 	if r > 0 {
 		limit = keyOfReversionOp(r - 1)
 	}
-	it := db.db.NewIterator([]byte(min_op_key), limit)
-	for it.Next() {
-		k, _ := it.Key()
-		v, _ := it.Value()
-		if k != nil && v != nil {
-			opSlice := decodeWriteOpSlice(v)
-			if opSlice != nil {
-				b.Delete(k)
-				for _, op := range opSlice {
-					if op.Del {
-						b.Delete(op.Key)
-					} else {
-						b.Put(op.Key, op.Value)
-					}
+	var err error
+	db.db.Iterate([]byte(min_op_key), limit, false, func(key, value []byte) bool {
+		opSlice := decodeWriteOpSlice(value)
+		if opSlice != nil {
+			b.Delete(key)
+			for _, op := range opSlice {
+				if op.Del {
+					b.Delete(op.Key)
+				} else {
+					b.Put(op.Key, op.Value)
 				}
-
-			} else {
-				return errors.New("invalid revision log")
 			}
 		} else {
-			return errors.New("invalid revision log")
+			err = errors.New("invalid revision log")
+			return false
 		}
-	}
-	b.Put([]byte(key_rev_num), encodeRevNumber(revNumber{r, db.rev.Base}))
-
-	tags := db.revTagsCopy()
-	cleanRevTags(&tags, revNumber{r, db.rev.Base})
-	b.Put([]byte(key_rev_tags), encodeRevTags(tags))
-
-	err := b.Write()
+		return true
+	})
 	if err == nil {
-		db.rev.Current = r
-		db.tag = tags
+		b.Put([]byte(key_rev_num), encodeRevNumber(revNumber{r, db.rev.Base}))
+
+		tags := db.revTagsCopy()
+		cleanRevTags(&tags, revNumber{r, db.rev.Base})
+		b.Put([]byte(key_rev_tags), encodeRevTags(tags))
+
+		err = b.Write()
+		if err == nil {
+			db.rev.Current = r
+			db.tag = tags
+		}
 	}
 	return err
 }
@@ -199,16 +196,10 @@ func (db *RevertibleDatabase) rebaseToRevision(r uint64) error {
 	if r > 0 {
 		start = keyOfReversionOp(r - 1)
 	}
-	it := db.db.NewIterator(start, []byte(max_op_key))
-	for it.Next() {
-		k, _ := it.Key()
-		if k != nil {
-			b.Delete(k)
-
-		} else {
-			return errors.New("invalid revision log")
-		}
-	}
+	db.db.Iterate(start, []byte(max_op_key), false, func(key, value []byte) bool {
+		b.Delete(key)
+		return true
+	})
 	b.Put([]byte(key_rev_num), encodeRevNumber(revNumber{db.rev.Current, r}))
 
 	tags := db.revTagsCopy()
@@ -302,16 +293,8 @@ func (db *RevertibleDatabase) Delete(key []byte) error {
 	return db.delete(key)
 }
 
-func (db *RevertibleDatabase) NewIterator(start []byte, limit []byte) Iterator {
-	return db.db.NewIterator(start, limit)
-}
-
-func (db *RevertibleDatabase) NewReversedIterator(start []byte, limit []byte) Iterator {
-	return db.db.NewReversedIterator(start, limit)
-}
-
-func (db *RevertibleDatabase) DeleteIterator(it Iterator) {
-	db.db.DeleteIterator(it)
+func (db *RevertibleDatabase) Iterate(start, limit []byte, reverse bool, callback func(key, value []byte) bool) {
+	db.db.Iterate(start, limit, reverse, callback)
 }
 
 func (db *RevertibleDatabase) NewBatch() Batch {

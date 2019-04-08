@@ -36,16 +36,8 @@ func (db *TrxLevelDatabase) Delete(key []byte) error {
 	return db.trx.Delete(key)
 }
 
-func (db *TrxLevelDatabase) NewIterator(start []byte, limit []byte) Iterator {
-	return db.trx.NewIterator(start, limit)
-}
-
-func (db *TrxLevelDatabase) NewReversedIterator(start []byte, limit []byte) Iterator {
-	return db.trx.NewReversedIterator(start, limit)
-}
-
-func (db *TrxLevelDatabase) DeleteIterator(it Iterator) {
-	db.trx.DeleteIterator(it)
+func (db *TrxLevelDatabase) Iterate(start, limit []byte, reverse bool, callback func(key, value []byte) bool) {
+	db.trx.Iterate(start, limit, reverse, callback)
 }
 
 func (db *TrxLevelDatabase) NewBatch() Batch {

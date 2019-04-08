@@ -7,7 +7,6 @@ package storage
 import (
 	"errors"
 	"github.com/coschain/contentos-go/common"
-	"sort"
 	"sync"
 )
 
@@ -78,102 +77,8 @@ func (db *MemoryDatabase) Delete(key []byte) error {
 // DatabaseScanner implementation
 //
 
-func (db *MemoryDatabase) NewIterator(start []byte, limit []byte) Iterator {
-	db.lock.RLock()
-	defer db.lock.RUnlock()
-
-	keys := []string{}
-	data := make(map[string][]byte)
-
-	var startStr, limitStr string
-	if start != nil {
-		startStr = string(start)
-	}
-	if limit != nil {
-		limitStr = string(limit)
-	}
-
-	for k := range db.db {
-		if start != nil {
-			if k < startStr {
-				continue
-			}
-		}
-		if limit != nil {
-			if k >= limitStr {
-				continue
-			}
-		}
-		keys = append(keys, k)
-		data[k] = common.CopyBytes(db.db[k])
-	}
-	sort.Strings(keys)
-
-	return &memoryDatabaseIterator{db: db, keys: keys, data: data, index: -1}
-}
-
-func (db *MemoryDatabase) NewReversedIterator(start []byte, limit []byte) Iterator {
-	it := db.NewIterator(start, limit).(*memoryDatabaseIterator)
-	it.index = len(it.keys)
-	it.reversed = true
-	return it
-}
-
-func (db *MemoryDatabase) DeleteIterator(it Iterator) {
-
-}
-
-//
-// Iterator implementation
-//
-
-type memoryDatabaseIterator struct {
-	db       *MemoryDatabase
-	keys     []string
-	data     map[string][]byte
-	index    int
-	reversed bool
-}
-
-// check if the iterator is a valid position, i.e. safe to call other methods
-func (it *memoryDatabaseIterator) Valid() bool {
-	return it.index >= 0 && it.index < len(it.keys)
-}
-
-// query the key of current position
-func (it *memoryDatabaseIterator) Key() ([]byte, error) {
-	if !it.Valid() {
-		return nil, errors.New("invalid iterator")
-	}
-	return []byte(it.keys[it.index]), nil
-}
-
-// query the value of current position
-func (it *memoryDatabaseIterator) Value() ([]byte, error) {
-	if !it.Valid() {
-		return nil, errors.New("invalid iterator")
-	}
-	it.db.lock.RLock()
-	defer it.db.lock.RUnlock()
-
-	if v, ok := it.data[it.keys[it.index]]; ok {
-		return common.CopyBytes(v), nil
-	}
-	return nil, errors.New("not found")
-}
-
-// move to the next position
-func (it *memoryDatabaseIterator) Next() bool {
-	delta := 1
-	if it.reversed {
-		delta = -1
-	}
-	nextIdx := it.index + delta
-	if nextIdx >= 0 && nextIdx < len(it.keys) {
-		it.index = nextIdx
-		return true
-	}
-	return false
+func (db *MemoryDatabase) Iterate(start, limit []byte, reverse bool, callback func(key, value []byte) bool) {
+	// todo: not implemented yet
 }
 
 //
