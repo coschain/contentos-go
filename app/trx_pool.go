@@ -400,6 +400,7 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabaseRW, entry *TrxEntry
 
 	trxContext := NewTrxContextWithSigningKey(result, db, entry.GetTrxSigningKey())
 	for _, op := range sigTrx.Trx.Operations {
+		trxContext.StartNextOp()
 		c.applyOperation(trxContext, op)
 	}
 }
