@@ -260,8 +260,11 @@ func (ev *ReplyEvaluator) Apply() {
 		t.Children = 0
 		t.RootId = rootId
 		t.ParentId = op.ParentUuid
+		t.WeightedVp = 0
 		t.VoteCnt = 0
 		t.Beneficiaries = op.Beneficiaries
+		t.Rewards = &prototype.Vest{Value: 0}
+		t.DappRewards = &prototype.Vest{Value: 0}
 	}), "create reply error")
 
 	authorWrap.MdLastPostTime(ev.ctx.control.HeadBlockTime())
