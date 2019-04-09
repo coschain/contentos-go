@@ -9,6 +9,9 @@ import (
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/rpc/pb"
 	"github.com/coschain/contentos-go/rpc"
+	"github.com/coschain/contentos-go/vm"
+	"github.com/coschain/contentos-go/vm/context"
+	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
@@ -137,6 +140,42 @@ func conductBatch(cmd *cobra.Command, args []string) {
 			}
 
 			signTx, err = utils.GenerateSignedTxAndValidate2(client, []interface{}{transfer_op}, fromAccount)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+		case "deploy":
+			deployerName := cmdArgs[1]
+			deployerPubKeyStr := cmdArgs[2]
+			deployerPriKeyStr := cmdArgs[3]
+			contractName := cmdArgs[4]
+			wasmPath:= cmdArgs[5]
+			abiPath:= cmdArgs[6]
+
+			code, _ := ioutil.ReadFile(wasmPath)
+			abi, _ := ioutil.ReadFile(abiPath)
+
+			ctx := vmcontext.Context{Code: code}
+			cosVM := vm.NewCosVM(&ctx, nil, nil, nil)
+			err := cosVM.Validate()
+			if err != nil {
+				fmt.Println("Validate local code error:", err)
+				return
+			}
+
+			deployerAccount := &wallet.PrivAccount{
+				Account: wallet.Account{Name: deployerName, PubKey: deployerPubKeyStr},
+				PrivKey: deployerPriKeyStr,
+			}
+
+			contractDeployOp := &prototype.ContractDeployOperation{
+				Owner:    &prototype.AccountName{Value: deployerName},
+				Contract: contractName,
+				Abi:      string(abi),
+				Code:     code,
+			}
+
+			signTx, err = utils.GenerateSignedTxAndValidate2(client, []interface{}{contractDeployOp}, deployerAccount)
 			if err != nil {
 				fmt.Println(err)
 				return
