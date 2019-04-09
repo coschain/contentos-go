@@ -107,7 +107,9 @@ func (p *TrxContext) DeductGasFee(caller string, spent uint64) {
 
 // vm transfer just modify db data
 func (p *TrxContext) TransferFromContractToUser(contract, owner, to string, amount uint64) {
+	opAssert(false, "function not opened")
 	// TODO need authority
+
 	c := table.NewSoContractWrap(p.db, &prototype.ContractId{Owner: &prototype.AccountName{Value: owner}, Cname: contract})
 	balance := c.GetBalance().Value
 	if balance < amount {
@@ -121,7 +123,7 @@ func (p *TrxContext) TransferFromContractToUser(contract, owner, to string, amou
 }
 
 func (p *TrxContext) TransferFromUserToContract(from, contract, owner string, amount uint64) {
-
+	opAssert(false, "function not opened")
 	p.RequireAuth( from )
 
 	acc := table.NewSoAccountWrap(p.db, &prototype.AccountName{Value: from})
@@ -136,7 +138,7 @@ func (p *TrxContext) TransferFromUserToContract(from, contract, owner string, am
 }
 
 func (p *TrxContext) TransferFromContractToContract(fromContract, fromOwner, toContract, toOwner string, amount uint64) {
-
+	opAssert(false, "function not opened")
 	// TODO checkAuth
 
 	from := table.NewSoContractWrap(p.db, &prototype.ContractId{Owner: &prototype.AccountName{Value: fromOwner}, Cname: fromContract})
@@ -151,6 +153,7 @@ func (p *TrxContext) TransferFromContractToContract(fromContract, fromOwner, toC
 }
 
 func (p *TrxContext) ContractCall(caller, fromOwner, fromContract, fromMethod, toOwner, toContract, toMethod string, params []byte, coins, maxGas uint64) {
+	opAssert(false, "function not opened")
 	op := &prototype.InternalContractApplyOperation{
 		FromCaller: &prototype.AccountName{ Value: caller },
 		FromOwner: &prototype.AccountName{ Value: fromOwner },
