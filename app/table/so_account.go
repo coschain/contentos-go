@@ -14,29 +14,29 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	AccountCreatedTimeTable       uint32 = 2128286283
-	AccountBalanceTable           uint32 = 4012029019
-	AccountVestingSharesTable     uint32 = 3830877790
-	AccountBpVoteCountTable       uint32 = 2264397557
-	AccountPostCountTable         uint32 = 1518203339
-	AccountCreatedTrxCountTable   uint32 = 2604810499
-	AccountNextPowerdownTimeTable uint32 = 824876516
-	AccountNameUniTable           uint32 = 2528390520
-	AccountBalanceCell            uint32 = 2894785396
-	AccountBpVoteCountCell        uint32 = 2131409895
-	AccountCreatedTimeCell        uint32 = 826305594
-	AccountCreatedTrxCountCell    uint32 = 2108500471
-	AccountCreatorCell            uint32 = 1804791917
-	AccountEachPowerdownRateCell  uint32 = 1435132114
-	AccountHasPowerdownCell       uint32 = 2131027332
-	AccountLastPostTimeCell       uint32 = 3226532373
-	AccountLastVoteTimeCell       uint32 = 1980371646
-	AccountNameCell               uint32 = 1725869739
-	AccountNextPowerdownTimeCell  uint32 = 524128665
-	AccountPostCountCell          uint32 = 587221705
-	AccountToPowerdownCell        uint32 = 3115587115
-	AccountVestingSharesCell      uint32 = 57659323
-	AccountVotePowerCell          uint32 = 2246508735
+	AccountCreatedTimeTable           uint32 = 2128286283
+	AccountBalanceTable               uint32 = 4012029019
+	AccountVestingSharesTable         uint32 = 3830877790
+	AccountBpVoteCountTable           uint32 = 2264397557
+	AccountPostCountTable             uint32 = 1518203339
+	AccountCreatedTrxCountTable       uint32 = 2604810499
+	AccountNextPowerdownBlockNumTable uint32 = 1928824877
+	AccountNameUniTable               uint32 = 2528390520
+	AccountBalanceCell                uint32 = 2894785396
+	AccountBpVoteCountCell            uint32 = 2131409895
+	AccountCreatedTimeCell            uint32 = 826305594
+	AccountCreatedTrxCountCell        uint32 = 2108500471
+	AccountCreatorCell                uint32 = 1804791917
+	AccountEachPowerdownRateCell      uint32 = 1435132114
+	AccountHasPowerdownCell           uint32 = 2131027332
+	AccountLastPostTimeCell           uint32 = 3226532373
+	AccountLastVoteTimeCell           uint32 = 1980371646
+	AccountNameCell                   uint32 = 1725869739
+	AccountNextPowerdownBlockNumCell  uint32 = 2881565425
+	AccountPostCountCell              uint32 = 587221705
+	AccountToPowerdownCell            uint32 = 3115587115
+	AccountVestingSharesCell          uint32 = 57659323
+	AccountVotePowerCell              uint32 = 2246508735
 )
 
 ////////////// SECTION Wrap Define ///////////////
@@ -470,13 +470,13 @@ func (s *SoAccountWrap) insertSortKeyCreatedTrxCount(sa *SoAccount) bool {
 	return ordErr == nil
 }
 
-func (s *SoAccountWrap) delSortKeyNextPowerdownTime(sa *SoAccount) bool {
+func (s *SoAccountWrap) delSortKeyNextPowerdownBlockNum(sa *SoAccount) bool {
 	if s.dba == nil || s.mainKey == nil {
 		return false
 	}
-	val := SoListAccountByNextPowerdownTime{}
+	val := SoListAccountByNextPowerdownBlockNum{}
 	if sa == nil {
-		key, err := s.encodeMemKey("NextPowerdownTime")
+		key, err := s.encodeMemKey("NextPowerdownBlockNum")
 		if err != nil {
 			return false
 		}
@@ -484,16 +484,16 @@ func (s *SoAccountWrap) delSortKeyNextPowerdownTime(sa *SoAccount) bool {
 		if err != nil {
 			return false
 		}
-		ori := &SoMemAccountByNextPowerdownTime{}
+		ori := &SoMemAccountByNextPowerdownBlockNum{}
 		err = proto.Unmarshal(buf, ori)
 		if err != nil {
 			return false
 		}
-		val.NextPowerdownTime = ori.NextPowerdownTime
+		val.NextPowerdownBlockNum = ori.NextPowerdownBlockNum
 		val.Name = s.mainKey
 
 	} else {
-		val.NextPowerdownTime = sa.NextPowerdownTime
+		val.NextPowerdownBlockNum = sa.NextPowerdownBlockNum
 		val.Name = sa.Name
 	}
 
@@ -505,13 +505,13 @@ func (s *SoAccountWrap) delSortKeyNextPowerdownTime(sa *SoAccount) bool {
 	return ordErr == nil
 }
 
-func (s *SoAccountWrap) insertSortKeyNextPowerdownTime(sa *SoAccount) bool {
+func (s *SoAccountWrap) insertSortKeyNextPowerdownBlockNum(sa *SoAccount) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
-	val := SoListAccountByNextPowerdownTime{}
+	val := SoListAccountByNextPowerdownBlockNum{}
 	val.Name = sa.Name
-	val.NextPowerdownTime = sa.NextPowerdownTime
+	val.NextPowerdownBlockNum = sa.NextPowerdownBlockNum
 	buf, err := proto.Marshal(&val)
 	if err != nil {
 		return false
@@ -571,7 +571,7 @@ func (s *SoAccountWrap) delAllSortKeys(br bool, val *SoAccount) bool {
 			res = false
 		}
 	}
-	if !s.delSortKeyNextPowerdownTime(val) {
+	if !s.delSortKeyNextPowerdownBlockNum(val) {
 		if br {
 			return false
 		} else {
@@ -607,8 +607,8 @@ func (s *SoAccountWrap) insertAllSortKeys(val *SoAccount) error {
 	if !s.insertSortKeyCreatedTrxCount(val) {
 		return errors.New("insert sort Field CreatedTrxCount fail while insert table ")
 	}
-	if !s.insertSortKeyNextPowerdownTime(val) {
-		return errors.New("insert sort Field NextPowerdownTime fail while insert table ")
+	if !s.insertSortKeyNextPowerdownBlockNum(val) {
+		return errors.New("insert sort Field NextPowerdownBlockNum fail while insert table ")
 	}
 
 	return nil
@@ -673,8 +673,8 @@ func (s *SoAccountWrap) getMemKeyPrefix(fName string) uint32 {
 	if fName == "Name" {
 		return AccountNameCell
 	}
-	if fName == "NextPowerdownTime" {
-		return AccountNextPowerdownTimeCell
+	if fName == "NextPowerdownBlockNum" {
+		return AccountNextPowerdownBlockNumCell
 	}
 	if fName == "PostCount" {
 		return AccountPostCountCell
@@ -791,11 +791,11 @@ func (s *SoAccountWrap) saveAllMemKeys(tInfo *SoAccount, br bool) error {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Name", err)
 		}
 	}
-	if err = s.saveMemKeyNextPowerdownTime(tInfo); err != nil {
+	if err = s.saveMemKeyNextPowerdownBlockNum(tInfo); err != nil {
 		if br {
 			return err
 		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "NextPowerdownTime", err)
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "NextPowerdownBlockNum", err)
 		}
 	}
 	if err = s.saveMemKeyPostCount(tInfo); err != nil {
@@ -1697,16 +1697,16 @@ func (s *SoAccountWrap) GetName() *prototype.AccountName {
 	return msg.Name
 }
 
-func (s *SoAccountWrap) saveMemKeyNextPowerdownTime(tInfo *SoAccount) error {
+func (s *SoAccountWrap) saveMemKeyNextPowerdownBlockNum(tInfo *SoAccount) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
 	if tInfo == nil {
 		return errors.New("the data is nil")
 	}
-	val := SoMemAccountByNextPowerdownTime{}
-	val.NextPowerdownTime = tInfo.NextPowerdownTime
-	key, err := s.encodeMemKey("NextPowerdownTime")
+	val := SoMemAccountByNextPowerdownBlockNum{}
+	val.NextPowerdownBlockNum = tInfo.NextPowerdownBlockNum
+	key, err := s.encodeMemKey("NextPowerdownBlockNum")
 	if err != nil {
 		return err
 	}
@@ -1718,13 +1718,13 @@ func (s *SoAccountWrap) saveMemKeyNextPowerdownTime(tInfo *SoAccount) error {
 	return err
 }
 
-func (s *SoAccountWrap) GetNextPowerdownTime() *prototype.TimePointSec {
+func (s *SoAccountWrap) GetNextPowerdownBlockNum() uint64 {
 	res := true
-	msg := &SoMemAccountByNextPowerdownTime{}
+	msg := &SoMemAccountByNextPowerdownBlockNum{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("NextPowerdownTime")
+		key, err := s.encodeMemKey("NextPowerdownBlockNum")
 		if err != nil {
 			res = false
 		} else {
@@ -1736,22 +1736,22 @@ func (s *SoAccountWrap) GetNextPowerdownTime() *prototype.TimePointSec {
 			if err != nil {
 				res = false
 			} else {
-				return msg.NextPowerdownTime
+				return msg.NextPowerdownBlockNum
 			}
 		}
 	}
 	if !res {
-		return nil
-
+		var tmpValue uint64
+		return tmpValue
 	}
-	return msg.NextPowerdownTime
+	return msg.NextPowerdownBlockNum
 }
 
-func (s *SoAccountWrap) MdNextPowerdownTime(p *prototype.TimePointSec) bool {
+func (s *SoAccountWrap) MdNextPowerdownBlockNum(p uint64) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("NextPowerdownTime")
+	key, err := s.encodeMemKey("NextPowerdownBlockNum")
 	if err != nil {
 		return false
 	}
@@ -1759,17 +1759,17 @@ func (s *SoAccountWrap) MdNextPowerdownTime(p *prototype.TimePointSec) bool {
 	if err != nil {
 		return false
 	}
-	ori := &SoMemAccountByNextPowerdownTime{}
+	ori := &SoMemAccountByNextPowerdownBlockNum{}
 	err = proto.Unmarshal(buf, ori)
 	sa := &SoAccount{}
 	sa.Name = s.mainKey
 
-	sa.NextPowerdownTime = ori.NextPowerdownTime
+	sa.NextPowerdownBlockNum = ori.NextPowerdownBlockNum
 
-	if !s.delSortKeyNextPowerdownTime(sa) {
+	if !s.delSortKeyNextPowerdownBlockNum(sa) {
 		return false
 	}
-	ori.NextPowerdownTime = p
+	ori.NextPowerdownBlockNum = p
 	val, err := proto.Marshal(ori)
 	if err != nil {
 		return false
@@ -1778,9 +1778,9 @@ func (s *SoAccountWrap) MdNextPowerdownTime(p *prototype.TimePointSec) bool {
 	if err != nil {
 		return false
 	}
-	sa.NextPowerdownTime = p
+	sa.NextPowerdownBlockNum = p
 
-	if !s.insertSortKeyNextPowerdownTime(sa) {
+	if !s.insertSortKeyNextPowerdownBlockNum(sa) {
 		return false
 	}
 
@@ -3036,26 +3036,26 @@ func (s *SAccountCreatedTrxCountWrap) ForEachByOrder(start *uint32, end *uint32,
 }
 
 ////////////// SECTION List Keys ///////////////
-type SAccountNextPowerdownTimeWrap struct {
+type SAccountNextPowerdownBlockNumWrap struct {
 	Dba iservices.IDatabaseRW
 }
 
-func NewAccountNextPowerdownTimeWrap(db iservices.IDatabaseRW) *SAccountNextPowerdownTimeWrap {
+func NewAccountNextPowerdownBlockNumWrap(db iservices.IDatabaseRW) *SAccountNextPowerdownBlockNumWrap {
 	if db == nil {
 		return nil
 	}
-	wrap := SAccountNextPowerdownTimeWrap{Dba: db}
+	wrap := SAccountNextPowerdownBlockNumWrap{Dba: db}
 	return &wrap
 }
 
-func (s *SAccountNextPowerdownTimeWrap) DelIterator(iterator iservices.IDatabaseIterator) {
+func (s *SAccountNextPowerdownBlockNumWrap) DelIterator(iterator iservices.IDatabaseIterator) {
 	if iterator == nil {
 		return
 	}
 	s.Dba.DeleteIterator(iterator)
 }
 
-func (s *SAccountNextPowerdownTimeWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.AccountName {
+func (s *SAccountNextPowerdownBlockNumWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.AccountName {
 	if iterator == nil || !iterator.Valid() {
 		return nil
 	}
@@ -3065,7 +3065,7 @@ func (s *SAccountNextPowerdownTimeWrap) GetMainVal(iterator iservices.IDatabaseI
 		return nil
 	}
 
-	res := &SoListAccountByNextPowerdownTime{}
+	res := &SoListAccountByNextPowerdownBlockNum{}
 	err = proto.Unmarshal(val, res)
 
 	if err != nil {
@@ -3075,7 +3075,7 @@ func (s *SAccountNextPowerdownTimeWrap) GetMainVal(iterator iservices.IDatabaseI
 
 }
 
-func (s *SAccountNextPowerdownTimeWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.TimePointSec {
+func (s *SAccountNextPowerdownBlockNumWrap) GetSubVal(iterator iservices.IDatabaseIterator) *uint64 {
 	if iterator == nil || !iterator.Valid() {
 		return nil
 	}
@@ -3085,21 +3085,19 @@ func (s *SAccountNextPowerdownTimeWrap) GetSubVal(iterator iservices.IDatabaseIt
 	if err != nil {
 		return nil
 	}
-	res := &SoListAccountByNextPowerdownTime{}
+	res := &SoListAccountByNextPowerdownBlockNum{}
 	err = proto.Unmarshal(val, res)
 	if err != nil {
 		return nil
 	}
-	return res.NextPowerdownTime
+	return &res.NextPowerdownBlockNum
 
 }
 
-func (m *SoListAccountByNextPowerdownTime) OpeEncode() ([]byte, error) {
-	pre := AccountNextPowerdownTimeTable
-	sub := m.NextPowerdownTime
-	if sub == nil {
-		return nil, errors.New("the pro NextPowerdownTime is nil")
-	}
+func (m *SoListAccountByNextPowerdownBlockNum) OpeEncode() ([]byte, error) {
+	pre := AccountNextPowerdownBlockNumTable
+	sub := m.NextPowerdownBlockNum
+
 	sub1 := m.Name
 	if sub1 == nil {
 		return nil, errors.New("the mainkey Name is nil")
@@ -3123,8 +3121,8 @@ func (m *SoListAccountByNextPowerdownTime) OpeEncode() ([]byte, error) {
 //lastMainKey: the main key of the last one of last page
 //lastSubVal: the value  of the last one of last page
 //
-func (s *SAccountNextPowerdownTimeWrap) ForEachByOrder(start *prototype.TimePointSec, end *prototype.TimePointSec, lastMainKey *prototype.AccountName,
-	lastSubVal *prototype.TimePointSec, f func(mVal *prototype.AccountName, sVal *prototype.TimePointSec, idx uint32) bool) error {
+func (s *SAccountNextPowerdownBlockNumWrap) ForEachByOrder(start *uint64, end *uint64, lastMainKey *prototype.AccountName,
+	lastSubVal *uint64, f func(mVal *prototype.AccountName, sVal *uint64, idx uint32) bool) error {
 	if s.Dba == nil {
 		return errors.New("the db is nil")
 	}
@@ -3134,7 +3132,7 @@ func (s *SAccountNextPowerdownTimeWrap) ForEachByOrder(start *prototype.TimePoin
 	if f == nil {
 		return nil
 	}
-	pre := AccountNextPowerdownTimeTable
+	pre := AccountNextPowerdownBlockNumTable
 	skeyList := []interface{}{pre}
 	if start != nil {
 		skeyList = append(skeyList, start)

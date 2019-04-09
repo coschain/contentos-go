@@ -42,7 +42,7 @@ const (
 	PostMaxDepth         = 8
 	//PostCashOutDelayTime = 60 * 60 * 24 * 7
 	// for rapidly cashout
-	PostCashOutDelayTime = 60 * 60
+	PostCashOutDelayBlock = 60 * 10
 	MaxBpVoteCount       = 30
 
 	BlocksPerDay = 24 * 60 * 60 / BlockInterval
@@ -60,7 +60,7 @@ const (
 
 	// for rapidly decay
 	//VpDecayTime = (60 * 60 * 24) * 15
-	VpDecayTime = 60 * 60 * 3
+	VpDecayTime = 60 * 60
 
 	TrxMaxExpirationTime = 60
 
@@ -78,8 +78,8 @@ const (
 
 	ConvertWeeks = 13
 
-	BaseRate            = 1e6
-	POWER_DOWN_INTERVAL = (60 * 60 * 24) * 7
+	BaseRate               = 1e6
+	PowerDownBlockInterval = (60 * 60 * 24) * 7
 
 	ReportCashout = 1000
 

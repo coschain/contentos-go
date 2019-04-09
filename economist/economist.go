@@ -173,12 +173,13 @@ func (e *Economist) Do() {
 	//		props.ReplyRewards.Value += replyRewards
 	//	})
 	//}
-	timestamp := globalProps.Time.UtcSeconds
-	iterator := table.NewPostCashoutTimeWrap(e.db)
+	//timestamp := globalProps.Time.UtcSeconds
+	//iterator := table.NewPostCashoutTimeWrap(e.db)
+	iterator := table.NewPostCashoutBlockNumWrap(e.db)
 	var pids []*uint64
-	end := timestamp
+	end := globalProps.HeadBlockNumber
 	t0 := time.Now()
-	err = iterator.ForEachByOrder(nil, &prototype.TimePointSec{UtcSeconds: end}, nil, nil, func(mVal *uint64, sVal *prototype.TimePointSec, idx uint32) bool {
+	err = iterator.ForEachByOrder(nil, &end, nil, nil, func(mVal *uint64, sVal *uint64, idx uint32) bool {
 		pids = append(pids, mVal)
 		return true
 	})
@@ -299,7 +300,7 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap) {
 		} else {
 			authorWrap.MdVestingShares(&prototype.Vest{ Value: reward + authorWrap.GetVestingShares().Value })
 		}
-		post.MdCashoutTime(&prototype.TimePointSec{UtcSeconds: math.MaxUint32})
+		post.MdCashoutBlockNum(math.MaxUint32)
 		post.MdRewards(&prototype.Vest{Value: reward})
 		post.MdDappRewards(&prototype.Vest{Value: beneficiaryReward})
 		if reward > 0 {
@@ -379,7 +380,7 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap) {
 		} else {
 			authorWrap.MdVestingShares(&prototype.Vest{ Value: reward + authorWrap.GetVestingShares().Value })
 		}
-		reply.MdCashoutTime(&prototype.TimePointSec{UtcSeconds: math.MaxUint32})
+		reply.MdCashoutBlockNum(math.MaxUint32)
 		reply.MdRewards(&prototype.Vest{Value: reward})
 		reply.MdDappRewards(&prototype.Vest{Value: beneficiaryReward})
 		if reward > 0 {
@@ -417,13 +418,14 @@ func (e *Economist) PowerDown() {
 	if err != nil {
 		panic("economist do failed when get props")
 	}
-	timestamp := globalProps.Time.UtcSeconds
-	iterator := table.NewAccountNextPowerdownTimeWrap(e.db)
+	//timestamp := globalProps.Time.UtcSeconds
+	//iterator := table.NewAccountNextPowerdownTimeWrap(e.db)
+	iterator := table.NewAccountNextPowerdownBlockNumWrap(e.db)
 	var accountNames []*prototype.AccountName
 	t0 := time.Now()
-	end := timestamp
+	current := globalProps.HeadBlockNumber
 	t0 = time.Now()
-	err = iterator.ForEachByOrder(nil, &prototype.TimePointSec{UtcSeconds: end}, nil, nil, func(mVal *prototype.AccountName, sVal *prototype.TimePointSec, idx uint32) bool {
+	err = iterator.ForEachByOrder(nil, &current, nil, nil, func(mVal *prototype.AccountName, sVal *uint64, idx uint32) bool {
 		accountNames = append(accountNames, mVal)
 		return true
 	})
@@ -450,9 +452,9 @@ func (e *Economist) PowerDown() {
 		})
 		if accountWrap.GetHasPowerdown().Value >= accountWrap.GetToPowerdown().Value || accountWrap.GetVestingShares().Value == 0 {
 			accountWrap.MdEachPowerdownRate(&prototype.Vest{Value: 0})
-			accountWrap.MdNextPowerdownTime(&prototype.TimePointSec{UtcSeconds: math.MaxUint32})
+			accountWrap.MdNextPowerdownBlockNum(math.MaxUint32)
 		} else {
-			accountWrap.MdNextPowerdownTime(&prototype.TimePointSec{UtcSeconds: timestamp + constants.POWER_DOWN_INTERVAL})
+			accountWrap.MdNextPowerdownBlockNum(current + constants.PowerDownBlockInterval)
 		}
 	}
 	t2 := time.Now()

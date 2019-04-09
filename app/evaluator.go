@@ -142,7 +142,7 @@ func (ev *AccountCreateEvaluator) Apply() {
 		tInfo.VestingShares = op.Fee.ToVest()
 		tInfo.LastPostTime = ev.ctx.control.HeadBlockTime()
 		tInfo.LastVoteTime = ev.ctx.control.HeadBlockTime()
-		tInfo.NextPowerdownTime = &prototype.TimePointSec{UtcSeconds: math.MaxUint32}
+		tInfo.NextPowerdownBlockNum = math.MaxUint32
 		tInfo.EachPowerdownRate = &prototype.Vest{Value: 0}
 		tInfo.ToPowerdown = &prototype.Vest{Value: 0}
 		tInfo.HasPowerdown = &prototype.Vest{Value: 0}
@@ -201,7 +201,8 @@ func (ev *PostEvaluator) Apply() {
 		t.Author = op.Owner
 		t.Body = op.Content
 		t.Created = ev.ctx.control.HeadBlockTime()
-		t.CashoutTime = &prototype.TimePointSec{UtcSeconds: ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.PostCashOutDelayTime)}
+		//t.CashoutTime = &prototype.TimePointSec{UtcSeconds: ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.PostCashOutDelayTime)}
+		t.CashoutBlockNum = ev.ctx.control.GetProps().HeadBlockNumber + constants.PostCashOutDelayBlock
 		t.Depth = 0
 		t.Children = 0
 		t.RootId = t.PostId
@@ -255,7 +256,8 @@ func (ev *ReplyEvaluator) Apply() {
 		t.Author = op.Owner
 		t.Body = op.Content
 		t.Created = ev.ctx.control.HeadBlockTime()
-		t.CashoutTime = &prototype.TimePointSec{UtcSeconds: ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.PostCashOutDelayTime)}
+		//t.CashoutTime = &prototype.TimePointSec{UtcSeconds: ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.PostCashOutDelayTime)}
+		t.CashoutBlockNum = ev.ctx.control.GetProps().HeadBlockNumber + constants.PostCashOutDelayBlock
 		t.Depth = pidWrap.GetDepth() + 1
 		t.Children = 0
 		t.RootId = rootId
@@ -317,7 +319,7 @@ func (ev *VoteEvaluator) Apply() {
 	vesting := voterWrap.GetVestingShares().Value
 	// todo: uint128
 	weightedVp := vesting * uint64(usedVp)
-	if postWrap.GetCashoutTime().UtcSeconds > ev.ctx.control.HeadBlockTime().UtcSeconds {
+	if postWrap.GetCashoutBlockNum() > ev.ctx.control.GetProps().HeadBlockNumber {
 		lastVp := postWrap.GetWeightedVp()
 		votePower := lastVp + weightedVp
 		// add new vp into global
@@ -451,10 +453,11 @@ func (ev *ConvertVestingEvaluator) Apply() {
 	opAssert(op.Amount.Value >= uint64(1e6), "At least 1 vesting should be converted")
 	opAssert(accWrap.GetVestingShares().Value >= op.Amount.Value, "vesting balance not enough")
 	globalProps := ev.ctx.control.GetProps()
-	timestamp := globalProps.Time.UtcSeconds
+	//timestamp := globalProps.Time.UtcSeconds
+	currentBlock := globalProps.HeadBlockNumber
 	eachRate := op.Amount.Value / constants.ConvertWeeks
-
-	accWrap.MdNextPowerdownTime(&prototype.TimePointSec{UtcSeconds: timestamp + constants.POWER_DOWN_INTERVAL})
+	//accWrap.MdNextPowerdownTime(&prototype.TimePointSec{UtcSeconds: timestamp + constants.POWER_DOWN_INTERVAL})
+	accWrap.MdNextPowerdownBlockNum(currentBlock + constants.PowerDownBlockInterval)
 	accWrap.MdEachPowerdownRate(&prototype.Vest{Value: eachRate})
 	accWrap.MdHasPowerdown(&prototype.Vest{Value: 0})
 	accWrap.MdToPowerdown(op.Amount)

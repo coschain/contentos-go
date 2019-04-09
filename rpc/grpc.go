@@ -953,7 +953,15 @@ func (as *APIService) fetchPostInfoResponseById(postId uint64,isNeedLock bool) *
 	pWrap := table.NewSoPostWrap(as.db, &postId)
 	var res *grpcpb.PostResponse
 
+	var (
+		i int32 = 1
+	)
+
+	props := table.NewSoGlobalWrap(as.db, &i).GetProps()
+
 	if pWrap != nil && pWrap.CheckExist() {
+		current := uint64(props.Time.UtcSeconds) - props.HeadBlockNumber * 1 + pWrap.GetCashoutBlockNum() * 1
+		cashoutTime := &prototype.TimePointSec{UtcSeconds: uint32(current)}
 		res  =	&grpcpb.PostResponse{
 			PostId:        pWrap.GetPostId(),
 			Category:      pWrap.GetCategory(),
@@ -973,7 +981,7 @@ func (as *APIService) fetchPostInfoResponseById(postId uint64,isNeedLock bool) *
 			Rewards:       pWrap.GetRewards(),
 			DappRewards:   pWrap.GetDappRewards(),
 			WeightedVp:    pWrap.GetWeightedVp(),
-			CashoutTime:   pWrap.GetCashoutTime(),
+			CashoutTime:   cashoutTime,
 		}
 	}
 	return res

@@ -19,7 +19,7 @@ message so_account {
     uint32                      vote_power     =      9;
     uint32                      post_count     =      10;
     uint32                      created_trx_count     =      11;
-    prototype.time_point_sec    next_powerdown_time     =      12;
+    uint64                      next_powerdown_block_num     =      12;
     prototype.vest              each_powerdown_rate     =      13;
     prototype.vest              to_powerdown     =      14;
     prototype.vest              has_powerdown     =      15;
@@ -82,8 +82,8 @@ message so_mem_account_by_created_trx_count {
 }
 
 
-message so_mem_account_by_next_powerdown_time {
-	prototype.time_point_sec 	next_powerdown_time = 1;
+message so_mem_account_by_next_powerdown_block_num {
+	uint64                   	next_powerdown_block_num = 1;
 }
 
 
@@ -138,8 +138,8 @@ message so_list_account_by_created_trx_count {
 }
 
 
-message so_list_account_by_next_powerdown_time {
-	prototype.time_point_sec 	next_powerdown_time = 1;
+message so_list_account_by_next_powerdown_block_num {
+	uint64                   	next_powerdown_block_num = 1;
 	prototype.account_name   	name           = 2;
 }
 
