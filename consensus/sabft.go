@@ -372,11 +372,11 @@ func (sabft *SABFT) scheduleProduce() bool {
 		}
 	}
 
-	if sabft.tooManyUncommittedBlocks() {
-		sabft.RUnlock()
-		sabft.revertToLastCheckPoint()
-		sabft.RLock()
-	}
+	//if sabft.tooManyUncommittedBlocks() {
+	//	sabft.RUnlock()
+	//	sabft.revertToLastCheckPoint()
+	//	sabft.RLock()
+	//}
 
 	if !sabft.checkProducingTiming() || !sabft.checkOurTurn() {
 		if _, ok := sabft.Ticker.(*Timer); ok {
@@ -424,6 +424,10 @@ func (sabft *SABFT) start() {
 			sabft.log.Debug("[SABFT] routine stopped.")
 			return
 		case b := <-sabft.blkCh:
+			if sabft.tooManyUncommittedBlocks() && b.Id().BlockNum() > sabft.ForkDB.Head().Id().BlockNum() {
+				sabft.log.Debugf("dropping new block %v cause we had too many uncommitted blocks", b.Id())
+				return
+			}
 			sabft.Lock()
 			err := sabft.pushBlock(b, true)
 			sabft.Unlock()
@@ -1289,6 +1293,11 @@ func (sabft *SABFT) MaybeProduceBlock() {
 		return
 	}
 	sabft.RUnlock()
+
+	if sabft.tooManyUncommittedBlocks() {
+		sabft.log.Debugf("stop generating new block cause we had too many uncommitted blocks")
+		return
+	}
 
 	sabft.Lock()
 	b, err := sabft.generateAndApplyBlock()
