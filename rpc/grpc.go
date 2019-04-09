@@ -1069,8 +1069,12 @@ func (as *APIService) GetContractInfo (ctx context.Context, req *grpcpb.GetContr
 	if scid.CheckExist() {
 		res.Exist = true
 
-		res.Abi = scid.GetAbi()
-		res.Code = scid.GetCode()
+		if req.FetchAbi{
+			res.Abi = scid.GetAbi()
+		}
+		if req.FetchCode{
+			res.Code = scid.GetCode()
+		}
 	}
 
 	return res, nil
