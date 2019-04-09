@@ -1055,3 +1055,23 @@ func (as *APIService) GetPostInfoById (ctx context.Context, req *grpcpb.GetPostI
 
 	return res,nil
 }
+
+
+
+func (as *APIService) GetContractInfo (ctx context.Context, req *grpcpb.GetContractInfoRequest) (*grpcpb.GetContractInfoResponse, error){
+	as.db.RLock()
+	defer as.db.RUnlock()
+	res := &grpcpb.GetContractInfoResponse{ Exist:false }
+
+	cid := prototype.ContractId{Owner: req.Owner, Cname: req.ContractName}
+	scid := table.NewSoContractWrap(as.db, &cid)
+
+	if scid.CheckExist() {
+		res.Exist = true
+
+		res.Abi = scid.GetAbi()
+		res.Code = scid.GetCode()
+	}
+
+	return res, nil
+}

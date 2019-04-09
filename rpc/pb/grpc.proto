@@ -91,6 +91,9 @@ service ApiService {
 
     rpc GetPostInfoById (GetPostInfoByIdRequest) returns (GetPostInfoByIdResponse) {
     }
+
+    rpc GetContractInfo (GetContractInfoRequest) returns (GetContractInfoResponse) {
+    }
 }
 
 
@@ -460,4 +463,17 @@ message GetPostInfoByIdResponse {
     PostResponse    post_info        = 1;
     repeated        VoterOfPost voter_list = 2;
     repeated        PostResponse  reply_list = 3;
+}
+
+message GetContractInfoRequest {
+    prototype.account_name     owner    = 1;
+    string     contract_name            = 2;
+    bool fetchAbi                       = 3;
+    bool fetchCode                      = 4;
+}
+
+message GetContractInfoResponse {
+    bool exist    = 1;
+    string abi    = 2;
+    bytes code    = 3;
 }
