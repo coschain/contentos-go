@@ -216,7 +216,7 @@ func (c *TrxPool) GenerateAndApplyBlock(witness string, pre *prototype.Sha256, t
 		close(blockChan)
 
 		if err == nil {
-			if err = c.pushBlockNoLock(newBlock, c.skip|prototype.Skip_apply_transaction); err != nil {
+			if err = c.pushBlockNoLock(newBlock, c.skip|prototype.Skip_apply_transaction|prototype.Skip_block_check); err != nil {
 				c.log.Errorf("pushBlockNoLock failed: %v", err)
 			}
 		}
@@ -352,9 +352,14 @@ func (c *TrxPool) generateBlockNoLock(witness string, pre *prototype.Sha256, tim
 	}
 
 	t3 := time.Now()
-	c.log.Debugf("GENBLOCK %d: %v|%v|%v(%v)|%v, timeout=%v, pending=%d, failed=%d, inblk=%d\n",
+	c.updateGlobalProperties(signBlock)
+	t4 := time.Now()
+	c.shuffle(signBlock)
+	t5 := time.Now()
+
+	c.log.Debugf("GENBLOCK %d: %v|%v|%v(%v)|%v|%v|%v, timeout=%v, pending=%d, failed=%d, inblk=%d",
 		signBlock.Id().BlockNum(),
-		t3.Sub(t0), t1.Sub(t0), t2.Sub(t1), time.Duration(applyTime), t3.Sub(t2), timeOut,
+		t5.Sub(t0), t1.Sub(t0), t2.Sub(t1), time.Duration(applyTime), t3.Sub(t2), t4.Sub(t3), t5.Sub(t4), timeOut,
 		c.tm.WaitingCount(), len(failedTrx), len(signBlock.Transactions))
 
 	b, e = signBlock, nil
@@ -436,27 +441,23 @@ func (c *TrxPool) applyBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag
 func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.SkipFlag) {
 	//nextBlockNum := blk.Id().BlockNum()
 
-	merkleRoot := blk.CalculateMerkleRoot()
-	mustSuccess(bytes.Equal(merkleRoot.Data[:], blk.SignedHeader.Header.TransactionMerkleRoot.Hash), "Merkle check failed")
+	if skip & prototype.Skip_block_check == 0 {
+		merkleRoot := blk.CalculateMerkleRoot()
+		mustSuccess(bytes.Equal(merkleRoot.Data[:], blk.SignedHeader.Header.TransactionMerkleRoot.Hash), "Merkle check failed")
 
-	// validate_block_header
-	c.validateBlockHeader(blk)
+		// validate_block_header
+		c.validateBlockHeader(blk)
 
-	//c.currentBlockNum = nextBlockNum
-	//c.currentTrxInBlock = 0
+		//c.currentBlockNum = nextBlockNum
+		//c.currentTrxInBlock = 0
 
-	blockSize := proto.Size(blk)
-	mustSuccess(uint32(blockSize) <= c.GetProps().GetMaximumBlockSize(), "Block size is too big")
+		blockSize := proto.Size(blk)
+		mustSuccess(uint32(blockSize) <= c.GetProps().GetMaximumBlockSize(), "Block size is too big")
 
-	if uint32(blockSize) < constants.MinBlockSize {
-		// elog("Block size is too small")
+		if uint32(blockSize) < constants.MinBlockSize {
+			// elog("Block size is too small")
+		}
 	}
-
-	w := blk.SignedHeader.Header.Witness
-	dgpo := c.GetProps()
-	dgpo.CurrentWitness = w
-	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
-	dgpWrap.MdProps(dgpo)
 
 	// @ process extension
 
@@ -485,8 +486,19 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 			}
 		}
 		t1 := time.Now()
-		c.log.Debugf("PUSHBLOCK %d: %v(%v), #tx=%d", blk.Id().BlockNum(), t1.Sub(t0), time.Duration(applyTime), totalCount)
+		c.updateGlobalProperties(blk)
+		t2 := time.Now()
+		c.shuffle(blk)
+		t3 := time.Now()
+		c.log.Debugf("PUSHBLOCK %d: %v|%v(%v)|%v|%v, #tx=%d", blk.Id().BlockNum(),
+			t3.Sub(t0), t1.Sub(t0), time.Duration(applyTime), t2.Sub(t1), t3.Sub(t2), totalCount)
 	}
+	t0 := time.Now()
+	c.createBlockSummary(blk)
+	t1 := time.Now()
+	c.tm.BlockApplied(blk)
+	t2 := time.Now()
+
 	tinit := time.Now()
 	c.economist.Mint()
 	tmint := time.Now()
@@ -495,24 +507,13 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 	c.economist.PowerDown()
 	tpd := time.Now()
 	c.log.Debugf("Economist: %v|%v|%v|%v", tpd.Sub(tinit), tmint.Sub(tinit), tdo.Sub(tmint), tpd.Sub(tdo))
-	t0 := time.Now()
-	c.updateGlobalProperties(blk)
-	//c.updateSigningWitness(blk)
-	t1 := time.Now()
-	c.shuffle(blk)
-	// @ update_last_irreversible_block
-	t2 := time.Now()
-	c.createBlockSummary(blk)
-	t3 := time.Now()
-	// @ ...
 
-	// @ notify_applied_block
+	t3 := time.Now()
 	c.notifyBlockApply(blk)
 	t4 := time.Now()
-	c.tm.BlockApplied(blk)
-	t5 := time.Now()
 
-	c.log.Debugf("AFTER_BLOCK %d: %v|%v|%v|%v|%v|%v", blk.Id().BlockNum(), t5.Sub(t0), t1.Sub(t0), t2.Sub(t1), t3.Sub(t2), t4.Sub(t3), t5.Sub(t4))
+	c.log.Debugf("AFTER_BLOCK %d: %v|%v|%v|%v|%v", blk.Id().BlockNum(),
+		t4.Sub(t0), t1.Sub(t0), t2.Sub(t1), t3.Sub(t2), t4.Sub(t3))
 }
 
 func (c *TrxPool) ValidateAddress(name string, pubKey *prototype.PublicKeyType) bool {
@@ -811,6 +812,7 @@ func (c *TrxPool) updateGlobalProperties(blk *prototype.SignedBlock) {
 		dgpo.HeadBlockId = blockID
 		dgpo.HeadBlockPrefix = binary.BigEndian.Uint32(id.Data[8:12])
 		dgpo.Time = blk.SignedHeader.Header.Timestamp
+		dgpo.CurrentWitness = blk.SignedHeader.Header.Witness
 
 		trxCount := len(blk.Transactions)
 		dgpo.TotalTrxCnt += uint64(trxCount)
