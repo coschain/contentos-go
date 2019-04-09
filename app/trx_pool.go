@@ -349,7 +349,6 @@ func (c *TrxPool) generateBlockNoLock(witness string, pre *prototype.Sha256, tim
 
 	if len(failedTrx) > 0 {
 		c.tm.ReturnTrx(failedTrx...)
-		failedTrx = failedTrx[:0]
 	}
 
 	t3 := time.Now()
