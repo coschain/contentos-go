@@ -121,7 +121,7 @@ func createAccount(icons iservices.IConsensus, name string) {
 	if err != nil {
 		panic(err)
 	}
-	icons.PushTransaction(signTx, true, true)
+	icons.PushTransactionToPending(signTx)
 	time.Sleep(3 * time.Second)
 }
 
@@ -167,6 +167,6 @@ func transfer(icons iservices.IConsensus, from, to string, amount uint64, memo s
 	if err != nil {
 		panic(err)
 	}
-	icons.PushTransaction(signTx, true, true)
+	icons.PushTransactionToPending(signTx)
 	time.Sleep(3 * time.Second)
 }

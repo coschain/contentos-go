@@ -3,11 +3,13 @@ module github.com/coschain/contentos-go
 require (
 	github.com/BurntSushi/toml v0.3.1 // indirect
 	github.com/asaskevich/EventBus v0.0.0-20180315140547-d46933a94f05
+	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/chzyer/logex v1.1.10 // indirect
 	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e
 	github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1 // indirect
+	github.com/coocood/freecache v1.1.0
 	github.com/coschain/cobra v0.0.0-20181106130408-77bf516f51a1
-	github.com/coschain/gobft v0.0.0-20190402044717-8f6ce3584c46
+	github.com/coschain/gobft v0.0.0-20190410042356-ab5f2cfae54f
 	github.com/fastly/go-utils v0.0.0-20180712184237-d95a45783239 // indirect
 	github.com/go-interpreter/wagon v0.3.0
 	github.com/go-stack/stack v1.8.0 // indirect
@@ -58,4 +60,4 @@ require (
 	google.golang.org/grpc v1.16.0
 )
 
-replace github.com/go-interpreter/wagon v0.3.0 => github.com/coschain/wagon v0.3.1-0.20190313105030-01faf85b3ff0
+replace github.com/go-interpreter/wagon v0.3.0 => github.com/coschain/wagon v0.3.1-0.20190404031614-dc0354856933

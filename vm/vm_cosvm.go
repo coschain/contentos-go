@@ -13,7 +13,6 @@ import (
 	"github.com/go-interpreter/wagon/wasm"
 	"github.com/sirupsen/logrus"
 	"reflect"
-	"sync"
 )
 
 const (
@@ -27,7 +26,6 @@ type CosVM struct {
 	ctx            *vmcontext.Context
 	db             iservices.IDatabaseRW
 	props          *prototype.DynamicProperties
-	lock           sync.RWMutex
 	logger         *logrus.Logger
 	spentGas       uint64
 }
@@ -42,46 +40,44 @@ func NewCosVM(ctx *vmcontext.Context, db iservices.IDatabaseRW, props *prototype
 }
 
 func (w *CosVM) initNativeFuncs() {
-	exports := &CosVMExport{&CosVMNative{cosVM: w}}
-	w.Register("sha256", exports.sha256, 500)
-	w.Register("current_block_number", exports.currentBlockNumber, 100)
-	w.Register("current_timestamp", exports.currentTimestamp, 100)
-	w.Register("current_witness", exports.currentWitness, 150)
-	w.Register("print_str", exports.printString, 100)
-	w.Register("print_int", exports.printInt64, 100)
-	w.Register("print_uint", exports.printUint64, 100)
-	w.Register("require_auth", exports.requiredAuth, 200)
-	w.Register("get_user_balance", exports.getUserBalance, 100)
-	w.Register("get_contract_balance", exports.getContractBalance, 100)
-	w.Register("save_to_storage", exports.saveToStorage, 1000)
-	w.Register("read_from_storage", exports.readFromStorage, 300)
-	w.Register("cos_assert", exports.cosAssert, 100)
-	w.Register("abort", exports.cosAbort, 100)
-	w.Register("read_contract_op_params", exports.readContractOpParams, 100)
-	w.Register("read_contract_name", exports.readContractName, 100)
-	w.Register("read_contract_method", exports.readContractMethod, 100)
-	w.Register("read_contract_owner", exports.readContractOwner, 100)
-	w.Register("read_contract_caller", exports.readContractCaller, 100)
-	w.Register("read_contract_sender_value", exports.readContractSenderValue, 100)
-	w.Register("contract_call", exports.contractCall, 1000)
-	w.Register("contract_called_by_user", exports.contractCalledByUser, 100)
-	w.Register("read_calling_contract_owner", exports.readCallingContractOwner, 100)
-	w.Register("read_calling_contract_name", exports.readCallingContractName, 100)
-	w.Register("transfer_to_user", exports.contractTransferToUser, 800)
-	w.Register("transfer_to_contract", exports.contractTransferToContract, 800)
-	w.Register("table_get_record", exports.tableGetRecord, 800)
-	w.Register("table_new_record", exports.tableNewRecord, 800)
-	w.Register("table_update_record", exports.tableUpdateRecord, 800)
-	w.Register("table_delete_record", exports.tableDeleteRecord, 800)
+	w.Register("sha256", e_sha256, 500)
+	w.Register("current_block_number", e_currentBlockNumber, 100)
+	w.Register("current_timestamp", e_currentTimestamp, 100)
+	w.Register("current_witness", e_currentWitness, 150)
+	w.Register("print_str", e_printString, 100)
+	w.Register("print_int", e_printInt64, 100)
+	w.Register("print_uint", e_printUint64, 100)
+	w.Register("require_auth", e_requiredAuth, 200)
+	w.Register("get_user_balance", e_getUserBalance, 100)
+	w.Register("get_contract_balance", e_getContractBalance, 100)
+	w.Register("save_to_storage", e_saveToStorage, 1000)
+	w.Register("read_from_storage", e_readFromStorage, 300)
+	w.Register("cos_assert", e_cosAssert, 100)
+	w.Register("abort", e_cosAbort, 100)
+	w.Register("read_contract_op_params", e_readContractOpParams, 100)
+	w.Register("read_contract_name", e_readContractName, 100)
+	w.Register("read_contract_method", e_readContractMethod, 100)
+	w.Register("read_contract_owner", e_readContractOwner, 100)
+	w.Register("read_contract_caller", e_readContractCaller, 100)
+	w.Register("read_contract_sender_value", e_readContractSenderValue, 100)
+	w.Register("contract_call", e_contractCall, 1000)
+	w.Register("contract_called_by_user", e_contractCalledByUser, 100)
+	w.Register("read_calling_contract_owner", e_readCallingContractOwner, 100)
+	w.Register("read_calling_contract_name", e_readCallingContractName, 100)
+	w.Register("transfer_to_user", e_contractTransferToUser, 800)
+	w.Register("transfer_to_contract", e_contractTransferToContract, 800)
+	w.Register("table_get_record", e_tableGetRecord, 800)
+	w.Register("table_new_record", e_tableNewRecord, 800)
+	w.Register("table_update_record", e_tableUpdateRecord, 800)
+	w.Register("table_delete_record", e_tableDeleteRecord, 800)
 
 	// for memeory
-	w.Register("memcpy", w.memcpy, 100)
-	w.Register("memset", w.memset, 100)
-	w.Register("memmove", w.memmove, 100)
-	w.Register("memcmp", w.memcmp, 100)
-
+	w.Register("memcpy", e_memcpy, 100)
+	w.Register("memset", e_memset, 100)
+	w.Register("memmove", e_memmove, 100)
+	w.Register("memcmp", e_memcmp, 100)
 	// for io
-	w.Register("copy", w.copy, 100)
+	w.Register("copy", e_copy, 100)
 
 }
 
@@ -114,31 +110,35 @@ func (w *CosVM) runEntry(entryName string) (ret uint32, err error) {
 			err = errors.New(fmt.Sprintf("%v", e))
 		}
 	}()
-	vmModule, err := w.readModule()
+
+	vc := vmcache.GetVmCache()
+	vm := vc.Fetch(w.ctx.Owner.Value,w.ctx.Contract)
+	if vm != nil {
+		vm.Reset()
+	} else {
+		vmModule, errRead := w.readModule()
+		if errRead != nil {
+			ret = 1
+			err = errRead
+			return
+		}
+		vm, err = exec.NewVM(vmModule)
+	}
 	if err != nil {
 		ret = 1
 		return
 	}
+	defer vc.Put(w.ctx.Owner.Value, w.ctx.Contract, vm)
 
-	vc := vmcache.GetVmCache()
-	vm, ok := vc.Get(w.ctx.Owner.Value,w.ctx.Contract)
-	if ok {
-		vm.Reset()
-	} else {
-		vm, err = exec.NewVM(vmModule)
-		//vc.Add(w.ctx.Owner.Value,w.ctx.Contract,vm)
-	}
-
+	nativeFuncs := &CosVMNative{cosVM: w}
+	vm.SetTag( nativeFuncs )
 	defer func() {
 		w.spentGas = vm.CostGas
 	}()
-	if err != nil {
-		ret = 1
-		return
-	}
+
 	vm.InitGasTable(w.ctx.Gas.Value)
 	var entryIndex = -1
-	for name, entry := range vmModule.Export.Entries {
+	for name, entry := range vm.Module().Export.Entries {
 		if name == entryName && entry.Kind == wasm.ExternalFunction {
 			entryIndex = int(entry.Index)
 		}
@@ -173,8 +173,6 @@ func (w *CosVM) Validate() error {
 }
 
 func (w *CosVM) Register(funcName string, function interface{}, gas uint64) {
-	w.lock.RLock()
-	defer w.lock.RUnlock()
 	rfunc := reflect.TypeOf(function)
 	if rfunc.Kind() != reflect.Func {
 		w.logger.Error(fmt.Sprintf("%s is not a function", funcName))

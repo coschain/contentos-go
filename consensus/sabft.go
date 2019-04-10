@@ -105,7 +105,7 @@ type SABFT struct {
 	validators    []*publicValidator
 	priv          *privateValidator
 	bft           *gobft.Core
-	lastCommitted *message.Commit
+	lastCommitted atomic.Value
 	suffledID     common.BlockID
 	appState      *message.AppState
 	bftStarted    uint32
@@ -372,11 +372,11 @@ func (sabft *SABFT) scheduleProduce() bool {
 		}
 	}
 
-	if sabft.tooManyUncommittedBlocks() {
-		sabft.RUnlock()
-		sabft.revertToLastCheckPoint()
-		sabft.RLock()
-	}
+	//if sabft.tooManyUncommittedBlocks() {
+	//	sabft.RUnlock()
+	//	sabft.revertToLastCheckPoint()
+	//	sabft.RLock()
+	//}
 
 	if !sabft.checkProducingTiming() || !sabft.checkOurTurn() {
 		if _, ok := sabft.Ticker.(*Timer); ok {
@@ -424,6 +424,10 @@ func (sabft *SABFT) start() {
 			sabft.log.Debug("[SABFT] routine stopped.")
 			return
 		case b := <-sabft.blkCh:
+			if sabft.tooManyUncommittedBlocks() && b.Id().BlockNum() > sabft.ForkDB.Head().Id().BlockNum() {
+				sabft.log.Debugf("dropping new block %v cause we had too many uncommitted blocks", b.Id())
+				return
+			}
 			sabft.Lock()
 			err := sabft.pushBlock(b, true)
 			sabft.Unlock()
@@ -633,16 +637,10 @@ func (sabft *SABFT) verifyCommitSig(records *message.Commit) bool {
 }
 
 func (sabft *SABFT) CheckCommittedAlready(id common.BlockID) bool {
-	sabft.RLock()
-	defer sabft.RUnlock()
-
-	return sabft.checkCommittedAlready(id)
-}
-
-func (sabft *SABFT) checkCommittedAlready(id common.BlockID) bool {
-	if sabft.lastCommitted != nil {
+	lastCommitted := sabft.lastCommitted.Load()
+	if lastCommitted != nil {
 		oldID := common.BlockID{
-			Data: sabft.lastCommitted.ProposedData,
+			Data: lastCommitted.(*message.Commit).ProposedData,
 		}
 		if oldID.BlockNum() >= id.BlockNum() {
 			return true
@@ -717,13 +715,13 @@ func (sabft *SABFT) PushTransactionToPending(trx common.ISignedTransaction) erro
 	}
 
 	chanError := make(chan error)
-	sabft.pendingCh <- func() {
+	go func() {
 		err := sabft.ctrl.PushTrxToPending(trx.(*prototype.SignedTransaction))
 		if err == nil {
 			go sabft.p2p.Broadcast(trx.(*prototype.SignedTransaction))
 		}
 		chanError <- err
-	}
+	}()
 
 	return <-chanError
 }
@@ -821,13 +819,12 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 }
 
 func (sabft *SABFT) GetLastBFTCommit() interface{} {
-	sabft.RLock()
-	defer sabft.RUnlock()
+	lastCommitted := sabft.lastCommitted.Load()
 
-	if sabft.lastCommitted == nil {
+	if lastCommitted == nil {
 		return nil
 	}
-	return sabft.lastCommitted
+	return lastCommitted.(*message.Commit)
 }
 
 func (sabft *SABFT) GetNextBFTCheckPoint(blockNum uint64) interface{} {
@@ -843,14 +840,12 @@ func (sabft *SABFT) GetNextBFTCheckPoint(blockNum uint64) interface{} {
 }
 
 func (sabft *SABFT) GetLIB() common.BlockID {
-	sabft.RLock()
-	defer sabft.RUnlock()
-
-	if sabft.lastCommitted == nil {
+	lastCommitted := sabft.lastCommitted.Load()
+	if lastCommitted == nil {
 		return common.EmptyBlockID
 	}
 	return common.BlockID{
-		Data: sabft.lastCommitted.ProposedData,
+		Data: lastCommitted.(*message.Commit).ProposedData,
 	}
 }
 
@@ -923,7 +918,7 @@ func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 
 	sabft.ctrl.Commit(blockID.BlockNum())
 	sabft.ForkDB.Commit(blockID)
-	sabft.lastCommitted = commitRecords
+	sabft.lastCommitted.Store(commitRecords)
 
 	sabft.log.Debug("[SABFT] committed block #", blockID)
 	return nil
@@ -1230,6 +1225,16 @@ func fetchBlocks(from, to uint64, forkDB *forkdb.DB, blog *blocklog.BLog) ([]com
 	return append(blocksInBlog, blocksInForkDB...), nil
 }
 
+func (sabft *SABFT) IsCommitted(id common.BlockID) bool {
+	blockNum := id.BlockNum()
+	b := &prototype.SignedBlock{}
+	err := sabft.blog.ReadBlock(b, int64(blockNum)-1)
+	if err != nil {
+		return false
+	}
+	return b.Id() == id
+}
+
 // return blocks in the range of (id, max(headID, id+1024))
 func (sabft *SABFT) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, error) {
 	if sabft.ForkDB.Empty() {
@@ -1298,6 +1303,11 @@ func (sabft *SABFT) MaybeProduceBlock() {
 		return
 	}
 	sabft.RUnlock()
+
+	if sabft.tooManyUncommittedBlocks() {
+		sabft.log.Debugf("stop generating new block cause we had too many uncommitted blocks")
+		return
+	}
 
 	sabft.Lock()
 	b, err := sabft.generateAndApplyBlock()
@@ -1382,7 +1392,7 @@ func (sabft *SABFT) handleBlockSync() error {
 	} else if dbLastPushed > latestNumber {
 
 		sabft.log.Infof("[Revert commit] start revert invalid commit to statedb: "+
-			"%v,end:%v,real commit num is %v", dbLastPushed, latestNumber)
+			"%v,end:%v,real commit num is %v", dbLastPushed, sabft.ForkDB.Head().Id().BlockNum(), latestNumber)
 
 		sabft.ctrl.PopBlock(latestNumber + 1)
 	}

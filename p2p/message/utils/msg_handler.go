@@ -217,7 +217,9 @@ func (p *MsgHandler)TransactionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, ar
 		return
 	}
 	ctrl := s.(iservices.IConsensus)
-	ctrl.PushTransactionToPending(trn.SigTrx)
+	go func() {
+		_ = ctrl.PushTransactionToPending(trn.SigTrx)
+	}()
 }
 
 // VersionHandle handles version handshake protocol from peer

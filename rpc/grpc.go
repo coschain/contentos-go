@@ -47,7 +47,7 @@ func (as *APIService) QueryTableContent(ctx context.Context, req *grpcpb.GetTabl
 
 	res := &grpcpb.TableContentResponse{}
 
-	cid := prototype.ContractId{Owner: &prototype.AccountName{Value: req.Owner}, Cname: req.Contranct}
+	cid := prototype.ContractId{Owner: &prototype.AccountName{Value: req.Owner}, Cname: req.Contract}
 	scid := table.NewSoContractWrap(as.db, &cid)
 
 	abiString := scid.GetAbi()
@@ -56,9 +56,20 @@ func (as *APIService) QueryTableContent(ctx context.Context, req *grpcpb.GetTabl
 		return nil, err
 	}
 
-	tables := contractTable.NewContractTables(req.Owner, req.Contranct, abiInterface, as.db)
+	limit := checkLimit(req.Count)
+
+	tables := contractTable.NewContractTables(req.Owner, req.Contract, abiInterface, as.db)
 	aimTable := tables.Table(req.Table)
-	jsonStr, err := aimTable.QueryRecordsJson(req.Field, req.Begin, req.End, false, -1)
+
+	startKey := req.Begin
+	limitKey := ""
+
+	if req.Reverse{
+		limitKey = req.Begin
+		startKey = ""
+	}
+
+	jsonStr, err := aimTable.QueryRecordsJson(req.Field, startKey , limitKey, req.Reverse, int(limit) )
 	if err != nil {
 		return nil, err
 	}
@@ -292,23 +303,10 @@ func (as *APIService) GetPostListByCreated(ctx context.Context, req *grpcpb.GetP
 		func(mVal *uint64, sVal *prototype.PostCreatedOrder, idx uint32) bool {
 			postWrap := table.NewSoPostWrap(as.db, mVal)
 			if postWrap != nil && postWrap.CheckExist() {
-				postList = append(postList, &grpcpb.PostResponse{
-					PostId:        postWrap.GetPostId(),
-					Category:      postWrap.GetCategory(),
-					ParentAuthor:  postWrap.GetAuthor(),
-					Author:        postWrap.GetAuthor(),
-					Title:         postWrap.GetTitle(),
-					Body:          postWrap.GetBody(),
-					Created:       postWrap.GetCreated(),
-					LastPayout:    postWrap.GetLastPayout(),
-					Depth:         postWrap.GetDepth(),
-					Children:      postWrap.GetChildren(),
-					RootId:        postWrap.GetRootId(),
-					ParentId:      postWrap.GetParentId(),
-					Tags:          postWrap.GetTags(),
-					Beneficiaries: postWrap.GetBeneficiaries(),
-					VoteCnt:       postWrap.GetVoteCnt(),
-				})
+				post := as.fetchPostInfoResponseById(*mVal,false)
+				if post != nil {
+					postList = append(postList,post)
+				}
 			}
 			if idx < limit {
 				return true
@@ -339,23 +337,9 @@ func (as *APIService) GetReplyListByPostId(ctx context.Context, req *grpcpb.GetR
 	limit = checkLimit(req.GetLimit())
 	replyOrderWrap.ForEachByRevOrder(start, end, nil, nil,
 		func(mVal *uint64, sVal *prototype.ReplyCreatedOrder, idx uint32) bool {
-			postWrap := table.NewSoPostWrap(as.db, mVal)
-			if postWrap != nil && postWrap.CheckExist() {
-				replyList = append(replyList, &grpcpb.PostResponse{
-					PostId:       postWrap.GetPostId(),
-					Category:     postWrap.GetCategory(),
-					ParentAuthor: postWrap.GetAuthor(),
-					Author:       postWrap.GetAuthor(),
-					Title:        postWrap.GetTitle(),
-					Body:         postWrap.GetBody(),
-					Created:      postWrap.GetCreated(),
-					LastPayout:   postWrap.GetLastPayout(),
-					Depth:        postWrap.GetDepth(),
-					Children:     postWrap.GetChildren(),
-					RootId:       postWrap.GetRootId(),
-					ParentId:     postWrap.GetParentId(),
-					VoteCnt:      postWrap.GetVoteCnt(),
-				})
+			post := as.fetchPostInfoResponseById(*mVal,false)
+			if post != nil {
+				replyList = append(replyList, post)
 			}
 			if idx < limit {
 				return true
@@ -371,22 +355,6 @@ func (as *APIService) GetBlockTransactionsByNum(ctx context.Context, req *grpcpb
 	defer as.db.RUnlock()
 
 	return &grpcpb.GetBlockTransactionsByNumResponse{}, nil
-}
-
-func (as *APIService) GetTrxById(ctx context.Context, req *grpcpb.GetTrxByIdRequest) (*grpcpb.GetTrxByIdResponse, error) {
-	as.db.RLock()
-	defer as.db.RUnlock()
-
-	trxWrap := table.NewSoTransactionObjectWrap(as.db, req.GetTrxId())
-	resp := &grpcpb.GetTrxByIdResponse{}
-
-	if trxWrap != nil && trxWrap.CheckExist() {
-		//resp.Trx. = trxWrap.GetTrxId()
-
-		//TODO wait trx definition
-	}
-
-	return resp, nil
 }
 
 func (as *APIService) BroadcastTrx(ctx context.Context, req *grpcpb.BroadcastTrxRequest) (*grpcpb.BroadcastTrxResponse, error) {
@@ -413,10 +381,9 @@ func (as *APIService) getState() *grpcpb.ChainState {
 	var (
 		i int32 = 1
 	)
-	as.db.RUnlock()
+
 	result.LastIrreversibleBlockNumber = as.consensus.GetLIB().BlockNum()
 	lastCommit := as.consensus.GetLastBFTCommit()
-	as.db.RLock()
 
 	result.Dgpo = table.NewSoGlobalWrap(as.db, &i).GetProps()
 
@@ -676,6 +643,7 @@ func (as *APIService) GetTrxInfoById(ctx context.Context, req *grpcpb.GetTrxInfo
 		info.BlockHeight = wrap.GetBlockHeight()
 		info.BlockTime = wrap.GetBlockTime()
 		info.TrxWrap = wrap.GetTrxWrap()
+		info.BlockId = wrap.GetBlockId()
 		res.Info = info
 	}
 	return res, err
@@ -709,6 +677,7 @@ func (as *APIService) GetTrxListByTime(ctx context.Context, req *grpcpb.GetTrxLi
 				info.BlockHeight = wrap.GetBlockHeight()
 				info.BlockTime = wrap.GetBlockTime()
 				info.TrxWrap = wrap.GetTrxWrap()
+				info.BlockId = wrap.GetBlockId()
 				infoList = append(infoList, info)
 			}
 			//if len(infoList) >= (maxPageSizeLimit) {
@@ -754,23 +723,11 @@ func (as *APIService) GetPostListByCreateTime(ctx context.Context, req *grpcpb.G
 				if mVal != nil {
 					postWrap := table.NewSoPostWrap(as.db, mVal)
 					if postWrap != nil && postWrap.CheckExist() {
-						postInfo := &grpcpb.PostResponse{
-							PostId:        postWrap.GetPostId(),
-							Category:      postWrap.GetCategory(),
-							ParentAuthor:  postWrap.GetAuthor(),
-							Author:        postWrap.GetAuthor(),
-							Title:         postWrap.GetTitle(),
-							Body:          postWrap.GetBody(),
-							Created:       postWrap.GetCreated(),
-							LastPayout:    postWrap.GetLastPayout(),
-							Depth:         postWrap.GetDepth(),
-							Children:      postWrap.GetChildren(),
-							RootId:        postWrap.GetRootId(),
-							ParentId:      postWrap.GetParentId(),
-							Tags:          postWrap.GetTags(),
-							Beneficiaries: postWrap.GetBeneficiaries(),
+						postInfo := as.fetchPostInfoResponseById(*mVal,false)
+						if postInfo != nil && postInfo.ParentId <= 0 {
+							//Filter reply
+							postList = append(postList, postInfo)
 						}
-						postList = append(postList, postInfo)
 					}
 				}
 				if uint32(len(postList)) >= limit {
@@ -808,25 +765,8 @@ func (as *APIService) GetPostListByName(ctx context.Context, req *grpcpb.GetPost
 		}
 		err = wrap.ForEachByRevOrder(req.Start, req.End, lastPostId, lastPostOrder, func(mVal *uint64, sVal *prototype.UserPostCreateOrder, idx uint32) bool {
 			if mVal != nil {
-				postWrap := table.NewSoPostWrap(as.db, mVal)
-				if postWrap != nil && postWrap.CheckExist() {
-					postInfo := &grpcpb.PostResponse{
-						PostId:        postWrap.GetPostId(),
-						Category:      postWrap.GetCategory(),
-						ParentAuthor:  postWrap.GetAuthor(),
-						Author:        postWrap.GetAuthor(),
-						Title:         postWrap.GetTitle(),
-						Body:          postWrap.GetBody(),
-						Created:       postWrap.GetCreated(),
-						LastPayout:    postWrap.GetLastPayout(),
-						Depth:         postWrap.GetDepth(),
-						Children:      postWrap.GetChildren(),
-						RootId:        postWrap.GetRootId(),
-						ParentId:      postWrap.GetParentId(),
-						Tags:          postWrap.GetTags(),
-						Beneficiaries: postWrap.GetBeneficiaries(),
-						VoteCnt:       postWrap.GetVoteCnt(),
-					}
+				postInfo := as.fetchPostInfoResponseById(*mVal,false)
+				if postInfo != nil {
 					postList = append(postList, postInfo)
 				}
 			}
@@ -859,6 +799,7 @@ func (as *APIService) getAccountResponseByName(name *prototype.AccountName, isNe
 		acctInfo.CreatedTime = accWrap.GetCreatedTime()
 		acctInfo.PostCount = accWrap.GetPostCount()
 		acctInfo.TrxCount = accWrap.GetCreatedTrxCount()
+		acctInfo.VotePower = accWrap.GetVotePower()
 
 		witWrap := table.NewSoWitnessWrap(as.db, accWrap.GetName())
 		if witWrap != nil && witWrap.CheckExist() {
@@ -944,6 +885,7 @@ func (as *APIService) GetUserTrxListByTime(ctx context.Context, req *grpcpb.GetU
 					info.BlockHeight = wrap.GetBlockHeight()
 					info.BlockTime = wrap.GetBlockTime()
 					info.TrxWrap = wrap.GetTrxWrap()
+					info.BlockId = wrap.GetBlockId()
 					trxList = append(trxList, info)
 				}
 			}
@@ -959,4 +901,179 @@ func (as *APIService) GetUserTrxListByTime(ctx context.Context, req *grpcpb.GetU
 	}
 	res.TrxList = trxList
 	return res,err
+}
+
+func (as *APIService) GetAccountCashout(ctx context.Context, req *grpcpb.GetAccountCashoutRequest) (*grpcpb.AccountCashoutResponse, error) {
+	as.db.RLock()
+	defer as.db.RUnlock()
+
+	rewardWrap := table.NewSoExtRewardWrap(as.db, &prototype.RewardCashoutId{Account:req.AccountName, PostId:req.PostId})
+
+	if rewardWrap != nil && rewardWrap.CheckExist() {
+		reward := rewardWrap.GetReward()
+		return &grpcpb.AccountCashoutResponse{AccountName: req.AccountName, Reward: reward}, nil
+	}
+	return &grpcpb.AccountCashoutResponse{AccountName: req.AccountName, Reward: &prototype.Vest{Value: 0}}, nil
+}
+
+func (as *APIService) GetBlockCashout(ctx context.Context, req *grpcpb.GetBlockCashoutRequest) (*grpcpb.BlockCashoutResponse, error) {
+	as.db.RLock()
+	defer as.db.RUnlock()
+	blockHeight := req.BlockHeight
+	cashoutWrap := table.NewExtRewardBlockHeightWrap(as.db)
+	var cashouts []*grpcpb.AccountCashoutResponse
+	if cashoutWrap != nil {
+		start := blockHeight - 1
+		end := blockHeight
+		if start < 0 {
+			start = 0
+		}
+		_ = cashoutWrap.ForEachByOrder(&start, &end, nil, nil, func(mVal *prototype.RewardCashoutId, sVal *uint64, idx uint32) bool {
+			cWrap := table.NewSoExtRewardWrap(as.db, mVal)
+			if cWrap != nil && cWrap.CheckExist() {
+				reward := cWrap.GetReward()
+				cashout := &grpcpb.AccountCashoutResponse{AccountName: mVal.Account, Reward: reward}
+				cashouts = append(cashouts, cashout)
+				return true
+			}
+			return false
+		})
+	}
+	blockCashout := &grpcpb.BlockCashoutResponse{CashoutList: cashouts}
+	return blockCashout, nil
+}
+
+func (as *APIService) fetchPostInfoResponseById(postId uint64,isNeedLock bool) *grpcpb.PostResponse {
+	if isNeedLock {
+		as.db.RLock()
+		defer as.db.RUnlock()
+	}
+	pWrap := table.NewSoPostWrap(as.db, &postId)
+	var res *grpcpb.PostResponse
+
+	var (
+		i int32 = 1
+	)
+
+	props := table.NewSoGlobalWrap(as.db, &i).GetProps()
+
+	if pWrap != nil && pWrap.CheckExist() {
+		current := uint64(props.Time.UtcSeconds) - props.HeadBlockNumber * 1 + pWrap.GetCashoutBlockNum() * 1
+		cashoutTime := &prototype.TimePointSec{UtcSeconds: uint32(current)}
+		res  =	&grpcpb.PostResponse{
+			PostId:        pWrap.GetPostId(),
+			Category:      pWrap.GetCategory(),
+			ParentAuthor:  pWrap.GetAuthor(),
+			Author:        pWrap.GetAuthor(),
+			Title:         pWrap.GetTitle(),
+			Body:          pWrap.GetBody(),
+			Created:       pWrap.GetCreated(),
+			LastPayout:    pWrap.GetLastPayout(),
+			Depth:         pWrap.GetDepth(),
+			Children:      pWrap.GetChildren(),
+			RootId:        pWrap.GetRootId(),
+			ParentId:      pWrap.GetParentId(),
+			Tags:          pWrap.GetTags(),
+			Beneficiaries: pWrap.GetBeneficiaries(),
+			VoteCnt:       pWrap.GetVoteCnt(),
+			Rewards:       pWrap.GetRewards(),
+			DappRewards:   pWrap.GetDappRewards(),
+			WeightedVp:    pWrap.GetWeightedVp(),
+			CashoutTime:   cashoutTime,
+		}
+	}
+	return res
+}
+
+func (as *APIService) GetPostInfoById (ctx context.Context, req *grpcpb.GetPostInfoByIdRequest) (*grpcpb.GetPostInfoByIdResponse, error){
+	as.db.RLock()
+	defer as.db.RUnlock()
+	res := &grpcpb.GetPostInfoByIdResponse{}
+
+	pId := &req.PostId
+	postInfo := as.fetchPostInfoResponseById(req.PostId,false)
+	res.PostInfo = postInfo
+	if postInfo != nil {
+		voterLimit := checkLimit(req.VoterListLimit)
+		if voterLimit > 0 {
+			voteWrap := table.NewVotePostIdWrap(as.db)
+			if voteWrap != nil {
+				end := req.PostId+1
+				var voterList []*grpcpb.VoterOfPost
+				err := voteWrap.ForEachByOrder(pId,&end,nil, nil, func(mVal *prototype.VoterId, sVal *uint64, idx uint32) bool {
+					if mVal != nil {
+						voter := &grpcpb.VoterOfPost{}
+						voteWrap := table.NewSoVoteWrap(as.db,mVal)
+						if voteWrap != nil && voteWrap.CheckExist() {
+							voter.WeightedVp =voteWrap.GetWeightedVp()
+						}
+						voter.AccountName = mVal.Voter
+						voterList = append(voterList,voter)
+
+					}
+					if uint32(len(voterList)) >= voterLimit {
+						return false
+					}
+					return true
+				})
+				if err != nil {
+					return res,err
+				}
+				res.VoterList = voterList
+			}
+
+		}
+
+		replyLimit := checkLimit(req.ReplyListLimit)
+		if replyLimit > 0 {
+			replyOrderWrap := table.NewExtReplyCreatedCreatedOrderWrap(as.db)
+			var replyList []*grpcpb.PostResponse
+			if replyOrderWrap != nil {
+				start := &prototype.ReplyCreatedOrder{ParentId:req.PostId,Created:prototype.NewTimePointSec(math.MaxUint32)}
+				end := &prototype.ReplyCreatedOrder{ParentId:req.PostId,Created:prototype.NewTimePointSec(1)}
+				err := replyOrderWrap.ForEachByRevOrder(start,end,nil,nil, func(mVal *uint64, sVal *prototype.ReplyCreatedOrder, idx uint32) bool {
+					if mVal != nil {
+                       reply :=  as.fetchPostInfoResponseById(*mVal,false)
+                       if reply != nil {
+						   replyList = append(replyList,reply)
+					   }
+					}
+					if uint32(len(replyList)) >= replyLimit {
+						return false
+					}
+					return true
+				})
+				if err != nil {
+					return res,err
+				}
+				res.ReplyList = replyList
+			}
+		}
+	}
+
+	return res,nil
+}
+
+
+
+func (as *APIService) GetContractInfo (ctx context.Context, req *grpcpb.GetContractInfoRequest) (*grpcpb.GetContractInfoResponse, error){
+	as.db.RLock()
+	defer as.db.RUnlock()
+	res := &grpcpb.GetContractInfoResponse{ Exist:false }
+
+	cid := prototype.ContractId{Owner: req.Owner, Cname: req.ContractName}
+	scid := table.NewSoContractWrap(as.db, &cid)
+
+	if scid.CheckExist() {
+		res.Exist = true
+
+		if req.FetchAbi{
+			res.Abi = scid.GetAbi()
+		}
+		if req.FetchCode{
+			res.Code = scid.GetCode()
+		}
+	}
+
+	return res, nil
 }

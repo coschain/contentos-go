@@ -77,7 +77,12 @@ func createAccount(mywallet *wallet.BaseWallet, rpcClient grpcpb.ApiServiceClien
 		}
 
 		if strings.Contains(resp.Invoice.ErrorInfo, "Insufficient") {
-			err := transfer(rpcClient, GlobalAccountLIst.arr[0], creatorAccount, 10)
+			err := transfer(rpcClient, GlobalAccountLIst.arr[0], creatorAccount, 5)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+			err = vest(rpcClient, GlobalAccountLIst.arr[0], creatorAccount, 5)
 			if err != nil {
 				fmt.Println(err)
 				return
@@ -116,7 +121,7 @@ func transfer(rpcClient grpcpb.ApiServiceClient, fromAccount, toAccount  *wallet
 
 	if amount == 0 {
 		r := rand.New(rand.NewSource(time.Now().UnixNano()))
-		amount = 1 + r.Intn(10)
+		amount = 1 + r.Intn(5)
 	}
 
 	transfer_op := &prototype.TransferOperation{
@@ -143,7 +148,12 @@ func transfer(rpcClient grpcpb.ApiServiceClient, fromAccount, toAccount  *wallet
 			if fromAccount == GlobalAccountLIst.arr[0] {
 				return errors.New("initminer has no money left")
 			}
-			err := transfer(rpcClient, GlobalAccountLIst.arr[0], fromAccount, 10)
+			err := transfer(rpcClient, GlobalAccountLIst.arr[0], fromAccount, 5)
+			if err != nil {
+				fmt.Println(err)
+				return err
+			}
+			err = vest(rpcClient, GlobalAccountLIst.arr[0], fromAccount, 5)
 			if err != nil {
 				fmt.Println(err)
 				return err
@@ -159,6 +169,74 @@ func transfer(rpcClient grpcpb.ApiServiceClient, fromAccount, toAccount  *wallet
 	}
 	return nil
 }
+
+func vest(rpcClient grpcpb.ApiServiceClient, fromAccount, toAccount  *wallet.PrivAccount, amount int) error {
+	if fromAccount == nil {
+		GlobalAccountLIst.RLock()
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		idx := r.Intn( len(GlobalAccountLIst.arr) )
+		fromAccount = GlobalAccountLIst.arr[idx]
+		GlobalAccountLIst.RUnlock()
+	}
+
+	if toAccount == nil {
+		for {
+			GlobalAccountLIst.RLock()
+			r := rand.New(rand.NewSource(time.Now().UnixNano()))
+			idx := r.Intn( len(GlobalAccountLIst.arr) )
+			toAccount = GlobalAccountLIst.arr[idx]
+			GlobalAccountLIst.RUnlock()
+			if fromAccount != toAccount {
+				break
+			}
+		}
+	}
+
+	if amount == 0 {
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		amount = 1 + r.Intn(10)
+	}
+
+	transfer_op := &prototype.TransferToVestingOperation{
+		From:   &prototype.AccountName{Value: fromAccount.Name},
+		To:     &prototype.AccountName{Value: toAccount.Name},
+		Amount: prototype.NewCoin(uint64(amount)),
+	}
+	signTx, err := utils.GenerateSignedTxAndValidate2(rpcClient, []interface{}{transfer_op}, fromAccount)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+
+	fmt.Println("Request command: ", fmt.Sprintf("transfer vest %s %s %d", fromAccount.Name, toAccount.Name, amount) )
+
+	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
+	resp, err := rpcClient.BroadcastTrx(context.Background(), req)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	} else {
+		if strings.Contains(resp.Invoice.ErrorInfo, "Insufficient") {
+			if fromAccount == GlobalAccountLIst.arr[0] {
+				return errors.New("initminer has no money left")
+			}
+			err := vest(rpcClient, GlobalAccountLIst.arr[0], fromAccount, 10)
+			if err != nil {
+				fmt.Println(err)
+				return err
+			}
+			vest(rpcClient, fromAccount, toAccount, amount)
+			return nil
+		}
+
+		fmt.Println("Request command: ",
+			fmt.Sprintf("transfer vest %s %s %d", fromAccount.Name, toAccount.Name, amount),
+			" ",
+			fmt.Sprintf("Result: %v", resp))
+	}
+	return nil
+}
+
 
 func postArticle(rpcClient grpcpb.ApiServiceClient, authorAccount *wallet.PrivAccount) {
 
@@ -219,7 +297,12 @@ func postArticle(rpcClient grpcpb.ApiServiceClient, authorAccount *wallet.PrivAc
 		}
 
 		if strings.Contains(resp.Invoice.ErrorInfo, "Insufficient") {
-			err := transfer(rpcClient, GlobalAccountLIst.arr[0], authorAccount, 10)
+			err := transfer(rpcClient, GlobalAccountLIst.arr[0], authorAccount, 5)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+			err = vest(rpcClient, GlobalAccountLIst.arr[0], authorAccount, 5)
 			if err != nil {
 				fmt.Println(err)
 				return
@@ -319,7 +402,12 @@ func voteArticle(rpcClient grpcpb.ApiServiceClient, voterAccount *wallet.PrivAcc
 		fmt.Println(err)
 	} else {
 		if strings.Contains(resp.Invoice.ErrorInfo, "Insufficient") {
-			err := transfer(rpcClient, GlobalAccountLIst.arr[0], voterAccount, 10)
+			err := transfer(rpcClient, GlobalAccountLIst.arr[0], voterAccount, 5)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+			err = vest(rpcClient, GlobalAccountLIst.arr[0], voterAccount, 5)
 			if err != nil {
 				fmt.Println(err)
 				return

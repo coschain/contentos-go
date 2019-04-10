@@ -2,9 +2,9 @@ package commands
 
 import (
 	"context"
-	"encoding/binary"
 	"fmt"
 	"github.com/coschain/cobra"
+	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	//"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/prototype"
@@ -28,8 +28,8 @@ var MultinodetesterCmd = func() *cobra.Command {
 func makeBpRegVoteTrx(client grpcpb.ApiServiceClient, count int64) (*prototype.SignedTransaction, error) {
 
 	resp, _ := client.GetStatisticsInfo( context.Background(), &grpcpb.NonParamsRequest{} )
-	refBlockPrefix := binary.BigEndian.Uint32(resp.State.Dgpo.HeadBlockId.Hash[8:12])
-	refBlockNum := uint32(resp.State.Dgpo.HeadBlockNumber & 0x7ff)
+	refBlockPrefix := common.TaposRefBlockPrefix(resp.State.Dgpo.HeadBlockId.Hash)
+	refBlockNum := common.TaposRefBlockNum(resp.State.Dgpo.HeadBlockNumber)
 	tx := &prototype.Transaction{RefBlockNum: refBlockNum, RefBlockPrefix: refBlockPrefix, Expiration: &prototype.TimePointSec{UtcSeconds: resp.State.Dgpo.Time.UtcSeconds + 30}}
 	trx := &prototype.SignedTransaction{Trx: tx}
 
@@ -74,8 +74,8 @@ func makeBpRegVoteTrx(client grpcpb.ApiServiceClient, count int64) (*prototype.S
 func createMNTAccountTrx(client grpcpb.ApiServiceClient, count int64) (*prototype.SignedTransaction, error) {
 
 	resp, _ := client.GetStatisticsInfo( context.Background(), &grpcpb.NonParamsRequest{} )
-	refBlockPrefix := binary.BigEndian.Uint32(resp.State.Dgpo.HeadBlockId.Hash[8:12])
-	refBlockNum := uint32(resp.State.Dgpo.HeadBlockNumber & 0x7ff)
+	refBlockPrefix := common.TaposRefBlockPrefix(resp.State.Dgpo.HeadBlockId.Hash)
+	refBlockNum := common.TaposRefBlockNum(resp.State.Dgpo.HeadBlockNumber)
 	tx := &prototype.Transaction{RefBlockNum: refBlockNum, RefBlockPrefix: refBlockPrefix, Expiration: &prototype.TimePointSec{UtcSeconds: resp.State.Dgpo.Time.UtcSeconds + 30}}
 	trx := &prototype.SignedTransaction{Trx: tx}
 

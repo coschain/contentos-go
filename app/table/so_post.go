@@ -14,25 +14,27 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	PostCreatedTable      uint32 = 3346451556
-	PostCashoutTimeTable  uint32 = 1799505964
-	PostPostIdUniTable    uint32 = 157486700
-	PostAuthorCell        uint32 = 1681275280
-	PostBeneficiariesCell uint32 = 2794141504
-	PostBodyCell          uint32 = 395462793
-	PostCashoutTimeCell   uint32 = 1916224103
-	PostCategoryCell      uint32 = 2849013589
-	PostChildrenCell      uint32 = 3908796047
-	PostCreatedCell       uint32 = 4199172684
-	PostDepthCell         uint32 = 4080627723
-	PostLastPayoutCell    uint32 = 3845986349
-	PostParentIdCell      uint32 = 1393772380
-	PostPostIdCell        uint32 = 22700035
-	PostRootIdCell        uint32 = 784045146
-	PostTagsCell          uint32 = 828203383
-	PostTitleCell         uint32 = 3943450465
-	PostVoteCntCell       uint32 = 2947124424
-	PostWeightedVpCell    uint32 = 502117977
+	PostCreatedTable         uint32 = 3346451556
+	PostCashoutBlockNumTable uint32 = 1826021466
+	PostPostIdUniTable       uint32 = 157486700
+	PostAuthorCell           uint32 = 1681275280
+	PostBeneficiariesCell    uint32 = 2794141504
+	PostBodyCell             uint32 = 395462793
+	PostCashoutBlockNumCell  uint32 = 2338008419
+	PostCategoryCell         uint32 = 2849013589
+	PostChildrenCell         uint32 = 3908796047
+	PostCreatedCell          uint32 = 4199172684
+	PostDappRewardsCell      uint32 = 3278808896
+	PostDepthCell            uint32 = 4080627723
+	PostLastPayoutCell       uint32 = 3845986349
+	PostParentIdCell         uint32 = 1393772380
+	PostPostIdCell           uint32 = 22700035
+	PostRewardsCell          uint32 = 2822376492
+	PostRootIdCell           uint32 = 784045146
+	PostTagsCell             uint32 = 828203383
+	PostTitleCell            uint32 = 3943450465
+	PostVoteCntCell          uint32 = 2947124424
+	PostWeightedVpCell       uint32 = 502117977
 )
 
 ////////////// SECTION Wrap Define ///////////////
@@ -192,13 +194,13 @@ func (s *SoPostWrap) insertSortKeyCreated(sa *SoPost) bool {
 	return ordErr == nil
 }
 
-func (s *SoPostWrap) delSortKeyCashoutTime(sa *SoPost) bool {
+func (s *SoPostWrap) delSortKeyCashoutBlockNum(sa *SoPost) bool {
 	if s.dba == nil || s.mainKey == nil {
 		return false
 	}
-	val := SoListPostByCashoutTime{}
+	val := SoListPostByCashoutBlockNum{}
 	if sa == nil {
-		key, err := s.encodeMemKey("CashoutTime")
+		key, err := s.encodeMemKey("CashoutBlockNum")
 		if err != nil {
 			return false
 		}
@@ -206,15 +208,15 @@ func (s *SoPostWrap) delSortKeyCashoutTime(sa *SoPost) bool {
 		if err != nil {
 			return false
 		}
-		ori := &SoMemPostByCashoutTime{}
+		ori := &SoMemPostByCashoutBlockNum{}
 		err = proto.Unmarshal(buf, ori)
 		if err != nil {
 			return false
 		}
-		val.CashoutTime = ori.CashoutTime
+		val.CashoutBlockNum = ori.CashoutBlockNum
 		val.PostId = *s.mainKey
 	} else {
-		val.CashoutTime = sa.CashoutTime
+		val.CashoutBlockNum = sa.CashoutBlockNum
 		val.PostId = sa.PostId
 	}
 
@@ -226,13 +228,13 @@ func (s *SoPostWrap) delSortKeyCashoutTime(sa *SoPost) bool {
 	return ordErr == nil
 }
 
-func (s *SoPostWrap) insertSortKeyCashoutTime(sa *SoPost) bool {
+func (s *SoPostWrap) insertSortKeyCashoutBlockNum(sa *SoPost) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
-	val := SoListPostByCashoutTime{}
+	val := SoListPostByCashoutBlockNum{}
 	val.PostId = sa.PostId
-	val.CashoutTime = sa.CashoutTime
+	val.CashoutBlockNum = sa.CashoutBlockNum
 	buf, err := proto.Marshal(&val)
 	if err != nil {
 		return false
@@ -257,7 +259,7 @@ func (s *SoPostWrap) delAllSortKeys(br bool, val *SoPost) bool {
 			res = false
 		}
 	}
-	if !s.delSortKeyCashoutTime(val) {
+	if !s.delSortKeyCashoutBlockNum(val) {
 		if br {
 			return false
 		} else {
@@ -278,8 +280,8 @@ func (s *SoPostWrap) insertAllSortKeys(val *SoPost) error {
 	if !s.insertSortKeyCreated(val) {
 		return errors.New("insert sort Field Created fail while insert table ")
 	}
-	if !s.insertSortKeyCashoutTime(val) {
-		return errors.New("insert sort Field CashoutTime fail while insert table ")
+	if !s.insertSortKeyCashoutBlockNum(val) {
+		return errors.New("insert sort Field CashoutBlockNum fail while insert table ")
 	}
 
 	return nil
@@ -323,8 +325,8 @@ func (s *SoPostWrap) getMemKeyPrefix(fName string) uint32 {
 	if fName == "Body" {
 		return PostBodyCell
 	}
-	if fName == "CashoutTime" {
-		return PostCashoutTimeCell
+	if fName == "CashoutBlockNum" {
+		return PostCashoutBlockNumCell
 	}
 	if fName == "Category" {
 		return PostCategoryCell
@@ -334,6 +336,9 @@ func (s *SoPostWrap) getMemKeyPrefix(fName string) uint32 {
 	}
 	if fName == "Created" {
 		return PostCreatedCell
+	}
+	if fName == "DappRewards" {
+		return PostDappRewardsCell
 	}
 	if fName == "Depth" {
 		return PostDepthCell
@@ -346,6 +351,9 @@ func (s *SoPostWrap) getMemKeyPrefix(fName string) uint32 {
 	}
 	if fName == "PostId" {
 		return PostPostIdCell
+	}
+	if fName == "Rewards" {
+		return PostRewardsCell
 	}
 	if fName == "RootId" {
 		return PostRootIdCell
@@ -416,11 +424,11 @@ func (s *SoPostWrap) saveAllMemKeys(tInfo *SoPost, br bool) error {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Body", err)
 		}
 	}
-	if err = s.saveMemKeyCashoutTime(tInfo); err != nil {
+	if err = s.saveMemKeyCashoutBlockNum(tInfo); err != nil {
 		if br {
 			return err
 		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "CashoutTime", err)
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "CashoutBlockNum", err)
 		}
 	}
 	if err = s.saveMemKeyCategory(tInfo); err != nil {
@@ -442,6 +450,13 @@ func (s *SoPostWrap) saveAllMemKeys(tInfo *SoPost, br bool) error {
 			return err
 		} else {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Created", err)
+		}
+	}
+	if err = s.saveMemKeyDappRewards(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "DappRewards", err)
 		}
 	}
 	if err = s.saveMemKeyDepth(tInfo); err != nil {
@@ -470,6 +485,13 @@ func (s *SoPostWrap) saveAllMemKeys(tInfo *SoPost, br bool) error {
 			return err
 		} else {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "PostId", err)
+		}
+	}
+	if err = s.saveMemKeyRewards(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Rewards", err)
 		}
 	}
 	if err = s.saveMemKeyRootId(tInfo); err != nil {
@@ -799,16 +821,16 @@ func (s *SoPostWrap) MdBody(p string) bool {
 	return true
 }
 
-func (s *SoPostWrap) saveMemKeyCashoutTime(tInfo *SoPost) error {
+func (s *SoPostWrap) saveMemKeyCashoutBlockNum(tInfo *SoPost) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
 	if tInfo == nil {
 		return errors.New("the data is nil")
 	}
-	val := SoMemPostByCashoutTime{}
-	val.CashoutTime = tInfo.CashoutTime
-	key, err := s.encodeMemKey("CashoutTime")
+	val := SoMemPostByCashoutBlockNum{}
+	val.CashoutBlockNum = tInfo.CashoutBlockNum
+	key, err := s.encodeMemKey("CashoutBlockNum")
 	if err != nil {
 		return err
 	}
@@ -820,13 +842,13 @@ func (s *SoPostWrap) saveMemKeyCashoutTime(tInfo *SoPost) error {
 	return err
 }
 
-func (s *SoPostWrap) GetCashoutTime() *prototype.TimePointSec {
+func (s *SoPostWrap) GetCashoutBlockNum() uint64 {
 	res := true
-	msg := &SoMemPostByCashoutTime{}
+	msg := &SoMemPostByCashoutBlockNum{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("CashoutTime")
+		key, err := s.encodeMemKey("CashoutBlockNum")
 		if err != nil {
 			res = false
 		} else {
@@ -838,22 +860,22 @@ func (s *SoPostWrap) GetCashoutTime() *prototype.TimePointSec {
 			if err != nil {
 				res = false
 			} else {
-				return msg.CashoutTime
+				return msg.CashoutBlockNum
 			}
 		}
 	}
 	if !res {
-		return nil
-
+		var tmpValue uint64
+		return tmpValue
 	}
-	return msg.CashoutTime
+	return msg.CashoutBlockNum
 }
 
-func (s *SoPostWrap) MdCashoutTime(p *prototype.TimePointSec) bool {
+func (s *SoPostWrap) MdCashoutBlockNum(p uint64) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("CashoutTime")
+	key, err := s.encodeMemKey("CashoutBlockNum")
 	if err != nil {
 		return false
 	}
@@ -861,16 +883,16 @@ func (s *SoPostWrap) MdCashoutTime(p *prototype.TimePointSec) bool {
 	if err != nil {
 		return false
 	}
-	ori := &SoMemPostByCashoutTime{}
+	ori := &SoMemPostByCashoutBlockNum{}
 	err = proto.Unmarshal(buf, ori)
 	sa := &SoPost{}
 	sa.PostId = *s.mainKey
-	sa.CashoutTime = ori.CashoutTime
+	sa.CashoutBlockNum = ori.CashoutBlockNum
 
-	if !s.delSortKeyCashoutTime(sa) {
+	if !s.delSortKeyCashoutBlockNum(sa) {
 		return false
 	}
-	ori.CashoutTime = p
+	ori.CashoutBlockNum = p
 	val, err := proto.Marshal(ori)
 	if err != nil {
 		return false
@@ -879,9 +901,9 @@ func (s *SoPostWrap) MdCashoutTime(p *prototype.TimePointSec) bool {
 	if err != nil {
 		return false
 	}
-	sa.CashoutTime = p
+	sa.CashoutBlockNum = p
 
-	if !s.insertSortKeyCashoutTime(sa) {
+	if !s.insertSortKeyCashoutBlockNum(sa) {
 		return false
 	}
 
@@ -1137,6 +1159,88 @@ func (s *SoPostWrap) MdCreated(p *prototype.TimePointSec) bool {
 	if !s.insertSortKeyCreated(sa) {
 		return false
 	}
+
+	return true
+}
+
+func (s *SoPostWrap) saveMemKeyDappRewards(tInfo *SoPost) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemPostByDappRewards{}
+	val.DappRewards = tInfo.DappRewards
+	key, err := s.encodeMemKey("DappRewards")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
+
+func (s *SoPostWrap) GetDappRewards() *prototype.Vest {
+	res := true
+	msg := &SoMemPostByDappRewards{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("DappRewards")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.DappRewards
+			}
+		}
+	}
+	if !res {
+		return nil
+
+	}
+	return msg.DappRewards
+}
+
+func (s *SoPostWrap) MdDappRewards(p *prototype.Vest) bool {
+	if s.dba == nil {
+		return false
+	}
+	key, err := s.encodeMemKey("DappRewards")
+	if err != nil {
+		return false
+	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemPostByDappRewards{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoPost{}
+	sa.PostId = *s.mainKey
+	sa.DappRewards = ori.DappRewards
+
+	ori.DappRewards = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
+		return false
+	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.DappRewards = p
 
 	return true
 }
@@ -1435,6 +1539,88 @@ func (s *SoPostWrap) GetPostId() uint64 {
 		return tmpValue
 	}
 	return msg.PostId
+}
+
+func (s *SoPostWrap) saveMemKeyRewards(tInfo *SoPost) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemPostByRewards{}
+	val.Rewards = tInfo.Rewards
+	key, err := s.encodeMemKey("Rewards")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
+
+func (s *SoPostWrap) GetRewards() *prototype.Vest {
+	res := true
+	msg := &SoMemPostByRewards{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("Rewards")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.Rewards
+			}
+		}
+	}
+	if !res {
+		return nil
+
+	}
+	return msg.Rewards
+}
+
+func (s *SoPostWrap) MdRewards(p *prototype.Vest) bool {
+	if s.dba == nil {
+		return false
+	}
+	key, err := s.encodeMemKey("Rewards")
+	if err != nil {
+		return false
+	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemPostByRewards{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoPost{}
+	sa.PostId = *s.mainKey
+	sa.Rewards = ori.Rewards
+
+	ori.Rewards = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
+		return false
+	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.Rewards = p
+
+	return true
 }
 
 func (s *SoPostWrap) saveMemKeyRootId(tInfo *SoPost) error {
@@ -2010,20 +2196,20 @@ func (s *SPostCreatedWrap) ForEachByRevOrder(start *prototype.TimePointSec, end 
 }
 
 ////////////// SECTION List Keys ///////////////
-type SPostCashoutTimeWrap struct {
+type SPostCashoutBlockNumWrap struct {
 	Dba iservices.IDatabaseRW
 }
 
-func NewPostCashoutTimeWrap(db iservices.IDatabaseRW) *SPostCashoutTimeWrap {
+func NewPostCashoutBlockNumWrap(db iservices.IDatabaseRW) *SPostCashoutBlockNumWrap {
 	if db == nil {
 		return nil
 	}
-	wrap := SPostCashoutTimeWrap{Dba: db}
+	wrap := SPostCashoutBlockNumWrap{Dba: db}
 	return &wrap
 }
 
-func (s *SPostCashoutTimeWrap) GetMainVal(val []byte) *uint64 {
-	res := &SoListPostByCashoutTime{}
+func (s *SPostCashoutBlockNumWrap) GetMainVal(val []byte) *uint64 {
+	res := &SoListPostByCashoutBlockNum{}
 	err := proto.Unmarshal(val, res)
 
 	if err != nil {
@@ -2034,22 +2220,20 @@ func (s *SPostCashoutTimeWrap) GetMainVal(val []byte) *uint64 {
 
 }
 
-func (s *SPostCashoutTimeWrap) GetSubVal(val []byte) *prototype.TimePointSec {
-	res := &SoListPostByCashoutTime{}
+func (s *SPostCashoutBlockNumWrap) GetSubVal(val []byte) *uint64 {
+	res := &SoListPostByCashoutBlockNum{}
 	err := proto.Unmarshal(val, res)
 	if err != nil {
 		return nil
 	}
-	return res.CashoutTime
+	return &res.CashoutBlockNum
 
 }
 
-func (m *SoListPostByCashoutTime) OpeEncode() ([]byte, error) {
-	pre := PostCashoutTimeTable
-	sub := m.CashoutTime
-	if sub == nil {
-		return nil, errors.New("the pro CashoutTime is nil")
-	}
+func (m *SoListPostByCashoutBlockNum) OpeEncode() ([]byte, error) {
+	pre := PostCashoutBlockNumTable
+	sub := m.CashoutBlockNum
+
 	sub1 := m.PostId
 
 	kList := []interface{}{pre, sub, sub1}
@@ -2071,8 +2255,8 @@ func (m *SoListPostByCashoutTime) OpeEncode() ([]byte, error) {
 //lastMainKey: the main key of the last one of last page
 //lastSubVal: the value  of the last one of last page
 //
-func (s *SPostCashoutTimeWrap) ForEachByOrder(start *prototype.TimePointSec, end *prototype.TimePointSec, lastMainKey *uint64,
-	lastSubVal *prototype.TimePointSec, f func(mVal *uint64, sVal *prototype.TimePointSec, idx uint32) bool) error {
+func (s *SPostCashoutBlockNumWrap) ForEachByOrder(start *uint64, end *uint64, lastMainKey *uint64,
+	lastSubVal *uint64, f func(mVal *uint64, sVal *uint64, idx uint32) bool) error {
 	if s.Dba == nil {
 		return errors.New("the db is nil")
 	}
@@ -2082,7 +2266,7 @@ func (s *SPostCashoutTimeWrap) ForEachByOrder(start *prototype.TimePointSec, end
 	if f == nil {
 		return nil
 	}
-	pre := PostCashoutTimeTable
+	pre := PostCashoutBlockNumTable
 	skeyList := []interface{}{pre}
 	if start != nil {
 		skeyList = append(skeyList, start)

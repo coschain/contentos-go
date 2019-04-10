@@ -147,8 +147,10 @@ func addCommands() {
 	rootCmd.AddCommand(commands.StressCmd())
 	rootCmd.AddCommand(commands.StressCreAccountCmd())
 	rootCmd.AddCommand(commands.StressVMCmd())
-	rootCmd.AddCommand(commands.ClaimAllCmd())
-	rootCmd.AddCommand(commands.ClaimCmd())
+	rootCmd.AddCommand(commands.ContractCmd())
+
+	//rootCmd.AddCommand(commands.ClaimAllCmd())
+	//rootCmd.AddCommand(commands.ClaimCmd())
 	rootCmd.AddCommand(commands.DeployCmd())
 	rootCmd.AddCommand(commands.CallCmd())
 	rootCmd.AddCommand(commands.VmTableCmd())
@@ -156,6 +158,7 @@ func addCommands() {
 	rootCmd.AddCommand(commands.RandomTransferCmd())
 	rootCmd.AddCommand(commands.CreateFundAccountCmd())
 	rootCmd.AddCommand(commands.RTransferCmd())
+	rootCmd.AddCommand(commands.CashoutCmd())
 }
 
 func init() {

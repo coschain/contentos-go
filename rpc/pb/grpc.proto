@@ -19,6 +19,13 @@ service ApiService {
     rpc GetAccountRewardByName (GetAccountRewardByNameRequest) returns (AccountRewardResponse) {
     }
 
+    rpc GetAccountCashout (GetAccountCashoutRequest) returns (AccountCashoutResponse) {
+    }
+
+    rpc GetBlockCashout (GetBlockCashoutRequest) returns (BlockCashoutResponse) {
+
+    }
+
     rpc GetFollowerListByName (GetFollowerListByNameRequest) returns (GetFollowerListByNameResponse) {
     }
 
@@ -38,9 +45,6 @@ service ApiService {
     }
 
     rpc GetBlockTransactionsByNum (GetBlockTransactionsByNumRequest) returns (GetBlockTransactionsByNumResponse) {
-    }
-
-    rpc GetTrxById (GetTrxByIdRequest) returns (GetTrxByIdResponse) {
     }
 
     rpc GetChainState (NonParamsRequest) returns (GetChainStateResponse) {
@@ -81,16 +85,23 @@ service ApiService {
 
     rpc GetUserTrxListByTime (GetUserTrxListByTimeRequest) returns (GetUserTrxListByTimeResponse) {
     }
+
+    rpc GetPostInfoById (GetPostInfoByIdRequest) returns (GetPostInfoByIdResponse) {
+    }
+
+    rpc GetContractInfo (GetContractInfoRequest) returns (GetContractInfoResponse) {
+    }
 }
 
 
 message GetTableContentRequest {
     string owner = 1;
-    string contranct = 2;
+    string contract = 2;
     string table = 3;
     string field = 4;
     string begin = 5;
-    string end = 6;
+    uint32 count = 6;
+    bool   reverse = 7;
 }
 
 message TableContentResponse {
@@ -99,6 +110,24 @@ message TableContentResponse {
 
 message GetAccountByNameRequest {
     prototype.account_name account_name = 1;
+}
+
+message GetAccountCashoutRequest{
+    prototype.account_name account_name = 1;
+    uint64 post_id =  2;
+}
+
+message AccountCashoutResponse {
+    prototype.account_name account_name = 1;
+    prototype.vest reward = 2;
+}
+
+message GetBlockCashoutRequest {
+    uint64 block_height = 1;
+}
+
+message BlockCashoutResponse {
+    repeated AccountCashoutResponse cashout_list = 1;
 }
 
 message GetAccountRewardByNameRequest{
@@ -121,6 +150,7 @@ message AccountInfo {
     uint32                                  follower_count    = 8;
     uint32                                  following_count   = 9;
     uint32                                  trx_count        = 10;
+    uint32                                  vote_power       = 11;
 }
 
 message AccountResponse {
@@ -207,6 +237,10 @@ message PostResponse {
     repeated string                             tags                    =      18;
     repeated prototype.beneficiary_route_type   beneficiaries           =      19;
     uint64                                      vote_cnt                =      20;
+    uint64                                      weighted_vp             =      21 [jstype = JS_STRING];
+    prototype.vest                              rewards                 =      22;
+    prototype.vest                              dapp_rewards            =      23;
+    prototype.time_point_sec                    cashout_time            =      24;
 }
 
 message GetPostListByCreatedRequest {
@@ -237,14 +271,6 @@ message GetBlockTransactionsByNumRequest {
 
 message GetBlockTransactionsByNumResponse {
     repeated prototype.signed_transaction transactions = 1;
-}
-
-message GetTrxByIdRequest {
-    prototype.sha256 trx_id = 1;
-}
-
-message GetTrxByIdResponse {
-    prototype.transaction trx = 1;
 }
 
 message GetChainStateResponse {
@@ -358,6 +384,7 @@ message TrxInfo {
     uint64                          block_height =  2;
     prototype.transaction_wrapper   trx_wrap    = 3;
     prototype.time_point_sec        block_time  = 4;
+    prototype.sha256                block_id    = 5;
 }
 
 message GetTrxInfoByIdRequest {
@@ -409,4 +436,35 @@ message GetUserTrxListByTimeRequest {
 
 message GetUserTrxListByTimeResponse {
     repeated        TrxInfo     trx_list  = 1;
+}
+
+message VoterOfPost {
+    prototype.account_name     account_name    = 1;
+    uint64                     weighted_vp     = 2 [jstype = JS_STRING];
+
+}
+
+message GetPostInfoByIdRequest {
+    uint64     post_id   =      1 [jstype = JS_STRING];
+    uint32     voter_list_limit     =   2;
+    uint32     reply_list_limit     = 3;
+}
+
+message GetPostInfoByIdResponse {
+    PostResponse    post_info        = 1;
+    repeated        VoterOfPost voter_list = 2;
+    repeated        PostResponse  reply_list = 3;
+}
+
+message GetContractInfoRequest {
+    prototype.account_name     owner    = 1;
+    string     contract_name            = 2;
+    bool fetchAbi                       = 3;
+    bool fetchCode                      = 4;
+}
+
+message GetContractInfoResponse {
+    bool exist    = 1;
+    string abi    = 2;
+    bytes code    = 3;
 }

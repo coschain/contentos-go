@@ -71,6 +71,12 @@ message dynamic_properties {
     uint32   max_tps = 19;
     uint64   max_tps_block_num = 20 [jstype = JS_STRING] ;
     uint32                       head_block_prefix             =      21;
+    prototype.vest     report_rewards = 22;
+    uint32   ith_year = 23;
+    prototype.vest   annual_budget = 24;
+    prototype.vest   annual_minted = 25;
+    prototype.vest   dapp_rewards = 26;
+    prototype.vest   voter_rewards = 27;
 }
 
 message internal_rewards_keeper {

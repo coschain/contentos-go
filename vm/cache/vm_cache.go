@@ -1,15 +1,20 @@
 package vmcache
 
 import (
+	"fmt"
+	"github.com/go-interpreter/wagon/exec"
 	"github.com/hashicorp/golang-lru"
 	"sync"
-	"github.com/go-interpreter/wagon/exec"
 )
 
 const DefaultLruSize = 100
 
 type VmCache struct {
-	cache *lru.Cache
+	cache   *lru.Cache						// LRU cache: int64 -> *VM
+	counter int64							// auto-incremental counter used as cache key
+	byName  map[string]map[int64]bool		// contract -> cache keys
+	byIndex map[int64]string				// cache key -> contract
+	lock    sync.RWMutex					// for thread safety
 }
 
 var once sync.Once
@@ -17,41 +22,102 @@ var vc *VmCache
 
 func GetVmCache() *VmCache {
 	once.Do(func() {
-		vc = &VmCache{}
-		lru,err := lru.New(DefaultLruSize)
+		vc = &VmCache{
+			byName:  make(map[string]map[int64]bool),
+			byIndex: make(map[int64]string),
+		}
+		cache, err := lru.NewWithEvict(DefaultLruSize, vc.onCacheEvict)
 		if err != nil {
 			panic(err)
 		}
-		vc.cache = lru
+		vc.cache = cache
 	})
 	return vc
 }
 
-func buildKey(first,second string) string {
-	return first + second
+func buildKey(owner, contract string) string {
+	const sep = "|"
+	return fmt.Sprintf("%s%s%s", owner, sep, contract)
 }
 
-func (v *VmCache) Add(owner,contract string, vm *exec.VM) bool {
-	return v.cache.Add(buildKey(owner,contract),vm)
-}
-
-func (v *VmCache) Get(owner,contract string) (*exec.VM,bool) {
-	value,ok := v.cache.Get(buildKey(owner,contract))
-	if !ok {
-		return nil,ok
+// onCacheEvict will be called by lru.Cache for each removed item.
+func (v *VmCache) onCacheEvict(key interface{}, value interface{}) {
+	idx := key.(int64)
+	name := v.byIndex[idx]
+	if len(name) > 0 {
+		vms := v.byName[name]
+		delete(vms, idx)
+		if len(vms) == 0 {
+			delete(v.byName, name)
+		}
+		delete(v.byIndex, idx)
 	}
-	vm := value.(*exec.VM)
-	return vm,ok
 }
 
-func (v *VmCache) Contains(owner,contract string) bool {
-	return v.cache.Contains(buildKey(owner,contract))
+// Put adds a VM instance to the cache.
+func (v *VmCache) Put(owner, contract string, vm *exec.VM) {
+	v.lock.Lock()
+	defer v.lock.Unlock()
+	v.counter++
+	k, s := v.counter, buildKey(owner, contract)
+	vms := v.byName[s]
+	if vms == nil {
+		vms = make(map[int64]bool)
+		v.byName[s] = vms
+	}
+	vms[k] = true
+	v.byIndex[k] = s
+	v.cache.Add(k, vm)
 }
 
-func (v *VmCache) Remove(owner,contract string) {
-	v.cache.Remove(buildKey(owner,contract))
+// Fetch fetches a cached VM instance for given contract.
+// It returns nil if no cached instance for the contract was found.
+func (v *VmCache) Fetch(owner, contract string) (vm *exec.VM) {
+	v.lock.Lock()
+	defer v.lock.Unlock()
+	// get all cache keys for the contract
+	if vms := v.byName[buildKey(owner, contract)]; len(vms) > 0 {
+		// pick one key
+		var key int64
+		for k := range vms {
+			key = k
+			break
+		}
+		// get the VM instance from cache using the key, and remove the key from cache.
+		if val, ok := v.cache.Peek(key); ok {
+			vm = val.(*exec.VM)
+			v.cache.Remove(key)
+		}
+	}
+	return
 }
 
-func (v *VmCache) Len(owner,contract string) int {
+// Contains returns number of cached VM instances for the given contract.
+func (v *VmCache) Contains(owner, contract string) int {
+	v.lock.RLock()
+	defer v.lock.RUnlock()
+	return len(v.byName[buildKey(owner, contract)])
+}
+
+// Remove deletes all cached VM instances for the given contract.
+func (v *VmCache) Remove(owner, contract string) {
+	v.lock.Lock()
+	defer v.lock.Unlock()
+	// collect keys that need to delete from the cache
+	vms := v.byName[buildKey(owner, contract)]
+	keys := make([]int64, 0, len(vms))
+	for k := range vms {
+		keys = append(keys, k)
+	}
+	// remove from cache
+	for _, k := range keys {
+		v.cache.Remove(k)
+	}
+}
+
+// Len returns total number of cached VM instances.
+func (v *VmCache) Len() int {
+	v.lock.RLock()
+	defer v.lock.RUnlock()
 	return v.cache.Len()
 }

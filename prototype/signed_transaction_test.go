@@ -149,7 +149,8 @@ func TestVerifySig(t *testing.T) {
 		return
 	}
 
-	for _, expPubKey := range expPubKeys {
-		fmt.Println("Export PubKeys: ", expPubKey.ToWIF())
-	}
+	//for _, expPubKey := range expPubKeys {
+	//	fmt.Println("Export PubKeys: ", expPubKey.ToWIF())
+	//}
+	fmt.Println("Export PubKeys: ", expPubKeys.ToWIF())
 }

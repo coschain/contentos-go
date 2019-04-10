@@ -24,6 +24,7 @@ message operation{
         contract_deploy_operation op13 = 13;
         contract_apply_operation op14 = 14;
         report_operation op15 = 15;
+        convert_vesting_operation op16 = 16;
     }
 }
 

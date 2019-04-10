@@ -14,24 +14,29 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	AccountCreatedTimeTable     uint32 = 2128286283
-	AccountBalanceTable         uint32 = 4012029019
-	AccountVestingSharesTable   uint32 = 3830877790
-	AccountBpVoteCountTable     uint32 = 2264397557
-	AccountPostCountTable       uint32 = 1518203339
-	AccountCreatedTrxCountTable uint32 = 2604810499
-	AccountNameUniTable         uint32 = 2528390520
-	AccountBalanceCell          uint32 = 2894785396
-	AccountBpVoteCountCell      uint32 = 2131409895
-	AccountCreatedTimeCell      uint32 = 826305594
-	AccountCreatedTrxCountCell  uint32 = 2108500471
-	AccountCreatorCell          uint32 = 1804791917
-	AccountLastPostTimeCell     uint32 = 3226532373
-	AccountLastVoteTimeCell     uint32 = 1980371646
-	AccountNameCell             uint32 = 1725869739
-	AccountPostCountCell        uint32 = 587221705
-	AccountVestingSharesCell    uint32 = 57659323
-	AccountVotePowerCell        uint32 = 2246508735
+	AccountCreatedTimeTable           uint32 = 2128286283
+	AccountBalanceTable               uint32 = 4012029019
+	AccountVestingSharesTable         uint32 = 3830877790
+	AccountBpVoteCountTable           uint32 = 2264397557
+	AccountPostCountTable             uint32 = 1518203339
+	AccountCreatedTrxCountTable       uint32 = 2604810499
+	AccountNextPowerdownBlockNumTable uint32 = 1928824877
+	AccountNameUniTable               uint32 = 2528390520
+	AccountBalanceCell                uint32 = 2894785396
+	AccountBpVoteCountCell            uint32 = 2131409895
+	AccountCreatedTimeCell            uint32 = 826305594
+	AccountCreatedTrxCountCell        uint32 = 2108500471
+	AccountCreatorCell                uint32 = 1804791917
+	AccountEachPowerdownRateCell      uint32 = 1435132114
+	AccountHasPowerdownCell           uint32 = 2131027332
+	AccountLastPostTimeCell           uint32 = 3226532373
+	AccountLastVoteTimeCell           uint32 = 1980371646
+	AccountNameCell                   uint32 = 1725869739
+	AccountNextPowerdownBlockNumCell  uint32 = 2881565425
+	AccountPostCountCell              uint32 = 587221705
+	AccountToPowerdownCell            uint32 = 3115587115
+	AccountVestingSharesCell          uint32 = 57659323
+	AccountVotePowerCell              uint32 = 2246508735
 )
 
 ////////////// SECTION Wrap Define ///////////////
@@ -465,6 +470,60 @@ func (s *SoAccountWrap) insertSortKeyCreatedTrxCount(sa *SoAccount) bool {
 	return ordErr == nil
 }
 
+func (s *SoAccountWrap) delSortKeyNextPowerdownBlockNum(sa *SoAccount) bool {
+	if s.dba == nil || s.mainKey == nil {
+		return false
+	}
+	val := SoListAccountByNextPowerdownBlockNum{}
+	if sa == nil {
+		key, err := s.encodeMemKey("NextPowerdownBlockNum")
+		if err != nil {
+			return false
+		}
+		buf, err := s.dba.Get(key)
+		if err != nil {
+			return false
+		}
+		ori := &SoMemAccountByNextPowerdownBlockNum{}
+		err = proto.Unmarshal(buf, ori)
+		if err != nil {
+			return false
+		}
+		val.NextPowerdownBlockNum = ori.NextPowerdownBlockNum
+		val.Name = s.mainKey
+
+	} else {
+		val.NextPowerdownBlockNum = sa.NextPowerdownBlockNum
+		val.Name = sa.Name
+	}
+
+	subBuf, err := val.OpeEncode()
+	if err != nil {
+		return false
+	}
+	ordErr := s.dba.Delete(subBuf)
+	return ordErr == nil
+}
+
+func (s *SoAccountWrap) insertSortKeyNextPowerdownBlockNum(sa *SoAccount) bool {
+	if s.dba == nil || sa == nil {
+		return false
+	}
+	val := SoListAccountByNextPowerdownBlockNum{}
+	val.Name = sa.Name
+	val.NextPowerdownBlockNum = sa.NextPowerdownBlockNum
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return false
+	}
+	subBuf, err := val.OpeEncode()
+	if err != nil {
+		return false
+	}
+	ordErr := s.dba.Put(subBuf, buf)
+	return ordErr == nil
+}
+
 func (s *SoAccountWrap) delAllSortKeys(br bool, val *SoAccount) bool {
 	if s.dba == nil {
 		return false
@@ -512,6 +571,13 @@ func (s *SoAccountWrap) delAllSortKeys(br bool, val *SoAccount) bool {
 			res = false
 		}
 	}
+	if !s.delSortKeyNextPowerdownBlockNum(val) {
+		if br {
+			return false
+		} else {
+			res = false
+		}
+	}
 
 	return res
 }
@@ -540,6 +606,9 @@ func (s *SoAccountWrap) insertAllSortKeys(val *SoAccount) error {
 	}
 	if !s.insertSortKeyCreatedTrxCount(val) {
 		return errors.New("insert sort Field CreatedTrxCount fail while insert table ")
+	}
+	if !s.insertSortKeyNextPowerdownBlockNum(val) {
+		return errors.New("insert sort Field NextPowerdownBlockNum fail while insert table ")
 	}
 
 	return nil
@@ -589,6 +658,12 @@ func (s *SoAccountWrap) getMemKeyPrefix(fName string) uint32 {
 	if fName == "Creator" {
 		return AccountCreatorCell
 	}
+	if fName == "EachPowerdownRate" {
+		return AccountEachPowerdownRateCell
+	}
+	if fName == "HasPowerdown" {
+		return AccountHasPowerdownCell
+	}
 	if fName == "LastPostTime" {
 		return AccountLastPostTimeCell
 	}
@@ -598,8 +673,14 @@ func (s *SoAccountWrap) getMemKeyPrefix(fName string) uint32 {
 	if fName == "Name" {
 		return AccountNameCell
 	}
+	if fName == "NextPowerdownBlockNum" {
+		return AccountNextPowerdownBlockNumCell
+	}
 	if fName == "PostCount" {
 		return AccountPostCountCell
+	}
+	if fName == "ToPowerdown" {
+		return AccountToPowerdownCell
 	}
 	if fName == "VestingShares" {
 		return AccountVestingSharesCell
@@ -675,6 +756,20 @@ func (s *SoAccountWrap) saveAllMemKeys(tInfo *SoAccount, br bool) error {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Creator", err)
 		}
 	}
+	if err = s.saveMemKeyEachPowerdownRate(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "EachPowerdownRate", err)
+		}
+	}
+	if err = s.saveMemKeyHasPowerdown(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "HasPowerdown", err)
+		}
+	}
 	if err = s.saveMemKeyLastPostTime(tInfo); err != nil {
 		if br {
 			return err
@@ -696,11 +791,25 @@ func (s *SoAccountWrap) saveAllMemKeys(tInfo *SoAccount, br bool) error {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Name", err)
 		}
 	}
+	if err = s.saveMemKeyNextPowerdownBlockNum(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "NextPowerdownBlockNum", err)
+		}
+	}
 	if err = s.saveMemKeyPostCount(tInfo); err != nil {
 		if br {
 			return err
 		} else {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "PostCount", err)
+		}
+	}
+	if err = s.saveMemKeyToPowerdown(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "ToPowerdown", err)
 		}
 	}
 	if err = s.saveMemKeyVestingShares(tInfo); err != nil {
@@ -1206,6 +1315,172 @@ func (s *SoAccountWrap) MdCreator(p *prototype.AccountName) bool {
 	return true
 }
 
+func (s *SoAccountWrap) saveMemKeyEachPowerdownRate(tInfo *SoAccount) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemAccountByEachPowerdownRate{}
+	val.EachPowerdownRate = tInfo.EachPowerdownRate
+	key, err := s.encodeMemKey("EachPowerdownRate")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
+
+func (s *SoAccountWrap) GetEachPowerdownRate() *prototype.Vest {
+	res := true
+	msg := &SoMemAccountByEachPowerdownRate{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("EachPowerdownRate")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.EachPowerdownRate
+			}
+		}
+	}
+	if !res {
+		return nil
+
+	}
+	return msg.EachPowerdownRate
+}
+
+func (s *SoAccountWrap) MdEachPowerdownRate(p *prototype.Vest) bool {
+	if s.dba == nil {
+		return false
+	}
+	key, err := s.encodeMemKey("EachPowerdownRate")
+	if err != nil {
+		return false
+	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemAccountByEachPowerdownRate{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoAccount{}
+	sa.Name = s.mainKey
+
+	sa.EachPowerdownRate = ori.EachPowerdownRate
+
+	ori.EachPowerdownRate = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
+		return false
+	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.EachPowerdownRate = p
+
+	return true
+}
+
+func (s *SoAccountWrap) saveMemKeyHasPowerdown(tInfo *SoAccount) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemAccountByHasPowerdown{}
+	val.HasPowerdown = tInfo.HasPowerdown
+	key, err := s.encodeMemKey("HasPowerdown")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
+
+func (s *SoAccountWrap) GetHasPowerdown() *prototype.Vest {
+	res := true
+	msg := &SoMemAccountByHasPowerdown{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("HasPowerdown")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.HasPowerdown
+			}
+		}
+	}
+	if !res {
+		return nil
+
+	}
+	return msg.HasPowerdown
+}
+
+func (s *SoAccountWrap) MdHasPowerdown(p *prototype.Vest) bool {
+	if s.dba == nil {
+		return false
+	}
+	key, err := s.encodeMemKey("HasPowerdown")
+	if err != nil {
+		return false
+	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemAccountByHasPowerdown{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoAccount{}
+	sa.Name = s.mainKey
+
+	sa.HasPowerdown = ori.HasPowerdown
+
+	ori.HasPowerdown = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
+		return false
+	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.HasPowerdown = p
+
+	return true
+}
+
 func (s *SoAccountWrap) saveMemKeyLastPostTime(tInfo *SoAccount) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
@@ -1422,6 +1697,96 @@ func (s *SoAccountWrap) GetName() *prototype.AccountName {
 	return msg.Name
 }
 
+func (s *SoAccountWrap) saveMemKeyNextPowerdownBlockNum(tInfo *SoAccount) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemAccountByNextPowerdownBlockNum{}
+	val.NextPowerdownBlockNum = tInfo.NextPowerdownBlockNum
+	key, err := s.encodeMemKey("NextPowerdownBlockNum")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
+
+func (s *SoAccountWrap) GetNextPowerdownBlockNum() uint64 {
+	res := true
+	msg := &SoMemAccountByNextPowerdownBlockNum{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("NextPowerdownBlockNum")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.NextPowerdownBlockNum
+			}
+		}
+	}
+	if !res {
+		var tmpValue uint64
+		return tmpValue
+	}
+	return msg.NextPowerdownBlockNum
+}
+
+func (s *SoAccountWrap) MdNextPowerdownBlockNum(p uint64) bool {
+	if s.dba == nil {
+		return false
+	}
+	key, err := s.encodeMemKey("NextPowerdownBlockNum")
+	if err != nil {
+		return false
+	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemAccountByNextPowerdownBlockNum{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoAccount{}
+	sa.Name = s.mainKey
+
+	sa.NextPowerdownBlockNum = ori.NextPowerdownBlockNum
+
+	if !s.delSortKeyNextPowerdownBlockNum(sa) {
+		return false
+	}
+	ori.NextPowerdownBlockNum = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
+		return false
+	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.NextPowerdownBlockNum = p
+
+	if !s.insertSortKeyNextPowerdownBlockNum(sa) {
+		return false
+	}
+
+	return true
+}
+
 func (s *SoAccountWrap) saveMemKeyPostCount(tInfo *SoAccount) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
@@ -1508,6 +1873,89 @@ func (s *SoAccountWrap) MdPostCount(p uint32) bool {
 	if !s.insertSortKeyPostCount(sa) {
 		return false
 	}
+
+	return true
+}
+
+func (s *SoAccountWrap) saveMemKeyToPowerdown(tInfo *SoAccount) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemAccountByToPowerdown{}
+	val.ToPowerdown = tInfo.ToPowerdown
+	key, err := s.encodeMemKey("ToPowerdown")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
+
+func (s *SoAccountWrap) GetToPowerdown() *prototype.Vest {
+	res := true
+	msg := &SoMemAccountByToPowerdown{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("ToPowerdown")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.ToPowerdown
+			}
+		}
+	}
+	if !res {
+		return nil
+
+	}
+	return msg.ToPowerdown
+}
+
+func (s *SoAccountWrap) MdToPowerdown(p *prototype.Vest) bool {
+	if s.dba == nil {
+		return false
+	}
+	key, err := s.encodeMemKey("ToPowerdown")
+	if err != nil {
+		return false
+	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemAccountByToPowerdown{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoAccount{}
+	sa.Name = s.mainKey
+
+	sa.ToPowerdown = ori.ToPowerdown
+
+	ori.ToPowerdown = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
+		return false
+	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.ToPowerdown = p
 
 	return true
 }
@@ -2353,6 +2801,113 @@ func (s *SAccountCreatedTrxCountWrap) ForEachByOrder(start *uint32, end *uint32,
 		return nil
 	}
 	pre := AccountCreatedTrxCountTable
+	skeyList := []interface{}{pre}
+	if start != nil {
+		skeyList = append(skeyList, start)
+		if lastMainKey != nil {
+			skeyList = append(skeyList, lastMainKey, kope.MinimalKey)
+		}
+	} else {
+		if lastMainKey != nil && lastSubVal != nil {
+			skeyList = append(skeyList, lastSubVal, lastMainKey, kope.MinimalKey)
+		}
+		skeyList = append(skeyList, kope.MinimalKey)
+	}
+	sBuf, cErr := kope.EncodeSlice(skeyList)
+	if cErr != nil {
+		return cErr
+	}
+	eKeyList := []interface{}{pre}
+	if end != nil {
+		eKeyList = append(eKeyList, end)
+	} else {
+		eKeyList = append(eKeyList, kope.MaximumKey)
+	}
+	eBuf, cErr := kope.EncodeSlice(eKeyList)
+	if cErr != nil {
+		return cErr
+	}
+	var idx uint32 = 0
+	s.Dba.Iterate(sBuf, eBuf, false, func(key, value []byte) bool {
+		idx++
+		return f(s.GetMainVal(value), s.GetSubVal(value), idx)
+	})
+	return nil
+}
+
+////////////// SECTION List Keys ///////////////
+type SAccountNextPowerdownBlockNumWrap struct {
+	Dba iservices.IDatabaseRW
+}
+
+func NewAccountNextPowerdownBlockNumWrap(db iservices.IDatabaseRW) *SAccountNextPowerdownBlockNumWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := SAccountNextPowerdownBlockNumWrap{Dba: db}
+	return &wrap
+}
+
+func (s *SAccountNextPowerdownBlockNumWrap) GetMainVal(val []byte) *prototype.AccountName {
+	res := &SoListAccountByNextPowerdownBlockNum{}
+	err := proto.Unmarshal(val, res)
+
+	if err != nil {
+		return nil
+	}
+	return res.Name
+
+}
+
+func (s *SAccountNextPowerdownBlockNumWrap) GetSubVal(val []byte) *uint64 {
+	res := &SoListAccountByNextPowerdownBlockNum{}
+	err := proto.Unmarshal(val, res)
+	if err != nil {
+		return nil
+	}
+	return &res.NextPowerdownBlockNum
+
+}
+
+func (m *SoListAccountByNextPowerdownBlockNum) OpeEncode() ([]byte, error) {
+	pre := AccountNextPowerdownBlockNumTable
+	sub := m.NextPowerdownBlockNum
+
+	sub1 := m.Name
+	if sub1 == nil {
+		return nil, errors.New("the mainkey Name is nil")
+	}
+	kList := []interface{}{pre, sub, sub1}
+	kBuf, cErr := kope.EncodeSlice(kList)
+	return kBuf, cErr
+}
+
+//Query srt by order
+//
+//start = nil  end = nil (query the db from start to end)
+//start = nil (query from start the db)
+//end = nil (query to the end of db)
+//
+//f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
+//as arguments to the callback function
+//if the return value of f is true,continue iterating until the end iteration;
+//otherwise stop iteration immediately
+//
+//lastMainKey: the main key of the last one of last page
+//lastSubVal: the value  of the last one of last page
+//
+func (s *SAccountNextPowerdownBlockNumWrap) ForEachByOrder(start *uint64, end *uint64, lastMainKey *prototype.AccountName,
+	lastSubVal *uint64, f func(mVal *prototype.AccountName, sVal *uint64, idx uint32) bool) error {
+	if s.Dba == nil {
+		return errors.New("the db is nil")
+	}
+	if (lastSubVal != nil && lastMainKey == nil) || (lastSubVal == nil && lastMainKey != nil) {
+		return errors.New("last query param error")
+	}
+	if f == nil {
+		return nil
+	}
+	pre := AccountNextPowerdownBlockNumTable
 	skeyList := []interface{}{pre}
 	if start != nil {
 		skeyList = append(skeyList, start)

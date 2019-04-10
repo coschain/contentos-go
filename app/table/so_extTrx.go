@@ -20,6 +20,7 @@ var (
 	ExtTrxTrxCreateOrderTable uint32 = 1760958085
 	ExtTrxTrxIdUniTable       uint32 = 334659987
 	ExtTrxBlockHeightCell     uint32 = 2517467390
+	ExtTrxBlockIdCell         uint32 = 3076287470
 	ExtTrxBlockTimeCell       uint32 = 2588372818
 	ExtTrxTrxCreateOrderCell  uint32 = 1888217061
 	ExtTrxTrxIdCell           uint32 = 1776577009
@@ -437,6 +438,9 @@ func (s *SoExtTrxWrap) getMemKeyPrefix(fName string) uint32 {
 	if fName == "BlockHeight" {
 		return ExtTrxBlockHeightCell
 	}
+	if fName == "BlockId" {
+		return ExtTrxBlockIdCell
+	}
 	if fName == "BlockTime" {
 		return ExtTrxBlockTimeCell
 	}
@@ -487,6 +491,13 @@ func (s *SoExtTrxWrap) saveAllMemKeys(tInfo *SoExtTrx, br bool) error {
 			return err
 		} else {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "BlockHeight", err)
+		}
+	}
+	if err = s.saveMemKeyBlockId(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "BlockId", err)
 		}
 	}
 	if err = s.saveMemKeyBlockTime(tInfo); err != nil {
@@ -649,6 +660,89 @@ func (s *SoExtTrxWrap) MdBlockHeight(p uint64) bool {
 	if !s.insertSortKeyBlockHeight(sa) {
 		return false
 	}
+
+	return true
+}
+
+func (s *SoExtTrxWrap) saveMemKeyBlockId(tInfo *SoExtTrx) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemExtTrxByBlockId{}
+	val.BlockId = tInfo.BlockId
+	key, err := s.encodeMemKey("BlockId")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
+
+func (s *SoExtTrxWrap) GetBlockId() *prototype.Sha256 {
+	res := true
+	msg := &SoMemExtTrxByBlockId{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("BlockId")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.BlockId
+			}
+		}
+	}
+	if !res {
+		return nil
+
+	}
+	return msg.BlockId
+}
+
+func (s *SoExtTrxWrap) MdBlockId(p *prototype.Sha256) bool {
+	if s.dba == nil {
+		return false
+	}
+	key, err := s.encodeMemKey("BlockId")
+	if err != nil {
+		return false
+	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemExtTrxByBlockId{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoExtTrx{}
+	sa.TrxId = s.mainKey
+
+	sa.BlockId = ori.BlockId
+
+	ori.BlockId = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
+		return false
+	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.BlockId = p
 
 	return true
 }

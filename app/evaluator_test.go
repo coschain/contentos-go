@@ -358,6 +358,47 @@ func TestVoteEvaluator_ApplyNormal(t *testing.T) {
 	myassert.Equal(postWrap.GetWeightedVp(), uint64(2000))
 	myassert.Equal(c.GetProps().WeightedVps, uint64(2000))
 
+	iterator := table.NewVotePostIdWrap(ev.ctx.db)
+	start := uuid
+	end := start + 1
+	var voterIds []*prototype.VoterId
+	_ = iterator.ForEachByOrder(&start, &end, nil, nil, func(mVal *prototype.VoterId, sVal *uint64, idx uint32) bool {
+		voterIds = append(voterIds, mVal)
+		return true
+	})
+	totalVp := postWrap.GetWeightedVp()
+	fmt.Println(totalVp)
+	for _, voterId := range voterIds {
+		wrap := table.NewSoVoteWrap(ev.ctx.db, voterId)
+		fmt.Println(wrap.GetWeightedVp())
+	}
+
+}
+
+func TestConvertVestingEvaluator_Apply(t *testing.T) {
+	cv_operation := &prototype.ConvertVestingOperation{
+		From:   &prototype.AccountName{Value: "initminer"},
+		Amount: &prototype.Vest{Value: 1e6},
+	}
+	db := startDB()
+	defer clearDB(db)
+
+	op := &prototype.Operation{}
+	opCV := &prototype.Operation_Op16{}
+	opCV.Op16 = cv_operation
+	op.Op = opCV
+
+	c := startController(db)
+
+	ctx := &ApplyContext{db: db, control: c}
+	ev := &ConvertVestingEvaluator{ctx: ctx, op: op.GetOp16()}
+	accWrap := table.NewSoAccountWrap(ev.ctx.db, &prototype.AccountName{Value: "initminer"})
+	accWrap.MdVestingShares(&prototype.Vest{Value: 10 * 1e6})
+	ev.Apply()
+	fmt.Println(accWrap.GetNextPowerdownTime())
+	fmt.Println(accWrap.GetToPowerdown())
+	fmt.Println(accWrap.GetHasPowerdown())
+	fmt.Println(accWrap.GetEachPowerdownRate())
 }
 
 func startDB() iservices.IDatabaseService {

@@ -10,6 +10,7 @@ import (
 	"github.com/coschain/contentos-go/vm/contract/abi"
 	ct "github.com/coschain/contentos-go/vm/contract/table"
 	"github.com/sirupsen/logrus"
+	"math"
 	"sort"
 )
 
@@ -75,11 +76,11 @@ type TransferToVestingEvaluator struct {
 	op  *prototype.TransferToVestingOperation
 }
 
-type ClaimEvaluator struct {
-	BaseEvaluator
-	ctx *ApplyContext
-	op  *prototype.ClaimOperation
-}
+//type ClaimEvaluator struct {
+//	BaseEvaluator
+//	ctx *ApplyContext
+//	op  *prototype.ClaimOperation
+//}
 
 type ReportEvaluator struct {
 	BaseEvaluator
@@ -87,12 +88,18 @@ type ReportEvaluator struct {
 	op  *prototype.ReportOperation
 }
 
-// I can cat out this awkward claimall operation until I can get value from rpc resp
-type ClaimAllEvaluator struct {
+type ConvertVestingEvaluator struct {
 	BaseEvaluator
 	ctx *ApplyContext
-	op  *prototype.ClaimAllOperation
+	op  *prototype.ConvertVestingOperation
 }
+
+// I can cat out this awkward claimall operation until I can get value from rpc resp
+//type ClaimAllEvaluator struct {
+//	BaseEvaluator
+//	ctx *ApplyContext
+//	op  *prototype.ClaimAllOperation
+//}
 
 type ContractDeployEvaluator struct {
 	BaseEvaluator
@@ -135,6 +142,10 @@ func (ev *AccountCreateEvaluator) Apply() {
 		tInfo.VestingShares = op.Fee.ToVest()
 		tInfo.LastPostTime = ev.ctx.control.HeadBlockTime()
 		tInfo.LastVoteTime = ev.ctx.control.HeadBlockTime()
+		tInfo.NextPowerdownBlockNum = math.MaxUint32
+		tInfo.EachPowerdownRate = &prototype.Vest{Value: 0}
+		tInfo.ToPowerdown = &prototype.Vest{Value: 0}
+		tInfo.HasPowerdown = &prototype.Vest{Value: 0}
 	}), "duplicate create account object")
 
 	// create account authority
@@ -161,8 +172,7 @@ func (ev *TransferEvaluator) Apply() {
 
 	opAssert(toWrap.CheckExist(), "To account do not exist ")
 
-	opAssert( op.From.Value != op.To.Value , "Transfer must between two different accounts")
-
+	opAssert(op.From.Value != op.To.Value, "Transfer must between two different accounts")
 
 	fBalance := fromWrap.GetBalance()
 	tBalance := toWrap.GetBalance()
@@ -183,6 +193,7 @@ func (ev *PostEvaluator) Apply() {
 	elapsedSeconds := ev.ctx.control.HeadBlockTime().UtcSeconds - authorWrap.GetLastPostTime().UtcSeconds
 	opAssert(elapsedSeconds > constants.MinPostInterval, "posting frequently")
 
+	// default source is contentos
 	opAssertE(idWrap.Create(func(t *table.SoPost) {
 		t.PostId = op.Uuid
 		t.Tags = op.Tags
@@ -190,7 +201,8 @@ func (ev *PostEvaluator) Apply() {
 		t.Author = op.Owner
 		t.Body = op.Content
 		t.Created = ev.ctx.control.HeadBlockTime()
-		t.CashoutTime = &prototype.TimePointSec{UtcSeconds: ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.PostCashOutDelayTime)}
+		//t.CashoutTime = &prototype.TimePointSec{UtcSeconds: ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.PostCashOutDelayTime)}
+		t.CashoutBlockNum = ev.ctx.control.GetProps().HeadBlockNumber + constants.PostCashOutDelayBlock
 		t.Depth = 0
 		t.Children = 0
 		t.RootId = t.PostId
@@ -199,6 +211,8 @@ func (ev *PostEvaluator) Apply() {
 		t.Beneficiaries = op.Beneficiaries
 		t.WeightedVp = 0
 		t.VoteCnt = 0
+		t.Rewards = &prototype.Vest{Value: 0}
+		t.DappRewards = &prototype.Vest{Value: 0}
 	}), "create post error")
 
 	authorWrap.MdLastPostTime(ev.ctx.control.HeadBlockTime())
@@ -242,13 +256,17 @@ func (ev *ReplyEvaluator) Apply() {
 		t.Author = op.Owner
 		t.Body = op.Content
 		t.Created = ev.ctx.control.HeadBlockTime()
-		t.CashoutTime = &prototype.TimePointSec{UtcSeconds: ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.PostCashOutDelayTime)}
+		//t.CashoutTime = &prototype.TimePointSec{UtcSeconds: ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.PostCashOutDelayTime)}
+		t.CashoutBlockNum = ev.ctx.control.GetProps().HeadBlockNumber + constants.PostCashOutDelayBlock
 		t.Depth = pidWrap.GetDepth() + 1
 		t.Children = 0
 		t.RootId = rootId
 		t.ParentId = op.ParentUuid
+		t.WeightedVp = 0
 		t.VoteCnt = 0
 		t.Beneficiaries = op.Beneficiaries
+		t.Rewards = &prototype.Vest{Value: 0}
+		t.DappRewards = &prototype.Vest{Value: 0}
 	}), "create reply error")
 
 	authorWrap.MdLastPostTime(ev.ctx.control.HeadBlockTime())
@@ -301,11 +319,11 @@ func (ev *VoteEvaluator) Apply() {
 	vesting := voterWrap.GetVestingShares().Value
 	// todo: uint128
 	weightedVp := vesting * uint64(usedVp)
-	if postWrap.GetCashoutTime().UtcSeconds > ev.ctx.control.HeadBlockTime().UtcSeconds {
+	if postWrap.GetCashoutBlockNum() > ev.ctx.control.GetProps().HeadBlockNumber {
 		lastVp := postWrap.GetWeightedVp()
 		votePower := lastVp + weightedVp
 		// add new vp into global
-		ev.ctx.control.AddWeightedVP(weightedVp)
+		//ev.ctx.control.AddWeightedVP(weightedVp)
 		// update post's weighted vp
 		postWrap.MdWeightedVp(votePower)
 
@@ -428,44 +446,61 @@ func (ev *TransferToVestingEvaluator) Apply() {
 	ev.ctx.control.TransferToVest(op.Amount)
 }
 
-func (ev *ClaimEvaluator) Apply() {
+func (ev *ConvertVestingEvaluator) Apply() {
 	op := ev.op
-
-	account := op.Account
-	accWrap := table.NewSoAccountWrap(ev.ctx.db, account)
-
-	opAssert(accWrap.CheckExist(), "claim account do not exist")
-
-	var i int32 = 1
-	keeperWrap := table.NewSoRewardsKeeperWrap(ev.ctx.db, &i)
-	opAssert(keeperWrap.CheckExist(), "reward keeper do not exist")
-
-	keeper := keeperWrap.GetKeeper()
-	innerRewards := keeper.Rewards
-
-	amount := op.Amount
-
-	if val, ok := innerRewards[account.Value]; ok {
-		rewardBalance := val.Value
-		var reward uint64
-		if rewardBalance >= amount && rewardBalance-amount <= rewardBalance {
-			reward = amount
-		} else {
-			reward = rewardBalance
-		}
-		if reward > 0 {
-			vestingBalance := accWrap.GetVestingShares()
-			accWrap.MdVestingShares(&prototype.Vest{Value: vestingBalance.Value + reward})
-			val.Value -= reward
-			keeperWrap.MdKeeper(keeper)
-		} else {
-			// do nothing
-		}
-	} else {
-		opAssert(ok, "No remains reward on chain")
-	}
-
+	accWrap := table.NewSoAccountWrap(ev.ctx.db, op.From)
+	opAssert(accWrap.CheckExist(), "account do not exist")
+	opAssert(op.Amount.Value >= uint64(1e6), "At least 1 vesting should be converted")
+	opAssert(accWrap.GetVestingShares().Value >= op.Amount.Value, "vesting balance not enough")
+	globalProps := ev.ctx.control.GetProps()
+	//timestamp := globalProps.Time.UtcSeconds
+	currentBlock := globalProps.HeadBlockNumber
+	eachRate := op.Amount.Value / constants.ConvertWeeks
+	//accWrap.MdNextPowerdownTime(&prototype.TimePointSec{UtcSeconds: timestamp + constants.POWER_DOWN_INTERVAL})
+	accWrap.MdNextPowerdownBlockNum(currentBlock + constants.PowerDownBlockInterval)
+	accWrap.MdEachPowerdownRate(&prototype.Vest{Value: eachRate})
+	accWrap.MdHasPowerdown(&prototype.Vest{Value: 0})
+	accWrap.MdToPowerdown(op.Amount)
 }
+
+//func (ev *ClaimEvaluator) Apply() {
+//	op := ev.op
+//
+//	account := op.Account
+//	accWrap := table.NewSoAccountWrap(ev.ctx.db, account)
+//
+//	opAssert(accWrap.CheckExist(), "claim account do not exist")
+//
+//	var i int32 = 1
+//	keeperWrap := table.NewSoRewardsKeeperWrap(ev.ctx.db, &i)
+//	opAssert(keeperWrap.CheckExist(), "reward keeper do not exist")
+//
+//	keeper := keeperWrap.GetKeeper()
+//	innerRewards := keeper.Rewards
+//
+//	amount := op.Amount
+//
+//	if val, ok := innerRewards[account.Value]; ok {
+//		rewardBalance := val.Value
+//		var reward uint64
+//		if rewardBalance >= amount && rewardBalance-amount <= rewardBalance {
+//			reward = amount
+//		} else {
+//			reward = rewardBalance
+//		}
+//		if reward > 0 {
+//			vestingBalance := accWrap.GetVestingShares()
+//			accWrap.MdVestingShares(&prototype.Vest{Value: vestingBalance.Value + reward})
+//			val.Value -= reward
+//			keeperWrap.MdKeeper(keeper)
+//		} else {
+//			// do nothing
+//		}
+//	} else {
+//		opAssert(ok, "No remains reward on chain")
+//	}
+//
+//}
 
 type byTag []int32
 
@@ -555,37 +590,37 @@ func (ev *ReportEvaluator) Apply() {
 		})
 	}
 }
-
-func (ev *ClaimAllEvaluator) Apply() {
-	op := ev.op
-
-	account := op.Account
-	accWrap := table.NewSoAccountWrap(ev.ctx.db, account)
-
-	opAssert(accWrap.CheckExist(), "claim account do not exist")
-
-	var i int32 = 1
-	keeperWrap := table.NewSoRewardsKeeperWrap(ev.ctx.db, &i)
-	opAssert(keeperWrap.CheckExist(), "reward keeper do not exist")
-
-	keeper := keeperWrap.GetKeeper()
-	innerRewards := keeper.Rewards
-
-	if val, ok := innerRewards[account.Value]; ok {
-		reward := val.Value
-		if reward > 0 {
-			vestingBalance := accWrap.GetVestingShares()
-			accWrap.MdVestingShares(&prototype.Vest{Value: vestingBalance.Value + reward})
-			val.Value -= reward
-			keeperWrap.MdKeeper(keeper)
-		} else {
-			// do nothing
-		}
-	} else {
-		opAssert(ok, "No remains reward on chain")
-	}
-
-}
+//
+//func (ev *ClaimAllEvaluator) Apply() {
+//	op := ev.op
+//
+//	account := op.Account
+//	accWrap := table.NewSoAccountWrap(ev.ctx.db, account)
+//
+//	opAssert(accWrap.CheckExist(), "claim account do not exist")
+//
+//	var i int32 = 1
+//	keeperWrap := table.NewSoRewardsKeeperWrap(ev.ctx.db, &i)
+//	opAssert(keeperWrap.CheckExist(), "reward keeper do not exist")
+//
+//	keeper := keeperWrap.GetKeeper()
+//	innerRewards := keeper.Rewards
+//
+//	if val, ok := innerRewards[account.Value]; ok {
+//		reward := val.Value
+//		if reward > 0 {
+//			vestingBalance := accWrap.GetVestingShares()
+//			accWrap.MdVestingShares(&prototype.Vest{Value: vestingBalance.Value + reward})
+//			val.Value -= reward
+//			keeperWrap.MdKeeper(keeper)
+//		} else {
+//			// do nothing
+//		}
+//	} else {
+//		opAssert(ok, "No remains reward on chain")
+//	}
+//
+//}
 
 func (ev *ContractDeployEvaluator) Apply() {
 	op := ev.op
@@ -672,6 +707,10 @@ func (ev *ContractApplyEvaluator) Apply() {
 	// need extra query db, is it a good way or should I pass account object as parameter?
 	// deductgasfee and usertranfer could be panic (rarely, I can't image how it happens)
 	// the panic should catch then return or bubble it ?
+
+	// TODO merge, temp fix
+	opAssertE(err, "execute vm error")
+
 	vmCtx.Injector.DeductGasFee(op.Caller.Value, spentGas)
 	if err != nil {
 		vmCtx.Injector.Error(ret, err.Error())

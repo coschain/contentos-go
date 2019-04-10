@@ -64,6 +64,8 @@ type IConsensus interface {
 
 	GetLIB() common.BlockID
 
+	IsCommitted(id common.BlockID) bool
+
 	// MaybeProduceBlock check whether should produce a block
 	MaybeProduceBlock()
 

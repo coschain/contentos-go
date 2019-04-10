@@ -21,6 +21,7 @@ const (
 	NoticeTrxApplied   = "trxapplyresult"
 	NoticeBlockApplied = "blockapply"
 	NoticeAddTrx       = "addTrx"
+	NoticeCashout      = "rewardCashout"
 
 	GenesisTime = 0
 
@@ -39,7 +40,9 @@ const (
 
 	PostInvalidId        = 0
 	PostMaxDepth         = 8
-	PostCashOutDelayTime = 60 * 60 * 24 * 7
+	//PostCashOutDelayTime = 60 * 60 * 24 * 7
+	// for rapidly cashout
+	PostCashOutDelayBlock = 60 * 10
 	MaxBpVoteCount       = 30
 
 	BlocksPerDay = 24 * 60 * 60 / BlockInterval
@@ -55,16 +58,31 @@ const (
 
 	VoteLimitDuringRegenerate = 30
 
-	VpDecayTime = (60 * 60 * 24) * 15
+	// for rapidly decay
+	//VpDecayTime = (60 * 60 * 24) * 15
+	VpDecayTime = 60 * 60
 
 	TrxMaxExpirationTime = 60
 
-	PerBlockCurrent = 10
+	// from total minted
+	RewardRateCreator = 7500
+	RewardRateBP     = 1500
+	RewardRateDapp   = 1000
 
-	RewardRateAuthor = 7000
-	RewardRateReply  = 2000
-	RewardRateBP     = 1000
+	// from Creator
+	//RewardRateAuthor = 7000
+	RewardRateAuthor = 7500
+	RewardRateReply = 1500
+	RewardRateVoter = 1000
+	//RewardRateReport = 500
 
-	// 10 ** 18 ?
-	BaseRate = 1
+	ConvertWeeks = 13
+
+	BaseRate               = 1e6
+	PowerDownBlockInterval = (60 * 60 * 24) * 7
+
+	ReportCashout = 1000
+
+	// 10 billion
+	TotalCurrency = 100 * 1e8
 )

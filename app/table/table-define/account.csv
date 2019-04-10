@@ -7,9 +7,10 @@ prototype.vest           ,vesting_shares,0   ,0     ,1   ,0          ,prototype/
 uint32                   ,bp_vote_count ,0   ,0     ,1   ,0          ,
 prototype.time_point_sec ,last_vote_time ,0   ,0     ,0   ,0          ,prototype/type.proto
 prototype.time_point_sec ,last_post_time ,0   ,0     ,0   ,0          ,prototype/type.proto
-uint32                   ,vote_power      ,0   ,0     ,0   ,0          ,
-uint32                   ,post_count      ,0   ,0     ,1   ,0          ,
+uint32                   ,vote_power,0   ,0     ,0   ,0          ,
+uint32                   ,post_count,0   ,0     ,1   ,0          ,
 uint32                   ,created_trx_count,0   ,0     ,1   ,0          ,
-
-
-
+uint64                   ,next_powerdown_block_num, 0, 0, 1, 0,
+prototype.vest           ,each_powerdown_rate, 0, 0, 0, 0, prototype/type.proto
+prototype.vest           ,to_powerdown, 0, 0, 0, 0, prototype/type.proto
+prototype.vest           ,has_powerdown, 0 ,0, 0, 0, prototype/type.proto

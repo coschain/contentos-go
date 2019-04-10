@@ -2,9 +2,9 @@ package utils
 
 import (
 	"context"
-	"encoding/binary"
 	"fmt"
 	"github.com/coschain/contentos-go/cmd/wallet-cli/wallet"
+	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/rpc/pb"
 	"hash/crc32"
@@ -42,9 +42,9 @@ func GetChainState(client grpcpb.ApiServiceClient) (*grpcpb.ChainState, error) {
 }
 
 func GenerateSignedTxAndValidate4(dgp *prototype.DynamicProperties, expiration uint32, ops []interface{}, privKey *prototype.PrivateKeyType) (*prototype.SignedTransaction, error) {
-	refBlockPrefix := binary.BigEndian.Uint32(dgp.HeadBlockId.Hash[8:12])
+	refBlockPrefix := common.TaposRefBlockPrefix(dgp.HeadBlockId.Hash)
 	// occupant implement
-	refBlockNum := uint32(dgp.HeadBlockNumber & 0x7ff)
+	refBlockNum := common.TaposRefBlockNum(dgp.HeadBlockNumber)
 	tx := &prototype.Transaction{RefBlockNum: refBlockNum, RefBlockPrefix: refBlockPrefix, Expiration: &prototype.TimePointSec{UtcSeconds: dgp.Time.UtcSeconds + expiration}}
 	for _, op := range ops {
 		tx.AddOperation(op)

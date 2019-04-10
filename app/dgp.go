@@ -47,11 +47,6 @@ func (dgp *DynamicGlobalPropsRW) TransferFromVest(value *prototype.Vest) {
 	})
 }
 
-func (dgp *DynamicGlobalPropsRW) AddWeightedVP(value uint64) {
-	dgp.ModifyProps(func(dgpo *prototype.DynamicProperties) {
-		dgpo.WeightedVps += value
-	})
-}
 
 func (dgp *DynamicGlobalPropsRW) ModifyProps(modifier func(oldProps *prototype.DynamicProperties)) {
 	dgpWrap := table.NewSoGlobalWrap(dgp.db, &SingleId)

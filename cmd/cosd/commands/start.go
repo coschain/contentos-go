@@ -156,6 +156,10 @@ func RegisterService(app *node.Node, cfg node.Config) {
 	})
 
 
+	_ = app.Register(plugins.RewardServiceName, func(ctx *node.ServiceContext) (service node.Service, e error) {
+		return plugins.NewRewardService(ctx)
+	})
+
 	_ = app.Register(iservices.RpcServerName, func(ctx *node.ServiceContext) (node.Service, error) {
 		return rpc.NewGRPCServer(ctx, ctx.Config().GRPC, app.Log)
 	})
