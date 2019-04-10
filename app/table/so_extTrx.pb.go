@@ -25,6 +25,7 @@ type SoExtTrx struct {
 	TrxWrap              *prototype.TransactionWrapper `protobuf:"bytes,3,opt,name=trx_wrap,json=trxWrap,proto3" json:"trx_wrap,omitempty"`
 	BlockTime            *prototype.TimePointSec       `protobuf:"bytes,4,opt,name=block_time,json=blockTime,proto3" json:"block_time,omitempty"`
 	TrxCreateOrder       *prototype.UserTrxCreateOrder `protobuf:"bytes,5,opt,name=trx_create_order,json=trxCreateOrder,proto3" json:"trx_create_order,omitempty"`
+	BlockId              *prototype.Sha256             `protobuf:"bytes,6,opt,name=block_id,json=blockId,proto3" json:"block_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                      `json:"-"`
 	XXX_unrecognized     []byte                        `json:"-"`
 	XXX_sizecache        int32                         `json:"-"`
@@ -34,16 +35,17 @@ func (m *SoExtTrx) Reset()         { *m = SoExtTrx{} }
 func (m *SoExtTrx) String() string { return proto.CompactTextString(m) }
 func (*SoExtTrx) ProtoMessage()    {}
 func (*SoExtTrx) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extTrx_481dbaf2e3e43f14, []int{0}
+	return fileDescriptor_76957eaae1f8a1bc, []int{0}
 }
+
 func (m *SoExtTrx) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoExtTrx.Unmarshal(m, b)
 }
 func (m *SoExtTrx) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_SoExtTrx.Marshal(b, m, deterministic)
 }
-func (dst *SoExtTrx) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SoExtTrx.Merge(dst, src)
+func (m *SoExtTrx) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoExtTrx.Merge(m, src)
 }
 func (m *SoExtTrx) XXX_Size() int {
 	return xxx_messageInfo_SoExtTrx.Size(m)
@@ -89,6 +91,13 @@ func (m *SoExtTrx) GetTrxCreateOrder() *prototype.UserTrxCreateOrder {
 	return nil
 }
 
+func (m *SoExtTrx) GetBlockId() *prototype.Sha256 {
+	if m != nil {
+		return m.BlockId
+	}
+	return nil
+}
+
 type SoMemExtTrxByTrxId struct {
 	TrxId                *prototype.Sha256 `protobuf:"bytes,1,opt,name=trx_id,json=trxId,proto3" json:"trx_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
@@ -100,16 +109,17 @@ func (m *SoMemExtTrxByTrxId) Reset()         { *m = SoMemExtTrxByTrxId{} }
 func (m *SoMemExtTrxByTrxId) String() string { return proto.CompactTextString(m) }
 func (*SoMemExtTrxByTrxId) ProtoMessage()    {}
 func (*SoMemExtTrxByTrxId) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extTrx_481dbaf2e3e43f14, []int{1}
+	return fileDescriptor_76957eaae1f8a1bc, []int{1}
 }
+
 func (m *SoMemExtTrxByTrxId) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemExtTrxByTrxId.Unmarshal(m, b)
 }
 func (m *SoMemExtTrxByTrxId) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_SoMemExtTrxByTrxId.Marshal(b, m, deterministic)
 }
-func (dst *SoMemExtTrxByTrxId) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SoMemExtTrxByTrxId.Merge(dst, src)
+func (m *SoMemExtTrxByTrxId) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoMemExtTrxByTrxId.Merge(m, src)
 }
 func (m *SoMemExtTrxByTrxId) XXX_Size() int {
 	return xxx_messageInfo_SoMemExtTrxByTrxId.Size(m)
@@ -138,16 +148,17 @@ func (m *SoMemExtTrxByBlockHeight) Reset()         { *m = SoMemExtTrxByBlockHeig
 func (m *SoMemExtTrxByBlockHeight) String() string { return proto.CompactTextString(m) }
 func (*SoMemExtTrxByBlockHeight) ProtoMessage()    {}
 func (*SoMemExtTrxByBlockHeight) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extTrx_481dbaf2e3e43f14, []int{2}
+	return fileDescriptor_76957eaae1f8a1bc, []int{2}
 }
+
 func (m *SoMemExtTrxByBlockHeight) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemExtTrxByBlockHeight.Unmarshal(m, b)
 }
 func (m *SoMemExtTrxByBlockHeight) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_SoMemExtTrxByBlockHeight.Marshal(b, m, deterministic)
 }
-func (dst *SoMemExtTrxByBlockHeight) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SoMemExtTrxByBlockHeight.Merge(dst, src)
+func (m *SoMemExtTrxByBlockHeight) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoMemExtTrxByBlockHeight.Merge(m, src)
 }
 func (m *SoMemExtTrxByBlockHeight) XXX_Size() int {
 	return xxx_messageInfo_SoMemExtTrxByBlockHeight.Size(m)
@@ -176,16 +187,17 @@ func (m *SoMemExtTrxByTrxWrap) Reset()         { *m = SoMemExtTrxByTrxWrap{} }
 func (m *SoMemExtTrxByTrxWrap) String() string { return proto.CompactTextString(m) }
 func (*SoMemExtTrxByTrxWrap) ProtoMessage()    {}
 func (*SoMemExtTrxByTrxWrap) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extTrx_481dbaf2e3e43f14, []int{3}
+	return fileDescriptor_76957eaae1f8a1bc, []int{3}
 }
+
 func (m *SoMemExtTrxByTrxWrap) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemExtTrxByTrxWrap.Unmarshal(m, b)
 }
 func (m *SoMemExtTrxByTrxWrap) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_SoMemExtTrxByTrxWrap.Marshal(b, m, deterministic)
 }
-func (dst *SoMemExtTrxByTrxWrap) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SoMemExtTrxByTrxWrap.Merge(dst, src)
+func (m *SoMemExtTrxByTrxWrap) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoMemExtTrxByTrxWrap.Merge(m, src)
 }
 func (m *SoMemExtTrxByTrxWrap) XXX_Size() int {
 	return xxx_messageInfo_SoMemExtTrxByTrxWrap.Size(m)
@@ -214,16 +226,17 @@ func (m *SoMemExtTrxByBlockTime) Reset()         { *m = SoMemExtTrxByBlockTime{}
 func (m *SoMemExtTrxByBlockTime) String() string { return proto.CompactTextString(m) }
 func (*SoMemExtTrxByBlockTime) ProtoMessage()    {}
 func (*SoMemExtTrxByBlockTime) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extTrx_481dbaf2e3e43f14, []int{4}
+	return fileDescriptor_76957eaae1f8a1bc, []int{4}
 }
+
 func (m *SoMemExtTrxByBlockTime) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemExtTrxByBlockTime.Unmarshal(m, b)
 }
 func (m *SoMemExtTrxByBlockTime) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_SoMemExtTrxByBlockTime.Marshal(b, m, deterministic)
 }
-func (dst *SoMemExtTrxByBlockTime) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SoMemExtTrxByBlockTime.Merge(dst, src)
+func (m *SoMemExtTrxByBlockTime) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoMemExtTrxByBlockTime.Merge(m, src)
 }
 func (m *SoMemExtTrxByBlockTime) XXX_Size() int {
 	return xxx_messageInfo_SoMemExtTrxByBlockTime.Size(m)
@@ -252,16 +265,17 @@ func (m *SoMemExtTrxByTrxCreateOrder) Reset()         { *m = SoMemExtTrxByTrxCre
 func (m *SoMemExtTrxByTrxCreateOrder) String() string { return proto.CompactTextString(m) }
 func (*SoMemExtTrxByTrxCreateOrder) ProtoMessage()    {}
 func (*SoMemExtTrxByTrxCreateOrder) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extTrx_481dbaf2e3e43f14, []int{5}
+	return fileDescriptor_76957eaae1f8a1bc, []int{5}
 }
+
 func (m *SoMemExtTrxByTrxCreateOrder) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemExtTrxByTrxCreateOrder.Unmarshal(m, b)
 }
 func (m *SoMemExtTrxByTrxCreateOrder) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_SoMemExtTrxByTrxCreateOrder.Marshal(b, m, deterministic)
 }
-func (dst *SoMemExtTrxByTrxCreateOrder) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SoMemExtTrxByTrxCreateOrder.Merge(dst, src)
+func (m *SoMemExtTrxByTrxCreateOrder) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoMemExtTrxByTrxCreateOrder.Merge(m, src)
 }
 func (m *SoMemExtTrxByTrxCreateOrder) XXX_Size() int {
 	return xxx_messageInfo_SoMemExtTrxByTrxCreateOrder.Size(m)
@@ -279,6 +293,45 @@ func (m *SoMemExtTrxByTrxCreateOrder) GetTrxCreateOrder() *prototype.UserTrxCrea
 	return nil
 }
 
+type SoMemExtTrxByBlockId struct {
+	BlockId              *prototype.Sha256 `protobuf:"bytes,1,opt,name=block_id,json=blockId,proto3" json:"block_id,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
+	XXX_unrecognized     []byte            `json:"-"`
+	XXX_sizecache        int32             `json:"-"`
+}
+
+func (m *SoMemExtTrxByBlockId) Reset()         { *m = SoMemExtTrxByBlockId{} }
+func (m *SoMemExtTrxByBlockId) String() string { return proto.CompactTextString(m) }
+func (*SoMemExtTrxByBlockId) ProtoMessage()    {}
+func (*SoMemExtTrxByBlockId) Descriptor() ([]byte, []int) {
+	return fileDescriptor_76957eaae1f8a1bc, []int{6}
+}
+
+func (m *SoMemExtTrxByBlockId) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SoMemExtTrxByBlockId.Unmarshal(m, b)
+}
+func (m *SoMemExtTrxByBlockId) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SoMemExtTrxByBlockId.Marshal(b, m, deterministic)
+}
+func (m *SoMemExtTrxByBlockId) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoMemExtTrxByBlockId.Merge(m, src)
+}
+func (m *SoMemExtTrxByBlockId) XXX_Size() int {
+	return xxx_messageInfo_SoMemExtTrxByBlockId.Size(m)
+}
+func (m *SoMemExtTrxByBlockId) XXX_DiscardUnknown() {
+	xxx_messageInfo_SoMemExtTrxByBlockId.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SoMemExtTrxByBlockId proto.InternalMessageInfo
+
+func (m *SoMemExtTrxByBlockId) GetBlockId() *prototype.Sha256 {
+	if m != nil {
+		return m.BlockId
+	}
+	return nil
+}
+
 type SoListExtTrxByTrxId struct {
 	TrxId                *prototype.Sha256 `protobuf:"bytes,1,opt,name=trx_id,json=trxId,proto3" json:"trx_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
@@ -290,16 +343,17 @@ func (m *SoListExtTrxByTrxId) Reset()         { *m = SoListExtTrxByTrxId{} }
 func (m *SoListExtTrxByTrxId) String() string { return proto.CompactTextString(m) }
 func (*SoListExtTrxByTrxId) ProtoMessage()    {}
 func (*SoListExtTrxByTrxId) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extTrx_481dbaf2e3e43f14, []int{6}
+	return fileDescriptor_76957eaae1f8a1bc, []int{7}
 }
+
 func (m *SoListExtTrxByTrxId) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoListExtTrxByTrxId.Unmarshal(m, b)
 }
 func (m *SoListExtTrxByTrxId) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_SoListExtTrxByTrxId.Marshal(b, m, deterministic)
 }
-func (dst *SoListExtTrxByTrxId) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SoListExtTrxByTrxId.Merge(dst, src)
+func (m *SoListExtTrxByTrxId) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoListExtTrxByTrxId.Merge(m, src)
 }
 func (m *SoListExtTrxByTrxId) XXX_Size() int {
 	return xxx_messageInfo_SoListExtTrxByTrxId.Size(m)
@@ -329,16 +383,17 @@ func (m *SoListExtTrxByBlockHeight) Reset()         { *m = SoListExtTrxByBlockHe
 func (m *SoListExtTrxByBlockHeight) String() string { return proto.CompactTextString(m) }
 func (*SoListExtTrxByBlockHeight) ProtoMessage()    {}
 func (*SoListExtTrxByBlockHeight) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extTrx_481dbaf2e3e43f14, []int{7}
+	return fileDescriptor_76957eaae1f8a1bc, []int{8}
 }
+
 func (m *SoListExtTrxByBlockHeight) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoListExtTrxByBlockHeight.Unmarshal(m, b)
 }
 func (m *SoListExtTrxByBlockHeight) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_SoListExtTrxByBlockHeight.Marshal(b, m, deterministic)
 }
-func (dst *SoListExtTrxByBlockHeight) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SoListExtTrxByBlockHeight.Merge(dst, src)
+func (m *SoListExtTrxByBlockHeight) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoListExtTrxByBlockHeight.Merge(m, src)
 }
 func (m *SoListExtTrxByBlockHeight) XXX_Size() int {
 	return xxx_messageInfo_SoListExtTrxByBlockHeight.Size(m)
@@ -375,16 +430,17 @@ func (m *SoListExtTrxByBlockTime) Reset()         { *m = SoListExtTrxByBlockTime
 func (m *SoListExtTrxByBlockTime) String() string { return proto.CompactTextString(m) }
 func (*SoListExtTrxByBlockTime) ProtoMessage()    {}
 func (*SoListExtTrxByBlockTime) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extTrx_481dbaf2e3e43f14, []int{8}
+	return fileDescriptor_76957eaae1f8a1bc, []int{9}
 }
+
 func (m *SoListExtTrxByBlockTime) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoListExtTrxByBlockTime.Unmarshal(m, b)
 }
 func (m *SoListExtTrxByBlockTime) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_SoListExtTrxByBlockTime.Marshal(b, m, deterministic)
 }
-func (dst *SoListExtTrxByBlockTime) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SoListExtTrxByBlockTime.Merge(dst, src)
+func (m *SoListExtTrxByBlockTime) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoListExtTrxByBlockTime.Merge(m, src)
 }
 func (m *SoListExtTrxByBlockTime) XXX_Size() int {
 	return xxx_messageInfo_SoListExtTrxByBlockTime.Size(m)
@@ -421,16 +477,17 @@ func (m *SoListExtTrxByTrxCreateOrder) Reset()         { *m = SoListExtTrxByTrxC
 func (m *SoListExtTrxByTrxCreateOrder) String() string { return proto.CompactTextString(m) }
 func (*SoListExtTrxByTrxCreateOrder) ProtoMessage()    {}
 func (*SoListExtTrxByTrxCreateOrder) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extTrx_481dbaf2e3e43f14, []int{9}
+	return fileDescriptor_76957eaae1f8a1bc, []int{10}
 }
+
 func (m *SoListExtTrxByTrxCreateOrder) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoListExtTrxByTrxCreateOrder.Unmarshal(m, b)
 }
 func (m *SoListExtTrxByTrxCreateOrder) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_SoListExtTrxByTrxCreateOrder.Marshal(b, m, deterministic)
 }
-func (dst *SoListExtTrxByTrxCreateOrder) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SoListExtTrxByTrxCreateOrder.Merge(dst, src)
+func (m *SoListExtTrxByTrxCreateOrder) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoListExtTrxByTrxCreateOrder.Merge(m, src)
 }
 func (m *SoListExtTrxByTrxCreateOrder) XXX_Size() int {
 	return xxx_messageInfo_SoListExtTrxByTrxCreateOrder.Size(m)
@@ -455,6 +512,53 @@ func (m *SoListExtTrxByTrxCreateOrder) GetTrxId() *prototype.Sha256 {
 	return nil
 }
 
+type SoListExtTrxByBlockId struct {
+	BlockId              *prototype.Sha256 `protobuf:"bytes,1,opt,name=block_id,json=blockId,proto3" json:"block_id,omitempty"`
+	TrxId                *prototype.Sha256 `protobuf:"bytes,2,opt,name=trx_id,json=trxId,proto3" json:"trx_id,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
+	XXX_unrecognized     []byte            `json:"-"`
+	XXX_sizecache        int32             `json:"-"`
+}
+
+func (m *SoListExtTrxByBlockId) Reset()         { *m = SoListExtTrxByBlockId{} }
+func (m *SoListExtTrxByBlockId) String() string { return proto.CompactTextString(m) }
+func (*SoListExtTrxByBlockId) ProtoMessage()    {}
+func (*SoListExtTrxByBlockId) Descriptor() ([]byte, []int) {
+	return fileDescriptor_76957eaae1f8a1bc, []int{11}
+}
+
+func (m *SoListExtTrxByBlockId) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SoListExtTrxByBlockId.Unmarshal(m, b)
+}
+func (m *SoListExtTrxByBlockId) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SoListExtTrxByBlockId.Marshal(b, m, deterministic)
+}
+func (m *SoListExtTrxByBlockId) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoListExtTrxByBlockId.Merge(m, src)
+}
+func (m *SoListExtTrxByBlockId) XXX_Size() int {
+	return xxx_messageInfo_SoListExtTrxByBlockId.Size(m)
+}
+func (m *SoListExtTrxByBlockId) XXX_DiscardUnknown() {
+	xxx_messageInfo_SoListExtTrxByBlockId.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SoListExtTrxByBlockId proto.InternalMessageInfo
+
+func (m *SoListExtTrxByBlockId) GetBlockId() *prototype.Sha256 {
+	if m != nil {
+		return m.BlockId
+	}
+	return nil
+}
+
+func (m *SoListExtTrxByBlockId) GetTrxId() *prototype.Sha256 {
+	if m != nil {
+		return m.TrxId
+	}
+	return nil
+}
+
 type SoUniqueExtTrxByTrxId struct {
 	TrxId                *prototype.Sha256 `protobuf:"bytes,1,opt,name=trx_id,json=trxId,proto3" json:"trx_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
@@ -466,16 +570,17 @@ func (m *SoUniqueExtTrxByTrxId) Reset()         { *m = SoUniqueExtTrxByTrxId{} }
 func (m *SoUniqueExtTrxByTrxId) String() string { return proto.CompactTextString(m) }
 func (*SoUniqueExtTrxByTrxId) ProtoMessage()    {}
 func (*SoUniqueExtTrxByTrxId) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extTrx_481dbaf2e3e43f14, []int{10}
+	return fileDescriptor_76957eaae1f8a1bc, []int{12}
 }
+
 func (m *SoUniqueExtTrxByTrxId) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoUniqueExtTrxByTrxId.Unmarshal(m, b)
 }
 func (m *SoUniqueExtTrxByTrxId) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_SoUniqueExtTrxByTrxId.Marshal(b, m, deterministic)
 }
-func (dst *SoUniqueExtTrxByTrxId) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SoUniqueExtTrxByTrxId.Merge(dst, src)
+func (m *SoUniqueExtTrxByTrxId) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoUniqueExtTrxByTrxId.Merge(m, src)
 }
 func (m *SoUniqueExtTrxByTrxId) XXX_Size() int {
 	return xxx_messageInfo_SoUniqueExtTrxByTrxId.Size(m)
@@ -493,6 +598,53 @@ func (m *SoUniqueExtTrxByTrxId) GetTrxId() *prototype.Sha256 {
 	return nil
 }
 
+type SoUniqueExtTrxByBlockId struct {
+	BlockId              *prototype.Sha256 `protobuf:"bytes,1,opt,name=block_id,json=blockId,proto3" json:"block_id,omitempty"`
+	TrxId                *prototype.Sha256 `protobuf:"bytes,2,opt,name=trx_id,json=trxId,proto3" json:"trx_id,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
+	XXX_unrecognized     []byte            `json:"-"`
+	XXX_sizecache        int32             `json:"-"`
+}
+
+func (m *SoUniqueExtTrxByBlockId) Reset()         { *m = SoUniqueExtTrxByBlockId{} }
+func (m *SoUniqueExtTrxByBlockId) String() string { return proto.CompactTextString(m) }
+func (*SoUniqueExtTrxByBlockId) ProtoMessage()    {}
+func (*SoUniqueExtTrxByBlockId) Descriptor() ([]byte, []int) {
+	return fileDescriptor_76957eaae1f8a1bc, []int{13}
+}
+
+func (m *SoUniqueExtTrxByBlockId) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SoUniqueExtTrxByBlockId.Unmarshal(m, b)
+}
+func (m *SoUniqueExtTrxByBlockId) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SoUniqueExtTrxByBlockId.Marshal(b, m, deterministic)
+}
+func (m *SoUniqueExtTrxByBlockId) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoUniqueExtTrxByBlockId.Merge(m, src)
+}
+func (m *SoUniqueExtTrxByBlockId) XXX_Size() int {
+	return xxx_messageInfo_SoUniqueExtTrxByBlockId.Size(m)
+}
+func (m *SoUniqueExtTrxByBlockId) XXX_DiscardUnknown() {
+	xxx_messageInfo_SoUniqueExtTrxByBlockId.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SoUniqueExtTrxByBlockId proto.InternalMessageInfo
+
+func (m *SoUniqueExtTrxByBlockId) GetBlockId() *prototype.Sha256 {
+	if m != nil {
+		return m.BlockId
+	}
+	return nil
+}
+
+func (m *SoUniqueExtTrxByBlockId) GetTrxId() *prototype.Sha256 {
+	if m != nil {
+		return m.TrxId
+	}
+	return nil
+}
+
 func init() {
 	proto.RegisterType((*SoExtTrx)(nil), "table.so_extTrx")
 	proto.RegisterType((*SoMemExtTrxByTrxId)(nil), "table.so_mem_extTrx_by_trx_id")
@@ -500,45 +652,49 @@ func init() {
 	proto.RegisterType((*SoMemExtTrxByTrxWrap)(nil), "table.so_mem_extTrx_by_trx_wrap")
 	proto.RegisterType((*SoMemExtTrxByBlockTime)(nil), "table.so_mem_extTrx_by_block_time")
 	proto.RegisterType((*SoMemExtTrxByTrxCreateOrder)(nil), "table.so_mem_extTrx_by_trx_create_order")
+	proto.RegisterType((*SoMemExtTrxByBlockId)(nil), "table.so_mem_extTrx_by_block_id")
 	proto.RegisterType((*SoListExtTrxByTrxId)(nil), "table.so_list_extTrx_by_trx_id")
 	proto.RegisterType((*SoListExtTrxByBlockHeight)(nil), "table.so_list_extTrx_by_block_height")
 	proto.RegisterType((*SoListExtTrxByBlockTime)(nil), "table.so_list_extTrx_by_block_time")
 	proto.RegisterType((*SoListExtTrxByTrxCreateOrder)(nil), "table.so_list_extTrx_by_trx_create_order")
+	proto.RegisterType((*SoListExtTrxByBlockId)(nil), "table.so_list_extTrx_by_block_id")
 	proto.RegisterType((*SoUniqueExtTrxByTrxId)(nil), "table.so_unique_extTrx_by_trx_id")
+	proto.RegisterType((*SoUniqueExtTrxByBlockId)(nil), "table.so_unique_extTrx_by_block_id")
 }
 
-func init() {
-	proto.RegisterFile("app/table/so_extTrx.proto", fileDescriptor_so_extTrx_481dbaf2e3e43f14)
-}
+func init() { proto.RegisterFile("app/table/so_extTrx.proto", fileDescriptor_76957eaae1f8a1bc) }
 
-var fileDescriptor_so_extTrx_481dbaf2e3e43f14 = []byte{
-	// 444 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x94, 0x5f, 0x6b, 0xd4, 0x40,
-	0x14, 0xc5, 0x99, 0xb5, 0x5b, 0xed, 0xad, 0x88, 0x06, 0xc1, 0xec, 0x56, 0xcb, 0x36, 0x4f, 0x8b,
-	0xe8, 0x06, 0x2a, 0x8a, 0xbe, 0xb6, 0x22, 0xea, 0x8b, 0x10, 0x8a, 0x05, 0x5f, 0x86, 0x49, 0xf6,
-	0xb2, 0x19, 0xdc, 0xe4, 0xc6, 0x99, 0x1b, 0x4c, 0x5f, 0xfd, 0x16, 0xfa, 0x69, 0x25, 0xb3, 0x65,
-	0x1d, 0xbb, 0x5b, 0xdc, 0xb8, 0xf4, 0x25, 0x30, 0xf7, 0xcf, 0xb9, 0x87, 0xdf, 0x81, 0xc0, 0x40,
-	0x55, 0x55, 0xcc, 0x2a, 0x9d, 0x63, 0x6c, 0x49, 0x62, 0xc3, 0x67, 0xa6, 0x99, 0x54, 0x86, 0x98,
-	0x82, 0xbe, 0x2b, 0x0f, 0x1f, 0xba, 0x17, 0x5f, 0x54, 0x18, 0xb7, 0x9f, 0x45, 0x73, 0x78, 0xe0,
-	0x55, 0x8d, 0x2a, 0xad, 0xca, 0x58, 0x53, 0x79, 0xd9, 0x0c, 0xff, 0x34, 0x8b, 0x7a, 0xce, 0x5a,
-	0xea, 0xe9, 0xa2, 0x13, 0xfd, 0xec, 0xc1, 0xde, 0xf2, 0x4e, 0x30, 0x86, 0x5d, 0x36, 0x8d, 0xd4,
-	0xd3, 0x50, 0x8c, 0xc4, 0x78, 0xff, 0xf8, 0xc1, 0x64, 0xb9, 0x38, 0xb1, 0xb9, 0x3a, 0x7e, 0xf9,
-	0x2a, 0xe9, 0xb3, 0x69, 0x3e, 0x4c, 0x83, 0x23, 0xb8, 0x9b, 0xce, 0x29, 0xfb, 0x2a, 0x73, 0xd4,
-	0xb3, 0x9c, 0xc3, 0xde, 0x48, 0x8c, 0x77, 0x92, 0x7d, 0x57, 0x7b, 0xef, 0x4a, 0xc1, 0x1b, 0xb8,
-	0xd3, 0x8a, 0x7d, 0x37, 0xaa, 0x0a, 0x6f, 0x39, 0xb9, 0x43, 0x4f, 0xce, 0x33, 0xe9, 0x46, 0x2a,
-	0x34, 0xc9, 0x6d, 0x36, 0xcd, 0xb9, 0x51, 0x55, 0xf0, 0x1a, 0x60, 0xa1, 0xce, 0xba, 0xc0, 0x70,
-	0xc7, 0x2d, 0x0f, 0xfc, 0x65, 0x5d, 0xa0, 0xac, 0x48, 0x97, 0x2c, 0x2d, 0x66, 0xc9, 0x9e, 0x1b,
-	0x3e, 0xd3, 0x05, 0x06, 0x1f, 0xe1, 0x7e, 0x7b, 0x34, 0x33, 0xa8, 0x18, 0x25, 0x99, 0x29, 0x9a,
-	0xb0, 0xef, 0xf6, 0x47, 0xde, 0x7e, 0x6d, 0xd1, 0xc8, 0xab, 0x73, 0xc9, 0x3d, 0x36, 0xcd, 0xa9,
-	0x2b, 0x7c, 0x6a, 0xdf, 0xd1, 0x29, 0x3c, 0xb2, 0x24, 0x0b, 0x2c, 0x2e, 0xf1, 0xc8, 0xf4, 0x42,
-	0x2e, 0xf0, 0x6c, 0x0e, 0x2a, 0x3a, 0x81, 0x27, 0x2b, 0x22, 0x3e, 0xb9, 0x15, 0x92, 0x62, 0x85,
-	0x64, 0xf4, 0x19, 0x06, 0x6b, 0x8d, 0xb4, 0xdc, 0xfe, 0xc2, 0x2c, 0x3a, 0x61, 0x8e, 0xce, 0xe1,
-	0xe0, 0x1a, 0x6f, 0x2d, 0xe0, 0x2b, 0x29, 0x88, 0xcd, 0x53, 0x88, 0x08, 0x8e, 0xd6, 0x1a, 0xf6,
-	0x71, 0xaf, 0x8d, 0x4a, 0xfc, 0x67, 0x54, 0x6f, 0x21, 0xb4, 0x24, 0xe7, 0xda, 0xf2, 0x36, 0x59,
-	0x15, 0x70, 0xb8, 0xaa, 0xd2, 0x31, 0x2c, 0xef, 0x5c, 0xef, 0x1f, 0xe7, 0x7e, 0x08, 0x78, 0x7c,
-	0xdd, 0xbd, 0xed, 0x02, 0xe8, 0x60, 0xe2, 0x97, 0x80, 0x68, 0x3d, 0xba, 0x9b, 0x0a, 0xab, 0x83,
-	0xb9, 0x77, 0x30, 0xb4, 0x24, 0xeb, 0x52, 0x7f, 0xab, 0x71, 0x8b, 0x60, 0x4f, 0x9e, 0x7d, 0x79,
-	0x3a, 0xd3, 0x9c, 0xd7, 0xe9, 0x24, 0xa3, 0x22, 0xce, 0xc8, 0x66, 0xb9, 0xd2, 0x65, 0x9c, 0x51,
-	0xc9, 0x58, 0x32, 0xd9, 0xe7, 0x33, 0x8a, 0x97, 0xff, 0xdd, 0x74, 0xd7, 0xc9, 0xbc, 0xf8, 0x1d,
-	0x00, 0x00, 0xff, 0xff, 0x78, 0xa1, 0xd2, 0x1a, 0x8b, 0x05, 0x00, 0x00,
+var fileDescriptor_76957eaae1f8a1bc = []byte{
+	// 489 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x95, 0xdf, 0x6a, 0xd4, 0x40,
+	0x14, 0xc6, 0x99, 0xb5, 0xbb, 0x6d, 0x4f, 0x45, 0x34, 0x08, 0x66, 0xb7, 0x5a, 0xb6, 0xb9, 0x5a,
+	0xa4, 0x6e, 0xa0, 0xa2, 0xe8, 0x6d, 0x2b, 0xe2, 0x7a, 0x23, 0x84, 0x62, 0xc1, 0x9b, 0x61, 0x92,
+	0x0c, 0x9b, 0xc1, 0x4d, 0x26, 0xce, 0x9c, 0x68, 0x7a, 0xeb, 0x63, 0xf8, 0x42, 0xbe, 0x96, 0x64,
+	0x52, 0xd7, 0x69, 0x93, 0xd0, 0xc6, 0xa5, 0x37, 0x0b, 0x39, 0x7f, 0xbe, 0xf3, 0xf1, 0xfd, 0x06,
+	0x16, 0xc6, 0x2c, 0xcf, 0x7d, 0x64, 0xe1, 0x8a, 0xfb, 0x5a, 0x52, 0x5e, 0xe2, 0x99, 0x2a, 0xe7,
+	0xb9, 0x92, 0x28, 0x9d, 0xa1, 0x29, 0x4f, 0x1e, 0x9b, 0x2f, 0xbc, 0xc8, 0xb9, 0x5f, 0xfd, 0xd4,
+	0xcd, 0xc9, 0xbe, 0x55, 0x55, 0x2c, 0xd3, 0x2c, 0x42, 0x21, 0xb3, 0xcb, 0xa6, 0xfb, 0xaf, 0x99,
+	0x16, 0x2b, 0x14, 0x54, 0xc4, 0x75, 0xc7, 0xfb, 0x3d, 0x80, 0xdd, 0xf5, 0x1d, 0x67, 0x06, 0x23,
+	0x54, 0x25, 0x15, 0xb1, 0x4b, 0xa6, 0x64, 0xb6, 0x77, 0xfc, 0x68, 0xbe, 0x5e, 0x9c, 0xeb, 0x84,
+	0x1d, 0xbf, 0x7a, 0x1d, 0x0c, 0x51, 0x95, 0x8b, 0xd8, 0x39, 0x84, 0xfb, 0xe1, 0x4a, 0x46, 0x5f,
+	0x69, 0xc2, 0xc5, 0x32, 0x41, 0x77, 0x30, 0x25, 0xb3, 0xad, 0x60, 0xcf, 0xd4, 0x3e, 0x98, 0x92,
+	0xf3, 0x16, 0x76, 0x2a, 0xb1, 0x1f, 0x8a, 0xe5, 0xee, 0x3d, 0x23, 0x77, 0x60, 0xc9, 0x59, 0x26,
+	0xcd, 0x48, 0xce, 0x55, 0xb0, 0x8d, 0xaa, 0x3c, 0x57, 0x2c, 0x77, 0xde, 0x00, 0xd4, 0xea, 0x28,
+	0x52, 0xee, 0x6e, 0x99, 0xe5, 0xb1, 0xbd, 0x2c, 0x52, 0x4e, 0x73, 0x29, 0x32, 0xa4, 0x9a, 0x47,
+	0xc1, 0xae, 0x19, 0x3e, 0x13, 0x29, 0x77, 0x3e, 0xc2, 0xc3, 0xea, 0x68, 0xa4, 0x38, 0x43, 0x4e,
+	0xa5, 0x8a, 0xb9, 0x72, 0x87, 0x66, 0x7f, 0x6a, 0xed, 0x17, 0x9a, 0x2b, 0x7a, 0x7d, 0x2e, 0x78,
+	0x80, 0xaa, 0x3c, 0x35, 0x85, 0x4f, 0xd5, 0xb7, 0x73, 0x04, 0x3b, 0xb5, 0x0b, 0x11, 0xbb, 0xa3,
+	0xae, 0x3c, 0xb6, 0xcd, 0xc8, 0x22, 0xf6, 0x4e, 0xe1, 0x89, 0x96, 0x34, 0xe5, 0xe9, 0x65, 0x98,
+	0x34, 0xbc, 0xa0, 0x75, 0x98, 0xb7, 0x8f, 0xd5, 0x3b, 0x81, 0x67, 0x0d, 0x11, 0x3b, 0xe7, 0x46,
+	0xee, 0xa4, 0x91, 0xbb, 0xf7, 0x19, 0xc6, 0xad, 0x46, 0xaa, 0x94, 0xaf, 0x40, 0x21, 0xbd, 0xa0,
+	0x78, 0xe7, 0xb0, 0xdf, 0xe1, 0xad, 0xc2, 0x71, 0x8d, 0x19, 0xb9, 0x3d, 0x33, 0x4f, 0xc2, 0x61,
+	0xab, 0x61, 0x1b, 0x4e, 0x2b, 0x58, 0xf2, 0x7f, 0x60, 0xbd, 0x45, 0x4b, 0x42, 0x7f, 0x49, 0x5f,
+	0xa1, 0x4e, 0x6e, 0xa4, 0xfe, 0x0e, 0x5c, 0x2d, 0xe9, 0x4a, 0x68, 0xdc, 0x04, 0x7b, 0x0a, 0x07,
+	0x4d, 0x95, 0x9e, 0xdc, 0xad, 0x73, 0x83, 0x1b, 0xce, 0xfd, 0x24, 0xf0, 0xb4, 0xeb, 0xde, 0x66,
+	0x2c, 0x7b, 0x98, 0xf8, 0x45, 0xc0, 0x6b, 0x8f, 0xee, 0xae, 0xb8, 0xf7, 0x30, 0x87, 0x30, 0xe9,
+	0x0a, 0xa8, 0xef, 0x13, 0xe9, 0x71, 0xf5, 0xbd, 0xb9, 0x5a, 0x64, 0xe2, 0x5b, 0xc1, 0x37, 0x79,
+	0x4e, 0xdf, 0x0d, 0xde, 0x86, 0xce, 0x5d, 0xfb, 0x3f, 0x39, 0xfa, 0xf2, 0x7c, 0x29, 0x30, 0x29,
+	0xc2, 0x79, 0x24, 0x53, 0x3f, 0x92, 0x3a, 0x4a, 0x98, 0xc8, 0xfc, 0x48, 0x66, 0xc8, 0x33, 0x94,
+	0xfa, 0xc5, 0x52, 0xfa, 0xeb, 0xbf, 0xb7, 0x70, 0x64, 0x64, 0x5e, 0xfe, 0x09, 0x00, 0x00, 0xff,
+	0xff, 0xfb, 0xfc, 0xc3, 0xf6, 0xf2, 0x06, 0x00, 0x00,
 }

@@ -648,6 +648,7 @@ func (as *APIService) GetTrxInfoById(ctx context.Context, req *grpcpb.GetTrxInfo
 		info.BlockHeight = wrap.GetBlockHeight()
 		info.BlockTime = wrap.GetBlockTime()
 		info.TrxWrap = wrap.GetTrxWrap()
+		info.BlockId = wrap.GetBlockId()
 		res.Info = info
 	}
 	return res, err
@@ -681,6 +682,7 @@ func (as *APIService) GetTrxListByTime(ctx context.Context, req *grpcpb.GetTrxLi
 				info.BlockHeight = wrap.GetBlockHeight()
 				info.BlockTime = wrap.GetBlockTime()
 				info.TrxWrap = wrap.GetTrxWrap()
+				info.BlockId = wrap.GetBlockId()
 				infoList = append(infoList, info)
 			}
 			//if len(infoList) >= (maxPageSizeLimit) {
@@ -888,6 +890,7 @@ func (as *APIService) GetUserTrxListByTime(ctx context.Context, req *grpcpb.GetU
 					info.BlockHeight = wrap.GetBlockHeight()
 					info.BlockTime = wrap.GetBlockTime()
 					info.TrxWrap = wrap.GetTrxWrap()
+					info.BlockId = wrap.GetBlockId()
 					trxList = append(trxList, info)
 				}
 			}

@@ -101,6 +101,9 @@ func (t *TrxService) handleAddTrxNotification(blk *prototype.SignedBlock) {
 								Creator:creAcct,
 								CreateTime:tInfo.BlockTime,
 							}
+
+							bId := blk.Id().Data
+							tInfo.BlockId = &prototype.Sha256{Hash:bId[:]}
 						})
 						//update user's created trx count
 						acctWrap := table.NewSoAccountWrap(t.db,creAcct)

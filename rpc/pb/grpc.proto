@@ -394,6 +394,7 @@ message TrxInfo {
     uint64                          block_height =  2;
     prototype.transaction_wrapper   trx_wrap    = 3;
     prototype.time_point_sec        block_time  = 4;
+    prototype.sha256                block_id    = 5;
 }
 
 message GetTrxInfoByIdRequest {
