@@ -1225,6 +1225,16 @@ func fetchBlocks(from, to uint64, forkDB *forkdb.DB, blog *blocklog.BLog) ([]com
 	return append(blocksInBlog, blocksInForkDB...), nil
 }
 
+func (sabft *SABFT) IsCommitted(id common.BlockID) bool {
+	blockNum := id.BlockNum()
+	b := &prototype.SignedBlock{}
+	err := sabft.blog.ReadBlock(b, int64(blockNum)-1)
+	if err != nil {
+		return false
+	}
+	return b.Id() == id
+}
+
 // return blocks in the range of (id, max(headID, id+1024))
 func (sabft *SABFT) FetchBlocksSince(id common.BlockID) ([]common.ISignedBlock, error) {
 	if sabft.ForkDB.Empty() {
