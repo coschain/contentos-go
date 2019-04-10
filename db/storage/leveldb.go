@@ -13,6 +13,7 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/syndtr/goleveldb/leveldb/filter"
 	"github.com/syndtr/goleveldb/leveldb/opt"
+	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
 type LevelDatabase struct {
@@ -39,7 +40,7 @@ func NewLevelDatabase(file string) (*LevelDatabase, error) {
 
 // close a database
 func (db *LevelDatabase) Close() {
-	db.db.Close()
+	_ = db.db.Close()
 }
 
 // get the disk file path
@@ -88,7 +89,24 @@ func (db *LevelDatabase) Delete(key []byte) error {
 //
 
 func (db *LevelDatabase) Iterate(start, limit []byte, reverse bool, callback func(key, value []byte) bool) {
-	// todo: not implemented yet
+	it := db.db.NewIterator(&util.Range{Start:start, Limit:limit}, nil)
+	defer it.Release()
+
+	moves := []func()bool{ it.First, it.Next }
+	if reverse {
+		moves = []func()bool{ it.Last, it.Prev }
+	}
+	x, ok := 0, true
+	for ok {
+		if ok = moves[x](); ok {
+			if callback != nil {
+				ok = callback(it.Key(), it.Value())
+			}
+		}
+		if x == 0 {
+			x++
+		}
+	}
 }
 
 //
