@@ -388,6 +388,7 @@ message TrxInfo {
     prototype.transaction_wrapper   trx_wrap    = 3;
     prototype.time_point_sec        block_time  = 4;
     prototype.sha256                block_id    = 5;
+    bool                            blk_is_irreversible = 6;
 }
 
 message GetTrxInfoByIdRequest {
