@@ -89,6 +89,9 @@ func (db *LevelDatabase) Delete(key []byte) error {
 //
 
 func (db *LevelDatabase) Iterate(start, limit []byte, reverse bool, callback func(key, value []byte) bool) {
+	if callback == nil {
+		return
+	}
 	it := db.db.NewIterator(&util.Range{Start:start, Limit:limit}, nil)
 	defer it.Release()
 
@@ -99,9 +102,7 @@ func (db *LevelDatabase) Iterate(start, limit []byte, reverse bool, callback fun
 	x, ok := 0, true
 	for ok {
 		if ok = moves[x](); ok {
-			if callback != nil {
-				ok = callback(it.Key(), it.Value())
-			}
+			ok = callback(it.Key(), it.Value())
 		}
 		if x == 0 {
 			x++
