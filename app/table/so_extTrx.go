@@ -18,8 +18,6 @@ var (
 	ExtTrxBlockHeightTable    uint32 = 3799341326
 	ExtTrxBlockTimeTable      uint32 = 1025113122
 	ExtTrxTrxCreateOrderTable uint32 = 1760958085
-	ExtTrxBlockIdTable        uint32 = 4293073025
-	ExtTrxBlockIdUniTable     uint32 = 1434175831
 	ExtTrxTrxIdUniTable       uint32 = 334659987
 	ExtTrxBlockHeightCell     uint32 = 2517467390
 	ExtTrxBlockIdCell         uint32 = 3076287470
@@ -348,60 +346,6 @@ func (s *SoExtTrxWrap) insertSortKeyTrxCreateOrder(sa *SoExtTrx) bool {
 	return ordErr == nil
 }
 
-func (s *SoExtTrxWrap) delSortKeyBlockId(sa *SoExtTrx) bool {
-	if s.dba == nil || s.mainKey == nil {
-		return false
-	}
-	val := SoListExtTrxByBlockId{}
-	if sa == nil {
-		key, err := s.encodeMemKey("BlockId")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemExtTrxByBlockId{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		val.BlockId = ori.BlockId
-		val.TrxId = s.mainKey
-
-	} else {
-		val.BlockId = sa.BlockId
-		val.TrxId = sa.TrxId
-	}
-
-	subBuf, err := val.OpeEncode()
-	if err != nil {
-		return false
-	}
-	ordErr := s.dba.Delete(subBuf)
-	return ordErr == nil
-}
-
-func (s *SoExtTrxWrap) insertSortKeyBlockId(sa *SoExtTrx) bool {
-	if s.dba == nil || sa == nil {
-		return false
-	}
-	val := SoListExtTrxByBlockId{}
-	val.TrxId = sa.TrxId
-	val.BlockId = sa.BlockId
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return false
-	}
-	subBuf, err := val.OpeEncode()
-	if err != nil {
-		return false
-	}
-	ordErr := s.dba.Put(subBuf, buf)
-	return ordErr == nil
-}
-
 func (s *SoExtTrxWrap) delAllSortKeys(br bool, val *SoExtTrx) bool {
 	if s.dba == nil {
 		return false
@@ -435,13 +379,6 @@ func (s *SoExtTrxWrap) delAllSortKeys(br bool, val *SoExtTrx) bool {
 			res = false
 		}
 	}
-	if !s.delSortKeyBlockId(val) {
-		if br {
-			return false
-		} else {
-			res = false
-		}
-	}
 
 	return res
 }
@@ -464,9 +401,6 @@ func (s *SoExtTrxWrap) insertAllSortKeys(val *SoExtTrx) error {
 	}
 	if !s.insertSortKeyTrxCreateOrder(val) {
 		return errors.New("insert sort Field TrxCreateOrder fail while insert table ")
-	}
-	if !s.insertSortKeyBlockId(val) {
-		return errors.New("insert sort Field BlockId fail while insert table ")
 	}
 
 	return nil
@@ -798,22 +732,7 @@ func (s *SoExtTrxWrap) MdBlockId(p *prototype.Sha256) bool {
 	sa.TrxId = s.mainKey
 
 	sa.BlockId = ori.BlockId
-	//judge the unique value if is exist
-	uniWrap := UniExtTrxBlockIdWrap{}
-	uniWrap.Dba = s.dba
-	res := uniWrap.UniQueryBlockId(sa.BlockId)
 
-	if res != nil {
-		//the unique value to be modified is already exist
-		return false
-	}
-	if !s.delUniKeyBlockId(sa) {
-		return false
-	}
-
-	if !s.delSortKeyBlockId(sa) {
-		return false
-	}
 	ori.BlockId = p
 	val, err := proto.Marshal(ori)
 	if err != nil {
@@ -825,13 +744,6 @@ func (s *SoExtTrxWrap) MdBlockId(p *prototype.Sha256) bool {
 	}
 	sa.BlockId = p
 
-	if !s.insertSortKeyBlockId(sa) {
-		return false
-	}
-
-	if !s.insertUniKeyBlockId(sa) {
-		return false
-	}
 	return true
 }
 
@@ -1834,209 +1746,6 @@ func (s *SExtTrxTrxCreateOrderWrap) ForEachByRevOrder(start *prototype.UserTrxCr
 	return nil
 }
 
-////////////// SECTION List Keys ///////////////
-type SExtTrxBlockIdWrap struct {
-	Dba iservices.IDatabaseRW
-}
-
-func NewExtTrxBlockIdWrap(db iservices.IDatabaseRW) *SExtTrxBlockIdWrap {
-	if db == nil {
-		return nil
-	}
-	wrap := SExtTrxBlockIdWrap{Dba: db}
-	return &wrap
-}
-
-func (s *SExtTrxBlockIdWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil {
-		return
-	}
-	s.Dba.DeleteIterator(iterator)
-}
-
-func (s *SExtTrxBlockIdWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.Sha256 {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
-
-	res := &SoListExtTrxByBlockId{}
-	err = proto.Unmarshal(val, res)
-
-	if err != nil {
-		return nil
-	}
-	return res.TrxId
-
-}
-
-func (s *SExtTrxBlockIdWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.Sha256 {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
-	res := &SoListExtTrxByBlockId{}
-	err = proto.Unmarshal(val, res)
-	if err != nil {
-		return nil
-	}
-	return res.BlockId
-
-}
-
-func (m *SoListExtTrxByBlockId) OpeEncode() ([]byte, error) {
-	pre := ExtTrxBlockIdTable
-	sub := m.BlockId
-	if sub == nil {
-		return nil, errors.New("the pro BlockId is nil")
-	}
-	sub1 := m.TrxId
-	if sub1 == nil {
-		return nil, errors.New("the mainkey TrxId is nil")
-	}
-	kList := []interface{}{pre, sub, sub1}
-	kBuf, cErr := kope.EncodeSlice(kList)
-	return kBuf, cErr
-}
-
-//Query srt by order
-//
-//start = nil  end = nil (query the db from start to end)
-//start = nil (query from start the db)
-//end = nil (query to the end of db)
-//
-//f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
-//as arguments to the callback function
-//if the return value of f is true,continue iterating until the end iteration;
-//otherwise stop iteration immediately
-//
-//lastMainKey: the main key of the last one of last page
-//lastSubVal: the value  of the last one of last page
-//
-func (s *SExtTrxBlockIdWrap) ForEachByOrder(start *prototype.Sha256, end *prototype.Sha256, lastMainKey *prototype.Sha256,
-	lastSubVal *prototype.Sha256, f func(mVal *prototype.Sha256, sVal *prototype.Sha256, idx uint32) bool) error {
-	if s.Dba == nil {
-		return errors.New("the db is nil")
-	}
-	if (lastSubVal != nil && lastMainKey == nil) || (lastSubVal == nil && lastMainKey != nil) {
-		return errors.New("last query param error")
-	}
-	if f == nil {
-		return nil
-	}
-	pre := ExtTrxBlockIdTable
-	skeyList := []interface{}{pre}
-	if start != nil {
-		skeyList = append(skeyList, start)
-		if lastMainKey != nil {
-			skeyList = append(skeyList, lastMainKey, kope.MinimalKey)
-		}
-	} else {
-		if lastMainKey != nil && lastSubVal != nil {
-			skeyList = append(skeyList, lastSubVal, lastMainKey, kope.MinimalKey)
-		}
-		skeyList = append(skeyList, kope.MinimalKey)
-	}
-	sBuf, cErr := kope.EncodeSlice(skeyList)
-	if cErr != nil {
-		return cErr
-	}
-	eKeyList := []interface{}{pre}
-	if end != nil {
-		eKeyList = append(eKeyList, end)
-	} else {
-		eKeyList = append(eKeyList, kope.MaximumKey)
-	}
-	eBuf, cErr := kope.EncodeSlice(eKeyList)
-	if cErr != nil {
-		return cErr
-	}
-	iterator := s.Dba.NewIterator(sBuf, eBuf)
-	if iterator == nil {
-		return errors.New("there is no data in range")
-	}
-	var idx uint32 = 0
-	for iterator.Next() {
-		idx++
-		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
-			break
-		}
-	}
-	s.DelIterator(iterator)
-	return nil
-}
-
-//Query srt by reverse order
-//
-//f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
-//as arguments to the callback function
-//if the return value of f is true,continue iterating until the end iteration;
-//otherwise stop iteration immediately
-//
-//lastMainKey: the main key of the last one of last page
-//lastSubVal: the value  of the last one of last page
-//
-func (s *SExtTrxBlockIdWrap) ForEachByRevOrder(start *prototype.Sha256, end *prototype.Sha256, lastMainKey *prototype.Sha256,
-	lastSubVal *prototype.Sha256, f func(mVal *prototype.Sha256, sVal *prototype.Sha256, idx uint32) bool) error {
-	if s.Dba == nil {
-		return errors.New("the db is nil")
-	}
-	if (lastSubVal != nil && lastMainKey == nil) || (lastSubVal == nil && lastMainKey != nil) {
-		return errors.New("last query param error")
-	}
-	if f == nil {
-		return nil
-	}
-	pre := ExtTrxBlockIdTable
-	skeyList := []interface{}{pre}
-	if start != nil {
-		skeyList = append(skeyList, start)
-		if lastMainKey != nil {
-			skeyList = append(skeyList, lastMainKey)
-		}
-	} else {
-		if lastMainKey != nil && lastSubVal != nil {
-			skeyList = append(skeyList, lastSubVal, lastMainKey)
-		}
-		skeyList = append(skeyList, kope.MaximumKey)
-	}
-	sBuf, cErr := kope.EncodeSlice(skeyList)
-	if cErr != nil {
-		return cErr
-	}
-	eKeyList := []interface{}{pre}
-	if end != nil {
-		eKeyList = append(eKeyList, end)
-	}
-	eBuf, cErr := kope.EncodeSlice(eKeyList)
-	if cErr != nil {
-		return cErr
-	}
-	//reverse the start and end when create ReversedIterator to query by reverse order
-	iterator := s.Dba.NewReversedIterator(eBuf, sBuf)
-	if iterator == nil {
-		return errors.New("there is no data in range")
-	}
-	var idx uint32 = 0
-	for iterator.Next() {
-		idx++
-		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
-			break
-		}
-	}
-	s.DelIterator(iterator)
-	return nil
-}
-
 /////////////// SECTION Private function ////////////////
 
 func (s *SoExtTrxWrap) update(sa *SoExtTrx) bool {
@@ -2108,13 +1817,6 @@ func (s *SoExtTrxWrap) delAllUniKeys(br bool, val *SoExtTrx) bool {
 		return false
 	}
 	res := true
-	if !s.delUniKeyBlockId(val) {
-		if br {
-			return false
-		} else {
-			res = false
-		}
-	}
 	if !s.delUniKeyTrxId(val) {
 		if br {
 			return false
@@ -2131,11 +1833,6 @@ func (s *SoExtTrxWrap) delUniKeysWithNames(names map[string]string, val *SoExtTr
 		return false
 	}
 	res := true
-	if len(names["BlockId"]) > 0 {
-		if !s.delUniKeyBlockId(val) {
-			res = false
-		}
-	}
 	if len(names["TrxId"]) > 0 {
 		if !s.delUniKeyTrxId(val) {
 			res = false
@@ -2153,117 +1850,12 @@ func (s *SoExtTrxWrap) insertAllUniKeys(val *SoExtTrx) (map[string]string, error
 		return nil, errors.New("insert uniuqe Field fail,get the SoExtTrx fail ")
 	}
 	sucFields := map[string]string{}
-	if !s.insertUniKeyBlockId(val) {
-		return sucFields, errors.New("insert unique Field BlockId fail while insert table ")
-	}
-	sucFields["BlockId"] = "BlockId"
 	if !s.insertUniKeyTrxId(val) {
 		return sucFields, errors.New("insert unique Field TrxId fail while insert table ")
 	}
 	sucFields["TrxId"] = "TrxId"
 
 	return sucFields, nil
-}
-
-func (s *SoExtTrxWrap) delUniKeyBlockId(sa *SoExtTrx) bool {
-	if s.dba == nil {
-		return false
-	}
-	pre := ExtTrxBlockIdUniTable
-	kList := []interface{}{pre}
-	if sa != nil {
-
-		if sa.BlockId == nil {
-			return false
-		}
-
-		sub := sa.BlockId
-		kList = append(kList, sub)
-	} else {
-		key, err := s.encodeMemKey("BlockId")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemExtTrxByBlockId{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		sub := ori.BlockId
-		kList = append(kList, sub)
-
-	}
-	kBuf, err := kope.EncodeSlice(kList)
-	if err != nil {
-		return false
-	}
-	return s.dba.Delete(kBuf) == nil
-}
-
-func (s *SoExtTrxWrap) insertUniKeyBlockId(sa *SoExtTrx) bool {
-	if s.dba == nil || sa == nil {
-		return false
-	}
-	pre := ExtTrxBlockIdUniTable
-	sub := sa.BlockId
-	kList := []interface{}{pre, sub}
-	kBuf, err := kope.EncodeSlice(kList)
-	if err != nil {
-		return false
-	}
-	res, err := s.dba.Has(kBuf)
-	if err == nil && res == true {
-		//the unique key is already exist
-		return false
-	}
-	val := SoUniqueExtTrxByBlockId{}
-	val.TrxId = sa.TrxId
-	val.BlockId = sa.BlockId
-
-	buf, err := proto.Marshal(&val)
-
-	if err != nil {
-		return false
-	}
-
-	return s.dba.Put(kBuf, buf) == nil
-
-}
-
-type UniExtTrxBlockIdWrap struct {
-	Dba iservices.IDatabaseRW
-}
-
-func NewUniExtTrxBlockIdWrap(db iservices.IDatabaseRW) *UniExtTrxBlockIdWrap {
-	if db == nil {
-		return nil
-	}
-	wrap := UniExtTrxBlockIdWrap{Dba: db}
-	return &wrap
-}
-
-func (s *UniExtTrxBlockIdWrap) UniQueryBlockId(start *prototype.Sha256) *SoExtTrxWrap {
-	if start == nil || s.Dba == nil {
-		return nil
-	}
-	pre := ExtTrxBlockIdUniTable
-	kList := []interface{}{pre, start}
-	bufStartkey, err := kope.EncodeSlice(kList)
-	val, err := s.Dba.Get(bufStartkey)
-	if err == nil {
-		res := &SoUniqueExtTrxByBlockId{}
-		rErr := proto.Unmarshal(val, res)
-		if rErr == nil {
-			wrap := NewSoExtTrxWrap(s.Dba, res.TrxId)
-
-			return wrap
-		}
-	}
-	return nil
 }
 
 func (s *SoExtTrxWrap) delUniKeyTrxId(sa *SoExtTrx) bool {

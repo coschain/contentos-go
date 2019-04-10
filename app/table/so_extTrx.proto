@@ -73,18 +73,6 @@ message so_list_extTrx_by_trx_create_order {
 }
 
 
-message so_list_extTrx_by_block_id {
-	prototype.sha256                	block_id    = 1;
-	prototype.sha256                	trx_id      = 2;
-}
-
-
 message so_unique_extTrx_by_trx_id {
 	prototype.sha256                	trx_id      = 1;
-}
-
-
-message so_unique_extTrx_by_block_id {
-	prototype.sha256                	block_id    = 1;
-	prototype.sha256                	trx_id      = 2;
 }
