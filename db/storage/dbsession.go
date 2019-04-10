@@ -7,7 +7,7 @@ import (
 
 type dbSession struct {
 	db Database
-	mem *MemoryDatabase
+	mem Database
 	changes []writeOp
 	removals map[string]bool
 	lock sync.RWMutex				// for internal struct data
