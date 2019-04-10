@@ -91,6 +91,9 @@ service ApiService {
 
     rpc GetContractInfo (GetContractInfoRequest) returns (GetContractInfoResponse) {
     }
+    
+    rpc GetBlkIsIrreversibleByTxId (GetBlkIsIrreversibleByTxIdRequest) returns (GetBlkIsIrreversibleByTxIdResponse) {
+    }
 }
 
 
@@ -467,4 +470,12 @@ message GetContractInfoResponse {
     bool exist    = 1;
     string abi    = 2;
     bytes code    = 3;
+}
+
+message GetBlkIsIrreversibleByTxIdRequest {
+    prototype.sha256       trx_id  = 1;
+}
+
+message GetBlkIsIrreversibleByTxIdResponse {  
+    bool       result   = 1;
 }

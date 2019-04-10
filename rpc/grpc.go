@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app/table"
+	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/common/eventloop"
 	"github.com/coschain/contentos-go/iservices"
@@ -1076,4 +1077,30 @@ func (as *APIService) GetContractInfo (ctx context.Context, req *grpcpb.GetContr
 	}
 
 	return res, nil
+}
+
+func (as *APIService) GetBlkIsIrreversibleByTxId (ctx context.Context,
+	req *grpcpb.GetBlkIsIrreversibleByTxIdRequest) (*grpcpb.GetBlkIsIrreversibleByTxIdResponse,error){
+	as.db.RLock()
+
+	res := &grpcpb.GetBlkIsIrreversibleByTxIdResponse{Result:false}
+
+	if req.TrxId == nil {
+		return res,errors.New("trx id is empty")
+	}
+
+	trxWrap := table.NewSoExtTrxWrap(as.db,req.TrxId)
+	if trxWrap != nil && trxWrap.CheckExist() {
+		blkHash := trxWrap.GetBlockId().Hash
+		data := [32]byte{}
+		copy(data[:],blkHash[:32])
+		bId := common.BlockID{Data:data}
+		as.db.RUnlock()
+		result :=  as.consensus.IsCommitted(bId)
+		res.Result = result
+	}else {
+		as.db.RUnlock()
+	}
+
+    return res,nil
 }
