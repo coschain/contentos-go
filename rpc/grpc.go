@@ -47,7 +47,7 @@ func (as *APIService) QueryTableContent(ctx context.Context, req *grpcpb.GetTabl
 
 	res := &grpcpb.TableContentResponse{}
 
-	cid := prototype.ContractId{Owner: &prototype.AccountName{Value: req.Owner}, Cname: req.Contranct}
+	cid := prototype.ContractId{Owner: &prototype.AccountName{Value: req.Owner}, Cname: req.Contract}
 	scid := table.NewSoContractWrap(as.db, &cid)
 
 	abiString := scid.GetAbi()
@@ -56,9 +56,20 @@ func (as *APIService) QueryTableContent(ctx context.Context, req *grpcpb.GetTabl
 		return nil, err
 	}
 
-	tables := contractTable.NewContractTables(req.Owner, req.Contranct, abiInterface, as.db)
+	limit := checkLimit(req.Count)
+
+	tables := contractTable.NewContractTables(req.Owner, req.Contract, abiInterface, as.db)
 	aimTable := tables.Table(req.Table)
-	jsonStr, err := aimTable.QueryRecordsJson(req.Field, req.Begin, req.End, false, -1)
+
+	startKey := req.Begin
+	limitKey := ""
+
+	if req.Reverse{
+		limitKey = req.Begin
+		startKey = ""
+	}
+
+	jsonStr, err := aimTable.QueryRecordsJson(req.Field, startKey , limitKey, req.Reverse, int(limit) )
 	if err != nil {
 		return nil, err
 	}

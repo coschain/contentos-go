@@ -99,11 +99,12 @@ service ApiService {
 
 message GetTableContentRequest {
     string owner = 1;
-    string contranct = 2;
+    string contract = 2;
     string table = 3;
     string field = 4;
     string begin = 5;
-    string end = 6;
+    uint32 count = 6;
+    bool   reverse = 7;
 }
 
 message TableContentResponse {
