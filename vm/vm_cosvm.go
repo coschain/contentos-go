@@ -112,8 +112,8 @@ func (w *CosVM) runEntry(entryName string) (ret uint32, err error) {
 	}()
 
 	vc := vmcache.GetVmCache()
-	vm, ok := vc.Get(w.ctx.Owner.Value,w.ctx.Contract)
-	if ok {
+	vm := vc.Fetch(w.ctx.Owner.Value,w.ctx.Contract)
+	if vm != nil {
 		vm.Reset()
 	} else {
 		vmModule, errRead := w.readModule()
@@ -123,18 +123,18 @@ func (w *CosVM) runEntry(entryName string) (ret uint32, err error) {
 			return
 		}
 		vm, err = exec.NewVM(vmModule)
-		vc.Add(w.ctx.Owner.Value,w.ctx.Contract,vm)
 	}
-	nativeFuncs := &CosVMNative{cosVM: w}
-	vm.SetTag( nativeFuncs )
-
-	defer func() {
-		w.spentGas = vm.CostGas
-	}()
 	if err != nil {
 		ret = 1
 		return
 	}
+	defer vc.Put(w.ctx.Owner.Value, w.ctx.Contract, vm)
+
+	nativeFuncs := &CosVMNative{cosVM: w}
+	vm.SetTag( nativeFuncs )
+	defer func() {
+		w.spentGas = vm.CostGas
+	}()
 
 	vm.InitGasTable(w.ctx.Gas.Value)
 	var entryIndex = -1
