@@ -47,9 +47,6 @@ service ApiService {
     rpc GetBlockTransactionsByNum (GetBlockTransactionsByNumRequest) returns (GetBlockTransactionsByNumResponse) {
     }
 
-    rpc GetTrxById (GetTrxByIdRequest) returns (GetTrxByIdResponse) {
-    }
-
     rpc GetChainState (NonParamsRequest) returns (GetChainStateResponse) {
     }
 
@@ -274,14 +271,6 @@ message GetBlockTransactionsByNumRequest {
 
 message GetBlockTransactionsByNumResponse {
     repeated prototype.signed_transaction transactions = 1;
-}
-
-message GetTrxByIdRequest {
-    prototype.sha256 trx_id = 1;
-}
-
-message GetTrxByIdResponse {
-    prototype.transaction trx = 1;
 }
 
 message GetChainStateResponse {

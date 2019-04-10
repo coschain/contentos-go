@@ -357,22 +357,6 @@ func (as *APIService) GetBlockTransactionsByNum(ctx context.Context, req *grpcpb
 	return &grpcpb.GetBlockTransactionsByNumResponse{}, nil
 }
 
-func (as *APIService) GetTrxById(ctx context.Context, req *grpcpb.GetTrxByIdRequest) (*grpcpb.GetTrxByIdResponse, error) {
-	as.db.RLock()
-	defer as.db.RUnlock()
-
-	trxWrap := table.NewSoTransactionObjectWrap(as.db, req.GetTrxId())
-	resp := &grpcpb.GetTrxByIdResponse{}
-
-	if trxWrap != nil && trxWrap.CheckExist() {
-		//resp.Trx. = trxWrap.GetTrxId()
-
-		//TODO wait trx definition
-	}
-
-	return resp, nil
-}
-
 func (as *APIService) BroadcastTrx(ctx context.Context, req *grpcpb.BroadcastTrxRequest) (*grpcpb.BroadcastTrxResponse, error) {
 
 	//var result chan *prototype.TransactionReceiptWithInfo

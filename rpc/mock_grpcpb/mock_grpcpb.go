@@ -251,24 +251,6 @@ func (mr *MockApiServiceClientMockRecorder) GetBlockTransactionsByNum(ctx, in in
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockTransactionsByNum", reflect.TypeOf((*MockApiServiceClient)(nil).GetBlockTransactionsByNum), varargs...)
 }
 
-// GetTrxById mocks base method
-func (m *MockApiServiceClient) GetTrxById(ctx context.Context, in *pb.GetTrxByIdRequest, opts ...grpc.CallOption) (*pb.GetTrxByIdResponse, error) {
-	varargs := []interface{}{ctx, in}
-	for _, a := range opts {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "GetTrxById", varargs...)
-	ret0, _ := ret[0].(*pb.GetTrxByIdResponse)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetTrxById indicates an expected call of GetTrxById
-func (mr *MockApiServiceClientMockRecorder) GetTrxById(ctx, in interface{}, opts ...interface{}) *gomock.Call {
-	varargs := append([]interface{}{ctx, in}, opts...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTrxById", reflect.TypeOf((*MockApiServiceClient)(nil).GetTrxById), varargs...)
-}
-
 // GetChainState mocks base method
 func (m *MockApiServiceClient) GetChainState(ctx context.Context, in *pb.NonParamsRequest, opts ...grpc.CallOption) (*pb.GetChainStateResponse, error) {
 	varargs := []interface{}{ctx, in}
@@ -716,19 +698,6 @@ func (m *MockApiServiceServer) GetBlockTransactionsByNum(arg0 context.Context, a
 // GetBlockTransactionsByNum indicates an expected call of GetBlockTransactionsByNum
 func (mr *MockApiServiceServerMockRecorder) GetBlockTransactionsByNum(arg0, arg1 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockTransactionsByNum", reflect.TypeOf((*MockApiServiceServer)(nil).GetBlockTransactionsByNum), arg0, arg1)
-}
-
-// GetTrxById mocks base method
-func (m *MockApiServiceServer) GetTrxById(arg0 context.Context, arg1 *pb.GetTrxByIdRequest) (*pb.GetTrxByIdResponse, error) {
-	ret := m.ctrl.Call(m, "GetTrxById", arg0, arg1)
-	ret0, _ := ret[0].(*pb.GetTrxByIdResponse)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetTrxById indicates an expected call of GetTrxById
-func (mr *MockApiServiceServerMockRecorder) GetTrxById(arg0, arg1 interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTrxById", reflect.TypeOf((*MockApiServiceServer)(nil).GetTrxById), arg0, arg1)
 }
 
 // GetChainState mocks base method
