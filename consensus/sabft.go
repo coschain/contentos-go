@@ -481,7 +481,7 @@ func (sabft *SABFT) Stop() error {
 }
 
 func (sabft *SABFT) generateAndApplyBlock() (common.ISignedBlock, error) {
-	//sabft.log.Debug("generateBlock.")
+	sabft.log.Debug("start generateBlock.")
 	ts := sabft.getSlotTime(sabft.slot)
 	prev := &prototype.Sha256{}
 	if !sabft.ForkDB.Empty() {
@@ -489,7 +489,7 @@ func (sabft *SABFT) generateAndApplyBlock() (common.ISignedBlock, error) {
 	} else {
 		prev.Hash = make([]byte, 32)
 	}
-	//sabft.log.Debugf("generating block. <prev %v>, <ts %d>", prev.Hash, ts)
+	sabft.log.Debugf("generating block. <prev %v>, <ts %d>", prev.Hash, ts)
 	//sabft.log.Info("about to generateAndApplyBlock ", time.Now())
 	b, err := sabft.ctrl.GenerateAndApplyBlock(sabft.Name, prev, uint32(ts), sabft.priv.privKey, prototype.Skip_nothing)
 	//sabft.log.Info("generateAndApplyBlock done ", time.Now())
