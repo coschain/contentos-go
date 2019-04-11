@@ -95,8 +95,10 @@ func (db *LevelDatabase) Iterate(start, limit []byte, reverse bool, callback fun
 	it := db.db.NewIterator(&util.Range{Start:start, Limit:limit}, nil)
 	defer it.Release()
 
+	// ascending iteration: it.First()->it.Next()->it.Next()->...->it.Next()
 	moves := []func()bool{ it.First, it.Next }
 	if reverse {
+		// descending iteration: it.Last()->it.Prev()->it.Prev()->...->it.Prev()
 		moves = []func()bool{ it.Last, it.Prev }
 	}
 	x, ok := 0, true

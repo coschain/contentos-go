@@ -82,12 +82,14 @@ func (db *RedblackDatabase) delete(key []byte) error {
 }
 
 func (db *RedblackDatabase) Iterate(start, limit []byte, reverse bool, callback func(key, value []byte) bool) {
+	// we require a read lock to block any writes
 	db.lock.RLock()
 	defer db.lock.RUnlock()
 
 	if callback == nil {
 		return
 	}
+	// convert start and limit to rbdbItem
 	startItem, limitItem := sMinItem, sMaxItem
 	if start != nil {
 		startItem = &rbdbItem{key:start}
@@ -96,26 +98,42 @@ func (db *RedblackDatabase) Iterate(start, limit []byte, reverse bool, callback 
 		limitItem = &rbdbItem{key:limit}
 	}
 	if !reverse {
+		// LLRB ascending iteration over a range.
 		db.rb.AscendRange(startItem, limitItem, func(item llrb.Item) bool {
 			kv := item.(*rbdbItem)
 			return callback(kv.key, kv.value)
 		})
 	} else {
-		var first, last *rbdbItem
+		// LLRB doesn't provide an API for descending iteration over a range.
+		// However, this can be done by combination of several other APIs.
+		var skip, smallest *rbdbItem
+
+		// first, we do an ascending iteration over [start, +infinity) to get the smallest item.
 		db.rb.AscendGreaterOrEqual(startItem, func(item llrb.Item) bool {
-			last = item.(*rbdbItem)
+			smallest = item.(*rbdbItem)
 			return false
 		})
-		db.rb.AscendGreaterOrEqual(limitItem, func(item llrb.Item) bool {
-			first = item.(*rbdbItem)
-			return false
-		})
+		// the smallest item can always be found as long as there exists any item in [start, limit).
+		// if not found, we're done since there's no item in [start, limit).
+		if smallest == nil {
+			return
+		}
+		// secondly, we get the limit item.
+		if limit != nil {
+			if item := db.rb.Get(limitItem); item != nil {
+				skip = item.(*rbdbItem)
+			}
+		}
+
+		// lastly, we do a descending iteration over (-infinity, limit]. The range is a superset of [start, limit).
+		// we should stop as soon as the smallest item is seen.
 		db.rb.DescendLessOrEqual(limitItem, func(item llrb.Item) bool {
 			kv := item.(*rbdbItem)
-			if kv == first {
+			if kv == skip {
+				// skip the limit item
 				return true
 			}
-			return callback(kv.key, kv.value) && kv != last
+			return callback(kv.key, kv.value) && kv != smallest
 		})
 	}
 }
