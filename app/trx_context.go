@@ -55,9 +55,9 @@ func (p *TrxContext) verifyAuthority(maxDepth uint32, owner AuthorityGetter) {
 	verifyAuthority(keyMaps, p.recoverPubs, maxDepth, owner)
 }
 
-func (p *TrxContext) authGetter(name string) *prototype.Authority {
+func (p *TrxContext) authGetter(name string) *prototype.PublicKeyType {
 	account := &prototype.AccountName{Value: name}
-	authWrap := table.NewSoAccountAuthorityObjectWrap(p.db, account)
+	authWrap := table.NewSoAccountWrap(p.db, account)
 	auth := authWrap.GetOwner()
 	if auth == nil {
 		panic("no owner auth")

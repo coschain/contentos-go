@@ -23,6 +23,8 @@ message so_account {
     prototype.vest              each_powerdown_rate     =      13;
     prototype.vest              to_powerdown     =      14;
     prototype.vest              has_powerdown     =      15;
+    prototype.time_point_sec    last_owner_update        =      16;
+    prototype.public_key_type     owner                    =      17;
       
 }
 
@@ -99,6 +101,16 @@ message so_mem_account_by_to_powerdown {
 
 message so_mem_account_by_has_powerdown {
 	prototype.vest           	has_powerdown = 1;
+}
+
+
+message so_mem_account_by_last_owner_update {
+	prototype.time_point_sec 	last_owner_update    = 1;
+}
+
+
+message so_mem_account_by_owner {
+	prototype.public_key_type  	owner                = 1;
 }
 
 

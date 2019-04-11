@@ -106,7 +106,7 @@ func createMNTAccountTrx(client grpcpb.ApiServiceClient, count int64) (*prototyp
 			Fee:            prototype.NewCoin(1),
 			Creator:        creator,
 			NewAccountName: &prototype.AccountName{Value: bpName},
-			Owner:          prototype.NewAuthorityFromPubKey(pubKey),
+			Owner:          pubKey,
 		}
 
 		trx.Trx.AddOperation(opCreate)

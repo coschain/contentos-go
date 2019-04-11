@@ -35,17 +35,16 @@ func (m *SoExtTrx) Reset()         { *m = SoExtTrx{} }
 func (m *SoExtTrx) String() string { return proto.CompactTextString(m) }
 func (*SoExtTrx) ProtoMessage()    {}
 func (*SoExtTrx) Descriptor() ([]byte, []int) {
-	return fileDescriptor_76957eaae1f8a1bc, []int{0}
+	return fileDescriptor_so_extTrx_598909dd900819dd, []int{0}
 }
-
 func (m *SoExtTrx) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoExtTrx.Unmarshal(m, b)
 }
 func (m *SoExtTrx) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_SoExtTrx.Marshal(b, m, deterministic)
 }
-func (m *SoExtTrx) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SoExtTrx.Merge(m, src)
+func (dst *SoExtTrx) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoExtTrx.Merge(dst, src)
 }
 func (m *SoExtTrx) XXX_Size() int {
 	return xxx_messageInfo_SoExtTrx.Size(m)
@@ -109,17 +108,16 @@ func (m *SoMemExtTrxByTrxId) Reset()         { *m = SoMemExtTrxByTrxId{} }
 func (m *SoMemExtTrxByTrxId) String() string { return proto.CompactTextString(m) }
 func (*SoMemExtTrxByTrxId) ProtoMessage()    {}
 func (*SoMemExtTrxByTrxId) Descriptor() ([]byte, []int) {
-	return fileDescriptor_76957eaae1f8a1bc, []int{1}
+	return fileDescriptor_so_extTrx_598909dd900819dd, []int{1}
 }
-
 func (m *SoMemExtTrxByTrxId) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemExtTrxByTrxId.Unmarshal(m, b)
 }
 func (m *SoMemExtTrxByTrxId) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_SoMemExtTrxByTrxId.Marshal(b, m, deterministic)
 }
-func (m *SoMemExtTrxByTrxId) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SoMemExtTrxByTrxId.Merge(m, src)
+func (dst *SoMemExtTrxByTrxId) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoMemExtTrxByTrxId.Merge(dst, src)
 }
 func (m *SoMemExtTrxByTrxId) XXX_Size() int {
 	return xxx_messageInfo_SoMemExtTrxByTrxId.Size(m)
@@ -148,17 +146,16 @@ func (m *SoMemExtTrxByBlockHeight) Reset()         { *m = SoMemExtTrxByBlockHeig
 func (m *SoMemExtTrxByBlockHeight) String() string { return proto.CompactTextString(m) }
 func (*SoMemExtTrxByBlockHeight) ProtoMessage()    {}
 func (*SoMemExtTrxByBlockHeight) Descriptor() ([]byte, []int) {
-	return fileDescriptor_76957eaae1f8a1bc, []int{2}
+	return fileDescriptor_so_extTrx_598909dd900819dd, []int{2}
 }
-
 func (m *SoMemExtTrxByBlockHeight) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemExtTrxByBlockHeight.Unmarshal(m, b)
 }
 func (m *SoMemExtTrxByBlockHeight) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_SoMemExtTrxByBlockHeight.Marshal(b, m, deterministic)
 }
-func (m *SoMemExtTrxByBlockHeight) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SoMemExtTrxByBlockHeight.Merge(m, src)
+func (dst *SoMemExtTrxByBlockHeight) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoMemExtTrxByBlockHeight.Merge(dst, src)
 }
 func (m *SoMemExtTrxByBlockHeight) XXX_Size() int {
 	return xxx_messageInfo_SoMemExtTrxByBlockHeight.Size(m)
@@ -187,17 +184,16 @@ func (m *SoMemExtTrxByTrxWrap) Reset()         { *m = SoMemExtTrxByTrxWrap{} }
 func (m *SoMemExtTrxByTrxWrap) String() string { return proto.CompactTextString(m) }
 func (*SoMemExtTrxByTrxWrap) ProtoMessage()    {}
 func (*SoMemExtTrxByTrxWrap) Descriptor() ([]byte, []int) {
-	return fileDescriptor_76957eaae1f8a1bc, []int{3}
+	return fileDescriptor_so_extTrx_598909dd900819dd, []int{3}
 }
-
 func (m *SoMemExtTrxByTrxWrap) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemExtTrxByTrxWrap.Unmarshal(m, b)
 }
 func (m *SoMemExtTrxByTrxWrap) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_SoMemExtTrxByTrxWrap.Marshal(b, m, deterministic)
 }
-func (m *SoMemExtTrxByTrxWrap) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SoMemExtTrxByTrxWrap.Merge(m, src)
+func (dst *SoMemExtTrxByTrxWrap) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoMemExtTrxByTrxWrap.Merge(dst, src)
 }
 func (m *SoMemExtTrxByTrxWrap) XXX_Size() int {
 	return xxx_messageInfo_SoMemExtTrxByTrxWrap.Size(m)
@@ -226,17 +222,16 @@ func (m *SoMemExtTrxByBlockTime) Reset()         { *m = SoMemExtTrxByBlockTime{}
 func (m *SoMemExtTrxByBlockTime) String() string { return proto.CompactTextString(m) }
 func (*SoMemExtTrxByBlockTime) ProtoMessage()    {}
 func (*SoMemExtTrxByBlockTime) Descriptor() ([]byte, []int) {
-	return fileDescriptor_76957eaae1f8a1bc, []int{4}
+	return fileDescriptor_so_extTrx_598909dd900819dd, []int{4}
 }
-
 func (m *SoMemExtTrxByBlockTime) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemExtTrxByBlockTime.Unmarshal(m, b)
 }
 func (m *SoMemExtTrxByBlockTime) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_SoMemExtTrxByBlockTime.Marshal(b, m, deterministic)
 }
-func (m *SoMemExtTrxByBlockTime) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SoMemExtTrxByBlockTime.Merge(m, src)
+func (dst *SoMemExtTrxByBlockTime) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoMemExtTrxByBlockTime.Merge(dst, src)
 }
 func (m *SoMemExtTrxByBlockTime) XXX_Size() int {
 	return xxx_messageInfo_SoMemExtTrxByBlockTime.Size(m)
@@ -265,17 +260,16 @@ func (m *SoMemExtTrxByTrxCreateOrder) Reset()         { *m = SoMemExtTrxByTrxCre
 func (m *SoMemExtTrxByTrxCreateOrder) String() string { return proto.CompactTextString(m) }
 func (*SoMemExtTrxByTrxCreateOrder) ProtoMessage()    {}
 func (*SoMemExtTrxByTrxCreateOrder) Descriptor() ([]byte, []int) {
-	return fileDescriptor_76957eaae1f8a1bc, []int{5}
+	return fileDescriptor_so_extTrx_598909dd900819dd, []int{5}
 }
-
 func (m *SoMemExtTrxByTrxCreateOrder) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemExtTrxByTrxCreateOrder.Unmarshal(m, b)
 }
 func (m *SoMemExtTrxByTrxCreateOrder) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_SoMemExtTrxByTrxCreateOrder.Marshal(b, m, deterministic)
 }
-func (m *SoMemExtTrxByTrxCreateOrder) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SoMemExtTrxByTrxCreateOrder.Merge(m, src)
+func (dst *SoMemExtTrxByTrxCreateOrder) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoMemExtTrxByTrxCreateOrder.Merge(dst, src)
 }
 func (m *SoMemExtTrxByTrxCreateOrder) XXX_Size() int {
 	return xxx_messageInfo_SoMemExtTrxByTrxCreateOrder.Size(m)
@@ -304,17 +298,16 @@ func (m *SoMemExtTrxByBlockId) Reset()         { *m = SoMemExtTrxByBlockId{} }
 func (m *SoMemExtTrxByBlockId) String() string { return proto.CompactTextString(m) }
 func (*SoMemExtTrxByBlockId) ProtoMessage()    {}
 func (*SoMemExtTrxByBlockId) Descriptor() ([]byte, []int) {
-	return fileDescriptor_76957eaae1f8a1bc, []int{6}
+	return fileDescriptor_so_extTrx_598909dd900819dd, []int{6}
 }
-
 func (m *SoMemExtTrxByBlockId) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemExtTrxByBlockId.Unmarshal(m, b)
 }
 func (m *SoMemExtTrxByBlockId) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_SoMemExtTrxByBlockId.Marshal(b, m, deterministic)
 }
-func (m *SoMemExtTrxByBlockId) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SoMemExtTrxByBlockId.Merge(m, src)
+func (dst *SoMemExtTrxByBlockId) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoMemExtTrxByBlockId.Merge(dst, src)
 }
 func (m *SoMemExtTrxByBlockId) XXX_Size() int {
 	return xxx_messageInfo_SoMemExtTrxByBlockId.Size(m)
@@ -343,17 +336,16 @@ func (m *SoListExtTrxByTrxId) Reset()         { *m = SoListExtTrxByTrxId{} }
 func (m *SoListExtTrxByTrxId) String() string { return proto.CompactTextString(m) }
 func (*SoListExtTrxByTrxId) ProtoMessage()    {}
 func (*SoListExtTrxByTrxId) Descriptor() ([]byte, []int) {
-	return fileDescriptor_76957eaae1f8a1bc, []int{7}
+	return fileDescriptor_so_extTrx_598909dd900819dd, []int{7}
 }
-
 func (m *SoListExtTrxByTrxId) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoListExtTrxByTrxId.Unmarshal(m, b)
 }
 func (m *SoListExtTrxByTrxId) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_SoListExtTrxByTrxId.Marshal(b, m, deterministic)
 }
-func (m *SoListExtTrxByTrxId) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SoListExtTrxByTrxId.Merge(m, src)
+func (dst *SoListExtTrxByTrxId) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoListExtTrxByTrxId.Merge(dst, src)
 }
 func (m *SoListExtTrxByTrxId) XXX_Size() int {
 	return xxx_messageInfo_SoListExtTrxByTrxId.Size(m)
@@ -383,17 +375,16 @@ func (m *SoListExtTrxByBlockHeight) Reset()         { *m = SoListExtTrxByBlockHe
 func (m *SoListExtTrxByBlockHeight) String() string { return proto.CompactTextString(m) }
 func (*SoListExtTrxByBlockHeight) ProtoMessage()    {}
 func (*SoListExtTrxByBlockHeight) Descriptor() ([]byte, []int) {
-	return fileDescriptor_76957eaae1f8a1bc, []int{8}
+	return fileDescriptor_so_extTrx_598909dd900819dd, []int{8}
 }
-
 func (m *SoListExtTrxByBlockHeight) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoListExtTrxByBlockHeight.Unmarshal(m, b)
 }
 func (m *SoListExtTrxByBlockHeight) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_SoListExtTrxByBlockHeight.Marshal(b, m, deterministic)
 }
-func (m *SoListExtTrxByBlockHeight) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SoListExtTrxByBlockHeight.Merge(m, src)
+func (dst *SoListExtTrxByBlockHeight) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoListExtTrxByBlockHeight.Merge(dst, src)
 }
 func (m *SoListExtTrxByBlockHeight) XXX_Size() int {
 	return xxx_messageInfo_SoListExtTrxByBlockHeight.Size(m)
@@ -430,17 +421,16 @@ func (m *SoListExtTrxByBlockTime) Reset()         { *m = SoListExtTrxByBlockTime
 func (m *SoListExtTrxByBlockTime) String() string { return proto.CompactTextString(m) }
 func (*SoListExtTrxByBlockTime) ProtoMessage()    {}
 func (*SoListExtTrxByBlockTime) Descriptor() ([]byte, []int) {
-	return fileDescriptor_76957eaae1f8a1bc, []int{9}
+	return fileDescriptor_so_extTrx_598909dd900819dd, []int{9}
 }
-
 func (m *SoListExtTrxByBlockTime) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoListExtTrxByBlockTime.Unmarshal(m, b)
 }
 func (m *SoListExtTrxByBlockTime) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_SoListExtTrxByBlockTime.Marshal(b, m, deterministic)
 }
-func (m *SoListExtTrxByBlockTime) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SoListExtTrxByBlockTime.Merge(m, src)
+func (dst *SoListExtTrxByBlockTime) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoListExtTrxByBlockTime.Merge(dst, src)
 }
 func (m *SoListExtTrxByBlockTime) XXX_Size() int {
 	return xxx_messageInfo_SoListExtTrxByBlockTime.Size(m)
@@ -477,17 +467,16 @@ func (m *SoListExtTrxByTrxCreateOrder) Reset()         { *m = SoListExtTrxByTrxC
 func (m *SoListExtTrxByTrxCreateOrder) String() string { return proto.CompactTextString(m) }
 func (*SoListExtTrxByTrxCreateOrder) ProtoMessage()    {}
 func (*SoListExtTrxByTrxCreateOrder) Descriptor() ([]byte, []int) {
-	return fileDescriptor_76957eaae1f8a1bc, []int{10}
+	return fileDescriptor_so_extTrx_598909dd900819dd, []int{10}
 }
-
 func (m *SoListExtTrxByTrxCreateOrder) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoListExtTrxByTrxCreateOrder.Unmarshal(m, b)
 }
 func (m *SoListExtTrxByTrxCreateOrder) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_SoListExtTrxByTrxCreateOrder.Marshal(b, m, deterministic)
 }
-func (m *SoListExtTrxByTrxCreateOrder) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SoListExtTrxByTrxCreateOrder.Merge(m, src)
+func (dst *SoListExtTrxByTrxCreateOrder) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoListExtTrxByTrxCreateOrder.Merge(dst, src)
 }
 func (m *SoListExtTrxByTrxCreateOrder) XXX_Size() int {
 	return xxx_messageInfo_SoListExtTrxByTrxCreateOrder.Size(m)
@@ -523,17 +512,16 @@ func (m *SoUniqueExtTrxByTrxId) Reset()         { *m = SoUniqueExtTrxByTrxId{} }
 func (m *SoUniqueExtTrxByTrxId) String() string { return proto.CompactTextString(m) }
 func (*SoUniqueExtTrxByTrxId) ProtoMessage()    {}
 func (*SoUniqueExtTrxByTrxId) Descriptor() ([]byte, []int) {
-	return fileDescriptor_76957eaae1f8a1bc, []int{11}
+	return fileDescriptor_so_extTrx_598909dd900819dd, []int{11}
 }
-
 func (m *SoUniqueExtTrxByTrxId) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoUniqueExtTrxByTrxId.Unmarshal(m, b)
 }
 func (m *SoUniqueExtTrxByTrxId) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_SoUniqueExtTrxByTrxId.Marshal(b, m, deterministic)
 }
-func (m *SoUniqueExtTrxByTrxId) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SoUniqueExtTrxByTrxId.Merge(m, src)
+func (dst *SoUniqueExtTrxByTrxId) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoUniqueExtTrxByTrxId.Merge(dst, src)
 }
 func (m *SoUniqueExtTrxByTrxId) XXX_Size() int {
 	return xxx_messageInfo_SoUniqueExtTrxByTrxId.Size(m)
@@ -566,9 +554,11 @@ func init() {
 	proto.RegisterType((*SoUniqueExtTrxByTrxId)(nil), "table.so_unique_extTrx_by_trx_id")
 }
 
-func init() { proto.RegisterFile("app/table/so_extTrx.proto", fileDescriptor_76957eaae1f8a1bc) }
+func init() {
+	proto.RegisterFile("app/table/so_extTrx.proto", fileDescriptor_so_extTrx_598909dd900819dd)
+}
 
-var fileDescriptor_76957eaae1f8a1bc = []byte{
+var fileDescriptor_so_extTrx_598909dd900819dd = []byte{
 	// 473 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x94, 0xdf, 0x6a, 0xd4, 0x40,
 	0x14, 0xc6, 0x99, 0xb5, 0xbb, 0x6d, 0x4f, 0x45, 0x34, 0x08, 0x66, 0xb7, 0x5a, 0xb6, 0xb9, 0x5a,

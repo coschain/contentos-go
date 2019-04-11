@@ -573,16 +573,17 @@ func (c *TrxPool) initGenesis() {
 		tInfo.EachPowerdownRate = &prototype.Vest{Value: 0}
 		tInfo.ToPowerdown = &prototype.Vest{Value: 0}
 		tInfo.HasPowerdown = &prototype.Vest{Value: 0}
+		tInfo.Owner = pubKey
 	}), "CreateAccount error")
 
 	// create account authority
-	authorityWrap := table.NewSoAccountAuthorityObjectWrap(c.db, name)
-	ownerAuth := prototype.NewAuthorityFromPubKey(pubKey)
+	//authorityWrap := table.NewSoAccountAuthorityObjectWrap(c.db, name)
+	//ownerAuth := prototype.NewAuthorityFromPubKey(pubKey)
 
-	mustNoError(authorityWrap.Create(func(tInfo *table.SoAccountAuthorityObject) {
-		tInfo.Account = name
-		tInfo.Owner = ownerAuth
-	}), "CreateAccountAuthorityObject error ")
+	//mustNoError(authorityWrap.Create(func(tInfo *table.SoAccountAuthorityObject) {
+	//	tInfo.Account = name
+	//	tInfo.Owner = ownerAuth
+	//}), "CreateAccountAuthorityObject error ")
 
 	// create witness_object
 	witnessWrap := table.NewSoWitnessWrap(c.db, name)

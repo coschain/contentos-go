@@ -146,15 +146,17 @@ func (ev *AccountCreateEvaluator) Apply() {
 		tInfo.EachPowerdownRate = &prototype.Vest{Value: 0}
 		tInfo.ToPowerdown = &prototype.Vest{Value: 0}
 		tInfo.HasPowerdown = &prototype.Vest{Value: 0}
+		tInfo.Owner = op.Owner
+		tInfo.LastOwnerUpdate = prototype.NewTimePointSec(0)
 	}), "duplicate create account object")
 
 	// create account authority
-	authorityWrap := table.NewSoAccountAuthorityObjectWrap(ev.ctx.db, op.NewAccountName)
-	opAssertE(authorityWrap.Create(func(tInfo *table.SoAccountAuthorityObject) {
-		tInfo.Account = op.NewAccountName
-		tInfo.Owner = op.Owner
-		tInfo.LastOwnerUpdate = prototype.NewTimePointSec(0)
-	}), "duplicate create account authority object")
+	//authorityWrap := table.NewSoAccountWrap(ev.ctx.db, op.NewAccountName)
+	//opAssertE(authorityWrap.Create(func(tInfo *table.SoAccountAuthorityObject) {
+	//	tInfo.Account = op.NewAccountName
+	//	tInfo.Owner = op.Owner
+	//	tInfo.LastOwnerUpdate = prototype.NewTimePointSec(0)
+	//}), "duplicate create account authority object")
 
 	// sub dynamic glaobal properties's total fee
 	ev.ctx.control.TransferToVest(op.Fee)
