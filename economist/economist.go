@@ -215,7 +215,12 @@ func (e *Economist) Do() {
 		replyRewards := rewards * constants.RewardRateReply / constants.PERCENT
 		postRewards := rewards - replyRewards
 		replyDappRewards := dappRewards * constants.RewardRateReply / constants.PERCENT
-		postDappRewards := dappRewards - replyRewards
+		postDappRewards := dappRewards - replyDappRewards
+
+		e.log.Infof("cashout: rewards: %d, dappRewards %d, replyRewards %d, postRewards %d, " +
+			"replyDappRewards %d, postDappRewards %d",
+			rewards, dappRewards, replyRewards, postRewards, replyDappRewards, postDappRewards)
+
 
 		e.log.Debugf("cashout posts length: %d", len(posts))
 		if len(posts) > 0 {
@@ -312,9 +317,10 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 			e.noticer.Publish(constants.NoticeCashout, author, post.GetPostId(), reward, globalProps.GetHeadBlockNumber())
 		}
 	}
+	e.log.Infof("cashout: [post] props.AuthorRewards: %d, props.DappRewards: %d, spendPostReward: %d, spendDappReward: %d",
+		globalProps.AuthorRewards, globalProps.DappRewards, spentPostReward, spentDappReward)
 	e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
 		props.AuthorRewards.Value -= spentPostReward
-		//props.VoterRewards.Value -= spentVoterReward
 		props.DappRewards.Value -= spentDappReward
 	})
 }
@@ -387,6 +393,8 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 			e.noticer.Publish(constants.NoticeCashout, author, reply.GetPostId(), reward, globalProps.GetHeadBlockNumber())
 		}
 	}
+	e.log.Infof("cashout: [reply] props.AuthorRewards: %d, props.DappRewards: %d, spendPostReward: %d, spendDappReward: %d",
+		globalProps.AuthorRewards.Value, globalProps.DappRewards.Value, spentReplyReward, spentDappReward)
 	e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
 		props.AuthorRewards.Value -= spentReplyReward
 		//props.VoterRewards.Value -= spentVoterReward
