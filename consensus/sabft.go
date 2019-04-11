@@ -424,7 +424,8 @@ func (sabft *SABFT) start() {
 			sabft.log.Debug("[SABFT] routine stopped.")
 			return
 		case b := <-sabft.blkCh:
-			if sabft.tooManyUncommittedBlocks() && b.Id().BlockNum() > sabft.ForkDB.Head().Id().BlockNum() {
+			if sabft.readyToProduce && sabft.tooManyUncommittedBlocks() &&
+					b.Id().BlockNum() > sabft.ForkDB.Head().Id().BlockNum() {
 				sabft.log.Debugf("dropping new block %v cause we had too many uncommitted blocks", b.Id())
 				return
 			}
