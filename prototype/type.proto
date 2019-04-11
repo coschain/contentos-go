@@ -63,20 +63,20 @@ message dynamic_properties {
     prototype.coin               current_supply                =      11;
     uint32                       current_aslot                 =      12;
     uint64   weighted_vps = 13;
-    prototype.vest     post_rewards = 14;
-    prototype.vest     reply_rewards = 15;
-    uint64   total_trx_cnt = 16;
-    uint64   total_post_cnt = 17;
-    uint64   total_user_cnt = 18;
-    uint32   max_tps = 19;
-    uint64   max_tps_block_num = 20 [jstype = JS_STRING] ;
-    uint32                       head_block_prefix             =      21;
-    prototype.vest     report_rewards = 22;
-    uint32   ith_year = 23;
-    prototype.vest   annual_budget = 24;
-    prototype.vest   annual_minted = 25;
-    prototype.vest   dapp_rewards = 26;
-    prototype.vest   voter_rewards = 27;
+    prototype.vest     author_rewards = 14;
+//    prototype.vest     reply_rewards = 15;
+    uint64   total_trx_cnt = 15;
+    uint64   total_post_cnt = 16;
+    uint64   total_user_cnt = 17;
+    uint32   max_tps = 18;
+    uint64   max_tps_block_num = 19 [jstype = JS_STRING] ;
+    uint32                       head_block_prefix             =      20;
+    prototype.vest     report_rewards = 21;
+    uint32   ith_year = 22;
+    prototype.vest   annual_budget = 23;
+    prototype.vest   annual_minted = 24;
+    prototype.vest   dapp_rewards = 25;
+    prototype.vest   voter_rewards = 26;
 }
 
 message internal_rewards_keeper {
