@@ -59,7 +59,7 @@ func (it *dbIterator) nextNoLock() (success bool) {
 			if !ok {
 				// iteration finished
 				it.item, success, stop = nil, false, true
-			} else if it.ignores[string(it.item.key)] {
+			} else if it.ignores[string(item.key)] {
 				// received a key-value that should be skipped
 				it.item, success, stop = nil, false, false
 			} else {

@@ -51,7 +51,7 @@ func (db *RedblackDatabase) Get(key []byte) ([]byte, error) {
 	defer db.lock.RUnlock()
 
 	if item := db.rb.Get(&rbdbItem{key:key}); item != nil {
-		return item.(*rbdbItem).key, nil
+		return item.(*rbdbItem).value, nil
 	} else {
 		return nil, errors.New("not found")
 	}
