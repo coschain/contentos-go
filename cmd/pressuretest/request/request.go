@@ -45,13 +45,12 @@ func createAccount(mywallet *wallet.BaseWallet, rpcClient grpcpb.ApiServiceClien
 		return
 	}
 	pubkey, _ := prototype.PublicKeyFromWIF(pubKeyStr)
-	keys := prototype.NewAuthorityFromPubKey(pubkey)
 
 	acop := &prototype.AccountCreateOperation{
 		Fee:            prototype.NewCoin(1),
 		Creator:        &prototype.AccountName{Value: creatorAccount.Name},
 		NewAccountName: &prototype.AccountName{Value: newAccountName},
-		Owner:          keys,
+		Owner:          pubkey,
 	}
 	signTx, err := utils.GenerateSignedTxAndValidate2(rpcClient, []interface{}{acop}, creatorAccount)
 	if err != nil {
