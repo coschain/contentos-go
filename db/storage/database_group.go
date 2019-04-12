@@ -53,6 +53,7 @@ type SimpleDatabaseGroup struct {
 	dp      DatabaseDispatcher // key dispatching policy
 	crashed int32              // non-zero if the group should stop service due to fatal errors
 	lock    sync.RWMutex       // lock for db operations
+	iterLock sync.RWMutex
 	wal     WriteAheadLog      // write ahead log
 }
 
@@ -120,6 +121,8 @@ func (g *SimpleDatabaseGroup) Get(key []byte) ([]byte, error) {
 
 func (g *SimpleDatabaseGroup) Put(key []byte, value []byte) error {
 	g.lock.Lock()
+	g.iterLock.Lock()
+	defer g.iterLock.Unlock()
 	defer g.lock.Unlock()
 
 	if g.Crashed() {
@@ -131,6 +134,8 @@ func (g *SimpleDatabaseGroup) Put(key []byte, value []byte) error {
 
 func (g *SimpleDatabaseGroup) Delete(key []byte) error {
 	g.lock.Lock()
+	g.iterLock.Lock()
+	defer g.iterLock.Unlock()
 	defer g.lock.Unlock()
 
 	if g.Crashed() {
@@ -142,7 +147,9 @@ func (g *SimpleDatabaseGroup) Delete(key []byte) error {
 
 func (g *SimpleDatabaseGroup) Iterate(start, limit []byte, reverse bool, callback func(key, value []byte) bool) {
 	g.lock.RLock()
-	defer g.lock.RUnlock()
+	g.iterLock.RLock()
+	defer g.iterLock.RUnlock()
+	g.lock.RUnlock()
 
 	if g.Crashed() {
 		return

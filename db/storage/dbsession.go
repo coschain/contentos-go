@@ -12,6 +12,7 @@ type dbSession struct {
 	removals map[string]bool
 	lock sync.RWMutex				// for internal struct data
 	dblock sync.RWMutex				// for database operations
+	iterLock sync.RWMutex
 }
 
 
@@ -123,23 +124,30 @@ func (db *dbSession) delete(key []byte) error {
 
 
 func (db *dbSession) Put(key []byte, value []byte) error {
+	db.iterLock.Lock()
 	db.dblock.Lock()
 	defer db.dblock.Unlock()
+	defer db.iterLock.Unlock()
 
 	return db.put(key, value)
 }
 
 func (db *dbSession) Delete(key []byte) error {
+	db.iterLock.Lock()
 	db.dblock.Lock()
 	defer db.dblock.Unlock()
+	defer db.iterLock.Unlock()
 
 	return db.delete(key)
 }
 
 func (db *dbSession) Iterate(start, limit []byte, reverse bool, callback func(key, value []byte) bool) {
+	db.iterLock.RLock()
 	db.lock.RLock()
-	defer db.lock.RUnlock()
-	if it := NewPatchedIterator(db.mem, db.db, db.removals); it != nil {
+	it := NewPatchedIterator(db.mem, db.db, db.removals)
+	db.lock.RUnlock()
+	defer db.iterLock.RUnlock()
+	if it != nil {
 		it.Iterate(start, limit, reverse, callback)
 	}
 }
@@ -159,8 +167,10 @@ type dbSessionBatch struct {
 }
 
 func (b *dbSessionBatch) Write() error {
+	b.db.iterLock.Lock()
 	b.db.dblock.Lock()
 	defer b.db.dblock.Unlock()
+	defer b.db.iterLock.Unlock()
 
 	for _, op := range b.changes {
 		if op.Del {

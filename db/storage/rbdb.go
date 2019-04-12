@@ -29,6 +29,7 @@ func (item *rbdbItem) Less(than llrb.Item) bool {
 type RedblackDatabase struct {
 	rb *llrb.LLRB
 	lock sync.RWMutex
+	iterLock sync.RWMutex
 }
 
 func NewRedblackDatabase() *RedblackDatabase {
@@ -59,6 +60,8 @@ func (db *RedblackDatabase) Get(key []byte) ([]byte, error) {
 
 func (db *RedblackDatabase) Put(key []byte, value []byte) error {
 	db.lock.Lock()
+	db.iterLock.Lock()
+	defer db.iterLock.Unlock()
 	defer db.lock.Unlock()
 
 	return db.put(key, value)
@@ -71,6 +74,8 @@ func (db *RedblackDatabase) put(key []byte, value []byte) error {
 
 func (db *RedblackDatabase) Delete(key []byte) error {
 	db.lock.Lock()
+	db.iterLock.Lock()
+	defer db.iterLock.Unlock()
 	defer db.lock.Unlock()
 
 	return db.delete(key)
@@ -82,9 +87,10 @@ func (db *RedblackDatabase) delete(key []byte) error {
 }
 
 func (db *RedblackDatabase) Iterate(start, limit []byte, reverse bool, callback func(key, value []byte) bool) {
-	// we require a read lock to block any writes
 	db.lock.RLock()
-	defer db.lock.RUnlock()
+	db.iterLock.RLock()
+	defer db.iterLock.RUnlock()
+	db.lock.RUnlock()
 
 	if callback == nil {
 		return
@@ -157,6 +163,8 @@ func (b *rbDatabaseBatch) Write() error {
 	defer b.lock.RUnlock()
 
 	b.db.lock.Lock()
+	b.db.iterLock.Lock()
+	defer b.db.iterLock.Unlock()
 	defer b.db.lock.Unlock()
 
 	for _, kv := range b.op {
