@@ -345,10 +345,6 @@ func (sabft *SABFT) tooManyUncommittedBlocks() bool {
 func (sabft *SABFT) scheduleProduce() bool {
 	if !sabft.checkGenesis() {
 		//sabft.log.Info("checkGenesis failed.")
-		if _, ok := sabft.Ticker.(*Timer); ok {
-			sabft.prodTimer.Reset(sabft.timeToNextSec())
-		}
-		//sabft.prodTimer.Reset(sabft.timeToNextSec())
 		return false
 	}
 
@@ -357,10 +353,6 @@ func (sabft *SABFT) scheduleProduce() bool {
 			sabft.readyToProduce = true
 			sabft.log.Debugf("head block id: %d, timestamp %v", sabft.ForkDB.Head().Id().BlockNum(), time.Unix(int64(sabft.ForkDB.Head().Timestamp()), 0))
 		} else {
-			if _, ok := sabft.Ticker.(*Timer); ok {
-				sabft.prodTimer.Reset(sabft.timeToNextSec())
-			}
-			//sabft.prodTimer.Reset(sabft.timeToNextSec())
 			var headID common.BlockID
 			if !sabft.ForkDB.Empty() {
 				headID = sabft.ForkDB.Head().Id()
@@ -379,10 +371,6 @@ func (sabft *SABFT) scheduleProduce() bool {
 	//}
 
 	if !sabft.checkProducingTiming() || !sabft.checkOurTurn() {
-		if _, ok := sabft.Ticker.(*Timer); ok {
-			sabft.prodTimer.Reset(sabft.timeToNextSec())
-		}
-		//sabft.prodTimer.Reset(sabft.timeToNextSec())
 		return false
 	}
 	return true
@@ -425,7 +413,7 @@ func (sabft *SABFT) start() {
 			return
 		case b := <-sabft.blkCh:
 			if sabft.readyToProduce && sabft.tooManyUncommittedBlocks() &&
-					b.Id().BlockNum() > sabft.ForkDB.Head().Id().BlockNum() {
+				b.Id().BlockNum() > sabft.ForkDB.Head().Id().BlockNum() {
 				sabft.log.Debugf("dropping new block %v cause we had too many uncommitted blocks", b.Id())
 				return
 			}
@@ -1298,6 +1286,8 @@ func (sabft *SABFT) ResetTicker(ts time.Time) {
 }
 
 func (sabft *SABFT) MaybeProduceBlock() {
+	defer sabft.prodTimer.Reset(sabft.timeToNextSec())
+
 	sabft.RLock()
 	if !sabft.scheduleProduce() {
 		sabft.RUnlock()
@@ -1318,10 +1308,7 @@ func (sabft *SABFT) MaybeProduceBlock() {
 		sabft.Unlock()
 		return
 	}
-	if _, ok := sabft.Ticker.(*Timer); ok {
-		sabft.prodTimer.Reset(sabft.timeToNextSec())
-	}
-	//sabft.prodTimer.Reset(sabft.timeToNextSec())
+
 	sabft.log.Debugf("[SABFT] generated block: <num %d> <ts %d>", b.Id().BlockNum(), b.Timestamp())
 	if err := sabft.pushBlock(b, false); err != nil {
 		sabft.log.Error("[SABFT] pushBlock push generated block failed: ", err)
