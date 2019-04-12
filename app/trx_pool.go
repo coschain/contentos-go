@@ -609,13 +609,16 @@ func (c *TrxPool) initGenesis() {
 		tInfo.Props.MaximumBlockSize = constants.MaxBlockSize
 		tInfo.Props.TotalUserCnt = 1
 		tInfo.Props.TotalVestingShares = prototype.NewVest(0)
-		tInfo.Props.AuthorRewards = prototype.NewVest(0)
-		tInfo.Props.WeightedVps = 0
+		tInfo.Props.PostRewards = prototype.NewVest(0)
+		tInfo.Props.ReplyRewards = prototype.NewVest(0)
+		tInfo.Props.PostWeightedVps = 0
+		tInfo.Props.ReplyWeightedVps = 0
 		tInfo.Props.ReportRewards = prototype.NewVest(0)
 		tInfo.Props.IthYear = 1
 		tInfo.Props.AnnualBudget = prototype.NewVest(0)
 		tInfo.Props.AnnualMinted = prototype.NewVest(0)
-		tInfo.Props.DappRewards = prototype.NewVest(0)
+		tInfo.Props.PostDappRewards = prototype.NewVest(0)
+		tInfo.Props.ReplyDappRewards = prototype.NewVest(0)
 		tInfo.Props.VoterRewards = prototype.NewVest(0)
 	}), "CreateDynamicGlobalProperties error")
 

@@ -952,9 +952,17 @@ func (as *APIService) fetchPostInfoResponseById(postId uint64,isNeedLock bool) *
 
 	props := table.NewSoGlobalWrap(as.db, &i).GetProps()
 
+
 	if pWrap != nil && pWrap.CheckExist() {
-		current := uint64(props.Time.UtcSeconds) - props.HeadBlockNumber * 1 + pWrap.GetCashoutBlockNum() * 1
-		cashoutTime := &prototype.TimePointSec{UtcSeconds: uint32(current)}
+		var globalRewards uint64
+		var globalWeightedVp uint64
+		if pWrap.GetParentId() == 0 {
+			globalRewards = props.PostRewards.Value
+			globalWeightedVp = props.PostWeightedVps
+		} else {
+			globalRewards = props.ReplyRewards.Value
+			globalWeightedVp = props.ReplyWeightedVps
+		}
 		res  =	&grpcpb.PostResponse{
 			PostId:        pWrap.GetPostId(),
 			Category:      pWrap.GetCategory(),
@@ -974,7 +982,9 @@ func (as *APIService) fetchPostInfoResponseById(postId uint64,isNeedLock bool) *
 			Rewards:       pWrap.GetRewards(),
 			DappRewards:   pWrap.GetDappRewards(),
 			WeightedVp:    pWrap.GetWeightedVp(),
-			CashoutTime:   cashoutTime,
+			CashoutInterval:   constants.PostCashOutDelayBlock,
+			GlobalRewards: &prototype.Vest{Value: globalRewards},
+			GlobalWeightedVp: globalWeightedVp,
 		}
 	}
 	return res

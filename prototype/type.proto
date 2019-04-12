@@ -62,9 +62,8 @@ message dynamic_properties {
     prototype.vest               total_vesting_shares          =      10;
     prototype.coin               current_supply                =      11;
     uint32                       current_aslot                 =      12;
-    uint64   weighted_vps = 13;
-    prototype.vest     author_rewards = 14;
-//    prototype.vest     reply_rewards = 15;
+    uint64   post_weighted_vps = 13;
+    prototype.vest     post_rewards = 14;
     uint64   total_trx_cnt = 15;
     uint64   total_post_cnt = 16;
     uint64   total_user_cnt = 17;
@@ -75,8 +74,11 @@ message dynamic_properties {
     uint32   ith_year = 22;
     prototype.vest   annual_budget = 23;
     prototype.vest   annual_minted = 24;
-    prototype.vest   dapp_rewards = 25;
+    prototype.vest   post_dapp_rewards = 25;
     prototype.vest   voter_rewards = 26;
+    prototype.vest      reply_rewards = 27;
+    uint64   reply_weighted_vps = 28;
+    prototype.vest   reply_dapp_rewards = 29;
 }
 
 message internal_rewards_keeper {

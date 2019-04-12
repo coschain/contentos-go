@@ -42,9 +42,13 @@ const (
 	PostMaxDepth         = 8
 	//PostCashOutDelayTime = 60 * 60 * 24 * 7
 	//PostCashOutDelayBlock = 60 * 10
-	PostCashOutDelayBlock = 60 * 60 * 24
+	//PostCashOutDelayBlock = 60 * 60 * 24
+	// for rapidly cashout
+	PostCashOutDelayBlock = 60
 	//VpDecayTime = (60 * 60 * 24) * 15
-	VpDecayTime = 60 * 60 * 24 * 1.5
+	//VpDecayTime = 60 * 60 * 24 * 1.5
+	// for rapidly decay
+	VpDecayTime = 60 * 1.5
 
 	MaxBpVoteCount       = 30
 
