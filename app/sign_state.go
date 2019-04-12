@@ -5,7 +5,7 @@ import (
 	"github.com/coschain/contentos-go/prototype"
 )
 
-type AuthorityGetter func(string) *prototype.Authority
+type AuthorityGetter func(string) *prototype.PublicKeyType
 
 type AuthorityType uint16
 
@@ -40,12 +40,12 @@ func (s *SignState) CheckAuthorityByName(name string, depth uint32, at Authority
 		return true
 	}
 	// a speed up cache
-	auth := s.getAuthority(name, at)
-	return s.CheckAuthority(auth, 0, at)
+	key := s.getAuthority(name, at)
+	return s.CheckAuthority(key , 0, at)
 }
 
-func (s *SignState) CheckAuthority(auth *prototype.Authority, depth uint32, at AuthorityType) bool {
-	if s.checkPub(auth.Key) {
+func (s *SignState) CheckAuthority(key *prototype.PublicKeyType , depth uint32, at AuthorityType) bool {
+	if s.checkPub(key) {
 		return true
 	} else {
 		return false
@@ -61,7 +61,7 @@ func (s *SignState) Init(pubs []*prototype.PublicKeyType, maxDepth uint32, owner
 	s.OwnerGetter = owner
 }
 
-func (s *SignState) getAuthority(name string, at AuthorityType) *prototype.Authority {
+func (s *SignState) getAuthority(name string, at AuthorityType) *prototype.PublicKeyType {
 	// read Authority struct from DB
 	switch at {
 	//case Posting:

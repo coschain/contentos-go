@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app/table"
+	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/common/eventloop"
 	"github.com/coschain/contentos-go/iservices"
@@ -634,19 +635,14 @@ func (as *APIService) TrxStatByHour(ctx context.Context, req *grpcpb.TrxStatByHo
 func (as *APIService) GetTrxInfoById(ctx context.Context, req *grpcpb.GetTrxInfoByIdRequest) (*grpcpb.GetTrxInfoByIdResponse, error) {
 	as.db.RLock()
 	defer as.db.RUnlock()
+
 	res := &grpcpb.GetTrxInfoByIdResponse{}
-	var err error
-	wrap := table.NewSoExtTrxWrap(as.db, req.TrxId)
-	if wrap != nil && wrap.CheckExist() {
-		info := &grpcpb.TrxInfo{}
-		info.TrxId = req.TrxId
-		info.BlockHeight = wrap.GetBlockHeight()
-		info.BlockTime = wrap.GetBlockTime()
-		info.TrxWrap = wrap.GetTrxWrap()
-		info.BlockId = wrap.GetBlockId()
+	info := as.getTrxInfoByTrxId(req.TrxId,nil)
+	if info != nil {
 		res.Info = info
 	}
-	return res, err
+
+	return res, nil
 }
 
 func (as *APIService) GetTrxListByTime(ctx context.Context, req *grpcpb.GetTrxListByTimeRequest) (*grpcpb.GetTrxListByTimeResponse, error) {
@@ -669,17 +665,17 @@ func (as *APIService) GetTrxListByTime(ctx context.Context, req *grpcpb.GetTrxLi
 	}
 	sWrap := table.NewExtTrxBlockTimeWrap(as.db)
 	if sWrap != nil {
+		var sMap map[uint64]bool
 		err = sWrap.ForEachByRevOrder(req.Start, req.End, lastMainKey, lastSubVal, func(mVal *prototype.Sha256, sVal *prototype.TimePointSec, idx uint32) bool {
-			wrap := table.NewSoExtTrxWrap(as.db, mVal)
-			info := &grpcpb.TrxInfo{}
-			if wrap != nil && wrap.CheckExist(){
-				info.TrxId = mVal
-				info.BlockHeight = wrap.GetBlockHeight()
-				info.BlockTime = wrap.GetBlockTime()
-				info.TrxWrap = wrap.GetTrxWrap()
-				info.BlockId = wrap.GetBlockId()
+			info := as.getTrxInfoByTrxId(mVal,sMap)
+			if info != nil {
 				infoList = append(infoList, info)
+				if sMap == nil {
+					sMap = make(map[uint64]bool)
+				}
+				sMap[info.BlockHeight] = info.BlkIsIrreversible
 			}
+
 			//if len(infoList) >= (maxPageSizeLimit) {
 			//	return false
 			//}
@@ -816,10 +812,10 @@ func (as *APIService) getAccountResponseByName(name *prototype.AccountName, isNe
 			}
 		}
 
-		keyWrap := table.NewSoAccountAuthorityObjectWrap(as.db, name)
+		keyWrap := table.NewSoAccountWrap(as.db, name)
 
 		if keyWrap.CheckExist() {
-			acctInfo.PublicKey = keyWrap.GetOwner().GetKey()
+			acctInfo.PublicKey = keyWrap.GetOwner()
 		}
 
 		followWrap := table.NewSoExtFollowCountWrap(as.db, name)
@@ -876,17 +872,16 @@ func (as *APIService) GetUserTrxListByTime(ctx context.Context, req *grpcpb.GetU
 			lastTrxId =  trx.TrxId
 			lastCreOrder = &prototype.UserTrxCreateOrder{Creator:acct,CreateTime:trx.BlockTime}
 		}
+		var sMap map[uint64]bool
 		err = wrap.ForEachByRevOrder(start, end, lastTrxId, lastCreOrder, func(mVal *prototype.Sha256, sVal *prototype.UserTrxCreateOrder, idx uint32) bool {
 			if mVal != nil {
-				wrap := table.NewSoExtTrxWrap(as.db, mVal)
-				info := &grpcpb.TrxInfo{}
-				if wrap != nil && wrap.CheckExist(){
-					info.TrxId = mVal
-					info.BlockHeight = wrap.GetBlockHeight()
-					info.BlockTime = wrap.GetBlockTime()
-					info.TrxWrap = wrap.GetTrxWrap()
-					info.BlockId = wrap.GetBlockId()
+				info := as.getTrxInfoByTrxId(mVal,sMap)
+				if info != nil {
 					trxList = append(trxList, info)
+					if sMap == nil {
+						sMap = make(map[uint64]bool)
+					}
+					sMap[info.BlockHeight] = info.BlkIsIrreversible
 				}
 			}
 			if uint32(len(trxList)) >= limit {
@@ -1076,4 +1071,70 @@ func (as *APIService) GetContractInfo (ctx context.Context, req *grpcpb.GetContr
 	}
 
 	return res, nil
+}
+
+func (as *APIService) GetBlkIsIrreversibleByTxId (ctx context.Context,
+	req *grpcpb.GetBlkIsIrreversibleByTxIdRequest) (*grpcpb.GetBlkIsIrreversibleByTxIdResponse,error){
+
+	as.db.RLock()
+	defer as.db.RUnlock()
+
+	res := &grpcpb.GetBlkIsIrreversibleByTxIdResponse{Result:false}
+
+	if req.TrxId == nil {
+		return res,errors.New("trx id is empty")
+	}
+
+	res.Result = as.judgeBlkIsIrreversibleByTxId(req.TrxId)
+
+    return res,nil
+}
+
+func (as *APIService) judgeBlkIsIrreversibleByTxId(trxId *prototype.Sha256) bool {
+	if trxId != nil {
+		trxWrap := table.NewSoExtTrxWrap(as.db,trxId)
+		if trxWrap != nil && trxWrap.CheckExist() {
+			blkHash := trxWrap.GetBlockId().Hash
+			return as.judgeBlkIsIrreversibleByHash(blkHash)
+		}
+	}
+	return false
+}
+
+func (as *APIService) judgeBlkIsIrreversibleByHash(blkHash []byte) bool {
+	res := false
+	if blkHash != nil && len(blkHash) >= 32 {
+		data := [32]byte{}
+		copy(data[:],blkHash[:32])
+		bId := common.BlockID{Data:data}
+		res =  as.consensus.IsCommitted(bId)
+	}
+	return res
+}
+
+func (as *APIService) getTrxInfoByTrxId(trxId *prototype.Sha256, blkStateMap map[uint64]bool) *grpcpb.TrxInfo {
+	var tInfo *grpcpb.TrxInfo
+	if trxId != nil {
+		wrap := table.NewSoExtTrxWrap(as.db, trxId)
+		if wrap != nil && wrap.CheckExist() {
+			info := &grpcpb.TrxInfo{}
+			info.TrxId = trxId
+			info.BlockHeight = wrap.GetBlockHeight()
+			info.BlockTime = wrap.GetBlockTime()
+			info.TrxWrap = wrap.GetTrxWrap()
+			info.BlockId = wrap.GetBlockId()
+			hasState := false
+			if blkStateMap != nil {
+				if res,ok := blkStateMap[info.BlockHeight]; ok {
+					hasState = true
+					info.BlkIsIrreversible = res
+				}
+			}
+			if !hasState {
+                info.BlkIsIrreversible = as.judgeBlkIsIrreversibleByHash(info.BlockId.Hash)
+			}
+			tInfo = info
+		}
+	}
+	return tInfo
 }

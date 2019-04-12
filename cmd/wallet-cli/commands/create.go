@@ -43,13 +43,11 @@ func create(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	keys := prototype.NewAuthorityFromPubKey(pubkey)
-
 	acop := &prototype.AccountCreateOperation{
 		Fee:            prototype.NewCoin(1),
 		Creator:        &prototype.AccountName{Value: creator},
 		NewAccountName: &prototype.AccountName{Value: name},
-		Owner:          keys,
+		Owner:          pubkey,
 	}
 	signTx, err := utils.GenerateSignedTxAndValidate2(client, []interface{}{acop}, creatorAccount)
 	if err != nil {
@@ -61,9 +59,11 @@ func create(cmd *cobra.Command, args []string) {
 	if err != nil {
 		fmt.Println(err)
 	} else {
-		err = mywallet.Create(name, passphrase, pubKeyStr, privKeyStr)
-		if err != nil {
-			fmt.Println(err)
+		if resp.Invoice.Status == 200 {
+			err = mywallet.Create(name, passphrase, pubKeyStr, privKeyStr)
+			if err != nil {
+				fmt.Println(err)
+			}
 		}
 		fmt.Println(fmt.Sprintf("Result: %v", resp))
 	}

@@ -23,6 +23,8 @@ message so_account {
     prototype.vest              each_powerdown_rate     =      13;
     prototype.vest              to_powerdown     =      14;
     prototype.vest              has_powerdown     =      15;
+    prototype.time_point_sec    last_owner_update        =      16;
+    prototype.public_key_type     owner                    =      17;
       
 }
 
@@ -102,6 +104,16 @@ message so_mem_account_by_has_powerdown {
 }
 
 
+message so_mem_account_by_last_owner_update {
+	prototype.time_point_sec 	last_owner_update    = 1;
+}
+
+
+message so_mem_account_by_owner {
+	prototype.public_key_type  	owner                = 1;
+}
+
+
 message so_list_account_by_created_time {
 	prototype.time_point_sec 	created_time   = 1;
 	prototype.account_name   	name           = 2;
@@ -146,4 +158,10 @@ message so_list_account_by_next_powerdown_block_num {
 
 message so_unique_account_by_name {
 	prototype.account_name   	name           = 1;
+}
+
+
+message so_unique_account_by_owner {
+	prototype.public_key_type  	owner                = 1;
+	prototype.account_name   	name           = 2;
 }

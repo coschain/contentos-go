@@ -91,6 +91,9 @@ service ApiService {
 
     rpc GetContractInfo (GetContractInfoRequest) returns (GetContractInfoResponse) {
     }
+    
+    rpc GetBlkIsIrreversibleByTxId (GetBlkIsIrreversibleByTxIdRequest) returns (GetBlkIsIrreversibleByTxIdResponse) {
+    }
 }
 
 
@@ -385,6 +388,7 @@ message TrxInfo {
     prototype.transaction_wrapper   trx_wrap    = 3;
     prototype.time_point_sec        block_time  = 4;
     prototype.sha256                block_id    = 5;
+    bool                            blk_is_irreversible = 6;
 }
 
 message GetTrxInfoByIdRequest {
@@ -467,4 +471,12 @@ message GetContractInfoResponse {
     bool exist    = 1;
     string abi    = 2;
     bytes code    = 3;
+}
+
+message GetBlkIsIrreversibleByTxIdRequest {
+    prototype.sha256       trx_id  = 1;
+}
+
+message GetBlkIsIrreversibleByTxIdResponse {  
+    bool       result   = 1;
 }

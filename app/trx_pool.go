@@ -573,16 +573,17 @@ func (c *TrxPool) initGenesis() {
 		tInfo.EachPowerdownRate = &prototype.Vest{Value: 0}
 		tInfo.ToPowerdown = &prototype.Vest{Value: 0}
 		tInfo.HasPowerdown = &prototype.Vest{Value: 0}
+		tInfo.Owner = pubKey
 	}), "CreateAccount error")
 
 	// create account authority
-	authorityWrap := table.NewSoAccountAuthorityObjectWrap(c.db, name)
-	ownerAuth := prototype.NewAuthorityFromPubKey(pubKey)
+	//authorityWrap := table.NewSoAccountAuthorityObjectWrap(c.db, name)
+	//ownerAuth := prototype.NewAuthorityFromPubKey(pubKey)
 
-	mustNoError(authorityWrap.Create(func(tInfo *table.SoAccountAuthorityObject) {
-		tInfo.Account = name
-		tInfo.Owner = ownerAuth
-	}), "CreateAccountAuthorityObject error ")
+	//mustNoError(authorityWrap.Create(func(tInfo *table.SoAccountAuthorityObject) {
+	//	tInfo.Account = name
+	//	tInfo.Owner = ownerAuth
+	//}), "CreateAccountAuthorityObject error ")
 
 	// create witness_object
 	witnessWrap := table.NewSoWitnessWrap(c.db, name)
@@ -608,9 +609,8 @@ func (c *TrxPool) initGenesis() {
 		tInfo.Props.MaximumBlockSize = constants.MaxBlockSize
 		tInfo.Props.TotalUserCnt = 1
 		tInfo.Props.TotalVestingShares = prototype.NewVest(0)
-		tInfo.Props.PostRewards = prototype.NewVest(0)
+		tInfo.Props.AuthorRewards = prototype.NewVest(0)
 		tInfo.Props.WeightedVps = 0
-		tInfo.Props.ReplyRewards = prototype.NewVest(0)
 		tInfo.Props.ReportRewards = prototype.NewVest(0)
 		tInfo.Props.IthYear = 1
 		tInfo.Props.AnnualBudget = prototype.NewVest(0)

@@ -22,6 +22,7 @@ var (
 	AccountCreatedTrxCountTable       uint32 = 2604810499
 	AccountNextPowerdownBlockNumTable uint32 = 1928824877
 	AccountNameUniTable               uint32 = 2528390520
+	AccountOwnerUniTable              uint32 = 4120855558
 	AccountBalanceCell                uint32 = 2894785396
 	AccountBpVoteCountCell            uint32 = 2131409895
 	AccountCreatedTimeCell            uint32 = 826305594
@@ -29,10 +30,12 @@ var (
 	AccountCreatorCell                uint32 = 1804791917
 	AccountEachPowerdownRateCell      uint32 = 1435132114
 	AccountHasPowerdownCell           uint32 = 2131027332
+	AccountLastOwnerUpdateCell        uint32 = 1786339118
 	AccountLastPostTimeCell           uint32 = 3226532373
 	AccountLastVoteTimeCell           uint32 = 1980371646
 	AccountNameCell                   uint32 = 1725869739
 	AccountNextPowerdownBlockNumCell  uint32 = 2881565425
+	AccountOwnerCell                  uint32 = 1575619097
 	AccountPostCountCell              uint32 = 587221705
 	AccountToPowerdownCell            uint32 = 3115587115
 	AccountVestingSharesCell          uint32 = 57659323
@@ -664,6 +667,9 @@ func (s *SoAccountWrap) getMemKeyPrefix(fName string) uint32 {
 	if fName == "HasPowerdown" {
 		return AccountHasPowerdownCell
 	}
+	if fName == "LastOwnerUpdate" {
+		return AccountLastOwnerUpdateCell
+	}
 	if fName == "LastPostTime" {
 		return AccountLastPostTimeCell
 	}
@@ -675,6 +681,9 @@ func (s *SoAccountWrap) getMemKeyPrefix(fName string) uint32 {
 	}
 	if fName == "NextPowerdownBlockNum" {
 		return AccountNextPowerdownBlockNumCell
+	}
+	if fName == "Owner" {
+		return AccountOwnerCell
 	}
 	if fName == "PostCount" {
 		return AccountPostCountCell
@@ -770,6 +779,13 @@ func (s *SoAccountWrap) saveAllMemKeys(tInfo *SoAccount, br bool) error {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "HasPowerdown", err)
 		}
 	}
+	if err = s.saveMemKeyLastOwnerUpdate(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "LastOwnerUpdate", err)
+		}
+	}
 	if err = s.saveMemKeyLastPostTime(tInfo); err != nil {
 		if br {
 			return err
@@ -796,6 +812,13 @@ func (s *SoAccountWrap) saveAllMemKeys(tInfo *SoAccount, br bool) error {
 			return err
 		} else {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "NextPowerdownBlockNum", err)
+		}
+	}
+	if err = s.saveMemKeyOwner(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Owner", err)
 		}
 	}
 	if err = s.saveMemKeyPostCount(tInfo); err != nil {
@@ -1481,6 +1504,89 @@ func (s *SoAccountWrap) MdHasPowerdown(p *prototype.Vest) bool {
 	return true
 }
 
+func (s *SoAccountWrap) saveMemKeyLastOwnerUpdate(tInfo *SoAccount) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemAccountByLastOwnerUpdate{}
+	val.LastOwnerUpdate = tInfo.LastOwnerUpdate
+	key, err := s.encodeMemKey("LastOwnerUpdate")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
+
+func (s *SoAccountWrap) GetLastOwnerUpdate() *prototype.TimePointSec {
+	res := true
+	msg := &SoMemAccountByLastOwnerUpdate{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("LastOwnerUpdate")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.LastOwnerUpdate
+			}
+		}
+	}
+	if !res {
+		return nil
+
+	}
+	return msg.LastOwnerUpdate
+}
+
+func (s *SoAccountWrap) MdLastOwnerUpdate(p *prototype.TimePointSec) bool {
+	if s.dba == nil {
+		return false
+	}
+	key, err := s.encodeMemKey("LastOwnerUpdate")
+	if err != nil {
+		return false
+	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemAccountByLastOwnerUpdate{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoAccount{}
+	sa.Name = s.mainKey
+
+	sa.LastOwnerUpdate = ori.LastOwnerUpdate
+
+	ori.LastOwnerUpdate = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
+		return false
+	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.LastOwnerUpdate = p
+
+	return true
+}
+
 func (s *SoAccountWrap) saveMemKeyLastPostTime(tInfo *SoAccount) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
@@ -1784,6 +1890,104 @@ func (s *SoAccountWrap) MdNextPowerdownBlockNum(p uint64) bool {
 		return false
 	}
 
+	return true
+}
+
+func (s *SoAccountWrap) saveMemKeyOwner(tInfo *SoAccount) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemAccountByOwner{}
+	val.Owner = tInfo.Owner
+	key, err := s.encodeMemKey("Owner")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
+
+func (s *SoAccountWrap) GetOwner() *prototype.PublicKeyType {
+	res := true
+	msg := &SoMemAccountByOwner{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("Owner")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.Owner
+			}
+		}
+	}
+	if !res {
+		return nil
+
+	}
+	return msg.Owner
+}
+
+func (s *SoAccountWrap) MdOwner(p *prototype.PublicKeyType) bool {
+	if s.dba == nil {
+		return false
+	}
+	key, err := s.encodeMemKey("Owner")
+	if err != nil {
+		return false
+	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemAccountByOwner{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoAccount{}
+	sa.Name = s.mainKey
+
+	sa.Owner = ori.Owner
+	//judge the unique value if is exist
+	uniWrap := UniAccountOwnerWrap{}
+	uniWrap.Dba = s.dba
+	res := uniWrap.UniQueryOwner(sa.Owner)
+
+	if res != nil {
+		//the unique value to be modified is already exist
+		return false
+	}
+	if !s.delUniKeyOwner(sa) {
+		return false
+	}
+
+	ori.Owner = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
+		return false
+	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.Owner = p
+
+	if !s.insertUniKeyOwner(sa) {
+		return false
+	}
 	return true
 }
 
@@ -3020,6 +3224,13 @@ func (s *SoAccountWrap) delAllUniKeys(br bool, val *SoAccount) bool {
 			res = false
 		}
 	}
+	if !s.delUniKeyOwner(val) {
+		if br {
+			return false
+		} else {
+			res = false
+		}
+	}
 
 	return res
 }
@@ -3031,6 +3242,11 @@ func (s *SoAccountWrap) delUniKeysWithNames(names map[string]string, val *SoAcco
 	res := true
 	if len(names["Name"]) > 0 {
 		if !s.delUniKeyName(val) {
+			res = false
+		}
+	}
+	if len(names["Owner"]) > 0 {
+		if !s.delUniKeyOwner(val) {
 			res = false
 		}
 	}
@@ -3050,6 +3266,10 @@ func (s *SoAccountWrap) insertAllUniKeys(val *SoAccount) (map[string]string, err
 		return sucFields, errors.New("insert unique Field Name fail while insert table ")
 	}
 	sucFields["Name"] = "Name"
+	if !s.insertUniKeyOwner(val) {
+		return sucFields, errors.New("insert unique Field Owner fail while insert table ")
+	}
+	sucFields["Owner"] = "Owner"
 
 	return sucFields, nil
 }
@@ -3144,6 +3364,107 @@ func (s *UniAccountNameWrap) UniQueryName(start *prototype.AccountName) *SoAccou
 	val, err := s.Dba.Get(bufStartkey)
 	if err == nil {
 		res := &SoUniqueAccountByName{}
+		rErr := proto.Unmarshal(val, res)
+		if rErr == nil {
+			wrap := NewSoAccountWrap(s.Dba, res.Name)
+
+			return wrap
+		}
+	}
+	return nil
+}
+
+func (s *SoAccountWrap) delUniKeyOwner(sa *SoAccount) bool {
+	if s.dba == nil {
+		return false
+	}
+	pre := AccountOwnerUniTable
+	kList := []interface{}{pre}
+	if sa != nil {
+
+		if sa.Owner == nil {
+			return false
+		}
+
+		sub := sa.Owner
+		kList = append(kList, sub)
+	} else {
+		key, err := s.encodeMemKey("Owner")
+		if err != nil {
+			return false
+		}
+		buf, err := s.dba.Get(key)
+		if err != nil {
+			return false
+		}
+		ori := &SoMemAccountByOwner{}
+		err = proto.Unmarshal(buf, ori)
+		if err != nil {
+			return false
+		}
+		sub := ori.Owner
+		kList = append(kList, sub)
+
+	}
+	kBuf, err := kope.EncodeSlice(kList)
+	if err != nil {
+		return false
+	}
+	return s.dba.Delete(kBuf) == nil
+}
+
+func (s *SoAccountWrap) insertUniKeyOwner(sa *SoAccount) bool {
+	if s.dba == nil || sa == nil {
+		return false
+	}
+	pre := AccountOwnerUniTable
+	sub := sa.Owner
+	kList := []interface{}{pre, sub}
+	kBuf, err := kope.EncodeSlice(kList)
+	if err != nil {
+		return false
+	}
+	res, err := s.dba.Has(kBuf)
+	if err == nil && res == true {
+		//the unique key is already exist
+		return false
+	}
+	val := SoUniqueAccountByOwner{}
+	val.Name = sa.Name
+	val.Owner = sa.Owner
+
+	buf, err := proto.Marshal(&val)
+
+	if err != nil {
+		return false
+	}
+
+	return s.dba.Put(kBuf, buf) == nil
+
+}
+
+type UniAccountOwnerWrap struct {
+	Dba iservices.IDatabaseRW
+}
+
+func NewUniAccountOwnerWrap(db iservices.IDatabaseRW) *UniAccountOwnerWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := UniAccountOwnerWrap{Dba: db}
+	return &wrap
+}
+
+func (s *UniAccountOwnerWrap) UniQueryOwner(start *prototype.PublicKeyType) *SoAccountWrap {
+	if start == nil || s.Dba == nil {
+		return nil
+	}
+	pre := AccountOwnerUniTable
+	kList := []interface{}{pre, start}
+	bufStartkey, err := kope.EncodeSlice(kList)
+	val, err := s.Dba.Get(bufStartkey)
+	if err == nil {
+		res := &SoUniqueAccountByOwner{}
 		rErr := proto.Unmarshal(val, res)
 		if rErr == nil {
 			wrap := NewSoAccountWrap(s.Dba, res.Name)

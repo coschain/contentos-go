@@ -56,11 +56,11 @@ func (f *AuthFetcher) GetPublicKey(account string) (*prototype.PublicKeyType, er
 	data, err := f.cache.Get([]byte(account))
 	// if cache missed, query the database
 	if err != nil {
-		auth := table.NewUniAccountAuthorityObjectAccountWrap(f.db).UniQueryAccount(prototype.NewAccountName(account))
+		auth := table.NewUniAccountNameWrap(f.db).UniQueryName(prototype.NewAccountName(account))
 		if auth == nil {
 			return nil, fmt.Errorf("auth of %s not found", account)
 		}
-		key := auth.GetOwner().Key
+		key := auth.GetOwner()
 		// update cache
 		_ = f.cache.Set([]byte(account), key.Data, 0)
 		return key, nil
@@ -112,7 +112,7 @@ func (f *AuthFetcher) BlockApplied(b *prototype.SignedBlock) {
 					// account creation
 					case *prototype.Operation_Op1:
 						createAccOp := op.GetOp1()
-						f.newAccount(blockNum, createAccOp.GetNewAccountName().GetValue(), createAccOp.GetOwner().GetKey())
+						f.newAccount(blockNum, createAccOp.GetNewAccountName().GetValue(), createAccOp.GetOwner())
 					}
 				}
 			}

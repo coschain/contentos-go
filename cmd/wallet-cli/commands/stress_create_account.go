@@ -66,13 +66,12 @@ func stressCreAccount(cmd *cobra.Command, args []string) {
 					fmt.Println(err)
 					break
 				}
-				keys := prototype.NewAuthorityFromPubKey(pubkey)
 				newAccountName := getNewAccountName()
 				acop := &prototype.AccountCreateOperation{
 					Fee:            prototype.NewCoin(1),
 					Creator:        &prototype.AccountName{Value: creator},
 					NewAccountName: &prototype.AccountName{Value: newAccountName},
-					Owner:          keys,
+					Owner:          pubkey,
 				}
 				signTx, err := utils.GenerateSignedTxAndValidate2(client, []interface{}{acop}, creatorAccount)
 				if err != nil {
