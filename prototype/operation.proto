@@ -29,7 +29,7 @@ message transfer_to_vesting_operation{
 
 message vote_operation{
     account_name voter = 1;
-    uint64 idx = 2 [jstype = JS_STRING];
+    uint64 idx = 3 [jstype = JS_STRING];
 }
 
 message bp_register_operation{
