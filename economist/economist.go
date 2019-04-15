@@ -5,6 +5,7 @@ import (
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common/constants"
+	"github.com/coschain/contentos-go/common/variables"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/pkg/errors"
@@ -232,8 +233,8 @@ func (e *Economist) Do() {
 
 func (e *Economist) decayGlobalVotePower() {
 	e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
-		props.PostWeightedVps -= props.PostWeightedVps * constants.BlockInterval / constants.VpDecayTime
-		props.ReplyWeightedVps -= props.ReplyWeightedVps * constants.BlockInterval / constants.VpDecayTime
+		props.PostWeightedVps -= props.PostWeightedVps * constants.BlockInterval / variables.VpDecayTime()
+		props.ReplyWeightedVps -= props.ReplyWeightedVps * constants.BlockInterval / variables.VpDecayTime()
 	})
 }
 
