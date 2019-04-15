@@ -315,6 +315,14 @@ func (sabft *SABFT) Start(node *node.Node) error {
 	if sabft.bootstrap && sabft.ForkDB.Empty() && sabft.blog.Empty() {
 		sabft.log.Info("[SABFT] bootstrapping...")
 	}
+	if !sabft.ForkDB.Empty() && sabft.blog.Empty() {
+		lc, err := sabft.cp.GetNext(sabft.ForkDB.LastCommitted().BlockNum()-1)
+		if err != nil {
+			sabft.log.Error(err)
+		} else {
+			sabft.lastCommitted.Store(lc)
+		}
+	}
 
 	sabft.restoreProducers()
 
