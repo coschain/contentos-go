@@ -193,9 +193,15 @@ func (e *Economist) Do() {
 		props.ReplyWeightedVps += replyVpAccumulator
 	})
 
-	if postWeightedVps + postVpAccumulator > 0 {
-		rewards := postVpAccumulator * globalProps.PostRewards.Value / (postWeightedVps + postVpAccumulator)
-		dappRewards := postVpAccumulator * globalProps.PostDappRewards.Value / (postWeightedVps + postVpAccumulator)
+	if postWeightedVps + postVpAccumulator >= 0 {
+		var rewards, dappRewards uint64
+		if postWeightedVps + postVpAccumulator == 0 {
+			rewards = 0
+			dappRewards = 0
+		}else {
+			rewards = postVpAccumulator * globalProps.PostRewards.Value / (postWeightedVps + postVpAccumulator)
+			dappRewards = postVpAccumulator * globalProps.PostDappRewards.Value / (postWeightedVps + postVpAccumulator)
+		}
 
 		e.log.Debugf("cashout posts length: %d", len(posts))
 		if len(posts) > 0 {
@@ -205,9 +211,15 @@ func (e *Economist) Do() {
 		}
 	}
 
-	if replyWeightedVps + replyVpAccumulator > 0 {
-		rewards := replyVpAccumulator * globalProps.ReplyRewards.Value / (replyWeightedVps + replyVpAccumulator)
-		dappRewards := replyVpAccumulator * globalProps.ReplyDappRewards.Value / (replyWeightedVps + replyVpAccumulator)
+	if replyWeightedVps + replyVpAccumulator >= 0 {
+		var rewards, dappRewards uint64
+		if replyWeightedVps + replyVpAccumulator == 0 {
+			rewards = 0
+			dappRewards = 0
+		}else {
+			rewards = replyVpAccumulator * globalProps.ReplyRewards.Value / (replyWeightedVps + replyVpAccumulator)
+			dappRewards = replyVpAccumulator * globalProps.ReplyDappRewards.Value / (replyWeightedVps + replyVpAccumulator)
+		}
 
 		e.log.Debugf("cashout replies length: %d", len(replies))
 		if len(replies) > 0 {
