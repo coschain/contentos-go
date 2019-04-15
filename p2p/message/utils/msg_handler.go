@@ -637,6 +637,7 @@ func (p *MsgHandler)IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...
 				log.Error("[p2p] send message error: ", err)
 				return
 			}
+			log.Info("[p2p] send checkpoint message, start block number: ", startBlockId.BlockNum())
 		}
 	case msgTypes.IdMsg_request_id_ack:
 		//log.Infof("receive a msg from:    v%    data:   %v\n", data.Addr, *msgdata)
