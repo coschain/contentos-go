@@ -481,8 +481,22 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 			t00 := time.Now()
 			ma.Apply(entries[i:i+d])
 			applyTime += int64(time.Now().Sub(t00))
+			invoiceOK := true
 			for j := 0; j < d; j++ {
-				mustSuccess(entries[i + j].GetTrxResult().Receipt.Status == blk.Transactions[i + j].Invoice.Status, "mismatched invoice")
+				if entries[i + j].GetTrxResult().Receipt.Status != blk.Transactions[i + j].Invoice.Status {
+					c.log.Errorf("InvoiceMismatch: expect_status=%d, status=%d, err=%s. trx #%d of block %d",
+						blk.Transactions[i + j].Invoice.Status,
+						entries[i + j].GetTrxResult().Receipt.Status,
+						entries[i + j].GetTrxResult().Receipt.ErrorInfo,
+						i + j,
+						blk.Id().BlockNum())
+					invoiceOK = false
+				}
+			}
+			if !invoiceOK {
+				blockData, _ := blk.Marshall()
+				c.log.Errorf("InvalidBlock: block %d, marshal=%v", blk.Id().BlockNum(), blockData)
+				mustSuccess(false, "mismatched invoice")
 			}
 		}
 		t1 := time.Now()
