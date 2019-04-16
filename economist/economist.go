@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"math"
+	"math/big"
 	"time"
 )
 
@@ -19,6 +20,14 @@ func Min(x, y uint64) uint64 {
 	} else {
 		return y
 	}
+}
+
+func ISqrt(n uint64) uint64 {
+	var r1, r uint64 = n, n + 1
+	for r1 < r {
+		r, r1 = r1, (r1+n/r1)>>1
+	}
+	return r
 }
 
 type Economist struct {
@@ -185,7 +194,8 @@ func (e *Economist) Do() {
 			postVpAccumulator += post.GetWeightedVp()
 		} else {
 			replies = append(replies, post)
-			replyVpAccumulator += uint64(math.Ceil(math.Sqrt(float64(post.GetWeightedVp()))))
+			//replyVpAccumulator += uint64(math.Ceil(math.Sqrt(float64(post.GetWeightedVp()))))
+			replyVpAccumulator += ISqrt(post.GetWeightedVp())
 		}
 	}
 	e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
@@ -199,8 +209,17 @@ func (e *Economist) Do() {
 			rewards = 0
 			dappRewards = 0
 		}else {
-			rewards = postVpAccumulator * globalProps.PostRewards.Value / (postWeightedVps + postVpAccumulator)
-			dappRewards = postVpAccumulator * globalProps.PostDappRewards.Value / (postWeightedVps + postVpAccumulator)
+			// after big, it can not overflow
+			bigVpSum := new(big.Int).SetUint64(postWeightedVps + postVpAccumulator)
+			bigVpAccumulator := new(big.Int).SetUint64(postVpAccumulator)
+			bigGlobalPostRewards := new(big.Int).SetUint64(globalProps.PostRewards.Value)
+			bigVpMul := new(big.Int).Mul(bigVpAccumulator, bigGlobalPostRewards)
+			rewards = new(big.Int).Div(bigVpMul, bigVpSum).Uint64()
+			//rewards = postVpAccumulator * globalProps.PostRewards.Value / (postWeightedVps + postVpAccumulator)
+			bigGlobalPostDappRewards := new(big.Int).SetUint64(globalProps.PostDappRewards.Value)
+			bigDappVpMul := new(big.Int).Mul(bigVpAccumulator, bigGlobalPostDappRewards)
+			dappRewards = new(big.Int).Div(bigDappVpMul, bigVpSum).Uint64()
+			//dappRewards = postVpAccumulator * globalProps.PostDappRewards.Value / (postWeightedVps + postVpAccumulator)
 		}
 
 		e.log.Debugf("cashout posts length: %d", len(posts))
@@ -217,8 +236,17 @@ func (e *Economist) Do() {
 			rewards = 0
 			dappRewards = 0
 		}else {
-			rewards = replyVpAccumulator * globalProps.ReplyRewards.Value / (replyWeightedVps + replyVpAccumulator)
-			dappRewards = replyVpAccumulator * globalProps.ReplyDappRewards.Value / (replyWeightedVps + replyVpAccumulator)
+			//rewards = replyVpAccumulator * globalProps.ReplyRewards.Value / (replyWeightedVps + replyVpAccumulator)
+			//dappRewards = replyVpAccumulator * globalProps.ReplyDappRewards.Value / (replyWeightedVps + replyVpAccumulator)
+			bigVpSum := new(big.Int).SetUint64(replyWeightedVps + replyVpAccumulator)
+			bigVpAccumulator := new(big.Int).SetUint64(replyVpAccumulator)
+			bigGlobalReplyRewards := new(big.Int).SetUint64(globalProps.ReplyRewards.Value)
+			bigVpMul := new(big.Int).Mul(bigVpAccumulator, bigGlobalReplyRewards)
+			rewards = new(big.Int).Div(bigVpMul, bigVpSum).Uint64()
+			//rewards = postVpAccumulator * globalProps.PostRewards.Value / (postWeightedVps + postVpAccumulator)
+			bigGlobalReplyDappRewards := new(big.Int).SetUint64(globalProps.ReplyDappRewards.Value)
+			bigDappVpMul := new(big.Int).Mul(bigVpAccumulator, bigGlobalReplyDappRewards)
+			dappRewards = new(big.Int).Div(bigDappVpMul, bigVpSum).Uint64()
 		}
 
 		e.log.Debugf("cashout replies length: %d", len(replies))
@@ -247,6 +275,9 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 	for _, post := range posts {
 		vpAccumulator += post.GetWeightedVp()
 	}
+	bigVpAccumulator := new(big.Int).SetUint64(vpAccumulator)
+	bigBlockRewards := new(big.Int).SetUint64(blockReward)
+	bigBlockDappReward := new(big.Int).SetUint64(blockDappReward)
 	e.log.Debugf("current block post total vp:%d, global vp:%d", vpAccumulator, globalProps.PostWeightedVps)
 	var spentPostReward uint64 = 0
 	var spentDappReward uint64 = 0
@@ -257,8 +288,16 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 		var beneficiaryReward uint64 = 0
 		// divide zero exception
 		if vpAccumulator > 0 {
-			reward = post.GetWeightedVp() * blockReward / vpAccumulator
-			beneficiaryReward = post.GetWeightedVp() * blockDappReward / vpAccumulator
+			//reward = post.GetWeightedVp() * blockReward / vpAccumulator
+			//beneficiaryReward = post.GetWeightedVp() * blockDappReward / vpAccumulator
+			//spentPostReward += reward
+			//spentDappReward += beneficiaryReward
+			weightedVp := post.GetWeightedVp()
+			bigWeightedVp := new(big.Int).SetUint64(weightedVp)
+			bigRewardMul := new(big.Int).Mul(bigWeightedVp,  bigBlockRewards)
+			reward = new(big.Int).Div(bigRewardMul, bigVpAccumulator).Uint64()
+			bigDappRewardMul := new(big.Int).Mul(bigWeightedVp, bigBlockDappReward)
+			beneficiaryReward = new(big.Int).Div(bigDappRewardMul, bigVpAccumulator).Uint64()
 			spentPostReward += reward
 			spentDappReward += beneficiaryReward
 		}
@@ -275,7 +314,8 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 				continue
 			}
 			// one of ten thousands
-			r := beneficiaryReward * uint64(weight) / constants.PERCENT
+			//r := beneficiaryReward * uint64(weight) / constants.PERCENT
+			r := new(big.Int).Div(new(big.Int).Mul(big.NewInt(int64(beneficiaryReward)), big.NewInt(int64(weight))), big.NewInt(constants.PERCENT)).Uint64()
 			if r == 0 {
 				continue
 			}
@@ -322,8 +362,11 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 	}
 	var vpAccumulator uint64 = 0
 	for _, reply := range replies {
-		vpAccumulator += uint64(math.Ceil(math.Sqrt(float64(reply.GetWeightedVp()))))
+		vpAccumulator += ISqrt(reply.GetWeightedVp())
 	}
+	bigVpAccumulator := new(big.Int).SetUint64(vpAccumulator)
+	bigBlockRewards := new(big.Int).SetUint64(blockReward)
+	bigBlockDappReward := new(big.Int).SetUint64(blockDappReward)
 	e.log.Debugf("current block reply total vp:%d, global vp:%d", vpAccumulator, globalProps.ReplyWeightedVps)
 	var spentReplyReward uint64 = 0
 	var spentDappReward uint64 = 0
@@ -335,9 +378,12 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 		//var voterReward uint64 = 0
 		// divide zero exception
 		if vpAccumulator > 0 {
-			weightedVp := uint64(math.Ceil(math.Sqrt(float64(reply.GetWeightedVp()))))
-			reward = weightedVp * blockReward / vpAccumulator
-			beneficiaryReward = weightedVp * blockDappReward / vpAccumulator
+			weightedVp := ISqrt(reply.GetWeightedVp())
+			bigWeightedVp := new(big.Int).SetUint64(weightedVp)
+			bigRewardMul := new(big.Int).Mul(bigWeightedVp,  bigBlockRewards)
+			reward = new(big.Int).Div(bigRewardMul, bigVpAccumulator).Uint64()
+			bigDappRewardMul := new(big.Int).Mul(bigWeightedVp, bigBlockDappReward)
+			beneficiaryReward = new(big.Int).Div(bigDappRewardMul, bigVpAccumulator).Uint64()
 			spentReplyReward += reward
 			spentDappReward += beneficiaryReward
 		}
@@ -352,7 +398,8 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 			if weightSum > constants.PERCENT {
 				continue
 			}
-			r := beneficiaryReward * uint64(weight) / constants.PERCENT
+			r := new(big.Int).Div(new(big.Int).Mul(big.NewInt(int64(beneficiaryReward)), big.NewInt(int64(weight))), big.NewInt(constants.PERCENT)).Uint64()
+			//r := beneficiaryReward * uint64(weight) / constants.PERCENT
 			if r == 0 {
 				continue
 			}
