@@ -33,11 +33,7 @@ func tryCreateAccount(t *testing.T, acc string, ctrl *TrxPool) {
 		Fee:            prototype.NewCoin(1),
 		Creator:        &prototype.AccountName{Value: "initminer"},
 		NewAccountName: &prototype.AccountName{Value: acc},
-		Owner: &prototype.Authority{
-			Key: &prototype.PublicKeyType{
-				Data: []byte{0},
-			},
-		},
+		Owner:          &prototype.PublicKeyType{ Data: []byte{0} },
 	}
 	// construct base op ...
 	op := &prototype.Operation{}
@@ -356,7 +352,7 @@ func TestVoteEvaluator_ApplyNormal(t *testing.T) {
 	myassert.Equal(voterWrap.GetVotePower(), uint32(36))
 	myassert.Equal(voterWrap.GetLastPostTime().UtcSeconds, c.HeadBlockTime().UtcSeconds)
 	myassert.Equal(postWrap.GetWeightedVp(), uint64(2000))
-	myassert.Equal(c.GetProps().WeightedVps, uint64(2000))
+	myassert.Equal(c.GetProps().PostWeightedVps, uint64(2000))
 
 	iterator := table.NewVotePostIdWrap(ev.ctx.db)
 	start := uuid
@@ -395,7 +391,7 @@ func TestConvertVestingEvaluator_Apply(t *testing.T) {
 	accWrap := table.NewSoAccountWrap(ev.ctx.db, &prototype.AccountName{Value: "initminer"})
 	accWrap.MdVestingShares(&prototype.Vest{Value: 10 * 1e6})
 	ev.Apply()
-	fmt.Println(accWrap.GetNextPowerdownTime())
+	fmt.Println(accWrap.GetNextPowerdownBlockNum())
 	fmt.Println(accWrap.GetToPowerdown())
 	fmt.Println(accWrap.GetHasPowerdown())
 	fmt.Println(accWrap.GetEachPowerdownRate())
