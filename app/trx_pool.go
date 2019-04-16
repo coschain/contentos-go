@@ -3,6 +3,7 @@ package app
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app/table"
@@ -92,7 +93,7 @@ func (c *TrxPool) Start(node *node.Node) error {
 }
 
 func (c *TrxPool) Open() {
-	c.iceberg = NewBlockIceberg(c.db)
+	c.iceberg = NewBlockIceberg(c.db, c.log)
 	c.economist = economist.New(c.db, c.noticer, &SingleId, c.log)
 	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
 	if !dgpWrap.CheckExist() {
@@ -103,7 +104,7 @@ func (c *TrxPool) Open() {
 		c.initGenesis()
 
 		mustNoError(c.db.TagRevision(c.db.GetRevision(), GENESIS_TAG), "genesis tagging failed")
-		c.iceberg = NewBlockIceberg(c.db)
+		c.iceberg = NewBlockIceberg(c.db, c.log)
 		c.economist = economist.New(c.db, c.noticer, &SingleId, c.log)
 		//c.log.Info("finish initGenesis")
 	}
@@ -494,8 +495,8 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 				}
 			}
 			if !invoiceOK {
-				blockData, _ := blk.Marshall()
-				c.log.Errorf("InvalidBlock: block %d, marshal=%v", blk.Id().BlockNum(), blockData)
+				blockData, _ := json.MarshalIndent(blk, "", "  ")
+				c.log.Errorf("InvalidBlock: block %d, marshal=%s", blk.Id().BlockNum(), string(blockData))
 				mustSuccess(false, "mismatched invoice")
 			}
 		}
