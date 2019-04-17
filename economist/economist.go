@@ -24,6 +24,9 @@ func Min(x, y uint64) uint64 {
 }
 
 func ISqrt(n uint64) uint64 {
+	if n == 0 {
+		return 0
+	}
 	var r1, r uint64 = n, n + 1
 	for r1 < r {
 		r, r1 = r1, (r1+n/r1)>>1
