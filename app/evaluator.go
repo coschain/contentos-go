@@ -319,7 +319,9 @@ func (ev *VoteEvaluator) Apply() {
 	voterWrap.MdVotePower(currentVp - usedVp)
 	voterWrap.MdLastVoteTime(ev.ctx.control.HeadBlockTime())
 	vesting := voterWrap.GetVestingShares().Value
-	// todo: uint128
+	// after constants.PERCENT replaced by 1000, max value is 10000000000 * 1000000 * 1000 / 30
+	// 10000000000 * 1000000 * 1000 < 18446744073709552046 but 10000000000 * 1000000 > 9223372036854775807
+	// so can not using int64 here
 	weightedVp := vesting * uint64(usedVp)
 	if postWrap.GetCashoutBlockNum() > ev.ctx.control.GetProps().HeadBlockNumber {
 		lastVp := postWrap.GetWeightedVp()
