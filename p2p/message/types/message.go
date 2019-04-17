@@ -83,7 +83,8 @@ func WriteMessage(sink *common.ZeroCopySink, msg Message, magic uint32) error {
 func ReadMessage(reader io.Reader, magic uint32) (Message, uint32, error) {
 	hdr, err := readMessageHeader(reader)
 	if err != nil {
-		return nil, 0, err
+		//return nil, 0, err
+		return nil, 0, fmt.Errorf("read msg header error, %s", err)
 	}
 
 	if hdr.Magic != magic {
@@ -98,7 +99,8 @@ func ReadMessage(reader io.Reader, magic uint32) (Message, uint32, error) {
 	buf := make([]byte, hdr.Length)
 	_, err = io.ReadFull(reader, buf)
 	if err != nil {
-		return nil, 0, err
+		//return nil, 0, err
+		return nil, 0, fmt.Errorf("io.ReadFull error, %s", err)
 	}
 
 	checksum := common.Checksum(buf)
@@ -109,14 +111,16 @@ func ReadMessage(reader io.Reader, magic uint32) (Message, uint32, error) {
 	cmdType := string(bytes.TrimRight(hdr.CMD[:], string(0)))
 	msg, err := MakeEmptyMessage(cmdType)
 	if err != nil {
-		return nil, 0, err
+		//return nil, 0, err
+		return nil, 0, fmt.Errorf("make empty message error, %s", err)
 	}
 
 	// the buf is referenced by msg to avoid reallocation, so can not reused
 	source := common.NewZeroCopySource(buf)
 	err = msg.Deserialization(source)
 	if err != nil {
-		return nil, 0, err
+		//return nil, 0, err
+		return nil, 0, fmt.Errorf("p2p msg Deserialization error, %s", err)
 	}
 
 	return msg, hdr.Length, nil
