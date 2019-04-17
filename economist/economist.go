@@ -37,6 +37,12 @@ type Economist struct {
 	log *logrus.Logger
 }
 
+func mustNoError(err error, val string) {
+	if err != nil {
+		panic(val + " : " + err.Error())
+	}
+}
+
 func New(db iservices.IDatabaseService, noticer EventBus.Bus, singleId *int32, log *logrus.Logger) *Economist {
 	return &Economist{db: db, noticer:noticer, singleId: singleId, log: log}
 }
@@ -148,15 +154,24 @@ func (e *Economist) Mint() {
 		panic("Mint failed when get bp wrap")
 	}
 	// add rewards to bp
-	bpWrap.MdVestingShares(&prototype.Vest{Value: bpWrap.GetVestingShares().Value + bpReward})
+	bpRewardVesting := &prototype.Vest{Value: bpReward}
+	//bpWrap.MdVestingShares(&prototype.Vest{Value: bpWrap.GetVestingShares().Value + bpReward})
+	mustNoError(bpRewardVesting.Add(bpWrap.GetVestingShares()), "bpRewardVesting overflow")
+	bpWrap.MdVestingShares(bpRewardVesting)
 
 	e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
-		props.PostRewards.Value += uint64(postReward)
-		props.ReplyRewards.Value += uint64(replyReward)
-		props.PostDappRewards.Value += uint64(postDappRewards)
-		props.ReplyDappRewards.Value += uint64(replyDappRewards)
-		props.VoterRewards.Value += uint64(voterReward)
-		props.AnnualMinted.Value += blockCurrent
+		//props.PostRewards.Value += uint64(postReward)
+		//props.ReplyRewards.Value += uint64(replyReward)
+		//props.PostDappRewards.Value += uint64(postDappRewards)
+		//props.ReplyDappRewards.Value += uint64(replyDappRewards)
+		//props.VoterRewards.Value += uint64(voterReward)
+		//props.AnnualMinted.Value += blockCurrent
+		mustNoError(props.PostRewards.Add(&prototype.Vest{Value: postReward}), "PostRewards overflow")
+		mustNoError(props.ReplyRewards.Add(&prototype.Vest{Value: replyReward}), "ReplyRewards overflow")
+		mustNoError(props.PostDappRewards.Add(&prototype.Vest{Value: postDappRewards}), "PostDappRewards overflow")
+		mustNoError(props.ReplyDappRewards.Add(&prototype.Vest{Value: replyDappRewards}), "ReplyDappRewards overflow")
+		mustNoError(props.VoterRewards.Add(&prototype.Vest{Value: voterReward}), "VoterRewards overflow")
+		mustNoError(props.AnnualMinted.Add(&prototype.Vest{Value: blockCurrent}), "AnnualMinted overflow")
 	})
 }
 
@@ -324,7 +339,9 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 				e.log.Debugf("beneficiary get account %s failed", name)
 				continue
 			} else {
-				beneficiaryWrap.MdVestingShares(&prototype.Vest{ Value: r + beneficiaryWrap.GetVestingShares().Value})
+				vestingRewards := &prototype.Vest{Value: r}
+				mustNoError(vestingRewards.Add(beneficiaryWrap.GetVestingShares()), "Post Beneficiary VestingRewards Overflow")
+				beneficiaryWrap.MdVestingShares(vestingRewards)
 				spentBeneficiaryReward += r
 				e.noticer.Publish(constants.NoticeCashout, name, post.GetPostId(), r, globalProps.GetHeadBlockNumber())
 			}
@@ -337,7 +354,9 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 			e.log.Debugf("post cashout get account %s failed", author)
 			continue
 		} else {
-			authorWrap.MdVestingShares(&prototype.Vest{ Value: reward + authorWrap.GetVestingShares().Value })
+			vestingRewards := &prototype.Vest{Value: reward}
+			mustNoError(vestingRewards.Add(authorWrap.GetVestingShares()), "Post VestingRewards Overflow")
+			authorWrap.MdVestingShares(vestingRewards)
 		}
 		post.MdCashoutBlockNum(math.MaxUint32)
 		post.MdRewards(&prototype.Vest{Value: reward})
@@ -349,8 +368,10 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 	e.log.Infof("cashout: [post] blockRewards: %d, blockDappRewards: %d, spendPostReward: %d, spendDappReward: %d",
 		blockReward, blockDappReward, spentPostReward, spentDappReward)
 	e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
-		props.PostRewards.Value -= spentPostReward
-		props.PostDappRewards.Value -= spentDappReward
+		//props.PostRewards.Value -= spentPostReward
+		//props.PostDappRewards.Value -= spentDappReward
+		mustNoError(props.PostRewards.Sub(&prototype.Vest{Value: spentPostReward}), "Sub SpentPostReward overflow")
+		mustNoError(props.PostDappRewards.Sub(&prototype.Vest{Value: spentDappReward}), "Sub SpentDappReward overflow")
 	})
 }
 
@@ -407,7 +428,10 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 			if err != nil {
 				e.log.Debugf("beneficiary get account %s failed", name)
 			} else {
-				beneficiaryWrap.MdVestingShares(&prototype.Vest{ Value: r + beneficiaryWrap.GetVestingShares().Value})
+				//beneficiaryWrap.MdVestingShares(&prototype.Vest{ Value: r + beneficiaryWrap.GetVestingShares().Value})
+				vestingRewards := &prototype.Vest{Value: r}
+				mustNoError(vestingRewards.Add(beneficiaryWrap.GetVestingShares()), "Reply Beneficiary VestingRewards Overflow")
+				beneficiaryWrap.MdVestingShares(vestingRewards)
 				spentBeneficiaryReward += r
 				e.noticer.Publish(constants.NoticeCashout, name, reply.GetPostId(), r, globalProps.GetHeadBlockNumber())
 			}
@@ -420,7 +444,10 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 			e.log.Debugf("reply cashout get account %s failed", author)
 			continue
 		} else {
-			authorWrap.MdVestingShares(&prototype.Vest{ Value: reward + authorWrap.GetVestingShares().Value })
+			//authorWrap.MdVestingShares(&prototype.Vest{ Value: reward + authorWrap.GetVestingShares().Value })
+			vestingRewards := &prototype.Vest{Value: reward}
+			mustNoError(vestingRewards.Add(authorWrap.GetVestingShares()), "Reply VestingRewards Overflow")
+			authorWrap.MdVestingShares(vestingRewards)
 		}
 		reply.MdCashoutBlockNum(math.MaxUint32)
 		reply.MdRewards(&prototype.Vest{Value: reward})
@@ -432,8 +459,10 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 	e.log.Infof("cashout: [reply] blockRewards: %d, blockDappRewards: %d, spendPostReward: %d, spendDappReward: %d",
 		blockReward, blockDappReward, spentReplyReward, spentDappReward)
 	e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
-		props.ReplyRewards.Value -= spentReplyReward
-		props.ReplyDappRewards.Value -= spentDappReward
+		//props.ReplyRewards.Value -= spentReplyReward
+		//props.ReplyDappRewards.Value -= spentDappReward
+		mustNoError(props.PostRewards.Sub(&prototype.Vest{Value: spentReplyReward}), "Sub SpentReplyReward overflow")
+		mustNoError(props.PostDappRewards.Sub(&prototype.Vest{Value: spentDappReward}), "Sub SpentDappReward overflow")
 	})
 }
 
@@ -490,8 +519,10 @@ func (e *Economist) PowerDown() {
 		accountWrap.MdHasPowerdown(&prototype.Vest{Value: hasPowerDown})
 		// update total cos and total vesting shares
 		e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
-			props.TotalCos.Value += powerdownQuota
-			props.TotalVestingShares.Value -= powerdownQuota
+			mustNoError(props.TotalCos.Add(&prototype.Coin{Value: powerdownQuota}), "PowerDownQuota Cos Overflow")
+			mustNoError(props.TotalVestingShares.Add(&prototype.Vest{Value: powerdownQuota}), "PowerDownQuota Vest Overflow")
+			//props.TotalCos.Value += powerdownQuota
+			//props.TotalVestingShares.Value -= powerdownQuota
 		})
 		if accountWrap.GetHasPowerdown().Value >= accountWrap.GetToPowerdown().Value || accountWrap.GetVestingShares().Value == 0 {
 			accountWrap.MdEachPowerdownRate(&prototype.Vest{Value: 0})
