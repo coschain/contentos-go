@@ -235,7 +235,6 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 	priKey *prototype.PrivateKeyType, skip prototype.SkipFlag) (b *prototype.SignedBlock, e error) {
 
 	entryTime := time.Now()
-
 	c.db.Lock()
 	defer c.db.Unlock()
 

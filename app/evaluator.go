@@ -4,6 +4,7 @@ import (
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/common/encoding/vme"
+	"github.com/coschain/contentos-go/common/variables"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/vm"
 	"github.com/coschain/contentos-go/vm/context"
@@ -204,7 +205,8 @@ func (ev *PostEvaluator) Apply() {
 		t.Body = op.Content
 		t.Created = ev.ctx.control.HeadBlockTime()
 		//t.CashoutTime = &prototype.TimePointSec{UtcSeconds: ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.PostCashOutDelayTime)}
-		t.CashoutBlockNum = ev.ctx.control.GetProps().HeadBlockNumber + constants.PostCashOutDelayBlock
+		//t.CashoutBlockNum = ev.ctx.control.GetProps().HeadBlockNumber + constants.PostCashOutDelayBlock
+		t.CashoutBlockNum = ev.ctx.control.GetProps().HeadBlockNumber + variables.PostCashOutDelayBlock()
 		t.Depth = 0
 		t.Children = 0
 		t.RootId = t.PostId
@@ -259,7 +261,7 @@ func (ev *ReplyEvaluator) Apply() {
 		t.Body = op.Content
 		t.Created = ev.ctx.control.HeadBlockTime()
 		//t.CashoutTime = &prototype.TimePointSec{UtcSeconds: ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.PostCashOutDelayTime)}
-		t.CashoutBlockNum = ev.ctx.control.GetProps().HeadBlockNumber + constants.PostCashOutDelayBlock
+		t.CashoutBlockNum = ev.ctx.control.GetProps().HeadBlockNumber + variables.PostCashOutDelayBlock()
 		t.Depth = pidWrap.GetDepth() + 1
 		t.Children = 0
 		t.RootId = rootId
@@ -306,11 +308,13 @@ func (ev *VoteEvaluator) Apply() {
 	//	}
 	//}
 
-	regeneratedPower := constants.PERCENT * elapsedSeconds / constants.VoteRegenerateTime
+	// 10000 have chance to overflow
+	// 1000 always ok
+	regeneratedPower := 1000 * elapsedSeconds / constants.VoteRegenerateTime
 	var currentVp uint32
 	votePower := voterWrap.GetVotePower() + regeneratedPower
-	if votePower > constants.PERCENT {
-		currentVp = constants.PERCENT
+	if votePower > 1000{
+		currentVp = 1000
 	} else {
 		currentVp = votePower
 	}
