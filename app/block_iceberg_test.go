@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 	"github.com/coschain/contentos-go/db/storage"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"math/rand"
@@ -26,8 +27,11 @@ func TestBlockIceberg(t *testing.T) {
 	a.NoError(db.Start(nil), "database service start failed")
 	defer db.Stop()
 
+	logger := logrus.New()
+	logger.SetLevel(logrus.DebugLevel)
+
 	// create instance based on an empty db
-	berg := NewBlockIceberg(db)
+	berg := NewBlockIceberg(db, logger)
 	a.NotNil(berg, "iceberg creation failed")
 
 	// only BeginBlock(1) is allowed for an empty db. everything else must returns error.
@@ -147,6 +151,10 @@ func TestBlockIceberg(t *testing.T) {
 	a.Error(berg.RevertBlock(985))
 	a.Error(berg.RevertBlock(800))
 	a.Error(berg.RevertBlock(20))
+	for i := 1; i <= 989; i++ {
+		_, err = db.Get([]byte(fmt.Sprintf("k%d", i)))
+		a.NoErrorf(err, "k%d should not be touched during block finalizations", i)
+	}
 
 	a.NoError(berg.RevertBlock(986))
 	n, err = berg.LastFinalizedBlock()
@@ -162,7 +170,7 @@ func TestBlockIceberg(t *testing.T) {
 	// re-create block iceberg
 	a.NoError(db.Stop())
 	a.NoError(db.Start(nil))
-	berg = NewBlockIceberg(db)
+	berg = NewBlockIceberg(db, logger)
 	a.NotNil(berg)
 
 	// check latest & finalized block number

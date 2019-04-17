@@ -88,9 +88,7 @@ func makeCreateAccountOP(accountName string, pubKey string) (*prototype.AccountC
 		Fee:            prototype.NewCoin(1),
 		Creator:        &prototype.AccountName{Value: constants.COSInitMiner},
 		NewAccountName: &prototype.AccountName{Value: accountName},
-		Owner: &prototype.Authority{
-			Key:    pub,
-		},
+		Owner:          pub,
 	}
 
 	return acop, nil
