@@ -94,7 +94,8 @@ func (e *Economist) CalculateBudget(ith uint32) uint64 {
 }
 
 func (e *Economist) CalculatePerBlockBudget(annalBudget uint64) uint64 {
-	return annalBudget / (86400 / 3 * 365)
+	//return annalBudget / (86400 / 3 * 365)
+	return annalBudget / (86400 / constants.BlockInterval * 365)
 }
 
 func (e *Economist) Mint() {
@@ -461,8 +462,8 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 	e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
 		//props.ReplyRewards.Value -= spentReplyReward
 		//props.ReplyDappRewards.Value -= spentDappReward
-		mustNoError(props.PostRewards.Sub(&prototype.Vest{Value: spentReplyReward}), "Sub SpentReplyReward overflow")
-		mustNoError(props.PostDappRewards.Sub(&prototype.Vest{Value: spentDappReward}), "Sub SpentDappReward overflow")
+		mustNoError(props.ReplyRewards.Sub(&prototype.Vest{Value: spentReplyReward}), "Sub SpentReplyReward overflow")
+		mustNoError(props.ReplyDappRewards.Sub(&prototype.Vest{Value: spentDappReward}), "Sub SpentDappReward overflow")
 	})
 }
 
@@ -520,7 +521,7 @@ func (e *Economist) PowerDown() {
 		// update total cos and total vesting shares
 		e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
 			mustNoError(props.TotalCos.Add(&prototype.Coin{Value: powerdownQuota}), "PowerDownQuota Cos Overflow")
-			mustNoError(props.TotalVestingShares.Add(&prototype.Vest{Value: powerdownQuota}), "PowerDownQuota Vest Overflow")
+			mustNoError(props.TotalVestingShares.Sub(&prototype.Vest{Value: powerdownQuota}), "PowerDownQuota Vest Overflow")
 			//props.TotalCos.Value += powerdownQuota
 			//props.TotalVestingShares.Value -= powerdownQuota
 		})
