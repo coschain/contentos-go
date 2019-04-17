@@ -292,7 +292,6 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 	for _, post := range posts {
 		vpAccumulator += post.GetWeightedVp()
 	}
-	bigVpAccumulator := new(big.Int).SetUint64(vpAccumulator)
 	bigBlockRewards := new(big.Int).SetUint64(blockReward)
 	bigBlockDappReward := new(big.Int).SetUint64(blockDappReward)
 	e.log.Debugf("current block post total vp:%d, global vp:%d", vpAccumulator, globalProps.PostWeightedVps)
@@ -305,6 +304,7 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 		var beneficiaryReward uint64 = 0
 		// divide zero exception
 		if vpAccumulator > 0 {
+			bigVpAccumulator := new(big.Int).SetUint64(vpAccumulator)
 			//reward = post.GetWeightedVp() * blockReward / vpAccumulator
 			//beneficiaryReward = post.GetWeightedVp() * blockDappReward / vpAccumulator
 			//spentPostReward += reward
@@ -387,7 +387,6 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 	for _, reply := range replies {
 		vpAccumulator += ISqrt(reply.GetWeightedVp())
 	}
-	bigVpAccumulator := new(big.Int).SetUint64(vpAccumulator)
 	bigBlockRewards := new(big.Int).SetUint64(blockReward)
 	bigBlockDappReward := new(big.Int).SetUint64(blockDappReward)
 	e.log.Debugf("current block reply total vp:%d, global vp:%d", vpAccumulator, globalProps.ReplyWeightedVps)
@@ -401,6 +400,7 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 		//var voterReward uint64 = 0
 		// divide zero exception
 		if vpAccumulator > 0 {
+			bigVpAccumulator := new(big.Int).SetUint64(vpAccumulator)
 			weightedVp := ISqrt(reply.GetWeightedVp())
 			bigWeightedVp := new(big.Int).SetUint64(weightedVp)
 			bigRewardMul := new(big.Int).Mul(bigWeightedVp,  bigBlockRewards)
