@@ -101,6 +101,7 @@ func (this *Link) Rx(magic uint32) {
 	for {
 		msg, payloadSize, err := types.ReadMessage(reader, magic)
 		if err != nil {
+			fmt.Println("read msg error: ", err)
 			break
 		}
 
@@ -181,7 +182,7 @@ func (this *Link) Tx(msg types.Message, magic uint32) error {
 	_, err = conn.Write(payload)
 	if err != nil {
 		this.disconnectNotify()
-		return errors.New( fmt.Sprintf("[p2p] error sending messge to %s :%s", this.GetAddr(), err.Error()) )
+		return errors.New( fmt.Sprintf("[p2p] socket buffer write too much time, error sending messge to %s :%s", this.GetAddr(), err.Error()) )
 	}
 
 	return nil
