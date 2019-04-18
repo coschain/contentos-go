@@ -1,6 +1,6 @@
 type                     ,pName         ,mKey,unique,sort,reverseSort,importPath
 prototype.account_name   ,name          ,1   ,1     ,0   ,0          ,prototype/type.proto
-prototype.time_point_sec ,created_time  ,0   ,0     ,1   ,0          ,prototype/type.proto
+prototype.time_point_sec ,created_time  ,0   ,0     ,1   ,1          ,prototype/type.proto
 prototype.account_name   ,creator       ,0   ,0     ,0   ,0          ,prototype/type.proto
 prototype.coin           ,balance       ,0   ,0     ,1   ,1          ,prototype/type.proto
 prototype.vest           ,vesting_shares,0   ,0     ,1   ,0          ,prototype/type.proto

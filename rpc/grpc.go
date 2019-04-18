@@ -514,6 +514,41 @@ func (as *APIService) GetAccountListByBalance(ctx context.Context, req *grpcpb.G
 	return res, err
 }
 
+func (as *APIService) GetAccountListByCreTime (ctx context.Context, req *grpcpb.GetAccountListByCreTimeRequest) (*grpcpb.GetAccountListResponse, error) {
+	as.db.RLock()
+	defer as.db.RUnlock()
+
+	sortWrap := table.NewAccountCreatedTimeWrap(as.db)
+	res := &grpcpb.GetAccountListResponse{}
+	var (
+		err error
+	    list []*grpcpb.AccountResponse
+		lastAcctName *prototype.AccountName
+		lastAcctTime *prototype.TimePointSec
+	)
+	if req.LastAccount != nil {
+		lastAcctName = req.LastAccount.AccountName
+		lastAcctTime = req.LastAccount.CreatedTime
+	}
+	limit := checkLimit(req.Limit)
+	if limit == 0 {
+		limit = uint32(defaultPageSizeLimit)
+	}
+	err = sortWrap.ForEachByRevOrder(req.Start, req.End, lastAcctName,lastAcctTime, func(mVal *prototype.AccountName, sVal *prototype.TimePointSec, idx uint32) bool {
+		acct := as.getAccountResponseByName(mVal,false)
+		if acct != nil {
+			list = append(list, acct)
+		}
+		if uint32(len(list)) >= limit {
+			return false
+		}
+		return true
+	})
+	res.List = list
+	
+	return res,err
+}
+
 func checkLimit(limit uint32) uint32 {
 	if limit <= constants.RpcPageSizeLimit {
 		return limit

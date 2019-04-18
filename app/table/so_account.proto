@@ -159,3 +159,9 @@ message so_list_account_by_next_powerdown_block_num {
 message so_unique_account_by_name {
 	prototype.account_name   	name           = 1;
 }
+
+
+message so_unique_account_by_owner {
+	prototype.public_key_type  	owner                = 1;
+	prototype.account_name   	name           = 2;
+}
