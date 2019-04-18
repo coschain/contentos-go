@@ -127,6 +127,11 @@ func (ev *AccountCreateEvaluator) Apply() {
 
 	opAssert(creatorWrap.GetBalance().Value >= op.Fee.Value, "Insufficient balance to create account.")
 
+	// TODO temp fix for db bug
+	if op.NewAccountName.Value == "w972474523"{
+		return
+	}
+
 	// sub creator's fee
 	originBalance := creatorWrap.GetBalance()
 	opAssertE(originBalance.Sub(op.Fee), "creator balance overflow")
