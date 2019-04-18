@@ -586,7 +586,6 @@ func (p *MsgHandler)IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...
 		}
 
 		var startBlockId common.BlockID
-		var startBlockIdBeenSet = false
 		s, err := p2p.GetService(iservices.ConsensusServerName)
 		if err != nil {
 			log.Error("[p2p] can't get other service, service name: ", iservices.ConsensusServerName)
@@ -606,10 +605,6 @@ func (p *MsgHandler)IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...
 				continue
 			}
 
-			if !startBlockIdBeenSet {
-				copy(startBlockId.Data[:], id)
-				startBlockIdBeenSet = true
-			}
 
 			IsigBlk, err := ctrl.FetchBlock(blkId)
 			if err != nil {
@@ -617,6 +612,8 @@ func (p *MsgHandler)IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...
 				return
 			}
 			sigBlk := IsigBlk.(*prototype.SignedBlock)
+
+			copy(startBlockId.Data[:], id)
 
 			msg := msgpack.NewSigBlk(sigBlk)
 			err = p2p.Send(remotePeer, msg, false)
