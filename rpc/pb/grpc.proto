@@ -94,6 +94,9 @@ service ApiService {
     
     rpc GetBlkIsIrreversibleByTxId (GetBlkIsIrreversibleByTxIdRequest) returns (GetBlkIsIrreversibleByTxIdResponse) {
     }
+
+    rpc GetAccountListByCreTime (GetAccountListByCreTimeRequest) returns (GetAccountListResponse) {
+    }
 }
 
 
@@ -481,4 +484,11 @@ message GetBlkIsIrreversibleByTxIdRequest {
 
 message GetBlkIsIrreversibleByTxIdResponse {  
     bool       result   = 1;
+}
+
+message GetAccountListByCreTimeRequest {
+    prototype.time_point_sec   start     = 1;
+    prototype.time_point_sec   end       = 2;
+    AccountInfo  last_account = 3;
+    uint32           limit     = 4;
 }
