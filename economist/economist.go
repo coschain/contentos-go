@@ -23,16 +23,16 @@ func Min(x, y uint64) uint64 {
 	}
 }
 
-func ISqrt(n uint64) uint64 {
-	if n == 0 {
-		return 0
-	}
-	var r1, r uint64 = n, n + 1
-	for r1 < r {
-		r, r1 = r1, (r1+n/r1)>>1
-	}
-	return r
-}
+//func ISqrt(n uint64) uint64 {
+//	if n == 0 {
+//		return 0
+//	}
+//	var r1, r uint64 = n, n + 1
+//	for r1 < r {
+//		r, r1 = r1, (r1+n/r1)>>1
+//	}
+//	return r
+//}
 
 type Economist struct {
 	db       iservices.IDatabaseService
@@ -106,6 +106,13 @@ func (e *Economist) Mint() {
 	//blockCurrent := constants.PerBlockCurrent
 	//t0 := time.Now()
 	globalProps, err := e.GetProps()
+	//p := map[string]uint64{"block": globalProps.GetHeadBlockNumber(), "minted": globalProps.GetAnnualMinted().Value,
+	//	"post_rewards": globalProps.GetPostRewards().Value, "reply_rewards": globalProps.GetReplyRewards().Value,
+	//	"post_dapp_rewards": globalProps.GetPostDappRewards().Value, "reply_dapp_rewards": globalProps.GetReplyDappRewards().Value,
+	//	"voter_rewards": globalProps.GetVoterRewards().Value, "post_vp": globalProps.GetPostWeightedVps(),
+	//	"reply_vp": globalProps.GetReplyWeightedVps()}
+	//jsonData, _ := json.Marshal(p)
+	//e.log.Info("globalProps", string(jsonData))
 	if err != nil {
 		panic("Mint failed when getprops")
 	}
@@ -131,7 +138,6 @@ func (e *Economist) Mint() {
 		})
 	}
 
-	// it is impossible
 	if globalProps.GetAnnualBudget().Value <= globalProps.GetAnnualMinted().Value {
 		blockCurrent = 0
 		e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
@@ -215,7 +221,8 @@ func (e *Economist) Do() {
 		} else {
 			replies = append(replies, post)
 			//replyVpAccumulator += uint64(math.Ceil(math.Sqrt(float64(post.GetWeightedVp()))))
-			replyVpAccumulator += ISqrt(post.GetWeightedVp())
+			//replyVpAccumulator += ISqrt(post.GetWeightedVp())
+			replyVpAccumulator += post.GetWeightedVp()
 		}
 	}
 	e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
@@ -388,7 +395,8 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 	}
 	var vpAccumulator uint64 = 0
 	for _, reply := range replies {
-		vpAccumulator += ISqrt(reply.GetWeightedVp())
+		//vpAccumulator += ISqrt(reply.GetWeightedVp())
+		vpAccumulator += reply.GetWeightedVp()
 	}
 	bigBlockRewards := new(big.Int).SetUint64(blockReward)
 	bigBlockDappReward := new(big.Int).SetUint64(blockDappReward)
@@ -404,7 +412,8 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 		// divide zero exception
 		if vpAccumulator > 0 {
 			bigVpAccumulator := new(big.Int).SetUint64(vpAccumulator)
-			weightedVp := ISqrt(reply.GetWeightedVp())
+			//weightedVp := ISqrt(reply.GetWeightedVp())
+			weightedVp := reply.GetWeightedVp()
 			bigWeightedVp := new(big.Int).SetUint64(weightedVp)
 			bigRewardMul := new(big.Int).Mul(bigWeightedVp,  bigBlockRewards)
 			reward = new(big.Int).Div(bigRewardMul, bigVpAccumulator).Uint64()
