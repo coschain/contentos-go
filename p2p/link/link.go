@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"math/rand"
 	"net"
 	"time"
 
@@ -162,7 +161,7 @@ func (this *Link) Tx(msg types.Message, magic uint32) error {
 
 	// TODO just for test,should be deleted when test is done
 	// **********************************
-	//sleepRandomTime()
+	sleepRandomTime()
 	// **********************************
 
 	sink := common.NewZeroCopySink(nil)
@@ -191,9 +190,9 @@ func (this *Link) Tx(msg types.Message, magic uint32) error {
 }
 
 func sleepRandomTime() {
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	delay := 500 + r.Intn(501)
-	time.Sleep( time.Duration(delay) * time.Millisecond )
+	//r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	//delay := 500 + r.Intn(501)
+	time.Sleep( 150 * time.Millisecond )
 }
 
 //needSendMsg check whether the msg is needed to push to channel
