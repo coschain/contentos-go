@@ -459,7 +459,7 @@ func (ev *ConvertVestingEvaluator) Apply() {
 	globalProps := ev.ctx.control.GetProps()
 	//timestamp := globalProps.Time.UtcSeconds
 	currentBlock := globalProps.HeadBlockNumber
-	eachRate := op.Amount.Value / constants.ConvertWeeks
+	eachRate := op.Amount.Value / (constants.ConvertWeeks - 1)
 	//accWrap.MdNextPowerdownTime(&prototype.TimePointSec{UtcSeconds: timestamp + constants.POWER_DOWN_INTERVAL})
 	accWrap.MdNextPowerdownBlockNum(currentBlock + constants.PowerDownBlockInterval)
 	accWrap.MdEachPowerdownRate(&prototype.Vest{Value: eachRate})
