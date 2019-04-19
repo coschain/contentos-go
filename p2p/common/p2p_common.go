@@ -81,6 +81,8 @@ const (
 	BloomFilterOfRecvTrxArgK      = 10         // bloom filter hash func num
 
 	MAX_ID_LENGTH = 50   // max id length in require id ack message
+
+	SpeedLimit = 100 * 1024
 )
 
 //ParseIPAddr return ip address

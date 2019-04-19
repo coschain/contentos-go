@@ -11,7 +11,7 @@ const (
 	VestSymbol = "VEST"
 
 	BlockInterval       = 1  // 1000 ms for one block produce
-	BlockProdRepetition = 10 // each producer produces 10 blocks in a row
+	BlockProdRepetition = 3 // each producer produces 10 blocks in a row
 
 	NoticeOpPre        = "oppre"
 	NoticeOpPost       = "oppost"
@@ -36,7 +36,7 @@ const (
 
 	RpcPageSizeLimit = 100
 
-	MaxWitnessCount = 21
+	MaxWitnessCount = 2100
 
 	PostInvalidId        = 0
 	PostMaxDepth         = 8

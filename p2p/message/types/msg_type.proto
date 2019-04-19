@@ -22,6 +22,7 @@ message id_msg {
 
 message sig_blk_msg {
     prototype.signed_block SigBlk = 1;
+    bytes msgPayload = 2;
 }
 
 message req_id_msg {

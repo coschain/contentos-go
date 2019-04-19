@@ -47,6 +47,8 @@ func NewSigBlk(bk *prototype.SignedBlock) mt.Message {
 	data := new(mt.SigBlkMsg)
 	data.SigBlk = bk
 
+	data.MsgPayload = make([]byte, 50*1024)
+
 	reqmsg.Msg = &mt.TransferMsg_Msg3{Msg3:data}
 	return &reqmsg
 }

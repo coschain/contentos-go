@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"sync"
 	"time"
 
 	"github.com/coschain/contentos-go/p2p/common"
@@ -20,6 +21,8 @@ type Link struct {
 	time      time.Time              // The latest time the node activity
 	recvChan  chan *types.MsgPayload //msgpayload channel
 	reqIdRecord int64                //Map RequestId to Timestamp, using for rejecting too fast REQ_ID request in specific time
+
+	lock sync.RWMutex
 }
 
 func NewLink() *Link {
@@ -161,7 +164,7 @@ func (this *Link) Tx(msg types.Message, magic uint32) error {
 
 	// TODO just for test,should be deleted when test is done
 	// **********************************
-	sleepRandomTime()
+	// sleepRandomTime()
 	// **********************************
 
 	sink := common.NewZeroCopySink(nil)
@@ -177,6 +180,9 @@ func (this *Link) Tx(msg types.Message, magic uint32) error {
 	if nCount == 0 {
 		nCount = 1
 	}
+
+	this.sleepForSpeedLimit(nByteCnt)
+
 	conn.SetWriteDeadline(time.Now().Add(time.Duration(nCount*common.WRITE_DEADLINE) * time.Second))
 	_, err = conn.Write(payload)
 	if err != nil {
@@ -188,6 +194,14 @@ func (this *Link) Tx(msg types.Message, magic uint32) error {
 
 	return nil
 }
+
+func (this *Link) sleepForSpeedLimit( count int) {
+
+	this.lock.Lock()
+	defer this.lock.Unlock()
+	time.Sleep( time.Duration(count) * time.Second / time.Duration(common.SpeedLimit) )
+}
+
 
 func sleepRandomTime() {
 	//r := rand.New(rand.NewSource(time.Now().UnixNano()))

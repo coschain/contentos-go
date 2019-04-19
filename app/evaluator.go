@@ -358,7 +358,7 @@ func (ev *BpRegisterEvaluator) BpInWhiteList(bpName string) bool {
 func (ev *BpRegisterEvaluator) Apply() {
 	op := ev.op
 
-	opAssert(ev.BpInWhiteList(op.Owner.Value), "bp name not in white list")
+	//opAssert(ev.BpInWhiteList(op.Owner.Value), "bp name not in white list")
 
 	witnessWrap := table.NewSoWitnessWrap(ev.ctx.db, op.Owner)
 

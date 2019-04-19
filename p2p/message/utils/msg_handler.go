@@ -615,12 +615,11 @@ func (p *MsgHandler)IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...
 
 			copy(startBlockId.Data[:], id)
 
-			// **********************************
-			// mock big block size
+			//**********************************
+			//mock big block size
 			//blockSize  := 1024 * 50     // byte length of a block
-			//speedLimit := 1024 * 1024   // byte length socket per second can send
 			//
-			//timeToSleep := blockSize * 1000 / speedLimit
+			//timeToSleep := blockSize * 1000 / msgCommon.SpeedLimit
 			//log.Info(timeToSleep, " Millisecond to sleep before send a block")
 			//time.Sleep( time.Duration(timeToSleep) * time.Millisecond )
 			// **********************************
