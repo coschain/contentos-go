@@ -146,6 +146,7 @@ func (s *DatabaseService) BeginTransactionWithTag(tag string) {
 }
 
 func (s *DatabaseService) Squash(tag string) error {
+	s.rdb.PresetTag(tag)
 	return s.tdb.Squash(tag)
 }
 

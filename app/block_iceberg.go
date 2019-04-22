@@ -213,11 +213,6 @@ func (b *BlockIceberg) FinalizeBlock(blockNum uint64) error {
 		if err != nil {
 			b.log.Errorf("ICEBERG: FinalizeBlock %d Squash(%s) error: %s", blockNum, tag, err.Error())
 		}
-		cr := b.db.GetRevision()
-		err = b.db.TagRevision(cr, tag)
-		if err != nil {
-			b.log.Errorf("ICEBERG: FinalizeBlock %d TagRevision(%d, %s) error: %s", blockNum, cr, tag, err.Error())
-		}
 		err = b.db.EnableReversion(true)
 		if err != nil {
 			b.log.Errorf("ICEBERG: FinalizeBlock %d EnableReversion(true) error: %s", blockNum, err.Error())
@@ -239,11 +234,6 @@ func (b *BlockIceberg) sink(blocks uint64) {
 		err := b.db.Squash(tag)
 		if err != nil {
 			b.log.Errorf("ICEBERG: sink %d block(s), Squash(%s) error: %s", blocks, tag, err.Error())
-		}
-		cr := b.db.GetRevision()
-		err = b.db.TagRevision(cr, tag)
-		if err != nil{
-			b.log.Errorf("ICEBERG: sink %d block(s), TagRevision(%d, %s) error: %s", blocks, cr, tag, err.Error())
 		}
 		b.seaLevel++
 		num++
