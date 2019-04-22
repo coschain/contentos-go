@@ -131,7 +131,7 @@ func TestVerifySig(t *testing.T) {
 
 	res := strx.Sign(sigKey, cid)
 
-	strx.Signature =  &SignatureType{Sig: res}
+	strx.Signatures = append(strx.Signatures, &SignatureType{Sig: res})
 
 	fmt.Println("sign result: ", res, ": len: ", len(res))
 

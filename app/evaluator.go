@@ -128,6 +128,12 @@ func (ev *AccountCreateEvaluator) Apply() {
 
 	mustSuccess(creatorWrap.GetBalance().Value >= op.Fee.Value, "Insufficient balance to create account.", prototype.StatusErrorTrxValueCompare)
 
+	// check auth accounts
+	for _, a := range op.Owner.AccountAuths {
+		tmpAccountWrap := table.NewSoAccountWrap(ev.ctx.db, a.Name)
+		mustSuccess(tmpAccountWrap.CheckExist(), "owner auth account not exist", prototype.StatusErrorDbExist)
+	}
+
 	// sub creator's fee
 	originBalance := creatorWrap.GetBalance()
 	mustNoError(originBalance.Sub(op.Fee), "creator balance overflow", prototype.StatusErrorTrxMath)

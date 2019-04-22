@@ -14,13 +14,15 @@ import (
 )
 
 
-func GenerateSignedTxAndValidate2(client grpcpb.ApiServiceClient, ops []interface{}, signers *wallet.PrivAccount) (*prototype.SignedTransaction, error) {
-	privKey := &prototype.PrivateKeyType{}
-	pk, err := prototype.PrivateKeyFromWIF(signers.PrivKey)
-	if err != nil {
-		return nil, err
+func GenerateSignedTxAndValidate2(client grpcpb.ApiServiceClient, ops []interface{}, signers ...*wallet.PrivAccount) (*prototype.SignedTransaction, error) {
+	privKeys := []*prototype.PrivateKeyType{}
+	for _, acc := range signers {
+		privKey, err := prototype.PrivateKeyFromWIF(acc.PrivKey)
+		if err != nil {
+			return nil, err
+		}
+		privKeys = append(privKeys, privKey)
 	}
-	privKey = pk
 
 	req := &grpcpb.NonParamsRequest{}
 	resp, err := client.GetStatInfo(context.Background(), req)
@@ -36,9 +38,10 @@ func GenerateSignedTxAndValidate2(client grpcpb.ApiServiceClient, ops []interfac
 	}
 
 	signTx := prototype.SignedTransaction{Trx: tx}
-
-	res := signTx.Sign(privKey, prototype.ChainId{Value: 0})
-	signTx.Signature = &prototype.SignatureType{Sig: res}
+	for _, privkey := range privKeys {
+		res := signTx.Sign(privkey, prototype.ChainId{Value: 0})
+		signTx.Signatures = append(signTx.Signatures, &prototype.SignatureType{Sig: res})
+	}
 
 	if err := signTx.Validate(); err != nil {
 		return nil, err

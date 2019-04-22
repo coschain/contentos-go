@@ -11,37 +11,39 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (p *SignedTransaction) ExportPubKeys(cid ChainId) (*PublicKeyType, error) {
+func (p *SignedTransaction) ExportPubKeys(cid ChainId) ([]*PublicKeyType, error) {
 	buf, err := p.GetTrxHash(cid)
 
 	if err != nil {
 		return nil, errors.New("sha256 error")
 	}
 
-	if p.Signature == nil {
+	if len(p.Signatures) == 0 {
 		return nil, errors.New("no signatures")
 	}
 
-	result := &PublicKeyType{}
+	result := make([]*PublicKeyType, len(p.Signatures))
 
-	buffer, err := secp256k1.RecoverPubkey(buf, p.Signature.Sig)
+	for index, sig := range p.Signatures {
+		buffer, err := secp256k1.RecoverPubkey(buf, sig.Sig)
 
-	if err != nil {
-		return nil, errors.New("recover error")
+		if err != nil {
+			return nil, errors.New("recover error")
+		}
+
+		ecPubKey, err := crypto.UnmarshalPubkey(buffer)
+		if err != nil {
+			return nil, errors.New("recover error")
+		}
+
+		result[index] = PublicKeyFromBytes(secp256k1.CompressPubkey(ecPubKey.X, ecPubKey.Y))
 	}
-
-	ecPubKey, err := crypto.UnmarshalPubkey(buffer)
-	if err != nil {
-		return nil, errors.New("recover error")
-	}
-
-	result = PublicKeyFromBytes(secp256k1.CompressPubkey(ecPubKey.X, ecPubKey.Y))
 
 	return result, nil
 }
 
 func (p *SignedTransaction) Validate() error {
-	if p == nil || p.Trx == nil || p.Signature == nil {
+	if p == nil || p.Trx == nil || p.Signatures == nil {
 		return ErrNpe
 	}
 
@@ -49,10 +51,14 @@ func (p *SignedTransaction) Validate() error {
 		return err
 	}
 
-	if err := p.Signature.Validate(); err != nil {
-		return errors.WithMessage(err, fmt.Sprintf("Signature error"))
+	if len(p.Signatures) == 0 {
+		return errors.New("no signatures")
 	}
-
+	for index, sig := range p.Signatures {
+		if err := sig.Validate(); err != nil {
+			return errors.WithMessage(err, fmt.Sprintf("Signatures error index: %d", index))
+		}
+	}
 	return nil
 }
 
@@ -64,12 +70,14 @@ func (p *SignedTransaction) VerifySig(pubKey *PublicKeyType, cid ChainId) bool {
 		return false
 	}
 
-	//
-	// sig.Sig[64] is the recovery id, which is useful only in case of public key recovery.
-	// it's not needed by standard ECDSA verification.
-	//
-	if secp256k1.VerifySignature(pubKey.Data, buf, p.Signature.Sig[0:64]) {
-		return true
+	for _, sig := range p.Signatures {
+		//
+		// sig.Sig[64] is the recovery id, which is useful only in case of public key recovery.
+		// it's not needed by standard ECDSA verification.
+		//
+		if secp256k1.VerifySignature(pubKey.Data, buf, sig.Sig[0:64]) {
+			return true
+		}
 	}
 
 	return false

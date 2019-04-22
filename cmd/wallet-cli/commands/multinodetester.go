@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 	"github.com/coschain/cobra"
-	//"github.com/coschain/contentos-go/common/constants"
+	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/rpc/pb"
 	"strconv"
-	//"time"
+	"time"
 )
 
 var MultinodetesterCmd = func() *cobra.Command {
@@ -23,8 +23,7 @@ var MultinodetesterCmd = func() *cobra.Command {
 }
 
 func makeMultiNodeTeseterTrx(count int64, onlyCreate bool) (*prototype.SignedTransaction, error) {
-	return nil,nil
-/*
+
 	priKeys := make([]*prototype.PrivateKeyType, 0)
 
 	tx := &prototype.Transaction{RefBlockNum: 0, RefBlockPrefix: 0, Expiration: &prototype.TimePointSec{UtcSeconds: uint32(time.Now().Unix()) + 30}}
@@ -95,7 +94,7 @@ func makeMultiNodeTeseterTrx(count int64, onlyCreate bool) (*prototype.SignedTra
 	if err := trx.Validate(); err != nil {
 		return nil, err
 	}
-	return trx, nil*/
+	return trx, nil
 }
 
 func multinodetester(cmd *cobra.Command, args []string) {

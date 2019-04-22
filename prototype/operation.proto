@@ -6,6 +6,7 @@ option go_package = "github.com/coschain/contentos-go/prototype";
 
 import "prototype/type.proto";
 
+
 message account_create_operation{
     coin fee = 1;
     account_name creator = 2;

@@ -1828,7 +1828,6 @@ type ApiServiceClient interface {
 	GetStatInfo(ctx context.Context, in *NonParamsRequest, opts ...grpc.CallOption) (*GetStatResponse, error)
 	BroadcastTrx(ctx context.Context, in *BroadcastTrxRequest, opts ...grpc.CallOption) (*BroadcastTrxResponse, error)
 	GetBlockList(ctx context.Context, in *GetBlockListRequest, opts ...grpc.CallOption) (*GetBlockListResponse, error)
-	GetAccountListByBalance(ctx context.Context, in *NonParamsRequest, opts ...grpc.CallOption) (*GetAccountListResponse, error)
 }
 
 type apiServiceClient struct {
@@ -1974,15 +1973,6 @@ func (c *apiServiceClient) GetBlockList(ctx context.Context, in *GetBlockListReq
 	return out, nil
 }
 
-func (c *apiServiceClient) GetAccountListByBalance(ctx context.Context, in *NonParamsRequest, opts ...grpc.CallOption) (*GetAccountListResponse, error) {
-	out := new(GetAccountListResponse)
-	err := c.cc.Invoke(ctx, "/grpcpb.ApiService/GetAccountListByBalance", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // ApiServiceServer is the server API for ApiService service.
 type ApiServiceServer interface {
 	QueryTableContent(context.Context, *GetTableContentRequest) (*TableContentResponse, error)
@@ -2000,7 +1990,6 @@ type ApiServiceServer interface {
 	GetStatInfo(context.Context, *NonParamsRequest) (*GetStatResponse, error)
 	BroadcastTrx(context.Context, *BroadcastTrxRequest) (*BroadcastTrxResponse, error)
 	GetBlockList(context.Context, *GetBlockListRequest) (*GetBlockListResponse, error)
-	GetAccountListByBalance(context.Context, *NonParamsRequest) (*GetAccountListResponse, error)
 }
 
 func RegisterApiServiceServer(s *grpc.Server, srv ApiServiceServer) {
@@ -2277,24 +2266,6 @@ func _ApiService_GetBlockList_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ApiService_GetAccountListByBalance_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(NonParamsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ApiServiceServer).GetAccountListByBalance(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/grpcpb.ApiService/GetAccountListByBalance",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ApiServiceServer).GetAccountListByBalance(ctx, req.(*NonParamsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 var _ApiService_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "grpcpb.ApiService",
 	HandlerType: (*ApiServiceServer)(nil),
@@ -2358,10 +2329,6 @@ var _ApiService_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetBlockList",
 			Handler:    _ApiService_GetBlockList_Handler,
-		},
-		{
-			MethodName: "GetAccountListByBalance",
-			Handler:    _ApiService_GetAccountListByBalance_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

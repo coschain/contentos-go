@@ -28,8 +28,22 @@ message private_key_type{
     bytes data = 1;
 }
 
-message authority{
+message kv_account_auth{
+    account_name name = 1;
+    uint32 weight = 2;
+}
+
+message kv_key_auth{
     public_key_type key = 1;
+    uint32 weight = 2;
+}
+
+message authority{
+    uint32 weight_threshold = 2;
+    repeated kv_account_auth account_auths = 3;
+    repeated kv_key_auth key_auths = 4;
+    //map<namex, uint32> account_auths = 2;
+    // map<public_key_type, uint32> key_auths = 3;
 }
 
 message time_point_sec{

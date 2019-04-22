@@ -33,11 +33,11 @@ func NewTrxContext(wrapper *prototype.TransactionWrapper, db iservices.IDatabase
 }
 
 func (p *TrxContext) InitSigState(cid prototype.ChainId) error {
-	pub, err := p.Wrapper.SigTrx.ExportPubKeys(cid)
+	pubs, err := p.Wrapper.SigTrx.ExportPubKeys(cid)
 	if err != nil {
 		return err
 	}
-	p.recoverPubs = append(p.recoverPubs, pub)
+	p.recoverPubs = append(p.recoverPubs, pubs...)
 	return nil
 }
 
@@ -181,7 +181,7 @@ func (p *TrxContext) RecordGasFee(caller string, spent uint64) {
 		newSpent := v.raw + spent
 		p.gasMap[caller].raw = newSpent
 	} else {
-		p.gasMap[caller] = &resourceUnit{}
+		p.netMap[caller] = &resourceUnit{}
 		p.gasMap[caller].raw = spent
 	}
 }
@@ -245,7 +245,7 @@ func obtainKeyMap(ops []*prototype.Operation) map[string]bool {
 		baseOp := prototype.GetBaseOperation(op)
 
 		//baseOp.GetAuthorities(&other)
-		baseOp.GetSigner(&keyMaps)
+		baseOp.GetRequiredOwner(&keyMaps)
 	}
 	return keyMaps
 }

@@ -1,5 +1,5 @@
 package prototype
-func (m *StakeOperation) GetSigner(auths *map[string]bool) {
+func (m *StakeOperation) GetRequiredOwner(auths *map[string]bool) {
 	(*auths)[m.Account.Value] = true
 }
 

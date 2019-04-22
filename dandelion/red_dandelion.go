@@ -201,7 +201,7 @@ func (d *RedDandelion) Sign(privKeyStr string, ops ...interface{}) (*prototype.S
 	}
 	signTx := prototype.SignedTransaction{Trx: tx}
 	res := signTx.Sign(privKey, prototype.ChainId{Value: 0})
-	signTx.Signature = &prototype.SignatureType{Sig: res}
+	signTx.Signatures = append(signTx.Signatures, &prototype.SignatureType{Sig: res})
 	if err := signTx.Validate(); err != nil {
 		d.logger.Error("error:", err)
 		return nil, err

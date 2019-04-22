@@ -7,15 +7,15 @@ import (
 	"time"
 )
 
-func GenerateSignedTxAndValidate(ops []interface{}, signer *wallet.PrivAccount) (*prototype.SignedTransaction, error) {
-	privKey := &prototype.PrivateKeyType{}
-
-	pk, err := prototype.PrivateKeyFromWIF(signer.PrivKey)
-	if err != nil {
-		return nil, err
+func GenerateSignedTxAndValidate(ops []interface{}, signers ...*wallet.PrivAccount) (*prototype.SignedTransaction, error) {
+	privKeys := []*prototype.PrivateKeyType{}
+	for _, acc := range signers {
+		privKey, err := prototype.PrivateKeyFromWIF(acc.PrivKey)
+		if err != nil {
+			return nil, err
+		}
+		privKeys = append(privKeys, privKey)
 	}
-	privKey = pk
-
 	// occupant implement
 	tx := &prototype.Transaction{RefBlockNum: 0, RefBlockPrefix: 0, Expiration: &prototype.TimePointSec{UtcSeconds: uint32(time.Now().Unix()) + constants.TrxMaxExpirationTime}}
 	for _, op := range ops {
@@ -23,10 +23,10 @@ func GenerateSignedTxAndValidate(ops []interface{}, signer *wallet.PrivAccount) 
 	}
 
 	signTx := prototype.SignedTransaction{Trx: tx}
-
-	res := signTx.Sign(privKey, prototype.ChainId{Value: 0})
-	signTx.Signature = &prototype.SignatureType{Sig: res}
-
+	for _, privkey := range privKeys {
+		res := signTx.Sign(privkey, prototype.ChainId{Value: 0})
+		signTx.Signatures = append(signTx.Signatures, &prototype.SignatureType{Sig: res})
+	}
 
 	if err := signTx.Validate(); err != nil {
 		return nil, err

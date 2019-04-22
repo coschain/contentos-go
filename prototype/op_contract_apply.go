@@ -1,6 +1,6 @@
 package prototype
 
-func (m *ContractApplyOperation) GetSigner(auths *map[string]bool) {
+func (m *ContractApplyOperation) GetRequiredOwner(auths *map[string]bool) {
 	(*auths)[m.Caller.Value] = true
 }
 
