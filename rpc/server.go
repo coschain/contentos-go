@@ -113,9 +113,9 @@ func (gs *GRPCServer) Stop() error {
 func (gs *GRPCServer) startWebProxy() error {
 	go func() {
 		if err := RunWebProxy(gs.rpcServer, gs.config); err != nil {
-			gs.log.Error("rpc WebProxy start failure")
+			gs.log.Error("rpc WebProxy start success")
 		} else {
-			gs.log.Info("rpc WebProxy start success")
+			gs.log.Info("rpc WebProxy start failure")
 		}
 	}()
 	return nil

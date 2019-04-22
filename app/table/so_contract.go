@@ -846,16 +846,10 @@ func (m *SoListContractByCreatedTime) OpeEncode() ([]byte, error) {
 //if the return value of f is true,continue iterating until the end iteration;
 //otherwise stop iteration immediately
 //
-//lastMainKey: the main key of the last one of last page
-//lastSubVal: the value  of the last one of last page
-//
-func (s *SContractCreatedTimeWrap) ForEachByOrder(start *prototype.TimePointSec, end *prototype.TimePointSec, lastMainKey *prototype.ContractId,
-	lastSubVal *prototype.TimePointSec, f func(mVal *prototype.ContractId, sVal *prototype.TimePointSec, idx uint32) bool) error {
+func (s *SContractCreatedTimeWrap) ForEachByOrder(start *prototype.TimePointSec, end *prototype.TimePointSec,
+	f func(mVal *prototype.ContractId, sVal *prototype.TimePointSec, idx uint32) bool) error {
 	if s.Dba == nil {
 		return errors.New("the db is nil")
-	}
-	if (lastSubVal != nil && lastMainKey == nil) || (lastSubVal == nil && lastMainKey != nil) {
-		return errors.New("last query param error")
 	}
 	if f == nil {
 		return nil
@@ -864,14 +858,6 @@ func (s *SContractCreatedTimeWrap) ForEachByOrder(start *prototype.TimePointSec,
 	skeyList := []interface{}{pre}
 	if start != nil {
 		skeyList = append(skeyList, start)
-		if lastMainKey != nil {
-			skeyList = append(skeyList, lastMainKey, kope.MinimalKey)
-		}
-	} else {
-		if lastMainKey != nil && lastSubVal != nil {
-			skeyList = append(skeyList, lastSubVal, lastMainKey, kope.MinimalKey)
-		}
-		skeyList = append(skeyList, kope.MinimalKey)
 	}
 	sBuf, cErr := kope.EncodeSlice(skeyList)
 	if cErr != nil {

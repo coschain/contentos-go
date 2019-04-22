@@ -8,13 +8,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/sirupsen/logrus"
+	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/p2p/common"
 	"github.com/coschain/contentos-go/p2p/message/msg_pack"
 	"github.com/coschain/contentos-go/p2p/message/types"
 	"github.com/coschain/contentos-go/p2p/net/protocol"
 	"github.com/coschain/contentos-go/p2p/peer"
-	"github.com/sirupsen/logrus"
 )
 
 //NewNetServer return the net object in p2p
@@ -319,14 +320,13 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 		remotePeer.SetConsState(common.HAND)
 	}
 
-	//service, err := this.GetService(iservices.ConsensusServerName)
-	//if err != nil {
-	//	this.log.Error("[p2p] can't get other service, service name: ", iservices.ConsensusServerName)
-	//	return err
-	//}
-	//ctrl := service.(iservices.IConsensus)
-	//version := msgpack.NewVersion(this, isConsensus, ctrl.GetHeadBlockId().BlockNum())
-	version := msgpack.NewVersion(this, isConsensus, uint64(0))
+	service, err := this.GetService(iservices.ConsensusServerName)
+	if err != nil {
+		this.log.Error("[p2p] can't get other service, service name: ", iservices.ConsensusServerName)
+		return err
+	}
+	ctrl := service.(iservices.IConsensus)
+	version := msgpack.NewVersion(this, isConsensus, ctrl.GetHeadBlockId().BlockNum())
 	err = remotePeer.Send(version, isConsensus, this.ctx.Config().P2P.NetworkMagic)
 	if err != nil {
 		if !isConsensus {

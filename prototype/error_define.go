@@ -10,9 +10,6 @@ var (
 	ErrCoinOverflow = errors.New("Coin Overflow")
 	ErrVestOverflow = errors.New("Vest Overflow")
 	ErrPubKeyFormatErr = errors.New("Public Key Format Error")
-	ErrVestFormatErr = errors.New("Vest Format Error")
-	ErrCoinFormatErr = errors.New("Coin Format Error")
-	ErrJSONFormatErr = errors.New("JSON Format Error")
 
 )
 

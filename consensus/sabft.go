@@ -95,7 +95,7 @@ func (pv *privateValidator) GetPubKey() message.PubKey {
 // It generates blocks in the same manner of DPoS and adopts bft
 // to achieve fast block confirmation. It's self adaptive in a way
 // that it can adjust the frequency of bft process based on the
-// load of the blockchain and network traffic.
+// load of the network.
 type SABFT struct {
 	node   *node.Node
 	ForkDB *forkdb.DB
@@ -303,7 +303,7 @@ func (sabft *SABFT) Start(node *node.Node) error {
 	snapshotPath := cfg.ResolvePath("forkdb_snapshot")
 	// TODO: fuck!! this is fugly
 	var avatar []common.ISignedBlock
-	for i := 0; i < 2001; i++ {
+	for i := 0; i < constants.MaxWitnessCount+1; i++ {
 		// TODO: if the bft process falls behind too much, the number
 		// TODO: of the avatar might not be sufficient
 
@@ -790,8 +790,8 @@ func (sabft *SABFT) GetLastBFTCommit() interface{} {
 }
 
 func (sabft *SABFT) GetNextBFTCheckPoint(blockNum uint64) interface{} {
-	//sabft.RLock()
-	//defer sabft.RUnlock()
+	sabft.RLock()
+	defer sabft.RUnlock()
 
 	commit, err := sabft.cp.GetNext(blockNum)
 	if err != nil {
@@ -802,9 +802,6 @@ func (sabft *SABFT) GetNextBFTCheckPoint(blockNum uint64) interface{} {
 }
 
 func (sabft *SABFT) GetLIB() common.BlockID {
-	sabft.RLock()
-	defer sabft.RUnlock()
-
 	if sabft.lastCommitted == nil {
 		return common.EmptyBlockID
 	}
@@ -1159,9 +1156,8 @@ func fetchBlocks(from, to uint64, forkDB *forkdb.DB, blog *blocklog.BLog) ([]com
 	}
 
 	var blocksInForkDB []common.ISignedBlock
-	var err error
 	if forkDBFrom > 0 {
-		blocksInForkDB, err = forkDB.FetchBlocksFromMainBranch(forkDBFrom)
+		blocksInForkDB, err := forkDB.FetchBlocksFromMainBranch(forkDBFrom)
 		if err != nil {
 			// there probably is a new committed block during the execution of this process, just try again
 			return fetchBlocks(from, to, forkDB, blog)

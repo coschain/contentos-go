@@ -340,17 +340,16 @@ func (this *P2PServer) ping() {
 
 //pings send pkgs to get pong msg from others
 func (this *P2PServer) pingTo(peers []*peer.Peer) {
-	//service, err := this.Network.GetService(iservices.ConsensusServerName)
-	//if err != nil {
-	//	this.log.Error("[p2p] can't get other service, service name: ", iservices.ConsensusServerName)
-	//	return
-	//}
-	//ctrl := service.(iservices.IConsensus)
+	service, err := this.Network.GetService(iservices.ConsensusServerName)
+	if err != nil {
+		this.log.Error("[p2p] can't get other service, service name: ", iservices.ConsensusServerName)
+		return
+	}
+	ctrl := service.(iservices.IConsensus)
 	for _, p := range peers {
 		if p.GetSyncState() == common.ESTABLISH {
 
-			//height := ctrl.GetHeadBlockId().BlockNum()
-			var height uint64 = 0
+			height := ctrl.GetHeadBlockId().BlockNum()
 			ping := msgpack.NewPingMsg(height)
 			go this.Send(p, ping, false)
 		}
@@ -427,23 +426,12 @@ func (this *P2PServer) TriggerSync(current_head_blk_id coomn.BlockID) {
 	reqdata := new(msgtypes.ReqIdMsg)
 	reqdata.HeadBlockId = current_head_blk_id.Data[:]
 	reqmsg.Msg = &msgtypes.TransferMsg_Msg4{Msg4:reqdata}
-	currentHeadNum := current_head_blk_id.BlockNum()
 	//this.log.Info("enter TriggerSync func")
 	np := this.Network.GetNp()
 	np.RLock()
-	defer np.RUnlock()
-
 	for _, p := range np.List {
 		//this.log.Info("[p2p] cons call TriggerSync func, head id :  ", reqmsg.HeadBlockId)
-		num := p.GetLastSeenBlkNum()
-		if currentHeadNum < num {
-			go p.Send(reqmsg, false, this.ctx.Config().P2P.NetworkMagic)
-			return
-		}
-	}
-
-	for _, p := range np.List {
 		go p.Send(reqmsg, false, this.ctx.Config().P2P.NetworkMagic)
-		return
 	}
+	np.RUnlock()
 }

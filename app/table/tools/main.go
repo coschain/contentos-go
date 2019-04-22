@@ -418,9 +418,6 @@ func CheckUpperLetter(str string) bool {
 func conToInt32Str(str string) string {
 	if strings.HasPrefix(str, "int") || strings.HasPrefix(str, "uint") {
 		tmpStr := strings.Replace(str, " ", "", -1)
-		if strings.Contains(tmpStr,"\t") {
-			tmpStr = strings.Replace(tmpStr,"\t", "", -1)
-		}
 		reStr := ""
 		t32 := "int32"
 		t64 := "int64"

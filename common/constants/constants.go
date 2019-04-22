@@ -2,8 +2,7 @@ package constants
 
 const (
 	COSChainName     = "contentos"
-	COSTokenDecimals = 1000000
-	COSInitSupply    = 10000000000 * COSTokenDecimals
+	COSInitSupply    = 10000000000
 	COSConsensusName = "iBFT"
 	COSInitMiner     = "initminer"
 
@@ -20,7 +19,6 @@ const (
 	NoticeTrxPending   = "trxpending"
 	NoticeTrxApplied   = "trxapplyresult"
 	NoticeBlockApplied = "blockapply"
-	NoticeAddTrx     = "addTrx"
 
 	GenesisTime = 0
 

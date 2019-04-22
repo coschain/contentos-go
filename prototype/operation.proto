@@ -126,20 +126,3 @@ message un_stake_operation{
     account_name account = 1;
     uint64 amount = 2;
 }
-
-message report_operation {
-    enum tag {
-        CHILD_PORNOGRAPHY = 0;
-        RACISM = 1;
-        REACTIONARY = 2;
-        PLAGIARISM = 3;
-        SLANDER = 4;
-        FALSE_PROPAGANDA = 5;
-        PORNOGRAPHY = 6;
-    }
-    account_name reporter = 1;
-    uint64 reported = 2;
-    repeated tag report_tag = 3;
-    bool is_arbitration = 4;
-    bool is_approved = 5;
-}

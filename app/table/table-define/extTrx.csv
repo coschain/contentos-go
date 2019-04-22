@@ -1,5 +1,0 @@
-type                            ,pName     ,mKey,unique,sort,reverseSort,importPath
-prototype.sha256                ,trx_id     ,1   ,1      ,1  ,0         ,prototype/type.proto
-uint64                   							,block_height ,0   ,0     ,1   ,0       ,
-prototype.transaction_wrapper    ,trx_wrap     ,0    ,0   ,0    ,0       ,prototype/transaction.proto
-prototype.time_point_sec        ,block_time   ,0    ,0  ,1    ,1        ,

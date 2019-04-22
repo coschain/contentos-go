@@ -19,8 +19,7 @@ import (
 )
 
 var (
-	ErrPanicResp     = errors.New("rpc panic")
-	maxPageSizeLimit = 30
+	ErrPanicResp = errors.New("rpc panic")
 )
 
 type APIService struct {
@@ -89,6 +88,7 @@ func (as *APIService) GetAccountByName(ctx context.Context, req *grpcpb.GetAccou
 		if witWrap != nil && witWrap.CheckExist() {
 			acct.Witness = &grpcpb.WitnessResponse{
 				Owner:                 witWrap.GetOwner(),
+				WitnessScheduleType:   witWrap.GetWitnessScheduleType(),
 				CreatedTime:           witWrap.GetCreatedTime(),
 				Url:                   witWrap.GetUrl(),
 				LastConfirmedBlockNum: witWrap.GetLastConfirmedBlockNum(),
@@ -98,12 +98,6 @@ func (as *APIService) GetAccountByName(ctx context.Context, req *grpcpb.GetAccou
 				LastWork:              witWrap.GetLastWork(),
 				RunningVersion:        witWrap.GetRunningVersion(),
 			}
-		}
-
-		keyWrap := table.NewSoAccountAuthorityObjectWrap(as.db, req.GetAccountName())
-
-		if keyWrap.CheckExist() {
-			acct.PublicKey = keyWrap.GetOwner().GetKey()
 		}
 	}
 	acct.State = as.getState()
@@ -147,7 +141,7 @@ func (as *APIService) GetFollowerListByName(ctx context.Context, req *grpcpb.Get
 		end = nil
 	}
 	limit = checkLimit(req.GetLimit())
-	ferOrderWrap.ForEachByOrder(start, end, nil, nil,
+	ferOrderWrap.ForEachByOrder(start, end,
 		func(mVal *prototype.FollowerRelation, sVal *prototype.FollowerCreatedOrder, idx uint32) bool {
 			if mVal != nil {
 				ferList = append(ferList, mVal.Follower)
@@ -179,7 +173,7 @@ func (as *APIService) GetFollowingListByName(ctx context.Context, req *grpcpb.Ge
 		end = nil
 	}
 	limit = checkLimit(req.GetLimit())
-	fingOrderWrap.ForEachByOrder(start, end, nil, nil,
+	fingOrderWrap.ForEachByOrder(start, end,
 		func(mVal *prototype.FollowingRelation, sVal *prototype.FollowingCreatedOrder, idx uint32) bool {
 			if mVal != nil {
 				fingList = append(fingList, mVal.Following)
@@ -259,12 +253,13 @@ func (as *APIService) GetWitnessList(ctx context.Context, req *grpcpb.GetWitness
 
 	witOrderWrap := &table.SWitnessOwnerWrap{as.db}
 	limit = checkLimit(req.GetLimit())
-	witOrderWrap.ForEachByOrder(req.GetStart(), nil, nil, nil,
+	witOrderWrap.ForEachByOrder(req.GetStart(), nil,
 		func(mVal *prototype.AccountName, sVal *prototype.AccountName, idx uint32) bool {
 			witWrap := table.NewSoWitnessWrap(as.db, mVal)
 			if witWrap != nil && witWrap.CheckExist() {
 				witList = append(witList, &grpcpb.WitnessResponse{
 					Owner:                 witWrap.GetOwner(),
+					WitnessScheduleType:   witWrap.GetWitnessScheduleType(),
 					CreatedTime:           witWrap.GetCreatedTime(),
 					Url:                   witWrap.GetUrl(),
 					LastConfirmedBlockNum: witWrap.GetLastConfirmedBlockNum(),
@@ -303,7 +298,7 @@ func (as *APIService) GetPostListByCreated(ctx context.Context, req *grpcpb.GetP
 	}
 
 	limit = checkLimit(req.GetLimit())
-	postOrderWrap.ForEachByRevOrder(start, end, nil, nil,
+	postOrderWrap.ForEachByRevOrder(start, end,
 		func(mVal *uint64, sVal *prototype.PostCreatedOrder, idx uint32) bool {
 			postWrap := table.NewSoPostWrap(as.db, mVal)
 			if postWrap != nil && postWrap.CheckExist() {
@@ -351,7 +346,7 @@ func (as *APIService) GetReplyListByPostId(ctx context.Context, req *grpcpb.GetR
 		end = nil
 	}
 	limit = checkLimit(req.GetLimit())
-	replyOrderWrap.ForEachByRevOrder(start, end, nil, nil,
+	replyOrderWrap.ForEachByRevOrder(start, end,
 		func(mVal *uint64, sVal *prototype.ReplyCreatedOrder, idx uint32) bool {
 			postWrap := table.NewSoPostWrap(as.db, mVal)
 			if postWrap != nil && postWrap.CheckExist() {
@@ -438,58 +433,28 @@ func (as *APIService) getState() *grpcpb.ChainState {
 func (as *APIService) GetBlockList(ctx context.Context, req *grpcpb.GetBlockListRequest) (*grpcpb.GetBlockListResponse, error) {
 	from := req.Start
 	to := req.End
-	isFetchOne := false
-	if from == to && from != 0 {
-		isFetchOne = true
-		to = from + 1
-	}
-	headNum := as.consensus.GetHeadBlockId().BlockNum()
-	if from == 0 && to == 0 && !isFetchOne {
-		if headNum >= uint64(maxPageSizeLimit) {
-			from = headNum - uint64(maxPageSizeLimit)
-		}
-		to = headNum
-	} else if from >= 0 && to == 0 {
-		to = headNum
-	}
 	list, err := as.consensus.FetchBlocks(from, to)
 	if err != nil {
 		return &grpcpb.GetBlockListResponse{Blocks: make([]*prototype.SignedBlock, 0)}, err
 	}
-	var blkList []*prototype.SignedBlock
-	for _, blk := range list {
-		b := blk.(*prototype.SignedBlock)
-		if isFetchOne && b.Id().BlockNum() == from {
-			blkList = append(blkList, b)
-			break
-		}
-		blkList = append(blkList, b)
+	blkList := make([]*prototype.SignedBlock, len(list))
+	for i, blk := range list {
+		blkList[i] = blk.(*prototype.SignedBlock)
 	}
-	if blkList == nil {
-		blkList = make([]*prototype.SignedBlock, 0)
-	}
+
 	return &grpcpb.GetBlockListResponse{Blocks: blkList}, nil
 }
 
-func (as *APIService) GetAccountListByBalance(ctx context.Context, req *grpcpb.GetAccountListByBalanceRequest) (*grpcpb.GetAccountListResponse, error) {
+func (as *APIService) GetAccountListByBalance(ctx context.Context, req *grpcpb.NonParamsRequest) (*grpcpb.GetAccountListResponse, error) {
 	as.db.RLock()
 	defer as.db.RUnlock()
 
 	sortWrap := table.NewAccountBalanceWrap(as.db)
-	var list []*grpcpb.AccountResponse
+	list := make([]*grpcpb.AccountResponse, 0)
 	res := &grpcpb.GetAccountListResponse{}
 	var err error
-	var lastAcctNam *prototype.AccountName
-	var lastAcctCoin *prototype.Coin
-	if req.LastAccount != nil {
-		account := req.LastAccount
-		if account.AccountName != nil && account.Coin != nil {
-			lastAcctNam = account.AccountName
-			lastAcctCoin = account.Coin
-		}
-	}
 	if sortWrap != nil {
-		err = sortWrap.ForEachByRevOrder(req.Start, req.End, lastAcctNam, lastAcctCoin, func(mVal *prototype.AccountName, sVal *prototype.Coin, idx uint32) bool {
+		err = sortWrap.ForEachByOrder(nil, nil, func(mVal *prototype.AccountName, sVal *prototype.Coin, idx uint32) bool {
 			acct := &grpcpb.AccountResponse{}
 			accWrap := table.NewSoAccountWrap(as.db, mVal)
 			if accWrap != nil {
@@ -501,6 +466,7 @@ func (as *APIService) GetAccountListByBalance(ctx context.Context, req *grpcpb.G
 				if witWrap != nil && witWrap.CheckExist() {
 					acct.Witness = &grpcpb.WitnessResponse{
 						Owner:                 witWrap.GetOwner(),
+						WitnessScheduleType:   witWrap.GetWitnessScheduleType(),
 						CreatedTime:           witWrap.GetCreatedTime(),
 						Url:                   witWrap.GetUrl(),
 						LastConfirmedBlockNum: witWrap.GetLastConfirmedBlockNum(),
@@ -513,9 +479,6 @@ func (as *APIService) GetAccountListByBalance(ctx context.Context, req *grpcpb.G
 				}
 				acct.State = as.getState()
 				list = append(list, acct)
-			}
-			if len(list) >= maxPageSizeLimit {
-				return false
 			}
 			return true
 		})
@@ -530,151 +493,4 @@ func checkLimit(limit uint32) uint32 {
 	} else {
 		return constants.RpcPageSizeLimit
 	}
-}
-
-func (as *APIService) GetDailyTotalTrxInfo(ctx context.Context, req *grpcpb.GetDailyTotalTrxRequest) (*grpcpb.GetDailyTotalTrxResponse, error) {
-	as.db.RLock()
-	defer as.db.RUnlock()
-	var list []*grpcpb.DailyTotalTrx
-	list = make([]*grpcpb.DailyTotalTrx, 0)
-	res := &grpcpb.GetDailyTotalTrxResponse{}
-	wrap := table.NewExtDailyTrxDateWrap(as.db)
-	var err error
-	if wrap != nil {
-		s := req.Start
-		e := req.End
-		//convert the unix timestamp to day index
-		if req.Start != nil {
-			s = &prototype.TimePointSec{UtcSeconds: req.Start.UtcSeconds / 86400}
-		}
-		if req.End != nil {
-			e = &prototype.TimePointSec{UtcSeconds: req.End.UtcSeconds / 86400}
-		}
-		err = wrap.ForEachByOrder(s, e, nil, nil, func(mVal *prototype.TimePointSec, sVal *prototype.TimePointSec,
-			idx uint32) bool {
-			if mVal != nil && sVal != nil {
-				info := &grpcpb.DailyTotalTrx{}
-				//return the normal timestamp not the index
-				info.Date = &prototype.TimePointSec{UtcSeconds: mVal.UtcSeconds * 86400}
-				dWrap := table.NewSoExtDailyTrxWrap(as.db, mVal)
-				if dWrap != nil {
-					info.Count = dWrap.GetCount()
-				}
-				list = append(list, info)
-			}
-			return true
-		})
-	}
-	res.List = list
-	return res, err
-}
-
-func (as *APIService) GetTrxInfoById(ctx context.Context, req *grpcpb.GetTrxInfoByIdRequest) (*grpcpb.GetTrxInfoByIdResponse, error) {
-	as.db.RLock()
-	defer as.db.RUnlock()
-	res := &grpcpb.GetTrxInfoByIdResponse{}
-	var err error
-	wrap := table.NewSoExtTrxWrap(as.db, req.TrxId)
-	if wrap != nil {
-		info := &grpcpb.TrxInfo{}
-		info.TrxId = req.TrxId
-		info.BlockHeight = wrap.GetBlockHeight()
-		info.BlockTime = wrap.GetBlockTime()
-		info.TrxWrap = wrap.GetTrxWrap()
-		res.Info = info
-	}
-	return res, err
-}
-
-func (as *APIService) GetTrxListByTime(ctx context.Context, req *grpcpb.GetTrxListByTimeRequest) (*grpcpb.GetTrxListByTimeResponse, error) {
-	as.db.RLock()
-	defer as.db.RUnlock()
-	var (
-		infoList    []*grpcpb.TrxInfo
-		err         error
-		lastMainKey *prototype.Sha256
-		lastSubVal  *prototype.TimePointSec
-	)
-
-	res := &grpcpb.GetTrxListByTimeResponse{}
-	if req.LastInfo != nil && req.LastInfo.TrxId != nil && req.LastInfo.BlockTime != nil {
-		lastMainKey = req.LastInfo.TrxId
-		lastSubVal = req.LastInfo.BlockTime
-	}
-	sWrap := table.NewExtTrxBlockTimeWrap(as.db)
-	if sWrap != nil {
-		err = sWrap.ForEachByRevOrder(req.Start, req.End, lastMainKey, lastSubVal, func(mVal *prototype.Sha256, sVal *prototype.TimePointSec, idx uint32) bool {
-			wrap := table.NewSoExtTrxWrap(as.db, mVal)
-			info := &grpcpb.TrxInfo{}
-			if wrap != nil {
-				info.TrxId = mVal
-				info.BlockHeight = wrap.GetBlockHeight()
-				info.BlockTime = wrap.GetBlockTime()
-				info.TrxWrap = wrap.GetTrxWrap()
-				infoList = append(infoList, info)
-			}
-			if len(infoList) >= (maxPageSizeLimit) {
-				return false
-			}
-			return true
-		})
-	}
-	res.List = infoList
-	return res, err
-}
-
-func (as *APIService) GetPostListByCreateTime(ctx context.Context, req *grpcpb.GetPostListByCreateTimeRequest) (*grpcpb.GetPostListByCreateTimeResponse, error) {
-	as.db.RLock()
-	defer as.db.RUnlock()
-	var (
-		postList     []*grpcpb.PostResponse
-		lastPost     *grpcpb.PostResponse
-		lastPostId   *uint64
-		lastPostTime *prototype.TimePointSec
-		err          error
-	)
-
-	res := &grpcpb.GetPostListByCreateTimeResponse{}
-	if req.LastPost != nil {
-		lastPost = req.LastPost
-		if lastPost.Created != nil {
-			lastPostId = &lastPost.PostId
-			lastPostTime = lastPost.Created
-		}
-	}
-	sWrap := table.NewPostCreatedWrap(as.db)
-	if sWrap != nil {
-		err = sWrap.ForEachByRevOrder(req.Start, req.End, lastPostId, lastPostTime,
-			func(mVal *uint64, sVal *prototype.TimePointSec, idx uint32) bool {
-				if mVal != nil {
-					postWrap := table.NewSoPostWrap(as.db, mVal)
-					if postWrap != nil && postWrap.CheckExist() {
-						postInfo := &grpcpb.PostResponse{
-							PostId:        postWrap.GetPostId(),
-							Category:      postWrap.GetCategory(),
-							ParentAuthor:  postWrap.GetAuthor(),
-							Author:        postWrap.GetAuthor(),
-							Title:         postWrap.GetTitle(),
-							Body:          postWrap.GetBody(),
-							Created:       postWrap.GetCreated(),
-							LastPayout:    postWrap.GetLastPayout(),
-							Depth:         postWrap.GetDepth(),
-							Children:      postWrap.GetChildren(),
-							RootId:        postWrap.GetRootId(),
-							ParentId:      postWrap.GetParentId(),
-							Tags:          postWrap.GetTags(),
-							Beneficiaries: postWrap.GetBeneficiaries(),
-						}
-						postList = append(postList, postInfo)
-					}
-				}
-				if len(postList) >= maxPageSizeLimit {
-					return false
-				}
-				return true
-			})
-	}
-
-	res.PostedList = postList
-	return res, err
 }

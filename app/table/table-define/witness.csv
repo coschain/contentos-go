@@ -1,5 +1,6 @@
 type                           ,pName                   ,mKey,unique,sort,reverseSort,importPath
 prototype.account_name         ,owner                   ,1   ,1     ,1   ,0          ,prototype/type.proto
+prototype.witness_schedule_type,witness_schedule_type   ,0   ,0     ,0   ,0          ,
 prototype.time_point_sec       ,created_time            ,0   ,0     ,0   ,0          ,
 string                         ,url                     ,0   ,0     ,0   ,0          ,
 uint64                         ,vote_count              ,0   ,0     ,0   ,1          ,

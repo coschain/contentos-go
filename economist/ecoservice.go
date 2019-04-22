@@ -141,7 +141,7 @@ func (e *Economist) Do() error {
 	timestamp := e.globalProps.Time.UtcSeconds
 	iterator := table.NewPostCashoutTimeWrap(e.db)
 	var pids []*uint64
-	err := iterator.ForEachByOrder(nil, &prototype.TimePointSec{UtcSeconds: timestamp},nil,nil, func(mVal *uint64, sVal *prototype.TimePointSec, idx uint32) bool {
+	err := iterator.ForEachByOrder(nil, &prototype.TimePointSec{UtcSeconds: timestamp}, func(mVal *uint64, sVal *prototype.TimePointSec, idx uint32) bool {
 		pids = append(pids, mVal)
 		return true
 	})

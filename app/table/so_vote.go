@@ -979,16 +979,10 @@ func (m *SoListVoteByVoter) OpeEncode() ([]byte, error) {
 //if the return value of f is true,continue iterating until the end iteration;
 //otherwise stop iteration immediately
 //
-//lastMainKey: the main key of the last one of last page
-//lastSubVal: the value  of the last one of last page
-//
-func (s *SVoteVoterWrap) ForEachByOrder(start *prototype.VoterId, end *prototype.VoterId, lastMainKey *prototype.VoterId,
-	lastSubVal *prototype.VoterId, f func(mVal *prototype.VoterId, sVal *prototype.VoterId, idx uint32) bool) error {
+func (s *SVoteVoterWrap) ForEachByOrder(start *prototype.VoterId, end *prototype.VoterId,
+	f func(mVal *prototype.VoterId, sVal *prototype.VoterId, idx uint32) bool) error {
 	if s.Dba == nil {
 		return errors.New("the db is nil")
-	}
-	if (lastSubVal != nil && lastMainKey == nil) || (lastSubVal == nil && lastMainKey != nil) {
-		return errors.New("last query param error")
 	}
 	if f == nil {
 		return nil
@@ -997,14 +991,6 @@ func (s *SVoteVoterWrap) ForEachByOrder(start *prototype.VoterId, end *prototype
 	skeyList := []interface{}{pre}
 	if start != nil {
 		skeyList = append(skeyList, start)
-		if lastMainKey != nil {
-			skeyList = append(skeyList, lastMainKey, kope.MinimalKey)
-		}
-	} else {
-		if lastMainKey != nil && lastSubVal != nil {
-			skeyList = append(skeyList, lastSubVal, lastMainKey, kope.MinimalKey)
-		}
-		skeyList = append(skeyList, kope.MinimalKey)
 	}
 	sBuf, cErr := kope.EncodeSlice(skeyList)
 	if cErr != nil {
@@ -1120,16 +1106,10 @@ func (m *SoListVoteByVoteTime) OpeEncode() ([]byte, error) {
 //if the return value of f is true,continue iterating until the end iteration;
 //otherwise stop iteration immediately
 //
-//lastMainKey: the main key of the last one of last page
-//lastSubVal: the value  of the last one of last page
-//
-func (s *SVoteVoteTimeWrap) ForEachByOrder(start *prototype.TimePointSec, end *prototype.TimePointSec, lastMainKey *prototype.VoterId,
-	lastSubVal *prototype.TimePointSec, f func(mVal *prototype.VoterId, sVal *prototype.TimePointSec, idx uint32) bool) error {
+func (s *SVoteVoteTimeWrap) ForEachByOrder(start *prototype.TimePointSec, end *prototype.TimePointSec,
+	f func(mVal *prototype.VoterId, sVal *prototype.TimePointSec, idx uint32) bool) error {
 	if s.Dba == nil {
 		return errors.New("the db is nil")
-	}
-	if (lastSubVal != nil && lastMainKey == nil) || (lastSubVal == nil && lastMainKey != nil) {
-		return errors.New("last query param error")
 	}
 	if f == nil {
 		return nil
@@ -1138,14 +1118,6 @@ func (s *SVoteVoteTimeWrap) ForEachByOrder(start *prototype.TimePointSec, end *p
 	skeyList := []interface{}{pre}
 	if start != nil {
 		skeyList = append(skeyList, start)
-		if lastMainKey != nil {
-			skeyList = append(skeyList, lastMainKey, kope.MinimalKey)
-		}
-	} else {
-		if lastMainKey != nil && lastSubVal != nil {
-			skeyList = append(skeyList, lastSubVal, lastMainKey, kope.MinimalKey)
-		}
-		skeyList = append(skeyList, kope.MinimalKey)
 	}
 	sBuf, cErr := kope.EncodeSlice(skeyList)
 	if cErr != nil {
@@ -1259,16 +1231,10 @@ func (m *SoListVoteByPostId) OpeEncode() ([]byte, error) {
 //if the return value of f is true,continue iterating until the end iteration;
 //otherwise stop iteration immediately
 //
-//lastMainKey: the main key of the last one of last page
-//lastSubVal: the value  of the last one of last page
-//
-func (s *SVotePostIdWrap) ForEachByOrder(start *uint64, end *uint64, lastMainKey *prototype.VoterId,
-	lastSubVal *uint64, f func(mVal *prototype.VoterId, sVal *uint64, idx uint32) bool) error {
+func (s *SVotePostIdWrap) ForEachByOrder(start *uint64, end *uint64,
+	f func(mVal *prototype.VoterId, sVal *uint64, idx uint32) bool) error {
 	if s.Dba == nil {
 		return errors.New("the db is nil")
-	}
-	if (lastSubVal != nil && lastMainKey == nil) || (lastSubVal == nil && lastMainKey != nil) {
-		return errors.New("last query param error")
 	}
 	if f == nil {
 		return nil
@@ -1277,14 +1243,6 @@ func (s *SVotePostIdWrap) ForEachByOrder(start *uint64, end *uint64, lastMainKey
 	skeyList := []interface{}{pre}
 	if start != nil {
 		skeyList = append(skeyList, start)
-		if lastMainKey != nil {
-			skeyList = append(skeyList, lastMainKey, kope.MinimalKey)
-		}
-	} else {
-		if lastMainKey != nil && lastSubVal != nil {
-			skeyList = append(skeyList, lastSubVal, lastMainKey, kope.MinimalKey)
-		}
-		skeyList = append(skeyList, kope.MinimalKey)
 	}
 	sBuf, cErr := kope.EncodeSlice(skeyList)
 	if cErr != nil {

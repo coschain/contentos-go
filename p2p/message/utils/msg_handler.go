@@ -71,18 +71,17 @@ func PingHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	}
 	remotePeer.SetHeight(ping.Height)
 
-	//s, err := p2p.GetService(iservices.ConsensusServerName)
-	//if err != nil {
-	//	panic(err)
-	//}
-	//ctrl := s.(iservices.IConsensus)
-	//height := ctrl.GetHeadBlockId().BlockNum()
-	var height uint64 = 0
+	s, err := p2p.GetService(iservices.ConsensusServerName)
+	if err != nil {
+		panic(err)
+	}
+	ctrl := s.(iservices.IConsensus)
+	height := ctrl.GetHeadBlockId().BlockNum()
 
 	p2p.SetHeight(height)
 	reqmsg := msgpack.NewPongMsg(height)
 
-	err := p2p.Send(remotePeer, reqmsg, false)
+	err = p2p.Send(remotePeer, reqmsg, false)
 	if err != nil {
 		log.Error("[p2p] send message error: ", err)
 	}
@@ -123,13 +122,13 @@ func BlockHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 		return
 	}
 
-	remotePeer := p2p.GetPeerFromAddr(data.Addr)
-	if remotePeer == nil {
-		log.Error("[p2p] peer is not exist: ", data.Addr)
-		return
-	}
-	blkNum := block.SigBlk.Id().BlockNum()
-	remotePeer.SetLastSeenBlkNum(blkNum)
+	//blockNum := block.SigBlk.Id().BlockNum()
+	//localHeadId := ctrl.GetHeadBlockId()
+	//localHeadNum := localHeadId.BlockNum()
+	//if blockNum > localHeadNum + 1 {
+	//	log.Info("[p2p] get a SignedBlock can't link to the local chain, block number: ", blockNum, " local head number: ", localHeadNum)
+	//	return
+	//}
 
 	ctrl.PushBlock(block.SigBlk)
 }
@@ -210,12 +209,12 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) 
 		}
 	}
 
-	//service, err := p2p.GetService(iservices.ConsensusServerName)
-	//if err != nil {
-	//	log.Error("[p2p] can't get other service, service name: ", iservices.ConsensusServerName)
-	//	return
-	//}
-	//ctrl := service.(iservices.IConsensus)
+	service, err := p2p.GetService(iservices.ConsensusServerName)
+	if err != nil {
+		log.Error("[p2p] can't get other service, service name: ", iservices.ConsensusServerName)
+		return
+	}
+	ctrl := service.(iservices.IConsensus)
 
 	if version.IsConsensus == true {
 		if ctx.Config().P2P.DualPortSupport == false {
@@ -264,8 +263,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) 
 		var msg msgTypes.Message
 		if s == msgCommon.INIT {
 			remotePeer.SetConsState(msgCommon.HAND_SHAKE)
-			//msg = msgpack.NewVersion(p2p, true, ctrl.GetHeadBlockId().BlockNum())
-			msg = msgpack.NewVersion(p2p, true, uint64(0) )
+			msg = msgpack.NewVersion(p2p, true, ctrl.GetHeadBlockId().BlockNum())
 		} else if s == msgCommon.HAND {
 			remotePeer.SetConsState(msgCommon.HAND_SHAKED)
 			msg = msgpack.NewVerAck(true)
@@ -334,8 +332,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) 
 		var msg msgTypes.Message
 		if s == msgCommon.INIT {
 			remotePeer.SetSyncState(msgCommon.HAND_SHAKE)
-			//msg = msgpack.NewVersion(p2p, false, ctrl.GetHeadBlockId().BlockNum())
-			msg = msgpack.NewVersion(p2p, false, uint64(0))
+			msg = msgpack.NewVersion(p2p, false, ctrl.GetHeadBlockId().BlockNum())
 		} else if s == msgCommon.HAND {
 			remotePeer.SetSyncState(msgCommon.HAND_SHAKED)
 			msg = msgpack.NewVerAck(false)
@@ -557,7 +554,6 @@ func IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 				log.Error("[p2p] send message error: ", err)
 				return
 			}
-			time.Sleep(100 * time.Millisecond)
 			//log.Infof("send a SignedBlock msg to   v%   data   v%\n", data.Addr, msg)
 		}
 	case msgTypes.IdMsg_request_id_ack:

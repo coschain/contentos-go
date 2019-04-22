@@ -46,7 +46,7 @@ type TrxPool struct {
 	havePendingTransaction bool
 	shuffle                common.ShuffleFunc
 
-	iceberg         *BlockIceberg
+	iceberg *BlockIceberg
 	resourceLimiter utils.IResourceLimiter
 }
 
@@ -107,7 +107,7 @@ func (c *TrxPool) Open() {
 		//c.log.Info("start initGenesis")
 		c.initGenesis()
 
-		mustNoError(c.db.TagRevision(c.db.GetRevision(), GENESIS_TAG), "genesis tagging failed", prototype.StatusErrorDbTag)
+		mustNoError(c.db.TagRevision(c.db.GetRevision(), GENESIS_TAG), "genesis tagging failed",prototype.StatusErrorDbTag)
 		c.iceberg = NewBlockIceberg(c.db)
 
 		//c.log.Info("finish initGenesis")
@@ -226,7 +226,7 @@ func (c *TrxPool) pushTrx(tw *prototype.TransactionWrapper) {
 
 	// start a sub undo session for transaction
 	c.db.BeginTransaction()
-	c.applyTransactionInner(true, trxContext)
+	c.applyTransactionInner( true, trxContext)
 
 	// commit sub session
 	mustNoError(c.db.EndTransaction(true), "EndTransaction error", prototype.StatusErrorDbEndTrx)
@@ -433,7 +433,7 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 			}()
 
 			c.db.BeginTransaction()
-			c.applyTransactionInner(false, trxContext)
+			c.applyTransactionInner( false, trxContext)
 			mustNoError(c.db.EndTransaction(true), "EndTransaction error", prototype.StatusErrorDbEndTrx)
 			//c.currentTrxInBlock++
 		}()
@@ -799,6 +799,7 @@ func (c *TrxPool) initGenesis() {
 	witnessWrap := table.NewSoWitnessWrap(c.db, name)
 	mustNoError(witnessWrap.Create(func(tInfo *table.SoWitness) {
 		tInfo.Owner = name
+		tInfo.WitnessScheduleType = &prototype.WitnessScheduleType{Value: prototype.WitnessScheduleType_miner}
 		tInfo.CreatedTime = &prototype.TimePointSec{UtcSeconds: 0}
 		tInfo.SigningKey = pubKey
 		tInfo.LastWork = &prototype.Sha256{Hash: []byte{0}}
@@ -972,7 +973,7 @@ func (c *TrxPool) modifyGlobalDynamicData(f func(props *prototype.DynamicPropert
 
 	f(props)
 
-	mustSuccess(dgpWrap.MdProps(props), "", prototype.StatusErrorDbUpdate)
+	mustSuccess(dgpWrap.MdProps(props), "",prototype.StatusErrorDbUpdate)
 }
 
 func (c *TrxPool) updateGlobalProperties(blk *prototype.SignedBlock) {
@@ -1005,7 +1006,6 @@ func (c *TrxPool) updateGlobalProperties(blk *prototype.SignedBlock) {
 	c.modifyGlobalDynamicData(func(dgpo *prototype.DynamicProperties) {
 		dgpo.HeadBlockNumber = blk.Id().BlockNum()
 		dgpo.HeadBlockId = blockID
-		dgpo.HeadBlockPrefix = binary.BigEndian.Uint32(id.Data[8:12])
 		dgpo.Time = blk.SignedHeader.Header.Timestamp
 
 		trxCount := len(blk.Transactions)
@@ -1017,7 +1017,6 @@ func (c *TrxPool) updateGlobalProperties(blk *prototype.SignedBlock) {
 		}
 	})
 
-	c.noticer.Publish(constants.NoticeAddTrx, blk)
 	// this check is useful ?
 	//mustSuccess(dgpo.GetHeadBlockNumber()-dgpo.GetIrreversibleBlockNum() < constants.MAX_UNDO_HISTORY, "The database does not have enough undo history to support a blockchain with so many missed blocks.",prototype.StatusErrorTrxMaxUndo)
 }
@@ -1044,7 +1043,7 @@ func (c *TrxPool) createBlockSummary(blk *prototype.SignedBlock) {
 
 func (c *TrxPool) clearExpiredTransactions() {
 	sortWrap := table.STransactionObjectExpirationWrap{Dba: c.db}
-	sortWrap.ForEachByOrder(nil, nil, nil, nil,
+	sortWrap.ForEachByOrder(nil, nil,
 		func(mVal *prototype.Sha256, sVal *prototype.TimePointSec, idx uint32) bool {
 			if sVal != nil {
 				headTime := c.headBlockTime().UtcSeconds
@@ -1063,7 +1062,7 @@ func (c *TrxPool) clearExpiredTransactions() {
 func (c *TrxPool) GetWitnessTopN(n uint32) []string {
 	var ret []string
 	revList := table.SWitnessVoteCountWrap{Dba: c.db}
-	revList.ForEachByRevOrder(nil, nil, nil, nil, func(mVal *prototype.AccountName, sVal *uint64, idx uint32) bool {
+	revList.ForEachByRevOrder(nil, nil, func(mVal *prototype.AccountName, sVal *uint64, idx uint32) bool {
 		if mVal != nil {
 			ret = append(ret, mVal.Value)
 		}
