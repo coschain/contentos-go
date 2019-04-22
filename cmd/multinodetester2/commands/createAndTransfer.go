@@ -98,7 +98,7 @@ func getAccount(idb iservices.IDatabaseService, name string) *table.SoAccountWra
 }
 
 func createAccount(icons iservices.IConsensus, name string) {
-	defaultPrivKey, err := prototype.PrivateKeyFromWIF(constants.InitminerPrivKey)
+	defaultPrivKey, err := prototype.PrivateKeyFromWIF(constants.INITMINER_PRIKEY)
 	if err != nil {
 		panic(err)
 	}
@@ -135,7 +135,7 @@ func signTrx(icons iservices.IConsensus, privKeyStr string, ops ...interface{}) 
 	if err != nil {
 		panic(err)
 	}
-	tx := &prototype.Transaction{RefBlockNum: 0, RefBlockPrefix: 0, Expiration: &prototype.TimePointSec{UtcSeconds: uint32(headBlk.Timestamp() + constants.TrxMaxExpirationTime)}}
+	tx := &prototype.Transaction{RefBlockNum: 0, RefBlockPrefix: 0, Expiration: &prototype.TimePointSec{UtcSeconds: uint32(headBlk.Timestamp() + constants.TRX_MAX_EXPIRATION_TIME)}}
 	id := &common.BlockID{}
 	id = &headBlockID
 	tx.SetReferenceBlock(id)
@@ -152,7 +152,7 @@ func signTrx(icons iservices.IConsensus, privKeyStr string, ops ...interface{}) 
 }
 
 func transfer(icons iservices.IConsensus, from, to string, amount uint64, memo string) {
-	defaultPrivKey, err := prototype.PrivateKeyFromWIF(constants.InitminerPrivKey)
+	defaultPrivKey, err := prototype.PrivateKeyFromWIF(constants.INITMINER_PRIKEY)
 	if err != nil {
 		panic(err)
 	}

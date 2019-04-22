@@ -80,7 +80,6 @@ const (
 	HASH_LENGTH = 64       // byte array length of each trx hash
 
 	MAX_ID_LENGTH = 20   // max id length in require id ack message
-	MAX_ROUTINE_NUM = 50 // max goroutine number
 )
 
 //ParseIPAddr return ip address

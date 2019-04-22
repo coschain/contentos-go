@@ -15,7 +15,7 @@ const (
 )
 
 func NewDandelionDpos() *DPoS {
-	privKey, err := prototype.PrivateKeyFromWIF(constants.InitminerPrivKey)
+	privKey, err := prototype.PrivateKeyFromWIF(constants.INITMINER_PRIKEY)
 	if err != nil {
 		panic("initminer privkey parser error")
 	}

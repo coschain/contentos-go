@@ -40,7 +40,11 @@ func (m *GetTableContentRequest) Reset()         { *m = GetTableContentRequest{}
 func (m *GetTableContentRequest) String() string { return proto.CompactTextString(m) }
 func (*GetTableContentRequest) ProtoMessage()    {}
 func (*GetTableContentRequest) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_grpc_b6f7ce8a85313456, []int{0}
+=======
+	return fileDescriptor_bedfbfc9b54e5600, []int{0}
+>>>>>>> parent of aee02a3... merge master into resource_limit
 }
 func (m *GetTableContentRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetTableContentRequest.Unmarshal(m, b)
@@ -113,7 +117,11 @@ func (m *TableContentResponse) Reset()         { *m = TableContentResponse{} }
 func (m *TableContentResponse) String() string { return proto.CompactTextString(m) }
 func (*TableContentResponse) ProtoMessage()    {}
 func (*TableContentResponse) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_grpc_b6f7ce8a85313456, []int{1}
+=======
+	return fileDescriptor_bedfbfc9b54e5600, []int{1}
+>>>>>>> parent of aee02a3... merge master into resource_limit
 }
 func (m *TableContentResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_TableContentResponse.Unmarshal(m, b)
@@ -151,7 +159,11 @@ func (m *GetAccountByNameRequest) Reset()         { *m = GetAccountByNameRequest
 func (m *GetAccountByNameRequest) String() string { return proto.CompactTextString(m) }
 func (*GetAccountByNameRequest) ProtoMessage()    {}
 func (*GetAccountByNameRequest) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_grpc_b6f7ce8a85313456, []int{2}
+=======
+	return fileDescriptor_bedfbfc9b54e5600, []int{2}
+>>>>>>> parent of aee02a3... merge master into resource_limit
 }
 func (m *GetAccountByNameRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetAccountByNameRequest.Unmarshal(m, b)
@@ -189,7 +201,11 @@ func (m *GetAccountRewardByNameRequest) Reset()         { *m = GetAccountRewardB
 func (m *GetAccountRewardByNameRequest) String() string { return proto.CompactTextString(m) }
 func (*GetAccountRewardByNameRequest) ProtoMessage()    {}
 func (*GetAccountRewardByNameRequest) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_grpc_b6f7ce8a85313456, []int{3}
+=======
+	return fileDescriptor_bedfbfc9b54e5600, []int{3}
+>>>>>>> parent of aee02a3... merge master into resource_limit
 }
 func (m *GetAccountRewardByNameRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetAccountRewardByNameRequest.Unmarshal(m, b)
@@ -228,7 +244,11 @@ func (m *AccountRewardResponse) Reset()         { *m = AccountRewardResponse{} }
 func (m *AccountRewardResponse) String() string { return proto.CompactTextString(m) }
 func (*AccountRewardResponse) ProtoMessage()    {}
 func (*AccountRewardResponse) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_grpc_b6f7ce8a85313456, []int{4}
+=======
+	return fileDescriptor_bedfbfc9b54e5600, []int{4}
+>>>>>>> parent of aee02a3... merge master into resource_limit
 }
 func (m *AccountRewardResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_AccountRewardResponse.Unmarshal(m, b)
@@ -263,6 +283,7 @@ func (m *AccountRewardResponse) GetReward() *prototype.Vest {
 }
 
 type AccountResponse struct {
+<<<<<<< HEAD
 	AccountName          *prototype.AccountName     `protobuf:"bytes,1,opt,name=account_name,json=accountName,proto3" json:"account_name,omitempty"`
 	Coin                 *prototype.Coin            `protobuf:"bytes,2,opt,name=coin,proto3" json:"coin,omitempty"`
 	Vest                 *prototype.Vest            `protobuf:"bytes,3,opt,name=vest,proto3" json:"vest,omitempty"`
@@ -275,13 +296,29 @@ type AccountResponse struct {
 	XXX_NoUnkeyedLiteral struct{}                   `json:"-"`
 	XXX_unrecognized     []byte                     `json:"-"`
 	XXX_sizecache        int32                      `json:"-"`
+=======
+	AccountName          *prototype.AccountName       `protobuf:"bytes,1,opt,name=account_name,json=accountName,proto3" json:"account_name,omitempty"`
+	Coin                 *prototype.Coin              `protobuf:"bytes,2,opt,name=coin,proto3" json:"coin,omitempty"`
+	Vest                 *prototype.Vest              `protobuf:"bytes,3,opt,name=vest,proto3" json:"vest,omitempty"`
+	PublicKeys           []*prototype.PublicKeyType   `protobuf:"bytes,4,rep,name=public_keys,json=publicKeys,proto3" json:"public_keys,omitempty"`
+	CreatedTime          *prototype.TimePointSec      `protobuf:"bytes,5,opt,name=created_time,json=createdTime,proto3" json:"created_time,omitempty"`
+	Witness              *WitnessResponse             `protobuf:"bytes,6,opt,name=witness,proto3" json:"witness,omitempty"`
+	Dgpo                 *prototype.DynamicProperties `protobuf:"bytes,7,opt,name=dgpo,proto3" json:"dgpo,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}                     `json:"-"`
+	XXX_unrecognized     []byte                       `json:"-"`
+	XXX_sizecache        int32                        `json:"-"`
+>>>>>>> parent of aee02a3... merge master into resource_limit
 }
 
 func (m *AccountResponse) Reset()         { *m = AccountResponse{} }
 func (m *AccountResponse) String() string { return proto.CompactTextString(m) }
 func (*AccountResponse) ProtoMessage()    {}
 func (*AccountResponse) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_grpc_b6f7ce8a85313456, []int{5}
+=======
+	return fileDescriptor_bedfbfc9b54e5600, []int{5}
+>>>>>>> parent of aee02a3... merge master into resource_limit
 }
 func (m *AccountResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_AccountResponse.Unmarshal(m, b)
@@ -357,9 +394,9 @@ func (m *AccountResponse) GetWitness() *WitnessResponse {
 	return nil
 }
 
-func (m *AccountResponse) GetState() *ChainState {
+func (m *AccountResponse) GetDgpo() *prototype.DynamicProperties {
 	if m != nil {
-		return m.State
+		return m.Dgpo
 	}
 	return nil
 }
@@ -377,7 +414,11 @@ func (m *GetFollowerListByNameRequest) Reset()         { *m = GetFollowerListByN
 func (m *GetFollowerListByNameRequest) String() string { return proto.CompactTextString(m) }
 func (*GetFollowerListByNameRequest) ProtoMessage()    {}
 func (*GetFollowerListByNameRequest) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_grpc_b6f7ce8a85313456, []int{6}
+=======
+	return fileDescriptor_bedfbfc9b54e5600, []int{6}
+>>>>>>> parent of aee02a3... merge master into resource_limit
 }
 func (m *GetFollowerListByNameRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetFollowerListByNameRequest.Unmarshal(m, b)
@@ -429,7 +470,11 @@ func (m *GetFollowerListByNameResponse) Reset()         { *m = GetFollowerListBy
 func (m *GetFollowerListByNameResponse) String() string { return proto.CompactTextString(m) }
 func (*GetFollowerListByNameResponse) ProtoMessage()    {}
 func (*GetFollowerListByNameResponse) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_grpc_b6f7ce8a85313456, []int{7}
+=======
+	return fileDescriptor_bedfbfc9b54e5600, []int{7}
+>>>>>>> parent of aee02a3... merge master into resource_limit
 }
 func (m *GetFollowerListByNameResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetFollowerListByNameResponse.Unmarshal(m, b)
@@ -469,7 +514,11 @@ func (m *GetFollowingListByNameRequest) Reset()         { *m = GetFollowingListB
 func (m *GetFollowingListByNameRequest) String() string { return proto.CompactTextString(m) }
 func (*GetFollowingListByNameRequest) ProtoMessage()    {}
 func (*GetFollowingListByNameRequest) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_grpc_b6f7ce8a85313456, []int{8}
+=======
+	return fileDescriptor_bedfbfc9b54e5600, []int{8}
+>>>>>>> parent of aee02a3... merge master into resource_limit
 }
 func (m *GetFollowingListByNameRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetFollowingListByNameRequest.Unmarshal(m, b)
@@ -521,7 +570,11 @@ func (m *GetFollowingListByNameResponse) Reset()         { *m = GetFollowingList
 func (m *GetFollowingListByNameResponse) String() string { return proto.CompactTextString(m) }
 func (*GetFollowingListByNameResponse) ProtoMessage()    {}
 func (*GetFollowingListByNameResponse) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_grpc_b6f7ce8a85313456, []int{9}
+=======
+	return fileDescriptor_bedfbfc9b54e5600, []int{9}
+>>>>>>> parent of aee02a3... merge master into resource_limit
 }
 func (m *GetFollowingListByNameResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetFollowingListByNameResponse.Unmarshal(m, b)
@@ -559,7 +612,11 @@ func (m *GetFollowCountByNameRequest) Reset()         { *m = GetFollowCountByNam
 func (m *GetFollowCountByNameRequest) String() string { return proto.CompactTextString(m) }
 func (*GetFollowCountByNameRequest) ProtoMessage()    {}
 func (*GetFollowCountByNameRequest) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_grpc_b6f7ce8a85313456, []int{10}
+=======
+	return fileDescriptor_bedfbfc9b54e5600, []int{10}
+>>>>>>> parent of aee02a3... merge master into resource_limit
 }
 func (m *GetFollowCountByNameRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetFollowCountByNameRequest.Unmarshal(m, b)
@@ -598,7 +655,11 @@ func (m *GetFollowCountByNameResponse) Reset()         { *m = GetFollowCountByNa
 func (m *GetFollowCountByNameResponse) String() string { return proto.CompactTextString(m) }
 func (*GetFollowCountByNameResponse) ProtoMessage()    {}
 func (*GetFollowCountByNameResponse) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_grpc_b6f7ce8a85313456, []int{11}
+=======
+	return fileDescriptor_bedfbfc9b54e5600, []int{11}
+>>>>>>> parent of aee02a3... merge master into resource_limit
 }
 func (m *GetFollowCountByNameResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetFollowCountByNameResponse.Unmarshal(m, b)
@@ -652,7 +713,11 @@ func (m *WitnessResponse) Reset()         { *m = WitnessResponse{} }
 func (m *WitnessResponse) String() string { return proto.CompactTextString(m) }
 func (*WitnessResponse) ProtoMessage()    {}
 func (*WitnessResponse) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_grpc_b6f7ce8a85313456, []int{12}
+=======
+	return fileDescriptor_bedfbfc9b54e5600, []int{12}
+>>>>>>> parent of aee02a3... merge master into resource_limit
 }
 func (m *WitnessResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_WitnessResponse.Unmarshal(m, b)
@@ -754,7 +819,11 @@ func (m *GetWitnessListRequest) Reset()         { *m = GetWitnessListRequest{} }
 func (m *GetWitnessListRequest) String() string { return proto.CompactTextString(m) }
 func (*GetWitnessListRequest) ProtoMessage()    {}
 func (*GetWitnessListRequest) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_grpc_b6f7ce8a85313456, []int{13}
+=======
+	return fileDescriptor_bedfbfc9b54e5600, []int{13}
+>>>>>>> parent of aee02a3... merge master into resource_limit
 }
 func (m *GetWitnessListRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetWitnessListRequest.Unmarshal(m, b)
@@ -799,7 +868,11 @@ func (m *GetWitnessListResponse) Reset()         { *m = GetWitnessListResponse{}
 func (m *GetWitnessListResponse) String() string { return proto.CompactTextString(m) }
 func (*GetWitnessListResponse) ProtoMessage()    {}
 func (*GetWitnessListResponse) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_grpc_b6f7ce8a85313456, []int{14}
+=======
+	return fileDescriptor_bedfbfc9b54e5600, []int{14}
+>>>>>>> parent of aee02a3... merge master into resource_limit
 }
 func (m *GetWitnessListResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetWitnessListResponse.Unmarshal(m, b)
@@ -850,7 +923,11 @@ func (m *PostResponse) Reset()         { *m = PostResponse{} }
 func (m *PostResponse) String() string { return proto.CompactTextString(m) }
 func (*PostResponse) ProtoMessage()    {}
 func (*PostResponse) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_grpc_b6f7ce8a85313456, []int{15}
+=======
+	return fileDescriptor_bedfbfc9b54e5600, []int{15}
+>>>>>>> parent of aee02a3... merge master into resource_limit
 }
 func (m *PostResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_PostResponse.Unmarshal(m, b)
@@ -981,7 +1058,11 @@ func (m *GetPostListByCreatedRequest) Reset()         { *m = GetPostListByCreate
 func (m *GetPostListByCreatedRequest) String() string { return proto.CompactTextString(m) }
 func (*GetPostListByCreatedRequest) ProtoMessage()    {}
 func (*GetPostListByCreatedRequest) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_grpc_b6f7ce8a85313456, []int{16}
+=======
+	return fileDescriptor_bedfbfc9b54e5600, []int{16}
+>>>>>>> parent of aee02a3... merge master into resource_limit
 }
 func (m *GetPostListByCreatedRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetPostListByCreatedRequest.Unmarshal(m, b)
@@ -1033,7 +1114,11 @@ func (m *GetPostListByCreatedResponse) Reset()         { *m = GetPostListByCreat
 func (m *GetPostListByCreatedResponse) String() string { return proto.CompactTextString(m) }
 func (*GetPostListByCreatedResponse) ProtoMessage()    {}
 func (*GetPostListByCreatedResponse) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_grpc_b6f7ce8a85313456, []int{17}
+=======
+	return fileDescriptor_bedfbfc9b54e5600, []int{17}
+>>>>>>> parent of aee02a3... merge master into resource_limit
 }
 func (m *GetPostListByCreatedResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetPostListByCreatedResponse.Unmarshal(m, b)
@@ -1073,7 +1158,11 @@ func (m *GetReplyListByPostIdRequest) Reset()         { *m = GetReplyListByPostI
 func (m *GetReplyListByPostIdRequest) String() string { return proto.CompactTextString(m) }
 func (*GetReplyListByPostIdRequest) ProtoMessage()    {}
 func (*GetReplyListByPostIdRequest) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_grpc_b6f7ce8a85313456, []int{18}
+=======
+	return fileDescriptor_bedfbfc9b54e5600, []int{18}
+>>>>>>> parent of aee02a3... merge master into resource_limit
 }
 func (m *GetReplyListByPostIdRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetReplyListByPostIdRequest.Unmarshal(m, b)
@@ -1125,7 +1214,11 @@ func (m *GetReplyListByPostIdResponse) Reset()         { *m = GetReplyListByPost
 func (m *GetReplyListByPostIdResponse) String() string { return proto.CompactTextString(m) }
 func (*GetReplyListByPostIdResponse) ProtoMessage()    {}
 func (*GetReplyListByPostIdResponse) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_grpc_b6f7ce8a85313456, []int{19}
+=======
+	return fileDescriptor_bedfbfc9b54e5600, []int{19}
+>>>>>>> parent of aee02a3... merge master into resource_limit
 }
 func (m *GetReplyListByPostIdResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetReplyListByPostIdResponse.Unmarshal(m, b)
@@ -1165,7 +1258,11 @@ func (m *GetBlockTransactionsByNumRequest) Reset()         { *m = GetBlockTransa
 func (m *GetBlockTransactionsByNumRequest) String() string { return proto.CompactTextString(m) }
 func (*GetBlockTransactionsByNumRequest) ProtoMessage()    {}
 func (*GetBlockTransactionsByNumRequest) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_grpc_b6f7ce8a85313456, []int{20}
+=======
+	return fileDescriptor_bedfbfc9b54e5600, []int{20}
+>>>>>>> parent of aee02a3... merge master into resource_limit
 }
 func (m *GetBlockTransactionsByNumRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetBlockTransactionsByNumRequest.Unmarshal(m, b)
@@ -1217,7 +1314,11 @@ func (m *GetBlockTransactionsByNumResponse) Reset()         { *m = GetBlockTrans
 func (m *GetBlockTransactionsByNumResponse) String() string { return proto.CompactTextString(m) }
 func (*GetBlockTransactionsByNumResponse) ProtoMessage()    {}
 func (*GetBlockTransactionsByNumResponse) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_grpc_b6f7ce8a85313456, []int{21}
+=======
+	return fileDescriptor_bedfbfc9b54e5600, []int{21}
+>>>>>>> parent of aee02a3... merge master into resource_limit
 }
 func (m *GetBlockTransactionsByNumResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetBlockTransactionsByNumResponse.Unmarshal(m, b)
@@ -1255,7 +1356,11 @@ func (m *GetTrxByIdRequest) Reset()         { *m = GetTrxByIdRequest{} }
 func (m *GetTrxByIdRequest) String() string { return proto.CompactTextString(m) }
 func (*GetTrxByIdRequest) ProtoMessage()    {}
 func (*GetTrxByIdRequest) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_grpc_b6f7ce8a85313456, []int{22}
+=======
+	return fileDescriptor_bedfbfc9b54e5600, []int{22}
+>>>>>>> parent of aee02a3... merge master into resource_limit
 }
 func (m *GetTrxByIdRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetTrxByIdRequest.Unmarshal(m, b)
@@ -1293,7 +1398,11 @@ func (m *GetTrxByIdResponse) Reset()         { *m = GetTrxByIdResponse{} }
 func (m *GetTrxByIdResponse) String() string { return proto.CompactTextString(m) }
 func (*GetTrxByIdResponse) ProtoMessage()    {}
 func (*GetTrxByIdResponse) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_grpc_b6f7ce8a85313456, []int{23}
+=======
+	return fileDescriptor_bedfbfc9b54e5600, []int{23}
+>>>>>>> parent of aee02a3... merge master into resource_limit
 }
 func (m *GetTrxByIdResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetTrxByIdResponse.Unmarshal(m, b)
@@ -1321,7 +1430,7 @@ func (m *GetTrxByIdResponse) GetTrx() *prototype.Transaction {
 }
 
 type GetChainStateResponse struct {
-	State                *ChainState                   `protobuf:"bytes,1,opt,name=state,proto3" json:"state,omitempty"`
+	Props                *prototype.DynamicProperties  `protobuf:"bytes,1,opt,name=props,proto3" json:"props,omitempty"`
 	Blocks               []*prototype.EmptySignedBlock `protobuf:"bytes,2,rep,name=blocks,proto3" json:"blocks,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                      `json:"-"`
 	XXX_unrecognized     []byte                        `json:"-"`
@@ -1332,7 +1441,11 @@ func (m *GetChainStateResponse) Reset()         { *m = GetChainStateResponse{} }
 func (m *GetChainStateResponse) String() string { return proto.CompactTextString(m) }
 func (*GetChainStateResponse) ProtoMessage()    {}
 func (*GetChainStateResponse) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_grpc_b6f7ce8a85313456, []int{24}
+=======
+	return fileDescriptor_bedfbfc9b54e5600, []int{24}
+>>>>>>> parent of aee02a3... merge master into resource_limit
 }
 func (m *GetChainStateResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetChainStateResponse.Unmarshal(m, b)
@@ -1352,9 +1465,9 @@ func (m *GetChainStateResponse) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_GetChainStateResponse proto.InternalMessageInfo
 
-func (m *GetChainStateResponse) GetState() *ChainState {
+func (m *GetChainStateResponse) GetProps() *prototype.DynamicProperties {
 	if m != nil {
-		return m.State
+		return m.Props
 	}
 	return nil
 }
@@ -1367,18 +1480,22 @@ func (m *GetChainStateResponse) GetBlocks() []*prototype.EmptySignedBlock {
 }
 
 type GetStatResponse struct {
-	State                *ChainState `protobuf:"bytes,1,opt,name=state,proto3" json:"state,omitempty"`
-	DailyTrxCounts       []int32     `protobuf:"varint,2,rep,packed,name=daily_trx_counts,json=dailyTrxCounts,proto3" json:"daily_trx_counts,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
-	XXX_unrecognized     []byte      `json:"-"`
-	XXX_sizecache        int32       `json:"-"`
+	Props                *prototype.DynamicProperties `protobuf:"bytes,1,opt,name=props,proto3" json:"props,omitempty"`
+	DailyTrxCounts       []int32                      `protobuf:"varint,2,rep,packed,name=daily_trx_counts,json=dailyTrxCounts,proto3" json:"daily_trx_counts,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}                     `json:"-"`
+	XXX_unrecognized     []byte                       `json:"-"`
+	XXX_sizecache        int32                        `json:"-"`
 }
 
 func (m *GetStatResponse) Reset()         { *m = GetStatResponse{} }
 func (m *GetStatResponse) String() string { return proto.CompactTextString(m) }
 func (*GetStatResponse) ProtoMessage()    {}
 func (*GetStatResponse) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_grpc_b6f7ce8a85313456, []int{25}
+=======
+	return fileDescriptor_bedfbfc9b54e5600, []int{25}
+>>>>>>> parent of aee02a3... merge master into resource_limit
 }
 func (m *GetStatResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetStatResponse.Unmarshal(m, b)
@@ -1398,9 +1515,9 @@ func (m *GetStatResponse) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_GetStatResponse proto.InternalMessageInfo
 
-func (m *GetStatResponse) GetState() *ChainState {
+func (m *GetStatResponse) GetProps() *prototype.DynamicProperties {
 	if m != nil {
-		return m.State
+		return m.Props
 	}
 	return nil
 }
@@ -1424,7 +1541,11 @@ func (m *BroadcastTrxRequest) Reset()         { *m = BroadcastTrxRequest{} }
 func (m *BroadcastTrxRequest) String() string { return proto.CompactTextString(m) }
 func (*BroadcastTrxRequest) ProtoMessage()    {}
 func (*BroadcastTrxRequest) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_grpc_b6f7ce8a85313456, []int{26}
+=======
+	return fileDescriptor_bedfbfc9b54e5600, []int{26}
+>>>>>>> parent of aee02a3... merge master into resource_limit
 }
 func (m *BroadcastTrxRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_BroadcastTrxRequest.Unmarshal(m, b)
@@ -1471,7 +1592,11 @@ func (m *BroadcastTrxResponse) Reset()         { *m = BroadcastTrxResponse{} }
 func (m *BroadcastTrxResponse) String() string { return proto.CompactTextString(m) }
 func (*BroadcastTrxResponse) ProtoMessage()    {}
 func (*BroadcastTrxResponse) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_grpc_b6f7ce8a85313456, []int{27}
+=======
+	return fileDescriptor_bedfbfc9b54e5600, []int{27}
+>>>>>>> parent of aee02a3... merge master into resource_limit
 }
 func (m *BroadcastTrxResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_BroadcastTrxResponse.Unmarshal(m, b)
@@ -1522,7 +1647,11 @@ func (m *NonParamsRequest) Reset()         { *m = NonParamsRequest{} }
 func (m *NonParamsRequest) String() string { return proto.CompactTextString(m) }
 func (*NonParamsRequest) ProtoMessage()    {}
 func (*NonParamsRequest) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_grpc_b6f7ce8a85313456, []int{28}
+=======
+	return fileDescriptor_bedfbfc9b54e5600, []int{28}
+>>>>>>> parent of aee02a3... merge master into resource_limit
 }
 func (m *NonParamsRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_NonParamsRequest.Unmarshal(m, b)
@@ -1555,7 +1684,11 @@ func (m *CallResponse) Reset()         { *m = CallResponse{} }
 func (m *CallResponse) String() string { return proto.CompactTextString(m) }
 func (*CallResponse) ProtoMessage()    {}
 func (*CallResponse) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_grpc_b6f7ce8a85313456, []int{29}
+=======
+	return fileDescriptor_bedfbfc9b54e5600, []int{29}
+>>>>>>> parent of aee02a3... merge master into resource_limit
 }
 func (m *CallResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CallResponse.Unmarshal(m, b)
@@ -1596,6 +1729,7 @@ func (m *CallResponse) GetEstimateGas() string {
 	return ""
 }
 
+<<<<<<< HEAD
 type ChainState struct {
 	LastIrreversibleBlockNumber uint64                       `protobuf:"varint,1,opt,name=last_irreversible_block_number,json=lastIrreversibleBlockNumber,proto3" json:"last_irreversible_block_number,omitempty"`
 	Dgpo                        *prototype.DynamicProperties `protobuf:"bytes,2,opt,name=dgpo,proto3" json:"dgpo,omitempty"`
@@ -1764,6 +1898,8 @@ func (m *GetAccountListResponse) GetList() []*AccountResponse {
 	return nil
 }
 
+=======
+>>>>>>> parent of aee02a3... merge master into resource_limit
 func init() {
 	proto.RegisterType((*GetTableContentRequest)(nil), "grpcpb.GetTableContentRequest")
 	proto.RegisterType((*TableContentResponse)(nil), "grpcpb.TableContentResponse")
@@ -1795,10 +1931,136 @@ func init() {
 	proto.RegisterType((*BroadcastTrxResponse)(nil), "grpcpb.BroadcastTrxResponse")
 	proto.RegisterType((*NonParamsRequest)(nil), "grpcpb.NonParamsRequest")
 	proto.RegisterType((*CallResponse)(nil), "grpcpb.CallResponse")
+<<<<<<< HEAD
 	proto.RegisterType((*ChainState)(nil), "grpcpb.ChainState")
 	proto.RegisterType((*GetBlockListRequest)(nil), "grpcpb.GetBlockListRequest")
 	proto.RegisterType((*GetBlockListResponse)(nil), "grpcpb.GetBlockListResponse")
 	proto.RegisterType((*GetAccountListResponse)(nil), "grpcpb.GetAccountListResponse")
+=======
+}
+
+func init() { proto.RegisterFile("grpc.proto", fileDescriptor_bedfbfc9b54e5600) }
+
+var fileDescriptor_bedfbfc9b54e5600 = []byte{
+	// 1864 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x18, 0xdd, 0x6f, 0x1b, 0x49,
+	0x3d, 0x89, 0x13, 0x27, 0xfe, 0xd9, 0x4e, 0xd2, 0x69, 0xda, 0x6c, 0x9d, 0xa6, 0x97, 0x6e, 0xef,
+	0xb8, 0xf0, 0x70, 0x29, 0x4d, 0xee, 0x38, 0x74, 0x77, 0x1c, 0x6a, 0xc2, 0x11, 0x85, 0x42, 0xd4,
+	0x6e, 0x02, 0x27, 0x04, 0x68, 0x6f, 0xbd, 0x3b, 0x76, 0x86, 0xac, 0x67, 0x96, 0x99, 0x71, 0x92,
+	0x95, 0x78, 0x40, 0x82, 0xbf, 0x80, 0x37, 0xc4, 0x0b, 0x42, 0xe2, 0x6f, 0x84, 0x47, 0x34, 0x1f,
+	0x6b, 0xcf, 0xc6, 0x6b, 0xa7, 0xa8, 0x7d, 0xb1, 0xfc, 0xfb, 0xfe, 0x98, 0xdf, 0xc7, 0xcc, 0x02,
+	0xf4, 0x79, 0x16, 0xef, 0x65, 0x9c, 0x49, 0x86, 0xea, 0xea, 0x7f, 0xd6, 0xed, 0x6c, 0x68, 0x50,
+	0xe6, 0x19, 0x7e, 0xae, 0x7e, 0x0c, 0xb5, 0xe3, 0x8d, 0xb1, 0x83, 0x61, 0x2a, 0x49, 0x48, 0x12,
+	0x4b, 0xd9, 0x72, 0xf8, 0x79, 0x44, 0x45, 0x14, 0x4b, 0xc2, 0xa8, 0x21, 0xfa, 0xff, 0x9c, 0x87,
+	0x87, 0xc7, 0x58, 0x9e, 0x47, 0xdd, 0x14, 0x1f, 0x31, 0x2a, 0x31, 0x95, 0x01, 0xfe, 0xe3, 0x10,
+	0x0b, 0x89, 0x36, 0x60, 0x89, 0x5d, 0x53, 0xcc, 0xbd, 0xf9, 0x9d, 0xf9, 0xdd, 0x46, 0x60, 0x00,
+	0xf4, 0x18, 0x1a, 0x31, 0xa3, 0x4a, 0x51, 0x2c, 0xbd, 0x05, 0x4d, 0x19, 0x23, 0x94, 0x8c, 0x54,
+	0xaa, 0xbc, 0x9a, 0x91, 0xd1, 0x80, 0xc2, 0xf6, 0x08, 0x4e, 0x13, 0x6f, 0xd1, 0x60, 0x35, 0xa0,
+	0xb0, 0x5d, 0xdc, 0x27, 0xd4, 0x5b, 0x32, 0x58, 0x0d, 0xa0, 0x75, 0xa8, 0x61, 0x9a, 0x78, 0x75,
+	0x8d, 0x53, 0x7f, 0xfd, 0x2f, 0x61, 0xa3, 0xec, 0x9e, 0xc8, 0x18, 0x15, 0x18, 0x3d, 0x83, 0xb6,
+	0x56, 0x1f, 0xc6, 0x86, 0x60, 0xfd, 0x6c, 0x49, 0x87, 0xd9, 0xff, 0x15, 0x6c, 0x1e, 0x63, 0xf9,
+	0x32, 0x8e, 0xd9, 0x90, 0xca, 0xc3, 0xfc, 0x34, 0x1a, 0xe0, 0x22, 0xbe, 0x2f, 0xa0, 0x15, 0x19,
+	0x7c, 0x48, 0xa3, 0x01, 0xd6, 0xe2, 0xcd, 0xfd, 0xcd, 0xbd, 0x51, 0xba, 0xf6, 0x5c, 0x72, 0xd0,
+	0xb4, 0x90, 0x52, 0xe1, 0xff, 0x16, 0xb6, 0xc7, 0x6a, 0x03, 0x7c, 0x1d, 0xf1, 0xe4, 0xfd, 0x29,
+	0xff, 0x13, 0x3c, 0x28, 0x69, 0x1e, 0x45, 0xfc, 0x0e, 0x4a, 0xd1, 0xc7, 0x50, 0xe7, 0x5a, 0x9b,
+	0x3e, 0xb4, 0xe6, 0xfe, 0x9a, 0x23, 0x75, 0x85, 0x85, 0x0c, 0x2c, 0xd9, 0xff, 0xef, 0x02, 0xac,
+	0x8d, 0xcc, 0xbf, 0x07, 0xc3, 0xcf, 0x60, 0x31, 0x66, 0x84, 0x56, 0x98, 0x55, 0xe8, 0x40, 0x13,
+	0x15, 0x93, 0x72, 0x42, 0x97, 0x4d, 0x85, 0x6f, 0x9a, 0x88, 0xbe, 0x84, 0x66, 0x36, 0xec, 0xa6,
+	0x24, 0x0e, 0x2f, 0x71, 0x2e, 0xbc, 0xc5, 0x9d, 0xda, 0x6e, 0x73, 0xbf, 0xe3, 0xf0, 0x8e, 0xa9,
+	0xa1, 0x82, 0x03, 0x30, 0x88, 0x57, 0x38, 0x17, 0xe8, 0x2b, 0x68, 0xc5, 0x1c, 0x47, 0x12, 0x27,
+	0xa1, 0x24, 0x03, 0xac, 0x8b, 0xae, 0xb9, 0xff, 0xc8, 0x91, 0x56, 0xe8, 0x30, 0x63, 0x84, 0xca,
+	0x50, 0xe0, 0x38, 0x68, 0x5a, 0xf6, 0x73, 0x32, 0xc0, 0xe8, 0x05, 0x2c, 0x5f, 0x13, 0x49, 0xb1,
+	0x10, 0xba, 0x32, 0x55, 0xec, 0xa6, 0x1b, 0xf7, 0xbe, 0x35, 0xe8, 0x22, 0x55, 0x41, 0xc1, 0x87,
+	0x5e, 0xc0, 0x62, 0xd2, 0xcf, 0x98, 0xb7, 0xac, 0xf9, 0xb7, 0x1d, 0x43, 0x49, 0x4e, 0xa3, 0x01,
+	0x89, 0xc3, 0x8c, 0xb3, 0x0c, 0x73, 0x49, 0xb0, 0x08, 0x34, 0xab, 0xff, 0xaf, 0x79, 0x78, 0x7c,
+	0x8c, 0xe5, 0xcf, 0x58, 0x9a, 0xb2, 0x6b, 0xcc, 0x7f, 0x41, 0xc4, 0xad, 0x92, 0xfd, 0x1c, 0x96,
+	0x84, 0x8c, 0xb8, 0xb4, 0x07, 0xf0, 0xd4, 0x51, 0xda, 0xb3, 0x42, 0x61, 0x11, 0x25, 0xe3, 0x09,
+	0xe6, 0x81, 0xe1, 0x47, 0x07, 0xa6, 0xab, 0x16, 0xde, 0x56, 0x4c, 0x71, 0xab, 0x06, 0x4d, 0xc9,
+	0x80, 0x98, 0x53, 0x69, 0x07, 0x06, 0xf0, 0x7f, 0xaf, 0x4b, 0xbf, 0xca, 0x47, 0x5b, 0x2c, 0x5f,
+	0x41, 0x7b, 0xa4, 0x35, 0x25, 0x42, 0x39, 0x5b, 0x9b, 0x55, 0x2d, 0xad, 0x9e, 0xa3, 0xcb, 0xff,
+	0xf7, 0xbc, 0xa3, 0x9f, 0xd0, 0xfe, 0x64, 0x12, 0x7e, 0x54, 0x4e, 0x82, 0x3f, 0x11, 0x0d, 0xa1,
+	0xfd, 0xea, 0x2c, 0x7c, 0xea, 0x66, 0xe1, 0x6d, 0xe4, 0x66, 0xa4, 0xe1, 0x3b, 0x78, 0x32, 0xcd,
+	0x4d, 0x9b, 0x87, 0xaf, 0x61, 0x75, 0xac, 0xf7, 0x6d, 0x12, 0xd1, 0xee, 0xb9, 0xda, 0xfc, 0xdf,
+	0xc0, 0xd6, 0xc8, 0xc2, 0xd1, 0xfb, 0x1d, 0x5f, 0x81, 0x53, 0x67, 0x25, 0xd5, 0xd6, 0xf5, 0x4d,
+	0x58, 0xee, 0xa9, 0x9a, 0xb0, 0x43, 0xb5, 0x1d, 0xd4, 0x7b, 0x98, 0x1f, 0x51, 0x89, 0x1e, 0xc1,
+	0x4a, 0x4f, 0xa7, 0x89, 0x9a, 0xe1, 0xdf, 0x0e, 0x96, 0x15, 0x7c, 0x44, 0xa5, 0xff, 0x9f, 0x1a,
+	0xac, 0xdd, 0x6a, 0x06, 0xf4, 0x89, 0xbb, 0x42, 0x66, 0x38, 0x67, 0x77, 0xcb, 0x39, 0x3c, 0xb0,
+	0xdd, 0x13, 0x8a, 0xf8, 0x02, 0x27, 0xc3, 0x14, 0xeb, 0x46, 0xb6, 0x27, 0xb6, 0xe3, 0x88, 0x57,
+	0xf2, 0x05, 0xf7, 0x2d, 0xfa, 0xcc, 0x62, 0xcf, 0xf3, 0x0c, 0x4f, 0x74, 0x7e, 0xed, 0xff, 0xea,
+	0xfc, 0x75, 0xa8, 0x0d, 0x79, 0x6a, 0x37, 0x97, 0xfa, 0x8b, 0x3e, 0x07, 0x2f, 0x8d, 0x84, 0x54,
+	0x6b, 0xa7, 0x47, 0xf8, 0x00, 0x27, 0x61, 0x37, 0x65, 0xf1, 0x65, 0x48, 0x87, 0x03, 0x3d, 0x55,
+	0xda, 0xc1, 0x03, 0x45, 0x3f, 0x2a, 0xc8, 0x87, 0x8a, 0x7a, 0x3a, 0x1c, 0xa0, 0xa7, 0xd0, 0x92,
+	0x4c, 0x46, 0x69, 0x38, 0x20, 0x42, 0x60, 0xb3, 0xe3, 0xda, 0x41, 0x53, 0xe3, 0x7e, 0xa9, 0x51,
+	0x68, 0x1b, 0xe0, 0x8a, 0x49, 0xb5, 0xd2, 0x86, 0x54, 0xea, 0xd1, 0xb1, 0x18, 0x34, 0x14, 0x46,
+	0x9f, 0x92, 0x9a, 0x80, 0x82, 0xf4, 0xa9, 0x3a, 0x81, 0x4b, 0x9c, 0x7b, 0x2b, 0x3a, 0x92, 0x99,
+	0x13, 0xd0, 0xb2, 0xbf, 0xc2, 0x39, 0xda, 0x83, 0x86, 0xf6, 0xfb, 0x9a, 0xf1, 0x4b, 0xaf, 0xa1,
+	0x45, 0xef, 0x39, 0xa2, 0xe2, 0x22, 0xda, 0xff, 0xec, 0x87, 0xc1, 0x8a, 0xe2, 0xf9, 0x96, 0xf1,
+	0x4b, 0xf4, 0x31, 0xac, 0xf1, 0x21, 0xd5, 0xc6, 0xae, 0x30, 0x17, 0x84, 0x51, 0x0f, 0xb4, 0xc7,
+	0xab, 0x16, 0xfd, 0x6b, 0x83, 0xf5, 0x7f, 0x07, 0x0f, 0x8e, 0xb1, 0xb4, 0x67, 0xaf, 0x4a, 0xb7,
+	0x28, 0xd1, 0x4f, 0xca, 0x9d, 0x3a, 0xfd, 0xf8, 0x4d, 0x7b, 0x8e, 0x1a, 0x6d, 0xc1, 0x6d, 0xb4,
+	0x73, 0x7d, 0x41, 0x29, 0x69, 0x1f, 0x6f, 0xa5, 0xa2, 0x0c, 0x4a, 0xed, 0x35, 0x65, 0x32, 0x37,
+	0xaf, 0xc7, 0x3a, 0xfc, 0xbf, 0x2d, 0x42, 0xeb, 0x35, 0x73, 0x94, 0x6d, 0xc2, 0x72, 0xc6, 0x84,
+	0x0c, 0x49, 0xa2, 0xbd, 0x5d, 0x0c, 0xea, 0x0a, 0x3c, 0x49, 0x50, 0x07, 0x56, 0xe2, 0x48, 0xe2,
+	0x3e, 0xe3, 0xb9, 0xbd, 0xef, 0x8c, 0x60, 0x35, 0xea, 0xb2, 0x88, 0x63, 0x2a, 0xc3, 0x68, 0x28,
+	0x2f, 0x18, 0xb7, 0xb5, 0x35, 0x7d, 0xd4, 0x19, 0xee, 0x97, 0x9a, 0x19, 0x3d, 0x87, 0xba, 0x15,
+	0x5b, 0x9a, 0x2d, 0x66, 0xd9, 0xf4, 0xed, 0x8a, 0xc8, 0x14, 0xeb, 0xc2, 0x50, 0xb7, 0x2b, 0x05,
+	0x20, 0x04, 0x8b, 0x5d, 0x96, 0x98, 0x6a, 0x68, 0x04, 0xfa, 0x3f, 0x3a, 0x80, 0x65, 0x5b, 0xc4,
+	0x5e, 0xf3, 0xae, 0x72, 0x2f, 0x38, 0xd1, 0x17, 0xd0, 0xd4, 0x05, 0x92, 0x45, 0x39, 0x1b, 0x4a,
+	0xaf, 0x7d, 0x97, 0x20, 0x28, 0xee, 0xd7, 0x9a, 0x59, 0xb9, 0x96, 0xe0, 0x4c, 0x5e, 0x78, 0xab,
+	0xe6, 0xec, 0x34, 0xa0, 0x73, 0x77, 0x41, 0xd2, 0x84, 0x63, 0xea, 0xad, 0x69, 0xc2, 0x08, 0x56,
+	0x09, 0xe7, 0x8c, 0xe9, 0x84, 0xaf, 0x9b, 0x84, 0x2b, 0xf0, 0x24, 0x41, 0x5b, 0xd0, 0xb0, 0x49,
+	0x25, 0x89, 0x77, 0x4f, 0x93, 0x56, 0x0c, 0xe2, 0x24, 0x51, 0xc1, 0xca, 0xa8, 0x2f, 0x3c, 0xb4,
+	0x53, 0x53, 0xc1, 0xaa, 0xff, 0xe8, 0x18, 0xda, 0x5d, 0x4c, 0x71, 0x8f, 0xc4, 0x24, 0xe2, 0x04,
+	0x0b, 0xef, 0xbe, 0x2e, 0x04, 0x77, 0xcd, 0x8d, 0xe9, 0x79, 0xc8, 0xd9, 0x50, 0xda, 0x79, 0x51,
+	0x96, 0xf3, 0xff, 0x3e, 0xaf, 0x47, 0xae, 0xaa, 0x0b, 0x33, 0xcf, 0x8f, 0x4c, 0x66, 0x8a, 0x7a,
+	0x3e, 0x28, 0xd7, 0xb3, 0xbb, 0xd3, 0x75, 0xed, 0x54, 0x2e, 0x9d, 0xe7, 0xee, 0xd2, 0xb9, 0x43,
+	0x64, 0xc6, 0xbe, 0x79, 0xa3, 0x47, 0x76, 0x85, 0x6b, 0xb6, 0x7e, 0x5f, 0x40, 0x43, 0x2b, 0x74,
+	0x3a, 0x61, 0xa3, 0xe8, 0x04, 0xb7, 0xd0, 0x83, 0x95, 0xcc, 0xea, 0xf0, 0xff, 0x61, 0xc2, 0x0d,
+	0x70, 0x96, 0xe6, 0x46, 0xe9, 0x6b, 0x5d, 0xf2, 0x45, 0xb8, 0x9f, 0x96, 0xc3, 0x7d, 0xe2, 0xf8,
+	0xce, 0x95, 0x4c, 0x75, 0xbc, 0x3f, 0x70, 0xe3, 0xbd, 0x4b, 0x66, 0x46, 0xc0, 0x67, 0x3a, 0xe0,
+	0x0a, 0xe7, 0x6c, 0xc0, 0x07, 0x00, 0x46, 0xe3, 0x9d, 0x11, 0x37, 0x78, 0xa1, 0xc4, 0xbf, 0x84,
+	0x9d, 0x63, 0x2c, 0xf5, 0x44, 0x3e, 0x1f, 0xbf, 0x85, 0xc4, 0x61, 0x7e, 0x3a, 0x1c, 0x14, 0x61,
+	0x6f, 0x41, 0x63, 0x3c, 0xd0, 0xcd, 0xfa, 0x5b, 0xe9, 0x16, 0x33, 0x7c, 0xa3, 0xc8, 0x89, 0x9d,
+	0x51, 0xb7, 0x26, 0x57, 0x29, 0x82, 0x1e, 0x3c, 0x9d, 0x61, 0xcc, 0x86, 0xf1, 0x12, 0x5a, 0xce,
+	0xab, 0x4c, 0xd8, 0x40, 0xdc, 0x3a, 0x51, 0x23, 0x5c, 0xed, 0xae, 0x31, 0x57, 0x50, 0x12, 0xf1,
+	0x7f, 0x0c, 0xf7, 0xd4, 0x13, 0x8e, 0xdf, 0x1c, 0xe6, 0xe3, 0xc3, 0xdb, 0x85, 0xba, 0xe4, 0x37,
+	0xc5, 0x38, 0xab, 0x1c, 0xf5, 0x4b, 0x92, 0xdf, 0x9c, 0x24, 0xfe, 0xd7, 0x80, 0x5c, 0x71, 0xeb,
+	0xd7, 0x2e, 0xd4, 0x24, 0xbf, 0xb1, 0xc2, 0x0f, 0xdd, 0x21, 0xe0, 0xf8, 0xa1, 0x58, 0xfc, 0xbf,
+	0xcc, 0xeb, 0xf9, 0x7f, 0x74, 0x11, 0x11, 0x7a, 0x26, 0x23, 0x89, 0x9d, 0x23, 0x5a, 0x52, 0x77,
+	0x5c, 0x51, 0xd1, 0x2f, 0x15, 0x77, 0x60, 0xc3, 0x8b, 0x3e, 0x83, 0xba, 0xce, 0xb6, 0xf0, 0x16,
+	0x26, 0x52, 0x81, 0x07, 0x99, 0xcc, 0x43, 0x9b, 0x10, 0xcd, 0x15, 0x58, 0x66, 0x3f, 0x83, 0xb5,
+	0x63, 0x2c, 0x95, 0xfd, 0x77, 0x33, 0xbf, 0x0b, 0xeb, 0x49, 0x44, 0xd2, 0x3c, 0x54, 0xd9, 0xd3,
+	0x33, 0xd8, 0x38, 0xb2, 0x14, 0xac, 0x6a, 0xfc, 0x39, 0xbf, 0xd1, 0xbb, 0x58, 0xf8, 0x39, 0xdc,
+	0x3f, 0xe4, 0x2c, 0x4a, 0xe2, 0x48, 0xa8, 0xec, 0x15, 0x89, 0xff, 0x09, 0x34, 0x9d, 0x14, 0x55,
+	0xd8, 0xae, 0x38, 0x4f, 0x57, 0x42, 0x5d, 0x13, 0x18, 0x4d, 0xf3, 0x30, 0xc1, 0x29, 0xb9, 0xc2,
+	0x5c, 0x57, 0xda, 0x4a, 0xd0, 0x54, 0xb8, 0x9f, 0x1a, 0x94, 0xff, 0xd7, 0x79, 0xd8, 0x28, 0xdb,
+	0xb6, 0x21, 0x1f, 0xc2, 0x32, 0xa1, 0x57, 0x8c, 0xc4, 0xc5, 0x7d, 0x70, 0xb7, 0xfa, 0xe4, 0x42,
+	0x8e, 0x63, 0x4c, 0x32, 0x19, 0x5e, 0x13, 0x79, 0x11, 0x12, 0xda, 0x63, 0x41, 0x21, 0x88, 0x1e,
+	0x42, 0x5d, 0xc8, 0x48, 0x0e, 0x85, 0xad, 0x71, 0x0b, 0xa9, 0x9b, 0xd0, 0x40, 0xf4, 0xed, 0xcb,
+	0x5e, 0xfd, 0xf5, 0x11, 0xac, 0x9f, 0x32, 0xfa, 0x3a, 0xe2, 0xd1, 0x40, 0xd8, 0xf0, 0xfd, 0x3f,
+	0x40, 0xeb, 0x28, 0x4a, 0xd3, 0x91, 0x47, 0x0f, 0xd5, 0xbb, 0x53, 0x0c, 0xd3, 0xe2, 0x79, 0x6e,
+	0x21, 0xf4, 0x01, 0x34, 0xf1, 0x0d, 0x8e, 0xd5, 0x28, 0xc6, 0x9c, 0xdb, 0xcd, 0x0a, 0x16, 0xf5,
+	0x0d, 0xe7, 0x2a, 0x0d, 0x58, 0x48, 0x32, 0x88, 0x24, 0x0e, 0xfb, 0x91, 0xb0, 0x76, 0x9b, 0x05,
+	0xee, 0x38, 0x12, 0xfb, 0x7f, 0x06, 0x80, 0x97, 0x19, 0x39, 0xc3, 0xfc, 0x4a, 0x39, 0x7e, 0x06,
+	0xf7, 0xde, 0x0c, 0x31, 0xcf, 0xdd, 0xaf, 0x05, 0xe8, 0x49, 0x31, 0x12, 0xaa, 0xbf, 0x72, 0x74,
+	0x1e, 0x17, 0xf4, 0xaa, 0x6f, 0x0c, 0xfe, 0x1c, 0x3a, 0x85, 0xf5, 0xdb, 0x1f, 0x10, 0xd0, 0x07,
+	0x8e, 0xce, 0xaa, 0x4f, 0x0b, 0x9d, 0xd1, 0x1d, 0xe4, 0xd6, 0x43, 0xda, 0x9f, 0x43, 0xdf, 0xe9,
+	0xeb, 0x4c, 0xc5, 0x97, 0x03, 0xf4, 0xd1, 0xa4, 0xd6, 0x8a, 0x2f, 0x0b, 0x9d, 0xed, 0x09, 0xdd,
+	0xee, 0x37, 0x02, 0x7f, 0x0e, 0xf5, 0x74, 0x3b, 0x4e, 0x3e, 0xd0, 0xd0, 0x87, 0x8e, 0x81, 0xa9,
+	0x6f, 0xcc, 0xce, 0x47, 0x77, 0x70, 0x8d, 0xec, 0x10, 0x1d, 0x49, 0xc5, 0x0b, 0x08, 0x4d, 0xaa,
+	0xa8, 0x7a, 0xc8, 0x75, 0xbe, 0x77, 0x17, 0xdb, 0xc8, 0x54, 0x0c, 0x1b, 0x55, 0xef, 0x15, 0xf4,
+	0x6c, 0x42, 0xc3, 0xe4, 0x43, 0xa9, 0xf3, 0xe1, 0x6c, 0xa6, 0x91, 0x91, 0x37, 0xb0, 0x5a, 0xbe,
+	0x68, 0xa2, 0x6d, 0x47, 0x72, 0xf2, 0x7a, 0xdb, 0x79, 0x32, 0x8d, 0x7c, 0xcb, 0xef, 0x89, 0xa5,
+	0x5d, 0xf2, 0x7b, 0xda, 0x6d, 0xa3, 0xe4, 0xf7, 0xd4, 0xbd, 0x3f, 0x32, 0x32, 0xb1, 0x28, 0x4b,
+	0x46, 0xa6, 0xed, 0xf8, 0x92, 0x91, 0xa9, 0xbb, 0xd6, 0x9f, 0x43, 0x1c, 0x1e, 0x4d, 0xdd, 0x65,
+	0x68, 0xd7, 0x51, 0x32, 0x73, 0xb7, 0x76, 0xbe, 0xff, 0x16, 0x9c, 0x23, 0x9b, 0xdf, 0x00, 0x8c,
+	0x17, 0x13, 0x7a, 0xe4, 0x36, 0x72, 0x69, 0xd7, 0x75, 0x3a, 0x55, 0xa4, 0x91, 0x9a, 0x9f, 0x43,
+	0xbb, 0xb4, 0x9e, 0x90, 0x57, 0xb0, 0xdf, 0x1e, 0x5e, 0x1d, 0xf7, 0xc0, 0x27, 0xf7, 0x99, 0x3f,
+	0x87, 0x0e, 0xa1, 0x69, 0xb7, 0xcc, 0x09, 0xed, 0xb1, 0x19, 0x9a, 0x36, 0x1d, 0x4d, 0xee, 0x52,
+	0xf2, 0xe7, 0xd0, 0x2b, 0x68, 0xb9, 0xb3, 0x1b, 0x6d, 0x15, 0xac, 0x15, 0xdb, 0x64, 0x3c, 0x9e,
+	0xaa, 0xc6, 0xbd, 0x3f, 0xd7, 0xad, 0xeb, 0xf1, 0x7e, 0xf0, 0xbf, 0x00, 0x00, 0x00, 0xff, 0xff,
+	0x3d, 0xf0, 0x1c, 0x76, 0x29, 0x16, 0x00, 0x00,
+>>>>>>> parent of aee02a3... merge master into resource_limit
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -1827,7 +2089,6 @@ type ApiServiceClient interface {
 	GetChainState(ctx context.Context, in *NonParamsRequest, opts ...grpc.CallOption) (*GetChainStateResponse, error)
 	GetStatInfo(ctx context.Context, in *NonParamsRequest, opts ...grpc.CallOption) (*GetStatResponse, error)
 	BroadcastTrx(ctx context.Context, in *BroadcastTrxRequest, opts ...grpc.CallOption) (*BroadcastTrxResponse, error)
-	GetBlockList(ctx context.Context, in *GetBlockListRequest, opts ...grpc.CallOption) (*GetBlockListResponse, error)
 }
 
 type apiServiceClient struct {
@@ -1964,15 +2225,6 @@ func (c *apiServiceClient) BroadcastTrx(ctx context.Context, in *BroadcastTrxReq
 	return out, nil
 }
 
-func (c *apiServiceClient) GetBlockList(ctx context.Context, in *GetBlockListRequest, opts ...grpc.CallOption) (*GetBlockListResponse, error) {
-	out := new(GetBlockListResponse)
-	err := c.cc.Invoke(ctx, "/grpcpb.ApiService/GetBlockList", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // ApiServiceServer is the server API for ApiService service.
 type ApiServiceServer interface {
 	QueryTableContent(context.Context, *GetTableContentRequest) (*TableContentResponse, error)
@@ -1989,7 +2241,6 @@ type ApiServiceServer interface {
 	GetChainState(context.Context, *NonParamsRequest) (*GetChainStateResponse, error)
 	GetStatInfo(context.Context, *NonParamsRequest) (*GetStatResponse, error)
 	BroadcastTrx(context.Context, *BroadcastTrxRequest) (*BroadcastTrxResponse, error)
-	GetBlockList(context.Context, *GetBlockListRequest) (*GetBlockListResponse, error)
 }
 
 func RegisterApiServiceServer(s *grpc.Server, srv ApiServiceServer) {
@@ -2248,24 +2499,6 @@ func _ApiService_BroadcastTrx_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ApiService_GetBlockList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetBlockListRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ApiServiceServer).GetBlockList(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/grpcpb.ApiService/GetBlockList",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ApiServiceServer).GetBlockList(ctx, req.(*GetBlockListRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 var _ApiService_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "grpcpb.ApiService",
 	HandlerType: (*ApiServiceServer)(nil),
@@ -2325,10 +2558,6 @@ var _ApiService_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "BroadcastTrx",
 			Handler:    _ApiService_BroadcastTrx_Handler,
-		},
-		{
-			MethodName: "GetBlockList",
-			Handler:    _ApiService_GetBlockList_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

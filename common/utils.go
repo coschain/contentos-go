@@ -46,7 +46,7 @@ func Fatalf(format string, args ...interface{}) {
 }
 
 func GetBucket(timestamp uint32) uint32 {
-	return timestamp / uint32(constants.BlockInterval)
+	return timestamp / uint32(constants.BLOCK_INTERVAL)
 }
 
 const Is32bitPlatform = ^uint(0)>>32 == 0

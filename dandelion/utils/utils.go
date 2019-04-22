@@ -17,7 +17,7 @@ func GenerateSignedTxAndValidate(ops []interface{}, signers ...*wallet.PrivAccou
 		privKeys = append(privKeys, privKey)
 	}
 	// occupant implement
-	tx := &prototype.Transaction{RefBlockNum: 0, RefBlockPrefix: 0, Expiration: &prototype.TimePointSec{UtcSeconds: uint32(time.Now().Unix()) + constants.TrxMaxExpirationTime}}
+	tx := &prototype.Transaction{RefBlockNum: 0, RefBlockPrefix: 0, Expiration: &prototype.TimePointSec{UtcSeconds: uint32(time.Now().Unix()) + constants.TRX_MAX_EXPIRATION_TIME}}
 	for _, op := range ops {
 		tx.AddOperation(op)
 	}

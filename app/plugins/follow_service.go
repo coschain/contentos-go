@@ -44,10 +44,10 @@ func (p *FollowService) Start(node *node.Node) error {
 }
 
 func (p *FollowService) hookEvent() {
-	p.ev.Subscribe(constants.NoticeOpPost, p.onPostOperation)
+	p.ev.Subscribe(constants.NOTICE_OP_POST, p.onPostOperation)
 }
 func (p *FollowService) unhookEvent() {
-	p.ev.Unsubscribe(constants.NoticeOpPost, p.onPostOperation)
+	p.ev.Unsubscribe(constants.NOTICE_OP_POST, p.onPostOperation)
 }
 
 func (p *FollowService) onPostOperation(notification *prototype.OperationNotification) {

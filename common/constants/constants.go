@@ -1,83 +1,87 @@
 package constants
 
 const (
-	COSChainName     = "contentos"
-	COSInitSupply    = 10000000000
-	COSConsensusName = "iBFT"
-	COSInitMiner     = "initminer"
+	COS_CHAIN_NAME     = "contentos"
+	COS_INIT_SUPPLY    = 10000000000
+	COS_CONSENSUS_NAME = "iBFT"
+	COS_INIT_MINER     = "initminer"
 
-	CoinSymbol = "COS"
-	VestSymbol = "VEST"
+	COIN_SYMBOL = "COS"
+	VEST_SYMBOL = "VEST"
 
-	BlockInterval       = 1  // 1000 ms for one block produce
-	BlockProdRepetition = 10 // each producer produces 10 blocks in a row
+	BLOCK_INTERVAL        = 1  // 1000 ms for one block produce
+	BLOCK_PROD_REPETITION = 10 // each producer produces 10 blocks in a row
 
-	NoticeOpPre        = "oppre"
-	NoticeOpPost       = "oppost"
-	NoticeTrxPre       = "trxpre"
-	NoticeTrxPost      = "trxpost"
-	NoticeTrxPending   = "trxpending"
-	NoticeTrxApplied   = "trxapplyresult"
-	NoticeBlockApplied = "blockapply"
+	NOTICE_OP_PRE           = "oppre"
+	NOTICE_OP_POST          = "oppost"
+	NOTICE_TRX_PRE          = "trxpre"
+	NOTICE_TRX_POST         = "trxpost"
+	NOTICE_TRX_PENDING      = "trxpending"
+	NOTICE_TRX_APLLY_RESULT = "trxapplyresult"
+	NOTICE_BLOCK_APPLY      = "blockapply"
 
-	GenesisTime = 0
+	ProducerNum = 21
+	GenesisTime = 11111
 
-	MaxTransactionSize = 1024 * 256
+	INIT_MINER_NAME      = "initminer"
+	MAX_TRANSACTION_SIZE = 1024 * 256
 
 	MaxBlockSize = 1024 * 1024 * 2
 	MinBlockSize = 115
 
-	InitminerPubKey  = "COS5JVLLcTPhq4Unr194JzWPDNSYGoMcam8yxnsjgRVo3Nb7ioyFW"
-	InitminerPrivKey = "4DjYx2KAGh1NP3dai7MZTLUBMMhMBPmwouKE8jhVSESywccpVZ"
+	GENESIS_TIME = 0
 
-	RpcPageSizeLimit = 100
+	INITMINER_PUBKEY = "COS5JVLLcTPhq4Unr194JzWPDNSYGoMcam8yxnsjgRVo3Nb7ioyFW"
+	INITMINER_PRIKEY = "4DjYx2KAGh1NP3dai7MZTLUBMMhMBPmwouKE8jhVSESywccpVZ"
 
-	MaxWitnessCount = 21
+	RPC_PAGE_SIZE_LIMIT = 100
 
-	PostInvalidId        = 0
-	PostMaxDepth         = 8
-	PostCashOutDelayTime = 60 * 60 * 24 * 7
-	MaxBpVoteCount       = 30
+	MAX_WITNESSES = 21
 
-	BlocksPerDay = 24 * 60 * 60 / BlockInterval
+	POST_INVALID_ID         = 0
+	POST_MAX_DEPTH          = 8
+	POST_CASHPUT_DELAY_TIME = 60 * 60 * 24 * 7
+	MAX_BP_VOTE_COUNT       = 30
 
-	MaxUndoHistory = 10000
+	BLOCKS_PER_DAY = 24 * 60 * 60 / BLOCK_INTERVAL
 
-	MinVoteInterval = 20
-	MinPostInterval = 0 // 5 * 60 TODO for unit test
+	MAX_UNDO_HISTORY = 10000
+
+	MIN_VOTE_INTERVAL = 20
+	MIN_POST_INTERVAL = 0 // 5 * 60 TODO for unit test
 
 	PERCENT = 10000
 
-	VoteRegenerateTime = (60 * 60 * 24) * 3
+	VOTE_REGENERATE_TIME = (60 * 60 * 24) * 3
 
-	VoteLimitDuringRegenerate = 30
+	VOTE_LIMITE_DURING_REGENERATE = 30
 
-	VpDecayTime = (60 * 60 * 24) * 15
+	VP_DECAY_TIME = (60 * 60 * 24) * 15
 
-	TrxMaxExpirationTime = 30 * 60
+	TRX_MAX_EXPIRATION_TIME = 30 * 60
 
-	PerBlockCurrent = 10
+	PER_BLOCK_CURRENT = 10
 
-	RewardRateAuthor = 7000
-	RewardRateReply  = 2000
-	RewardRateBP     = 1000
+	AUTHOR_REWARD = 7000
+	REPLY_REWARD  = 2000
+	BP_REWARD     = 1000
 
 	// 10 ** 18 ?
 	BaseRate = 1
 
 	// resource parameter
-	LimitPrecision = 1000 * 1000
+	LimitPrecision     = 1000 * 1000
 	NetConsumePointNum = 10
 	NetConsumePointDen = 1
 	CpuConsumePointNum = 1
 	CpuConsumePointDen = 100
-	MaxGasPerCall = 20000 * CpuConsumePointDen
+	MaxGasPerCall      = 20000 * CpuConsumePointDen
 	MaxStaminaPerBlock = 1000000
-	WindowSize = 60 * 60 * 24
-	FreeStamina = 100000
-	OneDayStamina = MaxStaminaPerBlock * WindowSize
-	CommonOpGas = 100
-	StakeFreezeTime = 60 * 60 * 24 * 3
+	WindowSize         = 60 * 60 * 24
+	FreeStamina        = 100000
+	OneDayStamina      = MaxStaminaPerBlock * WindowSize
+	CommonOpGas        = 100
+	StakeFreezeTime    = 60 * 60 * 24 * 3
 )
 
 var GlobalId int32 = 1

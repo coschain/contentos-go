@@ -29,10 +29,10 @@ func GenerateSignedTxAndValidate2(client grpcpb.ApiServiceClient, ops []interfac
 	if err != nil {
 		return nil, err
 	}
-	refBlockPrefix := binary.BigEndian.Uint32(resp.State.Dgpo.HeadBlockId.Hash[8:12])
+	refBlockPrefix := binary.BigEndian.Uint32(resp.Props.HeadBlockId.Hash[8:12])
 	// occupant implement
-	refBlockNum := uint32(resp.State.Dgpo.HeadBlockNumber & 0x7ff)
-	tx := &prototype.Transaction{RefBlockNum: refBlockNum, RefBlockPrefix: refBlockPrefix, Expiration: &prototype.TimePointSec{UtcSeconds: resp.State.Dgpo.Time.UtcSeconds + 30}}
+	refBlockNum := uint32(resp.Props.HeadBlockNumber & 0x7ff)
+	tx := &prototype.Transaction{RefBlockNum: refBlockNum, RefBlockPrefix: refBlockPrefix, Expiration: &prototype.TimePointSec{UtcSeconds: uint32(time.Now().Unix()) + 30}}
 	for _, op := range ops {
 		tx.AddOperation(op)
 	}

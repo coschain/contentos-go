@@ -23,7 +23,7 @@ func mustNoError(err error, val string, errorType uint32) {
 // TODO replace applyContext to TrxContext
 type ApplyContext struct {
 	db      iservices.IDatabaseService
-	control *TrxPool
+	control iservices.ITrxPool
 	trxCtx  *TrxContext
 }
 

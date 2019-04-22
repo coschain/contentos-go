@@ -193,7 +193,7 @@ func (ev *PostEvaluator) Apply() {
 
 	authorWrap := table.NewSoAccountWrap(ev.ctx.db, op.Owner)
 	elapsedSeconds := ev.ctx.control.HeadBlockTime().UtcSeconds - authorWrap.GetLastPostTime().UtcSeconds
-	mustSuccess(elapsedSeconds > constants.MinPostInterval, "posting frequently", prototype.StatusErrorTrxValueCompare)
+	mustSuccess(elapsedSeconds > constants.MIN_POST_INTERVAL, "posting frequently", prototype.StatusErrorTrxValueCompare)
 
 	mustNoError(idWrap.Create(func(t *table.SoPost) {
 		t.PostId = op.Uuid
@@ -202,7 +202,7 @@ func (ev *PostEvaluator) Apply() {
 		t.Author = op.Owner
 		t.Body = op.Content
 		t.Created = ev.ctx.control.HeadBlockTime()
-		t.CashoutTime = &prototype.TimePointSec{UtcSeconds: ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.PostCashOutDelayTime)}
+		t.CashoutTime = &prototype.TimePointSec{UtcSeconds: ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.POST_CASHPUT_DELAY_TIME)}
 		t.Depth = 0
 		t.Children = 0
 		t.RootId = t.PostId
@@ -215,11 +215,7 @@ func (ev *PostEvaluator) Apply() {
 
 	authorWrap.MdLastPostTime(ev.ctx.control.HeadBlockTime())
 
-	ev.ctx.control.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
-		props.TotalPostCnt++
-	})
-
-	//timestamp := ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.PostCashOutDelayTime) - uint32(constants.GenesisTime)
+	//timestamp := ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.POST_CASHPUT_DELAY_TIME) - uint32(constants.GenesisTime)
 	//key := fmt.Sprintf("cashout:%d_%d", common.GetBucket(timestamp), op.Uuid)
 	//value := "post"
 	//opAssertE(ev.ctx.db.Put([]byte(key), []byte(value)), "put post key into db error")
@@ -235,11 +231,11 @@ func (ev *ReplyEvaluator) Apply() {
 	mustSuccess(!cidWrap.CheckExist(), "post uuid exist", prototype.StatusErrorDbExist)
 	mustSuccess(pidWrap.CheckExist(), "parent uuid do not exist", prototype.StatusErrorDbExist)
 
-	mustSuccess(pidWrap.GetDepth()+1 < constants.PostMaxDepth, "reply depth error", prototype.StatusErrorTrxValueCompare)
+	mustSuccess(pidWrap.GetDepth()+1 < constants.POST_MAX_DEPTH, "reply depth error", prototype.StatusErrorTrxValueCompare)
 
 	authorWrap := table.NewSoAccountWrap(ev.ctx.db, op.Owner)
 	elapsedSeconds := ev.ctx.control.HeadBlockTime().UtcSeconds - authorWrap.GetLastPostTime().UtcSeconds
-	mustSuccess(elapsedSeconds > constants.MinPostInterval, "reply frequently", prototype.StatusErrorTrxValueCompare)
+	mustSuccess(elapsedSeconds > constants.MIN_POST_INTERVAL, "reply frequently", prototype.StatusErrorTrxValueCompare)
 
 	var rootId uint64
 	if pidWrap.GetRootId() == 0 {
@@ -255,7 +251,7 @@ func (ev *ReplyEvaluator) Apply() {
 		t.Author = op.Owner
 		t.Body = op.Content
 		t.Created = ev.ctx.control.HeadBlockTime()
-		t.CashoutTime = &prototype.TimePointSec{UtcSeconds: ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.PostCashOutDelayTime)}
+		t.CashoutTime = &prototype.TimePointSec{UtcSeconds: ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.POST_CASHPUT_DELAY_TIME)}
 		t.Depth = pidWrap.GetDepth() + 1
 		t.Children = 0
 		t.RootId = rootId
@@ -268,7 +264,7 @@ func (ev *ReplyEvaluator) Apply() {
 	// Modify Parent Object
 	mustSuccess(pidWrap.MdChildren(pidWrap.GetChildren()+1), "Modify Parent Children Error", prototype.StatusErrorDbUpdate)
 
-	//timestamp := ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.PostCashOutDelayTime) - uint32(constants.GenesisTime)
+	//timestamp := ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.POST_CASHPUT_DELAY_TIME) - uint32(constants.GenesisTime)
 	//key := fmt.Sprintf("cashout:%d_%d", common.GetBucket(timestamp), op.Uuid)
 	//value := "reply"
 	//opAssertE(ev.ctx.db.Put([]byte(key), []byte(value)), "put reply key into db error")
@@ -281,7 +277,7 @@ func (ev *VoteEvaluator) Apply() {
 	ev.ctx.trxCtx.RecordGasFee(op.Voter.Value, constants.CommonOpGas)
 	voterWrap := table.NewSoAccountWrap(ev.ctx.db, op.Voter)
 	elapsedSeconds := ev.ctx.control.HeadBlockTime().UtcSeconds - voterWrap.GetLastVoteTime().UtcSeconds
-	mustSuccess(elapsedSeconds > constants.MinVoteInterval, "voting frequently", prototype.StatusErrorTrxValueCompare)
+	mustSuccess(elapsedSeconds > constants.MIN_VOTE_INTERVAL, "voting frequently", prototype.StatusErrorTrxValueCompare)
 
 	voterId := prototype.VoterId{Voter: op.Voter, PostId: op.Idx}
 	voteWrap := table.NewSoVoteWrap(ev.ctx.db, &voterId)
@@ -299,7 +295,7 @@ func (ev *VoteEvaluator) Apply() {
 	//	}
 	//}
 
-	regeneratedPower := constants.PERCENT * elapsedSeconds / constants.VoteRegenerateTime
+	regeneratedPower := constants.PERCENT * elapsedSeconds / constants.VOTE_REGENERATE_TIME
 	var currentVp uint32
 	votePower := voterWrap.GetVotePower() + regeneratedPower
 	if votePower > constants.PERCENT {
@@ -307,7 +303,7 @@ func (ev *VoteEvaluator) Apply() {
 	} else {
 		currentVp = votePower
 	}
-	usedVp := (currentVp + constants.VoteLimitDuringRegenerate - 1) / constants.VoteLimitDuringRegenerate
+	usedVp := (currentVp + constants.VOTE_LIMITE_DURING_REGENERATE - 1) / constants.VOTE_LIMITE_DURING_REGENERATE
 
 	voterWrap.MdVotePower(currentVp - usedVp)
 	voterWrap.MdLastVoteTime(ev.ctx.control.HeadBlockTime())
@@ -380,7 +376,7 @@ func (ev *BpVoteEvaluator) Apply() {
 		mustSuccess(witnessWrap.MdVoteCount(witnessWrap.GetVoteCount()-1), "set witness data error", prototype.StatusErrorDbUpdate)
 		mustSuccess(voterAccount.MdBpVoteCount(voteCnt-1), "set voter data error", prototype.StatusErrorDbUpdate)
 	} else {
-		mustSuccess(voteCnt < constants.MaxBpVoteCount, "vote count exceeding", prototype.StatusErrorTrxValueCompare)
+		mustSuccess(voteCnt < constants.MAX_BP_VOTE_COUNT, "vote count exceeding", prototype.StatusErrorTrxValueCompare)
 
 		mustNoError(vidWrap.Create(func(t *table.SoWitnessVote) {
 			t.VoteTime = ev.ctx.control.HeadBlockTime()

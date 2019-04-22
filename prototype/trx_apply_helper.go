@@ -37,19 +37,19 @@ func FetchTrxApplyResult(eb EventBus.Bus, timeout time.Duration, trx *SignedTran
      	  	 rec <- result
 		  }
 	 }
-     eb.SubscribeOnceAsync(constants.NoticeTrxApplied,handler)
+     eb.SubscribeOnceAsync(constants.NOTICE_TRX_APLLY_RESULT,handler)
 	 go func() {
 	 	tOut := time.NewTimer(timeout)
 	 	for {
 			select {
 	 		    case <- done:
-					eb.Unsubscribe(constants.NoticeTrxApplied, handler)
+					eb.Unsubscribe(constants.NOTICE_TRX_APLLY_RESULT, handler)
 					return
 			    case <- tOut.C:
 					result :=  &TransactionReceipt{Status:StatusError,
 						ErrorInfo:"Apply transaction timeout when Broadcast Trx"}
 					rec <- result
-					eb.Unsubscribe(constants.NoticeTrxApplied, handler)
+					eb.Unsubscribe(constants.NOTICE_TRX_APLLY_RESULT, handler)
 					return
 			}
 		}

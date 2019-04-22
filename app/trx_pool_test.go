@@ -88,12 +88,12 @@ func makeBlockWithCommonTrx(pre *prototype.Sha256, blockTimestamp uint32, signed
 	sigBlkHdr.Header = new(prototype.BlockHeader)
 	sigBlkHdr.Header.Previous = pre
 	sigBlkHdr.Header.Timestamp = &prototype.TimePointSec{UtcSeconds: blockTimestamp}
-	sigBlkHdr.Header.Witness = &prototype.AccountName{Value: constants.COSInitMiner}
+	sigBlkHdr.Header.Witness = &prototype.AccountName{Value: constants.INIT_MINER_NAME}
 	sigBlkHdr.Header.TransactionMerkleRoot = &prototype.Sha256{Hash: id.Data[:]}
 	sigBlkHdr.WitnessSignature = &prototype.SignatureType{}
 
 	// signature
-	pri, err := prototype.PrivateKeyFromWIF(constants.InitminerPrivKey)
+	pri, err := prototype.PrivateKeyFromWIF(constants.INITMINER_PRIKEY)
 	if err != nil {
 		panic("PrivateKeyFromWIF error")
 	}
@@ -139,13 +139,13 @@ func makeCreateAccountOP(accountName string, pubKey string) (*prototype.AccountC
 	}
 	acop := &prototype.AccountCreateOperation{
 		Fee:            prototype.NewCoin(1),
-		Creator:        &prototype.AccountName{Value: constants.COSInitMiner},
+		Creator:        &prototype.AccountName{Value: constants.COS_INIT_MINER},
 		NewAccountName: &prototype.AccountName{Value: accountName},
 		Owner: &prototype.Authority{
 			WeightThreshold: 1,
 			AccountAuths: []*prototype.KvAccountAuth{
 				&prototype.KvAccountAuth{
-					Name:   &prototype.AccountName{Value: constants.COSInitMiner},
+					Name:   &prototype.AccountName{Value: constants.COS_INIT_MINER},
 					Weight: 3,
 				},
 			},
@@ -245,7 +245,7 @@ func TestController_GenerateAndApplyBlock(t *testing.T) {
 		t.Error("create account failed")
 	}
 
-	pri, err := prototype.PrivateKeyFromWIF(constants.InitminerPrivKey)
+	pri, err := prototype.PrivateKeyFromWIF(constants.INITMINER_PRIKEY)
 	if err != nil {
 		t.Error("PrivateKeyFromWIF error")
 	}
@@ -559,13 +559,13 @@ func Test_Stake_UnStake(t *testing.T) {
 	defer clearDB(db)
 	c := startController(db)
 
-	wraper := table.NewSoAccountWrap(db, prototype.NewAccountName(constants.COSInitMiner))
+	wraper := table.NewSoAccountWrap(db, prototype.NewAccountName(constants.COS_INIT_MINER))
 	if wraper.GetStakeVesting().Value != 0 {
 		t.Error("stake vesting error")
 	}
 
 	stakeOp := &prototype.StakeOperation{
-		Account: prototype.NewAccountName(constants.COSInitMiner),
+		Account: prototype.NewAccountName(constants.COS_INIT_MINER),
 		Amount:  100,
 	}
 
@@ -585,7 +585,7 @@ func Test_Stake_UnStake(t *testing.T) {
 
 	// un stake
 	unStakeOp := &prototype.UnStakeOperation{
-		Account: prototype.NewAccountName(constants.COSInitMiner),
+		Account: prototype.NewAccountName(constants.COS_INIT_MINER),
 		Amount:  100,
 	}
 
@@ -607,7 +607,7 @@ func Test_Stake_UnStake(t *testing.T) {
 
 	// stake wrong amount
 	stakeOp2 := &prototype.StakeOperation{
-		Account: prototype.NewAccountName(constants.COSInitMiner),
+		Account: prototype.NewAccountName(constants.COS_INIT_MINER),
 		Amount:  10000000001,
 	}
 
@@ -623,7 +623,7 @@ func Test_Stake_UnStake(t *testing.T) {
 
 	// un stake wrong amount
 	unStakeOp2 := &prototype.UnStakeOperation{
-		Account: prototype.NewAccountName(constants.COSInitMiner),
+		Account: prototype.NewAccountName(constants.COS_INIT_MINER),
 		Amount:  1,
 	}
 
@@ -755,7 +755,7 @@ func Test_Recover1(t *testing.T) {
 
 	transOp2 := &prototype.TransferOperation{
 		From:   &prototype.AccountName{Value: accountNameBob},
-		To:     &prototype.AccountName{Value: constants.COSInitMiner},
+		To:     &prototype.AccountName{Value: constants.COS_INIT_MINER},
 		Amount: prototype.NewCoin(1),
 	}
 
@@ -801,7 +801,7 @@ func Test_Consume2(t *testing.T) {
 		return
 	}
 	// bob transfer twice, tom transfer once
-	if ok := transfer(c, accountNameBob, constants.COSInitMiner, priKeyBob, 1); !ok {
+	if ok := transfer(c, accountNameBob, constants.COS_INIT_MINER, priKeyBob, 1); !ok {
 		t.Error("transfer error")
 		return
 	}
@@ -809,7 +809,7 @@ func Test_Consume2(t *testing.T) {
 		t.Error("transfer error")
 		return
 	}
-	if ok := transfer(c, accountNameTom, constants.COSInitMiner, priKeyTom, 1); !ok {
+	if ok := transfer(c, accountNameTom, constants.COS_INIT_MINER, priKeyTom, 1); !ok {
 		t.Error("transfer error")
 		return
 	}
@@ -855,7 +855,7 @@ func create_and_transfer(c *TrxPool, name string, pubkey string, value uint64) b
 	}
 
 	transOp := &prototype.TransferOperation{
-		From:   &prototype.AccountName{Value: constants.COSInitMiner},
+		From:   &prototype.AccountName{Value: constants.COS_INIT_MINER},
 		To:     &prototype.AccountName{Value: name},
 		Amount: prototype.NewCoin(value),
 	}

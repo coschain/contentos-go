@@ -49,7 +49,7 @@ func NewRedDandelion() (*RedDandelion, error) {
 		log.Logger.Error(err)
 		return nil, err
 	}
-	privKey, err := prototype.PrivateKeyFromWIF(constants.InitminerPrivKey)
+	privKey, err := prototype.PrivateKeyFromWIF(constants.INITMINER_PRIKEY)
 	if err != nil {
 		log.Logger.Error(err)
 		return nil, err
@@ -93,7 +93,7 @@ func (d *RedDandelion) GenerateBlock() {
 		d.logger.Error("error:", err)
 	}
 	d.produced += 1
-	d.timestamp += constants.BlockInterval
+	d.timestamp += constants.BLOCK_INTERVAL
 }
 
 func (d *RedDandelion) GenerateBlocks(count uint32) {
@@ -104,13 +104,13 @@ func (d *RedDandelion) GenerateBlocks(count uint32) {
 
 func (d *RedDandelion) GenerateBlockUntil(timestamp uint32) {
 	if timestamp > d.GetProps().GetTime().UtcSeconds {
-		count := (timestamp - d.GetProps().GetTime().UtcSeconds) / constants.BlockInterval
+		count := (timestamp - d.GetProps().GetTime().UtcSeconds) / constants.BLOCK_INTERVAL
 		d.GenerateBlocks(count)
 	}
 }
 
 func (d *RedDandelion) GenerateBlockFor(timestamp uint32) {
-	count := timestamp / constants.BlockInterval
+	count := timestamp / constants.BLOCK_INTERVAL
 	d.GenerateBlocks(count)
 }
 
@@ -191,7 +191,7 @@ func (d *RedDandelion) Sign(privKeyStr string, ops ...interface{}) (*prototype.S
 		return nil, err
 	}
 	props := d.TrxPool.GetProps()
-	tx := &prototype.Transaction{RefBlockNum: 0, RefBlockPrefix: 0, Expiration: &prototype.TimePointSec{UtcSeconds: props.GetTime().UtcSeconds + constants.TrxMaxExpirationTime}}
+	tx := &prototype.Transaction{RefBlockNum: 0, RefBlockPrefix: 0, Expiration: &prototype.TimePointSec{UtcSeconds: props.GetTime().UtcSeconds + constants.TRX_MAX_EXPIRATION_TIME}}
 	headBlockID := props.GetHeadBlockId()
 	id := &common.BlockID{}
 	copy(id.Data[:], headBlockID.Hash[:])

@@ -46,7 +46,7 @@ func addConf(confdir string, cfg node.Config, index int) {
 	cfg.P2P.Genesis.SeedList = seeds
 
 	if index > 0 {
-		cfg.Consensus.LocalBpName = fmt.Sprintf("%s%d", constants.COSInitMiner, index)
+		cfg.Consensus.LocalBpName = fmt.Sprintf("%s%d", constants.INIT_MINER_NAME, index)
 		key, err := prototype.GenerateNewKeyFromBytes([]byte(cfg.Consensus.LocalBpName))
 		if err != nil {
 			panic(err)

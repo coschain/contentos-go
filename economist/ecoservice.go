@@ -72,11 +72,11 @@ func (e *Economist) updateRewardsKeeper() error {
 }
 
 func (e *Economist) Mint() error {
-	blockCurrent := constants.PerBlockCurrent
+	blockCurrent := constants.PER_BLOCK_CURRENT
 
-	authorReward := blockCurrent * constants.RewardRateAuthor / constants.PERCENT
-	replyReward := blockCurrent * constants.RewardRateAuthor / constants.PERCENT
-	bpReward := blockCurrent * constants.RewardRateBP / constants.PERCENT
+	authorReward := blockCurrent * constants.AUTHOR_REWARD / constants.PERCENT
+	replyReward := blockCurrent * constants.AUTHOR_REWARD / constants.PERCENT
+	bpReward := blockCurrent * constants.BP_REWARD / constants.PERCENT
 
 	e.globalProps.PostRewards.Value += uint64(authorReward)
 	e.globalProps.ReplyRewards.Value += uint64(replyReward)
@@ -170,7 +170,7 @@ func (e *Economist) Do() error {
 }
 
 func (e *Economist) decayGlobalVotePower() {
-	e.globalProps.WeightedVps -= e.globalProps.WeightedVps * constants.BlockInterval / constants.VpDecayTime
+	e.globalProps.WeightedVps -= e.globalProps.WeightedVps * constants.BLOCK_INTERVAL / constants.VP_DECAY_TIME
 }
 
 func (e *Economist) postCashout(posts []*table.SoPostWrap) {

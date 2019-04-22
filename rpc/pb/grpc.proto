@@ -50,9 +50,6 @@ service ApiService {
 
     rpc BroadcastTrx (BroadcastTrxRequest) returns (BroadcastTrxResponse) {
     }
-
-    rpc GetBlockList (GetBlockListRequest) returns (GetBlockListResponse) {
-    }
 }
 
 message GetTableContentRequest {
@@ -85,12 +82,19 @@ message AccountResponse {
     prototype.account_name                  account_name    = 1;
     prototype.coin                          coin            = 2;
     prototype.vest                          vest            = 3;
+<<<<<<< HEAD
     uint64                                  stamina_remain  = 4;
     uint64                                  stamina_max     = 5;
     repeated prototype.public_key_type      public_keys     = 6;
     prototype.time_point_sec                created_time    = 7;
     WitnessResponse                         witness         = 8;
     ChainState                              state            = 9;
+=======
+    repeated prototype.public_key_type      public_keys     = 4;
+    prototype.time_point_sec                created_time    = 5;
+    WitnessResponse                         witness         = 6;
+    prototype.dynamic_properties            dgpo            = 7;
+>>>>>>> parent of aee02a3... merge master into resource_limit
 }
 
 message GetFollowerListByNameRequest {
@@ -200,12 +204,12 @@ message GetTrxByIdResponse {
 }
 
 message GetChainStateResponse {
-    ChainState state = 1;
+    prototype.dynamic_properties props = 1;
     repeated prototype.empty_signed_block blocks = 2;
 }
 
 message GetStatResponse {
-    ChainState state = 1;
+    prototype.dynamic_properties props = 1;
     repeated int32 daily_trx_counts = 2;
 }
 
@@ -229,17 +233,3 @@ message CallResponse {
     string      estimate_gas    = 3;
 }
 
-message ChainState {
-    uint64 last_irreversible_block_number = 1;
-    prototype.dynamic_properties            dgpo            = 2;
-}
-
-message GetBlockListRequest {
-    uint64     start            = 1;
-    uint64     end              = 2;
-}
-
-
-message GetBlockListResponse {
-    repeated prototype.signed_block blocks = 1;
-}

@@ -99,8 +99,11 @@ func (as *APIService) GetAccountByName(ctx context.Context, req *grpcpb.GetAccou
 				RunningVersion:        witWrap.GetRunningVersion(),
 			}
 		}
+		var (
+			i int32 = 1
+		)
+		acct.Dgpo = table.NewSoGlobalWrap(as.db, &i).GetProps()
 	}
-	acct.State = as.getState()
 
 	return acct, nil
 
@@ -210,6 +213,12 @@ func (as *APIService) GetChainState(ctx context.Context, req *grpcpb.NonParamsRe
 	as.db.RLock()
 	defer as.db.RUnlock()
 
+	var (
+		i int32 = 1
+	)
+
+	globalVar := table.NewSoGlobalWrap(as.db, &i)
+
 	ret := &grpcpb.GetChainStateResponse{}
 	blks, err := as.consensus.FetchBlocksSince(common.EmptyBlockID)
 	if err == nil {
@@ -219,12 +228,17 @@ func (as *APIService) GetChainState(ctx context.Context, req *grpcpb.NonParamsRe
 			ret.Blocks = append(ret.Blocks, res)
 		}
 	}
-	ret.State = as.getState()
+	ret.Props = globalVar.GetProps()
 
 	return ret, nil
 }
 
 func (as *APIService) GetStatInfo(ctx context.Context, req *grpcpb.NonParamsRequest) (*grpcpb.GetStatResponse, error) {
+	var (
+		i int32 = 1
+	)
+
+	globalVar := table.NewSoGlobalWrap(as.db, &i)
 
 	ret := &grpcpb.GetStatResponse{}
 
@@ -237,7 +251,7 @@ func (as *APIService) GetStatInfo(ctx context.Context, req *grpcpb.NonParamsRequ
 	//		ret.Blocks = append(ret.Blocks, res )
 	//	}
 	//}
-	ret.State = as.getState()
+	ret.Props = globalVar.GetProps()
 
 	return ret, nil
 }
@@ -488,9 +502,9 @@ func (as *APIService) GetAccountListByBalance(ctx context.Context, req *grpcpb.N
 }
 
 func checkLimit(limit uint32) uint32 {
-	if limit <= constants.RpcPageSizeLimit {
+	if limit <= constants.RPC_PAGE_SIZE_LIMIT {
 		return limit
 	} else {
-		return constants.RpcPageSizeLimit
+		return constants.RPC_PAGE_SIZE_LIMIT
 	}
 }

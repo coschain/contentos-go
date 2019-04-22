@@ -100,7 +100,7 @@ func TestEconomist_Do(t *testing.T) {
 		t.Author = post_operation.Owner
 		t.Body = post_operation.Content
 		t.Created = c.HeadBlockTime()
-		t.CashoutTime = &prototype.TimePointSec{UtcSeconds: c.HeadBlockTime().UtcSeconds + uint32(constants.PostCashOutDelayTime)}
+		t.CashoutTime = &prototype.TimePointSec{UtcSeconds: c.HeadBlockTime().UtcSeconds + uint32(constants.POST_CASHPUT_DELAY_TIME)}
 		t.Depth = 0
 		t.Children = 0
 		t.RootId = t.PostId
@@ -114,7 +114,7 @@ func TestEconomist_Do(t *testing.T) {
 	myassert.NoError(err, "create post success")
 
 	// jump to cashout time
-	globalProps.Time = &prototype.TimePointSec{UtcSeconds: c.HeadBlockTime().UtcSeconds + uint32(constants.PostCashOutDelayTime) + 1}
+	globalProps.Time = &prototype.TimePointSec{UtcSeconds: c.HeadBlockTime().UtcSeconds + uint32(constants.POST_CASHPUT_DELAY_TIME) + 1}
 	dgpWrap.MdProps(globalProps)
 
 	err = e.Do()

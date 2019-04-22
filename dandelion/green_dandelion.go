@@ -41,12 +41,12 @@ func NewGreenDandelion() (*GreenDandelion, error) {
 		log.Error("error:", err)
 		return nil, err
 	}
-	privKey, err := prototype.PrivateKeyFromWIF(constants.InitminerPrivKey)
+	privKey, err := prototype.PrivateKeyFromWIF(constants.INITMINER_PRIKEY)
 	if err != nil {
 		log.Error("error:", err)
 		return nil, err
 	}
-	return &GreenDandelion{path: dbPath, db: db, witness: constants.COSInitMiner, privKey: privKey,
+	return &GreenDandelion{path: dbPath, db: db, witness: constants.INIT_MINER_NAME, privKey: privKey,
 		timestamp: 0, produced: 0, logger: log}, nil
 }
 
@@ -72,7 +72,7 @@ func (d *GreenDandelion) OpenDatabase() error {
 }
 
 func (d *GreenDandelion) GenerateBlock() {
-	d.timestamp += constants.BlockInterval
+	d.timestamp += constants.BLOCK_INTERVAL
 	current := d.TrxPool.GenerateBlock(d.witness, d.TrxPool.GetProps().GetHeadBlockId(), d.timestamp, d.privKey, 0)
 	d.produced += 1
 	err := d.PushBlock(current, prototype.Skip_nothing)
@@ -89,13 +89,13 @@ func (d *GreenDandelion) GenerateBlocks(count uint32) {
 
 func (d *GreenDandelion) GenerateBlockUntil(timestamp uint32) {
 	if timestamp > d.GetProps().GetTime().UtcSeconds {
-		count := (timestamp - d.GetProps().GetTime().UtcSeconds) / constants.BlockInterval
+		count := (timestamp - d.GetProps().GetTime().UtcSeconds) / constants.BLOCK_INTERVAL
 		d.GenerateBlocks(count)
 	}
 }
 
 func (d *GreenDandelion) GenerateBlockFor(timestamp uint32) {
-	count := timestamp / constants.BlockInterval
+	count := timestamp / constants.BLOCK_INTERVAL
 	d.GenerateBlocks(count)
 }
 
@@ -105,7 +105,7 @@ func (d *GreenDandelion) Sign(privKeyStr string, ops ...interface{}) (*prototype
 		return nil, err
 	}
 	props := d.TrxPool.GetProps()
-	tx := &prototype.Transaction{RefBlockNum: 0, RefBlockPrefix: 0, Expiration: &prototype.TimePointSec{UtcSeconds: props.GetTime().UtcSeconds + constants.TrxMaxExpirationTime}}
+	tx := &prototype.Transaction{RefBlockNum: 0, RefBlockPrefix: 0, Expiration: &prototype.TimePointSec{UtcSeconds: props.GetTime().UtcSeconds + constants.TRX_MAX_EXPIRATION_TIME}}
 	headBlockID := props.GetHeadBlockId()
 	id := &common.BlockID{}
 	copy(id.Data[:], headBlockID.Hash[:])

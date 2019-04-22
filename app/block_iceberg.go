@@ -8,10 +8,6 @@ import (
 	"sync"
 )
 
-const (
-	GENESIS_TAG = "after_init_genesis"
-)
-
 // block number -> string
 func blockNumberToString(blockNum uint64) string {
 	return strconv.FormatUint(blockNum, 10)
@@ -136,8 +132,7 @@ func (b *BlockIceberg) RevertBlock(blockNum uint64) error {
 		if blockNum > 1 {
 			b.db.RevertToTag(blockNumberToString(blockNum - 1))
 		} else {
-			// we're reverting block #1, i.e. rollback to the state just after init_genesis().
-			b.db.RevertToTag(GENESIS_TAG)
+			b.db.RevertToRevision(0)
 		}
 		b.seaLevel = blockNum
 	}

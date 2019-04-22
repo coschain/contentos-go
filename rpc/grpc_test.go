@@ -303,19 +303,19 @@ func createAccountTxReq(t *testing.T) *grpcpb.BroadcastTrxRequest {
 
 	acoA := &prototype.AccountCreateOperation{
 		Fee:            prototype.NewCoin(1),
-		Creator:        &prototype.AccountName{Value: constants.COSInitMiner},
+		Creator:        &prototype.AccountName{Value: constants.INIT_MINER_NAME},
 		NewAccountName: &prototype.AccountName{Value: BOB},
 		Owner:          keysA,
 	}
 
 	acoB := &prototype.AccountCreateOperation{
 		Fee:            prototype.NewCoin(1),
-		Creator:        &prototype.AccountName{Value: constants.COSInitMiner},
+		Creator:        &prototype.AccountName{Value: constants.INIT_MINER_NAME},
 		NewAccountName: &prototype.AccountName{Value: ALICE},
 		Owner:          keysB,
 	}
 
-	return generateSignedTxResp(t, constants.COSInitMiner, acoA, acoB)
+	return generateSignedTxResp(t, constants.INIT_MINER_NAME, acoA, acoB)
 }
 
 func pushTrx(t *testing.T, req *grpcpb.BroadcastTrxRequest) {
@@ -332,19 +332,19 @@ func pushTrx(t *testing.T, req *grpcpb.BroadcastTrxRequest) {
 func generateSignedTxResp(t *testing.T, creator string, ops ...interface{}) *grpcpb.BroadcastTrxRequest {
 	var creatorPrikey *prototype.PrivateKeyType
 	switch creator {
-	case constants.COSInitMiner:
-		creatorPrikey, _ = prototype.PrivateKeyFromWIF(constants.InitminerPrivKey)
+	case constants.INIT_MINER_NAME:
+		creatorPrikey, _ = prototype.PrivateKeyFromWIF(constants.INITMINER_PRIKEY)
 	case BOB:
 		creatorPrikey, _ = prototype.PrivateKeyFromWIF(prikeyWIFBOB)
 	case ALICE:
 		creatorPrikey, _ = prototype.PrivateKeyFromWIF(prikeyWIFAlice)
 	default:
-		creatorPrikey, _ = prototype.PrivateKeyFromWIF(constants.InitminerPrivKey)
+		creatorPrikey, _ = prototype.PrivateKeyFromWIF(constants.INITMINER_PRIKEY)
 	}
 
 	currTime := time.Now().Unix()
 
-	tx := &prototype.Transaction{RefBlockNum: 0, RefBlockPrefix: 0, Expiration: &prototype.TimePointSec{UtcSeconds: uint32(currTime) + constants.TrxMaxExpirationTime}}
+	tx := &prototype.Transaction{RefBlockNum: 0, RefBlockPrefix: 0, Expiration: &prototype.TimePointSec{UtcSeconds: uint32(currTime) + constants.TRX_MAX_EXPIRATION_TIME}}
 
 	for _, op := range ops {
 		tx.AddOperation(op)

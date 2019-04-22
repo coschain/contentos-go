@@ -12,7 +12,7 @@ import (
 )
 
 type resourceUnit struct {
-	raw	uint64 // may be net in byte or cpu gas
+	raw      uint64 // may be net in byte or cpu gas
 	realCost uint64 // real cost resource
 }
 
@@ -42,7 +42,7 @@ func (p *TrxContext) InitSigState(cid prototype.ChainId) error {
 }
 
 func (p *TrxContext) GetVmRemainCpuStamina(name string) uint64 {
-	return p.control.GetAllRemainStamina(name) - (p.netMap[name].raw * constants.NetConsumePointNum/constants.NetConsumePointDen)
+	return p.control.GetAllRemainStamina(name) - (p.netMap[name].raw * constants.NetConsumePointNum / constants.NetConsumePointDen)
 }
 
 func (p *TrxContext) CheckNet(sizeInBytes uint64) {
@@ -69,7 +69,7 @@ func (p *TrxContext) CheckNet(sizeInBytes uint64) {
 
 func (p *TrxContext) GetNetUse() uint64 {
 	all := uint64(0)
-	for _,use := range p.netMap {
+	for _, use := range p.netMap {
 		all += use.realCost
 	}
 	return all
@@ -77,7 +77,7 @@ func (p *TrxContext) GetNetUse() uint64 {
 
 func (p *TrxContext) GetCpuUse() uint64 {
 	all := uint64(0)
-	for _,use := range p.gasMap {
+	for _, use := range p.gasMap {
 		all += use.realCost
 	}
 	return all
@@ -125,15 +125,15 @@ func (p *TrxContext) RequireAuth(name string) (err error) {
 	return nil
 }
 
-func (p *TrxContext) deductStamina(m map[string]*resourceUnit,num,den uint64) {
-	rate := float64(num)/float64(den)
+func (p *TrxContext) deductStamina(m map[string]*resourceUnit, num, den uint64) {
+	rate := float64(num) / float64(den)
 	for caller, spent := range m {
 		staminaUse := uint64(float64(spent.raw) * rate)
 		now := p.control.GetProps().HeadBlockNumber
 		var paid uint64 = 0
 		if !p.resourceLimiter.ConsumeFree(caller, staminaUse, now) {
-			paid += p.resourceLimiter.GetFreeLeft(caller,now)
-			p.resourceLimiter.ConsumeFreeLeft(caller,now)
+			paid += p.resourceLimiter.GetFreeLeft(caller, now)
+			p.resourceLimiter.ConsumeFreeLeft(caller, now)
 		} else {
 			paid = staminaUse
 			// free resource already enough
@@ -154,11 +154,11 @@ func (p *TrxContext) deductStamina(m map[string]*resourceUnit,num,den uint64) {
 }
 
 func (p *TrxContext) DeductAllNet() {
-	p.deductStamina(p.netMap,constants.NetConsumePointNum,constants.NetConsumePointDen)
+	p.deductStamina(p.netMap, constants.NetConsumePointNum, constants.NetConsumePointDen)
 }
 
 func (p *TrxContext) DeductAllCpu() {
-	p.deductStamina(p.gasMap,constants.CpuConsumePointNum,constants.CpuConsumePointDen)
+	p.deductStamina(p.gasMap, constants.CpuConsumePointNum, constants.CpuConsumePointDen)
 }
 
 func (p *TrxContext) Finalize() {
@@ -235,7 +235,7 @@ func (p *TrxContext) ContractCall(caller, fromOwner, fromContract, fromMethod, t
 		Params:       params,
 		Amount:       &prototype.Coin{Value: coins},
 	}
-	eval := &InternalContractApplyEvaluator{ctx: &ApplyContext{db: p.db, trxCtx: p, control: p.control}, op: op,remainGas:remainGas}
+	eval := &InternalContractApplyEvaluator{ctx: &ApplyContext{db: p.db, trxCtx: p, control: p.control}, op: op, remainGas: remainGas}
 	eval.Apply()
 }
 
