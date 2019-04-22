@@ -21,29 +21,32 @@ func (db *dbSession) Close() {
 
 }
 
-// commit all changes to underlying database
-func (db *dbSession) commit() (err error) {
+func (db *dbSession) commitToDbWriter(w DatabaseWriter) (err error) {
 	db.lock.Lock()
 	defer db.lock.Unlock()
-
-	// create a write batch of underlying database
-	// fill the batch with changes and execute it
-	if len(db.changes) > 0 {
-		b := db.db.NewBatch()
-		for _, op := range db.changes {
-			if op.Del {
-				b.Delete(op.Key)
-			} else {
-				b.Put(op.Key, op.Value)
-			}
+	for _, op := range db.changes {
+		if op.Del {
+			err = w.Delete(op.Key)
+		} else {
+			err = w.Put(op.Key, op.Value)
 		}
-		err = b.Write()
-
-		if err == nil {
-			// clear changes
-			db.changes = db.changes[:0]
-			db.removals = make(map[string]bool)
+		if err != nil {
+			break
 		}
+	}
+	return err
+}
+
+// commit all changes to underlying database
+func (db *dbSession) commit() (err error) {
+	b := db.db.NewBatch()
+	if err = db.commitToDbWriter(b); err != nil {
+		return err
+	}
+	if err = b.Write(); err == nil {
+		// clear changes
+		db.changes = db.changes[:0]
+		db.removals = make(map[string]bool)
 	}
 	return err
 }
