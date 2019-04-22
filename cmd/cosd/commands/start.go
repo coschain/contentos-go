@@ -171,4 +171,8 @@ func RegisterService(app *node.Node, cfg node.Config) {
 	_ = app.Register(myhttp.HealthCheckName, func(ctx *node.ServiceContext) (node.Service, error) {
 		return myhttp.NewMyHttp(ctx, app.Log)
 	})
+
+	_ = app.Register(plugins.TrxMysqlServiceName, func(ctx *node.ServiceContext) (service node.Service, e error) {
+		return plugins.NewTrxMysqlSerVice(ctx, app.Log)
+	})
 }
