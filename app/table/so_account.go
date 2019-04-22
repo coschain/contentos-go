@@ -27,7 +27,6 @@ var (
 	AccountLastStakeTimeCell       uint32 = 3774075190
 	AccountLastVoteTimeCell        uint32 = 1980371646
 	AccountNameCell                uint32 = 1725869739
-	AccountPostCountCell           uint32 = 587221705
 	AccountStakeVestingCell        uint32 = 1603133992
 	AccountStaminaCell             uint32 = 674022235
 	AccountStaminaFreeCell         uint32 = 676517039
@@ -473,9 +472,6 @@ func (s *SoAccountWrap) getMemKeyPrefix(fName string) uint32 {
 	if fName == "Name" {
 		return AccountNameCell
 	}
-	if fName == "PostCount" {
-		return AccountPostCountCell
-	}
 	if fName == "StakeVesting" {
 		return AccountStakeVestingCell
 	}
@@ -584,13 +580,6 @@ func (s *SoAccountWrap) saveAllMemKeys(tInfo *SoAccount, br bool) error {
 			return err
 		} else {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Name", err)
-		}
-	}
-	if err = s.saveMemKeyPostCount(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "PostCount", err)
 		}
 	}
 	if err = s.saveMemKeyStakeVesting(tInfo); err != nil {
@@ -1338,89 +1327,6 @@ func (s *SoAccountWrap) GetName() *prototype.AccountName {
 
 	}
 	return msg.Name
-}
-
-func (s *SoAccountWrap) saveMemKeyPostCount(tInfo *SoAccount) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemAccountByPostCount{}
-	val.PostCount = tInfo.PostCount
-	key, err := s.encodeMemKey("PostCount")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
-
-func (s *SoAccountWrap) GetPostCount() uint32 {
-	res := true
-	msg := &SoMemAccountByPostCount{}
-	if s.dba == nil {
-		res = false
-	} else {
-		key, err := s.encodeMemKey("PostCount")
-		if err != nil {
-			res = false
-		} else {
-			buf, err := s.dba.Get(key)
-			if err != nil {
-				res = false
-			}
-			err = proto.Unmarshal(buf, msg)
-			if err != nil {
-				res = false
-			} else {
-				return msg.PostCount
-			}
-		}
-	}
-	if !res {
-		var tmpValue uint32
-		return tmpValue
-	}
-	return msg.PostCount
-}
-
-func (s *SoAccountWrap) MdPostCount(p uint32) bool {
-	if s.dba == nil {
-		return false
-	}
-	key, err := s.encodeMemKey("PostCount")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemAccountByPostCount{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoAccount{}
-	sa.Name = s.mainKey
-
-	sa.PostCount = ori.PostCount
-
-	ori.PostCount = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.PostCount = p
-
-	return true
 }
 
 func (s *SoAccountWrap) saveMemKeyStakeVesting(tInfo *SoAccount) error {

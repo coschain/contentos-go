@@ -447,32 +447,3 @@ func (this *P2PServer) TriggerSync(current_head_blk_id coomn.BlockID) {
 		return
 	}
 }
-
-func (this *P2PServer) FetchUnlinkedBlock(prevId coomn.BlockID) {
-	var reqmsg msgtypes.TransferMsg
-	reqdata := new(msgtypes.IdMsg)
-	reqdata.Msgtype = msgtypes.IdMsg_request_sigblk_by_id
-
-	reqdata.Value = append(reqdata.Value, prevId.Data[:])
-	reqmsg.Msg = &msgtypes.TransferMsg_Msg2{Msg2:reqdata}
-
-	currentHeadNum := prevId.BlockNum()
-	//this.log.Info("enter TriggerSync func")
-	np := this.Network.GetNp()
-	np.RLock()
-	defer np.RUnlock()
-
-	for _, p := range np.List {
-		//this.log.Info("[p2p] cons call TriggerSync func, head id :  ", reqmsg.HeadBlockId)
-		num := p.GetLastSeenBlkNum()
-		if currentHeadNum < num {
-			go p.Send(&reqmsg, false, this.ctx.Config().P2P.NetworkMagic)
-			return
-		}
-	}
-
-	for _, p := range np.List {
-		go p.Send(&reqmsg, false, this.ctx.Config().P2P.NetworkMagic)
-		return
-	}
-}

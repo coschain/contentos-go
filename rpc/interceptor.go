@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+	"strings"
 )
 
 type GRPCIntercepter struct {
@@ -23,9 +24,9 @@ func (gi *GRPCIntercepter) streamRecoveryLoggingInterceptor(srv interface{}, ss 
 		}
 	}()
 
-	//gi.log.WithFields(logrus.Fields{
-	//	"method": info.FullMethod,
-	//}).Info("Rpc request.")
+	gi.log.WithFields(logrus.Fields{
+		"method": info.FullMethod,
+	}).Info("Rpc request.")
 
 	return handler(srv, ss)
 }
@@ -39,16 +40,16 @@ func (gi *GRPCIntercepter) unaryRecoveryLoggingInterceptor(ctx context.Context, 
 		}
 	}()
 
-	//if strings.Contains(info.FullMethod, "ApiService") {
-	//	gi.log.WithFields(logrus.Fields{
-	//		"method": info.FullMethod,
-	//		"params": req,
-	//	}).Info("Rpc request.")
-	//} else {
-	//	gi.log.WithFields(logrus.Fields{
-	//		"method": info.FullMethod,
-	//	}).Info("Rpc request.")
-	//}
+	if strings.Contains(info.FullMethod, "ApiService") {
+		gi.log.WithFields(logrus.Fields{
+			"method": info.FullMethod,
+			"params": req,
+		}).Info("Rpc request.")
+	} else {
+		gi.log.WithFields(logrus.Fields{
+			"method": info.FullMethod,
+		}).Info("Rpc request.")
+	}
 
 	return handler(ctx, req)
 }

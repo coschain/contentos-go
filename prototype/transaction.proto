@@ -23,9 +23,10 @@ message operation{
         claim_all_operation op12 = 12;
         contract_deploy_operation op13 = 13;
         contract_apply_operation op14 = 14;
-        stake_operation op15 = 15;
-        un_stake_operation op16 = 16;
-        report_operation op17 = 17;
+        contract_estimate_apply_operation op15=15;
+        stake_operation op16 = 16;
+        un_stake_operation op17 = 17;
+        report_operation op18 = 18;
     }
 }
 

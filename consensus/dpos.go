@@ -444,27 +444,6 @@ func (d *DPoS) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 		return fmt.Errorf("invalid block number")
 	}
 
-	rc := d.ForkDB.PushBlock(b)
-	newHead := d.ForkDB.Head()
-	switch rc {
-	case forkdb.RTDetached:
-		d.log.Debugf("[DPoS][pushBlock]possibly detached block. prev: got %v, want %v", b.Id(), head.Id())
-	case forkdb.RTOutOfRange:
-	case forkdb.RTOnFork:
-		if newHead.Previous() != head.Id() {
-			d.log.Debug("[DPoS] start to switch fork.")
-			d.switchFork(head.Id(), newHead.Id())
-			return nil
-		}
-	case forkdb.RTInvalid:
-		return ErrInvalidBlock
-	case forkdb.RTDuplicated:
-		return ErrDupBlock
-	case forkdb.RTSuccess:
-	default:
-		return ErrInternal
-	}
-	/*
 	newHead := d.ForkDB.PushBlock(b)
 	if newHead == head {
 		// this implies that b is a:
@@ -474,7 +453,7 @@ func (d *DPoS) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 		// 4. illegal block
 		d.log.Debugf("[pushBlock]possibly detached block. prev: got %v, want %v", b.Id(), head.Id())
 		if b.Id().BlockNum() > head.Id().BlockNum() {
-			d.p2p.FetchUnlinkedBlock(b.Previous())
+			d.p2p.TriggerSync(head.Id())
 		}
 		return nil
 	} else if head != nil && newHead.Previous() != head.Id() {
@@ -482,7 +461,6 @@ func (d *DPoS) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 		d.switchFork(head.Id(), newHead.Id())
 		return nil
 	}
-	*/
 
 	if applyStateDB {
 		if err := d.applyBlock(b); err != nil {

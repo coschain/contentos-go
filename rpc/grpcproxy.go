@@ -9,7 +9,7 @@ import (
 
 const (
 	// DefaultHTTPLimit default max http conns
-	DefaultProxyHTTPLimit = 2000
+	DefaultProxyHTTPLimit = 128
 )
 
 func makeHttpOriginFunc() func(origin string) bool {

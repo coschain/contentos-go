@@ -84,8 +84,15 @@ message internal_contract_apply_operation{
     coin amount = 9;                    // amount of coins to transfer from caller contract to called contract
 }
 
+message contract_estimate_apply_operation{
+    account_name caller = 1;          // who apply this op
+    account_name owner = 2;         // who owner this contract
+    string contract = 3;            // contract name
+    string params = 4;              // param list, encoded as a single json string. e.g. '[]' or '["hello", 3, true]'
+}
+
 message post_operation{
-    uint64 uuid             = 1 [jstype = JS_STRING];
+    uint64 uuid             = 1;
     account_name owner      = 2;
     string title            = 3;
     string content          = 4;
@@ -94,10 +101,10 @@ message post_operation{
 }
 
 message reply_operation{
-    uint64 uuid             = 1 [jstype = JS_STRING];
+    uint64 uuid             = 1;
     account_name owner      = 2;
     string content          = 3;
-    uint64 parent_uuid      = 4 [jstype = JS_STRING];
+    uint64 parent_uuid      = 4;
     repeated beneficiary_route_type beneficiaries = 6;
 }
 
