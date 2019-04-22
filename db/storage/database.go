@@ -15,6 +15,11 @@ type DatabaseDeleter interface {
 	Delete(key []byte) error
 }
 
+type DatabaseWriter interface {
+	DatabasePutter
+	DatabaseDeleter
+}
+
 // interface for key & value query
 // methods must be thread safe
 type DatabaseGetter interface {
@@ -49,8 +54,7 @@ type DatabaseBatcher interface {
 // methods must be thread safe
 // write operations must be executed atomically
 type Batch interface {
-	DatabasePutter
-	DatabaseDeleter
+	DatabaseWriter
 
 	// execute all batched operations
 	Write() error

@@ -22,7 +22,6 @@ var (
 	AccountCreatedTrxCountTable       uint32 = 2604810499
 	AccountNextPowerdownBlockNumTable uint32 = 1928824877
 	AccountNameUniTable               uint32 = 2528390520
-	AccountOwnerUniTable              uint32 = 4120855558
 	AccountBalanceCell                uint32 = 2894785396
 	AccountBpVoteCountCell            uint32 = 2131409895
 	AccountCreatedTimeCell            uint32 = 826305594
@@ -1961,18 +1960,6 @@ func (s *SoAccountWrap) MdOwner(p *prototype.PublicKeyType) bool {
 	sa.Name = s.mainKey
 
 	sa.Owner = ori.Owner
-	//judge the unique value if is exist
-	uniWrap := UniAccountOwnerWrap{}
-	uniWrap.Dba = s.dba
-	res := uniWrap.UniQueryOwner(sa.Owner)
-
-	if res != nil {
-		//the unique value to be modified is already exist
-		return false
-	}
-	if !s.delUniKeyOwner(sa) {
-		return false
-	}
 
 	ori.Owner = p
 	val, err := proto.Marshal(ori)
@@ -1985,9 +1972,6 @@ func (s *SoAccountWrap) MdOwner(p *prototype.PublicKeyType) bool {
 	}
 	sa.Owner = p
 
-	if !s.insertUniKeyOwner(sa) {
-		return false
-	}
 	return true
 }
 
@@ -2440,6 +2424,60 @@ func (s *SAccountCreatedTimeWrap) ForEachByOrder(start *prototype.TimePointSec, 
 	}
 	var idx uint32 = 0
 	s.Dba.Iterate(sBuf, eBuf, false, func(key, value []byte) bool {
+		idx++
+		return f(s.GetMainVal(value), s.GetSubVal(value), idx)
+	})
+	return nil
+}
+
+//Query srt by reverse order
+//
+//f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
+//as arguments to the callback function
+//if the return value of f is true,continue iterating until the end iteration;
+//otherwise stop iteration immediately
+//
+//lastMainKey: the main key of the last one of last page
+//lastSubVal: the value  of the last one of last page
+//
+func (s *SAccountCreatedTimeWrap) ForEachByRevOrder(start *prototype.TimePointSec, end *prototype.TimePointSec, lastMainKey *prototype.AccountName,
+	lastSubVal *prototype.TimePointSec, f func(mVal *prototype.AccountName, sVal *prototype.TimePointSec, idx uint32) bool) error {
+	if s.Dba == nil {
+		return errors.New("the db is nil")
+	}
+	if (lastSubVal != nil && lastMainKey == nil) || (lastSubVal == nil && lastMainKey != nil) {
+		return errors.New("last query param error")
+	}
+	if f == nil {
+		return nil
+	}
+	pre := AccountCreatedTimeTable
+	skeyList := []interface{}{pre}
+	if start != nil {
+		skeyList = append(skeyList, start)
+		if lastMainKey != nil {
+			skeyList = append(skeyList, lastMainKey)
+		}
+	} else {
+		if lastMainKey != nil && lastSubVal != nil {
+			skeyList = append(skeyList, lastSubVal, lastMainKey)
+		}
+		skeyList = append(skeyList, kope.MaximumKey)
+	}
+	sBuf, cErr := kope.EncodeSlice(skeyList)
+	if cErr != nil {
+		return cErr
+	}
+	eKeyList := []interface{}{pre}
+	if end != nil {
+		eKeyList = append(eKeyList, end)
+	}
+	eBuf, cErr := kope.EncodeSlice(eKeyList)
+	if cErr != nil {
+		return cErr
+	}
+	var idx uint32 = 0
+	s.Dba.Iterate(eBuf, sBuf, true, func(key, value []byte) bool {
 		idx++
 		return f(s.GetMainVal(value), s.GetSubVal(value), idx)
 	})
@@ -3224,13 +3262,6 @@ func (s *SoAccountWrap) delAllUniKeys(br bool, val *SoAccount) bool {
 			res = false
 		}
 	}
-	if !s.delUniKeyOwner(val) {
-		if br {
-			return false
-		} else {
-			res = false
-		}
-	}
 
 	return res
 }
@@ -3242,11 +3273,6 @@ func (s *SoAccountWrap) delUniKeysWithNames(names map[string]string, val *SoAcco
 	res := true
 	if len(names["Name"]) > 0 {
 		if !s.delUniKeyName(val) {
-			res = false
-		}
-	}
-	if len(names["Owner"]) > 0 {
-		if !s.delUniKeyOwner(val) {
 			res = false
 		}
 	}
@@ -3266,10 +3292,6 @@ func (s *SoAccountWrap) insertAllUniKeys(val *SoAccount) (map[string]string, err
 		return sucFields, errors.New("insert unique Field Name fail while insert table ")
 	}
 	sucFields["Name"] = "Name"
-	if !s.insertUniKeyOwner(val) {
-		return sucFields, errors.New("insert unique Field Owner fail while insert table ")
-	}
-	sucFields["Owner"] = "Owner"
 
 	return sucFields, nil
 }
@@ -3364,107 +3386,6 @@ func (s *UniAccountNameWrap) UniQueryName(start *prototype.AccountName) *SoAccou
 	val, err := s.Dba.Get(bufStartkey)
 	if err == nil {
 		res := &SoUniqueAccountByName{}
-		rErr := proto.Unmarshal(val, res)
-		if rErr == nil {
-			wrap := NewSoAccountWrap(s.Dba, res.Name)
-
-			return wrap
-		}
-	}
-	return nil
-}
-
-func (s *SoAccountWrap) delUniKeyOwner(sa *SoAccount) bool {
-	if s.dba == nil {
-		return false
-	}
-	pre := AccountOwnerUniTable
-	kList := []interface{}{pre}
-	if sa != nil {
-
-		if sa.Owner == nil {
-			return false
-		}
-
-		sub := sa.Owner
-		kList = append(kList, sub)
-	} else {
-		key, err := s.encodeMemKey("Owner")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemAccountByOwner{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		sub := ori.Owner
-		kList = append(kList, sub)
-
-	}
-	kBuf, err := kope.EncodeSlice(kList)
-	if err != nil {
-		return false
-	}
-	return s.dba.Delete(kBuf) == nil
-}
-
-func (s *SoAccountWrap) insertUniKeyOwner(sa *SoAccount) bool {
-	if s.dba == nil || sa == nil {
-		return false
-	}
-	pre := AccountOwnerUniTable
-	sub := sa.Owner
-	kList := []interface{}{pre, sub}
-	kBuf, err := kope.EncodeSlice(kList)
-	if err != nil {
-		return false
-	}
-	res, err := s.dba.Has(kBuf)
-	if err == nil && res == true {
-		//the unique key is already exist
-		return false
-	}
-	val := SoUniqueAccountByOwner{}
-	val.Name = sa.Name
-	val.Owner = sa.Owner
-
-	buf, err := proto.Marshal(&val)
-
-	if err != nil {
-		return false
-	}
-
-	return s.dba.Put(kBuf, buf) == nil
-
-}
-
-type UniAccountOwnerWrap struct {
-	Dba iservices.IDatabaseRW
-}
-
-func NewUniAccountOwnerWrap(db iservices.IDatabaseRW) *UniAccountOwnerWrap {
-	if db == nil {
-		return nil
-	}
-	wrap := UniAccountOwnerWrap{Dba: db}
-	return &wrap
-}
-
-func (s *UniAccountOwnerWrap) UniQueryOwner(start *prototype.PublicKeyType) *SoAccountWrap {
-	if start == nil || s.Dba == nil {
-		return nil
-	}
-	pre := AccountOwnerUniTable
-	kList := []interface{}{pre, start}
-	bufStartkey, err := kope.EncodeSlice(kList)
-	val, err := s.Dba.Get(bufStartkey)
-	if err == nil {
-		res := &SoUniqueAccountByOwner{}
 		rErr := proto.Unmarshal(val, res)
 		if rErr == nil {
 			wrap := NewSoAccountWrap(s.Dba, res.Name)

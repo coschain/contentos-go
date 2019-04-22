@@ -48,14 +48,6 @@ func (e *Economist) GetAccount(account *prototype.AccountName) (*table.SoAccount
 	return accountWrap, nil
 }
 
-func (e *Economist) GetRewardsKeeper() (*prototype.InternalRewardsKeeper, error) {
-	keeperWrap := table.NewSoRewardsKeeperWrap(e.db, e.singleId)
-	if !keeperWrap.CheckExist() {
-		return nil, errors.New("Economist access rewards keeper error")
-	}
-	return keeperWrap.GetKeeper(), nil
-}
-
 func (e *Economist) modifyGlobalDynamicData(f func(props *prototype.DynamicProperties)) {
 	dgpWrap := table.NewSoGlobalWrap(e.db, e.singleId)
 	props := dgpWrap.GetProps()
@@ -94,6 +86,9 @@ func (e *Economist) Mint() {
 	//blockCurrent := constants.PerBlockCurrent
 	//t0 := time.Now()
 	globalProps, err := e.GetProps()
+	if err != nil {
+		panic("Mint failed when getprops")
+	}
 	ith := globalProps.GetIthYear()
 	annualBudget := e.CalculateBudget(ith)
 	// new year arrived
@@ -129,15 +124,15 @@ func (e *Economist) Mint() {
 	bpReward := blockCurrent - creatorReward - dappReward
 
 	// merge author rewards and reply rewards
-	authorReward := creatorReward * (constants.RewardRateAuthor + constants.RewardRateReply) / constants.PERCENT
-	//replyReward := creatorReward * constants.RewardRateReply / constants.PERCENT
+	postReward := creatorReward * constants.RewardRateAuthor / constants.PERCENT
+	replyReward := creatorReward * constants.RewardRateReply / constants.PERCENT
 	//voterReward := creatorReward * constants.RewardRateVoter / constants.PERCENT
-	voterReward := creatorReward - authorReward
+	voterReward := creatorReward - postReward - replyReward
 	//reportReward := creatorReward * constants.RewardRateReport / constants.PERCENT
 
-	if err != nil {
-		panic("Mint failed when getprops")
-	}
+	replyDappRewards := dappReward * constants.RewardRateReply / constants.PERCENT
+	postDappRewards := dappReward - replyDappRewards
+
 
 	bpWrap, err := e.GetAccount(globalProps.CurrentWitness)
 	if err != nil {
@@ -147,10 +142,10 @@ func (e *Economist) Mint() {
 	bpWrap.MdVestingShares(&prototype.Vest{Value: bpWrap.GetVestingShares().Value + bpReward})
 
 	e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
-		props.AuthorRewards.Value += uint64(authorReward)
-		//props.ReplyRewards.Value += uint64(replyReward)
-		//props.ReportRewards.Value += uint64(reportReward)
-		props.DappRewards.Value += uint64(dappReward)
+		props.PostRewards.Value += uint64(postReward)
+		props.ReplyRewards.Value += uint64(replyReward)
+		props.PostDappRewards.Value += uint64(postDappRewards)
+		props.ReplyDappRewards.Value += uint64(replyDappRewards)
 		props.VoterRewards.Value += uint64(voterReward)
 		props.AnnualMinted.Value += blockCurrent
 	})
@@ -163,23 +158,11 @@ func (e *Economist) Do() {
 	if err != nil {
 		panic("economist do failed when get props")
 	}
-	// for now, report reward does not calculate
-	//if globalProps.HeadBlockNumber % constants.ReportCashout == 0 {
-	//	reportRewards := globalProps.ReportRewards.Value
-	//	postRewards := reportRewards / 2
-	//	replyRewards := reportRewards - postRewards
-	//	e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
-	//		props.ReportRewards.Value = 0
-	//		props.PostRewards.Value += postRewards
-	//		props.ReplyRewards.Value += replyRewards
-	//	})
-	//}
-	//timestamp := globalProps.Time.UtcSeconds
-	//iterator := table.NewPostCashoutTimeWrap(e.db)
 	iterator := table.NewPostCashoutBlockNumWrap(e.db)
 	var pids []*uint64
 	end := globalProps.HeadBlockNumber
-	weightedVps := globalProps.WeightedVps
+	postWeightedVps := globalProps.PostWeightedVps
+	replyWeightedVps := globalProps.ReplyWeightedVps
 	t0 := time.Now()
 	err = iterator.ForEachByOrder(nil, &end, nil, nil, func(mVal *uint64, sVal *uint64, idx uint32) bool {
 		pids = append(pids, mVal)
@@ -192,51 +175,56 @@ func (e *Economist) Do() {
 	var posts []*table.SoPostWrap
 	var replies []*table.SoPostWrap
 
-	var vpAccumulator uint64 = 0
+	var postVpAccumulator uint64 = 0
+	var replyVpAccumulator uint64 = 0
 	// posts accumulate by linear, replies by sqrt
 	for _, pid := range pids {
 		post := table.NewSoPostWrap(e.db, pid)
 		if post.GetParentId() == 0 {
 			posts = append(posts, post)
-			vpAccumulator += post.GetWeightedVp()
+			postVpAccumulator += post.GetWeightedVp()
 		} else {
 			replies = append(replies, post)
-			vpAccumulator += uint64(math.Ceil(math.Sqrt(float64(post.GetWeightedVp()))))
+			replyVpAccumulator += uint64(math.Ceil(math.Sqrt(float64(post.GetWeightedVp()))))
 		}
 	}
 	e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
-		props.WeightedVps += vpAccumulator
+		props.PostWeightedVps += postVpAccumulator
+		props.ReplyWeightedVps += replyVpAccumulator
 	})
 
-	if weightedVps + vpAccumulator > 0 {
-		rewards := vpAccumulator * globalProps.AuthorRewards.Value / (weightedVps + vpAccumulator)
-		dappRewards := vpAccumulator * globalProps.DappRewards.Value / (weightedVps + vpAccumulator)
-		// For precisely, the percent here is not 15%, but 16.6%, but using 15% is close and good enough
-		replyRewards := rewards * constants.RewardRateReply / constants.PERCENT
-		postRewards := rewards - replyRewards
-		replyDappRewards := dappRewards * constants.RewardRateReply / constants.PERCENT
-		postDappRewards := dappRewards - replyDappRewards
-
-		e.log.Infof("cashout: rewards: %d, dappRewards %d, replyRewards %d, postRewards %d, " +
-			"replyDappRewards %d, postDappRewards %d",
-			rewards, dappRewards, replyRewards, postRewards, replyDappRewards, postDappRewards)
-
+	if postWeightedVps + postVpAccumulator >= 0 {
+		var rewards, dappRewards uint64
+		if postWeightedVps + postVpAccumulator == 0 {
+			rewards = 0
+			dappRewards = 0
+		}else {
+			rewards = postVpAccumulator * globalProps.PostRewards.Value / (postWeightedVps + postVpAccumulator)
+			dappRewards = postVpAccumulator * globalProps.PostDappRewards.Value / (postWeightedVps + postVpAccumulator)
+		}
 
 		e.log.Debugf("cashout posts length: %d", len(posts))
 		if len(posts) > 0 {
 			t := time.Now()
-			e.postCashout(posts, postRewards, postDappRewards)
+			e.postCashout(posts, rewards, dappRewards)
 			e.log.Debugf("cashout posts spend: %v", time.Now().Sub(t))
 		}
+	}
 
-		if err != nil {
-			panic("economist do failed when get reward keeper")
+	if replyWeightedVps + replyVpAccumulator >= 0 {
+		var rewards, dappRewards uint64
+		if replyWeightedVps + replyVpAccumulator == 0 {
+			rewards = 0
+			dappRewards = 0
+		}else {
+			rewards = replyVpAccumulator * globalProps.ReplyRewards.Value / (replyWeightedVps + replyVpAccumulator)
+			dappRewards = replyVpAccumulator * globalProps.ReplyDappRewards.Value / (replyWeightedVps + replyVpAccumulator)
 		}
 
 		e.log.Debugf("cashout replies length: %d", len(replies))
 		if len(replies) > 0 {
 			t := time.Now()
-			e.replyCashout(replies, replyRewards, replyDappRewards)
+			e.replyCashout(replies, rewards, dappRewards)
 			e.log.Debugf("cashout reply spend: %v", time.Now().Sub(t))
 		}
 	}
@@ -244,7 +232,8 @@ func (e *Economist) Do() {
 
 func (e *Economist) decayGlobalVotePower() {
 	e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
-		props.WeightedVps -= props.WeightedVps * constants.BlockInterval / constants.VpDecayTime
+		props.PostWeightedVps -= props.PostWeightedVps * constants.BlockInterval / constants.VpDecayTime
+		props.ReplyWeightedVps -= props.ReplyWeightedVps * constants.BlockInterval / constants.VpDecayTime
 	})
 }
 
@@ -258,7 +247,7 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 	for _, post := range posts {
 		vpAccumulator += post.GetWeightedVp()
 	}
-	e.log.Debugf("current block post total vp:%d, global vp:%d", vpAccumulator, globalProps.WeightedVps)
+	e.log.Debugf("current block post total vp:%d, global vp:%d", vpAccumulator, globalProps.PostWeightedVps)
 	var spentPostReward uint64 = 0
 	var spentDappReward uint64 = 0
 	//var spentVoterReward uint64 = 0
@@ -317,11 +306,11 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 			e.noticer.Publish(constants.NoticeCashout, author, post.GetPostId(), reward, globalProps.GetHeadBlockNumber())
 		}
 	}
-	e.log.Infof("cashout: [post] props.AuthorRewards: %d, props.DappRewards: %d, spendPostReward: %d, spendDappReward: %d",
-		globalProps.AuthorRewards, globalProps.DappRewards, spentPostReward, spentDappReward)
+	e.log.Infof("cashout: [post] blockRewards: %d, blockDappRewards: %d, spendPostReward: %d, spendDappReward: %d",
+		blockReward, blockDappReward, spentPostReward, spentDappReward)
 	e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
-		props.AuthorRewards.Value -= spentPostReward
-		props.DappRewards.Value -= spentDappReward
+		props.PostRewards.Value -= spentPostReward
+		props.PostDappRewards.Value -= spentDappReward
 	})
 }
 
@@ -335,7 +324,7 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 	for _, reply := range replies {
 		vpAccumulator += uint64(math.Ceil(math.Sqrt(float64(reply.GetWeightedVp()))))
 	}
-	e.log.Debugf("current block reply total vp:%d, global vp:%d", vpAccumulator, globalProps.WeightedVps)
+	e.log.Debugf("current block reply total vp:%d, global vp:%d", vpAccumulator, globalProps.ReplyWeightedVps)
 	var spentReplyReward uint64 = 0
 	var spentDappReward uint64 = 0
 	//var spentVoterReward uint64 = 0
@@ -393,33 +382,32 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 			e.noticer.Publish(constants.NoticeCashout, author, reply.GetPostId(), reward, globalProps.GetHeadBlockNumber())
 		}
 	}
-	e.log.Infof("cashout: [reply] props.AuthorRewards: %d, props.DappRewards: %d, spendPostReward: %d, spendDappReward: %d",
-		globalProps.AuthorRewards.Value, globalProps.DappRewards.Value, spentReplyReward, spentDappReward)
+	e.log.Infof("cashout: [reply] blockRewards: %d, blockDappRewards: %d, spendPostReward: %d, spendDappReward: %d",
+		blockReward, blockDappReward, spentReplyReward, spentDappReward)
 	e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
-		props.AuthorRewards.Value -= spentReplyReward
-		//props.VoterRewards.Value -= spentVoterReward
-		props.DappRewards.Value -= spentDappReward
+		props.ReplyRewards.Value -= spentReplyReward
+		props.ReplyDappRewards.Value -= spentDappReward
 	})
 }
 
-func (e *Economist) voterCashout(postId uint64, totalReward uint64, totalVp uint64, keeper map[string]*prototype.Vest) {
-	iterator := table.NewVotePostIdWrap(e.db)
-	start := postId
-	end := postId + 1
-	var voterIds []*prototype.VoterId
-	_ = iterator.ForEachByOrder(&start, &end, nil, nil, func(mVal *prototype.VoterId, sVal *uint64, idx uint32) bool {
-		voterIds = append(voterIds, mVal)
-		return true
-	})
-	for _, voterId := range voterIds {
-		wrap := table.NewSoVoteWrap(e.db, voterId)
-		vp := wrap.GetWeightedVp()
-		voter := voterId.Voter.Value
-		reward := totalReward * vp / totalVp
-		voterWrap, _ := e.GetAccount(&prototype.AccountName{Value: voter})
-		voterWrap.MdVestingShares(&prototype.Vest{Value: reward + voterWrap.GetVestingShares().Value})
-	}
-}
+//func (e *Economist) voterCashout(postId uint64, totalReward uint64, totalVp uint64, keeper map[string]*prototype.Vest) {
+//	iterator := table.NewVotePostIdWrap(e.db)
+//	start := postId
+//	end := postId + 1
+//	var voterIds []*prototype.VoterId
+//	_ = iterator.ForEachByOrder(&start, &end, nil, nil, func(mVal *prototype.VoterId, sVal *uint64, idx uint32) bool {
+//		voterIds = append(voterIds, mVal)
+//		return true
+//	})
+//	for _, voterId := range voterIds {
+//		wrap := table.NewSoVoteWrap(e.db, voterId)
+//		vp := wrap.GetWeightedVp()
+//		voter := voterId.Voter.Value
+//		reward := totalReward * vp / totalVp
+//		voterWrap, _ := e.GetAccount(&prototype.AccountName{Value: voter})
+//		voterWrap.MdVestingShares(&prototype.Vest{Value: reward + voterWrap.GetVestingShares().Value})
+//	}
+//}
 
 func (e *Economist) PowerDown() {
 	globalProps, err := e.GetProps()

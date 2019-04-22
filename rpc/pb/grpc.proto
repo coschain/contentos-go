@@ -94,6 +94,9 @@ service ApiService {
     
     rpc GetBlkIsIrreversibleByTxId (GetBlkIsIrreversibleByTxIdRequest) returns (GetBlkIsIrreversibleByTxIdResponse) {
     }
+
+    rpc GetAccountListByCreTime (GetAccountListByCreTimeRequest) returns (GetAccountListResponse) {
+    }
 }
 
 
@@ -243,7 +246,9 @@ message PostResponse {
     uint64                                      weighted_vp             =      21 [jstype = JS_STRING];
     prototype.vest                              rewards                 =      22;
     prototype.vest                              dapp_rewards            =      23;
-    prototype.time_point_sec                    cashout_time            =      24;
+    uint64                                      cashout_interval        =      24;
+    prototype.vest                              global_rewards          =      25;
+    uint64                                      global_weighted_vp      =      26;
 }
 
 message GetPostListByCreatedRequest {
@@ -479,4 +484,11 @@ message GetBlkIsIrreversibleByTxIdRequest {
 
 message GetBlkIsIrreversibleByTxIdResponse {  
     bool       result   = 1;
+}
+
+message GetAccountListByCreTimeRequest {
+    prototype.time_point_sec   start     = 1;
+    prototype.time_point_sec   end       = 2;
+    AccountInfo  last_account = 3;
+    uint32           limit     = 4;
 }

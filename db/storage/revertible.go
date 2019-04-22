@@ -26,6 +26,7 @@ type RevertibleDatabase struct {
 	db   Database
 	rev  revNumber
 	tag  revTags
+	presetTag string
 	enable_rev bool
 	lock sync.RWMutex
 }
@@ -238,58 +239,57 @@ func (db *RevertibleDatabase) Get(key []byte) ([]byte, error) {
 	return db.db.Get(key)
 }
 
-func (db *RevertibleDatabase) put(key []byte, value []byte) error {
+func (db *RevertibleDatabase) put(key []byte, value []byte) (err error) {
 	b := db.db.NewBatch()
 	b.Put(key, value)
 
-	oldValue, err := db.db.Get(key)
-	if err != nil {
-		b.Put(keyOfReversionOp(db.rev.Current), encodeWriteOpSlice([]writeOp{{key, nil, true}}))
+	if db.enable_rev {
+		oldValue, err := db.db.Get(key)
+		if err != nil {
+			b.Put(keyOfReversionOp(db.rev.Current), encodeWriteOpSlice([]writeOp{{key, nil, true}}))
+		} else {
+			b.Put(keyOfReversionOp(db.rev.Current), encodeWriteOpSlice([]writeOp{{key, oldValue, false}}))
+		}
+		b.Put([]byte(key_rev_num), encodeRevNumber(revNumber{db.rev.Current + 1, db.rev.Base}))
+		db.applyPresetTag(db.rev.Current + 1, b)
 	} else {
-		b.Put(keyOfReversionOp(db.rev.Current), encodeWriteOpSlice([]writeOp{{key, oldValue, false}}))
+		db.applyPresetTag(db.rev.Current, b)
 	}
-	b.Put([]byte(key_rev_num), encodeRevNumber(revNumber{db.rev.Current + 1, db.rev.Base}))
-
-	if err = b.Write(); err == nil {
+	if err = b.Write(); err == nil && db.enable_rev {
 		db.rev.Current++
 	}
-	return err
+	return
 }
 
 func (db *RevertibleDatabase) Put(key []byte, value []byte) error {
 	db.lock.Lock()
 	defer db.lock.Unlock()
-
-	if !db.enable_rev {
-		return db.db.Put(key, value)
-	}
 	return db.put(key, value)
 }
 
-func (db *RevertibleDatabase) delete(key []byte) error {
-	oldValue, err := db.db.Get(key)
-	if err == nil {
-		b := db.db.NewBatch()
+func (db *RevertibleDatabase) delete(key []byte) (err error) {
+	b := db.db.NewBatch()
+	if !db.enable_rev {
 		b.Delete(key)
-		b.Put(keyOfReversionOp(db.rev.Current), encodeWriteOpSlice([]writeOp{{key, oldValue, false}}))
-		b.Put([]byte(key_rev_num), encodeRevNumber(revNumber{db.rev.Current + 1, db.rev.Base}))
-
-		if err = b.Write(); err == nil {
-			db.rev.Current++
-		} else {
-			return err
+		db.applyPresetTag(db.rev.Current, b)
+	} else {
+		oldValue, err := db.db.Get(key)
+		if err == nil {
+			b.Delete(key)
+			b.Put(keyOfReversionOp(db.rev.Current), encodeWriteOpSlice([]writeOp{{key, oldValue, false}}))
+			b.Put([]byte(key_rev_num), encodeRevNumber(revNumber{db.rev.Current + 1, db.rev.Base}))
+			db.applyPresetTag(db.rev.Current + 1, b)
 		}
 	}
-	return nil
+	if err = b.Write(); err == nil && db.enable_rev {
+		db.rev.Current++
+	}
+	return
 }
 
 func (db *RevertibleDatabase) Delete(key []byte) error {
 	db.lock.Lock()
 	defer db.lock.Unlock()
-
-	if !db.enable_rev {
-		return db.db.Delete(key)
-	}
 	return db.delete(key)
 }
 
@@ -329,6 +329,7 @@ func (b *revdbBatch) Write() error {
 					batch.Put(op.Key, op.Value)
 				}
 			}
+			b.db.applyPresetTag(b.db.rev.Current, batch)
 			return batch.Write()
 		}
 
@@ -365,6 +366,7 @@ func (b *revdbBatch) Write() error {
 		}
 		batch.Put(keyOfReversionOp(b.db.rev.Current), encodeWriteOpSlice(reverts[reverts_idx + 1:]))
 		batch.Put([]byte(key_rev_num), encodeRevNumber(revNumber{b.db.rev.Current + 1, b.db.rev.Base}))
+		b.db.applyPresetTag(b.db.rev.Current + 1, batch)
 
 		err := batch.Write()
 		if err == nil {
@@ -484,17 +486,9 @@ func cleanRevTags(rt *revTags, rn revNumber) {
 	}
 }
 
-func (db *RevertibleDatabase) TagRevision(r uint64, tag string) error {
-	db.lock.Lock()
-	defer db.lock.Unlock()
-
-	if r > db.rev.Current || r < db.rev.Base {
-		return errors.New(fmt.Sprintf("cannot tag a irreversible revision. %d not in [%d, %d]",
-			r, db.rev.Base, db.rev.Current))
-	}
+func (db *RevertibleDatabase) tagRevision(r uint64, tag string, w DatabasePutter) error {
 	changed := false
 	oldtag, _ := db.tag.Rev2Tag[r]
-	backup := db.revTagsCopy()
 	if len(tag) == 0 {
 		if len(oldtag) > 0 {
 			delete(db.tag.Rev2Tag, r)
@@ -511,11 +505,41 @@ func (db *RevertibleDatabase) TagRevision(r uint64, tag string) error {
 	}
 	var err error
 	if changed {
-		if err = db.db.Put([]byte(key_rev_tags), encodeRevTags(db.tag)); err != nil {
-			db.tag = backup
-		}
+		err = w.Put([]byte(key_rev_tags), encodeRevTags(db.tag))
 	}
 	return err
+}
+
+func (db *RevertibleDatabase) TagRevision(r uint64, tag string) (err error) {
+	db.lock.Lock()
+	defer db.lock.Unlock()
+
+	if r > db.rev.Current || r < db.rev.Base {
+		return errors.New(fmt.Sprintf("cannot tag a irreversible revision. %d not in [%d, %d]",
+			r, db.rev.Base, db.rev.Current))
+	}
+	backup := db.revTagsCopy()
+	if err = db.tagRevision(r, tag, db.db); err != nil {
+		db.tag = backup
+	}
+	return
+}
+
+func (db *RevertibleDatabase) PresetTag(tag string) {
+	db.lock.Lock()
+	defer db.lock.Unlock()
+	db.presetTag = tag
+}
+
+func (db *RevertibleDatabase) applyPresetTag(r uint64, w DatabasePutter) (err error) {
+	if len(db.presetTag) > 0 {
+		backup := db.revTagsCopy()
+		if err = db.tagRevision(r, db.presetTag, w); err != nil {
+			db.tag = backup
+		}
+		db.presetTag = ""
+	}
+	return
 }
 
 func (db *RevertibleDatabase) GetTagRevision(tag string) (uint64, error) {

@@ -2,6 +2,7 @@ package storage
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 )
 
@@ -93,18 +94,7 @@ func (dq *dbDeque) PushBack() {
 }
 
 func (dq *dbDeque) popBack(commit bool) (err error) {
-	sessionCount := len(dq.sessions)
-	if sessionCount == 0 {
-		return errors.New("unexpected pop.")
-	}
-	if commit {
-		err = dq.sessions[0].commit()
-		if sessionCount > 1 {
-			dq.sessions[1].db = dq.sessions[0].db
-		}
-	}
-	dq.sessions = dq.sessions[1:]
-	return err
+	return dq.popBackN(1, commit)
 }
 
 func (dq *dbDeque) PopBack(commit bool) error {
@@ -112,6 +102,43 @@ func (dq *dbDeque) PopBack(commit bool) error {
 	defer dq.lock.Unlock()
 
 	return dq.popBack(commit)
+}
+
+func (dq *dbDeque) popBackN(n int, commit bool) error {
+	if n < 0 {
+		return fmt.Errorf("negative popBackN with n=%d", n)
+	}
+	if n == 0 {
+		return nil
+	}
+	sessionCount := len(dq.sessions)
+	if sessionCount < n {
+		return fmt.Errorf("unexpected popBackN with n=%d, but #sessions=%d", n, sessionCount)
+	}
+	if commit {
+		db := dq.sessions[0].db
+		b := db.NewBatch()
+		for i := 0; i < n; i++ {
+			if err := dq.sessions[i].commitToDbWriter(b); err != nil {
+				return err
+			}
+		}
+		if err := b.Write(); err != nil {
+			return err
+		}
+		if sessionCount > n {
+			dq.sessions[n].db = db
+		}
+	}
+	dq.sessions = dq.sessions[n:]
+	return nil
+}
+
+func (dq *dbDeque) PopBackN(n int, commit bool) error {
+	dq.lock.Lock()
+	defer dq.lock.Unlock()
+
+	return dq.popBackN(n, commit)
 }
 
 func (dq *dbDeque) writerDB() Database {

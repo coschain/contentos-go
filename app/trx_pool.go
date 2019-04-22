@@ -3,6 +3,7 @@ package app
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app/table"
@@ -92,7 +93,7 @@ func (c *TrxPool) Start(node *node.Node) error {
 }
 
 func (c *TrxPool) Open() {
-	c.iceberg = NewBlockIceberg(c.db)
+	c.iceberg = NewBlockIceberg(c.db, c.log)
 	c.economist = economist.New(c.db, c.noticer, &SingleId, c.log)
 	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
 	if !dgpWrap.CheckExist() {
@@ -103,7 +104,7 @@ func (c *TrxPool) Open() {
 		c.initGenesis()
 
 		mustNoError(c.db.TagRevision(c.db.GetRevision(), GENESIS_TAG), "genesis tagging failed")
-		c.iceberg = NewBlockIceberg(c.db)
+		c.iceberg = NewBlockIceberg(c.db, c.log)
 		c.economist = economist.New(c.db, c.noticer, &SingleId, c.log)
 		//c.log.Info("finish initGenesis")
 	}
@@ -481,8 +482,22 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 			t00 := time.Now()
 			ma.Apply(entries[i:i+d])
 			applyTime += int64(time.Now().Sub(t00))
+			invoiceOK := true
 			for j := 0; j < d; j++ {
-				mustSuccess(entries[i + j].GetTrxResult().Receipt.Status == blk.Transactions[i + j].Invoice.Status, "mismatched invoice")
+				if entries[i + j].GetTrxResult().Receipt.Status != blk.Transactions[i + j].Invoice.Status {
+					c.log.Errorf("InvoiceMismatch: expect_status=%d, status=%d, err=%s. trx #%d of block %d",
+						blk.Transactions[i + j].Invoice.Status,
+						entries[i + j].GetTrxResult().Receipt.Status,
+						entries[i + j].GetTrxResult().Receipt.ErrorInfo,
+						i + j,
+						blk.Id().BlockNum())
+					invoiceOK = false
+				}
+			}
+			if !invoiceOK {
+				blockData, _ := json.MarshalIndent(blk, "", "  ")
+				c.log.Errorf("InvalidBlock: block %d, marshal=%s", blk.Id().BlockNum(), string(blockData))
+				mustSuccess(false, "mismatched invoice")
 			}
 		}
 		t1 := time.Now()
@@ -609,13 +624,16 @@ func (c *TrxPool) initGenesis() {
 		tInfo.Props.MaximumBlockSize = constants.MaxBlockSize
 		tInfo.Props.TotalUserCnt = 1
 		tInfo.Props.TotalVestingShares = prototype.NewVest(0)
-		tInfo.Props.AuthorRewards = prototype.NewVest(0)
-		tInfo.Props.WeightedVps = 0
+		tInfo.Props.PostRewards = prototype.NewVest(0)
+		tInfo.Props.ReplyRewards = prototype.NewVest(0)
+		tInfo.Props.PostWeightedVps = 0
+		tInfo.Props.ReplyWeightedVps = 0
 		tInfo.Props.ReportRewards = prototype.NewVest(0)
 		tInfo.Props.IthYear = 1
 		tInfo.Props.AnnualBudget = prototype.NewVest(0)
 		tInfo.Props.AnnualMinted = prototype.NewVest(0)
-		tInfo.Props.DappRewards = prototype.NewVest(0)
+		tInfo.Props.PostDappRewards = prototype.NewVest(0)
+		tInfo.Props.ReplyDappRewards = prototype.NewVest(0)
 		tInfo.Props.VoterRewards = prototype.NewVest(0)
 	}), "CreateDynamicGlobalProperties error")
 

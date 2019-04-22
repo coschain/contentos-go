@@ -32,7 +32,7 @@ const (
 
 	INIT_ACCOUNT_LENGTH = 10
 	INIT_POSTID_LENGTH  = 10
-	MAX_ACCOUNT_NUM     = 10000000  // 10 million
+	MAX_ACCOUNT_NUM     = 100
 	MAX_POSTID_NUM      = 10000000  // 10 million
 )
 
@@ -119,12 +119,15 @@ func StartEachRoutine(index int) {
 
 		switch cmdType {
 		case CREATE_CMD:
-			GlobalAccountLIst.RLock()
+			GlobalAccountLIst.Lock()
 			if len(GlobalAccountLIst.arr) > MAX_ACCOUNT_NUM {
-				GlobalAccountLIst.RUnlock()
+				fmt.Println("Account list reach its lengt limit, account list length: ", len(GlobalAccountLIst.arr),
+					" length limit: ", MAX_ACCOUNT_NUM,
+					" timestamp: ", time.Now())
+				GlobalAccountLIst.Unlock()
 				continue
 			}
-			GlobalAccountLIst.RUnlock()
+			GlobalAccountLIst.Unlock()
 			createAccount(localWallet, rpcClient, nil, "")
 		case TRANSFER_CMD:
 			transfer(rpcClient, nil, nil, 0)

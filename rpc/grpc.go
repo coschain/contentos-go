@@ -514,6 +514,41 @@ func (as *APIService) GetAccountListByBalance(ctx context.Context, req *grpcpb.G
 	return res, err
 }
 
+func (as *APIService) GetAccountListByCreTime (ctx context.Context, req *grpcpb.GetAccountListByCreTimeRequest) (*grpcpb.GetAccountListResponse, error) {
+	as.db.RLock()
+	defer as.db.RUnlock()
+
+	sortWrap := table.NewAccountCreatedTimeWrap(as.db)
+	res := &grpcpb.GetAccountListResponse{}
+	var (
+		err error
+	    list []*grpcpb.AccountResponse
+		lastAcctName *prototype.AccountName
+		lastAcctTime *prototype.TimePointSec
+	)
+	if req.LastAccount != nil {
+		lastAcctName = req.LastAccount.AccountName
+		lastAcctTime = req.LastAccount.CreatedTime
+	}
+	limit := checkLimit(req.Limit)
+	if limit == 0 {
+		limit = uint32(defaultPageSizeLimit)
+	}
+	err = sortWrap.ForEachByRevOrder(req.Start, req.End, lastAcctName,lastAcctTime, func(mVal *prototype.AccountName, sVal *prototype.TimePointSec, idx uint32) bool {
+		acct := as.getAccountResponseByName(mVal,false)
+		if acct != nil {
+			list = append(list, acct)
+		}
+		if uint32(len(list)) >= limit {
+			return false
+		}
+		return true
+	})
+	res.List = list
+	
+	return res,err
+}
+
 func checkLimit(limit uint32) uint32 {
 	if limit <= constants.RpcPageSizeLimit {
 		return limit
@@ -952,9 +987,17 @@ func (as *APIService) fetchPostInfoResponseById(postId uint64,isNeedLock bool) *
 
 	props := table.NewSoGlobalWrap(as.db, &i).GetProps()
 
+
 	if pWrap != nil && pWrap.CheckExist() {
-		current := uint64(props.Time.UtcSeconds) - props.HeadBlockNumber * 1 + pWrap.GetCashoutBlockNum() * 1
-		cashoutTime := &prototype.TimePointSec{UtcSeconds: uint32(current)}
+		var globalRewards uint64
+		var globalWeightedVp uint64
+		if pWrap.GetParentId() == 0 {
+			globalRewards = props.PostRewards.Value
+			globalWeightedVp = props.PostWeightedVps
+		} else {
+			globalRewards = props.ReplyRewards.Value
+			globalWeightedVp = props.ReplyWeightedVps
+		}
 		res  =	&grpcpb.PostResponse{
 			PostId:        pWrap.GetPostId(),
 			Category:      pWrap.GetCategory(),
@@ -974,7 +1017,9 @@ func (as *APIService) fetchPostInfoResponseById(postId uint64,isNeedLock bool) *
 			Rewards:       pWrap.GetRewards(),
 			DappRewards:   pWrap.GetDappRewards(),
 			WeightedVp:    pWrap.GetWeightedVp(),
-			CashoutTime:   cashoutTime,
+			CashoutInterval:   constants.PostCashOutDelayBlock,
+			GlobalRewards: &prototype.Vest{Value: globalRewards},
+			GlobalWeightedVp: globalWeightedVp,
 		}
 	}
 	return res

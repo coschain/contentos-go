@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/coschain/contentos-go/iservices"
+	"github.com/sirupsen/logrus"
 	"strconv"
 	"sync"
 )
@@ -31,6 +32,7 @@ const (
 type BlockIceberg struct {
 	lock          sync.RWMutex               // lock for internal state
 	db            iservices.IDatabaseService // database service
+	log           *logrus.Logger			 // the logger
 	inProgress    bool                       // indicating if there's a on-going block
 	next          uint64                     // next block number
 	hasFinalized  bool                       // indicating if there exists any finalized blocks
@@ -40,7 +42,7 @@ type BlockIceberg struct {
 }
 
 // NewBlockIceberg() returns an instance of block iceberg.
-func NewBlockIceberg(db iservices.IDatabaseService) *BlockIceberg {
+func NewBlockIceberg(db iservices.IDatabaseService, logger *logrus.Logger) *BlockIceberg {
 	var (
 		hasBlock, hasFinalized, latest, finalized = false, false, uint64(0), uint64(0)
 		err error
@@ -58,6 +60,7 @@ func NewBlockIceberg(db iservices.IDatabaseService) *BlockIceberg {
 	}
 	return &BlockIceberg{
 		db:           db,
+		log:          logger,
 		inProgress:   false,
 		next:         latest + 1,
 		hasFinalized: hasFinalized,
@@ -71,6 +74,7 @@ func NewBlockIceberg(db iservices.IDatabaseService) *BlockIceberg {
 func (b *BlockIceberg) BeginBlock(blockNum uint64) error {
 	b.lock.Lock()
 	defer b.lock.Unlock()
+	b.log.Debugf("ICEBERG: BeginBlock(%d) begin. finalized=%d, sealevel=%d, next=%d", blockNum, b.finalized, b.seaLevel, b.next)
 
 	if blockNum == 0 {
 		return errors.New("invalid block number 0")
@@ -89,27 +93,35 @@ func (b *BlockIceberg) BeginBlock(blockNum uint64) error {
 		b.sink(b.next - b.seaLevel - b.lowWM)
 	}
 	b.db.BeginTransactionWithTag(blockNumberToString(blockNum))
+	b.log.Debugf("ICEBERG: BeginBlock(%d) end. finalized=%d, sealevel=%d, next=%d", blockNum, b.finalized, b.seaLevel, b.next)
 	return nil
 }
 
 func (b *BlockIceberg) EndBlock(commit bool) error {
 	b.lock.Lock()
 	defer b.lock.Unlock()
+	b.log.Debugf("ICEBERG: EndBlock(%v) begin. finalized=%d, sealevel=%d, next=%d", commit, b.finalized, b.seaLevel, b.next)
 
 	if !b.inProgress {
 		return fmt.Errorf("cannot end a block without begin it first")
 	}
 	if !commit {
-		b.db.EndTransaction(false)
+		err := b.db.EndTransaction(false)
+		if err != nil {
+			b.log.Errorf("ICEBERG: EndBlock commit error: %s", err.Error())
+		}
 		b.next--
 	}
 	b.inProgress = false
+	b.log.Debugf("ICEBERG: EndBlock(%v) end. finalized=%d, sealevel=%d, next=%d", commit, b.finalized, b.seaLevel, b.next)
 	return nil
 }
 
 func (b *BlockIceberg) RevertBlock(blockNum uint64) error {
 	b.lock.Lock()
 	defer b.lock.Unlock()
+
+	b.log.Debugf("ICEBERG: RevertBlock %d begin. finalized=%d, sealevel=%d, next=%d", blockNum, b.finalized, b.seaLevel, b.next)
 
 	if blockNum == 0 {
 		return errors.New("invalid block number 0")
@@ -125,29 +137,44 @@ func (b *BlockIceberg) RevertBlock(blockNum uint64) error {
 	}
 	if blockNum >= b.seaLevel {
 		// we're reverting an in-memory block
-		b.db.RollbackTag(blockNumberToString(blockNum))
+		err := b.db.RollbackTag(blockNumberToString(blockNum))
+		if err != nil {
+			b.log.Errorf("ICEBERG: RevertBlock %d RollbackTag(%d) error: %s", blockNum, blockNum, err.Error())
+		}
 	} else {
 		// we're reverting a block in reversible db.
 
 		// all in-memory blocks should be erased since they are offspring of our target.
-		b.db.RollbackTag(blockNumberToString(b.seaLevel))
+		err := b.db.RollbackTag(blockNumberToString(b.seaLevel))
+		if err != nil {
+			b.log.Errorf("ICEBERG: RevertBlock %d RollbackTag(%d) error: %s", blockNum, b.seaLevel, err.Error())
+		}
 
 		// now we rollback the db
 		if blockNum > 1 {
-			b.db.RevertToTag(blockNumberToString(blockNum - 1))
+			err := b.db.RevertToTag(blockNumberToString(blockNum - 1))
+			if err != nil {
+				b.log.Errorf("ICEBERG: RevertBlock %d RevertToTag(%d) error: %s", blockNum, blockNum - 1, err.Error())
+			}
 		} else {
 			// we're reverting block #1, i.e. rollback to the state just after init_genesis().
-			b.db.RevertToTag(GENESIS_TAG)
+			err := b.db.RevertToTag(GENESIS_TAG)
+			if err != nil {
+				b.log.Errorf("ICEBERG: RevertBlock %d RevertToTag(%s) error: %s", blockNum, GENESIS_TAG, err.Error())
+			}
 		}
 		b.seaLevel = blockNum
 	}
 	b.next = blockNum
+	b.log.Debugf("ICEBERG: RevertBlock %d end. finalized=%d, sealevel=%d, next=%d", blockNum, b.finalized, b.seaLevel, b.next)
 	return nil
 }
 
 func (b *BlockIceberg) FinalizeBlock(blockNum uint64) error {
 	b.lock.Lock()
 	defer b.lock.Unlock()
+
+	b.log.Debugf("ICEBERG: FinalizeBlock %d begin. finalized=%d, sealevel=%d, next=%d", blockNum, b.finalized, b.seaLevel, b.next)
 
 	if blockNum == 0 {
 		return errors.New("invalid block number 0")
@@ -168,35 +195,51 @@ func (b *BlockIceberg) FinalizeBlock(blockNum uint64) error {
 	tag := blockNumberToString(blockNum)
 	if blockNum < b.seaLevel {
 		// we're finalizing a block in reversible db.
-		b.db.RebaseToTag(tag)
+		err := b.db.RebaseToTag(tag)
+		if err != nil {
+			b.log.Errorf("ICEBERG: FinalizeBlock %d RebaseToTag(%s) error: %s", blockNum, tag, err.Error())
+		}
 	} else {
 		// we're finalizing a block in memory.
 
 		// basically it needs 2 steps,
 		// step 1, move every in-memory finalized block into reversible db
 		// step 2, finalize everything in reversible db
-		b.db.EnableReversion(false)
-		b.db.Squash(tag)
-		b.db.TagRevision(b.db.GetRevision(), tag)
-		b.db.EnableReversion(true)
-
+		err := b.db.EnableReversion(false)
+		if err != nil {
+			b.log.Errorf("ICEBERG: FinalizeBlock %d EnableReversion(false) error: %s", blockNum, err.Error())
+		}
+		err = b.db.Squash(tag)
+		if err != nil {
+			b.log.Errorf("ICEBERG: FinalizeBlock %d Squash(%s) error: %s", blockNum, tag, err.Error())
+		}
+		err = b.db.EnableReversion(true)
+		if err != nil {
+			b.log.Errorf("ICEBERG: FinalizeBlock %d EnableReversion(true) error: %s", blockNum, err.Error())
+		}
 		b.seaLevel = blockNum + 1
 	}
 
 	b.hasFinalized, b.finalized = true, blockNum
+	b.log.Debugf("ICEBERG: FinalizeBlock %d end. finalized=%d, sealevel=%d, next=%d", blockNum, b.finalized, b.seaLevel, b.next)
 	return nil
 }
 
 func (b *BlockIceberg) sink(blocks uint64) {
+	b.log.Debugf("ICEBERG: sink %d block(s) begin. finalized=%d, sealevel=%d, next=%d", blocks, b.finalized, b.seaLevel, b.next)
 	num := b.seaLevel
+	blocksBak := blocks
 	for blocks > 0 {
 		tag := blockNumberToString(num)
-		b.db.Squash(tag)
-		b.db.TagRevision(b.db.GetRevision(), tag)
+		err := b.db.Squash(tag)
+		if err != nil {
+			b.log.Errorf("ICEBERG: sink %d block(s), Squash(%s) error: %s", blocks, tag, err.Error())
+		}
 		b.seaLevel++
 		num++
 		blocks--
 	}
+	b.log.Debugf("ICEBERG: sink %d block(s) end. finalized=%d, sealevel=%d, next=%d", blocksBak, b.finalized, b.seaLevel, b.next)
 }
 
 func (b *BlockIceberg) LastFinalizedBlock() (blockNum uint64, err error) {
