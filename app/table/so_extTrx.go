@@ -1073,25 +1073,9 @@ func NewExtTrxTrxIdWrap(db iservices.IDatabaseRW) *SExtTrxTrxIdWrap {
 	return &wrap
 }
 
-func (s *SExtTrxTrxIdWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil {
-		return
-	}
-	s.Dba.DeleteIterator(iterator)
-}
-
-func (s *SExtTrxTrxIdWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.Sha256 {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
-
+func (s *SExtTrxTrxIdWrap) GetMainVal(val []byte) *prototype.Sha256 {
 	res := &SoListExtTrxByTrxId{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 
 	if err != nil {
 		return nil
@@ -1100,18 +1084,9 @@ func (s *SExtTrxTrxIdWrap) GetMainVal(iterator iservices.IDatabaseIterator) *pro
 
 }
 
-func (s *SExtTrxTrxIdWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.Sha256 {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
+func (s *SExtTrxTrxIdWrap) GetSubVal(val []byte) *prototype.Sha256 {
 	res := &SoListExtTrxByTrxId{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 	if err != nil {
 		return nil
 	}
@@ -1186,18 +1161,11 @@ func (s *SExtTrxTrxIdWrap) ForEachByOrder(start *prototype.Sha256, end *prototyp
 	if cErr != nil {
 		return cErr
 	}
-	iterator := s.Dba.NewIterator(sBuf, eBuf)
-	if iterator == nil {
-		return errors.New("there is no data in range")
-	}
 	var idx uint32 = 0
-	for iterator.Next() {
+	s.Dba.Iterate(sBuf, eBuf, false, func(key, value []byte) bool {
 		idx++
-		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
-			break
-		}
-	}
-	s.DelIterator(iterator)
+		return f(s.GetMainVal(value), s.GetSubVal(value), idx)
+	})
 	return nil
 }
 
@@ -1214,25 +1182,9 @@ func NewExtTrxBlockHeightWrap(db iservices.IDatabaseRW) *SExtTrxBlockHeightWrap 
 	return &wrap
 }
 
-func (s *SExtTrxBlockHeightWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil {
-		return
-	}
-	s.Dba.DeleteIterator(iterator)
-}
-
-func (s *SExtTrxBlockHeightWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.Sha256 {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
-
+func (s *SExtTrxBlockHeightWrap) GetMainVal(val []byte) *prototype.Sha256 {
 	res := &SoListExtTrxByBlockHeight{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 
 	if err != nil {
 		return nil
@@ -1241,18 +1193,9 @@ func (s *SExtTrxBlockHeightWrap) GetMainVal(iterator iservices.IDatabaseIterator
 
 }
 
-func (s *SExtTrxBlockHeightWrap) GetSubVal(iterator iservices.IDatabaseIterator) *uint64 {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
+func (s *SExtTrxBlockHeightWrap) GetSubVal(val []byte) *uint64 {
 	res := &SoListExtTrxByBlockHeight{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 	if err != nil {
 		return nil
 	}
@@ -1325,18 +1268,11 @@ func (s *SExtTrxBlockHeightWrap) ForEachByOrder(start *uint64, end *uint64, last
 	if cErr != nil {
 		return cErr
 	}
-	iterator := s.Dba.NewIterator(sBuf, eBuf)
-	if iterator == nil {
-		return errors.New("there is no data in range")
-	}
 	var idx uint32 = 0
-	for iterator.Next() {
+	s.Dba.Iterate(sBuf, eBuf, false, func(key, value []byte) bool {
 		idx++
-		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
-			break
-		}
-	}
-	s.DelIterator(iterator)
+		return f(s.GetMainVal(value), s.GetSubVal(value), idx)
+	})
 	return nil
 }
 
@@ -1353,25 +1289,9 @@ func NewExtTrxBlockTimeWrap(db iservices.IDatabaseRW) *SExtTrxBlockTimeWrap {
 	return &wrap
 }
 
-func (s *SExtTrxBlockTimeWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil {
-		return
-	}
-	s.Dba.DeleteIterator(iterator)
-}
-
-func (s *SExtTrxBlockTimeWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.Sha256 {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
-
+func (s *SExtTrxBlockTimeWrap) GetMainVal(val []byte) *prototype.Sha256 {
 	res := &SoListExtTrxByBlockTime{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 
 	if err != nil {
 		return nil
@@ -1380,18 +1300,9 @@ func (s *SExtTrxBlockTimeWrap) GetMainVal(iterator iservices.IDatabaseIterator) 
 
 }
 
-func (s *SExtTrxBlockTimeWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.TimePointSec {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
+func (s *SExtTrxBlockTimeWrap) GetSubVal(val []byte) *prototype.TimePointSec {
 	res := &SoListExtTrxByBlockTime{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 	if err != nil {
 		return nil
 	}
@@ -1466,18 +1377,11 @@ func (s *SExtTrxBlockTimeWrap) ForEachByOrder(start *prototype.TimePointSec, end
 	if cErr != nil {
 		return cErr
 	}
-	iterator := s.Dba.NewIterator(sBuf, eBuf)
-	if iterator == nil {
-		return errors.New("there is no data in range")
-	}
 	var idx uint32 = 0
-	for iterator.Next() {
+	s.Dba.Iterate(sBuf, eBuf, false, func(key, value []byte) bool {
 		idx++
-		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
-			break
-		}
-	}
-	s.DelIterator(iterator)
+		return f(s.GetMainVal(value), s.GetSubVal(value), idx)
+	})
 	return nil
 }
 
@@ -1527,19 +1431,11 @@ func (s *SExtTrxBlockTimeWrap) ForEachByRevOrder(start *prototype.TimePointSec, 
 	if cErr != nil {
 		return cErr
 	}
-	//reverse the start and end when create ReversedIterator to query by reverse order
-	iterator := s.Dba.NewReversedIterator(eBuf, sBuf)
-	if iterator == nil {
-		return errors.New("there is no data in range")
-	}
 	var idx uint32 = 0
-	for iterator.Next() {
+	s.Dba.Iterate(eBuf, sBuf, true, func(key, value []byte) bool {
 		idx++
-		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
-			break
-		}
-	}
-	s.DelIterator(iterator)
+		return f(s.GetMainVal(value), s.GetSubVal(value), idx)
+	})
 	return nil
 }
 
@@ -1556,25 +1452,9 @@ func NewExtTrxTrxCreateOrderWrap(db iservices.IDatabaseRW) *SExtTrxTrxCreateOrde
 	return &wrap
 }
 
-func (s *SExtTrxTrxCreateOrderWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil {
-		return
-	}
-	s.Dba.DeleteIterator(iterator)
-}
-
-func (s *SExtTrxTrxCreateOrderWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.Sha256 {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
-
+func (s *SExtTrxTrxCreateOrderWrap) GetMainVal(val []byte) *prototype.Sha256 {
 	res := &SoListExtTrxByTrxCreateOrder{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 
 	if err != nil {
 		return nil
@@ -1583,18 +1463,9 @@ func (s *SExtTrxTrxCreateOrderWrap) GetMainVal(iterator iservices.IDatabaseItera
 
 }
 
-func (s *SExtTrxTrxCreateOrderWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.UserTrxCreateOrder {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
+func (s *SExtTrxTrxCreateOrderWrap) GetSubVal(val []byte) *prototype.UserTrxCreateOrder {
 	res := &SoListExtTrxByTrxCreateOrder{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 	if err != nil {
 		return nil
 	}
@@ -1669,18 +1540,11 @@ func (s *SExtTrxTrxCreateOrderWrap) ForEachByOrder(start *prototype.UserTrxCreat
 	if cErr != nil {
 		return cErr
 	}
-	iterator := s.Dba.NewIterator(sBuf, eBuf)
-	if iterator == nil {
-		return errors.New("there is no data in range")
-	}
 	var idx uint32 = 0
-	for iterator.Next() {
+	s.Dba.Iterate(sBuf, eBuf, false, func(key, value []byte) bool {
 		idx++
-		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
-			break
-		}
-	}
-	s.DelIterator(iterator)
+		return f(s.GetMainVal(value), s.GetSubVal(value), idx)
+	})
 	return nil
 }
 
@@ -1730,19 +1594,11 @@ func (s *SExtTrxTrxCreateOrderWrap) ForEachByRevOrder(start *prototype.UserTrxCr
 	if cErr != nil {
 		return cErr
 	}
-	//reverse the start and end when create ReversedIterator to query by reverse order
-	iterator := s.Dba.NewReversedIterator(eBuf, sBuf)
-	if iterator == nil {
-		return errors.New("there is no data in range")
-	}
 	var idx uint32 = 0
-	for iterator.Next() {
+	s.Dba.Iterate(eBuf, sBuf, true, func(key, value []byte) bool {
 		idx++
-		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
-			break
-		}
-	}
-	s.DelIterator(iterator)
+		return f(s.GetMainVal(value), s.GetSubVal(value), idx)
+	})
 	return nil
 }
 

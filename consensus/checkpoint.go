@@ -2,6 +2,7 @@ package consensus
 
 import (
 	"encoding/binary"
+	"fmt"
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/db/storage"
@@ -148,11 +149,13 @@ func (cp *BFTCheckPoint) Validate(commit *message.Commit) bool {
 func (cp *BFTCheckPoint) GetNext(blockNum uint64) (*message.Commit, error) {
 	key := make([]byte, 8)
 	binary.BigEndian.PutUint64(key, blockNum+1)
-	it := cp.db.NewIterator(key, nil)
-	it.Next()
-	val, err := it.Value()
-	if err != nil {
-		return nil, err
+	var val []byte
+	cp.db.Iterate(key, nil, false, func(key, value []byte) bool {
+		val = common.CopyBytes(value)
+		return false
+	})
+	if len(val) == 0 {
+		return nil, fmt.Errorf("BFTCheckPoint.GetNext(%d) not found", blockNum)
 	}
 	commit, err := message.DecodeConsensusMsg(val)
 	if err != nil {

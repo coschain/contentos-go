@@ -31,7 +31,7 @@ func (m *SoExtDailyTrx) Reset()         { *m = SoExtDailyTrx{} }
 func (m *SoExtDailyTrx) String() string { return proto.CompactTextString(m) }
 func (*SoExtDailyTrx) ProtoMessage()    {}
 func (*SoExtDailyTrx) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extDailyTrx_e96a053939ce0869, []int{0}
+	return fileDescriptor_so_extDailyTrx_504161c4ec748368, []int{0}
 }
 func (m *SoExtDailyTrx) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoExtDailyTrx.Unmarshal(m, b)
@@ -76,7 +76,7 @@ func (m *SoMemExtDailyTrxByDate) Reset()         { *m = SoMemExtDailyTrxByDate{}
 func (m *SoMemExtDailyTrxByDate) String() string { return proto.CompactTextString(m) }
 func (*SoMemExtDailyTrxByDate) ProtoMessage()    {}
 func (*SoMemExtDailyTrxByDate) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extDailyTrx_e96a053939ce0869, []int{1}
+	return fileDescriptor_so_extDailyTrx_504161c4ec748368, []int{1}
 }
 func (m *SoMemExtDailyTrxByDate) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemExtDailyTrxByDate.Unmarshal(m, b)
@@ -114,7 +114,7 @@ func (m *SoMemExtDailyTrxByCount) Reset()         { *m = SoMemExtDailyTrxByCount
 func (m *SoMemExtDailyTrxByCount) String() string { return proto.CompactTextString(m) }
 func (*SoMemExtDailyTrxByCount) ProtoMessage()    {}
 func (*SoMemExtDailyTrxByCount) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extDailyTrx_e96a053939ce0869, []int{2}
+	return fileDescriptor_so_extDailyTrx_504161c4ec748368, []int{2}
 }
 func (m *SoMemExtDailyTrxByCount) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemExtDailyTrxByCount.Unmarshal(m, b)
@@ -152,7 +152,7 @@ func (m *SoListExtDailyTrxByDate) Reset()         { *m = SoListExtDailyTrxByDate
 func (m *SoListExtDailyTrxByDate) String() string { return proto.CompactTextString(m) }
 func (*SoListExtDailyTrxByDate) ProtoMessage()    {}
 func (*SoListExtDailyTrxByDate) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extDailyTrx_e96a053939ce0869, []int{3}
+	return fileDescriptor_so_extDailyTrx_504161c4ec748368, []int{3}
 }
 func (m *SoListExtDailyTrxByDate) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoListExtDailyTrxByDate.Unmarshal(m, b)
@@ -191,7 +191,7 @@ func (m *SoListExtDailyTrxByCount) Reset()         { *m = SoListExtDailyTrxByCou
 func (m *SoListExtDailyTrxByCount) String() string { return proto.CompactTextString(m) }
 func (*SoListExtDailyTrxByCount) ProtoMessage()    {}
 func (*SoListExtDailyTrxByCount) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extDailyTrx_e96a053939ce0869, []int{4}
+	return fileDescriptor_so_extDailyTrx_504161c4ec748368, []int{4}
 }
 func (m *SoListExtDailyTrxByCount) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoListExtDailyTrxByCount.Unmarshal(m, b)
@@ -236,7 +236,7 @@ func (m *SoUniqueExtDailyTrxByDate) Reset()         { *m = SoUniqueExtDailyTrxBy
 func (m *SoUniqueExtDailyTrxByDate) String() string { return proto.CompactTextString(m) }
 func (*SoUniqueExtDailyTrxByDate) ProtoMessage()    {}
 func (*SoUniqueExtDailyTrxByDate) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extDailyTrx_e96a053939ce0869, []int{5}
+	return fileDescriptor_so_extDailyTrx_504161c4ec748368, []int{5}
 }
 func (m *SoUniqueExtDailyTrxByDate) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoUniqueExtDailyTrxByDate.Unmarshal(m, b)
@@ -273,10 +273,10 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("app/table/so_extDailyTrx.proto", fileDescriptor_so_extDailyTrx_e96a053939ce0869)
+	proto.RegisterFile("app/table/so_extDailyTrx.proto", fileDescriptor_so_extDailyTrx_504161c4ec748368)
 }
 
-var fileDescriptor_so_extDailyTrx_e96a053939ce0869 = []byte{
+var fileDescriptor_so_extDailyTrx_504161c4ec748368 = []byte{
 	// 248 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x92, 0x4d, 0x4b, 0x03, 0x31,
 	0x10, 0x86, 0xd9, 0xd2, 0x7a, 0x18, 0xc1, 0xc3, 0xd2, 0x43, 0xad, 0x1f, 0x94, 0x3d, 0x15, 0xb1,
