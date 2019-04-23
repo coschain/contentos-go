@@ -4,10 +4,12 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/iservices"
+	"github.com/coschain/contentos-go/iservices/service-configs"
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/prototype"
 	_ "github.com/go-sql-driver/mysql"
@@ -58,6 +60,7 @@ var TrxMysqlServiceName = "trxmysql"
 
 type TrxMysqlService struct {
 	node.Service
+	config *service_configs.DatabaseConfig
 	inDb  iservices.IDatabaseService
 	outDb *sql.DB
 	log *logrus.Logger
@@ -65,8 +68,8 @@ type TrxMysqlService struct {
 	ctx *node.ServiceContext
 }
 
-func NewTrxMysqlSerVice(ctx *node.ServiceContext, log *logrus.Logger) (*TrxService, error) {
-	return &TrxService{ctx: ctx, log: log}, nil
+func NewTrxMysqlSerVice(ctx *node.ServiceContext, config *service_configs.DatabaseConfig, log *logrus.Logger) (*TrxMysqlService, error) {
+	return &TrxMysqlService{ctx: ctx, log: log, config: config}, nil
 }
 
 func (t *TrxMysqlService) Start(node *node.Node) error {
@@ -75,8 +78,9 @@ func (t *TrxMysqlService) Start(node *node.Node) error {
 		return err
 	}
 	t.inDb = inDb.(iservices.IDatabaseService)
-	// dns to config file
-	outDb, err := sql.Open("mysql", "contentos:123456@/contentosdb")
+	// dns: data source name
+	dsn := fmt.Sprintf("%s:%s@/%s", t.config.User, t.config.Password, t.config.Db)
+	outDb, err := sql.Open(t.config.Driver, dsn)
 	if err != nil {
 		return err
 	}
