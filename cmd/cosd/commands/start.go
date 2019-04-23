@@ -173,6 +173,6 @@ func RegisterService(app *node.Node, cfg node.Config) {
 	})
 
 	_ = app.Register(plugins.TrxMysqlServiceName, func(ctx *node.ServiceContext) (service node.Service, e error) {
-		return plugins.NewTrxMysqlSerVice(ctx, app.Log)
+		return plugins.NewTrxMysqlSerVice(ctx, cfg.Database, app.Log)
 	})
 }
