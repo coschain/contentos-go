@@ -17,8 +17,8 @@ github.com/coocood/freecache v1.1.0 h1:ENiHOsWdj1BrrlPwblhbn4GdAsMymK3pZORJ+bJGA
 github.com/coocood/freecache v1.1.0/go.mod h1:ePwxCDzOYvARfHdr1pByNct1at3CoKnsipOHwKlNbzI=
 github.com/coschain/cobra v0.0.0-20181106130408-77bf516f51a1 h1:S9wazRgjac3MulSBIcFRqpEoR1CM9kJY1TyW1IhazUw=
 github.com/coschain/cobra v0.0.0-20181106130408-77bf516f51a1/go.mod h1:9cl4pbRcSRS1EMEWXDoQW8jrLNI2vyISOMrX73ZjXy0=
-github.com/coschain/gobft v0.0.0-20190415060758-80be90cbb9c0 h1:LHxSHBer2YX3Y0ezrlFYcJBYS8H/QmVC/meg5ub/hvM=
-github.com/coschain/gobft v0.0.0-20190415060758-80be90cbb9c0/go.mod h1:lNT59IugSOVjDJSp9GrqmS5sAoegqfAGQ0sNBCb+iZQ=
+github.com/coschain/gobft v0.0.0-20190423084913-4475919c495b h1:g9Nzw3pRCY2lyNCHLcRe6e1o3cZNKoNFxV2K2iSyuJY=
+github.com/coschain/gobft v0.0.0-20190423084913-4475919c495b/go.mod h1:lNT59IugSOVjDJSp9GrqmS5sAoegqfAGQ0sNBCb+iZQ=
 github.com/coschain/wagon v0.3.1-0.20190313105030-01faf85b3ff0 h1:xkkM5bnBbwS4r6ulopSAHJzj7pMIoOT06afyF6HU/5Q=
 github.com/coschain/wagon v0.3.1-0.20190313105030-01faf85b3ff0/go.mod h1:zHOMvbitcZek8oshsMO5VpyBjWjV9X8cn8WTZwdebpM=
 github.com/coschain/wagon v0.3.1-0.20190404031614-dc0354856933 h1:uZOoXvwhaFP+Ouh2wekduB1tud0d00cJAddu6U+QS48=
