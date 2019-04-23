@@ -530,8 +530,8 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 	c.log.Debugf("AFTER_BLOCK %d: %v|%v|%v|%v|%v", blk.Id().BlockNum(),
 		t4.Sub(t0), t1.Sub(t0), t2.Sub(t1), t3.Sub(t2), t4.Sub(t3))
 
-	lib, _ := c.iceberg.LastFinalizedBlock()
-	c.noticer.Publish(constants.NoticeLIB, lib)
+	//lib, _ := c.iceberg.LastFinalizedBlock()
+	//c.noticer.Publish(constants.NoticeLIB, lib)
 }
 
 func (c *TrxPool) ValidateAddress(name string, pubKey *prototype.PublicKeyType) bool {

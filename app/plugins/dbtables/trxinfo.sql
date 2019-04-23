@@ -6,6 +6,9 @@ create table trxinfo
 	invoice json null,
 	operations json null,
 	block_id varchar(64) null,
+	INDEX trxinfo_block_height_index (block_height),
+	INDEX trxinfo_block_time_index (block_time),
+	INDEX trxinfo_block_id (block_id),
 	constraint trxinfo_trx_id_uindex
 		unique (trx_id)
 );

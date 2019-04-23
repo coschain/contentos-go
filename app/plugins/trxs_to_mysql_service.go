@@ -4,16 +4,17 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app/table"
-	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/iservices/service-configs"
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/prototype"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/sirupsen/logrus"
+	"time"
 )
 
 
@@ -66,6 +67,7 @@ type TrxMysqlService struct {
 	log *logrus.Logger
 	ev  EventBus.Bus
 	ctx *node.ServiceContext
+	quit chan bool
 }
 
 func NewTrxMysqlSerVice(ctx *node.ServiceContext, config *service_configs.DatabaseConfig, log *logrus.Logger) (*TrxMysqlService, error) {
@@ -73,6 +75,7 @@ func NewTrxMysqlSerVice(ctx *node.ServiceContext, config *service_configs.Databa
 }
 
 func (t *TrxMysqlService) Start(node *node.Node) error {
+	t.quit = make(chan bool)
 	inDb, err := t.ctx.Service(iservices.DbServerName)
 	if err != nil {
 		return err
@@ -85,16 +88,64 @@ func (t *TrxMysqlService) Start(node *node.Node) error {
 		return err
 	}
 	t.outDb = outDb
-	t.ev = node.EvBus
-	t.hookEvent()
+
+	ticker := time.NewTimer(time.Second)
+	go func() {
+		for {
+			select {
+			case <- ticker.C:
+				err := t.pollLIB()
+				t.log.Error(err)
+			case <- t.quit:
+				t.stop()
+				break
+			}
+		}
+	}()
 	return nil
 }
 
-func (t *TrxMysqlService) hookEvent() {
-	_ = t.ev.Subscribe(constants.NoticeLIB, t.handleLibNotification)
-}
-func (t *TrxMysqlService) unhookEvent() {
-	_ = t.ev.Unsubscribe(constants.NoticeLIB, t.handleLibNotification)
+func (t *TrxMysqlService) pollLIB() error {
+	var id int32 = 1
+	gWrap := table.NewSoGlobalWrap(t.inDb, &id)
+	if !gWrap.CheckExist() {
+		return errors.New("global wrapper is not exist")
+	}
+	props := gWrap.GetProps()
+	lib := props.IrreversibleBlockNum
+	stmt, _ := t.outDb.Prepare("SELECT block_height from libinfo limit 1")
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			t.log.Error(err)
+		}
+	}()
+	var lastLib uint64
+	err := stmt.QueryRow().Scan(&lastLib)
+	if err != nil {
+		if err != sql.ErrNoRows	{
+			t.log.Error(err)
+		}
+	} else {
+		// be carefully, no where condition there !!
+		// the reason is only one row in the table
+		// if introduce the mechanism that record checkpoint, the where closure should be added
+		updateStmt, _ := t.outDb.Prepare("UPDATE libinfo SET block_height=?")
+		defer func() {
+			if err := updateStmt.Close(); err != nil {
+				t.log.Error(err)
+			}
+		}()
+		var waitingSyncLib []uint64
+		for lastLib <= lib {
+			waitingSyncLib = append(waitingSyncLib, lastLib)
+			lastLib ++
+		}
+		for _, lib := range waitingSyncLib {
+			t.handleLibNotification(lib)
+			_, _ = updateStmt.Exec(lib)
+		}
+	}
+	return nil
 }
 
 func (t *TrxMysqlService) handleLibNotification(lib uint64) {
@@ -126,8 +177,13 @@ func (t *TrxMysqlService) handleLibNotification(lib uint64) {
 	defer stmt.Close()
 }
 
-func (t *TrxMysqlService) Stop() error {
-	t.unhookEvent()
+func (t *TrxMysqlService) stop() {
 	_ = t.outDb.Close()
+	close(t.quit)
+}
+
+func (t *TrxMysqlService) Stop() error {
+	//t.unhookEvent()
+	t.quit <- true
 	return nil
 }

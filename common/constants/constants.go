@@ -22,7 +22,7 @@ const (
 	NoticeBlockApplied = "blockapply"
 	NoticeAddTrx       = "addTrx"
 	NoticeCashout      = "rewardCashout"
-	NoticeLIB          = "lastIrreversibleBlock"
+	//NoticeLIB          = "lastIrreversibleBlock"
 
 	GenesisTime = 0
 
