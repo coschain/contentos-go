@@ -820,3 +820,41 @@ func (p *MsgHandler)ConsMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args .
 
 	ctrl.Push(msgdata.MsgData)
 }
+
+func (p *MsgHandler) RequestCheckpointBatchHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
+	var raw = data.Payload.(*msgTypes.TransferMsg)
+	var msgdata = raw.Msg.(*msgTypes.TransferMsg_Msg12).Msg12
+
+	log := p2p.GetLog()
+
+	remotePeer := p2p.GetPeerFromAddr(data.Addr)
+
+	if remotePeer == nil {
+		log.Error("[p2p] remotePeer invalid in RequestCheckpointBatchHandle")
+		return
+	}
+
+	if !remotePeer.LockBusyFetchingCP() {
+		log.Info("processing your former request, ignore this one")
+		return
+	} else {
+		defer remotePeer.UnlockBusyFetchingCP()
+	}
+
+
+	log.Info("start checkpoint number: ", msgdata.Start, " end checkpoint number: ", msgdata.End)
+
+	//s, err := p2p.GetService(iservices.ConsensusServerName)
+	//if err != nil {
+	//	log.Error("[p2p] can't get other service, service name: ", iservices.ConsensusServerName)
+	//	return
+	//}
+	//ctrl := s.(iservices.IConsensus)
+
+	startNum := msgdata.Start
+	endNum := msgdata.End
+
+	if endNum - startNum > msgCommon.MAX_ID_LENGTH {
+		endNum = startNum + msgCommon.MAX_ID_LENGTH
+	}
+}
