@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/iservices/service-configs"
@@ -65,8 +64,8 @@ type TrxMysqlService struct {
 	inDb  iservices.IDatabaseService
 	outDb *sql.DB
 	log *logrus.Logger
-	ev  EventBus.Bus
 	ctx *node.ServiceContext
+	ticker *time.Ticker
 	quit chan bool
 }
 
@@ -89,11 +88,11 @@ func (t *TrxMysqlService) Start(node *node.Node) error {
 	}
 	t.outDb = outDb
 
-	ticker := time.NewTimer(time.Second)
+	t.ticker = time.NewTicker(time.Second)
 	go func() {
 		for {
 			select {
-			case <- ticker.C:
+			case <- t.ticker.C:
 				err := t.pollLIB()
 				t.log.Error(err)
 			case <- t.quit:
@@ -113,37 +112,24 @@ func (t *TrxMysqlService) pollLIB() error {
 	}
 	props := gWrap.GetProps()
 	lib := props.IrreversibleBlockNum
-	stmt, _ := t.outDb.Prepare("SELECT block_height from libinfo limit 1")
-	defer func() {
-		if err := stmt.Close(); err != nil {
-			t.log.Error(err)
-		}
-	}()
-	var lastLib uint64
-	err := stmt.QueryRow().Scan(&lastLib)
-	if err != nil {
-		if err != sql.ErrNoRows	{
-			t.log.Error(err)
-		}
-	} else {
-		// be carefully, no where condition there !!
-		// the reason is only one row in the table
-		// if introduce the mechanism that record checkpoint, the where closure should be added
-		updateStmt, _ := t.outDb.Prepare("UPDATE libinfo SET block_height=?")
-		defer func() {
-			if err := updateStmt.Close(); err != nil {
-				t.log.Error(err)
-			}
-		}()
-		var waitingSyncLib []uint64
-		for lastLib <= lib {
-			waitingSyncLib = append(waitingSyncLib, lastLib)
-			lastLib ++
-		}
-		for _, lib := range waitingSyncLib {
-			t.handleLibNotification(lib)
-			_, _ = updateStmt.Exec(lib)
-		}
+	stmt, _ := t.outDb.Prepare("SELECT lib from libinfo limit 1")
+	defer stmt.Close()
+	var lastLib uint64 = 0
+	_ = stmt.QueryRow().Scan(&lastLib)
+	// be carefully, no where condition there !!
+	// the reason is only one row in the table
+	// if introduce the mechanism that record checkpoint, the where closure should be added
+	updateStmt, _ := t.outDb.Prepare("UPDATE libinfo SET lib=?, last_check_time=?")
+	defer updateStmt.Close()
+	var waitingSyncLib []uint64
+	for lastLib <= lib {
+		waitingSyncLib = append(waitingSyncLib, lastLib)
+		lastLib ++
+	}
+	for _, lib := range waitingSyncLib {
+		t.handleLibNotification(lib)
+		utcTimestamp := time.Now().UTC().Unix()
+		_, _ = updateStmt.Exec(lib, utcTimestamp)
 	}
 	return nil
 }
@@ -179,6 +165,7 @@ func (t *TrxMysqlService) handleLibNotification(lib uint64) {
 
 func (t *TrxMysqlService) stop() {
 	_ = t.outDb.Close()
+	t.ticker.Stop()
 	close(t.quit)
 }
 

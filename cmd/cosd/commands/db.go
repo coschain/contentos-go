@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/viper"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 var DbCmd = func() *cobra.Command {
@@ -94,6 +95,10 @@ func initDb(cmd *cobra.Command, args []string) {
 	if _, err = db.Exec(createLibInfo); err != nil {
 		fmt.Println(err)
 	}
+	//if _, err = db.Exec("INSERT INTO `libinfo` (lib, last_check_time) VALUES ()")
+	stmt, _ := db.Prepare("INSERT INTO `libinfo` (lib, last_check_time) VALUES (?, ?)")
+	defer stmt.Close()
+	_, _ = stmt.Exec(0, time.Now().UTC().Unix())
 }
 
 func cleanDb(cmd *cobra.Command, args []string) {
