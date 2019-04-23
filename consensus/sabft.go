@@ -249,8 +249,11 @@ func (sabft *SABFT) shuffle(head common.ISignedBlock) {
 
 	sabft.suffledID = head.Id()
 
+	sabft.log.Info("after db SetShuffledWitness")
 	if sabft.readyToProduce && prodNum >= 3 && sabft.isValidator(sabft.Name) {
+		sabft.log.Info("enter external if")
 		if atomic.LoadUint32(&sabft.bftStarted) == 0 {
+			sabft.log.Info("enter start gobft")
 			//sabft.Unlock()
 			sabft.bft.Start()
 			sabft.log.Info("[SABFT] gobft started...")
@@ -259,6 +262,7 @@ func (sabft *SABFT) shuffle(head common.ISignedBlock) {
 		}
 	} else {
 		if atomic.LoadUint32(&sabft.bftStarted) == 1 {
+			sabft.log.Info("enter stop gobft")
 			sabft.bft.Stop()
 			sabft.log.Info("[SABFT] gobft stopped...")
 			atomic.StoreUint32(&sabft.bftStarted, 0)
@@ -741,10 +745,25 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 
 	if newNum > headNum+1 {
 
+		//if sabft.readyToProduce {
+		//	sabft.p2p.FetchUnlinkedBlock(b.Previous())
+		//	sabft.log.Debug("[SABFT TriggerSync]: out-of range from ", b.Previous().BlockNum())
+		//}
+
 		if sabft.readyToProduce {
-			sabft.p2p.FetchUnlinkedBlock(b.Previous())
-			sabft.log.Debug("[SABFT TriggerSync]: out-of range from ", b.Previous().BlockNum())
+			if !sabft.checkSync() {
+				//sabft.readyToProduce = false
+
+				var headID common.BlockID
+				if !sabft.ForkDB.Empty() {
+					headID = sabft.ForkDB.Head().Id()
+				}
+				sabft.p2p.TriggerSync(headID)
+
+				sabft.log.Debug("[SABFT TriggerSync]: out-of range from ", headID.BlockNum() )
+			}
 		}
+
 		return ErrBlockOutOfScope
 	}
 
@@ -916,6 +935,14 @@ func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 	sabft.ctrl.Commit(blockID.BlockNum())
 	sabft.ForkDB.Commit(blockID)
 	sabft.lastCommitted.Store(commitRecords)
+
+	now := time.Now().Unix()
+	sigblk, err := sabft.FetchBlock(blockID)
+	if err != nil {
+		sabft.log.Error("can not find commit block")
+	}
+	timestamp := sigblk.Timestamp()
+	sabft.log.Info("statistics commit block #", blockID.BlockNum(), " confirm delay time: ", uint64(now)-timestamp, " seconds")
 
 	sabft.log.Debug("[SABFT] committed block #", blockID)
 	return nil

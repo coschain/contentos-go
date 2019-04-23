@@ -181,7 +181,7 @@ func (this *Link) Tx(msg types.Message, magic uint32) error {
 		nCount = 1
 	}
 
-	//this.sleepForSpeedLimit(nByteCnt)
+	this.sleepForSpeedLimit(nByteCnt)
 
 	conn.SetWriteDeadline(time.Now().Add(time.Duration(nCount*common.WRITE_DEADLINE) * time.Second))
 	_, err = conn.Write(payload)
