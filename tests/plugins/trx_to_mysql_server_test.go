@@ -52,7 +52,7 @@ func ReplaceOperation(operations []*prototype.Operation) []Op {
 	return ops
 }
 
-func TestTrxInfoQuery(t *testing.T) {
+func TestTrxInfoInsert(t *testing.T) {
 	ds, err := storage.NewDatabase("/Users/aprocysanae/.coschain/testcosd_0/db")
 	if err != nil {
 		fmt.Println(err)
@@ -68,9 +68,9 @@ func TestTrxInfoQuery(t *testing.T) {
 	if err != nil {
 		fmt.Println(err)
 	}
-	stmt, _ := mdb.Prepare("INSERT INTO trxinfo (trx_id, block_height, block_id, block_time, invoice, operations)  value (?, ?, ?, ?, ?, ?)")
-	var start uint64 = 16
-	var end uint64 = 18
+	stmt, _ := mdb.Prepare("INSERT IGNORE INTO trxinfo (trx_id, block_height, block_id, block_time, invoice, operations)  value (?, ?, ?, ?, ?, ?)")
+	var start uint64 = 0
+	var end uint64 = 1000
 	sWrap := table.NewExtTrxBlockHeightWrap(db)
 	_ = sWrap.ForEachByOrder(&start, &end, nil, nil, func(trxKey *prototype.Sha256, blockHeight *uint64, idx uint32) bool {
 		if trxKey != nil {
