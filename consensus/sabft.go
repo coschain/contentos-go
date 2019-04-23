@@ -672,9 +672,11 @@ func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 		if checkPoint == nil {
 			break
 		}
-		if sabft.cp.ReachCheckPoint(checkPoint) {
+		if !sabft.cp.ReachCheckPoint(checkPoint) {
 			return
 		}
+		sabft.log.Debug("reach checkpoint at ", checkPoint.ProposedData)
+
 		// if we're a validator, pass it to gobft so that it can catch up
 		if sabft.IsValidator(message.PubKey(sabft.Name)) {
 			sabft.log.Warn("pass commits to gobft ", checkPoint.ProposedData)
@@ -683,6 +685,7 @@ func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 		}
 
 		if !sabft.cp.Validate(checkPoint) {
+			sabft.log.Error("validation on checkpoint failed")
 			return
 		}
 		if _, err := sabft.ForkDB.FetchBlock(newID); err == nil {
