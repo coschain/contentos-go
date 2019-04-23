@@ -101,7 +101,7 @@ func (t *TrxMysqlService) handleLibNotification(lib uint64) {
 	sWrap := table.NewExtTrxBlockHeightWrap(t.inDb)
 	start := lib
 	end := lib + 1
-	stmt, _ := t.outDb.Prepare("INSERT INTO trxinfo (trx_id, block_height, block_id, block_time, invoice, operations)  value (?, ?, ?, ?, ?, ?)")
+	stmt, _ := t.outDb.Prepare("INSERT IGNORE INTO trxinfo (trx_id, block_height, block_id, block_time, invoice, operations)  value (?, ?, ?, ?, ?, ?)")
 	_ = sWrap.ForEachByOrder(&start, &end, nil, nil, func(trxKey *prototype.Sha256, blockHeight *uint64, idx uint32) bool {
 		if trxKey != nil {
 			wrap := table.NewSoExtTrxWrap(t.inDb, trxKey)
