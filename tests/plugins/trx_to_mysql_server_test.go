@@ -3,13 +3,11 @@ package tests
 import (
 	"database/sql"
 	"fmt"
-	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/db/storage"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
 	_ "github.com/go-sql-driver/mysql"
 	"testing"
-	"time"
 )
 
 type Op map[string]interface{}
@@ -112,20 +110,20 @@ func TestTrxInfoInsert(t *testing.T) {
 		fmt.Println(err)
 	}
 
-	var id int32 = 1
-	gWrap := table.NewSoGlobalWrap(db, &id)
-	props := gWrap.GetProps()
-	lib := props.IrreversibleBlockNum
-	fmt.Println(lib)
+	//var id int32 = 1
+	//gWrap := table.NewSoGlobalWrap(db, &id)
+	//props := gWrap.GetProps()
+	//lib := props.IrreversibleBlockNum
+	//fmt.Println(lib)
 	selectStmt, _ := mdb.Prepare("SELECT lib from libinfo limit 1")
 	var lastLib uint64 = 0
 	_ = selectStmt.QueryRow().Scan(&lastLib)
-	fmt.Println(err)
-	fmt.Println(lastLib)
-	updateStmt, _ := mdb.Prepare("UPDATE libinfo SET lib=?, last_check_time=?")
-	defer updateStmt.Close()
-	utcTimestamp := time.Now().UTC().Unix()
-	_, _ = updateStmt.Exec(lib, utcTimestamp)
+	//fmt.Println(err)
+	//fmt.Println(lastLib)
+	//updateStmt, _ := mdb.Prepare("UPDATE libinfo SET lib=?, last_check_time=?")
+	//defer updateStmt.Close()
+	//utcTimestamp := time.Now().UTC().Unix()
+	//_, _ = updateStmt.Exec(lib, utcTimestamp)
 	//var waitingSyncLib []uint64
 	//for lastLib <= lib {
 	//	waitingSyncLib = append(waitingSyncLib, lastLib)

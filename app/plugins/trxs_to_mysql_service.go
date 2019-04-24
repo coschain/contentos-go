@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/iservices/service-configs"
 	"github.com/coschain/contentos-go/node"
@@ -60,7 +59,6 @@ var TrxMysqlServiceName = "trxmysql"
 type TrxMysqlService struct {
 	node.Service
 	config *service_configs.DatabaseConfig
-	inDb  iservices.IDatabaseService
 	consensus iservices.IConsensus
 	outDb *sql.DB
 	log *logrus.Logger
@@ -75,11 +73,6 @@ func NewTrxMysqlSerVice(ctx *node.ServiceContext, config *service_configs.Databa
 
 func (t *TrxMysqlService) Start(node *node.Node) error {
 	t.quit = make(chan bool)
-	inDb, err := t.ctx.Service(iservices.DbServerName)
-	if err != nil {
-		return err
-	}
-	t.inDb = inDb.(iservices.IDatabaseService)
 	consensus, err := t.ctx.Service(iservices.ConsensusServerName)
 	if err != nil {
 		return err
@@ -127,41 +120,42 @@ func (t *TrxMysqlService) pollLIB() error {
 		waitingSyncLib = append(waitingSyncLib, lastLib)
 		lastLib ++
 	}
-	for _, block := range waitingSyncLib {
+	for count, block := range waitingSyncLib {
 		t.handleLibNotification(block)
 		utcTimestamp := time.Now().UTC().Unix()
+		if count > 100 {
+			return nil
+		}
 		_, _ = updateStmt.Exec(block, utcTimestamp)
 	}
 	return nil
 }
 
 func (t *TrxMysqlService) handleLibNotification(lib uint64) {
-	sWrap := table.NewExtTrxBlockHeightWrap(t.inDb)
-	start := lib
-	end := lib + 1
+	blks , err := t.consensus.FetchBlocks(lib, lib)
+	if err != nil {
+		t.log.Error(err)
+		return
+	}
+	if len(blks) == 0 {
+		return
+	}
 	stmt, _ := t.outDb.Prepare("INSERT IGNORE INTO trxinfo (trx_id, block_height, block_id, block_time, invoice, operations)  value (?, ?, ?, ?, ?, ?)")
-	_ = sWrap.ForEachByOrder(&start, &end, nil, nil, func(trxKey *prototype.Sha256, blockHeight *uint64, idx uint32) bool {
-		if trxKey != nil {
-			wrap := table.NewSoExtTrxWrap(t.inDb, trxKey)
-			if wrap != nil && wrap.CheckExist() {
-				trxId := hex.EncodeToString(trxKey.GetHash())
-				blockHeight := wrap.GetBlockHeight()
-				blockId := hex.EncodeToString(wrap.GetBlockId().GetHash())
-				blockTime := wrap.GetBlockTime().GetUtcSeconds()
-				trxWrap := wrap.GetTrxWrap()
-				invoice, _ := json.Marshal(trxWrap.Invoice)
-				operations := PurgeOperation(trxWrap.SigTrx.GetTrx().GetOperations())
-				operationsJson, _ := json.Marshal(operations)
-				_, _ = stmt.Exec(trxId, blockHeight, blockId, blockTime, invoice, operationsJson)
-				return true
-			} else {
-				return false
-			}
-		} else {
-			return false
-		}
-	})
 	defer stmt.Close()
+	blk := blks[0].(*prototype.SignedBlock)
+	for _, trx := range blk.Transactions {
+		cid := prototype.ChainId{Value: 0}
+		trxHash, _ := trx.SigTrx.GetTrxHash(cid)
+		trxId := hex.EncodeToString(trxHash)
+		blockHeight := lib
+		data := blk.Id().Data
+		blockId := hex.EncodeToString(data[:])
+		blockTime := blk.Timestamp()
+		invoice, _ := json.Marshal(trx.Invoice)
+		operations := PurgeOperation(trx.SigTrx.GetTrx().GetOperations())
+		operationsJson, _ := json.Marshal(operations)
+		_, _ = stmt.Exec(trxId, blockHeight, blockId, blockTime, invoice, operationsJson)
+	}
 }
 
 func (t *TrxMysqlService) stop() {
