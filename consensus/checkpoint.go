@@ -43,6 +43,11 @@ push block b:
 			flush checkPoint
 ***************************/
 
+// BFTCheckPoint maintains the bft consensus evidence, the votes collected
+// for the same checkpoint in different validators might differ. But all
+// nodes including validators should have the same number of checkpoints with
+// exact same order.
+// all methods have time complexity of O(1)
 type BFTCheckPoint struct {
 	sabft   *SABFT
 	dataDir string
@@ -51,7 +56,6 @@ type BFTCheckPoint struct {
 	lastCommitted common.BlockID
 	nextCP        common.BlockID
 	cache         map[common.BlockID]*message.Commit // lastCommitted-->Commit
-	//futurnCPs *list.List
 }
 
 func NewBFTCheckPoint(dir string, sabft *SABFT) *BFTCheckPoint {
@@ -113,6 +117,10 @@ func (cp *BFTCheckPoint) Add(commit *message.Commit) bool {
 	return true
 }
 
+func (cp *BFTCheckPoint) HasDanglingCheckPoint() bool {
+	return cp.NextUncommitted() == nil && len(cp.cache) > 0
+}
+
 func (cp *BFTCheckPoint) NextUncommitted() *message.Commit {
 	if v, ok := cp.cache[cp.lastCommitted]; ok {
 		return v
@@ -125,7 +133,7 @@ func (cp *BFTCheckPoint) RemoveNextUncommitted() {
 	cp.nextCP = common.EmptyBlockID
 }
 
-func (cp *BFTCheckPoint) ReachCheckPoint(commit *message.Commit) bool {
+func (cp *BFTCheckPoint) IsNextCheckPoint(commit *message.Commit) bool {
 	id := ExtractBlockID(commit)
 	if id == common.EmptyBlockID {
 		cp.sabft.log.Fatal("checkpoint on an empty block")
