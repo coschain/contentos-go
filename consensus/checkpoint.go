@@ -84,7 +84,7 @@ func (cp *BFTCheckPoint) Flush() error {
 	delete(cp.cache, cp.lastCommitted)
 
 	cp.lastCommitted = cp.nextCP
-	cp.sabft.log.Info("checkpoint flushed at block height ", cp.lastCommitted)
+	cp.sabft.log.Info("checkpoint flushed at block height ", cp.nextCP.BlockNum())
 	cp.nextCP = common.EmptyBlockID
 	if v, ok := cp.cache[cp.lastCommitted]; ok {
 		cp.nextCP = ConvertToBlockID(v.ProposedData)
