@@ -14,11 +14,11 @@ import (
 )
 
 const (
-	accountNameBob = "bobob"
+	accountNameBob = "mynameisbob"
 	pubKeyBob      = "COS5Tm9D28Mz8jUf8wwg8FGY7q2bnZ91aZRjzhPdrY738DBeou3v5"
 	priKeyBob      = "47o8DKDKkRqLfM1HCPzcSYja5N5Z8PhmZYXGTo1pPrseJjZyM9"
 
-	accountNameTom = "tomom"
+	accountNameTom = "mynameistom"
 	pubKeyTom      = "COS5E2vDnf245ydZBBUgQ8RkjNBzoKvGyr9kW4rfMMQcnkiD8JnEd"
 	priKeyTom      = "3u6RCpDUEEUmB9QsFMNKCfEY54WWtmcXvqyD2NcHCDzhuhrP8F"
 )
@@ -88,12 +88,12 @@ func makeBlockWithCommonTrx(pre *prototype.Sha256, blockTimestamp uint32, signed
 	sigBlkHdr.Header = new(prototype.BlockHeader)
 	sigBlkHdr.Header.Previous = pre
 	sigBlkHdr.Header.Timestamp = &prototype.TimePointSec{UtcSeconds: blockTimestamp}
-	sigBlkHdr.Header.Witness = &prototype.AccountName{Value: constants.INIT_MINER_NAME}
+	sigBlkHdr.Header.Witness = &prototype.AccountName{Value: constants.COSInitMiner}
 	sigBlkHdr.Header.TransactionMerkleRoot = &prototype.Sha256{Hash: id.Data[:]}
 	sigBlkHdr.WitnessSignature = &prototype.SignatureType{}
 
 	// signature
-	pri, err := prototype.PrivateKeyFromWIF(constants.INITMINER_PRIKEY)
+	pri, err := prototype.PrivateKeyFromWIF(constants.InitminerPrivKey)
 	if err != nil {
 		panic("PrivateKeyFromWIF error")
 	}
@@ -127,7 +127,7 @@ func createSigTrx(c *TrxPool, priKey string, ops ...interface{}) (*prototype.Sig
 	signTx := prototype.SignedTransaction{Trx: tx}
 
 	res := signTx.Sign(privKey, prototype.ChainId{Value: 0})
-	signTx.Signatures = append(signTx.Signatures, &prototype.SignatureType{Sig: res})
+	signTx.Signature = &prototype.SignatureType{Sig: res}
 
 	return &signTx, nil
 }
@@ -139,23 +139,9 @@ func makeCreateAccountOP(accountName string, pubKey string) (*prototype.AccountC
 	}
 	acop := &prototype.AccountCreateOperation{
 		Fee:            prototype.NewCoin(1),
-		Creator:        &prototype.AccountName{Value: constants.COS_INIT_MINER},
+		Creator:        &prototype.AccountName{Value: constants.COSInitMiner},
 		NewAccountName: &prototype.AccountName{Value: accountName},
-		Owner: &prototype.Authority{
-			WeightThreshold: 1,
-			AccountAuths: []*prototype.KvAccountAuth{
-				&prototype.KvAccountAuth{
-					Name:   &prototype.AccountName{Value: constants.COS_INIT_MINER},
-					Weight: 3,
-				},
-			},
-			KeyAuths: []*prototype.KvKeyAuth{
-				&prototype.KvKeyAuth{
-					Key:    pub, // owner key
-					Weight: 1,
-				},
-			},
-		},
+		Owner:          pub,
 	}
 
 	return acop, nil
@@ -245,7 +231,7 @@ func TestController_GenerateAndApplyBlock(t *testing.T) {
 		t.Error("create account failed")
 	}
 
-	pri, err := prototype.PrivateKeyFromWIF(constants.INITMINER_PRIKEY)
+	pri, err := prototype.PrivateKeyFromWIF(constants.InitminerPrivKey)
 	if err != nil {
 		t.Error("PrivateKeyFromWIF error")
 	}
@@ -253,59 +239,11 @@ func TestController_GenerateAndApplyBlock(t *testing.T) {
 	pre := &prototype.Sha256{Hash: make([]byte, 32)}
 	block, err := c.GenerateAndApplyBlock(constants.COSInitMiner, pre, 18, pri, 0)
 	dgpWrap := table.NewSoGlobalWrap(db, &constants.GlobalId)
-	mustSuccess(block.Id().BlockNum() == dgpWrap.GetProps().HeadBlockNumber, "block number error", prototype.StatusError)
+	mustSuccess(block.Id().BlockNum() == dgpWrap.GetProps().HeadBlockNumber, "block number error")
 	bobWrap2 := table.NewSoAccountWrap(db, bobName)
 	if !bobWrap2.CheckExist() {
 		t.Error("create account failed")
 	}
-}
-
-func Test_list(t *testing.T) {
-
-	// set up controller
-	db := startDB()
-	defer clearDB(db)
-	c := startController(db)
-
-	// make trx
-	acop, err := makeCreateAccountOP(accountNameBob, pubKeyBob)
-	if err != nil {
-		t.Error("makeCreateAccountOP error:", err)
-	}
-
-	signedTrx, err := createSigTrx(c, constants.InitminerPrivKey, acop)
-	if err != nil {
-		t.Error("createSigTrx error:", err)
-	}
-	id, err := signedTrx.Id()
-
-	// insert trx into DB unique table
-	transactionObjWrap := table.NewSoTransactionObjectWrap(db, id)
-	if transactionObjWrap.CheckExist() {
-		panic("Duplicate transaction check failed")
-	}
-
-	cErr := transactionObjWrap.Create(func(tInfo *table.SoTransactionObject) {
-		tInfo.TrxId = id
-		tInfo.Expiration = &prototype.TimePointSec{UtcSeconds: 100}
-	})
-	if cErr != nil {
-		panic("create transactionObject failed")
-	}
-
-	// check and delete
-
-	sortWrap := table.STransactionObjectExpirationWrap{Dba: db}
-	sortWrap.ForEachByOrder(nil, nil,
-		func(mVal *prototype.Sha256, sVal *prototype.TimePointSec, idx uint32) bool {
-			if sVal != nil {
-				objWrap := table.NewSoTransactionObjectWrap(db, mVal)
-				if !objWrap.RemoveTransactionObject() {
-					panic("RemoveTransactionObject error")
-				}
-			}
-			return true
-		})
 }
 
 func TestController_GetWitnessTopN(t *testing.T) {
@@ -319,21 +257,19 @@ func TestController_GetWitnessTopN(t *testing.T) {
 	witnessWrap := table.NewSoWitnessWrap(db, name)
 	mustNoError(witnessWrap.Create(func(tInfo *table.SoWitness) {
 		tInfo.Owner = name
-		tInfo.WitnessScheduleType = &prototype.WitnessScheduleType{Value: prototype.WitnessScheduleType_miner}
 		tInfo.CreatedTime = &prototype.TimePointSec{UtcSeconds: 0}
 		tInfo.SigningKey = &prototype.PublicKeyType{Data: []byte{1}}
 		tInfo.LastWork = &prototype.Sha256{Hash: []byte{0}}
-	}), "Witness Create Error", prototype.StatusError)
+	}), "Witness Create Error")
 
 	name2 := &prototype.AccountName{Value: "wit2"}
 	witnessWrap2 := table.NewSoWitnessWrap(db, name2)
 	mustNoError(witnessWrap2.Create(func(tInfo *table.SoWitness) {
 		tInfo.Owner = name2
-		tInfo.WitnessScheduleType = &prototype.WitnessScheduleType{Value: prototype.WitnessScheduleType_miner}
 		tInfo.CreatedTime = &prototype.TimePointSec{UtcSeconds: 0}
 		tInfo.SigningKey = &prototype.PublicKeyType{Data: []byte{2}}
 		tInfo.LastWork = &prototype.Sha256{Hash: []byte{0}}
-	}), "Witness Create Error", prototype.StatusError)
+	}), "Witness Create Error")
 
 	witnesses := c.GetWitnessTopN(10)
 
@@ -559,13 +495,13 @@ func Test_Stake_UnStake(t *testing.T) {
 	defer clearDB(db)
 	c := startController(db)
 
-	wraper := table.NewSoAccountWrap(db, prototype.NewAccountName(constants.COS_INIT_MINER))
+	wraper := table.NewSoAccountWrap(db, prototype.NewAccountName(constants.COSInitMiner))
 	if wraper.GetStakeVesting().Value != 0 {
 		t.Error("stake vesting error")
 	}
 
 	stakeOp := &prototype.StakeOperation{
-		Account: prototype.NewAccountName(constants.COS_INIT_MINER),
+		Account: prototype.NewAccountName(constants.COSInitMiner),
 		Amount:  100,
 	}
 
@@ -585,7 +521,7 @@ func Test_Stake_UnStake(t *testing.T) {
 
 	// un stake
 	unStakeOp := &prototype.UnStakeOperation{
-		Account: prototype.NewAccountName(constants.COS_INIT_MINER),
+		Account: prototype.NewAccountName(constants.COSInitMiner),
 		Amount:  100,
 	}
 
@@ -607,7 +543,7 @@ func Test_Stake_UnStake(t *testing.T) {
 
 	// stake wrong amount
 	stakeOp2 := &prototype.StakeOperation{
-		Account: prototype.NewAccountName(constants.COS_INIT_MINER),
+		Account: prototype.NewAccountName(constants.COSInitMiner),
 		Amount:  10000000001,
 	}
 
@@ -623,7 +559,7 @@ func Test_Stake_UnStake(t *testing.T) {
 
 	// un stake wrong amount
 	unStakeOp2 := &prototype.UnStakeOperation{
-		Account: prototype.NewAccountName(constants.COS_INIT_MINER),
+		Account: prototype.NewAccountName(constants.COSInitMiner),
 		Amount:  1,
 	}
 
@@ -755,7 +691,7 @@ func Test_Recover1(t *testing.T) {
 
 	transOp2 := &prototype.TransferOperation{
 		From:   &prototype.AccountName{Value: accountNameBob},
-		To:     &prototype.AccountName{Value: constants.COS_INIT_MINER},
+		To:     &prototype.AccountName{Value: constants.COSInitMiner},
 		Amount: prototype.NewCoin(1),
 	}
 
@@ -801,7 +737,7 @@ func Test_Consume2(t *testing.T) {
 		return
 	}
 	// bob transfer twice, tom transfer once
-	if ok := transfer(c, accountNameBob, constants.COS_INIT_MINER, priKeyBob, 1); !ok {
+	if ok := transfer(c, accountNameBob, constants.COSInitMiner, priKeyBob, 1); !ok {
 		t.Error("transfer error")
 		return
 	}
@@ -809,7 +745,7 @@ func Test_Consume2(t *testing.T) {
 		t.Error("transfer error")
 		return
 	}
-	if ok := transfer(c, accountNameTom, constants.COS_INIT_MINER, priKeyTom, 1); !ok {
+	if ok := transfer(c, accountNameTom, constants.COSInitMiner, priKeyTom, 1); !ok {
 		t.Error("transfer error")
 		return
 	}
@@ -855,7 +791,7 @@ func create_and_transfer(c *TrxPool, name string, pubkey string, value uint64) b
 	}
 
 	transOp := &prototype.TransferOperation{
-		From:   &prototype.AccountName{Value: constants.COS_INIT_MINER},
+		From:   &prototype.AccountName{Value: constants.COSInitMiner},
 		To:     &prototype.AccountName{Value: name},
 		Amount: prototype.NewCoin(value),
 	}
@@ -996,15 +932,6 @@ func Test_TrxSize(t *testing.T) {
 	}
 	trx14, _ := createSigTrx(c, constants.InitminerPrivKey, applyOp)
 	fmt.Println(proto.Size(trx14))
-
-	estimate := &prototype.ContractEstimateApplyOperation{
-		Caller:   prototype.NewAccountName("aaa"),
-		Owner:    prototype.NewAccountName("bbb"),
-		Contract: "hello",
-		Params:   "123",
-	}
-	trx15, _ := createSigTrx(c, constants.InitminerPrivKey, estimate)
-	fmt.Println(proto.Size(trx15))
 
 	stake := &prototype.StakeOperation{Account: prototype.NewAccountName("aaa"), Amount: 1}
 	trx16, _ := createSigTrx(c, constants.InitminerPrivKey, stake)
