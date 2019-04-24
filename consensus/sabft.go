@@ -942,7 +942,7 @@ func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 		sabft.log.Error("can not find commit block")
 	}
 	timestamp := sigblk.Timestamp()
-	sabft.log.Info("statistics commit block #", blockID.BlockNum(), " confirm delay time: ", uint64(now)-timestamp, " seconds")
+	sabft.log.Info("statistics commit block #", blockID.BlockNum(), " now: ", now, " block timestamp: ", timestamp, " confirm delay time: ", uint64(now)-timestamp, " seconds")
 
 	sabft.log.Debug("[SABFT] committed block #", blockID)
 	return nil
