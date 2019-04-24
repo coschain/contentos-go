@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/iservices"
@@ -62,6 +61,7 @@ type TrxMysqlService struct {
 	node.Service
 	config *service_configs.DatabaseConfig
 	inDb  iservices.IDatabaseService
+	consensus iservices.IConsensus
 	outDb *sql.DB
 	log *logrus.Logger
 	ctx *node.ServiceContext
@@ -80,9 +80,15 @@ func (t *TrxMysqlService) Start(node *node.Node) error {
 		return err
 	}
 	t.inDb = inDb.(iservices.IDatabaseService)
+	consensus, err := t.ctx.Service(iservices.ConsensusServerName)
+	if err != nil {
+		return err
+	}
+	t.consensus = consensus.(iservices.IConsensus)
 	// dns: data source name
 	dsn := fmt.Sprintf("%s:%s@/%s", t.config.User, t.config.Password, t.config.Db)
 	outDb, err := sql.Open(t.config.Driver, dsn)
+
 	if err != nil {
 		return err
 	}
@@ -106,13 +112,7 @@ func (t *TrxMysqlService) Start(node *node.Node) error {
 }
 
 func (t *TrxMysqlService) pollLIB() error {
-	var id int32 = 1
-	gWrap := table.NewSoGlobalWrap(t.inDb, &id)
-	if !gWrap.CheckExist() {
-		return errors.New("global wrapper is not exist")
-	}
-	props := gWrap.GetProps()
-	lib := props.IrreversibleBlockNum
+	lib := t.consensus.GetLIB().BlockNum()
 	stmt, _ := t.outDb.Prepare("SELECT lib from libinfo limit 1")
 	defer stmt.Close()
 	var lastLib uint64 = 0
@@ -123,14 +123,14 @@ func (t *TrxMysqlService) pollLIB() error {
 	updateStmt, _ := t.outDb.Prepare("UPDATE libinfo SET lib=?, last_check_time=?")
 	defer updateStmt.Close()
 	var waitingSyncLib []uint64
-	for lastLib <= lib {
+	for lastLib < lib {
 		waitingSyncLib = append(waitingSyncLib, lastLib)
 		lastLib ++
 	}
-	for _, lib := range waitingSyncLib {
-		t.handleLibNotification(lib)
+	for _, block := range waitingSyncLib {
+		t.handleLibNotification(block)
 		utcTimestamp := time.Now().UTC().Unix()
-		_, _ = updateStmt.Exec(lib, utcTimestamp)
+		_, _ = updateStmt.Exec(block, utcTimestamp)
 	}
 	return nil
 }
