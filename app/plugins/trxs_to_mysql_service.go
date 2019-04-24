@@ -93,8 +93,9 @@ func (t *TrxMysqlService) Start(node *node.Node) error {
 		for {
 			select {
 			case <- t.ticker.C:
-				err := t.pollLIB()
-				t.log.Error(err)
+				if err := t.pollLIB(); err != nil {
+					t.log.Error(err)
+				}
 			case <- t.quit:
 				t.stop()
 				break
