@@ -31,11 +31,17 @@ var (
 	AccountHasPowerdownCell           uint32 = 2131027332
 	AccountLastOwnerUpdateCell        uint32 = 1786339118
 	AccountLastPostTimeCell           uint32 = 3226532373
+	AccountLastStakeTimeCell          uint32 = 3774075190
 	AccountLastVoteTimeCell           uint32 = 1980371646
 	AccountNameCell                   uint32 = 1725869739
 	AccountNextPowerdownBlockNumCell  uint32 = 2881565425
 	AccountOwnerCell                  uint32 = 1575619097
 	AccountPostCountCell              uint32 = 587221705
+	AccountStakeVestingCell           uint32 = 1603133992
+	AccountStaminaCell                uint32 = 674022235
+	AccountStaminaFreeCell            uint32 = 676517039
+	AccountStaminaFreeUseBlockCell    uint32 = 985510361
+	AccountStaminaUseBlockCell        uint32 = 3536676248
 	AccountToPowerdownCell            uint32 = 3115587115
 	AccountVestingSharesCell          uint32 = 57659323
 	AccountVotePowerCell              uint32 = 2246508735
@@ -672,6 +678,9 @@ func (s *SoAccountWrap) getMemKeyPrefix(fName string) uint32 {
 	if fName == "LastPostTime" {
 		return AccountLastPostTimeCell
 	}
+	if fName == "LastStakeTime" {
+		return AccountLastStakeTimeCell
+	}
 	if fName == "LastVoteTime" {
 		return AccountLastVoteTimeCell
 	}
@@ -686,6 +695,21 @@ func (s *SoAccountWrap) getMemKeyPrefix(fName string) uint32 {
 	}
 	if fName == "PostCount" {
 		return AccountPostCountCell
+	}
+	if fName == "StakeVesting" {
+		return AccountStakeVestingCell
+	}
+	if fName == "Stamina" {
+		return AccountStaminaCell
+	}
+	if fName == "StaminaFree" {
+		return AccountStaminaFreeCell
+	}
+	if fName == "StaminaFreeUseBlock" {
+		return AccountStaminaFreeUseBlockCell
+	}
+	if fName == "StaminaUseBlock" {
+		return AccountStaminaUseBlockCell
 	}
 	if fName == "ToPowerdown" {
 		return AccountToPowerdownCell
@@ -792,6 +816,13 @@ func (s *SoAccountWrap) saveAllMemKeys(tInfo *SoAccount, br bool) error {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "LastPostTime", err)
 		}
 	}
+	if err = s.saveMemKeyLastStakeTime(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "LastStakeTime", err)
+		}
+	}
 	if err = s.saveMemKeyLastVoteTime(tInfo); err != nil {
 		if br {
 			return err
@@ -825,6 +856,41 @@ func (s *SoAccountWrap) saveAllMemKeys(tInfo *SoAccount, br bool) error {
 			return err
 		} else {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "PostCount", err)
+		}
+	}
+	if err = s.saveMemKeyStakeVesting(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "StakeVesting", err)
+		}
+	}
+	if err = s.saveMemKeyStamina(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Stamina", err)
+		}
+	}
+	if err = s.saveMemKeyStaminaFree(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "StaminaFree", err)
+		}
+	}
+	if err = s.saveMemKeyStaminaFreeUseBlock(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "StaminaFreeUseBlock", err)
+		}
+	}
+	if err = s.saveMemKeyStaminaUseBlock(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "StaminaUseBlock", err)
 		}
 	}
 	if err = s.saveMemKeyToPowerdown(tInfo); err != nil {
@@ -1669,6 +1735,89 @@ func (s *SoAccountWrap) MdLastPostTime(p *prototype.TimePointSec) bool {
 	return true
 }
 
+func (s *SoAccountWrap) saveMemKeyLastStakeTime(tInfo *SoAccount) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemAccountByLastStakeTime{}
+	val.LastStakeTime = tInfo.LastStakeTime
+	key, err := s.encodeMemKey("LastStakeTime")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
+
+func (s *SoAccountWrap) GetLastStakeTime() *prototype.TimePointSec {
+	res := true
+	msg := &SoMemAccountByLastStakeTime{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("LastStakeTime")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.LastStakeTime
+			}
+		}
+	}
+	if !res {
+		return nil
+
+	}
+	return msg.LastStakeTime
+}
+
+func (s *SoAccountWrap) MdLastStakeTime(p *prototype.TimePointSec) bool {
+	if s.dba == nil {
+		return false
+	}
+	key, err := s.encodeMemKey("LastStakeTime")
+	if err != nil {
+		return false
+	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemAccountByLastStakeTime{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoAccount{}
+	sa.Name = s.mainKey
+
+	sa.LastStakeTime = ori.LastStakeTime
+
+	ori.LastStakeTime = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
+		return false
+	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.LastStakeTime = p
+
+	return true
+}
+
 func (s *SoAccountWrap) saveMemKeyLastVoteTime(tInfo *SoAccount) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
@@ -2061,6 +2210,421 @@ func (s *SoAccountWrap) MdPostCount(p uint32) bool {
 	if !s.insertSortKeyPostCount(sa) {
 		return false
 	}
+
+	return true
+}
+
+func (s *SoAccountWrap) saveMemKeyStakeVesting(tInfo *SoAccount) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemAccountByStakeVesting{}
+	val.StakeVesting = tInfo.StakeVesting
+	key, err := s.encodeMemKey("StakeVesting")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
+
+func (s *SoAccountWrap) GetStakeVesting() *prototype.Vest {
+	res := true
+	msg := &SoMemAccountByStakeVesting{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("StakeVesting")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.StakeVesting
+			}
+		}
+	}
+	if !res {
+		return nil
+
+	}
+	return msg.StakeVesting
+}
+
+func (s *SoAccountWrap) MdStakeVesting(p *prototype.Vest) bool {
+	if s.dba == nil {
+		return false
+	}
+	key, err := s.encodeMemKey("StakeVesting")
+	if err != nil {
+		return false
+	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemAccountByStakeVesting{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoAccount{}
+	sa.Name = s.mainKey
+
+	sa.StakeVesting = ori.StakeVesting
+
+	ori.StakeVesting = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
+		return false
+	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.StakeVesting = p
+
+	return true
+}
+
+func (s *SoAccountWrap) saveMemKeyStamina(tInfo *SoAccount) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemAccountByStamina{}
+	val.Stamina = tInfo.Stamina
+	key, err := s.encodeMemKey("Stamina")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
+
+func (s *SoAccountWrap) GetStamina() uint64 {
+	res := true
+	msg := &SoMemAccountByStamina{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("Stamina")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.Stamina
+			}
+		}
+	}
+	if !res {
+		var tmpValue uint64
+		return tmpValue
+	}
+	return msg.Stamina
+}
+
+func (s *SoAccountWrap) MdStamina(p uint64) bool {
+	if s.dba == nil {
+		return false
+	}
+	key, err := s.encodeMemKey("Stamina")
+	if err != nil {
+		return false
+	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemAccountByStamina{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoAccount{}
+	sa.Name = s.mainKey
+
+	sa.Stamina = ori.Stamina
+
+	ori.Stamina = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
+		return false
+	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.Stamina = p
+
+	return true
+}
+
+func (s *SoAccountWrap) saveMemKeyStaminaFree(tInfo *SoAccount) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemAccountByStaminaFree{}
+	val.StaminaFree = tInfo.StaminaFree
+	key, err := s.encodeMemKey("StaminaFree")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
+
+func (s *SoAccountWrap) GetStaminaFree() uint64 {
+	res := true
+	msg := &SoMemAccountByStaminaFree{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("StaminaFree")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.StaminaFree
+			}
+		}
+	}
+	if !res {
+		var tmpValue uint64
+		return tmpValue
+	}
+	return msg.StaminaFree
+}
+
+func (s *SoAccountWrap) MdStaminaFree(p uint64) bool {
+	if s.dba == nil {
+		return false
+	}
+	key, err := s.encodeMemKey("StaminaFree")
+	if err != nil {
+		return false
+	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemAccountByStaminaFree{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoAccount{}
+	sa.Name = s.mainKey
+
+	sa.StaminaFree = ori.StaminaFree
+
+	ori.StaminaFree = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
+		return false
+	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.StaminaFree = p
+
+	return true
+}
+
+func (s *SoAccountWrap) saveMemKeyStaminaFreeUseBlock(tInfo *SoAccount) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemAccountByStaminaFreeUseBlock{}
+	val.StaminaFreeUseBlock = tInfo.StaminaFreeUseBlock
+	key, err := s.encodeMemKey("StaminaFreeUseBlock")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
+
+func (s *SoAccountWrap) GetStaminaFreeUseBlock() uint64 {
+	res := true
+	msg := &SoMemAccountByStaminaFreeUseBlock{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("StaminaFreeUseBlock")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.StaminaFreeUseBlock
+			}
+		}
+	}
+	if !res {
+		var tmpValue uint64
+		return tmpValue
+	}
+	return msg.StaminaFreeUseBlock
+}
+
+func (s *SoAccountWrap) MdStaminaFreeUseBlock(p uint64) bool {
+	if s.dba == nil {
+		return false
+	}
+	key, err := s.encodeMemKey("StaminaFreeUseBlock")
+	if err != nil {
+		return false
+	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemAccountByStaminaFreeUseBlock{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoAccount{}
+	sa.Name = s.mainKey
+
+	sa.StaminaFreeUseBlock = ori.StaminaFreeUseBlock
+
+	ori.StaminaFreeUseBlock = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
+		return false
+	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.StaminaFreeUseBlock = p
+
+	return true
+}
+
+func (s *SoAccountWrap) saveMemKeyStaminaUseBlock(tInfo *SoAccount) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemAccountByStaminaUseBlock{}
+	val.StaminaUseBlock = tInfo.StaminaUseBlock
+	key, err := s.encodeMemKey("StaminaUseBlock")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
+
+func (s *SoAccountWrap) GetStaminaUseBlock() uint64 {
+	res := true
+	msg := &SoMemAccountByStaminaUseBlock{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("StaminaUseBlock")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.StaminaUseBlock
+			}
+		}
+	}
+	if !res {
+		var tmpValue uint64
+		return tmpValue
+	}
+	return msg.StaminaUseBlock
+}
+
+func (s *SoAccountWrap) MdStaminaUseBlock(p uint64) bool {
+	if s.dba == nil {
+		return false
+	}
+	key, err := s.encodeMemKey("StaminaUseBlock")
+	if err != nil {
+		return false
+	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemAccountByStaminaUseBlock{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoAccount{}
+	sa.Name = s.mainKey
+
+	sa.StaminaUseBlock = ori.StaminaUseBlock
+
+	ori.StaminaUseBlock = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
+		return false
+	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.StaminaUseBlock = p
 
 	return true
 }

@@ -32,7 +32,7 @@ func (m *SoExtReward) Reset()         { *m = SoExtReward{} }
 func (m *SoExtReward) String() string { return proto.CompactTextString(m) }
 func (*SoExtReward) ProtoMessage()    {}
 func (*SoExtReward) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extReward_927b83a78f2f157f, []int{0}
+	return fileDescriptor_so_extReward_80790b92265bc3cc, []int{0}
 }
 func (m *SoExtReward) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoExtReward.Unmarshal(m, b)
@@ -84,7 +84,7 @@ func (m *SoMemExtRewardById) Reset()         { *m = SoMemExtRewardById{} }
 func (m *SoMemExtRewardById) String() string { return proto.CompactTextString(m) }
 func (*SoMemExtRewardById) ProtoMessage()    {}
 func (*SoMemExtRewardById) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extReward_927b83a78f2f157f, []int{1}
+	return fileDescriptor_so_extReward_80790b92265bc3cc, []int{1}
 }
 func (m *SoMemExtRewardById) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemExtRewardById.Unmarshal(m, b)
@@ -122,7 +122,7 @@ func (m *SoMemExtRewardByBlockHeight) Reset()         { *m = SoMemExtRewardByBlo
 func (m *SoMemExtRewardByBlockHeight) String() string { return proto.CompactTextString(m) }
 func (*SoMemExtRewardByBlockHeight) ProtoMessage()    {}
 func (*SoMemExtRewardByBlockHeight) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extReward_927b83a78f2f157f, []int{2}
+	return fileDescriptor_so_extReward_80790b92265bc3cc, []int{2}
 }
 func (m *SoMemExtRewardByBlockHeight) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemExtRewardByBlockHeight.Unmarshal(m, b)
@@ -160,7 +160,7 @@ func (m *SoMemExtRewardByReward) Reset()         { *m = SoMemExtRewardByReward{}
 func (m *SoMemExtRewardByReward) String() string { return proto.CompactTextString(m) }
 func (*SoMemExtRewardByReward) ProtoMessage()    {}
 func (*SoMemExtRewardByReward) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extReward_927b83a78f2f157f, []int{3}
+	return fileDescriptor_so_extReward_80790b92265bc3cc, []int{3}
 }
 func (m *SoMemExtRewardByReward) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemExtRewardByReward.Unmarshal(m, b)
@@ -199,7 +199,7 @@ func (m *SoListExtRewardByBlockHeight) Reset()         { *m = SoListExtRewardByB
 func (m *SoListExtRewardByBlockHeight) String() string { return proto.CompactTextString(m) }
 func (*SoListExtRewardByBlockHeight) ProtoMessage()    {}
 func (*SoListExtRewardByBlockHeight) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extReward_927b83a78f2f157f, []int{4}
+	return fileDescriptor_so_extReward_80790b92265bc3cc, []int{4}
 }
 func (m *SoListExtRewardByBlockHeight) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoListExtRewardByBlockHeight.Unmarshal(m, b)
@@ -244,7 +244,7 @@ func (m *SoUniqueExtRewardById) Reset()         { *m = SoUniqueExtRewardById{} }
 func (m *SoUniqueExtRewardById) String() string { return proto.CompactTextString(m) }
 func (*SoUniqueExtRewardById) ProtoMessage()    {}
 func (*SoUniqueExtRewardById) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extReward_927b83a78f2f157f, []int{5}
+	return fileDescriptor_so_extReward_80790b92265bc3cc, []int{5}
 }
 func (m *SoUniqueExtRewardById) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoUniqueExtRewardById.Unmarshal(m, b)
@@ -281,10 +281,10 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("app/table/so_extReward.proto", fileDescriptor_so_extReward_927b83a78f2f157f)
+	proto.RegisterFile("app/table/so_extReward.proto", fileDescriptor_so_extReward_80790b92265bc3cc)
 }
 
-var fileDescriptor_so_extReward_927b83a78f2f157f = []byte{
+var fileDescriptor_so_extReward_80790b92265bc3cc = []byte{
 	// 291 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xa4, 0x92, 0xc1, 0x4a, 0xc3, 0x40,
 	0x10, 0x86, 0xd9, 0xa8, 0x3d, 0x6c, 0x0b, 0x42, 0x10, 0x89, 0xa1, 0x87, 0x34, 0x17, 0x8b, 0xd4,

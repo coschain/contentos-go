@@ -9,7 +9,6 @@ import (
 	"github.com/coschain/contentos-go/vm/cache"
 	"github.com/coschain/contentos-go/vm/context"
 	"github.com/coschain/contentos-go/vm/validator"
-	"github.com/coschain/contentos-go2/vm/cache"
 	"github.com/go-interpreter/wagon/exec"
 	"github.com/go-interpreter/wagon/wasm"
 	"github.com/sirupsen/logrus"

@@ -31,7 +31,7 @@ func (m *SoBlockSummaryObject) Reset()         { *m = SoBlockSummaryObject{} }
 func (m *SoBlockSummaryObject) String() string { return proto.CompactTextString(m) }
 func (*SoBlockSummaryObject) ProtoMessage()    {}
 func (*SoBlockSummaryObject) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_blockSummaryObject_dd63ff6c42640b9f, []int{0}
+	return fileDescriptor_so_blockSummaryObject_811baef8c4c1a088, []int{0}
 }
 func (m *SoBlockSummaryObject) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoBlockSummaryObject.Unmarshal(m, b)
@@ -76,7 +76,7 @@ func (m *SoMemBlockSummaryObjectById) Reset()         { *m = SoMemBlockSummaryOb
 func (m *SoMemBlockSummaryObjectById) String() string { return proto.CompactTextString(m) }
 func (*SoMemBlockSummaryObjectById) ProtoMessage()    {}
 func (*SoMemBlockSummaryObjectById) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_blockSummaryObject_dd63ff6c42640b9f, []int{1}
+	return fileDescriptor_so_blockSummaryObject_811baef8c4c1a088, []int{1}
 }
 func (m *SoMemBlockSummaryObjectById) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemBlockSummaryObjectById.Unmarshal(m, b)
@@ -114,7 +114,7 @@ func (m *SoMemBlockSummaryObjectByBlockId) Reset()         { *m = SoMemBlockSumm
 func (m *SoMemBlockSummaryObjectByBlockId) String() string { return proto.CompactTextString(m) }
 func (*SoMemBlockSummaryObjectByBlockId) ProtoMessage()    {}
 func (*SoMemBlockSummaryObjectByBlockId) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_blockSummaryObject_dd63ff6c42640b9f, []int{2}
+	return fileDescriptor_so_blockSummaryObject_811baef8c4c1a088, []int{2}
 }
 func (m *SoMemBlockSummaryObjectByBlockId) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemBlockSummaryObjectByBlockId.Unmarshal(m, b)
@@ -152,7 +152,7 @@ func (m *SoUniqueBlockSummaryObjectById) Reset()         { *m = SoUniqueBlockSum
 func (m *SoUniqueBlockSummaryObjectById) String() string { return proto.CompactTextString(m) }
 func (*SoUniqueBlockSummaryObjectById) ProtoMessage()    {}
 func (*SoUniqueBlockSummaryObjectById) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_blockSummaryObject_dd63ff6c42640b9f, []int{3}
+	return fileDescriptor_so_blockSummaryObject_811baef8c4c1a088, []int{3}
 }
 func (m *SoUniqueBlockSummaryObjectById) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoUniqueBlockSummaryObjectById.Unmarshal(m, b)
@@ -187,10 +187,10 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("app/table/so_blockSummaryObject.proto", fileDescriptor_so_blockSummaryObject_dd63ff6c42640b9f)
+	proto.RegisterFile("app/table/so_blockSummaryObject.proto", fileDescriptor_so_blockSummaryObject_811baef8c4c1a088)
 }
 
-var fileDescriptor_so_blockSummaryObject_dd63ff6c42640b9f = []byte{
+var fileDescriptor_so_blockSummaryObject_811baef8c4c1a088 = []byte{
 	// 229 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0x52, 0x4d, 0x2c, 0x28, 0xd0,
 	0x2f, 0x49, 0x4c, 0xca, 0x49, 0xd5, 0x2f, 0xce, 0x8f, 0x4f, 0xca, 0xc9, 0x4f, 0xce, 0x0e, 0x2e,

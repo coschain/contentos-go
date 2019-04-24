@@ -106,7 +106,7 @@ func (f *AuthFetcher) BlockApplied(b *prototype.SignedBlock) {
 	if blockNum > f.last {
 		// search the block for interested operations
 		for _, w := range b.Transactions {
-			if w.Invoice.Status == prototype.StatusSuccess {
+			if w.Receipt.Status == prototype.StatusSuccess {
 				for _, op := range w.SigTrx.Trx.Operations {
 					switch op.GetOp().(type) {
 					// account creation

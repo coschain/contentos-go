@@ -112,9 +112,9 @@ func (p *TrxContext) setUsage() {
 }
 
 func (p *TrxContext) RecordGasFee(caller string, spent uint64) {
-	if !p.control.ctx.Config().ResourceCheck {
-		return
-	}
+//	if !p.control.ctx.Config().ResourceCheck {
+//		return
+//	}
 	// if same caller call multi times
 	if v, ok := p.gasMap[caller]; ok {
 		newSpent := v.raw + spent
@@ -156,7 +156,7 @@ func NewTrxContext(wrapper *prototype.TransactionWrapper, db iservices.IDatabase
 	}
 }
 
-func NewTrxContextWithSigningKey(wrapper *prototype.EstimateTrxResult, db iservices.IDatabaseRW, key *prototype.PublicKeyType) *TrxContext {
+func NewTrxContextWithSigningKey(wrapper *prototype.TransactionWrapper, db iservices.IDatabaseRW, key *prototype.PublicKeyType) *TrxContext {
 	return &TrxContext{
 		DynamicGlobalPropsRW: DynamicGlobalPropsRW{ db:db },
 		Wrapper: wrapper,
@@ -283,7 +283,7 @@ func (p *TrxContext) TransferFromContractToContract(fromContract, fromOwner, toC
 	to.MdBalance(&prototype.Coin{Value: toBalance + amount})
 }
 
-func (p *TrxContext) ContractCall(caller, fromOwner, fromContract, fromMethod, toOwner, toContract, toMethod string, params []byte, coins, maxGas uint64) {
+func (p *TrxContext) ContractCall(caller, fromOwner, fromContract, fromMethod, toOwner, toContract, toMethod string, params []byte, coins, remainGas uint64) {
 	opAssert(false, "function not opened")
 	op := &prototype.InternalContractApplyOperation{
 		FromCaller: &prototype.AccountName{ Value: caller },

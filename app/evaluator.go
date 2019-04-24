@@ -733,9 +733,9 @@ func (ev *ContractApplyEvaluator) Apply() {
 		vmCtx.Gas = remainGas
 	}
 	// turn off gas limit
-	if !ev.ctx.control.ctx.Config().ResourceCheck  {
-		vmCtx.Gas = constants.OneDayStamina * constants.CpuConsumePointDen
-	}
+//	if !ev.ctx.control.ctx.Config().ResourceCheck  {
+//		vmCtx.Gas = constants.OneDayStamina * constants.CpuConsumePointDen
+//	}
 
 	// should be active ?
 	//defer func() {
@@ -774,7 +774,6 @@ func (ev *InternalContractApplyEvaluator) Apply() {
 	caller := table.NewSoAccountWrap(ev.ctx.db, op.FromCaller)
 	opAssert(caller.CheckExist(), "caller account doesn't exist")
 
-	opAssert(caller.GetBalance().Value*constants.BaseRate >= op.Gas.Value, "caller balance less than gas")
 	opAssert(fromContract.GetBalance().Value >= op.Amount.Value, "fromContract balance less than transfer amount")
 
 	code := toContract.GetCode()
@@ -803,21 +802,21 @@ func (ev *InternalContractApplyEvaluator) Apply() {
 	vmCtx.Gas = ev.remainGas
 
 	cosVM := vm.NewCosVM(vmCtx, ev.ctx.db, ev.ctx.control.GetProps(), logrus.New())
-	ev.ctx.db.BeginTransaction()
+	//ev.ctx.db.BeginTransaction()
 	ret, err := cosVM.Run()
 	spentGas := cosVM.SpentGas()
 	vmCtx.Injector.RecordGasFee(op.FromCaller.Value, spentGas)
 
 	if err != nil {
 		vmCtx.Injector.Error(ret, err.Error())
-		ev.ctx.db.EndTransaction(false)
+		//ev.ctx.db.EndTransaction(false)
 		// throw a panic, this panic should recover by upper contract vm context
 		opAssertE(err, "internal contract apply failed")
 	} else {
 		if op.Amount != nil && op.Amount.Value > 0 {
 			vmCtx.Injector.TransferFromContractToContract(op.FromContract, op.FromOwner.Value, op.ToContract, op.ToOwner.Value, op.Amount.Value)
 		}
-		ev.ctx.db.EndTransaction(true)
+		//ev.ctx.db.EndTransaction(true)
 	}
 }
 
@@ -836,7 +835,7 @@ func (ev *StakeEvaluator) Apply() {
 	opAssertE(vest.Add(value.ToVest()), "vesting over flow.")
 	opAssert(accountWrap.MdStakeVesting(vest), "modify vesting failed")
 
-	headBlockTime := ev.ctx.control.headBlockTime()
+	headBlockTime := ev.ctx.control.HeadBlockTime()
 	accountWrap.MdLastStakeTime(headBlockTime)
 
 	ev.ctx.control.TransferToVest(value)
@@ -848,7 +847,7 @@ func (ev *UnStakeEvaluator) Apply() {
 
 	accountWrap := table.NewSoAccountWrap(ev.ctx.db, op.Account)
 
-	headBlockTime := ev.ctx.control.headBlockTime()
+	headBlockTime := ev.ctx.control.HeadBlockTime()
 	stakeTime := accountWrap.GetLastStakeTime()
 	opAssert(headBlockTime.UtcSeconds-stakeTime.UtcSeconds > constants.StakeFreezeTime, "can not unstake when freeze")
 

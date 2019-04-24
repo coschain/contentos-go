@@ -13,6 +13,7 @@ import (
 	"github.com/coschain/contentos-go/common/crypto/secp256k1"
 	"github.com/coschain/contentos-go/common/eventloop"
 	"github.com/coschain/contentos-go/economist"
+	"github.com/coschain/contentos-go/utils"
 	"math"
 
 	"github.com/coschain/contentos-go/iservices"
@@ -43,6 +44,7 @@ type TrxPool struct {
 	iceberg   *BlockIceberg
 	economist *economist.Economist
 	tm *TrxMgr
+	resourceLimiter utils.IResourceLimiter
 }
 
 func (c *TrxPool) getDb() (iservices.IDatabaseService, error) {
@@ -111,6 +113,7 @@ func (c *TrxPool) Open() {
 	commit, _ := c.iceberg.LastFinalizedBlock()
 	latest, _, _ := c.iceberg.LatestBlock()
 	c.tm = NewTrxMgr(c.db, c.log, latest, commit)
+	c.resourceLimiter = utils.NewResourceLimiter(c.db)
 }
 
 func (c *TrxPool) Stop() error {
@@ -121,9 +124,9 @@ func (c *TrxPool) PushTrxToPending(trx *prototype.SignedTransaction) (err error)
 	return c.tm.AddTrx(trx, nil)
 }
 
-func (c *TrxPool) PushTrx(trx *prototype.SignedTransaction) (invoice *prototype.TransactionReceiptWithInfo) {
-	rc := make(chan *prototype.TransactionReceiptWithInfo)
-	_ = c.tm.AddTrx(trx, func(result *prototype.EstimateTrxResult) {
+func (c *TrxPool) PushTrx(trx *prototype.SignedTransaction) (invoice *prototype.TransactionReceipt) {
+	rc := make(chan *prototype.TransactionReceipt)
+	_ = c.tm.AddTrx(trx, func(result *prototype.TransactionWrapper) {
 		rc <- result.Receipt
 	})
 	return <-rc
@@ -325,7 +328,7 @@ func (c *TrxPool) generateBlockNoLock(witness string, pre *prototype.Sha256, tim
 				failedTrx = append(failedTrx, entry)
 			} else {
 				sizeLimit -= entry.GetTrxSize()
-				signBlock.Transactions = append(signBlock.Transactions, result.ToTrxWrapper())
+				signBlock.Transactions = append(signBlock.Transactions, result)
 			}
 		}
 		if sizeLimit <= 0 {
@@ -382,7 +385,7 @@ func (c *TrxPool) notifyBlockApply(block *prototype.SignedBlock) {
 }
 
 func (c *TrxPool) notifyTrxApplyResult(trx *prototype.SignedTransaction, res bool,
-	receipt *prototype.TransactionReceiptWithInfo) {
+	receipt *prototype.TransactionReceipt) {
 	c.noticer.Publish(constants.NoticeTrxApplied, trx, receipt)
 }
 
@@ -391,9 +394,9 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabasePatch, entry *TrxEn
 	receipt, sigTrx := result.GetReceipt(), result.GetSigTrx()
 
 	trxContext := NewTrxContextWithSigningKey(result, db, entry.GetTrxSigningKey())
-	if c.ctx.Config().ResourceCheck {
+//	if c.ctx.Config().ResourceCheck {
 		trxContext.CheckNet(uint64(proto.Size(sigTrx)))
-	}
+//	}
 
 	trxDB := db.NewPatch()
 
@@ -506,26 +509,26 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 			applyTime += int64(time.Now().Sub(t00))
 			invoiceOK := true
 			for j := 0; j < d; j++ {
-				if entries[i + j].GetTrxResult().Receipt.Status != blk.Transactions[i + j].Invoice.Status {
+				if entries[i + j].GetTrxResult().Receipt.Status != blk.Transactions[i + j].Receipt.Status {
 					c.log.Errorf("InvoiceMismatch: expect_status=%d, status=%d, err=%s. trx #%d of block %d",
-						blk.Transactions[i + j].Invoice.Status,
+						blk.Transactions[i + j].Receipt.Status,
 						entries[i + j].GetTrxResult().Receipt.Status,
 						entries[i + j].GetTrxResult().Receipt.ErrorInfo,
 						i + j,
 						blk.Id().BlockNum())
 					invoiceOK = false
 				}
-				if entries[i + j].GetTrxResult().Receipt.NetUsage != blk.Transactions[i + j].Invoice.NetUsage {
+				if entries[i + j].GetTrxResult().Receipt.NetUsage != blk.Transactions[i + j].Receipt.NetUsage {
 					c.log.Errorf("InvoiceMismatch: expect_net_usage=%d, net_usage=%d, trx #%d of block %d",
-						blk.Transactions[i + j].Invoice.NetUsage,
+						blk.Transactions[i + j].Receipt.NetUsage,
 						entries[i + j].GetTrxResult().Receipt.NetUsage,
 						i + j,
 						blk.Id().BlockNum())
 					invoiceOK = false
 				}
-				if entries[i + j].GetTrxResult().Receipt.CpuUsage != blk.Transactions[i + j].Invoice.CpuUsage {
+				if entries[i + j].GetTrxResult().Receipt.CpuUsage != blk.Transactions[i + j].Receipt.CpuUsage {
 					c.log.Errorf("InvoiceMismatch: expect_cpu_usage=%d, cpu_usage=%d, trx #%d of block %d",
-						blk.Transactions[i + j].Invoice.CpuUsage,
+						blk.Transactions[i + j].Receipt.CpuUsage,
 						entries[i + j].GetTrxResult().Receipt.CpuUsage,
 						i + j,
 						blk.Id().BlockNum())

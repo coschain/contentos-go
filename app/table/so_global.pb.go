@@ -31,7 +31,7 @@ func (m *SoGlobal) Reset()         { *m = SoGlobal{} }
 func (m *SoGlobal) String() string { return proto.CompactTextString(m) }
 func (*SoGlobal) ProtoMessage()    {}
 func (*SoGlobal) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_global_f34f569d2a28ea46, []int{0}
+	return fileDescriptor_so_global_6dc0cdbef751e34c, []int{0}
 }
 func (m *SoGlobal) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoGlobal.Unmarshal(m, b)
@@ -76,7 +76,7 @@ func (m *SoMemGlobalById) Reset()         { *m = SoMemGlobalById{} }
 func (m *SoMemGlobalById) String() string { return proto.CompactTextString(m) }
 func (*SoMemGlobalById) ProtoMessage()    {}
 func (*SoMemGlobalById) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_global_f34f569d2a28ea46, []int{1}
+	return fileDescriptor_so_global_6dc0cdbef751e34c, []int{1}
 }
 func (m *SoMemGlobalById) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemGlobalById.Unmarshal(m, b)
@@ -114,7 +114,7 @@ func (m *SoMemGlobalByProps) Reset()         { *m = SoMemGlobalByProps{} }
 func (m *SoMemGlobalByProps) String() string { return proto.CompactTextString(m) }
 func (*SoMemGlobalByProps) ProtoMessage()    {}
 func (*SoMemGlobalByProps) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_global_f34f569d2a28ea46, []int{2}
+	return fileDescriptor_so_global_6dc0cdbef751e34c, []int{2}
 }
 func (m *SoMemGlobalByProps) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemGlobalByProps.Unmarshal(m, b)
@@ -152,7 +152,7 @@ func (m *SoUniqueGlobalById) Reset()         { *m = SoUniqueGlobalById{} }
 func (m *SoUniqueGlobalById) String() string { return proto.CompactTextString(m) }
 func (*SoUniqueGlobalById) ProtoMessage()    {}
 func (*SoUniqueGlobalById) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_global_f34f569d2a28ea46, []int{3}
+	return fileDescriptor_so_global_6dc0cdbef751e34c, []int{3}
 }
 func (m *SoUniqueGlobalById) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoUniqueGlobalById.Unmarshal(m, b)
@@ -187,10 +187,10 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("app/table/so_global.proto", fileDescriptor_so_global_f34f569d2a28ea46)
+	proto.RegisterFile("app/table/so_global.proto", fileDescriptor_so_global_6dc0cdbef751e34c)
 }
 
-var fileDescriptor_so_global_f34f569d2a28ea46 = []byte{
+var fileDescriptor_so_global_6dc0cdbef751e34c = []byte{
 	// 216 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x90, 0xcd, 0x4a, 0xc5, 0x30,
 	0x10, 0x85, 0x49, 0xa1, 0x82, 0x11, 0x5c, 0x54, 0x91, 0xab, 0x20, 0x5c, 0x0a, 0x42, 0x11, 0x4d,

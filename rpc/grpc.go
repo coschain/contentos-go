@@ -13,6 +13,7 @@ import (
 	"github.com/coschain/contentos-go/vm/contract/abi"
 	contractTable "github.com/coschain/contentos-go/vm/contract/table"
 	"github.com/coschain/gobft/message"
+	"github.com/coschain/contentos-go/utils"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"math"
@@ -862,9 +863,9 @@ func (as *APIService) getAccountResponseByName(name *prototype.AccountName, isNe
 			acctInfo.FollowerCount = followWrap.GetFollowerCnt()
 			acctInfo.FollowingCount = followWrap.GetFollowingCnt()
 		}
+		acctInfo.StaminaRemain = rc.GetStakeLeft(accWrap.GetName().Value, gp.HeadBlockNumber) + rc.GetFreeLeft(accWrap.GetName().Value, gp.HeadBlockNumber)
+		acctInfo.StaminaMax = rc.GetCapacity(accWrap.GetName().Value) + rc.GetCapacityFree()
 		acct.Info = acctInfo
-		acct.StaminaRemain = rc.GetStakeLeft(accWrap.GetName().Value, gp.HeadBlockNumber) + rc.GetFreeLeft(accWrap.GetName().Value, gp.HeadBlockNumber)
-		acct.StaminaMax = rc.GetCapacity(accWrap.GetName().Value) + rc.GetCapacityFree()
 		acct.State = as.getState()
 
 	}else {
