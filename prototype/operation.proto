@@ -70,7 +70,6 @@ message contract_apply_operation{
     string method = 4;              // call which method
     string params = 5;              // param list, encoded as a single json string. e.g. '[]' or '["hello", 3, true]'
     coin   amount = 6;              // cos-coin send to the contract
-    coin   gas = 7;                 // max permit gas cost when apply
 }
 
 message internal_contract_apply_operation{
@@ -83,7 +82,6 @@ message internal_contract_apply_operation{
     string to_method = 7;               // method of the called contract
     bytes params = 8;                   // parameters encoded by internal serialization protocol between contract VM & host
     coin amount = 9;                    // amount of coins to transfer from caller contract to called contract
-    coin gas = 10;                      // max gas cost for this operation
 }
 
 message post_operation{
@@ -132,4 +130,14 @@ message report_operation {
 message convert_vesting_operation {
     account_name from = 1;
     vest amount = 2;
+}
+
+message stake_operation{
+    account_name account = 1;
+    uint64 amount = 2;
+}
+
+message un_stake_operation{
+    account_name account = 1;
+    uint64 amount = 2;
 }

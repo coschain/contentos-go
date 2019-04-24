@@ -9,6 +9,7 @@ import (
 	"github.com/coschain/contentos-go/vm/cache"
 	"github.com/coschain/contentos-go/vm/context"
 	"github.com/coschain/contentos-go/vm/validator"
+	"github.com/coschain/contentos-go2/vm/cache"
 	"github.com/go-interpreter/wagon/exec"
 	"github.com/go-interpreter/wagon/wasm"
 	"github.com/sirupsen/logrus"
@@ -136,7 +137,7 @@ func (w *CosVM) runEntry(entryName string) (ret uint32, err error) {
 		w.spentGas = vm.CostGas
 	}()
 
-	vm.InitGasTable(w.ctx.Gas.Value)
+	vm.InitGasTable(w.ctx.Gas)
 	var entryIndex = -1
 	for name, entry := range vm.Module().Export.Entries {
 		if name == entryName && entry.Kind == wasm.ExternalFunction {

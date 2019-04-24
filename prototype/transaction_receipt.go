@@ -1,6 +1,7 @@
 package prototype
 
 const StatusSuccess  = 200
+const StatusDeductGas  = 201
 const StatusError  = 500
 
 func (m *TransactionReceipt) Validate() error {
@@ -27,7 +28,7 @@ func (m *TransactionReceiptWithInfo) ToReceipt() *TransactionReceipt {
 }
 
 func (m *TransactionReceiptWithInfo) IsSuccess() bool {
-	return m.Status == StatusSuccess
+	return m.Status == StatusSuccess || m.Status == StatusDeductGas
 }
 
 func (m *EstimateTrxResult) ToTrxWrapper() *TransactionWrapper {

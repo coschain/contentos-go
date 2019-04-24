@@ -390,12 +390,20 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabaseRW, entry *TrxEntry
 	result := entry.GetTrxResult()
 	receipt, sigTrx := result.GetReceipt(), result.GetSigTrx()
 
+	trxContext := NewTrxContextWithSigningKey(result, db, entry.GetTrxSigningKey())
 	defer func() {
+		useGas := trxContext.HasGasFee()
+		//c.PayGas(trxContext)
 		if err := recover(); err != nil {
-			receipt.Status = prototype.StatusError
-			receipt.ErrorInfo = fmt.Sprintf("applyTransaction failed : %v", err)
-			c.notifyTrxApplyResult(sigTrx, false, receipt)
-			panic(receipt.ErrorInfo)
+			if useGas {
+				receipt.Status = prototype.StatusDeductGas
+				c.notifyTrxApplyResult(sigTrx, true, receipt)
+			} else {
+				receipt.Status = prototype.StatusError
+				receipt.ErrorInfo = fmt.Sprintf("applyTransaction failed : %v", err)
+				c.notifyTrxApplyResult(sigTrx, false, receipt)
+				panic(receipt.ErrorInfo)
+			}
 		} else {
 			receipt.Status = prototype.StatusSuccess
 			c.notifyTrxApplyResult(sigTrx, true, receipt)
@@ -403,11 +411,17 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabaseRW, entry *TrxEntry
 		}
 	}()
 
-	trxContext := NewTrxContextWithSigningKey(result, db, entry.GetTrxSigningKey())
 	for _, op := range sigTrx.Trx.Operations {
 		trxContext.StartNextOp()
 		c.applyOperation(trxContext, op)
 	}
+}
+
+func (c *TrxPool) PayGas(trxContext *TrxContext) {
+	trxContext.DeductAllCpu()
+	trxContext.DeductAllNet()
+	trxContext.Finalize()
+	return
 }
 
 func (c *TrxPool) applyOperation(trxCtx *TrxContext, op *prototype.Operation) {

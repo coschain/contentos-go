@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"github.com/coschain/contentos-go/node"
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common"
@@ -420,11 +421,21 @@ func clearDB(db iservices.IDatabaseService) {
 func startController(db iservices.IDatabaseService) *TrxPool {
 	log, err := mylog.NewMyLog(logPath, mylog.DebugLevel, 0)
 	mustNoError(err, "new log error")
-	c, _ := NewController(nil, log.Logger)
+	ctx := makeCtx()
+	c, _ := NewController(ctx, log.Logger)
 	c.SetDB(db)
 	c.SetBus(EventBus.New())
 	c.Open()
 	c.SetShuffle(func(block common.ISignedBlock) {
 	})
 	return c
+}
+
+func makeCtx() (*node.ServiceContext) {
+   var cfg = &node.Config{}
+   cfg.ResourceCheck = true
+   ctx := &node.ServiceContext{}
+   ctx.ResetConfig(cfg)
+   ctx.ResetServices(nil)
+   return ctx
 }

@@ -82,7 +82,7 @@ func stress(cmd *cobra.Command, args []string) {
 					break
 				}
 
-				if res.Status != prototype.StatusSuccess {
+				if res.Status != prototype.StatusSuccess || res.Status != prototype.StatusDeductGas{
 					fmt.Println(res)
 					break
 				}

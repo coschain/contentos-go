@@ -823,6 +823,10 @@ func (as *APIService) getAccountResponseByName(name *prototype.AccountName, isNe
 	acct := &grpcpb.AccountResponse{}
 	acctInfo := &grpcpb.AccountInfo{}
 
+	rc := utils.NewResourceLimiter(as.db)
+	wraper := table.NewSoGlobalWrap(as.db, &constants.GlobalId)
+	gp := wraper.GetProps()
+
 	if accWrap != nil && accWrap.CheckExist() {
 		acctInfo.AccountName = &prototype.AccountName{Value: accWrap.GetName().Value}
 		acctInfo.Coin = accWrap.GetBalance()
@@ -859,6 +863,8 @@ func (as *APIService) getAccountResponseByName(name *prototype.AccountName, isNe
 			acctInfo.FollowingCount = followWrap.GetFollowingCnt()
 		}
 		acct.Info = acctInfo
+		acct.StaminaRemain = rc.GetStakeLeft(accWrap.GetName().Value, gp.HeadBlockNumber) + rc.GetFreeLeft(accWrap.GetName().Value, gp.HeadBlockNumber)
+		acct.StaminaMax = rc.GetCapacity(accWrap.GetName().Value) + rc.GetCapacityFree()
 		acct.State = as.getState()
 
 	}else {

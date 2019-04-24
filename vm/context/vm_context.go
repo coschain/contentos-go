@@ -20,7 +20,7 @@ type Context struct {
 	Params    string
 	ParamsData []byte
 	Amount    *prototype.Coin
-	Gas       *prototype.Coin
+	Gas       uint64
 	Construct bool
 	Code      []byte
 	Abi       string
@@ -51,7 +51,6 @@ func NewContextFromApplyOp(op *prototype.ContractApplyOperation, params []byte, 
 		Params:    op.Params,
 		ParamsData: params,
 		Amount:    op.Amount,
-		Gas:       op.Gas,
 		Construct: false,
 		Code:      code,
 		AbiInterface: abi,
@@ -72,7 +71,6 @@ func NewContextFromInternalApplyOp(op *prototype.InternalContractApplyOperation,
 		Params:    "",
 		ParamsData: op.Params,
 		Amount:    op.Amount,
-		Gas:       op.Gas,
 		Construct: false,
 		Code:      code,
 		AbiInterface: abi,
