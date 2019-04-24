@@ -668,6 +668,7 @@ func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 		if checkPoint == nil {
 			break
 		}
+		newID = ExtractBlockID(checkPoint)
 		if !sabft.cp.IsNextCheckPoint(checkPoint) {
 			return
 		}
