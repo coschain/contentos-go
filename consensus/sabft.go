@@ -130,6 +130,9 @@ type SABFT struct {
 	stopCh chan struct{}
 	wg     sync.WaitGroup
 	deadlock.RWMutex
+
+	lastCommitTime uint64
+	lastCommitBlockNUm uint64
 }
 
 func NewSABFT(ctx *node.ServiceContext, lg *logrus.Logger) *SABFT {
@@ -150,6 +153,7 @@ func NewSABFT(ctx *node.ServiceContext, lg *logrus.Logger) *SABFT {
 		bftStarted: 0,
 		commitCh:   make(chan message.Commit),
 		Ticker:     &Timer{},
+		lastCommitBlockNUm: 0,
 	}
 
 	ret.SetBootstrap(ctx.Config().Consensus.BootStrap)
@@ -255,6 +259,7 @@ func (sabft *SABFT) shuffle(head common.ISignedBlock) {
 		if atomic.LoadUint32(&sabft.bftStarted) == 0 {
 			sabft.log.Info("enter start gobft")
 			//sabft.Unlock()
+			sabft.lastCommitTime = uint64(time.Now().UnixNano()) / 1e6
 			sabft.bft.Start()
 			sabft.log.Info("[SABFT] gobft started...")
 			atomic.StoreUint32(&sabft.bftStarted, 1)
@@ -936,13 +941,23 @@ func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 	sabft.ForkDB.Commit(blockID)
 	sabft.lastCommitted.Store(commitRecords)
 
-	now := time.Now().Unix()
+	now := uint64(time.Now().UnixNano()) / 1e6
 	sigblk, err := sabft.FetchBlock(blockID)
 	if err != nil {
 		sabft.log.Error("can not find commit block")
 	}
 	timestamp := sigblk.Timestamp()
-	sabft.log.Info("statistics commit block #", blockID.BlockNum(), " now: ", now, " block timestamp: ", timestamp, " confirm delay time: ", uint64(now)-timestamp, " seconds")
+	sabft.log.Info("statistics commit block ", blockID.BlockNum(),
+		" lastCommitBlockNum: ", sabft.lastCommitBlockNUm,
+		" distance to last commit block number: ", blockID.BlockNum()-sabft.lastCommitBlockNUm,
+		" block timestamp: ", timestamp,
+		" now timestamp: ", now,
+		" lastCommitTime: ", sabft.lastCommitTime,
+		" distance to last commit time: ", now - sabft.lastCommitTime,
+		" millionsecond, distance to block generation time: ", now - timestamp * 1e3,
+		" millionsecond")
+	sabft.lastCommitTime = now
+	sabft.lastCommitBlockNUm = blockID.BlockNum()
 
 	sabft.log.Debug("[SABFT] committed block #", blockID)
 	return nil
