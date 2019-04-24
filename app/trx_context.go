@@ -34,7 +34,7 @@ func (p *TrxContext) GetVmRemainCpuStamina(name string) uint64 {
 }
 
 func (p *TrxContext) CheckNet(sizeInBytes uint64) {
-	keyMaps := obtainKeyMap(p.Wrapper.SigTrx.Trx.Operations)
+	keyMaps := p.Wrapper.SigTrx.GetOpCreatorsMap()
 	netUse := sizeInBytes * uint64(float64(constants.NetConsumePointNum)/float64(constants.NetConsumePointDen))
 	for name := range keyMaps {
 		p.netMap[name] = &resourceUnit{}

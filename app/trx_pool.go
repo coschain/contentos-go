@@ -391,6 +391,12 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabasePatch, entry *TrxEn
 	receipt, sigTrx := result.GetReceipt(), result.GetSigTrx()
 
 	trxContext := NewTrxContextWithSigningKey(result, db, entry.GetTrxSigningKey())
+	if c.ctx.Config().ResourceCheck {
+		trxContext.CheckNet(uint64(proto.Size(sigTrx)))
+	}
+
+	trxDB := db.NewPatch()
+
 	defer func() {
 		useGas := trxContext.HasGasFee()
 		//c.PayGas(trxContext)
@@ -405,10 +411,12 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabasePatch, entry *TrxEn
 				panic(receipt.ErrorInfo)
 			}
 		} else {
+			// commit changes to db
+			_ = trxDB.Apply()
 			receipt.Status = prototype.StatusSuccess
 			c.notifyTrxApplyResult(sigTrx, true, receipt)
-			return
 		}
+		c.PayGas(trxContext)
 	}()
 
 	for _, op := range sigTrx.Trx.Operations {
@@ -503,6 +511,22 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 						blk.Transactions[i + j].Invoice.Status,
 						entries[i + j].GetTrxResult().Receipt.Status,
 						entries[i + j].GetTrxResult().Receipt.ErrorInfo,
+						i + j,
+						blk.Id().BlockNum())
+					invoiceOK = false
+				}
+				if entries[i + j].GetTrxResult().Receipt.NetUsage != blk.Transactions[i + j].Invoice.NetUsage {
+					c.log.Errorf("InvoiceMismatch: expect_net_usage=%d, net_usage=%d, trx #%d of block %d",
+						blk.Transactions[i + j].Invoice.NetUsage,
+						entries[i + j].GetTrxResult().Receipt.NetUsage,
+						i + j,
+						blk.Id().BlockNum())
+					invoiceOK = false
+				}
+				if entries[i + j].GetTrxResult().Receipt.CpuUsage != blk.Transactions[i + j].Invoice.CpuUsage {
+					c.log.Errorf("InvoiceMismatch: expect_cpu_usage=%d, cpu_usage=%d, trx #%d of block %d",
+						blk.Transactions[i + j].Invoice.CpuUsage,
+						entries[i + j].GetTrxResult().Receipt.CpuUsage,
 						i + j,
 						blk.Id().BlockNum())
 					invoiceOK = false
@@ -1047,4 +1071,32 @@ func (c *TrxPool) SyncPushedBlocksToDB(blkList []common.ISignedBlock) (err error
 		}
 	}
 	return err
+}
+
+func (c *TrxPool) GetRemainStamina(name string) uint64 {
+	wraper := table.NewSoGlobalWrap(c.db, &constants.GlobalId)
+	gp := wraper.GetProps()
+	return c.resourceLimiter.GetStakeLeft(name, gp.HeadBlockNumber)
+}
+
+func (c *TrxPool) GetRemainFreeStamina(name string) uint64 {
+	wraper := table.NewSoGlobalWrap(c.db, &constants.GlobalId)
+	gp := wraper.GetProps()
+	return c.resourceLimiter.GetFreeLeft(name, gp.HeadBlockNumber)
+}
+
+func (c *TrxPool) GetStaminaMax(name string) uint64 {
+	return c.resourceLimiter.GetCapacity(name)
+}
+
+func (c *TrxPool) GetStaminaFreeMax() uint64 {
+	return c.resourceLimiter.GetCapacityFree()
+}
+
+func (c *TrxPool) GetAllRemainStamina(name string) uint64 {
+	return c.GetRemainStamina(name) + c.GetRemainFreeStamina(name)
+}
+
+func (c *TrxPool) GetAllStaminaMax(name string) uint64 {
+	return c.GetStaminaMax(name) + c.GetStaminaFreeMax()
 }
