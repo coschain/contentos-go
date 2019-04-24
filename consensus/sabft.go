@@ -316,7 +316,7 @@ func (sabft *SABFT) Start(node *node.Node) error {
 		sabft.log.Info("[SABFT] bootstrapping...")
 	}
 	if !sabft.ForkDB.Empty() && !sabft.blog.Empty() {
-		lc, err := sabft.cp.GetNext(sabft.ForkDB.LastCommitted().BlockNum() - 1)
+		lc, err := sabft.cp.GetNext(sabft.ForkDB.LastCommitted().BlockNum()-1)
 		if err != nil {
 			sabft.log.Error(err)
 		} else {
@@ -432,20 +432,15 @@ func (sabft *SABFT) start() {
 				sabft.log.Error("[SABFT] pushBlock failed: ", err)
 				continue
 			}
-
-			commit := sabft.cp.NextUncommitted()
-			if commit != nil {
-				success := sabft.cp.Validate(commit)
-				if !success {
-					if !sabft.readyToProduce {
+			if !sabft.readyToProduce {
+				head := sabft.ForkDB.Head()
+				commit, reached := sabft.cp.ReachCheckPoint(head)
+				if reached {
+					success := sabft.cp.Validate(head)
+					if !success {
 						sabft.revertToLastCheckPoint()
-					}
-					// remove this invalid checkpoint
-					sabft.cp.RemoveNextUncommitted()
-					// TODO: fetch next checkpoint from a different peer
-				} else {
-					if err = sabft.Commit(commit); err == nil {
-						sabft.cp.Flush()
+					} else {
+						sabft.Commit(commit)
 					}
 				}
 			}
@@ -653,48 +648,42 @@ func (sabft *SABFT) CheckCommittedAlready(id common.BlockID) bool {
 
 func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 	//sabft.log.Warn("handleCommitRecords: ", records.ProposedData, records.Address)
-	if records == nil {
+	if err := records.ValidateBasic(); err != nil {
+		sabft.log.Error(err)
+		return
+	}
+
+	if !sabft.readyToProduce {
+		sabft.cp.AcceptCheckPoint(records)
 		return
 	}
 
 	// make sure we haven't committed it already
-	newID := ExtractBlockID(records)
+	newID := common.BlockID{
+		Data: records.ProposedData,
+	}
 	if sabft.CheckCommittedAlready(newID) {
 		return
 	}
 
-	if !sabft.cp.Add(records) {
+	// if we're a validator, pass it to gobft so that it can catch up
+	if sabft.IsValidator(message.PubKey(sabft.Name)) {
+		sabft.log.Warn("pass commits to gobft ", records.ProposedData)
+		sabft.bft.RecvMsg(records)
 		return
 	}
 
-	checkPoint := records
-	for {
-		if checkPoint == nil {
-			break
-		}
-		if !sabft.cp.ReachCheckPoint(checkPoint) {
-			return
-		}
-		sabft.log.Debug("reach checkpoint at ", checkPoint.ProposedData)
-
-		// if we're a validator, pass it to gobft so that it can catch up
-		if sabft.IsValidator(message.PubKey(sabft.Name)) {
-			sabft.log.Warn("pass commits to gobft ", checkPoint.ProposedData)
-			sabft.bft.RecvMsg(checkPoint)
-			return
-		}
-
-		if !sabft.cp.Validate(checkPoint) {
-			sabft.log.Error("validation on checkpoint failed")
-			return
-		}
-		if _, err := sabft.ForkDB.FetchBlock(newID); err == nil {
-			if err = sabft.Commit(checkPoint); err == nil {
-				sabft.cp.Flush()
-				checkPoint = sabft.cp.NextUncommitted()
-			}
-		}
+	// make sure we have the block about to be committed
+	if sabft.ForkDB.Empty() || sabft.ForkDB.Head().Id().BlockNum() < newID.BlockNum() {
+		return
 	}
+
+	// check signature
+	if !sabft.VerifyCommitSig(records) {
+		return
+	}
+
+	sabft.Commit(records)
 }
 
 func (sabft *SABFT) validateProducer(b common.ISignedBlock) bool {
@@ -865,7 +854,11 @@ func (sabft *SABFT) Commit(commitRecords *message.Commit) error {
 	sabft.Lock()
 	defer sabft.Unlock()
 
-	return sabft.commit(commitRecords)
+	err := sabft.commit(commitRecords)
+	if err == nil {
+		sabft.cp.Make(commitRecords)
+	}
+	return err
 }
 
 func (sabft *SABFT) commit(commitRecords *message.Commit) error {

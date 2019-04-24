@@ -621,19 +621,6 @@ func (p *MsgHandler)IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...
 
 			copy(startBlockId.Data[:], id)
 
-			commitEvidence := ctrl.GetNextBFTCheckPoint(sigBlk.Id().BlockNum()-1)
-			if commitEvidence != nil {
-				bftCommit := &msgTypes.ConsMsg {
-					MsgData: commitEvidence.(*message.Commit),
-				}
-				err = p2p.Send(remotePeer, bftCommit, false)
-				if err != nil {
-					log.Error("[p2p] send message error: ", err)
-					return
-				}
-				log.Info("[p2p] send checkpoint message, start block number: ", startBlockId.BlockNum())
-			}
-
 			msg := msgpack.NewSigBlk(sigBlk)
 			err = p2p.Send(remotePeer, msg, false)
 			if err != nil {
@@ -643,7 +630,18 @@ func (p *MsgHandler)IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...
 			//log.Infof("send a SignedBlock msg to   v%   data   v%\n", data.Addr, msg)
 		}
 
-
+		commitEvidence := ctrl.GetNextBFTCheckPoint(startBlockId.BlockNum())
+		if commitEvidence != nil {
+			bftCommit := &msgTypes.ConsMsg {
+				MsgData: commitEvidence.(*message.Commit),
+			}
+			err = p2p.Send(remotePeer, bftCommit, false)
+			if err != nil {
+				log.Error("[p2p] send message error: ", err)
+				return
+			}
+			log.Info("[p2p] send checkpoint message, start block number: ", startBlockId.BlockNum())
+		}
 	case msgTypes.IdMsg_request_id_ack:
 		//log.Infof("receive a msg from:    v%    data:   %v\n", data.Addr, *msgdata)
 		var reqmsg msgTypes.TransferMsg
