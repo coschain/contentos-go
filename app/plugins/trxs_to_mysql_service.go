@@ -54,6 +54,40 @@ func PurgeOperation(operations []*prototype.Operation) []Op {
 	return ops
 }
 
+func FindCreator(operation *prototype.Operation) string {
+	switch x := operation.Op.(type) {
+	case *prototype.Operation_Op1:
+		return x.Op1.Creator.Value
+	case *prototype.Operation_Op2:
+		return x.Op2.From.Value
+	case *prototype.Operation_Op3:
+		return x.Op3.Owner.Value
+	case *prototype.Operation_Op4:
+		return x.Op4.Owner.Value
+	case *prototype.Operation_Op5:
+		return x.Op5.Voter.Value
+	case *prototype.Operation_Op6:
+		return x.Op6.Owner.Value
+	case *prototype.Operation_Op7:
+		return x.Op7.Owner.Value
+	case *prototype.Operation_Op8:
+		return x.Op8.Account.Value
+	case *prototype.Operation_Op9:
+		return x.Op9.Voter.Value
+	case *prototype.Operation_Op10:
+		return x.Op10.From.Value
+	case *prototype.Operation_Op13:
+		return x.Op13.Owner.Value
+	case *prototype.Operation_Op14:
+		return x.Op14.Caller.Value
+	case *prototype.Operation_Op15:
+		return x.Op15.Reporter.Value
+	case *prototype.Operation_Op16:
+		return x.Op16.From.Value
+	}
+	return ""
+}
+
 var TrxMysqlServiceName = "trxmysql"
 
 type TrxMysqlService struct {
@@ -140,7 +174,7 @@ func (t *TrxMysqlService) handleLibNotification(lib uint64) {
 	if len(blks) == 0 {
 		return
 	}
-	stmt, _ := t.outDb.Prepare("INSERT IGNORE INTO trxinfo (trx_id, block_height, block_id, block_time, invoice, operations)  value (?, ?, ?, ?, ?, ?)")
+	stmt, _ := t.outDb.Prepare("INSERT IGNORE INTO trxinfo (trx_id, block_height, block_id, block_time, invoice, operations, creator)  value (?, ?, ?, ?, ?, ?, ?)")
 	defer stmt.Close()
 	blk := blks[0].(*prototype.SignedBlock)
 	for _, trx := range blk.Transactions {
@@ -154,7 +188,8 @@ func (t *TrxMysqlService) handleLibNotification(lib uint64) {
 		invoice, _ := json.Marshal(trx.Invoice)
 		operations := PurgeOperation(trx.SigTrx.GetTrx().GetOperations())
 		operationsJson, _ := json.Marshal(operations)
-		_, _ = stmt.Exec(trxId, blockHeight, blockId, blockTime, invoice, operationsJson)
+		creator := FindCreator(trx.SigTrx.GetTrx().GetOperations()[0])
+		_, _ = stmt.Exec(trxId, blockHeight, blockId, blockTime, invoice, operationsJson, creator)
 	}
 }
 
