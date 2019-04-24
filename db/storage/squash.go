@@ -65,11 +65,9 @@ func (db *SquashableDatabase) Squash(tag string) error {
 
 	if idx, ok := db.tags[tag]; ok {
 		count := int(idx) + 1
-		for i := 0; i < count; i++ {
-			if err := db.PopBack(true); err != nil {
-				fmt.Printf("pop fail,the error is %s",err)
-				return err
-			}
+		if err := db.PopBackN(count, true); err != nil {
+			fmt.Printf("pop fail,the error is %s",err)
+			return err
 		}
 		newTags := make(map[string]uint)
 		newTagsByIdx := make(map[uint]string)

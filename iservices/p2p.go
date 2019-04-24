@@ -21,4 +21,7 @@ type IP2P interface {
 
 	// Send msg to specific peer
 	Send(p *peer.Peer, msg types.Message, isConsensus bool) error
+
+	// Request checkpoint batch [startNum, endNum)
+	RequestCheckpoint(startNum, endNum uint64)
 }

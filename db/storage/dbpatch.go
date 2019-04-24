@@ -32,17 +32,8 @@ func (p *DatabasePatch) Delete(key []byte) error {
 	return p.s.Delete(key)
 }
 
-func (p *DatabasePatch) NewIterator(start []byte, limit []byte) iservices.IDatabaseIterator {
-	return p.s.NewIterator(start, limit)
-}
-
-// same as NewIterator, but iteration will be in reversed order.
-func (p *DatabasePatch) NewReversedIterator(start []byte, limit []byte) iservices.IDatabaseIterator {
-	return p.s.NewReversedIterator(start, limit)
-}
-
-func (p *DatabasePatch) DeleteIterator(it iservices.IDatabaseIterator) {
-	p.s.DeleteIterator(it)
+func (p *DatabasePatch) Iterate(start, limit []byte, reverse bool, callback func(key, value []byte) bool) {
+	p.s.Iterate(start, limit, reverse, callback)
 }
 
 func (p *DatabasePatch) NewBatch() iservices.IDatabaseBatch {

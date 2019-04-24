@@ -386,7 +386,7 @@ func (c *TrxPool) notifyTrxApplyResult(trx *prototype.SignedTransaction, res boo
 	c.noticer.Publish(constants.NoticeTrxApplied, trx, receipt)
 }
 
-func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabaseRW, entry *TrxEntry) {
+func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabasePatch, entry *TrxEntry) {
 	result := entry.GetTrxResult()
 	receipt, sigTrx := result.GetReceipt(), result.GetSigTrx()
 

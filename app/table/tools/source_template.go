@@ -569,25 +569,9 @@ func New{{$.ClsName}}{{$v.PName}}Wrap(db iservices.IDatabaseRW) *S{{$.ClsName}}{
      return &wrap
 }
 
-func (s *S{{$.ClsName}}{{$v.PName}}Wrap)DelIterator(iterator iservices.IDatabaseIterator){
-   if iterator == nil {
-		return 
-	}
-   s.Dba.DeleteIterator(iterator)
-}
-
-func (s *S{{$.ClsName}}{{$v.PName}}Wrap) GetMainVal(iterator iservices.IDatabaseIterator) *{{formatStr $.MainKeyType}} {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
-
+func (s *S{{$.ClsName}}{{$v.PName}}Wrap) GetMainVal(val []byte) *{{formatStr $.MainKeyType}} {
 	res := &SoList{{$.ClsName}}By{{$v.PName}}{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 
 	if err != nil {
 		return nil
@@ -601,18 +585,9 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) GetMainVal(iterator iservices.IDatabase
    {{end}}
 }
 
-func (s *S{{$.ClsName}}{{$v.PName}}Wrap) GetSubVal(iterator iservices.IDatabaseIterator) *{{formatSliceType $v.PType}} {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
+func (s *S{{$.ClsName}}{{$v.PName}}Wrap) GetSubVal(val []byte) *{{formatSliceType $v.PType}} {
 	res := &SoList{{$.ClsName}}By{{$v.PName}}{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 	if err != nil {
 		return nil
 	}
@@ -699,18 +674,11 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) ForEachByOrder(start *{{$v.PType}}, end
     if cErr != nil {
        return cErr
     }
-	iterator := s.Dba.NewIterator(sBuf, eBuf)
-    if iterator == nil {
-		return errors.New("there is no data in range")
-	}
     var idx uint32 = 0
-    for iterator.Next() {
-        idx ++
-        if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
-			break
-		}
-    }
-    s.DelIterator(iterator)
+	s.Dba.Iterate(sBuf, eBuf, false, func(key, value []byte) bool {
+		idx ++
+		return f(s.GetMainVal(value), s.GetSubVal(value), idx)
+	})
 	return nil
 }
 {{end}}
@@ -761,19 +729,11 @@ func (s *S{{$.ClsName}}{{$v.PName}}Wrap) ForEachByRevOrder(start *{{$v.PType}}, 
     if cErr != nil {
        return cErr
     }
-    //reverse the start and end when create ReversedIterator to query by reverse order
-    iterator := s.Dba.NewReversedIterator(eBuf,sBuf)
-    if iterator == nil {
-		return errors.New("there is no data in range")
-	}
-    var idx uint32 = 0
-    for iterator.Next() {
-        idx ++
-        if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
-			break
-		}
-    }
-    s.DelIterator(iterator)
+	var idx uint32 = 0
+	s.Dba.Iterate(eBuf, sBuf, true, func(key, value []byte) bool {
+		idx ++
+		return f(s.GetMainVal(value), s.GetSubVal(value), idx)
+	})
 	return nil
 }
 {{end -}}

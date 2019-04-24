@@ -553,25 +553,9 @@ func NewExtHourTrxHourWrap(db iservices.IDatabaseRW) *SExtHourTrxHourWrap {
 	return &wrap
 }
 
-func (s *SExtHourTrxHourWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil {
-		return
-	}
-	s.Dba.DeleteIterator(iterator)
-}
-
-func (s *SExtHourTrxHourWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.TimePointSec {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
-
+func (s *SExtHourTrxHourWrap) GetMainVal(val []byte) *prototype.TimePointSec {
 	res := &SoListExtHourTrxByHour{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 
 	if err != nil {
 		return nil
@@ -580,18 +564,9 @@ func (s *SExtHourTrxHourWrap) GetMainVal(iterator iservices.IDatabaseIterator) *
 
 }
 
-func (s *SExtHourTrxHourWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.TimePointSec {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
+func (s *SExtHourTrxHourWrap) GetSubVal(val []byte) *prototype.TimePointSec {
 	res := &SoListExtHourTrxByHour{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 	if err != nil {
 		return nil
 	}
@@ -666,18 +641,11 @@ func (s *SExtHourTrxHourWrap) ForEachByOrder(start *prototype.TimePointSec, end 
 	if cErr != nil {
 		return cErr
 	}
-	iterator := s.Dba.NewIterator(sBuf, eBuf)
-	if iterator == nil {
-		return errors.New("there is no data in range")
-	}
 	var idx uint32 = 0
-	for iterator.Next() {
+	s.Dba.Iterate(sBuf, eBuf, false, func(key, value []byte) bool {
 		idx++
-		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
-			break
-		}
-	}
-	s.DelIterator(iterator)
+		return f(s.GetMainVal(value), s.GetSubVal(value), idx)
+	})
 	return nil
 }
 
@@ -694,25 +662,9 @@ func NewExtHourTrxCountWrap(db iservices.IDatabaseRW) *SExtHourTrxCountWrap {
 	return &wrap
 }
 
-func (s *SExtHourTrxCountWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil {
-		return
-	}
-	s.Dba.DeleteIterator(iterator)
-}
-
-func (s *SExtHourTrxCountWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.TimePointSec {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
-
+func (s *SExtHourTrxCountWrap) GetMainVal(val []byte) *prototype.TimePointSec {
 	res := &SoListExtHourTrxByCount{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 
 	if err != nil {
 		return nil
@@ -721,18 +673,9 @@ func (s *SExtHourTrxCountWrap) GetMainVal(iterator iservices.IDatabaseIterator) 
 
 }
 
-func (s *SExtHourTrxCountWrap) GetSubVal(iterator iservices.IDatabaseIterator) *uint64 {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
+func (s *SExtHourTrxCountWrap) GetSubVal(val []byte) *uint64 {
 	res := &SoListExtHourTrxByCount{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 	if err != nil {
 		return nil
 	}
@@ -805,18 +748,11 @@ func (s *SExtHourTrxCountWrap) ForEachByOrder(start *uint64, end *uint64, lastMa
 	if cErr != nil {
 		return cErr
 	}
-	iterator := s.Dba.NewIterator(sBuf, eBuf)
-	if iterator == nil {
-		return errors.New("there is no data in range")
-	}
 	var idx uint32 = 0
-	for iterator.Next() {
+	s.Dba.Iterate(sBuf, eBuf, false, func(key, value []byte) bool {
 		idx++
-		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
-			break
-		}
-	}
-	s.DelIterator(iterator)
+		return f(s.GetMainVal(value), s.GetSubVal(value), idx)
+	})
 	return nil
 }
 

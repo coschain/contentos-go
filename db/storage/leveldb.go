@@ -12,7 +12,6 @@ import (
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/syndtr/goleveldb/leveldb/filter"
-	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 	"github.com/syndtr/goleveldb/leveldb/util"
 )
@@ -41,7 +40,7 @@ func NewLevelDatabase(file string) (*LevelDatabase, error) {
 
 // close a database
 func (db *LevelDatabase) Close() {
-	db.db.Close()
+	_ = db.db.Close()
 }
 
 // get the disk file path
@@ -89,69 +88,28 @@ func (db *LevelDatabase) Delete(key []byte) error {
 // DatabaseScanner implementation
 //
 
-func (db *LevelDatabase) NewIterator(start []byte, limit []byte) Iterator {
-	it := db.db.NewIterator(&util.Range{Start: start, Limit: limit}, nil)
-	return &LevelDatabaseIterator{it: it}
-}
-
-func (db *LevelDatabase) NewReversedIterator(start []byte, limit []byte) Iterator {
-	it := db.db.NewIterator(&util.Range{Start: start, Limit: limit}, nil)
-	return &LevelDatabaseIterator{it: it, reversed: true, moved: false, moveLast: it.Last()}
-}
-
-func (db *LevelDatabase) DeleteIterator(it Iterator) {
-	if levelIt, ok := it.(*LevelDatabaseIterator); ok {
-		levelIt.it.Release()
+func (db *LevelDatabase) Iterate(start, limit []byte, reverse bool, callback func(key, value []byte) bool) {
+	if callback == nil {
+		return
 	}
-}
+	it := db.db.NewIterator(&util.Range{Start:start, Limit:limit}, nil)
+	defer it.Release()
 
-//
-// Iterator implementation
-//
-
-type LevelDatabaseIterator struct {
-	it       iterator.Iterator
-	reversed bool
-	moved    bool
-	moveLast bool
-}
-
-// check if the iterator is a valid position, i.e. safe to call other methods
-func (it *LevelDatabaseIterator) Valid() bool {
-	if it.reversed && !it.moved {
-		return false
+	// ascending iteration: it.First()->it.Next()->it.Next()->...->it.Next()
+	moves := []func()bool{ it.First, it.Next }
+	if reverse {
+		// descending iteration: it.Last()->it.Prev()->it.Prev()->...->it.Prev()
+		moves = []func()bool{ it.Last, it.Prev }
 	}
-	return it.it.Valid()
-}
-
-// query the key of current position
-func (it *LevelDatabaseIterator) Key() ([]byte, error) {
-	if it.Valid() {
-		return it.it.Key(), nil
-	} else {
-		return nil, errors.New("invalid iterator")
-	}
-}
-
-// query the value of current position
-func (it *LevelDatabaseIterator) Value() ([]byte, error) {
-	if it.Valid() {
-		return it.it.Value(), nil
-	} else {
-		return nil, errors.New("invalid iterator")
-	}
-}
-
-// move to the next position
-func (it *LevelDatabaseIterator) Next() bool {
-	if it.reversed {
-		if !it.moved {
-			it.moved = true
-			return it.moveLast
+	x, ok := 0, true
+	for ok {
+		if ok = moves[x](); ok {
+			ok = callback(it.Key(), it.Value())
 		}
-		return it.it.Prev()
+		if x == 0 {
+			x++
+		}
 	}
-	return it.it.Next()
 }
 
 //

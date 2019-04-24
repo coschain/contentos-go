@@ -316,7 +316,7 @@ func (sabft *SABFT) Start(node *node.Node) error {
 		sabft.log.Info("[SABFT] bootstrapping...")
 	}
 	if !sabft.ForkDB.Empty() && !sabft.blog.Empty() {
-		lc, err := sabft.cp.GetNext(sabft.ForkDB.LastCommitted().BlockNum()-1)
+		lc, err := sabft.cp.GetNext(sabft.ForkDB.LastCommitted().BlockNum() - 1)
 		if err != nil {
 			sabft.log.Error(err)
 		} else {
@@ -372,12 +372,6 @@ func (sabft *SABFT) scheduleProduce() bool {
 		}
 	}
 
-	//if sabft.tooManyUncommittedBlocks() {
-	//	sabft.RUnlock()
-	//	sabft.revertToLastCheckPoint()
-	//	sabft.RLock()
-	//}
-
 	if !sabft.checkProducingTiming() || !sabft.checkOurTurn() {
 		return false
 	}
@@ -385,9 +379,6 @@ func (sabft *SABFT) scheduleProduce() bool {
 }
 
 func (sabft *SABFT) revertToLastCheckPoint() {
-	sabft.Lock()
-	defer sabft.Unlock()
-
 	lastCommittedID := sabft.ForkDB.LastCommitted()
 	popNum := lastCommittedID.BlockNum() + 1
 	sabft.popBlock(popNum)
@@ -432,18 +423,25 @@ func (sabft *SABFT) start() {
 				sabft.log.Error("[SABFT] pushBlock failed: ", err)
 				continue
 			}
-			if !sabft.readyToProduce {
-				head := sabft.ForkDB.Head()
-				commit, reached := sabft.cp.ReachCheckPoint(head)
-				if reached {
-					success := sabft.cp.Validate(head)
-					if !success {
+
+			sabft.Lock()
+			commit := sabft.cp.NextUncommitted()
+			if commit != nil && b.Id() == ExtractBlockID(commit) {
+				success := sabft.cp.Validate(commit)
+				if !success {
+					if !sabft.readyToProduce {
 						sabft.revertToLastCheckPoint()
-					} else {
-						sabft.Commit(commit)
+					}
+					// remove this invalid checkpoint
+					sabft.cp.RemoveNextUncommitted()
+					// TODO: fetch next checkpoint from a different peer
+				} else {
+					if err = sabft.commit(commit); err == nil {
+						sabft.cp.Flush()
 					}
 				}
 			}
+			sabft.Unlock()
 
 		case trxFn := <-sabft.trxCh:
 			sabft.Lock()
@@ -451,7 +449,10 @@ func (sabft *SABFT) start() {
 			sabft.Unlock()
 			continue
 		case commit := <-sabft.commitCh:
+			// TODO: reduce critical area guarded by lock
+			sabft.Lock()
 			sabft.handleCommitRecords(&commit)
+			sabft.Unlock()
 		case pendingFn := <-sabft.pendingCh:
 			pendingFn()
 			continue
@@ -633,7 +634,7 @@ func (sabft *SABFT) verifyCommitSig(records *message.Commit) bool {
 	return true
 }
 
-func (sabft *SABFT) CheckCommittedAlready(id common.BlockID) bool {
+func (sabft *SABFT) checkCommittedAlready(id common.BlockID) bool {
 	lastCommitted := sabft.lastCommitted.Load()
 	if lastCommitted != nil {
 		oldID := common.BlockID{
@@ -648,42 +649,51 @@ func (sabft *SABFT) CheckCommittedAlready(id common.BlockID) bool {
 
 func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 	//sabft.log.Warn("handleCommitRecords: ", records.ProposedData, records.Address)
-	if err := records.ValidateBasic(); err != nil {
-		sabft.log.Error(err)
-		return
-	}
-
-	if !sabft.readyToProduce {
-		sabft.cp.AcceptCheckPoint(records)
+	if records == nil {
 		return
 	}
 
 	// make sure we haven't committed it already
-	newID := common.BlockID{
-		Data: records.ProposedData,
-	}
-	if sabft.CheckCommittedAlready(newID) {
+	newID := ExtractBlockID(records)
+	if sabft.checkCommittedAlready(newID) {
 		return
 	}
 
-	// if we're a validator, pass it to gobft so that it can catch up
-	if sabft.IsValidator(message.PubKey(sabft.Name)) {
-		sabft.log.Warn("pass commits to gobft ", records.ProposedData)
-		sabft.bft.RecvMsg(records)
+	if !sabft.cp.Add(records) {
 		return
 	}
 
-	// make sure we have the block about to be committed
-	if sabft.ForkDB.Empty() || sabft.ForkDB.Head().Id().BlockNum() < newID.BlockNum() {
-		return
-	}
+	checkPoint := records
+	for {
+		if checkPoint == nil {
+			break
+		}
+		newID = ExtractBlockID(checkPoint)
+		if !sabft.cp.IsNextCheckPoint(checkPoint) {
+			return
+		}
+		sabft.log.Debug("reach checkpoint at ", checkPoint.ProposedData)
 
-	// check signature
-	if !sabft.VerifyCommitSig(records) {
-		return
-	}
+		// if we're a validator, pass it to gobft so that it can catch up
+		if sabft.isValidator(sabft.Name) {
+			sabft.log.Warn("pass commits to gobft ", checkPoint.ProposedData)
+			sabft.bft.RecvMsg(checkPoint)
+			return
+		}
 
-	sabft.Commit(records)
+		if !sabft.cp.Validate(checkPoint) {
+			sabft.log.Error("validation on checkpoint failed")
+			return
+		}
+		if _, err := sabft.ForkDB.FetchBlock(newID); err == nil {
+			if err = sabft.commit(checkPoint); err == nil {
+				sabft.cp.Flush()
+				checkPoint = sabft.cp.NextUncommitted()
+				continue
+			}
+		}
+		break
+	}
 }
 
 func (sabft *SABFT) validateProducer(b common.ISignedBlock) bool {
@@ -854,10 +864,21 @@ func (sabft *SABFT) Commit(commitRecords *message.Commit) error {
 	sabft.Lock()
 	defer sabft.Unlock()
 
+	if !sabft.cp.Add(commitRecords) {
+		// it might be out of range or already exist
+		// TODO: if it's aout of range, return
+	}
 	err := sabft.commit(commitRecords)
 	if err == nil {
-		sabft.cp.Make(commitRecords)
+		sabft.cp.Flush()
+		return nil
 	}
+	if err == ErrCommittingNonExistBlock {
+		// wait for the block to arrive
+	} else {
+		panic(err)
+	}
+
 	return err
 }
 
@@ -1295,6 +1316,13 @@ func (sabft *SABFT) ResetTicker(ts time.Time) {
 
 func (sabft *SABFT) MaybeProduceBlock() {
 	defer sabft.prodTimer.Reset(sabft.timeToNextSec())
+	defer func(){
+		sabft.RLock()
+		if sabft.cp.HasDanglingCheckPoint() {
+			// TODO: fetch missing checkpoints
+		}
+		sabft.RUnlock()
+	}()
 
 	sabft.RLock()
 	if !sabft.scheduleProduce() {

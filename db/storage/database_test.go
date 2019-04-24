@@ -40,20 +40,9 @@ func requireSuccessDel(t *testing.T, db Database, key []byte) {
 	}
 }
 
-func requireIteratorKeyValue(t *testing.T, it Iterator, key []byte, value []byte) {
-	data, err := it.Key()
-	if err != nil {
-		t.Fatalf("Failed Iterator.Key, key=%v, err: %v", string(key), err)
-	}
-	if bytes.Compare(data, key) != 0 {
-		t.Fatalf("Incorrect Iterator Key, got %v, expecting %v", string(data), string(key))
-	}
-	data, err = it.Value()
-	if err != nil {
-		t.Fatalf("Failed Iterator.Value, key=%v, err: %v", string(key), err)
-	}
-	if bytes.Compare(data, value) != 0 {
-		t.Fatalf("Incorrect Iterator Value, got %v, expecting %v", string(data), string(value))
+func requireEqual(t *testing.T, actual []byte, expected []byte) {
+	if bytes.Compare(actual, expected) != 0 {
+		t.Fatalf("got %v, expecting %v", string(actual), string(expected))
 	}
 }
 
@@ -91,24 +80,45 @@ func dbTest(t *testing.T, db Database) {
 	requireSuccessPut(t, db, []byte("key_five"), []byte("value_five"))
 
 	// range scan for key_five, key_four, key_one. key_three is filtered by limit "key_s"
-	it := db.NewIterator([]byte("key_"), []byte("key_s"))
-	it.Next()
-	requireIteratorKeyValue(t, it, []byte("key_five"), []byte("value_five"))
-	it.Next()
-	requireIteratorKeyValue(t, it, []byte("key_four"), []byte("value_four"))
-	it.Next()
-	requireIteratorKeyValue(t, it, []byte("key_one"), []byte("value_one"))
-	db.DeleteIterator(it)
+	idx := 0
+	db.Iterate([]byte("key_"), []byte("key_s"), false, func(key, value []byte) bool {
+		switch idx {
+		case 0:
+			requireEqual(t, key, []byte("key_five"))
+			requireEqual(t, value, []byte("value_five"))
+		case 1:
+			requireEqual(t, key, []byte("key_four"))
+			requireEqual(t, value, []byte("value_four"))
+		case 2:
+			requireEqual(t, key, []byte("key_one"))
+			requireEqual(t, value, []byte("value_one"))
+		}
+		idx++
+		return true
+	})
+	if idx < 3 {
+		t.Fatalf("iteration loops should >=3, actual loops=%d", idx)
+	}
 
-	// reversed range scan
-	itRev := db.NewReversedIterator([]byte("key_"), []byte("key_s"))
-	itRev.Next()
-	requireIteratorKeyValue(t, itRev, []byte("key_one"), []byte("value_one"))
-	itRev.Next()
-	requireIteratorKeyValue(t, itRev, []byte("key_four"), []byte("value_four"))
-	itRev.Next()
-	requireIteratorKeyValue(t, itRev, []byte("key_five"), []byte("value_five"))
-	db.DeleteIterator(itRev)
+	idx = 0
+	db.Iterate([]byte("key_"), []byte("key_s"), true, func(key, value []byte) bool {
+		switch idx {
+		case 0:
+			requireEqual(t, key, []byte("key_one"))
+			requireEqual(t, value, []byte("value_one"))
+		case 1:
+			requireEqual(t, key, []byte("key_four"))
+			requireEqual(t, value, []byte("value_four"))
+		case 2:
+			requireEqual(t, key, []byte("key_five"))
+			requireEqual(t, value, []byte("value_five"))
+		}
+		idx++
+		return true
+	})
+	if idx < 3 {
+		t.Fatalf("iteration loops should >=3, actual loops=%d", idx)
+	}
 
 	// batch of deletions and puts
 	b := db.NewBatch()
@@ -158,19 +168,6 @@ func TestLevelDatabase(t *testing.T) {
 	defer db.Close()
 
 	dbTest(t, db)
-}
-
-func TestNamespace(t *testing.T) {
-	db := NewMemoryDatabase()
-	defer db.Close()
-
-	alice := NewNamespace(db, "alice")
-	defer alice.Close()
-	dbTest(t, alice)
-
-	bob := NewNamespace(db, "bob")
-	defer bob.Close()
-	dbTest(t, bob)
 }
 
 func TestTransactionalDatabase(t *testing.T) {
@@ -246,12 +243,11 @@ func dbTestTransactionFeature(t *testing.T, db TrxDatabase, dirtyRead bool) {
 		requireSuccessGet(t, db, []byte("key_one"), []byte("value_one"))
 	}
 
-	it := db.NewIterator(nil, nil)
 	s := ""
-	for it.Next() {
-		k, _ := it.Key()
-		s += string(k) + "."
-	}
+	db.Iterate(nil, nil, false, func(key, value []byte) bool {
+		s += string(key) + "."
+		return true
+	})
 	if dirtyRead {
 		if s != "key_three.key_two." {
 			t.Fatalf("iteration failed")
