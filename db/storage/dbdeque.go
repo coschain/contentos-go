@@ -190,3 +190,20 @@ func (dq *dbDeque) NewBatch() Batch {
 func (dq *dbDeque) DeleteBatch(b Batch) {
 	dq.writerDB().DeleteBatch(b)
 }
+
+func (dq *dbDeque) hashOfSession(idx int) (hash uint32) {
+	if idx >= 0 && idx < len(dq.sessions) {
+		hash = dq.sessions[idx].Hash()
+	}
+	return
+}
+
+func (dq *dbDeque) HashOfTopSession() (hash uint32) {
+	dq.lock.RLock()
+	defer dq.lock.Unlock()
+
+	if count := len(dq.sessions); count > 1 {
+		hash = dq.hashOfSession(count - 1)
+	}
+	return
+}

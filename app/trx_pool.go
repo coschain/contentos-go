@@ -715,6 +715,17 @@ func (c *TrxPool) validateBlockHeader(blk *prototype.SignedBlock) {
 		panic("ValidateSig error")
 	}
 
+	ver, hash := c.iceberg.LatestBlockApplyHash()
+	bVer, bHash := common.UnpackBlockApplyHash(blk.SignedHeader.Header.PrevApplyHash)
+	if ver != bVer {
+		c.log.Warnf("BlockApplyHash: version mismatch. block %d (by %s): %08x, me: %08x",
+			blk.SignedHeader.Number(), blk.SignedHeader.Header.Witness.Value, bVer, ver)
+	} else if hash != bHash {
+		c.log.Errorf("BlockApplyHashError: block %d (by %s): %08x, me: %08x",
+			blk.SignedHeader.Number(), blk.SignedHeader.Header.Witness.Value, bHash, hash)
+		panic("block apply hash not equal")
+	}
+
 	// witness schedule check
 	/*
 		nextSlot := c.GetIncrementSlotAtTime(blk.SignedHeader.Header.Timestamp)

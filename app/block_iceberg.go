@@ -3,15 +3,19 @@ package app
 import (
 	"errors"
 	"fmt"
+	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/sirupsen/logrus"
 	"strconv"
 	"sync"
+	"sync/atomic"
 )
 
 const (
 	GENESIS_TAG = "after_init_genesis"
 )
+
+var keyLatestBlockApplyChecksum = []byte("__latest_block_apply_checksum__")
 
 // block number -> string
 func blockNumberToString(blockNum uint64) string {
@@ -39,6 +43,7 @@ type BlockIceberg struct {
 	finalized     uint64                     // the last finalized block number
 	seaLevel      uint64                     // the oldest in-memory block
 	highWM, lowWM uint64                     // the high/low watermark of in-memory block count
+	lastBlockApplyHash uint64
 }
 
 // NewBlockIceberg() returns an instance of block iceberg.
@@ -58,7 +63,7 @@ func NewBlockIceberg(db iservices.IDatabaseService, logger *logrus.Logger) *Bloc
 	if !hasFinalized {
 		finalized = 0
 	}
-	return &BlockIceberg{
+	berg := &BlockIceberg{
 		db:           db,
 		log:          logger,
 		inProgress:   false,
@@ -69,6 +74,8 @@ func NewBlockIceberg(db iservices.IDatabaseService, logger *logrus.Logger) *Bloc
 		highWM:       defaultBlockIcebergHighWM,
 		lowWM:        defaultBlockIcebergLowWM,
 	}
+	berg.loadBlockApplyHash()
+	return berg
 }
 
 func (b *BlockIceberg) BeginBlock(blockNum uint64) error {
@@ -111,6 +118,8 @@ func (b *BlockIceberg) EndBlock(commit bool) error {
 			b.log.Errorf("ICEBERG: EndBlock commit error: %s", err.Error())
 		}
 		b.next--
+	} else {
+		b.saveBlockApplyHash(common.PackBlockApplyHash(b.db.HashOfTopTransaction()))
 	}
 	b.inProgress = false
 	b.log.Debugf("ICEBERG: EndBlock(%v) end. finalized=%d, sealevel=%d, next=%d", commit, b.finalized, b.seaLevel, b.next)
@@ -165,6 +174,7 @@ func (b *BlockIceberg) RevertBlock(blockNum uint64) error {
 		}
 		b.seaLevel = blockNum
 	}
+	b.loadBlockApplyHash()
 	b.next = blockNum
 	b.log.Debugf("ICEBERG: RevertBlock %d end. finalized=%d, sealevel=%d, next=%d", blockNum, b.finalized, b.seaLevel, b.next)
 	return nil
@@ -262,4 +272,22 @@ func (b *BlockIceberg) LatestBlock() (blockNum uint64, inProgress bool, err erro
 		return b.next - 1, b.inProgress, nil
 	}
 	return 0, false, nil
+}
+
+func (b *BlockIceberg) loadBlockApplyHash() {
+	bah, _ := b.db.Get(keyLatestBlockApplyChecksum)
+	if h, err := strconv.ParseUint(string(bah), 16, 64); err == nil {
+		atomic.StoreUint64(&b.lastBlockApplyHash, h)
+	} else {
+		atomic.StoreUint64(&b.lastBlockApplyHash, 0)
+	}
+}
+
+func (b *BlockIceberg) saveBlockApplyHash(hash uint64) {
+	_ = b.db.Put(keyLatestBlockApplyChecksum, []byte(strconv.FormatUint(hash, 16)))
+	atomic.StoreUint64(&b.lastBlockApplyHash, hash)
+}
+
+func (b *BlockIceberg) LatestBlockApplyHash() (version, hash uint32) {
+	return common.UnpackBlockApplyHash(atomic.LoadUint64(&b.lastBlockApplyHash))
 }

@@ -80,6 +80,7 @@ message block_header{
     time_point_sec timestamp = 2;
     account_name witness = 3;
     sha256 transaction_merkle_root = 4;
+    uint64 prev_apply_hash = 5;
 }
 
 message signed_block_header{
