@@ -22,74 +22,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-/********* implements gobft IPubValidator ***********/
-
-type publicValidator struct {
-	sab         *SABFT
-	accountName string
-}
-
-func (sabft *SABFT) timeToNextSec() time.Duration {
-	now := sabft.Ticker.Now()
-	ceil := now.Add(time.Millisecond * 500).Round(time.Second)
-	return ceil.Sub(now)
-}
-
-func (pv *publicValidator) VerifySig(digest, signature []byte) bool {
-	// Warning: DO NOT remove the lock unless you know what you're doing
-	pv.sab.RLock()
-	defer pv.sab.RUnlock()
-
-	return pv.verifySig(digest, signature)
-}
-
-func (pv *publicValidator) verifySig(digest, signature []byte) bool {
-	acc := &prototype.AccountName{
-		Value: pv.accountName,
-	}
-	return pv.sab.ctrl.VerifySig(acc, digest, signature)
-}
-
-func (pv *publicValidator) GetPubKey() message.PubKey {
-	return message.PubKey(pv.accountName)
-}
-
-func (pv *publicValidator) GetVotingPower() int64 {
-	return 1
-}
-
-func (pv *publicValidator) SetVotingPower(int64) {
-
-}
-
-/********* end gobft IPubValidator ***********/
-
-/********* implements gobft IPrivValidator ***********/
-
-type privateValidator struct {
-	sab     *SABFT
-	privKey *prototype.PrivateKeyType
-	name    string
-}
-
-func (pv *privateValidator) Sign(digest []byte) []byte {
-	// Warning: DO NOT remove the lock unless you know what you're doing
-	pv.sab.RLock()
-	defer pv.sab.RUnlock()
-
-	return pv.sign(digest)
-}
-
-func (pv *privateValidator) sign(digest []byte) []byte {
-	return pv.sab.ctrl.Sign(pv.privKey, digest)
-}
-
-func (pv *privateValidator) GetPubKey() message.PubKey {
-	return message.PubKey(pv.name)
-}
-
-/********* end gobft IPrivValidator ***********/
-
 // SABFT: self-adaptive BFT
 // It generates blocks in the same manner of DPoS and adopts bft
 // to achieve fast block confirmation. It's self adaptive in a way
@@ -1176,73 +1108,6 @@ func (sabft *SABFT) FetchBlocks(from, to uint64) ([]common.ISignedBlock, error) 
 	return fetchBlocks(from, to, sabft.ForkDB, &sabft.blog)
 }
 
-func fetchBlocks(from, to uint64, forkDB *forkdb.DB, blog *blocklog.BLog) ([]common.ISignedBlock, error) {
-	if from > to {
-		return nil, nil
-	}
-
-	if forkDB.Empty() {
-		return nil, ErrEmptyForkDB
-	}
-
-	lastCommitted := forkDB.LastCommitted()
-	lastCommittedNum := lastCommitted.BlockNum()
-	headNum := forkDB.Head().Id().BlockNum()
-
-	if from == 0 {
-		from = 1
-	}
-	if to > headNum {
-		to = headNum
-	}
-
-	forkDBFrom := uint64(0)
-	forkDBTo := to
-	if to >= lastCommittedNum {
-		forkDBFrom = lastCommittedNum
-		if from > forkDBFrom {
-			forkDBFrom = from
-		}
-	}
-
-	blogFrom := uint64(0)
-	if from < lastCommittedNum {
-		blogFrom = from
-	}
-	blogTo := to
-	if blogTo >= lastCommittedNum {
-		blogTo = lastCommittedNum - 1
-	}
-
-	var blocksInForkDB []common.ISignedBlock
-	var err error
-	if forkDBFrom > 0 {
-		blocksInForkDB, err = forkDB.FetchBlocksFromMainBranch(forkDBFrom)
-		if err != nil {
-			// there probably is a new committed block during the execution of this process, just try again
-			return nil, ErrForkDBChanged
-		}
-		if int(forkDBTo-forkDBFrom+1) < len(blocksInForkDB) {
-			blocksInForkDB = blocksInForkDB[:forkDBTo-forkDBFrom+1]
-		}
-	}
-
-	blocksInBlog := make([]common.ISignedBlock, 0, blogTo-blogFrom+1)
-	if blogFrom > 0 {
-		for blogFrom <= blogTo {
-			b := &prototype.SignedBlock{}
-			if err := blog.ReadBlock(b, int64(blogFrom-1)); err != nil {
-				return nil, err
-			}
-
-			blocksInBlog = append(blocksInBlog, b)
-			blogFrom++
-		}
-	}
-
-	return append(blocksInBlog, blocksInForkDB...), nil
-}
-
 func (sabft *SABFT) IsCommitted(id common.BlockID) bool {
 	blockNum := id.BlockNum()
 	b := &prototype.SignedBlock{}
@@ -1427,6 +1292,6 @@ func (sabft *SABFT) handleBlockSync() error {
 	return nil
 }
 
-func (d *SABFT) CheckSyncFinished() bool {
-	return d.readyToProduce
+func (sabft *SABFT) CheckSyncFinished() bool {
+	return sabft.readyToProduce
 }
