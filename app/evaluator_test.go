@@ -429,10 +429,11 @@ func startController(db iservices.IDatabaseService) *TrxPool {
 	c.Open()
 	c.SetShuffle(func(block common.ISignedBlock) {
 	})
-
-	go startGenerateBlock(c)
 	return c
 }
+
+var stopChan = make(chan int,1)
+var tick *time.Ticker
 
 func startGenerateBlock(c *TrxPool) {
 	pre := &prototype.Sha256{Hash: make([]byte, 32)}
@@ -441,16 +442,26 @@ func startGenerateBlock(c *TrxPool) {
 	if err != nil {
 		panic(err)
 	}
+	tick = time.NewTicker(1 * time.Second)
 	for {
-		block,err := c.GenerateAndApplyBlock(constants.COSInitMiner,pre,startTime,pri,0)
-		if err != nil {
-			panic(err)
+		select {
+		case <-stopChan:
+			return
+		case <-tick.C:
+			block,err := c.GenerateAndApplyBlock(constants.COSInitMiner,pre,startTime,pri,0)
+			if err != nil {
+				panic(err)
+			}
+			id := block.Id()
+			pre = &prototype.Sha256{Hash: id.Data[:]}
+			startTime++
 		}
-		time.Sleep(time.Second)
-		id := block.Id()
-		pre = &prototype.Sha256{Hash: id.Data[:]}
-		startTime++
 	}
+}
+
+func stopGenerateBlock() {
+	tick.Stop()
+	stopChan <- 1
 }
 
 func makeCtx() (*node.ServiceContext) {

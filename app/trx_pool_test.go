@@ -48,7 +48,9 @@ func createSigTrxTmp(c *TrxPool, priKey string, step uint32, ops ...interface{})
 		return nil, err
 	}
 
-	tx := &prototype.Transaction{RefBlockNum: 0, RefBlockPrefix: 0,
+	wrap := table.NewSoGlobalWrap(c.db, &constants.GlobalId)
+
+	tx := &prototype.Transaction{RefBlockNum: uint32(wrap.GetProps().HeadBlockNumber), RefBlockPrefix: wrap.GetProps().HeadBlockPrefix,
 		Expiration: &prototype.TimePointSec{UtcSeconds: expire}}
 	for _, op := range ops {
 		tx.AddOperation(op)
@@ -150,8 +152,12 @@ func makeCreateAccountOP(accountName string, pubKey string) (*prototype.AccountC
 func Test_PushTrx(t *testing.T) {
 	// set up controller
 	db := startDB()
-	defer clearDB(db)
+	defer func() {
+		stopGenerateBlock()
+		clearDB(db)
+	}()
 	c := startController(db)
+	go startGenerateBlock(c)
 
 	acop, err := makeCreateAccountOP(accountNameBob, pubKeyBob)
 	if err != nil {
@@ -201,47 +207,6 @@ func Test_PushBlock(t *testing.T) {
 	bobName := &prototype.AccountName{Value: accountNameBob}
 	bobWrap := table.NewSoAccountWrap(db, bobName)
 	if !bobWrap.CheckExist() {
-		t.Error("create account failed")
-	}
-}
-
-func TestController_GenerateAndApplyBlock(t *testing.T) {
-	createOP, err := makeCreateAccountOP(accountNameBob, pubKeyBob)
-	if err != nil {
-		t.Error("makeCreateAccountOP error:", err)
-	}
-	// set up controller
-	db := startDB()
-	defer clearDB(db)
-	c := startController(db)
-
-	signedTrx, err := createSigTrx(c, constants.InitminerPrivKey, createOP)
-	if err != nil {
-		t.Error("createSigTrx error:", err)
-	}
-
-	invoice := c.PushTrx(signedTrx)
-	if invoice.Status != prototype.StatusSuccess {
-		t.Error("PushTrx return status error:", invoice.Status)
-	}
-
-	bobName := &prototype.AccountName{Value: accountNameBob}
-	bobWrap := table.NewSoAccountWrap(db, bobName)
-	if !bobWrap.CheckExist() {
-		t.Error("create account failed")
-	}
-
-	pri, err := prototype.PrivateKeyFromWIF(constants.InitminerPrivKey)
-	if err != nil {
-		t.Error("PrivateKeyFromWIF error")
-	}
-
-	pre := &prototype.Sha256{Hash: make([]byte, 32)}
-	block, err := c.GenerateAndApplyBlock(constants.COSInitMiner, pre, 18, pri, 0)
-	dgpWrap := table.NewSoGlobalWrap(db, &constants.GlobalId)
-	mustSuccess(block.Id().BlockNum() == dgpWrap.GetProps().HeadBlockNumber, "block number error")
-	bobWrap2 := table.NewSoAccountWrap(db, bobName)
-	if !bobWrap2.CheckExist() {
 		t.Error("create account failed")
 	}
 }
@@ -403,19 +368,19 @@ func TestController_Commit(t *testing.T) {
 		t.Error("commit error")
 	}
 
-	defer func() {
-		if err := recover(); err == nil {
-			t.Error("pop a irreversible block but no panic")
-		}
-	}()
-	c.PopBlock(1)
+	err = c.PopBlock(1)
+	if err == nil {
+		t.Error("pop a irreversible block but no error")
+	}
 }
 
 func Test_MixOp(t *testing.T) {
 
 	db := startDB()
 	defer clearDB(db)
+	defer stopGenerateBlock()
 	c := startController(db)
+	go startGenerateBlock(c)
 
 	// deploy contract
 	data, _ := ioutil.ReadFile("./test_data/hello.wasm")
@@ -492,8 +457,12 @@ func Test_MixOp(t *testing.T) {
 
 func Test_Stake_UnStake(t *testing.T) {
 	db := startDB()
-	defer clearDB(db)
+	defer func() {
+		stopGenerateBlock()
+		clearDB(db)
+	}()
 	c := startController(db)
+	go startGenerateBlock(c)
 
 	wraper := table.NewSoAccountWrap(db, prototype.NewAccountName(constants.COSInitMiner))
 	if wraper.GetStakeVesting().Value != 0 {
@@ -530,7 +499,8 @@ func Test_Stake_UnStake(t *testing.T) {
 		t.Error("createSigTrx error:", err)
 	}
 
-	addGlobalTime(db, constants.WindowSize*3+1)
+	// trick time, made a time valid trx first, then mod global time to let freeze time over
+	addGlobalTime(db, constants.StakeFreezeTime+1)
 
 	invoice2 := c.PushTrx(signedTrx2)
 	if invoice2.Status != prototype.StatusSuccess {
@@ -544,7 +514,7 @@ func Test_Stake_UnStake(t *testing.T) {
 	// stake wrong amount
 	stakeOp2 := &prototype.StakeOperation{
 		Account: prototype.NewAccountName(constants.COSInitMiner),
-		Amount:  10000000001,
+		Amount:  constants.COSInitSupply + 1,
 	}
 
 	signedTrx3, err := createSigTrx(c, constants.InitminerPrivKey, stakeOp2)
@@ -576,8 +546,12 @@ func Test_Stake_UnStake(t *testing.T) {
 
 func Test_StakeFreezeTime(t *testing.T) {
 	db := startDB()
-	defer clearDB(db)
+	defer func() {
+		stopGenerateBlock()
+		clearDB(db)
+	}()
 	c := startController(db)
+	go startGenerateBlock(c)
 
 	wraper := table.NewSoAccountWrap(db, prototype.NewAccountName(constants.COSInitMiner))
 	if wraper.GetStakeVesting().Value != 0 {
@@ -604,9 +578,20 @@ func Test_StakeFreezeTime(t *testing.T) {
 	}
 
 	// unstake after freeze
-	addGlobalTime(db, constants.WindowSize*3+1)
 
-	invoice2 := c.PushTrx(signedTrx)
+	unStakeOp2 := &prototype.UnStakeOperation{
+		Account: prototype.NewAccountName(constants.COSInitMiner),
+		Amount:  2,
+	}
+	signedTrx2, err := createSigTrx(c, constants.InitminerPrivKey, unStakeOp2)
+
+	// trick time, made a time valid trx first, then mod global time to let freeze time over
+	addGlobalTime(db, constants.StakeFreezeTime+1)
+
+	if err != nil {
+		t.Error("createSigTrx error:", err)
+	}
+	invoice2 := c.PushTrx(signedTrx2)
 	if invoice2.Status != prototype.StatusSuccess {
 		t.Error("PushTrx return status error:", invoice2.Status)
 	}
@@ -615,8 +600,12 @@ func Test_StakeFreezeTime(t *testing.T) {
 func Test_Consume1(t *testing.T) {
 	// set up controller
 	db := startDB()
-	defer clearDB(db)
+	defer func() {
+		stopGenerateBlock()
+		clearDB(db)
+	}()
 	c := startController(db)
+	go startGenerateBlock(c)
 
 	var value uint64 = 10000000
 	ok := create_and_transfer(c, accountNameBob, pubKeyBob, value)
@@ -643,12 +632,14 @@ func Test_Consume1(t *testing.T) {
 		Amount:  value,
 	}
 
-	addGlobalTime(db, constants.WindowSize*3+1)
-
 	signedTrx3, err := createSigTrx(c, priKeyBob, unStakeOp)
 	if err != nil {
 		t.Error("createSigTrx error:", err)
 	}
+
+	// trick time, made a time valid trx first, then mod global time to let freeze time over
+	addGlobalTime(db, constants.StakeFreezeTime+1)
+
 	invoice3 := c.PushTrx(signedTrx3)
 	if invoice3.Status != prototype.StatusSuccess {
 		t.Error("PushTrx return status error:", invoice3.Status)
@@ -661,8 +652,12 @@ func Test_Consume1(t *testing.T) {
 func Test_Recover1(t *testing.T) {
 	// set up controller
 	db := startDB()
-	defer clearDB(db)
+	defer func() {
+		stopGenerateBlock()
+		clearDB(db)
+	}()
 	c := startController(db)
+	go startGenerateBlock(c)
 
 	var value uint64 = 10000000
 	ok := create_and_transfer(c, accountNameBob, pubKeyBob, value)
@@ -715,8 +710,12 @@ func Test_Recover1(t *testing.T) {
 func Test_Consume2(t *testing.T) {
 	// set up controller
 	db := startDB()
-	defer clearDB(db)
+	defer func() {
+		stopGenerateBlock()
+		clearDB(db)
+	}()
 	c := startController(db)
+	go startGenerateBlock(c)
 
 	var value uint64 = 1000000
 	if ok := create_and_transfer(c, accountNameBob, pubKeyBob, value); !ok {
@@ -828,8 +827,12 @@ func stake(c *TrxPool, name string, prikey string, value uint64) bool {
 
 func Test_TrxSize(t *testing.T) {
 	db := startDB()
-	defer clearDB(db)
+	defer func() {
+		stopGenerateBlock()
+		clearDB(db)
+	}()
 	c := startController(db)
+	go startGenerateBlock(c)
 
 	createOP, err := makeCreateAccountOP(accountNameBob, pubKeyBob)
 	if err != nil {
@@ -945,8 +948,12 @@ func Test_TrxSize(t *testing.T) {
 func Test_Gas(t *testing.T) {
 
 	db := startDB()
-	defer clearDB(db)
+	defer func() {
+		stopGenerateBlock()
+		clearDB(db)
+	}()
 	c := startController(db)
+	go startGenerateBlock(c)
 
 	//
 	miner := &prototype.AccountName{Value: "initminer"}
@@ -975,13 +982,13 @@ func Test_Gas(t *testing.T) {
 		t.Error("PushTrx return status error:", invoice.Status)
 	}
 
-	pri, err := prototype.PrivateKeyFromWIF(constants.InitminerPrivKey)
-	if err != nil {
-		t.Error("PrivateKeyFromWIF error")
-	}
-	pre := &prototype.Sha256{Hash: make([]byte, 32)}
-	headBlockTime := 18
-	block1, err := c.GenerateAndApplyBlock(constants.COSInitMiner, pre, uint32(headBlockTime), pri, 0)
+	//pri, err := prototype.PrivateKeyFromWIF(constants.InitminerPrivKey)
+	//if err != nil {
+//		t.Error("PrivateKeyFromWIF error")
+//	}
+	//pre := &prototype.Sha256{Hash: make([]byte, 32)}
+	//headBlockTime := 18
+	//block1, err := c.GenerateAndApplyBlock(constants.COSInitMiner, pre, uint32(headBlockTime), pri, 0)
 
 	//
 	s1 := minerWrap.GetStamina() + minerWrap.GetStaminaFree()
@@ -999,25 +1006,25 @@ func Test_Gas(t *testing.T) {
 	}
 
 	// call contract repeated
-	headBlockTime = 21
-	for i := 0; i < 50; i++ {
-		headBlockTime += i
+	headBlockTime := 0
+	for i := 0; i < 4; i++ {
+		headBlockTime += 1
 		signedTrx2, err := createSigTrxTmp(c, constants.InitminerPrivKey, uint32(headBlockTime), applyOp)
 		if err != nil {
 			t.Error("createSigTrx error:", err)
 		}
 		invoice2 := c.PushTrx(signedTrx2)
 		if invoice2.Status != prototype.StatusSuccess && invoice2.Status != prototype.StatusDeductGas {
-			t.Error("PushTrx return status error:", invoice2.Status)
+			t.Error("PushTrx return status error:", invoice2.Status," info:",invoice2.ErrorInfo)
 		}
 	}
 
-	headBlockTime = 21
-	id := block1.Id()
-	pre = &prototype.Sha256{Hash: id.Data[:]}
-	block2, err := c.GenerateAndApplyBlock(constants.COSInitMiner, pre, uint32(headBlockTime), pri, 0)
+	//headBlockTime = 21
+	//id := block1.Id()
+	//pre = &prototype.Sha256{Hash: id.Data[:]}
+	//block2, err := c.GenerateAndApplyBlock(constants.COSInitMiner, pre, uint32(headBlockTime), pri, 0)
 	fmt.Println()
-	fmt.Println("block size:", len(block2.Transactions))
+	//fmt.Println("block size:", len(block2.Transactions))
 	//
 	s2 := minerWrap.GetStamina() + minerWrap.GetStaminaFree()
 	t.Log("after call contract initminer stamina use:", s2)
@@ -1027,8 +1034,12 @@ func Test_Gas(t *testing.T) {
 func Test_Transfer(t *testing.T) {
 
 	db := startDB()
-	defer clearDB(db)
+	defer func() {
+		stopGenerateBlock()
+		clearDB(db)
+	}()
 	c := startController(db)
+	go startGenerateBlock(c)
 
 	//
 	miner := &prototype.AccountName{Value: "initminer"}
@@ -1101,14 +1112,14 @@ func Test_Transfer(t *testing.T) {
 	}
 
 	// call contract repeated
-	for i := 0; i < 1800; i++ { // 1800 is trx max expiration limit
+	for i := 0; i < 3; i++ { // 1800 is trx max expiration limit
 		signedTrx2, err := createSigTrxTmp(c, constants.InitminerPrivKey, uint32(i+1), applyOp)
 		if err != nil {
 			t.Error("createSigTrx error:", err)
 		}
 		invoice2 := c.PushTrx(signedTrx2)
 		if invoice2.Status != prototype.StatusSuccess && invoice2.Status != prototype.StatusDeductGas {
-			t.Error("PushTrx return status error:", invoice2.Status)
+			t.Error("PushTrx return status error:", invoice2.Status," info:",invoice2.ErrorInfo)
 		}
 	}
 
