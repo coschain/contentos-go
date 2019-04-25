@@ -110,7 +110,7 @@ func (cp *BFTCheckPoint) Add(commit *message.Commit) bool {
 		return false
 	}
 	cp.cache[prev] = commit
-	if cp.lastCommitted == common.EmptyBlockID && cp.lastCommitted == prev {
+	if cp.lastCommitted == prev {
 		cp.nextCP = blockID
 	}
 	cp.sabft.log.Info("CheckPoint added", commit.ProposedData)
@@ -119,6 +119,18 @@ func (cp *BFTCheckPoint) Add(commit *message.Commit) bool {
 
 func (cp *BFTCheckPoint) HasDanglingCheckPoint() bool {
 	return cp.NextUncommitted() == nil && len(cp.cache) > 0
+}
+
+// (from, to)
+// @from is the last committed checkpoint
+// @to is any of the dangling uncommitted checkpoints
+// Only call it if HasDanglingCheckPoint returns true
+func (cp *BFTCheckPoint) MissingRange() (from, to uint64) {
+	var v *message.Commit
+	for _, v = range cp.cache {
+		break
+	}
+	return cp.lastCommitted.BlockNum(), ExtractBlockID(v).BlockNum()
 }
 
 func (cp *BFTCheckPoint) NextUncommitted() *message.Commit {

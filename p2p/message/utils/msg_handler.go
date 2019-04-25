@@ -617,19 +617,6 @@ func (p *MsgHandler) IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 			}
 			sigBlk := IsigBlk.(*prototype.SignedBlock)
 
-			commitEvidence := ctrl.GetNextBFTCheckPoint(sigBlk.Id().BlockNum() - 1)
-			if commitEvidence != nil {
-				bftCommit := &msgTypes.ConsMsg{
-					MsgData: commitEvidence.(*message.Commit),
-				}
-				err = p2p.Send(remotePeer, bftCommit, false)
-				if err != nil {
-					log.Error("[p2p] send message error: ", err)
-					return
-				}
-				log.Info("[p2p] send checkpoint message, start block number: ", blkId.BlockNum())
-			}
-
 			msg := msgpack.NewSigBlk(sigBlk)
 			err = p2p.Send(remotePeer, msg, false)
 			if err != nil {
@@ -784,18 +771,6 @@ func (p *MsgHandler) ReqIdHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 		return
 	}
 	//log.Info("[p2p] send a message to:   v%   data:   v%\n", remotePeer, reqmsg)
-
-	commitEvidence := ctrl.GetNextBFTCheckPoint(remote_head_blk_id.BlockNum())
-	if commitEvidence != nil {
-		bftCommit := &msgTypes.ConsMsg{
-			MsgData: commitEvidence.(*message.Commit),
-		}
-		err = p2p.Send(remotePeer, bftCommit, false)
-		if err != nil {
-			log.Error("[p2p] send message error: ", err)
-			return
-		}
-	}
 }
 
 func (p *MsgHandler) ConsMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
@@ -837,17 +812,42 @@ func (p *MsgHandler) RequestCheckpointBatchHandle(data *msgTypes.MsgPayload, p2p
 
 	log.Info("start checkpoint number: ", msgdata.Start, " end checkpoint number: ", msgdata.End)
 
-	//s, err := p2p.GetService(iservices.ConsensusServerName)
-	//if err != nil {
-	//	log.Error("[p2p] can't get other service, service name: ", iservices.ConsensusServerName)
-	//	return
-	//}
-	//ctrl := s.(iservices.IConsensus)
+	s, err := p2p.GetService(iservices.ConsensusServerName)
+	if err != nil {
+		log.Error("[p2p] can't get other service, service name: ", iservices.ConsensusServerName)
+		return
+	}
+	ctrl := s.(iservices.IConsensus)
 
 	startNum := msgdata.Start
 	endNum := msgdata.End
-
 	if endNum-startNum > msgCommon.MAX_ID_LENGTH {
 		endNum = startNum + msgCommon.MAX_ID_LENGTH
+	}
+	log.Infof("RequestCheckpointBatchHandle from %d to %d", startNum, endNum)
+	for {
+		if startNum >= endNum {
+			return
+		}
+		cp := ctrl.GetNextBFTCheckPoint(startNum)
+		if cp == nil {
+			return
+		}
+		bftCommitCP := &msgTypes.ConsMsg{
+			MsgData: cp.(*message.Commit),
+		}
+		err = p2p.Send(remotePeer, bftCommitCP, false)
+		if err != nil {
+			log.Error("[p2p] send message error: ", err)
+			return
+		}
+		log.Debug("sending cp ", ExtractBlockID(cp.(*message.Commit)).BlockNum())
+		startNum = ExtractBlockID(cp.(*message.Commit)).BlockNum()
+	}
+}
+
+func ExtractBlockID(commit *message.Commit) common.BlockID {
+	return common.BlockID{
+		Data: commit.ProposedData,
 	}
 }

@@ -478,6 +478,7 @@ func (this *P2PServer) FetchUnlinkedBlock(prevId coomn.BlockID) {
 }
 
 func (this *P2PServer) RequestCheckpoint(startNum, endNum uint64) {
+	this.log.Infof("RequestCheckpoint from %d to %d", startNum, endNum)
 	reqmsg := msgpack.NewCheckpointBatchMsg(startNum, endNum)
 
 	np := this.Network.GetNp()

@@ -249,7 +249,7 @@ func (sabft *SABFT) shuffle(head common.ISignedBlock) {
 
 	sabft.suffledID = head.Id()
 
-	if sabft.readyToProduce && prodNum >= 3 && sabft.isValidator(sabft.Name) {
+	if sabft.readyToProduce && prodNum >= 1 && sabft.isValidator(sabft.Name) {
 		if atomic.LoadUint32(&sabft.bftStarted) == 0 {
 			//sabft.Unlock()
 			sabft.bft.Start()
@@ -1319,7 +1319,10 @@ func (sabft *SABFT) MaybeProduceBlock() {
 	defer func(){
 		sabft.RLock()
 		if sabft.cp.HasDanglingCheckPoint() {
-			// TODO: fetch missing checkpoints
+			// fetch missing checkpoints
+			from, to := sabft.cp.MissingRange()
+			//sabft.log.Debugf("[SABFT] RequestCheckpoint from %d to %d", from, to)
+			go sabft.p2p.RequestCheckpoint(from, to)
 		}
 		sabft.RUnlock()
 	}()
