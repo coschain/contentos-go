@@ -131,7 +131,7 @@ func (t *TrxMysqlService) Start(node *node.Node) error {
 				}
 			case <- t.quit:
 				t.stop()
-				break
+				return
 			}
 		}
 	}()
@@ -196,11 +196,11 @@ func (t *TrxMysqlService) handleLibNotification(lib uint64) {
 func (t *TrxMysqlService) stop() {
 	_ = t.outDb.Close()
 	t.ticker.Stop()
-	close(t.quit)
 }
 
 func (t *TrxMysqlService) Stop() error {
 	//t.unhookEvent()
 	t.quit <- true
+	close(t.quit)
 	return nil
 }
