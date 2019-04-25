@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/node"
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app/table"
@@ -428,7 +429,28 @@ func startController(db iservices.IDatabaseService) *TrxPool {
 	c.Open()
 	c.SetShuffle(func(block common.ISignedBlock) {
 	})
+
+	go startGenerateBlock(c)
 	return c
+}
+
+func startGenerateBlock(c *TrxPool) {
+	pre := &prototype.Sha256{Hash: make([]byte, 32)}
+	var startTime uint32 = 0
+	pri, err := prototype.PrivateKeyFromWIF(constants.InitminerPrivKey)
+	if err != nil {
+		panic(err)
+	}
+	for {
+		block,err := c.GenerateAndApplyBlock(constants.COSInitMiner,pre,startTime,pri,0)
+		if err != nil {
+			panic(err)
+		}
+		time.Sleep(time.Second)
+		id := block.Id()
+		pre = &prototype.Sha256{Hash: id.Data[:]}
+		startTime++
+	}
 }
 
 func makeCtx() (*node.ServiceContext) {
