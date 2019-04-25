@@ -29,7 +29,6 @@ type ApplyContext struct {
 	db         iservices.IDatabaseRW
 	control    iservices.IGlobalPropRW
 	vmInjector vminjector.Injector
-	trxCtx	   *TrxContext
 }
 
 type BaseEvaluator interface {

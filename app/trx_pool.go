@@ -393,7 +393,7 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabasePatch, entry *TrxEn
 	result := entry.GetTrxResult()
 	receipt, sigTrx := result.GetReceipt(), result.GetSigTrx()
 
-	trxContext := NewTrxContextWithSigningKey(result, db, entry.GetTrxSigningKey())
+	trxContext := NewTrxContextWithSigningKey(result, db, entry.GetTrxSigningKey(),c)
 //	if c.ctx.Config().ResourceCheck {
 		trxContext.CheckNet(uint64(proto.Size(sigTrx)))
 //	}
@@ -621,8 +621,8 @@ func (c *TrxPool) initGenesis() {
 	mustNoError(newAccountWrap.Create(func(tInfo *table.SoAccount) {
 		tInfo.Name = name
 		tInfo.CreatedTime = &prototype.TimePointSec{UtcSeconds: 0}
-		tInfo.Balance = prototype.NewCoin(constants.COSInitSupply - 1000)
-		tInfo.VestingShares = prototype.NewVest(1000)
+		tInfo.Balance = prototype.NewCoin(constants.COSInitSupply)
+		tInfo.VestingShares = prototype.NewVest(0)
 		tInfo.LastPostTime = &prototype.TimePointSec{UtcSeconds: 0}
 		tInfo.LastVoteTime = &prototype.TimePointSec{UtcSeconds: 0}
 		tInfo.NextPowerdownBlockNum = math.MaxUint32
@@ -630,6 +630,7 @@ func (c *TrxPool) initGenesis() {
 		tInfo.ToPowerdown = &prototype.Vest{Value: 0}
 		tInfo.HasPowerdown = &prototype.Vest{Value: 0}
 		tInfo.Owner = pubKey
+		tInfo.StakeVesting = prototype.NewVest(0)
 	}), "CreateAccount error")
 
 	// create account authority

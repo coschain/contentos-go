@@ -134,7 +134,7 @@ type UnStakeEvaluator struct {
 
 func (ev *AccountCreateEvaluator) Apply() {
 	op := ev.op
-	ev.ctx.trxCtx.RecordGasFee(op.Creator.Value, constants.CommonOpGas)
+	ev.ctx.vmInjector.RecordGasFee(op.Creator.Value, constants.CommonOpGas)
 	creatorWrap := table.NewSoAccountWrap(ev.ctx.db, op.Creator)
 
 	opAssert(creatorWrap.CheckExist(), "creator not exist ")
@@ -182,7 +182,7 @@ func (ev *AccountCreateEvaluator) Apply() {
 
 func (ev *TransferEvaluator) Apply() {
 	op := ev.op
-	ev.ctx.trxCtx.RecordGasFee(op.From.Value, constants.CommonOpGas)
+	ev.ctx.vmInjector.RecordGasFee(op.From.Value, constants.CommonOpGas)
 
 	// @ active_challenged
 	fromWrap := table.NewSoAccountWrap(ev.ctx.db, op.From)
@@ -204,7 +204,7 @@ func (ev *TransferEvaluator) Apply() {
 
 func (ev *PostEvaluator) Apply() {
 	op := ev.op
-	ev.ctx.trxCtx.RecordGasFee(op.Owner.Value, constants.CommonOpGas)
+	ev.ctx.vmInjector.RecordGasFee(op.Owner.Value, constants.CommonOpGas)
 
 	idWrap := table.NewSoPostWrap(ev.ctx.db, &op.Uuid)
 	opAssert(!idWrap.CheckExist(), "post uuid exist")
@@ -250,7 +250,7 @@ func (ev *PostEvaluator) Apply() {
 
 func (ev *ReplyEvaluator) Apply() {
 	op := ev.op
-	ev.ctx.trxCtx.RecordGasFee(op.Owner.Value, constants.CommonOpGas)
+	ev.ctx.vmInjector.RecordGasFee(op.Owner.Value, constants.CommonOpGas)
 
 	cidWrap := table.NewSoPostWrap(ev.ctx.db, &op.Uuid)
 	pidWrap := table.NewSoPostWrap(ev.ctx.db, &op.ParentUuid)
@@ -305,7 +305,7 @@ func (ev *ReplyEvaluator) Apply() {
 // no downvote has been supplied by command, so I ignore it
 func (ev *VoteEvaluator) Apply() {
 	op := ev.op
-	ev.ctx.trxCtx.RecordGasFee(op.Voter.Value, constants.CommonOpGas)
+	ev.ctx.vmInjector.RecordGasFee(op.Voter.Value, constants.CommonOpGas)
 
 	voterWrap := table.NewSoAccountWrap(ev.ctx.db, op.Voter)
 	elapsedSeconds := ev.ctx.control.HeadBlockTime().UtcSeconds - voterWrap.GetLastVoteTime().UtcSeconds
@@ -378,7 +378,7 @@ func (ev *BpRegisterEvaluator) BpInWhiteList(bpName string) bool {
 
 func (ev *BpRegisterEvaluator) Apply() {
 	op := ev.op
-	ev.ctx.trxCtx.RecordGasFee(op.Owner.Value, constants.CommonOpGas)
+	ev.ctx.vmInjector.RecordGasFee(op.Owner.Value, constants.CommonOpGas)
 
 	opAssert(ev.BpInWhiteList(op.Owner.Value), "bp name not in white list")
 
@@ -404,7 +404,7 @@ func (ev *BpUnregisterEvaluator) Apply() {
 
 func (ev *BpVoteEvaluator) Apply() {
 	op := ev.op
-	ev.ctx.trxCtx.RecordGasFee(op.Voter.Value, constants.CommonOpGas)
+	ev.ctx.vmInjector.RecordGasFee(op.Voter.Value, constants.CommonOpGas)
 
 	voterAccount := table.NewSoAccountWrap(ev.ctx.db, op.Voter)
 	voteCnt := voterAccount.GetBpVoteCount()
@@ -442,7 +442,7 @@ func (ev *BpVoteEvaluator) Apply() {
 
 func (ev *FollowEvaluator) Apply() {
 	op := ev.op
-	ev.ctx.trxCtx.RecordGasFee(op.Account.Value, constants.CommonOpGas)
+	ev.ctx.vmInjector.RecordGasFee(op.Account.Value, constants.CommonOpGas)
 
 	acctWrap := table.NewSoAccountWrap(ev.ctx.db, op.Account)
 	opAssert(acctWrap.CheckExist(), "follow account do not exist ")
@@ -453,7 +453,7 @@ func (ev *FollowEvaluator) Apply() {
 
 func (ev *TransferToVestingEvaluator) Apply() {
 	op := ev.op
-	ev.ctx.trxCtx.RecordGasFee(op.From.Value, constants.CommonOpGas)
+	ev.ctx.vmInjector.RecordGasFee(op.From.Value, constants.CommonOpGas)
 
 	fidWrap := table.NewSoAccountWrap(ev.ctx.db, op.From)
 	tidWrap := table.NewSoAccountWrap(ev.ctx.db, op.To)
@@ -475,7 +475,7 @@ func (ev *TransferToVestingEvaluator) Apply() {
 
 func (ev *ConvertVestingEvaluator) Apply() {
 	op := ev.op
-	ev.ctx.trxCtx.RecordGasFee(op.From.Value, constants.CommonOpGas)
+	ev.ctx.vmInjector.RecordGasFee(op.From.Value, constants.CommonOpGas)
 
 	accWrap := table.NewSoAccountWrap(ev.ctx.db, op.From)
 	opAssert(accWrap.CheckExist(), "account do not exist")
@@ -583,7 +583,7 @@ func mergeTags(existed []int32, new []prototype.ReportOperationTag) []int32 {
 
 func (ev *ReportEvaluator) Apply() {
 	op := ev.op
-	ev.ctx.trxCtx.RecordGasFee(op.Reporter.Value, constants.CommonOpGas)
+	ev.ctx.vmInjector.RecordGasFee(op.Reporter.Value, constants.CommonOpGas)
 	post := table.NewSoPostWrap(ev.ctx.db, &op.Reported)
 	opAssert(post.CheckExist(), "the reported post doesn't exist")
 	report := table.NewSoReportListWrap(ev.ctx.db, &op.Reported)
@@ -654,7 +654,7 @@ func (ev *ReportEvaluator) Apply() {
 
 func (ev *ContractDeployEvaluator) Apply() {
 	op := ev.op
-	ev.ctx.trxCtx.RecordGasFee(op.Owner.Value, constants.CommonOpGas)
+	ev.ctx.vmInjector.RecordGasFee(op.Owner.Value, constants.CommonOpGas)
 
 	cid := prototype.ContractId{Owner: op.Owner, Cname: op.Contract}
 	scid := table.NewSoContractWrap(ev.ctx.db, &cid)
@@ -725,7 +725,7 @@ func (ev *ContractApplyEvaluator) Apply() {
 
 	vmCtx := vmcontext.NewContextFromApplyOp(op, paramsData, code, abiInterface, tables, ev.ctx.vmInjector)
 	// set max gas
-	remain := ev.ctx.trxCtx.GetVmRemainCpuStamina(op.Caller.Value)
+	remain := ev.ctx.vmInjector.GetVmRemainCpuStamina(op.Caller.Value)
 	remainGas := remain * constants.CpuConsumePointDen
 	if remainGas > constants.MaxGasPerCall {
 		vmCtx.Gas = constants.MaxGasPerCall
@@ -822,7 +822,7 @@ func (ev *InternalContractApplyEvaluator) Apply() {
 
 func (ev *StakeEvaluator) Apply() {
 	op := ev.op
-	ev.ctx.trxCtx.RecordGasFee(op.Account.Value, constants.CommonOpGas)
+	ev.ctx.vmInjector.RecordGasFee(op.Account.Value, constants.CommonOpGas)
 	accountWrap := table.NewSoAccountWrap(ev.ctx.db, op.Account)
 
 	value := &prototype.Coin{Value: op.Amount}
@@ -843,7 +843,7 @@ func (ev *StakeEvaluator) Apply() {
 
 func (ev *UnStakeEvaluator) Apply() {
 	op := ev.op
-	ev.ctx.trxCtx.RecordGasFee(op.Account.Value, constants.CommonOpGas)
+	ev.ctx.vmInjector.RecordGasFee(op.Account.Value, constants.CommonOpGas)
 
 	accountWrap := table.NewSoAccountWrap(ev.ctx.db, op.Account)
 

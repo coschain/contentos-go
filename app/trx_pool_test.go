@@ -165,7 +165,7 @@ func Test_PushTrx(t *testing.T) {
 
 	invoice := c.PushTrx(signedTrx)
 	if invoice.Status != prototype.StatusSuccess {
-		t.Error("PushTrx return status error:", invoice.Status)
+		t.Error("PushTrx return status error:", invoice.Status," info:",invoice.ErrorInfo)
 	}
 
 	bobName := &prototype.AccountName{Value: accountNameBob}

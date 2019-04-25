@@ -120,7 +120,7 @@ func (p *TrxContext) RecordGasFee(caller string, spent uint64) {
 		newSpent := v.raw + spent
 		p.gasMap[caller].raw = newSpent
 	} else {
-		p.netMap[caller] = &resourceUnit{}
+		p.gasMap[caller] = &resourceUnit{}
 		p.gasMap[caller].raw = spent
 	}
 }
@@ -156,11 +156,15 @@ func NewTrxContext(wrapper *prototype.TransactionWrapper, db iservices.IDatabase
 	}
 }
 
-func NewTrxContextWithSigningKey(wrapper *prototype.TransactionWrapper, db iservices.IDatabaseRW, key *prototype.PublicKeyType) *TrxContext {
+func NewTrxContextWithSigningKey(wrapper *prototype.TransactionWrapper, db iservices.IDatabaseRW, key *prototype.PublicKeyType,control *TrxPool) *TrxContext {
 	return &TrxContext{
 		DynamicGlobalPropsRW: DynamicGlobalPropsRW{ db:db },
 		Wrapper: wrapper,
 		recoverPubs: []*prototype.PublicKeyType{ key },
+		gasMap: make(map[string]*resourceUnit),
+		netMap: make(map[string]*resourceUnit),
+		resourceLimiter: control.resourceLimiter,
+		control:control,
 	}
 }
 
@@ -296,7 +300,7 @@ func (p *TrxContext) ContractCall(caller, fromOwner, fromContract, fromMethod, t
 		Params: params,
 		Amount: &prototype.Coin{ Value: coins },
 	}
-	eval := &InternalContractApplyEvaluator{ctx: &ApplyContext{db: p.db, trxCtx: p, control: p.control}, op: op, remainGas: remainGas}
+	eval := &InternalContractApplyEvaluator{ctx: &ApplyContext{db: p.db, vmInjector: p, control: p.control}, op: op, remainGas: remainGas}
 	eval.Apply()
 }
 
