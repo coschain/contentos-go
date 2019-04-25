@@ -2046,25 +2046,9 @@ func NewPostCreatedWrap(db iservices.IDatabaseRW) *SPostCreatedWrap {
 	return &wrap
 }
 
-func (s *SPostCreatedWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil {
-		return
-	}
-	s.Dba.DeleteIterator(iterator)
-}
-
-func (s *SPostCreatedWrap) GetMainVal(iterator iservices.IDatabaseIterator) *uint64 {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
-
+func (s *SPostCreatedWrap) GetMainVal(val []byte) *uint64 {
 	res := &SoListPostByCreated{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 
 	if err != nil {
 		return nil
@@ -2074,18 +2058,9 @@ func (s *SPostCreatedWrap) GetMainVal(iterator iservices.IDatabaseIterator) *uin
 
 }
 
-func (s *SPostCreatedWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.TimePointSec {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
+func (s *SPostCreatedWrap) GetSubVal(val []byte) *prototype.TimePointSec {
 	res := &SoListPostByCreated{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 	if err != nil {
 		return nil
 	}
@@ -2158,18 +2133,11 @@ func (s *SPostCreatedWrap) ForEachByOrder(start *prototype.TimePointSec, end *pr
 	if cErr != nil {
 		return cErr
 	}
-	iterator := s.Dba.NewIterator(sBuf, eBuf)
-	if iterator == nil {
-		return errors.New("there is no data in range")
-	}
 	var idx uint32 = 0
-	for iterator.Next() {
+	s.Dba.Iterate(sBuf, eBuf, false, func(key, value []byte) bool {
 		idx++
-		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
-			break
-		}
-	}
-	s.DelIterator(iterator)
+		return f(s.GetMainVal(value), s.GetSubVal(value), idx)
+	})
 	return nil
 }
 
@@ -2219,19 +2187,11 @@ func (s *SPostCreatedWrap) ForEachByRevOrder(start *prototype.TimePointSec, end 
 	if cErr != nil {
 		return cErr
 	}
-	//reverse the start and end when create ReversedIterator to query by reverse order
-	iterator := s.Dba.NewReversedIterator(eBuf, sBuf)
-	if iterator == nil {
-		return errors.New("there is no data in range")
-	}
 	var idx uint32 = 0
-	for iterator.Next() {
+	s.Dba.Iterate(eBuf, sBuf, true, func(key, value []byte) bool {
 		idx++
-		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
-			break
-		}
-	}
-	s.DelIterator(iterator)
+		return f(s.GetMainVal(value), s.GetSubVal(value), idx)
+	})
 	return nil
 }
 
@@ -2248,25 +2208,9 @@ func NewPostCashoutBlockNumWrap(db iservices.IDatabaseRW) *SPostCashoutBlockNumW
 	return &wrap
 }
 
-func (s *SPostCashoutBlockNumWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil {
-		return
-	}
-	s.Dba.DeleteIterator(iterator)
-}
-
-func (s *SPostCashoutBlockNumWrap) GetMainVal(iterator iservices.IDatabaseIterator) *uint64 {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
-
+func (s *SPostCashoutBlockNumWrap) GetMainVal(val []byte) *uint64 {
 	res := &SoListPostByCashoutBlockNum{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 
 	if err != nil {
 		return nil
@@ -2276,18 +2220,9 @@ func (s *SPostCashoutBlockNumWrap) GetMainVal(iterator iservices.IDatabaseIterat
 
 }
 
-func (s *SPostCashoutBlockNumWrap) GetSubVal(iterator iservices.IDatabaseIterator) *uint64 {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
+func (s *SPostCashoutBlockNumWrap) GetSubVal(val []byte) *uint64 {
 	res := &SoListPostByCashoutBlockNum{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 	if err != nil {
 		return nil
 	}
@@ -2358,18 +2293,11 @@ func (s *SPostCashoutBlockNumWrap) ForEachByOrder(start *uint64, end *uint64, la
 	if cErr != nil {
 		return cErr
 	}
-	iterator := s.Dba.NewIterator(sBuf, eBuf)
-	if iterator == nil {
-		return errors.New("there is no data in range")
-	}
 	var idx uint32 = 0
-	for iterator.Next() {
+	s.Dba.Iterate(sBuf, eBuf, false, func(key, value []byte) bool {
 		idx++
-		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
-			break
-		}
-	}
-	s.DelIterator(iterator)
+		return f(s.GetMainVal(value), s.GetSubVal(value), idx)
+	})
 	return nil
 }
 

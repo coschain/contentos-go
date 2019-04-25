@@ -6,7 +6,7 @@ import (
 	"sync"
 )
 
-type SingleTrxApplier func(iservices.IDatabaseRW, *TrxEntry)
+type SingleTrxApplier func(iservices.IDatabasePatch, *TrxEntry)
 
 // MultiTrxsApplier concurrently applies multiple transactions.
 type MultiTrxsApplier struct {
@@ -57,7 +57,7 @@ func (a *MultiTrxsApplier) applyGroup(group []*TrxEntry) {
 	_ = groupDb.Apply()
 }
 
-func (a *MultiTrxsApplier) applySingle(db iservices.IDatabaseRW, trx *TrxEntry) (err error) {
+func (a *MultiTrxsApplier) applySingle(db iservices.IDatabasePatch, trx *TrxEntry) (err error) {
 	defer func() {
 		// recover from panic and return an error
 		if e := recover(); e != nil {

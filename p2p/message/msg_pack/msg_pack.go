@@ -124,3 +124,15 @@ func NewConsMsg(msg message.ConsensusMessage) mt.Message {
 
 	return &reqmsg
 }
+
+// checkpoint package
+func NewCheckpointBatchMsg(startNum, endNum uint64) mt.Message {
+	var reqmsg mt.TransferMsg
+
+	data := new(mt.RequestCheckpointBatch)
+	data.Start = startNum
+	data.End = endNum
+
+	reqmsg.Msg = &mt.TransferMsg_Msg12{Msg12:data}
+	return &reqmsg
+}

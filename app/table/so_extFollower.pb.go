@@ -31,7 +31,7 @@ func (m *SoExtFollower) Reset()         { *m = SoExtFollower{} }
 func (m *SoExtFollower) String() string { return proto.CompactTextString(m) }
 func (*SoExtFollower) ProtoMessage()    {}
 func (*SoExtFollower) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extFollower_52edb3ec288f3f73, []int{0}
+	return fileDescriptor_so_extFollower_6c523161e4807369, []int{0}
 }
 func (m *SoExtFollower) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoExtFollower.Unmarshal(m, b)
@@ -76,7 +76,7 @@ func (m *SoMemExtFollowerByFollowerInfo) Reset()         { *m = SoMemExtFollower
 func (m *SoMemExtFollowerByFollowerInfo) String() string { return proto.CompactTextString(m) }
 func (*SoMemExtFollowerByFollowerInfo) ProtoMessage()    {}
 func (*SoMemExtFollowerByFollowerInfo) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extFollower_52edb3ec288f3f73, []int{1}
+	return fileDescriptor_so_extFollower_6c523161e4807369, []int{1}
 }
 func (m *SoMemExtFollowerByFollowerInfo) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemExtFollowerByFollowerInfo.Unmarshal(m, b)
@@ -116,7 +116,7 @@ func (m *SoMemExtFollowerByFollowerCreatedOrder) Reset() {
 func (m *SoMemExtFollowerByFollowerCreatedOrder) String() string { return proto.CompactTextString(m) }
 func (*SoMemExtFollowerByFollowerCreatedOrder) ProtoMessage()    {}
 func (*SoMemExtFollowerByFollowerCreatedOrder) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extFollower_52edb3ec288f3f73, []int{2}
+	return fileDescriptor_so_extFollower_6c523161e4807369, []int{2}
 }
 func (m *SoMemExtFollowerByFollowerCreatedOrder) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemExtFollowerByFollowerCreatedOrder.Unmarshal(m, b)
@@ -157,7 +157,7 @@ func (m *SoListExtFollowerByFollowerCreatedOrder) Reset() {
 func (m *SoListExtFollowerByFollowerCreatedOrder) String() string { return proto.CompactTextString(m) }
 func (*SoListExtFollowerByFollowerCreatedOrder) ProtoMessage()    {}
 func (*SoListExtFollowerByFollowerCreatedOrder) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extFollower_52edb3ec288f3f73, []int{3}
+	return fileDescriptor_so_extFollower_6c523161e4807369, []int{3}
 }
 func (m *SoListExtFollowerByFollowerCreatedOrder) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoListExtFollowerByFollowerCreatedOrder.Unmarshal(m, b)
@@ -202,7 +202,7 @@ func (m *SoUniqueExtFollowerByFollowerInfo) Reset()         { *m = SoUniqueExtFo
 func (m *SoUniqueExtFollowerByFollowerInfo) String() string { return proto.CompactTextString(m) }
 func (*SoUniqueExtFollowerByFollowerInfo) ProtoMessage()    {}
 func (*SoUniqueExtFollowerByFollowerInfo) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extFollower_52edb3ec288f3f73, []int{4}
+	return fileDescriptor_so_extFollower_6c523161e4807369, []int{4}
 }
 func (m *SoUniqueExtFollowerByFollowerInfo) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoUniqueExtFollowerByFollowerInfo.Unmarshal(m, b)
@@ -238,10 +238,10 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("app/table/so_extFollower.proto", fileDescriptor_so_extFollower_52edb3ec288f3f73)
+	proto.RegisterFile("app/table/so_extFollower.proto", fileDescriptor_so_extFollower_6c523161e4807369)
 }
 
-var fileDescriptor_so_extFollower_52edb3ec288f3f73 = []byte{
+var fileDescriptor_so_extFollower_6c523161e4807369 = []byte{
 	// 282 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xc4, 0x53, 0xcd, 0x4a, 0xc4, 0x30,
 	0x18, 0x24, 0x0b, 0x7a, 0x88, 0x3f, 0x87, 0x22, 0x52, 0x44, 0x44, 0x2b, 0x88, 0xc8, 0x6e, 0x03,

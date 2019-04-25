@@ -672,25 +672,9 @@ func NewReportListReportedTimesWrap(db iservices.IDatabaseRW) *SReportListReport
 	return &wrap
 }
 
-func (s *SReportListReportedTimesWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil {
-		return
-	}
-	s.Dba.DeleteIterator(iterator)
-}
-
-func (s *SReportListReportedTimesWrap) GetMainVal(iterator iservices.IDatabaseIterator) *uint64 {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
-
+func (s *SReportListReportedTimesWrap) GetMainVal(val []byte) *uint64 {
 	res := &SoListReportListByReportedTimes{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 
 	if err != nil {
 		return nil
@@ -700,18 +684,9 @@ func (s *SReportListReportedTimesWrap) GetMainVal(iterator iservices.IDatabaseIt
 
 }
 
-func (s *SReportListReportedTimesWrap) GetSubVal(iterator iservices.IDatabaseIterator) *uint32 {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
+func (s *SReportListReportedTimesWrap) GetSubVal(val []byte) *uint32 {
 	res := &SoListReportListByReportedTimes{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 	if err != nil {
 		return nil
 	}
@@ -782,18 +757,11 @@ func (s *SReportListReportedTimesWrap) ForEachByOrder(start *uint32, end *uint32
 	if cErr != nil {
 		return cErr
 	}
-	iterator := s.Dba.NewIterator(sBuf, eBuf)
-	if iterator == nil {
-		return errors.New("there is no data in range")
-	}
 	var idx uint32 = 0
-	for iterator.Next() {
+	s.Dba.Iterate(sBuf, eBuf, false, func(key, value []byte) bool {
 		idx++
-		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
-			break
-		}
-	}
-	s.DelIterator(iterator)
+		return f(s.GetMainVal(value), s.GetSubVal(value), idx)
+	})
 	return nil
 }
 

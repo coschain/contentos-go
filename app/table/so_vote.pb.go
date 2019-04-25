@@ -34,7 +34,7 @@ func (m *SoVote) Reset()         { *m = SoVote{} }
 func (m *SoVote) String() string { return proto.CompactTextString(m) }
 func (*SoVote) ProtoMessage()    {}
 func (*SoVote) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_vote_571cb0a233f8d0de, []int{0}
+	return fileDescriptor_so_vote_e2689b83ca56c18a, []int{0}
 }
 func (m *SoVote) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoVote.Unmarshal(m, b)
@@ -100,7 +100,7 @@ func (m *SoMemVoteByVoter) Reset()         { *m = SoMemVoteByVoter{} }
 func (m *SoMemVoteByVoter) String() string { return proto.CompactTextString(m) }
 func (*SoMemVoteByVoter) ProtoMessage()    {}
 func (*SoMemVoteByVoter) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_vote_571cb0a233f8d0de, []int{1}
+	return fileDescriptor_so_vote_e2689b83ca56c18a, []int{1}
 }
 func (m *SoMemVoteByVoter) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemVoteByVoter.Unmarshal(m, b)
@@ -138,7 +138,7 @@ func (m *SoMemVoteByVoteTime) Reset()         { *m = SoMemVoteByVoteTime{} }
 func (m *SoMemVoteByVoteTime) String() string { return proto.CompactTextString(m) }
 func (*SoMemVoteByVoteTime) ProtoMessage()    {}
 func (*SoMemVoteByVoteTime) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_vote_571cb0a233f8d0de, []int{2}
+	return fileDescriptor_so_vote_e2689b83ca56c18a, []int{2}
 }
 func (m *SoMemVoteByVoteTime) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemVoteByVoteTime.Unmarshal(m, b)
@@ -176,7 +176,7 @@ func (m *SoMemVoteByPostId) Reset()         { *m = SoMemVoteByPostId{} }
 func (m *SoMemVoteByPostId) String() string { return proto.CompactTextString(m) }
 func (*SoMemVoteByPostId) ProtoMessage()    {}
 func (*SoMemVoteByPostId) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_vote_571cb0a233f8d0de, []int{3}
+	return fileDescriptor_so_vote_e2689b83ca56c18a, []int{3}
 }
 func (m *SoMemVoteByPostId) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemVoteByPostId.Unmarshal(m, b)
@@ -214,7 +214,7 @@ func (m *SoMemVoteByWeightedVp) Reset()         { *m = SoMemVoteByWeightedVp{} }
 func (m *SoMemVoteByWeightedVp) String() string { return proto.CompactTextString(m) }
 func (*SoMemVoteByWeightedVp) ProtoMessage()    {}
 func (*SoMemVoteByWeightedVp) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_vote_571cb0a233f8d0de, []int{4}
+	return fileDescriptor_so_vote_e2689b83ca56c18a, []int{4}
 }
 func (m *SoMemVoteByWeightedVp) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemVoteByWeightedVp.Unmarshal(m, b)
@@ -252,7 +252,7 @@ func (m *SoMemVoteByUpvote) Reset()         { *m = SoMemVoteByUpvote{} }
 func (m *SoMemVoteByUpvote) String() string { return proto.CompactTextString(m) }
 func (*SoMemVoteByUpvote) ProtoMessage()    {}
 func (*SoMemVoteByUpvote) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_vote_571cb0a233f8d0de, []int{5}
+	return fileDescriptor_so_vote_e2689b83ca56c18a, []int{5}
 }
 func (m *SoMemVoteByUpvote) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemVoteByUpvote.Unmarshal(m, b)
@@ -290,7 +290,7 @@ func (m *SoListVoteByVoter) Reset()         { *m = SoListVoteByVoter{} }
 func (m *SoListVoteByVoter) String() string { return proto.CompactTextString(m) }
 func (*SoListVoteByVoter) ProtoMessage()    {}
 func (*SoListVoteByVoter) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_vote_571cb0a233f8d0de, []int{6}
+	return fileDescriptor_so_vote_e2689b83ca56c18a, []int{6}
 }
 func (m *SoListVoteByVoter) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoListVoteByVoter.Unmarshal(m, b)
@@ -329,7 +329,7 @@ func (m *SoListVoteByVoteTime) Reset()         { *m = SoListVoteByVoteTime{} }
 func (m *SoListVoteByVoteTime) String() string { return proto.CompactTextString(m) }
 func (*SoListVoteByVoteTime) ProtoMessage()    {}
 func (*SoListVoteByVoteTime) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_vote_571cb0a233f8d0de, []int{7}
+	return fileDescriptor_so_vote_e2689b83ca56c18a, []int{7}
 }
 func (m *SoListVoteByVoteTime) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoListVoteByVoteTime.Unmarshal(m, b)
@@ -375,7 +375,7 @@ func (m *SoListVoteByPostId) Reset()         { *m = SoListVoteByPostId{} }
 func (m *SoListVoteByPostId) String() string { return proto.CompactTextString(m) }
 func (*SoListVoteByPostId) ProtoMessage()    {}
 func (*SoListVoteByPostId) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_vote_571cb0a233f8d0de, []int{8}
+	return fileDescriptor_so_vote_e2689b83ca56c18a, []int{8}
 }
 func (m *SoListVoteByPostId) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoListVoteByPostId.Unmarshal(m, b)
@@ -420,7 +420,7 @@ func (m *SoUniqueVoteByVoter) Reset()         { *m = SoUniqueVoteByVoter{} }
 func (m *SoUniqueVoteByVoter) String() string { return proto.CompactTextString(m) }
 func (*SoUniqueVoteByVoter) ProtoMessage()    {}
 func (*SoUniqueVoteByVoter) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_vote_571cb0a233f8d0de, []int{9}
+	return fileDescriptor_so_vote_e2689b83ca56c18a, []int{9}
 }
 func (m *SoUniqueVoteByVoter) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoUniqueVoteByVoter.Unmarshal(m, b)
@@ -460,9 +460,9 @@ func init() {
 	proto.RegisterType((*SoUniqueVoteByVoter)(nil), "table.so_unique_vote_by_voter")
 }
 
-func init() { proto.RegisterFile("app/table/so_vote.proto", fileDescriptor_so_vote_571cb0a233f8d0de) }
+func init() { proto.RegisterFile("app/table/so_vote.proto", fileDescriptor_so_vote_e2689b83ca56c18a) }
 
-var fileDescriptor_so_vote_571cb0a233f8d0de = []byte{
+var fileDescriptor_so_vote_e2689b83ca56c18a = []byte{
 	// 366 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xa4, 0x93, 0x4f, 0x4f, 0xf2, 0x40,
 	0x10, 0xc6, 0xb3, 0xbc, 0xfc, 0x7b, 0x87, 0x5b, 0x45, 0x28, 0x5c, 0x24, 0x3d, 0xa1, 0xd1, 0x6e,

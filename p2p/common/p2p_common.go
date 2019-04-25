@@ -73,6 +73,7 @@ const (
 	DISCONNECT_TYPE = "disconnect" //peer disconnect info raise by link
 
 	CONSENSUS_TYPE  = "consensus"
+	CHECKPOINT_TYPE = "checkpoint"
 )
 
 const (

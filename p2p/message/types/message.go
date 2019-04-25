@@ -150,6 +150,8 @@ func MakeEmptyMessage(cmdType string) (Message, error) {
 		return &TransferMsg{}, nil
 	case common.DISCONNECT_TYPE:
 		return &TransferMsg{}, nil
+	case common.CHECKPOINT_TYPE:
+		return &TransferMsg{}, nil
 	case common.CONSENSUS_TYPE:
 		return &ConsMsg{}, nil
 	default:

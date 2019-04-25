@@ -31,7 +31,7 @@ func (m *SoExtUserPost) Reset()         { *m = SoExtUserPost{} }
 func (m *SoExtUserPost) String() string { return proto.CompactTextString(m) }
 func (*SoExtUserPost) ProtoMessage()    {}
 func (*SoExtUserPost) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extUserPost_f42436df4089c10e, []int{0}
+	return fileDescriptor_so_extUserPost_0d439a72c1c6805e, []int{0}
 }
 func (m *SoExtUserPost) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoExtUserPost.Unmarshal(m, b)
@@ -76,7 +76,7 @@ func (m *SoMemExtUserPostByPostId) Reset()         { *m = SoMemExtUserPostByPost
 func (m *SoMemExtUserPostByPostId) String() string { return proto.CompactTextString(m) }
 func (*SoMemExtUserPostByPostId) ProtoMessage()    {}
 func (*SoMemExtUserPostByPostId) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extUserPost_f42436df4089c10e, []int{1}
+	return fileDescriptor_so_extUserPost_0d439a72c1c6805e, []int{1}
 }
 func (m *SoMemExtUserPostByPostId) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemExtUserPostByPostId.Unmarshal(m, b)
@@ -114,7 +114,7 @@ func (m *SoMemExtUserPostByPostCreatedOrder) Reset()         { *m = SoMemExtUser
 func (m *SoMemExtUserPostByPostCreatedOrder) String() string { return proto.CompactTextString(m) }
 func (*SoMemExtUserPostByPostCreatedOrder) ProtoMessage()    {}
 func (*SoMemExtUserPostByPostCreatedOrder) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extUserPost_f42436df4089c10e, []int{2}
+	return fileDescriptor_so_extUserPost_0d439a72c1c6805e, []int{2}
 }
 func (m *SoMemExtUserPostByPostCreatedOrder) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemExtUserPostByPostCreatedOrder.Unmarshal(m, b)
@@ -153,7 +153,7 @@ func (m *SoListExtUserPostByPostCreatedOrder) Reset()         { *m = SoListExtUs
 func (m *SoListExtUserPostByPostCreatedOrder) String() string { return proto.CompactTextString(m) }
 func (*SoListExtUserPostByPostCreatedOrder) ProtoMessage()    {}
 func (*SoListExtUserPostByPostCreatedOrder) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extUserPost_f42436df4089c10e, []int{3}
+	return fileDescriptor_so_extUserPost_0d439a72c1c6805e, []int{3}
 }
 func (m *SoListExtUserPostByPostCreatedOrder) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoListExtUserPostByPostCreatedOrder.Unmarshal(m, b)
@@ -198,7 +198,7 @@ func (m *SoUniqueExtUserPostByPostId) Reset()         { *m = SoUniqueExtUserPost
 func (m *SoUniqueExtUserPostByPostId) String() string { return proto.CompactTextString(m) }
 func (*SoUniqueExtUserPostByPostId) ProtoMessage()    {}
 func (*SoUniqueExtUserPostByPostId) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extUserPost_f42436df4089c10e, []int{4}
+	return fileDescriptor_so_extUserPost_0d439a72c1c6805e, []int{4}
 }
 func (m *SoUniqueExtUserPostByPostId) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoUniqueExtUserPostByPostId.Unmarshal(m, b)
@@ -234,10 +234,10 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("app/table/so_extUserPost.proto", fileDescriptor_so_extUserPost_f42436df4089c10e)
+	proto.RegisterFile("app/table/so_extUserPost.proto", fileDescriptor_so_extUserPost_0d439a72c1c6805e)
 }
 
-var fileDescriptor_so_extUserPost_f42436df4089c10e = []byte{
+var fileDescriptor_so_extUserPost_0d439a72c1c6805e = []byte{
 	// 267 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xc4, 0x92, 0x3f, 0x4b, 0xc4, 0x40,
 	0x10, 0xc5, 0xc9, 0xa1, 0x27, 0xac, 0x20, 0x92, 0xc6, 0x43, 0x50, 0x62, 0xaa, 0x28, 0x9a, 0x05,
