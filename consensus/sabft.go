@@ -1430,3 +1430,18 @@ func (sabft *SABFT) handleBlockSync() error {
 func (d *SABFT) CheckSyncFinished() bool {
 	return d.readyToProduce
 }
+
+func (d *SABFT) IsOnMainBranch(id common.BlockID) (bool, error) {
+	blockNum := id.BlockNum()
+
+	resultBlk, err := d.FetchBlocks(blockNum, blockNum)
+	if err != nil {
+		return false, err
+	}
+
+	if len(resultBlk) == 0 {
+		return false, nil
+	}
+
+	return id == resultBlk[0].Id(), nil
+}
