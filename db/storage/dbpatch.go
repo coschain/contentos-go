@@ -45,7 +45,7 @@ func (p *DatabasePatch) DeleteBatch(b iservices.IDatabaseBatch) {
 }
 
 func (p *DatabasePatch) Apply() error {
-	return p.s.commit()
+	return p.s.Commit()
 }
 
 func (p *DatabasePatch) NewPatch() iservices.IDatabasePatch {
