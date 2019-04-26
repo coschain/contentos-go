@@ -202,7 +202,7 @@ func (dq *dbDeque) HashOfTopSession() (hash uint32) {
 	dq.lock.RLock()
 	defer dq.lock.RUnlock()
 
-	if count := len(dq.sessions); count > 1 {
+	if count := len(dq.sessions); count > 0 {
 		hash = dq.hashOfSession(count - 1)
 	}
 	return

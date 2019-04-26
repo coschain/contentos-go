@@ -278,16 +278,23 @@ func (b *BlockIceberg) loadBlockApplyHash() {
 	bah, _ := b.db.Get(keyLatestBlockApplyChecksum)
 	if h, err := strconv.ParseUint(string(bah), 16, 64); err == nil {
 		atomic.StoreUint64(&b.lastBlockApplyHash, h)
+		b.log.Debugf("BlockApplyHash load: %016x", h)
 	} else {
 		atomic.StoreUint64(&b.lastBlockApplyHash, 0)
+		b.log.Debugf("BlockApplyHash load: %016x, err=%s, raw=%s", 0, err.Error(), string(bah))
 	}
 }
 
 func (b *BlockIceberg) saveBlockApplyHash(hash uint64) {
 	_ = b.db.Put(keyLatestBlockApplyChecksum, []byte(strconv.FormatUint(hash, 16)))
 	atomic.StoreUint64(&b.lastBlockApplyHash, hash)
+	b.log.Debugf("BlockApplyHash save: %016x", hash)
 }
 
-func (b *BlockIceberg) LatestBlockApplyHash() (version, hash uint32) {
-	return common.UnpackBlockApplyHash(atomic.LoadUint64(&b.lastBlockApplyHash))
+func (b *BlockIceberg) LatestBlockApplyHash() uint64 {
+	return atomic.LoadUint64(&b.lastBlockApplyHash)
+}
+
+func (b *BlockIceberg) LatestBlockApplyHashUnpacked() (version, hash uint32) {
+	return common.UnpackBlockApplyHash(b.LatestBlockApplyHash())
 }

@@ -339,6 +339,7 @@ func (c *TrxPool) generateBlockNoLock(witness string, pre *prototype.Sha256, tim
 	t2 := time.Now()
 
 	signBlock.SignedHeader.Header.Previous = pre
+	signBlock.SignedHeader.Header.PrevApplyHash = c.iceberg.LatestBlockApplyHash()
 	signBlock.SignedHeader.Header.Timestamp = &prototype.TimePointSec{UtcSeconds: timestamp}
 	id := signBlock.CalculateMerkleRoot()
 	signBlock.SignedHeader.Header.TransactionMerkleRoot = &prototype.Sha256{Hash: id.Data[:]}
@@ -715,7 +716,7 @@ func (c *TrxPool) validateBlockHeader(blk *prototype.SignedBlock) {
 		panic("ValidateSig error")
 	}
 
-	ver, hash := c.iceberg.LatestBlockApplyHash()
+	ver, hash := c.iceberg.LatestBlockApplyHashUnpacked()
 	bVer, bHash := common.UnpackBlockApplyHash(blk.SignedHeader.Header.PrevApplyHash)
 	if ver != bVer {
 		c.log.Warnf("BlockApplyHash: version mismatch. block %d (by %s): %08x, me: %08x",
