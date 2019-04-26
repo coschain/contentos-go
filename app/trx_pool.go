@@ -43,6 +43,7 @@ type TrxPool struct {
 	iceberg   *BlockIceberg
 	economist *economist.Economist
 	tm *TrxMgr
+	enableBAH bool
 }
 
 func (c *TrxPool) getDb() (iservices.IDatabaseService, error) {
@@ -77,7 +78,7 @@ func NewController(ctx *node.ServiceContext, lg *logrus.Logger) (*TrxPool, error
 		lg = logrus.New()
 		lg.SetOutput(ioutil.Discard)
 	}
-	return &TrxPool{ctx: ctx, log: lg}, nil
+	return &TrxPool{ctx: ctx, log: lg, enableBAH:true}, nil
 }
 
 func (c *TrxPool) Start(node *node.Node) error {
@@ -93,7 +94,7 @@ func (c *TrxPool) Start(node *node.Node) error {
 }
 
 func (c *TrxPool) Open() {
-	c.iceberg = NewBlockIceberg(c.db, c.log)
+	c.iceberg = NewBlockIceberg(c.db, c.log, c.enableBAH)
 	c.economist = economist.New(c.db, c.noticer, &SingleId, c.log)
 	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
 	if !dgpWrap.CheckExist() {
@@ -104,7 +105,7 @@ func (c *TrxPool) Open() {
 		c.initGenesis()
 
 		mustNoError(c.db.TagRevision(c.db.GetRevision(), GENESIS_TAG), "genesis tagging failed")
-		c.iceberg = NewBlockIceberg(c.db, c.log)
+		c.iceberg = NewBlockIceberg(c.db, c.log, c.enableBAH)
 		c.economist = economist.New(c.db, c.noticer, &SingleId, c.log)
 		//c.log.Info("finish initGenesis")
 	}
@@ -716,15 +717,17 @@ func (c *TrxPool) validateBlockHeader(blk *prototype.SignedBlock) {
 		panic("ValidateSig error")
 	}
 
-	ver, hash := c.iceberg.LatestBlockApplyHashUnpacked()
-	bVer, bHash := common.UnpackBlockApplyHash(blk.SignedHeader.Header.PrevApplyHash)
-	if ver != bVer {
-		c.log.Warnf("BlockApplyHash: version mismatch. block %d (by %s): %08x, me: %08x",
-			blk.SignedHeader.Number(), blk.SignedHeader.Header.Witness.Value, bVer, ver)
-	} else if hash != bHash {
-		c.log.Errorf("BlockApplyHashError: block %d (by %s): %08x, me: %08x",
-			blk.SignedHeader.Number(), blk.SignedHeader.Header.Witness.Value, bHash, hash)
-		panic("block apply hash not equal")
+	if c.enableBAH {
+		ver, hash := c.iceberg.LatestBlockApplyHashUnpacked()
+		bVer, bHash := common.UnpackBlockApplyHash(blk.SignedHeader.Header.PrevApplyHash)
+		if ver != bVer {
+			c.log.Warnf("BlockApplyHashWarn: version mismatch. block %d (by %s): %08x, me: %08x",
+				blk.SignedHeader.Number(), blk.SignedHeader.Header.Witness.Value, bVer, ver)
+		} else if hash != bHash {
+			c.log.Errorf("BlockApplyHashError: block %d (by %s): %08x, me: %08x",
+				blk.SignedHeader.Number(), blk.SignedHeader.Header.Witness.Value, bHash, hash)
+			panic("block apply hash not equal")
+		}
 	}
 
 	// witness schedule check

@@ -44,10 +44,11 @@ type BlockIceberg struct {
 	seaLevel      uint64                     // the oldest in-memory block
 	highWM, lowWM uint64                     // the high/low watermark of in-memory block count
 	lastBlockApplyHash uint64
+	enableBAH  bool
 }
 
 // NewBlockIceberg() returns an instance of block iceberg.
-func NewBlockIceberg(db iservices.IDatabaseService, logger *logrus.Logger) *BlockIceberg {
+func NewBlockIceberg(db iservices.IDatabaseService, logger *logrus.Logger, enableBAH bool) *BlockIceberg {
 	var (
 		hasBlock, hasFinalized, latest, finalized = false, false, uint64(0), uint64(0)
 		err error
@@ -73,6 +74,7 @@ func NewBlockIceberg(db iservices.IDatabaseService, logger *logrus.Logger) *Bloc
 		seaLevel:     latest + 1,
 		highWM:       defaultBlockIcebergHighWM,
 		lowWM:        defaultBlockIcebergLowWM,
+		enableBAH:    enableBAH,
 	}
 	berg.loadBlockApplyHash()
 	return berg
@@ -119,7 +121,9 @@ func (b *BlockIceberg) EndBlock(commit bool) error {
 		}
 		b.next--
 	} else {
-		b.saveBlockApplyHash(common.PackBlockApplyHash(b.db.HashOfTopTransaction()))
+		if b.enableBAH {
+			b.saveBlockApplyHash(common.PackBlockApplyHash(b.db.HashOfTopTransaction()))
+		}
 	}
 	b.inProgress = false
 	b.log.Debugf("ICEBERG: EndBlock(%v) end. finalized=%d, sealevel=%d, next=%d", commit, b.finalized, b.seaLevel, b.next)
@@ -275,6 +279,9 @@ func (b *BlockIceberg) LatestBlock() (blockNum uint64, inProgress bool, err erro
 }
 
 func (b *BlockIceberg) loadBlockApplyHash() {
+	if !b.enableBAH {
+		return
+	}
 	bah, _ := b.db.Get(keyLatestBlockApplyChecksum)
 	if h, err := strconv.ParseUint(string(bah), 16, 64); err == nil {
 		atomic.StoreUint64(&b.lastBlockApplyHash, h)
@@ -286,6 +293,9 @@ func (b *BlockIceberg) loadBlockApplyHash() {
 }
 
 func (b *BlockIceberg) saveBlockApplyHash(hash uint64) {
+	if !b.enableBAH {
+		return
+	}
 	_ = b.db.Put(keyLatestBlockApplyChecksum, []byte(strconv.FormatUint(hash, 16)))
 	atomic.StoreUint64(&b.lastBlockApplyHash, hash)
 	b.log.Debugf("BlockApplyHash save: %016x", hash)

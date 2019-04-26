@@ -31,7 +31,7 @@ func TestBlockIceberg(t *testing.T) {
 	logger.SetLevel(logrus.DebugLevel)
 
 	// create instance based on an empty db
-	berg := NewBlockIceberg(db, logger)
+	berg := NewBlockIceberg(db, logger, false)
 	a.NotNil(berg, "iceberg creation failed")
 
 	// only BeginBlock(1) is allowed for an empty db. everything else must returns error.
@@ -170,7 +170,7 @@ func TestBlockIceberg(t *testing.T) {
 	// re-create block iceberg
 	a.NoError(db.Stop())
 	a.NoError(db.Start(nil))
-	berg = NewBlockIceberg(db, logger)
+	berg = NewBlockIceberg(db, logger, false)
 	a.NotNil(berg)
 
 	// check latest & finalized block number
