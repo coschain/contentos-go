@@ -1,5 +1,7 @@
 package consensus
 
+import "container/list"
+
 type Dynasty struct {
 	Seq uint64
 	validators    []*publicValidator
@@ -19,7 +21,7 @@ func (d *Dynasty) GetValidatorNum() int {
 }
 
 type Dynasties struct {
-
+	dynasties *list.List
 }
 
 func NewDynasties() *Dynasties {
@@ -28,29 +30,51 @@ func NewDynasties() *Dynasties {
 }
 
 func (ds *Dynasties) Empty() bool {
-	return true
+	return ds.dynasties.Len() == 0
 }
 
 func (ds *Dynasties) Front() *Dynasty {
-	return nil
+	return ds.dynasties.Front().Value.(*Dynasty)
 }
 
 func (ds *Dynasties) Back() *Dynasty {
-	return nil
+	return ds.dynasties.Back().Value.(*Dynasty)
 }
 
 func (ds *Dynasties) PushFront(d *Dynasty) {
-
+	ds.dynasties.PushFront(d)
 }
 
 func (ds *Dynasties) PushBack(d *Dynasty) {
-
+	ds.dynasties.PushBack(d)
 }
 
-func (ds *Dynasties) PopFront() *Dynasty {
-	return nil
+func (ds *Dynasties) PopFront() {
+	ds.dynasties.Remove(ds.dynasties.Front())
 }
 
-func (ds *Dynasties) PopBack() *Dynasty {
-	return nil
+func (ds *Dynasties) PopBack() {
+	ds.dynasties.Remove(ds.dynasties.Back())
+}
+
+func (ds *Dynasties) PopBefore(seq uint64) {
+	for front := ds.dynasties.Front(); front != nil; {
+		d := front.Value.(*Dynasty)
+		if d.Seq >= seq {
+			break
+		}
+		ds.dynasties.Remove(front)
+		front = ds.dynasties.Front()
+	}
+}
+
+func (ds *Dynasties) PopAfter(seq uint64) {
+	for back := ds.dynasties.Back(); back != nil; {
+		d := back.Value.(*Dynasty)
+		if d.Seq <= seq {
+			break
+		}
+		ds.dynasties.Remove(back)
+		back = ds.dynasties.Back()
+	}
 }
