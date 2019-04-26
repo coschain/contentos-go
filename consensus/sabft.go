@@ -32,7 +32,7 @@ type SABFT struct {
 	ForkDB *forkdb.DB
 	blog   blocklog.BLog
 
-	Name          string
+	Name         string
 	localPrivKey *prototype.PrivateKeyType
 
 	dynasties     *Dynasties
@@ -161,14 +161,19 @@ func (sabft *SABFT) shuffle(head common.ISignedBlock) {
 		seed = head.Timestamp() << 32
 	}
 	sabft.updateProducers(seed, prods)
-	
+
+	newDyn := sabft.makeDynastry(blockNum, prods, pubKeys, sabft.localPrivKey)
+	sabft.dynasties.PushBack(newDyn)
+}
+
+func (sabft *SABFT) makeDynastry(seq uint64, prods []string,
+	keys []*prototype.PublicKeyType, pk *prototype.PrivateKeyType) *Dynasty {
 	pubVS := make([]*publicValidator, len(prods))
 	for i := range pubVS {
-		pubVS[i] = newPubValidator(sabft, pubKeys[i], prods[i])
+		pubVS[i] = newPubValidator(sabft, keys[i], prods[i])
 	}
 	pV := newPrivValidator(sabft, sabft.localPrivKey, sabft.Name)
-	newDyn := NewDynasty(blockNum, pubVS, pV)
-	sabft.dynasties.PushBack(newDyn)
+	return NewDynasty(seq, pubVS, pV)
 }
 
 func (sabft *SABFT) checkBFTRoutine() {
@@ -278,7 +283,7 @@ func (sabft *SABFT) Start(node *node.Node) error {
 	sabft.restoreProducers()
 
 	if sabft.dynasties.Empty() {
-		// TODO: pop all uncommitted blocks and fix first dynasty
+		sabft.restoreFirstDynasty()
 	} else if sabft.dynasties.Front().Seq != sabft.ForkDB.LastCommitted().BlockNum() {
 		// TODO: clear dynasties
 		// TODO: pop all uncommitted blocks and fix first dynasty
@@ -291,6 +296,43 @@ func (sabft *SABFT) Start(node *node.Node) error {
 	go sabft.start()
 
 	return nil
+}
+
+func (sabft *SABFT) restoreFirstDynasty() {
+	// pop all uncommitted blocks and fix first dynasty
+	if sabft.ForkDB.Empty() {
+		// new chain, no blocks
+		prods, pubKeys := sabft.ctrl.GetWitnessTopN(constants.MaxWitnessCount)
+		dyn := sabft.makeDynastry(0, prods, pubKeys, sabft.localPrivKey)
+		sabft.dynasties.PushBack(dyn)
+	} else {
+		lcNum := sabft.ForkDB.LastCommitted().BlockNum()
+		length := sabft.ForkDB.Head().Id().BlockNum() - lcNum
+		cache := make([]common.ISignedBlock, length)
+		b := sabft.ForkDB.Head()
+		var err error
+		for i := int(length) - 1; ; i-- {
+			cache[i] = b
+			if i == 0 {
+				break
+			}
+			prev := b.Previous()
+			b, err = sabft.ForkDB.FetchBlock(prev)
+			if err != nil {
+				panic(err)
+			}
+		}
+		sabft.popBlock(lcNum+1)
+
+		prods, pubKeys := sabft.ctrl.GetWitnessTopN(constants.MaxWitnessCount)
+		dyn := sabft.makeDynastry(0, prods, pubKeys, sabft.localPrivKey)
+		sabft.dynasties.PushBack(dyn)
+		for i := range cache {
+			if err = sabft.applyBlock(cache[i]); err != nil {
+				panic(err)
+			}
+		}
+	}
 }
 
 func (sabft *SABFT) tooManyUncommittedBlocks() bool {
