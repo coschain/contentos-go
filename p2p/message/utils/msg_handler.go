@@ -543,6 +543,12 @@ func (p *MsgHandler)IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...
 	log := p2p.GetLog()
 
 	remotePeer := p2p.GetPeerFromAddr(data.Addr)
+
+	if remotePeer == nil {
+		log.Error("[p2p] remotePeer invalid in IdMsgHandle")
+		return
+	}
+
 	switch msgdata.Msgtype {
 	case msgTypes.IdMsg_broadcast_sigblk_id:
 		//log.Infof("receive a msg from:    v%    data:   %v\n", data.Addr, *msgdata)

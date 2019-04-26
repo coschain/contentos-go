@@ -179,16 +179,8 @@ func (dq *dbDeque) Delete(key []byte) error {
 	return dq.writerDB().Delete(key)
 }
 
-func (dq *dbDeque) NewIterator(start []byte, limit []byte) Iterator {
-	return dq.readerDB().NewIterator(start, limit)
-}
-
-func (dq *dbDeque) NewReversedIterator(start []byte, limit []byte) Iterator {
-	return dq.readerDB().NewReversedIterator(start, limit)
-}
-
-func (dq *dbDeque) DeleteIterator(it Iterator) {
-	dq.readerDB().DeleteIterator(it)
+func (dq *dbDeque) Iterate(start, limit []byte, reverse bool, callback func(key, value []byte) bool) {
+	dq.readerDB().Iterate(start, limit, reverse, callback)
 }
 
 func (dq *dbDeque) NewBatch() Batch {

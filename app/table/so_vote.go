@@ -907,25 +907,9 @@ func NewVoteVoterWrap(db iservices.IDatabaseRW) *SVoteVoterWrap {
 	return &wrap
 }
 
-func (s *SVoteVoterWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil {
-		return
-	}
-	s.Dba.DeleteIterator(iterator)
-}
-
-func (s *SVoteVoterWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.VoterId {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
-
+func (s *SVoteVoterWrap) GetMainVal(val []byte) *prototype.VoterId {
 	res := &SoListVoteByVoter{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 
 	if err != nil {
 		return nil
@@ -934,18 +918,9 @@ func (s *SVoteVoterWrap) GetMainVal(iterator iservices.IDatabaseIterator) *proto
 
 }
 
-func (s *SVoteVoterWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.VoterId {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
+func (s *SVoteVoterWrap) GetSubVal(val []byte) *prototype.VoterId {
 	res := &SoListVoteByVoter{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 	if err != nil {
 		return nil
 	}
@@ -1020,18 +995,11 @@ func (s *SVoteVoterWrap) ForEachByOrder(start *prototype.VoterId, end *prototype
 	if cErr != nil {
 		return cErr
 	}
-	iterator := s.Dba.NewIterator(sBuf, eBuf)
-	if iterator == nil {
-		return errors.New("there is no data in range")
-	}
 	var idx uint32 = 0
-	for iterator.Next() {
+	s.Dba.Iterate(sBuf, eBuf, false, func(key, value []byte) bool {
 		idx++
-		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
-			break
-		}
-	}
-	s.DelIterator(iterator)
+		return f(s.GetMainVal(value), s.GetSubVal(value), idx)
+	})
 	return nil
 }
 
@@ -1048,25 +1016,9 @@ func NewVoteVoteTimeWrap(db iservices.IDatabaseRW) *SVoteVoteTimeWrap {
 	return &wrap
 }
 
-func (s *SVoteVoteTimeWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil {
-		return
-	}
-	s.Dba.DeleteIterator(iterator)
-}
-
-func (s *SVoteVoteTimeWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.VoterId {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
-
+func (s *SVoteVoteTimeWrap) GetMainVal(val []byte) *prototype.VoterId {
 	res := &SoListVoteByVoteTime{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 
 	if err != nil {
 		return nil
@@ -1075,18 +1027,9 @@ func (s *SVoteVoteTimeWrap) GetMainVal(iterator iservices.IDatabaseIterator) *pr
 
 }
 
-func (s *SVoteVoteTimeWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.TimePointSec {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
+func (s *SVoteVoteTimeWrap) GetSubVal(val []byte) *prototype.TimePointSec {
 	res := &SoListVoteByVoteTime{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 	if err != nil {
 		return nil
 	}
@@ -1161,18 +1104,11 @@ func (s *SVoteVoteTimeWrap) ForEachByOrder(start *prototype.TimePointSec, end *p
 	if cErr != nil {
 		return cErr
 	}
-	iterator := s.Dba.NewIterator(sBuf, eBuf)
-	if iterator == nil {
-		return errors.New("there is no data in range")
-	}
 	var idx uint32 = 0
-	for iterator.Next() {
+	s.Dba.Iterate(sBuf, eBuf, false, func(key, value []byte) bool {
 		idx++
-		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
-			break
-		}
-	}
-	s.DelIterator(iterator)
+		return f(s.GetMainVal(value), s.GetSubVal(value), idx)
+	})
 	return nil
 }
 
@@ -1189,25 +1125,9 @@ func NewVotePostIdWrap(db iservices.IDatabaseRW) *SVotePostIdWrap {
 	return &wrap
 }
 
-func (s *SVotePostIdWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil {
-		return
-	}
-	s.Dba.DeleteIterator(iterator)
-}
-
-func (s *SVotePostIdWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.VoterId {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
-
+func (s *SVotePostIdWrap) GetMainVal(val []byte) *prototype.VoterId {
 	res := &SoListVoteByPostId{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 
 	if err != nil {
 		return nil
@@ -1216,18 +1136,9 @@ func (s *SVotePostIdWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prot
 
 }
 
-func (s *SVotePostIdWrap) GetSubVal(iterator iservices.IDatabaseIterator) *uint64 {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
+func (s *SVotePostIdWrap) GetSubVal(val []byte) *uint64 {
 	res := &SoListVoteByPostId{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 	if err != nil {
 		return nil
 	}
@@ -1300,18 +1211,11 @@ func (s *SVotePostIdWrap) ForEachByOrder(start *uint64, end *uint64, lastMainKey
 	if cErr != nil {
 		return cErr
 	}
-	iterator := s.Dba.NewIterator(sBuf, eBuf)
-	if iterator == nil {
-		return errors.New("there is no data in range")
-	}
 	var idx uint32 = 0
-	for iterator.Next() {
+	s.Dba.Iterate(sBuf, eBuf, false, func(key, value []byte) bool {
 		idx++
-		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
-			break
-		}
-	}
-	s.DelIterator(iterator)
+		return f(s.GetMainVal(value), s.GetSubVal(value), idx)
+	})
 	return nil
 }
 

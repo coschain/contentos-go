@@ -774,25 +774,9 @@ func NewContractCreatedTimeWrap(db iservices.IDatabaseRW) *SContractCreatedTimeW
 	return &wrap
 }
 
-func (s *SContractCreatedTimeWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil {
-		return
-	}
-	s.Dba.DeleteIterator(iterator)
-}
-
-func (s *SContractCreatedTimeWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.ContractId {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
-
+func (s *SContractCreatedTimeWrap) GetMainVal(val []byte) *prototype.ContractId {
 	res := &SoListContractByCreatedTime{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 
 	if err != nil {
 		return nil
@@ -801,18 +785,9 @@ func (s *SContractCreatedTimeWrap) GetMainVal(iterator iservices.IDatabaseIterat
 
 }
 
-func (s *SContractCreatedTimeWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.TimePointSec {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
+func (s *SContractCreatedTimeWrap) GetSubVal(val []byte) *prototype.TimePointSec {
 	res := &SoListContractByCreatedTime{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 	if err != nil {
 		return nil
 	}
@@ -887,18 +862,11 @@ func (s *SContractCreatedTimeWrap) ForEachByOrder(start *prototype.TimePointSec,
 	if cErr != nil {
 		return cErr
 	}
-	iterator := s.Dba.NewIterator(sBuf, eBuf)
-	if iterator == nil {
-		return errors.New("there is no data in range")
-	}
 	var idx uint32 = 0
-	for iterator.Next() {
+	s.Dba.Iterate(sBuf, eBuf, false, func(key, value []byte) bool {
 		idx++
-		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
-			break
-		}
-	}
-	s.DelIterator(iterator)
+		return f(s.GetMainVal(value), s.GetSubVal(value), idx)
+	})
 	return nil
 }
 

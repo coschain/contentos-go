@@ -99,18 +99,11 @@ func makeIterationBenchmark(dbs *dbService, dataPtr *sort.StringSlice, rangeSize
 		for i := 0; i < b.N; i++ {
 			start := rand.Intn(s - rangeSize)
 			limit := start + rangeSize
-			var it Iterator
-			if reverse {
-				it = dbs.db.NewReversedIterator([]byte(data[start]), []byte(data[limit]))
-			} else {
-				it = dbs.db.NewIterator([]byte(data[start]), []byte(data[limit]))
-			}
 			count := 0
-			for it.Next() {
+			dbs.db.Iterate([]byte(data[start]), []byte(data[limit]), reverse, func(key, value []byte) bool {
 				count++
-			}
-			//b.Log(count)
-			dbs.db.DeleteIterator(it)
+				return true
+			})
 		}
 	}
 }
