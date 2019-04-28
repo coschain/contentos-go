@@ -88,6 +88,15 @@ func FindCreator(operation *prototype.Operation) string {
 	return ""
 }
 
+func IsCreateAccountOp(operation *prototype.Operation) bool {
+	switch operation.Op.(type) {
+	case *prototype.Operation_Op1:
+		return true
+	default:
+		return false
+	}
+}
+
 var TrxMysqlServiceName = "trxmysql"
 
 type TrxMysqlService struct {
@@ -176,6 +185,8 @@ func (t *TrxMysqlService) handleLibNotification(lib uint64) {
 	}
 	stmt, _ := t.outDb.Prepare("INSERT IGNORE INTO trxinfo (trx_id, block_height, block_id, block_time, invoice, operations, creator)  value (?, ?, ?, ?, ?, ?, ?)")
 	defer stmt.Close()
+	accountStmt, _ := t.outDb.Prepare("INSERT IGNORE INTO createaccountinfo (trx_id, create_time, creator, pubkey, account) values (?, ?, ?, ?, ?)")
+	defer accountStmt.Close()
 	blk := blks[0].(*prototype.SignedBlock)
 	for _, trx := range blk.Transactions {
 		cid := prototype.ChainId{Value: 0}
@@ -188,8 +199,12 @@ func (t *TrxMysqlService) handleLibNotification(lib uint64) {
 		invoice, _ := json.Marshal(trx.Invoice)
 		operations := PurgeOperation(trx.SigTrx.GetTrx().GetOperations())
 		operationsJson, _ := json.Marshal(operations)
-		creator := FindCreator(trx.SigTrx.GetTrx().GetOperations()[0])
+		operation := trx.SigTrx.GetTrx().GetOperations()[0]
+		creator := FindCreator(operation)
 		_, _ = stmt.Exec(trxId, blockHeight, blockId, blockTime, invoice, operationsJson, creator)
+		if IsCreateAccountOp(operation) {
+			_, _ = accountStmt.Exec(trxId, blockTime, creator, operation.GetOp1().Owner.ToWIF(),  operation.GetOp1().NewAccountName.Value)
+		}
 	}
 }
 
