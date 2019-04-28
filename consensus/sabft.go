@@ -164,6 +164,9 @@ func (sabft *SABFT) shuffle(head common.ISignedBlock) {
 
 	newDyn := sabft.makeDynastry(blockNum, prods, pubKeys, sabft.localPrivKey)
 	sabft.dynasties.PushBack(newDyn)
+	if atomic.LoadUint32(&sabft.bftStarted) == 0 {
+		sabft.checkBFTRoutine()
+	}
 }
 
 func (sabft *SABFT) makeDynastry(seq uint64, prods []string,
