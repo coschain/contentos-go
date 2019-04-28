@@ -23,7 +23,12 @@ type LevelDatabase struct {
 
 // create a database
 func NewLevelDatabase(file string) (*LevelDatabase, error) {
+	maxOpenCacheFiles := 128
+	n := 8
 	db, err := leveldb.OpenFile(file, &opt.Options{
+		OpenFilesCacheCapacity: maxOpenCacheFiles,
+		BlockCacheCapacity:     n * opt.DefaultBlockCacheCapacity,
+		WriteBuffer:            n * opt.DefaultWriteBuffer,
 		Filter: filter.NewBloomFilter(10),
 	})
 	if _, corrupted := err.(*errors.ErrCorrupted); corrupted {
