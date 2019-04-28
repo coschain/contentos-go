@@ -163,10 +163,17 @@ func (sabft *SABFT) shuffle(head common.ISignedBlock) {
 	sabft.updateProducers(seed, prods)
 
 	newDyn := sabft.makeDynastry(blockNum, prods, pubKeys, sabft.localPrivKey)
-	sabft.dynasties.PushBack(newDyn)
+	sabft.addDynasty(newDyn)
 	if atomic.LoadUint32(&sabft.bftStarted) == 0 {
 		sabft.checkBFTRoutine()
 	}
+}
+
+func (sabft *SABFT) addDynasty(d *Dynasty) {
+	for !sabft.dynasties.Empty() && sabft.dynasties.Front().GetValidatorNum() < 3 {
+		sabft.dynasties.PopFront()
+	}
+	sabft.dynasties.PushBack(d)
 }
 
 func (sabft *SABFT) makeDynastry(seq uint64, prods []string,
@@ -181,7 +188,7 @@ func (sabft *SABFT) makeDynastry(seq uint64, prods []string,
 
 func (sabft *SABFT) checkBFTRoutine() {
 	headNum := sabft.ForkDB.Head().Id().BlockNum()
-	if sabft.readyToProduce && sabft.dynasties.Front().GetValidatorNum() >= 1 &&
+	if sabft.readyToProduce && sabft.dynasties.Front().GetValidatorNum() >= 3 &&
 		headNum-sabft.ForkDB.LastCommitted().BlockNum() < constants.BlockProdRepetition &&
 		sabft.isValidatorName(sabft.Name) {
 		if atomic.LoadUint32(&sabft.bftStarted) == 0 {
@@ -307,14 +314,14 @@ func (sabft *SABFT) restoreFirstDynasty() {
 		// new chain, no blocks
 		prods, pubKeys := sabft.ctrl.GetWitnessTopN(constants.MaxWitnessCount)
 		dyn := sabft.makeDynastry(0, prods, pubKeys, sabft.localPrivKey)
-		sabft.dynasties.PushBack(dyn)
+		sabft.addDynasty(dyn)
 	} else {
 		lcNum := sabft.ForkDB.LastCommitted().BlockNum()
 		length := sabft.ForkDB.Head().Id().BlockNum() - lcNum
 		cache := make([]common.ISignedBlock, length)
 		b := sabft.ForkDB.Head()
 		var err error
-		for i := int(length) - 1; ; i-- {
+		for i := int(length) - 1; i>=0; i-- {
 			cache[i] = b
 			if i == 0 {
 				break
@@ -329,7 +336,7 @@ func (sabft *SABFT) restoreFirstDynasty() {
 
 		prods, pubKeys := sabft.ctrl.GetWitnessTopN(constants.MaxWitnessCount)
 		dyn := sabft.makeDynastry(0, prods, pubKeys, sabft.localPrivKey)
-		sabft.dynasties.PushBack(dyn)
+		sabft.addDynasty(dyn)
 		for i := range cache {
 			if err = sabft.applyBlock(cache[i]); err != nil {
 				panic(err)
@@ -438,6 +445,7 @@ func (sabft *SABFT) start() {
 				} else {
 					if err = sabft.commit(commit); err == nil {
 						sabft.cp.Flush()
+						sabft.dynasties.PopBefore(ExtractBlockID(commit).BlockNum())
 					}
 				}
 			}
@@ -687,6 +695,7 @@ func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 		if _, err := sabft.ForkDB.FetchBlock(newID); err == nil {
 			if err = sabft.commit(checkPoint); err == nil {
 				sabft.cp.Flush()
+				sabft.dynasties.PopBefore(ExtractBlockID(checkPoint).BlockNum())
 				checkPoint = sabft.cp.NextUncommitted()
 				continue
 			}
@@ -870,6 +879,7 @@ func (sabft *SABFT) Commit(commitRecords *message.Commit) error {
 	err := sabft.commit(commitRecords)
 	if err == nil {
 		sabft.cp.Flush()
+		sabft.dynasties.PopBefore(ExtractBlockID(commitRecords).BlockNum())
 		sabft.checkBFTRoutine()
 		return nil
 	}
