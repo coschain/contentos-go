@@ -136,7 +136,7 @@ func (sabft *SABFT) CurrentProducer() string {
 
 func (sabft *SABFT) makeProducers(names []string) []*Producer {
 	ret := make([]*Producer, len(names))
-	for i := range ret {
+	for i := range names {
 		ret[i] = &Producer{
 			//sab:         sabft,
 			accountName: names[i],
@@ -155,6 +155,7 @@ func (sabft *SABFT) shuffle(head common.ISignedBlock) {
 	// When a produce round complete, it adds new producers,
 	// remove unqualified producers and shuffle the block-producing order
 	prods, pubKeys := sabft.ctrl.GetWitnessTopN(constants.MaxWitnessCount)
+	sabft.log.Warn("GetWitnessTopN ", prods)
 
 	var seed uint64
 	if head != nil {
@@ -171,8 +172,10 @@ func (sabft *SABFT) shuffle(head common.ISignedBlock) {
 
 func (sabft *SABFT) addDynasty(d *Dynasty) {
 	for !sabft.dynasties.Empty() && sabft.dynasties.Front().GetValidatorNum() < 3 {
+		sabft.log.Info("remove dynasty: ", sabft.dynasties.Front().Seq)
 		sabft.dynasties.PopFront()
 	}
+	sabft.log.Info("add dynasty: ", d.Seq)
 	sabft.dynasties.PushBack(d)
 }
 

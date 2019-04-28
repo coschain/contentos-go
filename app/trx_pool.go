@@ -878,20 +878,24 @@ func (c *TrxPool) GetWitnessTopN(n uint32) ([]string, []*prototype.PublicKeyType
 	revList := table.SWitnessVoteCountWrap{Dba: c.db}
 	_ = revList.ForEachByRevOrder(nil, nil,nil,nil, func(mVal *prototype.AccountName, sVal *uint64, idx uint32) bool {
 		if mVal != nil {
-			witnessWrap := table.NewSoWitnessWrap(c.db, mVal)
-			if !witnessWrap.CheckExist() {
-				c.log.Errorf("witness %v doesn't exist")
-				return false
-			}
-			dbPubKey := witnessWrap.GetSigningKey()
 			names = append(names, mVal.Value)
-			keys = append(keys, dbPubKey)
 		}
 		if idx < n {
 			return true
 		}
 		return false
 	})
+	for i := range names {
+		ac := &prototype.AccountName{
+			Value: names[i],
+		}
+		witnessWrap := table.NewSoWitnessWrap(c.db, ac)
+		if !witnessWrap.CheckExist() {
+			c.log.Fatalf("witness %v doesn't exist", names[i])
+		}
+		dbPubKey := witnessWrap.GetSigningKey()
+		keys = append(keys, dbPubKey)
+	}
 	return names, keys
 }
 
