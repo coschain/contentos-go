@@ -172,7 +172,7 @@ func (sabft *SABFT) shuffle(head common.ISignedBlock) {
 
 func (sabft *SABFT) addDynasty(d *Dynasty) {
 	for !sabft.dynasties.Empty() && sabft.dynasties.Front().GetValidatorNum() < 3 {
-		sabft.log.Info("remove dynasty: ", sabft.dynasties.Front().Seq)
+		sabft.log.Info("remove inferior dynasty: ", sabft.dynasties.Front().Seq)
 		sabft.dynasties.PopFront()
 	}
 	sabft.log.Info("add dynasty: ", d.Seq)
@@ -190,9 +190,10 @@ func (sabft *SABFT) makeDynastry(seq uint64, prods []string,
 }
 
 func (sabft *SABFT) checkBFTRoutine() {
-	headNum := sabft.ForkDB.Head().Id().BlockNum()
+	//sabft.log.Warnf("checkBFTRoutine ready:%v valNum:%d, ")
+	//headNum := sabft.ForkDB.Head().Id().BlockNum()
 	if sabft.readyToProduce && sabft.dynasties.Front().GetValidatorNum() >= 3 &&
-		headNum-sabft.ForkDB.LastCommitted().BlockNum() < constants.BlockProdRepetition &&
+		//headNum-sabft.ForkDB.LastCommitted().BlockNum() < constants.BlockProdRepetition &&
 		sabft.isValidatorName(sabft.Name) {
 		if atomic.LoadUint32(&sabft.bftStarted) == 0 {
 			sabft.bft.Start()
@@ -882,7 +883,7 @@ func (sabft *SABFT) Commit(commitRecords *message.Commit) error {
 	err := sabft.commit(commitRecords)
 	if err == nil {
 		sabft.cp.Flush()
-		sabft.dynasties.PopBefore(ExtractBlockID(commitRecords).BlockNum())
+		sabft.dynasties.Purge(ExtractBlockID(commitRecords).BlockNum())
 		sabft.checkBFTRoutine()
 		return nil
 	}

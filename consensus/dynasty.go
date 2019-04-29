@@ -59,24 +59,35 @@ func (ds *Dynasties) PopBack() {
 	ds.dynasties.Remove(ds.dynasties.Back())
 }
 
-func (ds *Dynasties) PopBefore(seq uint64) {
+func (ds *Dynasties) PopBefore(seq uint64) *Dynasty {
+	var res *Dynasty
 	for front := ds.dynasties.Front(); front != nil; {
 		d := front.Value.(*Dynasty)
 		if d.Seq >= seq {
 			break
 		}
+		res = d
 		ds.dynasties.Remove(front)
 		front = ds.dynasties.Front()
 	}
+	return res
 }
 
-func (ds *Dynasties) PopAfter(seq uint64) {
+func (ds *Dynasties) Purge(seq uint64) {
+	last := ds.PopBefore(seq)
+	ds.PushFront(last)
+}
+
+func (ds *Dynasties) PopAfter(seq uint64) *Dynasty {
+	var res *Dynasty
 	for back := ds.dynasties.Back(); back != nil; {
 		d := back.Value.(*Dynasty)
 		if d.Seq <= seq {
 			break
 		}
+		res = d
 		ds.dynasties.Remove(back)
 		back = ds.dynasties.Back()
 	}
+	return res
 }
