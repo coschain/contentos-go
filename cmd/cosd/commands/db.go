@@ -97,6 +97,19 @@ func initDb(cmd *cobra.Command, args []string) {
 	INDEX creatoraccount_account (account),
   constraint createaccount_trx_id_uindex unique (trx_id)
 );`
+	createTransferInfo := `create table transferinfo
+(
+	trx_id varchar(64) not null,
+	create_time int unsigned not null,
+	sender varchar(64) not null,
+	receiver varchar(64) not null,
+	amount varchar(64) default 0,
+	memo TEXT ,
+	INDEX transfer_create_time (create_time),
+	INDEX transfer_sender (sender),
+	INDEX transfer_receiver (receiver),
+  constraint transferinfo_trx_id_uindex unique (trx_id)
+);`
 	createDailyDAU := `create table dailydau
 (
 	date varchar(16) not null,
@@ -119,35 +132,19 @@ func initDb(cmd *cobra.Command, args []string) {
 	constraint dailydnu_date_hour_uindex
 		unique (date, hour)
 );`
-	if _, err = db.Exec("DROP TABLE IF EXISTS `trxinfo`"); err != nil {
-		fmt.Println(err)
+	dropTables := []string{"trxinfo", "libinfo", "createaccountinfo", "transferinfo", "dailydau", "dailydnu"}
+	for _, table := range dropTables {
+		dropSql := fmt.Sprintf("DROP TABLE IF EXISTS `%s`", table)
+		if _, err = db.Exec(dropSql); err != nil {
+			fmt.Println(err)
+		}
 	}
-	if _, err = db.Exec(createTrxInfo); err != nil {
-		fmt.Println(err)
-	}
-	if _, err = db.Exec("DROP TABLE IF EXISTS `libinfo`"); err != nil {
-		fmt.Println(err)
-	}
-	if _, err = db.Exec(createLibInfo); err != nil {
-		fmt.Println(err)
-	}
-	if _, err = db.Exec("DROP TABLE IF EXISTS `createaccountinfo`"); err != nil {
-		fmt.Println(err)
-	}
-	if _, err = db.Exec(createCreateAccountInfo); err != nil {
-		fmt.Println(err)
-	}
-	if _, err = db.Exec("DROP TABLE IF EXISTS `dailydau`"); err != nil {
-		fmt.Println(err)
-	}
-	if _, err = db.Exec(createDailyDAU); err != nil {
-		fmt.Println(err)
-	}
-	if _, err = db.Exec("DROP TABLE IF EXISTS `dailydnu`"); err != nil {
-		fmt.Println(err)
-	}
-	if _, err = db.Exec(createDailyDNU); err != nil {
-		fmt.Println(err)
+	createTables := []string{createTrxInfo, createLibInfo, createCreateAccountInfo, createCreateAccountInfo,
+		createTransferInfo, createDailyDAU, createDailyDNU}
+	for _, table := range createTables {
+		if _, err = db.Exec(table); err != nil {
+			fmt.Println(err)
+		}
 	}
 	stmt, _ := db.Prepare("INSERT INTO `libinfo` (lib, last_check_time) VALUES (?, ?)")
 	defer stmt.Close()
@@ -163,10 +160,11 @@ func cleanDb(cmd *cobra.Command, args []string) {
 		fmt.Printf("fatal: init database failed, dsn:%s\n", dsn)
 		os.Exit(1)
 	}
-	if _, err = db.Exec("DROP TABLE IF EXISTS `trxinfo`"); err != nil {
-		fmt.Println(err)
-	}
-	if _, err = db.Exec("DROP TABLE IF EXISTS `libinfo`"); err != nil {
-		fmt.Println(err)
+	dropTables := []string{"trxinfo", "libinfo", "createaccountinfo", "transferinfo", "dailydau", "dailydnu"}
+	for _, table := range dropTables {
+		dropSql := fmt.Sprintf("DROP TABLE IF EXISTS `%s`", table)
+		if _, err = db.Exec(dropSql); err != nil {
+			fmt.Println(err)
+		}
 	}
 }
