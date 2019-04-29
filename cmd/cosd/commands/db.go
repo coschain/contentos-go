@@ -79,12 +79,45 @@ func initDb(cmd *cobra.Command, args []string) {
 	INDEX trxinfo_block_creator (creator),
 	constraint trxinfo_trx_id_uindex
 		unique (trx_id)
-);
-	`
+);`
 	createLibInfo := `create table libinfo
 (
 	lib int unsigned not null,
 	last_check_time int unsigned not null
+);`
+	createCreateAccountInfo := `create table createaccountinfo
+(
+	trx_id varchar(64) not null,
+	create_time int unsigned not null,
+	creator varchar(64) not null,
+	pubkey varchar(64) not null,
+	account varchar(64) not null,
+	INDEX createaccount_create_time (create_time),
+	INDEX createaccount_creator (creator),
+	INDEX creatoraccount_account (account),
+  constraint createaccount_trx_id_uindex unique (trx_id)
+);`
+	createDailyDAU := `create table dailydau
+(
+	date varchar(16) not null,
+  hour smallint not null,
+  pg int unsigned default 0,
+  ct int unsigned default 0,
+  g2 int unsigned default 0,
+  ec int unsigned default 0,
+	constraint dailydau_date_hour_uindex
+		unique (date, hour)
+);`
+	createDailyDNU := `create table dailydnu
+(
+	date varchar(16) not null,
+  hour smallint not null,
+  pg int unsigned default 0,
+  ct int unsigned default 0,
+  g2 int unsigned default 0,
+  ec int unsigned default 0,
+	constraint dailydnu_date_hour_uindex
+		unique (date, hour)
 );`
 	if _, err = db.Exec("DROP TABLE IF EXISTS `trxinfo`"); err != nil {
 		fmt.Println(err)
@@ -98,7 +131,24 @@ func initDb(cmd *cobra.Command, args []string) {
 	if _, err = db.Exec(createLibInfo); err != nil {
 		fmt.Println(err)
 	}
-	//if _, err = db.Exec("INSERT INTO `libinfo` (lib, last_check_time) VALUES ()")
+	if _, err = db.Exec("DROP TABLE IF EXISTS `createaccountinfo`"); err != nil {
+		fmt.Println(err)
+	}
+	if _, err = db.Exec(createCreateAccountInfo); err != nil {
+		fmt.Println(err)
+	}
+	if _, err = db.Exec("DROP TABLE IF EXISTS `dailydau`"); err != nil {
+		fmt.Println(err)
+	}
+	if _, err = db.Exec(createDailyDAU); err != nil {
+		fmt.Println(err)
+	}
+	if _, err = db.Exec("DROP TABLE IF EXISTS `dailydnu`"); err != nil {
+		fmt.Println(err)
+	}
+	if _, err = db.Exec(createDailyDNU); err != nil {
+		fmt.Println(err)
+	}
 	stmt, _ := db.Prepare("INSERT INTO `libinfo` (lib, last_check_time) VALUES (?, ?)")
 	defer stmt.Close()
 	_, _ = stmt.Exec(0, time.Now().UTC().Unix())
