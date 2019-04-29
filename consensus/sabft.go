@@ -249,7 +249,7 @@ func (sabft *SABFT) shuffle(head common.ISignedBlock) {
 
 	sabft.suffledID = head.Id()
 
-	if sabft.readyToProduce && prodNum >= 3 && sabft.isValidator(sabft.Name) {
+	if sabft.readyToProduce && prodNum >= 1 && sabft.isValidator(sabft.Name) {
 		if atomic.LoadUint32(&sabft.bftStarted) == 0 {
 			//sabft.Unlock()
 			sabft.bft.Start()
@@ -316,7 +316,7 @@ func (sabft *SABFT) Start(node *node.Node) error {
 		sabft.log.Info("[SABFT] bootstrapping...")
 	}
 	if !sabft.ForkDB.Empty() && !sabft.blog.Empty() {
-		lc, err := sabft.cp.GetNext(sabft.ForkDB.LastCommitted().BlockNum()-1)
+		lc, err := sabft.cp.GetNext(sabft.ForkDB.LastCommitted().BlockNum() - 1)
 		if err != nil {
 			sabft.log.Error(err)
 		} else {
@@ -432,15 +432,16 @@ func (sabft *SABFT) start() {
 				sabft.log.Error("[SABFT] pushBlock failed: ", err)
 				continue
 			}
-			if !sabft.readyToProduce {
-				head := sabft.ForkDB.Head()
-				commit, reached := sabft.cp.ReachCheckPoint(head)
-				if reached {
-					success := sabft.cp.Validate(head)
-					if !success {
-						sabft.revertToLastCheckPoint()
-					} else {
-						sabft.Commit(commit)
+
+			head := sabft.ForkDB.Head()
+			commit, reached := sabft.cp.ReachCheckPoint(head)
+			if reached {
+				success := sabft.cp.Validate(commit)
+				if !success {
+					sabft.revertToLastCheckPoint()
+				} else {
+					if err := sabft.Commit(commit); err == nil {
+						sabft.cp.Commit(head.Id().BlockNum())
 					}
 				}
 			}
@@ -653,11 +654,6 @@ func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 		return
 	}
 
-	if !sabft.readyToProduce {
-		sabft.cp.AcceptCheckPoint(records)
-		return
-	}
-
 	// make sure we haven't committed it already
 	newID := common.BlockID{
 		Data: records.ProposedData,
@@ -665,6 +661,8 @@ func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 	if sabft.CheckCommittedAlready(newID) {
 		return
 	}
+
+	sabft.cp.Add(records)
 
 	// if we're a validator, pass it to gobft so that it can catch up
 	if sabft.IsValidator(message.PubKey(sabft.Name)) {
@@ -675,6 +673,7 @@ func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 
 	// make sure we have the block about to be committed
 	if sabft.ForkDB.Empty() || sabft.ForkDB.Head().Id().BlockNum() < newID.BlockNum() {
+		sabft.log.Warn("recved commits on a missing block ", records.ProposedData)
 		return
 	}
 
@@ -683,7 +682,9 @@ func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 		return
 	}
 
-	sabft.Commit(records)
+	if err := sabft.Commit(records); err == nil {
+		sabft.cp.Commit(newID.BlockNum())
+	}
 }
 
 func (sabft *SABFT) validateProducer(b common.ISignedBlock) bool {

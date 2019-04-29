@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/coschain/contentos-go/common"
+	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/db/storage"
 	"github.com/coschain/gobft/message"
 )
@@ -13,9 +14,9 @@ type BFTCheckPoint struct {
 	dataDir string
 	db      storage.Database
 
-	interval uint64
-	lastCP   uint64
-	nextCP   *message.Commit
+	lastCP uint64
+	cache  map[uint64]*message.Commit
+	nextCP *message.Commit
 }
 
 func NewBFTCheckPoint(dir string, sabft *SABFT) *BFTCheckPoint {
@@ -24,12 +25,12 @@ func NewBFTCheckPoint(dir string, sabft *SABFT) *BFTCheckPoint {
 		panic(err)
 	}
 	return &BFTCheckPoint{
-		sabft:    sabft,
-		dataDir:  dir,
-		db:       db,
-		interval: 5,
-		lastCP:   0,
-		nextCP:   nil,
+		sabft:   sabft,
+		dataDir: dir,
+		db:      db,
+		lastCP:  0,
+		nextCP:  nil,
+		cache:   make(map[uint64]*message.Commit),
 	}
 }
 
@@ -42,9 +43,6 @@ func (cp *BFTCheckPoint) Make(commit *message.Commit) error {
 		Data: commit.ProposedData,
 	}
 	blockNum := blockID.BlockNum()
-	if blockNum-cp.lastCP < cp.interval {
-		return nil
-	}
 	key := make([]byte, 8)
 	binary.BigEndian.PutUint64(key, blockNum)
 	err := cp.db.Put(key, commit.Bytes())
@@ -56,7 +54,7 @@ func (cp *BFTCheckPoint) Make(commit *message.Commit) error {
 	return nil
 }
 
-func (cp *BFTCheckPoint) AcceptCheckPoint(commit *message.Commit) {
+func (cp *BFTCheckPoint) Add(commit *message.Commit) {
 	//cp.sabft.log.Info("adding checkpoint/////", commit.ProposedData)
 	if err := commit.ValidateBasic(); err != nil {
 		cp.sabft.log.Error(err)
@@ -67,20 +65,19 @@ func (cp *BFTCheckPoint) AcceptCheckPoint(commit *message.Commit) {
 	}
 
 	blockNum := blockID.BlockNum()
-	if blockNum < cp.lastCP || !cp.sabft.ForkDB.Empty() && blockNum <= cp.sabft.ForkDB.Head().Id().BlockNum() {
+	if blockNum <= cp.lastCP || blockNum >= cp.lastCP+constants.MaxUncommittedBlockNum {
 		return
 	}
 
-	nextBlockNum := uint64(0)
-	if cp.nextCP != nil {
-		nextBlockNum = common.BlockID{
-			Data: cp.nextCP.ProposedData,
-		}.BlockNum()
-	}
+	cp.cache[blockNum] = commit
+}
 
-	if nextBlockNum == 0 || blockNum < nextBlockNum {
-		cp.nextCP = commit
-		cp.sabft.log.Infof("next checkpoint at block height %d received.", blockNum)
+func (cp *BFTCheckPoint) Commit(num uint64) {
+	cp.lastCP = num
+	for k := range cp.cache {
+		if k <= num {
+			delete(cp.cache, k)
+		}
 	}
 }
 
@@ -107,38 +104,25 @@ func (cp *BFTCheckPoint) GetNext(blockNum uint64) (*message.Commit, error) {
 }
 
 func (cp *BFTCheckPoint) ReachCheckPoint(block common.ISignedBlock) (*message.Commit, bool) {
-	if cp.nextCP == nil || block == nil {
-		return nil, false
+	if ret, ok := cp.cache[block.Id().BlockNum()]; ok {
+		return ret, true
 	}
-	nextBlockID := common.BlockID{
-		Data: cp.nextCP.ProposedData,
-	}
-	if nextBlockID != block.Id() {
-		return nil, false
-	}
-	return cp.nextCP, true
+	return nil, false
 }
 
-func (cp *BFTCheckPoint) ClearNextCheckPoint() {
-	cp.nextCP = nil
-}
-
-func (cp *BFTCheckPoint) Validate(block common.ISignedBlock) bool {
-	defer cp.ClearNextCheckPoint()
-
+func (cp *BFTCheckPoint) Validate(commit *message.Commit) bool {
 	// check +2/3
-	if len(cp.sabft.validators)*2/3 > len(cp.nextCP.Precommits) {
+	if len(cp.sabft.validators)*2/3 >= len(commit.Precommits) {
 		return false
 	}
 
-	if !cp.sabft.VerifyCommitSig(cp.nextCP) {
+	if !cp.sabft.VerifyCommitSig(commit) {
 		return false
 	}
 
 	nextBlockID := common.BlockID{
-		Data: cp.nextCP.ProposedData,
+		Data: commit.ProposedData,
 	}
-	cp.lastCP = nextBlockID.BlockNum()
 	cp.sabft.log.Infof("checkpoint at block height %v validated.", nextBlockID.BlockNum())
 	return true
 }
