@@ -38,6 +38,8 @@ type Config struct {
 	P2P   service_configs.P2PConfig
 
 	HealthCheck service_configs.HCheck
+
+	Database *service_configs.DatabaseConfig
 }
 
 // DB returns the path to the discovery database.

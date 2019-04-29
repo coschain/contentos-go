@@ -139,14 +139,12 @@ func (d *GreenDandelion) CreateAccount(name string) error {
 		return err
 	}
 
-	keys := prototype.NewAuthorityFromPubKey(defaultPubKey)
-
 	// create account with default pub key
 	acop := &prototype.AccountCreateOperation{
 		Fee:            prototype.NewCoin(1),
 		Creator:        &prototype.AccountName{Value: "initminer"},
 		NewAccountName: &prototype.AccountName{Value: name},
-		Owner:          keys,
+		Owner:          defaultPubKey,
 	}
 	// use initminer's priv key sign
 	signTx, err := d.Sign(d.privKey.ToWIF(), acop)
