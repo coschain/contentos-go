@@ -139,7 +139,7 @@ func initDb(cmd *cobra.Command, args []string) {
 			fmt.Println(err)
 		}
 	}
-	createTables := []string{createTrxInfo, createLibInfo, createCreateAccountInfo, createCreateAccountInfo,
+	createTables := []string{createTrxInfo, createLibInfo, createCreateAccountInfo,
 		createTransferInfo, createDailyDAU, createDailyDNU}
 	for _, table := range createTables {
 		if _, err = db.Exec(table); err != nil {
