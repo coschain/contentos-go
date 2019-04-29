@@ -91,7 +91,7 @@ func (s *DailyStatisticService) statisticDAU(start int64, end int64) error {
 	datetime := time.Unix(end, 0)
 	date := fmt.Sprintf("%d-%02d-%02d", datetime.Year(), datetime.Month(), datetime.Day())
 	hour := datetime.Hour()
-	insertStmt, _ := s.outDb.Prepare("INSERT INTO dailydau (date, hour, pg, ct, g2, ec) values (?, ?, ?, ?, ?, ?)")
+	insertStmt, _ := s.outDb.Prepare("INSERT IGNORE INTO dailydau (date, hour, pg, ct, g2, ec) values (?, ?, ?, ?, ?, ?)")
 	defer insertStmt.Close()
 	_, _ = insertStmt.Exec(date, hour, counter[0], counter[1], counter[2], counter[3])
 	return nil
@@ -124,7 +124,7 @@ func (s *DailyStatisticService) statisticDNU(start int64, end int64) error {
 	datetime := time.Unix(end, 0)
 	date := fmt.Sprintf("%d-%d-%d", datetime.Year(), datetime.Month(), datetime.Day())
 	hour := datetime.Hour()
-	insertStmt, _ := s.outDb.Prepare("INSERT INTO dailydnu (date, hour, pg, ct, g2, ec) values (?, ?, ?, ?, ?, ?)")
+	insertStmt, _ := s.outDb.Prepare("INSERT IGNORE INTO dailydnu (date, hour, pg, ct, g2, ec) values (?, ?, ?, ?, ?, ?)")
 	defer insertStmt.Close()
 	_, _ = insertStmt.Exec(date, hour, counter[0], counter[1], counter[2], counter[3])
 	return nil
