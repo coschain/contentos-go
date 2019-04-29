@@ -14,6 +14,8 @@ import (
 //type Row map[string]int
 
 const INTERVAL = 60 * 60
+// for test easily
+//const INTERVAL = 60 * 5
 
 type DailyStatisticService struct {
 	node.Service

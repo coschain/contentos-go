@@ -1194,7 +1194,7 @@ func (as *APIService) GetDAUStats(ctx context.Context, req *grpcpb.GetDAUStatsRe
 	ds := dsservice.(iservices.IDailyStats)
 	rows := ds.DAUStatsSince(int(req.Days))
 	var stat []*grpcpb.DAUStat
-	var res *grpcpb.GetDAUStatsResponse
+	res := &grpcpb.GetDAUStatsResponse{}
 	for _, row := range rows {
 		stat = append(stat, &grpcpb.DAUStat{Pg: uint32(row.Pg), Ct: uint32(row.Ct), G2: uint32(row.G2), Ec: uint32(row.Ec)})
 	}
@@ -1210,7 +1210,7 @@ func (as *APIService) GetDNUStats(ctx context.Context, req *grpcpb.GetDNUStatsRe
 	ds := dsservice.(iservices.IDailyStats)
 	rows := ds.DNUStatsSince(int(req.Days))
 	var stat []*grpcpb.DNUStat
-	var res *grpcpb.GetDNUStatsResponse
+	res := &grpcpb.GetDNUStatsResponse{}
 	for _, row := range rows {
 		stat = append(stat, &grpcpb.DNUStat{Pg: uint32(row.Pg), Ct: uint32(row.Ct), G2: uint32(row.G2), Ec: uint32(row.Ec)})
 	}
