@@ -190,10 +190,7 @@ func (sabft *SABFT) makeDynastry(seq uint64, prods []string,
 }
 
 func (sabft *SABFT) checkBFTRoutine() {
-	//sabft.log.Warnf("checkBFTRoutine ready:%v valNum:%d, ")
-	//headNum := sabft.ForkDB.Head().Id().BlockNum()
 	if sabft.readyToProduce && sabft.dynasties.Front().GetValidatorNum() >= 3 &&
-		//headNum-sabft.ForkDB.LastCommitted().BlockNum() < constants.BlockProdRepetition &&
 		sabft.isValidatorName(sabft.Name) {
 		if atomic.LoadUint32(&sabft.bftStarted) == 0 {
 			sabft.bft.Start()
@@ -449,7 +446,7 @@ func (sabft *SABFT) start() {
 				} else {
 					if err = sabft.commit(commit); err == nil {
 						sabft.cp.Flush()
-						sabft.dynasties.PopBefore(ExtractBlockID(commit).BlockNum())
+						sabft.dynasties.Purge(ExtractBlockID(commit).BlockNum())
 					}
 				}
 			}
@@ -619,27 +616,27 @@ func (sabft *SABFT) verifyCommitSig(records *message.Commit) bool {
 	for i := range records.Precommits {
 		val := sabft.getValidator(records.Precommits[i].Address)
 		if val == nil {
-			sabft.log.Errorf("[SABFT][handleCommitRecords] error while checking precommits: %s is not a validator", records.Precommits[i].Address)
+			sabft.log.Errorf("[SABFT] error while checking precommits: %s is not a validator", records.Precommits[i].Address)
 			return false
 		}
 		sabft.RUnlock()
 		v := val.VerifySig(records.Precommits[i].Digest(), records.Precommits[i].Signature)
 		sabft.RLock()
 		if !v {
-			sabft.log.Error("[SABFT][handleCommitRecords] precommits verification failed")
+			sabft.log.Error("[SABFT] precommits verification failed")
 			return false
 		}
 	}
 	val := sabft.getValidator(records.Address)
 	if val == nil {
-		sabft.log.Errorf("[SABFT][handleCommitRecords] error while checking commits. %s is not a validator", string(records.Address))
+		sabft.log.Errorf("[SABFT] error while checking commits. %s is not a validator", string(records.Address))
 		return false
 	}
 	sabft.RUnlock()
 	v := val.VerifySig(records.Digest(), records.Signature)
 	sabft.RLock()
 	if !v {
-		sabft.log.Error("[SABFT][handleCommitRecords] verification failed")
+		sabft.log.Error("[SABFT] verification failed")
 		return false
 	}
 	return true
@@ -699,7 +696,7 @@ func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 		if _, err := sabft.ForkDB.FetchBlock(newID); err == nil {
 			if err = sabft.commit(checkPoint); err == nil {
 				sabft.cp.Flush()
-				sabft.dynasties.PopBefore(ExtractBlockID(checkPoint).BlockNum())
+				sabft.dynasties.Purge(ExtractBlockID(checkPoint).BlockNum())
 				checkPoint = sabft.cp.NextUncommitted()
 				continue
 			}
@@ -878,7 +875,7 @@ func (sabft *SABFT) Commit(commitRecords *message.Commit) error {
 
 	if !sabft.cp.Add(commitRecords) {
 		// it might be out of range or already exist
-		// TODO: if it's aout of range, return
+		// TODO: if it's out of range, return
 	}
 	err := sabft.commit(commitRecords)
 	if err == nil {
