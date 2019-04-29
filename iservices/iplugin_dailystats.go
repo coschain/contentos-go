@@ -1,12 +1,12 @@
 package iservices
 
+import "github.com/coschain/contentos-go/iservices/itype"
+
 var DailyStatisticServiceName = "dailystatistic"
 
-type Row map[string]int
-
 type IDailyStats interface {
-	DAUStatsOn(date string) Row
-	DAUStatsSince(days int) map[string]Row
-	DNUStatsOn(date string) Row
-	DNUStatsSince(days int) map[string]Row
+	DAUStatsOn(date string) *itype.Row
+	DAUStatsSince(days int) []*itype.Row
+	DNUStatsOn(date string) *itype.Row
+	DNUStatsSince(days int) []*itype.Row
 }

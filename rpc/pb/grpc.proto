@@ -97,6 +97,14 @@ service ApiService {
 
     rpc GetAccountListByCreTime (GetAccountListByCreTimeRequest) returns (GetAccountListResponse) {
     }
+
+    rpc GetDAUStats (GetDAUStatsRequest) returns (GetDAUStatsResponse) {
+
+    }
+
+    rpc GetDNUStats (GetDNUStatsRequest) returns (GetDNUStatsResponse) {
+
+    }
 }
 
 
@@ -491,4 +499,36 @@ message GetAccountListByCreTimeRequest {
     prototype.time_point_sec   end       = 2;
     AccountInfo  last_account = 3;
     uint32           limit     = 4;
+}
+
+message DAUStat {
+    string date = 1;
+    uint32 pg = 2;
+    uint32 ct = 3;
+    uint32 g2 = 4;
+    uint32 ec = 5;
+}
+
+message DNUStat {
+    string date = 1;
+    uint32 pg = 2;
+    uint32 ct = 3;
+    uint32 g2 = 4;
+    uint32 ec = 5;
+}
+
+message GetDAUStatsRequest {
+    uint32 days = 1;
+}
+
+message GetDAUStatsResponse {
+    repeated DAUStat stat = 1;
+}
+
+message GetDNUStatsRequest {
+    uint32 days = 1;
+}
+
+message GetDNUStatsResponse {
+    repeated DNUStat stat = 1;
 }

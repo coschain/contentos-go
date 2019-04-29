@@ -3,6 +3,7 @@ package plugins
 import (
 	"database/sql"
 	"fmt"
+	"github.com/coschain/contentos-go/iservices/itype"
 	"github.com/coschain/contentos-go/iservices/service-configs"
 	"github.com/coschain/contentos-go/node"
 	"github.com/sirupsen/logrus"
@@ -10,7 +11,7 @@ import (
 	"time"
 )
 
-type Row map[string]int
+//type Row map[string]int
 
 const INTERVAL = 60 * 60
 
@@ -127,22 +128,23 @@ func (s *DailyStatisticService) statisticDNU(start int64, end int64) error {
 	return nil
 }
 
-func (s *DailyStatisticService) DAUStatsOn(date string) Row {
+func (s *DailyStatisticService) DAUStatsOn(date string) *itype.Row {
 	var pg, ct, g2, ec int
 	stmt, _ := s.outDb.Prepare("select sum(pg) as pg, sum(ct) as ct, sum(g2) as g2, sum(ec) as ec from dailydau where date=?")
 	defer stmt.Close()
 	_ = stmt.QueryRow(date).Scan(&pg, &ct, &g2, &ec)
-	return Row{"pg": pg, "ct": ct, "g2": g2, "ec": ec}
+	return &itype.Row{Date: date, Pg: pg, Ct: ct, G2: g2, Ec: ec}
 }
 
-func (s *DailyStatisticService) DAUStatsSince(days int) map[string]Row {
+func (s *DailyStatisticService) DAUStatsSince(days int) []*itype.Row {
 	now := time.Now().UTC()
 	d, _ := time.ParseDuration("-1d")
 	then := now.Add(d * time.Duration(days))
 	date := fmt.Sprintf("%d-%02d-%02d", then.Year(), then.Month(), then.Day())
-	stmt, _ := s.outDb.Prepare("select date, sum(pg) as pg, sum(ct) as ct, sum(g2) as g2, sum(ec) as ec from dailydau where date >= ? group by date")
+	stmt, _ := s.outDb.Prepare("select date, sum(pg) as pg, sum(ct) as ct, sum(g2) as g2, sum(ec) as ec from dailydau where date >= ? group by date order by date")
 	defer stmt.Close()
-	dauRows := make(map[string]Row)
+	//dauRows := make(map[string]Row)
+	var dauRows []*itype.Row
 	rows, err := stmt.Query(date)
 	if err != nil {
 		return dauRows
@@ -151,28 +153,28 @@ func (s *DailyStatisticService) DAUStatsSince(days int) map[string]Row {
 		var d string
 		var pg, ct, g2, ec int
 		_ = rows.Scan(&d, &pg, &ct, &g2, &ec)
-		r := Row{"pg": pg, "ct": ct, "g2": g2, "ec": ec}
-		dauRows[d] = r
+		r := &itype.Row{Date: d, Pg: pg, Ct: ct, G2: g2, Ec: ec}
+		dauRows = append(dauRows, r)
 	}
 	return dauRows
 }
 
-func (s *DailyStatisticService) DNUStatsOn(date string) Row {
+func (s *DailyStatisticService) DNUStatsOn(date string) *itype.Row {
 	var pg, ct, g2, ec int
 	stmt, _ := s.outDb.Prepare("select sum(pg) as pg, sum(ct) as ct, sum(g2) as g2, sum(ec) as ec from dailydnu where date=?")
 	defer stmt.Close()
 	_ = stmt.QueryRow(date).Scan(&pg, &ct, &g2, &ec)
-	return Row{"pg": pg, "ct": ct, "g2": g2, "ec": ec}
+	return &itype.Row{Date: date, Pg: pg, Ct: ct, G2: g2, Ec: ec}
 }
 
-func (s *DailyStatisticService) DNUStatsSince(days int) map[string]Row {
+func (s *DailyStatisticService) DNUStatsSince(days int) []*itype.Row {
 	now := time.Now().UTC()
 	d, _ := time.ParseDuration("-1d")
 	then := now.Add(d * time.Duration(days))
 	date := fmt.Sprintf("%d-%02d-%02d", then.Year(), then.Month(), then.Day())
 	stmt, _ := s.outDb.Prepare("select date, sum(pg) as pg, sum(ct) as ct, sum(g2) as g2, sum(ec) as ec from dailydnu where date >= ? group by date")
 	defer stmt.Close()
-	dauRows := make(map[string]Row)
+	var dauRows []*itype.Row
 	rows, err := stmt.Query(date)
 	if err != nil {
 		return dauRows
@@ -181,8 +183,8 @@ func (s *DailyStatisticService) DNUStatsSince(days int) map[string]Row {
 		var d string
 		var pg, ct, g2, ec int
 		_ = rows.Scan(&d, &pg, &ct, &g2, &ec)
-		r := Row{"pg": pg, "ct": ct, "g2": g2, "ec": ec}
-		dauRows[d] = r
+		r := &itype.Row{Date: d, Pg: pg, Ct: ct, G2: g2, Ec: ec}
+		dauRows = append(dauRows, r)
 	}
 	return dauRows
 }
