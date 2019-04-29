@@ -17,12 +17,13 @@ func main() {
 	resp, err := client.GetDAUStats(context.Background(), req)
 	if err != nil {
 		fmt.Println(err)
-	}
-	fmt.Println(resp)
-	for _, r := range resp.Stat {
-		fmt.Println(r.Pg)
-		fmt.Println(r.Ct)
-		fmt.Println(r.G2)
-		fmt.Println(r.Ec)
+	} else {
+		fmt.Println(resp)
+		for _, r := range resp.Stat {
+			fmt.Println(r.Pg)
+			fmt.Println(r.Ct)
+			fmt.Println(r.G2)
+			fmt.Println(r.Ec)
+		}
 	}
 }
