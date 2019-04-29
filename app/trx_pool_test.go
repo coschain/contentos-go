@@ -11,6 +11,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"io/ioutil"
 	"testing"
+	"time"
 )
 
 const (
@@ -185,7 +186,10 @@ func Test_PushBlock(t *testing.T) {
 
 	// set up controller
 	db := startDB()
-	defer clearDB(db)
+	defer func() {
+		time.Sleep(time.Second)
+		clearDB(db)
+	}()
 	c := startController(db)
 
 	createOP, err := makeCreateAccountOP(accountNameBob, pubKeyBob)
@@ -458,6 +462,7 @@ func Test_MixOp(t *testing.T) {
 func Test_Stake_UnStake(t *testing.T) {
 	db := startDB()
 	defer func() {
+		time.Sleep(time.Second)
 		stopGenerateBlock()
 		clearDB(db)
 	}()
@@ -1061,13 +1066,6 @@ func Test_Transfer(t *testing.T) {
 		t.Error("PushTrx return status error:", invoice.Status)
 	}
 
-	pri, err := prototype.PrivateKeyFromWIF(constants.InitminerPrivKey)
-	if err != nil {
-		t.Error("PrivateKeyFromWIF error")
-	}
-	pre := &prototype.Sha256{Hash: make([]byte, 32)}
-	block1, err := c.GenerateAndApplyBlock(constants.COSInitMiner, pre, 18, pri, 0)
-
 	//
 	s1 := minerWrap.GetStamina() + minerWrap.GetStaminaFree()
 	t.Log("after deploy initminer stamina use:", s1)
@@ -1123,15 +1121,6 @@ func Test_Transfer(t *testing.T) {
 		}
 	}
 
-	id := block1.Id()
-	pre = &prototype.Sha256{Hash: id.Data[:]}
-	block2, err := c.GenerateAndApplyBlock(constants.COSInitMiner, pre, 21, pri, 0)
-	if err != nil {
-		t.Error(err.Error())
-		return
-	}
-	fmt.Println()
-	fmt.Println("block size:", len(block2.Transactions))
 	//
 	s2 := minerWrap.GetStamina() + minerWrap.GetStaminaFree()
 	t.Log("after call contract initminer stamina use:", s2)
