@@ -97,6 +97,15 @@ func IsCreateAccountOp(operation *prototype.Operation) bool {
 	}
 }
 
+func IsTransferOp(operation *prototype.Operation) bool {
+	switch operation.Op.(type) {
+	case *prototype.Operation_Op2:
+		return true
+	default:
+		return false
+	}
+}
+
 var TrxMysqlServiceName = "trxmysql"
 
 type TrxMysqlService struct {
@@ -187,6 +196,8 @@ func (t *TrxMysqlService) handleLibNotification(lib uint64) {
 	defer stmt.Close()
 	accountStmt, _ := t.outDb.Prepare("INSERT IGNORE INTO createaccountinfo (trx_id, create_time, creator, pubkey, account) values (?, ?, ?, ?, ?)")
 	defer accountStmt.Close()
+	transferStmt, _ := t.outDb.Prepare("INSERT IGNORE INTO transferinfo (trx_id, create_time, sender, receiver, amount, memo) values (?, ?, ?, ?, ?, ?)")
+	defer transferStmt.Close()
 	blk := blks[0].(*prototype.SignedBlock)
 	for _, trx := range blk.Transactions {
 		cid := prototype.ChainId{Value: 0}
@@ -204,6 +215,9 @@ func (t *TrxMysqlService) handleLibNotification(lib uint64) {
 		_, _ = stmt.Exec(trxId, blockHeight, blockId, blockTime, invoice, operationsJson, creator)
 		if IsCreateAccountOp(operation) {
 			_, _ = accountStmt.Exec(trxId, blockTime, creator, operation.GetOp1().Owner.ToWIF(),  operation.GetOp1().NewAccountName.Value)
+		}
+		if IsTransferOp(operation) {
+			_, _ = transferStmt.Exec(trxId, blockTime, creator, operation.GetOp2().To, operation.GetOp2().Amount, operation.GetOp2().Memo)
 		}
 	}
 }
