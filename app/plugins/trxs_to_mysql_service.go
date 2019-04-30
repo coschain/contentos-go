@@ -115,7 +115,8 @@ type TrxMysqlService struct {
 	outDb *sql.DB
 	log *logrus.Logger
 	ctx *node.ServiceContext
-	ticker *time.Ticker
+	//timer *time.Timer
+	//ticker *time.Ticker
 	quit chan bool
 }
 
@@ -139,15 +140,18 @@ func (t *TrxMysqlService) Start(node *node.Node) error {
 	}
 	t.outDb = outDb
 
-	t.ticker = time.NewTicker(time.Second)
+	//t.ticker = time.NewTicker(time.Second)
 	go func() {
+		timer := time.NewTimer(time.Second)
 		for {
 			select {
-			case <- t.ticker.C:
+			case <- timer.C:
 				if err := t.pollLIB(); err != nil {
 					t.log.Error(err)
 				}
+				timer.Reset(time.Second)
 			case <- t.quit:
+				timer.Stop()
 				t.stop()
 				return
 			}
@@ -158,6 +162,7 @@ func (t *TrxMysqlService) Start(node *node.Node) error {
 
 func (t *TrxMysqlService) pollLIB() error {
 	lib := t.consensus.GetLIB().BlockNum()
+	t.log.Infof("[trx db] sync lib: %d \n", lib)
 	stmt, _ := t.outDb.Prepare("SELECT lib from libinfo limit 1")
 	defer stmt.Close()
 	var lastLib uint64 = 0
@@ -224,7 +229,7 @@ func (t *TrxMysqlService) handleLibNotification(lib uint64) {
 
 func (t *TrxMysqlService) stop() {
 	_ = t.outDb.Close()
-	t.ticker.Stop()
+	//t.ticker.Stop()
 }
 
 func (t *TrxMysqlService) Stop() error {
