@@ -103,7 +103,7 @@ func initDb(cmd *cobra.Command, args []string) {
 	create_time int unsigned not null,
 	sender varchar(64) not null,
 	receiver varchar(64) not null,
-	amount varchar(64) default 0,
+	amount int unsigned default 0,
 	memo TEXT ,
 	INDEX transfer_create_time (create_time),
 	INDEX transfer_sender (sender),

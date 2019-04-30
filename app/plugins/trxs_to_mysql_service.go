@@ -222,7 +222,7 @@ func (t *TrxMysqlService) handleLibNotification(lib uint64) {
 			_, _ = accountStmt.Exec(trxId, blockTime, creator, operation.GetOp1().Owner.ToWIF(),  operation.GetOp1().NewAccountName.Value)
 		}
 		if IsTransferOp(operation) {
-			_, _ = transferStmt.Exec(trxId, blockTime, creator, operation.GetOp2().To, operation.GetOp2().Amount, operation.GetOp2().Memo)
+			_, _ = transferStmt.Exec(trxId, blockTime, creator, operation.GetOp2().To.Value, operation.GetOp2().Amount.Value, operation.GetOp2().Memo)
 		}
 	}
 }
