@@ -872,19 +872,31 @@ func (c *TrxPool) createBlockSummary(blk *prototype.SignedBlock) {
 	mustSuccess(blockSummaryWrap.MdBlockId(blockID), "update block summary object error")
 }
 
-func (c *TrxPool) GetWitnessTopN(n uint32) []string {
-	var ret []string
+func (c *TrxPool) GetWitnessTopN(n uint32) ([]string, []*prototype.PublicKeyType) {
+	var names []string
+	var keys []*prototype.PublicKeyType
 	revList := table.SWitnessVoteCountWrap{Dba: c.db}
 	_ = revList.ForEachByRevOrder(nil, nil,nil,nil, func(mVal *prototype.AccountName, sVal *uint64, idx uint32) bool {
 		if mVal != nil {
-			ret = append(ret, mVal.Value)
+			names = append(names, mVal.Value)
 		}
 		if idx < n {
 			return true
 		}
 		return false
 	})
-	return ret
+	for i := range names {
+		ac := &prototype.AccountName{
+			Value: names[i],
+		}
+		witnessWrap := table.NewSoWitnessWrap(c.db, ac)
+		if !witnessWrap.CheckExist() {
+			c.log.Fatalf("witness %v doesn't exist", names[i])
+		}
+		dbPubKey := witnessWrap.GetSigningKey()
+		keys = append(keys, dbPubKey)
+	}
+	return names, keys
 }
 
 func (c *TrxPool) SetShuffledWitness(names []string) {

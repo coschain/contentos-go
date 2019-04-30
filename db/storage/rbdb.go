@@ -119,9 +119,13 @@ func (db *RedblackDatabase) Iterate(start, limit []byte, reverse bool, callback 
 			smallest = item.(*rbdbItem)
 			return false
 		})
-		// the smallest item can always be found as long as there exists any item in [start, limit).
+		// the smallest item can always be found as long as there exists any item in [start, +infinity).
 		// if not found, we're done since there's no item in [start, limit).
 		if smallest == nil {
+			return
+		}
+		// if the smallest item is beyond limit, there's no item in [start, limit).
+		if !smallest.Less(limitItem) {
 			return
 		}
 		// secondly, we get the limit item.

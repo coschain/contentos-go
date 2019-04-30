@@ -118,7 +118,7 @@ func (d *DPoS) shuffle(head common.ISignedBlock) {
 
 	// When a produce round complete, it adds new producers,
 	// remove unqualified producers and shuffle the block-producing order
-	prods := d.ctrl.GetWitnessTopN(constants.MaxWitnessCount)
+	prods, _ := d.ctrl.GetWitnessTopN(constants.MaxWitnessCount)
 	var seed uint64
 	if head != nil {
 		seed = head.Timestamp() << 32

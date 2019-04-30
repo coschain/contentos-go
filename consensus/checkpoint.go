@@ -63,11 +63,12 @@ func NewBFTCheckPoint(dir string, sabft *SABFT) *BFTCheckPoint {
 	if err != nil {
 		panic(err)
 	}
+	lc := sabft.ForkDB.LastCommitted()
 	return &BFTCheckPoint{
 		sabft:         sabft,
 		dataDir:       dir,
 		db:            db,
-		lastCommitted: common.EmptyBlockID,
+		lastCommitted: lc,
 		nextCP:        common.EmptyBlockID,
 		cache:         make(map[common.BlockID]*message.Commit),
 	}
