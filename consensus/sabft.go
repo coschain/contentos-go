@@ -257,8 +257,6 @@ func (sabft *SABFT) Start(node *node.Node) error {
 		sabft.shuffle(block)
 	})
 
-	sabft.cp = NewBFTCheckPoint(cfg.ResolvePath("checkpoint"), sabft)
-
 	// reload ForkDB
 	snapshotPath := cfg.ResolvePath("forkdb_snapshot")
 	// TODO: fuck!! this is fugly
@@ -271,6 +269,8 @@ func (sabft *SABFT) Start(node *node.Node) error {
 		avatar = append(avatar, &prototype.SignedBlock{})
 	}
 	sabft.ForkDB.LoadSnapshot(avatar, snapshotPath, &sabft.blog)
+
+	sabft.cp = NewBFTCheckPoint(cfg.ResolvePath("checkpoint"), sabft)
 
 	sabft.log.Info("[SABFT] starting...")
 	if sabft.bootstrap && sabft.ForkDB.Empty() && sabft.blog.Empty() {
@@ -294,10 +294,7 @@ func (sabft *SABFT) Start(node *node.Node) error {
 	sabft.restoreProducers()
 
 	if sabft.dynasties.Empty() {
-		sabft.restoreFirstDynasty()
-	} else if sabft.dynasties.Front().Seq != sabft.ForkDB.LastCommitted().BlockNum() {
-		// TODO: clear dynasties
-		// TODO: pop all uncommitted blocks and fix first dynasty
+		sabft.restoreDynasty()
 	}
 	sabft.bft = gobft.NewCore(sabft, sabft.dynasties.Front().priv)
 	//pv := newPrivValidator(sabft, sabft.localPrivKey, sabft.Name)
@@ -309,7 +306,7 @@ func (sabft *SABFT) Start(node *node.Node) error {
 	return nil
 }
 
-func (sabft *SABFT) restoreFirstDynasty() {
+func (sabft *SABFT) restoreDynasty() {
 	// pop all uncommitted blocks and fix first dynasty
 	if sabft.ForkDB.Empty() {
 		// new chain, no blocks
@@ -322,7 +319,7 @@ func (sabft *SABFT) restoreFirstDynasty() {
 		cache := make([]common.ISignedBlock, length)
 		b := sabft.ForkDB.Head()
 		var err error
-		for i := int(length) - 1; i>=0; i-- {
+		for i := int(length) - 1; i >= 0; i-- {
 			cache[i] = b
 			if i == 0 {
 				break
@@ -333,7 +330,7 @@ func (sabft *SABFT) restoreFirstDynasty() {
 				panic(err)
 			}
 		}
-		sabft.popBlock(lcNum+1)
+		sabft.popBlock(lcNum + 1)
 
 		prods, pubKeys := sabft.ctrl.GetWitnessTopN(constants.MaxWitnessCount)
 		dyn := sabft.makeDynastry(0, prods, pubKeys, sabft.localPrivKey)

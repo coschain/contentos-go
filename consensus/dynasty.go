@@ -35,6 +35,10 @@ func (ds *Dynasties) Empty() bool {
 	return ds.dynasties.Len() == 0
 }
 
+func (ds *Dynasties) Len() int {
+	return ds.dynasties.Len()
+}
+
 func (ds *Dynasties) Front() *Dynasty {
 	return ds.dynasties.Front().Value.(*Dynasty)
 }
@@ -60,10 +64,10 @@ func (ds *Dynasties) PopBack() {
 }
 
 func (ds *Dynasties) PopBefore(seq uint64) *Dynasty {
-	var res *Dynasty
+	var res *Dynasty = nil
 	for front := ds.dynasties.Front(); front != nil; {
 		d := front.Value.(*Dynasty)
-		if d.Seq >= seq {
+		if d.Seq > seq {
 			break
 		}
 		res = d
@@ -74,15 +78,16 @@ func (ds *Dynasties) PopBefore(seq uint64) *Dynasty {
 }
 
 func (ds *Dynasties) Purge(seq uint64) {
-	last := ds.PopBefore(seq)
-	ds.PushFront(last)
+	if last := ds.PopBefore(seq); last != nil {
+		ds.PushFront(last)
+	}
 }
 
 func (ds *Dynasties) PopAfter(seq uint64) *Dynasty {
-	var res *Dynasty
+	var res *Dynasty = nil
 	for back := ds.dynasties.Back(); back != nil; {
 		d := back.Value.(*Dynasty)
-		if d.Seq <= seq {
+		if d.Seq < seq {
 			break
 		}
 		res = d
