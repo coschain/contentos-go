@@ -23,6 +23,8 @@ message id_msg {
 
 message sig_blk_msg {
     prototype.signed_block SigBlk = 1;
+
+    bool need_trigger_fetch = 2;
 }
 
 message req_id_msg {
@@ -73,6 +75,7 @@ message request_out_of_range_ids {
     bytes target_id = 2;
 }
 
+// (start_id, end_id]
 message request_block_batch {
     bytes start_id = 1;
     bytes end_id = 2;
@@ -81,6 +84,8 @@ message request_block_batch {
 message detect_former_ids {
     bytes end_id = 1;
 }
+
+message clear_out_of_range_state {}
 
 message transfer_msg {
     oneof msg {
@@ -99,6 +104,7 @@ message transfer_msg {
         request_out_of_range_ids   msg13 = 13;
         request_block_batch        msg14 = 14;
         detect_former_ids          msg15 = 15;
+        clear_out_of_range_state   msg16 = 16;
     }
 }
 

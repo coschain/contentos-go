@@ -74,6 +74,11 @@ const (
 
 	CONSENSUS_TYPE  = "consensus"
 	CHECKPOINT_TYPE = "checkpoint"
+
+	REQUEST_OUT_OF_RANGE_IDS_TYPE = "future_ids"
+	REQUEST_BLOCK_BATCH_TYPE = "sigblk_batch"
+	DETECT_FORMER_IDS_TYPE = "former_ids"
+	CLEAR_OUT_OF_RABGE_STATE = "clear_state"
 )
 
 const (

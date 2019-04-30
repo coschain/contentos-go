@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/iservices"
 	msgCommon "github.com/coschain/contentos-go/p2p/common"
@@ -15,6 +16,7 @@ import (
 	msgTypes "github.com/coschain/contentos-go/p2p/message/types"
 	"github.com/coschain/contentos-go/p2p/net/protocol"
 	"github.com/coschain/contentos-go/prototype"
+	"github.com/coschain/contentos-go/p2p/peer"
 )
 
 type MsgHandler struct {
@@ -172,6 +174,10 @@ func (p *MsgHandler) BlockSyncHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, arg
 	go func() {
 		p.blockHandle(ctrl)
 	}()
+
+	go func(){
+		maybeTriggerFetch(p2p, log, remotePeer, block)
+	}()
 }
 
 func (p *MsgHandler) blockHandle(ctrl iservices.IConsensus) {
@@ -188,6 +194,34 @@ func (p *MsgHandler) blockHandle(ctrl iservices.IConsensus) {
 			return
 		}
 		ctrl.PushBlock(block)
+	}
+}
+
+func maybeTriggerFetch(p2p p2p.P2P, lg *logrus.Logger, remotePeer *peer.Peer, sigBlkMsg *msgTypes.SigBlkMsg) {
+	if !sigBlkMsg.NeedTriggerFetch {
+		lg.Info("no need to trigger fetch block batch")
+		return
+	}
+
+	remotePeer.OutOfRangeState.Lock()
+	defer remotePeer.OutOfRangeState.Unlock()
+
+	if len(remotePeer.OutOfRangeState.KeyPointIDList) == 1 {
+		lg.Error("remotePeer OutOfRangeState KeyPointIDList length should not be 0")
+	} else if len(remotePeer.OutOfRangeState.KeyPointIDList) == 1 {
+		remotePeer.OutOfRangeState.KeyPointIDList = remotePeer.OutOfRangeState.KeyPointIDList[:0]
+		lg.Info("all gap blocks fetch over")
+	} else {
+		length := len(remotePeer.OutOfRangeState.KeyPointIDList)
+		startId := remotePeer.OutOfRangeState.KeyPointIDList[length-1]
+		endId := remotePeer.OutOfRangeState.KeyPointIDList[length-2]
+		remotePeer.OutOfRangeState.KeyPointIDList = remotePeer.OutOfRangeState.KeyPointIDList[0:length-1]
+
+		msg := msgpack.NewRequestBlockBatch(startId, endId)
+		err := p2p.Send(remotePeer, msg, false)
+		if err != nil {
+			lg.Error("[p2p] send message error: ", err)
+		}
 	}
 }
 
@@ -549,6 +583,13 @@ func (p *MsgHandler) IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 		return
 	}
 
+	s, err := p2p.GetService(iservices.ConsensusServerName)
+	if err != nil {
+		log.Error("[p2p] can't get other service, service name: ", iservices.ConsensusServerName)
+		return
+	}
+	ctrl := s.(iservices.IConsensus)
+
 	switch msgdata.Msgtype {
 	case msgTypes.IdMsg_broadcast_sigblk_id:
 		//log.Infof("receive a msg from:    v%    data:   %v\n", data.Addr, *msgdata)
@@ -560,12 +601,6 @@ func (p *MsgHandler) IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 		var blkId common.BlockID
 		copy(blkId.Data[:], msgdata.Value[0])
 
-		s, err := p2p.GetService(iservices.ConsensusServerName)
-		if err != nil {
-			log.Info("[p2p] can't get other service, service name: ", iservices.ConsensusServerName)
-			return
-		}
-		ctrl := s.(iservices.IConsensus)
 		if !ctrl.HasBlock(blkId) {
 			var reqmsg msgTypes.TransferMsg
 			reqdata := new(msgTypes.IdMsg)
@@ -591,13 +626,6 @@ func (p *MsgHandler) IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 			defer remotePeer.UnlockBusy()
 		}
 
-		s, err := p2p.GetService(iservices.ConsensusServerName)
-		if err != nil {
-			log.Error("[p2p] can't get other service, service name: ", iservices.ConsensusServerName)
-			return
-		}
-		ctrl := s.(iservices.IConsensus)
-
 		for i, id := range msgdata.Value {
 			length := len(msgdata.Value[i])
 			if length > prototype.Size {
@@ -617,7 +645,7 @@ func (p *MsgHandler) IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 			}
 			sigBlk := IsigBlk.(*prototype.SignedBlock)
 
-			msg := msgpack.NewSigBlk(sigBlk)
+			msg := msgpack.NewSigBlk(sigBlk, false)
 			err = p2p.Send(remotePeer, msg, false)
 			if err != nil {
 				log.Error("[p2p] send message error: ", err)
@@ -640,12 +668,6 @@ func (p *MsgHandler) IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 			var blkId common.BlockID
 			copy(blkId.Data[:], id)
 
-			s, err := p2p.GetService(iservices.ConsensusServerName)
-			if err != nil {
-				log.Error("[p2p] can't get other service, service name: ", iservices.ConsensusServerName)
-				return
-			}
-
 			p.Lock()
 			_, existInCache := p.blockCache[blkId]
 			p.Unlock()
@@ -654,7 +676,6 @@ func (p *MsgHandler) IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 				continue
 			}
 
-			ctrl := s.(iservices.IConsensus)
 			if !ctrl.HasBlock(blkId) {
 				var tmp []byte
 				reqdata.Value = append(reqdata.Value, tmp)
@@ -673,6 +694,62 @@ func (p *MsgHandler) IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 			return
 		}
 		//log.Infof("send a message to:   v%   data:   v%\n", remotePeer, reqmsg)
+	case msgTypes.IdMsg_detect_former_ids:
+		for idx, id := range msgdata.Value {
+			var blkId common.BlockID
+			copy(blkId.Data[:], id)
+
+			//p.Lock()
+			//_, existInCache := p.blockCache[blkId]
+			//p.Unlock()
+			//
+			//if existInCache {
+			//	continue
+			//}
+
+			if !ctrl.HasBlock(blkId) {
+				if idx == 0 {
+					remotePeer.OutOfRangeState.Lock()
+					remotePeer.OutOfRangeState.KeyPointIDList = append(remotePeer.OutOfRangeState.KeyPointIDList, id)
+					remotePeer.OutOfRangeState.Unlock()
+
+					msg := msgpack.NewDetectFormerIds(id)
+					err = p2p.Send(remotePeer, msg, false)
+					if err != nil {
+						log.Error("[p2p] send message error: ", err)
+					}
+					return
+				} else {
+					remotePeer.OutOfRangeState.Lock()
+					length := len(remotePeer.OutOfRangeState.KeyPointIDList)
+					endId := remotePeer.OutOfRangeState.KeyPointIDList[length-1]
+					remotePeer.OutOfRangeState.KeyPointIDList = remotePeer.OutOfRangeState.KeyPointIDList[0:length-1]
+					remotePeer.OutOfRangeState.Unlock()
+
+					msg := msgpack.NewRequestBlockBatch(msgdata.Value[idx-1], endId)
+					err = p2p.Send(remotePeer, msg, false)
+					if err != nil {
+						log.Error("[p2p] send message error: ", err)
+					}
+					return
+				}
+			}
+
+			if idx == len(msgdata.Value)-1 {
+				remotePeer.OutOfRangeState.Lock()
+				length := len(remotePeer.OutOfRangeState.KeyPointIDList)
+				endId := remotePeer.OutOfRangeState.KeyPointIDList[length-1]
+				remotePeer.OutOfRangeState.KeyPointIDList = remotePeer.OutOfRangeState.KeyPointIDList[0:length-1]
+				remotePeer.OutOfRangeState.Unlock()
+
+				msg := msgpack.NewRequestBlockBatch(msgdata.Value[idx], endId)
+				err = p2p.Send(remotePeer, msg, false)
+				if err != nil {
+					log.Error("[p2p] send message error: ", err)
+					return
+				}
+			}
+		}
 	default:
 		log.Warnf("[p2p] Unknown id message %v", msgdata)
 	}
@@ -850,4 +927,255 @@ func ExtractBlockID(commit *message.Commit) common.BlockID {
 	return common.BlockID{
 		Data: commit.ProposedData,
 	}
+}
+
+func (p *MsgHandler) FetchOutOfRangeHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
+	var raw = data.Payload.(*msgTypes.TransferMsg)
+	var msgdata = raw.Msg.(*msgTypes.TransferMsg_Msg13).Msg13
+
+	log := p2p.GetLog()
+
+	remotePeer := p2p.GetPeerFromAddr(data.Addr)
+	if remotePeer == nil {
+		log.Error("[p2p] remotePeer invalid in FetchOutOfRangeHandle")
+		return
+	}
+
+	var startID, targetID common.BlockID
+	copy(startID.Data[:], msgdata.StartId)
+	copy(targetID.Data[:], msgdata.TargetId)
+
+	if startID.BlockNum() >= targetID.BlockNum() {
+		// TODO should we send a msg to clear remote peer OutOfRangeState, before other return should also do this
+		log.Debug("[p2p] no need to call FetchOutOfRangeHandle method, start num: ", startID.BlockNum(), " target num: ", targetID.BlockNum() )
+		clearMsg := msgpack.NewClearOutOfRangeState()
+		p2p.Send(remotePeer, clearMsg, false)
+		return
+	}
+	log.Info("request out-of-range ids, start number: ", startID.BlockNum(), " end number: ", targetID.BlockNum())
+
+	s, err := p2p.GetService(iservices.ConsensusServerName)
+	if err != nil {
+		log.Error("[p2p] can't get other service, service name: ", iservices.ConsensusServerName)
+		clearMsg := msgpack.NewClearOutOfRangeState()
+		p2p.Send(remotePeer, clearMsg, false)
+		return
+	}
+	ctrl := s.(iservices.IConsensus)
+
+	ret, err := ctrl.IsOnMainBranch(startID)
+	if err != nil {
+		log.Error("can not check whether on main branch, ", err)
+		clearMsg := msgpack.NewClearOutOfRangeState()
+		p2p.Send(remotePeer, clearMsg, false)
+		return
+	}
+
+	if ret{
+		startNum := startID.BlockNum()
+		endNum := targetID.BlockNum()
+
+		if endNum - startNum > msgCommon.MAX_ID_LENGTH {
+			endNum = startNum + msgCommon.MAX_ID_LENGTH
+		}
+
+		blockList, err := ctrl.FetchBlocks(startNum, endNum)
+		if err != nil {
+			log.Error("[p2p] can't fetch blocks from consessus, start number: ", startNum, " end number: ", endNum, " error: ", err)
+			clearMsg := msgpack.NewClearOutOfRangeState()
+			p2p.Send(remotePeer, clearMsg, false)
+			return
+		}
+		if len(blockList) == 0 {
+			log.Debug("[p2p] we have same blocks, no need to request from me")
+			clearMsg := msgpack.NewClearOutOfRangeState()
+			p2p.Send(remotePeer, clearMsg, false)
+			return
+		}
+
+		for i:=0;i<len(blockList);i++ {
+			sigBlk := blockList[i].(*prototype.SignedBlock)
+
+			var msg msgTypes.Message
+			if i == len(blockList) - 1 {
+				msg = msgpack.NewSigBlk(sigBlk, true)
+			} else {
+				msg = msgpack.NewSigBlk(sigBlk, false)
+			}
+			err = p2p.Send(remotePeer, msg, false)
+			if err != nil {
+				log.Error("[p2p] send message error: ", err)
+				return
+			}
+		}
+	} else {
+		count := 0
+		blkId := targetID
+		var IDList [][]byte
+
+		for {
+			IDList = append(IDList, blkId.Data[:])
+			count++
+			if count == msgCommon.MAX_ID_LENGTH || blkId == startID {
+				break
+			}
+
+			IsigBlk, err := ctrl.FetchBlock(blkId)
+			if err != nil {
+				log.Error("[p2p] can't get IsigBlk from consensus, block number: ", blkId.BlockNum(), " error: ", err)
+				clearMsg := msgpack.NewClearOutOfRangeState()
+				p2p.Send(remotePeer, clearMsg, false)
+				return
+			}
+			blkId = IsigBlk.Previous()
+		}
+
+		var reqmsg msgTypes.TransferMsg
+		reqdata := new(msgTypes.IdMsg)
+		reqdata.Msgtype = msgTypes.IdMsg_detect_former_ids
+
+		for i:=len(IDList)-1;i>=0;i-- {
+			reqdata.Value = append(reqdata.Value, IDList[i])
+		}
+
+		reqmsg.Msg = &msgTypes.TransferMsg_Msg2{Msg2: reqdata}
+		err = p2p.Send(remotePeer, &reqmsg, false)
+		if err != nil {
+			log.Error("[p2p] send message error: ", err)
+			return
+		}
+
+	}
+}
+
+func (p *MsgHandler) RequestBlockBatchHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
+	var raw = data.Payload.(*msgTypes.TransferMsg)
+	var msgdata = raw.Msg.(*msgTypes.TransferMsg_Msg14).Msg14
+
+	log := p2p.GetLog()
+
+	remotePeer := p2p.GetPeerFromAddr(data.Addr)
+	if remotePeer == nil {
+		log.Error("[p2p] remotePeer invalid in RequestBlockBatchHandle")
+		return
+	}
+
+	var startID, endID common.BlockID
+	copy(startID.Data[:], msgdata.StartId)
+	copy(endID.Data[:], msgdata.EndId)
+
+	blkId := endID
+	var IsigBlkList []common.ISignedBlock
+
+	s, err := p2p.GetService(iservices.ConsensusServerName)
+	if err != nil {
+		log.Error("[p2p] can't get other service, service name: ", iservices.ConsensusServerName)
+		clearMsg := msgpack.NewClearOutOfRangeState()
+		p2p.Send(remotePeer, clearMsg, false)
+		return
+	}
+	ctrl := s.(iservices.IConsensus)
+
+	for {
+		if blkId == startID {
+			break
+		}
+		IsigBlk, err := ctrl.FetchBlock(blkId)
+		if err != nil {
+			log.Error("[p2p] can't get IsigBlk from consensus, block number: ", blkId.BlockNum(), " error: ", err)
+			clearMsg := msgpack.NewClearOutOfRangeState()
+			p2p.Send(remotePeer, clearMsg, false)
+			return
+		}
+		IsigBlkList = append(IsigBlkList, IsigBlk)
+
+		blkId = IsigBlk.Previous()
+	}
+
+	for i:=len(IsigBlkList)-1;i>=0;i++ {
+		sigBlk := IsigBlkList[i].(*prototype.SignedBlock)
+
+		var msg msgTypes.Message
+		if i == 0 {
+			msg = msgpack.NewSigBlk(sigBlk, true)
+		} else {
+			msg = msgpack.NewSigBlk(sigBlk, false)
+		}
+
+		msg = msgpack.NewSigBlk(sigBlk, false)
+		err = p2p.Send(remotePeer, msg, false)
+		if err != nil {
+			log.Error("[p2p] send message error: ", err)
+			return
+		}
+	}
+}
+
+func (p *MsgHandler) DetectFormerIdsHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
+	var raw = data.Payload.(*msgTypes.TransferMsg)
+	var msgdata = raw.Msg.(*msgTypes.TransferMsg_Msg15).Msg15
+
+	log := p2p.GetLog()
+
+	remotePeer := p2p.GetPeerFromAddr(data.Addr)
+	if remotePeer == nil {
+		log.Error("[p2p] remotePeer invalid in DetectFormerIdsHandle")
+		return
+	}
+
+	s, err := p2p.GetService(iservices.ConsensusServerName)
+	if err != nil {
+		log.Error("[p2p] can't get other service, service name: ", iservices.ConsensusServerName)
+		clearMsg := msgpack.NewClearOutOfRangeState()
+		p2p.Send(remotePeer, clearMsg, false)
+		return
+	}
+	ctrl := s.(iservices.IConsensus)
+
+	var endID common.BlockID
+	copy(endID.Data[:], msgdata.EndId)
+	blkId := endID
+
+	count := 0
+	var reqmsg msgTypes.TransferMsg
+	reqdata := new(msgTypes.IdMsg)
+	reqdata.Msgtype = msgTypes.IdMsg_detect_former_ids
+
+	for {
+		reqdata.Value = append(reqdata.Value, blkId.Data[:])
+		count++
+		if count == msgCommon.MAX_ID_LENGTH {
+			break
+		}
+
+		IsigBlk, err := ctrl.FetchBlock(blkId)
+		if err != nil {
+			log.Error("[p2p] can't get IsigBlk from consensus, block number: ", blkId.BlockNum(), " error: ", err)
+			clearMsg := msgpack.NewClearOutOfRangeState()
+			p2p.Send(remotePeer, clearMsg, false)
+			return
+		}
+		blkId = IsigBlk.Previous()
+	}
+
+	reqmsg.Msg = &msgTypes.TransferMsg_Msg2{Msg2: reqdata}
+	err = p2p.Send(remotePeer, &reqmsg, false)
+	if err != nil {
+		log.Error("[p2p] send message error: ", err)
+		return
+	}
+}
+
+func (p *MsgHandler) ClearOutOfRangeStateHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
+	log := p2p.GetLog()
+
+	remotePeer := p2p.GetPeerFromAddr(data.Addr)
+	if remotePeer == nil {
+		log.Error("[p2p] remotePeer invalid in ClearOutOfRangeStateHandle")
+		return
+	}
+
+	remotePeer.OutOfRangeState.Lock()
+	remotePeer.OutOfRangeState.KeyPointIDList = remotePeer.OutOfRangeState.KeyPointIDList[:0]
+	remotePeer.OutOfRangeState.Unlock()
 }
