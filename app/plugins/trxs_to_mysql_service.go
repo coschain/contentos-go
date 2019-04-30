@@ -140,18 +140,16 @@ func (t *TrxMysqlService) Start(node *node.Node) error {
 	}
 	t.outDb = outDb
 
-	//t.ticker = time.NewTicker(time.Second)
+	ticker := time.NewTicker(time.Second)
 	go func() {
-		timer := time.NewTimer(time.Second)
 		for {
 			select {
-			case <- timer.C:
+			case <- ticker.C:
 				if err := t.pollLIB(); err != nil {
 					t.log.Error(err)
 				}
-				timer.Reset(time.Second)
 			case <- t.quit:
-				timer.Stop()
+				ticker.Stop()
 				t.stop()
 				return
 			}
@@ -173,16 +171,18 @@ func (t *TrxMysqlService) pollLIB() error {
 	updateStmt, _ := t.outDb.Prepare("UPDATE libinfo SET lib=?, last_check_time=?")
 	defer updateStmt.Close()
 	var waitingSyncLib []uint64
+	var count = 0
 	for lastLib < lib {
+		if count > 100 {
+			break
+		}
 		waitingSyncLib = append(waitingSyncLib, lastLib)
 		lastLib ++
+		count ++
 	}
-	for count, block := range waitingSyncLib {
+	for _, block := range waitingSyncLib {
 		t.handleLibNotification(block)
 		utcTimestamp := time.Now().UTC().Unix()
-		if count > 100 {
-			return nil
-		}
 		_, _ = updateStmt.Exec(block, utcTimestamp)
 	}
 	return nil
