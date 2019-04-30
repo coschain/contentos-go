@@ -159,6 +159,7 @@ func (t *TrxMysqlService) Start(node *node.Node) error {
 }
 
 func (t *TrxMysqlService) pollLIB() error {
+	start := time.Now()
 	lib := t.consensus.GetLIB().BlockNum()
 	t.log.Infof("[trx db] sync lib: %d \n", lib)
 	stmt, _ := t.outDb.Prepare("SELECT lib from libinfo limit 1")
@@ -180,11 +181,15 @@ func (t *TrxMysqlService) pollLIB() error {
 		lastLib ++
 		count ++
 	}
+
 	for _, block := range waitingSyncLib {
+		blockStart := time.Now()
 		t.handleLibNotification(block)
 		utcTimestamp := time.Now().UTC().Unix()
 		_, _ = updateStmt.Exec(block, utcTimestamp)
+		t.log.Infof("[trx db] insert block %d, spent: %v", block, time.Now().Sub(blockStart))
 	}
+	t.log.Infof("[trx db] PollLib spent: %v", time.Now().Sub(start))
 	return nil
 }
 
