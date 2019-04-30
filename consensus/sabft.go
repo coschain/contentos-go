@@ -757,10 +757,25 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 
 	if newNum > headNum+1 {
 
+		//if sabft.readyToProduce {
+		//	sabft.p2p.FetchUnlinkedBlock(b.Previous())
+		//	sabft.log.Debug("[SABFT TriggerSync]: out-of range from ", b.Previous().BlockNum())
+		//}
+
 		if sabft.readyToProduce {
-			sabft.p2p.FetchUnlinkedBlock(b.Previous())
-			sabft.log.Debug("[SABFT TriggerSync]: out-of range from ", b.Previous().BlockNum())
+			if !sabft.checkSync() {
+				//sabft.readyToProduce = false
+
+				var headID common.BlockID
+				if !sabft.ForkDB.Empty() {
+					headID = sabft.ForkDB.Head().Id()
+				}
+				sabft.p2p.FetchOutOfRange(headID, b.Id())
+
+				sabft.log.Debug("[SABFT TriggerSync]: out-of range from ", headID.BlockNum() )
+			}
 		}
+
 		return ErrBlockOutOfScope
 	}
 
