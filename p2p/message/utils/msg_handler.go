@@ -203,9 +203,11 @@ func (p *MsgHandler)TransactionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, ar
 	remotePeer := p2p.GetPeerFromAddr(data.Addr)
 	if remotePeer == nil {
 		log.Error("[p2p] peer is not exist: ", data.Addr)
+		log.Warnf("[p2p] trx refused: non-existing peer. trx_id=%x", id.Hash)
 		return
 	}
 	if remotePeer.HasTrx(id.Hash) {
+		log.Warnf("[p2p] trx refused: duplicate found by p2p trx_cache. trx_id=%x", id.Hash)
 		//log.Info("[p2p] we alerady have this transaction, transaction hash: ", id.Hash)
 		return
 	}
@@ -214,11 +216,14 @@ func (p *MsgHandler)TransactionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, ar
 	s, err := p2p.GetService(iservices.ConsensusServerName)
 	if err != nil {
 		log.Error("[p2p] can't get other service, service name: ", iservices.ConsensusServerName)
+		log.Warnf("[p2p] trx refused: no consensus service. trx_id=%x", id.Hash)
 		return
 	}
 	ctrl := s.(iservices.IConsensus)
 	go func() {
-		_ = ctrl.PushTransactionToPending(trn.SigTrx)
+		if err := ctrl.PushTransactionToPending(trn.SigTrx); err != nil {
+			log.Warnf("[p2p] trx refused: %s. trx_id=%x", err.Error(), id.Hash)
+		}
 	}()
 }
 

@@ -24,11 +24,12 @@ func NewBFTCheckPoint(dir string, sabft *SABFT) *BFTCheckPoint {
 	if err != nil {
 		panic(err)
 	}
+	lc := sabft.ForkDB.LastCommitted().BlockNum()
 	return &BFTCheckPoint{
 		sabft:   sabft,
 		dataDir: dir,
 		db:      db,
-		lastCP:  0,
+		lastCP:  lc,
 		nextCP:  nil,
 		cache:   make(map[uint64]*message.Commit),
 	}
@@ -105,6 +106,7 @@ func (cp *BFTCheckPoint) GetNext(blockNum uint64) (*message.Commit, error) {
 
 func (cp *BFTCheckPoint) ReachCheckPoint(block common.ISignedBlock) (*message.Commit, bool) {
 	if ret, ok := cp.cache[block.Id().BlockNum()]; ok {
+		cp.sabft.log.Debug("checkpoint reached at height ", block.Id().BlockNum())
 		return ret, true
 	}
 	return nil, false
@@ -113,10 +115,12 @@ func (cp *BFTCheckPoint) ReachCheckPoint(block common.ISignedBlock) (*message.Co
 func (cp *BFTCheckPoint) Validate(commit *message.Commit) bool {
 	// check +2/3
 	if len(cp.sabft.validators)*2/3 >= len(commit.Precommits) {
+		cp.sabft.log.Error("checkpoint validate failed, not enough signatures")
 		return false
 	}
 
 	if !cp.sabft.VerifyCommitSig(commit) {
+		cp.sabft.log.Error("checkpoint validate failed, invalid signatures")
 		return false
 	}
 
