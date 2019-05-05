@@ -1106,7 +1106,7 @@ func (p *MsgHandler) RequestBlockBatchHandle(data *msgTypes.MsgPayload, p2p p2p.
 		return
 	}
 
-	for i:=len(IsigBlkList)-1;i>=0;i++ {
+	for i:=len(IsigBlkList)-1;i>=0;i-- {
 		sigBlk := IsigBlkList[i].(*prototype.SignedBlock)
 
 		var msg msgTypes.Message
