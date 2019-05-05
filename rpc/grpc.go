@@ -1192,11 +1192,11 @@ func (as *APIService) GetDAUStats(ctx context.Context, req *grpcpb.GetDAUStatsRe
 		return nil, errors.New("plugin daily statistic service isn't running")
 	}
 	ds := dsservice.(iservices.IDailyStats)
-	rows := ds.DAUStatsSince(int(req.Days))
+	rows := ds.DAUStatsSince(int(req.Days), req.Dapp)
 	var stat []*grpcpb.DAUStat
 	res := &grpcpb.GetDAUStatsResponse{}
 	for _, row := range rows {
-		stat = append(stat, &grpcpb.DAUStat{Pg: uint32(row.Pg), Ct: uint32(row.Ct), G2: uint32(row.G2), Ec: uint32(row.Ec)})
+		stat = append(stat, &grpcpb.DAUStat{Date: row.Date, Dapp: row.Dapp, Count: row.Count})
 	}
 	res.Stat = stat
 	return res, nil
@@ -1208,11 +1208,11 @@ func (as *APIService) GetDNUStats(ctx context.Context, req *grpcpb.GetDNUStatsRe
 		return nil, errors.New("plugin daily statistic service isn't running")
 	}
 	ds := dsservice.(iservices.IDailyStats)
-	rows := ds.DNUStatsSince(int(req.Days))
+	rows := ds.DNUStatsSince(int(req.Days), req.Dapp)
 	var stat []*grpcpb.DNUStat
 	res := &grpcpb.GetDNUStatsResponse{}
 	for _, row := range rows {
-		stat = append(stat, &grpcpb.DNUStat{Pg: uint32(row.Pg), Ct: uint32(row.Ct), G2: uint32(row.G2), Ec: uint32(row.Ec)})
+		stat = append(stat, &grpcpb.DNUStat{Date: row.Date, Dapp: row.Dapp, Count: row.Count})
 	}
 	res.Stat = stat
 	return res, nil
