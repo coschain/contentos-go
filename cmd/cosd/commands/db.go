@@ -163,7 +163,7 @@ func initDb(cmd *cobra.Command, args []string) {
 	_, _ = db.Exec("INSERT INTO `libinfo` (lib, last_check_time) VALUES (?, ?)", 0, time.Now().UTC().Unix())
 	_, _ = db.Exec("INSERT INTO `dailystatinfo` (lib, date, last_check_time) VALUES (?, ?, ?)", 0, "", 0)
 	_, _ = db.Exec("INSERT INTO `dailystatdapp` (dapp, prefix) VALUES (?, ?), (?, ?), (?, ?), (?, ?)",
-		"photogrid", "pg", "contentos", "ct", "game 2048", "g2", "walk coin", "ec")
+		"photogrid", "PG", "contentos", "CT", "game 2048", "G2", "walk coin", "EC")
 }
 
 func cleanDb(cmd *cobra.Command, args []string) {
