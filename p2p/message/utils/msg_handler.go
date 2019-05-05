@@ -1064,6 +1064,13 @@ func (p *MsgHandler) RequestBlockBatchHandle(data *msgTypes.MsgPayload, p2p p2p.
 	copy(startID.Data[:], msgdata.StartId)
 	copy(endID.Data[:], msgdata.EndId)
 
+	if endID.BlockNum() - startID.BlockNum() > msgCommon.MAX_ID_LENGTH {
+		log.Error("[p2p] block batch length beyond limit ", msgCommon.MAX_ID_LENGTH)
+		clearMsg := msgpack.NewClearOutOfRangeState()
+		p2p.Send(remotePeer, clearMsg, false)
+		return
+	}
+
 	blkId := endID
 	var IsigBlkList []common.ISignedBlock
 
@@ -1090,6 +1097,13 @@ func (p *MsgHandler) RequestBlockBatchHandle(data *msgTypes.MsgPayload, p2p p2p.
 		IsigBlkList = append(IsigBlkList, IsigBlk)
 
 		blkId = IsigBlk.Previous()
+	}
+
+	if len(IsigBlkList) == 0 {
+		log.Error("[p2p] get no batch block")
+		clearMsg := msgpack.NewClearOutOfRangeState()
+		p2p.Send(remotePeer, clearMsg, false)
+		return
 	}
 
 	for i:=len(IsigBlkList)-1;i>=0;i++ {
@@ -1174,6 +1188,8 @@ func (p *MsgHandler) ClearOutOfRangeStateHandle(data *msgTypes.MsgPayload, p2p p
 		log.Error("[p2p] remotePeer invalid in ClearOutOfRangeStateHandle")
 		return
 	}
+
+	log.Info("clear local peer OutOfRangeState")
 
 	remotePeer.OutOfRangeState.Lock()
 	remotePeer.OutOfRangeState.KeyPointIDList = remotePeer.OutOfRangeState.KeyPointIDList[:0]

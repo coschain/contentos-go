@@ -505,7 +505,6 @@ func (this *P2PServer) FetchOutOfRange(localHeadID, targetID coomn.BlockID) {
 		this.log.Warn("local head number less than target number.local number: ", localHeadID.BlockNum(), " target number: ", targetID.BlockNum())
 		return
 	}
-	this.log.Infof("FetchOutOfRange from %d to %d", localHeadID.BlockNum(), targetID.BlockNum() )
 	reqmsg := msgpack.NewRequestOutOfRangeIds(localHeadID.Data[:], targetID.Data[:])
 
 	np := this.Network.GetNp()
@@ -516,6 +515,7 @@ func (this *P2PServer) FetchOutOfRange(localHeadID, targetID coomn.BlockID) {
 		p.OutOfRangeState.Lock()
 		if len(p.OutOfRangeState.KeyPointIDList) == 0 {
 			p.OutOfRangeState.KeyPointIDList = append(p.OutOfRangeState.KeyPointIDList, targetID.Data[:])
+			this.log.Infof("FetchOutOfRange from %d to %d", localHeadID.BlockNum(), targetID.BlockNum() )
 			go p.Send(reqmsg, false, this.ctx.Config().P2P.NetworkMagic)
 			p.OutOfRangeState.Unlock()
 			return
