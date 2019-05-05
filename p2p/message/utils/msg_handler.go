@@ -199,14 +199,14 @@ func (p *MsgHandler) blockHandle(ctrl iservices.IConsensus) {
 
 func maybeTriggerFetch(p2p p2p.P2P, lg *logrus.Logger, remotePeer *peer.Peer, sigBlkMsg *msgTypes.SigBlkMsg) {
 	if !sigBlkMsg.NeedTriggerFetch {
-		lg.Info("no need to trigger fetch block batch")
+		//lg.Info("no need to trigger fetch block batch")
 		return
 	}
 
 	remotePeer.OutOfRangeState.Lock()
 	defer remotePeer.OutOfRangeState.Unlock()
 
-	if len(remotePeer.OutOfRangeState.KeyPointIDList) == 1 {
+	if len(remotePeer.OutOfRangeState.KeyPointIDList) == 0 {
 		lg.Error("remotePeer OutOfRangeState KeyPointIDList length should not be 0")
 	} else if len(remotePeer.OutOfRangeState.KeyPointIDList) == 1 {
 		remotePeer.OutOfRangeState.KeyPointIDList = remotePeer.OutOfRangeState.KeyPointIDList[:0]
