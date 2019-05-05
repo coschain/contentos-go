@@ -220,14 +220,20 @@ func (t *TrxMysqlService) handleLibNotification(lib uint64) {
 		invoice, _ := json.Marshal(trx.Invoice)
 		operations := PurgeOperation(trx.SigTrx.GetTrx().GetOperations())
 		operationsJson, _ := json.Marshal(operations)
-		operation := trx.SigTrx.GetTrx().GetOperations()[0]
-		creator := FindCreator(operation)
+		//operation := trx.SigTrx.GetTrx().GetOperations()[0]
+		creator := FindCreator(trx.SigTrx.GetTrx().GetOperations()[0])
 		_, _ = stmt.Exec(trxId, blockHeight, blockId, blockTime, invoice, operationsJson, creator)
-		if IsCreateAccountOp(operation) {
-			_, _ = accountStmt.Exec(trxId, blockTime, creator, operation.GetOp1().Owner.ToWIF(),  operation.GetOp1().NewAccountName.Value)
+		for _, operation := range trx.SigTrx.GetTrx().GetOperations() {
+			if IsCreateAccountOp(operation) {
+				_, _ = accountStmt.Exec(trxId, blockTime, creator, operation.GetOp1().Owner.ToWIF(), operation.GetOp1().NewAccountName.Value)
+				break
+			}
 		}
-		if IsTransferOp(operation) {
-			_, _ = transferStmt.Exec(trxId, blockTime, creator, operation.GetOp2().To.Value, operation.GetOp2().Amount.Value, operation.GetOp2().Memo)
+		for _, operation := range trx.SigTrx.GetTrx().GetOperations() {
+			if IsTransferOp(operation) {
+				_, _ = transferStmt.Exec(trxId, blockTime, creator, operation.GetOp2().To.Value, operation.GetOp2().Amount.Value, operation.GetOp2().Memo)
+				break
+			}
 		}
 	}
 }

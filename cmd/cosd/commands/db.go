@@ -80,11 +80,13 @@ func initDb(cmd *cobra.Command, args []string) {
 	constraint trxinfo_trx_id_uindex
 		unique (trx_id)
 );`
+
 	createLibInfo := `create table libinfo
 (
 	lib int unsigned not null,
 	last_check_time int unsigned not null
 );`
+
 	createCreateAccountInfo := `create table createaccountinfo
 (
 	trx_id varchar(64) not null,
@@ -97,19 +99,21 @@ func initDb(cmd *cobra.Command, args []string) {
 	INDEX creatoraccount_account (account),
   constraint createaccount_trx_id_uindex unique (trx_id)
 );`
+
 	createTransferInfo := `create table transferinfo
 (
 	trx_id varchar(64) not null,
 	create_time int unsigned not null,
 	sender varchar(64) not null,
 	receiver varchar(64) not null,
-	amount int unsigned default 0,
+	amount bigint default 0,
 	memo TEXT ,
 	INDEX transfer_create_time (create_time),
 	INDEX transfer_sender (sender),
 	INDEX transfer_receiver (receiver),
   constraint transferinfo_trx_id_uindex unique (trx_id)
 );`
+
 	createDAUStat := `create table daustat (
   date varchar(64) not null ,
   dapp varchar(64) not null ,
