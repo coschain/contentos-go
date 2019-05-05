@@ -93,29 +93,29 @@ func (cp *BFTCheckPoint) Flush() error {
 	return nil
 }
 
-func (cp *BFTCheckPoint) Add(commit *message.Commit) bool {
+func (cp *BFTCheckPoint) Add(commit *message.Commit) error {
 	if err := commit.ValidateBasic(); err != nil {
 		cp.sabft.log.Error(err)
-		return false
+		return ErrInvalidCheckPoint
 	}
 	blockID := ExtractBlockID(commit)
 	blockNum := blockID.BlockNum()
 	libNum := cp.lastCommitted.BlockNum()
 	if blockNum > libNum+constants.MaxUncommittedBlockNum ||
 		blockNum <= libNum {
-		return false
+		return ErrCheckPointOutOfRange
 	}
 
 	prev := ConvertToBlockID(commit.Prev)
 	if _, ok := cp.cache[prev]; ok {
-		return false
+		return ErrCheckPointExists
 	}
 	cp.cache[prev] = commit
 	if cp.lastCommitted == prev {
 		cp.nextCP = blockID
 	}
 	cp.sabft.log.Info("CheckPoint added", commit.ProposedData)
-	return true
+	return nil
 }
 
 func (cp *BFTCheckPoint) HasDanglingCheckPoint() bool {

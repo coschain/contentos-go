@@ -664,7 +664,8 @@ func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 		return
 	}
 
-	if !sabft.cp.Add(records) {
+	err := sabft.cp.Add(records)
+	if err != nil {
 		return
 	}
 
@@ -870,11 +871,11 @@ func (sabft *SABFT) Commit(commitRecords *message.Commit) error {
 	sabft.Lock()
 	defer sabft.Unlock()
 
-	if !sabft.cp.Add(commitRecords) {
-		// it might be out of range or already exist
-		// TODO: if it's out of range, return
+	err := sabft.cp.Add(commitRecords)
+	if err == ErrCheckPointOutOfRange || err == ErrInvalidCheckPoint {
+		return err
 	}
-	err := sabft.commit(commitRecords)
+	err = sabft.commit(commitRecords)
 	if err == nil {
 		sabft.cp.Flush()
 		sabft.dynasties.Purge(ExtractBlockID(commitRecords).BlockNum())

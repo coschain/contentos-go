@@ -18,4 +18,8 @@ var (
 	ErrCommittingNonExistBlock = errors.New("committing a non-existed block")
 	ErrCommittingBlockOnFork   = errors.New("committing a block on fork")
 	ErrSwitchFork              = errors.New("switch fork error")
+
+	ErrInvalidCheckPoint       = errors.New("invalid checkpoint")
+	ErrCheckPointOutOfRange    = errors.New("checkpoint out of range")
+	ErrCheckPointExists        = errors.New("checkpoint exists")
 )
