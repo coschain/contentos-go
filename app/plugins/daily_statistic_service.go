@@ -67,16 +67,12 @@ func (s *DailyStatisticService) Start(node *node.Node) error {
 	return nil
 }
 
-// trigger by ticker cannot statistic past dau
-// trigger by lib is ok
 func (s *DailyStatisticService) pollLIB() error  {
 	lib := s.consensus.GetLIB().BlockNum()
 	s.log.Debugf("[trx db] sync lib: %d \n", lib)
 	var lastLib uint64 = 0
 	var lastDate string
 	_ = s.outDb.QueryRow("SELECT lib, date from dailystatinfo limit 1").Scan(&lastLib, &lastDate)
-	//updateStmt, _ := s.outDb.Prepare("UPDATE dxulibinfo SET lib=?, last_check_time=?")
-	//defer updateStmt.Close()
 	var waitingSyncLib []uint64
 	var count = 0
 	for lastLib < lib {
@@ -91,9 +87,13 @@ func (s *DailyStatisticService) pollLIB() error  {
 		blks , err := s.consensus.FetchBlocks(block, block)
 		if err != nil {
 			s.log.Error(err)
+			continue
 		}
 		if len(blks) == 0 {
-			s.log.Errorf("cannot fetch block %d in consensus", block)
+			if block != 0 {
+				s.log.Errorf("cannot fetch block %d in consensus", block)
+			}
+			continue
 		}
 		blk := blks[0].(*prototype.SignedBlock)
 		blockTime := blk.Timestamp()
@@ -101,8 +101,10 @@ func (s *DailyStatisticService) pollLIB() error  {
 		date := fmt.Sprintf("%d-%02d-%02d", datetime.Year(), datetime.Month(), datetime.Day())
 		// trigger
 		if lastDate != date {
-			s.handleDAUStatistic(blk)
-			s.handleDNUStatistic(blk)
+			s.handleDAUStatistic(blk, lastDate)
+			s.handleDNUStatistic(blk, lastDate)
+			s.log.Debugf("[daily stat] trigger handle, timestamp: %d, datetime: %s", blockTime, date)
+			lastDate = date
 		}
 		utcTimestamp := time.Now().UTC().Unix()
 		_, _ = s.outDb.Exec("UPDATE dailystatinfo SET lib = ?, date = ?, last_check_time = ?", block, date, utcTimestamp)
@@ -110,14 +112,13 @@ func (s *DailyStatisticService) pollLIB() error  {
 	return nil
 }
 
-func (s *DailyStatisticService) handleDAUStatistic(block *prototype.SignedBlock) {
+func (s *DailyStatisticService) handleDAUStatistic(block *prototype.SignedBlock, lastDate string) {
 	blockTime := block.Timestamp()
-	datetime := time.Unix(int64(blockTime), 0)
-	date := fmt.Sprintf("%d-%02d-%02d", datetime.Year(), datetime.Month(), datetime.Day())
-
+	//datetime := time.Unix(int64(blockTime), 0)
+	//date := fmt.Sprintf("%d-%02d-%02d", datetime.Year(), datetime.Month(), datetime.Day())
 	end := blockTime
 	start := end - 86400
-	statRows, _ := s.outDb.Query("SELECT creator, count(distinct creator) FROM trxinfo WHERE block_time >= ? and block_time < ? group by creator", start, end)
+	statRows, _ := s.outDb.Query("SELECT creator, count(distinct creator) as count FROM trxinfo WHERE block_time >= ? and block_time < ? group by creator", start, end)
 	dapps := make(map[string]string)
 	dappRows, _ := s.outDb.Query("select dapp, prefix from dailystatdapp where status=1")
 	for dappRows.Next() {
@@ -125,6 +126,7 @@ func (s *DailyStatisticService) handleDAUStatistic(block *prototype.SignedBlock)
 		_ = dappRows.Scan(&dapp, &prefix)
 		dapps[prefix] = dapp
 	}
+	dappsCounter := make(map[string]uint32)
 	for statRows.Next() {
 		var (
 			creator string
@@ -136,20 +138,22 @@ func (s *DailyStatisticService) handleDAUStatistic(block *prototype.SignedBlock)
 		}
 		for prefix, dapp := range dapps {
 			if strings.HasPrefix(creator, prefix) {
-				_, _ = s.outDb.Exec("insert ignore into daustat (date, dapp, count) values (?, ?, ?)", date, dapp, counter)
+				dappsCounter[dapp] += counter
 			}
 		}
+	}
+	for dapp, counter := range dappsCounter {
+		_, _ = s.outDb.Exec("insert ignore into daustat (date, dapp, count) values (?, ?, ?)", lastDate, dapp, counter)
 	}
 }
 
-func (s *DailyStatisticService) handleDNUStatistic(block *prototype.SignedBlock) {
+func (s *DailyStatisticService) handleDNUStatistic(block *prototype.SignedBlock, lastDate string) {
 	blockTime := block.Timestamp()
-	datetime := time.Unix(int64(blockTime), 0)
-	date := fmt.Sprintf("%d-%02d-%02d", datetime.Year(), datetime.Month(), datetime.Day())
-
+	//datetime := time.Unix(int64(blockTime), 0)
+	//date := fmt.Sprintf("%d-%02d-%02d", datetime.Year(), datetime.Month(), datetime.Day())
 	end := blockTime
 	start := end - 86400
-	statRows, _ := s.outDb.Query("SELECT creator, count(distinct creator) FROM createaccountinfo WHERE create_time >= ? and create_time < ? group by creator", start, end)
+	statRows, _ := s.outDb.Query("SELECT creator, count(distinct creator) as count FROM createaccountinfo WHERE create_time >= ? and create_time < ? group by creator", start, end)
 	dapps := make(map[string]string)
 	dappRows, _ := s.outDb.Query("select dapp, prefix from dailystatdapp where status=1")
 	for dappRows.Next() {
@@ -157,6 +161,7 @@ func (s *DailyStatisticService) handleDNUStatistic(block *prototype.SignedBlock)
 		_ = dappRows.Scan(&dapp, &prefix)
 		dapps[prefix] = dapp
 	}
+	dappsCounter := make(map[string]uint32)
 	for statRows.Next() {
 		var (
 			creator string
@@ -168,9 +173,12 @@ func (s *DailyStatisticService) handleDNUStatistic(block *prototype.SignedBlock)
 		}
 		for prefix, dapp := range dapps {
 			if strings.HasPrefix(creator, prefix) {
-				_, _ = s.outDb.Exec("insert ignore into dnustat (date, dapp, count) values (?, ?, ?)", date, dapp, counter)
+				dappsCounter[dapp] += counter
 			}
 		}
+	}
+	for dapp, counter := range dappsCounter {
+		_, _ = s.outDb.Exec("insert ignore into dnustat (date, dapp, count) values (?, ?, ?)", lastDate, dapp, counter)
 	}
 }
 
