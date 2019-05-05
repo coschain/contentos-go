@@ -296,8 +296,6 @@ func (sabft *SABFT) Start(node *node.Node) error {
 		sabft.shuffle(block)
 	})
 
-	sabft.cp = NewBFTCheckPoint(cfg.ResolvePath("checkpoint"), sabft)
-
 	// reload ForkDB
 	snapshotPath := cfg.ResolvePath("forkdb_snapshot")
 	// TODO: fuck!! this is fugly
@@ -311,6 +309,7 @@ func (sabft *SABFT) Start(node *node.Node) error {
 	}
 	sabft.ForkDB.LoadSnapshot(avatar, snapshotPath, &sabft.blog)
 
+	sabft.cp = NewBFTCheckPoint(cfg.ResolvePath("checkpoint"), sabft)
 	sabft.log.Info("[SABFT] starting...")
 	if sabft.bootstrap && sabft.ForkDB.Empty() && sabft.blog.Empty() {
 		sabft.log.Info("[SABFT] bootstrapping...")
