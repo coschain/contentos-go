@@ -110,29 +110,39 @@ func initDb(cmd *cobra.Command, args []string) {
 	INDEX transfer_receiver (receiver),
   constraint transferinfo_trx_id_uindex unique (trx_id)
 );`
-	createDailyDAU := `create table dailydau
-(
-	date varchar(16) not null,
-  hour smallint not null,
-  pg int unsigned default 0,
-  ct int unsigned default 0,
-  g2 int unsigned default 0,
-  ec int unsigned default 0,
-	constraint dailydau_date_hour_uindex
-		unique (date, hour)
+	createDAUStat := `create table daustat (
+  date varchar(64) not null ,
+  dapp varchar(64) not null ,
+  count int unsigned not null default 0,
+  INDEX daustat_dapp (dapp),
+  constraint daustat_date_dapp_uindex
+  unique (date, dapp)
 );`
-	createDailyDNU := `create table dailydnu
-(
-	date varchar(16) not null,
-  hour smallint not null,
-  pg int unsigned default 0,
-  ct int unsigned default 0,
-  g2 int unsigned default 0,
-  ec int unsigned default 0,
-	constraint dailydnu_date_hour_uindex
-		unique (date, hour)
+
+	createDNUStat := `create table dnustat (
+  date varchar(64) not null ,
+  dapp varchar(64) not null ,
+  count int unsigned not null default 0,
+  INDEX dnustat_dapp (dapp),
+  constraint dnustat_date_dapp_uindex
+  unique (date, dapp)
 );`
-	dropTables := []string{"trxinfo", "libinfo", "createaccountinfo", "transferinfo", "dailydau", "dailydnu"}
+
+	createDailyStatInfo := `create table dailystatinfo
+(
+  lib int unsigned not null,
+  date varchar(64) not null,
+  last_check_time int unsigned not null
+);`
+
+	createDailyStatDapp := `create table dailystatdapp (
+  dapp varchar(64) not null,
+  prefix varchar(64) not null,
+  status smallint default 1
+);`
+
+	dropTables := []string{"trxinfo", "libinfo", "createaccountinfo", "transferinfo", "daustat", "dnustat",
+		"dailystatinfo", "dailystatdapp"}
 	for _, table := range dropTables {
 		dropSql := fmt.Sprintf("DROP TABLE IF EXISTS `%s`", table)
 		if _, err = db.Exec(dropSql); err != nil {
@@ -140,15 +150,16 @@ func initDb(cmd *cobra.Command, args []string) {
 		}
 	}
 	createTables := []string{createTrxInfo, createLibInfo, createCreateAccountInfo,
-		createTransferInfo, createDailyDAU, createDailyDNU}
+		createTransferInfo, createDAUStat, createDNUStat, createDailyStatInfo, createDailyStatDapp}
 	for _, table := range createTables {
 		if _, err = db.Exec(table); err != nil {
 			fmt.Println(err)
 		}
 	}
-	stmt, _ := db.Prepare("INSERT INTO `libinfo` (lib, last_check_time) VALUES (?, ?)")
-	defer stmt.Close()
-	_, _ = stmt.Exec(0, time.Now().UTC().Unix())
+	_, _ = db.Exec("INSERT INTO `libinfo` (lib, last_check_time) VALUES (?, ?)", 0, time.Now().UTC().Unix())
+	_, _ = db.Exec("INSERT INTO `dailystatinfo` (lib, date, last_check_time) VALUES (?, ?, ?)", 0, "", 0)
+	_, _ = db.Exec("INSERT INTO `dailystatdapp` (dapp, prefix) VALUES (?, ?), (?, ?), (?, ?), (?, ?)",
+		"photogrid", "pg", "contentos", "ct", "game 2048", "g2", "walk coin", "ec")
 }
 
 func cleanDb(cmd *cobra.Command, args []string) {
@@ -160,7 +171,8 @@ func cleanDb(cmd *cobra.Command, args []string) {
 		fmt.Printf("fatal: init database failed, dsn:%s\n", dsn)
 		os.Exit(1)
 	}
-	dropTables := []string{"trxinfo", "libinfo", "createaccountinfo", "transferinfo", "dailydau", "dailydnu"}
+	dropTables := []string{"trxinfo", "libinfo", "createaccountinfo", "transferinfo", "daustat", "dnustat",
+		"dailystatinfo", "dailystatdapp"}
 	for _, table := range dropTables {
 		dropSql := fmt.Sprintf("DROP TABLE IF EXISTS `%s`", table)
 		if _, err = db.Exec(dropSql); err != nil {
