@@ -403,12 +403,12 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabasePatch, entry *TrxEn
 		useGas := trxContext.HasGasFee()
 		//c.PayGas(trxContext)
 		if err := recover(); err != nil {
+			receipt.ErrorInfo = fmt.Sprintf("applyTransaction failed : %v", err)
 			if useGas {
 				receipt.Status = prototype.StatusDeductGas
 				c.notifyTrxApplyResult(sigTrx, true, receipt)
 			} else {
 				receipt.Status = prototype.StatusError
-				receipt.ErrorInfo = fmt.Sprintf("applyTransaction failed : %v", err)
 				c.notifyTrxApplyResult(sigTrx, false, receipt)
 				panic(receipt.ErrorInfo)
 			}
