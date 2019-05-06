@@ -697,7 +697,7 @@ func (ev *ContractApplyEvaluator) Apply() {
 	// here I assert it is minicos
 	// also, I think balance base on minicos is far more reliable.
 	if op.Amount != nil {
-		opAssert(balance > op.Amount.Value, "balance does not have enough fund to transfer")
+		opAssert(balance >= op.Amount.Value, "balance does not have enough fund to transfer")
 	}
 
 	code := scid.GetCode()
