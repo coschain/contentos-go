@@ -212,7 +212,6 @@ func maybeTriggerFetch(p2p p2p.P2P, lg *logrus.Logger, remotePeer *peer.Peer, si
 		remotePeer.OutOfRangeState.KeyPointIDList = remotePeer.OutOfRangeState.KeyPointIDList[:0]
 		lg.Info("all gap blocks fetch over")
 	} else {
-		lg.Info("get a block batch end")
 		length := len(remotePeer.OutOfRangeState.KeyPointIDList)
 		startId := remotePeer.OutOfRangeState.KeyPointIDList[length-1]
 		endId := remotePeer.OutOfRangeState.KeyPointIDList[length-2]
@@ -696,7 +695,6 @@ func (p *MsgHandler) IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 		}
 		//log.Infof("send a message to:   v%   data:   v%\n", remotePeer, reqmsg)
 	case msgTypes.IdMsg_detect_former_ids:
-		log.Info("receive IdMsg_detect_former_ids msg")
 		for idx, id := range msgdata.Value {
 			var blkId common.BlockID
 			copy(blkId.Data[:], id)
@@ -713,7 +711,6 @@ func (p *MsgHandler) IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 				if idx == 0 {
 					remotePeer.OutOfRangeState.Lock()
 					remotePeer.OutOfRangeState.KeyPointIDList = append(remotePeer.OutOfRangeState.KeyPointIDList, id)
-					log.Info("first no have, push to list, length: ", len(remotePeer.OutOfRangeState.KeyPointIDList) )
 					remotePeer.OutOfRangeState.Unlock()
 
 					msg := msgpack.NewDetectFormerIds(id)
@@ -726,8 +723,6 @@ func (p *MsgHandler) IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 					remotePeer.OutOfRangeState.Lock()
 					length := len(remotePeer.OutOfRangeState.KeyPointIDList)
 					endId := remotePeer.OutOfRangeState.KeyPointIDList[length-1]
-					//remotePeer.OutOfRangeState.KeyPointIDList = remotePeer.OutOfRangeState.KeyPointIDList[0:length-1]
-					log.Info("middle no have, begin to fetch block batch, length: ", len(remotePeer.OutOfRangeState.KeyPointIDList) )
 					remotePeer.OutOfRangeState.Unlock()
 
 					msg := msgpack.NewRequestBlockBatch(msgdata.Value[idx-1], endId)
@@ -743,8 +738,6 @@ func (p *MsgHandler) IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 				remotePeer.OutOfRangeState.Lock()
 				length := len(remotePeer.OutOfRangeState.KeyPointIDList)
 				endId := remotePeer.OutOfRangeState.KeyPointIDList[length-1]
-				//remotePeer.OutOfRangeState.KeyPointIDList = remotePeer.OutOfRangeState.KeyPointIDList[0:length-1]
-				log.Info("all have, begin to fetch block batch, length: ", len(remotePeer.OutOfRangeState.KeyPointIDList) )
 				remotePeer.OutOfRangeState.Unlock()
 
 				msg := msgpack.NewRequestBlockBatch(msgdata.Value[idx], endId)
@@ -975,7 +968,6 @@ func (p *MsgHandler) FetchOutOfRangeHandle(data *msgTypes.MsgPayload, p2p p2p.P2
 		return
 	}
 
-	ret = false
 	if ret {
 		startNum := startID.BlockNum()
 		endNum := targetID.BlockNum()
@@ -1007,6 +999,7 @@ func (p *MsgHandler) FetchOutOfRangeHandle(data *msgTypes.MsgPayload, p2p p2p.P2
 			} else {
 				msg = msgpack.NewSigBlk(sigBlk, false)
 			}
+
 			err = p2p.Send(remotePeer, msg, false)
 			if err != nil {
 				log.Error("[p2p] send message error: ", err)
@@ -1014,7 +1007,6 @@ func (p *MsgHandler) FetchOutOfRangeHandle(data *msgTypes.MsgPayload, p2p p2p.P2
 			}
 		}
 	} else {
-		log.Info("enter fetch different branch logic")
 		count := 0
 		blkId := targetID
 		var IDList [][]byte
