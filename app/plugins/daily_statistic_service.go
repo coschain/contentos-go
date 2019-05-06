@@ -140,17 +140,17 @@ func (s *DailyStatisticService) handleDailyStatistic(block *prototype.SignedBloc
 			}
 		}
 	}
-	dnuRows, _:= s.outDb.Query("SELECT distinct creator FROM createaccountinfo WHERE create_time >= ? and create_time < ?", start, end)
+	dnuRows, _:= s.outDb.Query("SELECT account FROM createaccountinfo WHERE create_time >= ? and create_time < ?", start, end)
 	dappsDnuCounter := make(map[string]uint32)
 	// dnu
 	for dnuRows.Next() {
-		var creator string
-		if err := dnuRows.Scan(&creator); err != nil {
+		var account string
+		if err := dnuRows.Scan(&account); err != nil {
 			s.log.Error(err)
 			continue
 		}
 		for prefix, dapp := range dapps {
-			if strings.HasPrefix(creator, prefix) {
+			if strings.HasPrefix(account, prefix) {
 				dappsDnuCounter[dapp] += 1
 			}
 		}
