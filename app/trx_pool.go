@@ -395,7 +395,6 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabasePatch, entry *TrxEn
 
 	trxContext := NewTrxContextWithSigningKey(result, db, entry.GetTrxSigningKey(),c)
 //	if c.ctx.Config().ResourceCheck {
-		trxContext.CheckNet(uint64(proto.Size(sigTrx)))
 //	}
 
 	trxDB := db.NewPatch()
@@ -421,6 +420,8 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabasePatch, entry *TrxEn
 		}
 		c.PayGas(trxContext)
 	}()
+
+	trxContext.CheckNet(uint64(proto.Size(sigTrx)))
 
 	for _, op := range sigTrx.Trx.Operations {
 		trxContext.StartNextOp()
@@ -510,27 +511,31 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 			invoiceOK := true
 			for j := 0; j < d; j++ {
 				if entries[i + j].GetTrxResult().Receipt.Status != blk.Transactions[i + j].Receipt.Status {
-					c.log.Errorf("InvoiceMismatch: expect_status=%d, status=%d, err=%s. trx #%d of block %d",
-						blk.Transactions[i + j].Receipt.Status,
-						entries[i + j].GetTrxResult().Receipt.Status,
-						entries[i + j].GetTrxResult().Receipt.ErrorInfo,
-						i + j,
-						blk.Id().BlockNum())
-					invoiceOK = false
+					if blk.Transactions[i + j].Receipt.Status == prototype.StatusSuccess &&
+						entries[i + j].GetTrxResult().Receipt.Status == prototype.StatusDeductGas {
+					} else {
+						c.log.Errorf("InvoiceMismatch: expect_status=%d, status=%d, err=%s. trx #%d of block %d",
+							blk.Transactions[i+j].Receipt.Status,
+							entries[i+j].GetTrxResult().Receipt.Status,
+							entries[i+j].GetTrxResult().Receipt.ErrorInfo,
+							i+j,
+							blk.Id().BlockNum())
+						invoiceOK = false
+					}
 				}
-				if entries[i + j].GetTrxResult().Receipt.NetUsage != blk.Transactions[i + j].Receipt.NetUsage {
+				if entries[i+j].GetTrxResult().Receipt.NetUsage != blk.Transactions[i+j].Receipt.NetUsage {
 					c.log.Errorf("InvoiceMismatch: expect_net_usage=%d, net_usage=%d, trx #%d of block %d",
-						blk.Transactions[i + j].Receipt.NetUsage,
-						entries[i + j].GetTrxResult().Receipt.NetUsage,
-						i + j,
+						blk.Transactions[i+j].Receipt.NetUsage,
+						entries[i+j].GetTrxResult().Receipt.NetUsage,
+						i+j,
 						blk.Id().BlockNum())
 					invoiceOK = false
 				}
-				if entries[i + j].GetTrxResult().Receipt.CpuUsage != blk.Transactions[i + j].Receipt.CpuUsage {
+				if entries[i+j].GetTrxResult().Receipt.CpuUsage != blk.Transactions[i+j].Receipt.CpuUsage {
 					c.log.Errorf("InvoiceMismatch: expect_cpu_usage=%d, cpu_usage=%d, trx #%d of block %d",
-						blk.Transactions[i + j].Receipt.CpuUsage,
-						entries[i + j].GetTrxResult().Receipt.CpuUsage,
-						i + j,
+						blk.Transactions[i+j].Receipt.CpuUsage,
+						entries[i+j].GetTrxResult().Receipt.CpuUsage,
+						i+j,
 						blk.Id().BlockNum())
 					invoiceOK = false
 				}

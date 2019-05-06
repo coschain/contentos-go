@@ -48,8 +48,8 @@ func (p *TrxContext) CheckNet(sizeInBytes uint64) {
 				p.netMap[name].raw = sizeInBytes
 				continue
 			} else {
-				p.netMap = make(map[string]*resourceUnit)
-				opAssert(false, "net resource not enough")
+				errInfo := fmt.Sprintf("net resource not enough, user:%v, have:%v, need:%v",name,freeLeft+stakeLeft,netUse)
+				opAssert(false, errInfo)
 			}
 		}
 	}
