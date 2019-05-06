@@ -498,7 +498,7 @@ message GetAccountListByCreTimeRequest {
 }
 
 message DailyStat {
-    string date = 1;
+    uint64 date = 1;
     string dapp = 2;
     uint32 dau = 3;
     uint32 dnu = 4;
