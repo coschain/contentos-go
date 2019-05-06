@@ -13,17 +13,17 @@ func main() {
 	client := grpcpb.NewApiServiceClient(conn)
 	//req := &grpcpb.NonParamsRequest{}
 	//resp, err := rpc.GetChainState(context.Background(), req)
-	req := &grpcpb.GetDAUStatsRequest{Days: 30}
-	resp, err := client.GetDAUStats(context.Background(), req)
+	//req := &grpcpb.GetDAUStatsRequest{Days: 30, Dapp: "test"}
+	req := &grpcpb.GetDNUStatsRequest{Days: 30, Dapp: "test"}
+	resp, err := client.GetDNUStats(context.Background(), req)
 	if err != nil {
 		fmt.Println(err)
 	} else {
 		fmt.Println(resp)
 		for _, r := range resp.Stat {
-			fmt.Println(r.Pg)
-			fmt.Println(r.Ct)
-			fmt.Println(r.G2)
-			fmt.Println(r.Ec)
+			fmt.Println(r.Date)
+			fmt.Println(r.Dapp)
+			fmt.Println(r.Count)
 		}
 	}
 }
