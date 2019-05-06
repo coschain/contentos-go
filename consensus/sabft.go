@@ -1415,14 +1415,27 @@ func (sabft *SABFT) CheckSyncFinished() bool {
 func (d *SABFT) IsOnMainBranch(id common.BlockID) (bool, error) {
 	blockNum := id.BlockNum()
 
-	resultBlk, err := d.FetchBlocks(blockNum, blockNum)
-	if err != nil {
-		return false, err
-	}
+	lastCommittedNum := d.ForkDB.LastCommitted().BlockNum()
+	headNum := d.ForkDB.Head().Id().BlockNum()
 
-	if len(resultBlk) == 0 {
+	if blockNum > headNum {
 		return false, nil
 	}
 
-	return id == resultBlk[0].Id(), nil
+	if blockNum > lastCommittedNum {
+		blk, err := d.ForkDB.FetchBlockFromMainBranch(blockNum)
+		if err != nil {
+			return false, nil
+		}
+		return blk.Id() == id, nil
+	} else {
+		b := &prototype.SignedBlock{}
+		err := d.blog.ReadBlock(b, int64(blockNum-1))
+		if err != nil {
+			return false, err
+		}
+		return b.Id() == id, nil
+	}
+
+	return false, nil
 }
