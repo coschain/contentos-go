@@ -184,7 +184,7 @@ func (t *TrxMysqlService) pollLIB() error {
 
 	for _, block := range waitingSyncLib {
 		blockStart := time.Now()
-		//t.handleLibNotification(block)
+		t.handleLibNotification(block)
 		utcTimestamp := time.Now().UTC().Unix()
 		_, _ = updateStmt.Exec(block, utcTimestamp)
 		t.log.Debugf("[trx db] insert block %d, spent: %v", block, time.Now().Sub(blockStart))
@@ -194,7 +194,9 @@ func (t *TrxMysqlService) pollLIB() error {
 }
 
 func (t *TrxMysqlService) handleLibNotification(lib uint64) {
+	start := time.Now()
 	blks , err := t.consensus.FetchBlocks(lib, lib)
+	t.log.Debugf("[trx db] fetch blocks spent: %v", time.Now().Sub(start))
 	if err != nil {
 		t.log.Error(err)
 		return
@@ -222,19 +224,25 @@ func (t *TrxMysqlService) handleLibNotification(lib uint64) {
 		operationsJson, _ := json.Marshal(operations)
 		//operation := trx.SigTrx.GetTrx().GetOperations()[0]
 		creator := FindCreator(trx.SigTrx.GetTrx().GetOperations()[0])
+		t1 := time.Now()
 		_, _ = stmt.Exec(trxId, blockHeight, blockId, blockTime, invoice, operationsJson, creator)
+		t.log.Debugf("[trx db] insert trxinfo spent: %v", time.Now().Sub(t1))
+		t2 := time.Now()
 		for _, operation := range trx.SigTrx.GetTrx().GetOperations() {
 			if IsCreateAccountOp(operation) {
 				_, _ = accountStmt.Exec(trxId, blockTime, creator, operation.GetOp1().Owner.ToWIF(), operation.GetOp1().NewAccountName.Value)
 				break
 			}
 		}
+		t.log.Debugf("[trx db] insert account spent: %v", time.Now().Sub(t2))
+		t3 := time.Now()
 		for _, operation := range trx.SigTrx.GetTrx().GetOperations() {
 			if IsTransferOp(operation) {
 				_, _ = transferStmt.Exec(trxId, blockTime, creator, operation.GetOp2().To.Value, operation.GetOp2().Amount.Value, operation.GetOp2().Memo)
 				break
 			}
 		}
+		t.log.Debugf("[trx db] insert transfer spent: %v", time.Now().Sub(t3))
 	}
 }
 
