@@ -68,8 +68,10 @@ func (s *DailyStatisticService) Start(node *node.Node) error {
 }
 
 func (s *DailyStatisticService) pollLIB() error  {
-	lib := s.consensus.GetLIB().BlockNum()
-	s.log.Debugf("[trx db] sync lib: %d \n", lib)
+	var lib uint64
+	_ = s.outDb.QueryRow("select lib from libinfo limit 1").Scan(&lib)
+	//lib := s.consensus.GetLIB().BlockNum()
+	//s.log.Debugf("[trx db] sync lib: %d \n", lib)
 	var lastLib uint64 = 0
 	var lastDate string
 	_ = s.outDb.QueryRow("SELECT lib, date from dailystatinfo limit 1").Scan(&lastLib, &lastDate)
