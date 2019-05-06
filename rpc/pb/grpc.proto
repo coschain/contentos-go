@@ -98,11 +98,7 @@ service ApiService {
     rpc GetAccountListByCreTime (GetAccountListByCreTimeRequest) returns (GetAccountListResponse) {
     }
 
-    rpc GetDAUStats (GetDAUStatsRequest) returns (GetDAUStatsResponse) {
-
-    }
-
-    rpc GetDNUStats (GetDNUStatsRequest) returns (GetDNUStatsResponse) {
+    rpc GetDailyStats (GetDailyStatsRequest) returns (GetDailyStatsResponse) {
 
     }
 }
@@ -501,32 +497,20 @@ message GetAccountListByCreTimeRequest {
     uint32           limit     = 4;
 }
 
-message DAUStat {
+message DailyStat {
     string date = 1;
     string dapp = 2;
-    uint32 count = 3;
+    uint32 dau = 3;
+    uint32 dnu = 4;
+    uint32 trxs = 5;
+    uint64 amount = 6 [jstype = JS_STRING];
 }
 
-message DNUStat {
-    string date = 1;
-    string dapp = 2;
-    uint32 count = 3;
-}
-
-message GetDAUStatsRequest {
+message GetDailyStatsRequest {
     uint32 days = 1;
     string dapp = 2;
 }
 
-message GetDAUStatsResponse {
-    repeated DAUStat stat = 1;
-}
-
-message GetDNUStatsRequest {
-    uint32 days = 1;
-    string dapp = 2;
-}
-
-message GetDNUStatsResponse {
-    repeated DNUStat stat = 1;
+message GetDailyStatsResponse {
+    repeated DailyStat stat = 1;
 }

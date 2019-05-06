@@ -114,21 +114,15 @@ func initDb(cmd *cobra.Command, args []string) {
   constraint transferinfo_trx_id_uindex unique (trx_id)
 );`
 
-	createDAUStat := `create table daustat (
+	createDailyStat := `create table dailystat (
   date varchar(64) not null ,
   dapp varchar(64) not null ,
-  count int unsigned not null default 0,
-  INDEX daustat_dapp (dapp),
-  constraint daustat_date_dapp_uindex
-  unique (date, dapp)
-);`
-
-	createDNUStat := `create table dnustat (
-  date varchar(64) not null ,
-  dapp varchar(64) not null ,
-  count int unsigned not null default 0,
-  INDEX dnustat_dapp (dapp),
-  constraint dnustat_date_dapp_uindex
+  dau int unsigned not null default 0,
+  dnu int unsigned not null default 0,
+  trxs int unsigned not null default 0,
+  amount bigint unsigned not null default 0,
+  INDEX dailystat_dapp (dapp),
+  constraint dailystat_date_dapp_uindex
   unique (date, dapp)
 );`
 
@@ -145,7 +139,7 @@ func initDb(cmd *cobra.Command, args []string) {
   status smallint default 1
 );`
 
-	dropTables := []string{"trxinfo", "libinfo", "createaccountinfo", "transferinfo", "daustat", "dnustat",
+	dropTables := []string{"trxinfo", "libinfo", "createaccountinfo", "transferinfo", "dailystat",
 		"dailystatinfo", "dailystatdapp"}
 	for _, table := range dropTables {
 		dropSql := fmt.Sprintf("DROP TABLE IF EXISTS `%s`", table)
@@ -154,7 +148,7 @@ func initDb(cmd *cobra.Command, args []string) {
 		}
 	}
 	createTables := []string{createTrxInfo, createLibInfo, createCreateAccountInfo,
-		createTransferInfo, createDAUStat, createDNUStat, createDailyStatInfo, createDailyStatDapp}
+		createTransferInfo, createDailyStat, createDailyStatInfo, createDailyStatDapp}
 	for _, table := range createTables {
 		if _, err = db.Exec(table); err != nil {
 			fmt.Println(err)
@@ -175,7 +169,7 @@ func cleanDb(cmd *cobra.Command, args []string) {
 		fmt.Printf("fatal: init database failed, dsn:%s\n", dsn)
 		os.Exit(1)
 	}
-	dropTables := []string{"trxinfo", "libinfo", "createaccountinfo", "transferinfo", "daustat", "dnustat",
+	dropTables := []string{"trxinfo", "libinfo", "createaccountinfo", "transferinfo", "dailystat",
 		"dailystatinfo", "dailystatdapp"}
 	for _, table := range dropTables {
 		dropSql := fmt.Sprintf("DROP TABLE IF EXISTS `%s`", table)
