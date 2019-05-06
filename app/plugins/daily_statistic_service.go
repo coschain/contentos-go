@@ -192,19 +192,21 @@ func (s *DailyStatisticService) handleDailyStatistic(block *prototype.SignedBloc
 		dnu, _ := dappsDnuCounter[dapp]
 		trxCount, _ := trxCountCounter[dapp]
 		amount, _ := transferAmountCounter[dapp]
-		_, _ = s.outDb.Exec("insert ignore into dailystat (date, dapp, dau, dnu, trxs, amount) values (?, ?, ?, ?, ?, ?)", lastDate, dapp, dau, dnu, trxCount, amount)
+		if len(lastDate) > 0 {
+			_, _ = s.outDb.Exec("insert ignore into dailystat (date, dapp, dau, dnu, trxs, amount) values (?, ?, ?, ?, ?, ?)", lastDate, dapp, dau, dnu, trxCount, amount)
+		}
 	}
 }
 
 
-func (s *DailyStatisticService) DAUStatsOn(date string, dapp string) *itype.Row {
+func (s *DailyStatisticService) DailyStatsOn(date string, dapp string) *itype.Row {
 	var dau, dnu, trxs uint32
 	var amount uint64
 	_ = s.outDb.QueryRow("select dau, dnu, trxs, amount from dailystat where date=? and dapp=?", date, dapp).Scan(&dau, &dnu, &trxs, &amount)
 	return &itype.Row{Date: date, Dapp: dapp, Dau: dau, Dnu: dnu, TrxCount: trxs, Amount: amount}
 }
 
-func (s *DailyStatisticService) DAUStatsSince(days int, dapp string) []*itype.Row {
+func (s *DailyStatisticService) DailyStatsSince(days int, dapp string) []*itype.Row {
 	now := time.Now().UTC()
 	d, _ := time.ParseDuration("-24h")
 	then := now.Add(d * time.Duration(days))

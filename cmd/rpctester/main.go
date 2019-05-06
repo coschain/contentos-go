@@ -14,8 +14,8 @@ func main() {
 	//req := &grpcpb.NonParamsRequest{}
 	//resp, err := rpc.GetChainState(context.Background(), req)
 	//req := &grpcpb.GetDAUStatsRequest{Days: 30, Dapp: "test"}
-	req := &grpcpb.GetDNUStatsRequest{Days: 30, Dapp: "test"}
-	resp, err := client.GetDNUStats(context.Background(), req)
+	req := &grpcpb.GetDailyStatsRequest{Days: 30, Dapp: "test"}
+	resp, err := client.GetDailyStats(context.Background(), req)
 	if err != nil {
 		fmt.Println(err)
 	} else {
@@ -23,7 +23,10 @@ func main() {
 		for _, r := range resp.Stat {
 			fmt.Println(r.Date)
 			fmt.Println(r.Dapp)
-			fmt.Println(r.Count)
+			fmt.Println(r.Dau)
+			fmt.Println(r.Dnu)
+			fmt.Println(r.Trxs)
+			fmt.Println(r.Amount)
 		}
 	}
 }
