@@ -476,3 +476,43 @@ func replyArticle(rpcClient grpcpb.ApiServiceClient, fromAccount *wallet.PrivAcc
 			fmt.Sprintf("Result: %v", resp))
 	}
 }
+
+func callContract(rpcClient grpcpb.ApiServiceClient, fromAccount  *wallet.PrivAccount) error {
+	if fromAccount == nil {
+		GlobalAccountLIst.RLock()
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		idx := r.Intn( len(GlobalAccountLIst.arr) )
+		fromAccount = GlobalAccountLIst.arr[idx]
+		GlobalAccountLIst.RUnlock()
+	}
+
+	param := fmt.Sprintf(" [\"%v\"] ", fromAccount.Name)
+
+	applyOp := &prototype.ContractApplyOperation{
+		Caller:   &prototype.AccountName{Value: fromAccount.Name},
+		Owner:    &prototype.AccountName{Value: "initminer"},
+		Amount:   &prototype.Coin{Value: 0},
+		Contract: "",
+		Params:   param,
+		Method:   "",
+	}
+
+	signTx, err := utils.GenerateSignedTxAndValidate2(rpcClient, []interface{}{applyOp}, fromAccount)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+
+	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
+	resp, err := rpcClient.BroadcastTrx(context.Background(), req)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	} else {
+		fmt.Println("Request command: ",
+			fmt.Sprintf("callContract %s %s %d", fromAccount.Name),
+			" ",
+			fmt.Sprintf("Result: %v", resp))
+	}
+	return nil
+}
