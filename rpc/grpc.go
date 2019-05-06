@@ -1186,7 +1186,7 @@ func (as *APIService) getTrxInfoByTrxId(trxId *prototype.Sha256, blkStateMap map
 	return tInfo
 }
 
-func (as *APIService) GetDailytats(ctx context.Context, req *grpcpb.GetDailyStatsRequest) (*grpcpb.GetDailyStatsResponse, error) {
+func (as *APIService) GetDailyStats(ctx context.Context, req *grpcpb.GetDailyStatsRequest) (*grpcpb.GetDailyStatsResponse, error) {
 	dsservice, err := as.ctx.Service(iservices.DailyStatisticServiceName)
 	if err != nil {
 		return nil, errors.New("plugin daily statistic service isn't running")
