@@ -33,13 +33,13 @@ func (p *TrxContext) GetVmRemainCpuStamina(name string) uint64 {
 	return p.control.GetAllRemainStamina(name) - (p.netMap[name].raw * constants.NetConsumePointNum / constants.NetConsumePointDen)
 }
 
-func (p *TrxContext) CheckNet(sizeInBytes uint64) {
+func (p *TrxContext) CheckNet(db iservices.IDatabaseRW, sizeInBytes uint64) {
 	keyMaps := p.Wrapper.SigTrx.GetOpCreatorsMap()
 	netUse := sizeInBytes * uint64(float64(constants.NetConsumePointNum)/float64(constants.NetConsumePointDen))
 	for name := range keyMaps {
 		p.netMap[name] = &resourceUnit{}
-		freeLeft := p.resourceLimiter.GetFreeLeft(name, p.control.GetProps().HeadBlockNumber)
-		stakeLeft := p.resourceLimiter.GetStakeLeft(name, p.control.GetProps().HeadBlockNumber)
+		freeLeft := p.resourceLimiter.GetFreeLeft(db, name, p.control.GetProps().HeadBlockNumber)
+		stakeLeft := p.resourceLimiter.GetStakeLeft(db, name, p.control.GetProps().HeadBlockNumber)
 		if freeLeft >= netUse {
 			p.netMap[name].raw = sizeInBytes
 			continue
@@ -55,7 +55,7 @@ func (p *TrxContext) CheckNet(sizeInBytes uint64) {
 	}
 }
 
-func (p *TrxContext) deductStamina(m map[string]*resourceUnit, num, den uint64) {
+func (p *TrxContext) deductStamina(db iservices.IDatabaseRW,m map[string]*resourceUnit, num, den uint64) {
 	rate := float64(num) / float64(den)
 
 	for caller, spent := range m {
@@ -64,9 +64,9 @@ func (p *TrxContext) deductStamina(m map[string]*resourceUnit, num, den uint64) 
 
 		var paid uint64 = 0
 
-		if !p.resourceLimiter.ConsumeFree(caller, staminaUse, now) {
-			paid += p.resourceLimiter.GetFreeLeft(caller, now)
-			p.resourceLimiter.ConsumeFreeLeft(caller, now)
+		if !p.resourceLimiter.ConsumeFree(db, caller, staminaUse, now) {
+			paid += p.resourceLimiter.GetFreeLeft(db, caller, now)
+			p.resourceLimiter.ConsumeFreeLeft(db, caller, now)
 
 		} else {
 			paid = staminaUse
@@ -79,10 +79,10 @@ func (p *TrxContext) deductStamina(m map[string]*resourceUnit, num, den uint64) 
 
 		left := staminaUse - paid
 
-		if !p.resourceLimiter.Consume(caller, left, now) {
+		if !p.resourceLimiter.Consume(db, caller, left, now) {
 			// never failed ?
-			paid += p.resourceLimiter.GetStakeLeft(caller, now)
-			p.resourceLimiter.ConsumeLeft(caller, now)
+			paid += p.resourceLimiter.GetStakeLeft(db, caller, now)
+			p.resourceLimiter.ConsumeLeft(db, caller, now)
 
 		} else {
 			paid += left
@@ -92,12 +92,12 @@ func (p *TrxContext) deductStamina(m map[string]*resourceUnit, num, den uint64) 
 	}
 }
 
-func (p *TrxContext) DeductAllNet() {
-	p.deductStamina(p.netMap, constants.NetConsumePointNum, constants.NetConsumePointDen)
+func (p *TrxContext) DeductAllNet(db iservices.IDatabaseRW) {
+	p.deductStamina(db, p.netMap, constants.NetConsumePointNum, constants.NetConsumePointDen)
 }
 
-func (p *TrxContext) DeductAllCpu() {
-	p.deductStamina(p.gasMap, constants.CpuConsumePointNum, constants.CpuConsumePointDen)
+func (p *TrxContext) DeductAllCpu(db iservices.IDatabaseRW) {
+	p.deductStamina(db, p.gasMap, constants.CpuConsumePointNum, constants.CpuConsumePointDen)
 }
 
 func (p *TrxContext) Finalize() {

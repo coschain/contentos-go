@@ -35,7 +35,7 @@ func addActors() {
 func TestStakeManager_Consume1(t *testing.T) {
 	initEvn()
 
-	sm := NewResourceLimiter(nil)
+	sm := NewResourceLimiter()
 	name := "0"
 
 	if sm.Get(name) != 0 {
@@ -78,7 +78,7 @@ func TestStakeManager_Consume1(t *testing.T) {
 func TestStakeManager_Consume2(t *testing.T) {
 	initEvn()
 
-	sm := NewResourceLimiter(nil)
+	sm := NewResourceLimiter()
 	// stake same, consume same
 	for i := 0; i < actorsNum; i++ {
 	}
@@ -105,7 +105,7 @@ func TestStakeManager_Consume2(t *testing.T) {
 // each user lock up different cos, but use same stamina, their recover should same
 func TestStakeManager_Consume4(t *testing.T) {
 	initEvn()
-	sm := NewResourceLimiter(nil)
+	sm := NewResourceLimiter()
 	// stake different
 
 	//
@@ -148,7 +148,7 @@ func TestStakeManager_Consume4(t *testing.T) {
 func TestStakeManager_Consume5(t *testing.T) {
 	initEvn()
 
-	sm := NewResourceLimiter(nil)
+	sm := NewResourceLimiter()
 
 	// stake same
 
@@ -192,7 +192,7 @@ func TestStakeManager_Consume5(t *testing.T) {
 func TestStakeManager_GetCapacity(t *testing.T) {
 	initEvn()
 
-	sm := NewResourceLimiter(nil)
+	sm := NewResourceLimiter()
 	// stake same
 
 	// capacity should same

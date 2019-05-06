@@ -438,8 +438,9 @@ func Test_MixOp(t *testing.T) {
 
 	invoice2 := c.PushTrx(signedTrx2)
 	if invoice2.Status != prototype.StatusDeductGas {
-		t.Error("PushTrx return status error:", invoice2.Status)
+		t.Error("PushTrx return status error:", invoice2)
 	}
+	fmt.Println(invoice2)
 
 	//
 	minerWrap2 := table.NewSoAccountWrap(db, miner)
@@ -450,7 +451,7 @@ func Test_MixOp(t *testing.T) {
 	// right result:
 	// 1. gas should be deduct
 	// 2. transfer should be revert
-	if b > b2 {
+	if b >= b2 {
 		t.Error("gas error or db error")
 	}
 	newBalance := minerWrap.GetBalance()

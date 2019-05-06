@@ -824,7 +824,7 @@ func (as *APIService) getAccountResponseByName(name *prototype.AccountName, isNe
 	acct := &grpcpb.AccountResponse{}
 	acctInfo := &grpcpb.AccountInfo{}
 
-	rc := utils.NewResourceLimiter(as.db)
+	rc := utils.NewResourceLimiter()
 	wraper := table.NewSoGlobalWrap(as.db, &constants.GlobalId)
 	gp := wraper.GetProps()
 
@@ -863,8 +863,8 @@ func (as *APIService) getAccountResponseByName(name *prototype.AccountName, isNe
 			acctInfo.FollowerCount = followWrap.GetFollowerCnt()
 			acctInfo.FollowingCount = followWrap.GetFollowingCnt()
 		}
-		acctInfo.StaminaRemain = rc.GetStakeLeft(accWrap.GetName().Value, gp.HeadBlockNumber) + rc.GetFreeLeft(accWrap.GetName().Value, gp.HeadBlockNumber)
-		acctInfo.StaminaMax = rc.GetCapacity(accWrap.GetName().Value) + rc.GetCapacityFree()
+		acctInfo.StaminaRemain = rc.GetStakeLeft(as.db, accWrap.GetName().Value, gp.HeadBlockNumber) + rc.GetFreeLeft(as.db, accWrap.GetName().Value, gp.HeadBlockNumber)
+		acctInfo.StaminaMax = rc.GetCapacity(as.db, accWrap.GetName().Value) + rc.GetCapacityFree()
 		acct.Info = acctInfo
 		acct.State = as.getState()
 

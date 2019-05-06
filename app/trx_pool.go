@@ -113,7 +113,7 @@ func (c *TrxPool) Open() {
 	commit, _ := c.iceberg.LastFinalizedBlock()
 	latest, _, _ := c.iceberg.LatestBlock()
 	c.tm = NewTrxMgr(c.db, c.log, latest, commit)
-	c.resourceLimiter = utils.NewResourceLimiter(c.db)
+	c.resourceLimiter = utils.NewResourceLimiter()
 }
 
 func (c *TrxPool) Stop() error {
@@ -418,10 +418,10 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabasePatch, entry *TrxEn
 			receipt.Status = prototype.StatusSuccess
 			c.notifyTrxApplyResult(sigTrx, true, receipt)
 		}
-		c.PayGas(trxContext)
+		c.PayGas(db,trxContext)
 	}()
 
-	trxContext.CheckNet(uint64(proto.Size(sigTrx)))
+	trxContext.CheckNet(db, uint64(proto.Size(sigTrx)))
 
 	for _, op := range sigTrx.Trx.Operations {
 		trxContext.StartNextOp()
@@ -429,9 +429,9 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabasePatch, entry *TrxEn
 	}
 }
 
-func (c *TrxPool) PayGas(trxContext *TrxContext) {
-	trxContext.DeductAllCpu()
-	trxContext.DeductAllNet()
+func (c *TrxPool) PayGas(db iservices.IDatabaseRW, trxContext *TrxContext) {
+	trxContext.DeductAllCpu(db)
+	trxContext.DeductAllNet(db)
 	trxContext.Finalize()
 	return
 }
@@ -1088,17 +1088,17 @@ func (c *TrxPool) SyncPushedBlocksToDB(blkList []common.ISignedBlock) (err error
 func (c *TrxPool) GetRemainStamina(name string) uint64 {
 	wraper := table.NewSoGlobalWrap(c.db, &constants.GlobalId)
 	gp := wraper.GetProps()
-	return c.resourceLimiter.GetStakeLeft(name, gp.HeadBlockNumber)
+	return c.resourceLimiter.GetStakeLeft(c.db, name, gp.HeadBlockNumber)
 }
 
 func (c *TrxPool) GetRemainFreeStamina(name string) uint64 {
 	wraper := table.NewSoGlobalWrap(c.db, &constants.GlobalId)
 	gp := wraper.GetProps()
-	return c.resourceLimiter.GetFreeLeft(name, gp.HeadBlockNumber)
+	return c.resourceLimiter.GetFreeLeft(c.db, name, gp.HeadBlockNumber)
 }
 
 func (c *TrxPool) GetStaminaMax(name string) uint64 {
-	return c.resourceLimiter.GetCapacity(name)
+	return c.resourceLimiter.GetCapacity(c.db, name)
 }
 
 func (c *TrxPool) GetStaminaFreeMax() uint64 {
