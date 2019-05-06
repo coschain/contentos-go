@@ -118,7 +118,7 @@ func (s *DailyStatisticService) handleDAUStatistic(block *prototype.SignedBlock,
 	//date := fmt.Sprintf("%d-%02d-%02d", datetime.Year(), datetime.Month(), datetime.Day())
 	end := blockTime
 	start := end - 86400
-	statRows, _ := s.outDb.Query("SELECT creator, count(distinct creator) as count FROM trxinfo WHERE block_time >= ? and block_time < ? group by creator", start, end)
+	statRows, _ := s.outDb.Query("SELECT distinct creator FROM trxinfo WHERE block_time >= ? and block_time < ?", start, end)
 	dapps := make(map[string]string)
 	dappRows, _ := s.outDb.Query("select dapp, prefix from dailystatdapp where status=1")
 	for dappRows.Next() {
@@ -130,15 +130,14 @@ func (s *DailyStatisticService) handleDAUStatistic(block *prototype.SignedBlock,
 	for statRows.Next() {
 		var (
 			creator string
-			counter uint32
 		)
-		if err := statRows.Scan(&creator, &counter); err != nil {
+		if err := statRows.Scan(&creator); err != nil {
 			s.log.Error(err)
 			continue
 		}
 		for prefix, dapp := range dapps {
 			if strings.HasPrefix(creator, prefix) {
-				dappsCounter[dapp] += counter
+				dappsCounter[dapp] += 1
 			}
 		}
 	}
@@ -153,7 +152,7 @@ func (s *DailyStatisticService) handleDNUStatistic(block *prototype.SignedBlock,
 	//date := fmt.Sprintf("%d-%02d-%02d", datetime.Year(), datetime.Month(), datetime.Day())
 	end := blockTime
 	start := end - 86400
-	statRows, _ := s.outDb.Query("SELECT creator, count(distinct creator) as count FROM createaccountinfo WHERE create_time >= ? and create_time < ? group by creator", start, end)
+	statRows, _ := s.outDb.Query("SELECT distinct creator FROM createaccountinfo WHERE create_time >= ? and create_time < ?", start, end)
 	dapps := make(map[string]string)
 	dappRows, _ := s.outDb.Query("select dapp, prefix from dailystatdapp where status=1")
 	for dappRows.Next() {
@@ -165,15 +164,14 @@ func (s *DailyStatisticService) handleDNUStatistic(block *prototype.SignedBlock,
 	for statRows.Next() {
 		var (
 			creator string
-			counter uint32
 		)
-		if err := statRows.Scan(&creator, &counter); err != nil {
+		if err := statRows.Scan(&creator); err != nil {
 			s.log.Error(err)
 			continue
 		}
 		for prefix, dapp := range dapps {
 			if strings.HasPrefix(creator, prefix) {
-				dappsCounter[dapp] += counter
+				dappsCounter[dapp] += 1
 			}
 		}
 	}
@@ -190,17 +188,18 @@ func (s *DailyStatisticService) DAUStatsOn(date string, dapp string) *itype.Row 
 
 func (s *DailyStatisticService) DAUStatsSince(days int, dapp string) []*itype.Row {
 	now := time.Now().UTC()
-	d, _ := time.ParseDuration("-1d")
+	d, _ := time.ParseDuration("-24h")
 	then := now.Add(d * time.Duration(days))
-	date := fmt.Sprintf("%d-%02d-%02d", then.Year(), then.Month(), then.Day())
+	start := fmt.Sprintf("%d-%02d-%02d", then.Year(), then.Month(), then.Day())
 	var dauRows []*itype.Row
-	rows, err := s.outDb.Query("select count from daustat where date >= ? and dapp = ?  order by date", date, dapp)
+	rows, err := s.outDb.Query("select date, count from daustat where date >= ? and dapp = ?  order by date", start, dapp)
 	if err != nil {
 		return dauRows
 	}
 	for rows.Next() {
 		var count uint32
-		_ = rows.Scan(&count)
+		var date string
+		_ = rows.Scan(&date, &count)
 		r := &itype.Row{Date: date, Dapp: dapp, Count:count}
 		dauRows = append(dauRows, r)
 	}
@@ -215,17 +214,18 @@ func (s *DailyStatisticService) DNUStatsOn(date string, dapp string) *itype.Row 
 
 func (s *DailyStatisticService) DNUStatsSince(days int, dapp string) []*itype.Row {
 	now := time.Now().UTC()
-	d, _ := time.ParseDuration("-1d")
+	d, _ := time.ParseDuration("-24h")
 	then := now.Add(d * time.Duration(days))
-	date := fmt.Sprintf("%d-%02d-%02d", then.Year(), then.Month(), then.Day())
+	start := fmt.Sprintf("%d-%02d-%02d", then.Year(), then.Month(), then.Day())
 	var dauRows []*itype.Row
-	rows, err := s.outDb.Query("select count from dnustat where date >= ? and dapp = ?  order by date", date, dapp)
+	rows, err := s.outDb.Query("select date, count from dnustat where date >= ? and dapp = ?  order by date", start, dapp)
 	if err != nil {
 		return dauRows
 	}
 	for rows.Next() {
 		var count uint32
-		_ = rows.Scan(&count)
+		var date string
+		_ = rows.Scan(&date, &count)
 		r := &itype.Row{Date: date, Dapp: dapp, Count:count}
 		dauRows = append(dauRows, r)
 	}
