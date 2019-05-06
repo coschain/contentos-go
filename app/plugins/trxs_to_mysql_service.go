@@ -184,7 +184,7 @@ func (t *TrxMysqlService) pollLIB() error {
 
 	for _, block := range waitingSyncLib {
 		blockStart := time.Now()
-		t.handleLibNotification(block)
+		//t.handleLibNotification(block)
 		utcTimestamp := time.Now().UTC().Unix()
 		_, _ = updateStmt.Exec(block, utcTimestamp)
 		t.log.Debugf("[trx db] insert block %d, spent: %v", block, time.Now().Sub(blockStart))
