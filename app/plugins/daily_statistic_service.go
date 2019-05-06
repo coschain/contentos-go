@@ -172,17 +172,17 @@ func (s *DailyStatisticService) handleDailyStatistic(block *prototype.SignedBloc
 		}
 	}
 	// amount
-	transferAmountRows, _ := s.outDb.Query("select sender, receiver, amount from transferinfo where create_time >= ? and create_time < ?", start, end)
+	transferAmountRows, _ := s.outDb.Query("select sender, amount from transferinfo where create_time >= ? and create_time < ?", start, end)
 	transferAmountCounter := make(map[string]uint64)
 	for transferAmountRows.Next() {
-		var sender, receiver string
+		var sender string
 		var amount uint64
-		if err := transferAmountRows.Scan(&sender, &receiver, &amount); err != nil {
+		if err := transferAmountRows.Scan(&sender, &amount); err != nil {
 			s.log.Error(err)
 			continue
 		}
 		for prefix, dapp := range dapps {
-			if strings.HasPrefix(sender, prefix) || strings.HasPrefix(receiver, prefix) {
+			if strings.HasPrefix(sender, prefix) {
 				transferAmountCounter[dapp] += amount
 			}
 		}
