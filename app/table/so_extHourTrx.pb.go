@@ -31,7 +31,7 @@ func (m *SoExtHourTrx) Reset()         { *m = SoExtHourTrx{} }
 func (m *SoExtHourTrx) String() string { return proto.CompactTextString(m) }
 func (*SoExtHourTrx) ProtoMessage()    {}
 func (*SoExtHourTrx) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extHourTrx_5fcdc30bdddff25c, []int{0}
+	return fileDescriptor_so_extHourTrx_2155821208f9110f, []int{0}
 }
 func (m *SoExtHourTrx) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoExtHourTrx.Unmarshal(m, b)
@@ -76,7 +76,7 @@ func (m *SoMemExtHourTrxByHour) Reset()         { *m = SoMemExtHourTrxByHour{} }
 func (m *SoMemExtHourTrxByHour) String() string { return proto.CompactTextString(m) }
 func (*SoMemExtHourTrxByHour) ProtoMessage()    {}
 func (*SoMemExtHourTrxByHour) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extHourTrx_5fcdc30bdddff25c, []int{1}
+	return fileDescriptor_so_extHourTrx_2155821208f9110f, []int{1}
 }
 func (m *SoMemExtHourTrxByHour) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemExtHourTrxByHour.Unmarshal(m, b)
@@ -114,7 +114,7 @@ func (m *SoMemExtHourTrxByCount) Reset()         { *m = SoMemExtHourTrxByCount{}
 func (m *SoMemExtHourTrxByCount) String() string { return proto.CompactTextString(m) }
 func (*SoMemExtHourTrxByCount) ProtoMessage()    {}
 func (*SoMemExtHourTrxByCount) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extHourTrx_5fcdc30bdddff25c, []int{2}
+	return fileDescriptor_so_extHourTrx_2155821208f9110f, []int{2}
 }
 func (m *SoMemExtHourTrxByCount) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemExtHourTrxByCount.Unmarshal(m, b)
@@ -152,7 +152,7 @@ func (m *SoListExtHourTrxByHour) Reset()         { *m = SoListExtHourTrxByHour{}
 func (m *SoListExtHourTrxByHour) String() string { return proto.CompactTextString(m) }
 func (*SoListExtHourTrxByHour) ProtoMessage()    {}
 func (*SoListExtHourTrxByHour) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extHourTrx_5fcdc30bdddff25c, []int{3}
+	return fileDescriptor_so_extHourTrx_2155821208f9110f, []int{3}
 }
 func (m *SoListExtHourTrxByHour) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoListExtHourTrxByHour.Unmarshal(m, b)
@@ -191,7 +191,7 @@ func (m *SoListExtHourTrxByCount) Reset()         { *m = SoListExtHourTrxByCount
 func (m *SoListExtHourTrxByCount) String() string { return proto.CompactTextString(m) }
 func (*SoListExtHourTrxByCount) ProtoMessage()    {}
 func (*SoListExtHourTrxByCount) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extHourTrx_5fcdc30bdddff25c, []int{4}
+	return fileDescriptor_so_extHourTrx_2155821208f9110f, []int{4}
 }
 func (m *SoListExtHourTrxByCount) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoListExtHourTrxByCount.Unmarshal(m, b)
@@ -236,7 +236,7 @@ func (m *SoUniqueExtHourTrxByHour) Reset()         { *m = SoUniqueExtHourTrxByHo
 func (m *SoUniqueExtHourTrxByHour) String() string { return proto.CompactTextString(m) }
 func (*SoUniqueExtHourTrxByHour) ProtoMessage()    {}
 func (*SoUniqueExtHourTrxByHour) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extHourTrx_5fcdc30bdddff25c, []int{5}
+	return fileDescriptor_so_extHourTrx_2155821208f9110f, []int{5}
 }
 func (m *SoUniqueExtHourTrxByHour) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoUniqueExtHourTrxByHour.Unmarshal(m, b)
@@ -273,10 +273,10 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("app/table/so_extHourTrx.proto", fileDescriptor_so_extHourTrx_5fcdc30bdddff25c)
+	proto.RegisterFile("app/table/so_extHourTrx.proto", fileDescriptor_so_extHourTrx_2155821208f9110f)
 }
 
-var fileDescriptor_so_extHourTrx_5fcdc30bdddff25c = []byte{
+var fileDescriptor_so_extHourTrx_2155821208f9110f = []byte{
 	// 245 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x92, 0xc1, 0x4a, 0x03, 0x31,
 	0x10, 0x86, 0xd9, 0xd2, 0x7a, 0x18, 0xf1, 0xb2, 0xf4, 0xd0, 0x56, 0x85, 0xb2, 0xa7, 0x22, 0x76,

@@ -22,6 +22,7 @@ const (
 	NoticeBlockApplied = "blockapply"
 	NoticeAddTrx       = "addTrx"
 	NoticeCashout      = "rewardCashout"
+	//NoticeLIB          = "lastIrreversibleBlock"
 
 	GenesisTime = 0
 
@@ -52,7 +53,7 @@ const (
 
 	MaxUndoHistory = 10000
 
-	MinVoteInterval = 20
+	MinVoteInterval = 0 // per 260s 1/1000 vp will restore. Between the 260s any vote operations are valueless if its vp has been exhausted
 	MinPostInterval = 0 // 5 * 60 TODO for unit test
 
 	PERCENT = 10000

@@ -9,9 +9,10 @@ require (
 	github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1 // indirect
 	github.com/coocood/freecache v1.1.0
 	github.com/coschain/cobra v0.0.0-20181106130408-77bf516f51a1
-	github.com/coschain/gobft v0.0.0-20190415060758-80be90cbb9c0
+	github.com/coschain/gobft v0.0.0-20190423084913-4475919c495b
 	github.com/fastly/go-utils v0.0.0-20180712184237-d95a45783239 // indirect
 	github.com/go-interpreter/wagon v0.3.0
+	github.com/go-sql-driver/mysql v1.4.1
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/gogo/protobuf v1.1.1
 	github.com/golang/mock v1.2.0
@@ -39,6 +40,7 @@ require (
 	github.com/mwitkow/go-conntrack v0.0.0-20161129095857-cc309e4a2223 // indirect
 	github.com/onsi/gomega v1.4.2 // indirect
 	github.com/pelletier/go-toml v1.2.0
+	github.com/petar/GoLLRB v0.0.0-20130427215148-53be0d36a84c
 	github.com/petermattis/goid v0.0.0-20180202154549-b0b1615b78e5 // indirect
 	github.com/pkg/errors v0.8.0
 	github.com/rifflock/lfshook v0.0.0-20180920164130-b9218ef580f5

@@ -476,3 +476,51 @@ func (this *P2PServer) FetchUnlinkedBlock(prevId coomn.BlockID) {
 		return
 	}
 }
+
+func (this *P2PServer) RequestCheckpoint(startNum, endNum uint64) {
+	this.log.Infof("RequestCheckpoint from %d to %d", startNum, endNum)
+	reqmsg := msgpack.NewCheckpointBatchMsg(startNum, endNum)
+
+	np := this.Network.GetNp()
+	np.RLock()
+	defer np.RUnlock()
+
+	for _, p := range np.List {
+		//this.log.Info("[p2p] cons call RequestCheckpoint func, start number: ",  startNum, " end number: ", endNum)
+		num := p.GetLastSeenBlkNum()
+		if endNum < num {
+			go p.Send(reqmsg, false, this.ctx.Config().P2P.NetworkMagic)
+			return
+		}
+	}
+
+	for _, p := range np.List {
+		go p.Send(reqmsg, false, this.ctx.Config().P2P.NetworkMagic)
+		return
+	}
+}
+
+func (this *P2PServer) FetchOutOfRange(localHeadID, targetID coomn.BlockID) {
+	if localHeadID.BlockNum() >= targetID.BlockNum() {
+		this.log.Warn("local head number less than target number.local number: ", localHeadID.BlockNum(), " target number: ", targetID.BlockNum())
+		return
+	}
+	reqmsg := msgpack.NewRequestOutOfRangeIds(localHeadID.Data[:], targetID.Data[:])
+
+	np := this.Network.GetNp()
+	np.RLock()
+	defer np.RUnlock()
+
+	for _, p := range np.List {
+		p.OutOfRangeState.Lock()
+		if len(p.OutOfRangeState.KeyPointIDList) == 0 {
+			p.OutOfRangeState.KeyPointIDList = append(p.OutOfRangeState.KeyPointIDList, targetID.Data[:])
+			this.log.Infof("FetchOutOfRange from %d to %d", localHeadID.BlockNum(), targetID.BlockNum() )
+			go p.Send(reqmsg, false, this.ctx.Config().P2P.NetworkMagic)
+			p.OutOfRangeState.Unlock()
+			return
+		}
+		p.OutOfRangeState.Unlock()
+	}
+	this.log.Info("all peers are busy, should wait idle peer")
+}

@@ -487,25 +487,9 @@ func NewExtPostCreatedCreatedOrderWrap(db iservices.IDatabaseRW) *SExtPostCreate
 	return &wrap
 }
 
-func (s *SExtPostCreatedCreatedOrderWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil {
-		return
-	}
-	s.Dba.DeleteIterator(iterator)
-}
-
-func (s *SExtPostCreatedCreatedOrderWrap) GetMainVal(iterator iservices.IDatabaseIterator) *uint64 {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
-
+func (s *SExtPostCreatedCreatedOrderWrap) GetMainVal(val []byte) *uint64 {
 	res := &SoListExtPostCreatedByCreatedOrder{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 
 	if err != nil {
 		return nil
@@ -515,18 +499,9 @@ func (s *SExtPostCreatedCreatedOrderWrap) GetMainVal(iterator iservices.IDatabas
 
 }
 
-func (s *SExtPostCreatedCreatedOrderWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.PostCreatedOrder {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
+func (s *SExtPostCreatedCreatedOrderWrap) GetSubVal(val []byte) *prototype.PostCreatedOrder {
 	res := &SoListExtPostCreatedByCreatedOrder{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 	if err != nil {
 		return nil
 	}
@@ -593,19 +568,11 @@ func (s *SExtPostCreatedCreatedOrderWrap) ForEachByRevOrder(start *prototype.Pos
 	if cErr != nil {
 		return cErr
 	}
-	//reverse the start and end when create ReversedIterator to query by reverse order
-	iterator := s.Dba.NewReversedIterator(eBuf, sBuf)
-	if iterator == nil {
-		return errors.New("there is no data in range")
-	}
 	var idx uint32 = 0
-	for iterator.Next() {
+	s.Dba.Iterate(eBuf, sBuf, true, func(key, value []byte) bool {
 		idx++
-		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
-			break
-		}
-	}
-	s.DelIterator(iterator)
+		return f(s.GetMainVal(value), s.GetSubVal(value), idx)
+	})
 	return nil
 }
 

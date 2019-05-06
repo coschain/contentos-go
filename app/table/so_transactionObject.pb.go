@@ -31,7 +31,7 @@ func (m *SoTransactionObject) Reset()         { *m = SoTransactionObject{} }
 func (m *SoTransactionObject) String() string { return proto.CompactTextString(m) }
 func (*SoTransactionObject) ProtoMessage()    {}
 func (*SoTransactionObject) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_transactionObject_18807672325de4ce, []int{0}
+	return fileDescriptor_so_transactionObject_edaab3d12ceec50d, []int{0}
 }
 func (m *SoTransactionObject) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoTransactionObject.Unmarshal(m, b)
@@ -76,7 +76,7 @@ func (m *SoMemTransactionObjectByTrxId) Reset()         { *m = SoMemTransactionO
 func (m *SoMemTransactionObjectByTrxId) String() string { return proto.CompactTextString(m) }
 func (*SoMemTransactionObjectByTrxId) ProtoMessage()    {}
 func (*SoMemTransactionObjectByTrxId) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_transactionObject_18807672325de4ce, []int{1}
+	return fileDescriptor_so_transactionObject_edaab3d12ceec50d, []int{1}
 }
 func (m *SoMemTransactionObjectByTrxId) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemTransactionObjectByTrxId.Unmarshal(m, b)
@@ -114,7 +114,7 @@ func (m *SoMemTransactionObjectByExpiration) Reset()         { *m = SoMemTransac
 func (m *SoMemTransactionObjectByExpiration) String() string { return proto.CompactTextString(m) }
 func (*SoMemTransactionObjectByExpiration) ProtoMessage()    {}
 func (*SoMemTransactionObjectByExpiration) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_transactionObject_18807672325de4ce, []int{2}
+	return fileDescriptor_so_transactionObject_edaab3d12ceec50d, []int{2}
 }
 func (m *SoMemTransactionObjectByExpiration) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemTransactionObjectByExpiration.Unmarshal(m, b)
@@ -153,7 +153,7 @@ func (m *SoListTransactionObjectByExpiration) Reset()         { *m = SoListTrans
 func (m *SoListTransactionObjectByExpiration) String() string { return proto.CompactTextString(m) }
 func (*SoListTransactionObjectByExpiration) ProtoMessage()    {}
 func (*SoListTransactionObjectByExpiration) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_transactionObject_18807672325de4ce, []int{3}
+	return fileDescriptor_so_transactionObject_edaab3d12ceec50d, []int{3}
 }
 func (m *SoListTransactionObjectByExpiration) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoListTransactionObjectByExpiration.Unmarshal(m, b)
@@ -198,7 +198,7 @@ func (m *SoUniqueTransactionObjectByTrxId) Reset()         { *m = SoUniqueTransa
 func (m *SoUniqueTransactionObjectByTrxId) String() string { return proto.CompactTextString(m) }
 func (*SoUniqueTransactionObjectByTrxId) ProtoMessage()    {}
 func (*SoUniqueTransactionObjectByTrxId) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_transactionObject_18807672325de4ce, []int{4}
+	return fileDescriptor_so_transactionObject_edaab3d12ceec50d, []int{4}
 }
 func (m *SoUniqueTransactionObjectByTrxId) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoUniqueTransactionObjectByTrxId.Unmarshal(m, b)
@@ -234,10 +234,10 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("app/table/so_transactionObject.proto", fileDescriptor_so_transactionObject_18807672325de4ce)
+	proto.RegisterFile("app/table/so_transactionObject.proto", fileDescriptor_so_transactionObject_edaab3d12ceec50d)
 }
 
-var fileDescriptor_so_transactionObject_18807672325de4ce = []byte{
+var fileDescriptor_so_transactionObject_edaab3d12ceec50d = []byte{
 	// 266 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x92, 0x4d, 0x4b, 0x03, 0x31,
 	0x10, 0x86, 0xd9, 0x42, 0x7b, 0x88, 0x27, 0x97, 0x1e, 0xaa, 0x27, 0x59, 0xfc, 0x28, 0xa2, 0x1b,

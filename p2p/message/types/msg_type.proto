@@ -15,6 +15,7 @@ message id_msg {
         broadcast_sigblk_id = 0;
         request_sigblk_by_id = 1;
         request_id_ack = 2;
+        detect_former_ids = 3;
     }
     type msgtype = 1;
     repeated bytes value = 2;
@@ -22,7 +23,10 @@ message id_msg {
 
 message sig_blk_msg {
     prototype.signed_block SigBlk = 1;
-    bytes msgPayload = 2;
+
+    bool need_trigger_fetch = 2;
+
+    bytes msgPayload = 3;
 }
 
 message req_id_msg {
@@ -63,19 +67,46 @@ message version {
     string  RunningCodeVersion = 11;
 }
 
+message request_checkpoint_batch {
+    uint64 start = 1;
+    uint64 end = 2;
+}
+
+message request_out_of_range_ids {
+    bytes start_id = 1;
+    bytes target_id = 2;
+}
+
+// (start_id, end_id]
+message request_block_batch {
+    bytes start_id = 1;
+    bytes end_id = 2;
+}
+
+message detect_former_ids {
+    bytes end_id = 1;
+}
+
+message clear_out_of_range_state {}
+
 message transfer_msg {
     oneof msg {
-        broadcast_sig_trx msg1  = 1;
-        id_msg            msg2  = 2;
-        sig_blk_msg       msg3  = 3;
-        req_id_msg        msg4  = 4;
-        address           msg5  = 5;
-        addr_req          msg6  = 6;
-        disconnected      msg7  = 7;
-        ping              msg8  = 8;
-        pong              msg9  = 9;
-        ver_ack           msg10 = 10;
-        version           msg11 = 11;
+        broadcast_sig_trx          msg1  = 1;
+        id_msg                     msg2  = 2;
+        sig_blk_msg                msg3  = 3;
+        req_id_msg                 msg4  = 4;
+        address                    msg5  = 5;
+        addr_req                   msg6  = 6;
+        disconnected               msg7  = 7;
+        ping                       msg8  = 8;
+        pong                       msg9  = 9;
+        ver_ack                    msg10 = 10;
+        version                    msg11 = 11;
+        request_checkpoint_batch   msg12 = 12;
+        request_out_of_range_ids   msg13 = 13;
+        request_block_batch        msg14 = 14;
+        detect_former_ids          msg15 = 15;
+        clear_out_of_range_state   msg16 = 16;
     }
 }
 

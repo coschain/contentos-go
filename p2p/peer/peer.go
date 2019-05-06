@@ -104,6 +104,11 @@ type trxCache struct {
 	sync.Mutex
 }
 
+type FetchOutOfRangeState struct {
+	KeyPointIDList      [][]byte
+	sync.Mutex
+}
+
 //Peer represent the node in p2p
 type Peer struct {
 	base               PeerCom
@@ -116,10 +121,13 @@ type Peer struct {
 
 	TrxCache           trxCache
 
+	OutOfRangeState    FetchOutOfRangeState
+
 	lastSeenBlkNum     uint64
 
 	connLock           sync.RWMutex
 	busy			   int32
+	busyFetchingCP     int32
 }
 
 //NewPeer return new peer without publickey initial
@@ -128,6 +136,7 @@ func NewPeer() *Peer {
 		syncState: common.INIT,
 		consState: common.INIT,
 		busy: 0,
+		busyFetchingCP: 0,
 	}
 
 	p.TrxCache.bloomFilter1 = bloom.New(common.BloomFilterOfRecvTrxArgM, common.BloomFilterOfRecvTrxArgK)
@@ -153,6 +162,16 @@ func (this *Peer) LockBusy() bool {
 func (this *Peer) UnlockBusy()  {
 	if ! atomic.CompareAndSwapInt32( &this.busy, 1, 0 ) {
 		panic("cant unlock, should lock success first")
+	}
+}
+
+func (this *Peer) LockBusyFetchingCP() bool {
+	return atomic.CompareAndSwapInt32( &this.busyFetchingCP, 0, 1 )
+}
+
+func (this *Peer) UnlockBusyFetchingCP()  {
+	if ! atomic.CompareAndSwapInt32( &this.busyFetchingCP, 1, 0 ) {
+		panic("cant unlock, should lock busyFetchingCP success first")
 	}
 }
 

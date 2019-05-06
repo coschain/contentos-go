@@ -43,6 +43,10 @@ func addConf(confdir string, cfg node.Config, index int) {
 	cfg.P2P.NodeConsensusPort = uint(p2pPortStart + index*2 + 1)
 	cfg.P2P.Genesis.SeedList = seeds
 	cfg.HealthCheck.Port = fmt.Sprintf("%d", 9090+index)
+	cfg.Database.Driver = "mysql"
+	cfg.Database.Db = "contentosdb"
+	cfg.Database.User = "contentos"
+	cfg.Database.Password = "123456"
 
 	if index > 0 {
 		cfg.Consensus.LocalBpName = fmt.Sprintf("%s%d", constants.COSInitMiner, index)

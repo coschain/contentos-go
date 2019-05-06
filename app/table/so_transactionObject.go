@@ -492,25 +492,9 @@ func NewTransactionObjectExpirationWrap(db iservices.IDatabaseRW) *STransactionO
 	return &wrap
 }
 
-func (s *STransactionObjectExpirationWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil {
-		return
-	}
-	s.Dba.DeleteIterator(iterator)
-}
-
-func (s *STransactionObjectExpirationWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.Sha256 {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
-
+func (s *STransactionObjectExpirationWrap) GetMainVal(val []byte) *prototype.Sha256 {
 	res := &SoListTransactionObjectByExpiration{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 
 	if err != nil {
 		return nil
@@ -519,18 +503,9 @@ func (s *STransactionObjectExpirationWrap) GetMainVal(iterator iservices.IDataba
 
 }
 
-func (s *STransactionObjectExpirationWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.TimePointSec {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
+func (s *STransactionObjectExpirationWrap) GetSubVal(val []byte) *prototype.TimePointSec {
 	res := &SoListTransactionObjectByExpiration{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 	if err != nil {
 		return nil
 	}
@@ -605,18 +580,11 @@ func (s *STransactionObjectExpirationWrap) ForEachByOrder(start *prototype.TimeP
 	if cErr != nil {
 		return cErr
 	}
-	iterator := s.Dba.NewIterator(sBuf, eBuf)
-	if iterator == nil {
-		return errors.New("there is no data in range")
-	}
 	var idx uint32 = 0
-	for iterator.Next() {
+	s.Dba.Iterate(sBuf, eBuf, false, func(key, value []byte) bool {
 		idx++
-		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
-			break
-		}
-	}
-	s.DelIterator(iterator)
+		return f(s.GetMainVal(value), s.GetSubVal(value), idx)
+	})
 	return nil
 }
 

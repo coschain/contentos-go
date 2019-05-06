@@ -21,4 +21,10 @@ type IP2P interface {
 
 	// Send msg to specific peer
 	Send(p *peer.Peer, msg types.Message, isConsensus bool) error
+
+	// Request checkpoint batch [startNum, endNum)
+	RequestCheckpoint(startNum, endNum uint64)
+
+	// if receive a out-of-range signed block, call this method to fetch the gap signed blocks (localHeadID, targetID]
+	FetchOutOfRange(localHeadID, targetID comn.BlockID)
 }

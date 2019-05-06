@@ -42,10 +42,11 @@ func NewSigBlkIdMsg(bk *prototype.SignedBlock) mt.Message {
 	return &reqmsg
 }
 
-func NewSigBlk(bk *prototype.SignedBlock) mt.Message {
+func NewSigBlk(bk *prototype.SignedBlock, needTriggerFetch bool) mt.Message {
 	var reqmsg mt.TransferMsg
 	data := new(mt.SigBlkMsg)
 	data.SigBlk = bk
+	data.NeedTriggerFetch = needTriggerFetch
 
 	data.MsgPayload = make([]byte, 50*1024)
 
@@ -124,5 +125,58 @@ func NewConsMsg(msg message.ConsensusMessage) mt.Message {
 
 	reqmsg.MsgData = msg
 
+	return &reqmsg
+}
+
+// checkpoint package
+func NewCheckpointBatchMsg(startNum, endNum uint64) mt.Message {
+	var reqmsg mt.TransferMsg
+
+	data := new(mt.RequestCheckpointBatch)
+	data.Start = startNum
+	data.End = endNum
+
+	reqmsg.Msg = &mt.TransferMsg_Msg12{Msg12:data}
+	return &reqmsg
+}
+
+func NewRequestOutOfRangeIds(startID, targetID []byte) mt.Message {
+	var reqmsg mt.TransferMsg
+
+	data := new(mt.RequestOutOfRangeIds)
+	data.StartId = startID
+	data.TargetId = targetID
+
+	reqmsg.Msg = &mt.TransferMsg_Msg13{Msg13:data}
+	return &reqmsg
+}
+
+func NewDetectFormerIds(endID []byte) mt.Message{
+	var reqmsg mt.TransferMsg
+
+	data := new(mt.DetectFormerIds)
+	data.EndId = endID
+
+	reqmsg.Msg = &mt.TransferMsg_Msg15{Msg15:data}
+	return &reqmsg
+}
+
+func NewRequestBlockBatch(startID, endID []byte) mt.Message {
+	var reqmsg mt.TransferMsg
+
+	data := new(mt.RequestBlockBatch)
+	data.StartId = startID
+	data.EndId = endID
+
+	reqmsg.Msg = &mt.TransferMsg_Msg14{Msg14:data}
+	return &reqmsg
+}
+
+func NewClearOutOfRangeState() mt.Message {
+	var reqmsg mt.TransferMsg
+
+	data := new(mt.ClearOutOfRangeState)
+
+	reqmsg.Msg = &mt.TransferMsg_Msg16{Msg16:data}
 	return &reqmsg
 }

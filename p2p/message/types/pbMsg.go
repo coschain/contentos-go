@@ -39,6 +39,16 @@ func (this *TransferMsg) CmdType() ( res string) {
 		res = common.VERACK_TYPE
 	case *TransferMsg_Msg11:
 		res = common.VERSION_TYPE
+	case *TransferMsg_Msg12:
+		res = common.CHECKPOINT_TYPE
+	case *TransferMsg_Msg13:
+		res = common.REQUEST_OUT_OF_RANGE_IDS_TYPE
+	case *TransferMsg_Msg14:
+		res = common.REQUEST_BLOCK_BATCH_TYPE
+	case *TransferMsg_Msg15:
+		res = common.DETECT_FORMER_IDS_TYPE
+	case *TransferMsg_Msg16:
+		res = common.CLEAR_OUT_OF_RABGE_STATE
 	default:
 		res = "unknow msg"
 	}

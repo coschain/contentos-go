@@ -33,7 +33,7 @@ func (m *SoExtFollowCount) Reset()         { *m = SoExtFollowCount{} }
 func (m *SoExtFollowCount) String() string { return proto.CompactTextString(m) }
 func (*SoExtFollowCount) ProtoMessage()    {}
 func (*SoExtFollowCount) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extFollowCount_32a2477cbbc3df05, []int{0}
+	return fileDescriptor_so_extFollowCount_149e4dc85c5a7811, []int{0}
 }
 func (m *SoExtFollowCount) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoExtFollowCount.Unmarshal(m, b)
@@ -92,7 +92,7 @@ func (m *SoMemExtFollowCountByAccount) Reset()         { *m = SoMemExtFollowCoun
 func (m *SoMemExtFollowCountByAccount) String() string { return proto.CompactTextString(m) }
 func (*SoMemExtFollowCountByAccount) ProtoMessage()    {}
 func (*SoMemExtFollowCountByAccount) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extFollowCount_32a2477cbbc3df05, []int{1}
+	return fileDescriptor_so_extFollowCount_149e4dc85c5a7811, []int{1}
 }
 func (m *SoMemExtFollowCountByAccount) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemExtFollowCountByAccount.Unmarshal(m, b)
@@ -130,7 +130,7 @@ func (m *SoMemExtFollowCountByFollowerCnt) Reset()         { *m = SoMemExtFollow
 func (m *SoMemExtFollowCountByFollowerCnt) String() string { return proto.CompactTextString(m) }
 func (*SoMemExtFollowCountByFollowerCnt) ProtoMessage()    {}
 func (*SoMemExtFollowCountByFollowerCnt) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extFollowCount_32a2477cbbc3df05, []int{2}
+	return fileDescriptor_so_extFollowCount_149e4dc85c5a7811, []int{2}
 }
 func (m *SoMemExtFollowCountByFollowerCnt) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemExtFollowCountByFollowerCnt.Unmarshal(m, b)
@@ -168,7 +168,7 @@ func (m *SoMemExtFollowCountByFollowingCnt) Reset()         { *m = SoMemExtFollo
 func (m *SoMemExtFollowCountByFollowingCnt) String() string { return proto.CompactTextString(m) }
 func (*SoMemExtFollowCountByFollowingCnt) ProtoMessage()    {}
 func (*SoMemExtFollowCountByFollowingCnt) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extFollowCount_32a2477cbbc3df05, []int{3}
+	return fileDescriptor_so_extFollowCount_149e4dc85c5a7811, []int{3}
 }
 func (m *SoMemExtFollowCountByFollowingCnt) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemExtFollowCountByFollowingCnt.Unmarshal(m, b)
@@ -206,7 +206,7 @@ func (m *SoMemExtFollowCountByUpdateTime) Reset()         { *m = SoMemExtFollowC
 func (m *SoMemExtFollowCountByUpdateTime) String() string { return proto.CompactTextString(m) }
 func (*SoMemExtFollowCountByUpdateTime) ProtoMessage()    {}
 func (*SoMemExtFollowCountByUpdateTime) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extFollowCount_32a2477cbbc3df05, []int{4}
+	return fileDescriptor_so_extFollowCount_149e4dc85c5a7811, []int{4}
 }
 func (m *SoMemExtFollowCountByUpdateTime) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemExtFollowCountByUpdateTime.Unmarshal(m, b)
@@ -244,7 +244,7 @@ func (m *SoUniqueExtFollowCountByAccount) Reset()         { *m = SoUniqueExtFoll
 func (m *SoUniqueExtFollowCountByAccount) String() string { return proto.CompactTextString(m) }
 func (*SoUniqueExtFollowCountByAccount) ProtoMessage()    {}
 func (*SoUniqueExtFollowCountByAccount) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extFollowCount_32a2477cbbc3df05, []int{5}
+	return fileDescriptor_so_extFollowCount_149e4dc85c5a7811, []int{5}
 }
 func (m *SoUniqueExtFollowCountByAccount) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoUniqueExtFollowCountByAccount.Unmarshal(m, b)
@@ -281,10 +281,10 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("app/table/so_extFollowCount.proto", fileDescriptor_so_extFollowCount_32a2477cbbc3df05)
+	proto.RegisterFile("app/table/so_extFollowCount.proto", fileDescriptor_so_extFollowCount_149e4dc85c5a7811)
 }
 
-var fileDescriptor_so_extFollowCount_32a2477cbbc3df05 = []byte{
+var fileDescriptor_so_extFollowCount_149e4dc85c5a7811 = []byte{
 	// 313 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x92, 0x4d, 0x4b, 0x03, 0x31,
 	0x10, 0x86, 0x89, 0x9f, 0x30, 0x6d, 0x0f, 0x2e, 0x82, 0xd5, 0x53, 0xbb, 0x55, 0x29, 0xa2, 0xbb,

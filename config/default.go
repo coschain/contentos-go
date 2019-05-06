@@ -109,6 +109,13 @@ var DefaultNodeConfig = node.Config{
 	HealthCheck: service_configs.HCheck{
 		Port: "9090",
 	},
+	// only for local or testing environment
+	Database: &service_configs.DatabaseConfig{
+		Driver: "mysql",
+		User: "contentos",
+		Password: "123456",
+		Db: "contentosdb",
+	},
 }
 
 func DefaultDataDir() string {
