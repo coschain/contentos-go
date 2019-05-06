@@ -492,9 +492,9 @@ func callContract(rpcClient grpcpb.ApiServiceClient, fromAccount  *wallet.PrivAc
 		Caller:   &prototype.AccountName{Value: fromAccount.Name},
 		Owner:    &prototype.AccountName{Value: "initminer"},
 		Amount:   &prototype.Coin{Value: 0},
-		Contract: "",
+		Contract: "registercount",
 		Params:   param,
-		Method:   "",
+		Method:   "checkincount",
 	}
 
 	signTx, err := utils.GenerateSignedTxAndValidate2(rpcClient, []interface{}{applyOp}, fromAccount)
