@@ -946,7 +946,6 @@ func (p *MsgHandler) FetchOutOfRangeHandle(data *msgTypes.MsgPayload, p2p p2p.P2
 	copy(targetID.Data[:], msgdata.TargetId)
 
 	if startID.BlockNum() >= targetID.BlockNum() {
-		// TODO should we send a msg to clear remote peer OutOfRangeState, before other return should also do this
 		log.Debug("[p2p] no need to call FetchOutOfRangeHandle method, start num: ", startID.BlockNum(), " target num: ", targetID.BlockNum() )
 		clearMsg := msgpack.NewClearOutOfRangeState()
 		p2p.Send(remotePeer, clearMsg, false)
@@ -971,7 +970,8 @@ func (p *MsgHandler) FetchOutOfRangeHandle(data *msgTypes.MsgPayload, p2p p2p.P2
 		return
 	}
 
-	if ret{
+	ret = false
+	if ret {
 		startNum := startID.BlockNum()
 		endNum := targetID.BlockNum()
 
@@ -1009,6 +1009,7 @@ func (p *MsgHandler) FetchOutOfRangeHandle(data *msgTypes.MsgPayload, p2p p2p.P2
 			}
 		}
 	} else {
+		log.Info("enter fetch different branch logic")
 		count := 0
 		blkId := targetID
 		var IDList [][]byte
