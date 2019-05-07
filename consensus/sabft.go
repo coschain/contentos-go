@@ -882,7 +882,9 @@ func (sabft *SABFT) Commit(commitRecords *message.Commit) error {
 		sabft.checkBFTRoutine()
 		return nil
 	}
-	if err == ErrCommittingNonExistBlock {
+	if err == ErrCommitted {
+		// do nothing
+	} else if err == ErrCommittingNonExistBlock {
 		// wait for the block to arrive
 	} else {
 		panic(err)
@@ -908,6 +910,10 @@ func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 		// we're falling behind, just wait for next commit
 		sabft.log.Error("[SABFT] committing a missing block", blockID)
 		return ErrCommittingNonExistBlock
+	}
+
+	if sabft.ForkDB.LastCommitted() == blockID {
+		return ErrCommitted
 	}
 
 	blkMain, err := sabft.ForkDB.FetchBlockFromMainBranch(blockID.BlockNum())
