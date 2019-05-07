@@ -78,7 +78,7 @@ func (s *DailyStatisticService) pollLIB() error  {
 	var waitingSyncLib []uint64
 	var count = 0
 	for lastLib < lib {
-		if count > 100 {
+		if count > 1000 {
 			break
 		}
 		waitingSyncLib = append(waitingSyncLib, lastLib)
