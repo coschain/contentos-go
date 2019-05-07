@@ -115,8 +115,6 @@ type TrxMysqlService struct {
 	outDb *sql.DB
 	log *logrus.Logger
 	ctx *node.ServiceContext
-	//timer *time.Timer
-	//ticker *time.Ticker
 	quit chan bool
 }
 
@@ -194,9 +192,7 @@ func (t *TrxMysqlService) pollLIB() error {
 }
 
 func (t *TrxMysqlService) handleLibNotification(lib uint64) {
-	start := time.Now()
 	blks , err := t.consensus.FetchBlocks(lib, lib)
-	t.log.Debugf("[trx db] fetch blocks spent: %v", time.Now().Sub(start))
 	if err != nil {
 		t.log.Error(err)
 		return
@@ -204,12 +200,6 @@ func (t *TrxMysqlService) handleLibNotification(lib uint64) {
 	if len(blks) == 0 {
 		return
 	}
-	//stmt, _ := t.outDb.Prepare("INSERT IGNORE INTO trxinfo (trx_id, block_height, block_id, block_time, invoice, operations, creator)  value (?, ?, ?, ?, ?, ?, ?)")
-	//defer stmt.Close()
-	//accountStmt, _ := t.outDb.Prepare("INSERT IGNORE INTO createaccountinfo (trx_id, create_time, creator, pubkey, account) values (?, ?, ?, ?, ?)")
-	//defer accountStmt.Close()
-	//transferStmt, _ := t.outDb.Prepare("INSERT IGNORE INTO transferinfo (trx_id, create_time, sender, receiver, amount, memo) values (?, ?, ?, ?, ?, ?)")
-	//defer transferStmt.Close()
 	blk := blks[0].(*prototype.SignedBlock)
 	for _, trx := range blk.Transactions {
 		cid := prototype.ChainId{Value: 0}
@@ -224,25 +214,19 @@ func (t *TrxMysqlService) handleLibNotification(lib uint64) {
 		operationsJson, _ := json.Marshal(operations)
 		//operation := trx.SigTrx.GetTrx().GetOperations()[0]
 		creator := FindCreator(trx.SigTrx.GetTrx().GetOperations()[0])
-		t1 := time.Now()
 		_, _ = t.outDb.Exec("INSERT IGNORE INTO trxinfo (trx_id, block_height, block_id, block_time, invoice, operations, creator)  value (?, ?, ?, ?, ?, ?, ?)", trxId, blockHeight, blockId, blockTime, invoice, operationsJson, creator)
-		t.log.Debugf("[trx db] insert trxinfo spent: %v", time.Now().Sub(t1))
-		t2 := time.Now()
 		for _, operation := range trx.SigTrx.GetTrx().GetOperations() {
 			if IsCreateAccountOp(operation) {
 				_, _ = t.outDb.Exec("INSERT IGNORE INTO createaccountinfo (trx_id, create_time, creator, pubkey, account) values (?, ?, ?, ?, ?)", trxId, blockTime, creator, operation.GetOp1().Owner.ToWIF(), operation.GetOp1().NewAccountName.Value)
 				break
 			}
 		}
-		t.log.Debugf("[trx db] insert account spent: %v", time.Now().Sub(t2))
-		t3 := time.Now()
 		for _, operation := range trx.SigTrx.GetTrx().GetOperations() {
 			if IsTransferOp(operation) {
 				_, _ = t.outDb.Exec("INSERT IGNORE INTO transferinfo (trx_id, create_time, sender, receiver, amount, memo) values (?, ?, ?, ?, ?, ?)", trxId, blockTime, creator, operation.GetOp2().To.Value, operation.GetOp2().Amount.Value, operation.GetOp2().Memo)
 				break
 			}
 		}
-		t.log.Debugf("[trx db] insert transfer spent: %v", time.Now().Sub(t3))
 	}
 }
 
