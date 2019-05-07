@@ -79,29 +79,85 @@ func initDb(cmd *cobra.Command, args []string) {
 	INDEX trxinfo_block_creator (creator),
 	constraint trxinfo_trx_id_uindex
 		unique (trx_id)
-);
-	`
+);`
+
 	createLibInfo := `create table libinfo
 (
 	lib int unsigned not null,
 	last_check_time int unsigned not null
 );`
-	if _, err = db.Exec("DROP TABLE IF EXISTS `trxinfo`"); err != nil {
-		fmt.Println(err)
+
+	createCreateAccountInfo := `create table createaccountinfo
+(
+	trx_id varchar(64) not null,
+	create_time int unsigned not null,
+	creator varchar(64) not null,
+	pubkey varchar(64) not null,
+	account varchar(64) not null,
+	INDEX createaccount_create_time (create_time),
+	INDEX createaccount_creator (creator),
+	INDEX creatoraccount_account (account),
+  constraint createaccount_trx_id_uindex unique (trx_id)
+);`
+
+	createTransferInfo := `create table transferinfo
+(
+	trx_id varchar(64) not null,
+	create_time int unsigned not null,
+	sender varchar(64) not null,
+	receiver varchar(64) not null,
+	amount bigint default 0,
+	memo TEXT ,
+	INDEX transfer_create_time (create_time),
+	INDEX transfer_sender (sender),
+	INDEX transfer_receiver (receiver),
+  constraint transferinfo_trx_id_uindex unique (trx_id)
+);`
+
+	createDailyStat := `create table dailystat (
+  date varchar(64) not null ,
+  dapp varchar(64) not null ,
+  dau int unsigned not null default 0,
+  dnu int unsigned not null default 0,
+  trxs int unsigned not null default 0,
+  amount bigint unsigned not null default 0,
+  INDEX dailystat_dapp (dapp),
+  constraint dailystat_date_dapp_uindex
+  unique (date, dapp)
+);`
+
+	createDailyStatInfo := `create table dailystatinfo
+(
+  lib int unsigned not null,
+  date varchar(64) not null,
+  last_check_time int unsigned not null
+);`
+
+	createDailyStatDapp := `create table dailystatdapp (
+  dapp varchar(64) not null,
+  prefix varchar(64) not null,
+  status smallint default 1
+);`
+
+	dropTables := []string{"trxinfo", "libinfo", "createaccountinfo", "transferinfo", "dailystat",
+		"dailystatinfo", "dailystatdapp"}
+	for _, table := range dropTables {
+		dropSql := fmt.Sprintf("DROP TABLE IF EXISTS `%s`", table)
+		if _, err = db.Exec(dropSql); err != nil {
+			fmt.Println(err)
+		}
 	}
-	if _, err = db.Exec(createTrxInfo); err != nil {
-		fmt.Println(err)
+	createTables := []string{createTrxInfo, createLibInfo, createCreateAccountInfo,
+		createTransferInfo, createDailyStat, createDailyStatInfo, createDailyStatDapp}
+	for _, table := range createTables {
+		if _, err = db.Exec(table); err != nil {
+			fmt.Println(err)
+		}
 	}
-	if _, err = db.Exec("DROP TABLE IF EXISTS `libinfo`"); err != nil {
-		fmt.Println(err)
-	}
-	if _, err = db.Exec(createLibInfo); err != nil {
-		fmt.Println(err)
-	}
-	//if _, err = db.Exec("INSERT INTO `libinfo` (lib, last_check_time) VALUES ()")
-	stmt, _ := db.Prepare("INSERT INTO `libinfo` (lib, last_check_time) VALUES (?, ?)")
-	defer stmt.Close()
-	_, _ = stmt.Exec(0, time.Now().UTC().Unix())
+	_, _ = db.Exec("INSERT INTO `libinfo` (lib, last_check_time) VALUES (?, ?)", 0, time.Now().UTC().Unix())
+	_, _ = db.Exec("INSERT INTO `dailystatinfo` (lib, date, last_check_time) VALUES (?, ?, ?)", 0, "", 0)
+	_, _ = db.Exec("INSERT INTO `dailystatdapp` (dapp, prefix) VALUES (?, ?), (?, ?), (?, ?), (?, ?)",
+		"photogrid", "PG", "contentos", "CT", "game 2048", "G2", "walk coin", "EC")
 }
 
 func cleanDb(cmd *cobra.Command, args []string) {
@@ -113,10 +169,12 @@ func cleanDb(cmd *cobra.Command, args []string) {
 		fmt.Printf("fatal: init database failed, dsn:%s\n", dsn)
 		os.Exit(1)
 	}
-	if _, err = db.Exec("DROP TABLE IF EXISTS `trxinfo`"); err != nil {
-		fmt.Println(err)
-	}
-	if _, err = db.Exec("DROP TABLE IF EXISTS `libinfo`"); err != nil {
-		fmt.Println(err)
+	dropTables := []string{"trxinfo", "libinfo", "createaccountinfo", "transferinfo", "dailystat",
+		"dailystatinfo", "dailystatdapp"}
+	for _, table := range dropTables {
+		dropSql := fmt.Sprintf("DROP TABLE IF EXISTS `%s`", table)
+		if _, err = db.Exec(dropSql); err != nil {
+			fmt.Println(err)
+		}
 	}
 }

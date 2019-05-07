@@ -88,6 +88,24 @@ func FindCreator(operation *prototype.Operation) string {
 	return ""
 }
 
+func IsCreateAccountOp(operation *prototype.Operation) bool {
+	switch operation.Op.(type) {
+	case *prototype.Operation_Op1:
+		return true
+	default:
+		return false
+	}
+}
+
+func IsTransferOp(operation *prototype.Operation) bool {
+	switch operation.Op.(type) {
+	case *prototype.Operation_Op2:
+		return true
+	default:
+		return false
+	}
+}
+
 var TrxMysqlServiceName = "trxmysql"
 
 type TrxMysqlService struct {
@@ -97,7 +115,6 @@ type TrxMysqlService struct {
 	outDb *sql.DB
 	log *logrus.Logger
 	ctx *node.ServiceContext
-	ticker *time.Ticker
 	quit chan bool
 }
 
@@ -121,15 +138,16 @@ func (t *TrxMysqlService) Start(node *node.Node) error {
 	}
 	t.outDb = outDb
 
-	t.ticker = time.NewTicker(time.Second)
+	ticker := time.NewTicker(time.Second)
 	go func() {
 		for {
 			select {
-			case <- t.ticker.C:
+			case <- ticker.C:
 				if err := t.pollLIB(); err != nil {
 					t.log.Error(err)
 				}
 			case <- t.quit:
+				ticker.Stop()
 				t.stop()
 				return
 			}
@@ -139,7 +157,9 @@ func (t *TrxMysqlService) Start(node *node.Node) error {
 }
 
 func (t *TrxMysqlService) pollLIB() error {
+	start := time.Now()
 	lib := t.consensus.GetLIB().BlockNum()
+	t.log.Debugf("[trx db] sync lib: %d \n", lib)
 	stmt, _ := t.outDb.Prepare("SELECT lib from libinfo limit 1")
 	defer stmt.Close()
 	var lastLib uint64 = 0
@@ -150,18 +170,24 @@ func (t *TrxMysqlService) pollLIB() error {
 	updateStmt, _ := t.outDb.Prepare("UPDATE libinfo SET lib=?, last_check_time=?")
 	defer updateStmt.Close()
 	var waitingSyncLib []uint64
+	var count = 0
 	for lastLib < lib {
+		if count > 1000 {
+			break
+		}
 		waitingSyncLib = append(waitingSyncLib, lastLib)
 		lastLib ++
+		count ++
 	}
-	for count, block := range waitingSyncLib {
+
+	for _, block := range waitingSyncLib {
+		blockStart := time.Now()
 		t.handleLibNotification(block)
 		utcTimestamp := time.Now().UTC().Unix()
-		if count > 100 {
-			return nil
-		}
 		_, _ = updateStmt.Exec(block, utcTimestamp)
+		t.log.Debugf("[trx db] insert block %d, spent: %v", block, time.Now().Sub(blockStart))
 	}
+	t.log.Debugf("[trx db] PollLib spent: %v", time.Now().Sub(start))
 	return nil
 }
 
@@ -174,8 +200,6 @@ func (t *TrxMysqlService) handleLibNotification(lib uint64) {
 	if len(blks) == 0 {
 		return
 	}
-	stmt, _ := t.outDb.Prepare("INSERT IGNORE INTO trxinfo (trx_id, block_height, block_id, block_time, invoice, operations, creator)  value (?, ?, ?, ?, ?, ?, ?)")
-	defer stmt.Close()
 	blk := blks[0].(*prototype.SignedBlock)
 	for _, trx := range blk.Transactions {
 		cid := prototype.ChainId{Value: 0}
@@ -188,14 +212,27 @@ func (t *TrxMysqlService) handleLibNotification(lib uint64) {
 		invoice, _ := json.Marshal(trx.Invoice)
 		operations := PurgeOperation(trx.SigTrx.GetTrx().GetOperations())
 		operationsJson, _ := json.Marshal(operations)
+		//operation := trx.SigTrx.GetTrx().GetOperations()[0]
 		creator := FindCreator(trx.SigTrx.GetTrx().GetOperations()[0])
-		_, _ = stmt.Exec(trxId, blockHeight, blockId, blockTime, invoice, operationsJson, creator)
+		_, _ = t.outDb.Exec("INSERT IGNORE INTO trxinfo (trx_id, block_height, block_id, block_time, invoice, operations, creator)  value (?, ?, ?, ?, ?, ?, ?)", trxId, blockHeight, blockId, blockTime, invoice, operationsJson, creator)
+		for _, operation := range trx.SigTrx.GetTrx().GetOperations() {
+			if IsCreateAccountOp(operation) {
+				_, _ = t.outDb.Exec("INSERT IGNORE INTO createaccountinfo (trx_id, create_time, creator, pubkey, account) values (?, ?, ?, ?, ?)", trxId, blockTime, creator, operation.GetOp1().Owner.ToWIF(), operation.GetOp1().NewAccountName.Value)
+				break
+			}
+		}
+		for _, operation := range trx.SigTrx.GetTrx().GetOperations() {
+			if IsTransferOp(operation) {
+				_, _ = t.outDb.Exec("INSERT IGNORE INTO transferinfo (trx_id, create_time, sender, receiver, amount, memo) values (?, ?, ?, ?, ?, ?)", trxId, blockTime, creator, operation.GetOp2().To.Value, operation.GetOp2().Amount.Value, operation.GetOp2().Memo)
+				break
+			}
+		}
 	}
 }
 
 func (t *TrxMysqlService) stop() {
 	_ = t.outDb.Close()
-	t.ticker.Stop()
+	//t.ticker.Stop()
 }
 
 func (t *TrxMysqlService) Stop() error {
