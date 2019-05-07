@@ -963,9 +963,7 @@ func (p *MsgHandler) FetchOutOfRangeHandle(data *msgTypes.MsgPayload, p2p p2p.P2
 	ret, err := ctrl.IsOnMainBranch(startID)
 	if err != nil {
 		log.Error("can not check whether on main branch, ", err)
-		clearMsg := msgpack.NewClearOutOfRangeState()
-		p2p.Send(remotePeer, clearMsg, false)
-		return
+		ret = false
 	}
 
 	if ret {

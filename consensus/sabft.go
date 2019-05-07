@@ -1425,7 +1425,7 @@ func (d *SABFT) IsOnMainBranch(id common.BlockID) (bool, error) {
 	if blockNum > lastCommittedNum {
 		blk, err := d.ForkDB.FetchBlockFromMainBranch(blockNum)
 		if err != nil {
-			return false, nil
+			return false, err
 		}
 		return blk.Id() == id, nil
 	} else {
