@@ -349,8 +349,6 @@ func (c *TrxPool) generateBlockNoLock(witness string, pre *prototype.Sha256, tim
 	signBlock.SignedHeader.WitnessSignature = &prototype.SignatureType{}
 	_ = signBlock.SignedHeader.Sign(priKey)
 
-	mustSuccess(proto.Size(signBlock) <= constants.MaxBlockSize, "block size too big")
-
 	if len(failedTrx) > 0 {
 		c.tm.ReturnTrx(failedTrx...)
 	}
