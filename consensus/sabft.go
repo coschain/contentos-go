@@ -742,6 +742,9 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 	if newNum > headNum+1 {
 
 		if sabft.readyToProduce {
+			if newNum > headNum + 10 {
+				sabft.p2p.TriggerSync(head.Id())
+			}
 			sabft.p2p.FetchUnlinkedBlock(b.Previous())
 			sabft.log.Debug("[SABFT TriggerSync]: out-of range from ", b.Previous().BlockNum())
 		}
