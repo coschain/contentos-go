@@ -58,7 +58,7 @@ func createAccount(mywallet *wallet.BaseWallet, rpcClient grpcpb.ApiServiceClien
 		return
 	}
 
-	fmt.Println("Request command: ", fmt.Sprintf("create %s %s", creatorAccount.Name, newAccountName) )
+	//fmt.Println("Request command: ", fmt.Sprintf("create %s %s", creatorAccount.Name, newAccountName) )
 
 	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
 	resp, err := rpcClient.BroadcastTrx(context.Background(), req)
@@ -86,6 +86,7 @@ func createAccount(mywallet *wallet.BaseWallet, rpcClient grpcpb.ApiServiceClien
 				fmt.Println(err)
 				return
 			}
+			fmt.Println(fmt.Sprintf("====== createaccount from:%v to:%v amount:%v",GlobalAccountLIst.arr[0],creatorAccount,5))
 			createAccount(mywallet, rpcClient, creatorAccount, newAccountName)
 			return
 		}
@@ -135,7 +136,7 @@ func transfer(rpcClient grpcpb.ApiServiceClient, fromAccount, toAccount  *wallet
 		return err
 	}
 
-	fmt.Println("Request command: ", fmt.Sprintf("transfer %s %s %d", fromAccount.Name, toAccount.Name, amount) )
+	//fmt.Println("Request command: ", fmt.Sprintf("transfer %s %s %d", fromAccount.Name, toAccount.Name, amount) )
 
 	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
 	resp, err := rpcClient.BroadcastTrx(context.Background(), req)
@@ -157,6 +158,7 @@ func transfer(rpcClient grpcpb.ApiServiceClient, fromAccount, toAccount  *wallet
 				fmt.Println(err)
 				return err
 			}
+			fmt.Println(fmt.Sprintf("====== transfer from:%v to:%v amount:%v",GlobalAccountLIst.arr[0],fromAccount,5))
 			transfer(rpcClient, fromAccount, toAccount, amount)
 			return nil
 		}
@@ -207,7 +209,7 @@ func vest(rpcClient grpcpb.ApiServiceClient, fromAccount, toAccount  *wallet.Pri
 		return err
 	}
 
-	fmt.Println("Request command: ", fmt.Sprintf("transfer vest %s %s %d", fromAccount.Name, toAccount.Name, amount) )
+	//fmt.Println("Request command: ", fmt.Sprintf("transfer vest %s %s %d", fromAccount.Name, toAccount.Name, amount) )
 
 	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
 	resp, err := rpcClient.BroadcastTrx(context.Background(), req)
@@ -224,6 +226,7 @@ func vest(rpcClient grpcpb.ApiServiceClient, fromAccount, toAccount  *wallet.Pri
 				fmt.Println(err)
 				return err
 			}
+			fmt.Println(fmt.Sprintf("====== vest from:%v to:%v amount:%v",GlobalAccountLIst.arr[0],fromAccount,5))
 			vest(rpcClient, fromAccount, toAccount, amount)
 			return nil
 		}
@@ -282,7 +285,7 @@ func postArticle(rpcClient grpcpb.ApiServiceClient, authorAccount *wallet.PrivAc
 		return
 	}
 
-	fmt.Println("Request command: ", fmt.Sprintf("%s post an article", authorAccount.Name) )
+	//fmt.Println("Request command: ", fmt.Sprintf("%s post an article", authorAccount.Name) )
 
 	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
 	resp, err := rpcClient.BroadcastTrx(context.Background(), req)
@@ -306,6 +309,7 @@ func postArticle(rpcClient grpcpb.ApiServiceClient, authorAccount *wallet.PrivAc
 				fmt.Println(err)
 				return
 			}
+			fmt.Println(fmt.Sprintf("====== post transfer from:%v to:%v amount:%v",GlobalAccountLIst.arr[0],authorAccount,5))
 			postArticle(rpcClient, authorAccount)
 			return
 		}
@@ -351,7 +355,7 @@ func follow(rpcClient grpcpb.ApiServiceClient, followerAccount, followingAccount
 		return
 	}
 
-	fmt.Println("Request command: ", fmt.Sprintf("follow %s %s", followerAccount.Name, followingAccount.Name) )
+	//fmt.Println("Request command: ", fmt.Sprintf("follow %s %s", followerAccount.Name, followingAccount.Name) )
 
 	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
 	resp, err := rpcClient.BroadcastTrx(context.Background(), req)
@@ -393,7 +397,7 @@ func voteArticle(rpcClient grpcpb.ApiServiceClient, voterAccount *wallet.PrivAcc
 		return
 	}
 
-	fmt.Println("Request command: ", fmt.Sprintf("vote %s %d", voterAccount.Name, postId) )
+	//fmt.Println("Request command: ", fmt.Sprintf("vote %s %d", voterAccount.Name, postId) )
 
 	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
 	resp, err := rpcClient.BroadcastTrx(context.Background(), req)
@@ -411,6 +415,7 @@ func voteArticle(rpcClient grpcpb.ApiServiceClient, voterAccount *wallet.PrivAcc
 				fmt.Println(err)
 				return
 			}
+			fmt.Println(fmt.Sprintf("====== vote from:%v to:%v amount:%v",GlobalAccountLIst.arr[0],voterAccount,5))
 			voteArticle(rpcClient, voterAccount, postId)
 			return
 		}
@@ -463,7 +468,7 @@ func replyArticle(rpcClient grpcpb.ApiServiceClient, fromAccount *wallet.PrivAcc
 		return
 	}
 
-	fmt.Println("Request command: ", fmt.Sprintf("reply %s %d", fromAccount.Name, postId) )
+	//fmt.Println("Request command: ", fmt.Sprintf("reply %s %d", fromAccount.Name, postId) )
 
 	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
 	resp, err := rpcClient.BroadcastTrx(context.Background(), req)
