@@ -152,6 +152,14 @@ func MakeEmptyMessage(cmdType string) (Message, error) {
 		return &TransferMsg{}, nil
 	case common.CHECKPOINT_TYPE:
 		return &TransferMsg{}, nil
+	case common.REQUEST_OUT_OF_RANGE_IDS_TYPE:
+		return &TransferMsg{}, nil
+	case common.REQUEST_BLOCK_BATCH_TYPE:
+		return &TransferMsg{}, nil
+	case common.DETECT_FORMER_IDS_TYPE:
+		return &TransferMsg{}, nil
+	case common.CLEAR_OUT_OF_RABGE_STATE:
+		return &TransferMsg{}, nil
 	case common.CONSENSUS_TYPE:
 		return &ConsMsg{}, nil
 	default:

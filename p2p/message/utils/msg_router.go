@@ -57,6 +57,10 @@ func (this *MessageRouter) init(p2p p2p.P2P) {
 	this.RegisterMsgHandler(msgCommon.DISCONNECT_TYPE, this.handler.DisconnectHandle)
 	this.RegisterMsgHandler(msgCommon.CONSENSUS_TYPE, this.handler.ConsMsgHandle)
 	this.RegisterMsgHandler(msgCommon.CHECKPOINT_TYPE, this.handler.RequestCheckpointBatchHandle)
+	this.RegisterMsgHandler(msgCommon.REQUEST_OUT_OF_RANGE_IDS_TYPE, this.handler.FetchOutOfRangeHandle)
+	this.RegisterMsgHandler(msgCommon.REQUEST_BLOCK_BATCH_TYPE, this.handler.RequestBlockBatchHandle)
+	this.RegisterMsgHandler(msgCommon.DETECT_FORMER_IDS_TYPE, this.handler.DetectFormerIdsHandle)
+	this.RegisterMsgHandler(msgCommon.CLEAR_OUT_OF_RABGE_STATE, this.handler.ClearOutOfRangeStateHandle)
 
 	this.RegisterSyncMsgHandler(msgCommon.BLOCK_TYPE, this.handler.BlockSyncHandle)
 
