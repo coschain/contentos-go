@@ -124,6 +124,11 @@ func createAccount(mywallet *wallet.BaseWallet, rpcClient grpcpb.ApiServiceClien
 			" ",
 			fmt.Sprintf("Result: %v", resp))
 	}
+	// give new account 1 coin and let him stake
+	toAccount := &wallet.PrivAccount{}
+	toAccount.Name = newAccountName
+	transfer(rpcClient,creatorAccount,toAccount,1)
+	stake(rpcClient,toAccount,1)
 }
 
 func transfer(rpcClient grpcpb.ApiServiceClient, fromAccount, toAccount  *wallet.PrivAccount, amount int) error {
