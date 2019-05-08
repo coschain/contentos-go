@@ -839,6 +839,7 @@ func (ev *StakeEvaluator) Apply() {
 	accountWrap.MdLastStakeTime(headBlockTime)
 
 	ev.ctx.control.TransferToVest(value)
+	ev.ctx.control.TransferToStakeVest(value)
 }
 
 func (ev *UnStakeEvaluator) Apply() {
@@ -862,4 +863,5 @@ func (ev *UnStakeEvaluator) Apply() {
 	opAssert(accountWrap.MdBalance(fBalance), "modify balance failed")
 
 	ev.ctx.control.TransferFromVest(value.ToVest())
+	ev.ctx.control.TransferFromStakeVest(value.ToVest())
 }

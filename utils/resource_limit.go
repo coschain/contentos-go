@@ -71,15 +71,13 @@ func (s *ResourceLimiter) calculateUserMaxStamina(db iservices.IDatabaseRW, name
 	}
 	dgpWrap := table.NewSoGlobalWrap(db,&SINGLE)
 
-	vest := accountWrap.GetVestingShares().Value
 	stakeVest := accountWrap.GetStakeVesting().Value
 
-	totalVest := vest + stakeVest
-	allVest := dgpWrap.GetProps().TotalVestingShares.Value
+	allVest := dgpWrap.GetProps().StakeVestingShares.Value
 	if allVest == 0 {
 		return constants.OneDayStamina
 	}
-	userMax := float64( totalVest)/float64(allVest) * constants.OneDayStamina
+	userMax := float64( stakeVest)/float64(allVest) * constants.OneDayStamina
 	return uint64(userMax)
 }
 
