@@ -681,7 +681,7 @@ func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 		sabft.log.Debug("reach checkpoint at ", checkPoint.ProposedData)
 
 		// if we're a validator, pass it to gobft so that it can catch up
-		if sabft.isValidatorName(sabft.Name) {
+		if sabft.isValidatorName(sabft.Name) && atomic.LoadUint32(&sabft.bftStarted) == 1 {
 			sabft.log.Warn("pass commits to gobft ", checkPoint.ProposedData)
 			sabft.bft.RecvMsg(checkPoint)
 			return
