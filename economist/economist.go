@@ -148,6 +148,7 @@ func (e *Economist) Mint() {
 		props.ReplyDappRewards.Value += uint64(replyDappRewards)
 		props.VoterRewards.Value += uint64(voterReward)
 		props.AnnualMinted.Value += blockCurrent
+		props.TotalVestingShares.Value += blockCurrent
 	})
 }
 
