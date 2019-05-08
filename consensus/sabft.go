@@ -197,6 +197,7 @@ func (sabft *SABFT) checkBFTRoutine() {
 	if sabft.readyToProduce && sabft.dynasties.Front().GetValidatorNum() >= 3 &&
 		sabft.isValidatorName(sabft.Name) {
 		if atomic.LoadUint32(&sabft.bftStarted) == 0 {
+			sabft.lastCommitTime = uint64(time.Now().UnixNano()) / 1e6
 			sabft.bft.Start()
 			sabft.log.Info("[SABFT] gobft started...")
 			atomic.StoreUint32(&sabft.bftStarted, 1)
