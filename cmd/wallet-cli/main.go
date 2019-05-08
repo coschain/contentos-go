@@ -159,6 +159,8 @@ func addCommands() {
 	rootCmd.AddCommand(commands.CreateFundAccountCmd())
 	rootCmd.AddCommand(commands.RTransferCmd())
 	rootCmd.AddCommand(commands.CashoutCmd())
+	rootCmd.AddCommand(commands.BlockCmd())
+
 }
 
 func init() {
