@@ -472,7 +472,10 @@ func (sabft *SABFT) Stop() error {
 	sabft.log.Info("SABFT consensus stopped.")
 
 	// stop bft process
-	sabft.bft.Stop()
+	if atomic.LoadUint32(&sabft.bftStarted) == 1 {
+		sabft.bft.Stop()
+		sabft.log.Info("[SABFT] gobft stopped...")
+	}
 
 	// restore uncommitted forkdb
 	cfg := sabft.ctx.Config()
