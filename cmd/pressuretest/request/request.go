@@ -86,7 +86,7 @@ func createAccount(mywallet *wallet.BaseWallet, rpcClient grpcpb.ApiServiceClien
 				fmt.Println(err)
 				return
 			}
-			fmt.Println(fmt.Sprintf("====== createaccount from:%v to:%v amount:%v",GlobalAccountLIst.arr[0],creatorAccount,5))
+			fmt.Println(fmt.Sprintf("====== createaccount from:%v to:%v amount:%v",GlobalAccountLIst.arr[0].Name,creatorAccount.Name,5))
 			createAccount(mywallet, rpcClient, creatorAccount, newAccountName)
 			return
 		}
@@ -158,7 +158,7 @@ func transfer(rpcClient grpcpb.ApiServiceClient, fromAccount, toAccount  *wallet
 				fmt.Println(err)
 				return err
 			}
-			fmt.Println(fmt.Sprintf("====== transfer from:%v to:%v amount:%v",GlobalAccountLIst.arr[0],fromAccount,5))
+			fmt.Println(fmt.Sprintf("====== transfer from:%v to:%v amount:%v",GlobalAccountLIst.arr[0].Name,fromAccount.Name,5))
 			transfer(rpcClient, fromAccount, toAccount, amount)
 			return nil
 		}
@@ -226,7 +226,7 @@ func vest(rpcClient grpcpb.ApiServiceClient, fromAccount, toAccount  *wallet.Pri
 				fmt.Println(err)
 				return err
 			}
-			fmt.Println(fmt.Sprintf("====== vest from:%v to:%v amount:%v",GlobalAccountLIst.arr[0],fromAccount,5))
+			fmt.Println(fmt.Sprintf("====== vest from:%v to:%v amount:%v",GlobalAccountLIst.arr[0].Name,fromAccount.Name,5))
 			vest(rpcClient, fromAccount, toAccount, amount)
 			return nil
 		}
@@ -309,7 +309,7 @@ func postArticle(rpcClient grpcpb.ApiServiceClient, authorAccount *wallet.PrivAc
 				fmt.Println(err)
 				return
 			}
-			fmt.Println(fmt.Sprintf("====== post transfer from:%v to:%v amount:%v",GlobalAccountLIst.arr[0],authorAccount,5))
+			fmt.Println(fmt.Sprintf("====== post transfer from:%v to:%v amount:%v",GlobalAccountLIst.arr[0].Name,authorAccount.Name,5))
 			postArticle(rpcClient, authorAccount)
 			return
 		}
@@ -415,7 +415,7 @@ func voteArticle(rpcClient grpcpb.ApiServiceClient, voterAccount *wallet.PrivAcc
 				fmt.Println(err)
 				return
 			}
-			fmt.Println(fmt.Sprintf("====== vote from:%v to:%v amount:%v",GlobalAccountLIst.arr[0],voterAccount,5))
+			fmt.Println(fmt.Sprintf("====== vote from:%v to:%v amount:%v",GlobalAccountLIst.arr[0].Name,voterAccount.Name,5))
 			voteArticle(rpcClient, voterAccount, postId)
 			return
 		}
