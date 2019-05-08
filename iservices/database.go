@@ -82,6 +82,8 @@ type IDatabaseService interface {
 	// end current transaction session, commit or discard changes
 	EndTransaction(commit bool) error
 
+	HashOfTopTransaction() uint32
+
 	// current transaction height
 	TransactionHeight() uint
 

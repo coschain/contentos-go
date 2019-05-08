@@ -137,6 +137,10 @@ func (s *DatabaseService) EndTransaction(commit bool) error {
 	return s.tdb.EndTransaction(commit)
 }
 
+func (s *DatabaseService) HashOfTopTransaction() uint32 {
+	return s.tdb.HashOfTopTransaction()
+}
+
 func (s *DatabaseService) TransactionHeight() uint {
 	return s.tdb.TransactionHeight()
 }

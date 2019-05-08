@@ -86,4 +86,6 @@ const (
 
 	// 10 billion
 	TotalCurrency = 100 * 1e8
+
+	BlockApplierVersion = 0x00000001
 )
