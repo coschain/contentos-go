@@ -476,3 +476,26 @@ func (this *P2PServer) FetchUnlinkedBlock(prevId coomn.BlockID) {
 		return
 	}
 }
+
+func (this *P2PServer) RequestCheckpoint(startNum, endNum uint64) {
+	this.log.Infof("RequestCheckpoint from %d to %d", startNum, endNum)
+	reqmsg := msgpack.NewCheckpointBatchMsg(startNum, endNum)
+
+	np := this.Network.GetNp()
+	np.RLock()
+	defer np.RUnlock()
+
+	for _, p := range np.List {
+		//this.log.Info("[p2p] cons call RequestCheckpoint func, start number: ",  startNum, " end number: ", endNum)
+		num := p.GetLastSeenBlkNum()
+		if endNum < num {
+			go p.Send(reqmsg, false, this.ctx.Config().P2P.NetworkMagic)
+			return
+		}
+	}
+
+	for _, p := range np.List {
+		go p.Send(reqmsg, false, this.ctx.Config().P2P.NetworkMagic)
+		return
+	}
+}

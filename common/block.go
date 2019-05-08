@@ -2,6 +2,7 @@ package common
 
 import (
 	"encoding/binary"
+	"github.com/coschain/contentos-go/common/constants"
 )
 
 var EmptyBlockID = BlockID{}
@@ -51,4 +52,14 @@ type ITransactionReceiptWithInfo interface {
 
 type ISignedTransaction interface {
 	ITransaction
+}
+
+func PackBlockApplyHash(dataChangeHash uint32) uint64 {
+	hash := uint64(constants.BlockApplierVersion) << 32
+	hash |= uint64(dataChangeHash)
+	return hash
+}
+
+func UnpackBlockApplyHash(hash uint64) (version, dataChangeHash uint32) {
+	return uint32(hash >> 32), uint32(hash & 0xffffffff)
 }

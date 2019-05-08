@@ -137,6 +137,10 @@ func (s *DatabaseService) EndTransaction(commit bool) error {
 	return s.tdb.EndTransaction(commit)
 }
 
+func (s *DatabaseService) HashOfTopTransaction() uint32 {
+	return s.tdb.HashOfTopTransaction()
+}
+
 func (s *DatabaseService) TransactionHeight() uint {
 	return s.tdb.TransactionHeight()
 }
@@ -146,6 +150,7 @@ func (s *DatabaseService) BeginTransactionWithTag(tag string) {
 }
 
 func (s *DatabaseService) Squash(tag string) error {
+	s.rdb.PresetTag(tag)
 	return s.tdb.Squash(tag)
 }
 
@@ -172,17 +177,8 @@ func (s *DatabaseService) Delete(key []byte) error {
 	return s.tdb.Delete(key)
 }
 
-func (s *DatabaseService) NewIterator(start []byte, limit []byte) iservices.IDatabaseIterator {
-	return s.tdb.NewIterator(start, limit)
-}
-
-// same as NewIterator, but iteration will be in reversed order.
-func (s *DatabaseService) NewReversedIterator(start []byte, limit []byte) iservices.IDatabaseIterator {
-	return s.tdb.NewReversedIterator(start, limit)
-}
-
-func (s *DatabaseService) DeleteIterator(it iservices.IDatabaseIterator) {
-	s.tdb.DeleteIterator(it)
+func (s *DatabaseService) Iterate(start, limit []byte, reverse bool, callback func(key, value []byte) bool) {
+	s.tdb.Iterate(start, limit, reverse, callback)
 }
 
 func (s *DatabaseService) NewBatch() iservices.IDatabaseBatch {

@@ -1435,25 +1435,9 @@ func NewDemoOwnerWrap(db iservices.IDatabaseRW) *SDemoOwnerWrap {
 	return &wrap
 }
 
-func (s *SDemoOwnerWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil {
-		return
-	}
-	s.Dba.DeleteIterator(iterator)
-}
-
-func (s *SDemoOwnerWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.AccountName {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
-
+func (s *SDemoOwnerWrap) GetMainVal(val []byte) *prototype.AccountName {
 	res := &SoListDemoByOwner{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 
 	if err != nil {
 		return nil
@@ -1462,18 +1446,9 @@ func (s *SDemoOwnerWrap) GetMainVal(iterator iservices.IDatabaseIterator) *proto
 
 }
 
-func (s *SDemoOwnerWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.AccountName {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
+func (s *SDemoOwnerWrap) GetSubVal(val []byte) *prototype.AccountName {
 	res := &SoListDemoByOwner{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 	if err != nil {
 		return nil
 	}
@@ -1542,19 +1517,11 @@ func (s *SDemoOwnerWrap) ForEachByRevOrder(start *prototype.AccountName, end *pr
 	if cErr != nil {
 		return cErr
 	}
-	//reverse the start and end when create ReversedIterator to query by reverse order
-	iterator := s.Dba.NewReversedIterator(eBuf, sBuf)
-	if iterator == nil {
-		return errors.New("there is no data in range")
-	}
 	var idx uint32 = 0
-	for iterator.Next() {
+	s.Dba.Iterate(eBuf, sBuf, true, func(key, value []byte) bool {
 		idx++
-		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
-			break
-		}
-	}
-	s.DelIterator(iterator)
+		return f(s.GetMainVal(value), s.GetSubVal(value), idx)
+	})
 	return nil
 }
 
@@ -1571,25 +1538,9 @@ func NewDemoPostTimeWrap(db iservices.IDatabaseRW) *SDemoPostTimeWrap {
 	return &wrap
 }
 
-func (s *SDemoPostTimeWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil {
-		return
-	}
-	s.Dba.DeleteIterator(iterator)
-}
-
-func (s *SDemoPostTimeWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.AccountName {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
-
+func (s *SDemoPostTimeWrap) GetMainVal(val []byte) *prototype.AccountName {
 	res := &SoListDemoByPostTime{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 
 	if err != nil {
 		return nil
@@ -1598,18 +1549,9 @@ func (s *SDemoPostTimeWrap) GetMainVal(iterator iservices.IDatabaseIterator) *pr
 
 }
 
-func (s *SDemoPostTimeWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.TimePointSec {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
+func (s *SDemoPostTimeWrap) GetSubVal(val []byte) *prototype.TimePointSec {
 	res := &SoListDemoByPostTime{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 	if err != nil {
 		return nil
 	}
@@ -1684,18 +1626,11 @@ func (s *SDemoPostTimeWrap) ForEachByOrder(start *prototype.TimePointSec, end *p
 	if cErr != nil {
 		return cErr
 	}
-	iterator := s.Dba.NewIterator(sBuf, eBuf)
-	if iterator == nil {
-		return errors.New("there is no data in range")
-	}
 	var idx uint32 = 0
-	for iterator.Next() {
+	s.Dba.Iterate(sBuf, eBuf, false, func(key, value []byte) bool {
 		idx++
-		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
-			break
-		}
-	}
-	s.DelIterator(iterator)
+		return f(s.GetMainVal(value), s.GetSubVal(value), idx)
+	})
 	return nil
 }
 
@@ -1745,19 +1680,11 @@ func (s *SDemoPostTimeWrap) ForEachByRevOrder(start *prototype.TimePointSec, end
 	if cErr != nil {
 		return cErr
 	}
-	//reverse the start and end when create ReversedIterator to query by reverse order
-	iterator := s.Dba.NewReversedIterator(eBuf, sBuf)
-	if iterator == nil {
-		return errors.New("there is no data in range")
-	}
 	var idx uint32 = 0
-	for iterator.Next() {
+	s.Dba.Iterate(eBuf, sBuf, true, func(key, value []byte) bool {
 		idx++
-		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
-			break
-		}
-	}
-	s.DelIterator(iterator)
+		return f(s.GetMainVal(value), s.GetSubVal(value), idx)
+	})
 	return nil
 }
 
@@ -1774,25 +1701,9 @@ func NewDemoLikeCountWrap(db iservices.IDatabaseRW) *SDemoLikeCountWrap {
 	return &wrap
 }
 
-func (s *SDemoLikeCountWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil {
-		return
-	}
-	s.Dba.DeleteIterator(iterator)
-}
-
-func (s *SDemoLikeCountWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.AccountName {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
-
+func (s *SDemoLikeCountWrap) GetMainVal(val []byte) *prototype.AccountName {
 	res := &SoListDemoByLikeCount{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 
 	if err != nil {
 		return nil
@@ -1801,18 +1712,9 @@ func (s *SDemoLikeCountWrap) GetMainVal(iterator iservices.IDatabaseIterator) *p
 
 }
 
-func (s *SDemoLikeCountWrap) GetSubVal(iterator iservices.IDatabaseIterator) *int64 {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
+func (s *SDemoLikeCountWrap) GetSubVal(val []byte) *int64 {
 	res := &SoListDemoByLikeCount{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 	if err != nil {
 		return nil
 	}
@@ -1879,19 +1781,11 @@ func (s *SDemoLikeCountWrap) ForEachByRevOrder(start *int64, end *int64, lastMai
 	if cErr != nil {
 		return cErr
 	}
-	//reverse the start and end when create ReversedIterator to query by reverse order
-	iterator := s.Dba.NewReversedIterator(eBuf, sBuf)
-	if iterator == nil {
-		return errors.New("there is no data in range")
-	}
 	var idx uint32 = 0
-	for iterator.Next() {
+	s.Dba.Iterate(eBuf, sBuf, true, func(key, value []byte) bool {
 		idx++
-		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
-			break
-		}
-	}
-	s.DelIterator(iterator)
+		return f(s.GetMainVal(value), s.GetSubVal(value), idx)
+	})
 	return nil
 }
 
@@ -1908,25 +1802,9 @@ func NewDemoIdxWrap(db iservices.IDatabaseRW) *SDemoIdxWrap {
 	return &wrap
 }
 
-func (s *SDemoIdxWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil {
-		return
-	}
-	s.Dba.DeleteIterator(iterator)
-}
-
-func (s *SDemoIdxWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.AccountName {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
-
+func (s *SDemoIdxWrap) GetMainVal(val []byte) *prototype.AccountName {
 	res := &SoListDemoByIdx{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 
 	if err != nil {
 		return nil
@@ -1935,18 +1813,9 @@ func (s *SDemoIdxWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototy
 
 }
 
-func (s *SDemoIdxWrap) GetSubVal(iterator iservices.IDatabaseIterator) *int64 {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
+func (s *SDemoIdxWrap) GetSubVal(val []byte) *int64 {
 	res := &SoListDemoByIdx{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 	if err != nil {
 		return nil
 	}
@@ -2013,19 +1882,11 @@ func (s *SDemoIdxWrap) ForEachByRevOrder(start *int64, end *int64, lastMainKey *
 	if cErr != nil {
 		return cErr
 	}
-	//reverse the start and end when create ReversedIterator to query by reverse order
-	iterator := s.Dba.NewReversedIterator(eBuf, sBuf)
-	if iterator == nil {
-		return errors.New("there is no data in range")
-	}
 	var idx uint32 = 0
-	for iterator.Next() {
+	s.Dba.Iterate(eBuf, sBuf, true, func(key, value []byte) bool {
 		idx++
-		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
-			break
-		}
-	}
-	s.DelIterator(iterator)
+		return f(s.GetMainVal(value), s.GetSubVal(value), idx)
+	})
 	return nil
 }
 
@@ -2042,25 +1903,9 @@ func NewDemoReplayCountWrap(db iservices.IDatabaseRW) *SDemoReplayCountWrap {
 	return &wrap
 }
 
-func (s *SDemoReplayCountWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil {
-		return
-	}
-	s.Dba.DeleteIterator(iterator)
-}
-
-func (s *SDemoReplayCountWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.AccountName {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
-
+func (s *SDemoReplayCountWrap) GetMainVal(val []byte) *prototype.AccountName {
 	res := &SoListDemoByReplayCount{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 
 	if err != nil {
 		return nil
@@ -2069,18 +1914,9 @@ func (s *SDemoReplayCountWrap) GetMainVal(iterator iservices.IDatabaseIterator) 
 
 }
 
-func (s *SDemoReplayCountWrap) GetSubVal(iterator iservices.IDatabaseIterator) *int64 {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
+func (s *SDemoReplayCountWrap) GetSubVal(val []byte) *int64 {
 	res := &SoListDemoByReplayCount{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 	if err != nil {
 		return nil
 	}
@@ -2153,18 +1989,11 @@ func (s *SDemoReplayCountWrap) ForEachByOrder(start *int64, end *int64, lastMain
 	if cErr != nil {
 		return cErr
 	}
-	iterator := s.Dba.NewIterator(sBuf, eBuf)
-	if iterator == nil {
-		return errors.New("there is no data in range")
-	}
 	var idx uint32 = 0
-	for iterator.Next() {
+	s.Dba.Iterate(sBuf, eBuf, false, func(key, value []byte) bool {
 		idx++
-		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
-			break
-		}
-	}
-	s.DelIterator(iterator)
+		return f(s.GetMainVal(value), s.GetSubVal(value), idx)
+	})
 	return nil
 }
 
@@ -2181,25 +2010,9 @@ func NewDemoTaglistWrap(db iservices.IDatabaseRW) *SDemoTaglistWrap {
 	return &wrap
 }
 
-func (s *SDemoTaglistWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil {
-		return
-	}
-	s.Dba.DeleteIterator(iterator)
-}
-
-func (s *SDemoTaglistWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.AccountName {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
-
+func (s *SDemoTaglistWrap) GetMainVal(val []byte) *prototype.AccountName {
 	res := &SoListDemoByTaglist{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 
 	if err != nil {
 		return nil
@@ -2208,18 +2021,9 @@ func (s *SDemoTaglistWrap) GetMainVal(iterator iservices.IDatabaseIterator) *pro
 
 }
 
-func (s *SDemoTaglistWrap) GetSubVal(iterator iservices.IDatabaseIterator) *[]string {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
+func (s *SDemoTaglistWrap) GetSubVal(val []byte) *[]string {
 	res := &SoListDemoByTaglist{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 	if err != nil {
 		return nil
 	}
@@ -2292,18 +2096,11 @@ func (s *SDemoTaglistWrap) ForEachByOrder(start *[]string, end *[]string, lastMa
 	if cErr != nil {
 		return cErr
 	}
-	iterator := s.Dba.NewIterator(sBuf, eBuf)
-	if iterator == nil {
-		return errors.New("there is no data in range")
-	}
 	var idx uint32 = 0
-	for iterator.Next() {
+	s.Dba.Iterate(sBuf, eBuf, false, func(key, value []byte) bool {
 		idx++
-		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
-			break
-		}
-	}
-	s.DelIterator(iterator)
+		return f(s.GetMainVal(value), s.GetSubVal(value), idx)
+	})
 	return nil
 }
 

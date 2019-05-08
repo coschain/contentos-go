@@ -43,6 +43,7 @@ type TrxPool struct {
 	iceberg   *BlockIceberg
 	economist *economist.Economist
 	tm *TrxMgr
+	enableBAH bool
 }
 
 func (c *TrxPool) getDb() (iservices.IDatabaseService, error) {
@@ -77,7 +78,7 @@ func NewController(ctx *node.ServiceContext, lg *logrus.Logger) (*TrxPool, error
 		lg = logrus.New()
 		lg.SetOutput(ioutil.Discard)
 	}
-	return &TrxPool{ctx: ctx, log: lg}, nil
+	return &TrxPool{ctx: ctx, log: lg, enableBAH:true}, nil
 }
 
 func (c *TrxPool) Start(node *node.Node) error {
@@ -93,7 +94,7 @@ func (c *TrxPool) Start(node *node.Node) error {
 }
 
 func (c *TrxPool) Open() {
-	c.iceberg = NewBlockIceberg(c.db, c.log)
+	c.iceberg = NewBlockIceberg(c.db, c.log, c.enableBAH)
 	c.economist = economist.New(c.db, c.noticer, &SingleId, c.log)
 	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
 	if !dgpWrap.CheckExist() {
@@ -104,7 +105,7 @@ func (c *TrxPool) Open() {
 		c.initGenesis()
 
 		mustNoError(c.db.TagRevision(c.db.GetRevision(), GENESIS_TAG), "genesis tagging failed")
-		c.iceberg = NewBlockIceberg(c.db, c.log)
+		c.iceberg = NewBlockIceberg(c.db, c.log, c.enableBAH)
 		c.economist = economist.New(c.db, c.noticer, &SingleId, c.log)
 		//c.log.Info("finish initGenesis")
 	}
@@ -338,6 +339,7 @@ func (c *TrxPool) generateBlockNoLock(witness string, pre *prototype.Sha256, tim
 	t2 := time.Now()
 
 	signBlock.SignedHeader.Header.Previous = pre
+	signBlock.SignedHeader.Header.PrevApplyHash = c.iceberg.LatestBlockApplyHash()
 	signBlock.SignedHeader.Header.Timestamp = &prototype.TimePointSec{UtcSeconds: timestamp}
 	id := signBlock.CalculateMerkleRoot()
 	signBlock.SignedHeader.Header.TransactionMerkleRoot = &prototype.Sha256{Hash: id.Data[:]}
@@ -385,7 +387,7 @@ func (c *TrxPool) notifyTrxApplyResult(trx *prototype.SignedTransaction, res boo
 	c.noticer.Publish(constants.NoticeTrxApplied, trx, receipt)
 }
 
-func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabaseRW, entry *TrxEntry) {
+func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabasePatch, entry *TrxEntry) {
 	result := entry.GetTrxResult()
 	receipt, sigTrx := result.GetReceipt(), result.GetSigTrx()
 
@@ -528,6 +530,9 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 
 	c.log.Debugf("AFTER_BLOCK %d: %v|%v|%v|%v|%v", blk.Id().BlockNum(),
 		t4.Sub(t0), t1.Sub(t0), t2.Sub(t1), t3.Sub(t2), t4.Sub(t3))
+
+	//lib, _ := c.iceberg.LastFinalizedBlock()
+	//c.noticer.Publish(constants.NoticeLIB, lib)
 }
 
 func (c *TrxPool) ValidateAddress(name string, pubKey *prototype.PublicKeyType) bool {
@@ -711,6 +716,19 @@ func (c *TrxPool) validateBlockHeader(blk *prototype.SignedBlock) {
 		panic("ValidateSig error")
 	}
 
+	if c.enableBAH {
+		ver, hash := c.iceberg.LatestBlockApplyHashUnpacked()
+		bVer, bHash := common.UnpackBlockApplyHash(blk.SignedHeader.Header.PrevApplyHash)
+		if ver != bVer {
+			c.log.Warnf("BlockApplyHashWarn: version mismatch. block %d (by %s): %08x, me: %08x",
+				blk.SignedHeader.Number(), blk.SignedHeader.Header.Witness.Value, bVer, ver)
+		} else if hash != bHash {
+			c.log.Errorf("BlockApplyHashError: block %d (by %s): %08x, me: %08x",
+				blk.SignedHeader.Number(), blk.SignedHeader.Header.Witness.Value, bHash, hash)
+			panic("block apply hash not equal")
+		}
+	}
+
 	// witness schedule check
 	/*
 		nextSlot := c.GetIncrementSlotAtTime(blk.SignedHeader.Header.Timestamp)
@@ -868,19 +886,31 @@ func (c *TrxPool) createBlockSummary(blk *prototype.SignedBlock) {
 	mustSuccess(blockSummaryWrap.MdBlockId(blockID), "update block summary object error")
 }
 
-func (c *TrxPool) GetWitnessTopN(n uint32) []string {
-	var ret []string
+func (c *TrxPool) GetWitnessTopN(n uint32) ([]string, []*prototype.PublicKeyType) {
+	var names []string
+	var keys []*prototype.PublicKeyType
 	revList := table.SWitnessVoteCountWrap{Dba: c.db}
 	_ = revList.ForEachByRevOrder(nil, nil,nil,nil, func(mVal *prototype.AccountName, sVal *uint64, idx uint32) bool {
 		if mVal != nil {
-			ret = append(ret, mVal.Value)
+			names = append(names, mVal.Value)
 		}
 		if idx < n {
 			return true
 		}
 		return false
 	})
-	return ret
+	for i := range names {
+		ac := &prototype.AccountName{
+			Value: names[i],
+		}
+		witnessWrap := table.NewSoWitnessWrap(c.db, ac)
+		if !witnessWrap.CheckExist() {
+			c.log.Fatalf("witness %v doesn't exist", names[i])
+		}
+		dbPubKey := witnessWrap.GetSigningKey()
+		keys = append(keys, dbPubKey)
+	}
+	return names, keys
 }
 
 func (c *TrxPool) SetShuffledWitness(names []string) {

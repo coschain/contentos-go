@@ -288,8 +288,6 @@ func (t *ContractTable) enumSecondaryIndexFields(record interface{}, callback fu
 func (t *ContractTable) scanDatabase(prefix kope.Key, start interface{}, limit interface{}, reverse bool, maxCount int, callback func(k, v []byte)(bool, error)) (int, error) {
 	var (
 		startKey, limitKey kope.Key
-		it iservices.IDatabaseIterator
-		k, v []byte
 		err error
 		goAhead bool
 	)
@@ -303,29 +301,20 @@ func (t *ContractTable) scanDatabase(prefix kope.Key, start interface{}, limit i
 	} else {
 		limitKey = kope.MaxKey(prefix)
 	}
-	if reverse {
-		it = t.db.NewReversedIterator(startKey, limitKey)
-	} else {
-		it = t.db.NewIterator(startKey, limitKey)
-	}
-	defer t.db.DeleteIterator(it)
 	count := 0
-	for it.Next() {
+	t.db.Iterate(startKey, limitKey, reverse, func(key, value []byte) bool {
 		if count >= maxCount && maxCount > 0 {
-			break
+			return false
 		}
-		if k, err = it.Key(); err == nil {
-			if v, err = it.Value(); err == nil {
-				goAhead, err = callback(k, v)
-				if err == nil {
-					count++
-				}
-				if !goAhead || err != nil {
-					break
-				}
-			}
+		goAhead, err = callback(key, value)
+		if err == nil {
+			count++
 		}
-	}
+		if !goAhead || err != nil {
+			return false
+		}
+		return true
+	})
 	return count, err
 }
 

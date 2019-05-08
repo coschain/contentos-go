@@ -22,6 +22,9 @@ import (
 	"syscall"
 )
 
+var trxSqlFlag bool
+var dailyStatFlag bool
+
 var StartCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:       "start",
@@ -31,10 +34,15 @@ var StartCmd = func() *cobra.Command {
 		Run:       startNode,
 	}
 	cmd.Flags().StringVarP(&cfgName, "name", "n", "", "node name (default is cosd)")
+	cmd.Flags().BoolVarP(&trxSqlFlag, "trxsqlservice", "", false, "--trxsqlservice=true")
+	cmd.Flags().Lookup("trxsqlservice").NoOptDefVal = "true"
+	cmd.Flags().BoolVarP(&dailyStatFlag, "dailystatservice", "", false, "--dailystatservice=true")
+	cmd.Flags().Lookup("dailystatservice").NoOptDefVal = "true"
 	return cmd
 }
 
 var VERSION string = "defaultVersion"
+
 
 func makeNode() (*node.Node, node.Config) {
 	var cfg node.Config
@@ -123,6 +131,7 @@ func startNode(cmd *cobra.Command, args []string) {
 	app.Log.Info("app exit success")
 }
 
+
 func RegisterService(app *node.Node, cfg node.Config) {
 	_ = app.Register(iservices.DbServerName, func(ctx *node.ServiceContext) (node.Service, error) {
 		return storage.NewGuardedDatabaseService(ctx, "./db/")
@@ -141,6 +150,12 @@ func RegisterService(app *node.Node, cfg node.Config) {
 	_ = app.Register(plugins.TrxServiceName, func(ctx *node.ServiceContext) (node.Service, error) {
 		return plugins.NewTrxSerVice(ctx, app.Log)
 	})
+	
+	if dailyStatFlag {
+		_ = app.Register(iservices.DailyStatisticServiceName, func(ctx *node.ServiceContext) (node.Service, error) {
+			return plugins.NewDailyStatisticService(ctx, cfg.Database, app.Log)
+		})
+	}
 
 	_ = app.Register(iservices.ConsensusServerName, func(ctx *node.ServiceContext) (node.Service, error) {
 		var s node.Service
@@ -171,4 +186,10 @@ func RegisterService(app *node.Node, cfg node.Config) {
 	_ = app.Register(myhttp.HealthCheckName, func(ctx *node.ServiceContext) (node.Service, error) {
 		return myhttp.NewMyHttp(ctx, app.Log)
 	})
+
+	if trxSqlFlag {
+		_ = app.Register(plugins.TrxMysqlServiceName, func(ctx *node.ServiceContext) (service node.Service, e error) {
+			return plugins.NewTrxMysqlSerVice(ctx, cfg.Database, app.Log)
+		})
+	}
 }

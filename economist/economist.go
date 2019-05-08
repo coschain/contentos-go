@@ -54,7 +54,7 @@ func New(db iservices.IDatabaseService, noticer EventBus.Bus, singleId *int32, l
 func (e *Economist) GetProps() (*prototype.DynamicProperties, error) {
 	dgpWrap := table.NewSoGlobalWrap(e.db, e.singleId)
 	if !dgpWrap.CheckExist() {
-		return nil, errors.New("the mainkey is already exist")
+		return nil, errors.New("dgpwrap is not existing")
 	}
 	return dgpWrap.GetProps(), nil
 }

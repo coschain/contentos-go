@@ -492,25 +492,9 @@ func NewExtFollowerFollowerCreatedOrderWrap(db iservices.IDatabaseRW) *SExtFollo
 	return &wrap
 }
 
-func (s *SExtFollowerFollowerCreatedOrderWrap) DelIterator(iterator iservices.IDatabaseIterator) {
-	if iterator == nil {
-		return
-	}
-	s.Dba.DeleteIterator(iterator)
-}
-
-func (s *SExtFollowerFollowerCreatedOrderWrap) GetMainVal(iterator iservices.IDatabaseIterator) *prototype.FollowerRelation {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
-
+func (s *SExtFollowerFollowerCreatedOrderWrap) GetMainVal(val []byte) *prototype.FollowerRelation {
 	res := &SoListExtFollowerByFollowerCreatedOrder{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 
 	if err != nil {
 		return nil
@@ -519,18 +503,9 @@ func (s *SExtFollowerFollowerCreatedOrderWrap) GetMainVal(iterator iservices.IDa
 
 }
 
-func (s *SExtFollowerFollowerCreatedOrderWrap) GetSubVal(iterator iservices.IDatabaseIterator) *prototype.FollowerCreatedOrder {
-	if iterator == nil || !iterator.Valid() {
-		return nil
-	}
-
-	val, err := iterator.Value()
-
-	if err != nil {
-		return nil
-	}
+func (s *SExtFollowerFollowerCreatedOrderWrap) GetSubVal(val []byte) *prototype.FollowerCreatedOrder {
 	res := &SoListExtFollowerByFollowerCreatedOrder{}
-	err = proto.Unmarshal(val, res)
+	err := proto.Unmarshal(val, res)
 	if err != nil {
 		return nil
 	}
@@ -605,18 +580,11 @@ func (s *SExtFollowerFollowerCreatedOrderWrap) ForEachByOrder(start *prototype.F
 	if cErr != nil {
 		return cErr
 	}
-	iterator := s.Dba.NewIterator(sBuf, eBuf)
-	if iterator == nil {
-		return errors.New("there is no data in range")
-	}
 	var idx uint32 = 0
-	for iterator.Next() {
+	s.Dba.Iterate(sBuf, eBuf, false, func(key, value []byte) bool {
 		idx++
-		if isContinue := f(s.GetMainVal(iterator), s.GetSubVal(iterator), idx); !isContinue {
-			break
-		}
-	}
-	s.DelIterator(iterator)
+		return f(s.GetMainVal(value), s.GetSubVal(value), idx)
+	})
 	return nil
 }
 
