@@ -91,6 +91,9 @@ func (s *ResourceLimiter) Consume(db iservices.IDatabaseRW,name string, num uint
 
 	newStamina := calculateNewStaminaEMA(accountWrap.GetStamina(),0,accountWrap.GetStaminaUseBlock(),now)
 	maxStamina := s.calculateUserMaxStamina(db,name)
+	if maxStamina < newStamina {
+		return false
+	}
 	if maxStamina - newStamina < num {
 		return false
 	}
@@ -151,6 +154,9 @@ func (s *ResourceLimiter) GetStakeLeft(db iservices.IDatabaseRW,name string, now
 
 	newStamina := calculateNewStaminaEMA(accountWrap.GetStamina(),0,accountWrap.GetStaminaUseBlock(),now)
 	maxStamina := s.calculateUserMaxStamina(db,name)
+	if maxStamina < newStamina {
+		return 0
+	}
 	return maxStamina - newStamina
 }
 
