@@ -683,6 +683,7 @@ func (c *TrxPool) initGenesis() {
 		tInfo.Props.PostDappRewards = prototype.NewVest(0)
 		tInfo.Props.ReplyDappRewards = prototype.NewVest(0)
 		tInfo.Props.VoterRewards = prototype.NewVest(0)
+		tInfo.Props.StakeVestingShares = prototype.NewVest(0)
 	}), "CreateDynamicGlobalProperties error")
 
 	//create rewards keeper
