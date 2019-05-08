@@ -79,6 +79,8 @@ func InitEnv( baseName string, accountName string, publicKey string, privKey str
 	}
 	rpcClient := grpcpb.NewApiServiceClient(conn)
 
+	stake(rpcClient,GlobalAccountLIst.arr[0],1000000)
+
 	for i:=1;i<=INIT_ACCOUNT_LENGTH-1;i++ {
 		createAccount(localWallet, rpcClient, GlobalAccountLIst.arr[0], fmt.Sprintf("%s%d", baseName, i))
 	}
