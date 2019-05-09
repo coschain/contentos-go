@@ -442,7 +442,7 @@ func (c *TrxPool) applyOperation(trxCtx *TrxContext, op *prototype.Operation) {
 }
 
 func (c *TrxPool) getEvaluator(trxCtx *TrxContext, op *prototype.Operation) BaseEvaluator {
-	ctx := &ApplyContext{db: trxCtx.db, control: trxCtx, vmInjector: trxCtx}
+	ctx := &ApplyContext{db: trxCtx.db, control: trxCtx, vmInjector: trxCtx, observer: trxCtx.observer}
 	return GetBaseEvaluator(ctx, op)
 }
 

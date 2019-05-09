@@ -92,9 +92,14 @@ func Test_ApplyTransfer(t *testing.T) {
 	op2.Op2 = top
 	op.Op = op2
 
-	ctx := &ApplyContext{db: db, control: c}
+	c.stateObserver.BeginBlock(1)
+	trxObserver := c.stateObserver.NewTrxObserver()
+	trxObserver.BeginTrx("hahahah")
+	ctx := &ApplyContext{db: db, control: c, observer: trxObserver}
 	ev := &TransferEvaluator{ctx: ctx, op: op.GetOp2()}
 	ev.Apply()
+	trxObserver.EndTrx(true)
+	c.stateObserver.EndBlock("1111111")
 
 	// check
 	fmt.Println("alice new:", aliceWrap.GetBalance().Value)

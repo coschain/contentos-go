@@ -10,7 +10,7 @@ import (
 type StateObserver struct {
 	blockNum uint64
 	blockId string
-	trxLogs []*iservices.TrxLog
+	trxLogs []iservices.TrxLog
 	noticer EventBus.Bus
 	log *logrus.Logger
 }
@@ -29,6 +29,7 @@ func (s *StateObserver) NewTrxObserver() *TrxLogger{
 
 func (s *StateObserver) EndBlock(blockId string) {
 	if len(blockId) > 0 {
+		s.log.Debugf("[statelog] trxlog: observer: blockNum %d, %v\n", s.blockNum, s.trxLogs)
 		s.noticer.Publish(constants.NoticeState, &iservices.BlockLog{BlockHeight: s.blockNum, BlockId: blockId, TrxLogs: s.trxLogs})
 		s.trxLogs = nil
 	}
@@ -36,13 +37,13 @@ func (s *StateObserver) EndBlock(blockId string) {
 
 // should a reference counter be introduced ?
 func (s *StateObserver) Notify(log *iservices.TrxLog) {
-	s.trxLogs = append(s.trxLogs, log)
+	s.trxLogs = append(s.trxLogs, *log)
 }
 
 type TrxLogger struct {
 	observer *StateObserver
 	trxId string
-	opLogs []*iservices.OpLog
+	opLogs []iservices.OpLog
 }
 
 func (t *TrxLogger) BeginTrx(trxId string) {
@@ -50,8 +51,10 @@ func (t *TrxLogger) BeginTrx(trxId string) {
 }
 
 func (t *TrxLogger) AddOpState(action int, property string, target string, result interface{}) {
-	opLog := &iservices.OpLog{Action: action, Property: property, Target: target, Result: result}
+	opLog := iservices.OpLog{Action: action, Property: property, Target: target, Result: result}
 	t.opLogs = append(t.opLogs, opLog)
+	//s.log.Debugf("[statelog] trxlog: observer: AddOpState, %v", )
+	t.observer.log.Debugf("[statelog] trxlog: observer: AddOpState, %v", opLog)
 }
 
 func (t *TrxLogger) EndTrx(keep bool) {
