@@ -527,6 +527,8 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 		c.log.Debugf("PUSHBLOCK %d: %v|%v(%v)|%v|%v, #tx=%d", blk.Id().BlockNum(),
 			t3.Sub(t0), t1.Sub(t0), time.Duration(applyTime), t2.Sub(t1), t3.Sub(t2), totalCount)
 	}
+	pseudoTrxObserver := c.stateObserver.NewTrxObserver()
+	pseudoTrxObserver.BeginTrx("")
 	t0 := time.Now()
 	c.createBlockSummary(blk)
 	t1 := time.Now()
@@ -536,12 +538,12 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 	tinit := time.Now()
 	c.economist.Mint()
 	tmint := time.Now()
-	c.economist.Do()
+	c.economist.Do(pseudoTrxObserver)
 	tdo := time.Now()
 	c.economist.PowerDown()
 	tpd := time.Now()
 	c.log.Debugf("Economist: %v|%v|%v|%v", tpd.Sub(tinit), tmint.Sub(tinit), tdo.Sub(tmint), tpd.Sub(tdo))
-
+	pseudoTrxObserver.EndTrx(true)
 	t3 := time.Now()
 	c.notifyBlockApply(blk)
 	t4 := time.Now()

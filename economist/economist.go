@@ -169,7 +169,7 @@ func (e *Economist) Mint() {
 }
 
 // Should be claiming or direct modify the balance?
-func (e *Economist) Do() {
+func (e *Economist) Do(trxObserver iservices.ITrxObserver) {
 	e.decayGlobalVotePower()
 	globalProps, err := e.GetProps()
 	if err != nil {
@@ -234,7 +234,7 @@ func (e *Economist) Do() {
 		e.log.Debugf("cashout posts length: %d", len(posts))
 		if len(posts) > 0 {
 			t := time.Now()
-			e.postCashout(posts, rewards, dappRewards)
+			e.postCashout(posts, rewards, dappRewards, trxObserver)
 			e.log.Debugf("cashout posts spend: %v", time.Now().Sub(t))
 		}
 	}
@@ -274,7 +274,7 @@ func (e *Economist) decayGlobalVotePower() {
 	})
 }
 
-func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, blockDappReward uint64) {
+func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, blockDappReward uint64, trxObserver iservices.ITrxObserver) {
 	globalProps, err := e.GetProps()
 	if err != nil {
 		panic("post cashout get props failed")
@@ -338,6 +338,7 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 				beneficiaryWrap.MdVestingShares(vestingRewards)
 				spentBeneficiaryReward += r
 				e.noticer.Publish(constants.NoticeCashout, name, post.GetPostId(), r, globalProps.GetHeadBlockNumber())
+				trxObserver.AddOpState(iservices.Insert, "cashout", name , r)
 			}
 		}
 		if beneficiaryReward - spentBeneficiaryReward > 0 {
@@ -357,6 +358,7 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 		post.MdDappRewards(&prototype.Vest{Value: beneficiaryReward})
 		if reward > 0 {
 			e.noticer.Publish(constants.NoticeCashout, author, post.GetPostId(), reward, globalProps.GetHeadBlockNumber())
+			trxObserver.AddOpState(iservices.Insert, "cashout", author, reward)
 		}
 	}
 	e.log.Infof("cashout: [post] blockRewards: %d, blockDappRewards: %d, spendPostReward: %d, spendDappReward: %d",
@@ -370,7 +372,7 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 }
 
 // use same algorithm to simplify
-func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64, blockDappReward uint64) {
+func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64, blockDappReward uint64, trxObserver iservices.ITrxObserver) {
 	globalProps, err := e.GetProps()
 	if err != nil {
 		panic("reply cashout get props failed")
@@ -430,6 +432,7 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 				beneficiaryWrap.MdVestingShares(vestingRewards)
 				spentBeneficiaryReward += r
 				e.noticer.Publish(constants.NoticeCashout, name, reply.GetPostId(), r, globalProps.GetHeadBlockNumber())
+				trxObserver.AddOpState(iservices.Insert, "cashout", name, r)
 			}
 		}
 		if beneficiaryReward - spentBeneficiaryReward > 0 {
@@ -450,6 +453,7 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 		reply.MdDappRewards(&prototype.Vest{Value: beneficiaryReward})
 		if reward > 0 {
 			e.noticer.Publish(constants.NoticeCashout, author, reply.GetPostId(), reward, globalProps.GetHeadBlockNumber())
+			trxObserver.AddOpState(iservices.Insert, "cashout", author, reward)
 		}
 	}
 	e.log.Infof("cashout: [reply] blockRewards: %d, blockDappRewards: %d, spendPostReward: %d, spendDappReward: %d",
