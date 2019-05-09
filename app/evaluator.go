@@ -5,6 +5,7 @@ import (
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/common/encoding/vme"
 	"github.com/coschain/contentos-go/common/variables"
+	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/vm"
 	"github.com/coschain/contentos-go/vm/context"
@@ -185,6 +186,9 @@ func (ev *TransferEvaluator) Apply() {
 
 	opAssertE(tBalance.Add(op.Amount), "balance overflow")
 	opAssert(toWrap.MdBalance(tBalance), "")
+
+	ev.ctx.observer.AddOpState(iservices.Replace, "balance", fromWrap.GetName().Value, fromWrap.GetBalance().Value)
+	ev.ctx.observer.AddOpState(iservices.Replace, "balance", toWrap.GetName().Value, toWrap.GetBalance().Value)
 }
 
 func (ev *PostEvaluator) Apply() {

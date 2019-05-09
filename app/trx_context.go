@@ -15,6 +15,7 @@ type TrxContext struct {
 	Wrapper     *prototype.EstimateTrxResult
 	msg         []string
 	recoverPubs []*prototype.PublicKeyType
+	observer iservices.ITrxObserver
 	output *prototype.OperationReceiptWithInfo
 }
 
@@ -25,11 +26,12 @@ func NewTrxContext(wrapper *prototype.EstimateTrxResult, db iservices.IDatabaseR
 	}
 }
 
-func NewTrxContextWithSigningKey(wrapper *prototype.EstimateTrxResult, db iservices.IDatabaseRW, key *prototype.PublicKeyType) *TrxContext {
+func NewTrxContextWithSigningKey(wrapper *prototype.EstimateTrxResult, db iservices.IDatabaseRW, key *prototype.PublicKeyType, observer iservices.ITrxObserver) *TrxContext {
 	return &TrxContext{
 		DynamicGlobalPropsRW: DynamicGlobalPropsRW{ db:db },
 		Wrapper: wrapper,
 		recoverPubs: []*prototype.PublicKeyType{ key },
+		observer: observer,
 	}
 }
 
