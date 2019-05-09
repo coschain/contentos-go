@@ -161,8 +161,10 @@ message AccountInfo {
     uint32                                  following_count   = 9;
     uint32                                  trx_count        = 10;
     uint32                                  vote_power       = 11;
-    uint64                                  stamina_remain  = 12;
-    uint64                                  stamina_max     = 13;
+    uint64                                  stamina_free_remain  = 12;
+    uint64                                  stamina_stake_remain  = 13;
+    uint64                                  stamina_max     = 14;
+    prototype.vest                          stake_vest      = 15;
 }
 
 message AccountResponse {
