@@ -39,7 +39,7 @@ var StartCmd = func() *cobra.Command {
 	cmd.Flags().Lookup("trxsqlservice").NoOptDefVal = "true"
 	cmd.Flags().BoolVarP(&dailyStatFlag, "dailystatservice", "", false, "--dailystatservice=true")
 	cmd.Flags().Lookup("dailystatservice").NoOptDefVal = "true"
-	cmd.Flags().BoolVarP(&dailyStatFlag, "statelogservice", "", false, "--statelogservice=true")
+	cmd.Flags().BoolVarP(&stateLogFlag, "statelogservice", "", false, "--statelogservice=true")
 	cmd.Flags().Lookup("statelogservice").NoOptDefVal = "true"
 	return cmd
 }

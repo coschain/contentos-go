@@ -3,31 +3,14 @@ package app
 import (
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/common/constants"
+	"github.com/coschain/contentos-go/iservices"
 	"github.com/sirupsen/logrus"
 )
-
-type OpLog struct {
-	Action int
-	Property string
-	Target string
-	Result interface{}
-}
-
-type TrxLog struct {
-	TrxId string
-	OpLogs []*OpLog
-}
-
-type BlockLog struct {
-	BlockHeight uint64
-	BlockId string
-	TrxLogs []*TrxLog
-}
 
 type StateObserver struct {
 	blockNum uint64
 	blockId string
-	trxLogs []*TrxLog
+	trxLogs []*iservices.TrxLog
 	noticer EventBus.Bus
 	log *logrus.Logger
 }
@@ -46,20 +29,20 @@ func (s *StateObserver) NewTrxObserver() *TrxLogger{
 
 func (s *StateObserver) EndBlock(blockId string) {
 	if len(blockId) > 0 {
-		s.noticer.Publish(constants.NoticeState, &BlockLog{BlockHeight: s.blockNum, BlockId: blockId, TrxLogs: s.trxLogs})
+		s.noticer.Publish(constants.NoticeState, &iservices.BlockLog{BlockHeight: s.blockNum, BlockId: blockId, TrxLogs: s.trxLogs})
 		s.trxLogs = nil
 	}
 }
 
 // should a reference counter be introduced ?
-func (s *StateObserver) Notify(log *TrxLog) {
+func (s *StateObserver) Notify(log *iservices.TrxLog) {
 	s.trxLogs = append(s.trxLogs, log)
 }
 
 type TrxLogger struct {
 	observer *StateObserver
 	trxId string
-	opLogs []*OpLog
+	opLogs []*iservices.OpLog
 }
 
 func (t *TrxLogger) BeginTrx(trxId string) {
@@ -67,13 +50,13 @@ func (t *TrxLogger) BeginTrx(trxId string) {
 }
 
 func (t *TrxLogger) AddOpState(action int, property string, target string, result interface{}) {
-	opLog := &OpLog{Action: action, Property: property, Target: target, Result: result}
+	opLog := &iservices.OpLog{Action: action, Property: property, Target: target, Result: result}
 	t.opLogs = append(t.opLogs, opLog)
 }
 
 func (t *TrxLogger) EndTrx(keep bool) {
 	if keep {
-		trxLog := &TrxLog{TrxId: t.trxId, OpLogs: t.opLogs}
+		trxLog := &iservices.TrxLog{TrxId: t.trxId, OpLogs: t.opLogs}
 		t.observer.Notify(trxLog)
 	}
 }

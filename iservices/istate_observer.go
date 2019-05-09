@@ -6,6 +6,24 @@ const (
 	Replace
 	Delete
 )
+type OpLog struct {
+	Action int
+	Property string
+	Target string
+	Result interface{}
+}
+
+type TrxLog struct {
+	TrxId string
+	OpLogs []*OpLog
+}
+
+type BlockLog struct {
+	BlockHeight uint64
+	BlockId string
+	TrxLogs []*TrxLog
+	Index int // the index of item in the heap
+}
 
 type IStateObserver interface {
 	BeginBlock(blockNum uint64)
