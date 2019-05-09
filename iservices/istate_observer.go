@@ -15,13 +15,13 @@ type OpLog struct {
 
 type TrxLog struct {
 	TrxId string
-	OpLogs []*OpLog
+	OpLogs []OpLog
 }
 
 type BlockLog struct {
 	BlockHeight uint64
 	BlockId string
-	TrxLogs []*TrxLog
+	TrxLogs []TrxLog
 	Index int // the index of item in the heap
 }
 

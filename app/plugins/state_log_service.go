@@ -30,7 +30,7 @@ func (logHeap BlockLogHeap) Less(i, j int) bool {
 }
 
 func (logHeap BlockLogHeap) Swap(i, j int) {
-	logHeap.Logs[i], logHeap.Logs[j] = logHeap.Logs[j], logHeap.Logs[j]
+	logHeap.Logs[i], logHeap.Logs[j] = logHeap.Logs[j], logHeap.Logs[i]
 	logHeap.Logs[i].Index = i
 	logHeap.Logs[j].Index = j
 }
@@ -141,12 +141,15 @@ func (s *StateLogService) handleLibNotification(lib uint64) {
 	blk := blks[0].(*prototype.SignedBlock)
 	data := blk.Id().Data
 	blockId := hex.EncodeToString(data[:])
+	s.log.Debugf("[statelog] heap length: %d\n", s.logHeap.Len())
 	for s.logHeap.Len() > 0 {
-		log := s.logHeap.Pop()
+		log := heap.Pop(&s.logHeap)
 		blockLog := log.(*iservices.BlockLog)
+		s.log.Debugf("[statelog] blocklog: blockHeight:%d, blockId: %s, lib blockHeight:%d, lib blockId:%s \n",
+			blockLog.BlockHeight, blockLog.BlockId, lib, blockId)
 		// if the block log from heap > lib, re-push it else pop it
 		if blockLog.BlockHeight > lib {
-			s.logHeap.Push(blockLog)
+			heap.Push(&s.logHeap, blockLog)
 			break
 		}
 		if blockLog.BlockHeight == lib && blockLog.BlockId == blockId {
@@ -160,6 +163,7 @@ func (s *StateLogService) pushIntoDb(blockLog *iservices.BlockLog) {
 	blockHeight := blockLog.BlockHeight
 	trxLogs := blockLog.TrxLogs
 	for _, trxLog := range trxLogs {
+		s.log.Debugf("[statelog] trxlog: blockNum:%d, %v", blockHeight, trxLog)
 		trxId := trxLog.TrxId
 		opLogs := trxLog.OpLogs
 		for _, opLog := range opLogs {
@@ -170,8 +174,9 @@ func (s *StateLogService) pushIntoDb(blockLog *iservices.BlockLog) {
 			data := make(map[string]interface{})
 			data[target] = result
 			jsonData, _ := json.Marshal(data)
-			_, _ = s.db.Exec("INSERT INTO `statelog` (`block_id`, `block_height`, `trx_id`, `action`, `property`, `state`) " +
+			_, err := s.db.Exec("INSERT INTO `statelog` (`block_id`, `block_height`, `trx_id`, `action`, `property`, `state`) " +
 				"values (?, ?, ?, ?, ?, ?)", blockId, blockHeight, trxId, action, property, jsonData)
+			s.log.Debug("[statelog]", err)
 		}
 	}
 }
