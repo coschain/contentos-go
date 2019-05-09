@@ -139,8 +139,28 @@ func initDb(cmd *cobra.Command, args []string) {
   status smallint default 1
 );`
 
+	createStateLogLibInfo := `create table stateloglibinfo
+(
+  lib int unsigned not null,
+  last_check_time int unsigned not null
+);`
+
+	createStateLog := `create table statelog
+(
+  id bigint unsigned primary key auto_increment,
+  block_id varchar(64),
+  block_height int unsigned,
+  trx_id varchar(64),
+  action smallint,
+  property varchar(64),
+  state json,
+  INDEX statelog_block_id_index (block_id),
+  INDEX statelog_block_height_index (block_height),
+  INDEX statelog_trx_id_index (trx_id)
+);`
+
 	dropTables := []string{"trxinfo", "libinfo", "createaccountinfo", "transferinfo", "dailystat",
-		"dailystatinfo", "dailystatdapp"}
+		"dailystatinfo", "dailystatdapp", "stateloglibinfo", "statelog"}
 	for _, table := range dropTables {
 		dropSql := fmt.Sprintf("DROP TABLE IF EXISTS `%s`", table)
 		if _, err = db.Exec(dropSql); err != nil {
@@ -148,7 +168,8 @@ func initDb(cmd *cobra.Command, args []string) {
 		}
 	}
 	createTables := []string{createTrxInfo, createLibInfo, createCreateAccountInfo,
-		createTransferInfo, createDailyStat, createDailyStatInfo, createDailyStatDapp}
+		createTransferInfo, createDailyStat, createDailyStatInfo, createDailyStatDapp, createStateLogLibInfo,
+	createStateLog}
 	for _, table := range createTables {
 		if _, err = db.Exec(table); err != nil {
 			fmt.Println(err)
@@ -158,6 +179,7 @@ func initDb(cmd *cobra.Command, args []string) {
 	_, _ = db.Exec("INSERT INTO `dailystatinfo` (lib, date, last_check_time) VALUES (?, ?, ?)", 0, "", 0)
 	_, _ = db.Exec("INSERT INTO `dailystatdapp` (dapp, prefix) VALUES (?, ?), (?, ?), (?, ?), (?, ?)",
 		"photogrid", "PG", "contentos", "CT", "game 2048", "G2", "walk coin", "EC")
+	_, _ = db.Exec("INSERT INTO `stateloglibinfo` (lib, last_check_time) VALUES (?, ?)", 0, time.Now().UTC().Unix())
 }
 
 func cleanDb(cmd *cobra.Command, args []string) {
@@ -170,7 +192,7 @@ func cleanDb(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 	dropTables := []string{"trxinfo", "libinfo", "createaccountinfo", "transferinfo", "dailystat",
-		"dailystatinfo", "dailystatdapp"}
+		"dailystatinfo", "dailystatdapp", "stateloglibinfo", "statelog"}
 	for _, table := range dropTables {
 		dropSql := fmt.Sprintf("DROP TABLE IF EXISTS `%s`", table)
 		if _, err = db.Exec(dropSql); err != nil {
