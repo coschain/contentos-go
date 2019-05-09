@@ -5,11 +5,13 @@ import (
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common/constants"
+	"github.com/coschain/contentos-go/common/variables"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"math"
+	"math/big"
 	"time"
 )
 
@@ -21,11 +23,28 @@ func Min(x, y uint64) uint64 {
 	}
 }
 
+//func ISqrt(n uint64) uint64 {
+//	if n == 0 {
+//		return 0
+//	}
+//	var r1, r uint64 = n, n + 1
+//	for r1 < r {
+//		r, r1 = r1, (r1+n/r1)>>1
+//	}
+//	return r
+//}
+
 type Economist struct {
 	db       iservices.IDatabaseService
 	noticer  EventBus.Bus
 	singleId *int32
 	log *logrus.Logger
+}
+
+func mustNoError(err error, val string) {
+	if err != nil {
+		panic(val + " : " + err.Error())
+	}
 }
 
 func New(db iservices.IDatabaseService, noticer EventBus.Bus, singleId *int32, log *logrus.Logger) *Economist {
@@ -79,13 +98,21 @@ func (e *Economist) CalculateBudget(ith uint32) uint64 {
 }
 
 func (e *Economist) CalculatePerBlockBudget(annalBudget uint64) uint64 {
-	return annalBudget / (86400 / 3 * 365)
+	//return annalBudget / (86400 / 3 * 365)
+	return annalBudget / (86400 / constants.BlockInterval * 365)
 }
 
 func (e *Economist) Mint() {
 	//blockCurrent := constants.PerBlockCurrent
 	//t0 := time.Now()
 	globalProps, err := e.GetProps()
+	//p := map[string]uint64{"block": globalProps.GetHeadBlockNumber(), "minted": globalProps.GetAnnualMinted().Value,
+	//	"post_rewards": globalProps.GetPostRewards().Value, "reply_rewards": globalProps.GetReplyRewards().Value,
+	//	"post_dapp_rewards": globalProps.GetPostDappRewards().Value, "reply_dapp_rewards": globalProps.GetReplyDappRewards().Value,
+	//	"voter_rewards": globalProps.GetVoterRewards().Value, "post_vp": globalProps.GetPostWeightedVps(),
+	//	"reply_vp": globalProps.GetReplyWeightedVps()}
+	//jsonData, _ := json.Marshal(p)
+	//e.log.Info("globalProps", string(jsonData))
 	if err != nil {
 		panic("Mint failed when getprops")
 	}
@@ -111,7 +138,6 @@ func (e *Economist) Mint() {
 		})
 	}
 
-	// it is impossible
 	if globalProps.GetAnnualBudget().Value <= globalProps.GetAnnualMinted().Value {
 		blockCurrent = 0
 		e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
@@ -139,16 +165,25 @@ func (e *Economist) Mint() {
 		panic("Mint failed when get bp wrap")
 	}
 	// add rewards to bp
-	bpWrap.MdVestingShares(&prototype.Vest{Value: bpWrap.GetVestingShares().Value + bpReward})
+	bpRewardVesting := &prototype.Vest{Value: bpReward}
+	//bpWrap.MdVestingShares(&prototype.Vest{Value: bpWrap.GetVestingShares().Value + bpReward})
+	mustNoError(bpRewardVesting.Add(bpWrap.GetVestingShares()), "bpRewardVesting overflow")
+	bpWrap.MdVestingShares(bpRewardVesting)
 
 	e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
-		props.PostRewards.Value += uint64(postReward)
-		props.ReplyRewards.Value += uint64(replyReward)
-		props.PostDappRewards.Value += uint64(postDappRewards)
-		props.ReplyDappRewards.Value += uint64(replyDappRewards)
-		props.VoterRewards.Value += uint64(voterReward)
-		props.AnnualMinted.Value += blockCurrent
-		props.TotalVestingShares.Value += blockCurrent
+		//props.PostRewards.Value += uint64(postReward)
+		//props.ReplyRewards.Value += uint64(replyReward)
+		//props.PostDappRewards.Value += uint64(postDappRewards)
+		//props.ReplyDappRewards.Value += uint64(replyDappRewards)
+		//props.VoterRewards.Value += uint64(voterReward)
+		//props.AnnualMinted.Value += blockCurrent
+		mustNoError(props.PostRewards.Add(&prototype.Vest{Value: postReward}), "PostRewards overflow")
+		mustNoError(props.ReplyRewards.Add(&prototype.Vest{Value: replyReward}), "ReplyRewards overflow")
+		mustNoError(props.PostDappRewards.Add(&prototype.Vest{Value: postDappRewards}), "PostDappRewards overflow")
+		mustNoError(props.ReplyDappRewards.Add(&prototype.Vest{Value: replyDappRewards}), "ReplyDappRewards overflow")
+		mustNoError(props.VoterRewards.Add(&prototype.Vest{Value: voterReward}), "VoterRewards overflow")
+		mustNoError(props.AnnualMinted.Add(&prototype.Vest{Value: blockCurrent}), "AnnualMinted overflow")
+		mustNoError(props.TotalVestingShares.Add(&prototype.Vest{Value: blockCurrent}), "TotalVestingShares overflow")
 	})
 }
 
@@ -186,7 +221,9 @@ func (e *Economist) Do() {
 			postVpAccumulator += post.GetWeightedVp()
 		} else {
 			replies = append(replies, post)
-			replyVpAccumulator += uint64(math.Ceil(math.Sqrt(float64(post.GetWeightedVp()))))
+			//replyVpAccumulator += uint64(math.Ceil(math.Sqrt(float64(post.GetWeightedVp()))))
+			//replyVpAccumulator += ISqrt(post.GetWeightedVp())
+			replyVpAccumulator += post.GetWeightedVp()
 		}
 	}
 	e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
@@ -200,8 +237,17 @@ func (e *Economist) Do() {
 			rewards = 0
 			dappRewards = 0
 		}else {
-			rewards = postVpAccumulator * globalProps.PostRewards.Value / (postWeightedVps + postVpAccumulator)
-			dappRewards = postVpAccumulator * globalProps.PostDappRewards.Value / (postWeightedVps + postVpAccumulator)
+			// after big, it can not overflow
+			bigVpSum := new(big.Int).SetUint64(postWeightedVps + postVpAccumulator)
+			bigVpAccumulator := new(big.Int).SetUint64(postVpAccumulator)
+			bigGlobalPostRewards := new(big.Int).SetUint64(globalProps.PostRewards.Value)
+			bigVpMul := new(big.Int).Mul(bigVpAccumulator, bigGlobalPostRewards)
+			rewards = new(big.Int).Div(bigVpMul, bigVpSum).Uint64()
+			//rewards = postVpAccumulator * globalProps.PostRewards.Value / (postWeightedVps + postVpAccumulator)
+			bigGlobalPostDappRewards := new(big.Int).SetUint64(globalProps.PostDappRewards.Value)
+			bigDappVpMul := new(big.Int).Mul(bigVpAccumulator, bigGlobalPostDappRewards)
+			dappRewards = new(big.Int).Div(bigDappVpMul, bigVpSum).Uint64()
+			//dappRewards = postVpAccumulator * globalProps.PostDappRewards.Value / (postWeightedVps + postVpAccumulator)
 		}
 
 		e.log.Debugf("cashout posts length: %d", len(posts))
@@ -218,8 +264,17 @@ func (e *Economist) Do() {
 			rewards = 0
 			dappRewards = 0
 		}else {
-			rewards = replyVpAccumulator * globalProps.ReplyRewards.Value / (replyWeightedVps + replyVpAccumulator)
-			dappRewards = replyVpAccumulator * globalProps.ReplyDappRewards.Value / (replyWeightedVps + replyVpAccumulator)
+			//rewards = replyVpAccumulator * globalProps.ReplyRewards.Value / (replyWeightedVps + replyVpAccumulator)
+			//dappRewards = replyVpAccumulator * globalProps.ReplyDappRewards.Value / (replyWeightedVps + replyVpAccumulator)
+			bigVpSum := new(big.Int).SetUint64(replyWeightedVps + replyVpAccumulator)
+			bigVpAccumulator := new(big.Int).SetUint64(replyVpAccumulator)
+			bigGlobalReplyRewards := new(big.Int).SetUint64(globalProps.ReplyRewards.Value)
+			bigVpMul := new(big.Int).Mul(bigVpAccumulator, bigGlobalReplyRewards)
+			rewards = new(big.Int).Div(bigVpMul, bigVpSum).Uint64()
+			//rewards = postVpAccumulator * globalProps.PostRewards.Value / (postWeightedVps + postVpAccumulator)
+			bigGlobalReplyDappRewards := new(big.Int).SetUint64(globalProps.ReplyDappRewards.Value)
+			bigDappVpMul := new(big.Int).Mul(bigVpAccumulator, bigGlobalReplyDappRewards)
+			dappRewards = new(big.Int).Div(bigDappVpMul, bigVpSum).Uint64()
 		}
 
 		e.log.Debugf("cashout replies length: %d", len(replies))
@@ -233,8 +288,8 @@ func (e *Economist) Do() {
 
 func (e *Economist) decayGlobalVotePower() {
 	e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
-		props.PostWeightedVps -= props.PostWeightedVps * constants.BlockInterval / constants.VpDecayTime
-		props.ReplyWeightedVps -= props.ReplyWeightedVps * constants.BlockInterval / constants.VpDecayTime
+		props.PostWeightedVps -= props.PostWeightedVps * constants.BlockInterval / variables.VpDecayTime()
+		props.ReplyWeightedVps -= props.ReplyWeightedVps * constants.BlockInterval / variables.VpDecayTime()
 	})
 }
 
@@ -248,6 +303,8 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 	for _, post := range posts {
 		vpAccumulator += post.GetWeightedVp()
 	}
+	bigBlockRewards := new(big.Int).SetUint64(blockReward)
+	bigBlockDappReward := new(big.Int).SetUint64(blockDappReward)
 	e.log.Debugf("current block post total vp:%d, global vp:%d", vpAccumulator, globalProps.PostWeightedVps)
 	var spentPostReward uint64 = 0
 	var spentDappReward uint64 = 0
@@ -258,8 +315,17 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 		var beneficiaryReward uint64 = 0
 		// divide zero exception
 		if vpAccumulator > 0 {
-			reward = post.GetWeightedVp() * blockReward / vpAccumulator
-			beneficiaryReward = post.GetWeightedVp() * blockDappReward / vpAccumulator
+			bigVpAccumulator := new(big.Int).SetUint64(vpAccumulator)
+			//reward = post.GetWeightedVp() * blockReward / vpAccumulator
+			//beneficiaryReward = post.GetWeightedVp() * blockDappReward / vpAccumulator
+			//spentPostReward += reward
+			//spentDappReward += beneficiaryReward
+			weightedVp := post.GetWeightedVp()
+			bigWeightedVp := new(big.Int).SetUint64(weightedVp)
+			bigRewardMul := new(big.Int).Mul(bigWeightedVp,  bigBlockRewards)
+			reward = new(big.Int).Div(bigRewardMul, bigVpAccumulator).Uint64()
+			bigDappRewardMul := new(big.Int).Mul(bigWeightedVp, bigBlockDappReward)
+			beneficiaryReward = new(big.Int).Div(bigDappRewardMul, bigVpAccumulator).Uint64()
 			spentPostReward += reward
 			spentDappReward += beneficiaryReward
 		}
@@ -276,7 +342,8 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 				continue
 			}
 			// one of ten thousands
-			r := beneficiaryReward * uint64(weight) / constants.PERCENT
+			//r := beneficiaryReward * uint64(weight) / constants.PERCENT
+			r := new(big.Int).Div(new(big.Int).Mul(big.NewInt(int64(beneficiaryReward)), big.NewInt(int64(weight))), big.NewInt(constants.PERCENT)).Uint64()
 			if r == 0 {
 				continue
 			}
@@ -285,7 +352,9 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 				e.log.Debugf("beneficiary get account %s failed", name)
 				continue
 			} else {
-				beneficiaryWrap.MdVestingShares(&prototype.Vest{ Value: r + beneficiaryWrap.GetVestingShares().Value})
+				vestingRewards := &prototype.Vest{Value: r}
+				mustNoError(vestingRewards.Add(beneficiaryWrap.GetVestingShares()), "Post Beneficiary VestingRewards Overflow")
+				beneficiaryWrap.MdVestingShares(vestingRewards)
 				spentBeneficiaryReward += r
 				e.noticer.Publish(constants.NoticeCashout, name, post.GetPostId(), r, globalProps.GetHeadBlockNumber())
 			}
@@ -298,7 +367,9 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 			e.log.Debugf("post cashout get account %s failed", author)
 			continue
 		} else {
-			authorWrap.MdVestingShares(&prototype.Vest{ Value: reward + authorWrap.GetVestingShares().Value })
+			vestingRewards := &prototype.Vest{Value: reward}
+			mustNoError(vestingRewards.Add(authorWrap.GetVestingShares()), "Post VestingRewards Overflow")
+			authorWrap.MdVestingShares(vestingRewards)
 		}
 		post.MdCashoutBlockNum(math.MaxUint32)
 		post.MdRewards(&prototype.Vest{Value: reward})
@@ -310,8 +381,10 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 	e.log.Infof("cashout: [post] blockRewards: %d, blockDappRewards: %d, spendPostReward: %d, spendDappReward: %d",
 		blockReward, blockDappReward, spentPostReward, spentDappReward)
 	e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
-		props.PostRewards.Value -= spentPostReward
-		props.PostDappRewards.Value -= spentDappReward
+		//props.PostRewards.Value -= spentPostReward
+		//props.PostDappRewards.Value -= spentDappReward
+		mustNoError(props.PostRewards.Sub(&prototype.Vest{Value: spentPostReward}), "Sub SpentPostReward overflow")
+		mustNoError(props.PostDappRewards.Sub(&prototype.Vest{Value: spentDappReward}), "Sub SpentDappReward overflow")
 	})
 }
 
@@ -323,8 +396,11 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 	}
 	var vpAccumulator uint64 = 0
 	for _, reply := range replies {
-		vpAccumulator += uint64(math.Ceil(math.Sqrt(float64(reply.GetWeightedVp()))))
+		//vpAccumulator += ISqrt(reply.GetWeightedVp())
+		vpAccumulator += reply.GetWeightedVp()
 	}
+	bigBlockRewards := new(big.Int).SetUint64(blockReward)
+	bigBlockDappReward := new(big.Int).SetUint64(blockDappReward)
 	e.log.Debugf("current block reply total vp:%d, global vp:%d", vpAccumulator, globalProps.ReplyWeightedVps)
 	var spentReplyReward uint64 = 0
 	var spentDappReward uint64 = 0
@@ -336,9 +412,14 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 		//var voterReward uint64 = 0
 		// divide zero exception
 		if vpAccumulator > 0 {
-			weightedVp := uint64(math.Ceil(math.Sqrt(float64(reply.GetWeightedVp()))))
-			reward = weightedVp * blockReward / vpAccumulator
-			beneficiaryReward = weightedVp * blockDappReward / vpAccumulator
+			bigVpAccumulator := new(big.Int).SetUint64(vpAccumulator)
+			//weightedVp := ISqrt(reply.GetWeightedVp())
+			weightedVp := reply.GetWeightedVp()
+			bigWeightedVp := new(big.Int).SetUint64(weightedVp)
+			bigRewardMul := new(big.Int).Mul(bigWeightedVp,  bigBlockRewards)
+			reward = new(big.Int).Div(bigRewardMul, bigVpAccumulator).Uint64()
+			bigDappRewardMul := new(big.Int).Mul(bigWeightedVp, bigBlockDappReward)
+			beneficiaryReward = new(big.Int).Div(bigDappRewardMul, bigVpAccumulator).Uint64()
 			spentReplyReward += reward
 			spentDappReward += beneficiaryReward
 		}
@@ -353,7 +434,8 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 			if weightSum > constants.PERCENT {
 				continue
 			}
-			r := beneficiaryReward * uint64(weight) / constants.PERCENT
+			r := new(big.Int).Div(new(big.Int).Mul(big.NewInt(int64(beneficiaryReward)), big.NewInt(int64(weight))), big.NewInt(constants.PERCENT)).Uint64()
+			//r := beneficiaryReward * uint64(weight) / constants.PERCENT
 			if r == 0 {
 				continue
 			}
@@ -361,7 +443,10 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 			if err != nil {
 				e.log.Debugf("beneficiary get account %s failed", name)
 			} else {
-				beneficiaryWrap.MdVestingShares(&prototype.Vest{ Value: r + beneficiaryWrap.GetVestingShares().Value})
+				//beneficiaryWrap.MdVestingShares(&prototype.Vest{ Value: r + beneficiaryWrap.GetVestingShares().Value})
+				vestingRewards := &prototype.Vest{Value: r}
+				mustNoError(vestingRewards.Add(beneficiaryWrap.GetVestingShares()), "Reply Beneficiary VestingRewards Overflow")
+				beneficiaryWrap.MdVestingShares(vestingRewards)
 				spentBeneficiaryReward += r
 				e.noticer.Publish(constants.NoticeCashout, name, reply.GetPostId(), r, globalProps.GetHeadBlockNumber())
 			}
@@ -374,7 +459,10 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 			e.log.Debugf("reply cashout get account %s failed", author)
 			continue
 		} else {
-			authorWrap.MdVestingShares(&prototype.Vest{ Value: reward + authorWrap.GetVestingShares().Value })
+			//authorWrap.MdVestingShares(&prototype.Vest{ Value: reward + authorWrap.GetVestingShares().Value })
+			vestingRewards := &prototype.Vest{Value: reward}
+			mustNoError(vestingRewards.Add(authorWrap.GetVestingShares()), "Reply VestingRewards Overflow")
+			authorWrap.MdVestingShares(vestingRewards)
 		}
 		reply.MdCashoutBlockNum(math.MaxUint32)
 		reply.MdRewards(&prototype.Vest{Value: reward})
@@ -386,8 +474,10 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 	e.log.Infof("cashout: [reply] blockRewards: %d, blockDappRewards: %d, spendPostReward: %d, spendDappReward: %d",
 		blockReward, blockDappReward, spentReplyReward, spentDappReward)
 	e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
-		props.ReplyRewards.Value -= spentReplyReward
-		props.ReplyDappRewards.Value -= spentDappReward
+		//props.ReplyRewards.Value -= spentReplyReward
+		//props.ReplyDappRewards.Value -= spentDappReward
+		mustNoError(props.ReplyRewards.Sub(&prototype.Vest{Value: spentReplyReward}), "Sub SpentReplyReward overflow")
+		mustNoError(props.ReplyDappRewards.Sub(&prototype.Vest{Value: spentDappReward}), "Sub SpentDappReward overflow")
 	})
 }
 
@@ -444,8 +534,10 @@ func (e *Economist) PowerDown() {
 		accountWrap.MdHasPowerdown(&prototype.Vest{Value: hasPowerDown})
 		// update total cos and total vesting shares
 		e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
-			props.TotalCos.Value += powerdownQuota
-			props.TotalVestingShares.Value -= powerdownQuota
+			mustNoError(props.TotalCos.Add(&prototype.Coin{Value: powerdownQuota}), "PowerDownQuota Cos Overflow")
+			mustNoError(props.TotalVestingShares.Sub(&prototype.Vest{Value: powerdownQuota}), "PowerDownQuota Vest Overflow")
+			//props.TotalCos.Value += powerdownQuota
+			//props.TotalVestingShares.Value -= powerdownQuota
 		})
 		if accountWrap.GetHasPowerdown().Value >= accountWrap.GetToPowerdown().Value || accountWrap.GetVestingShares().Value == 0 {
 			accountWrap.MdEachPowerdownRate(&prototype.Vest{Value: 0})

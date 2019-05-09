@@ -23,6 +23,7 @@ import (
 )
 
 var trxSqlFlag bool
+var dailyStatFlag bool
 
 var StartCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
@@ -35,6 +36,8 @@ var StartCmd = func() *cobra.Command {
 	cmd.Flags().StringVarP(&cfgName, "name", "n", "", "node name (default is cosd)")
 	cmd.Flags().BoolVarP(&trxSqlFlag, "trxsqlservice", "", false, "--trxsqlservice=true")
 	cmd.Flags().Lookup("trxsqlservice").NoOptDefVal = "true"
+	cmd.Flags().BoolVarP(&dailyStatFlag, "dailystatservice", "", false, "--dailystatservice=true")
+	cmd.Flags().Lookup("dailystatservice").NoOptDefVal = "true"
 	return cmd
 }
 
@@ -147,6 +150,12 @@ func RegisterService(app *node.Node, cfg node.Config) {
 	_ = app.Register(plugins.TrxServiceName, func(ctx *node.ServiceContext) (node.Service, error) {
 		return plugins.NewTrxSerVice(ctx, app.Log)
 	})
+	
+	if dailyStatFlag {
+		_ = app.Register(iservices.DailyStatisticServiceName, func(ctx *node.ServiceContext) (node.Service, error) {
+			return plugins.NewDailyStatisticService(ctx, cfg.Database, app.Log)
+		})
+	}
 
 	_ = app.Register(iservices.ConsensusServerName, func(ctx *node.ServiceContext) (node.Service, error) {
 		var s node.Service

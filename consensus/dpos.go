@@ -118,7 +118,7 @@ func (d *DPoS) shuffle(head common.ISignedBlock) {
 
 	// When a produce round complete, it adds new producers,
 	// remove unqualified producers and shuffle the block-producing order
-	prods := d.ctrl.GetWitnessTopN(constants.MaxWitnessCount)
+	prods, _ := d.ctrl.GetWitnessTopN(constants.MaxWitnessCount)
 	var seed uint64
 	if head != nil {
 		seed = head.Timestamp() << 32
@@ -796,4 +796,32 @@ func (d *DPoS) handleBlockSync() error {
 
 func (d *DPoS)CheckSyncFinished() bool{
 	return d.readyToProduce
+}
+
+func (d *DPoS) IsOnMainBranch(id common.BlockID) (bool, error) {
+	blockNum := id.BlockNum()
+
+	lastCommittedNum := d.ForkDB.LastCommitted().BlockNum()
+	headNum := d.ForkDB.Head().Id().BlockNum()
+
+	if blockNum > headNum {
+		return false, nil
+	}
+
+	if blockNum > lastCommittedNum {
+		blk, err := d.ForkDB.FetchBlockFromMainBranch(blockNum)
+		if err != nil {
+			return false, err
+		}
+		return blk.Id() == id, nil
+	} else {
+		b := &prototype.SignedBlock{}
+		err := d.blog.ReadBlock(b, int64(blockNum-1))
+		if err != nil {
+			return false, err
+		}
+		return b.Id() == id, nil
+	}
+
+	return false, nil
 }

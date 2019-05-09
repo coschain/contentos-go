@@ -240,7 +240,7 @@ func TestController_GetWitnessTopN(t *testing.T) {
 		tInfo.LastWork = &prototype.Sha256{Hash: []byte{0}}
 	}), "Witness Create Error")
 
-	witnesses := c.GetWitnessTopN(10)
+	witnesses, _ := c.GetWitnessTopN(10)
 
 	for _, wit := range witnesses {
 		fmt.Println(wit)

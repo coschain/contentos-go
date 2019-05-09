@@ -71,4 +71,7 @@ type IConsensus interface {
 
 	// check whether sync progress is finished
 	CheckSyncFinished() bool
+
+	// check whether the given id's signed block is on the main branch
+	IsOnMainBranch(id common.BlockID) (bool, error)
 }

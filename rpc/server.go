@@ -38,7 +38,7 @@ func NewGRPCServer(ctx *node.ServiceContext, config service_configs.GRPCConfig, 
 		grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(gi.streamRecoveryLoggingInterceptor)),
 		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(gi.unaryRecoveryLoggingInterceptor)),
 		grpc.MaxRecvMsgSize(GRPCMaxRecvMsgSize))
-	api := &APIService{}
+	api := &APIService{ctx: ctx}
 	grpcpb.RegisterApiServiceServer(rpc, api)
 	srv := &GRPCServer{rpcServer: rpc, ctx: ctx, api: api, config: &config}
 

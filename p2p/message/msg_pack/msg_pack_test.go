@@ -32,7 +32,7 @@ func TestMsgPack(t *testing.T) {
 	msgBefore = NewSigBlkIdMsg(sigBlk)
 	processAndCheck(t)
 
-	msgBefore = NewSigBlk(sigBlk)
+	msgBefore = NewSigBlk(sigBlk, false)
 	processAndCheck(t)
 
 	msgBefore = NewPingMsg(0)

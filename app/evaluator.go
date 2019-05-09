@@ -4,6 +4,7 @@ import (
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/common/encoding/vme"
+	"github.com/coschain/contentos-go/common/variables"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/vm"
 	"github.com/coschain/contentos-go/vm/context"
@@ -222,7 +223,8 @@ func (ev *PostEvaluator) Apply() {
 		t.Body = op.Content
 		t.Created = ev.ctx.control.HeadBlockTime()
 		//t.CashoutTime = &prototype.TimePointSec{UtcSeconds: ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.PostCashOutDelayTime)}
-		t.CashoutBlockNum = ev.ctx.control.GetProps().HeadBlockNumber + constants.PostCashOutDelayBlock
+		//t.CashoutBlockNum = ev.ctx.control.GetProps().HeadBlockNumber + constants.PostCashOutDelayBlock
+		t.CashoutBlockNum = ev.ctx.control.GetProps().HeadBlockNumber + variables.PostCashOutDelayBlock()
 		t.Depth = 0
 		t.Children = 0
 		t.RootId = t.PostId
@@ -279,7 +281,7 @@ func (ev *ReplyEvaluator) Apply() {
 		t.Body = op.Content
 		t.Created = ev.ctx.control.HeadBlockTime()
 		//t.CashoutTime = &prototype.TimePointSec{UtcSeconds: ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.PostCashOutDelayTime)}
-		t.CashoutBlockNum = ev.ctx.control.GetProps().HeadBlockNumber + constants.PostCashOutDelayBlock
+		t.CashoutBlockNum = ev.ctx.control.GetProps().HeadBlockNumber + variables.PostCashOutDelayBlock()
 		t.Depth = pidWrap.GetDepth() + 1
 		t.Children = 0
 		t.RootId = rootId
@@ -327,11 +329,13 @@ func (ev *VoteEvaluator) Apply() {
 	//	}
 	//}
 
-	regeneratedPower := constants.PERCENT * elapsedSeconds / constants.VoteRegenerateTime
+	// 10000 have chance to overflow
+	// 1000 always ok
+	regeneratedPower := 1000 * elapsedSeconds / constants.VoteRegenerateTime
 	var currentVp uint32
 	votePower := voterWrap.GetVotePower() + regeneratedPower
-	if votePower > constants.PERCENT {
-		currentVp = constants.PERCENT
+	if votePower > 1000{
+		currentVp = 1000
 	} else {
 		currentVp = votePower
 	}
@@ -340,7 +344,9 @@ func (ev *VoteEvaluator) Apply() {
 	voterWrap.MdVotePower(currentVp - usedVp)
 	voterWrap.MdLastVoteTime(ev.ctx.control.HeadBlockTime())
 	vesting := voterWrap.GetVestingShares().Value
-	// todo: uint128
+	// after constants.PERCENT replaced by 1000, max value is 10000000000 * 1000000 * 1000 / 30
+	// 10000000000 * 1000000 * 1000 < 18446744073709552046 but 10000000000 * 1000000 > 9223372036854775807
+	// so can not using int64 here
 	weightedVp := vesting * uint64(usedVp)
 	if postWrap.GetCashoutBlockNum() > ev.ctx.control.GetProps().HeadBlockNumber {
 		lastVp := postWrap.GetWeightedVp()
@@ -484,7 +490,7 @@ func (ev *ConvertVestingEvaluator) Apply() {
 	globalProps := ev.ctx.control.GetProps()
 	//timestamp := globalProps.Time.UtcSeconds
 	currentBlock := globalProps.HeadBlockNumber
-	eachRate := op.Amount.Value / constants.ConvertWeeks
+	eachRate := op.Amount.Value / (constants.ConvertWeeks - 1)
 	//accWrap.MdNextPowerdownTime(&prototype.TimePointSec{UtcSeconds: timestamp + constants.POWER_DOWN_INTERVAL})
 	accWrap.MdNextPowerdownBlockNum(currentBlock + constants.PowerDownBlockInterval)
 	accWrap.MdEachPowerdownRate(&prototype.Vest{Value: eachRate})

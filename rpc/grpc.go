@@ -7,7 +7,9 @@ import (
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/common/eventloop"
+	"github.com/coschain/contentos-go/common/variables"
 	"github.com/coschain/contentos-go/iservices"
+	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/rpc/pb"
 	"github.com/coschain/contentos-go/vm/contract/abi"
@@ -32,6 +34,7 @@ type APIService struct {
 	db        iservices.IDatabaseService
 	log       *logrus.Logger
 	eBus      EventBus.Bus
+	ctx       *node.ServiceContext
 }
 
 func NewAPIService(con iservices.IConsensus, loop *eventloop.EventLoop, db iservices.IDatabaseService, log *logrus.Logger) *APIService {
@@ -1024,7 +1027,7 @@ func (as *APIService) fetchPostInfoResponseById(postId uint64,isNeedLock bool) *
 			Rewards:       pWrap.GetRewards(),
 			DappRewards:   pWrap.GetDappRewards(),
 			WeightedVp:    pWrap.GetWeightedVp(),
-			CashoutInterval:   constants.PostCashOutDelayBlock,
+			CashoutInterval:   variables.PostCashOutDelayBlock(),
 			GlobalRewards: &prototype.Vest{Value: globalRewards},
 			GlobalWeightedVp: globalWeightedVp,
 		}
@@ -1189,4 +1192,21 @@ func (as *APIService) getTrxInfoByTrxId(trxId *prototype.Sha256, blkStateMap map
 		}
 	}
 	return tInfo
+}
+
+func (as *APIService) GetDailyStats(ctx context.Context, req *grpcpb.GetDailyStatsRequest) (*grpcpb.GetDailyStatsResponse, error) {
+	dsservice, err := as.ctx.Service(iservices.DailyStatisticServiceName)
+	if err != nil {
+		return nil, errors.New("plugin daily statistic service isn't running")
+	}
+	ds := dsservice.(iservices.IDailyStats)
+	rows := ds.DailyStatsSince(int(req.Days), req.Dapp)
+	var stat []*grpcpb.DailyStat
+	res := &grpcpb.GetDailyStatsResponse{}
+	for _, row := range rows {
+		t, _ := time.Parse("2006-01-02", row.Date)
+		stat = append(stat, &grpcpb.DailyStat{Date: uint64(t.UTC().Unix()), Dapp: row.Dapp, Dau: row.Dau, Dnu: row.Dnu, Trxs: row.TrxCount, Amount: row.Amount})
+	}
+	res.Stat = stat
+	return res, nil
 }

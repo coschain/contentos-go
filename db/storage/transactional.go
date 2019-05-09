@@ -31,3 +31,7 @@ func (db *TransactionalDatabase) EndTransaction(commit bool) error {
 func (db *TransactionalDatabase) TransactionHeight() uint {
 	return db.Size() - 1
 }
+
+func (db *TransactionalDatabase) HashOfTopTransaction() uint32 {
+	return db.HashOfTopSession()
+}

@@ -97,6 +97,10 @@ service ApiService {
 
     rpc GetAccountListByCreTime (GetAccountListByCreTimeRequest) returns (GetAccountListResponse) {
     }
+
+    rpc GetDailyStats (GetDailyStatsRequest) returns (GetDailyStatsResponse) {
+
+    }
 }
 
 
@@ -493,4 +497,22 @@ message GetAccountListByCreTimeRequest {
     prototype.time_point_sec   end       = 2;
     AccountInfo  last_account = 3;
     uint32           limit     = 4;
+}
+
+message DailyStat {
+    uint64 date = 1;
+    string dapp = 2;
+    uint32 dau = 3;
+    uint32 dnu = 4;
+    uint32 trxs = 5;
+    uint64 amount = 6 [jstype = JS_STRING];
+}
+
+message GetDailyStatsRequest {
+    uint32 days = 1;
+    string dapp = 2;
+}
+
+message GetDailyStatsResponse {
+    repeated DailyStat stat = 1;
 }

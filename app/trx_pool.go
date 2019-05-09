@@ -44,7 +44,9 @@ type TrxPool struct {
 	iceberg   *BlockIceberg
 	economist *economist.Economist
 	tm *TrxMgr
+
 	resourceLimiter utils.IResourceLimiter
+	enableBAH bool
 }
 
 func (c *TrxPool) getDb() (iservices.IDatabaseService, error) {
@@ -79,7 +81,7 @@ func NewController(ctx *node.ServiceContext, lg *logrus.Logger) (*TrxPool, error
 		lg = logrus.New()
 		lg.SetOutput(ioutil.Discard)
 	}
-	return &TrxPool{ctx: ctx, log: lg}, nil
+	return &TrxPool{ctx: ctx, log: lg, enableBAH:true}, nil
 }
 
 func (c *TrxPool) Start(node *node.Node) error {
@@ -95,7 +97,7 @@ func (c *TrxPool) Start(node *node.Node) error {
 }
 
 func (c *TrxPool) Open() {
-	c.iceberg = NewBlockIceberg(c.db, c.log)
+	c.iceberg = NewBlockIceberg(c.db, c.log, c.enableBAH)
 	c.economist = economist.New(c.db, c.noticer, &SingleId, c.log)
 	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
 	if !dgpWrap.CheckExist() {
@@ -106,7 +108,7 @@ func (c *TrxPool) Open() {
 		c.initGenesis()
 
 		mustNoError(c.db.TagRevision(c.db.GetRevision(), GENESIS_TAG), "genesis tagging failed")
-		c.iceberg = NewBlockIceberg(c.db, c.log)
+		c.iceberg = NewBlockIceberg(c.db, c.log, c.enableBAH)
 		c.economist = economist.New(c.db, c.noticer, &SingleId, c.log)
 		//c.log.Info("finish initGenesis")
 	}
@@ -238,7 +240,6 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 	priKey *prototype.PrivateKeyType, skip prototype.SkipFlag) (b *prototype.SignedBlock, e error) {
 
 	entryTime := time.Now()
-
 	c.db.Lock()
 	defer c.db.Unlock()
 
@@ -342,6 +343,7 @@ func (c *TrxPool) generateBlockNoLock(witness string, pre *prototype.Sha256, tim
 	t2 := time.Now()
 
 	signBlock.SignedHeader.Header.Previous = pre
+	signBlock.SignedHeader.Header.PrevApplyHash = c.iceberg.LatestBlockApplyHash()
 	signBlock.SignedHeader.Header.Timestamp = &prototype.TimePointSec{UtcSeconds: timestamp}
 	id := signBlock.CalculateMerkleRoot()
 	signBlock.SignedHeader.Header.TransactionMerkleRoot = &prototype.Sha256{Hash: id.Data[:]}
@@ -761,6 +763,19 @@ func (c *TrxPool) validateBlockHeader(blk *prototype.SignedBlock) {
 		panic("ValidateSig error")
 	}
 
+	if c.enableBAH {
+		ver, hash := c.iceberg.LatestBlockApplyHashUnpacked()
+		bVer, bHash := common.UnpackBlockApplyHash(blk.SignedHeader.Header.PrevApplyHash)
+		if ver != bVer {
+			c.log.Warnf("BlockApplyHashWarn: version mismatch. block %d (by %s): %08x, me: %08x",
+				blk.SignedHeader.Number(), blk.SignedHeader.Header.Witness.Value, bVer, ver)
+		} else if hash != bHash {
+			c.log.Errorf("BlockApplyHashError: block %d (by %s): %08x, me: %08x",
+				blk.SignedHeader.Number(), blk.SignedHeader.Header.Witness.Value, bHash, hash)
+			panic("block apply hash not equal")
+		}
+	}
+
 	// witness schedule check
 	/*
 		nextSlot := c.GetIncrementSlotAtTime(blk.SignedHeader.Header.Timestamp)
@@ -918,19 +933,31 @@ func (c *TrxPool) createBlockSummary(blk *prototype.SignedBlock) {
 	mustSuccess(blockSummaryWrap.MdBlockId(blockID), "update block summary object error")
 }
 
-func (c *TrxPool) GetWitnessTopN(n uint32) []string {
-	var ret []string
+func (c *TrxPool) GetWitnessTopN(n uint32) ([]string, []*prototype.PublicKeyType) {
+	var names []string
+	var keys []*prototype.PublicKeyType
 	revList := table.SWitnessVoteCountWrap{Dba: c.db}
 	_ = revList.ForEachByRevOrder(nil, nil,nil,nil, func(mVal *prototype.AccountName, sVal *uint64, idx uint32) bool {
 		if mVal != nil {
-			ret = append(ret, mVal.Value)
+			names = append(names, mVal.Value)
 		}
 		if idx < n {
 			return true
 		}
 		return false
 	})
-	return ret
+	for i := range names {
+		ac := &prototype.AccountName{
+			Value: names[i],
+		}
+		witnessWrap := table.NewSoWitnessWrap(c.db, ac)
+		if !witnessWrap.CheckExist() {
+			c.log.Fatalf("witness %v doesn't exist", names[i])
+		}
+		dbPubKey := witnessWrap.GetSigningKey()
+		keys = append(keys, dbPubKey)
+	}
+	return names, keys
 }
 
 func (c *TrxPool) SetShuffledWitness(names []string) {

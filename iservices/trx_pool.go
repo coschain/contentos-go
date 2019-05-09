@@ -35,7 +35,7 @@ type ITrxPool interface {
 	PushTrx(trx *prototype.SignedTransaction) *prototype.TransactionReceipt
 	PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag) error
 	GenerateBlock(witness string, pre *prototype.Sha256, timestamp uint32, priKey *prototype.PrivateKeyType, skip prototype.SkipFlag) (*prototype.SignedBlock, error)
-	GetWitnessTopN(n uint32) []string
+	GetWitnessTopN(n uint32) ([]string, []*prototype.PublicKeyType)
 	SetShuffledWitness(names []string)
 	GetShuffledWitness() []string
 	SetShuffle(s common.ShuffleFunc)

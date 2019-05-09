@@ -288,7 +288,6 @@ func (t *ContractTable) enumSecondaryIndexFields(record interface{}, callback fu
 func (t *ContractTable) scanDatabase(prefix kope.Key, start interface{}, limit interface{}, reverse bool, maxCount int, callback func(k, v []byte)(bool, error)) (int, error) {
 	var (
 		startKey, limitKey kope.Key
-		k, v []byte
 		err error
 		goAhead bool
 	)
@@ -307,7 +306,7 @@ func (t *ContractTable) scanDatabase(prefix kope.Key, start interface{}, limit i
 		if count >= maxCount && maxCount > 0 {
 			return false
 		}
-		goAhead, err = callback(k, v)
+		goAhead, err = callback(key, value)
 		if err == nil {
 			count++
 		}

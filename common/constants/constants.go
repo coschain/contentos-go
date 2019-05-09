@@ -87,6 +87,8 @@ const (
 	// 10 billion
 	TotalCurrency = 100 * 1e8
 
+	BlockApplierVersion = 0x00000001
+
 	// resource parameter
     LimitPrecision     = 1000 * 1000
     NetConsumePointNum = 10
