@@ -160,6 +160,8 @@ func addCommands() {
 	rootCmd.AddCommand(commands.RTransferCmd())
 	rootCmd.AddCommand(commands.CashoutCmd())
 	rootCmd.AddCommand(commands.BlockCmd())
+	rootCmd.AddCommand(commands.StakeCmd())
+	rootCmd.AddCommand(commands.UnStakeCmd())
 
 }
 
