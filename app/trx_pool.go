@@ -3,6 +3,7 @@ package app
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/asaskevich/EventBus"
@@ -42,6 +43,7 @@ type TrxPool struct {
 
 	iceberg   *BlockIceberg
 	economist *economist.Economist
+	stateObserver *StateObserver
 	tm *TrxMgr
 }
 
@@ -95,6 +97,7 @@ func (c *TrxPool) Start(node *node.Node) error {
 func (c *TrxPool) Open() {
 	c.iceberg = NewBlockIceberg(c.db, c.log)
 	c.economist = economist.New(c.db, c.noticer, &SingleId, c.log)
+	c.stateObserver = NewStateObserver(c.noticer, c.log)
 	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
 	if !dgpWrap.CheckExist() {
 
@@ -160,6 +163,7 @@ func (c *TrxPool) pushBlockNoLock(blk *prototype.SignedBlock, skip prototype.Ski
 			}
 			// undo changes
 			_ = c.iceberg.EndBlock(false)
+			c.stateObserver.EndBlock("")
 			c.log.Debug("ICEBERG: EndBlock FALSE")
 			c.log.Errorf("push block fail,the error is %v,the block num is %v", r, blk.Id().BlockNum())
 			//fmt.Printf("push block fail,the error is %v,the block num is %v \n", r, blk.Id().BlockNum())
@@ -172,13 +176,18 @@ func (c *TrxPool) pushBlockNoLock(blk *prototype.SignedBlock, skip prototype.Ski
 		blkNum := blk.Id().BlockNum()
 		c.log.Debugf("ICEBERG: BeginBlock %d", blkNum)
 		_ = c.iceberg.BeginBlock(blkNum)
+		c.stateObserver.BeginBlock(blkNum)
 		c.applyBlock(blk, skip)
+		data := blk.Id().Data
+		c.stateObserver.EndBlock(hex.EncodeToString(data[:]))
 		c.log.Debug("ICEBERG: EndBlock TRUE")
 		_ = c.iceberg.EndBlock(true)
 	} else {
 		// we have do a BeginTransaction at GenerateBlock
 		c.applyBlock(blk, skip)
 		c.log.Debug("ICEBERG: EndBlock TRUE")
+		data := blk.Id().Data
+		c.stateObserver.EndBlock(hex.EncodeToString(data[:]))
 		_ = c.iceberg.EndBlock(true)
 	}
 
@@ -258,6 +267,7 @@ func (c *TrxPool) generateBlockNoLock(witness string, pre *prototype.Sha256, tim
 		if err := recover(); err != nil {
 			c.log.Debug("ICEBERG: EndBlock FALSE")
 			_ = c.iceberg.EndBlock(false)
+			c.stateObserver.EndBlock("")
 
 			//c.log.Errorf("GenerateBlock Error: %v", err)
 			//panic(err)
@@ -294,6 +304,7 @@ func (c *TrxPool) generateBlockNoLock(witness string, pre *prototype.Sha256, tim
 	blkNum := c.headBlockNum() + 1
 	c.log.Debugf("ICEBERG: BeginBlock %d", blkNum)
 	_ = c.iceberg.BeginBlock(blkNum)
+	c.stateObserver.BeginBlock(blkNum)
 
 	timeOut := maxTimeout - time.Since(entryTime)
 	if timeOut < minTimeout {
@@ -390,20 +401,28 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabaseRW, entry *TrxEntry
 	result := entry.GetTrxResult()
 	receipt, sigTrx := result.GetReceipt(), result.GetSigTrx()
 
+	trxObserver := c.stateObserver.NewTrxObserver()
+	cid := prototype.ChainId{Value: 0}
+	trxHash, _ := sigTrx.GetTrxHash(cid)
+	c.log.Debugf("observer: %s", hex.EncodeToString(trxHash))
+	trxObserver.BeginTrx(hex.EncodeToString(trxHash))
+
 	defer func() {
 		if err := recover(); err != nil {
 			receipt.Status = prototype.StatusError
 			receipt.ErrorInfo = fmt.Sprintf("applyTransaction failed : %v", err)
+			trxObserver.EndTrx(false)
 			c.notifyTrxApplyResult(sigTrx, false, receipt)
 			panic(receipt.ErrorInfo)
 		} else {
 			receipt.Status = prototype.StatusSuccess
+			trxObserver.EndTrx(true)
 			c.notifyTrxApplyResult(sigTrx, true, receipt)
 			return
 		}
 	}()
 
-	trxContext := NewTrxContextWithSigningKey(result, db, entry.GetTrxSigningKey())
+	trxContext := NewTrxContextWithSigningKey(result, db, entry.GetTrxSigningKey(), trxObserver)
 	for _, op := range sigTrx.Trx.Operations {
 		trxContext.StartNextOp()
 		c.applyOperation(trxContext, op)

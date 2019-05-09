@@ -29,6 +29,7 @@ type ApplyContext struct {
 	db         iservices.IDatabaseRW
 	control    iservices.IGlobalPropRW
 	vmInjector vminjector.Injector
+	observer iservices.ITrxObserver
 }
 
 type BaseEvaluator interface {

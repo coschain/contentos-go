@@ -24,6 +24,7 @@ import (
 
 var trxSqlFlag bool
 var dailyStatFlag bool
+var stateLogFlag bool
 
 var StartCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
@@ -38,6 +39,8 @@ var StartCmd = func() *cobra.Command {
 	cmd.Flags().Lookup("trxsqlservice").NoOptDefVal = "true"
 	cmd.Flags().BoolVarP(&dailyStatFlag, "dailystatservice", "", false, "--dailystatservice=true")
 	cmd.Flags().Lookup("dailystatservice").NoOptDefVal = "true"
+	cmd.Flags().BoolVarP(&dailyStatFlag, "statelogservice", "", false, "--statelogservice=true")
+	cmd.Flags().Lookup("statelogservice").NoOptDefVal = "true"
 	return cmd
 }
 
@@ -190,6 +193,12 @@ func RegisterService(app *node.Node, cfg node.Config) {
 	if trxSqlFlag {
 		_ = app.Register(plugins.TrxMysqlServiceName, func(ctx *node.ServiceContext) (service node.Service, e error) {
 			return plugins.NewTrxMysqlSerVice(ctx, cfg.Database, app.Log)
+		})
+	}
+
+	if stateLogFlag {
+		_ = app.Register(plugins.StateLogServiceName, func(ctx *node.ServiceContext) (service node.Service, e error) {
+			return plugins.NewStateLogService(ctx, cfg.Database, app.Log)
 		})
 	}
 }
