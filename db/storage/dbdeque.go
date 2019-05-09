@@ -61,7 +61,7 @@ func (dq *dbDeque) popFront(commit bool) (err error) {
 		return errors.New("unexpected pop.")
 	}
 	if commit {
-		err = dq.sessions[sessionCount - 1].Commit()
+		err = dq.sessions[sessionCount - 1].commit()
 	}
 	dq.sessions = dq.sessions[:len(dq.sessions) - 1]
 	return err
@@ -119,7 +119,7 @@ func (dq *dbDeque) popBackN(n int, commit bool) error {
 		db := dq.sessions[0].db
 		b := db.NewBatch()
 		for i := 0; i < n; i++ {
-			if err := dq.sessions[i].CommitToDbWriter(b); err != nil {
+			if err := dq.sessions[i].commitToDbWriter(b); err != nil {
 				return err
 			}
 		}

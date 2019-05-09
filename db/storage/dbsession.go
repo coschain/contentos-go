@@ -9,6 +9,7 @@ import (
 type dbSession struct {
 	db Database
 	mem Database
+	changes []writeOp
 	removals map[string]bool
 	lock sync.RWMutex				// for internal struct data
 	dblock sync.RWMutex				// for database operations
@@ -20,31 +21,34 @@ func (db *dbSession) Close() {
 
 }
 
-func (db *dbSession) CommitToDbWriter(w DatabaseWriter) (err error) {
-	db.lock.RLock()
-	defer db.lock.RUnlock()
-
-	db.mem.Iterate(nil, nil, false, func(key, value []byte) bool {
-		err = w.Put(key, value)
-		return err == nil
-	})
-	if err == nil {
-		for k := range db.removals {
-			if err = w.Delete([]byte(k)); err != nil {
-				break
-			}
+func (db *dbSession) commitToDbWriter(w DatabaseWriter) (err error) {
+	db.lock.Lock()
+	defer db.lock.Unlock()
+	for _, op := range db.changes {
+		if op.Del {
+			err = w.Delete(op.Key)
+		} else {
+			err = w.Put(op.Key, op.Value)
+		}
+		if err != nil {
+			break
 		}
 	}
-	return
+	return err
 }
 
-// Commit all changes to underlying database
-func (db *dbSession) Commit() (err error) {
+// commit all changes to underlying database
+func (db *dbSession) commit() (err error) {
 	b := db.db.NewBatch()
-	if err = db.CommitToDbWriter(b); err != nil {
+	if err = db.commitToDbWriter(b); err != nil {
 		return err
 	}
-	return b.Write()
+	if err = b.Write(); err == nil {
+		// clear changes
+		db.changes = db.changes[:0]
+		db.removals = make(map[string]bool)
+	}
+	return err
 }
 
 func (db *dbSession) Has(key []byte) (bool, error) {
@@ -93,6 +97,12 @@ func (db *dbSession) put(key []byte, value []byte) error {
 		db.lock.Lock()
 		defer db.lock.Unlock()
 
+		// remember this operation
+		db.changes = append(db.changes, writeOp{
+			Key:   common.CopyBytes(key),
+			Value: common.CopyBytes(value),
+			Del:   false,
+		})
 		delete(db.removals, string(key))
 	}
 	return err
@@ -105,6 +115,12 @@ func (db *dbSession) delete(key []byte) error {
 		db.lock.Lock()
 		defer db.lock.Unlock()
 
+		// remember this operation
+		db.changes = append(db.changes, writeOp{
+			Key:   common.CopyBytes(key),
+			Value: nil,
+			Del:   true,
+		})
 		db.removals[string(key)] = true
 	}
 	return err

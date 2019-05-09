@@ -209,7 +209,7 @@ func (t *TrxMysqlService) handleLibNotification(lib uint64) {
 		data := blk.Id().Data
 		blockId := hex.EncodeToString(data[:])
 		blockTime := blk.Timestamp()
-		invoice, _ := json.Marshal(trx.Invoice)
+		invoice, _ := json.Marshal(trx.Receipt)
 		operations := PurgeOperation(trx.SigTrx.GetTrx().GetOperations())
 		operationsJson, _ := json.Marshal(operations)
 		//operation := trx.SigTrx.GetTrx().GetOperations()[0]

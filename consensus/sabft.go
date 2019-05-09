@@ -18,6 +18,7 @@ import (
 	"github.com/coschain/gobft"
 	"github.com/coschain/gobft/custom"
 	"github.com/coschain/gobft/message"
+	"github.com/sasha-s/go-deadlock"
 	"github.com/sirupsen/logrus"
 )
 
