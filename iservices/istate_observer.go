@@ -5,6 +5,8 @@ const (
 	Update
 	Replace
 	Delete
+	Add
+	Sub
 )
 type OpLog struct {
 	Action int

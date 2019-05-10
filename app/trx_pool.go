@@ -536,7 +536,7 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 	t2 := time.Now()
 
 	tinit := time.Now()
-	c.economist.Mint()
+	c.economist.Mint(pseudoTrxObserver)
 	tmint := time.Now()
 	c.economist.Do(pseudoTrxObserver)
 	tdo := time.Now()

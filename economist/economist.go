@@ -90,7 +90,7 @@ func (e *Economist) CalculatePerBlockBudget(annalBudget uint64) uint64 {
 	return annalBudget / (86400 / constants.BlockInterval * 365)
 }
 
-func (e *Economist) Mint() {
+func (e *Economist) Mint(trxObserver iservices.ITrxObserver) {
 	//blockCurrent := constants.PerBlockCurrent
 	//t0 := time.Now()
 	globalProps, err := e.GetProps()
@@ -150,6 +150,7 @@ func (e *Economist) Mint() {
 	//bpWrap.MdVestingShares(&prototype.Vest{Value: bpWrap.GetVestingShares().Value + bpReward})
 	mustNoError(bpRewardVesting.Add(bpWrap.GetVestingShares()), "bpRewardVesting overflow")
 	bpWrap.MdVestingShares(bpRewardVesting)
+	trxObserver.AddOpState(iservices.Add, "mint", globalProps.CurrentWitness.Value, bpReward)
 
 	e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
 		//props.PostRewards.Value += uint64(postReward)
@@ -261,7 +262,7 @@ func (e *Economist) Do(trxObserver iservices.ITrxObserver) {
 		e.log.Debugf("cashout replies length: %d", len(replies))
 		if len(replies) > 0 {
 			t := time.Now()
-			e.replyCashout(replies, rewards, dappRewards)
+			e.replyCashout(replies, rewards, dappRewards, trxObserver)
 			e.log.Debugf("cashout reply spend: %v", time.Now().Sub(t))
 		}
 	}
@@ -338,7 +339,7 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 				beneficiaryWrap.MdVestingShares(vestingRewards)
 				spentBeneficiaryReward += r
 				e.noticer.Publish(constants.NoticeCashout, name, post.GetPostId(), r, globalProps.GetHeadBlockNumber())
-				trxObserver.AddOpState(iservices.Insert, "cashout", name , r)
+				trxObserver.AddOpState(iservices.Add, "cashout", name , r)
 			}
 		}
 		if beneficiaryReward - spentBeneficiaryReward > 0 {
@@ -358,7 +359,7 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 		post.MdDappRewards(&prototype.Vest{Value: beneficiaryReward})
 		if reward > 0 {
 			e.noticer.Publish(constants.NoticeCashout, author, post.GetPostId(), reward, globalProps.GetHeadBlockNumber())
-			trxObserver.AddOpState(iservices.Insert, "cashout", author, reward)
+			trxObserver.AddOpState(iservices.Add, "cashout", author, reward)
 		}
 	}
 	e.log.Infof("cashout: [post] blockRewards: %d, blockDappRewards: %d, spendPostReward: %d, spendDappReward: %d",
@@ -432,7 +433,7 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 				beneficiaryWrap.MdVestingShares(vestingRewards)
 				spentBeneficiaryReward += r
 				e.noticer.Publish(constants.NoticeCashout, name, reply.GetPostId(), r, globalProps.GetHeadBlockNumber())
-				trxObserver.AddOpState(iservices.Insert, "cashout", name, r)
+				trxObserver.AddOpState(iservices.Add, "cashout", name, r)
 			}
 		}
 		if beneficiaryReward - spentBeneficiaryReward > 0 {
@@ -453,7 +454,7 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 		reply.MdDappRewards(&prototype.Vest{Value: beneficiaryReward})
 		if reward > 0 {
 			e.noticer.Publish(constants.NoticeCashout, author, reply.GetPostId(), reward, globalProps.GetHeadBlockNumber())
-			trxObserver.AddOpState(iservices.Insert, "cashout", author, reward)
+			trxObserver.AddOpState(iservices.Add, "cashout", author, reward)
 		}
 	}
 	e.log.Infof("cashout: [reply] blockRewards: %d, blockDappRewards: %d, spendPostReward: %d, spendDappReward: %d",
