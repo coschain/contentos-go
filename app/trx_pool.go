@@ -13,7 +13,6 @@ import (
 	"github.com/coschain/contentos-go/common/crypto"
 	"github.com/coschain/contentos-go/common/crypto/secp256k1"
 	"github.com/coschain/contentos-go/common/eventloop"
-	"github.com/coschain/contentos-go/economist"
 	"math"
 
 	"github.com/coschain/contentos-go/iservices"
@@ -42,7 +41,7 @@ type TrxPool struct {
 	shuffle                common.ShuffleFunc
 
 	iceberg   *BlockIceberg
-	economist *economist.Economist
+	economist *Economist
 	stateObserver *StateObserver
 	tm *TrxMgr
 	enableBAH bool
@@ -97,7 +96,7 @@ func (c *TrxPool) Start(node *node.Node) error {
 
 func (c *TrxPool) Open() {
 	c.iceberg = NewBlockIceberg(c.db, c.log, c.enableBAH)
-	c.economist = economist.New(c.db, c.noticer, &SingleId, c.log)
+	c.economist = NewEconomist(c.db, c.noticer, &SingleId, c.log)
 	c.stateObserver = NewStateObserver(c.noticer, c.log)
 	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
 	if !dgpWrap.CheckExist() {
@@ -109,7 +108,7 @@ func (c *TrxPool) Open() {
 
 		mustNoError(c.db.TagRevision(c.db.GetRevision(), GENESIS_TAG), "genesis tagging failed")
 		c.iceberg = NewBlockIceberg(c.db, c.log, c.enableBAH)
-		c.economist = economist.New(c.db, c.noticer, &SingleId, c.log)
+		c.economist = NewEconomist(c.db, c.noticer, &SingleId, c.log)
 		//c.log.Info("finish initGenesis")
 	}
 	commit, _ := c.iceberg.LastFinalizedBlock()

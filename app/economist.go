@@ -1,4 +1,4 @@
-package economist
+package app
 
 import (
 	"fmt"
@@ -30,13 +30,13 @@ type Economist struct {
 	log *logrus.Logger
 }
 
-func mustNoError(err error, val string) {
-	if err != nil {
-		panic(val + " : " + err.Error())
-	}
-}
+//func mustNoError(err error, val string) {
+//	if err != nil {
+//		panic(val + " : " + err.Error())
+//	}
+//}
 
-func New(db iservices.IDatabaseService, noticer EventBus.Bus, singleId *int32, log *logrus.Logger) *Economist {
+func NewEconomist(db iservices.IDatabaseService, noticer EventBus.Bus, singleId *int32, log *logrus.Logger) *Economist {
 	return &Economist{db: db, noticer:noticer, singleId: singleId, log: log}
 }
 
