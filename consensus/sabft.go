@@ -921,7 +921,7 @@ func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 		Data: commitRecords.ProposedData,
 	}
 
-	sabft.log.Infof("[SABFT] start to commit block #%d %v", blockID.BlockNum(), blockID)
+	sabft.log.Infof("[SABFT] start to commit block #%d %v %d", blockID.BlockNum(), blockID, commitRecords.FirstPrecommit().Height)
 	// if we're committing a block we don't have
 	blk, err := sabft.ForkDB.FetchBlock(blockID)
 	if err != nil {
