@@ -229,6 +229,13 @@ func initStateDb(cmd *cobra.Command, args []string) {
   last_check_time int unsigned not null
 );`
 
+	createStateLog := `create table statelog
+(
+  block_height int unsigned,
+  block_log json,
+  UNIQUE KEY statelog_block_height (block_height)
+);`
+
 	createStateAccount := `create table stateaccount
 (
   account varchar(64),
@@ -249,14 +256,14 @@ func initStateDb(cmd *cobra.Command, args []string) {
   cashout bigint unsigned default 0,
   unique key statecashout_account_index (account)
 );`
-	dropTables := []string{"stateloglibinfo", "stateaccount", "statemint", "statecashout"}
+	dropTables := []string{"statelog", "stateloglibinfo", "stateaccount", "statemint", "statecashout"}
 	for _, table := range dropTables {
 		dropSql := fmt.Sprintf("DROP TABLE IF EXISTS `%s`", table)
 		if _, err = db.Exec(dropSql); err != nil {
 			fmt.Println(err)
 		}
 	}
-	createTables := []string{createStateLogLibInfo, createStateAccount, createStateMint, createStateCashout}
+	createTables := []string{createStateLog, createStateLogLibInfo, createStateAccount, createStateMint, createStateCashout}
 	for _, table := range createTables {
 		if _, err = db.Exec(table); err != nil {
 			fmt.Println(err)

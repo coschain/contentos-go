@@ -4,6 +4,7 @@ import (
 	"container/heap"
 	"database/sql"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/common/constants"
@@ -87,6 +88,26 @@ func (s *StateLogService) Start(node *node.Node) error {
 	s.db = db
 
 	s.ev = node.EvBus
+
+	var lastLib uint64 = 0
+	s.db.QueryRow("select lib from stateloglibinfo limit 1", &lastLib)
+
+	rows, _ := s.db.Query("SELECT block_log from statelog WHERE block_height >= ?", lastLib)
+	for rows.Next() {
+		var log interface{}
+		var blockLog iservices.BlockLog
+		if err := rows.Scan(&log); err != nil {
+			s.log.Error(err)
+			continue
+		}
+		data := log.([]byte)
+		if err := json.Unmarshal(data, &blockLog); err != nil {
+			s.log.Error(err)
+			continue
+		}
+		s.logHeap.Push(&blockLog)
+	}
+	s.log.Debugf("[statelog] heap db length: %d\n", s.logHeap.Len())
 	heap.Init(&s.logHeap)
 	s.hookEvent()
 	s.ticker = time.NewTicker(time.Second)
@@ -229,6 +250,9 @@ func (s *StateLogService) unhookEvent() {
 
 func (s *StateLogService) onStateLogOperation(blockLog *iservices.BlockLog) {
 	//s.log.Debug("statelog", blockLog.BlockHeight, blockLog.BlockId, blockLog.Index, len(blockLog.TrxLogs))
+	blockHeight := blockLog.BlockHeight
+	blockLogJson, _ := json.Marshal(blockLog)
+	_, _ = s.db.Exec("INSERT IGNORE INTO statelog (block_height, block_log) VALUES (?, ?)", blockHeight, blockLogJson)
 	heap.Push(&s.logHeap, blockLog)
 }
 
