@@ -19,7 +19,7 @@ var DbCmd = func() *cobra.Command {
 
 	initCmd := &cobra.Command{
 		Use: "init",
-		Short: "initialize external db",
+		Short: "initialize all db",
 		Run: initAllDb,
 	}
 
@@ -56,9 +56,9 @@ var DbCmd = func() *cobra.Command {
 	trxCmd.AddCommand(trxInitCmd)
 	stateCmd.AddCommand(stateInitCmd)
 	dailyCmd.AddCommand(dailyInitCmd)
-	initCmd.AddCommand(trxCmd)
-	initCmd.AddCommand(stateCmd)
-	initCmd.AddCommand(dailyCmd)
+	cmd.AddCommand(trxCmd)
+	cmd.AddCommand(stateCmd)
+	cmd.AddCommand(dailyCmd)
 	cmd.AddCommand(initCmd)
 	return cmd
 }
@@ -229,27 +229,34 @@ func initStateDb(cmd *cobra.Command, args []string) {
   last_check_time int unsigned not null
 );`
 
-	createStateLog := `create table statelog
+	createStateAccount := `create table stateaccount
 (
-  id bigint unsigned primary key auto_increment,
-  block_id varchar(64),
-  block_height int unsigned,
-  trx_id varchar(64),
-  action smallint,
-  property varchar(64),
-  state json,
-  INDEX statelog_block_id_index (block_id),
-  INDEX statelog_block_height_index (block_height),
-  INDEX statelog_trx_id_index (trx_id)
+  account varchar(64),
+  balance bigint unsigned default 0,
+  UNIQUE Key stateaccount_account_index (account)
 );`
-	dropTables := []string{"stateloglibinfo", "statelog"}
+
+	createStateMint := `create table statemint
+(
+  bp varchar(64),
+  revenue bigint unsigned default 0,
+  unique key statemint_bp_index (bp)
+);`
+
+	createStateCashout := `create table statecashout
+(
+  account varchar(64),
+  cashout bigint unsigned default 0,
+  unique key statecashout_account_index (account)
+);`
+	dropTables := []string{"stateloglibinfo", "stateaccount", "statemint", "statecashout"}
 	for _, table := range dropTables {
 		dropSql := fmt.Sprintf("DROP TABLE IF EXISTS `%s`", table)
 		if _, err = db.Exec(dropSql); err != nil {
 			fmt.Println(err)
 		}
 	}
-	createTables := []string{createStateLogLibInfo, createStateLog}
+	createTables := []string{createStateLogLibInfo, createStateAccount, createStateMint, createStateCashout}
 	for _, table := range createTables {
 		if _, err = db.Exec(table); err != nil {
 			fmt.Println(err)
