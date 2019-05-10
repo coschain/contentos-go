@@ -4,7 +4,6 @@ import (
 	"container/heap"
 	"database/sql"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/common/constants"
@@ -153,12 +152,12 @@ func (s *StateLogService) handleLibNotification(lib uint64) {
 			break
 		}
 		if blockLog.BlockHeight == lib && blockLog.BlockId == blockId {
-			s.pushIntoDb(blockLog)
+			s.handleLog(blockLog)
 		}
 	}
 }
 
-func (s *StateLogService) pushIntoDb(blockLog *iservices.BlockLog) {
+func (s *StateLogService) handleLog(blockLog *iservices.BlockLog) {
 	blockId := blockLog.BlockId
 	blockHeight := blockLog.BlockHeight
 	trxLogs := blockLog.TrxLogs
@@ -171,15 +170,56 @@ func (s *StateLogService) pushIntoDb(blockLog *iservices.BlockLog) {
 			property := opLog.Property
 			target := opLog.Target
 			result := opLog.Result
-			data := make(map[string]interface{})
-			data[target] = result
-			jsonData, _ := json.Marshal(data)
-			_, err := s.db.Exec("INSERT INTO `statelog` (`block_id`, `block_height`, `trx_id`, `action`, `property`, `state`) " +
-				"values (?, ?, ?, ?, ?, ?)", blockId, blockHeight, trxId, action, property, jsonData)
-			s.log.Debug("[statelog]", err)
+			switch property {
+			case "balance":
+				s.handleBalance(blockId, trxId, action, target, result)
+			case "mint":
+				s.handleMint(blockId, trxId, action, target, result)
+			case "cashout":
+				s.handleCashout(blockId, trxId, action, target, result)
+			default:
+				s.log.Errorf("Unknown property: %s\n", property)
+			}
+			//s.pushIntoDb(blockId, blockHeight, trxId, action, property, target, result)
+			//data := make(map[string]interface{})
+			//data[target] = result
+			//jsonData, _ := json.Marshal(data)
+			//_, err := s.db.Exec("INSERT INTO `statelog` (`block_id`, `block_height`, `trx_id`, `action`, `property`, `state`) " +
+			//	"values (?, ?, ?, ?, ?, ?)", blockId, blockHeight, trxId, action, property, jsonData)
+			//s.log.Debug("[statelog]", err)
 		}
 	}
 }
+
+func (s *StateLogService) handleBalance(blockId string, trxId string, action int, target string, result interface{}) {
+	switch action {
+	case iservices.Replace:
+		_, _ = s.db.Exec("REPLACE INTO stateaccount (account, balance) VALUES (?, ?)", target, result.(uint64))
+	case iservices.Insert:
+		_, _ = s.db.Exec("INSERT INTO stateaccount (account, balance) VALUES (?, ?)", target, result.(uint64))
+	case iservices.Update:
+		_, _ = s.db.Exec("UPDATE stateaccount set balance=? where account=?", result.(uint64), target)
+	}
+}
+
+func (s *StateLogService) handleMint(blockId string, trxId string, action int, target string, result interface{}) {
+	switch action {
+	case iservices.Add:
+		var revenue uint64
+		_ = s.db.QueryRow("SELECT revenue from statemint").Scan(&revenue)
+		_, _ = s.db.Exec("REPLACE INTO statemint (bp, revenue) VALUES (?, ?)", target, revenue + result.(uint64))
+	}
+}
+
+func (s *StateLogService) handleCashout(blockId string, trxId string, action int, target string, result interface{}) {
+	switch action {
+	case iservices.Add:
+		var cashout uint64
+		_ = s.db.QueryRow("select cashout from statecashout").Scan(&cashout)
+		_, _ = s.db.Exec("REPLACE INTO statecashout (account, cashout) VALUES (?, ?)", target, cashout + result.(uint64))
+	}
+}
+
 
 func (s *StateLogService) hookEvent() {
 	_ = s.ev.Subscribe(constants.NoticeState, s.onStateLogOperation)
