@@ -159,10 +159,9 @@ func (s *StateLogService) handleLibNotification(lib uint64) {
 
 func (s *StateLogService) handleLog(blockLog *iservices.BlockLog) {
 	blockId := blockLog.BlockId
-	blockHeight := blockLog.BlockHeight
+	//blockHeight := blockLog.BlockHeight
 	trxLogs := blockLog.TrxLogs
 	for _, trxLog := range trxLogs {
-		s.log.Debugf("[statelog] trxlog: blockNum:%d, %v", blockHeight, trxLog)
 		trxId := trxLog.TrxId
 		opLogs := trxLog.OpLogs
 		for _, opLog := range opLogs {

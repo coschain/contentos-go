@@ -29,7 +29,6 @@ func (s *StateObserver) NewTrxObserver() *TrxLogger{
 
 func (s *StateObserver) EndBlock(blockId string) {
 	if len(blockId) > 0 {
-		s.log.Debugf("[statelog] trxlog: observer: blockNum %d, %v\n", s.blockNum, s.trxLogs)
 		s.noticer.Publish(constants.NoticeState, &iservices.BlockLog{BlockHeight: s.blockNum, BlockId: blockId, TrxLogs: s.trxLogs})
 		s.trxLogs = nil
 	}
@@ -53,8 +52,6 @@ func (t *TrxLogger) BeginTrx(trxId string) {
 func (t *TrxLogger) AddOpState(action int, property string, target string, result interface{}) {
 	opLog := iservices.OpLog{Action: action, Property: property, Target: target, Result: result}
 	t.opLogs = append(t.opLogs, opLog)
-	//s.log.Debugf("[statelog] trxlog: observer: AddOpState, %v", )
-	t.observer.log.Debugf("[statelog] trxlog: observer: AddOpState, %v", opLog)
 }
 
 func (t *TrxLogger) EndTrx(keep bool) {
