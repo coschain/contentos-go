@@ -478,7 +478,10 @@ func (sabft *SABFT) Stop() error {
 	sabft.log.Info("SABFT consensus stopped.")
 
 	// stop bft process
-	sabft.bft.Stop()
+	if atomic.LoadUint32(&sabft.bftStarted) == 1 {
+		sabft.bft.Stop()
+		sabft.log.Info("[SABFT] gobft stopped...")
+	}
 
 	// restore uncommitted forkdb
 	cfg := sabft.ctx.Config()
@@ -687,7 +690,7 @@ func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 		sabft.log.Debug("reach checkpoint at ", checkPoint.ProposedData)
 
 		// if we're a validator, pass it to gobft so that it can catch up
-		if sabft.isValidatorName(sabft.Name) {
+		if sabft.isValidatorName(sabft.Name) && atomic.LoadUint32(&sabft.bftStarted) == 1 {
 			sabft.log.Warn("pass commits to gobft ", checkPoint.ProposedData)
 			sabft.bft.RecvMsg(checkPoint)
 			return

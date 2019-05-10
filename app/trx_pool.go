@@ -13,6 +13,7 @@ import (
 	"github.com/coschain/contentos-go/common/crypto/secp256k1"
 	"github.com/coschain/contentos-go/common/eventloop"
 	"github.com/coschain/contentos-go/economist"
+	"github.com/coschain/contentos-go/utils"
 	"math"
 
 	"github.com/coschain/contentos-go/iservices"
@@ -43,6 +44,9 @@ type TrxPool struct {
 	iceberg   *BlockIceberg
 	economist *economist.Economist
 	tm *TrxMgr
+
+	resourceLimiter utils.IResourceLimiter
+	enableBAH bool
 }
 
 func (c *TrxPool) getDb() (iservices.IDatabaseService, error) {
@@ -77,7 +81,7 @@ func NewController(ctx *node.ServiceContext, lg *logrus.Logger) (*TrxPool, error
 		lg = logrus.New()
 		lg.SetOutput(ioutil.Discard)
 	}
-	return &TrxPool{ctx: ctx, log: lg}, nil
+	return &TrxPool{ctx: ctx, log: lg, enableBAH:true}, nil
 }
 
 func (c *TrxPool) Start(node *node.Node) error {
@@ -93,7 +97,7 @@ func (c *TrxPool) Start(node *node.Node) error {
 }
 
 func (c *TrxPool) Open() {
-	c.iceberg = NewBlockIceberg(c.db, c.log)
+	c.iceberg = NewBlockIceberg(c.db, c.log, c.enableBAH)
 	c.economist = economist.New(c.db, c.noticer, &SingleId, c.log)
 	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
 	if !dgpWrap.CheckExist() {
@@ -104,13 +108,14 @@ func (c *TrxPool) Open() {
 		c.initGenesis()
 
 		mustNoError(c.db.TagRevision(c.db.GetRevision(), GENESIS_TAG), "genesis tagging failed")
-		c.iceberg = NewBlockIceberg(c.db, c.log)
+		c.iceberg = NewBlockIceberg(c.db, c.log, c.enableBAH)
 		c.economist = economist.New(c.db, c.noticer, &SingleId, c.log)
 		//c.log.Info("finish initGenesis")
 	}
 	commit, _ := c.iceberg.LastFinalizedBlock()
 	latest, _, _ := c.iceberg.LatestBlock()
 	c.tm = NewTrxMgr(c.db, c.log, latest, commit)
+	c.resourceLimiter = utils.NewResourceLimiter()
 }
 
 func (c *TrxPool) Stop() error {
@@ -121,9 +126,9 @@ func (c *TrxPool) PushTrxToPending(trx *prototype.SignedTransaction) (err error)
 	return c.tm.AddTrx(trx, nil)
 }
 
-func (c *TrxPool) PushTrx(trx *prototype.SignedTransaction) (invoice *prototype.TransactionReceiptWithInfo) {
-	rc := make(chan *prototype.TransactionReceiptWithInfo)
-	_ = c.tm.AddTrx(trx, func(result *prototype.EstimateTrxResult) {
+func (c *TrxPool) PushTrx(trx *prototype.SignedTransaction) (invoice *prototype.TransactionReceipt) {
+	rc := make(chan *prototype.TransactionReceipt)
+	_ = c.tm.AddTrx(trx, func(result *prototype.TransactionWrapper) {
 		rc <- result.Receipt
 	})
 	return <-rc
@@ -235,7 +240,6 @@ func (c *TrxPool) GenerateBlock(witness string, pre *prototype.Sha256, timestamp
 	priKey *prototype.PrivateKeyType, skip prototype.SkipFlag) (b *prototype.SignedBlock, e error) {
 
 	entryTime := time.Now()
-
 	c.db.Lock()
 	defer c.db.Unlock()
 
@@ -325,7 +329,7 @@ func (c *TrxPool) generateBlockNoLock(witness string, pre *prototype.Sha256, tim
 				failedTrx = append(failedTrx, entry)
 			} else {
 				sizeLimit -= entry.GetTrxSize()
-				signBlock.Transactions = append(signBlock.Transactions, result.ToTrxWrapper())
+				signBlock.Transactions = append(signBlock.Transactions, result)
 			}
 		}
 		if sizeLimit <= 0 {
@@ -339,14 +343,13 @@ func (c *TrxPool) generateBlockNoLock(witness string, pre *prototype.Sha256, tim
 	t2 := time.Now()
 
 	signBlock.SignedHeader.Header.Previous = pre
+	signBlock.SignedHeader.Header.PrevApplyHash = c.iceberg.LatestBlockApplyHash()
 	signBlock.SignedHeader.Header.Timestamp = &prototype.TimePointSec{UtcSeconds: timestamp}
 	id := signBlock.CalculateMerkleRoot()
 	signBlock.SignedHeader.Header.TransactionMerkleRoot = &prototype.Sha256{Hash: id.Data[:]}
 	signBlock.SignedHeader.Header.Witness = &prototype.AccountName{Value: witness}
 	signBlock.SignedHeader.WitnessSignature = &prototype.SignatureType{}
 	_ = signBlock.SignedHeader.Sign(priKey)
-
-	mustSuccess(proto.Size(signBlock) <= constants.MaxBlockSize, "block size too big")
 
 	if len(failedTrx) > 0 {
 		c.tm.ReturnTrx(failedTrx...)
@@ -382,7 +385,7 @@ func (c *TrxPool) notifyBlockApply(block *prototype.SignedBlock) {
 }
 
 func (c *TrxPool) notifyTrxApplyResult(trx *prototype.SignedTransaction, res bool,
-	receipt *prototype.TransactionReceiptWithInfo) {
+	receipt *prototype.TransactionReceipt) {
 	c.noticer.Publish(constants.NoticeTrxApplied, trx, receipt)
 }
 
@@ -390,24 +393,47 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabasePatch, entry *TrxEn
 	result := entry.GetTrxResult()
 	receipt, sigTrx := result.GetReceipt(), result.GetSigTrx()
 
+	trxContext := NewTrxContextWithSigningKey(result, db, entry.GetTrxSigningKey(),c)
+//	if c.ctx.Config().ResourceCheck {
+//	}
+
+	trxDB := db.NewPatch()
+
 	defer func() {
+		useGas := trxContext.HasGasFee()
+		//c.PayGas(trxContext)
 		if err := recover(); err != nil {
-			receipt.Status = prototype.StatusError
 			receipt.ErrorInfo = fmt.Sprintf("applyTransaction failed : %v", err)
-			c.notifyTrxApplyResult(sigTrx, false, receipt)
-			panic(receipt.ErrorInfo)
+			if useGas {
+				receipt.Status = prototype.StatusDeductGas
+				c.notifyTrxApplyResult(sigTrx, true, receipt)
+			} else {
+				receipt.Status = prototype.StatusError
+				c.notifyTrxApplyResult(sigTrx, false, receipt)
+				panic(receipt.ErrorInfo)
+			}
 		} else {
+			// commit changes to db
+			_ = trxDB.Apply()
 			receipt.Status = prototype.StatusSuccess
 			c.notifyTrxApplyResult(sigTrx, true, receipt)
-			return
 		}
+		c.PayGas(db,trxContext)
 	}()
 
-	trxContext := NewTrxContextWithSigningKey(result, db, entry.GetTrxSigningKey())
+	trxContext.CheckNet(db, uint64(proto.Size(sigTrx)))
+
 	for _, op := range sigTrx.Trx.Operations {
 		trxContext.StartNextOp()
 		c.applyOperation(trxContext, op)
 	}
+}
+
+func (c *TrxPool) PayGas(db iservices.IDatabaseRW, trxContext *TrxContext) {
+	trxContext.DeductAllCpu(db)
+	trxContext.DeductAllNet(db)
+	trxContext.Finalize()
+	return
 }
 
 func (c *TrxPool) applyOperation(trxCtx *TrxContext, op *prototype.Operation) {
@@ -484,12 +510,32 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 			applyTime += int64(time.Now().Sub(t00))
 			invoiceOK := true
 			for j := 0; j < d; j++ {
-				if entries[i + j].GetTrxResult().Receipt.Status != blk.Transactions[i + j].Invoice.Status {
-					c.log.Errorf("InvoiceMismatch: expect_status=%d, status=%d, err=%s. trx #%d of block %d",
-						blk.Transactions[i + j].Invoice.Status,
-						entries[i + j].GetTrxResult().Receipt.Status,
-						entries[i + j].GetTrxResult().Receipt.ErrorInfo,
-						i + j,
+				if entries[i + j].GetTrxResult().Receipt.Status != blk.Transactions[i + j].Receipt.Status {
+					if blk.Transactions[i + j].Receipt.Status == prototype.StatusSuccess &&
+						entries[i + j].GetTrxResult().Receipt.Status == prototype.StatusDeductGas {
+					} else {
+						c.log.Errorf("InvoiceMismatch: expect_status=%d, status=%d, err=%s. trx #%d of block %d",
+							blk.Transactions[i+j].Receipt.Status,
+							entries[i+j].GetTrxResult().Receipt.Status,
+							entries[i+j].GetTrxResult().Receipt.ErrorInfo,
+							i+j,
+							blk.Id().BlockNum())
+						invoiceOK = false
+					}
+				}
+				if entries[i+j].GetTrxResult().Receipt.NetUsage != blk.Transactions[i+j].Receipt.NetUsage {
+					c.log.Errorf("InvoiceMismatch: expect_net_usage=%d, net_usage=%d, trx #%d of block %d",
+						blk.Transactions[i+j].Receipt.NetUsage,
+						entries[i+j].GetTrxResult().Receipt.NetUsage,
+						i+j,
+						blk.Id().BlockNum())
+					invoiceOK = false
+				}
+				if entries[i+j].GetTrxResult().Receipt.CpuUsage != blk.Transactions[i+j].Receipt.CpuUsage {
+					c.log.Errorf("InvoiceMismatch: expect_cpu_usage=%d, cpu_usage=%d, trx #%d of block %d",
+						blk.Transactions[i+j].Receipt.CpuUsage,
+						entries[i+j].GetTrxResult().Receipt.CpuUsage,
+						i+j,
 						blk.Id().BlockNum())
 					invoiceOK = false
 				}
@@ -583,8 +629,8 @@ func (c *TrxPool) initGenesis() {
 	mustNoError(newAccountWrap.Create(func(tInfo *table.SoAccount) {
 		tInfo.Name = name
 		tInfo.CreatedTime = &prototype.TimePointSec{UtcSeconds: 0}
-		tInfo.Balance = prototype.NewCoin(constants.COSInitSupply - 1000)
-		tInfo.VestingShares = prototype.NewVest(1000)
+		tInfo.Balance = prototype.NewCoin(constants.COSInitSupply)
+		tInfo.VestingShares = prototype.NewVest(0)
 		tInfo.LastPostTime = &prototype.TimePointSec{UtcSeconds: 0}
 		tInfo.LastVoteTime = &prototype.TimePointSec{UtcSeconds: 0}
 		tInfo.NextPowerdownBlockNum = math.MaxUint32
@@ -592,6 +638,7 @@ func (c *TrxPool) initGenesis() {
 		tInfo.ToPowerdown = &prototype.Vest{Value: 0}
 		tInfo.HasPowerdown = &prototype.Vest{Value: 0}
 		tInfo.Owner = pubKey
+		tInfo.StakeVesting = prototype.NewVest(0)
 	}), "CreateAccount error")
 
 	// create account authority
@@ -638,6 +685,7 @@ func (c *TrxPool) initGenesis() {
 		tInfo.Props.PostDappRewards = prototype.NewVest(0)
 		tInfo.Props.ReplyDappRewards = prototype.NewVest(0)
 		tInfo.Props.VoterRewards = prototype.NewVest(0)
+		tInfo.Props.StakeVestingShares = prototype.NewVest(0)
 	}), "CreateDynamicGlobalProperties error")
 
 	//create rewards keeper
@@ -713,6 +761,19 @@ func (c *TrxPool) validateBlockHeader(blk *prototype.SignedBlock) {
 	res, err := blk.SignedHeader.ValidateSig(pubKey)
 	if !res || err != nil {
 		panic("ValidateSig error")
+	}
+
+	if c.enableBAH {
+		ver, hash := c.iceberg.LatestBlockApplyHashUnpacked()
+		bVer, bHash := common.UnpackBlockApplyHash(blk.SignedHeader.Header.PrevApplyHash)
+		if ver != bVer {
+			c.log.Warnf("BlockApplyHashWarn: version mismatch. block %d (by %s): %08x, me: %08x",
+				blk.SignedHeader.Number(), blk.SignedHeader.Header.Witness.Value, bVer, ver)
+		} else if hash != bHash {
+			c.log.Errorf("BlockApplyHashError: block %d (by %s): %08x, me: %08x",
+				blk.SignedHeader.Number(), blk.SignedHeader.Header.Witness.Value, bHash, hash)
+			panic("block apply hash not equal")
+		}
 	}
 
 	// witness schedule check
@@ -1048,4 +1109,32 @@ func (c *TrxPool) SyncPushedBlocksToDB(blkList []common.ISignedBlock) (err error
 		}
 	}
 	return err
+}
+
+func (c *TrxPool) GetRemainStamina(name string) uint64 {
+	wraper := table.NewSoGlobalWrap(c.db, &constants.GlobalId)
+	gp := wraper.GetProps()
+	return c.resourceLimiter.GetStakeLeft(c.db, name, gp.HeadBlockNumber)
+}
+
+func (c *TrxPool) GetRemainFreeStamina(name string) uint64 {
+	wraper := table.NewSoGlobalWrap(c.db, &constants.GlobalId)
+	gp := wraper.GetProps()
+	return c.resourceLimiter.GetFreeLeft(c.db, name, gp.HeadBlockNumber)
+}
+
+func (c *TrxPool) GetStaminaMax(name string) uint64 {
+	return c.resourceLimiter.GetCapacity(c.db, name)
+}
+
+func (c *TrxPool) GetStaminaFreeMax() uint64 {
+	return c.resourceLimiter.GetCapacityFree()
+}
+
+func (c *TrxPool) GetAllRemainStamina(name string) uint64 {
+	return c.GetRemainStamina(name) + c.GetRemainFreeStamina(name)
+}
+
+func (c *TrxPool) GetAllStaminaMax(name string) uint64 {
+	return c.GetStaminaMax(name) + c.GetStaminaFreeMax()
 }

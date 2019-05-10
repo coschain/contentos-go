@@ -2,6 +2,8 @@ package app
 
 import (
 	"fmt"
+	"github.com/coschain/contentos-go/common/constants"
+	"github.com/coschain/contentos-go/node"
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common"
@@ -420,11 +422,53 @@ func clearDB(db iservices.IDatabaseService) {
 func startController(db iservices.IDatabaseService) *TrxPool {
 	log, err := mylog.NewMyLog(logPath, mylog.DebugLevel, 0)
 	mustNoError(err, "new log error")
-	c, _ := NewController(nil, log.Logger)
+	ctx := makeCtx()
+	c, _ := NewController(ctx, log.Logger)
 	c.SetDB(db)
 	c.SetBus(EventBus.New())
 	c.Open()
 	c.SetShuffle(func(block common.ISignedBlock) {
 	})
 	return c
+}
+
+var stopChan = make(chan int,1)
+var tick *time.Ticker
+
+func startGenerateBlock(c *TrxPool) {
+	pre := &prototype.Sha256{Hash: make([]byte, 32)}
+	var startTime uint32 = 0
+	pri, err := prototype.PrivateKeyFromWIF(constants.InitminerPrivKey)
+	if err != nil {
+		panic(err)
+	}
+	tick = time.NewTicker(1 * time.Second)
+	for {
+		select {
+		case <-stopChan:
+			return
+		case <-tick.C:
+			block,err := c.GenerateAndApplyBlock(constants.COSInitMiner,pre,startTime,pri,0)
+			if err != nil {
+				panic(err)
+			}
+			id := block.Id()
+			pre = &prototype.Sha256{Hash: id.Data[:]}
+			startTime++
+		}
+	}
+}
+
+func stopGenerateBlock() {
+	tick.Stop()
+	stopChan <- 1
+}
+
+func makeCtx() (*node.ServiceContext) {
+   var cfg = &node.Config{}
+   //cfg.ResourceCheck = true
+   ctx := &node.ServiceContext{}
+   ctx.ResetConfig(cfg)
+   ctx.ResetServices(nil)
+   return ctx
 }

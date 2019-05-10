@@ -40,7 +40,7 @@ func (m *SoWitness) Reset()         { *m = SoWitness{} }
 func (m *SoWitness) String() string { return proto.CompactTextString(m) }
 func (*SoWitness) ProtoMessage()    {}
 func (*SoWitness) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_witness_275c06a8f763ada4, []int{0}
+	return fileDescriptor_so_witness_17f8402957808d9a, []int{0}
 }
 func (m *SoWitness) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoWitness.Unmarshal(m, b)
@@ -148,7 +148,7 @@ func (m *SoMemWitnessByOwner) Reset()         { *m = SoMemWitnessByOwner{} }
 func (m *SoMemWitnessByOwner) String() string { return proto.CompactTextString(m) }
 func (*SoMemWitnessByOwner) ProtoMessage()    {}
 func (*SoMemWitnessByOwner) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_witness_275c06a8f763ada4, []int{1}
+	return fileDescriptor_so_witness_17f8402957808d9a, []int{1}
 }
 func (m *SoMemWitnessByOwner) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemWitnessByOwner.Unmarshal(m, b)
@@ -186,7 +186,7 @@ func (m *SoMemWitnessByCreatedTime) Reset()         { *m = SoMemWitnessByCreated
 func (m *SoMemWitnessByCreatedTime) String() string { return proto.CompactTextString(m) }
 func (*SoMemWitnessByCreatedTime) ProtoMessage()    {}
 func (*SoMemWitnessByCreatedTime) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_witness_275c06a8f763ada4, []int{2}
+	return fileDescriptor_so_witness_17f8402957808d9a, []int{2}
 }
 func (m *SoMemWitnessByCreatedTime) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemWitnessByCreatedTime.Unmarshal(m, b)
@@ -224,7 +224,7 @@ func (m *SoMemWitnessByUrl) Reset()         { *m = SoMemWitnessByUrl{} }
 func (m *SoMemWitnessByUrl) String() string { return proto.CompactTextString(m) }
 func (*SoMemWitnessByUrl) ProtoMessage()    {}
 func (*SoMemWitnessByUrl) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_witness_275c06a8f763ada4, []int{3}
+	return fileDescriptor_so_witness_17f8402957808d9a, []int{3}
 }
 func (m *SoMemWitnessByUrl) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemWitnessByUrl.Unmarshal(m, b)
@@ -262,7 +262,7 @@ func (m *SoMemWitnessByVoteCount) Reset()         { *m = SoMemWitnessByVoteCount
 func (m *SoMemWitnessByVoteCount) String() string { return proto.CompactTextString(m) }
 func (*SoMemWitnessByVoteCount) ProtoMessage()    {}
 func (*SoMemWitnessByVoteCount) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_witness_275c06a8f763ada4, []int{4}
+	return fileDescriptor_so_witness_17f8402957808d9a, []int{4}
 }
 func (m *SoMemWitnessByVoteCount) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemWitnessByVoteCount.Unmarshal(m, b)
@@ -300,7 +300,7 @@ func (m *SoMemWitnessByLastConfirmedBlockNum) Reset()         { *m = SoMemWitnes
 func (m *SoMemWitnessByLastConfirmedBlockNum) String() string { return proto.CompactTextString(m) }
 func (*SoMemWitnessByLastConfirmedBlockNum) ProtoMessage()    {}
 func (*SoMemWitnessByLastConfirmedBlockNum) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_witness_275c06a8f763ada4, []int{5}
+	return fileDescriptor_so_witness_17f8402957808d9a, []int{5}
 }
 func (m *SoMemWitnessByLastConfirmedBlockNum) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemWitnessByLastConfirmedBlockNum.Unmarshal(m, b)
@@ -338,7 +338,7 @@ func (m *SoMemWitnessByTotalMissed) Reset()         { *m = SoMemWitnessByTotalMi
 func (m *SoMemWitnessByTotalMissed) String() string { return proto.CompactTextString(m) }
 func (*SoMemWitnessByTotalMissed) ProtoMessage()    {}
 func (*SoMemWitnessByTotalMissed) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_witness_275c06a8f763ada4, []int{6}
+	return fileDescriptor_so_witness_17f8402957808d9a, []int{6}
 }
 func (m *SoMemWitnessByTotalMissed) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemWitnessByTotalMissed.Unmarshal(m, b)
@@ -376,7 +376,7 @@ func (m *SoMemWitnessByPowWorker) Reset()         { *m = SoMemWitnessByPowWorker
 func (m *SoMemWitnessByPowWorker) String() string { return proto.CompactTextString(m) }
 func (*SoMemWitnessByPowWorker) ProtoMessage()    {}
 func (*SoMemWitnessByPowWorker) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_witness_275c06a8f763ada4, []int{7}
+	return fileDescriptor_so_witness_17f8402957808d9a, []int{7}
 }
 func (m *SoMemWitnessByPowWorker) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemWitnessByPowWorker.Unmarshal(m, b)
@@ -414,7 +414,7 @@ func (m *SoMemWitnessBySigningKey) Reset()         { *m = SoMemWitnessBySigningK
 func (m *SoMemWitnessBySigningKey) String() string { return proto.CompactTextString(m) }
 func (*SoMemWitnessBySigningKey) ProtoMessage()    {}
 func (*SoMemWitnessBySigningKey) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_witness_275c06a8f763ada4, []int{8}
+	return fileDescriptor_so_witness_17f8402957808d9a, []int{8}
 }
 func (m *SoMemWitnessBySigningKey) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemWitnessBySigningKey.Unmarshal(m, b)
@@ -452,7 +452,7 @@ func (m *SoMemWitnessByLastWork) Reset()         { *m = SoMemWitnessByLastWork{}
 func (m *SoMemWitnessByLastWork) String() string { return proto.CompactTextString(m) }
 func (*SoMemWitnessByLastWork) ProtoMessage()    {}
 func (*SoMemWitnessByLastWork) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_witness_275c06a8f763ada4, []int{9}
+	return fileDescriptor_so_witness_17f8402957808d9a, []int{9}
 }
 func (m *SoMemWitnessByLastWork) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemWitnessByLastWork.Unmarshal(m, b)
@@ -490,7 +490,7 @@ func (m *SoMemWitnessByRunningVersion) Reset()         { *m = SoMemWitnessByRunn
 func (m *SoMemWitnessByRunningVersion) String() string { return proto.CompactTextString(m) }
 func (*SoMemWitnessByRunningVersion) ProtoMessage()    {}
 func (*SoMemWitnessByRunningVersion) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_witness_275c06a8f763ada4, []int{10}
+	return fileDescriptor_so_witness_17f8402957808d9a, []int{10}
 }
 func (m *SoMemWitnessByRunningVersion) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemWitnessByRunningVersion.Unmarshal(m, b)
@@ -528,7 +528,7 @@ func (m *SoMemWitnessByLastAslot) Reset()         { *m = SoMemWitnessByLastAslot
 func (m *SoMemWitnessByLastAslot) String() string { return proto.CompactTextString(m) }
 func (*SoMemWitnessByLastAslot) ProtoMessage()    {}
 func (*SoMemWitnessByLastAslot) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_witness_275c06a8f763ada4, []int{11}
+	return fileDescriptor_so_witness_17f8402957808d9a, []int{11}
 }
 func (m *SoMemWitnessByLastAslot) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemWitnessByLastAslot.Unmarshal(m, b)
@@ -566,7 +566,7 @@ func (m *SoListWitnessByOwner) Reset()         { *m = SoListWitnessByOwner{} }
 func (m *SoListWitnessByOwner) String() string { return proto.CompactTextString(m) }
 func (*SoListWitnessByOwner) ProtoMessage()    {}
 func (*SoListWitnessByOwner) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_witness_275c06a8f763ada4, []int{12}
+	return fileDescriptor_so_witness_17f8402957808d9a, []int{12}
 }
 func (m *SoListWitnessByOwner) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoListWitnessByOwner.Unmarshal(m, b)
@@ -605,7 +605,7 @@ func (m *SoListWitnessByVoteCount) Reset()         { *m = SoListWitnessByVoteCou
 func (m *SoListWitnessByVoteCount) String() string { return proto.CompactTextString(m) }
 func (*SoListWitnessByVoteCount) ProtoMessage()    {}
 func (*SoListWitnessByVoteCount) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_witness_275c06a8f763ada4, []int{13}
+	return fileDescriptor_so_witness_17f8402957808d9a, []int{13}
 }
 func (m *SoListWitnessByVoteCount) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoListWitnessByVoteCount.Unmarshal(m, b)
@@ -650,7 +650,7 @@ func (m *SoUniqueWitnessByOwner) Reset()         { *m = SoUniqueWitnessByOwner{}
 func (m *SoUniqueWitnessByOwner) String() string { return proto.CompactTextString(m) }
 func (*SoUniqueWitnessByOwner) ProtoMessage()    {}
 func (*SoUniqueWitnessByOwner) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_witness_275c06a8f763ada4, []int{14}
+	return fileDescriptor_so_witness_17f8402957808d9a, []int{14}
 }
 func (m *SoUniqueWitnessByOwner) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoUniqueWitnessByOwner.Unmarshal(m, b)
@@ -696,10 +696,10 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("app/table/so_witness.proto", fileDescriptor_so_witness_275c06a8f763ada4)
+	proto.RegisterFile("app/table/so_witness.proto", fileDescriptor_so_witness_17f8402957808d9a)
 }
 
-var fileDescriptor_so_witness_275c06a8f763ada4 = []byte{
+var fileDescriptor_so_witness_17f8402957808d9a = []byte{
 	// 590 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xa4, 0x95, 0x5b, 0x6f, 0xd3, 0x30,
 	0x14, 0xc7, 0xe5, 0xdd, 0x58, 0x4f, 0xc7, 0x2d, 0x62, 0x9a, 0x29, 0x0c, 0x75, 0x79, 0xa1, 0x4c,

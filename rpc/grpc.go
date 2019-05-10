@@ -7,6 +7,7 @@ import (
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/common/eventloop"
+	"github.com/coschain/contentos-go/common/variables"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/prototype"
@@ -14,6 +15,7 @@ import (
 	"github.com/coschain/contentos-go/vm/contract/abi"
 	contractTable "github.com/coschain/contentos-go/vm/contract/table"
 	"github.com/coschain/gobft/message"
+	"github.com/coschain/contentos-go/utils"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"math"
@@ -825,6 +827,10 @@ func (as *APIService) getAccountResponseByName(name *prototype.AccountName, isNe
 	acct := &grpcpb.AccountResponse{}
 	acctInfo := &grpcpb.AccountInfo{}
 
+	rc := utils.NewResourceLimiter()
+	wraper := table.NewSoGlobalWrap(as.db, &constants.GlobalId)
+	gp := wraper.GetProps()
+
 	if accWrap != nil && accWrap.CheckExist() {
 		acctInfo.AccountName = &prototype.AccountName{Value: accWrap.GetName().Value}
 		acctInfo.Coin = accWrap.GetBalance()
@@ -833,6 +839,7 @@ func (as *APIService) getAccountResponseByName(name *prototype.AccountName, isNe
 		acctInfo.PostCount = accWrap.GetPostCount()
 		acctInfo.TrxCount = accWrap.GetCreatedTrxCount()
 		acctInfo.VotePower = accWrap.GetVotePower()
+		acctInfo.StakeVest = accWrap.GetStakeVesting()
 
 		witWrap := table.NewSoWitnessWrap(as.db, accWrap.GetName())
 		if witWrap != nil && witWrap.CheckExist() {
@@ -860,6 +867,9 @@ func (as *APIService) getAccountResponseByName(name *prototype.AccountName, isNe
 			acctInfo.FollowerCount = followWrap.GetFollowerCnt()
 			acctInfo.FollowingCount = followWrap.GetFollowingCnt()
 		}
+		acctInfo.StaminaFreeRemain = rc.GetFreeLeft(as.db, accWrap.GetName().Value, gp.HeadBlockNumber)
+		acctInfo.StaminaStakeRemain = rc.GetStakeLeft(as.db, accWrap.GetName().Value, gp.HeadBlockNumber)
+		acctInfo.StaminaMax = rc.GetCapacity(as.db, accWrap.GetName().Value) + rc.GetCapacityFree()
 		acct.Info = acctInfo
 		acct.State = as.getState()
 
@@ -1019,7 +1029,7 @@ func (as *APIService) fetchPostInfoResponseById(postId uint64,isNeedLock bool) *
 			Rewards:       pWrap.GetRewards(),
 			DappRewards:   pWrap.GetDappRewards(),
 			WeightedVp:    pWrap.GetWeightedVp(),
-			CashoutInterval:   constants.PostCashOutDelayBlock,
+			CashoutInterval:   variables.PostCashOutDelayBlock(),
 			GlobalRewards: &prototype.Vest{Value: globalRewards},
 			GlobalWeightedVp: globalWeightedVp,
 		}

@@ -15,6 +15,32 @@ import (
 
 var nameLib = "abcdefghijklmnopqrstuvwxyz01234567890"
 
+func stake(rpcClient grpcpb.ApiServiceClient, act *wallet.PrivAccount, amount uint64) {
+	stkop := &prototype.StakeOperation{
+		Account:        &prototype.AccountName{Value: act.Name},
+		Amount:            amount,
+	}
+
+	signTx, err := utils.GenerateSignedTxAndValidate2(rpcClient, []interface{}{stkop}, act)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	//fmt.Println("Request command: ", fmt.Sprintf("create %s %s", creatorAccount.Name, newAccountName) )
+
+	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
+	resp, err := rpcClient.BroadcastTrx(context.Background(), req)
+	if err != nil {
+		fmt.Println("stake error:",err)
+	} else {
+		fmt.Println("Request command: ",
+			fmt.Sprintf("stake %s ", act.Name),
+			" ",
+			fmt.Sprintf("Result: %v", resp))
+	}
+}
+
 func createAccount(mywallet *wallet.BaseWallet, rpcClient grpcpb.ApiServiceClient, creatorAccount *wallet.PrivAccount, newAccountName string) {
 
 	if creatorAccount == nil {
@@ -58,7 +84,7 @@ func createAccount(mywallet *wallet.BaseWallet, rpcClient grpcpb.ApiServiceClien
 		return
 	}
 
-	fmt.Println("Request command: ", fmt.Sprintf("create %s %s", creatorAccount.Name, newAccountName) )
+	//fmt.Println("Request command: ", fmt.Sprintf("create %s %s", creatorAccount.Name, newAccountName) )
 
 	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
 	resp, err := rpcClient.BroadcastTrx(context.Background(), req)
@@ -86,14 +112,23 @@ func createAccount(mywallet *wallet.BaseWallet, rpcClient grpcpb.ApiServiceClien
 				fmt.Println(err)
 				return
 			}
+			fmt.Println(fmt.Sprintf("====== createaccount from:%v to:%v amount:%v",GlobalAccountLIst.arr[0].Name,creatorAccount.Name,5))
 			createAccount(mywallet, rpcClient, creatorAccount, newAccountName)
 			return
+		}
+		if strings.Contains(resp.Invoice.ErrorInfo,"net resource not enough") {
+			stake(rpcClient,creatorAccount,1)
 		}
 		fmt.Println("Request command: ",
 			fmt.Sprintf("create %s %s", creatorAccount.Name, newAccountName),
 			" ",
 			fmt.Sprintf("Result: %v", resp))
 	}
+	// give new account 1 coin and let him stake
+	toAccount := &wallet.PrivAccount{}
+	toAccount.Name = newAccountName
+	transfer(rpcClient,creatorAccount,toAccount,1)
+	stake(rpcClient,toAccount,1)
 }
 
 func transfer(rpcClient grpcpb.ApiServiceClient, fromAccount, toAccount  *wallet.PrivAccount, amount int) error {
@@ -135,7 +170,7 @@ func transfer(rpcClient grpcpb.ApiServiceClient, fromAccount, toAccount  *wallet
 		return err
 	}
 
-	fmt.Println("Request command: ", fmt.Sprintf("transfer %s %s %d", fromAccount.Name, toAccount.Name, amount) )
+	//fmt.Println("Request command: ", fmt.Sprintf("transfer %s %s %d", fromAccount.Name, toAccount.Name, amount) )
 
 	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
 	resp, err := rpcClient.BroadcastTrx(context.Background(), req)
@@ -157,8 +192,13 @@ func transfer(rpcClient grpcpb.ApiServiceClient, fromAccount, toAccount  *wallet
 				fmt.Println(err)
 				return err
 			}
+			fmt.Println(fmt.Sprintf("====== transfer from:%v to:%v amount:%v",GlobalAccountLIst.arr[0].Name,fromAccount.Name,5))
 			transfer(rpcClient, fromAccount, toAccount, amount)
 			return nil
+		}
+
+		if strings.Contains(resp.Invoice.ErrorInfo,"net resource not enough") {
+			stake(rpcClient,fromAccount,1)
 		}
 
 		fmt.Println("Request command: ",
@@ -207,7 +247,7 @@ func vest(rpcClient grpcpb.ApiServiceClient, fromAccount, toAccount  *wallet.Pri
 		return err
 	}
 
-	fmt.Println("Request command: ", fmt.Sprintf("transfer vest %s %s %d", fromAccount.Name, toAccount.Name, amount) )
+	//fmt.Println("Request command: ", fmt.Sprintf("transfer vest %s %s %d", fromAccount.Name, toAccount.Name, amount) )
 
 	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
 	resp, err := rpcClient.BroadcastTrx(context.Background(), req)
@@ -224,8 +264,13 @@ func vest(rpcClient grpcpb.ApiServiceClient, fromAccount, toAccount  *wallet.Pri
 				fmt.Println(err)
 				return err
 			}
+			fmt.Println(fmt.Sprintf("====== vest from:%v to:%v amount:%v",GlobalAccountLIst.arr[0].Name,fromAccount.Name,5))
 			vest(rpcClient, fromAccount, toAccount, amount)
 			return nil
+		}
+
+		if strings.Contains(resp.Invoice.ErrorInfo,"net resource not enough") {
+			stake(rpcClient,fromAccount,1)
 		}
 
 		fmt.Println("Request command: ",
@@ -282,7 +327,7 @@ func postArticle(rpcClient grpcpb.ApiServiceClient, authorAccount *wallet.PrivAc
 		return
 	}
 
-	fmt.Println("Request command: ", fmt.Sprintf("%s post an article", authorAccount.Name) )
+	//fmt.Println("Request command: ", fmt.Sprintf("%s post an article", authorAccount.Name) )
 
 	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
 	resp, err := rpcClient.BroadcastTrx(context.Background(), req)
@@ -306,8 +351,12 @@ func postArticle(rpcClient grpcpb.ApiServiceClient, authorAccount *wallet.PrivAc
 				fmt.Println(err)
 				return
 			}
+			fmt.Println(fmt.Sprintf("====== post transfer from:%v to:%v amount:%v",GlobalAccountLIst.arr[0].Name,authorAccount.Name,5))
 			postArticle(rpcClient, authorAccount)
 			return
+		}
+		if strings.Contains(resp.Invoice.ErrorInfo,"net resource not enough") {
+			stake(rpcClient,authorAccount,1)
 		}
 
 		fmt.Println("Request command: ",
@@ -351,13 +400,16 @@ func follow(rpcClient grpcpb.ApiServiceClient, followerAccount, followingAccount
 		return
 	}
 
-	fmt.Println("Request command: ", fmt.Sprintf("follow %s %s", followerAccount.Name, followingAccount.Name) )
+	//fmt.Println("Request command: ", fmt.Sprintf("follow %s %s", followerAccount.Name, followingAccount.Name) )
 
 	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
 	resp, err := rpcClient.BroadcastTrx(context.Background(), req)
 	if err != nil {
 		fmt.Println(err)
 	} else {
+		if strings.Contains(resp.Invoice.ErrorInfo,"net resource not enough") {
+			stake(rpcClient,followerAccount,1)
+		}
 		fmt.Println("Request command: ",
 			fmt.Sprintf("follow %s %s", followerAccount.Name, followingAccount.Name),
 			" ",
@@ -393,7 +445,7 @@ func voteArticle(rpcClient grpcpb.ApiServiceClient, voterAccount *wallet.PrivAcc
 		return
 	}
 
-	fmt.Println("Request command: ", fmt.Sprintf("vote %s %d", voterAccount.Name, postId) )
+	//fmt.Println("Request command: ", fmt.Sprintf("vote %s %d", voterAccount.Name, postId) )
 
 	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
 	resp, err := rpcClient.BroadcastTrx(context.Background(), req)
@@ -411,8 +463,12 @@ func voteArticle(rpcClient grpcpb.ApiServiceClient, voterAccount *wallet.PrivAcc
 				fmt.Println(err)
 				return
 			}
+			fmt.Println(fmt.Sprintf("====== vote from:%v to:%v amount:%v",GlobalAccountLIst.arr[0].Name,voterAccount.Name,5))
 			voteArticle(rpcClient, voterAccount, postId)
 			return
+		}
+		if strings.Contains(resp.Invoice.ErrorInfo,"net resource not enough") {
+			stake(rpcClient,voterAccount,1)
 		}
 
 		fmt.Println("Request command: ",
@@ -463,16 +519,62 @@ func replyArticle(rpcClient grpcpb.ApiServiceClient, fromAccount *wallet.PrivAcc
 		return
 	}
 
-	fmt.Println("Request command: ", fmt.Sprintf("reply %s %d", fromAccount.Name, postId) )
+	//fmt.Println("Request command: ", fmt.Sprintf("reply %s %d", fromAccount.Name, postId) )
 
 	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
 	resp, err := rpcClient.BroadcastTrx(context.Background(), req)
 	if err != nil {
 		fmt.Println(err)
 	} else {
+		if strings.Contains(resp.Invoice.ErrorInfo,"net resource not enough") {
+			stake(rpcClient,fromAccount,1)
+		}
 		fmt.Println("Request command: ",
 			fmt.Sprintf("reply %s %d", fromAccount.Name, postId),
 			" ",
 			fmt.Sprintf("Result: %v", resp))
 	}
+}
+
+func callContract(rpcClient grpcpb.ApiServiceClient, fromAccount  *wallet.PrivAccount) error {
+	if fromAccount == nil {
+		GlobalAccountLIst.RLock()
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		idx := r.Intn( len(GlobalAccountLIst.arr) )
+		fromAccount = GlobalAccountLIst.arr[idx]
+		GlobalAccountLIst.RUnlock()
+	}
+
+	param := fmt.Sprintf(" [\"%v\"] ", fromAccount.Name)
+
+	applyOp := &prototype.ContractApplyOperation{
+		Caller:   &prototype.AccountName{Value: fromAccount.Name},
+		Owner:    &prototype.AccountName{Value: "initminer"},
+		Amount:   &prototype.Coin{Value: 0},
+		Contract: "registercount",
+		Params:   param,
+		Method:   "checkincount",
+	}
+
+	signTx, err := utils.GenerateSignedTxAndValidate2(rpcClient, []interface{}{applyOp}, fromAccount)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+
+	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
+	resp, err := rpcClient.BroadcastTrx(context.Background(), req)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	} else {
+		if strings.Contains(resp.Invoice.ErrorInfo,"net resource not enough") {
+			stake(rpcClient,fromAccount,1)
+		}
+		fmt.Println("Request command: ",
+			fmt.Sprintf("callContract %s %s %d", fromAccount.Name),
+			" ",
+			fmt.Sprintf("Result: %v", resp))
+	}
+	return nil
 }

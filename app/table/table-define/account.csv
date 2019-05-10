@@ -16,3 +16,9 @@ prototype.vest           ,to_powerdown, 0, 0, 0, 0, prototype/type.proto
 prototype.vest           ,has_powerdown, 0 ,0, 0, 0, prototype/type.proto
 prototype.time_point_sec ,last_owner_update   ,0,0,0,0,prototype/type.proto
 prototype.public_key_type  ,owner               ,0,0,0,0,prototype/type.proto
+uint64                   ,stamina        ,0  ,0    ,0    ,0          ,
+uint64                   ,stamina_use_block ,0   ,0   ,0   ,0         ,
+uint64                   ,stamina_free    ,0   ,0    ,0     ,0         ,
+uint64                   ,stamina_free_use_block ,0   ,0   ,0   ,0     ,
+prototype.vest           ,stake_vesting,0   ,0     ,0   ,0          ,prototype/type.proto
+prototype.time_point_sec ,last_stake_time ,0   ,0     ,0   ,0          ,prototype/type.proto

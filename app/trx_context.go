@@ -3,33 +3,168 @@ package app
 import (
 	"errors"
 	"fmt"
+	"github.com/coschain/contentos-go/utils"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/vm/injector"
+	"github.com/coschain/contentos-go/common/constants"
 )
 
 type TrxContext struct {
 	vminjector.Injector
 	DynamicGlobalPropsRW
-	Wrapper     *prototype.EstimateTrxResult
+	Wrapper         *prototype.TransactionWrapper
 	msg         []string
 	recoverPubs []*prototype.PublicKeyType
 	output *prototype.OperationReceiptWithInfo
+	control         *TrxPool
+	gasMap          map[string]*resourceUnit
+	netMap          map[string]*resourceUnit
+	resourceLimiter utils.IResourceLimiter
 }
 
-func NewTrxContext(wrapper *prototype.EstimateTrxResult, db iservices.IDatabaseRW) *TrxContext {
-	return &TrxContext{
-		DynamicGlobalPropsRW: DynamicGlobalPropsRW{ db:db },
-		Wrapper: wrapper,
+type resourceUnit struct {
+	raw      uint64 // may be net in byte or cpu gas
+	realCost uint64 // real cost resource
+}
+
+func (p *TrxContext) GetVmRemainCpuStamina(name string) uint64 {
+	return p.control.GetAllRemainStamina(name) - (p.netMap[name].raw * constants.NetConsumePointNum / constants.NetConsumePointDen)
+}
+
+func (p *TrxContext) CheckNet(db iservices.IDatabaseRW, sizeInBytes uint64) {
+	keyMaps := p.Wrapper.SigTrx.GetOpCreatorsMap()
+	netUse := sizeInBytes * uint64(float64(constants.NetConsumePointNum)/float64(constants.NetConsumePointDen))
+	for name := range keyMaps {
+		p.netMap[name] = &resourceUnit{}
+		freeLeft := p.resourceLimiter.GetFreeLeft(db, name, p.control.GetProps().HeadBlockNumber)
+		stakeLeft := p.resourceLimiter.GetStakeLeft(db, name, p.control.GetProps().HeadBlockNumber)
+		if freeLeft >= netUse {
+			p.netMap[name].raw = sizeInBytes
+			continue
+		} else {
+			if stakeLeft >= netUse-freeLeft {
+				p.netMap[name].raw = sizeInBytes
+				continue
+			} else {
+				errInfo := fmt.Sprintf("net resource not enough, user:%v, have:%v, need:%v",name,freeLeft+stakeLeft,netUse)
+				opAssert(false, errInfo)
+			}
+		}
 	}
 }
 
-func NewTrxContextWithSigningKey(wrapper *prototype.EstimateTrxResult, db iservices.IDatabaseRW, key *prototype.PublicKeyType) *TrxContext {
+func (p *TrxContext) deductStamina(db iservices.IDatabaseRW,m map[string]*resourceUnit, num, den uint64) {
+	rate := float64(num) / float64(den)
+
+	for caller, spent := range m {
+		staminaUse := uint64(float64(spent.raw) * rate)
+		now := p.control.GetProps().HeadBlockNumber
+
+		var paid uint64 = 0
+
+		if !p.resourceLimiter.ConsumeFree(db, caller, staminaUse, now) {
+			paid += p.resourceLimiter.GetFreeLeft(db, caller, now)
+			p.resourceLimiter.ConsumeFreeLeft(db, caller, now)
+
+		} else {
+			paid = staminaUse
+			// free resource already enough
+			m[caller].realCost = paid
+
+			continue
+
+		}
+
+		left := staminaUse - paid
+
+		if !p.resourceLimiter.Consume(db, caller, left, now) {
+			// never failed ?
+			paid += p.resourceLimiter.GetStakeLeft(db, caller, now)
+			p.resourceLimiter.ConsumeLeft(db, caller, now)
+
+		} else {
+			paid += left
+
+		}
+		m[caller].realCost = paid
+	}
+}
+
+func (p *TrxContext) DeductAllNet(db iservices.IDatabaseRW) {
+	p.deductStamina(db, p.netMap, constants.NetConsumePointNum, constants.NetConsumePointDen)
+}
+
+func (p *TrxContext) DeductAllCpu(db iservices.IDatabaseRW) {
+	p.deductStamina(db, p.gasMap, constants.CpuConsumePointNum, constants.CpuConsumePointDen)
+}
+
+func (p *TrxContext) Finalize() {
+	p.setUsage()
+}
+func (p *TrxContext) SetStatus(s uint32) {
+	p.Wrapper.Receipt.Status = s
+}
+func (p *TrxContext) setUsage() {
+	p.Wrapper.Receipt.NetUsage = p.GetNetUse()
+	p.Wrapper.Receipt.CpuUsage = p.GetCpuUse()
+}
+
+func (p *TrxContext) RecordGasFee(caller string, spent uint64) {
+//	if !p.control.ctx.Config().ResourceCheck {
+//		return
+//	}
+	// if same caller call multi times
+	if v, ok := p.gasMap[caller]; ok {
+		newSpent := v.raw + spent
+		p.gasMap[caller].raw = newSpent
+	} else {
+		p.gasMap[caller] = &resourceUnit{}
+		p.gasMap[caller].raw = spent
+	}
+}
+
+func (p *TrxContext) HasGasFee() bool {
+	return len(p.gasMap) > 0
+}
+
+func (p *TrxContext) GetNetUse() uint64 {
+	all := uint64(0)
+	for _, use := range p.netMap {
+		all += use.realCost
+	}
+	return all
+}
+
+func (p *TrxContext) GetCpuUse() uint64 {
+	all := uint64(0)
+	for _, use := range p.gasMap {
+		all += use.realCost
+	}
+	return all
+}
+
+func NewTrxContext(wrapper *prototype.TransactionWrapper, db iservices.IDatabaseRW,control *TrxPool) *TrxContext {
+	return &TrxContext{
+		DynamicGlobalPropsRW: DynamicGlobalPropsRW{ db:db },
+		Wrapper: wrapper,
+		control: control,
+		gasMap: make(map[string]*resourceUnit),
+		netMap: make(map[string]*resourceUnit),
+		resourceLimiter: control.resourceLimiter,
+	}
+}
+
+func NewTrxContextWithSigningKey(wrapper *prototype.TransactionWrapper, db iservices.IDatabaseRW, key *prototype.PublicKeyType,control *TrxPool) *TrxContext {
 	return &TrxContext{
 		DynamicGlobalPropsRW: DynamicGlobalPropsRW{ db:db },
 		Wrapper: wrapper,
 		recoverPubs: []*prototype.PublicKeyType{ key },
+		gasMap: make(map[string]*resourceUnit),
+		netMap: make(map[string]*resourceUnit),
+		resourceLimiter: control.resourceLimiter,
+		control:control,
 	}
 }
 
@@ -152,7 +287,7 @@ func (p *TrxContext) TransferFromContractToContract(fromContract, fromOwner, toC
 	to.MdBalance(&prototype.Coin{Value: toBalance + amount})
 }
 
-func (p *TrxContext) ContractCall(caller, fromOwner, fromContract, fromMethod, toOwner, toContract, toMethod string, params []byte, coins, maxGas uint64) {
+func (p *TrxContext) ContractCall(caller, fromOwner, fromContract, fromMethod, toOwner, toContract, toMethod string, params []byte, coins, remainGas uint64) {
 	opAssert(false, "function not opened")
 	op := &prototype.InternalContractApplyOperation{
 		FromCaller: &prototype.AccountName{ Value: caller },
@@ -164,9 +299,8 @@ func (p *TrxContext) ContractCall(caller, fromOwner, fromContract, fromMethod, t
 		ToMethod: toMethod,
 		Params: params,
 		Amount: &prototype.Coin{ Value: coins },
-		Gas: &prototype.Coin{ Value: maxGas },
 	}
-	eval := &InternalContractApplyEvaluator{ ctx: &ApplyContext{ db: p.db, vmInjector: p, control: p }, op: op }
+	eval := &InternalContractApplyEvaluator{ctx: &ApplyContext{db: p.db, vmInjector: p, control: p.control}, op: op, remainGas: remainGas}
 	eval.Apply()
 }
 

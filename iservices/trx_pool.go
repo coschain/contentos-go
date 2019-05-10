@@ -19,6 +19,8 @@ type IGlobalPropReader interface {
 type IGlobalPropWriter interface {
 	TransferToVest(value *prototype.Coin)
 	TransferFromVest(value *prototype.Vest)
+	TransferToStakeVest(value *prototype.Coin)
+	TransferFromStakeVest(value *prototype.Vest)
 	ModifyProps(modifier func(oldProps *prototype.DynamicProperties))
 }
 
@@ -30,7 +32,7 @@ type IGlobalPropRW interface {
 type ITrxPool interface {
 	IGlobalPropRW
 
-	PushTrx(trx *prototype.SignedTransaction) *prototype.TransactionReceiptWithInfo
+	PushTrx(trx *prototype.SignedTransaction) *prototype.TransactionReceipt
 	PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag) error
 	GenerateBlock(witness string, pre *prototype.Sha256, timestamp uint32, priKey *prototype.PrivateKeyType, skip prototype.SkipFlag) (*prototype.SignedBlock, error)
 	GetWitnessTopN(n uint32) ([]string, []*prototype.PublicKeyType)
@@ -54,4 +56,7 @@ type ITrxPool interface {
 	SyncCommittedBlockToDB(blk common.ISignedBlock) error
 	//Sync pushed blocks to DB
 	SyncPushedBlocksToDB(blkList []common.ISignedBlock) error
+
+	GetAllRemainStamina(name string) uint64
+	GetAllStaminaMax(name string) uint64
 }

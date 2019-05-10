@@ -4,6 +4,7 @@ import (
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/common/encoding/vme"
+	"github.com/coschain/contentos-go/common/variables"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/vm"
 	"github.com/coschain/contentos-go/vm/context"
@@ -117,10 +118,24 @@ type InternalContractApplyEvaluator struct {
 	BaseEvaluator
 	ctx *ApplyContext
 	op  *prototype.InternalContractApplyOperation
+	remainGas uint64
+}
+
+type StakeEvaluator struct {
+	BaseEvaluator
+	ctx *ApplyContext
+	op  *prototype.StakeOperation
+}
+
+type UnStakeEvaluator struct {
+	BaseEvaluator
+	ctx *ApplyContext
+	op  *prototype.UnStakeOperation
 }
 
 func (ev *AccountCreateEvaluator) Apply() {
 	op := ev.op
+	ev.ctx.vmInjector.RecordGasFee(op.Creator.Value, constants.CommonOpGas)
 	creatorWrap := table.NewSoAccountWrap(ev.ctx.db, op.Creator)
 
 	opAssert(creatorWrap.CheckExist(), "creator not exist ")
@@ -148,6 +163,7 @@ func (ev *AccountCreateEvaluator) Apply() {
 		tInfo.HasPowerdown = &prototype.Vest{Value: 0}
 		tInfo.Owner = op.Owner
 		tInfo.LastOwnerUpdate = prototype.NewTimePointSec(0)
+		tInfo.StakeVesting = prototype.NewVest(0)
 	}), "duplicate create account object")
 
 	// create account authority
@@ -167,6 +183,7 @@ func (ev *AccountCreateEvaluator) Apply() {
 
 func (ev *TransferEvaluator) Apply() {
 	op := ev.op
+	ev.ctx.vmInjector.RecordGasFee(op.From.Value, constants.CommonOpGas)
 
 	// @ active_challenged
 	fromWrap := table.NewSoAccountWrap(ev.ctx.db, op.From)
@@ -188,6 +205,8 @@ func (ev *TransferEvaluator) Apply() {
 
 func (ev *PostEvaluator) Apply() {
 	op := ev.op
+	ev.ctx.vmInjector.RecordGasFee(op.Owner.Value, constants.CommonOpGas)
+
 	idWrap := table.NewSoPostWrap(ev.ctx.db, &op.Uuid)
 	opAssert(!idWrap.CheckExist(), "post uuid exist")
 
@@ -204,7 +223,8 @@ func (ev *PostEvaluator) Apply() {
 		t.Body = op.Content
 		t.Created = ev.ctx.control.HeadBlockTime()
 		//t.CashoutTime = &prototype.TimePointSec{UtcSeconds: ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.PostCashOutDelayTime)}
-		t.CashoutBlockNum = ev.ctx.control.GetProps().HeadBlockNumber + constants.PostCashOutDelayBlock
+		//t.CashoutBlockNum = ev.ctx.control.GetProps().HeadBlockNumber + constants.PostCashOutDelayBlock
+		t.CashoutBlockNum = ev.ctx.control.GetProps().HeadBlockNumber + variables.PostCashOutDelayBlock()
 		t.Depth = 0
 		t.Children = 0
 		t.RootId = t.PostId
@@ -232,6 +252,8 @@ func (ev *PostEvaluator) Apply() {
 
 func (ev *ReplyEvaluator) Apply() {
 	op := ev.op
+	ev.ctx.vmInjector.RecordGasFee(op.Owner.Value, constants.CommonOpGas)
+
 	cidWrap := table.NewSoPostWrap(ev.ctx.db, &op.Uuid)
 	pidWrap := table.NewSoPostWrap(ev.ctx.db, &op.ParentUuid)
 
@@ -259,7 +281,7 @@ func (ev *ReplyEvaluator) Apply() {
 		t.Body = op.Content
 		t.Created = ev.ctx.control.HeadBlockTime()
 		//t.CashoutTime = &prototype.TimePointSec{UtcSeconds: ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.PostCashOutDelayTime)}
-		t.CashoutBlockNum = ev.ctx.control.GetProps().HeadBlockNumber + constants.PostCashOutDelayBlock
+		t.CashoutBlockNum = ev.ctx.control.GetProps().HeadBlockNumber + variables.PostCashOutDelayBlock()
 		t.Depth = pidWrap.GetDepth() + 1
 		t.Children = 0
 		t.RootId = rootId
@@ -285,6 +307,7 @@ func (ev *ReplyEvaluator) Apply() {
 // no downvote has been supplied by command, so I ignore it
 func (ev *VoteEvaluator) Apply() {
 	op := ev.op
+	ev.ctx.vmInjector.RecordGasFee(op.Voter.Value, constants.CommonOpGas)
 
 	voterWrap := table.NewSoAccountWrap(ev.ctx.db, op.Voter)
 	elapsedSeconds := ev.ctx.control.HeadBlockTime().UtcSeconds - voterWrap.GetLastVoteTime().UtcSeconds
@@ -306,11 +329,13 @@ func (ev *VoteEvaluator) Apply() {
 	//	}
 	//}
 
-	regeneratedPower := constants.PERCENT * elapsedSeconds / constants.VoteRegenerateTime
+	// 10000 have chance to overflow
+	// 1000 always ok
+	regeneratedPower := 1000 * elapsedSeconds / constants.VoteRegenerateTime
 	var currentVp uint32
 	votePower := voterWrap.GetVotePower() + regeneratedPower
-	if votePower > constants.PERCENT {
-		currentVp = constants.PERCENT
+	if votePower > 1000{
+		currentVp = 1000
 	} else {
 		currentVp = votePower
 	}
@@ -319,7 +344,9 @@ func (ev *VoteEvaluator) Apply() {
 	voterWrap.MdVotePower(currentVp - usedVp)
 	voterWrap.MdLastVoteTime(ev.ctx.control.HeadBlockTime())
 	vesting := voterWrap.GetVestingShares().Value
-	// todo: uint128
+	// after constants.PERCENT replaced by 1000, max value is 10000000000 * 1000000 * 1000 / 30
+	// 10000000000 * 1000000 * 1000 < 18446744073709552046 but 10000000000 * 1000000 > 9223372036854775807
+	// so can not using int64 here
 	weightedVp := vesting * uint64(usedVp)
 	if postWrap.GetCashoutBlockNum() > ev.ctx.control.GetProps().HeadBlockNumber {
 		lastVp := postWrap.GetWeightedVp()
@@ -357,6 +384,7 @@ func (ev *BpRegisterEvaluator) BpInWhiteList(bpName string) bool {
 
 func (ev *BpRegisterEvaluator) Apply() {
 	op := ev.op
+	ev.ctx.vmInjector.RecordGasFee(op.Owner.Value, constants.CommonOpGas)
 
 	//opAssert(ev.BpInWhiteList(op.Owner.Value), "bp name not in white list")
 
@@ -382,6 +410,7 @@ func (ev *BpUnregisterEvaluator) Apply() {
 
 func (ev *BpVoteEvaluator) Apply() {
 	op := ev.op
+	ev.ctx.vmInjector.RecordGasFee(op.Voter.Value, constants.CommonOpGas)
 
 	voterAccount := table.NewSoAccountWrap(ev.ctx.db, op.Voter)
 	voteCnt := voterAccount.GetBpVoteCount()
@@ -419,6 +448,7 @@ func (ev *BpVoteEvaluator) Apply() {
 
 func (ev *FollowEvaluator) Apply() {
 	op := ev.op
+	ev.ctx.vmInjector.RecordGasFee(op.Account.Value, constants.CommonOpGas)
 
 	acctWrap := table.NewSoAccountWrap(ev.ctx.db, op.Account)
 	opAssert(acctWrap.CheckExist(), "follow account do not exist ")
@@ -429,6 +459,7 @@ func (ev *FollowEvaluator) Apply() {
 
 func (ev *TransferToVestingEvaluator) Apply() {
 	op := ev.op
+	ev.ctx.vmInjector.RecordGasFee(op.From.Value, constants.CommonOpGas)
 
 	fidWrap := table.NewSoAccountWrap(ev.ctx.db, op.From)
 	tidWrap := table.NewSoAccountWrap(ev.ctx.db, op.To)
@@ -450,6 +481,8 @@ func (ev *TransferToVestingEvaluator) Apply() {
 
 func (ev *ConvertVestingEvaluator) Apply() {
 	op := ev.op
+	ev.ctx.vmInjector.RecordGasFee(op.From.Value, constants.CommonOpGas)
+
 	accWrap := table.NewSoAccountWrap(ev.ctx.db, op.From)
 	opAssert(accWrap.CheckExist(), "account do not exist")
 	opAssert(op.Amount.Value >= uint64(1e6), "At least 1 vesting should be converted")
@@ -457,7 +490,7 @@ func (ev *ConvertVestingEvaluator) Apply() {
 	globalProps := ev.ctx.control.GetProps()
 	//timestamp := globalProps.Time.UtcSeconds
 	currentBlock := globalProps.HeadBlockNumber
-	eachRate := op.Amount.Value / constants.ConvertWeeks
+	eachRate := op.Amount.Value / (constants.ConvertWeeks - 1)
 	//accWrap.MdNextPowerdownTime(&prototype.TimePointSec{UtcSeconds: timestamp + constants.POWER_DOWN_INTERVAL})
 	accWrap.MdNextPowerdownBlockNum(currentBlock + constants.PowerDownBlockInterval)
 	accWrap.MdEachPowerdownRate(&prototype.Vest{Value: eachRate})
@@ -556,6 +589,7 @@ func mergeTags(existed []int32, new []prototype.ReportOperationTag) []int32 {
 
 func (ev *ReportEvaluator) Apply() {
 	op := ev.op
+	ev.ctx.vmInjector.RecordGasFee(op.Reporter.Value, constants.CommonOpGas)
 	post := table.NewSoPostWrap(ev.ctx.db, &op.Reported)
 	opAssert(post.CheckExist(), "the reported post doesn't exist")
 	report := table.NewSoReportListWrap(ev.ctx.db, &op.Reported)
@@ -626,6 +660,7 @@ func (ev *ReportEvaluator) Apply() {
 
 func (ev *ContractDeployEvaluator) Apply() {
 	op := ev.op
+	ev.ctx.vmInjector.RecordGasFee(op.Owner.Value, constants.CommonOpGas)
 
 	cid := prototype.ContractId{Owner: op.Owner, Cname: op.Contract}
 	scid := table.NewSoContractWrap(ev.ctx.db, &cid)
@@ -663,15 +698,13 @@ func (ev *ContractApplyEvaluator) Apply() {
 	opAssert(acc.CheckExist(), "account doesn't exist")
 
 	balance := acc.GetBalance().Value
-	// fixme, should base on minicos
-	balanceExchange := balance * constants.BaseRate
-
-	opAssert(balanceExchange >= op.Gas.Value, "balance can not pay gas fee")
 
 	// the amount is also minicos or cos ?
 	// here I assert it is minicos
 	// also, I think balance base on minicos is far more reliable.
-	opAssert(balanceExchange-op.Gas.Value > op.Amount.Value, "balance does not have enough fund to transfer after paid gas fee")
+	if op.Amount != nil {
+		opAssert(balance >= op.Amount.Value, "balance does not have enough fund to transfer")
+	}
 
 	code := scid.GetCode()
 
@@ -697,6 +730,19 @@ func (ev *ContractApplyEvaluator) Apply() {
 	}
 
 	vmCtx := vmcontext.NewContextFromApplyOp(op, paramsData, code, abiInterface, tables, ev.ctx.vmInjector)
+	// set max gas
+	remain := ev.ctx.vmInjector.GetVmRemainCpuStamina(op.Caller.Value)
+	remainGas := remain * constants.CpuConsumePointDen
+	if remainGas > constants.MaxGasPerCall {
+		vmCtx.Gas = constants.MaxGasPerCall
+	} else {
+		vmCtx.Gas = remainGas
+	}
+	// turn off gas limit
+//	if !ev.ctx.control.ctx.Config().ResourceCheck  {
+//		vmCtx.Gas = constants.OneDayStamina * constants.CpuConsumePointDen
+//	}
+
 	// should be active ?
 	//defer func() {
 	//	_ := recover()
@@ -710,14 +756,13 @@ func (ev *ContractApplyEvaluator) Apply() {
 	// deductgasfee and usertranfer could be panic (rarely, I can't image how it happens)
 	// the panic should catch then return or bubble it ?
 
-	// TODO merge, temp fix
-	opAssertE(err, "execute vm error")
 
-	vmCtx.Injector.DeductGasFee(op.Caller.Value, spentGas)
+	vmCtx.Injector.RecordGasFee(op.Caller.Value, spentGas)
 	if err != nil {
 		vmCtx.Injector.Error(ret, err.Error())
+		opAssertE(err, "execute vm error")
 	} else {
-		if op.Amount.Value > 0 {
+		if op.Amount != nil && op.Amount.Value > 0 {
 			vmCtx.Injector.TransferFromUserToContract(op.Caller.Value, op.Contract, op.Owner.Value, op.Amount.Value)
 		}
 	}
@@ -735,7 +780,6 @@ func (ev *InternalContractApplyEvaluator) Apply() {
 	caller := table.NewSoAccountWrap(ev.ctx.db, op.FromCaller)
 	opAssert(caller.CheckExist(), "caller account doesn't exist")
 
-	opAssert(caller.GetBalance().Value*constants.BaseRate >= op.Gas.Value, "caller balance less than gas")
 	opAssert(fromContract.GetBalance().Value >= op.Amount.Value, "fromContract balance less than transfer amount")
 
 	code := toContract.GetCode()
@@ -761,15 +805,69 @@ func (ev *InternalContractApplyEvaluator) Apply() {
 	}
 
 	vmCtx := vmcontext.NewContextFromInternalApplyOp(op, code, abiInterface, tables, ev.ctx.vmInjector)
-	cosVM := vm.NewCosVM(vmCtx, ev.ctx.db, ev.ctx.control.GetProps(), logrus.New())
-	ret, err := cosVM.Run()
+	vmCtx.Gas = ev.remainGas
 
-	vmCtx.Injector.DeductGasFee(op.FromCaller.Value, cosVM.SpentGas())
+	cosVM := vm.NewCosVM(vmCtx, ev.ctx.db, ev.ctx.control.GetProps(), logrus.New())
+	//ev.ctx.db.BeginTransaction()
+	ret, err := cosVM.Run()
+	spentGas := cosVM.SpentGas()
+	vmCtx.Injector.RecordGasFee(op.FromCaller.Value, spentGas)
+
 	if err != nil {
 		vmCtx.Injector.Error(ret, err.Error())
+		//ev.ctx.db.EndTransaction(false)
+		// throw a panic, this panic should recover by upper contract vm context
+		opAssertE(err, "internal contract apply failed")
 	} else {
-		if op.Amount.Value > 0 {
+		if op.Amount != nil && op.Amount.Value > 0 {
 			vmCtx.Injector.TransferFromContractToContract(op.FromContract, op.FromOwner.Value, op.ToContract, op.ToOwner.Value, op.Amount.Value)
 		}
+		//ev.ctx.db.EndTransaction(true)
 	}
+}
+
+func (ev *StakeEvaluator) Apply() {
+	op := ev.op
+	ev.ctx.vmInjector.RecordGasFee(op.Account.Value, constants.CommonOpGas)
+	accountWrap := table.NewSoAccountWrap(ev.ctx.db, op.Account)
+
+	value := &prototype.Coin{Value: op.Amount}
+
+	fBalance := accountWrap.GetBalance()
+	opAssertE(fBalance.Sub(value), "Insufficient balance to transfer.")
+	opAssert(accountWrap.MdBalance(fBalance), "modify balance failed")
+
+	vest := accountWrap.GetStakeVesting()
+	opAssertE(vest.Add(value.ToVest()), "vesting over flow.")
+	opAssert(accountWrap.MdStakeVesting(vest), "modify vesting failed")
+
+	headBlockTime := ev.ctx.control.HeadBlockTime()
+	accountWrap.MdLastStakeTime(headBlockTime)
+
+	ev.ctx.control.TransferToVest(value)
+	ev.ctx.control.TransferToStakeVest(value)
+}
+
+func (ev *UnStakeEvaluator) Apply() {
+	op := ev.op
+	ev.ctx.vmInjector.RecordGasFee(op.Account.Value, constants.CommonOpGas)
+
+	accountWrap := table.NewSoAccountWrap(ev.ctx.db, op.Account)
+
+	headBlockTime := ev.ctx.control.HeadBlockTime()
+	stakeTime := accountWrap.GetLastStakeTime()
+	opAssert(headBlockTime.UtcSeconds-stakeTime.UtcSeconds > constants.StakeFreezeTime, "can not unstake when freeze")
+
+	value := &prototype.Coin{Value: op.Amount}
+
+	vest := accountWrap.GetStakeVesting()
+	opAssertE(vest.Sub(value.ToVest()), "vesting over flow.")
+	opAssert(accountWrap.MdStakeVesting(vest), "modify vesting failed")
+
+	fBalance := accountWrap.GetBalance()
+	opAssertE(fBalance.Add(value), "Insufficient balance to transfer.")
+	opAssert(accountWrap.MdBalance(fBalance), "modify balance failed")
+
+	ev.ctx.control.TransferFromVest(value.ToVest())
+	ev.ctx.control.TransferFromStakeVest(value.ToVest())
 }

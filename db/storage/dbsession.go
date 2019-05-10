@@ -2,6 +2,7 @@ package storage
 
 import (
 	"github.com/coschain/contentos-go/common"
+	"hash/crc32"
 	"sync"
 )
 
@@ -153,6 +154,26 @@ func (db *dbSession) Iterate(start, limit []byte, reverse bool, callback func(ke
 	if it != nil {
 		it.Iterate(start, limit, reverse, callback)
 	}
+}
+
+var (
+	sDataHashFunc = crc32.ChecksumIEEE
+	sHashOfDeleted = sDataHashFunc([]byte("<deleted>"))
+)
+
+func (db *dbSession) Hash() (hash uint32) {
+	db.lock.RLock()
+	defer db.lock.RUnlock()
+
+	for _, op := range db.changes {
+		hash += sDataHashFunc(op.Key)
+		if op.Del {
+			hash += sHashOfDeleted
+		} else {
+			hash += sDataHashFunc(op.Value)
+		}
+	}
+	return
 }
 
 func (db *dbSession) NewBatch() Batch {

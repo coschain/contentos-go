@@ -23,11 +23,15 @@ func (db *TransactionalDatabase) BeginTransaction() {
 	db.PushFront()
 }
 
-// end a transaction session. commit or discard changes
+// end a transaction session. Commit or discard changes
 func (db *TransactionalDatabase) EndTransaction(commit bool) error {
 	return db.popFront(commit)
 }
 
 func (db *TransactionalDatabase) TransactionHeight() uint {
 	return db.Size() - 1
+}
+
+func (db *TransactionalDatabase) HashOfTopTransaction() uint32 {
+	return db.HashOfTopSession()
 }

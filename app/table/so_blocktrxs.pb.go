@@ -30,7 +30,7 @@ func (m *SoBlocktrxs) Reset()         { *m = SoBlocktrxs{} }
 func (m *SoBlocktrxs) String() string { return proto.CompactTextString(m) }
 func (*SoBlocktrxs) ProtoMessage()    {}
 func (*SoBlocktrxs) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_blocktrxs_1075fcdb8cc69607, []int{0}
+	return fileDescriptor_so_blocktrxs_5321f28c956e4955, []int{0}
 }
 func (m *SoBlocktrxs) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoBlocktrxs.Unmarshal(m, b)
@@ -75,7 +75,7 @@ func (m *SoMemBlocktrxsByBlock) Reset()         { *m = SoMemBlocktrxsByBlock{} }
 func (m *SoMemBlocktrxsByBlock) String() string { return proto.CompactTextString(m) }
 func (*SoMemBlocktrxsByBlock) ProtoMessage()    {}
 func (*SoMemBlocktrxsByBlock) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_blocktrxs_1075fcdb8cc69607, []int{1}
+	return fileDescriptor_so_blocktrxs_5321f28c956e4955, []int{1}
 }
 func (m *SoMemBlocktrxsByBlock) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemBlocktrxsByBlock.Unmarshal(m, b)
@@ -113,7 +113,7 @@ func (m *SoMemBlocktrxsByTrxs) Reset()         { *m = SoMemBlocktrxsByTrxs{} }
 func (m *SoMemBlocktrxsByTrxs) String() string { return proto.CompactTextString(m) }
 func (*SoMemBlocktrxsByTrxs) ProtoMessage()    {}
 func (*SoMemBlocktrxsByTrxs) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_blocktrxs_1075fcdb8cc69607, []int{2}
+	return fileDescriptor_so_blocktrxs_5321f28c956e4955, []int{2}
 }
 func (m *SoMemBlocktrxsByTrxs) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemBlocktrxsByTrxs.Unmarshal(m, b)
@@ -151,7 +151,7 @@ func (m *SoUniqueBlocktrxsByBlock) Reset()         { *m = SoUniqueBlocktrxsByBlo
 func (m *SoUniqueBlocktrxsByBlock) String() string { return proto.CompactTextString(m) }
 func (*SoUniqueBlocktrxsByBlock) ProtoMessage()    {}
 func (*SoUniqueBlocktrxsByBlock) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_blocktrxs_1075fcdb8cc69607, []int{3}
+	return fileDescriptor_so_blocktrxs_5321f28c956e4955, []int{3}
 }
 func (m *SoUniqueBlocktrxsByBlock) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoUniqueBlocktrxsByBlock.Unmarshal(m, b)
@@ -186,10 +186,10 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("app/table/so_blocktrxs.proto", fileDescriptor_so_blocktrxs_1075fcdb8cc69607)
+	proto.RegisterFile("app/table/so_blocktrxs.proto", fileDescriptor_so_blocktrxs_5321f28c956e4955)
 }
 
-var fileDescriptor_so_blocktrxs_1075fcdb8cc69607 = []byte{
+var fileDescriptor_so_blocktrxs_5321f28c956e4955 = []byte{
 	// 185 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0x92, 0x49, 0x2c, 0x28, 0xd0,
 	0x2f, 0x49, 0x4c, 0xca, 0x49, 0xd5, 0x2f, 0xce, 0x8f, 0x4f, 0xca, 0xc9, 0x4f, 0xce, 0x2e, 0x29,

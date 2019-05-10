@@ -33,7 +33,7 @@ func (m *SoReportList) Reset()         { *m = SoReportList{} }
 func (m *SoReportList) String() string { return proto.CompactTextString(m) }
 func (*SoReportList) ProtoMessage()    {}
 func (*SoReportList) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_reportList_3a6b5bb569498c53, []int{0}
+	return fileDescriptor_so_reportList_f4119b916b5676f8, []int{0}
 }
 func (m *SoReportList) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoReportList.Unmarshal(m, b)
@@ -92,7 +92,7 @@ func (m *SoMemReportListByUuid) Reset()         { *m = SoMemReportListByUuid{} }
 func (m *SoMemReportListByUuid) String() string { return proto.CompactTextString(m) }
 func (*SoMemReportListByUuid) ProtoMessage()    {}
 func (*SoMemReportListByUuid) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_reportList_3a6b5bb569498c53, []int{1}
+	return fileDescriptor_so_reportList_f4119b916b5676f8, []int{1}
 }
 func (m *SoMemReportListByUuid) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemReportListByUuid.Unmarshal(m, b)
@@ -130,7 +130,7 @@ func (m *SoMemReportListByReportedTimes) Reset()         { *m = SoMemReportListB
 func (m *SoMemReportListByReportedTimes) String() string { return proto.CompactTextString(m) }
 func (*SoMemReportListByReportedTimes) ProtoMessage()    {}
 func (*SoMemReportListByReportedTimes) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_reportList_3a6b5bb569498c53, []int{2}
+	return fileDescriptor_so_reportList_f4119b916b5676f8, []int{2}
 }
 func (m *SoMemReportListByReportedTimes) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemReportListByReportedTimes.Unmarshal(m, b)
@@ -168,7 +168,7 @@ func (m *SoMemReportListByTags) Reset()         { *m = SoMemReportListByTags{} }
 func (m *SoMemReportListByTags) String() string { return proto.CompactTextString(m) }
 func (*SoMemReportListByTags) ProtoMessage()    {}
 func (*SoMemReportListByTags) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_reportList_3a6b5bb569498c53, []int{3}
+	return fileDescriptor_so_reportList_f4119b916b5676f8, []int{3}
 }
 func (m *SoMemReportListByTags) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemReportListByTags.Unmarshal(m, b)
@@ -206,7 +206,7 @@ func (m *SoMemReportListByIsArbitrated) Reset()         { *m = SoMemReportListBy
 func (m *SoMemReportListByIsArbitrated) String() string { return proto.CompactTextString(m) }
 func (*SoMemReportListByIsArbitrated) ProtoMessage()    {}
 func (*SoMemReportListByIsArbitrated) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_reportList_3a6b5bb569498c53, []int{4}
+	return fileDescriptor_so_reportList_f4119b916b5676f8, []int{4}
 }
 func (m *SoMemReportListByIsArbitrated) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemReportListByIsArbitrated.Unmarshal(m, b)
@@ -245,7 +245,7 @@ func (m *SoListReportListByReportedTimes) Reset()         { *m = SoListReportLis
 func (m *SoListReportListByReportedTimes) String() string { return proto.CompactTextString(m) }
 func (*SoListReportListByReportedTimes) ProtoMessage()    {}
 func (*SoListReportListByReportedTimes) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_reportList_3a6b5bb569498c53, []int{5}
+	return fileDescriptor_so_reportList_f4119b916b5676f8, []int{5}
 }
 func (m *SoListReportListByReportedTimes) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoListReportListByReportedTimes.Unmarshal(m, b)
@@ -290,7 +290,7 @@ func (m *SoUniqueReportListByUuid) Reset()         { *m = SoUniqueReportListByUu
 func (m *SoUniqueReportListByUuid) String() string { return proto.CompactTextString(m) }
 func (*SoUniqueReportListByUuid) ProtoMessage()    {}
 func (*SoUniqueReportListByUuid) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_reportList_3a6b5bb569498c53, []int{6}
+	return fileDescriptor_so_reportList_f4119b916b5676f8, []int{6}
 }
 func (m *SoUniqueReportListByUuid) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoUniqueReportListByUuid.Unmarshal(m, b)
@@ -328,10 +328,10 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("app/table/so_reportList.proto", fileDescriptor_so_reportList_3a6b5bb569498c53)
+	proto.RegisterFile("app/table/so_reportList.proto", fileDescriptor_so_reportList_f4119b916b5676f8)
 }
 
-var fileDescriptor_so_reportList_3a6b5bb569498c53 = []byte{
+var fileDescriptor_so_reportList_f4119b916b5676f8 = []byte{
 	// 295 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x92, 0x41, 0x4b, 0xf4, 0x30,
 	0x10, 0x86, 0xc9, 0x6e, 0xf7, 0xe3, 0x23, 0x58, 0x0f, 0xc5, 0x43, 0x15, 0x85, 0xd2, 0x55, 0x28,

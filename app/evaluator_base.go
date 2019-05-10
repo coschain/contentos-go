@@ -85,6 +85,12 @@ func GetBaseEvaluator(ctx *ApplyContext, op *prototype.Operation) BaseEvaluator 
 	case *prototype.Operation_Op16:
 		eva := &ConvertVestingEvaluator{ctx: ctx, op: op.GetOp16()}
 		return BaseEvaluator(eva)
+	case *prototype.Operation_Op17:
+		eva := &StakeEvaluator{ctx: ctx, op: op.GetOp17()}
+		return BaseEvaluator(eva)
+	case *prototype.Operation_Op18:
+		eva := &UnStakeEvaluator{ctx: ctx, op: op.GetOp18()}
+		return BaseEvaluator(eva)
 	default:
 		panic("no matchable evaluator")
 	}

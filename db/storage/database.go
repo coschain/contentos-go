@@ -81,7 +81,7 @@ type Transactional interface {
 	// start a new transaction session
 	BeginTransaction()
 
-	// end current transaction session, commit or discard changes
+	// end current transaction session, Commit or discard changes
 	EndTransaction(commit bool) error
 
 	// current transaction height
