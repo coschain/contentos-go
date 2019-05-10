@@ -157,7 +157,7 @@ func NewTrxContext(wrapper *prototype.TransactionWrapper, db iservices.IDatabase
 	}
 }
 
-func NewTrxContextWithSigningKey(wrapper *prototype.TransactionWrapper, db iservices.IDatabaseRW, key *prototype.PublicKeyType, control *TrxPool, observer iservices.ITrxObserve) *TrxContext {
+func NewTrxContextWithSigningKey(wrapper *prototype.TransactionWrapper, db iservices.IDatabaseRW, key *prototype.PublicKeyType, control *TrxPool, observer iservices.ITrxObserver) *TrxContext {
 	return &TrxContext{
 		DynamicGlobalPropsRW: DynamicGlobalPropsRW{ db:db },
 		Wrapper: wrapper,

@@ -13,7 +13,6 @@ import (
 	"github.com/coschain/contentos-go/common/crypto"
 	"github.com/coschain/contentos-go/common/crypto/secp256k1"
 	"github.com/coschain/contentos-go/common/eventloop"
-	"github.com/coschain/contentos-go/economist"
 	"github.com/coschain/contentos-go/utils"
 	"math"
 
@@ -404,9 +403,6 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabasePatch, entry *TrxEn
 	result := entry.GetTrxResult()
 	receipt, sigTrx := result.GetReceipt(), result.GetSigTrx()
 
-	trxContext := NewTrxContextWithSigningKey(result, db, entry.GetTrxSigningKey(),c)
-//	if c.ctx.Config().ResourceCheck {
-//	}
 
 	trxDB := db.NewPatch()
 
@@ -415,6 +411,7 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabasePatch, entry *TrxEn
 	trxHash, _ := sigTrx.GetTrxHash(cid)
 	c.log.Debugf("observer: %s", hex.EncodeToString(trxHash))
 	trxObserver.BeginTrx(hex.EncodeToString(trxHash))
+	trxContext := NewTrxContextWithSigningKey(result, db, entry.GetTrxSigningKey(), c, trxObserver)
 
 	defer func() {
 		useGas := trxContext.HasGasFee()
@@ -444,7 +441,7 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabasePatch, entry *TrxEn
 
 	trxContext.CheckNet(db, uint64(proto.Size(sigTrx)))
 
-	trxContext := NewTrxContextWithSigningKey(result, db, entry.GetTrxSigningKey(), trxObserver)
+	//trxContext := NewTrxContextWithSigningKey(result, db, entry.GetTrxSigningKey(), trxObserver)
 	for _, op := range sigTrx.Trx.Operations {
 		trxContext.StartNextOp()
 		c.applyOperation(trxContext, op)
