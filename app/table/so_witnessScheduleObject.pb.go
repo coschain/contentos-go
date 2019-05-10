@@ -30,7 +30,7 @@ func (m *SoWitnessScheduleObject) Reset()         { *m = SoWitnessScheduleObject
 func (m *SoWitnessScheduleObject) String() string { return proto.CompactTextString(m) }
 func (*SoWitnessScheduleObject) ProtoMessage()    {}
 func (*SoWitnessScheduleObject) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_witnessScheduleObject_e1dcaef6cbfd67ec, []int{0}
+	return fileDescriptor_so_witnessScheduleObject_0836af47baa61bbd, []int{0}
 }
 func (m *SoWitnessScheduleObject) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoWitnessScheduleObject.Unmarshal(m, b)
@@ -75,7 +75,7 @@ func (m *SoMemWitnessScheduleObjectById) Reset()         { *m = SoMemWitnessSche
 func (m *SoMemWitnessScheduleObjectById) String() string { return proto.CompactTextString(m) }
 func (*SoMemWitnessScheduleObjectById) ProtoMessage()    {}
 func (*SoMemWitnessScheduleObjectById) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_witnessScheduleObject_e1dcaef6cbfd67ec, []int{1}
+	return fileDescriptor_so_witnessScheduleObject_0836af47baa61bbd, []int{1}
 }
 func (m *SoMemWitnessScheduleObjectById) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemWitnessScheduleObjectById.Unmarshal(m, b)
@@ -117,7 +117,7 @@ func (m *SoMemWitnessScheduleObjectByCurrentShuffledWitness) String() string {
 }
 func (*SoMemWitnessScheduleObjectByCurrentShuffledWitness) ProtoMessage() {}
 func (*SoMemWitnessScheduleObjectByCurrentShuffledWitness) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_witnessScheduleObject_e1dcaef6cbfd67ec, []int{2}
+	return fileDescriptor_so_witnessScheduleObject_0836af47baa61bbd, []int{2}
 }
 func (m *SoMemWitnessScheduleObjectByCurrentShuffledWitness) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemWitnessScheduleObjectByCurrentShuffledWitness.Unmarshal(m, b)
@@ -155,7 +155,7 @@ func (m *SoUniqueWitnessScheduleObjectById) Reset()         { *m = SoUniqueWitne
 func (m *SoUniqueWitnessScheduleObjectById) String() string { return proto.CompactTextString(m) }
 func (*SoUniqueWitnessScheduleObjectById) ProtoMessage()    {}
 func (*SoUniqueWitnessScheduleObjectById) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_witnessScheduleObject_e1dcaef6cbfd67ec, []int{3}
+	return fileDescriptor_so_witnessScheduleObject_0836af47baa61bbd, []int{3}
 }
 func (m *SoUniqueWitnessScheduleObjectById) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoUniqueWitnessScheduleObjectById.Unmarshal(m, b)
@@ -190,10 +190,10 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("app/table/so_witnessScheduleObject.proto", fileDescriptor_so_witnessScheduleObject_e1dcaef6cbfd67ec)
+	proto.RegisterFile("app/table/so_witnessScheduleObject.proto", fileDescriptor_so_witnessScheduleObject_0836af47baa61bbd)
 }
 
-var fileDescriptor_so_witnessScheduleObject_e1dcaef6cbfd67ec = []byte{
+var fileDescriptor_so_witnessScheduleObject_0836af47baa61bbd = []byte{
 	// 221 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x91, 0x41, 0x4b, 0xc4, 0x30,
 	0x10, 0x85, 0x69, 0x65, 0x05, 0x73, 0xf0, 0xd0, 0x83, 0xe4, 0xb8, 0x04, 0x84, 0x22, 0xba, 0x39,

@@ -32,7 +32,7 @@ func (m *SoContractData) Reset()         { *m = SoContractData{} }
 func (m *SoContractData) String() string { return proto.CompactTextString(m) }
 func (*SoContractData) ProtoMessage()    {}
 func (*SoContractData) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_contractData_e5b0454eeec6d754, []int{0}
+	return fileDescriptor_so_contractData_47f1684154ec1e85, []int{0}
 }
 func (m *SoContractData) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoContractData.Unmarshal(m, b)
@@ -84,7 +84,7 @@ func (m *SoMemContractDataById) Reset()         { *m = SoMemContractDataById{} }
 func (m *SoMemContractDataById) String() string { return proto.CompactTextString(m) }
 func (*SoMemContractDataById) ProtoMessage()    {}
 func (*SoMemContractDataById) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_contractData_e5b0454eeec6d754, []int{1}
+	return fileDescriptor_so_contractData_47f1684154ec1e85, []int{1}
 }
 func (m *SoMemContractDataById) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemContractDataById.Unmarshal(m, b)
@@ -122,7 +122,7 @@ func (m *SoMemContractDataByKey) Reset()         { *m = SoMemContractDataByKey{}
 func (m *SoMemContractDataByKey) String() string { return proto.CompactTextString(m) }
 func (*SoMemContractDataByKey) ProtoMessage()    {}
 func (*SoMemContractDataByKey) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_contractData_e5b0454eeec6d754, []int{2}
+	return fileDescriptor_so_contractData_47f1684154ec1e85, []int{2}
 }
 func (m *SoMemContractDataByKey) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemContractDataByKey.Unmarshal(m, b)
@@ -160,7 +160,7 @@ func (m *SoMemContractDataByValue) Reset()         { *m = SoMemContractDataByVal
 func (m *SoMemContractDataByValue) String() string { return proto.CompactTextString(m) }
 func (*SoMemContractDataByValue) ProtoMessage()    {}
 func (*SoMemContractDataByValue) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_contractData_e5b0454eeec6d754, []int{3}
+	return fileDescriptor_so_contractData_47f1684154ec1e85, []int{3}
 }
 func (m *SoMemContractDataByValue) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemContractDataByValue.Unmarshal(m, b)
@@ -198,7 +198,7 @@ func (m *SoUniqueContractDataById) Reset()         { *m = SoUniqueContractDataBy
 func (m *SoUniqueContractDataById) String() string { return proto.CompactTextString(m) }
 func (*SoUniqueContractDataById) ProtoMessage()    {}
 func (*SoUniqueContractDataById) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_contractData_e5b0454eeec6d754, []int{4}
+	return fileDescriptor_so_contractData_47f1684154ec1e85, []int{4}
 }
 func (m *SoUniqueContractDataById) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoUniqueContractDataById.Unmarshal(m, b)
@@ -234,10 +234,10 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("app/table/so_contractData.proto", fileDescriptor_so_contractData_e5b0454eeec6d754)
+	proto.RegisterFile("app/table/so_contractData.proto", fileDescriptor_so_contractData_47f1684154ec1e85)
 }
 
-var fileDescriptor_so_contractData_e5b0454eeec6d754 = []byte{
+var fileDescriptor_so_contractData_47f1684154ec1e85 = []byte{
 	// 249 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xa4, 0x91, 0x4d, 0x4b, 0xc4, 0x30,
 	0x10, 0x86, 0x49, 0x97, 0xf5, 0x10, 0x05, 0xa5, 0x78, 0xa8, 0xab, 0xe0, 0xd2, 0xd3, 0xe2, 0x47,

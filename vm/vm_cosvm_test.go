@@ -37,10 +37,6 @@ func (i *FakeInjector) RequireAuth(name string) error {
 	return nil
 }
 
-func (i *FakeInjector) DeductGasFee(caller string, spent uint64) {
-	fmt.Println("deduct gas fee", caller, spent)
-}
-
 func add(proc *exec.Process, a, b int32) int32 {
 	return a + b
 }

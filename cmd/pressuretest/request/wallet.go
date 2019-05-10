@@ -29,18 +29,19 @@ const (
 	FOLLOW_CMD   = "follow"
 	VOTE_CMD     = "vote"
 	REPLY_CMD    = "reply"
+	CONTRACT     = "contract"
 
 	INIT_ACCOUNT_LENGTH = 10
 	INIT_POSTID_LENGTH  = 10
-	MAX_ACCOUNT_NUM     = 100
+	MAX_ACCOUNT_NUM     = 10000000
 	MAX_POSTID_NUM      = 10000000  // 10 million
 )
 
 var IPList []string = []string{
-	"34.200.75.66:8888",
-	"34.195.63.116:8888",
-	"34.193.131.213:8888",
-	"34.193.58.34:8888",
+	"34.199.54.140:8888",
+	"34.203.85.235:8888",
+	"18.207.49.32:8888",
+	"34.192.150.16:8888",
 	//"127.0.0.1:8888",
 }
 
@@ -51,6 +52,7 @@ var CmdTypeList []string = []string{
 	FOLLOW_CMD,
 	VOTE_CMD,
 	REPLY_CMD,
+	CONTRACT,
 }
 
 var GlobalAccountLIst accountList
@@ -76,6 +78,8 @@ func InitEnv( baseName string, accountName string, publicKey string, privKey str
 		common.Fatalf("Chain should have been run first")
 	}
 	rpcClient := grpcpb.NewApiServiceClient(conn)
+
+	stake(rpcClient,GlobalAccountLIst.arr[0],5)
 
 	for i:=1;i<=INIT_ACCOUNT_LENGTH-1;i++ {
 		createAccount(localWallet, rpcClient, GlobalAccountLIst.arr[0], fmt.Sprintf("%s%d", baseName, i))
@@ -145,6 +149,8 @@ func StartEachRoutine(index int) {
 			voteArticle(rpcClient, nil, 0)
 		case REPLY_CMD:
 			replyArticle(rpcClient, nil, 0)
+		case CONTRACT:
+			callContract(rpcClient, nil)
 		}
 	}
 }

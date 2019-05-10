@@ -104,6 +104,11 @@ type trxCache struct {
 	sync.Mutex
 }
 
+type FetchOutOfRangeState struct {
+	KeyPointIDList      [][]byte
+	sync.Mutex
+}
+
 //Peer represent the node in p2p
 type Peer struct {
 	base               PeerCom
@@ -115,6 +120,8 @@ type Peer struct {
 	runningCosdVersion string
 
 	TrxCache           trxCache
+
+	OutOfRangeState    FetchOutOfRangeState
 
 	lastSeenBlkNum     uint64
 

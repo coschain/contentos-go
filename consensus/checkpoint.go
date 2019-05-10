@@ -17,11 +17,9 @@ validators:
 			flush checkPoint
 		else if committing a missing block:
 			do sync
-
 	recv message.Commit:
 		if not committed already:
 			pass message.Commit to gobft
-
 non-validators:
 	recv message.Commit:
 		if not committed already && num within range:
@@ -36,7 +34,6 @@ non-validators:
 						do sync
 				else:
 					remove checkPoint
-
 push block b:
 	if b.id == next_checkPoint.id:
 		if do commit success:

@@ -29,7 +29,7 @@ const (
 
 	MaxTransactionSize = 1024 * 256
 
-	MaxBlockSize           = MaxTransactionSize * BlockInterval * 2000
+	MaxBlockSize           = 1024 * 1024 * 2
 	MaxUncommittedBlockNum = 1000
 	MinBlockSize           = 115
 
@@ -89,4 +89,20 @@ const (
 	TotalCurrency = 100 * 1e8
 
 	BlockApplierVersion = 0x00000001
+
+	// resource parameter
+    LimitPrecision     = 1000 * 1000
+    NetConsumePointNum = 10
+    NetConsumePointDen = 1
+    CpuConsumePointNum = 1
+    CpuConsumePointDen = 100
+    MaxGasPerCall      = 20000 * CpuConsumePointDen
+    MaxStaminaPerBlock = 1000000
+    WindowSize         = 60 * 60 * 24
+    FreeStamina        = 100000
+    OneDayStamina      = MaxStaminaPerBlock * WindowSize
+    CommonOpGas        = 100
+    StakeFreezeTime    = WindowSize * 3
 )
+
+var GlobalId int32 = 1

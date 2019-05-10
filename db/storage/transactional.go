@@ -23,7 +23,7 @@ func (db *TransactionalDatabase) BeginTransaction() {
 	db.PushFront()
 }
 
-// end a transaction session. commit or discard changes
+// end a transaction session. Commit or discard changes
 func (db *TransactionalDatabase) EndTransaction(commit bool) error {
 	return db.popFront(commit)
 }

@@ -47,6 +47,25 @@ func (dgp *DynamicGlobalPropsRW) TransferFromVest(value *prototype.Vest) {
 	})
 }
 
+func (dgp *DynamicGlobalPropsRW) TransferToStakeVest(value *prototype.Coin) {
+	dgp.ModifyProps(func(dgpo *prototype.DynamicProperties) {
+		vest := dgpo.GetStakeVestingShares()
+		addVest := value.ToVest()
+
+		mustNoError(vest.Add(addVest), "StakeVestingShares overflow")
+		dgpo.StakeVestingShares = vest
+	})
+}
+
+func (dgp *DynamicGlobalPropsRW) TransferFromStakeVest(value *prototype.Vest) {
+	dgp.ModifyProps(func(dgpo *prototype.DynamicProperties) {
+		vest := dgpo.GetStakeVestingShares()
+
+		mustNoError(vest.Sub(value), "StakeVestingShares overflow")
+		dgpo.StakeVestingShares = vest
+	})
+}
+
 
 func (dgp *DynamicGlobalPropsRW) ModifyProps(modifier func(oldProps *prototype.DynamicProperties)) {
 	dgpWrap := table.NewSoGlobalWrap(dgp.db, &SingleId)

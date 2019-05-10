@@ -761,10 +761,25 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 
 	if newNum > headNum+1 {
 
+		//if sabft.readyToProduce {
+		//	sabft.p2p.FetchUnlinkedBlock(b.Previous())
+		//	sabft.log.Debug("[SABFT TriggerSync]: out-of range from ", b.Previous().BlockNum())
+		//}
+
 		if sabft.readyToProduce {
-			sabft.p2p.FetchUnlinkedBlock(b.Previous())
-			sabft.log.Debug("[SABFT TriggerSync]: out-of range from ", b.Previous().BlockNum())
+			if !sabft.checkSync() {
+				//sabft.readyToProduce = false
+
+				var headID common.BlockID
+				if !sabft.ForkDB.Empty() {
+					headID = sabft.ForkDB.Head().Id()
+				}
+				sabft.p2p.FetchOutOfRange(headID, b.Id())
+
+				sabft.log.Debug("[SABFT TriggerSync]: out-of range from ", headID.BlockNum() )
+			}
 		}
+
 		return ErrBlockOutOfScope
 	}
 
@@ -906,7 +921,7 @@ func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 		Data: commitRecords.ProposedData,
 	}
 
-	sabft.log.Infof("[SABFT] start to commit block #%d %v", blockID.BlockNum(), blockID)
+	sabft.log.Infof("[SABFT] start to commit block #%d %v %d", blockID.BlockNum(), blockID, commitRecords.FirstPrecommit().Height)
 	// if we're committing a block we don't have
 	blk, err := sabft.ForkDB.FetchBlock(blockID)
 	if err != nil {
@@ -1405,4 +1420,32 @@ func (sabft *SABFT) handleBlockSync() error {
 
 func (sabft *SABFT) CheckSyncFinished() bool {
 	return sabft.readyToProduce
+}
+
+func (d *SABFT) IsOnMainBranch(id common.BlockID) (bool, error) {
+	blockNum := id.BlockNum()
+
+	lastCommittedNum := d.ForkDB.LastCommitted().BlockNum()
+	headNum := d.ForkDB.Head().Id().BlockNum()
+
+	if blockNum > headNum {
+		return false, nil
+	}
+
+	if blockNum > lastCommittedNum {
+		blk, err := d.ForkDB.FetchBlockFromMainBranch(blockNum)
+		if err != nil {
+			return false, err
+		}
+		return blk.Id() == id, nil
+	} else {
+		b := &prototype.SignedBlock{}
+		err := d.blog.ReadBlock(b, int64(blockNum-1))
+		if err != nil {
+			return false, err
+		}
+		return b.Id() == id, nil
+	}
+
+	return false, nil
 }

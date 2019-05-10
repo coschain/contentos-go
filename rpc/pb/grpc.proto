@@ -161,6 +161,10 @@ message AccountInfo {
     uint32                                  following_count   = 9;
     uint32                                  trx_count        = 10;
     uint32                                  vote_power       = 11;
+    uint64                                  stamina_free_remain  = 12;
+    uint64                                  stamina_stake_remain  = 13;
+    uint64                                  stamina_max     = 14;
+    prototype.vest                          stake_vest      = 15;
 }
 
 message AccountResponse {
@@ -300,7 +304,7 @@ message BroadcastTrxRequest {
 }
 
 message BroadcastTrxResponse {
-    prototype.transaction_receipt_with_info  invoice = 1;
+    prototype.transaction_receipt    invoice = 1;
     uint32                          status  = 2;
     string                          msg     = 3;
 }
