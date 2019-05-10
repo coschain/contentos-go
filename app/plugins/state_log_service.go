@@ -90,7 +90,7 @@ func (s *StateLogService) Start(node *node.Node) error {
 	s.ev = node.EvBus
 
 	var lastLib uint64 = 0
-	s.db.QueryRow("select lib from stateloglibinfo limit 1", &lastLib)
+	_ = s.db.QueryRow("select lib from stateloglibinfo limit 1").Scan(&lastLib)
 
 	rows, _ := s.db.Query("SELECT block_log from statelog WHERE block_height >= ?", lastLib)
 	for rows.Next() {
@@ -212,31 +212,52 @@ func (s *StateLogService) handleLog(blockLog *iservices.BlockLog) {
 }
 
 func (s *StateLogService) handleBalance(blockId string, trxId string, action int, target string, result interface{}) {
+	var resultValue uint64
+	switch result.(type) {
+	case uint64:
+		resultValue = result.(uint64)
+	case float64:
+		resultValue = uint64(result.(float64))
+	}
 	switch action {
 	case iservices.Replace:
-		_, _ = s.db.Exec("REPLACE INTO stateaccount (account, balance) VALUES (?, ?)", target, result.(uint64))
+		_, _ = s.db.Exec("REPLACE INTO stateaccount (account, balance) VALUES (?, ?)", target, resultValue)
 	case iservices.Insert:
-		_, _ = s.db.Exec("INSERT INTO stateaccount (account, balance) VALUES (?, ?)", target, result.(uint64))
+		_, _ = s.db.Exec("INSERT INTO stateaccount (account, balance) VALUES (?, ?)", target, resultValue)
 	case iservices.Update:
-		_, _ = s.db.Exec("UPDATE stateaccount set balance=? where account=?", result.(uint64), target)
+		_, _ = s.db.Exec("UPDATE stateaccount set balance=? where account=?", resultValue, target)
 	}
 }
 
 func (s *StateLogService) handleMint(blockId string, trxId string, action int, target string, result interface{}) {
+	var resultValue uint64
+	switch result.(type) {
+	case uint64:
+		resultValue = result.(uint64)
+	case float64:
+		resultValue = uint64(result.(float64))
+	}
 	switch action {
 	case iservices.Add:
 		var revenue uint64
 		_ = s.db.QueryRow("SELECT revenue from statemint").Scan(&revenue)
-		_, _ = s.db.Exec("REPLACE INTO statemint (bp, revenue) VALUES (?, ?)", target, revenue + result.(uint64))
+		_, _ = s.db.Exec("REPLACE INTO statemint (bp, revenue) VALUES (?, ?)", target, revenue + resultValue)
 	}
 }
 
 func (s *StateLogService) handleCashout(blockId string, trxId string, action int, target string, result interface{}) {
+	var resultValue uint64
+	switch result.(type) {
+	case uint64:
+		resultValue = result.(uint64)
+	case float64:
+		resultValue = uint64(result.(float64))
+	}
 	switch action {
 	case iservices.Add:
 		var cashout uint64
 		_ = s.db.QueryRow("select cashout from statecashout").Scan(&cashout)
-		_, _ = s.db.Exec("REPLACE INTO statecashout (account, cashout) VALUES (?, ?)", target, cashout + result.(uint64))
+		_, _ = s.db.Exec("REPLACE INTO statecashout (account, cashout) VALUES (?, ?)", target, cashout + resultValue)
 	}
 }
 
