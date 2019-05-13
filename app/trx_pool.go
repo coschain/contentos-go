@@ -360,10 +360,12 @@ func (c *TrxPool) generateBlockNoLock(witness string, pre *prototype.Sha256, tim
 	t4 := time.Now()
 	c.shuffle(signBlock)
 	t5 := time.Now()
+	c.updateAvgTps(signBlock)
+	t6 := time.Now()
 
-	c.log.Debugf("GENBLOCK %d: %v|%v|%v(%v)|%v|%v|%v, timeout=%v, pending=%d, failed=%d, inblk=%d",
+	c.log.Debugf("GENBLOCK %d: %v|%v|%v(%v)|%v|%v|%v|%v, timeout=%v, pending=%d, failed=%d, inblk=%d",
 		signBlock.Id().BlockNum(),
-		t5.Sub(t0), t1.Sub(t0), t2.Sub(t1), time.Duration(applyTime), t3.Sub(t2), t4.Sub(t3), t5.Sub(t4), timeOut,
+		t5.Sub(t0), t1.Sub(t0), t2.Sub(t1), time.Duration(applyTime), t3.Sub(t2), t4.Sub(t3), t5.Sub(t4), t6.Sub(t5), timeOut,
 		c.tm.WaitingCount(), len(failedTrx), len(signBlock.Transactions))
 
 	b, e = signBlock, nil
@@ -551,8 +553,10 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 		t2 := time.Now()
 		c.shuffle(blk)
 		t3 := time.Now()
+		c.updateAvgTps(blk)
+		t4 := time.Now()
 		c.log.Debugf("PUSHBLOCK %d: %v|%v(%v)|%v|%v, #tx=%d", blk.Id().BlockNum(),
-			t3.Sub(t0), t1.Sub(t0), time.Duration(applyTime), t2.Sub(t1), t3.Sub(t2), totalCount)
+			t3.Sub(t0), t1.Sub(t0), time.Duration(applyTime), t2.Sub(t1), t3.Sub(t2), t4.Sub(t3), totalCount)
 	}
 	t0 := time.Now()
 	c.createBlockSummary(blk)
@@ -860,6 +864,13 @@ func (c *TrxPool) modifyGlobalDynamicData(f func(props *prototype.DynamicPropert
 
 func (c *TrxPool) ModifyProps(modifier func(oldProps *prototype.DynamicProperties)) {
 	c.modifyGlobalDynamicData(modifier)
+}
+
+func (c *TrxPool) updateAvgTps(blk *prototype.SignedBlock) {
+	newOneDayStamina := c.resourceLimiter.UpdateDynamicStamina(c.db, uint64(len(blk.Transactions)),blk.Id().BlockNum())
+	c.ModifyProps(func(props *prototype.DynamicProperties) {
+		props.OneDayStamina = newOneDayStamina
+	})
 }
 
 func (c *TrxPool) updateGlobalProperties(blk *prototype.SignedBlock) {

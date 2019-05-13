@@ -102,6 +102,8 @@ const (
     OneDayStamina      = MaxStaminaPerBlock * WindowSize
     CommonOpGas        = 100
     StakeFreezeTime    = WindowSize * 3
+    TpsWindowSize      = 60
+	TpsExpected         = 2000
 )
 
 var GlobalId int32 = 1

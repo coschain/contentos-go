@@ -29,12 +29,17 @@ type IFreeGetter interface {
 	GetFreeLeft(db iservices.IDatabaseRW,name string, now uint64) uint64
 }
 
+type ITpsUpdater interface {
+	UpdateDynamicStamina(db iservices.IDatabaseService,trxCount, blockNum uint64) uint64
+}
+
 // stake resource interface
 type IResourceLimiter interface {
 	IConsumer
 	IFreeConsumer
 	IGetter
 	IFreeGetter
+	ITpsUpdater
 }
 
 // ResourceLimiter impl all IResourceLimiter's api
@@ -63,13 +68,13 @@ func (s *ResourceLimiter) GetCapacity(db iservices.IDatabaseRW,name string) uint
 	return s.calculateUserMaxStamina(db,name)
 }
 
-var SINGLE int32 = 1
 func (s *ResourceLimiter) calculateUserMaxStamina(db iservices.IDatabaseRW, name string) uint64 {
 	accountWrap := table.NewSoAccountWrap(db, &prototype.AccountName{Value:name})
 	if !accountWrap.CheckExist() {
 		return 0
 	}
-	dgpWrap := table.NewSoGlobalWrap(db,&SINGLE)
+	dgpWrap := table.NewSoGlobalWrap(db,&constants.GlobalId)
+	oneDayStamina := dgpWrap.GetProps().GetOneDayStamina()
 
 	stakeVest := accountWrap.GetStakeVesting().Value
 
@@ -77,7 +82,7 @@ func (s *ResourceLimiter) calculateUserMaxStamina(db iservices.IDatabaseRW, name
 	if allVest == 0 {
 		return 0
 	}
-	userMax := float64( stakeVest)/float64(allVest) * constants.OneDayStamina
+	userMax := float64( stakeVest)/float64(allVest) * float64(oneDayStamina)
 	return uint64(userMax)
 }
 
@@ -219,4 +224,50 @@ func calculateNewStaminaEMA(oldStamina, useStamina uint64, lastTime uint64, now 
 	}
 	avgOld += avgUse
 	return avgOld * constants.WindowSize / constants.LimitPrecision
+}
+
+func (s *ResourceLimiter) UpdateDynamicStamina(db iservices.IDatabaseService,trxCount, blockNum uint64) uint64 {
+	dgpWrap := table.NewSoGlobalWrap(db, &constants.GlobalId)
+	props := dgpWrap.GetProps()
+	tpsInWindow := props.GetAvgTpsInWindow()
+	lastUpdate := props.GetAvgTpsUpdateBlock()
+	oneDayStamina := props.GetOneDayStamina()
+
+	tpsInWindowNew := calculateTpsEMA(tpsInWindow,trxCount,lastUpdate,blockNum)
+	return updateDynamicOneDayStamina(oneDayStamina,tpsInWindowNew/constants.TpsWindowSize)
+}
+
+func calculateTpsEMA(oldTrxs, newTrxs uint64, lastTime uint64, now uint64) uint64 {
+	blocks := uint64(constants.TpsWindowSize)
+	avgOld := divideCeil(oldTrxs*constants.LimitPrecision,blocks)
+	avgUse := divideCeil(newTrxs*constants.LimitPrecision,blocks)
+	if now > lastTime { // assert ?
+		if now < lastTime + blocks {
+			delta := now - lastTime
+			decay := float64(blocks - delta) / float64(blocks)
+			tmp := float64(avgOld) * decay
+			avgOld = uint64(tmp)
+		} else {
+			avgOld = 0
+		}
+	}
+	avgOld += avgUse
+	return avgOld * constants.TpsWindowSize / constants.LimitPrecision
+}
+
+func updateDynamicOneDayStamina(oldOneDayStamina, avgTps uint64) uint64 {
+	change := oldOneDayStamina / 100
+	if avgTps > constants.TpsExpected {
+		oldOneDayStamina = oldOneDayStamina - change
+	} else {
+		// todo calculate user's avg stamina, if is large enough, do not expand
+		oldOneDayStamina = oldOneDayStamina + change
+	}
+	if oldOneDayStamina < constants.OneDayStamina {
+		oldOneDayStamina = constants.OneDayStamina
+	}
+	if oldOneDayStamina > constants.OneDayStamina * 100 {
+		oldOneDayStamina = constants.OneDayStamina * 100
+	}
+	return oldOneDayStamina
 }
