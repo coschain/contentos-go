@@ -55,7 +55,9 @@ type SABFT struct {
 	ctx  *node.ServiceContext
 	ctrl iservices.ITrxPool
 	p2p  iservices.IP2P
-	log  *logrus.Logger
+
+	extLog *logrus.Logger
+	log    *logrus.Entry
 
 	Ticker TimerDriver
 
@@ -78,7 +80,8 @@ func NewSABFT(ctx *node.ServiceContext, lg *logrus.Logger) *SABFT {
 		blkCh:      make(chan common.ISignedBlock),
 		ctx:        ctx,
 		stopCh:     make(chan struct{}),
-		log:        lg,
+		extLog:     lg,
+		log:        lg.WithField("sabft", "on"),
 		bftStarted: 0,
 		commitCh:   make(chan message.Commit),
 		Ticker:     &Timer{},
@@ -299,7 +302,7 @@ func (sabft *SABFT) Start(node *node.Node) error {
 	sabft.bft = gobft.NewCore(sabft, sabft.dynasties.Front().priv)
 	//pv := newPrivValidator(sabft, sabft.localPrivKey, sabft.Name)
 	//sabft.bft = gobft.NewCore(sabft, pv)
-	sabft.bft.SetLogger(sabft.log)
+	sabft.bft.SetLogger(sabft.extLog)
 	// start block generation process
 	go sabft.start()
 
@@ -778,7 +781,7 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 				}
 				sabft.p2p.FetchOutOfRange(headID, b.Id())
 
-				sabft.log.Debug("[SABFT TriggerSync]: out-of range from ", headID.BlockNum() )
+				sabft.log.Debug("[SABFT TriggerSync]: out-of range from ", headID.BlockNum())
 			}
 		}
 
