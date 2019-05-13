@@ -14,6 +14,7 @@ message so_contract {
     string                     abi              =      3;
     prototype.coin             balance          =      4;
     bytes                      code             =      5;
+    uint32                     apply_count      =      6;
       
 }
 
@@ -43,8 +44,19 @@ message so_mem_contract_by_code {
 }
 
 
+message so_mem_contract_by_apply_count {
+	uint32                  	apply_count  = 1;
+}
+
+
 message so_list_contract_by_created_time {
 	prototype.time_point_sec	created_time = 1;
+	prototype.contract_id   	id           = 2;
+}
+
+
+message so_list_contract_by_apply_count {
+	uint32                  	apply_count  = 1;
 	prototype.contract_id   	id           = 2;
 }
 

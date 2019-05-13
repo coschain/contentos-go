@@ -15,8 +15,10 @@ import (
 ////////////// SECTION Prefix Mark ///////////////
 var (
 	ContractCreatedTimeTable uint32 = 1292005739
+	ContractApplyCountTable  uint32 = 2694332342
 	ContractIdUniTable       uint32 = 4175408872
 	ContractAbiCell          uint32 = 562884560
+	ContractApplyCountCell   uint32 = 3388167383
 	ContractBalanceCell      uint32 = 1230027001
 	ContractCodeCell         uint32 = 1267857519
 	ContractCreatedTimeCell  uint32 = 3946752343
@@ -184,12 +186,73 @@ func (s *SoContractWrap) insertSortKeyCreatedTime(sa *SoContract) bool {
 	return ordErr == nil
 }
 
+func (s *SoContractWrap) delSortKeyApplyCount(sa *SoContract) bool {
+	if s.dba == nil || s.mainKey == nil {
+		return false
+	}
+	val := SoListContractByApplyCount{}
+	if sa == nil {
+		key, err := s.encodeMemKey("ApplyCount")
+		if err != nil {
+			return false
+		}
+		buf, err := s.dba.Get(key)
+		if err != nil {
+			return false
+		}
+		ori := &SoMemContractByApplyCount{}
+		err = proto.Unmarshal(buf, ori)
+		if err != nil {
+			return false
+		}
+		val.ApplyCount = ori.ApplyCount
+		val.Id = s.mainKey
+
+	} else {
+		val.ApplyCount = sa.ApplyCount
+		val.Id = sa.Id
+	}
+
+	subBuf, err := val.OpeEncode()
+	if err != nil {
+		return false
+	}
+	ordErr := s.dba.Delete(subBuf)
+	return ordErr == nil
+}
+
+func (s *SoContractWrap) insertSortKeyApplyCount(sa *SoContract) bool {
+	if s.dba == nil || sa == nil {
+		return false
+	}
+	val := SoListContractByApplyCount{}
+	val.Id = sa.Id
+	val.ApplyCount = sa.ApplyCount
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return false
+	}
+	subBuf, err := val.OpeEncode()
+	if err != nil {
+		return false
+	}
+	ordErr := s.dba.Put(subBuf, buf)
+	return ordErr == nil
+}
+
 func (s *SoContractWrap) delAllSortKeys(br bool, val *SoContract) bool {
 	if s.dba == nil {
 		return false
 	}
 	res := true
 	if !s.delSortKeyCreatedTime(val) {
+		if br {
+			return false
+		} else {
+			res = false
+		}
+	}
+	if !s.delSortKeyApplyCount(val) {
 		if br {
 			return false
 		} else {
@@ -209,6 +272,9 @@ func (s *SoContractWrap) insertAllSortKeys(val *SoContract) error {
 	}
 	if !s.insertSortKeyCreatedTime(val) {
 		return errors.New("insert sort Field CreatedTime fail while insert table ")
+	}
+	if !s.insertSortKeyApplyCount(val) {
+		return errors.New("insert sort Field ApplyCount fail while insert table ")
 	}
 
 	return nil
@@ -245,6 +311,9 @@ func (s *SoContractWrap) RemoveContract() bool {
 func (s *SoContractWrap) getMemKeyPrefix(fName string) uint32 {
 	if fName == "Abi" {
 		return ContractAbiCell
+	}
+	if fName == "ApplyCount" {
+		return ContractApplyCountCell
 	}
 	if fName == "Balance" {
 		return ContractBalanceCell
@@ -296,6 +365,13 @@ func (s *SoContractWrap) saveAllMemKeys(tInfo *SoContract, br bool) error {
 			return err
 		} else {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Abi", err)
+		}
+	}
+	if err = s.saveMemKeyApplyCount(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "ApplyCount", err)
 		}
 	}
 	if err = s.saveMemKeyBalance(tInfo); err != nil {
@@ -451,6 +527,96 @@ func (s *SoContractWrap) MdAbi(p string) bool {
 		return false
 	}
 	sa.Abi = p
+
+	return true
+}
+
+func (s *SoContractWrap) saveMemKeyApplyCount(tInfo *SoContract) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemContractByApplyCount{}
+	val.ApplyCount = tInfo.ApplyCount
+	key, err := s.encodeMemKey("ApplyCount")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
+
+func (s *SoContractWrap) GetApplyCount() uint32 {
+	res := true
+	msg := &SoMemContractByApplyCount{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("ApplyCount")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.ApplyCount
+			}
+		}
+	}
+	if !res {
+		var tmpValue uint32
+		return tmpValue
+	}
+	return msg.ApplyCount
+}
+
+func (s *SoContractWrap) MdApplyCount(p uint32) bool {
+	if s.dba == nil {
+		return false
+	}
+	key, err := s.encodeMemKey("ApplyCount")
+	if err != nil {
+		return false
+	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemContractByApplyCount{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoContract{}
+	sa.Id = s.mainKey
+
+	sa.ApplyCount = ori.ApplyCount
+
+	if !s.delSortKeyApplyCount(sa) {
+		return false
+	}
+	ori.ApplyCount = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
+		return false
+	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.ApplyCount = p
+
+	if !s.insertSortKeyApplyCount(sa) {
+		return false
+	}
 
 	return true
 }
@@ -918,6 +1084,113 @@ func (s *SContractCreatedTimeWrap) ForEachByRevOrder(start *prototype.TimePointS
 	}
 	var idx uint32 = 0
 	s.Dba.Iterate(eBuf, sBuf, true, func(key, value []byte) bool {
+		idx++
+		return f(s.GetMainVal(value), s.GetSubVal(value), idx)
+	})
+	return nil
+}
+
+////////////// SECTION List Keys ///////////////
+type SContractApplyCountWrap struct {
+	Dba iservices.IDatabaseRW
+}
+
+func NewContractApplyCountWrap(db iservices.IDatabaseRW) *SContractApplyCountWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := SContractApplyCountWrap{Dba: db}
+	return &wrap
+}
+
+func (s *SContractApplyCountWrap) GetMainVal(val []byte) *prototype.ContractId {
+	res := &SoListContractByApplyCount{}
+	err := proto.Unmarshal(val, res)
+
+	if err != nil {
+		return nil
+	}
+	return res.Id
+
+}
+
+func (s *SContractApplyCountWrap) GetSubVal(val []byte) *uint32 {
+	res := &SoListContractByApplyCount{}
+	err := proto.Unmarshal(val, res)
+	if err != nil {
+		return nil
+	}
+	return &res.ApplyCount
+
+}
+
+func (m *SoListContractByApplyCount) OpeEncode() ([]byte, error) {
+	pre := ContractApplyCountTable
+	sub := m.ApplyCount
+
+	sub1 := m.Id
+	if sub1 == nil {
+		return nil, errors.New("the mainkey Id is nil")
+	}
+	kList := []interface{}{pre, sub, sub1}
+	kBuf, cErr := kope.EncodeSlice(kList)
+	return kBuf, cErr
+}
+
+//Query srt by order
+//
+//start = nil  end = nil (query the db from start to end)
+//start = nil (query from start the db)
+//end = nil (query to the end of db)
+//
+//f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
+//as arguments to the callback function
+//if the return value of f is true,continue iterating until the end iteration;
+//otherwise stop iteration immediately
+//
+//lastMainKey: the main key of the last one of last page
+//lastSubVal: the value  of the last one of last page
+//
+func (s *SContractApplyCountWrap) ForEachByOrder(start *uint32, end *uint32, lastMainKey *prototype.ContractId,
+	lastSubVal *uint32, f func(mVal *prototype.ContractId, sVal *uint32, idx uint32) bool) error {
+	if s.Dba == nil {
+		return errors.New("the db is nil")
+	}
+	if (lastSubVal != nil && lastMainKey == nil) || (lastSubVal == nil && lastMainKey != nil) {
+		return errors.New("last query param error")
+	}
+	if f == nil {
+		return nil
+	}
+	pre := ContractApplyCountTable
+	skeyList := []interface{}{pre}
+	if start != nil {
+		skeyList = append(skeyList, start)
+		if lastMainKey != nil {
+			skeyList = append(skeyList, lastMainKey, kope.MinimalKey)
+		}
+	} else {
+		if lastMainKey != nil && lastSubVal != nil {
+			skeyList = append(skeyList, lastSubVal, lastMainKey, kope.MinimalKey)
+		}
+		skeyList = append(skeyList, kope.MinimalKey)
+	}
+	sBuf, cErr := kope.EncodeSlice(skeyList)
+	if cErr != nil {
+		return cErr
+	}
+	eKeyList := []interface{}{pre}
+	if end != nil {
+		eKeyList = append(eKeyList, end)
+	} else {
+		eKeyList = append(eKeyList, kope.MaximumKey)
+	}
+	eBuf, cErr := kope.EncodeSlice(eKeyList)
+	if cErr != nil {
+		return cErr
+	}
+	var idx uint32 = 0
+	s.Dba.Iterate(sBuf, eBuf, false, func(key, value []byte) bool {
 		idx++
 		return f(s.GetMainVal(value), s.GetSubVal(value), idx)
 	})
