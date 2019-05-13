@@ -197,8 +197,8 @@ func (s *StateLogService) handleLog(blockLog *iservices.BlockLog) {
 				s.handleMint(blockId, trxId, action, target, result)
 			case "cashout":
 				s.handleCashout(blockId, trxId, action, target, result)
-			default:
-				s.log.Errorf("Unknown property: %s\n", property)
+			//default:
+				//s.log.Errorf("Unknown property: %s\n", property)
 			}
 			//s.pushIntoDb(blockId, blockHeight, trxId, action, property, target, result)
 			//data := make(map[string]interface{})
