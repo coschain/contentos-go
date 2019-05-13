@@ -667,6 +667,7 @@ func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 		return
 	}
 
+	// TODO: handle multiple cp at same height
 	err := sabft.cp.Add(records)
 	if err != nil {
 		return
@@ -697,8 +698,9 @@ func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 		if _, err := sabft.ForkDB.FetchBlock(newID); err == nil {
 			if err = sabft.commit(checkPoint); err == nil {
 				sabft.cp.Flush()
-				sabft.dynasties.Purge(ExtractBlockID(checkPoint).BlockNum())
+				sabft.dynasties.Purge(newID.BlockNum())
 				checkPoint = sabft.cp.NextUncommitted()
+				sabft.log.Debug("loop checkpoint at ", checkPoint.ProposedData)
 				continue
 			}
 		}
@@ -891,6 +893,7 @@ func (sabft *SABFT) Commit(commitRecords *message.Commit) error {
 
 	err := sabft.cp.Add(commitRecords)
 	if err == ErrCheckPointOutOfRange || err == ErrInvalidCheckPoint {
+		sabft.log.Error(err)
 		return err
 	}
 	err = sabft.commit(commitRecords)
@@ -1422,25 +1425,25 @@ func (sabft *SABFT) CheckSyncFinished() bool {
 	return sabft.readyToProduce
 }
 
-func (d *SABFT) IsOnMainBranch(id common.BlockID) (bool, error) {
+func (sabft *SABFT) IsOnMainBranch(id common.BlockID) (bool, error) {
 	blockNum := id.BlockNum()
 
-	lastCommittedNum := d.ForkDB.LastCommitted().BlockNum()
-	headNum := d.ForkDB.Head().Id().BlockNum()
+	lastCommittedNum := sabft.ForkDB.LastCommitted().BlockNum()
+	headNum := sabft.ForkDB.Head().Id().BlockNum()
 
 	if blockNum > headNum {
 		return false, nil
 	}
 
 	if blockNum > lastCommittedNum {
-		blk, err := d.ForkDB.FetchBlockFromMainBranch(blockNum)
+		blk, err := sabft.ForkDB.FetchBlockFromMainBranch(blockNum)
 		if err != nil {
 			return false, err
 		}
 		return blk.Id() == id, nil
 	} else {
 		b := &prototype.SignedBlock{}
-		err := d.blog.ReadBlock(b, int64(blockNum-1))
+		err := sabft.blog.ReadBlock(b, int64(blockNum-1))
 		if err != nil {
 			return false, err
 		}

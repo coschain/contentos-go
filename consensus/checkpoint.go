@@ -100,6 +100,7 @@ func (cp *BFTCheckPoint) Add(commit *message.Commit) error {
 	libNum := cp.lastCommitted.BlockNum()
 	if blockNum > libNum+constants.MaxUncommittedBlockNum ||
 		blockNum <= libNum {
+		cp.sabft.log.Error(ErrCheckPointOutOfRange)
 		return ErrCheckPointOutOfRange
 	}
 
