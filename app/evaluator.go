@@ -13,6 +13,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"math"
 	"sort"
+	"strconv"
 )
 
 func mustSuccess(b bool, val string) {
@@ -232,7 +233,7 @@ func (ev *PostEvaluator) Apply() {
 	//key := fmt.Sprintf("cashout:%d_%d", common.GetBucket(timestamp), op.Uuid)
 	//value := "post"
 	//opAssertE(ev.ctx.db.Put([]byte(key), []byte(value)), "put post key into db error")
-	ev.ctx.observer.AddOpState(iservices.Insert, "post", authorWrap.GetName().Value, string(op.Uuid))
+	ev.ctx.observer.AddOpState(iservices.Insert, "post", authorWrap.GetName().Value, strconv.FormatUint(op.Uuid, 10))
 
 }
 
@@ -285,7 +286,7 @@ func (ev *ReplyEvaluator) Apply() {
 	//key := fmt.Sprintf("cashout:%d_%d", common.GetBucket(timestamp), op.Uuid)
 	//value := "reply"
 	//opAssertE(ev.ctx.db.Put([]byte(key), []byte(value)), "put reply key into db error")
-	data := map[string]string{"id": string(op.Uuid), "postId": string(op.ParentUuid)}
+	data := map[string]string{"id": strconv.FormatUint(op.Uuid, 10), "postId": strconv.FormatUint(op.ParentUuid, 10)}
 	ev.ctx.observer.AddOpState(iservices.Insert, "reply", authorWrap.GetName().Value, data)
 }
 
@@ -354,7 +355,8 @@ func (ev *VoteEvaluator) Apply() {
 
 		opAssert(postWrap.MdVoteCnt(postWrap.GetVoteCnt()+1), "set vote count error")
 	}
-	data := map[string]string{"postId": string(op.Idx), "vesting": string(voterWrap.GetVestingShares().Value), "weightedVp": string(weightedVp), "usedVp": string(usedVp)}
+	data := map[string]string{"postId": strconv.FormatUint(op.Idx, 10), "vesting": strconv.FormatUint(voterWrap.GetVestingShares().Value, 10),
+		"weightedVp": strconv.FormatUint(weightedVp, 10), "usedVp": strconv.Itoa(int(usedVp))}
 	ev.ctx.observer.AddOpState(iservices.Insert, "vote", voterWrap.GetName().Value, data)
 }
 
