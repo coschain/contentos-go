@@ -4,6 +4,7 @@ import (
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/common/encoding/vme"
+	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/vm"
 	"github.com/coschain/contentos-go/vm/context"
@@ -184,6 +185,10 @@ func (ev *TransferEvaluator) Apply() {
 
 	opAssertE(tBalance.Add(op.Amount), "balance overflow")
 	opAssert(toWrap.MdBalance(tBalance), "")
+
+	ev.ctx.observer.AddOpState(iservices.Replace, "balance", fromWrap.GetName().Value, fromWrap.GetBalance().Value)
+	ev.ctx.observer.AddOpState(iservices.Replace, "balance", toWrap.GetName().Value, toWrap.GetBalance().Value)
+
 }
 
 func (ev *PostEvaluator) Apply() {
@@ -306,11 +311,16 @@ func (ev *VoteEvaluator) Apply() {
 	//	}
 	//}
 
-	regeneratedPower := constants.PERCENT * elapsedSeconds / constants.VoteRegenerateTime
+	//regeneratedPower := constants.PERCENT * elapsedSeconds / constants.VoteRegenerateTime
+	regeneratedPower := 1000 * elapsedSeconds / constants.VoteRegenerateTime
+
 	var currentVp uint32
 	votePower := voterWrap.GetVotePower() + regeneratedPower
-	if votePower > constants.PERCENT {
-		currentVp = constants.PERCENT
+	//if votePower > constants.PERCENT {
+	//	currentVp = constants.PERCENT
+	if votePower > 1000{
+		currentVp = 1000
+
 	} else {
 		currentVp = votePower
 	}
