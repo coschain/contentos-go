@@ -232,6 +232,7 @@ func (ev *PostEvaluator) Apply() {
 	//key := fmt.Sprintf("cashout:%d_%d", common.GetBucket(timestamp), op.Uuid)
 	//value := "post"
 	//opAssertE(ev.ctx.db.Put([]byte(key), []byte(value)), "put post key into db error")
+	ev.ctx.observer.AddOpState(iservices.Insert, "post", authorWrap.GetName().Value, string(op.Uuid))
 
 }
 
@@ -284,6 +285,8 @@ func (ev *ReplyEvaluator) Apply() {
 	//key := fmt.Sprintf("cashout:%d_%d", common.GetBucket(timestamp), op.Uuid)
 	//value := "reply"
 	//opAssertE(ev.ctx.db.Put([]byte(key), []byte(value)), "put reply key into db error")
+	data := map[string]string{"id": string(op.Uuid), "postId": string(op.ParentUuid)}
+	ev.ctx.observer.AddOpState(iservices.Insert, "reply", authorWrap.GetName().Value, data)
 }
 
 // upvote is true: upvote otherwise downvote
@@ -351,6 +354,8 @@ func (ev *VoteEvaluator) Apply() {
 
 		opAssert(postWrap.MdVoteCnt(postWrap.GetVoteCnt()+1), "set vote count error")
 	}
+	data := map[string]string{"postId": string(op.Idx), "vesting": string(voterWrap.GetVestingShares().Value), "weightedVp": string(weightedVp), "usedVp": string(usedVp)}
+	ev.ctx.observer.AddOpState(iservices.Insert, "vote", voterWrap.GetName().Value, data)
 }
 
 func (ev *BpRegisterEvaluator) BpInWhiteList(bpName string) bool {
