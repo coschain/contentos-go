@@ -50,6 +50,11 @@ const (
 
 	MaxBpVoteCount       = 30
 
+	PerVoterCanVoteWitness   = 1
+	VoteCountPerVest         = 1
+
+	MaxAccountNameLength     = 16
+
 	BlocksPerDay = 24 * 60 * 60 / BlockInterval
 
 	MaxUndoHistory = 10000
