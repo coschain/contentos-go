@@ -310,13 +310,13 @@ func (sabft *SABFT) Start(node *node.Node) error {
 }
 
 func (sabft *SABFT) restoreDynasty() {
-	// pop all uncommitted blocks and fix first dynasty
 	if sabft.ForkDB.Empty() {
 		// new chain, no blocks
 		prods, pubKeys := sabft.ctrl.GetWitnessTopN(constants.MaxWitnessCount)
 		dyn := sabft.makeDynastry(0, prods, pubKeys, sabft.localPrivKey)
 		sabft.addDynasty(dyn)
 	} else {
+		// pop all uncommitted blocks and fix first dynasty
 		lcNum := sabft.ForkDB.LastCommitted().BlockNum()
 		length := sabft.ForkDB.Head().Id().BlockNum() - lcNum
 		cache := make([]common.ISignedBlock, length)
@@ -677,10 +677,7 @@ func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 	}
 
 	checkPoint := records
-	for {
-		if checkPoint == nil {
-			break
-		}
+	for checkPoint != nil {
 		newID = ExtractBlockID(checkPoint)
 		if !sabft.cp.IsNextCheckPoint(checkPoint) {
 			return
@@ -703,7 +700,9 @@ func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 				sabft.cp.Flush()
 				sabft.dynasties.Purge(newID.BlockNum())
 				checkPoint = sabft.cp.NextUncommitted()
-				sabft.log.Debug("loop checkpoint at ", checkPoint.ProposedData)
+				if checkPoint != nil {
+					sabft.log.Debug("loop checkpoint at ", checkPoint.ProposedData)
+				}
 				continue
 			}
 		}

@@ -25,7 +25,6 @@ type Dynasties struct {
 }
 
 func NewDynasties() *Dynasties {
-	// TODO: load dynasties snapshot
 	return &Dynasties{
 		dynasties: list.New(),
 	}
