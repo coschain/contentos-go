@@ -394,13 +394,20 @@ func (ev *BpRegisterEvaluator) Apply() {
 
 	witnessWrap := table.NewSoWitnessWrap(ev.ctx.db, op.Owner)
 
-	opAssert(!witnessWrap.CheckExist(), "witness already exist")
+	if witnessWrap.CheckExist() {
+		opAssert(!witnessWrap.GetActive(), "witness already exist")
+
+		opAssert(witnessWrap.RemoveWitness(), "remove old witness information error")
+	}
+
+	//opAssert(!witnessWrap.CheckExist(), "witness already exist")
 
 	opAssertE(witnessWrap.Create(func(t *table.SoWitness) {
 		t.Owner = op.Owner
 		t.CreatedTime = ev.ctx.control.HeadBlockTime()
 		t.Url = op.Url
 		t.SigningKey = op.BlockSigningKey
+		t.Active = true
 
 		// TODO add others
 	}), "add witness record error")
@@ -416,10 +423,12 @@ func (ev *BpUnregisterEvaluator) Apply() {
 	witnessWrap := table.NewSoWitnessWrap(ev.ctx.db, op.Owner)
 
 	opAssert(witnessWrap.CheckExist(), "witness do not exist")
+	opAssert(witnessWrap.GetActive(), "witness active value should be true")
 
 	payBackVoteCntToVoter(ev.ctx.db, op.Owner)
 
-	opAssert(witnessWrap.RemoveWitness(), "remove witness error")
+	//opAssert(witnessWrap.RemoveWitness(), "remove witness error")
+	opAssert(witnessWrap.MdActive(false), "set witness active error")
 }
 
 func payBackVoteCntToVoter(dba iservices.IDatabaseRW, witness *prototype.AccountName) {

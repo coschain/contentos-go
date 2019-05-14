@@ -19,6 +19,8 @@ message so_witness {
     prototype.sha256                  last_work                    =      9;
     uint32                            running_version              =      10;
     uint32                            last_aslot                   =      11;
+    uint64                            proposed_stamina             =      12;
+    bool                              active                       =      13;
       
 }
 
@@ -75,6 +77,16 @@ message so_mem_witness_by_running_version {
 
 message so_mem_witness_by_last_aslot {
 	uint32                         	last_aslot               = 1;
+}
+
+
+message so_mem_witness_by_proposed_stamina {
+	uint64                         	proposed_stamina         = 1;
+}
+
+
+message so_mem_witness_by_active {
+	bool                           	active                   = 1;
 }
 
 

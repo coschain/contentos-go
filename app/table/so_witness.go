@@ -17,12 +17,14 @@ var (
 	WitnessOwnerTable                uint32 = 3588322158
 	WitnessVoteCountTable            uint32 = 2256540653
 	WitnessOwnerUniTable             uint32 = 2680327584
+	WitnessActiveCell                uint32 = 1638337923
 	WitnessCreatedTimeCell           uint32 = 732260124
 	WitnessLastAslotCell             uint32 = 2989050122
 	WitnessLastConfirmedBlockNumCell uint32 = 4183878646
 	WitnessLastWorkCell              uint32 = 3441432781
 	WitnessOwnerCell                 uint32 = 3659272213
 	WitnessPowWorkerCell             uint32 = 217317251
+	WitnessProposedStaminaCell       uint32 = 2526435249
 	WitnessRunningVersionCell        uint32 = 3359126320
 	WitnessSigningKeyCell            uint32 = 2433568317
 	WitnessTotalMissedCell           uint32 = 348210894
@@ -310,6 +312,9 @@ func (s *SoWitnessWrap) RemoveWitness() bool {
 
 ////////////// SECTION Members Get/Modify ///////////////
 func (s *SoWitnessWrap) getMemKeyPrefix(fName string) uint32 {
+	if fName == "Active" {
+		return WitnessActiveCell
+	}
 	if fName == "CreatedTime" {
 		return WitnessCreatedTimeCell
 	}
@@ -327,6 +332,9 @@ func (s *SoWitnessWrap) getMemKeyPrefix(fName string) uint32 {
 	}
 	if fName == "PowWorker" {
 		return WitnessPowWorkerCell
+	}
+	if fName == "ProposedStamina" {
+		return WitnessProposedStaminaCell
 	}
 	if fName == "RunningVersion" {
 		return WitnessRunningVersionCell
@@ -376,6 +384,13 @@ func (s *SoWitnessWrap) saveAllMemKeys(tInfo *SoWitness, br bool) error {
 	}
 	var err error = nil
 	errDes := ""
+	if err = s.saveMemKeyActive(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Active", err)
+		}
+	}
 	if err = s.saveMemKeyCreatedTime(tInfo); err != nil {
 		if br {
 			return err
@@ -416,6 +431,13 @@ func (s *SoWitnessWrap) saveAllMemKeys(tInfo *SoWitness, br bool) error {
 			return err
 		} else {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "PowWorker", err)
+		}
+	}
+	if err = s.saveMemKeyProposedStamina(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "ProposedStamina", err)
 		}
 	}
 	if err = s.saveMemKeyRunningVersion(tInfo); err != nil {
@@ -497,6 +519,89 @@ func (s *SoWitnessWrap) delMemKey(fName string) error {
 	}
 	err = s.dba.Delete(key)
 	return err
+}
+
+func (s *SoWitnessWrap) saveMemKeyActive(tInfo *SoWitness) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemWitnessByActive{}
+	val.Active = tInfo.Active
+	key, err := s.encodeMemKey("Active")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
+
+func (s *SoWitnessWrap) GetActive() bool {
+	res := true
+	msg := &SoMemWitnessByActive{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("Active")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.Active
+			}
+		}
+	}
+	if !res {
+		var tmpValue bool
+		return tmpValue
+	}
+	return msg.Active
+}
+
+func (s *SoWitnessWrap) MdActive(p bool) bool {
+	if s.dba == nil {
+		return false
+	}
+	key, err := s.encodeMemKey("Active")
+	if err != nil {
+		return false
+	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemWitnessByActive{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoWitness{}
+	sa.Owner = s.mainKey
+
+	sa.Active = ori.Active
+
+	ori.Active = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
+		return false
+	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.Active = p
+
+	return true
 }
 
 func (s *SoWitnessWrap) saveMemKeyCreatedTime(tInfo *SoWitness) error {
@@ -960,6 +1065,89 @@ func (s *SoWitnessWrap) MdPowWorker(p uint32) bool {
 		return false
 	}
 	sa.PowWorker = p
+
+	return true
+}
+
+func (s *SoWitnessWrap) saveMemKeyProposedStamina(tInfo *SoWitness) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemWitnessByProposedStamina{}
+	val.ProposedStamina = tInfo.ProposedStamina
+	key, err := s.encodeMemKey("ProposedStamina")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
+
+func (s *SoWitnessWrap) GetProposedStamina() uint64 {
+	res := true
+	msg := &SoMemWitnessByProposedStamina{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("ProposedStamina")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.ProposedStamina
+			}
+		}
+	}
+	if !res {
+		var tmpValue uint64
+		return tmpValue
+	}
+	return msg.ProposedStamina
+}
+
+func (s *SoWitnessWrap) MdProposedStamina(p uint64) bool {
+	if s.dba == nil {
+		return false
+	}
+	key, err := s.encodeMemKey("ProposedStamina")
+	if err != nil {
+		return false
+	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemWitnessByProposedStamina{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoWitness{}
+	sa.Owner = s.mainKey
+
+	sa.ProposedStamina = ori.ProposedStamina
+
+	ori.ProposedStamina = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
+		return false
+	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.ProposedStamina = p
 
 	return true
 }

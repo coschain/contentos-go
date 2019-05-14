@@ -10,3 +10,5 @@ prototype.public_key_type      ,signing_key             ,0   ,0     ,0   ,0     
 prototype.sha256               ,last_work               ,0   ,0     ,0   ,0          ,
 uint32                         ,running_version         ,0   ,0     ,0   ,0          ,
 uint32                         ,last_aslot              ,0   ,0     ,0   ,0          ,
+uint64                         ,proposed_stamina        ,0   ,0     ,0   ,0          ,
+bool                           ,active                  ,0   ,0     ,0   ,0          ,

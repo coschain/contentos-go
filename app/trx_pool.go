@@ -678,6 +678,7 @@ func (c *TrxPool) initGenesis() {
 		tInfo.CreatedTime = &prototype.TimePointSec{UtcSeconds: 0}
 		tInfo.SigningKey = pubKey
 		tInfo.LastWork = &prototype.Sha256{Hash: []byte{0}}
+		tInfo.Active = true
 	}), "Witness Create Error")
 
 	// create dynamic global properties
@@ -956,17 +957,35 @@ func (c *TrxPool) createBlockSummary(blk *prototype.SignedBlock) {
 
 func (c *TrxPool) GetWitnessTopN(n uint32) ([]string, []*prototype.PublicKeyType) {
 	var names []string
+	var deletelist []*prototype.AccountName
 	var keys []*prototype.PublicKeyType
 	revList := table.SWitnessVoteCountWrap{Dba: c.db}
+	var bpCount uint32 = 0
 	_ = revList.ForEachByRevOrder(nil, nil,nil,nil, func(mVal *prototype.AccountName, sVal *uint64, idx uint32) bool {
 		if mVal != nil {
-			names = append(names, mVal.Value)
+			witnessWrap := table.NewSoWitnessWrap(c.db, mVal)
+			if witnessWrap.CheckExist() {
+				if witnessWrap.GetActive() {
+					bpCount++
+					names = append(names, mVal.Value)
+				} else {
+					deletelist = append(deletelist, mVal)
+				}
+			} else {
+				return true
+			}
 		}
-		if idx < n {
+		if bpCount < n {
 			return true
 		}
+		//if idx < n {
+		//	return true
+		//}
 		return false
 	})
+
+	c.ClearUnRegisterBP(deletelist)
+
 	for i := range names {
 		ac := &prototype.AccountName{
 			Value: names[i],
@@ -979,6 +998,13 @@ func (c *TrxPool) GetWitnessTopN(n uint32) ([]string, []*prototype.PublicKeyType
 		keys = append(keys, dbPubKey)
 	}
 	return names, keys
+}
+
+func (c *TrxPool) ClearUnRegisterBP(deletelist []*prototype.AccountName) {
+	for i:=0;i<len(deletelist);i++ {
+		witnessWrap := table.NewSoWitnessWrap(c.db, deletelist[i])
+		mustSuccess(witnessWrap.RemoveWitness(), "clear unregister bp error")
+	}
 }
 
 func (c *TrxPool) SetShuffledWitness(names []string) {
