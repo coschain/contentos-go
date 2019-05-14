@@ -57,6 +57,5 @@ type ITrxPool interface {
 	//Sync pushed blocks to DB
 	SyncPushedBlocksToDB(blkList []common.ISignedBlock) error
 
-	GetAllRemainStamina(name string) uint64
-	GetAllStaminaMax(name string) uint64
+	CalculateUserMaxStamina(db IDatabaseRW,name string) uint64
 }

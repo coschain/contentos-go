@@ -867,7 +867,13 @@ func (c *TrxPool) ModifyProps(modifier func(oldProps *prototype.DynamicPropertie
 }
 
 func (c *TrxPool) updateAvgTps(blk *prototype.SignedBlock) {
-	newOneDayStamina := c.resourceLimiter.UpdateDynamicStamina(c.db, uint64(len(blk.Transactions)),blk.Id().BlockNum())
+	dgpWrap := table.NewSoGlobalWrap(c.db, &constants.GlobalId)
+	props := dgpWrap.GetProps()
+	tpsInWindow := props.GetAvgTpsInWindow()
+	lastUpdate := props.GetAvgTpsUpdateBlock()
+	oneDayStamina := props.GetOneDayStamina()
+
+	newOneDayStamina := c.resourceLimiter.UpdateDynamicStamina(tpsInWindow,oneDayStamina, uint64(len(blk.Transactions)),lastUpdate,blk.Id().BlockNum())
 	c.ModifyProps(func(props *prototype.DynamicProperties) {
 		props.OneDayStamina = newOneDayStamina
 	})
@@ -1122,30 +1128,21 @@ func (c *TrxPool) SyncPushedBlocksToDB(blkList []common.ISignedBlock) (err error
 	return err
 }
 
-func (c *TrxPool) GetRemainStamina(name string) uint64 {
-	wraper := table.NewSoGlobalWrap(c.db, &constants.GlobalId)
-	gp := wraper.GetProps()
-	return c.resourceLimiter.GetStakeLeft(c.db, name, gp.HeadBlockNumber)
+func (c *TrxPool) calculateUserMaxStamina(db iservices.IDatabaseRW,name string) uint64 {
+	dgpWrap := table.NewSoGlobalWrap(db, &SingleId)
+	accountWrap := table.NewSoAccountWrap(db, &prototype.AccountName{Value:name})
+
+	oneDayStamina := dgpWrap.GetProps().GetOneDayStamina()
+	stakeVest := accountWrap.GetStakeVesting().Value
+
+	allStakeVest := dgpWrap.GetProps().StakeVestingShares.Value
+	if allStakeVest == 0 {
+		return 0
+	}
+	userMax := float64( stakeVest)/float64(allStakeVest) * float64(oneDayStamina)
+	return uint64(userMax)
 }
 
-func (c *TrxPool) GetRemainFreeStamina(name string) uint64 {
-	wraper := table.NewSoGlobalWrap(c.db, &constants.GlobalId)
-	gp := wraper.GetProps()
-	return c.resourceLimiter.GetFreeLeft(c.db, name, gp.HeadBlockNumber)
-}
-
-func (c *TrxPool) GetStaminaMax(name string) uint64 {
-	return c.resourceLimiter.GetCapacity(c.db, name)
-}
-
-func (c *TrxPool) GetStaminaFreeMax() uint64 {
-	return c.resourceLimiter.GetCapacityFree()
-}
-
-func (c *TrxPool) GetAllRemainStamina(name string) uint64 {
-	return c.GetRemainStamina(name) + c.GetRemainFreeStamina(name)
-}
-
-func (c *TrxPool) GetAllStaminaMax(name string) uint64 {
-	return c.GetStaminaMax(name) + c.GetStaminaFreeMax()
+func (c *TrxPool) CalculateUserMaxStamina(db iservices.IDatabaseRW,name string) uint64 {
+	return c.calculateUserMaxStamina(db,name)
 }

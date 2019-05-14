@@ -30,6 +30,7 @@ var (
 
 type APIService struct {
 	consensus iservices.IConsensus
+	pool iservices.ITrxPool
 	mainLoop  *eventloop.EventLoop
 	db        iservices.IDatabaseService
 	log       *logrus.Logger
@@ -867,9 +868,10 @@ func (as *APIService) getAccountResponseByName(name *prototype.AccountName, isNe
 			acctInfo.FollowerCount = followWrap.GetFollowerCnt()
 			acctInfo.FollowingCount = followWrap.GetFollowingCnt()
 		}
-		acctInfo.StaminaFreeRemain = rc.GetFreeLeft(as.db, accWrap.GetName().Value, gp.HeadBlockNumber)
-		acctInfo.StaminaStakeRemain = rc.GetStakeLeft(as.db, accWrap.GetName().Value, gp.HeadBlockNumber)
-		acctInfo.StaminaMax = rc.GetCapacity(as.db, accWrap.GetName().Value) + rc.GetCapacityFree()
+		acctInfo.StaminaFreeRemain = rc.GetFreeLeft(accWrap.GetStaminaFree(), accWrap.GetStaminaFreeUseBlock(), gp.HeadBlockNumber)
+		maxStamina := as.pool.CalculateUserMaxStamina(as.db,accWrap.GetName().Value)
+		acctInfo.StaminaStakeRemain = rc.GetStakeLeft(accWrap.GetStamina(), accWrap.GetStaminaUseBlock(), gp.HeadBlockNumber, maxStamina)
+		acctInfo.StaminaMax = maxStamina + rc.GetCapacityFree()
 		acct.Info = acctInfo
 		acct.State = as.getState()
 

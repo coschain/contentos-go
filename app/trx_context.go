@@ -29,8 +29,24 @@ type resourceUnit struct {
 	realCost uint64 // real cost resource
 }
 
+func (p *TrxContext) getRemainStakeStamina(db iservices.IDatabaseRW,name string) uint64 {
+	wraper := table.NewSoGlobalWrap(db, &constants.GlobalId)
+	gp := wraper.GetProps()
+	accountWrap := table.NewSoAccountWrap(db, &prototype.AccountName{Value:name})
+	maxStamina := p.calculateUserMaxStamina(db,name)
+	return p.resourceLimiter.GetStakeLeft(accountWrap.GetStamina(), accountWrap.GetStaminaUseBlock(), gp.HeadBlockNumber, maxStamina)
+}
+
+func (p *TrxContext) getRemainFreeStamina(db iservices.IDatabaseRW,name string) uint64 {
+	wraper := table.NewSoGlobalWrap(db, &constants.GlobalId)
+	gp := wraper.GetProps()
+	accountWrap := table.NewSoAccountWrap(db, &prototype.AccountName{Value:name})
+	return p.resourceLimiter.GetFreeLeft(accountWrap.GetStaminaFree(), accountWrap.GetStaminaFreeUseBlock(), gp.HeadBlockNumber)
+}
+
 func (p *TrxContext) GetVmRemainCpuStamina(name string) uint64 {
-	return p.control.GetAllRemainStamina(name) - (p.netMap[name].raw * constants.NetConsumePointNum / constants.NetConsumePointDen)
+	allRemain := p.getRemainStakeStamina(p.db,name) + p.getRemainFreeStamina(p.db,name)
+	return allRemain - (p.netMap[name].raw * constants.NetConsumePointNum / constants.NetConsumePointDen)
 }
 
 func (p *TrxContext) CheckNet(db iservices.IDatabaseRW, sizeInBytes uint64) {
@@ -38,8 +54,11 @@ func (p *TrxContext) CheckNet(db iservices.IDatabaseRW, sizeInBytes uint64) {
 	netUse := sizeInBytes * uint64(float64(constants.NetConsumePointNum)/float64(constants.NetConsumePointDen))
 	for name := range keyMaps {
 		p.netMap[name] = &resourceUnit{}
-		freeLeft := p.resourceLimiter.GetFreeLeft(db, name, p.control.GetProps().HeadBlockNumber)
-		stakeLeft := p.resourceLimiter.GetStakeLeft(db, name, p.control.GetProps().HeadBlockNumber)
+
+		accountWrap := table.NewSoAccountWrap(db, &prototype.AccountName{Value:name})
+		maxStamina := p.calculateUserMaxStamina(db,name)
+		freeLeft := p.resourceLimiter.GetFreeLeft(accountWrap.GetStaminaFree(), accountWrap.GetStaminaFreeUseBlock(), p.control.GetProps().HeadBlockNumber)
+		stakeLeft := p.resourceLimiter.GetStakeLeft(accountWrap.GetStamina(), accountWrap.GetStaminaUseBlock(), p.control.GetProps().HeadBlockNumber,maxStamina)
 		if freeLeft >= netUse {
 			p.netMap[name].raw = sizeInBytes
 			continue
@@ -64,11 +83,20 @@ func (p *TrxContext) deductStamina(db iservices.IDatabaseRW,m map[string]*resour
 
 		var paid uint64 = 0
 
-		if !p.resourceLimiter.ConsumeFree(db, caller, staminaUse, now) {
-			paid += p.resourceLimiter.GetFreeLeft(db, caller, now)
-			p.resourceLimiter.ConsumeFreeLeft(db, caller, now)
+		accountWrap := table.NewSoAccountWrap(db, &prototype.AccountName{Value:caller})
+		if !accountWrap.CheckExist() {
+			// todo other choice ?
+			continue
+		}
+		if ok,newFreeStamina := p.resourceLimiter.ConsumeFree(accountWrap.GetStaminaFree(), staminaUse,accountWrap.GetStaminaFreeUseBlock(), now);!ok {
+			paid += p.resourceLimiter.GetFreeLeft(accountWrap.GetStaminaFree(), accountWrap.GetStaminaFreeUseBlock(), now)
+
+			accountWrap.MdStaminaFree(constants.FreeStamina)
+			accountWrap.MdStaminaFreeUseBlock(now)
 
 		} else {
+			accountWrap.MdStaminaFree(newFreeStamina)
+			accountWrap.MdStaminaFreeUseBlock(now)
 			paid = staminaUse
 			// free resource already enough
 			m[caller].realCost = paid
@@ -79,17 +107,24 @@ func (p *TrxContext) deductStamina(db iservices.IDatabaseRW,m map[string]*resour
 
 		left := staminaUse - paid
 
-		if !p.resourceLimiter.Consume(db, caller, left, now) {
+		maxStamina := p.calculateUserMaxStamina(db,caller)
+		if ok,newStamina := p.resourceLimiter.Consume(accountWrap.GetStamina(), left, accountWrap.GetStaminaUseBlock(), now,maxStamina);!ok {
 			// never failed ?
-			paid += p.resourceLimiter.GetStakeLeft(db, caller, now)
-			p.resourceLimiter.ConsumeLeft(db, caller, now)
+			paid += p.resourceLimiter.GetStakeLeft(accountWrap.GetStamina(), accountWrap.GetStaminaUseBlock(), now, maxStamina)
 
+			accountWrap.MdStamina(maxStamina)
+			accountWrap.MdStaminaUseBlock(now)
 		} else {
+			accountWrap.MdStamina(newStamina)
+			accountWrap.MdStaminaUseBlock(now)
 			paid += left
-
 		}
 		m[caller].realCost = paid
 	}
+}
+
+func (p *TrxContext) calculateUserMaxStamina(db iservices.IDatabaseRW,name string) uint64 {
+	return p.control.calculateUserMaxStamina(db,name)
 }
 
 func (p *TrxContext) DeductAllNet(db iservices.IDatabaseRW) {
