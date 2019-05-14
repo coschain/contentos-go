@@ -14,6 +14,7 @@ import (
 	"github.com/coschain/contentos-go/common/crypto/secp256k1"
 	"github.com/coschain/contentos-go/common/eventloop"
 	"math"
+	"strings"
 
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
@@ -483,6 +484,14 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 
 	if skip&prototype.Skip_apply_transaction == 0 {
 		t0 := time.Now()
+
+		txIds := make([]string, len(blk.Transactions))
+		for i, tw := range blk.Transactions {
+			txId, _ := tw.SigTrx.Id()
+			txIds[i] = fmt.Sprintf("id=%x, sig=%x", txId.Hash, tw.SigTrx.Signature.Sig)
+		}
+		sTxIds := strings.Join(txIds, "\n")
+		c.log.Debugf("[BLOCK_TRX] block %d trxs: %d\n%s", blk.Id().BlockNum(), len(blk.Transactions), sTxIds)
 
 		entries, err := c.tm.CheckBlockTrxs(blk)
 		mustNoError(err, "block trxs check failed")

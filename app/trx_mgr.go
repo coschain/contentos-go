@@ -114,8 +114,11 @@ func (e *TrxEntry) CheckSignerKey(fetcher *AuthFetcher) error {
 
 // CheckInBlockTrxs checks if the transaction is a duplicate of any old transaction.
 func (e *TrxEntry) CheckInBlockTrxs(checker *InBlockTrxChecker) error {
-	if checker.Has(e.result.SigTrx) {
-		return e.SetError(errors.New("found duplicate in-block trx"))
+	if b := checker.FindBlock(e.result.SigTrx); b != 0 {
+		trxId, _ := e.result.SigTrx.Id()
+		err := fmt.Errorf("found duplicate in-block trx: old_block=%d, trx_id=%x, trx_sig=%x",
+			b, trxId.Hash, []byte(e.sig))
+		return e.SetError(err)
 	}
 	return nil
 }
