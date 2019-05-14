@@ -24,7 +24,7 @@ var (
 	WitnessLastWorkCell              uint32 = 3441432781
 	WitnessOwnerCell                 uint32 = 3659272213
 	WitnessPowWorkerCell             uint32 = 217317251
-	WitnessProposedStaminaCell       uint32 = 2526435249
+	WitnessProposedStaminaFreeCell   uint32 = 1501150566
 	WitnessRunningVersionCell        uint32 = 3359126320
 	WitnessSigningKeyCell            uint32 = 2433568317
 	WitnessTotalMissedCell           uint32 = 348210894
@@ -333,8 +333,8 @@ func (s *SoWitnessWrap) getMemKeyPrefix(fName string) uint32 {
 	if fName == "PowWorker" {
 		return WitnessPowWorkerCell
 	}
-	if fName == "ProposedStamina" {
-		return WitnessProposedStaminaCell
+	if fName == "ProposedStaminaFree" {
+		return WitnessProposedStaminaFreeCell
 	}
 	if fName == "RunningVersion" {
 		return WitnessRunningVersionCell
@@ -433,11 +433,11 @@ func (s *SoWitnessWrap) saveAllMemKeys(tInfo *SoWitness, br bool) error {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "PowWorker", err)
 		}
 	}
-	if err = s.saveMemKeyProposedStamina(tInfo); err != nil {
+	if err = s.saveMemKeyProposedStaminaFree(tInfo); err != nil {
 		if br {
 			return err
 		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "ProposedStamina", err)
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "ProposedStaminaFree", err)
 		}
 	}
 	if err = s.saveMemKeyRunningVersion(tInfo); err != nil {
@@ -1069,16 +1069,16 @@ func (s *SoWitnessWrap) MdPowWorker(p uint32) bool {
 	return true
 }
 
-func (s *SoWitnessWrap) saveMemKeyProposedStamina(tInfo *SoWitness) error {
+func (s *SoWitnessWrap) saveMemKeyProposedStaminaFree(tInfo *SoWitness) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
 	if tInfo == nil {
 		return errors.New("the data is nil")
 	}
-	val := SoMemWitnessByProposedStamina{}
-	val.ProposedStamina = tInfo.ProposedStamina
-	key, err := s.encodeMemKey("ProposedStamina")
+	val := SoMemWitnessByProposedStaminaFree{}
+	val.ProposedStaminaFree = tInfo.ProposedStaminaFree
+	key, err := s.encodeMemKey("ProposedStaminaFree")
 	if err != nil {
 		return err
 	}
@@ -1090,13 +1090,13 @@ func (s *SoWitnessWrap) saveMemKeyProposedStamina(tInfo *SoWitness) error {
 	return err
 }
 
-func (s *SoWitnessWrap) GetProposedStamina() uint64 {
+func (s *SoWitnessWrap) GetProposedStaminaFree() uint64 {
 	res := true
-	msg := &SoMemWitnessByProposedStamina{}
+	msg := &SoMemWitnessByProposedStaminaFree{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("ProposedStamina")
+		key, err := s.encodeMemKey("ProposedStaminaFree")
 		if err != nil {
 			res = false
 		} else {
@@ -1108,7 +1108,7 @@ func (s *SoWitnessWrap) GetProposedStamina() uint64 {
 			if err != nil {
 				res = false
 			} else {
-				return msg.ProposedStamina
+				return msg.ProposedStaminaFree
 			}
 		}
 	}
@@ -1116,14 +1116,14 @@ func (s *SoWitnessWrap) GetProposedStamina() uint64 {
 		var tmpValue uint64
 		return tmpValue
 	}
-	return msg.ProposedStamina
+	return msg.ProposedStaminaFree
 }
 
-func (s *SoWitnessWrap) MdProposedStamina(p uint64) bool {
+func (s *SoWitnessWrap) MdProposedStaminaFree(p uint64) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("ProposedStamina")
+	key, err := s.encodeMemKey("ProposedStaminaFree")
 	if err != nil {
 		return false
 	}
@@ -1131,14 +1131,14 @@ func (s *SoWitnessWrap) MdProposedStamina(p uint64) bool {
 	if err != nil {
 		return false
 	}
-	ori := &SoMemWitnessByProposedStamina{}
+	ori := &SoMemWitnessByProposedStaminaFree{}
 	err = proto.Unmarshal(buf, ori)
 	sa := &SoWitness{}
 	sa.Owner = s.mainKey
 
-	sa.ProposedStamina = ori.ProposedStamina
+	sa.ProposedStaminaFree = ori.ProposedStaminaFree
 
-	ori.ProposedStamina = p
+	ori.ProposedStaminaFree = p
 	val, err := proto.Marshal(ori)
 	if err != nil {
 		return false
@@ -1147,7 +1147,7 @@ func (s *SoWitnessWrap) MdProposedStamina(p uint64) bool {
 	if err != nil {
 		return false
 	}
-	sa.ProposedStamina = p
+	sa.ProposedStaminaFree = p
 
 	return true
 }
