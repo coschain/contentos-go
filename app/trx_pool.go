@@ -402,9 +402,8 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabaseRW, entry *TrxEntry
 	receipt, sigTrx := result.GetReceipt(), result.GetSigTrx()
 
 	trxObserver := c.stateObserver.NewTrxObserver()
-	cid := prototype.ChainId{Value: 0}
-	trxHash, _ := sigTrx.GetTrxHash(cid)
-	trxObserver.BeginTrx(hex.EncodeToString(trxHash))
+	trxHash, _ := sigTrx.Id()
+	trxObserver.BeginTrx(hex.EncodeToString(trxHash.GetHash()))
 
 	defer func() {
 		if err := recover(); err != nil {

@@ -202,9 +202,8 @@ func (t *TrxMysqlService) handleLibNotification(lib uint64) {
 	}
 	blk := blks[0].(*prototype.SignedBlock)
 	for _, trx := range blk.Transactions {
-		cid := prototype.ChainId{Value: 0}
-		trxHash, _ := trx.SigTrx.GetTrxHash(cid)
-		trxId := hex.EncodeToString(trxHash)
+		trxHash, _ := trx.SigTrx.Id()
+		trxId := hex.EncodeToString(trxHash.GetHash())
 		blockHeight := lib
 		data := blk.Id().Data
 		blockId := hex.EncodeToString(data[:])
