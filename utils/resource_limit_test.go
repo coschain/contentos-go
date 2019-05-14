@@ -269,6 +269,23 @@ func TestStakeManager_GetCapacity(t *testing.T) {
 	}
 }
 
+func TestDynamicTps(t *testing.T) {
+	initEvn()
+
+	var trxsInWindow,trxsInBlock uint64 = 0,100
+	preTime := global.blockNum
+	now := preTime
+	for i:=0;i<1000;i++ {
+		now++
+		tps := calculateTpsEMA(trxsInWindow,trxsInBlock,preTime,now)
+		preTime=now
+		fmt.Println("trxs in window:",tps," trxsInBlock:",trxsInBlock," block num:",now, " real tps:",tps/constants.TpsWindowSize)
+		//trxsInBlock += 1
+		trxsInWindow = tps
+	}
+
+}
+
 func Test_EMA(t *testing.T) {
 
 	var startBlock uint64 = 1
