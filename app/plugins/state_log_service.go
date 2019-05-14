@@ -18,41 +18,62 @@ import (
 )
 
 
-type BlockLogHeap struct {
-	Mu sync.RWMutex
-	Logs []*iservices.BlockLog
-}
+//type BlockLogHeap struct {
+//	Mu sync.RWMutex
+//	Logs []*iservices.BlockLog
+//}
 
-func (logHeap BlockLogHeap) Len() int {return len(logHeap.Logs)}
+type BlockLogHeap []*iservices.BlockLog
+
+func (logHeap BlockLogHeap) Len() int {return len(logHeap)}
 
 func (logHeap BlockLogHeap) Less(i, j int) bool {
-	return logHeap.Logs[i].BlockHeight < logHeap.Logs[j].BlockHeight
+	return logHeap[i].BlockHeight < logHeap[j].BlockHeight
 }
 
 func (logHeap BlockLogHeap) Swap(i, j int) {
-	logHeap.Logs[i], logHeap.Logs[j] = logHeap.Logs[j], logHeap.Logs[i]
-	logHeap.Logs[i].Index = i
-	logHeap.Logs[j].Index = j
+	logHeap[i], logHeap[j] = logHeap[j], logHeap[i]
+	logHeap[i].Index = i
+	logHeap[j].Index = j
 }
 
 func (logHeap *BlockLogHeap) Push(x interface{}) {
-	logHeap.Mu.RLock()
-	defer logHeap.Mu.RUnlock()
-	n := len(logHeap.Logs)
+	n := len(*logHeap)
 	item := x.(*iservices.BlockLog)
 	item.Index = n
-	logHeap.Logs = append(logHeap.Logs, item)
+	*logHeap = append(*logHeap, item)
 }
 
 func (logHeap *BlockLogHeap) Pop() interface{} {
-	logHeap.Mu.RLock()
-	defer logHeap.Mu.RUnlock()
-	old := logHeap.Logs
+	old := *logHeap
 	n := len(old)
 	item := old[n-1]
 	item.Index = -1 // for safety
-	logHeap.Logs = old[0 : n-1]
+	*logHeap = old[0 : n-1]
 	return item
+}
+
+type HeapProxy struct {
+	Mu sync.RWMutex
+	logHeap *BlockLogHeap
+}
+
+func (proxy *HeapProxy) Push(blockLog interface{}) {
+	proxy.Mu.Lock()
+	defer proxy.Mu.Unlock()
+	heap.Push(proxy.logHeap, blockLog)
+}
+
+func (proxy *HeapProxy) Pop() interface{} {
+	proxy.Mu.Lock()
+	defer proxy.Mu.Unlock()
+	return heap.Pop(proxy.logHeap)
+}
+
+func (proxy *HeapProxy) Len() int {
+	proxy.Mu.RLock()
+	defer proxy.Mu.RUnlock()
+	return proxy.logHeap.Len()
 }
 
 var StateLogServiceName = "statelogsrv"
@@ -65,7 +86,8 @@ type StateLogService struct {
 	ctx *node.ServiceContext
 	quit chan bool
 	log *logrus.Logger
-	logHeap BlockLogHeap
+	//logHeap BlockLogHeap
+	proxy *HeapProxy
 	db *sql.DB
 	ticker *time.Ticker
 }
@@ -90,6 +112,8 @@ func (s *StateLogService) Start(node *node.Node) error {
 	s.ev = node.EvBus
 
 	var lastLib uint64 = 0
+
+	logHeap := BlockLogHeap{}
 	_ = s.db.QueryRow("select lib from stateloglibinfo limit 1").Scan(&lastLib)
 
 	rows, _ := s.db.Query("SELECT block_log from statelog WHERE block_height >= ?", lastLib)
@@ -105,10 +129,16 @@ func (s *StateLogService) Start(node *node.Node) error {
 			s.log.Error(err)
 			continue
 		}
-		s.logHeap.Push(&blockLog)
+		//s.logHeap.Push(&blockLog)
+		logHeap.Push(&blockLog)
 	}
-	s.log.Debugf("[statelog] heap db length: %d\n", s.logHeap.Len())
-	heap.Init(&s.logHeap)
+	s.log.Debugf("[statelog] heap db length: %d\n", logHeap.Len())
+
+	// make logheap to heap
+	heap.Init(&logHeap)
+	proxy := &HeapProxy{logHeap: &logHeap}
+	s.proxy = proxy
+
 	s.hookEvent()
 	s.ticker = time.NewTicker(time.Second)
 	go func() {
@@ -161,15 +191,16 @@ func (s *StateLogService) handleLibNotification(lib uint64) {
 	blk := blks[0].(*prototype.SignedBlock)
 	data := blk.Id().Data
 	blockId := hex.EncodeToString(data[:])
-	s.log.Debugf("[statelog] heap length: %d\n", s.logHeap.Len())
-	for s.logHeap.Len() > 0 {
-		log := heap.Pop(&s.logHeap)
+	s.log.Debugf("[statelog] heap length: %d\n", s.proxy.Len())
+	for s.proxy.Len() > 0 {
+		log := s.proxy.Pop()
 		blockLog := log.(*iservices.BlockLog)
 		s.log.Debugf("[statelog] blocklog: blockHeight:%d, blockId: %s, lib blockHeight:%d, lib blockId:%s \n",
 			blockLog.BlockHeight, blockLog.BlockId, lib, blockId)
 		// if the block log from heap > lib, re-push it else pop it
 		if blockLog.BlockHeight > lib {
-			heap.Push(&s.logHeap, blockLog)
+			//heap.Push(&s.logHeap, blockLog)
+			s.proxy.Push(blockLog)
 			break
 		}
 		if blockLog.BlockHeight == lib && blockLog.BlockId == blockId {
@@ -274,7 +305,8 @@ func (s *StateLogService) onStateLogOperation(blockLog *iservices.BlockLog) {
 	blockHeight := blockLog.BlockHeight
 	blockLogJson, _ := json.Marshal(blockLog)
 	_, _ = s.db.Exec("INSERT IGNORE INTO statelog (block_height, block_log) VALUES (?, ?)", blockHeight, blockLogJson)
-	heap.Push(&s.logHeap, blockLog)
+	//heap.Push(&s.logHeap, blockLog)
+	s.proxy.Push(blockLog)
 }
 
 func (s *StateLogService) stop() {
