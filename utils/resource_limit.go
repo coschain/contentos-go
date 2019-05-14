@@ -112,22 +112,8 @@ func divideCeil(num,den uint64) uint64 {
 	return v
 }
 
-func calculateNewStaminaEMA(oldStamina, useStamina uint64, lastTime uint64, now uint64) uint64 {
-	blocks := uint64(constants.WindowSize)
-	avgOld := divideCeil(oldStamina*constants.LimitPrecision,blocks)
-	avgUse := divideCeil(useStamina*constants.LimitPrecision,blocks)
-	if now > lastTime { // assert ?
-		if now < lastTime + blocks {
-			delta := now - lastTime
-			decay := float64(blocks - delta) / float64(blocks)
-			newStamina := float64(avgOld) * decay
-			avgOld = uint64(newStamina)
-		} else {
-			avgOld = 0
-		}
-	}
-	avgOld += avgUse
-	return avgOld * constants.WindowSize / constants.LimitPrecision
+func calculateNewStaminaEMA(oldStamina, useStamina, lastTime, now uint64) uint64 {
+	return calculateEMA(oldStamina, useStamina, lastTime, now, constants.WindowSize)
 }
 
 func (s *ResourceLimiter) UpdateDynamicStamina(tpsInWindow,oneDayStamina,trxCount,lastUpdate,blockNum uint64) uint64 {
@@ -135,8 +121,8 @@ func (s *ResourceLimiter) UpdateDynamicStamina(tpsInWindow,oneDayStamina,trxCoun
 	return updateDynamicOneDayStamina(oneDayStamina,tpsInWindowNew/constants.TpsWindowSize)
 }
 
-func calculateTpsEMA(oldTrxs, newTrxs uint64, lastTime uint64, now uint64) uint64 {
-	blocks := uint64(constants.TpsWindowSize)
+func calculateEMA(oldTrxs, newTrxs uint64, lastTime uint64, now, period uint64) uint64 {
+	blocks := period
 	avgOld := divideCeil(oldTrxs*constants.LimitPrecision,blocks)
 	avgUse := divideCeil(newTrxs*constants.LimitPrecision,blocks)
 	if now > lastTime { // assert ?
@@ -150,7 +136,11 @@ func calculateTpsEMA(oldTrxs, newTrxs uint64, lastTime uint64, now uint64) uint6
 		}
 	}
 	avgOld += avgUse
-	return avgOld * constants.TpsWindowSize / constants.LimitPrecision
+	return avgOld * period / constants.LimitPrecision
+}
+
+func calculateTpsEMA(oldTrxs, newTrxs, lastTime, now uint64) uint64 {
+	return calculateEMA(oldTrxs, newTrxs, lastTime, now, constants.TpsWindowSize)
 }
 
 func updateDynamicOneDayStamina(oldOneDayStamina, avgTps uint64) uint64 {
