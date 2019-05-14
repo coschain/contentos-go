@@ -15,7 +15,7 @@ prototype.vest           ,each_powerdown_rate, 0, 0, 0, 0, prototype/type.proto
 prototype.vest           ,to_powerdown, 0, 0, 0, 0, prototype/type.proto
 prototype.vest           ,has_powerdown, 0 ,0, 0, 0, prototype/type.proto
 prototype.time_point_sec ,last_owner_update   ,0,0,0,0,prototype/type.proto
-prototype.public_key_type  ,owner               ,0,0,0,0,prototype/type.proto
+prototype.public_key_type  ,owner               ,0,1,0,0,prototype/type.proto
 uint64                   ,stamina        ,0  ,0    ,0    ,0          ,
 uint64                   ,stamina_use_block ,0   ,0   ,0   ,0         ,
 uint64                   ,stamina_free    ,0   ,0    ,0     ,0         ,
