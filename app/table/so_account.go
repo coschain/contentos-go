@@ -3260,11 +3260,7 @@ func (m *SoListAccountByVestingShares) OpeEncode() ([]byte, error) {
 	return kBuf, cErr
 }
 
-//Query srt by order
-//
-//start = nil  end = nil (query the db from start to end)
-//start = nil (query from start the db)
-//end = nil (query to the end of db)
+//Query srt by reverse order
 //
 //f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
 //as arguments to the callback function
@@ -3274,7 +3270,7 @@ func (m *SoListAccountByVestingShares) OpeEncode() ([]byte, error) {
 //lastMainKey: the main key of the last one of last page
 //lastSubVal: the value  of the last one of last page
 //
-func (s *SAccountVestingSharesWrap) ForEachByOrder(start *prototype.Vest, end *prototype.Vest, lastMainKey *prototype.AccountName,
+func (s *SAccountVestingSharesWrap) ForEachByRevOrder(start *prototype.Vest, end *prototype.Vest, lastMainKey *prototype.AccountName,
 	lastSubVal *prototype.Vest, f func(mVal *prototype.AccountName, sVal *prototype.Vest, idx uint32) bool) error {
 	if s.Dba == nil {
 		return errors.New("the db is nil")
@@ -3290,13 +3286,13 @@ func (s *SAccountVestingSharesWrap) ForEachByOrder(start *prototype.Vest, end *p
 	if start != nil {
 		skeyList = append(skeyList, start)
 		if lastMainKey != nil {
-			skeyList = append(skeyList, lastMainKey, kope.MinimalKey)
+			skeyList = append(skeyList, lastMainKey)
 		}
 	} else {
 		if lastMainKey != nil && lastSubVal != nil {
-			skeyList = append(skeyList, lastSubVal, lastMainKey, kope.MinimalKey)
+			skeyList = append(skeyList, lastSubVal, lastMainKey)
 		}
-		skeyList = append(skeyList, kope.MinimalKey)
+		skeyList = append(skeyList, kope.MaximumKey)
 	}
 	sBuf, cErr := kope.EncodeSlice(skeyList)
 	if cErr != nil {
@@ -3305,15 +3301,13 @@ func (s *SAccountVestingSharesWrap) ForEachByOrder(start *prototype.Vest, end *p
 	eKeyList := []interface{}{pre}
 	if end != nil {
 		eKeyList = append(eKeyList, end)
-	} else {
-		eKeyList = append(eKeyList, kope.MaximumKey)
 	}
 	eBuf, cErr := kope.EncodeSlice(eKeyList)
 	if cErr != nil {
 		return cErr
 	}
 	var idx uint32 = 0
-	s.Dba.Iterate(sBuf, eBuf, false, func(key, value []byte) bool {
+	s.Dba.Iterate(eBuf, sBuf, true, func(key, value []byte) bool {
 		idx++
 		return f(s.GetMainVal(value), s.GetSubVal(value), idx)
 	})
