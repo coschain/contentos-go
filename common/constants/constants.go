@@ -96,7 +96,7 @@ const (
     CpuConsumePointNum = 1
     CpuConsumePointDen = 100
     MaxGasPerCall      = 20000 * CpuConsumePointDen
-    MaxStaminaPerBlock = 1000000
+    MaxStaminaPerBlock = 100000
     WindowSize         = 60 * 60 * 24
     FreeStamina        = 100000
     OneDayStamina      = MaxStaminaPerBlock * WindowSize
