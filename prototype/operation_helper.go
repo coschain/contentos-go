@@ -44,6 +44,8 @@ func GetBaseOperation(op *Operation) BaseOperation {
 		return BaseOperation(t.Op17)
 	case *Operation_Op18:
 		return BaseOperation(t.Op18)
+	case *Operation_Op19:
+		return BaseOperation(t.Op19)
 	default:
 		panic("unknown op type")
 	}
@@ -122,6 +124,9 @@ func GetPbOperation(op interface{}) *Operation {
 	case *UnStakeOperation:
 		ptr := op.(*UnStakeOperation)
 		res.Op = &Operation_Op18{Op18: ptr}
+	case *BpUpdateOperation:
+		ptr := op.(*BpUpdateOperation)
+		res.Op = &Operation_Op19{Op19: ptr}
 	default:
 		panic(fmt.Sprintf("error op type %v", op))
 	}

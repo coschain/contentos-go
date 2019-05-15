@@ -148,9 +148,11 @@ func (e *Economist) Mint(trxObserver iservices.ITrxObserver) {
 	}
 	// add rewards to bp
 	bpRewardVesting := &prototype.Vest{Value: bpReward}
+	oldVest := bpWrap.GetVestingShares()
 	//bpWrap.MdVestingShares(&prototype.Vest{Value: bpWrap.GetVestingShares().Value + bpReward})
 	mustNoError(bpRewardVesting.Add(bpWrap.GetVestingShares()), "bpRewardVesting overflow")
 	bpWrap.MdVestingShares(bpRewardVesting)
+	updateWitnessVoteCount(e.db, globalProps.CurrentWitness, oldVest, bpRewardVesting)
 	trxObserver.AddOpState(iservices.Add, "mint", globalProps.CurrentWitness.Value, bpReward)
 
 	e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
@@ -335,9 +337,11 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 				e.log.Debugf("beneficiary get account %s failed", name)
 				continue
 			} else {
+				oldVest := beneficiaryWrap.GetVestingShares()
 				vestingRewards := &prototype.Vest{Value: r}
 				mustNoError(vestingRewards.Add(beneficiaryWrap.GetVestingShares()), "Post Beneficiary VestingRewards Overflow")
 				beneficiaryWrap.MdVestingShares(vestingRewards)
+				updateWitnessVoteCount(e.db, &prototype.AccountName{Value: name}, oldVest, vestingRewards)
 				spentBeneficiaryReward += r
 				e.noticer.Publish(constants.NoticeCashout, name, post.GetPostId(), r, globalProps.GetHeadBlockNumber())
 				trxObserver.AddOpState(iservices.Add, "cashout", name , r)
@@ -351,9 +355,11 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 			e.log.Debugf("post cashout get account %s failed", author)
 			continue
 		} else {
+			oldVest := authorWrap.GetVestingShares()
 			vestingRewards := &prototype.Vest{Value: reward}
 			mustNoError(vestingRewards.Add(authorWrap.GetVestingShares()), "Post VestingRewards Overflow")
 			authorWrap.MdVestingShares(vestingRewards)
+			updateWitnessVoteCount(e.db, &prototype.AccountName{Value: author}, oldVest, vestingRewards)
 		}
 		post.MdCashoutBlockNum(math.MaxUint32)
 		post.MdRewards(&prototype.Vest{Value: reward})
@@ -429,9 +435,11 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 				e.log.Debugf("beneficiary get account %s failed", name)
 			} else {
 				//beneficiaryWrap.MdVestingShares(&prototype.Vest{ Value: r + beneficiaryWrap.GetVestingShares().Value})
+				oldVest := beneficiaryWrap.GetVestingShares()
 				vestingRewards := &prototype.Vest{Value: r}
 				mustNoError(vestingRewards.Add(beneficiaryWrap.GetVestingShares()), "Reply Beneficiary VestingRewards Overflow")
 				beneficiaryWrap.MdVestingShares(vestingRewards)
+				updateWitnessVoteCount(e.db, &prototype.AccountName{Value: name}, oldVest, vestingRewards)
 				spentBeneficiaryReward += r
 				e.noticer.Publish(constants.NoticeCashout, name, reply.GetPostId(), r, globalProps.GetHeadBlockNumber())
 				trxObserver.AddOpState(iservices.Add, "cashout", name, r)
@@ -446,9 +454,11 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 			continue
 		} else {
 			//authorWrap.MdVestingShares(&prototype.Vest{ Value: reward + authorWrap.GetVestingShares().Value })
+			oldVest := authorWrap.GetVestingShares()
 			vestingRewards := &prototype.Vest{Value: reward}
 			mustNoError(vestingRewards.Add(authorWrap.GetVestingShares()), "Reply VestingRewards Overflow")
 			authorWrap.MdVestingShares(vestingRewards)
+			updateWitnessVoteCount(e.db, &prototype.AccountName{Value: author}, oldVest, vestingRewards)
 		}
 		reply.MdCashoutBlockNum(math.MaxUint32)
 		reply.MdRewards(&prototype.Vest{Value: reward})
@@ -513,10 +523,13 @@ func (e *Economist) PowerDown() {
 		} else {
 			powerdownQuota = Min(accountWrap.GetVestingShares().Value, accountWrap.GetEachPowerdownRate().Value)
 		}
+		oldVest := accountWrap.GetVestingShares()
 		vesting := accountWrap.GetVestingShares().Value - powerdownQuota
 		balance := accountWrap.GetBalance().Value + powerdownQuota
 		hasPowerDown := accountWrap.GetHasPowerdown().Value + powerdownQuota
 		accountWrap.MdVestingShares(&prototype.Vest{Value: vesting})
+		newVest := accountWrap.GetVestingShares()
+		updateWitnessVoteCount(e.db, accountName, oldVest, newVest)
 		accountWrap.MdBalance(&prototype.Coin{Value: balance})
 		accountWrap.MdHasPowerdown(&prototype.Vest{Value: hasPowerDown})
 		// update total cos and total vesting shares

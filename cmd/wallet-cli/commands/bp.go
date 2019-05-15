@@ -6,6 +6,7 @@ import (
 	"github.com/coschain/cobra"
 	"github.com/coschain/contentos-go/cmd/wallet-cli/commands/utils"
 	"github.com/coschain/contentos-go/cmd/wallet-cli/wallet"
+	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/rpc/pb"
 )
@@ -15,6 +16,10 @@ var bpDescFlag string
 var bpCreateAccountFee uint64
 var bpBlockSize uint32
 var bpVoteCancel bool
+var proposedStaminaFree uint64
+var bpUpdateStaminaFree uint64
+var tpsExpected uint64
+var bpUpdateTpsExpected uint64
 
 var BpCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
@@ -33,6 +38,8 @@ var BpCmd = func() *cobra.Command {
 	registerCmd.Flags().StringVarP(&bpDescFlag, "desc", "d", "", `bp register alice --desc "Hello World"`)
 	registerCmd.Flags().Uint64VarP(&bpCreateAccountFee, "fee", "f", 1, `bp register alice --fee 1`)
 	registerCmd.Flags().Uint32VarP(&bpBlockSize, "blocksize", "b", 1024*1024, `bp register alice --blocksize 1024`)
+	registerCmd.Flags().Uint64VarP(&proposedStaminaFree, "stamina_free", "s", constants.DefaultStaminaFree, `bp register alice --stamina_free 1`)
+	registerCmd.Flags().Uint64VarP(&tpsExpected, "tps", "t", constants.DefaultTPSExpected, `bp register alice --tps 1`)
 
 	unregisterCmd := &cobra.Command{
 		Use:     "unregister",
@@ -52,9 +59,21 @@ var BpCmd = func() *cobra.Command {
 
 	voteCmd.Flags().BoolVarP(&bpVoteCancel, "cancel", "c", false, `bp vote alice bob --cancel`)
 
+	updateCmd := &cobra.Command{
+		Use:     "update",
+		Short:   "update block-producer state",
+		Example: "bp update [bpname] --xxx xx",
+		Args:    cobra.ExactArgs(1),
+		Run:     updateBp,
+	}
+
+	updateCmd.Flags().Uint64VarP(&bpUpdateStaminaFree, "stamina_free", "s", constants.DefaultStaminaFree, `bp update alice --stamina_free 1`)
+	updateCmd.Flags().Uint64VarP(&bpUpdateTpsExpected, "tps", "t", constants.DefaultTPSExpected, `bp update alice --tps 1`)
+
 	cmd.AddCommand(registerCmd)
 	cmd.AddCommand(unregisterCmd)
 	cmd.AddCommand(voteCmd)
+	cmd.AddCommand(updateCmd)
 
 	return cmd
 }
@@ -68,6 +87,8 @@ func registerBP(cmd *cobra.Command, args []string) {
 		bpBlockSize = 1024 * 1024
 		bpUrlFlag = ""
 		bpDescFlag = ""
+		proposedStaminaFree = constants.DefaultStaminaFree
+		tpsExpected = constants.DefaultTPSExpected
 	}()
 	c := cmd.Context["rpcclient"]
 	client := c.(grpcpb.ApiServiceClient)
@@ -94,6 +115,8 @@ func registerBP(cmd *cobra.Command, args []string) {
 		Props: &prototype.ChainProperties{
 			AccountCreationFee: prototype.NewCoin(bpCreateAccountFee),
 			MaximumBlockSize:   bpBlockSize,
+			StaminaFree:        proposedStaminaFree,
+			TpsExpected:        tpsExpected,
 		},
 	}
 
@@ -164,6 +187,41 @@ func voteBp(cmd *cobra.Command, args []string) {
 	}
 
 	signTx, err := utils.GenerateSignedTxAndValidate2(client, []interface{}{bpVote_op}, voterAccount)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
+	resp, err := client.BroadcastTrx(context.Background(), req)
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println(fmt.Sprintf("Result: %v", resp))
+	}
+}
+
+func updateBp(cmd *cobra.Command, args []string) {
+	defer func() {
+		bpUpdateStaminaFree = constants.DefaultStaminaFree
+		bpUpdateTpsExpected = constants.DefaultTPSExpected
+	}()
+	c := cmd.Context["rpcclient"]
+	client := c.(grpcpb.ApiServiceClient)
+	w := cmd.Context["wallet"]
+	mywallet := w.(wallet.Wallet)
+	name := args[0]
+	bpAccount, ok := mywallet.GetUnlockedAccount(name)
+	if !ok {
+		fmt.Println(fmt.Sprintf("account: %s should be loaded or created first", name))
+		return
+	}
+	bpUpdate_op := &prototype.BpUpdateOperation{
+		Owner:                 &prototype.AccountName{Value: name},
+		ProposedStaminaFree:   bpUpdateStaminaFree,
+		TpsExpected:           bpUpdateTpsExpected,
+	}
+
+	signTx, err := utils.GenerateSignedTxAndValidate2(client, []interface{}{bpUpdate_op}, bpAccount)
 	if err != nil {
 		fmt.Println(err)
 		return

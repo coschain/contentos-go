@@ -50,6 +50,20 @@ const (
 
 	MaxBpVoteCount       = 30
 
+	PerVoterCanVoteWitness   = 1
+	VoteCountPerVest         = 1
+
+	MaxAccountNameLength     = 16
+
+	// resource limit
+	MinStaminaFree       = 0
+	DefaultStaminaFree   = 100000
+	MaxStaminaFree       = 100000
+
+	MinTPSExpected       = 100
+	DefaultTPSExpected   = 100
+	MaxTPSExpected       = 200
+
 	BlocksPerDay = 24 * 60 * 60 / BlockInterval
 
 	MaxUndoHistory = 10000

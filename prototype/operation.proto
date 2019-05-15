@@ -40,6 +40,12 @@ message bp_register_operation{
     chain_properties  props = 5;
 }
 
+message bp_update_operation {
+    account_name owner = 1;
+    uint64 proposed_stamina_free = 2;
+    uint64 tps_expected = 3;
+}
+
 message bp_unregister_operation{
     account_name owner = 1;
 }

@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/common/encoding/vme"
@@ -58,6 +59,12 @@ type BpUnregisterEvaluator struct {
 	BaseEvaluator
 	ctx *ApplyContext
 	op  *prototype.BpUnregisterOperation
+}
+
+type BpUpdateEvaluator struct {
+	BaseEvaluator
+	ctx *ApplyContext
+	op  *prototype.BpUpdateOperation
 }
 
 type BpVoteEvaluator struct {
@@ -392,15 +399,34 @@ func (ev *BpRegisterEvaluator) Apply() {
 
 	opAssert(ev.BpInWhiteList(op.Owner.Value), "bp name not in white list")
 
+	staminaFree := op.Props.StaminaFree
+	opAssert(staminaFree >= constants.MinStaminaFree,
+		fmt.Sprintf("proposed stamina free too low min value %d", constants.MinStaminaFree))
+	opAssert(staminaFree <= constants.MaxStaminaFree,
+		fmt.Sprintf("proposed stamina free too high max value %d", constants.MaxStaminaFree))
+
+	tpsExpected := op.Props.TpsExpected
+	opAssert(tpsExpected >= constants.MinTPSExpected,
+		fmt.Sprintf("expected tps too low min value %d", constants.MinTPSExpected))
+	opAssert(tpsExpected <= constants.MaxTPSExpected,
+		fmt.Sprintf("expected tps too high max value %d", constants.MaxTPSExpected))
+
 	witnessWrap := table.NewSoWitnessWrap(ev.ctx.db, op.Owner)
 
-	opAssert(!witnessWrap.CheckExist(), "witness already exist")
+	if witnessWrap.CheckExist() {
+		opAssert(!witnessWrap.GetActive(), "witness already exist")
+
+		opAssert(witnessWrap.RemoveWitness(), "remove old witness information error")
+	}
+
+	//opAssert(!witnessWrap.CheckExist(), "witness already exist")
 
 	opAssertE(witnessWrap.Create(func(t *table.SoWitness) {
 		t.Owner = op.Owner
 		t.CreatedTime = ev.ctx.control.HeadBlockTime()
 		t.Url = op.Url
 		t.SigningKey = op.BlockSigningKey
+		t.Active = true
 
 		// TODO add others
 	}), "add witness record error")
@@ -408,8 +434,46 @@ func (ev *BpRegisterEvaluator) Apply() {
 
 func (ev *BpUnregisterEvaluator) Apply() {
 	// unregister op cost too much cpu time
-	panic("not yet implement")
+	//panic("not yet implement")
 
+	op := ev.op
+	ev.ctx.vmInjector.RecordGasFee(op.Owner.Value, constants.CommonOpGas)
+
+	witnessWrap := table.NewSoWitnessWrap(ev.ctx.db, op.Owner)
+
+	opAssert(witnessWrap.CheckExist(), "witness do not exist")
+	opAssert(witnessWrap.GetActive(), "witness active value should be true")
+
+	payBackVoteCntToVoter(ev.ctx.db, op.Owner)
+
+	//opAssert(witnessWrap.RemoveWitness(), "remove witness error")
+	opAssert(witnessWrap.MdActive(false), "set witness active error")
+}
+
+func payBackVoteCntToVoter(dba iservices.IDatabaseRW, witness *prototype.AccountName) {
+	sWrap := table.SWitnessVoteVoterIdWrap{dba}
+
+	start := &prototype.BpVoterId{Voter:&prototype.AccountName{Value:""}, Witness:witness}
+	var endName string
+	for i:=0;i<constants.MaxAccountNameLength;i++ {
+		endName += "z"
+	}
+	end := &prototype.BpVoterId{Voter:&prototype.AccountName{Value:endName}, Witness:witness}
+	sWrap.ForEachByOrder(start, end, nil, nil,
+		func(mVal *prototype.BpVoterId, sVal *prototype.BpVoterId, idx uint32) bool {
+			if mVal != nil && mVal.Witness == witness {
+				voterAccount := table.NewSoAccountWrap(dba, mVal.Voter)
+				if voterAccount != nil && voterAccount.CheckExist() {
+					voteCnt := voterAccount.GetBpVoteCount()
+					opAssert(voteCnt > 0, "voter's vote count must not be 0")
+					opAssert(voterAccount.MdBpVoteCount(voteCnt-1), "pay back voter data error")
+
+					vidWrap := table.NewSoWitnessVoteWrap(dba, mVal)
+					opAssert(vidWrap.RemoveWitnessVote(), "remove vote record error")
+				}
+			}
+			return true
+		})
 }
 
 func (ev *BpVoteEvaluator) Apply() {
@@ -418,6 +482,7 @@ func (ev *BpVoteEvaluator) Apply() {
 
 	voterAccount := table.NewSoAccountWrap(ev.ctx.db, op.Voter)
 	voteCnt := voterAccount.GetBpVoteCount()
+	voterVests := voterAccount.GetVestingShares()
 
 	voterId := &prototype.BpVoterId{Voter: op.Voter, Witness: op.Witness}
 	witnessId := &prototype.BpWitnessId{Voter: op.Voter, Witness: op.Witness}
@@ -432,11 +497,11 @@ func (ev *BpVoteEvaluator) Apply() {
 		opAssert(voteCnt > 0, "vote count must not be 0")
 		opAssert(vidWrap.CheckExist(), "vote record not exist")
 		opAssert(vidWrap.RemoveWitnessVote(), "remove vote record error")
-		opAssert(witnessWrap.GetVoteCount() > 0, "witness data error")
-		opAssert(witnessWrap.MdVoteCount(witnessWrap.GetVoteCount()-1), "set witness data error")
+		opAssert(witnessWrap.GetVoteCount() >= voterVests.Value * constants.VoteCountPerVest, "witness data error")
+		opAssert(witnessWrap.MdVoteCount(witnessWrap.GetVoteCount() - voterVests.Value * constants.VoteCountPerVest), "set witness data error")
 		opAssert(voterAccount.MdBpVoteCount(voteCnt-1), "set voter data error")
 	} else {
-		opAssert(voteCnt < constants.MaxBpVoteCount, "vote count exceeding")
+		opAssert(voteCnt < constants.PerVoterCanVoteWitness, "vote count exceeding")
 
 		opAssertE(vidWrap.Create(func(t *table.SoWitnessVote) {
 			t.VoteTime = ev.ctx.control.HeadBlockTime()
@@ -445,9 +510,66 @@ func (ev *BpVoteEvaluator) Apply() {
 		}), "add vote record error")
 
 		opAssert(voterAccount.MdBpVoteCount(voteCnt+1), "set voter data error")
-		opAssert(witnessWrap.MdVoteCount(witnessWrap.GetVoteCount()+1), "set witness data error")
+		opAssert(witnessWrap.GetVoteCount() + voterVests.Value * constants.VoteCountPerVest <= math.MaxUint64, "witness vote count overflow")
+		opAssert(witnessWrap.MdVoteCount(witnessWrap.GetVoteCount() + voterVests.Value * constants.VoteCountPerVest), "set witness data error")
 	}
 
+	//op := ev.op
+	//ev.ctx.vmInjector.RecordGasFee(op.Voter.Value, constants.CommonOpGas)
+	//
+	//voterAccount := table.NewSoAccountWrap(ev.ctx.db, op.Voter)
+	//voteCnt := voterAccount.GetBpVoteCount()
+	//
+	//voterId := &prototype.BpVoterId{Voter: op.Voter, Witness: op.Witness}
+	//witnessId := &prototype.BpWitnessId{Voter: op.Voter, Witness: op.Witness}
+	//vidWrap := table.NewSoWitnessVoteWrap(ev.ctx.db, voterId)
+	//
+	//witAccWrap := table.NewSoAccountWrap(ev.ctx.db, op.Voter)
+	//opAssert(witAccWrap.CheckExist(), "witness account do not exist ")
+	//
+	//witnessWrap := table.NewSoWitnessWrap(ev.ctx.db, op.Witness)
+	//
+	//if op.Cancel {
+	//	opAssert(voteCnt > 0, "vote count must not be 0")
+	//	opAssert(vidWrap.CheckExist(), "vote record not exist")
+	//	opAssert(vidWrap.RemoveWitnessVote(), "remove vote record error")
+	//	opAssert(witnessWrap.GetVoteCount() > 0, "witness data error")
+	//	opAssert(witnessWrap.MdVoteCount(witnessWrap.GetVoteCount()-1), "set witness data error")
+	//	opAssert(voterAccount.MdBpVoteCount(voteCnt-1), "set voter data error")
+	//} else {
+	//	opAssert(voteCnt < constants.MaxBpVoteCount, "vote count exceeding")
+	//
+	//	opAssertE(vidWrap.Create(func(t *table.SoWitnessVote) {
+	//		t.VoteTime = ev.ctx.control.HeadBlockTime()
+	//		t.VoterId = voterId
+	//		t.WitnessId = witnessId
+	//	}), "add vote record error")
+	//
+	//	opAssert(voterAccount.MdBpVoteCount(voteCnt+1), "set voter data error")
+	//	opAssert(witnessWrap.MdVoteCount(witnessWrap.GetVoteCount()+1), "set witness data error")
+	//}
+
+}
+
+func (ev *BpUpdateEvaluator) Apply() {
+	op := ev.op
+	ev.ctx.vmInjector.RecordGasFee(op.Owner.Value, constants.CommonOpGas)
+
+	staminaFree := op.ProposedStaminaFree
+	opAssert(staminaFree >= constants.MinStaminaFree,
+		fmt.Sprintf("proposed stamina free too low min value %d", constants.MinStaminaFree))
+	opAssert(staminaFree <= constants.MaxStaminaFree,
+		fmt.Sprintf("proposed stamina free too high max value %d", constants.MaxStaminaFree))
+
+	tpsExpected := op.TpsExpected
+	opAssert(tpsExpected >= constants.MinTPSExpected,
+		fmt.Sprintf("expected tps too low min value %d", constants.MinTPSExpected))
+	opAssert(tpsExpected <= constants.MaxTPSExpected,
+		fmt.Sprintf("expected tps too high max value %d", constants.MaxTPSExpected))
+
+	witnessWrap := table.NewSoWitnessWrap(ev.ctx.db, op.Owner)
+	opAssert(witnessWrap.MdProposedStaminaFree(staminaFree), "update bp proposed stamina free error")
+	opAssert(witnessWrap.MdTpsExpected(tpsExpected), "update bp tps expected error")
 }
 
 func (ev *FollowEvaluator) Apply() {
@@ -472,6 +594,7 @@ func (ev *TransferToVestingEvaluator) Apply() {
 
 	fBalance := fidWrap.GetBalance()
 	tVests := tidWrap.GetVestingShares()
+	oldVest := tVests
 	addVests := prototype.NewVest(op.Amount.Value)
 
 	opAssertE(fBalance.Sub(op.Amount), "balance not enough")
@@ -480,7 +603,38 @@ func (ev *TransferToVestingEvaluator) Apply() {
 	opAssertE(tVests.Add(addVests), "vests error")
 	opAssert(tidWrap.MdVestingShares(tVests), "set to new vests error")
 
+	updateWitnessVoteCount(ev.ctx.db, op.To, oldVest, tVests)
+
 	ev.ctx.control.TransferToVest(op.Amount)
+}
+
+func updateWitnessVoteCount(dba iservices.IDatabaseRW, voter *prototype.AccountName, oldVest, newVest *prototype.Vest) {
+	sWrap := table.SWitnessVoteVoterIdWrap{dba}
+
+	start := &prototype.BpVoterId{Voter:voter, Witness:&prototype.AccountName{Value:""}}
+	var endName string
+	for i:=0;i<constants.MaxAccountNameLength;i++ {
+		endName += "z"
+	}
+	end := &prototype.BpVoterId{Voter:voter, Witness:&prototype.AccountName{Value:endName}}
+	sWrap.ForEachByOrder(start, end, nil, nil,
+		func(mVal *prototype.BpVoterId, sVal *prototype.BpVoterId, idx uint32) bool {
+			if mVal != nil && mVal.Voter == voter {
+				witnessWrap := table.NewSoWitnessWrap(dba, mVal.Witness)
+				if witnessWrap != nil && witnessWrap.CheckExist() {
+					deltaVestAmount := newVest.Value - oldVest.Value
+
+					opAssert(witnessWrap.GetVoteCount() + deltaVestAmount * constants.VoteCountPerVest >= 0 &&
+						witnessWrap.GetVoteCount() + deltaVestAmount * constants.VoteCountPerVest <= math.MaxUint64,
+						"new vote count data error")
+
+					opAssert(witnessWrap.MdVoteCount(
+						witnessWrap.GetVoteCount() + deltaVestAmount * constants.VoteCountPerVest),
+						"update witness vote count data error")
+				}
+			}
+			return true
+		})
 }
 
 func (ev *ConvertVestingEvaluator) Apply() {
