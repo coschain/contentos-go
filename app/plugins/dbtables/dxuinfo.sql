@@ -11,6 +11,7 @@ create table dailystat (
   dnu int unsigned not null default 0,
   trxs int unsigned not null default 0,
   amount bigint unsigned not null default 0,
+  tusr int unsigned not null  default 0,
   INDEX dailystat_dapp (dapp),
   constraint dailystat_date_dapp_uindex
   unique (date, dapp)

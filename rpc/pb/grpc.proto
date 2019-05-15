@@ -511,6 +511,7 @@ message DailyStat {
     uint32 dnu = 4;
     uint32 trxs = 5;
     uint64 amount = 6 [jstype = JS_STRING];
+    uint32 total_user_count = 7;
 }
 
 message GetDailyStatsRequest {

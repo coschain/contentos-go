@@ -7,4 +7,5 @@ type Row struct {
 	Dnu  uint32
 	TrxCount uint32
 	Amount uint64
+	TotalUserCount uint32
 }

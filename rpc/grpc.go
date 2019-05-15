@@ -1207,7 +1207,7 @@ func (as *APIService) GetDailyStats(ctx context.Context, req *grpcpb.GetDailySta
 	res := &grpcpb.GetDailyStatsResponse{}
 	for _, row := range rows {
 		t, _ := time.Parse("2006-01-02", row.Date)
-		stat = append(stat, &grpcpb.DailyStat{Date: uint64(t.UTC().Unix()), Dapp: row.Dapp, Dau: row.Dau, Dnu: row.Dnu, Trxs: row.TrxCount, Amount: row.Amount})
+		stat = append(stat, &grpcpb.DailyStat{Date: uint64(t.UTC().Unix()), Dapp: row.Dapp, Dau: row.Dau, Dnu: row.Dnu, Trxs: row.TrxCount, Amount: row.Amount, TotalUserCount: row.TotalUserCount})
 	}
 	res.Stat = stat
 	return res, nil

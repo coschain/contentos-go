@@ -157,6 +157,30 @@ func (s *DailyStatisticService) handleDailyStatistic(block *prototype.SignedBloc
 			}
 		}
 	}
+
+	//total user count
+	prevDay := time.Unix(int64(start-86400), 0)
+	prevDayStr := fmt.Sprintf("%d-%02d-%02d", prevDay.Year(), prevDay.Month(), prevDay.Day())
+	unRows, _:= s.outDb.Query("SELECT dapp, tusr from dailystat where date = ?",prevDayStr)
+
+	dappsTusrCounter := make(map[string]uint32)
+	for unRows.Next() {
+		var count uint32
+		var dApp string
+		if err := unRows.Scan(&dApp, &count); err != nil {
+			s.log.Error(err)
+			continue
+		}
+
+		for _, dapp := range dapps {
+			if dapp == dApp {
+				dappsTusrCounter[dapp] = count
+			}
+		}
+
+	}
+
+
 	// trx count
 	trxCountRows, _ := s.outDb.Query("select creator, count(creator) as count from trxinfo where block_time >= ? and block_time < ? group by creator", start, end)
 	trxCountCounter := make(map[string]uint32)
@@ -194,18 +218,20 @@ func (s *DailyStatisticService) handleDailyStatistic(block *prototype.SignedBloc
 		dnu, _ := dappsDnuCounter[dapp]
 		trxCount, _ := trxCountCounter[dapp]
 		amount, _ := transferAmountCounter[dapp]
+		curUsr, _ := dappsTusrCounter[dapp]
+		tUsr := curUsr + dnu
 		if len(lastDate) > 0 {
-			_, _ = s.outDb.Exec("insert ignore into dailystat (date, dapp, dau, dnu, trxs, amount) values (?, ?, ?, ?, ?, ?)", lastDate, dapp, dau, dnu, trxCount, amount)
+			_, _ = s.outDb.Exec("insert ignore into dailystat (date, dapp, dau, dnu, trxs, amount, tusr) values (?, ?, ?, ?, ?, ?, ?)", lastDate, dapp, dau, dnu, trxCount, amount, tUsr)
 		}
 	}
 }
 
 
 func (s *DailyStatisticService) DailyStatsOn(date string, dapp string) *itype.Row {
-	var dau, dnu, trxs uint32
+	var dau, dnu, trxs, tusr uint32
 	var amount uint64
-	_ = s.outDb.QueryRow("select dau, dnu, trxs, amount from dailystat where date=? and dapp=?", date, dapp).Scan(&dau, &dnu, &trxs, &amount)
-	return &itype.Row{Date: date, Dapp: dapp, Dau: dau, Dnu: dnu, TrxCount: trxs, Amount: amount}
+	_ = s.outDb.QueryRow("select dau, dnu, trxs, amount, tusr from dailystat where date=? and dapp=?", date, dapp).Scan(&dau, &dnu, &trxs, &amount, &tusr)
+	return &itype.Row{Date: date, Dapp: dapp, Dau: dau, Dnu: dnu, TrxCount: trxs, Amount: amount, TotalUserCount: tusr}
 }
 
 func (s *DailyStatisticService) DailyStatsSince(days int, dapp string) []*itype.Row {
@@ -214,20 +240,21 @@ func (s *DailyStatisticService) DailyStatsSince(days int, dapp string) []*itype.
 	then := now.Add(d * time.Duration(days))
 	start := fmt.Sprintf("%d-%02d-%02d", then.Year(), then.Month(), then.Day())
 	var dauRows []*itype.Row
-	rows, err := s.outDb.Query("select dau, dnu, trxs, amount, date from dailystat where date >= ? and dapp = ?  order by date", start, dapp)
+	rows, err := s.outDb.Query("select dau, dnu, trxs, amount, tusr date from dailystat where date >= ? and dapp = ?  order by date", start, dapp)
 	if err != nil {
 		return dauRows
 	}
 	for rows.Next() {
-		var dau, dnu, trxs uint32
+		var dau, dnu, trxs, tusr uint32
 		var amount uint64
 		var date string
 		_ = rows.Scan(&dau, &dnu, &trxs, &amount, &date)
-		r := &itype.Row{Date: date, Dapp: dapp, Dau: dau, Dnu: dnu, TrxCount: trxs, Amount: amount}
+		r := &itype.Row{Date: date, Dapp: dapp, Dau: dau, Dnu: dnu, TrxCount: trxs, Amount: amount, TotalUserCount: tusr}
 		dauRows = append(dauRows, r)
 	}
 	return dauRows
 }
+
 
 func (s *DailyStatisticService) stop() {
 	_ = s.outDb.Close()
