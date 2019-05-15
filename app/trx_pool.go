@@ -395,11 +395,11 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabasePatch, entry *TrxEn
 	result := entry.GetTrxResult()
 	receipt, sigTrx := result.GetReceipt(), result.GetSigTrx()
 
-	trxContext := NewTrxContextWithSigningKey(result, db, entry.GetTrxSigningKey(),c)
+	trxDB := db.NewPatch()
+
+	trxContext := NewTrxContextWithSigningKey(result, trxDB, entry.GetTrxSigningKey(),c)
 //	if c.ctx.Config().ResourceCheck {
 //	}
-
-	trxDB := db.NewPatch()
 
 	defer func() {
 		useGas := trxContext.HasGasFee()
@@ -423,7 +423,7 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabasePatch, entry *TrxEn
 		c.PayGas(db,trxContext)
 	}()
 
-	trxContext.CheckNet(db, uint64(proto.Size(sigTrx)))
+	trxContext.CheckNet(trxDB, uint64(proto.Size(sigTrx)))
 
 	for _, op := range sigTrx.Trx.Operations {
 		trxContext.StartNextOp()
