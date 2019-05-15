@@ -677,6 +677,7 @@ func (c *TrxPool) initGenesis() {
 		tInfo.SigningKey = pubKey
 		tInfo.LastWork = &prototype.Sha256{Hash: []byte{0}}
 		tInfo.Active = true
+		tInfo.ProposedStaminaFree = constants.DefaultStaminaFree
 	}), "Witness Create Error")
 
 	// create dynamic global properties

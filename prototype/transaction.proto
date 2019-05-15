@@ -27,6 +27,7 @@ message operation{
         convert_vesting_operation op16 = 16;
         stake_operation op17 = 17;
         un_stake_operation op18 = 18;
+        bp_update_operation op19 = 19;
     }
 }
 

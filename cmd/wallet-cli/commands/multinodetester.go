@@ -52,6 +52,7 @@ func makeBpRegVoteTrx(client grpcpb.ApiServiceClient, count int64) (*prototype.S
 		Props: &prototype.ChainProperties{
 			AccountCreationFee: prototype.NewCoin(1),
 			MaximumBlockSize:   10 * 1024 * 1024,
+			StaminaFree:constants.DefaultStaminaFree,
 		},
 	}
 

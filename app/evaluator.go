@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/common/encoding/vme"
@@ -58,6 +59,12 @@ type BpUnregisterEvaluator struct {
 	BaseEvaluator
 	ctx *ApplyContext
 	op  *prototype.BpUnregisterOperation
+}
+
+type BpUpdateEvaluator struct {
+	BaseEvaluator
+	ctx *ApplyContext
+	op  *prototype.BpUpdateOperation
 }
 
 type BpVoteEvaluator struct {
@@ -392,6 +399,12 @@ func (ev *BpRegisterEvaluator) Apply() {
 
 	opAssert(ev.BpInWhiteList(op.Owner.Value), "bp name not in white list")
 
+	staminaFree := op.Props.StaminaFree
+	opAssert(staminaFree >= constants.MinStaminaFree,
+		fmt.Sprintf("proposed stamina free too low min value %d", constants.MinStaminaFree))
+	opAssert(staminaFree <= constants.MaxStaminaFree,
+		fmt.Sprintf("proposed stamina free too high max value %d", constants.MaxStaminaFree))
+
 	witnessWrap := table.NewSoWitnessWrap(ev.ctx.db, op.Owner)
 
 	if witnessWrap.CheckExist() {
@@ -530,6 +543,20 @@ func (ev *BpVoteEvaluator) Apply() {
 	//	opAssert(witnessWrap.MdVoteCount(witnessWrap.GetVoteCount()+1), "set witness data error")
 	//}
 
+}
+
+func (ev *BpUpdateEvaluator) Apply() {
+	op := ev.op
+	ev.ctx.vmInjector.RecordGasFee(op.Owner.Value, constants.CommonOpGas)
+
+	staminaFree := op.ProposedStaminaFree
+	opAssert(staminaFree >= constants.MinStaminaFree,
+		fmt.Sprintf("proposed stamina free too low min value %d", constants.MinStaminaFree))
+	opAssert(staminaFree <= constants.MaxStaminaFree,
+		fmt.Sprintf("proposed stamina free too high max value %d", constants.MaxStaminaFree))
+
+	witnessWrap := table.NewSoWitnessWrap(ev.ctx.db, op.Owner)
+	opAssert(witnessWrap.MdProposedStaminaFree(staminaFree), "update bp proposed stamina free error")
 }
 
 func (ev *FollowEvaluator) Apply() {

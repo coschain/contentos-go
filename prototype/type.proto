@@ -47,6 +47,7 @@ message sha256{
 message chain_properties{
     coin account_creation_fee = 1;
     uint32 maximum_block_size = 2;
+    uint64 stamina_free       = 3;
 }
 
 message dynamic_properties {

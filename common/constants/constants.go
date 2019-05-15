@@ -55,6 +55,10 @@ const (
 
 	MaxAccountNameLength     = 16
 
+	MinStaminaFree       = 0
+	DefaultStaminaFree   = 100000
+	MaxStaminaFree       = 100000
+
 	BlocksPerDay = 24 * 60 * 60 / BlockInterval
 
 	MaxUndoHistory = 10000

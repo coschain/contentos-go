@@ -6,6 +6,7 @@ import (
 	"github.com/coschain/cobra"
 	"github.com/coschain/contentos-go/cmd/wallet-cli/commands/utils"
 	"github.com/coschain/contentos-go/cmd/wallet-cli/wallet"
+	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/rpc/pb"
 	"github.com/coschain/contentos-go/rpc"
@@ -108,6 +109,7 @@ func conductBatch(cmd *cobra.Command, args []string) {
 				Props: &prototype.ChainProperties{
 					AccountCreationFee: prototype.NewCoin(bpCreateAccountFee),
 					MaximumBlockSize:   bpBlockSize,
+					StaminaFree:constants.DefaultStaminaFree,
 				},
 			}
 
