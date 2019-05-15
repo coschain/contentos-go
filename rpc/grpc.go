@@ -1202,3 +1202,47 @@ func (as *APIService) GetDailyStats(ctx context.Context, req *grpcpb.GetDailySta
 	res.Stat = stat
 	return res, nil
 }
+
+func (as *APIService) GetContractListByTime(ctx context.Context, req *grpcpb.GetContractListByTimeRequest) (*grpcpb.GetContractListResponse, error) {
+	as.db.RLock()
+	defer as.db.RUnlock()
+	var (
+		err error
+		list []*grpcpb.ContractInfo
+		lastMainKey *prototype.ContractId
+		lastSubKey *prototype.TimePointSec
+	)
+	limit := checkLimit(req.Limit)
+	if limit <= 0 {
+		limit = uint32(defaultPageSizeLimit)
+	}
+	res := &grpcpb.GetContractListResponse{}
+	lastCon := req.LastContract
+	if lastCon != nil {
+		if lastCon.Owner != nil && lastCon.Name != nil {
+			lastMainKey = &prototype.ContractId{Owner: lastCon.Owner, Cname: lastCon.Name.GetValue()}
+		}
+		lastSubKey = lastCon.CreateTime
+	}
+	sortWrap := table.NewContractCreatedTimeWrap(as.db)
+	err = sortWrap.ForEachByRevOrder(req.Start, req.End, lastMainKey, lastSubKey, func(mVal *prototype.ContractId, sVal *prototype.TimePointSec, idx uint32) bool {
+		if mVal != nil {
+			scid := table.NewSoContractWrap(as.db, mVal)
+			if scid.CheckExist() {
+				info := &grpcpb.ContractInfo{
+					Owner: mVal.Owner,
+					Name:  &prototype.AccountName{Value: mVal.Cname},
+					CreateTime: sVal,
+				}
+				list = append(list, info)
+			}
+		}
+
+		if uint32(len(list)) >= limit {
+			return false
+		}
+		return true
+	})
+	res.ContractList = list
+    return  res,err
+}

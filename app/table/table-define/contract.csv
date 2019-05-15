@@ -1,6 +1,6 @@
 type                    ,pName       ,mKey,unique,sort,reverseSort,importPath
 prototype.contract_id   ,id          ,1   ,1     ,0   ,0          ,prototype/multi_id.proto
-prototype.time_point_sec,created_time,0   ,0     ,1   ,0          ,
+prototype.time_point_sec,created_time,0   ,0     ,1   ,1          ,
 string                  ,abi         ,0   ,0     ,0   ,0          ,
 prototype.coin          ,balance     ,0   ,0     ,0   ,0          ,prototype/type.proto
 bytes                   ,code        ,0   ,0     ,0   ,0          ,
