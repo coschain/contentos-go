@@ -405,6 +405,12 @@ func (ev *BpRegisterEvaluator) Apply() {
 	opAssert(staminaFree <= constants.MaxStaminaFree,
 		fmt.Sprintf("proposed stamina free too high max value %d", constants.MaxStaminaFree))
 
+	tpsExpected := op.Props.TpsExpected
+	opAssert(tpsExpected >= constants.MinTPSExpected,
+		fmt.Sprintf("expected tps too low min value %d", constants.MinTPSExpected))
+	opAssert(tpsExpected <= constants.MaxTPSExpected,
+		fmt.Sprintf("expected tps too high max value %d", constants.MaxTPSExpected))
+
 	witnessWrap := table.NewSoWitnessWrap(ev.ctx.db, op.Owner)
 
 	if witnessWrap.CheckExist() {
@@ -555,8 +561,15 @@ func (ev *BpUpdateEvaluator) Apply() {
 	opAssert(staminaFree <= constants.MaxStaminaFree,
 		fmt.Sprintf("proposed stamina free too high max value %d", constants.MaxStaminaFree))
 
+	tpsExpected := op.TpsExpected
+	opAssert(tpsExpected >= constants.MinTPSExpected,
+		fmt.Sprintf("expected tps too low min value %d", constants.MinTPSExpected))
+	opAssert(tpsExpected <= constants.MaxTPSExpected,
+		fmt.Sprintf("expected tps too high max value %d", constants.MaxTPSExpected))
+
 	witnessWrap := table.NewSoWitnessWrap(ev.ctx.db, op.Owner)
 	opAssert(witnessWrap.MdProposedStaminaFree(staminaFree), "update bp proposed stamina free error")
+	opAssert(witnessWrap.MdTpsExpected(tpsExpected), "update bp tps expected error")
 }
 
 func (ev *FollowEvaluator) Apply() {

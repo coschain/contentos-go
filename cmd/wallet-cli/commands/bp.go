@@ -18,6 +18,8 @@ var bpBlockSize uint32
 var bpVoteCancel bool
 var proposedStaminaFree uint64
 var bpUpdateStaminaFree uint64
+var tpsExpected uint64
+var bpUpdateTpsExpected uint64
 
 var BpCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
@@ -37,6 +39,7 @@ var BpCmd = func() *cobra.Command {
 	registerCmd.Flags().Uint64VarP(&bpCreateAccountFee, "fee", "f", 1, `bp register alice --fee 1`)
 	registerCmd.Flags().Uint32VarP(&bpBlockSize, "blocksize", "b", 1024*1024, `bp register alice --blocksize 1024`)
 	registerCmd.Flags().Uint64VarP(&proposedStaminaFree, "stamina_free", "s", constants.DefaultStaminaFree, `bp register alice --stamina_free 1`)
+	registerCmd.Flags().Uint64VarP(&tpsExpected, "tps", "t", constants.DefaultTPSExpected, `bp register alice --tps 1`)
 
 	unregisterCmd := &cobra.Command{
 		Use:     "unregister",
@@ -65,6 +68,7 @@ var BpCmd = func() *cobra.Command {
 	}
 
 	updateCmd.Flags().Uint64VarP(&bpUpdateStaminaFree, "stamina_free", "s", constants.DefaultStaminaFree, `bp update alice --stamina_free 1`)
+	updateCmd.Flags().Uint64VarP(&bpUpdateTpsExpected, "tps", "t", constants.DefaultTPSExpected, `bp update alice --tps 1`)
 
 	cmd.AddCommand(registerCmd)
 	cmd.AddCommand(unregisterCmd)
@@ -84,6 +88,7 @@ func registerBP(cmd *cobra.Command, args []string) {
 		bpUrlFlag = ""
 		bpDescFlag = ""
 		proposedStaminaFree = constants.DefaultStaminaFree
+		tpsExpected = constants.DefaultTPSExpected
 	}()
 	c := cmd.Context["rpcclient"]
 	client := c.(grpcpb.ApiServiceClient)
@@ -111,6 +116,7 @@ func registerBP(cmd *cobra.Command, args []string) {
 			AccountCreationFee: prototype.NewCoin(bpCreateAccountFee),
 			MaximumBlockSize:   bpBlockSize,
 			StaminaFree:        proposedStaminaFree,
+			TpsExpected:        tpsExpected,
 		},
 	}
 
@@ -197,6 +203,7 @@ func voteBp(cmd *cobra.Command, args []string) {
 func updateBp(cmd *cobra.Command, args []string) {
 	defer func() {
 		bpUpdateStaminaFree = constants.DefaultStaminaFree
+		bpUpdateTpsExpected = constants.DefaultTPSExpected
 	}()
 	c := cmd.Context["rpcclient"]
 	client := c.(grpcpb.ApiServiceClient)
@@ -209,8 +216,9 @@ func updateBp(cmd *cobra.Command, args []string) {
 		return
 	}
 	bpUpdate_op := &prototype.BpUpdateOperation{
-		Owner: &prototype.AccountName{Value: name},
-		ProposedStaminaFree:bpUpdateStaminaFree,
+		Owner:                 &prototype.AccountName{Value: name},
+		ProposedStaminaFree:   bpUpdateStaminaFree,
+		TpsExpected:           bpUpdateTpsExpected,
 	}
 
 	signTx, err := utils.GenerateSignedTxAndValidate2(client, []interface{}{bpUpdate_op}, bpAccount)

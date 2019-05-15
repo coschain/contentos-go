@@ -12,3 +12,4 @@ uint32                         ,running_version         ,0   ,0     ,0   ,0     
 uint32                         ,last_aslot              ,0   ,0     ,0   ,0          ,
 uint64                         ,proposed_stamina_free   ,0   ,0     ,0   ,0          ,
 bool                           ,active                  ,0   ,0     ,0   ,0          ,
+uint64                         ,tps_expected            ,0   ,0     ,0   ,0          ,

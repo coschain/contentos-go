@@ -21,6 +21,7 @@ message so_witness {
     uint32                            last_aslot                   =      11;
     uint64                            proposed_stamina_free        =      12;
     bool                              active                       =      13;
+    uint64                            tps_expected                 =      14;
       
 }
 
@@ -87,6 +88,11 @@ message so_mem_witness_by_proposed_stamina_free {
 
 message so_mem_witness_by_active {
 	bool                           	active                   = 1;
+}
+
+
+message so_mem_witness_by_tps_expected {
+	uint64                         	tps_expected             = 1;
 }
 
 

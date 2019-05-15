@@ -109,7 +109,8 @@ func conductBatch(cmd *cobra.Command, args []string) {
 				Props: &prototype.ChainProperties{
 					AccountCreationFee: prototype.NewCoin(bpCreateAccountFee),
 					MaximumBlockSize:   bpBlockSize,
-					StaminaFree:constants.DefaultStaminaFree,
+					StaminaFree:        constants.DefaultStaminaFree,
+					TpsExpected:        constants.DefaultTPSExpected,
 				},
 			}
 
