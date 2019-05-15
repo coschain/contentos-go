@@ -15,6 +15,7 @@ import (
 	"github.com/coschain/contentos-go/common/eventloop"
 	"github.com/coschain/contentos-go/utils"
 	"math"
+	"sort"
 
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
@@ -49,6 +50,12 @@ type TrxPool struct {
 	resourceLimiter utils.IResourceLimiter
 	enableBAH bool
 }
+
+type DirRange []uint64
+
+func (a DirRange) Len() int           { return len(a) }
+func (a DirRange) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a DirRange) Less(i, j int) bool { return a[i] < a[j] }
 
 func (c *TrxPool) getDb() (iservices.IDatabaseService, error) {
 	s, err := c.ctx.Service(iservices.DbServerName)
@@ -956,9 +963,12 @@ func (c *TrxPool) createBlockSummary(blk *prototype.SignedBlock) {
 }
 
 func (c *TrxPool) GetWitnessTopN(n uint32) ([]string, []*prototype.PublicKeyType) {
-	var names []string
-	var deletelist []*prototype.AccountName
-	var keys []*prototype.PublicKeyType
+	var names            []string
+	var bpNames          []string
+	var deletelist       []*prototype.AccountName
+	var keys             []*prototype.PublicKeyType
+	var tpsExpectedList  []uint64
+	var staminaFreeList  []uint64
 	revList := table.SWitnessVoteCountWrap{Dba: c.db}
 	var bpCount uint32 = 0
 	_ = revList.ForEachByRevOrder(nil, nil,nil,nil, func(mVal *prototype.AccountName, sVal *uint64, idx uint32) bool {
@@ -975,7 +985,7 @@ func (c *TrxPool) GetWitnessTopN(n uint32) ([]string, []*prototype.PublicKeyType
 				return true
 			}
 		}
-		if bpCount < n {
+		if bpCount < n + 1 {
 			return true
 		}
 		//if idx < n {
@@ -984,9 +994,14 @@ func (c *TrxPool) GetWitnessTopN(n uint32) ([]string, []*prototype.PublicKeyType
 		return false
 	})
 
-	c.ClearUnRegisterBP(deletelist)
-
 	for i := range names {
+		if names[i] == constants.COSInitMiner && len(names) >1 {
+			c.modifyGlobalDynamicData(func(dgpo *prototype.DynamicProperties) {
+				dgpo.WitnessBootCompleted = true
+			})
+			deletelist = append(deletelist, &prototype.AccountName{Value: names[i],} )
+			continue
+		}
 		ac := &prototype.AccountName{
 			Value: names[i],
 		}
@@ -996,8 +1011,25 @@ func (c *TrxPool) GetWitnessTopN(n uint32) ([]string, []*prototype.PublicKeyType
 		}
 		dbPubKey := witnessWrap.GetSigningKey()
 		keys = append(keys, dbPubKey)
+		bpNames = append(bpNames, names[i])
+		tpsExpectedList = append(tpsExpectedList, witnessWrap.GetTpsExpected())
+		staminaFreeList = append(staminaFreeList, witnessWrap.GetProposedStaminaFree())
 	}
-	return names, keys
+
+	sort.Sort(DirRange(tpsExpectedList))
+	sort.Sort(DirRange(staminaFreeList))
+
+	c.modifyGlobalDynamicData(func(dgpo *prototype.DynamicProperties) {
+		dgpo.StaminaFree = staminaFreeList[ len(staminaFreeList) / 2 ]
+	})
+	c.modifyGlobalDynamicData(func(dgpo *prototype.DynamicProperties) {
+		dgpo.TpsExpected = tpsExpectedList[ len(tpsExpectedList) / 2 ]
+	})
+
+	c.ClearUnRegisterBP(deletelist)
+
+	//return names, keys
+	return bpNames, keys
 }
 
 func (c *TrxPool) ClearUnRegisterBP(deletelist []*prototype.AccountName) {
