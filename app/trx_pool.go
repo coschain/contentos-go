@@ -418,6 +418,7 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabasePatch, entry *TrxEn
 		//c.PayGas(trxContext)
 		if err := recover(); err != nil {
 			receipt.ErrorInfo = fmt.Sprintf("applyTransaction failed : %v", err)
+			trxObserver.EndTrx(false)
 			if useGas {
 				receipt.Status = prototype.StatusDeductGas
 				c.notifyTrxApplyResult(sigTrx, true, receipt)
@@ -426,9 +427,6 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabasePatch, entry *TrxEn
 				c.notifyTrxApplyResult(sigTrx, false, receipt)
 				panic(receipt.ErrorInfo)
 			}
-			trxObserver.EndTrx(false)
-			c.notifyTrxApplyResult(sigTrx, false, receipt)
-			panic(receipt.ErrorInfo)
 		} else {
 			// commit changes to db
 			_ = trxDB.Apply()
