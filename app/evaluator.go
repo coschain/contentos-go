@@ -427,6 +427,8 @@ func (ev *BpRegisterEvaluator) Apply() {
 		t.Url = op.Url
 		t.SigningKey = op.BlockSigningKey
 		t.Active = true
+		t.ProposedStaminaFree = staminaFree
+		t.TpsExpected = tpsExpected
 
 		// TODO add others
 	}), "add witness record error")
