@@ -739,7 +739,10 @@ func (ev *ContractApplyEvaluator) Apply() {
 		if op.Amount.Value > 0 {
 			vmCtx.Injector.TransferFromUserToContract(op.Caller.Value, op.Contract, op.Owner.Value, op.Amount.Value)
 		}
+
 	}
+	applyCnt := scid.GetApplyCount()
+	scid.MdApplyCount(applyCnt+1)
 }
 
 func (ev *InternalContractApplyEvaluator) Apply() {

@@ -101,6 +101,9 @@ service ApiService {
     rpc GetDailyStats (GetDailyStatsRequest) returns (GetDailyStatsResponse) {
 
     }
+
+    rpc GetContractListByTime(GetContractListByTimeRequest) returns (GetContractListResponse) {
+    }
 }
 
 
@@ -504,6 +507,7 @@ message DailyStat {
     uint32 dnu = 4;
     uint32 trxs = 5;
     uint64 amount = 6 [jstype = JS_STRING];
+    uint32 total_user_count = 7;
 }
 
 message GetDailyStatsRequest {
@@ -513,4 +517,24 @@ message GetDailyStatsRequest {
 
 message GetDailyStatsResponse {
     repeated DailyStat stat = 1;
+}
+
+message ContractInfo {
+    prototype.account_name    owner = 1;
+    prototype.account_name    name  = 2;
+    prototype.time_point_sec  create_time = 3;
+    prototype.coin            balance = 4;
+    uint32                    apply_count = 5;
+
+}
+
+message GetContractListByTimeRequest {
+    prototype.time_point_sec  start = 1;
+    prototype.time_point_sec  end   = 2;
+    ContractInfo     last_contract = 3;
+    uint32           limit     = 4;
+}
+
+message GetContractListResponse {
+    repeated ContractInfo   contract_list = 1;
 }
