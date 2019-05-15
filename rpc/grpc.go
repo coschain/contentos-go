@@ -1233,6 +1233,8 @@ func (as *APIService) GetContractListByTime(ctx context.Context, req *grpcpb.Get
 					Owner: mVal.Owner,
 					Name:  &prototype.AccountName{Value: mVal.Cname},
 					CreateTime: sVal,
+					Balance: scid.GetBalance(),
+					ApplyCount: scid.GetApplyCount(),
 				}
 				list = append(list, info)
 			}

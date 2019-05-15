@@ -4,3 +4,4 @@ prototype.time_point_sec,created_time,0   ,0     ,1   ,1          ,
 string                  ,abi         ,0   ,0     ,0   ,0          ,
 prototype.coin          ,balance     ,0   ,0     ,0   ,0          ,prototype/type.proto
 bytes                   ,code        ,0   ,0     ,0   ,0          ,
+uint32                  ,apply_count ,0   ,0     ,1   ,0          ,
