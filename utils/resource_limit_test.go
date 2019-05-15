@@ -277,11 +277,11 @@ func TestDynamicTps(t *testing.T) {
 	now := preTime
 	for i:=0;i<3000;i++ {
 		now++
-		tps := calculateTpsEMA(trxsInWindow,trxsInBlock,preTime,now)
+		trxsInWindowNew := calculateTpsEMA(trxsInWindow,trxsInBlock,preTime,now)
 		preTime=now
-		fmt.Println("trxs in window:",tps," trxsInBlock:",trxsInBlock," block num:",now, " real tps:",tps/constants.TpsWindowSize)
+		fmt.Println("trxs in window:",trxsInWindowNew," trxsInBlock:",trxsInBlock," block num:",now, " real tps:",trxsInWindowNew/constants.TpsWindowSize)
 		//trxsInBlock += 1
-		trxsInWindow = tps
+		trxsInWindow = trxsInWindowNew
 		if i > 1000 && i < 2000 {
 			if trxsInBlock > 0 {
 				trxsInBlock--
@@ -291,7 +291,33 @@ func TestDynamicTps(t *testing.T) {
 			trxsInBlock++
 		}
 	}
+}
 
+func TestDynamicStamina(t *testing.T) {
+	initEvn()
+
+	var trxsInWindow,trxsInBlock,oneDayStamina uint64 = 0,1000,constants.OneDayStamina
+	preTime := global.blockNum
+	now := preTime
+	for i:=0;i<3000;i++ {
+		now++
+		trxsInWindowNew := calculateTpsEMA(trxsInWindow,trxsInBlock,preTime,now)
+		preTime = now
+		oneDayStaminaNew := updateDynamicOneDayStamina(oneDayStamina,trxsInWindowNew/constants.TpsWindowSize)
+		fmt.Println("oneDayStamina:",oneDayStaminaNew,"trxs in window:",trxsInWindowNew," trxsInBlock:",trxsInBlock," block num:",now, " real tps:",trxsInWindowNew/constants.TpsWindowSize)
+		trxsInWindow = trxsInWindowNew
+		oneDayStamina = oneDayStaminaNew
+
+		if i > 1000 && i < 2000 {
+			if trxsInBlock > 10 {
+				trxsInBlock-=10
+			}
+		}
+		if i >= 2000 {
+			trxsInBlock+=10
+		}
+
+	}
 }
 
 func Test_EMA(t *testing.T) {
