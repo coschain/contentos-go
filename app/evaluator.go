@@ -928,7 +928,8 @@ func (ev *ContractApplyEvaluator) Apply() {
 
 	}
 	applyCnt := scid.GetApplyCount()
-	scid.MdApplyCount(applyCnt+1)
+	opAssert(scid.MdApplyCount(applyCnt+1), "modify applycount failed")
+
 }
 
 func (ev *InternalContractApplyEvaluator) Apply() {
