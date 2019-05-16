@@ -3,7 +3,6 @@ package app
 import (
 	"bytes"
 	"encoding/binary"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/asaskevich/EventBus"
@@ -13,8 +12,8 @@ import (
 	"github.com/coschain/contentos-go/common/crypto"
 	"github.com/coschain/contentos-go/common/crypto/secp256k1"
 	"github.com/coschain/contentos-go/common/eventloop"
+	"github.com/coschain/contentos-go/economist"
 	"math"
-	"strings"
 
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
@@ -42,8 +41,7 @@ type TrxPool struct {
 	shuffle                common.ShuffleFunc
 
 	iceberg   *BlockIceberg
-	economist *Economist
-	stateObserver *StateObserver
+	economist *economist.Economist
 	tm *TrxMgr
 }
 
@@ -96,8 +94,7 @@ func (c *TrxPool) Start(node *node.Node) error {
 
 func (c *TrxPool) Open() {
 	c.iceberg = NewBlockIceberg(c.db, c.log)
-	c.economist = NewEconomist(c.db, c.noticer, &SingleId, c.log)
-	c.stateObserver = NewStateObserver(c.noticer, c.log)
+	c.economist = economist.New(c.db, c.noticer, &SingleId, c.log)
 	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
 	if !dgpWrap.CheckExist() {
 
@@ -108,7 +105,7 @@ func (c *TrxPool) Open() {
 
 		mustNoError(c.db.TagRevision(c.db.GetRevision(), GENESIS_TAG), "genesis tagging failed")
 		c.iceberg = NewBlockIceberg(c.db, c.log)
-		c.economist = NewEconomist(c.db, c.noticer, &SingleId, c.log)
+		c.economist = economist.New(c.db, c.noticer, &SingleId, c.log)
 		//c.log.Info("finish initGenesis")
 	}
 	commit, _ := c.iceberg.LastFinalizedBlock()
@@ -163,7 +160,6 @@ func (c *TrxPool) pushBlockNoLock(blk *prototype.SignedBlock, skip prototype.Ski
 			}
 			// undo changes
 			_ = c.iceberg.EndBlock(false)
-			c.stateObserver.EndBlock("")
 			c.log.Debug("ICEBERG: EndBlock FALSE")
 			c.log.Errorf("push block fail,the error is %v,the block num is %v", r, blk.Id().BlockNum())
 			//fmt.Printf("push block fail,the error is %v,the block num is %v \n", r, blk.Id().BlockNum())
@@ -176,18 +172,13 @@ func (c *TrxPool) pushBlockNoLock(blk *prototype.SignedBlock, skip prototype.Ski
 		blkNum := blk.Id().BlockNum()
 		c.log.Debugf("ICEBERG: BeginBlock %d", blkNum)
 		_ = c.iceberg.BeginBlock(blkNum)
-		c.stateObserver.BeginBlock(blkNum)
 		c.applyBlock(blk, skip)
-		data := blk.Id().Data
-		c.stateObserver.EndBlock(hex.EncodeToString(data[:]))
 		c.log.Debug("ICEBERG: EndBlock TRUE")
 		_ = c.iceberg.EndBlock(true)
 	} else {
 		// we have do a BeginTransaction at GenerateBlock
 		c.applyBlock(blk, skip)
 		c.log.Debug("ICEBERG: EndBlock TRUE")
-		data := blk.Id().Data
-		c.stateObserver.EndBlock(hex.EncodeToString(data[:]))
 		_ = c.iceberg.EndBlock(true)
 	}
 
@@ -267,7 +258,6 @@ func (c *TrxPool) generateBlockNoLock(witness string, pre *prototype.Sha256, tim
 		if err := recover(); err != nil {
 			c.log.Debug("ICEBERG: EndBlock FALSE")
 			_ = c.iceberg.EndBlock(false)
-			c.stateObserver.EndBlock("")
 
 			//c.log.Errorf("GenerateBlock Error: %v", err)
 			//panic(err)
@@ -304,7 +294,6 @@ func (c *TrxPool) generateBlockNoLock(witness string, pre *prototype.Sha256, tim
 	blkNum := c.headBlockNum() + 1
 	c.log.Debugf("ICEBERG: BeginBlock %d", blkNum)
 	_ = c.iceberg.BeginBlock(blkNum)
-	c.stateObserver.BeginBlock(blkNum)
 
 	timeOut := maxTimeout - time.Since(entryTime)
 	if timeOut < minTimeout {
@@ -401,26 +390,20 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabaseRW, entry *TrxEntry
 	result := entry.GetTrxResult()
 	receipt, sigTrx := result.GetReceipt(), result.GetSigTrx()
 
-	trxObserver := c.stateObserver.NewTrxObserver()
-	trxHash, _ := sigTrx.Id()
-	trxObserver.BeginTrx(hex.EncodeToString(trxHash.GetHash()))
-
 	defer func() {
 		if err := recover(); err != nil {
 			receipt.Status = prototype.StatusError
 			receipt.ErrorInfo = fmt.Sprintf("applyTransaction failed : %v", err)
-			trxObserver.EndTrx(false)
 			c.notifyTrxApplyResult(sigTrx, false, receipt)
 			panic(receipt.ErrorInfo)
 		} else {
 			receipt.Status = prototype.StatusSuccess
-			trxObserver.EndTrx(true)
 			c.notifyTrxApplyResult(sigTrx, true, receipt)
 			return
 		}
 	}()
 
-	trxContext := NewTrxContextWithSigningKey(result, db, entry.GetTrxSigningKey(), trxObserver)
+	trxContext := NewTrxContextWithSigningKey(result, db, entry.GetTrxSigningKey())
 	for _, op := range sigTrx.Trx.Operations {
 		trxContext.StartNextOp()
 		c.applyOperation(trxContext, op)
@@ -440,7 +423,7 @@ func (c *TrxPool) applyOperation(trxCtx *TrxContext, op *prototype.Operation) {
 }
 
 func (c *TrxPool) getEvaluator(trxCtx *TrxContext, op *prototype.Operation) BaseEvaluator {
-	ctx := &ApplyContext{db: trxCtx.db, control: trxCtx, vmInjector: trxCtx, observer: trxCtx.observer}
+	ctx := &ApplyContext{db: trxCtx.db, control: trxCtx, vmInjector: trxCtx}
 	return GetBaseEvaluator(ctx, op)
 }
 
@@ -484,14 +467,6 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 	if skip&prototype.Skip_apply_transaction == 0 {
 		t0 := time.Now()
 
-		txIds := make([]string, len(blk.Transactions))
-		for i, tw := range blk.Transactions {
-			txId, _ := tw.SigTrx.Id()
-			txIds[i] = fmt.Sprintf("id=%x, sig=%x", txId.Hash, tw.SigTrx.Signature.Sig)
-		}
-		sTxIds := strings.Join(txIds, "\n")
-		c.log.Debugf("[BLOCK_TRX] block %d trxs: %d\n%s", blk.Id().BlockNum(), len(blk.Transactions), sTxIds)
-
 		entries, err := c.tm.CheckBlockTrxs(blk)
 		mustNoError(err, "block trxs check failed")
 
@@ -533,8 +508,6 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 		c.log.Debugf("PUSHBLOCK %d: %v|%v(%v)|%v|%v, #tx=%d", blk.Id().BlockNum(),
 			t3.Sub(t0), t1.Sub(t0), time.Duration(applyTime), t2.Sub(t1), t3.Sub(t2), totalCount)
 	}
-	pseudoTrxObserver := c.stateObserver.NewTrxObserver()
-	pseudoTrxObserver.BeginTrx("")
 	t0 := time.Now()
 	c.createBlockSummary(blk)
 	t1 := time.Now()
@@ -542,14 +515,14 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 	t2 := time.Now()
 
 	tinit := time.Now()
-	c.economist.Mint(pseudoTrxObserver)
+	c.economist.Mint()
 	tmint := time.Now()
-	c.economist.Do(pseudoTrxObserver)
+	c.economist.Do()
 	tdo := time.Now()
 	c.economist.PowerDown()
 	tpd := time.Now()
 	c.log.Debugf("Economist: %v|%v|%v|%v", tpd.Sub(tinit), tmint.Sub(tinit), tdo.Sub(tmint), tpd.Sub(tdo))
-	pseudoTrxObserver.EndTrx(true)
+
 	t3 := time.Now()
 	c.notifyBlockApply(blk)
 	t4 := time.Now()

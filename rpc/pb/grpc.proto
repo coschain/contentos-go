@@ -254,8 +254,8 @@ message PostResponse {
     prototype.vest                              rewards                 =      22;
     prototype.vest                              dapp_rewards            =      23;
     uint64                                      cashout_interval        =      24;
-    prototype.vest                              global_rewards          =      25 ;
-    uint64                                      global_weighted_vp      =      26 [jstype = JS_STRING];
+    prototype.vest                              global_rewards          =      25;
+    uint64                                      global_weighted_vp      =      26;
 }
 
 message GetPostListByCreatedRequest {

@@ -4,7 +4,6 @@ import (
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/common/encoding/vme"
-	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/vm"
 	"github.com/coschain/contentos-go/vm/context"
@@ -13,7 +12,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"math"
 	"sort"
-	"strconv"
 )
 
 func mustSuccess(b bool, val string) {
@@ -186,10 +184,6 @@ func (ev *TransferEvaluator) Apply() {
 
 	opAssertE(tBalance.Add(op.Amount), "balance overflow")
 	opAssert(toWrap.MdBalance(tBalance), "")
-
-	ev.ctx.observer.AddOpState(iservices.Replace, "balance", fromWrap.GetName().Value, fromWrap.GetBalance().Value)
-	ev.ctx.observer.AddOpState(iservices.Replace, "balance", toWrap.GetName().Value, toWrap.GetBalance().Value)
-
 }
 
 func (ev *PostEvaluator) Apply() {
@@ -233,7 +227,6 @@ func (ev *PostEvaluator) Apply() {
 	//key := fmt.Sprintf("cashout:%d_%d", common.GetBucket(timestamp), op.Uuid)
 	//value := "post"
 	//opAssertE(ev.ctx.db.Put([]byte(key), []byte(value)), "put post key into db error")
-	ev.ctx.observer.AddOpState(iservices.Insert, "post", authorWrap.GetName().Value, strconv.FormatUint(op.Uuid, 10))
 
 }
 
@@ -286,8 +279,6 @@ func (ev *ReplyEvaluator) Apply() {
 	//key := fmt.Sprintf("cashout:%d_%d", common.GetBucket(timestamp), op.Uuid)
 	//value := "reply"
 	//opAssertE(ev.ctx.db.Put([]byte(key), []byte(value)), "put reply key into db error")
-	data := map[string]string{"id": strconv.FormatUint(op.Uuid, 10), "postId": strconv.FormatUint(op.ParentUuid, 10)}
-	ev.ctx.observer.AddOpState(iservices.Insert, "reply", authorWrap.GetName().Value, data)
 }
 
 // upvote is true: upvote otherwise downvote
@@ -315,16 +306,11 @@ func (ev *VoteEvaluator) Apply() {
 	//	}
 	//}
 
-	//regeneratedPower := constants.PERCENT * elapsedSeconds / constants.VoteRegenerateTime
-	regeneratedPower := 1000 * elapsedSeconds / constants.VoteRegenerateTime
-
+	regeneratedPower := constants.PERCENT * elapsedSeconds / constants.VoteRegenerateTime
 	var currentVp uint32
 	votePower := voterWrap.GetVotePower() + regeneratedPower
-	//if votePower > constants.PERCENT {
-	//	currentVp = constants.PERCENT
-	if votePower > 1000{
-		currentVp = 1000
-
+	if votePower > constants.PERCENT {
+		currentVp = constants.PERCENT
 	} else {
 		currentVp = votePower
 	}
@@ -333,9 +319,7 @@ func (ev *VoteEvaluator) Apply() {
 	voterWrap.MdVotePower(currentVp - usedVp)
 	voterWrap.MdLastVoteTime(ev.ctx.control.HeadBlockTime())
 	vesting := voterWrap.GetVestingShares().Value
-	// after constants.PERCENT replaced by 1000, max value is 10000000000 * 1000000 * 1000 / 30
-	// 10000000000 * 1000000 * 1000 < 18446744073709552046 but 10000000000 * 1000000 > 9223372036854775807
-	// so can not using int64 here
+	// todo: uint128
 	weightedVp := vesting * uint64(usedVp)
 	if postWrap.GetCashoutBlockNum() > ev.ctx.control.GetProps().HeadBlockNumber {
 		lastVp := postWrap.GetWeightedVp()
@@ -355,9 +339,6 @@ func (ev *VoteEvaluator) Apply() {
 
 		opAssert(postWrap.MdVoteCnt(postWrap.GetVoteCnt()+1), "set vote count error")
 	}
-	data := map[string]string{"postId": strconv.FormatUint(op.Idx, 10), "vesting": strconv.FormatUint(voterWrap.GetVestingShares().Value, 10),
-		"weightedVp": strconv.FormatUint(weightedVp, 10), "usedVp": strconv.Itoa(int(usedVp))}
-	ev.ctx.observer.AddOpState(iservices.Insert, "vote", voterWrap.GetName().Value, data)
 }
 
 func (ev *BpRegisterEvaluator) BpInWhiteList(bpName string) bool {
@@ -476,7 +457,7 @@ func (ev *ConvertVestingEvaluator) Apply() {
 	globalProps := ev.ctx.control.GetProps()
 	//timestamp := globalProps.Time.UtcSeconds
 	currentBlock := globalProps.HeadBlockNumber
-	eachRate := op.Amount.Value / (constants.ConvertWeeks - 1)
+	eachRate := op.Amount.Value / constants.ConvertWeeks
 	//accWrap.MdNextPowerdownTime(&prototype.TimePointSec{UtcSeconds: timestamp + constants.POWER_DOWN_INTERVAL})
 	accWrap.MdNextPowerdownBlockNum(currentBlock + constants.PowerDownBlockInterval)
 	accWrap.MdEachPowerdownRate(&prototype.Vest{Value: eachRate})

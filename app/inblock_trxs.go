@@ -81,23 +81,16 @@ func NewInBlockTrxChecker(db iservices.IDatabaseRW, logger *logrus.Logger, last 
 
 // Has checks if a given transaction can be found in latest blocks.
 func (c *InBlockTrxChecker) Has(trx *prototype.SignedTransaction) bool {
-	return c.FindBlock(trx) > 0
-}
-
-// FindBlock returns the block containing given transaction.
-// If no block found, returns 0.
-func (c *InBlockTrxChecker) FindBlock(trx *prototype.SignedTransaction) (blockNum uint64) {
 	s := string(trx.Signature.Sig)
 
 	c.lock.RLock()
 	defer c.lock.RUnlock()
-	for b, e := range c.trxs {
+	for _, e := range c.trxs {
 		if e.trxs[s] {
-			blockNum = b
-			break
+			return true
 		}
 	}
-	return
+	return false
 }
 
 // BlockApplied *MUST* be called *AFTER* a block was successfully applied.

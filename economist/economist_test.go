@@ -1,4 +1,4 @@
-package app
+package economist
 
 import (
 	"github.com/stretchr/testify/assert"
