@@ -248,7 +248,7 @@ func (s *DailyStatisticService) DailyStatsSince(days int, dapp string) []*itype.
 		var dau, dnu, trxs, tusr uint32
 		var amount uint64
 		var date string
-		_ = rows.Scan(&dau, &dnu, &trxs, &amount, &date, &tusr)
+		_ = rows.Scan(&dau, &dnu, &trxs, &amount,  &tusr, &date)
 		r := &itype.Row{Date: date, Dapp: dapp, Dau: dau, Dnu: dnu, TrxCount: trxs, Amount: amount, TotalUserCount: tusr}
 		dauRows = append(dauRows, r)
 	}
