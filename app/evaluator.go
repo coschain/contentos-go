@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/common/encoding/vme"
@@ -710,20 +711,30 @@ func (ev *ContractApplyEvaluator) Apply() {
 	// deductgasfee and usertranfer could be panic (rarely, I can't image how it happens)
 	// the panic should catch then return or bubble it ?
 
+	fmt.Println("start apply contract")
 	// TODO merge, temp fix
 	opAssertE(err, "execute vm error")
 
+	fmt.Println("apply contract ")
 	vmCtx.Injector.DeductGasFee(op.Caller.Value, spentGas)
 	if err != nil {
+		fmt.Println("DeductGasFee no error")
 		vmCtx.Injector.Error(ret, err.Error())
 	} else {
+		fmt.Printf("DeductGasFee error is %v \n", err)
 		if op.Amount.Value > 0 {
+			fmt.Println("op.Amount.Value greater than 0")
 			vmCtx.Injector.TransferFromUserToContract(op.Caller.Value, op.Contract, op.Owner.Value, op.Amount.Value)
 		}
 
 	}
+
+	fmt.Printf("start md value")
 	applyCnt := scid.GetApplyCount()
+	fmt.Printf("origin count is %v \n", applyCnt)
 	scid.MdApplyCount(applyCnt+1)
+	newCnt := scid.GetApplyCount()
+	fmt.Printf("new count is %v \n", newCnt)
 }
 
 func (ev *InternalContractApplyEvaluator) Apply() {
