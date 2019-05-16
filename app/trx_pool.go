@@ -995,7 +995,7 @@ func (c *TrxPool) GetWitnessTopN(n uint32) ([]string, []*prototype.PublicKeyType
 	})
 
 	for i := range names {
-		if names[i] == constants.COSInitMiner && len(names) >1 {
+		if names[i] == constants.COSInitMiner && len(names) > 1 {
 			c.modifyGlobalDynamicData(func(dgpo *prototype.DynamicProperties) {
 				dgpo.WitnessBootCompleted = true
 			})
@@ -1014,6 +1014,10 @@ func (c *TrxPool) GetWitnessTopN(n uint32) ([]string, []*prototype.PublicKeyType
 		bpNames = append(bpNames, names[i])
 		tpsExpectedList = append(tpsExpectedList, witnessWrap.GetTpsExpected())
 		staminaFreeList = append(staminaFreeList, witnessWrap.GetProposedStaminaFree())
+
+		if uint32(len(bpNames)) == n {
+			break
+		}
 	}
 
 	sort.Sort(DirRange(tpsExpectedList))
