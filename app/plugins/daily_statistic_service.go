@@ -240,7 +240,7 @@ func (s *DailyStatisticService) DailyStatsSince(days int, dapp string) []*itype.
 	then := now.Add(d * time.Duration(days))
 	start := fmt.Sprintf("%d-%02d-%02d", then.Year(), then.Month(), then.Day())
 	var dauRows []*itype.Row
-	rows, err := s.outDb.Query("select dau, dnu, trxs, amount, tusr date from dailystat where date >= ? and dapp = ?  order by date", start, dapp)
+	rows, err := s.outDb.Query("select dau, dnu, trxs, amount, tusr, date from dailystat where date >= ? and dapp = ?  order by date", start, dapp)
 	if err != nil {
 		return dauRows
 	}
