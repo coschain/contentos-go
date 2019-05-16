@@ -187,27 +187,22 @@ func (s *SoContractWrap) insertSortKeyCreatedTime(sa *SoContract) bool {
 }
 
 func (s *SoContractWrap) delSortKeyApplyCount(sa *SoContract) bool {
-	fmt.Println("delete apply count")
 	if s.dba == nil || s.mainKey == nil {
-		fmt.Printf("del fail, db is %v , mainkey is %v \n", s.dba, s.mainKey)
 		return false
 	}
 	val := SoListContractByApplyCount{}
 	if sa == nil {
 		key, err := s.encodeMemKey("ApplyCount")
 		if err != nil {
-			fmt.Printf("Del fail, failed to encodeMemKey, err is %v \n", err)
 			return false
 		}
 		buf, err := s.dba.Get(key)
 		if err != nil {
-			fmt.Printf("Del fail, failed to get, err is %v \n", err)
 			return false
 		}
 		ori := &SoMemContractByApplyCount{}
 		err = proto.Unmarshal(buf, ori)
 		if err != nil {
-			fmt.Printf("Del fail, failed to Unmarshal, err is %v \n", err)
 			return false
 		}
 		val.ApplyCount = ori.ApplyCount
@@ -220,17 +215,14 @@ func (s *SoContractWrap) delSortKeyApplyCount(sa *SoContract) bool {
 
 	subBuf, err := val.OpeEncode()
 	if err != nil {
-		fmt.Printf("Del fail, failed to OpeEncode, err is %v \n", err)
 		return false
 	}
 	ordErr := s.dba.Delete(subBuf)
-	fmt.Printf("Del err is %v \n", ordErr)
 	return ordErr == nil
 }
 
 func (s *SoContractWrap) insertSortKeyApplyCount(sa *SoContract) bool {
 	if s.dba == nil || sa == nil {
-		fmt.Printf("insert fail, db is %v , sa is %v \n", s.dba, sa)
 		return false
 	}
 	val := SoListContractByApplyCount{}
@@ -238,16 +230,13 @@ func (s *SoContractWrap) insertSortKeyApplyCount(sa *SoContract) bool {
 	val.ApplyCount = sa.ApplyCount
 	buf, err := proto.Marshal(&val)
 	if err != nil {
-		fmt.Printf("insert: Marshal fail, error is %v \n", err)
 		return false
 	}
 	subBuf, err := val.OpeEncode()
 	if err != nil {
-		fmt.Printf("insert: OpeEncode fail, error is %v \n", err)
 		return false
 	}
 	ordErr := s.dba.Put(subBuf, buf)
-	fmt.Printf("insert error is %v \n", ordErr)
 	return ordErr == nil
 }
 
@@ -593,19 +582,15 @@ func (s *SoContractWrap) GetApplyCount() uint32 {
 }
 
 func (s *SoContractWrap) MdApplyCount(p uint32) bool {
-	fmt.Printf("MdApplyCount:  new count is %v \n", p)
 	if s.dba == nil {
-		fmt.Println("db is nil")
 		return false
 	}
 	key, err := s.encodeMemKey("ApplyCount")
 	if err != nil {
-		fmt.Printf("encode error is %v \n", err)
 		return false
 	}
 	buf, err := s.dba.Get(key)
 	if err != nil {
-		fmt.Printf("get key error is %v \n", err)
 		return false
 	}
 	ori := &SoMemContractByApplyCount{}
@@ -616,18 +601,15 @@ func (s *SoContractWrap) MdApplyCount(p uint32) bool {
 	sa.ApplyCount = ori.ApplyCount
 
 	if !s.delSortKeyApplyCount(sa) {
-		fmt.Println("delete origin count fail ")
 		return false
 	}
 	ori.ApplyCount = p
 	val, err := proto.Marshal(ori)
 	if err != nil {
-		fmt.Printf("Marshal origin count fail, error is %v \n", err)
 		return false
 	}
 	err = s.dba.Put(key, val)
 	if err != nil {
-		fmt.Printf("put new data fail, error is %v \n", err)
 		return false
 	}
 	sa.ApplyCount = p
@@ -636,7 +618,6 @@ func (s *SoContractWrap) MdApplyCount(p uint32) bool {
 		return false
 	}
 
-	fmt.Println("MdApplyCount success")
 	return true
 }
 
