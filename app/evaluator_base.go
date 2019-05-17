@@ -4,6 +4,7 @@ import (
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/vm/injector"
+	"github.com/sirupsen/logrus"
 )
 
 func opAssertE(err error, val string) {
@@ -30,6 +31,7 @@ type ApplyContext struct {
 	control    iservices.IGlobalPropRW
 	vmInjector vminjector.Injector
 	observer iservices.ITrxObserver
+	log     *logrus.Logger
 }
 
 type BaseEvaluator interface {

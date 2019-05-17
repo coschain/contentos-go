@@ -302,7 +302,7 @@ func (p *TrxContext) ContractCall(caller, fromOwner, fromContract, fromMethod, t
 		Params: params,
 		Amount: &prototype.Coin{ Value: coins },
 	}
-	eval := &InternalContractApplyEvaluator{ctx: &ApplyContext{db: p.db, vmInjector: p, control: p.control}, op: op, remainGas: remainGas}
+	eval := &InternalContractApplyEvaluator{ctx: &ApplyContext{db: p.db, vmInjector: p, control: p.control, log:p.control.log}, op: op, remainGas: remainGas}
 	eval.Apply()
 }
 

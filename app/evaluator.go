@@ -12,7 +12,6 @@ import (
 	"github.com/coschain/contentos-go/vm/context"
 	"github.com/coschain/contentos-go/vm/contract/abi"
 	ct "github.com/coschain/contentos-go/vm/contract/table"
-	"github.com/sirupsen/logrus"
 	"math"
 	"sort"
 )
@@ -884,7 +883,7 @@ func (ev *ContractApplyEvaluator) Apply() {
 	//	_ := recover()
 	//}()
 
-	cosVM := vm.NewCosVM(vmCtx, ev.ctx.db, ev.ctx.control.GetProps(), logrus.New())
+	cosVM := vm.NewCosVM(vmCtx, ev.ctx.db, ev.ctx.control.GetProps(), ev.ctx.log)
 
 	ret, err := cosVM.Run()
 	spentGas := cosVM.SpentGas()
@@ -947,7 +946,7 @@ func (ev *InternalContractApplyEvaluator) Apply() {
 	vmCtx := vmcontext.NewContextFromInternalApplyOp(op, code, abiInterface, tables, ev.ctx.vmInjector)
 	vmCtx.Gas = ev.remainGas
 
-	cosVM := vm.NewCosVM(vmCtx, ev.ctx.db, ev.ctx.control.GetProps(), logrus.New())
+	cosVM := vm.NewCosVM(vmCtx, ev.ctx.db, ev.ctx.control.GetProps(), ev.ctx.log)
 	//ev.ctx.db.BeginTransaction()
 	ret, err := cosVM.Run()
 	spentGas := cosVM.SpentGas()
