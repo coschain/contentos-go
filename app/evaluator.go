@@ -625,12 +625,8 @@ func (ev *TransferToVestingEvaluator) Apply() {
 func updateWitnessVoteCount(dba iservices.IDatabaseRW, voter *prototype.AccountName, oldVest, newVest *prototype.Vest) {
 	sWrap := table.SWitnessVoteVoterIdWrap{dba}
 
-	start := &prototype.BpVoterId{Voter:voter, Witness:&prototype.AccountName{Value:""}}
-	var endName string
-	for i:=0;i<constants.MaxAccountNameLength;i++ {
-		endName += "z"
-	}
-	end := &prototype.BpVoterId{Voter:voter, Witness:&prototype.AccountName{Value:endName}}
+	start := &prototype.BpVoterId{Voter:voter, Witness:prototype.MinAccountName}
+	end := &prototype.BpVoterId{Voter:voter, Witness:prototype.MaxAccountName}
 
 	var witnessList []*prototype.AccountName
 
