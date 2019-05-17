@@ -182,6 +182,32 @@ func conductBatch(cmd *cobra.Command, args []string) {
 				fmt.Println(err)
 				return
 			}
+		case "stake":
+			stakerName := cmdArgs[1]
+			stakerPubKeyStr := cmdArgs[2]
+			stakerPriKeyStr := cmdArgs[3]
+
+			amount, err := strconv.ParseInt(cmdArgs[4], 10, 64)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+
+			stakeAccount := &wallet.PrivAccount{
+				Account: wallet.Account{Name: stakerName, PubKey: stakerPubKeyStr},
+				PrivKey: stakerPriKeyStr,
+			}
+
+			stakeOp := &prototype.StakeOperation{
+				Account:   &prototype.AccountName{Value: stakerName},
+				Amount:    uint64(amount),
+			}
+
+			signTx, err = utils.GenerateSignedTxAndValidate2(client, []interface{}{stakeOp}, stakeAccount)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
 		default:
 			fmt.Println("unknown command")
 			continue
