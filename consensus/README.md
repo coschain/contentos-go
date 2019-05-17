@@ -3,7 +3,7 @@ self-adaptive bft
 ------
 It generates blocks in the same manner of DPoS and adopts bft to achieve fast block confirmation. It's self adaptive in a way that it can adjust the frequency of bft process based on the load of the blockchain and network traffic.
 
-![SABFT-flow-chart](https://github.com/coschain/contentos-go/blob/master/consensus/SABFT.jpg)
+![SABFT-flow-chart](https://github.com/coschain/contentos-go/blob/master/consensus/resource/SABFT.jpg)
 ## terminology
 * node: a server running contentos daemon(cosd)
 * validator: a node that generates blocks and participates in bft consensus
@@ -28,6 +28,20 @@ Hence we adopt BFT to achieve fast consensus. Once a consensus is reached on a c
 ### 2. Performance
 SABFT reaches consensus in 1~2 seconds in LAN. The bft process adopts 3-phase-commit(propose, prevote, precommit), in the propose phase, validators wait synchronously for the proposer to broadcast proposal, the rest two phases are completely asynchronous.
 
+To better illustrate SABFT's performance, a experiment is conducted with following limitations:
+>block size: 50kB
+bandwidth: 100kB/s
+consensus nodes: 19
+network latency: 0~100ms
+
+The figure below shows the margin step of 7000 blocks. The average is 1.49.
+![SABFT-margin-step](https://github.com/coschain/contentos-go/blob/master/consensus/resource/marginstep.jpg)
+
+The figure below shows the interval between two committed blocks. The average is 1500ms.
+![SABFT-commit-interval](https://github.com/coschain/contentos-go/blob/master/consensus/resource/commit_interval.jpg)
+
+The figure below shows the interval between a block's generation time and its commit time. In average, it takes 1800ms for a block to be committed and this includes the block's generation time.
+![SABFT-commit-time](https://github.com/coschain/contentos-go/blob/master/consensus/resource/commit_time.jpg)
 
 ### 3. how it's different
 * SABFT's block producing process and bft process are completely decoupled. i.e. validator can generate blocks despite the state of the bft process. Let's say the current block height is 100 and the bft process only committed the block with height of 90, validator can start generating the 101's block without waiting for block 91-100 to be committed.
@@ -56,7 +70,7 @@ The bft process can be considered a state machine. The state consists of height,
 
 The following picture illustrates how SABFT adjusts its bft process if any of the abnormal situations we mentioned earlier occurs.
 
-![SA-chart](https://github.com/coschain/contentos-go/blob/master/consensus/sabft_in_general.jpg)
+![SA-chart](https://github.com/coschain/contentos-go/blob/master/consensus/resource/sabft_in_general.jpg)
 At t1 block 1 is generated, meanwhile the bft process starts and the proposer proposed block 1.  Soon at t1’(t1<t1’<t2), consensus is reached and block 1 is committed.  At t2, block 2 is generated and it’s proposed. However things get messy and no consensus is reached in round 0 before timeout. At t4 the state enters H2R1 and block 4 is proposed. Finally at t2’ consensus is reached on block 4 and block 2-4 is committed at once. From t6 things go back to normal and all blocks after block 5 are committed within 1 second. As is shown above the margin step in height 2 is 4, after that it quickly drops to 1.
 
 
