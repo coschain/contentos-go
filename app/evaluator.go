@@ -461,21 +461,33 @@ func payBackVoteCntToVoter(dba iservices.IDatabaseRW, witness *prototype.Account
 		endName += "z"
 	}
 	end := &prototype.BpVoterId{Voter:&prototype.AccountName{Value:endName}, Witness:witness}
+
+	var voterList []*prototype.AccountName
+
 	sWrap.ForEachByOrder(start, end, nil, nil,
 		func(mVal *prototype.BpVoterId, sVal *prototype.BpVoterId, idx uint32) bool {
-			if mVal != nil && mVal.Witness == witness {
+			if mVal != nil && mVal.Witness.Value == witness.Value {
 				voterAccount := table.NewSoAccountWrap(dba, mVal.Voter)
 				if voterAccount != nil && voterAccount.CheckExist() {
-					voteCnt := voterAccount.GetBpVoteCount()
-					opAssert(voteCnt > 0, "voter's vote count must not be 0")
-					opAssert(voterAccount.MdBpVoteCount(voteCnt-1), "pay back voter data error")
-
-					vidWrap := table.NewSoWitnessVoteWrap(dba, mVal)
-					opAssert(vidWrap.RemoveWitnessVote(), "remove vote record error")
+					voterList = append(voterList, mVal.Voter)
 				}
 			}
 			return true
 		})
+
+	// pay back vote count and remove vote record
+	for i:=0;i<len(voterList);i++ {
+		voterAccount := table.NewSoAccountWrap(dba, voterList[i])
+		if voterAccount != nil && voterAccount.CheckExist() {
+			voteCnt := voterAccount.GetBpVoteCount()
+			opAssert(voteCnt > 0, "voter's vote count must not be 0")
+			opAssert(voterAccount.MdBpVoteCount(voteCnt-1), "pay back voter data error")
+
+			voterId := &prototype.BpVoterId{Voter: voterList[i], Witness: witness}
+			vidWrap := table.NewSoWitnessVoteWrap(dba, voterId)
+			opAssert(vidWrap.RemoveWitnessVote(), "remove vote record error")
+		}
+	}
 }
 
 func (ev *BpVoteEvaluator) Apply() {
@@ -619,24 +631,35 @@ func updateWitnessVoteCount(dba iservices.IDatabaseRW, voter *prototype.AccountN
 		endName += "z"
 	}
 	end := &prototype.BpVoterId{Voter:voter, Witness:&prototype.AccountName{Value:endName}}
+
+	var witnessList []*prototype.AccountName
+
 	sWrap.ForEachByOrder(start, end, nil, nil,
 		func(mVal *prototype.BpVoterId, sVal *prototype.BpVoterId, idx uint32) bool {
-			if mVal != nil && mVal.Voter == voter {
+			if mVal != nil && mVal.Voter.Value == voter.Value {
 				witnessWrap := table.NewSoWitnessWrap(dba, mVal.Witness)
 				if witnessWrap != nil && witnessWrap.CheckExist() {
-					deltaVestAmount := newVest.Value - oldVest.Value
-
-					opAssert(witnessWrap.GetVoteCount() + deltaVestAmount * constants.VoteCountPerVest >= 0 &&
-						witnessWrap.GetVoteCount() + deltaVestAmount * constants.VoteCountPerVest <= math.MaxUint64,
-						"new vote count data error")
-
-					opAssert(witnessWrap.MdVoteCount(
-						witnessWrap.GetVoteCount() + deltaVestAmount * constants.VoteCountPerVest),
-						"update witness vote count data error")
+					witnessList = append(witnessList, mVal.Witness)
 				}
 			}
 			return true
 		})
+
+	// update witness vote count
+	for i:=0;i<len(witnessList);i++ {
+		witnessWrap := table.NewSoWitnessWrap(dba, witnessList[i])
+		if witnessWrap != nil && witnessWrap.CheckExist() {
+			deltaVestAmount := newVest.Value - oldVest.Value
+
+			opAssert(witnessWrap.GetVoteCount() + deltaVestAmount * constants.VoteCountPerVest >= 0 &&
+				witnessWrap.GetVoteCount() + deltaVestAmount * constants.VoteCountPerVest <= math.MaxUint64,
+				"new vote count data error")
+
+			opAssert(witnessWrap.MdVoteCount(
+				witnessWrap.GetVoteCount() + deltaVestAmount * constants.VoteCountPerVest),
+				"update witness vote count data error")
+		}
+	}
 }
 
 func (ev *ConvertVestingEvaluator) Apply() {
