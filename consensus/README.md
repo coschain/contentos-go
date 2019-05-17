@@ -30,9 +30,16 @@ Hence we adopt BFT to achieve fast consensus. Once a consensus is reached on a c
 SABFT reaches consensus in 1~2 seconds in LAN. The bft process adopts 3-phase-commit(propose, prevote, precommit), in the propose phase, validators wait synchronously for the proposer to broadcast proposal, the rest two phases are completely asynchronous.
 
 To better illustrate SABFT's performance, a experiment is conducted with following limitations:
->block size: 50kB
-bandwidth: 100kB/s
-consensus nodes: 19
+>hardware information:
+CPU: machdep.cpu.core_count: 2
+     machdep.cpu.thread_count: 4
+     machdep.cpu.brand_string: Intel(R) Core(TM) i5-5257U CPU @ 2.70GHz
+RAM: 8 GB 1867 MHz DDR3
+
+>experiment data:
+consensus nodes number: 19
+bandwidth limit between two nodes: 100kB/s
+block size: 50kB
 network latency: 0~100ms
 
 The figure below shows the margin step of 7000 blocks. The average is 1.49.
