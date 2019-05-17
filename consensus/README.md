@@ -6,7 +6,8 @@ It generates blocks in the same manner of DPoS and adopts bft to achieve fast bl
 ![SABFT-flow-chart](https://github.com/coschain/contentos-go/blob/master/consensus/resource/SABFT.jpg)
 ## terminology
 * node: a server running contentos daemon(cosd)
-* validator: a node that generates blocks and participates in bft consensus
+* block producer: a node that generate blocks
+* validator: a node that participates in bft consensus
 * proposer: a validator who broadcasts a proposal
 * proposal: a block on which all validators try to reach consensus, once reached, it'll be committed
 * commit: commit a block means mark the block as the last irreversible block
