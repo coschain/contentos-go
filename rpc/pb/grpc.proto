@@ -16,9 +16,6 @@ service ApiService {
     rpc GetAccountByName (GetAccountByNameRequest) returns (AccountResponse) {
     }
 
-    rpc GetAccountRewardByName (GetAccountRewardByNameRequest) returns (AccountRewardResponse) {
-    }
-
     rpc GetAccountCashout (GetAccountCashoutRequest) returns (AccountCashoutResponse) {
     }
 

@@ -87,11 +87,6 @@ message dynamic_properties {
     uint64 tps_expected = 33;
 }
 
-message internal_rewards_keeper {
-    int32 id = 1;
-    map<string, prototype.vest> rewards = 2;
-}
-
 message beneficiary_route_type{
     account_name    name    = 1;
     uint32          weight  = 2;

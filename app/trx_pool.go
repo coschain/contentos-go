@@ -717,16 +717,6 @@ func (c *TrxPool) initGenesis() {
 		tInfo.Props.StakeVestingShares = prototype.NewVest(0)
 	}), "CreateDynamicGlobalProperties error")
 
-	//create rewards keeper
-	//keeperWrap := table.NewSoRewardsKeeperWrap(c.db, &SingleId)
-	//rewards := make(map[string]*prototype.Vest)
-	//rewards["initminer"] = &prototype.Vest{Value: 0}
-	//mustNoError(keeperWrap.Create(func(tInfo *table.SoRewardsKeeper) {
-	//	tInfo.Id = SingleId
-	//	tInfo.Keeper.Rewards = map[string]*prototype.Vest{}
-		//tInfo.Keeper = &prototype.InternalRewardsKeeper{Rewards: rewards}
-	//}), "Create Rewards Keeper error")
-
 	// create block summary buffer 2048
 	for i := uint32(0); i < 0x800; i++ {
 		wrap := table.NewSoBlockSummaryObjectWrap(c.db, &i)

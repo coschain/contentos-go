@@ -71,24 +71,6 @@ func (mr *MockApiServiceClientMockRecorder) GetAccountByName(ctx, in interface{}
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccountByName", reflect.TypeOf((*MockApiServiceClient)(nil).GetAccountByName), varargs...)
 }
 
-// GetAccountRewardByName mocks base method
-func (m *MockApiServiceClient) GetAccountRewardByName(ctx context.Context, in *pb.GetAccountRewardByNameRequest, opts ...grpc.CallOption) (*pb.AccountRewardResponse, error) {
-	varargs := []interface{}{ctx, in}
-	for _, a := range opts {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "GetAccountRewardByName", varargs...)
-	ret0, _ := ret[0].(*pb.AccountRewardResponse)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetAccountRewardByName indicates an expected call of GetAccountRewardByName
-func (mr *MockApiServiceClientMockRecorder) GetAccountRewardByName(ctx, in interface{}, opts ...interface{}) *gomock.Call {
-	varargs := append([]interface{}{ctx, in}, opts...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccountRewardByName", reflect.TypeOf((*MockApiServiceClient)(nil).GetAccountRewardByName), varargs...)
-}
-
 // GetAccountCashout mocks base method
 func (m *MockApiServiceClient) GetAccountCashout(ctx context.Context, in *pb.GetAccountCashoutRequest, opts ...grpc.CallOption) (*pb.AccountCashoutResponse, error) {
 	varargs := []interface{}{ctx, in}
@@ -521,6 +503,78 @@ func (mr *MockApiServiceClientMockRecorder) GetContractInfo(ctx, in interface{},
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetContractInfo", reflect.TypeOf((*MockApiServiceClient)(nil).GetContractInfo), varargs...)
 }
 
+// GetBlkIsIrreversibleByTxId mocks base method
+func (m *MockApiServiceClient) GetBlkIsIrreversibleByTxId(ctx context.Context, in *pb.GetBlkIsIrreversibleByTxIdRequest, opts ...grpc.CallOption) (*pb.GetBlkIsIrreversibleByTxIdResponse, error) {
+	varargs := []interface{}{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetBlkIsIrreversibleByTxId", varargs...)
+	ret0, _ := ret[0].(*pb.GetBlkIsIrreversibleByTxIdResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetBlkIsIrreversibleByTxId indicates an expected call of GetBlkIsIrreversibleByTxId
+func (mr *MockApiServiceClientMockRecorder) GetBlkIsIrreversibleByTxId(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	varargs := append([]interface{}{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlkIsIrreversibleByTxId", reflect.TypeOf((*MockApiServiceClient)(nil).GetBlkIsIrreversibleByTxId), varargs...)
+}
+
+// GetAccountListByCreTime mocks base method
+func (m *MockApiServiceClient) GetAccountListByCreTime(ctx context.Context, in *pb.GetAccountListByCreTimeRequest, opts ...grpc.CallOption) (*pb.GetAccountListResponse, error) {
+	varargs := []interface{}{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetAccountListByCreTime", varargs...)
+	ret0, _ := ret[0].(*pb.GetAccountListResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAccountListByCreTime indicates an expected call of GetAccountListByCreTime
+func (mr *MockApiServiceClientMockRecorder) GetAccountListByCreTime(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	varargs := append([]interface{}{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccountListByCreTime", reflect.TypeOf((*MockApiServiceClient)(nil).GetAccountListByCreTime), varargs...)
+}
+
+// GetDailyStats mocks base method
+func (m *MockApiServiceClient) GetDailyStats(ctx context.Context, in *pb.GetDailyStatsRequest, opts ...grpc.CallOption) (*pb.GetDailyStatsResponse, error) {
+	varargs := []interface{}{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetDailyStats", varargs...)
+	ret0, _ := ret[0].(*pb.GetDailyStatsResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetDailyStats indicates an expected call of GetDailyStats
+func (mr *MockApiServiceClientMockRecorder) GetDailyStats(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	varargs := append([]interface{}{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDailyStats", reflect.TypeOf((*MockApiServiceClient)(nil).GetDailyStats), varargs...)
+}
+
+// GetContractListByTime mocks base method
+func (m *MockApiServiceClient) GetContractListByTime(ctx context.Context, in *pb.GetContractListByTimeRequest, opts ...grpc.CallOption) (*pb.GetContractListResponse, error) {
+	varargs := []interface{}{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetContractListByTime", varargs...)
+	ret0, _ := ret[0].(*pb.GetContractListResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetContractListByTime indicates an expected call of GetContractListByTime
+func (mr *MockApiServiceClientMockRecorder) GetContractListByTime(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	varargs := append([]interface{}{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetContractListByTime", reflect.TypeOf((*MockApiServiceClient)(nil).GetContractListByTime), varargs...)
+}
+
 // MockApiServiceServer is a mock of ApiServiceServer interface
 type MockApiServiceServer struct {
 	ctrl     *gomock.Controller
@@ -568,19 +622,6 @@ func (m *MockApiServiceServer) GetAccountByName(arg0 context.Context, arg1 *pb.G
 // GetAccountByName indicates an expected call of GetAccountByName
 func (mr *MockApiServiceServerMockRecorder) GetAccountByName(arg0, arg1 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccountByName", reflect.TypeOf((*MockApiServiceServer)(nil).GetAccountByName), arg0, arg1)
-}
-
-// GetAccountRewardByName mocks base method
-func (m *MockApiServiceServer) GetAccountRewardByName(arg0 context.Context, arg1 *pb.GetAccountRewardByNameRequest) (*pb.AccountRewardResponse, error) {
-	ret := m.ctrl.Call(m, "GetAccountRewardByName", arg0, arg1)
-	ret0, _ := ret[0].(*pb.AccountRewardResponse)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetAccountRewardByName indicates an expected call of GetAccountRewardByName
-func (mr *MockApiServiceServerMockRecorder) GetAccountRewardByName(arg0, arg1 interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccountRewardByName", reflect.TypeOf((*MockApiServiceServer)(nil).GetAccountRewardByName), arg0, arg1)
 }
 
 // GetAccountCashout mocks base method
@@ -893,4 +934,56 @@ func (m *MockApiServiceServer) GetContractInfo(arg0 context.Context, arg1 *pb.Ge
 // GetContractInfo indicates an expected call of GetContractInfo
 func (mr *MockApiServiceServerMockRecorder) GetContractInfo(arg0, arg1 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetContractInfo", reflect.TypeOf((*MockApiServiceServer)(nil).GetContractInfo), arg0, arg1)
+}
+
+// GetBlkIsIrreversibleByTxId mocks base method
+func (m *MockApiServiceServer) GetBlkIsIrreversibleByTxId(arg0 context.Context, arg1 *pb.GetBlkIsIrreversibleByTxIdRequest) (*pb.GetBlkIsIrreversibleByTxIdResponse, error) {
+	ret := m.ctrl.Call(m, "GetBlkIsIrreversibleByTxId", arg0, arg1)
+	ret0, _ := ret[0].(*pb.GetBlkIsIrreversibleByTxIdResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetBlkIsIrreversibleByTxId indicates an expected call of GetBlkIsIrreversibleByTxId
+func (mr *MockApiServiceServerMockRecorder) GetBlkIsIrreversibleByTxId(arg0, arg1 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlkIsIrreversibleByTxId", reflect.TypeOf((*MockApiServiceServer)(nil).GetBlkIsIrreversibleByTxId), arg0, arg1)
+}
+
+// GetAccountListByCreTime mocks base method
+func (m *MockApiServiceServer) GetAccountListByCreTime(arg0 context.Context, arg1 *pb.GetAccountListByCreTimeRequest) (*pb.GetAccountListResponse, error) {
+	ret := m.ctrl.Call(m, "GetAccountListByCreTime", arg0, arg1)
+	ret0, _ := ret[0].(*pb.GetAccountListResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAccountListByCreTime indicates an expected call of GetAccountListByCreTime
+func (mr *MockApiServiceServerMockRecorder) GetAccountListByCreTime(arg0, arg1 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccountListByCreTime", reflect.TypeOf((*MockApiServiceServer)(nil).GetAccountListByCreTime), arg0, arg1)
+}
+
+// GetDailyStats mocks base method
+func (m *MockApiServiceServer) GetDailyStats(arg0 context.Context, arg1 *pb.GetDailyStatsRequest) (*pb.GetDailyStatsResponse, error) {
+	ret := m.ctrl.Call(m, "GetDailyStats", arg0, arg1)
+	ret0, _ := ret[0].(*pb.GetDailyStatsResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetDailyStats indicates an expected call of GetDailyStats
+func (mr *MockApiServiceServerMockRecorder) GetDailyStats(arg0, arg1 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDailyStats", reflect.TypeOf((*MockApiServiceServer)(nil).GetDailyStats), arg0, arg1)
+}
+
+// GetContractListByTime mocks base method
+func (m *MockApiServiceServer) GetContractListByTime(arg0 context.Context, arg1 *pb.GetContractListByTimeRequest) (*pb.GetContractListResponse, error) {
+	ret := m.ctrl.Call(m, "GetContractListByTime", arg0, arg1)
+	ret0, _ := ret[0].(*pb.GetContractListResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetContractListByTime indicates an expected call of GetContractListByTime
+func (mr *MockApiServiceServerMockRecorder) GetContractListByTime(arg0, arg1 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetContractListByTime", reflect.TypeOf((*MockApiServiceServer)(nil).GetContractListByTime), arg0, arg1)
 }
