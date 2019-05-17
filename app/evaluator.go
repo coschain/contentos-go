@@ -455,12 +455,8 @@ func (ev *BpUnregisterEvaluator) Apply() {
 func payBackVoteCntToVoter(dba iservices.IDatabaseRW, witness *prototype.AccountName) {
 	sWrap := table.SWitnessVoteVoterIdWrap{dba}
 
-	start := &prototype.BpVoterId{Voter:&prototype.AccountName{Value:""}, Witness:witness}
-	var endName string
-	for i:=0;i<constants.MaxAccountNameLength;i++ {
-		endName += "z"
-	}
-	end := &prototype.BpVoterId{Voter:&prototype.AccountName{Value:endName}, Witness:witness}
+	start := &prototype.BpVoterId{Voter:prototype.MinAccountName, Witness:witness}
+	end := &prototype.BpVoterId{Voter:prototype.MaxAccountName, Witness:witness}
 
 	var voterList []*prototype.AccountName
 
@@ -608,7 +604,7 @@ func (ev *TransferToVestingEvaluator) Apply() {
 
 	fBalance := fidWrap.GetBalance()
 	tVests := tidWrap.GetVestingShares()
-	oldVest := tVests
+	oldVest := prototype.NewVest(tVests.Value)
 	addVests := prototype.NewVest(op.Amount.Value)
 
 	opAssertE(fBalance.Sub(op.Amount), "balance not enough")
