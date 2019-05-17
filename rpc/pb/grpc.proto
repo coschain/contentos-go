@@ -227,6 +227,9 @@ message WitnessResponse {
     prototype.public_key_type          signing_key                     = 8;
     prototype.sha256                   last_work                       = 9;
     uint32                             running_version                 = 2;
+    uint64                             proposed_stamina_free           = 10;
+    bool                               active                          = 11;
+    uint64                             tps_expected                    = 12;
 }
 
 message GetWitnessListRequest {

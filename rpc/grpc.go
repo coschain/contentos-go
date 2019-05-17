@@ -853,6 +853,9 @@ func (as *APIService) getAccountResponseByName(name *prototype.AccountName, isNe
 				SigningKey:            witWrap.GetSigningKey(),
 				LastWork:              witWrap.GetLastWork(),
 				RunningVersion:        witWrap.GetRunningVersion(),
+				ProposedStaminaFree:   witWrap.GetProposedStaminaFree(),
+				Active:                witWrap.GetActive(),
+				TpsExpected:           witWrap.GetTpsExpected(),
 			}
 		}
 
