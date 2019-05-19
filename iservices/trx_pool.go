@@ -58,4 +58,5 @@ type ITrxPool interface {
 	SyncPushedBlocksToDB(blkList []common.ISignedBlock) error
 
 	CalculateUserMaxStamina(db IDatabaseRW,name string) uint64
+	CheckNetForRPC(name string, db IDatabaseRW, sizeInBytes uint64) (bool,uint64,uint64)
 }

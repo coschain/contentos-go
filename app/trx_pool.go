@@ -1146,3 +1146,20 @@ func (c *TrxPool) calculateUserMaxStamina(db iservices.IDatabaseRW,name string) 
 func (c *TrxPool) CalculateUserMaxStamina(db iservices.IDatabaseRW,name string) uint64 {
 	return c.calculateUserMaxStamina(db,name)
 }
+
+func (c *TrxPool) CheckNetForRPC(name string, db iservices.IDatabaseRW, sizeInBytes uint64) (bool,uint64,uint64) {
+	netUse := sizeInBytes * uint64(float64(constants.NetConsumePointNum)/float64(constants.NetConsumePointDen))
+	accountWrap := table.NewSoAccountWrap(db, &prototype.AccountName{Value:name})
+	maxStamina := c.calculateUserMaxStamina(db,name)
+	freeLeft := c.resourceLimiter.GetFreeLeft(accountWrap.GetStaminaFree(), accountWrap.GetStaminaFreeUseBlock(), c.GetProps().HeadBlockNumber)
+	stakeLeft := c.resourceLimiter.GetStakeLeft(accountWrap.GetStamina(), accountWrap.GetStaminaUseBlock(), c.GetProps().HeadBlockNumber,maxStamina)
+	if freeLeft >= netUse {
+		return true,freeLeft+stakeLeft,netUse
+	} else {
+		if stakeLeft >= netUse-freeLeft {
+			return true,freeLeft+stakeLeft,netUse
+		} else {
+			return false, freeLeft+stakeLeft, netUse
+		}
+	}
+}

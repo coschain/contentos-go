@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"context"
+	"fmt"
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common"
@@ -18,6 +19,7 @@ import (
 	"github.com/coschain/contentos-go/utils"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/golang/protobuf/proto"
 	"math"
 	"time"
 )
@@ -368,6 +370,15 @@ func (as *APIService) BroadcastTrx(ctx context.Context, req *grpcpb.BroadcastTrx
 	//var result chan *prototype.TransactionReceiptWithInfo
 	//result := make(chan *prototype.TransactionReceiptWithInfo)
 	trx := req.GetTransaction()
+
+	keyMaps := trx.GetOpCreatorsMap()
+	for name := range keyMaps {
+		ok,have,need := as.pool.CheckNetForRPC(name,as.db,uint64(proto.Size(trx)))
+		if !ok {
+			err := errors.New(fmt.Sprintf("rpc check net resource not enough, user:%v, have:%v, need:%v",name,have,need))
+			return &grpcpb.BroadcastTrxResponse{Invoice: nil, Status: prototype.StatusError}, err
+		}
+	}
 
 	err := as.consensus.PushTransactionToPending(trx)
 	if err != nil {
