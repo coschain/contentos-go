@@ -9,6 +9,7 @@ package storage
 //
 
 import (
+	"bytes"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/syndtr/goleveldb/leveldb/filter"
@@ -97,6 +98,13 @@ func (db *LevelDatabase) Iterate(start, limit []byte, reverse bool, callback fun
 	if callback == nil {
 		return
 	}
+
+	// make sure that start < limit, otherwise leveldb panics.
+	// https://github.com/syndtr/goleveldb/issues/224
+	if start != nil && limit != nil && bytes.Compare(start, limit) >= 0 {
+		return
+	}
+
 	it := db.db.NewIterator(&util.Range{Start:start, Limit:limit}, nil)
 	defer it.Release()
 
