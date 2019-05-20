@@ -30,12 +30,12 @@ type Context struct {
 	Injector  vminjector.Injector
 }
 
-func NewContextFromDeployOp(op *prototype.ContractDeployOperation, injector vminjector.Injector) *Context {
+func NewContextFromDeployOp(op *prototype.ContractDeployOperation, code []byte, abiString string, injector vminjector.Injector) *Context {
 	return &Context{
 		Owner:    op.Owner,
 		Contract: op.Contract,
-		Code:     op.Code,
-		Abi:      op.Abi,
+		Code:     code,
+		Abi:      abiString,
 		Injector: injector,
 	}
 }

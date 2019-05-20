@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"github.com/coschain/contentos-go/app/table"
+	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/common/encoding/vme"
 	"github.com/coschain/contentos-go/common/variables"
@@ -765,39 +766,53 @@ func (ev *ReportEvaluator) Apply() {
 
 func (ev *ContractDeployEvaluator) Apply() {
 	op := ev.op
+
+	// code and abi decompression
+	var (
+		contractCode, contractAbi []byte
+		err error
+	)
+	if contractCode, err = common.Decompress(op.Code); err != nil {
+		opAssertE(err, "contract code decompression failed");
+	}
+	if contractAbi, err = common.Decompress(op.Abi); err != nil {
+		opAssertE(err, "contract abi decompression failed");
+	}
+
 	ev.ctx.vmInjector.RecordGasFee(op.Owner.Value, constants.CommonOpGas)
 
 	cid 		:= prototype.ContractId{Owner: op.Owner, Cname: op.Contract}
 	scid 		:= table.NewSoContractWrap(ev.ctx.db, &cid)
-	checkSum 	:= sha256.Sum256(op.Code)
+	checkSum 	:= sha256.Sum256(contractCode)
 	codeHash    := &prototype.Sha256{ Hash:checkSum[:] }
 	if scid.CheckExist() {
 		opAssert( scid.GetUpgradeable(), "contract can not upgrade")
 		opAssert( !scid.GetHash().Equal( codeHash ), "code hash can not be equal")
 	}
 
-	_, err := abi.UnmarshalABI([]byte(op.GetAbi()))
+	_, err = abi.UnmarshalABI(contractAbi)
 	if err != nil {
 		opAssertE(err, "invalid contract abi")
 	}
+	abiString := string(contractAbi)
 
-	vmCtx := vmcontext.NewContextFromDeployOp(op, nil)
+	vmCtx := vmcontext.NewContextFromDeployOp(op, contractCode, abiString, nil)
 
 	cosVM := vm.NewCosVM(vmCtx, nil, nil, nil)
 
 	opAssertE(cosVM.Validate(), "validate code failed")
 
 	if scid.CheckExist() {
-		scid.MdAbi( op.Abi )
-		scid.MdCode( op.Code )
+		scid.MdAbi( abiString )
+		scid.MdCode( contractCode )
 		scid.MdUpgradeable( op.Upgradeable )
 		scid.MdHash( codeHash )
 	} else {
 		opAssertE(scid.Create(func(t *table.SoContract) {
-			t.Code = op.Code
+			t.Code = contractCode
 			t.Id = &cid
 			t.CreatedTime = ev.ctx.control.HeadBlockTime()
-			t.Abi = op.Abi
+			t.Abi = abiString
 			t.Upgradeable = op.Upgradeable
 			t.Hash = codeHash
 			t.Balance = prototype.NewCoin(0)

@@ -6,6 +6,7 @@ import (
 	"github.com/coschain/cobra"
 	"github.com/coschain/contentos-go/cmd/wallet-cli/commands/utils"
 	"github.com/coschain/contentos-go/cmd/wallet-cli/wallet"
+	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/rpc/pb"
 	"github.com/coschain/contentos-go/vm"
@@ -47,9 +48,23 @@ func deploy(cmd *cobra.Command, args []string) {
 	code, _ := ioutil.ReadFile(path)
 	abi, _ := ioutil.ReadFile(pathAbi)
 
+	// code and abi compression
+	var (
+		compressedCode, compressedAbi []byte
+		err error
+	)
+	if compressedCode, err = common.Compress(code); err != nil {
+		fmt.Println(fmt.Sprintf("code compression failed: %s", err.Error()))
+		return
+	}
+	if compressedAbi, err = common.Compress(abi); err != nil {
+		fmt.Println(fmt.Sprintf("abi compression failed: %s", err.Error()))
+		return
+	}
+
 	ctx := vmcontext.Context{Code: code}
 	cosVM := vm.NewCosVM(&ctx, nil, nil, nil)
-	err := cosVM.Validate()
+	err = cosVM.Validate()
 	if err != nil {
 		fmt.Println("Validate local code error:", err)
 		return
@@ -57,8 +72,8 @@ func deploy(cmd *cobra.Command, args []string) {
 	contractDeployOp := &prototype.ContractDeployOperation{
 		Owner:    &prototype.AccountName{Value: author},
 		Contract: cname,
-		Abi:      string(abi),
-		Code:     code,
+		Abi:      compressedAbi,
+		Code:     compressedCode,
 		Upgradeable:upgradeable,
 	}
 	signTx, err := utils.GenerateSignedTxAndValidate2(client, []interface{}{contractDeployOp}, acc)

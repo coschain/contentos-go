@@ -65,7 +65,7 @@ message follow_operation{
 message contract_deploy_operation{
     account_name owner = 1;
     string contract = 2;
-    string abi = 3;
+    bytes  abi = 3;
     bytes  code = 4;
     bool upgradeable = 5;
 }

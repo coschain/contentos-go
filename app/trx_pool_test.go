@@ -389,11 +389,13 @@ func Test_MixOp(t *testing.T) {
 	// deploy contract
 	data, _ := ioutil.ReadFile("./test_data/hello.wasm")
 	abi, _ := ioutil.ReadFile("./test_data/hello.abi")
+	compressedCode, _ := common.Compress(data)
+	compressedAbi, _ := common.Compress(abi)
 	deployOp := &prototype.ContractDeployOperation{
 		Owner:    &prototype.AccountName{Value: "initminer"},
 		Contract: "hello",
-		Abi:      string(abi),
-		Code:     data,
+		Abi:      compressedAbi,
+		Code:     compressedCode,
 	}
 
 	signedTrx, err := createSigTrx(c, constants.InitminerPrivKey, deployOp)
@@ -920,11 +922,13 @@ func Test_TrxSize(t *testing.T) {
 	//
 	data, _ := ioutil.ReadFile("./test_data/hello.wasm")
 	abi, _ := ioutil.ReadFile("./test_data/hello.abi")
+	compressedCode, _ := common.Compress(data)
+	compressedAbi, _ := common.Compress(abi)
 	deployOp := &prototype.ContractDeployOperation{
 		Owner:    &prototype.AccountName{Value: "initminer"},
 		Contract: "hello",
-		Abi:      string(abi),
-		Code:     data,
+		Abi:      compressedAbi,
+		Code:     compressedCode,
 	}
 
 	trx13, _ := createSigTrx(c, constants.InitminerPrivKey, deployOp)
@@ -971,11 +975,13 @@ func Test_Gas(t *testing.T) {
 	// deploy contract
 	data, _ := ioutil.ReadFile("./test_data/hello.wasm")
 	abi, _ := ioutil.ReadFile("./test_data/hello.abi")
+	compressedCode, _ := common.Compress(data)
+	compressedAbi, _ := common.Compress(abi)
 	deployOp := &prototype.ContractDeployOperation{
 		Owner:    &prototype.AccountName{Value: "initminer"},
 		Contract: "hello",
-		Abi:      string(abi),
-		Code:     data,
+		Abi:      compressedAbi,
+		Code:     compressedCode,
 	}
 
 	signedTrx, err := createSigTrx(c, constants.InitminerPrivKey, deployOp)
