@@ -69,6 +69,9 @@ type privateValidator struct {
 }
 
 func newPrivValidator(s *SABFT, pk *prototype.PrivateKeyType, n string) *privateValidator {
+	if pk == nil {
+		return nil
+	}
 	pub, err := pk.PubKey()
 	if err != nil {
 		panic(err)

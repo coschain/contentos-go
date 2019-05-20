@@ -166,7 +166,7 @@ func (sabft *SABFT) shuffle(head common.ISignedBlock) {
 	}
 	sabft.updateProducers(seed, prods)
 
-	newDyn := sabft.makeDynastry(blockNum, prods, pubKeys, sabft.localPrivKey)
+	newDyn := sabft.makeDynasty(blockNum, prods, pubKeys, sabft.localPrivKey)
 	sabft.addDynasty(newDyn)
 	if atomic.LoadUint32(&sabft.bftStarted) == 0 {
 		sabft.checkBFTRoutine()
@@ -182,7 +182,7 @@ func (sabft *SABFT) addDynasty(d *Dynasty) {
 	sabft.dynasties.PushBack(d)
 }
 
-func (sabft *SABFT) makeDynastry(seq uint64, prods []string,
+func (sabft *SABFT) makeDynasty(seq uint64, prods []string,
 	keys []*prototype.PublicKeyType, pk *prototype.PrivateKeyType) *Dynasty {
 	pubVS := make([]*publicValidator, len(prods))
 	for i := range pubVS {
@@ -313,7 +313,7 @@ func (sabft *SABFT) restoreDynasty() {
 	if sabft.ForkDB.Empty() {
 		// new chain, no blocks
 		prods, pubKeys := sabft.ctrl.GetWitnessTopN(constants.MaxWitnessCount)
-		dyn := sabft.makeDynastry(0, prods, pubKeys, sabft.localPrivKey)
+		dyn := sabft.makeDynasty(0, prods, pubKeys, sabft.localPrivKey)
 		sabft.addDynasty(dyn)
 	} else {
 		// pop all uncommitted blocks and fix first dynasty
@@ -336,7 +336,7 @@ func (sabft *SABFT) restoreDynasty() {
 		sabft.popBlock(lcNum + 1)
 
 		prods, pubKeys := sabft.ctrl.GetWitnessTopN(constants.MaxWitnessCount)
-		dyn := sabft.makeDynastry(0, prods, pubKeys, sabft.localPrivKey)
+		dyn := sabft.makeDynasty(0, prods, pubKeys, sabft.localPrivKey)
 		sabft.addDynasty(dyn)
 		for i := range cache {
 			if err = sabft.applyBlock(cache[i]); err != nil {
