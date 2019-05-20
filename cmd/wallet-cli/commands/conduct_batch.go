@@ -175,6 +175,7 @@ func conductBatch(cmd *cobra.Command, args []string) {
 				Contract: contractName,
 				Abi:      string(abi),
 				Code:     code,
+				Upgradeable: false,
 			}
 
 			signTx, err = utils.GenerateSignedTxAndValidate2(client, []interface{}{contractDeployOp}, deployerAccount)

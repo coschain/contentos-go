@@ -1,6 +1,7 @@
 package app
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common/constants"
@@ -761,46 +762,19 @@ func (ev *ReportEvaluator) Apply() {
 		})
 	}
 }
-//
-//func (ev *ClaimAllEvaluator) Apply() {
-//	op := ev.op
-//
-//	account := op.Account
-//	accWrap := table.NewSoAccountWrap(ev.ctx.db, account)
-//
-//	opAssert(accWrap.CheckExist(), "claim account do not exist")
-//
-//	var i int32 = 1
-//	keeperWrap := table.NewSoRewardsKeeperWrap(ev.ctx.db, &i)
-//	opAssert(keeperWrap.CheckExist(), "reward keeper do not exist")
-//
-//	keeper := keeperWrap.GetKeeper()
-//	innerRewards := keeper.Rewards
-//
-//	if val, ok := innerRewards[account.Value]; ok {
-//		reward := val.Value
-//		if reward > 0 {
-//			vestingBalance := accWrap.GetVestingShares()
-//			accWrap.MdVestingShares(&prototype.Vest{Value: vestingBalance.Value + reward})
-//			val.Value -= reward
-//			keeperWrap.MdKeeper(keeper)
-//		} else {
-//			// do nothing
-//		}
-//	} else {
-//		opAssert(ok, "No remains reward on chain")
-//	}
-//
-//}
 
 func (ev *ContractDeployEvaluator) Apply() {
 	op := ev.op
 	ev.ctx.vmInjector.RecordGasFee(op.Owner.Value, constants.CommonOpGas)
 
-	cid := prototype.ContractId{Owner: op.Owner, Cname: op.Contract}
-	scid := table.NewSoContractWrap(ev.ctx.db, &cid)
-
-	opAssert(!scid.CheckExist(), "contract name exist")
+	cid 		:= prototype.ContractId{Owner: op.Owner, Cname: op.Contract}
+	scid 		:= table.NewSoContractWrap(ev.ctx.db, &cid)
+	checkSum 	:= sha256.Sum256(op.Code)
+	codeHash    := &prototype.Sha256{ Hash:checkSum[:] }
+	if scid.CheckExist() {
+		opAssert( scid.GetUpgradeable(), "contract can not upgrade")
+		opAssert( !scid.GetHash().Equal( codeHash ), "code hash can not be equal")
+	}
 
 	_, err := abi.UnmarshalABI([]byte(op.GetAbi()))
 	if err != nil {
@@ -813,13 +787,22 @@ func (ev *ContractDeployEvaluator) Apply() {
 
 	opAssertE(cosVM.Validate(), "validate code failed")
 
-	opAssertE(scid.Create(func(t *table.SoContract) {
-		t.Code = op.Code
-		t.Id = &cid
-		t.CreatedTime = ev.ctx.control.HeadBlockTime()
-		t.Abi = op.Abi
-		t.Balance = prototype.NewCoin(0)
-	}), "create contract data error")
+	if scid.CheckExist() {
+		scid.MdAbi( op.Abi )
+		scid.MdCode( op.Code )
+		scid.MdUpgradeable( op.Upgradeable )
+		scid.MdHash( codeHash )
+	} else {
+		opAssertE(scid.Create(func(t *table.SoContract) {
+			t.Code = op.Code
+			t.Id = &cid
+			t.CreatedTime = ev.ctx.control.HeadBlockTime()
+			t.Abi = op.Abi
+			t.Upgradeable = op.Upgradeable
+			t.Hash = codeHash
+			t.Balance = prototype.NewCoin(0)
+		}), "create contract data error")
+	}
 }
 
 func (ev *ContractApplyEvaluator) Apply() {

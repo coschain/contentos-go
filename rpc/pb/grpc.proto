@@ -529,6 +529,7 @@ message ContractInfo {
     prototype.time_point_sec  create_time = 3;
     prototype.coin            balance = 4;
     uint32                    apply_count = 5;
+    bool                      upgradeable = 6;
 
 }
 

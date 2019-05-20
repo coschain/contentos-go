@@ -67,6 +67,7 @@ message contract_deploy_operation{
     string contract = 2;
     string abi = 3;
     bytes  code = 4;
+    bool upgradeable = 5;
 }
 
 message contract_apply_operation{

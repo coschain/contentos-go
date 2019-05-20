@@ -1,6 +1,7 @@
 package prototype
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"github.com/coschain/contentos-go/common"
@@ -24,6 +25,11 @@ func (m *Sha256) Validate() error {
 		return ErrHashLength
 	}
 	return nil
+}
+
+
+func (m *Sha256) Equal( p* Sha256) bool {
+	return bytes.Equal(m.Hash, p.Hash)
 }
 
 
