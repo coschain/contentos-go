@@ -53,13 +53,14 @@ func (p *TrxContext) GetVmRemainCpuStamina(name string) uint64 {
 func (p *TrxContext) CheckNet(db iservices.IDatabaseRW, sizeInBytes uint64) {
 	keyMaps := p.Wrapper.SigTrx.GetOpCreatorsMap()
 	netUse := sizeInBytes * uint64(float64(constants.NetConsumePointNum)/float64(constants.NetConsumePointDen))
+	dgpWraper := table.NewSoGlobalWrap(db, &constants.GlobalId)
 	for name := range keyMaps {
 		p.netMap[name] = &resourceUnit{}
 
 		accountWrap := table.NewSoAccountWrap(db, &prototype.AccountName{Value:name})
 		maxStamina := p.calculateUserMaxStamina(db,name)
-		freeLeft := p.resourceLimiter.GetFreeLeft(accountWrap.GetStaminaFree(), accountWrap.GetStaminaFreeUseBlock(), p.control.GetProps().HeadBlockNumber)
-		stakeLeft := p.resourceLimiter.GetStakeLeft(accountWrap.GetStamina(), accountWrap.GetStaminaUseBlock(), p.control.GetProps().HeadBlockNumber,maxStamina)
+		freeLeft := p.resourceLimiter.GetFreeLeft(accountWrap.GetStaminaFree(), accountWrap.GetStaminaFreeUseBlock(), dgpWraper.GetProps().HeadBlockNumber)
+		stakeLeft := p.resourceLimiter.GetStakeLeft(accountWrap.GetStamina(), accountWrap.GetStaminaUseBlock(), dgpWraper.GetProps().HeadBlockNumber,maxStamina)
 		if freeLeft >= netUse {
 			p.netMap[name].raw = sizeInBytes
 			continue
@@ -80,7 +81,8 @@ func (p *TrxContext) deductStamina(db iservices.IDatabaseRW,m map[string]*resour
 
 	for caller, spent := range m {
 		staminaUse := uint64(float64(spent.raw) * rate)
-		now := p.control.GetProps().HeadBlockNumber
+		dgpWraper := table.NewSoGlobalWrap(db, &constants.GlobalId)
+		now := dgpWraper.GetProps().HeadBlockNumber
 
 		var paid uint64 = 0
 
