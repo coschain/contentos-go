@@ -397,7 +397,7 @@ func (ev *BpRegisterEvaluator) Apply() {
 	op := ev.op
 	ev.ctx.vmInjector.RecordGasFee(op.Owner.Value, constants.CommonOpGas)
 
-	opAssert(ev.BpInWhiteList(op.Owner.Value), "bp name not in white list")
+	//opAssert(ev.BpInWhiteList(op.Owner.Value), "bp name not in white list")
 
 	staminaFree := op.Props.StaminaFree
 	opAssert(staminaFree >= constants.MinStaminaFree,
