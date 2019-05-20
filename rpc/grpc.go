@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"context"
+	"fmt"
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common"
@@ -18,6 +19,7 @@ import (
 	"github.com/coschain/contentos-go/utils"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/golang/protobuf/proto"
 	"math"
 	"time"
 )
@@ -30,6 +32,7 @@ var (
 
 type APIService struct {
 	consensus iservices.IConsensus
+	pool iservices.ITrxPool
 	mainLoop  *eventloop.EventLoop
 	db        iservices.IDatabaseService
 	log       *logrus.Logger
@@ -350,6 +353,15 @@ func (as *APIService) BroadcastTrx(ctx context.Context, req *grpcpb.BroadcastTrx
 	//var result chan *prototype.TransactionReceiptWithInfo
 	//result := make(chan *prototype.TransactionReceiptWithInfo)
 	trx := req.GetTransaction()
+
+	keyMaps := trx.GetOpCreatorsMap()
+	for name := range keyMaps {
+		ok,have,need := as.pool.CheckNetForRPC(name,as.db,uint64(proto.Size(trx)))
+		if !ok {
+			err := errors.New(fmt.Sprintf("rpc check net resource not enough, user:%v, have:%v, need:%v",name,have,need))
+			return &grpcpb.BroadcastTrxResponse{Invoice: nil, Status: prototype.StatusError}, err
+		}
+	}
 
 	err := as.consensus.PushTransactionToPending(trx)
 	if err != nil {
@@ -853,9 +865,10 @@ func (as *APIService) getAccountResponseByName(name *prototype.AccountName, isNe
 			acctInfo.FollowerCount = followWrap.GetFollowerCnt()
 			acctInfo.FollowingCount = followWrap.GetFollowingCnt()
 		}
-		acctInfo.StaminaFreeRemain = rc.GetFreeLeft(as.db, accWrap.GetName().Value, gp.HeadBlockNumber)
-		acctInfo.StaminaStakeRemain = rc.GetStakeLeft(as.db, accWrap.GetName().Value, gp.HeadBlockNumber)
-		acctInfo.StaminaMax = rc.GetCapacity(as.db, accWrap.GetName().Value) + rc.GetCapacityFree()
+		acctInfo.StaminaFreeRemain = rc.GetFreeLeft(accWrap.GetStaminaFree(), accWrap.GetStaminaFreeUseBlock(), gp.HeadBlockNumber)
+		maxStamina := as.pool.CalculateUserMaxStamina(as.db,accWrap.GetName().Value)
+		acctInfo.StaminaStakeRemain = rc.GetStakeLeft(accWrap.GetStamina(), accWrap.GetStaminaUseBlock(), gp.HeadBlockNumber, maxStamina)
+		acctInfo.StaminaMax = maxStamina + rc.GetCapacityFree()
 		acct.Info = acctInfo
 		acct.State = as.getState()
 

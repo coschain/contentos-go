@@ -85,6 +85,14 @@ message dynamic_properties {
     bool  witness_boot_completed = 31;
     uint64 stamina_free = 32;
     uint64 tps_expected = 33;
+    uint64                       avg_tps_update_block             =      34;
+    uint64                       avg_tps_in_window = 35;
+    uint64   one_day_stamina = 36;
+}
+
+message internal_rewards_keeper {
+    int32 id = 1;
+    map<string, prototype.vest> rewards = 2;
 }
 
 message beneficiary_route_type{

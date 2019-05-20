@@ -377,10 +377,12 @@ func (c *TrxPool) generateBlockNoLock(witness string, pre *prototype.Sha256, tim
 	t4 := time.Now()
 	c.shuffle(signBlock)
 	t5 := time.Now()
+	c.updateAvgTps(signBlock)
+	t6 := time.Now()
 
-	c.log.Debugf("GENBLOCK %d: %v|%v|%v(%v)|%v|%v|%v, timeout=%v, pending=%d, failed=%d, inblk=%d",
+	c.log.Debugf("GENBLOCK %d: %v|%v|%v(%v)|%v|%v|%v|%v, timeout=%v, pending=%d, failed=%d, inblk=%d",
 		signBlock.Id().BlockNum(),
-		t5.Sub(t0), t1.Sub(t0), t2.Sub(t1), time.Duration(applyTime), t3.Sub(t2), t4.Sub(t3), t5.Sub(t4), timeOut,
+		t5.Sub(t0), t1.Sub(t0), t2.Sub(t1), time.Duration(applyTime), t3.Sub(t2), t4.Sub(t3), t5.Sub(t4), t6.Sub(t5), timeOut,
 		c.tm.WaitingCount(), len(failedTrx), len(signBlock.Transactions))
 
 	b, e = signBlock, nil
@@ -410,7 +412,6 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabasePatch, entry *TrxEn
 	result := entry.GetTrxResult()
 	receipt, sigTrx := result.GetReceipt(), result.GetSigTrx()
 
-
 	trxDB := db.NewPatch()
 
 	trxObserver := c.stateObserver.NewTrxObserver()
@@ -418,7 +419,7 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabasePatch, entry *TrxEn
 	trxHash, _ := sigTrx.GetTrxHash(cid)
 	c.log.Debugf("observer: %s", hex.EncodeToString(trxHash))
 	trxObserver.BeginTrx(hex.EncodeToString(trxHash))
-	trxContext := NewTrxContextWithSigningKey(result, db, entry.GetTrxSigningKey(), c, trxObserver)
+	trxContext := NewTrxContextWithSigningKey(result, trxDB, entry.GetTrxSigningKey(), c, trxObserver)
 
 	defer func() {
 		useGas := trxContext.HasGasFee()
@@ -444,7 +445,7 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabasePatch, entry *TrxEn
 		c.PayGas(db,trxContext)
 	}()
 
-	trxContext.CheckNet(db, uint64(proto.Size(sigTrx)))
+	trxContext.CheckNet(trxDB, uint64(proto.Size(sigTrx)))
 
 	//trxContext := NewTrxContextWithSigningKey(result, db, entry.GetTrxSigningKey(), trxObserver)
 	for _, op := range sigTrx.Trx.Operations {
@@ -575,8 +576,10 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 		t2 := time.Now()
 		c.shuffle(blk)
 		t3 := time.Now()
+		c.updateAvgTps(blk)
+		t4 := time.Now()
 		c.log.Debugf("PUSHBLOCK %d: %v|%v(%v)|%v|%v, #tx=%d", blk.Id().BlockNum(),
-			t3.Sub(t0), t1.Sub(t0), time.Duration(applyTime), t2.Sub(t1), t3.Sub(t2), totalCount)
+			t3.Sub(t0), t1.Sub(t0), time.Duration(applyTime), t2.Sub(t1), t3.Sub(t2), t4.Sub(t3), totalCount)
 	}
 	pseudoTrxObserver := c.stateObserver.NewTrxObserver()
 	pseudoTrxObserver.BeginTrx("")
@@ -879,6 +882,19 @@ func (c *TrxPool) modifyGlobalDynamicData(f func(props *prototype.DynamicPropert
 
 func (c *TrxPool) ModifyProps(modifier func(oldProps *prototype.DynamicProperties)) {
 	c.modifyGlobalDynamicData(modifier)
+}
+
+func (c *TrxPool) updateAvgTps(blk *prototype.SignedBlock) {
+	dgpWrap := table.NewSoGlobalWrap(c.db, &constants.GlobalId)
+	props := dgpWrap.GetProps()
+	tpsInWindow := props.GetAvgTpsInWindow()
+	lastUpdate := props.GetAvgTpsUpdateBlock()
+	oneDayStamina := props.GetOneDayStamina()
+
+	newOneDayStamina := c.resourceLimiter.UpdateDynamicStamina(tpsInWindow,oneDayStamina, uint64(len(blk.Transactions)),lastUpdate,blk.Id().BlockNum())
+	c.ModifyProps(func(props *prototype.DynamicProperties) {
+		props.OneDayStamina = newOneDayStamina
+	})
 }
 
 func (c *TrxPool) updateGlobalProperties(blk *prototype.SignedBlock) {
@@ -1184,30 +1200,38 @@ func (c *TrxPool) SyncPushedBlocksToDB(blkList []common.ISignedBlock) (err error
 	return err
 }
 
-func (c *TrxPool) GetRemainStamina(name string) uint64 {
-	wraper := table.NewSoGlobalWrap(c.db, &constants.GlobalId)
-	gp := wraper.GetProps()
-	return c.resourceLimiter.GetStakeLeft(c.db, name, gp.HeadBlockNumber)
+func (c *TrxPool) calculateUserMaxStamina(db iservices.IDatabaseRW,name string) uint64 {
+	dgpWrap := table.NewSoGlobalWrap(db, &SingleId)
+	accountWrap := table.NewSoAccountWrap(db, &prototype.AccountName{Value:name})
+
+	oneDayStamina := dgpWrap.GetProps().GetOneDayStamina()
+	stakeVest := accountWrap.GetStakeVesting().Value
+
+	allStakeVest := dgpWrap.GetProps().StakeVestingShares.Value
+	if allStakeVest == 0 {
+		return 0
+	}
+	userMax := float64( stakeVest)/float64(allStakeVest) * float64(oneDayStamina)
+	return uint64(userMax)
 }
 
-func (c *TrxPool) GetRemainFreeStamina(name string) uint64 {
-	wraper := table.NewSoGlobalWrap(c.db, &constants.GlobalId)
-	gp := wraper.GetProps()
-	return c.resourceLimiter.GetFreeLeft(c.db, name, gp.HeadBlockNumber)
+func (c *TrxPool) CalculateUserMaxStamina(db iservices.IDatabaseRW,name string) uint64 {
+	return c.calculateUserMaxStamina(db,name)
 }
 
-func (c *TrxPool) GetStaminaMax(name string) uint64 {
-	return c.resourceLimiter.GetCapacity(c.db, name)
-}
-
-func (c *TrxPool) GetStaminaFreeMax() uint64 {
-	return c.resourceLimiter.GetCapacityFree()
-}
-
-func (c *TrxPool) GetAllRemainStamina(name string) uint64 {
-	return c.GetRemainStamina(name) + c.GetRemainFreeStamina(name)
-}
-
-func (c *TrxPool) GetAllStaminaMax(name string) uint64 {
-	return c.GetStaminaMax(name) + c.GetStaminaFreeMax()
+func (c *TrxPool) CheckNetForRPC(name string, db iservices.IDatabaseRW, sizeInBytes uint64) (bool,uint64,uint64) {
+	netUse := sizeInBytes * uint64(float64(constants.NetConsumePointNum)/float64(constants.NetConsumePointDen))
+	accountWrap := table.NewSoAccountWrap(db, &prototype.AccountName{Value:name})
+	maxStamina := c.calculateUserMaxStamina(db,name)
+	freeLeft := c.resourceLimiter.GetFreeLeft(accountWrap.GetStaminaFree(), accountWrap.GetStaminaFreeUseBlock(), c.GetProps().HeadBlockNumber)
+	stakeLeft := c.resourceLimiter.GetStakeLeft(accountWrap.GetStamina(), accountWrap.GetStaminaUseBlock(), c.GetProps().HeadBlockNumber,maxStamina)
+	if freeLeft >= netUse {
+		return true,freeLeft+stakeLeft,netUse
+	} else {
+		if stakeLeft >= netUse-freeLeft {
+			return true,freeLeft+stakeLeft,netUse
+		} else {
+			return false, freeLeft+stakeLeft, netUse
+		}
+	}
 }

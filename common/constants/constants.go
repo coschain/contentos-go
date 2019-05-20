@@ -111,12 +111,14 @@ const (
     CpuConsumePointNum = 1
     CpuConsumePointDen = 100
     MaxGasPerCall      = 20000 * CpuConsumePointDen
-    MaxStaminaPerBlock = 1000000
+    MaxStaminaPerBlock = 100000
     WindowSize         = 60 * 60 * 24
     FreeStamina        = 100000
     OneDayStamina      = MaxStaminaPerBlock * WindowSize
     CommonOpGas        = 100
     StakeFreezeTime    = WindowSize * 3
+    TpsWindowSize      = 60
+	TpsExpected         = 2000
 )
 
 var GlobalId int32 = 1

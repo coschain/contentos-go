@@ -1,32 +1,28 @@
 package utils
 
 import (
-	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common/constants"
-	"github.com/coschain/contentos-go/iservices"
-	"github.com/coschain/contentos-go/prototype"
 )
 
 type IConsumer interface {
-	Consume(db iservices.IDatabaseRW,name string, num uint64, now uint64) bool
-	ConsumeLeft(db iservices.IDatabaseRW,name string, now uint64) bool
+	Consume(oldResource uint64, num uint64, preTime, now, maxStamina uint64) (bool,uint64)
 }
 
 type IFreeConsumer interface {
-	ConsumeFree(db iservices.IDatabaseRW,name string, num uint64, now uint64) bool
-	ConsumeFreeLeft(db iservices.IDatabaseRW,name string, now uint64) bool
+	ConsumeFree(oldResource uint64,num uint64, preTime, now uint64) (bool,uint64)
 }
 
 type IGetter interface {
-	Get(db iservices.IDatabaseRW,name string) uint64
-	GetCapacity(db iservices.IDatabaseRW,name string) uint64
-	GetStakeLeft(db iservices.IDatabaseRW,name string, now uint64) uint64
+	GetStakeLeft(oldResource,preTime,now,maxStamina uint64) uint64
 }
 
 type IFreeGetter interface {
-	GetFree(db iservices.IDatabaseRW,name string) uint64
 	GetCapacityFree() uint64
-	GetFreeLeft(db iservices.IDatabaseRW,name string, now uint64) uint64
+	GetFreeLeft(oldResource uint64, preTime, now uint64) uint64
+}
+
+type ITpsUpdater interface {
+	UpdateDynamicStamina(tpsInWindow,oneDayStamina,trxCount,lastUpdate,blockNum uint64) uint64
 }
 
 // stake resource interface
@@ -35,6 +31,7 @@ type IResourceLimiter interface {
 	IFreeConsumer
 	IGetter
 	IFreeGetter
+	ITpsUpdater
 }
 
 // ResourceLimiter impl all IResourceLimiter's api
@@ -51,132 +48,44 @@ const PRECISION = 10000
 const MIN_RECOVER_DURATION = 45
 
 // ResourceLimiter implemention
-func (s *ResourceLimiter) Get(db iservices.IDatabaseRW,name string) uint64{
-	accountWrap := table.NewSoAccountWrap(db, &prototype.AccountName{Value:name})
-	if !accountWrap.CheckExist() {
-		return 0
-	}
-	return accountWrap.GetStamina()
-}
 
-func (s *ResourceLimiter) GetCapacity(db iservices.IDatabaseRW,name string) uint64 {
-	return s.calculateUserMaxStamina(db,name)
-}
-
-var SINGLE int32 = 1
-func (s *ResourceLimiter) calculateUserMaxStamina(db iservices.IDatabaseRW, name string) uint64 {
-	accountWrap := table.NewSoAccountWrap(db, &prototype.AccountName{Value:name})
-	if !accountWrap.CheckExist() {
-		return 0
-	}
-	dgpWrap := table.NewSoGlobalWrap(db,&SINGLE)
-
-	stakeVest := accountWrap.GetStakeVesting().Value
-
-	allVest := dgpWrap.GetProps().StakeVestingShares.Value
-	if allVest == 0 {
-		return 0
-	}
-	userMax := float64( stakeVest)/float64(allVest) * constants.OneDayStamina
-	return uint64(userMax)
-}
-
-func (s *ResourceLimiter) Consume(db iservices.IDatabaseRW,name string, num uint64, now uint64) bool {
-	accountWrap := table.NewSoAccountWrap(db, &prototype.AccountName{Value:name})
-	if !accountWrap.CheckExist() {
-		return false
-	}
-
-	newStamina := calculateNewStaminaEMA(accountWrap.GetStamina(),0,accountWrap.GetStaminaUseBlock(),now)
-	maxStamina := s.calculateUserMaxStamina(db,name)
+func (s *ResourceLimiter) Consume(oldResource uint64, num uint64, preTime, now, maxStamina uint64) (bool,uint64) {
+	newStamina := calculateNewStaminaEMA(oldResource,0, preTime,now)
 	if maxStamina < newStamina {
-		return false
+		return false,0
 	}
 	if maxStamina - newStamina < num {
-		return false
+		return false,0
 	}
 	newStamina = calculateNewStaminaEMA(newStamina,num,now,now)
-
-	accountWrap.MdStamina(newStamina)
-	accountWrap.MdStaminaUseBlock(now)
-	return true
-}
-
-func (s *ResourceLimiter) ConsumeLeft(db iservices.IDatabaseRW,name string, now uint64) bool {
-	accountWrap := table.NewSoAccountWrap(db, &prototype.AccountName{Value:name})
-	if !accountWrap.CheckExist() {
-		return false
-	}
-
-	maxStamina := s.calculateUserMaxStamina(db,name)
-
-	accountWrap.MdStamina(maxStamina)
-	accountWrap.MdStaminaUseBlock(now)
-	return true
+	return true,newStamina
 }
 
 // FreeManager implemention
-func (s *ResourceLimiter) ConsumeFree(db iservices.IDatabaseRW,name string,num uint64, now uint64) bool {
-	accountWrap := table.NewSoAccountWrap(db, &prototype.AccountName{Value:name})
-	if !accountWrap.CheckExist() {
-		return false
-	}
-	newFreeStamina := calculateNewStaminaEMA(accountWrap.GetStaminaFree(),0,accountWrap.GetStaminaFreeUseBlock(),now)
+func (s *ResourceLimiter) ConsumeFree(oldResource uint64,num uint64, preTime, now uint64) (bool,uint64) {
+	newFreeStamina := calculateNewStaminaEMA(oldResource,0,preTime,now)
 	if uint64(constants.FreeStamina) - newFreeStamina < num {
-		return false
+		return false,0
 	}
 	newFreeStamina = calculateNewStaminaEMA(newFreeStamina,num,now,now)
-
-	accountWrap.MdStaminaFree(newFreeStamina)
-	accountWrap.MdStaminaFreeUseBlock(now)
-	return true
-}
-
-func (s *ResourceLimiter) GetFree(db iservices.IDatabaseRW,name string) uint64 {
-	accountWrap := table.NewSoAccountWrap(db, &prototype.AccountName{Value:name})
-	if !accountWrap.CheckExist() {
-		return 0
-	}
-	return accountWrap.GetStaminaFree()
+	return true,newFreeStamina
 }
 
 func (s *ResourceLimiter) GetCapacityFree() uint64 {
 	return constants.FreeStamina
 }
 
-func (s *ResourceLimiter) GetStakeLeft(db iservices.IDatabaseRW,name string, now uint64) uint64 {
-	accountWrap := table.NewSoAccountWrap(db, &prototype.AccountName{Value:name})
-	if !accountWrap.CheckExist() {
-		return 0
-	}
-
-	newStamina := calculateNewStaminaEMA(accountWrap.GetStamina(),0,accountWrap.GetStaminaUseBlock(),now)
-	maxStamina := s.calculateUserMaxStamina(db,name)
+func (s *ResourceLimiter) GetStakeLeft(oldResource,preTime,now,maxStamina uint64) uint64 {
+	newStamina := calculateNewStaminaEMA( oldResource,0, preTime,now)
 	if maxStamina < newStamina {
 		return 0
 	}
 	return maxStamina - newStamina
 }
 
-func (s *ResourceLimiter) GetFreeLeft(db iservices.IDatabaseRW,name string, now uint64) uint64 {
-	accountWrap := table.NewSoAccountWrap(db, &prototype.AccountName{Value:name})
-	if !accountWrap.CheckExist() {
-		return 0
-	}
-
-	newStamina := calculateNewStaminaEMA(accountWrap.GetStaminaFree(),0,accountWrap.GetStaminaFreeUseBlock(),now)
+func (s *ResourceLimiter) GetFreeLeft(oldResource uint64, preTime, now uint64) uint64 {
+	newStamina := calculateNewStaminaEMA(oldResource,0,preTime,now)
 	return constants.FreeStamina - newStamina
-}
-
-func (s *ResourceLimiter) ConsumeFreeLeft(db iservices.IDatabaseRW,name string, now uint64) bool {
-	accountWrap := table.NewSoAccountWrap(db, &prototype.AccountName{Value:name})
-	if !accountWrap.CheckExist() {
-		return false
-	}
-
-	accountWrap.MdStaminaFree(constants.FreeStamina)
-	accountWrap.MdStaminaFreeUseBlock(now)
-	return true
 }
 
 func calculateNewStamina(oldStamina uint64, useStamina uint64, lastTime uint64, now uint64) uint64 {
@@ -203,20 +112,50 @@ func divideCeil(num,den uint64) uint64 {
 	return v
 }
 
-func calculateNewStaminaEMA(oldStamina, useStamina uint64, lastTime uint64, now uint64) uint64 {
-	blocks := uint64(constants.WindowSize)
-	avgOld := divideCeil(oldStamina*constants.LimitPrecision,blocks)
-	avgUse := divideCeil(useStamina*constants.LimitPrecision,blocks)
+func calculateNewStaminaEMA(oldStamina, useStamina, lastTime, now uint64) uint64 {
+	return calculateEMA(oldStamina, useStamina, lastTime, now, constants.WindowSize)
+}
+
+func (s *ResourceLimiter) UpdateDynamicStamina(tpsInWindow,oneDayStamina,trxCount,lastUpdate,blockNum uint64) uint64 {
+	tpsInWindowNew := calculateTpsEMA(tpsInWindow,trxCount,lastUpdate,blockNum)
+	return updateDynamicOneDayStamina(oneDayStamina,tpsInWindowNew/constants.TpsWindowSize)
+}
+
+func calculateEMA(oldTrxs, newTrxs uint64, lastTime uint64, now, period uint64) uint64 {
+	blocks := period
+	avgOld := divideCeil(oldTrxs*constants.LimitPrecision,blocks)
+	avgUse := divideCeil(newTrxs*constants.LimitPrecision,blocks)
 	if now > lastTime { // assert ?
 		if now < lastTime + blocks {
 			delta := now - lastTime
 			decay := float64(blocks - delta) / float64(blocks)
-			newStamina := float64(avgOld) * decay
-			avgOld = uint64(newStamina)
+			tmp := float64(avgOld) * decay
+			avgOld = uint64(tmp)
 		} else {
 			avgOld = 0
 		}
 	}
 	avgOld += avgUse
-	return avgOld * constants.WindowSize / constants.LimitPrecision
+	return avgOld * period / constants.LimitPrecision
+}
+
+func calculateTpsEMA(oldTrxs, newTrxs, lastTime, now uint64) uint64 {
+	return calculateEMA(oldTrxs, newTrxs, lastTime, now, constants.TpsWindowSize)
+}
+
+func updateDynamicOneDayStamina(oldOneDayStamina, avgTps uint64) uint64 {
+	change := oldOneDayStamina / 100
+	if avgTps > constants.TpsExpected {
+		oldOneDayStamina = oldOneDayStamina - change
+	} else {
+		// todo calculate user's avg stamina, if is large enough, do not expand
+		oldOneDayStamina = oldOneDayStamina + change
+	}
+	if oldOneDayStamina < constants.OneDayStamina {
+		oldOneDayStamina = constants.OneDayStamina
+	}
+	if oldOneDayStamina > constants.OneDayStamina * 100 {
+		oldOneDayStamina = constants.OneDayStamina * 100
+	}
+	return oldOneDayStamina
 }

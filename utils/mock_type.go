@@ -1,5 +1,7 @@
 package utils
 
+import "github.com/coschain/contentos-go/common/constants"
+
 const BLOCK_INTERVAL = 3
 
 var db map[string]*account
@@ -39,4 +41,9 @@ func (g *gloabalProperty) getBlockNum() uint64 {
 
 func (g *gloabalProperty) addBlockNum(n uint64) {
 	g.blockNum += n
+}
+
+func maxStakeStamina(name string) uint64 {
+	porpotion := float64(db[name].vest) / float64(global.totalVest)
+	return uint64(porpotion * constants.OneDayStamina)
 }
