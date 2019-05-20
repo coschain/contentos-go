@@ -825,6 +825,7 @@ func (ev *ContractApplyEvaluator) Apply() {
 	}
 
 	code := scid.GetCode()
+	codeHash := scid.GetHash()
 
 	var err error
 	var abiInterface abi.IContractABI
@@ -847,7 +848,7 @@ func (ev *ContractApplyEvaluator) Apply() {
 		tables = ct.NewContractTables(op.Owner.Value, op.Contract, abiInterface, ev.ctx.db)
 	}
 
-	vmCtx := vmcontext.NewContextFromApplyOp(op, paramsData, code, abiInterface, tables, ev.ctx.vmInjector)
+	vmCtx := vmcontext.NewContextFromApplyOp(op, paramsData, code, codeHash, abiInterface, tables, ev.ctx.vmInjector)
 	// set max gas
 	remain := ev.ctx.vmInjector.GetVmRemainCpuStamina(op.Caller.Value)
 	remainGas := remain * constants.CpuConsumePointDen
@@ -905,6 +906,7 @@ func (ev *InternalContractApplyEvaluator) Apply() {
 	opAssert(fromContract.GetBalance().Value >= op.Amount.Value, "fromContract balance less than transfer amount")
 
 	code := toContract.GetCode()
+	codeHash := toContract.GetHash()
 
 	var err error
 	var abiInterface abi.IContractABI
@@ -926,7 +928,7 @@ func (ev *InternalContractApplyEvaluator) Apply() {
 		tables = ct.NewContractTables(op.ToOwner.Value, op.ToContract, abiInterface, ev.ctx.db)
 	}
 
-	vmCtx := vmcontext.NewContextFromInternalApplyOp(op, code, abiInterface, tables, ev.ctx.vmInjector)
+	vmCtx := vmcontext.NewContextFromInternalApplyOp(op, code, codeHash, abiInterface, tables, ev.ctx.vmInjector)
 	vmCtx.Gas = ev.remainGas
 
 	cosVM := vm.NewCosVM(vmCtx, ev.ctx.db, ev.ctx.control.GetProps(), ev.ctx.log)

@@ -112,7 +112,7 @@ func (w *CosVM) runEntry(entryName string) (ret uint32, err error) {
 	}()
 
 	vc := vmcache.GetVmCache()
-	vm := vc.Fetch(w.ctx.Owner.Value, w.ctx.Contract, w.ctx.Code)
+	vm := vc.Fetch(w.ctx.Owner.Value, w.ctx.Contract, w.ctx.CodeHash.Hash)
 	if vm != nil {
 		vm.Reset()
 	} else {
@@ -128,7 +128,7 @@ func (w *CosVM) runEntry(entryName string) (ret uint32, err error) {
 		ret = 1
 		return
 	}
-	defer vc.Put(w.ctx.Owner.Value, w.ctx.Contract, w.ctx.Code, vm)
+	defer vc.Put(w.ctx.Owner.Value, w.ctx.Contract, w.ctx.CodeHash.Hash, vm)
 
 	nativeFuncs := &CosVMNative{cosVM: w}
 	vm.SetTag( nativeFuncs )

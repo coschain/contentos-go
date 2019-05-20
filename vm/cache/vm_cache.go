@@ -1,7 +1,6 @@
 package vmcache
 
 import (
-	"crypto/sha256"
 	"fmt"
 	"github.com/go-interpreter/wagon/exec"
 	"github.com/hashicorp/golang-lru"
@@ -36,9 +35,9 @@ func GetVmCache() *VmCache {
 	return vc
 }
 
-func buildKey(owner, contract string, code []byte) string {
+func buildKey(owner, contract string, codeHash []byte) string {
 	const sep = "|"
-	return fmt.Sprintf("%s%s%s%s%x", owner, sep, contract, sep, sha256.Sum256(code))
+	return fmt.Sprintf("%s%s%s%s%x", owner, sep, contract, sep, codeHash)
 }
 
 // onCacheEvict will be called by lru.Cache for each removed item.
@@ -56,11 +55,11 @@ func (v *VmCache) onCacheEvict(key interface{}, value interface{}) {
 }
 
 // Put adds a VM instance to the cache.
-func (v *VmCache) Put(owner, contract string, code []byte, vm *exec.VM) {
+func (v *VmCache) Put(owner, contract string, codeHash []byte, vm *exec.VM) {
 	v.lock.Lock()
 	defer v.lock.Unlock()
 	v.counter++
-	k, s := v.counter, buildKey(owner, contract, code)
+	k, s := v.counter, buildKey(owner, contract, codeHash)
 	vms := v.byName[s]
 	if vms == nil {
 		vms = make(map[int64]bool)
@@ -73,11 +72,11 @@ func (v *VmCache) Put(owner, contract string, code []byte, vm *exec.VM) {
 
 // Fetch fetches a cached VM instance for given contract.
 // It returns nil if no cached instance for the contract was found.
-func (v *VmCache) Fetch(owner, contract string, code []byte) (vm *exec.VM) {
+func (v *VmCache) Fetch(owner, contract string, codeHash []byte) (vm *exec.VM) {
 	v.lock.Lock()
 	defer v.lock.Unlock()
 	// get all cache keys for the contract
-	if vms := v.byName[buildKey(owner, contract, code)]; len(vms) > 0 {
+	if vms := v.byName[buildKey(owner, contract, codeHash)]; len(vms) > 0 {
 		// pick one key
 		var key int64
 		for k := range vms {
@@ -94,18 +93,18 @@ func (v *VmCache) Fetch(owner, contract string, code []byte) (vm *exec.VM) {
 }
 
 // Contains returns number of cached VM instances for the given contract.
-func (v *VmCache) Contains(owner, contract string, code []byte) int {
+func (v *VmCache) Contains(owner, contract string, codeHash []byte) int {
 	v.lock.RLock()
 	defer v.lock.RUnlock()
-	return len(v.byName[buildKey(owner, contract, code)])
+	return len(v.byName[buildKey(owner, contract, codeHash)])
 }
 
 // Remove deletes all cached VM instances for the given contract.
-func (v *VmCache) Remove(owner, contract string, code []byte) {
+func (v *VmCache) Remove(owner, contract string, codeHash []byte) {
 	v.lock.Lock()
 	defer v.lock.Unlock()
 	// collect keys that need to delete from the cache
-	vms := v.byName[buildKey(owner, contract, code)]
+	vms := v.byName[buildKey(owner, contract, codeHash)]
 	keys := make([]int64, 0, len(vms))
 	for k := range vms {
 		keys = append(keys, k)

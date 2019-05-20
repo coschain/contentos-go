@@ -23,6 +23,7 @@ type Context struct {
 	Gas       uint64
 	Construct bool
 	Code      []byte
+	CodeHash  *prototype.Sha256
 	Abi       string
 	AbiInterface abi.IContractABI
 	Tables    *table.ContractTables
@@ -39,7 +40,7 @@ func NewContextFromDeployOp(op *prototype.ContractDeployOperation, injector vmin
 	}
 }
 
-func NewContextFromApplyOp(op *prototype.ContractApplyOperation, params []byte, code []byte, abi abi.IContractABI, tables *table.ContractTables, injector vminjector.Injector) *Context {
+func NewContextFromApplyOp(op *prototype.ContractApplyOperation, params []byte, code []byte, codeHash *prototype.Sha256, abi abi.IContractABI, tables *table.ContractTables, injector vminjector.Injector) *Context {
 	return &Context{
 		Caller:    op.Caller,
 		CallingContractOwner: nil,
@@ -53,13 +54,14 @@ func NewContextFromApplyOp(op *prototype.ContractApplyOperation, params []byte, 
 		Amount:    op.Amount,
 		Construct: false,
 		Code:      code,
+		CodeHash:  codeHash,
 		AbiInterface: abi,
 		Tables: tables,
 		Injector:  injector,
 	}
 }
 
-func NewContextFromInternalApplyOp(op *prototype.InternalContractApplyOperation, code []byte, abi abi.IContractABI, tables *table.ContractTables, injector vminjector.Injector) *Context {
+func NewContextFromInternalApplyOp(op *prototype.InternalContractApplyOperation, code []byte, codeHash *prototype.Sha256, abi abi.IContractABI, tables *table.ContractTables, injector vminjector.Injector) *Context {
 	return &Context{
 		Caller:    op.FromCaller,
 		CallingContractOwner: op.FromOwner,
@@ -73,6 +75,7 @@ func NewContextFromInternalApplyOp(op *prototype.InternalContractApplyOperation,
 		Amount:    op.Amount,
 		Construct: false,
 		Code:      code,
+		CodeHash:  codeHash,
 		AbiInterface: abi,
 		Tables: tables,
 		Injector:  injector,
