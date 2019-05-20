@@ -5,3 +5,5 @@ string                  ,abi         ,0   ,0     ,0   ,0          ,
 prototype.coin          ,balance     ,0   ,0     ,0   ,0          ,prototype/type.proto
 bytes                   ,code        ,0   ,0     ,0   ,0          ,
 uint32                  ,apply_count ,0   ,0     ,1   ,0          ,
+bool                    ,upgradeable ,0   ,0     ,0   ,0          ,
+prototype.sha256        ,hash     		 ,0   ,0     ,0   ,0          ,prototype/type.proto

@@ -15,6 +15,8 @@ message so_contract {
     prototype.coin             balance          =      4;
     bytes                      code             =      5;
     uint32                     apply_count      =      6;
+    bool                       upgradeable      =      7;
+    prototype.sha256           hash     		      =      8;
       
 }
 
@@ -46,6 +48,16 @@ message so_mem_contract_by_code {
 
 message so_mem_contract_by_apply_count {
 	uint32                  	apply_count  = 1;
+}
+
+
+message so_mem_contract_by_upgradeable {
+	bool                    	upgradeable  = 1;
+}
+
+
+message so_mem_contract_by_hash {
+	prototype.sha256        	hash     		  = 1;
 }
 
 
