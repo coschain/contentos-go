@@ -42,7 +42,7 @@ func (p *TrxContext) getRemainFreeStamina(db iservices.IDatabaseRW,name string) 
 	wraper := table.NewSoGlobalWrap(db, &constants.GlobalId)
 	gp := wraper.GetProps()
 	accountWrap := table.NewSoAccountWrap(db, &prototype.AccountName{Value:name})
-	return p.resourceLimiter.GetFreeLeft(accountWrap.GetStaminaFree(), accountWrap.GetStaminaFreeUseBlock(), gp.HeadBlockNumber)
+	return p.resourceLimiter.GetFreeLeft(gp.GetStaminaFree(),accountWrap.GetStaminaFree(), accountWrap.GetStaminaFreeUseBlock(), gp.HeadBlockNumber)
 }
 
 func (p *TrxContext) GetVmRemainCpuStamina(name string) uint64 {
@@ -59,7 +59,7 @@ func (p *TrxContext) CheckNet(db iservices.IDatabaseRW, sizeInBytes uint64) {
 
 		accountWrap := table.NewSoAccountWrap(db, &prototype.AccountName{Value:name})
 		maxStamina := p.calculateUserMaxStamina(db,name)
-		freeLeft := p.resourceLimiter.GetFreeLeft(accountWrap.GetStaminaFree(), accountWrap.GetStaminaFreeUseBlock(), dgpWraper.GetProps().HeadBlockNumber)
+		freeLeft := p.resourceLimiter.GetFreeLeft(dgpWraper.GetProps().GetStaminaFree(),accountWrap.GetStaminaFree(), accountWrap.GetStaminaFreeUseBlock(), dgpWraper.GetProps().HeadBlockNumber)
 		stakeLeft := p.resourceLimiter.GetStakeLeft(accountWrap.GetStamina(), accountWrap.GetStaminaUseBlock(), dgpWraper.GetProps().HeadBlockNumber,maxStamina)
 		if freeLeft >= netUse {
 			p.netMap[name].raw = sizeInBytes
@@ -91,10 +91,11 @@ func (p *TrxContext) deductStamina(db iservices.IDatabaseRW,m map[string]*resour
 			// todo other choice ?
 			continue
 		}
-		if ok,newFreeStamina := p.resourceLimiter.ConsumeFree(accountWrap.GetStaminaFree(), staminaUse,accountWrap.GetStaminaFreeUseBlock(), now);!ok {
-			paid += p.resourceLimiter.GetFreeLeft(accountWrap.GetStaminaFree(), accountWrap.GetStaminaFreeUseBlock(), now)
+		freeStaminaMaxByBp := dgpWraper.GetProps().GetStaminaFree()
+		if ok,newFreeStamina := p.resourceLimiter.ConsumeFree(freeStaminaMaxByBp,accountWrap.GetStaminaFree(), staminaUse,accountWrap.GetStaminaFreeUseBlock(), now);!ok {
+			paid += p.resourceLimiter.GetFreeLeft(freeStaminaMaxByBp,accountWrap.GetStaminaFree(), accountWrap.GetStaminaFreeUseBlock(), now)
 
-			accountWrap.MdStaminaFree(constants.FreeStamina)
+			accountWrap.MdStaminaFree(freeStaminaMaxByBp)
 			accountWrap.MdStaminaFreeUseBlock(now)
 
 		} else {

@@ -865,10 +865,11 @@ func (as *APIService) getAccountResponseByName(name *prototype.AccountName, isNe
 			acctInfo.FollowerCount = followWrap.GetFollowerCnt()
 			acctInfo.FollowingCount = followWrap.GetFollowingCnt()
 		}
-		acctInfo.StaminaFreeRemain = rc.GetFreeLeft(accWrap.GetStaminaFree(), accWrap.GetStaminaFreeUseBlock(), gp.HeadBlockNumber)
+		freeStaminaMaxByBp := gp.GetStaminaFree()
+		acctInfo.StaminaFreeRemain = rc.GetFreeLeft(freeStaminaMaxByBp,accWrap.GetStaminaFree(), accWrap.GetStaminaFreeUseBlock(), gp.HeadBlockNumber)
 		maxStamina := as.pool.CalculateUserMaxStamina(as.db,accWrap.GetName().Value)
 		acctInfo.StaminaStakeRemain = rc.GetStakeLeft(accWrap.GetStamina(), accWrap.GetStaminaUseBlock(), gp.HeadBlockNumber, maxStamina)
-		acctInfo.StaminaMax = maxStamina + rc.GetCapacityFree()
+		acctInfo.StaminaMax = maxStamina + freeStaminaMaxByBp
 		acct.Info = acctInfo
 		acct.State = as.getState()
 

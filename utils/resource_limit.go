@@ -5,11 +5,11 @@ import (
 )
 
 type IConsumer interface {
-	Consume(oldResource uint64, num uint64, preTime, now, maxStamina uint64) (bool,uint64)
+	Consume(oldResource, num, preTime, now, maxStamina uint64) (bool,uint64)
 }
 
 type IFreeConsumer interface {
-	ConsumeFree(oldResource uint64,num uint64, preTime, now uint64) (bool,uint64)
+	ConsumeFree(maxFreeStamina, oldResource,num, preTime, now uint64) (bool,uint64)
 }
 
 type IGetter interface {
@@ -17,8 +17,7 @@ type IGetter interface {
 }
 
 type IFreeGetter interface {
-	GetCapacityFree() uint64
-	GetFreeLeft(oldResource uint64, preTime, now uint64) uint64
+	GetFreeLeft(maxFreeStamina, oldResource, preTime, now uint64) uint64
 }
 
 type ITpsUpdater interface {
@@ -62,17 +61,16 @@ func (s *ResourceLimiter) Consume(oldResource uint64, num uint64, preTime, now, 
 }
 
 // FreeManager implemention
-func (s *ResourceLimiter) ConsumeFree(oldResource uint64,num uint64, preTime, now uint64) (bool,uint64) {
+func (s *ResourceLimiter) ConsumeFree(maxFreeStamina,oldResource uint64,num uint64, preTime, now uint64) (bool,uint64) {
 	newFreeStamina := calculateNewStaminaEMA(oldResource,0,preTime,now)
-	if uint64(constants.FreeStamina) - newFreeStamina < num {
+	if maxFreeStamina < newFreeStamina {
+		return false,0
+	}
+	if maxFreeStamina - newFreeStamina < num {
 		return false,0
 	}
 	newFreeStamina = calculateNewStaminaEMA(newFreeStamina,num,now,now)
 	return true,newFreeStamina
-}
-
-func (s *ResourceLimiter) GetCapacityFree() uint64 {
-	return constants.FreeStamina
 }
 
 func (s *ResourceLimiter) GetStakeLeft(oldResource,preTime,now,maxStamina uint64) uint64 {
@@ -83,9 +81,12 @@ func (s *ResourceLimiter) GetStakeLeft(oldResource,preTime,now,maxStamina uint64
 	return maxStamina - newStamina
 }
 
-func (s *ResourceLimiter) GetFreeLeft(oldResource uint64, preTime, now uint64) uint64 {
+func (s *ResourceLimiter) GetFreeLeft(maxFreeStamina, oldResource, preTime, now uint64) uint64 {
 	newStamina := calculateNewStaminaEMA(oldResource,0,preTime,now)
-	return constants.FreeStamina - newStamina
+	if maxFreeStamina < newStamina {
+		return 0
+	}
+	return maxFreeStamina - newStamina
 }
 
 func calculateNewStamina(oldStamina uint64, useStamina uint64, lastTime uint64, now uint64) uint64 {
