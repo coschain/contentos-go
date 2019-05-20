@@ -960,13 +960,20 @@ func (p *MsgHandler) FetchOutOfRangeHandle(data *msgTypes.MsgPayload, p2p p2p.P2
 	}
 	ctrl := s.(iservices.IConsensus)
 
-	ret, err := ctrl.IsOnMainBranch(startID)
+	ret1, err := ctrl.IsOnMainBranch(startID)
 	if err != nil {
-		log.Error("can not check whether on main branch, ", err)
-		ret = false
+		log.Error("can not check whether startID on main branch, ", err)
+		ret1 = false
 	}
 
-	if ret {
+	ret2, err := ctrl.IsOnMainBranch(targetID)
+	if err != nil {
+		log.Error("can not check whether targetID on main branch, ", err)
+		ret2 = false
+	}
+
+	if ret1 && ret2 {
+		log.Info("fetch out of range blocks from main branch")
 		startNum := startID.BlockNum()
 		endNum := targetID.BlockNum()
 
@@ -1005,6 +1012,7 @@ func (p *MsgHandler) FetchOutOfRangeHandle(data *msgTypes.MsgPayload, p2p p2p.P2
 			}
 		}
 	} else {
+		log.Info("fetch out of range blocks from lateral branch")
 		count := 0
 		blkId := targetID
 		var IDList [][]byte
