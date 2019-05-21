@@ -119,6 +119,28 @@ func conductBatch(cmd *cobra.Command, args []string) {
 				fmt.Println(err)
 				return
 			}
+		case "bpVote":
+			voterName := cmdArgs[1]
+			voterPubKeyStr := cmdArgs[2]
+			voterPriKeyStr := cmdArgs[3]
+			bpName := cmdArgs[4]
+
+			voterAccount := &wallet.PrivAccount{
+				Account: wallet.Account{Name: voterName, PubKey: voterPubKeyStr},
+				PrivKey: voterPriKeyStr,
+			}
+
+			bpVote_op := &prototype.BpVoteOperation{
+				Voter:   &prototype.AccountName{Value: voterName},
+				Witness: &prototype.AccountName{Value: bpName},
+				Cancel:  false,
+			}
+
+			signTx, err = utils.GenerateSignedTxAndValidate2(client, []interface{}{bpVote_op}, voterAccount)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
 		case "transfer":
 			fromAccountName := cmdArgs[1]
 			fromAccountPubKeyStr := cmdArgs[2]
@@ -142,6 +164,32 @@ func conductBatch(cmd *cobra.Command, args []string) {
 			}
 
 			signTx, err = utils.GenerateSignedTxAndValidate2(client, []interface{}{transfer_op}, fromAccount)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+		case "transferToVest":
+			fromAccountName := cmdArgs[1]
+			fromAccountPubKeyStr := cmdArgs[2]
+			fromAccountPriKeyStr := cmdArgs[3]
+			toAccountName := cmdArgs[4]
+			amount, err := strconv.ParseUint(cmdArgs[5], 10, 64)
+			if err != nil {
+				panic(err)
+			}
+
+			fromAccount := &wallet.PrivAccount{
+				Account: wallet.Account{Name: fromAccountName, PubKey: fromAccountPubKeyStr},
+				PrivKey: fromAccountPriKeyStr,
+			}
+
+			transferv_op := &prototype.TransferToVestingOperation{
+				From:   &prototype.AccountName{Value: fromAccountName},
+				To:     &prototype.AccountName{Value: toAccountName},
+				Amount: prototype.NewCoin(uint64(amount)),
+			}
+
+			signTx, err = utils.GenerateSignedTxAndValidate2(client, []interface{}{transferv_op}, fromAccount)
 			if err != nil {
 				fmt.Println(err)
 				return
