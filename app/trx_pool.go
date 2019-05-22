@@ -9,6 +9,7 @@ import (
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common"
+	selfmath "github.com/coschain/contentos-go/common/math"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/common/eventloop"
 	"github.com/coschain/contentos-go/utils"
@@ -48,12 +49,6 @@ type TrxPool struct {
 	resourceLimiter utils.IResourceLimiter
 	enableBAH bool
 }
-
-type DirRange []uint64
-
-func (a DirRange) Len() int           { return len(a) }
-func (a DirRange) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a DirRange) Less(i, j int) bool { return a[i] < a[j] }
 
 func (c *TrxPool) getDb() (iservices.IDatabaseService, error) {
 	s, err := c.ctx.Service(iservices.DbServerName)
@@ -360,7 +355,14 @@ func (c *TrxPool) generateBlockNoLock(witness string, pre *prototype.Sha256, tim
 	t3 := time.Now()
 	c.updateGlobalProperties(signBlock)
 	t4 := time.Now()
-	c.shuffle(signBlock)
+
+	ret, bpNameList := c.shuffle(signBlock)
+	if ret {
+		c.updateGlobalWitnessBoot(bpNameList)
+		c.updateGlobalResourceParam(bpNameList)
+		c.deleteUnusedBp(bpNameList)
+	}
+
 	t5 := time.Now()
 	c.updateAvgTps(signBlock)
 	t6 := time.Now()
@@ -540,7 +542,14 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 		t1 := time.Now()
 		c.updateGlobalProperties(blk)
 		t2 := time.Now()
-		c.shuffle(blk)
+
+		ret, bpNameList := c.shuffle(blk)
+		if ret {
+			c.updateGlobalWitnessBoot(bpNameList)
+			c.updateGlobalResourceParam(bpNameList)
+			c.deleteUnusedBp(bpNameList)
+		}
+
 		t3 := time.Now()
 		c.updateAvgTps(blk)
 		t4 := time.Now()
@@ -782,6 +791,76 @@ func (c *TrxPool) updateAvgTps(blk *prototype.SignedBlock) {
 	})
 }
 
+func (c *TrxPool) updateGlobalWitnessBoot(bpNameList []string) {
+	if len(bpNameList) == 1 && bpNameList[0] == constants.COSInitMiner {
+		return
+	}
+	c.modifyGlobalDynamicData(func(dgpo *prototype.DynamicProperties) {
+		dgpo.WitnessBootCompleted = true
+	})
+}
+
+func (c *TrxPool) updateGlobalResourceParam(bpNameList []string) {
+	var tpsExpectedList  []uint64
+	var staminaFreeList  []uint64
+
+	for i := range bpNameList {
+		ac := &prototype.AccountName{
+			Value: bpNameList[i],
+		}
+		witnessWrap := table.NewSoWitnessWrap(c.db, ac)
+		if !witnessWrap.CheckExist() {
+			c.log.Fatalf("witness %v doesn't exist", bpNameList[i])
+		}
+		tpsExpectedList = append(tpsExpectedList, witnessWrap.GetTpsExpected())
+		staminaFreeList = append(staminaFreeList, witnessWrap.GetProposedStaminaFree())
+	}
+
+	sort.Sort(selfmath.DirRange(tpsExpectedList))
+	sort.Sort(selfmath.DirRange(staminaFreeList))
+
+	c.modifyGlobalDynamicData(func(dgpo *prototype.DynamicProperties) {
+		dgpo.StaminaFree = staminaFreeList[ len(staminaFreeList) / 2 ]
+	})
+	c.modifyGlobalDynamicData(func(dgpo *prototype.DynamicProperties) {
+		dgpo.TpsExpected = tpsExpectedList[ len(tpsExpectedList) / 2 ]
+	})
+}
+
+func (c *TrxPool) deleteUnusedBp(bpNameList []string) {
+	// delete unActive bp
+	revList := table.SWitnessVoteCountWrap{Dba: c.db}
+	var deletelist       []*prototype.AccountName
+
+	_ = revList.ForEachByRevOrder(nil, nil,nil,nil, func(mVal *prototype.AccountName, sVal *uint64, idx uint32) bool {
+		if mVal != nil {
+			witnessWrap := table.NewSoWitnessWrap(c.db, mVal)
+			if witnessWrap.CheckExist() {
+				if !witnessWrap.GetActive() {
+					deletelist = append(deletelist, mVal)
+				}
+			}
+		}
+		return true
+	})
+
+	for i:=0;i<len(deletelist);i++ {
+		witnessWrap := table.NewSoWitnessWrap(c.db, deletelist[i])
+		mustSuccess(witnessWrap.RemoveWitness(), fmt.Sprintf("delete unregister bp %s error", deletelist[i].Value))
+	}
+
+	// maybe delete bp constants.COSInitMiner
+	if len(bpNameList) > 1 || (len(bpNameList) == 1 && bpNameList[0] != constants.COSInitMiner) {
+		ac := &prototype.AccountName{
+			Value: constants.COSInitMiner,
+		}
+		witnessWrap := table.NewSoWitnessWrap(c.db, ac)
+		if witnessWrap.CheckExist() {
+			mustSuccess(witnessWrap.RemoveWitness(), fmt.Sprintf("delete bp %s error", constants.COSInitMiner))
+		}
+	}
+}
+
 func (c *TrxPool) updateGlobalProperties(blk *prototype.SignedBlock) {
 	id := blk.Id()
 	blockID := &prototype.Sha256{Hash: id.Data[:]}
@@ -833,10 +912,7 @@ func (c *TrxPool) GetSigningPubKey(witness string) *prototype.PublicKeyType {
 func (c *TrxPool) GetWitnessTopN(n uint32) ([]string, []*prototype.PublicKeyType) {
 	var names            []string
 	var bpNames          []string
-	var deletelist       []*prototype.AccountName
 	var keys             []*prototype.PublicKeyType
-	var tpsExpectedList  []uint64
-	var staminaFreeList  []uint64
 	revList := table.SWitnessVoteCountWrap{Dba: c.db}
 	var bpCount uint32 = 0
 	_ = revList.ForEachByRevOrder(nil, nil,nil,nil, func(mVal *prototype.AccountName, sVal *uint64, idx uint32) bool {
@@ -846,11 +922,7 @@ func (c *TrxPool) GetWitnessTopN(n uint32) ([]string, []*prototype.PublicKeyType
 				if witnessWrap.GetActive() {
 					bpCount++
 					names = append(names, mVal.Value)
-				} else {
-					deletelist = append(deletelist, mVal)
 				}
-			} else {
-				return true
 			}
 		}
 		if bpCount < n + 1 {
@@ -864,10 +936,6 @@ func (c *TrxPool) GetWitnessTopN(n uint32) ([]string, []*prototype.PublicKeyType
 
 	for i := range names {
 		if names[i] == constants.COSInitMiner && len(names) > 1 {
-			c.modifyGlobalDynamicData(func(dgpo *prototype.DynamicProperties) {
-				dgpo.WitnessBootCompleted = true
-			})
-			deletelist = append(deletelist, &prototype.AccountName{Value: names[i],} )
 			continue
 		}
 		ac := &prototype.AccountName{
@@ -880,35 +948,15 @@ func (c *TrxPool) GetWitnessTopN(n uint32) ([]string, []*prototype.PublicKeyType
 		dbPubKey := witnessWrap.GetSigningKey()
 		keys = append(keys, dbPubKey)
 		bpNames = append(bpNames, names[i])
-		tpsExpectedList = append(tpsExpectedList, witnessWrap.GetTpsExpected())
-		staminaFreeList = append(staminaFreeList, witnessWrap.GetProposedStaminaFree())
 
 		if uint32(len(bpNames)) == n {
 			break
 		}
 	}
 
-	sort.Sort(DirRange(tpsExpectedList))
-	sort.Sort(DirRange(staminaFreeList))
-
-	c.modifyGlobalDynamicData(func(dgpo *prototype.DynamicProperties) {
-		dgpo.StaminaFree = staminaFreeList[ len(staminaFreeList) / 2 ]
-	})
-	c.modifyGlobalDynamicData(func(dgpo *prototype.DynamicProperties) {
-		dgpo.TpsExpected = tpsExpectedList[ len(tpsExpectedList) / 2 ]
-	})
-
-	c.ClearUnRegisterBP(deletelist)
 
 	//return names, keys
 	return bpNames, keys
-}
-
-func (c *TrxPool) ClearUnRegisterBP(deletelist []*prototype.AccountName) {
-	for i:=0;i<len(deletelist);i++ {
-		witnessWrap := table.NewSoWitnessWrap(c.db, deletelist[i])
-		mustSuccess(witnessWrap.RemoveWitness(), "clear unregister bp error")
-	}
 }
 
 func (c *TrxPool) SetShuffledWitness(names []string) {

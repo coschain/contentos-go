@@ -148,11 +148,11 @@ func (sabft *SABFT) makeProducers(names []string) []*Producer {
 	return ret
 }
 
-func (sabft *SABFT) shuffle(head common.ISignedBlock) bool {
+func (sabft *SABFT) shuffle(head common.ISignedBlock) (bool, []string) {
 	blockNum := head.Id().BlockNum()
 	if blockNum%constants.BlockProdRepetition != 0 ||
 		blockNum/constants.BlockProdRepetition%uint64(len(sabft.producers)) != 0 {
-		return false
+		return false, []string{}
 	}
 
 	// When a produce round complete, it adds new producers,
@@ -171,7 +171,7 @@ func (sabft *SABFT) shuffle(head common.ISignedBlock) bool {
 	if atomic.LoadUint32(&sabft.bftStarted) == 0 {
 		sabft.checkBFTRoutine()
 	}
-	return true
+	return true, prods
 }
 
 func (sabft *SABFT) addDynasty(d *Dynasty) {
@@ -257,7 +257,7 @@ func (sabft *SABFT) Start(node *node.Node) error {
 	sabft.p2p = p2p.(iservices.IP2P)
 	cfg := sabft.ctx.Config()
 	sabft.blog.Open(cfg.ResolvePath("blog"))
-	sabft.ctrl.SetShuffle(func(block common.ISignedBlock) bool {
+	sabft.ctrl.SetShuffle(func(block common.ISignedBlock) (bool, []string) {
 		return sabft.shuffle(block)
 	})
 
