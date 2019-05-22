@@ -88,30 +88,6 @@ func (s *ResourceLimiter) GetFreeLeft(maxFreeStamina, oldResource, preTime, now 
 	return maxFreeStamina - newStamina
 }
 
-func calculateNewStamina(oldStamina uint64, useStamina uint64, lastTime uint64, now uint64) uint64 {
-	blocks := uint64(constants.WindowSize)
-	if now > lastTime { // assert ?
-		if now < lastTime + blocks {
-			delta := now - lastTime
-			decay := float64(blocks - delta) / float64(blocks)
-			newStamina := float64(oldStamina) * decay
-			oldStamina = uint64(newStamina)
-		} else {
-			oldStamina = 0
-		}
-	}
-	oldStamina += useStamina
-	return oldStamina
-}
-
-func divideCeil(num,den uint64) uint64 {
-	v := num / den
-	if num % den > 0{
-		v += 1
-	}
-	return v
-}
-
 func calculateNewStaminaEMA(oldStamina, useStamina, lastTime, now uint64) uint64 {
 	return calculateEMA(oldStamina, useStamina, lastTime, now, constants.WindowSize)
 }
