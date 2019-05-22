@@ -15,6 +15,7 @@ import (
 	"github.com/coschain/contentos-go/vm/contract/abi"
 	ct "github.com/coschain/contentos-go/vm/contract/table"
 	"math"
+	"math/big"
 	"sort"
 )
 
@@ -243,7 +244,7 @@ func (ev *PostEvaluator) Apply() {
 		t.ParentId = 0
 		t.RootId = 0
 		t.Beneficiaries = op.Beneficiaries
-		t.WeightedVp = 0
+		t.WeightedVp = "0"
 		t.VoteCnt = 0
 		t.Rewards = &prototype.Vest{Value: 0}
 		t.DappRewards = &prototype.Vest{Value: 0}
@@ -298,7 +299,7 @@ func (ev *ReplyEvaluator) Apply() {
 		t.Children = 0
 		t.RootId = rootId
 		t.ParentId = op.ParentUuid
-		t.WeightedVp = 0
+		t.WeightedVp = "0"
 		t.VoteCnt = 0
 		t.Beneficiaries = op.Beneficiaries
 		t.Rewards = &prototype.Vest{Value: 0}
@@ -362,11 +363,15 @@ func (ev *VoteEvaluator) Apply() {
 	weightedVp := vesting * uint64(usedVp)
 	if postWrap.GetCashoutBlockNum() > ev.ctx.control.GetProps().HeadBlockNumber {
 		lastVp := postWrap.GetWeightedVp()
-		votePower := lastVp + weightedVp
+		var lvp, wvp, tvp big.Int
+		wvp.SetUint64(weightedVp)
+		lvp.SetString(lastVp, 10)
+		tvp.Add(&wvp, &lvp)
+		//votePower := tvp.
 		// add new vp into global
 		//ev.ctx.control.AddWeightedVP(weightedVp)
 		// update post's weighted vp
-		postWrap.MdWeightedVp(votePower)
+		postWrap.MdWeightedVp(tvp.String())
 
 		opAssertE(voteWrap.Create(func(t *table.SoVote) {
 			t.Voter = &voterId

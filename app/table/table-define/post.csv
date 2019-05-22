@@ -14,6 +14,6 @@ uint64                              ,parent_id          ,0      ,0      ,0      
 uint64                              ,vote_cnt           ,0      ,0      ,0      ,0           ,
 []prototype.beneficiary_route_type  ,beneficiaries      ,0      ,0      ,0      ,0           ,
 uint64                              ,cashout_block_num  ,0      ,0      ,1      ,0           ,
-uint64                              ,weighted_vp        ,0      ,0      ,0      ,0           ,
+string                              ,weighted_vp        ,0      ,0      ,0      ,0           ,
 prototype.vest                      ,rewards            ,0      ,0      ,0      ,0           ,
 prototype.vest                      ,dapp_rewards       ,0      ,0      ,0      ,0           ,

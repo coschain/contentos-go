@@ -23,7 +23,7 @@ message so_post {
     uint64                                 vote_cnt                =      13;
     repeated                      prototype.beneficiary_route_type     beneficiaries           =      14;
     uint64                                 cashout_block_num       =      15;
-    uint64                                 weighted_vp             =      16;
+    string                                 weighted_vp             =      16;
     prototype.vest                         rewards                 =      17;
     prototype.vest                         dapp_rewards            =      18;
       
@@ -106,7 +106,7 @@ message so_mem_post_by_cashout_block_num {
 
 
 message so_mem_post_by_weighted_vp {
-	uint64                              	weighted_vp         = 1;
+	string                              	weighted_vp         = 1;
 }
 
 

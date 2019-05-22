@@ -182,8 +182,8 @@ func (e *Economist) Do(trxObserver iservices.ITrxObserver) {
 	iterator := table.NewPostCashoutBlockNumWrap(e.db)
 	var pids []*uint64
 	end := globalProps.HeadBlockNumber
-	postWeightedVps := globalProps.PostWeightedVps
-	replyWeightedVps := globalProps.ReplyWeightedVps
+	//postWeightedVps := globalProps.PostWeightedVps
+	//replyWeightedVps := globalProps.ReplyWeightedVps
 	t0 := time.Now()
 	err = iterator.ForEachByOrder(nil, &end, nil, nil, func(mVal *uint64, sVal *uint64, idx uint32) bool {
 		pids = append(pids, mVal)
@@ -196,42 +196,57 @@ func (e *Economist) Do(trxObserver iservices.ITrxObserver) {
 	var posts []*table.SoPostWrap
 	var replies []*table.SoPostWrap
 
-	var postVpAccumulator uint64 = 0
-	var replyVpAccumulator uint64 = 0
+	//var postVpAccumulator uint64 = 0
+	//var replyVpAccumulator uint64 = 0
+	var postVpAccumulator, replyVpAccumulator big.Int
 	// posts accumulate by linear, replies by sqrt
 	for _, pid := range pids {
+		var weightedVp big.Int
 		post := table.NewSoPostWrap(e.db, pid)
 		if post.GetParentId() == 0 {
 			posts = append(posts, post)
-			postVpAccumulator += post.GetWeightedVp()
+			//postVpAccumulator += post.GetWeightedVp()
+			weightedVp.SetString(post.GetWeightedVp(), 10)
+			postVpAccumulator.Add(&postVpAccumulator, &weightedVp)
 		} else {
 			replies = append(replies, post)
 			//replyVpAccumulator += uint64(math.Ceil(math.Sqrt(float64(post.GetWeightedVp()))))
 			//replyVpAccumulator += ISqrt(post.GetWeightedVp())
-			replyVpAccumulator += post.GetWeightedVp()
+			weightedVp.SetString(post.GetWeightedVp(), 10)
+			//replyVpAccumulator += post.GetWeightedVp()
+			replyVpAccumulator.Add(&replyVpAccumulator, &weightedVp)
 		}
 	}
+	var globalPostWeightedVps, globalReplyWeightedVps, postWeightedVps, replyWeightedVps big.Int
+	globalPostWeightedVps.SetString(globalProps.PostWeightedVps, 10)
+	globalReplyWeightedVps.SetString(globalProps.ReplyWeightedVps, 10)
+	postWeightedVps.Add(&globalPostWeightedVps, &postVpAccumulator)
+	replyWeightedVps.Add(&globalReplyWeightedVps, &replyVpAccumulator)
+
 	e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
-		props.PostWeightedVps += postVpAccumulator
-		props.ReplyWeightedVps += replyVpAccumulator
+		props.PostWeightedVps = postWeightedVps.String()
+		props.ReplyWeightedVps = replyWeightedVps.String()
 	})
 
-	if postWeightedVps + postVpAccumulator >= 0 {
+	if postWeightedVps.Cmp(new(big.Int).SetInt64(0)) >= 0 {
 		var rewards, dappRewards uint64
-		if postWeightedVps + postVpAccumulator == 0 {
+		//if postWeightedVps + postVpAccumulator == 0 {
+		if postWeightedVps.Cmp(new(big.Int).SetInt64(0)) == 0 {
 			rewards = 0
 			dappRewards = 0
 		}else {
 			// after big, it can not overflow
-			bigVpSum := new(big.Int).SetUint64(postWeightedVps + postVpAccumulator)
-			bigVpAccumulator := new(big.Int).SetUint64(postVpAccumulator)
+			//bigVpSum := new(big.Int).SetUint64(postWeightedVps + postVpAccumulator)
+			//bigVpAccumulator := new(big.Int).SetUint64(postVpAccumulator)
+			//bigVpSum := postWeightedVps
+			//bigVpAccumulator := postVpAccumulator
 			bigGlobalPostRewards := new(big.Int).SetUint64(globalProps.PostRewards.Value)
-			bigVpMul := new(big.Int).Mul(bigVpAccumulator, bigGlobalPostRewards)
-			rewards = new(big.Int).Div(bigVpMul, bigVpSum).Uint64()
+			bigVpMul := new(big.Int).Mul(&postVpAccumulator, bigGlobalPostRewards)
+			rewards = new(big.Int).Div(bigVpMul, &postWeightedVps).Uint64()
 			//rewards = postVpAccumulator * globalProps.PostRewards.Value / (postWeightedVps + postVpAccumulator)
 			bigGlobalPostDappRewards := new(big.Int).SetUint64(globalProps.PostDappRewards.Value)
-			bigDappVpMul := new(big.Int).Mul(bigVpAccumulator, bigGlobalPostDappRewards)
-			dappRewards = new(big.Int).Div(bigDappVpMul, bigVpSum).Uint64()
+			bigDappVpMul := new(big.Int).Mul(&postVpAccumulator, bigGlobalPostDappRewards)
+			dappRewards = new(big.Int).Div(bigDappVpMul, &postWeightedVps).Uint64()
 			//dappRewards = postVpAccumulator * globalProps.PostDappRewards.Value / (postWeightedVps + postVpAccumulator)
 		}
 
@@ -243,23 +258,24 @@ func (e *Economist) Do(trxObserver iservices.ITrxObserver) {
 		}
 	}
 
-	if replyWeightedVps + replyVpAccumulator >= 0 {
+	if replyWeightedVps.Cmp(new(big.Int).SetInt64(0)) >= 0 {
 		var rewards, dappRewards uint64
-		if replyWeightedVps + replyVpAccumulator == 0 {
+		if replyWeightedVps.Cmp(new(big.Int).SetInt64(0)) == 0 {
 			rewards = 0
 			dappRewards = 0
 		}else {
 			//rewards = replyVpAccumulator * globalProps.ReplyRewards.Value / (replyWeightedVps + replyVpAccumulator)
 			//dappRewards = replyVpAccumulator * globalProps.ReplyDappRewards.Value / (replyWeightedVps + replyVpAccumulator)
-			bigVpSum := new(big.Int).SetUint64(replyWeightedVps + replyVpAccumulator)
-			bigVpAccumulator := new(big.Int).SetUint64(replyVpAccumulator)
+			//bigVpSum := new(big.Int).SetUint64(replyWeightedVps + replyVpAccumulator)
+			//bigVpSum := replyWeightedVps
+			//bigVpAccumulator := new(big.Int).SetUint64(replyVpAccumulator)
 			bigGlobalReplyRewards := new(big.Int).SetUint64(globalProps.ReplyRewards.Value)
-			bigVpMul := new(big.Int).Mul(bigVpAccumulator, bigGlobalReplyRewards)
-			rewards = new(big.Int).Div(bigVpMul, bigVpSum).Uint64()
+			bigVpMul := new(big.Int).Mul(&replyVpAccumulator, bigGlobalReplyRewards)
+			rewards = new(big.Int).Div(bigVpMul, &replyWeightedVps).Uint64()
 			//rewards = postVpAccumulator * globalProps.PostRewards.Value / (postWeightedVps + postVpAccumulator)
 			bigGlobalReplyDappRewards := new(big.Int).SetUint64(globalProps.ReplyDappRewards.Value)
-			bigDappVpMul := new(big.Int).Mul(bigVpAccumulator, bigGlobalReplyDappRewards)
-			dappRewards = new(big.Int).Div(bigDappVpMul, bigVpSum).Uint64()
+			bigDappVpMul := new(big.Int).Mul(&replyVpAccumulator, bigGlobalReplyDappRewards)
+			dappRewards = new(big.Int).Div(bigDappVpMul, &replyWeightedVps).Uint64()
 		}
 
 		e.log.Debugf("cashout replies length: %d", len(replies))
@@ -273,8 +289,21 @@ func (e *Economist) Do(trxObserver iservices.ITrxObserver) {
 
 func (e *Economist) decayGlobalVotePower() {
 	e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
-		props.PostWeightedVps -= props.PostWeightedVps * constants.BlockInterval / variables.VpDecayTime()
-		props.ReplyWeightedVps -= props.ReplyWeightedVps * constants.BlockInterval / variables.VpDecayTime()
+		var postWeightedVps, replyWeightedVps big.Int
+		postWeightedVps.SetString(props.PostWeightedVps, 10)
+		replyWeightedVps.SetString(props.ReplyWeightedVps, 10)
+		var postWeightedDecay big.Int
+		postWeightedDecay.Mul(&postWeightedVps, new(big.Int).SetUint64(constants.BlockInterval))
+		postWeightedDecay.Div(&postWeightedDecay, new(big.Int).SetUint64(variables.VpDecayTime()))
+		postWeightedVps.Sub(&postWeightedVps, &postWeightedDecay)
+		//props.PostWeightedVps -= props.PostWeightedVps * constants.BlockInterval / variables.VpDecayTime()
+		var replyWeightedDecay big.Int
+		replyWeightedDecay.Mul(&replyWeightedVps, new(big.Int).SetUint64(constants.BlockInterval))
+		replyWeightedDecay.Div(&replyWeightedDecay, new(big.Int).SetUint64(variables.VpDecayTime()))
+		replyWeightedVps.Sub(&replyWeightedVps, &replyWeightedDecay)
+		props.PostWeightedVps = postWeightedVps.String()
+		props.ReplyWeightedVps = replyWeightedVps.String()
+		//props.ReplyWeightedVps -= props.ReplyWeightedVps * constants.BlockInterval / variables.VpDecayTime()
 	})
 }
 
@@ -284,9 +313,12 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 		panic("post cashout get props failed")
 	}
 
-	var vpAccumulator uint64 = 0
+	//var vpAccumulator uint64 = 0
+	var vpAccumulator big.Int
 	for _, post := range posts {
-		vpAccumulator += post.GetWeightedVp()
+		vp, _ := new(big.Int).SetString(post.GetWeightedVp(), 10)
+		vpAccumulator.Add(&vpAccumulator, vp)
+		//vpAccumulator += post.GetWeightedVp()
 	}
 	bigBlockRewards := new(big.Int).SetUint64(blockReward)
 	bigBlockDappReward := new(big.Int).SetUint64(blockDappReward)
@@ -299,18 +331,18 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 		var reward uint64 = 0
 		var beneficiaryReward uint64 = 0
 		// divide zero exception
-		if vpAccumulator > 0 {
-			bigVpAccumulator := new(big.Int).SetUint64(vpAccumulator)
+		if vpAccumulator.Cmp(new(big.Int).SetInt64(0)) > 0 {
+			//bigVpAccumulator := new(big.Int).SetUint64(vpAccumulator)
 			//reward = post.GetWeightedVp() * blockReward / vpAccumulator
 			//beneficiaryReward = post.GetWeightedVp() * blockDappReward / vpAccumulator
 			//spentPostReward += reward
 			//spentDappReward += beneficiaryReward
 			weightedVp := post.GetWeightedVp()
-			bigWeightedVp := new(big.Int).SetUint64(weightedVp)
+			bigWeightedVp, _ := new(big.Int).SetString(weightedVp, 10)
 			bigRewardMul := new(big.Int).Mul(bigWeightedVp,  bigBlockRewards)
-			reward = new(big.Int).Div(bigRewardMul, bigVpAccumulator).Uint64()
+			reward = new(big.Int).Div(bigRewardMul, &vpAccumulator).Uint64()
 			bigDappRewardMul := new(big.Int).Mul(bigWeightedVp, bigBlockDappReward)
-			beneficiaryReward = new(big.Int).Div(bigDappRewardMul, bigVpAccumulator).Uint64()
+			beneficiaryReward = new(big.Int).Div(bigDappRewardMul, &vpAccumulator).Uint64()
 			spentPostReward += reward
 			spentDappReward += beneficiaryReward
 		}
@@ -385,10 +417,13 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 	if err != nil {
 		panic("reply cashout get props failed")
 	}
-	var vpAccumulator uint64 = 0
+	//var vpAccumulator uint64 = 0
+	var vpAccumulator big.Int
 	for _, reply := range replies {
 		//vpAccumulator += ISqrt(reply.GetWeightedVp())
-		vpAccumulator += reply.GetWeightedVp()
+		//vpAccumulator += reply.GetWeightedVp()
+		vp, _ := new(big.Int).SetString(reply.GetWeightedVp(), 10)
+		vpAccumulator.Add(&vpAccumulator, vp)
 	}
 	bigBlockRewards := new(big.Int).SetUint64(blockReward)
 	bigBlockDappReward := new(big.Int).SetUint64(blockDappReward)
@@ -402,15 +437,15 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 		var beneficiaryReward uint64 = 0
 		//var voterReward uint64 = 0
 		// divide zero exception
-		if vpAccumulator > 0 {
-			bigVpAccumulator := new(big.Int).SetUint64(vpAccumulator)
+		if vpAccumulator.Cmp(new(big.Int).SetInt64(0)) > 0 {
+			//bigVpAccumulator := new(big.Int).SetUint64(vpAccumulator)
 			//weightedVp := ISqrt(reply.GetWeightedVp())
 			weightedVp := reply.GetWeightedVp()
-			bigWeightedVp := new(big.Int).SetUint64(weightedVp)
+			bigWeightedVp, _ := new(big.Int).SetString(weightedVp, 10)
 			bigRewardMul := new(big.Int).Mul(bigWeightedVp,  bigBlockRewards)
-			reward = new(big.Int).Div(bigRewardMul, bigVpAccumulator).Uint64()
+			reward = new(big.Int).Div(bigRewardMul, &vpAccumulator).Uint64()
 			bigDappRewardMul := new(big.Int).Mul(bigWeightedVp, bigBlockDappReward)
-			beneficiaryReward = new(big.Int).Div(bigDappRewardMul, bigVpAccumulator).Uint64()
+			beneficiaryReward = new(big.Int).Div(bigDappRewardMul, &vpAccumulator).Uint64()
 			spentReplyReward += reward
 			spentDappReward += beneficiaryReward
 		}
