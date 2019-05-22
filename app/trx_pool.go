@@ -38,7 +38,6 @@ type TrxPool struct {
 	db      iservices.IDatabaseService
 	log     *logrus.Logger
 	noticer EventBus.Bus
-	skip    prototype.SkipFlag
 	shuffle                common.ShuffleFunc
 
 	iceberg   *BlockIceberg
@@ -149,8 +148,6 @@ func (c *TrxPool) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag)
 }
 
 func (c *TrxPool) pushBlockNoLock(blk *prototype.SignedBlock, skip prototype.SkipFlag) (err error) {
-	oldFlag := c.skip
-	c.skip = skip
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -168,8 +165,6 @@ func (c *TrxPool) pushBlockNoLock(blk *prototype.SignedBlock, skip prototype.Ski
 			c.log.Debug("ICEBERG: EndBlock FALSE")
 			c.log.Errorf("push block fail,the error is %v,the block num is %v", r, blk.Id().BlockNum())
 		}
-		c.skip = oldFlag
-
 	}()
 
 	if skip&prototype.Skip_apply_transaction == 0 {
@@ -226,7 +221,7 @@ func (c *TrxPool) GenerateAndApplyBlock(witness string, pre *prototype.Sha256, t
 		close(blockChan)
 
 		if err == nil {
-			if err = c.pushBlockNoLock(newBlock, c.skip|prototype.Skip_apply_transaction|prototype.Skip_block_check); err != nil {
+			if err = c.pushBlockNoLock(newBlock, skip|prototype.Skip_apply_transaction|prototype.Skip_block_check); err != nil {
 				c.log.Errorf("pushBlockNoLock failed: %v", err)
 			}
 		}
@@ -257,12 +252,10 @@ func (c *TrxPool) generateBlockNoLock(witness string, pre *prototype.Sha256, tim
 		maxTimeout = 700 * time.Millisecond
 		minTimeout = 100 * time.Millisecond
 	)
-	oldSkip := c.skip
 
 	t0 := time.Now()
 
 	defer func() {
-		c.skip = oldSkip
 		if err := recover(); err != nil {
 			c.log.Debug("ICEBERG: EndBlock FALSE")
 			_ = c.iceberg.EndBlock(false)
@@ -271,8 +264,6 @@ func (c *TrxPool) generateBlockNoLock(witness string, pre *prototype.Sha256, tim
 			b, e = nil, fmt.Errorf("%v", err)
 		}
 	}()
-
-	c.skip = skip
 
 	pubkey, err := priKey.PubKey()
 	mustNoError(err, "get public key error")
@@ -458,16 +449,6 @@ func (c *TrxPool) getEvaluator(trxCtx *TrxContext, op *prototype.Operation) Base
 }
 
 func (c *TrxPool) applyBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag) {
-	oldFlag := c.skip
-	defer func() {
-		c.skip = oldFlag
-	}()
-
-	c.skip = skip
-	c.applyBlockInner(blk, skip)
-}
-
-func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.SkipFlag) {
 
 	if skip & prototype.Skip_block_check == 0 {
 		merkleRoot := blk.CalculateMerkleRoot()
