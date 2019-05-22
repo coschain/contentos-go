@@ -2,6 +2,7 @@ package utils
 
 import (
 	"github.com/coschain/contentos-go/common/constants"
+	"math/big"
 )
 
 type IConsumer interface {
@@ -40,8 +41,6 @@ type ResourceLimiter struct {
 func NewResourceLimiter() IResourceLimiter {
 	return IResourceLimiter(&ResourceLimiter{})
 }
-
-const PRECISION = 10000
 
 // recover minimum time gap
 const MIN_RECOVER_DURATION = 45
@@ -122,24 +121,6 @@ func (s *ResourceLimiter) UpdateDynamicStamina(tpsInWindow,oneDayStamina,trxCoun
 	return updateDynamicOneDayStamina(oneDayStamina,tpsInWindowNew/constants.TpsWindowSize)
 }
 
-func calculateEMA(oldTrxs, newTrxs uint64, lastTime uint64, now, period uint64) uint64 {
-	blocks := period
-	avgOld := divideCeil(oldTrxs*constants.LimitPrecision,blocks)
-	avgUse := divideCeil(newTrxs*constants.LimitPrecision,blocks)
-	if now > lastTime { // assert ?
-		if now < lastTime + blocks {
-			delta := now - lastTime
-			decay := float64(blocks - delta) / float64(blocks)
-			tmp := float64(avgOld) * decay
-			avgOld = uint64(tmp)
-		} else {
-			avgOld = 0
-		}
-	}
-	avgOld += avgUse
-	return avgOld * period / constants.LimitPrecision
-}
-
 func calculateTpsEMA(oldTrxs, newTrxs, lastTime, now uint64) uint64 {
 	return calculateEMA(oldTrxs, newTrxs, lastTime, now, constants.TpsWindowSize)
 }
@@ -159,4 +140,42 @@ func updateDynamicOneDayStamina(oldOneDayStamina, avgTps uint64) uint64 {
 		oldOneDayStamina = constants.OneDayStamina * 100
 	}
 	return oldOneDayStamina
+}
+
+func divideCeilBig(num,den *big.Int) *big.Int {
+	tmp := new(big.Int)
+	tmp.Div(num, den)
+	if num.Mod(num, den).Uint64() > 0 {
+		tmp.Add(tmp, big.NewInt(1))
+	}
+	return tmp
+}
+
+func calculateEMA(oldTrxs, newTrxs uint64, lastTime uint64, now, period uint64) uint64 {
+	blocks := big.NewInt(int64(period))
+	precisionBig := big.NewInt(constants.LimitPrecision)
+	oldTrxsBig := big.NewInt(int64(oldTrxs))
+	oldTrxsBig.Mul(oldTrxsBig, precisionBig)
+
+	newTrxsBig := big.NewInt(int64(newTrxs))
+	newTrxsBig.Mul(newTrxsBig, precisionBig)
+
+	avgOld := divideCeilBig(oldTrxsBig, blocks)
+	avgUse := divideCeilBig(newTrxsBig, blocks)
+	if now > lastTime { // assert ?
+		if now < lastTime+blocks.Uint64() {
+			delta := now - lastTime
+			gap := big.NewInt(int64(blocks.Uint64() - delta))
+			gap.Mul(gap, precisionBig)
+			decay := divideCeilBig(gap, blocks)
+
+			avgOld.Mul(avgOld, decay)
+			avgOld.Div(avgOld, precisionBig)
+		} else {
+			avgOld.SetUint64(0)
+		}
+	}
+	avgOld.Add(avgOld,avgUse)
+	avgOld.Mul(avgOld, blocks).Div(avgOld, precisionBig)
+	return avgOld.Uint64()
 }
