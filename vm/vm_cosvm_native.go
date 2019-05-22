@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/prototype"
-	"hash/crc32"
 )
 
 //type ICosVMNative interface {
@@ -71,27 +70,6 @@ func (w *CosVMNative) GetContractBalance(contract string, name string) uint64 {
 	ctct := table.NewSoContractWrap(w.cosVM.db, &prototype.ContractId{Owner: &prototype.AccountName{Value: name}, Cname: contract})
 	value := ctct.GetBalance().Value
 	return value
-}
-
-func (w *CosVMNative) SaveToStorage(key []byte, value []byte) {
-	crc32q := crc32.MakeTable(0xD5828281)
-	pos := int32(crc32.Checksum(key, crc32q))
-	contractDB := table.NewSoContractDataWrap(w.cosVM.db, &prototype.ContractDataId{Owner: w.cosVM.ctx.Owner,
-		Cname: w.cosVM.ctx.Contract, Pos: pos})
-	err := contractDB.Create(func(tInfo *table.SoContractData) {
-		tInfo.Key = key
-		tInfo.Value = value
-	})
-	w.CosAssert(err == nil, fmt.Sprintf("save to storage error"))
-}
-
-func (w *CosVMNative) ReadFromStorage(key []byte) (value []byte) {
-	crc32q := crc32.MakeTable(0xD5828281)
-	pos := int32(crc32.Checksum(key, crc32q))
-	contractDB := table.NewSoContractDataWrap(w.cosVM.db, &prototype.ContractDataId{Owner: w.cosVM.ctx.Owner,
-		Cname: w.cosVM.ctx.Contract, Pos: pos})
-	value = contractDB.GetValue()
-	return
 }
 
 func (w *CosVMNative) CosAssert(condition bool, msg string) {

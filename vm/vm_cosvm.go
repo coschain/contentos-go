@@ -50,8 +50,6 @@ func (w *CosVM) initNativeFuncs() {
 	w.Register("require_auth", e_requiredAuth, 200)
 	w.Register("get_user_balance", e_getUserBalance, 100)
 	w.Register("get_contract_balance", e_getContractBalance, 100)
-	w.Register("save_to_storage", e_saveToStorage, 1000)
-	w.Register("read_from_storage", e_readFromStorage, 300)
 	w.Register("cos_assert", e_cosAssert, 100)
 	w.Register("abort", e_cosAbort, 100)
 	w.Register("read_contract_op_params", e_readContractOpParams, 100)

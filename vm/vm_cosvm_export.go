@@ -69,27 +69,6 @@ func e_getContractBalance(proc *exec.Process, cPtr int32, cLen int32, nPtr int32
 	))
 }
 
-func e_saveToStorage(proc *exec.Process, pKey int32, kLen int32, pValue int32, vLen int32) {
-	w := proc.GetTag().(*CosVMNative)
-
-	w.SaveToStorage(
-		w.cosVM.read(proc, pKey, kLen, "saveToStorage().key"),
-		w.cosVM.read(proc, pValue, vLen, "saveToStorage().value"),
-	)
-}
-
-func e_readFromStorage(proc *exec.Process, pKey int32, kLen int32, pValue int32, vLen int32) int32 {
-	w := proc.GetTag().(*CosVMNative)
-
-	return w.cosVM.write(
-		proc,
-		w.ReadFromStorage(w.cosVM.read(proc, pKey, kLen, "readFromStorage().key")),
-		pValue,
-		vLen,
-		"readFromStorage().value",
-	)
-}
-
 func e_cosAssert(proc *exec.Process, condition int32, pStr int32, len int32) {
 	w := proc.GetTag().(*CosVMNative)
 
