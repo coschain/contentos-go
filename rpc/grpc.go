@@ -354,14 +354,17 @@ func (as *APIService) BroadcastTrx(ctx context.Context, req *grpcpb.BroadcastTrx
 	//result := make(chan *prototype.TransactionReceiptWithInfo)
 	trx := req.GetTransaction()
 
+	as.db.RLock()
 	keyMaps := trx.GetOpCreatorsMap()
 	for name := range keyMaps {
 		ok,have,need := as.pool.CheckNetForRPC(name,as.db,uint64(proto.Size(trx)))
 		if !ok {
+			as.db.RUnlock()
 			err := errors.New(fmt.Sprintf("rpc check net resource not enough, user:%v, have:%v, need:%v",name,have,need))
 			return &grpcpb.BroadcastTrxResponse{Invoice: nil, Status: prototype.StatusError}, err
 		}
 	}
+	as.db.RUnlock()
 
 	err := as.consensus.PushTransactionToPending(trx)
 	if err != nil {
