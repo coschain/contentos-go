@@ -1,3 +1,3 @@
 package common
 
-type ShuffleFunc func(head ISignedBlock)
+type ShuffleFunc func(head ISignedBlock) bool

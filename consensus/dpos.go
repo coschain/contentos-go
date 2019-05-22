@@ -111,9 +111,9 @@ func (d *DPoS) CurrentProducer() string {
 	return d.getScheduledProducer(slot)
 }
 
-func (d *DPoS) shuffle(head common.ISignedBlock) {
+func (d *DPoS) shuffle(head common.ISignedBlock) bool {
 	if head.Id().BlockNum()%uint64(len(d.Producers)) != 0 {
-		return
+		return false
 	}
 
 	// When a produce round complete, it adds new producers,
@@ -138,6 +138,7 @@ func (d *DPoS) shuffle(head common.ISignedBlock) {
 	d.Producers = prods
 	d.log.Debug("[DPoS shuffle] active producers: ", d.Producers)
 	d.ctrl.SetShuffledWitness(prods)
+	return true
 }
 
 func (d *DPoS) restoreProducers() {
@@ -159,8 +160,8 @@ func (d *DPoS) Start(node *node.Node) error {
 	d.p2p = p2p.(iservices.IP2P)
 	cfg := d.ctx.Config()
 	d.blog.Open(cfg.ResolvePath("blog"))
-	d.ctrl.SetShuffle(func(block common.ISignedBlock) {
-		d.shuffle(block)
+	d.ctrl.SetShuffle(func(block common.ISignedBlock) bool {
+		return d.shuffle(block)
 	})
 
 	d.log.Info("[DPoS] starting...")
