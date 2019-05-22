@@ -1,6 +1,9 @@
 package consensus
 
-import "container/list"
+import (
+	"container/list"
+	"github.com/coschain/gobft/message"
+)
 
 type Dynasty struct {
 	Seq uint64
@@ -18,6 +21,15 @@ func NewDynasty(n uint64, vs []*publicValidator, p *privateValidator) *Dynasty {
 
 func (d *Dynasty) GetValidatorNum() int {
 	return len(d.validators)
+}
+
+func (d *Dynasty) GetValidatorByPubKey(k message.PubKey) *publicValidator {
+	for i := range d.validators {
+		if d.validators[i].bftPubKey == k {
+			return d.validators[i]
+		}
+	}
+	return nil
 }
 
 type Dynasties struct {

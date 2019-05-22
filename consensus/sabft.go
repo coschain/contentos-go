@@ -613,36 +613,26 @@ func (sabft *SABFT) Push(msg interface{}) {
 	}
 }
 
-func (sabft *SABFT) VerifyCommitSig(records *message.Commit) bool {
-	sabft.RLock()
-	defer sabft.RUnlock()
-
-	return sabft.verifyCommitSig(records)
-}
-
 func (sabft *SABFT) verifyCommitSig(records *message.Commit) bool {
 	for i := range records.Precommits {
-		val := sabft.getValidator(records.Precommits[i].Address)
+		//val := sabft.getValidator(records.Precommits[i].Address)
+		val := sabft.dynasties.Front().GetValidatorByPubKey(records.Precommits[i].Address)
 		if val == nil {
 			sabft.log.Errorf("[SABFT] error while checking precommits: %s is not a validator", records.Precommits[i].Address)
 			return false
 		}
-		sabft.RUnlock()
 		v := val.VerifySig(records.Precommits[i].Digest(), records.Precommits[i].Signature)
-		sabft.RLock()
 		if !v {
 			sabft.log.Error("[SABFT] precommits verification failed")
 			return false
 		}
 	}
-	val := sabft.getValidator(records.Address)
+	val := sabft.dynasties.Front().GetValidatorByPubKey(records.Address)
 	if val == nil {
 		sabft.log.Errorf("[SABFT] error while checking commits. %s is not a validator", string(records.Address))
 		return false
 	}
-	sabft.RUnlock()
 	v := val.VerifySig(records.Digest(), records.Signature)
-	sabft.RLock()
 	if !v {
 		sabft.log.Error("[SABFT] verification failed")
 		return false

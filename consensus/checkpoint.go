@@ -158,10 +158,9 @@ func (cp *BFTCheckPoint) IsNextCheckPoint(commit *message.Commit) bool {
 }
 
 func (cp *BFTCheckPoint) Validate(commit *message.Commit) bool {
-	// TODO: base validators on last committed block
-	//if !cp.sabft.VerifyCommitSig(commit) {
-	//	return false
-	//}
+	if !cp.sabft.verifyCommitSig(commit) {
+		return false
+	}
 	return true
 }
 
