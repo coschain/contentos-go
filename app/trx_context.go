@@ -208,19 +208,6 @@ func NewTrxContextWithSigningKey(wrapper *prototype.TransactionWrapper, db iserv
 	}
 }
 
-func (p *TrxContext) InitSigState(cid prototype.ChainId) error {
-	pub, err := p.Wrapper.SigTrx.ExportPubKeys(cid)
-	if err != nil {
-		return err
-	}
-	p.recoverPubs = append(p.recoverPubs, pub)
-	return nil
-}
-
-func (p *TrxContext) VerifySignature() {
-	p.verifyAuthority(2, p.authGetter)
-}
-
 func (p *TrxContext) verifyAuthority(maxDepth uint32, owner AuthorityGetter) {
 	//keyMaps := obtainKeyMap(p.Wrapper.SigTrx.Trx.Operations)
 	keyMaps := p.Wrapper.SigTrx.GetOpCreatorsMap()
