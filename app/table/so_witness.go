@@ -1,10 +1,10 @@
 package table
 
 import (
+	"encoding/json"
 	"errors"
 	fmt "fmt"
 	"reflect"
-	"strings"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -14,39 +14,28 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	WitnessOwnerTable                uint32 = 3588322158
-	WitnessVoteCountTable            uint32 = 2256540653
-	WitnessOwnerUniTable             uint32 = 2680327584
-	WitnessActiveCell                uint32 = 1638337923
-	WitnessCreatedTimeCell           uint32 = 732260124
-	WitnessLastAslotCell             uint32 = 2989050122
-	WitnessLastConfirmedBlockNumCell uint32 = 4183878646
-	WitnessLastWorkCell              uint32 = 3441432781
-	WitnessOwnerCell                 uint32 = 3659272213
-	WitnessPowWorkerCell             uint32 = 217317251
-	WitnessProposedStaminaFreeCell   uint32 = 1501150566
-	WitnessRunningVersionCell        uint32 = 3359126320
-	WitnessSigningKeyCell            uint32 = 2433568317
-	WitnessTotalMissedCell           uint32 = 348210894
-	WitnessTpsExpectedCell           uint32 = 2661903099
-	WitnessUrlCell                   uint32 = 261756480
-	WitnessVoteCountCell             uint32 = 149922791
+	WitnessOwnerTable     uint32 = 3588322158
+	WitnessVoteCountTable uint32 = 2256540653
+	WitnessOwnerUniTable  uint32 = 2680327584
+
+	WitnessOwnerRow uint32 = 514612480
 )
 
 ////////////// SECTION Wrap Define ///////////////
 type SoWitnessWrap struct {
-	dba      iservices.IDatabaseRW
-	mainKey  *prototype.AccountName
-	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf  []byte //the buffer after the main key is encoded with prefix
-	mBuf     []byte //the value after the main key is encoded
+	dba       iservices.IDatabaseRW
+	mainKey   *prototype.AccountName
+	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
+	mBuf      []byte //the value after the main key is encoded
+	mdFuncMap map[string]interface{}
 }
 
 func NewSoWitnessWrap(dba iservices.IDatabaseRW, key *prototype.AccountName) *SoWitnessWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoWitnessWrap{dba, key, -1, nil, nil}
+	result := &SoWitnessWrap{dba, key, -1, nil, nil, nil}
 	return result
 }
 
@@ -98,9 +87,13 @@ func (s *SoWitnessWrap) Create(f func(tInfo *SoWitness)) error {
 		return err
 
 	}
-	err = s.saveAllMemKeys(val, true)
+
+	buf, err := proto.Marshal(val)
 	if err != nil {
-		s.delAllMemKeys(false, val)
+		return err
+	}
+	err = s.dba.Put(keyBuf, buf)
+	if err != nil {
 		return err
 	}
 
@@ -108,7 +101,6 @@ func (s *SoWitnessWrap) Create(f func(tInfo *SoWitness)) error {
 	if err = s.insertAllSortKeys(val); err != nil {
 		s.delAllSortKeys(false, val)
 		s.dba.Delete(keyBuf)
-		s.delAllMemKeys(false, val)
 		return err
 	}
 
@@ -117,7 +109,6 @@ func (s *SoWitnessWrap) Create(f func(tInfo *SoWitness)) error {
 		s.delAllSortKeys(false, val)
 		s.delUniKeysWithNames(sucNames, val)
 		s.dba.Delete(keyBuf)
-		s.delAllMemKeys(false, val)
 		return err
 	}
 
@@ -138,6 +129,113 @@ func (s *SoWitnessWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
+func (s *SoWitnessWrap) Md(f func(tInfo *SoWitness)) error {
+	t := &SoWitness{}
+	f(t)
+	js, err := json.Marshal(t)
+	if err != nil {
+		return err
+	}
+	fMap := make(map[string]interface{})
+	err = json.Unmarshal(js, &fMap)
+	if err != nil {
+		return err
+	}
+
+	mKeyName := "Owner"
+	mKeyField := ""
+	for name, _ := range fMap {
+		if ConvTableFieldToPbFormat(name) == mKeyName {
+			mKeyField = name
+			break
+		}
+	}
+	if len(mKeyField) > 0 {
+		delete(fMap, mKeyField)
+	}
+
+	if len(fMap) < 1 {
+		return errors.New("can't' modify empty struct")
+	}
+
+	sa := s.getWitness()
+	if sa == nil {
+		return errors.New("fail to get table SoWitness")
+	}
+
+	refVal := reflect.ValueOf(*t)
+	el := reflect.ValueOf(sa).Elem()
+
+	//check unique
+	err = s.handleFieldMd(FieldMdHandleTypeCheck, t, fMap)
+	if err != nil {
+		return err
+	}
+
+	//delete sort and unique key
+	err = s.handleFieldMd(FieldMdHandleTypeDel, sa, fMap)
+	if err != nil {
+		return err
+	}
+
+	//update table
+	for f, _ := range fMap {
+		fName := ConvTableFieldToPbFormat(f)
+		val := refVal.FieldByName(fName)
+		if _, ok := s.mdFuncMap[fName]; ok {
+			el.FieldByName(fName).Set(val)
+		}
+	}
+	err = s.updateWitness(sa)
+	if err != nil {
+		return err
+	}
+
+	//insert sort and unique key
+	err = s.handleFieldMd(FieldMdHandleTypeInsert, sa, fMap)
+	if err != nil {
+		return err
+	}
+
+	return err
+
+}
+
+func (s *SoWitnessWrap) handleFieldMd(t FieldMdHandleType, so *SoWitness, fMap map[string]interface{}) error {
+	if so == nil || fMap == nil {
+		return errors.New("fail to modify empty table")
+	}
+
+	mdFuncMap := s.getMdFuncMap()
+	if len(mdFuncMap) < 1 {
+		return errors.New("there is not exsit md function to md field")
+	}
+	errStr := ""
+	refVal := reflect.ValueOf(*so)
+	for f, _ := range fMap {
+		fName := ConvTableFieldToPbFormat(f)
+		val := refVal.FieldByName(fName)
+		if _, ok := mdFuncMap[fName]; ok {
+			f := reflect.ValueOf(s.mdFuncMap[fName])
+			p := []reflect.Value{val, reflect.ValueOf(true), reflect.ValueOf(false), reflect.ValueOf(false), reflect.ValueOf(so)}
+			errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			if t == FieldMdHandleTypeDel {
+				p = []reflect.Value{val, reflect.ValueOf(false), reflect.ValueOf(true), reflect.ValueOf(false), reflect.ValueOf(so)}
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				p = []reflect.Value{val, reflect.ValueOf(false), reflect.ValueOf(false), reflect.ValueOf(true), reflect.ValueOf(so)}
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			res := f.Call(p)
+			if !(res[0].Bool()) {
+				return errors.New(errStr)
+			}
+		}
+	}
+
+	return nil
+}
+
 ////////////// SECTION LKeys delete/insert ///////////////
 
 func (s *SoWitnessWrap) delSortKeyOwner(sa *SoWitness) bool {
@@ -146,20 +244,7 @@ func (s *SoWitnessWrap) delSortKeyOwner(sa *SoWitness) bool {
 	}
 	val := SoListWitnessByOwner{}
 	if sa == nil {
-		key, err := s.encodeMemKey("Owner")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemWitnessByOwner{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		val.Owner = ori.Owner
+		val.Owner = s.GetOwner()
 	} else {
 		val.Owner = sa.Owner
 	}
@@ -196,20 +281,7 @@ func (s *SoWitnessWrap) delSortKeyVoteCount(sa *SoWitness) bool {
 	}
 	val := SoListWitnessByVoteCount{}
 	if sa == nil {
-		key, err := s.encodeMemKey("VoteCount")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemWitnessByVoteCount{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		val.VoteCount = ori.VoteCount
+		val.VoteCount = s.GetVoteCount()
 		val.Owner = s.mainKey
 
 	} else {
@@ -249,13 +321,7 @@ func (s *SoWitnessWrap) delAllSortKeys(br bool, val *SoWitness) bool {
 		return false
 	}
 	res := true
-	if !s.delSortKeyOwner(val) {
-		if br {
-			return false
-		} else {
-			res = false
-		}
-	}
+
 	if !s.delSortKeyVoteCount(val) {
 		if br {
 			return false
@@ -274,9 +340,7 @@ func (s *SoWitnessWrap) insertAllSortKeys(val *SoWitness) error {
 	if val == nil {
 		return errors.New("insert sort Field fail,get the SoWitness fail ")
 	}
-	if !s.insertSortKeyOwner(val) {
-		return errors.New("insert sort Field Owner fail while insert table ")
-	}
+
 	if !s.insertSortKeyVoteCount(val) {
 		return errors.New("insert sort Field VoteCount fail while insert table ")
 	}
@@ -290,7 +354,6 @@ func (s *SoWitnessWrap) RemoveWitness() bool {
 	if s.dba == nil {
 		return false
 	}
-	val := &SoWitness{}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
 		return false
@@ -301,7 +364,12 @@ func (s *SoWitnessWrap) RemoveWitness() bool {
 		return false
 	}
 
-	err := s.delAllMemKeys(true, val)
+	//delete table
+	key, err := s.encodeMainKey()
+	if err != nil {
+		return false
+	}
+	err = s.dba.Delete(key)
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
@@ -312,254 +380,14 @@ func (s *SoWitnessWrap) RemoveWitness() bool {
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
-func (s *SoWitnessWrap) getMemKeyPrefix(fName string) uint32 {
-	if fName == "Active" {
-		return WitnessActiveCell
-	}
-	if fName == "CreatedTime" {
-		return WitnessCreatedTimeCell
-	}
-	if fName == "LastAslot" {
-		return WitnessLastAslotCell
-	}
-	if fName == "LastConfirmedBlockNum" {
-		return WitnessLastConfirmedBlockNumCell
-	}
-	if fName == "LastWork" {
-		return WitnessLastWorkCell
-	}
-	if fName == "Owner" {
-		return WitnessOwnerCell
-	}
-	if fName == "PowWorker" {
-		return WitnessPowWorkerCell
-	}
-	if fName == "ProposedStaminaFree" {
-		return WitnessProposedStaminaFreeCell
-	}
-	if fName == "RunningVersion" {
-		return WitnessRunningVersionCell
-	}
-	if fName == "SigningKey" {
-		return WitnessSigningKeyCell
-	}
-	if fName == "TotalMissed" {
-		return WitnessTotalMissedCell
-	}
-	if fName == "TpsExpected" {
-		return WitnessTpsExpectedCell
-	}
-	if fName == "Url" {
-		return WitnessUrlCell
-	}
-	if fName == "VoteCount" {
-		return WitnessVoteCountCell
-	}
-
-	return 0
-}
-
-func (s *SoWitnessWrap) encodeMemKey(fName string) ([]byte, error) {
-	if len(fName) < 1 || s.mainKey == nil {
-		return nil, errors.New("field name or main key is empty")
-	}
-	pre := s.getMemKeyPrefix(fName)
-	preBuf, err := kope.Encode(pre)
-	if err != nil {
-		return nil, err
-	}
-	mBuf, err := s.getMainKeyBuf()
-	if err != nil {
-		return nil, err
-	}
-	list := make([][]byte, 2)
-	list[0] = preBuf
-	list[1] = mBuf
-	return kope.PackList(list), nil
-}
-
-func (s *SoWitnessWrap) saveAllMemKeys(tInfo *SoWitness, br bool) error {
-	if s.dba == nil {
-		return errors.New("save member Field fail , the db is nil")
-	}
-
-	if tInfo == nil {
-		return errors.New("save member Field fail , the data is nil ")
-	}
-	var err error = nil
-	errDes := ""
-	if err = s.saveMemKeyActive(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Active", err)
-		}
-	}
-	if err = s.saveMemKeyCreatedTime(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "CreatedTime", err)
-		}
-	}
-	if err = s.saveMemKeyLastAslot(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "LastAslot", err)
-		}
-	}
-	if err = s.saveMemKeyLastConfirmedBlockNum(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "LastConfirmedBlockNum", err)
-		}
-	}
-	if err = s.saveMemKeyLastWork(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "LastWork", err)
-		}
-	}
-	if err = s.saveMemKeyOwner(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Owner", err)
-		}
-	}
-	if err = s.saveMemKeyPowWorker(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "PowWorker", err)
-		}
-	}
-	if err = s.saveMemKeyProposedStaminaFree(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "ProposedStaminaFree", err)
-		}
-	}
-	if err = s.saveMemKeyRunningVersion(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "RunningVersion", err)
-		}
-	}
-	if err = s.saveMemKeySigningKey(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "SigningKey", err)
-		}
-	}
-	if err = s.saveMemKeyTotalMissed(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "TotalMissed", err)
-		}
-	}
-	if err = s.saveMemKeyTpsExpected(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "TpsExpected", err)
-		}
-	}
-	if err = s.saveMemKeyUrl(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Url", err)
-		}
-	}
-	if err = s.saveMemKeyVoteCount(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "VoteCount", err)
-		}
-	}
-
-	if len(errDes) > 0 {
-		return errors.New(errDes)
-	}
-	return err
-}
-
-func (s *SoWitnessWrap) delAllMemKeys(br bool, tInfo *SoWitness) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	t := reflect.TypeOf(*tInfo)
-	errDesc := ""
-	for k := 0; k < t.NumField(); k++ {
-		name := t.Field(k).Name
-		if len(name) > 0 && !strings.HasPrefix(name, "XXX_") {
-			err := s.delMemKey(name)
-			if err != nil {
-				if br {
-					return err
-				}
-				errDesc += fmt.Sprintf("delete the Field %s fail,error is %s;\n", name, err)
-			}
-		}
-	}
-	if len(errDesc) > 0 {
-		return errors.New(errDesc)
-	}
-	return nil
-}
-
-func (s *SoWitnessWrap) delMemKey(fName string) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if len(fName) <= 0 {
-		return errors.New("the field name is empty ")
-	}
-	key, err := s.encodeMemKey(fName)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Delete(key)
-	return err
-}
-
-func (s *SoWitnessWrap) saveMemKeyActive(tInfo *SoWitness) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemWitnessByActive{}
-	val.Active = tInfo.Active
-	key, err := s.encodeMemKey("Active")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
 
 func (s *SoWitnessWrap) GetActive() bool {
 	res := true
-	msg := &SoMemWitnessByActive{}
+	msg := &SoWitness{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Active")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -582,67 +410,66 @@ func (s *SoWitnessWrap) GetActive() bool {
 	return msg.Active
 }
 
-func (s *SoWitnessWrap) MdActive(p bool) bool {
+func (s *SoWitnessWrap) mdFieldActive(p bool, isCheck bool, isDel bool, isInsert bool,
+	so *SoWitness) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("Active")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemWitnessByActive{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoWitness{}
-	sa.Owner = s.mainKey
 
-	sa.Active = ori.Active
+	if isCheck {
+		res := s.checkActiveIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.Active = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldActive(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldActive(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoWitnessWrap) delFieldActive(so *SoWitness) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.Active = p
 
 	return true
 }
 
-func (s *SoWitnessWrap) saveMemKeyCreatedTime(tInfo *SoWitness) error {
+func (s *SoWitnessWrap) insertFieldActive(so *SoWitness) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoWitnessWrap) checkActiveIsMetMdCondition(p bool) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemWitnessByCreatedTime{}
-	val.CreatedTime = tInfo.CreatedTime
-	key, err := s.encodeMemKey("CreatedTime")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoWitnessWrap) GetCreatedTime() *prototype.TimePointSec {
 	res := true
-	msg := &SoMemWitnessByCreatedTime{}
+	msg := &SoWitness{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("CreatedTime")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -665,67 +492,66 @@ func (s *SoWitnessWrap) GetCreatedTime() *prototype.TimePointSec {
 	return msg.CreatedTime
 }
 
-func (s *SoWitnessWrap) MdCreatedTime(p *prototype.TimePointSec) bool {
+func (s *SoWitnessWrap) mdFieldCreatedTime(p *prototype.TimePointSec, isCheck bool, isDel bool, isInsert bool,
+	so *SoWitness) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("CreatedTime")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemWitnessByCreatedTime{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoWitness{}
-	sa.Owner = s.mainKey
 
-	sa.CreatedTime = ori.CreatedTime
+	if isCheck {
+		res := s.checkCreatedTimeIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.CreatedTime = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldCreatedTime(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldCreatedTime(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoWitnessWrap) delFieldCreatedTime(so *SoWitness) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.CreatedTime = p
 
 	return true
 }
 
-func (s *SoWitnessWrap) saveMemKeyLastAslot(tInfo *SoWitness) error {
+func (s *SoWitnessWrap) insertFieldCreatedTime(so *SoWitness) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoWitnessWrap) checkCreatedTimeIsMetMdCondition(p *prototype.TimePointSec) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemWitnessByLastAslot{}
-	val.LastAslot = tInfo.LastAslot
-	key, err := s.encodeMemKey("LastAslot")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoWitnessWrap) GetLastAslot() uint32 {
 	res := true
-	msg := &SoMemWitnessByLastAslot{}
+	msg := &SoWitness{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("LastAslot")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -748,67 +574,66 @@ func (s *SoWitnessWrap) GetLastAslot() uint32 {
 	return msg.LastAslot
 }
 
-func (s *SoWitnessWrap) MdLastAslot(p uint32) bool {
+func (s *SoWitnessWrap) mdFieldLastAslot(p uint32, isCheck bool, isDel bool, isInsert bool,
+	so *SoWitness) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("LastAslot")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemWitnessByLastAslot{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoWitness{}
-	sa.Owner = s.mainKey
 
-	sa.LastAslot = ori.LastAslot
+	if isCheck {
+		res := s.checkLastAslotIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.LastAslot = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldLastAslot(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldLastAslot(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoWitnessWrap) delFieldLastAslot(so *SoWitness) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.LastAslot = p
 
 	return true
 }
 
-func (s *SoWitnessWrap) saveMemKeyLastConfirmedBlockNum(tInfo *SoWitness) error {
+func (s *SoWitnessWrap) insertFieldLastAslot(so *SoWitness) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoWitnessWrap) checkLastAslotIsMetMdCondition(p uint32) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemWitnessByLastConfirmedBlockNum{}
-	val.LastConfirmedBlockNum = tInfo.LastConfirmedBlockNum
-	key, err := s.encodeMemKey("LastConfirmedBlockNum")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoWitnessWrap) GetLastConfirmedBlockNum() uint32 {
 	res := true
-	msg := &SoMemWitnessByLastConfirmedBlockNum{}
+	msg := &SoWitness{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("LastConfirmedBlockNum")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -831,67 +656,66 @@ func (s *SoWitnessWrap) GetLastConfirmedBlockNum() uint32 {
 	return msg.LastConfirmedBlockNum
 }
 
-func (s *SoWitnessWrap) MdLastConfirmedBlockNum(p uint32) bool {
+func (s *SoWitnessWrap) mdFieldLastConfirmedBlockNum(p uint32, isCheck bool, isDel bool, isInsert bool,
+	so *SoWitness) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("LastConfirmedBlockNum")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemWitnessByLastConfirmedBlockNum{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoWitness{}
-	sa.Owner = s.mainKey
 
-	sa.LastConfirmedBlockNum = ori.LastConfirmedBlockNum
+	if isCheck {
+		res := s.checkLastConfirmedBlockNumIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.LastConfirmedBlockNum = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldLastConfirmedBlockNum(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldLastConfirmedBlockNum(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoWitnessWrap) delFieldLastConfirmedBlockNum(so *SoWitness) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.LastConfirmedBlockNum = p
 
 	return true
 }
 
-func (s *SoWitnessWrap) saveMemKeyLastWork(tInfo *SoWitness) error {
+func (s *SoWitnessWrap) insertFieldLastConfirmedBlockNum(so *SoWitness) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoWitnessWrap) checkLastConfirmedBlockNumIsMetMdCondition(p uint32) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemWitnessByLastWork{}
-	val.LastWork = tInfo.LastWork
-	key, err := s.encodeMemKey("LastWork")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoWitnessWrap) GetLastWork() *prototype.Sha256 {
 	res := true
-	msg := &SoMemWitnessByLastWork{}
+	msg := &SoWitness{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("LastWork")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -914,67 +738,66 @@ func (s *SoWitnessWrap) GetLastWork() *prototype.Sha256 {
 	return msg.LastWork
 }
 
-func (s *SoWitnessWrap) MdLastWork(p *prototype.Sha256) bool {
+func (s *SoWitnessWrap) mdFieldLastWork(p *prototype.Sha256, isCheck bool, isDel bool, isInsert bool,
+	so *SoWitness) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("LastWork")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemWitnessByLastWork{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoWitness{}
-	sa.Owner = s.mainKey
 
-	sa.LastWork = ori.LastWork
+	if isCheck {
+		res := s.checkLastWorkIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.LastWork = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldLastWork(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldLastWork(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoWitnessWrap) delFieldLastWork(so *SoWitness) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.LastWork = p
 
 	return true
 }
 
-func (s *SoWitnessWrap) saveMemKeyOwner(tInfo *SoWitness) error {
+func (s *SoWitnessWrap) insertFieldLastWork(so *SoWitness) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoWitnessWrap) checkLastWorkIsMetMdCondition(p *prototype.Sha256) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemWitnessByOwner{}
-	val.Owner = tInfo.Owner
-	key, err := s.encodeMemKey("Owner")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoWitnessWrap) GetOwner() *prototype.AccountName {
 	res := true
-	msg := &SoMemWitnessByOwner{}
+	msg := &SoWitness{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Owner")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -997,34 +820,13 @@ func (s *SoWitnessWrap) GetOwner() *prototype.AccountName {
 	return msg.Owner
 }
 
-func (s *SoWitnessWrap) saveMemKeyPowWorker(tInfo *SoWitness) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemWitnessByPowWorker{}
-	val.PowWorker = tInfo.PowWorker
-	key, err := s.encodeMemKey("PowWorker")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
-
 func (s *SoWitnessWrap) GetPowWorker() uint32 {
 	res := true
-	msg := &SoMemWitnessByPowWorker{}
+	msg := &SoWitness{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("PowWorker")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -1047,67 +849,66 @@ func (s *SoWitnessWrap) GetPowWorker() uint32 {
 	return msg.PowWorker
 }
 
-func (s *SoWitnessWrap) MdPowWorker(p uint32) bool {
+func (s *SoWitnessWrap) mdFieldPowWorker(p uint32, isCheck bool, isDel bool, isInsert bool,
+	so *SoWitness) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("PowWorker")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemWitnessByPowWorker{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoWitness{}
-	sa.Owner = s.mainKey
 
-	sa.PowWorker = ori.PowWorker
+	if isCheck {
+		res := s.checkPowWorkerIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.PowWorker = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldPowWorker(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldPowWorker(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoWitnessWrap) delFieldPowWorker(so *SoWitness) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.PowWorker = p
 
 	return true
 }
 
-func (s *SoWitnessWrap) saveMemKeyProposedStaminaFree(tInfo *SoWitness) error {
+func (s *SoWitnessWrap) insertFieldPowWorker(so *SoWitness) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoWitnessWrap) checkPowWorkerIsMetMdCondition(p uint32) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemWitnessByProposedStaminaFree{}
-	val.ProposedStaminaFree = tInfo.ProposedStaminaFree
-	key, err := s.encodeMemKey("ProposedStaminaFree")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoWitnessWrap) GetProposedStaminaFree() uint64 {
 	res := true
-	msg := &SoMemWitnessByProposedStaminaFree{}
+	msg := &SoWitness{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("ProposedStaminaFree")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -1130,67 +931,66 @@ func (s *SoWitnessWrap) GetProposedStaminaFree() uint64 {
 	return msg.ProposedStaminaFree
 }
 
-func (s *SoWitnessWrap) MdProposedStaminaFree(p uint64) bool {
+func (s *SoWitnessWrap) mdFieldProposedStaminaFree(p uint64, isCheck bool, isDel bool, isInsert bool,
+	so *SoWitness) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("ProposedStaminaFree")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemWitnessByProposedStaminaFree{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoWitness{}
-	sa.Owner = s.mainKey
 
-	sa.ProposedStaminaFree = ori.ProposedStaminaFree
+	if isCheck {
+		res := s.checkProposedStaminaFreeIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.ProposedStaminaFree = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldProposedStaminaFree(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldProposedStaminaFree(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoWitnessWrap) delFieldProposedStaminaFree(so *SoWitness) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.ProposedStaminaFree = p
 
 	return true
 }
 
-func (s *SoWitnessWrap) saveMemKeyRunningVersion(tInfo *SoWitness) error {
+func (s *SoWitnessWrap) insertFieldProposedStaminaFree(so *SoWitness) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoWitnessWrap) checkProposedStaminaFreeIsMetMdCondition(p uint64) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemWitnessByRunningVersion{}
-	val.RunningVersion = tInfo.RunningVersion
-	key, err := s.encodeMemKey("RunningVersion")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoWitnessWrap) GetRunningVersion() uint32 {
 	res := true
-	msg := &SoMemWitnessByRunningVersion{}
+	msg := &SoWitness{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("RunningVersion")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -1213,67 +1013,66 @@ func (s *SoWitnessWrap) GetRunningVersion() uint32 {
 	return msg.RunningVersion
 }
 
-func (s *SoWitnessWrap) MdRunningVersion(p uint32) bool {
+func (s *SoWitnessWrap) mdFieldRunningVersion(p uint32, isCheck bool, isDel bool, isInsert bool,
+	so *SoWitness) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("RunningVersion")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemWitnessByRunningVersion{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoWitness{}
-	sa.Owner = s.mainKey
 
-	sa.RunningVersion = ori.RunningVersion
+	if isCheck {
+		res := s.checkRunningVersionIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.RunningVersion = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldRunningVersion(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldRunningVersion(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoWitnessWrap) delFieldRunningVersion(so *SoWitness) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.RunningVersion = p
 
 	return true
 }
 
-func (s *SoWitnessWrap) saveMemKeySigningKey(tInfo *SoWitness) error {
+func (s *SoWitnessWrap) insertFieldRunningVersion(so *SoWitness) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoWitnessWrap) checkRunningVersionIsMetMdCondition(p uint32) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemWitnessBySigningKey{}
-	val.SigningKey = tInfo.SigningKey
-	key, err := s.encodeMemKey("SigningKey")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoWitnessWrap) GetSigningKey() *prototype.PublicKeyType {
 	res := true
-	msg := &SoMemWitnessBySigningKey{}
+	msg := &SoWitness{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("SigningKey")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -1296,67 +1095,66 @@ func (s *SoWitnessWrap) GetSigningKey() *prototype.PublicKeyType {
 	return msg.SigningKey
 }
 
-func (s *SoWitnessWrap) MdSigningKey(p *prototype.PublicKeyType) bool {
+func (s *SoWitnessWrap) mdFieldSigningKey(p *prototype.PublicKeyType, isCheck bool, isDel bool, isInsert bool,
+	so *SoWitness) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("SigningKey")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemWitnessBySigningKey{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoWitness{}
-	sa.Owner = s.mainKey
 
-	sa.SigningKey = ori.SigningKey
+	if isCheck {
+		res := s.checkSigningKeyIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.SigningKey = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldSigningKey(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldSigningKey(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoWitnessWrap) delFieldSigningKey(so *SoWitness) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.SigningKey = p
 
 	return true
 }
 
-func (s *SoWitnessWrap) saveMemKeyTotalMissed(tInfo *SoWitness) error {
+func (s *SoWitnessWrap) insertFieldSigningKey(so *SoWitness) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoWitnessWrap) checkSigningKeyIsMetMdCondition(p *prototype.PublicKeyType) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemWitnessByTotalMissed{}
-	val.TotalMissed = tInfo.TotalMissed
-	key, err := s.encodeMemKey("TotalMissed")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoWitnessWrap) GetTotalMissed() uint32 {
 	res := true
-	msg := &SoMemWitnessByTotalMissed{}
+	msg := &SoWitness{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("TotalMissed")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -1379,67 +1177,66 @@ func (s *SoWitnessWrap) GetTotalMissed() uint32 {
 	return msg.TotalMissed
 }
 
-func (s *SoWitnessWrap) MdTotalMissed(p uint32) bool {
+func (s *SoWitnessWrap) mdFieldTotalMissed(p uint32, isCheck bool, isDel bool, isInsert bool,
+	so *SoWitness) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("TotalMissed")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemWitnessByTotalMissed{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoWitness{}
-	sa.Owner = s.mainKey
 
-	sa.TotalMissed = ori.TotalMissed
+	if isCheck {
+		res := s.checkTotalMissedIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.TotalMissed = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldTotalMissed(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldTotalMissed(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoWitnessWrap) delFieldTotalMissed(so *SoWitness) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.TotalMissed = p
 
 	return true
 }
 
-func (s *SoWitnessWrap) saveMemKeyTpsExpected(tInfo *SoWitness) error {
+func (s *SoWitnessWrap) insertFieldTotalMissed(so *SoWitness) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoWitnessWrap) checkTotalMissedIsMetMdCondition(p uint32) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemWitnessByTpsExpected{}
-	val.TpsExpected = tInfo.TpsExpected
-	key, err := s.encodeMemKey("TpsExpected")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoWitnessWrap) GetTpsExpected() uint64 {
 	res := true
-	msg := &SoMemWitnessByTpsExpected{}
+	msg := &SoWitness{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("TpsExpected")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -1462,67 +1259,66 @@ func (s *SoWitnessWrap) GetTpsExpected() uint64 {
 	return msg.TpsExpected
 }
 
-func (s *SoWitnessWrap) MdTpsExpected(p uint64) bool {
+func (s *SoWitnessWrap) mdFieldTpsExpected(p uint64, isCheck bool, isDel bool, isInsert bool,
+	so *SoWitness) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("TpsExpected")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemWitnessByTpsExpected{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoWitness{}
-	sa.Owner = s.mainKey
 
-	sa.TpsExpected = ori.TpsExpected
+	if isCheck {
+		res := s.checkTpsExpectedIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.TpsExpected = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldTpsExpected(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldTpsExpected(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoWitnessWrap) delFieldTpsExpected(so *SoWitness) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.TpsExpected = p
 
 	return true
 }
 
-func (s *SoWitnessWrap) saveMemKeyUrl(tInfo *SoWitness) error {
+func (s *SoWitnessWrap) insertFieldTpsExpected(so *SoWitness) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoWitnessWrap) checkTpsExpectedIsMetMdCondition(p uint64) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemWitnessByUrl{}
-	val.Url = tInfo.Url
-	key, err := s.encodeMemKey("Url")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoWitnessWrap) GetUrl() string {
 	res := true
-	msg := &SoMemWitnessByUrl{}
+	msg := &SoWitness{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Url")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -1545,67 +1341,66 @@ func (s *SoWitnessWrap) GetUrl() string {
 	return msg.Url
 }
 
-func (s *SoWitnessWrap) MdUrl(p string) bool {
+func (s *SoWitnessWrap) mdFieldUrl(p string, isCheck bool, isDel bool, isInsert bool,
+	so *SoWitness) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("Url")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemWitnessByUrl{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoWitness{}
-	sa.Owner = s.mainKey
 
-	sa.Url = ori.Url
+	if isCheck {
+		res := s.checkUrlIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.Url = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldUrl(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldUrl(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoWitnessWrap) delFieldUrl(so *SoWitness) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.Url = p
 
 	return true
 }
 
-func (s *SoWitnessWrap) saveMemKeyVoteCount(tInfo *SoWitness) error {
+func (s *SoWitnessWrap) insertFieldUrl(so *SoWitness) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoWitnessWrap) checkUrlIsMetMdCondition(p string) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemWitnessByVoteCount{}
-	val.VoteCount = tInfo.VoteCount
-	key, err := s.encodeMemKey("VoteCount")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoWitnessWrap) GetVoteCount() uint64 {
 	res := true
-	msg := &SoMemWitnessByVoteCount{}
+	msg := &SoWitness{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("VoteCount")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -1628,40 +1423,61 @@ func (s *SoWitnessWrap) GetVoteCount() uint64 {
 	return msg.VoteCount
 }
 
-func (s *SoWitnessWrap) MdVoteCount(p uint64) bool {
+func (s *SoWitnessWrap) mdFieldVoteCount(p uint64, isCheck bool, isDel bool, isInsert bool,
+	so *SoWitness) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("VoteCount")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemWitnessByVoteCount{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoWitness{}
-	sa.Owner = s.mainKey
 
-	sa.VoteCount = ori.VoteCount
+	if isCheck {
+		res := s.checkVoteCountIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	if !s.delSortKeyVoteCount(sa) {
-		return false
+	if isDel {
+		res := s.delFieldVoteCount(so)
+		if !res {
+			return false
+		}
 	}
-	ori.VoteCount = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.VoteCount = p
 
-	if !s.insertSortKeyVoteCount(sa) {
+	if isInsert {
+		res := s.insertFieldVoteCount(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoWitnessWrap) delFieldVoteCount(so *SoWitness) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if !s.delSortKeyVoteCount(so) {
+		return false
+	}
+
+	return true
+}
+
+func (s *SoWitnessWrap) insertFieldVoteCount(so *SoWitness) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if !s.insertSortKeyVoteCount(so) {
+		return false
+	}
+
+	return true
+}
+
+func (s *SoWitnessWrap) checkVoteCountIsMetMdCondition(p uint64) bool {
+	if s.dba == nil {
 		return false
 	}
 
@@ -1918,11 +1734,38 @@ func (s *SoWitnessWrap) getWitness() *SoWitness {
 	return res
 }
 
+func (s *SoWitnessWrap) updateWitness(so *SoWitness) error {
+	if s.dba == nil {
+		return errors.New("update fail:the db is nil")
+	}
+
+	if so == nil {
+		return errors.New("update fail: the SoWitness is nil")
+	}
+
+	key, err := s.encodeMainKey()
+	if err != nil {
+		return nil
+	}
+
+	buf, err := proto.Marshal(so)
+	if err != nil {
+		return err
+	}
+
+	err = s.dba.Put(key, buf)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *SoWitnessWrap) encodeMainKey() ([]byte, error) {
 	if s.mKeyBuf != nil {
 		return s.mKeyBuf, nil
 	}
-	pre := s.getMemKeyPrefix("Owner")
+	pre := WitnessOwnerRow
 	sub := s.mainKey
 	if sub == nil {
 		return nil, errors.New("the mainKey is nil")
@@ -2005,20 +1848,7 @@ func (s *SoWitnessWrap) delUniKeyOwner(sa *SoWitness) bool {
 		sub := sa.Owner
 		kList = append(kList, sub)
 	} else {
-		key, err := s.encodeMemKey("Owner")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemWitnessByOwner{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		sub := ori.Owner
+		sub := s.GetOwner()
 		kList = append(kList, sub)
 
 	}
@@ -2088,4 +1918,42 @@ func (s *UniWitnessOwnerWrap) UniQueryOwner(start *prototype.AccountName) *SoWit
 		}
 	}
 	return nil
+}
+
+func (s *SoWitnessWrap) getMdFuncMap() map[string]interface{} {
+	if s.mdFuncMap != nil && len(s.mdFuncMap) > 0 {
+		return s.mdFuncMap
+	}
+	m := map[string]interface{}{}
+
+	m["Active"] = s.mdFieldActive
+
+	m["CreatedTime"] = s.mdFieldCreatedTime
+
+	m["LastAslot"] = s.mdFieldLastAslot
+
+	m["LastConfirmedBlockNum"] = s.mdFieldLastConfirmedBlockNum
+
+	m["LastWork"] = s.mdFieldLastWork
+
+	m["PowWorker"] = s.mdFieldPowWorker
+
+	m["ProposedStaminaFree"] = s.mdFieldProposedStaminaFree
+
+	m["RunningVersion"] = s.mdFieldRunningVersion
+
+	m["SigningKey"] = s.mdFieldSigningKey
+
+	m["TotalMissed"] = s.mdFieldTotalMissed
+
+	m["TpsExpected"] = s.mdFieldTpsExpected
+
+	m["Url"] = s.mdFieldUrl
+
+	m["VoteCount"] = s.mdFieldVoteCount
+
+	if len(m) > 0 {
+		s.mdFuncMap = m
+	}
+	return m
 }

@@ -1,10 +1,10 @@
 package table
 
 import (
+	"encoding/json"
 	"errors"
 	fmt "fmt"
 	"reflect"
-	"strings"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -14,27 +14,26 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	ExtFollowCountAccountUniTable  uint32 = 1673144335
-	ExtFollowCountAccountCell      uint32 = 1566200049
-	ExtFollowCountFollowerCntCell  uint32 = 1498166425
-	ExtFollowCountFollowingCntCell uint32 = 2815839799
-	ExtFollowCountUpdateTimeCell   uint32 = 252784892
+	ExtFollowCountAccountUniTable uint32 = 1673144335
+
+	ExtFollowCountAccountRow uint32 = 1347382161
 )
 
 ////////////// SECTION Wrap Define ///////////////
 type SoExtFollowCountWrap struct {
-	dba      iservices.IDatabaseRW
-	mainKey  *prototype.AccountName
-	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf  []byte //the buffer after the main key is encoded with prefix
-	mBuf     []byte //the value after the main key is encoded
+	dba       iservices.IDatabaseRW
+	mainKey   *prototype.AccountName
+	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
+	mBuf      []byte //the value after the main key is encoded
+	mdFuncMap map[string]interface{}
 }
 
 func NewSoExtFollowCountWrap(dba iservices.IDatabaseRW, key *prototype.AccountName) *SoExtFollowCountWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoExtFollowCountWrap{dba, key, -1, nil, nil}
+	result := &SoExtFollowCountWrap{dba, key, -1, nil, nil, nil}
 	return result
 }
 
@@ -86,9 +85,13 @@ func (s *SoExtFollowCountWrap) Create(f func(tInfo *SoExtFollowCount)) error {
 		return err
 
 	}
-	err = s.saveAllMemKeys(val, true)
+
+	buf, err := proto.Marshal(val)
 	if err != nil {
-		s.delAllMemKeys(false, val)
+		return err
+	}
+	err = s.dba.Put(keyBuf, buf)
+	if err != nil {
 		return err
 	}
 
@@ -96,7 +99,6 @@ func (s *SoExtFollowCountWrap) Create(f func(tInfo *SoExtFollowCount)) error {
 	if err = s.insertAllSortKeys(val); err != nil {
 		s.delAllSortKeys(false, val)
 		s.dba.Delete(keyBuf)
-		s.delAllMemKeys(false, val)
 		return err
 	}
 
@@ -105,7 +107,6 @@ func (s *SoExtFollowCountWrap) Create(f func(tInfo *SoExtFollowCount)) error {
 		s.delAllSortKeys(false, val)
 		s.delUniKeysWithNames(sucNames, val)
 		s.dba.Delete(keyBuf)
-		s.delAllMemKeys(false, val)
 		return err
 	}
 
@@ -124,6 +125,113 @@ func (s *SoExtFollowCountWrap) getMainKeyBuf() ([]byte, error) {
 		}
 	}
 	return s.mBuf, nil
+}
+
+func (s *SoExtFollowCountWrap) Md(f func(tInfo *SoExtFollowCount)) error {
+	t := &SoExtFollowCount{}
+	f(t)
+	js, err := json.Marshal(t)
+	if err != nil {
+		return err
+	}
+	fMap := make(map[string]interface{})
+	err = json.Unmarshal(js, &fMap)
+	if err != nil {
+		return err
+	}
+
+	mKeyName := "Account"
+	mKeyField := ""
+	for name, _ := range fMap {
+		if ConvTableFieldToPbFormat(name) == mKeyName {
+			mKeyField = name
+			break
+		}
+	}
+	if len(mKeyField) > 0 {
+		delete(fMap, mKeyField)
+	}
+
+	if len(fMap) < 1 {
+		return errors.New("can't' modify empty struct")
+	}
+
+	sa := s.getExtFollowCount()
+	if sa == nil {
+		return errors.New("fail to get table SoExtFollowCount")
+	}
+
+	refVal := reflect.ValueOf(*t)
+	el := reflect.ValueOf(sa).Elem()
+
+	//check unique
+	err = s.handleFieldMd(FieldMdHandleTypeCheck, t, fMap)
+	if err != nil {
+		return err
+	}
+
+	//delete sort and unique key
+	err = s.handleFieldMd(FieldMdHandleTypeDel, sa, fMap)
+	if err != nil {
+		return err
+	}
+
+	//update table
+	for f, _ := range fMap {
+		fName := ConvTableFieldToPbFormat(f)
+		val := refVal.FieldByName(fName)
+		if _, ok := s.mdFuncMap[fName]; ok {
+			el.FieldByName(fName).Set(val)
+		}
+	}
+	err = s.updateExtFollowCount(sa)
+	if err != nil {
+		return err
+	}
+
+	//insert sort and unique key
+	err = s.handleFieldMd(FieldMdHandleTypeInsert, sa, fMap)
+	if err != nil {
+		return err
+	}
+
+	return err
+
+}
+
+func (s *SoExtFollowCountWrap) handleFieldMd(t FieldMdHandleType, so *SoExtFollowCount, fMap map[string]interface{}) error {
+	if so == nil || fMap == nil {
+		return errors.New("fail to modify empty table")
+	}
+
+	mdFuncMap := s.getMdFuncMap()
+	if len(mdFuncMap) < 1 {
+		return errors.New("there is not exsit md function to md field")
+	}
+	errStr := ""
+	refVal := reflect.ValueOf(*so)
+	for f, _ := range fMap {
+		fName := ConvTableFieldToPbFormat(f)
+		val := refVal.FieldByName(fName)
+		if _, ok := mdFuncMap[fName]; ok {
+			f := reflect.ValueOf(s.mdFuncMap[fName])
+			p := []reflect.Value{val, reflect.ValueOf(true), reflect.ValueOf(false), reflect.ValueOf(false), reflect.ValueOf(so)}
+			errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			if t == FieldMdHandleTypeDel {
+				p = []reflect.Value{val, reflect.ValueOf(false), reflect.ValueOf(true), reflect.ValueOf(false), reflect.ValueOf(so)}
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				p = []reflect.Value{val, reflect.ValueOf(false), reflect.ValueOf(false), reflect.ValueOf(true), reflect.ValueOf(so)}
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			res := f.Call(p)
+			if !(res[0].Bool()) {
+				return errors.New(errStr)
+			}
+		}
+	}
+
+	return nil
 }
 
 ////////////// SECTION LKeys delete/insert ///////////////
@@ -154,7 +262,6 @@ func (s *SoExtFollowCountWrap) RemoveExtFollowCount() bool {
 	if s.dba == nil {
 		return false
 	}
-	val := &SoExtFollowCount{}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
 		return false
@@ -165,7 +272,12 @@ func (s *SoExtFollowCountWrap) RemoveExtFollowCount() bool {
 		return false
 	}
 
-	err := s.delAllMemKeys(true, val)
+	//delete table
+	key, err := s.encodeMainKey()
+	if err != nil {
+		return false
+	}
+	err = s.dba.Delete(key)
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
@@ -176,154 +288,14 @@ func (s *SoExtFollowCountWrap) RemoveExtFollowCount() bool {
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
-func (s *SoExtFollowCountWrap) getMemKeyPrefix(fName string) uint32 {
-	if fName == "Account" {
-		return ExtFollowCountAccountCell
-	}
-	if fName == "FollowerCnt" {
-		return ExtFollowCountFollowerCntCell
-	}
-	if fName == "FollowingCnt" {
-		return ExtFollowCountFollowingCntCell
-	}
-	if fName == "UpdateTime" {
-		return ExtFollowCountUpdateTimeCell
-	}
-
-	return 0
-}
-
-func (s *SoExtFollowCountWrap) encodeMemKey(fName string) ([]byte, error) {
-	if len(fName) < 1 || s.mainKey == nil {
-		return nil, errors.New("field name or main key is empty")
-	}
-	pre := s.getMemKeyPrefix(fName)
-	preBuf, err := kope.Encode(pre)
-	if err != nil {
-		return nil, err
-	}
-	mBuf, err := s.getMainKeyBuf()
-	if err != nil {
-		return nil, err
-	}
-	list := make([][]byte, 2)
-	list[0] = preBuf
-	list[1] = mBuf
-	return kope.PackList(list), nil
-}
-
-func (s *SoExtFollowCountWrap) saveAllMemKeys(tInfo *SoExtFollowCount, br bool) error {
-	if s.dba == nil {
-		return errors.New("save member Field fail , the db is nil")
-	}
-
-	if tInfo == nil {
-		return errors.New("save member Field fail , the data is nil ")
-	}
-	var err error = nil
-	errDes := ""
-	if err = s.saveMemKeyAccount(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Account", err)
-		}
-	}
-	if err = s.saveMemKeyFollowerCnt(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "FollowerCnt", err)
-		}
-	}
-	if err = s.saveMemKeyFollowingCnt(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "FollowingCnt", err)
-		}
-	}
-	if err = s.saveMemKeyUpdateTime(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "UpdateTime", err)
-		}
-	}
-
-	if len(errDes) > 0 {
-		return errors.New(errDes)
-	}
-	return err
-}
-
-func (s *SoExtFollowCountWrap) delAllMemKeys(br bool, tInfo *SoExtFollowCount) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	t := reflect.TypeOf(*tInfo)
-	errDesc := ""
-	for k := 0; k < t.NumField(); k++ {
-		name := t.Field(k).Name
-		if len(name) > 0 && !strings.HasPrefix(name, "XXX_") {
-			err := s.delMemKey(name)
-			if err != nil {
-				if br {
-					return err
-				}
-				errDesc += fmt.Sprintf("delete the Field %s fail,error is %s;\n", name, err)
-			}
-		}
-	}
-	if len(errDesc) > 0 {
-		return errors.New(errDesc)
-	}
-	return nil
-}
-
-func (s *SoExtFollowCountWrap) delMemKey(fName string) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if len(fName) <= 0 {
-		return errors.New("the field name is empty ")
-	}
-	key, err := s.encodeMemKey(fName)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Delete(key)
-	return err
-}
-
-func (s *SoExtFollowCountWrap) saveMemKeyAccount(tInfo *SoExtFollowCount) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemExtFollowCountByAccount{}
-	val.Account = tInfo.Account
-	key, err := s.encodeMemKey("Account")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
 
 func (s *SoExtFollowCountWrap) GetAccount() *prototype.AccountName {
 	res := true
-	msg := &SoMemExtFollowCountByAccount{}
+	msg := &SoExtFollowCount{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Account")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -346,34 +318,13 @@ func (s *SoExtFollowCountWrap) GetAccount() *prototype.AccountName {
 	return msg.Account
 }
 
-func (s *SoExtFollowCountWrap) saveMemKeyFollowerCnt(tInfo *SoExtFollowCount) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemExtFollowCountByFollowerCnt{}
-	val.FollowerCnt = tInfo.FollowerCnt
-	key, err := s.encodeMemKey("FollowerCnt")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
-
 func (s *SoExtFollowCountWrap) GetFollowerCnt() uint32 {
 	res := true
-	msg := &SoMemExtFollowCountByFollowerCnt{}
+	msg := &SoExtFollowCount{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("FollowerCnt")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -396,67 +347,66 @@ func (s *SoExtFollowCountWrap) GetFollowerCnt() uint32 {
 	return msg.FollowerCnt
 }
 
-func (s *SoExtFollowCountWrap) MdFollowerCnt(p uint32) bool {
+func (s *SoExtFollowCountWrap) mdFieldFollowerCnt(p uint32, isCheck bool, isDel bool, isInsert bool,
+	so *SoExtFollowCount) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("FollowerCnt")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemExtFollowCountByFollowerCnt{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoExtFollowCount{}
-	sa.Account = s.mainKey
 
-	sa.FollowerCnt = ori.FollowerCnt
+	if isCheck {
+		res := s.checkFollowerCntIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.FollowerCnt = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldFollowerCnt(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldFollowerCnt(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoExtFollowCountWrap) delFieldFollowerCnt(so *SoExtFollowCount) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.FollowerCnt = p
 
 	return true
 }
 
-func (s *SoExtFollowCountWrap) saveMemKeyFollowingCnt(tInfo *SoExtFollowCount) error {
+func (s *SoExtFollowCountWrap) insertFieldFollowerCnt(so *SoExtFollowCount) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoExtFollowCountWrap) checkFollowerCntIsMetMdCondition(p uint32) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemExtFollowCountByFollowingCnt{}
-	val.FollowingCnt = tInfo.FollowingCnt
-	key, err := s.encodeMemKey("FollowingCnt")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoExtFollowCountWrap) GetFollowingCnt() uint32 {
 	res := true
-	msg := &SoMemExtFollowCountByFollowingCnt{}
+	msg := &SoExtFollowCount{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("FollowingCnt")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -479,67 +429,66 @@ func (s *SoExtFollowCountWrap) GetFollowingCnt() uint32 {
 	return msg.FollowingCnt
 }
 
-func (s *SoExtFollowCountWrap) MdFollowingCnt(p uint32) bool {
+func (s *SoExtFollowCountWrap) mdFieldFollowingCnt(p uint32, isCheck bool, isDel bool, isInsert bool,
+	so *SoExtFollowCount) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("FollowingCnt")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemExtFollowCountByFollowingCnt{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoExtFollowCount{}
-	sa.Account = s.mainKey
 
-	sa.FollowingCnt = ori.FollowingCnt
+	if isCheck {
+		res := s.checkFollowingCntIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.FollowingCnt = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldFollowingCnt(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldFollowingCnt(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoExtFollowCountWrap) delFieldFollowingCnt(so *SoExtFollowCount) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.FollowingCnt = p
 
 	return true
 }
 
-func (s *SoExtFollowCountWrap) saveMemKeyUpdateTime(tInfo *SoExtFollowCount) error {
+func (s *SoExtFollowCountWrap) insertFieldFollowingCnt(so *SoExtFollowCount) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoExtFollowCountWrap) checkFollowingCntIsMetMdCondition(p uint32) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemExtFollowCountByUpdateTime{}
-	val.UpdateTime = tInfo.UpdateTime
-	key, err := s.encodeMemKey("UpdateTime")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoExtFollowCountWrap) GetUpdateTime() *prototype.TimePointSec {
 	res := true
-	msg := &SoMemExtFollowCountByUpdateTime{}
+	msg := &SoExtFollowCount{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("UpdateTime")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -562,35 +511,55 @@ func (s *SoExtFollowCountWrap) GetUpdateTime() *prototype.TimePointSec {
 	return msg.UpdateTime
 }
 
-func (s *SoExtFollowCountWrap) MdUpdateTime(p *prototype.TimePointSec) bool {
+func (s *SoExtFollowCountWrap) mdFieldUpdateTime(p *prototype.TimePointSec, isCheck bool, isDel bool, isInsert bool,
+	so *SoExtFollowCount) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("UpdateTime")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemExtFollowCountByUpdateTime{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoExtFollowCount{}
-	sa.Account = s.mainKey
 
-	sa.UpdateTime = ori.UpdateTime
+	if isCheck {
+		res := s.checkUpdateTimeIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.UpdateTime = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldUpdateTime(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldUpdateTime(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoExtFollowCountWrap) delFieldUpdateTime(so *SoExtFollowCount) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
+
+	return true
+}
+
+func (s *SoExtFollowCountWrap) insertFieldUpdateTime(so *SoExtFollowCount) bool {
+	if s.dba == nil {
 		return false
 	}
-	sa.UpdateTime = p
+
+	return true
+}
+
+func (s *SoExtFollowCountWrap) checkUpdateTimeIsMetMdCondition(p *prototype.TimePointSec) bool {
+	if s.dba == nil {
+		return false
+	}
 
 	return true
 }
@@ -635,11 +604,38 @@ func (s *SoExtFollowCountWrap) getExtFollowCount() *SoExtFollowCount {
 	return res
 }
 
+func (s *SoExtFollowCountWrap) updateExtFollowCount(so *SoExtFollowCount) error {
+	if s.dba == nil {
+		return errors.New("update fail:the db is nil")
+	}
+
+	if so == nil {
+		return errors.New("update fail: the SoExtFollowCount is nil")
+	}
+
+	key, err := s.encodeMainKey()
+	if err != nil {
+		return nil
+	}
+
+	buf, err := proto.Marshal(so)
+	if err != nil {
+		return err
+	}
+
+	err = s.dba.Put(key, buf)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *SoExtFollowCountWrap) encodeMainKey() ([]byte, error) {
 	if s.mKeyBuf != nil {
 		return s.mKeyBuf, nil
 	}
-	pre := s.getMemKeyPrefix("Account")
+	pre := ExtFollowCountAccountRow
 	sub := s.mainKey
 	if sub == nil {
 		return nil, errors.New("the mainKey is nil")
@@ -722,20 +718,7 @@ func (s *SoExtFollowCountWrap) delUniKeyAccount(sa *SoExtFollowCount) bool {
 		sub := sa.Account
 		kList = append(kList, sub)
 	} else {
-		key, err := s.encodeMemKey("Account")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemExtFollowCountByAccount{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		sub := ori.Account
+		sub := s.GetAccount()
 		kList = append(kList, sub)
 
 	}
@@ -805,4 +788,22 @@ func (s *UniExtFollowCountAccountWrap) UniQueryAccount(start *prototype.AccountN
 		}
 	}
 	return nil
+}
+
+func (s *SoExtFollowCountWrap) getMdFuncMap() map[string]interface{} {
+	if s.mdFuncMap != nil && len(s.mdFuncMap) > 0 {
+		return s.mdFuncMap
+	}
+	m := map[string]interface{}{}
+
+	m["FollowerCnt"] = s.mdFieldFollowerCnt
+
+	m["FollowingCnt"] = s.mdFieldFollowingCnt
+
+	m["UpdateTime"] = s.mdFieldUpdateTime
+
+	if len(m) > 0 {
+		s.mdFuncMap = m
+	}
+	return m
 }

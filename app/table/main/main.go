@@ -60,6 +60,18 @@ func main() {
 		return
 	}
 
+	err = wrap.Md(func(tInfo *table.SoDemo) {
+		tInfo.Idx = 1100
+		tInfo.LikeCount = 10
+		tInfo.Owner = prototype.NewAccountName("test")
+	})
+
+	if err != nil {
+		fmt.Printf("Test: md idx fail, the error is %v \n", err)
+	}
+    likeCount := wrap.GetLikeCount()
+    fmt.Printf("the modified liekcount is %v \n", likeCount)
+
 
 	key1 := prototype.NewAccountName("myName1")
 	wrap1 := table.NewSoDemoWrap(db, key1)
@@ -68,11 +80,16 @@ func main() {
 		log.Println("crreate fail , the db already contain table with current mainKey myName1")
 		return
 	}
+	if wrap1.CheckExist() {
+		fmt.Println("remove the wrap")
+		res := wrap1.RemoveDemo()
+		fmt.Printf("remove result is %v \n", res)
+	}
 	err = wrap1.Create(func(tInfo *table.SoDemo) {
 		tInfo.Owner = key1
 		tInfo.Title = "hello1"
 		tInfo.Content = "wrap1"
-		tInfo.Idx = 1001
+		tInfo.Idx = 1002
 		tInfo.LikeCount = 200
 		tInfo.Taglist = []string{"#Car"}
 		tInfo.ReplayCount = 150
@@ -104,26 +121,34 @@ func main() {
 	if c != "" {
 		fmt.Printf("the content is %s \n", c)
 	} else {
-		fmt.Println("modify tilte fail")
+		fmt.Println("get content fail")
 	}
-	//modify title
-	tMdRes := wrap.MdContent("hello world")
-	if !tMdRes {
-		fmt.Println("modify tilte fail")
+	tMdErr := wrap.Md(func(tInfo *table.SoDemo) {
+		tInfo.Content = "hello world"
+	})
+	if tMdErr != nil {
+		fmt.Println("modify content fail")
 	}
+   fmt.Printf("The modified content is %v \n", wrap.GetContent())
 
 	/*
 	  --------------------------
 	   Modify property value (******can't modify the mainkey)
 	  --------------------------*/
 	//modify content
-	cMdRes := wrap.MdContent("test md the content")
-	if !cMdRes {
+	cMdRes := wrap.Md(func(tInfo *table.SoDemo) {
+		tInfo.Content = "test md the content"
+	})
+	if cMdRes != nil {
 		fmt.Println("modify content fail")
+	} else {
+		fmt.Printf("The modified content is %v \n", wrap.GetContent())
 	}
 
-	tMdRes = wrap.MdTaglist([]string{"#Football"})
-	if !tMdRes {
+	tMdRes := wrap.Md(func(tInfo *table.SoDemo) {
+		tInfo.Taglist = []string{"#Football"}
+	})
+	if tMdRes != nil {
 		fmt.Println("modify taglist fail")
 	} else {
 		tag := wrap.GetTaglist()
@@ -264,7 +289,7 @@ func main() {
 	  unique Query List (only support query the property which is flag unique)
 	 --------------------------*/
 	//1.create the uni wrap of property which is need unique query
-	var idx int64 = 1001
+	var idx int64 = 1100
 	//create the UniXXXWrap
 	uniWrap := table.UniDemoIdxWrap{}
 	//set the dataBase to UniXXXWrap
@@ -282,9 +307,9 @@ func main() {
 	mUniWrap := table.UniDemoOwnerWrap{}
 	mUniWrap.Dba = db
 	str := "myName"
-	wrap1 = mUniWrap.UniQueryOwner(prototype.NewAccountName(str))
-	if wrap1 != nil {
-		fmt.Printf("owner is %s,the idx is %d \n",str,wrap1.GetIdx())
+	res := mUniWrap.UniQueryOwner(prototype.NewAccountName(str))
+	if res != nil {
+		fmt.Printf("owner is %s,the idx is %d \n",str,res.GetIdx())
 	}
 
 	/*
@@ -298,7 +323,13 @@ func main() {
 			fmt.Println("remove the table data fail")
 		}
 	}
-
+	isExsit = wrap1.CheckExist()
+	if isExsit {
+		res := wrap1.RemoveDemo()
+		if !res {
+			fmt.Println("remove the table1 data fail")
+		}
+	}
 	db.Close()
 }
 

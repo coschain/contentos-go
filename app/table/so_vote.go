@@ -1,10 +1,10 @@
 package table
 
 import (
+	"encoding/json"
 	"errors"
 	fmt "fmt"
 	"reflect"
-	"strings"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -14,31 +14,29 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	VoteVoterTable     uint32 = 2638131561
-	VoteVoteTimeTable  uint32 = 277775897
-	VotePostIdTable    uint32 = 3923440502
-	VoteVoterUniTable  uint32 = 1965941220
-	VotePostIdCell     uint32 = 3799570737
-	VoteUpvoteCell     uint32 = 3751109702
-	VoteVoteTimeCell   uint32 = 265476525
-	VoteVoterCell      uint32 = 3085458610
-	VoteWeightedVpCell uint32 = 334607886
+	VoteVoterTable    uint32 = 2638131561
+	VoteVoteTimeTable uint32 = 277775897
+	VotePostIdTable   uint32 = 3923440502
+	VoteVoterUniTable uint32 = 1965941220
+
+	VoteVoterRow uint32 = 923013397
 )
 
 ////////////// SECTION Wrap Define ///////////////
 type SoVoteWrap struct {
-	dba      iservices.IDatabaseRW
-	mainKey  *prototype.VoterId
-	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf  []byte //the buffer after the main key is encoded with prefix
-	mBuf     []byte //the value after the main key is encoded
+	dba       iservices.IDatabaseRW
+	mainKey   *prototype.VoterId
+	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
+	mBuf      []byte //the value after the main key is encoded
+	mdFuncMap map[string]interface{}
 }
 
 func NewSoVoteWrap(dba iservices.IDatabaseRW, key *prototype.VoterId) *SoVoteWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoVoteWrap{dba, key, -1, nil, nil}
+	result := &SoVoteWrap{dba, key, -1, nil, nil, nil}
 	return result
 }
 
@@ -90,9 +88,13 @@ func (s *SoVoteWrap) Create(f func(tInfo *SoVote)) error {
 		return err
 
 	}
-	err = s.saveAllMemKeys(val, true)
+
+	buf, err := proto.Marshal(val)
 	if err != nil {
-		s.delAllMemKeys(false, val)
+		return err
+	}
+	err = s.dba.Put(keyBuf, buf)
+	if err != nil {
 		return err
 	}
 
@@ -100,7 +102,6 @@ func (s *SoVoteWrap) Create(f func(tInfo *SoVote)) error {
 	if err = s.insertAllSortKeys(val); err != nil {
 		s.delAllSortKeys(false, val)
 		s.dba.Delete(keyBuf)
-		s.delAllMemKeys(false, val)
 		return err
 	}
 
@@ -109,7 +110,6 @@ func (s *SoVoteWrap) Create(f func(tInfo *SoVote)) error {
 		s.delAllSortKeys(false, val)
 		s.delUniKeysWithNames(sucNames, val)
 		s.dba.Delete(keyBuf)
-		s.delAllMemKeys(false, val)
 		return err
 	}
 
@@ -130,6 +130,113 @@ func (s *SoVoteWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
+func (s *SoVoteWrap) Md(f func(tInfo *SoVote)) error {
+	t := &SoVote{}
+	f(t)
+	js, err := json.Marshal(t)
+	if err != nil {
+		return err
+	}
+	fMap := make(map[string]interface{})
+	err = json.Unmarshal(js, &fMap)
+	if err != nil {
+		return err
+	}
+
+	mKeyName := "Voter"
+	mKeyField := ""
+	for name, _ := range fMap {
+		if ConvTableFieldToPbFormat(name) == mKeyName {
+			mKeyField = name
+			break
+		}
+	}
+	if len(mKeyField) > 0 {
+		delete(fMap, mKeyField)
+	}
+
+	if len(fMap) < 1 {
+		return errors.New("can't' modify empty struct")
+	}
+
+	sa := s.getVote()
+	if sa == nil {
+		return errors.New("fail to get table SoVote")
+	}
+
+	refVal := reflect.ValueOf(*t)
+	el := reflect.ValueOf(sa).Elem()
+
+	//check unique
+	err = s.handleFieldMd(FieldMdHandleTypeCheck, t, fMap)
+	if err != nil {
+		return err
+	}
+
+	//delete sort and unique key
+	err = s.handleFieldMd(FieldMdHandleTypeDel, sa, fMap)
+	if err != nil {
+		return err
+	}
+
+	//update table
+	for f, _ := range fMap {
+		fName := ConvTableFieldToPbFormat(f)
+		val := refVal.FieldByName(fName)
+		if _, ok := s.mdFuncMap[fName]; ok {
+			el.FieldByName(fName).Set(val)
+		}
+	}
+	err = s.updateVote(sa)
+	if err != nil {
+		return err
+	}
+
+	//insert sort and unique key
+	err = s.handleFieldMd(FieldMdHandleTypeInsert, sa, fMap)
+	if err != nil {
+		return err
+	}
+
+	return err
+
+}
+
+func (s *SoVoteWrap) handleFieldMd(t FieldMdHandleType, so *SoVote, fMap map[string]interface{}) error {
+	if so == nil || fMap == nil {
+		return errors.New("fail to modify empty table")
+	}
+
+	mdFuncMap := s.getMdFuncMap()
+	if len(mdFuncMap) < 1 {
+		return errors.New("there is not exsit md function to md field")
+	}
+	errStr := ""
+	refVal := reflect.ValueOf(*so)
+	for f, _ := range fMap {
+		fName := ConvTableFieldToPbFormat(f)
+		val := refVal.FieldByName(fName)
+		if _, ok := mdFuncMap[fName]; ok {
+			f := reflect.ValueOf(s.mdFuncMap[fName])
+			p := []reflect.Value{val, reflect.ValueOf(true), reflect.ValueOf(false), reflect.ValueOf(false), reflect.ValueOf(so)}
+			errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			if t == FieldMdHandleTypeDel {
+				p = []reflect.Value{val, reflect.ValueOf(false), reflect.ValueOf(true), reflect.ValueOf(false), reflect.ValueOf(so)}
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				p = []reflect.Value{val, reflect.ValueOf(false), reflect.ValueOf(false), reflect.ValueOf(true), reflect.ValueOf(so)}
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			res := f.Call(p)
+			if !(res[0].Bool()) {
+				return errors.New(errStr)
+			}
+		}
+	}
+
+	return nil
+}
+
 ////////////// SECTION LKeys delete/insert ///////////////
 
 func (s *SoVoteWrap) delSortKeyVoter(sa *SoVote) bool {
@@ -138,20 +245,7 @@ func (s *SoVoteWrap) delSortKeyVoter(sa *SoVote) bool {
 	}
 	val := SoListVoteByVoter{}
 	if sa == nil {
-		key, err := s.encodeMemKey("Voter")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemVoteByVoter{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		val.Voter = ori.Voter
+		val.Voter = s.GetVoter()
 	} else {
 		val.Voter = sa.Voter
 	}
@@ -188,20 +282,7 @@ func (s *SoVoteWrap) delSortKeyVoteTime(sa *SoVote) bool {
 	}
 	val := SoListVoteByVoteTime{}
 	if sa == nil {
-		key, err := s.encodeMemKey("VoteTime")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemVoteByVoteTime{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		val.VoteTime = ori.VoteTime
+		val.VoteTime = s.GetVoteTime()
 		val.Voter = s.mainKey
 
 	} else {
@@ -242,20 +323,7 @@ func (s *SoVoteWrap) delSortKeyPostId(sa *SoVote) bool {
 	}
 	val := SoListVoteByPostId{}
 	if sa == nil {
-		key, err := s.encodeMemKey("PostId")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemVoteByPostId{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		val.PostId = ori.PostId
+		val.PostId = s.GetPostId()
 		val.Voter = s.mainKey
 
 	} else {
@@ -295,13 +363,7 @@ func (s *SoVoteWrap) delAllSortKeys(br bool, val *SoVote) bool {
 		return false
 	}
 	res := true
-	if !s.delSortKeyVoter(val) {
-		if br {
-			return false
-		} else {
-			res = false
-		}
-	}
+
 	if !s.delSortKeyVoteTime(val) {
 		if br {
 			return false
@@ -309,6 +371,7 @@ func (s *SoVoteWrap) delAllSortKeys(br bool, val *SoVote) bool {
 			res = false
 		}
 	}
+
 	if !s.delSortKeyPostId(val) {
 		if br {
 			return false
@@ -327,12 +390,11 @@ func (s *SoVoteWrap) insertAllSortKeys(val *SoVote) error {
 	if val == nil {
 		return errors.New("insert sort Field fail,get the SoVote fail ")
 	}
-	if !s.insertSortKeyVoter(val) {
-		return errors.New("insert sort Field Voter fail while insert table ")
-	}
+
 	if !s.insertSortKeyVoteTime(val) {
 		return errors.New("insert sort Field VoteTime fail while insert table ")
 	}
+
 	if !s.insertSortKeyPostId(val) {
 		return errors.New("insert sort Field PostId fail while insert table ")
 	}
@@ -346,7 +408,6 @@ func (s *SoVoteWrap) RemoveVote() bool {
 	if s.dba == nil {
 		return false
 	}
-	val := &SoVote{}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
 		return false
@@ -357,7 +418,12 @@ func (s *SoVoteWrap) RemoveVote() bool {
 		return false
 	}
 
-	err := s.delAllMemKeys(true, val)
+	//delete table
+	key, err := s.encodeMainKey()
+	if err != nil {
+		return false
+	}
+	err = s.dba.Delete(key)
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
@@ -368,164 +434,14 @@ func (s *SoVoteWrap) RemoveVote() bool {
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
-func (s *SoVoteWrap) getMemKeyPrefix(fName string) uint32 {
-	if fName == "PostId" {
-		return VotePostIdCell
-	}
-	if fName == "Upvote" {
-		return VoteUpvoteCell
-	}
-	if fName == "VoteTime" {
-		return VoteVoteTimeCell
-	}
-	if fName == "Voter" {
-		return VoteVoterCell
-	}
-	if fName == "WeightedVp" {
-		return VoteWeightedVpCell
-	}
-
-	return 0
-}
-
-func (s *SoVoteWrap) encodeMemKey(fName string) ([]byte, error) {
-	if len(fName) < 1 || s.mainKey == nil {
-		return nil, errors.New("field name or main key is empty")
-	}
-	pre := s.getMemKeyPrefix(fName)
-	preBuf, err := kope.Encode(pre)
-	if err != nil {
-		return nil, err
-	}
-	mBuf, err := s.getMainKeyBuf()
-	if err != nil {
-		return nil, err
-	}
-	list := make([][]byte, 2)
-	list[0] = preBuf
-	list[1] = mBuf
-	return kope.PackList(list), nil
-}
-
-func (s *SoVoteWrap) saveAllMemKeys(tInfo *SoVote, br bool) error {
-	if s.dba == nil {
-		return errors.New("save member Field fail , the db is nil")
-	}
-
-	if tInfo == nil {
-		return errors.New("save member Field fail , the data is nil ")
-	}
-	var err error = nil
-	errDes := ""
-	if err = s.saveMemKeyPostId(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "PostId", err)
-		}
-	}
-	if err = s.saveMemKeyUpvote(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Upvote", err)
-		}
-	}
-	if err = s.saveMemKeyVoteTime(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "VoteTime", err)
-		}
-	}
-	if err = s.saveMemKeyVoter(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Voter", err)
-		}
-	}
-	if err = s.saveMemKeyWeightedVp(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "WeightedVp", err)
-		}
-	}
-
-	if len(errDes) > 0 {
-		return errors.New(errDes)
-	}
-	return err
-}
-
-func (s *SoVoteWrap) delAllMemKeys(br bool, tInfo *SoVote) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	t := reflect.TypeOf(*tInfo)
-	errDesc := ""
-	for k := 0; k < t.NumField(); k++ {
-		name := t.Field(k).Name
-		if len(name) > 0 && !strings.HasPrefix(name, "XXX_") {
-			err := s.delMemKey(name)
-			if err != nil {
-				if br {
-					return err
-				}
-				errDesc += fmt.Sprintf("delete the Field %s fail,error is %s;\n", name, err)
-			}
-		}
-	}
-	if len(errDesc) > 0 {
-		return errors.New(errDesc)
-	}
-	return nil
-}
-
-func (s *SoVoteWrap) delMemKey(fName string) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if len(fName) <= 0 {
-		return errors.New("the field name is empty ")
-	}
-	key, err := s.encodeMemKey(fName)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Delete(key)
-	return err
-}
-
-func (s *SoVoteWrap) saveMemKeyPostId(tInfo *SoVote) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemVoteByPostId{}
-	val.PostId = tInfo.PostId
-	key, err := s.encodeMemKey("PostId")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
 
 func (s *SoVoteWrap) GetPostId() uint64 {
 	res := true
-	msg := &SoMemVoteByPostId{}
+	msg := &SoVote{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("PostId")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -548,74 +464,74 @@ func (s *SoVoteWrap) GetPostId() uint64 {
 	return msg.PostId
 }
 
-func (s *SoVoteWrap) MdPostId(p uint64) bool {
+func (s *SoVoteWrap) mdFieldPostId(p uint64, isCheck bool, isDel bool, isInsert bool,
+	so *SoVote) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("PostId")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemVoteByPostId{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoVote{}
-	sa.Voter = s.mainKey
 
-	sa.PostId = ori.PostId
+	if isCheck {
+		res := s.checkPostIdIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	if !s.delSortKeyPostId(sa) {
-		return false
+	if isDel {
+		res := s.delFieldPostId(so)
+		if !res {
+			return false
+		}
 	}
-	ori.PostId = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.PostId = p
 
-	if !s.insertSortKeyPostId(sa) {
+	if isInsert {
+		res := s.insertFieldPostId(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoVoteWrap) delFieldPostId(so *SoVote) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if !s.delSortKeyPostId(so) {
 		return false
 	}
 
 	return true
 }
 
-func (s *SoVoteWrap) saveMemKeyUpvote(tInfo *SoVote) error {
+func (s *SoVoteWrap) insertFieldPostId(so *SoVote) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	if !s.insertSortKeyPostId(so) {
+		return false
 	}
-	val := SoMemVoteByUpvote{}
-	val.Upvote = tInfo.Upvote
-	key, err := s.encodeMemKey("Upvote")
-	if err != nil {
-		return err
+
+	return true
+}
+
+func (s *SoVoteWrap) checkPostIdIsMetMdCondition(p uint64) bool {
+	if s.dba == nil {
+		return false
 	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoVoteWrap) GetUpvote() bool {
 	res := true
-	msg := &SoMemVoteByUpvote{}
+	msg := &SoVote{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Upvote")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -638,67 +554,66 @@ func (s *SoVoteWrap) GetUpvote() bool {
 	return msg.Upvote
 }
 
-func (s *SoVoteWrap) MdUpvote(p bool) bool {
+func (s *SoVoteWrap) mdFieldUpvote(p bool, isCheck bool, isDel bool, isInsert bool,
+	so *SoVote) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("Upvote")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemVoteByUpvote{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoVote{}
-	sa.Voter = s.mainKey
 
-	sa.Upvote = ori.Upvote
+	if isCheck {
+		res := s.checkUpvoteIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.Upvote = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldUpvote(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldUpvote(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoVoteWrap) delFieldUpvote(so *SoVote) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.Upvote = p
 
 	return true
 }
 
-func (s *SoVoteWrap) saveMemKeyVoteTime(tInfo *SoVote) error {
+func (s *SoVoteWrap) insertFieldUpvote(so *SoVote) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoVoteWrap) checkUpvoteIsMetMdCondition(p bool) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemVoteByVoteTime{}
-	val.VoteTime = tInfo.VoteTime
-	key, err := s.encodeMemKey("VoteTime")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoVoteWrap) GetVoteTime() *prototype.TimePointSec {
 	res := true
-	msg := &SoMemVoteByVoteTime{}
+	msg := &SoVote{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("VoteTime")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -721,74 +636,74 @@ func (s *SoVoteWrap) GetVoteTime() *prototype.TimePointSec {
 	return msg.VoteTime
 }
 
-func (s *SoVoteWrap) MdVoteTime(p *prototype.TimePointSec) bool {
+func (s *SoVoteWrap) mdFieldVoteTime(p *prototype.TimePointSec, isCheck bool, isDel bool, isInsert bool,
+	so *SoVote) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("VoteTime")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemVoteByVoteTime{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoVote{}
-	sa.Voter = s.mainKey
 
-	sa.VoteTime = ori.VoteTime
+	if isCheck {
+		res := s.checkVoteTimeIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	if !s.delSortKeyVoteTime(sa) {
-		return false
+	if isDel {
+		res := s.delFieldVoteTime(so)
+		if !res {
+			return false
+		}
 	}
-	ori.VoteTime = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.VoteTime = p
 
-	if !s.insertSortKeyVoteTime(sa) {
+	if isInsert {
+		res := s.insertFieldVoteTime(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoVoteWrap) delFieldVoteTime(so *SoVote) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if !s.delSortKeyVoteTime(so) {
 		return false
 	}
 
 	return true
 }
 
-func (s *SoVoteWrap) saveMemKeyVoter(tInfo *SoVote) error {
+func (s *SoVoteWrap) insertFieldVoteTime(so *SoVote) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	if !s.insertSortKeyVoteTime(so) {
+		return false
 	}
-	val := SoMemVoteByVoter{}
-	val.Voter = tInfo.Voter
-	key, err := s.encodeMemKey("Voter")
-	if err != nil {
-		return err
+
+	return true
+}
+
+func (s *SoVoteWrap) checkVoteTimeIsMetMdCondition(p *prototype.TimePointSec) bool {
+	if s.dba == nil {
+		return false
 	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoVoteWrap) GetVoter() *prototype.VoterId {
 	res := true
-	msg := &SoMemVoteByVoter{}
+	msg := &SoVote{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Voter")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -811,34 +726,13 @@ func (s *SoVoteWrap) GetVoter() *prototype.VoterId {
 	return msg.Voter
 }
 
-func (s *SoVoteWrap) saveMemKeyWeightedVp(tInfo *SoVote) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemVoteByWeightedVp{}
-	val.WeightedVp = tInfo.WeightedVp
-	key, err := s.encodeMemKey("WeightedVp")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
-
 func (s *SoVoteWrap) GetWeightedVp() uint64 {
 	res := true
-	msg := &SoMemVoteByWeightedVp{}
+	msg := &SoVote{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("WeightedVp")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -861,35 +755,55 @@ func (s *SoVoteWrap) GetWeightedVp() uint64 {
 	return msg.WeightedVp
 }
 
-func (s *SoVoteWrap) MdWeightedVp(p uint64) bool {
+func (s *SoVoteWrap) mdFieldWeightedVp(p uint64, isCheck bool, isDel bool, isInsert bool,
+	so *SoVote) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("WeightedVp")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemVoteByWeightedVp{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoVote{}
-	sa.Voter = s.mainKey
 
-	sa.WeightedVp = ori.WeightedVp
+	if isCheck {
+		res := s.checkWeightedVpIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.WeightedVp = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldWeightedVp(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldWeightedVp(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoVoteWrap) delFieldWeightedVp(so *SoVote) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
+
+	return true
+}
+
+func (s *SoVoteWrap) insertFieldWeightedVp(so *SoVote) bool {
+	if s.dba == nil {
 		return false
 	}
-	sa.WeightedVp = p
+
+	return true
+}
+
+func (s *SoVoteWrap) checkWeightedVpIsMetMdCondition(p uint64) bool {
+	if s.dba == nil {
+		return false
+	}
 
 	return true
 }
@@ -1259,11 +1173,38 @@ func (s *SoVoteWrap) getVote() *SoVote {
 	return res
 }
 
+func (s *SoVoteWrap) updateVote(so *SoVote) error {
+	if s.dba == nil {
+		return errors.New("update fail:the db is nil")
+	}
+
+	if so == nil {
+		return errors.New("update fail: the SoVote is nil")
+	}
+
+	key, err := s.encodeMainKey()
+	if err != nil {
+		return nil
+	}
+
+	buf, err := proto.Marshal(so)
+	if err != nil {
+		return err
+	}
+
+	err = s.dba.Put(key, buf)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *SoVoteWrap) encodeMainKey() ([]byte, error) {
 	if s.mKeyBuf != nil {
 		return s.mKeyBuf, nil
 	}
-	pre := s.getMemKeyPrefix("Voter")
+	pre := VoteVoterRow
 	sub := s.mainKey
 	if sub == nil {
 		return nil, errors.New("the mainKey is nil")
@@ -1346,20 +1287,7 @@ func (s *SoVoteWrap) delUniKeyVoter(sa *SoVote) bool {
 		sub := sa.Voter
 		kList = append(kList, sub)
 	} else {
-		key, err := s.encodeMemKey("Voter")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemVoteByVoter{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		sub := ori.Voter
+		sub := s.GetVoter()
 		kList = append(kList, sub)
 
 	}
@@ -1429,4 +1357,24 @@ func (s *UniVoteVoterWrap) UniQueryVoter(start *prototype.VoterId) *SoVoteWrap {
 		}
 	}
 	return nil
+}
+
+func (s *SoVoteWrap) getMdFuncMap() map[string]interface{} {
+	if s.mdFuncMap != nil && len(s.mdFuncMap) > 0 {
+		return s.mdFuncMap
+	}
+	m := map[string]interface{}{}
+
+	m["PostId"] = s.mdFieldPostId
+
+	m["Upvote"] = s.mdFieldUpvote
+
+	m["VoteTime"] = s.mdFieldVoteTime
+
+	m["WeightedVp"] = s.mdFieldWeightedVp
+
+	if len(m) > 0 {
+		s.mdFuncMap = m
+	}
+	return m
 }

@@ -1,10 +1,10 @@
 package table
 
 import (
+	"encoding/json"
 	"errors"
 	fmt "fmt"
 	"reflect"
-	"strings"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -17,24 +17,25 @@ var (
 	ExtDailyTrxDateTable    uint32 = 4241530934
 	ExtDailyTrxCountTable   uint32 = 1672192129
 	ExtDailyTrxDateUniTable uint32 = 111567975
-	ExtDailyTrxCountCell    uint32 = 4142055978
-	ExtDailyTrxDateCell     uint32 = 839307372
+
+	ExtDailyTrxDateRow uint32 = 3166181191
 )
 
 ////////////// SECTION Wrap Define ///////////////
 type SoExtDailyTrxWrap struct {
-	dba      iservices.IDatabaseRW
-	mainKey  *prototype.TimePointSec
-	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf  []byte //the buffer after the main key is encoded with prefix
-	mBuf     []byte //the value after the main key is encoded
+	dba       iservices.IDatabaseRW
+	mainKey   *prototype.TimePointSec
+	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
+	mBuf      []byte //the value after the main key is encoded
+	mdFuncMap map[string]interface{}
 }
 
 func NewSoExtDailyTrxWrap(dba iservices.IDatabaseRW, key *prototype.TimePointSec) *SoExtDailyTrxWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoExtDailyTrxWrap{dba, key, -1, nil, nil}
+	result := &SoExtDailyTrxWrap{dba, key, -1, nil, nil, nil}
 	return result
 }
 
@@ -86,9 +87,13 @@ func (s *SoExtDailyTrxWrap) Create(f func(tInfo *SoExtDailyTrx)) error {
 		return err
 
 	}
-	err = s.saveAllMemKeys(val, true)
+
+	buf, err := proto.Marshal(val)
 	if err != nil {
-		s.delAllMemKeys(false, val)
+		return err
+	}
+	err = s.dba.Put(keyBuf, buf)
+	if err != nil {
 		return err
 	}
 
@@ -96,7 +101,6 @@ func (s *SoExtDailyTrxWrap) Create(f func(tInfo *SoExtDailyTrx)) error {
 	if err = s.insertAllSortKeys(val); err != nil {
 		s.delAllSortKeys(false, val)
 		s.dba.Delete(keyBuf)
-		s.delAllMemKeys(false, val)
 		return err
 	}
 
@@ -105,7 +109,6 @@ func (s *SoExtDailyTrxWrap) Create(f func(tInfo *SoExtDailyTrx)) error {
 		s.delAllSortKeys(false, val)
 		s.delUniKeysWithNames(sucNames, val)
 		s.dba.Delete(keyBuf)
-		s.delAllMemKeys(false, val)
 		return err
 	}
 
@@ -126,6 +129,113 @@ func (s *SoExtDailyTrxWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
+func (s *SoExtDailyTrxWrap) Md(f func(tInfo *SoExtDailyTrx)) error {
+	t := &SoExtDailyTrx{}
+	f(t)
+	js, err := json.Marshal(t)
+	if err != nil {
+		return err
+	}
+	fMap := make(map[string]interface{})
+	err = json.Unmarshal(js, &fMap)
+	if err != nil {
+		return err
+	}
+
+	mKeyName := "Date"
+	mKeyField := ""
+	for name, _ := range fMap {
+		if ConvTableFieldToPbFormat(name) == mKeyName {
+			mKeyField = name
+			break
+		}
+	}
+	if len(mKeyField) > 0 {
+		delete(fMap, mKeyField)
+	}
+
+	if len(fMap) < 1 {
+		return errors.New("can't' modify empty struct")
+	}
+
+	sa := s.getExtDailyTrx()
+	if sa == nil {
+		return errors.New("fail to get table SoExtDailyTrx")
+	}
+
+	refVal := reflect.ValueOf(*t)
+	el := reflect.ValueOf(sa).Elem()
+
+	//check unique
+	err = s.handleFieldMd(FieldMdHandleTypeCheck, t, fMap)
+	if err != nil {
+		return err
+	}
+
+	//delete sort and unique key
+	err = s.handleFieldMd(FieldMdHandleTypeDel, sa, fMap)
+	if err != nil {
+		return err
+	}
+
+	//update table
+	for f, _ := range fMap {
+		fName := ConvTableFieldToPbFormat(f)
+		val := refVal.FieldByName(fName)
+		if _, ok := s.mdFuncMap[fName]; ok {
+			el.FieldByName(fName).Set(val)
+		}
+	}
+	err = s.updateExtDailyTrx(sa)
+	if err != nil {
+		return err
+	}
+
+	//insert sort and unique key
+	err = s.handleFieldMd(FieldMdHandleTypeInsert, sa, fMap)
+	if err != nil {
+		return err
+	}
+
+	return err
+
+}
+
+func (s *SoExtDailyTrxWrap) handleFieldMd(t FieldMdHandleType, so *SoExtDailyTrx, fMap map[string]interface{}) error {
+	if so == nil || fMap == nil {
+		return errors.New("fail to modify empty table")
+	}
+
+	mdFuncMap := s.getMdFuncMap()
+	if len(mdFuncMap) < 1 {
+		return errors.New("there is not exsit md function to md field")
+	}
+	errStr := ""
+	refVal := reflect.ValueOf(*so)
+	for f, _ := range fMap {
+		fName := ConvTableFieldToPbFormat(f)
+		val := refVal.FieldByName(fName)
+		if _, ok := mdFuncMap[fName]; ok {
+			f := reflect.ValueOf(s.mdFuncMap[fName])
+			p := []reflect.Value{val, reflect.ValueOf(true), reflect.ValueOf(false), reflect.ValueOf(false), reflect.ValueOf(so)}
+			errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			if t == FieldMdHandleTypeDel {
+				p = []reflect.Value{val, reflect.ValueOf(false), reflect.ValueOf(true), reflect.ValueOf(false), reflect.ValueOf(so)}
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				p = []reflect.Value{val, reflect.ValueOf(false), reflect.ValueOf(false), reflect.ValueOf(true), reflect.ValueOf(so)}
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			res := f.Call(p)
+			if !(res[0].Bool()) {
+				return errors.New(errStr)
+			}
+		}
+	}
+
+	return nil
+}
+
 ////////////// SECTION LKeys delete/insert ///////////////
 
 func (s *SoExtDailyTrxWrap) delSortKeyDate(sa *SoExtDailyTrx) bool {
@@ -134,20 +244,7 @@ func (s *SoExtDailyTrxWrap) delSortKeyDate(sa *SoExtDailyTrx) bool {
 	}
 	val := SoListExtDailyTrxByDate{}
 	if sa == nil {
-		key, err := s.encodeMemKey("Date")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemExtDailyTrxByDate{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		val.Date = ori.Date
+		val.Date = s.GetDate()
 	} else {
 		val.Date = sa.Date
 	}
@@ -184,20 +281,7 @@ func (s *SoExtDailyTrxWrap) delSortKeyCount(sa *SoExtDailyTrx) bool {
 	}
 	val := SoListExtDailyTrxByCount{}
 	if sa == nil {
-		key, err := s.encodeMemKey("Count")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemExtDailyTrxByCount{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		val.Count = ori.Count
+		val.Count = s.GetCount()
 		val.Date = s.mainKey
 
 	} else {
@@ -237,13 +321,7 @@ func (s *SoExtDailyTrxWrap) delAllSortKeys(br bool, val *SoExtDailyTrx) bool {
 		return false
 	}
 	res := true
-	if !s.delSortKeyDate(val) {
-		if br {
-			return false
-		} else {
-			res = false
-		}
-	}
+
 	if !s.delSortKeyCount(val) {
 		if br {
 			return false
@@ -262,9 +340,7 @@ func (s *SoExtDailyTrxWrap) insertAllSortKeys(val *SoExtDailyTrx) error {
 	if val == nil {
 		return errors.New("insert sort Field fail,get the SoExtDailyTrx fail ")
 	}
-	if !s.insertSortKeyDate(val) {
-		return errors.New("insert sort Field Date fail while insert table ")
-	}
+
 	if !s.insertSortKeyCount(val) {
 		return errors.New("insert sort Field Count fail while insert table ")
 	}
@@ -278,7 +354,6 @@ func (s *SoExtDailyTrxWrap) RemoveExtDailyTrx() bool {
 	if s.dba == nil {
 		return false
 	}
-	val := &SoExtDailyTrx{}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
 		return false
@@ -289,7 +364,12 @@ func (s *SoExtDailyTrxWrap) RemoveExtDailyTrx() bool {
 		return false
 	}
 
-	err := s.delAllMemKeys(true, val)
+	//delete table
+	key, err := s.encodeMainKey()
+	if err != nil {
+		return false
+	}
+	err = s.dba.Delete(key)
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
@@ -300,134 +380,14 @@ func (s *SoExtDailyTrxWrap) RemoveExtDailyTrx() bool {
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
-func (s *SoExtDailyTrxWrap) getMemKeyPrefix(fName string) uint32 {
-	if fName == "Count" {
-		return ExtDailyTrxCountCell
-	}
-	if fName == "Date" {
-		return ExtDailyTrxDateCell
-	}
-
-	return 0
-}
-
-func (s *SoExtDailyTrxWrap) encodeMemKey(fName string) ([]byte, error) {
-	if len(fName) < 1 || s.mainKey == nil {
-		return nil, errors.New("field name or main key is empty")
-	}
-	pre := s.getMemKeyPrefix(fName)
-	preBuf, err := kope.Encode(pre)
-	if err != nil {
-		return nil, err
-	}
-	mBuf, err := s.getMainKeyBuf()
-	if err != nil {
-		return nil, err
-	}
-	list := make([][]byte, 2)
-	list[0] = preBuf
-	list[1] = mBuf
-	return kope.PackList(list), nil
-}
-
-func (s *SoExtDailyTrxWrap) saveAllMemKeys(tInfo *SoExtDailyTrx, br bool) error {
-	if s.dba == nil {
-		return errors.New("save member Field fail , the db is nil")
-	}
-
-	if tInfo == nil {
-		return errors.New("save member Field fail , the data is nil ")
-	}
-	var err error = nil
-	errDes := ""
-	if err = s.saveMemKeyCount(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Count", err)
-		}
-	}
-	if err = s.saveMemKeyDate(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Date", err)
-		}
-	}
-
-	if len(errDes) > 0 {
-		return errors.New(errDes)
-	}
-	return err
-}
-
-func (s *SoExtDailyTrxWrap) delAllMemKeys(br bool, tInfo *SoExtDailyTrx) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	t := reflect.TypeOf(*tInfo)
-	errDesc := ""
-	for k := 0; k < t.NumField(); k++ {
-		name := t.Field(k).Name
-		if len(name) > 0 && !strings.HasPrefix(name, "XXX_") {
-			err := s.delMemKey(name)
-			if err != nil {
-				if br {
-					return err
-				}
-				errDesc += fmt.Sprintf("delete the Field %s fail,error is %s;\n", name, err)
-			}
-		}
-	}
-	if len(errDesc) > 0 {
-		return errors.New(errDesc)
-	}
-	return nil
-}
-
-func (s *SoExtDailyTrxWrap) delMemKey(fName string) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if len(fName) <= 0 {
-		return errors.New("the field name is empty ")
-	}
-	key, err := s.encodeMemKey(fName)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Delete(key)
-	return err
-}
-
-func (s *SoExtDailyTrxWrap) saveMemKeyCount(tInfo *SoExtDailyTrx) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemExtDailyTrxByCount{}
-	val.Count = tInfo.Count
-	key, err := s.encodeMemKey("Count")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
 
 func (s *SoExtDailyTrxWrap) GetCount() uint64 {
 	res := true
-	msg := &SoMemExtDailyTrxByCount{}
+	msg := &SoExtDailyTrx{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Count")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -450,74 +410,74 @@ func (s *SoExtDailyTrxWrap) GetCount() uint64 {
 	return msg.Count
 }
 
-func (s *SoExtDailyTrxWrap) MdCount(p uint64) bool {
+func (s *SoExtDailyTrxWrap) mdFieldCount(p uint64, isCheck bool, isDel bool, isInsert bool,
+	so *SoExtDailyTrx) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("Count")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemExtDailyTrxByCount{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoExtDailyTrx{}
-	sa.Date = s.mainKey
 
-	sa.Count = ori.Count
+	if isCheck {
+		res := s.checkCountIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	if !s.delSortKeyCount(sa) {
-		return false
+	if isDel {
+		res := s.delFieldCount(so)
+		if !res {
+			return false
+		}
 	}
-	ori.Count = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.Count = p
 
-	if !s.insertSortKeyCount(sa) {
+	if isInsert {
+		res := s.insertFieldCount(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoExtDailyTrxWrap) delFieldCount(so *SoExtDailyTrx) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if !s.delSortKeyCount(so) {
 		return false
 	}
 
 	return true
 }
 
-func (s *SoExtDailyTrxWrap) saveMemKeyDate(tInfo *SoExtDailyTrx) error {
+func (s *SoExtDailyTrxWrap) insertFieldCount(so *SoExtDailyTrx) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	if !s.insertSortKeyCount(so) {
+		return false
 	}
-	val := SoMemExtDailyTrxByDate{}
-	val.Date = tInfo.Date
-	key, err := s.encodeMemKey("Date")
-	if err != nil {
-		return err
+
+	return true
+}
+
+func (s *SoExtDailyTrxWrap) checkCountIsMetMdCondition(p uint64) bool {
+	if s.dba == nil {
+		return false
 	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoExtDailyTrxWrap) GetDate() *prototype.TimePointSec {
 	res := true
-	msg := &SoMemExtDailyTrxByDate{}
+	msg := &SoExtDailyTrx{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Date")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -796,11 +756,38 @@ func (s *SoExtDailyTrxWrap) getExtDailyTrx() *SoExtDailyTrx {
 	return res
 }
 
+func (s *SoExtDailyTrxWrap) updateExtDailyTrx(so *SoExtDailyTrx) error {
+	if s.dba == nil {
+		return errors.New("update fail:the db is nil")
+	}
+
+	if so == nil {
+		return errors.New("update fail: the SoExtDailyTrx is nil")
+	}
+
+	key, err := s.encodeMainKey()
+	if err != nil {
+		return nil
+	}
+
+	buf, err := proto.Marshal(so)
+	if err != nil {
+		return err
+	}
+
+	err = s.dba.Put(key, buf)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *SoExtDailyTrxWrap) encodeMainKey() ([]byte, error) {
 	if s.mKeyBuf != nil {
 		return s.mKeyBuf, nil
 	}
-	pre := s.getMemKeyPrefix("Date")
+	pre := ExtDailyTrxDateRow
 	sub := s.mainKey
 	if sub == nil {
 		return nil, errors.New("the mainKey is nil")
@@ -883,20 +870,7 @@ func (s *SoExtDailyTrxWrap) delUniKeyDate(sa *SoExtDailyTrx) bool {
 		sub := sa.Date
 		kList = append(kList, sub)
 	} else {
-		key, err := s.encodeMemKey("Date")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemExtDailyTrxByDate{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		sub := ori.Date
+		sub := s.GetDate()
 		kList = append(kList, sub)
 
 	}
@@ -966,4 +940,18 @@ func (s *UniExtDailyTrxDateWrap) UniQueryDate(start *prototype.TimePointSec) *So
 		}
 	}
 	return nil
+}
+
+func (s *SoExtDailyTrxWrap) getMdFuncMap() map[string]interface{} {
+	if s.mdFuncMap != nil && len(s.mdFuncMap) > 0 {
+		return s.mdFuncMap
+	}
+	m := map[string]interface{}{}
+
+	m["Count"] = s.mdFieldCount
+
+	if len(m) > 0 {
+		s.mdFuncMap = m
+	}
+	return m
 }

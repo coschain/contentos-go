@@ -1,10 +1,10 @@
 package table
 
 import (
+	"encoding/json"
 	"errors"
 	fmt "fmt"
 	"reflect"
-	"strings"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -16,24 +16,25 @@ import (
 var (
 	ExtFollowerFollowerCreatedOrderTable uint32 = 1742944534
 	ExtFollowerFollowerInfoUniTable      uint32 = 15777514
-	ExtFollowerFollowerCreatedOrderCell  uint32 = 1700610220
-	ExtFollowerFollowerInfoCell          uint32 = 2385804611
+
+	ExtFollowerFollowerInfoRow uint32 = 3902153462
 )
 
 ////////////// SECTION Wrap Define ///////////////
 type SoExtFollowerWrap struct {
-	dba      iservices.IDatabaseRW
-	mainKey  *prototype.FollowerRelation
-	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf  []byte //the buffer after the main key is encoded with prefix
-	mBuf     []byte //the value after the main key is encoded
+	dba       iservices.IDatabaseRW
+	mainKey   *prototype.FollowerRelation
+	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
+	mBuf      []byte //the value after the main key is encoded
+	mdFuncMap map[string]interface{}
 }
 
 func NewSoExtFollowerWrap(dba iservices.IDatabaseRW, key *prototype.FollowerRelation) *SoExtFollowerWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoExtFollowerWrap{dba, key, -1, nil, nil}
+	result := &SoExtFollowerWrap{dba, key, -1, nil, nil, nil}
 	return result
 }
 
@@ -85,9 +86,13 @@ func (s *SoExtFollowerWrap) Create(f func(tInfo *SoExtFollower)) error {
 		return err
 
 	}
-	err = s.saveAllMemKeys(val, true)
+
+	buf, err := proto.Marshal(val)
 	if err != nil {
-		s.delAllMemKeys(false, val)
+		return err
+	}
+	err = s.dba.Put(keyBuf, buf)
+	if err != nil {
 		return err
 	}
 
@@ -95,7 +100,6 @@ func (s *SoExtFollowerWrap) Create(f func(tInfo *SoExtFollower)) error {
 	if err = s.insertAllSortKeys(val); err != nil {
 		s.delAllSortKeys(false, val)
 		s.dba.Delete(keyBuf)
-		s.delAllMemKeys(false, val)
 		return err
 	}
 
@@ -104,7 +108,6 @@ func (s *SoExtFollowerWrap) Create(f func(tInfo *SoExtFollower)) error {
 		s.delAllSortKeys(false, val)
 		s.delUniKeysWithNames(sucNames, val)
 		s.dba.Delete(keyBuf)
-		s.delAllMemKeys(false, val)
 		return err
 	}
 
@@ -125,6 +128,113 @@ func (s *SoExtFollowerWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
+func (s *SoExtFollowerWrap) Md(f func(tInfo *SoExtFollower)) error {
+	t := &SoExtFollower{}
+	f(t)
+	js, err := json.Marshal(t)
+	if err != nil {
+		return err
+	}
+	fMap := make(map[string]interface{})
+	err = json.Unmarshal(js, &fMap)
+	if err != nil {
+		return err
+	}
+
+	mKeyName := "FollowerInfo"
+	mKeyField := ""
+	for name, _ := range fMap {
+		if ConvTableFieldToPbFormat(name) == mKeyName {
+			mKeyField = name
+			break
+		}
+	}
+	if len(mKeyField) > 0 {
+		delete(fMap, mKeyField)
+	}
+
+	if len(fMap) < 1 {
+		return errors.New("can't' modify empty struct")
+	}
+
+	sa := s.getExtFollower()
+	if sa == nil {
+		return errors.New("fail to get table SoExtFollower")
+	}
+
+	refVal := reflect.ValueOf(*t)
+	el := reflect.ValueOf(sa).Elem()
+
+	//check unique
+	err = s.handleFieldMd(FieldMdHandleTypeCheck, t, fMap)
+	if err != nil {
+		return err
+	}
+
+	//delete sort and unique key
+	err = s.handleFieldMd(FieldMdHandleTypeDel, sa, fMap)
+	if err != nil {
+		return err
+	}
+
+	//update table
+	for f, _ := range fMap {
+		fName := ConvTableFieldToPbFormat(f)
+		val := refVal.FieldByName(fName)
+		if _, ok := s.mdFuncMap[fName]; ok {
+			el.FieldByName(fName).Set(val)
+		}
+	}
+	err = s.updateExtFollower(sa)
+	if err != nil {
+		return err
+	}
+
+	//insert sort and unique key
+	err = s.handleFieldMd(FieldMdHandleTypeInsert, sa, fMap)
+	if err != nil {
+		return err
+	}
+
+	return err
+
+}
+
+func (s *SoExtFollowerWrap) handleFieldMd(t FieldMdHandleType, so *SoExtFollower, fMap map[string]interface{}) error {
+	if so == nil || fMap == nil {
+		return errors.New("fail to modify empty table")
+	}
+
+	mdFuncMap := s.getMdFuncMap()
+	if len(mdFuncMap) < 1 {
+		return errors.New("there is not exsit md function to md field")
+	}
+	errStr := ""
+	refVal := reflect.ValueOf(*so)
+	for f, _ := range fMap {
+		fName := ConvTableFieldToPbFormat(f)
+		val := refVal.FieldByName(fName)
+		if _, ok := mdFuncMap[fName]; ok {
+			f := reflect.ValueOf(s.mdFuncMap[fName])
+			p := []reflect.Value{val, reflect.ValueOf(true), reflect.ValueOf(false), reflect.ValueOf(false), reflect.ValueOf(so)}
+			errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			if t == FieldMdHandleTypeDel {
+				p = []reflect.Value{val, reflect.ValueOf(false), reflect.ValueOf(true), reflect.ValueOf(false), reflect.ValueOf(so)}
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				p = []reflect.Value{val, reflect.ValueOf(false), reflect.ValueOf(false), reflect.ValueOf(true), reflect.ValueOf(so)}
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			res := f.Call(p)
+			if !(res[0].Bool()) {
+				return errors.New(errStr)
+			}
+		}
+	}
+
+	return nil
+}
+
 ////////////// SECTION LKeys delete/insert ///////////////
 
 func (s *SoExtFollowerWrap) delSortKeyFollowerCreatedOrder(sa *SoExtFollower) bool {
@@ -133,20 +243,7 @@ func (s *SoExtFollowerWrap) delSortKeyFollowerCreatedOrder(sa *SoExtFollower) bo
 	}
 	val := SoListExtFollowerByFollowerCreatedOrder{}
 	if sa == nil {
-		key, err := s.encodeMemKey("FollowerCreatedOrder")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemExtFollowerByFollowerCreatedOrder{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		val.FollowerCreatedOrder = ori.FollowerCreatedOrder
+		val.FollowerCreatedOrder = s.GetFollowerCreatedOrder()
 		val.FollowerInfo = s.mainKey
 
 	} else {
@@ -186,6 +283,7 @@ func (s *SoExtFollowerWrap) delAllSortKeys(br bool, val *SoExtFollower) bool {
 		return false
 	}
 	res := true
+
 	if !s.delSortKeyFollowerCreatedOrder(val) {
 		if br {
 			return false
@@ -204,6 +302,7 @@ func (s *SoExtFollowerWrap) insertAllSortKeys(val *SoExtFollower) error {
 	if val == nil {
 		return errors.New("insert sort Field fail,get the SoExtFollower fail ")
 	}
+
 	if !s.insertSortKeyFollowerCreatedOrder(val) {
 		return errors.New("insert sort Field FollowerCreatedOrder fail while insert table ")
 	}
@@ -217,7 +316,6 @@ func (s *SoExtFollowerWrap) RemoveExtFollower() bool {
 	if s.dba == nil {
 		return false
 	}
-	val := &SoExtFollower{}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
 		return false
@@ -228,7 +326,12 @@ func (s *SoExtFollowerWrap) RemoveExtFollower() bool {
 		return false
 	}
 
-	err := s.delAllMemKeys(true, val)
+	//delete table
+	key, err := s.encodeMainKey()
+	if err != nil {
+		return false
+	}
+	err = s.dba.Delete(key)
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
@@ -239,134 +342,14 @@ func (s *SoExtFollowerWrap) RemoveExtFollower() bool {
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
-func (s *SoExtFollowerWrap) getMemKeyPrefix(fName string) uint32 {
-	if fName == "FollowerCreatedOrder" {
-		return ExtFollowerFollowerCreatedOrderCell
-	}
-	if fName == "FollowerInfo" {
-		return ExtFollowerFollowerInfoCell
-	}
-
-	return 0
-}
-
-func (s *SoExtFollowerWrap) encodeMemKey(fName string) ([]byte, error) {
-	if len(fName) < 1 || s.mainKey == nil {
-		return nil, errors.New("field name or main key is empty")
-	}
-	pre := s.getMemKeyPrefix(fName)
-	preBuf, err := kope.Encode(pre)
-	if err != nil {
-		return nil, err
-	}
-	mBuf, err := s.getMainKeyBuf()
-	if err != nil {
-		return nil, err
-	}
-	list := make([][]byte, 2)
-	list[0] = preBuf
-	list[1] = mBuf
-	return kope.PackList(list), nil
-}
-
-func (s *SoExtFollowerWrap) saveAllMemKeys(tInfo *SoExtFollower, br bool) error {
-	if s.dba == nil {
-		return errors.New("save member Field fail , the db is nil")
-	}
-
-	if tInfo == nil {
-		return errors.New("save member Field fail , the data is nil ")
-	}
-	var err error = nil
-	errDes := ""
-	if err = s.saveMemKeyFollowerCreatedOrder(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "FollowerCreatedOrder", err)
-		}
-	}
-	if err = s.saveMemKeyFollowerInfo(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "FollowerInfo", err)
-		}
-	}
-
-	if len(errDes) > 0 {
-		return errors.New(errDes)
-	}
-	return err
-}
-
-func (s *SoExtFollowerWrap) delAllMemKeys(br bool, tInfo *SoExtFollower) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	t := reflect.TypeOf(*tInfo)
-	errDesc := ""
-	for k := 0; k < t.NumField(); k++ {
-		name := t.Field(k).Name
-		if len(name) > 0 && !strings.HasPrefix(name, "XXX_") {
-			err := s.delMemKey(name)
-			if err != nil {
-				if br {
-					return err
-				}
-				errDesc += fmt.Sprintf("delete the Field %s fail,error is %s;\n", name, err)
-			}
-		}
-	}
-	if len(errDesc) > 0 {
-		return errors.New(errDesc)
-	}
-	return nil
-}
-
-func (s *SoExtFollowerWrap) delMemKey(fName string) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if len(fName) <= 0 {
-		return errors.New("the field name is empty ")
-	}
-	key, err := s.encodeMemKey(fName)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Delete(key)
-	return err
-}
-
-func (s *SoExtFollowerWrap) saveMemKeyFollowerCreatedOrder(tInfo *SoExtFollower) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemExtFollowerByFollowerCreatedOrder{}
-	val.FollowerCreatedOrder = tInfo.FollowerCreatedOrder
-	key, err := s.encodeMemKey("FollowerCreatedOrder")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
 
 func (s *SoExtFollowerWrap) GetFollowerCreatedOrder() *prototype.FollowerCreatedOrder {
 	res := true
-	msg := &SoMemExtFollowerByFollowerCreatedOrder{}
+	msg := &SoExtFollower{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("FollowerCreatedOrder")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -389,74 +372,74 @@ func (s *SoExtFollowerWrap) GetFollowerCreatedOrder() *prototype.FollowerCreated
 	return msg.FollowerCreatedOrder
 }
 
-func (s *SoExtFollowerWrap) MdFollowerCreatedOrder(p *prototype.FollowerCreatedOrder) bool {
+func (s *SoExtFollowerWrap) mdFieldFollowerCreatedOrder(p *prototype.FollowerCreatedOrder, isCheck bool, isDel bool, isInsert bool,
+	so *SoExtFollower) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("FollowerCreatedOrder")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemExtFollowerByFollowerCreatedOrder{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoExtFollower{}
-	sa.FollowerInfo = s.mainKey
 
-	sa.FollowerCreatedOrder = ori.FollowerCreatedOrder
+	if isCheck {
+		res := s.checkFollowerCreatedOrderIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	if !s.delSortKeyFollowerCreatedOrder(sa) {
-		return false
+	if isDel {
+		res := s.delFieldFollowerCreatedOrder(so)
+		if !res {
+			return false
+		}
 	}
-	ori.FollowerCreatedOrder = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.FollowerCreatedOrder = p
 
-	if !s.insertSortKeyFollowerCreatedOrder(sa) {
+	if isInsert {
+		res := s.insertFieldFollowerCreatedOrder(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoExtFollowerWrap) delFieldFollowerCreatedOrder(so *SoExtFollower) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if !s.delSortKeyFollowerCreatedOrder(so) {
 		return false
 	}
 
 	return true
 }
 
-func (s *SoExtFollowerWrap) saveMemKeyFollowerInfo(tInfo *SoExtFollower) error {
+func (s *SoExtFollowerWrap) insertFieldFollowerCreatedOrder(so *SoExtFollower) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	if !s.insertSortKeyFollowerCreatedOrder(so) {
+		return false
 	}
-	val := SoMemExtFollowerByFollowerInfo{}
-	val.FollowerInfo = tInfo.FollowerInfo
-	key, err := s.encodeMemKey("FollowerInfo")
-	if err != nil {
-		return err
+
+	return true
+}
+
+func (s *SoExtFollowerWrap) checkFollowerCreatedOrderIsMetMdCondition(p *prototype.FollowerCreatedOrder) bool {
+	if s.dba == nil {
+		return false
 	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoExtFollowerWrap) GetFollowerInfo() *prototype.FollowerRelation {
 	res := true
-	msg := &SoMemExtFollowerByFollowerInfo{}
+	msg := &SoExtFollower{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("FollowerInfo")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -628,11 +611,38 @@ func (s *SoExtFollowerWrap) getExtFollower() *SoExtFollower {
 	return res
 }
 
+func (s *SoExtFollowerWrap) updateExtFollower(so *SoExtFollower) error {
+	if s.dba == nil {
+		return errors.New("update fail:the db is nil")
+	}
+
+	if so == nil {
+		return errors.New("update fail: the SoExtFollower is nil")
+	}
+
+	key, err := s.encodeMainKey()
+	if err != nil {
+		return nil
+	}
+
+	buf, err := proto.Marshal(so)
+	if err != nil {
+		return err
+	}
+
+	err = s.dba.Put(key, buf)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *SoExtFollowerWrap) encodeMainKey() ([]byte, error) {
 	if s.mKeyBuf != nil {
 		return s.mKeyBuf, nil
 	}
-	pre := s.getMemKeyPrefix("FollowerInfo")
+	pre := ExtFollowerFollowerInfoRow
 	sub := s.mainKey
 	if sub == nil {
 		return nil, errors.New("the mainKey is nil")
@@ -715,20 +725,7 @@ func (s *SoExtFollowerWrap) delUniKeyFollowerInfo(sa *SoExtFollower) bool {
 		sub := sa.FollowerInfo
 		kList = append(kList, sub)
 	} else {
-		key, err := s.encodeMemKey("FollowerInfo")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemExtFollowerByFollowerInfo{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		sub := ori.FollowerInfo
+		sub := s.GetFollowerInfo()
 		kList = append(kList, sub)
 
 	}
@@ -798,4 +795,18 @@ func (s *UniExtFollowerFollowerInfoWrap) UniQueryFollowerInfo(start *prototype.F
 		}
 	}
 	return nil
+}
+
+func (s *SoExtFollowerWrap) getMdFuncMap() map[string]interface{} {
+	if s.mdFuncMap != nil && len(s.mdFuncMap) > 0 {
+		return s.mdFuncMap
+	}
+	m := map[string]interface{}{}
+
+	m["FollowerCreatedOrder"] = s.mdFieldFollowerCreatedOrder
+
+	if len(m) > 0 {
+		s.mdFuncMap = m
+	}
+	return m
 }

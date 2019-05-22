@@ -1,10 +1,10 @@
 package table
 
 import (
+	"encoding/json"
 	"errors"
 	fmt "fmt"
 	"reflect"
-	"strings"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -16,24 +16,25 @@ import (
 var (
 	TransactionObjectExpirationTable uint32 = 3273070683
 	TransactionObjectTrxIdUniTable   uint32 = 482982412
-	TransactionObjectExpirationCell  uint32 = 1085825226
-	TransactionObjectTrxIdCell       uint32 = 3384783386
+
+	TransactionObjectTrxIdRow uint32 = 3516269592
 )
 
 ////////////// SECTION Wrap Define ///////////////
 type SoTransactionObjectWrap struct {
-	dba      iservices.IDatabaseRW
-	mainKey  *prototype.Sha256
-	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf  []byte //the buffer after the main key is encoded with prefix
-	mBuf     []byte //the value after the main key is encoded
+	dba       iservices.IDatabaseRW
+	mainKey   *prototype.Sha256
+	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
+	mBuf      []byte //the value after the main key is encoded
+	mdFuncMap map[string]interface{}
 }
 
 func NewSoTransactionObjectWrap(dba iservices.IDatabaseRW, key *prototype.Sha256) *SoTransactionObjectWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoTransactionObjectWrap{dba, key, -1, nil, nil}
+	result := &SoTransactionObjectWrap{dba, key, -1, nil, nil, nil}
 	return result
 }
 
@@ -85,9 +86,13 @@ func (s *SoTransactionObjectWrap) Create(f func(tInfo *SoTransactionObject)) err
 		return err
 
 	}
-	err = s.saveAllMemKeys(val, true)
+
+	buf, err := proto.Marshal(val)
 	if err != nil {
-		s.delAllMemKeys(false, val)
+		return err
+	}
+	err = s.dba.Put(keyBuf, buf)
+	if err != nil {
 		return err
 	}
 
@@ -95,7 +100,6 @@ func (s *SoTransactionObjectWrap) Create(f func(tInfo *SoTransactionObject)) err
 	if err = s.insertAllSortKeys(val); err != nil {
 		s.delAllSortKeys(false, val)
 		s.dba.Delete(keyBuf)
-		s.delAllMemKeys(false, val)
 		return err
 	}
 
@@ -104,7 +108,6 @@ func (s *SoTransactionObjectWrap) Create(f func(tInfo *SoTransactionObject)) err
 		s.delAllSortKeys(false, val)
 		s.delUniKeysWithNames(sucNames, val)
 		s.dba.Delete(keyBuf)
-		s.delAllMemKeys(false, val)
 		return err
 	}
 
@@ -125,6 +128,113 @@ func (s *SoTransactionObjectWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
+func (s *SoTransactionObjectWrap) Md(f func(tInfo *SoTransactionObject)) error {
+	t := &SoTransactionObject{}
+	f(t)
+	js, err := json.Marshal(t)
+	if err != nil {
+		return err
+	}
+	fMap := make(map[string]interface{})
+	err = json.Unmarshal(js, &fMap)
+	if err != nil {
+		return err
+	}
+
+	mKeyName := "TrxId"
+	mKeyField := ""
+	for name, _ := range fMap {
+		if ConvTableFieldToPbFormat(name) == mKeyName {
+			mKeyField = name
+			break
+		}
+	}
+	if len(mKeyField) > 0 {
+		delete(fMap, mKeyField)
+	}
+
+	if len(fMap) < 1 {
+		return errors.New("can't' modify empty struct")
+	}
+
+	sa := s.getTransactionObject()
+	if sa == nil {
+		return errors.New("fail to get table SoTransactionObject")
+	}
+
+	refVal := reflect.ValueOf(*t)
+	el := reflect.ValueOf(sa).Elem()
+
+	//check unique
+	err = s.handleFieldMd(FieldMdHandleTypeCheck, t, fMap)
+	if err != nil {
+		return err
+	}
+
+	//delete sort and unique key
+	err = s.handleFieldMd(FieldMdHandleTypeDel, sa, fMap)
+	if err != nil {
+		return err
+	}
+
+	//update table
+	for f, _ := range fMap {
+		fName := ConvTableFieldToPbFormat(f)
+		val := refVal.FieldByName(fName)
+		if _, ok := s.mdFuncMap[fName]; ok {
+			el.FieldByName(fName).Set(val)
+		}
+	}
+	err = s.updateTransactionObject(sa)
+	if err != nil {
+		return err
+	}
+
+	//insert sort and unique key
+	err = s.handleFieldMd(FieldMdHandleTypeInsert, sa, fMap)
+	if err != nil {
+		return err
+	}
+
+	return err
+
+}
+
+func (s *SoTransactionObjectWrap) handleFieldMd(t FieldMdHandleType, so *SoTransactionObject, fMap map[string]interface{}) error {
+	if so == nil || fMap == nil {
+		return errors.New("fail to modify empty table")
+	}
+
+	mdFuncMap := s.getMdFuncMap()
+	if len(mdFuncMap) < 1 {
+		return errors.New("there is not exsit md function to md field")
+	}
+	errStr := ""
+	refVal := reflect.ValueOf(*so)
+	for f, _ := range fMap {
+		fName := ConvTableFieldToPbFormat(f)
+		val := refVal.FieldByName(fName)
+		if _, ok := mdFuncMap[fName]; ok {
+			f := reflect.ValueOf(s.mdFuncMap[fName])
+			p := []reflect.Value{val, reflect.ValueOf(true), reflect.ValueOf(false), reflect.ValueOf(false), reflect.ValueOf(so)}
+			errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			if t == FieldMdHandleTypeDel {
+				p = []reflect.Value{val, reflect.ValueOf(false), reflect.ValueOf(true), reflect.ValueOf(false), reflect.ValueOf(so)}
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				p = []reflect.Value{val, reflect.ValueOf(false), reflect.ValueOf(false), reflect.ValueOf(true), reflect.ValueOf(so)}
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			res := f.Call(p)
+			if !(res[0].Bool()) {
+				return errors.New(errStr)
+			}
+		}
+	}
+
+	return nil
+}
+
 ////////////// SECTION LKeys delete/insert ///////////////
 
 func (s *SoTransactionObjectWrap) delSortKeyExpiration(sa *SoTransactionObject) bool {
@@ -133,20 +243,7 @@ func (s *SoTransactionObjectWrap) delSortKeyExpiration(sa *SoTransactionObject) 
 	}
 	val := SoListTransactionObjectByExpiration{}
 	if sa == nil {
-		key, err := s.encodeMemKey("Expiration")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemTransactionObjectByExpiration{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		val.Expiration = ori.Expiration
+		val.Expiration = s.GetExpiration()
 		val.TrxId = s.mainKey
 
 	} else {
@@ -186,6 +283,7 @@ func (s *SoTransactionObjectWrap) delAllSortKeys(br bool, val *SoTransactionObje
 		return false
 	}
 	res := true
+
 	if !s.delSortKeyExpiration(val) {
 		if br {
 			return false
@@ -204,6 +302,7 @@ func (s *SoTransactionObjectWrap) insertAllSortKeys(val *SoTransactionObject) er
 	if val == nil {
 		return errors.New("insert sort Field fail,get the SoTransactionObject fail ")
 	}
+
 	if !s.insertSortKeyExpiration(val) {
 		return errors.New("insert sort Field Expiration fail while insert table ")
 	}
@@ -217,7 +316,6 @@ func (s *SoTransactionObjectWrap) RemoveTransactionObject() bool {
 	if s.dba == nil {
 		return false
 	}
-	val := &SoTransactionObject{}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
 		return false
@@ -228,7 +326,12 @@ func (s *SoTransactionObjectWrap) RemoveTransactionObject() bool {
 		return false
 	}
 
-	err := s.delAllMemKeys(true, val)
+	//delete table
+	key, err := s.encodeMainKey()
+	if err != nil {
+		return false
+	}
+	err = s.dba.Delete(key)
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
@@ -239,134 +342,14 @@ func (s *SoTransactionObjectWrap) RemoveTransactionObject() bool {
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
-func (s *SoTransactionObjectWrap) getMemKeyPrefix(fName string) uint32 {
-	if fName == "Expiration" {
-		return TransactionObjectExpirationCell
-	}
-	if fName == "TrxId" {
-		return TransactionObjectTrxIdCell
-	}
-
-	return 0
-}
-
-func (s *SoTransactionObjectWrap) encodeMemKey(fName string) ([]byte, error) {
-	if len(fName) < 1 || s.mainKey == nil {
-		return nil, errors.New("field name or main key is empty")
-	}
-	pre := s.getMemKeyPrefix(fName)
-	preBuf, err := kope.Encode(pre)
-	if err != nil {
-		return nil, err
-	}
-	mBuf, err := s.getMainKeyBuf()
-	if err != nil {
-		return nil, err
-	}
-	list := make([][]byte, 2)
-	list[0] = preBuf
-	list[1] = mBuf
-	return kope.PackList(list), nil
-}
-
-func (s *SoTransactionObjectWrap) saveAllMemKeys(tInfo *SoTransactionObject, br bool) error {
-	if s.dba == nil {
-		return errors.New("save member Field fail , the db is nil")
-	}
-
-	if tInfo == nil {
-		return errors.New("save member Field fail , the data is nil ")
-	}
-	var err error = nil
-	errDes := ""
-	if err = s.saveMemKeyExpiration(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Expiration", err)
-		}
-	}
-	if err = s.saveMemKeyTrxId(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "TrxId", err)
-		}
-	}
-
-	if len(errDes) > 0 {
-		return errors.New(errDes)
-	}
-	return err
-}
-
-func (s *SoTransactionObjectWrap) delAllMemKeys(br bool, tInfo *SoTransactionObject) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	t := reflect.TypeOf(*tInfo)
-	errDesc := ""
-	for k := 0; k < t.NumField(); k++ {
-		name := t.Field(k).Name
-		if len(name) > 0 && !strings.HasPrefix(name, "XXX_") {
-			err := s.delMemKey(name)
-			if err != nil {
-				if br {
-					return err
-				}
-				errDesc += fmt.Sprintf("delete the Field %s fail,error is %s;\n", name, err)
-			}
-		}
-	}
-	if len(errDesc) > 0 {
-		return errors.New(errDesc)
-	}
-	return nil
-}
-
-func (s *SoTransactionObjectWrap) delMemKey(fName string) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if len(fName) <= 0 {
-		return errors.New("the field name is empty ")
-	}
-	key, err := s.encodeMemKey(fName)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Delete(key)
-	return err
-}
-
-func (s *SoTransactionObjectWrap) saveMemKeyExpiration(tInfo *SoTransactionObject) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemTransactionObjectByExpiration{}
-	val.Expiration = tInfo.Expiration
-	key, err := s.encodeMemKey("Expiration")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
 
 func (s *SoTransactionObjectWrap) GetExpiration() *prototype.TimePointSec {
 	res := true
-	msg := &SoMemTransactionObjectByExpiration{}
+	msg := &SoTransactionObject{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Expiration")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -389,74 +372,74 @@ func (s *SoTransactionObjectWrap) GetExpiration() *prototype.TimePointSec {
 	return msg.Expiration
 }
 
-func (s *SoTransactionObjectWrap) MdExpiration(p *prototype.TimePointSec) bool {
+func (s *SoTransactionObjectWrap) mdFieldExpiration(p *prototype.TimePointSec, isCheck bool, isDel bool, isInsert bool,
+	so *SoTransactionObject) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("Expiration")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemTransactionObjectByExpiration{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoTransactionObject{}
-	sa.TrxId = s.mainKey
 
-	sa.Expiration = ori.Expiration
+	if isCheck {
+		res := s.checkExpirationIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	if !s.delSortKeyExpiration(sa) {
-		return false
+	if isDel {
+		res := s.delFieldExpiration(so)
+		if !res {
+			return false
+		}
 	}
-	ori.Expiration = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.Expiration = p
 
-	if !s.insertSortKeyExpiration(sa) {
+	if isInsert {
+		res := s.insertFieldExpiration(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoTransactionObjectWrap) delFieldExpiration(so *SoTransactionObject) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if !s.delSortKeyExpiration(so) {
 		return false
 	}
 
 	return true
 }
 
-func (s *SoTransactionObjectWrap) saveMemKeyTrxId(tInfo *SoTransactionObject) error {
+func (s *SoTransactionObjectWrap) insertFieldExpiration(so *SoTransactionObject) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	if !s.insertSortKeyExpiration(so) {
+		return false
 	}
-	val := SoMemTransactionObjectByTrxId{}
-	val.TrxId = tInfo.TrxId
-	key, err := s.encodeMemKey("TrxId")
-	if err != nil {
-		return err
+
+	return true
+}
+
+func (s *SoTransactionObjectWrap) checkExpirationIsMetMdCondition(p *prototype.TimePointSec) bool {
+	if s.dba == nil {
+		return false
 	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoTransactionObjectWrap) GetTrxId() *prototype.Sha256 {
 	res := true
-	msg := &SoMemTransactionObjectByTrxId{}
+	msg := &SoTransactionObject{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("TrxId")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -628,11 +611,38 @@ func (s *SoTransactionObjectWrap) getTransactionObject() *SoTransactionObject {
 	return res
 }
 
+func (s *SoTransactionObjectWrap) updateTransactionObject(so *SoTransactionObject) error {
+	if s.dba == nil {
+		return errors.New("update fail:the db is nil")
+	}
+
+	if so == nil {
+		return errors.New("update fail: the SoTransactionObject is nil")
+	}
+
+	key, err := s.encodeMainKey()
+	if err != nil {
+		return nil
+	}
+
+	buf, err := proto.Marshal(so)
+	if err != nil {
+		return err
+	}
+
+	err = s.dba.Put(key, buf)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *SoTransactionObjectWrap) encodeMainKey() ([]byte, error) {
 	if s.mKeyBuf != nil {
 		return s.mKeyBuf, nil
 	}
-	pre := s.getMemKeyPrefix("TrxId")
+	pre := TransactionObjectTrxIdRow
 	sub := s.mainKey
 	if sub == nil {
 		return nil, errors.New("the mainKey is nil")
@@ -715,20 +725,7 @@ func (s *SoTransactionObjectWrap) delUniKeyTrxId(sa *SoTransactionObject) bool {
 		sub := sa.TrxId
 		kList = append(kList, sub)
 	} else {
-		key, err := s.encodeMemKey("TrxId")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemTransactionObjectByTrxId{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		sub := ori.TrxId
+		sub := s.GetTrxId()
 		kList = append(kList, sub)
 
 	}
@@ -798,4 +795,18 @@ func (s *UniTransactionObjectTrxIdWrap) UniQueryTrxId(start *prototype.Sha256) *
 		}
 	}
 	return nil
+}
+
+func (s *SoTransactionObjectWrap) getMdFuncMap() map[string]interface{} {
+	if s.mdFuncMap != nil && len(s.mdFuncMap) > 0 {
+		return s.mdFuncMap
+	}
+	m := map[string]interface{}{}
+
+	m["Expiration"] = s.mdFieldExpiration
+
+	if len(m) > 0 {
+		s.mdFuncMap = m
+	}
+	return m
 }

@@ -1,10 +1,10 @@
 package table
 
 import (
+	"encoding/json"
 	"errors"
 	fmt "fmt"
 	"reflect"
-	"strings"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -13,25 +13,26 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	WitnessScheduleObjectIdUniTable                 uint32 = 1331115827
-	WitnessScheduleObjectCurrentShuffledWitnessCell uint32 = 628088000
-	WitnessScheduleObjectIdCell                     uint32 = 73273412
+	WitnessScheduleObjectIdUniTable uint32 = 1331115827
+
+	WitnessScheduleObjectIdRow uint32 = 3878865389
 )
 
 ////////////// SECTION Wrap Define ///////////////
 type SoWitnessScheduleObjectWrap struct {
-	dba      iservices.IDatabaseRW
-	mainKey  *int32
-	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf  []byte //the buffer after the main key is encoded with prefix
-	mBuf     []byte //the value after the main key is encoded
+	dba       iservices.IDatabaseRW
+	mainKey   *int32
+	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
+	mBuf      []byte //the value after the main key is encoded
+	mdFuncMap map[string]interface{}
 }
 
 func NewSoWitnessScheduleObjectWrap(dba iservices.IDatabaseRW, key *int32) *SoWitnessScheduleObjectWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoWitnessScheduleObjectWrap{dba, key, -1, nil, nil}
+	result := &SoWitnessScheduleObjectWrap{dba, key, -1, nil, nil, nil}
 	return result
 }
 
@@ -80,9 +81,13 @@ func (s *SoWitnessScheduleObjectWrap) Create(f func(tInfo *SoWitnessScheduleObje
 		return err
 
 	}
-	err = s.saveAllMemKeys(val, true)
+
+	buf, err := proto.Marshal(val)
 	if err != nil {
-		s.delAllMemKeys(false, val)
+		return err
+	}
+	err = s.dba.Put(keyBuf, buf)
+	if err != nil {
 		return err
 	}
 
@@ -90,7 +95,6 @@ func (s *SoWitnessScheduleObjectWrap) Create(f func(tInfo *SoWitnessScheduleObje
 	if err = s.insertAllSortKeys(val); err != nil {
 		s.delAllSortKeys(false, val)
 		s.dba.Delete(keyBuf)
-		s.delAllMemKeys(false, val)
 		return err
 	}
 
@@ -99,7 +103,6 @@ func (s *SoWitnessScheduleObjectWrap) Create(f func(tInfo *SoWitnessScheduleObje
 		s.delAllSortKeys(false, val)
 		s.delUniKeysWithNames(sucNames, val)
 		s.dba.Delete(keyBuf)
-		s.delAllMemKeys(false, val)
 		return err
 	}
 
@@ -118,6 +121,113 @@ func (s *SoWitnessScheduleObjectWrap) getMainKeyBuf() ([]byte, error) {
 		}
 	}
 	return s.mBuf, nil
+}
+
+func (s *SoWitnessScheduleObjectWrap) Md(f func(tInfo *SoWitnessScheduleObject)) error {
+	t := &SoWitnessScheduleObject{}
+	f(t)
+	js, err := json.Marshal(t)
+	if err != nil {
+		return err
+	}
+	fMap := make(map[string]interface{})
+	err = json.Unmarshal(js, &fMap)
+	if err != nil {
+		return err
+	}
+
+	mKeyName := "Id"
+	mKeyField := ""
+	for name, _ := range fMap {
+		if ConvTableFieldToPbFormat(name) == mKeyName {
+			mKeyField = name
+			break
+		}
+	}
+	if len(mKeyField) > 0 {
+		delete(fMap, mKeyField)
+	}
+
+	if len(fMap) < 1 {
+		return errors.New("can't' modify empty struct")
+	}
+
+	sa := s.getWitnessScheduleObject()
+	if sa == nil {
+		return errors.New("fail to get table SoWitnessScheduleObject")
+	}
+
+	refVal := reflect.ValueOf(*t)
+	el := reflect.ValueOf(sa).Elem()
+
+	//check unique
+	err = s.handleFieldMd(FieldMdHandleTypeCheck, t, fMap)
+	if err != nil {
+		return err
+	}
+
+	//delete sort and unique key
+	err = s.handleFieldMd(FieldMdHandleTypeDel, sa, fMap)
+	if err != nil {
+		return err
+	}
+
+	//update table
+	for f, _ := range fMap {
+		fName := ConvTableFieldToPbFormat(f)
+		val := refVal.FieldByName(fName)
+		if _, ok := s.mdFuncMap[fName]; ok {
+			el.FieldByName(fName).Set(val)
+		}
+	}
+	err = s.updateWitnessScheduleObject(sa)
+	if err != nil {
+		return err
+	}
+
+	//insert sort and unique key
+	err = s.handleFieldMd(FieldMdHandleTypeInsert, sa, fMap)
+	if err != nil {
+		return err
+	}
+
+	return err
+
+}
+
+func (s *SoWitnessScheduleObjectWrap) handleFieldMd(t FieldMdHandleType, so *SoWitnessScheduleObject, fMap map[string]interface{}) error {
+	if so == nil || fMap == nil {
+		return errors.New("fail to modify empty table")
+	}
+
+	mdFuncMap := s.getMdFuncMap()
+	if len(mdFuncMap) < 1 {
+		return errors.New("there is not exsit md function to md field")
+	}
+	errStr := ""
+	refVal := reflect.ValueOf(*so)
+	for f, _ := range fMap {
+		fName := ConvTableFieldToPbFormat(f)
+		val := refVal.FieldByName(fName)
+		if _, ok := mdFuncMap[fName]; ok {
+			f := reflect.ValueOf(s.mdFuncMap[fName])
+			p := []reflect.Value{val, reflect.ValueOf(true), reflect.ValueOf(false), reflect.ValueOf(false), reflect.ValueOf(so)}
+			errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			if t == FieldMdHandleTypeDel {
+				p = []reflect.Value{val, reflect.ValueOf(false), reflect.ValueOf(true), reflect.ValueOf(false), reflect.ValueOf(so)}
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				p = []reflect.Value{val, reflect.ValueOf(false), reflect.ValueOf(false), reflect.ValueOf(true), reflect.ValueOf(so)}
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			res := f.Call(p)
+			if !(res[0].Bool()) {
+				return errors.New(errStr)
+			}
+		}
+	}
+
+	return nil
 }
 
 ////////////// SECTION LKeys delete/insert ///////////////
@@ -148,7 +258,6 @@ func (s *SoWitnessScheduleObjectWrap) RemoveWitnessScheduleObject() bool {
 	if s.dba == nil {
 		return false
 	}
-	val := &SoWitnessScheduleObject{}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
 		return false
@@ -159,7 +268,12 @@ func (s *SoWitnessScheduleObjectWrap) RemoveWitnessScheduleObject() bool {
 		return false
 	}
 
-	err := s.delAllMemKeys(true, val)
+	//delete table
+	key, err := s.encodeMainKey()
+	if err != nil {
+		return false
+	}
+	err = s.dba.Delete(key)
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
@@ -170,134 +284,14 @@ func (s *SoWitnessScheduleObjectWrap) RemoveWitnessScheduleObject() bool {
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
-func (s *SoWitnessScheduleObjectWrap) getMemKeyPrefix(fName string) uint32 {
-	if fName == "CurrentShuffledWitness" {
-		return WitnessScheduleObjectCurrentShuffledWitnessCell
-	}
-	if fName == "Id" {
-		return WitnessScheduleObjectIdCell
-	}
-
-	return 0
-}
-
-func (s *SoWitnessScheduleObjectWrap) encodeMemKey(fName string) ([]byte, error) {
-	if len(fName) < 1 || s.mainKey == nil {
-		return nil, errors.New("field name or main key is empty")
-	}
-	pre := s.getMemKeyPrefix(fName)
-	preBuf, err := kope.Encode(pre)
-	if err != nil {
-		return nil, err
-	}
-	mBuf, err := s.getMainKeyBuf()
-	if err != nil {
-		return nil, err
-	}
-	list := make([][]byte, 2)
-	list[0] = preBuf
-	list[1] = mBuf
-	return kope.PackList(list), nil
-}
-
-func (s *SoWitnessScheduleObjectWrap) saveAllMemKeys(tInfo *SoWitnessScheduleObject, br bool) error {
-	if s.dba == nil {
-		return errors.New("save member Field fail , the db is nil")
-	}
-
-	if tInfo == nil {
-		return errors.New("save member Field fail , the data is nil ")
-	}
-	var err error = nil
-	errDes := ""
-	if err = s.saveMemKeyCurrentShuffledWitness(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "CurrentShuffledWitness", err)
-		}
-	}
-	if err = s.saveMemKeyId(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Id", err)
-		}
-	}
-
-	if len(errDes) > 0 {
-		return errors.New(errDes)
-	}
-	return err
-}
-
-func (s *SoWitnessScheduleObjectWrap) delAllMemKeys(br bool, tInfo *SoWitnessScheduleObject) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	t := reflect.TypeOf(*tInfo)
-	errDesc := ""
-	for k := 0; k < t.NumField(); k++ {
-		name := t.Field(k).Name
-		if len(name) > 0 && !strings.HasPrefix(name, "XXX_") {
-			err := s.delMemKey(name)
-			if err != nil {
-				if br {
-					return err
-				}
-				errDesc += fmt.Sprintf("delete the Field %s fail,error is %s;\n", name, err)
-			}
-		}
-	}
-	if len(errDesc) > 0 {
-		return errors.New(errDesc)
-	}
-	return nil
-}
-
-func (s *SoWitnessScheduleObjectWrap) delMemKey(fName string) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if len(fName) <= 0 {
-		return errors.New("the field name is empty ")
-	}
-	key, err := s.encodeMemKey(fName)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Delete(key)
-	return err
-}
-
-func (s *SoWitnessScheduleObjectWrap) saveMemKeyCurrentShuffledWitness(tInfo *SoWitnessScheduleObject) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemWitnessScheduleObjectByCurrentShuffledWitness{}
-	val.CurrentShuffledWitness = tInfo.CurrentShuffledWitness
-	key, err := s.encodeMemKey("CurrentShuffledWitness")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
 
 func (s *SoWitnessScheduleObjectWrap) GetCurrentShuffledWitness() []string {
 	res := true
-	msg := &SoMemWitnessScheduleObjectByCurrentShuffledWitness{}
+	msg := &SoWitnessScheduleObject{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("CurrentShuffledWitness")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -320,66 +314,66 @@ func (s *SoWitnessScheduleObjectWrap) GetCurrentShuffledWitness() []string {
 	return msg.CurrentShuffledWitness
 }
 
-func (s *SoWitnessScheduleObjectWrap) MdCurrentShuffledWitness(p []string) bool {
+func (s *SoWitnessScheduleObjectWrap) mdFieldCurrentShuffledWitness(p []string, isCheck bool, isDel bool, isInsert bool,
+	so *SoWitnessScheduleObject) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("CurrentShuffledWitness")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemWitnessScheduleObjectByCurrentShuffledWitness{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoWitnessScheduleObject{}
-	sa.Id = *s.mainKey
-	sa.CurrentShuffledWitness = ori.CurrentShuffledWitness
 
-	ori.CurrentShuffledWitness = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isCheck {
+		res := s.checkCurrentShuffledWitnessIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
+
+	if isDel {
+		res := s.delFieldCurrentShuffledWitness(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldCurrentShuffledWitness(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoWitnessScheduleObjectWrap) delFieldCurrentShuffledWitness(so *SoWitnessScheduleObject) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.CurrentShuffledWitness = p
 
 	return true
 }
 
-func (s *SoWitnessScheduleObjectWrap) saveMemKeyId(tInfo *SoWitnessScheduleObject) error {
+func (s *SoWitnessScheduleObjectWrap) insertFieldCurrentShuffledWitness(so *SoWitnessScheduleObject) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoWitnessScheduleObjectWrap) checkCurrentShuffledWitnessIsMetMdCondition(p []string) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemWitnessScheduleObjectById{}
-	val.Id = tInfo.Id
-	key, err := s.encodeMemKey("Id")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoWitnessScheduleObjectWrap) GetId() int32 {
 	res := true
-	msg := &SoMemWitnessScheduleObjectById{}
+	msg := &SoWitnessScheduleObject{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Id")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -442,11 +436,38 @@ func (s *SoWitnessScheduleObjectWrap) getWitnessScheduleObject() *SoWitnessSched
 	return res
 }
 
+func (s *SoWitnessScheduleObjectWrap) updateWitnessScheduleObject(so *SoWitnessScheduleObject) error {
+	if s.dba == nil {
+		return errors.New("update fail:the db is nil")
+	}
+
+	if so == nil {
+		return errors.New("update fail: the SoWitnessScheduleObject is nil")
+	}
+
+	key, err := s.encodeMainKey()
+	if err != nil {
+		return nil
+	}
+
+	buf, err := proto.Marshal(so)
+	if err != nil {
+		return err
+	}
+
+	err = s.dba.Put(key, buf)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *SoWitnessScheduleObjectWrap) encodeMainKey() ([]byte, error) {
 	if s.mKeyBuf != nil {
 		return s.mKeyBuf, nil
 	}
-	pre := s.getMemKeyPrefix("Id")
+	pre := WitnessScheduleObjectIdRow
 	sub := s.mainKey
 	if sub == nil {
 		return nil, errors.New("the mainKey is nil")
@@ -525,20 +546,7 @@ func (s *SoWitnessScheduleObjectWrap) delUniKeyId(sa *SoWitnessScheduleObject) b
 		sub := sa.Id
 		kList = append(kList, sub)
 	} else {
-		key, err := s.encodeMemKey("Id")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemWitnessScheduleObjectById{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		sub := ori.Id
+		sub := s.GetId()
 		kList = append(kList, sub)
 
 	}
@@ -607,4 +615,18 @@ func (s *UniWitnessScheduleObjectIdWrap) UniQueryId(start *int32) *SoWitnessSche
 		}
 	}
 	return nil
+}
+
+func (s *SoWitnessScheduleObjectWrap) getMdFuncMap() map[string]interface{} {
+	if s.mdFuncMap != nil && len(s.mdFuncMap) > 0 {
+		return s.mdFuncMap
+	}
+	m := map[string]interface{}{}
+
+	m["CurrentShuffledWitness"] = s.mdFieldCurrentShuffledWitness
+
+	if len(m) > 0 {
+		s.mdFuncMap = m
+	}
+	return m
 }

@@ -1,10 +1,10 @@
 package table
 
 import (
+	"encoding/json"
 	"errors"
 	fmt "fmt"
 	"reflect"
-	"strings"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -23,45 +23,25 @@ var (
 	AccountNextPowerdownBlockNumTable uint32 = 1928824877
 	AccountNameUniTable               uint32 = 2528390520
 	AccountOwnerUniTable              uint32 = 4120855558
-	AccountBalanceCell                uint32 = 2894785396
-	AccountBpVoteCountCell            uint32 = 2131409895
-	AccountCreatedTimeCell            uint32 = 826305594
-	AccountCreatedTrxCountCell        uint32 = 2108500471
-	AccountCreatorCell                uint32 = 1804791917
-	AccountEachPowerdownRateCell      uint32 = 1435132114
-	AccountHasPowerdownCell           uint32 = 2131027332
-	AccountLastOwnerUpdateCell        uint32 = 1786339118
-	AccountLastPostTimeCell           uint32 = 3226532373
-	AccountLastStakeTimeCell          uint32 = 3774075190
-	AccountLastVoteTimeCell           uint32 = 1980371646
-	AccountNameCell                   uint32 = 1725869739
-	AccountNextPowerdownBlockNumCell  uint32 = 2881565425
-	AccountOwnerCell                  uint32 = 1575619097
-	AccountPostCountCell              uint32 = 587221705
-	AccountStakeVestingCell           uint32 = 1603133992
-	AccountStaminaCell                uint32 = 674022235
-	AccountStaminaFreeCell            uint32 = 676517039
-	AccountStaminaFreeUseBlockCell    uint32 = 985510361
-	AccountStaminaUseBlockCell        uint32 = 3536676248
-	AccountToPowerdownCell            uint32 = 3115587115
-	AccountVestingSharesCell          uint32 = 57659323
-	AccountVotePowerCell              uint32 = 2246508735
+
+	AccountNameRow uint32 = 3130128817
 )
 
 ////////////// SECTION Wrap Define ///////////////
 type SoAccountWrap struct {
-	dba      iservices.IDatabaseRW
-	mainKey  *prototype.AccountName
-	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf  []byte //the buffer after the main key is encoded with prefix
-	mBuf     []byte //the value after the main key is encoded
+	dba       iservices.IDatabaseRW
+	mainKey   *prototype.AccountName
+	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
+	mBuf      []byte //the value after the main key is encoded
+	mdFuncMap map[string]interface{}
 }
 
 func NewSoAccountWrap(dba iservices.IDatabaseRW, key *prototype.AccountName) *SoAccountWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoAccountWrap{dba, key, -1, nil, nil}
+	result := &SoAccountWrap{dba, key, -1, nil, nil, nil}
 	return result
 }
 
@@ -113,9 +93,13 @@ func (s *SoAccountWrap) Create(f func(tInfo *SoAccount)) error {
 		return err
 
 	}
-	err = s.saveAllMemKeys(val, true)
+
+	buf, err := proto.Marshal(val)
 	if err != nil {
-		s.delAllMemKeys(false, val)
+		return err
+	}
+	err = s.dba.Put(keyBuf, buf)
+	if err != nil {
 		return err
 	}
 
@@ -123,7 +107,6 @@ func (s *SoAccountWrap) Create(f func(tInfo *SoAccount)) error {
 	if err = s.insertAllSortKeys(val); err != nil {
 		s.delAllSortKeys(false, val)
 		s.dba.Delete(keyBuf)
-		s.delAllMemKeys(false, val)
 		return err
 	}
 
@@ -132,7 +115,6 @@ func (s *SoAccountWrap) Create(f func(tInfo *SoAccount)) error {
 		s.delAllSortKeys(false, val)
 		s.delUniKeysWithNames(sucNames, val)
 		s.dba.Delete(keyBuf)
-		s.delAllMemKeys(false, val)
 		return err
 	}
 
@@ -153,6 +135,113 @@ func (s *SoAccountWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
+func (s *SoAccountWrap) Md(f func(tInfo *SoAccount)) error {
+	t := &SoAccount{}
+	f(t)
+	js, err := json.Marshal(t)
+	if err != nil {
+		return err
+	}
+	fMap := make(map[string]interface{})
+	err = json.Unmarshal(js, &fMap)
+	if err != nil {
+		return err
+	}
+
+	mKeyName := "Name"
+	mKeyField := ""
+	for name, _ := range fMap {
+		if ConvTableFieldToPbFormat(name) == mKeyName {
+			mKeyField = name
+			break
+		}
+	}
+	if len(mKeyField) > 0 {
+		delete(fMap, mKeyField)
+	}
+
+	if len(fMap) < 1 {
+		return errors.New("can't' modify empty struct")
+	}
+
+	sa := s.getAccount()
+	if sa == nil {
+		return errors.New("fail to get table SoAccount")
+	}
+
+	refVal := reflect.ValueOf(*t)
+	el := reflect.ValueOf(sa).Elem()
+
+	//check unique
+	err = s.handleFieldMd(FieldMdHandleTypeCheck, t, fMap)
+	if err != nil {
+		return err
+	}
+
+	//delete sort and unique key
+	err = s.handleFieldMd(FieldMdHandleTypeDel, sa, fMap)
+	if err != nil {
+		return err
+	}
+
+	//update table
+	for f, _ := range fMap {
+		fName := ConvTableFieldToPbFormat(f)
+		val := refVal.FieldByName(fName)
+		if _, ok := s.mdFuncMap[fName]; ok {
+			el.FieldByName(fName).Set(val)
+		}
+	}
+	err = s.updateAccount(sa)
+	if err != nil {
+		return err
+	}
+
+	//insert sort and unique key
+	err = s.handleFieldMd(FieldMdHandleTypeInsert, sa, fMap)
+	if err != nil {
+		return err
+	}
+
+	return err
+
+}
+
+func (s *SoAccountWrap) handleFieldMd(t FieldMdHandleType, so *SoAccount, fMap map[string]interface{}) error {
+	if so == nil || fMap == nil {
+		return errors.New("fail to modify empty table")
+	}
+
+	mdFuncMap := s.getMdFuncMap()
+	if len(mdFuncMap) < 1 {
+		return errors.New("there is not exsit md function to md field")
+	}
+	errStr := ""
+	refVal := reflect.ValueOf(*so)
+	for f, _ := range fMap {
+		fName := ConvTableFieldToPbFormat(f)
+		val := refVal.FieldByName(fName)
+		if _, ok := mdFuncMap[fName]; ok {
+			f := reflect.ValueOf(s.mdFuncMap[fName])
+			p := []reflect.Value{val, reflect.ValueOf(true), reflect.ValueOf(false), reflect.ValueOf(false), reflect.ValueOf(so)}
+			errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			if t == FieldMdHandleTypeDel {
+				p = []reflect.Value{val, reflect.ValueOf(false), reflect.ValueOf(true), reflect.ValueOf(false), reflect.ValueOf(so)}
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				p = []reflect.Value{val, reflect.ValueOf(false), reflect.ValueOf(false), reflect.ValueOf(true), reflect.ValueOf(so)}
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			res := f.Call(p)
+			if !(res[0].Bool()) {
+				return errors.New(errStr)
+			}
+		}
+	}
+
+	return nil
+}
+
 ////////////// SECTION LKeys delete/insert ///////////////
 
 func (s *SoAccountWrap) delSortKeyCreatedTime(sa *SoAccount) bool {
@@ -161,20 +250,7 @@ func (s *SoAccountWrap) delSortKeyCreatedTime(sa *SoAccount) bool {
 	}
 	val := SoListAccountByCreatedTime{}
 	if sa == nil {
-		key, err := s.encodeMemKey("CreatedTime")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemAccountByCreatedTime{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		val.CreatedTime = ori.CreatedTime
+		val.CreatedTime = s.GetCreatedTime()
 		val.Name = s.mainKey
 
 	} else {
@@ -215,20 +291,7 @@ func (s *SoAccountWrap) delSortKeyBalance(sa *SoAccount) bool {
 	}
 	val := SoListAccountByBalance{}
 	if sa == nil {
-		key, err := s.encodeMemKey("Balance")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemAccountByBalance{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		val.Balance = ori.Balance
+		val.Balance = s.GetBalance()
 		val.Name = s.mainKey
 
 	} else {
@@ -269,20 +332,7 @@ func (s *SoAccountWrap) delSortKeyVestingShares(sa *SoAccount) bool {
 	}
 	val := SoListAccountByVestingShares{}
 	if sa == nil {
-		key, err := s.encodeMemKey("VestingShares")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemAccountByVestingShares{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		val.VestingShares = ori.VestingShares
+		val.VestingShares = s.GetVestingShares()
 		val.Name = s.mainKey
 
 	} else {
@@ -323,20 +373,7 @@ func (s *SoAccountWrap) delSortKeyBpVoteCount(sa *SoAccount) bool {
 	}
 	val := SoListAccountByBpVoteCount{}
 	if sa == nil {
-		key, err := s.encodeMemKey("BpVoteCount")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemAccountByBpVoteCount{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		val.BpVoteCount = ori.BpVoteCount
+		val.BpVoteCount = s.GetBpVoteCount()
 		val.Name = s.mainKey
 
 	} else {
@@ -377,20 +414,7 @@ func (s *SoAccountWrap) delSortKeyPostCount(sa *SoAccount) bool {
 	}
 	val := SoListAccountByPostCount{}
 	if sa == nil {
-		key, err := s.encodeMemKey("PostCount")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemAccountByPostCount{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		val.PostCount = ori.PostCount
+		val.PostCount = s.GetPostCount()
 		val.Name = s.mainKey
 
 	} else {
@@ -431,20 +455,7 @@ func (s *SoAccountWrap) delSortKeyCreatedTrxCount(sa *SoAccount) bool {
 	}
 	val := SoListAccountByCreatedTrxCount{}
 	if sa == nil {
-		key, err := s.encodeMemKey("CreatedTrxCount")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemAccountByCreatedTrxCount{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		val.CreatedTrxCount = ori.CreatedTrxCount
+		val.CreatedTrxCount = s.GetCreatedTrxCount()
 		val.Name = s.mainKey
 
 	} else {
@@ -485,20 +496,7 @@ func (s *SoAccountWrap) delSortKeyNextPowerdownBlockNum(sa *SoAccount) bool {
 	}
 	val := SoListAccountByNextPowerdownBlockNum{}
 	if sa == nil {
-		key, err := s.encodeMemKey("NextPowerdownBlockNum")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemAccountByNextPowerdownBlockNum{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		val.NextPowerdownBlockNum = ori.NextPowerdownBlockNum
+		val.NextPowerdownBlockNum = s.GetNextPowerdownBlockNum()
 		val.Name = s.mainKey
 
 	} else {
@@ -538,6 +536,7 @@ func (s *SoAccountWrap) delAllSortKeys(br bool, val *SoAccount) bool {
 		return false
 	}
 	res := true
+
 	if !s.delSortKeyCreatedTime(val) {
 		if br {
 			return false
@@ -545,6 +544,7 @@ func (s *SoAccountWrap) delAllSortKeys(br bool, val *SoAccount) bool {
 			res = false
 		}
 	}
+
 	if !s.delSortKeyBalance(val) {
 		if br {
 			return false
@@ -552,6 +552,7 @@ func (s *SoAccountWrap) delAllSortKeys(br bool, val *SoAccount) bool {
 			res = false
 		}
 	}
+
 	if !s.delSortKeyVestingShares(val) {
 		if br {
 			return false
@@ -559,6 +560,7 @@ func (s *SoAccountWrap) delAllSortKeys(br bool, val *SoAccount) bool {
 			res = false
 		}
 	}
+
 	if !s.delSortKeyBpVoteCount(val) {
 		if br {
 			return false
@@ -566,6 +568,7 @@ func (s *SoAccountWrap) delAllSortKeys(br bool, val *SoAccount) bool {
 			res = false
 		}
 	}
+
 	if !s.delSortKeyPostCount(val) {
 		if br {
 			return false
@@ -573,6 +576,7 @@ func (s *SoAccountWrap) delAllSortKeys(br bool, val *SoAccount) bool {
 			res = false
 		}
 	}
+
 	if !s.delSortKeyCreatedTrxCount(val) {
 		if br {
 			return false
@@ -580,6 +584,7 @@ func (s *SoAccountWrap) delAllSortKeys(br bool, val *SoAccount) bool {
 			res = false
 		}
 	}
+
 	if !s.delSortKeyNextPowerdownBlockNum(val) {
 		if br {
 			return false
@@ -598,24 +603,31 @@ func (s *SoAccountWrap) insertAllSortKeys(val *SoAccount) error {
 	if val == nil {
 		return errors.New("insert sort Field fail,get the SoAccount fail ")
 	}
+
 	if !s.insertSortKeyCreatedTime(val) {
 		return errors.New("insert sort Field CreatedTime fail while insert table ")
 	}
+
 	if !s.insertSortKeyBalance(val) {
 		return errors.New("insert sort Field Balance fail while insert table ")
 	}
+
 	if !s.insertSortKeyVestingShares(val) {
 		return errors.New("insert sort Field VestingShares fail while insert table ")
 	}
+
 	if !s.insertSortKeyBpVoteCount(val) {
 		return errors.New("insert sort Field BpVoteCount fail while insert table ")
 	}
+
 	if !s.insertSortKeyPostCount(val) {
 		return errors.New("insert sort Field PostCount fail while insert table ")
 	}
+
 	if !s.insertSortKeyCreatedTrxCount(val) {
 		return errors.New("insert sort Field CreatedTrxCount fail while insert table ")
 	}
+
 	if !s.insertSortKeyNextPowerdownBlockNum(val) {
 		return errors.New("insert sort Field NextPowerdownBlockNum fail while insert table ")
 	}
@@ -629,7 +641,6 @@ func (s *SoAccountWrap) RemoveAccount() bool {
 	if s.dba == nil {
 		return false
 	}
-	val := &SoAccount{}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
 		return false
@@ -640,7 +651,12 @@ func (s *SoAccountWrap) RemoveAccount() bool {
 		return false
 	}
 
-	err := s.delAllMemKeys(true, val)
+	//delete table
+	key, err := s.encodeMainKey()
+	if err != nil {
+		return false
+	}
+	err = s.dba.Delete(key)
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
@@ -651,344 +667,14 @@ func (s *SoAccountWrap) RemoveAccount() bool {
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
-func (s *SoAccountWrap) getMemKeyPrefix(fName string) uint32 {
-	if fName == "Balance" {
-		return AccountBalanceCell
-	}
-	if fName == "BpVoteCount" {
-		return AccountBpVoteCountCell
-	}
-	if fName == "CreatedTime" {
-		return AccountCreatedTimeCell
-	}
-	if fName == "CreatedTrxCount" {
-		return AccountCreatedTrxCountCell
-	}
-	if fName == "Creator" {
-		return AccountCreatorCell
-	}
-	if fName == "EachPowerdownRate" {
-		return AccountEachPowerdownRateCell
-	}
-	if fName == "HasPowerdown" {
-		return AccountHasPowerdownCell
-	}
-	if fName == "LastOwnerUpdate" {
-		return AccountLastOwnerUpdateCell
-	}
-	if fName == "LastPostTime" {
-		return AccountLastPostTimeCell
-	}
-	if fName == "LastStakeTime" {
-		return AccountLastStakeTimeCell
-	}
-	if fName == "LastVoteTime" {
-		return AccountLastVoteTimeCell
-	}
-	if fName == "Name" {
-		return AccountNameCell
-	}
-	if fName == "NextPowerdownBlockNum" {
-		return AccountNextPowerdownBlockNumCell
-	}
-	if fName == "Owner" {
-		return AccountOwnerCell
-	}
-	if fName == "PostCount" {
-		return AccountPostCountCell
-	}
-	if fName == "StakeVesting" {
-		return AccountStakeVestingCell
-	}
-	if fName == "Stamina" {
-		return AccountStaminaCell
-	}
-	if fName == "StaminaFree" {
-		return AccountStaminaFreeCell
-	}
-	if fName == "StaminaFreeUseBlock" {
-		return AccountStaminaFreeUseBlockCell
-	}
-	if fName == "StaminaUseBlock" {
-		return AccountStaminaUseBlockCell
-	}
-	if fName == "ToPowerdown" {
-		return AccountToPowerdownCell
-	}
-	if fName == "VestingShares" {
-		return AccountVestingSharesCell
-	}
-	if fName == "VotePower" {
-		return AccountVotePowerCell
-	}
-
-	return 0
-}
-
-func (s *SoAccountWrap) encodeMemKey(fName string) ([]byte, error) {
-	if len(fName) < 1 || s.mainKey == nil {
-		return nil, errors.New("field name or main key is empty")
-	}
-	pre := s.getMemKeyPrefix(fName)
-	preBuf, err := kope.Encode(pre)
-	if err != nil {
-		return nil, err
-	}
-	mBuf, err := s.getMainKeyBuf()
-	if err != nil {
-		return nil, err
-	}
-	list := make([][]byte, 2)
-	list[0] = preBuf
-	list[1] = mBuf
-	return kope.PackList(list), nil
-}
-
-func (s *SoAccountWrap) saveAllMemKeys(tInfo *SoAccount, br bool) error {
-	if s.dba == nil {
-		return errors.New("save member Field fail , the db is nil")
-	}
-
-	if tInfo == nil {
-		return errors.New("save member Field fail , the data is nil ")
-	}
-	var err error = nil
-	errDes := ""
-	if err = s.saveMemKeyBalance(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Balance", err)
-		}
-	}
-	if err = s.saveMemKeyBpVoteCount(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "BpVoteCount", err)
-		}
-	}
-	if err = s.saveMemKeyCreatedTime(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "CreatedTime", err)
-		}
-	}
-	if err = s.saveMemKeyCreatedTrxCount(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "CreatedTrxCount", err)
-		}
-	}
-	if err = s.saveMemKeyCreator(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Creator", err)
-		}
-	}
-	if err = s.saveMemKeyEachPowerdownRate(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "EachPowerdownRate", err)
-		}
-	}
-	if err = s.saveMemKeyHasPowerdown(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "HasPowerdown", err)
-		}
-	}
-	if err = s.saveMemKeyLastOwnerUpdate(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "LastOwnerUpdate", err)
-		}
-	}
-	if err = s.saveMemKeyLastPostTime(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "LastPostTime", err)
-		}
-	}
-	if err = s.saveMemKeyLastStakeTime(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "LastStakeTime", err)
-		}
-	}
-	if err = s.saveMemKeyLastVoteTime(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "LastVoteTime", err)
-		}
-	}
-	if err = s.saveMemKeyName(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Name", err)
-		}
-	}
-	if err = s.saveMemKeyNextPowerdownBlockNum(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "NextPowerdownBlockNum", err)
-		}
-	}
-	if err = s.saveMemKeyOwner(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Owner", err)
-		}
-	}
-	if err = s.saveMemKeyPostCount(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "PostCount", err)
-		}
-	}
-	if err = s.saveMemKeyStakeVesting(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "StakeVesting", err)
-		}
-	}
-	if err = s.saveMemKeyStamina(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Stamina", err)
-		}
-	}
-	if err = s.saveMemKeyStaminaFree(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "StaminaFree", err)
-		}
-	}
-	if err = s.saveMemKeyStaminaFreeUseBlock(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "StaminaFreeUseBlock", err)
-		}
-	}
-	if err = s.saveMemKeyStaminaUseBlock(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "StaminaUseBlock", err)
-		}
-	}
-	if err = s.saveMemKeyToPowerdown(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "ToPowerdown", err)
-		}
-	}
-	if err = s.saveMemKeyVestingShares(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "VestingShares", err)
-		}
-	}
-	if err = s.saveMemKeyVotePower(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "VotePower", err)
-		}
-	}
-
-	if len(errDes) > 0 {
-		return errors.New(errDes)
-	}
-	return err
-}
-
-func (s *SoAccountWrap) delAllMemKeys(br bool, tInfo *SoAccount) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	t := reflect.TypeOf(*tInfo)
-	errDesc := ""
-	for k := 0; k < t.NumField(); k++ {
-		name := t.Field(k).Name
-		if len(name) > 0 && !strings.HasPrefix(name, "XXX_") {
-			err := s.delMemKey(name)
-			if err != nil {
-				if br {
-					return err
-				}
-				errDesc += fmt.Sprintf("delete the Field %s fail,error is %s;\n", name, err)
-			}
-		}
-	}
-	if len(errDesc) > 0 {
-		return errors.New(errDesc)
-	}
-	return nil
-}
-
-func (s *SoAccountWrap) delMemKey(fName string) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if len(fName) <= 0 {
-		return errors.New("the field name is empty ")
-	}
-	key, err := s.encodeMemKey(fName)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Delete(key)
-	return err
-}
-
-func (s *SoAccountWrap) saveMemKeyBalance(tInfo *SoAccount) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemAccountByBalance{}
-	val.Balance = tInfo.Balance
-	key, err := s.encodeMemKey("Balance")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
 
 func (s *SoAccountWrap) GetBalance() *prototype.Coin {
 	res := true
-	msg := &SoMemAccountByBalance{}
+	msg := &SoAccount{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Balance")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -1011,74 +697,74 @@ func (s *SoAccountWrap) GetBalance() *prototype.Coin {
 	return msg.Balance
 }
 
-func (s *SoAccountWrap) MdBalance(p *prototype.Coin) bool {
+func (s *SoAccountWrap) mdFieldBalance(p *prototype.Coin, isCheck bool, isDel bool, isInsert bool,
+	so *SoAccount) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("Balance")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemAccountByBalance{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoAccount{}
-	sa.Name = s.mainKey
 
-	sa.Balance = ori.Balance
+	if isCheck {
+		res := s.checkBalanceIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	if !s.delSortKeyBalance(sa) {
-		return false
+	if isDel {
+		res := s.delFieldBalance(so)
+		if !res {
+			return false
+		}
 	}
-	ori.Balance = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.Balance = p
 
-	if !s.insertSortKeyBalance(sa) {
+	if isInsert {
+		res := s.insertFieldBalance(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoAccountWrap) delFieldBalance(so *SoAccount) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if !s.delSortKeyBalance(so) {
 		return false
 	}
 
 	return true
 }
 
-func (s *SoAccountWrap) saveMemKeyBpVoteCount(tInfo *SoAccount) error {
+func (s *SoAccountWrap) insertFieldBalance(so *SoAccount) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	if !s.insertSortKeyBalance(so) {
+		return false
 	}
-	val := SoMemAccountByBpVoteCount{}
-	val.BpVoteCount = tInfo.BpVoteCount
-	key, err := s.encodeMemKey("BpVoteCount")
-	if err != nil {
-		return err
+
+	return true
+}
+
+func (s *SoAccountWrap) checkBalanceIsMetMdCondition(p *prototype.Coin) bool {
+	if s.dba == nil {
+		return false
 	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoAccountWrap) GetBpVoteCount() uint32 {
 	res := true
-	msg := &SoMemAccountByBpVoteCount{}
+	msg := &SoAccount{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("BpVoteCount")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -1101,74 +787,74 @@ func (s *SoAccountWrap) GetBpVoteCount() uint32 {
 	return msg.BpVoteCount
 }
 
-func (s *SoAccountWrap) MdBpVoteCount(p uint32) bool {
+func (s *SoAccountWrap) mdFieldBpVoteCount(p uint32, isCheck bool, isDel bool, isInsert bool,
+	so *SoAccount) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("BpVoteCount")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemAccountByBpVoteCount{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoAccount{}
-	sa.Name = s.mainKey
 
-	sa.BpVoteCount = ori.BpVoteCount
+	if isCheck {
+		res := s.checkBpVoteCountIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	if !s.delSortKeyBpVoteCount(sa) {
-		return false
+	if isDel {
+		res := s.delFieldBpVoteCount(so)
+		if !res {
+			return false
+		}
 	}
-	ori.BpVoteCount = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.BpVoteCount = p
 
-	if !s.insertSortKeyBpVoteCount(sa) {
+	if isInsert {
+		res := s.insertFieldBpVoteCount(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoAccountWrap) delFieldBpVoteCount(so *SoAccount) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if !s.delSortKeyBpVoteCount(so) {
 		return false
 	}
 
 	return true
 }
 
-func (s *SoAccountWrap) saveMemKeyCreatedTime(tInfo *SoAccount) error {
+func (s *SoAccountWrap) insertFieldBpVoteCount(so *SoAccount) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	if !s.insertSortKeyBpVoteCount(so) {
+		return false
 	}
-	val := SoMemAccountByCreatedTime{}
-	val.CreatedTime = tInfo.CreatedTime
-	key, err := s.encodeMemKey("CreatedTime")
-	if err != nil {
-		return err
+
+	return true
+}
+
+func (s *SoAccountWrap) checkBpVoteCountIsMetMdCondition(p uint32) bool {
+	if s.dba == nil {
+		return false
 	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoAccountWrap) GetCreatedTime() *prototype.TimePointSec {
 	res := true
-	msg := &SoMemAccountByCreatedTime{}
+	msg := &SoAccount{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("CreatedTime")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -1191,74 +877,74 @@ func (s *SoAccountWrap) GetCreatedTime() *prototype.TimePointSec {
 	return msg.CreatedTime
 }
 
-func (s *SoAccountWrap) MdCreatedTime(p *prototype.TimePointSec) bool {
+func (s *SoAccountWrap) mdFieldCreatedTime(p *prototype.TimePointSec, isCheck bool, isDel bool, isInsert bool,
+	so *SoAccount) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("CreatedTime")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemAccountByCreatedTime{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoAccount{}
-	sa.Name = s.mainKey
 
-	sa.CreatedTime = ori.CreatedTime
+	if isCheck {
+		res := s.checkCreatedTimeIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	if !s.delSortKeyCreatedTime(sa) {
-		return false
+	if isDel {
+		res := s.delFieldCreatedTime(so)
+		if !res {
+			return false
+		}
 	}
-	ori.CreatedTime = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.CreatedTime = p
 
-	if !s.insertSortKeyCreatedTime(sa) {
+	if isInsert {
+		res := s.insertFieldCreatedTime(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoAccountWrap) delFieldCreatedTime(so *SoAccount) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if !s.delSortKeyCreatedTime(so) {
 		return false
 	}
 
 	return true
 }
 
-func (s *SoAccountWrap) saveMemKeyCreatedTrxCount(tInfo *SoAccount) error {
+func (s *SoAccountWrap) insertFieldCreatedTime(so *SoAccount) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	if !s.insertSortKeyCreatedTime(so) {
+		return false
 	}
-	val := SoMemAccountByCreatedTrxCount{}
-	val.CreatedTrxCount = tInfo.CreatedTrxCount
-	key, err := s.encodeMemKey("CreatedTrxCount")
-	if err != nil {
-		return err
+
+	return true
+}
+
+func (s *SoAccountWrap) checkCreatedTimeIsMetMdCondition(p *prototype.TimePointSec) bool {
+	if s.dba == nil {
+		return false
 	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoAccountWrap) GetCreatedTrxCount() uint32 {
 	res := true
-	msg := &SoMemAccountByCreatedTrxCount{}
+	msg := &SoAccount{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("CreatedTrxCount")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -1281,74 +967,74 @@ func (s *SoAccountWrap) GetCreatedTrxCount() uint32 {
 	return msg.CreatedTrxCount
 }
 
-func (s *SoAccountWrap) MdCreatedTrxCount(p uint32) bool {
+func (s *SoAccountWrap) mdFieldCreatedTrxCount(p uint32, isCheck bool, isDel bool, isInsert bool,
+	so *SoAccount) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("CreatedTrxCount")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemAccountByCreatedTrxCount{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoAccount{}
-	sa.Name = s.mainKey
 
-	sa.CreatedTrxCount = ori.CreatedTrxCount
+	if isCheck {
+		res := s.checkCreatedTrxCountIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	if !s.delSortKeyCreatedTrxCount(sa) {
-		return false
+	if isDel {
+		res := s.delFieldCreatedTrxCount(so)
+		if !res {
+			return false
+		}
 	}
-	ori.CreatedTrxCount = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.CreatedTrxCount = p
 
-	if !s.insertSortKeyCreatedTrxCount(sa) {
+	if isInsert {
+		res := s.insertFieldCreatedTrxCount(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoAccountWrap) delFieldCreatedTrxCount(so *SoAccount) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if !s.delSortKeyCreatedTrxCount(so) {
 		return false
 	}
 
 	return true
 }
 
-func (s *SoAccountWrap) saveMemKeyCreator(tInfo *SoAccount) error {
+func (s *SoAccountWrap) insertFieldCreatedTrxCount(so *SoAccount) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	if !s.insertSortKeyCreatedTrxCount(so) {
+		return false
 	}
-	val := SoMemAccountByCreator{}
-	val.Creator = tInfo.Creator
-	key, err := s.encodeMemKey("Creator")
-	if err != nil {
-		return err
+
+	return true
+}
+
+func (s *SoAccountWrap) checkCreatedTrxCountIsMetMdCondition(p uint32) bool {
+	if s.dba == nil {
+		return false
 	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoAccountWrap) GetCreator() *prototype.AccountName {
 	res := true
-	msg := &SoMemAccountByCreator{}
+	msg := &SoAccount{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Creator")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -1371,67 +1057,66 @@ func (s *SoAccountWrap) GetCreator() *prototype.AccountName {
 	return msg.Creator
 }
 
-func (s *SoAccountWrap) MdCreator(p *prototype.AccountName) bool {
+func (s *SoAccountWrap) mdFieldCreator(p *prototype.AccountName, isCheck bool, isDel bool, isInsert bool,
+	so *SoAccount) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("Creator")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemAccountByCreator{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoAccount{}
-	sa.Name = s.mainKey
 
-	sa.Creator = ori.Creator
+	if isCheck {
+		res := s.checkCreatorIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.Creator = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldCreator(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldCreator(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoAccountWrap) delFieldCreator(so *SoAccount) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.Creator = p
 
 	return true
 }
 
-func (s *SoAccountWrap) saveMemKeyEachPowerdownRate(tInfo *SoAccount) error {
+func (s *SoAccountWrap) insertFieldCreator(so *SoAccount) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoAccountWrap) checkCreatorIsMetMdCondition(p *prototype.AccountName) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemAccountByEachPowerdownRate{}
-	val.EachPowerdownRate = tInfo.EachPowerdownRate
-	key, err := s.encodeMemKey("EachPowerdownRate")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoAccountWrap) GetEachPowerdownRate() *prototype.Vest {
 	res := true
-	msg := &SoMemAccountByEachPowerdownRate{}
+	msg := &SoAccount{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("EachPowerdownRate")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -1454,67 +1139,66 @@ func (s *SoAccountWrap) GetEachPowerdownRate() *prototype.Vest {
 	return msg.EachPowerdownRate
 }
 
-func (s *SoAccountWrap) MdEachPowerdownRate(p *prototype.Vest) bool {
+func (s *SoAccountWrap) mdFieldEachPowerdownRate(p *prototype.Vest, isCheck bool, isDel bool, isInsert bool,
+	so *SoAccount) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("EachPowerdownRate")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemAccountByEachPowerdownRate{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoAccount{}
-	sa.Name = s.mainKey
 
-	sa.EachPowerdownRate = ori.EachPowerdownRate
+	if isCheck {
+		res := s.checkEachPowerdownRateIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.EachPowerdownRate = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldEachPowerdownRate(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldEachPowerdownRate(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoAccountWrap) delFieldEachPowerdownRate(so *SoAccount) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.EachPowerdownRate = p
 
 	return true
 }
 
-func (s *SoAccountWrap) saveMemKeyHasPowerdown(tInfo *SoAccount) error {
+func (s *SoAccountWrap) insertFieldEachPowerdownRate(so *SoAccount) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoAccountWrap) checkEachPowerdownRateIsMetMdCondition(p *prototype.Vest) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemAccountByHasPowerdown{}
-	val.HasPowerdown = tInfo.HasPowerdown
-	key, err := s.encodeMemKey("HasPowerdown")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoAccountWrap) GetHasPowerdown() *prototype.Vest {
 	res := true
-	msg := &SoMemAccountByHasPowerdown{}
+	msg := &SoAccount{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("HasPowerdown")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -1537,67 +1221,66 @@ func (s *SoAccountWrap) GetHasPowerdown() *prototype.Vest {
 	return msg.HasPowerdown
 }
 
-func (s *SoAccountWrap) MdHasPowerdown(p *prototype.Vest) bool {
+func (s *SoAccountWrap) mdFieldHasPowerdown(p *prototype.Vest, isCheck bool, isDel bool, isInsert bool,
+	so *SoAccount) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("HasPowerdown")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemAccountByHasPowerdown{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoAccount{}
-	sa.Name = s.mainKey
 
-	sa.HasPowerdown = ori.HasPowerdown
+	if isCheck {
+		res := s.checkHasPowerdownIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.HasPowerdown = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldHasPowerdown(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldHasPowerdown(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoAccountWrap) delFieldHasPowerdown(so *SoAccount) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.HasPowerdown = p
 
 	return true
 }
 
-func (s *SoAccountWrap) saveMemKeyLastOwnerUpdate(tInfo *SoAccount) error {
+func (s *SoAccountWrap) insertFieldHasPowerdown(so *SoAccount) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoAccountWrap) checkHasPowerdownIsMetMdCondition(p *prototype.Vest) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemAccountByLastOwnerUpdate{}
-	val.LastOwnerUpdate = tInfo.LastOwnerUpdate
-	key, err := s.encodeMemKey("LastOwnerUpdate")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoAccountWrap) GetLastOwnerUpdate() *prototype.TimePointSec {
 	res := true
-	msg := &SoMemAccountByLastOwnerUpdate{}
+	msg := &SoAccount{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("LastOwnerUpdate")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -1620,67 +1303,66 @@ func (s *SoAccountWrap) GetLastOwnerUpdate() *prototype.TimePointSec {
 	return msg.LastOwnerUpdate
 }
 
-func (s *SoAccountWrap) MdLastOwnerUpdate(p *prototype.TimePointSec) bool {
+func (s *SoAccountWrap) mdFieldLastOwnerUpdate(p *prototype.TimePointSec, isCheck bool, isDel bool, isInsert bool,
+	so *SoAccount) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("LastOwnerUpdate")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemAccountByLastOwnerUpdate{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoAccount{}
-	sa.Name = s.mainKey
 
-	sa.LastOwnerUpdate = ori.LastOwnerUpdate
+	if isCheck {
+		res := s.checkLastOwnerUpdateIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.LastOwnerUpdate = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldLastOwnerUpdate(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldLastOwnerUpdate(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoAccountWrap) delFieldLastOwnerUpdate(so *SoAccount) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.LastOwnerUpdate = p
 
 	return true
 }
 
-func (s *SoAccountWrap) saveMemKeyLastPostTime(tInfo *SoAccount) error {
+func (s *SoAccountWrap) insertFieldLastOwnerUpdate(so *SoAccount) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoAccountWrap) checkLastOwnerUpdateIsMetMdCondition(p *prototype.TimePointSec) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemAccountByLastPostTime{}
-	val.LastPostTime = tInfo.LastPostTime
-	key, err := s.encodeMemKey("LastPostTime")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoAccountWrap) GetLastPostTime() *prototype.TimePointSec {
 	res := true
-	msg := &SoMemAccountByLastPostTime{}
+	msg := &SoAccount{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("LastPostTime")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -1703,67 +1385,66 @@ func (s *SoAccountWrap) GetLastPostTime() *prototype.TimePointSec {
 	return msg.LastPostTime
 }
 
-func (s *SoAccountWrap) MdLastPostTime(p *prototype.TimePointSec) bool {
+func (s *SoAccountWrap) mdFieldLastPostTime(p *prototype.TimePointSec, isCheck bool, isDel bool, isInsert bool,
+	so *SoAccount) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("LastPostTime")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemAccountByLastPostTime{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoAccount{}
-	sa.Name = s.mainKey
 
-	sa.LastPostTime = ori.LastPostTime
+	if isCheck {
+		res := s.checkLastPostTimeIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.LastPostTime = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldLastPostTime(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldLastPostTime(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoAccountWrap) delFieldLastPostTime(so *SoAccount) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.LastPostTime = p
 
 	return true
 }
 
-func (s *SoAccountWrap) saveMemKeyLastStakeTime(tInfo *SoAccount) error {
+func (s *SoAccountWrap) insertFieldLastPostTime(so *SoAccount) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoAccountWrap) checkLastPostTimeIsMetMdCondition(p *prototype.TimePointSec) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemAccountByLastStakeTime{}
-	val.LastStakeTime = tInfo.LastStakeTime
-	key, err := s.encodeMemKey("LastStakeTime")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoAccountWrap) GetLastStakeTime() *prototype.TimePointSec {
 	res := true
-	msg := &SoMemAccountByLastStakeTime{}
+	msg := &SoAccount{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("LastStakeTime")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -1786,67 +1467,66 @@ func (s *SoAccountWrap) GetLastStakeTime() *prototype.TimePointSec {
 	return msg.LastStakeTime
 }
 
-func (s *SoAccountWrap) MdLastStakeTime(p *prototype.TimePointSec) bool {
+func (s *SoAccountWrap) mdFieldLastStakeTime(p *prototype.TimePointSec, isCheck bool, isDel bool, isInsert bool,
+	so *SoAccount) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("LastStakeTime")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemAccountByLastStakeTime{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoAccount{}
-	sa.Name = s.mainKey
 
-	sa.LastStakeTime = ori.LastStakeTime
+	if isCheck {
+		res := s.checkLastStakeTimeIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.LastStakeTime = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldLastStakeTime(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldLastStakeTime(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoAccountWrap) delFieldLastStakeTime(so *SoAccount) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.LastStakeTime = p
 
 	return true
 }
 
-func (s *SoAccountWrap) saveMemKeyLastVoteTime(tInfo *SoAccount) error {
+func (s *SoAccountWrap) insertFieldLastStakeTime(so *SoAccount) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoAccountWrap) checkLastStakeTimeIsMetMdCondition(p *prototype.TimePointSec) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemAccountByLastVoteTime{}
-	val.LastVoteTime = tInfo.LastVoteTime
-	key, err := s.encodeMemKey("LastVoteTime")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoAccountWrap) GetLastVoteTime() *prototype.TimePointSec {
 	res := true
-	msg := &SoMemAccountByLastVoteTime{}
+	msg := &SoAccount{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("LastVoteTime")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -1869,67 +1549,66 @@ func (s *SoAccountWrap) GetLastVoteTime() *prototype.TimePointSec {
 	return msg.LastVoteTime
 }
 
-func (s *SoAccountWrap) MdLastVoteTime(p *prototype.TimePointSec) bool {
+func (s *SoAccountWrap) mdFieldLastVoteTime(p *prototype.TimePointSec, isCheck bool, isDel bool, isInsert bool,
+	so *SoAccount) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("LastVoteTime")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemAccountByLastVoteTime{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoAccount{}
-	sa.Name = s.mainKey
 
-	sa.LastVoteTime = ori.LastVoteTime
+	if isCheck {
+		res := s.checkLastVoteTimeIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.LastVoteTime = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldLastVoteTime(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldLastVoteTime(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoAccountWrap) delFieldLastVoteTime(so *SoAccount) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.LastVoteTime = p
 
 	return true
 }
 
-func (s *SoAccountWrap) saveMemKeyName(tInfo *SoAccount) error {
+func (s *SoAccountWrap) insertFieldLastVoteTime(so *SoAccount) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoAccountWrap) checkLastVoteTimeIsMetMdCondition(p *prototype.TimePointSec) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemAccountByName{}
-	val.Name = tInfo.Name
-	key, err := s.encodeMemKey("Name")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoAccountWrap) GetName() *prototype.AccountName {
 	res := true
-	msg := &SoMemAccountByName{}
+	msg := &SoAccount{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Name")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -1952,34 +1631,13 @@ func (s *SoAccountWrap) GetName() *prototype.AccountName {
 	return msg.Name
 }
 
-func (s *SoAccountWrap) saveMemKeyNextPowerdownBlockNum(tInfo *SoAccount) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemAccountByNextPowerdownBlockNum{}
-	val.NextPowerdownBlockNum = tInfo.NextPowerdownBlockNum
-	key, err := s.encodeMemKey("NextPowerdownBlockNum")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
-
 func (s *SoAccountWrap) GetNextPowerdownBlockNum() uint64 {
 	res := true
-	msg := &SoMemAccountByNextPowerdownBlockNum{}
+	msg := &SoAccount{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("NextPowerdownBlockNum")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -2002,74 +1660,74 @@ func (s *SoAccountWrap) GetNextPowerdownBlockNum() uint64 {
 	return msg.NextPowerdownBlockNum
 }
 
-func (s *SoAccountWrap) MdNextPowerdownBlockNum(p uint64) bool {
+func (s *SoAccountWrap) mdFieldNextPowerdownBlockNum(p uint64, isCheck bool, isDel bool, isInsert bool,
+	so *SoAccount) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("NextPowerdownBlockNum")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemAccountByNextPowerdownBlockNum{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoAccount{}
-	sa.Name = s.mainKey
 
-	sa.NextPowerdownBlockNum = ori.NextPowerdownBlockNum
+	if isCheck {
+		res := s.checkNextPowerdownBlockNumIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	if !s.delSortKeyNextPowerdownBlockNum(sa) {
-		return false
+	if isDel {
+		res := s.delFieldNextPowerdownBlockNum(so)
+		if !res {
+			return false
+		}
 	}
-	ori.NextPowerdownBlockNum = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.NextPowerdownBlockNum = p
 
-	if !s.insertSortKeyNextPowerdownBlockNum(sa) {
+	if isInsert {
+		res := s.insertFieldNextPowerdownBlockNum(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoAccountWrap) delFieldNextPowerdownBlockNum(so *SoAccount) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if !s.delSortKeyNextPowerdownBlockNum(so) {
 		return false
 	}
 
 	return true
 }
 
-func (s *SoAccountWrap) saveMemKeyOwner(tInfo *SoAccount) error {
+func (s *SoAccountWrap) insertFieldNextPowerdownBlockNum(so *SoAccount) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	if !s.insertSortKeyNextPowerdownBlockNum(so) {
+		return false
 	}
-	val := SoMemAccountByOwner{}
-	val.Owner = tInfo.Owner
-	key, err := s.encodeMemKey("Owner")
-	if err != nil {
-		return err
+
+	return true
+}
+
+func (s *SoAccountWrap) checkNextPowerdownBlockNumIsMetMdCondition(p uint64) bool {
+	if s.dba == nil {
+		return false
 	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoAccountWrap) GetOwner() *prototype.PublicKeyType {
 	res := true
-	msg := &SoMemAccountByOwner{}
+	msg := &SoAccount{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Owner")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -2092,82 +1750,83 @@ func (s *SoAccountWrap) GetOwner() *prototype.PublicKeyType {
 	return msg.Owner
 }
 
-func (s *SoAccountWrap) MdOwner(p *prototype.PublicKeyType) bool {
+func (s *SoAccountWrap) mdFieldOwner(p *prototype.PublicKeyType, isCheck bool, isDel bool, isInsert bool,
+	so *SoAccount) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("Owner")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemAccountByOwner{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoAccount{}
-	sa.Name = s.mainKey
 
-	sa.Owner = ori.Owner
-	//judge the unique value if is exist
-	uniWrap := UniAccountOwnerWrap{}
-	uniWrap.Dba = s.dba
-	res := uniWrap.UniQueryOwner(sa.Owner)
-
-	if res != nil {
-		//the unique value to be modified is already exist
-		return false
-	}
-	if !s.delUniKeyOwner(sa) {
-		return false
+	if isCheck {
+		res := s.checkOwnerIsMetMdCondition(p)
+		if !res {
+			return false
+		}
 	}
 
-	ori.Owner = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
+	if isDel {
+		res := s.delFieldOwner(so)
+		if !res {
+			return false
+		}
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.Owner = p
 
-	if !s.insertUniKeyOwner(sa) {
+	if isInsert {
+		res := s.insertFieldOwner(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoAccountWrap) delFieldOwner(so *SoAccount) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if !s.delUniKeyOwner(so) {
+		return false
+	}
+
+	return true
+}
+
+func (s *SoAccountWrap) insertFieldOwner(so *SoAccount) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if !s.insertUniKeyOwner(so) {
 		return false
 	}
 	return true
 }
 
-func (s *SoAccountWrap) saveMemKeyPostCount(tInfo *SoAccount) error {
+func (s *SoAccountWrap) checkOwnerIsMetMdCondition(p *prototype.PublicKeyType) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	//judge the unique value if is exist
+	uniWrap := UniAccountOwnerWrap{}
+	uniWrap.Dba = s.dba
+	res := uniWrap.UniQueryOwner(p)
+
+	if res != nil {
+		//the unique value to be modified is already exist
+		return false
 	}
-	val := SoMemAccountByPostCount{}
-	val.PostCount = tInfo.PostCount
-	key, err := s.encodeMemKey("PostCount")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoAccountWrap) GetPostCount() uint32 {
 	res := true
-	msg := &SoMemAccountByPostCount{}
+	msg := &SoAccount{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("PostCount")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -2190,74 +1849,74 @@ func (s *SoAccountWrap) GetPostCount() uint32 {
 	return msg.PostCount
 }
 
-func (s *SoAccountWrap) MdPostCount(p uint32) bool {
+func (s *SoAccountWrap) mdFieldPostCount(p uint32, isCheck bool, isDel bool, isInsert bool,
+	so *SoAccount) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("PostCount")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemAccountByPostCount{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoAccount{}
-	sa.Name = s.mainKey
 
-	sa.PostCount = ori.PostCount
+	if isCheck {
+		res := s.checkPostCountIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	if !s.delSortKeyPostCount(sa) {
-		return false
+	if isDel {
+		res := s.delFieldPostCount(so)
+		if !res {
+			return false
+		}
 	}
-	ori.PostCount = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.PostCount = p
 
-	if !s.insertSortKeyPostCount(sa) {
+	if isInsert {
+		res := s.insertFieldPostCount(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoAccountWrap) delFieldPostCount(so *SoAccount) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if !s.delSortKeyPostCount(so) {
 		return false
 	}
 
 	return true
 }
 
-func (s *SoAccountWrap) saveMemKeyStakeVesting(tInfo *SoAccount) error {
+func (s *SoAccountWrap) insertFieldPostCount(so *SoAccount) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	if !s.insertSortKeyPostCount(so) {
+		return false
 	}
-	val := SoMemAccountByStakeVesting{}
-	val.StakeVesting = tInfo.StakeVesting
-	key, err := s.encodeMemKey("StakeVesting")
-	if err != nil {
-		return err
+
+	return true
+}
+
+func (s *SoAccountWrap) checkPostCountIsMetMdCondition(p uint32) bool {
+	if s.dba == nil {
+		return false
 	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoAccountWrap) GetStakeVesting() *prototype.Vest {
 	res := true
-	msg := &SoMemAccountByStakeVesting{}
+	msg := &SoAccount{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("StakeVesting")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -2280,67 +1939,66 @@ func (s *SoAccountWrap) GetStakeVesting() *prototype.Vest {
 	return msg.StakeVesting
 }
 
-func (s *SoAccountWrap) MdStakeVesting(p *prototype.Vest) bool {
+func (s *SoAccountWrap) mdFieldStakeVesting(p *prototype.Vest, isCheck bool, isDel bool, isInsert bool,
+	so *SoAccount) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("StakeVesting")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemAccountByStakeVesting{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoAccount{}
-	sa.Name = s.mainKey
 
-	sa.StakeVesting = ori.StakeVesting
+	if isCheck {
+		res := s.checkStakeVestingIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.StakeVesting = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldStakeVesting(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldStakeVesting(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoAccountWrap) delFieldStakeVesting(so *SoAccount) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.StakeVesting = p
 
 	return true
 }
 
-func (s *SoAccountWrap) saveMemKeyStamina(tInfo *SoAccount) error {
+func (s *SoAccountWrap) insertFieldStakeVesting(so *SoAccount) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoAccountWrap) checkStakeVestingIsMetMdCondition(p *prototype.Vest) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemAccountByStamina{}
-	val.Stamina = tInfo.Stamina
-	key, err := s.encodeMemKey("Stamina")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoAccountWrap) GetStamina() uint64 {
 	res := true
-	msg := &SoMemAccountByStamina{}
+	msg := &SoAccount{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Stamina")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -2363,67 +2021,66 @@ func (s *SoAccountWrap) GetStamina() uint64 {
 	return msg.Stamina
 }
 
-func (s *SoAccountWrap) MdStamina(p uint64) bool {
+func (s *SoAccountWrap) mdFieldStamina(p uint64, isCheck bool, isDel bool, isInsert bool,
+	so *SoAccount) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("Stamina")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemAccountByStamina{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoAccount{}
-	sa.Name = s.mainKey
 
-	sa.Stamina = ori.Stamina
+	if isCheck {
+		res := s.checkStaminaIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.Stamina = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldStamina(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldStamina(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoAccountWrap) delFieldStamina(so *SoAccount) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.Stamina = p
 
 	return true
 }
 
-func (s *SoAccountWrap) saveMemKeyStaminaFree(tInfo *SoAccount) error {
+func (s *SoAccountWrap) insertFieldStamina(so *SoAccount) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoAccountWrap) checkStaminaIsMetMdCondition(p uint64) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemAccountByStaminaFree{}
-	val.StaminaFree = tInfo.StaminaFree
-	key, err := s.encodeMemKey("StaminaFree")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoAccountWrap) GetStaminaFree() uint64 {
 	res := true
-	msg := &SoMemAccountByStaminaFree{}
+	msg := &SoAccount{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("StaminaFree")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -2446,67 +2103,66 @@ func (s *SoAccountWrap) GetStaminaFree() uint64 {
 	return msg.StaminaFree
 }
 
-func (s *SoAccountWrap) MdStaminaFree(p uint64) bool {
+func (s *SoAccountWrap) mdFieldStaminaFree(p uint64, isCheck bool, isDel bool, isInsert bool,
+	so *SoAccount) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("StaminaFree")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemAccountByStaminaFree{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoAccount{}
-	sa.Name = s.mainKey
 
-	sa.StaminaFree = ori.StaminaFree
+	if isCheck {
+		res := s.checkStaminaFreeIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.StaminaFree = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldStaminaFree(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldStaminaFree(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoAccountWrap) delFieldStaminaFree(so *SoAccount) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.StaminaFree = p
 
 	return true
 }
 
-func (s *SoAccountWrap) saveMemKeyStaminaFreeUseBlock(tInfo *SoAccount) error {
+func (s *SoAccountWrap) insertFieldStaminaFree(so *SoAccount) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoAccountWrap) checkStaminaFreeIsMetMdCondition(p uint64) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemAccountByStaminaFreeUseBlock{}
-	val.StaminaFreeUseBlock = tInfo.StaminaFreeUseBlock
-	key, err := s.encodeMemKey("StaminaFreeUseBlock")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoAccountWrap) GetStaminaFreeUseBlock() uint64 {
 	res := true
-	msg := &SoMemAccountByStaminaFreeUseBlock{}
+	msg := &SoAccount{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("StaminaFreeUseBlock")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -2529,67 +2185,66 @@ func (s *SoAccountWrap) GetStaminaFreeUseBlock() uint64 {
 	return msg.StaminaFreeUseBlock
 }
 
-func (s *SoAccountWrap) MdStaminaFreeUseBlock(p uint64) bool {
+func (s *SoAccountWrap) mdFieldStaminaFreeUseBlock(p uint64, isCheck bool, isDel bool, isInsert bool,
+	so *SoAccount) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("StaminaFreeUseBlock")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemAccountByStaminaFreeUseBlock{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoAccount{}
-	sa.Name = s.mainKey
 
-	sa.StaminaFreeUseBlock = ori.StaminaFreeUseBlock
+	if isCheck {
+		res := s.checkStaminaFreeUseBlockIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.StaminaFreeUseBlock = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldStaminaFreeUseBlock(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldStaminaFreeUseBlock(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoAccountWrap) delFieldStaminaFreeUseBlock(so *SoAccount) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.StaminaFreeUseBlock = p
 
 	return true
 }
 
-func (s *SoAccountWrap) saveMemKeyStaminaUseBlock(tInfo *SoAccount) error {
+func (s *SoAccountWrap) insertFieldStaminaFreeUseBlock(so *SoAccount) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoAccountWrap) checkStaminaFreeUseBlockIsMetMdCondition(p uint64) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemAccountByStaminaUseBlock{}
-	val.StaminaUseBlock = tInfo.StaminaUseBlock
-	key, err := s.encodeMemKey("StaminaUseBlock")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoAccountWrap) GetStaminaUseBlock() uint64 {
 	res := true
-	msg := &SoMemAccountByStaminaUseBlock{}
+	msg := &SoAccount{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("StaminaUseBlock")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -2612,67 +2267,66 @@ func (s *SoAccountWrap) GetStaminaUseBlock() uint64 {
 	return msg.StaminaUseBlock
 }
 
-func (s *SoAccountWrap) MdStaminaUseBlock(p uint64) bool {
+func (s *SoAccountWrap) mdFieldStaminaUseBlock(p uint64, isCheck bool, isDel bool, isInsert bool,
+	so *SoAccount) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("StaminaUseBlock")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemAccountByStaminaUseBlock{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoAccount{}
-	sa.Name = s.mainKey
 
-	sa.StaminaUseBlock = ori.StaminaUseBlock
+	if isCheck {
+		res := s.checkStaminaUseBlockIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.StaminaUseBlock = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldStaminaUseBlock(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldStaminaUseBlock(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoAccountWrap) delFieldStaminaUseBlock(so *SoAccount) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.StaminaUseBlock = p
 
 	return true
 }
 
-func (s *SoAccountWrap) saveMemKeyToPowerdown(tInfo *SoAccount) error {
+func (s *SoAccountWrap) insertFieldStaminaUseBlock(so *SoAccount) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoAccountWrap) checkStaminaUseBlockIsMetMdCondition(p uint64) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemAccountByToPowerdown{}
-	val.ToPowerdown = tInfo.ToPowerdown
-	key, err := s.encodeMemKey("ToPowerdown")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoAccountWrap) GetToPowerdown() *prototype.Vest {
 	res := true
-	msg := &SoMemAccountByToPowerdown{}
+	msg := &SoAccount{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("ToPowerdown")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -2695,67 +2349,66 @@ func (s *SoAccountWrap) GetToPowerdown() *prototype.Vest {
 	return msg.ToPowerdown
 }
 
-func (s *SoAccountWrap) MdToPowerdown(p *prototype.Vest) bool {
+func (s *SoAccountWrap) mdFieldToPowerdown(p *prototype.Vest, isCheck bool, isDel bool, isInsert bool,
+	so *SoAccount) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("ToPowerdown")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemAccountByToPowerdown{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoAccount{}
-	sa.Name = s.mainKey
 
-	sa.ToPowerdown = ori.ToPowerdown
+	if isCheck {
+		res := s.checkToPowerdownIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.ToPowerdown = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldToPowerdown(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldToPowerdown(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoAccountWrap) delFieldToPowerdown(so *SoAccount) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.ToPowerdown = p
 
 	return true
 }
 
-func (s *SoAccountWrap) saveMemKeyVestingShares(tInfo *SoAccount) error {
+func (s *SoAccountWrap) insertFieldToPowerdown(so *SoAccount) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoAccountWrap) checkToPowerdownIsMetMdCondition(p *prototype.Vest) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemAccountByVestingShares{}
-	val.VestingShares = tInfo.VestingShares
-	key, err := s.encodeMemKey("VestingShares")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoAccountWrap) GetVestingShares() *prototype.Vest {
 	res := true
-	msg := &SoMemAccountByVestingShares{}
+	msg := &SoAccount{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("VestingShares")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -2778,74 +2431,74 @@ func (s *SoAccountWrap) GetVestingShares() *prototype.Vest {
 	return msg.VestingShares
 }
 
-func (s *SoAccountWrap) MdVestingShares(p *prototype.Vest) bool {
+func (s *SoAccountWrap) mdFieldVestingShares(p *prototype.Vest, isCheck bool, isDel bool, isInsert bool,
+	so *SoAccount) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("VestingShares")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemAccountByVestingShares{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoAccount{}
-	sa.Name = s.mainKey
 
-	sa.VestingShares = ori.VestingShares
+	if isCheck {
+		res := s.checkVestingSharesIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	if !s.delSortKeyVestingShares(sa) {
-		return false
+	if isDel {
+		res := s.delFieldVestingShares(so)
+		if !res {
+			return false
+		}
 	}
-	ori.VestingShares = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.VestingShares = p
 
-	if !s.insertSortKeyVestingShares(sa) {
+	if isInsert {
+		res := s.insertFieldVestingShares(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoAccountWrap) delFieldVestingShares(so *SoAccount) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if !s.delSortKeyVestingShares(so) {
 		return false
 	}
 
 	return true
 }
 
-func (s *SoAccountWrap) saveMemKeyVotePower(tInfo *SoAccount) error {
+func (s *SoAccountWrap) insertFieldVestingShares(so *SoAccount) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	if !s.insertSortKeyVestingShares(so) {
+		return false
 	}
-	val := SoMemAccountByVotePower{}
-	val.VotePower = tInfo.VotePower
-	key, err := s.encodeMemKey("VotePower")
-	if err != nil {
-		return err
+
+	return true
+}
+
+func (s *SoAccountWrap) checkVestingSharesIsMetMdCondition(p *prototype.Vest) bool {
+	if s.dba == nil {
+		return false
 	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoAccountWrap) GetVotePower() uint32 {
 	res := true
-	msg := &SoMemAccountByVotePower{}
+	msg := &SoAccount{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("VotePower")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -2868,35 +2521,55 @@ func (s *SoAccountWrap) GetVotePower() uint32 {
 	return msg.VotePower
 }
 
-func (s *SoAccountWrap) MdVotePower(p uint32) bool {
+func (s *SoAccountWrap) mdFieldVotePower(p uint32, isCheck bool, isDel bool, isInsert bool,
+	so *SoAccount) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("VotePower")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemAccountByVotePower{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoAccount{}
-	sa.Name = s.mainKey
 
-	sa.VotePower = ori.VotePower
+	if isCheck {
+		res := s.checkVotePowerIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.VotePower = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldVotePower(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldVotePower(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoAccountWrap) delFieldVotePower(so *SoAccount) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
+
+	return true
+}
+
+func (s *SoAccountWrap) insertFieldVotePower(so *SoAccount) bool {
+	if s.dba == nil {
 		return false
 	}
-	sa.VotePower = p
+
+	return true
+}
+
+func (s *SoAccountWrap) checkVotePowerIsMetMdCondition(p uint32) bool {
+	if s.dba == nil {
+		return false
+	}
 
 	return true
 }
@@ -3798,11 +3471,38 @@ func (s *SoAccountWrap) getAccount() *SoAccount {
 	return res
 }
 
+func (s *SoAccountWrap) updateAccount(so *SoAccount) error {
+	if s.dba == nil {
+		return errors.New("update fail:the db is nil")
+	}
+
+	if so == nil {
+		return errors.New("update fail: the SoAccount is nil")
+	}
+
+	key, err := s.encodeMainKey()
+	if err != nil {
+		return nil
+	}
+
+	buf, err := proto.Marshal(so)
+	if err != nil {
+		return err
+	}
+
+	err = s.dba.Put(key, buf)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *SoAccountWrap) encodeMainKey() ([]byte, error) {
 	if s.mKeyBuf != nil {
 		return s.mKeyBuf, nil
 	}
-	pre := s.getMemKeyPrefix("Name")
+	pre := AccountNameRow
 	sub := s.mainKey
 	if sub == nil {
 		return nil, errors.New("the mainKey is nil")
@@ -3901,20 +3601,7 @@ func (s *SoAccountWrap) delUniKeyName(sa *SoAccount) bool {
 		sub := sa.Name
 		kList = append(kList, sub)
 	} else {
-		key, err := s.encodeMemKey("Name")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemAccountByName{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		sub := ori.Name
+		sub := s.GetName()
 		kList = append(kList, sub)
 
 	}
@@ -4001,20 +3688,7 @@ func (s *SoAccountWrap) delUniKeyOwner(sa *SoAccount) bool {
 		sub := sa.Owner
 		kList = append(kList, sub)
 	} else {
-		key, err := s.encodeMemKey("Owner")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemAccountByOwner{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		sub := ori.Owner
+		sub := s.GetOwner()
 		kList = append(kList, sub)
 
 	}
@@ -4085,4 +3759,60 @@ func (s *UniAccountOwnerWrap) UniQueryOwner(start *prototype.PublicKeyType) *SoA
 		}
 	}
 	return nil
+}
+
+func (s *SoAccountWrap) getMdFuncMap() map[string]interface{} {
+	if s.mdFuncMap != nil && len(s.mdFuncMap) > 0 {
+		return s.mdFuncMap
+	}
+	m := map[string]interface{}{}
+
+	m["Balance"] = s.mdFieldBalance
+
+	m["BpVoteCount"] = s.mdFieldBpVoteCount
+
+	m["CreatedTime"] = s.mdFieldCreatedTime
+
+	m["CreatedTrxCount"] = s.mdFieldCreatedTrxCount
+
+	m["Creator"] = s.mdFieldCreator
+
+	m["EachPowerdownRate"] = s.mdFieldEachPowerdownRate
+
+	m["HasPowerdown"] = s.mdFieldHasPowerdown
+
+	m["LastOwnerUpdate"] = s.mdFieldLastOwnerUpdate
+
+	m["LastPostTime"] = s.mdFieldLastPostTime
+
+	m["LastStakeTime"] = s.mdFieldLastStakeTime
+
+	m["LastVoteTime"] = s.mdFieldLastVoteTime
+
+	m["NextPowerdownBlockNum"] = s.mdFieldNextPowerdownBlockNum
+
+	m["Owner"] = s.mdFieldOwner
+
+	m["PostCount"] = s.mdFieldPostCount
+
+	m["StakeVesting"] = s.mdFieldStakeVesting
+
+	m["Stamina"] = s.mdFieldStamina
+
+	m["StaminaFree"] = s.mdFieldStaminaFree
+
+	m["StaminaFreeUseBlock"] = s.mdFieldStaminaFreeUseBlock
+
+	m["StaminaUseBlock"] = s.mdFieldStaminaUseBlock
+
+	m["ToPowerdown"] = s.mdFieldToPowerdown
+
+	m["VestingShares"] = s.mdFieldVestingShares
+
+	m["VotePower"] = s.mdFieldVotePower
+
+	if len(m) > 0 {
+		s.mdFuncMap = m
+	}
+	return m
 }

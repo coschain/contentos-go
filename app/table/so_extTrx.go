@@ -1,10 +1,10 @@
 package table
 
 import (
+	"encoding/json"
 	"errors"
 	fmt "fmt"
 	"reflect"
-	"strings"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -19,28 +19,25 @@ var (
 	ExtTrxBlockTimeTable      uint32 = 1025113122
 	ExtTrxTrxCreateOrderTable uint32 = 1760958085
 	ExtTrxTrxIdUniTable       uint32 = 334659987
-	ExtTrxBlockHeightCell     uint32 = 2517467390
-	ExtTrxBlockIdCell         uint32 = 3076287470
-	ExtTrxBlockTimeCell       uint32 = 2588372818
-	ExtTrxTrxCreateOrderCell  uint32 = 1888217061
-	ExtTrxTrxIdCell           uint32 = 1776577009
-	ExtTrxTrxWrapCell         uint32 = 2374486278
+
+	ExtTrxTrxIdRow uint32 = 2158991352
 )
 
 ////////////// SECTION Wrap Define ///////////////
 type SoExtTrxWrap struct {
-	dba      iservices.IDatabaseRW
-	mainKey  *prototype.Sha256
-	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf  []byte //the buffer after the main key is encoded with prefix
-	mBuf     []byte //the value after the main key is encoded
+	dba       iservices.IDatabaseRW
+	mainKey   *prototype.Sha256
+	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
+	mBuf      []byte //the value after the main key is encoded
+	mdFuncMap map[string]interface{}
 }
 
 func NewSoExtTrxWrap(dba iservices.IDatabaseRW, key *prototype.Sha256) *SoExtTrxWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoExtTrxWrap{dba, key, -1, nil, nil}
+	result := &SoExtTrxWrap{dba, key, -1, nil, nil, nil}
 	return result
 }
 
@@ -92,9 +89,13 @@ func (s *SoExtTrxWrap) Create(f func(tInfo *SoExtTrx)) error {
 		return err
 
 	}
-	err = s.saveAllMemKeys(val, true)
+
+	buf, err := proto.Marshal(val)
 	if err != nil {
-		s.delAllMemKeys(false, val)
+		return err
+	}
+	err = s.dba.Put(keyBuf, buf)
+	if err != nil {
 		return err
 	}
 
@@ -102,7 +103,6 @@ func (s *SoExtTrxWrap) Create(f func(tInfo *SoExtTrx)) error {
 	if err = s.insertAllSortKeys(val); err != nil {
 		s.delAllSortKeys(false, val)
 		s.dba.Delete(keyBuf)
-		s.delAllMemKeys(false, val)
 		return err
 	}
 
@@ -111,7 +111,6 @@ func (s *SoExtTrxWrap) Create(f func(tInfo *SoExtTrx)) error {
 		s.delAllSortKeys(false, val)
 		s.delUniKeysWithNames(sucNames, val)
 		s.dba.Delete(keyBuf)
-		s.delAllMemKeys(false, val)
 		return err
 	}
 
@@ -132,6 +131,113 @@ func (s *SoExtTrxWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
+func (s *SoExtTrxWrap) Md(f func(tInfo *SoExtTrx)) error {
+	t := &SoExtTrx{}
+	f(t)
+	js, err := json.Marshal(t)
+	if err != nil {
+		return err
+	}
+	fMap := make(map[string]interface{})
+	err = json.Unmarshal(js, &fMap)
+	if err != nil {
+		return err
+	}
+
+	mKeyName := "TrxId"
+	mKeyField := ""
+	for name, _ := range fMap {
+		if ConvTableFieldToPbFormat(name) == mKeyName {
+			mKeyField = name
+			break
+		}
+	}
+	if len(mKeyField) > 0 {
+		delete(fMap, mKeyField)
+	}
+
+	if len(fMap) < 1 {
+		return errors.New("can't' modify empty struct")
+	}
+
+	sa := s.getExtTrx()
+	if sa == nil {
+		return errors.New("fail to get table SoExtTrx")
+	}
+
+	refVal := reflect.ValueOf(*t)
+	el := reflect.ValueOf(sa).Elem()
+
+	//check unique
+	err = s.handleFieldMd(FieldMdHandleTypeCheck, t, fMap)
+	if err != nil {
+		return err
+	}
+
+	//delete sort and unique key
+	err = s.handleFieldMd(FieldMdHandleTypeDel, sa, fMap)
+	if err != nil {
+		return err
+	}
+
+	//update table
+	for f, _ := range fMap {
+		fName := ConvTableFieldToPbFormat(f)
+		val := refVal.FieldByName(fName)
+		if _, ok := s.mdFuncMap[fName]; ok {
+			el.FieldByName(fName).Set(val)
+		}
+	}
+	err = s.updateExtTrx(sa)
+	if err != nil {
+		return err
+	}
+
+	//insert sort and unique key
+	err = s.handleFieldMd(FieldMdHandleTypeInsert, sa, fMap)
+	if err != nil {
+		return err
+	}
+
+	return err
+
+}
+
+func (s *SoExtTrxWrap) handleFieldMd(t FieldMdHandleType, so *SoExtTrx, fMap map[string]interface{}) error {
+	if so == nil || fMap == nil {
+		return errors.New("fail to modify empty table")
+	}
+
+	mdFuncMap := s.getMdFuncMap()
+	if len(mdFuncMap) < 1 {
+		return errors.New("there is not exsit md function to md field")
+	}
+	errStr := ""
+	refVal := reflect.ValueOf(*so)
+	for f, _ := range fMap {
+		fName := ConvTableFieldToPbFormat(f)
+		val := refVal.FieldByName(fName)
+		if _, ok := mdFuncMap[fName]; ok {
+			f := reflect.ValueOf(s.mdFuncMap[fName])
+			p := []reflect.Value{val, reflect.ValueOf(true), reflect.ValueOf(false), reflect.ValueOf(false), reflect.ValueOf(so)}
+			errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			if t == FieldMdHandleTypeDel {
+				p = []reflect.Value{val, reflect.ValueOf(false), reflect.ValueOf(true), reflect.ValueOf(false), reflect.ValueOf(so)}
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				p = []reflect.Value{val, reflect.ValueOf(false), reflect.ValueOf(false), reflect.ValueOf(true), reflect.ValueOf(so)}
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			res := f.Call(p)
+			if !(res[0].Bool()) {
+				return errors.New(errStr)
+			}
+		}
+	}
+
+	return nil
+}
+
 ////////////// SECTION LKeys delete/insert ///////////////
 
 func (s *SoExtTrxWrap) delSortKeyTrxId(sa *SoExtTrx) bool {
@@ -140,20 +246,7 @@ func (s *SoExtTrxWrap) delSortKeyTrxId(sa *SoExtTrx) bool {
 	}
 	val := SoListExtTrxByTrxId{}
 	if sa == nil {
-		key, err := s.encodeMemKey("TrxId")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemExtTrxByTrxId{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		val.TrxId = ori.TrxId
+		val.TrxId = s.GetTrxId()
 	} else {
 		val.TrxId = sa.TrxId
 	}
@@ -190,20 +283,7 @@ func (s *SoExtTrxWrap) delSortKeyBlockHeight(sa *SoExtTrx) bool {
 	}
 	val := SoListExtTrxByBlockHeight{}
 	if sa == nil {
-		key, err := s.encodeMemKey("BlockHeight")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemExtTrxByBlockHeight{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		val.BlockHeight = ori.BlockHeight
+		val.BlockHeight = s.GetBlockHeight()
 		val.TrxId = s.mainKey
 
 	} else {
@@ -244,20 +324,7 @@ func (s *SoExtTrxWrap) delSortKeyBlockTime(sa *SoExtTrx) bool {
 	}
 	val := SoListExtTrxByBlockTime{}
 	if sa == nil {
-		key, err := s.encodeMemKey("BlockTime")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemExtTrxByBlockTime{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		val.BlockTime = ori.BlockTime
+		val.BlockTime = s.GetBlockTime()
 		val.TrxId = s.mainKey
 
 	} else {
@@ -298,20 +365,7 @@ func (s *SoExtTrxWrap) delSortKeyTrxCreateOrder(sa *SoExtTrx) bool {
 	}
 	val := SoListExtTrxByTrxCreateOrder{}
 	if sa == nil {
-		key, err := s.encodeMemKey("TrxCreateOrder")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemExtTrxByTrxCreateOrder{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		val.TrxCreateOrder = ori.TrxCreateOrder
+		val.TrxCreateOrder = s.GetTrxCreateOrder()
 		val.TrxId = s.mainKey
 
 	} else {
@@ -351,13 +405,7 @@ func (s *SoExtTrxWrap) delAllSortKeys(br bool, val *SoExtTrx) bool {
 		return false
 	}
 	res := true
-	if !s.delSortKeyTrxId(val) {
-		if br {
-			return false
-		} else {
-			res = false
-		}
-	}
+
 	if !s.delSortKeyBlockHeight(val) {
 		if br {
 			return false
@@ -365,6 +413,7 @@ func (s *SoExtTrxWrap) delAllSortKeys(br bool, val *SoExtTrx) bool {
 			res = false
 		}
 	}
+
 	if !s.delSortKeyBlockTime(val) {
 		if br {
 			return false
@@ -372,6 +421,7 @@ func (s *SoExtTrxWrap) delAllSortKeys(br bool, val *SoExtTrx) bool {
 			res = false
 		}
 	}
+
 	if !s.delSortKeyTrxCreateOrder(val) {
 		if br {
 			return false
@@ -390,15 +440,15 @@ func (s *SoExtTrxWrap) insertAllSortKeys(val *SoExtTrx) error {
 	if val == nil {
 		return errors.New("insert sort Field fail,get the SoExtTrx fail ")
 	}
-	if !s.insertSortKeyTrxId(val) {
-		return errors.New("insert sort Field TrxId fail while insert table ")
-	}
+
 	if !s.insertSortKeyBlockHeight(val) {
 		return errors.New("insert sort Field BlockHeight fail while insert table ")
 	}
+
 	if !s.insertSortKeyBlockTime(val) {
 		return errors.New("insert sort Field BlockTime fail while insert table ")
 	}
+
 	if !s.insertSortKeyTrxCreateOrder(val) {
 		return errors.New("insert sort Field TrxCreateOrder fail while insert table ")
 	}
@@ -412,7 +462,6 @@ func (s *SoExtTrxWrap) RemoveExtTrx() bool {
 	if s.dba == nil {
 		return false
 	}
-	val := &SoExtTrx{}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
 		return false
@@ -423,7 +472,12 @@ func (s *SoExtTrxWrap) RemoveExtTrx() bool {
 		return false
 	}
 
-	err := s.delAllMemKeys(true, val)
+	//delete table
+	key, err := s.encodeMainKey()
+	if err != nil {
+		return false
+	}
+	err = s.dba.Delete(key)
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
@@ -434,174 +488,14 @@ func (s *SoExtTrxWrap) RemoveExtTrx() bool {
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
-func (s *SoExtTrxWrap) getMemKeyPrefix(fName string) uint32 {
-	if fName == "BlockHeight" {
-		return ExtTrxBlockHeightCell
-	}
-	if fName == "BlockId" {
-		return ExtTrxBlockIdCell
-	}
-	if fName == "BlockTime" {
-		return ExtTrxBlockTimeCell
-	}
-	if fName == "TrxCreateOrder" {
-		return ExtTrxTrxCreateOrderCell
-	}
-	if fName == "TrxId" {
-		return ExtTrxTrxIdCell
-	}
-	if fName == "TrxWrap" {
-		return ExtTrxTrxWrapCell
-	}
-
-	return 0
-}
-
-func (s *SoExtTrxWrap) encodeMemKey(fName string) ([]byte, error) {
-	if len(fName) < 1 || s.mainKey == nil {
-		return nil, errors.New("field name or main key is empty")
-	}
-	pre := s.getMemKeyPrefix(fName)
-	preBuf, err := kope.Encode(pre)
-	if err != nil {
-		return nil, err
-	}
-	mBuf, err := s.getMainKeyBuf()
-	if err != nil {
-		return nil, err
-	}
-	list := make([][]byte, 2)
-	list[0] = preBuf
-	list[1] = mBuf
-	return kope.PackList(list), nil
-}
-
-func (s *SoExtTrxWrap) saveAllMemKeys(tInfo *SoExtTrx, br bool) error {
-	if s.dba == nil {
-		return errors.New("save member Field fail , the db is nil")
-	}
-
-	if tInfo == nil {
-		return errors.New("save member Field fail , the data is nil ")
-	}
-	var err error = nil
-	errDes := ""
-	if err = s.saveMemKeyBlockHeight(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "BlockHeight", err)
-		}
-	}
-	if err = s.saveMemKeyBlockId(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "BlockId", err)
-		}
-	}
-	if err = s.saveMemKeyBlockTime(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "BlockTime", err)
-		}
-	}
-	if err = s.saveMemKeyTrxCreateOrder(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "TrxCreateOrder", err)
-		}
-	}
-	if err = s.saveMemKeyTrxId(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "TrxId", err)
-		}
-	}
-	if err = s.saveMemKeyTrxWrap(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "TrxWrap", err)
-		}
-	}
-
-	if len(errDes) > 0 {
-		return errors.New(errDes)
-	}
-	return err
-}
-
-func (s *SoExtTrxWrap) delAllMemKeys(br bool, tInfo *SoExtTrx) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	t := reflect.TypeOf(*tInfo)
-	errDesc := ""
-	for k := 0; k < t.NumField(); k++ {
-		name := t.Field(k).Name
-		if len(name) > 0 && !strings.HasPrefix(name, "XXX_") {
-			err := s.delMemKey(name)
-			if err != nil {
-				if br {
-					return err
-				}
-				errDesc += fmt.Sprintf("delete the Field %s fail,error is %s;\n", name, err)
-			}
-		}
-	}
-	if len(errDesc) > 0 {
-		return errors.New(errDesc)
-	}
-	return nil
-}
-
-func (s *SoExtTrxWrap) delMemKey(fName string) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if len(fName) <= 0 {
-		return errors.New("the field name is empty ")
-	}
-	key, err := s.encodeMemKey(fName)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Delete(key)
-	return err
-}
-
-func (s *SoExtTrxWrap) saveMemKeyBlockHeight(tInfo *SoExtTrx) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemExtTrxByBlockHeight{}
-	val.BlockHeight = tInfo.BlockHeight
-	key, err := s.encodeMemKey("BlockHeight")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
 
 func (s *SoExtTrxWrap) GetBlockHeight() uint64 {
 	res := true
-	msg := &SoMemExtTrxByBlockHeight{}
+	msg := &SoExtTrx{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("BlockHeight")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -624,74 +518,74 @@ func (s *SoExtTrxWrap) GetBlockHeight() uint64 {
 	return msg.BlockHeight
 }
 
-func (s *SoExtTrxWrap) MdBlockHeight(p uint64) bool {
+func (s *SoExtTrxWrap) mdFieldBlockHeight(p uint64, isCheck bool, isDel bool, isInsert bool,
+	so *SoExtTrx) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("BlockHeight")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemExtTrxByBlockHeight{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoExtTrx{}
-	sa.TrxId = s.mainKey
 
-	sa.BlockHeight = ori.BlockHeight
+	if isCheck {
+		res := s.checkBlockHeightIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	if !s.delSortKeyBlockHeight(sa) {
-		return false
+	if isDel {
+		res := s.delFieldBlockHeight(so)
+		if !res {
+			return false
+		}
 	}
-	ori.BlockHeight = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.BlockHeight = p
 
-	if !s.insertSortKeyBlockHeight(sa) {
+	if isInsert {
+		res := s.insertFieldBlockHeight(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoExtTrxWrap) delFieldBlockHeight(so *SoExtTrx) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if !s.delSortKeyBlockHeight(so) {
 		return false
 	}
 
 	return true
 }
 
-func (s *SoExtTrxWrap) saveMemKeyBlockId(tInfo *SoExtTrx) error {
+func (s *SoExtTrxWrap) insertFieldBlockHeight(so *SoExtTrx) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	if !s.insertSortKeyBlockHeight(so) {
+		return false
 	}
-	val := SoMemExtTrxByBlockId{}
-	val.BlockId = tInfo.BlockId
-	key, err := s.encodeMemKey("BlockId")
-	if err != nil {
-		return err
+
+	return true
+}
+
+func (s *SoExtTrxWrap) checkBlockHeightIsMetMdCondition(p uint64) bool {
+	if s.dba == nil {
+		return false
 	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoExtTrxWrap) GetBlockId() *prototype.Sha256 {
 	res := true
-	msg := &SoMemExtTrxByBlockId{}
+	msg := &SoExtTrx{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("BlockId")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -714,67 +608,66 @@ func (s *SoExtTrxWrap) GetBlockId() *prototype.Sha256 {
 	return msg.BlockId
 }
 
-func (s *SoExtTrxWrap) MdBlockId(p *prototype.Sha256) bool {
+func (s *SoExtTrxWrap) mdFieldBlockId(p *prototype.Sha256, isCheck bool, isDel bool, isInsert bool,
+	so *SoExtTrx) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("BlockId")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemExtTrxByBlockId{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoExtTrx{}
-	sa.TrxId = s.mainKey
 
-	sa.BlockId = ori.BlockId
+	if isCheck {
+		res := s.checkBlockIdIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.BlockId = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldBlockId(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldBlockId(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoExtTrxWrap) delFieldBlockId(so *SoExtTrx) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.BlockId = p
 
 	return true
 }
 
-func (s *SoExtTrxWrap) saveMemKeyBlockTime(tInfo *SoExtTrx) error {
+func (s *SoExtTrxWrap) insertFieldBlockId(so *SoExtTrx) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoExtTrxWrap) checkBlockIdIsMetMdCondition(p *prototype.Sha256) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemExtTrxByBlockTime{}
-	val.BlockTime = tInfo.BlockTime
-	key, err := s.encodeMemKey("BlockTime")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoExtTrxWrap) GetBlockTime() *prototype.TimePointSec {
 	res := true
-	msg := &SoMemExtTrxByBlockTime{}
+	msg := &SoExtTrx{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("BlockTime")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -797,74 +690,74 @@ func (s *SoExtTrxWrap) GetBlockTime() *prototype.TimePointSec {
 	return msg.BlockTime
 }
 
-func (s *SoExtTrxWrap) MdBlockTime(p *prototype.TimePointSec) bool {
+func (s *SoExtTrxWrap) mdFieldBlockTime(p *prototype.TimePointSec, isCheck bool, isDel bool, isInsert bool,
+	so *SoExtTrx) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("BlockTime")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemExtTrxByBlockTime{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoExtTrx{}
-	sa.TrxId = s.mainKey
 
-	sa.BlockTime = ori.BlockTime
+	if isCheck {
+		res := s.checkBlockTimeIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	if !s.delSortKeyBlockTime(sa) {
-		return false
+	if isDel {
+		res := s.delFieldBlockTime(so)
+		if !res {
+			return false
+		}
 	}
-	ori.BlockTime = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.BlockTime = p
 
-	if !s.insertSortKeyBlockTime(sa) {
+	if isInsert {
+		res := s.insertFieldBlockTime(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoExtTrxWrap) delFieldBlockTime(so *SoExtTrx) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if !s.delSortKeyBlockTime(so) {
 		return false
 	}
 
 	return true
 }
 
-func (s *SoExtTrxWrap) saveMemKeyTrxCreateOrder(tInfo *SoExtTrx) error {
+func (s *SoExtTrxWrap) insertFieldBlockTime(so *SoExtTrx) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	if !s.insertSortKeyBlockTime(so) {
+		return false
 	}
-	val := SoMemExtTrxByTrxCreateOrder{}
-	val.TrxCreateOrder = tInfo.TrxCreateOrder
-	key, err := s.encodeMemKey("TrxCreateOrder")
-	if err != nil {
-		return err
+
+	return true
+}
+
+func (s *SoExtTrxWrap) checkBlockTimeIsMetMdCondition(p *prototype.TimePointSec) bool {
+	if s.dba == nil {
+		return false
 	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoExtTrxWrap) GetTrxCreateOrder() *prototype.UserTrxCreateOrder {
 	res := true
-	msg := &SoMemExtTrxByTrxCreateOrder{}
+	msg := &SoExtTrx{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("TrxCreateOrder")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -887,74 +780,74 @@ func (s *SoExtTrxWrap) GetTrxCreateOrder() *prototype.UserTrxCreateOrder {
 	return msg.TrxCreateOrder
 }
 
-func (s *SoExtTrxWrap) MdTrxCreateOrder(p *prototype.UserTrxCreateOrder) bool {
+func (s *SoExtTrxWrap) mdFieldTrxCreateOrder(p *prototype.UserTrxCreateOrder, isCheck bool, isDel bool, isInsert bool,
+	so *SoExtTrx) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("TrxCreateOrder")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemExtTrxByTrxCreateOrder{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoExtTrx{}
-	sa.TrxId = s.mainKey
 
-	sa.TrxCreateOrder = ori.TrxCreateOrder
+	if isCheck {
+		res := s.checkTrxCreateOrderIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	if !s.delSortKeyTrxCreateOrder(sa) {
-		return false
+	if isDel {
+		res := s.delFieldTrxCreateOrder(so)
+		if !res {
+			return false
+		}
 	}
-	ori.TrxCreateOrder = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.TrxCreateOrder = p
 
-	if !s.insertSortKeyTrxCreateOrder(sa) {
+	if isInsert {
+		res := s.insertFieldTrxCreateOrder(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoExtTrxWrap) delFieldTrxCreateOrder(so *SoExtTrx) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if !s.delSortKeyTrxCreateOrder(so) {
 		return false
 	}
 
 	return true
 }
 
-func (s *SoExtTrxWrap) saveMemKeyTrxId(tInfo *SoExtTrx) error {
+func (s *SoExtTrxWrap) insertFieldTrxCreateOrder(so *SoExtTrx) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	if !s.insertSortKeyTrxCreateOrder(so) {
+		return false
 	}
-	val := SoMemExtTrxByTrxId{}
-	val.TrxId = tInfo.TrxId
-	key, err := s.encodeMemKey("TrxId")
-	if err != nil {
-		return err
+
+	return true
+}
+
+func (s *SoExtTrxWrap) checkTrxCreateOrderIsMetMdCondition(p *prototype.UserTrxCreateOrder) bool {
+	if s.dba == nil {
+		return false
 	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoExtTrxWrap) GetTrxId() *prototype.Sha256 {
 	res := true
-	msg := &SoMemExtTrxByTrxId{}
+	msg := &SoExtTrx{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("TrxId")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -977,34 +870,13 @@ func (s *SoExtTrxWrap) GetTrxId() *prototype.Sha256 {
 	return msg.TrxId
 }
 
-func (s *SoExtTrxWrap) saveMemKeyTrxWrap(tInfo *SoExtTrx) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemExtTrxByTrxWrap{}
-	val.TrxWrap = tInfo.TrxWrap
-	key, err := s.encodeMemKey("TrxWrap")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
-
 func (s *SoExtTrxWrap) GetTrxWrap() *prototype.TransactionWrapper {
 	res := true
-	msg := &SoMemExtTrxByTrxWrap{}
+	msg := &SoExtTrx{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("TrxWrap")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -1027,35 +899,55 @@ func (s *SoExtTrxWrap) GetTrxWrap() *prototype.TransactionWrapper {
 	return msg.TrxWrap
 }
 
-func (s *SoExtTrxWrap) MdTrxWrap(p *prototype.TransactionWrapper) bool {
+func (s *SoExtTrxWrap) mdFieldTrxWrap(p *prototype.TransactionWrapper, isCheck bool, isDel bool, isInsert bool,
+	so *SoExtTrx) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("TrxWrap")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemExtTrxByTrxWrap{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoExtTrx{}
-	sa.TrxId = s.mainKey
 
-	sa.TrxWrap = ori.TrxWrap
+	if isCheck {
+		res := s.checkTrxWrapIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.TrxWrap = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldTrxWrap(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldTrxWrap(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoExtTrxWrap) delFieldTrxWrap(so *SoExtTrx) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
+
+	return true
+}
+
+func (s *SoExtTrxWrap) insertFieldTrxWrap(so *SoExtTrx) bool {
+	if s.dba == nil {
 		return false
 	}
-	sa.TrxWrap = p
+
+	return true
+}
+
+func (s *SoExtTrxWrap) checkTrxWrapIsMetMdCondition(p *prototype.TransactionWrapper) bool {
+	if s.dba == nil {
+		return false
+	}
 
 	return true
 }
@@ -1642,11 +1534,38 @@ func (s *SoExtTrxWrap) getExtTrx() *SoExtTrx {
 	return res
 }
 
+func (s *SoExtTrxWrap) updateExtTrx(so *SoExtTrx) error {
+	if s.dba == nil {
+		return errors.New("update fail:the db is nil")
+	}
+
+	if so == nil {
+		return errors.New("update fail: the SoExtTrx is nil")
+	}
+
+	key, err := s.encodeMainKey()
+	if err != nil {
+		return nil
+	}
+
+	buf, err := proto.Marshal(so)
+	if err != nil {
+		return err
+	}
+
+	err = s.dba.Put(key, buf)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *SoExtTrxWrap) encodeMainKey() ([]byte, error) {
 	if s.mKeyBuf != nil {
 		return s.mKeyBuf, nil
 	}
-	pre := s.getMemKeyPrefix("TrxId")
+	pre := ExtTrxTrxIdRow
 	sub := s.mainKey
 	if sub == nil {
 		return nil, errors.New("the mainKey is nil")
@@ -1729,20 +1648,7 @@ func (s *SoExtTrxWrap) delUniKeyTrxId(sa *SoExtTrx) bool {
 		sub := sa.TrxId
 		kList = append(kList, sub)
 	} else {
-		key, err := s.encodeMemKey("TrxId")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemExtTrxByTrxId{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		sub := ori.TrxId
+		sub := s.GetTrxId()
 		kList = append(kList, sub)
 
 	}
@@ -1812,4 +1718,26 @@ func (s *UniExtTrxTrxIdWrap) UniQueryTrxId(start *prototype.Sha256) *SoExtTrxWra
 		}
 	}
 	return nil
+}
+
+func (s *SoExtTrxWrap) getMdFuncMap() map[string]interface{} {
+	if s.mdFuncMap != nil && len(s.mdFuncMap) > 0 {
+		return s.mdFuncMap
+	}
+	m := map[string]interface{}{}
+
+	m["BlockHeight"] = s.mdFieldBlockHeight
+
+	m["BlockId"] = s.mdFieldBlockId
+
+	m["BlockTime"] = s.mdFieldBlockTime
+
+	m["TrxCreateOrder"] = s.mdFieldTrxCreateOrder
+
+	m["TrxWrap"] = s.mdFieldTrxWrap
+
+	if len(m) > 0 {
+		s.mdFuncMap = m
+	}
+	return m
 }

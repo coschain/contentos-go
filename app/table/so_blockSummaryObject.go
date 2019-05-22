@@ -1,10 +1,10 @@
 package table
 
 import (
+	"encoding/json"
 	"errors"
 	fmt "fmt"
 	"reflect"
-	"strings"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -14,25 +14,26 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	BlockSummaryObjectIdUniTable  uint32 = 1471985338
-	BlockSummaryObjectBlockIdCell uint32 = 2342746998
-	BlockSummaryObjectIdCell      uint32 = 2690819292
+	BlockSummaryObjectIdUniTable uint32 = 1471985338
+
+	BlockSummaryObjectIdRow uint32 = 172113035
 )
 
 ////////////// SECTION Wrap Define ///////////////
 type SoBlockSummaryObjectWrap struct {
-	dba      iservices.IDatabaseRW
-	mainKey  *uint32
-	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf  []byte //the buffer after the main key is encoded with prefix
-	mBuf     []byte //the value after the main key is encoded
+	dba       iservices.IDatabaseRW
+	mainKey   *uint32
+	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
+	mBuf      []byte //the value after the main key is encoded
+	mdFuncMap map[string]interface{}
 }
 
 func NewSoBlockSummaryObjectWrap(dba iservices.IDatabaseRW, key *uint32) *SoBlockSummaryObjectWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoBlockSummaryObjectWrap{dba, key, -1, nil, nil}
+	result := &SoBlockSummaryObjectWrap{dba, key, -1, nil, nil, nil}
 	return result
 }
 
@@ -81,9 +82,13 @@ func (s *SoBlockSummaryObjectWrap) Create(f func(tInfo *SoBlockSummaryObject)) e
 		return err
 
 	}
-	err = s.saveAllMemKeys(val, true)
+
+	buf, err := proto.Marshal(val)
 	if err != nil {
-		s.delAllMemKeys(false, val)
+		return err
+	}
+	err = s.dba.Put(keyBuf, buf)
+	if err != nil {
 		return err
 	}
 
@@ -91,7 +96,6 @@ func (s *SoBlockSummaryObjectWrap) Create(f func(tInfo *SoBlockSummaryObject)) e
 	if err = s.insertAllSortKeys(val); err != nil {
 		s.delAllSortKeys(false, val)
 		s.dba.Delete(keyBuf)
-		s.delAllMemKeys(false, val)
 		return err
 	}
 
@@ -100,7 +104,6 @@ func (s *SoBlockSummaryObjectWrap) Create(f func(tInfo *SoBlockSummaryObject)) e
 		s.delAllSortKeys(false, val)
 		s.delUniKeysWithNames(sucNames, val)
 		s.dba.Delete(keyBuf)
-		s.delAllMemKeys(false, val)
 		return err
 	}
 
@@ -119,6 +122,113 @@ func (s *SoBlockSummaryObjectWrap) getMainKeyBuf() ([]byte, error) {
 		}
 	}
 	return s.mBuf, nil
+}
+
+func (s *SoBlockSummaryObjectWrap) Md(f func(tInfo *SoBlockSummaryObject)) error {
+	t := &SoBlockSummaryObject{}
+	f(t)
+	js, err := json.Marshal(t)
+	if err != nil {
+		return err
+	}
+	fMap := make(map[string]interface{})
+	err = json.Unmarshal(js, &fMap)
+	if err != nil {
+		return err
+	}
+
+	mKeyName := "Id"
+	mKeyField := ""
+	for name, _ := range fMap {
+		if ConvTableFieldToPbFormat(name) == mKeyName {
+			mKeyField = name
+			break
+		}
+	}
+	if len(mKeyField) > 0 {
+		delete(fMap, mKeyField)
+	}
+
+	if len(fMap) < 1 {
+		return errors.New("can't' modify empty struct")
+	}
+
+	sa := s.getBlockSummaryObject()
+	if sa == nil {
+		return errors.New("fail to get table SoBlockSummaryObject")
+	}
+
+	refVal := reflect.ValueOf(*t)
+	el := reflect.ValueOf(sa).Elem()
+
+	//check unique
+	err = s.handleFieldMd(FieldMdHandleTypeCheck, t, fMap)
+	if err != nil {
+		return err
+	}
+
+	//delete sort and unique key
+	err = s.handleFieldMd(FieldMdHandleTypeDel, sa, fMap)
+	if err != nil {
+		return err
+	}
+
+	//update table
+	for f, _ := range fMap {
+		fName := ConvTableFieldToPbFormat(f)
+		val := refVal.FieldByName(fName)
+		if _, ok := s.mdFuncMap[fName]; ok {
+			el.FieldByName(fName).Set(val)
+		}
+	}
+	err = s.updateBlockSummaryObject(sa)
+	if err != nil {
+		return err
+	}
+
+	//insert sort and unique key
+	err = s.handleFieldMd(FieldMdHandleTypeInsert, sa, fMap)
+	if err != nil {
+		return err
+	}
+
+	return err
+
+}
+
+func (s *SoBlockSummaryObjectWrap) handleFieldMd(t FieldMdHandleType, so *SoBlockSummaryObject, fMap map[string]interface{}) error {
+	if so == nil || fMap == nil {
+		return errors.New("fail to modify empty table")
+	}
+
+	mdFuncMap := s.getMdFuncMap()
+	if len(mdFuncMap) < 1 {
+		return errors.New("there is not exsit md function to md field")
+	}
+	errStr := ""
+	refVal := reflect.ValueOf(*so)
+	for f, _ := range fMap {
+		fName := ConvTableFieldToPbFormat(f)
+		val := refVal.FieldByName(fName)
+		if _, ok := mdFuncMap[fName]; ok {
+			f := reflect.ValueOf(s.mdFuncMap[fName])
+			p := []reflect.Value{val, reflect.ValueOf(true), reflect.ValueOf(false), reflect.ValueOf(false), reflect.ValueOf(so)}
+			errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			if t == FieldMdHandleTypeDel {
+				p = []reflect.Value{val, reflect.ValueOf(false), reflect.ValueOf(true), reflect.ValueOf(false), reflect.ValueOf(so)}
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				p = []reflect.Value{val, reflect.ValueOf(false), reflect.ValueOf(false), reflect.ValueOf(true), reflect.ValueOf(so)}
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			res := f.Call(p)
+			if !(res[0].Bool()) {
+				return errors.New(errStr)
+			}
+		}
+	}
+
+	return nil
 }
 
 ////////////// SECTION LKeys delete/insert ///////////////
@@ -149,7 +259,6 @@ func (s *SoBlockSummaryObjectWrap) RemoveBlockSummaryObject() bool {
 	if s.dba == nil {
 		return false
 	}
-	val := &SoBlockSummaryObject{}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
 		return false
@@ -160,7 +269,12 @@ func (s *SoBlockSummaryObjectWrap) RemoveBlockSummaryObject() bool {
 		return false
 	}
 
-	err := s.delAllMemKeys(true, val)
+	//delete table
+	key, err := s.encodeMainKey()
+	if err != nil {
+		return false
+	}
+	err = s.dba.Delete(key)
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
@@ -171,134 +285,14 @@ func (s *SoBlockSummaryObjectWrap) RemoveBlockSummaryObject() bool {
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
-func (s *SoBlockSummaryObjectWrap) getMemKeyPrefix(fName string) uint32 {
-	if fName == "BlockId" {
-		return BlockSummaryObjectBlockIdCell
-	}
-	if fName == "Id" {
-		return BlockSummaryObjectIdCell
-	}
-
-	return 0
-}
-
-func (s *SoBlockSummaryObjectWrap) encodeMemKey(fName string) ([]byte, error) {
-	if len(fName) < 1 || s.mainKey == nil {
-		return nil, errors.New("field name or main key is empty")
-	}
-	pre := s.getMemKeyPrefix(fName)
-	preBuf, err := kope.Encode(pre)
-	if err != nil {
-		return nil, err
-	}
-	mBuf, err := s.getMainKeyBuf()
-	if err != nil {
-		return nil, err
-	}
-	list := make([][]byte, 2)
-	list[0] = preBuf
-	list[1] = mBuf
-	return kope.PackList(list), nil
-}
-
-func (s *SoBlockSummaryObjectWrap) saveAllMemKeys(tInfo *SoBlockSummaryObject, br bool) error {
-	if s.dba == nil {
-		return errors.New("save member Field fail , the db is nil")
-	}
-
-	if tInfo == nil {
-		return errors.New("save member Field fail , the data is nil ")
-	}
-	var err error = nil
-	errDes := ""
-	if err = s.saveMemKeyBlockId(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "BlockId", err)
-		}
-	}
-	if err = s.saveMemKeyId(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Id", err)
-		}
-	}
-
-	if len(errDes) > 0 {
-		return errors.New(errDes)
-	}
-	return err
-}
-
-func (s *SoBlockSummaryObjectWrap) delAllMemKeys(br bool, tInfo *SoBlockSummaryObject) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	t := reflect.TypeOf(*tInfo)
-	errDesc := ""
-	for k := 0; k < t.NumField(); k++ {
-		name := t.Field(k).Name
-		if len(name) > 0 && !strings.HasPrefix(name, "XXX_") {
-			err := s.delMemKey(name)
-			if err != nil {
-				if br {
-					return err
-				}
-				errDesc += fmt.Sprintf("delete the Field %s fail,error is %s;\n", name, err)
-			}
-		}
-	}
-	if len(errDesc) > 0 {
-		return errors.New(errDesc)
-	}
-	return nil
-}
-
-func (s *SoBlockSummaryObjectWrap) delMemKey(fName string) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if len(fName) <= 0 {
-		return errors.New("the field name is empty ")
-	}
-	key, err := s.encodeMemKey(fName)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Delete(key)
-	return err
-}
-
-func (s *SoBlockSummaryObjectWrap) saveMemKeyBlockId(tInfo *SoBlockSummaryObject) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemBlockSummaryObjectByBlockId{}
-	val.BlockId = tInfo.BlockId
-	key, err := s.encodeMemKey("BlockId")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
 
 func (s *SoBlockSummaryObjectWrap) GetBlockId() *prototype.Sha256 {
 	res := true
-	msg := &SoMemBlockSummaryObjectByBlockId{}
+	msg := &SoBlockSummaryObject{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("BlockId")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -321,66 +315,66 @@ func (s *SoBlockSummaryObjectWrap) GetBlockId() *prototype.Sha256 {
 	return msg.BlockId
 }
 
-func (s *SoBlockSummaryObjectWrap) MdBlockId(p *prototype.Sha256) bool {
+func (s *SoBlockSummaryObjectWrap) mdFieldBlockId(p *prototype.Sha256, isCheck bool, isDel bool, isInsert bool,
+	so *SoBlockSummaryObject) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("BlockId")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemBlockSummaryObjectByBlockId{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoBlockSummaryObject{}
-	sa.Id = *s.mainKey
-	sa.BlockId = ori.BlockId
 
-	ori.BlockId = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isCheck {
+		res := s.checkBlockIdIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
+
+	if isDel {
+		res := s.delFieldBlockId(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldBlockId(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoBlockSummaryObjectWrap) delFieldBlockId(so *SoBlockSummaryObject) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.BlockId = p
 
 	return true
 }
 
-func (s *SoBlockSummaryObjectWrap) saveMemKeyId(tInfo *SoBlockSummaryObject) error {
+func (s *SoBlockSummaryObjectWrap) insertFieldBlockId(so *SoBlockSummaryObject) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoBlockSummaryObjectWrap) checkBlockIdIsMetMdCondition(p *prototype.Sha256) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemBlockSummaryObjectById{}
-	val.Id = tInfo.Id
-	key, err := s.encodeMemKey("Id")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoBlockSummaryObjectWrap) GetId() uint32 {
 	res := true
-	msg := &SoMemBlockSummaryObjectById{}
+	msg := &SoBlockSummaryObject{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Id")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -443,11 +437,38 @@ func (s *SoBlockSummaryObjectWrap) getBlockSummaryObject() *SoBlockSummaryObject
 	return res
 }
 
+func (s *SoBlockSummaryObjectWrap) updateBlockSummaryObject(so *SoBlockSummaryObject) error {
+	if s.dba == nil {
+		return errors.New("update fail:the db is nil")
+	}
+
+	if so == nil {
+		return errors.New("update fail: the SoBlockSummaryObject is nil")
+	}
+
+	key, err := s.encodeMainKey()
+	if err != nil {
+		return nil
+	}
+
+	buf, err := proto.Marshal(so)
+	if err != nil {
+		return err
+	}
+
+	err = s.dba.Put(key, buf)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *SoBlockSummaryObjectWrap) encodeMainKey() ([]byte, error) {
 	if s.mKeyBuf != nil {
 		return s.mKeyBuf, nil
 	}
-	pre := s.getMemKeyPrefix("Id")
+	pre := BlockSummaryObjectIdRow
 	sub := s.mainKey
 	if sub == nil {
 		return nil, errors.New("the mainKey is nil")
@@ -526,20 +547,7 @@ func (s *SoBlockSummaryObjectWrap) delUniKeyId(sa *SoBlockSummaryObject) bool {
 		sub := sa.Id
 		kList = append(kList, sub)
 	} else {
-		key, err := s.encodeMemKey("Id")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemBlockSummaryObjectById{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		sub := ori.Id
+		sub := s.GetId()
 		kList = append(kList, sub)
 
 	}
@@ -608,4 +616,18 @@ func (s *UniBlockSummaryObjectIdWrap) UniQueryId(start *uint32) *SoBlockSummaryO
 		}
 	}
 	return nil
+}
+
+func (s *SoBlockSummaryObjectWrap) getMdFuncMap() map[string]interface{} {
+	if s.mdFuncMap != nil && len(s.mdFuncMap) > 0 {
+		return s.mdFuncMap
+	}
+	m := map[string]interface{}{}
+
+	m["BlockId"] = s.mdFieldBlockId
+
+	if len(m) > 0 {
+		s.mdFuncMap = m
+	}
+	return m
 }

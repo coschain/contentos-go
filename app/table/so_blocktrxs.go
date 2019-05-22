@@ -1,10 +1,10 @@
 package table
 
 import (
+	"encoding/json"
 	"errors"
 	fmt "fmt"
 	"reflect"
-	"strings"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -14,24 +14,25 @@ import (
 ////////////// SECTION Prefix Mark ///////////////
 var (
 	BlocktrxsBlockUniTable uint32 = 3461050414
-	BlocktrxsBlockCell     uint32 = 2415577191
-	BlocktrxsTrxsCell      uint32 = 3955135682
+
+	BlocktrxsBlockRow uint32 = 4250009783
 )
 
 ////////////// SECTION Wrap Define ///////////////
 type SoBlocktrxsWrap struct {
-	dba      iservices.IDatabaseRW
-	mainKey  *uint64
-	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf  []byte //the buffer after the main key is encoded with prefix
-	mBuf     []byte //the value after the main key is encoded
+	dba       iservices.IDatabaseRW
+	mainKey   *uint64
+	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
+	mBuf      []byte //the value after the main key is encoded
+	mdFuncMap map[string]interface{}
 }
 
 func NewSoBlocktrxsWrap(dba iservices.IDatabaseRW, key *uint64) *SoBlocktrxsWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoBlocktrxsWrap{dba, key, -1, nil, nil}
+	result := &SoBlocktrxsWrap{dba, key, -1, nil, nil, nil}
 	return result
 }
 
@@ -80,9 +81,13 @@ func (s *SoBlocktrxsWrap) Create(f func(tInfo *SoBlocktrxs)) error {
 		return err
 
 	}
-	err = s.saveAllMemKeys(val, true)
+
+	buf, err := proto.Marshal(val)
 	if err != nil {
-		s.delAllMemKeys(false, val)
+		return err
+	}
+	err = s.dba.Put(keyBuf, buf)
+	if err != nil {
 		return err
 	}
 
@@ -90,7 +95,6 @@ func (s *SoBlocktrxsWrap) Create(f func(tInfo *SoBlocktrxs)) error {
 	if err = s.insertAllSortKeys(val); err != nil {
 		s.delAllSortKeys(false, val)
 		s.dba.Delete(keyBuf)
-		s.delAllMemKeys(false, val)
 		return err
 	}
 
@@ -99,7 +103,6 @@ func (s *SoBlocktrxsWrap) Create(f func(tInfo *SoBlocktrxs)) error {
 		s.delAllSortKeys(false, val)
 		s.delUniKeysWithNames(sucNames, val)
 		s.dba.Delete(keyBuf)
-		s.delAllMemKeys(false, val)
 		return err
 	}
 
@@ -118,6 +121,113 @@ func (s *SoBlocktrxsWrap) getMainKeyBuf() ([]byte, error) {
 		}
 	}
 	return s.mBuf, nil
+}
+
+func (s *SoBlocktrxsWrap) Md(f func(tInfo *SoBlocktrxs)) error {
+	t := &SoBlocktrxs{}
+	f(t)
+	js, err := json.Marshal(t)
+	if err != nil {
+		return err
+	}
+	fMap := make(map[string]interface{})
+	err = json.Unmarshal(js, &fMap)
+	if err != nil {
+		return err
+	}
+
+	mKeyName := "Block"
+	mKeyField := ""
+	for name, _ := range fMap {
+		if ConvTableFieldToPbFormat(name) == mKeyName {
+			mKeyField = name
+			break
+		}
+	}
+	if len(mKeyField) > 0 {
+		delete(fMap, mKeyField)
+	}
+
+	if len(fMap) < 1 {
+		return errors.New("can't' modify empty struct")
+	}
+
+	sa := s.getBlocktrxs()
+	if sa == nil {
+		return errors.New("fail to get table SoBlocktrxs")
+	}
+
+	refVal := reflect.ValueOf(*t)
+	el := reflect.ValueOf(sa).Elem()
+
+	//check unique
+	err = s.handleFieldMd(FieldMdHandleTypeCheck, t, fMap)
+	if err != nil {
+		return err
+	}
+
+	//delete sort and unique key
+	err = s.handleFieldMd(FieldMdHandleTypeDel, sa, fMap)
+	if err != nil {
+		return err
+	}
+
+	//update table
+	for f, _ := range fMap {
+		fName := ConvTableFieldToPbFormat(f)
+		val := refVal.FieldByName(fName)
+		if _, ok := s.mdFuncMap[fName]; ok {
+			el.FieldByName(fName).Set(val)
+		}
+	}
+	err = s.updateBlocktrxs(sa)
+	if err != nil {
+		return err
+	}
+
+	//insert sort and unique key
+	err = s.handleFieldMd(FieldMdHandleTypeInsert, sa, fMap)
+	if err != nil {
+		return err
+	}
+
+	return err
+
+}
+
+func (s *SoBlocktrxsWrap) handleFieldMd(t FieldMdHandleType, so *SoBlocktrxs, fMap map[string]interface{}) error {
+	if so == nil || fMap == nil {
+		return errors.New("fail to modify empty table")
+	}
+
+	mdFuncMap := s.getMdFuncMap()
+	if len(mdFuncMap) < 1 {
+		return errors.New("there is not exsit md function to md field")
+	}
+	errStr := ""
+	refVal := reflect.ValueOf(*so)
+	for f, _ := range fMap {
+		fName := ConvTableFieldToPbFormat(f)
+		val := refVal.FieldByName(fName)
+		if _, ok := mdFuncMap[fName]; ok {
+			f := reflect.ValueOf(s.mdFuncMap[fName])
+			p := []reflect.Value{val, reflect.ValueOf(true), reflect.ValueOf(false), reflect.ValueOf(false), reflect.ValueOf(so)}
+			errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			if t == FieldMdHandleTypeDel {
+				p = []reflect.Value{val, reflect.ValueOf(false), reflect.ValueOf(true), reflect.ValueOf(false), reflect.ValueOf(so)}
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				p = []reflect.Value{val, reflect.ValueOf(false), reflect.ValueOf(false), reflect.ValueOf(true), reflect.ValueOf(so)}
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			res := f.Call(p)
+			if !(res[0].Bool()) {
+				return errors.New(errStr)
+			}
+		}
+	}
+
+	return nil
 }
 
 ////////////// SECTION LKeys delete/insert ///////////////
@@ -148,7 +258,6 @@ func (s *SoBlocktrxsWrap) RemoveBlocktrxs() bool {
 	if s.dba == nil {
 		return false
 	}
-	val := &SoBlocktrxs{}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
 		return false
@@ -159,7 +268,12 @@ func (s *SoBlocktrxsWrap) RemoveBlocktrxs() bool {
 		return false
 	}
 
-	err := s.delAllMemKeys(true, val)
+	//delete table
+	key, err := s.encodeMainKey()
+	if err != nil {
+		return false
+	}
+	err = s.dba.Delete(key)
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
@@ -170,134 +284,14 @@ func (s *SoBlocktrxsWrap) RemoveBlocktrxs() bool {
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
-func (s *SoBlocktrxsWrap) getMemKeyPrefix(fName string) uint32 {
-	if fName == "Block" {
-		return BlocktrxsBlockCell
-	}
-	if fName == "Trxs" {
-		return BlocktrxsTrxsCell
-	}
-
-	return 0
-}
-
-func (s *SoBlocktrxsWrap) encodeMemKey(fName string) ([]byte, error) {
-	if len(fName) < 1 || s.mainKey == nil {
-		return nil, errors.New("field name or main key is empty")
-	}
-	pre := s.getMemKeyPrefix(fName)
-	preBuf, err := kope.Encode(pre)
-	if err != nil {
-		return nil, err
-	}
-	mBuf, err := s.getMainKeyBuf()
-	if err != nil {
-		return nil, err
-	}
-	list := make([][]byte, 2)
-	list[0] = preBuf
-	list[1] = mBuf
-	return kope.PackList(list), nil
-}
-
-func (s *SoBlocktrxsWrap) saveAllMemKeys(tInfo *SoBlocktrxs, br bool) error {
-	if s.dba == nil {
-		return errors.New("save member Field fail , the db is nil")
-	}
-
-	if tInfo == nil {
-		return errors.New("save member Field fail , the data is nil ")
-	}
-	var err error = nil
-	errDes := ""
-	if err = s.saveMemKeyBlock(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Block", err)
-		}
-	}
-	if err = s.saveMemKeyTrxs(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Trxs", err)
-		}
-	}
-
-	if len(errDes) > 0 {
-		return errors.New(errDes)
-	}
-	return err
-}
-
-func (s *SoBlocktrxsWrap) delAllMemKeys(br bool, tInfo *SoBlocktrxs) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	t := reflect.TypeOf(*tInfo)
-	errDesc := ""
-	for k := 0; k < t.NumField(); k++ {
-		name := t.Field(k).Name
-		if len(name) > 0 && !strings.HasPrefix(name, "XXX_") {
-			err := s.delMemKey(name)
-			if err != nil {
-				if br {
-					return err
-				}
-				errDesc += fmt.Sprintf("delete the Field %s fail,error is %s;\n", name, err)
-			}
-		}
-	}
-	if len(errDesc) > 0 {
-		return errors.New(errDesc)
-	}
-	return nil
-}
-
-func (s *SoBlocktrxsWrap) delMemKey(fName string) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if len(fName) <= 0 {
-		return errors.New("the field name is empty ")
-	}
-	key, err := s.encodeMemKey(fName)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Delete(key)
-	return err
-}
-
-func (s *SoBlocktrxsWrap) saveMemKeyBlock(tInfo *SoBlocktrxs) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemBlocktrxsByBlock{}
-	val.Block = tInfo.Block
-	key, err := s.encodeMemKey("Block")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
 
 func (s *SoBlocktrxsWrap) GetBlock() uint64 {
 	res := true
-	msg := &SoMemBlocktrxsByBlock{}
+	msg := &SoBlocktrxs{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Block")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -320,34 +314,13 @@ func (s *SoBlocktrxsWrap) GetBlock() uint64 {
 	return msg.Block
 }
 
-func (s *SoBlocktrxsWrap) saveMemKeyTrxs(tInfo *SoBlocktrxs) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemBlocktrxsByTrxs{}
-	val.Trxs = tInfo.Trxs
-	key, err := s.encodeMemKey("Trxs")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
-
 func (s *SoBlocktrxsWrap) GetTrxs() []byte {
 	res := true
-	msg := &SoMemBlocktrxsByTrxs{}
+	msg := &SoBlocktrxs{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Trxs")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -370,34 +343,55 @@ func (s *SoBlocktrxsWrap) GetTrxs() []byte {
 	return msg.Trxs
 }
 
-func (s *SoBlocktrxsWrap) MdTrxs(p []byte) bool {
+func (s *SoBlocktrxsWrap) mdFieldTrxs(p []byte, isCheck bool, isDel bool, isInsert bool,
+	so *SoBlocktrxs) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("Trxs")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemBlocktrxsByTrxs{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoBlocktrxs{}
-	sa.Block = *s.mainKey
-	sa.Trxs = ori.Trxs
 
-	ori.Trxs = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isCheck {
+		res := s.checkTrxsIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
+
+	if isDel {
+		res := s.delFieldTrxs(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldTrxs(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoBlocktrxsWrap) delFieldTrxs(so *SoBlocktrxs) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
+
+	return true
+}
+
+func (s *SoBlocktrxsWrap) insertFieldTrxs(so *SoBlocktrxs) bool {
+	if s.dba == nil {
 		return false
 	}
-	sa.Trxs = p
+
+	return true
+}
+
+func (s *SoBlocktrxsWrap) checkTrxsIsMetMdCondition(p []byte) bool {
+	if s.dba == nil {
+		return false
+	}
 
 	return true
 }
@@ -442,11 +436,38 @@ func (s *SoBlocktrxsWrap) getBlocktrxs() *SoBlocktrxs {
 	return res
 }
 
+func (s *SoBlocktrxsWrap) updateBlocktrxs(so *SoBlocktrxs) error {
+	if s.dba == nil {
+		return errors.New("update fail:the db is nil")
+	}
+
+	if so == nil {
+		return errors.New("update fail: the SoBlocktrxs is nil")
+	}
+
+	key, err := s.encodeMainKey()
+	if err != nil {
+		return nil
+	}
+
+	buf, err := proto.Marshal(so)
+	if err != nil {
+		return err
+	}
+
+	err = s.dba.Put(key, buf)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *SoBlocktrxsWrap) encodeMainKey() ([]byte, error) {
 	if s.mKeyBuf != nil {
 		return s.mKeyBuf, nil
 	}
-	pre := s.getMemKeyPrefix("Block")
+	pre := BlocktrxsBlockRow
 	sub := s.mainKey
 	if sub == nil {
 		return nil, errors.New("the mainKey is nil")
@@ -525,20 +546,7 @@ func (s *SoBlocktrxsWrap) delUniKeyBlock(sa *SoBlocktrxs) bool {
 		sub := sa.Block
 		kList = append(kList, sub)
 	} else {
-		key, err := s.encodeMemKey("Block")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemBlocktrxsByBlock{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		sub := ori.Block
+		sub := s.GetBlock()
 		kList = append(kList, sub)
 
 	}
@@ -607,4 +615,18 @@ func (s *UniBlocktrxsBlockWrap) UniQueryBlock(start *uint64) *SoBlocktrxsWrap {
 		}
 	}
 	return nil
+}
+
+func (s *SoBlocktrxsWrap) getMdFuncMap() map[string]interface{} {
+	if s.mdFuncMap != nil && len(s.mdFuncMap) > 0 {
+		return s.mdFuncMap
+	}
+	m := map[string]interface{}{}
+
+	m["Trxs"] = s.mdFieldTrxs
+
+	if len(m) > 0 {
+		s.mdFuncMap = m
+	}
+	return m
 }
