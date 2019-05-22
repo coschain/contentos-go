@@ -968,6 +968,17 @@ func (c *TrxPool) createBlockSummary(blk *prototype.SignedBlock) {
 	mustSuccess(blockSummaryWrap.MdBlockId(blockID), "update block summary object error")
 }
 
+func (c *TrxPool) GetSigningPubKey(witness string) *prototype.PublicKeyType {
+	ac := &prototype.AccountName{
+		Value: witness,
+	}
+	witnessWrap := table.NewSoWitnessWrap(c.db, ac)
+	if !witnessWrap.CheckExist() {
+		return nil
+	}
+	return witnessWrap.GetSigningKey()
+}
+
 func (c *TrxPool) GetWitnessTopN(n uint32) ([]string, []*prototype.PublicKeyType) {
 	var names            []string
 	var bpNames          []string

@@ -335,7 +335,11 @@ func (sabft *SABFT) restoreDynasty() {
 		}
 		sabft.popBlock(lcNum + 1)
 
-		prods, pubKeys := sabft.ctrl.GetWitnessTopN(constants.MaxWitnessCount)
+		prods := sabft.ctrl.GetShuffledWitness()
+		pubKeys := make([]*prototype.PublicKeyType, len(prods))
+		for idx := range prods {
+			pubKeys[idx] = sabft.ctrl.GetSigningPubKey(prods[idx])
+		}
 		dyn := sabft.makeDynasty(0, prods, pubKeys, sabft.localPrivKey)
 		sabft.addDynasty(dyn)
 		for i := range cache {
