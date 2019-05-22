@@ -154,7 +154,6 @@ func (c *TrxPool) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag)
 }
 
 func (c *TrxPool) pushBlockNoLock(blk *prototype.SignedBlock, skip prototype.SkipFlag) (err error) {
-	//var err error = nil
 	oldFlag := c.skip
 	c.skip = skip
 
@@ -163,10 +162,8 @@ func (c *TrxPool) pushBlockNoLock(blk *prototype.SignedBlock, skip prototype.Ski
 			switch x := r.(type) {
 			case error:
 				err = x
-				//c.log.Errorf("push block error : %v", x.Error())
 			case string:
 				err = errors.New(x)
-				//c.log.Errorf("push block error : %v ", x)
 			default:
 				err = errors.New("unknown panic type")
 			}
@@ -175,7 +172,6 @@ func (c *TrxPool) pushBlockNoLock(blk *prototype.SignedBlock, skip prototype.Ski
 			c.stateObserver.EndBlock("")
 			c.log.Debug("ICEBERG: EndBlock FALSE")
 			c.log.Errorf("push block fail,the error is %v,the block num is %v", r, blk.Id().BlockNum())
-			//fmt.Printf("push block fail,the error is %v,the block num is %v \n", r, blk.Id().BlockNum())
 		}
 		c.skip = oldFlag
 
@@ -277,19 +273,11 @@ func (c *TrxPool) generateBlockNoLock(witness string, pre *prototype.Sha256, tim
 			_ = c.iceberg.EndBlock(false)
 			c.stateObserver.EndBlock("")
 
-			//c.log.Errorf("GenerateBlock Error: %v", err)
-			//panic(err)
 			b, e = nil, fmt.Errorf("%v", err)
 		}
 	}()
 
 	c.skip = skip
-
-	/*
-		slotNum := c.GetIncrementSlotAtTime(&prototype.TimePointSec{UtcSeconds:timestamp})
-		mustSuccess(slotNum > 0,"slot num must > 0")
-		witnessName := c.GetScheduledWitness(slotNum)
-		mustSuccess(witnessName.Value == witness,"not this witness")*/
 
 	pubkey, err := priKey.PubKey()
 	mustNoError(err, "get public key error")
@@ -307,7 +295,6 @@ func (c *TrxPool) generateBlockNoLock(witness string, pre *prototype.Sha256, tim
 	signBlock := &prototype.SignedBlock{}
 	signBlock.SignedHeader = &prototype.SignedBlockHeader{}
 	signBlock.SignedHeader.Header = &prototype.BlockHeader{}
-	//c.currentTrxInBlock = 0
 
 	blkNum := c.headBlockNum() + 1
 	c.log.Debugf("ICEBERG: BeginBlock %d", blkNum)
@@ -445,7 +432,6 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabasePatch, entry *TrxEn
 
 	trxContext.CheckNet(trxDB, uint64(proto.Size(sigTrx)))
 
-	//trxContext := NewTrxContextWithSigningKey(result, db, entry.GetTrxSigningKey(), trxObserver)
 	for _, op := range sigTrx.Trx.Operations {
 		trxContext.StartNextOp()
 		c.applyOperation(trxContext, op)
@@ -460,15 +446,8 @@ func (c *TrxPool) PayGas(db iservices.IDatabaseRW, trxContext *TrxContext) {
 }
 
 func (c *TrxPool) applyOperation(trxCtx *TrxContext, op *prototype.Operation) {
-	// @ not use yet
-	//n := &prototype.OperationNotification{Op: op}
-	//c.notifyOpPreExecute(n)
-
 	eva := c.getEvaluator(trxCtx, op)
 	eva.Apply()
-
-	// @ not use yet
-	//c.notifyOpPostExecute(n)
 }
 
 func (c *TrxPool) getEvaluator(trxCtx *TrxContext, op *prototype.Operation) BaseEvaluator {
@@ -484,12 +463,9 @@ func (c *TrxPool) applyBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag
 
 	c.skip = skip
 	c.applyBlockInner(blk, skip)
-
-	// @ tps update
 }
 
 func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.SkipFlag) {
-	//nextBlockNum := blk.Id().BlockNum()
 
 	if skip & prototype.Skip_block_check == 0 {
 		merkleRoot := blk.CalculateMerkleRoot()
@@ -498,20 +474,12 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 		// validate_block_header
 		c.validateBlockHeader(blk)
 
-		//c.currentBlockNum = nextBlockNum
-		//c.currentTrxInBlock = 0
-
 		blockSize := proto.Size(blk)
 		mustSuccess(uint32(blockSize) <= c.GetProps().GetMaximumBlockSize(), "Block size is too big")
 
 		if uint32(blockSize) < constants.MinBlockSize {
-			// elog("Block size is too small")
 		}
 	}
-
-	// @ process extension
-
-	// @ hardfork_state
 
 	if skip&prototype.Skip_apply_transaction == 0 {
 		t0 := time.Now()
@@ -602,9 +570,6 @@ func (c *TrxPool) applyBlockInner(blk *prototype.SignedBlock, skip prototype.Ski
 
 	c.log.Debugf("AFTER_BLOCK %d: %v|%v|%v|%v|%v", blk.Id().BlockNum(),
 		t4.Sub(t0), t1.Sub(t0), t2.Sub(t1), t3.Sub(t2), t4.Sub(t3))
-
-	//lib, _ := c.iceberg.LastFinalizedBlock()
-	//c.noticer.Publish(constants.NoticeLIB, lib)
 }
 
 func (c *TrxPool) ValidateAddress(name string, pubKey *prototype.PublicKeyType) bool {
@@ -619,23 +584,6 @@ func (c *TrxPool) ValidateAddress(name string, pubKey *prototype.PublicKeyType) 
 	}
 
 	return pubKey.Equal(dbPubKey)
-
-	//authWrap := table.NewSoAccountAuthorityObjectWrap(c.db, account)
-	//auth := authWrap.GetOwner()
-	//if auth == nil {
-	//	panic("no owner auth")
-	//}
-	//for _, k := range auth.KeyAuths {
-	//	if pubKey.Equal(k.Key) {
-	//		return true
-	//	}
-	//}
-	//fmt.Println("ValidateAddress failed, ", name)
-	//for _, k := range auth.KeyAuths {
-	//	fmt.Println(k.Key.ToWIF())
-	//}
-	//fmt.Println("want ", pubKey.ToWIF())
-	//return false
 }
 
 func (c *TrxPool) initGenesis() {
@@ -667,15 +615,6 @@ func (c *TrxPool) initGenesis() {
 		tInfo.Owner = pubKey
 		tInfo.StakeVesting = prototype.NewVest(0)
 	}), "CreateAccount error")
-
-	// create account authority
-	//authorityWrap := table.NewSoAccountAuthorityObjectWrap(c.db, name)
-	//ownerAuth := prototype.NewAuthorityFromPubKey(pubKey)
-
-	//mustNoError(authorityWrap.Create(func(tInfo *table.SoAccountAuthorityObject) {
-	//	tInfo.Account = name
-	//	tInfo.Owner = ownerAuth
-	//}), "CreateAccountAuthorityObject error ")
 
 	// create witness_object
 	witnessWrap := table.NewSoWitnessWrap(c.db, name)
@@ -795,18 +734,6 @@ func (c *TrxPool) validateBlockHeader(blk *prototype.SignedBlock) {
 			panic("block apply hash not equal")
 		}
 	}
-
-	// witness schedule check
-	/*
-		nextSlot := c.GetIncrementSlotAtTime(blk.SignedHeader.Header.Timestamp)
-		if nextSlot == 0 {
-			panic("next slot should be greater than 0")
-		}*/
-
-	/*scheduledWitness := c.GetScheduledWitness(nextSlot)
-	if witnessWrap.GetOwner().Value != scheduledWitness.Value {
-		panic("Witness produced block at wrong time")
-	}*/
 }
 
 func (c *TrxPool) headBlockID() *prototype.Sha256 {
@@ -856,29 +783,6 @@ func (c *TrxPool) updateAvgTps(blk *prototype.SignedBlock) {
 }
 
 func (c *TrxPool) updateGlobalProperties(blk *prototype.SignedBlock) {
-	/*var missedBlock uint32 = 0
-
-	if false && c.headBlockTime().UtcSeconds != 0 {
-		missedBlock = c.GetIncrementSlotAtTime(blk.SignedHeader.Header.Timestamp)
-		mustSuccess(missedBlock != 0,"missedBlock error")
-		missedBlock--
-		for i:= uint32(0);i<missedBlock;i++{
-			witnessMissedName := c.GetScheduledWitness(i+1)
-			witnessWrap := table.NewSoWitnessWrap(c.db,witnessMissedName)
-			if witnessWrap.GetOwner().Value != blk.SignedHeader.Header.Witness.Value {
-				oldMissed := witnessWrap.GetTotalMissed()
-				oldMissed++
-				witnessWrap.MdTotalMissed(oldMissed)
-				if c.headBlockNum() - witnessWrap.GetLastConfirmedBlockNum() > constants.BlocksPerDay {
-					emptyKey := &prototype.PublicKeyType{Data:[]byte{0}}
-					witnessWrap.MdSigningKey(emptyKey)
-					// @ push push_virtual_operation shutdown_witness_operation
-				}
-			}
-		}*/
-
-	// @ calculate participation
-
 	id := blk.Id()
 	blockID := &prototype.Sha256{Hash: id.Data[:]}
 
@@ -902,8 +806,6 @@ func (c *TrxPool) updateGlobalProperties(blk *prototype.SignedBlock) {
 	})
 
 	c.noticer.Publish(constants.NoticeAddTrx, blk)
-	// this check is useful ?
-	//mustSuccess(dgpo.GetHeadBlockNumber()-dgpo.GetIrreversibleBlockNum() < constants.MaxUndoHistory, "The database does not have enough undo history to support a blockchain with so many missed blocks.")
 }
 
 func (c *TrxPool) createBlockSummary(blk *prototype.SignedBlock) {
