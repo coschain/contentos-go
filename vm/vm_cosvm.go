@@ -114,8 +114,10 @@ func (w *CosVM) runEntry(entryName string) (ret uint32, err error) {
 	vc := vmcache.GetVmCache()
 	vm := vc.Fetch(w.ctx.Owner.Value, w.ctx.Contract, w.ctx.CodeHash.Hash)
 	if vm != nil {
+		w.logger.Debugf("VMCACHE hit: %s.%s hash=%x", w.ctx.Owner.Value, w.ctx.Contract, w.ctx.CodeHash.Hash)
 		vm.Reset()
 	} else {
+		w.logger.Debugf("VMCACHE missed: %s.%s hash=%x", w.ctx.Owner.Value, w.ctx.Contract, w.ctx.CodeHash.Hash)
 		vmModule, errRead := w.readModule()
 		if errRead != nil {
 			ret = 1
