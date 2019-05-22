@@ -10,8 +10,6 @@ import (
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
-	"github.com/coschain/contentos-go/common/crypto"
-	"github.com/coschain/contentos-go/common/crypto/secp256k1"
 	"github.com/coschain/contentos-go/common/eventloop"
 	"github.com/coschain/contentos-go/utils"
 	"math"
@@ -826,46 +824,6 @@ func (c *TrxPool) headBlockNum() uint64 {
 	return c.GetProps().HeadBlockNumber
 }
 
-func (c *TrxPool) GetSlotTime(slot uint32) *prototype.TimePointSec {
-	if slot == 0 {
-		return &prototype.TimePointSec{UtcSeconds: 0}
-	}
-
-	if c.headBlockNum() == 0 {
-		genesisTime := c.headBlockTime()
-		genesisTime.UtcSeconds += slot * constants.BlockInterval
-		return genesisTime
-	}
-
-	headBlockAbsSlot := c.headBlockTime().UtcSeconds / constants.BlockInterval
-	slotTime := &prototype.TimePointSec{UtcSeconds: headBlockAbsSlot * constants.BlockInterval}
-
-	slotTime.UtcSeconds += slot * constants.BlockInterval
-	return slotTime
-}
-
-func (c *TrxPool) GetIncrementSlotAtTime(t *prototype.TimePointSec) uint32 {
-	/*nextBlockSlotTime := c.GetSlotTime(1)
-	if t.UtcSeconds < nextBlockSlotTime.UtcSeconds {
-		return 0
-	}
-	return (t.UtcSeconds-nextBlockSlotTime.UtcSeconds)/constants.BlockInterval + 1*/
-	return 0
-}
-
-func (c *TrxPool) GetScheduledWitness(slot uint32) *prototype.AccountName {
-	return nil
-	/*
-		currentSlot := c.dgpo.GetCurrentAslot()
-		currentSlot += slot
-
-		wsoWrap := table.NewSoWitnessScheduleObjectWrap(c.db, &SingleId)
-		witnesses := wsoWrap.GetCurrentShuffledWitness()
-		witnessNum := uint32(len(witnesses))
-		witnessName := witnesses[currentSlot%witnessNum]
-		return &prototype.AccountName{Value:witnessName}*/
-}
-
 func (c *TrxPool) updateGlobalDataToDB(dgpo *prototype.DynamicProperties) {
 	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
 	mustSuccess(dgpWrap.MdProps(dgpo), "")
@@ -946,15 +904,6 @@ func (c *TrxPool) updateGlobalProperties(blk *prototype.SignedBlock) {
 	c.noticer.Publish(constants.NoticeAddTrx, blk)
 	// this check is useful ?
 	//mustSuccess(dgpo.GetHeadBlockNumber()-dgpo.GetIrreversibleBlockNum() < constants.MaxUndoHistory, "The database does not have enough undo history to support a blockchain with so many missed blocks.")
-}
-
-func (c *TrxPool) updateSigningWitness(blk *prototype.SignedBlock) {
-	/*newAsLot := c.dgpo.GetCurrentAslot() + c.GetIncrementSlotAtTime(blk.SignedHeader.Header.Timestamp)
-
-	name := blk.SignedHeader.Header.Witness
-	witnessWrap := table.NewSoWitnessWrap(c.db, name)
-	witnessWrap.MdLastConfirmedBlockNum(uint32(blk.Id().BlockNum()))
-	witnessWrap.MdLastAslot(newAsLot)*/
 }
 
 func (c *TrxPool) createBlockSummary(blk *prototype.SignedBlock) {
@@ -1096,48 +1045,6 @@ func (c *TrxPool) Commit(num uint64) {
 	mustSuccess(err == nil, fmt.Sprintf("commit block: %d, error is %v", num, err))
 
 	c.tm.BlockCommitted(num)
-}
-
-func (c *TrxPool) VerifySig(name *prototype.AccountName, digest []byte, sig []byte) bool {
-	// public key from db
-	witnessWrap := table.NewSoWitnessWrap(c.db, name)
-	if !witnessWrap.CheckExist() {
-		return false
-	}
-	dbPubKey := witnessWrap.GetSigningKey()
-	if dbPubKey == nil {
-		return false
-	}
-
-	// public key from parameter
-	buffer, err := secp256k1.RecoverPubkey(digest, sig)
-
-	if err != nil {
-		return false
-	}
-
-	ecPubKey, err := crypto.UnmarshalPubkey(buffer)
-	if err != nil {
-		return false
-	}
-	keyBuffer := secp256k1.CompressPubkey(ecPubKey.X, ecPubKey.Y)
-	result := new(prototype.PublicKeyType)
-	result.Data = keyBuffer
-
-	// compare bytes
-	if bytes.Equal(dbPubKey.Data, result.Data) {
-		return true
-	}
-
-	return false
-}
-
-func (c *TrxPool) Sign(priv *prototype.PrivateKeyType, digest []byte) []byte {
-	res, err := secp256k1.Sign(digest[:], priv.Data)
-	if err != nil {
-		return nil
-	}
-	return res
 }
 
 func (c *TrxPool) GetLastPushedBlockNum() (uint64, error) {
