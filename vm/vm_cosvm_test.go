@@ -190,29 +190,6 @@ func TestCosVM_CosAssert(t *testing.T) {
 	myassert.Equal(ret, uint32(1))
 }
 
-func TestCosVM_RWStorage(t *testing.T) {
-	db, err := storage.NewDatabase(dbPath)
-	defer func() {
-		_ = db.Stop()
-		_ = os.RemoveAll(dbPath)
-	}()
-	if err != nil {
-		t.Error(err)
-	}
-	err = db.Start(nil)
-	if err != nil {
-		t.Error(err)
-	}
-	wasmFile := "./testdata/rwstorage.wasm"
-	myassert := assert.New(t)
-	data, _ := ioutil.ReadFile(wasmFile)
-	context := vmcontext.Context{Code: data, Gas: &prototype.Coin{Value: math.MaxUint64}, Injector: &FakeInjector{nil}}
-	vm := NewCosVM(&context, db, nil, logrus.New())
-	ret, err := vm.RunMain()
-	myassert.NoError(err)
-	myassert.Equal(ret, uint32(0))
-}
-
 func TestCosVM_Contract(t *testing.T) {
 	db, err := storage.NewDatabase(dbPath)
 	defer func() {
