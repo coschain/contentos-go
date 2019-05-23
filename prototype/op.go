@@ -15,11 +15,11 @@ type opRegistry struct {
 }
 
 const (
-	operationOpField = "operationOpField"
+	operationOpField = "Op"
 	operationGetterPattern = "GetOp\\d+"
 )
 var (
-	sBaseOperationType = reflect.TypeOf(BaseOperation(nil))
+	sBaseOperationType = reflect.TypeOf((*BaseOperation)(nil)).Elem()
 	sOperationPtrType = reflect.TypeOf((*Operation)(nil))
 	sOperationType = sOperationPtrType.Elem()
 	sOperationOpField, _ = sOperationType.FieldByName(operationOpField)
@@ -85,7 +85,7 @@ func toGenericOperation(opPtr interface{}) *Operation {
 }
 
 func fromGenericOperation(generic *Operation) interface{} {
-	opField := reflect.ValueOf(generic).Elem().Field(sOperationOpField.Index[0])
+	opField := reflect.ValueOf(generic).Elem().Field(sOperationOpField.Index[0]).Elem()
 	if entry, ok := sRegisteredOpsByWrapper[opField.Type()]; ok {
 		return opField.Elem().Field(entry.WrapperField).Interface()
 	}
