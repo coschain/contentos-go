@@ -16,26 +16,6 @@ message so_reportList {
 }
 
 
-message so_mem_reportList_by_uuid {
-	uint64                   	uuid             = 1;
-}
-
-
-message so_mem_reportList_by_reported_times {
-	uint32                   	reported_times   = 1;
-}
-
-
-message so_mem_reportList_by_tags {
-	repeated  	int32                  	tags             = 1;
-}
-
-
-message so_mem_reportList_by_is_arbitrated {
-	bool                     	is_arbitrated    = 1;
-}
-
-
 message so_list_reportList_by_reported_times {
 	uint32                   	reported_times   = 1;
 	uint64                   	uuid             = 2;

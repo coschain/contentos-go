@@ -1,7 +1,6 @@
 package table
 
 import (
-	"encoding/json"
 	"errors"
 	fmt "fmt"
 	"reflect"
@@ -114,6 +113,7 @@ func (s *SoExtTrxWrap) Create(f func(tInfo *SoExtTrx)) error {
 		return err
 	}
 
+	s.mKeyFlag = 1
 	return nil
 }
 
@@ -132,69 +132,50 @@ func (s *SoExtTrxWrap) getMainKeyBuf() ([]byte, error) {
 }
 
 func (s *SoExtTrxWrap) Md(f func(tInfo *SoExtTrx)) error {
-	t := &SoExtTrx{}
-	f(t)
-	js, err := json.Marshal(t)
+	if !s.CheckExist() {
+		return errors.New("the SoExtTrx table does not exist. Please create a table first")
+	}
+	oriTable := s.getExtTrx()
+	if oriTable == nil {
+		return errors.New("fail to get origin table SoExtTrx")
+	}
+	curTable := *oriTable
+	f(&curTable)
+
+	//the main key is not support modify
+	if !reflect.DeepEqual(curTable.TrxId, oriTable.TrxId) {
+		curTable.TrxId = oriTable.TrxId
+	}
+
+	fieldSli, err := s.getModifiedFields(oriTable, &curTable)
 	if err != nil {
 		return err
 	}
-	fMap := make(map[string]interface{})
-	err = json.Unmarshal(js, &fMap)
-	if err != nil {
-		return err
-	}
 
-	mKeyName := "TrxId"
-	mKeyField := ""
-	for name, _ := range fMap {
-		if ConvTableFieldToPbFormat(name) == mKeyName {
-			mKeyField = name
-			break
-		}
+	if fieldSli == nil || len(fieldSli) < 1 {
+		return nil
 	}
-	if len(mKeyField) > 0 {
-		delete(fMap, mKeyField)
-	}
-
-	if len(fMap) < 1 {
-		return errors.New("can't' modify empty struct")
-	}
-
-	sa := s.getExtTrx()
-	if sa == nil {
-		return errors.New("fail to get table SoExtTrx")
-	}
-
-	refVal := reflect.ValueOf(*t)
-	el := reflect.ValueOf(sa).Elem()
 
 	//check unique
-	err = s.handleFieldMd(FieldMdHandleTypeCheck, t, fMap)
+	err = s.handleFieldMd(FieldMdHandleTypeCheck, &curTable, fieldSli)
 	if err != nil {
 		return err
 	}
 
 	//delete sort and unique key
-	err = s.handleFieldMd(FieldMdHandleTypeDel, sa, fMap)
+	err = s.handleFieldMd(FieldMdHandleTypeDel, oriTable, fieldSli)
 	if err != nil {
 		return err
 	}
 
 	//update table
-	for f, _ := range fMap {
-		fName := ConvTableFieldToPbFormat(f)
-		val := refVal.FieldByName(fName)
-		if _, ok := s.mdFuncMap[fName]; ok {
-			el.FieldByName(fName).Set(val)
-		}
-	}
-	err = s.updateExtTrx(sa)
+	err = s.updateExtTrx(&curTable)
 	if err != nil {
 		return err
 	}
 
 	//insert sort and unique key
-	err = s.handleFieldMd(FieldMdHandleTypeInsert, sa, fMap)
+	err = s.handleFieldMd(FieldMdHandleTypeInsert, &curTable, fieldSli)
 	if err != nil {
 		return err
 	}
@@ -203,36 +184,134 @@ func (s *SoExtTrxWrap) Md(f func(tInfo *SoExtTrx)) error {
 
 }
 
-func (s *SoExtTrxWrap) handleFieldMd(t FieldMdHandleType, so *SoExtTrx, fMap map[string]interface{}) error {
-	if so == nil || fMap == nil {
+//Get all the modified fields in the table
+func (s *SoExtTrxWrap) getModifiedFields(oriTable *SoExtTrx, curTable *SoExtTrx) ([]string, error) {
+	if oriTable == nil {
+		return nil, errors.New("table info is nil, can't get modified fields")
+	}
+	var list []string
+
+	if !reflect.DeepEqual(oriTable.BlockHeight, curTable.BlockHeight) {
+		list = append(list, "BlockHeight")
+	}
+
+	if !reflect.DeepEqual(oriTable.BlockId, curTable.BlockId) {
+		list = append(list, "BlockId")
+	}
+
+	if !reflect.DeepEqual(oriTable.BlockTime, curTable.BlockTime) {
+		list = append(list, "BlockTime")
+	}
+
+	if !reflect.DeepEqual(oriTable.TrxCreateOrder, curTable.TrxCreateOrder) {
+		list = append(list, "TrxCreateOrder")
+	}
+
+	if !reflect.DeepEqual(oriTable.TrxWrap, curTable.TrxWrap) {
+		list = append(list, "TrxWrap")
+	}
+
+	return list, nil
+}
+
+func (s *SoExtTrxWrap) handleFieldMd(t FieldMdHandleType, so *SoExtTrx, fSli []string) error {
+	if so == nil {
 		return errors.New("fail to modify empty table")
 	}
 
-	mdFuncMap := s.getMdFuncMap()
-	if len(mdFuncMap) < 1 {
-		return errors.New("there is not exsit md function to md field")
+	//there is no field need to modify
+	if fSli == nil || len(fSli) < 1 {
+		return nil
 	}
+
 	errStr := ""
-	refVal := reflect.ValueOf(*so)
-	for f, _ := range fMap {
-		fName := ConvTableFieldToPbFormat(f)
-		val := refVal.FieldByName(fName)
-		if _, ok := mdFuncMap[fName]; ok {
-			f := reflect.ValueOf(s.mdFuncMap[fName])
-			p := []reflect.Value{val, reflect.ValueOf(true), reflect.ValueOf(false), reflect.ValueOf(false), reflect.ValueOf(so)}
-			errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			if t == FieldMdHandleTypeDel {
-				p = []reflect.Value{val, reflect.ValueOf(false), reflect.ValueOf(true), reflect.ValueOf(false), reflect.ValueOf(so)}
+	for _, fName := range fSli {
+
+		if fName == "BlockHeight" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldBlockHeight(so.BlockHeight, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldBlockHeight(so.BlockHeight, false, true, false, so)
 				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
 			} else if t == FieldMdHandleTypeInsert {
-				p = []reflect.Value{val, reflect.ValueOf(false), reflect.ValueOf(false), reflect.ValueOf(true), reflect.ValueOf(so)}
+				res = s.mdFieldBlockHeight(so.BlockHeight, false, false, true, so)
 				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
 			}
-			res := f.Call(p)
-			if !(res[0].Bool()) {
+			if !res {
 				return errors.New(errStr)
 			}
 		}
+
+		if fName == "BlockId" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldBlockId(so.BlockId, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldBlockId(so.BlockId, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldBlockId(so.BlockId, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "BlockTime" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldBlockTime(so.BlockTime, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldBlockTime(so.BlockTime, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldBlockTime(so.BlockTime, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "TrxCreateOrder" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldTrxCreateOrder(so.TrxCreateOrder, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldTrxCreateOrder(so.TrxCreateOrder, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldTrxCreateOrder(so.TrxCreateOrder, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "TrxWrap" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldTrxWrap(so.TrxWrap, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldTrxWrap(so.TrxWrap, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldTrxWrap(so.TrxWrap, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
 	}
 
 	return nil
@@ -250,7 +329,9 @@ func (s *SoExtTrxWrap) delSortKeyTrxId(sa *SoExtTrx) bool {
 	} else {
 		val.TrxId = sa.TrxId
 	}
-
+	if val.TrxId == nil {
+		return true
+	}
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -262,6 +343,9 @@ func (s *SoExtTrxWrap) delSortKeyTrxId(sa *SoExtTrx) bool {
 func (s *SoExtTrxWrap) insertSortKeyTrxId(sa *SoExtTrx) bool {
 	if s.dba == nil || sa == nil {
 		return false
+	}
+	if sa.TrxId == nil {
+		return true
 	}
 	val := SoListExtTrxByTrxId{}
 	val.TrxId = sa.TrxId
@@ -290,7 +374,6 @@ func (s *SoExtTrxWrap) delSortKeyBlockHeight(sa *SoExtTrx) bool {
 		val.BlockHeight = sa.BlockHeight
 		val.TrxId = sa.TrxId
 	}
-
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -331,7 +414,9 @@ func (s *SoExtTrxWrap) delSortKeyBlockTime(sa *SoExtTrx) bool {
 		val.BlockTime = sa.BlockTime
 		val.TrxId = sa.TrxId
 	}
-
+	if val.BlockTime == nil {
+		return true
+	}
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -343,6 +428,9 @@ func (s *SoExtTrxWrap) delSortKeyBlockTime(sa *SoExtTrx) bool {
 func (s *SoExtTrxWrap) insertSortKeyBlockTime(sa *SoExtTrx) bool {
 	if s.dba == nil || sa == nil {
 		return false
+	}
+	if sa.BlockTime == nil {
+		return true
 	}
 	val := SoListExtTrxByBlockTime{}
 	val.TrxId = sa.TrxId
@@ -372,7 +460,9 @@ func (s *SoExtTrxWrap) delSortKeyTrxCreateOrder(sa *SoExtTrx) bool {
 		val.TrxCreateOrder = sa.TrxCreateOrder
 		val.TrxId = sa.TrxId
 	}
-
+	if val.TrxCreateOrder == nil {
+		return true
+	}
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -384,6 +474,9 @@ func (s *SoExtTrxWrap) delSortKeyTrxCreateOrder(sa *SoExtTrx) bool {
 func (s *SoExtTrxWrap) insertSortKeyTrxCreateOrder(sa *SoExtTrx) bool {
 	if s.dba == nil || sa == nil {
 		return false
+	}
+	if sa.TrxCreateOrder == nil {
+		return true
 	}
 	val := SoListExtTrxByTrxCreateOrder{}
 	val.TrxId = sa.TrxId
@@ -1640,15 +1733,18 @@ func (s *SoExtTrxWrap) delUniKeyTrxId(sa *SoExtTrx) bool {
 	pre := ExtTrxTrxIdUniTable
 	kList := []interface{}{pre}
 	if sa != nil {
-
 		if sa.TrxId == nil {
-			return false
+			return true
 		}
 
 		sub := sa.TrxId
 		kList = append(kList, sub)
 	} else {
 		sub := s.GetTrxId()
+		if sub == nil {
+			return true
+		}
+
 		kList = append(kList, sub)
 
 	}
@@ -1662,6 +1758,9 @@ func (s *SoExtTrxWrap) delUniKeyTrxId(sa *SoExtTrx) bool {
 func (s *SoExtTrxWrap) insertUniKeyTrxId(sa *SoExtTrx) bool {
 	if s.dba == nil || sa == nil {
 		return false
+	}
+	if sa.TrxId == nil {
+		return true
 	}
 	pre := ExtTrxTrxIdUniTable
 	sub := sa.TrxId

@@ -176,6 +176,7 @@ func (s *So{{.ClsName}}Wrap) Create(f func(tInfo *So{{.ClsName}})) error {
         return err
     }
     {{end}}
+    s.mKeyFlag = 1
 	return nil
 }
 
@@ -194,69 +195,50 @@ func (s *So{{.ClsName}}Wrap) getMainKeyBuf() ([]byte, error) {
 }
 
 func (s *So{{.ClsName}}Wrap) Md(f func(tInfo *So{{.ClsName}})) error {
-    t := &So{{.ClsName}}{}
-    f(t)
-    js,err := json.Marshal(t)
-    if err != nil {
-       return err
-    } 
-    fMap := make(map[string]interface{})
-    err = json.Unmarshal(js, &fMap)
-    if err != nil {
-       return err
-    }
-
-    mKeyName := "{{$.MainKeyName}}"
-    mKeyField := ""
-	for name,_ := range fMap {
-		if ConvTableFieldToPbFormat(name) == mKeyName {
-			mKeyField = name
-			break
-		}
+    if !s.CheckExist() {
+		return errors.New("the So{{.ClsName}} table does not exist. Please create a table first")
 	}
-	if len(mKeyField) > 0 {
-		delete(fMap, mKeyField)
+    oriTable := s.get{{.ClsName}}()
+	if oriTable == nil {
+		return errors.New("fail to get origin table So{{.ClsName}}")
+	}
+	curTable := *oriTable
+	f(&curTable)
+
+    //the main key is not support modify
+    if !reflect.DeepEqual(curTable.{{$.MainKeyName}}, oriTable.{{$.MainKeyName}}) {
+       curTable.{{$.MainKeyName}} = oriTable.{{$.MainKeyName}}
+    }
+
+    fieldSli,err := s.getModifiedFields(oriTable, &curTable)
+    if err != nil {
+		return err
+	}
+ 
+    if fieldSli == nil || len(fieldSli) < 1 {
+		return nil
 	}
 
-    if len(fMap) < 1 {
-       return errors.New("can't' modify empty struct")
-    }
-
-    sa := s.get{{.ClsName}}()
-    if sa == nil {
-       return errors.New("fail to get table So{{.ClsName}}")
-    }
-
-    refVal := reflect.ValueOf(*t)
-	el := reflect.ValueOf(sa).Elem()
-    
     //check unique 
-    err = s.handleFieldMd(FieldMdHandleTypeCheck, t, fMap)
+    err = s.handleFieldMd(FieldMdHandleTypeCheck, &curTable, fieldSli)
     if err != nil {
        return err
     }
       
     //delete sort and unique key
-    err = s.handleFieldMd(FieldMdHandleTypeDel, sa, fMap)
+    err = s.handleFieldMd(FieldMdHandleTypeDel, oriTable, fieldSli)
     if err != nil {
        return err
     }
     
     //update table
-    for f,_ := range fMap {
-		fName := ConvTableFieldToPbFormat(f)
-        val :=  refVal.FieldByName(fName)
-        if _,ok := s.mdFuncMap[fName]; ok {
-           el.FieldByName(fName).Set(val)
-        }
-	}
-    err = s.update{{.ClsName}}(sa)
+    err = s.update{{.ClsName}}(&curTable)
     if err != nil {
        return err
     }
 
     //insert sort and unique key 
-    err = s.handleFieldMd(FieldMdHandleTypeInsert, sa, fMap)
+    err = s.handleFieldMd(FieldMdHandleTypeInsert, &curTable, fieldSli)
     if err != nil {
        return err
     }
@@ -266,37 +248,56 @@ func (s *So{{.ClsName}}Wrap) Md(f func(tInfo *So{{.ClsName}})) error {
 }
 
 
-func (s *So{{$.ClsName}}Wrap) handleFieldMd (t FieldMdHandleType, so *So{{.ClsName}}, fMap map[string]interface{}) error {
-     if so == nil || fMap == nil {
+//Get all the modified fields in the table
+func (s *So{{$.ClsName}}Wrap) getModifiedFields (oriTable *So{{$.ClsName}}, curTable *So{{$.ClsName}}) ([]string, error) {
+     if oriTable == nil  {
+       return nil,errors.New("table info is nil, can't get modified fields")
+	 }
+     var list []string
+     {{range $k1, $v1 := .MemberKeyMap}}
+     {{if ne $k1 $.MainKeyName}}
+     if !reflect.DeepEqual(oriTable.{{$k1}}, curTable.{{$k1}}) {
+		list = append(list, "{{$k1}}")
+	 }
+     {{end}}
+     {{end}}
+     return list,nil
+}
+
+func (s *So{{$.ClsName}}Wrap) handleFieldMd (t FieldMdHandleType, so *So{{.ClsName}}, fSli []string) error {
+     if so == nil {
         return errors.New("fail to modify empty table")
      }
      
-     mdFuncMap := s.getMdFuncMap()
-     if len(mdFuncMap) < 1 {
-         return errors.New("there is not exsit md function to md field")
+     //there is no field need to modify
+     if fSli == nil || len(fSli) < 1 {
+        return nil
      }
+
+
      errStr := ""
-     refVal := reflect.ValueOf(*so)
-     for f,_ := range fMap {
-       fName := ConvTableFieldToPbFormat(f)
-       val :=  refVal.FieldByName(fName)
-       if _,ok := mdFuncMap[fName]; ok {
-          f := reflect.ValueOf(s.mdFuncMap[fName])
-          p := []reflect.Value{val,reflect.ValueOf(true), reflect.ValueOf(false), reflect.ValueOf(false),reflect.ValueOf(so)}
-          errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-          if t == FieldMdHandleTypeDel {
-             p = []reflect.Value{val,reflect.ValueOf(false), reflect.ValueOf(true), reflect.ValueOf(false),reflect.ValueOf(so)}
-             errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-          } else if t == FieldMdHandleTypeInsert {
-             p = []reflect.Value{val,reflect.ValueOf(false), reflect.ValueOf(false), reflect.ValueOf(true),reflect.ValueOf(so)}
-             errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-          }
-          res := f.Call(p)
-          if !(res[0].Bool()) {
-				return errors.New(errStr)
-          }
-       }
-	 }
+     for _,fName := range fSli {
+        {{range $k1, $v1 := .MemberKeyMap}}
+        {{if ne $k1 $.MainKeyName}}
+         if fName == "{{$k1}}" {
+             res := true
+            if t == FieldMdHandleTypeCheck {
+               res = s.mdField{{$k1}}(so.{{$k1}}, true, false, false, so)
+               errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+            } else if t == FieldMdHandleTypeDel {
+               res = s.mdField{{$k1}}(so.{{$k1}}, false, true, false, so)
+               errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+            } else if t == FieldMdHandleTypeInsert {
+               res = s.mdField{{$k1}}(so.{{$k1}}, false, false, true, so)
+               errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+            } 
+            if !res {
+               return errors.New(errStr)
+            }
+         } 
+         {{end}}
+         {{end}}
+     }
      
      return nil
 }
@@ -327,7 +328,12 @@ func (s *So{{$.ClsName}}Wrap) delSortKey{{$v1.PName}}(sa *So{{$.ClsName}}) bool 
        val.{{UperFirstChar $.MainKeyName}} = sa.{{UperFirstChar $.MainKeyName}}
        {{end -}}
     }
-	
+	{{$baseType := (DetectBaseType $v1.PType) -}}
+    {{- if not $baseType -}}
+    if val.{{$v1.PName}} == nil {
+       return true
+    }
+    {{ end -}}
     subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -341,6 +347,12 @@ func (s *So{{$.ClsName}}Wrap) insertSortKey{{$v1.PName}}(sa *So{{$.ClsName}}) bo
     if s.dba == nil || sa == nil {
        return false
     }
+    {{$baseType := (DetectBaseType $v1.PType) -}}
+    {{- if not $baseType -}}
+    if sa.{{$v1.PName}} == nil {
+       return true
+    }
+    {{ end -}}
 	val := SoList{{$.ClsName}}By{{$v1.PName}}{}
     {{if ne $.MainKeyName $v1.PName -}}
    	val.{{UperFirstChar $.MainKeyName}} = sa.{{UperFirstChar $.MainKeyName}}
@@ -914,15 +926,21 @@ func (s *So{{$.ClsName}}Wrap) delUniKey{{$k}}(sa *So{{$.ClsName}}) bool {
     kList := []interface{}{pre}
     if sa != nil {
        {{ $baseType := (DetectBaseType $v.PType) -}}
-       {{if not $baseType }} 
+       {{if not $baseType -}} 
        if sa.{{UperFirstChar $k}} == nil {
-          return false
+          return true
        }
        {{end}}   
        sub := sa.{{UperFirstChar $k}}
        kList = append(kList,sub)
     }else {
        sub := s.Get{{$k}}()
+       {{ $baseType := (DetectBaseType $v.PType) -}}
+       {{if not $baseType -}} 
+       if sub == nil {
+          return true
+       }
+       {{end}}   
        kList = append(kList,sub)
        
     }
@@ -938,6 +956,13 @@ func (s *So{{$.ClsName}}Wrap) insertUniKey{{$k}}(sa *So{{$.ClsName}}) bool {
     if s.dba == nil || sa == nil{
        return false
     }
+    {{$baseType := (DetectBaseType $v.PType) -}}
+    {{- if not $baseType -}}
+    if sa.{{$v.PName}} == nil {
+       return true
+    }
+    {{ end -}}    
+
     pre := {{$.ClsName}}{{$k}}UniTable
     sub := sa.{{UperFirstChar $k}}
     kList := []interface{}{pre,sub}

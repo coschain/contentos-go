@@ -14,16 +14,6 @@ message so_extFollower {
 }
 
 
-message so_mem_extFollower_by_follower_info {
-	prototype.follower_relation         	follower_info               = 1;
-}
-
-
-message so_mem_extFollower_by_follower_created_order {
-	prototype.follower_created_order    	follower_created_order      = 1;
-}
-
-
 message so_list_extFollower_by_follower_created_order {
 	prototype.follower_created_order    	follower_created_order      = 1;
 	prototype.follower_relation         	follower_info               = 2;

@@ -1,7 +1,6 @@
 package table
 
 import (
-	"encoding/json"
 	"errors"
 	fmt "fmt"
 	"reflect"
@@ -107,6 +106,7 @@ func (s *SoReportListWrap) Create(f func(tInfo *SoReportList)) error {
 		return err
 	}
 
+	s.mKeyFlag = 1
 	return nil
 }
 
@@ -125,69 +125,50 @@ func (s *SoReportListWrap) getMainKeyBuf() ([]byte, error) {
 }
 
 func (s *SoReportListWrap) Md(f func(tInfo *SoReportList)) error {
-	t := &SoReportList{}
-	f(t)
-	js, err := json.Marshal(t)
+	if !s.CheckExist() {
+		return errors.New("the SoReportList table does not exist. Please create a table first")
+	}
+	oriTable := s.getReportList()
+	if oriTable == nil {
+		return errors.New("fail to get origin table SoReportList")
+	}
+	curTable := *oriTable
+	f(&curTable)
+
+	//the main key is not support modify
+	if !reflect.DeepEqual(curTable.Uuid, oriTable.Uuid) {
+		curTable.Uuid = oriTable.Uuid
+	}
+
+	fieldSli, err := s.getModifiedFields(oriTable, &curTable)
 	if err != nil {
 		return err
 	}
-	fMap := make(map[string]interface{})
-	err = json.Unmarshal(js, &fMap)
-	if err != nil {
-		return err
-	}
 
-	mKeyName := "Uuid"
-	mKeyField := ""
-	for name, _ := range fMap {
-		if ConvTableFieldToPbFormat(name) == mKeyName {
-			mKeyField = name
-			break
-		}
+	if fieldSli == nil || len(fieldSli) < 1 {
+		return nil
 	}
-	if len(mKeyField) > 0 {
-		delete(fMap, mKeyField)
-	}
-
-	if len(fMap) < 1 {
-		return errors.New("can't' modify empty struct")
-	}
-
-	sa := s.getReportList()
-	if sa == nil {
-		return errors.New("fail to get table SoReportList")
-	}
-
-	refVal := reflect.ValueOf(*t)
-	el := reflect.ValueOf(sa).Elem()
 
 	//check unique
-	err = s.handleFieldMd(FieldMdHandleTypeCheck, t, fMap)
+	err = s.handleFieldMd(FieldMdHandleTypeCheck, &curTable, fieldSli)
 	if err != nil {
 		return err
 	}
 
 	//delete sort and unique key
-	err = s.handleFieldMd(FieldMdHandleTypeDel, sa, fMap)
+	err = s.handleFieldMd(FieldMdHandleTypeDel, oriTable, fieldSli)
 	if err != nil {
 		return err
 	}
 
 	//update table
-	for f, _ := range fMap {
-		fName := ConvTableFieldToPbFormat(f)
-		val := refVal.FieldByName(fName)
-		if _, ok := s.mdFuncMap[fName]; ok {
-			el.FieldByName(fName).Set(val)
-		}
-	}
-	err = s.updateReportList(sa)
+	err = s.updateReportList(&curTable)
 	if err != nil {
 		return err
 	}
 
 	//insert sort and unique key
-	err = s.handleFieldMd(FieldMdHandleTypeInsert, sa, fMap)
+	err = s.handleFieldMd(FieldMdHandleTypeInsert, &curTable, fieldSli)
 	if err != nil {
 		return err
 	}
@@ -196,36 +177,92 @@ func (s *SoReportListWrap) Md(f func(tInfo *SoReportList)) error {
 
 }
 
-func (s *SoReportListWrap) handleFieldMd(t FieldMdHandleType, so *SoReportList, fMap map[string]interface{}) error {
-	if so == nil || fMap == nil {
+//Get all the modified fields in the table
+func (s *SoReportListWrap) getModifiedFields(oriTable *SoReportList, curTable *SoReportList) ([]string, error) {
+	if oriTable == nil {
+		return nil, errors.New("table info is nil, can't get modified fields")
+	}
+	var list []string
+
+	if !reflect.DeepEqual(oriTable.IsArbitrated, curTable.IsArbitrated) {
+		list = append(list, "IsArbitrated")
+	}
+
+	if !reflect.DeepEqual(oriTable.ReportedTimes, curTable.ReportedTimes) {
+		list = append(list, "ReportedTimes")
+	}
+
+	if !reflect.DeepEqual(oriTable.Tags, curTable.Tags) {
+		list = append(list, "Tags")
+	}
+
+	return list, nil
+}
+
+func (s *SoReportListWrap) handleFieldMd(t FieldMdHandleType, so *SoReportList, fSli []string) error {
+	if so == nil {
 		return errors.New("fail to modify empty table")
 	}
 
-	mdFuncMap := s.getMdFuncMap()
-	if len(mdFuncMap) < 1 {
-		return errors.New("there is not exsit md function to md field")
+	//there is no field need to modify
+	if fSli == nil || len(fSli) < 1 {
+		return nil
 	}
+
 	errStr := ""
-	refVal := reflect.ValueOf(*so)
-	for f, _ := range fMap {
-		fName := ConvTableFieldToPbFormat(f)
-		val := refVal.FieldByName(fName)
-		if _, ok := mdFuncMap[fName]; ok {
-			f := reflect.ValueOf(s.mdFuncMap[fName])
-			p := []reflect.Value{val, reflect.ValueOf(true), reflect.ValueOf(false), reflect.ValueOf(false), reflect.ValueOf(so)}
-			errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			if t == FieldMdHandleTypeDel {
-				p = []reflect.Value{val, reflect.ValueOf(false), reflect.ValueOf(true), reflect.ValueOf(false), reflect.ValueOf(so)}
+	for _, fName := range fSli {
+
+		if fName == "IsArbitrated" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldIsArbitrated(so.IsArbitrated, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldIsArbitrated(so.IsArbitrated, false, true, false, so)
 				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
 			} else if t == FieldMdHandleTypeInsert {
-				p = []reflect.Value{val, reflect.ValueOf(false), reflect.ValueOf(false), reflect.ValueOf(true), reflect.ValueOf(so)}
+				res = s.mdFieldIsArbitrated(so.IsArbitrated, false, false, true, so)
 				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
 			}
-			res := f.Call(p)
-			if !(res[0].Bool()) {
+			if !res {
 				return errors.New(errStr)
 			}
 		}
+
+		if fName == "ReportedTimes" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldReportedTimes(so.ReportedTimes, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldReportedTimes(so.ReportedTimes, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldReportedTimes(so.ReportedTimes, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "Tags" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldTags(so.Tags, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldTags(so.Tags, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldTags(so.Tags, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
 	}
 
 	return nil
@@ -245,7 +282,6 @@ func (s *SoReportListWrap) delSortKeyReportedTimes(sa *SoReportList) bool {
 		val.ReportedTimes = sa.ReportedTimes
 		val.Uuid = sa.Uuid
 	}
-
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -878,6 +914,7 @@ func (s *SoReportListWrap) delUniKeyUuid(sa *SoReportList) bool {
 		kList = append(kList, sub)
 	} else {
 		sub := s.GetUuid()
+
 		kList = append(kList, sub)
 
 	}

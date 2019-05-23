@@ -1,7 +1,6 @@
 package table
 
 import (
-	"encoding/json"
 	"errors"
 	fmt "fmt"
 	"reflect"
@@ -107,6 +106,7 @@ func (s *SoBlockSummaryObjectWrap) Create(f func(tInfo *SoBlockSummaryObject)) e
 		return err
 	}
 
+	s.mKeyFlag = 1
 	return nil
 }
 
@@ -125,69 +125,50 @@ func (s *SoBlockSummaryObjectWrap) getMainKeyBuf() ([]byte, error) {
 }
 
 func (s *SoBlockSummaryObjectWrap) Md(f func(tInfo *SoBlockSummaryObject)) error {
-	t := &SoBlockSummaryObject{}
-	f(t)
-	js, err := json.Marshal(t)
+	if !s.CheckExist() {
+		return errors.New("the SoBlockSummaryObject table does not exist. Please create a table first")
+	}
+	oriTable := s.getBlockSummaryObject()
+	if oriTable == nil {
+		return errors.New("fail to get origin table SoBlockSummaryObject")
+	}
+	curTable := *oriTable
+	f(&curTable)
+
+	//the main key is not support modify
+	if !reflect.DeepEqual(curTable.Id, oriTable.Id) {
+		curTable.Id = oriTable.Id
+	}
+
+	fieldSli, err := s.getModifiedFields(oriTable, &curTable)
 	if err != nil {
 		return err
 	}
-	fMap := make(map[string]interface{})
-	err = json.Unmarshal(js, &fMap)
-	if err != nil {
-		return err
-	}
 
-	mKeyName := "Id"
-	mKeyField := ""
-	for name, _ := range fMap {
-		if ConvTableFieldToPbFormat(name) == mKeyName {
-			mKeyField = name
-			break
-		}
+	if fieldSli == nil || len(fieldSli) < 1 {
+		return nil
 	}
-	if len(mKeyField) > 0 {
-		delete(fMap, mKeyField)
-	}
-
-	if len(fMap) < 1 {
-		return errors.New("can't' modify empty struct")
-	}
-
-	sa := s.getBlockSummaryObject()
-	if sa == nil {
-		return errors.New("fail to get table SoBlockSummaryObject")
-	}
-
-	refVal := reflect.ValueOf(*t)
-	el := reflect.ValueOf(sa).Elem()
 
 	//check unique
-	err = s.handleFieldMd(FieldMdHandleTypeCheck, t, fMap)
+	err = s.handleFieldMd(FieldMdHandleTypeCheck, &curTable, fieldSli)
 	if err != nil {
 		return err
 	}
 
 	//delete sort and unique key
-	err = s.handleFieldMd(FieldMdHandleTypeDel, sa, fMap)
+	err = s.handleFieldMd(FieldMdHandleTypeDel, oriTable, fieldSli)
 	if err != nil {
 		return err
 	}
 
 	//update table
-	for f, _ := range fMap {
-		fName := ConvTableFieldToPbFormat(f)
-		val := refVal.FieldByName(fName)
-		if _, ok := s.mdFuncMap[fName]; ok {
-			el.FieldByName(fName).Set(val)
-		}
-	}
-	err = s.updateBlockSummaryObject(sa)
+	err = s.updateBlockSummaryObject(&curTable)
 	if err != nil {
 		return err
 	}
 
 	//insert sort and unique key
-	err = s.handleFieldMd(FieldMdHandleTypeInsert, sa, fMap)
+	err = s.handleFieldMd(FieldMdHandleTypeInsert, &curTable, fieldSli)
 	if err != nil {
 		return err
 	}
@@ -196,36 +177,50 @@ func (s *SoBlockSummaryObjectWrap) Md(f func(tInfo *SoBlockSummaryObject)) error
 
 }
 
-func (s *SoBlockSummaryObjectWrap) handleFieldMd(t FieldMdHandleType, so *SoBlockSummaryObject, fMap map[string]interface{}) error {
-	if so == nil || fMap == nil {
+//Get all the modified fields in the table
+func (s *SoBlockSummaryObjectWrap) getModifiedFields(oriTable *SoBlockSummaryObject, curTable *SoBlockSummaryObject) ([]string, error) {
+	if oriTable == nil {
+		return nil, errors.New("table info is nil, can't get modified fields")
+	}
+	var list []string
+
+	if !reflect.DeepEqual(oriTable.BlockId, curTable.BlockId) {
+		list = append(list, "BlockId")
+	}
+
+	return list, nil
+}
+
+func (s *SoBlockSummaryObjectWrap) handleFieldMd(t FieldMdHandleType, so *SoBlockSummaryObject, fSli []string) error {
+	if so == nil {
 		return errors.New("fail to modify empty table")
 	}
 
-	mdFuncMap := s.getMdFuncMap()
-	if len(mdFuncMap) < 1 {
-		return errors.New("there is not exsit md function to md field")
+	//there is no field need to modify
+	if fSli == nil || len(fSli) < 1 {
+		return nil
 	}
+
 	errStr := ""
-	refVal := reflect.ValueOf(*so)
-	for f, _ := range fMap {
-		fName := ConvTableFieldToPbFormat(f)
-		val := refVal.FieldByName(fName)
-		if _, ok := mdFuncMap[fName]; ok {
-			f := reflect.ValueOf(s.mdFuncMap[fName])
-			p := []reflect.Value{val, reflect.ValueOf(true), reflect.ValueOf(false), reflect.ValueOf(false), reflect.ValueOf(so)}
-			errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			if t == FieldMdHandleTypeDel {
-				p = []reflect.Value{val, reflect.ValueOf(false), reflect.ValueOf(true), reflect.ValueOf(false), reflect.ValueOf(so)}
+	for _, fName := range fSli {
+
+		if fName == "BlockId" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldBlockId(so.BlockId, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldBlockId(so.BlockId, false, true, false, so)
 				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
 			} else if t == FieldMdHandleTypeInsert {
-				p = []reflect.Value{val, reflect.ValueOf(false), reflect.ValueOf(false), reflect.ValueOf(true), reflect.ValueOf(so)}
+				res = s.mdFieldBlockId(so.BlockId, false, false, true, so)
 				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
 			}
-			res := f.Call(p)
-			if !(res[0].Bool()) {
+			if !res {
 				return errors.New(errStr)
 			}
 		}
+
 	}
 
 	return nil
@@ -548,6 +543,7 @@ func (s *SoBlockSummaryObjectWrap) delUniKeyId(sa *SoBlockSummaryObject) bool {
 		kList = append(kList, sub)
 	} else {
 		sub := s.GetId()
+
 		kList = append(kList, sub)
 
 	}

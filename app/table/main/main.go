@@ -64,6 +64,8 @@ func main() {
 		tInfo.Idx = 1100
 		tInfo.LikeCount = 10
 		tInfo.Owner = prototype.NewAccountName("test")
+		tInfo.Title = "test md title"
+		tInfo.PostTime = nil
 	})
 
 	if err != nil {
@@ -72,12 +74,13 @@ func main() {
     likeCount := wrap.GetLikeCount()
     fmt.Printf("the modified liekcount is %v \n", likeCount)
 
+    fmt.Printf("the modified title is %v \n", wrap.GetTitle())
 
 	key1 := prototype.NewAccountName("myName1")
 	wrap1 := table.NewSoDemoWrap(db, key1)
 	if wrap1 == nil {
 		//crreate fail , the db already contain table with current mainKey
-		log.Println("crreate fail , the db already contain table with current mainKey myName1")
+		log.Println("create fail , the db already contain table with current mainKey myName1")
 		return
 	}
 	if wrap1.CheckExist() {
@@ -300,7 +303,7 @@ func main() {
 		fmt.Printf("uni query fail \n")
 	} else {
 		title := dWrap.GetTitle()
-		fmt.Printf("the title of index is %s \n", title)
+		fmt.Printf("the title of index %v is %s \n", idx,title)
 	}
 
 	//unique query mainkey(E.g query owner)

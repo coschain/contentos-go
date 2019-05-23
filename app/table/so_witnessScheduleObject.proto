@@ -13,16 +13,6 @@ message so_witnessScheduleObject {
 }
 
 
-message so_mem_witnessScheduleObject_by_id {
-	int32                     	id                                 = 1;
-}
-
-
-message so_mem_witnessScheduleObject_by_current_shuffled_witness {
-	repeated  	string                    	current_shuffled_witness        = 1;
-}
-
-
 message so_unique_witnessScheduleObject_by_id {
 	int32                     	id                                 = 1;
 }

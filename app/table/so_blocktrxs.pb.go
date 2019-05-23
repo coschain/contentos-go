@@ -67,84 +67,6 @@ func (m *SoBlocktrxs) GetTrxs() []byte {
 	return nil
 }
 
-type SoMemBlocktrxsByBlock struct {
-	Block                uint64   `protobuf:"varint,1,opt,name=block,proto3" json:"block,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *SoMemBlocktrxsByBlock) Reset()         { *m = SoMemBlocktrxsByBlock{} }
-func (m *SoMemBlocktrxsByBlock) String() string { return proto.CompactTextString(m) }
-func (*SoMemBlocktrxsByBlock) ProtoMessage()    {}
-func (*SoMemBlocktrxsByBlock) Descriptor() ([]byte, []int) {
-	return fileDescriptor_5d7fa4b2f1e1a751, []int{1}
-}
-
-func (m *SoMemBlocktrxsByBlock) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_SoMemBlocktrxsByBlock.Unmarshal(m, b)
-}
-func (m *SoMemBlocktrxsByBlock) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_SoMemBlocktrxsByBlock.Marshal(b, m, deterministic)
-}
-func (m *SoMemBlocktrxsByBlock) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SoMemBlocktrxsByBlock.Merge(m, src)
-}
-func (m *SoMemBlocktrxsByBlock) XXX_Size() int {
-	return xxx_messageInfo_SoMemBlocktrxsByBlock.Size(m)
-}
-func (m *SoMemBlocktrxsByBlock) XXX_DiscardUnknown() {
-	xxx_messageInfo_SoMemBlocktrxsByBlock.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_SoMemBlocktrxsByBlock proto.InternalMessageInfo
-
-func (m *SoMemBlocktrxsByBlock) GetBlock() uint64 {
-	if m != nil {
-		return m.Block
-	}
-	return 0
-}
-
-type SoMemBlocktrxsByTrxs struct {
-	Trxs                 []byte   `protobuf:"bytes,1,opt,name=trxs,proto3" json:"trxs,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *SoMemBlocktrxsByTrxs) Reset()         { *m = SoMemBlocktrxsByTrxs{} }
-func (m *SoMemBlocktrxsByTrxs) String() string { return proto.CompactTextString(m) }
-func (*SoMemBlocktrxsByTrxs) ProtoMessage()    {}
-func (*SoMemBlocktrxsByTrxs) Descriptor() ([]byte, []int) {
-	return fileDescriptor_5d7fa4b2f1e1a751, []int{2}
-}
-
-func (m *SoMemBlocktrxsByTrxs) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_SoMemBlocktrxsByTrxs.Unmarshal(m, b)
-}
-func (m *SoMemBlocktrxsByTrxs) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_SoMemBlocktrxsByTrxs.Marshal(b, m, deterministic)
-}
-func (m *SoMemBlocktrxsByTrxs) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SoMemBlocktrxsByTrxs.Merge(m, src)
-}
-func (m *SoMemBlocktrxsByTrxs) XXX_Size() int {
-	return xxx_messageInfo_SoMemBlocktrxsByTrxs.Size(m)
-}
-func (m *SoMemBlocktrxsByTrxs) XXX_DiscardUnknown() {
-	xxx_messageInfo_SoMemBlocktrxsByTrxs.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_SoMemBlocktrxsByTrxs proto.InternalMessageInfo
-
-func (m *SoMemBlocktrxsByTrxs) GetTrxs() []byte {
-	if m != nil {
-		return m.Trxs
-	}
-	return nil
-}
-
 type SoUniqueBlocktrxsByBlock struct {
 	Block                uint64   `protobuf:"varint,1,opt,name=block,proto3" json:"block,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
@@ -156,7 +78,7 @@ func (m *SoUniqueBlocktrxsByBlock) Reset()         { *m = SoUniqueBlocktrxsByBlo
 func (m *SoUniqueBlocktrxsByBlock) String() string { return proto.CompactTextString(m) }
 func (*SoUniqueBlocktrxsByBlock) ProtoMessage()    {}
 func (*SoUniqueBlocktrxsByBlock) Descriptor() ([]byte, []int) {
-	return fileDescriptor_5d7fa4b2f1e1a751, []int{3}
+	return fileDescriptor_5d7fa4b2f1e1a751, []int{1}
 }
 
 func (m *SoUniqueBlocktrxsByBlock) XXX_Unmarshal(b []byte) error {
@@ -186,25 +108,21 @@ func (m *SoUniqueBlocktrxsByBlock) GetBlock() uint64 {
 
 func init() {
 	proto.RegisterType((*SoBlocktrxs)(nil), "table.so_blocktrxs")
-	proto.RegisterType((*SoMemBlocktrxsByBlock)(nil), "table.so_mem_blocktrxs_by_block")
-	proto.RegisterType((*SoMemBlocktrxsByTrxs)(nil), "table.so_mem_blocktrxs_by_trxs")
 	proto.RegisterType((*SoUniqueBlocktrxsByBlock)(nil), "table.so_unique_blocktrxs_by_block")
 }
 
 func init() { proto.RegisterFile("app/table/so_blocktrxs.proto", fileDescriptor_5d7fa4b2f1e1a751) }
 
 var fileDescriptor_5d7fa4b2f1e1a751 = []byte{
-	// 185 bytes of a gzipped FileDescriptorProto
+	// 160 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0x92, 0x49, 0x2c, 0x28, 0xd0,
 	0x2f, 0x49, 0x4c, 0xca, 0x49, 0xd5, 0x2f, 0xce, 0x8f, 0x4f, 0xca, 0xc9, 0x4f, 0xce, 0x2e, 0x29,
 	0xaa, 0x28, 0xd6, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0x05, 0xcb, 0x28, 0x59, 0x70, 0xf1,
 	0x20, 0x4b, 0x0a, 0x89, 0x70, 0xb1, 0x82, 0x39, 0x12, 0x8c, 0x0a, 0x8c, 0x1a, 0x2c, 0x41, 0x10,
 	0x8e, 0x90, 0x10, 0x17, 0x0b, 0x48, 0x56, 0x82, 0x49, 0x81, 0x51, 0x83, 0x27, 0x08, 0xcc, 0x56,
-	0x32, 0xe4, 0x92, 0x2c, 0xce, 0x8f, 0xcf, 0x4d, 0xcd, 0x45, 0xe8, 0x8e, 0x4f, 0xaa, 0x84, 0x70,
-	0xb0, 0x1b, 0xa3, 0xa4, 0xc7, 0x25, 0x81, 0x4d, 0x0b, 0xd8, 0x62, 0x98, 0x15, 0x8c, 0x48, 0x56,
-	0x98, 0x70, 0xc9, 0x14, 0xe7, 0xc7, 0x97, 0xe6, 0x65, 0x16, 0x96, 0xa6, 0x12, 0x6d, 0x8b, 0x93,
-	0x4e, 0x94, 0x56, 0x7a, 0x66, 0x49, 0x46, 0x69, 0x92, 0x5e, 0x72, 0x7e, 0xae, 0x7e, 0x72, 0x7e,
-	0x71, 0x72, 0x46, 0x62, 0x66, 0x9e, 0x7e, 0x72, 0x7e, 0x5e, 0x49, 0x6a, 0x5e, 0x49, 0x7e, 0xb1,
-	0x6e, 0x7a, 0xbe, 0x3e, 0x3c, 0x68, 0x92, 0xd8, 0xc0, 0xc1, 0x61, 0x0c, 0x08, 0x00, 0x00, 0xff,
-	0xff, 0x78, 0xb5, 0xc2, 0x82, 0x2e, 0x01, 0x00, 0x00,
+	0x32, 0xe1, 0x92, 0x29, 0xce, 0x8f, 0x2f, 0xcd, 0xcb, 0x2c, 0x2c, 0x4d, 0x45, 0x18, 0x10, 0x9f,
+	0x54, 0x09, 0xe1, 0x60, 0x37, 0xc9, 0x49, 0x27, 0x4a, 0x2b, 0x3d, 0xb3, 0x24, 0xa3, 0x34, 0x49,
+	0x2f, 0x39, 0x3f, 0x57, 0x3f, 0x39, 0xbf, 0x38, 0x39, 0x23, 0x31, 0x33, 0x4f, 0x3f, 0x39, 0x3f,
+	0xaf, 0x24, 0x35, 0xaf, 0x24, 0xbf, 0x58, 0x37, 0x3d, 0x5f, 0x1f, 0xee, 0xee, 0x24, 0x36, 0xb0,
+	0x5b, 0x8d, 0x01, 0x01, 0x00, 0x00, 0xff, 0xff, 0x0d, 0x2a, 0xc5, 0xc1, 0xcb, 0x00, 0x00, 0x00,
 }

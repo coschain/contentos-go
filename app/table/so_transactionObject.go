@@ -1,7 +1,6 @@
 package table
 
 import (
-	"encoding/json"
 	"errors"
 	fmt "fmt"
 	"reflect"
@@ -111,6 +110,7 @@ func (s *SoTransactionObjectWrap) Create(f func(tInfo *SoTransactionObject)) err
 		return err
 	}
 
+	s.mKeyFlag = 1
 	return nil
 }
 
@@ -129,69 +129,50 @@ func (s *SoTransactionObjectWrap) getMainKeyBuf() ([]byte, error) {
 }
 
 func (s *SoTransactionObjectWrap) Md(f func(tInfo *SoTransactionObject)) error {
-	t := &SoTransactionObject{}
-	f(t)
-	js, err := json.Marshal(t)
+	if !s.CheckExist() {
+		return errors.New("the SoTransactionObject table does not exist. Please create a table first")
+	}
+	oriTable := s.getTransactionObject()
+	if oriTable == nil {
+		return errors.New("fail to get origin table SoTransactionObject")
+	}
+	curTable := *oriTable
+	f(&curTable)
+
+	//the main key is not support modify
+	if !reflect.DeepEqual(curTable.TrxId, oriTable.TrxId) {
+		curTable.TrxId = oriTable.TrxId
+	}
+
+	fieldSli, err := s.getModifiedFields(oriTable, &curTable)
 	if err != nil {
 		return err
 	}
-	fMap := make(map[string]interface{})
-	err = json.Unmarshal(js, &fMap)
-	if err != nil {
-		return err
-	}
 
-	mKeyName := "TrxId"
-	mKeyField := ""
-	for name, _ := range fMap {
-		if ConvTableFieldToPbFormat(name) == mKeyName {
-			mKeyField = name
-			break
-		}
+	if fieldSli == nil || len(fieldSli) < 1 {
+		return nil
 	}
-	if len(mKeyField) > 0 {
-		delete(fMap, mKeyField)
-	}
-
-	if len(fMap) < 1 {
-		return errors.New("can't' modify empty struct")
-	}
-
-	sa := s.getTransactionObject()
-	if sa == nil {
-		return errors.New("fail to get table SoTransactionObject")
-	}
-
-	refVal := reflect.ValueOf(*t)
-	el := reflect.ValueOf(sa).Elem()
 
 	//check unique
-	err = s.handleFieldMd(FieldMdHandleTypeCheck, t, fMap)
+	err = s.handleFieldMd(FieldMdHandleTypeCheck, &curTable, fieldSli)
 	if err != nil {
 		return err
 	}
 
 	//delete sort and unique key
-	err = s.handleFieldMd(FieldMdHandleTypeDel, sa, fMap)
+	err = s.handleFieldMd(FieldMdHandleTypeDel, oriTable, fieldSli)
 	if err != nil {
 		return err
 	}
 
 	//update table
-	for f, _ := range fMap {
-		fName := ConvTableFieldToPbFormat(f)
-		val := refVal.FieldByName(fName)
-		if _, ok := s.mdFuncMap[fName]; ok {
-			el.FieldByName(fName).Set(val)
-		}
-	}
-	err = s.updateTransactionObject(sa)
+	err = s.updateTransactionObject(&curTable)
 	if err != nil {
 		return err
 	}
 
 	//insert sort and unique key
-	err = s.handleFieldMd(FieldMdHandleTypeInsert, sa, fMap)
+	err = s.handleFieldMd(FieldMdHandleTypeInsert, &curTable, fieldSli)
 	if err != nil {
 		return err
 	}
@@ -200,36 +181,50 @@ func (s *SoTransactionObjectWrap) Md(f func(tInfo *SoTransactionObject)) error {
 
 }
 
-func (s *SoTransactionObjectWrap) handleFieldMd(t FieldMdHandleType, so *SoTransactionObject, fMap map[string]interface{}) error {
-	if so == nil || fMap == nil {
+//Get all the modified fields in the table
+func (s *SoTransactionObjectWrap) getModifiedFields(oriTable *SoTransactionObject, curTable *SoTransactionObject) ([]string, error) {
+	if oriTable == nil {
+		return nil, errors.New("table info is nil, can't get modified fields")
+	}
+	var list []string
+
+	if !reflect.DeepEqual(oriTable.Expiration, curTable.Expiration) {
+		list = append(list, "Expiration")
+	}
+
+	return list, nil
+}
+
+func (s *SoTransactionObjectWrap) handleFieldMd(t FieldMdHandleType, so *SoTransactionObject, fSli []string) error {
+	if so == nil {
 		return errors.New("fail to modify empty table")
 	}
 
-	mdFuncMap := s.getMdFuncMap()
-	if len(mdFuncMap) < 1 {
-		return errors.New("there is not exsit md function to md field")
+	//there is no field need to modify
+	if fSli == nil || len(fSli) < 1 {
+		return nil
 	}
+
 	errStr := ""
-	refVal := reflect.ValueOf(*so)
-	for f, _ := range fMap {
-		fName := ConvTableFieldToPbFormat(f)
-		val := refVal.FieldByName(fName)
-		if _, ok := mdFuncMap[fName]; ok {
-			f := reflect.ValueOf(s.mdFuncMap[fName])
-			p := []reflect.Value{val, reflect.ValueOf(true), reflect.ValueOf(false), reflect.ValueOf(false), reflect.ValueOf(so)}
-			errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			if t == FieldMdHandleTypeDel {
-				p = []reflect.Value{val, reflect.ValueOf(false), reflect.ValueOf(true), reflect.ValueOf(false), reflect.ValueOf(so)}
+	for _, fName := range fSli {
+
+		if fName == "Expiration" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldExpiration(so.Expiration, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldExpiration(so.Expiration, false, true, false, so)
 				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
 			} else if t == FieldMdHandleTypeInsert {
-				p = []reflect.Value{val, reflect.ValueOf(false), reflect.ValueOf(false), reflect.ValueOf(true), reflect.ValueOf(so)}
+				res = s.mdFieldExpiration(so.Expiration, false, false, true, so)
 				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
 			}
-			res := f.Call(p)
-			if !(res[0].Bool()) {
+			if !res {
 				return errors.New(errStr)
 			}
 		}
+
 	}
 
 	return nil
@@ -250,7 +245,9 @@ func (s *SoTransactionObjectWrap) delSortKeyExpiration(sa *SoTransactionObject) 
 		val.Expiration = sa.Expiration
 		val.TrxId = sa.TrxId
 	}
-
+	if val.Expiration == nil {
+		return true
+	}
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -262,6 +259,9 @@ func (s *SoTransactionObjectWrap) delSortKeyExpiration(sa *SoTransactionObject) 
 func (s *SoTransactionObjectWrap) insertSortKeyExpiration(sa *SoTransactionObject) bool {
 	if s.dba == nil || sa == nil {
 		return false
+	}
+	if sa.Expiration == nil {
+		return true
 	}
 	val := SoListTransactionObjectByExpiration{}
 	val.TrxId = sa.TrxId
@@ -717,15 +717,18 @@ func (s *SoTransactionObjectWrap) delUniKeyTrxId(sa *SoTransactionObject) bool {
 	pre := TransactionObjectTrxIdUniTable
 	kList := []interface{}{pre}
 	if sa != nil {
-
 		if sa.TrxId == nil {
-			return false
+			return true
 		}
 
 		sub := sa.TrxId
 		kList = append(kList, sub)
 	} else {
 		sub := s.GetTrxId()
+		if sub == nil {
+			return true
+		}
+
 		kList = append(kList, sub)
 
 	}
@@ -739,6 +742,9 @@ func (s *SoTransactionObjectWrap) delUniKeyTrxId(sa *SoTransactionObject) bool {
 func (s *SoTransactionObjectWrap) insertUniKeyTrxId(sa *SoTransactionObject) bool {
 	if s.dba == nil || sa == nil {
 		return false
+	}
+	if sa.TrxId == nil {
+		return true
 	}
 	pre := TransactionObjectTrxIdUniTable
 	sub := sa.TrxId

@@ -1,7 +1,6 @@
 package table
 
 import (
-	"encoding/json"
 	"errors"
 	fmt "fmt"
 	"reflect"
@@ -108,6 +107,7 @@ func (s *SoExtPostCreatedWrap) Create(f func(tInfo *SoExtPostCreated)) error {
 		return err
 	}
 
+	s.mKeyFlag = 1
 	return nil
 }
 
@@ -126,69 +126,50 @@ func (s *SoExtPostCreatedWrap) getMainKeyBuf() ([]byte, error) {
 }
 
 func (s *SoExtPostCreatedWrap) Md(f func(tInfo *SoExtPostCreated)) error {
-	t := &SoExtPostCreated{}
-	f(t)
-	js, err := json.Marshal(t)
+	if !s.CheckExist() {
+		return errors.New("the SoExtPostCreated table does not exist. Please create a table first")
+	}
+	oriTable := s.getExtPostCreated()
+	if oriTable == nil {
+		return errors.New("fail to get origin table SoExtPostCreated")
+	}
+	curTable := *oriTable
+	f(&curTable)
+
+	//the main key is not support modify
+	if !reflect.DeepEqual(curTable.PostId, oriTable.PostId) {
+		curTable.PostId = oriTable.PostId
+	}
+
+	fieldSli, err := s.getModifiedFields(oriTable, &curTable)
 	if err != nil {
 		return err
 	}
-	fMap := make(map[string]interface{})
-	err = json.Unmarshal(js, &fMap)
-	if err != nil {
-		return err
-	}
 
-	mKeyName := "PostId"
-	mKeyField := ""
-	for name, _ := range fMap {
-		if ConvTableFieldToPbFormat(name) == mKeyName {
-			mKeyField = name
-			break
-		}
+	if fieldSli == nil || len(fieldSli) < 1 {
+		return nil
 	}
-	if len(mKeyField) > 0 {
-		delete(fMap, mKeyField)
-	}
-
-	if len(fMap) < 1 {
-		return errors.New("can't' modify empty struct")
-	}
-
-	sa := s.getExtPostCreated()
-	if sa == nil {
-		return errors.New("fail to get table SoExtPostCreated")
-	}
-
-	refVal := reflect.ValueOf(*t)
-	el := reflect.ValueOf(sa).Elem()
 
 	//check unique
-	err = s.handleFieldMd(FieldMdHandleTypeCheck, t, fMap)
+	err = s.handleFieldMd(FieldMdHandleTypeCheck, &curTable, fieldSli)
 	if err != nil {
 		return err
 	}
 
 	//delete sort and unique key
-	err = s.handleFieldMd(FieldMdHandleTypeDel, sa, fMap)
+	err = s.handleFieldMd(FieldMdHandleTypeDel, oriTable, fieldSli)
 	if err != nil {
 		return err
 	}
 
 	//update table
-	for f, _ := range fMap {
-		fName := ConvTableFieldToPbFormat(f)
-		val := refVal.FieldByName(fName)
-		if _, ok := s.mdFuncMap[fName]; ok {
-			el.FieldByName(fName).Set(val)
-		}
-	}
-	err = s.updateExtPostCreated(sa)
+	err = s.updateExtPostCreated(&curTable)
 	if err != nil {
 		return err
 	}
 
 	//insert sort and unique key
-	err = s.handleFieldMd(FieldMdHandleTypeInsert, sa, fMap)
+	err = s.handleFieldMd(FieldMdHandleTypeInsert, &curTable, fieldSli)
 	if err != nil {
 		return err
 	}
@@ -197,36 +178,50 @@ func (s *SoExtPostCreatedWrap) Md(f func(tInfo *SoExtPostCreated)) error {
 
 }
 
-func (s *SoExtPostCreatedWrap) handleFieldMd(t FieldMdHandleType, so *SoExtPostCreated, fMap map[string]interface{}) error {
-	if so == nil || fMap == nil {
+//Get all the modified fields in the table
+func (s *SoExtPostCreatedWrap) getModifiedFields(oriTable *SoExtPostCreated, curTable *SoExtPostCreated) ([]string, error) {
+	if oriTable == nil {
+		return nil, errors.New("table info is nil, can't get modified fields")
+	}
+	var list []string
+
+	if !reflect.DeepEqual(oriTable.CreatedOrder, curTable.CreatedOrder) {
+		list = append(list, "CreatedOrder")
+	}
+
+	return list, nil
+}
+
+func (s *SoExtPostCreatedWrap) handleFieldMd(t FieldMdHandleType, so *SoExtPostCreated, fSli []string) error {
+	if so == nil {
 		return errors.New("fail to modify empty table")
 	}
 
-	mdFuncMap := s.getMdFuncMap()
-	if len(mdFuncMap) < 1 {
-		return errors.New("there is not exsit md function to md field")
+	//there is no field need to modify
+	if fSli == nil || len(fSli) < 1 {
+		return nil
 	}
+
 	errStr := ""
-	refVal := reflect.ValueOf(*so)
-	for f, _ := range fMap {
-		fName := ConvTableFieldToPbFormat(f)
-		val := refVal.FieldByName(fName)
-		if _, ok := mdFuncMap[fName]; ok {
-			f := reflect.ValueOf(s.mdFuncMap[fName])
-			p := []reflect.Value{val, reflect.ValueOf(true), reflect.ValueOf(false), reflect.ValueOf(false), reflect.ValueOf(so)}
-			errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			if t == FieldMdHandleTypeDel {
-				p = []reflect.Value{val, reflect.ValueOf(false), reflect.ValueOf(true), reflect.ValueOf(false), reflect.ValueOf(so)}
+	for _, fName := range fSli {
+
+		if fName == "CreatedOrder" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldCreatedOrder(so.CreatedOrder, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldCreatedOrder(so.CreatedOrder, false, true, false, so)
 				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
 			} else if t == FieldMdHandleTypeInsert {
-				p = []reflect.Value{val, reflect.ValueOf(false), reflect.ValueOf(false), reflect.ValueOf(true), reflect.ValueOf(so)}
+				res = s.mdFieldCreatedOrder(so.CreatedOrder, false, false, true, so)
 				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
 			}
-			res := f.Call(p)
-			if !(res[0].Bool()) {
+			if !res {
 				return errors.New(errStr)
 			}
 		}
+
 	}
 
 	return nil
@@ -246,7 +241,9 @@ func (s *SoExtPostCreatedWrap) delSortKeyCreatedOrder(sa *SoExtPostCreated) bool
 		val.CreatedOrder = sa.CreatedOrder
 		val.PostId = sa.PostId
 	}
-
+	if val.CreatedOrder == nil {
+		return true
+	}
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -258,6 +255,9 @@ func (s *SoExtPostCreatedWrap) delSortKeyCreatedOrder(sa *SoExtPostCreated) bool
 func (s *SoExtPostCreatedWrap) insertSortKeyCreatedOrder(sa *SoExtPostCreated) bool {
 	if s.dba == nil || sa == nil {
 		return false
+	}
+	if sa.CreatedOrder == nil {
+		return true
 	}
 	val := SoListExtPostCreatedByCreatedOrder{}
 	val.PostId = sa.PostId
@@ -711,6 +711,7 @@ func (s *SoExtPostCreatedWrap) delUniKeyPostId(sa *SoExtPostCreated) bool {
 		kList = append(kList, sub)
 	} else {
 		sub := s.GetPostId()
+
 		kList = append(kList, sub)
 
 	}

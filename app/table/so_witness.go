@@ -1,7 +1,6 @@
 package table
 
 import (
-	"encoding/json"
 	"errors"
 	fmt "fmt"
 	"reflect"
@@ -112,6 +111,7 @@ func (s *SoWitnessWrap) Create(f func(tInfo *SoWitness)) error {
 		return err
 	}
 
+	s.mKeyFlag = 1
 	return nil
 }
 
@@ -130,69 +130,50 @@ func (s *SoWitnessWrap) getMainKeyBuf() ([]byte, error) {
 }
 
 func (s *SoWitnessWrap) Md(f func(tInfo *SoWitness)) error {
-	t := &SoWitness{}
-	f(t)
-	js, err := json.Marshal(t)
+	if !s.CheckExist() {
+		return errors.New("the SoWitness table does not exist. Please create a table first")
+	}
+	oriTable := s.getWitness()
+	if oriTable == nil {
+		return errors.New("fail to get origin table SoWitness")
+	}
+	curTable := *oriTable
+	f(&curTable)
+
+	//the main key is not support modify
+	if !reflect.DeepEqual(curTable.Owner, oriTable.Owner) {
+		curTable.Owner = oriTable.Owner
+	}
+
+	fieldSli, err := s.getModifiedFields(oriTable, &curTable)
 	if err != nil {
 		return err
 	}
-	fMap := make(map[string]interface{})
-	err = json.Unmarshal(js, &fMap)
-	if err != nil {
-		return err
-	}
 
-	mKeyName := "Owner"
-	mKeyField := ""
-	for name, _ := range fMap {
-		if ConvTableFieldToPbFormat(name) == mKeyName {
-			mKeyField = name
-			break
-		}
+	if fieldSli == nil || len(fieldSli) < 1 {
+		return nil
 	}
-	if len(mKeyField) > 0 {
-		delete(fMap, mKeyField)
-	}
-
-	if len(fMap) < 1 {
-		return errors.New("can't' modify empty struct")
-	}
-
-	sa := s.getWitness()
-	if sa == nil {
-		return errors.New("fail to get table SoWitness")
-	}
-
-	refVal := reflect.ValueOf(*t)
-	el := reflect.ValueOf(sa).Elem()
 
 	//check unique
-	err = s.handleFieldMd(FieldMdHandleTypeCheck, t, fMap)
+	err = s.handleFieldMd(FieldMdHandleTypeCheck, &curTable, fieldSli)
 	if err != nil {
 		return err
 	}
 
 	//delete sort and unique key
-	err = s.handleFieldMd(FieldMdHandleTypeDel, sa, fMap)
+	err = s.handleFieldMd(FieldMdHandleTypeDel, oriTable, fieldSli)
 	if err != nil {
 		return err
 	}
 
 	//update table
-	for f, _ := range fMap {
-		fName := ConvTableFieldToPbFormat(f)
-		val := refVal.FieldByName(fName)
-		if _, ok := s.mdFuncMap[fName]; ok {
-			el.FieldByName(fName).Set(val)
-		}
-	}
-	err = s.updateWitness(sa)
+	err = s.updateWitness(&curTable)
 	if err != nil {
 		return err
 	}
 
 	//insert sort and unique key
-	err = s.handleFieldMd(FieldMdHandleTypeInsert, sa, fMap)
+	err = s.handleFieldMd(FieldMdHandleTypeInsert, &curTable, fieldSli)
 	if err != nil {
 		return err
 	}
@@ -201,36 +182,302 @@ func (s *SoWitnessWrap) Md(f func(tInfo *SoWitness)) error {
 
 }
 
-func (s *SoWitnessWrap) handleFieldMd(t FieldMdHandleType, so *SoWitness, fMap map[string]interface{}) error {
-	if so == nil || fMap == nil {
+//Get all the modified fields in the table
+func (s *SoWitnessWrap) getModifiedFields(oriTable *SoWitness, curTable *SoWitness) ([]string, error) {
+	if oriTable == nil {
+		return nil, errors.New("table info is nil, can't get modified fields")
+	}
+	var list []string
+
+	if !reflect.DeepEqual(oriTable.Active, curTable.Active) {
+		list = append(list, "Active")
+	}
+
+	if !reflect.DeepEqual(oriTable.CreatedTime, curTable.CreatedTime) {
+		list = append(list, "CreatedTime")
+	}
+
+	if !reflect.DeepEqual(oriTable.LastAslot, curTable.LastAslot) {
+		list = append(list, "LastAslot")
+	}
+
+	if !reflect.DeepEqual(oriTable.LastConfirmedBlockNum, curTable.LastConfirmedBlockNum) {
+		list = append(list, "LastConfirmedBlockNum")
+	}
+
+	if !reflect.DeepEqual(oriTable.LastWork, curTable.LastWork) {
+		list = append(list, "LastWork")
+	}
+
+	if !reflect.DeepEqual(oriTable.PowWorker, curTable.PowWorker) {
+		list = append(list, "PowWorker")
+	}
+
+	if !reflect.DeepEqual(oriTable.ProposedStaminaFree, curTable.ProposedStaminaFree) {
+		list = append(list, "ProposedStaminaFree")
+	}
+
+	if !reflect.DeepEqual(oriTable.RunningVersion, curTable.RunningVersion) {
+		list = append(list, "RunningVersion")
+	}
+
+	if !reflect.DeepEqual(oriTable.SigningKey, curTable.SigningKey) {
+		list = append(list, "SigningKey")
+	}
+
+	if !reflect.DeepEqual(oriTable.TotalMissed, curTable.TotalMissed) {
+		list = append(list, "TotalMissed")
+	}
+
+	if !reflect.DeepEqual(oriTable.TpsExpected, curTable.TpsExpected) {
+		list = append(list, "TpsExpected")
+	}
+
+	if !reflect.DeepEqual(oriTable.Url, curTable.Url) {
+		list = append(list, "Url")
+	}
+
+	if !reflect.DeepEqual(oriTable.VoteCount, curTable.VoteCount) {
+		list = append(list, "VoteCount")
+	}
+
+	return list, nil
+}
+
+func (s *SoWitnessWrap) handleFieldMd(t FieldMdHandleType, so *SoWitness, fSli []string) error {
+	if so == nil {
 		return errors.New("fail to modify empty table")
 	}
 
-	mdFuncMap := s.getMdFuncMap()
-	if len(mdFuncMap) < 1 {
-		return errors.New("there is not exsit md function to md field")
+	//there is no field need to modify
+	if fSli == nil || len(fSli) < 1 {
+		return nil
 	}
+
 	errStr := ""
-	refVal := reflect.ValueOf(*so)
-	for f, _ := range fMap {
-		fName := ConvTableFieldToPbFormat(f)
-		val := refVal.FieldByName(fName)
-		if _, ok := mdFuncMap[fName]; ok {
-			f := reflect.ValueOf(s.mdFuncMap[fName])
-			p := []reflect.Value{val, reflect.ValueOf(true), reflect.ValueOf(false), reflect.ValueOf(false), reflect.ValueOf(so)}
-			errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			if t == FieldMdHandleTypeDel {
-				p = []reflect.Value{val, reflect.ValueOf(false), reflect.ValueOf(true), reflect.ValueOf(false), reflect.ValueOf(so)}
+	for _, fName := range fSli {
+
+		if fName == "Active" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldActive(so.Active, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldActive(so.Active, false, true, false, so)
 				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
 			} else if t == FieldMdHandleTypeInsert {
-				p = []reflect.Value{val, reflect.ValueOf(false), reflect.ValueOf(false), reflect.ValueOf(true), reflect.ValueOf(so)}
+				res = s.mdFieldActive(so.Active, false, false, true, so)
 				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
 			}
-			res := f.Call(p)
-			if !(res[0].Bool()) {
+			if !res {
 				return errors.New(errStr)
 			}
 		}
+
+		if fName == "CreatedTime" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldCreatedTime(so.CreatedTime, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldCreatedTime(so.CreatedTime, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldCreatedTime(so.CreatedTime, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "LastAslot" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldLastAslot(so.LastAslot, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldLastAslot(so.LastAslot, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldLastAslot(so.LastAslot, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "LastConfirmedBlockNum" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldLastConfirmedBlockNum(so.LastConfirmedBlockNum, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldLastConfirmedBlockNum(so.LastConfirmedBlockNum, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldLastConfirmedBlockNum(so.LastConfirmedBlockNum, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "LastWork" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldLastWork(so.LastWork, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldLastWork(so.LastWork, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldLastWork(so.LastWork, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "PowWorker" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldPowWorker(so.PowWorker, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldPowWorker(so.PowWorker, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldPowWorker(so.PowWorker, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "ProposedStaminaFree" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldProposedStaminaFree(so.ProposedStaminaFree, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldProposedStaminaFree(so.ProposedStaminaFree, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldProposedStaminaFree(so.ProposedStaminaFree, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "RunningVersion" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldRunningVersion(so.RunningVersion, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldRunningVersion(so.RunningVersion, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldRunningVersion(so.RunningVersion, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "SigningKey" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldSigningKey(so.SigningKey, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldSigningKey(so.SigningKey, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldSigningKey(so.SigningKey, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "TotalMissed" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldTotalMissed(so.TotalMissed, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldTotalMissed(so.TotalMissed, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldTotalMissed(so.TotalMissed, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "TpsExpected" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldTpsExpected(so.TpsExpected, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldTpsExpected(so.TpsExpected, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldTpsExpected(so.TpsExpected, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "Url" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldUrl(so.Url, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldUrl(so.Url, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldUrl(so.Url, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "VoteCount" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldVoteCount(so.VoteCount, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldVoteCount(so.VoteCount, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldVoteCount(so.VoteCount, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
 	}
 
 	return nil
@@ -248,7 +495,9 @@ func (s *SoWitnessWrap) delSortKeyOwner(sa *SoWitness) bool {
 	} else {
 		val.Owner = sa.Owner
 	}
-
+	if val.Owner == nil {
+		return true
+	}
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -260,6 +509,9 @@ func (s *SoWitnessWrap) delSortKeyOwner(sa *SoWitness) bool {
 func (s *SoWitnessWrap) insertSortKeyOwner(sa *SoWitness) bool {
 	if s.dba == nil || sa == nil {
 		return false
+	}
+	if sa.Owner == nil {
+		return true
 	}
 	val := SoListWitnessByOwner{}
 	val.Owner = sa.Owner
@@ -288,7 +540,6 @@ func (s *SoWitnessWrap) delSortKeyVoteCount(sa *SoWitness) bool {
 		val.VoteCount = sa.VoteCount
 		val.Owner = sa.Owner
 	}
-
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -1840,15 +2091,18 @@ func (s *SoWitnessWrap) delUniKeyOwner(sa *SoWitness) bool {
 	pre := WitnessOwnerUniTable
 	kList := []interface{}{pre}
 	if sa != nil {
-
 		if sa.Owner == nil {
-			return false
+			return true
 		}
 
 		sub := sa.Owner
 		kList = append(kList, sub)
 	} else {
 		sub := s.GetOwner()
+		if sub == nil {
+			return true
+		}
+
 		kList = append(kList, sub)
 
 	}
@@ -1862,6 +2116,9 @@ func (s *SoWitnessWrap) delUniKeyOwner(sa *SoWitness) bool {
 func (s *SoWitnessWrap) insertUniKeyOwner(sa *SoWitness) bool {
 	if s.dba == nil || sa == nil {
 		return false
+	}
+	if sa.Owner == nil {
+		return true
 	}
 	pre := WitnessOwnerUniTable
 	sub := sa.Owner

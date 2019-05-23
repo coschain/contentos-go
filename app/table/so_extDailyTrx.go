@@ -1,7 +1,6 @@
 package table
 
 import (
-	"encoding/json"
 	"errors"
 	fmt "fmt"
 	"reflect"
@@ -112,6 +111,7 @@ func (s *SoExtDailyTrxWrap) Create(f func(tInfo *SoExtDailyTrx)) error {
 		return err
 	}
 
+	s.mKeyFlag = 1
 	return nil
 }
 
@@ -130,69 +130,50 @@ func (s *SoExtDailyTrxWrap) getMainKeyBuf() ([]byte, error) {
 }
 
 func (s *SoExtDailyTrxWrap) Md(f func(tInfo *SoExtDailyTrx)) error {
-	t := &SoExtDailyTrx{}
-	f(t)
-	js, err := json.Marshal(t)
+	if !s.CheckExist() {
+		return errors.New("the SoExtDailyTrx table does not exist. Please create a table first")
+	}
+	oriTable := s.getExtDailyTrx()
+	if oriTable == nil {
+		return errors.New("fail to get origin table SoExtDailyTrx")
+	}
+	curTable := *oriTable
+	f(&curTable)
+
+	//the main key is not support modify
+	if !reflect.DeepEqual(curTable.Date, oriTable.Date) {
+		curTable.Date = oriTable.Date
+	}
+
+	fieldSli, err := s.getModifiedFields(oriTable, &curTable)
 	if err != nil {
 		return err
 	}
-	fMap := make(map[string]interface{})
-	err = json.Unmarshal(js, &fMap)
-	if err != nil {
-		return err
-	}
 
-	mKeyName := "Date"
-	mKeyField := ""
-	for name, _ := range fMap {
-		if ConvTableFieldToPbFormat(name) == mKeyName {
-			mKeyField = name
-			break
-		}
+	if fieldSli == nil || len(fieldSli) < 1 {
+		return nil
 	}
-	if len(mKeyField) > 0 {
-		delete(fMap, mKeyField)
-	}
-
-	if len(fMap) < 1 {
-		return errors.New("can't' modify empty struct")
-	}
-
-	sa := s.getExtDailyTrx()
-	if sa == nil {
-		return errors.New("fail to get table SoExtDailyTrx")
-	}
-
-	refVal := reflect.ValueOf(*t)
-	el := reflect.ValueOf(sa).Elem()
 
 	//check unique
-	err = s.handleFieldMd(FieldMdHandleTypeCheck, t, fMap)
+	err = s.handleFieldMd(FieldMdHandleTypeCheck, &curTable, fieldSli)
 	if err != nil {
 		return err
 	}
 
 	//delete sort and unique key
-	err = s.handleFieldMd(FieldMdHandleTypeDel, sa, fMap)
+	err = s.handleFieldMd(FieldMdHandleTypeDel, oriTable, fieldSli)
 	if err != nil {
 		return err
 	}
 
 	//update table
-	for f, _ := range fMap {
-		fName := ConvTableFieldToPbFormat(f)
-		val := refVal.FieldByName(fName)
-		if _, ok := s.mdFuncMap[fName]; ok {
-			el.FieldByName(fName).Set(val)
-		}
-	}
-	err = s.updateExtDailyTrx(sa)
+	err = s.updateExtDailyTrx(&curTable)
 	if err != nil {
 		return err
 	}
 
 	//insert sort and unique key
-	err = s.handleFieldMd(FieldMdHandleTypeInsert, sa, fMap)
+	err = s.handleFieldMd(FieldMdHandleTypeInsert, &curTable, fieldSli)
 	if err != nil {
 		return err
 	}
@@ -201,36 +182,50 @@ func (s *SoExtDailyTrxWrap) Md(f func(tInfo *SoExtDailyTrx)) error {
 
 }
 
-func (s *SoExtDailyTrxWrap) handleFieldMd(t FieldMdHandleType, so *SoExtDailyTrx, fMap map[string]interface{}) error {
-	if so == nil || fMap == nil {
+//Get all the modified fields in the table
+func (s *SoExtDailyTrxWrap) getModifiedFields(oriTable *SoExtDailyTrx, curTable *SoExtDailyTrx) ([]string, error) {
+	if oriTable == nil {
+		return nil, errors.New("table info is nil, can't get modified fields")
+	}
+	var list []string
+
+	if !reflect.DeepEqual(oriTable.Count, curTable.Count) {
+		list = append(list, "Count")
+	}
+
+	return list, nil
+}
+
+func (s *SoExtDailyTrxWrap) handleFieldMd(t FieldMdHandleType, so *SoExtDailyTrx, fSli []string) error {
+	if so == nil {
 		return errors.New("fail to modify empty table")
 	}
 
-	mdFuncMap := s.getMdFuncMap()
-	if len(mdFuncMap) < 1 {
-		return errors.New("there is not exsit md function to md field")
+	//there is no field need to modify
+	if fSli == nil || len(fSli) < 1 {
+		return nil
 	}
+
 	errStr := ""
-	refVal := reflect.ValueOf(*so)
-	for f, _ := range fMap {
-		fName := ConvTableFieldToPbFormat(f)
-		val := refVal.FieldByName(fName)
-		if _, ok := mdFuncMap[fName]; ok {
-			f := reflect.ValueOf(s.mdFuncMap[fName])
-			p := []reflect.Value{val, reflect.ValueOf(true), reflect.ValueOf(false), reflect.ValueOf(false), reflect.ValueOf(so)}
-			errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			if t == FieldMdHandleTypeDel {
-				p = []reflect.Value{val, reflect.ValueOf(false), reflect.ValueOf(true), reflect.ValueOf(false), reflect.ValueOf(so)}
+	for _, fName := range fSli {
+
+		if fName == "Count" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldCount(so.Count, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldCount(so.Count, false, true, false, so)
 				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
 			} else if t == FieldMdHandleTypeInsert {
-				p = []reflect.Value{val, reflect.ValueOf(false), reflect.ValueOf(false), reflect.ValueOf(true), reflect.ValueOf(so)}
+				res = s.mdFieldCount(so.Count, false, false, true, so)
 				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
 			}
-			res := f.Call(p)
-			if !(res[0].Bool()) {
+			if !res {
 				return errors.New(errStr)
 			}
 		}
+
 	}
 
 	return nil
@@ -248,7 +243,9 @@ func (s *SoExtDailyTrxWrap) delSortKeyDate(sa *SoExtDailyTrx) bool {
 	} else {
 		val.Date = sa.Date
 	}
-
+	if val.Date == nil {
+		return true
+	}
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -260,6 +257,9 @@ func (s *SoExtDailyTrxWrap) delSortKeyDate(sa *SoExtDailyTrx) bool {
 func (s *SoExtDailyTrxWrap) insertSortKeyDate(sa *SoExtDailyTrx) bool {
 	if s.dba == nil || sa == nil {
 		return false
+	}
+	if sa.Date == nil {
+		return true
 	}
 	val := SoListExtDailyTrxByDate{}
 	val.Date = sa.Date
@@ -288,7 +288,6 @@ func (s *SoExtDailyTrxWrap) delSortKeyCount(sa *SoExtDailyTrx) bool {
 		val.Count = sa.Count
 		val.Date = sa.Date
 	}
-
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -862,15 +861,18 @@ func (s *SoExtDailyTrxWrap) delUniKeyDate(sa *SoExtDailyTrx) bool {
 	pre := ExtDailyTrxDateUniTable
 	kList := []interface{}{pre}
 	if sa != nil {
-
 		if sa.Date == nil {
-			return false
+			return true
 		}
 
 		sub := sa.Date
 		kList = append(kList, sub)
 	} else {
 		sub := s.GetDate()
+		if sub == nil {
+			return true
+		}
+
 		kList = append(kList, sub)
 
 	}
@@ -884,6 +886,9 @@ func (s *SoExtDailyTrxWrap) delUniKeyDate(sa *SoExtDailyTrx) bool {
 func (s *SoExtDailyTrxWrap) insertUniKeyDate(sa *SoExtDailyTrx) bool {
 	if s.dba == nil || sa == nil {
 		return false
+	}
+	if sa.Date == nil {
+		return true
 	}
 	pre := ExtDailyTrxDateUniTable
 	sub := sa.Date

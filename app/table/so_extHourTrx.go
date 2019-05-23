@@ -1,7 +1,6 @@
 package table
 
 import (
-	"encoding/json"
 	"errors"
 	fmt "fmt"
 	"reflect"
@@ -112,6 +111,7 @@ func (s *SoExtHourTrxWrap) Create(f func(tInfo *SoExtHourTrx)) error {
 		return err
 	}
 
+	s.mKeyFlag = 1
 	return nil
 }
 
@@ -130,69 +130,50 @@ func (s *SoExtHourTrxWrap) getMainKeyBuf() ([]byte, error) {
 }
 
 func (s *SoExtHourTrxWrap) Md(f func(tInfo *SoExtHourTrx)) error {
-	t := &SoExtHourTrx{}
-	f(t)
-	js, err := json.Marshal(t)
+	if !s.CheckExist() {
+		return errors.New("the SoExtHourTrx table does not exist. Please create a table first")
+	}
+	oriTable := s.getExtHourTrx()
+	if oriTable == nil {
+		return errors.New("fail to get origin table SoExtHourTrx")
+	}
+	curTable := *oriTable
+	f(&curTable)
+
+	//the main key is not support modify
+	if !reflect.DeepEqual(curTable.Hour, oriTable.Hour) {
+		curTable.Hour = oriTable.Hour
+	}
+
+	fieldSli, err := s.getModifiedFields(oriTable, &curTable)
 	if err != nil {
 		return err
 	}
-	fMap := make(map[string]interface{})
-	err = json.Unmarshal(js, &fMap)
-	if err != nil {
-		return err
-	}
 
-	mKeyName := "Hour"
-	mKeyField := ""
-	for name, _ := range fMap {
-		if ConvTableFieldToPbFormat(name) == mKeyName {
-			mKeyField = name
-			break
-		}
+	if fieldSli == nil || len(fieldSli) < 1 {
+		return nil
 	}
-	if len(mKeyField) > 0 {
-		delete(fMap, mKeyField)
-	}
-
-	if len(fMap) < 1 {
-		return errors.New("can't' modify empty struct")
-	}
-
-	sa := s.getExtHourTrx()
-	if sa == nil {
-		return errors.New("fail to get table SoExtHourTrx")
-	}
-
-	refVal := reflect.ValueOf(*t)
-	el := reflect.ValueOf(sa).Elem()
 
 	//check unique
-	err = s.handleFieldMd(FieldMdHandleTypeCheck, t, fMap)
+	err = s.handleFieldMd(FieldMdHandleTypeCheck, &curTable, fieldSli)
 	if err != nil {
 		return err
 	}
 
 	//delete sort and unique key
-	err = s.handleFieldMd(FieldMdHandleTypeDel, sa, fMap)
+	err = s.handleFieldMd(FieldMdHandleTypeDel, oriTable, fieldSli)
 	if err != nil {
 		return err
 	}
 
 	//update table
-	for f, _ := range fMap {
-		fName := ConvTableFieldToPbFormat(f)
-		val := refVal.FieldByName(fName)
-		if _, ok := s.mdFuncMap[fName]; ok {
-			el.FieldByName(fName).Set(val)
-		}
-	}
-	err = s.updateExtHourTrx(sa)
+	err = s.updateExtHourTrx(&curTable)
 	if err != nil {
 		return err
 	}
 
 	//insert sort and unique key
-	err = s.handleFieldMd(FieldMdHandleTypeInsert, sa, fMap)
+	err = s.handleFieldMd(FieldMdHandleTypeInsert, &curTable, fieldSli)
 	if err != nil {
 		return err
 	}
@@ -201,36 +182,50 @@ func (s *SoExtHourTrxWrap) Md(f func(tInfo *SoExtHourTrx)) error {
 
 }
 
-func (s *SoExtHourTrxWrap) handleFieldMd(t FieldMdHandleType, so *SoExtHourTrx, fMap map[string]interface{}) error {
-	if so == nil || fMap == nil {
+//Get all the modified fields in the table
+func (s *SoExtHourTrxWrap) getModifiedFields(oriTable *SoExtHourTrx, curTable *SoExtHourTrx) ([]string, error) {
+	if oriTable == nil {
+		return nil, errors.New("table info is nil, can't get modified fields")
+	}
+	var list []string
+
+	if !reflect.DeepEqual(oriTable.Count, curTable.Count) {
+		list = append(list, "Count")
+	}
+
+	return list, nil
+}
+
+func (s *SoExtHourTrxWrap) handleFieldMd(t FieldMdHandleType, so *SoExtHourTrx, fSli []string) error {
+	if so == nil {
 		return errors.New("fail to modify empty table")
 	}
 
-	mdFuncMap := s.getMdFuncMap()
-	if len(mdFuncMap) < 1 {
-		return errors.New("there is not exsit md function to md field")
+	//there is no field need to modify
+	if fSli == nil || len(fSli) < 1 {
+		return nil
 	}
+
 	errStr := ""
-	refVal := reflect.ValueOf(*so)
-	for f, _ := range fMap {
-		fName := ConvTableFieldToPbFormat(f)
-		val := refVal.FieldByName(fName)
-		if _, ok := mdFuncMap[fName]; ok {
-			f := reflect.ValueOf(s.mdFuncMap[fName])
-			p := []reflect.Value{val, reflect.ValueOf(true), reflect.ValueOf(false), reflect.ValueOf(false), reflect.ValueOf(so)}
-			errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			if t == FieldMdHandleTypeDel {
-				p = []reflect.Value{val, reflect.ValueOf(false), reflect.ValueOf(true), reflect.ValueOf(false), reflect.ValueOf(so)}
+	for _, fName := range fSli {
+
+		if fName == "Count" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldCount(so.Count, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldCount(so.Count, false, true, false, so)
 				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
 			} else if t == FieldMdHandleTypeInsert {
-				p = []reflect.Value{val, reflect.ValueOf(false), reflect.ValueOf(false), reflect.ValueOf(true), reflect.ValueOf(so)}
+				res = s.mdFieldCount(so.Count, false, false, true, so)
 				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
 			}
-			res := f.Call(p)
-			if !(res[0].Bool()) {
+			if !res {
 				return errors.New(errStr)
 			}
 		}
+
 	}
 
 	return nil
@@ -248,7 +243,9 @@ func (s *SoExtHourTrxWrap) delSortKeyHour(sa *SoExtHourTrx) bool {
 	} else {
 		val.Hour = sa.Hour
 	}
-
+	if val.Hour == nil {
+		return true
+	}
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -260,6 +257,9 @@ func (s *SoExtHourTrxWrap) delSortKeyHour(sa *SoExtHourTrx) bool {
 func (s *SoExtHourTrxWrap) insertSortKeyHour(sa *SoExtHourTrx) bool {
 	if s.dba == nil || sa == nil {
 		return false
+	}
+	if sa.Hour == nil {
+		return true
 	}
 	val := SoListExtHourTrxByHour{}
 	val.Hour = sa.Hour
@@ -288,7 +288,6 @@ func (s *SoExtHourTrxWrap) delSortKeyCount(sa *SoExtHourTrx) bool {
 		val.Count = sa.Count
 		val.Hour = sa.Hour
 	}
-
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -862,15 +861,18 @@ func (s *SoExtHourTrxWrap) delUniKeyHour(sa *SoExtHourTrx) bool {
 	pre := ExtHourTrxHourUniTable
 	kList := []interface{}{pre}
 	if sa != nil {
-
 		if sa.Hour == nil {
-			return false
+			return true
 		}
 
 		sub := sa.Hour
 		kList = append(kList, sub)
 	} else {
 		sub := s.GetHour()
+		if sub == nil {
+			return true
+		}
+
 		kList = append(kList, sub)
 
 	}
@@ -884,6 +886,9 @@ func (s *SoExtHourTrxWrap) delUniKeyHour(sa *SoExtHourTrx) bool {
 func (s *SoExtHourTrxWrap) insertUniKeyHour(sa *SoExtHourTrx) bool {
 	if s.dba == nil || sa == nil {
 		return false
+	}
+	if sa.Hour == nil {
+		return true
 	}
 	pre := ExtHourTrxHourUniTable
 	sub := sa.Hour

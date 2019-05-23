@@ -14,16 +14,6 @@ message so_extUserPost {
 }
 
 
-message so_mem_extUserPost_by_post_id {
-	uint64                             	post_id              = 1;
-}
-
-
-message so_mem_extUserPost_by_post_created_order {
-	prototype.user_post_create_order   	post_created_order   = 1;
-}
-
-
 message so_list_extUserPost_by_post_created_order {
 	prototype.user_post_create_order   	post_created_order   = 1;
 	uint64                             	post_id              = 2;

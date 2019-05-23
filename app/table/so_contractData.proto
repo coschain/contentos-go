@@ -15,21 +15,6 @@ message so_contractData {
 }
 
 
-message so_mem_contractData_by_id {
-	prototype.contract_data_id	id    = 1;
-}
-
-
-message so_mem_contractData_by_key {
-	bytes                     	key   = 1;
-}
-
-
-message so_mem_contractData_by_value {
-	bytes                     	value = 1;
-}
-
-
 message so_unique_contractData_by_id {
 	prototype.contract_data_id	id    = 1;
 }

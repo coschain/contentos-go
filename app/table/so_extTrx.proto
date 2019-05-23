@@ -20,36 +20,6 @@ message so_extTrx {
 }
 
 
-message so_mem_extTrx_by_trx_id {
-	prototype.sha256                	trx_id      = 1;
-}
-
-
-message so_mem_extTrx_by_block_height {
-	uint64                          	block_height  = 1;
-}
-
-
-message so_mem_extTrx_by_trx_wrap {
-	prototype.transaction_wrapper    	trx_wrap      = 1;
-}
-
-
-message so_mem_extTrx_by_block_time {
-	prototype.time_point_sec        	block_time    = 1;
-}
-
-
-message so_mem_extTrx_by_trx_create_order {
-	prototype.user_trx_create_order 	trx_create_order   = 1;
-}
-
-
-message so_mem_extTrx_by_block_id {
-	prototype.sha256                	block_id    = 1;
-}
-
-
 message so_list_extTrx_by_trx_id {
 	prototype.sha256                	trx_id      = 1;
 }

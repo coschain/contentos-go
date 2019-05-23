@@ -299,17 +299,17 @@ func createKeyTpl(t TableInfo) string {
 			memList = append(memList, v)
 		}
 		mKeyPro := PropList{VarName: mKeyName, VarType: mKeyType}
-		if len(memList) > 0 {
-			for _, v := range memList {
-				tempTpl := ""
-				msgName := fmt.Sprintf("\nmessage so_mem_%s_by_%s {\n",
-					DelDirtyCharacter(t.Name), DelDirtyCharacter(v.VarName))
-				 tempTpl = creSubTabMsgTpl(v, msgName, PropList{})
-				if tempTpl != "" {
-					tpl += tempTpl
-				}
-			}
-		}
+		//if len(memList) > 0 {
+		//	for _, v := range memList {
+		//		tempTpl := ""
+		//		msgName := fmt.Sprintf("\nmessage so_mem_%s_by_%s {\n",
+		//			DelDirtyCharacter(t.Name), DelDirtyCharacter(v.VarName))
+		//		 tempTpl = creSubTabMsgTpl(v, msgName, PropList{})
+		//		if tempTpl != "" {
+		//			tpl += tempTpl
+		//		}
+		//	}
+		//}
 
 		if len(sortList) > 0 && mKeyType != "" && mKeyName != "" {
 			for _, v := range sortList {

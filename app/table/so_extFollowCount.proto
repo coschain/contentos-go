@@ -16,26 +16,6 @@ message so_extFollowCount {
 }
 
 
-message so_mem_extFollowCount_by_account {
-	prototype.account_name      	account          = 1;
-}
-
-
-message so_mem_extFollowCount_by_follower_cnt {
-	uint32                      	follower_cnt     = 1;
-}
-
-
-message so_mem_extFollowCount_by_following_cnt {
-	uint32                      	following_cnt    = 1;
-}
-
-
-message so_mem_extFollowCount_by_update_time {
-	prototype.time_point_sec    	update_time      = 1;
-}
-
-
 message so_unique_extFollowCount_by_account {
 	prototype.account_name      	account          = 1;
 }

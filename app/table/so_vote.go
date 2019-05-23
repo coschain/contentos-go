@@ -1,7 +1,6 @@
 package table
 
 import (
-	"encoding/json"
 	"errors"
 	fmt "fmt"
 	"reflect"
@@ -113,6 +112,7 @@ func (s *SoVoteWrap) Create(f func(tInfo *SoVote)) error {
 		return err
 	}
 
+	s.mKeyFlag = 1
 	return nil
 }
 
@@ -131,69 +131,50 @@ func (s *SoVoteWrap) getMainKeyBuf() ([]byte, error) {
 }
 
 func (s *SoVoteWrap) Md(f func(tInfo *SoVote)) error {
-	t := &SoVote{}
-	f(t)
-	js, err := json.Marshal(t)
+	if !s.CheckExist() {
+		return errors.New("the SoVote table does not exist. Please create a table first")
+	}
+	oriTable := s.getVote()
+	if oriTable == nil {
+		return errors.New("fail to get origin table SoVote")
+	}
+	curTable := *oriTable
+	f(&curTable)
+
+	//the main key is not support modify
+	if !reflect.DeepEqual(curTable.Voter, oriTable.Voter) {
+		curTable.Voter = oriTable.Voter
+	}
+
+	fieldSli, err := s.getModifiedFields(oriTable, &curTable)
 	if err != nil {
 		return err
 	}
-	fMap := make(map[string]interface{})
-	err = json.Unmarshal(js, &fMap)
-	if err != nil {
-		return err
-	}
 
-	mKeyName := "Voter"
-	mKeyField := ""
-	for name, _ := range fMap {
-		if ConvTableFieldToPbFormat(name) == mKeyName {
-			mKeyField = name
-			break
-		}
+	if fieldSli == nil || len(fieldSli) < 1 {
+		return nil
 	}
-	if len(mKeyField) > 0 {
-		delete(fMap, mKeyField)
-	}
-
-	if len(fMap) < 1 {
-		return errors.New("can't' modify empty struct")
-	}
-
-	sa := s.getVote()
-	if sa == nil {
-		return errors.New("fail to get table SoVote")
-	}
-
-	refVal := reflect.ValueOf(*t)
-	el := reflect.ValueOf(sa).Elem()
 
 	//check unique
-	err = s.handleFieldMd(FieldMdHandleTypeCheck, t, fMap)
+	err = s.handleFieldMd(FieldMdHandleTypeCheck, &curTable, fieldSli)
 	if err != nil {
 		return err
 	}
 
 	//delete sort and unique key
-	err = s.handleFieldMd(FieldMdHandleTypeDel, sa, fMap)
+	err = s.handleFieldMd(FieldMdHandleTypeDel, oriTable, fieldSli)
 	if err != nil {
 		return err
 	}
 
 	//update table
-	for f, _ := range fMap {
-		fName := ConvTableFieldToPbFormat(f)
-		val := refVal.FieldByName(fName)
-		if _, ok := s.mdFuncMap[fName]; ok {
-			el.FieldByName(fName).Set(val)
-		}
-	}
-	err = s.updateVote(sa)
+	err = s.updateVote(&curTable)
 	if err != nil {
 		return err
 	}
 
 	//insert sort and unique key
-	err = s.handleFieldMd(FieldMdHandleTypeInsert, sa, fMap)
+	err = s.handleFieldMd(FieldMdHandleTypeInsert, &curTable, fieldSli)
 	if err != nil {
 		return err
 	}
@@ -202,36 +183,113 @@ func (s *SoVoteWrap) Md(f func(tInfo *SoVote)) error {
 
 }
 
-func (s *SoVoteWrap) handleFieldMd(t FieldMdHandleType, so *SoVote, fMap map[string]interface{}) error {
-	if so == nil || fMap == nil {
+//Get all the modified fields in the table
+func (s *SoVoteWrap) getModifiedFields(oriTable *SoVote, curTable *SoVote) ([]string, error) {
+	if oriTable == nil {
+		return nil, errors.New("table info is nil, can't get modified fields")
+	}
+	var list []string
+
+	if !reflect.DeepEqual(oriTable.PostId, curTable.PostId) {
+		list = append(list, "PostId")
+	}
+
+	if !reflect.DeepEqual(oriTable.Upvote, curTable.Upvote) {
+		list = append(list, "Upvote")
+	}
+
+	if !reflect.DeepEqual(oriTable.VoteTime, curTable.VoteTime) {
+		list = append(list, "VoteTime")
+	}
+
+	if !reflect.DeepEqual(oriTable.WeightedVp, curTable.WeightedVp) {
+		list = append(list, "WeightedVp")
+	}
+
+	return list, nil
+}
+
+func (s *SoVoteWrap) handleFieldMd(t FieldMdHandleType, so *SoVote, fSli []string) error {
+	if so == nil {
 		return errors.New("fail to modify empty table")
 	}
 
-	mdFuncMap := s.getMdFuncMap()
-	if len(mdFuncMap) < 1 {
-		return errors.New("there is not exsit md function to md field")
+	//there is no field need to modify
+	if fSli == nil || len(fSli) < 1 {
+		return nil
 	}
+
 	errStr := ""
-	refVal := reflect.ValueOf(*so)
-	for f, _ := range fMap {
-		fName := ConvTableFieldToPbFormat(f)
-		val := refVal.FieldByName(fName)
-		if _, ok := mdFuncMap[fName]; ok {
-			f := reflect.ValueOf(s.mdFuncMap[fName])
-			p := []reflect.Value{val, reflect.ValueOf(true), reflect.ValueOf(false), reflect.ValueOf(false), reflect.ValueOf(so)}
-			errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			if t == FieldMdHandleTypeDel {
-				p = []reflect.Value{val, reflect.ValueOf(false), reflect.ValueOf(true), reflect.ValueOf(false), reflect.ValueOf(so)}
+	for _, fName := range fSli {
+
+		if fName == "PostId" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldPostId(so.PostId, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldPostId(so.PostId, false, true, false, so)
 				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
 			} else if t == FieldMdHandleTypeInsert {
-				p = []reflect.Value{val, reflect.ValueOf(false), reflect.ValueOf(false), reflect.ValueOf(true), reflect.ValueOf(so)}
+				res = s.mdFieldPostId(so.PostId, false, false, true, so)
 				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
 			}
-			res := f.Call(p)
-			if !(res[0].Bool()) {
+			if !res {
 				return errors.New(errStr)
 			}
 		}
+
+		if fName == "Upvote" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldUpvote(so.Upvote, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldUpvote(so.Upvote, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldUpvote(so.Upvote, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "VoteTime" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldVoteTime(so.VoteTime, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldVoteTime(so.VoteTime, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldVoteTime(so.VoteTime, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "WeightedVp" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldWeightedVp(so.WeightedVp, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldWeightedVp(so.WeightedVp, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldWeightedVp(so.WeightedVp, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
 	}
 
 	return nil
@@ -249,7 +307,9 @@ func (s *SoVoteWrap) delSortKeyVoter(sa *SoVote) bool {
 	} else {
 		val.Voter = sa.Voter
 	}
-
+	if val.Voter == nil {
+		return true
+	}
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -261,6 +321,9 @@ func (s *SoVoteWrap) delSortKeyVoter(sa *SoVote) bool {
 func (s *SoVoteWrap) insertSortKeyVoter(sa *SoVote) bool {
 	if s.dba == nil || sa == nil {
 		return false
+	}
+	if sa.Voter == nil {
+		return true
 	}
 	val := SoListVoteByVoter{}
 	val.Voter = sa.Voter
@@ -289,7 +352,9 @@ func (s *SoVoteWrap) delSortKeyVoteTime(sa *SoVote) bool {
 		val.VoteTime = sa.VoteTime
 		val.Voter = sa.Voter
 	}
-
+	if val.VoteTime == nil {
+		return true
+	}
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -301,6 +366,9 @@ func (s *SoVoteWrap) delSortKeyVoteTime(sa *SoVote) bool {
 func (s *SoVoteWrap) insertSortKeyVoteTime(sa *SoVote) bool {
 	if s.dba == nil || sa == nil {
 		return false
+	}
+	if sa.VoteTime == nil {
+		return true
 	}
 	val := SoListVoteByVoteTime{}
 	val.Voter = sa.Voter
@@ -330,7 +398,6 @@ func (s *SoVoteWrap) delSortKeyPostId(sa *SoVote) bool {
 		val.PostId = sa.PostId
 		val.Voter = sa.Voter
 	}
-
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -1279,15 +1346,18 @@ func (s *SoVoteWrap) delUniKeyVoter(sa *SoVote) bool {
 	pre := VoteVoterUniTable
 	kList := []interface{}{pre}
 	if sa != nil {
-
 		if sa.Voter == nil {
-			return false
+			return true
 		}
 
 		sub := sa.Voter
 		kList = append(kList, sub)
 	} else {
 		sub := s.GetVoter()
+		if sub == nil {
+			return true
+		}
+
 		kList = append(kList, sub)
 
 	}
@@ -1301,6 +1371,9 @@ func (s *SoVoteWrap) delUniKeyVoter(sa *SoVote) bool {
 func (s *SoVoteWrap) insertUniKeyVoter(sa *SoVote) bool {
 	if s.dba == nil || sa == nil {
 		return false
+	}
+	if sa.Voter == nil {
+		return true
 	}
 	pre := VoteVoterUniTable
 	sub := sa.Voter

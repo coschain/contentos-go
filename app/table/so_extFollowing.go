@@ -1,7 +1,6 @@
 package table
 
 import (
-	"encoding/json"
 	"errors"
 	fmt "fmt"
 	"reflect"
@@ -111,6 +110,7 @@ func (s *SoExtFollowingWrap) Create(f func(tInfo *SoExtFollowing)) error {
 		return err
 	}
 
+	s.mKeyFlag = 1
 	return nil
 }
 
@@ -129,69 +129,50 @@ func (s *SoExtFollowingWrap) getMainKeyBuf() ([]byte, error) {
 }
 
 func (s *SoExtFollowingWrap) Md(f func(tInfo *SoExtFollowing)) error {
-	t := &SoExtFollowing{}
-	f(t)
-	js, err := json.Marshal(t)
+	if !s.CheckExist() {
+		return errors.New("the SoExtFollowing table does not exist. Please create a table first")
+	}
+	oriTable := s.getExtFollowing()
+	if oriTable == nil {
+		return errors.New("fail to get origin table SoExtFollowing")
+	}
+	curTable := *oriTable
+	f(&curTable)
+
+	//the main key is not support modify
+	if !reflect.DeepEqual(curTable.FollowingInfo, oriTable.FollowingInfo) {
+		curTable.FollowingInfo = oriTable.FollowingInfo
+	}
+
+	fieldSli, err := s.getModifiedFields(oriTable, &curTable)
 	if err != nil {
 		return err
 	}
-	fMap := make(map[string]interface{})
-	err = json.Unmarshal(js, &fMap)
-	if err != nil {
-		return err
-	}
 
-	mKeyName := "FollowingInfo"
-	mKeyField := ""
-	for name, _ := range fMap {
-		if ConvTableFieldToPbFormat(name) == mKeyName {
-			mKeyField = name
-			break
-		}
+	if fieldSli == nil || len(fieldSli) < 1 {
+		return nil
 	}
-	if len(mKeyField) > 0 {
-		delete(fMap, mKeyField)
-	}
-
-	if len(fMap) < 1 {
-		return errors.New("can't' modify empty struct")
-	}
-
-	sa := s.getExtFollowing()
-	if sa == nil {
-		return errors.New("fail to get table SoExtFollowing")
-	}
-
-	refVal := reflect.ValueOf(*t)
-	el := reflect.ValueOf(sa).Elem()
 
 	//check unique
-	err = s.handleFieldMd(FieldMdHandleTypeCheck, t, fMap)
+	err = s.handleFieldMd(FieldMdHandleTypeCheck, &curTable, fieldSli)
 	if err != nil {
 		return err
 	}
 
 	//delete sort and unique key
-	err = s.handleFieldMd(FieldMdHandleTypeDel, sa, fMap)
+	err = s.handleFieldMd(FieldMdHandleTypeDel, oriTable, fieldSli)
 	if err != nil {
 		return err
 	}
 
 	//update table
-	for f, _ := range fMap {
-		fName := ConvTableFieldToPbFormat(f)
-		val := refVal.FieldByName(fName)
-		if _, ok := s.mdFuncMap[fName]; ok {
-			el.FieldByName(fName).Set(val)
-		}
-	}
-	err = s.updateExtFollowing(sa)
+	err = s.updateExtFollowing(&curTable)
 	if err != nil {
 		return err
 	}
 
 	//insert sort and unique key
-	err = s.handleFieldMd(FieldMdHandleTypeInsert, sa, fMap)
+	err = s.handleFieldMd(FieldMdHandleTypeInsert, &curTable, fieldSli)
 	if err != nil {
 		return err
 	}
@@ -200,36 +181,50 @@ func (s *SoExtFollowingWrap) Md(f func(tInfo *SoExtFollowing)) error {
 
 }
 
-func (s *SoExtFollowingWrap) handleFieldMd(t FieldMdHandleType, so *SoExtFollowing, fMap map[string]interface{}) error {
-	if so == nil || fMap == nil {
+//Get all the modified fields in the table
+func (s *SoExtFollowingWrap) getModifiedFields(oriTable *SoExtFollowing, curTable *SoExtFollowing) ([]string, error) {
+	if oriTable == nil {
+		return nil, errors.New("table info is nil, can't get modified fields")
+	}
+	var list []string
+
+	if !reflect.DeepEqual(oriTable.FollowingCreatedOrder, curTable.FollowingCreatedOrder) {
+		list = append(list, "FollowingCreatedOrder")
+	}
+
+	return list, nil
+}
+
+func (s *SoExtFollowingWrap) handleFieldMd(t FieldMdHandleType, so *SoExtFollowing, fSli []string) error {
+	if so == nil {
 		return errors.New("fail to modify empty table")
 	}
 
-	mdFuncMap := s.getMdFuncMap()
-	if len(mdFuncMap) < 1 {
-		return errors.New("there is not exsit md function to md field")
+	//there is no field need to modify
+	if fSli == nil || len(fSli) < 1 {
+		return nil
 	}
+
 	errStr := ""
-	refVal := reflect.ValueOf(*so)
-	for f, _ := range fMap {
-		fName := ConvTableFieldToPbFormat(f)
-		val := refVal.FieldByName(fName)
-		if _, ok := mdFuncMap[fName]; ok {
-			f := reflect.ValueOf(s.mdFuncMap[fName])
-			p := []reflect.Value{val, reflect.ValueOf(true), reflect.ValueOf(false), reflect.ValueOf(false), reflect.ValueOf(so)}
-			errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			if t == FieldMdHandleTypeDel {
-				p = []reflect.Value{val, reflect.ValueOf(false), reflect.ValueOf(true), reflect.ValueOf(false), reflect.ValueOf(so)}
+	for _, fName := range fSli {
+
+		if fName == "FollowingCreatedOrder" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldFollowingCreatedOrder(so.FollowingCreatedOrder, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldFollowingCreatedOrder(so.FollowingCreatedOrder, false, true, false, so)
 				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
 			} else if t == FieldMdHandleTypeInsert {
-				p = []reflect.Value{val, reflect.ValueOf(false), reflect.ValueOf(false), reflect.ValueOf(true), reflect.ValueOf(so)}
+				res = s.mdFieldFollowingCreatedOrder(so.FollowingCreatedOrder, false, false, true, so)
 				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
 			}
-			res := f.Call(p)
-			if !(res[0].Bool()) {
+			if !res {
 				return errors.New(errStr)
 			}
 		}
+
 	}
 
 	return nil
@@ -250,7 +245,9 @@ func (s *SoExtFollowingWrap) delSortKeyFollowingCreatedOrder(sa *SoExtFollowing)
 		val.FollowingCreatedOrder = sa.FollowingCreatedOrder
 		val.FollowingInfo = sa.FollowingInfo
 	}
-
+	if val.FollowingCreatedOrder == nil {
+		return true
+	}
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -262,6 +259,9 @@ func (s *SoExtFollowingWrap) delSortKeyFollowingCreatedOrder(sa *SoExtFollowing)
 func (s *SoExtFollowingWrap) insertSortKeyFollowingCreatedOrder(sa *SoExtFollowing) bool {
 	if s.dba == nil || sa == nil {
 		return false
+	}
+	if sa.FollowingCreatedOrder == nil {
+		return true
 	}
 	val := SoListExtFollowingByFollowingCreatedOrder{}
 	val.FollowingInfo = sa.FollowingInfo
@@ -717,15 +717,18 @@ func (s *SoExtFollowingWrap) delUniKeyFollowingInfo(sa *SoExtFollowing) bool {
 	pre := ExtFollowingFollowingInfoUniTable
 	kList := []interface{}{pre}
 	if sa != nil {
-
 		if sa.FollowingInfo == nil {
-			return false
+			return true
 		}
 
 		sub := sa.FollowingInfo
 		kList = append(kList, sub)
 	} else {
 		sub := s.GetFollowingInfo()
+		if sub == nil {
+			return true
+		}
+
 		kList = append(kList, sub)
 
 	}
@@ -739,6 +742,9 @@ func (s *SoExtFollowingWrap) delUniKeyFollowingInfo(sa *SoExtFollowing) bool {
 func (s *SoExtFollowingWrap) insertUniKeyFollowingInfo(sa *SoExtFollowing) bool {
 	if s.dba == nil || sa == nil {
 		return false
+	}
+	if sa.FollowingInfo == nil {
+		return true
 	}
 	pre := ExtFollowingFollowingInfoUniTable
 	sub := sa.FollowingInfo
