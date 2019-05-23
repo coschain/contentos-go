@@ -12,6 +12,7 @@ type opRegistry struct {
 	Wrapper reflect.Type
 	WrapperPtr reflect.Type
 	WrapperField int
+	Meta map[string]interface{}
 }
 
 const (
@@ -68,6 +69,7 @@ func registerOperation(name string, wrapperPtr interface{}, opPtr interface{}) {
 		Wrapper: wrapperType,
 		WrapperPtr: wrapperPtrType,
 		WrapperField: wrapperField,
+		Meta: make(map[string]interface{}),
 	}
 	sRegisteredOps[entry.Type] = entry
 	sRegisteredOpsByWrapper[entry.WrapperPtr] = entry
@@ -109,14 +111,14 @@ func getOperationProp(opPtr interface{}, propGetter func (opRegistry) interface{
 }
 
 func getGenericOperationProp(generic *Operation, propGetter func (opRegistry) interface{}) interface{} {
-	opField := reflect.ValueOf(generic).Elem().Field(sOperationOpField.Index[0])
+	opField := reflect.ValueOf(generic).Elem().Field(sOperationOpField.Index[0]).Elem()
 	if entry, ok := sRegisteredOpsByWrapper[opField.Type()]; ok {
 		return propGetter(entry)
 	}
 	return nil
 }
 
-func getOperationName(opPtr interface{}) string {
+func GetOperationName(opPtr interface{}) string {
 	prop := getOperationProp(opPtr, func(e opRegistry) interface{} {
 		return e.Name
 	})
@@ -126,7 +128,7 @@ func getOperationName(opPtr interface{}) string {
 	return ""
 }
 
-func getGenericOperationName(generic *Operation) string {
+func GetGenericOperationName(generic *Operation) string {
 	prop := getGenericOperationProp(generic, func(e opRegistry) interface{} {
 		return e.Name
 	})
@@ -136,6 +138,27 @@ func getGenericOperationName(generic *Operation) string {
 	return ""
 }
 
+func RegisterOperationMeta(opPtr interface{}, key string, value interface{}) {
+	if entry, ok := sRegisteredOps[reflect.TypeOf(opPtr)]; ok {
+		entry.Meta[key] = value
+	} else {
+		panic(fmt.Sprintf("unknown operation type '%T'", opPtr))
+	}
+}
+
+func GetOperationMeta(opPtr interface{}, key string) interface{} {
+	if entry, ok := sRegisteredOps[reflect.TypeOf(opPtr)]; ok {
+		return entry.Meta[key]
+	} else {
+		panic(fmt.Sprintf("unknown operation type '%T'", opPtr))
+	}
+}
+
+func GetGenericOperationMeta(generic *Operation, key string) interface{} {
+	return getGenericOperationProp(generic, func(e opRegistry) interface{} {
+		return e.Meta[key]
+	})
+}
 
 func init() {
 	for i := 0; i < sOperationPtrType.NumMethod(); i++ {

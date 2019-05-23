@@ -142,6 +142,60 @@ type UnStakeEvaluator struct {
 	op  *prototype.UnStakeOperation
 }
 
+func init() {
+	RegisterEvaluator((*prototype.AccountCreateOperation)(nil), func(ctx *ApplyContext, op prototype.BaseOperation) BaseEvaluator {
+		return &AccountCreateEvaluator {ctx: ctx, op: op.(*prototype.AccountCreateOperation)}
+	})
+	RegisterEvaluator((*prototype.TransferOperation)(nil), func(ctx *ApplyContext, op prototype.BaseOperation) BaseEvaluator {
+		return &TransferEvaluator {ctx: ctx, op: op.(*prototype.TransferOperation)}
+	})
+	RegisterEvaluator((*prototype.BpRegisterOperation)(nil), func(ctx *ApplyContext, op prototype.BaseOperation) BaseEvaluator {
+		return &BpRegisterEvaluator {ctx: ctx, op: op.(*prototype.BpRegisterOperation)}
+	})
+	RegisterEvaluator((*prototype.BpUnregisterOperation)(nil), func(ctx *ApplyContext, op prototype.BaseOperation) BaseEvaluator {
+		return &BpUnregisterEvaluator {ctx: ctx, op: op.(*prototype.BpUnregisterOperation)}
+	})
+	RegisterEvaluator((*prototype.BpVoteOperation)(nil), func(ctx *ApplyContext, op prototype.BaseOperation) BaseEvaluator {
+		return &BpVoteEvaluator {ctx: ctx, op: op.(*prototype.BpVoteOperation)}
+	})
+	RegisterEvaluator((*prototype.PostOperation)(nil), func(ctx *ApplyContext, op prototype.BaseOperation) BaseEvaluator {
+		return &PostEvaluator {ctx: ctx, op: op.(*prototype.PostOperation)}
+	})
+	RegisterEvaluator((*prototype.ReplyOperation)(nil), func(ctx *ApplyContext, op prototype.BaseOperation) BaseEvaluator {
+		return &ReplyEvaluator {ctx: ctx, op: op.(*prototype.ReplyOperation)}
+	})
+	RegisterEvaluator((*prototype.FollowOperation)(nil), func(ctx *ApplyContext, op prototype.BaseOperation) BaseEvaluator {
+		return &FollowEvaluator {ctx: ctx, op: op.(*prototype.FollowOperation)}
+	})
+	RegisterEvaluator((*prototype.VoteOperation)(nil), func(ctx *ApplyContext, op prototype.BaseOperation) BaseEvaluator {
+		return &VoteEvaluator {ctx: ctx, op: op.(*prototype.VoteOperation)}
+	})
+	RegisterEvaluator((*prototype.TransferToVestingOperation)(nil), func(ctx *ApplyContext, op prototype.BaseOperation) BaseEvaluator {
+		return &TransferToVestingEvaluator {ctx: ctx, op: op.(*prototype.TransferToVestingOperation)}
+	})
+	RegisterEvaluator((*prototype.ContractDeployOperation)(nil), func(ctx *ApplyContext, op prototype.BaseOperation) BaseEvaluator {
+		return &ContractDeployEvaluator {ctx: ctx, op: op.(*prototype.ContractDeployOperation)}
+	})
+	RegisterEvaluator((*prototype.ContractApplyOperation)(nil), func(ctx *ApplyContext, op prototype.BaseOperation) BaseEvaluator {
+		return &ContractApplyEvaluator {ctx: ctx, op: op.(*prototype.ContractApplyOperation)}
+	})
+	RegisterEvaluator((*prototype.ReportOperation)(nil), func(ctx *ApplyContext, op prototype.BaseOperation) BaseEvaluator {
+		return &ReportEvaluator {ctx: ctx, op: op.(*prototype.ReportOperation)}
+	})
+	RegisterEvaluator((*prototype.ConvertVestingOperation)(nil), func(ctx *ApplyContext, op prototype.BaseOperation) BaseEvaluator {
+		return &ConvertVestingEvaluator {ctx: ctx, op: op.(*prototype.ConvertVestingOperation)}
+	})
+	RegisterEvaluator((*prototype.StakeOperation)(nil), func(ctx *ApplyContext, op prototype.BaseOperation) BaseEvaluator {
+		return &StakeEvaluator {ctx: ctx, op: op.(*prototype.StakeOperation)}
+	})
+	RegisterEvaluator((*prototype.UnStakeOperation)(nil), func(ctx *ApplyContext, op prototype.BaseOperation) BaseEvaluator {
+		return &UnStakeEvaluator {ctx: ctx, op: op.(*prototype.UnStakeOperation)}
+	})
+	RegisterEvaluator((*prototype.BpUpdateOperation)(nil), func(ctx *ApplyContext, op prototype.BaseOperation) BaseEvaluator {
+		return &BpUpdateEvaluator {ctx: ctx, op: op.(*prototype.BpUpdateOperation)}
+	})
+}
+
 func (ev *AccountCreateEvaluator) Apply() {
 	op := ev.op
 	ev.ctx.vmInjector.RecordGasFee(op.Creator.Value, constants.CommonOpGas)
