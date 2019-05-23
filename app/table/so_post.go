@@ -1972,7 +1972,7 @@ func (s *SoPostWrap) saveMemKeyWeightedVp(tInfo *SoPost) error {
 	return err
 }
 
-func (s *SoPostWrap) GetWeightedVp() uint64 {
+func (s *SoPostWrap) GetWeightedVp() string {
 	res := true
 	msg := &SoMemPostByWeightedVp{}
 	if s.dba == nil {
@@ -1995,13 +1995,13 @@ func (s *SoPostWrap) GetWeightedVp() uint64 {
 		}
 	}
 	if !res {
-		var tmpValue uint64
+		var tmpValue string
 		return tmpValue
 	}
 	return msg.WeightedVp
 }
 
-func (s *SoPostWrap) MdWeightedVp(p uint64) bool {
+func (s *SoPostWrap) MdWeightedVp(p string) bool {
 	if s.dba == nil {
 		return false
 	}

@@ -832,7 +832,7 @@ func (s *SoVoteWrap) saveMemKeyWeightedVp(tInfo *SoVote) error {
 	return err
 }
 
-func (s *SoVoteWrap) GetWeightedVp() uint64 {
+func (s *SoVoteWrap) GetWeightedVp() string {
 	res := true
 	msg := &SoMemVoteByWeightedVp{}
 	if s.dba == nil {
@@ -855,13 +855,13 @@ func (s *SoVoteWrap) GetWeightedVp() uint64 {
 		}
 	}
 	if !res {
-		var tmpValue uint64
+		var tmpValue string
 		return tmpValue
 	}
 	return msg.WeightedVp
 }
 
-func (s *SoVoteWrap) MdWeightedVp(p uint64) bool {
+func (s *SoVoteWrap) MdWeightedVp(p string) bool {
 	if s.dba == nil {
 		return false
 	}

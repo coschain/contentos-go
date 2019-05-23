@@ -1005,7 +1005,7 @@ func (as *APIService) fetchPostInfoResponseById(postId uint64,isNeedLock bool) *
 
 	if pWrap != nil && pWrap.CheckExist() {
 		var globalRewards uint64
-		var globalWeightedVp uint64
+		var globalWeightedVp string
 		if pWrap.GetParentId() == 0 {
 			globalRewards = props.PostRewards.Value
 			globalWeightedVp = props.PostWeightedVps
