@@ -1071,6 +1071,9 @@ func (c *TrxPool) CalculateUserMaxStamina(db iservices.IDatabaseRW,name string) 
 func (c *TrxPool) CheckNetForRPC(name string, db iservices.IDatabaseRW, sizeInBytes uint64) (bool,uint64,uint64) {
 	netUse := sizeInBytes * uint64(float64(constants.NetConsumePointNum)/float64(constants.NetConsumePointDen))
 	accountWrap := table.NewSoAccountWrap(db, &prototype.AccountName{Value:name})
+	if !accountWrap.CheckExist() {
+		return false,0,0
+	}
 	maxStamina := c.calculateUserMaxStamina(db,name)
 	dgpWraper := table.NewSoGlobalWrap(db, &constants.GlobalId)
 	freeLeft := c.resourceLimiter.GetFreeLeft(dgpWraper.GetProps().GetStaminaFree(),accountWrap.GetStaminaFree(), accountWrap.GetStaminaFreeUseBlock(), c.GetProps().HeadBlockNumber)
