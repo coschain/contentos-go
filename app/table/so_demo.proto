@@ -17,6 +17,7 @@ message so_demo {
     string                        content          =      7;
     repeated                      string                      taglist          =      8;
     prototype.account_name        nick_name        =      9;
+    prototype.time_point_sec      regist_time        =      10;
       
 }
 

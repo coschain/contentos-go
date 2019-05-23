@@ -55,6 +55,7 @@ func main() {
 		tInfo.ReplayCount = 100
 		tInfo.PostTime = creTimeSecondPoint(20120401)
 		tInfo.NickName = prototype.NewAccountName("jack")
+		tInfo.RegistTime = prototype.NewTimePointSec(20120301)
 	})
 	if err != nil {
 		fmt.Printf("create new table of Demo fail,the error is %s \n",err)
@@ -170,6 +171,15 @@ func main() {
 
 	fmt.Printf("current nickName is %v \n", wrap.GetNickName().Value)
 
+	//*****support modify filed to nil if it's not sort or unique field*****
+	err = wrap.Md(func(tInfo *table.SoDemo) {
+		tInfo.RegistTime = nil
+	})
+	if err != nil {
+		fmt.Printf("modify RegistTime fail, the error is %v \n", err)
+	}
+
+	fmt.Printf("current registTime is %v after modify \n", wrap.GetRegistTime())
 	//modify single field content
 	cMdRes := wrap.Md(func(tInfo *table.SoDemo) {
 		tInfo.Content = "test md the content"

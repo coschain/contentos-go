@@ -241,6 +241,10 @@ func (s *SoDemoWrap) getModifiedFields(oriTable *SoDemo, curTable *SoDemo) ([]st
 		list = append(list, "PostTime")
 	}
 
+	if !reflect.DeepEqual(oriTable.RegistTime, curTable.RegistTime) {
+		list = append(list, "RegistTime")
+	}
+
 	if !reflect.DeepEqual(oriTable.ReplayCount, curTable.ReplayCount) {
 		list = append(list, "ReplayCount")
 	}
@@ -347,6 +351,23 @@ func (s *SoDemoWrap) handleFieldMd(t FieldMdHandleType, so *SoDemo, fSli []strin
 				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
 			} else if t == FieldMdHandleTypeInsert {
 				res = s.mdFieldPostTime(so.PostTime, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "RegistTime" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldRegistTime(so.RegistTime, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldRegistTime(so.RegistTime, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldRegistTime(so.RegistTime, false, false, true, so)
 				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
 			}
 			if !res {
@@ -1267,6 +1288,88 @@ func (s *SoDemoWrap) insertFieldPostTime(so *SoDemo) bool {
 }
 
 func (s *SoDemoWrap) checkPostTimeIsMetMdCondition(p *prototype.TimePointSec) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	return true
+}
+
+func (s *SoDemoWrap) GetRegistTime() *prototype.TimePointSec {
+	res := true
+	msg := &SoDemo{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMainKey()
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.RegistTime
+			}
+		}
+	}
+	if !res {
+		return nil
+
+	}
+	return msg.RegistTime
+}
+
+func (s *SoDemoWrap) mdFieldRegistTime(p *prototype.TimePointSec, isCheck bool, isDel bool, isInsert bool,
+	so *SoDemo) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if isCheck {
+		res := s.checkRegistTimeIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
+
+	if isDel {
+		res := s.delFieldRegistTime(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldRegistTime(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoDemoWrap) delFieldRegistTime(so *SoDemo) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	return true
+}
+
+func (s *SoDemoWrap) insertFieldRegistTime(so *SoDemo) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	return true
+}
+
+func (s *SoDemoWrap) checkRegistTimeIsMetMdCondition(p *prototype.TimePointSec) bool {
 	if s.dba == nil {
 		return false
 	}
