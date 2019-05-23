@@ -1,0 +1,35 @@
+
+syntax = "proto3";
+
+package table;
+
+option go_package = "github.com/coschain/contentos-go/app/table";
+
+import "prototype/multi_id.proto";
+
+message so_contractData {
+	prototype.contract_data_id   id        =      1;
+    bytes                        key       =      2;
+    bytes                        value     =      3;
+      
+}
+
+
+message so_mem_contractData_by_id {
+	prototype.contract_data_id	id    = 1;
+}
+
+
+message so_mem_contractData_by_key {
+	bytes                     	key   = 1;
+}
+
+
+message so_mem_contractData_by_value {
+	bytes                     	value = 1;
+}
+
+
+message so_unique_contractData_by_id {
+	prototype.contract_data_id	id    = 1;
+}
