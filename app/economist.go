@@ -36,6 +36,13 @@ type Economist struct {
 //	}
 //}
 
+func ISqrt(n string) *big.Int {
+	bigInt := new(big.Int)
+	value, _ := bigInt.SetString(n, 10)
+	sqrt := bigInt.Sqrt(value)
+	return sqrt
+}
+
 func NewEconomist(db iservices.IDatabaseService, noticer EventBus.Bus, singleId *int32, log *logrus.Logger) *Economist {
 	return &Economist{db: db, noticer:noticer, singleId: singleId, log: log}
 }
@@ -108,6 +115,9 @@ func (e *Economist) Mint(trxObserver iservices.ITrxObserver) {
 		})
 		// reload props
 		globalProps, err = e.GetProps()
+		if err != nil {
+			panic("Mint failed when getprops")
+		}
 	}
 	blockCurrent := e.CalculatePerBlockBudget(annualBudget)
 	// prevent deficit
@@ -201,20 +211,20 @@ func (e *Economist) Do(trxObserver iservices.ITrxObserver) {
 	var postVpAccumulator, replyVpAccumulator big.Int
 	// posts accumulate by linear, replies by sqrt
 	for _, pid := range pids {
-		var weightedVp big.Int
 		post := table.NewSoPostWrap(e.db, pid)
 		if post.GetParentId() == 0 {
 			posts = append(posts, post)
 			//postVpAccumulator += post.GetWeightedVp()
-			weightedVp.SetString(post.GetWeightedVp(), 10)
-			postVpAccumulator.Add(&postVpAccumulator, &weightedVp)
+			//weightedVp.SetString(post.GetWeightedVp(), 10)
+			weightedVp := ISqrt(post.GetWeightedVp())
+			postVpAccumulator.Add(&postVpAccumulator, weightedVp)
 		} else {
 			replies = append(replies, post)
 			//replyVpAccumulator += uint64(math.Ceil(math.Sqrt(float64(post.GetWeightedVp()))))
 			//replyVpAccumulator += ISqrt(post.GetWeightedVp())
-			weightedVp.SetString(post.GetWeightedVp(), 10)
-			//replyVpAccumulator += post.GetWeightedVp()
-			replyVpAccumulator.Add(&replyVpAccumulator, &weightedVp)
+			//weightedVp.SetString(post.GetWeightedVp(), 10)
+			weightVp := ISqrt(post.GetWeightedVp())
+			replyVpAccumulator.Add(&replyVpAccumulator, weightVp)
 		}
 	}
 	var globalPostWeightedVps, globalReplyWeightedVps, postWeightedVps, replyWeightedVps big.Int
@@ -316,9 +326,10 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 	//var vpAccumulator uint64 = 0
 	var vpAccumulator big.Int
 	for _, post := range posts {
-		vp, _ := new(big.Int).SetString(post.GetWeightedVp(), 10)
-		vpAccumulator.Add(&vpAccumulator, vp)
+		//vp, _ := new(big.Int).SetString(post.GetWeightedVp(), 10)
+		//vpAccumulator.Add(&vpAccumulator, vp)
 		//vpAccumulator += post.GetWeightedVp()
+		vpAccumulator.Add(&vpAccumulator, ISqrt(post.GetWeightedVp()))
 	}
 	bigBlockRewards := new(big.Int).SetUint64(blockReward)
 	bigBlockDappReward := new(big.Int).SetUint64(blockDappReward)
@@ -337,8 +348,9 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 			//beneficiaryReward = post.GetWeightedVp() * blockDappReward / vpAccumulator
 			//spentPostReward += reward
 			//spentDappReward += beneficiaryReward
-			weightedVp := post.GetWeightedVp()
-			bigWeightedVp, _ := new(big.Int).SetString(weightedVp, 10)
+			//weightedVp := post.GetWeightedVp()
+			//bigWeightedVp, _ := new(big.Int).SetString(weightedVp, 10)
+			bigWeightedVp := ISqrt(post.GetWeightedVp())
 			bigRewardMul := new(big.Int).Mul(bigWeightedVp,  bigBlockRewards)
 			reward = new(big.Int).Div(bigRewardMul, &vpAccumulator).Uint64()
 			bigDappRewardMul := new(big.Int).Mul(bigWeightedVp, bigBlockDappReward)
@@ -422,8 +434,9 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 	for _, reply := range replies {
 		//vpAccumulator += ISqrt(reply.GetWeightedVp())
 		//vpAccumulator += reply.GetWeightedVp()
-		vp, _ := new(big.Int).SetString(reply.GetWeightedVp(), 10)
-		vpAccumulator.Add(&vpAccumulator, vp)
+		//vp, _ := new(big.Int).SetString(reply.GetWeightedVp(), 10)
+		//vpAccumulator.Add(&vpAccumulator, vp)
+		vpAccumulator.Add(&vpAccumulator, ISqrt(reply.GetWeightedVp()))
 	}
 	bigBlockRewards := new(big.Int).SetUint64(blockReward)
 	bigBlockDappReward := new(big.Int).SetUint64(blockDappReward)
@@ -440,8 +453,9 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 		if vpAccumulator.Cmp(new(big.Int).SetInt64(0)) > 0 {
 			//bigVpAccumulator := new(big.Int).SetUint64(vpAccumulator)
 			//weightedVp := ISqrt(reply.GetWeightedVp())
-			weightedVp := reply.GetWeightedVp()
-			bigWeightedVp, _ := new(big.Int).SetString(weightedVp, 10)
+			//weightedVp := reply.GetWeightedVp()
+			//bigWeightedVp, _ := new(big.Int).SetString(weightedVp, 10)
+			bigWeightedVp := ISqrt(reply.GetWeightedVp())
 			bigRewardMul := new(big.Int).Mul(bigWeightedVp,  bigBlockRewards)
 			reward = new(big.Int).Div(bigRewardMul, &vpAccumulator).Uint64()
 			bigDappRewardMul := new(big.Int).Mul(bigWeightedVp, bigBlockDappReward)

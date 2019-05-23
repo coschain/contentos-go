@@ -360,13 +360,15 @@ func (ev *VoteEvaluator) Apply() {
 	// after constants.PERCENT replaced by 1000, max value is 10000000000 * 1000000 * 1000 / 30
 	// 10000000000 * 1000000 * 1000 < 18446744073709552046 but 10000000000 * 1000000 > 9223372036854775807
 	// so can not using int64 here
-	weightedVp := vesting * uint64(usedVp)
+	//weightedVp := vesting * uint64(usedVp)
+	weightedVp := new(big.Int).SetUint64(vesting)
+	weightedVp.Mul(weightedVp, new(big.Int).SetUint64(uint64(usedVp)))
 	if postWrap.GetCashoutBlockNum() > ev.ctx.control.GetProps().HeadBlockNumber {
 		lastVp := postWrap.GetWeightedVp()
-		var lvp, wvp, tvp big.Int
-		wvp.SetUint64(weightedVp)
+		var lvp, tvp big.Int
+		//wvp.SetUint64(weightedVp)
 		lvp.SetString(lastVp, 10)
-		tvp.Add(&wvp, &lvp)
+		tvp.Add(weightedVp, &lvp)
 		//votePower := tvp.
 		// add new vp into global
 		//ev.ctx.control.AddWeightedVP(weightedVp)
@@ -377,7 +379,7 @@ func (ev *VoteEvaluator) Apply() {
 			t.Voter = &voterId
 			t.PostId = op.Idx
 			t.Upvote = true
-			t.WeightedVp = weightedVp
+			t.WeightedVp = weightedVp.String()
 			t.VoteTime = ev.ctx.control.HeadBlockTime()
 		}), "create voter object error")
 

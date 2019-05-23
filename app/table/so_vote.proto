@@ -12,7 +12,7 @@ message so_vote {
 	prototype.voter_id          				   voter                   =      1;
     prototype.time_point_sec           vote_time               =      2;
     uint64                             post_id                 =      3;
-    uint64                              weighted_vp            =      4;
+    string                              weighted_vp            =      4;
     bool                                upvote                 =      5;
       
 }
@@ -34,7 +34,7 @@ message so_mem_vote_by_post_id {
 
 
 message so_mem_vote_by_weighted_vp {
-	uint64                           	weighted_vp        = 1;
+	string                           	weighted_vp        = 1;
 }
 
 

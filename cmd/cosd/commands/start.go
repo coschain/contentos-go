@@ -153,6 +153,18 @@ func RegisterService(app *node.Node, cfg node.Config) {
 	_ = app.Register(plugins.TrxServiceName, func(ctx *node.ServiceContext) (node.Service, error) {
 		return plugins.NewTrxSerVice(ctx, app.Log)
 	})
+
+	if trxSqlFlag {
+		_ = app.Register(plugins.TrxMysqlServiceName, func(ctx *node.ServiceContext) (service node.Service, e error) {
+			return plugins.NewTrxMysqlSerVice(ctx, cfg.Database, app.Log)
+		})
+	}
+
+	if stateLogFlag {
+		_ = app.Register(plugins.StateLogServiceName, func(ctx *node.ServiceContext) (service node.Service, e error) {
+			return plugins.NewStateLogService(ctx, cfg.Database, app.Log)
+		})
+	}
 	
 	if dailyStatFlag {
 		_ = app.Register(iservices.DailyStatisticServiceName, func(ctx *node.ServiceContext) (node.Service, error) {
@@ -190,15 +202,5 @@ func RegisterService(app *node.Node, cfg node.Config) {
 		return myhttp.NewMyHttp(ctx, app.Log)
 	})
 
-	if trxSqlFlag {
-		_ = app.Register(plugins.TrxMysqlServiceName, func(ctx *node.ServiceContext) (service node.Service, e error) {
-			return plugins.NewTrxMysqlSerVice(ctx, cfg.Database, app.Log)
-		})
-	}
 
-	if stateLogFlag {
-		_ = app.Register(plugins.StateLogServiceName, func(ctx *node.ServiceContext) (service node.Service, e error) {
-			return plugins.NewStateLogService(ctx, cfg.Database, app.Log)
-		})
-	}
 }
