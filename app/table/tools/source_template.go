@@ -207,9 +207,10 @@ func (s *So{{.ClsName}}Wrap) Md(f func(tInfo *So{{.ClsName}})) error {
 
     //the main key is not support modify
     if !reflect.DeepEqual(curTable.{{$.MainKeyName}}, oriTable.{{$.MainKeyName}}) {
-       curTable.{{$.MainKeyName}} = oriTable.{{$.MainKeyName}}
+       return errors.New("primary key does not support modification")
     }
 
+ 
     fieldSli,err := s.getModifiedFields(oriTable, &curTable)
     if err != nil {
 		return err
@@ -218,6 +219,13 @@ func (s *So{{.ClsName}}Wrap) Md(f func(tInfo *So{{.ClsName}})) error {
     if fieldSli == nil || len(fieldSli) < 1 {
 		return nil
 	}
+
+    //check whether modify sort and unique field to nil
+    err = s.checkSortAndUniFieldValidity(&curTable, fieldSli)
+    if err != nil {
+       return err
+    }
+
 
     //check unique 
     err = s.handleFieldMd(FieldMdHandleTypeCheck, &curTable, fieldSli)
@@ -247,6 +255,40 @@ func (s *So{{.ClsName}}Wrap) Md(f func(tInfo *So{{.ClsName}})) error {
 
 }
 
+
+func (s *So{{$.ClsName}}Wrap) checkSortAndUniFieldValidity(curTable *So{{$.ClsName}}, fieldSli []string) error {
+     if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
+        for _,fName := range fieldSli {
+            if len(fName) > 0 {
+             {{range $k1, $v1 := .SortList}}
+            {{if ne $v1.PName $.MainKeyName}}
+             {{$baseType := (DetectBaseType $v1.PType) -}}
+	         {{if not $baseType -}} 
+             if fName == "{{$v1.PName}}" &&  curTable.{{$v1.PName}} == nil {
+                 return errors.New("sort field {{$v1.PName}} can't be modified to nil")
+             }
+             {{end}}
+
+            {{end}}
+            {{end}}
+
+            {{range $k2, $v2 := .UniqueFieldMap}}
+            {{if ne $v2.PName $.MainKeyName}}
+
+              {{$baseType := (DetectBaseType $v2.PType) -}}
+	          {{if not $baseType -}} 
+              if fName == "{{$v2.PName}}" && curTable.{{$v2.PName}} == nil{
+                 return errors.New("unique field {{$v2.PName}} can't be modified to nil")
+              }
+              {{end}}
+
+            {{end}}
+            {{end}}
+            }
+        }
+     }
+     return nil
+}
 
 //Get all the modified fields in the table
 func (s *So{{$.ClsName}}Wrap) getModifiedFields (oriTable *So{{$.ClsName}}, curTable *So{{$.ClsName}}) ([]string, error) {
@@ -328,12 +370,6 @@ func (s *So{{$.ClsName}}Wrap) delSortKey{{$v1.PName}}(sa *So{{$.ClsName}}) bool 
        val.{{UperFirstChar $.MainKeyName}} = sa.{{UperFirstChar $.MainKeyName}}
        {{end -}}
     }
-	{{$baseType := (DetectBaseType $v1.PType) -}}
-    {{- if not $baseType -}}
-    if val.{{$v1.PName}} == nil {
-       return true
-    }
-    {{ end -}}
     subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -347,12 +383,6 @@ func (s *So{{$.ClsName}}Wrap) insertSortKey{{$v1.PName}}(sa *So{{$.ClsName}}) bo
     if s.dba == nil || sa == nil {
        return false
     }
-    {{$baseType := (DetectBaseType $v1.PType) -}}
-    {{- if not $baseType -}}
-    if sa.{{$v1.PName}} == nil {
-       return true
-    }
-    {{ end -}}
 	val := SoList{{$.ClsName}}By{{$v1.PName}}{}
     {{if ne $.MainKeyName $v1.PName -}}
    	val.{{UperFirstChar $.MainKeyName}} = sa.{{UperFirstChar $.MainKeyName}}
@@ -928,7 +958,7 @@ func (s *So{{$.ClsName}}Wrap) delUniKey{{$k}}(sa *So{{$.ClsName}}) bool {
        {{ $baseType := (DetectBaseType $v.PType) -}}
        {{if not $baseType -}} 
        if sa.{{UperFirstChar $k}} == nil {
-          return true
+          return false
        }
        {{end}}   
        sub := sa.{{UperFirstChar $k}}
@@ -956,12 +986,6 @@ func (s *So{{$.ClsName}}Wrap) insertUniKey{{$k}}(sa *So{{$.ClsName}}) bool {
     if s.dba == nil || sa == nil{
        return false
     }
-    {{$baseType := (DetectBaseType $v.PType) -}}
-    {{- if not $baseType -}}
-    if sa.{{$v.PName}} == nil {
-       return true
-    }
-    {{ end -}}    
 
     pre := {{$.ClsName}}{{$k}}UniTable
     sub := sa.{{UperFirstChar $k}}

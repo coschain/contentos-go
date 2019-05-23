@@ -141,7 +141,7 @@ func (s *SoExtFollowerWrap) Md(f func(tInfo *SoExtFollower)) error {
 
 	//the main key is not support modify
 	if !reflect.DeepEqual(curTable.FollowerInfo, oriTable.FollowerInfo) {
-		curTable.FollowerInfo = oriTable.FollowerInfo
+		return errors.New("primary key does not support modification")
 	}
 
 	fieldSli, err := s.getModifiedFields(oriTable, &curTable)
@@ -151,6 +151,12 @@ func (s *SoExtFollowerWrap) Md(f func(tInfo *SoExtFollower)) error {
 
 	if fieldSli == nil || len(fieldSli) < 1 {
 		return nil
+	}
+
+	//check whether modify sort and unique field to nil
+	err = s.checkSortAndUniFieldValidity(&curTable, fieldSli)
+	if err != nil {
+		return err
 	}
 
 	//check unique
@@ -179,6 +185,21 @@ func (s *SoExtFollowerWrap) Md(f func(tInfo *SoExtFollower)) error {
 
 	return nil
 
+}
+
+func (s *SoExtFollowerWrap) checkSortAndUniFieldValidity(curTable *SoExtFollower, fieldSli []string) error {
+	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
+		for _, fName := range fieldSli {
+			if len(fName) > 0 {
+
+				if fName == "FollowerCreatedOrder" && curTable.FollowerCreatedOrder == nil {
+					return errors.New("sort field FollowerCreatedOrder can't be modified to nil")
+				}
+
+			}
+		}
+	}
+	return nil
 }
 
 //Get all the modified fields in the table
@@ -245,9 +266,6 @@ func (s *SoExtFollowerWrap) delSortKeyFollowerCreatedOrder(sa *SoExtFollower) bo
 		val.FollowerCreatedOrder = sa.FollowerCreatedOrder
 		val.FollowerInfo = sa.FollowerInfo
 	}
-	if val.FollowerCreatedOrder == nil {
-		return true
-	}
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -259,9 +277,6 @@ func (s *SoExtFollowerWrap) delSortKeyFollowerCreatedOrder(sa *SoExtFollower) bo
 func (s *SoExtFollowerWrap) insertSortKeyFollowerCreatedOrder(sa *SoExtFollower) bool {
 	if s.dba == nil || sa == nil {
 		return false
-	}
-	if sa.FollowerCreatedOrder == nil {
-		return true
 	}
 	val := SoListExtFollowerByFollowerCreatedOrder{}
 	val.FollowerInfo = sa.FollowerInfo
@@ -718,7 +733,7 @@ func (s *SoExtFollowerWrap) delUniKeyFollowerInfo(sa *SoExtFollower) bool {
 	kList := []interface{}{pre}
 	if sa != nil {
 		if sa.FollowerInfo == nil {
-			return true
+			return false
 		}
 
 		sub := sa.FollowerInfo
@@ -743,9 +758,7 @@ func (s *SoExtFollowerWrap) insertUniKeyFollowerInfo(sa *SoExtFollower) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
-	if sa.FollowerInfo == nil {
-		return true
-	}
+
 	pre := ExtFollowerFollowerInfoUniTable
 	sub := sa.FollowerInfo
 	kList := []interface{}{pre, sub}

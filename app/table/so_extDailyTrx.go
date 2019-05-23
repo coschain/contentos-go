@@ -142,7 +142,7 @@ func (s *SoExtDailyTrxWrap) Md(f func(tInfo *SoExtDailyTrx)) error {
 
 	//the main key is not support modify
 	if !reflect.DeepEqual(curTable.Date, oriTable.Date) {
-		curTable.Date = oriTable.Date
+		return errors.New("primary key does not support modification")
 	}
 
 	fieldSli, err := s.getModifiedFields(oriTable, &curTable)
@@ -152,6 +152,12 @@ func (s *SoExtDailyTrxWrap) Md(f func(tInfo *SoExtDailyTrx)) error {
 
 	if fieldSli == nil || len(fieldSli) < 1 {
 		return nil
+	}
+
+	//check whether modify sort and unique field to nil
+	err = s.checkSortAndUniFieldValidity(&curTable, fieldSli)
+	if err != nil {
+		return err
 	}
 
 	//check unique
@@ -180,6 +186,17 @@ func (s *SoExtDailyTrxWrap) Md(f func(tInfo *SoExtDailyTrx)) error {
 
 	return nil
 
+}
+
+func (s *SoExtDailyTrxWrap) checkSortAndUniFieldValidity(curTable *SoExtDailyTrx, fieldSli []string) error {
+	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
+		for _, fName := range fieldSli {
+			if len(fName) > 0 {
+
+			}
+		}
+	}
+	return nil
 }
 
 //Get all the modified fields in the table
@@ -243,9 +260,6 @@ func (s *SoExtDailyTrxWrap) delSortKeyDate(sa *SoExtDailyTrx) bool {
 	} else {
 		val.Date = sa.Date
 	}
-	if val.Date == nil {
-		return true
-	}
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -257,9 +271,6 @@ func (s *SoExtDailyTrxWrap) delSortKeyDate(sa *SoExtDailyTrx) bool {
 func (s *SoExtDailyTrxWrap) insertSortKeyDate(sa *SoExtDailyTrx) bool {
 	if s.dba == nil || sa == nil {
 		return false
-	}
-	if sa.Date == nil {
-		return true
 	}
 	val := SoListExtDailyTrxByDate{}
 	val.Date = sa.Date
@@ -862,7 +873,7 @@ func (s *SoExtDailyTrxWrap) delUniKeyDate(sa *SoExtDailyTrx) bool {
 	kList := []interface{}{pre}
 	if sa != nil {
 		if sa.Date == nil {
-			return true
+			return false
 		}
 
 		sub := sa.Date
@@ -887,9 +898,7 @@ func (s *SoExtDailyTrxWrap) insertUniKeyDate(sa *SoExtDailyTrx) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
-	if sa.Date == nil {
-		return true
-	}
+
 	pre := ExtDailyTrxDateUniTable
 	sub := sa.Date
 	kList := []interface{}{pre, sub}

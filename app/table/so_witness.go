@@ -142,7 +142,7 @@ func (s *SoWitnessWrap) Md(f func(tInfo *SoWitness)) error {
 
 	//the main key is not support modify
 	if !reflect.DeepEqual(curTable.Owner, oriTable.Owner) {
-		curTable.Owner = oriTable.Owner
+		return errors.New("primary key does not support modification")
 	}
 
 	fieldSli, err := s.getModifiedFields(oriTable, &curTable)
@@ -152,6 +152,12 @@ func (s *SoWitnessWrap) Md(f func(tInfo *SoWitness)) error {
 
 	if fieldSli == nil || len(fieldSli) < 1 {
 		return nil
+	}
+
+	//check whether modify sort and unique field to nil
+	err = s.checkSortAndUniFieldValidity(&curTable, fieldSli)
+	if err != nil {
+		return err
 	}
 
 	//check unique
@@ -180,6 +186,17 @@ func (s *SoWitnessWrap) Md(f func(tInfo *SoWitness)) error {
 
 	return nil
 
+}
+
+func (s *SoWitnessWrap) checkSortAndUniFieldValidity(curTable *SoWitness, fieldSli []string) error {
+	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
+		for _, fName := range fieldSli {
+			if len(fName) > 0 {
+
+			}
+		}
+	}
+	return nil
 }
 
 //Get all the modified fields in the table
@@ -495,9 +512,6 @@ func (s *SoWitnessWrap) delSortKeyOwner(sa *SoWitness) bool {
 	} else {
 		val.Owner = sa.Owner
 	}
-	if val.Owner == nil {
-		return true
-	}
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -509,9 +523,6 @@ func (s *SoWitnessWrap) delSortKeyOwner(sa *SoWitness) bool {
 func (s *SoWitnessWrap) insertSortKeyOwner(sa *SoWitness) bool {
 	if s.dba == nil || sa == nil {
 		return false
-	}
-	if sa.Owner == nil {
-		return true
 	}
 	val := SoListWitnessByOwner{}
 	val.Owner = sa.Owner
@@ -2092,7 +2103,7 @@ func (s *SoWitnessWrap) delUniKeyOwner(sa *SoWitness) bool {
 	kList := []interface{}{pre}
 	if sa != nil {
 		if sa.Owner == nil {
-			return true
+			return false
 		}
 
 		sub := sa.Owner
@@ -2117,9 +2128,7 @@ func (s *SoWitnessWrap) insertUniKeyOwner(sa *SoWitness) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
-	if sa.Owner == nil {
-		return true
-	}
+
 	pre := WitnessOwnerUniTable
 	sub := sa.Owner
 	kList := []interface{}{pre, sub}

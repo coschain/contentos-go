@@ -144,7 +144,7 @@ func (s *SoExtTrxWrap) Md(f func(tInfo *SoExtTrx)) error {
 
 	//the main key is not support modify
 	if !reflect.DeepEqual(curTable.TrxId, oriTable.TrxId) {
-		curTable.TrxId = oriTable.TrxId
+		return errors.New("primary key does not support modification")
 	}
 
 	fieldSli, err := s.getModifiedFields(oriTable, &curTable)
@@ -154,6 +154,12 @@ func (s *SoExtTrxWrap) Md(f func(tInfo *SoExtTrx)) error {
 
 	if fieldSli == nil || len(fieldSli) < 1 {
 		return nil
+	}
+
+	//check whether modify sort and unique field to nil
+	err = s.checkSortAndUniFieldValidity(&curTable, fieldSli)
+	if err != nil {
+		return err
 	}
 
 	//check unique
@@ -182,6 +188,25 @@ func (s *SoExtTrxWrap) Md(f func(tInfo *SoExtTrx)) error {
 
 	return nil
 
+}
+
+func (s *SoExtTrxWrap) checkSortAndUniFieldValidity(curTable *SoExtTrx, fieldSli []string) error {
+	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
+		for _, fName := range fieldSli {
+			if len(fName) > 0 {
+
+				if fName == "BlockTime" && curTable.BlockTime == nil {
+					return errors.New("sort field BlockTime can't be modified to nil")
+				}
+
+				if fName == "TrxCreateOrder" && curTable.TrxCreateOrder == nil {
+					return errors.New("sort field TrxCreateOrder can't be modified to nil")
+				}
+
+			}
+		}
+	}
+	return nil
 }
 
 //Get all the modified fields in the table
@@ -329,9 +354,6 @@ func (s *SoExtTrxWrap) delSortKeyTrxId(sa *SoExtTrx) bool {
 	} else {
 		val.TrxId = sa.TrxId
 	}
-	if val.TrxId == nil {
-		return true
-	}
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -343,9 +365,6 @@ func (s *SoExtTrxWrap) delSortKeyTrxId(sa *SoExtTrx) bool {
 func (s *SoExtTrxWrap) insertSortKeyTrxId(sa *SoExtTrx) bool {
 	if s.dba == nil || sa == nil {
 		return false
-	}
-	if sa.TrxId == nil {
-		return true
 	}
 	val := SoListExtTrxByTrxId{}
 	val.TrxId = sa.TrxId
@@ -414,9 +433,6 @@ func (s *SoExtTrxWrap) delSortKeyBlockTime(sa *SoExtTrx) bool {
 		val.BlockTime = sa.BlockTime
 		val.TrxId = sa.TrxId
 	}
-	if val.BlockTime == nil {
-		return true
-	}
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -428,9 +444,6 @@ func (s *SoExtTrxWrap) delSortKeyBlockTime(sa *SoExtTrx) bool {
 func (s *SoExtTrxWrap) insertSortKeyBlockTime(sa *SoExtTrx) bool {
 	if s.dba == nil || sa == nil {
 		return false
-	}
-	if sa.BlockTime == nil {
-		return true
 	}
 	val := SoListExtTrxByBlockTime{}
 	val.TrxId = sa.TrxId
@@ -460,9 +473,6 @@ func (s *SoExtTrxWrap) delSortKeyTrxCreateOrder(sa *SoExtTrx) bool {
 		val.TrxCreateOrder = sa.TrxCreateOrder
 		val.TrxId = sa.TrxId
 	}
-	if val.TrxCreateOrder == nil {
-		return true
-	}
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -474,9 +484,6 @@ func (s *SoExtTrxWrap) delSortKeyTrxCreateOrder(sa *SoExtTrx) bool {
 func (s *SoExtTrxWrap) insertSortKeyTrxCreateOrder(sa *SoExtTrx) bool {
 	if s.dba == nil || sa == nil {
 		return false
-	}
-	if sa.TrxCreateOrder == nil {
-		return true
 	}
 	val := SoListExtTrxByTrxCreateOrder{}
 	val.TrxId = sa.TrxId
@@ -1734,7 +1741,7 @@ func (s *SoExtTrxWrap) delUniKeyTrxId(sa *SoExtTrx) bool {
 	kList := []interface{}{pre}
 	if sa != nil {
 		if sa.TrxId == nil {
-			return true
+			return false
 		}
 
 		sub := sa.TrxId
@@ -1759,9 +1766,7 @@ func (s *SoExtTrxWrap) insertUniKeyTrxId(sa *SoExtTrx) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
-	if sa.TrxId == nil {
-		return true
-	}
+
 	pre := ExtTrxTrxIdUniTable
 	sub := sa.TrxId
 	kList := []interface{}{pre, sub}

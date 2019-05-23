@@ -142,7 +142,7 @@ func (s *SoExtHourTrxWrap) Md(f func(tInfo *SoExtHourTrx)) error {
 
 	//the main key is not support modify
 	if !reflect.DeepEqual(curTable.Hour, oriTable.Hour) {
-		curTable.Hour = oriTable.Hour
+		return errors.New("primary key does not support modification")
 	}
 
 	fieldSli, err := s.getModifiedFields(oriTable, &curTable)
@@ -152,6 +152,12 @@ func (s *SoExtHourTrxWrap) Md(f func(tInfo *SoExtHourTrx)) error {
 
 	if fieldSli == nil || len(fieldSli) < 1 {
 		return nil
+	}
+
+	//check whether modify sort and unique field to nil
+	err = s.checkSortAndUniFieldValidity(&curTable, fieldSli)
+	if err != nil {
+		return err
 	}
 
 	//check unique
@@ -180,6 +186,17 @@ func (s *SoExtHourTrxWrap) Md(f func(tInfo *SoExtHourTrx)) error {
 
 	return nil
 
+}
+
+func (s *SoExtHourTrxWrap) checkSortAndUniFieldValidity(curTable *SoExtHourTrx, fieldSli []string) error {
+	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
+		for _, fName := range fieldSli {
+			if len(fName) > 0 {
+
+			}
+		}
+	}
+	return nil
 }
 
 //Get all the modified fields in the table
@@ -243,9 +260,6 @@ func (s *SoExtHourTrxWrap) delSortKeyHour(sa *SoExtHourTrx) bool {
 	} else {
 		val.Hour = sa.Hour
 	}
-	if val.Hour == nil {
-		return true
-	}
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -257,9 +271,6 @@ func (s *SoExtHourTrxWrap) delSortKeyHour(sa *SoExtHourTrx) bool {
 func (s *SoExtHourTrxWrap) insertSortKeyHour(sa *SoExtHourTrx) bool {
 	if s.dba == nil || sa == nil {
 		return false
-	}
-	if sa.Hour == nil {
-		return true
 	}
 	val := SoListExtHourTrxByHour{}
 	val.Hour = sa.Hour
@@ -862,7 +873,7 @@ func (s *SoExtHourTrxWrap) delUniKeyHour(sa *SoExtHourTrx) bool {
 	kList := []interface{}{pre}
 	if sa != nil {
 		if sa.Hour == nil {
-			return true
+			return false
 		}
 
 		sub := sa.Hour
@@ -887,9 +898,7 @@ func (s *SoExtHourTrxWrap) insertUniKeyHour(sa *SoExtHourTrx) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
-	if sa.Hour == nil {
-		return true
-	}
+
 	pre := ExtHourTrxHourUniTable
 	sub := sa.Hour
 	kList := []interface{}{pre, sub}

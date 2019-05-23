@@ -137,7 +137,7 @@ func (s *SoReportListWrap) Md(f func(tInfo *SoReportList)) error {
 
 	//the main key is not support modify
 	if !reflect.DeepEqual(curTable.Uuid, oriTable.Uuid) {
-		curTable.Uuid = oriTable.Uuid
+		return errors.New("primary key does not support modification")
 	}
 
 	fieldSli, err := s.getModifiedFields(oriTable, &curTable)
@@ -147,6 +147,12 @@ func (s *SoReportListWrap) Md(f func(tInfo *SoReportList)) error {
 
 	if fieldSli == nil || len(fieldSli) < 1 {
 		return nil
+	}
+
+	//check whether modify sort and unique field to nil
+	err = s.checkSortAndUniFieldValidity(&curTable, fieldSli)
+	if err != nil {
+		return err
 	}
 
 	//check unique
@@ -175,6 +181,17 @@ func (s *SoReportListWrap) Md(f func(tInfo *SoReportList)) error {
 
 	return nil
 
+}
+
+func (s *SoReportListWrap) checkSortAndUniFieldValidity(curTable *SoReportList, fieldSli []string) error {
+	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
+		for _, fName := range fieldSli {
+			if len(fName) > 0 {
+
+			}
+		}
+	}
+	return nil
 }
 
 //Get all the modified fields in the table
@@ -929,6 +946,7 @@ func (s *SoReportListWrap) insertUniKeyUuid(sa *SoReportList) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
+
 	pre := ReportListUuidUniTable
 	sub := sa.Uuid
 	kList := []interface{}{pre, sub}

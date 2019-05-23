@@ -139,7 +139,7 @@ func (s *SoPostWrap) Md(f func(tInfo *SoPost)) error {
 
 	//the main key is not support modify
 	if !reflect.DeepEqual(curTable.PostId, oriTable.PostId) {
-		curTable.PostId = oriTable.PostId
+		return errors.New("primary key does not support modification")
 	}
 
 	fieldSli, err := s.getModifiedFields(oriTable, &curTable)
@@ -149,6 +149,12 @@ func (s *SoPostWrap) Md(f func(tInfo *SoPost)) error {
 
 	if fieldSli == nil || len(fieldSli) < 1 {
 		return nil
+	}
+
+	//check whether modify sort and unique field to nil
+	err = s.checkSortAndUniFieldValidity(&curTable, fieldSli)
+	if err != nil {
+		return err
 	}
 
 	//check unique
@@ -177,6 +183,21 @@ func (s *SoPostWrap) Md(f func(tInfo *SoPost)) error {
 
 	return nil
 
+}
+
+func (s *SoPostWrap) checkSortAndUniFieldValidity(curTable *SoPost, fieldSli []string) error {
+	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
+		for _, fName := range fieldSli {
+			if len(fName) > 0 {
+
+				if fName == "Created" && curTable.Created == nil {
+					return errors.New("sort field Created can't be modified to nil")
+				}
+
+			}
+		}
+	}
+	return nil
 }
 
 //Get all the modified fields in the table
@@ -578,9 +599,6 @@ func (s *SoPostWrap) delSortKeyCreated(sa *SoPost) bool {
 		val.Created = sa.Created
 		val.PostId = sa.PostId
 	}
-	if val.Created == nil {
-		return true
-	}
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -592,9 +610,6 @@ func (s *SoPostWrap) delSortKeyCreated(sa *SoPost) bool {
 func (s *SoPostWrap) insertSortKeyCreated(sa *SoPost) bool {
 	if s.dba == nil || sa == nil {
 		return false
-	}
-	if sa.Created == nil {
-		return true
 	}
 	val := SoListPostByCreated{}
 	val.PostId = sa.PostId
@@ -2600,6 +2615,7 @@ func (s *SoPostWrap) insertUniKeyPostId(sa *SoPost) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
+
 	pre := PostPostIdUniTable
 	sub := sa.PostId
 	kList := []interface{}{pre, sub}

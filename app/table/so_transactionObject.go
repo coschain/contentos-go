@@ -141,7 +141,7 @@ func (s *SoTransactionObjectWrap) Md(f func(tInfo *SoTransactionObject)) error {
 
 	//the main key is not support modify
 	if !reflect.DeepEqual(curTable.TrxId, oriTable.TrxId) {
-		curTable.TrxId = oriTable.TrxId
+		return errors.New("primary key does not support modification")
 	}
 
 	fieldSli, err := s.getModifiedFields(oriTable, &curTable)
@@ -151,6 +151,12 @@ func (s *SoTransactionObjectWrap) Md(f func(tInfo *SoTransactionObject)) error {
 
 	if fieldSli == nil || len(fieldSli) < 1 {
 		return nil
+	}
+
+	//check whether modify sort and unique field to nil
+	err = s.checkSortAndUniFieldValidity(&curTable, fieldSli)
+	if err != nil {
+		return err
 	}
 
 	//check unique
@@ -179,6 +185,21 @@ func (s *SoTransactionObjectWrap) Md(f func(tInfo *SoTransactionObject)) error {
 
 	return nil
 
+}
+
+func (s *SoTransactionObjectWrap) checkSortAndUniFieldValidity(curTable *SoTransactionObject, fieldSli []string) error {
+	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
+		for _, fName := range fieldSli {
+			if len(fName) > 0 {
+
+				if fName == "Expiration" && curTable.Expiration == nil {
+					return errors.New("sort field Expiration can't be modified to nil")
+				}
+
+			}
+		}
+	}
+	return nil
 }
 
 //Get all the modified fields in the table
@@ -245,9 +266,6 @@ func (s *SoTransactionObjectWrap) delSortKeyExpiration(sa *SoTransactionObject) 
 		val.Expiration = sa.Expiration
 		val.TrxId = sa.TrxId
 	}
-	if val.Expiration == nil {
-		return true
-	}
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -259,9 +277,6 @@ func (s *SoTransactionObjectWrap) delSortKeyExpiration(sa *SoTransactionObject) 
 func (s *SoTransactionObjectWrap) insertSortKeyExpiration(sa *SoTransactionObject) bool {
 	if s.dba == nil || sa == nil {
 		return false
-	}
-	if sa.Expiration == nil {
-		return true
 	}
 	val := SoListTransactionObjectByExpiration{}
 	val.TrxId = sa.TrxId
@@ -718,7 +733,7 @@ func (s *SoTransactionObjectWrap) delUniKeyTrxId(sa *SoTransactionObject) bool {
 	kList := []interface{}{pre}
 	if sa != nil {
 		if sa.TrxId == nil {
-			return true
+			return false
 		}
 
 		sub := sa.TrxId
@@ -743,9 +758,7 @@ func (s *SoTransactionObjectWrap) insertUniKeyTrxId(sa *SoTransactionObject) boo
 	if s.dba == nil || sa == nil {
 		return false
 	}
-	if sa.TrxId == nil {
-		return true
-	}
+
 	pre := TransactionObjectTrxIdUniTable
 	sub := sa.TrxId
 	kList := []interface{}{pre, sub}

@@ -141,7 +141,7 @@ func (s *SoExtRewardWrap) Md(f func(tInfo *SoExtReward)) error {
 
 	//the main key is not support modify
 	if !reflect.DeepEqual(curTable.Id, oriTable.Id) {
-		curTable.Id = oriTable.Id
+		return errors.New("primary key does not support modification")
 	}
 
 	fieldSli, err := s.getModifiedFields(oriTable, &curTable)
@@ -151,6 +151,12 @@ func (s *SoExtRewardWrap) Md(f func(tInfo *SoExtReward)) error {
 
 	if fieldSli == nil || len(fieldSli) < 1 {
 		return nil
+	}
+
+	//check whether modify sort and unique field to nil
+	err = s.checkSortAndUniFieldValidity(&curTable, fieldSli)
+	if err != nil {
+		return err
 	}
 
 	//check unique
@@ -179,6 +185,17 @@ func (s *SoExtRewardWrap) Md(f func(tInfo *SoExtReward)) error {
 
 	return nil
 
+}
+
+func (s *SoExtRewardWrap) checkSortAndUniFieldValidity(curTable *SoExtReward, fieldSli []string) error {
+	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
+		for _, fName := range fieldSli {
+			if len(fName) > 0 {
+
+			}
+		}
+	}
+	return nil
 }
 
 //Get all the modified fields in the table
@@ -867,7 +884,7 @@ func (s *SoExtRewardWrap) delUniKeyId(sa *SoExtReward) bool {
 	kList := []interface{}{pre}
 	if sa != nil {
 		if sa.Id == nil {
-			return true
+			return false
 		}
 
 		sub := sa.Id
@@ -892,9 +909,7 @@ func (s *SoExtRewardWrap) insertUniKeyId(sa *SoExtReward) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
-	if sa.Id == nil {
-		return true
-	}
+
 	pre := ExtRewardIdUniTable
 	sub := sa.Id
 	kList := []interface{}{pre, sub}

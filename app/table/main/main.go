@@ -54,27 +54,13 @@ func main() {
 		tInfo.Taglist = []string{"#NBA"}
 		tInfo.ReplayCount = 100
 		tInfo.PostTime = creTimeSecondPoint(20120401)
+		tInfo.NickName = prototype.NewAccountName("jack")
 	})
 	if err != nil {
 		fmt.Printf("create new table of Demo fail,the error is %s \n",err)
 		return
 	}
 
-	err = wrap.Md(func(tInfo *table.SoDemo) {
-		tInfo.Idx = 1100
-		tInfo.LikeCount = 10
-		tInfo.Owner = prototype.NewAccountName("test")
-		tInfo.Title = "test md title"
-		tInfo.PostTime = nil
-	})
-
-	if err != nil {
-		fmt.Printf("Test: md idx fail, the error is %v \n", err)
-	}
-    likeCount := wrap.GetLikeCount()
-    fmt.Printf("the modified liekcount is %v \n", likeCount)
-
-    fmt.Printf("the modified title is %v \n", wrap.GetTitle())
 
 	key1 := prototype.NewAccountName("myName1")
 	wrap1 := table.NewSoDemoWrap(db, key1)
@@ -97,6 +83,7 @@ func main() {
 		tInfo.Taglist = []string{"#Car"}
 		tInfo.ReplayCount = 150
 		tInfo.PostTime = creTimeSecondPoint(20120403)
+		tInfo.NickName = prototype.NewAccountName("rose")
 	})
 	if err != nil {
 		fmt.Printf("create new table of Demo fail,the error is %s \n",err)
@@ -136,9 +123,54 @@ func main() {
 
 	/*
 	  --------------------------
-	   Modify property value (******can't modify the mainkey)
+	   Modify property value(******can't modify the main key)
 	  --------------------------*/
-	//modify content
+
+    //Modify multiple fields at the same time
+	err = wrap.Md(func(tInfo *table.SoDemo) {
+		tInfo.Idx = 1100
+		tInfo.LikeCount = 10
+		tInfo.Title = "test md title"
+	})
+
+	if err != nil {
+		fmt.Printf("modify multiple fields fail, the error is %v \n", err)
+	} else {
+		likeCount := wrap.GetLikeCount()
+		fmt.Printf("the modified liekcount is %v \n", likeCount)
+		fmt.Printf("the modified title is %v \n", wrap.GetTitle())
+	}
+
+	//*****The primary key not support modify *****
+	err = wrap.Md(func(tInfo *table.SoDemo) {
+		tInfo.Owner = prototype.NewAccountName("test")
+	})
+
+	if err != nil {
+		fmt.Printf("modify primary key fail, the error is %v \n", err)
+	}
+	fmt.Printf("current primary key is %v \n", wrap.GetOwner().Value)
+
+	//*****can't modify sort  key to nil *****
+	err = wrap.Md(func(tInfo *table.SoDemo) {
+		tInfo.PostTime = nil
+	})
+	if err != nil {
+		fmt.Printf("modify postTime fail, the error is %v \n", err)
+	}
+	fmt.Printf("current postTime is %v \n", wrap.GetPostTime().UtcSeconds)
+
+	//*****can't modify unique key to nil *****
+	err = wrap.Md(func(tInfo *table.SoDemo) {
+		tInfo.NickName = nil
+	})
+	if err != nil {
+		fmt.Printf("modify nickName fail, the error is %v \n", err)
+	}
+
+	fmt.Printf("current nickName is %v \n", wrap.GetNickName().Value)
+
+	//modify single field content
 	cMdRes := wrap.Md(func(tInfo *table.SoDemo) {
 		tInfo.Content = "test md the content"
 	})

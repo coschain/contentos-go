@@ -136,7 +136,7 @@ func (s *SoWitnessScheduleObjectWrap) Md(f func(tInfo *SoWitnessScheduleObject))
 
 	//the main key is not support modify
 	if !reflect.DeepEqual(curTable.Id, oriTable.Id) {
-		curTable.Id = oriTable.Id
+		return errors.New("primary key does not support modification")
 	}
 
 	fieldSli, err := s.getModifiedFields(oriTable, &curTable)
@@ -146,6 +146,12 @@ func (s *SoWitnessScheduleObjectWrap) Md(f func(tInfo *SoWitnessScheduleObject))
 
 	if fieldSli == nil || len(fieldSli) < 1 {
 		return nil
+	}
+
+	//check whether modify sort and unique field to nil
+	err = s.checkSortAndUniFieldValidity(&curTable, fieldSli)
+	if err != nil {
+		return err
 	}
 
 	//check unique
@@ -174,6 +180,17 @@ func (s *SoWitnessScheduleObjectWrap) Md(f func(tInfo *SoWitnessScheduleObject))
 
 	return nil
 
+}
+
+func (s *SoWitnessScheduleObjectWrap) checkSortAndUniFieldValidity(curTable *SoWitnessScheduleObject, fieldSli []string) error {
+	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
+		for _, fName := range fieldSli {
+			if len(fName) > 0 {
+
+			}
+		}
+	}
+	return nil
 }
 
 //Get all the modified fields in the table
@@ -557,6 +574,7 @@ func (s *SoWitnessScheduleObjectWrap) insertUniKeyId(sa *SoWitnessScheduleObject
 	if s.dba == nil || sa == nil {
 		return false
 	}
+
 	pre := WitnessScheduleObjectIdUniTable
 	sub := sa.Id
 	kList := []interface{}{pre, sub}

@@ -141,7 +141,7 @@ func (s *SoExtFollowingWrap) Md(f func(tInfo *SoExtFollowing)) error {
 
 	//the main key is not support modify
 	if !reflect.DeepEqual(curTable.FollowingInfo, oriTable.FollowingInfo) {
-		curTable.FollowingInfo = oriTable.FollowingInfo
+		return errors.New("primary key does not support modification")
 	}
 
 	fieldSli, err := s.getModifiedFields(oriTable, &curTable)
@@ -151,6 +151,12 @@ func (s *SoExtFollowingWrap) Md(f func(tInfo *SoExtFollowing)) error {
 
 	if fieldSli == nil || len(fieldSli) < 1 {
 		return nil
+	}
+
+	//check whether modify sort and unique field to nil
+	err = s.checkSortAndUniFieldValidity(&curTable, fieldSli)
+	if err != nil {
+		return err
 	}
 
 	//check unique
@@ -179,6 +185,21 @@ func (s *SoExtFollowingWrap) Md(f func(tInfo *SoExtFollowing)) error {
 
 	return nil
 
+}
+
+func (s *SoExtFollowingWrap) checkSortAndUniFieldValidity(curTable *SoExtFollowing, fieldSli []string) error {
+	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
+		for _, fName := range fieldSli {
+			if len(fName) > 0 {
+
+				if fName == "FollowingCreatedOrder" && curTable.FollowingCreatedOrder == nil {
+					return errors.New("sort field FollowingCreatedOrder can't be modified to nil")
+				}
+
+			}
+		}
+	}
+	return nil
 }
 
 //Get all the modified fields in the table
@@ -245,9 +266,6 @@ func (s *SoExtFollowingWrap) delSortKeyFollowingCreatedOrder(sa *SoExtFollowing)
 		val.FollowingCreatedOrder = sa.FollowingCreatedOrder
 		val.FollowingInfo = sa.FollowingInfo
 	}
-	if val.FollowingCreatedOrder == nil {
-		return true
-	}
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -259,9 +277,6 @@ func (s *SoExtFollowingWrap) delSortKeyFollowingCreatedOrder(sa *SoExtFollowing)
 func (s *SoExtFollowingWrap) insertSortKeyFollowingCreatedOrder(sa *SoExtFollowing) bool {
 	if s.dba == nil || sa == nil {
 		return false
-	}
-	if sa.FollowingCreatedOrder == nil {
-		return true
 	}
 	val := SoListExtFollowingByFollowingCreatedOrder{}
 	val.FollowingInfo = sa.FollowingInfo
@@ -718,7 +733,7 @@ func (s *SoExtFollowingWrap) delUniKeyFollowingInfo(sa *SoExtFollowing) bool {
 	kList := []interface{}{pre}
 	if sa != nil {
 		if sa.FollowingInfo == nil {
-			return true
+			return false
 		}
 
 		sub := sa.FollowingInfo
@@ -743,9 +758,7 @@ func (s *SoExtFollowingWrap) insertUniKeyFollowingInfo(sa *SoExtFollowing) bool 
 	if s.dba == nil || sa == nil {
 		return false
 	}
-	if sa.FollowingInfo == nil {
-		return true
-	}
+
 	pre := ExtFollowingFollowingInfoUniTable
 	sub := sa.FollowingInfo
 	kList := []interface{}{pre, sub}

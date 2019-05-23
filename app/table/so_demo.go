@@ -21,6 +21,7 @@ var (
 	DemoTaglistTable      uint32 = 918597048
 	DemoIdxUniTable       uint32 = 586852864
 	DemoLikeCountUniTable uint32 = 1853028069
+	DemoNickNameUniTable  uint32 = 3683699735
 	DemoOwnerUniTable     uint32 = 3607866294
 
 	DemoOwnerRow uint32 = 4002792218
@@ -148,7 +149,7 @@ func (s *SoDemoWrap) Md(f func(tInfo *SoDemo)) error {
 
 	//the main key is not support modify
 	if !reflect.DeepEqual(curTable.Owner, oriTable.Owner) {
-		curTable.Owner = oriTable.Owner
+		return errors.New("primary key does not support modification")
 	}
 
 	fieldSli, err := s.getModifiedFields(oriTable, &curTable)
@@ -158,6 +159,12 @@ func (s *SoDemoWrap) Md(f func(tInfo *SoDemo)) error {
 
 	if fieldSli == nil || len(fieldSli) < 1 {
 		return nil
+	}
+
+	//check whether modify sort and unique field to nil
+	err = s.checkSortAndUniFieldValidity(&curTable, fieldSli)
+	if err != nil {
+		return err
 	}
 
 	//check unique
@@ -188,6 +195,25 @@ func (s *SoDemoWrap) Md(f func(tInfo *SoDemo)) error {
 
 }
 
+func (s *SoDemoWrap) checkSortAndUniFieldValidity(curTable *SoDemo, fieldSli []string) error {
+	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
+		for _, fName := range fieldSli {
+			if len(fName) > 0 {
+
+				if fName == "PostTime" && curTable.PostTime == nil {
+					return errors.New("sort field PostTime can't be modified to nil")
+				}
+
+				if fName == "NickName" && curTable.NickName == nil {
+					return errors.New("unique field NickName can't be modified to nil")
+				}
+
+			}
+		}
+	}
+	return nil
+}
+
 //Get all the modified fields in the table
 func (s *SoDemoWrap) getModifiedFields(oriTable *SoDemo, curTable *SoDemo) ([]string, error) {
 	if oriTable == nil {
@@ -205,6 +231,10 @@ func (s *SoDemoWrap) getModifiedFields(oriTable *SoDemo, curTable *SoDemo) ([]st
 
 	if !reflect.DeepEqual(oriTable.LikeCount, curTable.LikeCount) {
 		list = append(list, "LikeCount")
+	}
+
+	if !reflect.DeepEqual(oriTable.NickName, curTable.NickName) {
+		list = append(list, "NickName")
 	}
 
 	if !reflect.DeepEqual(oriTable.PostTime, curTable.PostTime) {
@@ -283,6 +313,23 @@ func (s *SoDemoWrap) handleFieldMd(t FieldMdHandleType, so *SoDemo, fSli []strin
 				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
 			} else if t == FieldMdHandleTypeInsert {
 				res = s.mdFieldLikeCount(so.LikeCount, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "NickName" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldNickName(so.NickName, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldNickName(so.NickName, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldNickName(so.NickName, false, false, true, so)
 				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
 			}
 			if !res {
@@ -375,9 +422,6 @@ func (s *SoDemoWrap) delSortKeyOwner(sa *SoDemo) bool {
 	} else {
 		val.Owner = sa.Owner
 	}
-	if val.Owner == nil {
-		return true
-	}
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -389,9 +433,6 @@ func (s *SoDemoWrap) delSortKeyOwner(sa *SoDemo) bool {
 func (s *SoDemoWrap) insertSortKeyOwner(sa *SoDemo) bool {
 	if s.dba == nil || sa == nil {
 		return false
-	}
-	if sa.Owner == nil {
-		return true
 	}
 	val := SoListDemoByOwner{}
 	val.Owner = sa.Owner
@@ -420,9 +461,6 @@ func (s *SoDemoWrap) delSortKeyPostTime(sa *SoDemo) bool {
 		val.PostTime = sa.PostTime
 		val.Owner = sa.Owner
 	}
-	if val.PostTime == nil {
-		return true
-	}
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -434,9 +472,6 @@ func (s *SoDemoWrap) delSortKeyPostTime(sa *SoDemo) bool {
 func (s *SoDemoWrap) insertSortKeyPostTime(sa *SoDemo) bool {
 	if s.dba == nil || sa == nil {
 		return false
-	}
-	if sa.PostTime == nil {
-		return true
 	}
 	val := SoListDemoByPostTime{}
 	val.Owner = sa.Owner
@@ -1012,6 +1047,106 @@ func (s *SoDemoWrap) checkLikeCountIsMetMdCondition(p int64) bool {
 	uniWrap := UniDemoLikeCountWrap{}
 	uniWrap.Dba = s.dba
 	res := uniWrap.UniQueryLikeCount(&p)
+	if res != nil {
+		//the unique value to be modified is already exist
+		return false
+	}
+
+	return true
+}
+
+func (s *SoDemoWrap) GetNickName() *prototype.AccountName {
+	res := true
+	msg := &SoDemo{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMainKey()
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.NickName
+			}
+		}
+	}
+	if !res {
+		return nil
+
+	}
+	return msg.NickName
+}
+
+func (s *SoDemoWrap) mdFieldNickName(p *prototype.AccountName, isCheck bool, isDel bool, isInsert bool,
+	so *SoDemo) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if isCheck {
+		res := s.checkNickNameIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
+
+	if isDel {
+		res := s.delFieldNickName(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldNickName(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoDemoWrap) delFieldNickName(so *SoDemo) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if !s.delUniKeyNickName(so) {
+		return false
+	}
+
+	return true
+}
+
+func (s *SoDemoWrap) insertFieldNickName(so *SoDemo) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if !s.insertUniKeyNickName(so) {
+		return false
+	}
+
+	return true
+}
+
+func (s *SoDemoWrap) checkNickNameIsMetMdCondition(p *prototype.AccountName) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	//judge the unique value if is exist
+	uniWrap := UniDemoNickNameWrap{}
+	uniWrap.Dba = s.dba
+	res := uniWrap.UniQueryNickName(p)
+
 	if res != nil {
 		//the unique value to be modified is already exist
 		return false
@@ -2195,6 +2330,13 @@ func (s *SoDemoWrap) delAllUniKeys(br bool, val *SoDemo) bool {
 			res = false
 		}
 	}
+	if !s.delUniKeyNickName(val) {
+		if br {
+			return false
+		} else {
+			res = false
+		}
+	}
 	if !s.delUniKeyOwner(val) {
 		if br {
 			return false
@@ -2218,6 +2360,11 @@ func (s *SoDemoWrap) delUniKeysWithNames(names map[string]string, val *SoDemo) b
 	}
 	if len(names["LikeCount"]) > 0 {
 		if !s.delUniKeyLikeCount(val) {
+			res = false
+		}
+	}
+	if len(names["NickName"]) > 0 {
+		if !s.delUniKeyNickName(val) {
 			res = false
 		}
 	}
@@ -2246,6 +2393,10 @@ func (s *SoDemoWrap) insertAllUniKeys(val *SoDemo) (map[string]string, error) {
 		return sucFields, errors.New("insert unique Field LikeCount fail while insert table ")
 	}
 	sucFields["LikeCount"] = "LikeCount"
+	if !s.insertUniKeyNickName(val) {
+		return sucFields, errors.New("insert unique Field NickName fail while insert table ")
+	}
+	sucFields["NickName"] = "NickName"
 	if !s.insertUniKeyOwner(val) {
 		return sucFields, errors.New("insert unique Field Owner fail while insert table ")
 	}
@@ -2281,6 +2432,7 @@ func (s *SoDemoWrap) insertUniKeyIdx(sa *SoDemo) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
+
 	pre := DemoIdxUniTable
 	sub := sa.Idx
 	kList := []interface{}{pre, sub}
@@ -2366,6 +2518,7 @@ func (s *SoDemoWrap) insertUniKeyLikeCount(sa *SoDemo) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
+
 	pre := DemoLikeCountUniTable
 	sub := sa.LikeCount
 	kList := []interface{}{pre, sub}
@@ -2424,6 +2577,98 @@ func (s *UniDemoLikeCountWrap) UniQueryLikeCount(start *int64) *SoDemoWrap {
 	return nil
 }
 
+func (s *SoDemoWrap) delUniKeyNickName(sa *SoDemo) bool {
+	if s.dba == nil {
+		return false
+	}
+	pre := DemoNickNameUniTable
+	kList := []interface{}{pre}
+	if sa != nil {
+		if sa.NickName == nil {
+			return false
+		}
+
+		sub := sa.NickName
+		kList = append(kList, sub)
+	} else {
+		sub := s.GetNickName()
+		if sub == nil {
+			return true
+		}
+
+		kList = append(kList, sub)
+
+	}
+	kBuf, err := kope.EncodeSlice(kList)
+	if err != nil {
+		return false
+	}
+	return s.dba.Delete(kBuf) == nil
+}
+
+func (s *SoDemoWrap) insertUniKeyNickName(sa *SoDemo) bool {
+	if s.dba == nil || sa == nil {
+		return false
+	}
+
+	pre := DemoNickNameUniTable
+	sub := sa.NickName
+	kList := []interface{}{pre, sub}
+	kBuf, err := kope.EncodeSlice(kList)
+	if err != nil {
+		return false
+	}
+	res, err := s.dba.Has(kBuf)
+	if err == nil && res == true {
+		//the unique key is already exist
+		return false
+	}
+	val := SoUniqueDemoByNickName{}
+	val.Owner = sa.Owner
+	val.NickName = sa.NickName
+
+	buf, err := proto.Marshal(&val)
+
+	if err != nil {
+		return false
+	}
+
+	return s.dba.Put(kBuf, buf) == nil
+
+}
+
+type UniDemoNickNameWrap struct {
+	Dba iservices.IDatabaseRW
+}
+
+func NewUniDemoNickNameWrap(db iservices.IDatabaseRW) *UniDemoNickNameWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := UniDemoNickNameWrap{Dba: db}
+	return &wrap
+}
+
+func (s *UniDemoNickNameWrap) UniQueryNickName(start *prototype.AccountName) *SoDemoWrap {
+	if start == nil || s.Dba == nil {
+		return nil
+	}
+	pre := DemoNickNameUniTable
+	kList := []interface{}{pre, start}
+	bufStartkey, err := kope.EncodeSlice(kList)
+	val, err := s.Dba.Get(bufStartkey)
+	if err == nil {
+		res := &SoUniqueDemoByNickName{}
+		rErr := proto.Unmarshal(val, res)
+		if rErr == nil {
+			wrap := NewSoDemoWrap(s.Dba, res.Owner)
+
+			return wrap
+		}
+	}
+	return nil
+}
+
 func (s *SoDemoWrap) delUniKeyOwner(sa *SoDemo) bool {
 	if s.dba == nil {
 		return false
@@ -2432,7 +2677,7 @@ func (s *SoDemoWrap) delUniKeyOwner(sa *SoDemo) bool {
 	kList := []interface{}{pre}
 	if sa != nil {
 		if sa.Owner == nil {
-			return true
+			return false
 		}
 
 		sub := sa.Owner
@@ -2457,9 +2702,7 @@ func (s *SoDemoWrap) insertUniKeyOwner(sa *SoDemo) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
-	if sa.Owner == nil {
-		return true
-	}
+
 	pre := DemoOwnerUniTable
 	sub := sa.Owner
 	kList := []interface{}{pre, sub}

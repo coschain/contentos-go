@@ -136,7 +136,7 @@ func (s *SoBlocktrxsWrap) Md(f func(tInfo *SoBlocktrxs)) error {
 
 	//the main key is not support modify
 	if !reflect.DeepEqual(curTable.Block, oriTable.Block) {
-		curTable.Block = oriTable.Block
+		return errors.New("primary key does not support modification")
 	}
 
 	fieldSli, err := s.getModifiedFields(oriTable, &curTable)
@@ -146,6 +146,12 @@ func (s *SoBlocktrxsWrap) Md(f func(tInfo *SoBlocktrxs)) error {
 
 	if fieldSli == nil || len(fieldSli) < 1 {
 		return nil
+	}
+
+	//check whether modify sort and unique field to nil
+	err = s.checkSortAndUniFieldValidity(&curTable, fieldSli)
+	if err != nil {
+		return err
 	}
 
 	//check unique
@@ -174,6 +180,17 @@ func (s *SoBlocktrxsWrap) Md(f func(tInfo *SoBlocktrxs)) error {
 
 	return nil
 
+}
+
+func (s *SoBlocktrxsWrap) checkSortAndUniFieldValidity(curTable *SoBlocktrxs, fieldSli []string) error {
+	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
+		for _, fName := range fieldSli {
+			if len(fName) > 0 {
+
+			}
+		}
+	}
+	return nil
 }
 
 //Get all the modified fields in the table
@@ -557,6 +574,7 @@ func (s *SoBlocktrxsWrap) insertUniKeyBlock(sa *SoBlocktrxs) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
+
 	pre := BlocktrxsBlockUniTable
 	sub := sa.Block
 	kList := []interface{}{pre, sub}

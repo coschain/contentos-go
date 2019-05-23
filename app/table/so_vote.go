@@ -143,7 +143,7 @@ func (s *SoVoteWrap) Md(f func(tInfo *SoVote)) error {
 
 	//the main key is not support modify
 	if !reflect.DeepEqual(curTable.Voter, oriTable.Voter) {
-		curTable.Voter = oriTable.Voter
+		return errors.New("primary key does not support modification")
 	}
 
 	fieldSli, err := s.getModifiedFields(oriTable, &curTable)
@@ -153,6 +153,12 @@ func (s *SoVoteWrap) Md(f func(tInfo *SoVote)) error {
 
 	if fieldSli == nil || len(fieldSli) < 1 {
 		return nil
+	}
+
+	//check whether modify sort and unique field to nil
+	err = s.checkSortAndUniFieldValidity(&curTable, fieldSli)
+	if err != nil {
+		return err
 	}
 
 	//check unique
@@ -181,6 +187,21 @@ func (s *SoVoteWrap) Md(f func(tInfo *SoVote)) error {
 
 	return nil
 
+}
+
+func (s *SoVoteWrap) checkSortAndUniFieldValidity(curTable *SoVote, fieldSli []string) error {
+	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
+		for _, fName := range fieldSli {
+			if len(fName) > 0 {
+
+				if fName == "VoteTime" && curTable.VoteTime == nil {
+					return errors.New("sort field VoteTime can't be modified to nil")
+				}
+
+			}
+		}
+	}
+	return nil
 }
 
 //Get all the modified fields in the table
@@ -307,9 +328,6 @@ func (s *SoVoteWrap) delSortKeyVoter(sa *SoVote) bool {
 	} else {
 		val.Voter = sa.Voter
 	}
-	if val.Voter == nil {
-		return true
-	}
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -321,9 +339,6 @@ func (s *SoVoteWrap) delSortKeyVoter(sa *SoVote) bool {
 func (s *SoVoteWrap) insertSortKeyVoter(sa *SoVote) bool {
 	if s.dba == nil || sa == nil {
 		return false
-	}
-	if sa.Voter == nil {
-		return true
 	}
 	val := SoListVoteByVoter{}
 	val.Voter = sa.Voter
@@ -352,9 +367,6 @@ func (s *SoVoteWrap) delSortKeyVoteTime(sa *SoVote) bool {
 		val.VoteTime = sa.VoteTime
 		val.Voter = sa.Voter
 	}
-	if val.VoteTime == nil {
-		return true
-	}
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -366,9 +378,6 @@ func (s *SoVoteWrap) delSortKeyVoteTime(sa *SoVote) bool {
 func (s *SoVoteWrap) insertSortKeyVoteTime(sa *SoVote) bool {
 	if s.dba == nil || sa == nil {
 		return false
-	}
-	if sa.VoteTime == nil {
-		return true
 	}
 	val := SoListVoteByVoteTime{}
 	val.Voter = sa.Voter
@@ -1347,7 +1356,7 @@ func (s *SoVoteWrap) delUniKeyVoter(sa *SoVote) bool {
 	kList := []interface{}{pre}
 	if sa != nil {
 		if sa.Voter == nil {
-			return true
+			return false
 		}
 
 		sub := sa.Voter
@@ -1372,9 +1381,7 @@ func (s *SoVoteWrap) insertUniKeyVoter(sa *SoVote) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
-	if sa.Voter == nil {
-		return true
-	}
+
 	pre := VoteVoterUniTable
 	sub := sa.Voter
 	kList := []interface{}{pre, sub}

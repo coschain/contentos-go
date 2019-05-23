@@ -148,7 +148,7 @@ func (s *SoAccountWrap) Md(f func(tInfo *SoAccount)) error {
 
 	//the main key is not support modify
 	if !reflect.DeepEqual(curTable.Name, oriTable.Name) {
-		curTable.Name = oriTable.Name
+		return errors.New("primary key does not support modification")
 	}
 
 	fieldSli, err := s.getModifiedFields(oriTable, &curTable)
@@ -158,6 +158,12 @@ func (s *SoAccountWrap) Md(f func(tInfo *SoAccount)) error {
 
 	if fieldSli == nil || len(fieldSli) < 1 {
 		return nil
+	}
+
+	//check whether modify sort and unique field to nil
+	err = s.checkSortAndUniFieldValidity(&curTable, fieldSli)
+	if err != nil {
+		return err
 	}
 
 	//check unique
@@ -186,6 +192,33 @@ func (s *SoAccountWrap) Md(f func(tInfo *SoAccount)) error {
 
 	return nil
 
+}
+
+func (s *SoAccountWrap) checkSortAndUniFieldValidity(curTable *SoAccount, fieldSli []string) error {
+	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
+		for _, fName := range fieldSli {
+			if len(fName) > 0 {
+
+				if fName == "CreatedTime" && curTable.CreatedTime == nil {
+					return errors.New("sort field CreatedTime can't be modified to nil")
+				}
+
+				if fName == "Balance" && curTable.Balance == nil {
+					return errors.New("sort field Balance can't be modified to nil")
+				}
+
+				if fName == "VestingShares" && curTable.VestingShares == nil {
+					return errors.New("sort field VestingShares can't be modified to nil")
+				}
+
+				if fName == "Owner" && curTable.Owner == nil {
+					return errors.New("unique field Owner can't be modified to nil")
+				}
+
+			}
+		}
+	}
+	return nil
 }
 
 //Get all the modified fields in the table
@@ -693,9 +726,6 @@ func (s *SoAccountWrap) delSortKeyCreatedTime(sa *SoAccount) bool {
 		val.CreatedTime = sa.CreatedTime
 		val.Name = sa.Name
 	}
-	if val.CreatedTime == nil {
-		return true
-	}
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -707,9 +737,6 @@ func (s *SoAccountWrap) delSortKeyCreatedTime(sa *SoAccount) bool {
 func (s *SoAccountWrap) insertSortKeyCreatedTime(sa *SoAccount) bool {
 	if s.dba == nil || sa == nil {
 		return false
-	}
-	if sa.CreatedTime == nil {
-		return true
 	}
 	val := SoListAccountByCreatedTime{}
 	val.Name = sa.Name
@@ -739,9 +766,6 @@ func (s *SoAccountWrap) delSortKeyBalance(sa *SoAccount) bool {
 		val.Balance = sa.Balance
 		val.Name = sa.Name
 	}
-	if val.Balance == nil {
-		return true
-	}
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -753,9 +777,6 @@ func (s *SoAccountWrap) delSortKeyBalance(sa *SoAccount) bool {
 func (s *SoAccountWrap) insertSortKeyBalance(sa *SoAccount) bool {
 	if s.dba == nil || sa == nil {
 		return false
-	}
-	if sa.Balance == nil {
-		return true
 	}
 	val := SoListAccountByBalance{}
 	val.Name = sa.Name
@@ -785,9 +806,6 @@ func (s *SoAccountWrap) delSortKeyVestingShares(sa *SoAccount) bool {
 		val.VestingShares = sa.VestingShares
 		val.Name = sa.Name
 	}
-	if val.VestingShares == nil {
-		return true
-	}
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -799,9 +817,6 @@ func (s *SoAccountWrap) delSortKeyVestingShares(sa *SoAccount) bool {
 func (s *SoAccountWrap) insertSortKeyVestingShares(sa *SoAccount) bool {
 	if s.dba == nil || sa == nil {
 		return false
-	}
-	if sa.VestingShares == nil {
-		return true
 	}
 	val := SoListAccountByVestingShares{}
 	val.Name = sa.Name
@@ -4041,7 +4056,7 @@ func (s *SoAccountWrap) delUniKeyName(sa *SoAccount) bool {
 	kList := []interface{}{pre}
 	if sa != nil {
 		if sa.Name == nil {
-			return true
+			return false
 		}
 
 		sub := sa.Name
@@ -4066,9 +4081,7 @@ func (s *SoAccountWrap) insertUniKeyName(sa *SoAccount) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
-	if sa.Name == nil {
-		return true
-	}
+
 	pre := AccountNameUniTable
 	sub := sa.Name
 	kList := []interface{}{pre, sub}
@@ -4134,7 +4147,7 @@ func (s *SoAccountWrap) delUniKeyOwner(sa *SoAccount) bool {
 	kList := []interface{}{pre}
 	if sa != nil {
 		if sa.Owner == nil {
-			return true
+			return false
 		}
 
 		sub := sa.Owner
@@ -4159,9 +4172,7 @@ func (s *SoAccountWrap) insertUniKeyOwner(sa *SoAccount) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
-	if sa.Owner == nil {
-		return true
-	}
+
 	pre := AccountOwnerUniTable
 	sub := sa.Owner
 	kList := []interface{}{pre, sub}

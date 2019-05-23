@@ -138,7 +138,7 @@ func (s *SoExtUserPostWrap) Md(f func(tInfo *SoExtUserPost)) error {
 
 	//the main key is not support modify
 	if !reflect.DeepEqual(curTable.PostId, oriTable.PostId) {
-		curTable.PostId = oriTable.PostId
+		return errors.New("primary key does not support modification")
 	}
 
 	fieldSli, err := s.getModifiedFields(oriTable, &curTable)
@@ -148,6 +148,12 @@ func (s *SoExtUserPostWrap) Md(f func(tInfo *SoExtUserPost)) error {
 
 	if fieldSli == nil || len(fieldSli) < 1 {
 		return nil
+	}
+
+	//check whether modify sort and unique field to nil
+	err = s.checkSortAndUniFieldValidity(&curTable, fieldSli)
+	if err != nil {
+		return err
 	}
 
 	//check unique
@@ -176,6 +182,21 @@ func (s *SoExtUserPostWrap) Md(f func(tInfo *SoExtUserPost)) error {
 
 	return nil
 
+}
+
+func (s *SoExtUserPostWrap) checkSortAndUniFieldValidity(curTable *SoExtUserPost, fieldSli []string) error {
+	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
+		for _, fName := range fieldSli {
+			if len(fName) > 0 {
+
+				if fName == "PostCreatedOrder" && curTable.PostCreatedOrder == nil {
+					return errors.New("sort field PostCreatedOrder can't be modified to nil")
+				}
+
+			}
+		}
+	}
+	return nil
 }
 
 //Get all the modified fields in the table
@@ -241,9 +262,6 @@ func (s *SoExtUserPostWrap) delSortKeyPostCreatedOrder(sa *SoExtUserPost) bool {
 		val.PostCreatedOrder = sa.PostCreatedOrder
 		val.PostId = sa.PostId
 	}
-	if val.PostCreatedOrder == nil {
-		return true
-	}
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -255,9 +273,6 @@ func (s *SoExtUserPostWrap) delSortKeyPostCreatedOrder(sa *SoExtUserPost) bool {
 func (s *SoExtUserPostWrap) insertSortKeyPostCreatedOrder(sa *SoExtUserPost) bool {
 	if s.dba == nil || sa == nil {
 		return false
-	}
-	if sa.PostCreatedOrder == nil {
-		return true
 	}
 	val := SoListExtUserPostByPostCreatedOrder{}
 	val.PostId = sa.PostId
@@ -786,6 +801,7 @@ func (s *SoExtUserPostWrap) insertUniKeyPostId(sa *SoExtUserPost) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
+
 	pre := ExtUserPostPostIdUniTable
 	sub := sa.PostId
 	kList := []interface{}{pre, sub}

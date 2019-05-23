@@ -140,7 +140,7 @@ func (s *SoExtFollowCountWrap) Md(f func(tInfo *SoExtFollowCount)) error {
 
 	//the main key is not support modify
 	if !reflect.DeepEqual(curTable.Account, oriTable.Account) {
-		curTable.Account = oriTable.Account
+		return errors.New("primary key does not support modification")
 	}
 
 	fieldSli, err := s.getModifiedFields(oriTable, &curTable)
@@ -150,6 +150,12 @@ func (s *SoExtFollowCountWrap) Md(f func(tInfo *SoExtFollowCount)) error {
 
 	if fieldSli == nil || len(fieldSli) < 1 {
 		return nil
+	}
+
+	//check whether modify sort and unique field to nil
+	err = s.checkSortAndUniFieldValidity(&curTable, fieldSli)
+	if err != nil {
+		return err
 	}
 
 	//check unique
@@ -178,6 +184,17 @@ func (s *SoExtFollowCountWrap) Md(f func(tInfo *SoExtFollowCount)) error {
 
 	return nil
 
+}
+
+func (s *SoExtFollowCountWrap) checkSortAndUniFieldValidity(curTable *SoExtFollowCount, fieldSli []string) error {
+	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
+		for _, fName := range fieldSli {
+			if len(fName) > 0 {
+
+			}
+		}
+	}
+	return nil
 }
 
 //Get all the modified fields in the table
@@ -748,7 +765,7 @@ func (s *SoExtFollowCountWrap) delUniKeyAccount(sa *SoExtFollowCount) bool {
 	kList := []interface{}{pre}
 	if sa != nil {
 		if sa.Account == nil {
-			return true
+			return false
 		}
 
 		sub := sa.Account
@@ -773,9 +790,7 @@ func (s *SoExtFollowCountWrap) insertUniKeyAccount(sa *SoExtFollowCount) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
-	if sa.Account == nil {
-		return true
-	}
+
 	pre := ExtFollowCountAccountUniTable
 	sub := sa.Account
 	kList := []interface{}{pre, sub}

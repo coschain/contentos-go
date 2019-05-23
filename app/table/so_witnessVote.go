@@ -141,7 +141,7 @@ func (s *SoWitnessVoteWrap) Md(f func(tInfo *SoWitnessVote)) error {
 
 	//the main key is not support modify
 	if !reflect.DeepEqual(curTable.VoterId, oriTable.VoterId) {
-		curTable.VoterId = oriTable.VoterId
+		return errors.New("primary key does not support modification")
 	}
 
 	fieldSli, err := s.getModifiedFields(oriTable, &curTable)
@@ -151,6 +151,12 @@ func (s *SoWitnessVoteWrap) Md(f func(tInfo *SoWitnessVote)) error {
 
 	if fieldSli == nil || len(fieldSli) < 1 {
 		return nil
+	}
+
+	//check whether modify sort and unique field to nil
+	err = s.checkSortAndUniFieldValidity(&curTable, fieldSli)
+	if err != nil {
+		return err
 	}
 
 	//check unique
@@ -179,6 +185,17 @@ func (s *SoWitnessVoteWrap) Md(f func(tInfo *SoWitnessVote)) error {
 
 	return nil
 
+}
+
+func (s *SoWitnessVoteWrap) checkSortAndUniFieldValidity(curTable *SoWitnessVote, fieldSli []string) error {
+	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
+		for _, fName := range fieldSli {
+			if len(fName) > 0 {
+
+			}
+		}
+	}
+	return nil
 }
 
 //Get all the modified fields in the table
@@ -263,9 +280,6 @@ func (s *SoWitnessVoteWrap) delSortKeyVoterId(sa *SoWitnessVote) bool {
 	} else {
 		val.VoterId = sa.VoterId
 	}
-	if val.VoterId == nil {
-		return true
-	}
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -277,9 +291,6 @@ func (s *SoWitnessVoteWrap) delSortKeyVoterId(sa *SoWitnessVote) bool {
 func (s *SoWitnessVoteWrap) insertSortKeyVoterId(sa *SoWitnessVote) bool {
 	if s.dba == nil || sa == nil {
 		return false
-	}
-	if sa.VoterId == nil {
-		return true
 	}
 	val := SoListWitnessVoteByVoterId{}
 	val.VoterId = sa.VoterId
@@ -797,7 +808,7 @@ func (s *SoWitnessVoteWrap) delUniKeyVoterId(sa *SoWitnessVote) bool {
 	kList := []interface{}{pre}
 	if sa != nil {
 		if sa.VoterId == nil {
-			return true
+			return false
 		}
 
 		sub := sa.VoterId
@@ -822,9 +833,7 @@ func (s *SoWitnessVoteWrap) insertUniKeyVoterId(sa *SoWitnessVote) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
-	if sa.VoterId == nil {
-		return true
-	}
+
 	pre := WitnessVoteVoterIdUniTable
 	sub := sa.VoterId
 	kList := []interface{}{pre, sub}
