@@ -223,8 +223,8 @@ func (e *Economist) Do(trxObserver iservices.ITrxObserver) {
 			//replyVpAccumulator += uint64(math.Ceil(math.Sqrt(float64(post.GetWeightedVp()))))
 			//replyVpAccumulator += ISqrt(post.GetWeightedVp())
 			//weightedVp.SetString(post.GetWeightedVp(), 10)
-			weightVp := ISqrt(post.GetWeightedVp())
-			replyVpAccumulator.Add(&replyVpAccumulator, weightVp)
+			weightedVp := ISqrt(post.GetWeightedVp())
+			replyVpAccumulator.Add(&replyVpAccumulator, weightedVp)
 		}
 	}
 	var globalPostWeightedVps, globalReplyWeightedVps, postWeightedVps, replyWeightedVps big.Int
