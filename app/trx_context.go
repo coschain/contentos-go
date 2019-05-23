@@ -238,7 +238,9 @@ func (p *TrxContext) DeductGasFee(caller string, spent uint64) {
 	if balance < spent {
 		panic(fmt.Sprintf("Endanger deduction Operation: %s, %d", caller, spent))
 	}
-	acc.MdBalance(&prototype.Coin{Value: balance - spent})
+	acc.Md(func(tInfo *table.SoAccount) {
+		tInfo.Balance = &prototype.Coin{Value: balance - spent}
+	})
 	return
 }
 
@@ -254,8 +256,13 @@ func (p *TrxContext) TransferFromContractToUser(contract, owner, to string, amou
 	}
 	acc := table.NewSoAccountWrap(p.db, &prototype.AccountName{Value: to})
 
-	c.MdBalance(&prototype.Coin{Value: balance - amount})
-	acc.MdBalance(&prototype.Coin{Value: acc.GetBalance().Value + amount})
+	c.Md(func(tInfo *table.SoContract) {
+		tInfo.Balance = &prototype.Coin{Value: balance - amount}
+	})
+
+	acc.Md(func(tInfo *table.SoAccount) {
+		tInfo.Balance = &prototype.Coin{Value: acc.GetBalance().Value + amount}
+	})
 	return
 }
 
@@ -269,8 +276,12 @@ func (p *TrxContext) TransferFromUserToContract(from, contract, owner string, am
 		panic(fmt.Sprintf("Endanger Transfer Operation: %s, %s, %s, %d", contract, owner, from, amount))
 	}
 	c := table.NewSoContractWrap(p.db, &prototype.ContractId{Owner: &prototype.AccountName{Value: owner}, Cname: contract})
-	c.MdBalance(&prototype.Coin{Value: balance + amount})
-	acc.MdBalance(&prototype.Coin{Value: balance - amount})
+	c.Md(func(tInfo *table.SoContract) {
+		tInfo.Balance = &prototype.Coin{Value: balance + amount}
+	})
+	acc.Md(func(tInfo *table.SoAccount) {
+		tInfo.Balance = &prototype.Coin{Value: balance - amount}
+	})
 	return
 }
 
@@ -285,8 +296,12 @@ func (p *TrxContext) TransferFromContractToContract(fromContract, fromOwner, toC
 		panic(fmt.Sprintf("Insufficient balance of contract: %s.%s, %d < %d", fromOwner, fromContract, fromBalance, amount))
 	}
 	toBalance := to.GetBalance().Value
-	from.MdBalance(&prototype.Coin{Value: fromBalance - amount})
-	to.MdBalance(&prototype.Coin{Value: toBalance + amount})
+	from.Md(func(tInfo *table.SoContract) {
+		tInfo.Balance = &prototype.Coin{Value: fromBalance - amount}
+	})
+	to.Md(func(tInfo *table.SoContract) {
+		tInfo.Balance = &prototype.Coin{Value: toBalance + amount}
+	})
 }
 
 func (p *TrxContext) ContractCall(caller, fromOwner, fromContract, fromMethod, toOwner, toContract, toMethod string, params []byte, coins, remainGas uint64) {

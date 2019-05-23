@@ -865,7 +865,9 @@ func (c *TrxPool) GetScheduledWitness(slot uint32) *prototype.AccountName {
 
 func (c *TrxPool) updateGlobalDataToDB(dgpo *prototype.DynamicProperties) {
 	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
-	mustSuccess(dgpWrap.MdProps(dgpo), "")
+	mustNoError(dgpWrap.Md(func(tInfo *table.SoGlobal) {
+		tInfo.Props = dgpo
+	}), "")
 }
 
 func (c *TrxPool) modifyGlobalDynamicData(f func(props *prototype.DynamicProperties)) {
@@ -874,7 +876,9 @@ func (c *TrxPool) modifyGlobalDynamicData(f func(props *prototype.DynamicPropert
 
 	f(props)
 
-	mustSuccess(dgpWrap.MdProps(props), "")
+	mustNoError(dgpWrap.Md(func(tInfo *table.SoGlobal) {
+		tInfo.Props = props
+	}), "")
 }
 
 func (c *TrxPool) ModifyProps(modifier func(oldProps *prototype.DynamicProperties)) {
@@ -949,7 +953,9 @@ func (c *TrxPool) createBlockSummary(blk *prototype.SignedBlock) {
 	mustSuccess(blockSummaryWrap.CheckExist(), "can not get block summary object")
 	blockIDArray := blk.Id().Data
 	blockID := &prototype.Sha256{Hash: blockIDArray[:]}
-	mustSuccess(blockSummaryWrap.MdBlockId(blockID), "update block summary object error")
+	mustNoError(blockSummaryWrap.Md(func(tInfo *table.SoBlockSummaryObject) {
+		tInfo.BlockId = blockID
+	}), "update block summary object error")
 }
 
 func (c *TrxPool) GetWitnessTopN(n uint32) ([]string, []*prototype.PublicKeyType) {
@@ -1035,7 +1041,9 @@ func (c *TrxPool) ClearUnRegisterBP(deletelist []*prototype.AccountName) {
 
 func (c *TrxPool) SetShuffledWitness(names []string) {
 	witnessScheduleWrap := table.NewSoWitnessScheduleObjectWrap(c.db, &SingleId)
-	mustSuccess(witnessScheduleWrap.MdCurrentShuffledWitness(names), "SetWitness error")
+	mustNoError(witnessScheduleWrap.Md(func(tInfo *table.SoWitnessScheduleObject) {
+		tInfo.CurrentShuffledWitness = names
+	}), "SetWitness error")
 }
 
 func (c *TrxPool) GetShuffledWitness() []string {

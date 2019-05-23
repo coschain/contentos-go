@@ -71,5 +71,7 @@ func (dgp *DynamicGlobalPropsRW) ModifyProps(modifier func(oldProps *prototype.D
 	dgpWrap := table.NewSoGlobalWrap(dgp.db, &SingleId)
 	props := dgpWrap.GetProps()
 	modifier(props)
-	mustSuccess(dgpWrap.MdProps(props), "")
+	mustNoError(dgpWrap.Md(func(tInfo *table.SoGlobal) {
+		tInfo.Props = props
+	}), "")
 }

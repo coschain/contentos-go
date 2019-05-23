@@ -62,8 +62,10 @@ func (e *Economist) modifyGlobalDynamicData(f func(props *prototype.DynamicPrope
 
 	f(props)
 
-	success := dgpWrap.MdProps(props)
-	if !success {
+	err := dgpWrap.Md(func(tInfo *table.SoGlobal) {
+		tInfo.Props = props
+	})
+	if err != nil {
 		panic("flush globalDynamic into db error")
 	}
 }
@@ -151,7 +153,9 @@ func (e *Economist) Mint(trxObserver iservices.ITrxObserver) {
 	oldVest := bpWrap.GetVestingShares()
 	//bpWrap.MdVestingShares(&prototype.Vest{Value: bpWrap.GetVestingShares().Value + bpReward})
 	mustNoError(bpRewardVesting.Add(bpWrap.GetVestingShares()), "bpRewardVesting overflow")
-	bpWrap.MdVestingShares(bpRewardVesting)
+	bpWrap.Md(func(tInfo *table.SoAccount) {
+		tInfo.VestingShares = bpRewardVesting
+	})
 	updateWitnessVoteCount(e.db, globalProps.CurrentWitness, oldVest, bpRewardVesting)
 	trxObserver.AddOpState(iservices.Add, "mint", globalProps.CurrentWitness.Value, bpReward)
 
@@ -340,7 +344,9 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 				oldVest := beneficiaryWrap.GetVestingShares()
 				vestingRewards := &prototype.Vest{Value: r}
 				mustNoError(vestingRewards.Add(beneficiaryWrap.GetVestingShares()), "Post Beneficiary VestingRewards Overflow")
-				beneficiaryWrap.MdVestingShares(vestingRewards)
+				beneficiaryWrap.Md(func(tInfo *table.SoAccount) {
+					tInfo.VestingShares = vestingRewards
+				})
 				updateWitnessVoteCount(e.db, &prototype.AccountName{Value: name}, oldVest, vestingRewards)
 				spentBeneficiaryReward += r
 				e.noticer.Publish(constants.NoticeCashout, name, post.GetPostId(), r, globalProps.GetHeadBlockNumber())
@@ -358,12 +364,16 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 			oldVest := authorWrap.GetVestingShares()
 			vestingRewards := &prototype.Vest{Value: reward}
 			mustNoError(vestingRewards.Add(authorWrap.GetVestingShares()), "Post VestingRewards Overflow")
-			authorWrap.MdVestingShares(vestingRewards)
+			authorWrap.Md(func(tInfo *table.SoAccount) {
+				tInfo.VestingShares = vestingRewards
+			})
 			updateWitnessVoteCount(e.db, &prototype.AccountName{Value: author}, oldVest, vestingRewards)
 		}
-		post.MdCashoutBlockNum(math.MaxUint32)
-		post.MdRewards(&prototype.Vest{Value: reward})
-		post.MdDappRewards(&prototype.Vest{Value: beneficiaryReward})
+		post.Md(func(tInfo *table.SoPost) {
+			tInfo.CashoutBlockNum = math.MaxUint32
+			tInfo.Rewards = &prototype.Vest{Value: reward}
+			tInfo.DappRewards = &prototype.Vest{Value: beneficiaryReward}
+		})
 		if reward > 0 {
 			e.noticer.Publish(constants.NoticeCashout, author, post.GetPostId(), reward, globalProps.GetHeadBlockNumber())
 			trxObserver.AddOpState(iservices.Add, "cashout", author, reward)
@@ -438,7 +448,9 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 				oldVest := beneficiaryWrap.GetVestingShares()
 				vestingRewards := &prototype.Vest{Value: r}
 				mustNoError(vestingRewards.Add(beneficiaryWrap.GetVestingShares()), "Reply Beneficiary VestingRewards Overflow")
-				beneficiaryWrap.MdVestingShares(vestingRewards)
+				beneficiaryWrap.Md(func(tInfo *table.SoAccount) {
+					tInfo.VestingShares = vestingRewards
+				})
 				updateWitnessVoteCount(e.db, &prototype.AccountName{Value: name}, oldVest, vestingRewards)
 				spentBeneficiaryReward += r
 				e.noticer.Publish(constants.NoticeCashout, name, reply.GetPostId(), r, globalProps.GetHeadBlockNumber())
@@ -457,12 +469,17 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 			oldVest := authorWrap.GetVestingShares()
 			vestingRewards := &prototype.Vest{Value: reward}
 			mustNoError(vestingRewards.Add(authorWrap.GetVestingShares()), "Reply VestingRewards Overflow")
-			authorWrap.MdVestingShares(vestingRewards)
+			authorWrap.Md(func(tInfo *table.SoAccount) {
+				tInfo.VestingShares = vestingRewards
+			})
 			updateWitnessVoteCount(e.db, &prototype.AccountName{Value: author}, oldVest, vestingRewards)
 		}
-		reply.MdCashoutBlockNum(math.MaxUint32)
-		reply.MdRewards(&prototype.Vest{Value: reward})
-		reply.MdDappRewards(&prototype.Vest{Value: beneficiaryReward})
+
+		reply.Md(func(tInfo *table.SoPost) {
+			tInfo.CashoutBlockNum = math.MaxUint32
+			tInfo.Rewards = &prototype.Vest{Value: reward}
+			tInfo.DappRewards = &prototype.Vest{Value: beneficiaryReward}
+		})
 		if reward > 0 {
 			e.noticer.Publish(constants.NoticeCashout, author, reply.GetPostId(), reward, globalProps.GetHeadBlockNumber())
 			trxObserver.AddOpState(iservices.Add, "cashout", author, reward)
@@ -527,11 +544,13 @@ func (e *Economist) PowerDown() {
 		vesting := accountWrap.GetVestingShares().Value - powerdownQuota
 		balance := accountWrap.GetBalance().Value + powerdownQuota
 		hasPowerDown := accountWrap.GetHasPowerdown().Value + powerdownQuota
-		accountWrap.MdVestingShares(&prototype.Vest{Value: vesting})
 		newVest := accountWrap.GetVestingShares()
 		updateWitnessVoteCount(e.db, accountName, oldVest, newVest)
-		accountWrap.MdBalance(&prototype.Coin{Value: balance})
-		accountWrap.MdHasPowerdown(&prototype.Vest{Value: hasPowerDown})
+		accountWrap.Md(func(tInfo *table.SoAccount) {
+			tInfo.VestingShares = &prototype.Vest{Value: vesting}
+			tInfo.Balance = &prototype.Coin{Value: balance}
+			tInfo.HasPowerdown = &prototype.Vest{Value: hasPowerDown}
+		})
 		// update total cos and total vesting shares
 		e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
 			mustNoError(props.TotalCos.Add(&prototype.Coin{Value: powerdownQuota}), "PowerDownQuota Cos Overflow")
@@ -540,10 +559,14 @@ func (e *Economist) PowerDown() {
 			//props.TotalVestingShares.Value -= powerdownQuota
 		})
 		if accountWrap.GetHasPowerdown().Value >= accountWrap.GetToPowerdown().Value || accountWrap.GetVestingShares().Value == 0 {
-			accountWrap.MdEachPowerdownRate(&prototype.Vest{Value: 0})
-			accountWrap.MdNextPowerdownBlockNum(math.MaxUint32)
+			accountWrap.Md(func(tInfo *table.SoAccount) {
+				tInfo.EachPowerdownRate = &prototype.Vest{Value: 0}
+				tInfo.NextPowerdownBlockNum = math.MaxUint32
+			})
 		} else {
-			accountWrap.MdNextPowerdownBlockNum(current + constants.PowerDownBlockInterval)
+			accountWrap.Md(func(tInfo *table.SoAccount) {
+				tInfo.NextPowerdownBlockNum = current + constants.PowerDownBlockInterval
+			})
 		}
 	}
 	t2 := time.Now()

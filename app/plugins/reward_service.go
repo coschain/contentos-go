@@ -66,7 +66,9 @@ func (p *RewardService) onReward(name string, postId uint64, reward uint64, bloc
 		} else {
 			r := exRewardWrap.GetReward()
 			newReward := &prototype.Vest{Value: reward + r.Value}
-			exRewardWrap.MdReward(newReward)
+			exRewardWrap.Md(func(tInfo *table.SoExtReward) {
+				tInfo.Reward = newReward
+			})
 		}
 	}
 }
