@@ -123,7 +123,7 @@ func (s *SoWitnessScheduleObjectWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
-func (s *SoWitnessScheduleObjectWrap) Md(f func(tInfo *SoWitnessScheduleObject)) error {
+func (s *SoWitnessScheduleObjectWrap) Modify(f func(tInfo *SoWitnessScheduleObject)) error {
 	if !s.CheckExist() {
 		return errors.New("the SoWitnessScheduleObject table does not exist. Please create a table first")
 	}

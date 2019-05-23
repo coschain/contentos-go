@@ -127,7 +127,7 @@ func (s *SoExtFollowCountWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
-func (s *SoExtFollowCountWrap) Md(f func(tInfo *SoExtFollowCount)) error {
+func (s *SoExtFollowCountWrap) Modify(f func(tInfo *SoExtFollowCount)) error {
 	if !s.CheckExist() {
 		return errors.New("the SoExtFollowCount table does not exist. Please create a table first")
 	}

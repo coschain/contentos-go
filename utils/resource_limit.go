@@ -97,7 +97,7 @@ func (s *ResourceLimiter) Consume(db iservices.IDatabaseRW,name string, num uint
 	}
 	newStamina = calculateNewStaminaEMA(newStamina,num,now,now)
 
-	accountWrap.Md(func(tInfo *table.SoAccount) {
+	accountWrap.Modify(func(tInfo *table.SoAccount) {
 		tInfo.Stamina = newStamina
 		tInfo.StaminaUseBlock = now
 	})
@@ -112,7 +112,7 @@ func (s *ResourceLimiter) ConsumeLeft(db iservices.IDatabaseRW,name string, now 
 
 	maxStamina := s.calculateUserMaxStamina(db,name)
 
-	accountWrap.Md(func(tInfo *table.SoAccount) {
+	accountWrap.Modify(func(tInfo *table.SoAccount) {
 		tInfo.Stamina = maxStamina
 		tInfo.StaminaUseBlock = now
 	})
@@ -131,7 +131,7 @@ func (s *ResourceLimiter) ConsumeFree(db iservices.IDatabaseRW,name string,num u
 	}
 	newFreeStamina = calculateNewStaminaEMA(newFreeStamina,num,now,now)
 
-	accountWrap.Md(func(tInfo *table.SoAccount) {
+	accountWrap.Modify(func(tInfo *table.SoAccount) {
 		tInfo.StaminaFree = newFreeStamina
 		tInfo.StaminaFreeUseBlock = now
 	})
@@ -180,7 +180,7 @@ func (s *ResourceLimiter) ConsumeFreeLeft(db iservices.IDatabaseRW,name string, 
 		return false
 	}
 
-	accountWrap.Md(func(tInfo *table.SoAccount) {
+	accountWrap.Modify(func(tInfo *table.SoAccount) {
 		tInfo.StaminaFree = constants.FreeStamina
 		tInfo.StaminaFreeUseBlock = now
 	})

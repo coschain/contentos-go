@@ -95,7 +95,7 @@ func (p *PostService) executePostOperation(op *prototype.PostOperation) {
 	acctWrap := table.NewSoAccountWrap(p.db,op.Owner)
 	if acctWrap != nil && acctWrap.CheckExist() {
 		cnt := acctWrap.GetPostCount()
-		acctWrap.Md(func(tInfo *table.SoAccount) {
+		acctWrap.Modify(func(tInfo *table.SoAccount) {
 			tInfo.PostCount = cnt+1
 		})
 	}

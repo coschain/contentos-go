@@ -124,7 +124,7 @@ func (s *SoGlobalWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
-func (s *SoGlobalWrap) Md(f func(tInfo *SoGlobal)) error {
+func (s *SoGlobalWrap) Modify(f func(tInfo *SoGlobal)) error {
 	if !s.CheckExist() {
 		return errors.New("the SoGlobal table does not exist. Please create a table first")
 	}

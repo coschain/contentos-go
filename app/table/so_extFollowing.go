@@ -128,7 +128,7 @@ func (s *SoExtFollowingWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
-func (s *SoExtFollowingWrap) Md(f func(tInfo *SoExtFollowing)) error {
+func (s *SoExtFollowingWrap) Modify(f func(tInfo *SoExtFollowing)) error {
 	if !s.CheckExist() {
 		return errors.New("the SoExtFollowing table does not exist. Please create a table first")
 	}

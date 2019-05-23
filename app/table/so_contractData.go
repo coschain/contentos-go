@@ -127,7 +127,7 @@ func (s *SoContractDataWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
-func (s *SoContractDataWrap) Md(f func(tInfo *SoContractData)) error {
+func (s *SoContractDataWrap) Modify(f func(tInfo *SoContractData)) error {
 	if !s.CheckExist() {
 		return errors.New("the SoContractData table does not exist. Please create a table first")
 	}

@@ -136,7 +136,7 @@ func (s *SoDemoWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
-func (s *SoDemoWrap) Md(f func(tInfo *SoDemo)) error {
+func (s *SoDemoWrap) Modify(f func(tInfo *SoDemo)) error {
 	if !s.CheckExist() {
 		return errors.New("the SoDemo table does not exist. Please create a table first")
 	}

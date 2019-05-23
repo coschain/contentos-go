@@ -114,7 +114,7 @@ func main() {
 	} else {
 		fmt.Println("get content fail")
 	}
-	tMdErr := wrap.Md(func(tInfo *table.SoDemo) {
+	tMdErr := wrap.Modify(func(tInfo *table.SoDemo) {
 		tInfo.Content = "hello world"
 	})
 	if tMdErr != nil {
@@ -128,7 +128,7 @@ func main() {
 	  --------------------------*/
 
     //Modify multiple fields at the same time
-	err = wrap.Md(func(tInfo *table.SoDemo) {
+	err = wrap.Modify(func(tInfo *table.SoDemo) {
 		tInfo.Idx = 1100
 		tInfo.LikeCount = 10
 		tInfo.Title = "test md title"
@@ -143,7 +143,7 @@ func main() {
 	}
 
 	//*****The primary key not support modify *****
-	err = wrap.Md(func(tInfo *table.SoDemo) {
+	err = wrap.Modify(func(tInfo *table.SoDemo) {
 		tInfo.Owner = prototype.NewAccountName("test")
 	})
 
@@ -153,7 +153,7 @@ func main() {
 	fmt.Printf("current primary key is %v \n", wrap.GetOwner().Value)
 
 	//*****can't modify sort  key to nil *****
-	err = wrap.Md(func(tInfo *table.SoDemo) {
+	err = wrap.Modify(func(tInfo *table.SoDemo) {
 		tInfo.PostTime = nil
 	})
 	if err != nil {
@@ -162,7 +162,7 @@ func main() {
 	fmt.Printf("current postTime is %v \n", wrap.GetPostTime().UtcSeconds)
 
 	//*****can't modify unique key to nil *****
-	err = wrap.Md(func(tInfo *table.SoDemo) {
+	err = wrap.Modify(func(tInfo *table.SoDemo) {
 		tInfo.NickName = nil
 	})
 	if err != nil {
@@ -172,7 +172,7 @@ func main() {
 	fmt.Printf("current nickName is %v \n", wrap.GetNickName().Value)
 
 	//*****support modify filed to nil if it's not sort or unique field*****
-	err = wrap.Md(func(tInfo *table.SoDemo) {
+	err = wrap.Modify(func(tInfo *table.SoDemo) {
 		tInfo.RegistTime = nil
 	})
 	if err != nil {
@@ -181,7 +181,7 @@ func main() {
 
 	fmt.Printf("current registTime is %v after modify \n", wrap.GetRegistTime())
 	//modify single field content
-	cMdRes := wrap.Md(func(tInfo *table.SoDemo) {
+	cMdRes := wrap.Modify(func(tInfo *table.SoDemo) {
 		tInfo.Content = "test md the content"
 	})
 	if cMdRes != nil {
@@ -190,7 +190,7 @@ func main() {
 		fmt.Printf("The modified content is %v \n", wrap.GetContent())
 	}
 
-	tMdRes := wrap.Md(func(tInfo *table.SoDemo) {
+	tMdRes := wrap.Modify(func(tInfo *table.SoDemo) {
 		tInfo.Taglist = []string{"#Football"}
 	})
 	if tMdRes != nil {

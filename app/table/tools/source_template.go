@@ -194,7 +194,7 @@ func (s *So{{.ClsName}}Wrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf,nil
 }
 
-func (s *So{{.ClsName}}Wrap) Md(f func(tInfo *So{{.ClsName}})) error {
+func (s *So{{.ClsName}}Wrap) Modify(f func(tInfo *So{{.ClsName}})) error {
     if !s.CheckExist() {
 		return errors.New("the So{{.ClsName}} table does not exist. Please create a table first")
 	}

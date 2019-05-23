@@ -124,7 +124,7 @@ func (s *SoBlockSummaryObjectWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
-func (s *SoBlockSummaryObjectWrap) Md(f func(tInfo *SoBlockSummaryObject)) error {
+func (s *SoBlockSummaryObjectWrap) Modify(f func(tInfo *SoBlockSummaryObject)) error {
 	if !s.CheckExist() {
 		return errors.New("the SoBlockSummaryObject table does not exist. Please create a table first")
 	}

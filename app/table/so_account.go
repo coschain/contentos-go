@@ -135,7 +135,7 @@ func (s *SoAccountWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
-func (s *SoAccountWrap) Md(f func(tInfo *SoAccount)) error {
+func (s *SoAccountWrap) Modify(f func(tInfo *SoAccount)) error {
 	if !s.CheckExist() {
 		return errors.New("the SoAccount table does not exist. Please create a table first")
 	}

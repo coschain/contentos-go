@@ -154,7 +154,7 @@ func (p *FollowService) executeFollowOperation(op *prototype.FollowOperation) {
 			//}
 
 			if fingCntWrap.CheckExist() {
-				fingCntWrap.Md(func(tInfo *table.SoExtFollowCount) {
+				fingCntWrap.Modify(func(tInfo *table.SoExtFollowCount) {
 					tInfo.FollowingCnt = fingCnt + 1
 				})
 			}else {
@@ -166,7 +166,7 @@ func (p *FollowService) executeFollowOperation(op *prototype.FollowOperation) {
 			}
 
 			if ferCntWrap.CheckExist() {
-				ferCntWrap.Md(func(tInfo *table.SoExtFollowCount) {
+				ferCntWrap.Modify(func(tInfo *table.SoExtFollowCount) {
 					tInfo.FollowerCnt = ferCnt + 1
 				})
 			}else {
@@ -183,10 +183,10 @@ func (p *FollowService) executeFollowOperation(op *prototype.FollowOperation) {
 			fingWrap.RemoveExtFollowing()
 			ferWrap.RemoveExtFollower()
 
-			fingCntWrap.Md(func(tInfo *table.SoExtFollowCount) {
+			fingCntWrap.Modify(func(tInfo *table.SoExtFollowCount) {
 				tInfo.FollowingCnt = fingCnt - 1
 			})
-			ferCntWrap.Md(func(tInfo *table.SoExtFollowCount) {
+			ferCntWrap.Modify(func(tInfo *table.SoExtFollowCount) {
 				tInfo.FollowerCnt = ferCnt - 1
 			})
 		}

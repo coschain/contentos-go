@@ -128,7 +128,7 @@ func (s *SoExtRewardWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
-func (s *SoExtRewardWrap) Md(f func(tInfo *SoExtReward)) error {
+func (s *SoExtRewardWrap) Modify(f func(tInfo *SoExtReward)) error {
 	if !s.CheckExist() {
 		return errors.New("the SoExtReward table does not exist. Please create a table first")
 	}

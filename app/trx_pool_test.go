@@ -28,7 +28,7 @@ func addGlobalTime(db iservices.IDatabaseService, delta uint32) {
 	wrap := table.NewSoGlobalWrap(db, &constants.GlobalId)
 	gp := wrap.GetProps()
 	gp.Time.UtcSeconds += delta
-	wrap.Md(func(tInfo *table.SoGlobal) {
+	wrap.Modify(func(tInfo *table.SoGlobal) {
 		tInfo.Props = gp
 	})
 }
@@ -37,7 +37,7 @@ func addGlobalHeadNumer(db iservices.IDatabaseService, delta uint64) {
 	wrap := table.NewSoGlobalWrap(db, &constants.GlobalId)
 	gp := wrap.GetProps()
 	gp.HeadBlockNumber += delta
-	wrap.Md(func(tInfo *table.SoGlobal) {
+	wrap.Modify(func(tInfo *table.SoGlobal) {
 		tInfo.Props = gp
 	})
 }

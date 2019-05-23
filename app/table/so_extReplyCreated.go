@@ -125,7 +125,7 @@ func (s *SoExtReplyCreatedWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
-func (s *SoExtReplyCreatedWrap) Md(f func(tInfo *SoExtReplyCreated)) error {
+func (s *SoExtReplyCreatedWrap) Modify(f func(tInfo *SoExtReplyCreated)) error {
 	if !s.CheckExist() {
 		return errors.New("the SoExtReplyCreated table does not exist. Please create a table first")
 	}

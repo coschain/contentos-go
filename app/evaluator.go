@@ -152,7 +152,7 @@ func (ev *AccountCreateEvaluator) Apply() {
 	// sub creator's fee
 	originBalance := creatorWrap.GetBalance()
 	opAssertE(originBalance.Sub(op.Fee), "creator balance overflow")
-	opAssertE(creatorWrap.Md(func(tInfo *table.SoAccount) {
+	opAssertE(creatorWrap.Modify(func(tInfo *table.SoAccount) {
 		tInfo.Balance = originBalance
 	}),"")
 
@@ -206,12 +206,12 @@ func (ev *TransferEvaluator) Apply() {
 	tBalance := toWrap.GetBalance()
 
 	opAssertE(fBalance.Sub(op.Amount), "Insufficient balance to transfer.")
-	opAssertE(fromWrap.Md(func(tInfo *table.SoAccount) {
+	opAssertE(fromWrap.Modify(func(tInfo *table.SoAccount) {
 		tInfo.Balance = fBalance
 	}), "")
 
 	opAssertE(tBalance.Add(op.Amount), "balance overflow")
-	opAssertE(toWrap.Md(func(tInfo *table.SoAccount) {
+	opAssertE(toWrap.Modify(func(tInfo *table.SoAccount) {
 		tInfo.Balance = tBalance
 	}), "")
 
@@ -253,7 +253,7 @@ func (ev *PostEvaluator) Apply() {
 		t.DappRewards = &prototype.Vest{Value: 0}
 	}), "create post error")
 
-	authorWrap.Md(func(tInfo *table.SoAccount) {
+	authorWrap.Modify(func(tInfo *table.SoAccount) {
 		tInfo.LastPostTime = ev.ctx.control.HeadBlockTime()
 	})
 
@@ -311,11 +311,11 @@ func (ev *ReplyEvaluator) Apply() {
 		t.DappRewards = &prototype.Vest{Value: 0}
 	}), "create reply error")
 
-	authorWrap.Md(func(tInfo *table.SoAccount) {
+	authorWrap.Modify(func(tInfo *table.SoAccount) {
 		tInfo.LastPostTime = ev.ctx.control.HeadBlockTime()
 	})
 	// Modify Parent Object
-	opAssertE(pidWrap.Md(func(tInfo *table.SoPost) {
+	opAssertE(pidWrap.Modify(func(tInfo *table.SoPost) {
 		tInfo.Children += 1
 	}), "Modify Parent Children Error")
 
@@ -363,11 +363,11 @@ func (ev *VoteEvaluator) Apply() {
 	}
 	usedVp := (currentVp + constants.VoteLimitDuringRegenerate - 1) / constants.VoteLimitDuringRegenerate
 
-	voterWrap.Md(func(tInfo *table.SoAccount) {
+	voterWrap.Modify(func(tInfo *table.SoAccount) {
 		tInfo.VotePower = currentVp - usedVp
 	})
 
-	voterWrap.Md(func(tInfo *table.SoAccount) {
+	voterWrap.Modify(func(tInfo *table.SoAccount) {
 		tInfo.LastVoteTime = ev.ctx.control.HeadBlockTime()
 	})
 	vesting := voterWrap.GetVestingShares().Value
@@ -381,7 +381,7 @@ func (ev *VoteEvaluator) Apply() {
 		// add new vp into global
 		//ev.ctx.control.AddWeightedVP(weightedVp)
 		// update post's weighted vp
-		postWrap.Md(func(tInfo *table.SoPost) {
+		postWrap.Modify(func(tInfo *table.SoPost) {
 			tInfo.WeightedVp = votePower
 		})
 
@@ -393,7 +393,7 @@ func (ev *VoteEvaluator) Apply() {
 			t.VoteTime = ev.ctx.control.HeadBlockTime()
 		}), "create voter object error")
 
-		opAssertE(postWrap.Md(func(tInfo *table.SoPost) {
+		opAssertE(postWrap.Modify(func(tInfo *table.SoPost) {
 			tInfo.VoteCnt += 1
 		}), "set vote count error")
 	}
@@ -469,7 +469,7 @@ func (ev *BpUnregisterEvaluator) Apply() {
 	payBackVoteCntToVoter(ev.ctx.db, op.Owner)
 
 	//opAssert(witnessWrap.RemoveWitness(), "remove witness error")
-	opAssertE(witnessWrap.Md(func(tInfo *table.SoWitness) {
+	opAssertE(witnessWrap.Modify(func(tInfo *table.SoWitness) {
 		tInfo.Active = false
 	}),"set witness active error")
 }
@@ -499,7 +499,7 @@ func payBackVoteCntToVoter(dba iservices.IDatabaseRW, witness *prototype.Account
 		if voterAccount != nil && voterAccount.CheckExist() {
 			voteCnt := voterAccount.GetBpVoteCount()
 			opAssert(voteCnt > 0, "voter's vote count must not be 0")
-			opAssertE(voterAccount.Md(func(tInfo *table.SoAccount) {
+			opAssertE(voterAccount.Modify(func(tInfo *table.SoAccount) {
 				tInfo.BpVoteCount = voteCnt-1
 			}), "pay back voter data error")
 
@@ -532,10 +532,10 @@ func (ev *BpVoteEvaluator) Apply() {
 		opAssert(vidWrap.CheckExist(), "vote record not exist")
 		opAssert(vidWrap.RemoveWitnessVote(), "remove vote record error")
 		opAssert(witnessWrap.GetVoteCount() >= voterVests.Value * constants.VoteCountPerVest, "witness data error")
-		opAssertE(witnessWrap.Md(func(tInfo *table.SoWitness) {
+		opAssertE(witnessWrap.Modify(func(tInfo *table.SoWitness) {
 			tInfo.VoteCount -=  voterVests.Value * constants.VoteCountPerVest
 		}), "set witness data error")
-		opAssertE(voterAccount.Md(func(tInfo *table.SoAccount) {
+		opAssertE(voterAccount.Modify(func(tInfo *table.SoAccount) {
 			tInfo.BpVoteCount = voteCnt-1
 		}), "set voter data error")
 	} else {
@@ -547,11 +547,11 @@ func (ev *BpVoteEvaluator) Apply() {
 			t.WitnessId = witnessId
 		}), "add vote record error")
 
-		opAssertE(voterAccount.Md(func(tInfo *table.SoAccount) {
+		opAssertE(voterAccount.Modify(func(tInfo *table.SoAccount) {
 			tInfo.BpVoteCount = voteCnt+1
 		}), "set voter data error")
 		opAssert(witnessWrap.GetVoteCount() + voterVests.Value * constants.VoteCountPerVest <= math.MaxUint64, "witness vote count overflow")
-		opAssertE(witnessWrap.Md(func(tInfo *table.SoWitness) {
+		opAssertE(witnessWrap.Modify(func(tInfo *table.SoWitness) {
 			tInfo.VoteCount += voterVests.Value * constants.VoteCountPerVest
 		}), "set witness data error")
 	}
@@ -610,7 +610,7 @@ func (ev *BpUpdateEvaluator) Apply() {
 		fmt.Sprintf("expected tps too high max value %d", constants.MaxTPSExpected))
 
 	witnessWrap := table.NewSoWitnessWrap(ev.ctx.db, op.Owner)
-	opAssertE(witnessWrap.Md(func(tInfo *table.SoWitness) {
+	opAssertE(witnessWrap.Modify(func(tInfo *table.SoWitness) {
 		tInfo.ProposedStaminaFree = staminaFree
 		tInfo.TpsExpected = tpsExpected
 	}), "update bp proposed stamina free and bp tps expected error")
@@ -643,12 +643,12 @@ func (ev *TransferToVestingEvaluator) Apply() {
 	addVests := prototype.NewVest(op.Amount.Value)
 
 	opAssertE(fBalance.Sub(op.Amount), "balance not enough")
-	opAssertE(fidWrap.Md(func(tInfo *table.SoAccount) {
+	opAssertE(fidWrap.Modify(func(tInfo *table.SoAccount) {
 		tInfo.Balance = fBalance
 	}), "set from new balance error")
 
 	opAssertE(tVests.Add(addVests), "vests error")
-	opAssertE(tidWrap.Md(func(tInfo *table.SoAccount) {
+	opAssertE(tidWrap.Modify(func(tInfo *table.SoAccount) {
 		tInfo.VestingShares = tVests
 	}), "set to new vests error")
 
@@ -686,7 +686,7 @@ func updateWitnessVoteCount(dba iservices.IDatabaseRW, voter *prototype.AccountN
 				witnessWrap.GetVoteCount() + deltaVestAmount * constants.VoteCountPerVest <= math.MaxUint64,
 				"new vote count data error")
 
-			opAssertE(witnessWrap.Md(func(tInfo *table.SoWitness) {
+			opAssertE(witnessWrap.Modify(func(tInfo *table.SoWitness) {
 				tInfo.VoteCount += deltaVestAmount * constants.VoteCountPerVest
 			}), "update witness vote count data error")
 		}
@@ -706,7 +706,7 @@ func (ev *ConvertVestingEvaluator) Apply() {
 	currentBlock := globalProps.HeadBlockNumber
 	eachRate := op.Amount.Value / (constants.ConvertWeeks - 1)
 	//accWrap.MdNextPowerdownTime(&prototype.TimePointSec{UtcSeconds: timestamp + constants.POWER_DOWN_INTERVAL})
-	accWrap.Md(func(tInfo *table.SoAccount) {
+	accWrap.Modify(func(tInfo *table.SoAccount) {
 		tInfo.NextPowerdownBlockNum = currentBlock + constants.PowerDownBlockInterval
 		tInfo.EachPowerdownRate = &prototype.Vest{Value: eachRate}
 		tInfo.HasPowerdown = &prototype.Vest{Value: 0}
@@ -778,7 +778,7 @@ func (ev *ReportEvaluator) Apply() {
 			return
 		}
 
-		report.Md(func(tInfo *table.SoReportList) {
+		report.Modify(func(tInfo *table.SoReportList) {
 			tInfo.IsArbitrated = true
 		})
 	} else {
@@ -788,7 +788,7 @@ func (ev *ReportEvaluator) Apply() {
 			}
 			existedTags := report.GetTags()
 			newTags := op.ReportTag
-			report.Md(func(tInfo *table.SoReportList) {
+			report.Modify(func(tInfo *table.SoReportList) {
 				tInfo.Tags = mergeTags(existedTags, newTags)
 				tInfo.ReportedTimes += 1
 			})
@@ -948,7 +948,7 @@ func (ev *ContractApplyEvaluator) Apply() {
 		}
 
 	}
-	opAssertE(scid.Md(func(tInfo *table.SoContract) {
+	opAssertE(scid.Modify(func(tInfo *table.SoContract) {
 		tInfo.ApplyCount += 1
 	}),"modify applycount failed")
 
@@ -1026,7 +1026,7 @@ func (ev *StakeEvaluator) Apply() {
 	opAssertE(vest.Add(value.ToVest()), "vesting over flow.")
 
 	headBlockTime := ev.ctx.control.HeadBlockTime()
-	opAssertE(accountWrap.Md(func(tInfo *table.SoAccount) {
+	opAssertE(accountWrap.Modify(func(tInfo *table.SoAccount) {
 		tInfo.Balance = fBalance
 		tInfo.StakeVesting = vest
 		tInfo.LastStakeTime = headBlockTime
@@ -1054,7 +1054,7 @@ func (ev *UnStakeEvaluator) Apply() {
 	fBalance := accountWrap.GetBalance()
 	opAssertE(fBalance.Add(value), "Insufficient balance to transfer.")
 
-	opAssertE(accountWrap.Md(func(tInfo *table.SoAccount) {
+	opAssertE(accountWrap.Modify(func(tInfo *table.SoAccount) {
 		tInfo.StakeVesting = vest
 		tInfo.Balance = fBalance
 	}), "modify balance and vesting failed")

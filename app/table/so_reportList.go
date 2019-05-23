@@ -124,7 +124,7 @@ func (s *SoReportListWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
-func (s *SoReportListWrap) Md(f func(tInfo *SoReportList)) error {
+func (s *SoReportListWrap) Modify(f func(tInfo *SoReportList)) error {
 	if !s.CheckExist() {
 		return errors.New("the SoReportList table does not exist. Please create a table first")
 	}

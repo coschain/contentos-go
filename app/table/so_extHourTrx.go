@@ -129,7 +129,7 @@ func (s *SoExtHourTrxWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
-func (s *SoExtHourTrxWrap) Md(f func(tInfo *SoExtHourTrx)) error {
+func (s *SoExtHourTrxWrap) Modify(f func(tInfo *SoExtHourTrx)) error {
 	if !s.CheckExist() {
 		return errors.New("the SoExtHourTrx table does not exist. Please create a table first")
 	}

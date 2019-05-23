@@ -126,7 +126,7 @@ func (s *SoPostWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
-func (s *SoPostWrap) Md(f func(tInfo *SoPost)) error {
+func (s *SoPostWrap) Modify(f func(tInfo *SoPost)) error {
 	if !s.CheckExist() {
 		return errors.New("the SoPost table does not exist. Please create a table first")
 	}

@@ -128,7 +128,7 @@ func (s *SoTransactionObjectWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
-func (s *SoTransactionObjectWrap) Md(f func(tInfo *SoTransactionObject)) error {
+func (s *SoTransactionObjectWrap) Modify(f func(tInfo *SoTransactionObject)) error {
 	if !s.CheckExist() {
 		return errors.New("the SoTransactionObject table does not exist. Please create a table first")
 	}

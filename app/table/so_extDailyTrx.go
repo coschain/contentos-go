@@ -129,7 +129,7 @@ func (s *SoExtDailyTrxWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
-func (s *SoExtDailyTrxWrap) Md(f func(tInfo *SoExtDailyTrx)) error {
+func (s *SoExtDailyTrxWrap) Modify(f func(tInfo *SoExtDailyTrx)) error {
 	if !s.CheckExist() {
 		return errors.New("the SoExtDailyTrx table does not exist. Please create a table first")
 	}

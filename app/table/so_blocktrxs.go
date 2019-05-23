@@ -123,7 +123,7 @@ func (s *SoBlocktrxsWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
-func (s *SoBlocktrxsWrap) Md(f func(tInfo *SoBlocktrxs)) error {
+func (s *SoBlocktrxsWrap) Modify(f func(tInfo *SoBlocktrxs)) error {
 	if !s.CheckExist() {
 		return errors.New("the SoBlocktrxs table does not exist. Please create a table first")
 	}

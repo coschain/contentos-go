@@ -131,7 +131,7 @@ func (s *SoExtTrxWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
-func (s *SoExtTrxWrap) Md(f func(tInfo *SoExtTrx)) error {
+func (s *SoExtTrxWrap) Modify(f func(tInfo *SoExtTrx)) error {
 	if !s.CheckExist() {
 		return errors.New("the SoExtTrx table does not exist. Please create a table first")
 	}

@@ -62,7 +62,7 @@ func (e *Economist) modifyGlobalDynamicData(f func(props *prototype.DynamicPrope
 
 	f(props)
 
-	err := dgpWrap.Md(func(tInfo *table.SoGlobal) {
+	err := dgpWrap.Modify(func(tInfo *table.SoGlobal) {
 		tInfo.Props = props
 	})
 	if err != nil {
@@ -153,7 +153,7 @@ func (e *Economist) Mint(trxObserver iservices.ITrxObserver) {
 	oldVest := bpWrap.GetVestingShares()
 	//bpWrap.MdVestingShares(&prototype.Vest{Value: bpWrap.GetVestingShares().Value + bpReward})
 	mustNoError(bpRewardVesting.Add(bpWrap.GetVestingShares()), "bpRewardVesting overflow")
-	bpWrap.Md(func(tInfo *table.SoAccount) {
+	bpWrap.Modify(func(tInfo *table.SoAccount) {
 		tInfo.VestingShares = bpRewardVesting
 	})
 	updateWitnessVoteCount(e.db, globalProps.CurrentWitness, oldVest, bpRewardVesting)
@@ -344,7 +344,7 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 				oldVest := beneficiaryWrap.GetVestingShares()
 				vestingRewards := &prototype.Vest{Value: r}
 				mustNoError(vestingRewards.Add(beneficiaryWrap.GetVestingShares()), "Post Beneficiary VestingRewards Overflow")
-				beneficiaryWrap.Md(func(tInfo *table.SoAccount) {
+				beneficiaryWrap.Modify(func(tInfo *table.SoAccount) {
 					tInfo.VestingShares = vestingRewards
 				})
 				updateWitnessVoteCount(e.db, &prototype.AccountName{Value: name}, oldVest, vestingRewards)
@@ -364,12 +364,12 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 			oldVest := authorWrap.GetVestingShares()
 			vestingRewards := &prototype.Vest{Value: reward}
 			mustNoError(vestingRewards.Add(authorWrap.GetVestingShares()), "Post VestingRewards Overflow")
-			authorWrap.Md(func(tInfo *table.SoAccount) {
+			authorWrap.Modify(func(tInfo *table.SoAccount) {
 				tInfo.VestingShares = vestingRewards
 			})
 			updateWitnessVoteCount(e.db, &prototype.AccountName{Value: author}, oldVest, vestingRewards)
 		}
-		post.Md(func(tInfo *table.SoPost) {
+		post.Modify(func(tInfo *table.SoPost) {
 			tInfo.CashoutBlockNum = math.MaxUint32
 			tInfo.Rewards = &prototype.Vest{Value: reward}
 			tInfo.DappRewards = &prototype.Vest{Value: beneficiaryReward}
@@ -448,7 +448,7 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 				oldVest := beneficiaryWrap.GetVestingShares()
 				vestingRewards := &prototype.Vest{Value: r}
 				mustNoError(vestingRewards.Add(beneficiaryWrap.GetVestingShares()), "Reply Beneficiary VestingRewards Overflow")
-				beneficiaryWrap.Md(func(tInfo *table.SoAccount) {
+				beneficiaryWrap.Modify(func(tInfo *table.SoAccount) {
 					tInfo.VestingShares = vestingRewards
 				})
 				updateWitnessVoteCount(e.db, &prototype.AccountName{Value: name}, oldVest, vestingRewards)
@@ -469,13 +469,13 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 			oldVest := authorWrap.GetVestingShares()
 			vestingRewards := &prototype.Vest{Value: reward}
 			mustNoError(vestingRewards.Add(authorWrap.GetVestingShares()), "Reply VestingRewards Overflow")
-			authorWrap.Md(func(tInfo *table.SoAccount) {
+			authorWrap.Modify(func(tInfo *table.SoAccount) {
 				tInfo.VestingShares = vestingRewards
 			})
 			updateWitnessVoteCount(e.db, &prototype.AccountName{Value: author}, oldVest, vestingRewards)
 		}
 
-		reply.Md(func(tInfo *table.SoPost) {
+		reply.Modify(func(tInfo *table.SoPost) {
 			tInfo.CashoutBlockNum = math.MaxUint32
 			tInfo.Rewards = &prototype.Vest{Value: reward}
 			tInfo.DappRewards = &prototype.Vest{Value: beneficiaryReward}
@@ -546,7 +546,7 @@ func (e *Economist) PowerDown() {
 		hasPowerDown := accountWrap.GetHasPowerdown().Value + powerdownQuota
 		newVest := accountWrap.GetVestingShares()
 		updateWitnessVoteCount(e.db, accountName, oldVest, newVest)
-		accountWrap.Md(func(tInfo *table.SoAccount) {
+		accountWrap.Modify(func(tInfo *table.SoAccount) {
 			tInfo.VestingShares = &prototype.Vest{Value: vesting}
 			tInfo.Balance = &prototype.Coin{Value: balance}
 			tInfo.HasPowerdown = &prototype.Vest{Value: hasPowerDown}
@@ -559,12 +559,12 @@ func (e *Economist) PowerDown() {
 			//props.TotalVestingShares.Value -= powerdownQuota
 		})
 		if accountWrap.GetHasPowerdown().Value >= accountWrap.GetToPowerdown().Value || accountWrap.GetVestingShares().Value == 0 {
-			accountWrap.Md(func(tInfo *table.SoAccount) {
+			accountWrap.Modify(func(tInfo *table.SoAccount) {
 				tInfo.EachPowerdownRate = &prototype.Vest{Value: 0}
 				tInfo.NextPowerdownBlockNum = math.MaxUint32
 			})
 		} else {
-			accountWrap.Md(func(tInfo *table.SoAccount) {
+			accountWrap.Modify(func(tInfo *table.SoAccount) {
 				tInfo.NextPowerdownBlockNum = current + constants.PowerDownBlockInterval
 			})
 		}
