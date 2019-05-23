@@ -174,7 +174,7 @@ func (s *SoExtReplyCreatedWrap) Md(f func(tInfo *SoExtReplyCreated)) error {
 		return err
 	}
 
-	return err
+	return nil
 
 }
 
@@ -780,18 +780,4 @@ func (s *UniExtReplyCreatedPostIdWrap) UniQueryPostId(start *uint64) *SoExtReply
 		}
 	}
 	return nil
-}
-
-func (s *SoExtReplyCreatedWrap) getMdFuncMap() map[string]interface{} {
-	if s.mdFuncMap != nil && len(s.mdFuncMap) > 0 {
-		return s.mdFuncMap
-	}
-	m := map[string]interface{}{}
-
-	m["CreatedOrder"] = s.mdFieldCreatedOrder
-
-	if len(m) > 0 {
-		s.mdFuncMap = m
-	}
-	return m
 }

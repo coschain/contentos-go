@@ -173,7 +173,7 @@ func (s *SoGlobalWrap) Md(f func(tInfo *SoGlobal)) error {
 		return err
 	}
 
-	return err
+	return nil
 
 }
 
@@ -612,18 +612,4 @@ func (s *UniGlobalIdWrap) UniQueryId(start *int32) *SoGlobalWrap {
 		}
 	}
 	return nil
-}
-
-func (s *SoGlobalWrap) getMdFuncMap() map[string]interface{} {
-	if s.mdFuncMap != nil && len(s.mdFuncMap) > 0 {
-		return s.mdFuncMap
-	}
-	m := map[string]interface{}{}
-
-	m["Props"] = s.mdFieldProps
-
-	if len(m) > 0 {
-		s.mdFuncMap = m
-	}
-	return m
 }

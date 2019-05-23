@@ -177,7 +177,7 @@ func (s *SoExtFollowerWrap) Md(f func(tInfo *SoExtFollower)) error {
 		return err
 	}
 
-	return err
+	return nil
 
 }
 
@@ -801,18 +801,4 @@ func (s *UniExtFollowerFollowerInfoWrap) UniQueryFollowerInfo(start *prototype.F
 		}
 	}
 	return nil
-}
-
-func (s *SoExtFollowerWrap) getMdFuncMap() map[string]interface{} {
-	if s.mdFuncMap != nil && len(s.mdFuncMap) > 0 {
-		return s.mdFuncMap
-	}
-	m := map[string]interface{}{}
-
-	m["FollowerCreatedOrder"] = s.mdFieldFollowerCreatedOrder
-
-	if len(m) > 0 {
-		s.mdFuncMap = m
-	}
-	return m
 }

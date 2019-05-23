@@ -178,7 +178,7 @@ func (s *SoExtDailyTrxWrap) Md(f func(tInfo *SoExtDailyTrx)) error {
 		return err
 	}
 
-	return err
+	return nil
 
 }
 
@@ -945,18 +945,4 @@ func (s *UniExtDailyTrxDateWrap) UniQueryDate(start *prototype.TimePointSec) *So
 		}
 	}
 	return nil
-}
-
-func (s *SoExtDailyTrxWrap) getMdFuncMap() map[string]interface{} {
-	if s.mdFuncMap != nil && len(s.mdFuncMap) > 0 {
-		return s.mdFuncMap
-	}
-	m := map[string]interface{}{}
-
-	m["Count"] = s.mdFieldCount
-
-	if len(m) > 0 {
-		s.mdFuncMap = m
-	}
-	return m
 }

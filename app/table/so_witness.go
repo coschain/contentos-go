@@ -178,7 +178,7 @@ func (s *SoWitnessWrap) Md(f func(tInfo *SoWitness)) error {
 		return err
 	}
 
-	return err
+	return nil
 
 }
 
@@ -2175,42 +2175,4 @@ func (s *UniWitnessOwnerWrap) UniQueryOwner(start *prototype.AccountName) *SoWit
 		}
 	}
 	return nil
-}
-
-func (s *SoWitnessWrap) getMdFuncMap() map[string]interface{} {
-	if s.mdFuncMap != nil && len(s.mdFuncMap) > 0 {
-		return s.mdFuncMap
-	}
-	m := map[string]interface{}{}
-
-	m["Active"] = s.mdFieldActive
-
-	m["CreatedTime"] = s.mdFieldCreatedTime
-
-	m["LastAslot"] = s.mdFieldLastAslot
-
-	m["LastConfirmedBlockNum"] = s.mdFieldLastConfirmedBlockNum
-
-	m["LastWork"] = s.mdFieldLastWork
-
-	m["PowWorker"] = s.mdFieldPowWorker
-
-	m["ProposedStaminaFree"] = s.mdFieldProposedStaminaFree
-
-	m["RunningVersion"] = s.mdFieldRunningVersion
-
-	m["SigningKey"] = s.mdFieldSigningKey
-
-	m["TotalMissed"] = s.mdFieldTotalMissed
-
-	m["TpsExpected"] = s.mdFieldTpsExpected
-
-	m["Url"] = s.mdFieldUrl
-
-	m["VoteCount"] = s.mdFieldVoteCount
-
-	if len(m) > 0 {
-		s.mdFuncMap = m
-	}
-	return m
 }

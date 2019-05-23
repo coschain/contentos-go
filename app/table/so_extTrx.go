@@ -180,7 +180,7 @@ func (s *SoExtTrxWrap) Md(f func(tInfo *SoExtTrx)) error {
 		return err
 	}
 
-	return err
+	return nil
 
 }
 
@@ -1817,26 +1817,4 @@ func (s *UniExtTrxTrxIdWrap) UniQueryTrxId(start *prototype.Sha256) *SoExtTrxWra
 		}
 	}
 	return nil
-}
-
-func (s *SoExtTrxWrap) getMdFuncMap() map[string]interface{} {
-	if s.mdFuncMap != nil && len(s.mdFuncMap) > 0 {
-		return s.mdFuncMap
-	}
-	m := map[string]interface{}{}
-
-	m["BlockHeight"] = s.mdFieldBlockHeight
-
-	m["BlockId"] = s.mdFieldBlockId
-
-	m["BlockTime"] = s.mdFieldBlockTime
-
-	m["TrxCreateOrder"] = s.mdFieldTrxCreateOrder
-
-	m["TrxWrap"] = s.mdFieldTrxWrap
-
-	if len(m) > 0 {
-		s.mdFuncMap = m
-	}
-	return m
 }

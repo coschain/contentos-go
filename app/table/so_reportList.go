@@ -173,7 +173,7 @@ func (s *SoReportListWrap) Md(f func(tInfo *SoReportList)) error {
 		return err
 	}
 
-	return err
+	return nil
 
 }
 
@@ -983,22 +983,4 @@ func (s *UniReportListUuidWrap) UniQueryUuid(start *uint64) *SoReportListWrap {
 		}
 	}
 	return nil
-}
-
-func (s *SoReportListWrap) getMdFuncMap() map[string]interface{} {
-	if s.mdFuncMap != nil && len(s.mdFuncMap) > 0 {
-		return s.mdFuncMap
-	}
-	m := map[string]interface{}{}
-
-	m["IsArbitrated"] = s.mdFieldIsArbitrated
-
-	m["ReportedTimes"] = s.mdFieldReportedTimes
-
-	m["Tags"] = s.mdFieldTags
-
-	if len(m) > 0 {
-		s.mdFuncMap = m
-	}
-	return m
 }

@@ -176,7 +176,7 @@ func (s *SoContractDataWrap) Md(f func(tInfo *SoContractData)) error {
 		return err
 	}
 
-	return err
+	return nil
 
 }
 
@@ -728,20 +728,4 @@ func (s *UniContractDataIdWrap) UniQueryId(start *prototype.ContractDataId) *SoC
 		}
 	}
 	return nil
-}
-
-func (s *SoContractDataWrap) getMdFuncMap() map[string]interface{} {
-	if s.mdFuncMap != nil && len(s.mdFuncMap) > 0 {
-		return s.mdFuncMap
-	}
-	m := map[string]interface{}{}
-
-	m["Key"] = s.mdFieldKey
-
-	m["Value"] = s.mdFieldValue
-
-	if len(m) > 0 {
-		s.mdFuncMap = m
-	}
-	return m
 }

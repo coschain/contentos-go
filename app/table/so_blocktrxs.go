@@ -172,7 +172,7 @@ func (s *SoBlocktrxsWrap) Md(f func(tInfo *SoBlocktrxs)) error {
 		return err
 	}
 
-	return err
+	return nil
 
 }
 
@@ -611,18 +611,4 @@ func (s *UniBlocktrxsBlockWrap) UniQueryBlock(start *uint64) *SoBlocktrxsWrap {
 		}
 	}
 	return nil
-}
-
-func (s *SoBlocktrxsWrap) getMdFuncMap() map[string]interface{} {
-	if s.mdFuncMap != nil && len(s.mdFuncMap) > 0 {
-		return s.mdFuncMap
-	}
-	m := map[string]interface{}{}
-
-	m["Trxs"] = s.mdFieldTrxs
-
-	if len(m) > 0 {
-		s.mdFuncMap = m
-	}
-	return m
 }

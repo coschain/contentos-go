@@ -179,7 +179,7 @@ func (s *SoVoteWrap) Md(f func(tInfo *SoVote)) error {
 		return err
 	}
 
-	return err
+	return nil
 
 }
 
@@ -1430,24 +1430,4 @@ func (s *UniVoteVoterWrap) UniQueryVoter(start *prototype.VoterId) *SoVoteWrap {
 		}
 	}
 	return nil
-}
-
-func (s *SoVoteWrap) getMdFuncMap() map[string]interface{} {
-	if s.mdFuncMap != nil && len(s.mdFuncMap) > 0 {
-		return s.mdFuncMap
-	}
-	m := map[string]interface{}{}
-
-	m["PostId"] = s.mdFieldPostId
-
-	m["Upvote"] = s.mdFieldUpvote
-
-	m["VoteTime"] = s.mdFieldVoteTime
-
-	m["WeightedVp"] = s.mdFieldWeightedVp
-
-	if len(m) > 0 {
-		s.mdFuncMap = m
-	}
-	return m
 }

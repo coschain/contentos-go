@@ -173,7 +173,7 @@ func (s *SoBlockSummaryObjectWrap) Md(f func(tInfo *SoBlockSummaryObject)) error
 		return err
 	}
 
-	return err
+	return nil
 
 }
 
@@ -612,18 +612,4 @@ func (s *UniBlockSummaryObjectIdWrap) UniQueryId(start *uint32) *SoBlockSummaryO
 		}
 	}
 	return nil
-}
-
-func (s *SoBlockSummaryObjectWrap) getMdFuncMap() map[string]interface{} {
-	if s.mdFuncMap != nil && len(s.mdFuncMap) > 0 {
-		return s.mdFuncMap
-	}
-	m := map[string]interface{}{}
-
-	m["BlockId"] = s.mdFieldBlockId
-
-	if len(m) > 0 {
-		s.mdFuncMap = m
-	}
-	return m
 }

@@ -172,7 +172,7 @@ func (s *SoWitnessScheduleObjectWrap) Md(f func(tInfo *SoWitnessScheduleObject))
 		return err
 	}
 
-	return err
+	return nil
 
 }
 
@@ -611,18 +611,4 @@ func (s *UniWitnessScheduleObjectIdWrap) UniQueryId(start *int32) *SoWitnessSche
 		}
 	}
 	return nil
-}
-
-func (s *SoWitnessScheduleObjectWrap) getMdFuncMap() map[string]interface{} {
-	if s.mdFuncMap != nil && len(s.mdFuncMap) > 0 {
-		return s.mdFuncMap
-	}
-	m := map[string]interface{}{}
-
-	m["CurrentShuffledWitness"] = s.mdFieldCurrentShuffledWitness
-
-	if len(m) > 0 {
-		s.mdFuncMap = m
-	}
-	return m
 }

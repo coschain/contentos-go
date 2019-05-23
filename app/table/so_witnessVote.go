@@ -177,7 +177,7 @@ func (s *SoWitnessVoteWrap) Md(f func(tInfo *SoWitnessVote)) error {
 		return err
 	}
 
-	return err
+	return nil
 
 }
 
@@ -880,20 +880,4 @@ func (s *UniWitnessVoteVoterIdWrap) UniQueryVoterId(start *prototype.BpVoterId) 
 		}
 	}
 	return nil
-}
-
-func (s *SoWitnessVoteWrap) getMdFuncMap() map[string]interface{} {
-	if s.mdFuncMap != nil && len(s.mdFuncMap) > 0 {
-		return s.mdFuncMap
-	}
-	m := map[string]interface{}{}
-
-	m["VoteTime"] = s.mdFieldVoteTime
-
-	m["WitnessId"] = s.mdFieldWitnessId
-
-	if len(m) > 0 {
-		s.mdFuncMap = m
-	}
-	return m
 }

@@ -243,7 +243,7 @@ func (s *So{{.ClsName}}Wrap) Md(f func(tInfo *So{{.ClsName}})) error {
        return err
     }
     
-    return err
+    return nil
 
 }
 
@@ -1030,22 +1030,6 @@ func (s *Uni{{$.ClsName}}{{$k}}Wrap) UniQuery{{$k}}(start *{{formatStr $v.PType}
 
 
 {{end}}
-
-func (s *So{{$.ClsName}}Wrap) getMdFuncMap() map[string]interface{} {
-    if s.mdFuncMap != nil && len(s.mdFuncMap) > 0 {
-        return s.mdFuncMap
-    }
-    m := map[string]interface{}{}
-    {{range $k, $v := .MemberKeyMap}}
-    {{if ne $.MainKeyName $k -}}
-    m["{{$k}}"] = s.mdField{{$k}}
-    {{end}}
-    {{end}}
-    if len(m) > 0 {
-       s.mdFuncMap = m
-    }
-    return m
-}
 
 `
 	fName := TmlFolder + "so_" + tInfo.Name + ".go"

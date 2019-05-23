@@ -184,7 +184,7 @@ func (s *SoAccountWrap) Md(f func(tInfo *SoAccount)) error {
 		return err
 	}
 
-	return err
+	return nil
 
 }
 
@@ -4218,60 +4218,4 @@ func (s *UniAccountOwnerWrap) UniQueryOwner(start *prototype.PublicKeyType) *SoA
 		}
 	}
 	return nil
-}
-
-func (s *SoAccountWrap) getMdFuncMap() map[string]interface{} {
-	if s.mdFuncMap != nil && len(s.mdFuncMap) > 0 {
-		return s.mdFuncMap
-	}
-	m := map[string]interface{}{}
-
-	m["Balance"] = s.mdFieldBalance
-
-	m["BpVoteCount"] = s.mdFieldBpVoteCount
-
-	m["CreatedTime"] = s.mdFieldCreatedTime
-
-	m["CreatedTrxCount"] = s.mdFieldCreatedTrxCount
-
-	m["Creator"] = s.mdFieldCreator
-
-	m["EachPowerdownRate"] = s.mdFieldEachPowerdownRate
-
-	m["HasPowerdown"] = s.mdFieldHasPowerdown
-
-	m["LastOwnerUpdate"] = s.mdFieldLastOwnerUpdate
-
-	m["LastPostTime"] = s.mdFieldLastPostTime
-
-	m["LastStakeTime"] = s.mdFieldLastStakeTime
-
-	m["LastVoteTime"] = s.mdFieldLastVoteTime
-
-	m["NextPowerdownBlockNum"] = s.mdFieldNextPowerdownBlockNum
-
-	m["Owner"] = s.mdFieldOwner
-
-	m["PostCount"] = s.mdFieldPostCount
-
-	m["StakeVesting"] = s.mdFieldStakeVesting
-
-	m["Stamina"] = s.mdFieldStamina
-
-	m["StaminaFree"] = s.mdFieldStaminaFree
-
-	m["StaminaFreeUseBlock"] = s.mdFieldStaminaFreeUseBlock
-
-	m["StaminaUseBlock"] = s.mdFieldStaminaUseBlock
-
-	m["ToPowerdown"] = s.mdFieldToPowerdown
-
-	m["VestingShares"] = s.mdFieldVestingShares
-
-	m["VotePower"] = s.mdFieldVotePower
-
-	if len(m) > 0 {
-		s.mdFuncMap = m
-	}
-	return m
 }

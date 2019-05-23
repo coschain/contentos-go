@@ -174,7 +174,7 @@ func (s *SoExtUserPostWrap) Md(f func(tInfo *SoExtUserPost)) error {
 		return err
 	}
 
-	return err
+	return nil
 
 }
 
@@ -840,18 +840,4 @@ func (s *UniExtUserPostPostIdWrap) UniQueryPostId(start *uint64) *SoExtUserPostW
 		}
 	}
 	return nil
-}
-
-func (s *SoExtUserPostWrap) getMdFuncMap() map[string]interface{} {
-	if s.mdFuncMap != nil && len(s.mdFuncMap) > 0 {
-		return s.mdFuncMap
-	}
-	m := map[string]interface{}{}
-
-	m["PostCreatedOrder"] = s.mdFieldPostCreatedOrder
-
-	if len(m) > 0 {
-		s.mdFuncMap = m
-	}
-	return m
 }

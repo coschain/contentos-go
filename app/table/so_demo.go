@@ -184,7 +184,7 @@ func (s *SoDemoWrap) Md(f func(tInfo *SoDemo)) error {
 		return err
 	}
 
-	return err
+	return nil
 
 }
 
@@ -2515,30 +2515,4 @@ func (s *UniDemoOwnerWrap) UniQueryOwner(start *prototype.AccountName) *SoDemoWr
 		}
 	}
 	return nil
-}
-
-func (s *SoDemoWrap) getMdFuncMap() map[string]interface{} {
-	if s.mdFuncMap != nil && len(s.mdFuncMap) > 0 {
-		return s.mdFuncMap
-	}
-	m := map[string]interface{}{}
-
-	m["Content"] = s.mdFieldContent
-
-	m["Idx"] = s.mdFieldIdx
-
-	m["LikeCount"] = s.mdFieldLikeCount
-
-	m["PostTime"] = s.mdFieldPostTime
-
-	m["ReplayCount"] = s.mdFieldReplayCount
-
-	m["Taglist"] = s.mdFieldTaglist
-
-	m["Title"] = s.mdFieldTitle
-
-	if len(m) > 0 {
-		s.mdFuncMap = m
-	}
-	return m
 }

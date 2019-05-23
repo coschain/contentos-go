@@ -176,7 +176,7 @@ func (s *SoExtFollowCountWrap) Md(f func(tInfo *SoExtFollowCount)) error {
 		return err
 	}
 
-	return err
+	return nil
 
 }
 
@@ -831,22 +831,4 @@ func (s *UniExtFollowCountAccountWrap) UniQueryAccount(start *prototype.AccountN
 		}
 	}
 	return nil
-}
-
-func (s *SoExtFollowCountWrap) getMdFuncMap() map[string]interface{} {
-	if s.mdFuncMap != nil && len(s.mdFuncMap) > 0 {
-		return s.mdFuncMap
-	}
-	m := map[string]interface{}{}
-
-	m["FollowerCnt"] = s.mdFieldFollowerCnt
-
-	m["FollowingCnt"] = s.mdFieldFollowingCnt
-
-	m["UpdateTime"] = s.mdFieldUpdateTime
-
-	if len(m) > 0 {
-		s.mdFuncMap = m
-	}
-	return m
 }

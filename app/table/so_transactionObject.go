@@ -177,7 +177,7 @@ func (s *SoTransactionObjectWrap) Md(f func(tInfo *SoTransactionObject)) error {
 		return err
 	}
 
-	return err
+	return nil
 
 }
 
@@ -801,18 +801,4 @@ func (s *UniTransactionObjectTrxIdWrap) UniQueryTrxId(start *prototype.Sha256) *
 		}
 	}
 	return nil
-}
-
-func (s *SoTransactionObjectWrap) getMdFuncMap() map[string]interface{} {
-	if s.mdFuncMap != nil && len(s.mdFuncMap) > 0 {
-		return s.mdFuncMap
-	}
-	m := map[string]interface{}{}
-
-	m["Expiration"] = s.mdFieldExpiration
-
-	if len(m) > 0 {
-		s.mdFuncMap = m
-	}
-	return m
 }

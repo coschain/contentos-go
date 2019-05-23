@@ -175,7 +175,7 @@ func (s *SoPostWrap) Md(f func(tInfo *SoPost)) error {
 		return err
 	}
 
-	return err
+	return nil
 
 }
 
@@ -2654,50 +2654,4 @@ func (s *UniPostPostIdWrap) UniQueryPostId(start *uint64) *SoPostWrap {
 		}
 	}
 	return nil
-}
-
-func (s *SoPostWrap) getMdFuncMap() map[string]interface{} {
-	if s.mdFuncMap != nil && len(s.mdFuncMap) > 0 {
-		return s.mdFuncMap
-	}
-	m := map[string]interface{}{}
-
-	m["Author"] = s.mdFieldAuthor
-
-	m["Beneficiaries"] = s.mdFieldBeneficiaries
-
-	m["Body"] = s.mdFieldBody
-
-	m["CashoutBlockNum"] = s.mdFieldCashoutBlockNum
-
-	m["Category"] = s.mdFieldCategory
-
-	m["Children"] = s.mdFieldChildren
-
-	m["Created"] = s.mdFieldCreated
-
-	m["DappRewards"] = s.mdFieldDappRewards
-
-	m["Depth"] = s.mdFieldDepth
-
-	m["LastPayout"] = s.mdFieldLastPayout
-
-	m["ParentId"] = s.mdFieldParentId
-
-	m["Rewards"] = s.mdFieldRewards
-
-	m["RootId"] = s.mdFieldRootId
-
-	m["Tags"] = s.mdFieldTags
-
-	m["Title"] = s.mdFieldTitle
-
-	m["VoteCnt"] = s.mdFieldVoteCnt
-
-	m["WeightedVp"] = s.mdFieldWeightedVp
-
-	if len(m) > 0 {
-		s.mdFuncMap = m
-	}
-	return m
 }

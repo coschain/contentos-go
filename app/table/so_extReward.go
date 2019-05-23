@@ -177,7 +177,7 @@ func (s *SoExtRewardWrap) Md(f func(tInfo *SoExtReward)) error {
 		return err
 	}
 
-	return err
+	return nil
 
 }
 
@@ -950,20 +950,4 @@ func (s *UniExtRewardIdWrap) UniQueryId(start *prototype.RewardCashoutId) *SoExt
 		}
 	}
 	return nil
-}
-
-func (s *SoExtRewardWrap) getMdFuncMap() map[string]interface{} {
-	if s.mdFuncMap != nil && len(s.mdFuncMap) > 0 {
-		return s.mdFuncMap
-	}
-	m := map[string]interface{}{}
-
-	m["BlockHeight"] = s.mdFieldBlockHeight
-
-	m["Reward"] = s.mdFieldReward
-
-	if len(m) > 0 {
-		s.mdFuncMap = m
-	}
-	return m
 }
