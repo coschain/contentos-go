@@ -1,15 +1,18 @@
 package app
 
 import (
-	"errors"
 	"fmt"
-	"github.com/coschain/contentos-go/utils"
 	"github.com/coschain/contentos-go/app/table"
+	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
+	"github.com/coschain/contentos-go/utils"
 	"github.com/coschain/contentos-go/vm/injector"
-	"github.com/coschain/contentos-go/common/constants"
 )
+
+type TrxContextDelegate interface {
+	CheckPublicKey(account string, key *prototype.PublicKeyType) error
+}
 
 type TrxContext struct {
 	vminjector.Injector
@@ -23,6 +26,7 @@ type TrxContext struct {
 	gasMap          map[string]*resourceUnit
 	netMap          map[string]*resourceUnit
 	resourceLimiter utils.IResourceLimiter
+	delegate  TrxContextDelegate
 }
 
 type resourceUnit struct {
@@ -184,18 +188,7 @@ func (p *TrxContext) GetCpuUse() uint64 {
 	return all
 }
 
-func NewTrxContext(wrapper *prototype.TransactionWrapper, db iservices.IDatabaseRW,control *TrxPool) *TrxContext {
-	return &TrxContext{
-		DynamicGlobalPropsRW: DynamicGlobalPropsRW{ db:db },
-		Wrapper: wrapper,
-		control: control,
-		gasMap: make(map[string]*resourceUnit),
-		netMap: make(map[string]*resourceUnit),
-		resourceLimiter: control.resourceLimiter,
-	}
-}
-
-func NewTrxContextWithSigningKey(wrapper *prototype.TransactionWrapper, db iservices.IDatabaseRW, key *prototype.PublicKeyType, control *TrxPool, observer iservices.ITrxObserver) *TrxContext {
+func NewTrxContext(wrapper *prototype.TransactionWrapper, db iservices.IDatabaseRW, key *prototype.PublicKeyType, control *TrxPool, observer iservices.ITrxObserver, delegate TrxContextDelegate) *TrxContext {
 	return &TrxContext{
 		DynamicGlobalPropsRW: DynamicGlobalPropsRW{ db:db },
 		Wrapper: wrapper,
@@ -205,26 +198,8 @@ func NewTrxContextWithSigningKey(wrapper *prototype.TransactionWrapper, db iserv
 		netMap: make(map[string]*resourceUnit),
 		resourceLimiter: control.resourceLimiter,
 		control:control,
+		delegate: delegate,
 	}
-}
-
-func (p *TrxContext) verifyAuthority(maxDepth uint32, owner AuthorityGetter) {
-	//keyMaps := obtainKeyMap(p.Wrapper.SigTrx.Trx.Operations)
-	keyMaps := p.Wrapper.SigTrx.GetOpCreatorsMap()
-	if len(keyMaps) != 1 {
-		panic("trx creator is not unique")
-	}
-	verifyAuthority(keyMaps, p.recoverPubs, maxDepth, owner)
-}
-
-func (p *TrxContext) authGetter(name string) *prototype.PublicKeyType {
-	account := &prototype.AccountName{Value: name}
-	authWrap := table.NewSoAccountWrap(p.db, account)
-	auth := authWrap.GetOwner()
-	if auth == nil {
-		panic("no owner auth")
-	}
-	return auth
 }
 
 func (p *TrxContext) Error(code uint32, msg string) {
@@ -244,17 +219,7 @@ func (p *TrxContext) Log(msg string) {
 }
 
 func (p *TrxContext) RequireAuth(name string) (err error) {
-	keyMaps := map[string]bool{}
-	keyMaps[name] = true
-
-	defer func() {
-		if ret := recover(); ret != nil {
-			err = errors.New(fmt.Sprint(ret))
-		}
-	}()
-
-	verifyAuthority(keyMaps, p.recoverPubs, 2, p.authGetter)
-	return nil
+	return p.delegate.CheckPublicKey(name, p.recoverPubs[0])
 }
 
 func (p *TrxContext) DeductGasFee(caller string, spent uint64) {
@@ -286,7 +251,7 @@ func (p *TrxContext) TransferFromContractToUser(contract, owner, to string, amou
 
 func (p *TrxContext) TransferFromUserToContract(from, contract, owner string, amount uint64) {
 	opAssert(false, "function not opened")
-	p.RequireAuth( from )
+	opAssertE(p.RequireAuth( from ), fmt.Sprintf("requireAuth('%s') failed", from))
 
 	acc := table.NewSoAccountWrap(p.db, &prototype.AccountName{Value: from})
 	balance := acc.GetBalance().Value
@@ -329,19 +294,4 @@ func (p *TrxContext) ContractCall(caller, fromOwner, fromContract, fromMethod, t
 	}
 	eval := &InternalContractApplyEvaluator{ctx: &ApplyContext{db: p.db, vmInjector: p, control: p.control, log:p.control.log}, op: op, remainGas: remainGas}
 	eval.Apply()
-}
-
-func verifyAuthority(keyMaps map[string]bool, trxPubs []*prototype.PublicKeyType, max_recursion_depth uint32, owner AuthorityGetter) {
-	//required_active := map[string]bool{}
-	//required_posting := map[string]bool{}
-	//other := []prototype.Authority{}
-
-	s := SignState{}
-	s.Init(trxPubs, max_recursion_depth, owner)
-
-	for k := range keyMaps {
-		if !s.CheckAuthorityByName(k, 0, Owner) {
-			panic("check owner authority failed")
-		}
-	}
 }
