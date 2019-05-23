@@ -26,3 +26,7 @@ func (m *VoteOperation) Validate() error {
 func (m *VoteOperation) GetAffectedProps(props *map[string]bool) {
 	(*props)["*"] = true
 }
+
+func init() {
+	registerOperation("vote", (*Operation_Op9)(nil), (*VoteOperation)(nil));
+}

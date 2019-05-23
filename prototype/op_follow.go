@@ -25,3 +25,7 @@ func (m *FollowOperation) Validate() error {
 func (m *FollowOperation) GetAffectedProps(props *map[string]bool) {
 	(*props)["*"] = true
 }
+
+func init() {
+	registerOperation("follow", (*Operation_Op8)(nil), (*FollowOperation)(nil));
+}

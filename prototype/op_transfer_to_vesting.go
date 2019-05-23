@@ -30,3 +30,7 @@ func (m *TransferToVestingOperation) Validate() error {
 func (m *TransferToVestingOperation) GetAffectedProps(props *map[string]bool) {
 	(*props)["*"] = true
 }
+
+func init() {
+	registerOperation("transfer_to_vesting", (*Operation_Op10)(nil), (*TransferToVestingOperation)(nil));
+}

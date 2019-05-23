@@ -22,3 +22,7 @@ func (t *ConvertVestingOperation) Validate() error {
 func (m *ConvertVestingOperation) GetAffectedProps(props *map[string]bool) {
 	(*props)["*"] = true
 }
+
+func init() {
+	registerOperation("convert_vesting", (*Operation_Op16)(nil), (*ConvertVestingOperation)(nil));
+}

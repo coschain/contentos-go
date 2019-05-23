@@ -12,3 +12,7 @@ func (m *StakeOperation) Validate() error {
 func (m *StakeOperation) GetAffectedProps(props *map[string]bool) {
 	(*props)["*"] = true
 }
+
+func init() {
+	registerOperation("stake", (*Operation_Op17)(nil), (*StakeOperation)(nil));
+}

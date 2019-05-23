@@ -29,3 +29,7 @@ func (m *BpRegisterOperation) Validate() error {
 func (m *BpRegisterOperation) GetAffectedProps(props *map[string]bool) {
 	(*props)["*"] = true
 }
+
+func init() {
+	registerOperation("bp_register", (*Operation_Op3)(nil), (*BpRegisterOperation)(nil));
+}

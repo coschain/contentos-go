@@ -42,3 +42,7 @@ func (m *PostOperation) Validate() error {
 func (m *PostOperation) GetAffectedProps(props *map[string]bool) {
 	(*props)["*"] = true
 }
+
+func init() {
+	registerOperation("post", (*Operation_Op6)(nil), (*PostOperation)(nil));
+}

@@ -26,3 +26,7 @@ func (m *TransferOperation) GetAffectedProps(props *map[string]bool) {
 	(*props)[m.GetFrom().GetValue()] = true
 	(*props)[m.GetTo().GetValue()] = true
 }
+
+func init() {
+	registerOperation("transfer", (*Operation_Op2)(nil), (*TransferOperation)(nil));
+}
