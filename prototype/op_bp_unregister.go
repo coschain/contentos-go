@@ -21,3 +21,7 @@ func (m *BpUnregisterOperation) Validate() error {
 func (m *BpUnregisterOperation) GetAffectedProps(props *map[string]bool) {
 	(*props)["*"] = true
 }
+
+func init() {
+	registerOperation("bp_unregister", (*Operation_Op4)(nil), (*BpUnregisterOperation)(nil));
+}

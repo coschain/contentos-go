@@ -25,3 +25,8 @@ func (m *ClaimAllOperation) Validate() error {
 func (m *ClaimAllOperation) GetAffectedProps(props *map[string]bool) {
 	(*props)["*"] = true
 }
+
+func init() {
+	registerOperation("claim", (*Operation_Op11)(nil), (*ClaimOperation)(nil));
+	registerOperation("claim_all", (*Operation_Op12)(nil), (*ClaimAllOperation)(nil));
+}

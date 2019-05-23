@@ -20,72 +20,21 @@ type Op map[string]interface{}
 func PurgeOperation(operations []*prototype.Operation) []Op {
 	var ops []Op
 	for _, operation := range operations {
-		switch x := operation.Op.(type) {
-		case *prototype.Operation_Op1:
-			ops = append(ops, Op{"create_account":x.Op1})
-		case *prototype.Operation_Op2:
-			ops = append(ops, Op{"transfer": x.Op2})
-		case *prototype.Operation_Op3:
-			ops = append(ops, Op{"bp_register": x.Op3})
-		case *prototype.Operation_Op4:
-			ops = append(ops, Op{"bp_unregister": x.Op4})
-		case *prototype.Operation_Op5:
-			ops = append(ops, Op{"bp_vote": x.Op5})
-		case *prototype.Operation_Op6:
-			ops = append(ops, Op{"post": x.Op6})
-		case *prototype.Operation_Op7:
-			ops = append(ops, Op{"reply": x.Op7})
-		case *prototype.Operation_Op8:
-			ops = append(ops, Op{"follow": x.Op8})
-		case *prototype.Operation_Op9:
-			ops = append(ops, Op{"vote": x.Op9})
-		case *prototype.Operation_Op10:
-			ops = append(ops, Op{"transfer_to_vesting": x.Op10})
-		case *prototype.Operation_Op13:
-			ops = append(ops, Op{"contract_deploy": x.Op13})
-		case *prototype.Operation_Op14:
-			ops = append(ops, Op{"contract_apply": x.Op14})
-		case *prototype.Operation_Op15:
-			ops = append(ops, Op{"report": x.Op15})
-		case *prototype.Operation_Op16:
-			ops = append(ops, Op{"convert_vesting": x.Op16})
-		}
+		ops = append(ops, Op{prototype.GetGenericOperationName(operation): prototype.GetBaseOperation(operation)})
 	}
 	return ops
 }
 
-func FindCreator(operation *prototype.Operation) string {
-	switch x := operation.Op.(type) {
-	case *prototype.Operation_Op1:
-		return x.Op1.Creator.Value
-	case *prototype.Operation_Op2:
-		return x.Op2.From.Value
-	case *prototype.Operation_Op3:
-		return x.Op3.Owner.Value
-	case *prototype.Operation_Op4:
-		return x.Op4.Owner.Value
-	case *prototype.Operation_Op5:
-		return x.Op5.Voter.Value
-	case *prototype.Operation_Op6:
-		return x.Op6.Owner.Value
-	case *prototype.Operation_Op7:
-		return x.Op7.Owner.Value
-	case *prototype.Operation_Op8:
-		return x.Op8.Account.Value
-	case *prototype.Operation_Op9:
-		return x.Op9.Voter.Value
-	case *prototype.Operation_Op10:
-		return x.Op10.From.Value
-	case *prototype.Operation_Op13:
-		return x.Op13.Owner.Value
-	case *prototype.Operation_Op14:
-		return x.Op14.Caller.Value
-	case *prototype.Operation_Op15:
-		return x.Op15.Reporter.Value
-	case *prototype.Operation_Op16:
-		return x.Op16.From.Value
+func FindCreator(operation *prototype.Operation) (name string) {
+	signers := make(map[string]bool)
+	prototype.GetBaseOperation(operation).GetSigner(&signers)
+	if len(signers) > 0 {
+		for s := range signers {
+			name = s
+			break
+		}
 	}
-	return ""
+	return
 }
 
 func IsCreateAccountOp(operation *prototype.Operation) bool {

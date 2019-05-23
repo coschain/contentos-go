@@ -29,3 +29,7 @@ func (m *ContractDeployOperation) Validate() error {
 func (m *ContractDeployOperation) GetAffectedProps(props *map[string]bool) {
 	(*props)["*"] = true
 }
+
+func init() {
+	registerOperation("contract_deploy", (*Operation_Op13)(nil), (*ContractDeployOperation)(nil));
+}

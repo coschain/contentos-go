@@ -42,3 +42,7 @@ func (a *AccountCreateOperation) Validate() error {
 func (a *AccountCreateOperation) GetAffectedProps(props *map[string]bool) {
 	(*props)["*"] = true
 }
+
+func init() {
+	registerOperation("account_create", (*Operation_Op1)(nil), (*AccountCreateOperation)(nil));
+}

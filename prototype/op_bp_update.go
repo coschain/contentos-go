@@ -12,3 +12,7 @@ func (m *BpUpdateOperation) Validate() error {
 func (m *BpUpdateOperation) GetAffectedProps(props *map[string]bool) {
 	(*props)["*"] = true
 }
+
+func init() {
+	registerOperation("bp_update", (*Operation_Op19)(nil), (*BpUpdateOperation)(nil));
+}

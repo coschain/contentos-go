@@ -12,3 +12,7 @@ func (m *ContractApplyOperation) Validate() error {
 func (m *ContractApplyOperation) GetAffectedProps(props *map[string]bool) {
 	(*props)["*"] = true
 }
+
+func init() {
+	registerOperation("contract_apply", (*Operation_Op14)(nil), (*ContractApplyOperation)(nil));
+}

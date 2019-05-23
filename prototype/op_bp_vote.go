@@ -24,3 +24,7 @@ func (m *BpVoteOperation) Validate() error {
 func (m *BpVoteOperation) GetAffectedProps(props *map[string]bool) {
 	(*props)["*"] = true
 }
+
+func init() {
+	registerOperation("bp_vote", (*Operation_Op5)(nil), (*BpVoteOperation)(nil));
+}
