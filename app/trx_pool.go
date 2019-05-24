@@ -404,7 +404,7 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabasePatch, entry *TrxEn
 	trxHash, _ := sigTrx.GetTrxHash(cid)
 	c.log.Debugf("observer: %s", hex.EncodeToString(trxHash))
 	trxObserver.BeginTrx(hex.EncodeToString(trxHash))
-	trxContext := NewTrxContext(result, trxDB, entry.GetTrxSigningKey(), c, trxObserver, c.tm.auth)
+	trxContext := NewTrxContext(result, trxDB, entry.GetTrxSigner(), c, trxObserver)
 
 	defer func() {
 		useGas := trxContext.HasGasFee()

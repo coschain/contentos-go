@@ -10,23 +10,18 @@ import (
 	"github.com/coschain/contentos-go/vm/injector"
 )
 
-type TrxContextDelegate interface {
-	CheckPublicKey(account string, key *prototype.PublicKeyType) error
-}
-
 type TrxContext struct {
 	vminjector.Injector
 	DynamicGlobalPropsRW
 	Wrapper         *prototype.TransactionWrapper
 	msg         []string
-	recoverPubs []*prototype.PublicKeyType
+	signer      string
 	observer iservices.ITrxObserver
 	output *prototype.OperationReceiptWithInfo
 	control         *TrxPool
 	gasMap          map[string]*resourceUnit
 	netMap          map[string]*resourceUnit
 	resourceLimiter utils.IResourceLimiter
-	delegate  TrxContextDelegate
 }
 
 type resourceUnit struct {
@@ -188,17 +183,16 @@ func (p *TrxContext) GetCpuUse() uint64 {
 	return all
 }
 
-func NewTrxContext(wrapper *prototype.TransactionWrapper, db iservices.IDatabaseRW, key *prototype.PublicKeyType, control *TrxPool, observer iservices.ITrxObserver, delegate TrxContextDelegate) *TrxContext {
+func NewTrxContext(wrapper *prototype.TransactionWrapper, db iservices.IDatabaseRW, signer string, control *TrxPool, observer iservices.ITrxObserver) *TrxContext {
 	return &TrxContext{
 		DynamicGlobalPropsRW: DynamicGlobalPropsRW{ db:db },
 		Wrapper: wrapper,
-		recoverPubs: []*prototype.PublicKeyType{ key },
+		signer: signer,
 		observer: observer,
 		gasMap: make(map[string]*resourceUnit),
 		netMap: make(map[string]*resourceUnit),
 		resourceLimiter: control.resourceLimiter,
 		control:control,
-		delegate: delegate,
 	}
 }
 
@@ -219,7 +213,10 @@ func (p *TrxContext) Log(msg string) {
 }
 
 func (p *TrxContext) RequireAuth(name string) (err error) {
-	return p.delegate.CheckPublicKey(name, p.recoverPubs[0])
+	if name != p.signer {
+		return fmt.Errorf("requireAuth('%s') failed, signed by '%s'", name, p.signer)
+	}
+	return nil
 }
 
 func (p *TrxContext) DeductGasFee(caller string, spent uint64) {
