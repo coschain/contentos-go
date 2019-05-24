@@ -142,6 +142,12 @@ type UnStakeEvaluator struct {
 	op  *prototype.UnStakeOperation
 }
 
+type TransferToStakeVestingEvaluator struct {
+	BaseEvaluator
+	ctx *ApplyContext
+	op  *prototype.TransferToStakeVestingOperation
+}
+
 func (ev *AccountCreateEvaluator) Apply() {
 	op := ev.op
 	ev.ctx.vmInjector.RecordGasFee(op.Creator.Value, constants.CommonOpGas)
@@ -1009,4 +1015,27 @@ func (ev *UnStakeEvaluator) Apply() {
 
 	ev.ctx.control.TransferFromVest(value.ToVest())
 	ev.ctx.control.TransferFromStakeVest(value.ToVest())
+}
+
+func (ev *TransferToStakeVestingEvaluator) Apply() {
+	op := ev.op
+	ev.ctx.vmInjector.RecordGasFee(op.From.Value, constants.CommonOpGas)
+
+	fidWrap := table.NewSoAccountWrap(ev.ctx.db, op.From)
+	tidWrap := table.NewSoAccountWrap(ev.ctx.db, op.To)
+
+	opAssert(tidWrap.CheckExist(), "to account do not exist")
+
+	fBalance := fidWrap.GetBalance()
+	tVests := tidWrap.GetStakeVesting()
+	addVests := prototype.NewVest(op.Amount.Value)
+
+	opAssertE(fBalance.Sub(op.Amount), "balance not enough")
+	opAssert(fidWrap.MdBalance(fBalance), "set from new balance error")
+
+	opAssertE(tVests.Add(addVests), "vests error")
+	opAssert(tidWrap.MdStakeVesting(tVests), "set to new vests error")
+
+	ev.ctx.control.TransferToVest(op.Amount)
+	ev.ctx.control.TransferToStakeVest(op.Amount)
 }
