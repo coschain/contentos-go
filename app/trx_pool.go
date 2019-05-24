@@ -801,8 +801,6 @@ func (c *TrxPool) updateGlobalResourceParam(bpNameList []string) {
 
 	c.modifyGlobalDynamicData(func(dgpo *prototype.DynamicProperties) {
 		dgpo.StaminaFree = staminaFreeList[ len(staminaFreeList) / 2 ]
-	})
-	c.modifyGlobalDynamicData(func(dgpo *prototype.DynamicProperties) {
 		dgpo.TpsExpected = tpsExpectedList[ len(tpsExpectedList) / 2 ]
 	})
 }
