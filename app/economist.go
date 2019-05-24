@@ -27,8 +27,8 @@ func Min(x, y uint64) uint64 {
 type Economist struct {
 	db       iservices.IDatabaseService
 	noticer  EventBus.Bus
-	singleId *int32
 	log *logrus.Logger
+	dgp *DynamicGlobalPropsRW
 }
 
 //func mustNoError(err error, val string) {
@@ -44,17 +44,14 @@ func ISqrt(n string) *big.Int {
 	return sqrt
 }
 
-func NewEconomist(db iservices.IDatabaseService, noticer EventBus.Bus, singleId *int32, log *logrus.Logger) *Economist {
-	return &Economist{db: db, noticer:noticer, singleId: singleId, log: log}
+func NewEconomist(db iservices.IDatabaseService, noticer EventBus.Bus, log *logrus.Logger) *Economist {
+	return &Economist{db: db, noticer:noticer, log: log, dgp: &DynamicGlobalPropsRW{db: db}}
 }
 
-func (e *Economist) GetProps() (*prototype.DynamicProperties, error) {
-	dgpWrap := table.NewSoGlobalWrap(e.db, e.singleId)
-	if !dgpWrap.CheckExist() {
-		return nil, errors.New("dgpwrap is not existing")
-	}
-	return dgpWrap.GetProps(), nil
-}
+//func (e *Economist) GetProps() (*prototype.DynamicProperties, error) {
+//	dgpWrap := DynamicGlobalPropsRW{db: e.db}
+//	return dgpWrap.GetProps(), nil
+//}
 
 func (e *Economist) GetAccount(account *prototype.AccountName) (*table.SoAccountWrap, error) {
 	accountWrap := table.NewSoAccountWrap(e.db, account)
@@ -64,17 +61,10 @@ func (e *Economist) GetAccount(account *prototype.AccountName) (*table.SoAccount
 	return accountWrap, nil
 }
 
-func (e *Economist) modifyGlobalDynamicData(f func(props *prototype.DynamicProperties)) {
-	dgpWrap := table.NewSoGlobalWrap(e.db, e.singleId)
-	props := dgpWrap.GetProps()
-
-	f(props)
-
-	success := dgpWrap.MdProps(props)
-	if !success {
-		panic("flush globalDynamic into db error")
-	}
-}
+//func (e *Economist) modifyGlobalDynamicData(f func(props *prototype.DynamicProperties)) {
+//	dgpWrap := DynamicGlobalPropsRW{db: e.db}
+//	dgpWrap.ModifyProps(f)
+//}
 
 func (e *Economist) BaseBudget(ith uint32) uint64 {
 	if ith > 12 {
@@ -102,23 +92,17 @@ func (e *Economist) CalculatePerBlockBudget(annalBudget uint64) uint64 {
 func (e *Economist) Mint(trxObserver iservices.ITrxObserver) {
 	//blockCurrent := constants.PerBlockCurrent
 	//t0 := time.Now()
-	globalProps, err := e.GetProps()
-	if err != nil {
-		panic("Mint failed when getprops")
-	}
+	globalProps := e.dgp.GetProps()
 	ith := globalProps.GetIthYear()
 	annualBudget := e.CalculateBudget(ith)
 	// new year arrived
 	if globalProps.GetAnnualBudget().Value != annualBudget {
-		e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
+		e.dgp.ModifyProps(func(props *prototype.DynamicProperties) {
 			props.AnnualBudget.Value = annualBudget
 			props.AnnualMinted.Value = 0
 		})
 		// reload props
-		globalProps, err = e.GetProps()
-		if err != nil {
-			panic("Mint failed when getprops")
-		}
+		globalProps = e.dgp.GetProps()
 	}
 	blockCurrent := e.CalculatePerBlockBudget(annualBudget)
 	// prevent deficit
@@ -126,14 +110,14 @@ func (e *Economist) Mint(trxObserver iservices.ITrxObserver) {
 		globalProps.GetAnnualBudget().Value <= (globalProps.GetAnnualMinted().Value + blockCurrent) {
 		blockCurrent = globalProps.GetAnnualBudget().Value - globalProps.GetAnnualMinted().Value
 		// time to update year
-		e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
+		e.dgp.ModifyProps(func(props *prototype.DynamicProperties) {
 			props.IthYear = props.IthYear + 1
 		})
 	}
 
 	if globalProps.GetAnnualBudget().Value <= globalProps.GetAnnualMinted().Value {
 		blockCurrent = 0
-		e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
+		e.dgp.ModifyProps(func(props *prototype.DynamicProperties) {
 			props.IthYear = props.IthYear + 1
 		})
 	}
@@ -166,7 +150,7 @@ func (e *Economist) Mint(trxObserver iservices.ITrxObserver) {
 	updateWitnessVoteCount(e.db, globalProps.CurrentWitness, oldVest, bpRewardVesting)
 	trxObserver.AddOpState(iservices.Add, "mint", globalProps.CurrentWitness.Value, bpReward)
 
-	e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
+	e.dgp.ModifyProps(func(props *prototype.DynamicProperties) {
 		//props.PostRewards.Value += uint64(postReward)
 		//props.ReplyRewards.Value += uint64(replyReward)
 		//props.PostDappRewards.Value += uint64(postDappRewards)
@@ -186,17 +170,14 @@ func (e *Economist) Mint(trxObserver iservices.ITrxObserver) {
 // Should be claiming or direct modify the balance?
 func (e *Economist) Do(trxObserver iservices.ITrxObserver) {
 	e.decayGlobalVotePower()
-	globalProps, err := e.GetProps()
-	if err != nil {
-		panic("economist do failed when get props")
-	}
+	globalProps := e.dgp.GetProps()
 	iterator := table.NewPostCashoutBlockNumWrap(e.db)
 	var pids []*uint64
 	end := globalProps.HeadBlockNumber
 	//postWeightedVps := globalProps.PostWeightedVps
 	//replyWeightedVps := globalProps.ReplyWeightedVps
 	t0 := time.Now()
-	err = iterator.ForEachByOrder(nil, &end, nil, nil, func(mVal *uint64, sVal *uint64, idx uint32) bool {
+	err := iterator.ForEachByOrder(nil, &end, nil, nil, func(mVal *uint64, sVal *uint64, idx uint32) bool {
 		pids = append(pids, mVal)
 		return true
 	})
@@ -234,7 +215,7 @@ func (e *Economist) Do(trxObserver iservices.ITrxObserver) {
 	postWeightedVps.Add(&globalPostWeightedVps, &postVpAccumulator)
 	replyWeightedVps.Add(&globalReplyWeightedVps, &replyVpAccumulator)
 
-	e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
+	e.dgp.ModifyProps(func(props *prototype.DynamicProperties) {
 		props.PostWeightedVps = postWeightedVps.String()
 		props.ReplyWeightedVps = replyWeightedVps.String()
 	})
@@ -299,7 +280,7 @@ func (e *Economist) Do(trxObserver iservices.ITrxObserver) {
 }
 
 func (e *Economist) decayGlobalVotePower() {
-	e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
+	e.dgp.ModifyProps(func(props *prototype.DynamicProperties) {
 		var postWeightedVps, replyWeightedVps big.Int
 		postWeightedVps.SetString(props.PostWeightedVps, 10)
 		replyWeightedVps.SetString(props.ReplyWeightedVps, 10)
@@ -319,10 +300,7 @@ func (e *Economist) decayGlobalVotePower() {
 }
 
 func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, blockDappReward uint64, trxObserver iservices.ITrxObserver) {
-	globalProps, err := e.GetProps()
-	if err != nil {
-		panic("post cashout get props failed")
-	}
+	globalProps := e.dgp.GetProps()
 
 	//var vpAccumulator uint64 = 0
 	var vpAccumulator big.Int
@@ -416,7 +394,7 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 	}
 	e.log.Infof("cashout: [post] blockRewards: %d, blockDappRewards: %d, spendPostReward: %d, spendDappReward: %d",
 		blockReward, blockDappReward, spentPostReward, spentDappReward)
-	e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
+	e.dgp.ModifyProps(func(props *prototype.DynamicProperties) {
 		//props.PostRewards.Value -= spentPostReward
 		//props.PostDappRewards.Value -= spentDappReward
 		mustNoError(props.PostRewards.Sub(&prototype.Vest{Value: spentPostReward}), "Sub SpentPostReward overflow")
@@ -426,10 +404,7 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 
 // use same algorithm to simplify
 func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64, blockDappReward uint64, trxObserver iservices.ITrxObserver) {
-	globalProps, err := e.GetProps()
-	if err != nil {
-		panic("reply cashout get props failed")
-	}
+	globalProps := e.dgp.GetProps()
 	//var vpAccumulator uint64 = 0
 	var vpAccumulator big.Int
 	for _, reply := range replies {
@@ -520,7 +495,7 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 	}
 	e.log.Infof("cashout: [reply] blockRewards: %d, blockDappRewards: %d, spendPostReward: %d, spendDappReward: %d",
 		blockReward, blockDappReward, spentReplyReward, spentDappReward)
-	e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
+	e.dgp.ModifyProps(func(props *prototype.DynamicProperties) {
 		//props.ReplyRewards.Value -= spentReplyReward
 		//props.ReplyDappRewards.Value -= spentDappReward
 		mustNoError(props.ReplyRewards.Sub(&prototype.Vest{Value: spentReplyReward}), "Sub SpentReplyReward overflow")
@@ -548,10 +523,7 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 //}
 
 func (e *Economist) PowerDown() {
-	globalProps, err := e.GetProps()
-	if err != nil {
-		panic("economist do failed when get props")
-	}
+	globalProps := e.dgp.GetProps()
 	//timestamp := globalProps.Time.UtcSeconds
 	//iterator := table.NewAccountNextPowerdownTimeWrap(e.db)
 	iterator := table.NewAccountNextPowerdownBlockNumWrap(e.db)
@@ -561,11 +533,13 @@ func (e *Economist) PowerDown() {
 	timing.Begin()
 
 	current := globalProps.HeadBlockNumber
-	err = iterator.ForEachByOrder(nil, &current, nil, nil, func(mVal *prototype.AccountName, sVal *uint64, idx uint32) bool {
+	err := iterator.ForEachByOrder(nil, &current, nil, nil, func(mVal *prototype.AccountName, sVal *uint64, idx uint32) bool {
 		accountNames = append(accountNames, mVal)
 		return true
 	})
-
+	if err != nil {
+		panic("economist powerdown failed when iterator")
+	}
 	timing.Mark()
 
 	var powerdownQuota uint64 = 0
@@ -586,7 +560,7 @@ func (e *Economist) PowerDown() {
 		accountWrap.MdBalance(&prototype.Coin{Value: balance})
 		accountWrap.MdHasPowerdown(&prototype.Vest{Value: hasPowerDown})
 		// update total cos and total vesting shares
-		e.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
+		e.dgp.ModifyProps(func(props *prototype.DynamicProperties) {
 			mustNoError(props.TotalCos.Add(&prototype.Coin{Value: powerdownQuota}), "PowerDownQuota Cos Overflow")
 			mustNoError(props.TotalVestingShares.Sub(&prototype.Vest{Value: powerdownQuota}), "PowerDownQuota Vest Overflow")
 			//props.TotalCos.Value += powerdownQuota

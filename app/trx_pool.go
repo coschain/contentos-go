@@ -109,7 +109,7 @@ func (c *TrxPool) Open() {
 		//c.log.Info("finish initGenesis")
 	}
 	c.iceberg = NewBlockIceberg(c.db, c.log, c.enableBAH)
-	c.economist = NewEconomist(c.db, c.noticer, &SingleId, c.log)
+	c.economist = NewEconomist(c.db, c.noticer, c.log)
 	c.stateObserver = NewStateObserver(c.noticer, c.log)
 
 	commit, _ := c.iceberg.LastFinalizedBlock()
