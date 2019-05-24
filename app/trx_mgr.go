@@ -3,6 +3,7 @@ package app
 import (
 	"errors"
 	"fmt"
+	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
@@ -232,15 +233,12 @@ func (m *TrxMgr) WaitingCount() int {
 // FetchTrx fetches a batch of transactions from waiting pool.
 // Block producer should call FetchTrx to collect transactions of new blocks.
 func (m *TrxMgr) FetchTrx(blockTime uint32, maxCount, maxSize int) (entries []*TrxEntry) {
-	//m.log.Debugf("TRXMGR: FetchTrx begin: maxCount=%d, maxSize=%d", maxCount, maxSize)
-	//t0 := time.Now()
 	m.waitingLock.Lock()
 	defer m.waitingLock.Unlock()
 
 	m.fetchedLock.Lock()
 	defer m.fetchedLock.Unlock()
 
-	//t1 := time.Now()
 	counter, size := 0, 0
 	// traverse the waiting pool
 	for s, e := range m.waiting {
@@ -270,10 +268,6 @@ func (m *TrxMgr) FetchTrx(blockTime uint32, maxCount, maxSize int) (entries []*T
 		// remove from waiting pool
 		delete(m.waiting, s)
 	}
-	//t2 := time.Now()
-	//m.log.Debugf("TRXMGR: FetchTrx end: maxCount=%d, maxSize=%d, count=%d, size=%d, %v|%v|%v",
-	//	maxCount, maxSize, counter, size,
-	//	t2.Sub(t0), t1.Sub(t0), t2.Sub(t1))
 	return
 }
 
@@ -281,12 +275,14 @@ func (m *TrxMgr) FetchTrx(blockTime uint32, maxCount, maxSize int) (entries []*T
 // Block producer should call ReturnTrx for transactions that failed being applied.
 func (m *TrxMgr) ReturnTrx(entries ...*TrxEntry) {
 	m.log.Debug("TRXMGR: ReturnTrx begin")
-	t0 := time.Now()
+	timing := common.NewTiming()
+	timing.Begin()
 
 	m.fetchedLock.Lock()
 	defer m.fetchedLock.Unlock()
 
-	t1 := time.Now()
+	timing.Mark()
+
 	for _, e := range entries {
 		// any returning transaction should be previously fetched
 		f := m.fetched[e.sig]
@@ -295,8 +291,8 @@ func (m *TrxMgr) ReturnTrx(entries ...*TrxEntry) {
 			delete(m.fetched, e.sig)
 		}
 	}
-	t2 := time.Now()
-	m.log.Debugf("TRXMGR: ReturnTrx end: #tx=%d, %v|%v|%v", len(entries), t2.Sub(t0), t1.Sub(t0), t2.Sub(t1))
+	timing.End()
+	m.log.Debugf("TRXMGR: ReturnTrx end: #tx=%d, %s", len(entries), timing.String())
 }
 
 // CheckBlockTrxs checks if transactions of a block are valid.
@@ -365,14 +361,18 @@ func (m *TrxMgr) CheckBlockTrxs(b *prototype.SignedBlock) (entries []*TrxEntry, 
 // BlockApplied *MUST* be called *AFTER* a block was successfully applied.
 func (m *TrxMgr) BlockApplied(b *prototype.SignedBlock) {
 	m.log.Debugf("TRXMGR: BlockApplied begin %d", b.SignedHeader.Number())
-	t0 := time.Now()
+
+	timing := common.NewTiming()
+	timing.Begin()
+
 	// update head block time
 	atomic.StoreUint32(&m.headTime, b.SignedHeader.Header.Timestamp.UtcSeconds)
 
 	// deliver transactions that are waiting final results
 	m.waitingLock.Lock()
 	m.fetchedLock.Lock()
-	t1 := time.Now()
+
+	timing.Mark()
 	for _, txw := range b.Transactions {
 		s := string(txw.SigTrx.Signature.Sig)
 		if e := m.fetched[s]; e != nil {
@@ -384,7 +384,8 @@ func (m *TrxMgr) BlockApplied(b *prototype.SignedBlock) {
 			delete(m.waiting, s)
 		}
 	}
-	t2 := time.Now()
+	timing.Mark()
+
 	m.fetchedLock.Unlock()
 	m.waitingLock.Unlock()
 
@@ -392,8 +393,9 @@ func (m *TrxMgr) BlockApplied(b *prototype.SignedBlock) {
 	m.callPlugins(func(plugin ITrxMgrPlugin) {
 		plugin.BlockApplied(b)
 	})
-	t3 := time.Now()
-	m.log.Debugf("TRXMGR: BlockApplied end %d: #tx=%d, %v|%v|%v|%v", b.SignedHeader.Number(), len(b.Transactions), t3.Sub(t0), t1.Sub(t0), t2.Sub(t1), t3.Sub(t2))
+
+	timing.End()
+	m.log.Debugf("TRXMGR: BlockApplied end %d: #tx=%d, %s", b.SignedHeader.Number(), len(b.Transactions), timing.String())
 	m.log.Debugf("TRXMGR: auth-hit=%v", m.auth.HitRate())
 }
 

@@ -3,12 +3,12 @@ package plugins
 import (
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app/table"
+	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/sirupsen/logrus"
-	"time"
 )
 
 var TrxServiceName = "trxsrv"
@@ -49,7 +49,8 @@ func (t *TrxService) unhookEvent() {
 
 func (t *TrxService) handleAddTrxNotification(blk *prototype.SignedBlock) {
 	if blk != nil && len(blk.Transactions) > 0 {
-		t0 := time.Now()
+		timing := common.NewTiming()
+		timing.Begin()
 
 		count := uint64(len(blk.Transactions))
 
@@ -82,7 +83,8 @@ func (t *TrxService) handleAddTrxNotification(blk *prototype.SignedBlock) {
 			}
 		}
 
-		t1 := time.Now()
+		timing.Mark()
+
 		//save trx info to db
 		for _, trxWrap := range blk.Transactions {
 			trxId, err := trxWrap.SigTrx.Id()
@@ -115,8 +117,8 @@ func (t *TrxService) handleAddTrxNotification(blk *prototype.SignedBlock) {
 				}
 			}
 		}
-		t2 := time.Now()
-		t.log.Debugf("TXSVC: %v|%v|%v", t2.Sub(t0), t1.Sub(t0), t2.Sub(t1))
+		timing.End()
+		t.log.Debugf("TXSVC: %s", timing.String())
 	}
 
 }

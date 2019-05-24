@@ -252,7 +252,8 @@ func (c *TrxPool) generateBlockNoLock(witness string, pre *prototype.Sha256, tim
 		minTimeout = 100 * time.Millisecond
 	)
 
-	t0 := time.Now()
+	timing := common.NewTiming()
+	timing.Begin()
 
 	defer func() {
 		if err := recover(); err != nil {
@@ -297,7 +298,9 @@ func (c *TrxPool) generateBlockNoLock(witness string, pre *prototype.Sha256, tim
 
 	const batchCount = 64
 	ma := NewMultiTrxsApplier(c.db, c.applyTransactionOnDb)
-	t1 := time.Now()
+
+	timing.Mark()
+
 	applyTime := int64(0)
 	sizeLimit := int(maxBlockSize)
 	var failedTrx []*TrxEntry
@@ -327,7 +330,9 @@ func (c *TrxPool) generateBlockNoLock(witness string, pre *prototype.Sha256, tim
 			break
 		}
 	}
-	t2 := time.Now()
+
+	timing.SetPartial(time.Duration(applyTime))
+	timing.Mark()
 
 	signBlock.SignedHeader.Header.Previous = pre
 	signBlock.SignedHeader.Header.PrevApplyHash = c.iceberg.LatestBlockApplyHash()
@@ -342,9 +347,11 @@ func (c *TrxPool) generateBlockNoLock(witness string, pre *prototype.Sha256, tim
 		c.tm.ReturnTrx(failedTrx...)
 	}
 
-	t3 := time.Now()
+	timing.Mark()
+
 	c.updateGlobalProperties(signBlock)
-	t4 := time.Now()
+
+	timing.Mark()
 
 	ret, bpNameList := c.shuffle(signBlock)
 	if ret {
@@ -353,31 +360,32 @@ func (c *TrxPool) generateBlockNoLock(witness string, pre *prototype.Sha256, tim
 		c.deleteUnusedBp(bpNameList)
 	}
 
-	t5 := time.Now()
-	c.updateAvgTps(signBlock)
-	t6 := time.Now()
+	timing.Mark()
 
-	c.log.Debugf("GENBLOCK %d: %v|%v|%v(%v)|%v|%v|%v|%v, timeout=%v, pending=%d, failed=%d, inblk=%d",
-		signBlock.Id().BlockNum(),
-		t5.Sub(t0), t1.Sub(t0), t2.Sub(t1), time.Duration(applyTime), t3.Sub(t2), t4.Sub(t3), t5.Sub(t4), t6.Sub(t5), timeOut,
-		c.tm.WaitingCount(), len(failedTrx), len(signBlock.Transactions))
+	c.updateAvgTps(signBlock)
+
+	timing.End()
+
+	c.log.Debugf("GENBLOCK %d: %s, timeout=%v, pending=%d, failed=%d, inblk=%d",
+		signBlock.Id().BlockNum(), timing.String(), timeOut, c.tm.WaitingCount(), len(failedTrx), len(signBlock.Transactions))
 
 	b, e = signBlock, nil
 	return
 }
 
 func (c *TrxPool) notifyBlockApply(block *prototype.SignedBlock) {
-	t0 := time.Now()
+	timing := common.NewTiming()
+	timing.Begin()
 	for _, trx := range block.Transactions {
 		for _, op := range trx.SigTrx.Trx.Operations {
 			c.noticer.Publish(constants.NoticeOpPost, &prototype.OperationNotification{Op: op})
 		}
 		c.noticer.Publish(constants.NoticeTrxPost, trx.SigTrx)
 	}
-	t1 := time.Now()
+	timing.Mark()
 	c.noticer.Publish(constants.NoticeBlockApplied, block)
-	t2 := time.Now()
-	c.log.Debugf("NOTIFYBLOCK %d: %v|%v|%v, #tx=%d", block.Id().BlockNum(), t2.Sub(t0), t1.Sub(t0), t2.Sub(t1), len(block.Transactions))
+	timing.End()
+	c.log.Debugf("NOTIFYBLOCK %d: %s, #tx=%d", block.Id().BlockNum(), timing.String(), len(block.Transactions))
 }
 
 func (c *TrxPool) notifyTrxApplyResult(trx *prototype.SignedTransaction, res bool,
@@ -464,7 +472,8 @@ func (c *TrxPool) applyBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag
 	}
 
 	if skip&prototype.Skip_apply_transaction == 0 {
-		t0 := time.Now()
+		pushTiming := common.NewTiming()
+		pushTiming.Begin()
 
 		entries, err := c.tm.CheckBlockTrxs(blk)
 		mustNoError(err, "block trxs check failed")
@@ -519,9 +528,12 @@ func (c *TrxPool) applyBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag
 				mustSuccess(false, "mismatched invoice")
 			}
 		}
-		t1 := time.Now()
+		pushTiming.SetPartial(time.Duration(applyTime))
+		pushTiming.Mark()
+
 		c.updateGlobalProperties(blk)
-		t2 := time.Now()
+
+		pushTiming.Mark()
 
 		ret, bpNameList := c.shuffle(blk)
 		if ret {
@@ -530,35 +542,46 @@ func (c *TrxPool) applyBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag
 			c.deleteUnusedBp(bpNameList)
 		}
 
-		t3 := time.Now()
+		pushTiming.Mark()
+
 		c.updateAvgTps(blk)
-		t4 := time.Now()
-		c.log.Debugf("PUSHBLOCK %d: %v|%v(%v)|%v|%v, #tx=%d", blk.Id().BlockNum(),
-			t3.Sub(t0), t1.Sub(t0), time.Duration(applyTime), t2.Sub(t1), t3.Sub(t2), t4.Sub(t3), totalCount)
+
+		pushTiming.End()
+		c.log.Debugf("PUSHBLOCK %d: %s, #tx=%d", blk.Id().BlockNum(), pushTiming.String(), totalCount)
 	}
+
+	afterTiming := common.NewTiming()
+	eTiming := common.NewTiming()
+
 	pseudoTrxObserver := c.stateObserver.NewTrxObserver()
 	pseudoTrxObserver.BeginTrx("")
-	t0 := time.Now()
+
+	afterTiming.Begin()
+
 	c.createBlockSummary(blk)
-	t1 := time.Now()
+
+	afterTiming.Mark()
+
 	c.tm.BlockApplied(blk)
-	t2 := time.Now()
 
-	tinit := time.Now()
+	afterTiming.Mark()
+
+	eTiming.Begin()
 	c.economist.Mint(pseudoTrxObserver)
-	tmint := time.Now()
+	eTiming.Mark()
 	c.economist.Do(pseudoTrxObserver)
-	tdo := time.Now()
+	eTiming.Mark()
 	c.economist.PowerDown()
-	tpd := time.Now()
-	c.log.Debugf("Economist: %v|%v|%v|%v", tpd.Sub(tinit), tmint.Sub(tinit), tdo.Sub(tmint), tpd.Sub(tdo))
+	eTiming.End()
+	c.log.Debugf("Economist: %s", eTiming.String())
 	pseudoTrxObserver.EndTrx(true)
-	t3 := time.Now()
-	c.notifyBlockApply(blk)
-	t4 := time.Now()
 
-	c.log.Debugf("AFTER_BLOCK %d: %v|%v|%v|%v|%v", blk.Id().BlockNum(),
-		t4.Sub(t0), t1.Sub(t0), t2.Sub(t1), t3.Sub(t2), t4.Sub(t3))
+	afterTiming.Mark()
+
+	c.notifyBlockApply(blk)
+
+	afterTiming.End()
+	c.log.Debugf("AFTER_BLOCK %d: %s", blk.Id().BlockNum(), afterTiming.String())
 }
 
 func (c *TrxPool) ValidateAddress(name string, pubKey *prototype.PublicKeyType) bool {

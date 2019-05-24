@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app/table"
+	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/common/variables"
 	"github.com/coschain/contentos-go/iservices"
@@ -555,15 +556,18 @@ func (e *Economist) PowerDown() {
 	//iterator := table.NewAccountNextPowerdownTimeWrap(e.db)
 	iterator := table.NewAccountNextPowerdownBlockNumWrap(e.db)
 	var accountNames []*prototype.AccountName
-	t0 := time.Now()
+
+	timing := common.NewTiming()
+	timing.Begin()
+
 	current := globalProps.HeadBlockNumber
-	t0 = time.Now()
 	err = iterator.ForEachByOrder(nil, &current, nil, nil, func(mVal *prototype.AccountName, sVal *uint64, idx uint32) bool {
 		accountNames = append(accountNames, mVal)
 		return true
 	})
-	e.log.Debugf("PowerDown iterator spent: %v", time.Now().Sub(t0))
-	t1 := time.Now()
+
+	timing.Mark()
+
 	var powerdownQuota uint64 = 0
 	for _, accountName := range accountNames {
 		accountWrap := table.NewSoAccountWrap(e.db, accountName)
@@ -595,6 +599,6 @@ func (e *Economist) PowerDown() {
 			accountWrap.MdNextPowerdownBlockNum(current + constants.PowerDownBlockInterval)
 		}
 	}
-	t2 := time.Now()
-	e.log.Debugf("powerdown: %v|%v|%v", t2.Sub(t0), t1.Sub(t0), t2.Sub(t1))
+	timing.End()
+	e.log.Debugf("powerdown: %s", timing.String())
 }
