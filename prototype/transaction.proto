@@ -4,8 +4,8 @@ package prototype;
 
 option go_package = "github.com/coschain/contentos-go/prototype";
 
-import "type.proto";
-import "operation.proto";
+import "prototype/type.proto";
+import "prototype/operation.proto";
 
 message operation{
     oneof op{
