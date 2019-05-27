@@ -145,7 +145,7 @@ type UnStakeEvaluator struct {
 
 type TransferToStakeVestingEvaluator struct {
 	BaseEvaluator
-	ctx *ApplyContext
+	BaseDelegate
 	op  *prototype.TransferToStakeVestingOperation
 }
 
@@ -201,8 +201,8 @@ func init() {
 	RegisterEvaluator((*prototype.BpUpdateOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
 		return &BpUpdateEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.BpUpdateOperation)}
 	})
-	RegisterEvaluator((*prototype.TransferToStakeVestingOperation)(nil), func(ctx *ApplyContext, op prototype.BaseOperation) BaseEvaluator {
-		return &TransferToStakeVestingEvaluator {ctx: ctx, op: op.(*prototype.TransferToStakeVestingOperation)}
+	RegisterEvaluator((*prototype.TransferToStakeVestingOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
+		return &TransferToStakeVestingEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.TransferToStakeVestingOperation)}
 	})
 }
 
@@ -1083,10 +1083,10 @@ func (ev *UnStakeEvaluator) Apply() {
 
 func (ev *TransferToStakeVestingEvaluator) Apply() {
 	op := ev.op
-	ev.ctx.vmInjector.RecordGasFee(op.From.Value, constants.CommonOpGas)
+	ev.VMInjector().RecordGasFee(op.From.Value, constants.CommonOpGas)
 
-	fidWrap := table.NewSoAccountWrap(ev.ctx.db, op.From)
-	tidWrap := table.NewSoAccountWrap(ev.ctx.db, op.To)
+	fidWrap := table.NewSoAccountWrap(ev.Database(), op.From)
+	tidWrap := table.NewSoAccountWrap(ev.Database(), op.To)
 
 	opAssert(tidWrap.CheckExist(), "to account do not exist")
 
@@ -1100,6 +1100,6 @@ func (ev *TransferToStakeVestingEvaluator) Apply() {
 	opAssertE(tVests.Add(addVests), "vests error")
 	opAssert(tidWrap.MdStakeVesting(tVests), "set to new vests error")
 
-	ev.ctx.control.TransferToVest(op.Amount)
-	ev.ctx.control.TransferToStakeVest(op.Amount)
+	ev.GlobalProp().TransferToVest(op.Amount)
+	ev.GlobalProp().TransferToStakeVest(op.Amount)
 }
