@@ -14,11 +14,11 @@ type IFreeConsumer interface {
 }
 
 type IGetter interface {
-	GetStakeLeft(oldResource,preTime,now,maxStamina uint64) uint64
+	GetStakeLeft(oldResource,preTime,now,maxStamina uint64) (string,uint64)
 }
 
 type IFreeGetter interface {
-	GetFreeLeft(maxFreeStamina, oldResource, preTime, now uint64) uint64
+	GetFreeLeft(maxFreeStamina, oldResource, preTime, now uint64) (string,uint64)
 }
 
 type ITpsUpdater interface {
@@ -72,20 +72,20 @@ func (s *ResourceLimiter) ConsumeFree(maxFreeStamina,oldResource uint64,num uint
 	return true,newFreeStamina
 }
 
-func (s *ResourceLimiter) GetStakeLeft(oldResource,preTime,now,maxStamina uint64) uint64 {
+func (s *ResourceLimiter) GetStakeLeft(oldResource,preTime,now,maxStamina uint64) (string,uint64) {
 	newStamina := calculateNewStaminaEMA( oldResource,0, preTime,now)
 	if maxStamina < newStamina {
-		return 0
+		return constants.StakeStaminaOverFlow,0
 	}
-	return maxStamina - newStamina
+	return "",maxStamina - newStamina
 }
 
-func (s *ResourceLimiter) GetFreeLeft(maxFreeStamina, oldResource, preTime, now uint64) uint64 {
+func (s *ResourceLimiter) GetFreeLeft(maxFreeStamina, oldResource, preTime, now uint64) (string, uint64) {
 	newStamina := calculateNewStaminaEMA(oldResource,0,preTime,now)
 	if maxFreeStamina < newStamina {
-		return 0
+		return constants.FreeStaminaOverFlow,0
 	}
-	return maxFreeStamina - newStamina
+	return "",maxFreeStamina - newStamina
 }
 
 func calculateNewStaminaEMA(oldStamina, useStamina, lastTime, now uint64) uint64 {

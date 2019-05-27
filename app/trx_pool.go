@@ -408,7 +408,7 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabasePatch, entry *TrxEn
 
 	defer func() {
 		useGas := trxContext.HasGasFee()
-		//c.PayGas(trxContext)
+
 		if err := recover(); err != nil {
 			receipt.ErrorInfo = fmt.Sprintf("applyTransaction failed : %v", err)
 			trxObserver.EndTrx(false)
@@ -1095,14 +1095,18 @@ func (c *TrxPool) CheckNetForRPC(name string, db iservices.IDatabaseRW, sizeInBy
 	}
 	maxStamina := c.calculateUserMaxStamina(db,name)
 	dgpWraper := table.NewSoGlobalWrap(db, &constants.GlobalId)
-	freeLeft := c.resourceLimiter.GetFreeLeft(dgpWraper.GetProps().GetStaminaFree(),accountWrap.GetStaminaFree(), accountWrap.GetStaminaFreeUseBlock(), c.GetProps().HeadBlockNumber)
-	stakeLeft := c.resourceLimiter.GetStakeLeft(accountWrap.GetStamina(), accountWrap.GetStaminaUseBlock(), c.GetProps().HeadBlockNumber,maxStamina)
+	freeOver,freeLeft := c.resourceLimiter.GetFreeLeft(dgpWraper.GetProps().GetStaminaFree(),accountWrap.GetStaminaFree(), accountWrap.GetStaminaFreeUseBlock(), c.GetProps().HeadBlockNumber)
+	stakeOver,stakeLeft := c.resourceLimiter.GetStakeLeft(accountWrap.GetStamina(), accountWrap.GetStaminaUseBlock(), c.GetProps().HeadBlockNumber,maxStamina)
 	if freeLeft >= netUse {
 		return true,freeLeft+stakeLeft,netUse
 	} else {
 		if stakeLeft >= netUse-freeLeft {
 			return true,freeLeft+stakeLeft,netUse
 		} else {
+			if freeOver == constants.FreeStaminaOverFlow || stakeOver == constants.StakeStaminaOverFlow {
+				// overflow happened, let it go, we will update user's stamina
+				return true, freeLeft+stakeLeft, netUse
+			}
 			return false, freeLeft+stakeLeft, netUse
 		}
 	}
