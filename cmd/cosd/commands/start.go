@@ -10,7 +10,7 @@ import (
 	"github.com/coschain/contentos-go/consensus"
 	"github.com/coschain/contentos-go/db/storage"
 	"github.com/coschain/contentos-go/iservices"
-	"github.com/coschain/contentos-go/myhttp"
+	"github.com/coschain/contentos-go/AWSHealthCheck"
 	"github.com/coschain/contentos-go/mylog"
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/p2p"
@@ -198,8 +198,8 @@ func RegisterService(app *node.Node, cfg node.Config) {
 		return p2p.NewServer(ctx, app.Log)
 	})
 
-	_ = app.Register(myhttp.HealthCheckName, func(ctx *node.ServiceContext) (node.Service, error) {
-		return myhttp.NewMyHttp(ctx, app.Log)
+	_ = app.Register(AWSHealthCheck.HealthCheckName, func(ctx *node.ServiceContext) (node.Service, error) {
+		return AWSHealthCheck.NewAWSHealthCheck(ctx, app.Log)
 	})
 
 

@@ -1,4 +1,4 @@
-package myhttp
+package AWSHealthCheck
 
 import (
 	"fmt"
@@ -12,18 +12,18 @@ import (
 
 var HealthCheckName = "healthcheck"
 
-type myhttp struct{
+type AWSHealthCheck struct{
 	srv *http.Server
 	ctx *node.ServiceContext
 	log  *logrus.Logger
 }
 
-func NewMyHttp(ctx *node.ServiceContext, lg *logrus.Logger) (*myhttp, error) {
+func NewAWSHealthCheck(ctx *node.ServiceContext, lg *logrus.Logger) (*AWSHealthCheck, error) {
 	s := &http.Server{Addr: fmt.Sprintf(":%s", ctx.Config().HealthCheck.Port)}
-	return &myhttp{srv:s,log:lg, ctx:ctx}, nil
+	return &AWSHealthCheck{srv:s,log:lg, ctx:ctx}, nil
 }
 
-func (this *myhttp) Start(node *node.Node) error {
+func (this *AWSHealthCheck) Start(node *node.Node) error {
 	http.HandleFunc("/", this.myHandler)
 	go func(){
 		for {
@@ -44,11 +44,11 @@ func (this *myhttp) Start(node *node.Node) error {
 	return nil
 }
 
-func (this *myhttp) Stop() error {
+func (this *AWSHealthCheck) Stop() error {
 	this.srv.Shutdown(context.TODO())
 	return nil
 }
 
-func (this *myhttp) myHandler(w http.ResponseWriter, r *http.Request) {
+func (this *AWSHealthCheck) myHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "——hi aws ALB, I'm alive ——\n")
 }
