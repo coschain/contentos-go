@@ -96,6 +96,7 @@ func startNode(cmd *cobra.Command, args []string) {
 	}
 	app, cfg := makeNode()
 	app.Log = mylog.Init(cfg.ResolvePath("logs"), cfg.LogLevel, 0)
+	app.Log.Info("Cosd running version: ", VERSION)
 
 	//pprof.StartPprof()
 
