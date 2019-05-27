@@ -4,7 +4,7 @@ package prototype;
 
 option go_package = "github.com/coschain/contentos-go/prototype";
 
-import "prototype/type.proto";
+import "type.proto";
 
 message account_create_operation{
     coin fee = 1;
@@ -147,4 +147,10 @@ message stake_operation{
 message un_stake_operation{
     account_name account = 1;
     uint64 amount = 2;
+}
+
+message transfer_to_stake_vesting_operation{
+    account_name from = 1;
+    account_name to = 2;
+    coin amount = 3;
 }
