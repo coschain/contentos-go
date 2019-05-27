@@ -27,119 +27,119 @@ func mustSuccess(b bool, val string) {
 
 type AccountCreateEvaluator struct {
 	BaseEvaluator
-	ctx *ApplyContext
+	BaseDelegate
 	op  *prototype.AccountCreateOperation
 }
 
 type TransferEvaluator struct {
 	BaseEvaluator
-	ctx *ApplyContext
+	BaseDelegate
 	op  *prototype.TransferOperation
 }
 
 type PostEvaluator struct {
 	BaseEvaluator
-	ctx *ApplyContext
+	BaseDelegate
 	op  *prototype.PostOperation
 }
 type ReplyEvaluator struct {
 	BaseEvaluator
-	ctx *ApplyContext
+	BaseDelegate
 	op  *prototype.ReplyOperation
 }
 type VoteEvaluator struct {
 	BaseEvaluator
-	ctx *ApplyContext
+	BaseDelegate
 	op  *prototype.VoteOperation
 }
 type BpRegisterEvaluator struct {
 	BaseEvaluator
-	ctx *ApplyContext
+	BaseDelegate
 	op  *prototype.BpRegisterOperation
 }
 type BpUnregisterEvaluator struct {
 	BaseEvaluator
-	ctx *ApplyContext
+	BaseDelegate
 	op  *prototype.BpUnregisterOperation
 }
 
 type BpUpdateEvaluator struct {
 	BaseEvaluator
-	ctx *ApplyContext
+	BaseDelegate
 	op  *prototype.BpUpdateOperation
 }
 
 type BpVoteEvaluator struct {
 	BaseEvaluator
-	ctx *ApplyContext
+	BaseDelegate
 	op  *prototype.BpVoteOperation
 }
 
 type FollowEvaluator struct {
 	BaseEvaluator
-	ctx *ApplyContext
+	BaseDelegate
 	op  *prototype.FollowOperation
 }
 
 type TransferToVestingEvaluator struct {
 	BaseEvaluator
-	ctx *ApplyContext
+	BaseDelegate
 	op  *prototype.TransferToVestingOperation
 }
 
 //type ClaimEvaluator struct {
 //	BaseEvaluator
-//	ctx *ApplyContext
+//	BaseDelegate
 //	op  *prototype.ClaimOperation
 //}
 
 type ReportEvaluator struct {
 	BaseEvaluator
-	ctx *ApplyContext
+	BaseDelegate
 	op  *prototype.ReportOperation
 }
 
 type ConvertVestingEvaluator struct {
 	BaseEvaluator
-	ctx *ApplyContext
+	BaseDelegate
 	op  *prototype.ConvertVestingOperation
 }
 
 // I can cat out this awkward claimall operation until I can get value from rpc resp
 //type ClaimAllEvaluator struct {
 //	BaseEvaluator
-//	ctx *ApplyContext
+//	BaseDelegate
 //	op  *prototype.ClaimAllOperation
 //}
 
 type ContractDeployEvaluator struct {
 	BaseEvaluator
-	ctx *ApplyContext
+	BaseDelegate
 	op  *prototype.ContractDeployOperation
 }
 
 type ContractApplyEvaluator struct {
 	BaseEvaluator
-	ctx *ApplyContext
+	BaseDelegate
 	op  *prototype.ContractApplyOperation
 }
 
 type InternalContractApplyEvaluator struct {
 	BaseEvaluator
-	ctx *ApplyContext
+	BaseDelegate
 	op  *prototype.InternalContractApplyOperation
 	remainGas uint64
 }
 
 type StakeEvaluator struct {
 	BaseEvaluator
-	ctx *ApplyContext
+	BaseDelegate
 	op  *prototype.StakeOperation
 }
 
 type UnStakeEvaluator struct {
 	BaseEvaluator
-	ctx *ApplyContext
+	BaseDelegate
 	op  *prototype.UnStakeOperation
 }
 
@@ -150,56 +150,56 @@ type TransferToStakeVestingEvaluator struct {
 }
 
 func init() {
-	RegisterEvaluator((*prototype.AccountCreateOperation)(nil), func(ctx *ApplyContext, op prototype.BaseOperation) BaseEvaluator {
-		return &AccountCreateEvaluator {ctx: ctx, op: op.(*prototype.AccountCreateOperation)}
+	RegisterEvaluator((*prototype.AccountCreateOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
+		return &AccountCreateEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.AccountCreateOperation)}
 	})
-	RegisterEvaluator((*prototype.TransferOperation)(nil), func(ctx *ApplyContext, op prototype.BaseOperation) BaseEvaluator {
-		return &TransferEvaluator {ctx: ctx, op: op.(*prototype.TransferOperation)}
+	RegisterEvaluator((*prototype.TransferOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
+		return &TransferEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.TransferOperation)}
 	})
-	RegisterEvaluator((*prototype.BpRegisterOperation)(nil), func(ctx *ApplyContext, op prototype.BaseOperation) BaseEvaluator {
-		return &BpRegisterEvaluator {ctx: ctx, op: op.(*prototype.BpRegisterOperation)}
+	RegisterEvaluator((*prototype.BpRegisterOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
+		return &BpRegisterEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.BpRegisterOperation)}
 	})
-	RegisterEvaluator((*prototype.BpUnregisterOperation)(nil), func(ctx *ApplyContext, op prototype.BaseOperation) BaseEvaluator {
-		return &BpUnregisterEvaluator {ctx: ctx, op: op.(*prototype.BpUnregisterOperation)}
+	RegisterEvaluator((*prototype.BpUnregisterOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
+		return &BpUnregisterEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.BpUnregisterOperation)}
 	})
-	RegisterEvaluator((*prototype.BpVoteOperation)(nil), func(ctx *ApplyContext, op prototype.BaseOperation) BaseEvaluator {
-		return &BpVoteEvaluator {ctx: ctx, op: op.(*prototype.BpVoteOperation)}
+	RegisterEvaluator((*prototype.BpVoteOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
+		return &BpVoteEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.BpVoteOperation)}
 	})
-	RegisterEvaluator((*prototype.PostOperation)(nil), func(ctx *ApplyContext, op prototype.BaseOperation) BaseEvaluator {
-		return &PostEvaluator {ctx: ctx, op: op.(*prototype.PostOperation)}
+	RegisterEvaluator((*prototype.PostOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
+		return &PostEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.PostOperation)}
 	})
-	RegisterEvaluator((*prototype.ReplyOperation)(nil), func(ctx *ApplyContext, op prototype.BaseOperation) BaseEvaluator {
-		return &ReplyEvaluator {ctx: ctx, op: op.(*prototype.ReplyOperation)}
+	RegisterEvaluator((*prototype.ReplyOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
+		return &ReplyEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.ReplyOperation)}
 	})
-	RegisterEvaluator((*prototype.FollowOperation)(nil), func(ctx *ApplyContext, op prototype.BaseOperation) BaseEvaluator {
-		return &FollowEvaluator {ctx: ctx, op: op.(*prototype.FollowOperation)}
+	RegisterEvaluator((*prototype.FollowOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
+		return &FollowEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.FollowOperation)}
 	})
-	RegisterEvaluator((*prototype.VoteOperation)(nil), func(ctx *ApplyContext, op prototype.BaseOperation) BaseEvaluator {
-		return &VoteEvaluator {ctx: ctx, op: op.(*prototype.VoteOperation)}
+	RegisterEvaluator((*prototype.VoteOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
+		return &VoteEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.VoteOperation)}
 	})
-	RegisterEvaluator((*prototype.TransferToVestingOperation)(nil), func(ctx *ApplyContext, op prototype.BaseOperation) BaseEvaluator {
-		return &TransferToVestingEvaluator {ctx: ctx, op: op.(*prototype.TransferToVestingOperation)}
+	RegisterEvaluator((*prototype.TransferToVestingOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
+		return &TransferToVestingEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.TransferToVestingOperation)}
 	})
-	RegisterEvaluator((*prototype.ContractDeployOperation)(nil), func(ctx *ApplyContext, op prototype.BaseOperation) BaseEvaluator {
-		return &ContractDeployEvaluator {ctx: ctx, op: op.(*prototype.ContractDeployOperation)}
+	RegisterEvaluator((*prototype.ContractDeployOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
+		return &ContractDeployEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.ContractDeployOperation)}
 	})
-	RegisterEvaluator((*prototype.ContractApplyOperation)(nil), func(ctx *ApplyContext, op prototype.BaseOperation) BaseEvaluator {
-		return &ContractApplyEvaluator {ctx: ctx, op: op.(*prototype.ContractApplyOperation)}
+	RegisterEvaluator((*prototype.ContractApplyOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
+		return &ContractApplyEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.ContractApplyOperation)}
 	})
-	RegisterEvaluator((*prototype.ReportOperation)(nil), func(ctx *ApplyContext, op prototype.BaseOperation) BaseEvaluator {
-		return &ReportEvaluator {ctx: ctx, op: op.(*prototype.ReportOperation)}
+	RegisterEvaluator((*prototype.ReportOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
+		return &ReportEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.ReportOperation)}
 	})
-	RegisterEvaluator((*prototype.ConvertVestingOperation)(nil), func(ctx *ApplyContext, op prototype.BaseOperation) BaseEvaluator {
-		return &ConvertVestingEvaluator {ctx: ctx, op: op.(*prototype.ConvertVestingOperation)}
+	RegisterEvaluator((*prototype.ConvertVestingOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
+		return &ConvertVestingEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.ConvertVestingOperation)}
 	})
-	RegisterEvaluator((*prototype.StakeOperation)(nil), func(ctx *ApplyContext, op prototype.BaseOperation) BaseEvaluator {
-		return &StakeEvaluator {ctx: ctx, op: op.(*prototype.StakeOperation)}
+	RegisterEvaluator((*prototype.StakeOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
+		return &StakeEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.StakeOperation)}
 	})
-	RegisterEvaluator((*prototype.UnStakeOperation)(nil), func(ctx *ApplyContext, op prototype.BaseOperation) BaseEvaluator {
-		return &UnStakeEvaluator {ctx: ctx, op: op.(*prototype.UnStakeOperation)}
+	RegisterEvaluator((*prototype.UnStakeOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
+		return &UnStakeEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.UnStakeOperation)}
 	})
-	RegisterEvaluator((*prototype.BpUpdateOperation)(nil), func(ctx *ApplyContext, op prototype.BaseOperation) BaseEvaluator {
-		return &BpUpdateEvaluator {ctx: ctx, op: op.(*prototype.BpUpdateOperation)}
+	RegisterEvaluator((*prototype.BpUpdateOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
+		return &BpUpdateEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.BpUpdateOperation)}
 	})
 	RegisterEvaluator((*prototype.TransferToStakeVestingOperation)(nil), func(ctx *ApplyContext, op prototype.BaseOperation) BaseEvaluator {
 		return &TransferToStakeVestingEvaluator {ctx: ctx, op: op.(*prototype.TransferToStakeVestingOperation)}
@@ -208,8 +208,8 @@ func init() {
 
 func (ev *AccountCreateEvaluator) Apply() {
 	op := ev.op
-	ev.ctx.vmInjector.RecordGasFee(op.Creator.Value, constants.CommonOpGas)
-	creatorWrap := table.NewSoAccountWrap(ev.ctx.db, op.Creator)
+	ev.VMInjector().RecordGasFee(op.Creator.Value, constants.CommonOpGas)
+	creatorWrap := table.NewSoAccountWrap(ev.Database(), op.Creator)
 
 	opAssert(creatorWrap.CheckExist(), "creator not exist ")
 
@@ -221,15 +221,15 @@ func (ev *AccountCreateEvaluator) Apply() {
 	opAssert(creatorWrap.MdBalance(originBalance), "")
 
 	// create account
-	newAccountWrap := table.NewSoAccountWrap(ev.ctx.db, op.NewAccountName)
+	newAccountWrap := table.NewSoAccountWrap(ev.Database(), op.NewAccountName)
 	opAssertE(newAccountWrap.Create(func(tInfo *table.SoAccount) {
 		tInfo.Name = op.NewAccountName
 		tInfo.Creator = op.Creator
-		tInfo.CreatedTime = ev.ctx.control.HeadBlockTime()
+		tInfo.CreatedTime = ev.GlobalProp().HeadBlockTime()
 		tInfo.Balance = prototype.NewCoin(0)
 		tInfo.VestingShares = op.Fee.ToVest()
-		tInfo.LastPostTime = ev.ctx.control.HeadBlockTime()
-		tInfo.LastVoteTime = ev.ctx.control.HeadBlockTime()
+		tInfo.LastPostTime = ev.GlobalProp().HeadBlockTime()
+		tInfo.LastVoteTime = ev.GlobalProp().HeadBlockTime()
 		tInfo.NextPowerdownBlockNum = math.MaxUint32
 		tInfo.EachPowerdownRate = &prototype.Vest{Value: 0}
 		tInfo.ToPowerdown = &prototype.Vest{Value: 0}
@@ -240,7 +240,7 @@ func (ev *AccountCreateEvaluator) Apply() {
 	}), "duplicate create account object")
 
 	// create account authority
-	//authorityWrap := table.NewSoAccountWrap(ev.ctx.db, op.NewAccountName)
+	//authorityWrap := table.NewSoAccountWrap(ev.Database(), op.NewAccountName)
 	//opAssertE(authorityWrap.Create(func(tInfo *table.SoAccountAuthorityObject) {
 	//	tInfo.Account = op.NewAccountName
 	//	tInfo.Owner = op.Owner
@@ -248,19 +248,19 @@ func (ev *AccountCreateEvaluator) Apply() {
 	//}), "duplicate create account authority object")
 
 	// sub dynamic glaobal properties's total fee
-	ev.ctx.control.TransferToVest(op.Fee)
-	ev.ctx.control.ModifyProps(func(props *prototype.DynamicProperties) {
+	ev.GlobalProp().TransferToVest(op.Fee)
+	ev.GlobalProp().ModifyProps(func(props *prototype.DynamicProperties) {
 		props.TotalUserCnt++
 	})
 }
 
 func (ev *TransferEvaluator) Apply() {
 	op := ev.op
-	ev.ctx.vmInjector.RecordGasFee(op.From.Value, constants.CommonOpGas)
+	ev.VMInjector().RecordGasFee(op.From.Value, constants.CommonOpGas)
 
 	// @ active_challenged
-	fromWrap := table.NewSoAccountWrap(ev.ctx.db, op.From)
-	toWrap := table.NewSoAccountWrap(ev.ctx.db, op.To)
+	fromWrap := table.NewSoAccountWrap(ev.Database(), op.From)
+	toWrap := table.NewSoAccountWrap(ev.Database(), op.To)
 
 	opAssert(toWrap.CheckExist(), "To account do not exist ")
 
@@ -275,19 +275,19 @@ func (ev *TransferEvaluator) Apply() {
 	opAssertE(tBalance.Add(op.Amount), "balance overflow")
 	opAssert(toWrap.MdBalance(tBalance), "")
 
-	ev.ctx.observer.AddOpState(iservices.Replace, "balance", fromWrap.GetName().Value, fromWrap.GetBalance().Value)
-	ev.ctx.observer.AddOpState(iservices.Replace, "balance", toWrap.GetName().Value, toWrap.GetBalance().Value)
+	ev.TrxObserver().AddOpState(iservices.Replace, "balance", fromWrap.GetName().Value, fromWrap.GetBalance().Value)
+	ev.TrxObserver().AddOpState(iservices.Replace, "balance", toWrap.GetName().Value, toWrap.GetBalance().Value)
 }
 
 func (ev *PostEvaluator) Apply() {
 	op := ev.op
-	ev.ctx.vmInjector.RecordGasFee(op.Owner.Value, constants.CommonOpGas)
+	ev.VMInjector().RecordGasFee(op.Owner.Value, constants.CommonOpGas)
 
-	idWrap := table.NewSoPostWrap(ev.ctx.db, &op.Uuid)
+	idWrap := table.NewSoPostWrap(ev.Database(), &op.Uuid)
 	opAssert(!idWrap.CheckExist(), "post uuid exist")
 
-	authorWrap := table.NewSoAccountWrap(ev.ctx.db, op.Owner)
-	elapsedSeconds := ev.ctx.control.HeadBlockTime().UtcSeconds - authorWrap.GetLastPostTime().UtcSeconds
+	authorWrap := table.NewSoAccountWrap(ev.Database(), op.Owner)
+	elapsedSeconds := ev.GlobalProp().HeadBlockTime().UtcSeconds - authorWrap.GetLastPostTime().UtcSeconds
 	opAssert(elapsedSeconds > constants.MinPostInterval, "posting frequently")
 
 	// default source is contentos
@@ -297,10 +297,10 @@ func (ev *PostEvaluator) Apply() {
 		t.Title = op.Title
 		t.Author = op.Owner
 		t.Body = op.Content
-		t.Created = ev.ctx.control.HeadBlockTime()
-		//t.CashoutTime = &prototype.TimePointSec{UtcSeconds: ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.PostCashOutDelayTime)}
-		//t.CashoutBlockNum = ev.ctx.control.GetProps().HeadBlockNumber + constants.PostCashOutDelayBlock
-		t.CashoutBlockNum = ev.ctx.control.GetProps().HeadBlockNumber + variables.PostCashOutDelayBlock()
+		t.Created = ev.GlobalProp().HeadBlockTime()
+		//t.CashoutTime = &prototype.TimePointSec{UtcSeconds: ev.GlobalProp().HeadBlockTime().UtcSeconds + uint32(constants.PostCashOutDelayTime)}
+		//t.CashoutBlockNum = ev.GlobalProp().GetProps().HeadBlockNumber + constants.PostCashOutDelayBlock
+		t.CashoutBlockNum = ev.GlobalProp().GetProps().HeadBlockNumber + variables.PostCashOutDelayBlock()
 		t.Depth = 0
 		t.Children = 0
 		t.RootId = t.PostId
@@ -313,33 +313,33 @@ func (ev *PostEvaluator) Apply() {
 		t.DappRewards = &prototype.Vest{Value: 0}
 	}), "create post error")
 
-	authorWrap.MdLastPostTime(ev.ctx.control.HeadBlockTime())
+	authorWrap.MdLastPostTime(ev.GlobalProp().HeadBlockTime())
 
-	ev.ctx.control.ModifyProps(func(props *prototype.DynamicProperties) {
+	ev.GlobalProp().ModifyProps(func(props *prototype.DynamicProperties) {
 		props.TotalPostCnt++
 	})
 
-	//timestamp := ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.PostCashOutDelayTime) - uint32(constants.GenesisTime)
+	//timestamp := ev.GlobalProp().HeadBlockTime().UtcSeconds + uint32(constants.PostCashOutDelayTime) - uint32(constants.GenesisTime)
 	//key := fmt.Sprintf("cashout:%d_%d", common.GetBucket(timestamp), op.Uuid)
 	//value := "post"
-	//opAssertE(ev.ctx.db.Put([]byte(key), []byte(value)), "put post key into db error")
+	//opAssertE(ev.Database().Put([]byte(key), []byte(value)), "put post key into db error")
 
 }
 
 func (ev *ReplyEvaluator) Apply() {
 	op := ev.op
-	ev.ctx.vmInjector.RecordGasFee(op.Owner.Value, constants.CommonOpGas)
+	ev.VMInjector().RecordGasFee(op.Owner.Value, constants.CommonOpGas)
 
-	cidWrap := table.NewSoPostWrap(ev.ctx.db, &op.Uuid)
-	pidWrap := table.NewSoPostWrap(ev.ctx.db, &op.ParentUuid)
+	cidWrap := table.NewSoPostWrap(ev.Database(), &op.Uuid)
+	pidWrap := table.NewSoPostWrap(ev.Database(), &op.ParentUuid)
 
 	opAssert(!cidWrap.CheckExist(), "post uuid exist")
 	opAssert(pidWrap.CheckExist(), "parent uuid do not exist")
 
 	opAssert(pidWrap.GetDepth()+1 < constants.PostMaxDepth, "reply depth error")
 
-	authorWrap := table.NewSoAccountWrap(ev.ctx.db, op.Owner)
-	elapsedSeconds := ev.ctx.control.HeadBlockTime().UtcSeconds - authorWrap.GetLastPostTime().UtcSeconds
+	authorWrap := table.NewSoAccountWrap(ev.Database(), op.Owner)
+	elapsedSeconds := ev.GlobalProp().HeadBlockTime().UtcSeconds - authorWrap.GetLastPostTime().UtcSeconds
 	opAssert(elapsedSeconds > constants.MinPostInterval, "reply frequently")
 
 	var rootId uint64
@@ -355,9 +355,9 @@ func (ev *ReplyEvaluator) Apply() {
 		t.Title = ""
 		t.Author = op.Owner
 		t.Body = op.Content
-		t.Created = ev.ctx.control.HeadBlockTime()
-		//t.CashoutTime = &prototype.TimePointSec{UtcSeconds: ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.PostCashOutDelayTime)}
-		t.CashoutBlockNum = ev.ctx.control.GetProps().HeadBlockNumber + variables.PostCashOutDelayBlock()
+		t.Created = ev.GlobalProp().HeadBlockTime()
+		//t.CashoutTime = &prototype.TimePointSec{UtcSeconds: ev.GlobalProp().HeadBlockTime().UtcSeconds + uint32(constants.PostCashOutDelayTime)}
+		t.CashoutBlockNum = ev.GlobalProp().GetProps().HeadBlockNumber + variables.PostCashOutDelayBlock()
 		t.Depth = pidWrap.GetDepth() + 1
 		t.Children = 0
 		t.RootId = rootId
@@ -369,34 +369,34 @@ func (ev *ReplyEvaluator) Apply() {
 		t.DappRewards = &prototype.Vest{Value: 0}
 	}), "create reply error")
 
-	authorWrap.MdLastPostTime(ev.ctx.control.HeadBlockTime())
+	authorWrap.MdLastPostTime(ev.GlobalProp().HeadBlockTime())
 	// Modify Parent Object
 	opAssert(pidWrap.MdChildren(pidWrap.GetChildren()+1), "Modify Parent Children Error")
 
-	//timestamp := ev.ctx.control.HeadBlockTime().UtcSeconds + uint32(constants.PostCashOutDelayTime) - uint32(constants.GenesisTime)
+	//timestamp := ev.GlobalProp().HeadBlockTime().UtcSeconds + uint32(constants.PostCashOutDelayTime) - uint32(constants.GenesisTime)
 	//key := fmt.Sprintf("cashout:%d_%d", common.GetBucket(timestamp), op.Uuid)
 	//value := "reply"
-	//opAssertE(ev.ctx.db.Put([]byte(key), []byte(value)), "put reply key into db error")
+	//opAssertE(ev.Database().Put([]byte(key), []byte(value)), "put reply key into db error")
 }
 
 // upvote is true: upvote otherwise downvote
 // no downvote has been supplied by command, so I ignore it
 func (ev *VoteEvaluator) Apply() {
 	op := ev.op
-	ev.ctx.vmInjector.RecordGasFee(op.Voter.Value, constants.CommonOpGas)
+	ev.VMInjector().RecordGasFee(op.Voter.Value, constants.CommonOpGas)
 
-	voterWrap := table.NewSoAccountWrap(ev.ctx.db, op.Voter)
-	elapsedSeconds := ev.ctx.control.HeadBlockTime().UtcSeconds - voterWrap.GetLastVoteTime().UtcSeconds
+	voterWrap := table.NewSoAccountWrap(ev.Database(), op.Voter)
+	elapsedSeconds := ev.GlobalProp().HeadBlockTime().UtcSeconds - voterWrap.GetLastVoteTime().UtcSeconds
 	opAssert(elapsedSeconds > constants.MinVoteInterval, "voting frequently")
 
 	voterId := prototype.VoterId{Voter: op.Voter, PostId: op.Idx}
-	voteWrap := table.NewSoVoteWrap(ev.ctx.db, &voterId)
-	postWrap := table.NewSoPostWrap(ev.ctx.db, &op.Idx)
+	voteWrap := table.NewSoVoteWrap(ev.Database(), &voterId)
+	postWrap := table.NewSoPostWrap(ev.Database(), &op.Idx)
 
 	opAssert(postWrap.CheckExist(), "post invalid")
 	opAssert(!voteWrap.CheckExist(), "vote info exist")
 
-	//votePostWrap := table.NewVotePostIdWrap(ev.ctx.db)
+	//votePostWrap := table.NewVotePostIdWrap(ev.Database())
 
 	//for voteIter := votePostWrap.QueryListByOrder(&op.Idx, nil); voteIter.Valid(); voteIter.Next() {
 	//	voterId := votePostWrap.GetMainVal(voteIter)
@@ -418,7 +418,7 @@ func (ev *VoteEvaluator) Apply() {
 	usedVp := (currentVp + constants.VoteLimitDuringRegenerate - 1) / constants.VoteLimitDuringRegenerate
 
 	voterWrap.MdVotePower(currentVp - usedVp)
-	voterWrap.MdLastVoteTime(ev.ctx.control.HeadBlockTime())
+	voterWrap.MdLastVoteTime(ev.GlobalProp().HeadBlockTime())
 	vesting := voterWrap.GetVestingShares().Value
 	// after constants.PERCENT replaced by 1000, max value is 10000000000 * 1000000 * 1000 / 30
 	// 10000000000 * 1000000 * 1000 < 18446744073709552046 but 10000000000 * 1000000 > 9223372036854775807
@@ -426,7 +426,7 @@ func (ev *VoteEvaluator) Apply() {
 	//weightedVp := vesting * uint64(usedVp)
 	weightedVp := new(big.Int).SetUint64(vesting)
 	weightedVp.Mul(weightedVp, new(big.Int).SetUint64(uint64(usedVp)))
-	if postWrap.GetCashoutBlockNum() > ev.ctx.control.GetProps().HeadBlockNumber {
+	if postWrap.GetCashoutBlockNum() > ev.GlobalProp().GetProps().HeadBlockNumber {
 		lastVp := postWrap.GetWeightedVp()
 		var lvp, tvp big.Int
 		//wvp.SetUint64(weightedVp)
@@ -434,7 +434,7 @@ func (ev *VoteEvaluator) Apply() {
 		tvp.Add(weightedVp, &lvp)
 		//votePower := tvp.
 		// add new vp into global
-		//ev.ctx.control.AddWeightedVP(weightedVp)
+		//ev.GlobalProp().AddWeightedVP(weightedVp)
 		// update post's weighted vp
 		postWrap.MdWeightedVp(tvp.String())
 
@@ -443,7 +443,7 @@ func (ev *VoteEvaluator) Apply() {
 			t.PostId = op.Idx
 			t.Upvote = true
 			t.WeightedVp = weightedVp.String()
-			t.VoteTime = ev.ctx.control.HeadBlockTime()
+			t.VoteTime = ev.GlobalProp().HeadBlockTime()
 		}), "create voter object error")
 
 		opAssert(postWrap.MdVoteCnt(postWrap.GetVoteCnt()+1), "set vote count error")
@@ -466,7 +466,7 @@ func (ev *BpRegisterEvaluator) BpInWhiteList(bpName string) bool {
 
 func (ev *BpRegisterEvaluator) Apply() {
 	op := ev.op
-	ev.ctx.vmInjector.RecordGasFee(op.Owner.Value, constants.CommonOpGas)
+	ev.VMInjector().RecordGasFee(op.Owner.Value, constants.CommonOpGas)
 
 	//opAssert(ev.BpInWhiteList(op.Owner.Value), "bp name not in white list")
 
@@ -482,7 +482,7 @@ func (ev *BpRegisterEvaluator) Apply() {
 	opAssert(tpsExpected <= constants.MaxTPSExpected,
 		fmt.Sprintf("expected tps too high max value %d", constants.MaxTPSExpected))
 
-	witnessWrap := table.NewSoWitnessWrap(ev.ctx.db, op.Owner)
+	witnessWrap := table.NewSoWitnessWrap(ev.Database(), op.Owner)
 
 	if witnessWrap.CheckExist() {
 		opAssert(!witnessWrap.GetActive(), "witness already exist")
@@ -494,7 +494,7 @@ func (ev *BpRegisterEvaluator) Apply() {
 
 	opAssertE(witnessWrap.Create(func(t *table.SoWitness) {
 		t.Owner = op.Owner
-		t.CreatedTime = ev.ctx.control.HeadBlockTime()
+		t.CreatedTime = ev.GlobalProp().HeadBlockTime()
 		t.Url = op.Url
 		t.SigningKey = op.BlockSigningKey
 		t.Active = true
@@ -510,14 +510,14 @@ func (ev *BpUnregisterEvaluator) Apply() {
 	//panic("not yet implement")
 
 	op := ev.op
-	ev.ctx.vmInjector.RecordGasFee(op.Owner.Value, constants.CommonOpGas)
+	ev.VMInjector().RecordGasFee(op.Owner.Value, constants.CommonOpGas)
 
-	witnessWrap := table.NewSoWitnessWrap(ev.ctx.db, op.Owner)
+	witnessWrap := table.NewSoWitnessWrap(ev.Database(), op.Owner)
 
 	opAssert(witnessWrap.CheckExist(), "witness do not exist")
 	opAssert(witnessWrap.GetActive(), "witness active value should be true")
 
-	payBackVoteCntToVoter(ev.ctx.db, op.Owner)
+	payBackVoteCntToVoter(ev.Database(), op.Owner)
 
 	//opAssert(witnessWrap.RemoveWitness(), "remove witness error")
 	opAssert(witnessWrap.MdActive(false), "set witness active error")
@@ -559,20 +559,20 @@ func payBackVoteCntToVoter(dba iservices.IDatabaseRW, witness *prototype.Account
 
 func (ev *BpVoteEvaluator) Apply() {
 	op := ev.op
-	ev.ctx.vmInjector.RecordGasFee(op.Voter.Value, constants.CommonOpGas)
+	ev.VMInjector().RecordGasFee(op.Voter.Value, constants.CommonOpGas)
 
-	voterAccount := table.NewSoAccountWrap(ev.ctx.db, op.Voter)
+	voterAccount := table.NewSoAccountWrap(ev.Database(), op.Voter)
 	voteCnt := voterAccount.GetBpVoteCount()
 	voterVests := voterAccount.GetVestingShares()
 
 	voterId := &prototype.BpVoterId{Voter: op.Voter, Witness: op.Witness}
 	witnessId := &prototype.BpWitnessId{Voter: op.Voter, Witness: op.Witness}
-	vidWrap := table.NewSoWitnessVoteWrap(ev.ctx.db, voterId)
+	vidWrap := table.NewSoWitnessVoteWrap(ev.Database(), voterId)
 
-	witAccWrap := table.NewSoAccountWrap(ev.ctx.db, op.Voter)
+	witAccWrap := table.NewSoAccountWrap(ev.Database(), op.Voter)
 	opAssert(witAccWrap.CheckExist(), "witness account do not exist ")
 
-	witnessWrap := table.NewSoWitnessWrap(ev.ctx.db, op.Witness)
+	witnessWrap := table.NewSoWitnessWrap(ev.Database(), op.Witness)
 
 	if op.Cancel {
 		opAssert(voteCnt > 0, "vote count must not be 0")
@@ -585,7 +585,7 @@ func (ev *BpVoteEvaluator) Apply() {
 		opAssert(voteCnt < constants.PerVoterCanVoteWitness, "vote count exceeding")
 
 		opAssertE(vidWrap.Create(func(t *table.SoWitnessVote) {
-			t.VoteTime = ev.ctx.control.HeadBlockTime()
+			t.VoteTime = ev.GlobalProp().HeadBlockTime()
 			t.VoterId = voterId
 			t.WitnessId = witnessId
 		}), "add vote record error")
@@ -596,19 +596,19 @@ func (ev *BpVoteEvaluator) Apply() {
 	}
 
 	//op := ev.op
-	//ev.ctx.vmInjector.RecordGasFee(op.Voter.Value, constants.CommonOpGas)
+	//ev.VMInjector().RecordGasFee(op.Voter.Value, constants.CommonOpGas)
 	//
-	//voterAccount := table.NewSoAccountWrap(ev.ctx.db, op.Voter)
+	//voterAccount := table.NewSoAccountWrap(ev.Database(), op.Voter)
 	//voteCnt := voterAccount.GetBpVoteCount()
 	//
 	//voterId := &prototype.BpVoterId{Voter: op.Voter, Witness: op.Witness}
 	//witnessId := &prototype.BpWitnessId{Voter: op.Voter, Witness: op.Witness}
-	//vidWrap := table.NewSoWitnessVoteWrap(ev.ctx.db, voterId)
+	//vidWrap := table.NewSoWitnessVoteWrap(ev.Database(), voterId)
 	//
-	//witAccWrap := table.NewSoAccountWrap(ev.ctx.db, op.Voter)
+	//witAccWrap := table.NewSoAccountWrap(ev.Database(), op.Voter)
 	//opAssert(witAccWrap.CheckExist(), "witness account do not exist ")
 	//
-	//witnessWrap := table.NewSoWitnessWrap(ev.ctx.db, op.Witness)
+	//witnessWrap := table.NewSoWitnessWrap(ev.Database(), op.Witness)
 	//
 	//if op.Cancel {
 	//	opAssert(voteCnt > 0, "vote count must not be 0")
@@ -621,7 +621,7 @@ func (ev *BpVoteEvaluator) Apply() {
 	//	opAssert(voteCnt < constants.MaxBpVoteCount, "vote count exceeding")
 	//
 	//	opAssertE(vidWrap.Create(func(t *table.SoWitnessVote) {
-	//		t.VoteTime = ev.ctx.control.HeadBlockTime()
+	//		t.VoteTime = ev.GlobalProp().HeadBlockTime()
 	//		t.VoterId = voterId
 	//		t.WitnessId = witnessId
 	//	}), "add vote record error")
@@ -634,7 +634,7 @@ func (ev *BpVoteEvaluator) Apply() {
 
 func (ev *BpUpdateEvaluator) Apply() {
 	op := ev.op
-	ev.ctx.vmInjector.RecordGasFee(op.Owner.Value, constants.CommonOpGas)
+	ev.VMInjector().RecordGasFee(op.Owner.Value, constants.CommonOpGas)
 
 	staminaFree := op.ProposedStaminaFree
 	opAssert(staminaFree >= constants.MinStaminaFree,
@@ -648,28 +648,28 @@ func (ev *BpUpdateEvaluator) Apply() {
 	opAssert(tpsExpected <= constants.MaxTPSExpected,
 		fmt.Sprintf("expected tps too high max value %d", constants.MaxTPSExpected))
 
-	witnessWrap := table.NewSoWitnessWrap(ev.ctx.db, op.Owner)
+	witnessWrap := table.NewSoWitnessWrap(ev.Database(), op.Owner)
 	opAssert(witnessWrap.MdProposedStaminaFree(staminaFree), "update bp proposed stamina free error")
 	opAssert(witnessWrap.MdTpsExpected(tpsExpected), "update bp tps expected error")
 }
 
 func (ev *FollowEvaluator) Apply() {
 	op := ev.op
-	ev.ctx.vmInjector.RecordGasFee(op.Account.Value, constants.CommonOpGas)
+	ev.VMInjector().RecordGasFee(op.Account.Value, constants.CommonOpGas)
 
-	acctWrap := table.NewSoAccountWrap(ev.ctx.db, op.Account)
+	acctWrap := table.NewSoAccountWrap(ev.Database(), op.Account)
 	opAssert(acctWrap.CheckExist(), "follow account do not exist ")
 
-	acctWrap = table.NewSoAccountWrap(ev.ctx.db, op.FAccount)
+	acctWrap = table.NewSoAccountWrap(ev.Database(), op.FAccount)
 	opAssert(acctWrap.CheckExist(), "follow f_account do not exist ")
 }
 
 func (ev *TransferToVestingEvaluator) Apply() {
 	op := ev.op
-	ev.ctx.vmInjector.RecordGasFee(op.From.Value, constants.CommonOpGas)
+	ev.VMInjector().RecordGasFee(op.From.Value, constants.CommonOpGas)
 
-	fidWrap := table.NewSoAccountWrap(ev.ctx.db, op.From)
-	tidWrap := table.NewSoAccountWrap(ev.ctx.db, op.To)
+	fidWrap := table.NewSoAccountWrap(ev.Database(), op.From)
+	tidWrap := table.NewSoAccountWrap(ev.Database(), op.To)
 
 	opAssert(tidWrap.CheckExist(), "to account do not exist")
 
@@ -684,9 +684,9 @@ func (ev *TransferToVestingEvaluator) Apply() {
 	opAssertE(tVests.Add(addVests), "vests error")
 	opAssert(tidWrap.MdVestingShares(tVests), "set to new vests error")
 
-	updateWitnessVoteCount(ev.ctx.db, op.To, oldVest, tVests)
+	updateWitnessVoteCount(ev.Database(), op.To, oldVest, tVests)
 
-	ev.ctx.control.TransferToVest(op.Amount)
+	ev.GlobalProp().TransferToVest(op.Amount)
 }
 
 func updateWitnessVoteCount(dba iservices.IDatabaseRW, voter *prototype.AccountName, oldVest, newVest *prototype.Vest) {
@@ -727,13 +727,13 @@ func updateWitnessVoteCount(dba iservices.IDatabaseRW, voter *prototype.AccountN
 
 func (ev *ConvertVestingEvaluator) Apply() {
 	op := ev.op
-	ev.ctx.vmInjector.RecordGasFee(op.From.Value, constants.CommonOpGas)
+	ev.VMInjector().RecordGasFee(op.From.Value, constants.CommonOpGas)
 
-	accWrap := table.NewSoAccountWrap(ev.ctx.db, op.From)
+	accWrap := table.NewSoAccountWrap(ev.Database(), op.From)
 	opAssert(accWrap.CheckExist(), "account do not exist")
 	opAssert(op.Amount.Value >= uint64(1e6), "At least 1 vesting should be converted")
 	opAssert(accWrap.GetVestingShares().Value >= op.Amount.Value, "vesting balance not enough")
-	globalProps := ev.ctx.control.GetProps()
+	globalProps := ev.GlobalProp().GetProps()
 	//timestamp := globalProps.Time.UtcSeconds
 	currentBlock := globalProps.HeadBlockNumber
 	eachRate := op.Amount.Value / (constants.ConvertWeeks - 1)
@@ -796,10 +796,10 @@ func mergeTags(existed []int32, new []prototype.ReportOperationTag) []int32 {
 
 func (ev *ReportEvaluator) Apply() {
 	op := ev.op
-	ev.ctx.vmInjector.RecordGasFee(op.Reporter.Value, constants.CommonOpGas)
-	post := table.NewSoPostWrap(ev.ctx.db, &op.Reported)
+	ev.VMInjector().RecordGasFee(op.Reporter.Value, constants.CommonOpGas)
+	post := table.NewSoPostWrap(ev.Database(), &op.Reported)
 	opAssert(post.CheckExist(), "the reported post doesn't exist")
-	report := table.NewSoReportListWrap(ev.ctx.db, &op.Reported)
+	report := table.NewSoReportListWrap(ev.Database(), &op.Reported)
 	if op.IsArbitration {
 		opAssert(report.CheckExist(), "cannot arbitrate a non-existed post")
 		if op.IsApproved {
@@ -849,10 +849,10 @@ func (ev *ContractDeployEvaluator) Apply() {
 		opAssertE(err, "contract abi decompression failed");
 	}
 
-	ev.ctx.vmInjector.RecordGasFee(op.Owner.Value, constants.CommonOpGas)
+	ev.VMInjector().RecordGasFee(op.Owner.Value, constants.CommonOpGas)
 
 	cid 		:= prototype.ContractId{Owner: op.Owner, Cname: op.Contract}
-	scid 		:= table.NewSoContractWrap(ev.ctx.db, &cid)
+	scid 		:= table.NewSoContractWrap(ev.Database(), &cid)
 	checkSum 	:= sha256.Sum256(contractCode)
 	codeHash    := &prototype.Sha256{ Hash:checkSum[:] }
 	if scid.CheckExist() {
@@ -881,7 +881,7 @@ func (ev *ContractDeployEvaluator) Apply() {
 		opAssertE(scid.Create(func(t *table.SoContract) {
 			t.Code = contractCode
 			t.Id = &cid
-			t.CreatedTime = ev.ctx.control.HeadBlockTime()
+			t.CreatedTime = ev.GlobalProp().HeadBlockTime()
 			t.Abi = abiString
 			t.Upgradeable = op.Upgradeable
 			t.Hash = codeHash
@@ -894,10 +894,10 @@ func (ev *ContractApplyEvaluator) Apply() {
 	op := ev.op
 
 	cid := prototype.ContractId{Owner: op.Owner, Cname: op.Contract}
-	scid := table.NewSoContractWrap(ev.ctx.db, &cid)
+	scid := table.NewSoContractWrap(ev.Database(), &cid)
 	opAssert(scid.CheckExist(), "contract name doesn't exist")
 
-	acc := table.NewSoAccountWrap(ev.ctx.db, op.Caller)
+	acc := table.NewSoAccountWrap(ev.Database(), op.Caller)
 	opAssert(acc.CheckExist(), "account doesn't exist")
 
 	balance := acc.GetBalance().Value
@@ -930,12 +930,12 @@ func (ev *ContractApplyEvaluator) Apply() {
 	}
 
 	if abiInterface != nil {
-		tables = ct.NewContractTables(op.Owner.Value, op.Contract, abiInterface, ev.ctx.db)
+		tables = ct.NewContractTables(op.Owner.Value, op.Contract, abiInterface, ev.Database())
 	}
 
-	vmCtx := vmcontext.NewContextFromApplyOp(op, paramsData, code, codeHash, abiInterface, tables, ev.ctx.vmInjector)
+	vmCtx := vmcontext.NewContextFromApplyOp(op, paramsData, code, codeHash, abiInterface, tables, ev.VMInjector())
 	// set max gas
-	remain := ev.ctx.vmInjector.GetVmRemainCpuStamina(op.Caller.Value)
+	remain := ev.VMInjector().GetVmRemainCpuStamina(op.Caller.Value)
 	remainGas := remain * constants.CpuConsumePointDen
 	if remainGas > constants.MaxGasPerCall {
 		vmCtx.Gas = constants.MaxGasPerCall
@@ -943,7 +943,7 @@ func (ev *ContractApplyEvaluator) Apply() {
 		vmCtx.Gas = remainGas
 	}
 	// turn off gas limit
-//	if !ev.ctx.control.ctx.Config().ResourceCheck  {
+//	if !ev.GlobalProp().ctx.Config().ResourceCheck  {
 //		vmCtx.Gas = constants.OneDayStamina * constants.CpuConsumePointDen
 //	}
 
@@ -952,7 +952,7 @@ func (ev *ContractApplyEvaluator) Apply() {
 	//	_ := recover()
 	//}()
 
-	cosVM := vm.NewCosVM(vmCtx, ev.ctx.db, ev.ctx.control.GetProps(), ev.ctx.log)
+	cosVM := vm.NewCosVM(vmCtx, ev.Database(), ev.GlobalProp().GetProps(), ev.Logger())
 
 	ret, err := cosVM.Run()
 	spentGas := cosVM.SpentGas()
@@ -979,13 +979,13 @@ func (ev *ContractApplyEvaluator) Apply() {
 func (ev *InternalContractApplyEvaluator) Apply() {
 	op := ev.op
 
-	fromContract := table.NewSoContractWrap(ev.ctx.db, &prototype.ContractId{Owner: op.FromOwner, Cname: op.FromContract})
+	fromContract := table.NewSoContractWrap(ev.Database(), &prototype.ContractId{Owner: op.FromOwner, Cname: op.FromContract})
 	opAssert(fromContract.CheckExist(), "fromContract contract doesn't exist")
 
-	toContract := table.NewSoContractWrap(ev.ctx.db, &prototype.ContractId{Owner: op.ToOwner, Cname: op.ToContract})
+	toContract := table.NewSoContractWrap(ev.Database(), &prototype.ContractId{Owner: op.ToOwner, Cname: op.ToContract})
 	opAssert(toContract.CheckExist(), "toContract contract doesn't exist")
 
-	caller := table.NewSoAccountWrap(ev.ctx.db, op.FromCaller)
+	caller := table.NewSoAccountWrap(ev.Database(), op.FromCaller)
 	opAssert(caller.CheckExist(), "caller account doesn't exist")
 
 	opAssert(fromContract.GetBalance().Value >= op.Amount.Value, "fromContract balance less than transfer amount")
@@ -1010,35 +1010,35 @@ func (ev *InternalContractApplyEvaluator) Apply() {
 	}
 
 	if abiInterface != nil {
-		tables = ct.NewContractTables(op.ToOwner.Value, op.ToContract, abiInterface, ev.ctx.db)
+		tables = ct.NewContractTables(op.ToOwner.Value, op.ToContract, abiInterface, ev.Database())
 	}
 
-	vmCtx := vmcontext.NewContextFromInternalApplyOp(op, code, codeHash, abiInterface, tables, ev.ctx.vmInjector)
+	vmCtx := vmcontext.NewContextFromInternalApplyOp(op, code, codeHash, abiInterface, tables, ev.VMInjector())
 	vmCtx.Gas = ev.remainGas
 
-	cosVM := vm.NewCosVM(vmCtx, ev.ctx.db, ev.ctx.control.GetProps(), ev.ctx.log)
-	//ev.ctx.db.BeginTransaction()
+	cosVM := vm.NewCosVM(vmCtx, ev.Database(), ev.GlobalProp().GetProps(), ev.Logger())
+	//ev.Database().BeginTransaction()
 	ret, err := cosVM.Run()
 	spentGas := cosVM.SpentGas()
 	vmCtx.Injector.RecordGasFee(op.FromCaller.Value, spentGas)
 
 	if err != nil {
 		vmCtx.Injector.Error(ret, err.Error())
-		//ev.ctx.db.EndTransaction(false)
+		//ev.Database().EndTransaction(false)
 		// throw a panic, this panic should recover by upper contract vm context
 		opAssertE(err, "internal contract apply failed")
 	} else {
 		if op.Amount != nil && op.Amount.Value > 0 {
 			vmCtx.Injector.TransferFromContractToContract(op.FromContract, op.FromOwner.Value, op.ToContract, op.ToOwner.Value, op.Amount.Value)
 		}
-		//ev.ctx.db.EndTransaction(true)
+		//ev.Database().EndTransaction(true)
 	}
 }
 
 func (ev *StakeEvaluator) Apply() {
 	op := ev.op
-	ev.ctx.vmInjector.RecordGasFee(op.Account.Value, constants.CommonOpGas)
-	accountWrap := table.NewSoAccountWrap(ev.ctx.db, op.Account)
+	ev.VMInjector().RecordGasFee(op.Account.Value, constants.CommonOpGas)
+	accountWrap := table.NewSoAccountWrap(ev.Database(), op.Account)
 
 	value := &prototype.Coin{Value: op.Amount}
 
@@ -1050,20 +1050,20 @@ func (ev *StakeEvaluator) Apply() {
 	opAssertE(vest.Add(value.ToVest()), "vesting over flow.")
 	opAssert(accountWrap.MdStakeVesting(vest), "modify vesting failed")
 
-	headBlockTime := ev.ctx.control.HeadBlockTime()
+	headBlockTime := ev.GlobalProp().HeadBlockTime()
 	accountWrap.MdLastStakeTime(headBlockTime)
 
-	ev.ctx.control.TransferToVest(value)
-	ev.ctx.control.TransferToStakeVest(value)
+	ev.GlobalProp().TransferToVest(value)
+	ev.GlobalProp().TransferToStakeVest(value)
 }
 
 func (ev *UnStakeEvaluator) Apply() {
 	op := ev.op
-	ev.ctx.vmInjector.RecordGasFee(op.Account.Value, constants.CommonOpGas)
+	ev.VMInjector().RecordGasFee(op.Account.Value, constants.CommonOpGas)
 
-	accountWrap := table.NewSoAccountWrap(ev.ctx.db, op.Account)
+	accountWrap := table.NewSoAccountWrap(ev.Database(), op.Account)
 
-	headBlockTime := ev.ctx.control.HeadBlockTime()
+	headBlockTime := ev.GlobalProp().HeadBlockTime()
 	stakeTime := accountWrap.GetLastStakeTime()
 	opAssert(headBlockTime.UtcSeconds-stakeTime.UtcSeconds > constants.StakeFreezeTime, "can not unstake when freeze")
 
@@ -1077,8 +1077,8 @@ func (ev *UnStakeEvaluator) Apply() {
 	opAssertE(fBalance.Add(value), "Insufficient balance to transfer.")
 	opAssert(accountWrap.MdBalance(fBalance), "modify balance failed")
 
-	ev.ctx.control.TransferFromVest(value.ToVest())
-	ev.ctx.control.TransferFromStakeVest(value.ToVest())
+	ev.GlobalProp().TransferFromVest(value.ToVest())
+	ev.GlobalProp().TransferFromStakeVest(value.ToVest())
 }
 
 func (ev *TransferToStakeVestingEvaluator) Apply() {

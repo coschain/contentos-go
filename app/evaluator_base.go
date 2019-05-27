@@ -25,27 +25,50 @@ func mustNoError(err error, val string) {
 	}
 }
 
-// TODO replace applyContext to TrxContext
-type ApplyContext struct {
-	db         iservices.IDatabaseRW
-	control    iservices.IGlobalPropRW
-	vmInjector vminjector.Injector
-	observer iservices.ITrxObserver
-	log     *logrus.Logger
+type ApplyDelegate interface {
+	Database() iservices.IDatabaseRW
+	GlobalProp() iservices.IGlobalPropRW
+	VMInjector() vminjector.Injector
+	TrxObserver() iservices.ITrxObserver
+	Logger() *logrus.Logger
+}
+
+type BaseDelegate struct {
+	delegate ApplyDelegate
+}
+
+func (d *BaseDelegate) Database() iservices.IDatabaseRW {
+	return d.delegate.Database()
+}
+
+func (d *BaseDelegate) GlobalProp() iservices.IGlobalPropRW {
+	return d.delegate.GlobalProp()
+}
+
+func (d *BaseDelegate) VMInjector() vminjector.Injector {
+	return d.delegate.VMInjector()
+}
+
+func (d *BaseDelegate) TrxObserver() iservices.ITrxObserver {
+	return d.delegate.TrxObserver()
+}
+
+func (d *BaseDelegate) Logger() *logrus.Logger {
+	return d.delegate.Logger()
 }
 
 type BaseEvaluator interface {
 	Apply()
 }
 
-type EvaluatorCreator func(ctx *ApplyContext, op prototype.BaseOperation) BaseEvaluator
+type EvaluatorCreator func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator
 
 const sMetaKeyEvaluatorCreator = "op_meta_evaluator_creator"
 
-func GetBaseEvaluator(ctx *ApplyContext, op *prototype.Operation) BaseEvaluator {
+func GetBaseEvaluator(delegate ApplyDelegate, op *prototype.Operation) BaseEvaluator {
 	if value := prototype.GetGenericOperationMeta(op, sMetaKeyEvaluatorCreator); value != nil {
 		evalCreator := value.(EvaluatorCreator)
-		return evalCreator(ctx, prototype.GetBaseOperation(op))
+		return evalCreator(delegate, prototype.GetBaseOperation(op))
 	}
 	panic("no matchable evaluator")
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/utils"
 	"github.com/coschain/contentos-go/vm/injector"
+	"github.com/sirupsen/logrus"
 )
 
 type TrxContext struct {
@@ -289,6 +290,30 @@ func (p *TrxContext) ContractCall(caller, fromOwner, fromContract, fromMethod, t
 		Params: params,
 		Amount: &prototype.Coin{ Value: coins },
 	}
-	eval := &InternalContractApplyEvaluator{ctx: &ApplyContext{db: p.db, vmInjector: p, control: p, log:p.control.log}, op: op, remainGas: remainGas}
+	eval := &InternalContractApplyEvaluator{BaseDelegate: BaseDelegate{delegate:p}, op: op, remainGas: remainGas}
 	eval.Apply()
+}
+
+//
+// implements ApplyDelegate interface
+//
+
+func (p *TrxContext) Database() iservices.IDatabaseRW {
+	return p.db
+}
+
+func (p *TrxContext) GlobalProp() iservices.IGlobalPropRW {
+	return p
+}
+
+func (p *TrxContext) VMInjector() vminjector.Injector {
+	return p
+}
+
+func (p *TrxContext) TrxObserver() iservices.ITrxObserver {
+	return p.observer
+}
+
+func (p *TrxContext) Logger() *logrus.Logger {
+	return p.control.log
 }

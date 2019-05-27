@@ -11,6 +11,8 @@ import (
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/mylog"
 	"github.com/coschain/contentos-go/prototype"
+	vminjector "github.com/coschain/contentos-go/vm/injector"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"math/rand"
@@ -30,6 +32,31 @@ var (
 	SINGLE_ID int32 = 1
 )
 
+type ApplyContext struct {
+	db         iservices.IDatabaseRW
+	control    iservices.IGlobalPropRW
+	vmInjector vminjector.Injector
+	observer iservices.ITrxObserver
+	log     *logrus.Logger
+}
+
+func (ctx *ApplyContext) Database() iservices.IDatabaseRW {
+	return ctx.db
+}
+func (ctx *ApplyContext) GlobalProp() iservices.IGlobalPropRW {
+	return ctx.control
+}
+func (ctx *ApplyContext) VMInjector() vminjector.Injector {
+	return ctx.vmInjector
+}
+func (ctx *ApplyContext) TrxObserver() iservices.ITrxObserver {
+	return ctx.observer
+}
+func (ctx *ApplyContext) Logger() *logrus.Logger {
+	return ctx.log
+}
+
+
 func tryCreateAccount(t *testing.T, acc string, ctrl *TrxPool) {
 	acop := &prototype.AccountCreateOperation{
 		Fee:            prototype.NewCoin(1),
@@ -44,7 +71,7 @@ func tryCreateAccount(t *testing.T, acc string, ctrl *TrxPool) {
 	op.Op = op1
 
 	ctx := &ApplyContext{db: ctrl.db, control: ctrl}
-	ev := &AccountCreateEvaluator{ctx: ctx, op: op.GetOp1()}
+	ev := &AccountCreateEvaluator{BaseDelegate: BaseDelegate{delegate:ctx}, op: op.GetOp1()}
 	ev.Apply()
 
 	// verify
@@ -98,7 +125,7 @@ func Test_ApplyTransfer(t *testing.T) {
 	trxObserver := c.stateObserver.NewTrxObserver()
 	trxObserver.BeginTrx("hahahah")
 	ctx := &ApplyContext{db: db, control: c, observer: trxObserver}
-	ev := &TransferEvaluator{ctx: ctx, op: op.GetOp2()}
+	ev := &TransferEvaluator{BaseDelegate: BaseDelegate{delegate:ctx}, op: op.GetOp2()}
 	ev.Apply()
 	trxObserver.EndTrx(true)
 	c.stateObserver.EndBlock("1111111")
@@ -138,7 +165,7 @@ func TestPostEvaluator_ApplyNormal(t *testing.T) {
 	props.Time = &prototype.TimePointSec{UtcSeconds: uint32(time.Now().Unix())}
 	c.updateGlobalDataToDB(props)
 	ctx := &ApplyContext{db: db, control: c}
-	ev := &PostEvaluator{ctx: ctx, op: op.GetOp6()}
+	ev := &PostEvaluator{BaseDelegate: BaseDelegate{delegate:ctx}, op: op.GetOp6()}
 	ev.Apply()
 
 	uuid := uint64(111)
@@ -148,7 +175,7 @@ func TestPostEvaluator_ApplyNormal(t *testing.T) {
 	myassert.Equal(postWrap.GetPostId(), uint64(111))
 	myassert.Equal(postWrap.GetRootId(), uint64(0))
 
-	authorWrap := table.NewSoAccountWrap(ev.ctx.db, &prototype.AccountName{Value: "initminer"})
+	authorWrap := table.NewSoAccountWrap(ev.Database(), &prototype.AccountName{Value: "initminer"})
 	// author last post time should be modified
 	myassert.Equal(authorWrap.GetLastPostTime().UtcSeconds, uint32(time.Now().Unix()))
 }
@@ -177,14 +204,14 @@ func TestPostEvaluator_ApplyPostExistId(t *testing.T) {
 	c.updateGlobalDataToDB(props)
 
 	ctx := &ApplyContext{db: db, control: c}
-	ev := &PostEvaluator{ctx: ctx, op: op.GetOp6()}
+	ev := &PostEvaluator{BaseDelegate: BaseDelegate{delegate:ctx}, op: op.GetOp6()}
 	ev.Apply()
 
 	// avoid frequently
 	props.Time = &prototype.TimePointSec{UtcSeconds: uint32(time.Now().Unix() + 1000)}
 	c.updateGlobalDataToDB(props)
 	ctx = &ApplyContext{db: db, control: c}
-	ev = &PostEvaluator{ctx: ctx, op: op.GetOp6()}
+	ev = &PostEvaluator{BaseDelegate: BaseDelegate{delegate:ctx}, op: op.GetOp6()}
 	func() {
 		defer func() {
 			if r := recover(); r == nil {
@@ -220,7 +247,7 @@ func TestPostEvaluator_ApplyPostFrequently(t *testing.T) {
 	c.updateGlobalDataToDB(props)
 
 	ctx := &ApplyContext{db: db, control: c}
-	ev := &PostEvaluator{ctx: ctx, op: op.GetOp6()}
+	ev := &PostEvaluator{BaseDelegate: BaseDelegate{delegate:ctx}, op: op.GetOp6()}
 	ev.Apply()
 
 	operation = &prototype.PostOperation{
@@ -236,7 +263,7 @@ func TestPostEvaluator_ApplyPostFrequently(t *testing.T) {
 	op.Op = opPost
 
 	ctx = &ApplyContext{db: db, control: c}
-	ev = &PostEvaluator{ctx: ctx, op: op.GetOp6()}
+	ev = &PostEvaluator{BaseDelegate: BaseDelegate{delegate:ctx}, op: op.GetOp6()}
 
 	func() {
 		defer func() {
@@ -273,7 +300,7 @@ func TestReplyEvaluator_ApplyNormal(t *testing.T) {
 	props.Time = &prototype.TimePointSec{UtcSeconds: currentTimestamp}
 	c.updateGlobalDataToDB(props)
 	ctx := &ApplyContext{db: db, control: c}
-	ev := &PostEvaluator{ctx: ctx, op: op.GetOp6()}
+	ev := &PostEvaluator{BaseDelegate: BaseDelegate{delegate:ctx}, op: op.GetOp6()}
 	ev.Apply()
 
 	props.Time = &prototype.TimePointSec{UtcSeconds: currentTimestamp + 1000}
@@ -293,7 +320,7 @@ func TestReplyEvaluator_ApplyNormal(t *testing.T) {
 	opReply.Op7 = reply_operation
 	op.Op = opReply
 
-	ev2 := &ReplyEvaluator{ctx: ctx, op: op.GetOp7()}
+	ev2 := &ReplyEvaluator{BaseDelegate: BaseDelegate{delegate:ctx}, op: op.GetOp7()}
 	ev2.Apply()
 
 	uuid := uint64(112)
@@ -304,7 +331,7 @@ func TestReplyEvaluator_ApplyNormal(t *testing.T) {
 	myassert.Equal(postWrap.GetRootId(), uint64(111))
 	myassert.Equal(postWrap.GetParentId(), uint64(111))
 
-	authorWrap := table.NewSoAccountWrap(ev.ctx.db, &prototype.AccountName{Value: "initminer"})
+	authorWrap := table.NewSoAccountWrap(ev.Database(), &prototype.AccountName{Value: "initminer"})
 	myassert.Equal(authorWrap.GetLastPostTime().UtcSeconds, currentTimestamp+1000)
 }
 
@@ -334,7 +361,7 @@ func TestVoteEvaluator_ApplyNormal(t *testing.T) {
 	props.Time = &prototype.TimePointSec{UtcSeconds: currentTimestamp}
 	c.updateGlobalDataToDB(props)
 	ctx := &ApplyContext{db: db, control: c}
-	ev := &PostEvaluator{ctx: ctx, op: op.GetOp6()}
+	ev := &PostEvaluator{BaseDelegate: BaseDelegate{delegate:ctx}, op: op.GetOp6()}
 	ev.Apply()
 
 	vote_operation := &prototype.VoteOperation{
@@ -347,7 +374,7 @@ func TestVoteEvaluator_ApplyNormal(t *testing.T) {
 	opVote.Op9 = vote_operation
 	op.Op = opVote
 
-	ev2 := &VoteEvaluator{ctx: ctx, op: op.GetOp9()}
+	ev2 := &VoteEvaluator{BaseDelegate: BaseDelegate{delegate:ctx}, op: op.GetOp9()}
 	ev2.Apply()
 
 	myassert := assert.New(t)
@@ -355,13 +382,13 @@ func TestVoteEvaluator_ApplyNormal(t *testing.T) {
 	uuid := uint64(111)
 	postWrap := table.NewSoPostWrap(db, &uuid)
 
-	voterWrap := table.NewSoAccountWrap(ev.ctx.db, &prototype.AccountName{Value: "initminer"})
+	voterWrap := table.NewSoAccountWrap(ev.Database(), &prototype.AccountName{Value: "initminer"})
 	myassert.Equal(voterWrap.GetVotePower(), uint32(36))
 	myassert.Equal(voterWrap.GetLastPostTime().UtcSeconds, c.HeadBlockTime().UtcSeconds)
 	myassert.Equal(postWrap.GetWeightedVp(), uint64(2000))
 	myassert.Equal(c.GetProps().PostWeightedVps, uint64(2000))
 
-	iterator := table.NewVotePostIdWrap(ev.ctx.db)
+	iterator := table.NewVotePostIdWrap(ev.Database())
 	start := uuid
 	end := start + 1
 	var voterIds []*prototype.VoterId
@@ -372,7 +399,7 @@ func TestVoteEvaluator_ApplyNormal(t *testing.T) {
 	totalVp := postWrap.GetWeightedVp()
 	fmt.Println(totalVp)
 	for _, voterId := range voterIds {
-		wrap := table.NewSoVoteWrap(ev.ctx.db, voterId)
+		wrap := table.NewSoVoteWrap(ev.Database(), voterId)
 		fmt.Println(wrap.GetWeightedVp())
 	}
 
@@ -394,8 +421,8 @@ func TestConvertVestingEvaluator_Apply(t *testing.T) {
 	c := startController(db)
 
 	ctx := &ApplyContext{db: db, control: c}
-	ev := &ConvertVestingEvaluator{ctx: ctx, op: op.GetOp16()}
-	accWrap := table.NewSoAccountWrap(ev.ctx.db, &prototype.AccountName{Value: "initminer"})
+	ev := &ConvertVestingEvaluator{BaseDelegate: BaseDelegate{delegate:ctx}, op: op.GetOp16()}
+	accWrap := table.NewSoAccountWrap(ev.Database(), &prototype.AccountName{Value: "initminer"})
 	accWrap.MdVestingShares(&prototype.Vest{Value: 10 * 1e6})
 	ev.Apply()
 	fmt.Println(accWrap.GetNextPowerdownBlockNum())
@@ -432,7 +459,8 @@ func startController(db iservices.IDatabaseService) *TrxPool {
 	c.SetDB(db)
 	c.SetBus(EventBus.New())
 	c.Open()
-	c.SetShuffle(func(block common.ISignedBlock) {
+	c.SetShuffle(func(block common.ISignedBlock)(bool, []string) {
+		return false, []string{"initminer"}
 	})
 	return c
 }
