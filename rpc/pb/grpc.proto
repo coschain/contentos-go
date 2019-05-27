@@ -47,9 +47,6 @@ service ApiService {
     rpc GetChainState (NonParamsRequest) returns (GetChainStateResponse) {
     }
 
-    rpc GetStatisticsInfo (NonParamsRequest) returns (GetStatResponse) {
-    }
-
     rpc BroadcastTrx (BroadcastTrxRequest) returns (BroadcastTrxResponse) {
     }
 
@@ -296,10 +293,10 @@ message GetChainStateResponse {
     ChainState state = 1;
 }
 
-message GetStatResponse {
-    ChainState state = 1;
-    repeated int32 daily_trx_counts = 2;
-}
+//message GetStatResponse {
+//    ChainState state = 1;
+//    repeated int32 daily_trx_counts = 2;
+//}
 
 message BroadcastTrxRequest {
     prototype.signed_transaction transaction = 1;

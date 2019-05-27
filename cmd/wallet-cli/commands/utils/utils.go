@@ -34,7 +34,7 @@ func GenerateSignedTxAndValidate3(client grpcpb.ApiServiceClient, ops []interfac
 
 func GetChainState(client grpcpb.ApiServiceClient) (*grpcpb.ChainState, error) {
 	req := &grpcpb.NonParamsRequest{}
-	resp, err := client.GetStatisticsInfo(context.Background(), req)
+	resp, err := client.GetChainState(context.Background(), req)
 	if err != nil {
 		return nil, err
 	}

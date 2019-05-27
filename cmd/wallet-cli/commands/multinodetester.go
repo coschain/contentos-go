@@ -27,7 +27,7 @@ var MultinodetesterCmd = func() *cobra.Command {
 
 func makeBpRegVoteTrx(client grpcpb.ApiServiceClient, count int64) (*prototype.SignedTransaction, error) {
 
-	resp, _ := client.GetStatisticsInfo( context.Background(), &grpcpb.NonParamsRequest{} )
+	resp, _ := client.GetChainState( context.Background(), &grpcpb.NonParamsRequest{} )
 	refBlockPrefix := common.TaposRefBlockPrefix(resp.State.Dgpo.HeadBlockId.Hash)
 	refBlockNum := common.TaposRefBlockNum(resp.State.Dgpo.HeadBlockNumber)
 	tx := &prototype.Transaction{RefBlockNum: refBlockNum, RefBlockPrefix: refBlockPrefix, Expiration: &prototype.TimePointSec{UtcSeconds: resp.State.Dgpo.Time.UtcSeconds + 30}}
@@ -75,7 +75,7 @@ func makeBpRegVoteTrx(client grpcpb.ApiServiceClient, count int64) (*prototype.S
 
 func createMNTAccountTrx(client grpcpb.ApiServiceClient, count int64) (*prototype.SignedTransaction, error) {
 
-	resp, _ := client.GetStatisticsInfo( context.Background(), &grpcpb.NonParamsRequest{} )
+	resp, _ := client.GetChainState( context.Background(), &grpcpb.NonParamsRequest{} )
 	refBlockPrefix := common.TaposRefBlockPrefix(resp.State.Dgpo.HeadBlockId.Hash)
 	refBlockNum := common.TaposRefBlockNum(resp.State.Dgpo.HeadBlockNumber)
 	tx := &prototype.Transaction{RefBlockNum: refBlockNum, RefBlockPrefix: refBlockPrefix, Expiration: &prototype.TimePointSec{UtcSeconds: resp.State.Dgpo.Time.UtcSeconds + 30}}

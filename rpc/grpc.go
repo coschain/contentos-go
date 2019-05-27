@@ -215,26 +215,6 @@ func (as *APIService) GetChainState(ctx context.Context, req *grpcpb.NonParamsRe
 	return ret, nil
 }
 
-func (as *APIService) GetStatisticsInfo(ctx context.Context, req *grpcpb.NonParamsRequest) (*grpcpb.GetStatResponse, error) {
-	as.db.RLock()
-	defer as.db.RUnlock()
-
-	ret := &grpcpb.GetStatResponse{}
-
-	// TODO add daily trx count
-	//blks, err := as.consensus.FetchBlocksSince(common.EmptyBlockID)
-	//if err == nil {
-	//	for _, v := range blks {
-	//
-	//		res := &prototype.EmptySignedBlock{ SignedHeader:v.(*prototype.SignedBlock).SignedHeader, TrxCount:uint32(len(v.(*prototype.SignedBlock).Transactions)) }
-	//		ret.Blocks = append(ret.Blocks, res )
-	//	}
-	//}
-	ret.State = as.getState()
-
-	return ret, nil
-}
-
 func (as *APIService) GetWitnessList(ctx context.Context, req *grpcpb.GetWitnessListRequest) (*grpcpb.GetWitnessListResponse, error) {
 	as.db.RLock()
 	defer as.db.RUnlock()

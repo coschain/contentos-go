@@ -251,24 +251,6 @@ func (mr *MockApiServiceClientMockRecorder) GetChainState(ctx, in interface{}, o
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetChainState", reflect.TypeOf((*MockApiServiceClient)(nil).GetChainState), varargs...)
 }
 
-// GetStatisticsInfo mocks base method
-func (m *MockApiServiceClient) GetStatisticsInfo(ctx context.Context, in *pb.NonParamsRequest, opts ...grpc.CallOption) (*pb.GetStatResponse, error) {
-	varargs := []interface{}{ctx, in}
-	for _, a := range opts {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "GetStatisticsInfo", varargs...)
-	ret0, _ := ret[0].(*pb.GetStatResponse)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetStatisticsInfo indicates an expected call of GetStatisticsInfo
-func (mr *MockApiServiceClientMockRecorder) GetStatisticsInfo(ctx, in interface{}, opts ...interface{}) *gomock.Call {
-	varargs := append([]interface{}{ctx, in}, opts...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStatisticsInfo", reflect.TypeOf((*MockApiServiceClient)(nil).GetStatisticsInfo), varargs...)
-}
-
 // BroadcastTrx mocks base method
 func (m *MockApiServiceClient) BroadcastTrx(ctx context.Context, in *pb.BroadcastTrxRequest, opts ...grpc.CallOption) (*pb.BroadcastTrxResponse, error) {
 	varargs := []interface{}{ctx, in}
@@ -752,19 +734,6 @@ func (m *MockApiServiceServer) GetChainState(arg0 context.Context, arg1 *pb.NonP
 // GetChainState indicates an expected call of GetChainState
 func (mr *MockApiServiceServerMockRecorder) GetChainState(arg0, arg1 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetChainState", reflect.TypeOf((*MockApiServiceServer)(nil).GetChainState), arg0, arg1)
-}
-
-// GetStatisticsInfo mocks base method
-func (m *MockApiServiceServer) GetStatisticsInfo(arg0 context.Context, arg1 *pb.NonParamsRequest) (*pb.GetStatResponse, error) {
-	ret := m.ctrl.Call(m, "GetStatisticsInfo", arg0, arg1)
-	ret0, _ := ret[0].(*pb.GetStatResponse)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetStatisticsInfo indicates an expected call of GetStatisticsInfo
-func (mr *MockApiServiceServerMockRecorder) GetStatisticsInfo(arg0, arg1 interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStatisticsInfo", reflect.TypeOf((*MockApiServiceServer)(nil).GetStatisticsInfo), arg0, arg1)
 }
 
 // BroadcastTrx mocks base method
