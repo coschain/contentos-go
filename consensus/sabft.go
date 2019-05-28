@@ -164,7 +164,7 @@ func (sabft *SABFT) shuffle(head common.ISignedBlock) (bool, []string) {
 	if head != nil {
 		seed = head.Timestamp() << 32
 	}
-	sabft.updateProducers(seed, prods)
+	sabft.updateProducers(seed, prods, pubKeys)
 
 	newDyn := sabft.makeDynasty(blockNum, prods, pubKeys, sabft.localPrivKey)
 	sabft.addDynasty(newDyn)
@@ -211,12 +211,12 @@ func (sabft *SABFT) checkBFTRoutine() {
 }
 
 func (sabft *SABFT) restoreProducers() {
-	prods := sabft.ctrl.GetShuffledWitness()
+	prods, _ := sabft.ctrl.GetShuffledWitness()
 	sabft.producers = sabft.makeProducers(prods)
 	sabft.log.Info("[SABFT] active producers: ", prods)
 }
 
-func (sabft *SABFT) updateProducers(seed uint64, prods []string) int {
+func (sabft *SABFT) updateProducers(seed uint64, prods []string, pubKeys []*prototype.PublicKeyType) int {
 	prodNum := len(prods)
 	for i := 0; i < prodNum; i++ {
 		k := seed + uint64(i)*2695921657736338717
@@ -227,6 +227,7 @@ func (sabft *SABFT) updateProducers(seed uint64, prods []string) int {
 
 		j := i + int(k%uint64(prodNum-i))
 		prods[i], prods[j] = prods[j], prods[i]
+		pubKeys[i], pubKeys[j] = pubKeys[j], pubKeys[i]
 	}
 
 	sabft.producers = sabft.makeProducers(prods)
@@ -235,7 +236,7 @@ func (sabft *SABFT) updateProducers(seed uint64, prods []string) int {
 		validatorNames += sabft.producers[i].accountName + " "
 	}
 	sabft.log.Debug("[SABFT shuffle] active producers: ", validatorNames)
-	sabft.ctrl.SetShuffledWitness(prods)
+	sabft.ctrl.SetShuffledWitness(prods, pubKeys)
 
 	return prodNum
 }
@@ -336,11 +337,7 @@ func (sabft *SABFT) restoreDynasty() {
 		}
 		sabft.popBlock(lcNum + 1)
 
-		prods := sabft.ctrl.GetShuffledWitness()
-		pubKeys := make([]*prototype.PublicKeyType, len(prods))
-		for idx := range prods {
-			pubKeys[idx] = sabft.ctrl.GetSigningPubKey(prods[idx])
-		}
+		prods, pubKeys := sabft.ctrl.GetShuffledWitness()
 		dyn := sabft.makeDynasty(0, prods, pubKeys, sabft.localPrivKey)
 		sabft.addDynasty(dyn)
 		for i := range cache {

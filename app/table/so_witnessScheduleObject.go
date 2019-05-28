@@ -8,6 +8,7 @@ import (
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
+	prototype "github.com/coschain/contentos-go/prototype"
 	proto "github.com/golang/protobuf/proto"
 )
 
@@ -16,6 +17,7 @@ var (
 	WitnessScheduleObjectIdUniTable                 uint32 = 1331115827
 	WitnessScheduleObjectCurrentShuffledWitnessCell uint32 = 628088000
 	WitnessScheduleObjectIdCell                     uint32 = 73273412
+	WitnessScheduleObjectPubKeyCell                 uint32 = 98657574
 )
 
 ////////////// SECTION Wrap Define ///////////////
@@ -177,6 +179,9 @@ func (s *SoWitnessScheduleObjectWrap) getMemKeyPrefix(fName string) uint32 {
 	if fName == "Id" {
 		return WitnessScheduleObjectIdCell
 	}
+	if fName == "PubKey" {
+		return WitnessScheduleObjectPubKeyCell
+	}
 
 	return 0
 }
@@ -222,6 +227,13 @@ func (s *SoWitnessScheduleObjectWrap) saveAllMemKeys(tInfo *SoWitnessScheduleObj
 			return err
 		} else {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Id", err)
+		}
+	}
+	if err = s.saveMemKeyPubKey(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "PubKey", err)
 		}
 	}
 
@@ -400,6 +412,88 @@ func (s *SoWitnessScheduleObjectWrap) GetId() int32 {
 		return tmpValue
 	}
 	return msg.Id
+}
+
+func (s *SoWitnessScheduleObjectWrap) saveMemKeyPubKey(tInfo *SoWitnessScheduleObject) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemWitnessScheduleObjectByPubKey{}
+	val.PubKey = tInfo.PubKey
+	key, err := s.encodeMemKey("PubKey")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
+
+func (s *SoWitnessScheduleObjectWrap) GetPubKey() []*prototype.PublicKeyType {
+	res := true
+	msg := &SoMemWitnessScheduleObjectByPubKey{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("PubKey")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.PubKey
+			}
+		}
+	}
+	if !res {
+		var tmpValue []*prototype.PublicKeyType
+		return tmpValue
+	}
+	return msg.PubKey
+}
+
+func (s *SoWitnessScheduleObjectWrap) MdPubKey(p []*prototype.PublicKeyType) bool {
+	if s.dba == nil {
+		return false
+	}
+	key, err := s.encodeMemKey("PubKey")
+	if err != nil {
+		return false
+	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemWitnessScheduleObjectByPubKey{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoWitnessScheduleObject{}
+	sa.Id = *s.mainKey
+	sa.PubKey = ori.PubKey
+
+	ori.PubKey = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
+		return false
+	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.PubKey = p
+
+	return true
 }
 
 /////////////// SECTION Private function ////////////////

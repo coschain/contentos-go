@@ -959,14 +959,15 @@ func (c *TrxPool) GetWitnessTopN(n uint32) ([]string, []*prototype.PublicKeyType
 	return bpNames, keys
 }
 
-func (c *TrxPool) SetShuffledWitness(names []string) {
+func (c *TrxPool) SetShuffledWitness(names []string, keys []*prototype.PublicKeyType) {
 	witnessScheduleWrap := table.NewSoWitnessScheduleObjectWrap(c.db, &SingleId)
 	mustSuccess(witnessScheduleWrap.MdCurrentShuffledWitness(names), "SetWitness error")
+	mustSuccess(witnessScheduleWrap.MdPubKey(keys), "set witness pub key failed")
 }
 
-func (c *TrxPool) GetShuffledWitness() []string {
+func (c *TrxPool) GetShuffledWitness() ([]string, []*prototype.PublicKeyType) {
 	witnessScheduleWrap := table.NewSoWitnessScheduleObjectWrap(c.db, &SingleId)
-	return witnessScheduleWrap.GetCurrentShuffledWitness()
+	return witnessScheduleWrap.GetCurrentShuffledWitness(), witnessScheduleWrap.GetPubKey()
 }
 
 func (c *TrxPool) PopBlock(num uint64) error {

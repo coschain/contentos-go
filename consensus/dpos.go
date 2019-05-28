@@ -118,7 +118,7 @@ func (d *DPoS) shuffle(head common.ISignedBlock) (bool, []string) {
 
 	// When a produce round complete, it adds new producers,
 	// remove unqualified producers and shuffle the block-producing order
-	prods, _ := d.ctrl.GetWitnessTopN(constants.MaxWitnessCount)
+	prods, keys := d.ctrl.GetWitnessTopN(constants.MaxWitnessCount)
 	var seed uint64
 	if head != nil {
 		seed = head.Timestamp() << 32
@@ -137,12 +137,12 @@ func (d *DPoS) shuffle(head common.ISignedBlock) (bool, []string) {
 
 	d.Producers = prods
 	d.log.Debug("[DPoS shuffle] active producers: ", d.Producers)
-	d.ctrl.SetShuffledWitness(prods)
+	d.ctrl.SetShuffledWitness(prods, keys)
 	return true, prods
 }
 
 func (d *DPoS) restoreProducers() {
-	d.Producers = d.ctrl.GetShuffledWitness()
+	d.Producers, _ = d.ctrl.GetShuffledWitness()
 }
 
 func (d *DPoS) ActiveProducers() []string {

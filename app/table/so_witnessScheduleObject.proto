@@ -5,24 +5,31 @@ package table;
 
 option go_package = "github.com/coschain/contentos-go/app/table";
 
+import "prototype/type.proto";
 
 message so_witnessScheduleObject {
-	int32                        id                                     =      1;
-    repeated                      string                       current_shuffled_witness            =      2;
+	int32                              id                              =      1;
+    repeated                      string                           current_shuffled_witness        =      2;
+    repeated                      prototype.public_key_type        pub_key                         =      3;
       
 }
 
 
 message so_mem_witnessScheduleObject_by_id {
-	int32                     	id                                 = 1;
+	int32                           	id                          = 1;
 }
 
 
 message so_mem_witnessScheduleObject_by_current_shuffled_witness {
-	repeated  	string                    	current_shuffled_witness        = 1;
+	repeated  	string                        	current_shuffled_witness    = 1;
+}
+
+
+message so_mem_witnessScheduleObject_by_pub_key {
+	repeated  	prototype.public_key_type     	pub_key                     = 1;
 }
 
 
 message so_unique_witnessScheduleObject_by_id {
-	int32                     	id                                 = 1;
+	int32                           	id                          = 1;
 }
