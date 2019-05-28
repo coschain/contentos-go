@@ -213,17 +213,13 @@ message GetFollowCountByNameResponse {
 
 message WitnessResponse {
     prototype.account_name             owner                           = 1;
-    prototype.time_point_sec           created_time                    = 3;
-    string                             url                             = 4;
-    uint32                             last_confirmed_block_num        = 5;
-    uint32                             total_missed                    = 6;
-    uint64                             vote_count                      = 7;
-    prototype.public_key_type          signing_key                     = 8;
-    prototype.sha256                   last_work                       = 9;
-    uint32                             running_version                 = 2;
-    uint64                             proposed_stamina_free           = 10;
-    bool                               active                          = 11;
-    uint64                             tps_expected                    = 12;
+    prototype.time_point_sec           created_time                    = 2;
+    string                             url                             = 3;
+    uint64                             vote_count                      = 4;
+    prototype.public_key_type          signing_key                     = 5;
+    uint64                             proposed_stamina_free           = 6;
+    bool                               active                          = 7;
+    uint64                             tps_expected                    = 8;
 }
 
 message GetWitnessListRequest {

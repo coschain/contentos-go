@@ -234,12 +234,8 @@ func (as *APIService) GetWitnessList(ctx context.Context, req *grpcpb.GetWitness
 					Owner:                 witWrap.GetOwner(),
 					CreatedTime:           witWrap.GetCreatedTime(),
 					Url:                   witWrap.GetUrl(),
-					LastConfirmedBlockNum: witWrap.GetLastConfirmedBlockNum(),
-					TotalMissed:           witWrap.GetTotalMissed(),
 					VoteCount:             witWrap.GetVoteCount(),
 					SigningKey:            witWrap.GetSigningKey(),
-					LastWork:              witWrap.GetLastWork(),
-					RunningVersion:        witWrap.GetRunningVersion(),
 				})
 			}
 			if idx < limit {
@@ -825,12 +821,8 @@ func (as *APIService) getAccountResponseByName(name *prototype.AccountName, isNe
 				Owner:                 witWrap.GetOwner(),
 				CreatedTime:           witWrap.GetCreatedTime(),
 				Url:                   witWrap.GetUrl(),
-				LastConfirmedBlockNum: witWrap.GetLastConfirmedBlockNum(),
-				TotalMissed:           witWrap.GetTotalMissed(),
 				VoteCount:             witWrap.GetVoteCount(),
 				SigningKey:            witWrap.GetSigningKey(),
-				LastWork:              witWrap.GetLastWork(),
-				RunningVersion:        witWrap.GetRunningVersion(),
 				ProposedStaminaFree:   witWrap.GetProposedStaminaFree(),
 				Active:                witWrap.GetActive(),
 				TpsExpected:           witWrap.GetTpsExpected(),

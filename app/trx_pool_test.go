@@ -228,7 +228,6 @@ func TestController_GetWitnessTopN(t *testing.T) {
 		tInfo.Owner = name
 		tInfo.CreatedTime = &prototype.TimePointSec{UtcSeconds: 0}
 		tInfo.SigningKey = &prototype.PublicKeyType{Data: []byte{1}}
-		tInfo.LastWork = &prototype.Sha256{Hash: []byte{0}}
 	}), "Witness Create Error")
 
 	name2 := &prototype.AccountName{Value: "wit2"}
@@ -237,7 +236,6 @@ func TestController_GetWitnessTopN(t *testing.T) {
 		tInfo.Owner = name2
 		tInfo.CreatedTime = &prototype.TimePointSec{UtcSeconds: 0}
 		tInfo.SigningKey = &prototype.PublicKeyType{Data: []byte{2}}
-		tInfo.LastWork = &prototype.Sha256{Hash: []byte{0}}
 	}), "Witness Create Error")
 
 	witnesses, _ := c.GetWitnessTopN(10)

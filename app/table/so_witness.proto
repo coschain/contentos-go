@@ -12,16 +12,10 @@ message so_witness {
     prototype.time_point_sec          created_time                 =      2;
     string                            url                          =      3;
     uint64                            vote_count                   =      4;
-    uint32                            last_confirmed_block_num     =      5;
-    uint32                            total_missed                 =      6;
-    uint32                            pow_worker                   =      7;
-    prototype.public_key_type         signing_key                  =      8;
-    prototype.sha256                  last_work                    =      9;
-    uint32                            running_version              =      10;
-    uint32                            last_aslot                   =      11;
-    uint64                            proposed_stamina_free        =      12;
-    bool                              active                       =      13;
-    uint64                            tps_expected                 =      14;
+    prototype.public_key_type         signing_key                  =      5;
+    uint64                            proposed_stamina_free        =      6;
+    bool                              active                       =      7;
+    uint64                            tps_expected                 =      8;
       
 }
 
@@ -46,38 +40,8 @@ message so_mem_witness_by_vote_count {
 }
 
 
-message so_mem_witness_by_last_confirmed_block_num {
-	uint32                         	last_confirmed_block_num = 1;
-}
-
-
-message so_mem_witness_by_total_missed {
-	uint32                         	total_missed             = 1;
-}
-
-
-message so_mem_witness_by_pow_worker {
-	uint32                         	pow_worker               = 1;
-}
-
-
 message so_mem_witness_by_signing_key {
 	prototype.public_key_type      	signing_key              = 1;
-}
-
-
-message so_mem_witness_by_last_work {
-	prototype.sha256               	last_work                = 1;
-}
-
-
-message so_mem_witness_by_running_version {
-	uint32                         	running_version          = 1;
-}
-
-
-message so_mem_witness_by_last_aslot {
-	uint32                         	last_aslot               = 1;
 }
 
 

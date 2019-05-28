@@ -14,23 +14,17 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	WitnessOwnerTable                uint32 = 3588322158
-	WitnessVoteCountTable            uint32 = 2256540653
-	WitnessOwnerUniTable             uint32 = 2680327584
-	WitnessActiveCell                uint32 = 1638337923
-	WitnessCreatedTimeCell           uint32 = 732260124
-	WitnessLastAslotCell             uint32 = 2989050122
-	WitnessLastConfirmedBlockNumCell uint32 = 4183878646
-	WitnessLastWorkCell              uint32 = 3441432781
-	WitnessOwnerCell                 uint32 = 3659272213
-	WitnessPowWorkerCell             uint32 = 217317251
-	WitnessProposedStaminaFreeCell   uint32 = 1501150566
-	WitnessRunningVersionCell        uint32 = 3359126320
-	WitnessSigningKeyCell            uint32 = 2433568317
-	WitnessTotalMissedCell           uint32 = 348210894
-	WitnessTpsExpectedCell           uint32 = 2661903099
-	WitnessUrlCell                   uint32 = 261756480
-	WitnessVoteCountCell             uint32 = 149922791
+	WitnessOwnerTable              uint32 = 3588322158
+	WitnessVoteCountTable          uint32 = 2256540653
+	WitnessOwnerUniTable           uint32 = 2680327584
+	WitnessActiveCell              uint32 = 1638337923
+	WitnessCreatedTimeCell         uint32 = 732260124
+	WitnessOwnerCell               uint32 = 3659272213
+	WitnessProposedStaminaFreeCell uint32 = 1501150566
+	WitnessSigningKeyCell          uint32 = 2433568317
+	WitnessTpsExpectedCell         uint32 = 2661903099
+	WitnessUrlCell                 uint32 = 261756480
+	WitnessVoteCountCell           uint32 = 149922791
 )
 
 ////////////// SECTION Wrap Define ///////////////
@@ -319,32 +313,14 @@ func (s *SoWitnessWrap) getMemKeyPrefix(fName string) uint32 {
 	if fName == "CreatedTime" {
 		return WitnessCreatedTimeCell
 	}
-	if fName == "LastAslot" {
-		return WitnessLastAslotCell
-	}
-	if fName == "LastConfirmedBlockNum" {
-		return WitnessLastConfirmedBlockNumCell
-	}
-	if fName == "LastWork" {
-		return WitnessLastWorkCell
-	}
 	if fName == "Owner" {
 		return WitnessOwnerCell
-	}
-	if fName == "PowWorker" {
-		return WitnessPowWorkerCell
 	}
 	if fName == "ProposedStaminaFree" {
 		return WitnessProposedStaminaFreeCell
 	}
-	if fName == "RunningVersion" {
-		return WitnessRunningVersionCell
-	}
 	if fName == "SigningKey" {
 		return WitnessSigningKeyCell
-	}
-	if fName == "TotalMissed" {
-		return WitnessTotalMissedCell
 	}
 	if fName == "TpsExpected" {
 		return WitnessTpsExpectedCell
@@ -402,39 +378,11 @@ func (s *SoWitnessWrap) saveAllMemKeys(tInfo *SoWitness, br bool) error {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "CreatedTime", err)
 		}
 	}
-	if err = s.saveMemKeyLastAslot(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "LastAslot", err)
-		}
-	}
-	if err = s.saveMemKeyLastConfirmedBlockNum(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "LastConfirmedBlockNum", err)
-		}
-	}
-	if err = s.saveMemKeyLastWork(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "LastWork", err)
-		}
-	}
 	if err = s.saveMemKeyOwner(tInfo); err != nil {
 		if br {
 			return err
 		} else {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Owner", err)
-		}
-	}
-	if err = s.saveMemKeyPowWorker(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "PowWorker", err)
 		}
 	}
 	if err = s.saveMemKeyProposedStaminaFree(tInfo); err != nil {
@@ -444,25 +392,11 @@ func (s *SoWitnessWrap) saveAllMemKeys(tInfo *SoWitness, br bool) error {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "ProposedStaminaFree", err)
 		}
 	}
-	if err = s.saveMemKeyRunningVersion(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "RunningVersion", err)
-		}
-	}
 	if err = s.saveMemKeySigningKey(tInfo); err != nil {
 		if br {
 			return err
 		} else {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "SigningKey", err)
-		}
-	}
-	if err = s.saveMemKeyTotalMissed(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "TotalMissed", err)
 		}
 	}
 	if err = s.saveMemKeyTpsExpected(tInfo); err != nil {
@@ -698,255 +632,6 @@ func (s *SoWitnessWrap) MdCreatedTime(p *prototype.TimePointSec) bool {
 	return true
 }
 
-func (s *SoWitnessWrap) saveMemKeyLastAslot(tInfo *SoWitness) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemWitnessByLastAslot{}
-	val.LastAslot = tInfo.LastAslot
-	key, err := s.encodeMemKey("LastAslot")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
-
-func (s *SoWitnessWrap) GetLastAslot() uint32 {
-	res := true
-	msg := &SoMemWitnessByLastAslot{}
-	if s.dba == nil {
-		res = false
-	} else {
-		key, err := s.encodeMemKey("LastAslot")
-		if err != nil {
-			res = false
-		} else {
-			buf, err := s.dba.Get(key)
-			if err != nil {
-				res = false
-			}
-			err = proto.Unmarshal(buf, msg)
-			if err != nil {
-				res = false
-			} else {
-				return msg.LastAslot
-			}
-		}
-	}
-	if !res {
-		var tmpValue uint32
-		return tmpValue
-	}
-	return msg.LastAslot
-}
-
-func (s *SoWitnessWrap) MdLastAslot(p uint32) bool {
-	if s.dba == nil {
-		return false
-	}
-	key, err := s.encodeMemKey("LastAslot")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemWitnessByLastAslot{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoWitness{}
-	sa.Owner = s.mainKey
-
-	sa.LastAslot = ori.LastAslot
-
-	ori.LastAslot = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.LastAslot = p
-
-	return true
-}
-
-func (s *SoWitnessWrap) saveMemKeyLastConfirmedBlockNum(tInfo *SoWitness) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemWitnessByLastConfirmedBlockNum{}
-	val.LastConfirmedBlockNum = tInfo.LastConfirmedBlockNum
-	key, err := s.encodeMemKey("LastConfirmedBlockNum")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
-
-func (s *SoWitnessWrap) GetLastConfirmedBlockNum() uint32 {
-	res := true
-	msg := &SoMemWitnessByLastConfirmedBlockNum{}
-	if s.dba == nil {
-		res = false
-	} else {
-		key, err := s.encodeMemKey("LastConfirmedBlockNum")
-		if err != nil {
-			res = false
-		} else {
-			buf, err := s.dba.Get(key)
-			if err != nil {
-				res = false
-			}
-			err = proto.Unmarshal(buf, msg)
-			if err != nil {
-				res = false
-			} else {
-				return msg.LastConfirmedBlockNum
-			}
-		}
-	}
-	if !res {
-		var tmpValue uint32
-		return tmpValue
-	}
-	return msg.LastConfirmedBlockNum
-}
-
-func (s *SoWitnessWrap) MdLastConfirmedBlockNum(p uint32) bool {
-	if s.dba == nil {
-		return false
-	}
-	key, err := s.encodeMemKey("LastConfirmedBlockNum")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemWitnessByLastConfirmedBlockNum{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoWitness{}
-	sa.Owner = s.mainKey
-
-	sa.LastConfirmedBlockNum = ori.LastConfirmedBlockNum
-
-	ori.LastConfirmedBlockNum = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.LastConfirmedBlockNum = p
-
-	return true
-}
-
-func (s *SoWitnessWrap) saveMemKeyLastWork(tInfo *SoWitness) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemWitnessByLastWork{}
-	val.LastWork = tInfo.LastWork
-	key, err := s.encodeMemKey("LastWork")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
-
-func (s *SoWitnessWrap) GetLastWork() *prototype.Sha256 {
-	res := true
-	msg := &SoMemWitnessByLastWork{}
-	if s.dba == nil {
-		res = false
-	} else {
-		key, err := s.encodeMemKey("LastWork")
-		if err != nil {
-			res = false
-		} else {
-			buf, err := s.dba.Get(key)
-			if err != nil {
-				res = false
-			}
-			err = proto.Unmarshal(buf, msg)
-			if err != nil {
-				res = false
-			} else {
-				return msg.LastWork
-			}
-		}
-	}
-	if !res {
-		return nil
-
-	}
-	return msg.LastWork
-}
-
-func (s *SoWitnessWrap) MdLastWork(p *prototype.Sha256) bool {
-	if s.dba == nil {
-		return false
-	}
-	key, err := s.encodeMemKey("LastWork")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemWitnessByLastWork{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoWitness{}
-	sa.Owner = s.mainKey
-
-	sa.LastWork = ori.LastWork
-
-	ori.LastWork = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.LastWork = p
-
-	return true
-}
-
 func (s *SoWitnessWrap) saveMemKeyOwner(tInfo *SoWitness) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
@@ -995,89 +680,6 @@ func (s *SoWitnessWrap) GetOwner() *prototype.AccountName {
 
 	}
 	return msg.Owner
-}
-
-func (s *SoWitnessWrap) saveMemKeyPowWorker(tInfo *SoWitness) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemWitnessByPowWorker{}
-	val.PowWorker = tInfo.PowWorker
-	key, err := s.encodeMemKey("PowWorker")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
-
-func (s *SoWitnessWrap) GetPowWorker() uint32 {
-	res := true
-	msg := &SoMemWitnessByPowWorker{}
-	if s.dba == nil {
-		res = false
-	} else {
-		key, err := s.encodeMemKey("PowWorker")
-		if err != nil {
-			res = false
-		} else {
-			buf, err := s.dba.Get(key)
-			if err != nil {
-				res = false
-			}
-			err = proto.Unmarshal(buf, msg)
-			if err != nil {
-				res = false
-			} else {
-				return msg.PowWorker
-			}
-		}
-	}
-	if !res {
-		var tmpValue uint32
-		return tmpValue
-	}
-	return msg.PowWorker
-}
-
-func (s *SoWitnessWrap) MdPowWorker(p uint32) bool {
-	if s.dba == nil {
-		return false
-	}
-	key, err := s.encodeMemKey("PowWorker")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemWitnessByPowWorker{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoWitness{}
-	sa.Owner = s.mainKey
-
-	sa.PowWorker = ori.PowWorker
-
-	ori.PowWorker = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.PowWorker = p
-
-	return true
 }
 
 func (s *SoWitnessWrap) saveMemKeyProposedStaminaFree(tInfo *SoWitness) error {
@@ -1163,89 +765,6 @@ func (s *SoWitnessWrap) MdProposedStaminaFree(p uint64) bool {
 	return true
 }
 
-func (s *SoWitnessWrap) saveMemKeyRunningVersion(tInfo *SoWitness) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemWitnessByRunningVersion{}
-	val.RunningVersion = tInfo.RunningVersion
-	key, err := s.encodeMemKey("RunningVersion")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
-
-func (s *SoWitnessWrap) GetRunningVersion() uint32 {
-	res := true
-	msg := &SoMemWitnessByRunningVersion{}
-	if s.dba == nil {
-		res = false
-	} else {
-		key, err := s.encodeMemKey("RunningVersion")
-		if err != nil {
-			res = false
-		} else {
-			buf, err := s.dba.Get(key)
-			if err != nil {
-				res = false
-			}
-			err = proto.Unmarshal(buf, msg)
-			if err != nil {
-				res = false
-			} else {
-				return msg.RunningVersion
-			}
-		}
-	}
-	if !res {
-		var tmpValue uint32
-		return tmpValue
-	}
-	return msg.RunningVersion
-}
-
-func (s *SoWitnessWrap) MdRunningVersion(p uint32) bool {
-	if s.dba == nil {
-		return false
-	}
-	key, err := s.encodeMemKey("RunningVersion")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemWitnessByRunningVersion{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoWitness{}
-	sa.Owner = s.mainKey
-
-	sa.RunningVersion = ori.RunningVersion
-
-	ori.RunningVersion = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.RunningVersion = p
-
-	return true
-}
-
 func (s *SoWitnessWrap) saveMemKeySigningKey(tInfo *SoWitness) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
@@ -1325,89 +844,6 @@ func (s *SoWitnessWrap) MdSigningKey(p *prototype.PublicKeyType) bool {
 		return false
 	}
 	sa.SigningKey = p
-
-	return true
-}
-
-func (s *SoWitnessWrap) saveMemKeyTotalMissed(tInfo *SoWitness) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemWitnessByTotalMissed{}
-	val.TotalMissed = tInfo.TotalMissed
-	key, err := s.encodeMemKey("TotalMissed")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
-
-func (s *SoWitnessWrap) GetTotalMissed() uint32 {
-	res := true
-	msg := &SoMemWitnessByTotalMissed{}
-	if s.dba == nil {
-		res = false
-	} else {
-		key, err := s.encodeMemKey("TotalMissed")
-		if err != nil {
-			res = false
-		} else {
-			buf, err := s.dba.Get(key)
-			if err != nil {
-				res = false
-			}
-			err = proto.Unmarshal(buf, msg)
-			if err != nil {
-				res = false
-			} else {
-				return msg.TotalMissed
-			}
-		}
-	}
-	if !res {
-		var tmpValue uint32
-		return tmpValue
-	}
-	return msg.TotalMissed
-}
-
-func (s *SoWitnessWrap) MdTotalMissed(p uint32) bool {
-	if s.dba == nil {
-		return false
-	}
-	key, err := s.encodeMemKey("TotalMissed")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemWitnessByTotalMissed{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoWitness{}
-	sa.Owner = s.mainKey
-
-	sa.TotalMissed = ori.TotalMissed
-
-	ori.TotalMissed = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.TotalMissed = p
 
 	return true
 }

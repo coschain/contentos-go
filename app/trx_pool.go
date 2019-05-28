@@ -633,7 +633,6 @@ func (c *TrxPool) initGenesis() {
 		tInfo.Owner = name
 		tInfo.CreatedTime = &prototype.TimePointSec{UtcSeconds: 0}
 		tInfo.SigningKey = pubKey
-		tInfo.LastWork = &prototype.Sha256{Hash: []byte{0}}
 		tInfo.Active = true
 		tInfo.ProposedStaminaFree = constants.DefaultStaminaFree
 		tInfo.TpsExpected = constants.DefaultTPSExpected
