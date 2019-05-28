@@ -54,7 +54,7 @@ func (p *TrxContext) GetVmRemainCpuStamina(name string) uint64 {
 
 func (p *TrxContext) CheckNet(db iservices.IDatabaseRW, sizeInBytes uint64) {
 	keyMaps := p.Wrapper.SigTrx.GetOpCreatorsMap()
-	netUse := sizeInBytes * uint64(float64(constants.NetConsumePointNum)/float64(constants.NetConsumePointDen))
+	netUse := sizeInBytes * constants.NetConsumePointNum
 	dgpWraper := table.NewSoGlobalWrap(db, &constants.GlobalId)
 	for name := range keyMaps {
 		p.netMap[name] = &resourceUnit{}
@@ -82,11 +82,14 @@ func (p *TrxContext) CheckNet(db iservices.IDatabaseRW, sizeInBytes uint64) {
 	}
 }
 
-func (p *TrxContext) deductStamina(db iservices.IDatabaseRW,m map[string]*resourceUnit, num, den uint64) {
-	rate := float64(num) / float64(den)
-
+func (p *TrxContext) deductStamina(db iservices.IDatabaseRW,m map[string]*resourceUnit, isNet bool) {
 	for caller, spent := range m {
-		staminaUse := uint64(float64(spent.raw) * rate)
+		var staminaUse uint64 = 0
+		if isNet {
+			staminaUse = spent.raw * constants.NetConsumePointNum
+		} else {
+			staminaUse = spent.raw / constants.CpuConsumePointDen
+		}
 		dgpWraper := table.NewSoGlobalWrap(db, &constants.GlobalId)
 		now := dgpWraper.GetProps().HeadBlockNumber
 
@@ -137,11 +140,11 @@ func (p *TrxContext) calculateUserMaxStamina(db iservices.IDatabaseRW,name strin
 }
 
 func (p *TrxContext) DeductAllNet(db iservices.IDatabaseRW) {
-	p.deductStamina(db, p.netMap, constants.NetConsumePointNum, constants.NetConsumePointDen)
+	p.deductStamina(db, p.netMap, true)
 }
 
 func (p *TrxContext) DeductAllCpu(db iservices.IDatabaseRW) {
-	p.deductStamina(db, p.gasMap, constants.CpuConsumePointNum, constants.CpuConsumePointDen)
+	p.deductStamina(db, p.gasMap, false)
 }
 
 func (p *TrxContext) Finalize() {
