@@ -228,15 +228,9 @@ func (as *APIService) GetWitnessList(ctx context.Context, req *grpcpb.GetWitness
 	limit = checkLimit(req.GetLimit())
 	witOrderWrap.ForEachByOrder(req.GetStart(), nil, nil, nil,
 		func(mVal *prototype.AccountName, sVal *prototype.AccountName, idx uint32) bool {
-			witWrap := table.NewSoWitnessWrap(as.db, mVal)
-			if witWrap != nil && witWrap.CheckExist() {
-				witList = append(witList, &grpcpb.WitnessResponse{
-					Owner:                 witWrap.GetOwner(),
-					CreatedTime:           witWrap.GetCreatedTime(),
-					Url:                   witWrap.GetUrl(),
-					VoteCount:             witWrap.GetVoteCount(),
-					SigningKey:            witWrap.GetSigningKey(),
-				})
+			witness := as.getWitnessResponseByAccountName(mVal)
+			if witness != nil {
+				witList = append(witList,witness)
 			}
 			if idx < limit {
 				return true
@@ -512,16 +506,19 @@ func (as *APIService) GetAccountListByCreTime (ctx context.Context, req *grpcpb.
 	if limit == 0 {
 		limit = uint32(defaultPageSizeLimit)
 	}
-	err = sortWrap.ForEachByRevOrder(req.Start, req.End, lastAcctName,lastAcctTime, func(mVal *prototype.AccountName, sVal *prototype.TimePointSec, idx uint32) bool {
-		acct := as.getAccountResponseByName(mVal,false)
-		if acct != nil {
-			list = append(list, acct)
-		}
-		if uint32(len(list)) >= limit {
-			return false
-		}
-		return true
-	})
+	if sortWrap != nil {
+		err = sortWrap.ForEachByRevOrder(req.Start, req.End, lastAcctName,lastAcctTime, func(mVal *prototype.AccountName, sVal *prototype.TimePointSec, idx uint32) bool {
+			acct := as.getAccountResponseByName(mVal,false)
+			if acct != nil {
+				list = append(list, acct)
+			}
+			if uint32(len(list)) >= limit {
+				return false
+			}
+			return true
+		})
+	}
+
 	res.List = list
 	
 	return res,err
@@ -1210,26 +1207,87 @@ func (as *APIService) GetContractListByTime(ctx context.Context, req *grpcpb.Get
 		lastSubKey = lastCon.CreateTime
 	}
 	sortWrap := table.NewContractCreatedTimeWrap(as.db)
-	err = sortWrap.ForEachByRevOrder(req.Start, req.End, lastMainKey, lastSubKey, func(mVal *prototype.ContractId, sVal *prototype.TimePointSec, idx uint32) bool {
-		if mVal != nil {
-			scid := table.NewSoContractWrap(as.db, mVal)
-			if scid.CheckExist() {
-				info := &grpcpb.ContractInfo{
-					Owner: mVal.Owner,
-					Name:  &prototype.AccountName{Value: mVal.Cname},
-					CreateTime: sVal,
-					Balance: scid.GetBalance(),
-					ApplyCount: scid.GetApplyCount(),
+	if sortWrap != nil {
+		err = sortWrap.ForEachByRevOrder(req.Start, req.End, lastMainKey, lastSubKey, func(mVal *prototype.ContractId, sVal *prototype.TimePointSec, idx uint32) bool {
+			if mVal != nil {
+				scid := table.NewSoContractWrap(as.db, mVal)
+				if scid.CheckExist() {
+					info := &grpcpb.ContractInfo{
+						Owner: mVal.Owner,
+						Name:  &prototype.AccountName{Value: mVal.Cname},
+						CreateTime: sVal,
+						Balance: scid.GetBalance(),
+						ApplyCount: scid.GetApplyCount(),
+					}
+					list = append(list, info)
 				}
-				list = append(list, info)
 			}
-		}
 
-		if uint32(len(list)) >= limit {
-			return false
-		}
-		return true
-	})
+			if uint32(len(list)) >= limit {
+				return false
+			}
+			return true
+		})
+
+	}
 	res.ContractList = list
     return  res,err
+}
+
+func (as *APIService) GetWitnessListByVoteCount(ctx context.Context, req *grpcpb.GetWitnessListByVoteCountRequest) (*grpcpb.GetWitnessListResponse,error){
+	as.db.RLock()
+	defer as.db.RUnlock()
+	var (
+		err error
+		witList []*grpcpb.WitnessResponse
+		limit   uint32
+		lastMainKey *prototype.AccountName
+		lastSubVal  *uint64
+	)
+	res := &grpcpb.GetWitnessListResponse{}
+	limit = checkLimit(req.Limit)
+	srtWrap := table.NewWitnessVoteCountWrap(as.db)
+	if srtWrap != nil {
+		lastWit := req.LastWitness
+		if lastWit != nil {
+			lastMainKey = &prototype.AccountName{Value:lastWit.Owner.Value}
+			lastSubVal = &lastWit.VoteCount
+
+		}
+		err = srtWrap.ForEachByRevOrder(&req.Start, &req.End, lastMainKey,  lastSubVal,
+			func(mVal *prototype.AccountName, sVal *uint64, idx uint32) bool {
+				if mVal != nil {
+					witness := as.getWitnessResponseByAccountName(mVal)
+					if witness != nil {
+						witList = append(witList, witness)
+					}
+				}
+				if uint32(len(witList)) >= limit {
+					return false
+				}
+				return true
+			})
+	}
+    res.WitnessList = witList
+	return res,err
+}
+
+func (as *APIService) getWitnessResponseByAccountName(acct *prototype.AccountName) *grpcpb.WitnessResponse {
+	if acct != nil {
+		witWrap := table.NewSoWitnessWrap(as.db, acct)
+		if witWrap != nil && witWrap.CheckExist() {
+			witness := &grpcpb.WitnessResponse{
+				Owner:                 witWrap.GetOwner(),
+				CreatedTime:           witWrap.GetCreatedTime(),
+				Url:                   witWrap.GetUrl(),
+				VoteCount:             witWrap.GetVoteCount(),
+				SigningKey:            witWrap.GetSigningKey(),
+				ProposedStaminaFree:   witWrap.GetProposedStaminaFree(),
+				Active:                witWrap.GetActive(),
+				TpsExpected:           witWrap.GetTpsExpected(),
+			}
+			return witness
+		}
+	}
+	return nil
 }

@@ -98,6 +98,9 @@ service ApiService {
 
     rpc GetContractListByTime(GetContractListByTimeRequest) returns (GetContractListResponse) {
     }
+
+    rpc GetWitnessListByVoteCount(GetWitnessListByVoteCountRequest) returns (GetWitnessListResponse) {
+    }
 }
 
 
@@ -535,4 +538,11 @@ message GetContractListByTimeRequest {
 
 message GetContractListResponse {
     repeated ContractInfo   contract_list = 1;
+}
+
+message GetWitnessListByVoteCountRequest {
+    uint64   start   = 1 [jstype = JS_STRING];
+    uint64   end     = 2 [jstype = JS_STRING];
+    WitnessResponse  last_witness = 3;
+    uint32           limit     = 4;
 }
