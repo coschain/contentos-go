@@ -14,6 +14,7 @@ import (
 	"github.com/coschain/contentos-go/common/eventloop"
 	"github.com/coschain/contentos-go/utils"
 	"math"
+	"math/big"
 	"sort"
 
 	"github.com/coschain/contentos-go/iservices"
@@ -1078,8 +1079,16 @@ func (c *TrxPool) calculateUserMaxStamina(db iservices.IDatabaseRW,name string) 
 	if allStakeVest == 0 {
 		return 0
 	}
-	userMax := float64( stakeVest)/float64(allStakeVest) * float64(oneDayStamina)
-	return uint64(userMax)
+
+	stakeBig := big.NewInt(int64(stakeVest))
+	allStakeVestBig := big.NewInt(int64(allStakeVest))
+	oneDayStaminaBig := big.NewInt(int64(oneDayStamina))
+	precision := big.NewInt(constants.LimitPrecision)
+
+	stakeBig.Mul(stakeBig,precision)
+	stakeBig.Mul(stakeBig,oneDayStaminaBig)
+	stakeBig.Div(stakeBig,allStakeVestBig)
+	return stakeBig.Div(stakeBig,precision).Uint64()
 }
 
 func (c *TrxPool) CalculateUserMaxStamina(db iservices.IDatabaseRW,name string) uint64 {
@@ -1087,7 +1096,7 @@ func (c *TrxPool) CalculateUserMaxStamina(db iservices.IDatabaseRW,name string) 
 }
 
 func (c *TrxPool) CheckNetForRPC(name string, db iservices.IDatabaseRW, sizeInBytes uint64) (bool,uint64,uint64) {
-	netUse := sizeInBytes * uint64(float64(constants.NetConsumePointNum)/float64(constants.NetConsumePointDen))
+	netUse := sizeInBytes * constants.NetConsumePointNum
 	accountWrap := table.NewSoAccountWrap(db, &prototype.AccountName{Value:name})
 	if !accountWrap.CheckExist() {
 		return false,0,0
