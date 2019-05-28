@@ -26,6 +26,7 @@ var AccountCmd = func() *cobra.Command {
 	updateAccountCmd := &cobra.Command{
 		Use:   "update",
 		Short: "update account public key",
+		Example: "account update [name] [newpubkey] [newprikey]",
 		Args:  cobra.ExactArgs(3),
 		Run:   updateAccount,
 	}
