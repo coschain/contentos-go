@@ -29,6 +29,7 @@ message operation{
         un_stake_operation op18 = 18;
         bp_update_operation op19 = 19;
         transfer_to_stake_vesting_operation op20 = 20;
+        account_update_operation op21 = 21;
     }
 }
 

@@ -31,6 +31,12 @@ type AccountCreateEvaluator struct {
 	op  *prototype.AccountCreateOperation
 }
 
+type AccountUpdateEvaluator struct {
+	BaseEvaluator
+	BaseDelegate
+	op  *prototype.AccountUpdateOperation
+}
+
 type TransferEvaluator struct {
 	BaseEvaluator
 	BaseDelegate
@@ -204,6 +210,9 @@ func init() {
 	RegisterEvaluator((*prototype.TransferToStakeVestingOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
 		return &TransferToStakeVestingEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.TransferToStakeVestingOperation)}
 	})
+	RegisterEvaluator((*prototype.AccountUpdateOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
+		return &AccountUpdateEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.AccountUpdateOperation)}
+	})
 }
 
 func (ev *AccountCreateEvaluator) Apply() {
@@ -252,6 +261,16 @@ func (ev *AccountCreateEvaluator) Apply() {
 	ev.GlobalProp().ModifyProps(func(props *prototype.DynamicProperties) {
 		props.TotalUserCnt++
 	})
+}
+
+func (ev *AccountUpdateEvaluator) Apply() {
+	op := ev.op
+	ev.VMInjector().RecordGasFee(op.Owner.Value, constants.CommonOpGas)
+
+	updaterWrap := table.NewSoAccountWrap(ev.Database(), op.Owner)
+	opAssert(updaterWrap.CheckExist(), "update account not exist ")
+
+	opAssert(updaterWrap.MdOwner(op.Pubkey), "failed to update account public key")
 }
 
 func (ev *TransferEvaluator) Apply() {

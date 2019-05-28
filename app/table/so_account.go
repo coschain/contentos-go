@@ -2113,7 +2113,7 @@ func (s *SoAccountWrap) MdOwner(p *prototype.PublicKeyType) bool {
 	//judge the unique value if is exist
 	uniWrap := UniAccountOwnerWrap{}
 	uniWrap.Dba = s.dba
-	res := uniWrap.UniQueryOwner(sa.Owner)
+	res := uniWrap.UniQueryOwner(p)
 
 	if res != nil {
 		//the unique value to be modified is already exist

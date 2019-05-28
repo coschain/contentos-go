@@ -508,7 +508,7 @@ func (s *So{{$.ClsName}}Wrap) Md{{$k1}}(p {{formatRTypeStr $v1.PType}}) bool {
    	res := uniWrap.UniQuery{{$k1}}(&p)
    {{- end -}}
    {{if not $baseType -}} 
-   	res := uniWrap.UniQuery{{$k1}}(sa.{{UperFirstChar $k1}})
+   	res := uniWrap.UniQuery{{$k1}}(p)
    {{end }}
 	if res != nil {
 		//the unique value to be modified is already exist

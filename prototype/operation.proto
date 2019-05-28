@@ -14,6 +14,11 @@ message account_create_operation{
     string json_metadata = 8;
 }
 
+message account_update_operation{
+    account_name owner = 1;
+    public_key_type pubkey = 2;
+}
+
 message transfer_operation{
     account_name from = 1;
     account_name to = 2;

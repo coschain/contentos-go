@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/coschain/cobra"
+	"github.com/coschain/contentos-go/cmd/wallet-cli/commands/utils"
+	"github.com/coschain/contentos-go/cmd/wallet-cli/wallet"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/rpc/pb"
 )
@@ -21,7 +23,15 @@ var AccountCmd = func() *cobra.Command {
 		Run:   getAccount,
 	}
 
+	updateAccountCmd := &cobra.Command{
+		Use:   "update",
+		Short: "update account public key",
+		Args:  cobra.ExactArgs(3),
+		Run:   updateAccount,
+	}
+
 	cmd.AddCommand(getAccountCmd)
+	cmd.AddCommand(updateAccountCmd)
 
 	return cmd
 }
@@ -39,6 +49,59 @@ func getAccount(cmd *cobra.Command, args []string) {
 	} else {
 		buf, _ := json.MarshalIndent(resp, "", "\t")
 		fmt.Println(fmt.Sprintf("GetAccountByName detail: %s", buf))
+	}
+}
+
+func updateAccount(cmd *cobra.Command, args []string) {
+	c := cmd.Context["rpcclient"]
+	client := c.(grpcpb.ApiServiceClient)
+	w := cmd.Context["wallet"]
+	mywallet := w.(wallet.Wallet)
+	r := cmd.Context["preader"]
+	preader := r.(utils.PasswordReader)
+	owner := args[0]
+	newPubKeyStr := args[1]
+	newPriKeyStr := args[2]
+	updateAccount, ok := mywallet.GetUnlockedAccount(owner)
+	if !ok {
+		fmt.Println(fmt.Sprintf("account: %s should be loaded or created first", owner))
+		return
+	}
+
+	passphrase, err := utils.GetPassphrase(preader)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	pubKey, err := prototype.PublicKeyFromWIF(newPubKeyStr)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	accountUpdate_op := &prototype.AccountUpdateOperation{
+		Owner:         &prototype.AccountName{Value: owner},
+		Pubkey:        pubKey,
+	}
+
+	signTx, err := utils.GenerateSignedTxAndValidate2(client, []interface{}{accountUpdate_op}, updateAccount)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
+	resp, err := client.BroadcastTrx(context.Background(), req)
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		if resp.Invoice.Status == 200 {
+			err = mywallet.Create(owner, passphrase, newPubKeyStr, newPriKeyStr)
+			if err != nil {
+				fmt.Println(err)
+			}
+		}
+		fmt.Println(fmt.Sprintf("Result: %v", resp))
 	}
 }
 
