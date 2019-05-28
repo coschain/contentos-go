@@ -113,6 +113,10 @@ func (f *AuthFetcher) BlockApplied(b *prototype.SignedBlock) {
 					case *prototype.Operation_Op1:
 						createAccOp := op.GetOp1()
 						f.newAccount(blockNum, createAccOp.GetNewAccountName().GetValue(), createAccOp.GetOwner())
+					// account update
+					case *prototype.Operation_Op21:
+						accUpdateOp := op.GetOp21()
+						f.newAccount(blockNum, accUpdateOp.GetOwner().GetValue(), accUpdateOp.GetPubkey())
 					}
 				}
 			}
