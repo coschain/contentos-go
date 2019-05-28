@@ -11,6 +11,6 @@ cd ${CUR_DIR}/rpc/pb
 
 # RPC proto generate
 protoc -I/usr/local/include -I. -I$GOPATH/src -I$GOPATH/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis -I$GOPATH/src/github.com/coschain/contentos-go --go_out=plugins=grpc:. grpc.proto
-protoc -I/usr/local/include -I. -I$GOPATH/src -I$GOPATH/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis -I$GOPATH/src/github.com/coschain/contentos-go --grpc-gateway_out=logtostderr=true:. grpc.proto
+# protoc -I/usr/local/include -I. -I$GOPATH/src -I$GOPATH/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis -I$GOPATH/src/github.com/coschain/contentos-go --grpc-gateway_out=logtostderr=true:. grpc.proto
 
 mockgen -source=grpc.pb.go > ../mock_grpcpb/mock_grpcpb.go
