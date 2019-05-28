@@ -1040,7 +1040,7 @@ func (ev *StakeEvaluator) Apply() {
 	ev.VMInjector().RecordGasFee(op.Account.Value, constants.CommonOpGas)
 	accountWrap := table.NewSoAccountWrap(ev.Database(), op.Account)
 
-	value := &prototype.Coin{Value: op.Amount}
+	value := op.Amount
 
 	fBalance := accountWrap.GetBalance()
 	opAssertE(fBalance.Sub(value), "Insufficient balance to transfer.")
@@ -1067,7 +1067,7 @@ func (ev *UnStakeEvaluator) Apply() {
 	stakeTime := accountWrap.GetLastStakeTime()
 	opAssert(headBlockTime.UtcSeconds-stakeTime.UtcSeconds > constants.StakeFreezeTime, "can not unstake when freeze")
 
-	value := &prototype.Coin{Value: op.Amount}
+	value := op.Amount
 
 	vest := accountWrap.GetStakeVesting()
 	opAssertE(vest.Sub(value.ToVest()), "vesting over flow.")

@@ -42,7 +42,7 @@ func unstake(cmd *cobra.Command, args []string) {
 
 	unStakeOp := &prototype.UnStakeOperation{
 		Account:   &prototype.AccountName{Value: user},
-		Amount:    uint64(amount),
+		Amount:    prototype.NewCoin(uint64(amount)),
 	}
 
 	signTx, err := utils.GenerateSignedTxAndValidate2(client, []interface{}{unStakeOp}, stakeAccount)

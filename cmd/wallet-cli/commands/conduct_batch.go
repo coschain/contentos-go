@@ -264,7 +264,7 @@ func conductBatch(cmd *cobra.Command, args []string) {
 
 			stakeOp := &prototype.StakeOperation{
 				Account:   &prototype.AccountName{Value: stakerName},
-				Amount:    uint64(amount),
+				Amount:    prototype.NewCoin(uint64(amount)),
 			}
 
 			signTx, err = utils.GenerateSignedTxAndValidate2(client, []interface{}{stakeOp}, stakeAccount)

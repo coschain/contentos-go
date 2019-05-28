@@ -141,12 +141,12 @@ message convert_vesting_operation {
 
 message stake_operation{
     account_name account = 1;
-    uint64 amount = 2;
+    coin amount = 2;
 }
 
 message un_stake_operation{
     account_name account = 1;
-    uint64 amount = 2;
+    coin amount = 2;
 }
 
 message transfer_to_stake_vesting_operation{
