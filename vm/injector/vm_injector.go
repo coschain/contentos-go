@@ -4,7 +4,7 @@ type Injector interface {
 	Error(code uint32, msg string)
 	Log(msg string)
 	RequireAuth(name string) error
-	RecordGasFee(caller string, spent uint64)
+	RecordStaminaFee(caller string, spent uint64)
 	GetVmRemainCpuStamina(name string) uint64
 	// only panic, no error return
 	TransferFromContractToUser(contract, owner, to string, amount uint64)

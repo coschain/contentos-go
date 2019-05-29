@@ -217,7 +217,7 @@ func init() {
 
 func (ev *AccountCreateEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordGasFee(op.Creator.Value, constants.CommonOpGas)
+	ev.VMInjector().RecordStaminaFee(op.Creator.Value, constants.CommonOpGas)
 	creatorWrap := table.NewSoAccountWrap(ev.Database(), op.Creator)
 
 	opAssert(creatorWrap.CheckExist(), "creator not exist ")
@@ -265,7 +265,7 @@ func (ev *AccountCreateEvaluator) Apply() {
 
 func (ev *AccountUpdateEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordGasFee(op.Owner.Value, constants.CommonOpGas)
+	ev.VMInjector().RecordStaminaFee(op.Owner.Value, constants.CommonOpGas)
 
 	updaterWrap := table.NewSoAccountWrap(ev.Database(), op.Owner)
 	opAssert(updaterWrap.CheckExist(), "update account not exist ")
@@ -275,7 +275,7 @@ func (ev *AccountUpdateEvaluator) Apply() {
 
 func (ev *TransferEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordGasFee(op.From.Value, constants.CommonOpGas)
+	ev.VMInjector().RecordStaminaFee(op.From.Value, constants.CommonOpGas)
 
 	// @ active_challenged
 	fromWrap := table.NewSoAccountWrap(ev.Database(), op.From)
@@ -300,7 +300,7 @@ func (ev *TransferEvaluator) Apply() {
 
 func (ev *PostEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordGasFee(op.Owner.Value, constants.CommonOpGas)
+	ev.VMInjector().RecordStaminaFee(op.Owner.Value, constants.CommonOpGas)
 
 	idWrap := table.NewSoPostWrap(ev.Database(), &op.Uuid)
 	opAssert(!idWrap.CheckExist(), "post uuid exist")
@@ -347,7 +347,7 @@ func (ev *PostEvaluator) Apply() {
 
 func (ev *ReplyEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordGasFee(op.Owner.Value, constants.CommonOpGas)
+	ev.VMInjector().RecordStaminaFee(op.Owner.Value, constants.CommonOpGas)
 
 	cidWrap := table.NewSoPostWrap(ev.Database(), &op.Uuid)
 	pidWrap := table.NewSoPostWrap(ev.Database(), &op.ParentUuid)
@@ -402,7 +402,7 @@ func (ev *ReplyEvaluator) Apply() {
 // no downvote has been supplied by command, so I ignore it
 func (ev *VoteEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordGasFee(op.Voter.Value, constants.CommonOpGas)
+	ev.VMInjector().RecordStaminaFee(op.Voter.Value, constants.CommonOpGas)
 
 	voterWrap := table.NewSoAccountWrap(ev.Database(), op.Voter)
 	elapsedSeconds := ev.GlobalProp().HeadBlockTime().UtcSeconds - voterWrap.GetLastVoteTime().UtcSeconds
@@ -485,7 +485,7 @@ func (ev *BpRegisterEvaluator) BpInWhiteList(bpName string) bool {
 
 func (ev *BpRegisterEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordGasFee(op.Owner.Value, constants.CommonOpGas)
+	ev.VMInjector().RecordStaminaFee(op.Owner.Value, constants.CommonOpGas)
 
 	//opAssert(ev.BpInWhiteList(op.Owner.Value), "bp name not in white list")
 
@@ -529,7 +529,7 @@ func (ev *BpUnregisterEvaluator) Apply() {
 	//panic("not yet implement")
 
 	op := ev.op
-	ev.VMInjector().RecordGasFee(op.Owner.Value, constants.CommonOpGas)
+	ev.VMInjector().RecordStaminaFee(op.Owner.Value, constants.CommonOpGas)
 
 	witnessWrap := table.NewSoWitnessWrap(ev.Database(), op.Owner)
 
@@ -578,7 +578,7 @@ func payBackVoteCntToVoter(dba iservices.IDatabaseRW, witness *prototype.Account
 
 func (ev *BpVoteEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordGasFee(op.Voter.Value, constants.CommonOpGas)
+	ev.VMInjector().RecordStaminaFee(op.Voter.Value, constants.CommonOpGas)
 
 	voterAccount := table.NewSoAccountWrap(ev.Database(), op.Voter)
 	voteCnt := voterAccount.GetBpVoteCount()
@@ -615,7 +615,7 @@ func (ev *BpVoteEvaluator) Apply() {
 	}
 
 	//op := ev.op
-	//ev.VMInjector().RecordGasFee(op.Voter.Value, constants.CommonOpGas)
+	//ev.VMInjector().RecordStaminaFee(op.Voter.Value, constants.CommonOpGas)
 	//
 	//voterAccount := table.NewSoAccountWrap(ev.Database(), op.Voter)
 	//voteCnt := voterAccount.GetBpVoteCount()
@@ -653,7 +653,7 @@ func (ev *BpVoteEvaluator) Apply() {
 
 func (ev *BpUpdateEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordGasFee(op.Owner.Value, constants.CommonOpGas)
+	ev.VMInjector().RecordStaminaFee(op.Owner.Value, constants.CommonOpGas)
 
 	staminaFree := op.ProposedStaminaFree
 	opAssert(staminaFree >= constants.MinStaminaFree,
@@ -674,7 +674,7 @@ func (ev *BpUpdateEvaluator) Apply() {
 
 func (ev *FollowEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordGasFee(op.Account.Value, constants.CommonOpGas)
+	ev.VMInjector().RecordStaminaFee(op.Account.Value, constants.CommonOpGas)
 
 	acctWrap := table.NewSoAccountWrap(ev.Database(), op.Account)
 	opAssert(acctWrap.CheckExist(), "follow account do not exist ")
@@ -685,7 +685,7 @@ func (ev *FollowEvaluator) Apply() {
 
 func (ev *TransferToVestingEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordGasFee(op.From.Value, constants.CommonOpGas)
+	ev.VMInjector().RecordStaminaFee(op.From.Value, constants.CommonOpGas)
 
 	fidWrap := table.NewSoAccountWrap(ev.Database(), op.From)
 	tidWrap := table.NewSoAccountWrap(ev.Database(), op.To)
@@ -746,7 +746,7 @@ func updateWitnessVoteCount(dba iservices.IDatabaseRW, voter *prototype.AccountN
 
 func (ev *ConvertVestingEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordGasFee(op.From.Value, constants.CommonOpGas)
+	ev.VMInjector().RecordStaminaFee(op.From.Value, constants.CommonOpGas)
 
 	accWrap := table.NewSoAccountWrap(ev.Database(), op.From)
 	opAssert(accWrap.CheckExist(), "account do not exist")
@@ -815,7 +815,7 @@ func mergeTags(existed []int32, new []prototype.ReportOperationTag) []int32 {
 
 func (ev *ReportEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordGasFee(op.Reporter.Value, constants.CommonOpGas)
+	ev.VMInjector().RecordStaminaFee(op.Reporter.Value, constants.CommonOpGas)
 	post := table.NewSoPostWrap(ev.Database(), &op.Reported)
 	opAssert(post.CheckExist(), "the reported post doesn't exist")
 	report := table.NewSoReportListWrap(ev.Database(), &op.Reported)
@@ -868,7 +868,7 @@ func (ev *ContractDeployEvaluator) Apply() {
 		opAssertE(err, "contract abi decompression failed");
 	}
 
-	ev.VMInjector().RecordGasFee(op.Owner.Value, constants.CommonOpGas)
+	ev.VMInjector().RecordStaminaFee(op.Owner.Value, constants.CommonOpGas)
 
 	cid 		:= prototype.ContractId{Owner: op.Owner, Cname: op.Contract}
 	scid 		:= table.NewSoContractWrap(ev.Database(), &cid)
@@ -976,11 +976,11 @@ func (ev *ContractApplyEvaluator) Apply() {
 	ret, err := cosVM.Run()
 	spentGas := cosVM.SpentGas()
 	// need extra query db, is it a good way or should I pass account object as parameter?
-	// deductgasfee and usertranfer could be panic (rarely, I can't image how it happens)
+	// DeductStamina and usertranfer could be panic (rarely, I can't image how it happens)
 	// the panic should catch then return or bubble it ?
 
 
-	vmCtx.Injector.RecordGasFee(op.Caller.Value, spentGas)
+	vmCtx.Injector.RecordStaminaFee(op.Caller.Value, spentGas)
 	if err != nil {
 		vmCtx.Injector.Error(ret, err.Error())
 		opAssertE(err, "execute vm error")
@@ -1039,7 +1039,7 @@ func (ev *InternalContractApplyEvaluator) Apply() {
 	//ev.Database().BeginTransaction()
 	ret, err := cosVM.Run()
 	spentGas := cosVM.SpentGas()
-	vmCtx.Injector.RecordGasFee(op.FromCaller.Value, spentGas)
+	vmCtx.Injector.RecordStaminaFee(op.FromCaller.Value, spentGas)
 
 	if err != nil {
 		vmCtx.Injector.Error(ret, err.Error())
@@ -1056,7 +1056,7 @@ func (ev *InternalContractApplyEvaluator) Apply() {
 
 func (ev *StakeEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordGasFee(op.Account.Value, constants.CommonOpGas)
+	ev.VMInjector().RecordStaminaFee(op.Account.Value, constants.CommonOpGas)
 	accountWrap := table.NewSoAccountWrap(ev.Database(), op.Account)
 
 	value := op.Amount
@@ -1078,7 +1078,7 @@ func (ev *StakeEvaluator) Apply() {
 
 func (ev *UnStakeEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordGasFee(op.Account.Value, constants.CommonOpGas)
+	ev.VMInjector().RecordStaminaFee(op.Account.Value, constants.CommonOpGas)
 
 	accountWrap := table.NewSoAccountWrap(ev.Database(), op.Account)
 
@@ -1102,7 +1102,7 @@ func (ev *UnStakeEvaluator) Apply() {
 
 func (ev *TransferToStakeVestingEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordGasFee(op.From.Value, constants.CommonOpGas)
+	ev.VMInjector().RecordStaminaFee(op.From.Value, constants.CommonOpGas)
 
 	fidWrap := table.NewSoAccountWrap(ev.Database(), op.From)
 	tidWrap := table.NewSoAccountWrap(ev.Database(), op.To)

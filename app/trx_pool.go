@@ -414,7 +414,7 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabasePatch, entry *TrxEn
 			receipt.ErrorInfo = fmt.Sprintf("applyTransaction failed : %v", err)
 			trxObserver.EndTrx(false)
 			if useGas {
-				receipt.Status = prototype.StatusDeductGas
+				receipt.Status = prototype.StatusDeductStamina
 				c.notifyTrxApplyResult(sigTrx, true, receipt)
 			} else {
 				receipt.Status = prototype.StatusError
@@ -494,7 +494,7 @@ func (c *TrxPool) applyBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag
 			for j := 0; j < d; j++ {
 				if entries[i + j].GetTrxResult().Receipt.Status != blk.Transactions[i + j].Receipt.Status {
 					if blk.Transactions[i + j].Receipt.Status == prototype.StatusSuccess &&
-						entries[i + j].GetTrxResult().Receipt.Status == prototype.StatusDeductGas {
+						entries[i + j].GetTrxResult().Receipt.Status == prototype.StatusDeductStamina {
 					} else {
 						c.log.Errorf("InvoiceMismatch: expect_status=%d, status=%d, err=%s. trx #%d of block %d",
 							blk.Transactions[i+j].Receipt.Status,
