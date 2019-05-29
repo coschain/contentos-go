@@ -274,14 +274,16 @@ func (s *So{{$.ClsName}}Wrap) checkSortAndUniFieldValidity(curTable *So{{$.ClsNa
 
             {{range $k2, $v2 := .UniqueFieldMap}}
             {{if ne $v2.PName $.MainKeyName}}
-
               {{$baseType := (DetectBaseType $v2.PType) -}}
-	          {{if not $baseType -}} 
+	          {{if not $baseType -}}
+              {{ $isSrt := checkIsContainField  $v2.PName $.LKeyWithType}} 
+              {{if eq $isSrt false }}
               if fName == "{{$v2.PName}}" && curTable.{{$v2.PName}} == nil{
                  return errors.New("unique field {{$v2.PName}} can't be modified to nil")
               }
               {{end}}
-
+              {{end}}
+             
             {{end}}
             {{end}}
             }
@@ -1066,6 +1068,7 @@ func (s *Uni{{$.ClsName}}{{$k}}Wrap) UniQuery{{$k}}(start *{{formatStr $v.PType}
 			"formatQueryParamStr": formatQueryParamStr,
 			"formatSliceType":     formatSliceType,
 			"getMapCount":         getMapCount,
+		    "checkIsContainField":  checkIsContainField,
 		}
 		t := template.New("go_template")
 		t = t.Funcs(funcMapUper)
@@ -1309,3 +1312,12 @@ func getMapCount(m interface{}) int {
 	return 0
 }
 
+func checkIsContainField(fName string, fMap map[string]string) bool {
+	if fMap != nil && len(fName) > 0 {
+		if _,ok := fMap[fName]; ok {
+			return true
+		}
+	}
+	return false
+
+}
