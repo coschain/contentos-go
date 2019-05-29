@@ -55,7 +55,7 @@ func (logHeap *BlockLogHeap) Pop() interface{} {
 	return item
 }
 
-var StateLogServiceName = "statelogsrv"
+var StateLogServiceName = "statelogservice"
 
 type StateLogService struct {
 	node.Service

@@ -22,9 +22,7 @@ import (
 	"syscall"
 )
 
-var trxSqlFlag bool
-var dailyStatFlag bool
-var stateLogFlag bool
+var pluginList []string
 
 var StartCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
@@ -35,12 +33,7 @@ var StartCmd = func() *cobra.Command {
 		Run:       startNode,
 	}
 	cmd.Flags().StringVarP(&cfgName, "name", "n", "", "node name (default is cosd)")
-	cmd.Flags().BoolVarP(&trxSqlFlag, "trxsqlservice", "", false, "--trxsqlservice=true")
-	cmd.Flags().Lookup("trxsqlservice").NoOptDefVal = "true"
-	cmd.Flags().BoolVarP(&dailyStatFlag, "dailystatservice", "", false, "--dailystatservice=true")
-	cmd.Flags().Lookup("dailystatservice").NoOptDefVal = "true"
-	cmd.Flags().BoolVarP(&stateLogFlag, "statelogservice", "", false, "--statelogservice=true")
-	cmd.Flags().Lookup("statelogservice").NoOptDefVal = "true"
+	cmd.Flags().StringArrayVarP(&pluginList, "plugin", "", []string{}, "--plugin=[trxsqlservice, dailystatservice, statelogservice]")
 	return cmd
 }
 
@@ -145,33 +138,7 @@ func RegisterService(app *node.Node, cfg node.Config) {
 		return ctrl.NewController(ctx, app.Log)
 	})
 
-	_ = app.Register(plugins.FollowServiceName, func(ctx *node.ServiceContext) (node.Service, error) {
-		return plugins.NewFollowService(ctx, app.Log)
-	})
-	_ = app.Register(plugins.PostServiceName, func(ctx *node.ServiceContext) (node.Service, error) {
-		return plugins.NewPostService(ctx)
-	})
-	_ = app.Register(plugins.TrxServiceName, func(ctx *node.ServiceContext) (node.Service, error) {
-		return plugins.NewTrxSerVice(ctx, app.Log)
-	})
-
-	if trxSqlFlag {
-		_ = app.Register(plugins.TrxMysqlServiceName, func(ctx *node.ServiceContext) (service node.Service, e error) {
-			return plugins.NewTrxMysqlSerVice(ctx, cfg.Database, app.Log)
-		})
-	}
-
-	if stateLogFlag {
-		_ = app.Register(plugins.StateLogServiceName, func(ctx *node.ServiceContext) (service node.Service, e error) {
-			return plugins.NewStateLogService(ctx, cfg.Database, app.Log)
-		})
-	}
-	
-	if dailyStatFlag {
-		_ = app.Register(iservices.DailyStatisticServiceName, func(ctx *node.ServiceContext) (node.Service, error) {
-			return plugins.NewDailyStatisticService(ctx, cfg.Database, app.Log)
-		})
-	}
+	plugins.NewPluginMgt(pluginList).Register(app, &cfg)
 
 	_ = app.Register(iservices.ConsensusServerName, func(ctx *node.ServiceContext) (node.Service, error) {
 		var s node.Service
@@ -184,11 +151,6 @@ func RegisterService(app *node.Node, cfg node.Config) {
 			s = consensus.NewDPoS(ctx, app.Log)
 		}
 		return s, nil
-	})
-
-
-	_ = app.Register(plugins.RewardServiceName, func(ctx *node.ServiceContext) (service node.Service, e error) {
-		return plugins.NewRewardService(ctx)
 	})
 
 	_ = app.Register(iservices.RpcServerName, func(ctx *node.ServiceContext) (node.Service, error) {

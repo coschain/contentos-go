@@ -2,7 +2,7 @@ package iservices
 
 import "github.com/coschain/contentos-go/iservices/itype"
 
-var DailyStatisticServiceName = "dailystatistic"
+var DailyStatisticServiceName = "dailystatservice"
 
 type IDailyStats interface {
 	DailyStatsOn(date string, dapp string) *itype.Row

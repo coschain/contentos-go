@@ -55,7 +55,7 @@ func IsTransferOp(operation *prototype.Operation) bool {
 	}
 }
 
-var TrxMysqlServiceName = "trxmysql"
+var TrxMysqlServiceName = "trxsqlservice"
 
 type TrxMysqlService struct {
 	node.Service
