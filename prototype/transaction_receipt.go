@@ -4,10 +4,10 @@ const StatusSuccess  = 200
 const StatusDeductStamina  = 201
 const StatusError  = 500
 
-func (m *TransactionReceipt) Validate() error {
+func (m *TransactionReceiptWithInfo) Validate() error {
 	return nil
 }
 
-func (m *TransactionReceipt) IsSuccess() bool {
+func (m *TransactionReceiptWithInfo) IsSuccess() bool {
 	return m.Status == StatusSuccess || m.Status == StatusDeductStamina
 }

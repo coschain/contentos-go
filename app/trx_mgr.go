@@ -32,7 +32,7 @@ func NewTrxMgrEntry(trx *prototype.SignedTransaction, callback TrxCallback) *Trx
 	return &TrxEntry{
 		result: &prototype.TransactionWrapper{
 			SigTrx:  trx,
-			Receipt: &prototype.TransactionReceipt{Status: prototype.StatusSuccess},
+			Receipt: &prototype.TransactionReceiptWithInfo{Status: prototype.StatusSuccess},
 		},
 		callback: callback,
 	}

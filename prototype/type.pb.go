@@ -29,7 +29,7 @@ func (m *AccountName) Reset()         { *m = AccountName{} }
 func (m *AccountName) String() string { return proto.CompactTextString(m) }
 func (*AccountName) ProtoMessage()    {}
 func (*AccountName) Descriptor() ([]byte, []int) {
-	return fileDescriptor_type_221c45287a0c61fd, []int{0}
+	return fileDescriptor_type_7c7cf37b202291ff, []int{0}
 }
 func (m *AccountName) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_AccountName.Unmarshal(m, b)
@@ -67,7 +67,7 @@ func (m *ChainId) Reset()         { *m = ChainId{} }
 func (m *ChainId) String() string { return proto.CompactTextString(m) }
 func (*ChainId) ProtoMessage()    {}
 func (*ChainId) Descriptor() ([]byte, []int) {
-	return fileDescriptor_type_221c45287a0c61fd, []int{1}
+	return fileDescriptor_type_7c7cf37b202291ff, []int{1}
 }
 func (m *ChainId) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ChainId.Unmarshal(m, b)
@@ -105,7 +105,7 @@ func (m *Coin) Reset()         { *m = Coin{} }
 func (m *Coin) String() string { return proto.CompactTextString(m) }
 func (*Coin) ProtoMessage()    {}
 func (*Coin) Descriptor() ([]byte, []int) {
-	return fileDescriptor_type_221c45287a0c61fd, []int{2}
+	return fileDescriptor_type_7c7cf37b202291ff, []int{2}
 }
 func (m *Coin) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Coin.Unmarshal(m, b)
@@ -143,7 +143,7 @@ func (m *Vest) Reset()         { *m = Vest{} }
 func (m *Vest) String() string { return proto.CompactTextString(m) }
 func (*Vest) ProtoMessage()    {}
 func (*Vest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_type_221c45287a0c61fd, []int{3}
+	return fileDescriptor_type_7c7cf37b202291ff, []int{3}
 }
 func (m *Vest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Vest.Unmarshal(m, b)
@@ -181,7 +181,7 @@ func (m *PublicKeyType) Reset()         { *m = PublicKeyType{} }
 func (m *PublicKeyType) String() string { return proto.CompactTextString(m) }
 func (*PublicKeyType) ProtoMessage()    {}
 func (*PublicKeyType) Descriptor() ([]byte, []int) {
-	return fileDescriptor_type_221c45287a0c61fd, []int{4}
+	return fileDescriptor_type_7c7cf37b202291ff, []int{4}
 }
 func (m *PublicKeyType) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_PublicKeyType.Unmarshal(m, b)
@@ -219,7 +219,7 @@ func (m *PrivateKeyType) Reset()         { *m = PrivateKeyType{} }
 func (m *PrivateKeyType) String() string { return proto.CompactTextString(m) }
 func (*PrivateKeyType) ProtoMessage()    {}
 func (*PrivateKeyType) Descriptor() ([]byte, []int) {
-	return fileDescriptor_type_221c45287a0c61fd, []int{5}
+	return fileDescriptor_type_7c7cf37b202291ff, []int{5}
 }
 func (m *PrivateKeyType) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_PrivateKeyType.Unmarshal(m, b)
@@ -257,7 +257,7 @@ func (m *TimePointSec) Reset()         { *m = TimePointSec{} }
 func (m *TimePointSec) String() string { return proto.CompactTextString(m) }
 func (*TimePointSec) ProtoMessage()    {}
 func (*TimePointSec) Descriptor() ([]byte, []int) {
-	return fileDescriptor_type_221c45287a0c61fd, []int{6}
+	return fileDescriptor_type_7c7cf37b202291ff, []int{6}
 }
 func (m *TimePointSec) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_TimePointSec.Unmarshal(m, b)
@@ -295,7 +295,7 @@ func (m *SignatureType) Reset()         { *m = SignatureType{} }
 func (m *SignatureType) String() string { return proto.CompactTextString(m) }
 func (*SignatureType) ProtoMessage()    {}
 func (*SignatureType) Descriptor() ([]byte, []int) {
-	return fileDescriptor_type_221c45287a0c61fd, []int{7}
+	return fileDescriptor_type_7c7cf37b202291ff, []int{7}
 }
 func (m *SignatureType) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SignatureType.Unmarshal(m, b)
@@ -333,7 +333,7 @@ func (m *Sha256) Reset()         { *m = Sha256{} }
 func (m *Sha256) String() string { return proto.CompactTextString(m) }
 func (*Sha256) ProtoMessage()    {}
 func (*Sha256) Descriptor() ([]byte, []int) {
-	return fileDescriptor_type_221c45287a0c61fd, []int{8}
+	return fileDescriptor_type_7c7cf37b202291ff, []int{8}
 }
 func (m *Sha256) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Sha256.Unmarshal(m, b)
@@ -374,7 +374,7 @@ func (m *ChainProperties) Reset()         { *m = ChainProperties{} }
 func (m *ChainProperties) String() string { return proto.CompactTextString(m) }
 func (*ChainProperties) ProtoMessage()    {}
 func (*ChainProperties) Descriptor() ([]byte, []int) {
-	return fileDescriptor_type_221c45287a0c61fd, []int{9}
+	return fileDescriptor_type_7c7cf37b202291ff, []int{9}
 }
 func (m *ChainProperties) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ChainProperties.Unmarshal(m, b)
@@ -468,7 +468,7 @@ func (m *DynamicProperties) Reset()         { *m = DynamicProperties{} }
 func (m *DynamicProperties) String() string { return proto.CompactTextString(m) }
 func (*DynamicProperties) ProtoMessage()    {}
 func (*DynamicProperties) Descriptor() ([]byte, []int) {
-	return fileDescriptor_type_221c45287a0c61fd, []int{10}
+	return fileDescriptor_type_7c7cf37b202291ff, []int{10}
 }
 func (m *DynamicProperties) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DynamicProperties.Unmarshal(m, b)
@@ -752,7 +752,7 @@ func (m *InternalRewardsKeeper) Reset()         { *m = InternalRewardsKeeper{} }
 func (m *InternalRewardsKeeper) String() string { return proto.CompactTextString(m) }
 func (*InternalRewardsKeeper) ProtoMessage()    {}
 func (*InternalRewardsKeeper) Descriptor() ([]byte, []int) {
-	return fileDescriptor_type_221c45287a0c61fd, []int{11}
+	return fileDescriptor_type_7c7cf37b202291ff, []int{11}
 }
 func (m *InternalRewardsKeeper) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_InternalRewardsKeeper.Unmarshal(m, b)
@@ -798,7 +798,7 @@ func (m *BeneficiaryRouteType) Reset()         { *m = BeneficiaryRouteType{} }
 func (m *BeneficiaryRouteType) String() string { return proto.CompactTextString(m) }
 func (*BeneficiaryRouteType) ProtoMessage()    {}
 func (*BeneficiaryRouteType) Descriptor() ([]byte, []int) {
-	return fileDescriptor_type_221c45287a0c61fd, []int{12}
+	return fileDescriptor_type_7c7cf37b202291ff, []int{12}
 }
 func (m *BeneficiaryRouteType) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_BeneficiaryRouteType.Unmarshal(m, b)
@@ -849,9 +849,9 @@ func init() {
 	proto.RegisterType((*BeneficiaryRouteType)(nil), "prototype.beneficiary_route_type")
 }
 
-func init() { proto.RegisterFile("prototype/type.proto", fileDescriptor_type_221c45287a0c61fd) }
+func init() { proto.RegisterFile("prototype/type.proto", fileDescriptor_type_7c7cf37b202291ff) }
 
-var fileDescriptor_type_221c45287a0c61fd = []byte{
+var fileDescriptor_type_7c7cf37b202291ff = []byte{
 	// 1146 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x84, 0x96, 0x69, 0x6f, 0x1b, 0x37,
 	0x13, 0xc7, 0x21, 0x45, 0xf1, 0x41, 0x5d, 0x36, 0x1f, 0x3d, 0xf6, 0x26, 0x4d, 0x1b, 0x47, 0x39,

@@ -32,7 +32,7 @@ type IGlobalPropRW interface {
 type ITrxPool interface {
 	IGlobalPropRW
 
-	PushTrx(trx *prototype.SignedTransaction) *prototype.TransactionReceipt
+	PushTrx(trx *prototype.SignedTransaction) *prototype.TransactionReceiptWithInfo
 	PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag) error
 	GenerateBlock(witness string, pre *prototype.Sha256, timestamp uint32, priKey *prototype.PrivateKeyType, skip prototype.SkipFlag) (*prototype.SignedBlock, error)
 	GetWitnessTopN(n uint32) ([]string, []*prototype.PublicKeyType)

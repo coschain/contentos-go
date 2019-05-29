@@ -76,7 +76,7 @@ func makeBlockWithCommonTrx(pre *prototype.Sha256, blockTimestamp uint32, signed
 	// add trx wraper
 	trxWraper := &prototype.TransactionWrapper{
 		SigTrx:  signedTrx,
-		Receipt: &prototype.TransactionReceipt{Status: prototype.StatusSuccess},
+		Receipt: &prototype.TransactionReceiptWithInfo{Status: prototype.StatusSuccess},
 	}
 	trxWraper.Receipt.NetUsage = uint64(proto.Size(signedTrx) * int(float64(constants.NetConsumePointNum)/float64(constants.NetConsumePointDen)))
 	trxWraper.Receipt.CpuUsage = 1 // now we set 1 stamina for common operation

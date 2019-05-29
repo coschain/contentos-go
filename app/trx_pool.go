@@ -127,8 +127,8 @@ func (c *TrxPool) PushTrxToPending(trx *prototype.SignedTransaction) (err error)
 	return c.tm.AddTrx(trx, nil)
 }
 
-func (c *TrxPool) PushTrx(trx *prototype.SignedTransaction) (invoice *prototype.TransactionReceipt) {
-	rc := make(chan *prototype.TransactionReceipt)
+func (c *TrxPool) PushTrx(trx *prototype.SignedTransaction) (invoice *prototype.TransactionReceiptWithInfo) {
+	rc := make(chan *prototype.TransactionReceiptWithInfo)
 	_ = c.tm.AddTrx(trx, func(result *prototype.TransactionWrapper) {
 		rc <- result.Receipt
 	})
@@ -390,7 +390,7 @@ func (c *TrxPool) notifyBlockApply(block *prototype.SignedBlock) {
 }
 
 func (c *TrxPool) notifyTrxApplyResult(trx *prototype.SignedTransaction, res bool,
-	receipt *prototype.TransactionReceipt) {
+	receipt *prototype.TransactionReceiptWithInfo) {
 	c.noticer.Publish(constants.NoticeTrxApplied, trx, receipt)
 }
 

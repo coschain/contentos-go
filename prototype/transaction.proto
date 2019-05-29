@@ -52,7 +52,7 @@ message operation_receipt_with_info {
     string vm_console = 6;
 }
 
-message transaction_receipt{
+message transaction_receipt_with_info {
     uint32 status = 1;
     uint64 net_usage = 2;
     uint64 cpu_usage = 3;
@@ -62,7 +62,7 @@ message transaction_receipt{
 
 message transaction_wrapper{
     signed_transaction sig_trx = 1;
-    transaction_receipt receipt = 2;
+    transaction_receipt_with_info receipt = 2;
 }
 
 // block

@@ -30,7 +30,7 @@ func (m *FollowerRelation) Reset()         { *m = FollowerRelation{} }
 func (m *FollowerRelation) String() string { return proto.CompactTextString(m) }
 func (*FollowerRelation) ProtoMessage()    {}
 func (*FollowerRelation) Descriptor() ([]byte, []int) {
-	return fileDescriptor_multi_id_3d2165e663e95109, []int{0}
+	return fileDescriptor_multi_id_35053f35dadca7a2, []int{0}
 }
 func (m *FollowerRelation) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_FollowerRelation.Unmarshal(m, b)
@@ -76,7 +76,7 @@ func (m *FollowingRelation) Reset()         { *m = FollowingRelation{} }
 func (m *FollowingRelation) String() string { return proto.CompactTextString(m) }
 func (*FollowingRelation) ProtoMessage()    {}
 func (*FollowingRelation) Descriptor() ([]byte, []int) {
-	return fileDescriptor_multi_id_3d2165e663e95109, []int{1}
+	return fileDescriptor_multi_id_35053f35dadca7a2, []int{1}
 }
 func (m *FollowingRelation) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_FollowingRelation.Unmarshal(m, b)
@@ -123,7 +123,7 @@ func (m *FollowerCreatedOrder) Reset()         { *m = FollowerCreatedOrder{} }
 func (m *FollowerCreatedOrder) String() string { return proto.CompactTextString(m) }
 func (*FollowerCreatedOrder) ProtoMessage()    {}
 func (*FollowerCreatedOrder) Descriptor() ([]byte, []int) {
-	return fileDescriptor_multi_id_3d2165e663e95109, []int{2}
+	return fileDescriptor_multi_id_35053f35dadca7a2, []int{2}
 }
 func (m *FollowerCreatedOrder) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_FollowerCreatedOrder.Unmarshal(m, b)
@@ -177,7 +177,7 @@ func (m *FollowingCreatedOrder) Reset()         { *m = FollowingCreatedOrder{} }
 func (m *FollowingCreatedOrder) String() string { return proto.CompactTextString(m) }
 func (*FollowingCreatedOrder) ProtoMessage()    {}
 func (*FollowingCreatedOrder) Descriptor() ([]byte, []int) {
-	return fileDescriptor_multi_id_3d2165e663e95109, []int{3}
+	return fileDescriptor_multi_id_35053f35dadca7a2, []int{3}
 }
 func (m *FollowingCreatedOrder) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_FollowingCreatedOrder.Unmarshal(m, b)
@@ -230,7 +230,7 @@ func (m *PostCreatedOrder) Reset()         { *m = PostCreatedOrder{} }
 func (m *PostCreatedOrder) String() string { return proto.CompactTextString(m) }
 func (*PostCreatedOrder) ProtoMessage()    {}
 func (*PostCreatedOrder) Descriptor() ([]byte, []int) {
-	return fileDescriptor_multi_id_3d2165e663e95109, []int{4}
+	return fileDescriptor_multi_id_35053f35dadca7a2, []int{4}
 }
 func (m *PostCreatedOrder) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_PostCreatedOrder.Unmarshal(m, b)
@@ -276,7 +276,7 @@ func (m *VoterId) Reset()         { *m = VoterId{} }
 func (m *VoterId) String() string { return proto.CompactTextString(m) }
 func (*VoterId) ProtoMessage()    {}
 func (*VoterId) Descriptor() ([]byte, []int) {
-	return fileDescriptor_multi_id_3d2165e663e95109, []int{5}
+	return fileDescriptor_multi_id_35053f35dadca7a2, []int{5}
 }
 func (m *VoterId) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_VoterId.Unmarshal(m, b)
@@ -322,7 +322,7 @@ func (m *BpVoterId) Reset()         { *m = BpVoterId{} }
 func (m *BpVoterId) String() string { return proto.CompactTextString(m) }
 func (*BpVoterId) ProtoMessage()    {}
 func (*BpVoterId) Descriptor() ([]byte, []int) {
-	return fileDescriptor_multi_id_3d2165e663e95109, []int{6}
+	return fileDescriptor_multi_id_35053f35dadca7a2, []int{6}
 }
 func (m *BpVoterId) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_BpVoterId.Unmarshal(m, b)
@@ -368,7 +368,7 @@ func (m *BpWitnessId) Reset()         { *m = BpWitnessId{} }
 func (m *BpWitnessId) String() string { return proto.CompactTextString(m) }
 func (*BpWitnessId) ProtoMessage()    {}
 func (*BpWitnessId) Descriptor() ([]byte, []int) {
-	return fileDescriptor_multi_id_3d2165e663e95109, []int{7}
+	return fileDescriptor_multi_id_35053f35dadca7a2, []int{7}
 }
 func (m *BpWitnessId) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_BpWitnessId.Unmarshal(m, b)
@@ -414,7 +414,7 @@ func (m *ContractId) Reset()         { *m = ContractId{} }
 func (m *ContractId) String() string { return proto.CompactTextString(m) }
 func (*ContractId) ProtoMessage()    {}
 func (*ContractId) Descriptor() ([]byte, []int) {
-	return fileDescriptor_multi_id_3d2165e663e95109, []int{8}
+	return fileDescriptor_multi_id_35053f35dadca7a2, []int{8}
 }
 func (m *ContractId) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ContractId.Unmarshal(m, b)
@@ -460,7 +460,7 @@ func (m *ReplyCreatedOrder) Reset()         { *m = ReplyCreatedOrder{} }
 func (m *ReplyCreatedOrder) String() string { return proto.CompactTextString(m) }
 func (*ReplyCreatedOrder) ProtoMessage()    {}
 func (*ReplyCreatedOrder) Descriptor() ([]byte, []int) {
-	return fileDescriptor_multi_id_3d2165e663e95109, []int{9}
+	return fileDescriptor_multi_id_35053f35dadca7a2, []int{9}
 }
 func (m *ReplyCreatedOrder) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReplyCreatedOrder.Unmarshal(m, b)
@@ -506,7 +506,7 @@ func (m *UserPostCreateOrder) Reset()         { *m = UserPostCreateOrder{} }
 func (m *UserPostCreateOrder) String() string { return proto.CompactTextString(m) }
 func (*UserPostCreateOrder) ProtoMessage()    {}
 func (*UserPostCreateOrder) Descriptor() ([]byte, []int) {
-	return fileDescriptor_multi_id_3d2165e663e95109, []int{10}
+	return fileDescriptor_multi_id_35053f35dadca7a2, []int{10}
 }
 func (m *UserPostCreateOrder) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_UserPostCreateOrder.Unmarshal(m, b)
@@ -552,7 +552,7 @@ func (m *RewardCashoutId) Reset()         { *m = RewardCashoutId{} }
 func (m *RewardCashoutId) String() string { return proto.CompactTextString(m) }
 func (*RewardCashoutId) ProtoMessage()    {}
 func (*RewardCashoutId) Descriptor() ([]byte, []int) {
-	return fileDescriptor_multi_id_3d2165e663e95109, []int{11}
+	return fileDescriptor_multi_id_35053f35dadca7a2, []int{11}
 }
 func (m *RewardCashoutId) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_RewardCashoutId.Unmarshal(m, b)
@@ -598,7 +598,7 @@ func (m *UserTrxCreateOrder) Reset()         { *m = UserTrxCreateOrder{} }
 func (m *UserTrxCreateOrder) String() string { return proto.CompactTextString(m) }
 func (*UserTrxCreateOrder) ProtoMessage()    {}
 func (*UserTrxCreateOrder) Descriptor() ([]byte, []int) {
-	return fileDescriptor_multi_id_3d2165e663e95109, []int{12}
+	return fileDescriptor_multi_id_35053f35dadca7a2, []int{12}
 }
 func (m *UserTrxCreateOrder) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_UserTrxCreateOrder.Unmarshal(m, b)
@@ -648,9 +648,9 @@ func init() {
 	proto.RegisterType((*UserTrxCreateOrder)(nil), "prototype.user_trx_create_order")
 }
 
-func init() { proto.RegisterFile("prototype/multi_id.proto", fileDescriptor_multi_id_3d2165e663e95109) }
+func init() { proto.RegisterFile("prototype/multi_id.proto", fileDescriptor_multi_id_35053f35dadca7a2) }
 
-var fileDescriptor_multi_id_3d2165e663e95109 = []byte{
+var fileDescriptor_multi_id_35053f35dadca7a2 = []byte{
 	// 491 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xc4, 0x93, 0xcf, 0x6f, 0xd3, 0x30,
 	0x14, 0xc7, 0x95, 0x8d, 0xf5, 0xc7, 0x2b, 0x1c, 0x66, 0xc6, 0x5a, 0xe0, 0x82, 0x72, 0x42, 0x88,

@@ -8,27 +8,27 @@ import (
 	"time"
 )
 
-func FetchTrxApplyResult(eb EventBus.Bus, timeout time.Duration, trx *SignedTransaction) *TransactionReceipt {
+func FetchTrxApplyResult(eb EventBus.Bus, timeout time.Duration, trx *SignedTransaction) *TransactionReceiptWithInfo {
 	if eb == nil || trx == nil {
-     	return  &TransactionReceipt{Status:StatusError,
+     	return  &TransactionReceiptWithInfo{Status:StatusError,
 			 ErrorInfo:"the trx or the event bus is nil"}
 	 }
      tId,err := trx.Id()
      if err != nil {
-     	return &TransactionReceipt{Status:StatusError,
+     	return &TransactionReceiptWithInfo{Status:StatusError,
 			ErrorInfo:"Get id of new trx fail"}
 	 }
-	rec := make(chan *TransactionReceipt,10)
+	rec := make(chan *TransactionReceiptWithInfo,10)
     done := make(chan bool,10)
 
-	handler := func(trx *SignedTransaction, result *TransactionReceipt) {
+	handler := func(trx *SignedTransaction, result *TransactionReceiptWithInfo) {
 		  if trx == nil {
 			  return
 		  }
      	  cId,err := trx.Id()
      	  if err != nil {
      	  	 desc := fmt.Sprintf("Get id of trx: %v fail",trx)
-     	  	  rec <-  &TransactionReceipt{Status:StatusError,
+     	  	  rec <-  &TransactionReceiptWithInfo{Status:StatusError,
 				  ErrorInfo:desc}
 			  return
 		  }
@@ -46,7 +46,7 @@ func FetchTrxApplyResult(eb EventBus.Bus, timeout time.Duration, trx *SignedTran
 					eb.Unsubscribe(constants.NoticeTrxApplied, handler)
 					return
 			    case <- tOut.C:
-					result :=  &TransactionReceipt{Status:StatusError,
+					result :=  &TransactionReceiptWithInfo{Status:StatusError,
 						ErrorInfo:"Apply transaction timeout when Broadcast Trx"}
 					rec <- result
 					eb.Unsubscribe(constants.NoticeTrxApplied, handler)
