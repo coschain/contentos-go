@@ -14,7 +14,7 @@ import (
 type TrxContext struct {
 	vminjector.Injector
 	DynamicGlobalPropsRW
-	Wrapper         *prototype.TransactionWrapper
+	Wrapper         *prototype.TransactionWrapperWithInfo
 	msg         []string
 	signer      string
 	observer iservices.ITrxObserver
@@ -192,7 +192,7 @@ func (p *TrxContext) GetCpuUse() uint64 {
 	return all
 }
 
-func NewTrxContext(wrapper *prototype.TransactionWrapper, db iservices.IDatabaseRW, signer string, control *TrxPool, observer iservices.ITrxObserver) *TrxContext {
+func NewTrxContext(wrapper *prototype.TransactionWrapperWithInfo, db iservices.IDatabaseRW, signer string, control *TrxPool, observer iservices.ITrxObserver) *TrxContext {
 	return &TrxContext{
 		DynamicGlobalPropsRW: DynamicGlobalPropsRW{ db:db },
 		Wrapper: wrapper,

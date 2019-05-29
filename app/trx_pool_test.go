@@ -74,7 +74,7 @@ func makeBlockWithCommonTrx(pre *prototype.Sha256, blockTimestamp uint32, signed
 	sigBlk := new(prototype.SignedBlock)
 
 	// add trx wraper
-	trxWraper := &prototype.TransactionWrapper{
+	trxWraper := &prototype.TransactionWrapperWithInfo{
 		SigTrx:  signedTrx,
 		Receipt: &prototype.TransactionReceiptWithInfo{Status: prototype.StatusSuccess},
 	}

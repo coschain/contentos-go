@@ -998,7 +998,7 @@ func (s *SoExtTrxWrap) saveMemKeyTrxWrap(tInfo *SoExtTrx) error {
 	return err
 }
 
-func (s *SoExtTrxWrap) GetTrxWrap() *prototype.TransactionWrapper {
+func (s *SoExtTrxWrap) GetTrxWrap() *prototype.TransactionWrapperWithInfo {
 	res := true
 	msg := &SoMemExtTrxByTrxWrap{}
 	if s.dba == nil {
@@ -1027,7 +1027,7 @@ func (s *SoExtTrxWrap) GetTrxWrap() *prototype.TransactionWrapper {
 	return msg.TrxWrap
 }
 
-func (s *SoExtTrxWrap) MdTrxWrap(p *prototype.TransactionWrapper) bool {
+func (s *SoExtTrxWrap) MdTrxWrap(p *prototype.TransactionWrapperWithInfo) bool {
 	if s.dba == nil {
 		return false
 	}

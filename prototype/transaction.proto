@@ -60,7 +60,7 @@ message transaction_receipt_with_info {
     repeated operation_receipt_with_info op_results = 5;
 }
 
-message transaction_wrapper{
+message transaction_wrapper_with_info {
     signed_transaction sig_trx = 1;
     transaction_receipt_with_info receipt = 2;
 }
@@ -81,7 +81,7 @@ message signed_block_header{
 
 message signed_block{
     signed_block_header signed_header = 1;
-    repeated transaction_wrapper transactions = 2;
+    repeated transaction_wrapper_with_info transactions = 2;
 }
 
 message empty_signed_block{

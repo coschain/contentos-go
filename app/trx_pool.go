@@ -129,7 +129,7 @@ func (c *TrxPool) PushTrxToPending(trx *prototype.SignedTransaction) (err error)
 
 func (c *TrxPool) PushTrx(trx *prototype.SignedTransaction) (invoice *prototype.TransactionReceiptWithInfo) {
 	rc := make(chan *prototype.TransactionReceiptWithInfo)
-	_ = c.tm.AddTrx(trx, func(result *prototype.TransactionWrapper) {
+	_ = c.tm.AddTrx(trx, func(result *prototype.TransactionWrapperWithInfo) {
 		rc <- result.Receipt
 	})
 	return <-rc

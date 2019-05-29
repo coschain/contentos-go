@@ -15,11 +15,11 @@ import (
 )
 
 // TrxCallback is the type of callback function reporting transaction process results.
-type TrxCallback func(result *prototype.TransactionWrapper)
+type TrxCallback func(result *prototype.TransactionWrapperWithInfo)
 
 // TrxEntry is a wrapper of a transaction with extra information.
 type TrxEntry struct {
-	result    *prototype.TransactionWrapper			// process result involving the transaction
+	result    *prototype.TransactionWrapperWithInfo	// process result involving the transaction
 	sig       string								// transaction signature
 	size      int									// transaction size
 	signer    string								// requested account to sign the transaction
@@ -30,7 +30,7 @@ type TrxEntry struct {
 // NewTrxMgrEntry creates an instance of TrxEntry.
 func NewTrxMgrEntry(trx *prototype.SignedTransaction, callback TrxCallback) *TrxEntry {
 	return &TrxEntry{
-		result: &prototype.TransactionWrapper{
+		result: &prototype.TransactionWrapperWithInfo{
 			SigTrx:  trx,
 			Receipt: &prototype.TransactionReceiptWithInfo{Status: prototype.StatusSuccess},
 		},
@@ -121,7 +121,7 @@ func (e *TrxEntry) CheckInBlockTrxs(checker *InBlockTrxChecker) error {
 	return nil
 }
 
-func (e *TrxEntry) GetTrxResult() *prototype.TransactionWrapper {
+func (e *TrxEntry) GetTrxResult() *prototype.TransactionWrapperWithInfo {
 	return e.result
 }
 func (e *TrxEntry) GetTrxSize() int {
