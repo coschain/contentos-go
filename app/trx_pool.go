@@ -320,7 +320,7 @@ func (c *TrxPool) generateBlockNoLock(witness string, pre *prototype.Sha256, tim
 				failedTrx = append(failedTrx, entry)
 			} else {
 				sizeLimit -= entry.GetTrxSize()
-				signBlock.Transactions = append(signBlock.Transactions, result)
+				signBlock.Transactions = append(signBlock.Transactions, result.ToWrapper())
 			}
 		}
 		if sizeLimit <= 0 {

@@ -65,6 +65,23 @@ message transaction_wrapper_with_info {
     transaction_receipt_with_info receipt = 2;
 }
 
+message operation_receipt {
+    uint32 status = 1;
+    uint64 gas_usage = 2;
+}
+
+message transaction_receipt {
+    uint32 status = 1;
+    uint64 net_usage = 2;
+    uint64 cpu_usage = 3;
+    repeated operation_receipt op_results = 4;
+}
+
+message transaction_wrapper {
+    signed_transaction sig_trx = 1;
+    transaction_receipt receipt = 2;
+}
+
 // block
 message block_header{
     sha256 previous = 1;
@@ -81,7 +98,7 @@ message signed_block_header{
 
 message signed_block{
     signed_block_header signed_header = 1;
-    repeated transaction_wrapper_with_info transactions = 2;
+    repeated transaction_wrapper transactions = 2;
 }
 
 message empty_signed_block{
