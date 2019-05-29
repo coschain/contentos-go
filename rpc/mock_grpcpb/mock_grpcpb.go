@@ -557,6 +557,24 @@ func (mr *MockApiServiceClientMockRecorder) GetContractListByTime(ctx, in interf
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetContractListByTime", reflect.TypeOf((*MockApiServiceClient)(nil).GetContractListByTime), varargs...)
 }
 
+// GetWitnessListByVoteCount mocks base method
+func (m *MockApiServiceClient) GetWitnessListByVoteCount(ctx context.Context, in *pb.GetWitnessListByVoteCountRequest, opts ...grpc.CallOption) (*pb.GetWitnessListResponse, error) {
+	varargs := []interface{}{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetWitnessListByVoteCount", varargs...)
+	ret0, _ := ret[0].(*pb.GetWitnessListResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetWitnessListByVoteCount indicates an expected call of GetWitnessListByVoteCount
+func (mr *MockApiServiceClientMockRecorder) GetWitnessListByVoteCount(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	varargs := append([]interface{}{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetWitnessListByVoteCount", reflect.TypeOf((*MockApiServiceClient)(nil).GetWitnessListByVoteCount), varargs...)
+}
+
 // MockApiServiceServer is a mock of ApiServiceServer interface
 type MockApiServiceServer struct {
 	ctrl     *gomock.Controller
@@ -955,4 +973,17 @@ func (m *MockApiServiceServer) GetContractListByTime(arg0 context.Context, arg1 
 // GetContractListByTime indicates an expected call of GetContractListByTime
 func (mr *MockApiServiceServerMockRecorder) GetContractListByTime(arg0, arg1 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetContractListByTime", reflect.TypeOf((*MockApiServiceServer)(nil).GetContractListByTime), arg0, arg1)
+}
+
+// GetWitnessListByVoteCount mocks base method
+func (m *MockApiServiceServer) GetWitnessListByVoteCount(arg0 context.Context, arg1 *pb.GetWitnessListByVoteCountRequest) (*pb.GetWitnessListResponse, error) {
+	ret := m.ctrl.Call(m, "GetWitnessListByVoteCount", arg0, arg1)
+	ret0, _ := ret[0].(*pb.GetWitnessListResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetWitnessListByVoteCount indicates an expected call of GetWitnessListByVoteCount
+func (mr *MockApiServiceServerMockRecorder) GetWitnessListByVoteCount(arg0, arg1 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetWitnessListByVoteCount", reflect.TypeOf((*MockApiServiceServer)(nil).GetWitnessListByVoteCount), arg0, arg1)
 }

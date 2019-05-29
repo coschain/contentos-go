@@ -28,10 +28,6 @@ message private_key_type{
     bytes data = 1;
 }
 
-//message authority{
-//    public_key_type key = 1;
-//}
-
 message time_point_sec{
     uint32 utc_seconds = 1;
 }
@@ -58,11 +54,9 @@ message dynamic_properties {
     prototype.coin               total_cos                     =      5;
     prototype.time_point_sec     time                          =      6;
     prototype.account_name       current_witness               =      7;
-    uint64                       irreversible_block_num        =      8;
     uint32                       tps                           =      9;
     prototype.vest               total_vesting_shares          =      10;
     prototype.coin               current_supply                =      11;
-    uint32                       current_aslot                 =      12;
     string post_weighted_vps = 13;
     prototype.vest     post_rewards = 14;
     uint64   total_trx_cnt = 15;
@@ -87,11 +81,6 @@ message dynamic_properties {
     uint64                       avg_tps_update_block             =      34;
     uint64                       avg_tps_in_window = 35;
     uint64   one_day_stamina = 36;
-}
-
-message internal_rewards_keeper {
-    int32 id = 1;
-    map<string, prototype.vest> rewards = 2;
 }
 
 message beneficiary_route_type{
