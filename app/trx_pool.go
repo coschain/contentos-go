@@ -653,6 +653,8 @@ func (c *TrxPool) initGenesis() {
 		tInfo.Props.TotalCos = prototype.NewCoin(constants.COSInitSupply)
 		tInfo.Props.MaximumBlockSize = constants.MaxBlockSize
 		tInfo.Props.TotalUserCnt = 1
+		tInfo.Props.StaminaFree = constants.DefaultStaminaFree
+		tInfo.Props.TpsExpected = constants.DefaultTPSExpected
 		tInfo.Props.TotalVestingShares = prototype.NewVest(0)
 		tInfo.Props.PostRewards = prototype.NewVest(0)
 		tInfo.Props.ReplyRewards = prototype.NewVest(0)
