@@ -707,7 +707,7 @@ func Test_Recover1(t *testing.T) {
 		t.Error("PushTrx return status error:", invoice3.Status)
 	}
 	all := bobWrap.GetStamina() + bobWrap.GetStaminaFree()
-	commonCpuGas := constants.CommonOpGas / constants.CpuConsumePointDen
+	commonCpuGas := constants.CommonOpStamina / constants.CpuConsumePointDen
 	if all != uint64(commonCpuGas)+uint64(netSize*int(float64(constants.NetConsumePointNum)/float64(constants.NetConsumePointDen))) {
 		t.Error("recover or consume error")
 	}

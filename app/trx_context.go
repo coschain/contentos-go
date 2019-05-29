@@ -73,7 +73,7 @@ func (p *TrxContext) CheckNet(db iservices.IDatabaseRW, sizeInBytes uint64) {
 				continue
 			} else {
 				if freeOver == constants.FreeStaminaOverFlow || stakeOver == constants.StakeStaminaOverFlow {
-					p.RecordGasFee(name,0) // a fake record to let this trx into block, then we can update user's stamina
+					p.RecordStaminaFee(name,0) // a fake record to let this trx into block, then we can update user's stamina
 				}
 				errInfo := fmt.Sprintf("net resource not enough, user:%v, have:%v, need:%v",name,freeLeft+stakeLeft,netUse)
 				opAssert(false, errInfo)
@@ -158,7 +158,7 @@ func (p *TrxContext) setUsage() {
 	p.Wrapper.Receipt.CpuUsage = p.GetCpuUse()
 }
 
-func (p *TrxContext) RecordGasFee(caller string, spent uint64) {
+func (p *TrxContext) RecordStaminaFee(caller string, spent uint64) {
 //	if !p.control.ctx.Config().ResourceCheck {
 //		return
 //	}
