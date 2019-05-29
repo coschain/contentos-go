@@ -127,9 +127,9 @@ func (c *TrxPool) PushTrxToPending(trx *prototype.SignedTransaction) (err error)
 	return c.tm.AddTrx(trx, nil)
 }
 
-func (c *TrxPool) PushTrx(trx *prototype.SignedTransaction) (invoice *prototype.TransactionReceipt) {
-	rc := make(chan *prototype.TransactionReceipt)
-	_ = c.tm.AddTrx(trx, func(result *prototype.TransactionWrapper) {
+func (c *TrxPool) PushTrx(trx *prototype.SignedTransaction) (invoice *prototype.TransactionReceiptWithInfo) {
+	rc := make(chan *prototype.TransactionReceiptWithInfo)
+	_ = c.tm.AddTrx(trx, func(result *prototype.TransactionWrapperWithInfo) {
 		rc <- result.Receipt
 	})
 	return <-rc
@@ -320,7 +320,7 @@ func (c *TrxPool) generateBlockNoLock(witness string, pre *prototype.Sha256, tim
 				failedTrx = append(failedTrx, entry)
 			} else {
 				sizeLimit -= entry.GetTrxSize()
-				signBlock.Transactions = append(signBlock.Transactions, result)
+				signBlock.Transactions = append(signBlock.Transactions, result.ToWrapper())
 			}
 		}
 		if sizeLimit <= 0 {
@@ -390,7 +390,7 @@ func (c *TrxPool) notifyBlockApply(block *prototype.SignedBlock) {
 }
 
 func (c *TrxPool) notifyTrxApplyResult(trx *prototype.SignedTransaction, res bool,
-	receipt *prototype.TransactionReceipt) {
+	receipt *prototype.TransactionReceiptWithInfo) {
 	c.noticer.Publish(constants.NoticeTrxApplied, trx, receipt)
 }
 
@@ -456,6 +456,7 @@ func (c *TrxPool) getEvaluator(trxCtx *TrxContext, op *prototype.Operation) Base
 }
 
 func (c *TrxPool) applyBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag) {
+	blockNum := blk.Id().BlockNum()
 
 	if skip & prototype.Skip_block_check == 0 {
 		merkleRoot := blk.CalculateMerkleRoot()
@@ -492,39 +493,30 @@ func (c *TrxPool) applyBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag
 			applyTime += int64(time.Now().Sub(t00))
 			invoiceOK := true
 			for j := 0; j < d; j++ {
-				if entries[i + j].GetTrxResult().Receipt.Status != blk.Transactions[i + j].Receipt.Status {
-					if blk.Transactions[i + j].Receipt.Status == prototype.StatusSuccess &&
-						entries[i + j].GetTrxResult().Receipt.Status == prototype.StatusDeductStamina {
-					} else {
-						c.log.Errorf("InvoiceMismatch: expect_status=%d, status=%d, err=%s. trx #%d of block %d",
-							blk.Transactions[i+j].Receipt.Status,
-							entries[i+j].GetTrxResult().Receipt.Status,
-							entries[i+j].GetTrxResult().Receipt.ErrorInfo,
-							i+j,
-							blk.Id().BlockNum())
-						invoiceOK = false
-					}
-				}
-				if entries[i+j].GetTrxResult().Receipt.NetUsage != blk.Transactions[i+j].Receipt.NetUsage {
-					c.log.Errorf("InvoiceMismatch: expect_net_usage=%d, net_usage=%d, trx #%d of block %d",
-						blk.Transactions[i+j].Receipt.NetUsage,
-						entries[i+j].GetTrxResult().Receipt.NetUsage,
-						i+j,
-						blk.Id().BlockNum())
+				trxIdx := i + j
+				expect := blk.Transactions[trxIdx].Receipt
+				actual := entries[trxIdx].GetTrxResult().Receipt
+
+				if actual.Status != expect.Status &&
+					!(expect.Status == prototype.StatusSuccess && actual.Status == prototype.StatusDeductStamina) {
+					c.log.Errorf("InvoiceMismatch: expect_status=%d, status=%d, err=%s. trx #%d of block %d",
+						expect.Status, actual.Status, actual.ErrorInfo, trxIdx, blockNum)
 					invoiceOK = false
 				}
-				if entries[i+j].GetTrxResult().Receipt.CpuUsage != blk.Transactions[i+j].Receipt.CpuUsage {
+				if actual.NetUsage != expect.NetUsage {
+					c.log.Errorf("InvoiceMismatch: expect_net_usage=%d, net_usage=%d, trx #%d of block %d",
+						expect.NetUsage, actual.NetUsage, trxIdx, blockNum)
+					invoiceOK = false
+				}
+				if actual.CpuUsage != expect.CpuUsage {
 					c.log.Errorf("InvoiceMismatch: expect_cpu_usage=%d, cpu_usage=%d, trx #%d of block %d",
-						blk.Transactions[i+j].Receipt.CpuUsage,
-						entries[i+j].GetTrxResult().Receipt.CpuUsage,
-						i+j,
-						blk.Id().BlockNum())
+						expect.CpuUsage, actual.CpuUsage, trxIdx, blockNum)
 					invoiceOK = false
 				}
 			}
 			if !invoiceOK {
 				blockData, _ := json.MarshalIndent(blk, "", "  ")
-				c.log.Errorf("InvalidBlock: block %d, marshal=%s", blk.Id().BlockNum(), string(blockData))
+				c.log.Errorf("InvalidBlock: block %d, marshal=%s", blockNum, string(blockData))
 				mustSuccess(false, "mismatched invoice")
 			}
 		}
@@ -547,7 +539,7 @@ func (c *TrxPool) applyBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag
 		c.updateAvgTps(blk)
 
 		pushTiming.End()
-		c.log.Debugf("PUSHBLOCK %d: %s, #tx=%d", blk.Id().BlockNum(), pushTiming.String(), totalCount)
+		c.log.Debugf("PUSHBLOCK %d: %s, #tx=%d", blockNum, pushTiming.String(), totalCount)
 	}
 
 	afterTiming := common.NewTiming()
@@ -581,7 +573,7 @@ func (c *TrxPool) applyBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag
 	c.notifyBlockApply(blk)
 
 	afterTiming.End()
-	c.log.Debugf("AFTER_BLOCK %d: %s", blk.Id().BlockNum(), afterTiming.String())
+	c.log.Debugf("AFTER_BLOCK %d: %s", blockNum, afterTiming.String())
 }
 
 func (c *TrxPool) ValidateAddress(name string, pubKey *prototype.PublicKeyType) bool {

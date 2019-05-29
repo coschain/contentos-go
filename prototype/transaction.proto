@@ -52,7 +52,7 @@ message operation_receipt_with_info {
     string vm_console = 6;
 }
 
-message transaction_receipt{
+message transaction_receipt_with_info {
     uint32 status = 1;
     uint64 net_usage = 2;
     uint64 cpu_usage = 3;
@@ -60,7 +60,24 @@ message transaction_receipt{
     repeated operation_receipt_with_info op_results = 5;
 }
 
-message transaction_wrapper{
+message transaction_wrapper_with_info {
+    signed_transaction sig_trx = 1;
+    transaction_receipt_with_info receipt = 2;
+}
+
+message operation_receipt {
+    uint32 status = 1;
+    uint64 gas_usage = 2;
+}
+
+message transaction_receipt {
+    uint32 status = 1;
+    uint64 net_usage = 2;
+    uint64 cpu_usage = 3;
+    repeated operation_receipt op_results = 4;
+}
+
+message transaction_wrapper {
     signed_transaction sig_trx = 1;
     transaction_receipt receipt = 2;
 }
