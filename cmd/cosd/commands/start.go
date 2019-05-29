@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 	"github.com/coschain/cobra"
+	"github.com/coschain/contentos-go/AWSHealthCheck"
 	ctrl "github.com/coschain/contentos-go/app"
 	"github.com/coschain/contentos-go/app/plugins"
 	"github.com/coschain/contentos-go/common"
@@ -10,7 +11,6 @@ import (
 	"github.com/coschain/contentos-go/consensus"
 	"github.com/coschain/contentos-go/db/storage"
 	"github.com/coschain/contentos-go/iservices"
-	"github.com/coschain/contentos-go/AWSHealthCheck"
 	"github.com/coschain/contentos-go/mylog"
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/p2p"
@@ -138,8 +138,6 @@ func RegisterService(app *node.Node, cfg node.Config) {
 		return ctrl.NewController(ctx, app.Log)
 	})
 
-	plugins.NewPluginMgt(pluginList).Register(app, &cfg)
-
 	_ = app.Register(iservices.ConsensusServerName, func(ctx *node.ServiceContext) (node.Service, error) {
 		var s node.Service
 		switch ctx.Config().Consensus.Type {
@@ -165,5 +163,6 @@ func RegisterService(app *node.Node, cfg node.Config) {
 		return AWSHealthCheck.NewAWSHealthCheck(ctx, app.Log)
 	})
 
+	plugins.NewPluginMgt(pluginList).Register(app, &cfg)
 
 }
