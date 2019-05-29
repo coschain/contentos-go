@@ -338,7 +338,7 @@ func (sabft *SABFT) restoreDynasty() {
 		sabft.popBlock(lcNum + 1)
 
 		prods, pubKeys := sabft.ctrl.GetShuffledWitness()
-		dyn := sabft.makeDynasty(0, prods, pubKeys, sabft.localPrivKey)
+		dyn := sabft.makeDynasty(lcNum, prods, pubKeys, sabft.localPrivKey)
 		sabft.addDynasty(dyn)
 		for i := range cache {
 			if err = sabft.applyBlock(cache[i]); err != nil {
