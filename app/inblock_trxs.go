@@ -149,7 +149,7 @@ func (c *InBlockTrxChecker) BlockReverted(blockNum uint64) {
 	}
 }
 
-// BlockReverted *SHOULD* be called *AFTER* a block was successfully committed.
+// BlockCommitted *SHOULD* be called *AFTER* a block was successfully committed.
 func (c *InBlockTrxChecker) BlockCommitted(blockNum uint64) {
 	// we care about changes of transaction set,
 	// so block commitments can be ignored since they don't affect transaction set.

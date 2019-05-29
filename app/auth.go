@@ -145,7 +145,7 @@ func (f *AuthFetcher) BlockReverted(blockNum uint64) {
 	}
 }
 
-// BlockReverted *SHOULD* be called *AFTER* a block was successfully committed.
+// BlockCommitted *SHOULD* be called *AFTER* a block was successfully committed.
 func (f *AuthFetcher) BlockCommitted(blockNum uint64) {
 	f.lock.Lock()
 	defer f.lock.Unlock()
