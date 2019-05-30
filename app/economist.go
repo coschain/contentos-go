@@ -395,7 +395,7 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 			authorWrap.MdVestingShares(vestingRewards)
 			t := time.Now()
 			t1, t2 := updateWitnessVoteCount(e.db, &prototype.AccountName{Value: author}, oldVest, vestingRewards)
-			e.log.Debugf("post cashout updateWitnessVoteCount: %v, get: %v, foreach: %v", time.Now().Sub(t), t1, t2)
+			e.log.Debugf("post cashout updateWitnessVoteCount: %v, foreach: %v, get: %v", time.Now().Sub(t), t1, t2)
 		}
 		post.MdCashoutBlockNum(math.MaxUint32)
 		post.MdRewards(&prototype.Vest{Value: reward})
@@ -499,7 +499,7 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 			authorWrap.MdVestingShares(vestingRewards)
 			t := time.Now()
 			t1, t2 := updateWitnessVoteCount(e.db, &prototype.AccountName{Value: author}, oldVest, vestingRewards)
-			e.log.Debugf("reply cashout updateWitnessVoteCount: %v, get: %v, foreach: %v", time.Now().Sub(t), t1, t2)
+			e.log.Debugf("reply cashout updateWitnessVoteCount: %v, foreach: %v, get: %v", time.Now().Sub(t), t1, t2)
 		}
 		reply.MdCashoutBlockNum(math.MaxUint32)
 		reply.MdRewards(&prototype.Vest{Value: reward})

@@ -735,6 +735,7 @@ func updateWitnessVoteCount(dba iservices.IDatabaseRW, voter *prototype.AccountN
 
 	var witnessList []*prototype.AccountName
 
+	startTime := time.Now()
 	sWrap.ForEachByOrder(start, end, nil, nil,
 		func(mVal *prototype.BpVoterId, sVal *prototype.BpVoterId, idx uint32) bool {
 			if mVal != nil && mVal.Voter.Value == voter.Value {
@@ -745,29 +746,13 @@ func updateWitnessVoteCount(dba iservices.IDatabaseRW, voter *prototype.AccountN
 			}
 			return true
 		})
-
-	witness := witnessList[0]
-	voterId := &prototype.BpVoterId{Voter: voter, Witness: witness}
-	vidWrap := table.NewSoWitnessVoteWrap(dba, voterId)
-
-	startTime := time.Now()
-	witnessId := vidWrap.GetWitnessId()
 	t1 = time.Now().Sub(startTime)
-	fmt.Println(witnessId)
 
-	var tmp []*prototype.AccountName
+	voterAccount := table.NewSoAccountWrap(dba, voter)
 	middleTime := time.Now()
-	sWrap.ForEachByOrder(start, end, nil, nil,
-		func(mVal *prototype.BpVoterId, sVal *prototype.BpVoterId, idx uint32) bool {
-			if mVal != nil && mVal.Voter.Value == voter.Value {
-				witnessWrap := table.NewSoWitnessWrap(dba, mVal.Witness)
-				if witnessWrap != nil && witnessWrap.CheckExist() {
-					tmp = append(tmp, mVal.Witness)
-				}
-			}
-			return true
-		})
+	free := voterAccount.GetStaminaFree()
 	t2 = time.Now().Sub(middleTime)
+	fmt.Println(free)
 
 	// update witness vote count
 	for i:=0;i<len(witnessList);i++ {
