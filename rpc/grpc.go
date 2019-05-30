@@ -833,6 +833,7 @@ func (as *APIService) getAccountResponseByName(name *prototype.AccountName, isNe
 				ProposedStaminaFree:   witWrap.GetProposedStaminaFree(),
 				Active:                witWrap.GetActive(),
 				TpsExpected:           witWrap.GetTpsExpected(),
+				AccountCreateFee:      witWrap.GetAccountCreateFee(),
 			}
 		}
 

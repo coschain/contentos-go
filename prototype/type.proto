@@ -80,7 +80,8 @@ message dynamic_properties {
     uint64 tps_expected = 33;
     uint64                       avg_tps_update_block             =      34;
     uint64                       avg_tps_in_window = 35;
-    uint64   one_day_stamina = 36;
+    uint64                       one_day_stamina = 36;
+    prototype.coin               account_create_fee = 37;
 }
 
 message beneficiary_route_type{

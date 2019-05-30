@@ -17,6 +17,7 @@ var (
 	WitnessOwnerTable              uint32 = 3588322158
 	WitnessVoteCountTable          uint32 = 2256540653
 	WitnessOwnerUniTable           uint32 = 2680327584
+	WitnessAccountCreateFeeCell    uint32 = 562012091
 	WitnessActiveCell              uint32 = 1638337923
 	WitnessCreatedTimeCell         uint32 = 732260124
 	WitnessOwnerCell               uint32 = 3659272213
@@ -307,6 +308,9 @@ func (s *SoWitnessWrap) RemoveWitness() bool {
 
 ////////////// SECTION Members Get/Modify ///////////////
 func (s *SoWitnessWrap) getMemKeyPrefix(fName string) uint32 {
+	if fName == "AccountCreateFee" {
+		return WitnessAccountCreateFeeCell
+	}
 	if fName == "Active" {
 		return WitnessActiveCell
 	}
@@ -364,6 +368,13 @@ func (s *SoWitnessWrap) saveAllMemKeys(tInfo *SoWitness, br bool) error {
 	}
 	var err error = nil
 	errDes := ""
+	if err = s.saveMemKeyAccountCreateFee(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "AccountCreateFee", err)
+		}
+	}
 	if err = s.saveMemKeyActive(tInfo); err != nil {
 		if br {
 			return err
@@ -464,6 +475,89 @@ func (s *SoWitnessWrap) delMemKey(fName string) error {
 	}
 	err = s.dba.Delete(key)
 	return err
+}
+
+func (s *SoWitnessWrap) saveMemKeyAccountCreateFee(tInfo *SoWitness) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemWitnessByAccountCreateFee{}
+	val.AccountCreateFee = tInfo.AccountCreateFee
+	key, err := s.encodeMemKey("AccountCreateFee")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
+
+func (s *SoWitnessWrap) GetAccountCreateFee() *prototype.Coin {
+	res := true
+	msg := &SoMemWitnessByAccountCreateFee{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("AccountCreateFee")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.AccountCreateFee
+			}
+		}
+	}
+	if !res {
+		return nil
+
+	}
+	return msg.AccountCreateFee
+}
+
+func (s *SoWitnessWrap) MdAccountCreateFee(p *prototype.Coin) bool {
+	if s.dba == nil {
+		return false
+	}
+	key, err := s.encodeMemKey("AccountCreateFee")
+	if err != nil {
+		return false
+	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemWitnessByAccountCreateFee{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoWitness{}
+	sa.Owner = s.mainKey
+
+	sa.AccountCreateFee = ori.AccountCreateFee
+
+	ori.AccountCreateFee = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
+		return false
+	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.AccountCreateFee = p
+
+	return true
 }
 
 func (s *SoWitnessWrap) saveMemKeyActive(tInfo *SoWitness) error {

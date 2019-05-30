@@ -20,6 +20,7 @@ var proposedStaminaFree uint64
 var bpUpdateStaminaFree uint64
 var tpsExpected uint64
 var bpUpdateTpsExpected uint64
+var bpUpdateCreateAccountFee uint64
 
 var BpCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
@@ -36,7 +37,7 @@ var BpCmd = func() *cobra.Command {
 
 	registerCmd.Flags().StringVarP(&bpUrlFlag, "url", "u", "", `bp register alice --url "http://example.com"`)
 	registerCmd.Flags().StringVarP(&bpDescFlag, "desc", "d", "", `bp register alice --desc "Hello World"`)
-	registerCmd.Flags().Uint64VarP(&bpCreateAccountFee, "fee", "f", 1, `bp register alice --fee 1`)
+	registerCmd.Flags().Uint64VarP(&bpCreateAccountFee, "fee", "f", constants.DefaultAccountCreateFee, `bp register alice --fee 1`)
 	registerCmd.Flags().Uint32VarP(&bpBlockSize, "blocksize", "b", 1024*1024, `bp register alice --blocksize 1024`)
 	registerCmd.Flags().Uint64VarP(&proposedStaminaFree, "stamina_free", "s", constants.DefaultStaminaFree, `bp register alice --stamina_free 1`)
 	registerCmd.Flags().Uint64VarP(&tpsExpected, "tps", "t", constants.DefaultTPSExpected, `bp register alice --tps 1`)
@@ -69,6 +70,7 @@ var BpCmd = func() *cobra.Command {
 
 	updateCmd.Flags().Uint64VarP(&bpUpdateStaminaFree, "stamina_free", "s", constants.DefaultStaminaFree, `bp update alice --stamina_free 1`)
 	updateCmd.Flags().Uint64VarP(&bpUpdateTpsExpected, "tps", "t", constants.DefaultTPSExpected, `bp update alice --tps 1`)
+	updateCmd.Flags().Uint64VarP(&bpUpdateCreateAccountFee, "fee", "f", constants.DefaultAccountCreateFee, `bp update alice --fee 1`)
 
 	cmd.AddCommand(registerCmd)
 	cmd.AddCommand(unregisterCmd)
@@ -83,7 +85,7 @@ func registerBP(cmd *cobra.Command, args []string) {
 		// reset to default value
 		// it's hard to assign default value from cobra.command
 		// so I have to do it manually
-		bpCreateAccountFee = 1
+		bpCreateAccountFee = constants.DefaultAccountCreateFee
 		bpBlockSize = 1024 * 1024
 		bpUrlFlag = ""
 		bpDescFlag = ""
@@ -202,8 +204,9 @@ func voteBp(cmd *cobra.Command, args []string) {
 
 func updateBp(cmd *cobra.Command, args []string) {
 	defer func() {
-		bpUpdateStaminaFree = constants.DefaultStaminaFree
-		bpUpdateTpsExpected = constants.DefaultTPSExpected
+		bpUpdateStaminaFree      = constants.DefaultStaminaFree
+		bpUpdateTpsExpected      = constants.DefaultTPSExpected
+		bpUpdateCreateAccountFee = constants.DefaultAccountCreateFee
 	}()
 	c := cmd.Context["rpcclient"]
 	client := c.(grpcpb.ApiServiceClient)
@@ -219,6 +222,7 @@ func updateBp(cmd *cobra.Command, args []string) {
 		Owner:                 &prototype.AccountName{Value: name},
 		ProposedStaminaFree:   bpUpdateStaminaFree,
 		TpsExpected:           bpUpdateTpsExpected,
+		AccountCreationFee:    prototype.NewCoin(bpUpdateCreateAccountFee),
 	}
 
 	signTx, err := utils.GenerateSignedTxAndValidate2(client, []interface{}{bpUpdate_op}, bpAccount)

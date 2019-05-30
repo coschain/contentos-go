@@ -226,6 +226,7 @@ message WitnessResponse {
     uint64                             proposed_stamina_free           = 6;
     bool                               active                          = 7;
     uint64                             tps_expected                    = 8;
+    prototype.coin                     account_create_fee              = 9;
 }
 
 message GetWitnessListRequest {

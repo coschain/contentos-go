@@ -50,7 +50,7 @@ func makeBpRegVoteTrx(client grpcpb.ApiServiceClient, count int64) (*prototype.S
 		Desc:            bpName,
 		BlockSigningKey: pubKey,
 		Props: &prototype.ChainProperties{
-			AccountCreationFee: prototype.NewCoin(1),
+			AccountCreationFee: prototype.NewCoin(constants.DefaultAccountCreateFee),
 			MaximumBlockSize:   10 * 1024 * 1024,
 			StaminaFree:        constants.DefaultStaminaFree,
 			TpsExpected:        constants.DefaultTPSExpected,
@@ -105,7 +105,7 @@ func createMNTAccountTrx(client grpcpb.ApiServiceClient, count int64) (*prototyp
 		}
 
 		opCreate := &prototype.AccountCreateOperation{
-			Fee:            prototype.NewCoin(1),
+			//Fee:            prototype.NewCoin(1),
 			Creator:        creator,
 			NewAccountName: &prototype.AccountName{Value: bpName},
 			Owner:          pubKey,

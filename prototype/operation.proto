@@ -49,6 +49,7 @@ message bp_update_operation {
     account_name owner = 1;
     uint64 proposed_stamina_free = 2;
     uint64 tps_expected = 3;
+    coin account_creation_fee = 4;
 }
 
 message bp_unregister_operation{

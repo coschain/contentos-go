@@ -628,6 +628,7 @@ func (c *TrxPool) initGenesis() {
 		tInfo.Active = true
 		tInfo.ProposedStaminaFree = constants.DefaultStaminaFree
 		tInfo.TpsExpected = constants.DefaultTPSExpected
+		tInfo.AccountCreateFee = prototype.NewCoin(constants.DefaultAccountCreateFee)
 	}), "Witness Create Error")
 
 	// create dynamic global properties
@@ -646,6 +647,7 @@ func (c *TrxPool) initGenesis() {
 		tInfo.Props.TotalUserCnt = 1
 		tInfo.Props.StaminaFree = constants.DefaultStaminaFree
 		tInfo.Props.TpsExpected = constants.DefaultTPSExpected
+		tInfo.Props.AccountCreateFee = prototype.NewCoin(constants.DefaultAccountCreateFee)
 		tInfo.Props.TotalVestingShares = prototype.NewVest(0)
 		tInfo.Props.PostRewards = prototype.NewVest(0)
 		tInfo.Props.ReplyRewards = prototype.NewVest(0)
@@ -798,6 +800,7 @@ func (c *TrxPool) updateGlobalWitnessBoot(bpNameList []string) {
 func (c *TrxPool) updateGlobalResourceParam(bpNameList []string) {
 	var tpsExpectedList  []uint64
 	var staminaFreeList  []uint64
+	var accountCreationFee []uint64
 
 	for i := range bpNameList {
 		ac := &prototype.AccountName{
@@ -809,14 +812,18 @@ func (c *TrxPool) updateGlobalResourceParam(bpNameList []string) {
 		}
 		tpsExpectedList = append(tpsExpectedList, witnessWrap.GetTpsExpected())
 		staminaFreeList = append(staminaFreeList, witnessWrap.GetProposedStaminaFree())
+		accountCreationFee = append(accountCreationFee, witnessWrap.GetAccountCreateFee().Value)
 	}
 
 	sort.Sort(selfmath.DirRange(tpsExpectedList))
 	sort.Sort(selfmath.DirRange(staminaFreeList))
+	sort.Sort(selfmath.DirRange(accountCreationFee))
 
 	c.modifyGlobalDynamicData(func(dgpo *prototype.DynamicProperties) {
 		dgpo.StaminaFree = staminaFreeList[ len(staminaFreeList) / 2 ]
 		dgpo.TpsExpected = tpsExpectedList[ len(tpsExpectedList) / 2 ]
+		midVal := accountCreationFee[ len(accountCreationFee) / 2 ]
+		dgpo.AccountCreateFee = prototype.NewCoin(midVal)
 	})
 }
 

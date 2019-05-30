@@ -64,6 +64,10 @@ const (
 	DefaultTPSExpected   = 100
 	MaxTPSExpected       = 200
 
+	MinAccountCreateFee      = 50
+	DefaultAccountCreateFee  = 50
+	MaxAccountCreateFee      = 100
+
 	BlocksPerDay = 24 * 60 * 60 / BlockInterval
 
 	MaxUndoHistory = 10000

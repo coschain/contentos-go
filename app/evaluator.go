@@ -222,11 +222,13 @@ func (ev *AccountCreateEvaluator) Apply() {
 
 	opAssert(creatorWrap.CheckExist(), "creator not exist ")
 
-	opAssert(creatorWrap.GetBalance().Value >= op.Fee.Value, "Insufficient balance to create account.")
+	dgpWrap := table.NewSoGlobalWrap(ev.Database(), &SingleId)
+	accountCreateFee := dgpWrap.GetProps().AccountCreateFee
+	opAssert(creatorWrap.GetBalance().Value >= accountCreateFee.Value, "Insufficient balance to create account.")
 
 	// sub creator's fee
 	originBalance := creatorWrap.GetBalance()
-	opAssertE(originBalance.Sub(op.Fee), "creator balance overflow")
+	opAssertE(originBalance.Sub(accountCreateFee), "creator balance overflow")
 	opAssert(creatorWrap.MdBalance(originBalance), "")
 
 	// create account
@@ -236,7 +238,8 @@ func (ev *AccountCreateEvaluator) Apply() {
 		tInfo.Creator = op.Creator
 		tInfo.CreatedTime = ev.GlobalProp().HeadBlockTime()
 		tInfo.Balance = prototype.NewCoin(0)
-		tInfo.VestingShares = op.Fee.ToVest()
+		//tInfo.VestingShares = op.Fee.ToVest()
+		tInfo.VestingShares = accountCreateFee.ToVest()
 		tInfo.LastPostTime = ev.GlobalProp().HeadBlockTime()
 		tInfo.LastVoteTime = ev.GlobalProp().HeadBlockTime()
 		tInfo.NextPowerdownBlockNum = math.MaxUint32
@@ -257,7 +260,8 @@ func (ev *AccountCreateEvaluator) Apply() {
 	//}), "duplicate create account authority object")
 
 	// sub dynamic glaobal properties's total fee
-	ev.GlobalProp().TransferToVest(op.Fee)
+	//ev.GlobalProp().TransferToVest(op.Fee)
+	ev.GlobalProp().TransferToVest(accountCreateFee)
 	ev.GlobalProp().ModifyProps(func(props *prototype.DynamicProperties) {
 		props.TotalUserCnt++
 	})
@@ -501,6 +505,12 @@ func (ev *BpRegisterEvaluator) Apply() {
 	opAssert(tpsExpected <= constants.MaxTPSExpected,
 		fmt.Sprintf("expected tps too high max value %d", constants.MaxTPSExpected))
 
+	accountCreateFee := op.Props.AccountCreationFee
+	opAssert(accountCreateFee.Value >= constants.MinAccountCreateFee,
+		fmt.Sprintf("account create fee too low min value %d", constants.MinAccountCreateFee))
+	opAssert(accountCreateFee.Value <= constants.MaxAccountCreateFee,
+		fmt.Sprintf("account create fee too high max value %d", constants.MaxAccountCreateFee))
+
 	witnessWrap := table.NewSoWitnessWrap(ev.Database(), op.Owner)
 
 	if witnessWrap.CheckExist() {
@@ -519,6 +529,7 @@ func (ev *BpRegisterEvaluator) Apply() {
 		t.Active = true
 		t.ProposedStaminaFree = staminaFree
 		t.TpsExpected = tpsExpected
+		t.AccountCreateFee = op.Props.AccountCreationFee
 
 		// TODO add others
 	}), "add witness record error")
@@ -667,9 +678,16 @@ func (ev *BpUpdateEvaluator) Apply() {
 	opAssert(tpsExpected <= constants.MaxTPSExpected,
 		fmt.Sprintf("expected tps too high max value %d", constants.MaxTPSExpected))
 
+	accountCreateFee := op.AccountCreationFee
+	opAssert(accountCreateFee.Value >= constants.MinAccountCreateFee,
+		fmt.Sprintf("account create fee too low min value %d", constants.MinAccountCreateFee))
+	opAssert(accountCreateFee.Value <= constants.MaxAccountCreateFee,
+		fmt.Sprintf("account create fee too high max value %d", constants.MaxAccountCreateFee))
+
 	witnessWrap := table.NewSoWitnessWrap(ev.Database(), op.Owner)
 	opAssert(witnessWrap.MdProposedStaminaFree(staminaFree), "update bp proposed stamina free error")
 	opAssert(witnessWrap.MdTpsExpected(tpsExpected), "update bp tps expected error")
+	opAssert(witnessWrap.MdAccountCreateFee(accountCreateFee), "update account create fee error")
 }
 
 func (ev *FollowEvaluator) Apply() {

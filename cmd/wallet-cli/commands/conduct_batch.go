@@ -79,7 +79,7 @@ func conductBatch(cmd *cobra.Command, args []string) {
 			pubkey, _ := prototype.PublicKeyFromWIF(newAccountPubKeyStr)
 
 			acop := &prototype.AccountCreateOperation{
-				Fee:            prototype.NewCoin(1),
+				//Fee:            prototype.NewCoin(1),
 				Creator:        &prototype.AccountName{Value: createrName},
 				NewAccountName: &prototype.AccountName{Value: newAccountName},
 				Owner:          pubkey,
