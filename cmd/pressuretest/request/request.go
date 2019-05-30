@@ -73,7 +73,7 @@ func createAccount(mywallet *wallet.BaseWallet, rpcClient grpcpb.ApiServiceClien
 	pubkey, _ := prototype.PublicKeyFromWIF(pubKeyStr)
 
 	acop := &prototype.AccountCreateOperation{
-		//Fee:            prototype.NewCoin(1),
+		Fee:            prototype.NewCoin(1),
 		Creator:        &prototype.AccountName{Value: creatorAccount.Name},
 		NewAccountName: &prototype.AccountName{Value: newAccountName},
 		Owner:          pubkey,

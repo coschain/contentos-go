@@ -64,8 +64,8 @@ const (
 	DefaultTPSExpected   = 100
 	MaxTPSExpected       = 200
 
-	MinAccountCreateFee      = 50
-	DefaultAccountCreateFee  = 50
+	MinAccountCreateFee      = 1
+	DefaultAccountCreateFee  = 1
 	MaxAccountCreateFee      = 100
 
 	BlocksPerDay = 24 * 60 * 60 / BlockInterval

@@ -224,7 +224,10 @@ func (ev *AccountCreateEvaluator) Apply() {
 	opAssert(creatorWrap.CheckExist(), "creator not exist ")
 
 	dgpWrap := table.NewSoGlobalWrap(ev.Database(), &SingleId)
-	accountCreateFee := dgpWrap.GetProps().AccountCreateFee
+	globalFee := dgpWrap.GetProps().AccountCreateFee
+	opAssert(op.Fee.Value >= globalFee.Value, fmt.Sprintf("Your fee is lower than global %d", globalFee.Value))
+
+	accountCreateFee := op.Fee
 	opAssert(creatorWrap.GetBalance().Value >= accountCreateFee.Value, "Insufficient balance to create account.")
 
 	// sub creator's fee
@@ -530,7 +533,7 @@ func (ev *BpRegisterEvaluator) Apply() {
 		t.Active = true
 		t.ProposedStaminaFree = staminaFree
 		t.TpsExpected = tpsExpected
-		t.AccountCreateFee = op.Props.AccountCreationFee
+		t.AccountCreateFee = accountCreateFee
 
 		// TODO add others
 	}), "add witness record error")

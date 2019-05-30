@@ -32,9 +32,9 @@ func (a *AccountCreateOperation) Validate() error {
 		return errors.WithMessage(err, "Owner error")
 	}
 
-	//if a.Fee == nil || a.Fee.Value == 0 {
-	//	return errors.New("Account Create must set Fee")
-	//}
+	if a.Fee == nil || a.Fee.Value == 0 {
+		return errors.New("Account Create must set Fee")
+	}
 
 	return nil
 }
