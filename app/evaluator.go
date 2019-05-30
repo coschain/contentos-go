@@ -17,6 +17,7 @@ import (
 	"math"
 	"math/big"
 	"sort"
+	"time"
 )
 
 func mustSuccess(b bool, val string) {
@@ -726,7 +727,7 @@ func (ev *TransferToVestingEvaluator) Apply() {
 	ev.GlobalProp().TransferToVest(op.Amount)
 }
 
-func updateWitnessVoteCount(dba iservices.IDatabaseRW, voter *prototype.AccountName, oldVest, newVest *prototype.Vest) {
+func updateWitnessVoteCount(dba iservices.IDatabaseRW, voter *prototype.AccountName, oldVest, newVest *prototype.Vest) (t1, t2 time.Duration){
 	sWrap := table.SWitnessVoteVoterIdWrap{dba}
 
 	start := &prototype.BpVoterId{Voter:voter, Witness:prototype.MinAccountName}
@@ -734,6 +735,7 @@ func updateWitnessVoteCount(dba iservices.IDatabaseRW, voter *prototype.AccountN
 
 	var witnessList []*prototype.AccountName
 
+	startTime := time.Now()
 	sWrap.ForEachByOrder(start, end, nil, nil,
 		func(mVal *prototype.BpVoterId, sVal *prototype.BpVoterId, idx uint32) bool {
 			if mVal != nil && mVal.Voter.Value == voter.Value {
@@ -744,6 +746,8 @@ func updateWitnessVoteCount(dba iservices.IDatabaseRW, voter *prototype.AccountN
 			}
 			return true
 		})
+	t1 = time.Now().Sub(startTime)
+	middleTime := time.Now()
 
 	// update witness vote count
 	for i:=0;i<len(witnessList);i++ {
@@ -760,6 +764,8 @@ func updateWitnessVoteCount(dba iservices.IDatabaseRW, voter *prototype.AccountN
 				"update witness vote count data error")
 		}
 	}
+	t2 = time.Now().Sub(middleTime)
+	return
 }
 
 func (ev *ConvertVestingEvaluator) Apply() {

@@ -394,8 +394,8 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 			mustNoError(vestingRewards.Add(authorWrap.GetVestingShares()), "Post VestingRewards Overflow")
 			authorWrap.MdVestingShares(vestingRewards)
 			t := time.Now()
-			updateWitnessVoteCount(e.db, &prototype.AccountName{Value: author}, oldVest, vestingRewards)
-			e.log.Debugf("cashout updateWitnessVoteCount:%v", time.Now().Sub(t))
+			t1, t2 := updateWitnessVoteCount(e.db, &prototype.AccountName{Value: author}, oldVest, vestingRewards)
+			e.log.Debugf("post cashout updateWitnessVoteCount: %v, foreach: %v, update voteCnt: %v", time.Now().Sub(t), t1, t2)
 		}
 		post.MdCashoutBlockNum(math.MaxUint32)
 		post.MdRewards(&prototype.Vest{Value: reward})
@@ -405,7 +405,7 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 			trxObserver.AddOpState(iservices.Add, "cashout", author, reward)
 		}
 		tCashout := time.Now()
-		e.log.Debugf("cashout postWeight: %v, beneficiary: %v, postCashout:%v", tPostWeight.Sub(tPost),
+		e.log.Debugf("cashout postWeight: %v, beneficiary: %v, postCashout: %v", tPostWeight.Sub(tPost),
 			tBeneficiary.Sub(tPostWeight), tCashout.Sub(tBeneficiary))
 	}
 	e.dgp.ModifyProps(func(props *prototype.DynamicProperties) {
@@ -497,7 +497,9 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 			vestingRewards := &prototype.Vest{Value: reward}
 			mustNoError(vestingRewards.Add(authorWrap.GetVestingShares()), "Reply VestingRewards Overflow")
 			authorWrap.MdVestingShares(vestingRewards)
-			updateWitnessVoteCount(e.db, &prototype.AccountName{Value: author}, oldVest, vestingRewards)
+			t := time.Now()
+			t1, t2 := updateWitnessVoteCount(e.db, &prototype.AccountName{Value: author}, oldVest, vestingRewards)
+			e.log.Debugf("reply cashout updateWitnessVoteCount: %v, foreach: %v, update voteCnt: %v", time.Now().Sub(t), t1, t2)
 		}
 		reply.MdCashoutBlockNum(math.MaxUint32)
 		reply.MdRewards(&prototype.Vest{Value: reward})
