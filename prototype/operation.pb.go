@@ -53,7 +53,7 @@ func (x ReportOperationTag) String() string {
 	return proto.EnumName(ReportOperationTag_name, int32(x))
 }
 func (ReportOperationTag) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_operation_31d36572e2a72f41, []int{17, 0}
+	return fileDescriptor_operation_1ad28e81dda38c62, []int{17, 0}
 }
 
 type AccountCreateOperation struct {
@@ -71,7 +71,7 @@ func (m *AccountCreateOperation) Reset()         { *m = AccountCreateOperation{}
 func (m *AccountCreateOperation) String() string { return proto.CompactTextString(m) }
 func (*AccountCreateOperation) ProtoMessage()    {}
 func (*AccountCreateOperation) Descriptor() ([]byte, []int) {
-	return fileDescriptor_operation_31d36572e2a72f41, []int{0}
+	return fileDescriptor_operation_1ad28e81dda38c62, []int{0}
 }
 func (m *AccountCreateOperation) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_AccountCreateOperation.Unmarshal(m, b)
@@ -138,7 +138,7 @@ func (m *AccountUpdateOperation) Reset()         { *m = AccountUpdateOperation{}
 func (m *AccountUpdateOperation) String() string { return proto.CompactTextString(m) }
 func (*AccountUpdateOperation) ProtoMessage()    {}
 func (*AccountUpdateOperation) Descriptor() ([]byte, []int) {
-	return fileDescriptor_operation_31d36572e2a72f41, []int{1}
+	return fileDescriptor_operation_1ad28e81dda38c62, []int{1}
 }
 func (m *AccountUpdateOperation) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_AccountUpdateOperation.Unmarshal(m, b)
@@ -186,7 +186,7 @@ func (m *TransferOperation) Reset()         { *m = TransferOperation{} }
 func (m *TransferOperation) String() string { return proto.CompactTextString(m) }
 func (*TransferOperation) ProtoMessage()    {}
 func (*TransferOperation) Descriptor() ([]byte, []int) {
-	return fileDescriptor_operation_31d36572e2a72f41, []int{2}
+	return fileDescriptor_operation_1ad28e81dda38c62, []int{2}
 }
 func (m *TransferOperation) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_TransferOperation.Unmarshal(m, b)
@@ -247,7 +247,7 @@ func (m *TransferToVestingOperation) Reset()         { *m = TransferToVestingOpe
 func (m *TransferToVestingOperation) String() string { return proto.CompactTextString(m) }
 func (*TransferToVestingOperation) ProtoMessage()    {}
 func (*TransferToVestingOperation) Descriptor() ([]byte, []int) {
-	return fileDescriptor_operation_31d36572e2a72f41, []int{3}
+	return fileDescriptor_operation_1ad28e81dda38c62, []int{3}
 }
 func (m *TransferToVestingOperation) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_TransferToVestingOperation.Unmarshal(m, b)
@@ -300,7 +300,7 @@ func (m *VoteOperation) Reset()         { *m = VoteOperation{} }
 func (m *VoteOperation) String() string { return proto.CompactTextString(m) }
 func (*VoteOperation) ProtoMessage()    {}
 func (*VoteOperation) Descriptor() ([]byte, []int) {
-	return fileDescriptor_operation_31d36572e2a72f41, []int{4}
+	return fileDescriptor_operation_1ad28e81dda38c62, []int{4}
 }
 func (m *VoteOperation) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_VoteOperation.Unmarshal(m, b)
@@ -349,7 +349,7 @@ func (m *BpRegisterOperation) Reset()         { *m = BpRegisterOperation{} }
 func (m *BpRegisterOperation) String() string { return proto.CompactTextString(m) }
 func (*BpRegisterOperation) ProtoMessage()    {}
 func (*BpRegisterOperation) Descriptor() ([]byte, []int) {
-	return fileDescriptor_operation_31d36572e2a72f41, []int{5}
+	return fileDescriptor_operation_1ad28e81dda38c62, []int{5}
 }
 func (m *BpRegisterOperation) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_BpRegisterOperation.Unmarshal(m, b)
@@ -418,7 +418,7 @@ func (m *BpUpdateOperation) Reset()         { *m = BpUpdateOperation{} }
 func (m *BpUpdateOperation) String() string { return proto.CompactTextString(m) }
 func (*BpUpdateOperation) ProtoMessage()    {}
 func (*BpUpdateOperation) Descriptor() ([]byte, []int) {
-	return fileDescriptor_operation_31d36572e2a72f41, []int{6}
+	return fileDescriptor_operation_1ad28e81dda38c62, []int{6}
 }
 func (m *BpUpdateOperation) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_BpUpdateOperation.Unmarshal(m, b)
@@ -477,7 +477,7 @@ func (m *BpUnregisterOperation) Reset()         { *m = BpUnregisterOperation{} }
 func (m *BpUnregisterOperation) String() string { return proto.CompactTextString(m) }
 func (*BpUnregisterOperation) ProtoMessage()    {}
 func (*BpUnregisterOperation) Descriptor() ([]byte, []int) {
-	return fileDescriptor_operation_31d36572e2a72f41, []int{7}
+	return fileDescriptor_operation_1ad28e81dda38c62, []int{7}
 }
 func (m *BpUnregisterOperation) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_BpUnregisterOperation.Unmarshal(m, b)
@@ -517,7 +517,7 @@ func (m *BpVoteOperation) Reset()         { *m = BpVoteOperation{} }
 func (m *BpVoteOperation) String() string { return proto.CompactTextString(m) }
 func (*BpVoteOperation) ProtoMessage()    {}
 func (*BpVoteOperation) Descriptor() ([]byte, []int) {
-	return fileDescriptor_operation_31d36572e2a72f41, []int{8}
+	return fileDescriptor_operation_1ad28e81dda38c62, []int{8}
 }
 func (m *BpVoteOperation) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_BpVoteOperation.Unmarshal(m, b)
@@ -571,7 +571,7 @@ func (m *FollowOperation) Reset()         { *m = FollowOperation{} }
 func (m *FollowOperation) String() string { return proto.CompactTextString(m) }
 func (*FollowOperation) ProtoMessage()    {}
 func (*FollowOperation) Descriptor() ([]byte, []int) {
-	return fileDescriptor_operation_31d36572e2a72f41, []int{9}
+	return fileDescriptor_operation_1ad28e81dda38c62, []int{9}
 }
 func (m *FollowOperation) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_FollowOperation.Unmarshal(m, b)
@@ -627,7 +627,7 @@ func (m *ContractDeployOperation) Reset()         { *m = ContractDeployOperation
 func (m *ContractDeployOperation) String() string { return proto.CompactTextString(m) }
 func (*ContractDeployOperation) ProtoMessage()    {}
 func (*ContractDeployOperation) Descriptor() ([]byte, []int) {
-	return fileDescriptor_operation_31d36572e2a72f41, []int{10}
+	return fileDescriptor_operation_1ad28e81dda38c62, []int{10}
 }
 func (m *ContractDeployOperation) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ContractDeployOperation.Unmarshal(m, b)
@@ -698,7 +698,7 @@ func (m *ContractApplyOperation) Reset()         { *m = ContractApplyOperation{}
 func (m *ContractApplyOperation) String() string { return proto.CompactTextString(m) }
 func (*ContractApplyOperation) ProtoMessage()    {}
 func (*ContractApplyOperation) Descriptor() ([]byte, []int) {
-	return fileDescriptor_operation_31d36572e2a72f41, []int{11}
+	return fileDescriptor_operation_1ad28e81dda38c62, []int{11}
 }
 func (m *ContractApplyOperation) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ContractApplyOperation.Unmarshal(m, b)
@@ -779,7 +779,7 @@ func (m *InternalContractApplyOperation) Reset()         { *m = InternalContract
 func (m *InternalContractApplyOperation) String() string { return proto.CompactTextString(m) }
 func (*InternalContractApplyOperation) ProtoMessage()    {}
 func (*InternalContractApplyOperation) Descriptor() ([]byte, []int) {
-	return fileDescriptor_operation_31d36572e2a72f41, []int{12}
+	return fileDescriptor_operation_1ad28e81dda38c62, []int{12}
 }
 func (m *InternalContractApplyOperation) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_InternalContractApplyOperation.Unmarshal(m, b)
@@ -878,7 +878,7 @@ func (m *PostOperation) Reset()         { *m = PostOperation{} }
 func (m *PostOperation) String() string { return proto.CompactTextString(m) }
 func (*PostOperation) ProtoMessage()    {}
 func (*PostOperation) Descriptor() ([]byte, []int) {
-	return fileDescriptor_operation_31d36572e2a72f41, []int{13}
+	return fileDescriptor_operation_1ad28e81dda38c62, []int{13}
 }
 func (m *PostOperation) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_PostOperation.Unmarshal(m, b)
@@ -955,7 +955,7 @@ func (m *ReplyOperation) Reset()         { *m = ReplyOperation{} }
 func (m *ReplyOperation) String() string { return proto.CompactTextString(m) }
 func (*ReplyOperation) ProtoMessage()    {}
 func (*ReplyOperation) Descriptor() ([]byte, []int) {
-	return fileDescriptor_operation_31d36572e2a72f41, []int{14}
+	return fileDescriptor_operation_1ad28e81dda38c62, []int{14}
 }
 func (m *ReplyOperation) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReplyOperation.Unmarshal(m, b)
@@ -1021,7 +1021,7 @@ func (m *ClaimAllOperation) Reset()         { *m = ClaimAllOperation{} }
 func (m *ClaimAllOperation) String() string { return proto.CompactTextString(m) }
 func (*ClaimAllOperation) ProtoMessage()    {}
 func (*ClaimAllOperation) Descriptor() ([]byte, []int) {
-	return fileDescriptor_operation_31d36572e2a72f41, []int{15}
+	return fileDescriptor_operation_1ad28e81dda38c62, []int{15}
 }
 func (m *ClaimAllOperation) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ClaimAllOperation.Unmarshal(m, b)
@@ -1060,7 +1060,7 @@ func (m *ClaimOperation) Reset()         { *m = ClaimOperation{} }
 func (m *ClaimOperation) String() string { return proto.CompactTextString(m) }
 func (*ClaimOperation) ProtoMessage()    {}
 func (*ClaimOperation) Descriptor() ([]byte, []int) {
-	return fileDescriptor_operation_31d36572e2a72f41, []int{16}
+	return fileDescriptor_operation_1ad28e81dda38c62, []int{16}
 }
 func (m *ClaimOperation) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ClaimOperation.Unmarshal(m, b)
@@ -1109,7 +1109,7 @@ func (m *ReportOperation) Reset()         { *m = ReportOperation{} }
 func (m *ReportOperation) String() string { return proto.CompactTextString(m) }
 func (*ReportOperation) ProtoMessage()    {}
 func (*ReportOperation) Descriptor() ([]byte, []int) {
-	return fileDescriptor_operation_31d36572e2a72f41, []int{17}
+	return fileDescriptor_operation_1ad28e81dda38c62, []int{17}
 }
 func (m *ReportOperation) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReportOperation.Unmarshal(m, b)
@@ -1176,7 +1176,7 @@ func (m *ConvertVestingOperation) Reset()         { *m = ConvertVestingOperation
 func (m *ConvertVestingOperation) String() string { return proto.CompactTextString(m) }
 func (*ConvertVestingOperation) ProtoMessage()    {}
 func (*ConvertVestingOperation) Descriptor() ([]byte, []int) {
-	return fileDescriptor_operation_31d36572e2a72f41, []int{18}
+	return fileDescriptor_operation_1ad28e81dda38c62, []int{18}
 }
 func (m *ConvertVestingOperation) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ConvertVestingOperation.Unmarshal(m, b)
@@ -1222,7 +1222,7 @@ func (m *StakeOperation) Reset()         { *m = StakeOperation{} }
 func (m *StakeOperation) String() string { return proto.CompactTextString(m) }
 func (*StakeOperation) ProtoMessage()    {}
 func (*StakeOperation) Descriptor() ([]byte, []int) {
-	return fileDescriptor_operation_31d36572e2a72f41, []int{19}
+	return fileDescriptor_operation_1ad28e81dda38c62, []int{19}
 }
 func (m *StakeOperation) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_StakeOperation.Unmarshal(m, b)
@@ -1268,7 +1268,7 @@ func (m *UnStakeOperation) Reset()         { *m = UnStakeOperation{} }
 func (m *UnStakeOperation) String() string { return proto.CompactTextString(m) }
 func (*UnStakeOperation) ProtoMessage()    {}
 func (*UnStakeOperation) Descriptor() ([]byte, []int) {
-	return fileDescriptor_operation_31d36572e2a72f41, []int{20}
+	return fileDescriptor_operation_1ad28e81dda38c62, []int{20}
 }
 func (m *UnStakeOperation) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_UnStakeOperation.Unmarshal(m, b)
@@ -1315,7 +1315,7 @@ func (m *TransferToStakeVestingOperation) Reset()         { *m = TransferToStake
 func (m *TransferToStakeVestingOperation) String() string { return proto.CompactTextString(m) }
 func (*TransferToStakeVestingOperation) ProtoMessage()    {}
 func (*TransferToStakeVestingOperation) Descriptor() ([]byte, []int) {
-	return fileDescriptor_operation_31d36572e2a72f41, []int{21}
+	return fileDescriptor_operation_1ad28e81dda38c62, []int{21}
 }
 func (m *TransferToStakeVestingOperation) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_TransferToStakeVestingOperation.Unmarshal(m, b)
@@ -1383,10 +1383,10 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("prototype/operation.proto", fileDescriptor_operation_31d36572e2a72f41)
+	proto.RegisterFile("prototype/operation.proto", fileDescriptor_operation_1ad28e81dda38c62)
 }
 
-var fileDescriptor_operation_31d36572e2a72f41 = []byte{
+var fileDescriptor_operation_1ad28e81dda38c62 = []byte{
 	// 1275 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xcc, 0x57, 0x4b, 0x6f, 0xdb, 0xc6,
 	0x13, 0xff, 0x53, 0x92, 0x65, 0x69, 0xe4, 0xd8, 0xca, 0xc6, 0x71, 0x94, 0x04, 0x7f, 0xc4, 0x66,

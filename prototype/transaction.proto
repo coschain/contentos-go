@@ -65,16 +65,10 @@ message transaction_wrapper_with_info {
     transaction_receipt_with_info receipt = 2;
 }
 
-message operation_receipt {
-    uint32 status = 1;
-    uint64 gas_usage = 2;
-}
-
 message transaction_receipt {
     uint32 status = 1;
     uint64 net_usage = 2;
     uint64 cpu_usage = 3;
-    repeated operation_receipt op_results = 4;
 }
 
 message transaction_wrapper {
