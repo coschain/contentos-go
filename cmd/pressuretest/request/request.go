@@ -18,7 +18,7 @@ var nameLib = "abcdefghijklmnopqrstuvwxyz01234567890"
 func stake(rpcClient grpcpb.ApiServiceClient, act *wallet.PrivAccount, amount uint64) {
 	stkop := &prototype.StakeOperation{
 		Account:        &prototype.AccountName{Value: act.Name},
-		Amount:            amount,
+		Amount:            &prototype.Coin{Value: amount},
 	}
 
 	signTx, err := utils.GenerateSignedTxAndValidate2(rpcClient, []interface{}{stkop}, act)
