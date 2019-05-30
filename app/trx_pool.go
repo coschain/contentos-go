@@ -273,8 +273,8 @@ func (c *TrxPool) generateBlockNoLock(witness string, pre *prototype.Sha256, tim
 	mustSuccess(bytes.Equal(witnessWrap.GetSigningKey().Data[:], pubkey.Data[:]), "public key not equal")
 
 	// @ signHeader size is zero, must have some content
-	signHeader := &prototype.SignedBlockHeader{}
-	emptyHeader(signHeader)
+	//signHeader := &prototype.SignedBlockHeader{}
+	//emptyHeader(signHeader)
 
 	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
 	maxBlockSize := dgpWrap.GetProps().MaximumBlockSize
