@@ -377,16 +377,24 @@ func (c *TrxPool) generateBlockNoLock(witness string, pre *prototype.Sha256, tim
 func (c *TrxPool) notifyBlockApply(block *prototype.SignedBlock) {
 	timing := common.NewTiming()
 	timing.Begin()
-	for _, trx := range block.Transactions {
-		for _, op := range trx.SigTrx.Trx.Operations {
-			c.noticer.Publish(constants.NoticeOpPost, &prototype.OperationNotification{Op: op})
+	blockNum := block.Id().BlockNum()
+	for trxIdx, trx := range block.Transactions {
+		for opIdx, op := range trx.SigTrx.Trx.Operations {
+			c.noticer.Publish(constants.NoticeOpPost,
+				&prototype.OperationNotification{
+					Trx_status: trx.Receipt.Status,
+					Block: blockNum,
+					Trx_in_block: uint64(trxIdx),
+					Op_in_trx: uint64(opIdx),
+					Op: op,
+				})
 		}
 		c.noticer.Publish(constants.NoticeTrxPost, trx.SigTrx)
 	}
 	timing.Mark()
 	c.noticer.Publish(constants.NoticeBlockApplied, block)
 	timing.End()
-	c.log.Debugf("NOTIFYBLOCK %d: %s, #tx=%d", block.Id().BlockNum(), timing.String(), len(block.Transactions))
+	c.log.Debugf("NOTIFYBLOCK %d: %s, #tx=%d", blockNum, timing.String(), len(block.Transactions))
 }
 
 func (c *TrxPool) notifyTrxApplyResult(trx *prototype.SignedTransaction, res bool,

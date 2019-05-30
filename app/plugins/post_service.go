@@ -54,6 +54,9 @@ func (p *PostService) onPostOperation(notification *prototype.OperationNotificat
 	if notification.Op == nil {
 		return
 	}
+	if notification.Trx_status != prototype.StatusSuccess {
+		return
+	}
 
 	switch notification.Op.GetOp().(type) {
 	case *prototype.Operation_Op6:
