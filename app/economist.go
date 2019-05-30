@@ -303,6 +303,7 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 	globalProps := e.dgp.GetProps()
 
 	//var vpAccumulator uint64 = 0
+	t0 := time.Now()
 	var vpAccumulator big.Int
 	for _, post := range posts {
 		//vp, _ := new(big.Int).SetString(post.GetWeightedVp(), 10)
@@ -310,6 +311,7 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 		//vpAccumulator += post.GetWeightedVp()
 		vpAccumulator.Add(&vpAccumulator, ISqrt(post.GetWeightedVp()))
 	}
+	e.log.Debugf("cashout post weight cashout spend: %v", time.Now().Sub(t0))
 	bigBlockRewards := new(big.Int).SetUint64(blockReward)
 	bigBlockDappReward := new(big.Int).SetUint64(blockDappReward)
 //	e.log.Debugf("current block post total vp:%d, global vp:%d", vpAccumulator, globalProps.PostWeightedVps)
@@ -317,6 +319,7 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 	var spentDappReward uint64 = 0
 	//var spentVoterReward uint64 = 0
 	for _, post := range posts {
+		tPost := time.Now()
 		author := post.GetAuthor().Value
 		var reward uint64 = 0
 		var beneficiaryReward uint64 = 0
@@ -337,6 +340,7 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 			spentPostReward += reward
 			spentDappReward += beneficiaryReward
 		}
+		tPostWeight := time.Now()
 		//e.voterCashout(post.GetPostId(), voterReward, post.GetWeightedVp(), innerRewards)
 		beneficiaries := post.GetBeneficiaries()
 		var spentBeneficiaryReward uint64 = 0
@@ -370,6 +374,7 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 				trxObserver.AddOpState(iservices.Add, "cashout", name , r)
 			}
 		}
+		tBeneficiary := time.Now()
 		if beneficiaryReward - spentBeneficiaryReward > 0 {
 			reward += beneficiaryReward - spentBeneficiaryReward
 		}
@@ -382,7 +387,9 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 			vestingRewards := &prototype.Vest{Value: reward}
 			mustNoError(vestingRewards.Add(authorWrap.GetVestingShares()), "Post VestingRewards Overflow")
 			authorWrap.MdVestingShares(vestingRewards)
+			t := time.Now()
 			updateWitnessVoteCount(e.db, &prototype.AccountName{Value: author}, oldVest, vestingRewards)
+			e.log.Debug("cashout updateWitnessVoteCount:%v", time.Now().Sub(t))
 		}
 		post.MdCashoutBlockNum(math.MaxUint32)
 		post.MdRewards(&prototype.Vest{Value: reward})
@@ -391,9 +398,10 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 			e.noticer.Publish(constants.NoticeCashout, author, post.GetPostId(), reward, globalProps.GetHeadBlockNumber())
 			trxObserver.AddOpState(iservices.Add, "cashout", author, reward)
 		}
+		tCashout := time.Now()
+		e.log.Debug("cashout postWeight: %v, beneficiary: %v, postCashout:%v", tPostWeight.Sub(tPost),
+			tBeneficiary.Sub(tPostWeight), tCashout.Sub(tBeneficiary))
 	}
-	e.log.Infof("cashout: [post] blockRewards: %d, blockDappRewards: %d, spendPostReward: %d, spendDappReward: %d",
-		blockReward, blockDappReward, spentPostReward, spentDappReward)
 	e.dgp.ModifyProps(func(props *prototype.DynamicProperties) {
 		//props.PostRewards.Value -= spentPostReward
 		//props.PostDappRewards.Value -= spentDappReward

@@ -403,7 +403,6 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabasePatch, entry *TrxEn
 	trxObserver := c.stateObserver.NewTrxObserver()
 	cid := prototype.ChainId{Value: 0}
 	trxHash, _ := sigTrx.GetTrxHash(cid)
-	c.log.Debugf("observer: %s", hex.EncodeToString(trxHash))
 	trxObserver.BeginTrx(hex.EncodeToString(trxHash))
 	trxContext := NewTrxContext(result, trxDB, entry.GetTrxSigner(), c, trxObserver)
 
