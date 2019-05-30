@@ -811,6 +811,16 @@ func (as *APIService) getAccountResponseByName(name *prototype.AccountName, isNe
 		acctInfo.TrxCount = accWrap.GetCreatedTrxCount()
 		acctInfo.VotePower = accWrap.GetVotePower()
 		acctInfo.StakeVest = accWrap.GetStakeVesting()
+		acctInfo.WithdrawRemains = accWrap.GetToPowerdown()
+		acctInfo.WithdrawEachTime = accWrap.GetEachPowerdownRate()
+		currentBlockNum := gp.GetHeadBlockNumber()
+		currentTime := gp.GetTime()
+		nextWithdrawBlock := accWrap.GetNextPowerdownBlockNum()
+		withdrawTime := &prototype.TimePointSec{UtcSeconds: 0}
+		if nextWithdrawBlock >= currentBlockNum && nextWithdrawBlock != math.MaxUint32 {
+			withdrawTime = &prototype.TimePointSec{UtcSeconds: uint32(nextWithdrawBlock - currentBlockNum) + currentTime.UtcSeconds}
+		}
+		acctInfo.NextWithdrawTime = withdrawTime
 
 		witWrap := table.NewSoWitnessWrap(as.db, accWrap.GetName())
 		if witWrap != nil && witWrap.CheckExist() {

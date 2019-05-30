@@ -165,6 +165,9 @@ message AccountInfo {
     uint64                                  stamina_stake_remain  = 13;
     uint64                                  stamina_max     = 14;
     prototype.vest                          stake_vest      = 15;
+    prototype.vest                          withdraw_remains = 16;
+    prototype.vest                          withdraw_each_time = 17;
+    prototype.time_point_sec                next_withdraw_time =      18;
 }
 
 message AccountResponse {
