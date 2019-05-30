@@ -93,6 +93,9 @@ func (e *Economist) Mint(trxObserver iservices.ITrxObserver) {
 	//blockCurrent := constants.PerBlockCurrent
 	//t0 := time.Now()
 	globalProps := e.dgp.GetProps()
+	if !globalProps.GetWitnessBootCompleted() {
+		return
+	}
 	ith := globalProps.GetIthYear()
 	annualBudget := e.CalculateBudget(ith)
 	// new year arrived
@@ -169,8 +172,11 @@ func (e *Economist) Mint(trxObserver iservices.ITrxObserver) {
 
 // Should be claiming or direct modify the balance?
 func (e *Economist) Do(trxObserver iservices.ITrxObserver) {
-	e.decayGlobalVotePower()
 	globalProps := e.dgp.GetProps()
+	if !globalProps.GetWitnessBootCompleted() {
+		return
+	}
+	e.decayGlobalVotePower()
 	iterator := table.NewPostCashoutBlockNumWrap(e.db)
 	var pids []*uint64
 	end := globalProps.HeadBlockNumber
@@ -389,7 +395,7 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 			authorWrap.MdVestingShares(vestingRewards)
 			t := time.Now()
 			updateWitnessVoteCount(e.db, &prototype.AccountName{Value: author}, oldVest, vestingRewards)
-			e.log.Debug("cashout updateWitnessVoteCount:%v", time.Now().Sub(t))
+			e.log.Debugf("cashout updateWitnessVoteCount:%v", time.Now().Sub(t))
 		}
 		post.MdCashoutBlockNum(math.MaxUint32)
 		post.MdRewards(&prototype.Vest{Value: reward})
@@ -399,7 +405,7 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 			trxObserver.AddOpState(iservices.Add, "cashout", author, reward)
 		}
 		tCashout := time.Now()
-		e.log.Debug("cashout postWeight: %v, beneficiary: %v, postCashout:%v", tPostWeight.Sub(tPost),
+		e.log.Debugf("cashout postWeight: %v, beneficiary: %v, postCashout:%v", tPostWeight.Sub(tPost),
 			tBeneficiary.Sub(tPostWeight), tCashout.Sub(tBeneficiary))
 	}
 	e.dgp.ModifyProps(func(props *prototype.DynamicProperties) {
@@ -532,6 +538,9 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 
 func (e *Economist) PowerDown() {
 	globalProps := e.dgp.GetProps()
+	if !globalProps.GetWitnessBootCompleted() {
+		return
+	}
 	//timestamp := globalProps.Time.UtcSeconds
 	//iterator := table.NewAccountNextPowerdownTimeWrap(e.db)
 	iterator := table.NewAccountNextPowerdownBlockNumWrap(e.db)
