@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/coschain/contentos-go/cmd/wallet-cli/commands/utils"
 	"github.com/coschain/contentos-go/cmd/wallet-cli/wallet"
+	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/rpc/pb"
 	"math/rand"
@@ -73,7 +74,7 @@ func createAccount(mywallet *wallet.BaseWallet, rpcClient grpcpb.ApiServiceClien
 	pubkey, _ := prototype.PublicKeyFromWIF(pubKeyStr)
 
 	acop := &prototype.AccountCreateOperation{
-		Fee:            prototype.NewCoin(1),
+		Fee:            prototype.NewCoin(constants.DefaultAccountCreateFee),
 		Creator:        &prototype.AccountName{Value: creatorAccount.Name},
 		NewAccountName: &prototype.AccountName{Value: newAccountName},
 		Owner:          pubkey,
