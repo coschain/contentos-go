@@ -132,6 +132,12 @@ message so_list_post_by_cashout_block_num {
 }
 
 
+message so_list_post_by_rewards {
+	prototype.vest                      	rewards             = 1;
+	uint64                              	post_id             = 2;
+}
+
+
 message so_unique_post_by_post_id {
 	uint64                              	post_id             = 1;
 }

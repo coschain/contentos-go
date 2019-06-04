@@ -16,6 +16,7 @@ import (
 var (
 	PostCreatedTable         uint32 = 3346451556
 	PostCashoutBlockNumTable uint32 = 1826021466
+	PostRewardsTable         uint32 = 2325142906
 	PostPostIdUniTable       uint32 = 157486700
 	PostAuthorCell           uint32 = 1681275280
 	PostBeneficiariesCell    uint32 = 2794141504
@@ -247,6 +248,59 @@ func (s *SoPostWrap) insertSortKeyCashoutBlockNum(sa *SoPost) bool {
 	return ordErr == nil
 }
 
+func (s *SoPostWrap) delSortKeyRewards(sa *SoPost) bool {
+	if s.dba == nil || s.mainKey == nil {
+		return false
+	}
+	val := SoListPostByRewards{}
+	if sa == nil {
+		key, err := s.encodeMemKey("Rewards")
+		if err != nil {
+			return false
+		}
+		buf, err := s.dba.Get(key)
+		if err != nil {
+			return false
+		}
+		ori := &SoMemPostByRewards{}
+		err = proto.Unmarshal(buf, ori)
+		if err != nil {
+			return false
+		}
+		val.Rewards = ori.Rewards
+		val.PostId = *s.mainKey
+	} else {
+		val.Rewards = sa.Rewards
+		val.PostId = sa.PostId
+	}
+
+	subBuf, err := val.OpeEncode()
+	if err != nil {
+		return false
+	}
+	ordErr := s.dba.Delete(subBuf)
+	return ordErr == nil
+}
+
+func (s *SoPostWrap) insertSortKeyRewards(sa *SoPost) bool {
+	if s.dba == nil || sa == nil {
+		return false
+	}
+	val := SoListPostByRewards{}
+	val.PostId = sa.PostId
+	val.Rewards = sa.Rewards
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return false
+	}
+	subBuf, err := val.OpeEncode()
+	if err != nil {
+		return false
+	}
+	ordErr := s.dba.Put(subBuf, buf)
+	return ordErr == nil
+}
+
 func (s *SoPostWrap) delAllSortKeys(br bool, val *SoPost) bool {
 	if s.dba == nil {
 		return false
@@ -260,6 +314,13 @@ func (s *SoPostWrap) delAllSortKeys(br bool, val *SoPost) bool {
 		}
 	}
 	if !s.delSortKeyCashoutBlockNum(val) {
+		if br {
+			return false
+		} else {
+			res = false
+		}
+	}
+	if !s.delSortKeyRewards(val) {
 		if br {
 			return false
 		} else {
@@ -282,6 +343,9 @@ func (s *SoPostWrap) insertAllSortKeys(val *SoPost) error {
 	}
 	if !s.insertSortKeyCashoutBlockNum(val) {
 		return errors.New("insert sort Field CashoutBlockNum fail while insert table ")
+	}
+	if !s.insertSortKeyRewards(val) {
+		return errors.New("insert sort Field Rewards fail while insert table ")
 	}
 
 	return nil
@@ -1609,6 +1673,9 @@ func (s *SoPostWrap) MdRewards(p *prototype.Vest) bool {
 	sa.PostId = *s.mainKey
 	sa.Rewards = ori.Rewards
 
+	if !s.delSortKeyRewards(sa) {
+		return false
+	}
 	ori.Rewards = p
 	val, err := proto.Marshal(ori)
 	if err != nil {
@@ -1619,6 +1686,10 @@ func (s *SoPostWrap) MdRewards(p *prototype.Vest) bool {
 		return false
 	}
 	sa.Rewards = p
+
+	if !s.insertSortKeyRewards(sa) {
+		return false
+	}
 
 	return true
 }
@@ -2295,6 +2366,108 @@ func (s *SPostCashoutBlockNumWrap) ForEachByOrder(start *uint64, end *uint64, la
 	}
 	var idx uint32 = 0
 	s.Dba.Iterate(sBuf, eBuf, false, func(key, value []byte) bool {
+		idx++
+		return f(s.GetMainVal(value), s.GetSubVal(value), idx)
+	})
+	return nil
+}
+
+////////////// SECTION List Keys ///////////////
+type SPostRewardsWrap struct {
+	Dba iservices.IDatabaseRW
+}
+
+func NewPostRewardsWrap(db iservices.IDatabaseRW) *SPostRewardsWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := SPostRewardsWrap{Dba: db}
+	return &wrap
+}
+
+func (s *SPostRewardsWrap) GetMainVal(val []byte) *uint64 {
+	res := &SoListPostByRewards{}
+	err := proto.Unmarshal(val, res)
+
+	if err != nil {
+		return nil
+	}
+
+	return &res.PostId
+
+}
+
+func (s *SPostRewardsWrap) GetSubVal(val []byte) *prototype.Vest {
+	res := &SoListPostByRewards{}
+	err := proto.Unmarshal(val, res)
+	if err != nil {
+		return nil
+	}
+	return res.Rewards
+
+}
+
+func (m *SoListPostByRewards) OpeEncode() ([]byte, error) {
+	pre := PostRewardsTable
+	sub := m.Rewards
+	if sub == nil {
+		return nil, errors.New("the pro Rewards is nil")
+	}
+	sub1 := m.PostId
+
+	kList := []interface{}{pre, sub, sub1}
+	kBuf, cErr := kope.EncodeSlice(kList)
+	return kBuf, cErr
+}
+
+//Query srt by reverse order
+//
+//f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
+//as arguments to the callback function
+//if the return value of f is true,continue iterating until the end iteration;
+//otherwise stop iteration immediately
+//
+//lastMainKey: the main key of the last one of last page
+//lastSubVal: the value  of the last one of last page
+//
+func (s *SPostRewardsWrap) ForEachByRevOrder(start *prototype.Vest, end *prototype.Vest, lastMainKey *uint64,
+	lastSubVal *prototype.Vest, f func(mVal *uint64, sVal *prototype.Vest, idx uint32) bool) error {
+	if s.Dba == nil {
+		return errors.New("the db is nil")
+	}
+	if (lastSubVal != nil && lastMainKey == nil) || (lastSubVal == nil && lastMainKey != nil) {
+		return errors.New("last query param error")
+	}
+	if f == nil {
+		return nil
+	}
+	pre := PostRewardsTable
+	skeyList := []interface{}{pre}
+	if start != nil {
+		skeyList = append(skeyList, start)
+		if lastMainKey != nil {
+			skeyList = append(skeyList, lastMainKey)
+		}
+	} else {
+		if lastMainKey != nil && lastSubVal != nil {
+			skeyList = append(skeyList, lastSubVal, lastMainKey)
+		}
+		skeyList = append(skeyList, kope.MaximumKey)
+	}
+	sBuf, cErr := kope.EncodeSlice(skeyList)
+	if cErr != nil {
+		return cErr
+	}
+	eKeyList := []interface{}{pre}
+	if end != nil {
+		eKeyList = append(eKeyList, end)
+	}
+	eBuf, cErr := kope.EncodeSlice(eKeyList)
+	if cErr != nil {
+		return cErr
+	}
+	var idx uint32 = 0
+	s.Dba.Iterate(eBuf, sBuf, true, func(key, value []byte) bool {
 		idx++
 		return f(s.GetMainVal(value), s.GetSubVal(value), idx)
 	})
