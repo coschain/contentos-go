@@ -54,6 +54,7 @@ const (
 	VoteCountPerVest         = 1
 
 	MaxAccountNameLength     = 16
+	MinAccountNameLength     = 6
 
 	// resource limit
 	MinStaminaFree       = 0

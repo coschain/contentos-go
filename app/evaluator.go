@@ -731,8 +731,20 @@ func (ev *TransferToVestingEvaluator) Apply() {
 }
 
 func updateWitnessVoteCount(dba iservices.IDatabaseRW, voter *prototype.AccountName, oldVest, newVest *prototype.Vest) (t1, t2 time.Duration){
-	sWrap := table.SWitnessVoteVoterIdWrap{dba}
+	getVoteCntStart := time.Now()
+	voterAccount := table.NewSoAccountWrap(dba, voter)
+	if voterAccount == nil || !voterAccount.CheckExist() {
+		t2 = time.Now().Sub(getVoteCntStart)
+		return
+	}
+	voteCnt := voterAccount.GetBpVoteCount()
+	if voteCnt == 0 {
+		t2 = time.Now().Sub(getVoteCntStart)
+		return
+	}
+	t2 = time.Now().Sub(getVoteCntStart)
 
+	sWrap := table.SWitnessVoteVoterIdWrap{dba}
 	start := &prototype.BpVoterId{Voter:voter, Witness:prototype.MinAccountName}
 	end := &prototype.BpVoterId{Voter:voter, Witness:prototype.MaxAccountName}
 
@@ -750,12 +762,6 @@ func updateWitnessVoteCount(dba iservices.IDatabaseRW, voter *prototype.AccountN
 			return true
 		})
 	t1 = time.Now().Sub(startTime)
-
-	voterAccount := table.NewSoAccountWrap(dba, voter)
-	middleTime := time.Now()
-	free := voterAccount.GetStaminaFree()
-	t2 = time.Now().Sub(middleTime)
-	fmt.Println(free)
 
 	// update witness vote count
 	for i:=0;i<len(witnessList);i++ {

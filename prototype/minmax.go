@@ -8,7 +8,8 @@ import (
 
 var (
 	MaxAccountName = NewAccountName(strings.Repeat("z", constants.MaxAccountNameLength + 1));
-	MinAccountName = NewAccountName("");
+	//MinAccountName = NewAccountName("")
+	MinAccountName = NewAccountName( strings.Repeat("0", constants.MinAccountNameLength) )
 
 	MaxCoin = NewCoin(math.MaxUint64);
 	MinCoin = NewCoin(0);
