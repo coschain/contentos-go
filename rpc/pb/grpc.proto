@@ -168,6 +168,7 @@ message AccountInfo {
     prototype.vest                          withdraw_remains = 16;
     prototype.vest                          withdraw_each_time = 17;
     prototype.time_point_sec                next_withdraw_time =      18;
+    uint32                                  bp_vote_count = 19;
 }
 
 message AccountResponse {
@@ -221,12 +222,13 @@ message WitnessResponse {
     prototype.account_name             owner                           = 1;
     prototype.time_point_sec           created_time                    = 2;
     string                             url                             = 3;
-    uint64                             vote_count                      = 4;
+    prototype.vest                     vote_count                      = 4;
     prototype.public_key_type          signing_key                     = 5;
     uint64                             proposed_stamina_free           = 6;
     bool                               active                          = 7;
     uint64                             tps_expected                    = 8;
     prototype.coin                     account_create_fee              = 9;
+    repeated prototype.account_name    voter_list                      = 10;
 }
 
 message GetWitnessListRequest {
@@ -545,8 +547,8 @@ message GetContractListResponse {
 }
 
 message GetWitnessListByVoteCountRequest {
-    uint64   start   = 1 [jstype = JS_STRING];
-    uint64   end     = 2 [jstype = JS_STRING];
+    prototype.vest   start   = 1;
+    prototype.vest   end     = 2;
     WitnessResponse  last_witness = 3;
     uint32           limit     = 4;
 }

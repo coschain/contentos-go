@@ -26,6 +26,7 @@ var (
 	WitnessTpsExpectedCell         uint32 = 2661903099
 	WitnessUrlCell                 uint32 = 261756480
 	WitnessVoteCountCell           uint32 = 149922791
+	WitnessVoterListCell           uint32 = 1500181820
 )
 
 ////////////// SECTION Wrap Define ///////////////
@@ -335,6 +336,9 @@ func (s *SoWitnessWrap) getMemKeyPrefix(fName string) uint32 {
 	if fName == "VoteCount" {
 		return WitnessVoteCountCell
 	}
+	if fName == "VoterList" {
+		return WitnessVoterListCell
+	}
 
 	return 0
 }
@@ -429,6 +433,13 @@ func (s *SoWitnessWrap) saveAllMemKeys(tInfo *SoWitness, br bool) error {
 			return err
 		} else {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "VoteCount", err)
+		}
+	}
+	if err = s.saveMemKeyVoterList(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "VoterList", err)
 		}
 	}
 
@@ -1129,7 +1140,7 @@ func (s *SoWitnessWrap) saveMemKeyVoteCount(tInfo *SoWitness) error {
 	return err
 }
 
-func (s *SoWitnessWrap) GetVoteCount() uint64 {
+func (s *SoWitnessWrap) GetVoteCount() *prototype.Vest {
 	res := true
 	msg := &SoMemWitnessByVoteCount{}
 	if s.dba == nil {
@@ -1152,13 +1163,13 @@ func (s *SoWitnessWrap) GetVoteCount() uint64 {
 		}
 	}
 	if !res {
-		var tmpValue uint64
-		return tmpValue
+		return nil
+
 	}
 	return msg.VoteCount
 }
 
-func (s *SoWitnessWrap) MdVoteCount(p uint64) bool {
+func (s *SoWitnessWrap) MdVoteCount(p *prototype.Vest) bool {
 	if s.dba == nil {
 		return false
 	}
@@ -1194,6 +1205,89 @@ func (s *SoWitnessWrap) MdVoteCount(p uint64) bool {
 	if !s.insertSortKeyVoteCount(sa) {
 		return false
 	}
+
+	return true
+}
+
+func (s *SoWitnessWrap) saveMemKeyVoterList(tInfo *SoWitness) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemWitnessByVoterList{}
+	val.VoterList = tInfo.VoterList
+	key, err := s.encodeMemKey("VoterList")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
+
+func (s *SoWitnessWrap) GetVoterList() []*prototype.AccountName {
+	res := true
+	msg := &SoMemWitnessByVoterList{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("VoterList")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.VoterList
+			}
+		}
+	}
+	if !res {
+		var tmpValue []*prototype.AccountName
+		return tmpValue
+	}
+	return msg.VoterList
+}
+
+func (s *SoWitnessWrap) MdVoterList(p []*prototype.AccountName) bool {
+	if s.dba == nil {
+		return false
+	}
+	key, err := s.encodeMemKey("VoterList")
+	if err != nil {
+		return false
+	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemWitnessByVoterList{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoWitness{}
+	sa.Owner = s.mainKey
+
+	sa.VoterList = ori.VoterList
+
+	ori.VoterList = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
+		return false
+	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.VoterList = p
 
 	return true
 }
@@ -1331,20 +1425,22 @@ func (s *SWitnessVoteCountWrap) GetMainVal(val []byte) *prototype.AccountName {
 
 }
 
-func (s *SWitnessVoteCountWrap) GetSubVal(val []byte) *uint64 {
+func (s *SWitnessVoteCountWrap) GetSubVal(val []byte) *prototype.Vest {
 	res := &SoListWitnessByVoteCount{}
 	err := proto.Unmarshal(val, res)
 	if err != nil {
 		return nil
 	}
-	return &res.VoteCount
+	return res.VoteCount
 
 }
 
 func (m *SoListWitnessByVoteCount) OpeEncode() ([]byte, error) {
 	pre := WitnessVoteCountTable
 	sub := m.VoteCount
-
+	if sub == nil {
+		return nil, errors.New("the pro VoteCount is nil")
+	}
 	sub1 := m.Owner
 	if sub1 == nil {
 		return nil, errors.New("the mainkey Owner is nil")
@@ -1364,8 +1460,8 @@ func (m *SoListWitnessByVoteCount) OpeEncode() ([]byte, error) {
 //lastMainKey: the main key of the last one of last page
 //lastSubVal: the value  of the last one of last page
 //
-func (s *SWitnessVoteCountWrap) ForEachByRevOrder(start *uint64, end *uint64, lastMainKey *prototype.AccountName,
-	lastSubVal *uint64, f func(mVal *prototype.AccountName, sVal *uint64, idx uint32) bool) error {
+func (s *SWitnessVoteCountWrap) ForEachByRevOrder(start *prototype.Vest, end *prototype.Vest, lastMainKey *prototype.AccountName,
+	lastSubVal *prototype.Vest, f func(mVal *prototype.AccountName, sVal *prototype.Vest, idx uint32) bool) error {
 	if s.Dba == nil {
 		return errors.New("the db is nil")
 	}

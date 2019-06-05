@@ -637,6 +637,7 @@ func (c *TrxPool) initGenesis() {
 		tInfo.ProposedStaminaFree = constants.DefaultStaminaFree
 		tInfo.TpsExpected = constants.DefaultTPSExpected
 		tInfo.AccountCreateFee = prototype.NewCoin(constants.DefaultAccountCreateFee)
+		tInfo.VoteCount = prototype.NewVest(0)
 	}), "Witness Create Error")
 
 	// create dynamic global properties
@@ -860,7 +861,7 @@ func (c *TrxPool) deleteUnusedBp(bpNameList []string) {
 	revList := table.SWitnessVoteCountWrap{Dba: c.db}
 	var deletelist       []*prototype.AccountName
 
-	_ = revList.ForEachByRevOrder(nil, nil,nil,nil, func(mVal *prototype.AccountName, sVal *uint64, idx uint32) bool {
+	_ = revList.ForEachByRevOrder(nil, nil,nil,nil, func(mVal *prototype.AccountName, sVal *prototype.Vest, idx uint32) bool {
 		if mVal != nil {
 			witnessWrap := table.NewSoWitnessWrap(c.db, mVal)
 			if witnessWrap.CheckExist() {
@@ -884,6 +885,7 @@ func (c *TrxPool) deleteUnusedBp(bpNameList []string) {
 		}
 		witnessWrap := table.NewSoWitnessWrap(c.db, ac)
 		if witnessWrap.CheckExist() {
+			payBackVoteCntToVoter(c.db, ac)
 			mustSuccess(witnessWrap.RemoveWitness(), fmt.Sprintf("delete bp %s error", constants.COSInitMiner))
 		}
 	}
@@ -943,7 +945,7 @@ func (c *TrxPool) GetWitnessTopN(n uint32) ([]string, []*prototype.PublicKeyType
 	var keys             []*prototype.PublicKeyType
 	revList := table.SWitnessVoteCountWrap{Dba: c.db}
 	var bpCount uint32 = 0
-	_ = revList.ForEachByRevOrder(nil, nil,nil,nil, func(mVal *prototype.AccountName, sVal *uint64, idx uint32) bool {
+	_ = revList.ForEachByRevOrder(nil, nil,nil,nil, func(mVal *prototype.AccountName, sVal *prototype.Vest, idx uint32) bool {
 		if mVal != nil {
 			witnessWrap := table.NewSoWitnessWrap(c.db, mVal)
 			if witnessWrap.CheckExist() {

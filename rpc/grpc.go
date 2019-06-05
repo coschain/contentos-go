@@ -813,6 +813,7 @@ func (as *APIService) getAccountResponseByName(name *prototype.AccountName, isNe
 		acctInfo.StakeVest = accWrap.GetStakeVesting()
 		acctInfo.WithdrawRemains = accWrap.GetToPowerdown()
 		acctInfo.WithdrawEachTime = accWrap.GetEachPowerdownRate()
+		acctInfo.BpVoteCount = accWrap.GetBpVoteCount()
 		currentBlockNum := gp.GetHeadBlockNumber()
 		currentTime := gp.GetTime()
 		nextWithdrawBlock := accWrap.GetNextPowerdownBlockNum()
@@ -834,6 +835,7 @@ func (as *APIService) getAccountResponseByName(name *prototype.AccountName, isNe
 				Active:                witWrap.GetActive(),
 				TpsExpected:           witWrap.GetTpsExpected(),
 				AccountCreateFee:      witWrap.GetAccountCreateFee(),
+				VoterList:             witWrap.GetVoterList(),
 			}
 		}
 
@@ -1253,7 +1255,7 @@ func (as *APIService) GetWitnessListByVoteCount(ctx context.Context, req *grpcpb
 		witList []*grpcpb.WitnessResponse
 		limit   uint32
 		lastMainKey *prototype.AccountName
-		lastSubVal  *uint64
+		lastSubVal  *prototype.Vest
 	)
 	res := &grpcpb.GetWitnessListResponse{}
 	limit = checkLimit(req.Limit)
@@ -1262,11 +1264,11 @@ func (as *APIService) GetWitnessListByVoteCount(ctx context.Context, req *grpcpb
 		lastWit := req.LastWitness
 		if lastWit != nil {
 			lastMainKey = &prototype.AccountName{Value:lastWit.Owner.Value}
-			lastSubVal = &lastWit.VoteCount
+			lastSubVal = lastWit.VoteCount
 
 		}
-		err = srtWrap.ForEachByRevOrder(&req.Start, &req.End, lastMainKey,  lastSubVal,
-			func(mVal *prototype.AccountName, sVal *uint64, idx uint32) bool {
+		err = srtWrap.ForEachByRevOrder(req.Start, req.End, lastMainKey,  lastSubVal,
+			func(mVal *prototype.AccountName, sVal *prototype.Vest, idx uint32) bool {
 				if mVal != nil {
 					witness := as.getWitnessResponseByAccountName(mVal)
 					if witness != nil {

@@ -11,12 +11,13 @@ message so_witness {
 	prototype.account_name            owner                        =      1;
     prototype.time_point_sec          created_time                 =      2;
     string                            url                          =      3;
-    uint64                            vote_count                   =      4;
+    prototype.vest                    vote_count                   =      4;
     prototype.public_key_type         signing_key                  =      5;
     uint64                            proposed_stamina_free        =      6;
     bool                              active                       =      7;
     uint64                            tps_expected                 =      8;
     prototype.coin                    account_create_fee           =      9;
+    repeated                      prototype.account_name          voter_list                   =      10;
       
 }
 
@@ -37,7 +38,7 @@ message so_mem_witness_by_url {
 
 
 message so_mem_witness_by_vote_count {
-	uint64                         	vote_count               = 1;
+	prototype.vest                 	vote_count               = 1;
 }
 
 
@@ -66,13 +67,18 @@ message so_mem_witness_by_account_create_fee {
 }
 
 
+message so_mem_witness_by_voter_list {
+	repeated  	prototype.account_name       	voter_list               = 1;
+}
+
+
 message so_list_witness_by_owner {
 	prototype.account_name         	owner                    = 1;
 }
 
 
 message so_list_witness_by_vote_count {
-	uint64                         	vote_count               = 1;
+	prototype.vest                 	vote_count               = 1;
 	prototype.account_name         	owner                    = 2;
 }
 
