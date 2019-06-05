@@ -1298,6 +1298,7 @@ func (as *APIService) getWitnessResponseByAccountName(acct *prototype.AccountNam
 				ProposedStaminaFree:   witWrap.GetProposedStaminaFree(),
 				Active:                witWrap.GetActive(),
 				TpsExpected:           witWrap.GetTpsExpected(),
+				VoterList:             witWrap.GetVoterList(),
 			}
 			return witness
 		}
