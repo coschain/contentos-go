@@ -17,7 +17,7 @@ var UnStakeCmd = func() *cobra.Command {
 		Short:   "unstake some cos for stamina",
 		Long:    "",
 		Example: "unstake alice 500",
-		Args:    cobra.MinimumNArgs(2),
+		Args:    cobra.MinimumNArgs(3),
 		Run:     unstake,
 	}
 	return cmd
@@ -28,20 +28,22 @@ func unstake(cmd *cobra.Command, args []string) {
 	client := c.(grpcpb.ApiServiceClient)
 	w := cmd.Context["wallet"]
 	mywallet := w.(wallet.Wallet)
-	user := args[0]
-	amount, err := strconv.ParseInt(args[1], 10, 64)
+	userCreditor := args[0]
+	userDebtor := args[1]
+	amount, err := strconv.ParseInt(args[2], 10, 64)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	stakeAccount, ok := mywallet.GetUnlockedAccount(user)
+	stakeAccount, ok := mywallet.GetUnlockedAccount(userCreditor)
 	if !ok {
-		fmt.Println(fmt.Sprintf("account: %s should be loaded or created first", user))
+		fmt.Println(fmt.Sprintf("account: %s should be loaded or created first", userCreditor))
 		return
 	}
 
 	unStakeOp := &prototype.UnStakeOperation{
-		Account:   &prototype.AccountName{Value: user},
+		Creditor:   &prototype.AccountName{Value: userCreditor},
+		Debtor:   &prototype.AccountName{Value: userDebtor},
 		Amount:    prototype.NewCoin(uint64(amount)),
 	}
 

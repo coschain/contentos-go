@@ -1,6 +1,6 @@
 package prototype
 func (m *UnStakeOperation) GetSigner(auths *map[string]bool) {
-	(*auths)[m.Account.Value] = true
+	(*auths)[m.Creditor.Value] = true
 }
 
 

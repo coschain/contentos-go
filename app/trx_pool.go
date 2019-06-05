@@ -669,6 +669,7 @@ func (c *TrxPool) initGenesis() {
 		tInfo.Props.ReplyDappRewards = prototype.NewVest(0)
 		tInfo.Props.VoterRewards = prototype.NewVest(0)
 		tInfo.Props.StakeVestingShares = prototype.NewVest(0)
+		tInfo.Props.OneDayStamina = constants.OneDayStamina
 	}), "CreateDynamicGlobalProperties error")
 
 	// create block summary buffer 2048
@@ -713,6 +714,25 @@ func (c *TrxPool) TransferFromVest(value *prototype.Vest) {
 
 		mustNoError(vest.Sub(value), "TotalVestingShares overflow")
 		dgpo.TotalVestingShares = vest
+	})
+}
+
+func (c *TrxPool) TransferToStakeVest(value *prototype.Coin) {
+	c.modifyGlobalDynamicData(func(dgpo *prototype.DynamicProperties) {
+		vest := dgpo.GetStakeVestingShares()
+		addVest := value.ToVest()
+
+		mustNoError(vest.Add(addVest), "StakeVestingShares overflow")
+		dgpo.StakeVestingShares = vest
+	})
+}
+
+func (c *TrxPool) TransferFromStakeVest(value *prototype.Vest) {
+	c.modifyGlobalDynamicData(func(dgpo *prototype.DynamicProperties) {
+		vest := dgpo.GetStakeVestingShares()
+
+		mustNoError(vest.Sub(value), "UnStakeVestingShares overflow")
+		dgpo.StakeVestingShares = vest
 	})
 }
 

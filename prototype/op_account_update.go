@@ -14,5 +14,5 @@ func (m *AccountUpdateOperation) GetAffectedProps(props *map[string]bool) {
 }
 
 func init() {
-	registerOperation("account_update", (*Operation_Op21)(nil), (*AccountUpdateOperation)(nil));
+	registerOperation("account_update", (*Operation_Op20)(nil), (*AccountUpdateOperation)(nil));
 }

@@ -1,6 +1,6 @@
 package prototype
 func (m *StakeOperation) GetSigner(auths *map[string]bool) {
-	(*auths)[m.Account.Value] = true
+	(*auths)[m.From.Value] = true
 }
 
 

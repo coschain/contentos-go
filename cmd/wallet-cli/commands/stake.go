@@ -16,8 +16,8 @@ var StakeCmd = func() *cobra.Command {
 		Use:     "stake",
 		Short:   "stake some cos for stamina",
 		Long:    "",
-		Example: "stake alice 500",
-		Args:    cobra.MinimumNArgs(2),
+		Example: "stake alice bob 500",
+		Args:    cobra.MinimumNArgs(3),
 		Run:     stake,
 	}
 	return cmd
@@ -28,20 +28,22 @@ func stake(cmd *cobra.Command, args []string) {
 	client := c.(grpcpb.ApiServiceClient)
 	w := cmd.Context["wallet"]
 	mywallet := w.(wallet.Wallet)
-	user := args[0]
-	amount, err := strconv.ParseInt(args[1], 10, 64)
+	userFrom := args[0]
+	userTo := args[1]
+	amount, err := strconv.ParseInt(args[2], 10, 64)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	stakeAccount, ok := mywallet.GetUnlockedAccount(user)
+	stakeAccount, ok := mywallet.GetUnlockedAccount(userFrom)
 	if !ok {
-		fmt.Println(fmt.Sprintf("account: %s should be loaded or created first", user))
+		fmt.Println(fmt.Sprintf("account: %s should be loaded or created first", userFrom))
 		return
 	}
 
 	stakeOp := &prototype.StakeOperation{
-		Account:   &prototype.AccountName{Value: user},
+		From:   &prototype.AccountName{Value: userFrom},
+		To:   &prototype.AccountName{Value: userTo},
 		Amount:    prototype.NewCoin(uint64(amount)),
 	}
 

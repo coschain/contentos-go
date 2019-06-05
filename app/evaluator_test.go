@@ -32,6 +32,14 @@ var (
 	SINGLE_ID int32 = 1
 )
 
+type fakeInjector struct {
+	vminjector.Injector
+}
+
+func (f *fakeInjector) RecordStaminaFee(caller string, spent uint64) {
+
+}
+
 type ApplyContext struct {
 	db         iservices.IDatabaseRW
 	control    iservices.IGlobalPropRW
@@ -60,7 +68,7 @@ func (ctx *ApplyContext) Logger() *logrus.Logger {
 func tryCreateAccount(t *testing.T, acc string, ctrl *TrxPool) {
 	acop := &prototype.AccountCreateOperation{
 		Fee:            prototype.NewCoin(1),
-		Creator:        &prototype.AccountName{Value: "initminer"},
+		Creator:        &prototype.AccountName{Value: constants.COSInitMiner},
 		NewAccountName: &prototype.AccountName{Value: acc},
 		Owner:          &prototype.PublicKeyType{ Data: []byte{0} },
 	}
@@ -70,7 +78,7 @@ func tryCreateAccount(t *testing.T, acc string, ctrl *TrxPool) {
 	op1.Op1 = acop
 	op.Op = op1
 
-	ctx := &ApplyContext{db: ctrl.db, control: ctrl}
+	ctx := &ApplyContext{db: ctrl.db, control: ctrl, vmInjector:&fakeInjector{}}
 	ev := &AccountCreateEvaluator{BaseDelegate: BaseDelegate{delegate:ctx}, op: op.GetOp1()}
 	ev.Apply()
 
@@ -93,7 +101,7 @@ func Test_ApplyAccountCreate(t *testing.T) {
 
 func Test_ApplyTransfer(t *testing.T) {
 	top := &prototype.TransferOperation{
-		From:   &prototype.AccountName{Value: "initminer"},
+		From:   &prototype.AccountName{Value: constants.COSInitMiner},
 		To:     &prototype.AccountName{Value: "alice"},
 		Amount: prototype.NewCoin(100),
 	}
@@ -110,7 +118,7 @@ func Test_ApplyTransfer(t *testing.T) {
 	aliceOrigin := aliceWrap.GetBalance().Value
 	fmt.Println("alice origin:", aliceOrigin)
 
-	initminer := &prototype.AccountName{Value: "initminer"}
+	initminer := &prototype.AccountName{Value: constants.COSInitMiner}
 	minerWrap := table.NewSoAccountWrap(db, initminer)
 	initMinerOrigin := minerWrap.GetBalance().Value
 	fmt.Println("initminer origin:", initMinerOrigin)
@@ -124,7 +132,7 @@ func Test_ApplyTransfer(t *testing.T) {
 	c.stateObserver.BeginBlock(1)
 	trxObserver := c.stateObserver.NewTrxObserver()
 	trxObserver.BeginTrx("hahahah")
-	ctx := &ApplyContext{db: db, control: c, observer: trxObserver}
+	ctx := &ApplyContext{db: db, control: c, observer: trxObserver,vmInjector:&fakeInjector{}}
 	ev := &TransferEvaluator{BaseDelegate: BaseDelegate{delegate:ctx}, op: op.GetOp2()}
 	ev.Apply()
 	trxObserver.EndTrx(true)
@@ -145,7 +153,7 @@ func Test_ApplyTransfer(t *testing.T) {
 func TestPostEvaluator_ApplyNormal(t *testing.T) {
 	operation := &prototype.PostOperation{
 		Uuid:          uint64(111),
-		Owner:         &prototype.AccountName{Value: "initminer"},
+		Owner:         &prototype.AccountName{Value: constants.COSInitMiner},
 		Title:         "Lorem Ipsum",
 		Content:       "Lorem ipsum dolor sit amet",
 		Tags:          []string{"article", "image"},
@@ -164,18 +172,18 @@ func TestPostEvaluator_ApplyNormal(t *testing.T) {
 	props := c.GetProps()
 	props.Time = &prototype.TimePointSec{UtcSeconds: uint32(time.Now().Unix())}
 	c.updateGlobalDataToDB(props)
-	ctx := &ApplyContext{db: db, control: c}
+	ctx := &ApplyContext{db: db, control: c,vmInjector:&fakeInjector{}}
 	ev := &PostEvaluator{BaseDelegate: BaseDelegate{delegate:ctx}, op: op.GetOp6()}
 	ev.Apply()
 
 	uuid := uint64(111)
 	postWrap := table.NewSoPostWrap(db, &uuid)
 	myassert := assert.New(t)
-	myassert.Equal(postWrap.GetAuthor().Value, "initminer")
+	myassert.Equal(postWrap.GetAuthor().Value, constants.COSInitMiner)
 	myassert.Equal(postWrap.GetPostId(), uint64(111))
 	myassert.Equal(postWrap.GetRootId(), uint64(0))
 
-	authorWrap := table.NewSoAccountWrap(ev.Database(), &prototype.AccountName{Value: "initminer"})
+	authorWrap := table.NewSoAccountWrap(ev.Database(), &prototype.AccountName{Value: constants.COSInitMiner})
 	// author last post time should be modified
 	myassert.Equal(authorWrap.GetLastPostTime().UtcSeconds, uint32(time.Now().Unix()))
 }
@@ -183,7 +191,7 @@ func TestPostEvaluator_ApplyNormal(t *testing.T) {
 func TestPostEvaluator_ApplyPostExistId(t *testing.T) {
 	operation := &prototype.PostOperation{
 		Uuid:          uint64(111),
-		Owner:         &prototype.AccountName{Value: "initminer"},
+		Owner:         &prototype.AccountName{Value: constants.COSInitMiner},
 		Title:         "Lorem Ipsum",
 		Content:       "Lorem ipsum dolor sit amet",
 		Tags:          []string{"article", "image"},
@@ -203,14 +211,14 @@ func TestPostEvaluator_ApplyPostExistId(t *testing.T) {
 	props.Time = &prototype.TimePointSec{UtcSeconds: uint32(time.Now().Unix())}
 	c.updateGlobalDataToDB(props)
 
-	ctx := &ApplyContext{db: db, control: c}
+	ctx := &ApplyContext{db: db, control: c,vmInjector:&fakeInjector{}}
 	ev := &PostEvaluator{BaseDelegate: BaseDelegate{delegate:ctx}, op: op.GetOp6()}
 	ev.Apply()
 
 	// avoid frequently
 	props.Time = &prototype.TimePointSec{UtcSeconds: uint32(time.Now().Unix() + 1000)}
 	c.updateGlobalDataToDB(props)
-	ctx = &ApplyContext{db: db, control: c}
+	ctx = &ApplyContext{db: db, control: c,vmInjector:&fakeInjector{}}
 	ev = &PostEvaluator{BaseDelegate: BaseDelegate{delegate:ctx}, op: op.GetOp6()}
 	func() {
 		defer func() {
@@ -226,7 +234,7 @@ func TestPostEvaluator_ApplyPostExistId(t *testing.T) {
 func TestPostEvaluator_ApplyPostFrequently(t *testing.T) {
 	operation := &prototype.PostOperation{
 		Uuid:          uint64(111),
-		Owner:         &prototype.AccountName{Value: "initminer"},
+		Owner:         &prototype.AccountName{Value: constants.COSInitMiner},
 		Title:         "Lorem Ipsum",
 		Content:       "Lorem ipsum dolor sit amet",
 		Tags:          []string{"article", "image"},
@@ -246,13 +254,13 @@ func TestPostEvaluator_ApplyPostFrequently(t *testing.T) {
 	props.Time = &prototype.TimePointSec{UtcSeconds: uint32(time.Now().Unix())}
 	c.updateGlobalDataToDB(props)
 
-	ctx := &ApplyContext{db: db, control: c}
+	ctx := &ApplyContext{db: db, control: c,vmInjector:&fakeInjector{}}
 	ev := &PostEvaluator{BaseDelegate: BaseDelegate{delegate:ctx}, op: op.GetOp6()}
 	ev.Apply()
 
 	operation = &prototype.PostOperation{
 		Uuid:          uint64(112),
-		Owner:         &prototype.AccountName{Value: "initminer"},
+		Owner:         &prototype.AccountName{Value: constants.COSInitMiner},
 		Title:         "Lorem Ipsum",
 		Content:       "Lorem ipsum dolor sit amet",
 		Tags:          []string{"article", "image"},
@@ -262,7 +270,7 @@ func TestPostEvaluator_ApplyPostFrequently(t *testing.T) {
 	opPost.Op6 = operation
 	op.Op = opPost
 
-	ctx = &ApplyContext{db: db, control: c}
+	ctx = &ApplyContext{db: db, control: c,vmInjector:&fakeInjector{}}
 	ev = &PostEvaluator{BaseDelegate: BaseDelegate{delegate:ctx}, op: op.GetOp6()}
 
 	func() {
@@ -278,7 +286,7 @@ func TestPostEvaluator_ApplyPostFrequently(t *testing.T) {
 func TestReplyEvaluator_ApplyNormal(t *testing.T) {
 	post_operation := &prototype.PostOperation{
 		Uuid:          uint64(111),
-		Owner:         &prototype.AccountName{Value: "initminer"},
+		Owner:         &prototype.AccountName{Value: constants.COSInitMiner},
 		Title:         "Lorem Ipsum",
 		Content:       "Lorem ipsum dolor sit amet",
 		Tags:          []string{"article", "image"},
@@ -299,17 +307,17 @@ func TestReplyEvaluator_ApplyNormal(t *testing.T) {
 	props := c.GetProps()
 	props.Time = &prototype.TimePointSec{UtcSeconds: currentTimestamp}
 	c.updateGlobalDataToDB(props)
-	ctx := &ApplyContext{db: db, control: c}
+	ctx := &ApplyContext{db: db, control: c,vmInjector:&fakeInjector{}}
 	ev := &PostEvaluator{BaseDelegate: BaseDelegate{delegate:ctx}, op: op.GetOp6()}
 	ev.Apply()
 
 	props.Time = &prototype.TimePointSec{UtcSeconds: currentTimestamp + 1000}
 	c.updateGlobalDataToDB(props)
-	ctx = &ApplyContext{db: db, control: c}
+	ctx = &ApplyContext{db: db, control: c,vmInjector:&fakeInjector{}}
 
 	reply_operation := &prototype.ReplyOperation{
 		Uuid:          uint64(112),
-		Owner:         &prototype.AccountName{Value: "initminer"},
+		Owner:         &prototype.AccountName{Value: constants.COSInitMiner},
 		Content:       "Lorem Ipsum",
 		ParentUuid:    uint64(111),
 		Beneficiaries: []*prototype.BeneficiaryRouteType{},
@@ -326,19 +334,19 @@ func TestReplyEvaluator_ApplyNormal(t *testing.T) {
 	uuid := uint64(112)
 	postWrap := table.NewSoPostWrap(db, &uuid)
 	myassert := assert.New(t)
-	myassert.Equal(postWrap.GetAuthor().Value, "initminer")
+	myassert.Equal(postWrap.GetAuthor().Value, constants.COSInitMiner)
 	myassert.Equal(postWrap.GetPostId(), uint64(112))
 	myassert.Equal(postWrap.GetRootId(), uint64(111))
 	myassert.Equal(postWrap.GetParentId(), uint64(111))
 
-	authorWrap := table.NewSoAccountWrap(ev.Database(), &prototype.AccountName{Value: "initminer"})
+	authorWrap := table.NewSoAccountWrap(ev.Database(), &prototype.AccountName{Value: constants.COSInitMiner})
 	myassert.Equal(authorWrap.GetLastPostTime().UtcSeconds, currentTimestamp+1000)
 }
 
 func TestVoteEvaluator_ApplyNormal(t *testing.T) {
 	post_operation := &prototype.PostOperation{
 		Uuid:          uint64(111),
-		Owner:         &prototype.AccountName{Value: "initminer"},
+		Owner:         &prototype.AccountName{Value: constants.COSInitMiner},
 		Title:         "Lorem Ipsum",
 		Content:       "Lorem ipsum dolor sit amet",
 		Tags:          []string{"article", "image"},
@@ -360,12 +368,12 @@ func TestVoteEvaluator_ApplyNormal(t *testing.T) {
 	//props.Time = &prototype.TimePointSec{UtcSeconds: currentTimestamp}
 	props.Time = &prototype.TimePointSec{UtcSeconds: currentTimestamp}
 	c.updateGlobalDataToDB(props)
-	ctx := &ApplyContext{db: db, control: c}
+	ctx := &ApplyContext{db: db, control: c,vmInjector:&fakeInjector{}}
 	ev := &PostEvaluator{BaseDelegate: BaseDelegate{delegate:ctx}, op: op.GetOp6()}
 	ev.Apply()
 
 	vote_operation := &prototype.VoteOperation{
-		Voter: &prototype.AccountName{Value: "initminer"},
+		Voter: &prototype.AccountName{Value: constants.COSInitMiner},
 		Idx:   uint64(111),
 	}
 
@@ -382,7 +390,7 @@ func TestVoteEvaluator_ApplyNormal(t *testing.T) {
 	uuid := uint64(111)
 	postWrap := table.NewSoPostWrap(db, &uuid)
 
-	voterWrap := table.NewSoAccountWrap(ev.Database(), &prototype.AccountName{Value: "initminer"})
+	voterWrap := table.NewSoAccountWrap(ev.Database(), &prototype.AccountName{Value: constants.COSInitMiner})
 	myassert.Equal(voterWrap.GetVotePower(), uint32(36))
 	myassert.Equal(voterWrap.GetLastPostTime().UtcSeconds, c.HeadBlockTime().UtcSeconds)
 	myassert.Equal(postWrap.GetWeightedVp(), uint64(2000))
@@ -407,7 +415,7 @@ func TestVoteEvaluator_ApplyNormal(t *testing.T) {
 
 func TestConvertVestingEvaluator_Apply(t *testing.T) {
 	cv_operation := &prototype.ConvertVestingOperation{
-		From:   &prototype.AccountName{Value: "initminer"},
+		From:   &prototype.AccountName{Value: constants.COSInitMiner},
 		Amount: &prototype.Vest{Value: 1e6},
 	}
 	db := startDB()
@@ -420,15 +428,81 @@ func TestConvertVestingEvaluator_Apply(t *testing.T) {
 
 	c := startController(db)
 
-	ctx := &ApplyContext{db: db, control: c}
+	ctx := &ApplyContext{db: db, control: c,vmInjector:&fakeInjector{}}
 	ev := &ConvertVestingEvaluator{BaseDelegate: BaseDelegate{delegate:ctx}, op: op.GetOp16()}
-	accWrap := table.NewSoAccountWrap(ev.Database(), &prototype.AccountName{Value: "initminer"})
+	accWrap := table.NewSoAccountWrap(ev.Database(), &prototype.AccountName{Value: constants.COSInitMiner})
 	accWrap.MdVestingShares(&prototype.Vest{Value: 10 * 1e6})
 	ev.Apply()
 	fmt.Println(accWrap.GetNextPowerdownBlockNum())
 	fmt.Println(accWrap.GetToPowerdown())
 	fmt.Println(accWrap.GetHasPowerdown())
 	fmt.Println(accWrap.GetEachPowerdownRate())
+}
+
+func TestStake(t *testing.T) {
+	db := startDB()
+	defer clearDB(db)
+
+	c := startController(db)
+	staker := "alice"
+	tryCreateAccount(t, staker, c)
+
+	stkOp := &prototype.StakeOperation{
+		From:   prototype.NewAccountName(constants.COSInitMiner),
+		To:     prototype.NewAccountName(staker),
+		Amount: prototype.NewCoin(1),
+	}
+
+	// construct base op ...
+	baseop := &prototype.Operation{}
+	op := &prototype.Operation_Op17{}
+	op.Op17 = stkOp
+	baseop.Op = op
+
+	ctx := &ApplyContext{db: db, control: c, vmInjector:&fakeInjector{}}
+	ev := &StakeEvaluator{BaseDelegate: BaseDelegate{delegate:ctx}, op: baseop.GetOp17()}
+	ev.Apply()
+
+	// check
+	accountWrap := table.NewSoAccountWrap(db, prototype.NewAccountName(staker))
+	if !accountWrap.CheckExist() {
+		t.Error("create new account failed ")
+	}
+	fmt.Println(accountWrap.GetStamina())
+	maxStamina := c.CalculateUserMaxStamina(db,staker)
+	fmt.Println("max:",maxStamina)
+
+	// unstake wrong
+	ustkOp := &prototype.UnStakeOperation{
+		Creditor:   prototype.NewAccountName(staker),
+		Debtor:     prototype.NewAccountName(staker),
+		Amount: prototype.NewCoin(1),
+	}
+	op2 := &prototype.Operation_Op18{}
+	op2.Op18 = ustkOp
+	baseop.Op = op2
+
+	ev2 := &UnStakeEvaluator{BaseDelegate: BaseDelegate{delegate:ctx}, op: baseop.GetOp18()}
+	func() {
+		defer func() {
+			if err := recover(); err == nil{
+				panic("unstake should failed because stake record not exist")
+			}
+		}()
+		ev2.Apply()
+	}()
+
+	// unstake right
+	ustkOp2 := &prototype.UnStakeOperation{
+		Creditor:   prototype.NewAccountName(constants.COSInitMiner),
+		Debtor:     prototype.NewAccountName(staker),
+		Amount: prototype.NewCoin(1),
+	}
+	op3 := &prototype.Operation_Op18{}
+	op3.Op18 = ustkOp2
+	baseop.Op = op3
+	ev3 := &UnStakeEvaluator{BaseDelegate: BaseDelegate{delegate:ctx}, op: baseop.GetOp18()}
+	ev3.Apply()
 }
 
 func startDB() iservices.IDatabaseService {
@@ -460,7 +534,7 @@ func startController(db iservices.IDatabaseService) *TrxPool {
 	c.SetBus(EventBus.New())
 	c.Open()
 	c.SetShuffle(func(block common.ISignedBlock)(bool, []string) {
-		return false, []string{"initminer"}
+		return false, []string{constants.COSInitMiner}
 	})
 	return c
 }

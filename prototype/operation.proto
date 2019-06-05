@@ -146,17 +146,13 @@ message convert_vesting_operation {
 }
 
 message stake_operation{
-    account_name account = 1;
-    coin amount = 2;
+    account_name from = 1;
+    account_name to = 2;
+    coin amount = 3;
 }
 
 message un_stake_operation{
-    account_name account = 1;
-    coin amount = 2;
-}
-
-message transfer_to_stake_vesting_operation{
-    account_name from = 1;
-    account_name to = 2;
+    account_name creditor = 1;
+    account_name debtor = 2;
     coin amount = 3;
 }

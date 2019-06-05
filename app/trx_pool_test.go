@@ -476,7 +476,8 @@ func Test_Stake_UnStake(t *testing.T) {
 	}
 
 	stakeOp := &prototype.StakeOperation{
-		Account: prototype.NewAccountName(constants.COSInitMiner),
+		From: prototype.NewAccountName(constants.COSInitMiner),
+		To: prototype.NewAccountName(constants.COSInitMiner),
 		Amount:  prototype.NewCoin(100),
 	}
 
@@ -496,7 +497,8 @@ func Test_Stake_UnStake(t *testing.T) {
 
 	// un stake
 	unStakeOp := &prototype.UnStakeOperation{
-		Account: prototype.NewAccountName(constants.COSInitMiner),
+		Creditor: prototype.NewAccountName(constants.COSInitMiner),
+		Debtor:prototype.NewAccountName(constants.COSInitMiner),
 		Amount:  prototype.NewCoin(100),
 	}
 
@@ -519,7 +521,8 @@ func Test_Stake_UnStake(t *testing.T) {
 
 	// stake wrong amount
 	stakeOp2 := &prototype.StakeOperation{
-		Account: prototype.NewAccountName(constants.COSInitMiner),
+		From: prototype.NewAccountName(constants.COSInitMiner),
+		To:prototype.NewAccountName(constants.COSInitMiner),
 		Amount:  prototype.NewCoin(constants.COSInitSupply + 1),
 	}
 
@@ -535,7 +538,8 @@ func Test_Stake_UnStake(t *testing.T) {
 
 	// un stake wrong amount
 	unStakeOp2 := &prototype.UnStakeOperation{
-		Account: prototype.NewAccountName(constants.COSInitMiner),
+		Creditor: prototype.NewAccountName(constants.COSInitMiner),
+		Debtor:prototype.NewAccountName(constants.COSInitMiner),
 		Amount:  prototype.NewCoin(1),
 	}
 
@@ -570,7 +574,8 @@ func Test_StakeFreezeTime(t *testing.T) {
 
 	// unstake immediately should error
 	unStakeOp := &prototype.UnStakeOperation{
-		Account: prototype.NewAccountName(constants.COSInitMiner),
+		Creditor: prototype.NewAccountName(constants.COSInitMiner),
+		Debtor:prototype.NewAccountName(constants.COSInitMiner),
 		Amount:  prototype.NewCoin(1),
 	}
 	signedTrx, err := createSigTrx(c, constants.InitminerPrivKey, unStakeOp)
@@ -586,7 +591,8 @@ func Test_StakeFreezeTime(t *testing.T) {
 	// unstake after freeze
 
 	unStakeOp2 := &prototype.UnStakeOperation{
-		Account: prototype.NewAccountName(constants.COSInitMiner),
+		Creditor: prototype.NewAccountName(constants.COSInitMiner),
+		Debtor:prototype.NewAccountName(constants.COSInitMiner),
 		Amount:  prototype.NewCoin(2),
 	}
 	signedTrx2, err := createSigTrx(c, constants.InitminerPrivKey, unStakeOp2)
@@ -634,7 +640,8 @@ func Test_Consume1(t *testing.T) {
 
 	// unstake need a pool's api to check remain stamina
 	unStakeOp := &prototype.UnStakeOperation{
-		Account: prototype.NewAccountName(accountNameBob),
+		Creditor: prototype.NewAccountName(accountNameBob),
+		Debtor:prototype.NewAccountName(accountNameBob),
 		Amount:  prototype.NewCoin(value),
 	}
 
@@ -815,7 +822,8 @@ func create_and_transfer(c *TrxPool, name string, pubkey string, value uint64) b
 
 func stake(c *TrxPool, name string, prikey string, value uint64) bool {
 	stakeOp := &prototype.StakeOperation{
-		Account: prototype.NewAccountName(name),
+		From: prototype.NewAccountName(name),
+		To:prototype.NewAccountName(name),
 		Amount: prototype.NewCoin(value),
 	}
 
@@ -944,11 +952,11 @@ func Test_TrxSize(t *testing.T) {
 	trx14, _ := createSigTrx(c, constants.InitminerPrivKey, applyOp)
 	fmt.Println(proto.Size(trx14))
 
-	stake := &prototype.StakeOperation{Account: prototype.NewAccountName("aaa"), Amount: prototype.NewCoin(1)}
+	stake := &prototype.StakeOperation{From: prototype.NewAccountName("aaa"),To: prototype.NewAccountName("aaa"), Amount: prototype.NewCoin(1)}
 	trx16, _ := createSigTrx(c, constants.InitminerPrivKey, stake)
 	fmt.Println(proto.Size(trx16))
 
-	unStake := &prototype.UnStakeOperation{Account: prototype.NewAccountName("aaa"), Amount: prototype.NewCoin(1)}
+	unStake := &prototype.UnStakeOperation{Creditor: prototype.NewAccountName("aaa"),Debtor: prototype.NewAccountName("aaa"), Amount: prototype.NewCoin(1)}
 	trx17, _ := createSigTrx(c, constants.InitminerPrivKey, unStake)
 	fmt.Println(proto.Size(trx17))
 }

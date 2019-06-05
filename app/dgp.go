@@ -61,7 +61,7 @@ func (dgp *DynamicGlobalPropsRW) TransferFromStakeVest(value *prototype.Vest) {
 	dgp.ModifyProps(func(dgpo *prototype.DynamicProperties) {
 		vest := dgpo.GetStakeVestingShares()
 
-		mustNoError(vest.Sub(value), "StakeVestingShares overflow")
+		mustNoError(vest.Sub(value), "UnStakeVestingShares overflow")
 		dgpo.StakeVestingShares = vest
 	})
 }

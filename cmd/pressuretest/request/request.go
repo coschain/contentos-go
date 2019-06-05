@@ -18,7 +18,8 @@ var nameLib = "abcdefghijklmnopqrstuvwxyz01234567890"
 
 func stake(rpcClient grpcpb.ApiServiceClient, act *wallet.PrivAccount, amount uint64) {
 	stkop := &prototype.StakeOperation{
-		Account:        &prototype.AccountName{Value: act.Name},
+		From:        &prototype.AccountName{Value: act.Name},
+		To:        &prototype.AccountName{Value: act.Name},
 		Amount:            &prototype.Coin{Value: amount},
 	}
 

@@ -263,7 +263,8 @@ func conductBatch(cmd *cobra.Command, args []string) {
 			}
 
 			stakeOp := &prototype.StakeOperation{
-				Account:   &prototype.AccountName{Value: stakerName},
+				From:   &prototype.AccountName{Value: stakerName},
+				To:   &prototype.AccountName{Value: stakerName},
 				Amount:    prototype.NewCoin(uint64(amount)),
 			}
 

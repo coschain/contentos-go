@@ -150,12 +150,6 @@ type UnStakeEvaluator struct {
 	op  *prototype.UnStakeOperation
 }
 
-type TransferToStakeVestingEvaluator struct {
-	BaseEvaluator
-	BaseDelegate
-	op  *prototype.TransferToStakeVestingOperation
-}
-
 func init() {
 	RegisterEvaluator((*prototype.AccountCreateOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
 		return &AccountCreateEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.AccountCreateOperation)}
@@ -207,9 +201,6 @@ func init() {
 	})
 	RegisterEvaluator((*prototype.BpUpdateOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
 		return &BpUpdateEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.BpUpdateOperation)}
-	})
-	RegisterEvaluator((*prototype.TransferToStakeVestingOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
-		return &TransferToStakeVestingEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.TransferToStakeVestingOperation)}
 	})
 	RegisterEvaluator((*prototype.AccountUpdateOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
 		return &AccountUpdateEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.AccountUpdateOperation)}
@@ -1093,57 +1084,12 @@ func (ev *InternalContractApplyEvaluator) Apply() {
 
 func (ev *StakeEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordStaminaFee(op.Account.Value, constants.CommonOpStamina)
-	accountWrap := table.NewSoAccountWrap(ev.Database(), op.Account)
-
-	value := op.Amount
-
-	fBalance := accountWrap.GetBalance()
-	opAssertE(fBalance.Sub(value), "Insufficient balance to transfer.")
-	opAssert(accountWrap.MdBalance(fBalance), "modify balance failed")
-
-	vest := accountWrap.GetStakeVesting()
-	opAssertE(vest.Add(value.ToVest()), "vesting over flow.")
-	opAssert(accountWrap.MdStakeVesting(vest), "modify vesting failed")
-
-	headBlockTime := ev.GlobalProp().HeadBlockTime()
-	accountWrap.MdLastStakeTime(headBlockTime)
-
-	ev.GlobalProp().TransferToVest(value)
-	ev.GlobalProp().TransferToStakeVest(value)
-}
-
-func (ev *UnStakeEvaluator) Apply() {
-	op := ev.op
-	ev.VMInjector().RecordStaminaFee(op.Account.Value, constants.CommonOpStamina)
-
-	accountWrap := table.NewSoAccountWrap(ev.Database(), op.Account)
-
-	headBlockTime := ev.GlobalProp().HeadBlockTime()
-	stakeTime := accountWrap.GetLastStakeTime()
-	opAssert(headBlockTime.UtcSeconds-stakeTime.UtcSeconds > constants.StakeFreezeTime, "can not unstake when freeze")
-
-	value := op.Amount
-
-	vest := accountWrap.GetStakeVesting()
-	opAssertE(vest.Sub(value.ToVest()), "vesting over flow.")
-	opAssert(accountWrap.MdStakeVesting(vest), "modify vesting failed")
-
-	fBalance := accountWrap.GetBalance()
-	opAssertE(fBalance.Add(value), "Insufficient balance to transfer.")
-	opAssert(accountWrap.MdBalance(fBalance), "modify balance failed")
-
-	ev.GlobalProp().TransferFromVest(value.ToVest())
-	ev.GlobalProp().TransferFromStakeVest(value.ToVest())
-}
-
-func (ev *TransferToStakeVestingEvaluator) Apply() {
-	op := ev.op
 	ev.VMInjector().RecordStaminaFee(op.From.Value, constants.CommonOpStamina)
 
 	fidWrap := table.NewSoAccountWrap(ev.Database(), op.From)
 	tidWrap := table.NewSoAccountWrap(ev.Database(), op.To)
 
+	opAssert(fidWrap.CheckExist(), "from account do not exist")
 	opAssert(tidWrap.CheckExist(), "to account do not exist")
 
 	fBalance := fidWrap.GetBalance()
@@ -1156,6 +1102,66 @@ func (ev *TransferToStakeVestingEvaluator) Apply() {
 	opAssertE(tVests.Add(addVests), "vests error")
 	opAssert(tidWrap.MdStakeVesting(tVests), "set to new vests error")
 
+	// unique stake record
+	recordWrap := table.NewSoStakeRecordWrap(ev.Database(), &prototype.StakeRecord{
+		From:   op.From,
+		To: op.To,
+	})
+	if !recordWrap.CheckExist() {
+		opAssertE(recordWrap.Create(func(record *table.SoStakeRecord) {
+			record.Record = &prototype.StakeRecord{
+				From:   &prototype.AccountName{Value: op.From.Value},
+				To: &prototype.AccountName{Value: op.To.Value},
+			}
+			record.StakeAmount = prototype.NewVest(addVests.Value)
+		}),"create stake record error")
+	} else {
+		oldVest := recordWrap.GetStakeAmount()
+		opAssertE(oldVest.Add(addVests), "add record vests error")
+		opAssert(recordWrap.MdStakeAmount(oldVest),"set record new vest error")
+	}
+	headBlockTime := ev.GlobalProp().HeadBlockTime()
+	recordWrap.MdLastStakeTime(headBlockTime)
+
 	ev.GlobalProp().TransferToVest(op.Amount)
 	ev.GlobalProp().TransferToStakeVest(op.Amount)
+}
+
+func (ev *UnStakeEvaluator) Apply() {
+	op := ev.op
+	ev.VMInjector().RecordStaminaFee(op.Creditor.Value, constants.CommonOpStamina)
+
+	recordWrap := table.NewSoStakeRecordWrap(ev.Database(), &prototype.StakeRecord{
+		From:   op.Creditor,
+		To: op.Debtor,
+	})
+
+	if !recordWrap.CheckExist() {
+		opAssert(false,"stake record not exist")
+	}
+
+	stakeTime := recordWrap.GetLastStakeTime()
+	headBlockTime := ev.GlobalProp().HeadBlockTime()
+	opAssert(headBlockTime.UtcSeconds-stakeTime.UtcSeconds > constants.StakeFreezeTime, "can not unstake when freeze")
+
+	debtorWrap := table.NewSoAccountWrap(ev.Database(), op.Debtor)
+	creditorWrap := table.NewSoAccountWrap(ev.Database(), op.Creditor)
+
+	value := op.Amount
+
+	vest := debtorWrap.GetStakeVesting()
+	opAssertE(vest.Sub(value.ToVest()), "vesting over flow.")
+	opAssert(debtorWrap.MdStakeVesting(vest), "modify vesting failed")
+
+	fBalance := creditorWrap.GetBalance()
+	opAssertE(fBalance.Add(value), "Insufficient balance to transfer.")
+	opAssert(creditorWrap.MdBalance(fBalance), "modify balance failed")
+
+	// update stake record
+	oldVest := recordWrap.GetStakeAmount()
+	opAssertE(oldVest.Sub(value.ToVest()), "sub record vests error")
+	opAssert(recordWrap.MdStakeAmount(oldVest),"set record new vest error")
+
+	ev.GlobalProp().TransferFromVest(value.ToVest())
+	ev.GlobalProp().TransferFromStakeVest(value.ToVest())
 }
