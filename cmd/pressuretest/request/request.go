@@ -16,14 +16,14 @@ import (
 
 var nameLib = "abcdefghijklmnopqrstuvwxyz01234567890"
 
-func stake(rpcClient grpcpb.ApiServiceClient, act *wallet.PrivAccount, amount uint64) {
+func stake(rpcClient grpcpb.ApiServiceClient, from *wallet.PrivAccount,to *wallet.PrivAccount, amount uint64) {
 	stkop := &prototype.StakeOperation{
-		From:        &prototype.AccountName{Value: act.Name},
-		To:        &prototype.AccountName{Value: act.Name},
+		From:        &prototype.AccountName{Value: from.Name},
+		To:        &prototype.AccountName{Value: to.Name},
 		Amount:            &prototype.Coin{Value: amount},
 	}
 
-	signTx, err := utils.GenerateSignedTxAndValidate2(rpcClient, []interface{}{stkop}, act)
+	signTx, err := utils.GenerateSignedTxAndValidate2(rpcClient, []interface{}{stkop}, from)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -37,7 +37,7 @@ func stake(rpcClient grpcpb.ApiServiceClient, act *wallet.PrivAccount, amount ui
 		fmt.Println("stake error:",err)
 	} else {
 		fmt.Println("Request command: ",
-			fmt.Sprintf("stake %s ", act.Name),
+			fmt.Sprintf("stake from %s to %s", from.Name,to.Name),
 			" ",
 			fmt.Sprintf("Result: %v", resp))
 	}
@@ -119,7 +119,7 @@ func createAccount(mywallet *wallet.BaseWallet, rpcClient grpcpb.ApiServiceClien
 			return
 		}
 		if strings.Contains(resp.Invoice.ErrorInfo,"net resource not enough") {
-			stake(rpcClient,creatorAccount,1)
+			stake(rpcClient,creatorAccount,creatorAccount,1)
 		}
 		fmt.Println("Request command: ",
 			fmt.Sprintf("create %s %s", creatorAccount.Name, newAccountName),
@@ -129,8 +129,7 @@ func createAccount(mywallet *wallet.BaseWallet, rpcClient grpcpb.ApiServiceClien
 	// give new account 1 coin and let him stake
 	toAccount := &wallet.PrivAccount{}
 	toAccount.Name = newAccountName
-	transfer(rpcClient,creatorAccount,toAccount,1)
-	stake(rpcClient,toAccount,1)
+	stake(rpcClient,creatorAccount,toAccount,1)
 }
 
 func transfer(rpcClient grpcpb.ApiServiceClient, fromAccount, toAccount  *wallet.PrivAccount, amount int) error {
@@ -200,7 +199,7 @@ func transfer(rpcClient grpcpb.ApiServiceClient, fromAccount, toAccount  *wallet
 		}
 
 		if strings.Contains(resp.Invoice.ErrorInfo,"net resource not enough") {
-			stake(rpcClient,fromAccount,1)
+			stake(rpcClient,fromAccount,fromAccount,1)
 		}
 
 		fmt.Println("Request command: ",
@@ -272,7 +271,7 @@ func vest(rpcClient grpcpb.ApiServiceClient, fromAccount, toAccount  *wallet.Pri
 		}
 
 		if strings.Contains(resp.Invoice.ErrorInfo,"net resource not enough") {
-			stake(rpcClient,fromAccount,1)
+			stake(rpcClient,fromAccount,fromAccount,1)
 		}
 
 		fmt.Println("Request command: ",
@@ -358,7 +357,7 @@ func postArticle(rpcClient grpcpb.ApiServiceClient, authorAccount *wallet.PrivAc
 			return
 		}
 		if strings.Contains(resp.Invoice.ErrorInfo,"net resource not enough") {
-			stake(rpcClient,authorAccount,1)
+			stake(rpcClient,authorAccount,authorAccount,1)
 		}
 
 		fmt.Println("Request command: ",
@@ -410,7 +409,7 @@ func follow(rpcClient grpcpb.ApiServiceClient, followerAccount, followingAccount
 		fmt.Println(err)
 	} else {
 		if strings.Contains(resp.Invoice.ErrorInfo,"net resource not enough") {
-			stake(rpcClient,followerAccount,1)
+			stake(rpcClient,followerAccount,followerAccount,1)
 		}
 		fmt.Println("Request command: ",
 			fmt.Sprintf("follow %s %s", followerAccount.Name, followingAccount.Name),
@@ -470,7 +469,7 @@ func voteArticle(rpcClient grpcpb.ApiServiceClient, voterAccount *wallet.PrivAcc
 			return
 		}
 		if strings.Contains(resp.Invoice.ErrorInfo,"net resource not enough") {
-			stake(rpcClient,voterAccount,1)
+			stake(rpcClient,voterAccount,voterAccount,1)
 		}
 
 		fmt.Println("Request command: ",
@@ -529,7 +528,7 @@ func replyArticle(rpcClient grpcpb.ApiServiceClient, fromAccount *wallet.PrivAcc
 		fmt.Println(err)
 	} else {
 		if strings.Contains(resp.Invoice.ErrorInfo,"net resource not enough") {
-			stake(rpcClient,fromAccount,1)
+			stake(rpcClient,fromAccount,fromAccount,1)
 		}
 		fmt.Println("Request command: ",
 			fmt.Sprintf("reply %s %d", fromAccount.Name, postId),
@@ -571,7 +570,7 @@ func callContract(rpcClient grpcpb.ApiServiceClient, fromAccount  *wallet.PrivAc
 		return err
 	} else {
 		if strings.Contains(resp.Invoice.ErrorInfo,"net resource not enough") {
-			stake(rpcClient,fromAccount,1)
+			stake(rpcClient,fromAccount,fromAccount,1)
 		}
 		fmt.Println("Request command: ",
 			fmt.Sprintf("callContract %s %s %d", fromAccount.Name),
