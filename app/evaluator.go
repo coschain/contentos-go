@@ -612,42 +612,6 @@ func (ev *BpVoteEvaluator) Apply() {
 
 		addToVoterList(ev.Database(), op.Voter, op.Witness)
 	}
-
-	//op := ev.op
-	//ev.VMInjector().RecordStaminaFee(op.Voter.Value, constants.CommonOpStamina)
-	//
-	//voterAccount := table.NewSoAccountWrap(ev.Database(), op.Voter)
-	//voteCnt := voterAccount.GetBpVoteCount()
-	//
-	//voterId := &prototype.BpVoterId{Voter: op.Voter, Witness: op.Witness}
-	//witnessId := &prototype.BpWitnessId{Voter: op.Voter, Witness: op.Witness}
-	//vidWrap := table.NewSoWitnessVoteWrap(ev.Database(), voterId)
-	//
-	//witAccWrap := table.NewSoAccountWrap(ev.Database(), op.Voter)
-	//opAssert(witAccWrap.CheckExist(), "witness account do not exist ")
-	//
-	//witnessWrap := table.NewSoWitnessWrap(ev.Database(), op.Witness)
-	//
-	//if op.Cancel {
-	//	opAssert(voteCnt > 0, "vote count must not be 0")
-	//	opAssert(vidWrap.CheckExist(), "vote record not exist")
-	//	opAssert(vidWrap.RemoveWitnessVote(), "remove vote record error")
-	//	opAssert(witnessWrap.GetVoteCount() > 0, "witness data error")
-	//	opAssert(witnessWrap.MdVoteCount(witnessWrap.GetVoteCount()-1), "set witness data error")
-	//	opAssert(voterAccount.MdBpVoteCount(voteCnt-1), "set voter data error")
-	//} else {
-	//	opAssert(voteCnt < constants.MaxBpVoteCount, "vote count exceeding")
-	//
-	//	opAssertE(vidWrap.Create(func(t *table.SoWitnessVote) {
-	//		t.VoteTime = ev.GlobalProp().HeadBlockTime()
-	//		t.VoterId = voterId
-	//		t.WitnessId = witnessId
-	//	}), "add vote record error")
-	//
-	//	opAssert(voterAccount.MdBpVoteCount(voteCnt+1), "set voter data error")
-	//	opAssert(witnessWrap.MdVoteCount(witnessWrap.GetVoteCount()+1), "set witness data error")
-	//}
-
 }
 
 func removeFromVoterList(dba iservices.IDatabaseRW, voter, witness *prototype.AccountName) {
