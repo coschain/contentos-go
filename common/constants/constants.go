@@ -3,8 +3,8 @@ package constants
 const (
 	COSChainName     = "contentos"
 	COSTokenDecimals = 1000000
-	COSInitSupply    = 10000000000 * COSTokenDecimals
-	COSConsensusName = "iBFT"
+	COSInitSupply    = 7500000000 * COSTokenDecimals
+	COSConsensusName = "saBFT"
 	COSInitMiner     = "initminer"
 
 	CoinSymbol = "COS"
@@ -59,15 +59,15 @@ const (
 	// resource limit
 	MinStaminaFree       = 0
 	DefaultStaminaFree   = 100000
-	MaxStaminaFree       = 100000
+	MaxStaminaFree       = 10000000
 
 	MinTPSExpected       = 100
 	DefaultTPSExpected   = 100
-	MaxTPSExpected       = 200
+	MaxTPSExpected       = 2000
 
 	MinAccountCreateFee      = 1
 	DefaultAccountCreateFee  = 1
-	MaxAccountCreateFee      = 100
+	MaxAccountCreateFee      = 10000 * COSTokenDecimals
 
 	BlocksPerDay = 24 * 60 * 60 / BlockInterval
 
