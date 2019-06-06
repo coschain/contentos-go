@@ -1305,3 +1305,44 @@ func (as *APIService) getWitnessResponseByAccountName(acct *prototype.AccountNam
 	}
 	return nil
 }
+
+func (as *APIService) GetPostListByVest (ctx context.Context,
+	req *grpcpb.GetPostListByVestRequest) (*grpcpb.GetPostListByVestResponse, error) {
+	as.db.RLock()
+	defer as.db.RUnlock()
+
+	var (
+		postList []*grpcpb.PostResponse
+		limit    uint32
+		err      error
+		lastPostId *uint64
+		lastPostVest *prototype.Vest
+
+	)
+	res := &grpcpb.GetPostListByVestResponse{}
+	srtWrap := table.NewPostRewardsWrap(as.db)
+	if srtWrap != nil {
+		limit = checkLimit(req.Limit)
+		if req.LastPost != nil {
+			lastPostId = &req.LastPost.PostId
+			lastPostVest = req.LastPost.Rewards
+		}
+
+		err = srtWrap.ForEachByRevOrder(req.Start, req.End, lastPostId, lastPostVest, func(mVal *uint64, sVal *prototype.Vest, idx uint32) bool {
+			if mVal != nil {
+				post := as.fetchPostInfoResponseById(*mVal, false)
+				if post != nil && post.ParentId <= 0 {
+					//Filter reply
+					postList = append(postList, post)
+				}
+			}
+			if uint32(len(postList)) >= limit {
+				return false
+			}
+			return true
+		})
+	}
+	res.PostList = postList
+	return res,err
+
+}

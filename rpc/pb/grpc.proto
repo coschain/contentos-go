@@ -101,6 +101,9 @@ service ApiService {
 
     rpc GetWitnessListByVoteCount(GetWitnessListByVoteCountRequest) returns (GetWitnessListResponse) {
     }
+
+    rpc GetPostListByVest(GetPostListByVestRequest) returns (GetPostListByVestResponse) {
+    }
 }
 
 
@@ -551,4 +554,16 @@ message GetWitnessListByVoteCountRequest {
     prototype.vest   end     = 2;
     WitnessResponse  last_witness = 3;
     uint32           limit     = 4;
+}
+
+
+message GetPostListByVestRequest {
+    prototype.vest   start   = 1;
+    prototype.vest   end     = 2;
+    PostResponse     last_post = 3;
+    uint32           limit     = 4;
+}
+
+message GetPostListByVestResponse {
+    repeated PostResponse post_list = 1;
 }
