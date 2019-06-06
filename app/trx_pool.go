@@ -420,7 +420,7 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabasePatch, entry *TrxEn
 		if err := recover(); err != nil {
 			receipt.ErrorInfo = fmt.Sprintf("applyTransaction failed : %v", err)
 			trxObserver.EndTrx(false)
-			if useGas {
+			if useGas && constants.EnableResourceControl {
 				receipt.Status = prototype.StatusDeductStamina
 				c.notifyTrxApplyResult(sigTrx, true, receipt)
 			} else {

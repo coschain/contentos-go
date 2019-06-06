@@ -125,6 +125,7 @@ const (
     TpsWindowSize        = 60
 	FreeStaminaOverFlow  = "freeStaminaOverFlow"
 	StakeStaminaOverFlow = "stakeStaminaOverFlow"
+	EnableResourceControl = true
 )
 
 var GlobalId int32 = 1
