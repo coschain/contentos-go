@@ -22,7 +22,7 @@ type IFreeGetter interface {
 }
 
 type ITpsUpdater interface {
-	UpdateDynamicStamina(tpsInWindow,oneDayStamina,trxCount,lastUpdate,blockNum uint64) uint64
+	UpdateDynamicStamina(tpsInWindow,oneDayStamina,trxCount,lastUpdate,blockNum,expectedTps uint64) (uint64,uint64)
 }
 
 // stake resource interface
@@ -92,18 +92,18 @@ func calculateNewStaminaEMA(oldStamina, useStamina, lastTime, now uint64) uint64
 	return calculateEMA(oldStamina, useStamina, lastTime, now, constants.WindowSize)
 }
 
-func (s *ResourceLimiter) UpdateDynamicStamina(tpsInWindow,oneDayStamina,trxCount,lastUpdate,blockNum uint64) uint64 {
+func (s *ResourceLimiter) UpdateDynamicStamina(tpsInWindow,oneDayStamina,trxCount,lastUpdate,blockNum,expectedTps uint64) (uint64,uint64) {
 	tpsInWindowNew := calculateTpsEMA(tpsInWindow,trxCount,lastUpdate,blockNum)
-	return updateDynamicOneDayStamina(oneDayStamina,tpsInWindowNew/constants.TpsWindowSize)
+	return updateDynamicOneDayStamina(oneDayStamina,tpsInWindowNew/constants.TpsWindowSize,expectedTps),tpsInWindowNew
 }
 
 func calculateTpsEMA(oldTrxs, newTrxs, lastTime, now uint64) uint64 {
 	return calculateEMA(oldTrxs, newTrxs, lastTime, now, constants.TpsWindowSize)
 }
 
-func updateDynamicOneDayStamina(oldOneDayStamina, avgTps uint64) uint64 {
+func updateDynamicOneDayStamina(oldOneDayStamina, avgTps,expectedTps uint64) uint64 {
 	change := oldOneDayStamina / 100
-	if avgTps > constants.TpsExpected {
+	if avgTps > expectedTps {
 		oldOneDayStamina = oldOneDayStamina - change
 	} else {
 		// todo calculate user's avg stamina, if is large enough, do not expand

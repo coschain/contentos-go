@@ -810,10 +810,13 @@ func (c *TrxPool) updateAvgTps(blk *prototype.SignedBlock) {
 	tpsInWindow := props.GetAvgTpsInWindow()
 	lastUpdate := props.GetAvgTpsUpdateBlock()
 	oneDayStamina := props.GetOneDayStamina()
+	expectedTps := props.GetTpsExpected()
 
-	newOneDayStamina := c.resourceLimiter.UpdateDynamicStamina(tpsInWindow,oneDayStamina, uint64(len(blk.Transactions)),lastUpdate,blk.Id().BlockNum())
+	newOneDayStamina,tpsInWindowNew := c.resourceLimiter.UpdateDynamicStamina(tpsInWindow,oneDayStamina, uint64(len(blk.Transactions)),lastUpdate,blk.Id().BlockNum(),expectedTps)
 	c.ModifyProps(func(props *prototype.DynamicProperties) {
 		props.OneDayStamina = newOneDayStamina
+		props.AvgTpsInWindow = tpsInWindowNew
+		props.AvgTpsUpdateBlock = blk.Id().BlockNum()
 	})
 }
 

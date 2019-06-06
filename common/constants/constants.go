@@ -123,7 +123,6 @@ const (
     CommonOpStamina      = 100
     StakeFreezeTime      = WindowSize * 3
     TpsWindowSize        = 60
-	TpsExpected          = 2000
 	FreeStaminaOverFlow  = "freeStaminaOverFlow"
 	StakeStaminaOverFlow = "stakeStaminaOverFlow"
 )
