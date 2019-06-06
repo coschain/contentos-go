@@ -3,7 +3,7 @@ package constants
 const (
 	COSChainName     = "contentos"
 	COSTokenDecimals = 1000000
-	COSInitSupply    = 7500000000 * COSTokenDecimals
+	COSInitSupply    = 6500000000 * COSTokenDecimals
 	COSConsensusName = "saBFT"
 	COSInitMiner     = "initminer"
 
