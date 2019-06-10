@@ -3,8 +3,9 @@ syntax = "proto3";
 package prototype;
 
 option go_package = "github.com/coschain/contentos-go/prototype";
-import "prototype/type.proto";
+option java_package = "io.contentos.android.sdk.prototype";
 
+import "prototype/type.proto";
 
 message follower_relation{
     account_name account = 1;

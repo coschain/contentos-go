@@ -68,7 +68,7 @@ require (
 	golang.org/x/mobile v0.0.0-20190607214518-6fa95d984e88 // indirect
 	golang.org/x/mod v0.1.0 // indirect
 	golang.org/x/net v0.0.0-20190607181551-461777fb6f67
-	golang.org/x/sys v0.0.0-20190609082536-301114b31cce // indirect
+	golang.org/x/sys v0.0.0-20190610081024-1e42afee0f76 // indirect
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4 // indirect
 	golang.org/x/tools v0.0.0-20190608022120-eacb66d2a7c3 // indirect
 	google.golang.org/appengine v1.6.1 // indirect

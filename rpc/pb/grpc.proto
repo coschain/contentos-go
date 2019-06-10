@@ -3,11 +3,11 @@ syntax = "proto3";
 package grpcpb;
 
 //option go_package = "github.com/coschain/contentos-go/grpcpb";
+option java_package = "io.contentos.android.sdk.rpc";
 
 import "prototype/type.proto";
 import "prototype/multi_id.proto";
 import "prototype/transaction.proto";
-
 
 service ApiService {
     rpc QueryTableContent (GetTableContentRequest) returns (TableContentResponse) {
