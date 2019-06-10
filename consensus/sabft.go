@@ -1344,6 +1344,7 @@ func (sabft *SABFT) MaybeProduceBlock() {
 
 	go func() {
 		time.Sleep(time.Duration(0 * time.Duration(rand.Int()%13) * time.Second / 10))
+		sabft.log.Debugf("[SABFT] call p2p to broadcast sigblk %d", b.Id().BlockNum())
 		sabft.p2p.Broadcast(b)
 	}()
 	//sabft.p2p.Broadcast(b)
