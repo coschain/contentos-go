@@ -82,7 +82,7 @@ func NewController(ctx *node.ServiceContext, lg *logrus.Logger) (*TrxPool, error
 		lg = logrus.New()
 		lg.SetOutput(ioutil.Discard)
 	}
-	return &TrxPool{ctx: ctx, log: lg, enableBAH:true}, nil
+	return &TrxPool{ctx: ctx, log: lg, enableBAH:false}, nil
 }
 
 func (c *TrxPool) Start(node *node.Node) error {
