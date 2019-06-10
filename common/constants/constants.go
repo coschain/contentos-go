@@ -30,7 +30,7 @@ const (
 	MaxTransactionSize = 1024 * 256
 
 	MaxBlockSize           = 1024 * 1024 * 2
-	MaxUncommittedBlockNum = 1000
+	MaxUncommittedBlockNum = 2000
 	MinBlockSize           = 115
 
 	InitminerPubKey  = "COS5JVLLcTPhq4Unr194JzWPDNSYGoMcam8yxnsjgRVo3Nb7ioyFW"
