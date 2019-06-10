@@ -9,7 +9,7 @@ import (
 	"os"
 )
 
-const defaultSize = 1024
+const defaultSize = 1024 * 2
 
 type RetCode string
 
