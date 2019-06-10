@@ -5,9 +5,9 @@
 package mock_grpcpb
 
 import (
+	context "context"
 	pb "github.com/coschain/contentos-go/rpc/pb"
 	gomock "github.com/golang/mock/gomock"
-	context "golang.org/x/net/context"
 	grpc "google.golang.org/grpc"
 	reflect "reflect"
 )
@@ -635,6 +635,26 @@ func (mr *MockApiServiceClientMockRecorder) GetWitnessListByVoteCount(ctx, in in
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetWitnessListByVoteCount", reflect.TypeOf((*MockApiServiceClient)(nil).GetWitnessListByVoteCount), varargs...)
 }
 
+// GetPostListByVest mocks base method
+func (m *MockApiServiceClient) GetPostListByVest(ctx context.Context, in *pb.GetPostListByVestRequest, opts ...grpc.CallOption) (*pb.GetPostListByVestResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetPostListByVest", varargs...)
+	ret0, _ := ret[0].(*pb.GetPostListByVestResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPostListByVest indicates an expected call of GetPostListByVest
+func (mr *MockApiServiceClientMockRecorder) GetPostListByVest(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPostListByVest", reflect.TypeOf((*MockApiServiceClient)(nil).GetPostListByVest), varargs...)
+}
+
 // MockApiServiceServer is a mock of ApiServiceServer interface
 type MockApiServiceServer struct {
 	ctrl     *gomock.Controller
@@ -1106,4 +1126,19 @@ func (m *MockApiServiceServer) GetWitnessListByVoteCount(arg0 context.Context, a
 func (mr *MockApiServiceServerMockRecorder) GetWitnessListByVoteCount(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetWitnessListByVoteCount", reflect.TypeOf((*MockApiServiceServer)(nil).GetWitnessListByVoteCount), arg0, arg1)
+}
+
+// GetPostListByVest mocks base method
+func (m *MockApiServiceServer) GetPostListByVest(arg0 context.Context, arg1 *pb.GetPostListByVestRequest) (*pb.GetPostListByVestResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPostListByVest", arg0, arg1)
+	ret0, _ := ret[0].(*pb.GetPostListByVestResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPostListByVest indicates an expected call of GetPostListByVest
+func (mr *MockApiServiceServerMockRecorder) GetPostListByVest(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPostListByVest", reflect.TypeOf((*MockApiServiceServer)(nil).GetPostListByVest), arg0, arg1)
 }
