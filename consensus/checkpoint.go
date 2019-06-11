@@ -71,22 +71,31 @@ func NewBFTCheckPoint(dir string, sabft *SABFT) *BFTCheckPoint {
 	}
 }
 
-func (cp *BFTCheckPoint) Flush() error {
+func (cp *BFTCheckPoint) Flush(bid common.BlockID) error {
 	key := make([]byte, 8)
-	binary.BigEndian.PutUint64(key, cp.nextCP.BlockNum())
-	err := cp.db.Put(key, cp.cache[cp.lastCommitted].Bytes())
-	if err != nil {
-		cp.sabft.log.Fatal(err)
-		return err
-	}
-	delete(cp.cache, cp.lastCommitted)
+	for {
+		binary.BigEndian.PutUint64(key, cp.nextCP.BlockNum())
+		err := cp.db.Put(key, cp.cache[cp.lastCommitted].Bytes())
+		if err != nil {
+			cp.sabft.log.Fatal(err)
+			return err
+		}
+		delete(cp.cache, cp.lastCommitted)
 
-	cp.lastCommitted = cp.nextCP
-	cp.sabft.log.Info("checkpoint flushed at block height ", cp.nextCP.BlockNum())
-	cp.nextCP = common.EmptyBlockID
-	if v, ok := cp.cache[cp.lastCommitted]; ok {
-		cp.nextCP = ConvertToBlockID(v.ProposedData)
+		cp.lastCommitted = cp.nextCP
+		cp.sabft.log.Info("checkpoint flushed at block height ", cp.nextCP.BlockNum())
+		cp.nextCP = common.EmptyBlockID
+		if v, ok := cp.cache[cp.lastCommitted]; ok {
+			cp.nextCP = ConvertToBlockID(v.ProposedData)
+		}
+		if cp.lastCommitted == bid {
+			return nil
+		}
+		if cp.nextCP == common.EmptyBlockID {
+			break
+		}
 	}
+	cp.sabft.log.Warnf("checkpoint flushing interrupted after block height %d, meant to flush to %d", cp.lastCommitted.BlockNum(), bid.BlockNum())
 	return nil
 }
 
@@ -100,7 +109,7 @@ func (cp *BFTCheckPoint) Add(commit *message.Commit) error {
 	libNum := cp.lastCommitted.BlockNum()
 	if blockNum > libNum+constants.MaxUncommittedBlockNum ||
 		blockNum <= libNum {
-		cp.sabft.log.Error(ErrCheckPointOutOfRange)
+		cp.sabft.log.Errorf("last commit: %d, commit num: %d, err: %s", libNum, blockNum, ErrCheckPointOutOfRange.Error())
 		return ErrCheckPointOutOfRange
 	}
 

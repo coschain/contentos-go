@@ -447,7 +447,7 @@ func (sabft *SABFT) start() {
 					// TODO: fetch next checkpoint from a different peer
 				} else {
 					if err = sabft.commit(commit); err == nil {
-						sabft.cp.Flush()
+						//sabft.cp.Flush()
 						sabft.dynasties.Purge(ExtractBlockID(commit).BlockNum())
 					}
 				}
@@ -689,7 +689,7 @@ func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 		}
 		if _, err := sabft.ForkDB.FetchBlock(newID); err == nil {
 			if err = sabft.commit(checkPoint); err == nil {
-				sabft.cp.Flush()
+				//sabft.cp.Flush()
 				sabft.dynasties.Purge(newID.BlockNum())
 				checkPoint = sabft.cp.NextUncommitted()
 				if checkPoint != nil {
@@ -885,6 +885,7 @@ func (sabft *SABFT) Commit(commitRecords *message.Commit) error {
 	sabft.Lock()
 	defer sabft.Unlock()
 
+	sabft.log.Info("[SABFT] try to commit ", commitRecords)
 	err := sabft.cp.Add(commitRecords)
 	if err == ErrCheckPointOutOfRange || err == ErrInvalidCheckPoint {
 		sabft.log.Error(err)
@@ -892,7 +893,7 @@ func (sabft *SABFT) Commit(commitRecords *message.Commit) error {
 	}
 	err = sabft.commit(commitRecords)
 	if err == nil {
-		sabft.cp.Flush()
+		//sabft.cp.Flush()
 		sabft.dynasties.Purge(ExtractBlockID(commitRecords).BlockNum())
 		sabft.checkBFTRoutine()
 		return nil
@@ -967,6 +968,7 @@ func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 	sabft.ctrl.Commit(blockID.BlockNum())
 	sabft.ForkDB.Commit(blockID)
 	sabft.lastCommitted.Store(commitRecords)
+	sabft.cp.Flush(blockID)
 
 	sabft.log.Debug("[SABFT] committed block #", blockID)
 	return nil
