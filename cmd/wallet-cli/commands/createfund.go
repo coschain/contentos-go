@@ -31,7 +31,11 @@ func createFundAccount(cmd *cobra.Command, args []string) {
 	creator := args[0]
 	prefix := args[1]
 	accCount, _ := strconv.Atoi(args[2])
-	fundBalance, _ := strconv.Atoi(args[3])
+	fundBalance, err := utils.ParseCos(args[3])
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 	tCount := 100
 	tJobs := accCount / tCount
 	creatorAccount, ok := mywallet.GetUnlockedAccount(creator)

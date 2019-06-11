@@ -102,13 +102,18 @@ func conductBatch(cmd *cobra.Command, args []string) {
 
 			pubkey, _ := prototype.PublicKeyFromWIF(bpPubKeyStr)
 
+			fee,err := utils.ParseCos(bpCreateAccountFee)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
 			bpRegister_op := &prototype.BpRegisterOperation{
 				Owner:           &prototype.AccountName{Value: bpName},
 				Url:             bpUrlFlag,
 				Desc:            bpDescFlag,
 				BlockSigningKey: pubkey,
 				Props: &prototype.ChainProperties{
-					AccountCreationFee: prototype.NewCoin(bpCreateAccountFee),
+					AccountCreationFee: prototype.NewCoin(fee),
 					MaximumBlockSize:   bpBlockSize,
 					StaminaFree:        constants.DefaultStaminaFree,
 					TpsExpected:        constants.DefaultTPSExpected,

@@ -32,7 +32,7 @@ func stress(cmd *cobra.Command, args []string) {
 	mywallet := w.(wallet.Wallet)
 	from := args[1]
 	to := args[2]
-	amount, err := strconv.ParseInt(args[3], 10, 64)
+	amount, err := utils.ParseCos(args[3])
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -64,7 +64,7 @@ func stress(cmd *cobra.Command, args []string) {
 				transferOp := &prototype.TransferOperation{
 					From:   &prototype.AccountName{Value: from},
 					To:     &prototype.AccountName{Value: to},
-					Amount: prototype.NewCoin(uint64(amount)),
+					Amount: prototype.NewCoin(amount),
 					Memo:   strconv.Itoa(tid) + "*t*" + memo + strconv.Itoa(index),
 				}
 				signTx, err := utils.GenerateSignedTxAndValidate2(client, []interface{}{transferOp}, fromAccount)

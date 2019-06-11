@@ -5,14 +5,19 @@ import (
 	"fmt"
 	"github.com/coschain/contentos-go/cmd/wallet-cli/wallet"
 	"github.com/coschain/contentos-go/common"
+	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/rpc/pb"
+	"github.com/kataras/go-errors"
 	"hash/crc32"
 	"math/rand"
+	"regexp"
+	"strconv"
 	"syscall"
 	"time"
 )
 
+const MinimumCos = "0.000001"
 
 func GenerateSignedTxAndValidate2(client grpcpb.ApiServiceClient, ops []interface{}, signers *wallet.PrivAccount) (*prototype.SignedTransaction, error) {
 	privKey := &prototype.PrivateKeyType{}
@@ -77,4 +82,21 @@ func GetPassphrase(reader PasswordReader) (string, error) {
 	}
 	passphrase := string(bytePassphrase)
 	return passphrase, nil
+}
+
+func ParseCos(v string) (uint64,error) {
+	if m, _ := regexp.MatchString("^[0-9]*\\.[0-9]{6}$", v); !m {
+		return 0,errors.New("input must be x.xxxxxx : any bit before . and six bit after .")
+	}
+
+	amountFloat, err := strconv.ParseFloat(v, 64)
+	if err != nil {
+		return 0,err
+	}
+	if amountFloat < 0.000001 {
+		err = errors.New(fmt.Sprintf("minimum can not less 0.000001"))
+		return 0,err
+	}
+	amount := amountFloat * constants.COSTokenDecimals
+	return uint64(amount),nil
 }

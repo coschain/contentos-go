@@ -8,7 +8,6 @@ import (
 	"github.com/coschain/contentos-go/cmd/wallet-cli/wallet"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/rpc/pb"
-	"strconv"
 )
 
 var UnStakeCmd = func() *cobra.Command {
@@ -30,7 +29,7 @@ func unstake(cmd *cobra.Command, args []string) {
 	mywallet := w.(wallet.Wallet)
 	userCreditor := args[0]
 	userDebtor := args[1]
-	amount, err := strconv.ParseInt(args[2], 10, 64)
+	amount, err := utils.ParseCos(args[2])
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -44,7 +43,7 @@ func unstake(cmd *cobra.Command, args []string) {
 	unStakeOp := &prototype.UnStakeOperation{
 		Creditor:   &prototype.AccountName{Value: userCreditor},
 		Debtor:   &prototype.AccountName{Value: userDebtor},
-		Amount:    prototype.NewCoin(uint64(amount)),
+		Amount:    prototype.NewCoin(amount),
 	}
 
 	signTx, err := utils.GenerateSignedTxAndValidate2(client, []interface{}{unStakeOp}, stakeAccount)

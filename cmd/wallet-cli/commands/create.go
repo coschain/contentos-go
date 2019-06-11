@@ -6,12 +6,11 @@ import (
 	"github.com/coschain/cobra"
 	"github.com/coschain/contentos-go/cmd/wallet-cli/commands/utils"
 	"github.com/coschain/contentos-go/cmd/wallet-cli/wallet"
-	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/rpc/pb"
 )
 
-var createAccountFee uint64
+var createAccountFee string
 
 var CreateCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
@@ -22,14 +21,14 @@ var CreateCmd = func() *cobra.Command {
 		Run:     create,
 	}
 
-	cmd.Flags().Uint64VarP(&createAccountFee, "fee", "f", constants.DefaultAccountCreateFee, `create alice bob --fee 1`)
+	cmd.Flags().StringVarP(&createAccountFee, "fee", "f", utils.MinimumCos, `create alice bob --fee 1`)
 
 	return cmd
 }
 
 func create(cmd *cobra.Command, args []string) {
 	defer func() {
-		createAccountFee = constants.DefaultAccountCreateFee
+		createAccountFee = ""
 	}()
 	c := cmd.Context["rpcclient"]
 	client := c.(grpcpb.ApiServiceClient)
@@ -52,8 +51,14 @@ func create(cmd *cobra.Command, args []string) {
 		return
 	}
 
+	fee,err := utils.ParseCos(createAccountFee)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
 	acop := &prototype.AccountCreateOperation{
-		Fee:            prototype.NewCoin(createAccountFee),
+		Fee:            prototype.NewCoin(fee),
 		Creator:        &prototype.AccountName{Value: creator},
 		NewAccountName: &prototype.AccountName{Value: name},
 		Owner:          pubkey,
