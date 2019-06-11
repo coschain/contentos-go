@@ -10,7 +10,7 @@ func GetBaseOperation(op *Operation) BaseOperation {
 			return base
 		}
 	}
-	panic("unknown op type")
+	return UnknownOperation;
 }
 
 //Get protoBuffer struct Operation by a interface of detail operation(such as TransferOperation)
