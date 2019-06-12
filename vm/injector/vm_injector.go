@@ -11,4 +11,5 @@ type Injector interface {
 	TransferFromUserToContract(from, contract, owner string, amount uint64)
 	TransferFromContractToContract(fromContract, fromOwner, toContract, toOwner string, amount uint64)
 	ContractCall(caller, fromOwner, fromContract, fromMethod, toOwner, toContract, toMethod string, params []byte, coins, remainGas uint64)
+	ContractABI(owner, contract string) string;
 }

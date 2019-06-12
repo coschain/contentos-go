@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/prototype"
+	"github.com/coschain/contentos-go/vm/contract/abi"
+	table2 "github.com/coschain/contentos-go/vm/contract/table"
 )
 
 //type ICosVMNative interface {
@@ -173,4 +175,22 @@ func (w *CosVMNative) TableDeleteRecord(tableName string, primary []byte) {
 	w.CosAssert(tables != nil, "TableDeleteRecord(): context tables not ready.")
 	err := tables.Table(tableName).DeleteRecord(primary)
 	w.CosAssert(err == nil, fmt.Sprintf("TableDeleteRecord(): table.DeleteRecord() failed. %v", err))
+}
+
+func (w *CosVMNative) TableGetRecordEx(ownerName, contractName, tableName string, primary []byte) []byte {
+	jsonAbi := w.cosVM.ctx.Injector.ContractABI(ownerName, contractName)
+	w.CosAssert(len(jsonAbi) > 0, fmt.Sprintf("TableGetRecordEx(): no ABI for contract '%s' of account '%s'", contractName, ownerName))
+
+	abiInterface, err := abi.UnmarshalABI([]byte(jsonAbi))
+	if err != nil {
+		w.CosAssert(false, fmt.Sprintf("TableGetRecordEx(): invalid ABI of contract '%s' of account '%s': %s", contractName, ownerName, err.Error()))
+	}
+	tables := table2.NewContractTables(ownerName, contractName, abiInterface, w.cosVM.db)
+
+	w.CosAssert(tables != nil, "TableGetRecordEx(): tables not ready.")
+	data, err := tables.Table(tableName).GetRecord(primary)
+	if err != nil {
+		return nil
+	}
+	return data
 }

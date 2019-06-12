@@ -298,6 +298,14 @@ func (p *TrxContext) ContractCall(caller, fromOwner, fromContract, fromMethod, t
 	eval.Apply()
 }
 
+func (p *TrxContext) ContractABI(owner, contract string) string {
+	cid := &prototype.ContractId {
+		Owner: prototype.NewAccountName(owner),
+		Cname: contract,
+	}
+	return table.NewSoContractWrap(p.db, cid).GetAbi()
+}
+
 //
 // implements ApplyDelegate interface
 //

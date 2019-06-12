@@ -205,6 +205,19 @@ func e_tableDeleteRecord(proc *exec.Process, tableName, tableNameLen int32, prim
 	)
 }
 
+func e_tableGetRecordEx(proc *exec.Process, ownerName, ownerNameLen int32, contractName, contractNameLen int32, tableName, tableNameLen int32, primary, primaryLen int32, value, valueLen int32) int32 {
+	w := proc.GetTag().(*CosVMNative)
+
+	return w.cosVM.write(proc,
+		w.TableGetRecordEx(
+			string(w.cosVM.read(proc, ownerName, ownerNameLen, "tableGetRecordEx().owner_name")),
+			string(w.cosVM.read(proc, contractName, contractNameLen, "tableGetRecordEx().contract_name")),
+			string(w.cosVM.read(proc, tableName, tableNameLen, "tableGetRecordEx().table_name")),
+			w.cosVM.read(proc, primary, primaryLen, "tableGetRecordEx().primary"),
+		),
+		value, valueLen, "tableGetRecordEx()")
+}
+
 func e_memcpy(proc *exec.Process, dst, src, size int32) int32 {
 	w := proc.GetTag().(*CosVMNative)
 
