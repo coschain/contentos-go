@@ -28,7 +28,7 @@ var CreateCmd = func() *cobra.Command {
 
 func create(cmd *cobra.Command, args []string) {
 	defer func() {
-		createAccountFee = ""
+		createAccountFee = utils.MinimumCos
 	}()
 	c := cmd.Context["rpcclient"]
 	client := c.(grpcpb.ApiServiceClient)

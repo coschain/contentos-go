@@ -85,7 +85,7 @@ func registerBP(cmd *cobra.Command, args []string) {
 		// reset to default value
 		// it's hard to assign default value from cobra.command
 		// so I have to do it manually
-		bpCreateAccountFee = ""
+		bpCreateAccountFee = utils.MinimumCos
 		bpBlockSize = 1024 * 1024
 		bpUrlFlag = ""
 		bpDescFlag = ""
@@ -212,7 +212,7 @@ func updateBp(cmd *cobra.Command, args []string) {
 	defer func() {
 		bpUpdateStaminaFree      = constants.DefaultStaminaFree
 		bpUpdateTpsExpected      = constants.DefaultTPSExpected
-		bpUpdateCreateAccountFee = ""
+		bpUpdateCreateAccountFee = utils.MinimumCos
 	}()
 	c := cmd.Context["rpcclient"]
 	client := c.(grpcpb.ApiServiceClient)
