@@ -91,10 +91,6 @@ func NewSABFT(ctx *node.ServiceContext, lg *logrus.Logger) *SABFT {
 	ret.Name = ctx.Config().Consensus.LocalBpName
 
 	ret.log.Info("[SABFT bootstrap] ", ctx.Config().Consensus.BootStrap)
-	ret.appState = &message.AppState{
-		LastHeight:       0,
-		LastProposedData: message.NilData,
-	}
 
 	privateKey := ctx.Config().Consensus.LocalBpPrivateKey
 	if len(privateKey) > 0 {
@@ -300,6 +296,11 @@ func (sabft *SABFT) Start(node *node.Node) error {
 
 	if sabft.dynasties.Empty() {
 		sabft.restoreDynasty()
+	}
+
+	sabft.appState = &message.AppState{
+		LastHeight:       int64(sabft.ForkDB.LastCommitted().BlockNum()),
+		LastProposedData: sabft.ForkDB.LastCommitted().Data,
 	}
 	sabft.bft = gobft.NewCore(sabft, sabft.dynasties.Front().priv)
 	//pv := newPrivValidator(sabft, sabft.localPrivKey, sabft.Name)
