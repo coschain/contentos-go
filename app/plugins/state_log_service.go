@@ -240,7 +240,7 @@ func (s *StateLogService) handleMint(blockId string, trxId string, action int, t
 	switch action {
 	case iservices.Add:
 		var revenue uint64
-		_ = s.db.QueryRow("SELECT revenue from statemint").Scan(&revenue)
+		_ = s.db.QueryRow("SELECT revenue from statemint where bp= ?", target).Scan(&revenue)
 		_, _ = s.db.Exec("REPLACE INTO statemint (bp, revenue) VALUES (?, ?)", target, revenue + resultValue)
 	}
 }
@@ -256,7 +256,7 @@ func (s *StateLogService) handleCashout(blockId string, trxId string, action int
 	switch action {
 	case iservices.Add:
 		var cashout uint64
-		_ = s.db.QueryRow("select cashout from statecashout").Scan(&cashout)
+		_ = s.db.QueryRow("select cashout from statecashout where account=?", target).Scan(&cashout)
 		_, _ = s.db.Exec("REPLACE INTO statecashout (account, cashout) VALUES (?, ?)", target, cashout + resultValue)
 	}
 }
