@@ -164,7 +164,7 @@ func (sabft *SABFT) shuffle(head common.ISignedBlock) (bool, []string) {
 
 	newDyn := sabft.makeDynasty(blockNum, prods, pubKeys, sabft.localPrivKey)
 	sabft.addDynasty(newDyn)
-	if atomic.LoadUint32(&sabft.bftStarted) == 0 {
+	if atomic.LoadUint32(&sabft.bftStarted) == 0 && sabft.bft != nil{
 		sabft.checkBFTRoutine()
 	}
 	return true, prods
@@ -292,7 +292,6 @@ func (sabft *SABFT) Start(node *node.Node) error {
 	if err != nil {
 		return err
 	}
-	sabft.restoreProducers()
 
 	if sabft.dynasties.Empty() {
 		sabft.restoreDynasty()
@@ -1420,6 +1419,10 @@ func (sabft *SABFT) handleBlockSync() error {
 			sabft.log.Debugf("[sync pushed]: start sync uncommitted blocks,start: %v,end:%v, count: %v",
 				dbLastPushed+1, sabft.ForkDB.Head().Id().BlockNum(), len(pSli))
 			err = sabft.ctrl.SyncPushedBlocksToDB(pSli)
+
+			if err != nil {
+				return err
+			}
 		}
 		return nil
 
@@ -1428,7 +1431,8 @@ func (sabft *SABFT) handleBlockSync() error {
 		sabft.log.Infof("[Revert commit] start revert invalid commit to statedb: "+
 			"%v,end:%v,real commit num is %v", dbLastPushed, sabft.ForkDB.Head().Id().BlockNum(), latestNumber)
 
-		sabft.ctrl.PopBlock(latestNumber + 1)
+		sabft.popBlock(latestNumber + 1)
+		
 	}
 
 	return nil
