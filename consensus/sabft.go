@@ -446,8 +446,15 @@ func (sabft *SABFT) start() {
 					sabft.cp.RemoveNextUncommitted()
 					// TODO: fetch next checkpoint from a different peer
 				} else {
+					// if we're a validator and the gobft falls behind, pass the commit to gobft and let it catchup
+					if sabft.gobftCatchUp(commit) {
+						continue
+					}
+
+					// if it suits the following situation:
+					// 1. we're not a validator
+					// 2. gobft is far ahead due to committing missing blocks
 					if err = sabft.commit(commit); err == nil {
-						//sabft.cp.Flush()
 						sabft.dynasties.Purge(ExtractBlockID(commit).BlockNum())
 					}
 				}
@@ -677,9 +684,7 @@ func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 		sabft.log.Debug("reach checkpoint at ", checkPoint.ProposedData)
 
 		// if we're a validator, pass it to gobft so that it can catch up
-		if sabft.isValidatorName(sabft.Name) && atomic.LoadUint32(&sabft.bftStarted) == 1 {
-			sabft.log.Warn("pass commits to gobft ", checkPoint.ProposedData)
-			sabft.bft.RecvMsg(checkPoint)
+		if sabft.gobftCatchUp(checkPoint) {
 			return
 		}
 
@@ -689,7 +694,6 @@ func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 		}
 		if _, err := sabft.ForkDB.FetchBlock(newID); err == nil {
 			if err = sabft.commit(checkPoint); err == nil {
-				//sabft.cp.Flush()
 				sabft.dynasties.Purge(newID.BlockNum())
 				checkPoint = sabft.cp.NextUncommitted()
 				if checkPoint != nil {
@@ -700,6 +704,16 @@ func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 		}
 		break
 	}
+}
+
+func (sabft *SABFT) gobftCatchUp(commit *message.Commit) bool {
+	if sabft.isValidatorName(sabft.Name) && atomic.LoadUint32(&sabft.bftStarted) == 1 &&
+		sabft.appState.LastHeight+1 == commit.Height() {
+		sabft.log.Warn("pass commits to gobft ", commit.ProposedData)
+		sabft.bft.RecvMsg(commit)
+		return true
+	}
+	return false
 }
 
 func (sabft *SABFT) validateProducer(b common.ISignedBlock) bool {
@@ -893,7 +907,6 @@ func (sabft *SABFT) Commit(commitRecords *message.Commit) error {
 	}
 	err = sabft.commit(commitRecords)
 	if err == nil {
-		//sabft.cp.Flush()
 		sabft.dynasties.Purge(ExtractBlockID(commitRecords).BlockNum())
 		sabft.checkBFTRoutine()
 		return nil
@@ -1089,6 +1102,7 @@ func (sabft *SABFT) GetValidatorNum() int {
 /********* end gobft ICommittee ***********/
 
 func (sabft *SABFT) switchFork(old, new common.BlockID) bool {
+	// TODO: validate block producer
 	branches, err := sabft.ForkDB.FetchBranch(old, new)
 	if err != nil {
 		panic(err)
