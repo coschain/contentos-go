@@ -448,6 +448,7 @@ func (sabft *SABFT) start() {
 				} else {
 					// if we're a validator and the gobft falls behind, pass the commit to gobft and let it catchup
 					if sabft.gobftCatchUp(commit) {
+						sabft.Unlock()
 						continue
 					}
 
