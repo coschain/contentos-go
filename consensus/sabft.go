@@ -298,11 +298,20 @@ func (sabft *SABFT) Start(node *node.Node) error {
 		sabft.restoreDynasty()
 	}
 
+	k := sabft.ForkDB.LastCommitted().BlockNum()
+	if k > 0 {
+		k--
+	}
+	lastCommit, err := sabft.cp.GetNext(k)
+	var lh int64
+	if err == nil {
+		lh = lastCommit.Height()
+	}
 	sabft.appState = &message.AppState{
-		// TODO: store last height
-		LastHeight:       0,
+		LastHeight:       lh,
 		LastProposedData: sabft.ForkDB.LastCommitted().Data,
 	}
+	
 	sabft.bft = gobft.NewCore(sabft, sabft.dynasties.Front().priv)
 	//pv := newPrivValidator(sabft, sabft.localPrivKey, sabft.Name)
 	//sabft.bft = gobft.NewCore(sabft, pv)
