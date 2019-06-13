@@ -162,6 +162,7 @@ func addCommands() {
 	rootCmd.AddCommand(commands.BlockCmd())
 	rootCmd.AddCommand(commands.StakeCmd())
 	rootCmd.AddCommand(commands.UnStakeCmd())
+	rootCmd.AddCommand(commands.NodesCheckCmd())
 
 }
 
