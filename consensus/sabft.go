@@ -298,7 +298,8 @@ func (sabft *SABFT) Start(node *node.Node) error {
 	}
 
 	sabft.appState = &message.AppState{
-		LastHeight:       int64(sabft.ForkDB.LastCommitted().BlockNum()),
+		// TODO: store last height
+		LastHeight:       0,
 		LastProposedData: sabft.ForkDB.LastCommitted().Data,
 	}
 	sabft.bft = gobft.NewCore(sabft, sabft.dynasties.Front().priv)
@@ -1309,6 +1310,7 @@ func (sabft *SABFT) ResetTicker(ts time.Time) {
 func (sabft *SABFT) MaybeProduceBlock() {
 	defer sabft.prodTimer.Reset(sabft.timeToNextSec())
 	defer func() {
+
 		var from, to uint64
 		sabft.RLock()
 		if sabft.cp.HasDanglingCheckPoint() {
@@ -1328,6 +1330,14 @@ func (sabft *SABFT) MaybeProduceBlock() {
 		}
 		if to != 0 {
 			go sabft.p2p.RequestCheckpoint(from, to)
+		}
+
+		if !sabft.readyToProduce && !sabft.ForkDB.Empty() {
+			headNum := sabft.ForkDB.Head().Id().BlockNum()
+			lcNum := sabft.ForkDB.LastCommitted().BlockNum()
+			if headNum > lcNum {
+				go sabft.p2p.RequestCheckpoint(lcNum, headNum)
+			}
 		}
 
 	}()
