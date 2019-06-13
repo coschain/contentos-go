@@ -7,6 +7,7 @@ import (
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/vm/contract/abi"
 	table2 "github.com/coschain/contentos-go/vm/contract/table"
+	"github.com/hashicorp/golang-lru"
 )
 
 //type ICosVMNative interface {
@@ -28,6 +29,17 @@ import (
 
 type CosVMNative struct {
 	cosVM *CosVM
+	tablesCache *lru.Cache
+}
+
+const tablesCacheMaxSize = 64
+
+func NewCosVMNative(vm *CosVM) *CosVMNative {
+	tabCache, _ := lru.New(tablesCacheMaxSize)
+	return &CosVMNative{
+		cosVM: vm,
+		tablesCache: tabCache,
+	}
 }
 
 func (w *CosVMNative) Sha256(in []byte) [32]byte {
@@ -178,16 +190,27 @@ func (w *CosVMNative) TableDeleteRecord(tableName string, primary []byte) {
 }
 
 func (w *CosVMNative) TableGetRecordEx(ownerName, contractName, tableName string, primary []byte) []byte {
-	jsonAbi := w.cosVM.ctx.Injector.ContractABI(ownerName, contractName)
-	w.CosAssert(len(jsonAbi) > 0, fmt.Sprintf("TableGetRecordEx(): no ABI for contract '%s' of account '%s'", contractName, ownerName))
-
-	abiInterface, err := abi.UnmarshalABI([]byte(jsonAbi))
-	if err != nil {
-		w.CosAssert(false, fmt.Sprintf("TableGetRecordEx(): invalid ABI of contract '%s' of account '%s': %s", contractName, ownerName, err.Error()))
+	var (
+		abiInterface abi.IContractABI
+		err error
+	)
+	contractKey := contractName + "@" + ownerName
+	cached, ok := w.tablesCache.Get(contractKey)
+	if ok {
+		abiInterface = cached.(abi.IContractABI)
+	} else {
+		jsonAbi := w.cosVM.ctx.Injector.ContractABI(ownerName, contractName)
+		w.CosAssert(len(jsonAbi) > 0, fmt.Sprintf("TableGetRecordEx(): no ABI for contract '%s' of account '%s'", contractName, ownerName))
+		abiInterface, err = abi.UnmarshalABI([]byte(jsonAbi))
+		if err != nil {
+			w.CosAssert(false, fmt.Sprintf("TableGetRecordEx(): invalid ABI of contract '%s' of account '%s': %s", contractName, ownerName, err.Error()))
+		}
+		w.tablesCache.Add(contractKey, abiInterface)
 	}
-	tables := table2.NewContractTables(ownerName, contractName, abiInterface, w.cosVM.db)
 
+	tables := table2.NewContractTables(ownerName, contractName, abiInterface, w.cosVM.db)
 	w.CosAssert(tables != nil, "TableGetRecordEx(): tables not ready.")
+
 	data, err := tables.Table(tableName).GetRecord(primary)
 	if err != nil {
 		return nil

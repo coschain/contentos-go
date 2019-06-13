@@ -131,7 +131,7 @@ func (w *CosVM) runEntry(entryName string) (ret uint32, err error) {
 	}
 	defer vc.Put(w.ctx.Owner.Value, w.ctx.Contract, w.ctx.CodeHash.Hash, vm)
 
-	nativeFuncs := &CosVMNative{cosVM: w}
+	nativeFuncs := NewCosVMNative(w)
 	vm.SetTag( nativeFuncs )
 	defer func() {
 		w.spentGas = vm.CostGas
