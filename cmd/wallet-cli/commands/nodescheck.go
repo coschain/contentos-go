@@ -7,7 +7,10 @@ import (
 	"github.com/coschain/contentos-go/rpc"
 	"github.com/coschain/contentos-go/rpc/pb"
 	"google.golang.org/grpc"
+	"strings"
 )
+
+var rpclist string
 
 var NodesCheckCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
@@ -16,20 +19,28 @@ var NodesCheckCmd = func() *cobra.Command {
 		Run:   nodesCheck,
 	}
 
+	cmd.Flags().StringVarP(&rpclist, "rpc", "r", "localhost:8888", `nodescheck --rpc xxx:xxx,xxx:xxx`)
+
 	return cmd
 }
 
 func nodesCheck(cmd *cobra.Command, args []string) {
 
-	for port := 8888; port < 8888 + 22 ; port++ {
+	defer func() {
+		rpclist = "localhost:8888"
+	}()
+
+	nodeslist := strings.Split(rpclist, ",")
+
+	for i:=0; i<len(nodeslist); i++ {
 		var conn *grpc.ClientConn
-		conn, err := rpc.Dial(fmt.Sprintf("localhost:%d", port))
+		conn, err := rpc.Dial(nodeslist[i])
 		if err == nil && conn != nil {
 			api := grpcpb.NewApiServiceClient(conn)
 			resp, err := api.GetChainState(context.Background(), &grpcpb.NonParamsRequest{})
 
 			if err == nil {
-				fmt.Printf("Success port:%v, Irreversible: %v, HeadBlockId: %v, HeadHash: %v\n", port,
+				fmt.Printf("Success peer:%v, Irreversible: %v, HeadBlockId: %v, HeadHash: %v\n", nodeslist[i],
 					resp.State.GetLastIrreversibleBlockNumber(),
 					resp.State.Dgpo.HeadBlockNumber,
 					resp.State.Dgpo.HeadBlockId.ToString())
