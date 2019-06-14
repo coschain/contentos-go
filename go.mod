@@ -9,7 +9,7 @@ require (
 	github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1 // indirect
 	github.com/coocood/freecache v1.1.0
 	github.com/coschain/cobra v0.0.0-20181106130408-77bf516f51a1
-	github.com/coschain/gobft v0.0.0-20190612121935-d58c38ce3633
+	github.com/coschain/gobft v0.0.0-20190614094936-238c9b4e44de
 	github.com/fastly/go-utils v0.0.0-20180712184237-d95a45783239 // indirect
 	github.com/go-interpreter/wagon v0.3.0
 	github.com/go-sql-driver/mysql v1.4.1
