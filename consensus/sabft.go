@@ -695,11 +695,7 @@ func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 
 		// if we're a validator, pass it to gobft so that it can catch up
 		if sabft.gobftCatchUp(checkPoint) {
-			checkPoint = sabft.cp.NextUncommitted()
-			if checkPoint != nil {
-				sabft.log.Debug("loop checkpoint at ", checkPoint.ProposedData)
-			}
-			continue
+			return
 		}
 
 		if !sabft.cp.Validate(checkPoint) {
@@ -924,6 +920,13 @@ func (sabft *SABFT) Commit(commitRecords *message.Commit) error {
 	if err == nil {
 		sabft.dynasties.Purge(ExtractBlockID(commitRecords).BlockNum())
 		sabft.checkBFTRoutine()
+
+		// try to catchup if falls behind
+		checkPoint := sabft.cp.NextUncommitted()
+		if checkPoint != nil {
+			sabft.log.Debug("loop checkpoint at ", checkPoint.ProposedData)
+			sabft.gobftCatchUp(checkPoint)
+		}
 		return nil
 	}
 	if err == ErrCommitted {
