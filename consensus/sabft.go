@@ -696,11 +696,15 @@ func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 
 		// if we're a validator, pass it to gobft so that it can catch up
 		if sabft.gobftCatchUp(checkPoint) {
-			return
+			checkPoint = sabft.cp.NextUncommitted()
+			if checkPoint != nil {
+				sabft.log.Debug("loop checkpoint at ", checkPoint.ProposedData)
+			}
+			continue
 		}
 
 		if !sabft.cp.Validate(checkPoint) {
-			sabft.log.Error("validation on checkpoint failed")
+			sabft.log.Error("validation on checkpoint failed, remove it") // TODO:
 			return
 		}
 		if _, err := sabft.ForkDB.FetchBlock(newID); err == nil {
