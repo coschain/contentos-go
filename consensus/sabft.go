@@ -194,7 +194,7 @@ func (sabft *SABFT) checkBFTRoutine() {
 		sabft.isValidatorName(sabft.Name) {
 		if atomic.LoadUint32(&sabft.bftStarted) == 0 {
 			sabft.bft.Start()
-			sabft.log.Info("[SABFT] gobft started...")
+			sabft.log.Infof("[SABFT] gobft started at height %d", sabft.appState.LastHeight)
 			atomic.StoreUint32(&sabft.bftStarted, 1)
 		}
 	} else {
@@ -465,8 +465,8 @@ func (sabft *SABFT) start() {
 					// if it suits the following situation:
 					// 1. we're not a validator
 					// 2. gobft is far ahead due to committing missing blocks
-					if err = sabft.commit(commit); err == nil {
-						sabft.dynasties.Purge(ExtractBlockID(commit).BlockNum())
+					if err = sabft.commit(commit); err != nil {
+						sabft.log.Error(err)
 					}
 				}
 			}
@@ -706,7 +706,6 @@ func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 		}
 		if _, err := sabft.ForkDB.FetchBlock(newID); err == nil {
 			if err = sabft.commit(checkPoint); err == nil {
-				sabft.dynasties.Purge(newID.BlockNum())
 				checkPoint = sabft.cp.NextUncommitted()
 				if checkPoint != nil {
 					sabft.log.Debug("loop checkpoint at ", checkPoint.ProposedData)
@@ -919,9 +918,6 @@ func (sabft *SABFT) Commit(commitRecords *message.Commit) error {
 	}
 	err = sabft.commit(commitRecords)
 	if err == nil {
-		sabft.dynasties.Purge(ExtractBlockID(commitRecords).BlockNum())
-		sabft.checkBFTRoutine()
-
 		// try to catchup if falls behind
 		checkPoint := sabft.cp.NextUncommitted()
 		if checkPoint != nil {
@@ -945,13 +941,15 @@ func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 	defer func() {
 		sabft.appState.LastHeight = commitRecords.FirstPrecommit().Height
 		sabft.appState.LastProposedData = commitRecords.ProposedData
+		sabft.checkBFTRoutine()
 	}()
 
 	blockID := common.BlockID{
 		Data: commitRecords.ProposedData,
 	}
+	blockNum := blockID.BlockNum()
 
-	sabft.log.Infof("[SABFT] start to commit block #%d %v %d", blockID.BlockNum(), blockID, commitRecords.FirstPrecommit().Height)
+	sabft.log.Infof("[SABFT] start to commit block #%d %v %d", blockNum, blockID, commitRecords.FirstPrecommit().Height)
 	// if we're committing a block we don't have
 	blk, err := sabft.ForkDB.FetchBlock(blockID)
 	if err != nil {
@@ -964,7 +962,7 @@ func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 		return ErrCommitted
 	}
 
-	blkMain, err := sabft.ForkDB.FetchBlockFromMainBranch(blockID.BlockNum())
+	blkMain, err := sabft.ForkDB.FetchBlockFromMainBranch(blockNum)
 	if err != nil {
 		sabft.log.Errorf("[SABFT] internal error when committing %v, err: %v", blockID, err)
 		return ErrInternal
@@ -997,12 +995,17 @@ func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 		}
 	}
 
-	sabft.ctrl.Commit(blockID.BlockNum())
+	sabft.ctrl.Commit(blockNum)
 	sabft.ForkDB.Commit(blockID)
 	sabft.lastCommitted.Store(commitRecords)
 	sabft.cp.Flush(blockID)
-
+	sabft.dynasties.Purge(blockNum)
+	//sabft.log.Infof("****first dynasty at %d", sabft.dynasties.Front().Seq)
+	//for i := range sabft.dynasties.Front().validators {
+	//	sabft.log.Infof(" ", sabft.dynasties.Front().validators[i].accountName)
+	//}
 	sabft.log.Debug("[SABFT] committed block #", blockID)
+
 	return nil
 }
 
