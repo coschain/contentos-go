@@ -704,7 +704,8 @@ func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 		}
 
 		if !sabft.cp.Validate(checkPoint) {
-			sabft.log.Error("validation on checkpoint failed, remove it") // TODO:
+			sabft.log.Error("validation on checkpoint failed, remove it")
+			sabft.cp.Remove(checkPoint)
 			return
 		}
 		if _, err := sabft.ForkDB.FetchBlock(newID); err == nil {

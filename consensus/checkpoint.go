@@ -125,6 +125,14 @@ func (cp *BFTCheckPoint) Add(commit *message.Commit) error {
 	return nil
 }
 
+func (cp *BFTCheckPoint) Remove(commit *message.Commit) {
+	if cp.lastCommitted != ConvertToBlockID(commit.Prev) {
+		panic("removing a invalid checkpoint")
+	}
+	delete(cp.cache, cp.lastCommitted)
+	cp.nextCP = common.EmptyBlockID
+}
+
 func (cp *BFTCheckPoint) HasDanglingCheckPoint() bool {
 	return cp.NextUncommitted() == nil && len(cp.cache) > 0
 }
