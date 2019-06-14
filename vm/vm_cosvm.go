@@ -68,7 +68,7 @@ func (w *CosVM) initNativeFuncs() {
 	w.Register("table_new_record", e_tableNewRecord, 1200)
 	w.Register("table_update_record", e_tableUpdateRecord, 1200)
 	w.Register("table_delete_record", e_tableDeleteRecord, 1000)
-	w.Register("table_get_record_ex", e_tableGetRecordEx, 5000)
+	w.Register("table_get_record_ex", e_tableGetRecordEx, 1500)
 
 	// for memeory
 	w.Register("memcpy", e_memcpy, 100)

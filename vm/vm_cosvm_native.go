@@ -190,26 +190,24 @@ func (w *CosVMNative) TableDeleteRecord(tableName string, primary []byte) {
 }
 
 func (w *CosVMNative) TableGetRecordEx(ownerName, contractName, tableName string, primary []byte) []byte {
-	var (
-		abiInterface abi.IContractABI
-		err error
-	)
+	var tables *table2.ContractTables
+
 	contractKey := contractName + "@" + ownerName
 	cached, ok := w.tablesCache.Get(contractKey)
 	if ok {
-		abiInterface = cached.(abi.IContractABI)
+		tables = cached.(*table2.ContractTables)
 	} else {
 		jsonAbi := w.cosVM.ctx.Injector.ContractABI(ownerName, contractName)
 		w.CosAssert(len(jsonAbi) > 0, fmt.Sprintf("TableGetRecordEx(): no ABI for contract '%s' of account '%s'", contractName, ownerName))
-		abiInterface, err = abi.UnmarshalABI([]byte(jsonAbi))
+		abiInterface, err := abi.UnmarshalABI([]byte(jsonAbi))
 		if err != nil {
 			w.CosAssert(false, fmt.Sprintf("TableGetRecordEx(): invalid ABI of contract '%s' of account '%s': %s", contractName, ownerName, err.Error()))
 		}
-		w.tablesCache.Add(contractKey, abiInterface)
-	}
+		tables = table2.NewContractTables(ownerName, contractName, abiInterface, w.cosVM.db)
+		w.CosAssert(tables != nil, "TableGetRecordEx(): tables creation failed")
 
-	tables := table2.NewContractTables(ownerName, contractName, abiInterface, w.cosVM.db)
-	w.CosAssert(tables != nil, "TableGetRecordEx(): tables not ready.")
+		w.tablesCache.Add(contractKey, tables)
+	}
 
 	data, err := tables.Table(tableName).GetRecord(primary)
 	if err != nil {
