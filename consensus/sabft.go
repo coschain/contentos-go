@@ -1388,12 +1388,7 @@ func (sabft *SABFT) MaybeProduceBlock() {
 	}
 	sabft.Unlock()
 
-	go func() {
-		//time.Sleep(time.Duration(1 * time.Duration(rand.Int()%8) * time.Second / 10))
-		sabft.log.Debugf("[SABFT] call p2p to broadcast sigblk %d", b.Id().BlockNum())
-		sabft.p2p.Broadcast(b)
-	}()
-	//sabft.p2p.Broadcast(b)
+	sabft.p2p.Broadcast(b)
 }
 
 func (sabft *SABFT) handleBlockSync() error {
