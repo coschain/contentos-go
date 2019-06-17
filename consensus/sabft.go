@@ -91,6 +91,7 @@ func NewSABFT(ctx *node.ServiceContext, lg *logrus.Logger) *SABFT {
 	ret.Name = ctx.Config().Consensus.LocalBpName
 
 	ret.log.Info("[SABFT bootstrap] ", ctx.Config().Consensus.BootStrap)
+	deadlock.Opts.DeadlockTimeout = time.Second * 1000
 
 	privateKey := ctx.Config().Consensus.LocalBpPrivateKey
 	if len(privateKey) > 0 {
