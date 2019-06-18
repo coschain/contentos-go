@@ -456,6 +456,7 @@ func (sabft *SABFT) start() {
 					sabft.cp.RemoveNextUncommitted()
 					// TODO: fetch next checkpoint from a different peer
 				} else {
+					sabft.log.Debugf("new block %d on an existed checkpoint", b.Id().BlockNum())
 					// if we're a validator and the gobft falls behind, pass the commit to gobft and let it catchup
 					if sabft.gobftCatchUp(commit) {
 						sabft.Unlock()
@@ -719,7 +720,7 @@ func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 
 func (sabft *SABFT) gobftCatchUp(commit *message.Commit) bool {
 	if sabft.isValidatorName(sabft.Name) && atomic.LoadUint32(&sabft.bftStarted) == 1 &&
-		sabft.appState.LastHeight+1 == commit.Height() {
+		sabft.appState.LastProposedData == commit.Prev {
 		sabft.log.Warn("pass commits to gobft ", commit.ProposedData)
 		sabft.bft.RecvMsg(commit)
 		return true
@@ -842,6 +843,7 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 		sabft.log.Debug("[SABFT TriggerSync]: out-of range2 from ", b.Previous().BlockNum())
 		return ErrBlockOutOfScope
 	case forkdb.RTOnFork:
+		sabft.log.Debugf("[SABFT] block %d pushed on fork branch", newNum)
 		if newHead != head && newHead.Previous() != head.Id() {
 			sabft.log.Debug("[SABFT] start to switch fork.")
 			switchSuccess := sabft.switchFork(head.Id(), newHead.Id())
@@ -977,6 +979,7 @@ func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 		// also need to reset new head
 		sabft.ForkDB.ResetHead(blockID)
 		sabft.ForkDB.PurgeBranch()
+		sabft.log.Debug("fork switch success. new head ", blockID)
 	}
 
 	blks, _, err := sabft.ForkDB.FetchBlocksSince(sabft.ForkDB.LastCommitted())
