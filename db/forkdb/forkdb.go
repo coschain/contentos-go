@@ -16,8 +16,8 @@ type RetCode string
 const (
 	RTDetached   RetCode = "detached block"
 	RTDuplicated RetCode = "duplicated block"
-	RTOnFork     RetCode = "block is pushed on fork branch"
-	RTSuccess    RetCode = "block is pushed on main branch"
+	RTPushedOnFork     RetCode = "block is pushed on fork branch"
+	RTPushedOnMain     RetCode = "block is pushed on main branch"
 	RTInvalid    RetCode = "block is invalid"
 	RTOutOfRange RetCode = "block number is out of range"
 )
@@ -196,7 +196,7 @@ func (db *DB) pushBlock(b common.ISignedBlock) RetCode {
 		db.start = num
 		db.list[0] = append(db.list[0], db.head)
 		db.branches[id] = b
-		return RTSuccess
+		return RTPushedOnMain
 	}
 
 	if _, ok := db.branches[id]; ok {
@@ -206,20 +206,23 @@ func (db *DB) pushBlock(b common.ISignedBlock) RetCode {
 	if num > db.head.BlockNum()+1 || num <= db.start {
 		return RTOutOfRange
 	}
-	db.list[num-db.start] = append(db.list[num-db.start], id)
+
 	prev := b.Previous()
 	if _, ok := db.branches[prev]; !ok {
 		db.detachedLink[prev] = b
 		return RTDetached
 	} else {
+		db.list[num-db.start] = append(db.list[num-db.start], id)
 		db.branches[id] = b
 		db.tryNewHead(id)
 		db.pushDetached(id)
-		if oldHead != b.Previous() {
-			return RTOnFork
+		if oldHead == b.Previous() {
+			return RTPushedOnMain
+		} else {
+			return RTPushedOnFork
 		}
 	}
-	return RTSuccess
+	return RTInvalid
 }
 
 func (db *DB) pushDetached(id common.BlockID) {
@@ -230,6 +233,8 @@ func (db *DB) pushDetached(id common.BlockID) {
 		if ok {
 			delete(db.detachedLink, id)
 			id = b.Id()
+			num := id.BlockNum()
+			db.list[num-db.start] = append(db.list[num-db.start], id)
 			db.branches[id] = b
 			db.tryNewHead(id)
 		}
@@ -496,6 +501,8 @@ func (db *DB) PurgeBranch() {
 	for i := headNum + 1; i-db.start < defaultSize; i++ {
 		db.list[i-db.start] = nil
 	}
+
+	db.detachedLink = make(map[common.BlockID]common.ISignedBlock)
 }
 
 func (db *DB) fetchUnlinkBlockById(id common.BlockID) common.ISignedBlock {

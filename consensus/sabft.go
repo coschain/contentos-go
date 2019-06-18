@@ -842,35 +842,37 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 		sabft.p2p.FetchUnlinkedBlock(b.Previous())
 		sabft.log.Debug("[SABFT TriggerSync]: out-of range2 from ", b.Previous().BlockNum())
 		return ErrBlockOutOfScope
-	case forkdb.RTOnFork:
+	case forkdb.RTInvalid:
+		return ErrInvalidBlock
+	case forkdb.RTDuplicated:
+		return ErrDupBlock
+	case forkdb.RTPushedOnFork:
 		sabft.log.Debugf("[SABFT] block %d pushed on fork branch", newNum)
 		if newHead != head && newHead.Previous() != head.Id() {
 			sabft.log.Debug("[SABFT] start to switch fork.")
 			switchSuccess := sabft.switchFork(head.Id(), newHead.Id())
 			if !switchSuccess {
 				sabft.log.Error("[SABFT] there's an error while switching to new branch. new head", newHead.Id())
+			} else {
+				sabft.log.Info("[SABFT] switch fork success, new head", newHead)
 			}
 		}
 		return nil
-	case forkdb.RTInvalid:
-		return ErrInvalidBlock
-	case forkdb.RTDuplicated:
-		return ErrDupBlock
-	case forkdb.RTSuccess:
+	case forkdb.RTPushedOnMain:
+		if applyStateDB {
+			if err := sabft.applyBlock(b); err != nil {
+				// the block is illegal
+				sabft.ForkDB.MarkAsIllegal(b.Id())
+				sabft.ForkDB.Pop()
+				return err
+			}
+		}
+		sabft.log.Debug("[SABFT] pushBlock FINISHED #", b.Id().BlockNum(), " id ", b.Id())
+		// detached blocks might be pushed too, apply them
 	default:
 		return ErrInternal
 	}
-
-	if applyStateDB {
-		if err := sabft.applyBlock(b); err != nil {
-			// the block is illegal
-			sabft.ForkDB.MarkAsIllegal(b.Id())
-			sabft.ForkDB.Pop()
-			return err
-		}
-	}
-	sabft.log.Debug("[SABFT] pushBlock FINISHED #", b.Id().BlockNum(), " id ", b.Id())
-	return nil
+	return ErrInternal
 }
 
 func (sabft *SABFT) GetLastBFTCommit() interface{} {
