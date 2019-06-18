@@ -92,10 +92,10 @@ message dynamic_properties {
     prototype.coin               account_create_fee = 37;
     uint64             current_epoch_start_block    = 38;
     uint64             epoch_duration = 39;
-    bool               distribute_boot_completed = 40;
-    uint32             top_n_acquire_free_token = 41;
-    uint64             ticket_price = 42;
-    prototype.vest     ticket_fee_to_bp = 43;
+    uint32             top_n_acquire_free_token = 40;
+    prototype.vest     per_ticket_price = 41;
+    uint64             per_ticket_weight = 42;
+    prototype.vest     tickets_income = 43;
 }
 
 message beneficiary_route_type{

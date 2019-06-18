@@ -36,8 +36,13 @@ message so_mem_giftTicket_by_expire_block {
 }
 
 
-message so_list_giftTicket_by_expire_block {
-	uint64                          	expire_block = 1;
+message so_list_giftTicket_by_ticket {
+	prototype.gift_ticket_key_type  	ticket     = 1;
+}
+
+
+message so_list_giftTicket_by_count {
+	uint64                          	count      = 1;
 	prototype.gift_ticket_key_type  	ticket     = 2;
 }
 

@@ -14,12 +14,13 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	GiftTicketExpireBlockTable uint32 = 1957353176
-	GiftTicketTicketUniTable   uint32 = 4012059461
-	GiftTicketCountCell        uint32 = 228272823
-	GiftTicketDenomCell        uint32 = 995079636
-	GiftTicketExpireBlockCell  uint32 = 1076549812
-	GiftTicketTicketCell       uint32 = 3431593262
+	GiftTicketTicketTable     uint32 = 1694240687
+	GiftTicketCountTable      uint32 = 3991811728
+	GiftTicketTicketUniTable  uint32 = 4012059461
+	GiftTicketCountCell       uint32 = 228272823
+	GiftTicketDenomCell       uint32 = 995079636
+	GiftTicketExpireBlockCell uint32 = 1076549812
+	GiftTicketTicketCell      uint32 = 3431593262
 )
 
 ////////////// SECTION Wrap Define ///////////////
@@ -129,13 +130,13 @@ func (s *SoGiftTicketWrap) getMainKeyBuf() ([]byte, error) {
 
 ////////////// SECTION LKeys delete/insert ///////////////
 
-func (s *SoGiftTicketWrap) delSortKeyExpireBlock(sa *SoGiftTicket) bool {
+func (s *SoGiftTicketWrap) delSortKeyTicket(sa *SoGiftTicket) bool {
 	if s.dba == nil || s.mainKey == nil {
 		return false
 	}
-	val := SoListGiftTicketByExpireBlock{}
+	val := SoListGiftTicketByTicket{}
 	if sa == nil {
-		key, err := s.encodeMemKey("ExpireBlock")
+		key, err := s.encodeMemKey("Ticket")
 		if err != nil {
 			return false
 		}
@@ -143,16 +144,13 @@ func (s *SoGiftTicketWrap) delSortKeyExpireBlock(sa *SoGiftTicket) bool {
 		if err != nil {
 			return false
 		}
-		ori := &SoMemGiftTicketByExpireBlock{}
+		ori := &SoMemGiftTicketByTicket{}
 		err = proto.Unmarshal(buf, ori)
 		if err != nil {
 			return false
 		}
-		val.ExpireBlock = ori.ExpireBlock
-		val.Ticket = s.mainKey
-
+		val.Ticket = ori.Ticket
 	} else {
-		val.ExpireBlock = sa.ExpireBlock
 		val.Ticket = sa.Ticket
 	}
 
@@ -164,13 +162,66 @@ func (s *SoGiftTicketWrap) delSortKeyExpireBlock(sa *SoGiftTicket) bool {
 	return ordErr == nil
 }
 
-func (s *SoGiftTicketWrap) insertSortKeyExpireBlock(sa *SoGiftTicket) bool {
+func (s *SoGiftTicketWrap) insertSortKeyTicket(sa *SoGiftTicket) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
-	val := SoListGiftTicketByExpireBlock{}
+	val := SoListGiftTicketByTicket{}
 	val.Ticket = sa.Ticket
-	val.ExpireBlock = sa.ExpireBlock
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return false
+	}
+	subBuf, err := val.OpeEncode()
+	if err != nil {
+		return false
+	}
+	ordErr := s.dba.Put(subBuf, buf)
+	return ordErr == nil
+}
+
+func (s *SoGiftTicketWrap) delSortKeyCount(sa *SoGiftTicket) bool {
+	if s.dba == nil || s.mainKey == nil {
+		return false
+	}
+	val := SoListGiftTicketByCount{}
+	if sa == nil {
+		key, err := s.encodeMemKey("Count")
+		if err != nil {
+			return false
+		}
+		buf, err := s.dba.Get(key)
+		if err != nil {
+			return false
+		}
+		ori := &SoMemGiftTicketByCount{}
+		err = proto.Unmarshal(buf, ori)
+		if err != nil {
+			return false
+		}
+		val.Count = ori.Count
+		val.Ticket = s.mainKey
+
+	} else {
+		val.Count = sa.Count
+		val.Ticket = sa.Ticket
+	}
+
+	subBuf, err := val.OpeEncode()
+	if err != nil {
+		return false
+	}
+	ordErr := s.dba.Delete(subBuf)
+	return ordErr == nil
+}
+
+func (s *SoGiftTicketWrap) insertSortKeyCount(sa *SoGiftTicket) bool {
+	if s.dba == nil || sa == nil {
+		return false
+	}
+	val := SoListGiftTicketByCount{}
+	val.Ticket = sa.Ticket
+	val.Count = sa.Count
 	buf, err := proto.Marshal(&val)
 	if err != nil {
 		return false
@@ -188,7 +239,14 @@ func (s *SoGiftTicketWrap) delAllSortKeys(br bool, val *SoGiftTicket) bool {
 		return false
 	}
 	res := true
-	if !s.delSortKeyExpireBlock(val) {
+	if !s.delSortKeyTicket(val) {
+		if br {
+			return false
+		} else {
+			res = false
+		}
+	}
+	if !s.delSortKeyCount(val) {
 		if br {
 			return false
 		} else {
@@ -206,8 +264,11 @@ func (s *SoGiftTicketWrap) insertAllSortKeys(val *SoGiftTicket) error {
 	if val == nil {
 		return errors.New("insert sort Field fail,get the SoGiftTicket fail ")
 	}
-	if !s.insertSortKeyExpireBlock(val) {
-		return errors.New("insert sort Field ExpireBlock fail while insert table ")
+	if !s.insertSortKeyTicket(val) {
+		return errors.New("insert sort Field Ticket fail while insert table ")
+	}
+	if !s.insertSortKeyCount(val) {
+		return errors.New("insert sort Field Count fail while insert table ")
 	}
 
 	return nil
@@ -430,6 +491,9 @@ func (s *SoGiftTicketWrap) MdCount(p uint64) bool {
 
 	sa.Count = ori.Count
 
+	if !s.delSortKeyCount(sa) {
+		return false
+	}
 	ori.Count = p
 	val, err := proto.Marshal(ori)
 	if err != nil {
@@ -440,6 +504,10 @@ func (s *SoGiftTicketWrap) MdCount(p uint64) bool {
 		return false
 	}
 	sa.Count = p
+
+	if !s.insertSortKeyCount(sa) {
+		return false
+	}
 
 	return true
 }
@@ -596,9 +664,6 @@ func (s *SoGiftTicketWrap) MdExpireBlock(p uint64) bool {
 
 	sa.ExpireBlock = ori.ExpireBlock
 
-	if !s.delSortKeyExpireBlock(sa) {
-		return false
-	}
 	ori.ExpireBlock = p
 	val, err := proto.Marshal(ori)
 	if err != nil {
@@ -609,10 +674,6 @@ func (s *SoGiftTicketWrap) MdExpireBlock(p uint64) bool {
 		return false
 	}
 	sa.ExpireBlock = p
-
-	if !s.insertSortKeyExpireBlock(sa) {
-		return false
-	}
 
 	return true
 }
@@ -668,20 +729,20 @@ func (s *SoGiftTicketWrap) GetTicket() *prototype.GiftTicketKeyType {
 }
 
 ////////////// SECTION List Keys ///////////////
-type SGiftTicketExpireBlockWrap struct {
+type SGiftTicketTicketWrap struct {
 	Dba iservices.IDatabaseRW
 }
 
-func NewGiftTicketExpireBlockWrap(db iservices.IDatabaseRW) *SGiftTicketExpireBlockWrap {
+func NewGiftTicketTicketWrap(db iservices.IDatabaseRW) *SGiftTicketTicketWrap {
 	if db == nil {
 		return nil
 	}
-	wrap := SGiftTicketExpireBlockWrap{Dba: db}
+	wrap := SGiftTicketTicketWrap{Dba: db}
 	return &wrap
 }
 
-func (s *SGiftTicketExpireBlockWrap) GetMainVal(val []byte) *prototype.GiftTicketKeyType {
-	res := &SoListGiftTicketByExpireBlock{}
+func (s *SGiftTicketTicketWrap) GetMainVal(val []byte) *prototype.GiftTicketKeyType {
+	res := &SoListGiftTicketByTicket{}
 	err := proto.Unmarshal(val, res)
 
 	if err != nil {
@@ -691,20 +752,22 @@ func (s *SGiftTicketExpireBlockWrap) GetMainVal(val []byte) *prototype.GiftTicke
 
 }
 
-func (s *SGiftTicketExpireBlockWrap) GetSubVal(val []byte) *uint64 {
-	res := &SoListGiftTicketByExpireBlock{}
+func (s *SGiftTicketTicketWrap) GetSubVal(val []byte) *prototype.GiftTicketKeyType {
+	res := &SoListGiftTicketByTicket{}
 	err := proto.Unmarshal(val, res)
 	if err != nil {
 		return nil
 	}
-	return &res.ExpireBlock
+	return res.Ticket
 
 }
 
-func (m *SoListGiftTicketByExpireBlock) OpeEncode() ([]byte, error) {
-	pre := GiftTicketExpireBlockTable
-	sub := m.ExpireBlock
-
+func (m *SoListGiftTicketByTicket) OpeEncode() ([]byte, error) {
+	pre := GiftTicketTicketTable
+	sub := m.Ticket
+	if sub == nil {
+		return nil, errors.New("the pro Ticket is nil")
+	}
 	sub1 := m.Ticket
 	if sub1 == nil {
 		return nil, errors.New("the mainkey Ticket is nil")
@@ -728,8 +791,8 @@ func (m *SoListGiftTicketByExpireBlock) OpeEncode() ([]byte, error) {
 //lastMainKey: the main key of the last one of last page
 //lastSubVal: the value  of the last one of last page
 //
-func (s *SGiftTicketExpireBlockWrap) ForEachByOrder(start *uint64, end *uint64, lastMainKey *prototype.GiftTicketKeyType,
-	lastSubVal *uint64, f func(mVal *prototype.GiftTicketKeyType, sVal *uint64, idx uint32) bool) error {
+func (s *SGiftTicketTicketWrap) ForEachByOrder(start *prototype.GiftTicketKeyType, end *prototype.GiftTicketKeyType, lastMainKey *prototype.GiftTicketKeyType,
+	lastSubVal *prototype.GiftTicketKeyType, f func(mVal *prototype.GiftTicketKeyType, sVal *prototype.GiftTicketKeyType, idx uint32) bool) error {
 	if s.Dba == nil {
 		return errors.New("the db is nil")
 	}
@@ -739,7 +802,7 @@ func (s *SGiftTicketExpireBlockWrap) ForEachByOrder(start *uint64, end *uint64, 
 	if f == nil {
 		return nil
 	}
-	pre := GiftTicketExpireBlockTable
+	pre := GiftTicketTicketTable
 	skeyList := []interface{}{pre}
 	if start != nil {
 		skeyList = append(skeyList, start)
@@ -784,7 +847,108 @@ func (s *SGiftTicketExpireBlockWrap) ForEachByOrder(start *uint64, end *uint64, 
 //lastMainKey: the main key of the last one of last page
 //lastSubVal: the value  of the last one of last page
 //
-func (s *SGiftTicketExpireBlockWrap) ForEachByRevOrder(start *uint64, end *uint64, lastMainKey *prototype.GiftTicketKeyType,
+func (s *SGiftTicketTicketWrap) ForEachByRevOrder(start *prototype.GiftTicketKeyType, end *prototype.GiftTicketKeyType, lastMainKey *prototype.GiftTicketKeyType,
+	lastSubVal *prototype.GiftTicketKeyType, f func(mVal *prototype.GiftTicketKeyType, sVal *prototype.GiftTicketKeyType, idx uint32) bool) error {
+	if s.Dba == nil {
+		return errors.New("the db is nil")
+	}
+	if (lastSubVal != nil && lastMainKey == nil) || (lastSubVal == nil && lastMainKey != nil) {
+		return errors.New("last query param error")
+	}
+	if f == nil {
+		return nil
+	}
+	pre := GiftTicketTicketTable
+	skeyList := []interface{}{pre}
+	if start != nil {
+		skeyList = append(skeyList, start)
+		if lastMainKey != nil {
+			skeyList = append(skeyList, lastMainKey)
+		}
+	} else {
+		if lastMainKey != nil && lastSubVal != nil {
+			skeyList = append(skeyList, lastSubVal, lastMainKey)
+		}
+		skeyList = append(skeyList, kope.MaximumKey)
+	}
+	sBuf, cErr := kope.EncodeSlice(skeyList)
+	if cErr != nil {
+		return cErr
+	}
+	eKeyList := []interface{}{pre}
+	if end != nil {
+		eKeyList = append(eKeyList, end)
+	}
+	eBuf, cErr := kope.EncodeSlice(eKeyList)
+	if cErr != nil {
+		return cErr
+	}
+	var idx uint32 = 0
+	s.Dba.Iterate(eBuf, sBuf, true, func(key, value []byte) bool {
+		idx++
+		return f(s.GetMainVal(value), s.GetSubVal(value), idx)
+	})
+	return nil
+}
+
+////////////// SECTION List Keys ///////////////
+type SGiftTicketCountWrap struct {
+	Dba iservices.IDatabaseRW
+}
+
+func NewGiftTicketCountWrap(db iservices.IDatabaseRW) *SGiftTicketCountWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := SGiftTicketCountWrap{Dba: db}
+	return &wrap
+}
+
+func (s *SGiftTicketCountWrap) GetMainVal(val []byte) *prototype.GiftTicketKeyType {
+	res := &SoListGiftTicketByCount{}
+	err := proto.Unmarshal(val, res)
+
+	if err != nil {
+		return nil
+	}
+	return res.Ticket
+
+}
+
+func (s *SGiftTicketCountWrap) GetSubVal(val []byte) *uint64 {
+	res := &SoListGiftTicketByCount{}
+	err := proto.Unmarshal(val, res)
+	if err != nil {
+		return nil
+	}
+	return &res.Count
+
+}
+
+func (m *SoListGiftTicketByCount) OpeEncode() ([]byte, error) {
+	pre := GiftTicketCountTable
+	sub := m.Count
+
+	sub1 := m.Ticket
+	if sub1 == nil {
+		return nil, errors.New("the mainkey Ticket is nil")
+	}
+	kList := []interface{}{pre, sub, sub1}
+	kBuf, cErr := kope.EncodeSlice(kList)
+	return kBuf, cErr
+}
+
+//Query srt by reverse order
+//
+//f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
+//as arguments to the callback function
+//if the return value of f is true,continue iterating until the end iteration;
+//otherwise stop iteration immediately
+//
+//lastMainKey: the main key of the last one of last page
+//lastSubVal: the value  of the last one of last page
+//
+func (s *SGiftTicketCountWrap) ForEachByRevOrder(start *uint64, end *uint64, lastMainKey *prototype.GiftTicketKeyType,
 	lastSubVal *uint64, f func(mVal *prototype.GiftTicketKeyType, sVal *uint64, idx uint32) bool) error {
 	if s.Dba == nil {
 		return errors.New("the db is nil")
@@ -795,7 +959,7 @@ func (s *SGiftTicketExpireBlockWrap) ForEachByRevOrder(start *uint64, end *uint6
 	if f == nil {
 		return nil
 	}
-	pre := GiftTicketExpireBlockTable
+	pre := GiftTicketCountTable
 	skeyList := []interface{}{pre}
 	if start != nil {
 		skeyList = append(skeyList, start)

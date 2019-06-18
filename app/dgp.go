@@ -77,25 +77,28 @@ func (dgp *DynamicGlobalPropsRW) ModifyProps(modifier func(oldProps *prototype.D
 
 func (dgp *DynamicGlobalPropsRW) TicketFee(fee *prototype.Vest) {
 	dgp.ModifyProps(func(dgpo *prototype.DynamicProperties) {
-		vest := dgpo.GetTicketFeeToBp()
-		mustNoError(vest.Add(fee), "TicketFeeToBp overflow")
-		dgpo.TicketFeeToBp = vest
+		income := dgpo.GetTicketsIncome()
+		mustNoError(income.Add(fee), "TicketIncome overflow")
+		dgpo.TicketsIncome = income
 	})
 }
 
-func (dgp *DynamicGlobalPropsRW) VoteByTicket(account string, postId uint64, count uint64) {
+func (dgp *DynamicGlobalPropsRW) VoteByTicket(account *prototype.AccountName, postId uint64, count uint64) {
 	currentWitness := dgp.GetProps().CurrentWitness
 	bpWrap := table.NewSoAccountWrap(dgp.db, currentWitness)
 	if !bpWrap.CheckExist() {
-		panic(fmt.Sprintf("cannot find account %s", currentWitness.Value))
+		panic(fmt.Sprintf("cannot find bp %s", currentWitness.Value))
 	}
-	bpVest := bpWrap.GetVestingShares()
-	tax := count * dgp.GetProps().GetTicketPrice()
-	mustNoError(bpVest.Add(&prototype.Vest{Value:tax}), "add tax to bp failed")
-	vest := dgp.GetProps().GetTicketFeeToBp()
-	mustNoError(vest.Sub(&prototype.Vest{Value:tax}), "sub tax from ticketfee failed")
-	bpWrap.MdVestingShares(bpVest)
+
+	tax := &prototype.Vest{Value: count * dgp.GetProps().GetPerTicketPrice().Value}
+
+	income := dgp.GetProps().GetTicketsIncome()
+	mustNoError(income.Sub(tax), "sub tax from ticketfee failed")
 	dgp.ModifyProps(func(props *prototype.DynamicProperties) {
-		props.TicketFeeToBp = vest
+		props.TicketsIncome = income
 	})
+
+	bpVest := bpWrap.GetVestingShares()
+	mustNoError(bpVest.Add(tax), "add tax to bp failed")
+	bpWrap.MdVestingShares(bpVest)
 }

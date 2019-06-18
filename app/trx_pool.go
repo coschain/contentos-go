@@ -671,6 +671,12 @@ func (c *TrxPool) initGenesis() {
 		tInfo.Props.VoterRewards = prototype.NewVest(0)
 		tInfo.Props.StakeVestingShares = prototype.NewVest(0)
 		tInfo.Props.OneDayStamina = constants.OneDayStamina
+		tInfo.Props.CurrentEpochStartBlock = 0
+		tInfo.Props.EpochDuration = 60 * 60 * 24 * 15
+		tInfo.Props.TopNAcquireFreeToken = 500
+		tInfo.Props.PerTicketPrice = prototype.NewVest(1 * constants.COSTokenDecimals)
+		tInfo.Props.PerTicketWeight = constants.PerTicketWeight
+		tInfo.Props.TicketsIncome = prototype.NewVest(0)
 	}), "CreateDynamicGlobalProperties error")
 
 	// create block summary buffer 2048
@@ -739,28 +745,32 @@ func (c *TrxPool) TransferFromStakeVest(value *prototype.Vest) {
 
 func (c *TrxPool) TicketFee(fee *prototype.Vest) {
 	c.modifyGlobalDynamicData(func(dgpo *prototype.DynamicProperties) {
-		vest := dgpo.GetTicketFeeToBp()
-		mustNoError(vest.Add(fee), "TicketFeeToBp overflow")
-		dgpo.TicketFeeToBp = vest
+		income := dgpo.GetTicketsIncome()
+		mustNoError(income.Add(fee), "TicketsIncome overflow")
+		dgpo.TicketsIncome = income
 	})
 }
 
-func (c *TrxPool) VoteByTicket(account string, postId uint64, count uint64) {
+func (c *TrxPool) VoteByTicket(account *prototype.AccountName, postId uint64, count uint64) {
 	props := c.GetProps()
 	currentWitness := props.CurrentWitness
 	bpWrap := table.NewSoAccountWrap(c.db, currentWitness)
 	if !bpWrap.CheckExist() {
-		panic(fmt.Sprintf("cannot find account %s", currentWitness.Value))
+		panic(fmt.Sprintf("cannot find bp %s", currentWitness.Value))
 	}
-	bpVest := bpWrap.GetVestingShares()
-	tax := count * c.GetProps().GetTicketPrice()
-	mustNoError(bpVest.Add(&prototype.Vest{Value:tax}), "add tax to bp failed")
-	vest := c.GetProps().GetTicketFeeToBp()
-	mustNoError(vest.Sub(&prototype.Vest{Value:tax}), "sub tax from ticketfee failed")
-	bpWrap.MdVestingShares(bpVest)
+
+	tax := &prototype.Vest{Value: count * c.GetProps().GetPerTicketPrice().Value}
+
+	income := c.GetProps().GetTicketsIncome()
+	mustNoError(income.Sub(tax), "sub tax from ticketfee failed")
 	c.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
-		props.TicketFeeToBp = vest
+		props.TicketsIncome = income
 	})
+
+	bpVest := bpWrap.GetVestingShares()
+	mustNoError(bpVest.Add(tax), "add tax to bp failed")
+	bpWrap.MdVestingShares(bpVest)
+
 }
 
 func (c *TrxPool) validateBlockHeader(blk *prototype.SignedBlock) {

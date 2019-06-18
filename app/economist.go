@@ -155,12 +155,6 @@ func (e *Economist) Mint(trxObserver iservices.ITrxObserver) {
 	trxObserver.AddOpState(iservices.Add, "mint", globalProps.CurrentWitness.Value, bpReward)
 
 	e.dgp.ModifyProps(func(props *prototype.DynamicProperties) {
-		//props.PostRewards.Value += uint64(postReward)
-		//props.ReplyRewards.Value += uint64(replyReward)
-		//props.PostDappRewards.Value += uint64(postDappRewards)
-		//props.ReplyDappRewards.Value += uint64(replyDappRewards)
-		//props.VoterRewards.Value += uint64(voterReward)
-		//props.AnnualMinted.Value += blockCurrent
 		mustNoError(props.PostRewards.Add(&prototype.Vest{Value: postReward}), "PostRewards overflow")
 		mustNoError(props.ReplyRewards.Add(&prototype.Vest{Value: replyReward}), "ReplyRewards overflow")
 		mustNoError(props.PostDappRewards.Add(&prototype.Vest{Value: postDappRewards}), "PostDappRewards overflow")
@@ -168,14 +162,13 @@ func (e *Economist) Mint(trxObserver iservices.ITrxObserver) {
 		mustNoError(props.VoterRewards.Add(&prototype.Vest{Value: voterReward}), "VoterRewards overflow")
 		mustNoError(props.AnnualMinted.Add(&prototype.Vest{Value: blockCurrent}), "AnnualMinted overflow")
 		mustNoError(props.TotalVestingShares.Add(&prototype.Vest{Value: blockCurrent}), "TotalVestingShares overflow")
-		props.TicketFeeToBp = &prototype.Vest{Value: 0}
 	})
 }
 
 // maybe slow
 func (e *Economist) Distribute(trxObserver iservices.ITrxObserver) {
 	globalProps := e.dgp.GetProps()
-	if !globalProps.GetDistributeBootCompleted() {
+	if globalProps.GetCurrentEpochStartBlock() == uint64(0) {
 		return
 	}
 	current := globalProps.HeadBlockNumber
@@ -201,12 +194,14 @@ func (e *Economist) Distribute(trxObserver iservices.ITrxObserver) {
 		key := &prototype.GiftTicketKeyType{Type: 0, From: []byte("contentos"), To: []byte(account.Value),
 			CreateBlock: globalProps.GetCurrentEpochStartBlock()}
 		wrap := table.NewSoGiftTicketWrap(e.db, key)
+		// impossible
 		if wrap.CheckExist() {
 			wrap.MdExpireBlock(current + globalProps.GetEpochDuration())
 		} else {
 			_ = wrap.Create(func(tInfo *table.SoGiftTicket) {
 				tInfo.Ticket = key
 				tInfo.Denom = 1e7
+				tInfo.Count = 1
 				tInfo.ExpireBlock = current + globalProps.GetEpochDuration()
 			})
 		}
