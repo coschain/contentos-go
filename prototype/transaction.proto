@@ -30,6 +30,8 @@ message operation{
         un_stake_operation op18 = 18;
         bp_update_operation op19 = 19;
         account_update_operation op20 = 20;
+        acquire_ticket_operation op21 = 21;
+        vote_by_ticket_operation op22 = 22;
     }
 }
 

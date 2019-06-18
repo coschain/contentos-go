@@ -737,6 +737,32 @@ func (c *TrxPool) TransferFromStakeVest(value *prototype.Vest) {
 	})
 }
 
+func (c *TrxPool) TicketFee(fee *prototype.Vest) {
+	c.modifyGlobalDynamicData(func(dgpo *prototype.DynamicProperties) {
+		vest := dgpo.GetTicketFeeToBp()
+		mustNoError(vest.Add(fee), "TicketFeeToBp overflow")
+		dgpo.TicketFeeToBp = vest
+	})
+}
+
+func (c *TrxPool) VoteByTicket(account string, postId uint64, count uint64) {
+	props := c.GetProps()
+	currentWitness := props.CurrentWitness
+	bpWrap := table.NewSoAccountWrap(c.db, currentWitness)
+	if !bpWrap.CheckExist() {
+		panic(fmt.Sprintf("cannot find account %s", currentWitness.Value))
+	}
+	bpVest := bpWrap.GetVestingShares()
+	tax := count * c.GetProps().GetTicketPrice()
+	mustNoError(bpVest.Add(&prototype.Vest{Value:tax}), "add tax to bp failed")
+	vest := c.GetProps().GetTicketFeeToBp()
+	mustNoError(vest.Sub(&prototype.Vest{Value:tax}), "sub tax from ticketfee failed")
+	bpWrap.MdVestingShares(bpVest)
+	c.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
+		props.TicketFeeToBp = vest
+	})
+}
+
 func (c *TrxPool) validateBlockHeader(blk *prototype.SignedBlock) {
 	headID := c.headBlockID()
 	if !bytes.Equal(headID.Hash, blk.SignedHeader.Header.Previous.Hash) {

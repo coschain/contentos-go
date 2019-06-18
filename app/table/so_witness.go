@@ -14,19 +14,20 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	WitnessOwnerTable              uint32 = 3588322158
-	WitnessVoteCountTable          uint32 = 2256540653
-	WitnessOwnerUniTable           uint32 = 2680327584
-	WitnessAccountCreateFeeCell    uint32 = 562012091
-	WitnessActiveCell              uint32 = 1638337923
-	WitnessCreatedTimeCell         uint32 = 732260124
-	WitnessOwnerCell               uint32 = 3659272213
-	WitnessProposedStaminaFreeCell uint32 = 1501150566
-	WitnessSigningKeyCell          uint32 = 2433568317
-	WitnessTpsExpectedCell         uint32 = 2661903099
-	WitnessUrlCell                 uint32 = 261756480
-	WitnessVoteCountCell           uint32 = 149922791
-	WitnessVoterListCell           uint32 = 1500181820
+	WitnessOwnerTable               uint32 = 3588322158
+	WitnessVoteCountTable           uint32 = 2256540653
+	WitnessOwnerUniTable            uint32 = 2680327584
+	WitnessAccountCreateFeeCell     uint32 = 562012091
+	WitnessActiveCell               uint32 = 1638337923
+	WitnessCreatedTimeCell          uint32 = 732260124
+	WitnessOwnerCell                uint32 = 3659272213
+	WitnessProposedStaminaFreeCell  uint32 = 1501150566
+	WitnessSigningKeyCell           uint32 = 2433568317
+	WitnessTopNAcquireFreeTokenCell uint32 = 2772227243
+	WitnessTpsExpectedCell          uint32 = 2661903099
+	WitnessUrlCell                  uint32 = 261756480
+	WitnessVoteCountCell            uint32 = 149922791
+	WitnessVoterListCell            uint32 = 1500181820
 )
 
 ////////////// SECTION Wrap Define ///////////////
@@ -327,6 +328,9 @@ func (s *SoWitnessWrap) getMemKeyPrefix(fName string) uint32 {
 	if fName == "SigningKey" {
 		return WitnessSigningKeyCell
 	}
+	if fName == "TopNAcquireFreeToken" {
+		return WitnessTopNAcquireFreeTokenCell
+	}
 	if fName == "TpsExpected" {
 		return WitnessTpsExpectedCell
 	}
@@ -412,6 +416,13 @@ func (s *SoWitnessWrap) saveAllMemKeys(tInfo *SoWitness, br bool) error {
 			return err
 		} else {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "SigningKey", err)
+		}
+	}
+	if err = s.saveMemKeyTopNAcquireFreeToken(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "TopNAcquireFreeToken", err)
 		}
 	}
 	if err = s.saveMemKeyTpsExpected(tInfo); err != nil {
@@ -949,6 +960,89 @@ func (s *SoWitnessWrap) MdSigningKey(p *prototype.PublicKeyType) bool {
 		return false
 	}
 	sa.SigningKey = p
+
+	return true
+}
+
+func (s *SoWitnessWrap) saveMemKeyTopNAcquireFreeToken(tInfo *SoWitness) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemWitnessByTopNAcquireFreeToken{}
+	val.TopNAcquireFreeToken = tInfo.TopNAcquireFreeToken
+	key, err := s.encodeMemKey("TopNAcquireFreeToken")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
+
+func (s *SoWitnessWrap) GetTopNAcquireFreeToken() uint32 {
+	res := true
+	msg := &SoMemWitnessByTopNAcquireFreeToken{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("TopNAcquireFreeToken")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.TopNAcquireFreeToken
+			}
+		}
+	}
+	if !res {
+		var tmpValue uint32
+		return tmpValue
+	}
+	return msg.TopNAcquireFreeToken
+}
+
+func (s *SoWitnessWrap) MdTopNAcquireFreeToken(p uint32) bool {
+	if s.dba == nil {
+		return false
+	}
+	key, err := s.encodeMemKey("TopNAcquireFreeToken")
+	if err != nil {
+		return false
+	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemWitnessByTopNAcquireFreeToken{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoWitness{}
+	sa.Owner = s.mainKey
+
+	sa.TopNAcquireFreeToken = ori.TopNAcquireFreeToken
+
+	ori.TopNAcquireFreeToken = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
+		return false
+	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.TopNAcquireFreeToken = p
 
 	return true
 }

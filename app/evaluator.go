@@ -17,6 +17,7 @@ import (
 	"math"
 	"math/big"
 	"sort"
+	"strconv"
 	"time"
 )
 
@@ -150,6 +151,18 @@ type UnStakeEvaluator struct {
 	op  *prototype.UnStakeOperation
 }
 
+type AcquireTicketEvaluator struct {
+	BaseEvaluator
+	BaseDelegate
+	op *prototype.AcquireTicketOperation
+}
+
+type VoteByTicketEvaluator struct {
+	BaseEvaluator
+	BaseDelegate
+	op *prototype.VoteByTicketOperation
+}
+
 func init() {
 	RegisterEvaluator((*prototype.AccountCreateOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
 		return &AccountCreateEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.AccountCreateOperation)}
@@ -204,6 +217,12 @@ func init() {
 	})
 	RegisterEvaluator((*prototype.AccountUpdateOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
 		return &AccountUpdateEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.AccountUpdateOperation)}
+	})
+	RegisterEvaluator((*prototype.AcquireTicketOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
+		return &AcquireTicketEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.AcquireTicketOperation)}
+	})
+	RegisterEvaluator((*prototype.VoteByTicketOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
+		return &VoteByTicketEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.VoteByTicketOperation)}
 	})
 }
 
@@ -1139,4 +1158,97 @@ func (ev *UnStakeEvaluator) Apply() {
 
 	ev.GlobalProp().TransferFromVest(value.ToVest())
 	ev.GlobalProp().TransferFromStakeVest(value.ToVest())
+}
+
+func (ev *AcquireTicketEvaluator) Apply() {
+	op := ev.op
+	ev.VMInjector().RecordStaminaFee(op.Account.Value, constants.CommonOpStamina)
+
+	account := table.NewSoAccountWrap(ev.Database(), op.Account)
+	count := op.Count
+	// why need to buy too many ticket ?
+	opAssert(count > 0, "at least 1 ticket per turn")
+	opAssert(count <= 1e5, "at most 10000 ticket per turn")
+
+	ticketPrice := ev.GlobalProp().GetProps().TicketPrice
+	vest := account.GetVestingShares()
+	fee := &prototype.Vest{Value: ticketPrice * count}
+	opAssertE(vest.Sub(fee), "Insufficient vesting to acquire tickets")
+	opAssert(account.MdVestingShares(vest), "modify vesting shares failed")
+
+	opAssert(account.GetChargedTicket() + uint32(count) > account.GetChargedTicket(), "ticket count overflow")
+
+	account.MdChargedTicket(account.GetChargedTicket() + uint32(count))
+
+	// record
+	ticketWrap := table.NewSoGiftTicketWrap(ev.Database(), &prototype.GiftTicketKeyType{
+		Type: 1,
+		From: []byte("contentos"),
+		To: []byte(op.Account.Value),
+		CreateBlock: ev.GlobalProp().GetProps().HeadBlockNumber,
+	})
+
+	if ticketWrap.CheckExist() {
+		panic("ticket record existed")
+	}
+
+	_ = ticketWrap.Create(func(tInfo *table.SoGiftTicket) {
+		tInfo.Count = count
+		tInfo.Denom = 1e7
+		tInfo.ExpireBlock = math.MaxUint32
+	})
+
+	ev.GlobalProp().TicketFee(fee)
+}
+
+func (ev *VoteByTicketEvaluator) Apply() {
+	op := ev.op
+	ev.VMInjector().RecordStaminaFee(op.Account.Value, constants.CommonOpStamina)
+
+	account := table.NewSoAccountWrap(ev.Database(), op.Account)
+	postId := op.Idx
+	var freeTicket uint32 = 0
+	count := op.Count
+	// free ticket ?
+	freeTicketWrap := table.NewSoGiftTicketWrap(ev.Database(), &prototype.GiftTicketKeyType{
+		Type: 1,
+		From: []byte("contentos"),
+		To: []byte(op.Account.Value),
+		CreateBlock: ev.GlobalProp().GetProps().GetCurrentEpochStartBlock(),
+	})
+	if freeTicketWrap.CheckExist() {
+		freeTicket = 1
+	}
+	opAssert(count > 0, "at least 1 ticket to vote per turn")
+	opAssert(count <= 1e5, "at most 10000 ticket to vote per turn")
+
+	if freeTicket > 0 {
+		count = count - 1
+		opAssert(count >= uint64(account.GetChargedTicket()), "insufficient ticket to vote")
+		account.MdChargedTicket(account.GetChargedTicket() - uint32(count))
+		freeTicketWrap.RemoveGiftTicket()
+	} else {
+		opAssert(count >= uint64(account.GetChargedTicket()), "insufficient ticket to vote")
+		account.MdChargedTicket(account.GetChargedTicket() - uint32(count))
+	}
+
+	// record
+	ticketWrap := table.NewSoGiftTicketWrap(ev.Database(), &prototype.GiftTicketKeyType{
+		Type: 1,
+		From: []byte(op.Account.Value),
+		To: []byte(strconv.FormatUint(postId, 10)),
+		CreateBlock: ev.GlobalProp().GetProps().HeadBlockNumber,
+	})
+
+	if ticketWrap.CheckExist() {
+		panic("ticket record existed")
+	}
+
+	_ = ticketWrap.Create(func(tInfo *table.SoGiftTicket) {
+		tInfo.Count = count
+		tInfo.Denom = 1e7
+		tInfo.ExpireBlock = math.MaxUint32
+	})
+
+	ev.GlobalProp().VoteByTicket(op.Account.Value, postId, count)
 }

@@ -22,6 +22,8 @@ type IGlobalPropWriter interface {
 	TransferToStakeVest(value *prototype.Coin)
 	TransferFromStakeVest(value *prototype.Vest)
 	ModifyProps(modifier func(oldProps *prototype.DynamicProperties))
+	TicketFee(value *prototype.Vest)
+	VoteByTicket(account string, postId uint64, count uint64)
 }
 
 type IGlobalPropRW interface {

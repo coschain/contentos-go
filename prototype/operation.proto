@@ -157,3 +157,14 @@ message un_stake_operation{
     account_name debtor = 2;
     coin amount = 3;
 }
+
+message acquire_ticket_operation {
+    account_name account = 1;
+    uint64 count = 2;
+}
+
+message vote_by_ticket_operation {
+    account_name account = 1;
+    uint64 idx = 2 [jstype = JS_STRING];
+    uint64 count = 3;
+}

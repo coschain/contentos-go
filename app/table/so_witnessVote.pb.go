@@ -32,7 +32,7 @@ func (m *SoWitnessVote) Reset()         { *m = SoWitnessVote{} }
 func (m *SoWitnessVote) String() string { return proto.CompactTextString(m) }
 func (*SoWitnessVote) ProtoMessage()    {}
 func (*SoWitnessVote) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_witnessVote_94812c14cdbc180e, []int{0}
+	return fileDescriptor_so_witnessVote_11f284f28fdf9ec3, []int{0}
 }
 func (m *SoWitnessVote) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoWitnessVote.Unmarshal(m, b)
@@ -84,7 +84,7 @@ func (m *SoMemWitnessVoteByVoterId) Reset()         { *m = SoMemWitnessVoteByVot
 func (m *SoMemWitnessVoteByVoterId) String() string { return proto.CompactTextString(m) }
 func (*SoMemWitnessVoteByVoterId) ProtoMessage()    {}
 func (*SoMemWitnessVoteByVoterId) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_witnessVote_94812c14cdbc180e, []int{1}
+	return fileDescriptor_so_witnessVote_11f284f28fdf9ec3, []int{1}
 }
 func (m *SoMemWitnessVoteByVoterId) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemWitnessVoteByVoterId.Unmarshal(m, b)
@@ -122,7 +122,7 @@ func (m *SoMemWitnessVoteByWitnessId) Reset()         { *m = SoMemWitnessVoteByW
 func (m *SoMemWitnessVoteByWitnessId) String() string { return proto.CompactTextString(m) }
 func (*SoMemWitnessVoteByWitnessId) ProtoMessage()    {}
 func (*SoMemWitnessVoteByWitnessId) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_witnessVote_94812c14cdbc180e, []int{2}
+	return fileDescriptor_so_witnessVote_11f284f28fdf9ec3, []int{2}
 }
 func (m *SoMemWitnessVoteByWitnessId) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemWitnessVoteByWitnessId.Unmarshal(m, b)
@@ -160,7 +160,7 @@ func (m *SoMemWitnessVoteByVoteTime) Reset()         { *m = SoMemWitnessVoteByVo
 func (m *SoMemWitnessVoteByVoteTime) String() string { return proto.CompactTextString(m) }
 func (*SoMemWitnessVoteByVoteTime) ProtoMessage()    {}
 func (*SoMemWitnessVoteByVoteTime) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_witnessVote_94812c14cdbc180e, []int{3}
+	return fileDescriptor_so_witnessVote_11f284f28fdf9ec3, []int{3}
 }
 func (m *SoMemWitnessVoteByVoteTime) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemWitnessVoteByVoteTime.Unmarshal(m, b)
@@ -198,7 +198,7 @@ func (m *SoListWitnessVoteByVoterId) Reset()         { *m = SoListWitnessVoteByV
 func (m *SoListWitnessVoteByVoterId) String() string { return proto.CompactTextString(m) }
 func (*SoListWitnessVoteByVoterId) ProtoMessage()    {}
 func (*SoListWitnessVoteByVoterId) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_witnessVote_94812c14cdbc180e, []int{4}
+	return fileDescriptor_so_witnessVote_11f284f28fdf9ec3, []int{4}
 }
 func (m *SoListWitnessVoteByVoterId) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoListWitnessVoteByVoterId.Unmarshal(m, b)
@@ -236,7 +236,7 @@ func (m *SoUniqueWitnessVoteByVoterId) Reset()         { *m = SoUniqueWitnessVot
 func (m *SoUniqueWitnessVoteByVoterId) String() string { return proto.CompactTextString(m) }
 func (*SoUniqueWitnessVoteByVoterId) ProtoMessage()    {}
 func (*SoUniqueWitnessVoteByVoterId) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_witnessVote_94812c14cdbc180e, []int{5}
+	return fileDescriptor_so_witnessVote_11f284f28fdf9ec3, []int{5}
 }
 func (m *SoUniqueWitnessVoteByVoterId) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoUniqueWitnessVoteByVoterId.Unmarshal(m, b)
@@ -273,10 +273,10 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("app/table/so_witnessVote.proto", fileDescriptor_so_witnessVote_94812c14cdbc180e)
+	proto.RegisterFile("app/table/so_witnessVote.proto", fileDescriptor_so_witnessVote_11f284f28fdf9ec3)
 }
 
-var fileDescriptor_so_witnessVote_94812c14cdbc180e = []byte{
+var fileDescriptor_so_witnessVote_11f284f28fdf9ec3 = []byte{
 	// 299 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x92, 0xcf, 0x4b, 0xfb, 0x40,
 	0x10, 0xc5, 0xc9, 0xf7, 0x8b, 0x3f, 0xba, 0x82, 0x87, 0x20, 0x12, 0x7b, 0xa8, 0x35, 0x27, 0x11,

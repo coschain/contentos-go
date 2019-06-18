@@ -33,6 +33,7 @@ var (
 	PostRewardsCell          uint32 = 2822376492
 	PostRootIdCell           uint32 = 784045146
 	PostTagsCell             uint32 = 828203383
+	PostTicketCell           uint32 = 2248685104
 	PostTitleCell            uint32 = 3943450465
 	PostVoteCntCell          uint32 = 2947124424
 	PostWeightedVpCell       uint32 = 502117977
@@ -425,6 +426,9 @@ func (s *SoPostWrap) getMemKeyPrefix(fName string) uint32 {
 	if fName == "Tags" {
 		return PostTagsCell
 	}
+	if fName == "Ticket" {
+		return PostTicketCell
+	}
 	if fName == "Title" {
 		return PostTitleCell
 	}
@@ -570,6 +574,13 @@ func (s *SoPostWrap) saveAllMemKeys(tInfo *SoPost, br bool) error {
 			return err
 		} else {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Tags", err)
+		}
+	}
+	if err = s.saveMemKeyTicket(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Ticket", err)
 		}
 	}
 	if err = s.saveMemKeyTitle(tInfo); err != nil {
@@ -1854,6 +1865,88 @@ func (s *SoPostWrap) MdTags(p []string) bool {
 		return false
 	}
 	sa.Tags = p
+
+	return true
+}
+
+func (s *SoPostWrap) saveMemKeyTicket(tInfo *SoPost) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemPostByTicket{}
+	val.Ticket = tInfo.Ticket
+	key, err := s.encodeMemKey("Ticket")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
+
+func (s *SoPostWrap) GetTicket() uint32 {
+	res := true
+	msg := &SoMemPostByTicket{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("Ticket")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.Ticket
+			}
+		}
+	}
+	if !res {
+		var tmpValue uint32
+		return tmpValue
+	}
+	return msg.Ticket
+}
+
+func (s *SoPostWrap) MdTicket(p uint32) bool {
+	if s.dba == nil {
+		return false
+	}
+	key, err := s.encodeMemKey("Ticket")
+	if err != nil {
+		return false
+	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemPostByTicket{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoPost{}
+	sa.PostId = *s.mainKey
+	sa.Ticket = ori.Ticket
+
+	ori.Ticket = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
+		return false
+	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.Ticket = p
 
 	return true
 }

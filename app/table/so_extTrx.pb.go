@@ -35,7 +35,7 @@ func (m *SoExtTrx) Reset()         { *m = SoExtTrx{} }
 func (m *SoExtTrx) String() string { return proto.CompactTextString(m) }
 func (*SoExtTrx) ProtoMessage()    {}
 func (*SoExtTrx) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extTrx_c24709eaec398809, []int{0}
+	return fileDescriptor_so_extTrx_e9127e8f34482012, []int{0}
 }
 func (m *SoExtTrx) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoExtTrx.Unmarshal(m, b)
@@ -108,7 +108,7 @@ func (m *SoMemExtTrxByTrxId) Reset()         { *m = SoMemExtTrxByTrxId{} }
 func (m *SoMemExtTrxByTrxId) String() string { return proto.CompactTextString(m) }
 func (*SoMemExtTrxByTrxId) ProtoMessage()    {}
 func (*SoMemExtTrxByTrxId) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extTrx_c24709eaec398809, []int{1}
+	return fileDescriptor_so_extTrx_e9127e8f34482012, []int{1}
 }
 func (m *SoMemExtTrxByTrxId) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemExtTrxByTrxId.Unmarshal(m, b)
@@ -146,7 +146,7 @@ func (m *SoMemExtTrxByBlockHeight) Reset()         { *m = SoMemExtTrxByBlockHeig
 func (m *SoMemExtTrxByBlockHeight) String() string { return proto.CompactTextString(m) }
 func (*SoMemExtTrxByBlockHeight) ProtoMessage()    {}
 func (*SoMemExtTrxByBlockHeight) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extTrx_c24709eaec398809, []int{2}
+	return fileDescriptor_so_extTrx_e9127e8f34482012, []int{2}
 }
 func (m *SoMemExtTrxByBlockHeight) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemExtTrxByBlockHeight.Unmarshal(m, b)
@@ -184,7 +184,7 @@ func (m *SoMemExtTrxByTrxWrap) Reset()         { *m = SoMemExtTrxByTrxWrap{} }
 func (m *SoMemExtTrxByTrxWrap) String() string { return proto.CompactTextString(m) }
 func (*SoMemExtTrxByTrxWrap) ProtoMessage()    {}
 func (*SoMemExtTrxByTrxWrap) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extTrx_c24709eaec398809, []int{3}
+	return fileDescriptor_so_extTrx_e9127e8f34482012, []int{3}
 }
 func (m *SoMemExtTrxByTrxWrap) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemExtTrxByTrxWrap.Unmarshal(m, b)
@@ -222,7 +222,7 @@ func (m *SoMemExtTrxByBlockTime) Reset()         { *m = SoMemExtTrxByBlockTime{}
 func (m *SoMemExtTrxByBlockTime) String() string { return proto.CompactTextString(m) }
 func (*SoMemExtTrxByBlockTime) ProtoMessage()    {}
 func (*SoMemExtTrxByBlockTime) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extTrx_c24709eaec398809, []int{4}
+	return fileDescriptor_so_extTrx_e9127e8f34482012, []int{4}
 }
 func (m *SoMemExtTrxByBlockTime) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemExtTrxByBlockTime.Unmarshal(m, b)
@@ -260,7 +260,7 @@ func (m *SoMemExtTrxByTrxCreateOrder) Reset()         { *m = SoMemExtTrxByTrxCre
 func (m *SoMemExtTrxByTrxCreateOrder) String() string { return proto.CompactTextString(m) }
 func (*SoMemExtTrxByTrxCreateOrder) ProtoMessage()    {}
 func (*SoMemExtTrxByTrxCreateOrder) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extTrx_c24709eaec398809, []int{5}
+	return fileDescriptor_so_extTrx_e9127e8f34482012, []int{5}
 }
 func (m *SoMemExtTrxByTrxCreateOrder) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemExtTrxByTrxCreateOrder.Unmarshal(m, b)
@@ -298,7 +298,7 @@ func (m *SoMemExtTrxByBlockId) Reset()         { *m = SoMemExtTrxByBlockId{} }
 func (m *SoMemExtTrxByBlockId) String() string { return proto.CompactTextString(m) }
 func (*SoMemExtTrxByBlockId) ProtoMessage()    {}
 func (*SoMemExtTrxByBlockId) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extTrx_c24709eaec398809, []int{6}
+	return fileDescriptor_so_extTrx_e9127e8f34482012, []int{6}
 }
 func (m *SoMemExtTrxByBlockId) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoMemExtTrxByBlockId.Unmarshal(m, b)
@@ -336,7 +336,7 @@ func (m *SoListExtTrxByTrxId) Reset()         { *m = SoListExtTrxByTrxId{} }
 func (m *SoListExtTrxByTrxId) String() string { return proto.CompactTextString(m) }
 func (*SoListExtTrxByTrxId) ProtoMessage()    {}
 func (*SoListExtTrxByTrxId) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extTrx_c24709eaec398809, []int{7}
+	return fileDescriptor_so_extTrx_e9127e8f34482012, []int{7}
 }
 func (m *SoListExtTrxByTrxId) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoListExtTrxByTrxId.Unmarshal(m, b)
@@ -375,7 +375,7 @@ func (m *SoListExtTrxByBlockHeight) Reset()         { *m = SoListExtTrxByBlockHe
 func (m *SoListExtTrxByBlockHeight) String() string { return proto.CompactTextString(m) }
 func (*SoListExtTrxByBlockHeight) ProtoMessage()    {}
 func (*SoListExtTrxByBlockHeight) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extTrx_c24709eaec398809, []int{8}
+	return fileDescriptor_so_extTrx_e9127e8f34482012, []int{8}
 }
 func (m *SoListExtTrxByBlockHeight) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoListExtTrxByBlockHeight.Unmarshal(m, b)
@@ -421,7 +421,7 @@ func (m *SoListExtTrxByBlockTime) Reset()         { *m = SoListExtTrxByBlockTime
 func (m *SoListExtTrxByBlockTime) String() string { return proto.CompactTextString(m) }
 func (*SoListExtTrxByBlockTime) ProtoMessage()    {}
 func (*SoListExtTrxByBlockTime) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extTrx_c24709eaec398809, []int{9}
+	return fileDescriptor_so_extTrx_e9127e8f34482012, []int{9}
 }
 func (m *SoListExtTrxByBlockTime) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoListExtTrxByBlockTime.Unmarshal(m, b)
@@ -467,7 +467,7 @@ func (m *SoListExtTrxByTrxCreateOrder) Reset()         { *m = SoListExtTrxByTrxC
 func (m *SoListExtTrxByTrxCreateOrder) String() string { return proto.CompactTextString(m) }
 func (*SoListExtTrxByTrxCreateOrder) ProtoMessage()    {}
 func (*SoListExtTrxByTrxCreateOrder) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extTrx_c24709eaec398809, []int{10}
+	return fileDescriptor_so_extTrx_e9127e8f34482012, []int{10}
 }
 func (m *SoListExtTrxByTrxCreateOrder) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoListExtTrxByTrxCreateOrder.Unmarshal(m, b)
@@ -512,7 +512,7 @@ func (m *SoUniqueExtTrxByTrxId) Reset()         { *m = SoUniqueExtTrxByTrxId{} }
 func (m *SoUniqueExtTrxByTrxId) String() string { return proto.CompactTextString(m) }
 func (*SoUniqueExtTrxByTrxId) ProtoMessage()    {}
 func (*SoUniqueExtTrxByTrxId) Descriptor() ([]byte, []int) {
-	return fileDescriptor_so_extTrx_c24709eaec398809, []int{11}
+	return fileDescriptor_so_extTrx_e9127e8f34482012, []int{11}
 }
 func (m *SoUniqueExtTrxByTrxId) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoUniqueExtTrxByTrxId.Unmarshal(m, b)
@@ -555,10 +555,10 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("app/table/so_extTrx.proto", fileDescriptor_so_extTrx_c24709eaec398809)
+	proto.RegisterFile("app/table/so_extTrx.proto", fileDescriptor_so_extTrx_e9127e8f34482012)
 }
 
-var fileDescriptor_so_extTrx_c24709eaec398809 = []byte{
+var fileDescriptor_so_extTrx_e9127e8f34482012 = []byte{
 	// 473 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x94, 0xdf, 0x6a, 0xd4, 0x40,
 	0x14, 0xc6, 0x99, 0xb5, 0xbb, 0x6d, 0x4f, 0x45, 0x34, 0x08, 0x66, 0xb7, 0x5a, 0xb6, 0xb9, 0x5a,

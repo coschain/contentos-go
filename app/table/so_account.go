@@ -25,6 +25,7 @@ var (
 	AccountOwnerUniTable              uint32 = 4120855558
 	AccountBalanceCell                uint32 = 2894785396
 	AccountBpVoteCountCell            uint32 = 2131409895
+	AccountChargedTicketCell          uint32 = 411983502
 	AccountCreatedTimeCell            uint32 = 826305594
 	AccountCreatedTrxCountCell        uint32 = 2108500471
 	AccountCreatorCell                uint32 = 1804791917
@@ -658,6 +659,9 @@ func (s *SoAccountWrap) getMemKeyPrefix(fName string) uint32 {
 	if fName == "BpVoteCount" {
 		return AccountBpVoteCountCell
 	}
+	if fName == "ChargedTicket" {
+		return AccountChargedTicketCell
+	}
 	if fName == "CreatedTime" {
 		return AccountCreatedTimeCell
 	}
@@ -766,6 +770,13 @@ func (s *SoAccountWrap) saveAllMemKeys(tInfo *SoAccount, br bool) error {
 			return err
 		} else {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "BpVoteCount", err)
+		}
+	}
+	if err = s.saveMemKeyChargedTicket(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "ChargedTicket", err)
 		}
 	}
 	if err = s.saveMemKeyCreatedTime(tInfo); err != nil {
@@ -1137,6 +1148,89 @@ func (s *SoAccountWrap) MdBpVoteCount(p uint32) bool {
 	if !s.insertSortKeyBpVoteCount(sa) {
 		return false
 	}
+
+	return true
+}
+
+func (s *SoAccountWrap) saveMemKeyChargedTicket(tInfo *SoAccount) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemAccountByChargedTicket{}
+	val.ChargedTicket = tInfo.ChargedTicket
+	key, err := s.encodeMemKey("ChargedTicket")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
+
+func (s *SoAccountWrap) GetChargedTicket() uint32 {
+	res := true
+	msg := &SoMemAccountByChargedTicket{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("ChargedTicket")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.ChargedTicket
+			}
+		}
+	}
+	if !res {
+		var tmpValue uint32
+		return tmpValue
+	}
+	return msg.ChargedTicket
+}
+
+func (s *SoAccountWrap) MdChargedTicket(p uint32) bool {
+	if s.dba == nil {
+		return false
+	}
+	key, err := s.encodeMemKey("ChargedTicket")
+	if err != nil {
+		return false
+	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemAccountByChargedTicket{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoAccount{}
+	sa.Name = s.mainKey
+
+	sa.ChargedTicket = ori.ChargedTicket
+
+	ori.ChargedTicket = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
+		return false
+	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.ChargedTicket = p
 
 	return true
 }

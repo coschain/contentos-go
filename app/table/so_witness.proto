@@ -17,7 +17,8 @@ message so_witness {
     bool                              active                       =      7;
     uint64                            tps_expected                 =      8;
     prototype.coin                    account_create_fee           =      9;
-    repeated                      prototype.account_name          voter_list                   =      10;
+    uint32                            top_n_acquire_free_token     =      10;
+    repeated                      prototype.account_name          voter_list                   =      11;
       
 }
 
@@ -64,6 +65,11 @@ message so_mem_witness_by_tps_expected {
 
 message so_mem_witness_by_account_create_fee {
 	prototype.coin                 	account_create_fee       = 1;
+}
+
+
+message so_mem_witness_by_top_n_acquire_free_token {
+	uint32                         	top_n_acquire_free_token = 1;
 }
 
 
