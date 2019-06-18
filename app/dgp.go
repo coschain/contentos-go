@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
@@ -72,4 +73,29 @@ func (dgp *DynamicGlobalPropsRW) ModifyProps(modifier func(oldProps *prototype.D
 	props := dgpWrap.GetProps()
 	modifier(props)
 	mustSuccess(dgpWrap.MdProps(props), "")
+}
+
+func (dgp *DynamicGlobalPropsRW) TicketFee(fee *prototype.Vest) {
+	dgp.ModifyProps(func(dgpo *prototype.DynamicProperties) {
+		vest := dgpo.GetTicketFeeToBp()
+		mustNoError(vest.Add(fee), "TicketFeeToBp overflow")
+		dgpo.TicketFeeToBp = vest
+	})
+}
+
+func (dgp *DynamicGlobalPropsRW) VoteByTicket(account string, postId uint64, count uint64) {
+	currentWitness := dgp.GetProps().CurrentWitness
+	bpWrap := table.NewSoAccountWrap(dgp.db, currentWitness)
+	if !bpWrap.CheckExist() {
+		panic(fmt.Sprintf("cannot find account %s", currentWitness.Value))
+	}
+	bpVest := bpWrap.GetVestingShares()
+	tax := count * dgp.GetProps().GetTicketPrice()
+	mustNoError(bpVest.Add(&prototype.Vest{Value:tax}), "add tax to bp failed")
+	vest := dgp.GetProps().GetTicketFeeToBp()
+	mustNoError(vest.Sub(&prototype.Vest{Value:tax}), "sub tax from ticketfee failed")
+	bpWrap.MdVestingShares(bpVest)
+	dgp.ModifyProps(func(props *prototype.DynamicProperties) {
+		props.TicketFeeToBp = vest
+	})
 }
