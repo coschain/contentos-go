@@ -53,6 +53,10 @@ message chain_properties{
     uint32 maximum_block_size = 2;
     uint64 stamina_free       = 3;
     uint64 tps_expected       = 4;
+    uint32 top_n_acquire_free_token = 5;
+    uint64 epoch_duration = 6;
+    prototype.vest per_ticket_price = 7;
+    uint64 per_ticket_weight = 8;
 }
 
 message dynamic_properties {

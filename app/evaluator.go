@@ -525,6 +525,20 @@ func (ev *BpRegisterEvaluator) Apply() {
 	opAssert(accountCreateFee.Value <= constants.MaxAccountCreateFee,
 		fmt.Sprintf("account create fee too high max value %d", constants.MaxAccountCreateFee))
 
+	topNAcquireFreeToken := op.Props.TopNAcquireFreeToken
+	opAssert(topNAcquireFreeToken >= constants.MaxTopN, fmt.Sprintf("top N vesting holders, the N is too big, " +
+		"which should lower than %d", constants.MaxTopN))
+
+	epochDuration := op.Props.EpochDuration
+	//opAssert(epochDuration >= constants.MinEpochDuration, fmt.Sprintf("the epoch duration should greater than %d",
+	//	constants.MinEpochDuration))
+
+	perTicketPrice := op.Props.PerTicketPrice
+	opAssert(perTicketPrice.Value >= constants.MinTicketPrice, fmt.Sprintf("the ticket price should greater than %d",
+		constants.MinTicketPrice))
+
+	perTicketWeight := op.Props.PerTicketWeight
+
 	witnessWrap := table.NewSoWitnessWrap(ev.Database(), op.Owner)
 
 	if witnessWrap.CheckExist() {
@@ -545,7 +559,10 @@ func (ev *BpRegisterEvaluator) Apply() {
 		t.TpsExpected = tpsExpected
 		t.AccountCreateFee = accountCreateFee
 		t.VoteCount = &prototype.Vest{Value: 0}
-
+		t.TopNAcquireFreeToken = topNAcquireFreeToken
+		t.EpochDuration = epochDuration
+		t.PerTicketPrice = perTicketPrice
+		t.PerTicketWeight = perTicketWeight
 		// TODO add others
 	}), "add witness record error")
 }
@@ -677,10 +694,26 @@ func (ev *BpUpdateEvaluator) Apply() {
 	opAssert(accountCreateFee.Value <= constants.MaxAccountCreateFee,
 		fmt.Sprintf("account create fee too high max value %d", constants.MaxAccountCreateFee))
 
+	topNAcquireFreeToken := op.TopNAcquireFreeToken
+	opAssert(topNAcquireFreeToken >= constants.MaxTopN, fmt.Sprintf("top N vesting holders, the N is too big, " +
+		"which should lower than %d", constants.MaxTopN))
+
+	epochDuration := op.EpochDuration
+
+	perTicketPrice := op.PerTicketPrice
+	opAssert(perTicketPrice.Value >= constants.MinTicketPrice, fmt.Sprintf("the ticket price should greater than %d",
+		constants.MinTicketPrice))
+
+	perTicketWeight := op.PerTicketWeight
+
 	witnessWrap := table.NewSoWitnessWrap(ev.Database(), op.Owner)
 	opAssert(witnessWrap.MdProposedStaminaFree(staminaFree), "update bp proposed stamina free error")
 	opAssert(witnessWrap.MdTpsExpected(tpsExpected), "update bp tps expected error")
 	opAssert(witnessWrap.MdAccountCreateFee(accountCreateFee), "update account create fee error")
+	opAssert(witnessWrap.MdTopNAcquireFreeToken(topNAcquireFreeToken), "update topna error")
+	opAssert(witnessWrap.MdEpochDuration(epochDuration), "update epoch duration error")
+	opAssert(witnessWrap.MdPerTicketPrice(perTicketPrice), "update per ticket price error")
+	opAssert(witnessWrap.MdPerTicketWeight(perTicketWeight), "update per ticket weight error")
 }
 
 func (ev *FollowEvaluator) Apply() {

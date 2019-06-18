@@ -128,6 +128,9 @@ const (
 	EnableResourceControl = true
 	MaxTicketsPerTurn = 1e5
 	PerTicketWeight = 1e7
+	MaxTopN = 10000
+	MinEpochDuration = 60 * 60 * 24
+	MinTicketPrice = 100
 )
 
 var GlobalId int32 = 1
