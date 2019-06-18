@@ -92,10 +92,6 @@ func (ds *Dynasties) Purge(seq uint64) {
 	if last := ds.PopBefore(seq); last != nil {
 		ds.PushFront(last)
 	}
-	//fmt.Printf("****first dynasty at %d", ds.Front().Seq)
-	//for i := range ds.Front().validators {
-	//	fmt.Print(" ", ds.Front().validators[i].accountName)
-	//}
 }
 
 func (ds *Dynasties) PopAfter(seq uint64) *Dynasty {
