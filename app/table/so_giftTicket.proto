@@ -1,0 +1,47 @@
+
+syntax = "proto3";
+
+package table;
+
+option go_package = "github.com/coschain/contentos-go/app/table";
+
+import "prototype/type.proto";
+
+message so_giftTicket {
+	prototype.gift_ticket_key_type     ticket         =      1;
+    uint64                   							   denom          =      2;
+    uint64                             count          =      3;
+    uint64                             expire_block     =      4;
+      
+}
+
+
+message so_mem_giftTicket_by_ticket {
+	prototype.gift_ticket_key_type  	ticket     = 1;
+}
+
+
+message so_mem_giftTicket_by_denom {
+	uint64                   								denom      = 1;
+}
+
+
+message so_mem_giftTicket_by_count {
+	uint64                          	count      = 1;
+}
+
+
+message so_mem_giftTicket_by_expire_block {
+	uint64                          	expire_block = 1;
+}
+
+
+message so_list_giftTicket_by_expire_block {
+	uint64                          	expire_block = 1;
+	prototype.gift_ticket_key_type  	ticket     = 2;
+}
+
+
+message so_unique_giftTicket_by_ticket {
+	prototype.gift_ticket_key_type  	ticket     = 1;
+}
