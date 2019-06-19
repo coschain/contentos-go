@@ -529,7 +529,7 @@ func (ev *BpRegisterEvaluator) Apply() {
 		fmt.Sprintf("account create fee too high max value %d", constants.MaxAccountCreateFee))
 
 	topNAcquireFreeToken := op.Props.TopNAcquireFreeToken
-	opAssert(topNAcquireFreeToken >= constants.MaxTopN, fmt.Sprintf("top N vesting holders, the N is too big, " +
+	opAssert(topNAcquireFreeToken <= constants.MaxTopN, fmt.Sprintf("top N vesting holders, the N is too big, " +
 		"which should lower than %d", constants.MaxTopN))
 
 	epochDuration := op.Props.EpochDuration
