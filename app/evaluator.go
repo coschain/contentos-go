@@ -1248,6 +1248,12 @@ func (ev *VoteByTicketEvaluator) Apply() {
 	postId := op.Idx
 	var freeTicket uint32 = 0
 	count := op.Count
+
+	postWrap := table.NewSoPostWrap(ev.Database(), &op.Idx)
+	opAssert(postWrap.CheckExist(), "post does not exist")
+
+	originTicketCount := postWrap.GetTicket()
+
 	// free ticket ?
 	freeTicketWrap := table.NewSoGiftTicketWrap(ev.Database(), &prototype.GiftTicketKeyType{
 		Type: 0,
@@ -1267,10 +1273,14 @@ func (ev *VoteByTicketEvaluator) Apply() {
 		opAssert(account.GetChargedTicket() >= uint32(count), "insufficient ticket to vote")
 		account.MdChargedTicket(account.GetChargedTicket() - uint32(count))
 		freeTicketWrap.RemoveGiftTicket()
+		postWrap.MdTicket(originTicketCount + uint32(count + 1))
 	} else {
 		opAssert(account.GetChargedTicket() >= uint32(count), "insufficient ticket to vote")
 		account.MdChargedTicket(account.GetChargedTicket() - uint32(count))
+		postWrap.MdTicket(originTicketCount + uint32(count))
 	}
+
+
 
 	// record
 	ticketKey := &prototype.GiftTicketKeyType{
