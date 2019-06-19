@@ -1234,7 +1234,7 @@ func (ev *AcquireTicketEvaluator) Apply() {
 		tInfo.ExpireBlock = math.MaxUint32
 	})
 
-	ev.GlobalProp().TicketFee(fee)
+	ev.GlobalProp().AcquireTickets(count)
 }
 
 func (ev *VoteByTicketEvaluator) Apply() {

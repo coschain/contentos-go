@@ -677,6 +677,7 @@ func (c *TrxPool) initGenesis() {
 		tInfo.Props.PerTicketPrice = prototype.NewVest(1 * constants.COSTokenDecimals)
 		tInfo.Props.PerTicketWeight = constants.PerTicketWeight
 		tInfo.Props.TicketsIncome = prototype.NewVest(0)
+		tInfo.Props.ChargedTicketsNum = 0
 	}), "CreateDynamicGlobalProperties error")
 
 	// create block summary buffer 2048
@@ -743,11 +744,14 @@ func (c *TrxPool) TransferFromStakeVest(value *prototype.Vest) {
 	})
 }
 
-func (c *TrxPool) TicketFee(fee *prototype.Vest) {
+func (c *TrxPool) AcquireTickets(count uint64) {
+	currentTicketPrice := c.GetProps().PerTicketPrice
+	fee := &prototype.Vest{Value: currentTicketPrice.Value * count}
 	c.modifyGlobalDynamicData(func(dgpo *prototype.DynamicProperties) {
 		income := dgpo.GetTicketsIncome()
 		mustNoError(income.Add(fee), "TicketsIncome overflow")
 		dgpo.TicketsIncome = income
+		dgpo.ChargedTicketsNum += count
 	})
 }
 
@@ -759,16 +763,20 @@ func (c *TrxPool) VoteByTicket(account *prototype.AccountName, postId uint64, co
 		panic(fmt.Sprintf("cannot find bp %s", currentWitness.Value))
 	}
 
-	tax := &prototype.Vest{Value: count * c.GetProps().GetPerTicketPrice().Value}
+	// the per ticket price may change,so replace the per ticket price by totalincome / ticketnum
+	equalValue := &prototype.Vest{Value: count * c.GetProps().GetTicketsIncome().Value / c.GetProps().GetChargedTicketsNum() }
 
 	income := c.GetProps().GetTicketsIncome()
-	mustNoError(income.Sub(tax), "sub tax from ticketfee failed")
+	mustNoError(income.Sub(equalValue), "sub equal value from ticketfee failed")
 	c.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
 		props.TicketsIncome = income
+		props.ChargedTicketsNum -= count
 	})
 
 	bpVest := bpWrap.GetVestingShares()
-	mustNoError(bpVest.Add(tax), "add tax to bp failed")
+	// currently, all income will put into bp's wallet.
+	// it will be change.
+	mustNoError(bpVest.Add(equalValue), "add equal value to bp failed")
 	bpWrap.MdVestingShares(bpVest)
 
 }

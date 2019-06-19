@@ -100,6 +100,7 @@ message dynamic_properties {
     prototype.vest     per_ticket_price = 41;
     uint64             per_ticket_weight = 42;
     prototype.vest     tickets_income = 43;
+    uint64             charged_tickets_num = 44;
 }
 
 message beneficiary_route_type{
