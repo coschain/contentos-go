@@ -451,7 +451,7 @@ func (d *DPoS) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 	case forkdb.RTDetached:
 		d.log.Debugf("[DPoS][pushBlock]possibly detached block. prev: got %v, want %v", b.Id(), head.Id())
 	case forkdb.RTOutOfRange:
-	case forkdb.RTOnFork:
+	case forkdb.RTPushedOnFork:
 		if newHead.Previous() != head.Id() {
 			d.log.Debug("[DPoS] start to switch fork.")
 			d.switchFork(head.Id(), newHead.Id())
@@ -461,7 +461,7 @@ func (d *DPoS) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 		return ErrInvalidBlock
 	case forkdb.RTDuplicated:
 		return ErrDupBlock
-	case forkdb.RTSuccess:
+	case forkdb.RTPushedOnMain:
 	default:
 		return ErrInternal
 	}
