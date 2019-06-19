@@ -42,7 +42,14 @@ func (this *NbrPeers) Broadcast(mesg types.Message, isConsensus bool, magic uint
 	} else {
 		for _, node := range this.List {
 			if node.syncState == common.ESTABLISH && node.GetRelay() == true {
-				go node.Send(mesg, isConsensus, magic)
+				msgdata, _ := mesg.(*types.ConsMsg)
+				hash := msgdata.Hash()
+				hasConsensusMsg := node.HasConsensusMsg(hash)
+
+				if !hasConsensusMsg {
+					node.RecordConsensusMsg(hash)
+					go node.Send(mesg, isConsensus, magic)
+				}
 			}
 		}
 	}

@@ -860,6 +860,17 @@ func (p *MsgHandler) ConsMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args 
 	var msgdata = data.Payload.(*msgTypes.ConsMsg)
 
 	log := p2p.GetLog()
+	remotePeer := p2p.GetPeerFromAddr(data.Addr)
+	if remotePeer == nil {
+		log.Error("[p2p] remotePeer invalid in ConsMsgHandle")
+		return
+	}
+	hash := msgdata.Hash()
+	if remotePeer.HasConsensusMsg(hash) {
+		//log.Info("[p2p] we alerady have this consensus msg, msg hash: ", hash)
+		return
+	}
+	remotePeer.RecordConsensusMsg(hash)
 
 	s, err := p2p.GetService(iservices.ConsensusServerName)
 	if err != nil {
@@ -868,9 +879,14 @@ func (p *MsgHandler) ConsMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args 
 	}
 	ctrl := s.(iservices.IConsensus)
 
-	log.Info("receive a consensus message, message data: ", msgdata)
+	//log.Info("receive a consensus message, message data: ", msgdata)
 
 	ctrl.Push(msgdata.MsgData)
+
+	if msgdata.Bcast == 1 {
+		//log.Info("forward broadcast consensus msg")
+		p2p.Broadcast(msgdata, false)
+	}
 }
 
 func (p *MsgHandler) RequestCheckpointBatchHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {

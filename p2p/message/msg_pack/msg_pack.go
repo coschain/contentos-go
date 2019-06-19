@@ -122,6 +122,7 @@ func NewConsMsg(msg message.ConsensusMessage) mt.Message {
 	var reqmsg mt.ConsMsg
 
 	reqmsg.MsgData = msg
+	reqmsg.Bcast = 1
 
 	return &reqmsg
 }

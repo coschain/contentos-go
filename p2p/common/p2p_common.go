@@ -87,6 +87,10 @@ const (
 	BloomFilterOfRecvTrxArgK      = 10         // bloom filter hash func num
 
 	MAX_ID_LENGTH = 50   // max id length in require id ack message
+
+	HASH_SIZE = 32
+
+	MaxConsensusMsgCount = 32768
 )
 
 //ParseIPAddr return ip address
