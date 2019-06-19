@@ -641,7 +641,7 @@ func (c *TrxPool) initGenesis() {
 		tInfo.VoteCount = prototype.NewVest(0)
 		tInfo.TopNAcquireFreeToken = constants.InitTopN
 		tInfo.EpochDuration = constants.InitEpochDuration
-		tInfo.PerTicketPrice = prototype.NewVest(1 * constants.COSTokenDecimals)
+		tInfo.PerTicketPrice = prototype.NewVest(constants.PerTicketPrice * constants.COSTokenDecimals)
 		tInfo.PerTicketWeight = constants.PerTicketWeight
 	}), "Witness Create Error")
 
@@ -677,9 +677,9 @@ func (c *TrxPool) initGenesis() {
 		tInfo.Props.StakeVestingShares = prototype.NewVest(0)
 		tInfo.Props.OneDayStamina = constants.OneDayStamina
 		tInfo.Props.CurrentEpochStartBlock = 0
-		tInfo.Props.EpochDuration = 60 * 60 * 24 * 15
-		tInfo.Props.TopNAcquireFreeToken = 500
-		tInfo.Props.PerTicketPrice = prototype.NewVest(1 * constants.COSTokenDecimals)
+		tInfo.Props.EpochDuration = constants.InitEpochDuration
+		tInfo.Props.TopNAcquireFreeToken = constants.InitTopN
+		tInfo.Props.PerTicketPrice = prototype.NewVest(constants.PerTicketPrice * constants.COSTokenDecimals)
 		tInfo.Props.PerTicketWeight = constants.PerTicketWeight
 		tInfo.Props.TicketsIncome = prototype.NewVest(0)
 		tInfo.Props.ChargedTicketsNum = 0

@@ -263,6 +263,7 @@ func (ev *AccountCreateEvaluator) Apply() {
 		tInfo.Owner = op.Owner
 		tInfo.LastOwnerUpdate = prototype.NewTimePointSec(0)
 		tInfo.StakeVesting = prototype.NewVest(0)
+		tInfo.ChargedTicket = 0
 	}), "duplicate create account object")
 
 	// create account authority
@@ -348,6 +349,7 @@ func (ev *PostEvaluator) Apply() {
 		t.VoteCnt = 0
 		t.Rewards = &prototype.Vest{Value: 0}
 		t.DappRewards = &prototype.Vest{Value: 0}
+		t.Ticket = 0
 	}), "create post error")
 
 	authorWrap.MdLastPostTime(ev.GlobalProp().HeadBlockTime())
@@ -404,6 +406,7 @@ func (ev *ReplyEvaluator) Apply() {
 		t.Beneficiaries = op.Beneficiaries
 		t.Rewards = &prototype.Vest{Value: 0}
 		t.DappRewards = &prototype.Vest{Value: 0}
+		t.Ticket = 0
 	}), "create reply error")
 
 	authorWrap.MdLastPostTime(ev.GlobalProp().HeadBlockTime())

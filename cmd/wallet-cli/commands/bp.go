@@ -45,9 +45,9 @@ var BpCmd = func() *cobra.Command {
 	registerCmd.Flags().Uint32VarP(&bpBlockSize, "blocksize", "b", 1024*1024, `bp register alice --blocksize 1024`)
 	registerCmd.Flags().Uint64VarP(&proposedStaminaFree, "stamina_free", "s", constants.DefaultStaminaFree, `bp register alice --stamina_free 1`)
 	registerCmd.Flags().Uint64VarP(&tpsExpected, "tps", "t", constants.DefaultTPSExpected, `bp register alice --tps 1`)
-	registerCmd.Flags().Uint64VarP(&bpEpochDuration, "epoch_duration", "", 60 * 60 * 24 * 30, `bp register alice --epoch_duration 1000000`)
-	registerCmd.Flags().Uint32VarP(&bpTopN, "top_n", "", 500, `bp register alice --top_n 1000`)
-	registerCmd.Flags().StringVarP(&bpPerTicketPrice, "ticket_price", "", "1.000000", `bp register alice --ticket_price 5.000000`)
+	registerCmd.Flags().Uint64VarP(&bpEpochDuration, "epoch_duration", "", constants.InitEpochDuration, `bp register alice --epoch_duration 1000000`)
+	registerCmd.Flags().Uint32VarP(&bpTopN, "top_n", "", constants.InitTopN, `bp register alice --top_n 1000`)
+	registerCmd.Flags().StringVarP(&bpPerTicketPrice, "ticket_price", "", constants.PerTicketPriceStr, `bp register alice --ticket_price 5.000000`)
 	registerCmd.Flags().Uint64VarP(&bpPerTicketWeight, "ticket_weight", "", constants.PerTicketWeight, `bp register alice --ticket_weight 10000000`)
 
 
@@ -80,9 +80,9 @@ var BpCmd = func() *cobra.Command {
 	updateCmd.Flags().Uint64VarP(&bpUpdateStaminaFree, "stamina_free", "s", constants.DefaultStaminaFree, `bp update alice --stamina_free 1`)
 	updateCmd.Flags().Uint64VarP(&bpUpdateTpsExpected, "tps", "t", constants.DefaultTPSExpected, `bp update alice --tps 1`)
 	updateCmd.Flags().StringVarP(&bpUpdateCreateAccountFee, "fee", "f", utils.MinimumCos, `bp update alice --fee 1`)
-	updateCmd.Flags().Uint64VarP(&bpEpochDuration, "epoch_duration", "", 60 * 60 * 24 * 30, `bp update alice --epoch_duration 1000000`)
-	updateCmd.Flags().Uint32VarP(&bpTopN, "top_n", "", 500, `bp update alice --top_n 1000`)
-	updateCmd.Flags().StringVarP(&bpPerTicketPrice, "ticket_price", "", "1.000000", `bp update alice --ticket_price 5.000000`)
+	updateCmd.Flags().Uint64VarP(&bpEpochDuration, "epoch_duration", "", constants.InitEpochDuration, `bp update alice --epoch_duration 1000000`)
+	updateCmd.Flags().Uint32VarP(&bpTopN, "top_n", "", constants.InitTopN, `bp update alice --top_n 1000`)
+	updateCmd.Flags().StringVarP(&bpPerTicketPrice, "ticket_price", "", constants.PerTicketPriceStr, `bp update alice --ticket_price 5.000000`)
 	updateCmd.Flags().Uint64VarP(&bpPerTicketWeight, "ticket_weight", "", constants.PerTicketWeight, `bp update alice --ticket_weight 10000000`)
 
 	cmd.AddCommand(registerCmd)
@@ -104,9 +104,9 @@ func registerBP(cmd *cobra.Command, args []string) {
 		bpDescFlag = ""
 		proposedStaminaFree = constants.DefaultStaminaFree
 		tpsExpected = constants.DefaultTPSExpected
-		bpEpochDuration = 60 * 60 * 24 * 30
-		bpTopN = 500
-		bpPerTicketPrice = "1.000000"
+		bpEpochDuration = constants.InitEpochDuration
+		bpTopN = constants.InitTopN
+		bpPerTicketPrice = constants.PerTicketPriceStr
 		bpPerTicketWeight = constants.PerTicketWeight
 	}()
 	c := cmd.Context["rpcclient"]
@@ -240,9 +240,9 @@ func updateBp(cmd *cobra.Command, args []string) {
 		bpUpdateStaminaFree      = constants.DefaultStaminaFree
 		bpUpdateTpsExpected      = constants.DefaultTPSExpected
 		bpUpdateCreateAccountFee = utils.MinimumCos
-		bpEpochDuration = 60 * 60 * 24 * 30
-		bpTopN = 500
-		bpPerTicketPrice = "1.000000"
+		bpEpochDuration = constants.InitEpochDuration
+		bpTopN = constants.InitTopN
+		bpPerTicketPrice = constants.PerTicketPriceStr
 		bpPerTicketWeight = constants.PerTicketWeight
 	}()
 	c := cmd.Context["rpcclient"]

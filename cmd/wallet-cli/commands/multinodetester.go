@@ -54,6 +54,10 @@ func makeBpRegVoteTrx(client grpcpb.ApiServiceClient, count int64) (*prototype.S
 			MaximumBlockSize:   10 * 1024 * 1024,
 			StaminaFree:        constants.DefaultStaminaFree,
 			TpsExpected:        constants.DefaultTPSExpected,
+			TopNAcquireFreeToken: constants.InitTopN,
+			EpochDuration: constants.InitEpochDuration,
+			PerTicketPrice: prototype.NewVest(constants.PerTicketPrice * constants.COSTokenDecimals),
+			PerTicketWeight: constants.PerTicketWeight,
 		},
 	}
 

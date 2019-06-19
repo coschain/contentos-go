@@ -127,6 +127,8 @@ const (
 	StakeStaminaOverFlow = "stakeStaminaOverFlow"
 	EnableResourceControl = true
 	MaxTicketsPerTurn = 1e5
+	PerTicketPrice = 1
+	PerTicketPriceStr = "1.000000"
 	PerTicketWeight = 1e7
 	InitTopN = 500
 	InitEpochDuration = 60 * 60 * 24 * 30
