@@ -516,8 +516,9 @@ func (this *P2PServer) FetchOutOfRange(localHeadID, targetID coomn.BlockID) {
 	defer np.RUnlock()
 
 	for _, p := range np.List {
+		num := p.GetLastSeenBlkNum()
 		p.OutOfRangeState.Lock()
-		if len(p.OutOfRangeState.KeyPointIDList) == 0 {
+		if len(p.OutOfRangeState.KeyPointIDList) == 0 && targetID.BlockNum() <= num {
 			p.OutOfRangeState.KeyPointIDList = append(p.OutOfRangeState.KeyPointIDList, targetID.Data[:])
 			this.log.Infof("FetchOutOfRange from %d to %d", localHeadID.BlockNum(), targetID.BlockNum() )
 			go p.Send(reqmsg, false, this.ctx.Config().P2P.NetworkMagic)
