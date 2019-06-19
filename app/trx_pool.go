@@ -625,6 +625,7 @@ func (c *TrxPool) initGenesis() {
 		tInfo.HasPowerdown = &prototype.Vest{Value: 0}
 		tInfo.Owner = pubKey
 		tInfo.StakeVesting = prototype.NewVest(0)
+		tInfo.ChargedTicket = 0
 	}), "CreateAccount error")
 
 	// create witness_object
@@ -638,6 +639,10 @@ func (c *TrxPool) initGenesis() {
 		tInfo.TpsExpected = constants.DefaultTPSExpected
 		tInfo.AccountCreateFee = prototype.NewCoin(constants.DefaultAccountCreateFee)
 		tInfo.VoteCount = prototype.NewVest(0)
+		tInfo.TopNAcquireFreeToken = constants.InitTopN
+		tInfo.EpochDuration = constants.InitEpochDuration
+		tInfo.PerTicketPrice = prototype.NewVest(1 * constants.COSTokenDecimals)
+		tInfo.PerTicketWeight = constants.PerTicketWeight
 	}), "Witness Create Error")
 
 	// create dynamic global properties
