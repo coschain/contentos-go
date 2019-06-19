@@ -100,3 +100,4 @@ func ParseCos(v string) (uint64,error) {
 	amount := amountFloat * constants.COSTokenDecimals
 	return uint64(amount),nil
 }
+
