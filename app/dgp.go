@@ -1,9 +1,7 @@
 package app
 
 import (
-	"fmt"
 	"github.com/coschain/contentos-go/app/table"
-	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
 )
@@ -76,37 +74,9 @@ func (dgp *DynamicGlobalPropsRW) ModifyProps(modifier func(oldProps *prototype.D
 	mustSuccess(dgpWrap.MdProps(props), "")
 }
 
-func (dgp *DynamicGlobalPropsRW) AcquireTickets(count uint64) {
-	opAssert(count <= constants.MaxTicketsPerTurn, "the limit of acquiring in each turn is 10000")
-	currentTicketPrice := dgp.GetProps().PerTicketPrice
-	fee := &prototype.Vest{Value: currentTicketPrice.Value * count}
-	dgp.ModifyProps(func(dgpo *prototype.DynamicProperties) {
-		income := dgpo.GetTicketsIncome()
-		mustNoError(income.Add(fee), "TicketIncome overflow")
-		dgpo.TicketsIncome = income
-		dgpo.ChargedTicketsNum += count
-	})
-}
-
-func (dgp *DynamicGlobalPropsRW) VoteByTicket(account *prototype.AccountName, postId uint64, count uint64) {
-	currentWitness := dgp.GetProps().CurrentWitness
-	bpWrap := table.NewSoAccountWrap(dgp.db, currentWitness)
-	if !bpWrap.CheckExist() {
-		panic(fmt.Sprintf("cannot find bp %s", currentWitness.Value))
-	}
-
-	equalValue := &prototype.Vest{Value: count * dgp.GetProps().GetTicketsIncome().Value / dgp.GetProps().GetChargedTicketsNum() }
-
-	income := dgp.GetProps().GetTicketsIncome()
-	mustNoError(income.Sub(equalValue), "sub equal value from ticketfee failed")
+func (dgp *DynamicGlobalPropsRW) UpdateTicketIncomeAndNum(income *prototype.Vest, count uint64) {
 	dgp.ModifyProps(func(props *prototype.DynamicProperties) {
 		props.TicketsIncome = income
-		props.ChargedTicketsNum -= count
+		props.ChargedTicketsNum = count
 	})
-
-	bpVest := bpWrap.GetVestingShares()
-	// currently, all income will put into bp's wallet.
-	// it will be change.
-	mustNoError(bpVest.Add(equalValue), "add equal value to bp failed")
-	bpWrap.MdVestingShares(bpVest)
 }

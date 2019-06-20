@@ -750,41 +750,11 @@ func (c *TrxPool) TransferFromStakeVest(value *prototype.Vest) {
 	})
 }
 
-func (c *TrxPool) AcquireTickets(count uint64) {
-	currentTicketPrice := c.GetProps().PerTicketPrice
-	fee := &prototype.Vest{Value: currentTicketPrice.Value * count}
-	c.modifyGlobalDynamicData(func(dgpo *prototype.DynamicProperties) {
-		income := dgpo.GetTicketsIncome()
-		mustNoError(income.Add(fee), "TicketsIncome overflow")
-		dgpo.TicketsIncome = income
-		dgpo.ChargedTicketsNum += count
-	})
-}
-
-func (c *TrxPool) VoteByTicket(account *prototype.AccountName, postId uint64, count uint64) {
-	props := c.GetProps()
-	currentWitness := props.CurrentWitness
-	bpWrap := table.NewSoAccountWrap(c.db, currentWitness)
-	if !bpWrap.CheckExist() {
-		panic(fmt.Sprintf("cannot find bp %s", currentWitness.Value))
-	}
-
-	// the per ticket price may change,so replace the per ticket price by totalincome / ticketnum
-	equalValue := &prototype.Vest{Value: count * c.GetProps().GetTicketsIncome().Value / c.GetProps().GetChargedTicketsNum() }
-
-	income := c.GetProps().GetTicketsIncome()
-	mustNoError(income.Sub(equalValue), "sub equal value from ticketfee failed")
+func (c *TrxPool) UpdateTicketIncomeAndNum(income *prototype.Vest, count uint64) {
 	c.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
 		props.TicketsIncome = income
-		props.ChargedTicketsNum -= count
+		props.ChargedTicketsNum = count
 	})
-
-	bpVest := bpWrap.GetVestingShares()
-	// currently, all income will put into bp's wallet.
-	// it will be change.
-	mustNoError(bpVest.Add(equalValue), "add equal value to bp failed")
-	bpWrap.MdVestingShares(bpVest)
-
 }
 
 func (c *TrxPool) validateBlockHeader(blk *prototype.SignedBlock) {

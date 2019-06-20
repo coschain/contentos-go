@@ -698,7 +698,7 @@ func (ev *BpUpdateEvaluator) Apply() {
 		fmt.Sprintf("account create fee too high max value %d", constants.MaxAccountCreateFee))
 
 	topNAcquireFreeToken := op.TopNAcquireFreeToken
-	opAssert(topNAcquireFreeToken >= constants.MaxTopN, fmt.Sprintf("top N vesting holders, the N is too big, " +
+	opAssert(topNAcquireFreeToken <= constants.MaxTopN, fmt.Sprintf("top N vesting holders, the N is too big, " +
 		"which should lower than %d", constants.MaxTopN))
 
 	epochDuration := op.EpochDuration
@@ -1208,6 +1208,8 @@ func (ev *AcquireTicketEvaluator) Apply() {
 
 	ticketPrice := ev.GlobalProp().GetProps().PerTicketPrice
 	vest := account.GetVestingShares()
+	oldVest := account.GetVestingShares()
+
 	fee := &prototype.Vest{Value: ticketPrice.Value * count}
 	opAssertE(vest.Sub(fee), "Insufficient vesting to acquire tickets")
 	opAssert(account.MdVestingShares(vest), "modify vesting shares failed")
@@ -1215,6 +1217,8 @@ func (ev *AcquireTicketEvaluator) Apply() {
 	opAssert(account.GetChargedTicket() + uint32(count) > account.GetChargedTicket(), "ticket count overflow")
 
 	account.MdChargedTicket(account.GetChargedTicket() + uint32(count))
+
+	updateWitnessVoteCount(ev.Database(), op.Account, oldVest, vest)
 
 	// record
 	ticketKey := &prototype.GiftTicketKeyType{
@@ -1237,7 +1241,15 @@ func (ev *AcquireTicketEvaluator) Apply() {
 		tInfo.ExpireBlock = math.MaxUint32
 	})
 
-	ev.GlobalProp().AcquireTickets(count)
+	props := ev.GlobalProp().GetProps()
+
+	currentIncome := props.GetTicketsIncome()
+	mustNoError(currentIncome.Add(fee), "TicketsIncome overflow")
+
+	chargedTicketsNum := props.GetChargedTicketsNum()
+	currentTicketsNum := chargedTicketsNum + count
+	ev.GlobalProp().UpdateTicketIncomeAndNum(currentIncome, currentTicketsNum)
+
 }
 
 func (ev *VoteByTicketEvaluator) Apply() {
@@ -1280,8 +1292,6 @@ func (ev *VoteByTicketEvaluator) Apply() {
 		postWrap.MdTicket(originTicketCount + uint32(count))
 	}
 
-
-
 	// record
 	ticketKey := &prototype.GiftTicketKeyType{
 		Type: 1,
@@ -1303,5 +1313,33 @@ func (ev *VoteByTicketEvaluator) Apply() {
 		tInfo.ExpireBlock = math.MaxUint32
 	})
 
-	ev.GlobalProp().VoteByTicket(op.Account, postId, count)
+	//ev.GlobalProp().VoteByTicket(op.Account, postId, count)
+	props := ev.GlobalProp().GetProps()
+	currentWitness := props.CurrentWitness
+	bpWrap := table.NewSoAccountWrap(ev.Database(), currentWitness)
+	if !bpWrap.CheckExist() {
+		panic(fmt.Sprintf("cannot find bp %s", currentWitness.Value))
+	}
+
+	// the per ticket price may change,so replace the per ticket price by totalincome / ticketnum
+	opAssert(props.GetChargedTicketsNum() > count, "should acquire tickets first")
+	equalValue := &prototype.Vest{Value: count * props.GetTicketsIncome().Value / props.GetChargedTicketsNum() }
+
+	currentIncome := props.GetTicketsIncome()
+	mustNoError(currentIncome.Sub(equalValue), "sub equal value from ticketfee failed")
+	//c.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
+	//	props.TicketsIncome = income
+	//	props.ChargedTicketsNum -= count
+	//})
+	chargedTicketsNum := props.GetChargedTicketsNum()
+	currentTicketsNum := chargedTicketsNum - count
+	ev.GlobalProp().UpdateTicketIncomeAndNum(currentIncome, currentTicketsNum)
+
+	bpVest := bpWrap.GetVestingShares()
+	oldVest := bpWrap.GetVestingShares()
+	// currently, all income will put into bp's wallet.
+	// it will be change.
+	mustNoError(bpVest.Add(equalValue), "add equal value to bp failed")
+	bpWrap.MdVestingShares(bpVest)
+	updateWitnessVoteCount(ev.Database(), currentWitness, oldVest, bpVest)
 }
