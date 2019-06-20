@@ -569,6 +569,8 @@ func (c *TrxPool) applyBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag
 	eTiming.Begin()
 	c.economist.Mint(pseudoTrxObserver)
 	eTiming.Mark()
+	c.economist.Distribute(pseudoTrxObserver)
+	eTiming.Mark()
 	c.economist.Do(pseudoTrxObserver)
 	eTiming.Mark()
 	c.economist.PowerDown()
@@ -846,6 +848,10 @@ func (c *TrxPool) updateGlobalWitnessBoot(bpNameList []string) {
 	}
 	c.modifyGlobalDynamicData(func(dgpo *prototype.DynamicProperties) {
 		dgpo.WitnessBootCompleted = true
+		// start epoch
+		if dgpo.CurrentEpochStartBlock == 0 {
+			dgpo.CurrentEpochStartBlock = 1
+		}
 	})
 }
 

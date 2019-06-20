@@ -184,21 +184,23 @@ func (e *Economist) Distribute(trxObserver iservices.ITrxObserver) {
 			return false
 		}
 		accounts = append(accounts, account)
+		count += 1
 		return true
 	})
 	if err != nil {
 		panic("economist distribute failed when iterator")
 	}
+	e.log.Info("economist epoch start block:", globalProps.GetCurrentEpochStartBlock())
 	for _, account := range accounts {
 		// type 0 free ticket
 		key := &prototype.GiftTicketKeyType{Type: 0, From: []byte("contentos"), To: []byte(account.Value),
-			CreateBlock: globalProps.GetCurrentEpochStartBlock()}
+			CreateBlock: current}
 		wrap := table.NewSoGiftTicketWrap(e.db, key)
 		// impossible
 		if wrap.CheckExist() {
 			wrap.MdExpireBlock(current + globalProps.GetEpochDuration())
 		} else {
-			_ = wrap.Create(func(tInfo *table.SoGiftTicket) {
+			err = wrap.Create(func(tInfo *table.SoGiftTicket) {
 				tInfo.Ticket = key
 				tInfo.Denom = globalProps.PerTicketWeight
 				tInfo.Count = 1
@@ -206,7 +208,6 @@ func (e *Economist) Distribute(trxObserver iservices.ITrxObserver) {
 			})
 		}
 	}
-
 	e.dgp.ModifyProps(func(props *prototype.DynamicProperties) {
 		props.CurrentEpochStartBlock = current
 	})
