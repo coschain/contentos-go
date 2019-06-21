@@ -859,6 +859,10 @@ func (c *TrxPool) updateGlobalResourceParam(bpNameList []string) {
 	var tpsExpectedList  []uint64
 	var staminaFreeList  []uint64
 	var accountCreationFee []uint64
+	var epochDuration []uint64
+	var topN []uint64
+	var perTicketPriceValue []uint64
+	var perTicketWeight []uint64
 
 	for i := range bpNameList {
 		ac := &prototype.AccountName{
@@ -871,17 +875,29 @@ func (c *TrxPool) updateGlobalResourceParam(bpNameList []string) {
 		tpsExpectedList = append(tpsExpectedList, witnessWrap.GetTpsExpected())
 		staminaFreeList = append(staminaFreeList, witnessWrap.GetProposedStaminaFree())
 		accountCreationFee = append(accountCreationFee, witnessWrap.GetAccountCreateFee().Value)
+		epochDuration = append(epochDuration, witnessWrap.GetEpochDuration())
+		topN = append(topN, uint64(witnessWrap.GetTopNAcquireFreeToken()))
+		perTicketPriceValue = append(perTicketPriceValue, witnessWrap.GetPerTicketPrice().Value)
+		perTicketWeight = append(perTicketWeight, witnessWrap.GetPerTicketWeight())
 	}
 
 	sort.Sort(selfmath.DirRange(tpsExpectedList))
 	sort.Sort(selfmath.DirRange(staminaFreeList))
 	sort.Sort(selfmath.DirRange(accountCreationFee))
+	sort.Sort(selfmath.DirRange(epochDuration))
+	sort.Sort(selfmath.DirRange(topN))
+	sort.Sort(selfmath.DirRange(perTicketPriceValue))
+	sort.Sort(selfmath.DirRange(perTicketWeight))
 
 	c.modifyGlobalDynamicData(func(dgpo *prototype.DynamicProperties) {
 		dgpo.StaminaFree = staminaFreeList[ len(staminaFreeList) / 2 ]
 		dgpo.TpsExpected = tpsExpectedList[ len(tpsExpectedList) / 2 ]
 		midVal := accountCreationFee[ len(accountCreationFee) / 2 ]
 		dgpo.AccountCreateFee = prototype.NewCoin(midVal)
+		dgpo.EpochDuration = epochDuration[len(epochDuration) / 2]
+		dgpo.TopNAcquireFreeToken = uint32(topN[len(topN) / 2])
+		dgpo.PerTicketPrice = prototype.NewVest(perTicketPriceValue[len(perTicketPriceValue) / 2])
+		dgpo.PerTicketWeight = perTicketWeight[len(perTicketWeight) / 2]
 	})
 }
 
