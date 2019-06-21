@@ -244,7 +244,7 @@ func (e *Economist) Do(trxObserver iservices.ITrxObserver) {
 	for _, pid := range pids {
 		post := table.NewSoPostWrap(e.db, pid)
 		giftNum := new(big.Int).SetUint64(uint64(post.GetTicket()))
-		giftVp := new(big.Int).Mul(giftNum, new(big.Int).SetUint64(globalProps.PerTicketWeight))
+		giftVp := new(big.Int).Mul(giftNum, new(big.Int).SetUint64(globalProps.GetPerTicketWeight()))
 		weightedVp := new(big.Int).Add(ISqrt(post.GetWeightedVp()), giftVp)
 		if post.GetParentId() == 0 {
 			posts = append(posts, post)
@@ -343,7 +343,7 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 		//vpAccumulator.Add(&vpAccumulator, vp)
 		//vpAccumulator += post.GetWeightedVp()
 		giftNum := new(big.Int).SetUint64(uint64(post.GetTicket()))
-		giftVp := new(big.Int).Mul(giftNum, new(big.Int).SetUint64(globalProps.PerTicketWeight))
+		giftVp := new(big.Int).Mul(giftNum, new(big.Int).SetUint64(globalProps.GetPerTicketWeight()))
 		weightedVp := new(big.Int).Add(ISqrt(post.GetWeightedVp()), giftVp)
 		vpAccumulator.Add(&vpAccumulator, weightedVp)
 	}
@@ -370,7 +370,7 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 			//bigWeightedVp, _ := new(big.Int).SetString(weightedVp, 10)
 			// perticketprice * num
 			giftNum := new(big.Int).SetUint64(uint64(post.GetTicket()))
-			giftVp := new(big.Int).Mul(giftNum, new(big.Int).SetUint64(globalProps.PerTicketWeight))
+			giftVp := new(big.Int).Mul(giftNum, new(big.Int).SetUint64(globalProps.GetPerTicketWeight()))
 			bigWeightedVp := new(big.Int).Add(ISqrt(post.GetWeightedVp()), giftVp)
 			bigRewardMul := new(big.Int).Mul(bigWeightedVp,  bigBlockRewards)
 			reward = new(big.Int).Div(bigRewardMul, &vpAccumulator).Uint64()
@@ -460,7 +460,7 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 		//vp, _ := new(big.Int).SetString(reply.GetWeightedVp(), 10)
 		//vpAccumulator.Add(&vpAccumulator, vp)
 		giftNum := new(big.Int).SetUint64(uint64(reply.GetTicket()))
-		giftVp := new(big.Int).Mul(giftNum, new(big.Int).SetUint64(globalProps.PerTicketWeight))
+		giftVp := new(big.Int).Mul(giftNum, new(big.Int).SetUint64(globalProps.GetPerTicketWeight()))
 		weightedVp := new(big.Int).Add(ISqrt(reply.GetWeightedVp()), giftVp)
 		vpAccumulator.Add(&vpAccumulator, weightedVp)
 	}
@@ -482,7 +482,7 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 			//weightedVp := reply.GetWeightedVp()
 			//bigWeightedVp, _ := new(big.Int).SetString(weightedVp, 10)
 			giftNum := new(big.Int).SetUint64(uint64(reply.GetTicket()))
-			giftVp := new(big.Int).Mul(giftNum, new(big.Int).SetUint64(globalProps.PerTicketWeight))
+			giftVp := new(big.Int).Mul(giftNum, new(big.Int).SetUint64(globalProps.GetPerTicketWeight()))
 			bigWeightedVp := new(big.Int).Add(ISqrt(reply.GetWeightedVp()), giftVp)
 			bigRewardMul := new(big.Int).Mul(bigWeightedVp,  bigBlockRewards)
 			reward = new(big.Int).Div(bigRewardMul, &vpAccumulator).Uint64()
