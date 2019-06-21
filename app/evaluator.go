@@ -1322,9 +1322,13 @@ func (ev *VoteByTicketEvaluator) Apply() {
 	}
 
 	// the per ticket price may change,so replace the per ticket price by totalincome / ticketnum
-	opAssert(props.GetChargedTicketsNum() > count, "should acquire tickets first")
-	equalValue := &prototype.Vest{Value: count * props.GetTicketsIncome().Value / props.GetChargedTicketsNum() }
-
+	opAssert(props.GetChargedTicketsNum() >= count, "should acquire tickets first")
+	var equalValue *prototype.Vest
+	if props.GetChargedTicketsNum() == 0 {
+		equalValue = &prototype.Vest{Value: 0}
+	} else {
+		equalValue = &prototype.Vest{Value: count * props.GetTicketsIncome().Value / props.GetChargedTicketsNum()}
+	}
 	currentIncome := props.GetTicketsIncome()
 	mustNoError(currentIncome.Sub(equalValue), "sub equal value from ticketfee failed")
 	//c.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
