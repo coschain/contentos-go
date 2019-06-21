@@ -8,6 +8,7 @@ import (
 	"github.com/coschain/contentos-go/rpc/pb"
 	"google.golang.org/grpc"
 	"strings"
+	"sync"
 )
 
 var rpclist string
@@ -31,22 +32,32 @@ func nodesCheck(cmd *cobra.Command, args []string) {
 	}()
 
 	nodeslist := strings.Split(rpclist, ",")
+	var wg sync.WaitGroup
 
 	for i:=0; i<len(nodeslist); i++ {
-		var conn *grpc.ClientConn
-		conn, err := rpc.Dial(nodeslist[i])
-		if err == nil && conn != nil {
-			api := grpcpb.NewApiServiceClient(conn)
-			resp, err := api.GetChainState(context.Background(), &grpcpb.NonParamsRequest{})
+		wg.Add(1)
+		go func (idx int) {
+			defer wg.Done()
 
-			if err == nil {
-				fmt.Printf("Success peer:%v, Irreversible: %v, HeadBlockId: %v, HeadHash: %v\n", nodeslist[i],
-					resp.State.GetLastIrreversibleBlockNumber(),
-					resp.State.Dgpo.HeadBlockNumber,
-					resp.State.Dgpo.HeadBlockId.ToString())
+			var conn *grpc.ClientConn
+			conn, err := rpc.Dial(nodeslist[idx])
+			if err == nil && conn != nil {
+				api := grpcpb.NewApiServiceClient(conn)
+				resp, err := api.GetChainState(context.Background(), &grpcpb.NonParamsRequest{})
+
+				if err == nil {
+					fmt.Printf("Success peer:%v, Irreversible: %v, HeadBlockId: %v, HeadHash: %v\n", nodeslist[idx],
+						resp.State.GetLastIrreversibleBlockNumber(),
+						resp.State.Dgpo.HeadBlockNumber,
+						resp.State.Dgpo.HeadBlockId.ToString())
+				} else {
+					fmt.Printf("Failed peer: %v, Get response error %v\n", nodeslist[idx], err)
+				}
+				conn.Close()
+			} else {
+				fmt.Printf("Failed peer: %v, Connect peer error %v\n", nodeslist[idx], err)
 			}
-			conn.Close()
-		}
-
+		}(i)
 	}
+	wg.Wait()
 }
