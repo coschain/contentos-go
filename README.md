@@ -151,7 +151,7 @@ cosd start -n yourownname
 
 if you want to set up a contentos network in single machine, you need to do:
 
-1.run cosd init -n name to create different node folders,then edit all config.toml,make sure HTTPListen and RPCListen and NodeConsensusPort and NodePort and HealthCheck all unique in each node's config.toml.
+1.run cosd init -n name to create different node folders,then edit all config.toml,make sure HTTPListen and RPCListen and NodeConsensusPort and NodePort and HealthCheck all unique to other node's config.toml.
 ```
 ./cosd init -n cos1
 ./cosd init -n cos2
