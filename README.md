@@ -148,6 +148,29 @@ if you have named your node, using:
 cosd start -n yourownname
 ```
 
+## Running multi nodes
+
+assume you have 4 machines and want to set up a contentos network, here the steps
+you need to do:
+
+1.choice a machine,run cosd init then edit config.toml,modify all ip relative items from 127.0.0.1 to
+your custom.
+
+2.start first cosd,use wallet connect cosd via RPC address according to config.toml.
+
+3.create 3 new accounts and remember thier public keys.
+
+4.do cosd init on other 3 machines,edit config.toml,change BootStrap to false,set LocalBpName and LocalBpPrivateKey that you
+just created in step 3.
+
+5.start remain cosd.
+
+6.use wallet again to regist 3 accounts as new bp
+
+now job is finished.
+
+optinal, the first cosd has been changed to a observe node since you regist bp, if you want first cosd also become a bp node, you need to create a new account,modify first cosd's config.toml,change BootStrap to false,set LocalBpName and LocalBpPrivateKey to new account's info,restart first cosd, regist new account as bp.
+
 ### Interaction
 enter
 
