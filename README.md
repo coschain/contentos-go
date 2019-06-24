@@ -157,6 +157,10 @@ if you want to set up a contentos network in single machine, you need to do:
 ./cosd init -n cos2
 ./cosd init -n cos3
 ./cosd init -n cos4
+vi ~/.coschain/cos1/config.toml
+vi ~/.coschain/cos2/config.toml
+vi ~/.coschain/cos3/config.toml
+vi ~/.coschain/cos4/config.toml
 ```
 
 2.start first cosd,use wallet connect cosd via RPC address according to config.toml.
@@ -207,6 +211,10 @@ you need to do:
 
 1.choice a machine,run cosd init then edit config.toml,modify all ip relative items from 127.0.0.1 to
 your custom.
+```
+./cosd init
+vi ~/.coschain/cosd/config.toml
+```
 
 2.start first cosd,use wallet connect cosd via RPC address according to config.toml.
 ```
@@ -214,7 +222,7 @@ switchport ip_to_your_node:8888
 import initminer privateKey_of_initminer
 ```
 
-3.create 3 new accounts and remember thier public keys.
+3.create 3 new accounts and remember thier public keys and private keys.
 ```
 stake initminer initminer 1.000000
 create initminer witness1
@@ -228,11 +236,9 @@ info witness3
 4.do cosd init on other 3 machines,edit config.toml,change BootStrap to false,set LocalBpName and LocalBpPrivateKey that you
 just created in step 3.
 
-5.start remain cosd.
+5.start remain cosd on each machine.
 ```
-./cosd start -n cos2
-./cosd start -n cos3
-./cosd start -n cos4
+./cosd start 
 ```
 
 6.use wallet again to regist 3 accounts as new bp
