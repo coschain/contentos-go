@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/coschain/contentos-go/cmd/wallet-cli/commands/utils"
 	"github.com/coschain/contentos-go/cmd/wallet-cli/wallet"
+	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/rpc/pb"
@@ -578,4 +579,117 @@ func callContract(rpcClient grpcpb.ApiServiceClient, fromAccount  *wallet.PrivAc
 			fmt.Sprintf("Result: %v", resp))
 	}
 	return nil
+}
+
+func RandomUnRegisterBP(rpcClient grpcpb.ApiServiceClient) error {
+
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	index := r.Intn( len(BPList) )
+
+	bpAccount := &wallet.PrivAccount{
+		Account: wallet.Account{Name: BPList[index].name, PubKey: BPList[index].pubKeyStr},
+		PrivKey: BPList[index].priKeyStr,
+	}
+
+	bpUnregister_op := &prototype.BpUnregisterOperation{
+		Owner: &prototype.AccountName{Value: BPList[index].name},
+	}
+
+	signTx, err := utils.GenerateSignedTxAndValidate2(rpcClient, []interface{}{bpUnregister_op}, bpAccount)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
+	resp, err := rpcClient.BroadcastTrx(context.Background(), req)
+	if err == nil {
+		if resp.Invoice.Status == 200 {
+			lastConductBPIndex = index
+		}
+		if strings.Contains(resp.Invoice.ErrorInfo,"net resource not enough") {
+			stake(rpcClient, bpAccount, bpAccount,1)
+		}
+		fmt.Println("Request command: ",
+			fmt.Sprintf("unregister bp %s", BPList[index].name),
+			" ",
+			fmt.Sprintf("Result: %v", resp))
+	}
+	return err
+}
+
+func RegisterAndVoteBP(rpcClient grpcpb.ApiServiceClient, index int) error {
+	resp, _ := rpcClient.GetChainState( context.Background(), &grpcpb.NonParamsRequest{} )
+	refBlockPrefix := common.TaposRefBlockPrefix(resp.State.Dgpo.HeadBlockId.Hash)
+	refBlockNum := common.TaposRefBlockNum(resp.State.Dgpo.HeadBlockNumber)
+	tx := &prototype.Transaction{RefBlockNum: refBlockNum, RefBlockPrefix: refBlockPrefix, Expiration: &prototype.TimePointSec{UtcSeconds: resp.State.Dgpo.Time.UtcSeconds + 30}}
+	trx := &prototype.SignedTransaction{Trx: tx}
+
+	pubKey, err := prototype.PublicKeyFromWIF(BPList[index].pubKeyStr)
+	if err != nil {
+		return err
+	}
+
+	opBpReg := &prototype.BpRegisterOperation{
+		Owner:           &prototype.AccountName{Value: BPList[index].name},
+		Url:             BPList[index].name,
+		Desc:            BPList[index].name,
+		BlockSigningKey: pubKey,
+		Props: &prototype.ChainProperties{
+			AccountCreationFee: prototype.NewCoin(constants.DefaultAccountCreateFee),
+			MaximumBlockSize:   10 * 1024 * 1024,
+			StaminaFree:        constants.DefaultStaminaFree,
+			TpsExpected:        constants.DefaultTPSExpected,
+		},
+	}
+
+	opBpVote := &prototype.BpVoteOperation{
+		Voter: prototype.NewAccountName(BPList[index].name),
+		Witness: prototype.NewAccountName(BPList[index].name),
+		Cancel: false}
+
+	trx.Trx.AddOperation(opBpReg)
+	trx.Trx.AddOperation(opBpVote)
+
+	keys, err := prototype.PrivateKeyFromWIF(BPList[index].priKeyStr)
+	if err != nil {
+		return err
+	}
+	res := trx.Sign(keys, prototype.ChainId{Value: 0})
+	trx.Signature = &prototype.SignatureType{Sig: res}
+
+	if err := trx.Validate(); err != nil {
+		return err
+	}
+
+	req := &grpcpb.BroadcastTrxRequest{Transaction: trx}
+	newresp, err := rpcClient.BroadcastTrx(context.Background(), req)
+
+	if err == nil {
+		if newresp.Invoice.Status == 200 {
+			lastConductBPIndex = -1
+		}
+		if strings.Contains(newresp.Invoice.ErrorInfo,"net resource not enough") {
+			bpAccount := &wallet.PrivAccount{
+				Account: wallet.Account{Name: BPList[index].name, PubKey: BPList[index].pubKeyStr},
+				PrivKey: BPList[index].priKeyStr,
+			}
+			stake(rpcClient, bpAccount, bpAccount,1)
+		}
+		fmt.Println("Request command: ",
+			fmt.Sprintf("register bp and vote himself %s", BPList[index].name),
+			" ",
+			fmt.Sprintf("Result: %v", newresp))
+	}
+
+	return err
+}
+
+func getBPListOnChain(rpcClient grpcpb.ApiServiceClient) (bpList *grpcpb.GetWitnessListResponse, err error) {
+	req := &grpcpb.GetWitnessListByVoteCountRequest{}
+	req.Limit = uint32(len(BPList))
+	resp, err := rpcClient.GetWitnessListByVoteCount(context.Background(), req)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
 }

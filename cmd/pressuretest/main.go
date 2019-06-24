@@ -11,8 +11,8 @@ import (
 
 func main() {
 
-	if len(os.Args) != 6 {
-		fmt.Println("params count error\n Example: pressuretest thread-count basename accountName publickey privateKey")
+	if len(os.Args) != 6 && len(os.Args) != 7 {
+		fmt.Println("params count error\n Example: pressuretest thread-count basename accountName publickey privateKey file-path")
 		return
 	}
 
@@ -23,13 +23,18 @@ func main() {
 	}
 	fmt.Println("robot count: ", walletCnt)
 
-	// create 10 accounts initminer1 ... initminer10 and initminer post 10 articles
+	// create 9 accounts [accountName]1 ... [accountName]9 and initminer post 10 articles
 	request.InitEnv( os.Args[2], os.Args[3], os.Args[4], os.Args[5])
 	fmt.Println("init base enviroment over")
 
 	for i:=0;i<walletCnt;i++ {
 		request.Wg.Add(1)
 		go request.StartEachRoutine(i)
+	}
+
+	if len(os.Args) == 7 {
+		request.Wg.Add(1)
+		go request.StartBPRoutine()
 	}
 
 	go func() {

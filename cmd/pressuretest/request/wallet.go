@@ -1,6 +1,7 @@
 package request
 
 import (
+	"bufio"
 	"fmt"
 	"github.com/coschain/contentos-go/cmd/wallet-cli/wallet"
 	"github.com/coschain/contentos-go/common"
@@ -8,6 +9,7 @@ import (
 	"github.com/coschain/contentos-go/rpc/pb"
 	"math/rand"
 	"os"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -20,6 +22,12 @@ type accountList struct {
 type IdList struct {
 	sync.RWMutex
 	arr []uint64
+}
+
+type accountInfo struct {
+	name        string
+	pubKeyStr   string
+	priKeyStr   string
 }
 
 const (
@@ -57,6 +65,8 @@ var CmdTypeList []string = []string{
 
 var GlobalAccountLIst accountList
 var PostIdList IdList
+var BPList []*accountInfo
+var lastConductBPIndex = -1
 
 var Wg = &sync.WaitGroup{}
 
@@ -153,4 +163,109 @@ func StartEachRoutine(index int) {
 			callContract(rpcClient, nil)
 		}
 	}
+}
+
+func StartBPRoutine(){
+	defer Wg.Done()
+
+	filePath := os.Args[6]
+	bpListFile, err := os.Open(filePath)
+	if err != nil {
+		fmt.Println("can't open BP list file: ", err)
+		return
+	}
+	defer bpListFile.Close()
+
+	scanner := bufio.NewScanner(bpListFile)
+	scanner.Split(bufio.ScanLines)
+
+	// read bp list file into BPList
+	readBPListFile(scanner)
+	fmt.Println("BP length: ", len(BPList))
+
+	conn, err := rpc.Dial( IPList[0] )
+	defer conn.Close()
+	if err != nil {
+		common.Fatalf("Chain should have been run first")
+	}
+	rpcClient := grpcpb.NewApiServiceClient(conn)
+
+	err = InitLastConductBPIndex(rpcClient)
+	if err != nil {
+		fmt.Println("Get bp list on chain error: ", err)
+		return
+	}
+
+	fmt.Println("lastConductBPIndex: ", lastConductBPIndex)
+
+	for ;; {
+		Mu.RLock()
+		if StopSig == true {
+			Mu.RUnlock()
+			break
+		}
+		Mu.RUnlock()
+
+		if lastConductBPIndex == -1 {
+			// random unregister a bp
+			RandomUnRegisterBP(rpcClient)
+		} else {
+			// first register and vote last unregister bp
+			// if no error
+			// random unregister a new bp
+			err := RegisterAndVoteBP(rpcClient, lastConductBPIndex)
+			if err != nil {
+				fmt.Println("Register and vote BP error: ", err)
+				continue
+			}
+			RandomUnRegisterBP(rpcClient)
+		}
+
+		time.Sleep(time.Duration(len(BPList) * 10) * time.Second)
+	}
+}
+
+func readBPListFile(scanner *bufio.Scanner) {
+	line := 0
+	for scanner.Scan() {
+		line++
+		mod := line % 3
+		lineTextStr := scanner.Text()
+
+		if mod == 1 {
+			newBP := new(accountInfo)
+			newBP.name = lineTextStr
+			BPList = append(BPList, newBP)
+		} else if mod == 2 {
+			tail := len(BPList) - 1
+			BPList[tail].pubKeyStr = lineTextStr
+		} else {
+			tail := len(BPList) - 1
+			BPList[tail].priKeyStr = lineTextStr
+		}
+	}
+}
+
+func InitLastConductBPIndex(rpcClient grpcpb.ApiServiceClient) error {
+	bpListOnChain, err := getBPListOnChain(rpcClient)
+	if err != nil {
+		return err
+	}
+	bpNumSum := 0
+	for i:=1;i<=len(BPList);i++ {
+		bpNumSum += i
+	}
+	if len(bpListOnChain.WitnessList) != len(BPList) {
+		sum := 0
+		for i:=0;i<len(bpListOnChain.WitnessList);i++ {
+			bpNumStr := bpListOnChain.WitnessList[i].Owner.Value[9:]
+			bpNum, err := strconv.Atoi(bpNumStr)
+			if err != nil {
+				return err
+			}
+			sum += bpNum
+		}
+		lastConductBPIndex = bpNumSum - sum - 1
+	}
+	return nil
 }
