@@ -153,7 +153,7 @@ func (p *MsgHandler) BlockSyncHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, arg
 	log.Info("[p2p] receive a SignedBlock msg, block number :   ", block.SigBlk.Id().BlockNum())
 	blkNum := block.SigBlk.Id().BlockNum()
 
-	remotePeer := p2p.GetPeerFromAddr(data.Addr)
+	remotePeer := p2p.GetPeer(data.Id)
 	if remotePeer == nil {
 		log.Error("[p2p] peer is not exist: ", data.Addr)
 		return
@@ -215,6 +215,14 @@ func maybeTriggerFetch(p2p p2p.P2P, lg *logrus.Logger, remotePeer *peer.Peer, si
 		length := len(remotePeer.OutOfRangeState.KeyPointIDList)
 		startId := remotePeer.OutOfRangeState.KeyPointIDList[length-1]
 		endId := remotePeer.OutOfRangeState.KeyPointIDList[length-2]
+
+		var endBlockID common.BlockID
+		copy(endBlockID.Data[:], endId)
+		if endBlockID.BlockNum() != sigBlkMsg.SigBlk.Id().BlockNum() {
+			lg.Warn("receive a fake sigblk msg")
+			return
+		}
+
 		remotePeer.OutOfRangeState.KeyPointIDList = remotePeer.OutOfRangeState.KeyPointIDList[0:length-1]
 
 		msg := msgpack.NewRequestBlockBatch(startId, endId)
@@ -234,7 +242,7 @@ func (p *MsgHandler) TransactionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, a
 	//log.Info("receive a SignedTransaction msg: ", trn)
 
 	id, _ := trn.SigTrx.Id()
-	remotePeer := p2p.GetPeerFromAddr(data.Addr)
+	remotePeer := p2p.GetPeer(data.Id)
 	if remotePeer == nil {
 		log.Error("[p2p] peer is not exist: ", data.Addr)
 		return
@@ -576,7 +584,7 @@ func (p *MsgHandler) IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 
 	log := p2p.GetLog()
 
-	remotePeer := p2p.GetPeerFromAddr(data.Addr)
+	remotePeer := p2p.GetPeer(data.Id)
 
 	if remotePeer == nil {
 		log.Error("[p2p] remotePeer invalid in IdMsgHandle")
@@ -764,7 +772,7 @@ func (p *MsgHandler) IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 func (p *MsgHandler) ReqIdHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	var raw = data.Payload.(*msgTypes.TransferMsg)
 	var msgdata = raw.Msg.(*msgTypes.TransferMsg_Msg4).Msg4
-	remotePeer := p2p.GetPeerFromAddr(data.Addr)
+	remotePeer := p2p.GetPeer(data.Id)
 
 	log := p2p.GetLog()
 
@@ -860,6 +868,17 @@ func (p *MsgHandler) ConsMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args 
 	var msgdata = data.Payload.(*msgTypes.ConsMsg)
 
 	log := p2p.GetLog()
+	remotePeer := p2p.GetPeer(data.Id)
+	if remotePeer == nil {
+		log.Error("[p2p] remotePeer invalid in ConsMsgHandle")
+		return
+	}
+	hash := msgdata.Hash()
+	if remotePeer.HasConsensusMsg(hash) {
+		//log.Info("[p2p] we alerady have this consensus msg, msg hash: ", hash)
+		return
+	}
+	remotePeer.RecordConsensusMsg(hash)
 
 	s, err := p2p.GetService(iservices.ConsensusServerName)
 	if err != nil {
@@ -868,9 +887,14 @@ func (p *MsgHandler) ConsMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args 
 	}
 	ctrl := s.(iservices.IConsensus)
 
-	log.Info("receive a consensus message, message data: ", msgdata)
+	//log.Info("receive a consensus message, message data: ", msgdata)
 
 	ctrl.Push(msgdata.MsgData)
+
+	if msgdata.Bcast == 1 {
+		//log.Info("forward broadcast consensus msg")
+		p2p.Broadcast(msgdata, false)
+	}
 }
 
 func (p *MsgHandler) RequestCheckpointBatchHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
@@ -879,7 +903,7 @@ func (p *MsgHandler) RequestCheckpointBatchHandle(data *msgTypes.MsgPayload, p2p
 
 	log := p2p.GetLog()
 
-	remotePeer := p2p.GetPeerFromAddr(data.Addr)
+	remotePeer := p2p.GetPeer(data.Id)
 
 	if remotePeer == nil {
 		log.Error("[p2p] remotePeer invalid in RequestCheckpointBatchHandle")
@@ -941,7 +965,7 @@ func (p *MsgHandler) FetchOutOfRangeHandle(data *msgTypes.MsgPayload, p2p p2p.P2
 
 	log := p2p.GetLog()
 
-	remotePeer := p2p.GetPeerFromAddr(data.Addr)
+	remotePeer := p2p.GetPeer(data.Id)
 	if remotePeer == nil {
 		log.Error("[p2p] remotePeer invalid in FetchOutOfRangeHandle")
 		return
@@ -1066,7 +1090,7 @@ func (p *MsgHandler) RequestBlockBatchHandle(data *msgTypes.MsgPayload, p2p p2p.
 
 	log := p2p.GetLog()
 
-	remotePeer := p2p.GetPeerFromAddr(data.Addr)
+	remotePeer := p2p.GetPeer(data.Id)
 	if remotePeer == nil {
 		log.Error("[p2p] remotePeer invalid in RequestBlockBatchHandle")
 		return
@@ -1142,7 +1166,7 @@ func (p *MsgHandler) DetectFormerIdsHandle(data *msgTypes.MsgPayload, p2p p2p.P2
 
 	log := p2p.GetLog()
 
-	remotePeer := p2p.GetPeerFromAddr(data.Addr)
+	remotePeer := p2p.GetPeer(data.Id)
 	if remotePeer == nil {
 		log.Error("[p2p] remotePeer invalid in DetectFormerIdsHandle")
 		return
@@ -1194,7 +1218,7 @@ func (p *MsgHandler) DetectFormerIdsHandle(data *msgTypes.MsgPayload, p2p p2p.P2
 func (p *MsgHandler) ClearOutOfRangeStateHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
 	log := p2p.GetLog()
 
-	remotePeer := p2p.GetPeerFromAddr(data.Addr)
+	remotePeer := p2p.GetPeer(data.Id)
 	if remotePeer == nil {
 		log.Error("[p2p] remotePeer invalid in ClearOutOfRangeStateHandle")
 		return
