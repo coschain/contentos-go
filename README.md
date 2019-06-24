@@ -157,8 +157,20 @@ you need to do:
 your custom.
 
 2.start first cosd,use wallet connect cosd via RPC address according to config.toml.
+```
+switchport ip_to_your_node:8888
+import initminer privateKey_of_initminer
+```
 
 3.create 3 new accounts and remember thier public keys.
+```
+create initminer bp1
+create initminer bp2
+create initminer bp3
+account get bp1
+account get bp2
+account get bp3
+```
 
 4.do cosd init on other 3 machines,edit config.toml,change BootStrap to false,set LocalBpName and LocalBpPrivateKey that you
 just created in step 3.
@@ -166,10 +178,16 @@ just created in step 3.
 5.start remain cosd.
 
 6.use wallet again to regist 3 accounts as new bp
+```
+unlock iniminer
+bp register bp1 bp1_publicKey
+bp register bp2 bp2_publicKey
+bp register bp3 bp3_publicKey
+```
 
 now job is finished.
 
-optinal, the first cosd has been changed to a observe node since you regist bp, if you want first cosd also become a bp node, you need to create a new account,modify first cosd's config.toml,change BootStrap to false,set LocalBpName and LocalBpPrivateKey to new account's info,restart first cosd, regist new account as bp.
+optinal, the first cosd has been changed to a observe node since you regist bp, if you want first cosd also become a bp node, you need to create a new account,modify first cosd's config.toml,change BootStrap to false,set LocalBpName and LocalBpPrivateKey to new account's info(same as step 4),restart first cosd, regist new account as bp(same as step 6).
 
 ### Interaction
 enter
