@@ -114,6 +114,7 @@ You can modify it if you like as long as you know what you are doing.
 if you want to set up a contentos network in single machine, you need to do:
 
 1.run cosd init -n name to create different node folders,after call cosd init, there will be a output "Cosd running version:  defaultVersion", this mean cosd use default config,then edit all config.toml,make sure HTTPListen and RPCListen and NodeConsensusPort and NodePort and HealthCheck all unique to other node's config.toml.
+
 ```
 ./cosd init -n cos1
 ./cosd init -n cos2
@@ -124,6 +125,11 @@ vi ~/.coschain/cos2/config.toml
 vi ~/.coschain/cos3/config.toml
 vi ~/.coschain/cos4/config.toml
 ```
+![config1](doc/technical-whitepaper/assets/1.png)
+
+![config2](doc/technical-whitepaper/assets/2.png)
+
+![config3](doc/technical-whitepaper/assets/3.png)
 
 2.start first cosd,use wallet connect cosd via RPC address according to config.toml.you can find privateKey_of_initminer in wallet_doc_cn.md(at wallet-cli folder)
 ```
@@ -148,6 +154,8 @@ info witness3
 
 4.edit other node's config.toml,change BootStrap to false,set LocalBpName and LocalBpPrivateKey that you
 just created in step 3.
+
+![config4](doc/technical-whitepaper/assets/4.png)
 
 5.start remain cosd.
 ```
