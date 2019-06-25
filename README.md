@@ -91,11 +91,12 @@ docker exec -it contentosd-exchange /usr/local/src/contentos-go/bin/wallet-cli
 
 ### Initialization
 
+init will create a folder to hold cosd's running data,the folder location at ~/.coschain
 ```bash
 cosd init
 ```
 
-cosd is adopted in default as the node name. To change it, use:
+you can also custom your own folder name:
 
 ```bash
 cosd init -n yourownname
@@ -108,17 +109,6 @@ The nodename is cosd or yourownname.
 
 You can modify it if you like as long as you know what you are doing.
 
-## Running
-
-```bash
-cosd start
-```
-
-if you have named your node, using:
-
-```bash
-cosd start -n yourownname
-```
 ## Running multi nodes in single machine
 
 if you want to set up a contentos network in single machine, you need to do:
