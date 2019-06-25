@@ -91,12 +91,12 @@ docker exec -it contentosd-exchange /usr/local/src/contentos-go/bin/wallet-cli
 
 ### Initialization
 
-init will create a folder to hold cosd's running data,the folder location at ~/.coschain
+init will create a folder to hold cosd's running data,this will create a folder ~/.coschain/cosd
 ```bash
 cosd init
 ```
 
-you can also custom your own folder name:
+you can also custom your own folder name, this will create a folder ~/.coschain/yourownname
 
 ```bash
 cosd init -n yourownname
