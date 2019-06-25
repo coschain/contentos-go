@@ -135,9 +135,11 @@ vi ~/.coschain/cos3/config.toml
 vi ~/.coschain/cos4/config.toml
 ```
 
-2.start first cosd,use wallet connect cosd via RPC address according to config.toml.
+2.start first cosd,use wallet connect cosd via RPC address according to config.toml.you can find privateKey_of_initminer in wallet_doc_cn.md(at wallet-cli folder)
 ```
+go to cosd folder
 ./cosd start -n cos1
+go to wallet-cli folder
 ./wallet-cli
 switchport ip_to_your_node:8888
 import initminer privateKey_of_initminer
