@@ -18,44 +18,16 @@ Join discussion at https://t.me/ContentoOfficialGroup
 
 ## Building the source
 
+pull source code
 ```bash
-make build_cosd
+git clone git@github.com:coschain/contentos-go.git
 ```
-
-And
-
-```bash
-make build_wallet
+build cosd and wallet
 ```
-
-Or, to build both
-
-```bash
-make build
-```
-
-if prefer to install into /bin:
-
-```bash
-make install_cosd
-```
-
-And
-
-```bash
-make install_wallet
-```
-
-Or
-
-```bash
-make install
-```
-
-## Testing the source
-
-```bash
-make test
+cd cmd/cosd
+go build
+cd ../wallet-cli/
+go build
 ```
 
 ## Executables
@@ -151,7 +123,7 @@ cosd start -n yourownname
 
 if you want to set up a contentos network in single machine, you need to do:
 
-1.run cosd init -n name to create different node folders,then edit all config.toml,make sure HTTPListen and RPCListen and NodeConsensusPort and NodePort and HealthCheck all unique to other node's config.toml.
+1.run cosd init -n name to create different node folders,after call cosd init, there will be a output "Cosd running version:  defaultVersion", this mean cosd use default config,then edit all config.toml,make sure HTTPListen and RPCListen and NodeConsensusPort and NodePort and HealthCheck all unique to other node's config.toml.
 ```
 ./cosd init -n cos1
 ./cosd init -n cos2
