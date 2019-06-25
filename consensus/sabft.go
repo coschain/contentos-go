@@ -687,9 +687,13 @@ func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 		return
 	}
 
-	checkPoint := records
+	sabft.loopCommit(records)
+}
+
+func (sabft *SABFT) loopCommit(commit *message.Commit) {
+	checkPoint := commit
 	for checkPoint != nil {
-		newID = ExtractBlockID(checkPoint)
+		newID := ExtractBlockID(checkPoint)
 		if !sabft.cp.IsNextCheckPoint(checkPoint) {
 			return
 		}
@@ -925,8 +929,9 @@ func (sabft *SABFT) Commit(commitRecords *message.Commit) error {
 		// try to catchup if falls behind
 		checkPoint := sabft.cp.NextUncommitted()
 		if checkPoint != nil {
-			sabft.log.Debug("loop checkpoint at ", checkPoint.ProposedData)
-			sabft.gobftCatchUp(checkPoint)
+			if !sabft.gobftCatchUp(checkPoint) {
+				sabft.loopCommit(checkPoint)
+			}
 		}
 		return nil
 	}
