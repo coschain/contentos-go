@@ -269,7 +269,9 @@ func (p *TrxContext) TransferFromUserToContract(from, contract, owner string, am
 }
 
 func (p *TrxContext) TransferFromContractToContract(fromContract, fromOwner, toContract, toOwner string, amount uint64) {
-
+	if fromContract == toContract && fromOwner == toOwner {
+		return
+	}
 	from := table.NewSoContractWrap(p.db, &prototype.ContractId{Owner: &prototype.AccountName{Value: fromOwner}, Cname: fromContract})
 	to := table.NewSoContractWrap(p.db, &prototype.ContractId{Owner: &prototype.AccountName{Value: toOwner}, Cname: toContract})
 	fromBalance := from.GetBalance().Value
