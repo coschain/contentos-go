@@ -138,6 +138,8 @@ func RegisterService(app *node.Node, cfg node.Config) {
 		return ctrl.NewController(ctx, app.Log)
 	})
 
+	plugins.NewPluginMgt(pluginList).Register(app, &cfg)
+
 	_ = app.Register(iservices.ConsensusServerName, func(ctx *node.ServiceContext) (node.Service, error) {
 		var s node.Service
 		switch ctx.Config().Consensus.Type {
@@ -163,6 +165,6 @@ func RegisterService(app *node.Node, cfg node.Config) {
 		return AWSHealthCheck.NewAWSHealthCheck(ctx, app.Log)
 	})
 
-	plugins.NewPluginMgt(pluginList).Register(app, &cfg)
+	//plugins.NewPluginMgt(pluginList).Register(app, &cfg)
 
 }

@@ -30,6 +30,8 @@ const (
 	VOTE_CMD     = "vote"
 	REPLY_CMD    = "reply"
 	CONTRACT     = "contract"
+	ACQUIRE_TICKET_CMD = "ticket acquire"
+	VOTE_BY_TICKET_CMD = "ticket vote"
 
 	INIT_ACCOUNT_LENGTH = 10
 	INIT_POSTID_LENGTH  = 10
@@ -49,10 +51,12 @@ var CmdTypeList []string = []string{
 	CREATE_CMD,
 	TRANSFER_CMD,
 	POST_CMD ,
-	FOLLOW_CMD,
+	//FOLLOW_CMD,
 	VOTE_CMD,
-	REPLY_CMD,
-	CONTRACT,
+	//REPLY_CMD,
+	//CONTRACT,
+	ACQUIRE_TICKET_CMD,
+	VOTE_BY_TICKET_CMD,
 }
 
 var GlobalAccountLIst accountList
@@ -143,14 +147,18 @@ func StartEachRoutine(index int) {
 			}
 			PostIdList.RUnlock()
 			postArticle(rpcClient, nil)
-		case FOLLOW_CMD:
-			follow(rpcClient, nil, nil)
+		//case FOLLOW_CMD:
+		//	follow(rpcClient, nil, nil)
 		case VOTE_CMD:
 			voteArticle(rpcClient, nil, 0)
-		case REPLY_CMD:
-			replyArticle(rpcClient, nil, 0)
-		case CONTRACT:
-			callContract(rpcClient, nil)
+		//case REPLY_CMD:
+		//	replyArticle(rpcClient, nil, 0)
+		//case CONTRACT:
+		//	callContract(rpcClient, nil)
+		case ACQUIRE_TICKET_CMD:
+			acquireTicket(rpcClient, nil)
+		case VOTE_BY_TICKET_CMD:
+			voteByTicket(rpcClient, nil, 0)
 		}
 	}
 }

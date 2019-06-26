@@ -215,11 +215,11 @@ func (e *Economist) Distribute(trxObserver iservices.ITrxObserver) {
 
 // Should be claiming or direct modify the balance?
 func (e *Economist) Do(trxObserver iservices.ITrxObserver) {
+	e.decayGlobalVotePower()
 	globalProps := e.dgp.GetProps()
 	if !globalProps.GetWitnessBootCompleted() {
 		return
 	}
-	e.decayGlobalVotePower()
 	iterator := table.NewPostCashoutBlockNumWrap(e.db)
 	var pids []*uint64
 	end := globalProps.HeadBlockNumber
