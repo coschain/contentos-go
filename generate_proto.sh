@@ -13,8 +13,8 @@ fi
 go get -u github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
 go get -u github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger
 go get -u github.com/golang/protobuf/protoc-gen-go
-go get github.com/golang/mock/gomock
-go install github.com/golang/mock/mockgen
+go get -u github.com/golang/mock/gomock
+go get -u github.com/golang/mock/mockgen
 
 # base type proto generate
 protoc --go_out=paths=source_relative:. prototype/*.proto
