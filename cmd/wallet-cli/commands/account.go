@@ -33,6 +33,7 @@ var AccountCmd = func() *cobra.Command {
 
 	cmd.AddCommand(getAccountCmd)
 	cmd.AddCommand(updateAccountCmd)
+	utils.ProcessEstimate(cmd)
 
 	return cmd
 }
@@ -54,6 +55,9 @@ func getAccount(cmd *cobra.Command, args []string) {
 }
 
 func updateAccount(cmd *cobra.Command, args []string) {
+	defer func() {
+		utils.EstimateStamina = false
+	}()
 	c := cmd.Context["rpcclient"]
 	client := c.(grpcpb.ApiServiceClient)
 	w := cmd.Context["wallet"]
@@ -91,18 +95,28 @@ func updateAccount(cmd *cobra.Command, args []string) {
 		fmt.Println(err)
 		return
 	}
-	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
-	resp, err := client.BroadcastTrx(context.Background(), req)
-	if err != nil {
-		fmt.Println(err)
-	} else {
-		if resp.Invoice.Status == 200 {
-			err = mywallet.Create(owner, passphrase, newPubKeyStr, newPriKeyStr)
-			if err != nil {
-				fmt.Println(err)
-			}
+	if utils.EstimateStamina {
+		req := &grpcpb.EsimateRequest{Transaction:signTx}
+		res,err := client.EstimateStamina(context.Background(), req)
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			fmt.Println(res.Invoice)
 		}
-		fmt.Println(fmt.Sprintf("Result: %v", resp))
+	} else {
+		req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
+		resp, err := client.BroadcastTrx(context.Background(), req)
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			if resp.Invoice.Status == 200 {
+				err = mywallet.Create(owner, passphrase, newPubKeyStr, newPriKeyStr)
+				if err != nil {
+					fmt.Println(err)
+				}
+			}
+			fmt.Println(fmt.Sprintf("Result: %v", resp))
+		}
 	}
 }
 

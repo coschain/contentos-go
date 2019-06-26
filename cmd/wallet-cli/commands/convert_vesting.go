@@ -20,10 +20,14 @@ var ConvertVestingCmd = func() *cobra.Command {
 		Args:    cobra.MinimumNArgs(2),
 		Run:     convert,
 	}
+	utils.ProcessEstimate(cmd)
 	return cmd
 }
 
 func convert(cmd *cobra.Command, args []string) {
+	defer func() {
+		utils.EstimateStamina = false
+	}()
 	c := cmd.Context["rpcclient"]
 	client := c.(grpcpb.ApiServiceClient)
 	w := cmd.Context["wallet"]
@@ -50,12 +54,22 @@ func convert(cmd *cobra.Command, args []string) {
 		fmt.Println(err)
 		return
 	}
-	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
-	resp, err := client.BroadcastTrx(context.Background(), req)
-	if err != nil {
-		fmt.Println(err)
-	} else {
-		fmt.Println(fmt.Sprintf("Result: %v", resp))
-	}
 
+	if utils.EstimateStamina {
+		req := &grpcpb.EsimateRequest{Transaction:signTx}
+		res,err := client.EstimateStamina(context.Background(), req)
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			fmt.Println(res.Invoice)
+		}
+	} else {
+		req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
+		resp, err := client.BroadcastTrx(context.Background(), req)
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			fmt.Println(fmt.Sprintf("Result: %v", resp))
+		}
+	}
 }

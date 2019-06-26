@@ -15,14 +15,18 @@ var TransferCmd = func() *cobra.Command {
 		Use:     "transfer",
 		Short:   "transfer to another account",
 		Long:    "transfer cos to another account by name, should unlock sender first",
-		Example: "transfer alice bob 500",
+		Example: "transfer alice bob 500.000000",
 		Args:    cobra.MinimumNArgs(3),
 		Run:     transfer,
 	}
+	utils.ProcessEstimate(cmd)
 	return cmd
 }
 
 func transfer(cmd *cobra.Command, args []string) {
+	defer func() {
+		utils.EstimateStamina = false
+	}()
 	c := cmd.Context["rpcclient"]
 	client := c.(grpcpb.ApiServiceClient)
 	w := cmd.Context["wallet"]
@@ -56,12 +60,23 @@ func transfer(cmd *cobra.Command, args []string) {
 		fmt.Println(err)
 		return
 	}
-	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
-	resp, err := client.BroadcastTrx(context.Background(), req)
-	if err != nil {
-		fmt.Println(err)
-	} else {
-		fmt.Println(fmt.Sprintf("Result: %v", resp))
-	}
 
+	if utils.EstimateStamina {
+		req := &grpcpb.EsimateRequest{Transaction:signTx}
+		res,err := client.EstimateStamina(context.Background(), req)
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			fmt.Println(res.Invoice)
+		}
+	} else {
+
+		req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
+		resp, err := client.BroadcastTrx(context.Background(), req)
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			fmt.Println(fmt.Sprintf("Result: %v", resp))
+		}
+	}
 }

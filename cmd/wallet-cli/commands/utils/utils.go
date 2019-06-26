@@ -3,6 +3,7 @@ package utils
 import (
 	"context"
 	"fmt"
+	"github.com/coschain/cobra"
 	"github.com/coschain/contentos-go/cmd/wallet-cli/wallet"
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
@@ -18,6 +19,7 @@ import (
 )
 
 const MinimumCos = "0.000001"
+var EstimateStamina bool
 
 func GenerateSignedTxAndValidate2(client grpcpb.ApiServiceClient, ops []interface{}, signers *wallet.PrivAccount) (*prototype.SignedTransaction, error) {
 	privKey := &prototype.PrivateKeyType{}
@@ -100,3 +102,10 @@ func ParseCos(v string) (uint64,error) {
 	amount := amountFloat * constants.COSTokenDecimals
 	return uint64(amount),nil
 }
+
+func ProcessEstimate(cmd *cobra.Command) bool {
+	cmd.Flags().BoolVarP(&EstimateStamina,"estimate","",false,"--estimate=true")
+	cmd.Flags().Lookup("estimate").NoOptDefVal = "true"
+	return EstimateStamina
+}
+

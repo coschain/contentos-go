@@ -21,13 +21,14 @@ var CreateCmd = func() *cobra.Command {
 		Run:     create,
 	}
 
-	cmd.Flags().StringVarP(&createAccountFee, "fee", "f", utils.MinimumCos, `create alice bob --fee 1`)
-
+	cmd.Flags().StringVarP(&createAccountFee, "fee", "f", utils.MinimumCos, `create alice bob --fee 1.000000`)
+	utils.ProcessEstimate(cmd)
 	return cmd
 }
 
 func create(cmd *cobra.Command, args []string) {
 	defer func() {
+		utils.EstimateStamina = false
 		createAccountFee = utils.MinimumCos
 	}()
 	c := cmd.Context["rpcclient"]
@@ -68,17 +69,28 @@ func create(cmd *cobra.Command, args []string) {
 		fmt.Println(err)
 		return
 	}
-	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
-	resp, err := client.BroadcastTrx(context.Background(), req)
-	if err != nil {
-		fmt.Println(err)
-	} else {
-		if resp.Invoice.Status == 200 {
-			err = mywallet.Create(name, passphrase, pubKeyStr, privKeyStr)
-			if err != nil {
-				fmt.Println(err)
-			}
+
+	if utils.EstimateStamina {
+		req := &grpcpb.EsimateRequest{Transaction:signTx}
+		res,err := client.EstimateStamina(context.Background(), req)
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			fmt.Println(res.Invoice)
 		}
-		fmt.Println(fmt.Sprintf("Result: %v", resp))
+	} else {
+		req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
+		resp, err := client.BroadcastTrx(context.Background(), req)
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			if resp.Invoice.Status == 200 {
+				err = mywallet.Create(name, passphrase, pubKeyStr, privKeyStr)
+				if err != nil {
+					fmt.Println(err)
+				}
+			}
+			fmt.Println(fmt.Sprintf("Result: %v", resp))
+		}
 	}
 }

@@ -37,7 +37,7 @@ var BpCmd = func() *cobra.Command {
 
 	registerCmd.Flags().StringVarP(&bpUrlFlag, "url", "u", "", `bp register alice --url "http://example.com"`)
 	registerCmd.Flags().StringVarP(&bpDescFlag, "desc", "d", "", `bp register alice --desc "Hello World"`)
-	registerCmd.Flags().StringVarP(&bpCreateAccountFee, "fee", "f", utils.MinimumCos, `bp register alice --fee 1`)
+	registerCmd.Flags().StringVarP(&bpCreateAccountFee, "fee", "f", utils.MinimumCos, `bp register alice --fee 1.000000`)
 	registerCmd.Flags().Uint32VarP(&bpBlockSize, "blocksize", "b", 1024*1024, `bp register alice --blocksize 1024`)
 	registerCmd.Flags().Uint64VarP(&proposedStaminaFree, "stamina_free", "s", constants.DefaultStaminaFree, `bp register alice --stamina_free 1`)
 	registerCmd.Flags().Uint64VarP(&tpsExpected, "tps", "t", constants.DefaultTPSExpected, `bp register alice --tps 1`)
@@ -76,7 +76,7 @@ var BpCmd = func() *cobra.Command {
 	cmd.AddCommand(unregisterCmd)
 	cmd.AddCommand(voteCmd)
 	cmd.AddCommand(updateCmd)
-
+	utils.ProcessEstimate(cmd)
 	return cmd
 }
 
@@ -91,6 +91,7 @@ func registerBP(cmd *cobra.Command, args []string) {
 		bpDescFlag = ""
 		proposedStaminaFree = constants.DefaultStaminaFree
 		tpsExpected = constants.DefaultTPSExpected
+		utils.EstimateStamina = false
 	}()
 	c := cmd.Context["rpcclient"]
 	client := c.(grpcpb.ApiServiceClient)
@@ -133,17 +134,29 @@ func registerBP(cmd *cobra.Command, args []string) {
 		fmt.Println(err)
 		return
 	}
-	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
-	resp, err := client.BroadcastTrx(context.Background(), req)
-	if err != nil {
-		fmt.Println(err)
+	if utils.EstimateStamina {
+		req := &grpcpb.EsimateRequest{Transaction:signTx}
+		res,err := client.EstimateStamina(context.Background(), req)
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			fmt.Println(res.Invoice)
+		}
 	} else {
-		fmt.Println(fmt.Sprintf("Result: %v", resp))
+		req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
+		resp, err := client.BroadcastTrx(context.Background(), req)
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			fmt.Println(fmt.Sprintf("Result: %v", resp))
+		}
 	}
-
 }
 
 func unRegisterBP(cmd *cobra.Command, args []string) {
+	defer func() {
+		utils.EstimateStamina = false
+	}()
 	c := cmd.Context["rpcclient"]
 	client := c.(grpcpb.ApiServiceClient)
 	w := cmd.Context["wallet"]
@@ -163,19 +176,30 @@ func unRegisterBP(cmd *cobra.Command, args []string) {
 		fmt.Println(err)
 		return
 	}
-	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
-	resp, err := client.BroadcastTrx(context.Background(), req)
-	if err != nil {
-		fmt.Println(err)
-	} else {
-		fmt.Println(fmt.Sprintf("Result: %v", resp))
-	}
 
+	if utils.EstimateStamina {
+		req := &grpcpb.EsimateRequest{Transaction:signTx}
+		res,err := client.EstimateStamina(context.Background(), req)
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			fmt.Println(res.Invoice)
+		}
+	} else {
+		req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
+		resp, err := client.BroadcastTrx(context.Background(), req)
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			fmt.Println(fmt.Sprintf("Result: %v", resp))
+		}
+	}
 }
 
 func voteBp(cmd *cobra.Command, args []string) {
 	defer func() {
 		bpVoteCancel = false
+		utils.EstimateStamina = false
 	}()
 	c := cmd.Context["rpcclient"]
 	client := c.(grpcpb.ApiServiceClient)
@@ -199,12 +223,23 @@ func voteBp(cmd *cobra.Command, args []string) {
 		fmt.Println(err)
 		return
 	}
-	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
-	resp, err := client.BroadcastTrx(context.Background(), req)
-	if err != nil {
-		fmt.Println(err)
+
+	if utils.EstimateStamina {
+		req := &grpcpb.EsimateRequest{Transaction:signTx}
+		res,err := client.EstimateStamina(context.Background(), req)
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			fmt.Println(res.Invoice)
+		}
 	} else {
-		fmt.Println(fmt.Sprintf("Result: %v", resp))
+		req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
+		resp, err := client.BroadcastTrx(context.Background(), req)
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			fmt.Println(fmt.Sprintf("Result: %v", resp))
+		}
 	}
 }
 
@@ -213,6 +248,7 @@ func updateBp(cmd *cobra.Command, args []string) {
 		bpUpdateStaminaFree      = constants.DefaultStaminaFree
 		bpUpdateTpsExpected      = constants.DefaultTPSExpected
 		bpUpdateCreateAccountFee = utils.MinimumCos
+		utils.EstimateStamina = false
 	}()
 	c := cmd.Context["rpcclient"]
 	client := c.(grpcpb.ApiServiceClient)
@@ -241,11 +277,22 @@ func updateBp(cmd *cobra.Command, args []string) {
 		fmt.Println(err)
 		return
 	}
-	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
-	resp, err := client.BroadcastTrx(context.Background(), req)
-	if err != nil {
-		fmt.Println(err)
+
+	if utils.EstimateStamina {
+		req := &grpcpb.EsimateRequest{Transaction:signTx}
+		res,err := client.EstimateStamina(context.Background(), req)
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			fmt.Println(res.Invoice)
+		}
 	} else {
-		fmt.Println(fmt.Sprintf("Result: %v", resp))
+		req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
+		resp, err := client.BroadcastTrx(context.Background(), req)
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			fmt.Println(fmt.Sprintf("Result: %v", resp))
+		}
 	}
 }

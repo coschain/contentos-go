@@ -23,11 +23,13 @@ var CallCmd = func() *cobra.Command {
 	}
 	cmd.Flags().Uint64VarP(&fundToContract, "fund", "f", 0, `call [caller] [owner] [contract_name] [args]  -f 300`)
 	cmd.Flags().Uint64VarP(&maxGas, "gas", "g", 0, `call [caller] [owner] [contract_name] [args]  -g 300`)
+	utils.ProcessEstimate(cmd)
 	return cmd
 }
 
 func call(cmd *cobra.Command, args []string) {
 	defer func() {
+		utils.EstimateStamina = false
 		fundToContract = 0
 		maxGas = 0
 	}()
@@ -59,12 +61,22 @@ func call(cmd *cobra.Command, args []string) {
 		fmt.Println(err)
 		return
 	}
-	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
-	resp, err := client.BroadcastTrx(context.Background(), req)
-	if err != nil {
-		fmt.Println(err)
-	} else {
-		fmt.Println(fmt.Sprintf("Result: %v", resp))
-	}
 
+	if utils.EstimateStamina {
+		req := &grpcpb.EsimateRequest{Transaction:signTx}
+		res,err := client.EstimateStamina(context.Background(), req)
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			fmt.Println(res.Invoice)
+		}
+	} else {
+		req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
+		resp, err := client.BroadcastTrx(context.Background(), req)
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			fmt.Println(fmt.Sprintf("Result: %v", resp))
+		}
+	}
 }
