@@ -104,6 +104,9 @@ service ApiService {
 
     rpc GetPostListByVest(GetPostListByVestRequest) returns (GetPostListByVestResponse) {
     }
+
+    rpc EstimateStamina(EsimateRequest) returns (EsimateResponse) {
+    }
 }
 
 
@@ -566,4 +569,12 @@ message GetPostListByVestRequest {
 
 message GetPostListByVestResponse {
     repeated PostResponse post_list = 1;
+}
+
+message EsimateRequest {
+    prototype.signed_transaction transaction = 1;
+}
+
+message EsimateResponse {
+    prototype.transaction_receipt_with_info    invoice = 1;
 }

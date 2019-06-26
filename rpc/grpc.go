@@ -318,6 +318,12 @@ func (as *APIService) GetBlockTransactionsByNum(ctx context.Context, req *grpcpb
 	return &grpcpb.GetBlockTransactionsByNumResponse{}, nil
 }
 
+func (as *APIService) EstimateStamina(ctx context.Context, req *grpcpb.EsimateRequest) (*grpcpb.EsimateResponse, error) {
+	receipt := as.pool.EstimateStamina(req.Transaction)
+	estimateResponse := &grpcpb.EsimateResponse{Invoice:receipt}
+	return estimateResponse,nil
+}
+
 func (as *APIService) BroadcastTrx(ctx context.Context, req *grpcpb.BroadcastTrxRequest) (*grpcpb.BroadcastTrxResponse, error) {
 
 	//var result chan *prototype.TransactionReceiptWithInfo

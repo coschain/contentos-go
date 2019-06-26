@@ -655,6 +655,26 @@ func (mr *MockApiServiceClientMockRecorder) GetPostListByVest(ctx, in interface{
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPostListByVest", reflect.TypeOf((*MockApiServiceClient)(nil).GetPostListByVest), varargs...)
 }
 
+// EstimateStamina mocks base method
+func (m *MockApiServiceClient) EstimateStamina(ctx context.Context, in *pb.EsimateRequest, opts ...grpc.CallOption) (*pb.EsimateResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "EstimateStamina", varargs...)
+	ret0, _ := ret[0].(*pb.EsimateResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// EstimateStamina indicates an expected call of EstimateStamina
+func (mr *MockApiServiceClientMockRecorder) EstimateStamina(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EstimateStamina", reflect.TypeOf((*MockApiServiceClient)(nil).EstimateStamina), varargs...)
+}
+
 // MockApiServiceServer is a mock of ApiServiceServer interface
 type MockApiServiceServer struct {
 	ctrl     *gomock.Controller
@@ -1141,4 +1161,19 @@ func (m *MockApiServiceServer) GetPostListByVest(arg0 context.Context, arg1 *pb.
 func (mr *MockApiServiceServerMockRecorder) GetPostListByVest(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPostListByVest", reflect.TypeOf((*MockApiServiceServer)(nil).GetPostListByVest), arg0, arg1)
+}
+
+// EstimateStamina mocks base method
+func (m *MockApiServiceServer) EstimateStamina(arg0 context.Context, arg1 *pb.EsimateRequest) (*pb.EsimateResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EstimateStamina", arg0, arg1)
+	ret0, _ := ret[0].(*pb.EsimateResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// EstimateStamina indicates an expected call of EstimateStamina
+func (mr *MockApiServiceServerMockRecorder) EstimateStamina(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EstimateStamina", reflect.TypeOf((*MockApiServiceServer)(nil).EstimateStamina), arg0, arg1)
 }

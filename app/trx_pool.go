@@ -135,6 +135,29 @@ func (c *TrxPool) PushTrx(trx *prototype.SignedTransaction) (invoice *prototype.
 	return <-rc
 }
 
+func (c *TrxPool) EstimateStamina(trx *prototype.SignedTransaction) (invoice *prototype.TransactionReceiptWithInfo) {
+	c.db.Lock()
+	defer c.db.Unlock()
+	entry := NewTrxMgrEntry(trx, nil)
+	invoice = &prototype.TransactionReceiptWithInfo{}
+	if err := entry.InitCheck(); err != nil {
+		invoice.ErrorInfo = err.Error()
+		return
+	}
+	db := c.db.NewPatch()
+
+	defer func() {
+		// recover from panic and return an error
+		if e := recover(); e != nil {
+			invoice.ErrorInfo = fmt.Sprintf("%v", e)
+		}
+		invoice.NetUsage = entry.GetTrxResult().Receipt.NetUsage
+		invoice.CpuUsage = entry.GetTrxResult().Receipt.CpuUsage
+	}()
+	c.applyTransactionOnDb(db,entry)
+	return
+}
+
 func (c *TrxPool) GetProps() *prototype.DynamicProperties {
 	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
 	return dgpWrap.GetProps()

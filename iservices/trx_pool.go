@@ -60,4 +60,5 @@ type ITrxPool interface {
 
 	CalculateUserMaxStamina(db IDatabaseRW,name string) uint64
 	CheckNetForRPC(name string, db IDatabaseRW, sizeInBytes uint64) (bool,uint64,uint64)
+	EstimateStamina(trx *prototype.SignedTransaction) *prototype.TransactionReceiptWithInfo
 }
