@@ -946,10 +946,16 @@ func (sabft *SABFT) Commit(commitRecords *message.Commit) error {
 	return err
 }
 
+func (sabft *SABFT) updateAppState(commit *message.Commit) {
+	if sabft.appState.LastHeight+1 == commit.FirstPrecommit().Height {
+		sabft.appState.LastHeight++
+		sabft.appState.LastProposedData = commit.ProposedData
+	}
+}
+
 func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 	defer func() {
-		sabft.appState.LastHeight = commitRecords.FirstPrecommit().Height
-		sabft.appState.LastProposedData = commitRecords.ProposedData
+		sabft.updateAppState(commitRecords)
 		sabft.checkBFTRoutine()
 	}()
 
