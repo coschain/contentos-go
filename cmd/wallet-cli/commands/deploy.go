@@ -80,7 +80,7 @@ func deploy(cmd *cobra.Command, args []string) {
 		Code:     compressedCode,
 		Upgradeable:upgradeable,
 	}
-	signTx, err := utils.GenerateSignedTxAndValidate2(client, []interface{}{contractDeployOp}, acc)
+	signTx, err := utils.GenerateSignedTxAndValidate(cmd, []interface{}{contractDeployOp}, acc)
 	if err != nil {
 		fmt.Println(err)
 		return

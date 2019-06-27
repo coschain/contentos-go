@@ -28,6 +28,8 @@ func rTransfer(cmd *cobra.Command, args []string) {
 	client := c.(grpcpb.ApiServiceClient)
 	//w := cmd.Context["wallet"]
 	//mywallet := w.(wallet.Wallet)
+	chainId := cmd.Context["chain_id"].(prototype.ChainId)
+
 	tCount, err := strconv.Atoi(args[0])
 	if err != nil {
 		fmt.Println(err)
@@ -66,7 +68,7 @@ func rTransfer(cmd *cobra.Command, args []string) {
 					Amount: prototype.NewCoin(uint64(1)),
 					Memo:   randStr(8),
 				}
-				signTx, err := utils.GenerateSignedTxAndValidate3(client, []interface{}{transferOp}, keys[a])
+				signTx, err := utils.GenerateSignedTxAndValidate3(client, []interface{}{transferOp}, keys[a], chainId)
 				if err != nil {
 					fmt.Println(err)
 					return

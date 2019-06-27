@@ -78,7 +78,7 @@ func createFundAccount(cmd *cobra.Command, args []string) {
 					Amount: prototype.NewCoin(uint64(fundBalance)),
 					Memo: randStr(8),
 				}
-				signTx, err := utils.GenerateSignedTxAndValidate2(client, []interface{}{acop, fop}, creatorAccount)
+				signTx, err := utils.GenerateSignedTxAndValidate(cmd, []interface{}{acop, fop}, creatorAccount)
 				if err != nil {
 					fmt.Println(err)
 					return
