@@ -14,7 +14,7 @@ import (
 
 var InitCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "init count(default 3)",
+		Use:   "init count(default 4)",
 		Short: "Initialize configuration files for multi cosd",
 		Run:   initConf,
 	}
@@ -22,6 +22,7 @@ var InitCmd = func() *cobra.Command {
 }
 
 var p2pPortStart = 20200
+var maxSeedNodeCount = 4
 var seeds []string
 
 func addConf(confdir string, cfg node.Config, index int) {
@@ -66,7 +67,7 @@ func addConf(confdir string, cfg node.Config, index int) {
 
 func initConf(cmd *cobra.Command, args []string) {
 
-	var nodeCount int = 3
+	var nodeCount int = 4
 	if len(args) > 0 {
 		cnt, err := strconv.Atoi(args[0])
 		if err != nil {
@@ -76,11 +77,16 @@ func initConf(cmd *cobra.Command, args []string) {
 		nodeCount = cnt
 	}
 
-	for i := 0; i < nodeCount; i++ {
+	seedCount := nodeCount
+	if seedCount > maxSeedNodeCount {
+		seedCount = maxSeedNodeCount
+	}
+
+	for i := 0; i < seedCount; i++ {
 			seeds = append(seeds, fmt.Sprintf("127.0.0.1:%d", i*2+p2pPortStart))
 	}
 
-	fmt.Println(seeds)
+	fmt.Println("Seed nodes list: ", seeds)
 
 	for i := 0; i < nodeCount; i++ {
 		cfg := config.DefaultNodeConfig

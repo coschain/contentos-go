@@ -9,8 +9,8 @@
     如果有配置冲突的情况，可以自行修改代码
     
 ### init 
-    创造3个数据目录，以供后面运行多个进程
-    ./multinodetester init 3   
+    创造4个数据目录，以供后面运行多个进程
+    ./multinodetester init 4
     
 ### clear 
     清除所有数据目录
@@ -21,6 +21,6 @@
     ./multinodetester stop 
     
 ### start
-    启动3个cosd的进程，需要指定cosd的全路径，启动后所有的输入输出流会在命令行中
-     ./multinodetester start /Users/yykingking/go/src/github.com/coschain/contentos-go/cmd/cosd/cosd 3
+    启动4个cosd的进程，需要指定cosd的全路径，启动后所有的输入输出流会在命令行中
+     ./multinodetester start /Users/yykingking/go/src/github.com/coschain/contentos-go/cmd/cosd/cosd 4
     
