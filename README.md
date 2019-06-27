@@ -181,8 +181,7 @@ optinal, the first cosd has been changed to a observe node since you regist bp, 
 assume you have 4 machines and want to set up a contentos network, here the steps
 you need to do:
 
-1.choice a machine,run cosd init then edit config.toml,modify all ip relative items from 127.0.0.1 to
-your custom.
+1.choice a machine,run cosd init then edit config.toml,modify all ip relative items to your custom.
 ```
 ./cosd init
 vi ~/.coschain/cosd/config.toml
