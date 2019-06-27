@@ -2,7 +2,7 @@ package netserver
 
 import (
 	"errors"
-	"github.com/coschain/contentos-go/config"
+	common2 "github.com/coschain/contentos-go/common"
 	"math/rand"
 	"net"
 	"strings"
@@ -19,9 +19,9 @@ import (
 )
 
 var NETWORK_MAGIC = map[uint32]uint32{
-	config.ChainIdMainNet:    0x8c77ab66, //Network main
-	config.ChainIdTestNet:    0x2d8829ff, //Network testnet
-	config.ChainIdDevNet:     0x563f477c, //Network devnet
+	common2.ChainIdMainNet: 0x8c77ab66, //Network main
+	common2.ChainIdTestNet: 0x2d8829ff, //Network testnet
+	common2.ChainIdDevNet:  0x563f477c, //Network devnet
 }
 
 func GetNetworkMagic(id uint32) uint32 {
@@ -39,7 +39,7 @@ func NewNetServer(ctx *node.ServiceContext, lg *logrus.Logger) p2p.P2P {
 		log:      lg,
 		SyncChan: make(chan *types.MsgPayload, common.CHAN_CAPABILITY),
 		ConsChan: make(chan *types.MsgPayload, common.CHAN_CAPABILITY),
-		NetworkMagic: GetNetworkMagic(config.GetChainIdByName(ctx.Config().ChainId)),
+		NetworkMagic: GetNetworkMagic(common2.GetChainIdByName(ctx.Config().ChainId)),
 	}
 
 	n.PeerAddrMap.PeerSyncAddress = make(map[string]*peer.Peer)
