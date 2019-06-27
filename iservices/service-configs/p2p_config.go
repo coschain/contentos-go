@@ -5,9 +5,6 @@ type P2PConfig struct {
 	EnableConsensus           bool
 	ReservedPeersOnly         bool
 	ReservedCfg               *P2PRsvConfig
-	NetworkMagic              uint32
-	NetworkId                 uint32
-	NetworkName               string
 	RunningCodeVersion        string
 	NodePort                  uint
 	NodeConsensusPort         uint

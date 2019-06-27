@@ -437,13 +437,13 @@ func (this *P2PServer) TriggerSync(current_head_blk_id coomn.BlockID) {
 		//this.log.Info("[p2p] cons call TriggerSync func, head id :  ", reqmsg.HeadBlockId)
 		num := p.GetLastSeenBlkNum()
 		if currentHeadNum < num {
-			go p.Send(reqmsg, false, this.ctx.Config().P2P.NetworkMagic)
+			go p.Send(reqmsg, false, this.Network.GetMagic())
 			return
 		}
 	}
 
 	for _, p := range np.List {
-		go p.Send(reqmsg, false, this.ctx.Config().P2P.NetworkMagic)
+		go p.Send(reqmsg, false, this.Network.GetMagic())
 		return
 	}
 }
@@ -466,13 +466,13 @@ func (this *P2PServer) FetchUnlinkedBlock(prevId coomn.BlockID) {
 		//this.log.Info("[p2p] cons call TriggerSync func, head id :  ", reqmsg.HeadBlockId)
 		num := p.GetLastSeenBlkNum()
 		if currentHeadNum < num {
-			go p.Send(&reqmsg, false, this.ctx.Config().P2P.NetworkMagic)
+			go p.Send(&reqmsg, false, this.Network.GetMagic())
 			return
 		}
 	}
 
 	for _, p := range np.List {
-		go p.Send(&reqmsg, false, this.ctx.Config().P2P.NetworkMagic)
+		go p.Send(&reqmsg, false, this.Network.GetMagic())
 		return
 	}
 }
@@ -489,13 +489,13 @@ func (this *P2PServer) RequestCheckpoint(startNum, endNum uint64) {
 		//this.log.Info("[p2p] cons call RequestCheckpoint func, start number: ",  startNum, " end number: ", endNum)
 		num := p.GetLastSeenBlkNum()
 		if endNum < num {
-			go p.Send(reqmsg, false, this.ctx.Config().P2P.NetworkMagic)
+			go p.Send(reqmsg, false, this.Network.GetMagic())
 			return
 		}
 	}
 
 	for _, p := range np.List {
-		go p.Send(reqmsg, false, this.ctx.Config().P2P.NetworkMagic)
+		go p.Send(reqmsg, false, this.Network.GetMagic())
 		return
 	}
 }
@@ -517,7 +517,7 @@ func (this *P2PServer) FetchOutOfRange(localHeadID, targetID coomn.BlockID) {
 		if len(p.OutOfRangeState.KeyPointIDList) == 0 && targetID.BlockNum() <= num {
 			p.OutOfRangeState.KeyPointIDList = append(p.OutOfRangeState.KeyPointIDList, targetID.Data[:])
 			this.log.Infof("FetchOutOfRange from %d to %d", localHeadID.BlockNum(), targetID.BlockNum() )
-			go p.Send(reqmsg, false, this.ctx.Config().P2P.NetworkMagic)
+			go p.Send(reqmsg, false, this.Network.GetMagic())
 			p.OutOfRangeState.Unlock()
 			return
 		}
