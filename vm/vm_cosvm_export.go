@@ -30,6 +30,12 @@ func e_currentWitness(proc *exec.Process, pDst int32, dstSize int32) (length int
 	return w.cosVM.write(proc, []byte(w.CurrentWitness()), pDst, dstSize, "currentWitness()")
 }
 
+func e_getBlockProducers(proc *exec.Process, pDst int32, dstSize int32) (length int32) {
+	w := proc.GetTag().(*CosVMNative)
+
+	return w.cosVM.write(proc, []byte(w.GetBlockProducers()), pDst, dstSize, "getBlockProducers()")
+}
+
 func e_printString(proc *exec.Process, pStr int32, lenStr int32) {
 	w := proc.GetTag().(*CosVMNative)
 

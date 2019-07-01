@@ -8,6 +8,7 @@ import (
 	"github.com/coschain/contentos-go/vm/contract/abi"
 	table2 "github.com/coschain/contentos-go/vm/contract/table"
 	"github.com/hashicorp/golang-lru"
+	"strings"
 )
 
 //type ICosVMNative interface {
@@ -56,6 +57,10 @@ func (w *CosVMNative) CurrentTimestamp() uint64 {
 
 func (w *CosVMNative) CurrentWitness() string {
 	return w.cosVM.props.CurrentWitness.Value
+}
+
+func (w *CosVMNative) GetBlockProducers() string {
+	return strings.Join(w.cosVM.ctx.Injector.GetBlockProducers(), " ")
 }
 
 func (w *CosVMNative) PrintString(str string) {
