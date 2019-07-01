@@ -96,6 +96,7 @@ func initTrxDb(cmd *cobra.Command, args []string) {
 	}
 	createTrxInfo := `create table trxinfo
 	(
+        id bigint AUTO_INCREMENT PRIMARY KEY,
 		trx_id varchar(64) not null,
 		block_height int unsigned not null,
 		block_time int unsigned not null,
@@ -119,6 +120,7 @@ func initTrxDb(cmd *cobra.Command, args []string) {
 
 		createCreateAccountInfo := `create table createaccountinfo
 	(
+        id bigint AUTO_INCREMENT PRIMARY KEY,
 		trx_id varchar(64) not null,
 		create_time int unsigned not null,
 		creator varchar(64) not null,
@@ -132,6 +134,7 @@ func initTrxDb(cmd *cobra.Command, args []string) {
 
 		createTransferInfo := `create table transferinfo
 	(
+        id bigint AUTO_INCREMENT PRIMARY KEY,
 		trx_id varchar(64) not null,
 		create_time int unsigned not null,
 		sender varchar(64) not null,

@@ -41,11 +41,22 @@ message sha256{
     bytes hash = 1;
 }
 
+message gift_ticket_key_type {
+    uint32 type = 1;
+    bytes from = 2;
+    bytes to = 3;
+    uint64 create_block = 4;
+}
+
 message chain_properties{
     coin account_creation_fee = 1;
     uint32 maximum_block_size = 2;
     uint64 stamina_free       = 3;
     uint64 tps_expected       = 4;
+    uint32 top_n_acquire_free_token = 5;
+    uint64 epoch_duration = 6;
+    prototype.vest per_ticket_price = 7;
+    uint64 per_ticket_weight = 8;
 }
 
 message dynamic_properties {
@@ -83,6 +94,13 @@ message dynamic_properties {
     uint64                       avg_tps_in_window = 35;
     uint64                       one_day_stamina = 36;
     prototype.coin               account_create_fee = 37;
+    uint64             current_epoch_start_block    = 38;
+    uint64             epoch_duration = 39;
+    uint32             top_n_acquire_free_token = 40;
+    prototype.vest     per_ticket_price = 41;
+    uint64             per_ticket_weight = 42;
+    prototype.vest     tickets_income = 43;
+    uint64             charged_tickets_num = 44;
 }
 
 message beneficiary_route_type{

@@ -17,3 +17,4 @@ uint64                              ,cashout_block_num  ,0      ,0      ,1      
 string                              ,weighted_vp        ,0      ,0      ,0      ,0           ,
 prototype.vest                      ,rewards            ,0      ,0      ,0      ,1           ,
 prototype.vest                      ,dapp_rewards       ,0      ,0      ,0      ,0           ,
+uint32                              ,ticket             ,0      ,0      ,0      ,0           ,

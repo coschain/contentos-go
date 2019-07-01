@@ -14,19 +14,23 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	WitnessOwnerTable              uint32 = 3588322158
-	WitnessVoteCountTable          uint32 = 2256540653
-	WitnessOwnerUniTable           uint32 = 2680327584
-	WitnessAccountCreateFeeCell    uint32 = 562012091
-	WitnessActiveCell              uint32 = 1638337923
-	WitnessCreatedTimeCell         uint32 = 732260124
-	WitnessOwnerCell               uint32 = 3659272213
-	WitnessProposedStaminaFreeCell uint32 = 1501150566
-	WitnessSigningKeyCell          uint32 = 2433568317
-	WitnessTpsExpectedCell         uint32 = 2661903099
-	WitnessUrlCell                 uint32 = 261756480
-	WitnessVoteCountCell           uint32 = 149922791
-	WitnessVoterListCell           uint32 = 1500181820
+	WitnessOwnerTable               uint32 = 3588322158
+	WitnessVoteCountTable           uint32 = 2256540653
+	WitnessOwnerUniTable            uint32 = 2680327584
+	WitnessAccountCreateFeeCell     uint32 = 562012091
+	WitnessActiveCell               uint32 = 1638337923
+	WitnessCreatedTimeCell          uint32 = 732260124
+	WitnessEpochDurationCell        uint32 = 811712521
+	WitnessOwnerCell                uint32 = 3659272213
+	WitnessPerTicketPriceCell       uint32 = 1802322362
+	WitnessPerTicketWeightCell      uint32 = 1190943194
+	WitnessProposedStaminaFreeCell  uint32 = 1501150566
+	WitnessSigningKeyCell           uint32 = 2433568317
+	WitnessTopNAcquireFreeTokenCell uint32 = 2772227243
+	WitnessTpsExpectedCell          uint32 = 2661903099
+	WitnessUrlCell                  uint32 = 261756480
+	WitnessVoteCountCell            uint32 = 149922791
+	WitnessVoterListCell            uint32 = 1500181820
 )
 
 ////////////// SECTION Wrap Define ///////////////
@@ -318,14 +322,26 @@ func (s *SoWitnessWrap) getMemKeyPrefix(fName string) uint32 {
 	if fName == "CreatedTime" {
 		return WitnessCreatedTimeCell
 	}
+	if fName == "EpochDuration" {
+		return WitnessEpochDurationCell
+	}
 	if fName == "Owner" {
 		return WitnessOwnerCell
+	}
+	if fName == "PerTicketPrice" {
+		return WitnessPerTicketPriceCell
+	}
+	if fName == "PerTicketWeight" {
+		return WitnessPerTicketWeightCell
 	}
 	if fName == "ProposedStaminaFree" {
 		return WitnessProposedStaminaFreeCell
 	}
 	if fName == "SigningKey" {
 		return WitnessSigningKeyCell
+	}
+	if fName == "TopNAcquireFreeToken" {
+		return WitnessTopNAcquireFreeTokenCell
 	}
 	if fName == "TpsExpected" {
 		return WitnessTpsExpectedCell
@@ -393,11 +409,32 @@ func (s *SoWitnessWrap) saveAllMemKeys(tInfo *SoWitness, br bool) error {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "CreatedTime", err)
 		}
 	}
+	if err = s.saveMemKeyEpochDuration(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "EpochDuration", err)
+		}
+	}
 	if err = s.saveMemKeyOwner(tInfo); err != nil {
 		if br {
 			return err
 		} else {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Owner", err)
+		}
+	}
+	if err = s.saveMemKeyPerTicketPrice(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "PerTicketPrice", err)
+		}
+	}
+	if err = s.saveMemKeyPerTicketWeight(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "PerTicketWeight", err)
 		}
 	}
 	if err = s.saveMemKeyProposedStaminaFree(tInfo); err != nil {
@@ -412,6 +449,13 @@ func (s *SoWitnessWrap) saveAllMemKeys(tInfo *SoWitness, br bool) error {
 			return err
 		} else {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "SigningKey", err)
+		}
+	}
+	if err = s.saveMemKeyTopNAcquireFreeToken(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "TopNAcquireFreeToken", err)
 		}
 	}
 	if err = s.saveMemKeyTpsExpected(tInfo); err != nil {
@@ -737,6 +781,89 @@ func (s *SoWitnessWrap) MdCreatedTime(p *prototype.TimePointSec) bool {
 	return true
 }
 
+func (s *SoWitnessWrap) saveMemKeyEpochDuration(tInfo *SoWitness) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemWitnessByEpochDuration{}
+	val.EpochDuration = tInfo.EpochDuration
+	key, err := s.encodeMemKey("EpochDuration")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
+
+func (s *SoWitnessWrap) GetEpochDuration() uint64 {
+	res := true
+	msg := &SoMemWitnessByEpochDuration{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("EpochDuration")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.EpochDuration
+			}
+		}
+	}
+	if !res {
+		var tmpValue uint64
+		return tmpValue
+	}
+	return msg.EpochDuration
+}
+
+func (s *SoWitnessWrap) MdEpochDuration(p uint64) bool {
+	if s.dba == nil {
+		return false
+	}
+	key, err := s.encodeMemKey("EpochDuration")
+	if err != nil {
+		return false
+	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemWitnessByEpochDuration{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoWitness{}
+	sa.Owner = s.mainKey
+
+	sa.EpochDuration = ori.EpochDuration
+
+	ori.EpochDuration = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
+		return false
+	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.EpochDuration = p
+
+	return true
+}
+
 func (s *SoWitnessWrap) saveMemKeyOwner(tInfo *SoWitness) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
@@ -785,6 +912,172 @@ func (s *SoWitnessWrap) GetOwner() *prototype.AccountName {
 
 	}
 	return msg.Owner
+}
+
+func (s *SoWitnessWrap) saveMemKeyPerTicketPrice(tInfo *SoWitness) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemWitnessByPerTicketPrice{}
+	val.PerTicketPrice = tInfo.PerTicketPrice
+	key, err := s.encodeMemKey("PerTicketPrice")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
+
+func (s *SoWitnessWrap) GetPerTicketPrice() *prototype.Vest {
+	res := true
+	msg := &SoMemWitnessByPerTicketPrice{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("PerTicketPrice")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.PerTicketPrice
+			}
+		}
+	}
+	if !res {
+		return nil
+
+	}
+	return msg.PerTicketPrice
+}
+
+func (s *SoWitnessWrap) MdPerTicketPrice(p *prototype.Vest) bool {
+	if s.dba == nil {
+		return false
+	}
+	key, err := s.encodeMemKey("PerTicketPrice")
+	if err != nil {
+		return false
+	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemWitnessByPerTicketPrice{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoWitness{}
+	sa.Owner = s.mainKey
+
+	sa.PerTicketPrice = ori.PerTicketPrice
+
+	ori.PerTicketPrice = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
+		return false
+	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.PerTicketPrice = p
+
+	return true
+}
+
+func (s *SoWitnessWrap) saveMemKeyPerTicketWeight(tInfo *SoWitness) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemWitnessByPerTicketWeight{}
+	val.PerTicketWeight = tInfo.PerTicketWeight
+	key, err := s.encodeMemKey("PerTicketWeight")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
+
+func (s *SoWitnessWrap) GetPerTicketWeight() uint64 {
+	res := true
+	msg := &SoMemWitnessByPerTicketWeight{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("PerTicketWeight")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.PerTicketWeight
+			}
+		}
+	}
+	if !res {
+		var tmpValue uint64
+		return tmpValue
+	}
+	return msg.PerTicketWeight
+}
+
+func (s *SoWitnessWrap) MdPerTicketWeight(p uint64) bool {
+	if s.dba == nil {
+		return false
+	}
+	key, err := s.encodeMemKey("PerTicketWeight")
+	if err != nil {
+		return false
+	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemWitnessByPerTicketWeight{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoWitness{}
+	sa.Owner = s.mainKey
+
+	sa.PerTicketWeight = ori.PerTicketWeight
+
+	ori.PerTicketWeight = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
+		return false
+	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.PerTicketWeight = p
+
+	return true
 }
 
 func (s *SoWitnessWrap) saveMemKeyProposedStaminaFree(tInfo *SoWitness) error {
@@ -949,6 +1242,89 @@ func (s *SoWitnessWrap) MdSigningKey(p *prototype.PublicKeyType) bool {
 		return false
 	}
 	sa.SigningKey = p
+
+	return true
+}
+
+func (s *SoWitnessWrap) saveMemKeyTopNAcquireFreeToken(tInfo *SoWitness) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemWitnessByTopNAcquireFreeToken{}
+	val.TopNAcquireFreeToken = tInfo.TopNAcquireFreeToken
+	key, err := s.encodeMemKey("TopNAcquireFreeToken")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
+
+func (s *SoWitnessWrap) GetTopNAcquireFreeToken() uint32 {
+	res := true
+	msg := &SoMemWitnessByTopNAcquireFreeToken{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("TopNAcquireFreeToken")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.TopNAcquireFreeToken
+			}
+		}
+	}
+	if !res {
+		var tmpValue uint32
+		return tmpValue
+	}
+	return msg.TopNAcquireFreeToken
+}
+
+func (s *SoWitnessWrap) MdTopNAcquireFreeToken(p uint32) bool {
+	if s.dba == nil {
+		return false
+	}
+	key, err := s.encodeMemKey("TopNAcquireFreeToken")
+	if err != nil {
+		return false
+	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemWitnessByTopNAcquireFreeToken{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoWitness{}
+	sa.Owner = s.mainKey
+
+	sa.TopNAcquireFreeToken = ori.TopNAcquireFreeToken
+
+	ori.TopNAcquireFreeToken = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
+		return false
+	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.TopNAcquireFreeToken = p
 
 	return true
 }

@@ -126,6 +126,15 @@ const (
 	FreeStaminaOverFlow  = "freeStaminaOverFlow"
 	StakeStaminaOverFlow = "stakeStaminaOverFlow"
 	EnableResourceControl = true
+	MaxTicketsPerTurn = 1e5
+	PerTicketPrice = 1
+	PerTicketPriceStr = "1.000000"
+	PerTicketWeight = 1e7
+	InitTopN = 500
+	InitEpochDuration = 60 * 60 * 24 * 30
+	MaxTopN = 10000
+	MinEpochDuration = 60 * 60 * 24
+	MinTicketPrice = 100
 )
 
 var GlobalId int32 = 1

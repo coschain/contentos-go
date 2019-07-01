@@ -1,5 +1,6 @@
 create table transferinfo
 (
+    id bigint AUTO_INCREMENT PRIMARY KEY,
 	trx_id varchar(64) not null,
 	create_time int unsigned not null,
 	sender varchar(64) not null,

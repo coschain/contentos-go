@@ -1,5 +1,6 @@
 create table trxinfo
 (
+    id bigint AUTO_INCREMENT PRIMARY KEY,
 	trx_id varchar(64) not null,
 	block_height int unsigned not null,
 	block_time int unsigned not null,

@@ -73,3 +73,10 @@ func (dgp *DynamicGlobalPropsRW) ModifyProps(modifier func(oldProps *prototype.D
 	modifier(props)
 	mustSuccess(dgpWrap.MdProps(props), "")
 }
+
+func (dgp *DynamicGlobalPropsRW) UpdateTicketIncomeAndNum(income *prototype.Vest, count uint64) {
+	dgp.ModifyProps(func(props *prototype.DynamicProperties) {
+		props.TicketsIncome = income
+		props.ChargedTicketsNum = count
+	})
+}

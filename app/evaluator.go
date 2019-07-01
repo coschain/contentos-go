@@ -17,6 +17,7 @@ import (
 	"math"
 	"math/big"
 	"sort"
+	"strconv"
 	"time"
 )
 
@@ -150,6 +151,18 @@ type UnStakeEvaluator struct {
 	op  *prototype.UnStakeOperation
 }
 
+type AcquireTicketEvaluator struct {
+	BaseEvaluator
+	BaseDelegate
+	op *prototype.AcquireTicketOperation
+}
+
+type VoteByTicketEvaluator struct {
+	BaseEvaluator
+	BaseDelegate
+	op *prototype.VoteByTicketOperation
+}
+
 func init() {
 	RegisterEvaluator((*prototype.AccountCreateOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
 		return &AccountCreateEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.AccountCreateOperation)}
@@ -205,6 +218,12 @@ func init() {
 	RegisterEvaluator((*prototype.AccountUpdateOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
 		return &AccountUpdateEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.AccountUpdateOperation)}
 	})
+	RegisterEvaluator((*prototype.AcquireTicketOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
+		return &AcquireTicketEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.AcquireTicketOperation)}
+	})
+	RegisterEvaluator((*prototype.VoteByTicketOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
+		return &VoteByTicketEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.VoteByTicketOperation)}
+	})
 }
 
 func (ev *AccountCreateEvaluator) Apply() {
@@ -244,6 +263,7 @@ func (ev *AccountCreateEvaluator) Apply() {
 		tInfo.Owner = op.Owner
 		tInfo.LastOwnerUpdate = prototype.NewTimePointSec(0)
 		tInfo.StakeVesting = prototype.NewVest(0)
+		tInfo.ChargedTicket = 0
 	}), "duplicate create account object")
 
 	// create account authority
@@ -329,6 +349,7 @@ func (ev *PostEvaluator) Apply() {
 		t.VoteCnt = 0
 		t.Rewards = &prototype.Vest{Value: 0}
 		t.DappRewards = &prototype.Vest{Value: 0}
+		t.Ticket = 0
 	}), "create post error")
 
 	authorWrap.MdLastPostTime(ev.GlobalProp().HeadBlockTime())
@@ -385,6 +406,7 @@ func (ev *ReplyEvaluator) Apply() {
 		t.Beneficiaries = op.Beneficiaries
 		t.Rewards = &prototype.Vest{Value: 0}
 		t.DappRewards = &prototype.Vest{Value: 0}
+		t.Ticket = 0
 	}), "create reply error")
 
 	authorWrap.MdLastPostTime(ev.GlobalProp().HeadBlockTime())
@@ -506,6 +528,20 @@ func (ev *BpRegisterEvaluator) Apply() {
 	opAssert(accountCreateFee.Value <= constants.MaxAccountCreateFee,
 		fmt.Sprintf("account create fee too high max value %d", constants.MaxAccountCreateFee))
 
+	topNAcquireFreeToken := op.Props.TopNAcquireFreeToken
+	opAssert(topNAcquireFreeToken <= constants.MaxTopN, fmt.Sprintf("top N vesting holders, the N is too big, " +
+		"which should lower than %d", constants.MaxTopN))
+
+	epochDuration := op.Props.EpochDuration
+	//opAssert(epochDuration >= constants.MinEpochDuration, fmt.Sprintf("the epoch duration should greater than %d",
+	//	constants.MinEpochDuration))
+
+	perTicketPrice := op.Props.PerTicketPrice
+	opAssert(perTicketPrice.Value >= constants.MinTicketPrice, fmt.Sprintf("the ticket price should greater than %d",
+		constants.MinTicketPrice))
+
+	perTicketWeight := op.Props.PerTicketWeight
+
 	witnessWrap := table.NewSoWitnessWrap(ev.Database(), op.Owner)
 
 	if witnessWrap.CheckExist() {
@@ -526,7 +562,10 @@ func (ev *BpRegisterEvaluator) Apply() {
 		t.TpsExpected = tpsExpected
 		t.AccountCreateFee = accountCreateFee
 		t.VoteCount = &prototype.Vest{Value: 0}
-
+		t.TopNAcquireFreeToken = topNAcquireFreeToken
+		t.EpochDuration = epochDuration
+		t.PerTicketPrice = perTicketPrice
+		t.PerTicketWeight = perTicketWeight
 		// TODO add others
 	}), "add witness record error")
 }
@@ -658,10 +697,26 @@ func (ev *BpUpdateEvaluator) Apply() {
 	opAssert(accountCreateFee.Value <= constants.MaxAccountCreateFee,
 		fmt.Sprintf("account create fee too high max value %d", constants.MaxAccountCreateFee))
 
+	topNAcquireFreeToken := op.TopNAcquireFreeToken
+	opAssert(topNAcquireFreeToken <= constants.MaxTopN, fmt.Sprintf("top N vesting holders, the N is too big, " +
+		"which should lower than %d", constants.MaxTopN))
+
+	epochDuration := op.EpochDuration
+
+	perTicketPrice := op.PerTicketPrice
+	opAssert(perTicketPrice.Value >= constants.MinTicketPrice, fmt.Sprintf("the ticket price should greater than %d",
+		constants.MinTicketPrice))
+
+	perTicketWeight := op.PerTicketWeight
+
 	witnessWrap := table.NewSoWitnessWrap(ev.Database(), op.Owner)
 	opAssert(witnessWrap.MdProposedStaminaFree(staminaFree), "update bp proposed stamina free error")
 	opAssert(witnessWrap.MdTpsExpected(tpsExpected), "update bp tps expected error")
 	opAssert(witnessWrap.MdAccountCreateFee(accountCreateFee), "update account create fee error")
+	opAssert(witnessWrap.MdTopNAcquireFreeToken(topNAcquireFreeToken), "update topna error")
+	opAssert(witnessWrap.MdEpochDuration(epochDuration), "update epoch duration error")
+	opAssert(witnessWrap.MdPerTicketPrice(perTicketPrice), "update per ticket price error")
+	opAssert(witnessWrap.MdPerTicketWeight(perTicketWeight), "update per ticket weight error")
 }
 
 func (ev *FollowEvaluator) Apply() {
@@ -1139,4 +1194,156 @@ func (ev *UnStakeEvaluator) Apply() {
 
 	ev.GlobalProp().TransferFromVest(value.ToVest())
 	ev.GlobalProp().TransferFromStakeVest(value.ToVest())
+}
+
+func (ev *AcquireTicketEvaluator) Apply() {
+	op := ev.op
+	ev.VMInjector().RecordStaminaFee(op.Account.Value, constants.CommonOpStamina)
+
+	account := table.NewSoAccountWrap(ev.Database(), op.Account)
+	count := op.Count
+	// why need to buy so many tickets ?
+	opAssert(count > 0, "at least 1 ticket per turn")
+	opAssert(count <= constants.MaxTicketsPerTurn, fmt.Sprintf("at most %d ticket per turn", int(constants.MaxTicketsPerTurn)))
+
+	ticketPrice := ev.GlobalProp().GetProps().PerTicketPrice
+	vest := account.GetVestingShares()
+	oldVest := account.GetVestingShares()
+
+	fee := &prototype.Vest{Value: ticketPrice.Value * count}
+	opAssertE(vest.Sub(fee), "Insufficient vesting to acquire tickets")
+	opAssert(account.MdVestingShares(vest), "modify vesting shares failed")
+
+	opAssert(account.GetChargedTicket() + uint32(count) > account.GetChargedTicket(), "ticket count overflow")
+
+	account.MdChargedTicket(account.GetChargedTicket() + uint32(count))
+
+	updateWitnessVoteCount(ev.Database(), op.Account, oldVest, vest)
+
+	// record
+	ticketKey := &prototype.GiftTicketKeyType{
+		Type: 1,
+		From: []byte("contentos"),
+		To: []byte(op.Account.Value),
+		CreateBlock: ev.GlobalProp().GetProps().HeadBlockNumber,
+	}
+
+	ticketWrap := table.NewSoGiftTicketWrap(ev.Database(), ticketKey)
+
+	if ticketWrap.CheckExist() {
+		panic("ticket record existed")
+	}
+
+	_ = ticketWrap.Create(func(tInfo *table.SoGiftTicket) {
+		tInfo.Ticket = ticketKey
+		tInfo.Count = count
+		tInfo.Denom = ev.GlobalProp().GetProps().GetPerTicketWeight()
+		tInfo.ExpireBlock = math.MaxUint32
+	})
+
+	props := ev.GlobalProp().GetProps()
+
+	currentIncome := props.GetTicketsIncome()
+	mustNoError(currentIncome.Add(fee), "TicketsIncome overflow")
+
+	chargedTicketsNum := props.GetChargedTicketsNum()
+	currentTicketsNum := chargedTicketsNum + count
+	ev.GlobalProp().UpdateTicketIncomeAndNum(currentIncome, currentTicketsNum)
+
+}
+
+func (ev *VoteByTicketEvaluator) Apply() {
+	op := ev.op
+	ev.VMInjector().RecordStaminaFee(op.Account.Value, constants.CommonOpStamina)
+
+	account := table.NewSoAccountWrap(ev.Database(), op.Account)
+	postId := op.Idx
+	var freeTicket uint32 = 0
+	count := op.Count
+
+	postWrap := table.NewSoPostWrap(ev.Database(), &op.Idx)
+	opAssert(postWrap.CheckExist(), "post does not exist")
+
+	originTicketCount := postWrap.GetTicket()
+
+	// free ticket ?
+	freeTicketWrap := table.NewSoGiftTicketWrap(ev.Database(), &prototype.GiftTicketKeyType{
+		Type: 0,
+		From: []byte("contentos"),
+		To: []byte(op.Account.Value),
+		CreateBlock: ev.GlobalProp().GetProps().GetCurrentEpochStartBlock(),
+	})
+	if freeTicketWrap.CheckExist() {
+		freeTicket = 1
+	}
+	opAssert(count > 0, "at least 1 ticket to vote per turn")
+	opAssert(count <= constants.MaxTicketsPerTurn, fmt.Sprintf("at most %d ticket per turn", int(constants.MaxTicketsPerTurn)))
+
+	if freeTicket > 0 {
+		// spend free ticket first
+		count = count - 1
+		opAssert(account.GetChargedTicket() >= uint32(count), "insufficient ticket to vote")
+		account.MdChargedTicket(account.GetChargedTicket() - uint32(count))
+		freeTicketWrap.RemoveGiftTicket()
+		postWrap.MdTicket(originTicketCount + uint32(count + 1))
+	} else {
+		opAssert(account.GetChargedTicket() >= uint32(count), "insufficient ticket to vote")
+		account.MdChargedTicket(account.GetChargedTicket() - uint32(count))
+		postWrap.MdTicket(originTicketCount + uint32(count))
+	}
+
+	// record
+	ticketKey := &prototype.GiftTicketKeyType{
+		Type: 1,
+		From: []byte(op.Account.Value),
+		To: []byte(strconv.FormatUint(postId, 10)),
+		CreateBlock: ev.GlobalProp().GetProps().HeadBlockNumber,
+	}
+	ticketWrap := table.NewSoGiftTicketWrap(ev.Database(), ticketKey)
+
+	if ticketWrap.CheckExist() {
+		panic("ticket record existed")
+	}
+
+	// record ticket vote action
+	_ = ticketWrap.Create(func(tInfo *table.SoGiftTicket) {
+		tInfo.Ticket = ticketKey
+		tInfo.Count = count
+		tInfo.Denom = ev.GlobalProp().GetProps().GetPerTicketWeight()
+		tInfo.ExpireBlock = math.MaxUint32
+	})
+
+	//ev.GlobalProp().VoteByTicket(op.Account, postId, count)
+	props := ev.GlobalProp().GetProps()
+	currentWitness := props.CurrentWitness
+	bpWrap := table.NewSoAccountWrap(ev.Database(), currentWitness)
+	if !bpWrap.CheckExist() {
+		panic(fmt.Sprintf("cannot find bp %s", currentWitness.Value))
+	}
+
+	// the per ticket price may change,so replace the per ticket price by totalincome / ticketnum
+	opAssert(props.GetChargedTicketsNum() >= count, "should acquire tickets first")
+	var equalValue *prototype.Vest
+	if props.GetChargedTicketsNum() == 0 {
+		equalValue = &prototype.Vest{Value: 0}
+	} else {
+		equalValue = &prototype.Vest{Value: count * props.GetTicketsIncome().Value / props.GetChargedTicketsNum()}
+	}
+	currentIncome := props.GetTicketsIncome()
+	mustNoError(currentIncome.Sub(equalValue), "sub equal value from ticketfee failed")
+	//c.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
+	//	props.TicketsIncome = income
+	//	props.ChargedTicketsNum -= count
+	//})
+	chargedTicketsNum := props.GetChargedTicketsNum()
+	currentTicketsNum := chargedTicketsNum - count
+	ev.GlobalProp().UpdateTicketIncomeAndNum(currentIncome, currentTicketsNum)
+
+	bpVest := bpWrap.GetVestingShares()
+	oldVest := bpWrap.GetVestingShares()
+	// currently, all income will put into bp's wallet.
+	// it will be change.
+	mustNoError(bpVest.Add(equalValue), "add equal value to bp failed")
+	bpWrap.MdVestingShares(bpVest)
+	updateWitnessVoteCount(ev.Database(), currentWitness, oldVest, bpVest)
 }

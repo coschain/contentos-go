@@ -26,6 +26,7 @@ message so_post {
     string                                 weighted_vp             =      16;
     prototype.vest                         rewards                 =      17;
     prototype.vest                         dapp_rewards            =      18;
+    uint32                                 ticket                  =      19;
       
 }
 
@@ -117,6 +118,11 @@ message so_mem_post_by_rewards {
 
 message so_mem_post_by_dapp_rewards {
 	prototype.vest                      	dapp_rewards        = 1;
+}
+
+
+message so_mem_post_by_ticket {
+	uint32                              	ticket              = 1;
 }
 
 

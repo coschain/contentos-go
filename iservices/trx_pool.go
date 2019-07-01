@@ -22,6 +22,7 @@ type IGlobalPropWriter interface {
 	TransferToStakeVest(value *prototype.Coin)
 	TransferFromStakeVest(value *prototype.Vest)
 	ModifyProps(modifier func(oldProps *prototype.DynamicProperties))
+	UpdateTicketIncomeAndNum(income *prototype.Vest, count uint64)
 }
 
 type IGlobalPropRW interface {
@@ -61,4 +62,6 @@ type ITrxPool interface {
 	CalculateUserMaxStamina(db IDatabaseRW,name string) uint64
 	CheckNetForRPC(name string, db IDatabaseRW, sizeInBytes uint64) (bool,uint64,uint64)
 	EstimateStamina(trx *prototype.SignedTransaction) *prototype.TransactionReceiptWithInfo
+
+	GetFreeTicketCount(name *prototype.AccountName) uint32
 }
