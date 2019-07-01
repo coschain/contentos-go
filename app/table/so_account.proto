@@ -32,6 +32,7 @@ message so_account {
     prototype.vest              stake_vesting     =      22;
     prototype.time_point_sec    last_stake_time      =      23;
     uint32                      reputation          =      24;
+    string                      reputation_memo      =      25;
       
 }
 
@@ -153,6 +154,11 @@ message so_mem_account_by_last_stake_time {
 
 message so_mem_account_by_reputation {
 	uint32                   	reputation      = 1;
+}
+
+
+message so_mem_account_by_reputation_memo {
+	string                   	reputation_memo  = 1;
 }
 
 

@@ -237,4 +237,5 @@ func (w *CosVMNative) GetReputationAdmin() string {
 func (w *CosVMNative) SetUserReputation(name string, value uint32, memo string) {
 	account := table.NewSoAccountWrap(w.cosVM.db, prototype.NewAccountName(name))
 	w.CosAssert(account.MdReputation(value), fmt.Sprintf("failed to modify reputation of %s", name))
+	w.CosAssert(account.MdReputationMemo(memo), fmt.Sprintf("failed to modify reputation memo of %s", name))
 }
