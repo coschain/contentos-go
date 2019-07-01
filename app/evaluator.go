@@ -244,6 +244,7 @@ func (ev *AccountCreateEvaluator) Apply() {
 		tInfo.Owner = op.Owner
 		tInfo.LastOwnerUpdate = prototype.NewTimePointSec(0)
 		tInfo.StakeVesting = prototype.NewVest(0)
+		tInfo.Reputation = constants.DefaultReputation
 	}), "duplicate create account object")
 
 	// create account authority

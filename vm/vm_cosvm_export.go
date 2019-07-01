@@ -265,6 +265,8 @@ func e_setReputation(proc *exec.Process, names, namesLen, reputations, reputatio
 			fmt.Sprintf("setReputation().names[%d]", i),
 		))
 		value := binary.LittleEndian.Uint32(valInts[4 * i:])
+		w.CosAssert(value >= constants.MinReputation && value <= constants.MaxReputation,
+			fmt.Sprintf("setReputation().reputation[%d]=%d: out of bounds", i, value))
 		memo := string(w.cosVM.read(proc,
 			int32(binary.LittleEndian.Uint32(memoStrs[i * 8:])),
 			int32(binary.LittleEndian.Uint32(memoStrs[i * 8 + 4:])),

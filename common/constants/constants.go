@@ -128,6 +128,10 @@ const (
 	FreeStaminaOverFlow  = "freeStaminaOverFlow"
 	StakeStaminaOverFlow = "stakeStaminaOverFlow"
 	EnableResourceControl = true
+
+	MinReputation       = 0
+	MaxReputation       = 10000
+	DefaultReputation   = 100
 )
 
 var GlobalId int32 = 1

@@ -648,6 +648,7 @@ func (c *TrxPool) initGenesis() {
 		tInfo.HasPowerdown = &prototype.Vest{Value: 0}
 		tInfo.Owner = pubKey
 		tInfo.StakeVesting = prototype.NewVest(0)
+		tInfo.Reputation = constants.DefaultReputation
 	}), "CreateAccount error")
 
 	// create witness_object
