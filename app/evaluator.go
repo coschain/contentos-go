@@ -445,6 +445,11 @@ func (ev *VoteEvaluator) Apply() {
 	//weightedVp := vesting * uint64(usedVp)
 	weightedVp := new(big.Int).SetUint64(vesting)
 	weightedVp.Mul(weightedVp, new(big.Int).SetUint64(uint64(usedVp)))
+
+	// multiplied by voter's reputation
+	weightedVp.Mul(weightedVp, big.NewInt(int64(voterWrap.GetReputation())))
+	weightedVp.Div(weightedVp, big.NewInt(int64(constants.DefaultReputation)))
+
 	if postWrap.GetCashoutBlockNum() > ev.GlobalProp().GetProps().HeadBlockNumber {
 		lastVp := postWrap.GetWeightedVp()
 		var lvp, tvp big.Int
