@@ -28,7 +28,7 @@ import (
 )
 
 var (
-	SingleId int32 = 1
+	SingleId int32 = constants.SingletonId
 )
 
 type TrxPool struct {

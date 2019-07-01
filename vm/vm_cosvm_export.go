@@ -2,6 +2,9 @@ package vm
 
 import (
 	"crypto/sha256"
+	"encoding/binary"
+	"fmt"
+	"github.com/coschain/contentos-go/common/constants"
 	"github.com/go-interpreter/wagon/exec"
 )
 
@@ -222,6 +225,54 @@ func e_tableGetRecordEx(proc *exec.Process, ownerName, ownerNameLen int32, contr
 			w.cosVM.read(proc, primary, primaryLen, "tableGetRecordEx().primary"),
 		),
 		value, valueLen, "tableGetRecordEx()")
+}
+
+func e_setReputationAdmin(proc *exec.Process, name, nameLen int32) {
+	w := proc.GetTag().(*CosVMNative)
+
+	w.CosAssert(
+		w.ReadContractOwner() == constants.COSSysAccount && w.ReadContractCaller() == constants.COSSysAccount,
+		"SetReputationAdmin(): access denied",
+		)
+	w.SetReputationAdmin(string(w.cosVM.read(proc, name, nameLen, "setReputationAdmin().name")))
+}
+
+func e_getReputationAdmin(proc *exec.Process, name, nameLen int32) int32 {
+	w := proc.GetTag().(*CosVMNative)
+
+	return w.cosVM.write(proc, []byte(w.GetReputationAdmin()), name, nameLen, "getReputationAdmin()")
+}
+
+func e_setReputation(proc *exec.Process, names, namesLen, reputations, reputationsLen, memos, memosLen int32) int32 {
+	w := proc.GetTag().(*CosVMNative)
+
+	w.CosAssert(
+		w.ReadContractOwner() == constants.COSSysAccount && w.ReadContractCaller() == w.GetReputationAdmin(),
+		"SetReputation(): access denied",
+	)
+
+	nameStrs := w.cosVM.read(proc, names, namesLen, "setReputation().names")
+	valInts := w.cosVM.read(proc, reputations, reputationsLen, "setReputation().reputations")
+	memoStrs := w.cosVM.read(proc, memos, memosLen, "setReputation().memos")
+
+	count := len(nameStrs) / 8
+	w.CosAssert(count == len(memoStrs) / 8 && count == len(valInts) / 4, "setReputation(): illegal parameters")
+
+	for i := 0; i < count; i++ {
+		name := string(w.cosVM.read(proc,
+			int32(binary.LittleEndian.Uint32(nameStrs[i * 8:])),
+			int32(binary.LittleEndian.Uint32(nameStrs[i * 8 + 4:])),
+			fmt.Sprintf("setReputation().names[%d]", i),
+		))
+		value := binary.LittleEndian.Uint32(valInts[4 * i:])
+		memo := string(w.cosVM.read(proc,
+			int32(binary.LittleEndian.Uint32(memoStrs[i * 8:])),
+			int32(binary.LittleEndian.Uint32(memoStrs[i * 8 + 4:])),
+			fmt.Sprintf("setReputation().memos[%d]", i),
+		))
+		w.SetUserReputation(name, value, memo)
+	}
+	return int32(count)
 }
 
 func e_memcpy(proc *exec.Process, dst, src, size int32) int32 {

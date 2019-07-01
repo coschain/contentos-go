@@ -1,11 +1,13 @@
 package constants
 
 const (
+	SingletonId      = 1
 	COSChainName     = "contentos"
 	COSTokenDecimals = 1000000
 	COSInitSupply    = 6500000000 * COSTokenDecimals
 	COSConsensusName = "saBFT"
 	COSInitMiner     = "initminer"
+	COSSysAccount    = "contentos"
 
 	CoinSymbol = "COS"
 	VestSymbol = "VEST"

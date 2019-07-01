@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"github.com/coschain/contentos-go/app/table"
+	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/vm/contract/abi"
 	table2 "github.com/coschain/contentos-go/vm/contract/table"
@@ -219,4 +220,21 @@ func (w *CosVMNative) TableGetRecordEx(ownerName, contractName, tableName string
 		return nil
 	}
 	return data
+}
+
+func (w *CosVMNative) SetReputationAdmin(name string) {
+	singleId := int32(constants.SingletonId)
+	props := *w.cosVM.props
+	props.ReputationAdmin = prototype.NewAccountName(name)
+	w.CosAssert(table.NewSoGlobalWrap(w.cosVM.db, &singleId).MdProps(&props), "failed to set reputation admin")
+	w.cosVM.props.ReputationAdmin.Value = name
+}
+
+func (w *CosVMNative) GetReputationAdmin() string {
+	return w.cosVM.props.ReputationAdmin.Value
+}
+
+func (w *CosVMNative) SetUserReputation(name string, value uint32, memo string) {
+	account := table.NewSoAccountWrap(w.cosVM.db, prototype.NewAccountName(name))
+	w.CosAssert(account.MdReputation(value), fmt.Sprintf("failed to modify reputation of %s", name))
 }
