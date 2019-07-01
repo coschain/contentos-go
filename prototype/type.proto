@@ -83,6 +83,7 @@ message dynamic_properties {
     uint64                       avg_tps_in_window = 35;
     uint64                       one_day_stamina = 36;
     prototype.coin               account_create_fee = 37;
+    prototype.account_name    reputation_admin = 38;
 }
 
 message beneficiary_route_type{

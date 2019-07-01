@@ -38,6 +38,7 @@ var (
 	AccountNextPowerdownBlockNumCell  uint32 = 2881565425
 	AccountOwnerCell                  uint32 = 1575619097
 	AccountPostCountCell              uint32 = 587221705
+	AccountReputationCell             uint32 = 2291448152
 	AccountStakeVestingCell           uint32 = 1603133992
 	AccountStaminaCell                uint32 = 674022235
 	AccountStaminaFreeCell            uint32 = 676517039
@@ -697,6 +698,9 @@ func (s *SoAccountWrap) getMemKeyPrefix(fName string) uint32 {
 	if fName == "PostCount" {
 		return AccountPostCountCell
 	}
+	if fName == "Reputation" {
+		return AccountReputationCell
+	}
 	if fName == "StakeVesting" {
 		return AccountStakeVestingCell
 	}
@@ -857,6 +861,13 @@ func (s *SoAccountWrap) saveAllMemKeys(tInfo *SoAccount, br bool) error {
 			return err
 		} else {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "PostCount", err)
+		}
+	}
+	if err = s.saveMemKeyReputation(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Reputation", err)
 		}
 	}
 	if err = s.saveMemKeyStakeVesting(tInfo); err != nil {
@@ -2226,6 +2237,89 @@ func (s *SoAccountWrap) MdPostCount(p uint32) bool {
 	if !s.insertSortKeyPostCount(sa) {
 		return false
 	}
+
+	return true
+}
+
+func (s *SoAccountWrap) saveMemKeyReputation(tInfo *SoAccount) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemAccountByReputation{}
+	val.Reputation = tInfo.Reputation
+	key, err := s.encodeMemKey("Reputation")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
+
+func (s *SoAccountWrap) GetReputation() uint32 {
+	res := true
+	msg := &SoMemAccountByReputation{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("Reputation")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.Reputation
+			}
+		}
+	}
+	if !res {
+		var tmpValue uint32
+		return tmpValue
+	}
+	return msg.Reputation
+}
+
+func (s *SoAccountWrap) MdReputation(p uint32) bool {
+	if s.dba == nil {
+		return false
+	}
+	key, err := s.encodeMemKey("Reputation")
+	if err != nil {
+		return false
+	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemAccountByReputation{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoAccount{}
+	sa.Name = s.mainKey
+
+	sa.Reputation = ori.Reputation
+
+	ori.Reputation = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
+		return false
+	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.Reputation = p
 
 	return true
 }
