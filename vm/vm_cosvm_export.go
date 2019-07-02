@@ -243,7 +243,7 @@ func e_getReputationAdmin(proc *exec.Process, name, nameLen int32) int32 {
 	return w.cosVM.write(proc, []byte(w.GetReputationAdmin()), name, nameLen, "getReputationAdmin()")
 }
 
-func e_setReputation(proc *exec.Process, names, namesLen, reputations, reputationsLen, memos, memosLen int32) int32 {
+func e_setReputation(proc *exec.Process, namePtrs, namePtrLen, nameSizes, nameSizeLen, reputations, reputationsLen, memoPtrs, memoPtrLen, memoSizes, memoSizeLen int32) int32 {
 	w := proc.GetTag().(*CosVMNative)
 
 	w.CosAssert(
@@ -251,25 +251,28 @@ func e_setReputation(proc *exec.Process, names, namesLen, reputations, reputatio
 		"SetReputation(): access denied",
 	)
 
-	nameStrs := w.cosVM.read(proc, names, namesLen, "setReputation().names")
+	namePtr := w.cosVM.read(proc, namePtrs, namePtrLen, "setReputation().namePtrs")
+	nameSize := w.cosVM.read(proc, nameSizes, nameSizeLen, "setReputation().nameSizes")
 	valInts := w.cosVM.read(proc, reputations, reputationsLen, "setReputation().reputations")
-	memoStrs := w.cosVM.read(proc, memos, memosLen, "setReputation().memos")
+	memoPtr := w.cosVM.read(proc, memoPtrs, memoPtrLen, "setReputation().memoPtrs")
+	memoSize := w.cosVM.read(proc, memoSizes, memoSizeLen, "setReputation().memoSizes")
 
-	count := len(nameStrs) / 8
-	w.CosAssert(count == len(memoStrs) / 8 && count == len(valInts) / 4, "setReputation(): illegal parameters")
+	count := int(namePtrLen / 4)
+	w.CosAssert(namePtrLen == nameSizeLen && namePtrLen == reputationsLen && namePtrLen == memoPtrLen && namePtrLen == memoSizeLen, "setReputation(): illegal parameters")
 
 	for i := 0; i < count; i++ {
+		offset := i * 4
 		name := string(w.cosVM.read(proc,
-			int32(binary.LittleEndian.Uint32(nameStrs[i * 8:])),
-			int32(binary.LittleEndian.Uint32(nameStrs[i * 8 + 4:])),
+			int32(binary.LittleEndian.Uint32(namePtr[offset:])),
+			int32(binary.LittleEndian.Uint32(nameSize[offset:])),
 			fmt.Sprintf("setReputation().names[%d]", i),
 		))
-		value := binary.LittleEndian.Uint32(valInts[4 * i:])
+		value := binary.LittleEndian.Uint32(valInts[offset:])
 		w.CosAssert(value >= constants.MinReputation && value <= constants.MaxReputation,
 			fmt.Sprintf("setReputation().reputation[%d]=%d: out of bounds", i, value))
 		memo := string(w.cosVM.read(proc,
-			int32(binary.LittleEndian.Uint32(memoStrs[i * 8:])),
-			int32(binary.LittleEndian.Uint32(memoStrs[i * 8 + 4:])),
+			int32(binary.LittleEndian.Uint32(memoPtr[offset:])),
+			int32(binary.LittleEndian.Uint32(memoSize[offset:])),
 			fmt.Sprintf("setReputation().memos[%d]", i),
 		))
 		w.SetUserReputation(name, value, memo)

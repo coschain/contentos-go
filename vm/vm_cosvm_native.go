@@ -227,11 +227,14 @@ func (w *CosVMNative) SetReputationAdmin(name string) {
 	props := *w.cosVM.props
 	props.ReputationAdmin = prototype.NewAccountName(name)
 	w.CosAssert(table.NewSoGlobalWrap(w.cosVM.db, &singleId).MdProps(&props), "failed to set reputation admin")
-	w.cosVM.props.ReputationAdmin.Value = name
+	w.cosVM.props.ReputationAdmin = props.ReputationAdmin
 }
 
-func (w *CosVMNative) GetReputationAdmin() string {
-	return w.cosVM.props.ReputationAdmin.Value
+func (w *CosVMNative) GetReputationAdmin() (name string) {
+	if w.cosVM.props.ReputationAdmin != nil {
+		name = w.cosVM.props.ReputationAdmin.Value
+	}
+	return
 }
 
 func (w *CosVMNative) SetUserReputation(name string, value uint32, memo string) {
