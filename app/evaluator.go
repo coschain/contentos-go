@@ -468,9 +468,10 @@ func (ev *VoteEvaluator) Apply() {
 	weightedVp := new(big.Int).SetUint64(vesting)
 	weightedVp.Mul(weightedVp, new(big.Int).SetUint64(uint64(usedVp)))
 
-	// multiplied by voter's reputation
-	weightedVp.Mul(weightedVp, big.NewInt(int64(voterWrap.GetReputation())))
-	weightedVp.Div(weightedVp, big.NewInt(int64(constants.DefaultReputation)))
+	// if voter's reputation is 0, she has no voting power.
+	if voterWrap.GetReputation() == constants.MinReputation {
+		weightedVp.SetInt64(0)
+	}
 
 	if postWrap.GetCashoutBlockNum() > ev.GlobalProp().GetProps().HeadBlockNumber {
 		lastVp := postWrap.GetWeightedVp()
@@ -1285,17 +1286,22 @@ func (ev *VoteByTicketEvaluator) Apply() {
 	opAssert(count > 0, "at least 1 ticket to vote per turn")
 	opAssert(count <= constants.MaxTicketsPerTurn, fmt.Sprintf("at most %d ticket per turn", int(constants.MaxTicketsPerTurn)))
 
+	// if voter's reputation is 0, her tickets are useless.
+	factor := uint32(1)
+	if account.GetReputation() == constants.MinReputation {
+		factor = 0
+	}
 	if freeTicket > 0 {
 		// spend free ticket first
 		count = count - 1
 		opAssert(account.GetChargedTicket() >= uint32(count), "insufficient ticket to vote")
 		account.MdChargedTicket(account.GetChargedTicket() - uint32(count))
 		freeTicketWrap.RemoveGiftTicket()
-		postWrap.MdTicket(originTicketCount + uint32(count + 1))
+		postWrap.MdTicket(originTicketCount + uint32(count + 1) * factor)
 	} else {
 		opAssert(account.GetChargedTicket() >= uint32(count), "insufficient ticket to vote")
 		account.MdChargedTicket(account.GetChargedTicket() - uint32(count))
-		postWrap.MdTicket(originTicketCount + uint32(count))
+		postWrap.MdTicket(originTicketCount + uint32(count) * factor)
 	}
 
 	// record
