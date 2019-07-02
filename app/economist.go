@@ -246,6 +246,16 @@ func (e *Economist) Do(trxObserver iservices.ITrxObserver) {
 		giftNum := new(big.Int).SetUint64(uint64(post.GetTicket()))
 		giftVp := new(big.Int).Mul(giftNum, new(big.Int).SetUint64(globalProps.GetPerTicketWeight()))
 		weightedVp := new(big.Int).Add(ISqrt(post.GetWeightedVp()), giftVp)
+
+		authorName := post.GetAuthor()
+		if author, err := e.GetAccount(authorName); err != nil {
+			e.log.Warnf("author of post %d not found, name %s", *pid, authorName.Value)
+			continue
+		} else if author.GetReputation() == constants.MinReputation {
+			e.log.Warnf("ignored post %d due to bad reputation of author %s", *pid, authorName.Value)
+			continue
+		}
+
 		if post.GetParentId() == 0 {
 			posts = append(posts, post)
 			postVpAccumulator.Add(&postVpAccumulator, weightedVp)
@@ -402,6 +412,9 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 			if err != nil {
 				e.log.Debugf("beneficiary get account %s failed", name)
 				continue
+			} else if beneficiaryWrap.GetReputation() == constants.MinReputation {
+				e.log.Debugf("ignored beneficiary %s due to bad reputation", name)
+				continue
 			} else {
 				oldVest := beneficiaryWrap.GetVestingShares()
 				vestingRewards := &prototype.Vest{Value: r}
@@ -510,6 +523,9 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 			beneficiaryWrap, err := e.GetAccount(&prototype.AccountName{Value: name})
 			if err != nil {
 				e.log.Debugf("beneficiary get account %s failed", name)
+			} else if beneficiaryWrap.GetReputation() == constants.MinReputation {
+				e.log.Debugf("ignored beneficiary %s due to bad reputation", name)
+				continue
 			} else {
 				//beneficiaryWrap.MdVestingShares(&prototype.Vest{ Value: r + beneficiaryWrap.GetVestingShares().Value})
 				oldVest := beneficiaryWrap.GetVestingShares()
