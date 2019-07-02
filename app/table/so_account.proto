@@ -33,6 +33,7 @@ message so_account {
     prototype.time_point_sec    last_stake_time      =      23;
     uint32                      reputation          =      24;
     string                      reputation_memo      =      25;
+    uint32                      charged_ticket      =      26;
       
 }
 
@@ -159,6 +160,11 @@ message so_mem_account_by_reputation {
 
 message so_mem_account_by_reputation_memo {
 	string                   	reputation_memo  = 1;
+}
+
+
+message so_mem_account_by_charged_ticket {
+	uint32                   	charged_ticket  = 1;
 }
 
 

@@ -1,5 +1,6 @@
 create table createaccountinfo
 (
+    id bigint AUTO_INCREMENT PRIMARY KEY,
 	trx_id varchar(64) not null,
 	create_time int unsigned not null,
 	creator varchar(64) not null,

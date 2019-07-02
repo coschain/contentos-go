@@ -841,6 +841,10 @@ func (as *APIService) getAccountResponseByName(name *prototype.AccountName, isNe
 				Active:                witWrap.GetActive(),
 				TpsExpected:           witWrap.GetTpsExpected(),
 				AccountCreateFee:      witWrap.GetAccountCreateFee(),
+				TopNAcquireFreeToken:  witWrap.GetTopNAcquireFreeToken(),
+				TicketFlushInterval:   witWrap.GetEpochDuration(),
+				PerTicketPrice:        witWrap.GetPerTicketPrice(),
+				PerTicketWeight:       witWrap.GetPerTicketWeight(),
 				VoterList:             witWrap.GetVoterList(),
 			}
 		}
@@ -864,6 +868,9 @@ func (as *APIService) getAccountResponseByName(name *prototype.AccountName, isNe
 
 		acctInfo.Reputation = accWrap.GetReputation()
 		acctInfo.ReputationMemo = accWrap.GetReputationMemo()
+
+		acctInfo.FreeTicket = as.pool.GetFreeTicketCount(name)
+		acctInfo.ChargedTicket = accWrap.GetChargedTicket()
 
 		acct.Info = acctInfo
 		acct.State = as.getState()
@@ -1024,6 +1031,7 @@ func (as *APIService) fetchPostInfoResponseById(postId uint64,isNeedLock bool) *
 			Rewards:       pWrap.GetRewards(),
 			DappRewards:   pWrap.GetDappRewards(),
 			WeightedVp:    pWrap.GetWeightedVp(),
+			Ticket:        pWrap.GetTicket(),
 			CashoutInterval:   variables.PostCashOutDelayBlock(),
 			GlobalRewards: &prototype.Vest{Value: globalRewards},
 			GlobalWeightedVp: globalWeightedVp,

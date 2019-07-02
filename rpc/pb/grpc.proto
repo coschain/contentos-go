@@ -177,6 +177,8 @@ message AccountInfo {
     uint32                                  bp_vote_count = 19;
     uint32                                  reputation = 20;
     string                                  reputation_memo = 21;
+    uint32                                  charged_ticket = 22;
+    uint32                                  free_ticket = 23;
 }
 
 message AccountResponse {
@@ -236,7 +238,11 @@ message WitnessResponse {
     bool                               active                          = 7;
     uint64                             tps_expected                    = 8;
     prototype.coin                     account_create_fee              = 9;
-    repeated prototype.account_name    voter_list                      = 10;
+    uint32                             top_n_acquire_free_token        = 10;
+    uint64                             ticket_flush_interval           = 11;
+    prototype.vest                     per_ticket_price                = 12;
+    uint64                             per_ticket_weight               = 13;
+    repeated prototype.account_name    voter_list                      = 14;
 }
 
 message GetWitnessListRequest {
@@ -270,6 +276,7 @@ message PostResponse {
     uint64                                      cashout_interval        =      24;
     prototype.vest                              global_rewards          =      25 ;
     string                                      global_weighted_vp      =      26 ;
+    uint32                                      ticket                  =      27;
 }
 
 message GetPostListByCreatedRequest {

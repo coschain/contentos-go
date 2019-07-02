@@ -155,7 +155,6 @@ func (sabft *SABFT) shuffle(head common.ISignedBlock) (bool, []string) {
 	// When a produce round complete, it adds new producers,
 	// remove unqualified producers and shuffle the block-producing order
 	prods, pubKeys := sabft.ctrl.GetWitnessTopN(constants.MaxWitnessCount)
-	sabft.log.Warn("GetWitnessTopN ", prods)
 
 	var seed uint64
 	if head != nil {

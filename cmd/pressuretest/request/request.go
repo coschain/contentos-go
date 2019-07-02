@@ -428,6 +428,10 @@ func voteArticle(rpcClient grpcpb.ApiServiceClient, voterAccount *wallet.PrivAcc
 		GlobalAccountLIst.RUnlock()
 	}
 
+	if voterAccount.Name == "initminer" {
+		return
+	}
+
 	if postId == 0 {
 		PostIdList.RLock()
 		r := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -533,6 +537,121 @@ func replyArticle(rpcClient grpcpb.ApiServiceClient, fromAccount *wallet.PrivAcc
 		}
 		fmt.Println("Request command: ",
 			fmt.Sprintf("reply %s %d", fromAccount.Name, postId),
+			" ",
+			fmt.Sprintf("Result: %v", resp))
+	}
+}
+
+func acquireTicket(rpcClient grpcpb.ApiServiceClient, fromAccount *wallet.PrivAccount) {
+	if fromAccount == nil {
+		GlobalAccountLIst.RLock()
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		idx := r.Intn( len(GlobalAccountLIst.arr) )
+		fromAccount = GlobalAccountLIst.arr[idx]
+		GlobalAccountLIst.RUnlock()
+	}
+	if fromAccount.Name == "initminer" {
+		return
+	}
+
+	acquireOp := &prototype.AcquireTicketOperation{
+		Account: &prototype.AccountName{Value: fromAccount.Name},
+		Count: 1,
+	}
+
+	signTx, err := utils.GenerateSignedTxAndValidate2(rpcClient, []interface{}{acquireOp}, fromAccount)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	//fmt.Println("Request command: ", fmt.Sprintf("reply %s %d", fromAccount.Name, postId) )
+
+	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
+	resp, err := rpcClient.BroadcastTrx(context.Background(), req)
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		if strings.Contains(resp.Invoice.ErrorInfo, "Insufficient") {
+			if fromAccount == GlobalAccountLIst.arr[0] {
+				fmt.Println("Initminer has no money left")
+				return
+			}
+			err := vest(rpcClient, GlobalAccountLIst.arr[0], fromAccount, 10 * constants.COSTokenDecimals)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+			fmt.Println(fmt.Sprintf("====== vest from:%v to:%v amount:%v",GlobalAccountLIst.arr[0].Name,fromAccount.Name,fromAccount, 10 * constants.COSTokenDecimals))
+			acquireTicket(rpcClient, fromAccount)
+			return
+		}
+
+		if strings.Contains(resp.Invoice.ErrorInfo,"net resource not enough") {
+			stake(rpcClient,fromAccount,fromAccount,1)
+		}
+		fmt.Println("Request command: ",
+			fmt.Sprintf("ticket acquire %s %d", fromAccount.Name, 1),
+			" ",
+			fmt.Sprintf("Result: %v", resp))
+	}
+}
+
+func voteByTicket(rpcClient grpcpb.ApiServiceClient, fromAccount *wallet.PrivAccount, postId uint64) {
+	if fromAccount == nil {
+		GlobalAccountLIst.RLock()
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		idx := r.Intn( len(GlobalAccountLIst.arr) )
+		fromAccount = GlobalAccountLIst.arr[idx]
+		GlobalAccountLIst.RUnlock()
+	}
+
+	if fromAccount.Name == "initminer" {
+		return
+	}
+	if postId == 0 {
+		PostIdList.RLock()
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		idx := r.Intn( len(PostIdList.arr) )
+		postId = PostIdList.arr[idx]
+		PostIdList.RUnlock()
+	}
+
+	voteByTicketOp := &prototype.VoteByTicketOperation{
+		Account: &prototype.AccountName{Value: fromAccount.Name},
+		Idx: postId,
+		Count: 1,
+	}
+
+	signTx, err := utils.GenerateSignedTxAndValidate2(rpcClient, []interface{}{voteByTicketOp}, fromAccount)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	//fmt.Println("Request command: ", fmt.Sprintf("reply %s %d", fromAccount.Name, postId) )
+
+	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
+	resp, err := rpcClient.BroadcastTrx(context.Background(), req)
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		if strings.Contains(resp.Invoice.ErrorInfo, "insufficient") {
+			if fromAccount == GlobalAccountLIst.arr[0] {
+				fmt.Println("Initminer has no money left")
+				return
+			}
+			acquireTicket(rpcClient, fromAccount)
+			fmt.Println(fmt.Sprintf("====== acquire ticket from:%v count:%v",fromAccount.Name,1))
+			voteByTicket(rpcClient, fromAccount, postId)
+			return
+		}
+
+		if strings.Contains(resp.Invoice.ErrorInfo,"net resource not enough") {
+			stake(rpcClient,fromAccount,fromAccount,1)
+		}
+		fmt.Println("Request command: ",
+			fmt.Sprintf("ticket vote %s %d %d", fromAccount.Name, postId, 1),
 			" ",
 			fmt.Sprintf("Result: %v", resp))
 	}

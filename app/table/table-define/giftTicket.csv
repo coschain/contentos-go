@@ -1,0 +1,5 @@
+type                            ,pName     ,mKey,unique,sort,reverseSort,importPath
+prototype.gift_ticket_key_type  ,ticket    ,1   ,0     ,1   ,1          ,prototype/type.proto
+uint64                   							,denom     ,0   ,0     ,0   ,0          ,
+uint64                          ,count     ,0   ,0     ,0   ,1          ,
+uint64                          ,expire_block,0 ,0    ,0   ,0          ,

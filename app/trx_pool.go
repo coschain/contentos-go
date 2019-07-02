@@ -442,6 +442,7 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabasePatch, entry *TrxEn
 
 		if err := recover(); err != nil {
 			receipt.ErrorInfo = fmt.Sprintf("applyTransaction failed : %v", err)
+			c.log.Warnf("applyTransaction failed : %v", err)
 			trxObserver.EndTrx(false)
 			if useGas && constants.EnableResourceControl {
 				receipt.Status = prototype.StatusDeductStamina
@@ -591,6 +592,8 @@ func (c *TrxPool) applyBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag
 	eTiming.Begin()
 	c.economist.Mint(pseudoTrxObserver)
 	eTiming.Mark()
+	c.economist.Distribute(pseudoTrxObserver)
+	eTiming.Mark()
 	c.economist.Do(pseudoTrxObserver)
 	eTiming.Mark()
 	c.economist.PowerDown()
@@ -649,6 +652,7 @@ func (c *TrxPool) initGenesis() {
 		tInfo.Owner = pubKey
 		tInfo.StakeVesting = prototype.NewVest(0)
 		tInfo.Reputation = constants.DefaultReputation
+		tInfo.ChargedTicket = 0
 	}), "CreateAccount error")
 
 	// create witness_object
@@ -662,6 +666,10 @@ func (c *TrxPool) initGenesis() {
 		tInfo.TpsExpected = constants.DefaultTPSExpected
 		tInfo.AccountCreateFee = prototype.NewCoin(constants.DefaultAccountCreateFee)
 		tInfo.VoteCount = prototype.NewVest(0)
+		tInfo.TopNAcquireFreeToken = constants.InitTopN
+		tInfo.EpochDuration = constants.InitEpochDuration
+		tInfo.PerTicketPrice = prototype.NewVest(constants.PerTicketPrice * constants.COSTokenDecimals)
+		tInfo.PerTicketWeight = constants.PerTicketWeight
 	}), "Witness Create Error")
 
 	// create dynamic global properties
@@ -695,6 +703,13 @@ func (c *TrxPool) initGenesis() {
 		tInfo.Props.VoterRewards = prototype.NewVest(0)
 		tInfo.Props.StakeVestingShares = prototype.NewVest(0)
 		tInfo.Props.OneDayStamina = constants.OneDayStamina
+		tInfo.Props.CurrentEpochStartBlock = 0
+		tInfo.Props.EpochDuration = constants.InitEpochDuration
+		tInfo.Props.TopNAcquireFreeToken = constants.InitTopN
+		tInfo.Props.PerTicketPrice = prototype.NewVest(constants.PerTicketPrice * constants.COSTokenDecimals)
+		tInfo.Props.PerTicketWeight = constants.PerTicketWeight
+		tInfo.Props.TicketsIncome = prototype.NewVest(0)
+		tInfo.Props.ChargedTicketsNum = 0
 	}), "CreateDynamicGlobalProperties error")
 
 	// create block summary buffer 2048
@@ -758,6 +773,13 @@ func (c *TrxPool) TransferFromStakeVest(value *prototype.Vest) {
 
 		mustNoError(vest.Sub(value), "UnStakeVestingShares overflow")
 		dgpo.StakeVestingShares = vest
+	})
+}
+
+func (c *TrxPool) UpdateTicketIncomeAndNum(income *prototype.Vest, count uint64) {
+	c.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
+		props.TicketsIncome = income
+		props.ChargedTicketsNum = count
 	})
 }
 
@@ -850,6 +872,10 @@ func (c *TrxPool) updateGlobalWitnessBoot(bpNameList []string) {
 	}
 	c.modifyGlobalDynamicData(func(dgpo *prototype.DynamicProperties) {
 		dgpo.WitnessBootCompleted = true
+		// start epoch
+		if dgpo.CurrentEpochStartBlock == 0 {
+			dgpo.CurrentEpochStartBlock = 1
+		}
 	})
 }
 
@@ -857,6 +883,10 @@ func (c *TrxPool) updateGlobalResourceParam(bpNameList []string) {
 	var tpsExpectedList  []uint64
 	var staminaFreeList  []uint64
 	var accountCreationFee []uint64
+	var epochDuration []uint64
+	var topN []uint64
+	var perTicketPriceValue []uint64
+	var perTicketWeight []uint64
 
 	for i := range bpNameList {
 		ac := &prototype.AccountName{
@@ -869,17 +899,29 @@ func (c *TrxPool) updateGlobalResourceParam(bpNameList []string) {
 		tpsExpectedList = append(tpsExpectedList, witnessWrap.GetTpsExpected())
 		staminaFreeList = append(staminaFreeList, witnessWrap.GetProposedStaminaFree())
 		accountCreationFee = append(accountCreationFee, witnessWrap.GetAccountCreateFee().Value)
+		epochDuration = append(epochDuration, witnessWrap.GetEpochDuration())
+		topN = append(topN, uint64(witnessWrap.GetTopNAcquireFreeToken()))
+		perTicketPriceValue = append(perTicketPriceValue, witnessWrap.GetPerTicketPrice().Value)
+		perTicketWeight = append(perTicketWeight, witnessWrap.GetPerTicketWeight())
 	}
 
 	sort.Sort(selfmath.DirRange(tpsExpectedList))
 	sort.Sort(selfmath.DirRange(staminaFreeList))
 	sort.Sort(selfmath.DirRange(accountCreationFee))
+	sort.Sort(selfmath.DirRange(epochDuration))
+	sort.Sort(selfmath.DirRange(topN))
+	sort.Sort(selfmath.DirRange(perTicketPriceValue))
+	sort.Sort(selfmath.DirRange(perTicketWeight))
 
 	c.modifyGlobalDynamicData(func(dgpo *prototype.DynamicProperties) {
 		dgpo.StaminaFree = staminaFreeList[ len(staminaFreeList) / 2 ]
 		dgpo.TpsExpected = tpsExpectedList[ len(tpsExpectedList) / 2 ]
 		midVal := accountCreationFee[ len(accountCreationFee) / 2 ]
 		dgpo.AccountCreateFee = prototype.NewCoin(midVal)
+		dgpo.EpochDuration = epochDuration[len(epochDuration) / 2]
+		dgpo.TopNAcquireFreeToken = uint32(topN[len(topN) / 2])
+		dgpo.PerTicketPrice = prototype.NewVest(perTicketPriceValue[len(perTicketPriceValue) / 2])
+		dgpo.PerTicketWeight = perTicketWeight[len(perTicketWeight) / 2]
 	})
 }
 
@@ -1175,5 +1217,19 @@ func (c *TrxPool) CheckNetForRPC(name string, db iservices.IDatabaseRW, sizeInBy
 			}
 			return false, freeLeft+stakeLeft, netUse
 		}
+	}
+}
+
+func (c *TrxPool) GetFreeTicketCount(name *prototype.AccountName) uint32 {
+	freeTicketWrap := table.NewSoGiftTicketWrap(c.db, &prototype.GiftTicketKeyType{
+		Type: 0,
+		From: []byte("contentos"),
+		To: []byte(name.Value),
+		CreateBlock: c.GetProps().GetCurrentEpochStartBlock(),
+	})
+	if freeTicketWrap.CheckExist() {
+		return 1
+	} else {
+		return 0
 	}
 }
