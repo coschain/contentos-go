@@ -175,6 +175,8 @@ message AccountInfo {
     prototype.vest                          withdraw_each_time = 17;
     prototype.time_point_sec                next_withdraw_time =      18;
     uint32                                  bp_vote_count = 19;
+    uint32                                  reputation = 20;
+    string                                  reputation_memo = 21;
 }
 
 message AccountResponse {
