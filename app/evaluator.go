@@ -351,6 +351,7 @@ func (ev *PostEvaluator) Apply() {
 		t.Rewards = &prototype.Vest{Value: 0}
 		t.DappRewards = &prototype.Vest{Value: 0}
 		t.Ticket = 0
+		t.Copyright = constants.CopyrightUnkown
 	}), "create post error")
 
 	authorWrap.MdLastPostTime(ev.GlobalProp().HeadBlockTime())

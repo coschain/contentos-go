@@ -76,6 +76,9 @@ func (w *CosVM) initNativeFuncs() {
 	w.Register("get_reputation_admin", e_getReputationAdmin, 100)
 	w.Register("set_reputation", e_setReputation, 0)
 
+	w.Register("set_copyright_admin", e_setCopyrightAdmin, 0)
+	w.Register("set_copyright", e_setCopyright, 0)
+
 	// for memeory
 	w.Register("memcpy", e_memcpy, 100)
 	w.Register("memset", e_memset, 100)

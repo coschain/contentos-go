@@ -102,6 +102,7 @@ message dynamic_properties {
     uint64             per_ticket_weight = 43;
     prototype.vest     tickets_income = 44;
     uint64             charged_tickets_num = 45;
+    prototype.account_name    copyright_admin = 46;
 }
 
 message beneficiary_route_type{

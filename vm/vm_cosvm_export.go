@@ -227,6 +227,48 @@ func e_tableGetRecordEx(proc *exec.Process, ownerName, ownerNameLen int32, contr
 		value, valueLen, "tableGetRecordEx()")
 }
 
+func e_setCopyrightAdmin(proc *exec.Process, name, nameLen int32) {
+	w := proc.GetTag().(*CosVMNative)
+
+	w.CosAssert(w.ReadContractOwner() == constants.COSSysAccount && w.ReadContractCaller() == constants.COSSysAccount,
+		"SetCopyrightAdmin: access denied",
+	)
+	w.SetCopyrightAdmin(string(w.cosVM.read(proc, name, nameLen, "setCopyrightAdmin().name")))
+}
+
+func e_setCopyright(proc *exec.Process, postIds, postIdsLen, copyrights, copyrightsLen, memoPtrs, memoPtrLen, memoSizes, memoSizeLen int32) int32 {
+	w := proc.GetTag().(*CosVMNative)
+
+	w.CosAssert(
+		w.ReadContractOwner() == constants.COSSysAccount && w.ReadContractCaller() == w.GetCopyrightAdmin(),
+		"SetCopyright(): access denied",
+	)
+
+	postIdValues := w.cosVM.read(proc, postIds, postIdsLen, "setCopyright().postIds")
+	valInts := w.cosVM.read(proc, copyrights, copyrightsLen, "setCopyright().copyrights")
+	memoPtr := w.cosVM.read(proc, memoPtrs, memoPtrLen, "setCopyright().memoPtrs")
+	memoSize := w.cosVM.read(proc, memoSizes, memoSizeLen, "setCopyright().memoSizes")
+
+	count := int(postIdsLen / 8)
+	w.CosAssert(postIdsLen == copyrightsLen && postIdsLen == memoPtrLen && postIdsLen == memoSizeLen, "setCopyright(): illegal parameters")
+
+	for i := 0; i < count; i++ {
+		offset := i * 8
+		id := binary.LittleEndian.Uint64(postIdValues[offset:])
+
+		value := binary.LittleEndian.Uint32(valInts[offset:])
+		w.CosAssert(value >= constants.CopyrightUnkown && value <= constants.CopyrightConfirmation,
+			fmt.Sprintf("setCopyright().copyright[%d]=%d: out of bounds", i, value))
+		memo := string(w.cosVM.read(proc,
+			int32(binary.LittleEndian.Uint32(memoPtr[offset:])),
+			int32(binary.LittleEndian.Uint32(memoSize[offset:])),
+			fmt.Sprintf("setCopyright().memos[%d]", i),
+		))
+		w.SetUserCopyright(id, value, memo)
+	}
+	return int32(count)
+}
+
 func e_setReputationAdmin(proc *exec.Process, name, nameLen int32) {
 	w := proc.GetTag().(*CosVMNative)
 

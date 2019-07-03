@@ -256,6 +256,11 @@ func (e *Economist) Do(trxObserver iservices.ITrxObserver) {
 			continue
 		}
 
+		if post.GetCopyright() == constants.CopyrightInfringement {
+			e.log.Warnf("ignored post %d due to invalid copyright,author %s", *pid, authorName.Value)
+			continue
+		}
+
 		if post.GetParentId() == 0 {
 			posts = append(posts, post)
 			postVpAccumulator.Add(&postVpAccumulator, weightedVp)
@@ -349,6 +354,10 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 	t0 := time.Now()
 	var vpAccumulator big.Int
 	for _, post := range posts {
+		if post.GetCopyright() == constants.CopyrightInfringement {
+			e.log.Warnf("ignored post %v vp accumulate due to invalid copyright", post.GetPostId())
+			continue
+		}
 		//vp, _ := new(big.Int).SetString(post.GetWeightedVp(), 10)
 		//vpAccumulator.Add(&vpAccumulator, vp)
 		//vpAccumulator += post.GetWeightedVp()
@@ -365,6 +374,11 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 	var spentDappReward uint64 = 0
 	//var spentVoterReward uint64 = 0
 	for _, post := range posts {
+		if post.GetCopyright() == constants.CopyrightInfringement {
+			post.MdCashoutBlockNum(math.MaxUint32)
+			e.log.Warnf("ignored post %v postCashout due to invalid copyright", post.GetPostId())
+			continue
+		}
 		tPost := time.Now()
 		author := post.GetAuthor().Value
 		var reward uint64 = 0
@@ -468,6 +482,10 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 	//var vpAccumulator uint64 = 0
 	var vpAccumulator big.Int
 	for _, reply := range replies {
+		if reply.GetCopyright() == constants.CopyrightInfringement {
+			e.log.Warnf("ignored reply %v vp accumulate due to invalid copyright", reply.GetPostId())
+			continue
+		}
 		//vpAccumulator += ISqrt(reply.GetWeightedVp())
 		//vpAccumulator += reply.GetWeightedVp()
 		//vp, _ := new(big.Int).SetString(reply.GetWeightedVp(), 10)
@@ -484,6 +502,11 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 	var spentDappReward uint64 = 0
 	//var spentVoterReward uint64 = 0
 	for _, reply := range replies {
+		if reply.GetCopyright() == constants.CopyrightInfringement {
+			reply.MdCashoutBlockNum(math.MaxUint32)
+			e.log.Warnf("ignored reply %v replyCashout due to invalid copyright", reply.GetPostId())
+			continue
+		}
 		author := reply.GetAuthor().Value
 		var reward uint64 = 0
 		var beneficiaryReward uint64 = 0

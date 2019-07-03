@@ -24,6 +24,8 @@ var (
 	PostCashoutBlockNumCell  uint32 = 2338008419
 	PostCategoryCell         uint32 = 2849013589
 	PostChildrenCell         uint32 = 3908796047
+	PostCopyrightCell        uint32 = 2903094549
+	PostCopyrightMemoCell    uint32 = 791964881
 	PostCreatedCell          uint32 = 4199172684
 	PostDappRewardsCell      uint32 = 3278808896
 	PostDepthCell            uint32 = 4080627723
@@ -399,6 +401,12 @@ func (s *SoPostWrap) getMemKeyPrefix(fName string) uint32 {
 	if fName == "Children" {
 		return PostChildrenCell
 	}
+	if fName == "Copyright" {
+		return PostCopyrightCell
+	}
+	if fName == "CopyrightMemo" {
+		return PostCopyrightMemoCell
+	}
 	if fName == "Created" {
 		return PostCreatedCell
 	}
@@ -511,6 +519,20 @@ func (s *SoPostWrap) saveAllMemKeys(tInfo *SoPost, br bool) error {
 			return err
 		} else {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Children", err)
+		}
+	}
+	if err = s.saveMemKeyCopyright(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Copyright", err)
+		}
+	}
+	if err = s.saveMemKeyCopyrightMemo(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "CopyrightMemo", err)
 		}
 	}
 	if err = s.saveMemKeyCreated(tInfo); err != nil {
@@ -1145,6 +1167,170 @@ func (s *SoPostWrap) MdChildren(p uint32) bool {
 		return false
 	}
 	sa.Children = p
+
+	return true
+}
+
+func (s *SoPostWrap) saveMemKeyCopyright(tInfo *SoPost) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemPostByCopyright{}
+	val.Copyright = tInfo.Copyright
+	key, err := s.encodeMemKey("Copyright")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
+
+func (s *SoPostWrap) GetCopyright() uint32 {
+	res := true
+	msg := &SoMemPostByCopyright{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("Copyright")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.Copyright
+			}
+		}
+	}
+	if !res {
+		var tmpValue uint32
+		return tmpValue
+	}
+	return msg.Copyright
+}
+
+func (s *SoPostWrap) MdCopyright(p uint32) bool {
+	if s.dba == nil {
+		return false
+	}
+	key, err := s.encodeMemKey("Copyright")
+	if err != nil {
+		return false
+	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemPostByCopyright{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoPost{}
+	sa.PostId = *s.mainKey
+	sa.Copyright = ori.Copyright
+
+	ori.Copyright = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
+		return false
+	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.Copyright = p
+
+	return true
+}
+
+func (s *SoPostWrap) saveMemKeyCopyrightMemo(tInfo *SoPost) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemPostByCopyrightMemo{}
+	val.CopyrightMemo = tInfo.CopyrightMemo
+	key, err := s.encodeMemKey("CopyrightMemo")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
+
+func (s *SoPostWrap) GetCopyrightMemo() string {
+	res := true
+	msg := &SoMemPostByCopyrightMemo{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("CopyrightMemo")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.CopyrightMemo
+			}
+		}
+	}
+	if !res {
+		var tmpValue string
+		return tmpValue
+	}
+	return msg.CopyrightMemo
+}
+
+func (s *SoPostWrap) MdCopyrightMemo(p string) bool {
+	if s.dba == nil {
+		return false
+	}
+	key, err := s.encodeMemKey("CopyrightMemo")
+	if err != nil {
+		return false
+	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemPostByCopyrightMemo{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoPost{}
+	sa.PostId = *s.mainKey
+	sa.CopyrightMemo = ori.CopyrightMemo
+
+	ori.CopyrightMemo = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
+		return false
+	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.CopyrightMemo = p
 
 	return true
 }

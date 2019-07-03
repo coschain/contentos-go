@@ -133,6 +133,10 @@ const (
 	MaxReputation       = 10000
 	DefaultReputation   = 100
 
+	CopyrightUnkown             = 0
+	CopyrightInfringement       = 1
+	CopyrightConfirmation       = 2
+
 	MaxTicketsPerTurn = 1e5
 	PerTicketPrice = 1
 	PerTicketPriceStr = "1.000000"

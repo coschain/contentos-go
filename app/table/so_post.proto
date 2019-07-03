@@ -27,6 +27,8 @@ message so_post {
     prototype.vest                         rewards                 =      17;
     prototype.vest                         dapp_rewards            =      18;
     uint32                                 ticket                  =      19;
+    uint32                                 copyright               =      20;
+    string                                 copyright_memo          =      21;
       
 }
 
@@ -123,6 +125,16 @@ message so_mem_post_by_dapp_rewards {
 
 message so_mem_post_by_ticket {
 	uint32                              	ticket              = 1;
+}
+
+
+message so_mem_post_by_copyright {
+	uint32                              	copyright           = 1;
+}
+
+
+message so_mem_post_by_copyright_memo {
+	string                              	copyright_memo      = 1;
 }
 
 

@@ -230,6 +230,27 @@ func (w *CosVMNative) SetReputationAdmin(name string) {
 	w.cosVM.props.ReputationAdmin = props.ReputationAdmin
 }
 
+func (w *CosVMNative) SetCopyrightAdmin(name string) {
+	singleId := int32(constants.SingletonId)
+	props := *w.cosVM.props
+	props.CopyrightAdmin = prototype.NewAccountName(name)
+	w.CosAssert(table.NewSoGlobalWrap(w.cosVM.db, &singleId).MdProps(&props), "failed to set copyright admin")
+	w.cosVM.props.CopyrightAdmin = props.CopyrightAdmin
+}
+
+func (w *CosVMNative) GetCopyrightAdmin() (name string) {
+	if w.cosVM.props.CopyrightAdmin != nil {
+		name = w.cosVM.props.CopyrightAdmin.Value
+	}
+	return
+}
+
+func (w *CosVMNative) SetUserCopyright(postId uint64, value uint32, memo string) {
+	post := table.NewSoPostWrap(w.cosVM.db, &postId)
+	w.CosAssert(post.MdCopyright(value), fmt.Sprintf("failed to modify copyright of %d", postId))
+	w.CosAssert(post.MdCopyrightMemo(memo), fmt.Sprintf("failed to modify copyright memo of %d", postId))
+}
+
 func (w *CosVMNative) GetReputationAdmin() (name string) {
 	if w.cosVM.props.ReputationAdmin != nil {
 		name = w.cosVM.props.ReputationAdmin.Value
