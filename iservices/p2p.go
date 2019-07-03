@@ -2,7 +2,6 @@ package iservices
 
 import (
 	comn "github.com/coschain/contentos-go/common"
-	"github.com/coschain/contentos-go/p2p/message/types"
 	"github.com/coschain/contentos-go/p2p/peer"
 )
 
@@ -19,8 +18,11 @@ type IP2P interface {
 	// when got one unlinked block, to fetch its previous block
 	FetchUnlinkedBlock(prevId comn.BlockID)
 
-	// Send msg to specific peer
-	Send(p *peer.Peer, msg types.Message, isConsensus bool) error
+	// Send message to a specific peer
+	SendToPeer(p *peer.Peer, message interface{})
+
+	// Send message to a random peer
+	RandomSend(message interface{})
 
 	// Request checkpoint batch [startNum, endNum)
 	RequestCheckpoint(startNum, endNum uint64)

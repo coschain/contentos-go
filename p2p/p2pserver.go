@@ -525,3 +525,29 @@ func (this *P2PServer) FetchOutOfRange(localHeadID, targetID coomn.BlockID) {
 	}
 	this.log.Info("all peers are busy, should wait idle peer")
 }
+
+func (this *P2PServer) SendToPeer(p *peer.Peer, message interface{}) {
+	this.log.Info("send message to a specific peer")
+	//if this.Network.IsPeerEstablished(p) {
+	//	//isConsensus := false
+	//	//err := this.Network.Send(p, message, isConsensus)
+	//	//if err != nil {}
+	//	return
+	//}
+	//this.log.Errorf("[p2p] send to a not ESTABLISH peer in SendToPeer %s",
+	//	p.GetAddr())
+}
+
+func (this *P2PServer) RandomSend(message interface{}) {
+	this.log.Info("send message to a random peer")
+	//np := this.Network.GetNp()
+	//np.RLock()
+	//defer np.RUnlock()
+	//
+	//for _, p := range np.List {
+	//	if this.Network.IsPeerEstablished(p) {
+	//		// send message to this peer, if err is nil return, else continue
+	//		return
+	//	}
+	//}
+}
