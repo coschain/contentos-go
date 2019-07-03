@@ -118,11 +118,15 @@ func NewVersion(n p2p.P2P, isCons bool, height uint64, runningVersion string) mt
 }
 
 // consensus package
-func NewConsMsg(msg message.ConsensusMessage) mt.Message {
+func NewConsMsg(msg message.ConsensusMessage, needForwardBroadcast bool) mt.Message {
 	var reqmsg mt.ConsMsg
 
 	reqmsg.MsgData = msg
-	reqmsg.Bcast = 1
+	if needForwardBroadcast {
+		reqmsg.Bcast = 1
+	} else {
+		reqmsg.Bcast = 0
+	}
 
 	return &reqmsg
 }

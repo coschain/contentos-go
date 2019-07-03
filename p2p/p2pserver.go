@@ -412,7 +412,7 @@ func (this *P2PServer) Broadcast(message interface{}) {
 		msg = msgpack.NewSigBlkIdMsg(block)
 	case consmsg.ConsensusMessage:
 		cmsg := message.(consmsg.ConsensusMessage)
-		msg = msgpack.NewConsMsg(cmsg)
+		msg = msgpack.NewConsMsg(cmsg, true)
 	default:
 		this.log.Warnf("[p2p] Unknown Xmit message %v , type %v", message,
 			reflect.TypeOf(message))
