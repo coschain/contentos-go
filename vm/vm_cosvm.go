@@ -70,6 +70,15 @@ func (w *CosVM) initNativeFuncs() {
 	w.Register("table_delete_record", e_tableDeleteRecord, 1000)
 	w.Register("table_get_record_ex", e_tableGetRecordEx, 1500)
 
+	w.Register("get_block_producers", e_getBlockProducers, 500)
+
+	w.Register("set_reputation_admin", e_setReputationAdmin, 0)
+	w.Register("get_reputation_admin", e_getReputationAdmin, 100)
+	w.Register("set_reputation", e_setReputation, 0)
+
+	w.Register("set_copyright_admin", e_setCopyrightAdmin, 0)
+	w.Register("set_copyright", e_setCopyright, 0)
+
 	// for memeory
 	w.Register("memcpy", e_memcpy, 100)
 	w.Register("memset", e_memset, 100)

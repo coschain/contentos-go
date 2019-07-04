@@ -263,6 +263,7 @@ func (ev *AccountCreateEvaluator) Apply() {
 		tInfo.Owner = op.Owner
 		tInfo.LastOwnerUpdate = prototype.NewTimePointSec(0)
 		tInfo.StakeVesting = prototype.NewVest(0)
+		tInfo.Reputation = constants.DefaultReputation
 		tInfo.ChargedTicket = 0
 	}), "duplicate create account object")
 
@@ -350,6 +351,7 @@ func (ev *PostEvaluator) Apply() {
 		t.Rewards = &prototype.Vest{Value: 0}
 		t.DappRewards = &prototype.Vest{Value: 0}
 		t.Ticket = 0
+		t.Copyright = constants.CopyrightUnkown
 	}), "create post error")
 
 	authorWrap.MdLastPostTime(ev.GlobalProp().HeadBlockTime())
@@ -466,6 +468,12 @@ func (ev *VoteEvaluator) Apply() {
 	//weightedVp := vesting * uint64(usedVp)
 	weightedVp := new(big.Int).SetUint64(vesting)
 	weightedVp.Mul(weightedVp, new(big.Int).SetUint64(uint64(usedVp)))
+
+	// if voter's reputation is 0, she has no voting power.
+	if voterWrap.GetReputation() == constants.MinReputation {
+		weightedVp.SetInt64(0)
+	}
+
 	if postWrap.GetCashoutBlockNum() > ev.GlobalProp().GetProps().HeadBlockNumber {
 		lastVp := postWrap.GetWeightedVp()
 		var lvp, tvp big.Int
@@ -1279,17 +1287,22 @@ func (ev *VoteByTicketEvaluator) Apply() {
 	opAssert(count > 0, "at least 1 ticket to vote per turn")
 	opAssert(count <= constants.MaxTicketsPerTurn, fmt.Sprintf("at most %d ticket per turn", int(constants.MaxTicketsPerTurn)))
 
+	// if voter's reputation is 0, her tickets are useless.
+	factor := uint32(1)
+	if account.GetReputation() == constants.MinReputation {
+		factor = 0
+	}
 	if freeTicket > 0 {
 		// spend free ticket first
 		count = count - 1
 		opAssert(account.GetChargedTicket() >= uint32(count), "insufficient ticket to vote")
 		account.MdChargedTicket(account.GetChargedTicket() - uint32(count))
 		freeTicketWrap.RemoveGiftTicket()
-		postWrap.MdTicket(originTicketCount + uint32(count + 1))
+		postWrap.MdTicket(originTicketCount + uint32(count + 1) * factor)
 	} else {
 		opAssert(account.GetChargedTicket() >= uint32(count), "insufficient ticket to vote")
 		account.MdChargedTicket(account.GetChargedTicket() - uint32(count))
-		postWrap.MdTicket(originTicketCount + uint32(count))
+		postWrap.MdTicket(originTicketCount + uint32(count) * factor)
 	}
 
 	// record

@@ -4,10 +4,12 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"github.com/coschain/contentos-go/app/table"
+	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/vm/contract/abi"
 	table2 "github.com/coschain/contentos-go/vm/contract/table"
 	"github.com/hashicorp/golang-lru"
+	"strings"
 )
 
 //type ICosVMNative interface {
@@ -56,6 +58,10 @@ func (w *CosVMNative) CurrentTimestamp() uint64 {
 
 func (w *CosVMNative) CurrentWitness() string {
 	return w.cosVM.props.CurrentWitness.Value
+}
+
+func (w *CosVMNative) GetBlockProducers() string {
+	return strings.Join(w.cosVM.ctx.Injector.GetBlockProducers(), " ")
 }
 
 func (w *CosVMNative) PrintString(str string) {
@@ -214,4 +220,46 @@ func (w *CosVMNative) TableGetRecordEx(ownerName, contractName, tableName string
 		return nil
 	}
 	return data
+}
+
+func (w *CosVMNative) SetReputationAdmin(name string) {
+	singleId := int32(constants.SingletonId)
+	props := *w.cosVM.props
+	props.ReputationAdmin = prototype.NewAccountName(name)
+	w.CosAssert(table.NewSoGlobalWrap(w.cosVM.db, &singleId).MdProps(&props), "failed to set reputation admin")
+	w.cosVM.props.ReputationAdmin = props.ReputationAdmin
+}
+
+func (w *CosVMNative) SetCopyrightAdmin(name string) {
+	singleId := int32(constants.SingletonId)
+	props := *w.cosVM.props
+	props.CopyrightAdmin = prototype.NewAccountName(name)
+	w.CosAssert(table.NewSoGlobalWrap(w.cosVM.db, &singleId).MdProps(&props), "failed to set copyright admin")
+	w.cosVM.props.CopyrightAdmin = props.CopyrightAdmin
+}
+
+func (w *CosVMNative) GetCopyrightAdmin() (name string) {
+	if w.cosVM.props.CopyrightAdmin != nil {
+		name = w.cosVM.props.CopyrightAdmin.Value
+	}
+	return
+}
+
+func (w *CosVMNative) SetUserCopyright(postId uint64, value uint32, memo string) {
+	post := table.NewSoPostWrap(w.cosVM.db, &postId)
+	w.CosAssert(post.MdCopyright(value), fmt.Sprintf("failed to modify copyright of %d", postId))
+	w.CosAssert(post.MdCopyrightMemo(memo), fmt.Sprintf("failed to modify copyright memo of %d", postId))
+}
+
+func (w *CosVMNative) GetReputationAdmin() (name string) {
+	if w.cosVM.props.ReputationAdmin != nil {
+		name = w.cosVM.props.ReputationAdmin.Value
+	}
+	return
+}
+
+func (w *CosVMNative) SetUserReputation(name string, value uint32, memo string) {
+	account := table.NewSoAccountWrap(w.cosVM.db, prototype.NewAccountName(name))
+	w.CosAssert(account.MdReputation(value), fmt.Sprintf("failed to modify reputation of %s", name))
+	w.CosAssert(account.MdReputationMemo(memo), fmt.Sprintf("failed to modify reputation memo of %s", name))
 }

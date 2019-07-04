@@ -1,11 +1,13 @@
 package constants
 
 const (
+	SingletonId      = 1
 	COSChainName     = "contentos"
 	COSTokenDecimals = 1000000
 	COSInitSupply    = 6500000000 * COSTokenDecimals
 	COSConsensusName = "saBFT"
 	COSInitMiner     = "initminer"
+	COSSysAccount    = "contentos"
 
 	CoinSymbol = "COS"
 	VestSymbol = "VEST"
@@ -126,6 +128,15 @@ const (
 	FreeStaminaOverFlow  = "freeStaminaOverFlow"
 	StakeStaminaOverFlow = "stakeStaminaOverFlow"
 	EnableResourceControl = true
+
+	MinReputation       = 0
+	MaxReputation       = 10000
+	DefaultReputation   = 100
+
+	CopyrightUnkown             = 0
+	CopyrightInfringement       = 1
+	CopyrightConfirmation       = 2
+
 	MaxTicketsPerTurn = 1e5
 	PerTicketPrice = 1
 	PerTicketPriceStr = "1.000000"

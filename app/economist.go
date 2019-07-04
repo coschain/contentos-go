@@ -246,6 +246,21 @@ func (e *Economist) Do(trxObserver iservices.ITrxObserver) {
 		giftNum := new(big.Int).SetUint64(uint64(post.GetTicket()))
 		giftVp := new(big.Int).Mul(giftNum, new(big.Int).SetUint64(globalProps.GetPerTicketWeight()))
 		weightedVp := new(big.Int).Add(ISqrt(post.GetWeightedVp()), giftVp)
+
+		authorName := post.GetAuthor()
+		if author, err := e.GetAccount(authorName); err != nil {
+			e.log.Warnf("author of post %d not found, name %s", *pid, authorName.Value)
+			continue
+		} else if author.GetReputation() == constants.MinReputation {
+			e.log.Warnf("ignored post %d due to bad reputation of author %s", *pid, authorName.Value)
+			continue
+		}
+
+		if post.GetCopyright() == constants.CopyrightInfringement {
+			e.log.Warnf("ignored post %d due to invalid copyright,author %s", *pid, authorName.Value)
+			continue
+		}
+
 		if post.GetParentId() == 0 {
 			posts = append(posts, post)
 			postVpAccumulator.Add(&postVpAccumulator, weightedVp)
@@ -339,6 +354,10 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 	t0 := time.Now()
 	var vpAccumulator big.Int
 	for _, post := range posts {
+		if post.GetCopyright() == constants.CopyrightInfringement {
+			e.log.Warnf("ignored post %v vp accumulate due to invalid copyright", post.GetPostId())
+			continue
+		}
 		//vp, _ := new(big.Int).SetString(post.GetWeightedVp(), 10)
 		//vpAccumulator.Add(&vpAccumulator, vp)
 		//vpAccumulator += post.GetWeightedVp()
@@ -355,6 +374,11 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 	var spentDappReward uint64 = 0
 	//var spentVoterReward uint64 = 0
 	for _, post := range posts {
+		if post.GetCopyright() == constants.CopyrightInfringement {
+			post.MdCashoutBlockNum(math.MaxUint32)
+			e.log.Warnf("ignored post %v postCashout due to invalid copyright", post.GetPostId())
+			continue
+		}
 		tPost := time.Now()
 		author := post.GetAuthor().Value
 		var reward uint64 = 0
@@ -401,6 +425,9 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 			beneficiaryWrap, err := e.GetAccount(&prototype.AccountName{Value: name})
 			if err != nil {
 				e.log.Debugf("beneficiary get account %s failed", name)
+				continue
+			} else if beneficiaryWrap.GetReputation() == constants.MinReputation {
+				e.log.Debugf("ignored beneficiary %s due to bad reputation", name)
 				continue
 			} else {
 				oldVest := beneficiaryWrap.GetVestingShares()
@@ -455,6 +482,10 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 	//var vpAccumulator uint64 = 0
 	var vpAccumulator big.Int
 	for _, reply := range replies {
+		if reply.GetCopyright() == constants.CopyrightInfringement {
+			e.log.Warnf("ignored reply %v vp accumulate due to invalid copyright", reply.GetPostId())
+			continue
+		}
 		//vpAccumulator += ISqrt(reply.GetWeightedVp())
 		//vpAccumulator += reply.GetWeightedVp()
 		//vp, _ := new(big.Int).SetString(reply.GetWeightedVp(), 10)
@@ -471,6 +502,11 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 	var spentDappReward uint64 = 0
 	//var spentVoterReward uint64 = 0
 	for _, reply := range replies {
+		if reply.GetCopyright() == constants.CopyrightInfringement {
+			reply.MdCashoutBlockNum(math.MaxUint32)
+			e.log.Warnf("ignored reply %v replyCashout due to invalid copyright", reply.GetPostId())
+			continue
+		}
 		author := reply.GetAuthor().Value
 		var reward uint64 = 0
 		var beneficiaryReward uint64 = 0
@@ -510,6 +546,9 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 			beneficiaryWrap, err := e.GetAccount(&prototype.AccountName{Value: name})
 			if err != nil {
 				e.log.Debugf("beneficiary get account %s failed", name)
+			} else if beneficiaryWrap.GetReputation() == constants.MinReputation {
+				e.log.Debugf("ignored beneficiary %s due to bad reputation", name)
+				continue
 			} else {
 				//beneficiaryWrap.MdVestingShares(&prototype.Vest{ Value: r + beneficiaryWrap.GetVestingShares().Value})
 				oldVest := beneficiaryWrap.GetVestingShares()

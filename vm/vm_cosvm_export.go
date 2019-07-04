@@ -2,6 +2,9 @@ package vm
 
 import (
 	"crypto/sha256"
+	"encoding/binary"
+	"fmt"
+	"github.com/coschain/contentos-go/common/constants"
 	"github.com/go-interpreter/wagon/exec"
 )
 
@@ -28,6 +31,12 @@ func e_currentWitness(proc *exec.Process, pDst int32, dstSize int32) (length int
 	w := proc.GetTag().(*CosVMNative)
 
 	return w.cosVM.write(proc, []byte(w.CurrentWitness()), pDst, dstSize, "currentWitness()")
+}
+
+func e_getBlockProducers(proc *exec.Process, pDst int32, dstSize int32) (length int32) {
+	w := proc.GetTag().(*CosVMNative)
+
+	return w.cosVM.write(proc, []byte(w.GetBlockProducers()), pDst, dstSize, "getBlockProducers()")
 }
 
 func e_printString(proc *exec.Process, pStr int32, lenStr int32) {
@@ -216,6 +225,101 @@ func e_tableGetRecordEx(proc *exec.Process, ownerName, ownerNameLen int32, contr
 			w.cosVM.read(proc, primary, primaryLen, "tableGetRecordEx().primary"),
 		),
 		value, valueLen, "tableGetRecordEx()")
+}
+
+func e_setCopyrightAdmin(proc *exec.Process, name, nameLen int32) {
+	w := proc.GetTag().(*CosVMNative)
+
+	w.CosAssert(w.ReadContractOwner() == constants.COSSysAccount && w.ReadContractCaller() == constants.COSSysAccount,
+		"SetCopyrightAdmin: access denied",
+	)
+	w.SetCopyrightAdmin(string(w.cosVM.read(proc, name, nameLen, "setCopyrightAdmin().name")))
+}
+
+func e_setCopyright(proc *exec.Process, postIds, postIdsLen, copyrights, copyrightsLen, memoPtrs, memoPtrLen, memoSizes, memoSizeLen int32) int32 {
+	w := proc.GetTag().(*CosVMNative)
+
+	w.CosAssert(
+		w.ReadContractOwner() == constants.COSSysAccount && w.ReadContractCaller() == w.GetCopyrightAdmin(),
+		"SetCopyright(): access denied",
+	)
+
+	postIdValues := w.cosVM.read(proc, postIds, postIdsLen, "setCopyright().postIds")
+	valInts := w.cosVM.read(proc, copyrights, copyrightsLen, "setCopyright().copyrights")
+	memoPtr := w.cosVM.read(proc, memoPtrs, memoPtrLen, "setCopyright().memoPtrs")
+	memoSize := w.cosVM.read(proc, memoSizes, memoSizeLen, "setCopyright().memoSizes")
+
+	count := int(postIdsLen / 8)
+	w.CosAssert(postIdsLen == copyrightsLen && postIdsLen == memoPtrLen && postIdsLen == memoSizeLen, "setCopyright(): illegal parameters")
+
+	for i := 0; i < count; i++ {
+		offset := i * 8
+		id := binary.LittleEndian.Uint64(postIdValues[offset:])
+
+		value := binary.LittleEndian.Uint32(valInts[offset:])
+		w.CosAssert(value >= constants.CopyrightUnkown && value <= constants.CopyrightConfirmation,
+			fmt.Sprintf("setCopyright().copyright[%d]=%d: out of bounds", i, value))
+		memo := string(w.cosVM.read(proc,
+			int32(binary.LittleEndian.Uint32(memoPtr[offset:])),
+			int32(binary.LittleEndian.Uint32(memoSize[offset:])),
+			fmt.Sprintf("setCopyright().memos[%d]", i),
+		))
+		w.SetUserCopyright(id, value, memo)
+	}
+	return int32(count)
+}
+
+func e_setReputationAdmin(proc *exec.Process, name, nameLen int32) {
+	w := proc.GetTag().(*CosVMNative)
+
+	w.CosAssert(
+		w.ReadContractOwner() == constants.COSSysAccount && w.ReadContractCaller() == constants.COSSysAccount,
+		"SetReputationAdmin(): access denied",
+		)
+	w.SetReputationAdmin(string(w.cosVM.read(proc, name, nameLen, "setReputationAdmin().name")))
+}
+
+func e_getReputationAdmin(proc *exec.Process, name, nameLen int32) int32 {
+	w := proc.GetTag().(*CosVMNative)
+
+	return w.cosVM.write(proc, []byte(w.GetReputationAdmin()), name, nameLen, "getReputationAdmin()")
+}
+
+func e_setReputation(proc *exec.Process, namePtrs, namePtrLen, nameSizes, nameSizeLen, reputations, reputationsLen, memoPtrs, memoPtrLen, memoSizes, memoSizeLen int32) int32 {
+	w := proc.GetTag().(*CosVMNative)
+
+	w.CosAssert(
+		w.ReadContractOwner() == constants.COSSysAccount && w.ReadContractCaller() == w.GetReputationAdmin(),
+		"SetReputation(): access denied",
+	)
+
+	namePtr := w.cosVM.read(proc, namePtrs, namePtrLen, "setReputation().namePtrs")
+	nameSize := w.cosVM.read(proc, nameSizes, nameSizeLen, "setReputation().nameSizes")
+	valInts := w.cosVM.read(proc, reputations, reputationsLen, "setReputation().reputations")
+	memoPtr := w.cosVM.read(proc, memoPtrs, memoPtrLen, "setReputation().memoPtrs")
+	memoSize := w.cosVM.read(proc, memoSizes, memoSizeLen, "setReputation().memoSizes")
+
+	count := int(namePtrLen / 4)
+	w.CosAssert(namePtrLen == nameSizeLen && namePtrLen == reputationsLen && namePtrLen == memoPtrLen && namePtrLen == memoSizeLen, "setReputation(): illegal parameters")
+
+	for i := 0; i < count; i++ {
+		offset := i * 4
+		name := string(w.cosVM.read(proc,
+			int32(binary.LittleEndian.Uint32(namePtr[offset:])),
+			int32(binary.LittleEndian.Uint32(nameSize[offset:])),
+			fmt.Sprintf("setReputation().names[%d]", i),
+		))
+		value := binary.LittleEndian.Uint32(valInts[offset:])
+		w.CosAssert(value >= constants.MinReputation && value <= constants.MaxReputation,
+			fmt.Sprintf("setReputation().reputation[%d]=%d: out of bounds", i, value))
+		memo := string(w.cosVM.read(proc,
+			int32(binary.LittleEndian.Uint32(memoPtr[offset:])),
+			int32(binary.LittleEndian.Uint32(memoSize[offset:])),
+			fmt.Sprintf("setReputation().memos[%d]", i),
+		))
+		w.SetUserReputation(name, value, memo)
+	}
+	return int32(count)
 }
 
 func e_memcpy(proc *exec.Process, dst, src, size int32) int32 {

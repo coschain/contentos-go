@@ -28,7 +28,7 @@ import (
 )
 
 var (
-	SingleId int32 = 1
+	SingleId int32 = constants.SingletonId
 )
 
 type TrxPool struct {
@@ -651,6 +651,7 @@ func (c *TrxPool) initGenesis() {
 		tInfo.HasPowerdown = &prototype.Vest{Value: 0}
 		tInfo.Owner = pubKey
 		tInfo.StakeVesting = prototype.NewVest(0)
+		tInfo.Reputation = constants.DefaultReputation
 		tInfo.ChargedTicket = 0
 	}), "CreateAccount error")
 

@@ -31,7 +31,9 @@ message so_account {
     uint64                      stamina_free_use_block      =      21;
     prototype.vest              stake_vesting     =      22;
     prototype.time_point_sec    last_stake_time      =      23;
-    uint32                      charged_ticket      =      24;
+    uint32                      reputation          =      24;
+    string                      reputation_memo      =      25;
+    uint32                      charged_ticket      =      26;
       
 }
 
@@ -148,6 +150,16 @@ message so_mem_account_by_stake_vesting {
 
 message so_mem_account_by_last_stake_time {
 	prototype.time_point_sec 	last_stake_time  = 1;
+}
+
+
+message so_mem_account_by_reputation {
+	uint32                   	reputation      = 1;
+}
+
+
+message so_mem_account_by_reputation_memo {
+	string                   	reputation_memo  = 1;
 }
 
 

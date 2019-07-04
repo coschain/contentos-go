@@ -865,8 +865,13 @@ func (as *APIService) getAccountResponseByName(name *prototype.AccountName, isNe
 		maxStamina := as.pool.CalculateUserMaxStamina(as.db,accWrap.GetName().Value)
 		_,acctInfo.StaminaStakeRemain = rc.GetStakeLeft(accWrap.GetStamina(), accWrap.GetStaminaUseBlock(), gp.HeadBlockNumber, maxStamina)
 		acctInfo.StaminaMax = maxStamina + freeStaminaMaxByBp
+
+		acctInfo.Reputation = accWrap.GetReputation()
+		acctInfo.ReputationMemo = accWrap.GetReputationMemo()
+
 		acctInfo.FreeTicket = as.pool.GetFreeTicketCount(name)
 		acctInfo.ChargedTicket = accWrap.GetChargedTicket()
+
 		acct.Info = acctInfo
 		acct.State = as.getState()
 

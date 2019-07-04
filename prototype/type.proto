@@ -94,13 +94,15 @@ message dynamic_properties {
     uint64                       avg_tps_in_window = 35;
     uint64                       one_day_stamina = 36;
     prototype.coin               account_create_fee = 37;
-    uint64             current_epoch_start_block    = 38;
-    uint64             epoch_duration = 39;
-    uint32             top_n_acquire_free_token = 40;
-    prototype.vest     per_ticket_price = 41;
-    uint64             per_ticket_weight = 42;
-    prototype.vest     tickets_income = 43;
-    uint64             charged_tickets_num = 44;
+    prototype.account_name    reputation_admin = 38;
+    uint64             current_epoch_start_block    = 39;
+    uint64             epoch_duration = 40;
+    uint32             top_n_acquire_free_token = 41;
+    prototype.vest     per_ticket_price = 42;
+    uint64             per_ticket_weight = 43;
+    prototype.vest     tickets_income = 44;
+    uint64             charged_tickets_num = 45;
+    prototype.account_name    copyright_admin = 46;
 }
 
 message beneficiary_route_type{
