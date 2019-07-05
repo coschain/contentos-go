@@ -8,11 +8,7 @@ type DatabasePatch struct {
 
 func NewDatabasePatch(db Database) *DatabasePatch {
 	return &DatabasePatch{
-		s: &dbSession{
-			db: db,
-			mem: NewMemoryDatabase(),
-			removals: make(map[string]bool),
-		},
+		s: NewDbSession(db),
 	}
 }
 

@@ -7,172 +7,136 @@ import (
 )
 
 type dbSession struct {
-	db Database
-	mem Database
-	changes []writeOp
-	removals map[string]bool
-	lock sync.RWMutex				// for internal struct data
-	dblock sync.RWMutex				// for database operations
-	iterLock sync.RWMutex
+	sync.RWMutex
+	base Database
+	puts Database
+	dels Database
 }
 
+var (
+	sDataHashFunc = crc32.ChecksumIEEE
+	sDeletedValue = []byte("<deleted>")
+	sHashOfDeleted = sDataHashFunc(sDeletedValue)
+)
+
+func NewDbSession(base Database) *dbSession {
+	return &dbSession{
+		base: base,
+		puts: NewMemoryDatabase(),
+		dels: NewMemoryDatabase(),
+	}
+}
 
 func (db *dbSession) Close() {
 
 }
 
 func (db *dbSession) commitToDbWriter(w DatabaseWriter) (err error) {
-	db.lock.Lock()
-	defer db.lock.Unlock()
-	for _, op := range db.changes {
-		if op.Del {
-			err = w.Delete(op.Key)
-		} else {
-			err = w.Put(op.Key, op.Value)
-		}
-		if err != nil {
-			break
-		}
+	db.RLock()
+	defer db.RUnlock()
+
+	db.puts.Iterate(nil, nil, false, func(key, value []byte) bool {
+		err = w.Put(key, value)
+		return err == nil
+	})
+	if err == nil {
+		db.dels.Iterate(nil, nil, false, func(key, value []byte) bool {
+			err = w.Delete(key)
+			return err == nil
+		})
 	}
 	return err
 }
 
 // commit all changes to underlying database
 func (db *dbSession) commit() (err error) {
-	b := db.db.NewBatch()
+	b := db.base.NewBatch()
 	if err = db.commitToDbWriter(b); err != nil {
 		return err
 	}
-	if err = b.Write(); err == nil {
-		// clear changes
-		db.changes = db.changes[:0]
-		db.removals = make(map[string]bool)
-	}
-	return err
+	return b.Write()
 }
 
 func (db *dbSession) Has(key []byte) (bool, error) {
-	db.dblock.RLock()
-	defer db.dblock.RUnlock()
+	db.RLock()
+	defer db.RUnlock()
 
-	// memory db first, then underlying db
-	found, err := db.mem.Has(key)
+	found, err := db.puts.Has(key)
 	if !found {
-		db.lock.RLock()
-		defer db.lock.RUnlock()
-
-		// if the key was deleted, just return false
-		if _, deleted := db.removals[string(key)]; deleted {
-			return false, err
+		if found, err = db.dels.Has(key); found {
+			return false, nil
 		}
-		found, err = db.db.Has(key)
+		found, err = db.base.Has(key)
 	}
 	return found, err
 }
 
 func (db *dbSession) Get(key []byte) ([]byte, error) {
-	db.dblock.RLock()
-	defer db.dblock.RUnlock()
+	db.RLock()
+	defer db.RUnlock()
 
-	// memory db first, then underlying db
-	data, err := db.mem.Get(key)
+	data, err := db.puts.Get(key)
 	if data == nil {
-		db.lock.RLock()
-		defer db.lock.RUnlock()
-
-		// if the key was deleted, just return a not-found error
-		if _, deleted := db.removals[string(key)]; deleted {
+		if deleted, _ := db.dels.Has(key); deleted {
 			return nil, err
 		}
 		// try underlying db
-		data, err = db.db.Get(key)
+		data, err = db.base.Get(key)
 	}
 	return data, err
 }
 
 func (db *dbSession) put(key []byte, value []byte) error {
-	// write to mem db only
-	err := db.mem.Put(key, value)
+	err := db.puts.Put(key, value)
 	if err == nil {
-		db.lock.Lock()
-		defer db.lock.Unlock()
-
-		// remember this operation
-		db.changes = append(db.changes, writeOp{
-			Key:   common.CopyBytes(key),
-			Value: common.CopyBytes(value),
-			Del:   false,
-		})
-		delete(db.removals, string(key))
+		_ = db.dels.Delete(key)
 	}
 	return err
 }
 
 func (db *dbSession) delete(key []byte) error {
-	// write to mem db only
-	err := db.mem.Delete(key)
+	err := db.puts.Delete(key)
 	if err == nil {
-		db.lock.Lock()
-		defer db.lock.Unlock()
-
-		// remember this operation
-		db.changes = append(db.changes, writeOp{
-			Key:   common.CopyBytes(key),
-			Value: nil,
-			Del:   true,
-		})
-		db.removals[string(key)] = true
+		_ = db.dels.Put(key, sDeletedValue)
 	}
 	return err
 }
 
-
 func (db *dbSession) Put(key []byte, value []byte) error {
-	db.iterLock.Lock()
-	db.dblock.Lock()
-	defer db.dblock.Unlock()
-	defer db.iterLock.Unlock()
-
+	db.Lock()
+	defer db.Unlock()
 	return db.put(key, value)
 }
 
 func (db *dbSession) Delete(key []byte) error {
-	db.iterLock.Lock()
-	db.dblock.Lock()
-	defer db.dblock.Unlock()
-	defer db.iterLock.Unlock()
-
+	db.Lock()
+	defer db.Unlock()
 	return db.delete(key)
 }
 
 func (db *dbSession) Iterate(start, limit []byte, reverse bool, callback func(key, value []byte) bool) {
-	db.iterLock.RLock()
-	db.lock.RLock()
-	it := NewPatchedIterator(db.mem, db.db, db.removals)
-	db.lock.RUnlock()
-	defer db.iterLock.RUnlock()
+	db.RLock()
+	defer db.RUnlock()
+	it := NewPatchedIterator(db.puts, db.dels, db.base)
 	if it != nil {
 		it.Iterate(start, limit, reverse, callback)
 	}
 }
 
-var (
-	sDataHashFunc = crc32.ChecksumIEEE
-	sHashOfDeleted = sDataHashFunc([]byte("<deleted>"))
-)
-
 func (db *dbSession) Hash() (hash uint32) {
-	db.lock.RLock()
-	defer db.lock.RUnlock()
+	db.RLock()
+	defer db.RUnlock()
 
-	for _, op := range db.changes {
-		hash += sDataHashFunc(op.Key)
-		if op.Del {
-			hash += sHashOfDeleted
-		} else {
-			hash += sDataHashFunc(op.Value)
-		}
-	}
+	db.puts.Iterate(nil, nil, false, func(key, value []byte) bool {
+		hash += sDataHashFunc(key)
+		hash += sDataHashFunc(value)
+		return true
+	})
+	db.dels.Iterate(nil, nil, false, func(key, value []byte) bool {
+		hash += sDataHashFunc(key)
+		hash += sHashOfDeleted
+		return true
+	})
 	return
 }
 
@@ -191,16 +155,13 @@ type dbSessionBatch struct {
 }
 
 func (b *dbSessionBatch) Write() error {
-	b.db.iterLock.Lock()
-	b.db.dblock.Lock()
-	defer b.db.dblock.Unlock()
-	defer b.db.iterLock.Unlock()
-
+	b.db.Lock()
+	defer b.db.Unlock()
 	for _, op := range b.changes {
 		if op.Del {
-			b.db.delete(op.Key)
+			_ = b.db.delete(op.Key)
 		} else {
-			b.db.put(op.Key, op.Value)
+			_ = b.db.put(op.Key, op.Value)
 		}
 	}
 	return nil

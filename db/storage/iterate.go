@@ -298,10 +298,10 @@ func NewMergedIterator(databases []Database) DatabaseScanner {
 }
 
 // NewPatchedIterator returns a DatabaseScanner for given patch and base database.
-func NewPatchedIterator(patch, base Database, patchDeletes map[string]bool) DatabaseScanner {
+func NewPatchedIterator(patchPuts, patchDeletes, base Database) DatabaseScanner {
 	return &dbGroupScanner{
-		databases:   []Database{patch, base},
-		prioritized: true,
-		initIgnores: patchDeletes,
+		//databases:   []Database{patch, base},
+		//prioritized: true,
+		//initIgnores: patchDeletes,
 	}
 }

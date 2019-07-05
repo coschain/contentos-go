@@ -41,11 +41,7 @@ func (dq *dbDeque) back() Database {
 }
 
 func (dq *dbDeque) pushFront() {
-	dq.sessions = append(dq.sessions, &dbSession{
-		db: dq.front(),
-		mem: NewMemoryDatabase(),
-		removals: make(map[string]bool),
-	})
+	dq.sessions = append(dq.sessions, NewDbSession(dq.front()))
 }
 
 func (dq *dbDeque) PushFront() {
@@ -75,14 +71,9 @@ func (dq *dbDeque) PopFront(commit bool) error {
 }
 
 func (dq *dbDeque) pushBack() {
-	dq.sessions = append([]*dbSession{ {
-		db: dq.back(),
-		mem: NewMemoryDatabase(),
-		removals: make(map[string]bool),
-	} }, dq.sessions...)
-
+	dq.sessions = append([]*dbSession{ NewDbSession(dq.back()) }, dq.sessions...)
 	if len(dq.sessions) > 1 {
-		dq.sessions[1].db = dq.sessions[0]
+		dq.sessions[1].base = dq.sessions[0]
 	}
 }
 
@@ -116,7 +107,7 @@ func (dq *dbDeque) popBackN(n int, commit bool) error {
 		return fmt.Errorf("unexpected popBackN with n=%d, but #sessions=%d", n, sessionCount)
 	}
 	if commit {
-		db := dq.sessions[0].db
+		db := dq.sessions[0].base
 		b := db.NewBatch()
 		for i := 0; i < n; i++ {
 			if err := dq.sessions[i].commitToDbWriter(b); err != nil {
@@ -127,7 +118,7 @@ func (dq *dbDeque) popBackN(n int, commit bool) error {
 			return err
 		}
 		if sessionCount > n {
-			dq.sessions[n].db = db
+			dq.sessions[n].base = db
 		}
 	}
 	dq.sessions = dq.sessions[n:]
