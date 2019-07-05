@@ -197,6 +197,8 @@ func (s *StateLogService) handleLog(blockLog *iservices.BlockLog) {
 				s.handleMint(blockId, trxId, action, target, result)
 			case "cashout":
 				s.handleCashout(blockId, trxId, action, target, result)
+			//case "contract":
+			//	s.handleContract(blockId, trxId, action, target, result)
 			default:
 				s.log.Errorf("Unknown property: %s\n", property)
 			}
@@ -260,7 +262,6 @@ func (s *StateLogService) handleCashout(blockId string, trxId string, action int
 		_, _ = s.db.Exec("REPLACE INTO statecashout (account, cashout) VALUES (?, ?)", target, cashout + resultValue)
 	}
 }
-
 
 func (s *StateLogService) hookEvent() {
 	_ = s.ev.Subscribe(constants.NoticeState, s.onStateLogOperation)

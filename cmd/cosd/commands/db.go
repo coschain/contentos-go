@@ -53,9 +53,29 @@ var DbCmd = func() *cobra.Command {
 		Run: initStateDb,
 	}
 
+	tokenCmd := &cobra.Command{
+		Use: "tokendb",
+	}
+
+	tokenInitCmd := &cobra.Command{
+		Use: "init",
+		Short: "init token db",
+		Run: initTokenInfo,
+	}
+
+	tokenAddCmd := &cobra.Command{
+		Use: "add",
+		Short: "init token db",
+		Example: "cosd db tokendb add [symbol] [owner]",
+		Args:  cobra.ExactArgs(2),
+		Run: addMarkedToken,
+	}
+
 	trxCmd.AddCommand(trxInitCmd)
 	stateCmd.AddCommand(stateInitCmd)
 	dailyCmd.AddCommand(dailyInitCmd)
+	tokenCmd.AddCommand(tokenInitCmd)
+	tokenCmd.AddCommand(tokenAddCmd)
 	cmd.AddCommand(trxCmd)
 	cmd.AddCommand(stateCmd)
 	cmd.AddCommand(dailyCmd)
@@ -276,9 +296,103 @@ func initStateDb(cmd *cobra.Command, args []string) {
 	_, _ = db.Exec("INSERT INTO `stateloglibinfo` (lib, last_check_time) VALUES (?, ?)", 0, time.Now().UTC().Unix())
 }
 
+func initTokenInfo(cmd *cobra.Command, args []string) {
+	cfg := readConfig()
+	dbConfig := cfg.Database
+	dsn := fmt.Sprintf("%s:%s@/%s", dbConfig.User, dbConfig.Password, dbConfig.Db)
+	db, err := sql.Open(dbConfig.Driver, dsn)
+	defer db.Close()
+	if err != nil {
+		fmt.Printf("fatal: init database failed, dsn:%s\n", dsn)
+		os.Exit(1)
+	}
+
+	createTokenLibInfo := `create table tokenlibinfo
+(
+    lib int unsigned not null,
+    last_check_time int unsigned not null
+);`
+
+	createMarkedToken := `create table markedtoken
+(
+    symbol varchar(64),
+    owner varchar(64)
+);`
+
+	createTokenBalance := `create table tokenbalance
+(
+    symbol varchar(64),
+    owner varchar(64),
+    account varchar(64),
+    balance bigint unsigned default 0
+);`
+
+	dropTables := []string{"tokenlibinfo", "markedtoken", "tokenbalance"}
+	for _, table := range dropTables {
+		dropSql := fmt.Sprintf("DROP TABLE IF EXISTS `%s`", table)
+		if _, err = db.Exec(dropSql); err != nil {
+			fmt.Println(err)
+		}
+	}
+	createTables := []string{createTokenLibInfo, createMarkedToken, createTokenBalance}
+	for _, table := range createTables {
+		if _, err = db.Exec(table); err != nil {
+			fmt.Println(err)
+		}
+	}
+	_, _ = db.Exec("INSERT INTO `tokenlibinfo` (lib, last_check_time) VALUES (?, ?)", 0, time.Now().UTC().Unix())
+}
+
+func addMarkedToken(cmd *cobra.Command, args []string) {
+	cfg := readConfig()
+	dbConfig := cfg.Database
+	dsn := fmt.Sprintf("%s:%s@/%s", dbConfig.User, dbConfig.Password, dbConfig.Db)
+	db, err := sql.Open(dbConfig.Driver, dsn)
+	defer db.Close()
+	if err != nil {
+		fmt.Printf("fatal: init database failed, dsn:%s\n", dsn)
+		os.Exit(1)
+	}
+
+	createTokenLibInfo := `create table tokenlibinfo
+(
+    lib int unsigned not null,
+    last_check_time int unsigned not null
+);`
+
+	createTokenBalance := `create table tokenbalance
+(
+    symbol varchar(64),
+    owner varchar(64),
+    account varchar(64),
+    balance bigint unsigned default 0
+);`
+
+	dropTables := []string{"tokenlibinfo", "tokenbalance"}
+	for _, table := range dropTables {
+		dropSql := fmt.Sprintf("DROP TABLE IF EXISTS `%s`", table)
+		if _, err = db.Exec(dropSql); err != nil {
+			fmt.Println(err)
+		}
+	}
+	createTables := []string{createTokenLibInfo, createTokenBalance}
+	for _, table := range createTables {
+		if _, err = db.Exec(table); err != nil {
+			fmt.Println(err)
+		}
+	}
+	_, _ = db.Exec("INSERT INTO `tokenlibinfo` (lib, last_check_time) VALUES (?, ?)", 0, time.Now().UTC().Unix())
+	symbol := args[0]
+	owner := args[1]
+	_, _ = db.Exec("INSERT INTO `markedtoken` (symbol, owner) VALUES (?, ?)", symbol, owner)
+}
+
+
+
 
 func initAllDb(cmd *cobra.Command, args []string) {
 	initTrxDb(cmd, args)
 	initDailyDb(cmd, args)
 	initStateDb(cmd, args)
+	initTokenInfo(cmd, args)
 }

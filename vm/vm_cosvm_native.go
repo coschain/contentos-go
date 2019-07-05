@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"github.com/coschain/contentos-go/app/table"
+	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/vm/contract/abi"
 	table2 "github.com/coschain/contentos-go/vm/contract/table"
@@ -171,15 +172,23 @@ func (w *CosVMNative) TableGetRecord(tableName string, primary []byte) []byte {
 func (w *CosVMNative) TableNewRecord(tableName string, record []byte) {
 	tables := w.cosVM.ctx.Tables
 	w.CosAssert(tables != nil, "TableNewRecord(): context tables not ready.")
-	err := tables.Table(tableName).NewRecord(record)
+	currentTable := tables.Table(tableName)
+	err := currentTable.NewRecord(record)
 	w.CosAssert(err == nil, fmt.Sprintf("TableNewRecord(): table.NewRecord() failed. %v", err))
+	decodeRecord, _ := currentTable.DecodeRecordToJson(record)
+	m := map[string]string{"contract": w.ReadContractName(), "contract_owner": w.ReadContractOwner(), "record": decodeRecord}
+	w.cosVM.ctx.TrxObserver.AddOpState(iservices.Add, "contract", tableName, m)
 }
 
 func (w *CosVMNative) TableUpdateRecord(tableName string, primary []byte, record []byte) {
 	tables := w.cosVM.ctx.Tables
 	w.CosAssert(tables != nil, "TableUpdateRecord(): context tables not ready.")
-	err := tables.Table(tableName).UpdateRecord(primary, record)
+	currentTable := tables.Table(tableName)
+	err := currentTable.UpdateRecord(primary, record)
 	w.CosAssert(err == nil, fmt.Sprintf("TableUpdateRecord(): table.UpdateRecord() failed. %v", err))
+	decodeRecord, _ := currentTable.DecodeRecordToJson(record)
+	m := map[string]string{"contract": w.ReadContractName(), "contract_owner": w.ReadContractOwner(), "record": decodeRecord}
+	w.cosVM.ctx.TrxObserver.AddOpState(iservices.Update, "contract", tableName, m)
 }
 
 func (w *CosVMNative) TableDeleteRecord(tableName string, primary []byte) {
@@ -187,6 +196,11 @@ func (w *CosVMNative) TableDeleteRecord(tableName string, primary []byte) {
 	w.CosAssert(tables != nil, "TableDeleteRecord(): context tables not ready.")
 	err := tables.Table(tableName).DeleteRecord(primary)
 	w.CosAssert(err == nil, fmt.Sprintf("TableDeleteRecord(): table.DeleteRecord() failed. %v", err))
+	// delete should be observer ? Yes and No
+	// For yes, every modify should be record of course
+	// For No, delete record using primary key which only used in delete
+	//m := map[string]string{"contract": w.ReadCallingContractName(), "contract_owner": w.ReadCallingContractOwner(), "record": decodeRecord}
+	//w.cosVM.ctx.TrxObserver.AddOpState(iservices.Delete, "contract", tableName, string(primary))
 }
 
 func (w *CosVMNative) TableGetRecordEx(ownerName, contractName, tableName string, primary []byte) []byte {

@@ -1010,7 +1010,8 @@ func (ev *ContractApplyEvaluator) Apply() {
 		tables = ct.NewContractTables(op.Owner.Value, op.Contract, abiInterface, ev.Database())
 	}
 
-	vmCtx := vmcontext.NewContextFromApplyOp(op, paramsData, code, codeHash, abiInterface, tables, ev.VMInjector())
+	vmCtx := vmcontext.NewContextFromApplyOp(op, paramsData, code, codeHash, abiInterface, tables, ev.VMInjector(),
+		ev.TrxObserver())
 	// set max gas
 	remain := ev.VMInjector().GetVmRemainCpuStamina(op.Caller.Value)
 	remainGas := remain * constants.CpuConsumePointDen
@@ -1090,7 +1091,7 @@ func (ev *InternalContractApplyEvaluator) Apply() {
 		tables = ct.NewContractTables(op.ToOwner.Value, op.ToContract, abiInterface, ev.Database())
 	}
 
-	vmCtx := vmcontext.NewContextFromInternalApplyOp(op, code, codeHash, abiInterface, tables, ev.VMInjector())
+	vmCtx := vmcontext.NewContextFromInternalApplyOp(op, code, codeHash, abiInterface, tables, ev.VMInjector(), ev.TrxObserver())
 	vmCtx.Gas = ev.remainGas
 
 	cosVM := vm.NewCosVM(vmCtx, ev.Database(), ev.GlobalProp().GetProps(), ev.Logger())
