@@ -43,8 +43,8 @@ message sha256{
 
 message gift_ticket_key_type {
     uint32 type = 1;
-    bytes from = 2;
-    bytes to = 3;
+    string from = 2;
+    string to = 3;
     uint64 create_block = 4;
 }
 
