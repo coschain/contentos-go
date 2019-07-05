@@ -528,26 +528,37 @@ func (this *P2PServer) FetchOutOfRange(localHeadID, targetID coomn.BlockID) {
 
 func (this *P2PServer) SendToPeer(p *peer.Peer, message interface{}) {
 	this.log.Info("send message to a specific peer")
-	//if this.Network.IsPeerEstablished(p) {
-	//	//isConsensus := false
-	//	//err := this.Network.Send(p, message, isConsensus)
-	//	//if err != nil {}
-	//	return
-	//}
-	//this.log.Errorf("[p2p] send to a not ESTABLISH peer in SendToPeer %s",
-	//	p.GetAddr())
+	if p == nil {
+		this.log.Error("send message to a nil peer")
+		return
+	}
+	if this.Network.IsPeerEstablished(p) {
+		cmsg := message.(consmsg.ConsensusMessage)
+		msg := msgpack.NewConsMsg(cmsg, false)
+		go p.Send(msg, false, this.ctx.Config().P2P.NetworkMagic)
+		return
+	}
+	this.log.Errorf("[p2p] send to a not ESTABLISH peer in SendToPeer %s",
+		p.GetAddr())
 }
 
 func (this *P2PServer) RandomSend(message interface{}) {
 	this.log.Info("send message to a random peer")
-	//np := this.Network.GetNp()
-	//np.RLock()
-	//defer np.RUnlock()
-	//
-	//for _, p := range np.List {
-	//	if this.Network.IsPeerEstablished(p) {
-	//		// send message to this peer, if err is nil return, else continue
-	//		return
-	//	}
-	//}
+
+	cmsg := message.(consmsg.ConsensusMessage)
+	msg := msgpack.NewConsMsg(cmsg, false)
+	hash := msg.(*msgtypes.ConsMsg).Hash()
+
+	np := this.Network.GetNp()
+	np.RLock()
+	defer np.RUnlock()
+
+	for _, p := range np.List {
+		state := p.GetSyncState()
+		if state == common.ESTABLISH && !p.HasConsensusMsg(hash) {
+			p.RecordConsensusMsg(hash)
+			go p.Send(msg, false, this.ctx.Config().P2P.NetworkMagic)
+			return
+		}
+	}
 }

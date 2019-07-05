@@ -873,13 +873,16 @@ func (p *MsgHandler) ConsMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args 
 		log.Error("[p2p] remotePeer invalid in ConsMsgHandle")
 		return
 	}
-	hash := msgdata.Hash()
-	if remotePeer.HasConsensusMsg(hash) {
-		//log.Info("[p2p] we alerady have this consensus msg, msg hash: ", hash)
-		return
+
+	if msgdata.Bcast == 1 {
+		hash := msgdata.Hash()
+		if remotePeer.HasConsensusMsg(hash) {
+			//log.Info("[p2p] we alerady have this consensus msg, msg hash: ", hash)
+			return
+		}
+		//log.Info("receive a consensus hash: ", hash)
+		remotePeer.RecordConsensusMsg(hash)
 	}
-	//log.Info("receive a consensus hash: ", hash)
-	remotePeer.RecordConsensusMsg(hash)
 
 	s, err := p2p.GetService(iservices.ConsensusServerName)
 	if err != nil {
