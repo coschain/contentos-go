@@ -1218,7 +1218,8 @@ func (ev *AcquireTicketEvaluator) Apply() {
 	vest := account.GetVestingShares()
 	oldVest := account.GetVestingShares()
 
-	fee := &prototype.Vest{Value: ticketPrice.Value * count}
+	fee := &prototype.Vest{Value: ticketPrice.Value}
+	opAssertE(fee.Mul(count), "mul ticket price with count overflow")
 	opAssertE(vest.Sub(fee), "Insufficient vesting to acquire tickets")
 	opAssert(account.MdVestingShares(vest), "modify vesting shares failed")
 
@@ -1231,8 +1232,8 @@ func (ev *AcquireTicketEvaluator) Apply() {
 	// record
 	ticketKey := &prototype.GiftTicketKeyType{
 		Type: 1,
-		From: []byte("contentos"),
-		To: []byte(op.Account.Value),
+		From: "contentos",
+		To: op.Account.Value,
 		CreateBlock: ev.GlobalProp().GetProps().HeadBlockNumber,
 	}
 
@@ -1277,8 +1278,8 @@ func (ev *VoteByTicketEvaluator) Apply() {
 	// free ticket ?
 	freeTicketWrap := table.NewSoGiftTicketWrap(ev.Database(), &prototype.GiftTicketKeyType{
 		Type: 0,
-		From: []byte("contentos"),
-		To: []byte(op.Account.Value),
+		From: "contentos",
+		To: op.Account.Value,
 		CreateBlock: ev.GlobalProp().GetProps().GetCurrentEpochStartBlock(),
 	})
 	if freeTicketWrap.CheckExist() {
@@ -1308,8 +1309,8 @@ func (ev *VoteByTicketEvaluator) Apply() {
 	// record
 	ticketKey := &prototype.GiftTicketKeyType{
 		Type: 1,
-		From: []byte(op.Account.Value),
-		To: []byte(strconv.FormatUint(postId, 10)),
+		From: op.Account.Value,
+		To: strconv.FormatUint(postId, 10),
 		CreateBlock: ev.GlobalProp().GetProps().HeadBlockNumber,
 	}
 	ticketWrap := table.NewSoGiftTicketWrap(ev.Database(), ticketKey)
@@ -1340,7 +1341,8 @@ func (ev *VoteByTicketEvaluator) Apply() {
 	if props.GetChargedTicketsNum() == 0 {
 		equalValue = &prototype.Vest{Value: 0}
 	} else {
-		equalValue = &prototype.Vest{Value: count * props.GetTicketsIncome().Value / props.GetChargedTicketsNum()}
+		equalValue := &prototype.Vest{Value: props.GetTicketsIncome().Value / props.GetChargedTicketsNum()}
+		opAssertE(equalValue.Mul(count), "mul equal ticket value with count overflow")
 	}
 	currentIncome := props.GetTicketsIncome()
 	mustNoError(currentIncome.Sub(equalValue), "sub equal value from ticketfee failed")
