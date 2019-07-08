@@ -2,14 +2,12 @@ package plugins
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"github.com/coschain/contentos-go/iservices"
-	"github.com/coschain/contentos-go/iservices/itype"
 	"github.com/coschain/contentos-go/iservices/service-configs"
 	"github.com/coschain/contentos-go/node"
-	"github.com/coschain/contentos-go/prototype"
 	"github.com/sirupsen/logrus"
-	"strings"
 	"time"
 )
 
@@ -21,6 +19,17 @@ type TokenInfoService struct {
 	ctx *node.ServiceContext
 	ticker *time.Ticker
 	quit chan bool
+}
+
+type ContractData struct {
+	Contract string
+	ContractOwner string
+	Record string
+}
+
+type TokenData struct {
+	TokenOwner string
+	Amount uint64
 }
 
 func NewTokenInfoService(ctx *node.ServiceContext, config *service_configs.DatabaseConfig, log *logrus.Logger) (*TokenInfoService, error) {
@@ -58,48 +67,83 @@ func (s *TokenInfoService) Start(node *node.Node) error {
 func (s *TokenInfoService) pollStateLog() error  {
 	var lib uint64
 	_ = s.db.QueryRow("select lib from tokenlibinfo limit 1").Scan(&lib)
-	//lib := s.consensus.GetLIB().BlockNum()
-	//s.log.Debugf("[trx db] sync lib: %d \n", lib)
-	var lastLib uint64 = 0
-	var lastDate string
-	_ = s.outDb.QueryRow("SELECT lib, date from dailystatinfo limit 1").Scan(&lastLib, &lastDate)
-	var waitingSyncLib []uint64
-	var count = 0
-	for lastLib < lib {
-		if count > 1000 {
-			break
-		}
-		waitingSyncLib = append(waitingSyncLib, lastLib)
-		lastLib ++
-		count ++
-	}
-	for _, block := range waitingSyncLib {
-		blks , err := s.consensus.FetchBlocks(block, block)
-		if err != nil {
+	markedTokens := make(map[string]bool)
+	rows, _ := s.db.Query("select symbol, owner from markedtoken")
+	for rows.Next() {
+		var symbol string
+		var owner string
+		if err := rows.Scan(&symbol, &owner); err != nil {
 			s.log.Error(err)
 			continue
 		}
-		if len(blks) == 0 {
-			if block != 0 {
-				s.log.Errorf("cannot fetch block %d in consensus", block)
-			}
+		key := fmt.Sprintf("%s#%s", symbol, owner)
+		markedTokens[key] = true
+	}
+	if len(markedTokens) == 0 {
+		return nil
+	}
+	rows, _ = s.db.Query("SELECT block_height, block_log from statelog where block_height > ? limit 1000", lib)
+	for rows.Next() {
+		var blockHeight uint64
+		var log interface{}
+		var blockLog iservices.BlockLog
+		if err := rows.Scan(&blockHeight, &log); err != nil {
+			s.log.Error(err)
 			continue
 		}
-		blk := blks[0].(*prototype.SignedBlock)
-		blockTime := blk.Timestamp()
-		datetime := time.Unix(int64(blockTime), 0)
-		date := fmt.Sprintf("%d-%02d-%02d", datetime.Year(), datetime.Month(), datetime.Day())
-		// trigger
-		if lastDate != date {
-			s.handleDailyStatistic(blk, lastDate)
-			//s.handleDNUStatistic(blk, lastDate)
-			s.log.Debugf("[daily stat] trigger handle, timestamp: %d, datetime: %s", blockTime, date)
-			lastDate = date
+		data := log.([]byte)
+		if err := json.Unmarshal(data, &blockLog); err != nil {
+			s.log.Error(err)
+			continue
 		}
+		s.handleBlockLog(markedTokens, blockLog)
 		utcTimestamp := time.Now().UTC().Unix()
-		_, _ = s.outDb.Exec("UPDATE dailystatinfo SET lib = ?, date = ?, last_check_time = ?", block, date, utcTimestamp)
+		_, _ = s.db.Exec("UPDATE tokenlibinfo SET lib=?, last_check_time=?", blockHeight, utcTimestamp)
 	}
 	return nil
+}
+
+func (s *TokenInfoService) handleBlockLog(tokens map[string]bool, blockLog iservices.BlockLog) {
+	blockId := blockLog.BlockId
+	trxLogs := blockLog.TrxLogs
+	for _, trxLog := range trxLogs {
+		trxId := trxLog.TrxId
+		opLogs := trxLog.OpLogs
+		for _, opLog := range opLogs {
+			action := opLog.Action
+			property := opLog.Property
+			target := opLog.Target
+			result := opLog.Result
+			switch property {
+			case "contract":
+				s.handleTokenInfo(tokens, blockId, trxId, action, target, result)
+			}
+		}
+	}
+}
+
+func (s *TokenInfoService) handleTokenInfo(tokens map[string]bool, blockId string, trxId string, action int, target string, result interface{}) {
+	contractData := result.(ContractData)
+	contract := contractData.Contract
+	owner := contractData.ContractOwner
+	key := fmt.Sprintf("%s#%s", contract, owner)
+	if _, ok := tokens[key]; ok {
+		record := contractData.Record
+		data := []byte(record)
+		var tokenData TokenData
+		if err := json.Unmarshal(data, &tokenData); err != nil {
+			s.log.Error(err)
+			return
+		}
+		switch action {
+		case iservices.Insert:
+			_, _ = s.db.Exec("INSERT INTO tokenbalance (symbol, owner, account, balance) VALUES (?, ?, ?, ?)",
+				contract, owner, tokenData.TokenOwner, tokenData.Amount)
+		case iservices.Update:
+			_, _ = s.db.Exec("update tokenbalance set balance=? where symbol=? and owner=? and account=?",
+				tokenData.Amount, contract, owner, tokenData.TokenOwner)
+		}
+	}
 }
 
 func (s *TokenInfoService) stop() {
