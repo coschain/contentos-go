@@ -773,7 +773,7 @@ func RegisterAndVoteBP(rpcClient grpcpb.ApiServiceClient, index int) error {
 	if err != nil {
 		return err
 	}
-	res := trx.Sign(keys, prototype.ChainId{Value: 0})
+	res := trx.Sign(keys, ChainId)
 	trx.Signature = &prototype.SignatureType{Sig: res}
 
 	if err := trx.Validate(); err != nil {

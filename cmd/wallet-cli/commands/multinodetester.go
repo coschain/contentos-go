@@ -25,7 +25,7 @@ var MultinodetesterCmd = func() *cobra.Command {
 }
 
 
-func makeBpRegVoteTrx(client grpcpb.ApiServiceClient, count int64) (*prototype.SignedTransaction, error) {
+func makeBpRegVoteTrx(cmd *cobra.Command, client grpcpb.ApiServiceClient, count int64) (*prototype.SignedTransaction, error) {
 
 	resp, _ := client.GetChainState( context.Background(), &grpcpb.NonParamsRequest{} )
 	refBlockPrefix := common.TaposRefBlockPrefix(resp.State.Dgpo.HeadBlockId.Hash)
@@ -67,7 +67,7 @@ func makeBpRegVoteTrx(client grpcpb.ApiServiceClient, count int64) (*prototype.S
 	trx.Trx.AddOperation(opBpVote)
 
 
-	res := trx.Sign(keys, prototype.ChainId{Value: 0})
+	res := trx.Sign(keys, cmd.Context["chain_id"].(prototype.ChainId))
 	trx.Signature = &prototype.SignatureType{Sig: res}
 
 	if err := trx.Validate(); err != nil {
@@ -77,7 +77,7 @@ func makeBpRegVoteTrx(client grpcpb.ApiServiceClient, count int64) (*prototype.S
 }
 
 
-func createMNTAccountTrx(client grpcpb.ApiServiceClient, count int64) (*prototype.SignedTransaction, error) {
+func createMNTAccountTrx(cmd *cobra.Command, client grpcpb.ApiServiceClient, count int64) (*prototype.SignedTransaction, error) {
 
 	resp, _ := client.GetChainState( context.Background(), &grpcpb.NonParamsRequest{} )
 	refBlockPrefix := common.TaposRefBlockPrefix(resp.State.Dgpo.HeadBlockId.Hash)
@@ -118,7 +118,7 @@ func createMNTAccountTrx(client grpcpb.ApiServiceClient, count int64) (*prototyp
 		trx.Trx.AddOperation(opCreate)
 	}
 
-	res := trx.Sign(creatorPriKey, prototype.ChainId{Value: 0})
+	res := trx.Sign(creatorPriKey, cmd.Context["chain_id"].(prototype.ChainId))
 	trx.Signature = &prototype.SignatureType{Sig: res}
 
 	if err := trx.Validate(); err != nil {
@@ -213,7 +213,7 @@ func multinodetester(cmd *cobra.Command, args []string) {
 	}
 
 	{
-		signTx, err := createMNTAccountTrx(client, idx)
+		signTx, err := createMNTAccountTrx(cmd, client, idx)
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -229,7 +229,7 @@ func multinodetester(cmd *cobra.Command, args []string) {
 
 	var i int64
 	for i = 1; i < idx; i++ {
-		signTx, err := makeBpRegVoteTrx(client, i)
+		signTx, err := makeBpRegVoteTrx(cmd, client, i)
 		if err != nil {
 			fmt.Println(err)
 			return

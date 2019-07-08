@@ -43,7 +43,6 @@ func acquireTicket(cmd *cobra.Command, args []string) {
 	client := c.(grpcpb.ApiServiceClient)
 	w := cmd.Context["wallet"]
 	mywallet := w.(wallet.Wallet)
-	chainId := cmd.Context["chain_id"].(prototype.ChainId)
 	name := args[0]
 	count, err := strconv.ParseUint(args[1], 10, 64)
 	if err != nil {
@@ -58,7 +57,7 @@ func acquireTicket(cmd *cobra.Command, args []string) {
 		Account: &prototype.AccountName{Value:name},
 		Count: count,
 	}
-	signTx, err := utils.GenerateSignedTxAndValidate2(client, []interface{}{acquireTicketOp}, account, chainId)
+	signTx, err := utils.GenerateSignedTxAndValidate(cmd, []interface{}{acquireTicketOp}, account)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -77,7 +76,6 @@ func voteByTicket(cmd *cobra.Command, args []string) {
 	client := c.(grpcpb.ApiServiceClient)
 	w := cmd.Context["wallet"]
 	mywallet := w.(wallet.Wallet)
-	chainId := cmd.Context["chain_id"].(prototype.ChainId)
 	name := args[0]
 	postId, err := strconv.ParseUint(args[1], 10, 64)
 	if err != nil {
@@ -97,7 +95,7 @@ func voteByTicket(cmd *cobra.Command, args []string) {
 		Idx: postId,
 		Count: count,
 	}
-	signTx, err := utils.GenerateSignedTxAndValidate2(client, []interface{}{voteByTicketOp}, account, chainId)
+	signTx, err := utils.GenerateSignedTxAndValidate(cmd, []interface{}{voteByTicketOp}, account)
 	if err != nil {
 		fmt.Println(err)
 		return
