@@ -86,7 +86,7 @@ const (
 	BloomFilterOfRecvTrxArgM      = 14377588   // bloom filter bit size
 	BloomFilterOfRecvTrxArgK      = 10         // bloom filter hash func num
 
-	MAX_ID_LENGTH = 50   // max id length in require id ack message
+	BATCH_LENGTH = 50   // length of id batch or block batch
 
 	HASH_SIZE = 32
 

@@ -813,8 +813,8 @@ func (p *MsgHandler) ReqIdHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 		return
 	}
 
-	if end-start > msgCommon.MAX_ID_LENGTH {
-		end = start + msgCommon.MAX_ID_LENGTH
+	if end-start > msgCommon.BATCH_LENGTH {
+		end = start + msgCommon.BATCH_LENGTH
 	}
 
 	log.Debug("[p2p] sync start num: ", start, " end num: ", end)
@@ -842,10 +842,10 @@ func (p *MsgHandler) ReqIdHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 	reqdata := new(msgTypes.IdMsg)
 	reqdata.Msgtype = msgTypes.IdMsg_request_id_ack
 
-	if len(ids) <= msgCommon.MAX_ID_LENGTH {
+	if len(ids) <= msgCommon.BATCH_LENGTH {
 		idlength = len(ids)
 	} else {
-		idlength = msgCommon.MAX_ID_LENGTH
+		idlength = msgCommon.BATCH_LENGTH
 	}
 
 	for i := 0; i < idlength; i++ {
@@ -932,8 +932,8 @@ func (p *MsgHandler) RequestCheckpointBatchHandle(data *msgTypes.MsgPayload, p2p
 
 	startNum := msgdata.Start
 	endNum := msgdata.End
-	if endNum-startNum > msgCommon.MAX_ID_LENGTH {
-		endNum = startNum + msgCommon.MAX_ID_LENGTH
+	if endNum-startNum > msgCommon.BATCH_LENGTH {
+		endNum = startNum + msgCommon.BATCH_LENGTH
 	}
 	log.Infof("RequestCheckpointBatchHandle from %d to %d", startNum, endNum)
 	for {
@@ -1013,8 +1013,8 @@ func (p *MsgHandler) FetchOutOfRangeHandle(data *msgTypes.MsgPayload, p2p p2p.P2
 		startNum := startID.BlockNum()
 		endNum := targetID.BlockNum()
 
-		if endNum - startNum > msgCommon.MAX_ID_LENGTH {
-			endNum = startNum + msgCommon.MAX_ID_LENGTH
+		if endNum - startNum > msgCommon.BATCH_LENGTH {
+			endNum = startNum + msgCommon.BATCH_LENGTH
 		}
 
 		blockList, err := ctrl.FetchBlocks(startNum, endNum)
@@ -1056,7 +1056,7 @@ func (p *MsgHandler) FetchOutOfRangeHandle(data *msgTypes.MsgPayload, p2p p2p.P2
 		for {
 			IDList = append(IDList, blkId.Data[:])
 			count++
-			if count == msgCommon.MAX_ID_LENGTH || blkId == startID {
+			if count == msgCommon.BATCH_LENGTH || blkId == startID {
 				break
 			}
 
@@ -1104,8 +1104,8 @@ func (p *MsgHandler) RequestBlockBatchHandle(data *msgTypes.MsgPayload, p2p p2p.
 	copy(startID.Data[:], msgdata.StartId)
 	copy(endID.Data[:], msgdata.EndId)
 
-	if endID.BlockNum() - startID.BlockNum() > msgCommon.MAX_ID_LENGTH {
-		log.Error("[p2p] block batch length beyond limit ", msgCommon.MAX_ID_LENGTH)
+	if endID.BlockNum() - startID.BlockNum() > msgCommon.BATCH_LENGTH {
+		log.Error("[p2p] block batch length beyond limit ", msgCommon.BATCH_LENGTH)
 		clearMsg := msgpack.NewClearOutOfRangeState()
 		p2p.Send(remotePeer, clearMsg, false)
 		return
@@ -1197,7 +1197,7 @@ func (p *MsgHandler) DetectFormerIdsHandle(data *msgTypes.MsgPayload, p2p p2p.P2
 	for {
 		reqdata.Value = append(reqdata.Value, blkId.Data[:])
 		count++
-		if count == msgCommon.MAX_ID_LENGTH {
+		if count == msgCommon.BATCH_LENGTH {
 			break
 		}
 
