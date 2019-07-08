@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/iservices/service-configs"
 	"github.com/coschain/contentos-go/mylog"
@@ -43,7 +44,7 @@ var MainNetConfig = &service_configs.GenesisConfig{
 
 // DefaultConfig contains reasonable default settings.
 var DefaultNodeConfig = node.Config{
-	ChainId: "main",
+	ChainId: common.ChainNameMainNet,
 	DataDir: DefaultDataDir(),
 	LogLevel:         mylog.DebugLevel,
 	P2P: service_configs.P2PConfig{
@@ -116,10 +117,4 @@ func WriteNodeConfigFile(configDirPath string, configName string, config node.Co
 	}
 
 	return ioutil.WriteFile(configPath, buffer, mode)
-}
-
-func DefaultNodeConfigForChain(chain string) node.Config {
-	cfg := DefaultNodeConfig
-	cfg.ChainId = chain
-	return cfg
 }

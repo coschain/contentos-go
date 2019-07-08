@@ -4,24 +4,18 @@ import (
 	"hash/crc32"
 )
 
-const (
-	ChainIdMainNet uint32 = iota
-	ChainIdTestNet
-	ChainIdDevNet
+func GetChainIdByName(name string) uint32 {
+	return crc32.ChecksumIEEE([]byte(name))
+}
 
-	BuiltinChainIdCount
+const (
+	ChainNameMainNet = "main"
+	ChainNameTestNet = "test"
+	ChainNameDevNet = "dev"
 )
 
-var sKnownChains = map[string]uint32 {
-	"main": ChainIdMainNet,
-	"test": ChainIdTestNet,
-	"dev": ChainIdDevNet,
-}
-
-func GetChainIdByName(name string) uint32 {
-	chainId, builtin := sKnownChains[name]
-	if !builtin {
-		chainId = crc32.ChecksumIEEE([]byte(name))
-	}
-	return chainId
-}
+var (
+	ChainIdMainNet = GetChainIdByName(ChainNameMainNet)
+	ChainIdTestNet = GetChainIdByName(ChainNameTestNet)
+	ChainIdDevNet  = GetChainIdByName(ChainNameDevNet)
+)

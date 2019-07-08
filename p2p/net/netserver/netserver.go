@@ -18,20 +18,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var NETWORK_MAGIC = map[uint32]uint32{
-	common2.ChainIdMainNet: 0x8c77ab66, //Network main
-	common2.ChainIdTestNet: 0x2d8829ff, //Network testnet
-	common2.ChainIdDevNet:  0x563f477c, //Network devnet
-}
-
-func GetNetworkMagic(id uint32) uint32 {
-	nid, ok := NETWORK_MAGIC[id]
-	if ok {
-		return nid
-	}
-	return id
-}
-
 //NewNetServer return the net object in p2p
 func NewNetServer(ctx *node.ServiceContext, lg *logrus.Logger) p2p.P2P {
 	n := &NetServer{
@@ -39,7 +25,7 @@ func NewNetServer(ctx *node.ServiceContext, lg *logrus.Logger) p2p.P2P {
 		log:      lg,
 		SyncChan: make(chan *types.MsgPayload, common.CHAN_CAPABILITY),
 		ConsChan: make(chan *types.MsgPayload, common.CHAN_CAPABILITY),
-		NetworkMagic: GetNetworkMagic(common2.GetChainIdByName(ctx.Config().ChainId)),
+		NetworkMagic: common2.GetChainIdByName(ctx.Config().ChainId),
 	}
 
 	n.PeerAddrMap.PeerSyncAddress = make(map[string]*peer.Peer)
