@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 	"github.com/coschain/cobra"
+	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/config"
 	"github.com/coschain/contentos-go/node"
@@ -90,7 +91,7 @@ func initConf(cmd *cobra.Command, args []string) {
 	fmt.Println("Seed nodes list: ", seeds)
 
 	if len(chainName) == 0 {
-		chainName = "main"
+		chainName = common.ChainNameMainNet
 	}
 
 	for i := 0; i < nodeCount; i++ {

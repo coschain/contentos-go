@@ -193,7 +193,7 @@ func main() {
 		// for switch port
 		rootCmd.SetContext("rpcclient_raw", conn)
 	}
-	chainName := "main"
+	chainName := common.ChainNameMainNet
 	rootCmd.SetContext("chain_name", chainName)
 	rootCmd.SetContext("chain_id", prototype.ChainId{ Value:common.GetChainIdByName(chainName) })
 

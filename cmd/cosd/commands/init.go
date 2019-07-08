@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 	"github.com/coschain/cobra"
+	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/config"
 	"os"
 	"path/filepath"
@@ -29,7 +30,7 @@ func initConf(cmd *cobra.Command, args []string) {
 		cfg.Name = cfgName
 	}
 	if len(chainName) == 0 {
-		cfg.ChainId = "main"
+		cfg.ChainId = common.ChainNameMainNet
 	} else {
 		cfg.ChainId = chainName
 	}

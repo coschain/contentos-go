@@ -20,7 +20,7 @@ var ChainCmd = func() *cobra.Command {
 func chainSwitch(cmd *cobra.Command, args []string) {
 	chainName := args[0]
 	if len(chainName) == 0 {
-		chainName = "main"
+		chainName = common.ChainNameMainNet
 	}
 	chainId := prototype.ChainId{ Value:common.GetChainIdByName(chainName) }
 	cmd.SetContext("chain_name", chainName)
