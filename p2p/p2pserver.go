@@ -535,7 +535,7 @@ func (this *P2PServer) SendToPeer(p *peer.Peer, message interface{}) {
 	if this.Network.IsPeerEstablished(p) {
 		cmsg := message.(consmsg.ConsensusMessage)
 		msg := msgpack.NewConsMsg(cmsg, false)
-		go p.Send(msg, false, this.ctx.Config().P2P.NetworkMagic)
+		go p.Send(msg, false, this.Network.GetMagic())
 		return
 	}
 	this.log.Errorf("[p2p] send to a not ESTABLISH peer in SendToPeer %s",
@@ -557,7 +557,7 @@ func (this *P2PServer) RandomSend(message interface{}) {
 		state := p.GetSyncState()
 		if state == common.ESTABLISH && !p.HasConsensusMsg(hash) {
 			p.RecordConsensusMsg(hash)
-			go p.Send(msg, false, this.ctx.Config().P2P.NetworkMagic)
+			go p.Send(msg, false, this.Network.GetMagic())
 			return
 		}
 	}

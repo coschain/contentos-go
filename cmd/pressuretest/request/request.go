@@ -559,7 +559,7 @@ func acquireTicket(rpcClient grpcpb.ApiServiceClient, fromAccount *wallet.PrivAc
 		Count: 1,
 	}
 
-	signTx, err := utils.GenerateSignedTxAndValidate2(rpcClient, []interface{}{acquireOp}, fromAccount)
+	signTx, err := utils.GenerateSignedTxAndValidate2(rpcClient, []interface{}{acquireOp}, fromAccount, ChainId)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -623,7 +623,7 @@ func voteByTicket(rpcClient grpcpb.ApiServiceClient, fromAccount *wallet.PrivAcc
 		Count: 1,
 	}
 
-	signTx, err := utils.GenerateSignedTxAndValidate2(rpcClient, []interface{}{voteByTicketOp}, fromAccount)
+	signTx, err := utils.GenerateSignedTxAndValidate2(rpcClient, []interface{}{voteByTicketOp}, fromAccount, ChainId)
 	if err != nil {
 		fmt.Println(err)
 		return
