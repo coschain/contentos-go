@@ -419,7 +419,10 @@ func (this *P2PServer) Broadcast(message interface{}) {
 		return
 	}
 
-	this.Network.Broadcast(msg, isConsensus)
+	go func() {
+		time.Sleep(time.Duration(rand.Int()%15) * time.Second/10)
+		this.Network.Broadcast(msg, isConsensus)
+	}()
 }
 
 func (this *P2PServer) TriggerSync(current_head_blk_id coomn.BlockID) {

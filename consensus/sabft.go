@@ -1159,7 +1159,8 @@ func (sabft *SABFT) GetValidatorList() []message.PubKey {
 }
 
 func (sabft *SABFT) GetCommitHistory(height int64) *message.Commit {
-	return nil
+	c, _ := sabft.cp.GetIth(uint64(height))
+	return c
 }
 
 /********* end gobft ICommittee ***********/
