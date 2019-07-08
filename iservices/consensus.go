@@ -28,7 +28,7 @@ type IConsensus interface {
 	PushBlock(b common.ISignedBlock)
 
 	// Push sends a user defined msg to consensus
-	Push(msg interface{})
+	Push(msg interface{}, p common.IPeer)
 
 	// GetLastBFTCommit get the last irreversible block info. @evidence
 	// is the information that can prove the id is indeed the last irreversible one.

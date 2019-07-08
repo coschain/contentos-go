@@ -893,7 +893,7 @@ func (p *MsgHandler) ConsMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args 
 
 	//log.Info("receive a consensus message, message data: ", msgdata)
 
-	ctrl.Push(msgdata.MsgData)
+	ctrl.Push(msgdata.MsgData, remotePeer)
 
 	if msgdata.Bcast == 1 {
 		//log.Info("forward broadcast consensus msg")

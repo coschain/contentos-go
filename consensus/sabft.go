@@ -2,7 +2,6 @@ package consensus
 
 import (
 	"io/ioutil"
-	"math/rand"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -14,6 +13,7 @@ import (
 	"github.com/coschain/contentos-go/db/forkdb"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
+	"github.com/coschain/contentos-go/p2p/peer"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/gobft"
 	"github.com/coschain/gobft/custom"
@@ -615,15 +615,23 @@ func (sabft *SABFT) PushBlock(b common.ISignedBlock) {
 	sabft.blkCh <- b
 }
 
-func (sabft *SABFT) Push(msg interface{}) {
-	switch msg := msg.(type) {
+func (sabft *SABFT) Push(msg interface{}, p common.IPeer) {
+	switch m := msg.(type) {
 	case *message.Vote:
 		if atomic.LoadUint32(&sabft.bftStarted) == 1 {
-			sabft.bft.RecvMsg(msg)
+			sabft.bft.RecvMsg(m, p.(*peer.Peer))
+		}
+	case *message.FetchVotesReq:
+		if atomic.LoadUint32(&sabft.bftStarted) == 1 {
+			sabft.bft.RecvMsg(m, p.(*peer.Peer))
+		}
+	case *message.FetchVotesRsp:
+		if atomic.LoadUint32(&sabft.bftStarted) == 1 {
+			sabft.bft.RecvMsg(m, p.(*peer.Peer))
 		}
 	case *message.Commit:
 		go func() {
-			sabft.commitCh <- *msg
+			sabft.commitCh <- *m
 		}()
 	default:
 	}
@@ -726,7 +734,7 @@ func (sabft *SABFT) gobftCatchUp(commit *message.Commit) bool {
 	if sabft.isValidatorName(sabft.Name) && atomic.LoadUint32(&sabft.bftStarted) == 1 &&
 		sabft.appState.LastProposedData == commit.Prev {
 		sabft.log.Warn("pass commits to gobft ", commit.ProposedData)
-		sabft.bft.RecvMsg(commit)
+		sabft.bft.RecvMsg(commit, nil)
 		return true
 	}
 	return false
@@ -1130,11 +1138,28 @@ func (sabft *SABFT) BroadCast(msg message.ConsensusMessage) error {
 	return nil
 }
 
+func (sabft *SABFT) Send(msg message.ConsensusMessage, p custom.IPeer) error {
+	if p == nil {
+		sabft.p2p.RandomSend(msg)
+	} else {
+		sabft.p2p.SendToPeer(p.(*peer.Peer), msg)
+	}
+	return nil
+}
+
 func (sabft *SABFT) GetValidatorNum() int {
 	sabft.RLock()
 	defer sabft.RUnlock()
 
 	return sabft.dynasties.Front().GetValidatorNum()
+}
+
+func (sabft *SABFT) GetValidatorList() []message.PubKey {
+	return nil
+}
+
+func (sabft *SABFT) GetCommitHistory(height int64) *message.Commit {
+	return nil
 }
 
 /********* end gobft ICommittee ***********/
@@ -1405,12 +1430,7 @@ func (sabft *SABFT) MaybeProduceBlock() {
 	}
 	sabft.Unlock()
 
-	go func() {
-		time.Sleep(time.Duration(0 * time.Duration(rand.Int()%13) * time.Second / 10))
-		sabft.log.Debugf("[SABFT] call p2p to broadcast sigblk %d", b.Id().BlockNum())
-		sabft.p2p.Broadcast(b)
-	}()
-	//sabft.p2p.Broadcast(b)
+	sabft.p2p.Broadcast(b)
 }
 
 func (sabft *SABFT) handleBlockSync() error {
