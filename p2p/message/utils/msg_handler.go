@@ -813,42 +813,60 @@ func (p *MsgHandler) ReqIdHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 		return
 	}
 
-	if end-start > msgCommon.BATCH_LENGTH {
-		end = start + msgCommon.BATCH_LENGTH
-	}
-
-	log.Debug("[p2p] sync start num: ", start, " end num: ", end)
-
-	beginTime := time.Now()
-	blockList, err := ctrl.FetchBlocks(start, end)
-	if err != nil {
-		log.Error("[p2p] can't fetch blocks from consessus, start number: ", start, " end number: ", end, " error: ", err)
-		return
-	}
-	endTime := time.Now()
-	log.Debug("[p2p] consensus FetchBlocks cost time, start: ", beginTime, " end: ", endTime)
-	if len(blockList) == 0 {
-		log.Debug("[p2p] we have same blocks, no need to request from me")
-		return
-	}
-
+	var blocksSize int
 	var ids []common.BlockID
-	for i := 0; i < len(blockList); i++ {
-		ids = append(ids, blockList[i].Id())
+	stopFetchBlock := false
+	batchStart := start
+	blockCount := 0
+	for {
+		if batchStart > end {
+			break
+		}
+		batchEnd := batchStart + msgCommon.BATCH_LENGTH
+		if batchEnd > end {
+			batchEnd = end
+		}
+
+		beginTime := time.Now()
+		blockList, err := ctrl.FetchBlocks(batchStart, batchEnd)
+		if err != nil {
+			log.Error("[p2p] can't fetch blocks from consessus, start number: ", start, " end number: ", end, " error: ", err)
+			return
+		}
+		endTime := time.Now()
+		if len(blockList) == 0 {
+			log.Errorf("[p2p] consensus can't fetch blocks from %d to %d", batchStart, batchEnd)
+			return
+		}
+		log.Debugf("[p2p] consensus fetch block batch from %d to %d, cost time %v", batchStart, batchEnd, endTime.Sub(beginTime))
+
+		for i := 0; i < len(blockList); i++ {
+			sigBlk := blockList[i].(*prototype.SignedBlock)
+			if blocksSize + sigBlk.GetBlockSize() <= msgCommon.BLOCKS_SIZE_LIMIT && blockCount + 1 <= msgCommon.MAX_BLOCK_COUNT {
+				ids = append(ids, blockList[i].Id())
+				blocksSize += sigBlk.GetBlockSize()
+				blockCount++
+			} else {
+				stopFetchBlock = true
+			}
+		}
+
+		if stopFetchBlock {
+			break
+		}
+		batchStart = batchEnd + 1
+	}
+
+	if len(ids) == 0 {
+		log.Warn("[p2p] fetch no block from consensus, maybe one block is too big")
+		return
 	}
 
 	var reqmsg msgTypes.TransferMsg
-	var idlength int
 	reqdata := new(msgTypes.IdMsg)
 	reqdata.Msgtype = msgTypes.IdMsg_request_id_ack
 
-	if len(ids) <= msgCommon.BATCH_LENGTH {
-		idlength = len(ids)
-	} else {
-		idlength = msgCommon.BATCH_LENGTH
-	}
-
-	for i := 0; i < idlength; i++ {
+	for i := 0; i < len(ids); i++ {
 		var tmp []byte
 		reqdata.Value = append(reqdata.Value, tmp)
 		reqdata.Value[i] = make([]byte, prototype.Size)
