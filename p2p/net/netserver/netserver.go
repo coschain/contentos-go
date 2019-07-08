@@ -2,6 +2,7 @@ package netserver
 
 import (
 	"errors"
+	common2 "github.com/coschain/contentos-go/common"
 	"math/rand"
 	"net"
 	"strings"
@@ -17,6 +18,20 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+var NETWORK_MAGIC = map[uint32]uint32{
+	common2.ChainIdMainNet: 0x8c77ab66, //Network main
+	common2.ChainIdTestNet: 0x2d8829ff, //Network testnet
+	common2.ChainIdDevNet:  0x563f477c, //Network devnet
+}
+
+func GetNetworkMagic(id uint32) uint32 {
+	nid, ok := NETWORK_MAGIC[id]
+	if ok {
+		return nid
+	}
+	return id
+}
+
 //NewNetServer return the net object in p2p
 func NewNetServer(ctx *node.ServiceContext, lg *logrus.Logger) p2p.P2P {
 	n := &NetServer{
@@ -24,6 +39,7 @@ func NewNetServer(ctx *node.ServiceContext, lg *logrus.Logger) p2p.P2P {
 		log:      lg,
 		SyncChan: make(chan *types.MsgPayload, common.CHAN_CAPABILITY),
 		ConsChan: make(chan *types.MsgPayload, common.CHAN_CAPABILITY),
+		NetworkMagic: GetNetworkMagic(common2.GetChainIdByName(ctx.Config().ChainId)),
 	}
 
 	n.PeerAddrMap.PeerSyncAddress = make(map[string]*peer.Peer)
@@ -50,6 +66,7 @@ type NetServer struct {
 	inConnRecord  InConnectionRecord
 	outConnRecord OutConnectionRecord
 	OwnAddress    string //network`s own address(ip : sync port),which get from version check
+	NetworkMagic  uint32
 }
 
 //InConnectionRecord include all addr connected
@@ -211,7 +228,7 @@ func (this *NetServer) NodeEstablished(id uint64) bool {
 }
 
 func (this *NetServer) Broadcast(msg types.Message, isConsensus bool) {
-	this.Np.Broadcast(msg, isConsensus, this.ctx.Config().P2P.NetworkMagic)
+	this.Np.Broadcast(msg, isConsensus, this.NetworkMagic)
 }
 
 //GetMsgChan return sync or consensus channel when msgrouter need msg input
@@ -227,9 +244,9 @@ func (this *NetServer) GetMsgChan(isConsensus bool) chan *types.MsgPayload {
 func (this *NetServer) Send(p *peer.Peer, msg types.Message, isConsensus bool) error {
 	if p != nil {
 		if this.ctx.Config().P2P.DualPortSupport == false {
-			return p.Send(msg, false, this.ctx.Config().P2P.NetworkMagic)
+			return p.Send(msg, false, this.NetworkMagic)
 		}
-		return p.Send(msg, isConsensus, this.ctx.Config().P2P.NetworkMagic)
+		return p.Send(msg, isConsensus, this.NetworkMagic)
 	}
 	this.log.Warn("[p2p] send to a invalid peer")
 	return errors.New("[p2p] send to a invalid peer")
@@ -307,7 +324,7 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 		remotePeer.SyncLink.SetAddr(addr)
 		remotePeer.SyncLink.SetConn(conn)
 		remotePeer.AttachSyncChan(this.SyncChan)
-		go remotePeer.SyncLink.Rx(this.ctx.Config().P2P.NetworkMagic)
+		go remotePeer.SyncLink.Rx(this.NetworkMagic)
 		remotePeer.SetSyncState(common.HAND)
 
 	} else {
@@ -316,7 +333,7 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 		remotePeer.ConsLink.SetAddr(addr)
 		remotePeer.ConsLink.SetConn(conn)
 		remotePeer.AttachConsChan(this.ConsChan)
-		go remotePeer.ConsLink.Rx(this.ctx.Config().P2P.NetworkMagic)
+		go remotePeer.ConsLink.Rx(this.NetworkMagic)
 		remotePeer.SetConsState(common.HAND)
 	}
 
@@ -328,7 +345,7 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 	//ctrl := service.(iservices.IConsensus)
 	//version := msgpack.NewVersion(this, isConsensus, ctrl.GetHeadBlockId().BlockNum())
 	version := msgpack.NewVersion(this, isConsensus, uint64(0), this.ctx.Config().P2P.RunningCodeVersion )
-	err = remotePeer.Send(version, isConsensus, this.ctx.Config().P2P.NetworkMagic)
+	err = remotePeer.Send(version, isConsensus, this.NetworkMagic)
 	if err != nil {
 		if !isConsensus {
 			this.RemoveFromOutConnRecord(addr)
@@ -478,7 +495,7 @@ func (this *NetServer) startSyncAccept(listener net.Listener) {
 		remotePeer.SyncLink.SetAddr(addr)
 		remotePeer.SyncLink.SetConn(conn)
 		remotePeer.AttachSyncChan(this.SyncChan)
-		go remotePeer.SyncLink.Rx(this.ctx.Config().P2P.NetworkMagic)
+		go remotePeer.SyncLink.Rx(this.NetworkMagic)
 	}
 }
 
@@ -516,7 +533,7 @@ func (this *NetServer) startConsAccept(listener net.Listener) {
 		remotePeer.ConsLink.SetAddr(addr)
 		remotePeer.ConsLink.SetConn(conn)
 		remotePeer.AttachConsChan(this.ConsChan)
-		go remotePeer.ConsLink.Rx(this.ctx.Config().P2P.NetworkMagic)
+		go remotePeer.ConsLink.Rx(this.NetworkMagic)
 	}
 }
 
@@ -814,4 +831,8 @@ func (this *NetServer) GetContex() *node.ServiceContext{
 
 func (this *NetServer) GetLog() *logrus.Logger{
 	return this.log
+}
+
+func (this *NetServer) GetMagic() uint32 {
+	return this.NetworkMagic
 }

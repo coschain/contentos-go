@@ -85,7 +85,7 @@ func conductBatch(cmd *cobra.Command, args []string) {
 				Owner:          pubkey,
 			}
 
-			signTx, err = utils.GenerateSignedTxAndValidate2(client, []interface{}{acop}, creatorAccount)
+			signTx, err = utils.GenerateSignedTxAndValidate(cmd, []interface{}{acop}, creatorAccount)
 			if err != nil {
 				fmt.Println(err)
 				return
@@ -120,7 +120,7 @@ func conductBatch(cmd *cobra.Command, args []string) {
 				},
 			}
 
-			signTx, err = utils.GenerateSignedTxAndValidate2(client, []interface{}{bpRegister_op}, bpAccount)
+			signTx, err = utils.GenerateSignedTxAndValidate(cmd, []interface{}{bpRegister_op}, bpAccount)
 			if err != nil {
 				fmt.Println(err)
 				return
@@ -142,7 +142,7 @@ func conductBatch(cmd *cobra.Command, args []string) {
 				Cancel:  false,
 			}
 
-			signTx, err = utils.GenerateSignedTxAndValidate2(client, []interface{}{bpVote_op}, voterAccount)
+			signTx, err = utils.GenerateSignedTxAndValidate(cmd, []interface{}{bpVote_op}, voterAccount)
 			if err != nil {
 				fmt.Println(err)
 				return
@@ -169,7 +169,7 @@ func conductBatch(cmd *cobra.Command, args []string) {
 				Memo:   "",
 			}
 
-			signTx, err = utils.GenerateSignedTxAndValidate2(client, []interface{}{transfer_op}, fromAccount)
+			signTx, err = utils.GenerateSignedTxAndValidate(cmd, []interface{}{transfer_op}, fromAccount)
 			if err != nil {
 				fmt.Println(err)
 				return
@@ -195,7 +195,7 @@ func conductBatch(cmd *cobra.Command, args []string) {
 				Amount: prototype.NewCoin(uint64(amount)),
 			}
 
-			signTx, err = utils.GenerateSignedTxAndValidate2(client, []interface{}{transferv_op}, fromAccount)
+			signTx, err = utils.GenerateSignedTxAndValidate(cmd, []interface{}{transferv_op}, fromAccount)
 			if err != nil {
 				fmt.Println(err)
 				return
@@ -246,7 +246,7 @@ func conductBatch(cmd *cobra.Command, args []string) {
 				Upgradeable: false,
 			}
 
-			signTx, err = utils.GenerateSignedTxAndValidate2(client, []interface{}{contractDeployOp}, deployerAccount)
+			signTx, err = utils.GenerateSignedTxAndValidate(cmd, []interface{}{contractDeployOp}, deployerAccount)
 			if err != nil {
 				fmt.Println(err)
 				return
@@ -273,7 +273,7 @@ func conductBatch(cmd *cobra.Command, args []string) {
 				Amount:    prototype.NewCoin(uint64(amount)),
 			}
 
-			signTx, err = utils.GenerateSignedTxAndValidate2(client, []interface{}{stakeOp}, stakeAccount)
+			signTx, err = utils.GenerateSignedTxAndValidate(cmd, []interface{}{stakeOp}, stakeAccount)
 			if err != nil {
 				fmt.Println(err)
 				return

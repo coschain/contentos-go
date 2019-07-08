@@ -15,6 +15,7 @@ var InitCmd = func() *cobra.Command {
 		Run:   initConf,
 	}
 	cmd.Flags().StringVarP(&cfgName, "name", "n", "", "node name (default is cosd)")
+	cmd.Flags().StringVarP(&chainName, "chain", "c", "", "chain name [main/test/dev], default is main")
 	return cmd
 }
 
@@ -26,6 +27,11 @@ func initConf(cmd *cobra.Command, args []string) {
 		cfg.Name = ClientIdentifier
 	} else {
 		cfg.Name = cfgName
+	}
+	if len(chainName) == 0 {
+		cfg.ChainId = "main"
+	} else {
+		cfg.ChainId = chainName
 	}
 	confdir := filepath.Join(cfg.DataDir, cfg.Name)
 	if _, err = os.Stat(confdir); os.IsNotExist(err) {

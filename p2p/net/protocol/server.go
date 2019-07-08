@@ -50,4 +50,5 @@ type P2P interface {
 	GetService(string) (interface{}, error)
 	GetContex() *node.ServiceContext
 	GetLog() *logrus.Logger
+	GetMagic() uint32
 }

@@ -90,7 +90,7 @@ func updateAccount(cmd *cobra.Command, args []string) {
 		Pubkey:        pubKey,
 	}
 
-	signTx, err := utils.GenerateSignedTxAndValidate2(client, []interface{}{accountUpdate_op}, updateAccount)
+	signTx, err := utils.GenerateSignedTxAndValidate(cmd, []interface{}{accountUpdate_op}, updateAccount)
 	if err != nil {
 		fmt.Println(err)
 		return

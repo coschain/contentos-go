@@ -38,6 +38,7 @@ func randomTransfer(cmd *cobra.Command, args []string) {
 	rt := new(RandTransfer)
 	rt.client = cmd.Context["rpcclient"].(grpcpb.ApiServiceClient)
 	rt.wallet = cmd.Context["wallet"].(wallet.Wallet)
+	rt.chainId = cmd.Context["chain_id"].(prototype.ChainId)
 	rt.creator, ok = rt.wallet.GetUnlockedAccount(args[0])
 	if !ok {
 		fmt.Println(fmt.Sprintf("creator: %s should be loaded or created first", args[0]))
@@ -61,6 +62,7 @@ func randStr(size int) string {
 }
 
 type RandTransfer struct {
+	chainId prototype.ChainId
 	client grpcpb.ApiServiceClient
 	wallet wallet.Wallet
 	creator *wallet.PrivAccount
@@ -119,7 +121,7 @@ func (rt *RandTransfer) do() {
 			Amount: prototype.NewCoin(1),
 			Memo:   randStr(8),
 		}
-		trx, err := utils.GenerateSignedTxAndValidate4(state.Dgpo, 30, []interface{}{op}, keys[from])
+		trx, err := utils.GenerateSignedTxAndValidate4(state.Dgpo, 30, []interface{}{op}, keys[from], rt.chainId)
 		if err != nil {
 			fmt.Printf("failed generating transfer trx %s -> %s: %s\n", from, to, err.Error())
 			return
@@ -192,7 +194,7 @@ func (rt *RandTransfer) createAndFundAccount(account string) (error, *prototype.
 		Amount: prototype.NewCoin(50000),
 		Memo:   "",
 	}
-	trx, err := utils.GenerateSignedTxAndValidate2(rt.client, []interface{}{opCreate, opFund}, rt.creator)
+	trx, err := utils.GenerateSignedTxAndValidate2(rt.client, []interface{}{opCreate, opFund}, rt.creator, rt.chainId)
 	if err != nil {
 		return err, nil, nil
 	}
