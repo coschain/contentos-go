@@ -880,6 +880,7 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 			}
 		}
 		sabft.log.Debug("[SABFT] pushBlock FINISHED #", b.Id().BlockNum(), " id ", b.Id())
+		sabft.p2p.Broadcast(b)
 		return nil
 	default:
 		return ErrInternal

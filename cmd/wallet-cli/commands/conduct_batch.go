@@ -64,6 +64,15 @@ func conductBatch(cmd *cobra.Command, args []string) {
 			}
 			client = grpcpb.NewApiServiceClient(conn)
 			continue
+		case "selectChain":
+			chainName := cmdArgs[1]
+			if len(chainName) == 0 {
+				chainName = common.ChainNameMainNet
+			}
+			chainId := prototype.ChainId{ Value:common.GetChainIdByName(chainName) }
+			cmd.SetContext("chain_name", chainName)
+			cmd.SetContext("chain_id", chainId)
+			continue
 		case "create":
 			createrName := cmdArgs[1]
 			createrPubKeyStr := cmdArgs[2]
