@@ -754,10 +754,14 @@ func RegisterAndVoteBP(rpcClient grpcpb.ApiServiceClient, index int) error {
 		Desc:            BPList[index].name,
 		BlockSigningKey: pubKey,
 		Props: &prototype.ChainProperties{
-			AccountCreationFee: prototype.NewCoin(constants.DefaultAccountCreateFee),
-			MaximumBlockSize:   10 * 1024 * 1024,
-			StaminaFree:        constants.DefaultStaminaFree,
-			TpsExpected:        constants.DefaultTPSExpected,
+			AccountCreationFee:    prototype.NewCoin(constants.DefaultAccountCreateFee),
+			MaximumBlockSize:      10 * 1024 * 1024,
+			StaminaFree:           constants.DefaultStaminaFree,
+			TpsExpected:           constants.DefaultTPSExpected,
+			EpochDuration:         constants.InitEpochDuration,
+			TopNAcquireFreeToken:  constants.InitTopN,
+			PerTicketPrice:        prototype.NewVest(constants.PerTicketPrice * constants.COSTokenDecimals),
+			PerTicketWeight:       constants.PerTicketWeight,
 		},
 	}
 
