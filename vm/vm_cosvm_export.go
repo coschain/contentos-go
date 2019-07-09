@@ -230,7 +230,7 @@ func e_tableGetRecordEx(proc *exec.Process, ownerName, ownerNameLen int32, contr
 func e_setCopyrightAdmin(proc *exec.Process, name, nameLen int32) {
 	w := proc.GetTag().(*CosVMNative)
 
-	w.CosAssert(w.ReadContractOwner() == constants.COSSysAccount && w.ReadContractCaller() == constants.COSSysAccount,
+	w.CosAssert(w.ReadContractOwner() == constants.COSSysAccount,
 		"SetCopyrightAdmin: access denied",
 	)
 	w.SetCopyrightAdmin(string(w.cosVM.read(proc, name, nameLen, "setCopyrightAdmin().name")))
