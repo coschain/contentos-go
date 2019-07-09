@@ -273,7 +273,7 @@ func e_setReputationAdmin(proc *exec.Process, name, nameLen int32) {
 	w := proc.GetTag().(*CosVMNative)
 
 	w.CosAssert(
-		w.ReadContractOwner() == constants.COSSysAccount && w.ReadContractCaller() == constants.COSSysAccount,
+		w.ReadContractOwner() == constants.COSSysAccount,
 		"SetReputationAdmin(): access denied",
 		)
 	w.SetReputationAdmin(string(w.cosVM.read(proc, name, nameLen, "setReputationAdmin().name")))
