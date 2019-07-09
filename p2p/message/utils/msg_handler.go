@@ -848,6 +848,7 @@ func (p *MsgHandler) ReqIdHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 				blockCount++
 			} else {
 				stopFetchBlock = true
+				break
 			}
 		}
 
@@ -1031,21 +1032,54 @@ func (p *MsgHandler) FetchOutOfRangeHandle(data *msgTypes.MsgPayload, p2p p2p.P2
 		startNum := startID.BlockNum()
 		endNum := targetID.BlockNum()
 
-		if endNum - startNum > msgCommon.BATCH_LENGTH {
-			endNum = startNum + msgCommon.BATCH_LENGTH
+		var blockList []common.ISignedBlock
+		batchStart := startNum
+		blocksSize := 0
+		blockCount := 0
+		stopFetchBlock := false
+		for {
+			if batchStart > endNum {
+				break
+			}
+			batchEnd := batchStart + msgCommon.BATCH_LENGTH
+			if batchEnd > endNum {
+				batchEnd = endNum
+			}
+
+			blockBatchList, err := ctrl.FetchBlocks(batchStart, batchEnd)
+			if err != nil {
+				log.Error("[p2p] can't fetch blocks from consessus, start number: ", batchStart, " end number: ", batchEnd, " error: ", err)
+				clearMsg := msgpack.NewClearOutOfRangeState()
+				p2p.Send(remotePeer, clearMsg, false)
+				return
+			}
+			if len(blockBatchList) == 0 {
+				log.Debug("[p2p] we have same blocks, no need to request from me")
+				clearMsg := msgpack.NewClearOutOfRangeState()
+				p2p.Send(remotePeer, clearMsg, false)
+				return
+			}
+
+			for i := 0; i < len(blockBatchList); i++ {
+				sigBlk := blockBatchList[i].(*prototype.SignedBlock)
+				if blocksSize + sigBlk.GetBlockSize() <= msgCommon.BLOCKS_SIZE_LIMIT && blockCount + 1 <= msgCommon.MAX_BLOCK_COUNT {
+					blockList = append(blockList, blockBatchList[i])
+					blocksSize += sigBlk.GetBlockSize()
+					blockCount++
+				} else {
+					stopFetchBlock = true
+					break
+				}
+			}
+
+			if stopFetchBlock {
+				break
+			}
+			batchStart = batchEnd + 1
 		}
 
-		blockList, err := ctrl.FetchBlocks(startNum, endNum)
-		if err != nil {
-			log.Error("[p2p] can't fetch blocks from consessus, start number: ", startNum, " end number: ", endNum, " error: ", err)
-			clearMsg := msgpack.NewClearOutOfRangeState()
-			p2p.Send(remotePeer, clearMsg, false)
-			return
-		}
 		if len(blockList) == 0 {
-			log.Debug("[p2p] we have same blocks, no need to request from me")
-			clearMsg := msgpack.NewClearOutOfRangeState()
-			p2p.Send(remotePeer, clearMsg, false)
+			log.Warn("[p2p] fetch no block from consensus, maybe one block is too big")
 			return
 		}
 
