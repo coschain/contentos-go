@@ -504,6 +504,8 @@ message GetContractInfoResponse {
     bool exist    = 1;
     string abi    = 2;
     bytes code    = 3;
+    string url    = 4;
+    string describe = 5;
 }
 
 message GetBlkIsIrreversibleByTxIdRequest {

@@ -17,6 +17,8 @@ message so_contract {
     uint32                     apply_count      =      6;
     bool                       upgradeable      =      7;
     prototype.sha256           hash     		      =      8;
+    string                     url              =      9;
+    string                     describe              =      10;
       
 }
 
@@ -58,6 +60,16 @@ message so_mem_contract_by_upgradeable {
 
 message so_mem_contract_by_hash {
 	prototype.sha256        	hash     		  = 1;
+}
+
+
+message so_mem_contract_by_url {
+	string                  	url          = 1;
+}
+
+
+message so_mem_contract_by_describe {
+	string                  	describe          = 1;
 }
 
 

@@ -18,8 +18,8 @@ var DeployCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "deploy",
 		Short:   "deploy a new contract",
-		Example: "deploy [author] [contract_name] [local_wasm_path] [local_abi_path] [upgradeable]",
-		Args:    cobra.ExactArgs(5),
+		Example: "deploy [author] [contract_name] [local_wasm_path] [local_abi_path] [upgradeable] [code_url] [describe]",
+		Args:    cobra.ExactArgs(7),
 		Run:     deploy,
 	}
 	utils.ProcessEstimate(cmd)
@@ -43,6 +43,8 @@ func deploy(cmd *cobra.Command, args []string) {
 	cname := args[1]
 	path := args[2]
 	pathAbi := args[3]
+	url := args[4]
+	desc := args[5]
 
 	upgradeable := false
 	if args[4] == "true"{
@@ -79,6 +81,8 @@ func deploy(cmd *cobra.Command, args []string) {
 		Abi:      compressedAbi,
 		Code:     compressedCode,
 		Upgradeable:upgradeable,
+		Url: url,
+		Describe: desc,
 	}
 	signTx, err := utils.GenerateSignedTxAndValidate(cmd, []interface{}{contractDeployOp}, acc)
 	if err != nil {

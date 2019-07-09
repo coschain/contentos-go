@@ -1128,6 +1128,8 @@ func (as *APIService) GetContractInfo (ctx context.Context, req *grpcpb.GetContr
 		if req.FetchCode{
 			res.Code = scid.GetCode()
 		}
+		res.Url = scid.GetUrl()
+		res.Describe = scid.GetDescribe()
 	}
 
 	return res, nil
