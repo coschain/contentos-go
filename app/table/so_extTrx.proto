@@ -5,9 +5,9 @@ package table;
 
 option go_package = "github.com/coschain/contentos-go/app/table";
 
-import "prototype/transaction.proto";
 import "prototype/multi_id.proto";
 import "prototype/type.proto";
+import "prototype/transaction.proto";
 
 message so_extTrx {
 	prototype.sha256                           trx_id          =      1;

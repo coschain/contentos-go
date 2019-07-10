@@ -30,6 +30,8 @@ var (
 	AccountCreatedTrxCountCell        uint32 = 2108500471
 	AccountCreatorCell                uint32 = 1804791917
 	AccountEachPowerdownRateCell      uint32 = 1435132114
+	AccountFreezeCell                 uint32 = 830628163
+	AccountFreezeMemoCell             uint32 = 1780236204
 	AccountHasPowerdownCell           uint32 = 2131027332
 	AccountLastOwnerUpdateCell        uint32 = 1786339118
 	AccountLastPostTimeCell           uint32 = 3226532373
@@ -676,6 +678,12 @@ func (s *SoAccountWrap) getMemKeyPrefix(fName string) uint32 {
 	if fName == "EachPowerdownRate" {
 		return AccountEachPowerdownRateCell
 	}
+	if fName == "Freeze" {
+		return AccountFreezeCell
+	}
+	if fName == "FreezeMemo" {
+		return AccountFreezeMemoCell
+	}
 	if fName == "HasPowerdown" {
 		return AccountHasPowerdownCell
 	}
@@ -813,6 +821,20 @@ func (s *SoAccountWrap) saveAllMemKeys(tInfo *SoAccount, br bool) error {
 			return err
 		} else {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "EachPowerdownRate", err)
+		}
+	}
+	if err = s.saveMemKeyFreeze(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Freeze", err)
+		}
+	}
+	if err = s.saveMemKeyFreezeMemo(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "FreezeMemo", err)
 		}
 	}
 	if err = s.saveMemKeyHasPowerdown(tInfo); err != nil {
@@ -1599,6 +1621,172 @@ func (s *SoAccountWrap) MdEachPowerdownRate(p *prototype.Vest) bool {
 		return false
 	}
 	sa.EachPowerdownRate = p
+
+	return true
+}
+
+func (s *SoAccountWrap) saveMemKeyFreeze(tInfo *SoAccount) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemAccountByFreeze{}
+	val.Freeze = tInfo.Freeze
+	key, err := s.encodeMemKey("Freeze")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
+
+func (s *SoAccountWrap) GetFreeze() uint32 {
+	res := true
+	msg := &SoMemAccountByFreeze{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("Freeze")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.Freeze
+			}
+		}
+	}
+	if !res {
+		var tmpValue uint32
+		return tmpValue
+	}
+	return msg.Freeze
+}
+
+func (s *SoAccountWrap) MdFreeze(p uint32) bool {
+	if s.dba == nil {
+		return false
+	}
+	key, err := s.encodeMemKey("Freeze")
+	if err != nil {
+		return false
+	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemAccountByFreeze{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoAccount{}
+	sa.Name = s.mainKey
+
+	sa.Freeze = ori.Freeze
+
+	ori.Freeze = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
+		return false
+	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.Freeze = p
+
+	return true
+}
+
+func (s *SoAccountWrap) saveMemKeyFreezeMemo(tInfo *SoAccount) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemAccountByFreezeMemo{}
+	val.FreezeMemo = tInfo.FreezeMemo
+	key, err := s.encodeMemKey("FreezeMemo")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
+
+func (s *SoAccountWrap) GetFreezeMemo() string {
+	res := true
+	msg := &SoMemAccountByFreezeMemo{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("FreezeMemo")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.FreezeMemo
+			}
+		}
+	}
+	if !res {
+		var tmpValue string
+		return tmpValue
+	}
+	return msg.FreezeMemo
+}
+
+func (s *SoAccountWrap) MdFreezeMemo(p string) bool {
+	if s.dba == nil {
+		return false
+	}
+	key, err := s.encodeMemKey("FreezeMemo")
+	if err != nil {
+		return false
+	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemAccountByFreezeMemo{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoAccount{}
+	sa.Name = s.mainKey
+
+	sa.FreezeMemo = ori.FreezeMemo
+
+	ori.FreezeMemo = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
+		return false
+	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.FreezeMemo = p
 
 	return true
 }

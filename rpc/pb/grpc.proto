@@ -182,6 +182,8 @@ message AccountInfo {
     string                                  reputation_memo = 21;
     uint32                                  charged_ticket = 22;
     uint32                                  free_ticket = 23;
+    uint32                                  freeze = 24;
+    string                                  freeze_memo = 25;
 }
 
 message AccountResponse {

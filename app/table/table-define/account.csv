@@ -25,3 +25,5 @@ prototype.time_point_sec ,last_stake_time ,0   ,0     ,0   ,0          ,prototyp
 uint32                   ,reputation     ,0  ,0     ,0    ,0    ,
 string                   ,reputation_memo ,0  ,0     ,0    ,0    ,
 uint32                   ,charged_ticket , 0   ,0     ,0   ,0          ,
+uint32                   ,freeze     ,0  ,0     ,0    ,0    ,
+string                   ,freeze_memo ,0  ,0     ,0    ,0    ,

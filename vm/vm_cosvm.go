@@ -78,6 +78,7 @@ func (w *CosVM) initNativeFuncs() {
 
 	w.Register("set_copyright_admin", e_setCopyrightAdmin, 0)
 	w.Register("set_copyright", e_setCopyright, 0)
+	w.Register("set_freeze",e_freeze,0)
 
 	// for memeory
 	w.Register("memcpy", e_memcpy, 100)

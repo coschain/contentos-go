@@ -873,6 +873,9 @@ func (as *APIService) getAccountResponseByName(name *prototype.AccountName, isNe
 		acctInfo.FreeTicket = as.pool.GetFreeTicketCount(name)
 		acctInfo.ChargedTicket = accWrap.GetChargedTicket()
 
+		acctInfo.Freeze = accWrap.GetFreeze()
+		acctInfo.FreezeMemo = accWrap.GetFreezeMemo()
+
 		acct.Info = acctInfo
 		acct.State = as.getState()
 

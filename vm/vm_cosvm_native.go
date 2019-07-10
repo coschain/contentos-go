@@ -263,3 +263,9 @@ func (w *CosVMNative) SetUserReputation(name string, value uint32, memo string) 
 	w.CosAssert(account.MdReputation(value), fmt.Sprintf("failed to modify reputation of %s", name))
 	w.CosAssert(account.MdReputationMemo(memo), fmt.Sprintf("failed to modify reputation memo of %s", name))
 }
+
+func (w *CosVMNative) SetUserFreeze(name string, value uint32, memo string) {
+	account := table.NewSoAccountWrap(w.cosVM.db, prototype.NewAccountName(name))
+	w.CosAssert(account.MdFreeze(value), fmt.Sprintf("failed to modify freeze of %s", name))
+	w.CosAssert(account.MdFreezeMemo(memo), fmt.Sprintf("failed to modify freeze memo of %s", name))
+}
