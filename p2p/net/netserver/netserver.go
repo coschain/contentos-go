@@ -116,7 +116,7 @@ func (this *NetServer) init() error {
 	this.base.SetID(id)
 
 	this.log.Infof("[p2p] init peer ID to %d", this.base.GetID())
-	this.Np = &peer.NbrPeers{}
+	this.Np = &peer.NbrPeers{Log:this.log}
 	this.Np.Init()
 
 	return nil
