@@ -25,8 +25,7 @@ func (this *NbrPeers) Broadcast(mesg types.Message, isConsensus bool, magic uint
 	for _, p := range this.List {
 		if p.GetSyncState() == common.ESTABLISH {
 			ip := p.GetAddr()
-			port := p.Port()
-			pStr := fmt.Sprintf("%s:%d, ", ip, port)
+			pStr := fmt.Sprintf("%s, ", ip)
 			peerList += pStr
 		}
 	}

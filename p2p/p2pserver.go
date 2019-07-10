@@ -573,8 +573,7 @@ func (this *P2PServer) GetNodeNeighbours() string {
 	for _, p := range peers {
 		if p.GetSyncState() == common.ESTABLISH {
 			ip := p.GetAddr()
-			port := p.Port()
-			pStr := fmt.Sprintf("%s:%d, ", ip, port)
+			pStr := fmt.Sprintf("%s, ", ip)
 			peerList += pStr
 		}
 	}
