@@ -7,3 +7,5 @@ bytes                   ,code        ,0   ,0     ,0   ,0          ,
 uint32                  ,apply_count ,0   ,0     ,1   ,0          ,
 bool                    ,upgradeable ,0   ,0     ,0   ,0          ,
 prototype.sha256        ,hash     		 ,0   ,0     ,0   ,0          ,prototype/type.proto
+string                  ,url         ,0   ,0     ,0   ,0          ,
+string                  ,describe         ,0   ,0     ,0   ,0          ,

@@ -92,6 +92,7 @@ func (n *Node) Start() error {
 			// to support services to share, the list of services pass by reference
 			services: services,
 		}
+		ctx.UpdateChainId()
 
 		name := namedConstructor.name
 		constructor := namedConstructor.constructor

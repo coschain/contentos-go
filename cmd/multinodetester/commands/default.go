@@ -6,3 +6,4 @@ const (
 )
 
 var cfgName string
+var chainName string

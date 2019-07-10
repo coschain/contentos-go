@@ -53,6 +53,8 @@ type BFTCheckPoint struct {
 	lastCommitted common.BlockID
 	nextCP        common.BlockID
 	cache         map[common.BlockID]*message.Commit // lastCommitted-->Commit
+
+	indexPrefix [8]byte
 }
 
 func NewBFTCheckPoint(dir string, sabft *SABFT) *BFTCheckPoint {
@@ -68,7 +70,15 @@ func NewBFTCheckPoint(dir string, sabft *SABFT) *BFTCheckPoint {
 		lastCommitted: lc,
 		nextCP:        common.EmptyBlockID,
 		cache:         make(map[common.BlockID]*message.Commit),
+		indexPrefix:   [8]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
 	}
+}
+
+func (cp *BFTCheckPoint) getIdxKey(idx uint64) []byte {
+	idxKey := make([]byte, 16)
+	copy(idxKey, cp.indexPrefix[:])
+	binary.BigEndian.PutUint64(idxKey[8:], idx)
+	return idxKey
 }
 
 func (cp *BFTCheckPoint) Flush(bid common.BlockID) error {
@@ -80,6 +90,13 @@ func (cp *BFTCheckPoint) Flush(bid common.BlockID) error {
 			cp.sabft.log.Fatal(err)
 			return err
 		}
+
+		err = cp.db.Put(cp.getIdxKey(uint64(cp.cache[cp.lastCommitted].Height())), key)
+		if err != nil {
+			cp.sabft.log.Fatal(err)
+			return err
+		}
+
 		delete(cp.cache, cp.lastCommitted)
 
 		cp.lastCommitted = cp.nextCP
@@ -95,7 +112,8 @@ func (cp *BFTCheckPoint) Flush(bid common.BlockID) error {
 			break
 		}
 	}
-	cp.sabft.log.Warnf("checkpoint flushing interrupted after block height %d, meant to flush to %d", cp.lastCommitted.BlockNum(), bid.BlockNum())
+	cp.sabft.log.Warnf("checkpoint flushing interrupted after block height %d, meant to flush to %d",
+		cp.lastCommitted.BlockNum(), bid.BlockNum())
 	return nil
 }
 
@@ -109,7 +127,8 @@ func (cp *BFTCheckPoint) Add(commit *message.Commit) error {
 	libNum := cp.lastCommitted.BlockNum()
 	if blockNum > libNum+constants.MaxUncommittedBlockNum ||
 		blockNum <= libNum {
-		cp.sabft.log.Errorf("last commit: %d, commit num: %d, err: %s", libNum, blockNum, ErrCheckPointOutOfRange.Error())
+		cp.sabft.log.Errorf("last commit: %d, commit num: %d, err: %s",
+			libNum, blockNum, ErrCheckPointOutOfRange.Error())
 		return ErrCheckPointOutOfRange
 	}
 
@@ -198,6 +217,25 @@ func (cp *BFTCheckPoint) GetNext(blockNum uint64) (*message.Commit, error) {
 	}
 	if err = commit.(*message.Commit).ValidateBasic(); err != nil {
 		cp.sabft.log.Error(err)
+		return nil, err
+	}
+	return commit.(*message.Commit), nil
+}
+
+func (cp *BFTCheckPoint) GetIth(i uint64) (*message.Commit, error) {
+	idxKey := cp.getIdxKey(i)
+	blockNum, err := cp.db.Get(idxKey)
+	if err != nil {
+		cp.sabft.log.Error(err)
+		return nil, err
+	}
+	c, err := cp.db.Get(blockNum)
+	if err != nil {
+		cp.sabft.log.Error(err)
+		return nil, err
+	}
+	commit, err := message.DecodeConsensusMsg(c)
+	if err != nil {
 		return nil, err
 	}
 	return commit.(*message.Commit), nil

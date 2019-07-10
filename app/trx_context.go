@@ -319,6 +319,12 @@ func (p *TrxContext) GetBlockProducers() (names []string) {
 	return
 }
 
+func (p *TrxContext) DiscardAccountCache(name string) {
+	p.control.DiscardAccountCache(name)
+}
+
+//
+
 //
 // implements ApplyDelegate interface
 //

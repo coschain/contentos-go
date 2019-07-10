@@ -115,7 +115,7 @@ func (c *TrxPool) Open() {
 
 	commit, _ := c.iceberg.LastFinalizedBlock()
 	latest, _, _ := c.iceberg.LatestBlock()
-	c.tm = NewTrxMgr(c.db, c.log, latest, commit)
+	c.tm = NewTrxMgr(c.ctx.ChainId(), c.db, c.log, latest, commit)
 	c.resourceLimiter = utils.NewResourceLimiter()
 }
 
@@ -138,7 +138,7 @@ func (c *TrxPool) PushTrx(trx *prototype.SignedTransaction) (invoice *prototype.
 func (c *TrxPool) EstimateStamina(trx *prototype.SignedTransaction) (invoice *prototype.TransactionReceiptWithInfo) {
 	c.db.Lock()
 	defer c.db.Unlock()
-	entry := NewTrxMgrEntry(trx, nil)
+	entry := NewTrxMgrEntry(c.ctx.ChainId(), trx, nil)
 	invoice = &prototype.TransactionReceiptWithInfo{}
 	if err := entry.InitCheck(); err != nil {
 		invoice.ErrorInfo = err.Error()
@@ -432,8 +432,7 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabasePatch, entry *TrxEn
 	trxDB := db.NewPatch()
 
 	trxObserver := c.stateObserver.NewTrxObserver()
-	cid := prototype.ChainId{Value: 0}
-	trxHash, _ := sigTrx.GetTrxHash(cid)
+	trxHash, _ := sigTrx.GetTrxHash(c.ctx.ChainId())
 	trxObserver.BeginTrx(hex.EncodeToString(trxHash))
 	trxContext := NewTrxContext(result, trxDB, entry.GetTrxSigner(), c, trxObserver)
 
@@ -1232,4 +1231,8 @@ func (c *TrxPool) GetFreeTicketCount(name *prototype.AccountName) uint32 {
 	} else {
 		return 0
 	}
+}
+
+func (c *TrxPool) DiscardAccountCache(name string) {
+	c.tm.DiscardAccountCache(name)
 }

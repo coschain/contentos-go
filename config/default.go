@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/iservices/service-configs"
 	"github.com/coschain/contentos-go/mylog"
@@ -26,14 +27,12 @@ const (
 	DEFAULT_MAX_CONN_IN_BOUND_FOR_SINGLE_IP = uint(16)
 )
 
-const (
-	NETWORK_ID_MAIN_NET    = 1
-	NETWORK_ID_TESTNET_NET = 2
-	NETWORK_NAME_MAIN_NET  = "contentos"
-	NETWORK_NAME_TEST_NET  = "contentos_test"
-)
-
 var TestNetConfig = &service_configs.GenesisConfig{
+	SeedList: []string{
+		fmt.Sprintf("127.0.0.1:%d", DEFAULT_NODE_PORT)},
+}
+
+var DevNetConfig = &service_configs.GenesisConfig{
 	SeedList: []string{
 		fmt.Sprintf("127.0.0.1:%d", DEFAULT_NODE_PORT)},
 }
@@ -43,34 +42,9 @@ var MainNetConfig = &service_configs.GenesisConfig{
 		fmt.Sprintf("127.0.0.1:%d", DEFAULT_NODE_PORT)},
 }
 
-var NETWORK_MAGIC = map[uint32]uint32{
-	NETWORK_ID_MAIN_NET:    0x8c77ab66, //Network main
-	NETWORK_ID_TESTNET_NET: 0x2d8829ff, //Network testnet
-}
-
-var NETWORK_NAME = map[uint32]string{
-	NETWORK_ID_MAIN_NET:    NETWORK_NAME_MAIN_NET,
-	NETWORK_ID_TESTNET_NET: NETWORK_NAME_TEST_NET,
-}
-
-func GetNetworkMagic(id uint32) uint32 {
-	nid, ok := NETWORK_MAGIC[id]
-	if ok {
-		return nid
-	}
-	return id
-}
-
-func GetNetworkName(id uint32) string {
-	name, ok := NETWORK_NAME[id]
-	if ok {
-		return name
-	}
-	return fmt.Sprintf("%d", id)
-}
-
 // DefaultConfig contains reasonable default settings.
 var DefaultNodeConfig = node.Config{
+	ChainId: common.ChainNameMainNet,
 	DataDir: DefaultDataDir(),
 	LogLevel:         mylog.DebugLevel,
 	P2P: service_configs.P2PConfig{
@@ -78,9 +52,6 @@ var DefaultNodeConfig = node.Config{
 		EnableConsensus:           true,
 		ReservedCfg:               &service_configs.P2PRsvConfig{},
 		ReservedPeersOnly:         false,
-		NetworkId:                 NETWORK_ID_MAIN_NET,
-		NetworkName:               GetNetworkName(NETWORK_ID_MAIN_NET),
-		NetworkMagic:              GetNetworkMagic(NETWORK_ID_MAIN_NET),
 		NodePort:                  DEFAULT_NODE_PORT,
 		NodeConsensusPort:         DEFAULT_CONSENSUS_PORT,
 		DualPortSupport:           true,

@@ -330,6 +330,14 @@ func (this *Peer) GetSyncPort() uint32 {
 	return this.SyncLink.GetPort()
 }
 
+func (this *Peer) Port() uint16 {
+	return uint16(this.SyncLink.GetPort())
+}
+
+func (this *Peer) IPv4() string {
+	return this.SyncLink.GetAddr()
+}
+
 //GetConsPort return peer`s consensus port
 func (this *Peer) GetConsPort() uint32 {
 	return this.ConsLink.GetPort()

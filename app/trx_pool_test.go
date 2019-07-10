@@ -64,7 +64,7 @@ func createSigTrxTmp(c *TrxPool, priKey string, step uint32, ops ...interface{})
 
 	signTx := prototype.SignedTransaction{Trx: tx}
 
-	res := signTx.Sign(privKey, prototype.ChainId{Value: 0})
+	res := signTx.Sign(privKey, c.ctx.ChainId())
 	signTx.Signature = &prototype.SignatureType{Sig: res}
 
 	return &signTx, nil
@@ -129,7 +129,7 @@ func createSigTrx(c *TrxPool, priKey string, ops ...interface{}) (*prototype.Sig
 
 	signTx := prototype.SignedTransaction{Trx: tx}
 
-	res := signTx.Sign(privKey, prototype.ChainId{Value: 0})
+	res := signTx.Sign(privKey, c.ctx.ChainId())
 	signTx.Signature = &prototype.SignatureType{Sig: res}
 
 	return &signTx, nil

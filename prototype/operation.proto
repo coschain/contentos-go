@@ -79,6 +79,8 @@ message contract_deploy_operation{
     bytes  abi = 3;
     bytes  code = 4;
     bool upgradeable = 5;
+    string url = 6;
+    string describe = 7;
 }
 
 message contract_apply_operation{

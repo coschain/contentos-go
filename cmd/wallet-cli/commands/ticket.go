@@ -57,7 +57,7 @@ func acquireTicket(cmd *cobra.Command, args []string) {
 		Account: &prototype.AccountName{Value:name},
 		Count: count,
 	}
-	signTx, err := utils.GenerateSignedTxAndValidate2(client, []interface{}{acquireTicketOp}, account)
+	signTx, err := utils.GenerateSignedTxAndValidate(cmd, []interface{}{acquireTicketOp}, account)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -95,7 +95,7 @@ func voteByTicket(cmd *cobra.Command, args []string) {
 		Idx: postId,
 		Count: count,
 	}
-	signTx, err := utils.GenerateSignedTxAndValidate2(client, []interface{}{voteByTicketOp}, account)
+	signTx, err := utils.GenerateSignedTxAndValidate(cmd, []interface{}{voteByTicketOp}, account)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -108,5 +108,3 @@ func voteByTicket(cmd *cobra.Command, args []string) {
 		fmt.Println(fmt.Sprintf("Result: %v", resp))
 	}
 }
-
-

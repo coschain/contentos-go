@@ -2,6 +2,7 @@ package p2p
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"net"
@@ -419,7 +420,10 @@ func (this *P2PServer) Broadcast(message interface{}) {
 		return
 	}
 
-	this.Network.Broadcast(msg, isConsensus)
+	go func() {
+		time.Sleep(time.Duration(rand.Int()%15) * time.Second/10)
+		this.Network.Broadcast(msg, isConsensus)
+	}()
 }
 
 func (this *P2PServer) TriggerSync(current_head_blk_id coomn.BlockID) {
@@ -437,13 +441,13 @@ func (this *P2PServer) TriggerSync(current_head_blk_id coomn.BlockID) {
 		//this.log.Info("[p2p] cons call TriggerSync func, head id :  ", reqmsg.HeadBlockId)
 		num := p.GetLastSeenBlkNum()
 		if currentHeadNum < num {
-			go p.Send(reqmsg, false, this.ctx.Config().P2P.NetworkMagic)
+			go p.Send(reqmsg, false, this.Network.GetMagic())
 			return
 		}
 	}
 
 	for _, p := range np.List {
-		go p.Send(reqmsg, false, this.ctx.Config().P2P.NetworkMagic)
+		go p.Send(reqmsg, false, this.Network.GetMagic())
 		return
 	}
 }
@@ -466,13 +470,13 @@ func (this *P2PServer) FetchUnlinkedBlock(prevId coomn.BlockID) {
 		//this.log.Info("[p2p] cons call TriggerSync func, head id :  ", reqmsg.HeadBlockId)
 		num := p.GetLastSeenBlkNum()
 		if currentHeadNum < num {
-			go p.Send(&reqmsg, false, this.ctx.Config().P2P.NetworkMagic)
+			go p.Send(&reqmsg, false, this.Network.GetMagic())
 			return
 		}
 	}
 
 	for _, p := range np.List {
-		go p.Send(&reqmsg, false, this.ctx.Config().P2P.NetworkMagic)
+		go p.Send(&reqmsg, false, this.Network.GetMagic())
 		return
 	}
 }
@@ -489,13 +493,13 @@ func (this *P2PServer) RequestCheckpoint(startNum, endNum uint64) {
 		//this.log.Info("[p2p] cons call RequestCheckpoint func, start number: ",  startNum, " end number: ", endNum)
 		num := p.GetLastSeenBlkNum()
 		if endNum < num {
-			go p.Send(reqmsg, false, this.ctx.Config().P2P.NetworkMagic)
+			go p.Send(reqmsg, false, this.Network.GetMagic())
 			return
 		}
 	}
 
 	for _, p := range np.List {
-		go p.Send(reqmsg, false, this.ctx.Config().P2P.NetworkMagic)
+		go p.Send(reqmsg, false, this.Network.GetMagic())
 		return
 	}
 }
@@ -517,7 +521,7 @@ func (this *P2PServer) FetchOutOfRange(localHeadID, targetID coomn.BlockID) {
 		if len(p.OutOfRangeState.KeyPointIDList) == 0 && targetID.BlockNum() <= num {
 			p.OutOfRangeState.KeyPointIDList = append(p.OutOfRangeState.KeyPointIDList, targetID.Data[:])
 			this.log.Infof("FetchOutOfRange from %d to %d", localHeadID.BlockNum(), targetID.BlockNum() )
-			go p.Send(reqmsg, false, this.ctx.Config().P2P.NetworkMagic)
+			go p.Send(reqmsg, false, this.Network.GetMagic())
 			p.OutOfRangeState.Unlock()
 			return
 		}
@@ -528,26 +532,50 @@ func (this *P2PServer) FetchOutOfRange(localHeadID, targetID coomn.BlockID) {
 
 func (this *P2PServer) SendToPeer(p *peer.Peer, message interface{}) {
 	this.log.Info("send message to a specific peer")
-	//if this.Network.IsPeerEstablished(p) {
-	//	//isConsensus := false
-	//	//err := this.Network.Send(p, message, isConsensus)
-	//	//if err != nil {}
-	//	return
-	//}
-	//this.log.Errorf("[p2p] send to a not ESTABLISH peer in SendToPeer %s",
-	//	p.GetAddr())
+	if p == nil {
+		this.log.Error("send message to a nil peer")
+		return
+	}
+	if this.Network.IsPeerEstablished(p) {
+		cmsg := message.(consmsg.ConsensusMessage)
+		msg := msgpack.NewConsMsg(cmsg, false)
+		go p.Send(msg, false, this.Network.GetMagic())
+		return
+	}
+	this.log.Errorf("[p2p] send to a not ESTABLISH peer in SendToPeer %s",
+		p.GetAddr())
 }
 
 func (this *P2PServer) RandomSend(message interface{}) {
 	this.log.Info("send message to a random peer")
-	//np := this.Network.GetNp()
-	//np.RLock()
-	//defer np.RUnlock()
-	//
-	//for _, p := range np.List {
-	//	if this.Network.IsPeerEstablished(p) {
-	//		// send message to this peer, if err is nil return, else continue
-	//		return
-	//	}
-	//}
+
+	cmsg := message.(consmsg.ConsensusMessage)
+	msg := msgpack.NewConsMsg(cmsg, false)
+	hash := msg.(*msgtypes.ConsMsg).Hash()
+
+	np := this.Network.GetNp()
+	np.RLock()
+	defer np.RUnlock()
+
+	for _, p := range np.List {
+		state := p.GetSyncState()
+		if state == common.ESTABLISH && !p.HasConsensusMsg(hash) {
+			p.RecordConsensusMsg(hash)
+			go p.Send(msg, false, this.Network.GetMagic())
+			return
+		}
+	}
+}
+
+func (this *P2PServer) GetNodeNeighbours() string {
+	var peerList string
+	peers := this.Network.GetNeighbors()
+	for _, p := range peers {
+		if p.GetSyncState() == common.ESTABLISH {
+			ip := p.GetAddr()
+			pStr := fmt.Sprintf("%s, ", ip)
+			peerList += pStr
+		}
+	}
+	return peerList
 }

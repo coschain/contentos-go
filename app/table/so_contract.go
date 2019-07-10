@@ -22,9 +22,11 @@ var (
 	ContractBalanceCell      uint32 = 1230027001
 	ContractCodeCell         uint32 = 1267857519
 	ContractCreatedTimeCell  uint32 = 3946752343
+	ContractDescribeCell     uint32 = 2750522916
 	ContractHashCell         uint32 = 2693229046
 	ContractIdCell           uint32 = 1995418866
 	ContractUpgradeableCell  uint32 = 1417437618
+	ContractUrlCell          uint32 = 2032917222
 )
 
 ////////////// SECTION Wrap Define ///////////////
@@ -326,6 +328,9 @@ func (s *SoContractWrap) getMemKeyPrefix(fName string) uint32 {
 	if fName == "CreatedTime" {
 		return ContractCreatedTimeCell
 	}
+	if fName == "Describe" {
+		return ContractDescribeCell
+	}
 	if fName == "Hash" {
 		return ContractHashCell
 	}
@@ -334,6 +339,9 @@ func (s *SoContractWrap) getMemKeyPrefix(fName string) uint32 {
 	}
 	if fName == "Upgradeable" {
 		return ContractUpgradeableCell
+	}
+	if fName == "Url" {
+		return ContractUrlCell
 	}
 
 	return 0
@@ -403,6 +411,13 @@ func (s *SoContractWrap) saveAllMemKeys(tInfo *SoContract, br bool) error {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "CreatedTime", err)
 		}
 	}
+	if err = s.saveMemKeyDescribe(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Describe", err)
+		}
+	}
 	if err = s.saveMemKeyHash(tInfo); err != nil {
 		if br {
 			return err
@@ -422,6 +437,13 @@ func (s *SoContractWrap) saveAllMemKeys(tInfo *SoContract, br bool) error {
 			return err
 		} else {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Upgradeable", err)
+		}
+	}
+	if err = s.saveMemKeyUrl(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Url", err)
 		}
 	}
 
@@ -899,6 +921,89 @@ func (s *SoContractWrap) MdCreatedTime(p *prototype.TimePointSec) bool {
 	return true
 }
 
+func (s *SoContractWrap) saveMemKeyDescribe(tInfo *SoContract) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemContractByDescribe{}
+	val.Describe = tInfo.Describe
+	key, err := s.encodeMemKey("Describe")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
+
+func (s *SoContractWrap) GetDescribe() string {
+	res := true
+	msg := &SoMemContractByDescribe{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("Describe")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.Describe
+			}
+		}
+	}
+	if !res {
+		var tmpValue string
+		return tmpValue
+	}
+	return msg.Describe
+}
+
+func (s *SoContractWrap) MdDescribe(p string) bool {
+	if s.dba == nil {
+		return false
+	}
+	key, err := s.encodeMemKey("Describe")
+	if err != nil {
+		return false
+	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemContractByDescribe{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoContract{}
+	sa.Id = s.mainKey
+
+	sa.Describe = ori.Describe
+
+	ori.Describe = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
+		return false
+	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.Describe = p
+
+	return true
+}
+
 func (s *SoContractWrap) saveMemKeyHash(tInfo *SoContract) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
@@ -1111,6 +1216,89 @@ func (s *SoContractWrap) MdUpgradeable(p bool) bool {
 		return false
 	}
 	sa.Upgradeable = p
+
+	return true
+}
+
+func (s *SoContractWrap) saveMemKeyUrl(tInfo *SoContract) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemContractByUrl{}
+	val.Url = tInfo.Url
+	key, err := s.encodeMemKey("Url")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
+
+func (s *SoContractWrap) GetUrl() string {
+	res := true
+	msg := &SoMemContractByUrl{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("Url")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.Url
+			}
+		}
+	}
+	if !res {
+		var tmpValue string
+		return tmpValue
+	}
+	return msg.Url
+}
+
+func (s *SoContractWrap) MdUrl(p string) bool {
+	if s.dba == nil {
+		return false
+	}
+	key, err := s.encodeMemKey("Url")
+	if err != nil {
+		return false
+	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemContractByUrl{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoContract{}
+	sa.Id = s.mainKey
+
+	sa.Url = ori.Url
+
+	ori.Url = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
+		return false
+	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.Url = p
 
 	return true
 }

@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 	"github.com/coschain/cobra"
+	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/config"
 	"github.com/coschain/contentos-go/node"
@@ -18,6 +19,7 @@ var InitCmd = func() *cobra.Command {
 		Short: "Initialize configuration files for multi cosd",
 		Run:   initConf,
 	}
+	cmd.Flags().StringVarP(&chainName, "chain", "c", "", "chain name [main/test/dev], default is main")
 	return cmd
 }
 
@@ -88,9 +90,14 @@ func initConf(cmd *cobra.Command, args []string) {
 
 	fmt.Println("Seed nodes list: ", seeds)
 
+	if len(chainName) == 0 {
+		chainName = common.ChainNameMainNet
+	}
+
 	for i := 0; i < nodeCount; i++ {
 		cfg := config.DefaultNodeConfig
 		cfg.Name = fmt.Sprintf("%s_%d", TesterClientIdentifier, i)
+		cfg.ChainId = chainName
 		if i > 0 {
 			cfg.Consensus.BootStrap = false
 		}

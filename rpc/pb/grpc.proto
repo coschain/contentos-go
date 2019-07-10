@@ -107,6 +107,9 @@ service ApiService {
 
     rpc EstimateStamina(EsimateRequest) returns (EsimateResponse) {
     }
+
+    rpc GetNodeNeighbours (NonParamsRequest) returns (GetNodeNeighboursResponse) {
+    }
 }
 
 
@@ -179,6 +182,8 @@ message AccountInfo {
     string                                  reputation_memo = 21;
     uint32                                  charged_ticket = 22;
     uint32                                  free_ticket = 23;
+    uint32                                  freeze = 24;
+    string                                  freeze_memo = 25;
 }
 
 message AccountResponse {
@@ -311,6 +316,10 @@ message GetBlockTransactionsByNumResponse {
 
 message GetChainStateResponse {
     ChainState state = 1;
+}
+
+message GetNodeNeighboursResponse {
+    string peerlist = 1;
 }
 
 //message GetStatResponse {
@@ -504,6 +513,8 @@ message GetContractInfoResponse {
     bool exist    = 1;
     string abi    = 2;
     bytes code    = 3;
+    string url    = 4;
+    string describe = 5;
 }
 
 message GetBlkIsIrreversibleByTxIdRequest {

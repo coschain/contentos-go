@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/coschain/contentos-go/cmd/pressuretest/request"
+	"github.com/coschain/contentos-go/common"
 	"os"
 	"os/signal"
 	"strconv"
@@ -11,12 +12,14 @@ import (
 
 func main() {
 
-	if len(os.Args) != 6 && len(os.Args) != 7 {
-		fmt.Println("params count error\n Example: pressuretest thread-count basename accountName publickey privateKey file-path")
+	if len(os.Args) != 7 && len(os.Args) != 8 {
+		fmt.Println("params count error\n Example: pressuretest chain thread-count basename accountName publickey privateKey file-path")
 		return
 	}
 
-	walletCnt, err := strconv.Atoi(os.Args[1])
+	request.ChainId.Value = common.GetChainIdByName(os.Args[1])
+
+	walletCnt, err := strconv.Atoi(os.Args[2])
 	if err != nil {
 		fmt.Println("param error: ", err)
 		return
@@ -24,7 +27,7 @@ func main() {
 	fmt.Println("robot count: ", walletCnt)
 
 	// create 9 accounts [accountName]1 ... [accountName]9 and initminer post 10 articles
-	request.InitEnv( os.Args[2], os.Args[3], os.Args[4], os.Args[5])
+	request.InitEnv( os.Args[3], os.Args[4], os.Args[5], os.Args[6])
 	fmt.Println("init base enviroment over")
 
 	for i:=0;i<walletCnt;i++ {
@@ -32,7 +35,7 @@ func main() {
 		go request.StartEachRoutine(i)
 	}
 
-	if len(os.Args) == 7 {
+	if len(os.Args) == 8 {
 		request.Wg.Add(1)
 		go request.StartBPRoutine()
 	}

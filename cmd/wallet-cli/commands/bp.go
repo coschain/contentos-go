@@ -156,7 +156,7 @@ func registerBP(cmd *cobra.Command, args []string) {
 		},
 	}
 
-	signTx, err := utils.GenerateSignedTxAndValidate2(client, []interface{}{bpRegister_op}, bpAccount)
+	signTx, err := utils.GenerateSignedTxAndValidate(cmd, []interface{}{bpRegister_op}, bpAccount)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -198,7 +198,7 @@ func unRegisterBP(cmd *cobra.Command, args []string) {
 		Owner: &prototype.AccountName{Value: name},
 	}
 
-	signTx, err := utils.GenerateSignedTxAndValidate2(client, []interface{}{bpUnregister_op}, bpAccount)
+	signTx, err := utils.GenerateSignedTxAndValidate(cmd, []interface{}{bpUnregister_op}, bpAccount)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -245,7 +245,7 @@ func voteBp(cmd *cobra.Command, args []string) {
 		Cancel:  bpVoteCancel,
 	}
 
-	signTx, err := utils.GenerateSignedTxAndValidate2(client, []interface{}{bpVote_op}, voterAccount)
+	signTx, err := utils.GenerateSignedTxAndValidate(cmd, []interface{}{bpVote_op}, voterAccount)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -314,7 +314,7 @@ func updateBp(cmd *cobra.Command, args []string) {
 		PerTicketWeight:    bpPerTicketWeight,
 	}
 
-	signTx, err := utils.GenerateSignedTxAndValidate2(client, []interface{}{bpUpdate_op}, bpAccount)
+	signTx, err := utils.GenerateSignedTxAndValidate(cmd, []interface{}{bpUpdate_op}, bpAccount)
 	if err != nil {
 		fmt.Println(err)
 		return

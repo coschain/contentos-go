@@ -50,7 +50,7 @@ func stake(cmd *cobra.Command, args []string) {
 		Amount:    prototype.NewCoin(amount),
 	}
 
-	signTx, err := utils.GenerateSignedTxAndValidate2(client, []interface{}{stakeOp}, stakeAccount)
+	signTx, err := utils.GenerateSignedTxAndValidate(cmd, []interface{}{stakeOp}, stakeAccount)
 	if err != nil {
 		fmt.Println(err)
 		return

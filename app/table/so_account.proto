@@ -34,6 +34,8 @@ message so_account {
     uint32                      reputation          =      24;
     string                      reputation_memo      =      25;
     uint32                      charged_ticket      =      26;
+    uint32                      freeze          =      27;
+    string                      freeze_memo      =      28;
       
 }
 
@@ -165,6 +167,16 @@ message so_mem_account_by_reputation_memo {
 
 message so_mem_account_by_charged_ticket {
 	uint32                   	charged_ticket  = 1;
+}
+
+
+message so_mem_account_by_freeze {
+	uint32                   	freeze      = 1;
+}
+
+
+message so_mem_account_by_freeze_memo {
+	string                   	freeze_memo  = 1;
 }
 
 

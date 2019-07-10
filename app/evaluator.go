@@ -971,6 +971,8 @@ func (ev *ContractDeployEvaluator) Apply() {
 			t.Upgradeable = op.Upgradeable
 			t.Hash = codeHash
 			t.Balance = prototype.NewCoin(0)
+			t.Url = op.Url
+			t.Describe = op.Describe
 		}), "create contract data error")
 	}
 }

@@ -176,7 +176,7 @@ func StartEachRoutine(index int) {
 func StartBPRoutine(){
 	defer Wg.Done()
 
-	filePath := os.Args[6]
+	filePath := os.Args[7]
 	bpListFile, err := os.Open(filePath)
 	if err != nil {
 		fmt.Println("can't open BP list file: ", err)
