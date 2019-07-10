@@ -162,6 +162,9 @@ func (s *TokenInfoService) handleTokenInfo(tokens map[string]bool, blockId strin
 		if err := json.Unmarshal([]byte(record), &tokenData); err != nil {
 			return err
 		}
+		if tokenData.TokenOwner == "" {
+			return errors.New(fmt.Sprintf("could not decode record to json. record: %s", record))
+		}
 		switch action {
 		case iservices.Insert:
 			s.log.Warn("insert", tokenData)
