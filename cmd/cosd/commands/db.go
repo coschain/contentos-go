@@ -65,10 +65,18 @@ var DbCmd = func() *cobra.Command {
 
 	tokenAddCmd := &cobra.Command{
 		Use: "add",
-		Short: "init token db",
+		Short: "add token",
 		Example: "cosd db tokendb add [symbol] [owner]",
 		Args:  cobra.ExactArgs(2),
 		Run: addMarkedToken,
+	}
+
+	tokenRemoveCmd := &cobra.Command{
+		Use: "remove",
+		Short: "remove token",
+		Example: "cosd db tokendb remove [symbol] [owner]",
+		Args:  cobra.ExactArgs(2),
+		Run: removeMarkedToken,
 	}
 
 	trxCmd.AddCommand(trxInitCmd)
@@ -76,6 +84,7 @@ var DbCmd = func() *cobra.Command {
 	dailyCmd.AddCommand(dailyInitCmd)
 	tokenCmd.AddCommand(tokenInitCmd)
 	tokenCmd.AddCommand(tokenAddCmd)
+	tokenCmd.AddCommand(tokenRemoveCmd)
 	cmd.AddCommand(trxCmd)
 	cmd.AddCommand(stateCmd)
 	cmd.AddCommand(dailyCmd)
@@ -350,7 +359,7 @@ func addMarkedToken(cmd *cobra.Command, args []string) {
 	db, err := sql.Open(dbConfig.Driver, dsn)
 	defer db.Close()
 	if err != nil {
-		fmt.Printf("fatal: init database failed, dsn:%s\n", dsn)
+		fmt.Printf("fatal: open database failed, dsn:%s\n", dsn)
 		os.Exit(1)
 	}
 
@@ -387,8 +396,20 @@ func addMarkedToken(cmd *cobra.Command, args []string) {
 	_, _ = db.Exec("INSERT INTO `markedtoken` (symbol, owner) VALUES (?, ?)", symbol, owner)
 }
 
-
-
+func removeMarkedToken(cmd *cobra.Command, args []string) {
+	cfg := readConfig()
+	dbConfig := cfg.Database
+	dsn := fmt.Sprintf("%s:%s@/%s", dbConfig.User, dbConfig.Password, dbConfig.Db)
+	db, err := sql.Open(dbConfig.Driver, dsn)
+	defer db.Close()
+	if err != nil {
+		fmt.Printf("fatal: open database failed, dsn:%s\n", dsn)
+		os.Exit(1)
+	}
+	symbol := args[0]
+	owner := args[1]
+	_, _ = db.Exec("DELETE FROM `markedtoken` where symbol=? and owner=?", symbol, owner)
+}
 
 func initAllDb(cmd *cobra.Command, args []string) {
 	initTrxDb(cmd, args)

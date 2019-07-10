@@ -76,7 +76,6 @@ func (t *ContractTable) DecodeRecordToJson(encodedRecord []byte) (string, error)
 	if err != nil {
 		return "", err
 	}
-	//return r, err
 	jsonb, err := json.Marshal(r)
 	if err != nil {
 		return "", err

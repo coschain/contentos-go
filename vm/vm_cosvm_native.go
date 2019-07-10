@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/iservices"
+	"github.com/coschain/contentos-go/iservices/itype"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/vm/contract/abi"
 	table2 "github.com/coschain/contentos-go/vm/contract/table"
@@ -176,8 +177,11 @@ func (w *CosVMNative) TableNewRecord(tableName string, record []byte) {
 	err := currentTable.NewRecord(record)
 	w.CosAssert(err == nil, fmt.Sprintf("TableNewRecord(): table.NewRecord() failed. %v", err))
 	decodeRecord, _ := currentTable.DecodeRecordToJson(record)
-	m := map[string]string{"contract": w.ReadContractName(), "contract_owner": w.ReadContractOwner(), "record": decodeRecord}
-	w.cosVM.ctx.TrxObserver.AddOpState(iservices.Add, "contract", tableName, m)
+	var contractData itype.ContractData
+	contractData.Contract = w.ReadContractName()
+	contractData.ContractOwner = w.ReadContractOwner()
+	contractData.Record = decodeRecord
+	w.cosVM.ctx.TrxObserver.AddOpState(iservices.Add, "contract", tableName, contractData)
 }
 
 func (w *CosVMNative) TableUpdateRecord(tableName string, primary []byte, record []byte) {
@@ -187,8 +191,11 @@ func (w *CosVMNative) TableUpdateRecord(tableName string, primary []byte, record
 	err := currentTable.UpdateRecord(primary, record)
 	w.CosAssert(err == nil, fmt.Sprintf("TableUpdateRecord(): table.UpdateRecord() failed. %v", err))
 	decodeRecord, _ := currentTable.DecodeRecordToJson(record)
-	m := map[string]string{"contract": w.ReadContractName(), "contract_owner": w.ReadContractOwner(), "record": decodeRecord}
-	w.cosVM.ctx.TrxObserver.AddOpState(iservices.Update, "contract", tableName, m)
+	var contractData itype.ContractData
+	contractData.Contract = w.ReadContractName()
+	contractData.ContractOwner = w.ReadContractOwner()
+	contractData.Record = decodeRecord
+	w.cosVM.ctx.TrxObserver.AddOpState(iservices.Update, "contract", tableName, contractData)
 }
 
 func (w *CosVMNative) TableDeleteRecord(tableName string, primary []byte) {

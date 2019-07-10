@@ -3,13 +3,18 @@ package plugins
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/coschain/contentos-go/iservices"
+	"github.com/coschain/contentos-go/iservices/itype"
 	"github.com/coschain/contentos-go/iservices/service-configs"
 	"github.com/coschain/contentos-go/node"
 	"github.com/sirupsen/logrus"
+	"reflect"
 	"time"
 )
+
+var TokenInfoServiceName = "tokeninfoservice"
 
 type TokenInfoService struct {
 	node.Service
@@ -21,15 +26,26 @@ type TokenInfoService struct {
 	quit chan bool
 }
 
-type ContractData struct {
-	Contract string
-	ContractOwner string
-	Record string
-}
+func SetField(obj *itype.ContractData, name string, value interface{}) error {
+	structValue := reflect.ValueOf(obj).Elem()
+	structFieldValue := structValue.FieldByName(name)
 
-type TokenData struct {
-	TokenOwner string
-	Amount uint64
+	if !structFieldValue.IsValid() {
+		return fmt.Errorf("No such field: %s in obj", name)
+	}
+
+	if !structFieldValue.CanSet() {
+		return fmt.Errorf("Cannot set %s field value", name)
+	}
+
+	structFieldType := structFieldValue.Type()
+	val := reflect.ValueOf(value)
+	if structFieldType != val.Type() {
+		return errors.New("Provided value type didn't match obj field type")
+	}
+
+	structFieldValue.Set(val)
+	return nil
 }
 
 func NewTokenInfoService(ctx *node.ServiceContext, config *service_configs.DatabaseConfig, log *logrus.Logger) (*TokenInfoService, error) {
@@ -116,24 +132,34 @@ func (s *TokenInfoService) handleBlockLog(tokens map[string]bool, blockLog iserv
 			result := opLog.Result
 			switch property {
 			case "contract":
-				s.handleTokenInfo(tokens, blockId, trxId, action, target, result)
+				// filter deploy
+				if target == "stats" {
+					continue
+				}
+				err := s.handleTokenInfo(tokens, blockId, trxId, action, target, result)
+				s.log.Error(err)
 			}
 		}
 	}
 }
 
-func (s *TokenInfoService) handleTokenInfo(tokens map[string]bool, blockId string, trxId string, action int, target string, result interface{}) {
-	contractData := result.(ContractData)
+func (s *TokenInfoService) handleTokenInfo(tokens map[string]bool, blockId string, trxId string, action int, target string, result interface{}) error {
+	mapData := result.(map[string]interface{})
+	var contractData itype.ContractData
+	for k, v := range mapData {
+		err := SetField(&contractData, k, v)
+		if err != nil {
+			return err
+		}
+	}
 	contract := contractData.Contract
 	owner := contractData.ContractOwner
 	key := fmt.Sprintf("%s#%s", contract, owner)
 	if _, ok := tokens[key]; ok {
 		record := contractData.Record
-		data := []byte(record)
-		var tokenData TokenData
-		if err := json.Unmarshal(data, &tokenData); err != nil {
-			s.log.Error(err)
-			return
+		var tokenData itype.TokenData
+		if err := json.Unmarshal([]byte(record), &tokenData); err != nil {
+			return err
 		}
 		switch action {
 		case iservices.Insert:
@@ -144,6 +170,7 @@ func (s *TokenInfoService) handleTokenInfo(tokens map[string]bool, blockId strin
 				tokenData.Amount, contract, owner, tokenData.TokenOwner)
 		}
 	}
+	return nil
 }
 
 func (s *TokenInfoService) stop() {

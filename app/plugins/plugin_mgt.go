@@ -44,8 +44,10 @@ func (p *PluginMgt) Register(app *node.Node, cfg *node.Config) {
 			_ = app.Register(iservices.DailyStatisticServiceName, func(ctx *node.ServiceContext) (node.Service, error) {
 				return NewDailyStatisticService(ctx, cfg.Database, app.Log)
 			})
-		default:
-
+		case TokenInfoServiceName:
+			_ = app.Register(TokenInfoServiceName, func(ctx *node.ServiceContext) (service node.Service, e error) {
+				return NewTokenInfoService(ctx, cfg.Database, app.Log)
+			})
 		}
 	}
 }
