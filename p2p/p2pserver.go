@@ -2,6 +2,7 @@ package p2p
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"net"
@@ -564,4 +565,18 @@ func (this *P2PServer) RandomSend(message interface{}) {
 			return
 		}
 	}
+}
+
+func (this *P2PServer) GetNodeNeighbours() string {
+	var peerList string
+	peers := this.Network.GetNeighbors()
+	for _, p := range peers {
+		if p.GetSyncState() == common.ESTABLISH {
+			ip := p.GetAddr()
+			port := p.Port()
+			pStr := fmt.Sprintf("%s:%d, ", ip, port)
+			peerList += pStr
+		}
+	}
+	return peerList
 }

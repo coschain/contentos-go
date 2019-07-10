@@ -675,6 +675,26 @@ func (mr *MockApiServiceClientMockRecorder) EstimateStamina(ctx, in interface{},
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EstimateStamina", reflect.TypeOf((*MockApiServiceClient)(nil).EstimateStamina), varargs...)
 }
 
+// GetNodeNeighbours mocks base method
+func (m *MockApiServiceClient) GetNodeNeighbours(ctx context.Context, in *pb.NonParamsRequest, opts ...grpc.CallOption) (*pb.GetNodeNeighboursResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetNodeNeighbours", varargs...)
+	ret0, _ := ret[0].(*pb.GetNodeNeighboursResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetNodeNeighbours indicates an expected call of GetNodeNeighbours
+func (mr *MockApiServiceClientMockRecorder) GetNodeNeighbours(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNodeNeighbours", reflect.TypeOf((*MockApiServiceClient)(nil).GetNodeNeighbours), varargs...)
+}
+
 // MockApiServiceServer is a mock of ApiServiceServer interface
 type MockApiServiceServer struct {
 	ctrl     *gomock.Controller
@@ -1176,4 +1196,19 @@ func (m *MockApiServiceServer) EstimateStamina(arg0 context.Context, arg1 *pb.Es
 func (mr *MockApiServiceServerMockRecorder) EstimateStamina(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EstimateStamina", reflect.TypeOf((*MockApiServiceServer)(nil).EstimateStamina), arg0, arg1)
+}
+
+// GetNodeNeighbours mocks base method
+func (m *MockApiServiceServer) GetNodeNeighbours(arg0 context.Context, arg1 *pb.NonParamsRequest) (*pb.GetNodeNeighboursResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetNodeNeighbours", arg0, arg1)
+	ret0, _ := ret[0].(*pb.GetNodeNeighboursResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetNodeNeighbours indicates an expected call of GetNodeNeighbours
+func (mr *MockApiServiceServerMockRecorder) GetNodeNeighbours(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNodeNeighbours", reflect.TypeOf((*MockApiServiceServer)(nil).GetNodeNeighbours), arg0, arg1)
 }

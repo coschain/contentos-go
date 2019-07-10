@@ -107,6 +107,9 @@ service ApiService {
 
     rpc EstimateStamina(EsimateRequest) returns (EsimateResponse) {
     }
+
+    rpc GetNodeNeighbours (NonParamsRequest) returns (GetNodeNeighboursResponse) {
+    }
 }
 
 
@@ -311,6 +314,10 @@ message GetBlockTransactionsByNumResponse {
 
 message GetChainStateResponse {
     ChainState state = 1;
+}
+
+message GetNodeNeighboursResponse {
+    string peerlist = 1;
 }
 
 //message GetStatResponse {

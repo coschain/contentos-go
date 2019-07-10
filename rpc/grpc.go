@@ -33,6 +33,7 @@ var (
 type APIService struct {
 	consensus iservices.IConsensus
 	pool iservices.ITrxPool
+	p2p       iservices.IP2P
 	mainLoop  *eventloop.EventLoop
 	db        iservices.IDatabaseService
 	log       *logrus.Logger
@@ -1365,4 +1366,17 @@ func (as *APIService) GetPostListByVest (ctx context.Context,
 	res.PostList = postList
 	return res,err
 
+}
+
+func (as *APIService) GetNodeNeighbours(ctx context.Context, req *grpcpb.NonParamsRequest) (*grpcpb.GetNodeNeighboursResponse, error) {
+
+	peerList := as.p2p.GetNodeNeighbours()
+	if peerList == "" {
+		return nil, errors.New("peer has no neighbours")
+	}
+
+	ret := &grpcpb.GetNodeNeighboursResponse{}
+	ret.Peerlist = peerList
+
+	return ret, nil
 }
