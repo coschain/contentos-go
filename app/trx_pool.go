@@ -1232,3 +1232,7 @@ func (c *TrxPool) GetFreeTicketCount(name *prototype.AccountName) uint32 {
 		return 0
 	}
 }
+
+func (c *TrxPool) DiscardAccountCache(name string) {
+	c.tm.DiscardAccountCache(name)
+}

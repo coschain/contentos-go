@@ -13,4 +13,5 @@ type Injector interface {
 	ContractCall(caller, fromOwner, fromContract, fromMethod, toOwner, toContract, toMethod string, params []byte, coins, remainGas uint64)
 	ContractABI(owner, contract string) string
 	GetBlockProducers() []string
+	DiscardAccountCache(name string)
 }

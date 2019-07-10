@@ -506,3 +506,7 @@ func (m *TrxMgr) callPlugins(f func(plugin ITrxMgrPlugin)) {
 	}
 	wg.Wait()
 }
+
+func (m *TrxMgr) DiscardAccountCache(name string) {
+	m.auth.Discard(name)
+}
