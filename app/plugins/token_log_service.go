@@ -136,8 +136,9 @@ func (s *TokenInfoService) handleBlockLog(tokens map[string]bool, blockLog iserv
 				if target == "stats" {
 					continue
 				}
-				err := s.handleTokenInfo(tokens, blockId, trxId, action, target, result)
-				s.log.Error(err)
+				if err := s.handleTokenInfo(tokens, blockId, trxId, action, target, result); err != nil {
+					s.log.Error(err)
+				}
 			}
 		}
 	}
@@ -163,9 +164,11 @@ func (s *TokenInfoService) handleTokenInfo(tokens map[string]bool, blockId strin
 		}
 		switch action {
 		case iservices.Insert:
+			s.log.Warn("insert", tokenData)
 			_, _ = s.db.Exec("INSERT INTO tokenbalance (symbol, owner, account, balance) VALUES (?, ?, ?, ?)",
 				contract, owner, tokenData.TokenOwner, tokenData.Amount)
 		case iservices.Update:
+			s.log.Warn("update ", tokenData)
 			_, _ = s.db.Exec("update tokenbalance set balance=? where symbol=? and owner=? and account=?",
 				tokenData.Amount, contract, owner, tokenData.TokenOwner)
 		}

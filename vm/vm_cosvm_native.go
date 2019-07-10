@@ -181,7 +181,7 @@ func (w *CosVMNative) TableNewRecord(tableName string, record []byte) {
 	contractData.Contract = w.ReadContractName()
 	contractData.ContractOwner = w.ReadContractOwner()
 	contractData.Record = decodeRecord
-	w.cosVM.ctx.TrxObserver.AddOpState(iservices.Add, "contract", tableName, contractData)
+	w.cosVM.ctx.TrxObserver.AddOpState(iservices.Insert, "contract", tableName, contractData)
 }
 
 func (w *CosVMNative) TableUpdateRecord(tableName string, primary []byte, record []byte) {

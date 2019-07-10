@@ -39,7 +39,8 @@ func TestTokenInfoQueryToken(t *testing.T) {
 		fmt.Println(err)
 	}
 	var lib uint64
-	_ = db.QueryRow("select lib from tokenlibinfo limit 1").Scan(&lib)
+	//_ = db.QueryRow("select lib from tokenlibinfo limit 1").Scan(&lib)
+	lib = 0
 	markedTokens := make(map[string]bool)
 	rows, _ := db.Query("select symbol, owner from markedtoken")
 	for rows.Next() {
@@ -72,10 +73,10 @@ func TestTokenInfoQueryToken(t *testing.T) {
 				//action := opLog.Action
 				property := opLog.Property
 				target := opLog.Target
+				result := opLog.Result
 				if target == "stats" {
 					continue
 				}
-				result := opLog.Result
 				switch property {
 				case "contract":
 					mapData := result.(map[string]interface{})

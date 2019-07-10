@@ -89,6 +89,7 @@ var DbCmd = func() *cobra.Command {
 	cmd.AddCommand(stateCmd)
 	cmd.AddCommand(dailyCmd)
 	cmd.AddCommand(initCmd)
+	cmd.AddCommand(tokenCmd)
 	return cmd
 }
 
@@ -350,6 +351,7 @@ func initTokenInfo(cmd *cobra.Command, args []string) {
 		}
 	}
 	_, _ = db.Exec("INSERT INTO `tokenlibinfo` (lib, last_check_time) VALUES (?, ?)", 0, time.Now().UTC().Unix())
+	//_, _ = db.Exec("INSERT INTO `markedtoken` (symbol, owner) VALUES (?, ?)", "coc", "initminer")
 }
 
 func addMarkedToken(cmd *cobra.Command, args []string) {
