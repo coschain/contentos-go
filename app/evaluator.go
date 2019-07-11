@@ -1344,7 +1344,7 @@ func (ev *VoteByTicketEvaluator) Apply() {
 	if props.GetChargedTicketsNum() == 0 {
 		equalValue = &prototype.Vest{Value: 0}
 	} else {
-		equalValue := &prototype.Vest{Value: props.GetTicketsIncome().Value / props.GetChargedTicketsNum()}
+		equalValue = &prototype.Vest{Value: props.GetTicketsIncome().Value / props.GetChargedTicketsNum()}
 		opAssertE(equalValue.Mul(count), "mul equal ticket value with count overflow")
 	}
 	currentIncome := props.GetTicketsIncome()
