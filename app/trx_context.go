@@ -8,6 +8,7 @@ import (
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/utils"
 	"github.com/coschain/contentos-go/vm/injector"
+	"github.com/go-interpreter/wagon/exec"
 	"github.com/sirupsen/logrus"
 )
 
@@ -283,7 +284,7 @@ func (p *TrxContext) TransferFromContractToContract(fromContract, fromOwner, toC
 	to.MdBalance(&prototype.Coin{Value: toBalance + amount})
 }
 
-func (p *TrxContext) ContractCall(caller, fromOwner, fromContract, fromMethod, toOwner, toContract, toMethod string, params []byte, coins, remainGas uint64) {
+func (p *TrxContext) ContractCall(caller, fromOwner, fromContract, fromMethod, toOwner, toContract, toMethod string, params []byte, coins, remainGas uint64, preVm *exec.VM) {
 
 	op := &prototype.InternalContractApplyOperation{
 		FromCaller: &prototype.AccountName{ Value: caller },
@@ -296,7 +297,7 @@ func (p *TrxContext) ContractCall(caller, fromOwner, fromContract, fromMethod, t
 		Params: params,
 		Amount: &prototype.Coin{ Value: coins },
 	}
-	eval := &InternalContractApplyEvaluator{BaseDelegate: BaseDelegate{delegate:p}, op: op, remainGas: remainGas}
+	eval := &InternalContractApplyEvaluator{BaseDelegate: BaseDelegate{delegate:p}, op: op, remainGas: remainGas, preVm:preVm}
 	eval.Apply()
 }
 

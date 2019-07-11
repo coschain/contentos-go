@@ -14,6 +14,7 @@ import (
 	"github.com/coschain/contentos-go/vm/context"
 	"github.com/coschain/contentos-go/vm/contract/abi"
 	ct "github.com/coschain/contentos-go/vm/contract/table"
+	"github.com/go-interpreter/wagon/exec"
 	"math"
 	"math/big"
 	"sort"
@@ -137,6 +138,7 @@ type InternalContractApplyEvaluator struct {
 	BaseDelegate
 	op  *prototype.InternalContractApplyOperation
 	remainGas uint64
+	preVm *exec.VM
 }
 
 type StakeEvaluator struct {
@@ -1047,7 +1049,6 @@ func (ev *ContractApplyEvaluator) Apply() {
 	// DeductStamina and usertranfer could be panic (rarely, I can't image how it happens)
 	// the panic should catch then return or bubble it ?
 
-
 	vmCtx.Injector.RecordStaminaFee(op.Caller.Value, spentGas)
 	if err != nil {
 		vmCtx.Injector.Error(ret, err.Error())
@@ -1107,7 +1108,8 @@ func (ev *InternalContractApplyEvaluator) Apply() {
 	//ev.Database().BeginTransaction()
 	ret, err := cosVM.Run()
 	spentGas := cosVM.SpentGas()
-	vmCtx.Injector.RecordStaminaFee(op.FromCaller.Value, spentGas)
+	ev.preVm.CostGas += spentGas
+	//vmCtx.Injector.RecordStaminaFee(op.FromCaller.Value, spentGas)
 
 	if err != nil {
 		vmCtx.Injector.Error(ret, err.Error())

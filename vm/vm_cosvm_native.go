@@ -153,14 +153,14 @@ func (w *CosVMNative) ContractTransferToContract(owner, contract string, amount 
 }
 
 func (w *CosVMNative) ContractCall(owner, contract, method string, paramsData []byte, coins uint64) {
-	spentGas := w.cosVM.SpentGas()
+	spentGas := w.cosVM.Vm.CostGas
 	w.CosAssert(w.cosVM.ctx.Gas > spentGas, "ContractCall(): out of gas.")
 	w.cosVM.ctx.Injector.ContractCall(
 		w.ReadContractCaller(),
 		w.ReadContractOwner(),
 		w.ReadContractName(),
 		w.ReadContractMethod(),
-		owner, contract, method, paramsData, coins, w.cosVM.ctx.Gas - spentGas)
+		owner, contract, method, paramsData, coins, w.cosVM.ctx.Gas - spentGas,w.cosVM.Vm)
 }
 
 func (w *CosVMNative) TableGetRecord(tableName string, primary []byte) []byte {

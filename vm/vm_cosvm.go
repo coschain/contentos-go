@@ -28,6 +28,7 @@ type CosVM struct {
 	props          *prototype.DynamicProperties
 	logger         *logrus.Logger
 	spentGas       uint64
+	Vm             *exec.VM
 }
 
 func NewCosVM(ctx *vmcontext.Context, db iservices.IDatabaseRW, props *prototype.DynamicProperties, logger *logrus.Logger) *CosVM {
@@ -140,6 +141,7 @@ func (w *CosVM) runEntry(entryName string) (ret uint32, err error) {
 		return
 	}
 	defer vc.Put(w.ctx.Owner.Value, w.ctx.Contract, w.ctx.CodeHash.Hash, vm)
+	w.Vm = vm
 
 	nativeFuncs := NewCosVMNative(w)
 	vm.SetTag( nativeFuncs )
