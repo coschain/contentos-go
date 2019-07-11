@@ -1039,6 +1039,9 @@ func (as *APIService) fetchPostInfoResponseById(postId uint64,isNeedLock bool) *
 			CashoutInterval:   variables.PostCashOutDelayBlock(),
 			GlobalRewards: &prototype.Vest{Value: globalRewards},
 			GlobalWeightedVp: globalWeightedVp,
+			Copyright:      pWrap.GetCopyright(),
+			CopyrightMemo:  pWrap.GetCopyrightMemo(),
+
 		}
 	}
 	return res

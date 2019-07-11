@@ -282,6 +282,8 @@ message PostResponse {
     prototype.vest                              global_rewards          =      25 ;
     string                                      global_weighted_vp      =      26 ;
     uint32                                      ticket                  =      27;
+    uint32                                      copyright               =      28;
+    string                                      copyright_memo          =      29;
 }
 
 message GetPostListByCreatedRequest {
