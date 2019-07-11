@@ -1217,19 +1217,19 @@ func (ev *AcquireTicketEvaluator) Apply() {
 	opAssert(count <= constants.MaxTicketsPerTurn, fmt.Sprintf("at most %d ticket per turn", int(constants.MaxTicketsPerTurn)))
 
 	ticketPrice := ev.GlobalProp().GetProps().PerTicketPrice
-	vest := account.GetVestingShares()
-	oldVest := account.GetVestingShares()
+	balance := account.GetBalance()
+	//oldVest := account.GetVestingShares()
 
-	fee := &prototype.Vest{Value: ticketPrice.Value}
+	fee := &prototype.Coin{Value: ticketPrice.Value}
 	opAssertE(fee.Mul(count), "mul ticket price with count overflow")
-	opAssertE(vest.Sub(fee), "Insufficient vesting to acquire tickets")
-	opAssert(account.MdVestingShares(vest), "modify vesting shares failed")
+	opAssertE(balance.Sub(fee), "Insufficient balance to acquire tickets")
+	opAssert(account.MdBalance(balance), "modify balance failed")
 
 	opAssert(account.GetChargedTicket() + uint32(count) > account.GetChargedTicket(), "ticket count overflow")
 
 	account.MdChargedTicket(account.GetChargedTicket() + uint32(count))
 
-	updateWitnessVoteCount(ev.Database(), op.Account, oldVest, vest)
+	//updateWitnessVoteCount(ev.Database(), op.Account, oldVest, vest)
 
 	// record
 	ticketKey := &prototype.GiftTicketKeyType{
@@ -1255,7 +1255,8 @@ func (ev *AcquireTicketEvaluator) Apply() {
 	props := ev.GlobalProp().GetProps()
 
 	currentIncome := props.GetTicketsIncome()
-	mustNoError(currentIncome.Add(fee), "TicketsIncome overflow")
+	vestFee := fee.ToVest()
+	mustNoError(currentIncome.Add(vestFee), "TicketsIncome overflow")
 
 	chargedTicketsNum := props.GetChargedTicketsNum()
 	currentTicketsNum := chargedTicketsNum + count

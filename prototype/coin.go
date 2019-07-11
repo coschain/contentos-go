@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/common/encoding/kope"
+	"math"
 	"strconv"
 	"strings"
 )
@@ -30,6 +31,17 @@ func (m *Coin) Sub(o *Coin) error {
 		return ErrCoinOverflow
 	}
 	m.Value -= o.Value
+	return nil
+}
+
+func (m *Coin) Mul(c uint64) error {
+	if m.Value == 0 {
+		return nil
+	}
+	if math.MaxUint64 / m.Value < c {
+		return ErrCoinOverflow
+	}
+	m.Value *= c
 	return nil
 }
 
