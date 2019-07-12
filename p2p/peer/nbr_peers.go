@@ -21,15 +21,15 @@ func (this *NbrPeers) Broadcast(mesg types.Message, isConsensus bool, magic uint
 	this.RLock()
 	defer this.RUnlock()
 
-	var peerList string
-	for _, p := range this.List {
-		if p.GetSyncState() == common.ESTABLISH {
-			ip := p.GetAddr()
-			pStr := fmt.Sprintf("%s, ", ip)
-			peerList += pStr
-		}
-	}
-	this.Log.Info("Broadcast msg neighbour list: ", peerList)
+	//var peerList string
+	//for _, p := range this.List {
+	//	if p.GetSyncState() == common.ESTABLISH {
+	//		ip := p.GetAddr()
+	//		pStr := fmt.Sprintf("%s, ", ip)
+	//		peerList += pStr
+	//	}
+	//}
+	//this.Log.Info("Broadcast msg neighbour list: ", peerList)
 
 	if data, ok := mesg.(*types.TransferMsg); ok {
 		if msgdata, ok := data.Msg.(*types.TransferMsg_Msg1); ok {
