@@ -12,6 +12,7 @@ require (
 	github.com/coschain/gobft v0.0.0-20190711031211-ca1352e03ab7
 	github.com/deckarep/golang-set v1.7.1
 	github.com/fastly/go-utils v0.0.0-20180712184237-d95a45783239 // indirect
+	github.com/gin-gonic/gin v1.4.0
 	github.com/go-interpreter/wagon v0.3.0
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/go-stack/stack v1.8.0 // indirect
@@ -37,7 +38,6 @@ require (
 	github.com/lestrrat/go-strftime v0.0.0-20180220042222-ba3bf9c1d042 // indirect
 	github.com/magiconair/properties v1.8.0
 	github.com/mattn/go-colorable v0.0.9 // indirect
-	github.com/mattn/go-isatty v0.0.4 // indirect
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b
 	github.com/mitchellh/go-homedir v1.0.0
 	github.com/mwitkow/go-conntrack v0.0.0-20161129095857-cc309e4a2223 // indirect
@@ -54,7 +54,7 @@ require (
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.3 // indirect
 	github.com/spf13/viper v1.2.1
-	github.com/stretchr/testify v1.2.2
+	github.com/stretchr/testify v1.3.0
 	github.com/syndtr/goleveldb v0.0.0-20181012014443-6b91fda63f2e
 	github.com/tebeka/strftime v0.0.0-20140926081919-3f9c7761e312 // indirect
 	github.com/tendermint/go-amino v0.14.1 // indirect
@@ -70,7 +70,6 @@ require (
 	golang.org/x/tools v0.0.0-20190710184609-286818132824 // indirect
 	google.golang.org/genproto v0.0.0-20190708153700-3bdd9d9f5532 // indirect
 	google.golang.org/grpc v1.22.0
-	gopkg.in/yaml.v2 v2.2.2 // indirect
 )
 
 replace github.com/go-interpreter/wagon v0.3.0 => github.com/coschain/wagon v0.3.1-0.20190404031614-dc0354856933
