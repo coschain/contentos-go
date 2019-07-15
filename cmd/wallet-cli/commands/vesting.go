@@ -50,7 +50,7 @@ func transferVesting(cmd *cobra.Command, args []string) {
 		Amount: prototype.NewCoin(amount),
 	}
 
-	signTx, err := utils.GenerateSignedTxAndValidate2(client, []interface{}{transferv_op}, fromAccount)
+	signTx, err := utils.GenerateSignedTxAndValidate(cmd, []interface{}{transferv_op}, fromAccount)
 	if err != nil {
 		fmt.Println(err)
 		return

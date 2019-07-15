@@ -230,7 +230,7 @@ func e_tableGetRecordEx(proc *exec.Process, ownerName, ownerNameLen int32, contr
 func e_setCopyrightAdmin(proc *exec.Process, name, nameLen int32) {
 	w := proc.GetTag().(*CosVMNative)
 
-	w.CosAssert(w.ReadContractOwner() == constants.COSSysAccount && w.ReadContractCaller() == constants.COSSysAccount,
+	w.CosAssert(w.ReadContractOwner() == constants.COSSysAccount,
 		"SetCopyrightAdmin: access denied",
 	)
 	w.SetCopyrightAdmin(string(w.cosVM.read(proc, name, nameLen, "setCopyrightAdmin().name")))
@@ -273,7 +273,7 @@ func e_setReputationAdmin(proc *exec.Process, name, nameLen int32) {
 	w := proc.GetTag().(*CosVMNative)
 
 	w.CosAssert(
-		w.ReadContractOwner() == constants.COSSysAccount && w.ReadContractCaller() == constants.COSSysAccount,
+		w.ReadContractOwner() == constants.COSSysAccount,
 		"SetReputationAdmin(): access denied",
 		)
 	w.SetReputationAdmin(string(w.cosVM.read(proc, name, nameLen, "setReputationAdmin().name")))
@@ -318,6 +318,42 @@ func e_setReputation(proc *exec.Process, namePtrs, namePtrLen, nameSizes, nameSi
 			fmt.Sprintf("setReputation().memos[%d]", i),
 		))
 		w.SetUserReputation(name, value, memo)
+	}
+	return int32(count)
+}
+
+func e_freeze(proc *exec.Process, namePtrs, namePtrLen, nameSizes, nameSizeLen, op, memoPtrs, memoPtrLen, memoSizes, memoSizeLen int32) int32 {
+	w := proc.GetTag().(*CosVMNative)
+
+	w.CosAssert(
+		w.ReadContractOwner() == constants.COSSysAccount,
+		"setFreeze(): access denied",
+	)
+
+	namePtr := w.cosVM.read(proc, namePtrs, namePtrLen, "setFreeze().namePtrs")
+	nameSize := w.cosVM.read(proc, nameSizes, nameSizeLen, "setFreeze().nameSizes")
+	memoPtr := w.cosVM.read(proc, memoPtrs, memoPtrLen, "setFreeze().memoPtrs")
+	memoSize := w.cosVM.read(proc, memoSizes, memoSizeLen, "setFreeze().memoSizes")
+
+	w.CosAssert(op == 0 || op == 1,"freeze=1 or unfreeze=0")
+
+	count := int(namePtrLen / 4)
+	w.CosAssert(namePtrLen == nameSizeLen && namePtrLen == memoPtrLen && namePtrLen == memoSizeLen, "setFreeze(): illegal parameters")
+
+	for i := 0; i < count; i++ {
+		offset := i * 4
+		name := string(w.cosVM.read(proc,
+			int32(binary.LittleEndian.Uint32(namePtr[offset:])),
+			int32(binary.LittleEndian.Uint32(nameSize[offset:])),
+			fmt.Sprintf("setFreeze().names[%d]", i),
+		))
+
+		memo := string(w.cosVM.read(proc,
+			int32(binary.LittleEndian.Uint32(memoPtr[offset:])),
+			int32(binary.LittleEndian.Uint32(memoSize[offset:])),
+			fmt.Sprintf("setFreeze().memos[%d]", i),
+		))
+		w.SetUserFreeze(name, uint32(op), memo)
 	}
 	return int32(count)
 }

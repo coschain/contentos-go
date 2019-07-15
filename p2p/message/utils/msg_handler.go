@@ -912,7 +912,7 @@ func (p *MsgHandler) ConsMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args 
 
 	//log.Info("receive a consensus message, message data: ", msgdata)
 
-	ctrl.Push(msgdata.MsgData)
+	ctrl.Push(msgdata.MsgData, remotePeer)
 
 	if msgdata.Bcast == 1 {
 		//log.Info("forward broadcast consensus msg")
@@ -1244,12 +1244,10 @@ func (p *MsgHandler) DetectFormerIdsHandle(data *msgTypes.MsgPayload, p2p p2p.P2
 	blkId := endID
 
 	count := 0
-	var reqmsg msgTypes.TransferMsg
-	reqdata := new(msgTypes.IdMsg)
-	reqdata.Msgtype = msgTypes.IdMsg_detect_former_ids
+	var IDList [][]byte
 
 	for {
-		reqdata.Value = append(reqdata.Value, blkId.Data[:])
+		IDList = append(IDList, blkId.Data[:])
 		count++
 		if count == msgCommon.BATCH_LENGTH {
 			break
@@ -1263,6 +1261,19 @@ func (p *MsgHandler) DetectFormerIdsHandle(data *msgTypes.MsgPayload, p2p p2p.P2
 			return
 		}
 		blkId = IsigBlk.Previous()
+	}
+
+	if len(IDList) == 0 {
+		log.Info("fetch no ids from consensus, no need to return")
+		return
+	}
+
+	var reqmsg msgTypes.TransferMsg
+	reqdata := new(msgTypes.IdMsg)
+	reqdata.Msgtype = msgTypes.IdMsg_detect_former_ids
+
+	for i:=len(IDList)-1;i>=0;i-- {
+		reqdata.Value = append(reqdata.Value, IDList[i])
 	}
 
 	reqmsg.Msg = &msgTypes.TransferMsg_Msg2{Msg2: reqdata}

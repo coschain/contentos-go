@@ -24,7 +24,7 @@ func stake(rpcClient grpcpb.ApiServiceClient, from *wallet.PrivAccount,to *walle
 		Amount:            &prototype.Coin{Value: amount},
 	}
 
-	signTx, err := utils.GenerateSignedTxAndValidate2(rpcClient, []interface{}{stkop}, from)
+	signTx, err := utils.GenerateSignedTxAndValidate2(rpcClient, []interface{}{stkop}, from, ChainId)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -81,7 +81,7 @@ func createAccount(mywallet *wallet.BaseWallet, rpcClient grpcpb.ApiServiceClien
 		NewAccountName: &prototype.AccountName{Value: newAccountName},
 		Owner:          pubkey,
 	}
-	signTx, err := utils.GenerateSignedTxAndValidate2(rpcClient, []interface{}{acop}, creatorAccount)
+	signTx, err := utils.GenerateSignedTxAndValidate2(rpcClient, []interface{}{acop}, creatorAccount, ChainId)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -166,7 +166,7 @@ func transfer(rpcClient grpcpb.ApiServiceClient, fromAccount, toAccount  *wallet
 		Amount: prototype.NewCoin(uint64(amount)),
 		Memo:   "",
 	}
-	signTx, err := utils.GenerateSignedTxAndValidate2(rpcClient, []interface{}{transfer_op}, fromAccount)
+	signTx, err := utils.GenerateSignedTxAndValidate2(rpcClient, []interface{}{transfer_op}, fromAccount, ChainId)
 	if err != nil {
 		fmt.Println(err)
 		return err
@@ -243,7 +243,7 @@ func vest(rpcClient grpcpb.ApiServiceClient, fromAccount, toAccount  *wallet.Pri
 		To:     &prototype.AccountName{Value: toAccount.Name},
 		Amount: prototype.NewCoin(uint64(amount)),
 	}
-	signTx, err := utils.GenerateSignedTxAndValidate2(rpcClient, []interface{}{transfer_op}, fromAccount)
+	signTx, err := utils.GenerateSignedTxAndValidate2(rpcClient, []interface{}{transfer_op}, fromAccount, ChainId)
 	if err != nil {
 		fmt.Println(err)
 		return err
@@ -323,7 +323,7 @@ func postArticle(rpcClient grpcpb.ApiServiceClient, authorAccount *wallet.PrivAc
 		Tags:          []string{tag},
 		Beneficiaries: beneficiaries,
 	}
-	signTx, err := utils.GenerateSignedTxAndValidate2(rpcClient, []interface{}{post_op}, authorAccount)
+	signTx, err := utils.GenerateSignedTxAndValidate2(rpcClient, []interface{}{post_op}, authorAccount, ChainId)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -396,7 +396,7 @@ func follow(rpcClient grpcpb.ApiServiceClient, followerAccount, followingAccount
 		Cancel:   false,
 	}
 
-	signTx, err := utils.GenerateSignedTxAndValidate2(rpcClient, []interface{}{follow_op}, followerAccount)
+	signTx, err := utils.GenerateSignedTxAndValidate2(rpcClient, []interface{}{follow_op}, followerAccount, ChainId)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -445,7 +445,7 @@ func voteArticle(rpcClient grpcpb.ApiServiceClient, voterAccount *wallet.PrivAcc
 		Idx:   postId,
 	}
 
-	signTx, err := utils.GenerateSignedTxAndValidate2(rpcClient, []interface{}{vote_op}, voterAccount)
+	signTx, err := utils.GenerateSignedTxAndValidate2(rpcClient, []interface{}{vote_op}, voterAccount, ChainId)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -519,7 +519,7 @@ func replyArticle(rpcClient grpcpb.ApiServiceClient, fromAccount *wallet.PrivAcc
 		Beneficiaries: beneficiaries,
 	}
 
-	signTx, err := utils.GenerateSignedTxAndValidate2(rpcClient, []interface{}{reply_op}, fromAccount)
+	signTx, err := utils.GenerateSignedTxAndValidate2(rpcClient, []interface{}{reply_op}, fromAccount, ChainId)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -559,7 +559,7 @@ func acquireTicket(rpcClient grpcpb.ApiServiceClient, fromAccount *wallet.PrivAc
 		Count: 1,
 	}
 
-	signTx, err := utils.GenerateSignedTxAndValidate2(rpcClient, []interface{}{acquireOp}, fromAccount)
+	signTx, err := utils.GenerateSignedTxAndValidate2(rpcClient, []interface{}{acquireOp}, fromAccount, ChainId)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -623,7 +623,7 @@ func voteByTicket(rpcClient grpcpb.ApiServiceClient, fromAccount *wallet.PrivAcc
 		Count: 1,
 	}
 
-	signTx, err := utils.GenerateSignedTxAndValidate2(rpcClient, []interface{}{voteByTicketOp}, fromAccount)
+	signTx, err := utils.GenerateSignedTxAndValidate2(rpcClient, []interface{}{voteByTicketOp}, fromAccount, ChainId)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -677,7 +677,7 @@ func callContract(rpcClient grpcpb.ApiServiceClient, fromAccount  *wallet.PrivAc
 		Method:   "checkincount",
 	}
 
-	signTx, err := utils.GenerateSignedTxAndValidate2(rpcClient, []interface{}{applyOp}, fromAccount)
+	signTx, err := utils.GenerateSignedTxAndValidate2(rpcClient, []interface{}{applyOp}, fromAccount, ChainId)
 	if err != nil {
 		fmt.Println(err)
 		return err
@@ -714,7 +714,7 @@ func RandomUnRegisterBP(rpcClient grpcpb.ApiServiceClient) error {
 		Owner: &prototype.AccountName{Value: BPList[index].name},
 	}
 
-	signTx, err := utils.GenerateSignedTxAndValidate2(rpcClient, []interface{}{bpUnregister_op}, bpAccount)
+	signTx, err := utils.GenerateSignedTxAndValidate2(rpcClient, []interface{}{bpUnregister_op}, bpAccount, ChainId)
 	if err != nil {
 		fmt.Println(err)
 		return err
@@ -754,10 +754,14 @@ func RegisterAndVoteBP(rpcClient grpcpb.ApiServiceClient, index int) error {
 		Desc:            BPList[index].name,
 		BlockSigningKey: pubKey,
 		Props: &prototype.ChainProperties{
-			AccountCreationFee: prototype.NewCoin(constants.DefaultAccountCreateFee),
-			MaximumBlockSize:   10 * 1024 * 1024,
-			StaminaFree:        constants.DefaultStaminaFree,
-			TpsExpected:        constants.DefaultTPSExpected,
+			AccountCreationFee:    prototype.NewCoin(constants.DefaultAccountCreateFee),
+			MaximumBlockSize:      10 * 1024 * 1024,
+			StaminaFree:           constants.DefaultStaminaFree,
+			TpsExpected:           constants.DefaultTPSExpected,
+			EpochDuration:         constants.InitEpochDuration,
+			TopNAcquireFreeToken:  constants.InitTopN,
+			PerTicketPrice:        prototype.NewVest(constants.PerTicketPrice * constants.COSTokenDecimals),
+			PerTicketWeight:       constants.PerTicketWeight,
 		},
 	}
 
@@ -773,7 +777,7 @@ func RegisterAndVoteBP(rpcClient grpcpb.ApiServiceClient, index int) error {
 	if err != nil {
 		return err
 	}
-	res := trx.Sign(keys, prototype.ChainId{Value: 0})
+	res := trx.Sign(keys, ChainId)
 	trx.Signature = &prototype.SignatureType{Sig: res}
 
 	if err := trx.Validate(); err != nil {

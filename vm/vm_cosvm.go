@@ -28,6 +28,7 @@ type CosVM struct {
 	props          *prototype.DynamicProperties
 	logger         *logrus.Logger
 	spentGas       uint64
+	Vm             *exec.VM
 }
 
 func NewCosVM(ctx *vmcontext.Context, db iservices.IDatabaseRW, props *prototype.DynamicProperties, logger *logrus.Logger) *CosVM {
@@ -78,6 +79,7 @@ func (w *CosVM) initNativeFuncs() {
 
 	w.Register("set_copyright_admin", e_setCopyrightAdmin, 0)
 	w.Register("set_copyright", e_setCopyright, 0)
+	w.Register("set_freeze",e_freeze,0)
 
 	// for memeory
 	w.Register("memcpy", e_memcpy, 100)
@@ -139,6 +141,7 @@ func (w *CosVM) runEntry(entryName string) (ret uint32, err error) {
 		return
 	}
 	defer vc.Put(w.ctx.Owner.Value, w.ctx.Contract, w.ctx.CodeHash.Hash, vm)
+	w.Vm = vm
 
 	nativeFuncs := NewCosVMNative(w)
 	vm.SetTag( nativeFuncs )

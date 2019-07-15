@@ -14,6 +14,7 @@ import (
 	"github.com/coschain/contentos-go/vm/context"
 	"github.com/coschain/contentos-go/vm/contract/abi"
 	ct "github.com/coschain/contentos-go/vm/contract/table"
+	"github.com/go-interpreter/wagon/exec"
 	"math"
 	"math/big"
 	"sort"
@@ -137,6 +138,7 @@ type InternalContractApplyEvaluator struct {
 	BaseDelegate
 	op  *prototype.InternalContractApplyOperation
 	remainGas uint64
+	preVm *exec.VM
 }
 
 type StakeEvaluator struct {
@@ -971,6 +973,8 @@ func (ev *ContractDeployEvaluator) Apply() {
 			t.Upgradeable = op.Upgradeable
 			t.Hash = codeHash
 			t.Balance = prototype.NewCoin(0)
+			t.Url = op.Url
+			t.Describe = op.Describe
 		}), "create contract data error")
 	}
 }
@@ -1045,7 +1049,6 @@ func (ev *ContractApplyEvaluator) Apply() {
 	// DeductStamina and usertranfer could be panic (rarely, I can't image how it happens)
 	// the panic should catch then return or bubble it ?
 
-
 	vmCtx.Injector.RecordStaminaFee(op.Caller.Value, spentGas)
 	if err != nil {
 		vmCtx.Injector.Error(ret, err.Error())
@@ -1105,7 +1108,8 @@ func (ev *InternalContractApplyEvaluator) Apply() {
 	//ev.Database().BeginTransaction()
 	ret, err := cosVM.Run()
 	spentGas := cosVM.SpentGas()
-	vmCtx.Injector.RecordStaminaFee(op.FromCaller.Value, spentGas)
+	ev.preVm.CostGas += spentGas
+	//vmCtx.Injector.RecordStaminaFee(op.FromCaller.Value, spentGas)
 
 	if err != nil {
 		vmCtx.Injector.Error(ret, err.Error())
@@ -1215,24 +1219,25 @@ func (ev *AcquireTicketEvaluator) Apply() {
 	opAssert(count <= constants.MaxTicketsPerTurn, fmt.Sprintf("at most %d ticket per turn", int(constants.MaxTicketsPerTurn)))
 
 	ticketPrice := ev.GlobalProp().GetProps().PerTicketPrice
-	vest := account.GetVestingShares()
-	oldVest := account.GetVestingShares()
+	balance := account.GetBalance()
+	//oldVest := account.GetVestingShares()
 
-	fee := &prototype.Vest{Value: ticketPrice.Value * count}
-	opAssertE(vest.Sub(fee), "Insufficient vesting to acquire tickets")
-	opAssert(account.MdVestingShares(vest), "modify vesting shares failed")
+	fee := &prototype.Coin{Value: ticketPrice.Value}
+	opAssertE(fee.Mul(count), "mul ticket price with count overflow")
+	opAssertE(balance.Sub(fee), "Insufficient balance to acquire tickets")
+	opAssert(account.MdBalance(balance), "modify balance failed")
 
 	opAssert(account.GetChargedTicket() + uint32(count) > account.GetChargedTicket(), "ticket count overflow")
 
 	account.MdChargedTicket(account.GetChargedTicket() + uint32(count))
 
-	updateWitnessVoteCount(ev.Database(), op.Account, oldVest, vest)
+	//updateWitnessVoteCount(ev.Database(), op.Account, oldVest, vest)
 
 	// record
 	ticketKey := &prototype.GiftTicketKeyType{
 		Type: 1,
-		From: []byte("contentos"),
-		To: []byte(op.Account.Value),
+		From: "contentos",
+		To: op.Account.Value,
 		CreateBlock: ev.GlobalProp().GetProps().HeadBlockNumber,
 	}
 
@@ -1252,7 +1257,8 @@ func (ev *AcquireTicketEvaluator) Apply() {
 	props := ev.GlobalProp().GetProps()
 
 	currentIncome := props.GetTicketsIncome()
-	mustNoError(currentIncome.Add(fee), "TicketsIncome overflow")
+	vestFee := fee.ToVest()
+	mustNoError(currentIncome.Add(vestFee), "TicketsIncome overflow")
 
 	chargedTicketsNum := props.GetChargedTicketsNum()
 	currentTicketsNum := chargedTicketsNum + count
@@ -1277,8 +1283,8 @@ func (ev *VoteByTicketEvaluator) Apply() {
 	// free ticket ?
 	freeTicketWrap := table.NewSoGiftTicketWrap(ev.Database(), &prototype.GiftTicketKeyType{
 		Type: 0,
-		From: []byte("contentos"),
-		To: []byte(op.Account.Value),
+		From: "contentos",
+		To: op.Account.Value,
 		CreateBlock: ev.GlobalProp().GetProps().GetCurrentEpochStartBlock(),
 	})
 	if freeTicketWrap.CheckExist() {
@@ -1308,8 +1314,8 @@ func (ev *VoteByTicketEvaluator) Apply() {
 	// record
 	ticketKey := &prototype.GiftTicketKeyType{
 		Type: 1,
-		From: []byte(op.Account.Value),
-		To: []byte(strconv.FormatUint(postId, 10)),
+		From: op.Account.Value,
+		To: strconv.FormatUint(postId, 10),
 		CreateBlock: ev.GlobalProp().GetProps().HeadBlockNumber,
 	}
 	ticketWrap := table.NewSoGiftTicketWrap(ev.Database(), ticketKey)
@@ -1340,7 +1346,8 @@ func (ev *VoteByTicketEvaluator) Apply() {
 	if props.GetChargedTicketsNum() == 0 {
 		equalValue = &prototype.Vest{Value: 0}
 	} else {
-		equalValue = &prototype.Vest{Value: count * props.GetTicketsIncome().Value / props.GetChargedTicketsNum()}
+		equalValue = &prototype.Vest{Value: props.GetTicketsIncome().Value / props.GetChargedTicketsNum()}
+		opAssertE(equalValue.Mul(count), "mul equal ticket value with count overflow")
 	}
 	currentIncome := props.GetTicketsIncome()
 	mustNoError(currentIncome.Sub(equalValue), "sub equal value from ticketfee failed")

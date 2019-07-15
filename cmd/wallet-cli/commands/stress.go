@@ -67,7 +67,7 @@ func stress(cmd *cobra.Command, args []string) {
 					Amount: prototype.NewCoin(amount),
 					Memo:   strconv.Itoa(tid) + "*t*" + memo + strconv.Itoa(index),
 				}
-				signTx, err := utils.GenerateSignedTxAndValidate2(client, []interface{}{transferOp}, fromAccount)
+				signTx, err := utils.GenerateSignedTxAndValidate(cmd, []interface{}{transferOp}, fromAccount)
 				if err != nil {
 					fmt.Println(err)
 					return

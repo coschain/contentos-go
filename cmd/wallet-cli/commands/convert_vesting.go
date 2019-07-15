@@ -49,7 +49,7 @@ func convert(cmd *cobra.Command, args []string) {
 		Amount: prototype.NewVest(uint64(amount)),
 	}
 
-	signTx, err := utils.GenerateSignedTxAndValidate2(client, []interface{}{convert_vesting_op}, fromAccount)
+	signTx, err := utils.GenerateSignedTxAndValidate(cmd, []interface{}{convert_vesting_op}, fromAccount)
 	if err != nil {
 		fmt.Println(err)
 		return

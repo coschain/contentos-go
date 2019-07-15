@@ -19,6 +19,7 @@ type TrxCallback func(result *prototype.TransactionWrapperWithInfo)
 
 // TrxEntry is a wrapper of a transaction with extra information.
 type TrxEntry struct {
+	chainId   prototype.ChainId	                    // id of block chain to which the transaction is sent
 	result    *prototype.TransactionWrapperWithInfo	// process result involving the transaction
 	sig       string								// transaction signature
 	size      int									// transaction size
@@ -28,8 +29,9 @@ type TrxEntry struct {
 }
 
 // NewTrxMgrEntry creates an instance of TrxEntry.
-func NewTrxMgrEntry(trx *prototype.SignedTransaction, callback TrxCallback) *TrxEntry {
+func NewTrxMgrEntry(chainId prototype.ChainId, trx *prototype.SignedTransaction, callback TrxCallback) *TrxEntry {
 	return &TrxEntry{
+		chainId: chainId,
 		result: &prototype.TransactionWrapperWithInfo{
 			SigTrx:  trx,
 			Receipt: &prototype.TransactionReceiptWithInfo{Status: prototype.StatusSuccess},
@@ -77,7 +79,7 @@ func (e *TrxEntry) InitCheck() error {
 	}
 	e.signer = creator
 	// recover the signing public key from signature
-	if signKey, err := trx.ExportPubKeys(prototype.ChainId{Value: 0}); err != nil {
+	if signKey, err := trx.ExportPubKeys(e.chainId); err != nil {
 		return e.SetError(fmt.Errorf("cannot export signing key: %s", err.Error()))
 	} else {
 		e.signerKey = signKey
@@ -149,6 +151,7 @@ type ITrxMgrPlugin interface {
 
 // The transaction manager.
 type TrxMgr struct {
+	chainId         prototype.ChainId                   // the chain
 	db 				iservices.IDatabaseRW				// the database
 	log             *logrus.Logger						// the logger
 	headTime		uint32								// timestamp of head block, in seconds
@@ -163,11 +166,12 @@ type TrxMgr struct {
 }
 
 // NewTrxMgr creates an instance of TrxMgr.
-func NewTrxMgr(db iservices.IDatabaseRW, logger *logrus.Logger, lastBlock, commitBlock uint64) *TrxMgr {
+func NewTrxMgr(chainId prototype.ChainId, db iservices.IDatabaseRW, logger *logrus.Logger, lastBlock, commitBlock uint64) *TrxMgr {
 	auth := NewAuthFetcher(db, logger, lastBlock, commitBlock)
 	tapos := NewTaposChecker(db, logger, lastBlock)
 	history := NewInBlockTrxChecker(db, logger, lastBlock)
 	return &TrxMgr{
+		chainId:  chainId,
 		db:       db,
 		log:      logger,
 		headTime: (&DynamicGlobalPropsRW{db:db}).GetProps().GetTime().GetUtcSeconds(),
@@ -184,7 +188,7 @@ func NewTrxMgr(db iservices.IDatabaseRW, logger *logrus.Logger, lastBlock, commi
 // AddTrx returns nil if the incoming transaction is accepted, otherwise an error is returned.
 // If a non-nil callback is given, it will be called once asynchronously with the final process result.
 func (m *TrxMgr) AddTrx(trx *prototype.SignedTransaction, callback TrxCallback) error {
-	entry := NewTrxMgrEntry(trx, callback)
+	entry := NewTrxMgrEntry(m.chainId, trx, callback)
 	// very basic nil pointer check
 	if trx == nil || trx.Signature == nil {
 		err := entry.SetError(errors.New("invalid trx"))
@@ -314,7 +318,7 @@ func (m *TrxMgr) CheckBlockTrxs(b *prototype.SignedBlock) (entries []*TrxEntry, 
 				defer wg.Done()
 				var err error
 				trx := b.Transactions[idx].SigTrx
-				e := NewTrxMgrEntry(trx, nil)
+				e := NewTrxMgrEntry(m.chainId, trx, nil)
 
 				// do we need the initial check?
 				// yes for transactions that we never met, otherwise no.
@@ -501,4 +505,8 @@ func (m *TrxMgr) callPlugins(f func(plugin ITrxMgrPlugin)) {
 		}(i)
 	}
 	wg.Wait()
+}
+
+func (m *TrxMgr) DiscardAccountCache(name string) {
+	m.auth.Discard(name)
 }

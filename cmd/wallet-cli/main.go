@@ -8,6 +8,7 @@ import (
 	"github.com/coschain/contentos-go/cmd/wallet-cli/commands/utils"
 	"github.com/coschain/contentos-go/cmd/wallet-cli/wallet"
 	"github.com/coschain/contentos-go/common"
+	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/rpc"
 	"github.com/coschain/contentos-go/rpc/pb"
 	"os"
@@ -164,7 +165,8 @@ func addCommands() {
 	rootCmd.AddCommand(commands.UnStakeCmd())
 	rootCmd.AddCommand(commands.NodesCheckCmd())
 	rootCmd.AddCommand(commands.TicketCmd())
-
+	rootCmd.AddCommand(commands.ChainCmd())
+	rootCmd.AddCommand(commands.NodeNeighboursCmd())
 }
 
 func init() {
@@ -192,6 +194,9 @@ func main() {
 		// for switch port
 		rootCmd.SetContext("rpcclient_raw", conn)
 	}
+	chainName := common.ChainNameMainNet
+	rootCmd.SetContext("chain_name", chainName)
+	rootCmd.SetContext("chain_id", prototype.ChainId{ Value:common.GetChainIdByName(chainName) })
 
 	inheritContext(rootCmd)
 	if err := rootCmd.Execute(); err != nil {

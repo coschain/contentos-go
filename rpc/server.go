@@ -65,6 +65,14 @@ func (gs *GRPCServer) Start(node *node.Node) error {
 		gs.api.pool = pool.(iservices.ITrxPool)
 	}
 
+	p2p, err := gs.ctx.Service(iservices.P2PServerName)
+	if err != nil {
+		// TODO Mock Test
+		//return err
+	} else {
+		gs.api.p2p = p2p.(iservices.IP2P)
+	}
+
 	db, err := gs.ctx.Service(iservices.DbServerName)
 	if err != nil {
 		// TODO Mock Test

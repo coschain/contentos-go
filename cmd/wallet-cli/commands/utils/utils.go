@@ -21,22 +21,28 @@ import (
 const MinimumCos = "0.000001"
 var EstimateStamina bool
 
-func GenerateSignedTxAndValidate2(client grpcpb.ApiServiceClient, ops []interface{}, signers *wallet.PrivAccount) (*prototype.SignedTransaction, error) {
+func GenerateSignedTxAndValidate(cmd *cobra.Command, ops []interface{}, signers *wallet.PrivAccount) (*prototype.SignedTransaction, error) {
+	client := cmd.Context["rpcclient"].(grpcpb.ApiServiceClient)
+	chainId := cmd.Context["chain_id"].(prototype.ChainId)
+	return GenerateSignedTxAndValidate2(client, ops, signers, chainId)
+}
+
+func GenerateSignedTxAndValidate2(client grpcpb.ApiServiceClient, ops []interface{}, signers *wallet.PrivAccount, chainId prototype.ChainId) (*prototype.SignedTransaction, error) {
 	privKey := &prototype.PrivateKeyType{}
 	pk, err := prototype.PrivateKeyFromWIF(signers.PrivKey)
 	if err != nil {
 		return nil, err
 	}
 	privKey = pk
-	return GenerateSignedTxAndValidate3(client, ops, privKey)
+	return GenerateSignedTxAndValidate3(client, ops, privKey, chainId)
 }
 
-func GenerateSignedTxAndValidate3(client grpcpb.ApiServiceClient, ops []interface{}, privKey *prototype.PrivateKeyType) (*prototype.SignedTransaction, error) {
+func GenerateSignedTxAndValidate3(client grpcpb.ApiServiceClient, ops []interface{}, privKey *prototype.PrivateKeyType, chainId prototype.ChainId) (*prototype.SignedTransaction, error) {
 	chainState, err := GetChainState(client)
 	if err != nil {
 		return nil, err
 	}
-	return GenerateSignedTxAndValidate4(chainState.Dgpo, 30, ops, privKey)
+	return GenerateSignedTxAndValidate4(chainState.Dgpo, 30, ops, privKey, chainId)
 }
 
 func GetChainState(client grpcpb.ApiServiceClient) (*grpcpb.ChainState, error) {
@@ -48,7 +54,7 @@ func GetChainState(client grpcpb.ApiServiceClient) (*grpcpb.ChainState, error) {
 	return resp.State, nil
 }
 
-func GenerateSignedTxAndValidate4(dgp *prototype.DynamicProperties, expiration uint32, ops []interface{}, privKey *prototype.PrivateKeyType) (*prototype.SignedTransaction, error) {
+func GenerateSignedTxAndValidate4(dgp *prototype.DynamicProperties, expiration uint32, ops []interface{}, privKey *prototype.PrivateKeyType, chainId prototype.ChainId) (*prototype.SignedTransaction, error) {
 	refBlockPrefix := common.TaposRefBlockPrefix(dgp.HeadBlockId.Hash)
 	// occupant implement
 	refBlockNum := common.TaposRefBlockNum(dgp.HeadBlockNumber)
@@ -59,7 +65,7 @@ func GenerateSignedTxAndValidate4(dgp *prototype.DynamicProperties, expiration u
 
 	signTx := prototype.SignedTransaction{Trx: tx}
 
-	res := signTx.Sign(privKey, prototype.ChainId{Value: 0})
+	res := signTx.Sign(privKey, chainId)
 	signTx.Signature = &prototype.SignatureType{Sig: res}
 
 	if err := signTx.Validate(); err != nil {

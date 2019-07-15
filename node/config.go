@@ -11,6 +11,10 @@ const (
 )
 
 type Config struct {
+	// ChainId is network id. Builtins are "main", "test" and "dev".
+	// Nodes with different chain id can't talk with each other.
+	ChainId string `toml:",omitempty"`
+
 	// Name refers the name of node's instance
 	Name string
 

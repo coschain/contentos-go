@@ -1,8 +1,14 @@
 package node
 
+import (
+	"github.com/coschain/contentos-go/common"
+	"github.com/coschain/contentos-go/prototype"
+)
+
 type ServiceContext struct {
 	config   *Config
 	services map[string]Service
+	chainId  prototype.ChainId
 }
 
 func (ctx *ServiceContext) ResolvePath(path string) string {
@@ -32,8 +38,17 @@ type Service interface {
 
 func (ctx *ServiceContext) ResetConfig(cfg *Config) {
 	ctx.config = cfg
+	ctx.UpdateChainId()
 }
 
 func (ctx *ServiceContext) ResetServices(s map[string]Service) {
 	ctx.services = s
+}
+
+func (ctx *ServiceContext) UpdateChainId() {
+	ctx.chainId.Value = common.GetChainIdByName(ctx.config.ChainId)
+}
+
+func (ctx *ServiceContext) ChainId() prototype.ChainId {
+	return ctx.chainId
 }

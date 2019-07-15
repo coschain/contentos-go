@@ -29,4 +29,6 @@ type IP2P interface {
 
 	// if receive a out-of-range signed block, call this method to fetch the gap signed blocks (localHeadID, targetID]
 	FetchOutOfRange(localHeadID, targetID comn.BlockID)
+
+	GetNodeNeighbours() string
 }

@@ -33,6 +33,7 @@ var (
 type APIService struct {
 	consensus iservices.IConsensus
 	pool iservices.ITrxPool
+	p2p       iservices.IP2P
 	mainLoop  *eventloop.EventLoop
 	db        iservices.IDatabaseService
 	log       *logrus.Logger
@@ -872,6 +873,9 @@ func (as *APIService) getAccountResponseByName(name *prototype.AccountName, isNe
 		acctInfo.FreeTicket = as.pool.GetFreeTicketCount(name)
 		acctInfo.ChargedTicket = accWrap.GetChargedTicket()
 
+		acctInfo.Freeze = accWrap.GetFreeze()
+		acctInfo.FreezeMemo = accWrap.GetFreezeMemo()
+
 		acct.Info = acctInfo
 		acct.State = as.getState()
 
@@ -1035,6 +1039,9 @@ func (as *APIService) fetchPostInfoResponseById(postId uint64,isNeedLock bool) *
 			CashoutInterval:   variables.PostCashOutDelayBlock(),
 			GlobalRewards: &prototype.Vest{Value: globalRewards},
 			GlobalWeightedVp: globalWeightedVp,
+			Copyright:      pWrap.GetCopyright(),
+			CopyrightMemo:  pWrap.GetCopyrightMemo(),
+
 		}
 	}
 	return res
@@ -1128,6 +1135,8 @@ func (as *APIService) GetContractInfo (ctx context.Context, req *grpcpb.GetContr
 		if req.FetchCode{
 			res.Code = scid.GetCode()
 		}
+		res.Url = scid.GetUrl()
+		res.Describe = scid.GetDescribe()
 	}
 
 	return res, nil
@@ -1363,4 +1372,17 @@ func (as *APIService) GetPostListByVest (ctx context.Context,
 	res.PostList = postList
 	return res,err
 
+}
+
+func (as *APIService) GetNodeNeighbours(ctx context.Context, req *grpcpb.NonParamsRequest) (*grpcpb.GetNodeNeighboursResponse, error) {
+
+	peerList := as.p2p.GetNodeNeighbours()
+	if peerList == "" {
+		return nil, errors.New("peer has no neighbours")
+	}
+
+	ret := &grpcpb.GetNodeNeighboursResponse{}
+	ret.Peerlist = peerList
+
+	return ret, nil
 }

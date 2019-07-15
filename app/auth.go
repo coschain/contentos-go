@@ -44,6 +44,13 @@ func NewAuthFetcher(db iservices.IDatabaseRW, logger *logrus.Logger, headBlockNu
 	}
 }
 
+// Discard remove specified account from cache.
+func (f *AuthFetcher) Discard(account string) {
+	f.lock.Lock()
+	defer f.lock.Unlock()
+	f.cache.Del([]byte(account))
+}
+
 // GetPublicKey returns the public key of given account.
 // It returns a nil-key and an error if given account not found.
 func (f *AuthFetcher) GetPublicKey(account string) (*prototype.PublicKeyType, error) {
@@ -59,6 +66,9 @@ func (f *AuthFetcher) GetPublicKey(account string) (*prototype.PublicKeyType, er
 		auth := table.NewUniAccountNameWrap(f.db).UniQueryName(prototype.NewAccountName(account))
 		if auth == nil {
 			return nil, fmt.Errorf("auth of %s not found", account)
+		}
+		if auth.GetFreeze() != 0 {
+			return nil, fmt.Errorf("account %s is frozen", account)
 		}
 		key := auth.GetOwner()
 		// update cache
