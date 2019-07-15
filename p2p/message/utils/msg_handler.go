@@ -1026,9 +1026,7 @@ func (p *MsgHandler) FetchOutOfRangeHandle(data *msgTypes.MsgPayload, p2p p2p.P2
 		log.Error("can not check whether targetID on main branch, ", err)
 		ret2 = false
 	}
-
-	ret2 = false
-
+	
 	if ret1 && ret2 {
 		log.Info("fetch out of range blocks from main branch")
 		startNum := startID.BlockNum()
