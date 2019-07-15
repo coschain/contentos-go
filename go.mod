@@ -3,6 +3,7 @@ module github.com/coschain/contentos-go
 require (
 	cloud.google.com/go v0.41.0 // indirect
 	github.com/asaskevich/EventBus v0.0.0-20180315140547-d46933a94f05
+	github.com/aws/aws-sdk-go v1.20.20
 	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/chzyer/logex v1.1.10 // indirect
 	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e
