@@ -14,14 +14,19 @@ import (
 	"io/ioutil"
 )
 
+var contractUrl string
+var contractDesc string
+
 var DeployCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "deploy",
 		Short:   "deploy a new contract",
 		Example: "deploy [author] [contract_name] [local_wasm_path] [local_abi_path] [upgradeable] [code_url] [describe]",
-		Args:    cobra.ExactArgs(7),
+		Args:    cobra.ExactArgs(5),
 		Run:     deploy,
 	}
+	cmd.Flags().StringVarP(&contractUrl, "url", "u", "", `deploy alice contractname path_to_wasm path_to_abi false --url "http://example.com"`)
+	cmd.Flags().StringVarP(&contractDesc, "desc", "d", "", `deploy alice contractname path_to_wasm path_to_abi false --desc "some description"`)
 	utils.ProcessEstimate(cmd)
 	return cmd
 }
@@ -29,6 +34,8 @@ var DeployCmd = func() *cobra.Command {
 func deploy(cmd *cobra.Command, args []string) {
 	defer func() {
 		utils.EstimateStamina = false
+		contractUrl = ""
+		contractDesc = ""
 	}()
 	c := cmd.Context["rpcclient"]
 	client := c.(grpcpb.ApiServiceClient)
@@ -43,8 +50,6 @@ func deploy(cmd *cobra.Command, args []string) {
 	cname := args[1]
 	path := args[2]
 	pathAbi := args[3]
-	url := args[4]
-	desc := args[5]
 
 	upgradeable := false
 	if args[4] == "true"{
@@ -81,8 +86,8 @@ func deploy(cmd *cobra.Command, args []string) {
 		Abi:      compressedAbi,
 		Code:     compressedCode,
 		Upgradeable:upgradeable,
-		Url: url,
-		Describe: desc,
+		Url: contractUrl,
+		Describe: contractDesc,
 	}
 	signTx, err := utils.GenerateSignedTxAndValidate(cmd, []interface{}{contractDeployOp}, acc)
 	if err != nil {
