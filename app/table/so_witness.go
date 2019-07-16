@@ -935,7 +935,7 @@ func (s *SoWitnessWrap) saveMemKeyPerTicketPrice(tInfo *SoWitness) error {
 	return err
 }
 
-func (s *SoWitnessWrap) GetPerTicketPrice() *prototype.Vest {
+func (s *SoWitnessWrap) GetPerTicketPrice() *prototype.Coin {
 	res := true
 	msg := &SoMemWitnessByPerTicketPrice{}
 	if s.dba == nil {
@@ -964,7 +964,7 @@ func (s *SoWitnessWrap) GetPerTicketPrice() *prototype.Vest {
 	return msg.PerTicketPrice
 }
 
-func (s *SoWitnessWrap) MdPerTicketPrice(p *prototype.Vest) bool {
+func (s *SoWitnessWrap) MdPerTicketPrice(p *prototype.Coin) bool {
 	if s.dba == nil {
 		return false
 	}
