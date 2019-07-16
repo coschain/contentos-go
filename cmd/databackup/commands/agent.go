@@ -2,18 +2,16 @@ package commands
 
 import (
 	"archive/tar"
-	"bytes"
 	"compress/gzip"
-	//"fmt"
 	"io"
-	//"mime/multipart"
-	"net/http"
+
 	"os"
 	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/lightsail"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/coschain/cobra"
 	"github.com/sirupsen/logrus"
@@ -24,8 +22,8 @@ var interval int32
 var destAddr string
 
 const (
-	S3_REGION = ""
-	S3_BUCKET = ""
+	S3_REGION    = lightsail.RegionNameEuCentral1 //"eu-north-1"
+	S3_BUCKET    = "cosd-databackup"
 	archFileName = "data.tar.gz"
 )
 
@@ -43,6 +41,7 @@ var AgentCmd = func() *cobra.Command {
 }
 
 func startBackUpAgent(cmd *cobra.Command, args []string) {
+	logrus.SetReportCaller(true)
 	if dataDir == "" {
 		logrus.Error("data_dir cannot be empty")
 		return
@@ -85,9 +84,9 @@ func (a *Agent) Run() {
 func zip() error {
 	input := make([]*os.File, 3)
 	inputName := []string{
-		dataDir+"/blog",
-		dataDir+"/checkpoint",
-		dataDir+"/db",
+		dataDir + "/blog",
+		dataDir + "/checkpoint",
+		dataDir + "/db",
 	}
 	for i := range inputName {
 		dataFile, err := os.Open(inputName[i])
@@ -345,22 +344,22 @@ func AddFileToS3(s *session.Session, fileDir string) error {
 	defer file.Close()
 
 	// Get file size and read the file content into a buffer
-	fileInfo, _ := file.Stat()
-	var size int64 = fileInfo.Size()
-	buffer := make([]byte, size)
-	file.Read(buffer)
+	//fileInfo, _ := file.Stat()
+	//var size int64 = fileInfo.Size()
+	//buffer := make([]byte, size)
+	//file.Read(buffer)
 
 	// Config settings: this is where you choose the bucket, filename, content-type etc.
 	// of the file you're uploading.
 	_, err = s3.New(s).PutObject(&s3.PutObjectInput{
 		Bucket:               aws.String(S3_BUCKET),
 		Key:                  aws.String(fileDir),
-		ACL:                  aws.String("private"),
-		Body:                 bytes.NewReader(buffer),
-		ContentLength:        aws.Int64(size),
-		ContentType:          aws.String(http.DetectContentType(buffer)),
-		ContentDisposition:   aws.String("attachment"),
-		ServerSideEncryption: aws.String("AES256"),
+		//ACL:                  aws.String("private"),
+		Body:                 file,//bytes.NewReader(buffer),
+		//ContentLength:        aws.Int64(size),
+		//ContentType:          aws.String(http.DetectContentType(buffer)),
+		//ContentDisposition:   aws.String("attachment"),
+		//ServerSideEncryption: aws.String("AES256"),
 	})
 	return err
 }
