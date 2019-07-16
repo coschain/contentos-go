@@ -738,6 +738,11 @@ func (p *MsgHandler) IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 				} else {
 					remotePeer.OutOfRangeState.Lock()
 					length := len(remotePeer.OutOfRangeState.KeyPointIDList)
+					if length < 1 {
+						log.Error("OutOfRangeState KeyPointIDList length error")
+						remotePeer.OutOfRangeState.Unlock()
+						return
+					}
 					endId := remotePeer.OutOfRangeState.KeyPointIDList[length-1]
 					remotePeer.OutOfRangeState.Unlock()
 
@@ -753,6 +758,11 @@ func (p *MsgHandler) IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 			if idx == len(msgdata.Value)-1 {
 				remotePeer.OutOfRangeState.Lock()
 				length := len(remotePeer.OutOfRangeState.KeyPointIDList)
+				if length < 1 {
+					log.Error("OutOfRangeState KeyPointIDList length error")
+					remotePeer.OutOfRangeState.Unlock()
+					return
+				}
 				endId := remotePeer.OutOfRangeState.KeyPointIDList[length-1]
 				remotePeer.OutOfRangeState.Unlock()
 
@@ -1026,7 +1036,7 @@ func (p *MsgHandler) FetchOutOfRangeHandle(data *msgTypes.MsgPayload, p2p p2p.P2
 		log.Error("can not check whether targetID on main branch, ", err)
 		ret2 = false
 	}
-	
+
 	if ret1 && ret2 {
 		log.Info("fetch out of range blocks from main branch")
 		startNum := startID.BlockNum()
@@ -1080,6 +1090,8 @@ func (p *MsgHandler) FetchOutOfRangeHandle(data *msgTypes.MsgPayload, p2p p2p.P2
 
 		if len(blockList) == 0 {
 			log.Warn("[p2p] fetch no block from consensus, maybe one block is too big")
+			clearMsg := msgpack.NewClearOutOfRangeState()
+			p2p.Send(remotePeer, clearMsg, false)
 			return
 		}
 
