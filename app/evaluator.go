@@ -520,6 +520,9 @@ func (ev *BpRegisterEvaluator) Apply() {
 
 	//opAssert(ev.BpInWhiteList(op.Owner.Value), "bp name not in white list")
 
+	opAssert(table.NewSoAccountWrap(ev.Database(), op.Owner).GetReputation() > constants.MinReputation,
+		fmt.Sprintf("reputation too low"))
+
 	staminaFree := op.Props.StaminaFree
 	opAssert(staminaFree >= constants.MinStaminaFree,
 		fmt.Sprintf("proposed stamina free too low min value %d", constants.MinStaminaFree))
