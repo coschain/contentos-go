@@ -56,7 +56,7 @@ func makeBpRegVoteTrx(cmd *cobra.Command, client grpcpb.ApiServiceClient, count 
 			TpsExpected:        constants.DefaultTPSExpected,
 			TopNAcquireFreeToken: constants.InitTopN,
 			EpochDuration: constants.InitEpochDuration,
-			PerTicketPrice: prototype.NewVest(constants.PerTicketPrice * constants.COSTokenDecimals),
+			PerTicketPrice: prototype.NewCoin(constants.PerTicketPrice * constants.COSTokenDecimals),
 			PerTicketWeight: constants.PerTicketWeight,
 		},
 	}

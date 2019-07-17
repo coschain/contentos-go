@@ -128,7 +128,7 @@ func conductBatch(cmd *cobra.Command, args []string) {
 					TpsExpected:           constants.DefaultTPSExpected,
 					EpochDuration:         constants.InitEpochDuration,
 					TopNAcquireFreeToken:  constants.InitTopN,
-					PerTicketPrice:        prototype.NewVest(constants.PerTicketPrice * constants.COSTokenDecimals),
+					PerTicketPrice:        prototype.NewCoin(constants.PerTicketPrice * constants.COSTokenDecimals),
 					PerTicketWeight:       constants.PerTicketWeight,
 				},
 			}
