@@ -4,14 +4,13 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"io"
-
 	"os"
+	"os/exec"
 	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/lightsail"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/coschain/cobra"
 	"github.com/sirupsen/logrus"
@@ -19,10 +18,10 @@ import (
 
 var dataDir string
 var interval int32
-var destAddr string
+//var destAddr string
 
 const (
-	S3_REGION    = lightsail.RegionNameEuCentral1 //"eu-north-1"
+	S3_REGION    = "eu-north-1" // lightsail.RegionNameEuCentral1
 	S3_BUCKET    = "cosd-databackup"
 	archFileName = "data.tar.gz"
 )
@@ -36,7 +35,7 @@ var AgentCmd = func() *cobra.Command {
 	}
 	cmd.Flags().StringVarP(&dataDir, "data_dir", "d", "", "directory of cosd data")
 	cmd.Flags().Int32VarP(&interval, "interval", "i", 86400, "backup data every interval seconds")
-	cmd.Flags().StringVarP(&destAddr, "addr", "a", "", "the address of the backup server")
+	//cmd.Flags().StringVarP(&destAddr, "addr", "a", "", "the address of the backup server")
 	return cmd
 }
 
@@ -44,10 +43,6 @@ func startBackUpAgent(cmd *cobra.Command, args []string) {
 	logrus.SetReportCaller(true)
 	if dataDir == "" {
 		logrus.Error("data_dir cannot be empty")
-		return
-	}
-	if destAddr == "" {
-		logrus.Error("addr cannot be empty")
 		return
 	}
 
@@ -62,23 +57,46 @@ type Agent struct {
 }
 
 func (a *Agent) Run() {
+	a.run()
 	t := time.NewTicker(time.Second * time.Duration(interval))
 	for {
 		select {
 		case <-t.C:
-			if err := zip(); err == nil {
-				logrus.Info("cosd data archived at", time.Now())
-			}
-
-			if err := SendToS3(); err == nil {
-				logrus.Info("cosd data uploaded at", time.Now())
-			} else {
-				logrus.Error(err)
-			}
+			a.run()
 		case <-a.stopCh:
 			return
 		}
 	}
+}
+
+func (a *Agent) run() error {
+	cmd := exec.Command("/bin/bash","-c", "pkill cosd")
+	if err := cmd.Run(); err != nil {
+		logrus.Error(err)
+	}
+	if err := zip(); err == nil {
+		logrus.Info("cosd data archived at ", time.Now())
+	} else {
+		logrus.Error(err)
+		return err
+	}
+
+	//exec.Command("/bin/bash","-c","/data/coschain/contentos-go/cmd/cosd/cosd start -n /data/logs/coschain/cosd/")
+	cmd = exec.Command("/bin/bash","-c","/data/coschain/src/deploy/boot.sh")
+	if _, err := cmd.Output(); err != nil {
+		logrus.Error(err)
+		return err
+	}
+
+	if err := SendToS3(); err == nil {
+		logrus.Info("cosd data uploaded at ", time.Now())
+	} else {
+		logrus.Error(err)
+		return err
+	}
+	os.Remove(archFileName)
+
+	return nil
 }
 
 func zip() error {
@@ -260,6 +278,10 @@ func compress(file *os.File, prefix string, tw *tar.Writer) error {
 			}
 		}
 	} else {
+		if !info.Mode().IsRegular() {
+			logrus.Warnf("skip file %s coz it's irregular")
+			return nil
+		}
 		header, err := tar.FileInfoHeader(info, "")
 		header.Name = prefix + "/" + header.Name
 		if err != nil {
@@ -351,9 +373,10 @@ func AddFileToS3(s *session.Session, fileDir string) error {
 
 	// Config settings: this is where you choose the bucket, filename, content-type etc.
 	// of the file you're uploading.
+	now := time.Now().String()
 	_, err = s3.New(s).PutObject(&s3.PutObjectInput{
 		Bucket:               aws.String(S3_BUCKET),
-		Key:                  aws.String(fileDir),
+		Key:                  aws.String(now+"/"+fileDir),
 		//ACL:                  aws.String("private"),
 		Body:                 file,//bytes.NewReader(buffer),
 		//ContentLength:        aws.Int64(size),
