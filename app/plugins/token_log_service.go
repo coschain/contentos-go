@@ -168,7 +168,7 @@ func (s *TokenInfoService) handleTokenInfo(tokens map[string]bool, blockId strin
 		switch action {
 		case iservices.Insert:
 			s.log.Warn("insert", tokenData)
-			_, _ = s.db.Exec("INSERT INTO tokenbalance (symbol, owner, account, balance) VALUES (?, ?, ?, ?)",
+			_, _ = s.db.Exec("INSERT IGNORE INTO tokenbalance (symbol, owner, account, balance) VALUES (?, ?, ?, ?)",
 				contract, owner, tokenData.TokenOwner, tokenData.Amount)
 		case iservices.Update:
 			s.log.Warn("update ", tokenData)
