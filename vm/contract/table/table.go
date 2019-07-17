@@ -61,6 +61,28 @@ func (t *ContractTable) NewRecord(encodedRecord []byte) error {
 	return nil
 }
 
+func (t *ContractTable) PrimaryKey(encodedRecord []byte) (string, error) {
+	r, err := t.decodeRecord(encodedRecord)
+	if err != nil {
+		return "", err
+	}
+	p := t.fieldValue(reflect.ValueOf(r), t.abiTable.PrimaryIndex()).Interface()
+	pk := kope.AppendKey(t.primary, p)
+	return string(pk), nil
+}
+
+func (t *ContractTable) DecodeRecordToJson(encodedRecord []byte) (string, error) {
+	r, err := t.decodeRecord(encodedRecord)
+	if err != nil {
+		return "", err
+	}
+	jsonb, err := json.Marshal(r)
+	if err != nil {
+		return "", err
+	}
+	return string(jsonb), nil
+}
+
 func (t *ContractTable) GetRecord(encodedPK []byte) ([]byte, error) {
 	pk, err := t.primaryKey(encodedPK)
 	if err != nil {

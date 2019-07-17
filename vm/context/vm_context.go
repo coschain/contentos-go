@@ -1,6 +1,7 @@
 package vmcontext
 
 import (
+	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/vm/contract/abi"
 	"github.com/coschain/contentos-go/vm/contract/table"
@@ -28,6 +29,7 @@ type Context struct {
 	AbiInterface abi.IContractABI
 	Tables    *table.ContractTables
 	Injector  vminjector.Injector
+	TrxObserver iservices.ITrxObserver
 }
 
 func NewContextFromDeployOp(op *prototype.ContractDeployOperation, code []byte, abiString string, injector vminjector.Injector) *Context {
@@ -40,7 +42,8 @@ func NewContextFromDeployOp(op *prototype.ContractDeployOperation, code []byte, 
 	}
 }
 
-func NewContextFromApplyOp(op *prototype.ContractApplyOperation, params []byte, code []byte, codeHash *prototype.Sha256, abi abi.IContractABI, tables *table.ContractTables, injector vminjector.Injector) *Context {
+func NewContextFromApplyOp(op *prototype.ContractApplyOperation, params []byte, code []byte, codeHash *prototype.Sha256, abi abi.IContractABI, tables *table.ContractTables, injector vminjector.Injector,
+	observer iservices.ITrxObserver) *Context {
 	return &Context{
 		Caller:    op.Caller,
 		CallingContractOwner: nil,
@@ -58,10 +61,12 @@ func NewContextFromApplyOp(op *prototype.ContractApplyOperation, params []byte, 
 		AbiInterface: abi,
 		Tables: tables,
 		Injector:  injector,
+		TrxObserver: observer,
 	}
 }
 
-func NewContextFromInternalApplyOp(op *prototype.InternalContractApplyOperation, code []byte, codeHash *prototype.Sha256, abi abi.IContractABI, tables *table.ContractTables, injector vminjector.Injector) *Context {
+func NewContextFromInternalApplyOp(op *prototype.InternalContractApplyOperation, code []byte, codeHash *prototype.Sha256, abi abi.IContractABI, tables *table.ContractTables, injector vminjector.Injector,
+	observer iservices.ITrxObserver) *Context {
 	return &Context{
 		Caller:    op.FromCaller,
 		CallingContractOwner: op.FromOwner,
@@ -79,5 +84,6 @@ func NewContextFromInternalApplyOp(op *prototype.InternalContractApplyOperation,
 		AbiInterface: abi,
 		Tables: tables,
 		Injector:  injector,
+		TrxObserver: observer,
 	}
 }
