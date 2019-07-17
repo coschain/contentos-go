@@ -21,7 +21,7 @@ var DeployCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "deploy",
 		Short:   "deploy a new contract",
-		Example: "deploy [author] [contract_name] [local_wasm_path] [local_abi_path] [upgradeable] [code_url] [describe]",
+		Example: "deploy [author] [contract_name] [local_wasm_path] [local_abi_path] [upgradeable]",
 		Args:    cobra.ExactArgs(5),
 		Run:     deploy,
 	}

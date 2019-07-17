@@ -10,6 +10,6 @@ uint64                         ,tps_expected            ,0   ,0     ,0   ,0     
 prototype.coin                 ,account_create_fee      ,0   ,0     ,0   ,0          ,
 uint32                         ,top_n_acquire_free_token,0   ,0     ,0   ,0          ,
 uint64                         ,epoch_duration          ,0   ,0     ,0   ,0          ,
-prototype.vest                 ,per_ticket_price        ,0   ,0     ,0   ,0          ,
+prototype.coin                 ,per_ticket_price        ,0   ,0     ,0   ,0          ,
 uint64                         ,per_ticket_weight       ,0   ,0     ,0   ,0          ,
 []prototype.account_name       ,voter_list              ,0   ,0     ,0   ,0          ,

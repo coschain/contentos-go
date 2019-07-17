@@ -151,7 +151,7 @@ func registerBP(cmd *cobra.Command, args []string) {
 			TpsExpected:        tpsExpected,
 			EpochDuration:      bpEpochDuration,
 			TopNAcquireFreeToken: bpTopN,
-			PerTicketPrice:     prototype.NewVest(ticketPrice),
+			PerTicketPrice:     prototype.NewCoin(ticketPrice),
 			PerTicketWeight:    bpPerTicketWeight,
 		},
 	}
@@ -310,7 +310,7 @@ func updateBp(cmd *cobra.Command, args []string) {
 		AccountCreationFee:    prototype.NewCoin(fee),
 		EpochDuration:      bpEpochDuration,
 		TopNAcquireFreeToken: bpTopN,
-		PerTicketPrice:     prototype.NewVest(ticketPrice),
+		PerTicketPrice:     prototype.NewCoin(ticketPrice),
 		PerTicketWeight:    bpPerTicketWeight,
 	}
 

@@ -19,7 +19,7 @@ message so_witness {
     prototype.coin                    account_create_fee           =      9;
     uint32                            top_n_acquire_free_token     =      10;
     uint64                            epoch_duration               =      11;
-    prototype.vest                    per_ticket_price             =      12;
+    prototype.coin                    per_ticket_price             =      12;
     uint64                            per_ticket_weight            =      13;
     repeated                      prototype.account_name          voter_list                   =      14;
       
@@ -82,7 +82,7 @@ message so_mem_witness_by_epoch_duration {
 
 
 message so_mem_witness_by_per_ticket_price {
-	prototype.vest                 	per_ticket_price         = 1;
+	prototype.coin                 	per_ticket_price         = 1;
 }
 
 

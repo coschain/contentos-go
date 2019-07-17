@@ -667,7 +667,7 @@ func (c *TrxPool) initGenesis() {
 		tInfo.VoteCount = prototype.NewVest(0)
 		tInfo.TopNAcquireFreeToken = constants.InitTopN
 		tInfo.EpochDuration = constants.InitEpochDuration
-		tInfo.PerTicketPrice = prototype.NewVest(constants.PerTicketPrice * constants.COSTokenDecimals)
+		tInfo.PerTicketPrice = prototype.NewCoin(constants.PerTicketPrice * constants.COSTokenDecimals)
 		tInfo.PerTicketWeight = constants.PerTicketWeight
 	}), "Witness Create Error")
 
@@ -705,7 +705,7 @@ func (c *TrxPool) initGenesis() {
 		tInfo.Props.CurrentEpochStartBlock = 0
 		tInfo.Props.EpochDuration = constants.InitEpochDuration
 		tInfo.Props.TopNAcquireFreeToken = constants.InitTopN
-		tInfo.Props.PerTicketPrice = prototype.NewVest(constants.PerTicketPrice * constants.COSTokenDecimals)
+		tInfo.Props.PerTicketPrice = prototype.NewCoin(constants.PerTicketPrice * constants.COSTokenDecimals)
 		tInfo.Props.PerTicketWeight = constants.PerTicketWeight
 		tInfo.Props.TicketsIncome = prototype.NewVest(0)
 		tInfo.Props.ChargedTicketsNum = 0
@@ -919,7 +919,7 @@ func (c *TrxPool) updateGlobalResourceParam(bpNameList []string) {
 		dgpo.AccountCreateFee = prototype.NewCoin(midVal)
 		dgpo.EpochDuration = epochDuration[len(epochDuration) / 2]
 		dgpo.TopNAcquireFreeToken = uint32(topN[len(topN) / 2])
-		dgpo.PerTicketPrice = prototype.NewVest(perTicketPriceValue[len(perTicketPriceValue) / 2])
+		dgpo.PerTicketPrice = prototype.NewCoin(perTicketPriceValue[len(perTicketPriceValue) / 2])
 		dgpo.PerTicketWeight = perTicketWeight[len(perTicketWeight) / 2]
 	})
 }
