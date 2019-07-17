@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"io"
+	"log"
 	"os"
 	"os/exec"
 	"strings"
@@ -83,7 +84,7 @@ func (a *Agent) run() error {
 
 	//exec.Command("/bin/bash","-c","/data/coschain/contentos-go/cmd/cosd/cosd start -n /data/logs/coschain/cosd/")
 	cmd = exec.Command("/bin/bash","-c","/data/coschain/src/deploy/boot.sh")
-	if _, err := cmd.Output(); err != nil {
+	if err := cmd.Start(); err != nil {
 		logrus.Error(err)
 		return err
 	}
@@ -357,7 +358,6 @@ func SendToS3() error {
 // AddFileToS3 will upload a single file to S3, it will require a pre-built aws session
 // and will set file info like content type and encryption on the uploaded file.
 func AddFileToS3(s *session.Session, fileDir string) error {
-
 	// Open the file for use
 	file, err := os.Open(fileDir)
 	if err != nil {
@@ -373,10 +373,11 @@ func AddFileToS3(s *session.Session, fileDir string) error {
 
 	// Config settings: this is where you choose the bucket, filename, content-type etc.
 	// of the file you're uploading.
-	now := time.Now().String()
-	_, err = s3.New(s).PutObject(&s3.PutObjectInput{
+
+	svc := s3.New(s)
+	_, err = svc.PutObject(&s3.PutObjectInput{
 		Bucket:               aws.String(S3_BUCKET),
-		Key:                  aws.String(now+"/"+fileDir),
+		Key:                  aws.String(fileDir),
 		//ACL:                  aws.String("private"),
 		Body:                 file,//bytes.NewReader(buffer),
 		//ContentLength:        aws.Int64(size),
@@ -384,5 +385,15 @@ func AddFileToS3(s *session.Session, fileDir string) error {
 		//ContentDisposition:   aws.String("attachment"),
 		//ServerSideEncryption: aws.String("AES256"),
 	})
+
+	req, _ := svc.GetObjectRequest(&s3.GetObjectInput{
+		Bucket: aws.String(S3_BUCKET),
+		Key:    aws.String(fileDir),
+	})
+	urlStr, err := req.Presign(15 * time.Minute)
+	if err != nil {
+		log.Println("Failed to sign request", err)
+	}
+	logrus.Info("presigned URL: ", urlStr)
 	return err
 }
