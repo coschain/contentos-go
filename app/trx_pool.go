@@ -306,7 +306,13 @@ func (c *TrxPool) generateBlockNoLock(witness string, pre *prototype.Sha256, tim
 	signBlock.SignedHeader = &prototype.SignedBlockHeader{}
 	signBlock.SignedHeader.Header = &prototype.BlockHeader{}
 
-	blkNum := c.headBlockNum() + 1
+	blkNum := c.headBlockNum()
+	var prevBlockId common.BlockID
+	copy(prevBlockId.Data[:], pre.Hash[:32])
+	prevNum := prevBlockId.BlockNum()
+	mustSuccess(blkNum == prevNum, fmt.Sprintf("head mismatch. can't produce #%d coz statedb head is #%d", prevNum + 1, blkNum))
+	
+	blkNum++
 	c.log.Debugf("ICEBERG: BeginBlock %d", blkNum)
 	_ = c.iceberg.BeginBlock(blkNum)
 	c.stateObserver.BeginBlock(blkNum)
