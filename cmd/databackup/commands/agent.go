@@ -4,7 +4,6 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"io"
-	"log"
 	"os"
 	"os/exec"
 	"strings"
@@ -390,9 +389,9 @@ func AddFileToS3(s *session.Session, fileDir string) error {
 		Bucket: aws.String(S3_BUCKET),
 		Key:    aws.String(fileDir),
 	})
-	urlStr, err := req.Presign(15 * time.Minute)
+	urlStr, err := req.Presign(24 * time.Hour)
 	if err != nil {
-		log.Println("Failed to sign request", err)
+		logrus.Println("Failed to sign request", err)
 	}
 	logrus.Info("presigned URL: ", urlStr)
 	return err
