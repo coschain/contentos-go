@@ -255,7 +255,7 @@ func (p *TrxContext) TransferFromContractToUser(contract, owner, to string, amou
 }
 
 func (p *TrxContext) TransferFromUserToContract(from, contract, owner string, amount uint64) {
-	opAssert(false, "function not opened")
+	//opAssert(false, "function not opened")
 	opAssertE(p.RequireAuth( from ), fmt.Sprintf("requireAuth('%s') failed", from))
 
 	acc := table.NewSoAccountWrap(p.db, &prototype.AccountName{Value: from})
