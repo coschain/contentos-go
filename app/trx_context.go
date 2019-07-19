@@ -249,7 +249,7 @@ func (p *TrxContext) TransferFromContractToUser(contract, owner, to string, amou
 	}
 	acc := table.NewSoAccountWrap(p.db, &prototype.AccountName{Value: to})
 
-	c.MdBalance(&prototype.Coin{Value: balance - amount})
+	c.MdBalance(&prototype.Coin{Value: c.GetBalance().Value - amount})
 	acc.MdBalance(&prototype.Coin{Value: acc.GetBalance().Value + amount})
 	return
 }
@@ -264,8 +264,8 @@ func (p *TrxContext) TransferFromUserToContract(from, contract, owner string, am
 		panic(fmt.Sprintf("Endanger Transfer Operation: %s, %s, %s, %d", contract, owner, from, amount))
 	}
 	c := table.NewSoContractWrap(p.db, &prototype.ContractId{Owner: &prototype.AccountName{Value: owner}, Cname: contract})
-	c.MdBalance(&prototype.Coin{Value: balance + amount})
-	acc.MdBalance(&prototype.Coin{Value: balance - amount})
+	c.MdBalance(&prototype.Coin{Value: c.GetBalance().Value + amount})
+	acc.MdBalance(&prototype.Coin{Value: acc.GetBalance().Value - amount})
 	return
 }
 
