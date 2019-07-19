@@ -139,20 +139,14 @@ func (c *TrxPool) EstimateStamina(trx *prototype.SignedTransaction) (invoice *pr
 	c.db.Lock()
 	defer c.db.Unlock()
 	entry := NewTrxMgrEntry(c.ctx.ChainId(), trx, nil)
-	invoice = &prototype.TransactionReceiptWithInfo{}
+	invoice = entry.result.Receipt
 	if err := entry.InitCheck(); err != nil {
-		invoice.ErrorInfo = err.Error()
 		return
 	}
 	db := c.db.NewPatch()
 
 	defer func() {
-		// recover from panic and return an error
-		if e := recover(); e != nil {
-			invoice.ErrorInfo = fmt.Sprintf("%v", e)
-		}
-		invoice.NetUsage = entry.GetTrxResult().Receipt.NetUsage
-		invoice.CpuUsage = entry.GetTrxResult().Receipt.CpuUsage
+		recover()
 	}()
 	c.applyTransactionOnDb(db,entry)
 	return
