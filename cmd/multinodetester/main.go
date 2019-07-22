@@ -19,6 +19,7 @@ func addCommands() {
 	rootCmd.AddCommand(commands.StartCmd())
 	rootCmd.AddCommand(commands.StopCmd())
 	rootCmd.AddCommand(commands.ClearCmd())
+	rootCmd.AddCommand(commands.TestCmd())
 }
 
 func main() {
