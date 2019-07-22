@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app/table"
-	dande "github.com/coschain/contentos-go/dandelion"
+	dande "github.com/coschain/contentos-go/dandelion0"
 	"github.com/coschain/contentos-go/economist"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/sirupsen/logrus"

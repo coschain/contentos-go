@@ -1,4 +1,4 @@
-package dandelion
+package dandelion0
 
 import (
 	"github.com/coschain/contentos-go/common"
