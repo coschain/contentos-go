@@ -37,7 +37,11 @@ var StartCmd = func() *cobra.Command {
 	return cmd
 }
 
-var VERSION string = "defaultVersion"
+var NodeName string
+const (
+	ClientName = "Cos-go"
+	ClientTag  = "v1.0"
+)
 
 
 func makeNode() (*node.Node, node.Config) {
@@ -65,7 +69,8 @@ func makeNode() (*node.Node, node.Config) {
 		}
 		cfg.DataDir = dir
 	}
-	cfg.P2P.RunningCodeVersion = VERSION
+	NodeName = config.MakeName(ClientName, ClientTag)
+	cfg.P2P.RunningCodeVersion = NodeName
 	app, err := node.New(&cfg)
 	if err != nil {
 		fmt.Println("Fatal: ", err)
@@ -89,7 +94,7 @@ func startNode(cmd *cobra.Command, args []string) {
 	}
 	app, cfg := makeNode()
 	app.Log = mylog.Init(cfg.ResolvePath("logs"), cfg.LogLevel, 3600 * 24 * 7)
-	app.Log.Info("Cosd running version: ", VERSION)
+	app.Log.Info("Cosd running version: ", NodeName)
 
 	//pprof.StartPprof()
 

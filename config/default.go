@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"runtime"
 )
 
 const (
@@ -117,4 +118,8 @@ func WriteNodeConfigFile(configDirPath string, configName string, config node.Co
 	}
 
 	return ioutil.WriteFile(configPath, buffer, mode)
+}
+
+func MakeName(name, version string) string {
+	return fmt.Sprintf("%s/%s/%s/%s", name, version, runtime.GOOS, runtime.Version())
 }
