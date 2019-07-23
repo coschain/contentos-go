@@ -2,14 +2,9 @@ package commands
 
 import (
 	"fmt"
-	"os"
-	"os/signal"
-	"path/filepath"
-	"strconv"
-	"syscall"
-
 	"github.com/coschain/cobra"
 	ctrl "github.com/coschain/contentos-go/app"
+	"github.com/coschain/contentos-go/cmd/multinodetester/commands/test"
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/config"
 	"github.com/coschain/contentos-go/consensus"
@@ -19,6 +14,12 @@ import (
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/p2p"
 	"github.com/spf13/viper"
+	"os"
+	"os/signal"
+	"path/filepath"
+	"strconv"
+	"syscall"
+	"time"
 )
 
 var VERSION = "defaultVersion"
@@ -36,7 +37,7 @@ func makeNode(name string) (*node.Node, node.Config) {
 	var cfg node.Config
 	cfg.Name = name
 	confdir := filepath.Join(config.DefaultDataDir(), cfg.Name)
-	viper.SetConfigFile(confdir+"/config.toml")
+	viper.SetConfigFile(confdir + "/config.toml")
 	err := viper.ReadInConfig()
 	if err == nil {
 		_ = viper.Unmarshal(&cfg)
@@ -62,6 +63,7 @@ func makeNode(name string) (*node.Node, node.Config) {
 }
 
 type emptyWriter struct{}
+
 func (ew emptyWriter) Write(p []byte) (int, error) {
 	return 0, nil
 }
@@ -75,6 +77,7 @@ func startNodes(cmd *cobra.Command, args []string) {
 	}
 
 	nodes := make([]*node.Node, 0, cnt)
+	sks := make([]string, 0, cnt)
 
 	for i := 0; i < cnt; i++ {
 		name := fmt.Sprintf("%s_%d", TesterClientIdentifier, i)
@@ -87,8 +90,10 @@ func startNodes(cmd *cobra.Command, args []string) {
 			common.Fatalf("start node failed, err: %v\n", err)
 		}
 		nodes = append(nodes, app)
+		sks = append(sks, cfg.Consensus.LocalBpPrivateKey)
 	}
 
+	stopCh := make(chan struct{})
 	go func() {
 		SIGSTOP := syscall.Signal(0x13) //for windows compile
 		sigc := make(chan os.Signal, 1)
@@ -100,17 +105,45 @@ func startNodes(cmd *cobra.Command, args []string) {
 			case syscall.SIGQUIT, syscall.SIGTERM, SIGSTOP, syscall.SIGINT:
 				for i := range nodes {
 					nodes[i].Log.Infoln("Got interrupt, shutting down...")
-					nodes[i].MainLoop.Stop()
+					//nodes[i].MainLoop.Stop()
 				}
+				close(stopCh)
 				return
 			default:
 				return
 			}
 		}
 	}()
+
+
+	c, err := nodes[0].Service(iservices.ConsensusServerName)
+	if err != nil {
+		panic(err)
+	}
+	css := c.(iservices.IConsensus)
+
+	time.Sleep(5 * time.Second)
+	for i := 1; i < cnt; i++ {
+		name := fmt.Sprintf("initminer%d", i)
+		if err = test.CreateAcc(name, sks[i], sks[0], css); err != nil {
+			panic(err)
+		}
+	}
+	fmt.Printf("created %d accounts\n", cnt-1)
+
+	time.Sleep(5 * time.Second)
+	for i := 1; i < cnt; i++ {
+		name := fmt.Sprintf("initminer%d", i)
+		if err = test.RegesiterBP(name, sks[i], css); err != nil {
+			panic(err)
+		}
+	}
+	fmt.Printf("registered %d bp\n", cnt-1)
+
+	<-stopCh
 	for i := range nodes {
 		nodes[i].Log.Info("start complete")
-		nodes[i].Wait()
+		//nodes[i].Wait()
 		nodes[i].Stop()
 		nodes[i].Log.Info("app exit success")
 	}
