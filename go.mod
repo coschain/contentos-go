@@ -14,6 +14,7 @@ require (
 	github.com/deckarep/golang-set v1.7.1
 	github.com/fastly/go-utils v0.0.0-20180712184237-d95a45783239 // indirect
 	github.com/gin-gonic/gin v1.4.0
+	github.com/gizak/termui/v3 v3.1.0
 	github.com/go-interpreter/wagon v0.3.0
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/go-stack/stack v1.8.0 // indirect
