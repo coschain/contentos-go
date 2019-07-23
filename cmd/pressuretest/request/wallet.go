@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/coschain/contentos-go/cmd/wallet-cli/wallet"
 	"github.com/coschain/contentos-go/common"
+	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/rpc"
 	"github.com/coschain/contentos-go/rpc/pb"
 	"math/rand"
@@ -229,7 +230,7 @@ func StartBPRoutine(){
 			RandomUnRegisterBP(rpcClient)
 		}
 
-		time.Sleep(time.Duration(len(BPList) * 10) * time.Second)
+		time.Sleep(time.Duration(len(BPList) * constants.BlockProdRepetition) * time.Second)
 	}
 }
 
