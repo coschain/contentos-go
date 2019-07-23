@@ -101,7 +101,7 @@ func (this *Link) Rx(magic uint32) {
 	for {
 		msg, payloadSize, err := types.ReadMessage(reader, magic)
 		if err != nil {
-			fmt.Println("read msg error: ", err)
+			//fmt.Println("read msg error: ", err)
 			break
 		}
 
