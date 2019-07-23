@@ -695,6 +695,46 @@ func (mr *MockApiServiceClientMockRecorder) GetNodeNeighbours(ctx, in interface{
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNodeNeighbours", reflect.TypeOf((*MockApiServiceClient)(nil).GetNodeNeighbours), varargs...)
 }
 
+// GetMyStakers mocks base method
+func (m *MockApiServiceClient) GetMyStakers(ctx context.Context, in *pb.GetMyStakerListByNameRequest, opts ...grpc.CallOption) (*pb.GetMyStakerListByNameResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetMyStakers", varargs...)
+	ret0, _ := ret[0].(*pb.GetMyStakerListByNameResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMyStakers indicates an expected call of GetMyStakers
+func (mr *MockApiServiceClientMockRecorder) GetMyStakers(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMyStakers", reflect.TypeOf((*MockApiServiceClient)(nil).GetMyStakers), varargs...)
+}
+
+// GetMyStakes mocks base method
+func (m *MockApiServiceClient) GetMyStakes(ctx context.Context, in *pb.GetMyStakeListByNameRequest, opts ...grpc.CallOption) (*pb.GetMyStakeListByNameResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetMyStakes", varargs...)
+	ret0, _ := ret[0].(*pb.GetMyStakeListByNameResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMyStakes indicates an expected call of GetMyStakes
+func (mr *MockApiServiceClientMockRecorder) GetMyStakes(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMyStakes", reflect.TypeOf((*MockApiServiceClient)(nil).GetMyStakes), varargs...)
+}
+
 // MockApiServiceServer is a mock of ApiServiceServer interface
 type MockApiServiceServer struct {
 	ctrl     *gomock.Controller
@@ -1211,4 +1251,34 @@ func (m *MockApiServiceServer) GetNodeNeighbours(arg0 context.Context, arg1 *pb.
 func (mr *MockApiServiceServerMockRecorder) GetNodeNeighbours(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNodeNeighbours", reflect.TypeOf((*MockApiServiceServer)(nil).GetNodeNeighbours), arg0, arg1)
+}
+
+// GetMyStakers mocks base method
+func (m *MockApiServiceServer) GetMyStakers(arg0 context.Context, arg1 *pb.GetMyStakerListByNameRequest) (*pb.GetMyStakerListByNameResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMyStakers", arg0, arg1)
+	ret0, _ := ret[0].(*pb.GetMyStakerListByNameResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMyStakers indicates an expected call of GetMyStakers
+func (mr *MockApiServiceServerMockRecorder) GetMyStakers(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMyStakers", reflect.TypeOf((*MockApiServiceServer)(nil).GetMyStakers), arg0, arg1)
+}
+
+// GetMyStakes mocks base method
+func (m *MockApiServiceServer) GetMyStakes(arg0 context.Context, arg1 *pb.GetMyStakeListByNameRequest) (*pb.GetMyStakeListByNameResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMyStakes", arg0, arg1)
+	ret0, _ := ret[0].(*pb.GetMyStakeListByNameResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMyStakes indicates an expected call of GetMyStakes
+func (mr *MockApiServiceServerMockRecorder) GetMyStakes(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMyStakes", reflect.TypeOf((*MockApiServiceServer)(nil).GetMyStakes), arg0, arg1)
 }

@@ -167,6 +167,7 @@ func addCommands() {
 	rootCmd.AddCommand(commands.TicketCmd())
 	rootCmd.AddCommand(commands.ChainCmd())
 	rootCmd.AddCommand(commands.NodeNeighboursCmd())
+	rootCmd.AddCommand(commands.StakerListCmd())
 }
 
 func init() {

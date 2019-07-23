@@ -22,12 +22,13 @@ var _ = math.Inf
 const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 type SoStakeRecord struct {
-	Record               *prototype.StakeRecord  `protobuf:"bytes,1,opt,name=record,proto3" json:"record,omitempty"`
-	StakeAmount          *prototype.Vest         `protobuf:"bytes,2,opt,name=stake_amount,json=stakeAmount,proto3" json:"stake_amount,omitempty"`
-	LastStakeTime        *prototype.TimePointSec `protobuf:"bytes,3,opt,name=last_stake_time,json=lastStakeTime,proto3" json:"last_stake_time,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}                `json:"-"`
-	XXX_unrecognized     []byte                  `json:"-"`
-	XXX_sizecache        int32                   `json:"-"`
+	Record               *prototype.StakeRecord        `protobuf:"bytes,1,opt,name=record,proto3" json:"record,omitempty"`
+	RecordReverse        *prototype.StakeRecordReverse `protobuf:"bytes,2,opt,name=record_reverse,json=recordReverse,proto3" json:"record_reverse,omitempty"`
+	StakeAmount          *prototype.Vest               `protobuf:"bytes,3,opt,name=stake_amount,json=stakeAmount,proto3" json:"stake_amount,omitempty"`
+	LastStakeTime        *prototype.TimePointSec       `protobuf:"bytes,4,opt,name=last_stake_time,json=lastStakeTime,proto3" json:"last_stake_time,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}                      `json:"-"`
+	XXX_unrecognized     []byte                        `json:"-"`
+	XXX_sizecache        int32                         `json:"-"`
 }
 
 func (m *SoStakeRecord) Reset()         { *m = SoStakeRecord{} }
@@ -58,6 +59,13 @@ var xxx_messageInfo_SoStakeRecord proto.InternalMessageInfo
 func (m *SoStakeRecord) GetRecord() *prototype.StakeRecord {
 	if m != nil {
 		return m.Record
+	}
+	return nil
+}
+
+func (m *SoStakeRecord) GetRecordReverse() *prototype.StakeRecordReverse {
+	if m != nil {
+		return m.RecordReverse
 	}
 	return nil
 }
@@ -115,6 +123,45 @@ func (m *SoMemStakeRecordByRecord) GetRecord() *prototype.StakeRecord {
 	return nil
 }
 
+type SoMemStakeRecordByRecordReverse struct {
+	RecordReverse        *prototype.StakeRecordReverse `protobuf:"bytes,1,opt,name=record_reverse,json=recordReverse,proto3" json:"record_reverse,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}                      `json:"-"`
+	XXX_unrecognized     []byte                        `json:"-"`
+	XXX_sizecache        int32                         `json:"-"`
+}
+
+func (m *SoMemStakeRecordByRecordReverse) Reset()         { *m = SoMemStakeRecordByRecordReverse{} }
+func (m *SoMemStakeRecordByRecordReverse) String() string { return proto.CompactTextString(m) }
+func (*SoMemStakeRecordByRecordReverse) ProtoMessage()    {}
+func (*SoMemStakeRecordByRecordReverse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_08fc8be678e9a63e, []int{2}
+}
+
+func (m *SoMemStakeRecordByRecordReverse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SoMemStakeRecordByRecordReverse.Unmarshal(m, b)
+}
+func (m *SoMemStakeRecordByRecordReverse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SoMemStakeRecordByRecordReverse.Marshal(b, m, deterministic)
+}
+func (m *SoMemStakeRecordByRecordReverse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoMemStakeRecordByRecordReverse.Merge(m, src)
+}
+func (m *SoMemStakeRecordByRecordReverse) XXX_Size() int {
+	return xxx_messageInfo_SoMemStakeRecordByRecordReverse.Size(m)
+}
+func (m *SoMemStakeRecordByRecordReverse) XXX_DiscardUnknown() {
+	xxx_messageInfo_SoMemStakeRecordByRecordReverse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SoMemStakeRecordByRecordReverse proto.InternalMessageInfo
+
+func (m *SoMemStakeRecordByRecordReverse) GetRecordReverse() *prototype.StakeRecordReverse {
+	if m != nil {
+		return m.RecordReverse
+	}
+	return nil
+}
+
 type SoMemStakeRecordByStakeAmount struct {
 	StakeAmount          *prototype.Vest `protobuf:"bytes,1,opt,name=stake_amount,json=stakeAmount,proto3" json:"stake_amount,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
@@ -126,7 +173,7 @@ func (m *SoMemStakeRecordByStakeAmount) Reset()         { *m = SoMemStakeRecordB
 func (m *SoMemStakeRecordByStakeAmount) String() string { return proto.CompactTextString(m) }
 func (*SoMemStakeRecordByStakeAmount) ProtoMessage()    {}
 func (*SoMemStakeRecordByStakeAmount) Descriptor() ([]byte, []int) {
-	return fileDescriptor_08fc8be678e9a63e, []int{2}
+	return fileDescriptor_08fc8be678e9a63e, []int{3}
 }
 
 func (m *SoMemStakeRecordByStakeAmount) XXX_Unmarshal(b []byte) error {
@@ -165,7 +212,7 @@ func (m *SoMemStakeRecordByLastStakeTime) Reset()         { *m = SoMemStakeRecor
 func (m *SoMemStakeRecordByLastStakeTime) String() string { return proto.CompactTextString(m) }
 func (*SoMemStakeRecordByLastStakeTime) ProtoMessage()    {}
 func (*SoMemStakeRecordByLastStakeTime) Descriptor() ([]byte, []int) {
-	return fileDescriptor_08fc8be678e9a63e, []int{3}
+	return fileDescriptor_08fc8be678e9a63e, []int{4}
 }
 
 func (m *SoMemStakeRecordByLastStakeTime) XXX_Unmarshal(b []byte) error {
@@ -193,6 +240,92 @@ func (m *SoMemStakeRecordByLastStakeTime) GetLastStakeTime() *prototype.TimePoin
 	return nil
 }
 
+type SoListStakeRecordByRecord struct {
+	Record               *prototype.StakeRecord `protobuf:"bytes,1,opt,name=record,proto3" json:"record,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}               `json:"-"`
+	XXX_unrecognized     []byte                 `json:"-"`
+	XXX_sizecache        int32                  `json:"-"`
+}
+
+func (m *SoListStakeRecordByRecord) Reset()         { *m = SoListStakeRecordByRecord{} }
+func (m *SoListStakeRecordByRecord) String() string { return proto.CompactTextString(m) }
+func (*SoListStakeRecordByRecord) ProtoMessage()    {}
+func (*SoListStakeRecordByRecord) Descriptor() ([]byte, []int) {
+	return fileDescriptor_08fc8be678e9a63e, []int{5}
+}
+
+func (m *SoListStakeRecordByRecord) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SoListStakeRecordByRecord.Unmarshal(m, b)
+}
+func (m *SoListStakeRecordByRecord) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SoListStakeRecordByRecord.Marshal(b, m, deterministic)
+}
+func (m *SoListStakeRecordByRecord) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoListStakeRecordByRecord.Merge(m, src)
+}
+func (m *SoListStakeRecordByRecord) XXX_Size() int {
+	return xxx_messageInfo_SoListStakeRecordByRecord.Size(m)
+}
+func (m *SoListStakeRecordByRecord) XXX_DiscardUnknown() {
+	xxx_messageInfo_SoListStakeRecordByRecord.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SoListStakeRecordByRecord proto.InternalMessageInfo
+
+func (m *SoListStakeRecordByRecord) GetRecord() *prototype.StakeRecord {
+	if m != nil {
+		return m.Record
+	}
+	return nil
+}
+
+type SoListStakeRecordByRecordReverse struct {
+	RecordReverse        *prototype.StakeRecordReverse `protobuf:"bytes,1,opt,name=record_reverse,json=recordReverse,proto3" json:"record_reverse,omitempty"`
+	Record               *prototype.StakeRecord        `protobuf:"bytes,2,opt,name=record,proto3" json:"record,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}                      `json:"-"`
+	XXX_unrecognized     []byte                        `json:"-"`
+	XXX_sizecache        int32                         `json:"-"`
+}
+
+func (m *SoListStakeRecordByRecordReverse) Reset()         { *m = SoListStakeRecordByRecordReverse{} }
+func (m *SoListStakeRecordByRecordReverse) String() string { return proto.CompactTextString(m) }
+func (*SoListStakeRecordByRecordReverse) ProtoMessage()    {}
+func (*SoListStakeRecordByRecordReverse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_08fc8be678e9a63e, []int{6}
+}
+
+func (m *SoListStakeRecordByRecordReverse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SoListStakeRecordByRecordReverse.Unmarshal(m, b)
+}
+func (m *SoListStakeRecordByRecordReverse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SoListStakeRecordByRecordReverse.Marshal(b, m, deterministic)
+}
+func (m *SoListStakeRecordByRecordReverse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoListStakeRecordByRecordReverse.Merge(m, src)
+}
+func (m *SoListStakeRecordByRecordReverse) XXX_Size() int {
+	return xxx_messageInfo_SoListStakeRecordByRecordReverse.Size(m)
+}
+func (m *SoListStakeRecordByRecordReverse) XXX_DiscardUnknown() {
+	xxx_messageInfo_SoListStakeRecordByRecordReverse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SoListStakeRecordByRecordReverse proto.InternalMessageInfo
+
+func (m *SoListStakeRecordByRecordReverse) GetRecordReverse() *prototype.StakeRecordReverse {
+	if m != nil {
+		return m.RecordReverse
+	}
+	return nil
+}
+
+func (m *SoListStakeRecordByRecordReverse) GetRecord() *prototype.StakeRecord {
+	if m != nil {
+		return m.Record
+	}
+	return nil
+}
+
 type SoUniqueStakeRecordByRecord struct {
 	Record               *prototype.StakeRecord `protobuf:"bytes,1,opt,name=record,proto3" json:"record,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}               `json:"-"`
@@ -204,7 +337,7 @@ func (m *SoUniqueStakeRecordByRecord) Reset()         { *m = SoUniqueStakeRecord
 func (m *SoUniqueStakeRecordByRecord) String() string { return proto.CompactTextString(m) }
 func (*SoUniqueStakeRecordByRecord) ProtoMessage()    {}
 func (*SoUniqueStakeRecordByRecord) Descriptor() ([]byte, []int) {
-	return fileDescriptor_08fc8be678e9a63e, []int{4}
+	return fileDescriptor_08fc8be678e9a63e, []int{7}
 }
 
 func (m *SoUniqueStakeRecordByRecord) XXX_Unmarshal(b []byte) error {
@@ -235,32 +368,39 @@ func (m *SoUniqueStakeRecordByRecord) GetRecord() *prototype.StakeRecord {
 func init() {
 	proto.RegisterType((*SoStakeRecord)(nil), "table.so_stakeRecord")
 	proto.RegisterType((*SoMemStakeRecordByRecord)(nil), "table.so_mem_stakeRecord_by_record")
+	proto.RegisterType((*SoMemStakeRecordByRecordReverse)(nil), "table.so_mem_stakeRecord_by_record_reverse")
 	proto.RegisterType((*SoMemStakeRecordByStakeAmount)(nil), "table.so_mem_stakeRecord_by_stake_amount")
 	proto.RegisterType((*SoMemStakeRecordByLastStakeTime)(nil), "table.so_mem_stakeRecord_by_last_stake_time")
+	proto.RegisterType((*SoListStakeRecordByRecord)(nil), "table.so_list_stakeRecord_by_record")
+	proto.RegisterType((*SoListStakeRecordByRecordReverse)(nil), "table.so_list_stakeRecord_by_record_reverse")
 	proto.RegisterType((*SoUniqueStakeRecordByRecord)(nil), "table.so_unique_stakeRecord_by_record")
 }
 
 func init() { proto.RegisterFile("app/table/so_stakeRecord.proto", fileDescriptor_08fc8be678e9a63e) }
 
 var fileDescriptor_08fc8be678e9a63e = []byte{
-	// 293 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x92, 0xd1, 0x4a, 0xc3, 0x30,
-	0x14, 0x86, 0xa9, 0xe2, 0x2e, 0x32, 0x75, 0x50, 0x04, 0xeb, 0x10, 0x95, 0x82, 0x20, 0xa2, 0x0d,
-	0xcc, 0x27, 0x98, 0x2f, 0x20, 0x54, 0x2f, 0xc4, 0x9b, 0x90, 0xc6, 0xc3, 0x16, 0x6d, 0x72, 0x6a,
-	0x73, 0x22, 0xec, 0xcd, 0x7c, 0x3c, 0x69, 0x5a, 0x66, 0xd5, 0x82, 0x0c, 0xbc, 0x29, 0xed, 0x39,
-	0xff, 0xf7, 0x37, 0xff, 0x4f, 0xd8, 0x89, 0xac, 0x2a, 0x4e, 0xb2, 0x28, 0x81, 0x3b, 0x14, 0x8e,
-	0xe4, 0x2b, 0xe4, 0xa0, 0xb0, 0x7e, 0xce, 0xaa, 0x1a, 0x09, 0xe3, 0x9d, 0xb0, 0x9b, 0x1e, 0x84,
-	0x2f, 0x5a, 0x55, 0xc0, 0x9b, 0x47, 0xbb, 0x9c, 0x26, 0x5f, 0x53, 0xe3, 0x4b, 0xd2, 0x42, 0x77,
-	0x58, 0xfa, 0x11, 0xb1, 0xfd, 0xef, 0x7e, 0x31, 0x67, 0xa3, 0x3a, 0xbc, 0x25, 0xd1, 0x59, 0x74,
-	0x31, 0x9e, 0x1d, 0x66, 0x6b, 0x3a, 0x0b, 0x3a, 0xd1, 0xae, 0xf3, 0x4e, 0x16, 0xcf, 0xd8, 0x6e,
-	0x3b, 0x97, 0x06, 0xbd, 0xa5, 0x64, 0x2b, 0x60, 0x93, 0x1e, 0xf6, 0x0e, 0x8e, 0xf2, 0x71, 0x10,
-	0xcd, 0x83, 0x26, 0x9e, 0xb3, 0x49, 0x29, 0x1d, 0xb5, 0x3f, 0x16, 0xa4, 0x0d, 0x24, 0xdb, 0x01,
-	0x3b, 0xea, 0x61, 0xcd, 0x58, 0x54, 0xa8, 0x2d, 0x09, 0x07, 0x2a, 0xdf, 0x6b, 0x88, 0xfb, 0x06,
-	0x78, 0xd0, 0x06, 0xd2, 0x3b, 0x76, 0xec, 0x50, 0x18, 0x30, 0xfd, 0xd3, 0x8b, 0x62, 0xd5, 0x1d,
-	0x6f, 0xe3, 0x1c, 0xe9, 0x23, 0x4b, 0x87, 0x0d, 0xfb, 0xe9, 0x7e, 0xa5, 0x8d, 0xfe, 0x4e, 0x9b,
-	0xbe, 0xb0, 0xf3, 0x61, 0xe7, 0x1f, 0x1d, 0x0c, 0xd5, 0x12, 0x6d, 0x58, 0x4b, 0xce, 0x4e, 0x1d,
-	0x0a, 0x6f, 0xf5, 0x9b, 0x87, 0x7f, 0x6a, 0xe6, 0xf6, 0xea, 0xe9, 0x72, 0xa1, 0x69, 0xe9, 0x8b,
-	0x4c, 0xa1, 0xe1, 0x0a, 0x9d, 0x5a, 0x4a, 0x6d, 0xb9, 0x42, 0x4b, 0x60, 0x09, 0xdd, 0xf5, 0x02,
-	0xf9, 0xfa, 0x7e, 0x16, 0xa3, 0xe0, 0x76, 0xf3, 0x19, 0x00, 0x00, 0xff, 0xff, 0x6f, 0x4e, 0xe1,
-	0xd5, 0xb3, 0x02, 0x00, 0x00,
+	// 362 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x94, 0xc1, 0x4a, 0xc3, 0x40,
+	0x10, 0x86, 0x49, 0xd5, 0x1e, 0xb6, 0xb6, 0x85, 0x20, 0x18, 0x8b, 0x5a, 0x09, 0x0a, 0x22, 0x9a,
+	0x85, 0xfa, 0x04, 0xf5, 0xe0, 0x55, 0x89, 0x1e, 0xc4, 0xcb, 0x92, 0xc4, 0xa1, 0x5d, 0xcd, 0xee,
+	0xc4, 0xec, 0xa6, 0xd0, 0x9b, 0x8f, 0xe2, 0xa3, 0x4a, 0x36, 0x69, 0x8d, 0x9a, 0xaa, 0xd5, 0x5e,
+	0xca, 0xee, 0xce, 0xff, 0x7f, 0x9d, 0xf9, 0x07, 0x42, 0xf6, 0x83, 0x24, 0xa1, 0x3a, 0x08, 0x63,
+	0xa0, 0x0a, 0x99, 0xd2, 0xc1, 0x13, 0xf8, 0x10, 0x61, 0xfa, 0xe0, 0x25, 0x29, 0x6a, 0xb4, 0x37,
+	0x4c, 0xad, 0xe7, 0x98, 0x9b, 0x9e, 0x26, 0x40, 0x45, 0x16, 0x6b, 0xce, 0x78, 0x29, 0xe8, 0x6d,
+	0xbd, 0x57, 0xf2, 0x9f, 0xe2, 0xd5, 0x7d, 0x69, 0x90, 0xce, 0x47, 0x9e, 0x4d, 0x49, 0x33, 0x35,
+	0x27, 0xc7, 0x3a, 0xb0, 0x8e, 0x5b, 0x83, 0x6d, 0x6f, 0xee, 0xf4, 0x8c, 0x8e, 0x15, 0x65, 0xbf,
+	0x94, 0xd9, 0x97, 0xa4, 0x53, 0x9c, 0x58, 0x0a, 0x13, 0x48, 0x15, 0x38, 0x0d, 0x63, 0xec, 0x2f,
+	0x30, 0xce, 0x64, 0x7e, 0xbb, 0x04, 0x15, 0x57, 0x7b, 0x40, 0x36, 0x0b, 0x59, 0x20, 0x30, 0x93,
+	0xda, 0x59, 0x33, 0x94, 0x6e, 0x85, 0x32, 0x01, 0xa5, 0xfd, 0x96, 0x11, 0x0d, 0x8d, 0xc6, 0x1e,
+	0x92, 0x6e, 0x1c, 0x28, 0x5d, 0x0c, 0xc0, 0x34, 0x17, 0xe0, 0xac, 0x1b, 0xdb, 0x4e, 0xc5, 0x96,
+	0x3f, 0xb3, 0x04, 0xb9, 0xd4, 0x4c, 0x41, 0xe4, 0xb7, 0x73, 0xc7, 0x4d, 0x6e, 0xb8, 0xe5, 0x02,
+	0xdc, 0x2b, 0xb2, 0xab, 0x90, 0x09, 0x10, 0xd5, 0x14, 0x58, 0x38, 0x2d, 0xbb, 0x5d, 0x3a, 0x0f,
+	0x57, 0x92, 0xc3, 0xef, 0x80, 0xb3, 0xf1, 0x6b, 0x72, 0xb3, 0xfe, 0x92, 0x9b, 0x7b, 0x47, 0xdc,
+	0xfa, 0xff, 0xab, 0xa6, 0xf9, 0x25, 0x5d, 0xeb, 0xe7, 0x74, 0xdd, 0x47, 0x72, 0x54, 0x4f, 0xfe,
+	0x94, 0x79, 0xdd, 0x1a, 0xac, 0x25, 0xd7, 0x70, 0x4d, 0xf6, 0x14, 0xb2, 0x98, 0xcf, 0x28, 0xff,
+	0xdf, 0xc3, 0xab, 0x65, 0xda, 0x5f, 0x8c, 0x5c, 0xf5, 0x26, 0x2a, 0x2d, 0x36, 0x7e, 0xd7, 0xa2,
+	0x4f, 0xfa, 0x0a, 0x59, 0x26, 0xf9, 0x73, 0x06, 0x2b, 0x1a, 0xfb, 0xe2, 0xf4, 0xfe, 0x64, 0xc4,
+	0xf5, 0x38, 0x0b, 0xbd, 0x08, 0x05, 0x8d, 0x50, 0x45, 0xe3, 0x80, 0x4b, 0x1a, 0xa1, 0xd4, 0x20,
+	0x35, 0xaa, 0xb3, 0x11, 0xd2, 0xf9, 0xc7, 0x24, 0x6c, 0x1a, 0xda, 0xf9, 0x5b, 0x00, 0x00, 0x00,
+	0xff, 0xff, 0xb4, 0x1b, 0xa3, 0xb8, 0x60, 0x04, 0x00, 0x00,
 }

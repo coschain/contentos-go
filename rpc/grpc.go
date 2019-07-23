@@ -96,6 +96,86 @@ func (as *APIService) GetAccountByName(ctx context.Context, req *grpcpb.GetAccou
 
 }
 
+func (as *APIService) GetMyStakes(ctx context.Context, req *grpcpb.GetMyStakeListByNameRequest) (*grpcpb.GetMyStakeListByNameResponse, error) {
+	as.db.RLock()
+	defer as.db.RUnlock()
+
+	var (
+		stakeList []*grpcpb.MyStakeListInfo
+		limit   uint32
+		lastMainKey  *prototype.StakeRecord
+		lastValue  *prototype.StakeRecord
+	)
+
+	toWrap := table.NewStakeRecordRecordWrap(as.db)
+	start := req.GetStart()
+	end := req.GetEnd()
+	limit = checkLimit(req.GetLimit())
+	if limit == 0 {
+		limit = uint32(defaultPageSizeLimit)
+	}
+	if req.LastSearch != nil {
+		if req.LastSearch.To != nil && req.LastSearch.From != nil {
+			lastMainKey = &prototype.StakeRecord{From:req.LastSearch.From,To:req.LastSearch.To}
+			lastValue = req.LastSearch
+		}
+	}
+	err := toWrap.ForEachByOrder(start, end, lastMainKey, lastValue,
+		func(mVal *prototype.StakeRecord, sVal *prototype.StakeRecord, idx uint32) bool {
+			if mVal != nil {
+				stakeInfo := &grpcpb.MyStakeListInfo{}
+				stakeInfo.StakeTo = sVal.To
+				stakeInfo.SearchPoint = sVal
+				stakeList = append(stakeList,stakeInfo)
+			}
+			if uint32(len(stakeList)) < limit {
+				return true
+			}
+			return false
+		})
+	return &grpcpb.GetMyStakeListByNameResponse{MyStakeList: stakeList}, err
+}
+
+func (as *APIService) GetMyStakers(ctx context.Context, req *grpcpb.GetMyStakerListByNameRequest) (*grpcpb.GetMyStakerListByNameResponse, error) {
+	as.db.RLock()
+	defer as.db.RUnlock()
+
+	var (
+		stakerList []*grpcpb.MyStakerListInfo
+		limit   uint32
+		lastMainKey  *prototype.StakeRecord
+		lastValue  *prototype.StakeRecordReverse
+	)
+
+	toWrap := table.NewStakeRecordRecordReverseWrap(as.db)
+	start := req.GetStart()
+	end := req.GetEnd()
+	limit = checkLimit(req.GetLimit())
+	if limit == 0 {
+		limit = uint32(defaultPageSizeLimit)
+	}
+	if req.LastSearch != nil {
+		if req.LastSearch.To != nil && req.LastSearch.From != nil {
+			lastMainKey = &prototype.StakeRecord{From:req.LastSearch.From,To:req.LastSearch.To}
+			lastValue = req.LastSearch
+		}
+	}
+	err := toWrap.ForEachByOrder(start, end, lastMainKey, lastValue,
+		func(mVal *prototype.StakeRecord, sVal *prototype.StakeRecordReverse, idx uint32) bool {
+			if mVal != nil {
+				stakerInfo := &grpcpb.MyStakerListInfo{}
+				stakerInfo.Staker = sVal.From
+				stakerInfo.SearchPoint = sVal
+				stakerList = append(stakerList,stakerInfo)
+			}
+			if uint32(len(stakerList)) < limit {
+				return true
+			}
+			return false
+		})
+	return &grpcpb.GetMyStakerListByNameResponse{MyStakerList: stakerList}, err
+}
+
 func (as *APIService) GetFollowerListByName(ctx context.Context, req *grpcpb.GetFollowerListByNameRequest) (*grpcpb.GetFollowerListByNameResponse, error) {
 	as.db.RLock()
 	defer as.db.RUnlock()

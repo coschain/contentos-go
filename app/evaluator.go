@@ -1159,6 +1159,10 @@ func (ev *StakeEvaluator) Apply() {
 				From:   &prototype.AccountName{Value: op.From.Value},
 				To: &prototype.AccountName{Value: op.To.Value},
 			}
+			record.RecordReverse = &prototype.StakeRecordReverse{
+				To:&prototype.AccountName{Value: op.To.Value},
+				From:   &prototype.AccountName{Value: op.From.Value},
+			}
 			record.StakeAmount = prototype.NewVest(addVests.Value)
 		}),"create stake record error")
 	} else {

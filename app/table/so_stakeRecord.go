@@ -14,10 +14,13 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	StakeRecordRecordUniTable    uint32 = 832689285
-	StakeRecordLastStakeTimeCell uint32 = 3228055551
-	StakeRecordRecordCell        uint32 = 2514771326
-	StakeRecordStakeAmountCell   uint32 = 906061269
+	StakeRecordRecordTable        uint32 = 265171955
+	StakeRecordRecordReverseTable uint32 = 2606609996
+	StakeRecordRecordUniTable     uint32 = 832689285
+	StakeRecordLastStakeTimeCell  uint32 = 3228055551
+	StakeRecordRecordCell         uint32 = 2514771326
+	StakeRecordRecordReverseCell  uint32 = 1650091767
+	StakeRecordStakeAmountCell    uint32 = 906061269
 )
 
 ////////////// SECTION Wrap Define ///////////////
@@ -127,11 +130,129 @@ func (s *SoStakeRecordWrap) getMainKeyBuf() ([]byte, error) {
 
 ////////////// SECTION LKeys delete/insert ///////////////
 
+func (s *SoStakeRecordWrap) delSortKeyRecord(sa *SoStakeRecord) bool {
+	if s.dba == nil || s.mainKey == nil {
+		return false
+	}
+	val := SoListStakeRecordByRecord{}
+	if sa == nil {
+		key, err := s.encodeMemKey("Record")
+		if err != nil {
+			return false
+		}
+		buf, err := s.dba.Get(key)
+		if err != nil {
+			return false
+		}
+		ori := &SoMemStakeRecordByRecord{}
+		err = proto.Unmarshal(buf, ori)
+		if err != nil {
+			return false
+		}
+		val.Record = ori.Record
+	} else {
+		val.Record = sa.Record
+	}
+
+	subBuf, err := val.OpeEncode()
+	if err != nil {
+		return false
+	}
+	ordErr := s.dba.Delete(subBuf)
+	return ordErr == nil
+}
+
+func (s *SoStakeRecordWrap) insertSortKeyRecord(sa *SoStakeRecord) bool {
+	if s.dba == nil || sa == nil {
+		return false
+	}
+	val := SoListStakeRecordByRecord{}
+	val.Record = sa.Record
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return false
+	}
+	subBuf, err := val.OpeEncode()
+	if err != nil {
+		return false
+	}
+	ordErr := s.dba.Put(subBuf, buf)
+	return ordErr == nil
+}
+
+func (s *SoStakeRecordWrap) delSortKeyRecordReverse(sa *SoStakeRecord) bool {
+	if s.dba == nil || s.mainKey == nil {
+		return false
+	}
+	val := SoListStakeRecordByRecordReverse{}
+	if sa == nil {
+		key, err := s.encodeMemKey("RecordReverse")
+		if err != nil {
+			return false
+		}
+		buf, err := s.dba.Get(key)
+		if err != nil {
+			return false
+		}
+		ori := &SoMemStakeRecordByRecordReverse{}
+		err = proto.Unmarshal(buf, ori)
+		if err != nil {
+			return false
+		}
+		val.RecordReverse = ori.RecordReverse
+		val.Record = s.mainKey
+
+	} else {
+		val.RecordReverse = sa.RecordReverse
+		val.Record = sa.Record
+	}
+
+	subBuf, err := val.OpeEncode()
+	if err != nil {
+		return false
+	}
+	ordErr := s.dba.Delete(subBuf)
+	return ordErr == nil
+}
+
+func (s *SoStakeRecordWrap) insertSortKeyRecordReverse(sa *SoStakeRecord) bool {
+	if s.dba == nil || sa == nil {
+		return false
+	}
+	val := SoListStakeRecordByRecordReverse{}
+	val.Record = sa.Record
+	val.RecordReverse = sa.RecordReverse
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return false
+	}
+	subBuf, err := val.OpeEncode()
+	if err != nil {
+		return false
+	}
+	ordErr := s.dba.Put(subBuf, buf)
+	return ordErr == nil
+}
+
 func (s *SoStakeRecordWrap) delAllSortKeys(br bool, val *SoStakeRecord) bool {
 	if s.dba == nil {
 		return false
 	}
 	res := true
+	if !s.delSortKeyRecord(val) {
+		if br {
+			return false
+		} else {
+			res = false
+		}
+	}
+	if !s.delSortKeyRecordReverse(val) {
+		if br {
+			return false
+		} else {
+			res = false
+		}
+	}
 
 	return res
 }
@@ -142,6 +263,12 @@ func (s *SoStakeRecordWrap) insertAllSortKeys(val *SoStakeRecord) error {
 	}
 	if val == nil {
 		return errors.New("insert sort Field fail,get the SoStakeRecord fail ")
+	}
+	if !s.insertSortKeyRecord(val) {
+		return errors.New("insert sort Field Record fail while insert table ")
+	}
+	if !s.insertSortKeyRecordReverse(val) {
+		return errors.New("insert sort Field RecordReverse fail while insert table ")
 	}
 
 	return nil
@@ -181,6 +308,9 @@ func (s *SoStakeRecordWrap) getMemKeyPrefix(fName string) uint32 {
 	}
 	if fName == "Record" {
 		return StakeRecordRecordCell
+	}
+	if fName == "RecordReverse" {
+		return StakeRecordRecordReverseCell
 	}
 	if fName == "StakeAmount" {
 		return StakeRecordStakeAmountCell
@@ -230,6 +360,13 @@ func (s *SoStakeRecordWrap) saveAllMemKeys(tInfo *SoStakeRecord, br bool) error 
 			return err
 		} else {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Record", err)
+		}
+	}
+	if err = s.saveMemKeyRecordReverse(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "RecordReverse", err)
 		}
 	}
 	if err = s.saveMemKeyStakeAmount(tInfo); err != nil {
@@ -418,6 +555,96 @@ func (s *SoStakeRecordWrap) GetRecord() *prototype.StakeRecord {
 	return msg.Record
 }
 
+func (s *SoStakeRecordWrap) saveMemKeyRecordReverse(tInfo *SoStakeRecord) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemStakeRecordByRecordReverse{}
+	val.RecordReverse = tInfo.RecordReverse
+	key, err := s.encodeMemKey("RecordReverse")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
+
+func (s *SoStakeRecordWrap) GetRecordReverse() *prototype.StakeRecordReverse {
+	res := true
+	msg := &SoMemStakeRecordByRecordReverse{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("RecordReverse")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.RecordReverse
+			}
+		}
+	}
+	if !res {
+		return nil
+
+	}
+	return msg.RecordReverse
+}
+
+func (s *SoStakeRecordWrap) MdRecordReverse(p *prototype.StakeRecordReverse) bool {
+	if s.dba == nil {
+		return false
+	}
+	key, err := s.encodeMemKey("RecordReverse")
+	if err != nil {
+		return false
+	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemStakeRecordByRecordReverse{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoStakeRecord{}
+	sa.Record = s.mainKey
+
+	sa.RecordReverse = ori.RecordReverse
+
+	if !s.delSortKeyRecordReverse(sa) {
+		return false
+	}
+	ori.RecordReverse = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
+		return false
+	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.RecordReverse = p
+
+	if !s.insertSortKeyRecordReverse(sa) {
+		return false
+	}
+
+	return true
+}
+
 func (s *SoStakeRecordWrap) saveMemKeyStakeAmount(tInfo *SoStakeRecord) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
@@ -499,6 +726,224 @@ func (s *SoStakeRecordWrap) MdStakeAmount(p *prototype.Vest) bool {
 	sa.StakeAmount = p
 
 	return true
+}
+
+////////////// SECTION List Keys ///////////////
+type SStakeRecordRecordWrap struct {
+	Dba iservices.IDatabaseRW
+}
+
+func NewStakeRecordRecordWrap(db iservices.IDatabaseRW) *SStakeRecordRecordWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := SStakeRecordRecordWrap{Dba: db}
+	return &wrap
+}
+
+func (s *SStakeRecordRecordWrap) GetMainVal(val []byte) *prototype.StakeRecord {
+	res := &SoListStakeRecordByRecord{}
+	err := proto.Unmarshal(val, res)
+
+	if err != nil {
+		return nil
+	}
+	return res.Record
+
+}
+
+func (s *SStakeRecordRecordWrap) GetSubVal(val []byte) *prototype.StakeRecord {
+	res := &SoListStakeRecordByRecord{}
+	err := proto.Unmarshal(val, res)
+	if err != nil {
+		return nil
+	}
+	return res.Record
+
+}
+
+func (m *SoListStakeRecordByRecord) OpeEncode() ([]byte, error) {
+	pre := StakeRecordRecordTable
+	sub := m.Record
+	if sub == nil {
+		return nil, errors.New("the pro Record is nil")
+	}
+	sub1 := m.Record
+	if sub1 == nil {
+		return nil, errors.New("the mainkey Record is nil")
+	}
+	kList := []interface{}{pre, sub, sub1}
+	kBuf, cErr := kope.EncodeSlice(kList)
+	return kBuf, cErr
+}
+
+//Query srt by order
+//
+//start = nil  end = nil (query the db from start to end)
+//start = nil (query from start the db)
+//end = nil (query to the end of db)
+//
+//f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
+//as arguments to the callback function
+//if the return value of f is true,continue iterating until the end iteration;
+//otherwise stop iteration immediately
+//
+//lastMainKey: the main key of the last one of last page
+//lastSubVal: the value  of the last one of last page
+//
+func (s *SStakeRecordRecordWrap) ForEachByOrder(start *prototype.StakeRecord, end *prototype.StakeRecord, lastMainKey *prototype.StakeRecord,
+	lastSubVal *prototype.StakeRecord, f func(mVal *prototype.StakeRecord, sVal *prototype.StakeRecord, idx uint32) bool) error {
+	if s.Dba == nil {
+		return errors.New("the db is nil")
+	}
+	if (lastSubVal != nil && lastMainKey == nil) || (lastSubVal == nil && lastMainKey != nil) {
+		return errors.New("last query param error")
+	}
+	if f == nil {
+		return nil
+	}
+	pre := StakeRecordRecordTable
+	skeyList := []interface{}{pre}
+	if start != nil {
+		skeyList = append(skeyList, start)
+		if lastMainKey != nil {
+			skeyList = append(skeyList, lastMainKey, kope.MinimalKey)
+		}
+	} else {
+		if lastMainKey != nil && lastSubVal != nil {
+			skeyList = append(skeyList, lastSubVal, lastMainKey, kope.MinimalKey)
+		}
+		skeyList = append(skeyList, kope.MinimalKey)
+	}
+	sBuf, cErr := kope.EncodeSlice(skeyList)
+	if cErr != nil {
+		return cErr
+	}
+	eKeyList := []interface{}{pre}
+	if end != nil {
+		eKeyList = append(eKeyList, end)
+	} else {
+		eKeyList = append(eKeyList, kope.MaximumKey)
+	}
+	eBuf, cErr := kope.EncodeSlice(eKeyList)
+	if cErr != nil {
+		return cErr
+	}
+	var idx uint32 = 0
+	s.Dba.Iterate(sBuf, eBuf, false, func(key, value []byte) bool {
+		idx++
+		return f(s.GetMainVal(value), s.GetSubVal(value), idx)
+	})
+	return nil
+}
+
+////////////// SECTION List Keys ///////////////
+type SStakeRecordRecordReverseWrap struct {
+	Dba iservices.IDatabaseRW
+}
+
+func NewStakeRecordRecordReverseWrap(db iservices.IDatabaseRW) *SStakeRecordRecordReverseWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := SStakeRecordRecordReverseWrap{Dba: db}
+	return &wrap
+}
+
+func (s *SStakeRecordRecordReverseWrap) GetMainVal(val []byte) *prototype.StakeRecord {
+	res := &SoListStakeRecordByRecordReverse{}
+	err := proto.Unmarshal(val, res)
+
+	if err != nil {
+		return nil
+	}
+	return res.Record
+
+}
+
+func (s *SStakeRecordRecordReverseWrap) GetSubVal(val []byte) *prototype.StakeRecordReverse {
+	res := &SoListStakeRecordByRecordReverse{}
+	err := proto.Unmarshal(val, res)
+	if err != nil {
+		return nil
+	}
+	return res.RecordReverse
+
+}
+
+func (m *SoListStakeRecordByRecordReverse) OpeEncode() ([]byte, error) {
+	pre := StakeRecordRecordReverseTable
+	sub := m.RecordReverse
+	if sub == nil {
+		return nil, errors.New("the pro RecordReverse is nil")
+	}
+	sub1 := m.Record
+	if sub1 == nil {
+		return nil, errors.New("the mainkey Record is nil")
+	}
+	kList := []interface{}{pre, sub, sub1}
+	kBuf, cErr := kope.EncodeSlice(kList)
+	return kBuf, cErr
+}
+
+//Query srt by order
+//
+//start = nil  end = nil (query the db from start to end)
+//start = nil (query from start the db)
+//end = nil (query to the end of db)
+//
+//f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
+//as arguments to the callback function
+//if the return value of f is true,continue iterating until the end iteration;
+//otherwise stop iteration immediately
+//
+//lastMainKey: the main key of the last one of last page
+//lastSubVal: the value  of the last one of last page
+//
+func (s *SStakeRecordRecordReverseWrap) ForEachByOrder(start *prototype.StakeRecordReverse, end *prototype.StakeRecordReverse, lastMainKey *prototype.StakeRecord,
+	lastSubVal *prototype.StakeRecordReverse, f func(mVal *prototype.StakeRecord, sVal *prototype.StakeRecordReverse, idx uint32) bool) error {
+	if s.Dba == nil {
+		return errors.New("the db is nil")
+	}
+	if (lastSubVal != nil && lastMainKey == nil) || (lastSubVal == nil && lastMainKey != nil) {
+		return errors.New("last query param error")
+	}
+	if f == nil {
+		return nil
+	}
+	pre := StakeRecordRecordReverseTable
+	skeyList := []interface{}{pre}
+	if start != nil {
+		skeyList = append(skeyList, start)
+		if lastMainKey != nil {
+			skeyList = append(skeyList, lastMainKey, kope.MinimalKey)
+		}
+	} else {
+		if lastMainKey != nil && lastSubVal != nil {
+			skeyList = append(skeyList, lastSubVal, lastMainKey, kope.MinimalKey)
+		}
+		skeyList = append(skeyList, kope.MinimalKey)
+	}
+	sBuf, cErr := kope.EncodeSlice(skeyList)
+	if cErr != nil {
+		return cErr
+	}
+	eKeyList := []interface{}{pre}
+	if end != nil {
+		eKeyList = append(eKeyList, end)
+	} else {
+		eKeyList = append(eKeyList, kope.MaximumKey)
+	}
+	eBuf, cErr := kope.EncodeSlice(eKeyList)
+	if cErr != nil {
+		return cErr
+	}
+	var idx uint32 = 0
+	s.Dba.Iterate(sBuf, eBuf, false, func(key, value []byte) bool {
+		idx++
+		return f(s.GetMainVal(value), s.GetSubVal(value), idx)
+	})
+	return nil
 }
 
 /////////////// SECTION Private function ////////////////

@@ -78,3 +78,8 @@ message stake_record {
     account_name from = 1;
     account_name to = 2;
 }
+
+message stake_record_reverse {
+    account_name to = 1;
+    account_name from = 2;
+}
