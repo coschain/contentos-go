@@ -1,4 +1,4 @@
-package dandelion
+package core
 
 import (
 	"fmt"

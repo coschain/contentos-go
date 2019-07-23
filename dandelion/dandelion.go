@@ -1,206 +1,84 @@
 package dandelion
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"fmt"
-	"github.com/asaskevich/EventBus"
-	"github.com/coschain/contentos-go/app"
-	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
-	"github.com/coschain/contentos-go/common/eventloop"
-	"github.com/coschain/contentos-go/config"
-	"github.com/coschain/contentos-go/db/storage"
-	"github.com/coschain/contentos-go/iservices"
-	"github.com/coschain/contentos-go/node"
+	"github.com/coschain/contentos-go/dandelion/core"
 	"github.com/coschain/contentos-go/prototype"
-	"github.com/gogo/protobuf/proto"
 	"github.com/sirupsen/logrus"
-	"io/ioutil"
-	"os"
-	"path/filepath"
-	"time"
+	"testing"
 )
 
 type Dandelion struct {
-	node *node.Node
-	cfg node.Config
-	chainId prototype.ChainId
-	timeStamp uint32
-	prevHash *prototype.Sha256
-	accounts map[string]*prototype.PrivateKeyType
+	*core.DandelionCore
+
 }
 
 func NewDandelion(logger *logrus.Logger) *Dandelion {
-	if logger == nil {
-		logger = logrus.New()
-		logger.SetOutput(ioutil.Discard)
+	return &Dandelion{
+		DandelionCore: core.NewDandelionCore(logger),
 	}
-
-	cfg := config.DefaultNodeConfig
-	cfg.ChainId = "dandelion"
-	cfg.Name = "dandelionNode"
-	buf := make([]byte, 8)
-	_, _ = rand.Reader.Read(buf)
-	cfg.DataDir = filepath.Join(os.TempDir(), hex.EncodeToString(buf))
-
-	n, _ := node.New(&cfg)
-	n.Log = logger
-	n.MainLoop = eventloop.NewEventLoop()
-	n.EvBus = EventBus.New()
-
-	_ = n.Register(iservices.DbServerName, func(ctx *node.ServiceContext) (node.Service, error) {
-		return storage.NewGuardedDatabaseService(ctx, "./db/")
-	})
-	_ = n.Register(iservices.TxPoolServerName, func(ctx *node.ServiceContext) (node.Service, error) {
-		return app.NewController(ctx, n.Log)
-	})
-	_ = n.Register(DummyConsensusName, func(ctx *node.ServiceContext) (node.Service, error) {
-		return NewDummyConsensus(ctx)
-	})
-
-	d := &Dandelion{
-		node: n,
-		cfg: cfg,
-		chainId: prototype.ChainId{ Value: common.GetChainIdByName(cfg.ChainId) },
-		timeStamp: uint32(time.Now().Unix()),
-		prevHash: &prototype.Sha256{ Hash: make([]byte, 32) },
-		accounts: make(map[string]*prototype.PrivateKeyType),
-	}
-
-	initminerKey, _ := prototype.PrivateKeyFromWIF(constants.InitminerPrivKey)
-	d.PutAccount(constants.COSInitMiner, initminerKey)
-
-	return d
 }
 
-func (d *Dandelion) cleanup() {
-	_ = os.RemoveAll(d.cfg.DataDir)
-}
+type DandelionTestFunc func(*testing.T, *Dandelion)
 
-func (d *Dandelion) Start() (err error) {
-	defer func() {
+func NewDandelionTest(f DandelionTestFunc, actors int) func(*testing.T) {
+	return func(t *testing.T) {
+		d := NewDandelion(nil)
+		if d == nil {
+			t.Fatal("dandelion creation failed")
+		}
+		err := d.Start()
 		if err != nil {
-			d.cleanup()
+			t.Fatalf("dandelion start failed: %s", err.Error())
 		}
-	}()
-	_ = os.RemoveAll(d.cfg.DataDir)
-	_ = os.Mkdir(d.cfg.DataDir, 0777)
-	_ = os.Mkdir(filepath.Join(d.cfg.DataDir, d.cfg.Name), 0777)
-
-	if err = d.node.Start(); err == nil {
-		// produce the first block with no transactions.
-		// this will set correct head timestamp in state db.
-		err = d.ProduceBlocks(1)
-	}
-	return
-}
-
-func (d *Dandelion) Stop() error {
-	defer d.cleanup()
-	return d.node.Stop()
-}
-
-func (d *Dandelion) Database() iservices.IDatabaseService {
-	if s, err := d.node.Service(iservices.DbServerName); err != nil {
-		return nil
-	} else {
-		return s.(iservices.IDatabaseService)
-	}
-}
-
-func (d *Dandelion) TrxPool() iservices.ITrxPool {
-	if s, err := d.node.Service(iservices.TxPoolServerName); err != nil {
-		return nil
-	} else {
-		return s.(iservices.ITrxPool)
-	}
-}
-
-func (d *Dandelion) Consensus() *DummyConsensus {
-	if s, err := d.node.Service(DummyConsensusName); err != nil {
-		return nil
-	} else {
-		return s.(*DummyConsensus)
-	}
-}
-
-func (d *Dandelion) Head() (blockId common.BlockID) {
-	copy(blockId.Data[:], d.prevHash.Hash)
-	return
-}
-
-func (d *Dandelion) PutAccount(name string, key *prototype.PrivateKeyType) {
-	d.accounts[name] = key
-}
-
-func (d *Dandelion) ProduceBlocks(count int) error {
-	const skip = prototype.Skip_block_signatures
-	var (
-		block common.ISignedBlock
-		blockId common.BlockID
-		err error
-	)
-	copy(blockId.Data[:], d.prevHash.Hash)
-	num := blockId.BlockNum() + 1
-	for i := 0; i < count; i++ {
-		bp := d.Consensus().GetProducer(num)
-		bpKey, ok := d.accounts[bp]
-		if !ok {
-			return fmt.Errorf("unknown block producer: %s", bp)
-		}
-		block, err = d.TrxPool().GenerateAndApplyBlock(bp, d.prevHash, d.timeStamp, bpKey, skip)
+		err = d.CreateAndFund("actor", actors, 1000 * constants.COSTokenDecimals, 10)
 		if err != nil {
-			break
+			t.Fatalf("dandelion createAndFund failed: %s", err.Error())
 		}
-		blockId = block.Id()
-		d.TrxPool().Commit(num)
-		copy(d.prevHash.Hash, blockId.Data[:])
-		d.timeStamp += constants.BlockInterval
-		num++
+		defer func() {
+			_ = d.Stop()
+		}()
+		f(t, d)
 	}
-	return err
 }
 
-func (d *Dandelion) SendTrx(privateKey *prototype.PrivateKeyType, operations...*prototype.Operation) error {
-	data, err := proto.Marshal(&prototype.Transaction{
-		RefBlockNum: common.TaposRefBlockNum(d.Head().BlockNum()),
-		RefBlockPrefix: common.TaposRefBlockPrefix(d.prevHash.Hash),
-		Expiration: prototype.NewTimePointSec(d.timeStamp + constants.TrxMaxExpirationTime - 1),
-		Operations: operations,
-	},)
-	if err != nil {
+func (d *Dandelion) CreateAndFund(prefix string, n int, coins uint64, fee uint64) error {
+	if n <= 0 {
+		return nil
+	}
+	var ops []*prototype.Operation
+	accounts := make(map[string]*prototype.PrivateKeyType)
+	for i := 0; i < n; i++ {
+		name := fmt.Sprintf("%s%d", prefix, i)
+		priv, _ := prototype.GenerateNewKey()
+		pub, _ := priv.PubKey()
+		accounts[name] = priv
+		ops = append(ops,
+			AccountCreate(constants.COSInitMiner, name, pub, fee, ""),
+			Transfer(constants.COSInitMiner, name, coins, ""))
+	}
+	if err := d.SendTrxByAccount(constants.COSInitMiner, ops...); err != nil {
+		return err
+	} else if err = d.ProduceBlocks(1); err != nil {
 		return err
 	}
-	trx := new(prototype.Transaction)
-	if err = proto.Unmarshal(data, trx); err != nil {
-		return err
+	for name, priv := range accounts {
+		d.PutAccount(name, priv)
 	}
-	signedTrx := &prototype.SignedTransaction{
-		Trx: trx,
-		Signature: new(prototype.SignatureType),
-	}
-	signedTrx.Signature.Sig = signedTrx.Sign(privateKey, d.chainId)
-	return d.TrxPool().PushTrxToPending(signedTrx)
+	return nil
 }
 
-func (d *Dandelion) SendTrxByAccount(name string, operations...*prototype.Operation) error {
-	key, ok := d.accounts[name]
-	if !ok {
-		return fmt.Errorf("unknown account: %s", name)
+func (d *Dandelion) Test(f DandelionTestFunc) func(*testing.T) {
+	return func(t *testing.T) {
+		f(t, d)
 	}
-	return d.SendTrx(key, operations...)
+}
+
+func (d *Dandelion) GlobalProps() *prototype.DynamicProperties {
+	return d.TrxPool().GetProps()
 }
 
 func (d *Dandelion) Account(name string) *DandelionAccount {
-	return &DandelionAccount{ D:d, Name:name }
-}
-
-type DandelionAccount struct {
-	D *Dandelion
-	Name string
-}
-
-func (acc *DandelionAccount) SendTrx(operations...*prototype.Operation) error {
-	return acc.D.SendTrxByAccount(acc.Name, operations...)
+	return NewDandelionAccount(name, d)
 }

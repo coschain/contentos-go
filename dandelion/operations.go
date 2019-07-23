@@ -1,4 +1,4 @@
-package utils
+package dandelion
 
 import (
 	"github.com/coschain/contentos-go/prototype"
