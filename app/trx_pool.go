@@ -365,7 +365,11 @@ func (c *TrxPool) generateBlockNoLock(witness string, pre *prototype.Sha256, tim
 	signBlock.SignedHeader.Header.TransactionMerkleRoot = &prototype.Sha256{Hash: id.Data[:]}
 	signBlock.SignedHeader.Header.Witness = &prototype.AccountName{Value: witness}
 	signBlock.SignedHeader.WitnessSignature = &prototype.SignatureType{}
-	_ = signBlock.SignedHeader.Sign(priKey)
+	if (skip & prototype.Skip_block_signatures) == 0 {
+		_ = signBlock.SignedHeader.Sign(priKey)
+	} else {
+		signBlock.SignedHeader.WitnessSignature.Sig = make([]byte, 65)
+	}
 
 	if len(failedTrx) > 0 {
 		c.tm.ReturnTrx(failedTrx...)
