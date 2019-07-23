@@ -285,15 +285,15 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 	if isTls {
 		conn, err = TLSDial(addr, this.ctx.Config().P2P.CertPath, this.ctx.Config().P2P.KeyPath, this.ctx.Config().P2P.CAPath)
 		if err != nil {
-			this.RemoveFromConnectingList(addr)
 			this.log.Debugf("[p2p] connect %s failed:%s", addr, err.Error())
+			this.RemoveFromConnectingList(addr)
 			return err
 		}
 	} else {
 		conn, err = nonTLSDial(addr)
 		if err != nil {
-			this.RemoveFromConnectingList(addr)
 			this.log.Debugf("[p2p] connect %s failed:%s", addr, err.Error())
+			this.RemoveFromConnectingList(addr)
 			return err
 		}
 	}
