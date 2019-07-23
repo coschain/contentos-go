@@ -2,6 +2,7 @@ package dandelion
 
 import (
 	"fmt"
+	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/dandelion/core"
 	"github.com/coschain/contentos-go/prototype"
@@ -11,7 +12,6 @@ import (
 
 type Dandelion struct {
 	*core.DandelionCore
-
 }
 
 func NewDandelion(logger *logrus.Logger) *Dandelion {
@@ -75,10 +75,119 @@ func (d *Dandelion) Test(f DandelionTestFunc) func(*testing.T) {
 	}
 }
 
+//
+// Table Record Retrieval by Primary keys
+//
+
 func (d *Dandelion) GlobalProps() *prototype.DynamicProperties {
 	return d.TrxPool().GetProps()
 }
 
 func (d *Dandelion) Account(name string) *DandelionAccount {
 	return NewDandelionAccount(name, d)
+}
+
+func (d *Dandelion) ExtTrx(trxId *prototype.Sha256) *table.SoExtTrxWrap {
+	return table.NewSoExtTrxWrap(d.Database(), trxId)
+}
+
+func (d *Dandelion) ExtReward(account string, postId uint64) *table.SoExtRewardWrap {
+	return table.NewSoExtRewardWrap(d.Database(), &prototype.RewardCashoutId{
+		Account: prototype.NewAccountName(account),
+		PostId: postId,
+	})
+}
+
+func (d *Dandelion) ExtReplyCreated(postId uint64) *table.SoExtReplyCreatedWrap {
+	return table.NewSoExtReplyCreatedWrap(d.Database(), &postId)
+}
+
+func (d *Dandelion) ExtUserPost(postId uint64) *table.SoExtUserPostWrap {
+	return table.NewSoExtUserPostWrap(d.Database(), &postId)
+}
+
+func (d *Dandelion) Blocktrxs(block uint64) *table.SoBlocktrxsWrap {
+	return table.NewSoBlocktrxsWrap(d.Database(), &block)
+}
+
+func (d *Dandelion) Vote(voter string, postId uint64) *table.SoVoteWrap {
+	return table.NewSoVoteWrap(d.Database(), &prototype.VoterId{
+		Voter: prototype.NewAccountName(voter),
+		PostId: postId,
+	})
+}
+
+func (d *Dandelion) ExtDailyTrx(date uint32) *table.SoExtDailyTrxWrap {
+	return table.NewSoExtDailyTrxWrap(d.Database(), prototype.NewTimePointSec(date))
+}
+
+func (d *Dandelion) Post(postId uint64) *table.SoPostWrap {
+	return table.NewSoPostWrap(d.Database(), &postId)
+}
+
+func (d *Dandelion) GiftTicket(ticket *prototype.GiftTicketKeyType) *table.SoGiftTicketWrap {
+	return table.NewSoGiftTicketWrap(d.Database(), ticket)
+}
+
+func (d *Dandelion) Witness(owner string) *table.SoWitnessWrap {
+	return table.NewSoWitnessWrap(d.Database(), prototype.NewAccountName(owner))
+}
+
+func (d *Dandelion) ExtFollowing(account string, following string) *table.SoExtFollowingWrap {
+	return table.NewSoExtFollowingWrap(d.Database(), &prototype.FollowingRelation{
+		Account: prototype.NewAccountName(account),
+		Following: prototype.NewAccountName(following),
+	})
+}
+
+func (d *Dandelion) TransactionObject(trxId *prototype.Sha256) *table.SoTransactionObjectWrap {
+	return table.NewSoTransactionObjectWrap(d.Database(), trxId)
+}
+
+func (d *Dandelion) ReportList(uuid uint64) *table.SoReportListWrap {
+	return table.NewSoReportListWrap(d.Database(), &uuid)
+}
+
+func (d *Dandelion) ExtFollowCount(account string) *table.SoExtFollowCountWrap {
+	return table.NewSoExtFollowCountWrap(d.Database(), prototype.NewAccountName(account))
+}
+
+func (d *Dandelion) Contract(owner string, cname string) *table.SoContractWrap {
+	return table.NewSoContractWrap(d.Database(), &prototype.ContractId{
+		Owner: prototype.NewAccountName(owner),
+		Cname: cname,
+	})
+}
+
+func (d *Dandelion) ExtFollower(account string, follower string) *table.SoExtFollowerWrap {
+	return table.NewSoExtFollowerWrap(d.Database(), &prototype.FollowerRelation{
+		Account: prototype.NewAccountName(account),
+		Follower: prototype.NewAccountName(follower),
+	})
+}
+
+func (d *Dandelion) StakeRecord(from string, to string) *table.SoStakeRecordWrap {
+	return table.NewSoStakeRecordWrap(d.Database(), &prototype.StakeRecord{
+		From: prototype.NewAccountName(from),
+		To: prototype.NewAccountName(to),
+	})
+}
+
+func (d *Dandelion) BlockSummaryObject(id uint32) *table.SoBlockSummaryObjectWrap {
+	return table.NewSoBlockSummaryObjectWrap(d.Database(), &id)
+}
+
+func (d *Dandelion) ExtHourTrx(hour uint32) *table.SoExtHourTrxWrap {
+	return table.NewSoExtHourTrxWrap(d.Database(), prototype.NewTimePointSec(hour))
+}
+
+func (d *Dandelion) ExtPostCreated(postId uint64) *table.SoExtPostCreatedWrap {
+	return table.NewSoExtPostCreatedWrap(d.Database(), &postId)
+}
+
+func (d *Dandelion) WitnessVote(voter string, witness string) *table.SoWitnessVoteWrap {
+	return table.NewSoWitnessVoteWrap(d.Database(), &prototype.BpVoterId{
+		Voter: prototype.NewAccountName(voter),
+		Witness: prototype.NewAccountName(witness),
+	})
 }
