@@ -63,6 +63,7 @@ func NewDandelion(logger *logrus.Logger) *Dandelion {
 		node: n,
 		cfg: cfg,
 		chainId: prototype.ChainId{ Value: common.GetChainIdByName(cfg.ChainId) },
+		timeStamp: uint32(time.Now().Unix()),
 		prevHash: &prototype.Sha256{ Hash: make([]byte, 32) },
 		accounts: make(map[string]*prototype.PrivateKeyType),
 	}
@@ -87,7 +88,12 @@ func (d *Dandelion) Start() (err error) {
 	_ = os.Mkdir(d.cfg.DataDir, 0777)
 	_ = os.Mkdir(filepath.Join(d.cfg.DataDir, d.cfg.Name), 0777)
 
-	return d.node.Start()
+	if err = d.node.Start(); err == nil {
+		// produce the first block with no transactions.
+		// this will set correct head timestamp in state db.
+		err = d.ProduceBlocks(1)
+	}
+	return
 }
 
 func (d *Dandelion) Stop() error {
@@ -95,11 +101,11 @@ func (d *Dandelion) Stop() error {
 	return d.node.Stop()
 }
 
-func (d *Dandelion) Database() iservices.IDatabaseRW {
+func (d *Dandelion) Database() iservices.IDatabaseService {
 	if s, err := d.node.Service(iservices.DbServerName); err != nil {
 		return nil
 	} else {
-		return s.(iservices.IDatabaseRW)
+		return s.(iservices.IDatabaseService)
 	}
 }
 
@@ -143,11 +149,6 @@ func (d *Dandelion) ProduceBlocks(count int) error {
 		if !ok {
 			return fmt.Errorf("unknown block producer: %s", bp)
 		}
-		if d.timeStamp == 0 {
-			d.timeStamp = uint32(time.Now().Unix())
-		} else {
-			d.timeStamp += constants.BlockInterval
-		}
 		block, err = d.TrxPool().GenerateAndApplyBlock(bp, d.prevHash, d.timeStamp, bpKey, skip)
 		if err != nil {
 			break
@@ -155,6 +156,7 @@ func (d *Dandelion) ProduceBlocks(count int) error {
 		blockId = block.Id()
 		d.TrxPool().Commit(num)
 		copy(d.prevHash.Hash, blockId.Data[:])
+		d.timeStamp += constants.BlockInterval
 		num++
 	}
 	return err
@@ -188,4 +190,17 @@ func (d *Dandelion) SendTrxByAccount(name string, operations...*prototype.Operat
 		return fmt.Errorf("unknown account: %s", name)
 	}
 	return d.SendTrx(key, operations...)
+}
+
+func (d *Dandelion) Account(name string) *DandelionAccount {
+	return &DandelionAccount{ D:d, Name:name }
+}
+
+type DandelionAccount struct {
+	D *Dandelion
+	Name string
+}
+
+func (acc *DandelionAccount) SendTrx(operations...*prototype.Operation) error {
+	return acc.D.SendTrxByAccount(acc.Name, operations...)
 }
