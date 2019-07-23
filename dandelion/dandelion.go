@@ -6,6 +6,8 @@ import (
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/dandelion/core"
 	"github.com/coschain/contentos-go/prototype"
+	"github.com/coschain/contentos-go/vm/contract/abi"
+	table2 "github.com/coschain/contentos-go/vm/contract/table"
 	"github.com/sirupsen/logrus"
 	"testing"
 )
@@ -190,4 +192,15 @@ func (d *Dandelion) WitnessVote(voter string, witness string) *table.SoWitnessVo
 		Voter: prototype.NewAccountName(voter),
 		Witness: prototype.NewAccountName(witness),
 	})
+}
+
+//
+// Contract tables
+//
+func (d *Dandelion) ContractTables(owner, contract string) *table2.ContractTables {
+	if abiInterface, err := abi.UnmarshalABI([]byte(d.Contract(owner, contract).GetAbi())); err != nil {
+		return nil
+	} else {
+		return table2.NewContractTables(owner, contract, abiInterface, d.Database())
+	}
 }
