@@ -34,13 +34,13 @@ func NewDandelionTest(f DandelionTestFunc, actors int) func(*testing.T) {
 		if err != nil {
 			t.Fatalf("dandelion start failed: %s", err.Error())
 		}
+		defer func() {
+			_ = d.Stop()
+		}()
 		err = d.CreateAndFund("actor", actors, 1000 * constants.COSTokenDecimals, 10)
 		if err != nil {
 			t.Fatalf("dandelion createAndFund failed: %s", err.Error())
 		}
-		defer func() {
-			_ = d.Stop()
-		}()
 		f(t, d)
 	}
 }
@@ -53,6 +53,9 @@ func (d *Dandelion) CreateAndFund(prefix string, n int, coins uint64, fee uint64
 	accounts := make(map[string]*prototype.PrivateKeyType)
 	for i := 0; i < n; i++ {
 		name := fmt.Sprintf("%s%d", prefix, i)
+		if d.Account(name).CheckExist() {
+			return fmt.Errorf("account %s already exists", name)
+		}
 		priv, _ := prototype.GenerateNewKey()
 		pub, _ := priv.PubKey()
 		accounts[name] = priv
@@ -65,8 +68,36 @@ func (d *Dandelion) CreateAndFund(prefix string, n int, coins uint64, fee uint64
 	} else if err = d.ProduceBlocks(1); err != nil {
 		return err
 	}
+	for name := range accounts {
+		if !d.Account(name).CheckExist() {
+			return fmt.Errorf("createAndFund account %s failed", name)
+		}
+	}
 	for name, priv := range accounts {
 		d.PutAccount(name, priv)
+	}
+	return nil
+}
+
+func (d *Dandelion) CreateAndFundUser(name string, coins uint64, fee uint64) error {
+	if d.Account(name).CheckExist() {
+		return fmt.Errorf("account %s already exists", name)
+	}
+
+	priv, _ := prototype.GenerateNewKey()
+	pub, _ := priv.PubKey()
+	err := d.SendTrxByAccount(constants.COSInitMiner,
+		AccountCreate(constants.COSInitMiner, name, pub, fee, ""),
+		Transfer(constants.COSInitMiner, name, coins, ""))
+
+	if err != nil {
+		return err
+	} else if err = d.ProduceBlocks(1); err != nil {
+		return err
+	}
+
+	if !d.Account(name).CheckExist() {
+		return fmt.Errorf("createAndFund account %s failed", name)
 	}
 	return nil
 }
