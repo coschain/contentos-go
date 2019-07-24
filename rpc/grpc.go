@@ -1467,3 +1467,40 @@ func (as *APIService) GetNodeRunningVersion(ctx context.Context, req *grpcpb.Non
 
 	return ret, nil
 }
+
+func (as *APIService) GetAccountListByVest(ctx context.Context, req *grpcpb.GetAccountListByVestRequest) (*grpcpb.GetAccountListResponse, error) {
+	as.db.RLock()
+	defer as.db.RUnlock()
+
+	sortWrap := table.NewAccountVestingSharesWrap(as.db)
+	var list []*grpcpb.AccountResponse
+	res := &grpcpb.GetAccountListResponse{}
+	var err error
+	var lastAcctNam *prototype.AccountName
+	var lastAcctVest *prototype.Vest
+	limit := checkLimit(req.Limit)
+	if limit == 0 {
+		limit = uint32(defaultPageSizeLimit)
+	}
+	if req.LastAccount != nil {
+		account := req.LastAccount
+		if account.AccountName != nil && account.Vest != nil {
+			lastAcctNam = account.AccountName
+			lastAcctVest = account.Vest
+		}
+	}
+	if sortWrap != nil {
+		err = sortWrap.ForEachByRevOrder(req.Start, req.End, lastAcctNam, lastAcctVest, func(mVal *prototype.AccountName, sVal *prototype.Vest, idx uint32) bool {
+			acct := as.getAccountResponseByName(mVal,false)
+			if acct != nil {
+				list = append(list, acct)
+			}
+			if uint32(len(list)) >= limit {
+				return false
+			}
+			return true
+		})
+	}
+	res.List = list
+	return res, err
+}

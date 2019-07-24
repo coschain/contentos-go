@@ -755,6 +755,26 @@ func (mr *MockApiServiceClientMockRecorder) GetNodeRunningVersion(ctx, in interf
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNodeRunningVersion", reflect.TypeOf((*MockApiServiceClient)(nil).GetNodeRunningVersion), varargs...)
 }
 
+// GetAccountListByVest mocks base method
+func (m *MockApiServiceClient) GetAccountListByVest(ctx context.Context, in *pb.GetAccountListByVestRequest, opts ...grpc.CallOption) (*pb.GetAccountListResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetAccountListByVest", varargs...)
+	ret0, _ := ret[0].(*pb.GetAccountListResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAccountListByVest indicates an expected call of GetAccountListByVest
+func (mr *MockApiServiceClientMockRecorder) GetAccountListByVest(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccountListByVest", reflect.TypeOf((*MockApiServiceClient)(nil).GetAccountListByVest), varargs...)
+}
+
 // MockApiServiceServer is a mock of ApiServiceServer interface
 type MockApiServiceServer struct {
 	ctrl     *gomock.Controller
@@ -1316,4 +1336,19 @@ func (m *MockApiServiceServer) GetNodeRunningVersion(arg0 context.Context, arg1 
 func (mr *MockApiServiceServerMockRecorder) GetNodeRunningVersion(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNodeRunningVersion", reflect.TypeOf((*MockApiServiceServer)(nil).GetNodeRunningVersion), arg0, arg1)
+}
+
+// GetAccountListByVest mocks base method
+func (m *MockApiServiceServer) GetAccountListByVest(arg0 context.Context, arg1 *pb.GetAccountListByVestRequest) (*pb.GetAccountListResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAccountListByVest", arg0, arg1)
+	ret0, _ := ret[0].(*pb.GetAccountListResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAccountListByVest indicates an expected call of GetAccountListByVest
+func (mr *MockApiServiceServerMockRecorder) GetAccountListByVest(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccountListByVest", reflect.TypeOf((*MockApiServiceServer)(nil).GetAccountListByVest), arg0, arg1)
 }
