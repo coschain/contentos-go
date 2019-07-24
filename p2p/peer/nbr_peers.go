@@ -1,12 +1,11 @@
 package peer
 
 import (
-	"fmt"
 	"sync"
 
-	"github.com/sirupsen/logrus"
 	"github.com/coschain/contentos-go/p2p/common"
 	"github.com/coschain/contentos-go/p2p/message/types"
+	"github.com/sirupsen/logrus"
 )
 
 //NbrPeers: The neigbor list
@@ -90,7 +89,7 @@ func (this *NbrPeers) AddNbrNode(p *Peer) {
 	defer this.Unlock()
 
 	if this.NodeExisted(p.GetID()) {
-		fmt.Printf("[p2p]insert an existed node\n")
+		//fmt.Printf("[p2p]insert an existed node\n")
 	} else {
 		this.List[p.GetID()] = p
 	}
