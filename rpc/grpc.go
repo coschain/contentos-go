@@ -101,7 +101,7 @@ func (as *APIService) GetMyStakes(ctx context.Context, req *grpcpb.GetMyStakeLis
 	defer as.db.RUnlock()
 
 	var (
-		stakeList []*prototype.AccountName
+		stakeList []*grpcpb.StakeInfo
 		limit   uint32
 	)
 
@@ -115,7 +115,15 @@ func (as *APIService) GetMyStakes(ctx context.Context, req *grpcpb.GetMyStakeLis
 	err := toWrap.ForEachByOrder(start, end, nil, nil,
 		func(mVal *prototype.StakeRecord, sVal *prototype.StakeRecord, idx uint32) bool {
 			if mVal != nil {
-				stakeList = append(stakeList,sVal.To)
+				info := &grpcpb.StakeInfo{}
+				info.Account = sVal.To
+				recordWrap := table.NewSoStakeRecordWrap(as.db, &prototype.StakeRecord{
+					From:   mVal.From,
+					To: mVal.To,
+				})
+				info.StakeAmount = recordWrap.GetStakeAmount()
+				info.StakeTime = recordWrap.GetLastStakeTime()
+				stakeList = append(stakeList,info)
 			}
 			if uint32(len(stakeList)) < limit {
 				return true
@@ -130,7 +138,7 @@ func (as *APIService) GetMyStakers(ctx context.Context, req *grpcpb.GetMyStakerL
 	defer as.db.RUnlock()
 
 	var (
-		stakerList []*prototype.AccountName
+		stakerList []*grpcpb.StakeInfo
 		limit   uint32
 	)
 
@@ -144,7 +152,15 @@ func (as *APIService) GetMyStakers(ctx context.Context, req *grpcpb.GetMyStakerL
 	err := toWrap.ForEachByOrder(start, end, nil, nil,
 		func(mVal *prototype.StakeRecord, sVal *prototype.StakeRecordReverse, idx uint32) bool {
 			if mVal != nil {
-				stakerList = append(stakerList,sVal.From)
+				info := &grpcpb.StakeInfo{}
+				info.Account = sVal.From
+				recordWrap := table.NewSoStakeRecordWrap(as.db, &prototype.StakeRecord{
+					From:   mVal.From,
+					To: mVal.To,
+				})
+				info.StakeAmount = recordWrap.GetStakeAmount()
+				info.StakeTime = recordWrap.GetLastStakeTime()
+				stakerList = append(stakerList,info)
 			}
 			if uint32(len(stakerList)) < limit {
 				return true

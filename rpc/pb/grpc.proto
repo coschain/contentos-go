@@ -614,6 +614,12 @@ message EsimateResponse {
     prototype.transaction_receipt_with_info    invoice = 1;
 }
 
+message StakeInfo {
+    prototype.account_name account = 1;
+    prototype.vest stake_amount = 2;
+    prototype.time_point_sec stake_time = 3;
+}
+
 message GetMyStakerListByNameRequest {
     prototype.stake_record_reverse    start = 1;
     prototype.stake_record_reverse    end   = 2;
@@ -621,7 +627,7 @@ message GetMyStakerListByNameRequest {
 }
 
 message GetMyStakerListByNameResponse {
-    repeated prototype.account_name my_staker_list = 1;
+    repeated StakeInfo my_staker_list = 1;
 }
 
 message GetMyStakeListByNameRequest {
@@ -631,5 +637,5 @@ message GetMyStakeListByNameRequest {
 }
 
 message GetMyStakeListByNameResponse {
-    repeated prototype.account_name my_stake_list = 1;
+    repeated StakeInfo my_stake_list = 1;
 }

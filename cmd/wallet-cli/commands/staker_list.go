@@ -2,6 +2,7 @@ package commands
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/coschain/cobra"
 	"github.com/coschain/contentos-go/prototype"
@@ -30,7 +31,7 @@ var StakerListCmd = func() *cobra.Command {
 		Short:   "query users that i stake to",
 		Example: "forother bob alice mike",
 		Args:    cobra.MinimumNArgs(3),
-		Run:     stakersForOther,
+		Run:     stakersToOther,
 	}
 	getMyStakesCmd.Flags().Uint32VarP(&limit, "limit", "", 30, `stakers forme initminer accountstart accountend --limit 10`)
 
@@ -61,11 +62,12 @@ func stakersForMe(cmd *cobra.Command, args []string) {
 	if err != nil {
 		fmt.Println(err)
 	} else {
-		fmt.Println(fmt.Sprintf("Result: %v", resp))
+		buf, _ := json.MarshalIndent(resp, "", "\t")
+		fmt.Println(fmt.Sprintf("stake to %s detail: %s", userTo,buf))
 	}
 }
 
-func stakersForOther(cmd *cobra.Command, args []string) {
+func stakersToOther(cmd *cobra.Command, args []string) {
 	defer func() {
 		limit = 30
 	}()
@@ -86,6 +88,7 @@ func stakersForOther(cmd *cobra.Command, args []string) {
 	if err != nil {
 		fmt.Println(err)
 	} else {
-		fmt.Println(fmt.Sprintf("Result: %v", resp))
+		buf, _ := json.MarshalIndent(resp, "", "\t")
+		fmt.Println(fmt.Sprintf("%s stake to others detail: %s",userFrom, buf))
 	}
 }
