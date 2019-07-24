@@ -1444,3 +1444,10 @@ func (as *APIService) GetNodeNeighbours(ctx context.Context, req *grpcpb.NonPara
 
 	return ret, nil
 }
+
+func (as *APIService) GetNodeRunningVersion(ctx context.Context, req *grpcpb.NonParamsRequest) (*grpcpb.GetNodeRunningVersionResponse, error) {
+	ret := &grpcpb.GetNodeRunningVersionResponse{}
+	ret.NodeVersion = as.ctx.Config().P2P.RunningCodeVersion
+
+	return ret, nil
+}

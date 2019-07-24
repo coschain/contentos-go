@@ -735,6 +735,26 @@ func (mr *MockApiServiceClientMockRecorder) GetMyStakes(ctx, in interface{}, opt
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMyStakes", reflect.TypeOf((*MockApiServiceClient)(nil).GetMyStakes), varargs...)
 }
 
+// GetNodeRunningVersion mocks base method
+func (m *MockApiServiceClient) GetNodeRunningVersion(ctx context.Context, in *pb.NonParamsRequest, opts ...grpc.CallOption) (*pb.GetNodeRunningVersionResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetNodeRunningVersion", varargs...)
+	ret0, _ := ret[0].(*pb.GetNodeRunningVersionResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetNodeRunningVersion indicates an expected call of GetNodeRunningVersion
+func (mr *MockApiServiceClientMockRecorder) GetNodeRunningVersion(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNodeRunningVersion", reflect.TypeOf((*MockApiServiceClient)(nil).GetNodeRunningVersion), varargs...)
+}
+
 // MockApiServiceServer is a mock of ApiServiceServer interface
 type MockApiServiceServer struct {
 	ctrl     *gomock.Controller
@@ -1281,4 +1301,19 @@ func (m *MockApiServiceServer) GetMyStakes(arg0 context.Context, arg1 *pb.GetMyS
 func (mr *MockApiServiceServerMockRecorder) GetMyStakes(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMyStakes", reflect.TypeOf((*MockApiServiceServer)(nil).GetMyStakes), arg0, arg1)
+}
+
+// GetNodeRunningVersion mocks base method
+func (m *MockApiServiceServer) GetNodeRunningVersion(arg0 context.Context, arg1 *pb.NonParamsRequest) (*pb.GetNodeRunningVersionResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetNodeRunningVersion", arg0, arg1)
+	ret0, _ := ret[0].(*pb.GetNodeRunningVersionResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetNodeRunningVersion indicates an expected call of GetNodeRunningVersion
+func (mr *MockApiServiceServerMockRecorder) GetNodeRunningVersion(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNodeRunningVersion", reflect.TypeOf((*MockApiServiceServer)(nil).GetNodeRunningVersion), arg0, arg1)
 }

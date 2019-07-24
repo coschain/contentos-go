@@ -116,6 +116,9 @@ service ApiService {
 
     rpc GetMyStakes (GetMyStakeListByNameRequest) returns (GetMyStakeListByNameResponse) {
     }
+
+    rpc GetNodeRunningVersion (NonParamsRequest) returns (GetNodeRunningVersionResponse) {
+    }
 }
 
 
@@ -328,6 +331,10 @@ message GetChainStateResponse {
 
 message GetNodeNeighboursResponse {
     string peerlist = 1;
+}
+
+message GetNodeRunningVersionResponse {
+    string nodeVersion = 1;
 }
 
 //message GetStatResponse {
