@@ -1,8 +1,10 @@
 package core
 
 import (
+	"bytes"
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app"
@@ -134,35 +136,38 @@ func (d *DandelionCore) PutAccount(name string, key *prototype.PrivateKeyType) {
 	d.accounts[name] = key
 }
 
-func (d *DandelionCore) ProduceBlocks(count int) error {
+func (d *DandelionCore) produceBlock() (block *prototype.SignedBlock, err error) {
 	const skip = prototype.Skip_block_signatures
-	var (
-		block common.ISignedBlock
-		blockId common.BlockID
-		err error
-	)
+	var blockId common.BlockID
+
 	copy(blockId.Data[:], d.prevHash.Hash)
 	num := blockId.BlockNum() + 1
-	for i := 0; i < count; i++ {
-		bp := d.Consensus().GetProducer(num)
-		bpKey, ok := d.accounts[bp]
-		if !ok {
-			return fmt.Errorf("unknown block producer: %s", bp)
-		}
-		block, err = d.TrxPool().GenerateAndApplyBlock(bp, d.prevHash, d.timeStamp, bpKey, skip)
-		if err != nil {
-			break
-		}
-		blockId = block.Id()
-		d.TrxPool().Commit(num)
-		copy(d.prevHash.Hash, blockId.Data[:])
-		d.timeStamp += constants.BlockInterval
-		num++
+	bp := d.Consensus().GetProducer(num)
+	bpKey, ok := d.accounts[bp]
+	if !ok {
+		err = fmt.Errorf("unknown block producer: %s", bp)
+		return
 	}
-	return err
+	if block, err = d.TrxPool().GenerateAndApplyBlock(bp, d.prevHash, d.timeStamp, bpKey, skip); err != nil {
+		return
+	}
+	blockId = block.Id()
+	d.TrxPool().Commit(num)
+	copy(d.prevHash.Hash, blockId.Data[:])
+	d.timeStamp += constants.BlockInterval
+	return
 }
 
-func (d *DandelionCore) SendTrx(privateKey *prototype.PrivateKeyType, operations...*prototype.Operation) error {
+func (d *DandelionCore) ProduceBlocks(count int) error {
+	for i := 0; i < count; i++ {
+		if _, err := d.produceBlock(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (d *DandelionCore) sendTrx(privateKey *prototype.PrivateKeyType, operations...*prototype.Operation) (*prototype.SignedTransaction, error) {
 	data, err := proto.Marshal(&prototype.Transaction{
 		RefBlockNum: common.TaposRefBlockNum(d.Head().BlockNum()),
 		RefBlockPrefix: common.TaposRefBlockPrefix(d.prevHash.Hash),
@@ -170,18 +175,32 @@ func (d *DandelionCore) SendTrx(privateKey *prototype.PrivateKeyType, operations
 		Operations: operations,
 	},)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	trx := new(prototype.Transaction)
 	if err = proto.Unmarshal(data, trx); err != nil {
-		return err
+		return nil, err
 	}
 	signedTrx := &prototype.SignedTransaction{
 		Trx: trx,
 		Signature: new(prototype.SignatureType),
 	}
 	signedTrx.Signature.Sig = signedTrx.Sign(privateKey, d.chainId)
-	return d.TrxPool().PushTrxToPending(signedTrx)
+	err = d.TrxPool().PushTrxToPending(signedTrx)
+	return signedTrx, err
+}
+
+func (d *DandelionCore) sendTrxAndProduceBlock(privateKey *prototype.PrivateKeyType, operations...*prototype.Operation) (trx *prototype.SignedTransaction, block *prototype.SignedBlock, err error) {
+	if trx, err = d.sendTrx(privateKey, operations...); err != nil {
+		return
+	}
+	block, err = d.produceBlock()
+	return
+}
+
+func (d *DandelionCore) SendTrx(privateKey *prototype.PrivateKeyType, operations...*prototype.Operation) error {
+	_, err := d.sendTrx(privateKey, operations...)
+	return err
 }
 
 func (d *DandelionCore) SendTrxByAccount(name string, operations...*prototype.Operation) error {
@@ -190,4 +209,26 @@ func (d *DandelionCore) SendTrxByAccount(name string, operations...*prototype.Op
 		return fmt.Errorf("unknown account: %s", name)
 	}
 	return d.SendTrx(key, operations...)
+}
+
+func (d *DandelionCore) SendTrxEx(privateKey *prototype.PrivateKeyType, operations...*prototype.Operation) (*prototype.TransactionReceipt, error) {
+	trx, block, err := d.sendTrxAndProduceBlock(privateKey, operations...)
+	if err != nil {
+		return nil, err
+	}
+	for _, w := range block.Transactions {
+		if bytes.Compare(w.SigTrx.Signature.Sig, trx.Signature.Sig) != 0 {
+			continue
+		}
+		return w.Receipt, nil
+	}
+	return nil, errors.New("transaction not found in block")
+}
+
+func (d *DandelionCore) SendTrxByAccountEx(name string, operations...*prototype.Operation) (*prototype.TransactionReceipt, error) {
+	key, ok := d.accounts[name]
+	if !ok {
+		return nil, fmt.Errorf("unknown account: %s", name)
+	}
+	return d.SendTrxEx(key, operations...)
 }
