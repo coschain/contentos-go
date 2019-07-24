@@ -119,6 +119,8 @@ service ApiService {
 
     rpc GetNodeRunningVersion (NonParamsRequest) returns (GetNodeRunningVersionResponse) {
     }
+    rpc GetAccountListByVest (GetAccountListByVestRequest) returns (GetAccountListResponse) {
+    }
 }
 
 
@@ -638,4 +640,12 @@ message GetMyStakeListByNameRequest {
 
 message GetMyStakeListByNameResponse {
     repeated StakeInfo my_stake_list = 1;
+
+}
+
+message GetAccountListByVestRequest {
+    prototype.vest   start     = 1;
+    prototype.vest   end       = 2;
+    AccountInfo  last_account = 3;
+    uint32           limit     = 4;
 }
