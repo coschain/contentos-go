@@ -1,6 +1,7 @@
 package dandelion
 
 import (
+	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/prototype"
 )
 
@@ -99,6 +100,20 @@ func ContractDeploy(owner, contract string, abi, code []byte, upgradable bool, u
 		Url: url,
 		Describe: desc,
 	})
+}
+
+func ContractDeployUncompressed(owner, contract string, abi, code []byte, upgradable bool, url, desc string) *prototype.Operation {
+	var (
+		err error
+		compressedCode, compressedAbi []byte
+	)
+	if compressedCode, err = common.Compress(code); err != nil {
+		return nil
+	}
+	if compressedAbi, err = common.Compress(abi); err != nil {
+		return nil
+	}
+	return ContractDeploy(owner, contract, compressedAbi, compressedCode, upgradable, url, desc)
 }
 
 func ContractApply(caller, owner, contract, method, jsonParams string, coins uint64) *prototype.Operation {
