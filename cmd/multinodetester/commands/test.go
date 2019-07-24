@@ -120,7 +120,7 @@ func startNodes(cmd *cobra.Command, args []string) {
 	}
 	css := c.(iservices.IConsensus)
 
-	time.Sleep(3 * time.Second)
+	time.Sleep(2 * time.Second)
 	for i := 1; i < cnt; i++ {
 		name := fmt.Sprintf("initminer%d", i)
 		if err = test.CreateAcc(name, sks[i], sks[0], css); err != nil {
@@ -129,7 +129,7 @@ func startNodes(cmd *cobra.Command, args []string) {
 	}
 	fmt.Printf("created %d accounts\n", cnt-1)
 
-	time.Sleep(3 * time.Second)
+	time.Sleep(2 * time.Second)
 	for i := 1; i < cnt; i++ {
 		name := fmt.Sprintf("initminer%d", i)
 		if err = test.RegesiterBP(name, sks[i], css); err != nil {
@@ -138,7 +138,8 @@ func startNodes(cmd *cobra.Command, args []string) {
 	}
 	fmt.Printf("registered %d bp\n", cnt-1)
 
-	go test.Monitor(nodes)
+	monitor := test.NewMonitor(nodes)
+	go monitor.Run()
 
 	<-stopCh
 	for i := range nodes {

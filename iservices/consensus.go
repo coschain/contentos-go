@@ -15,6 +15,10 @@ type IConsensus interface {
 	// ActiveProducers returns a list of accounts that actively produce blocks
 	ActiveProducers() []string
 
+	ActiveValidators() []string
+
+	GetName() string
+
 	// SetBootstrap determines if the current node starts a new block chain
 	SetBootstrap(b bool)
 

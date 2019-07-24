@@ -88,6 +88,13 @@ func NewDPoS(ctx *node.ServiceContext, lg *logrus.Logger) *DPoS {
 	return ret
 }
 
+func (d *DPoS) GetName() string {
+	return d.Name
+}
+func (d *DPoS) ActiveValidators() []string {
+	return nil
+}
+
 func (d *DPoS) getController() iservices.ITrxPool {
 	ctrl, err := d.ctx.Service(iservices.TxPoolServerName)
 	if err != nil {

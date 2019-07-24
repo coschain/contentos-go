@@ -104,6 +104,10 @@ func NewSABFT(ctx *node.ServiceContext, lg *logrus.Logger) *SABFT {
 	return ret
 }
 
+func (sabft *SABFT) GetName() string {
+	return sabft.Name
+}
+
 func (sabft *SABFT) timeToNextSec() time.Duration {
 	now := sabft.Ticker.Now()
 	ceil := now.Add(time.Millisecond * 500).Round(time.Second)
@@ -243,6 +247,15 @@ func (sabft *SABFT) ActiveProducers() []string {
 
 	// TODO
 	return nil
+}
+
+func (sabft *SABFT) ActiveValidators() []string {
+	valset := sabft.dynasties.Front().validators
+	v := make([]string, len(valset))
+	for i := range v {
+		v[i] = valset[i].accountName
+	}
+	return v
 }
 
 func (sabft *SABFT) Start(node *node.Node) error {
