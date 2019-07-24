@@ -1044,6 +1044,9 @@ func (ev *ContractApplyEvaluator) Apply() {
 	//defer func() {
 	//	_ := recover()
 	//}()
+	if op.Amount != nil && op.Amount.Value > 0 {
+		vmCtx.Injector.TransferFromUserToContract(op.Caller.Value, op.Contract, op.Owner.Value, op.Amount.Value)
+	}
 
 	cosVM := vm.NewCosVM(vmCtx, ev.Database(), ev.GlobalProp().GetProps(), ev.Logger())
 
@@ -1057,11 +1060,6 @@ func (ev *ContractApplyEvaluator) Apply() {
 	if err != nil {
 		vmCtx.Injector.Error(ret, err.Error())
 		opAssertE(err, "execute vm error")
-	} else {
-		if op.Amount != nil && op.Amount.Value > 0 {
-			vmCtx.Injector.TransferFromUserToContract(op.Caller.Value, op.Contract, op.Owner.Value, op.Amount.Value)
-		}
-
 	}
 	applyCnt := scid.GetApplyCount()
 	opAssert(scid.MdApplyCount(applyCnt+1), "modify applycount failed")
@@ -1108,6 +1106,10 @@ func (ev *InternalContractApplyEvaluator) Apply() {
 	vmCtx := vmcontext.NewContextFromInternalApplyOp(op, code, codeHash, abiInterface, tables, ev.VMInjector(), ev.TrxObserver())
 	vmCtx.Gas = ev.remainGas
 
+	if op.Amount != nil && op.Amount.Value > 0 {
+		vmCtx.Injector.TransferFromContractToContract(op.FromContract, op.FromOwner.Value, op.ToContract, op.ToOwner.Value, op.Amount.Value)
+	}
+
 	cosVM := vm.NewCosVM(vmCtx, ev.Database(), ev.GlobalProp().GetProps(), ev.Logger())
 	//ev.Database().BeginTransaction()
 	ret, err := cosVM.Run()
@@ -1120,11 +1122,6 @@ func (ev *InternalContractApplyEvaluator) Apply() {
 		//ev.Database().EndTransaction(false)
 		// throw a panic, this panic should recover by upper contract vm context
 		opAssertE(err, "internal contract apply failed")
-	} else {
-		if op.Amount != nil && op.Amount.Value > 0 {
-			vmCtx.Injector.TransferFromContractToContract(op.FromContract, op.FromOwner.Value, op.ToContract, op.ToOwner.Value, op.Amount.Value)
-		}
-		//ev.Database().EndTransaction(true)
 	}
 }
 

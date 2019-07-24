@@ -142,10 +142,15 @@ const (
 	PerTicketPriceStr = "1.000000"
 	PerTicketWeight = 1e7
 	InitTopN = 500
-	InitEpochDuration = 60 * 60 * 24 * 30
+	//InitEpochDuration = 60 * 60 * 24 * 30
+	InitEpochDuration = 600
 	MaxTopN = 10000
 	MinEpochDuration = 60 * 60 * 24
 	MinTicketPrice = 100
+
+	// 2 * 1e9
+	InitPostWeightedVps = "2000000000"
+	InitReplyWeightedVps = "2000000000"
 )
 
 var GlobalId int32 = 1
