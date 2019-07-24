@@ -22,3 +22,7 @@ func NewDandelionAccount(name string, d *Dandelion) *DandelionAccount {
 func (acc *DandelionAccount) SendTrx(operations...*prototype.Operation) error {
 	return acc.D.SendTrxByAccount(acc.Name, operations...)
 }
+
+func (acc *DandelionAccount) SendTrxEx(operations...*prototype.Operation) (*prototype.TransactionReceipt, error) {
+	return acc.D.SendTrxByAccountEx(acc.Name, operations...)
+}
