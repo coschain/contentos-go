@@ -611,30 +611,18 @@ message GetMyStakerListByNameRequest {
     prototype.stake_record_reverse    start = 1;
     prototype.stake_record_reverse    end   = 2;
     uint32                            limit = 3;
-    prototype.stake_record_reverse    last_search = 4;
-}
-
-message MyStakerListInfo {
-    prototype.account_name            staker = 1;
-    prototype.stake_record_reverse    search_point = 2;
 }
 
 message GetMyStakerListByNameResponse {
-    repeated MyStakerListInfo my_staker_list = 1;
+    repeated prototype.account_name my_staker_list = 1;
 }
 
 message GetMyStakeListByNameRequest {
     prototype.stake_record    start = 1;
     prototype.stake_record    end   = 2;
     uint32                    limit = 3;
-    prototype.stake_record    last_search = 4;
-}
-
-message MyStakeListInfo {
-    prototype.account_name            stake_to = 1;
-    prototype.stake_record    search_point = 2;
 }
 
 message GetMyStakeListByNameResponse {
-    repeated MyStakeListInfo my_stake_list = 1;
+    repeated prototype.account_name my_stake_list = 1;
 }
