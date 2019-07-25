@@ -1,4 +1,4 @@
-// +build !prod
+// +build prod
 
 package constants
 
@@ -114,19 +114,19 @@ const (
 	BlockApplierVersion = 0x00000001
 
 	// resource parameter
-    LimitPrecision       = 1000 * 1000
-    NetConsumePointNum   = 10
-    NetConsumePointDen   = 1
-    CpuConsumePointNum   = 1
-    CpuConsumePointDen   = 100
-    MaxGasPerCall        = 20000 * CpuConsumePointDen
-    MaxStaminaPerBlock   = 100000
-    WindowSize           = 60 * 60 * 24
-    FreeStamina          = 100000
-    OneDayStamina        = MaxStaminaPerBlock * WindowSize
-    CommonOpStamina      = 100
-    StakeFreezeTime      = WindowSize * 3
-    TpsWindowSize        = 60
+	LimitPrecision       = 1000 * 1000
+	NetConsumePointNum   = 10
+	NetConsumePointDen   = 1
+	CpuConsumePointNum   = 1
+	CpuConsumePointDen   = 100
+	MaxGasPerCall        = 20000 * CpuConsumePointDen
+	MaxStaminaPerBlock   = 100000
+	WindowSize           = 60 * 60 * 24
+	FreeStamina          = 100000
+	OneDayStamina        = MaxStaminaPerBlock * WindowSize
+	CommonOpStamina      = 100
+	StakeFreezeTime      = WindowSize * 3
+	TpsWindowSize        = 60
 	FreeStaminaOverFlow  = "freeStaminaOverFlow"
 	StakeStaminaOverFlow = "stakeStaminaOverFlow"
 	EnableResourceControl = true
