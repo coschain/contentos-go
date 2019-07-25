@@ -1,4 +1,4 @@
-// +build !prod,!tests
+// +build !tests
 
 package constants
 
