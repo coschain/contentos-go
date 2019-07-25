@@ -56,6 +56,7 @@ func NewMonitor(c []*Components) *Monitor {
 		bY2:           10,
 
 		marginStep: widgets.NewPlot(),
+		confirmationTime: widgets.NewPlot(),
 		ci: NewCommitInfo(),
 	}
 
@@ -158,7 +159,12 @@ func (m *Monitor) drawMarginStep() {
 }
 
 func (m *Monitor) drawConfirmationTime() {
-
+	m.confirmationTime.Title = "confirmation time(ms)"
+	m.confirmationTime.Data = make([][]float64, 1)
+	m.confirmationTime.Data[0] = m.ci.ConfirmationTimeInfo()
+	m.confirmationTime.SetRect(80, 20, 110, 30)
+	m.confirmationTime.AxesColor = ui.ColorWhite
+	m.confirmationTime.LineColors[0] = ui.ColorYellow
 }
 
 func (m *Monitor) draw() {
@@ -168,7 +174,7 @@ func (m *Monitor) draw() {
 	m.drawConfirmationTime()
 
 	ui.Clear()
-	ui.Render(m.validatorList, m.nonValidatorList, m.chainInfoList, m.marginStep)
+	ui.Render(m.validatorList, m.nonValidatorList, m.chainInfoList, m.marginStep, m.confirmationTime)
 }
 
 func formattedLine(c *Components) string {
