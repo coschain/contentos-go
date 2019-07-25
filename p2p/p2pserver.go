@@ -35,6 +35,7 @@ type P2PServer struct {
 	ReconnectAddrs
 	quitOnline     chan bool
 	quitHeartBeat  chan bool
+	mockLatency  int
 
 	ctx *node.ServiceContext
 	log *logrus.Logger
@@ -420,11 +421,14 @@ func (this *P2PServer) Broadcast(message interface{}) {
 		return
 	}
 
-	//go func() {
-	//	time.Sleep(time.Duration(rand.Int()%15) * time.Second/10)
-	//	this.Network.Broadcast(msg, isConsensus)
-	//}()
-	this.Network.Broadcast(msg, isConsensus)
+	if this.mockLatency > 0 {
+		go func() {
+			time.Sleep(time.Duration(rand.Int()%this.mockLatency) * time.Millisecond)
+			this.Network.Broadcast(msg, isConsensus)
+		}()
+	} else {
+		this.Network.Broadcast(msg, isConsensus)
+	}
 }
 
 func (this *P2PServer) TriggerSync(current_head_blk_id coomn.BlockID) {
@@ -579,4 +583,12 @@ func (this *P2PServer) GetNodeNeighbours() string {
 		}
 	}
 	return peerList
+}
+
+func (this *P2PServer) SetMockLatency(t int) {
+	this.mockLatency = t
+}
+
+func (this *P2PServer) GetMockLatency() int {
+	return this.mockLatency
 }

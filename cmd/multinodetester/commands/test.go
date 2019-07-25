@@ -23,6 +23,7 @@ import (
 )
 
 var VERSION = "defaultVersion"
+var latency int
 
 var TestCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
@@ -30,6 +31,7 @@ var TestCmd = func() *cobra.Command {
 		Short: "start cosd nodes",
 		Run:   startNodes,
 	}
+	cmd.Flags().IntVarP(&latency, "latency", "l", 1500, "test count -l 1500 (in ms)")
 	return cmd
 }
 
@@ -138,7 +140,26 @@ func startNodes(cmd *cobra.Command, args []string) {
 	}
 	fmt.Printf("registered %d bp\n", cnt-1)
 
-	monitor := test.NewMonitor(nodes)
+	comp := make([]*test.Components, len(nodes))
+	for i := 0; i < len(nodes); i++ {
+		c, err := nodes[i].Service(iservices.ConsensusServerName)
+		if err != nil {
+			panic(err)
+		}
+		css := c.(iservices.IConsensus)
+
+		p, err := nodes[i].Service(iservices.P2PServerName)
+		if err != nil {
+			panic(err)
+		}
+		p2p := p.(iservices.IP2P)
+		p2p.SetMockLatency(latency)
+		comp[i] = &test.Components{
+			ConsensusSvc: css,
+			P2pSvc:       p2p,
+		}
+	}
+	monitor := test.NewMonitor(comp)
 	go monitor.Run()
 
 	<-stopCh

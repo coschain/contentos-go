@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/iservices"
-	"github.com/coschain/contentos-go/node"
 	ui "github.com/gizak/termui/v3"
 	"github.com/gizak/termui/v3/widgets"
 	"log"
@@ -13,13 +12,13 @@ import (
 	"time"
 )
 
-type components struct {
-	consensusSvc iservices.IConsensus
-	p2pSvc       iservices.IP2P
+type Components struct {
+	ConsensusSvc iservices.IConsensus
+	P2pSvc       iservices.IP2P
 }
 
 type Monitor struct {
-	compo              map[string]*components
+	compo              map[string]*Components
 	validators         map[string]bool
 	validatorList      *widgets.List
 	vX1, vY1, vX2, vY2 int
@@ -33,9 +32,9 @@ type Monitor struct {
 	firstBlock common.ISignedBlock
 }
 
-func NewMonitor(nodes []*node.Node) *Monitor {
+func NewMonitor(c []*Components) *Monitor {
 	m := &Monitor{
-		compo:         make(map[string]*components),
+		compo:         make(map[string]*Components),
 		validators:    make(map[string]bool),
 		validatorList: widgets.NewList(),
 		vX1:           0,
@@ -50,25 +49,11 @@ func NewMonitor(nodes []*node.Node) *Monitor {
 		bX1:           80,
 		bY1:           5,
 		bX2:           110,
-		bY2:           15,
+		bY2:           10,
 	}
 
-	for i := 0; i < len(nodes); i++ {
-		c, err := nodes[i].Service(iservices.ConsensusServerName)
-		if err != nil {
-			panic(err)
-		}
-		css := c.(iservices.IConsensus)
-
-		p, err := nodes[i].Service(iservices.P2PServerName)
-		if err != nil {
-			panic(err)
-		}
-		p2p := p.(iservices.IP2P)
-		m.compo[css.GetName()] = &components{
-			consensusSvc: css,
-			p2pSvc:       p2p,
-		}
+	for i := 0; i < len(c); i++ {
+		m.compo[c[i].ConsensusSvc.GetName()] = c[i]
 	}
 
 	return m
@@ -80,7 +65,7 @@ func (m *Monitor) Run() {
 	}
 	defer ui.Close()
 
-	bs, err := m.compo["initminer"].consensusSvc.FetchBlocks(1, 1)
+	bs, err := m.compo["initminer"].ConsensusSvc.FetchBlocks(1, 1)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -103,7 +88,7 @@ func (m *Monitor) Run() {
 }
 
 func (m *Monitor) drawValidators() {
-	v := m.compo["initminer"].consensusSvc.ActiveValidators()
+	v := m.compo["initminer"].ConsensusSvc.ActiveValidators()
 	for i := range v {
 		m.validators[v[i]] = true
 	}
@@ -123,7 +108,7 @@ func (m *Monitor) drawNonValidators() {
 		nonV[k] = true
 	}
 	m.nonValidatorList.Title = "non-validators"
-	m.nvY1 = m.vY2 + 5
+	m.nvY1 = m.vY2 + 3
 	m.nvY2 = m.nvY1 + len(m.compo) - len(m.validators) + 3
 	m.nonValidatorList.SetRect(m.nvX1, m.nvY1, m.nvX2, m.nvY2)
 	m.nonValidatorList.TextStyle.Fg = ui.ColorYellow
@@ -143,8 +128,8 @@ func (m *Monitor) drawChainInfo() {
 	m.chainInfoList.SetRect(m.bX1, m.bY1, m.bX2, m.bY2)
 	m.chainInfoList.TextStyle.Fg = ui.ColorCyan
 	info := make([]string, 0, 3)
-	info = append(info, "Latency: 1500ms")
-	cs := m.compo["initminer"].consensusSvc
+	info = append(info, fmt.Sprintf("Latency: %dms", m.compo["initminer"].P2pSvc.GetMockLatency()))
+	cs := m.compo["initminer"].ConsensusSvc
 	head, _ := cs.FetchBlock(cs.GetHeadBlockId())
 	info = append(info, fmt.Sprintf("Total blocks: %d", cs.GetHeadBlockId().BlockNum()))
 	info = append(info, fmt.Sprintf("Expected blocks: %d", head.Timestamp()-m.firstBlock.Timestamp()+1))
@@ -159,13 +144,13 @@ func (m *Monitor) draw() {
 	ui.Render(m.validatorList, m.nonValidatorList, m.chainInfoList)
 }
 
-func formattedLine(c *components) string {
-	peers := c.p2pSvc.GetNodeNeighbours()
+func formattedLine(c *Components) string {
+	peers := c.P2pSvc.GetNodeNeighbours()
 	ps := strings.Split(peers, ",")
 	return fmt.Sprintf("%12s %12d %12d %12d",
-		c.consensusSvc.GetName(),
-		c.consensusSvc.GetHeadBlockId().BlockNum(),
-		c.consensusSvc.GetLIB().BlockNum(),
+		c.ConsensusSvc.GetName(),
+		c.ConsensusSvc.GetHeadBlockId().BlockNum(),
+		c.ConsensusSvc.GetLIB().BlockNum(),
 		len(ps),
 	)
 }
