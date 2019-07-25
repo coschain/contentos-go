@@ -23,8 +23,8 @@ const (
 const (
 	DEFAULT_NODE_PORT                       = uint(20338)
 	DEFAULT_CONSENSUS_PORT                  = uint(20339)
-	DEFAULT_MAX_CONN_IN_BOUND               = uint(1024)
-	DEFAULT_MAX_CONN_OUT_BOUND              = uint(1024)
+	DEFAULT_MAX_CONN_IN_BOUND               = uint(5)
+	DEFAULT_MAX_CONN_OUT_BOUND              = uint(5)
 	DEFAULT_MAX_CONN_IN_BOUND_FOR_SINGLE_IP = uint(16)
 )
 

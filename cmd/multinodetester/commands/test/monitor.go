@@ -29,6 +29,10 @@ type Monitor struct {
 	chainInfoList      *widgets.List
 	bX1, bY1, bX2, bY2 int
 
+	marginStep       *widgets.Plot
+	confirmationTime *widgets.Plot
+	ci *CommitInfo
+
 	firstBlock common.ISignedBlock
 }
 
@@ -50,6 +54,9 @@ func NewMonitor(c []*Components) *Monitor {
 		bY1:           5,
 		bX2:           110,
 		bY2:           10,
+
+		marginStep: widgets.NewPlot(),
+		ci: NewCommitInfo(),
 	}
 
 	for i := 0; i < len(c); i++ {
@@ -70,6 +77,11 @@ func (m *Monitor) Run() {
 		log.Fatal(err)
 	}
 	m.firstBlock = bs[0]
+
+	m.compo["initminer1"].ConsensusSvc.SetHook("commit", m.ci.commitHook)
+	m.compo["initminer1"].ConsensusSvc.SetHook("generate_block", m.ci.generateBlockHook)
+	m.compo["initminer1"].ConsensusSvc.SetHook("switch_fork", m.ci.switchFork)
+	m.compo["initminer1"].ConsensusSvc.SetHook("branches", m.ci.branches)
 
 	m.draw()
 	uiEvents := ui.PollEvents()
@@ -136,12 +148,27 @@ func (m *Monitor) drawChainInfo() {
 	m.chainInfoList.Rows = info
 }
 
+func (m *Monitor) drawMarginStep() {
+	m.marginStep.Title = "margin step"
+	m.marginStep.Data = make([][]float64, 1)
+	m.marginStep.Data[0] = m.ci.MarginStepInfo()
+	m.marginStep.SetRect(80, 10, 110, 20)
+	m.marginStep.AxesColor = ui.ColorWhite
+	m.marginStep.LineColors[0] = ui.ColorYellow
+}
+
+func (m *Monitor) drawConfirmationTime() {
+
+}
+
 func (m *Monitor) draw() {
 	m.drawNodeList()
 	m.drawChainInfo()
+	m.drawMarginStep()
+	m.drawConfirmationTime()
 
 	ui.Clear()
-	ui.Render(m.validatorList, m.nonValidatorList, m.chainInfoList)
+	ui.Render(m.validatorList, m.nonValidatorList, m.chainInfoList, m.marginStep)
 }
 
 func formattedLine(c *Components) string {
