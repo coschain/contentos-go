@@ -17,12 +17,15 @@ import (
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/gogo/protobuf/proto"
+	"github.com/hashicorp/golang-lru"
 	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
 )
+
+const sTrxReceiptCacheSize = 10000
 
 type DandelionCore struct {
 	node *node.Node
@@ -31,6 +34,7 @@ type DandelionCore struct {
 	timeStamp uint32
 	prevHash *prototype.Sha256
 	accounts map[string]*prototype.PrivateKeyType
+	trxReceipts *lru.Cache
 }
 
 func NewDandelionCore(logger *logrus.Logger) *DandelionCore {
@@ -61,6 +65,7 @@ func NewDandelionCore(logger *logrus.Logger) *DandelionCore {
 		return NewDummyConsensus(ctx)
 	})
 
+	receiptCache, _ := lru.New(sTrxReceiptCacheSize)
 	d := &DandelionCore{
 		node: n,
 		cfg: cfg,
@@ -68,6 +73,7 @@ func NewDandelionCore(logger *logrus.Logger) *DandelionCore {
 		timeStamp: uint32(time.Now().Unix()),
 		prevHash: &prototype.Sha256{ Hash: make([]byte, 32) },
 		accounts: make(map[string]*prototype.PrivateKeyType),
+		trxReceipts: receiptCache,
 	}
 
 	initminerKey, _ := prototype.PrivateKeyFromWIF(constants.InitminerPrivKey)
@@ -94,12 +100,16 @@ func (d *DandelionCore) Start() (err error) {
 		// produce the first block with no transactions.
 		// this will set correct head timestamp in state db.
 		err = d.ProduceBlocks(1)
+		if err == nil {
+			_ = d.node.EvBus.Subscribe(constants.NoticeTrxApplied, d.trxApplied)
+		}
 	}
 	return
 }
 
 func (d *DandelionCore) Stop() error {
 	defer d.cleanup()
+	_ = d.node.EvBus.Unsubscribe(constants.NoticeTrxApplied, d.trxApplied)
 	return d.node.Stop()
 }
 
@@ -167,6 +177,10 @@ func (d *DandelionCore) ProduceBlocks(count int) error {
 	return nil
 }
 
+func (d *DandelionCore) trxApplied(trx *prototype.SignedTransaction, result *prototype.TransactionReceiptWithInfo) {
+	d.trxReceipts.Add(string(trx.Signature.Sig), result)
+}
+
 func (d *DandelionCore) sendTrx(privateKey *prototype.PrivateKeyType, operations...*prototype.Operation) (*prototype.SignedTransaction, error) {
 	data, err := proto.Marshal(&prototype.Transaction{
 		RefBlockNum: common.TaposRefBlockNum(d.Head().BlockNum()),
@@ -211,7 +225,7 @@ func (d *DandelionCore) SendTrxByAccount(name string, operations...*prototype.Op
 	return d.SendTrx(key, operations...)
 }
 
-func (d *DandelionCore) SendTrxEx(privateKey *prototype.PrivateKeyType, operations...*prototype.Operation) (*prototype.TransactionReceipt, error) {
+func (d *DandelionCore) SendTrxEx(privateKey *prototype.PrivateKeyType, operations...*prototype.Operation) (*prototype.TransactionReceiptWithInfo, error) {
 	trx, block, err := d.sendTrxAndProduceBlock(privateKey, operations...)
 	if err != nil {
 		return nil, err
@@ -220,12 +234,14 @@ func (d *DandelionCore) SendTrxEx(privateKey *prototype.PrivateKeyType, operatio
 		if bytes.Compare(w.SigTrx.Signature.Sig, trx.Signature.Sig) != 0 {
 			continue
 		}
-		return w.Receipt, nil
+		if r, ok := d.trxReceipts.Get(string(trx.Signature.Sig)); ok {
+			return r.(*prototype.TransactionReceiptWithInfo), nil
+		}
 	}
 	return nil, errors.New("transaction not found in block")
 }
 
-func (d *DandelionCore) SendTrxByAccountEx(name string, operations...*prototype.Operation) (*prototype.TransactionReceipt, error) {
+func (d *DandelionCore) SendTrxByAccountEx(name string, operations...*prototype.Operation) (*prototype.TransactionReceiptWithInfo, error) {
 	key, ok := d.accounts[name]
 	if !ok {
 		return nil, fmt.Errorf("unknown account: %s", name)
@@ -233,12 +249,12 @@ func (d *DandelionCore) SendTrxByAccountEx(name string, operations...*prototype.
 	return d.SendTrxEx(key, operations...)
 }
 
-func (d *DandelionCore) TrxReceipt(privateKey *prototype.PrivateKeyType, operations...*prototype.Operation) *prototype.TransactionReceipt {
+func (d *DandelionCore) TrxReceipt(privateKey *prototype.PrivateKeyType, operations...*prototype.Operation) *prototype.TransactionReceiptWithInfo {
 	r, _ := d.SendTrxEx(privateKey, operations...)
 	return r
 }
 
-func (d *DandelionCore) TrxReceiptByAccount(name string, operations...*prototype.Operation) *prototype.TransactionReceipt {
+func (d *DandelionCore) TrxReceiptByAccount(name string, operations...*prototype.Operation) *prototype.TransactionReceiptWithInfo {
 	r, _ := d.SendTrxByAccountEx(name, operations...)
 	return r
 }

@@ -28,10 +28,10 @@ func (acc *DandelionAccount) SendTrxAndProduceBlock(operations...*prototype.Oper
 	return err
 }
 
-func (acc *DandelionAccount) SendTrxEx(operations...*prototype.Operation) (*prototype.TransactionReceipt, error) {
+func (acc *DandelionAccount) SendTrxEx(operations...*prototype.Operation) (*prototype.TransactionReceiptWithInfo, error) {
 	return acc.D.SendTrxByAccountEx(acc.Name, operations...)
 }
 
-func (acc *DandelionAccount) TrxReceipt(operations...*prototype.Operation) *prototype.TransactionReceipt {
+func (acc *DandelionAccount) TrxReceipt(operations...*prototype.Operation) *prototype.TransactionReceiptWithInfo {
 	return acc.D.TrxReceiptByAccount(acc.Name, operations...)
 }
