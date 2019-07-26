@@ -383,9 +383,11 @@ func (c *TrxPool) generateBlockNoLock(witness string, pre *prototype.Sha256, tim
 
 	ret, bpNameList := c.shuffle(signBlock)
 	if ret {
-		c.updateGlobalWitnessBoot(bpNameList)
-		c.updateGlobalResourceParam(bpNameList)
-		c.deleteUnusedBp(bpNameList)
+		if len(bpNameList) > 0 {
+			c.updateGlobalWitnessBoot(bpNameList)
+			c.updateGlobalResourceParam(bpNameList)
+			c.deleteUnusedBp(bpNameList)
+		}
 	}
 
 	timing.Mark()
@@ -563,9 +565,11 @@ func (c *TrxPool) applyBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag
 
 		ret, bpNameList := c.shuffle(blk)
 		if ret {
-			c.updateGlobalWitnessBoot(bpNameList)
-			c.updateGlobalResourceParam(bpNameList)
-			c.deleteUnusedBp(bpNameList)
+			if len(bpNameList) > 0 {
+				c.updateGlobalWitnessBoot(bpNameList)
+				c.updateGlobalResourceParam(bpNameList)
+				c.deleteUnusedBp(bpNameList)
+			}
 		}
 
 		pushTiming.Mark()
