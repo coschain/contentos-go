@@ -13,7 +13,7 @@ import (
 var Wg = &sync.WaitGroup{}
 
 const (
-	querylistLength = 512
+	querylistLength = 1024
 )
 
 func Init() *NodeSet {
@@ -25,14 +25,29 @@ func Init() *NodeSet {
 	return nodeSet
 }
 
-func (manager *NodeSet) AddToQuerylist(list []string) {
+func (manager *NodeSet) Reset() {
 	manager.Lock()
 	defer manager.Unlock()
 
-	for i:=0;i<len(list);i++ {
-		if list[i] != "" {
-			_, ok := manager.NodeInfoList[list[i]]
-			if !ok {
+	manager.NodeInfoList = make(map[string]*NodeInfo)
+}
+
+func (manager *NodeSet) AddToQuerylist(list []string, duplicateCheck bool) {
+	if duplicateCheck {
+		manager.Lock()
+		defer manager.Unlock()
+
+		for i:=0;i<len(list);i++ {
+			if list[i] != "" {
+				_, ok := manager.NodeInfoList[list[i]]
+				if !ok {
+					QueryList <- list[i]
+				}
+			}
+		}
+	} else {
+		for i:=0;i<len(list);i++ {
+			if list[i] != "" {
 				QueryList <- list[i]
 			}
 		}
@@ -79,7 +94,9 @@ func (manager *NodeSet) Query(endPoint string) {
 		if err == nil {
 			peerList := strings.Split(neighbourResp.Peerlist, ", ")
 			iplist := parseIP(peerList)
-			manager.AddToQuerylist(iplist)
+			manager.AddToQuerylist(iplist, true)
+		} else {
+			fmt.Printf("Failed to get node neighbours, peer: %v, error: %v\n", endPoint, err)
 		}
 
 		versionResp, err := api.GetNodeRunningVersion(context.Background(), &grpcpb.NonParamsRequest{})
@@ -87,6 +104,10 @@ func (manager *NodeSet) Query(endPoint string) {
 		if err == nil {
 			info := &NodeInfo{version:versionResp.NodeVersion}
 			manager.restoreInfo(endPoint, info)
+		} else {
+			fmt.Printf("Failed to get node version, peer: %v, error: %v\n", endPoint, err)
 		}
+
+		conn.Close()
 	}
 }
