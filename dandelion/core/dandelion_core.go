@@ -181,6 +181,13 @@ func (d *DandelionCore) trxApplied(trx *prototype.SignedTransaction, result *pro
 	d.trxReceipts.Add(string(trx.Signature.Sig), result)
 }
 
+func (d *DandelionCore) GetTrxReceipt(trx *prototype.SignedTransaction) *prototype.TransactionReceiptWithInfo {
+	if r, ok := d.trxReceipts.Get(string(trx.Signature.Sig)); ok {
+		return r.(*prototype.TransactionReceiptWithInfo)
+	}
+	return nil
+}
+
 func (d *DandelionCore) sendTrx(privateKey *prototype.PrivateKeyType, operations...*prototype.Operation) (*prototype.SignedTransaction, error) {
 	data, err := proto.Marshal(&prototype.Transaction{
 		RefBlockNum: common.TaposRefBlockNum(d.Head().BlockNum()),
