@@ -672,7 +672,7 @@ func callContract(rpcClient grpcpb.ApiServiceClient, fromAccount  *wallet.PrivAc
 		Caller:   &prototype.AccountName{Value: fromAccount.Name},
 		Owner:    &prototype.AccountName{Value: "initminer"},
 		Amount:   &prototype.Coin{Value: 0},
-		Contract: "registercount",
+		Contract: "PGRegister",
 		Params:   param,
 		Method:   "checkincount",
 	}
