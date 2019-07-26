@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-const bufLen = 40
+const displayRange = 20
 
 type commit struct {
 	blk common.ISignedBlock
@@ -19,15 +19,15 @@ type CommitInfo struct {
 
 func NewCommitInfo() *CommitInfo {
 	return &CommitInfo{
-		recentlyCommitted: make([]*commit, 0, bufLen),
-		displayRange: 20,
+		recentlyCommitted: make([]*commit, 0, displayRange*2),
+		displayRange: displayRange,
 	}
 }
 
 func (ci *CommitInfo) Commit(b common.ISignedBlock) {
-	if len(ci.recentlyCommitted) == bufLen {
-		newC := make([]*commit, 0, bufLen)
-		for i:= bufLen-ci.displayRange; i<bufLen; i++ {
+	if len(ci.recentlyCommitted) == displayRange*2 {
+		newC := make([]*commit, 0, displayRange*2)
+		for i:= displayRange*2-ci.displayRange; i<displayRange*2; i++ {
 			newC = append(newC, ci.recentlyCommitted[i])
 		}
 		ci.recentlyCommitted = newC
@@ -55,14 +55,29 @@ func (ci *CommitInfo) MarginStepInfo() []float64 {
 }
 
 func (ci *CommitInfo) ConfirmationTimeInfo() []float64 {
-	info := make([]float64, 0, ci.displayRange)
+	info := make([]float64, ci.displayRange)
 	for i := ci.start; i<len(ci.recentlyCommitted); i++ {
 		elapsed := ci.recentlyCommitted[i].t.Sub(time.Unix(int64(ci.recentlyCommitted[i].blk.Timestamp()), 0))
 		info = append(info, float64(elapsed/time.Millisecond))
 	}
-	if len(info) < 2 {
-		return []float64{2000.0, 2000.0}
+
+	index := displayRange-1
+	for i:=len(ci.recentlyCommitted)-1; i>0; i-- {
+		committedBlock := ci.recentlyCommitted[i].blk
+		prevCommittedBlock := ci.recentlyCommitted[i-1].blk
+		gap := int(committedBlock.Id().BlockNum()-prevCommittedBlock.Id().BlockNum())
+		startIndex := index-gap
+		elapsed := float64(ci.recentlyCommitted[i].t.Sub(time.Unix(int64(ci.recentlyCommitted[i].blk.Timestamp()), 0))/time.Millisecond)
+		for j:=index; j>startIndex; j-- {
+			info[j] = elapsed
+			elapsed += 1000.0
+			if j==0 {
+				return info
+			}
+		}
+		index = startIndex
 	}
+	
 	return info
 }
 

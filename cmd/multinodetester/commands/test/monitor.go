@@ -34,6 +34,7 @@ type Monitor struct {
 	ci *CommitInfo
 
 	firstBlock common.ISignedBlock
+	headBlock common.ISignedBlock
 }
 
 func NewMonitor(c []*Components) *Monitor {
@@ -143,9 +144,9 @@ func (m *Monitor) drawChainInfo() {
 	info := make([]string, 0, 3)
 	info = append(info, fmt.Sprintf("Latency: %dms", m.compo["initminer"].P2pSvc.GetMockLatency()))
 	cs := m.compo["initminer"].ConsensusSvc
-	head, _ := cs.FetchBlock(cs.GetHeadBlockId())
+	m.headBlock, _ = cs.FetchBlock(cs.GetHeadBlockId())
 	info = append(info, fmt.Sprintf("Total blocks: %d", cs.GetHeadBlockId().BlockNum()))
-	info = append(info, fmt.Sprintf("Expected blocks: %d", head.Timestamp()-m.firstBlock.Timestamp()+1))
+	info = append(info, fmt.Sprintf("Expected blocks: %d", m.headBlock.Timestamp()-m.firstBlock.Timestamp()+1))
 	m.chainInfoList.Rows = info
 }
 
