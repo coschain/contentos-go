@@ -741,6 +741,8 @@ func (ev *FollowEvaluator) Apply() {
 
 	acctWrap = table.NewSoAccountWrap(ev.Database(), op.FAccount)
 	opAssert(acctWrap.CheckExist(), "follow f_account do not exist ")
+
+	opAssert( op.Account.Value != op.FAccount.Value, "can't follow yourself")
 }
 
 func (ev *TransferToVestingEvaluator) Apply() {
