@@ -1,0 +1,27 @@
+{
+    "actions": [
+        {
+            "name": "sha256",
+            "type": "sha256"
+        }
+    ],
+    "structs": [
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "data",
+                    "type": "cosio::bytes"
+                },
+                {
+                    "name": "expected",
+                    "type": "cosio::checksum256"
+                }
+            ],
+            "name": "sha256"
+        }
+    ],
+    "tables": null,
+    "types": null,
+    "version": "contentos::abi-1.0"
+}
