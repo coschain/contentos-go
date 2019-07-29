@@ -7,6 +7,7 @@ import (
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/utils"
+	"github.com/coschain/contentos-go/vm/cache"
 	"github.com/coschain/contentos-go/vm/injector"
 	"github.com/go-interpreter/wagon/exec"
 	"github.com/sirupsen/logrus"
@@ -348,4 +349,8 @@ func (p *TrxContext) TrxObserver() iservices.ITrxObserver {
 
 func (p *TrxContext) Logger() *logrus.Logger {
 	return p.control.log
+}
+
+func (p *TrxContext) VmCache() *vmcache.VmCache {
+	return p.control.vmCache
 }

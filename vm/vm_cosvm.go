@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
-	"github.com/coschain/contentos-go/vm/cache"
 	"github.com/coschain/contentos-go/vm/context"
 	"github.com/coschain/contentos-go/vm/validator"
 	"github.com/go-interpreter/wagon/exec"
@@ -121,7 +120,7 @@ func (w *CosVM) runEntry(entryName string) (ret uint32, err error) {
 		}
 	}()
 
-	vc := vmcache.GetVmCache()
+	vc := w.ctx.Injector.VmCache()
 	vm := vc.Fetch(w.ctx.Owner.Value, w.ctx.Contract, w.ctx.CodeHash.Hash)
 	if vm != nil {
 		w.logger.Debugf("VMCACHE hit: %s.%s hash=%x", w.ctx.Owner.Value, w.ctx.Contract, w.ctx.CodeHash.Hash)

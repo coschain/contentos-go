@@ -17,21 +17,16 @@ type VmCache struct {
 	lock    sync.RWMutex					// for thread safety
 }
 
-var once sync.Once
-var vc *VmCache
-
-func GetVmCache() *VmCache {
-	once.Do(func() {
-		vc = &VmCache{
-			byName:  make(map[string]map[int64]bool),
-			byIndex: make(map[int64]string),
-		}
-		cache, err := lru.NewWithEvict(DefaultLruSize, vc.onCacheEvict)
-		if err != nil {
-			panic(err)
-		}
-		vc.cache = cache
-	})
+func NewVmCache() *VmCache {
+	vc := &VmCache{
+		byName:  make(map[string]map[int64]bool),
+		byIndex: make(map[int64]string),
+	}
+	cache, err := lru.NewWithEvict(DefaultLruSize, vc.onCacheEvict)
+	if err != nil {
+		panic(err)
+	}
+	vc.cache = cache
 	return vc
 }
 

@@ -1,6 +1,7 @@
 package vminjector
 
 import (
+	vmcache "github.com/coschain/contentos-go/vm/cache"
 	"github.com/go-interpreter/wagon/exec"
 )
 
@@ -18,4 +19,5 @@ type Injector interface {
 	ContractABI(owner, contract string) string
 	GetBlockProducers() []string
 	DiscardAccountCache(name string)
+	VmCache() *vmcache.VmCache
 }
