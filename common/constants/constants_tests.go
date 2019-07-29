@@ -82,7 +82,7 @@ const (
 
 	PERCENT = 10000
 
-	VoteRegenerateTime = (60 * 60 * 24) * 3
+	VoteRegenerateTime = 10000
 
 	VoteLimitDuringRegenerate = 30
 
@@ -104,7 +104,7 @@ const (
 	ConvertWeeks = 13
 
 	BaseRate               = 1e6
-	PowerDownBlockInterval = (60 * 60 * 24) * 7
+	PowerDownBlockInterval = 6000
 
 	ReportCashout = 1000
 
@@ -147,12 +147,11 @@ const (
 	//InitEpochDuration = 60 * 60 * 24 * 30
 	InitEpochDuration = 600
 	MaxTopN = 10000
-	MinEpochDuration = 60 * 60 * 24
+	MinEpochDuration = 600
 	MinTicketPrice = 100
 
-	// 2 * 1e9
-	InitPostWeightedVps = "2000000000"
-	InitReplyWeightedVps = "2000000000"
+	InitPostWeightedVps = "0"
+	InitReplyWeightedVps = "0"
 )
 
 var GlobalId int32 = 1
