@@ -112,3 +112,27 @@ func CreateAcc(accName, accKey, creatorKey string, css iservices.IConsensus) err
 	}
 	return nil
 }
+
+func bpUnregistrationOP(name string) *prototype.BpUnregisterOperation {
+	bpUnregisterOp := &prototype.BpUnregisterOperation{
+		Owner:           &prototype.AccountName{Value: name},
+	}
+
+	return bpUnregisterOp
+}
+
+func UnregesiterBP(name, sk string, css iservices.IConsensus) error {
+	privKey, err := prototype.PrivateKeyFromWIF(sk)
+	if err != nil {
+		fmt.Println("unregisterBP get priv key ", err)
+		return nil
+	}
+
+	op := bpUnregistrationOP(name)
+	tx := tx(css, op, privKey)
+	err = css.PushTransactionToPending(tx)
+	if err != nil {
+		return err
+	}
+	return nil
+}

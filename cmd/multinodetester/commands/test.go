@@ -80,6 +80,7 @@ func startNodes(cmd *cobra.Command, args []string) {
 
 	nodes := make([]*node.Node, 0, cnt)
 	sks := make([]string, 0, cnt)
+	names := make([]string, cnt)
 
 	for i := 0; i < cnt; i++ {
 		name := fmt.Sprintf("%s_%d", TesterClientIdentifier, i)
@@ -93,6 +94,10 @@ func startNodes(cmd *cobra.Command, args []string) {
 		}
 		nodes = append(nodes, app)
 		sks = append(sks, cfg.Consensus.LocalBpPrivateKey)
+	}
+
+	for i := 1; i < cnt; i++ {
+		names[i] = fmt.Sprintf("initminer%d", i)
 	}
 
 	stopCh := make(chan struct{})
@@ -115,7 +120,6 @@ func startNodes(cmd *cobra.Command, args []string) {
 		}
 	}()
 
-
 	c, err := nodes[0].Service(iservices.ConsensusServerName)
 	if err != nil {
 		panic(err)
@@ -124,21 +128,11 @@ func startNodes(cmd *cobra.Command, args []string) {
 
 	time.Sleep(2 * time.Second)
 	for i := 1; i < cnt; i++ {
-		name := fmt.Sprintf("initminer%d", i)
-		if err = test.CreateAcc(name, sks[i], sks[0], css); err != nil {
+		if err = test.CreateAcc(names[i], sks[i], sks[0], css); err != nil {
 			panic(err)
 		}
 	}
 	fmt.Printf("created %d accounts\n", cnt-1)
-
-	time.Sleep(2 * time.Second)
-	for i := 1; i < cnt; i++ {
-		name := fmt.Sprintf("initminer%d", i)
-		if err = test.RegesiterBP(name, sks[i], css); err != nil {
-			panic(err)
-		}
-	}
-	fmt.Printf("registered %d bp\n", cnt-1)
 
 	comp := make([]*test.Components, len(nodes))
 	for i := 0; i < len(nodes); i++ {
@@ -161,6 +155,7 @@ func startNodes(cmd *cobra.Command, args []string) {
 	}
 	monitor := test.NewMonitor(comp)
 	go monitor.Run()
+	go monitor.Shuffle(names[1:], sks[1:], css, stopCh)
 
 	<-stopCh
 	for i := range nodes {

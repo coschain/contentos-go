@@ -9,6 +9,7 @@ import (
 	"log"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -31,10 +32,12 @@ type Monitor struct {
 
 	marginStep       *widgets.Plot
 	confirmationTime *widgets.Plot
-	ci *CommitInfo
+	ci               *CommitInfo
 
 	firstBlock common.ISignedBlock
-	headBlock common.ISignedBlock
+	headBlock  common.ISignedBlock
+
+	sync.RWMutex
 }
 
 func NewMonitor(c []*Components) *Monitor {
@@ -56,9 +59,9 @@ func NewMonitor(c []*Components) *Monitor {
 		bX2:           110,
 		bY2:           10,
 
-		marginStep: widgets.NewPlot(),
+		marginStep:       widgets.NewPlot(),
 		confirmationTime: widgets.NewPlot(),
-		ci: NewCommitInfo(),
+		ci:               NewCommitInfo(),
 	}
 
 	for i := 0; i < len(c); i++ {
@@ -102,7 +105,11 @@ func (m *Monitor) Run() {
 }
 
 func (m *Monitor) drawValidators() {
+	m.Lock()
+	defer m.Unlock()
+
 	v := m.compo["initminer"].ConsensusSvc.ActiveValidators()
+	m.validators = make(map[string]bool)
 	for i := range v {
 		m.validators[v[i]] = true
 	}
@@ -114,6 +121,9 @@ func (m *Monitor) drawValidators() {
 }
 
 func (m *Monitor) drawNonValidators() {
+	m.RLock()
+	defer m.RUnlock()
+
 	nonV := make(map[string]bool)
 	for k := range m.compo {
 		if m.validators[k] == true {
@@ -130,7 +140,6 @@ func (m *Monitor) drawNonValidators() {
 }
 
 func (m *Monitor) drawNodeList() {
-	m.validators = make(map[string]bool)
 	m.drawValidators()
 	m.drawNonValidators()
 }
