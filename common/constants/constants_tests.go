@@ -46,9 +46,7 @@ const (
 
 	PostInvalidId        = 0
 	PostMaxDepth         = 8
-	//PostCashOutDelayTime = 60 * 60 * 24 * 7
-	//PostCashOutDelayBlock = 60 * 10
-	PostCashOutDelayBlock = 60 * 60 * 24
+	PostCashOutDelayBlock = 60 * 10
 	//VpDecayTime = 60 * 60 * 24 * 1.5
 	VpDecayTime = PostCashOutDelayBlock * 1.5
 

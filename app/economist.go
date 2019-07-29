@@ -6,7 +6,6 @@ import (
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
-	"github.com/coschain/contentos-go/common/variables"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/pkg/errors"
@@ -334,12 +333,12 @@ func (e *Economist) decayGlobalVotePower() {
 		replyWeightedVps.SetString(props.ReplyWeightedVps, 10)
 		var postWeightedDecay big.Int
 		postWeightedDecay.Mul(&postWeightedVps, new(big.Int).SetUint64(constants.BlockInterval))
-		postWeightedDecay.Div(&postWeightedDecay, new(big.Int).SetUint64(variables.VpDecayTime()))
+		postWeightedDecay.Div(&postWeightedDecay, new(big.Int).SetUint64(constants.VpDecayTime))
 		postWeightedVps.Sub(&postWeightedVps, &postWeightedDecay)
 		//props.PostWeightedVps -= props.PostWeightedVps * constants.BlockInterval / variables.VpDecayTime()
 		var replyWeightedDecay big.Int
 		replyWeightedDecay.Mul(&replyWeightedVps, new(big.Int).SetUint64(constants.BlockInterval))
-		replyWeightedDecay.Div(&replyWeightedDecay, new(big.Int).SetUint64(variables.VpDecayTime()))
+		replyWeightedDecay.Div(&replyWeightedDecay, new(big.Int).SetUint64(constants.VpDecayTime))
 		replyWeightedVps.Sub(&replyWeightedVps, &replyWeightedDecay)
 		props.PostWeightedVps = postWeightedVps.String()
 		props.ReplyWeightedVps = replyWeightedVps.String()

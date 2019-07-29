@@ -7,7 +7,6 @@ import (
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/common/encoding/vme"
-	"github.com/coschain/contentos-go/common/variables"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/vm"
@@ -341,7 +340,7 @@ func (ev *PostEvaluator) Apply() {
 		t.Created = ev.GlobalProp().HeadBlockTime()
 		//t.CashoutTime = &prototype.TimePointSec{UtcSeconds: ev.GlobalProp().HeadBlockTime().UtcSeconds + uint32(constants.PostCashOutDelayTime)}
 		//t.CashoutBlockNum = ev.GlobalProp().GetProps().HeadBlockNumber + constants.PostCashOutDelayBlock
-		t.CashoutBlockNum = ev.GlobalProp().GetProps().HeadBlockNumber + variables.PostCashOutDelayBlock()
+		t.CashoutBlockNum = ev.GlobalProp().GetProps().HeadBlockNumber + constants.PostCashOutDelayBlock
 		t.Depth = 0
 		t.Children = 0
 		t.RootId = t.PostId
@@ -400,7 +399,7 @@ func (ev *ReplyEvaluator) Apply() {
 		t.Body = op.Content
 		t.Created = ev.GlobalProp().HeadBlockTime()
 		//t.CashoutTime = &prototype.TimePointSec{UtcSeconds: ev.GlobalProp().HeadBlockTime().UtcSeconds + uint32(constants.PostCashOutDelayTime)}
-		t.CashoutBlockNum = ev.GlobalProp().GetProps().HeadBlockNumber + variables.PostCashOutDelayBlock()
+		t.CashoutBlockNum = ev.GlobalProp().GetProps().HeadBlockNumber + constants.PostCashOutDelayBlock
 		t.Depth = pidWrap.GetDepth() + 1
 		t.Children = 0
 		t.RootId = rootId

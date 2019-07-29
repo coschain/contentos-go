@@ -8,7 +8,6 @@ import (
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/common/eventloop"
-	"github.com/coschain/contentos-go/common/variables"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/prototype"
@@ -1110,7 +1109,7 @@ func (as *APIService) fetchPostInfoResponseById(postId uint64,isNeedLock bool) *
 			DappRewards:   pWrap.GetDappRewards(),
 			WeightedVp:    pWrap.GetWeightedVp(),
 			Ticket:        pWrap.GetTicket(),
-			CashoutInterval:   variables.PostCashOutDelayBlock(),
+			CashoutInterval:  constants.PostCashOutDelayBlock,
 			GlobalRewards: &prototype.Vest{Value: globalRewards},
 			GlobalWeightedVp: globalWeightedVp,
 			Copyright:      pWrap.GetCopyright(),

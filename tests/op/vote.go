@@ -2,7 +2,6 @@ package op
 
 import (
 	"github.com/coschain/contentos-go/common/constants"
-	"github.com/coschain/contentos-go/common/variables"
 	. "github.com/coschain/contentos-go/dandelion"
 	"github.com/stretchr/testify/assert"
 	"strconv"
@@ -62,14 +61,14 @@ func (tester *VoteTester) revote(t *testing.T, d *Dandelion) {
 	a.Equal("0", d.Post(1).GetWeightedVp())
 	receipt, err := tester.acc0.SendTrxEx(Vote(tester.acc0.Name, 1))
 	a.NoError(err)
-	a.NotEqual(receipt.Status, 200)
+	a.NotEqual(receipt.Status, SUCCESS)
 }
 
 func (tester *VoteTester) voteToGhostPost(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
 	receipt, err := tester.acc0.SendTrxEx(Vote(tester.acc0.Name, 2))
 	a.NoError(err)
-	a.NotEqual(receipt.Status, 200)
+	a.NotEqual(receipt.Status, SUCCESS)
 }
 
 
@@ -89,7 +88,7 @@ func (tester *VoteTester) voteAfterPostCashout(t *testing.T, d *Dandelion)  {
 	a := assert.New(t)
 	// waiting vote power recover
 	oldVp := d.Post(1).GetWeightedVp()
-	BLOCKS := int(variables.PostCashOutDelayBlock())
+	BLOCKS := int(constants.PostCashOutDelayBlock)
 	a.NoError(d.ProduceBlocks(BLOCKS))
 	a.NoError(tester.acc1.SendTrxAndProduceBlock(Vote(tester.acc1.Name, 1)))
 	a.Equal(oldVp, d.Post(1).GetWeightedVp())
