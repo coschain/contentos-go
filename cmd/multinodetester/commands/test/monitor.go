@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/iservices"
-	"github.com/coschain/contentos-go/node"
 	ui "github.com/gizak/termui/v3"
 	"github.com/gizak/termui/v3/widgets"
 	"log"
@@ -13,13 +12,13 @@ import (
 	"time"
 )
 
-type components struct {
-	consensusSvc iservices.IConsensus
-	p2pSvc       iservices.IP2P
+type Components struct {
+	ConsensusSvc iservices.IConsensus
+	P2pSvc       iservices.IP2P
 }
 
 type Monitor struct {
-	compo              map[string]*components
+	compo              map[string]*Components
 	validators         map[string]bool
 	validatorList      *widgets.List
 	vX1, vY1, vX2, vY2 int
@@ -30,12 +29,17 @@ type Monitor struct {
 	chainInfoList      *widgets.List
 	bX1, bY1, bX2, bY2 int
 
+	marginStep       *widgets.Plot
+	confirmationTime *widgets.Plot
+	ci *CommitInfo
+
 	firstBlock common.ISignedBlock
+	headBlock common.ISignedBlock
 }
 
-func NewMonitor(nodes []*node.Node) *Monitor {
+func NewMonitor(c []*Components) *Monitor {
 	m := &Monitor{
-		compo:         make(map[string]*components),
+		compo:         make(map[string]*Components),
 		validators:    make(map[string]bool),
 		validatorList: widgets.NewList(),
 		vX1:           0,
@@ -50,25 +54,15 @@ func NewMonitor(nodes []*node.Node) *Monitor {
 		bX1:           80,
 		bY1:           5,
 		bX2:           110,
-		bY2:           15,
+		bY2:           10,
+
+		marginStep: widgets.NewPlot(),
+		confirmationTime: widgets.NewPlot(),
+		ci: NewCommitInfo(),
 	}
 
-	for i := 0; i < len(nodes); i++ {
-		c, err := nodes[i].Service(iservices.ConsensusServerName)
-		if err != nil {
-			panic(err)
-		}
-		css := c.(iservices.IConsensus)
-
-		p, err := nodes[i].Service(iservices.P2PServerName)
-		if err != nil {
-			panic(err)
-		}
-		p2p := p.(iservices.IP2P)
-		m.compo[css.GetName()] = &components{
-			consensusSvc: css,
-			p2pSvc:       p2p,
-		}
+	for i := 0; i < len(c); i++ {
+		m.compo[c[i].ConsensusSvc.GetName()] = c[i]
 	}
 
 	return m
@@ -80,11 +74,16 @@ func (m *Monitor) Run() {
 	}
 	defer ui.Close()
 
-	bs, err := m.compo["initminer"].consensusSvc.FetchBlocks(1, 1)
+	bs, err := m.compo["initminer"].ConsensusSvc.FetchBlocks(1, 1)
 	if err != nil {
 		log.Fatal(err)
 	}
 	m.firstBlock = bs[0]
+
+	m.compo["initminer1"].ConsensusSvc.SetHook("commit", m.ci.commitHook)
+	m.compo["initminer1"].ConsensusSvc.SetHook("generate_block", m.ci.generateBlockHook)
+	m.compo["initminer1"].ConsensusSvc.SetHook("switch_fork", m.ci.switchFork)
+	m.compo["initminer1"].ConsensusSvc.SetHook("branches", m.ci.branches)
 
 	m.draw()
 	uiEvents := ui.PollEvents()
@@ -103,7 +102,7 @@ func (m *Monitor) Run() {
 }
 
 func (m *Monitor) drawValidators() {
-	v := m.compo["initminer"].consensusSvc.ActiveValidators()
+	v := m.compo["initminer"].ConsensusSvc.ActiveValidators()
 	for i := range v {
 		m.validators[v[i]] = true
 	}
@@ -123,7 +122,7 @@ func (m *Monitor) drawNonValidators() {
 		nonV[k] = true
 	}
 	m.nonValidatorList.Title = "non-validators"
-	m.nvY1 = m.vY2 + 5
+	m.nvY1 = m.vY2 + 3
 	m.nvY2 = m.nvY1 + len(m.compo) - len(m.validators) + 3
 	m.nonValidatorList.SetRect(m.nvX1, m.nvY1, m.nvX2, m.nvY2)
 	m.nonValidatorList.TextStyle.Fg = ui.ColorYellow
@@ -143,29 +142,49 @@ func (m *Monitor) drawChainInfo() {
 	m.chainInfoList.SetRect(m.bX1, m.bY1, m.bX2, m.bY2)
 	m.chainInfoList.TextStyle.Fg = ui.ColorCyan
 	info := make([]string, 0, 3)
-	info = append(info, "Latency: 1500ms")
-	cs := m.compo["initminer"].consensusSvc
-	head, _ := cs.FetchBlock(cs.GetHeadBlockId())
+	info = append(info, fmt.Sprintf("Latency: %dms", m.compo["initminer"].P2pSvc.GetMockLatency()))
+	cs := m.compo["initminer"].ConsensusSvc
+	m.headBlock, _ = cs.FetchBlock(cs.GetHeadBlockId())
 	info = append(info, fmt.Sprintf("Total blocks: %d", cs.GetHeadBlockId().BlockNum()))
-	info = append(info, fmt.Sprintf("Expected blocks: %d", head.Timestamp()-m.firstBlock.Timestamp()+1))
+	info = append(info, fmt.Sprintf("Expected blocks: %d", m.headBlock.Timestamp()-m.firstBlock.Timestamp()+1))
 	m.chainInfoList.Rows = info
+}
+
+func (m *Monitor) drawMarginStep() {
+	m.marginStep.Title = "margin step"
+	m.marginStep.Data = make([][]float64, 1)
+	m.marginStep.Data[0] = m.ci.MarginStepInfo()
+	m.marginStep.SetRect(80, 10, 110, 20)
+	m.marginStep.AxesColor = ui.ColorWhite
+	m.marginStep.LineColors[0] = ui.ColorYellow
+}
+
+func (m *Monitor) drawConfirmationTime() {
+	m.confirmationTime.Title = "confirmation time(ms)"
+	m.confirmationTime.Data = make([][]float64, 1)
+	m.confirmationTime.Data[0] = m.ci.ConfirmationTimeInfo()
+	m.confirmationTime.SetRect(80, 20, 110, 30)
+	m.confirmationTime.AxesColor = ui.ColorWhite
+	m.confirmationTime.LineColors[0] = ui.ColorYellow
 }
 
 func (m *Monitor) draw() {
 	m.drawNodeList()
 	m.drawChainInfo()
+	m.drawMarginStep()
+	m.drawConfirmationTime()
 
 	ui.Clear()
-	ui.Render(m.validatorList, m.nonValidatorList, m.chainInfoList)
+	ui.Render(m.validatorList, m.nonValidatorList, m.chainInfoList, m.marginStep, m.confirmationTime)
 }
 
-func formattedLine(c *components) string {
-	peers := c.p2pSvc.GetNodeNeighbours()
+func formattedLine(c *Components) string {
+	peers := c.P2pSvc.GetNodeNeighbours()
 	ps := strings.Split(peers, ",")
 	return fmt.Sprintf("%12s %12d %12d %12d",
-		c.consensusSvc.GetName(),
-		c.consensusSvc.GetHeadBlockId().BlockNum(),
-		c.consensusSvc.GetLIB().BlockNum(),
+		c.ConsensusSvc.GetName(),
+		c.ConsensusSvc.GetHeadBlockId().BlockNum(),
+		c.ConsensusSvc.GetLIB().BlockNum(),
 		len(ps),
 	)
 }

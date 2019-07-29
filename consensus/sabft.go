@@ -64,6 +64,8 @@ type SABFT struct {
 	stopCh chan struct{}
 	wg     sync.WaitGroup
 	deadlock.RWMutex
+
+	hook map[string]func(args ...interface{})
 }
 
 func NewSABFT(ctx *node.ServiceContext, lg *logrus.Logger) *SABFT {
@@ -85,6 +87,7 @@ func NewSABFT(ctx *node.ServiceContext, lg *logrus.Logger) *SABFT {
 		bftStarted: 0,
 		commitCh:   make(chan message.Commit),
 		Ticker:     &Timer{},
+		hook:       make(map[string]func(args ...interface{})),
 	}
 
 	ret.SetBootstrap(ctx.Config().Consensus.BootStrap)
@@ -168,7 +171,7 @@ func (sabft *SABFT) shuffle(head common.ISignedBlock) (bool, []string) {
 
 	newDyn := sabft.makeDynasty(blockNum, prods, pubKeys, sabft.localPrivKey)
 	sabft.addDynasty(newDyn)
-	if atomic.LoadUint32(&sabft.bftStarted) == 0 && sabft.bft != nil{
+	if atomic.LoadUint32(&sabft.bftStarted) == 0 && sabft.bft != nil {
 		sabft.checkBFTRoutine()
 	}
 	return true, prods
@@ -323,7 +326,7 @@ func (sabft *SABFT) Start(node *node.Node) error {
 		LastHeight:       lh,
 		LastProposedData: sabft.ForkDB.LastCommitted().Data,
 	}
-	
+
 	sabft.bft = gobft.NewCore(sabft, sabft.dynasties.Front().priv)
 	//pv := newPrivValidator(sabft, sabft.localPrivKey, sabft.Name)
 	//sabft.bft = gobft.NewCore(sabft, pv)
@@ -882,7 +885,6 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 				sabft.log.Info("[SABFT] switch fork success, new head", newHead)
 			}
 		}
-		return nil
 	case forkdb.RTPushedOnMain:
 		if applyStateDB {
 			if err := sabft.applyBlock(b); err != nil {
@@ -894,11 +896,13 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 		}
 		sabft.log.Debug("[SABFT] pushBlock FINISHED #", b.Id().BlockNum(), " id ", b.Id())
 		sabft.p2p.Broadcast(b)
-		return nil
 	default:
 		return ErrInternal
 	}
-	return ErrInternal
+	if f, exist := sabft.hook["branches"]; exist {
+		f()
+	}
+	return nil
 }
 
 func (sabft *SABFT) GetLastBFTCommit() interface{} {
@@ -1038,12 +1042,11 @@ func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 	sabft.lastCommitted.Store(commitRecords)
 	sabft.cp.Flush(blockID)
 	sabft.dynasties.Purge(blockNum)
-	//sabft.log.Infof("****first dynasty at %d", sabft.dynasties.Front().Seq)
-	//for i := range sabft.dynasties.Front().validators {
-	//	sabft.log.Infof(" ", sabft.dynasties.Front().validators[i].accountName)
-	//}
-	sabft.log.Debug("[SABFT] committed block #", blockID)
 
+	sabft.log.Debug("[SABFT] committed block #", blockID)
+	if f, exist := sabft.hook["commit"]; exist {
+		f(blk)
+	}
 	return nil
 }
 
@@ -1225,6 +1228,9 @@ func (sabft *SABFT) switchFork(old, new common.BlockID) bool {
 		return false
 	}
 
+	if f, exist := sabft.hook["switch_fork"]; exist {
+		f()
+	}
 	return true
 }
 
@@ -1445,6 +1451,9 @@ func (sabft *SABFT) MaybeProduceBlock() {
 	}
 	sabft.Unlock()
 
+	if f, exist := sabft.hook["generate_block"]; exist {
+		f()
+	}
 	sabft.p2p.Broadcast(b)
 }
 
@@ -1513,7 +1522,7 @@ func (sabft *SABFT) handleBlockSync() error {
 			"%v,end:%v,real commit num is %v", dbLastPushed, sabft.ForkDB.Head().Id().BlockNum(), latestNumber)
 
 		sabft.popBlock(latestNumber + 1)
-		
+
 	}
 
 	return nil
@@ -1549,4 +1558,8 @@ func (sabft *SABFT) IsOnMainBranch(id common.BlockID) (bool, error) {
 	}
 
 	return false, nil
+}
+
+func (sabft *SABFT) SetHook(key string, f func(args ...interface{})) {
+	sabft.hook[key] = f
 }

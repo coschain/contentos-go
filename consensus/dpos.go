@@ -197,6 +197,10 @@ func (d *DPoS) Start(node *node.Node) error {
 	return nil
 }
 
+func (d *DPoS) SetHook(key string, f func(args ...interface{})) {
+
+}
+
 func (d *DPoS) scheduleProduce() bool {
 	if !d.checkGenesis() {
 		//d.log.Info("checkGenesis failed.")

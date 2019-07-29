@@ -79,4 +79,6 @@ type IConsensus interface {
 
 	// check whether the given id's signed block is on the main branch
 	IsOnMainBranch(id common.BlockID) (bool, error)
+
+	SetHook(key string, f func(args ...interface{}))
 }

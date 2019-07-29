@@ -3,7 +3,7 @@ WALLET = github.com/coschain/contentos-go/cmd/wallet-cli
 
 test:
 	@echo "--> Running go test"
-	@GO111MODULE=on go test -coverprofile=cc0.txt ./...
+	@GO111MODULE=on go test -tags tests -coverprofile=cc0.txt ./...
 	@echo "--> Total code coverage"
 	@GO111MODULE=on go run utils/totalcov/main.go . cc0.txt >coverage.txt
 

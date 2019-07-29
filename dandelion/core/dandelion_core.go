@@ -232,3 +232,13 @@ func (d *DandelionCore) SendTrxByAccountEx(name string, operations...*prototype.
 	}
 	return d.SendTrxEx(key, operations...)
 }
+
+func (d *DandelionCore) TrxReceipt(privateKey *prototype.PrivateKeyType, operations...*prototype.Operation) *prototype.TransactionReceipt {
+	r, _ := d.SendTrxEx(privateKey, operations...)
+	return r
+}
+
+func (d *DandelionCore) TrxReceiptByAccount(name string, operations...*prototype.Operation) *prototype.TransactionReceipt {
+	r, _ := d.SendTrxByAccountEx(name, operations...)
+	return r
+}

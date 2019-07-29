@@ -31,3 +31,7 @@ func (acc *DandelionAccount) SendTrxAndProduceBlock(operations...*prototype.Oper
 func (acc *DandelionAccount) SendTrxEx(operations...*prototype.Operation) (*prototype.TransactionReceipt, error) {
 	return acc.D.SendTrxByAccountEx(acc.Name, operations...)
 }
+
+func (acc *DandelionAccount) TrxReceipt(operations...*prototype.Operation) *prototype.TransactionReceipt {
+	return acc.D.TrxReceiptByAccount(acc.Name, operations...)
+}

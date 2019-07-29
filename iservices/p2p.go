@@ -31,4 +31,8 @@ type IP2P interface {
 	FetchOutOfRange(localHeadID, targetID comn.BlockID)
 
 	GetNodeNeighbours() string
+
+	// for test only
+	SetMockLatency(t int)
+	GetMockLatency() int
 }
