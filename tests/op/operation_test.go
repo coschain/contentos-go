@@ -11,4 +11,5 @@ func TestOperations(t *testing.T) {
 	t.Run("vote", dandelion.NewDandelionTest(new(VoteTester).TestNormal, 3))
 	t.Run("vote", dandelion.NewDandelionTest(new(VoteTester).TestRevote, 3))
 	t.Run("vote", dandelion.NewDandelionTest(new(VoteTester).TestFullPower, 3))
+	t.Run("follow", dandelion.NewDandelionTest(new(FollowTester).Test, 3))
 }
