@@ -36,6 +36,7 @@ const (
 	MaxBlockSize           = 1024 * 1024 * 2
 	MaxUncommittedBlockNum = 2000
 	MinBlockSize           = 115
+	MaxMarginStep = 10
 
 	InitminerPubKey  = "COS5JVLLcTPhq4Unr194JzWPDNSYGoMcam8yxnsjgRVo3Nb7ioyFW"
 	InitminerPrivKey = "4DjYx2KAGh1NP3dai7MZTLUBMMhMBPmwouKE8jhVSESywccpVZ"

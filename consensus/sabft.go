@@ -331,6 +331,7 @@ func (sabft *SABFT) Start(node *node.Node) error {
 	//pv := newPrivValidator(sabft, sabft.localPrivKey, sabft.Name)
 	//sabft.bft = gobft.NewCore(sabft, pv)
 	sabft.bft.SetLogger(sabft.extLog)
+	sabft.bft.SetName(sabft.Name)
 	// start block generation process
 	go sabft.start()
 
@@ -1120,6 +1121,16 @@ func (sabft *SABFT) DecidesProposal() message.ProposedData {
 	if sabft.ForkDB.Empty() {
 		return message.NilData
 	}
+
+	lc := sabft.ForkDB.LastCommitted().BlockNum()
+	if sabft.ForkDB.Head().Id().BlockNum() - lc > constants.MaxMarginStep {
+		b, err := sabft.ForkDB.FetchBlockFromMainBranch(lc + constants.MaxMarginStep)
+		if err != nil {
+			return message.NilData
+		}
+		return b.Id().Data
+	}
+
 
 	return sabft.ForkDB.Head().Id().Data
 }
