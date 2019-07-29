@@ -1,11 +1,103 @@
 {
     "actions": [
         {
+            "name": "current_block_number",
+            "type": "current_block_number"
+        },
+        {
+            "name": "current_timestamp",
+            "type": "current_timestamp"
+        },
+        {
+            "name": "current_witness",
+            "type": "current_witness"
+        },
+        {
+            "name": "block_producers",
+            "type": "block_producers"
+        },
+        {
             "name": "sha256",
             "type": "sha256"
+        },
+        {
+            "name": "is_contract_called_by_user",
+            "type": "is_contract_called_by_user"
+        },
+        {
+            "name": "get_contract_caller",
+            "type": "get_contract_caller"
+        },
+        {
+            "name": "get_contract_caller_contract",
+            "type": "get_contract_caller_contract"
+        },
+        {
+            "name": "get_contract_name",
+            "type": "get_contract_name"
+        },
+        {
+            "name": "get_contract_method",
+            "type": "get_contract_method"
+        },
+        {
+            "name": "get_contract_sender_value",
+            "type": "get_contract_sender_value"
+        },
+        {
+            "name": "get_contract_balance",
+            "type": "get_contract_balance"
+        },
+        {
+            "name": "get_user_balance",
+            "type": "get_user_balance"
+        },
+        {
+            "name": "require_auth",
+            "type": "require_auth"
         }
     ],
     "structs": [
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "expected",
+                    "type": "uint64"
+                }
+            ],
+            "name": "current_block_number"
+        },
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "expected",
+                    "type": "uint64"
+                }
+            ],
+            "name": "current_timestamp"
+        },
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "expected",
+                    "type": "std::string"
+                }
+            ],
+            "name": "current_witness"
+        },
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "expected",
+                    "type": "std::string[]"
+                }
+            ],
+            "name": "block_producers"
+        },
         {
             "base": "",
             "fields": [
@@ -19,6 +111,116 @@
                 }
             ],
             "name": "sha256"
+        },
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "expected",
+                    "type": "bool"
+                }
+            ],
+            "name": "is_contract_called_by_user"
+        },
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "expected",
+                    "type": "std::string"
+                }
+            ],
+            "name": "get_contract_caller"
+        },
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "owner",
+                    "type": "std::string"
+                },
+                {
+                    "name": "name",
+                    "type": "std::string"
+                }
+            ],
+            "name": "get_contract_caller_contract"
+        },
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "owner",
+                    "type": "std::string"
+                },
+                {
+                    "name": "name",
+                    "type": "std::string"
+                }
+            ],
+            "name": "get_contract_name"
+        },
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "expected",
+                    "type": "std::string"
+                }
+            ],
+            "name": "get_contract_method"
+        },
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "expected",
+                    "type": "cosio::coin_amount"
+                }
+            ],
+            "name": "get_contract_sender_value"
+        },
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "owner",
+                    "type": "std::string"
+                },
+                {
+                    "name": "name",
+                    "type": "std::string"
+                },
+                {
+                    "name": "expected",
+                    "type": "cosio::coin_amount"
+                }
+            ],
+            "name": "get_contract_balance"
+        },
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "name",
+                    "type": "std::string"
+                },
+                {
+                    "name": "expected",
+                    "type": "cosio::coin_amount"
+                }
+            ],
+            "name": "get_user_balance"
+        },
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "name",
+                    "type": "std::string"
+                }
+            ],
+            "name": "require_auth"
         }
     ],
     "tables": null,

@@ -127,3 +127,11 @@ func BytesToJson(data []byte) string {
 	}
 	return fmt.Sprintf("[%s]", strings.Join(s, ","))
 }
+
+func StringsToJson(ss []string) string {
+	var s []string
+	for _, str := range ss {
+		s = append(s, fmt.Sprintf("%q", str))
+	}
+	return fmt.Sprintf("[%s]", strings.Join(s, ","))
+}
