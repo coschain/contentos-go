@@ -155,6 +155,8 @@ func startNodes(cmd *cobra.Command, args []string) {
 	}
 	monitor := test.NewMonitor(comp)
 	go monitor.Run()
+
+	time.Sleep(2 * time.Second)
 	go monitor.Shuffle(names[1:], sks[1:], css, stopCh)
 
 	<-stopCh
