@@ -78,7 +78,7 @@ func RegesiterBP(name, sk string, css iservices.IConsensus) error {
 
 func createAccountOP(name, creator string, pubKey *prototype.PublicKeyType) *prototype.AccountCreateOperation {
 	acop := &prototype.AccountCreateOperation{
-		Fee:            prototype.NewCoin(1),
+		Fee:            prototype.NewCoin(constants.MinVestBalance),
 		Creator:        &prototype.AccountName{Value: creator},
 		NewAccountName: &prototype.AccountName{Value: name},
 		PubKey:          pubKey,
