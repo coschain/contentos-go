@@ -44,6 +44,8 @@ const (
 
 	MaxWitnessCount = 21
 
+	MinVestBalance = 10000 * COSTokenDecimals
+
 	PostInvalidId        = 0
 	PostMaxDepth         = 8
 	PostCashOutDelayBlock = 60 * 10

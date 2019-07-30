@@ -9,7 +9,7 @@ func AccountCreate(creator, account string, owner *prototype.PublicKeyType, fee 
 	return prototype.GetPbOperation(&prototype.AccountCreateOperation{
 		Creator: prototype.NewAccountName(creator),
 		NewAccountName: prototype.NewAccountName(account),
-		Owner: owner,
+		PubKey: owner,
 		Fee: prototype.NewCoin(fee),
 		JsonMetadata: jsonMeta,
 	})
@@ -27,7 +27,7 @@ func Transfer(from, to string, amount uint64, memo string) *prototype.Operation 
 func AccountUpdate(name string, pubkey *prototype.PublicKeyType) *prototype.Operation {
 	return prototype.GetPbOperation(&prototype.AccountUpdateOperation{
 		Owner: prototype.NewAccountName(name),
-		Pubkey: pubkey,
+		PubKey: pubkey,
 	})
 }
 

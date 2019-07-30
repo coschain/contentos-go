@@ -39,7 +39,7 @@ func (tester *BpTest) Test(t *testing.T, d *Dandelion) {
 func (tester *BpTest) regist(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
 
-	a.NoError(tester.acc0.SendTrx(BpRegister(tester.acc0.Name,"www.me.com","nothing",tester.acc0.GetOwner(),defaultProps)))
+	a.NoError(tester.acc0.SendTrx(BpRegister(tester.acc0.Name,"www.me.com","nothing",tester.acc0.GetPubKey(),defaultProps)))
 	a.NoError(d.ProduceBlocks(1))
 
 	witWrap := d.Witness(tester.acc0.Name)
@@ -49,12 +49,12 @@ func (tester *BpTest) regist(t *testing.T, d *Dandelion) {
 func (tester *BpTest) dupRegist(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
 
-	a.NoError(tester.acc0.SendTrx(BpRegister(tester.acc0.Name,"www.me.com","nothing",tester.acc0.GetOwner(),defaultProps)))
+	a.NoError(tester.acc0.SendTrx(BpRegister(tester.acc0.Name,"www.me.com","nothing",tester.acc0.GetPubKey(),defaultProps)))
 	a.NoError(d.ProduceBlocks(1))
 	witWrap := d.Witness(tester.acc0.Name)
 	a.True(witWrap.CheckExist())
 
-	a.NoError(tester.acc0.SendTrx(BpRegister(tester.acc0.Name,"www.you.com","nothing",tester.acc0.GetOwner(),defaultProps)))
+	a.NoError(tester.acc0.SendTrx(BpRegister(tester.acc0.Name,"www.you.com","nothing",tester.acc0.GetPubKey(),defaultProps)))
 	a.NoError(d.ProduceBlocks(1))
 	witWrapCheck := d.Witness(tester.acc0.Name)
 	// should be old witness
