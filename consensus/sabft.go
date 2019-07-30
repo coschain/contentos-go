@@ -1016,7 +1016,6 @@ func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 	}
 	if blkMain.Id() != blockID {
 		sabft.log.Error("[SABFT] committing a forked block", blockID, " main:", blkMain.Id())
-
 		switchSuccess := sabft.switchFork(sabft.ForkDB.Head().Id(), blockID)
 		if !switchSuccess {
 			return ErrSwitchFork
@@ -1025,6 +1024,14 @@ func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 		sabft.ForkDB.ResetHead(blockID)
 		sabft.ForkDB.PurgeBranch()
 		sabft.log.Debug("fork switch success during commit. new head ", blockID)
+		newbranch, err := sabft.ForkDB.FetchBlocksFromMainBranch(sabft.ForkDB.LastCommitted().BlockNum() + 1)
+		if err != nil {
+			panic(err)
+		} else {
+			for i := range newbranch {
+				sabft.tryCommit(newbranch[i])
+			}
+		}
 		return nil
 	}
 
@@ -1129,14 +1136,13 @@ func (sabft *SABFT) DecidesProposal() message.ProposedData {
 	}
 
 	lc := sabft.ForkDB.LastCommitted().BlockNum()
-	if sabft.ForkDB.Head().Id().BlockNum() - lc > constants.MaxMarginStep {
+	if sabft.ForkDB.Head().Id().BlockNum()-lc > constants.MaxMarginStep {
 		b, err := sabft.ForkDB.FetchBlockFromMainBranch(lc + constants.MaxMarginStep)
 		if err != nil {
 			return message.NilData
 		}
 		return b.Id().Data
 	}
-
 
 	return sabft.ForkDB.Head().Id().Data
 }
@@ -1222,8 +1228,6 @@ func (sabft *SABFT) switchFork(old, new common.BlockID) bool {
 			errWhileSwitch = true
 			// TODO: peels off this invalid branch to avoid flip-flop switch
 			break
-		} else {
-			sabft.tryCommit(b)
 		}
 	}
 
