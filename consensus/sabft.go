@@ -462,32 +462,7 @@ func (sabft *SABFT) start() {
 			}
 
 			sabft.Lock()
-			commit := sabft.cp.NextUncommitted()
-			if commit != nil && b.Id() == ExtractBlockID(commit) {
-				success := sabft.cp.Validate(commit)
-				if !success {
-					if !sabft.readyToProduce {
-						sabft.revertToLastCheckPoint()
-					}
-					// remove this invalid checkpoint
-					sabft.cp.RemoveNextUncommitted()
-					// TODO: fetch next checkpoint from a different peer
-				} else {
-					sabft.log.Debugf("new block %d on an existed checkpoint", b.Id().BlockNum())
-					// if we're a validator and the gobft falls behind, pass the commit to gobft and let it catchup
-					if sabft.gobftCatchUp(commit) {
-						sabft.Unlock()
-						continue
-					}
-
-					// if it suits the following situation:
-					// 1. we're not a validator
-					// 2. gobft is far ahead due to committing missing blocks
-					if err = sabft.commit(commit); err != nil {
-						sabft.log.Error(err)
-					}
-				}
-			}
+			sabft.tryCommit(b)
 			sabft.Unlock()
 
 		case trxFn := <-sabft.trxCh:
@@ -497,14 +472,40 @@ func (sabft *SABFT) start() {
 			continue
 		case commit := <-sabft.commitCh:
 			// TODO: reduce critical area guarded by lock
-			sabft.Lock()
 			sabft.handleCommitRecords(&commit)
-			sabft.Unlock()
 		case pendingFn := <-sabft.pendingCh:
 			pendingFn()
 			continue
 		case <-sabft.prodTimer.C:
 			sabft.MaybeProduceBlock()
+		}
+	}
+}
+
+func (sabft *SABFT) tryCommit(b common.ISignedBlock) {
+	commit := sabft.cp.NextUncommitted()
+	if commit != nil && b.Id() == ExtractBlockID(commit) {
+		success := sabft.cp.Validate(commit)
+		if !success {
+			if !sabft.readyToProduce {
+				sabft.revertToLastCheckPoint()
+			}
+			// remove this invalid checkpoint
+			sabft.cp.RemoveNextUncommitted()
+			// TODO: fetch next checkpoint from a different peer
+		} else {
+			sabft.log.Debugf("new block %d on an existed checkpoint", b.Id().BlockNum())
+			// if we're a validator and the gobft falls behind, pass the commit to gobft and let it catchup
+			if sabft.gobftCatchUp(commit) {
+				return
+			}
+
+			// if it suits the following situation:
+			// 1. we're not a validator
+			// 2. gobft is far ahead due to committing missing blocks
+			if err := sabft.commit(commit); err != nil {
+				sabft.log.Error(err)
+			}
 		}
 	}
 }
@@ -695,7 +696,9 @@ func (sabft *SABFT) checkCommittedAlready(id common.BlockID) bool {
 }
 
 func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
-	//sabft.log.Warn("handleCommitRecords: ", records.ProposedData, records.Address)
+	sabft.Lock()
+	defer sabft.Unlock()
+
 	if records == nil {
 		return
 	}
@@ -984,6 +987,8 @@ func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 	defer func() {
 		sabft.updateAppState(commitRecords)
 		sabft.checkBFTRoutine()
+
+		// TODO: check if checkpoint has been skipped
 	}()
 
 	blockID := common.BlockID{
@@ -1019,7 +1024,8 @@ func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 		// also need to reset new head
 		sabft.ForkDB.ResetHead(blockID)
 		sabft.ForkDB.PurgeBranch()
-		sabft.log.Debug("fork switch success. new head ", blockID)
+		sabft.log.Debug("fork switch success during commit. new head ", blockID)
+		return nil
 	}
 
 	blks, _, err := sabft.ForkDB.FetchBlocksSince(sabft.ForkDB.LastCommitted())
@@ -1216,6 +1222,8 @@ func (sabft *SABFT) switchFork(old, new common.BlockID) bool {
 			errWhileSwitch = true
 			// TODO: peels off this invalid branch to avoid flip-flop switch
 			break
+		} else {
+			sabft.tryCommit(b)
 		}
 	}
 

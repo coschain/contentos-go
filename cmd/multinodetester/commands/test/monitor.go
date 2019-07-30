@@ -46,7 +46,7 @@ func NewMonitor(c []*Components) *Monitor {
 		validators:    make(map[string]bool),
 		validatorList: widgets.NewList(),
 		vX1:           0,
-		vY1:           5,
+		vY1:           0,
 		vX2:           75,
 
 		nonValidatorList: widgets.NewList(),
@@ -55,9 +55,9 @@ func NewMonitor(c []*Components) *Monitor {
 
 		chainInfoList: widgets.NewList(),
 		bX1:           80,
-		bY1:           5,
+		bY1:           0,
 		bX2:           110,
-		bY2:           10,
+		bY2:           5,
 
 		marginStep:       widgets.NewPlot(),
 		confirmationTime: widgets.NewPlot(),
@@ -132,7 +132,7 @@ func (m *Monitor) drawNonValidators() {
 		nonV[k] = true
 	}
 	m.nonValidatorList.Title = "non-validators"
-	m.nvY1 = m.vY2 + 3
+	m.nvY1 = m.vY2 + 1
 	m.nvY2 = m.nvY1 + len(m.compo) - len(m.validators) + 3
 	m.nonValidatorList.SetRect(m.nvX1, m.nvY1, m.nvX2, m.nvY2)
 	m.nonValidatorList.TextStyle.Fg = ui.ColorYellow
@@ -163,7 +163,7 @@ func (m *Monitor) drawMarginStep() {
 	m.marginStep.Title = "margin step"
 	m.marginStep.Data = make([][]float64, 1)
 	m.marginStep.Data[0] = m.ci.MarginStepInfo()
-	m.marginStep.SetRect(80, 10, 110, 20)
+	m.marginStep.SetRect(80, 5, 110, 15)
 	m.marginStep.AxesColor = ui.ColorWhite
 	m.marginStep.LineColors[0] = ui.ColorYellow
 }
@@ -172,7 +172,7 @@ func (m *Monitor) drawConfirmationTime() {
 	m.confirmationTime.Title = "confirmation time(ms)"
 	m.confirmationTime.Data = make([][]float64, 1)
 	m.confirmationTime.Data[0] = m.ci.ConfirmationTimeInfo()
-	m.confirmationTime.SetRect(80, 20, 110, 30)
+	m.confirmationTime.SetRect(80, 15, 110, 25)
 	m.confirmationTime.AxesColor = ui.ColorWhite
 	m.confirmationTime.LineColors[0] = ui.ColorYellow
 }
