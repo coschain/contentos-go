@@ -19,8 +19,8 @@ func (tester *ConvertVestingTester) Test(t *testing.T, d *Dandelion) {
 	tester.acc3 = d.Account("actor3")
 	tester.acc4 = d.Account("actor4")
 
-	//a := assert.New(t)
-	//a.NoError(tester.acc2.SendTrxAndProduceBlock(BpRegister(tester.acc2.Name, "", "", tester.acc2.GetPubKey(), defaultProps)))
+	a := assert.New(t)
+	a.NoError(tester.acc2.SendTrxAndProduceBlock(BpRegister(tester.acc2.Name, "", "", tester.acc2.GetPubKey(), defaultProps)))
 
 	t.Run("normal", d.Test(tester.normal))
 	t.Run("reset", d.Test(tester.Reset))
@@ -31,7 +31,6 @@ func (tester *ConvertVestingTester) Test(t *testing.T, d *Dandelion) {
 
 func (tester *ConvertVestingTester) normal(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
-	a.NoError(tester.acc2.SendTrxAndProduceBlock(BpRegister(tester.acc2.Name, "", "", tester.acc2.GetPubKey(), defaultProps)))
 
 	a.NoError(tester.acc0.SendTrxAndProduceBlock(TransferToVesting(tester.acc0.Name, tester.acc0.Name, 10000000)))
 
