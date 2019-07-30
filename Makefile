@@ -1,5 +1,11 @@
 COSD = github.com/coschain/contentos-go/cmd/cosd
 WALLET = github.com/coschain/contentos-go/cmd/wallet-cli
+MULTINODETESTER = github.com/coschain/contentos-go/cmd/multinodetester
+DATABACKUP = github.com/coschain/contentos-go/cmd/databackup
+NODEDETECTOR = github.com/coschain/contentos-go/cmd/nodedetector
+PRESSURETEST = github.com/coschain/contentos-go/cmd/pressuretest
+
+
 
 test:
 	@echo "--> Running go test"
@@ -7,10 +13,14 @@ test:
 	@echo "--> Total code coverage"
 	@GO111MODULE=on go run utils/totalcov/main.go . cc0.txt >coverage.txt
 
-build:
+build_all:
 	@echo "--> build all"
 	@GO111MODULE=on go build -o ./bin/cosd $(COSD)
 	@GO111MODULE=on go build -o ./bin/wallet-cli $(WALLET)
+	@GO111MODULE=on go build -o ./bin/multinodetester $(MULTINODETESTER)
+	@GO111MODULE=on go build -o ./bin/databackup $(DATABACKUP)
+	@GO111MODULE=on go build -o ./bin/nodedetector $(NODEDETECTOR)
+	@GO111MODULE=on go build -o ./bin/pressuretest $(PRESSURETEST)
 
 build_cosd:
 	@echo "--> build cosd"

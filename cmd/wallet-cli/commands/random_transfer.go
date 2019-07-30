@@ -186,7 +186,7 @@ func (rt *RandTransfer) createAndFundAccount(account string) (error, *prototype.
 		Fee:            prototype.NewCoin(10000),
 		Creator:        &prototype.AccountName{Value: rt.creator.Name},
 		NewAccountName: &prototype.AccountName{Value: account},
-		Owner:          pubKey,
+		PubKey:          pubKey,
 	}
 	opFund := &prototype.TransferOperation{
 		From:   &prototype.AccountName{Value: rt.creator.Name},

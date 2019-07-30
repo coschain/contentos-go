@@ -25,10 +25,10 @@ func (a *AccountCreateOperation) Validate() error {
 		return errors.WithMessage(err, "NewAccountName error")
 	}
 
-	if a.Owner == nil {
+	if a.PubKey == nil {
 		return errors.New("Posting Key cant be empty")
 	}
-	if err := a.Owner.Validate(); err != nil {
+	if err := a.PubKey.Validate(); err != nil {
 		return errors.WithMessage(err, "Owner error")
 	}
 

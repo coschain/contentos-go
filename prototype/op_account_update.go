@@ -5,7 +5,7 @@ func (m *AccountUpdateOperation) GetSigner(auths *map[string]bool) {
 }
 
 func (m *AccountUpdateOperation) Validate() error {
-	if err := m.Pubkey.Validate(); err != nil{
+	if err := m.PubKey.Validate(); err != nil{
 		return err
 	}
 	if err := m.Owner.Validate(); err != nil{

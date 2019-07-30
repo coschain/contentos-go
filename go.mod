@@ -27,7 +27,7 @@ require (
 	github.com/gorilla/websocket v1.4.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0
 	github.com/grpc-ecosystem/grpc-gateway v1.9.5 // indirect
-	github.com/hashicorp/golang-lru v0.5.1
+	github.com/hashicorp/golang-lru v0.5.3
 	github.com/improbable-eng/grpc-web v0.9.1-0.20190220152735-5d060c951c08
 	github.com/inconshreveable/log15 v0.0.0-20180818164646-67afb5ed74ec
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
@@ -66,12 +66,13 @@ require (
 	github.com/zhaoguojie2010/gobft v0.0.0-20190708031604-ecc363133615 // indirect
 	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
 	golang.org/x/exp v0.0.0-20190718202018-cfdd5522f6f6 // indirect
-	golang.org/x/image v0.0.0-20190703141733-d6a02ce849c9 // indirect
+	golang.org/x/image v0.0.0-20190729225735-1bd0cf576493 // indirect
 	golang.org/x/mobile v0.0.0-20190719004257-d2bd2a29d028 // indirect
 	golang.org/x/net v0.0.0-20190724013045-ca1201d0de80 // indirect
-	golang.org/x/sys v0.0.0-20190712062909-fae7ac547cb7 // indirect
-	golang.org/x/tools v0.0.0-20190723021737-8bb11ff117ca // indirect
-	google.golang.org/grpc v1.22.0
+	golang.org/x/sys v0.0.0-20190726091711-fc99dfbffb4e // indirect
+	golang.org/x/tools v0.0.0-20190729092621-ff9f1409240a // indirect
+	google.golang.org/grpc v1.22.1
+	honnef.co/go/tools v0.0.1-2019.2.2 // indirect
 )
 
 replace github.com/go-interpreter/wagon v0.3.0 => github.com/coschain/wagon v0.3.1-0.20190712091226-347d0b6cb20a

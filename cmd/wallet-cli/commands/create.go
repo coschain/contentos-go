@@ -62,7 +62,7 @@ func create(cmd *cobra.Command, args []string) {
 		Fee:            prototype.NewCoin(fee),
 		Creator:        &prototype.AccountName{Value: creator},
 		NewAccountName: &prototype.AccountName{Value: name},
-		Owner:          pubkey,
+		PubKey:          pubkey,
 	}
 	signTx, err := utils.GenerateSignedTxAndValidate(cmd, []interface{}{acop}, creatorAccount)
 	if err != nil {

@@ -23,19 +23,18 @@ message so_account {
     prototype.vest              each_powerdown_rate     =      13;
     prototype.vest              to_powerdown     =      14;
     prototype.vest              has_powerdown     =      15;
-    prototype.time_point_sec    last_owner_update        =      16;
-    prototype.public_key_type     owner                    =      17;
-    uint64                      stamina             =      18;
-    uint64                      stamina_use_block      =      19;
-    uint64                      stamina_free         =      20;
-    uint64                      stamina_free_use_block      =      21;
-    prototype.vest              stake_vesting     =      22;
-    prototype.time_point_sec    last_stake_time      =      23;
-    uint32                      reputation          =      24;
-    string                      reputation_memo      =      25;
-    uint32                      charged_ticket      =      26;
-    uint32                      freeze          =      27;
-    string                      freeze_memo      =      28;
+    prototype.public_key_type     pub_key                    =      16;
+    uint64                      stamina             =      17;
+    uint64                      stamina_use_block      =      18;
+    uint64                      stamina_free         =      19;
+    uint64                      stamina_free_use_block      =      20;
+    prototype.vest              stake_vesting     =      21;
+    prototype.time_point_sec    last_stake_time      =      22;
+    uint32                      reputation          =      23;
+    string                      reputation_memo      =      24;
+    uint32                      charged_ticket      =      25;
+    uint32                      freeze          =      26;
+    string                      freeze_memo      =      27;
       
 }
 
@@ -115,13 +114,8 @@ message so_mem_account_by_has_powerdown {
 }
 
 
-message so_mem_account_by_last_owner_update {
-	prototype.time_point_sec 	last_owner_update    = 1;
-}
-
-
-message so_mem_account_by_owner {
-	prototype.public_key_type  	owner                = 1;
+message so_mem_account_by_pub_key {
+	prototype.public_key_type  	pub_key                = 1;
 }
 
 
@@ -227,7 +221,7 @@ message so_unique_account_by_name {
 }
 
 
-message so_unique_account_by_owner {
-	prototype.public_key_type  	owner                = 1;
+message so_unique_account_by_pub_key {
+	prototype.public_key_type  	pub_key                = 1;
 	prototype.account_name   	name           = 2;
 }

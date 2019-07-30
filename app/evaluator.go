@@ -261,20 +261,11 @@ func (ev *AccountCreateEvaluator) Apply() {
 		tInfo.EachPowerdownRate = &prototype.Vest{Value: 0}
 		tInfo.ToPowerdown = &prototype.Vest{Value: 0}
 		tInfo.HasPowerdown = &prototype.Vest{Value: 0}
-		tInfo.Owner = op.Owner
-		tInfo.LastOwnerUpdate = prototype.NewTimePointSec(0)
+		tInfo.PubKey = op.PubKey
 		tInfo.StakeVesting = prototype.NewVest(0)
 		tInfo.Reputation = constants.DefaultReputation
 		tInfo.ChargedTicket = 0
 	}), "duplicate create account object")
-
-	// create account authority
-	//authorityWrap := table.NewSoAccountWrap(ev.Database(), op.NewAccountName)
-	//opAssertE(authorityWrap.Create(func(tInfo *table.SoAccountAuthorityObject) {
-	//	tInfo.Account = op.NewAccountName
-	//	tInfo.Owner = op.Owner
-	//	tInfo.LastOwnerUpdate = prototype.NewTimePointSec(0)
-	//}), "duplicate create account authority object")
 
 	// sub dynamic glaobal properties's total fee
 	//ev.GlobalProp().TransferToVest(op.Fee)
@@ -291,7 +282,7 @@ func (ev *AccountUpdateEvaluator) Apply() {
 	updaterWrap := table.NewSoAccountWrap(ev.Database(), op.Owner)
 	opAssert(updaterWrap.CheckExist(), "update account not exist ")
 
-	opAssert(updaterWrap.MdOwner(op.Pubkey), "failed to update account public key")
+	opAssert(updaterWrap.MdPubKey(op.PubKey), "failed to update account public key")
 }
 
 func (ev *TransferEvaluator) Apply() {

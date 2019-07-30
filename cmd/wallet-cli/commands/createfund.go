@@ -70,7 +70,7 @@ func createFundAccount(cmd *cobra.Command, args []string) {
 					Fee:            prototype.NewCoin(uint64(fundBalance)),
 					Creator:        &prototype.AccountName{Value: creator},
 					NewAccountName: &prototype.AccountName{Value: accName},
-					Owner:          pubKey,
+					PubKey:          pubKey,
 				}
 				fop := &prototype.TransferOperation{
 					From: &prototype.AccountName{Value: creator},

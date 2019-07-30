@@ -79,7 +79,7 @@ func createAccount(mywallet *wallet.BaseWallet, rpcClient grpcpb.ApiServiceClien
 		Fee:            prototype.NewCoin(constants.DefaultAccountCreateFee),
 		Creator:        &prototype.AccountName{Value: creatorAccount.Name},
 		NewAccountName: &prototype.AccountName{Value: newAccountName},
-		Owner:          pubkey,
+		PubKey:          pubkey,
 	}
 	signTx, err := utils.GenerateSignedTxAndValidate2(rpcClient, []interface{}{acop}, creatorAccount, ChainId)
 	if err != nil {

@@ -27,3 +27,4 @@ cmd/nodedetector/nodedetector
 coverage.*
 build
 js_proto.sh
+bin

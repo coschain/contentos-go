@@ -177,7 +177,7 @@ func createMNTAccountTrx(cmd *cobra.Command, client grpcpb.ApiServiceClient, cou
 			Fee:            prototype.NewCoin(constants.DefaultAccountCreateFee),
 			Creator:        creator,
 			NewAccountName: &prototype.AccountName{Value: bpName},
-			Owner:          pubKey,
+			PubKey:          pubKey,
 		}
 
 		trx.Trx.AddOperation(opCreate)

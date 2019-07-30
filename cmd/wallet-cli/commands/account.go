@@ -87,7 +87,7 @@ func updateAccount(cmd *cobra.Command, args []string) {
 
 	accountUpdate_op := &prototype.AccountUpdateOperation{
 		Owner:         &prototype.AccountName{Value: owner},
-		Pubkey:        pubKey,
+		PubKey:        pubKey,
 	}
 
 	signTx, err := utils.GenerateSignedTxAndValidate(cmd, []interface{}{accountUpdate_op}, updateAccount)

@@ -659,7 +659,7 @@ func (c *TrxPool) initGenesis() {
 		tInfo.EachPowerdownRate = &prototype.Vest{Value: 0}
 		tInfo.ToPowerdown = &prototype.Vest{Value: 0}
 		tInfo.HasPowerdown = &prototype.Vest{Value: 0}
-		tInfo.Owner = pubKey
+		tInfo.PubKey = pubKey
 		tInfo.StakeVesting = prototype.NewVest(0)
 		tInfo.Reputation = constants.DefaultReputation
 		tInfo.ChargedTicket = 0

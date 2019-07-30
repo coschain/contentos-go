@@ -165,7 +165,7 @@ func (t *TrxMysqlService) handleLibNotification(lib uint64) {
 		_, _ = t.outDb.Exec("INSERT IGNORE INTO trxinfo (trx_id, block_height, block_id, block_time, invoice, operations, creator)  value (?, ?, ?, ?, ?, ?, ?)", trxId, blockHeight, blockId, blockTime, invoice, operationsJson, creator)
 		for _, operation := range trx.SigTrx.GetTrx().GetOperations() {
 			if IsCreateAccountOp(operation) {
-				_, _ = t.outDb.Exec("INSERT IGNORE INTO createaccountinfo (trx_id, create_time, creator, pubkey, account) values (?, ?, ?, ?, ?)", trxId, blockTime, creator, operation.GetOp1().Owner.ToWIF(), operation.GetOp1().NewAccountName.Value)
+				_, _ = t.outDb.Exec("INSERT IGNORE INTO createaccountinfo (trx_id, create_time, creator, pubkey, account) values (?, ?, ?, ?, ?)", trxId, blockTime, creator, operation.GetOp1().PubKey.ToWIF(), operation.GetOp1().NewAccountName.Value)
 				break
 			}
 		}

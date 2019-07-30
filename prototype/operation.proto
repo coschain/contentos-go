@@ -11,13 +11,13 @@ message account_create_operation{
     coin fee = 1;
     account_name creator = 2;
     account_name new_account_name = 3;
-    public_key_type owner = 4;
+    public_key_type pub_key = 4;
     string json_metadata = 8;
 }
 
 message account_update_operation{
     account_name owner = 1;
-    public_key_type pubkey = 2;
+    public_key_type pub_key = 2;
 }
 
 message transfer_operation{

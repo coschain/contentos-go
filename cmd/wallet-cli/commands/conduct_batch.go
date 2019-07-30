@@ -91,7 +91,7 @@ func conductBatch(cmd *cobra.Command, args []string) {
 				Fee:            prototype.NewCoin(constants.DefaultAccountCreateFee),
 				Creator:        &prototype.AccountName{Value: createrName},
 				NewAccountName: &prototype.AccountName{Value: newAccountName},
-				Owner:          pubkey,
+				PubKey:          pubkey,
 			}
 
 			signTx, err = utils.GenerateSignedTxAndValidate(cmd, []interface{}{acop}, creatorAccount)

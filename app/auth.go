@@ -70,7 +70,7 @@ func (f *AuthFetcher) GetPublicKey(account string) (*prototype.PublicKeyType, er
 		if auth.GetFreeze() != 0 {
 			return nil, fmt.Errorf("account %s is frozen", account)
 		}
-		key := auth.GetOwner()
+		key := auth.GetPubKey()
 		// update cache
 		_ = f.cache.Set([]byte(account), key.Data, 0)
 		return key, nil
@@ -122,11 +122,11 @@ func (f *AuthFetcher) BlockApplied(b *prototype.SignedBlock) {
 					// account creation
 					case *prototype.Operation_Op1:
 						createAccOp := op.GetOp1()
-						f.newAccount(blockNum, createAccOp.GetNewAccountName().GetValue(), createAccOp.GetOwner())
+						f.newAccount(blockNum, createAccOp.GetNewAccountName().GetValue(), createAccOp.GetPubKey())
 					// account update
 					case *prototype.Operation_Op20:
 						accUpdateOp := op.GetOp20()
-						f.newAccount(blockNum, accUpdateOp.GetOwner().GetValue(), accUpdateOp.GetPubkey())
+						f.newAccount(blockNum, accUpdateOp.GetOwner().GetValue(), accUpdateOp.GetPubKey())
 					}
 				}
 			}

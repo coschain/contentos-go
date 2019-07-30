@@ -81,7 +81,7 @@ func createAccountOP(name, creator string, pubKey *prototype.PublicKeyType) *pro
 		Fee:            prototype.NewCoin(1),
 		Creator:        &prototype.AccountName{Value: creator},
 		NewAccountName: &prototype.AccountName{Value: name},
-		Owner:          pubKey,
+		PubKey:          pubKey,
 	}
 	return acop
 }

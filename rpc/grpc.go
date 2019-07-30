@@ -926,7 +926,7 @@ func (as *APIService) getAccountResponseByName(name *prototype.AccountName, isNe
 		keyWrap := table.NewSoAccountWrap(as.db, name)
 
 		if keyWrap.CheckExist() {
-			acctInfo.PublicKey = keyWrap.GetOwner()
+			acctInfo.PublicKey = keyWrap.GetPubKey()
 		}
 
 		followWrap := table.NewSoExtFollowCountWrap(as.db, name)

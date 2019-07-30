@@ -107,14 +107,12 @@ func createAccount(icons iservices.IConsensus, name string) {
 		panic(err)
 	}
 
-	keys := prototype.NewAuthorityFromPubKey(defaultPubKey)
-
 	// create account with default pub key
 	acop := &prototype.AccountCreateOperation{
 		Fee:            prototype.NewCoin(1),
 		Creator:        &prototype.AccountName{Value: "initminer"},
 		NewAccountName: &prototype.AccountName{Value: name},
-		Owner:          keys,
+		PubKey:          defaultPubKey,
 	}
 	// use initminer's priv key sign
 	signTx, err := signTrx(icons, defaultPrivKey.ToWIF(), acop)
