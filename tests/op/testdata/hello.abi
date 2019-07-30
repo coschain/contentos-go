@@ -1,0 +1,18 @@
+{
+    "actions": [
+        {
+            "name": "greet",
+            "type": "greet"
+        }
+    ],
+    "structs": [
+        {
+            "base": "",
+            "fields": null,
+            "name": "greet"
+        }
+    ],
+    "tables": null,
+    "types": null,
+    "version": "contentos::abi-1.0"
+}

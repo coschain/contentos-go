@@ -13,14 +13,21 @@ import (
 	"testing"
 )
 
+func ContractCodeAndAbi(contract string) (code, abi []byte, err error) {
+	if code, err = ioutil.ReadFile("./testdata/" + contract + ".wasm"); err != nil {
+		return nil, nil, err
+	}
+	if abi, err = ioutil.ReadFile("./testdata/" + contract + ".abi"); err != nil {
+		return nil, nil, err
+	}
+	return
+}
+
 func Deploy(d *dandelion.Dandelion, owner, contract string) (err error) {
 	var (
 		code, abi []byte
 	)
-	if code, err = ioutil.ReadFile("./testdata/" + contract + ".wasm"); err != nil {
-		return err
-	}
-	if abi, err = ioutil.ReadFile("./testdata/" + contract + ".abi"); err != nil {
+	if code, abi, err = ContractCodeAndAbi(contract); err != nil {
 		return err
 	}
 	r := d.Account(owner).TrxReceipt(dandelion.ContractDeployUncompressed(owner, contract, abi, code, true, "", ""))
@@ -101,22 +108,26 @@ func NoApply(t *testing.T, d *dandelion.Dandelion, call string) {
 	}, d, caller, owner, contract, method, params, amount)
 }
 
+func StakeFund(d *dandelion.Dandelion, actors int) error {
+	const stakeAmount = 10000 * constants.COSTokenDecimals
+	var err error
+	err = d.Account(constants.COSInitMiner).SendTrx(dandelion.Stake(constants.COSInitMiner, constants.COSInitMiner, stakeAmount))
+	if err != nil {
+		return fmt.Errorf("staking %d (%s->%s) error: %s", stakeAmount, constants.COSInitMiner, constants.COSInitMiner, err.Error())
+	}
+	for i := 0; i < actors; i++ {
+		name := fmt.Sprintf("actor%d", i)
+		err = d.Account(constants.COSInitMiner).SendTrx(dandelion.Stake(constants.COSInitMiner, name, stakeAmount))
+		if err != nil {
+			return fmt.Errorf("staking %d (%s->%s) error: %s", stakeAmount, constants.COSInitMiner, name, err.Error())
+		}
+	}
+	return d.ProduceBlocks(1)
+}
+
 func NewDandelionContractTest(f func(*testing.T, *dandelion.Dandelion), actors int, contracts...string) func(*testing.T) {
 	return dandelion.NewDandelionTest(func(t *testing.T, d *dandelion.Dandelion) {
-		const stakeAmount = 10000 * constants.COSTokenDecimals
-		var err error
-		err = d.Account(constants.COSInitMiner).SendTrx(dandelion.Stake(constants.COSInitMiner, constants.COSInitMiner, stakeAmount))
-		if err != nil {
-			t.Fatalf("staking %d (%s->%s) error: %s", stakeAmount, constants.COSInitMiner, constants.COSInitMiner, err.Error())
-		}
-		for i := 0; i < actors; i++ {
-			name := fmt.Sprintf("actor%d", i)
-			err = d.Account(constants.COSInitMiner).SendTrx(dandelion.Stake(constants.COSInitMiner, name, stakeAmount))
-			if err != nil {
-				t.Fatalf("staking %d (%s->%s) error: %s", stakeAmount, constants.COSInitMiner, name, err.Error())
-			}
-		}
-		err = d.ProduceBlocks(1)
+		err := StakeFund(d, actors)
 		if err != nil {
 			t.Fatal(err)
 		}

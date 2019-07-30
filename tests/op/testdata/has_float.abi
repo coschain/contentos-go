@@ -1,0 +1,23 @@
+{
+    "actions": [
+        {
+            "name": "hello",
+            "type": "hello"
+        }
+    ],
+    "structs": [
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "n",
+                    "type": "uint32"
+                }
+            ],
+            "name": "hello"
+        }
+    ],
+    "tables": null,
+    "types": null,
+    "version": "contentos::abi-1.0"
+}
