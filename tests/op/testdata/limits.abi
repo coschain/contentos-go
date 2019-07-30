@@ -1,0 +1,46 @@
+{
+    "actions": [
+        {
+            "name": "alloc_mem",
+            "type": "alloc_mem"
+        },
+        {
+            "name": "call_depth",
+            "type": "call_depth"
+        },
+        {
+            "name": "infinite_loop",
+            "type": "infinite_loop"
+        }
+    ],
+    "structs": [
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "size",
+                    "type": "uint32"
+                }
+            ],
+            "name": "alloc_mem"
+        },
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "depth",
+                    "type": "int32"
+                }
+            ],
+            "name": "call_depth"
+        },
+        {
+            "base": "",
+            "fields": null,
+            "name": "infinite_loop"
+        }
+    ],
+    "tables": null,
+    "types": null,
+    "version": "contentos::abi-1.0"
+}
