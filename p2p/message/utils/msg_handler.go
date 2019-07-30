@@ -738,6 +738,11 @@ func (p *MsgHandler) IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 				} else {
 					remotePeer.OutOfRangeState.Lock()
 					length := len(remotePeer.OutOfRangeState.KeyPointIDList)
+					if length < 1 {
+						log.Error("OutOfRangeState KeyPointIDList length error")
+						remotePeer.OutOfRangeState.Unlock()
+						return
+					}
 					endId := remotePeer.OutOfRangeState.KeyPointIDList[length-1]
 					remotePeer.OutOfRangeState.Unlock()
 
@@ -753,6 +758,11 @@ func (p *MsgHandler) IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 			if idx == len(msgdata.Value)-1 {
 				remotePeer.OutOfRangeState.Lock()
 				length := len(remotePeer.OutOfRangeState.KeyPointIDList)
+				if length < 1 {
+					log.Error("OutOfRangeState KeyPointIDList length error")
+					remotePeer.OutOfRangeState.Unlock()
+					return
+				}
 				endId := remotePeer.OutOfRangeState.KeyPointIDList[length-1]
 				remotePeer.OutOfRangeState.Unlock()
 
@@ -813,42 +823,61 @@ func (p *MsgHandler) ReqIdHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 		return
 	}
 
-	if end-start > msgCommon.MAX_ID_LENGTH {
-		end = start + msgCommon.MAX_ID_LENGTH
-	}
-
-	log.Debug("[p2p] sync start num: ", start, " end num: ", end)
-
-	beginTime := time.Now()
-	blockList, err := ctrl.FetchBlocks(start, end)
-	if err != nil {
-		log.Error("[p2p] can't fetch blocks from consessus, start number: ", start, " end number: ", end, " error: ", err)
-		return
-	}
-	endTime := time.Now()
-	log.Debug("[p2p] consensus FetchBlocks cost time, start: ", beginTime, " end: ", endTime)
-	if len(blockList) == 0 {
-		log.Debug("[p2p] we have same blocks, no need to request from me")
-		return
-	}
-
+	var blocksSize int
 	var ids []common.BlockID
-	for i := 0; i < len(blockList); i++ {
-		ids = append(ids, blockList[i].Id())
+	stopFetchBlock := false
+	batchStart := start
+	blockCount := 0
+	for {
+		if batchStart > end {
+			break
+		}
+		batchEnd := batchStart + msgCommon.BATCH_LENGTH
+		if batchEnd > end {
+			batchEnd = end
+		}
+
+		beginTime := time.Now()
+		blockList, err := ctrl.FetchBlocks(batchStart, batchEnd)
+		if err != nil {
+			log.Error("[p2p] can't fetch blocks from consessus, start number: ", start, " end number: ", end, " error: ", err)
+			return
+		}
+		endTime := time.Now()
+		if len(blockList) == 0 {
+			log.Errorf("[p2p] consensus can't fetch blocks from %d to %d", batchStart, batchEnd)
+			return
+		}
+		log.Debugf("[p2p] consensus fetch block batch from %d to %d, cost time %v", batchStart, batchEnd, endTime.Sub(beginTime))
+
+		for i := 0; i < len(blockList); i++ {
+			sigBlk := blockList[i].(*prototype.SignedBlock)
+			if blocksSize + sigBlk.GetBlockSize() <= msgCommon.BLOCKS_SIZE_LIMIT && blockCount + 1 <= msgCommon.MAX_BLOCK_COUNT {
+				ids = append(ids, blockList[i].Id())
+				blocksSize += sigBlk.GetBlockSize()
+				blockCount++
+			} else {
+				stopFetchBlock = true
+				break
+			}
+		}
+
+		if stopFetchBlock {
+			break
+		}
+		batchStart = batchEnd + 1
+	}
+
+	if len(ids) == 0 {
+		log.Warn("[p2p] fetch no block from consensus, maybe one block is too big")
+		return
 	}
 
 	var reqmsg msgTypes.TransferMsg
-	var idlength int
 	reqdata := new(msgTypes.IdMsg)
 	reqdata.Msgtype = msgTypes.IdMsg_request_id_ack
 
-	if len(ids) <= msgCommon.MAX_ID_LENGTH {
-		idlength = len(ids)
-	} else {
-		idlength = msgCommon.MAX_ID_LENGTH
-	}
-
-	for i := 0; i < idlength; i++ {
+	for i := 0; i < len(ids); i++ {
 		var tmp []byte
 		reqdata.Value = append(reqdata.Value, tmp)
 		reqdata.Value[i] = make([]byte, prototype.Size)
@@ -932,8 +961,8 @@ func (p *MsgHandler) RequestCheckpointBatchHandle(data *msgTypes.MsgPayload, p2p
 
 	startNum := msgdata.Start
 	endNum := msgdata.End
-	if endNum-startNum > msgCommon.MAX_ID_LENGTH {
-		endNum = startNum + msgCommon.MAX_ID_LENGTH
+	if endNum-startNum > msgCommon.BATCH_LENGTH {
+		endNum = startNum + msgCommon.BATCH_LENGTH
 	}
 	log.Infof("RequestCheckpointBatchHandle from %d to %d", startNum, endNum)
 	for {
@@ -1013,19 +1042,54 @@ func (p *MsgHandler) FetchOutOfRangeHandle(data *msgTypes.MsgPayload, p2p p2p.P2
 		startNum := startID.BlockNum()
 		endNum := targetID.BlockNum()
 
-		if endNum - startNum > msgCommon.MAX_ID_LENGTH {
-			endNum = startNum + msgCommon.MAX_ID_LENGTH
+		var blockList []common.ISignedBlock
+		batchStart := startNum
+		blocksSize := 0
+		blockCount := 0
+		stopFetchBlock := false
+		for {
+			if batchStart > endNum {
+				break
+			}
+			batchEnd := batchStart + msgCommon.BATCH_LENGTH
+			if batchEnd > endNum {
+				batchEnd = endNum
+			}
+
+			blockBatchList, err := ctrl.FetchBlocks(batchStart, batchEnd)
+			if err != nil {
+				log.Error("[p2p] can't fetch blocks from consessus, start number: ", batchStart, " end number: ", batchEnd, " error: ", err)
+				clearMsg := msgpack.NewClearOutOfRangeState()
+				p2p.Send(remotePeer, clearMsg, false)
+				return
+			}
+			if len(blockBatchList) == 0 {
+				log.Debug("[p2p] we have same blocks, no need to request from me")
+				clearMsg := msgpack.NewClearOutOfRangeState()
+				p2p.Send(remotePeer, clearMsg, false)
+				return
+			}
+
+			for i := 0; i < len(blockBatchList); i++ {
+				sigBlk := blockBatchList[i].(*prototype.SignedBlock)
+				if blocksSize + sigBlk.GetBlockSize() <= msgCommon.BLOCKS_SIZE_LIMIT && blockCount + 1 <= msgCommon.MAX_BLOCK_COUNT {
+					blockList = append(blockList, blockBatchList[i])
+					blocksSize += sigBlk.GetBlockSize()
+					blockCount++
+				} else {
+					stopFetchBlock = true
+					break
+				}
+			}
+
+			if stopFetchBlock {
+				break
+			}
+			batchStart = batchEnd + 1
 		}
 
-		blockList, err := ctrl.FetchBlocks(startNum, endNum)
-		if err != nil {
-			log.Error("[p2p] can't fetch blocks from consessus, start number: ", startNum, " end number: ", endNum, " error: ", err)
-			clearMsg := msgpack.NewClearOutOfRangeState()
-			p2p.Send(remotePeer, clearMsg, false)
-			return
-		}
 		if len(blockList) == 0 {
-			log.Debug("[p2p] we have same blocks, no need to request from me")
+			log.Warn("[p2p] fetch no block from consensus, maybe one block is too big")
 			clearMsg := msgpack.NewClearOutOfRangeState()
 			p2p.Send(remotePeer, clearMsg, false)
 			return
@@ -1056,7 +1120,7 @@ func (p *MsgHandler) FetchOutOfRangeHandle(data *msgTypes.MsgPayload, p2p p2p.P2
 		for {
 			IDList = append(IDList, blkId.Data[:])
 			count++
-			if count == msgCommon.MAX_ID_LENGTH || blkId == startID {
+			if count == msgCommon.BATCH_LENGTH || blkId == startID {
 				break
 			}
 
@@ -1104,8 +1168,8 @@ func (p *MsgHandler) RequestBlockBatchHandle(data *msgTypes.MsgPayload, p2p p2p.
 	copy(startID.Data[:], msgdata.StartId)
 	copy(endID.Data[:], msgdata.EndId)
 
-	if endID.BlockNum() - startID.BlockNum() > msgCommon.MAX_ID_LENGTH {
-		log.Error("[p2p] block batch length beyond limit ", msgCommon.MAX_ID_LENGTH)
+	if endID.BlockNum() - startID.BlockNum() > msgCommon.BATCH_LENGTH {
+		log.Error("[p2p] block batch length beyond limit ", msgCommon.BATCH_LENGTH)
 		clearMsg := msgpack.NewClearOutOfRangeState()
 		p2p.Send(remotePeer, clearMsg, false)
 		return
@@ -1195,7 +1259,7 @@ func (p *MsgHandler) DetectFormerIdsHandle(data *msgTypes.MsgPayload, p2p p2p.P2
 	for {
 		IDList = append(IDList, blkId.Data[:])
 		count++
-		if count == msgCommon.MAX_ID_LENGTH {
+		if count == msgCommon.BATCH_LENGTH {
 			break
 		}
 
