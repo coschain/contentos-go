@@ -27,6 +27,15 @@ func (tester *BpTest) Test(t *testing.T, d *Dandelion) {
 	tester.acc0 = d.Account("actor0")
 	tester.acc1 = d.Account("actor1")
 	tester.acc2 = d.Account("actor2")
+	var ops []*prototype.Operation
+	ops = append(ops,TransferToVesting(constants.COSInitMiner, "actor0", constants.MinBpRegisterVest))
+	ops = append(ops,TransferToVesting(constants.COSInitMiner, "actor1", constants.MinBpRegisterVest))
+	ops = append(ops,TransferToVesting(constants.COSInitMiner, "actor2", constants.MinBpRegisterVest))
+
+	if err := d.SendTrxByAccount(constants.COSInitMiner,ops...); err != nil {
+		t.Error(err)
+		return
+	}
 
 	t.Run("regist", d.Test(tester.regist))
 	t.Run("dupRegist", d.Test(tester.dupRegist))

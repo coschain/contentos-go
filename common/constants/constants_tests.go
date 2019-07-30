@@ -9,5 +9,5 @@ const (
 	MinEpochDuration 		= 60*5
 	StakeFreezeTime      	= 60*5
 
-	MinBpRegisterVest 		= 0 * COSTokenDecimals
+	MinBpRegisterVest 		= 10000 * COSTokenDecimals
 )
