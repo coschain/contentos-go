@@ -1020,18 +1020,7 @@ func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 		if !switchSuccess {
 			return ErrSwitchFork
 		}
-		// also need to reset new head
-		sabft.ForkDB.ResetHead(blockID)
-		sabft.ForkDB.PurgeBranch()
 		sabft.log.Debug("fork switch success during commit. new head ", blockID)
-		newbranch, err := sabft.ForkDB.FetchBlocksFromMainBranch(sabft.ForkDB.LastCommitted().BlockNum() + 1)
-		if err != nil {
-			panic(err)
-		} else {
-			for i := range newbranch {
-				sabft.tryCommit(newbranch[i])
-			}
-		}
 		return nil
 	}
 
@@ -1249,6 +1238,15 @@ func (sabft *SABFT) switchFork(old, new common.BlockID) bool {
 		// restore the good old head of ForkDB
 		sabft.ForkDB.ResetHead(branches[0][0])
 		return false
+	}
+
+	// also need to reset new head in case new branch is shorter
+	sabft.ForkDB.ResetHead(new)
+	sabft.ForkDB.PurgeBranch()
+
+	// handle checkpoints on new branch
+	if next := sabft.cp.NextUncommitted(); next != nil {
+		sabft.loopCommit(next)
 	}
 
 	if f, exist := sabft.hook["switch_fork"]; exist {
