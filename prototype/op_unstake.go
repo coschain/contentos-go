@@ -5,7 +5,16 @@ func (m *UnStakeOperation) GetSigner(auths *map[string]bool) {
 
 
 func (m *UnStakeOperation) Validate() error {
-	// TODO
+	if err := m.Creditor.Validate(); err != nil{
+		return err
+	}
+	if err := m.Debtor.Validate(); err != nil{
+		return err
+	}
+
+	if m.Amount.Value == 0 {
+		return ErrCoinZero
+	}
 	return nil
 }
 

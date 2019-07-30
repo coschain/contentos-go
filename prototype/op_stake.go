@@ -5,7 +5,17 @@ func (m *StakeOperation) GetSigner(auths *map[string]bool) {
 
 
 func (m *StakeOperation) Validate() error {
-	// TODO
+	if err := m.From.Validate(); err != nil{
+		return err
+	}
+	if err := m.To.Validate(); err != nil{
+		return err
+	}
+
+	if m.Amount.Value == 0 {
+		return ErrCoinZero
+	}
+
 	return nil
 }
 
