@@ -114,7 +114,7 @@ func TestUint64Json(t *testing.T) {
 	uint64Type := reflect.TypeOf(uint64(0))
 	rand.Seed(time.Now().UnixNano())
 	// try a few random uint64s
-	for i := 0; i < 5; i++ {
+	for i := 0; i < 1000; i++ {
 		// generate a random decimal with 19 significands,
 		// which is a uint64 and can't be represented by float64.
 		digits := ""
