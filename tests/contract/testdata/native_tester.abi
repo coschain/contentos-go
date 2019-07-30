@@ -55,6 +55,42 @@
         {
             "name": "require_auth",
             "type": "require_auth"
+        },
+        {
+            "name": "require_auth_contract",
+            "type": "require_auth_contract"
+        },
+        {
+            "name": "transfer_to_user",
+            "type": "transfer_to_user"
+        },
+        {
+            "name": "transfer_to_contract",
+            "type": "transfer_to_contract"
+        },
+        {
+            "name": "call_is_contract_called_by_user",
+            "type": "call_is_contract_called_by_user"
+        },
+        {
+            "name": "call_get_contract_caller",
+            "type": "call_get_contract_caller"
+        },
+        {
+            "name": "call_get_contract_caller_contract",
+            "type": "call_get_contract_caller_contract"
+        },
+        {
+            "name": "call_require_auth",
+            "type": "call_require_auth"
+        },
+        {
+            "name": "call_require_auth_contract",
+            "type": "call_require_auth_contract"
+        },
+        {
+            "name": "call_get_contract_sender_value",
+            "type": "call_get_contract_sender_value"
         }
     ],
     "structs": [
@@ -221,6 +257,168 @@
                 }
             ],
             "name": "require_auth"
+        },
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "owner",
+                    "type": "std::string"
+                },
+                {
+                    "name": "name",
+                    "type": "std::string"
+                }
+            ],
+            "name": "require_auth_contract"
+        },
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "name",
+                    "type": "std::string"
+                },
+                {
+                    "name": "amount",
+                    "type": "uint64"
+                }
+            ],
+            "name": "transfer_to_user"
+        },
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "owner",
+                    "type": "std::string"
+                },
+                {
+                    "name": "name",
+                    "type": "std::string"
+                },
+                {
+                    "name": "amount",
+                    "type": "uint64"
+                }
+            ],
+            "name": "transfer_to_contract"
+        },
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "other_owner",
+                    "type": "std::string"
+                },
+                {
+                    "name": "other_contract",
+                    "type": "std::string"
+                },
+                {
+                    "name": "expected",
+                    "type": "bool"
+                }
+            ],
+            "name": "call_is_contract_called_by_user"
+        },
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "other_owner",
+                    "type": "std::string"
+                },
+                {
+                    "name": "other_contract",
+                    "type": "std::string"
+                },
+                {
+                    "name": "expected",
+                    "type": "std::string"
+                }
+            ],
+            "name": "call_get_contract_caller"
+        },
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "other_owner",
+                    "type": "std::string"
+                },
+                {
+                    "name": "other_contract",
+                    "type": "std::string"
+                },
+                {
+                    "name": "owner",
+                    "type": "std::string"
+                },
+                {
+                    "name": "name",
+                    "type": "std::string"
+                }
+            ],
+            "name": "call_get_contract_caller_contract"
+        },
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "other_owner",
+                    "type": "std::string"
+                },
+                {
+                    "name": "other_contract",
+                    "type": "std::string"
+                },
+                {
+                    "name": "name",
+                    "type": "std::string"
+                }
+            ],
+            "name": "call_require_auth"
+        },
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "other_owner",
+                    "type": "std::string"
+                },
+                {
+                    "name": "other_contract",
+                    "type": "std::string"
+                },
+                {
+                    "name": "owner",
+                    "type": "std::string"
+                },
+                {
+                    "name": "name",
+                    "type": "std::string"
+                }
+            ],
+            "name": "call_require_auth_contract"
+        },
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "other_owner",
+                    "type": "std::string"
+                },
+                {
+                    "name": "other_contract",
+                    "type": "std::string"
+                },
+                {
+                    "name": "coins",
+                    "type": "uint64"
+                }
+            ],
+            "name": "call_get_contract_sender_value"
         }
     ],
     "tables": null,

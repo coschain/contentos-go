@@ -88,6 +88,19 @@ func ApplyError(t *testing.T, d *dandelion.Dandelion, call string) {
 	}, d, caller, owner, contract, method, params, amount)
 }
 
+func NoApply(t *testing.T, d *dandelion.Dandelion, call string) {
+	caller, owner, contract, method, params, amount, err := extractCall(call)
+	if err != nil {
+		t.Fatal(err)
+	}
+	applyAndCheck(t, func(r *prototype.TransactionReceiptWithInfo) error {
+		if r != nil {
+			return fmt.Errorf("expecting a nil receipt, but got r.Status=%d", r.Status)
+		}
+		return nil
+	}, d, caller, owner, contract, method, params, amount)
+}
+
 func NewDandelionContractTest(f func(*testing.T, *dandelion.Dandelion), actors int, contracts...string) func(*testing.T) {
 	return dandelion.NewDandelionTest(func(t *testing.T, d *dandelion.Dandelion) {
 		const stakeAmount = 10000 * constants.COSTokenDecimals
@@ -121,6 +134,14 @@ func NewDandelionContractTest(f func(*testing.T, *dandelion.Dandelion), actors i
 }
 
 func BytesToJson(data []byte) string {
+	var s []string
+	for _, b := range data {
+		s = append(s, strconv.FormatUint(uint64(b), 10))
+	}
+	return fmt.Sprintf("[%s]", strings.Join(s, ","))
+}
+
+func IntsToJson(data []int) string {
 	var s []string
 	for _, b := range data {
 		s = append(s, strconv.FormatUint(uint64(b), 10))

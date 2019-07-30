@@ -5,5 +5,5 @@ import (
 )
 
 func TestContracts(t *testing.T) {
-	t.Run("natives", NewDandelionContractTest(new(NativeTester).Test, 2, "actor1.native_tester"))
+	t.Run("misc", NewDandelionContractTest(new(MiscTester).Test, 2, "actor0.native_tester", "actor1.native_tester"))
 }
