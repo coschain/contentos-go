@@ -62,14 +62,14 @@ func (tester *VoteTester) revote(t *testing.T, d *Dandelion) {
 	a.Equal("0", d.Post(1).GetWeightedVp())
 	receipt, err := tester.acc0.SendTrxEx(Vote(tester.acc0.Name, 1))
 	a.NoError(err)
-	a.NotEqual(receipt.Status, uint32(prototype.StatusSuccess))
+	a.NotEqual(receipt.Status, prototype.StatusSuccess)
 }
 
 func (tester *VoteTester) voteToGhostPost(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
 	receipt, err := tester.acc0.SendTrxEx(Vote(tester.acc0.Name, 2))
 	a.NoError(err)
-	a.NotEqual(receipt.Status, uint32(prototype.StatusSuccess))
+	a.NotEqual(receipt.Status, prototype.StatusSuccess)
 }
 
 

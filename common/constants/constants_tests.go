@@ -5,7 +5,7 @@ package constants
 const (
 	PostCashOutDelayBlock 	= 60*5
 	VoteRegenerateTime 		= 10000
-	PowerDownBlockInterval 	= 60*5
+	PowerDownBlockInterval 	= 100
 	MinEpochDuration 		= 60*5
 	StakeFreezeTime      	= 60*5
 

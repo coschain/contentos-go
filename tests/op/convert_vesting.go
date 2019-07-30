@@ -32,38 +32,45 @@ func (tester *ConvertVestingTester) Test(t *testing.T, d *Dandelion) {
 func (tester *ConvertVestingTester) normal(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
 
-	a.NoError(tester.acc0.SendTrxAndProduceBlock(TransferToVesting(tester.acc0.Name, tester.acc0.Name, 10000000)))
+	const TRANSFER = 10000000
+	a.NoError(tester.acc0.SendTrxAndProduceBlock(TransferToVesting(tester.acc0.Name, tester.acc0.Name, TRANSFER)))
 
 	vestingShares0 := d.Account(tester.acc0.Name).GetVestingShares().Value
 	balance0 := d.Account(tester.acc0.Name).GetBalance().Value
 
 	headBlock0 := d.GlobalProps().GetHeadBlockNumber()
-	a.NoError(tester.acc0.SendTrxAndProduceBlock(ConvertVesting(tester.acc0.Name, 10000000)))
+	a.NoError(tester.acc0.SendTrxAndProduceBlock(ConvertVesting(tester.acc0.Name, TRANSFER)))
 	a.Equal(headBlock0 + uint64(constants.PowerDownBlockInterval), d.Account(tester.acc0.Name).GetNextPowerdownBlockNum())
-	eachRate := 10000000 / (constants.ConvertWeeks - 1)
+	eachRate := TRANSFER / (constants.ConvertWeeks - 1)
 	a.Equal(uint64(eachRate), d.Account(tester.acc0.Name).GetEachPowerdownRate().Value)
 	a.NoError(d.ProduceBlocks(constants.PowerDownBlockInterval + 1))
 	a.Equal(balance0 + uint64(eachRate), d.Account(tester.acc0.Name).GetBalance().Value)
 	a.NoError(d.ProduceBlocks(constants.PowerDownBlockInterval + 1))
 	a.Equal(balance0 + uint64(eachRate) * 2, d.Account(tester.acc0.Name).GetBalance().Value)
-	a.NoError(d.ProduceBlocks(2000))
-	a.Equal(balance0 + 10000000, d.Account(tester.acc0.Name).GetBalance().Value)
-	a.Equal(vestingShares0 - 10000000, d.Account(tester.acc0.Name).GetVestingShares().Value)
+	a.NoError(d.ProduceBlocks(constants.PowerDownBlockInterval * 20))
+	a.Equal(balance0 + TRANSFER, d.Account(tester.acc0.Name).GetBalance().Value)
+	a.Equal(vestingShares0 - TRANSFER, d.Account(tester.acc0.Name).GetVestingShares().Value)
 	a.Equal(uint64(0), d.Account(tester.acc0.Name).GetEachPowerdownRate().Value)
 	a.Equal(uint64(math.MaxUint32), d.Account(tester.acc0.Name).GetNextPowerdownBlockNum())
 }
 
 func (tester *ConvertVestingTester) Reset(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
-	a.NoError(tester.acc1.SendTrxAndProduceBlock(TransferToVesting(tester.acc1.Name, tester.acc1.Name, 10000000)))
+
+	const (
+		TRANSFER = 10000000
+		TRANSFER2 = 2000000
+	)
+
+	a.NoError(tester.acc1.SendTrxAndProduceBlock(TransferToVesting(tester.acc1.Name, tester.acc1.Name, TRANSFER)))
 
 	vestingShares1 := d.Account(tester.acc1.Name).GetVestingShares().Value
 	balance1 := d.Account(tester.acc1.Name).GetBalance().Value
 	headBlock1 := d.GlobalProps().GetHeadBlockNumber()
 
-	a.NoError(tester.acc1.SendTrxAndProduceBlock(ConvertVesting(tester.acc1.Name, 10000000)))
+	a.NoError(tester.acc1.SendTrxAndProduceBlock(ConvertVesting(tester.acc1.Name, TRANSFER)))
 	a.Equal(headBlock1 + uint64(constants.PowerDownBlockInterval), d.Account(tester.acc1.Name).GetNextPowerdownBlockNum())
-	eachRate1 := 10000000 / (constants.ConvertWeeks - 1)
+	eachRate1 := TRANSFER / (constants.ConvertWeeks - 1)
 	a.Equal(uint64(eachRate1), d.Account(tester.acc1.Name).GetEachPowerdownRate().Value)
 	a.NoError(d.ProduceBlocks(constants.PowerDownBlockInterval + 1))
 	a.Equal(balance1 + uint64(eachRate1), d.Account(tester.acc1.Name).GetBalance().Value)
@@ -73,9 +80,9 @@ func (tester *ConvertVestingTester) Reset(t *testing.T, d *Dandelion) {
 	balance2 := d.Account(tester.acc1.Name).GetBalance().Value
 	headBlock2 := d.GlobalProps().GetHeadBlockNumber()
 
-	a.NoError(tester.acc1.SendTrxAndProduceBlock(ConvertVesting(tester.acc1.Name, 2000000)))
+	a.NoError(tester.acc1.SendTrxAndProduceBlock(ConvertVesting(tester.acc1.Name, TRANSFER2)))
 	a.Equal(headBlock2 + uint64(constants.PowerDownBlockInterval), d.Account(tester.acc1.Name).GetNextPowerdownBlockNum())
-	eachRate2 := 2000000 / (constants.ConvertWeeks - 1)
+	eachRate2 := TRANSFER2 / (constants.ConvertWeeks - 1)
 	a.Equal(uint64(eachRate2), d.Account(tester.acc1.Name).GetEachPowerdownRate().Value)
 	a.NoError(d.ProduceBlocks(constants.PowerDownBlockInterval + 1))
 	a.Equal(balance2 + uint64(eachRate2), d.Account(tester.acc1.Name).GetBalance().Value)
@@ -84,7 +91,8 @@ func (tester *ConvertVestingTester) Reset(t *testing.T, d *Dandelion) {
 
 func (tester *ConvertVestingTester) tooMuch(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
-	a.NoError(tester.acc3.SendTrxAndProduceBlock(TransferToVesting(tester.acc3.Name, tester.acc3.Name, 10000000)))
+	const TRANSFER = 10000000
+	a.NoError(tester.acc3.SendTrxAndProduceBlock(TransferToVesting(tester.acc3.Name, tester.acc3.Name, TRANSFER)))
 	vestingShares := d.Account(tester.acc3.Name).GetVestingShares().Value
 	toConvert := d.Account(tester.acc3.Name).GetToPowerdown().Value
 
@@ -98,7 +106,8 @@ func (tester *ConvertVestingTester) tooMuch(t *testing.T, d *Dandelion) {
 
 func (tester *ConvertVestingTester) tooSmall(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
-	a.NoError(tester.acc4.SendTrxAndProduceBlock(TransferToVesting(tester.acc4.Name, tester.acc4.Name, 10000000)))
+	const TRANSFER = 10000000
+	a.NoError(tester.acc4.SendTrxAndProduceBlock(TransferToVesting(tester.acc4.Name, tester.acc4.Name, TRANSFER)))
 	vestingShares := d.Account(tester.acc4.Name).GetVestingShares().Value
 	toConvert := d.Account(tester.acc4.Name).GetToPowerdown().Value
 	a.Error(tester.acc4.SendTrx(ConvertVesting(tester.acc4.Name, 1)))
@@ -109,9 +118,10 @@ func (tester *ConvertVestingTester) tooSmall(t *testing.T, d *Dandelion) {
 
 func (tester *ConvertVestingTester) mismatch(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
+	const TRANSFER = 10000000
 	vestingShares := d.Account(tester.acc0.Name).GetVestingShares().Value
 	toConvert := d.Account(tester.acc0.Name).GetToPowerdown().Value
-	a.Error(tester.acc0.SendTrx(ConvertVesting(tester.acc1.Name, 1000000)))
+	a.Error(tester.acc0.SendTrx(ConvertVesting(tester.acc1.Name, TRANSFER)))
 	a.NoError(d.ProduceBlocks(1))
 	a.Equal(vestingShares, d.Account(tester.acc0.Name).GetVestingShares().Value)
 	a.Equal(toConvert, d.Account(tester.acc0.Name).GetToPowerdown().Value)

@@ -109,7 +109,7 @@ func updateAccount(cmd *cobra.Command, args []string) {
 		if err != nil {
 			fmt.Println(err)
 		} else {
-			if resp.Invoice.Status == uint32(prototype.StatusSuccess) {
+			if resp.Invoice.Status == prototype.StatusSuccess {
 				err = mywallet.Create(owner, passphrase, newPubKeyStr, newPriKeyStr)
 				if err != nil {
 					fmt.Println(err)

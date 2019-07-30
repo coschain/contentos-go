@@ -44,14 +44,14 @@ func (tester *FollowTester) followSelf(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
 	receipt, err := tester.acc0.SendTrxEx(Follow(tester.acc0.Name, tester.acc0.Name, false))
 	a.NoError(err)
-	a.NotEqual(receipt.Status, uint32(prototype.StatusSuccess))
+	a.NotEqual(receipt.Status, prototype.StatusSuccess)
 }
 
 func (tester *FollowTester) followNoExist(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
 	receipt, err := tester.acc0.SendTrxEx(Follow(tester.acc0.Name, "actor4", false))
 	a.NoError(err)
-	a.NotEqual(receipt.Status, uint32(prototype.StatusSuccess))
+	a.NotEqual(receipt.Status, prototype.StatusSuccess)
 }
 
 func (tester *FollowTester) followUseOther(t *testing.T, d *Dandelion) {
