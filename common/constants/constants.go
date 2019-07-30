@@ -1,13 +1,9 @@
-// +build !tests
-
 package constants
 
 const (
 	SingletonId      = 1
-	COSChainName     = "contentos"
 	COSTokenDecimals = 1000000
 	COSInitSupply    = 6500000000 * COSTokenDecimals
-	COSConsensusName = "saBFT"
 	COSInitMiner     = "initminer"
 	COSSysAccount    = "contentos"
 
@@ -17,16 +13,12 @@ const (
 	BlockInterval       = 1  // 1000 ms for one block produce
 	BlockProdRepetition = 5 // each producer produces 5 blocks in a row
 
-	NoticeOpPre        = "oppre"
 	NoticeOpPost       = "oppost"
-	NoticeTrxPre       = "trxpre"
 	NoticeTrxPost      = "trxpost"
-	NoticeTrxPending   = "trxpending"
 	NoticeTrxApplied   = "trxapplyresult"
 	NoticeBlockApplied = "blockapply"
 	NoticeAddTrx       = "addTrx"
 	NoticeCashout      = "rewardCashout"
-	//NoticeLIB          = "lastIrreversibleBlock"
 	NoticeState        = "blockstate"
 
 	GenesisTime = 0
@@ -47,16 +39,10 @@ const (
 
 	PostInvalidId        = 0
 	PostMaxDepth         = 8
-	//PostCashOutDelayTime = 60 * 60 * 24 * 7
-	//PostCashOutDelayBlock = 60 * 10
-	PostCashOutDelayBlock = 60 * 60 * 24
-	//VpDecayTime = 60 * 60 * 24 * 1.5
 	VpDecayTime = PostCashOutDelayBlock * 1.5
 
-	MaxBpVoteCount       = 30
 
 	PerVoterCanVoteWitness   = 1
-	VoteCountPerVest         = 1
 
 	MaxAccountNameLength     = 16
 	MinAccountNameLength     = 6
@@ -77,16 +63,11 @@ const (
 	// bp register limit
 	MinVestBalance = 10000 * COSTokenDecimals
 
-	BlocksPerDay = 24 * 60 * 60 / BlockInterval
-
-	MaxUndoHistory = 10000
 
 	MinVoteInterval = 0 // per 260s 1/1000 vp will restore. Between the 260s any vote operations are valueless if its vp has been exhausted
 	MinPostInterval = 0 // 5 * 60 TODO for unit test
 
 	PERCENT = 10000
-
-	VoteRegenerateTime = (60 * 60 * 24) * 3
 
 	VoteLimitDuringRegenerate = 30
 
@@ -108,7 +89,6 @@ const (
 	ConvertWeeks = 13
 
 	BaseRate               = 1e6
-	PowerDownBlockInterval = (60 * 60 * 24) * 7
 
 	ReportCashout = 1000
 
@@ -129,7 +109,6 @@ const (
     FreeStamina          = 100000
     OneDayStamina        = MaxStaminaPerBlock * WindowSize
     CommonOpStamina      = 100
-    StakeFreezeTime      = WindowSize * 3
     TpsWindowSize        = 60
 	FreeStaminaOverFlow  = "freeStaminaOverFlow"
 	StakeStaminaOverFlow = "stakeStaminaOverFlow"
@@ -151,7 +130,6 @@ const (
 	//InitEpochDuration = 60 * 60 * 24 * 30
 	InitEpochDuration = 600
 	MaxTopN = 10000
-	MinEpochDuration = 60 * 60 * 24
 	MinTicketPrice = 100
 
 	// 2 * 1e9
