@@ -61,7 +61,7 @@ const (
 	MaxAccountCreateFee      = 10000 * COSTokenDecimals
 
 	// bp register limit
-	MinVestBalance = 10000 * COSTokenDecimals
+	MinBpRegisterVest = 10000 * COSTokenDecimals
 
 
 	MinVoteInterval = 0 // per 260s 1/1000 vp will restore. Between the 260s any vote operations are valueless if its vp has been exhausted

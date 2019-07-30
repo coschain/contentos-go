@@ -44,7 +44,7 @@ const (
 
 	MaxWitnessCount = 21
 
-	MinVestBalance = 0 * COSTokenDecimals
+	MinBpRegisterVest = 0 * COSTokenDecimals
 
 	PostInvalidId        = 0
 	PostMaxDepth         = 8

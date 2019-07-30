@@ -43,7 +43,7 @@ func transferCosToNewAccountTrx(cmd *cobra.Command, client grpcpb.ApiServiceClie
 		op_transfer := &prototype.TransferOperation{
 			From:   fromAccount,
 			To:     &prototype.AccountName{Value: toAccountName},
-			Amount: prototype.NewCoin(constants.MinVestBalance),
+			Amount: prototype.NewCoin(constants.MinBpRegisterVest),
 			Memo:   "",
 		}
 
@@ -75,7 +75,7 @@ func transferCosToVestTrx(cmd *cobra.Command, client grpcpb.ApiServiceClient, co
 	transferv_op := &prototype.TransferToVestingOperation{
 		From:   &prototype.AccountName{Value: accountName},
 		To:     &prototype.AccountName{Value: accountName},
-		Amount: prototype.NewCoin(constants.MinVestBalance),
+		Amount: prototype.NewCoin(constants.MinBpRegisterVest),
 	}
 
 	trx.Trx.AddOperation(transferv_op)

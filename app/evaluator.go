@@ -512,8 +512,8 @@ func (ev *BpRegisterEvaluator) Apply() {
 	opAssert(accountWrap.CheckExist(), "block producer account not exist")
 
 	accountBalance := accountWrap.GetVestingShares()
-	opAssert(accountBalance.Value >= constants.MinVestBalance,
-		fmt.Sprintf("vesting balance should greater than %d", constants.MinVestBalance / constants.COSTokenDecimals))
+	opAssert(accountBalance.Value >= constants.MinBpRegisterVest,
+		fmt.Sprintf("vest balance should greater than %d", constants.MinBpRegisterVest / constants.COSTokenDecimals))
 
 	witnessWrap := table.NewSoWitnessWrap(ev.Database(), op.Owner)
 	opAssert(!witnessWrap.CheckExist(), "you are already a block producer, do not register twice")
