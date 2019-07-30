@@ -517,9 +517,19 @@ func (ev *BpRegisterEvaluator) Apply() {
 	op := ev.op
 	ev.VMInjector().RecordStaminaFee(op.Owner.Value, constants.CommonOpStamina)
 
+	accountWrap := table.NewSoAccountWrap(ev.Database(), op.Owner)
+	opAssert(accountWrap.CheckExist(), "block producer account not exist")
+
+	accountBalance := accountWrap.GetVestingShares()
+	opAssert(accountBalance.Value >= constants.MinVestBalance,
+		fmt.Sprintf("vesting balance should greater than %d", constants.MinVestBalance / constants.COSTokenDecimals))
+
+	witnessWrap := table.NewSoWitnessWrap(ev.Database(), op.Owner)
+	opAssert(!witnessWrap.CheckExist(), "you are already a block producer, do not register twice")
+
 	//opAssert(ev.BpInWhiteList(op.Owner.Value), "bp name not in white list")
 
-	opAssert(table.NewSoAccountWrap(ev.Database(), op.Owner).GetReputation() > constants.MinReputation,
+	opAssert(accountWrap.GetReputation() > constants.MinReputation,
 		fmt.Sprintf("reputation too low"))
 
 	staminaFree := op.Props.StaminaFree
@@ -554,15 +564,11 @@ func (ev *BpRegisterEvaluator) Apply() {
 
 	perTicketWeight := op.Props.PerTicketWeight
 
-	witnessWrap := table.NewSoWitnessWrap(ev.Database(), op.Owner)
-
-	if witnessWrap.CheckExist() {
-		opAssert(!witnessWrap.GetActive(), "witness already exist")
-
-		opAssert(witnessWrap.RemoveWitness(), "remove old witness information error")
-	}
-
-	//opAssert(!witnessWrap.CheckExist(), "witness already exist")
+	//if witnessWrap.CheckExist() {
+	//	opAssert(!witnessWrap.GetActive(), "witness already exist")
+	//
+	//	opAssert(witnessWrap.RemoveWitness(), "remove old witness information error")
+	//}
 
 	opAssertE(witnessWrap.Create(func(t *table.SoWitness) {
 		t.Owner = op.Owner

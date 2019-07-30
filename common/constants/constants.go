@@ -74,6 +74,9 @@ const (
 	DefaultAccountCreateFee  = 1
 	MaxAccountCreateFee      = 10000 * COSTokenDecimals
 
+	// bp register limit
+	MinVestBalance = 10000 * COSTokenDecimals
+
 	BlocksPerDay = 24 * 60 * 60 / BlockInterval
 
 	MaxUndoHistory = 10000

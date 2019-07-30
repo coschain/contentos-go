@@ -24,6 +24,71 @@ var MultinodetesterCmd = func() *cobra.Command {
 	return cmd
 }
 
+func transferCosToNewAccountTrx(cmd *cobra.Command, client grpcpb.ApiServiceClient, count int64) (*prototype.SignedTransaction, error) {
+	resp, _ := client.GetChainState( context.Background(), &grpcpb.NonParamsRequest{} )
+	refBlockPrefix := common.TaposRefBlockPrefix(resp.State.Dgpo.HeadBlockId.Hash)
+	refBlockNum := common.TaposRefBlockNum(resp.State.Dgpo.HeadBlockNumber)
+	tx := &prototype.Transaction{RefBlockNum: refBlockNum, RefBlockPrefix: refBlockPrefix, Expiration: &prototype.TimePointSec{UtcSeconds: resp.State.Dgpo.Time.UtcSeconds + 30}}
+	trx := &prototype.SignedTransaction{Trx: tx}
+
+	fromAccount := prototype.NewAccountName(constants.COSInitMiner)
+	fromAccountPriKey, err := prototype.PrivateKeyFromWIF(constants.InitminerPrivKey)
+	if err != nil {
+		return nil, err
+	}
+
+	for index := int64(1); index < count; index++ {
+		toAccountName := fmt.Sprintf("%s%d", constants.COSInitMiner, index)
+
+		op_transfer := &prototype.TransferOperation{
+			From:   fromAccount,
+			To:     &prototype.AccountName{Value: toAccountName},
+			Amount: prototype.NewCoin(constants.MinVestBalance),
+			Memo:   "",
+		}
+
+		trx.Trx.AddOperation(op_transfer)
+	}
+
+	res := trx.Sign(fromAccountPriKey, cmd.Context["chain_id"].(prototype.ChainId))
+	trx.Signature = &prototype.SignatureType{Sig: res}
+
+	if err := trx.Validate(); err != nil {
+		return nil, err
+	}
+	return trx, nil
+}
+
+func transferCosToVestTrx(cmd *cobra.Command, client grpcpb.ApiServiceClient, count int64) (*prototype.SignedTransaction, error) {
+	resp, _ := client.GetChainState( context.Background(), &grpcpb.NonParamsRequest{} )
+	refBlockPrefix := common.TaposRefBlockPrefix(resp.State.Dgpo.HeadBlockId.Hash)
+	refBlockNum := common.TaposRefBlockNum(resp.State.Dgpo.HeadBlockNumber)
+	tx := &prototype.Transaction{RefBlockNum: refBlockNum, RefBlockPrefix: refBlockPrefix, Expiration: &prototype.TimePointSec{UtcSeconds: resp.State.Dgpo.Time.UtcSeconds + 30}}
+	trx := &prototype.SignedTransaction{Trx: tx}
+
+	accountName := fmt.Sprintf("%s%d", constants.COSInitMiner, count)
+	keys, err := prototype.GenerateNewKeyFromBytes([]byte(accountName))
+	if err != nil {
+		return nil, err
+	}
+
+	transferv_op := &prototype.TransferToVestingOperation{
+		From:   &prototype.AccountName{Value: accountName},
+		To:     &prototype.AccountName{Value: accountName},
+		Amount: prototype.NewCoin(constants.MinVestBalance),
+	}
+
+	trx.Trx.AddOperation(transferv_op)
+
+	res := trx.Sign(keys, cmd.Context["chain_id"].(prototype.ChainId))
+	trx.Signature = &prototype.SignatureType{Sig: res}
+
+	if err := trx.Validate(); err != nil {
+		return nil, err
+	}
+	return trx, nil
+}
+
 
 func makeBpRegVoteTrx(cmd *cobra.Command, client grpcpb.ApiServiceClient, count int64) (*prototype.SignedTransaction, error) {
 
@@ -212,6 +277,7 @@ func multinodetester(cmd *cobra.Command, args []string) {
 		return
 	}
 
+	// create new account
 	{
 		signTx, err := createMNTAccountTrx(cmd, client, idx)
 		if err != nil {
@@ -227,7 +293,40 @@ func multinodetester(cmd *cobra.Command, args []string) {
 		}
 	}
 
+	// transfer cos to new account
+	{
+		signTx, err := transferCosToNewAccountTrx(cmd, client, idx)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
+		resp, err := client.BroadcastTrx(context.Background(), req)
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			fmt.Println(fmt.Sprintf("transfer Result: %v", resp))
+		}
+	}
+
 	var i int64
+	// new account transfer cos to vest
+	for i = 1; i < idx; i++ {
+		signTx, err := transferCosToVestTrx(cmd, client, i)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
+		resp, err := client.BroadcastTrx(context.Background(), req)
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			fmt.Println(fmt.Sprintf("transfer to vest Result: %v", resp))
+		}
+	}
+
+	// new account register and vote bp
 	for i = 1; i < idx; i++ {
 		signTx, err := makeBpRegVoteTrx(cmd, client, i)
 		if err != nil {
@@ -235,7 +334,7 @@ func multinodetester(cmd *cobra.Command, args []string) {
 			return
 		}
 		req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
-		req.OnlyDeliver = true
+		//req.OnlyDeliver = true
 		resp, err := client.BroadcastTrx(context.Background(), req)
 		if err != nil {
 			fmt.Println(err)
