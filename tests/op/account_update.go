@@ -44,10 +44,12 @@ func (tester *AccountUpdateTester) wrongAccount(t *testing.T, d *Dandelion) {
 	priv, _ := prototype.GenerateNewKey()
 	pub, _ := priv.PubKey()
 
+
 	acctName := "account1"
+	acct := d.Account(acctName)
+	a.Empty(acct.CheckExist())
 	a.Error(tester.acc1.SendTrx(AccountUpdate(acctName, pub)))
 	a.NoError(d.ProduceBlocks(1))
-	acct := d.Account(acctName)
 	a.Empty(acct.GetPubKey())
 }
 

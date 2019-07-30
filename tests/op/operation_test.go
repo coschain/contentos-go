@@ -18,4 +18,5 @@ func TestOperations(t *testing.T) {
 	t.Run("create account", dandelion.NewDandelionTest(new(AccountCreateTester).Test, 3))
 	t.Run("convert vesting", dandelion.NewDandelionTest(new(ConvertVestingTester).Test, 5))
 	t.Run("update account", dandelion.NewDandelionTest(new(AccountUpdateTester).Test, 3))
+	t.Run("stake", dandelion.NewDandelionTest(new(StakeTester).Test, 3))
 }

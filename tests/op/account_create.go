@@ -96,8 +96,9 @@ func (tester *AccountCreateTester) wrongCreator(t *testing.T, d *Dandelion) {
 
 	//the creator must already exist
 	acctName := "account2"
-	creator := "testAccount"
-	a.Error(tester.acc2.SendTrx(AccountCreate(creator, acctName, pub, 10, "")))
+	creator := d.Account("testAccount")
+	a.Empty(creator.CheckExist())
+	a.Error(tester.acc2.SendTrx(AccountCreate(creator.Name, acctName, pub, 10, "")))
 	a.NoError(d.ProduceBlocks(1))
 	newAcct := d.Account(acctName)
 	a.Empty(newAcct.CheckExist())
