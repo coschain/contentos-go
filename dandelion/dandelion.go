@@ -37,7 +37,7 @@ func NewDandelionTest(f DandelionTestFunc, actors int) func(*testing.T) {
 		defer func() {
 			_ = d.Stop()
 		}()
-		err = d.CreateAndFund("actor", actors, 1000 * constants.COSTokenDecimals, 10)
+		err = d.CreateAndFund("actor", actors, 100000 * constants.COSTokenDecimals, 10)
 		if err != nil {
 			t.Fatalf("dandelion createAndFund failed: %s", err.Error())
 		}

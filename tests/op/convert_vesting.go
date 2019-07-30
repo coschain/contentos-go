@@ -3,6 +3,7 @@ package op
 import (
 	"github.com/coschain/contentos-go/common/constants"
 	. "github.com/coschain/contentos-go/dandelion"
+	"github.com/coschain/contentos-go/prototype"
 	"github.com/stretchr/testify/assert"
 	"math"
 	"testing"
@@ -10,6 +11,17 @@ import (
 
 type ConvertVestingTester struct {
 	acc0, acc1, acc2, acc3, acc4 *DandelionAccount
+}
+
+var cvProps = &prototype.ChainProperties{
+	AccountCreationFee: prototype.NewCoin(1),
+	MaximumBlockSize:   1024 * 1024,
+	StaminaFree:        constants.DefaultStaminaFree,
+	TpsExpected:        constants.DefaultTPSExpected,
+	EpochDuration:      constants.InitEpochDuration,
+	TopNAcquireFreeToken: constants.InitTopN,
+	PerTicketPrice:     prototype.NewCoin(1000000),
+	PerTicketWeight:    constants.PerTicketWeight,
 }
 
 func (tester *ConvertVestingTester) Test(t *testing.T, d *Dandelion) {
@@ -20,7 +32,8 @@ func (tester *ConvertVestingTester) Test(t *testing.T, d *Dandelion) {
 	tester.acc4 = d.Account("actor4")
 
 	a := assert.New(t)
-	a.NoError(tester.acc2.SendTrxAndProduceBlock(BpRegister(tester.acc2.Name, "", "", tester.acc2.GetPubKey(), defaultProps)))
+	a.NoError(tester.acc2.SendTrxAndProduceBlock(TransferToVesting(tester.acc2.Name, tester.acc2.Name, constants.MinBpRegisterVest)))
+	a.NoError(tester.acc2.SendTrxAndProduceBlock(BpRegister(tester.acc2.Name, "", "", tester.acc2.GetPubKey(), cvProps)))
 
 	t.Run("normal", d.Test(tester.normal))
 	t.Run("reset", d.Test(tester.Reset))
