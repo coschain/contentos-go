@@ -19,28 +19,34 @@ func (tester *FollowTester) Test(t *testing.T, d *Dandelion) {
 	t.Run("unfollow", d.Test(tester.unfollow))
 	t.Run("follow self", d.Test(tester.followSelf))
 	t.Run("follow to no exist", d.Test(tester.followNoExist))
+	t.Run("follow use other private key", d.Test(tester.followUseOther))
 }
 
 func (tester *FollowTester) follow(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
-	a.NoError(tester.acc0.SendTrxAndProduceBlock(Follow("actor0", "actor1", false)))
+	a.NoError(tester.acc0.SendTrxAndProduceBlock(Follow(tester.acc0.Name, tester.acc1.Name, false)))
 }
 
 func (tester *FollowTester) unfollow(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
-	a.NoError(tester.acc0.SendTrxAndProduceBlock(Follow("actor0", "actor1", true)))
+	a.NoError(tester.acc0.SendTrxAndProduceBlock(Follow(tester.acc0.Name, tester.acc1.Name, true)))
 }
 
 func (tester *FollowTester) followSelf(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
-	receipt, err := tester.acc0.SendTrxEx(Follow("actor0", "actor0", false))
+	receipt, err := tester.acc0.SendTrxEx(Follow(tester.acc0.Name, tester.acc0.Name, false))
 	a.NoError(err)
 	a.NotEqual(receipt.Status, SUCCESS)
 }
 
 func (tester *FollowTester) followNoExist(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
-	receipt, err := tester.acc0.SendTrxEx(Follow("actor0", "actor4", false))
+	receipt, err := tester.acc0.SendTrxEx(Follow(tester.acc0.Name, "actor4", false))
 	a.NoError(err)
 	a.NotEqual(receipt.Status, SUCCESS)
+}
+
+func (tester *FollowTester) followUseOther(t *testing.T, d *Dandelion) {
+	a := assert.New(t)
+	a.Error(tester.acc0.SendTrxAndProduceBlock(Follow(tester.acc1.Name, tester.acc0.Name, false)))
 }
