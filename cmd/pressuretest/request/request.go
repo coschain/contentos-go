@@ -94,7 +94,7 @@ func createAccount(mywallet *wallet.BaseWallet, rpcClient grpcpb.ApiServiceClien
 	if err != nil {
 		fmt.Println(err)
 	} else {
-		if resp.Invoice.Status == 200 {
+		if resp.Invoice.Status == uint32(prototype.StatusSuccess){
 			GlobalAccountLIst.Lock()
 			obj := &wallet.PrivAccount{
 				Account: wallet.Account{Name: newAccountName, PubKey: pubKeyStr},
@@ -336,7 +336,7 @@ func postArticle(rpcClient grpcpb.ApiServiceClient, authorAccount *wallet.PrivAc
 	if err != nil {
 		fmt.Println(err)
 	} else {
-		if resp.Invoice.Status == 200 {
+		if resp.Invoice.Status == uint32(prototype.StatusSuccess) {
 			PostIdList.Lock()
 			PostIdList.arr = append(PostIdList.arr, uuid)
 			PostIdList.Unlock()
@@ -722,7 +722,7 @@ func RandomUnRegisterBP(rpcClient grpcpb.ApiServiceClient) error {
 	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
 	resp, err := rpcClient.BroadcastTrx(context.Background(), req)
 	if err == nil {
-		if resp.Invoice.Status == 200 {
+		if resp.Invoice.Status == uint32(prototype.StatusSuccess) {
 			lastConductBPIndex = index
 		}
 		if strings.Contains(resp.Invoice.ErrorInfo,"net resource not enough") {
@@ -788,7 +788,7 @@ func RegisterAndVoteBP(rpcClient grpcpb.ApiServiceClient, index int) error {
 	newresp, err := rpcClient.BroadcastTrx(context.Background(), req)
 
 	if err == nil {
-		if newresp.Invoice.Status == 200 {
+		if newresp.Invoice.Status == uint32(prototype.StatusSuccess) {
 			lastConductBPIndex = -1
 		}
 		if strings.Contains(newresp.Invoice.ErrorInfo,"net resource not enough") {

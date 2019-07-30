@@ -44,7 +44,7 @@ const (
 
 	MaxWitnessCount = 21
 
-	MinVestBalance = 10000 * COSTokenDecimals
+	MinVestBalance = 0 * COSTokenDecimals
 
 	PostInvalidId        = 0
 	PostMaxDepth         = 8
@@ -104,7 +104,7 @@ const (
 	ConvertWeeks = 13
 
 	BaseRate               = 1e6
-	PowerDownBlockInterval = 6000
+	PowerDownBlockInterval = 100
 
 	ReportCashout = 1000
 

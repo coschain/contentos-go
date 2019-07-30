@@ -84,7 +84,7 @@ func create(cmd *cobra.Command, args []string) {
 		if err != nil {
 			fmt.Println(err)
 		} else {
-			if resp.Invoice.Status == 200 {
+			if resp.Invoice.Status == uint32(prototype.StatusSuccess){
 				err = mywallet.Create(name, passphrase, pubKeyStr, privKeyStr)
 				if err != nil {
 					fmt.Println(err)

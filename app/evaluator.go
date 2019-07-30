@@ -819,7 +819,7 @@ func (ev *ConvertVestingEvaluator) Apply() {
 
 	accWrap := table.NewSoAccountWrap(ev.Database(), op.From)
 	opAssert(accWrap.CheckExist(), "account do not exist")
-	opAssert(op.Amount.Value >= uint64(1e6), "At least 1 vesting should be converted")
+	//opAssert(op.Amount.Value >= uint64(1e6), "At least 1 vesting should be converted")
 	opAssert(accWrap.GetVestingShares().Value >= op.Amount.Value, "vesting balance not enough")
 	globalProps := ev.GlobalProp().GetProps()
 	//timestamp := globalProps.Time.UtcSeconds
