@@ -8,6 +8,4 @@ const (
 	PowerDownBlockInterval 	= 100
 	MinEpochDuration 		= 60*5
 	StakeFreezeTime      	= 60*5
-
-	MinBpRegisterVest 		= 10000 * COSTokenDecimals
 )

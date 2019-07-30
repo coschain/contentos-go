@@ -10,8 +10,5 @@ const (
 
 	StakeFreezeTime      	= 60 * 60 * 24 * 3
 
-	// bp register limit
-	MinBpRegisterVest = 10000 * COSTokenDecimals
-
 )
 
