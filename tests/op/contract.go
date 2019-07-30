@@ -1,4 +1,4 @@
-package contracts
+package op
 
 import (
 	"crypto/rand"
@@ -13,9 +13,9 @@ import (
 	"testing"
 )
 
-type MiscTester struct {}
+type ContractTester struct {}
 
-func (tester *MiscTester) Test(t *testing.T, d *Dandelion) {
+func (tester *ContractTester) Test(t *testing.T, d *Dandelion) {
 	t.Run("sha256", d.Test(tester.sha256))
 	t.Run("contractInfo", d.Test(tester.contractInfo))
 	t.Run("requireAuth", d.Test(tester.requireAuth))
@@ -23,7 +23,7 @@ func (tester *MiscTester) Test(t *testing.T, d *Dandelion) {
 	t.Run("transfer", d.Test(tester.transfer))
 }
 
-func (tester *MiscTester) sha256(t *testing.T, d *Dandelion) {
+func (tester *ContractTester) sha256(t *testing.T, d *Dandelion) {
 	data := make([]byte, 16)
 	// sha256 for random bytes
 	for i := 0; i < 10; i++ {
@@ -36,7 +36,7 @@ func (tester *MiscTester) sha256(t *testing.T, d *Dandelion) {
 	ApplyNoError(t, d, fmt.Sprintf("actor1: actor1.native_tester.sha256 [], %v", BytesToJson(sum[:])))
 }
 
-func (tester *MiscTester) contractInfo(t *testing.T, d *Dandelion) {
+func (tester *ContractTester) contractInfo(t *testing.T, d *Dandelion) {
 	//
 	// scenario #1, called by a user
 	//
@@ -73,7 +73,7 @@ func (tester *MiscTester) contractInfo(t *testing.T, d *Dandelion) {
 
 }
 
-func (tester *MiscTester) requireAuth(t *testing.T, d *Dandelion) {
+func (tester *ContractTester) requireAuth(t *testing.T, d *Dandelion) {
 	//
 	// scenario #1, called by a user
 	//
@@ -100,14 +100,14 @@ func (tester *MiscTester) requireAuth(t *testing.T, d *Dandelion) {
 	ApplyError(t, d, fmt.Sprintf("actor1: actor1.native_tester.call_require_auth_contract %q, %q, %q, %q", "actor0", "native_tester", "actor0", "native_tester"))
 }
 
-func (tester *MiscTester) chainInfo(t *testing.T, d *Dandelion) {
+func (tester *ContractTester) chainInfo(t *testing.T, d *Dandelion) {
 	ApplyNoError(t, d, fmt.Sprintf("actor1: actor1.native_tester.current_block_number %d", d.GlobalProps().HeadBlockNumber))
 	ApplyNoError(t, d, fmt.Sprintf("actor1: actor1.native_tester.current_timestamp %d", d.GlobalProps().Time.UtcSeconds))
 	ApplyNoError(t, d, fmt.Sprintf("actor1: actor1.native_tester.current_witness %q", d.GlobalProps().CurrentWitness.Value))
 	ApplyNoError(t, d, fmt.Sprintf("actor1: actor1.native_tester.block_producers %s", StringsToJson(tester.blockProducers(d))))
 }
 
-func (tester *MiscTester) blockProducers(d *Dandelion) (names []string) {
+func (tester *ContractTester) blockProducers(d *Dandelion) (names []string) {
 	nameList := table.SWitnessOwnerWrap{Dba:d.Database()}
 	_ = nameList.ForEachByOrder(nil, nil, nil, nil, func(mVal *prototype.AccountName, sVal *prototype.AccountName, idx uint32) bool {
 		if table.NewSoWitnessWrap(d.Database(), mVal).GetActive() {
@@ -118,12 +118,12 @@ func (tester *MiscTester) blockProducers(d *Dandelion) (names []string) {
 	return
 }
 
-func (tester *MiscTester) transfer(t *testing.T, d *Dandelion) {
+func (tester *ContractTester) transfer(t *testing.T, d *Dandelion) {
 	t.Run("user_and_contract", d.Test(tester.transferBetweenUserAndContract))
 	t.Run("contract_and_contract", d.Test(tester.transferBetweenContractAndContract))
 }
 
-func (tester *MiscTester) transferBetweenUserAndContract(t *testing.T, d *Dandelion) {
+func (tester *ContractTester) transferBetweenUserAndContract(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
 	userBalance := d.Account("actor0").GetBalance().Value
 	contractBalance := d.Contract("actor1", "native_tester").GetBalance().Value
@@ -165,7 +165,7 @@ func (tester *MiscTester) transferBetweenUserAndContract(t *testing.T, d *Dandel
 	a.Equal(contractBalance, d.Contract("actor1", "native_tester").GetBalance().Value)
 }
 
-func (tester *MiscTester) transferBetweenContractAndContract(t *testing.T, d *Dandelion) {
+func (tester *ContractTester) transferBetweenContractAndContract(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
 
 	// first, fund 2 contracts
