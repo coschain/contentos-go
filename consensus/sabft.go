@@ -1145,6 +1145,10 @@ func (sabft *SABFT) ValidateProposal(data message.ProposedData) bool {
 	sabft.RLock()
 	defer sabft.RUnlock()
 
+	if blockID.BlockNum() <= sabft.ForkDB.LastCommitted().BlockNum() {
+		return false
+	}
+
 	if _, err := sabft.ForkDB.FetchBlock(blockID); err != nil {
 		return false
 	}
