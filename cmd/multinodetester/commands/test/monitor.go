@@ -16,6 +16,7 @@ import (
 type Components struct {
 	ConsensusSvc iservices.IConsensus
 	P2pSvc       iservices.IP2P
+	IsRunning    bool
 }
 
 type Monitor struct {
@@ -190,17 +191,22 @@ func (m *Monitor) draw() {
 func formattedLine(c *Components) string {
 	peers := c.P2pSvc.GetNodeNeighbours()
 	ps := strings.Split(peers, ",")
-	return fmt.Sprintf("%12s %12d %12d %12d",
+	status := "online"
+	if c.IsRunning == false {
+		status = "offline"
+	}
+	return fmt.Sprintf("%12s %12d %12d %12d %12s",
 		c.ConsensusSvc.GetName(),
 		c.ConsensusSvc.GetHeadBlockId().BlockNum(),
 		c.ConsensusSvc.GetLIB().BlockNum(),
 		len(ps),
+		status,
 	)
 }
 
 func (m *Monitor) getInfo(names map[string]bool) []string {
 	info := make([]string, len(names)+1)
-	info[0] = fmt.Sprintf("%12s %12s %12s %12s", "NodeName", "HeadBlockNum", "LastCommitted", "ConnectedPeers")
+	info[0] = fmt.Sprintf("%12s %12s %12s %12s %12s", "NodeName", "HeadBlockNum", "LastCommitted", "ConnectedPeers", "Status")
 	i := 0
 	ns := make([]string, len(names))
 	for name := range names {

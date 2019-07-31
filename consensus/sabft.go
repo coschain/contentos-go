@@ -524,6 +524,7 @@ func (sabft *SABFT) Stop() error {
 	snapshotPath := cfg.ResolvePath("forkdb_snapshot")
 	sabft.ForkDB.Snapshot(snapshotPath)
 	sabft.prodTimer.Stop()
+	sabft.cp.db.Close()
 	close(sabft.stopCh)
 	sabft.wg.Wait()
 	return nil

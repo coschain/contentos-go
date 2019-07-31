@@ -14,6 +14,7 @@ import (
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/p2p"
 	"github.com/spf13/viper"
+	"math/rand"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -24,6 +25,7 @@ import (
 
 var VERSION = "defaultVersion"
 var latency int
+var shut bool
 
 var TestCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
@@ -32,6 +34,7 @@ var TestCmd = func() *cobra.Command {
 		Run:   startNodes,
 	}
 	cmd.Flags().IntVarP(&latency, "latency", "l", 1500, "test count -l 1500 (in ms)")
+	cmd.Flags().BoolVarP(&shut, "random_shutdown", "s", false, "")
 	return cmd
 }
 
@@ -136,28 +139,17 @@ func startNodes(cmd *cobra.Command, args []string) {
 
 	comp := make([]*test.Components, len(nodes))
 	for i := 0; i < len(nodes); i++ {
-		c, err := nodes[i].Service(iservices.ConsensusServerName)
-		if err != nil {
-			panic(err)
-		}
-		css := c.(iservices.IConsensus)
-
-		p, err := nodes[i].Service(iservices.P2PServerName)
-		if err != nil {
-			panic(err)
-		}
-		p2p := p.(iservices.IP2P)
-		p2p.SetMockLatency(latency)
-		comp[i] = &test.Components{
-			ConsensusSvc: css,
-			P2pSvc:       p2p,
-		}
+		comp[i] = &test.Components{}
+		resetSvc(nodes[i], comp[i])
 	}
 	monitor := test.NewMonitor(comp)
 	go monitor.Run()
 
 	time.Sleep(2 * time.Second)
 	go monitor.Shuffle(names[1:], sks[1:], css, stopCh)
+	if shut {
+		go randomlyShutdownNodes(nodes, comp, stopCh)
+	}
 
 	<-stopCh
 	for i := range nodes {
@@ -166,7 +158,59 @@ func startNodes(cmd *cobra.Command, args []string) {
 		nodes[i].Stop()
 		nodes[i].Log.Info("app exit success")
 	}
+}
 
+func resetSvc(node *node.Node, comp *test.Components) {
+	c, err := node.Service(iservices.ConsensusServerName)
+	if err != nil {
+		panic(err)
+	}
+	css := c.(iservices.IConsensus)
+
+	p, err := node.Service(iservices.P2PServerName)
+	if err != nil {
+		panic(err)
+	}
+	p2p := p.(iservices.IP2P)
+	p2p.SetMockLatency(latency)
+	comp.ConsensusSvc = css
+	comp.P2pSvc = p2p
+	comp.IsRunning = true
+}
+
+func randomlyShutdownNodes(nodes []*node.Node, c []*test.Components, ch chan struct{}) {
+	ticker := time.NewTicker(10 * time.Second).C
+	for {
+		select {
+		case <-ch:
+			return
+		case <-ticker:
+			idx := rand.Int() % len(nodes)
+			if idx <= 1 {
+				idx = 2
+			}
+			totalOffline := 0
+			for i := range c {
+				if c[i].IsRunning == false {
+					totalOffline++
+				}
+			}
+			if c[idx].IsRunning == false || totalOffline > len(nodes)/2 {
+				continue
+			}
+			if err := nodes[idx].Stop(); err != nil {
+				panic(err)
+			}
+			c[idx].IsRunning = false
+			go func() {
+				time.Sleep(30 * time.Second)
+				if err := nodes[idx].Start(); err != nil {
+					panic(err)
+				}
+				resetSvc(nodes[idx], c[idx])
+			}()
+		}
+	}
 }
 
 func RegisterService(app *node.Node, cfg node.Config) {
