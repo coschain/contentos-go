@@ -43,7 +43,7 @@ func (tester *ContractDeployTester) invalidFormats(t *testing.T, d *Dandelion) {
 
 func (tester *ContractDeployTester) hasFloats(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
-	a.Error(tester.deploy(d, "actor0", "actor0", "has_float", true))
+	a.Error(tester.deploy(d, "actor0", "actor0", "has_floats", true))
 }
 
 func (tester *ContractDeployTester) unknownImports(t *testing.T, d *Dandelion) {

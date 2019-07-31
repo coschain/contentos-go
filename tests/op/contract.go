@@ -91,8 +91,9 @@ func (tester *ContractTester) requireAuth(t *testing.T, d *Dandelion) {
 	// actor1.native_tester calls actor0.native_tester, and we test results of the callee, actor0.native_tester.
 	//
 
-	// require_auth of the caller account succeeds
-	ApplyNoError(t, d, fmt.Sprintf("actor1: actor1.native_tester.call_require_auth %q, %q, %q", "actor0", "native_tester", "actor1"))
+	// require_auth of the caller account fails,
+	// because the callee was called by a contract, not a user.
+	ApplyError(t, d, fmt.Sprintf("actor1: actor1.native_tester.call_require_auth %q, %q, %q", "actor0", "native_tester", "actor1"))
 	ApplyError(t, d, fmt.Sprintf("actor1: actor1.native_tester.call_require_auth %q, %q, %q", "actor0", "native_tester", "actor0"))
 
 	// require_auth of the caller contract succeeds
