@@ -67,7 +67,7 @@ func (tester *BpTest) regist(t *testing.T, d *Dandelion) {
 	a.True(witWrap.CheckExist())
 
 	// unregist acc0
-	a.NoError(checkError(d.Account(tester.acc0.Name).TrxReceipt(BpUnregister(tester.acc0.Name))))
+	a.NoError(checkError(d.Account(tester.acc0.Name).TrxReceipt(BpDisable(tester.acc0.Name))))
 }
 
 func (tester *BpTest) dupRegist(t *testing.T, d *Dandelion) {
@@ -160,12 +160,12 @@ func (tester *BpTest) unRegist(t *testing.T, d *Dandelion) {
 	a.True(witWrap.GetActive())
 
 	// acc1 unregist
-	a.NoError(checkError(d.Account(tester.acc1.Name).TrxReceipt(BpUnregister(tester.acc1.Name))))
+	a.NoError(checkError(d.Account(tester.acc1.Name).TrxReceipt(BpDisable(tester.acc1.Name))))
 
 	// check status
 	a.True(witWrap.CheckExist())
 	a.False(witWrap.GetActive())
 
 	// unregist again, should failed
-	a.Error(checkError(d.Account(tester.acc1.Name).TrxReceipt(BpUnregister(tester.acc1.Name))))
+	a.Error(checkError(d.Account(tester.acc1.Name).TrxReceipt(BpDisable(tester.acc1.Name))))
 }

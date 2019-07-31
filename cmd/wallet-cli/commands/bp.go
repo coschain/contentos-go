@@ -16,6 +16,7 @@ var bpDescFlag string
 var bpCreateAccountFee string
 var bpBlockSize uint32
 var bpVoteCancel bool
+var bpEnableCancel bool
 var proposedStaminaFree uint64
 var bpUpdateStaminaFree uint64
 var tpsExpected uint64
@@ -51,13 +52,15 @@ var BpCmd = func() *cobra.Command {
 	registerCmd.Flags().Uint64VarP(&bpPerTicketWeight, "ticket_weight", "", constants.PerTicketWeight, `bp register alice --ticket_weight 10000000`)
 
 
-	unregisterCmd := &cobra.Command{
-		Use:     "unregister",
-		Short:   "unregister a block-producer",
-		Example: "bp unregister [bpname]",
+	enableCmd := &cobra.Command{
+		Use:     "enable",
+		Short:   "enable a block-producer",
+		Example: "bp enable [bpname]",
 		Args:    cobra.ExactArgs(1),
-		Run:     unRegisterBP,
+		Run:     enableBP,
 	}
+
+	enableCmd.Flags().BoolVarP(&bpEnableCancel, "cancel", "c", false, `bp enable alice --cancel`)
 
 	voteCmd := &cobra.Command{
 		Use:     "vote",
@@ -86,7 +89,7 @@ var BpCmd = func() *cobra.Command {
 	updateCmd.Flags().Uint64VarP(&bpPerTicketWeight, "ticket_weight", "", constants.PerTicketWeight, `bp update alice --ticket_weight 10000000`)
 
 	cmd.AddCommand(registerCmd)
-	cmd.AddCommand(unregisterCmd)
+	cmd.AddCommand(enableCmd)
 	cmd.AddCommand(voteCmd)
 	cmd.AddCommand(updateCmd)
 	utils.ProcessEstimate(cmd)
@@ -180,8 +183,9 @@ func registerBP(cmd *cobra.Command, args []string) {
 	}
 }
 
-func unRegisterBP(cmd *cobra.Command, args []string) {
+func enableBP(cmd *cobra.Command, args []string) {
 	defer func() {
+		bpEnableCancel = false
 		utils.EstimateStamina = false
 	}()
 	c := cmd.Context["rpcclient"]
@@ -194,11 +198,12 @@ func unRegisterBP(cmd *cobra.Command, args []string) {
 		fmt.Println(fmt.Sprintf("account: %s should be loaded or created first", name))
 		return
 	}
-	bpUnregister_op := &prototype.BpUnregisterOperation{
-		Owner: &prototype.AccountName{Value: name},
+	bpEnable_op := &prototype.BpEnableOperation{
+		Owner:      &prototype.AccountName{Value: name},
+		Cancel:     bpEnableCancel,
 	}
 
-	signTx, err := utils.GenerateSignedTxAndValidate(cmd, []interface{}{bpUnregister_op}, bpAccount)
+	signTx, err := utils.GenerateSignedTxAndValidate(cmd, []interface{}{bpEnable_op}, bpAccount)
 	if err != nil {
 		fmt.Println(err)
 		return

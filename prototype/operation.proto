@@ -57,8 +57,9 @@ message bp_update_operation {
     uint64 per_ticket_weight = 8;
 }
 
-message bp_unregister_operation{
+message bp_enable_operation {
     account_name owner = 1;
+    bool cancel        = 2;
 }
 
 message bp_vote_operation{

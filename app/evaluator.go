@@ -65,10 +65,10 @@ type BpRegisterEvaluator struct {
 	BaseDelegate
 	op  *prototype.BpRegisterOperation
 }
-type BpUnregisterEvaluator struct {
+type BpEnableEvaluator struct {
 	BaseEvaluator
 	BaseDelegate
-	op  *prototype.BpUnregisterOperation
+	op  *prototype.BpEnableOperation
 }
 
 type BpUpdateEvaluator struct {
@@ -174,8 +174,8 @@ func init() {
 	RegisterEvaluator((*prototype.BpRegisterOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
 		return &BpRegisterEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.BpRegisterOperation)}
 	})
-	RegisterEvaluator((*prototype.BpUnregisterOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
-		return &BpUnregisterEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.BpUnregisterOperation)}
+	RegisterEvaluator((*prototype.BpEnableOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
+		return &BpEnableEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.BpEnableOperation)}
 	})
 	RegisterEvaluator((*prototype.BpVoteOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
 		return &BpVoteEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.BpVoteOperation)}
@@ -574,19 +574,20 @@ func (ev *BpRegisterEvaluator) Apply() {
 	}), "add witness record error")
 }
 
-func (ev *BpUnregisterEvaluator) Apply() {
-	// unregister op cost too much cpu time
-
+func (ev *BpEnableEvaluator) Apply() {
 	op := ev.op
 	ev.VMInjector().RecordStaminaFee(op.Owner.Value, constants.CommonOpStamina)
 
 	witnessWrap := table.NewSoBlockProducerWrap(ev.Database(), op.Owner)
+	opAssert(witnessWrap.CheckExist(), "block producer do not exist")
 
-	opAssert(witnessWrap.CheckExist(), "witness do not exist")
-	opAssert(witnessWrap.GetActive(), "witness active value should be true")
-
-	//opAssert(witnessWrap.RemoveWitness(), "remove witness error")
-	opAssert(witnessWrap.MdActive(false), "set witness active error")
+	if op.Cancel {
+		opAssert(witnessWrap.GetActive(), "block producer has already been disabled")
+		opAssert(witnessWrap.MdActive(false), "set witness active error")
+	} else {
+		opAssert(!witnessWrap.GetActive(), "block producer has already been enabled")
+		opAssert(witnessWrap.MdActive(true), "set witness active error")
+	}
 }
 
 func (ev *BpVoteEvaluator) Apply() {

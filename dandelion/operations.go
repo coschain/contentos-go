@@ -69,9 +69,16 @@ func BpUpdate(name string, props *prototype.ChainProperties) *prototype.Operatio
 	})
 }
 
-func BpUnregister(name string) *prototype.Operation {
-	return prototype.GetPbOperation(&prototype.BpUnregisterOperation{
-		Owner: prototype.NewAccountName(name),
+func BpEnable(name string) *prototype.Operation {
+	return prototype.GetPbOperation(&prototype.BpEnableOperation{
+		Owner:    prototype.NewAccountName(name),
+	})
+}
+
+func BpDisable(name string) *prototype.Operation {
+	return prototype.GetPbOperation(&prototype.BpEnableOperation{
+		Owner:    prototype.NewAccountName(name),
+		Cancel:   true,
 	})
 }
 

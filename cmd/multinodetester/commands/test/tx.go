@@ -113,9 +113,10 @@ func CreateAcc(accName, accKey, creatorKey string, css iservices.IConsensus) err
 	return nil
 }
 
-func bpUnregistrationOP(name string) *prototype.BpUnregisterOperation {
-	bpUnregisterOp := &prototype.BpUnregisterOperation{
+func bpUnregistrationOP(name string) *prototype.BpEnableOperation {
+	bpUnregisterOp := &prototype.BpEnableOperation{
 		Owner:           &prototype.AccountName{Value: name},
+		Cancel:          true,
 	}
 
 	return bpUnregisterOp

@@ -13,7 +13,7 @@ message operation{
         account_create_operation op1 = 1;
         transfer_operation op2 = 2;
         bp_register_operation op3 = 3;
-        bp_unregister_operation op4 = 4;
+        bp_enable_operation op4 = 4;
         bp_vote_operation op5 = 5;
         post_operation op6 = 6;
         reply_operation op7 = 7;
