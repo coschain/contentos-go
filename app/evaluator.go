@@ -515,8 +515,8 @@ func (ev *BpRegisterEvaluator) Apply() {
 	opAssert(accountBalance.Value >= constants.MinBpRegisterVest,
 		fmt.Sprintf("vest balance should greater than %d", constants.MinBpRegisterVest / constants.COSTokenDecimals))
 
-	witnessWrap := table.NewSoBlockProducerWrap(ev.Database(), op.Owner)
-	opAssert(!witnessWrap.CheckExist(), "you are already a block producer, do not register twice")
+	bpWrap := table.NewSoBlockProducerWrap(ev.Database(), op.Owner)
+	opAssert(!bpWrap.CheckExist(), "you are already a block producer, do not register twice")
 
 	//opAssert(ev.BpInWhiteList(op.Owner.Value), "bp name not in white list")
 
@@ -555,7 +555,7 @@ func (ev *BpRegisterEvaluator) Apply() {
 
 	perTicketWeight := op.Props.PerTicketWeight
 
-	opAssertE(witnessWrap.Create(func(t *table.SoBlockProducer) {
+	opAssertE(bpWrap.Create(func(t *table.SoBlockProducer) {
 		t.Owner = op.Owner
 		t.CreatedTime = ev.GlobalProp().HeadBlockTime()
 		t.Url = op.Url
@@ -571,22 +571,22 @@ func (ev *BpRegisterEvaluator) Apply() {
 		t.PerTicketWeight = perTicketWeight
 		t.VoterCount = 0
 		// TODO add others
-	}), "add witness record error")
+	}), "add bp record error")
 }
 
 func (ev *BpEnableEvaluator) Apply() {
 	op := ev.op
 	ev.VMInjector().RecordStaminaFee(op.Owner.Value, constants.CommonOpStamina)
 
-	witnessWrap := table.NewSoBlockProducerWrap(ev.Database(), op.Owner)
-	opAssert(witnessWrap.CheckExist(), "block producer do not exist")
+	bpWrap := table.NewSoBlockProducerWrap(ev.Database(), op.Owner)
+	opAssert(bpWrap.CheckExist(), "block producer do not exist")
 
 	if op.Cancel {
-		opAssert(witnessWrap.GetActive(), "block producer has already been disabled")
-		opAssert(witnessWrap.MdActive(false), "set witness active error")
+		opAssert(bpWrap.GetActive(), "block producer has already been disabled")
+		opAssert(bpWrap.MdActive(false), "set block producer active error")
 	} else {
-		opAssert(!witnessWrap.GetActive(), "block producer has already been enabled")
-		opAssert(witnessWrap.MdActive(true), "set witness active error")
+		opAssert(!bpWrap.GetActive(), "block producer has already been enabled")
+		opAssert(bpWrap.MdActive(true), "set block producer active error")
 	}
 }
 
@@ -617,8 +617,8 @@ func (ev *BpVoteEvaluator) Apply() {
 		opAssert(vidWrap.RemoveBlockProducerVote(), "remove vote record error")
 
 		// modify block producer vote vest
-		opAssertE(bpVoteVestCnt.Sub(voterVests), "witness data error")
-		opAssert(bpWrap.MdVoteVest(bpVoteVestCnt), "set witness data error")
+		opAssertE(bpVoteVestCnt.Sub(voterVests), "block producer data error")
+		opAssert(bpWrap.MdVoteVest(bpVoteVestCnt), "set block producer data error")
 
 		// modify block producer voter count
 		opAssert(bpVoterCount > 0, "block producer voter count should be greater than 0")
@@ -649,8 +649,8 @@ func (ev *BpVoteEvaluator) Apply() {
 		opAssert(voterAccount.MdBpVoteCount(voteCnt+1), "set voter data error")
 
 		// modify block producer vote vest and voter count
-		opAssertE(bpVoteVestCnt.Add(voterVests), "witness vote count overflow")
-		opAssert(bpWrap.MdVoteVest(bpVoteVestCnt), "set witness data error")
+		opAssertE(bpVoteVestCnt.Add(voterVests), "block producer vote count overflow")
+		opAssert(bpWrap.MdVoteVest(bpVoteVestCnt), "set block producer data error")
 		opAssert(bpWrap.MdVoterCount(bpVoterCount+1), "set block producer voter count error")
 	}
 }
@@ -689,14 +689,14 @@ func (ev *BpUpdateEvaluator) Apply() {
 
 	perTicketWeight := op.PerTicketWeight
 
-	witnessWrap := table.NewSoBlockProducerWrap(ev.Database(), op.Owner)
-	opAssert(witnessWrap.MdProposedStaminaFree(staminaFree), "update bp proposed stamina free error")
-	opAssert(witnessWrap.MdTpsExpected(tpsExpected), "update bp tps expected error")
-	opAssert(witnessWrap.MdAccountCreateFee(accountCreateFee), "update account create fee error")
-	opAssert(witnessWrap.MdTopNAcquireFreeToken(topNAcquireFreeToken), "update topna error")
-	opAssert(witnessWrap.MdEpochDuration(epochDuration), "update epoch duration error")
-	opAssert(witnessWrap.MdPerTicketPrice(perTicketPrice), "update per ticket price error")
-	opAssert(witnessWrap.MdPerTicketWeight(perTicketWeight), "update per ticket weight error")
+	bpWrap := table.NewSoBlockProducerWrap(ev.Database(), op.Owner)
+	opAssert(bpWrap.MdProposedStaminaFree(staminaFree), "update bp proposed stamina free error")
+	opAssert(bpWrap.MdTpsExpected(tpsExpected), "update bp tps expected error")
+	opAssert(bpWrap.MdAccountCreateFee(accountCreateFee), "update account create fee error")
+	opAssert(bpWrap.MdTopNAcquireFreeToken(topNAcquireFreeToken), "update topna error")
+	opAssert(bpWrap.MdEpochDuration(epochDuration), "update epoch duration error")
+	opAssert(bpWrap.MdPerTicketPrice(perTicketPrice), "update per ticket price error")
+	opAssert(bpWrap.MdPerTicketWeight(perTicketWeight), "update per ticket weight error")
 }
 
 func (ev *FollowEvaluator) Apply() {
@@ -761,8 +761,8 @@ func updateWitnessVoteCount(dba iservices.IDatabaseRW, voter *prototype.AccountN
 	sWrap.ForEachByOrder(start, end, nil, nil,
 		func(mVal *prototype.BpVoterId, sVal *prototype.BpVoterId, idx uint32) bool {
 			if mVal != nil && mVal.Voter.Value == voter.Value {
-				witnessWrap := table.NewSoBlockProducerWrap(dba, mVal.BlockProducer)
-				if witnessWrap != nil && witnessWrap.CheckExist() {
+				bpWrap := table.NewSoBlockProducerWrap(dba, mVal.BlockProducer)
+				if bpWrap != nil && bpWrap.CheckExist() {
 					witnessList = append(witnessList, mVal.BlockProducer)
 				}
 			}
@@ -772,13 +772,13 @@ func updateWitnessVoteCount(dba iservices.IDatabaseRW, voter *prototype.AccountN
 
 	// update witness vote count
 	for i:=0;i<len(witnessList);i++ {
-		witnessWrap := table.NewSoBlockProducerWrap(dba, witnessList[i])
-		if witnessWrap != nil && witnessWrap.CheckExist() {
-			witnessVoteCnt := witnessWrap.GetVoteVest()
-			opAssertE(witnessVoteCnt.Sub(oldVest), "Insufficient witness vote count")
-			opAssertE(witnessVoteCnt.Add(newVest), "witness vote count overflow")
+		bpWrap := table.NewSoBlockProducerWrap(dba, witnessList[i])
+		if bpWrap != nil && bpWrap.CheckExist() {
+			witnessVoteCnt := bpWrap.GetVoteVest()
+			opAssertE(witnessVoteCnt.Sub(oldVest), "Insufficient block producer vote count")
+			opAssertE(witnessVoteCnt.Add(newVest), "block producer vote count overflow")
 
-			opAssert(witnessWrap.MdVoteVest(witnessVoteCnt), "update witness vote count data error")
+			opAssert(bpWrap.MdVoteVest(witnessVoteCnt), "update block producer vote count data error")
 		}
 	}
 	return
@@ -1308,10 +1308,10 @@ func (ev *VoteByTicketEvaluator) Apply() {
 
 	//ev.GlobalProp().VoteByTicket(op.Account, postId, count)
 	props := ev.GlobalProp().GetProps()
-	currentWitness := props.CurrentBlockProducer
-	bpWrap := table.NewSoAccountWrap(ev.Database(), currentWitness)
+	currentBp := props.CurrentBlockProducer
+	bpWrap := table.NewSoAccountWrap(ev.Database(), currentBp)
 	if !bpWrap.CheckExist() {
-		panic(fmt.Sprintf("cannot find bp %s", currentWitness.Value))
+		panic(fmt.Sprintf("cannot find bp %s", currentBp.Value))
 	}
 
 	// the per ticket price may change,so replace the per ticket price by totalincome / ticketnum
@@ -1339,5 +1339,5 @@ func (ev *VoteByTicketEvaluator) Apply() {
 	// it will be change.
 	mustNoError(bpVest.Add(equalValue), "add equal value to bp failed")
 	bpWrap.MdVest(bpVest)
-	updateWitnessVoteCount(ev.Database(), currentWitness, oldVest, bpVest)
+	updateWitnessVoteCount(ev.Database(), currentBp, oldVest, bpVest)
 }

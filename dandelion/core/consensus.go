@@ -42,7 +42,7 @@ func (c *DummyConsensus) shuffle(head common.ISignedBlock) (bool, []string) {
 		blockNum/constants.BlockProdRepetition%uint64(len(c.producers)) != 0 {
 		return false, []string{}
 	}
-	prods, pubKeys := c.trxPool.GetWitnessTopN(constants.MaxWitnessCount)
+	prods, pubKeys := c.trxPool.GetBlockProducerTopN(constants.MaxWitnessCount)
 
 	var seed uint64
 	if head != nil {

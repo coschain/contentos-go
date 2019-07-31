@@ -179,9 +179,9 @@ func makeBlockWithCommonTrx(pre *prototype.Sha256, blockTimestamp uint32, signed
 	sigBlkHdr.Header = new(prototype.BlockHeader)
 	sigBlkHdr.Header.Previous = pre
 	sigBlkHdr.Header.Timestamp = &prototype.TimePointSec{UtcSeconds: blockTimestamp}
-	sigBlkHdr.Header.Witness = &prototype.AccountName{Value: constants.COSInitMiner}
+	sigBlkHdr.Header.BlockProducer = &prototype.AccountName{Value: constants.COSInitMiner}
 	sigBlkHdr.Header.TransactionMerkleRoot = &prototype.Sha256{Hash: id.Data[:]}
-	sigBlkHdr.WitnessSignature = &prototype.SignatureType{}
+	sigBlkHdr.BlockProducerSignature = &prototype.SignatureType{}
 
 	// signature
 	pri, err := prototype.PrivateKeyFromWIF(constants.InitminerPrivKey)
@@ -303,7 +303,7 @@ func Test_PushBlock(t *testing.T) {
 	}
 }
 
-func TestController_GetWitnessTopN(t *testing.T) {
+func TestController_GetBlockProducerTopN(t *testing.T) {
 
 	// set up controller
 	db := startDB()
@@ -311,24 +311,24 @@ func TestController_GetWitnessTopN(t *testing.T) {
 	c := startController(db)
 
 	name := &prototype.AccountName{Value: "wit1"}
-	witnessWrap := table.NewSoBlockProducerWrap(db, name)
-	mustNoError(witnessWrap.Create(func(tInfo *table.SoBlockProducer) {
+	bpWrap := table.NewSoBlockProducerWrap(db, name)
+	mustNoError(bpWrap.Create(func(tInfo *table.SoBlockProducer) {
 		tInfo.Owner = name
 		tInfo.CreatedTime = &prototype.TimePointSec{UtcSeconds: 0}
 		tInfo.SigningKey = &prototype.PublicKeyType{Data: []byte{1}}
-	}), "Witness Create Error")
+	}), "BP Create Error")
 
 	name2 := &prototype.AccountName{Value: "wit2"}
-	witnessWrap2 := table.NewSoBlockProducerWrap(db, name2)
-	mustNoError(witnessWrap2.Create(func(tInfo *table.SoBlockProducer) {
+	bpWrap2 := table.NewSoBlockProducerWrap(db, name2)
+	mustNoError(bpWrap2.Create(func(tInfo *table.SoBlockProducer) {
 		tInfo.Owner = name2
 		tInfo.CreatedTime = &prototype.TimePointSec{UtcSeconds: 0}
 		tInfo.SigningKey = &prototype.PublicKeyType{Data: []byte{2}}
-	}), "Witness Create Error")
+	}), "BP Create Error")
 
-	witnesses, _ := c.GetWitnessTopN(10)
+	bpList, _ := c.GetBlockProducerTopN(10)
 
-	for _, wit := range witnesses {
+	for _, wit := range bpList {
 		fmt.Println(wit)
 	}
 }
@@ -969,7 +969,7 @@ func Test_TrxSize(t *testing.T) {
 
 	bpV := &prototype.BpVoteOperation{
 		Voter:   prototype.NewAccountName("aaa"),
-		Witness: prototype.NewAccountName("bbb"),
+		BlockProducer: prototype.NewAccountName("bbb"),
 	}
 	trx5, _ := createSigTrx(c, constants.InitminerPrivKey, bpV)
 	fmt.Println(proto.Size(trx5))

@@ -302,9 +302,9 @@ func (as *APIService) GetBlockProducerList(ctx context.Context, req *grpcpb.GetB
 	limit = checkLimit(req.GetLimit())
 	witOrderWrap.ForEachByOrder(req.GetStart(), nil, nil, nil,
 		func(mVal *prototype.AccountName, sVal *prototype.AccountName, idx uint32) bool {
-			witness := as.getBlockProducerResponseByAccountName(mVal)
-			if witness != nil {
-				witList = append(witList,witness)
+			bp := as.getBlockProducerResponseByAccountName(mVal)
+			if bp != nil {
+				witList = append(witList,bp)
 			}
 			if idx < limit {
 				return true
@@ -1370,9 +1370,9 @@ func (as *APIService) GetBlockProducerListByVoteCount(ctx context.Context, req *
 		err = srtWrap.ForEachByRevOrder(req.Start, req.End, lastMainKey,  lastSubVal,
 			func(mVal *prototype.AccountName, sVal *prototype.Vest, idx uint32) bool {
 				if mVal != nil {
-					witness := as.getBlockProducerResponseByAccountName(mVal)
-					if witness != nil {
-						witList = append(witList, witness)
+					bp := as.getBlockProducerResponseByAccountName(mVal)
+					if bp != nil {
+						witList = append(witList, bp)
 					}
 				}
 				if uint32(len(witList)) >= limit {
@@ -1389,7 +1389,7 @@ func (as *APIService) getBlockProducerResponseByAccountName(acct *prototype.Acco
 	if acct != nil {
 		witWrap := table.NewSoBlockProducerWrap(as.db, acct)
 		if witWrap != nil && witWrap.CheckExist() {
-			witness := &grpcpb.BlockProducerResponse{
+			bp := &grpcpb.BlockProducerResponse{
 				Owner:                 witWrap.GetOwner(),
 				CreatedTime:           witWrap.GetCreatedTime(),
 				Url:                   witWrap.GetUrl(),
@@ -1400,7 +1400,7 @@ func (as *APIService) getBlockProducerResponseByAccountName(acct *prototype.Acco
 				TpsExpected:           witWrap.GetTpsExpected(),
 				VoterCount:            witWrap.GetVoterCount(),
 			}
-			return witness
+			return bp
 		}
 	}
 	return nil

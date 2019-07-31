@@ -35,9 +35,9 @@ type ITrxPool interface {
 
 	PushTrx(trx *prototype.SignedTransaction) *prototype.TransactionReceiptWithInfo
 	PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag) error
-	GenerateBlock(witness string, pre *prototype.Sha256, timestamp uint32, priKey *prototype.PrivateKeyType, skip prototype.SkipFlag) (*prototype.SignedBlock, error)
-	GetWitnessTopN(n uint32) ([]string, []*prototype.PublicKeyType)
-	GetSigningPubKey(witness string) *prototype.PublicKeyType
+	GenerateBlock(bpName string, pre *prototype.Sha256, timestamp uint32, priKey *prototype.PrivateKeyType, skip prototype.SkipFlag) (*prototype.SignedBlock, error)
+	GetBlockProducerTopN(n uint32) ([]string, []*prototype.PublicKeyType)
+	GetSigningPubKey(bpName string) *prototype.PublicKeyType
 	SetShuffledWitness(names []string, keys []*prototype.PublicKeyType)
 	GetShuffledWitness() ([]string, []*prototype.PublicKeyType)
 	SetShuffle(s common.ShuffleFunc)
@@ -48,7 +48,7 @@ type ITrxPool interface {
 
 	// put trx into pending directly, no return value, so should be used by witness node to collect p2p trx
 	PushTrxToPending(trx *prototype.SignedTransaction) error
-	GenerateAndApplyBlock(witness string, pre *prototype.Sha256, timestamp uint32, priKey *prototype.PrivateKeyType, skip prototype.SkipFlag) (*prototype.SignedBlock, error)
+	GenerateAndApplyBlock(bpName string, pre *prototype.Sha256, timestamp uint32, priKey *prototype.PrivateKeyType, skip prototype.SkipFlag) (*prototype.SignedBlock, error)
 	VerifySig(name *prototype.AccountName, digest []byte, sig []byte) bool
 	ValidateAddress(name string, pubKey *prototype.PublicKeyType) bool
 	Sign(priv *prototype.PrivateKeyType, digest []byte) []byte

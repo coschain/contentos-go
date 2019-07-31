@@ -161,7 +161,7 @@ func (sabft *SABFT) shuffle(head common.ISignedBlock) (bool, []string) {
 
 	// When a produce round complete, it adds new producers,
 	// remove unqualified producers and shuffle the block-producing order
-	prods, pubKeys := sabft.ctrl.GetWitnessTopN(constants.MaxWitnessCount)
+	prods, pubKeys := sabft.ctrl.GetBlockProducerTopN(constants.MaxWitnessCount)
 
 	var seed uint64
 	if head != nil {
@@ -341,7 +341,7 @@ func (sabft *SABFT) Start(node *node.Node) error {
 func (sabft *SABFT) restoreDynasty() {
 	if sabft.ForkDB.Empty() {
 		// new chain, no blocks
-		prods, pubKeys := sabft.ctrl.GetWitnessTopN(constants.MaxWitnessCount)
+		prods, pubKeys := sabft.ctrl.GetBlockProducerTopN(constants.MaxWitnessCount)
 		dyn := sabft.makeDynasty(0, prods, pubKeys, sabft.localPrivKey)
 		sabft.addDynasty(dyn)
 	} else {
