@@ -1,0 +1,23 @@
+{
+    "actions": [
+        {
+            "name": "burn",
+            "type": "burn"
+        }
+    ],
+    "structs": [
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "seed",
+                    "type": "uint32"
+                }
+            ],
+            "name": "burn"
+        }
+    ],
+    "tables": null,
+    "types": null,
+    "version": "contentos::abi-1.0"
+}

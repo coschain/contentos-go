@@ -108,6 +108,25 @@ func NoApply(t *testing.T, d *dandelion.Dandelion, call string) {
 	}, d, caller, owner, contract, method, params, amount)
 }
 
+func ApplyGas(t *testing.T, d *dandelion.Dandelion, net, cpu uint64, call string) {
+	caller, owner, contract, method, params, amount, err := extractCall(call)
+	if err != nil {
+		t.Fatal(err)
+	}
+	applyAndCheck(t, func(r *prototype.TransactionReceiptWithInfo) error {
+		if r == nil {
+			return errors.New("apply failed, receipt is nil")
+		}
+		if r.Status != prototype.StatusSuccess {
+			return fmt.Errorf("apply failed, receipt.status=%d, err=%s", r.Status, r.ErrorInfo)
+		}
+		if r.NetUsage != net || r.CpuUsage != cpu {
+			return fmt.Errorf("apply resource usage mismatch, actual=(net:%d, cpu:%d), expected=(net:%d, cpu:%d)", r.NetUsage, r.CpuUsage, net, cpu)
+		}
+		return nil
+	}, d, caller, owner, contract, method, params, amount)
+}
+
 func StakeFund(d *dandelion.Dandelion, actors int) error {
 	const stakeAmount = 10000 * constants.COSTokenDecimals
 	var err error
