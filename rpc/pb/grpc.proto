@@ -248,7 +248,7 @@ message WitnessResponse {
     prototype.account_name             owner                           = 1;
     prototype.time_point_sec           created_time                    = 2;
     string                             url                             = 3;
-    prototype.vest                     vote_count                      = 4;
+    prototype.vest                     vote_vest                       = 4;
     prototype.public_key_type          signing_key                     = 5;
     uint64                             proposed_stamina_free           = 6;
     bool                               active                          = 7;
@@ -258,7 +258,7 @@ message WitnessResponse {
     uint64                             ticket_flush_interval           = 11;
     prototype.coin                     per_ticket_price                = 12;
     uint64                             per_ticket_weight               = 13;
-    repeated prototype.account_name    voter_list                      = 14;
+    uint64                             voter_count                     = 14;
 }
 
 message GetWitnessListRequest {

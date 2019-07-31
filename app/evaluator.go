@@ -555,12 +555,6 @@ func (ev *BpRegisterEvaluator) Apply() {
 
 	perTicketWeight := op.Props.PerTicketWeight
 
-	//if witnessWrap.CheckExist() {
-	//	opAssert(!witnessWrap.GetActive(), "witness already exist")
-	//
-	//	opAssert(witnessWrap.RemoveWitness(), "remove old witness information error")
-	//}
-
 	opAssertE(witnessWrap.Create(func(t *table.SoWitness) {
 		t.Owner = op.Owner
 		t.CreatedTime = ev.GlobalProp().HeadBlockTime()
@@ -570,18 +564,18 @@ func (ev *BpRegisterEvaluator) Apply() {
 		t.ProposedStaminaFree = staminaFree
 		t.TpsExpected = tpsExpected
 		t.AccountCreateFee = accountCreateFee
-		t.VoteCount = &prototype.Vest{Value: 0}
+		t.VoteVest = &prototype.Vest{Value: 0}
 		t.TopNAcquireFreeToken = topNAcquireFreeToken
 		t.EpochDuration = epochDuration
 		t.PerTicketPrice = perTicketPrice
 		t.PerTicketWeight = perTicketWeight
+		t.VoterCount = 0
 		// TODO add others
 	}), "add witness record error")
 }
 
 func (ev *BpUnregisterEvaluator) Apply() {
 	// unregister op cost too much cpu time
-	//panic("not yet implement")
 
 	op := ev.op
 	ev.VMInjector().RecordStaminaFee(op.Owner.Value, constants.CommonOpStamina)
@@ -591,31 +585,8 @@ func (ev *BpUnregisterEvaluator) Apply() {
 	opAssert(witnessWrap.CheckExist(), "witness do not exist")
 	opAssert(witnessWrap.GetActive(), "witness active value should be true")
 
-	payBackVoteCntToVoter(ev.Database(), op.Owner)
-
 	//opAssert(witnessWrap.RemoveWitness(), "remove witness error")
 	opAssert(witnessWrap.MdActive(false), "set witness active error")
-}
-
-func payBackVoteCntToVoter(dba iservices.IDatabaseRW, witness *prototype.AccountName) {
-	var voterList []*prototype.AccountName
-	witnessWrap := table.NewSoWitnessWrap(dba, witness)
-
-	voterList = witnessWrap.GetVoterList()
-
-	// pay back vote count and remove vote record
-	for i:=0;i<len(voterList);i++ {
-		voterAccount := table.NewSoAccountWrap(dba, voterList[i])
-		if voterAccount != nil && voterAccount.CheckExist() {
-			voteCnt := voterAccount.GetBpVoteCount()
-			opAssert(voteCnt > 0, "voter's vote count must not be 0")
-			opAssert(voterAccount.MdBpVoteCount(voteCnt-1), "pay back voter data error")
-
-			voterId := &prototype.BpVoterId{Voter: voterList[i], Witness: witness}
-			vidWrap := table.NewSoWitnessVoteWrap(dba, voterId)
-			opAssert(vidWrap.RemoveWitnessVote(), "remove vote record error")
-		}
-	}
 }
 
 func (ev *BpVoteEvaluator) Apply() {
@@ -623,65 +594,64 @@ func (ev *BpVoteEvaluator) Apply() {
 	ev.VMInjector().RecordStaminaFee(op.Voter.Value, constants.CommonOpStamina)
 
 	voterAccount := table.NewSoAccountWrap(ev.Database(), op.Voter)
+	opAssert(voterAccount.CheckExist(), "voter account not exist")
 	voteCnt := voterAccount.GetBpVoteCount()
 	voterVests := voterAccount.GetVestingShares()
+
+	bpAccountWrap := table.NewSoAccountWrap(ev.Database(), op.Witness)
+	opAssert(bpAccountWrap.CheckExist(), "block producer account not exist ")
+
+	bpWrap := table.NewSoWitnessWrap(ev.Database(), op.Witness)
+	opAssert(bpWrap.CheckExist(), "the account you want to vote is not a block producer")
+	bpVoteVestCnt := bpWrap.GetVoteVest()
+	bpVoterCount := bpWrap.GetVoterCount()
 
 	voterId := &prototype.BpVoterId{Voter: op.Voter, Witness: op.Witness}
 	witnessId := &prototype.BpWitnessId{Voter: op.Voter, Witness: op.Witness}
 	vidWrap := table.NewSoWitnessVoteWrap(ev.Database(), voterId)
 
-	witAccWrap := table.NewSoAccountWrap(ev.Database(), op.Voter)
-	opAssert(witAccWrap.CheckExist(), "witness account do not exist ")
-
-	witnessWrap := table.NewSoWitnessWrap(ev.Database(), op.Witness)
-	witnessVoteCnt := witnessWrap.GetVoteCount()
-
 	if op.Cancel {
-		opAssert(voteCnt > 0, "vote count must not be 0")
+		// delete vote record
 		opAssert(vidWrap.CheckExist(), "vote record not exist")
 		opAssert(vidWrap.RemoveWitnessVote(), "remove vote record error")
-		opAssertE(witnessVoteCnt.Sub(voterVests), "witness data error")
-		opAssert(witnessWrap.MdVoteCount(witnessVoteCnt), "set witness data error")
+
+		// modify block producer vote vest
+		opAssertE(bpVoteVestCnt.Sub(voterVests), "witness data error")
+		opAssert(bpWrap.MdVoteVest(bpVoteVestCnt), "set witness data error")
+
+		// modify block producer voter count
+		opAssert(bpVoterCount > 0, "block producer voter count should be greater than 0")
+		opAssert(bpWrap.MdVoterCount(bpVoterCount-1), "set block producer voter count error")
+
+		// modify voter bp_vote_count
+		opAssert(voteCnt > 0, "vote count must not be 0")
 		opAssert(voterAccount.MdBpVoteCount(voteCnt-1), "set voter data error")
 
-		removeFromVoterList(ev.Database(), op.Voter, op.Witness)
 	} else {
+		// block producer should be in active mode
+		opAssert(bpWrap.GetActive(), "block producer has been disabled")
+
+		// check duplicate vote
+		opAssert(!vidWrap.CheckExist(), "already vote to this bp, do not vote twice")
+
+		// check voter vote count, it should be less than the limit
 		opAssert(voteCnt < constants.PerVoterCanVoteWitness, "vote count exceeding")
 
+		// add vote record
 		opAssertE(vidWrap.Create(func(t *table.SoWitnessVote) {
 			t.VoteTime = ev.GlobalProp().HeadBlockTime()
 			t.VoterId = voterId
 			t.WitnessId = witnessId
 		}), "add vote record error")
 
+		// modify voter vote count
 		opAssert(voterAccount.MdBpVoteCount(voteCnt+1), "set voter data error")
-		opAssertE(witnessVoteCnt.Add(voterVests), "witness vote count overflow")
-		opAssert(witnessWrap.MdVoteCount(witnessVoteCnt), "set witness data error")
 
-		addToVoterList(ev.Database(), op.Voter, op.Witness)
+		// modify block producer vote vest and voter count
+		opAssertE(bpVoteVestCnt.Add(voterVests), "witness vote count overflow")
+		opAssert(bpWrap.MdVoteVest(bpVoteVestCnt), "set witness data error")
+		opAssert(bpWrap.MdVoterCount(bpVoterCount+1), "set block producer voter count error")
 	}
-}
-
-func removeFromVoterList(dba iservices.IDatabaseRW, voter, witness *prototype.AccountName) {
-	witnessWrap := table.NewSoWitnessWrap(dba, witness)
-	voterList := witnessWrap.GetVoterList()
-
-	var newVoterList []*prototype.AccountName
-	for i:=0;i<len(voterList);i++ {
-		if voterList[i].Value == voter.Value {
-			continue
-		}
-		newVoterList = append(newVoterList, voterList[i])
-	}
-
-	opAssert(witnessWrap.MdVoterList(newVoterList), "remove from voter list error")
-}
-
-func addToVoterList(dba iservices.IDatabaseRW, voter, witness *prototype.AccountName) {
-	witnessWrap := table.NewSoWitnessWrap(dba, witness)
-	voterList := witnessWrap.GetVoterList()
-	voterList = append(voterList, voter)
-	opAssert(witnessWrap.MdVoterList(voterList), "add voter list error")
 }
 
 func (ev *BpUpdateEvaluator) Apply() {
@@ -803,11 +773,11 @@ func updateWitnessVoteCount(dba iservices.IDatabaseRW, voter *prototype.AccountN
 	for i:=0;i<len(witnessList);i++ {
 		witnessWrap := table.NewSoWitnessWrap(dba, witnessList[i])
 		if witnessWrap != nil && witnessWrap.CheckExist() {
-			witnessVoteCnt := witnessWrap.GetVoteCount()
+			witnessVoteCnt := witnessWrap.GetVoteVest()
 			opAssertE(witnessVoteCnt.Sub(oldVest), "Insufficient witness vote count")
 			opAssertE(witnessVoteCnt.Add(newVest), "witness vote count overflow")
 
-			opAssert(witnessWrap.MdVoteCount(witnessVoteCnt), "update witness vote count data error")
+			opAssert(witnessWrap.MdVoteVest(witnessVoteCnt), "update witness vote count data error")
 		}
 	}
 	return

@@ -675,11 +675,12 @@ func (c *TrxPool) initGenesis() {
 		tInfo.ProposedStaminaFree = constants.DefaultStaminaFree
 		tInfo.TpsExpected = constants.DefaultTPSExpected
 		tInfo.AccountCreateFee = prototype.NewCoin(constants.DefaultAccountCreateFee)
-		tInfo.VoteCount = prototype.NewVest(0)
+		tInfo.VoteVest = prototype.NewVest(0)
 		tInfo.TopNAcquireFreeToken = constants.InitTopN
 		tInfo.EpochDuration = constants.InitEpochDuration
 		tInfo.PerTicketPrice = prototype.NewCoin(constants.PerTicketPrice * constants.COSTokenDecimals)
 		tInfo.PerTicketWeight = constants.PerTicketWeight
+		tInfo.VoterCount = 0
 	}), "Witness Create Error")
 
 	// create dynamic global properties
@@ -939,35 +940,34 @@ func (c *TrxPool) updateGlobalResourceParam(bpNameList []string) {
 
 func (c *TrxPool) deleteUnusedBp(bpNameList []string) {
 	// delete unActive bp
-	revList := table.SWitnessVoteCountWrap{Dba: c.db}
-	var deletelist       []*prototype.AccountName
+	//revList := table.SWitnessVoteVestWrap{Dba: c.db}
+	//var deletelist       []*prototype.AccountName
+	//
+	//_ = revList.ForEachByRevOrder(nil, nil,nil,nil, func(mVal *prototype.AccountName, sVal *prototype.Vest, idx uint32) bool {
+	//	if mVal != nil {
+	//		witnessWrap := table.NewSoWitnessWrap(c.db, mVal)
+	//		if witnessWrap.CheckExist() {
+	//			if !witnessWrap.GetActive() {
+	//				deletelist = append(deletelist, mVal)
+	//			}
+	//		}
+	//	}
+	//	return true
+	//})
+	//
+	//for i:=0;i<len(deletelist);i++ {
+	//	witnessWrap := table.NewSoWitnessWrap(c.db, deletelist[i])
+	//	mustSuccess(witnessWrap.RemoveWitness(), fmt.Sprintf("delete unregister bp %s error", deletelist[i].Value))
+	//}
 
-	_ = revList.ForEachByRevOrder(nil, nil,nil,nil, func(mVal *prototype.AccountName, sVal *prototype.Vest, idx uint32) bool {
-		if mVal != nil {
-			witnessWrap := table.NewSoWitnessWrap(c.db, mVal)
-			if witnessWrap.CheckExist() {
-				if !witnessWrap.GetActive() {
-					deletelist = append(deletelist, mVal)
-				}
-			}
-		}
-		return true
-	})
-
-	for i:=0;i<len(deletelist);i++ {
-		witnessWrap := table.NewSoWitnessWrap(c.db, deletelist[i])
-		mustSuccess(witnessWrap.RemoveWitness(), fmt.Sprintf("delete unregister bp %s error", deletelist[i].Value))
-	}
-
-	// maybe delete bp constants.COSInitMiner
+	// maybe disable bp constants.COSInitMiner
 	if len(bpNameList) > 1 || (len(bpNameList) == 1 && bpNameList[0] != constants.COSInitMiner) {
 		ac := &prototype.AccountName{
 			Value: constants.COSInitMiner,
 		}
 		witnessWrap := table.NewSoWitnessWrap(c.db, ac)
 		if witnessWrap.CheckExist() {
-			payBackVoteCntToVoter(c.db, ac)
-			mustSuccess(witnessWrap.RemoveWitness(), fmt.Sprintf("delete bp %s error", constants.COSInitMiner))
+			mustSuccess(witnessWrap.MdActive(false), fmt.Sprintf("disable bp %s error", constants.COSInitMiner))
 		}
 	}
 }
@@ -1024,7 +1024,7 @@ func (c *TrxPool) GetWitnessTopN(n uint32) ([]string, []*prototype.PublicKeyType
 	var names            []string
 	var bpNames          []string
 	var keys             []*prototype.PublicKeyType
-	revList := table.SWitnessVoteCountWrap{Dba: c.db}
+	revList := table.SWitnessVoteVestWrap{Dba: c.db}
 	var bpCount uint32 = 0
 	_ = revList.ForEachByRevOrder(nil, nil,nil,nil, func(mVal *prototype.AccountName, sVal *prototype.Vest, idx uint32) bool {
 		if mVal != nil {

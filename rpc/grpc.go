@@ -909,7 +909,7 @@ func (as *APIService) getAccountResponseByName(name *prototype.AccountName, isNe
 				Owner:                 witWrap.GetOwner(),
 				CreatedTime:           witWrap.GetCreatedTime(),
 				Url:                   witWrap.GetUrl(),
-				VoteCount:             witWrap.GetVoteCount(),
+				VoteVest:              witWrap.GetVoteVest(),
 				SigningKey:            witWrap.GetSigningKey(),
 				ProposedStaminaFree:   witWrap.GetProposedStaminaFree(),
 				Active:                witWrap.GetActive(),
@@ -919,7 +919,7 @@ func (as *APIService) getAccountResponseByName(name *prototype.AccountName, isNe
 				TicketFlushInterval:   witWrap.GetEpochDuration(),
 				PerTicketPrice:        witWrap.GetPerTicketPrice(),
 				PerTicketWeight:       witWrap.GetPerTicketWeight(),
-				VoterList:             witWrap.GetVoterList(),
+				VoterCount:            witWrap.GetVoterCount(),
 			}
 		}
 
@@ -1359,12 +1359,12 @@ func (as *APIService) GetWitnessListByVoteCount(ctx context.Context, req *grpcpb
 	)
 	res := &grpcpb.GetWitnessListResponse{}
 	limit = checkLimit(req.Limit)
-	srtWrap := table.NewWitnessVoteCountWrap(as.db)
+	srtWrap := table.NewWitnessVoteVestWrap(as.db)
 	if srtWrap != nil {
 		lastWit := req.LastWitness
 		if lastWit != nil {
 			lastMainKey = &prototype.AccountName{Value:lastWit.Owner.Value}
-			lastSubVal = lastWit.VoteCount
+			lastSubVal = lastWit.VoteVest
 
 		}
 		err = srtWrap.ForEachByRevOrder(req.Start, req.End, lastMainKey,  lastSubVal,
@@ -1393,12 +1393,12 @@ func (as *APIService) getWitnessResponseByAccountName(acct *prototype.AccountNam
 				Owner:                 witWrap.GetOwner(),
 				CreatedTime:           witWrap.GetCreatedTime(),
 				Url:                   witWrap.GetUrl(),
-				VoteCount:             witWrap.GetVoteCount(),
+				VoteVest:              witWrap.GetVoteVest(),
 				SigningKey:            witWrap.GetSigningKey(),
 				ProposedStaminaFree:   witWrap.GetProposedStaminaFree(),
 				Active:                witWrap.GetActive(),
 				TpsExpected:           witWrap.GetTpsExpected(),
-				VoterList:             witWrap.GetVoterList(),
+				VoterCount:            witWrap.GetVoterCount(),
 			}
 			return witness
 		}

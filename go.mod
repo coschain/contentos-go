@@ -69,8 +69,8 @@ require (
 	golang.org/x/image v0.0.0-20190729225735-1bd0cf576493 // indirect
 	golang.org/x/mobile v0.0.0-20190719004257-d2bd2a29d028 // indirect
 	golang.org/x/net v0.0.0-20190724013045-ca1201d0de80 // indirect
-	golang.org/x/sys v0.0.0-20190726091711-fc99dfbffb4e // indirect
-	golang.org/x/tools v0.0.0-20190729092621-ff9f1409240a // indirect
+	golang.org/x/sys v0.0.0-20190730183949-1393eb018365 // indirect
+	golang.org/x/tools v0.0.0-20190730215328-ed3277de2799 // indirect
 	google.golang.org/grpc v1.22.1
 	honnef.co/go/tools v0.0.1-2019.2.2 // indirect
 )
