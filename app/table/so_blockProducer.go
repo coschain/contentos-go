@@ -14,27 +14,27 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	WitnessOwnerTable               uint32 = 3588322158
-	WitnessVoteVestTable            uint32 = 160188998
-	WitnessOwnerUniTable            uint32 = 2680327584
-	WitnessAccountCreateFeeCell     uint32 = 562012091
-	WitnessActiveCell               uint32 = 1638337923
-	WitnessCreatedTimeCell          uint32 = 732260124
-	WitnessEpochDurationCell        uint32 = 811712521
-	WitnessOwnerCell                uint32 = 3659272213
-	WitnessPerTicketPriceCell       uint32 = 1802322362
-	WitnessPerTicketWeightCell      uint32 = 1190943194
-	WitnessProposedStaminaFreeCell  uint32 = 1501150566
-	WitnessSigningKeyCell           uint32 = 2433568317
-	WitnessTopNAcquireFreeTokenCell uint32 = 2772227243
-	WitnessTpsExpectedCell          uint32 = 2661903099
-	WitnessUrlCell                  uint32 = 261756480
-	WitnessVoteVestCell             uint32 = 1630074683
-	WitnessVoterCountCell           uint32 = 4176652774
+	BlockProducerOwnerTable               uint32 = 2440644301
+	BlockProducerVoteVestTable            uint32 = 2388095227
+	BlockProducerOwnerUniTable            uint32 = 404338461
+	BlockProducerAccountCreateFeeCell     uint32 = 1268209114
+	BlockProducerActiveCell               uint32 = 624900128
+	BlockProducerCreatedTimeCell          uint32 = 3166890368
+	BlockProducerEpochDurationCell        uint32 = 3885317215
+	BlockProducerOwnerCell                uint32 = 1174716537
+	BlockProducerPerTicketPriceCell       uint32 = 3920773511
+	BlockProducerPerTicketWeightCell      uint32 = 504810187
+	BlockProducerProposedStaminaFreeCell  uint32 = 2410170773
+	BlockProducerSigningKeyCell           uint32 = 609901110
+	BlockProducerTopNAcquireFreeTokenCell uint32 = 2170463993
+	BlockProducerTpsExpectedCell          uint32 = 164553831
+	BlockProducerUrlCell                  uint32 = 3629420187
+	BlockProducerVoteVestCell             uint32 = 2997983402
+	BlockProducerVoterCountCell           uint32 = 1302707693
 )
 
 ////////////// SECTION Wrap Define ///////////////
-type SoWitnessWrap struct {
+type SoBlockProducerWrap struct {
 	dba      iservices.IDatabaseRW
 	mainKey  *prototype.AccountName
 	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
@@ -42,15 +42,15 @@ type SoWitnessWrap struct {
 	mBuf     []byte //the value after the main key is encoded
 }
 
-func NewSoWitnessWrap(dba iservices.IDatabaseRW, key *prototype.AccountName) *SoWitnessWrap {
+func NewSoBlockProducerWrap(dba iservices.IDatabaseRW, key *prototype.AccountName) *SoBlockProducerWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoWitnessWrap{dba, key, -1, nil, nil}
+	result := &SoBlockProducerWrap{dba, key, -1, nil, nil}
 	return result
 }
 
-func (s *SoWitnessWrap) CheckExist() bool {
+func (s *SoBlockProducerWrap) CheckExist() bool {
 	if s.dba == nil {
 		return false
 	}
@@ -78,14 +78,14 @@ func (s *SoWitnessWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoWitnessWrap) Create(f func(tInfo *SoWitness)) error {
+func (s *SoBlockProducerWrap) Create(f func(tInfo *SoBlockProducer)) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
 	if s.mainKey == nil {
 		return errors.New("the main key is nil")
 	}
-	val := &SoWitness{}
+	val := &SoBlockProducer{}
 	f(val)
 	if val.Owner == nil {
 		val.Owner = s.mainKey
@@ -124,7 +124,7 @@ func (s *SoWitnessWrap) Create(f func(tInfo *SoWitness)) error {
 	return nil
 }
 
-func (s *SoWitnessWrap) getMainKeyBuf() ([]byte, error) {
+func (s *SoBlockProducerWrap) getMainKeyBuf() ([]byte, error) {
 	if s.mainKey == nil {
 		return nil, errors.New("the main key is nil")
 	}
@@ -140,11 +140,11 @@ func (s *SoWitnessWrap) getMainKeyBuf() ([]byte, error) {
 
 ////////////// SECTION LKeys delete/insert ///////////////
 
-func (s *SoWitnessWrap) delSortKeyOwner(sa *SoWitness) bool {
+func (s *SoBlockProducerWrap) delSortKeyOwner(sa *SoBlockProducer) bool {
 	if s.dba == nil || s.mainKey == nil {
 		return false
 	}
-	val := SoListWitnessByOwner{}
+	val := SoListBlockProducerByOwner{}
 	if sa == nil {
 		key, err := s.encodeMemKey("Owner")
 		if err != nil {
@@ -154,7 +154,7 @@ func (s *SoWitnessWrap) delSortKeyOwner(sa *SoWitness) bool {
 		if err != nil {
 			return false
 		}
-		ori := &SoMemWitnessByOwner{}
+		ori := &SoMemBlockProducerByOwner{}
 		err = proto.Unmarshal(buf, ori)
 		if err != nil {
 			return false
@@ -172,11 +172,11 @@ func (s *SoWitnessWrap) delSortKeyOwner(sa *SoWitness) bool {
 	return ordErr == nil
 }
 
-func (s *SoWitnessWrap) insertSortKeyOwner(sa *SoWitness) bool {
+func (s *SoBlockProducerWrap) insertSortKeyOwner(sa *SoBlockProducer) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
-	val := SoListWitnessByOwner{}
+	val := SoListBlockProducerByOwner{}
 	val.Owner = sa.Owner
 	buf, err := proto.Marshal(&val)
 	if err != nil {
@@ -190,11 +190,11 @@ func (s *SoWitnessWrap) insertSortKeyOwner(sa *SoWitness) bool {
 	return ordErr == nil
 }
 
-func (s *SoWitnessWrap) delSortKeyVoteVest(sa *SoWitness) bool {
+func (s *SoBlockProducerWrap) delSortKeyVoteVest(sa *SoBlockProducer) bool {
 	if s.dba == nil || s.mainKey == nil {
 		return false
 	}
-	val := SoListWitnessByVoteVest{}
+	val := SoListBlockProducerByVoteVest{}
 	if sa == nil {
 		key, err := s.encodeMemKey("VoteVest")
 		if err != nil {
@@ -204,7 +204,7 @@ func (s *SoWitnessWrap) delSortKeyVoteVest(sa *SoWitness) bool {
 		if err != nil {
 			return false
 		}
-		ori := &SoMemWitnessByVoteVest{}
+		ori := &SoMemBlockProducerByVoteVest{}
 		err = proto.Unmarshal(buf, ori)
 		if err != nil {
 			return false
@@ -225,11 +225,11 @@ func (s *SoWitnessWrap) delSortKeyVoteVest(sa *SoWitness) bool {
 	return ordErr == nil
 }
 
-func (s *SoWitnessWrap) insertSortKeyVoteVest(sa *SoWitness) bool {
+func (s *SoBlockProducerWrap) insertSortKeyVoteVest(sa *SoBlockProducer) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
-	val := SoListWitnessByVoteVest{}
+	val := SoListBlockProducerByVoteVest{}
 	val.Owner = sa.Owner
 	val.VoteVest = sa.VoteVest
 	buf, err := proto.Marshal(&val)
@@ -244,7 +244,7 @@ func (s *SoWitnessWrap) insertSortKeyVoteVest(sa *SoWitness) bool {
 	return ordErr == nil
 }
 
-func (s *SoWitnessWrap) delAllSortKeys(br bool, val *SoWitness) bool {
+func (s *SoBlockProducerWrap) delAllSortKeys(br bool, val *SoBlockProducer) bool {
 	if s.dba == nil {
 		return false
 	}
@@ -267,12 +267,12 @@ func (s *SoWitnessWrap) delAllSortKeys(br bool, val *SoWitness) bool {
 	return res
 }
 
-func (s *SoWitnessWrap) insertAllSortKeys(val *SoWitness) error {
+func (s *SoBlockProducerWrap) insertAllSortKeys(val *SoBlockProducer) error {
 	if s.dba == nil {
 		return errors.New("insert sort Field fail,the db is nil ")
 	}
 	if val == nil {
-		return errors.New("insert sort Field fail,get the SoWitness fail ")
+		return errors.New("insert sort Field fail,get the SoBlockProducer fail ")
 	}
 	if !s.insertSortKeyOwner(val) {
 		return errors.New("insert sort Field Owner fail while insert table ")
@@ -286,11 +286,11 @@ func (s *SoWitnessWrap) insertAllSortKeys(val *SoWitness) error {
 
 ////////////// SECTION LKeys delete/insert //////////////
 
-func (s *SoWitnessWrap) RemoveWitness() bool {
+func (s *SoBlockProducerWrap) RemoveBlockProducer() bool {
 	if s.dba == nil {
 		return false
 	}
-	val := &SoWitness{}
+	val := &SoBlockProducer{}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
 		return false
@@ -312,54 +312,54 @@ func (s *SoWitnessWrap) RemoveWitness() bool {
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
-func (s *SoWitnessWrap) getMemKeyPrefix(fName string) uint32 {
+func (s *SoBlockProducerWrap) getMemKeyPrefix(fName string) uint32 {
 	if fName == "AccountCreateFee" {
-		return WitnessAccountCreateFeeCell
+		return BlockProducerAccountCreateFeeCell
 	}
 	if fName == "Active" {
-		return WitnessActiveCell
+		return BlockProducerActiveCell
 	}
 	if fName == "CreatedTime" {
-		return WitnessCreatedTimeCell
+		return BlockProducerCreatedTimeCell
 	}
 	if fName == "EpochDuration" {
-		return WitnessEpochDurationCell
+		return BlockProducerEpochDurationCell
 	}
 	if fName == "Owner" {
-		return WitnessOwnerCell
+		return BlockProducerOwnerCell
 	}
 	if fName == "PerTicketPrice" {
-		return WitnessPerTicketPriceCell
+		return BlockProducerPerTicketPriceCell
 	}
 	if fName == "PerTicketWeight" {
-		return WitnessPerTicketWeightCell
+		return BlockProducerPerTicketWeightCell
 	}
 	if fName == "ProposedStaminaFree" {
-		return WitnessProposedStaminaFreeCell
+		return BlockProducerProposedStaminaFreeCell
 	}
 	if fName == "SigningKey" {
-		return WitnessSigningKeyCell
+		return BlockProducerSigningKeyCell
 	}
 	if fName == "TopNAcquireFreeToken" {
-		return WitnessTopNAcquireFreeTokenCell
+		return BlockProducerTopNAcquireFreeTokenCell
 	}
 	if fName == "TpsExpected" {
-		return WitnessTpsExpectedCell
+		return BlockProducerTpsExpectedCell
 	}
 	if fName == "Url" {
-		return WitnessUrlCell
+		return BlockProducerUrlCell
 	}
 	if fName == "VoteVest" {
-		return WitnessVoteVestCell
+		return BlockProducerVoteVestCell
 	}
 	if fName == "VoterCount" {
-		return WitnessVoterCountCell
+		return BlockProducerVoterCountCell
 	}
 
 	return 0
 }
 
-func (s *SoWitnessWrap) encodeMemKey(fName string) ([]byte, error) {
+func (s *SoBlockProducerWrap) encodeMemKey(fName string) ([]byte, error) {
 	if len(fName) < 1 || s.mainKey == nil {
 		return nil, errors.New("field name or main key is empty")
 	}
@@ -378,7 +378,7 @@ func (s *SoWitnessWrap) encodeMemKey(fName string) ([]byte, error) {
 	return kope.PackList(list), nil
 }
 
-func (s *SoWitnessWrap) saveAllMemKeys(tInfo *SoWitness, br bool) error {
+func (s *SoBlockProducerWrap) saveAllMemKeys(tInfo *SoBlockProducer, br bool) error {
 	if s.dba == nil {
 		return errors.New("save member Field fail , the db is nil")
 	}
@@ -493,7 +493,7 @@ func (s *SoWitnessWrap) saveAllMemKeys(tInfo *SoWitness, br bool) error {
 	return err
 }
 
-func (s *SoWitnessWrap) delAllMemKeys(br bool, tInfo *SoWitness) error {
+func (s *SoBlockProducerWrap) delAllMemKeys(br bool, tInfo *SoBlockProducer) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
@@ -517,7 +517,7 @@ func (s *SoWitnessWrap) delAllMemKeys(br bool, tInfo *SoWitness) error {
 	return nil
 }
 
-func (s *SoWitnessWrap) delMemKey(fName string) error {
+func (s *SoBlockProducerWrap) delMemKey(fName string) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
@@ -532,14 +532,14 @@ func (s *SoWitnessWrap) delMemKey(fName string) error {
 	return err
 }
 
-func (s *SoWitnessWrap) saveMemKeyAccountCreateFee(tInfo *SoWitness) error {
+func (s *SoBlockProducerWrap) saveMemKeyAccountCreateFee(tInfo *SoBlockProducer) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
 	if tInfo == nil {
 		return errors.New("the data is nil")
 	}
-	val := SoMemWitnessByAccountCreateFee{}
+	val := SoMemBlockProducerByAccountCreateFee{}
 	val.AccountCreateFee = tInfo.AccountCreateFee
 	key, err := s.encodeMemKey("AccountCreateFee")
 	if err != nil {
@@ -553,9 +553,9 @@ func (s *SoWitnessWrap) saveMemKeyAccountCreateFee(tInfo *SoWitness) error {
 	return err
 }
 
-func (s *SoWitnessWrap) GetAccountCreateFee() *prototype.Coin {
+func (s *SoBlockProducerWrap) GetAccountCreateFee() *prototype.Coin {
 	res := true
-	msg := &SoMemWitnessByAccountCreateFee{}
+	msg := &SoMemBlockProducerByAccountCreateFee{}
 	if s.dba == nil {
 		res = false
 	} else {
@@ -582,7 +582,7 @@ func (s *SoWitnessWrap) GetAccountCreateFee() *prototype.Coin {
 	return msg.AccountCreateFee
 }
 
-func (s *SoWitnessWrap) MdAccountCreateFee(p *prototype.Coin) bool {
+func (s *SoBlockProducerWrap) MdAccountCreateFee(p *prototype.Coin) bool {
 	if s.dba == nil {
 		return false
 	}
@@ -594,9 +594,9 @@ func (s *SoWitnessWrap) MdAccountCreateFee(p *prototype.Coin) bool {
 	if err != nil {
 		return false
 	}
-	ori := &SoMemWitnessByAccountCreateFee{}
+	ori := &SoMemBlockProducerByAccountCreateFee{}
 	err = proto.Unmarshal(buf, ori)
-	sa := &SoWitness{}
+	sa := &SoBlockProducer{}
 	sa.Owner = s.mainKey
 
 	sa.AccountCreateFee = ori.AccountCreateFee
@@ -615,14 +615,14 @@ func (s *SoWitnessWrap) MdAccountCreateFee(p *prototype.Coin) bool {
 	return true
 }
 
-func (s *SoWitnessWrap) saveMemKeyActive(tInfo *SoWitness) error {
+func (s *SoBlockProducerWrap) saveMemKeyActive(tInfo *SoBlockProducer) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
 	if tInfo == nil {
 		return errors.New("the data is nil")
 	}
-	val := SoMemWitnessByActive{}
+	val := SoMemBlockProducerByActive{}
 	val.Active = tInfo.Active
 	key, err := s.encodeMemKey("Active")
 	if err != nil {
@@ -636,9 +636,9 @@ func (s *SoWitnessWrap) saveMemKeyActive(tInfo *SoWitness) error {
 	return err
 }
 
-func (s *SoWitnessWrap) GetActive() bool {
+func (s *SoBlockProducerWrap) GetActive() bool {
 	res := true
-	msg := &SoMemWitnessByActive{}
+	msg := &SoMemBlockProducerByActive{}
 	if s.dba == nil {
 		res = false
 	} else {
@@ -665,7 +665,7 @@ func (s *SoWitnessWrap) GetActive() bool {
 	return msg.Active
 }
 
-func (s *SoWitnessWrap) MdActive(p bool) bool {
+func (s *SoBlockProducerWrap) MdActive(p bool) bool {
 	if s.dba == nil {
 		return false
 	}
@@ -677,9 +677,9 @@ func (s *SoWitnessWrap) MdActive(p bool) bool {
 	if err != nil {
 		return false
 	}
-	ori := &SoMemWitnessByActive{}
+	ori := &SoMemBlockProducerByActive{}
 	err = proto.Unmarshal(buf, ori)
-	sa := &SoWitness{}
+	sa := &SoBlockProducer{}
 	sa.Owner = s.mainKey
 
 	sa.Active = ori.Active
@@ -698,14 +698,14 @@ func (s *SoWitnessWrap) MdActive(p bool) bool {
 	return true
 }
 
-func (s *SoWitnessWrap) saveMemKeyCreatedTime(tInfo *SoWitness) error {
+func (s *SoBlockProducerWrap) saveMemKeyCreatedTime(tInfo *SoBlockProducer) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
 	if tInfo == nil {
 		return errors.New("the data is nil")
 	}
-	val := SoMemWitnessByCreatedTime{}
+	val := SoMemBlockProducerByCreatedTime{}
 	val.CreatedTime = tInfo.CreatedTime
 	key, err := s.encodeMemKey("CreatedTime")
 	if err != nil {
@@ -719,9 +719,9 @@ func (s *SoWitnessWrap) saveMemKeyCreatedTime(tInfo *SoWitness) error {
 	return err
 }
 
-func (s *SoWitnessWrap) GetCreatedTime() *prototype.TimePointSec {
+func (s *SoBlockProducerWrap) GetCreatedTime() *prototype.TimePointSec {
 	res := true
-	msg := &SoMemWitnessByCreatedTime{}
+	msg := &SoMemBlockProducerByCreatedTime{}
 	if s.dba == nil {
 		res = false
 	} else {
@@ -748,7 +748,7 @@ func (s *SoWitnessWrap) GetCreatedTime() *prototype.TimePointSec {
 	return msg.CreatedTime
 }
 
-func (s *SoWitnessWrap) MdCreatedTime(p *prototype.TimePointSec) bool {
+func (s *SoBlockProducerWrap) MdCreatedTime(p *prototype.TimePointSec) bool {
 	if s.dba == nil {
 		return false
 	}
@@ -760,9 +760,9 @@ func (s *SoWitnessWrap) MdCreatedTime(p *prototype.TimePointSec) bool {
 	if err != nil {
 		return false
 	}
-	ori := &SoMemWitnessByCreatedTime{}
+	ori := &SoMemBlockProducerByCreatedTime{}
 	err = proto.Unmarshal(buf, ori)
-	sa := &SoWitness{}
+	sa := &SoBlockProducer{}
 	sa.Owner = s.mainKey
 
 	sa.CreatedTime = ori.CreatedTime
@@ -781,14 +781,14 @@ func (s *SoWitnessWrap) MdCreatedTime(p *prototype.TimePointSec) bool {
 	return true
 }
 
-func (s *SoWitnessWrap) saveMemKeyEpochDuration(tInfo *SoWitness) error {
+func (s *SoBlockProducerWrap) saveMemKeyEpochDuration(tInfo *SoBlockProducer) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
 	if tInfo == nil {
 		return errors.New("the data is nil")
 	}
-	val := SoMemWitnessByEpochDuration{}
+	val := SoMemBlockProducerByEpochDuration{}
 	val.EpochDuration = tInfo.EpochDuration
 	key, err := s.encodeMemKey("EpochDuration")
 	if err != nil {
@@ -802,9 +802,9 @@ func (s *SoWitnessWrap) saveMemKeyEpochDuration(tInfo *SoWitness) error {
 	return err
 }
 
-func (s *SoWitnessWrap) GetEpochDuration() uint64 {
+func (s *SoBlockProducerWrap) GetEpochDuration() uint64 {
 	res := true
-	msg := &SoMemWitnessByEpochDuration{}
+	msg := &SoMemBlockProducerByEpochDuration{}
 	if s.dba == nil {
 		res = false
 	} else {
@@ -831,7 +831,7 @@ func (s *SoWitnessWrap) GetEpochDuration() uint64 {
 	return msg.EpochDuration
 }
 
-func (s *SoWitnessWrap) MdEpochDuration(p uint64) bool {
+func (s *SoBlockProducerWrap) MdEpochDuration(p uint64) bool {
 	if s.dba == nil {
 		return false
 	}
@@ -843,9 +843,9 @@ func (s *SoWitnessWrap) MdEpochDuration(p uint64) bool {
 	if err != nil {
 		return false
 	}
-	ori := &SoMemWitnessByEpochDuration{}
+	ori := &SoMemBlockProducerByEpochDuration{}
 	err = proto.Unmarshal(buf, ori)
-	sa := &SoWitness{}
+	sa := &SoBlockProducer{}
 	sa.Owner = s.mainKey
 
 	sa.EpochDuration = ori.EpochDuration
@@ -864,14 +864,14 @@ func (s *SoWitnessWrap) MdEpochDuration(p uint64) bool {
 	return true
 }
 
-func (s *SoWitnessWrap) saveMemKeyOwner(tInfo *SoWitness) error {
+func (s *SoBlockProducerWrap) saveMemKeyOwner(tInfo *SoBlockProducer) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
 	if tInfo == nil {
 		return errors.New("the data is nil")
 	}
-	val := SoMemWitnessByOwner{}
+	val := SoMemBlockProducerByOwner{}
 	val.Owner = tInfo.Owner
 	key, err := s.encodeMemKey("Owner")
 	if err != nil {
@@ -885,9 +885,9 @@ func (s *SoWitnessWrap) saveMemKeyOwner(tInfo *SoWitness) error {
 	return err
 }
 
-func (s *SoWitnessWrap) GetOwner() *prototype.AccountName {
+func (s *SoBlockProducerWrap) GetOwner() *prototype.AccountName {
 	res := true
-	msg := &SoMemWitnessByOwner{}
+	msg := &SoMemBlockProducerByOwner{}
 	if s.dba == nil {
 		res = false
 	} else {
@@ -914,14 +914,14 @@ func (s *SoWitnessWrap) GetOwner() *prototype.AccountName {
 	return msg.Owner
 }
 
-func (s *SoWitnessWrap) saveMemKeyPerTicketPrice(tInfo *SoWitness) error {
+func (s *SoBlockProducerWrap) saveMemKeyPerTicketPrice(tInfo *SoBlockProducer) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
 	if tInfo == nil {
 		return errors.New("the data is nil")
 	}
-	val := SoMemWitnessByPerTicketPrice{}
+	val := SoMemBlockProducerByPerTicketPrice{}
 	val.PerTicketPrice = tInfo.PerTicketPrice
 	key, err := s.encodeMemKey("PerTicketPrice")
 	if err != nil {
@@ -935,9 +935,9 @@ func (s *SoWitnessWrap) saveMemKeyPerTicketPrice(tInfo *SoWitness) error {
 	return err
 }
 
-func (s *SoWitnessWrap) GetPerTicketPrice() *prototype.Coin {
+func (s *SoBlockProducerWrap) GetPerTicketPrice() *prototype.Coin {
 	res := true
-	msg := &SoMemWitnessByPerTicketPrice{}
+	msg := &SoMemBlockProducerByPerTicketPrice{}
 	if s.dba == nil {
 		res = false
 	} else {
@@ -964,7 +964,7 @@ func (s *SoWitnessWrap) GetPerTicketPrice() *prototype.Coin {
 	return msg.PerTicketPrice
 }
 
-func (s *SoWitnessWrap) MdPerTicketPrice(p *prototype.Coin) bool {
+func (s *SoBlockProducerWrap) MdPerTicketPrice(p *prototype.Coin) bool {
 	if s.dba == nil {
 		return false
 	}
@@ -976,9 +976,9 @@ func (s *SoWitnessWrap) MdPerTicketPrice(p *prototype.Coin) bool {
 	if err != nil {
 		return false
 	}
-	ori := &SoMemWitnessByPerTicketPrice{}
+	ori := &SoMemBlockProducerByPerTicketPrice{}
 	err = proto.Unmarshal(buf, ori)
-	sa := &SoWitness{}
+	sa := &SoBlockProducer{}
 	sa.Owner = s.mainKey
 
 	sa.PerTicketPrice = ori.PerTicketPrice
@@ -997,14 +997,14 @@ func (s *SoWitnessWrap) MdPerTicketPrice(p *prototype.Coin) bool {
 	return true
 }
 
-func (s *SoWitnessWrap) saveMemKeyPerTicketWeight(tInfo *SoWitness) error {
+func (s *SoBlockProducerWrap) saveMemKeyPerTicketWeight(tInfo *SoBlockProducer) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
 	if tInfo == nil {
 		return errors.New("the data is nil")
 	}
-	val := SoMemWitnessByPerTicketWeight{}
+	val := SoMemBlockProducerByPerTicketWeight{}
 	val.PerTicketWeight = tInfo.PerTicketWeight
 	key, err := s.encodeMemKey("PerTicketWeight")
 	if err != nil {
@@ -1018,9 +1018,9 @@ func (s *SoWitnessWrap) saveMemKeyPerTicketWeight(tInfo *SoWitness) error {
 	return err
 }
 
-func (s *SoWitnessWrap) GetPerTicketWeight() uint64 {
+func (s *SoBlockProducerWrap) GetPerTicketWeight() uint64 {
 	res := true
-	msg := &SoMemWitnessByPerTicketWeight{}
+	msg := &SoMemBlockProducerByPerTicketWeight{}
 	if s.dba == nil {
 		res = false
 	} else {
@@ -1047,7 +1047,7 @@ func (s *SoWitnessWrap) GetPerTicketWeight() uint64 {
 	return msg.PerTicketWeight
 }
 
-func (s *SoWitnessWrap) MdPerTicketWeight(p uint64) bool {
+func (s *SoBlockProducerWrap) MdPerTicketWeight(p uint64) bool {
 	if s.dba == nil {
 		return false
 	}
@@ -1059,9 +1059,9 @@ func (s *SoWitnessWrap) MdPerTicketWeight(p uint64) bool {
 	if err != nil {
 		return false
 	}
-	ori := &SoMemWitnessByPerTicketWeight{}
+	ori := &SoMemBlockProducerByPerTicketWeight{}
 	err = proto.Unmarshal(buf, ori)
-	sa := &SoWitness{}
+	sa := &SoBlockProducer{}
 	sa.Owner = s.mainKey
 
 	sa.PerTicketWeight = ori.PerTicketWeight
@@ -1080,14 +1080,14 @@ func (s *SoWitnessWrap) MdPerTicketWeight(p uint64) bool {
 	return true
 }
 
-func (s *SoWitnessWrap) saveMemKeyProposedStaminaFree(tInfo *SoWitness) error {
+func (s *SoBlockProducerWrap) saveMemKeyProposedStaminaFree(tInfo *SoBlockProducer) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
 	if tInfo == nil {
 		return errors.New("the data is nil")
 	}
-	val := SoMemWitnessByProposedStaminaFree{}
+	val := SoMemBlockProducerByProposedStaminaFree{}
 	val.ProposedStaminaFree = tInfo.ProposedStaminaFree
 	key, err := s.encodeMemKey("ProposedStaminaFree")
 	if err != nil {
@@ -1101,9 +1101,9 @@ func (s *SoWitnessWrap) saveMemKeyProposedStaminaFree(tInfo *SoWitness) error {
 	return err
 }
 
-func (s *SoWitnessWrap) GetProposedStaminaFree() uint64 {
+func (s *SoBlockProducerWrap) GetProposedStaminaFree() uint64 {
 	res := true
-	msg := &SoMemWitnessByProposedStaminaFree{}
+	msg := &SoMemBlockProducerByProposedStaminaFree{}
 	if s.dba == nil {
 		res = false
 	} else {
@@ -1130,7 +1130,7 @@ func (s *SoWitnessWrap) GetProposedStaminaFree() uint64 {
 	return msg.ProposedStaminaFree
 }
 
-func (s *SoWitnessWrap) MdProposedStaminaFree(p uint64) bool {
+func (s *SoBlockProducerWrap) MdProposedStaminaFree(p uint64) bool {
 	if s.dba == nil {
 		return false
 	}
@@ -1142,9 +1142,9 @@ func (s *SoWitnessWrap) MdProposedStaminaFree(p uint64) bool {
 	if err != nil {
 		return false
 	}
-	ori := &SoMemWitnessByProposedStaminaFree{}
+	ori := &SoMemBlockProducerByProposedStaminaFree{}
 	err = proto.Unmarshal(buf, ori)
-	sa := &SoWitness{}
+	sa := &SoBlockProducer{}
 	sa.Owner = s.mainKey
 
 	sa.ProposedStaminaFree = ori.ProposedStaminaFree
@@ -1163,14 +1163,14 @@ func (s *SoWitnessWrap) MdProposedStaminaFree(p uint64) bool {
 	return true
 }
 
-func (s *SoWitnessWrap) saveMemKeySigningKey(tInfo *SoWitness) error {
+func (s *SoBlockProducerWrap) saveMemKeySigningKey(tInfo *SoBlockProducer) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
 	if tInfo == nil {
 		return errors.New("the data is nil")
 	}
-	val := SoMemWitnessBySigningKey{}
+	val := SoMemBlockProducerBySigningKey{}
 	val.SigningKey = tInfo.SigningKey
 	key, err := s.encodeMemKey("SigningKey")
 	if err != nil {
@@ -1184,9 +1184,9 @@ func (s *SoWitnessWrap) saveMemKeySigningKey(tInfo *SoWitness) error {
 	return err
 }
 
-func (s *SoWitnessWrap) GetSigningKey() *prototype.PublicKeyType {
+func (s *SoBlockProducerWrap) GetSigningKey() *prototype.PublicKeyType {
 	res := true
-	msg := &SoMemWitnessBySigningKey{}
+	msg := &SoMemBlockProducerBySigningKey{}
 	if s.dba == nil {
 		res = false
 	} else {
@@ -1213,7 +1213,7 @@ func (s *SoWitnessWrap) GetSigningKey() *prototype.PublicKeyType {
 	return msg.SigningKey
 }
 
-func (s *SoWitnessWrap) MdSigningKey(p *prototype.PublicKeyType) bool {
+func (s *SoBlockProducerWrap) MdSigningKey(p *prototype.PublicKeyType) bool {
 	if s.dba == nil {
 		return false
 	}
@@ -1225,9 +1225,9 @@ func (s *SoWitnessWrap) MdSigningKey(p *prototype.PublicKeyType) bool {
 	if err != nil {
 		return false
 	}
-	ori := &SoMemWitnessBySigningKey{}
+	ori := &SoMemBlockProducerBySigningKey{}
 	err = proto.Unmarshal(buf, ori)
-	sa := &SoWitness{}
+	sa := &SoBlockProducer{}
 	sa.Owner = s.mainKey
 
 	sa.SigningKey = ori.SigningKey
@@ -1246,14 +1246,14 @@ func (s *SoWitnessWrap) MdSigningKey(p *prototype.PublicKeyType) bool {
 	return true
 }
 
-func (s *SoWitnessWrap) saveMemKeyTopNAcquireFreeToken(tInfo *SoWitness) error {
+func (s *SoBlockProducerWrap) saveMemKeyTopNAcquireFreeToken(tInfo *SoBlockProducer) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
 	if tInfo == nil {
 		return errors.New("the data is nil")
 	}
-	val := SoMemWitnessByTopNAcquireFreeToken{}
+	val := SoMemBlockProducerByTopNAcquireFreeToken{}
 	val.TopNAcquireFreeToken = tInfo.TopNAcquireFreeToken
 	key, err := s.encodeMemKey("TopNAcquireFreeToken")
 	if err != nil {
@@ -1267,9 +1267,9 @@ func (s *SoWitnessWrap) saveMemKeyTopNAcquireFreeToken(tInfo *SoWitness) error {
 	return err
 }
 
-func (s *SoWitnessWrap) GetTopNAcquireFreeToken() uint32 {
+func (s *SoBlockProducerWrap) GetTopNAcquireFreeToken() uint32 {
 	res := true
-	msg := &SoMemWitnessByTopNAcquireFreeToken{}
+	msg := &SoMemBlockProducerByTopNAcquireFreeToken{}
 	if s.dba == nil {
 		res = false
 	} else {
@@ -1296,7 +1296,7 @@ func (s *SoWitnessWrap) GetTopNAcquireFreeToken() uint32 {
 	return msg.TopNAcquireFreeToken
 }
 
-func (s *SoWitnessWrap) MdTopNAcquireFreeToken(p uint32) bool {
+func (s *SoBlockProducerWrap) MdTopNAcquireFreeToken(p uint32) bool {
 	if s.dba == nil {
 		return false
 	}
@@ -1308,9 +1308,9 @@ func (s *SoWitnessWrap) MdTopNAcquireFreeToken(p uint32) bool {
 	if err != nil {
 		return false
 	}
-	ori := &SoMemWitnessByTopNAcquireFreeToken{}
+	ori := &SoMemBlockProducerByTopNAcquireFreeToken{}
 	err = proto.Unmarshal(buf, ori)
-	sa := &SoWitness{}
+	sa := &SoBlockProducer{}
 	sa.Owner = s.mainKey
 
 	sa.TopNAcquireFreeToken = ori.TopNAcquireFreeToken
@@ -1329,14 +1329,14 @@ func (s *SoWitnessWrap) MdTopNAcquireFreeToken(p uint32) bool {
 	return true
 }
 
-func (s *SoWitnessWrap) saveMemKeyTpsExpected(tInfo *SoWitness) error {
+func (s *SoBlockProducerWrap) saveMemKeyTpsExpected(tInfo *SoBlockProducer) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
 	if tInfo == nil {
 		return errors.New("the data is nil")
 	}
-	val := SoMemWitnessByTpsExpected{}
+	val := SoMemBlockProducerByTpsExpected{}
 	val.TpsExpected = tInfo.TpsExpected
 	key, err := s.encodeMemKey("TpsExpected")
 	if err != nil {
@@ -1350,9 +1350,9 @@ func (s *SoWitnessWrap) saveMemKeyTpsExpected(tInfo *SoWitness) error {
 	return err
 }
 
-func (s *SoWitnessWrap) GetTpsExpected() uint64 {
+func (s *SoBlockProducerWrap) GetTpsExpected() uint64 {
 	res := true
-	msg := &SoMemWitnessByTpsExpected{}
+	msg := &SoMemBlockProducerByTpsExpected{}
 	if s.dba == nil {
 		res = false
 	} else {
@@ -1379,7 +1379,7 @@ func (s *SoWitnessWrap) GetTpsExpected() uint64 {
 	return msg.TpsExpected
 }
 
-func (s *SoWitnessWrap) MdTpsExpected(p uint64) bool {
+func (s *SoBlockProducerWrap) MdTpsExpected(p uint64) bool {
 	if s.dba == nil {
 		return false
 	}
@@ -1391,9 +1391,9 @@ func (s *SoWitnessWrap) MdTpsExpected(p uint64) bool {
 	if err != nil {
 		return false
 	}
-	ori := &SoMemWitnessByTpsExpected{}
+	ori := &SoMemBlockProducerByTpsExpected{}
 	err = proto.Unmarshal(buf, ori)
-	sa := &SoWitness{}
+	sa := &SoBlockProducer{}
 	sa.Owner = s.mainKey
 
 	sa.TpsExpected = ori.TpsExpected
@@ -1412,14 +1412,14 @@ func (s *SoWitnessWrap) MdTpsExpected(p uint64) bool {
 	return true
 }
 
-func (s *SoWitnessWrap) saveMemKeyUrl(tInfo *SoWitness) error {
+func (s *SoBlockProducerWrap) saveMemKeyUrl(tInfo *SoBlockProducer) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
 	if tInfo == nil {
 		return errors.New("the data is nil")
 	}
-	val := SoMemWitnessByUrl{}
+	val := SoMemBlockProducerByUrl{}
 	val.Url = tInfo.Url
 	key, err := s.encodeMemKey("Url")
 	if err != nil {
@@ -1433,9 +1433,9 @@ func (s *SoWitnessWrap) saveMemKeyUrl(tInfo *SoWitness) error {
 	return err
 }
 
-func (s *SoWitnessWrap) GetUrl() string {
+func (s *SoBlockProducerWrap) GetUrl() string {
 	res := true
-	msg := &SoMemWitnessByUrl{}
+	msg := &SoMemBlockProducerByUrl{}
 	if s.dba == nil {
 		res = false
 	} else {
@@ -1462,7 +1462,7 @@ func (s *SoWitnessWrap) GetUrl() string {
 	return msg.Url
 }
 
-func (s *SoWitnessWrap) MdUrl(p string) bool {
+func (s *SoBlockProducerWrap) MdUrl(p string) bool {
 	if s.dba == nil {
 		return false
 	}
@@ -1474,9 +1474,9 @@ func (s *SoWitnessWrap) MdUrl(p string) bool {
 	if err != nil {
 		return false
 	}
-	ori := &SoMemWitnessByUrl{}
+	ori := &SoMemBlockProducerByUrl{}
 	err = proto.Unmarshal(buf, ori)
-	sa := &SoWitness{}
+	sa := &SoBlockProducer{}
 	sa.Owner = s.mainKey
 
 	sa.Url = ori.Url
@@ -1495,14 +1495,14 @@ func (s *SoWitnessWrap) MdUrl(p string) bool {
 	return true
 }
 
-func (s *SoWitnessWrap) saveMemKeyVoteVest(tInfo *SoWitness) error {
+func (s *SoBlockProducerWrap) saveMemKeyVoteVest(tInfo *SoBlockProducer) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
 	if tInfo == nil {
 		return errors.New("the data is nil")
 	}
-	val := SoMemWitnessByVoteVest{}
+	val := SoMemBlockProducerByVoteVest{}
 	val.VoteVest = tInfo.VoteVest
 	key, err := s.encodeMemKey("VoteVest")
 	if err != nil {
@@ -1516,9 +1516,9 @@ func (s *SoWitnessWrap) saveMemKeyVoteVest(tInfo *SoWitness) error {
 	return err
 }
 
-func (s *SoWitnessWrap) GetVoteVest() *prototype.Vest {
+func (s *SoBlockProducerWrap) GetVoteVest() *prototype.Vest {
 	res := true
-	msg := &SoMemWitnessByVoteVest{}
+	msg := &SoMemBlockProducerByVoteVest{}
 	if s.dba == nil {
 		res = false
 	} else {
@@ -1545,7 +1545,7 @@ func (s *SoWitnessWrap) GetVoteVest() *prototype.Vest {
 	return msg.VoteVest
 }
 
-func (s *SoWitnessWrap) MdVoteVest(p *prototype.Vest) bool {
+func (s *SoBlockProducerWrap) MdVoteVest(p *prototype.Vest) bool {
 	if s.dba == nil {
 		return false
 	}
@@ -1557,9 +1557,9 @@ func (s *SoWitnessWrap) MdVoteVest(p *prototype.Vest) bool {
 	if err != nil {
 		return false
 	}
-	ori := &SoMemWitnessByVoteVest{}
+	ori := &SoMemBlockProducerByVoteVest{}
 	err = proto.Unmarshal(buf, ori)
-	sa := &SoWitness{}
+	sa := &SoBlockProducer{}
 	sa.Owner = s.mainKey
 
 	sa.VoteVest = ori.VoteVest
@@ -1585,14 +1585,14 @@ func (s *SoWitnessWrap) MdVoteVest(p *prototype.Vest) bool {
 	return true
 }
 
-func (s *SoWitnessWrap) saveMemKeyVoterCount(tInfo *SoWitness) error {
+func (s *SoBlockProducerWrap) saveMemKeyVoterCount(tInfo *SoBlockProducer) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
 	if tInfo == nil {
 		return errors.New("the data is nil")
 	}
-	val := SoMemWitnessByVoterCount{}
+	val := SoMemBlockProducerByVoterCount{}
 	val.VoterCount = tInfo.VoterCount
 	key, err := s.encodeMemKey("VoterCount")
 	if err != nil {
@@ -1606,9 +1606,9 @@ func (s *SoWitnessWrap) saveMemKeyVoterCount(tInfo *SoWitness) error {
 	return err
 }
 
-func (s *SoWitnessWrap) GetVoterCount() uint64 {
+func (s *SoBlockProducerWrap) GetVoterCount() uint64 {
 	res := true
-	msg := &SoMemWitnessByVoterCount{}
+	msg := &SoMemBlockProducerByVoterCount{}
 	if s.dba == nil {
 		res = false
 	} else {
@@ -1635,7 +1635,7 @@ func (s *SoWitnessWrap) GetVoterCount() uint64 {
 	return msg.VoterCount
 }
 
-func (s *SoWitnessWrap) MdVoterCount(p uint64) bool {
+func (s *SoBlockProducerWrap) MdVoterCount(p uint64) bool {
 	if s.dba == nil {
 		return false
 	}
@@ -1647,9 +1647,9 @@ func (s *SoWitnessWrap) MdVoterCount(p uint64) bool {
 	if err != nil {
 		return false
 	}
-	ori := &SoMemWitnessByVoterCount{}
+	ori := &SoMemBlockProducerByVoterCount{}
 	err = proto.Unmarshal(buf, ori)
-	sa := &SoWitness{}
+	sa := &SoBlockProducer{}
 	sa.Owner = s.mainKey
 
 	sa.VoterCount = ori.VoterCount
@@ -1669,20 +1669,20 @@ func (s *SoWitnessWrap) MdVoterCount(p uint64) bool {
 }
 
 ////////////// SECTION List Keys ///////////////
-type SWitnessOwnerWrap struct {
+type SBlockProducerOwnerWrap struct {
 	Dba iservices.IDatabaseRW
 }
 
-func NewWitnessOwnerWrap(db iservices.IDatabaseRW) *SWitnessOwnerWrap {
+func NewBlockProducerOwnerWrap(db iservices.IDatabaseRW) *SBlockProducerOwnerWrap {
 	if db == nil {
 		return nil
 	}
-	wrap := SWitnessOwnerWrap{Dba: db}
+	wrap := SBlockProducerOwnerWrap{Dba: db}
 	return &wrap
 }
 
-func (s *SWitnessOwnerWrap) GetMainVal(val []byte) *prototype.AccountName {
-	res := &SoListWitnessByOwner{}
+func (s *SBlockProducerOwnerWrap) GetMainVal(val []byte) *prototype.AccountName {
+	res := &SoListBlockProducerByOwner{}
 	err := proto.Unmarshal(val, res)
 
 	if err != nil {
@@ -1692,8 +1692,8 @@ func (s *SWitnessOwnerWrap) GetMainVal(val []byte) *prototype.AccountName {
 
 }
 
-func (s *SWitnessOwnerWrap) GetSubVal(val []byte) *prototype.AccountName {
-	res := &SoListWitnessByOwner{}
+func (s *SBlockProducerOwnerWrap) GetSubVal(val []byte) *prototype.AccountName {
+	res := &SoListBlockProducerByOwner{}
 	err := proto.Unmarshal(val, res)
 	if err != nil {
 		return nil
@@ -1702,8 +1702,8 @@ func (s *SWitnessOwnerWrap) GetSubVal(val []byte) *prototype.AccountName {
 
 }
 
-func (m *SoListWitnessByOwner) OpeEncode() ([]byte, error) {
-	pre := WitnessOwnerTable
+func (m *SoListBlockProducerByOwner) OpeEncode() ([]byte, error) {
+	pre := BlockProducerOwnerTable
 	sub := m.Owner
 	if sub == nil {
 		return nil, errors.New("the pro Owner is nil")
@@ -1731,7 +1731,7 @@ func (m *SoListWitnessByOwner) OpeEncode() ([]byte, error) {
 //lastMainKey: the main key of the last one of last page
 //lastSubVal: the value  of the last one of last page
 //
-func (s *SWitnessOwnerWrap) ForEachByOrder(start *prototype.AccountName, end *prototype.AccountName, lastMainKey *prototype.AccountName,
+func (s *SBlockProducerOwnerWrap) ForEachByOrder(start *prototype.AccountName, end *prototype.AccountName, lastMainKey *prototype.AccountName,
 	lastSubVal *prototype.AccountName, f func(mVal *prototype.AccountName, sVal *prototype.AccountName, idx uint32) bool) error {
 	if s.Dba == nil {
 		return errors.New("the db is nil")
@@ -1742,7 +1742,7 @@ func (s *SWitnessOwnerWrap) ForEachByOrder(start *prototype.AccountName, end *pr
 	if f == nil {
 		return nil
 	}
-	pre := WitnessOwnerTable
+	pre := BlockProducerOwnerTable
 	skeyList := []interface{}{pre}
 	if start != nil {
 		skeyList = append(skeyList, start)
@@ -1778,20 +1778,20 @@ func (s *SWitnessOwnerWrap) ForEachByOrder(start *prototype.AccountName, end *pr
 }
 
 ////////////// SECTION List Keys ///////////////
-type SWitnessVoteVestWrap struct {
+type SBlockProducerVoteVestWrap struct {
 	Dba iservices.IDatabaseRW
 }
 
-func NewWitnessVoteVestWrap(db iservices.IDatabaseRW) *SWitnessVoteVestWrap {
+func NewBlockProducerVoteVestWrap(db iservices.IDatabaseRW) *SBlockProducerVoteVestWrap {
 	if db == nil {
 		return nil
 	}
-	wrap := SWitnessVoteVestWrap{Dba: db}
+	wrap := SBlockProducerVoteVestWrap{Dba: db}
 	return &wrap
 }
 
-func (s *SWitnessVoteVestWrap) GetMainVal(val []byte) *prototype.AccountName {
-	res := &SoListWitnessByVoteVest{}
+func (s *SBlockProducerVoteVestWrap) GetMainVal(val []byte) *prototype.AccountName {
+	res := &SoListBlockProducerByVoteVest{}
 	err := proto.Unmarshal(val, res)
 
 	if err != nil {
@@ -1801,8 +1801,8 @@ func (s *SWitnessVoteVestWrap) GetMainVal(val []byte) *prototype.AccountName {
 
 }
 
-func (s *SWitnessVoteVestWrap) GetSubVal(val []byte) *prototype.Vest {
-	res := &SoListWitnessByVoteVest{}
+func (s *SBlockProducerVoteVestWrap) GetSubVal(val []byte) *prototype.Vest {
+	res := &SoListBlockProducerByVoteVest{}
 	err := proto.Unmarshal(val, res)
 	if err != nil {
 		return nil
@@ -1811,8 +1811,8 @@ func (s *SWitnessVoteVestWrap) GetSubVal(val []byte) *prototype.Vest {
 
 }
 
-func (m *SoListWitnessByVoteVest) OpeEncode() ([]byte, error) {
-	pre := WitnessVoteVestTable
+func (m *SoListBlockProducerByVoteVest) OpeEncode() ([]byte, error) {
+	pre := BlockProducerVoteVestTable
 	sub := m.VoteVest
 	if sub == nil {
 		return nil, errors.New("the pro VoteVest is nil")
@@ -1836,7 +1836,7 @@ func (m *SoListWitnessByVoteVest) OpeEncode() ([]byte, error) {
 //lastMainKey: the main key of the last one of last page
 //lastSubVal: the value  of the last one of last page
 //
-func (s *SWitnessVoteVestWrap) ForEachByRevOrder(start *prototype.Vest, end *prototype.Vest, lastMainKey *prototype.AccountName,
+func (s *SBlockProducerVoteVestWrap) ForEachByRevOrder(start *prototype.Vest, end *prototype.Vest, lastMainKey *prototype.AccountName,
 	lastSubVal *prototype.Vest, f func(mVal *prototype.AccountName, sVal *prototype.Vest, idx uint32) bool) error {
 	if s.Dba == nil {
 		return errors.New("the db is nil")
@@ -1847,7 +1847,7 @@ func (s *SWitnessVoteVestWrap) ForEachByRevOrder(start *prototype.Vest, end *pro
 	if f == nil {
 		return nil
 	}
-	pre := WitnessVoteVestTable
+	pre := BlockProducerVoteVestTable
 	skeyList := []interface{}{pre}
 	if start != nil {
 		skeyList = append(skeyList, start)
@@ -1882,7 +1882,7 @@ func (s *SWitnessVoteVestWrap) ForEachByRevOrder(start *prototype.Vest, end *pro
 
 /////////////// SECTION Private function ////////////////
 
-func (s *SoWitnessWrap) update(sa *SoWitness) bool {
+func (s *SoBlockProducerWrap) update(sa *SoBlockProducer) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
@@ -1899,7 +1899,7 @@ func (s *SoWitnessWrap) update(sa *SoWitness) bool {
 	return s.dba.Put(keyBuf, buf) == nil
 }
 
-func (s *SoWitnessWrap) getWitness() *SoWitness {
+func (s *SoBlockProducerWrap) getBlockProducer() *SoBlockProducer {
 	if s.dba == nil {
 		return nil
 	}
@@ -1913,14 +1913,14 @@ func (s *SoWitnessWrap) getWitness() *SoWitness {
 		return nil
 	}
 
-	res := &SoWitness{}
+	res := &SoBlockProducer{}
 	if proto.Unmarshal(resBuf, res) != nil {
 		return nil
 	}
 	return res
 }
 
-func (s *SoWitnessWrap) encodeMainKey() ([]byte, error) {
+func (s *SoBlockProducerWrap) encodeMainKey() ([]byte, error) {
 	if s.mKeyBuf != nil {
 		return s.mKeyBuf, nil
 	}
@@ -1946,7 +1946,7 @@ func (s *SoWitnessWrap) encodeMainKey() ([]byte, error) {
 
 ////////////// Unique Query delete/insert/query ///////////////
 
-func (s *SoWitnessWrap) delAllUniKeys(br bool, val *SoWitness) bool {
+func (s *SoBlockProducerWrap) delAllUniKeys(br bool, val *SoBlockProducer) bool {
 	if s.dba == nil {
 		return false
 	}
@@ -1962,7 +1962,7 @@ func (s *SoWitnessWrap) delAllUniKeys(br bool, val *SoWitness) bool {
 	return res
 }
 
-func (s *SoWitnessWrap) delUniKeysWithNames(names map[string]string, val *SoWitness) bool {
+func (s *SoBlockProducerWrap) delUniKeysWithNames(names map[string]string, val *SoBlockProducer) bool {
 	if s.dba == nil {
 		return false
 	}
@@ -1976,12 +1976,12 @@ func (s *SoWitnessWrap) delUniKeysWithNames(names map[string]string, val *SoWitn
 	return res
 }
 
-func (s *SoWitnessWrap) insertAllUniKeys(val *SoWitness) (map[string]string, error) {
+func (s *SoBlockProducerWrap) insertAllUniKeys(val *SoBlockProducer) (map[string]string, error) {
 	if s.dba == nil {
 		return nil, errors.New("insert uniuqe Field fail,the db is nil ")
 	}
 	if val == nil {
-		return nil, errors.New("insert uniuqe Field fail,get the SoWitness fail ")
+		return nil, errors.New("insert uniuqe Field fail,get the SoBlockProducer fail ")
 	}
 	sucFields := map[string]string{}
 	if !s.insertUniKeyOwner(val) {
@@ -1992,11 +1992,11 @@ func (s *SoWitnessWrap) insertAllUniKeys(val *SoWitness) (map[string]string, err
 	return sucFields, nil
 }
 
-func (s *SoWitnessWrap) delUniKeyOwner(sa *SoWitness) bool {
+func (s *SoBlockProducerWrap) delUniKeyOwner(sa *SoBlockProducer) bool {
 	if s.dba == nil {
 		return false
 	}
-	pre := WitnessOwnerUniTable
+	pre := BlockProducerOwnerUniTable
 	kList := []interface{}{pre}
 	if sa != nil {
 
@@ -2015,7 +2015,7 @@ func (s *SoWitnessWrap) delUniKeyOwner(sa *SoWitness) bool {
 		if err != nil {
 			return false
 		}
-		ori := &SoMemWitnessByOwner{}
+		ori := &SoMemBlockProducerByOwner{}
 		err = proto.Unmarshal(buf, ori)
 		if err != nil {
 			return false
@@ -2031,11 +2031,11 @@ func (s *SoWitnessWrap) delUniKeyOwner(sa *SoWitness) bool {
 	return s.dba.Delete(kBuf) == nil
 }
 
-func (s *SoWitnessWrap) insertUniKeyOwner(sa *SoWitness) bool {
+func (s *SoBlockProducerWrap) insertUniKeyOwner(sa *SoBlockProducer) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
-	pre := WitnessOwnerUniTable
+	pre := BlockProducerOwnerUniTable
 	sub := sa.Owner
 	kList := []interface{}{pre, sub}
 	kBuf, err := kope.EncodeSlice(kList)
@@ -2047,7 +2047,7 @@ func (s *SoWitnessWrap) insertUniKeyOwner(sa *SoWitness) bool {
 		//the unique key is already exist
 		return false
 	}
-	val := SoUniqueWitnessByOwner{}
+	val := SoUniqueBlockProducerByOwner{}
 	val.Owner = sa.Owner
 
 	buf, err := proto.Marshal(&val)
@@ -2060,31 +2060,31 @@ func (s *SoWitnessWrap) insertUniKeyOwner(sa *SoWitness) bool {
 
 }
 
-type UniWitnessOwnerWrap struct {
+type UniBlockProducerOwnerWrap struct {
 	Dba iservices.IDatabaseRW
 }
 
-func NewUniWitnessOwnerWrap(db iservices.IDatabaseRW) *UniWitnessOwnerWrap {
+func NewUniBlockProducerOwnerWrap(db iservices.IDatabaseRW) *UniBlockProducerOwnerWrap {
 	if db == nil {
 		return nil
 	}
-	wrap := UniWitnessOwnerWrap{Dba: db}
+	wrap := UniBlockProducerOwnerWrap{Dba: db}
 	return &wrap
 }
 
-func (s *UniWitnessOwnerWrap) UniQueryOwner(start *prototype.AccountName) *SoWitnessWrap {
+func (s *UniBlockProducerOwnerWrap) UniQueryOwner(start *prototype.AccountName) *SoBlockProducerWrap {
 	if start == nil || s.Dba == nil {
 		return nil
 	}
-	pre := WitnessOwnerUniTable
+	pre := BlockProducerOwnerUniTable
 	kList := []interface{}{pre, start}
 	bufStartkey, err := kope.EncodeSlice(kList)
 	val, err := s.Dba.Get(bufStartkey)
 	if err == nil {
-		res := &SoUniqueWitnessByOwner{}
+		res := &SoUniqueBlockProducerByOwner{}
 		rErr := proto.Unmarshal(val, res)
 		if rErr == nil {
-			wrap := NewSoWitnessWrap(s.Dba, res.Owner)
+			wrap := NewSoBlockProducerWrap(s.Dba, res.Owner)
 
 			return wrap
 		}

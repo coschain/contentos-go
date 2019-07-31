@@ -14,15 +14,15 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	WitnessVoteVoterIdTable    uint32 = 1793351735
-	WitnessVoteVoterIdUniTable uint32 = 3978964285
-	WitnessVoteVoteTimeCell    uint32 = 1470511888
-	WitnessVoteVoterIdCell     uint32 = 258891558
-	WitnessVoteWitnessIdCell   uint32 = 729420006
+	BlockProducerVoteVoterIdTable    uint32 = 2479544534
+	BlockProducerVoteVoterIdUniTable uint32 = 3049307692
+	BlockProducerVoteVoteTimeCell    uint32 = 2928182257
+	BlockProducerVoteVoterIdCell     uint32 = 2550780346
+	BlockProducerVoteWitnessIdCell   uint32 = 4237225136
 )
 
 ////////////// SECTION Wrap Define ///////////////
-type SoWitnessVoteWrap struct {
+type SoBlockProducerVoteWrap struct {
 	dba      iservices.IDatabaseRW
 	mainKey  *prototype.BpVoterId
 	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
@@ -30,15 +30,15 @@ type SoWitnessVoteWrap struct {
 	mBuf     []byte //the value after the main key is encoded
 }
 
-func NewSoWitnessVoteWrap(dba iservices.IDatabaseRW, key *prototype.BpVoterId) *SoWitnessVoteWrap {
+func NewSoBlockProducerVoteWrap(dba iservices.IDatabaseRW, key *prototype.BpVoterId) *SoBlockProducerVoteWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoWitnessVoteWrap{dba, key, -1, nil, nil}
+	result := &SoBlockProducerVoteWrap{dba, key, -1, nil, nil}
 	return result
 }
 
-func (s *SoWitnessVoteWrap) CheckExist() bool {
+func (s *SoBlockProducerVoteWrap) CheckExist() bool {
 	if s.dba == nil {
 		return false
 	}
@@ -66,14 +66,14 @@ func (s *SoWitnessVoteWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoWitnessVoteWrap) Create(f func(tInfo *SoWitnessVote)) error {
+func (s *SoBlockProducerVoteWrap) Create(f func(tInfo *SoBlockProducerVote)) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
 	if s.mainKey == nil {
 		return errors.New("the main key is nil")
 	}
-	val := &SoWitnessVote{}
+	val := &SoBlockProducerVote{}
 	f(val)
 	if val.VoterId == nil {
 		val.VoterId = s.mainKey
@@ -112,7 +112,7 @@ func (s *SoWitnessVoteWrap) Create(f func(tInfo *SoWitnessVote)) error {
 	return nil
 }
 
-func (s *SoWitnessVoteWrap) getMainKeyBuf() ([]byte, error) {
+func (s *SoBlockProducerVoteWrap) getMainKeyBuf() ([]byte, error) {
 	if s.mainKey == nil {
 		return nil, errors.New("the main key is nil")
 	}
@@ -128,11 +128,11 @@ func (s *SoWitnessVoteWrap) getMainKeyBuf() ([]byte, error) {
 
 ////////////// SECTION LKeys delete/insert ///////////////
 
-func (s *SoWitnessVoteWrap) delSortKeyVoterId(sa *SoWitnessVote) bool {
+func (s *SoBlockProducerVoteWrap) delSortKeyVoterId(sa *SoBlockProducerVote) bool {
 	if s.dba == nil || s.mainKey == nil {
 		return false
 	}
-	val := SoListWitnessVoteByVoterId{}
+	val := SoListBlockProducerVoteByVoterId{}
 	if sa == nil {
 		key, err := s.encodeMemKey("VoterId")
 		if err != nil {
@@ -142,7 +142,7 @@ func (s *SoWitnessVoteWrap) delSortKeyVoterId(sa *SoWitnessVote) bool {
 		if err != nil {
 			return false
 		}
-		ori := &SoMemWitnessVoteByVoterId{}
+		ori := &SoMemBlockProducerVoteByVoterId{}
 		err = proto.Unmarshal(buf, ori)
 		if err != nil {
 			return false
@@ -160,11 +160,11 @@ func (s *SoWitnessVoteWrap) delSortKeyVoterId(sa *SoWitnessVote) bool {
 	return ordErr == nil
 }
 
-func (s *SoWitnessVoteWrap) insertSortKeyVoterId(sa *SoWitnessVote) bool {
+func (s *SoBlockProducerVoteWrap) insertSortKeyVoterId(sa *SoBlockProducerVote) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
-	val := SoListWitnessVoteByVoterId{}
+	val := SoListBlockProducerVoteByVoterId{}
 	val.VoterId = sa.VoterId
 	buf, err := proto.Marshal(&val)
 	if err != nil {
@@ -178,7 +178,7 @@ func (s *SoWitnessVoteWrap) insertSortKeyVoterId(sa *SoWitnessVote) bool {
 	return ordErr == nil
 }
 
-func (s *SoWitnessVoteWrap) delAllSortKeys(br bool, val *SoWitnessVote) bool {
+func (s *SoBlockProducerVoteWrap) delAllSortKeys(br bool, val *SoBlockProducerVote) bool {
 	if s.dba == nil {
 		return false
 	}
@@ -194,12 +194,12 @@ func (s *SoWitnessVoteWrap) delAllSortKeys(br bool, val *SoWitnessVote) bool {
 	return res
 }
 
-func (s *SoWitnessVoteWrap) insertAllSortKeys(val *SoWitnessVote) error {
+func (s *SoBlockProducerVoteWrap) insertAllSortKeys(val *SoBlockProducerVote) error {
 	if s.dba == nil {
 		return errors.New("insert sort Field fail,the db is nil ")
 	}
 	if val == nil {
-		return errors.New("insert sort Field fail,get the SoWitnessVote fail ")
+		return errors.New("insert sort Field fail,get the SoBlockProducerVote fail ")
 	}
 	if !s.insertSortKeyVoterId(val) {
 		return errors.New("insert sort Field VoterId fail while insert table ")
@@ -210,11 +210,11 @@ func (s *SoWitnessVoteWrap) insertAllSortKeys(val *SoWitnessVote) error {
 
 ////////////// SECTION LKeys delete/insert //////////////
 
-func (s *SoWitnessVoteWrap) RemoveWitnessVote() bool {
+func (s *SoBlockProducerVoteWrap) RemoveBlockProducerVote() bool {
 	if s.dba == nil {
 		return false
 	}
-	val := &SoWitnessVote{}
+	val := &SoBlockProducerVote{}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
 		return false
@@ -236,21 +236,21 @@ func (s *SoWitnessVoteWrap) RemoveWitnessVote() bool {
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
-func (s *SoWitnessVoteWrap) getMemKeyPrefix(fName string) uint32 {
+func (s *SoBlockProducerVoteWrap) getMemKeyPrefix(fName string) uint32 {
 	if fName == "VoteTime" {
-		return WitnessVoteVoteTimeCell
+		return BlockProducerVoteVoteTimeCell
 	}
 	if fName == "VoterId" {
-		return WitnessVoteVoterIdCell
+		return BlockProducerVoteVoterIdCell
 	}
 	if fName == "WitnessId" {
-		return WitnessVoteWitnessIdCell
+		return BlockProducerVoteWitnessIdCell
 	}
 
 	return 0
 }
 
-func (s *SoWitnessVoteWrap) encodeMemKey(fName string) ([]byte, error) {
+func (s *SoBlockProducerVoteWrap) encodeMemKey(fName string) ([]byte, error) {
 	if len(fName) < 1 || s.mainKey == nil {
 		return nil, errors.New("field name or main key is empty")
 	}
@@ -269,7 +269,7 @@ func (s *SoWitnessVoteWrap) encodeMemKey(fName string) ([]byte, error) {
 	return kope.PackList(list), nil
 }
 
-func (s *SoWitnessVoteWrap) saveAllMemKeys(tInfo *SoWitnessVote, br bool) error {
+func (s *SoBlockProducerVoteWrap) saveAllMemKeys(tInfo *SoBlockProducerVote, br bool) error {
 	if s.dba == nil {
 		return errors.New("save member Field fail , the db is nil")
 	}
@@ -307,7 +307,7 @@ func (s *SoWitnessVoteWrap) saveAllMemKeys(tInfo *SoWitnessVote, br bool) error 
 	return err
 }
 
-func (s *SoWitnessVoteWrap) delAllMemKeys(br bool, tInfo *SoWitnessVote) error {
+func (s *SoBlockProducerVoteWrap) delAllMemKeys(br bool, tInfo *SoBlockProducerVote) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
@@ -331,7 +331,7 @@ func (s *SoWitnessVoteWrap) delAllMemKeys(br bool, tInfo *SoWitnessVote) error {
 	return nil
 }
 
-func (s *SoWitnessVoteWrap) delMemKey(fName string) error {
+func (s *SoBlockProducerVoteWrap) delMemKey(fName string) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
@@ -346,14 +346,14 @@ func (s *SoWitnessVoteWrap) delMemKey(fName string) error {
 	return err
 }
 
-func (s *SoWitnessVoteWrap) saveMemKeyVoteTime(tInfo *SoWitnessVote) error {
+func (s *SoBlockProducerVoteWrap) saveMemKeyVoteTime(tInfo *SoBlockProducerVote) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
 	if tInfo == nil {
 		return errors.New("the data is nil")
 	}
-	val := SoMemWitnessVoteByVoteTime{}
+	val := SoMemBlockProducerVoteByVoteTime{}
 	val.VoteTime = tInfo.VoteTime
 	key, err := s.encodeMemKey("VoteTime")
 	if err != nil {
@@ -367,9 +367,9 @@ func (s *SoWitnessVoteWrap) saveMemKeyVoteTime(tInfo *SoWitnessVote) error {
 	return err
 }
 
-func (s *SoWitnessVoteWrap) GetVoteTime() *prototype.TimePointSec {
+func (s *SoBlockProducerVoteWrap) GetVoteTime() *prototype.TimePointSec {
 	res := true
-	msg := &SoMemWitnessVoteByVoteTime{}
+	msg := &SoMemBlockProducerVoteByVoteTime{}
 	if s.dba == nil {
 		res = false
 	} else {
@@ -396,7 +396,7 @@ func (s *SoWitnessVoteWrap) GetVoteTime() *prototype.TimePointSec {
 	return msg.VoteTime
 }
 
-func (s *SoWitnessVoteWrap) MdVoteTime(p *prototype.TimePointSec) bool {
+func (s *SoBlockProducerVoteWrap) MdVoteTime(p *prototype.TimePointSec) bool {
 	if s.dba == nil {
 		return false
 	}
@@ -408,9 +408,9 @@ func (s *SoWitnessVoteWrap) MdVoteTime(p *prototype.TimePointSec) bool {
 	if err != nil {
 		return false
 	}
-	ori := &SoMemWitnessVoteByVoteTime{}
+	ori := &SoMemBlockProducerVoteByVoteTime{}
 	err = proto.Unmarshal(buf, ori)
-	sa := &SoWitnessVote{}
+	sa := &SoBlockProducerVote{}
 	sa.VoterId = s.mainKey
 
 	sa.VoteTime = ori.VoteTime
@@ -429,14 +429,14 @@ func (s *SoWitnessVoteWrap) MdVoteTime(p *prototype.TimePointSec) bool {
 	return true
 }
 
-func (s *SoWitnessVoteWrap) saveMemKeyVoterId(tInfo *SoWitnessVote) error {
+func (s *SoBlockProducerVoteWrap) saveMemKeyVoterId(tInfo *SoBlockProducerVote) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
 	if tInfo == nil {
 		return errors.New("the data is nil")
 	}
-	val := SoMemWitnessVoteByVoterId{}
+	val := SoMemBlockProducerVoteByVoterId{}
 	val.VoterId = tInfo.VoterId
 	key, err := s.encodeMemKey("VoterId")
 	if err != nil {
@@ -450,9 +450,9 @@ func (s *SoWitnessVoteWrap) saveMemKeyVoterId(tInfo *SoWitnessVote) error {
 	return err
 }
 
-func (s *SoWitnessVoteWrap) GetVoterId() *prototype.BpVoterId {
+func (s *SoBlockProducerVoteWrap) GetVoterId() *prototype.BpVoterId {
 	res := true
-	msg := &SoMemWitnessVoteByVoterId{}
+	msg := &SoMemBlockProducerVoteByVoterId{}
 	if s.dba == nil {
 		res = false
 	} else {
@@ -479,14 +479,14 @@ func (s *SoWitnessVoteWrap) GetVoterId() *prototype.BpVoterId {
 	return msg.VoterId
 }
 
-func (s *SoWitnessVoteWrap) saveMemKeyWitnessId(tInfo *SoWitnessVote) error {
+func (s *SoBlockProducerVoteWrap) saveMemKeyWitnessId(tInfo *SoBlockProducerVote) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
 	if tInfo == nil {
 		return errors.New("the data is nil")
 	}
-	val := SoMemWitnessVoteByWitnessId{}
+	val := SoMemBlockProducerVoteByWitnessId{}
 	val.WitnessId = tInfo.WitnessId
 	key, err := s.encodeMemKey("WitnessId")
 	if err != nil {
@@ -500,9 +500,9 @@ func (s *SoWitnessVoteWrap) saveMemKeyWitnessId(tInfo *SoWitnessVote) error {
 	return err
 }
 
-func (s *SoWitnessVoteWrap) GetWitnessId() *prototype.BpWitnessId {
+func (s *SoBlockProducerVoteWrap) GetWitnessId() *prototype.BpWitnessId {
 	res := true
-	msg := &SoMemWitnessVoteByWitnessId{}
+	msg := &SoMemBlockProducerVoteByWitnessId{}
 	if s.dba == nil {
 		res = false
 	} else {
@@ -529,7 +529,7 @@ func (s *SoWitnessVoteWrap) GetWitnessId() *prototype.BpWitnessId {
 	return msg.WitnessId
 }
 
-func (s *SoWitnessVoteWrap) MdWitnessId(p *prototype.BpWitnessId) bool {
+func (s *SoBlockProducerVoteWrap) MdWitnessId(p *prototype.BpWitnessId) bool {
 	if s.dba == nil {
 		return false
 	}
@@ -541,9 +541,9 @@ func (s *SoWitnessVoteWrap) MdWitnessId(p *prototype.BpWitnessId) bool {
 	if err != nil {
 		return false
 	}
-	ori := &SoMemWitnessVoteByWitnessId{}
+	ori := &SoMemBlockProducerVoteByWitnessId{}
 	err = proto.Unmarshal(buf, ori)
-	sa := &SoWitnessVote{}
+	sa := &SoBlockProducerVote{}
 	sa.VoterId = s.mainKey
 
 	sa.WitnessId = ori.WitnessId
@@ -563,20 +563,20 @@ func (s *SoWitnessVoteWrap) MdWitnessId(p *prototype.BpWitnessId) bool {
 }
 
 ////////////// SECTION List Keys ///////////////
-type SWitnessVoteVoterIdWrap struct {
+type SBlockProducerVoteVoterIdWrap struct {
 	Dba iservices.IDatabaseRW
 }
 
-func NewWitnessVoteVoterIdWrap(db iservices.IDatabaseRW) *SWitnessVoteVoterIdWrap {
+func NewBlockProducerVoteVoterIdWrap(db iservices.IDatabaseRW) *SBlockProducerVoteVoterIdWrap {
 	if db == nil {
 		return nil
 	}
-	wrap := SWitnessVoteVoterIdWrap{Dba: db}
+	wrap := SBlockProducerVoteVoterIdWrap{Dba: db}
 	return &wrap
 }
 
-func (s *SWitnessVoteVoterIdWrap) GetMainVal(val []byte) *prototype.BpVoterId {
-	res := &SoListWitnessVoteByVoterId{}
+func (s *SBlockProducerVoteVoterIdWrap) GetMainVal(val []byte) *prototype.BpVoterId {
+	res := &SoListBlockProducerVoteByVoterId{}
 	err := proto.Unmarshal(val, res)
 
 	if err != nil {
@@ -586,8 +586,8 @@ func (s *SWitnessVoteVoterIdWrap) GetMainVal(val []byte) *prototype.BpVoterId {
 
 }
 
-func (s *SWitnessVoteVoterIdWrap) GetSubVal(val []byte) *prototype.BpVoterId {
-	res := &SoListWitnessVoteByVoterId{}
+func (s *SBlockProducerVoteVoterIdWrap) GetSubVal(val []byte) *prototype.BpVoterId {
+	res := &SoListBlockProducerVoteByVoterId{}
 	err := proto.Unmarshal(val, res)
 	if err != nil {
 		return nil
@@ -596,8 +596,8 @@ func (s *SWitnessVoteVoterIdWrap) GetSubVal(val []byte) *prototype.BpVoterId {
 
 }
 
-func (m *SoListWitnessVoteByVoterId) OpeEncode() ([]byte, error) {
-	pre := WitnessVoteVoterIdTable
+func (m *SoListBlockProducerVoteByVoterId) OpeEncode() ([]byte, error) {
+	pre := BlockProducerVoteVoterIdTable
 	sub := m.VoterId
 	if sub == nil {
 		return nil, errors.New("the pro VoterId is nil")
@@ -625,7 +625,7 @@ func (m *SoListWitnessVoteByVoterId) OpeEncode() ([]byte, error) {
 //lastMainKey: the main key of the last one of last page
 //lastSubVal: the value  of the last one of last page
 //
-func (s *SWitnessVoteVoterIdWrap) ForEachByOrder(start *prototype.BpVoterId, end *prototype.BpVoterId, lastMainKey *prototype.BpVoterId,
+func (s *SBlockProducerVoteVoterIdWrap) ForEachByOrder(start *prototype.BpVoterId, end *prototype.BpVoterId, lastMainKey *prototype.BpVoterId,
 	lastSubVal *prototype.BpVoterId, f func(mVal *prototype.BpVoterId, sVal *prototype.BpVoterId, idx uint32) bool) error {
 	if s.Dba == nil {
 		return errors.New("the db is nil")
@@ -636,7 +636,7 @@ func (s *SWitnessVoteVoterIdWrap) ForEachByOrder(start *prototype.BpVoterId, end
 	if f == nil {
 		return nil
 	}
-	pre := WitnessVoteVoterIdTable
+	pre := BlockProducerVoteVoterIdTable
 	skeyList := []interface{}{pre}
 	if start != nil {
 		skeyList = append(skeyList, start)
@@ -673,7 +673,7 @@ func (s *SWitnessVoteVoterIdWrap) ForEachByOrder(start *prototype.BpVoterId, end
 
 /////////////// SECTION Private function ////////////////
 
-func (s *SoWitnessVoteWrap) update(sa *SoWitnessVote) bool {
+func (s *SoBlockProducerVoteWrap) update(sa *SoBlockProducerVote) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
@@ -690,7 +690,7 @@ func (s *SoWitnessVoteWrap) update(sa *SoWitnessVote) bool {
 	return s.dba.Put(keyBuf, buf) == nil
 }
 
-func (s *SoWitnessVoteWrap) getWitnessVote() *SoWitnessVote {
+func (s *SoBlockProducerVoteWrap) getBlockProducerVote() *SoBlockProducerVote {
 	if s.dba == nil {
 		return nil
 	}
@@ -704,14 +704,14 @@ func (s *SoWitnessVoteWrap) getWitnessVote() *SoWitnessVote {
 		return nil
 	}
 
-	res := &SoWitnessVote{}
+	res := &SoBlockProducerVote{}
 	if proto.Unmarshal(resBuf, res) != nil {
 		return nil
 	}
 	return res
 }
 
-func (s *SoWitnessVoteWrap) encodeMainKey() ([]byte, error) {
+func (s *SoBlockProducerVoteWrap) encodeMainKey() ([]byte, error) {
 	if s.mKeyBuf != nil {
 		return s.mKeyBuf, nil
 	}
@@ -737,7 +737,7 @@ func (s *SoWitnessVoteWrap) encodeMainKey() ([]byte, error) {
 
 ////////////// Unique Query delete/insert/query ///////////////
 
-func (s *SoWitnessVoteWrap) delAllUniKeys(br bool, val *SoWitnessVote) bool {
+func (s *SoBlockProducerVoteWrap) delAllUniKeys(br bool, val *SoBlockProducerVote) bool {
 	if s.dba == nil {
 		return false
 	}
@@ -753,7 +753,7 @@ func (s *SoWitnessVoteWrap) delAllUniKeys(br bool, val *SoWitnessVote) bool {
 	return res
 }
 
-func (s *SoWitnessVoteWrap) delUniKeysWithNames(names map[string]string, val *SoWitnessVote) bool {
+func (s *SoBlockProducerVoteWrap) delUniKeysWithNames(names map[string]string, val *SoBlockProducerVote) bool {
 	if s.dba == nil {
 		return false
 	}
@@ -767,12 +767,12 @@ func (s *SoWitnessVoteWrap) delUniKeysWithNames(names map[string]string, val *So
 	return res
 }
 
-func (s *SoWitnessVoteWrap) insertAllUniKeys(val *SoWitnessVote) (map[string]string, error) {
+func (s *SoBlockProducerVoteWrap) insertAllUniKeys(val *SoBlockProducerVote) (map[string]string, error) {
 	if s.dba == nil {
 		return nil, errors.New("insert uniuqe Field fail,the db is nil ")
 	}
 	if val == nil {
-		return nil, errors.New("insert uniuqe Field fail,get the SoWitnessVote fail ")
+		return nil, errors.New("insert uniuqe Field fail,get the SoBlockProducerVote fail ")
 	}
 	sucFields := map[string]string{}
 	if !s.insertUniKeyVoterId(val) {
@@ -783,11 +783,11 @@ func (s *SoWitnessVoteWrap) insertAllUniKeys(val *SoWitnessVote) (map[string]str
 	return sucFields, nil
 }
 
-func (s *SoWitnessVoteWrap) delUniKeyVoterId(sa *SoWitnessVote) bool {
+func (s *SoBlockProducerVoteWrap) delUniKeyVoterId(sa *SoBlockProducerVote) bool {
 	if s.dba == nil {
 		return false
 	}
-	pre := WitnessVoteVoterIdUniTable
+	pre := BlockProducerVoteVoterIdUniTable
 	kList := []interface{}{pre}
 	if sa != nil {
 
@@ -806,7 +806,7 @@ func (s *SoWitnessVoteWrap) delUniKeyVoterId(sa *SoWitnessVote) bool {
 		if err != nil {
 			return false
 		}
-		ori := &SoMemWitnessVoteByVoterId{}
+		ori := &SoMemBlockProducerVoteByVoterId{}
 		err = proto.Unmarshal(buf, ori)
 		if err != nil {
 			return false
@@ -822,11 +822,11 @@ func (s *SoWitnessVoteWrap) delUniKeyVoterId(sa *SoWitnessVote) bool {
 	return s.dba.Delete(kBuf) == nil
 }
 
-func (s *SoWitnessVoteWrap) insertUniKeyVoterId(sa *SoWitnessVote) bool {
+func (s *SoBlockProducerVoteWrap) insertUniKeyVoterId(sa *SoBlockProducerVote) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
-	pre := WitnessVoteVoterIdUniTable
+	pre := BlockProducerVoteVoterIdUniTable
 	sub := sa.VoterId
 	kList := []interface{}{pre, sub}
 	kBuf, err := kope.EncodeSlice(kList)
@@ -838,7 +838,7 @@ func (s *SoWitnessVoteWrap) insertUniKeyVoterId(sa *SoWitnessVote) bool {
 		//the unique key is already exist
 		return false
 	}
-	val := SoUniqueWitnessVoteByVoterId{}
+	val := SoUniqueBlockProducerVoteByVoterId{}
 	val.VoterId = sa.VoterId
 
 	buf, err := proto.Marshal(&val)
@@ -851,31 +851,31 @@ func (s *SoWitnessVoteWrap) insertUniKeyVoterId(sa *SoWitnessVote) bool {
 
 }
 
-type UniWitnessVoteVoterIdWrap struct {
+type UniBlockProducerVoteVoterIdWrap struct {
 	Dba iservices.IDatabaseRW
 }
 
-func NewUniWitnessVoteVoterIdWrap(db iservices.IDatabaseRW) *UniWitnessVoteVoterIdWrap {
+func NewUniBlockProducerVoteVoterIdWrap(db iservices.IDatabaseRW) *UniBlockProducerVoteVoterIdWrap {
 	if db == nil {
 		return nil
 	}
-	wrap := UniWitnessVoteVoterIdWrap{Dba: db}
+	wrap := UniBlockProducerVoteVoterIdWrap{Dba: db}
 	return &wrap
 }
 
-func (s *UniWitnessVoteVoterIdWrap) UniQueryVoterId(start *prototype.BpVoterId) *SoWitnessVoteWrap {
+func (s *UniBlockProducerVoteVoterIdWrap) UniQueryVoterId(start *prototype.BpVoterId) *SoBlockProducerVoteWrap {
 	if start == nil || s.Dba == nil {
 		return nil
 	}
-	pre := WitnessVoteVoterIdUniTable
+	pre := BlockProducerVoteVoterIdUniTable
 	kList := []interface{}{pre, start}
 	bufStartkey, err := kope.EncodeSlice(kList)
 	val, err := s.Dba.Get(bufStartkey)
 	if err == nil {
-		res := &SoUniqueWitnessVoteByVoterId{}
+		res := &SoUniqueBlockProducerVoteByVoterId{}
 		rErr := proto.Unmarshal(val, res)
 		if rErr == nil {
-			wrap := NewSoWitnessVoteWrap(s.Dba, res.VoterId)
+			wrap := NewSoBlockProducerVoteWrap(s.Dba, res.VoterId)
 
 			return wrap
 		}

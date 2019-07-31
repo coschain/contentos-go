@@ -14,14 +14,14 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	WitnessScheduleObjectIdUniTable                 uint32 = 1331115827
-	WitnessScheduleObjectCurrentShuffledWitnessCell uint32 = 628088000
-	WitnessScheduleObjectIdCell                     uint32 = 73273412
-	WitnessScheduleObjectPubKeyCell                 uint32 = 98657574
+	BlockProducerScheduleObjectIdUniTable                 uint32 = 1798653281
+	BlockProducerScheduleObjectCurrentShuffledWitnessCell uint32 = 3661115421
+	BlockProducerScheduleObjectIdCell                     uint32 = 1857477157
+	BlockProducerScheduleObjectPubKeyCell                 uint32 = 562239348
 )
 
 ////////////// SECTION Wrap Define ///////////////
-type SoWitnessScheduleObjectWrap struct {
+type SoBlockProducerScheduleObjectWrap struct {
 	dba      iservices.IDatabaseRW
 	mainKey  *int32
 	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
@@ -29,15 +29,15 @@ type SoWitnessScheduleObjectWrap struct {
 	mBuf     []byte //the value after the main key is encoded
 }
 
-func NewSoWitnessScheduleObjectWrap(dba iservices.IDatabaseRW, key *int32) *SoWitnessScheduleObjectWrap {
+func NewSoBlockProducerScheduleObjectWrap(dba iservices.IDatabaseRW, key *int32) *SoBlockProducerScheduleObjectWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoWitnessScheduleObjectWrap{dba, key, -1, nil, nil}
+	result := &SoBlockProducerScheduleObjectWrap{dba, key, -1, nil, nil}
 	return result
 }
 
-func (s *SoWitnessScheduleObjectWrap) CheckExist() bool {
+func (s *SoBlockProducerScheduleObjectWrap) CheckExist() bool {
 	if s.dba == nil {
 		return false
 	}
@@ -65,14 +65,14 @@ func (s *SoWitnessScheduleObjectWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoWitnessScheduleObjectWrap) Create(f func(tInfo *SoWitnessScheduleObject)) error {
+func (s *SoBlockProducerScheduleObjectWrap) Create(f func(tInfo *SoBlockProducerScheduleObject)) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
 	if s.mainKey == nil {
 		return errors.New("the main key is nil")
 	}
-	val := &SoWitnessScheduleObject{}
+	val := &SoBlockProducerScheduleObject{}
 	f(val)
 	if s.CheckExist() {
 		return errors.New("the main key is already exist")
@@ -108,7 +108,7 @@ func (s *SoWitnessScheduleObjectWrap) Create(f func(tInfo *SoWitnessScheduleObje
 	return nil
 }
 
-func (s *SoWitnessScheduleObjectWrap) getMainKeyBuf() ([]byte, error) {
+func (s *SoBlockProducerScheduleObjectWrap) getMainKeyBuf() ([]byte, error) {
 	if s.mainKey == nil {
 		return nil, errors.New("the main key is nil")
 	}
@@ -124,7 +124,7 @@ func (s *SoWitnessScheduleObjectWrap) getMainKeyBuf() ([]byte, error) {
 
 ////////////// SECTION LKeys delete/insert ///////////////
 
-func (s *SoWitnessScheduleObjectWrap) delAllSortKeys(br bool, val *SoWitnessScheduleObject) bool {
+func (s *SoBlockProducerScheduleObjectWrap) delAllSortKeys(br bool, val *SoBlockProducerScheduleObject) bool {
 	if s.dba == nil {
 		return false
 	}
@@ -133,12 +133,12 @@ func (s *SoWitnessScheduleObjectWrap) delAllSortKeys(br bool, val *SoWitnessSche
 	return res
 }
 
-func (s *SoWitnessScheduleObjectWrap) insertAllSortKeys(val *SoWitnessScheduleObject) error {
+func (s *SoBlockProducerScheduleObjectWrap) insertAllSortKeys(val *SoBlockProducerScheduleObject) error {
 	if s.dba == nil {
 		return errors.New("insert sort Field fail,the db is nil ")
 	}
 	if val == nil {
-		return errors.New("insert sort Field fail,get the SoWitnessScheduleObject fail ")
+		return errors.New("insert sort Field fail,get the SoBlockProducerScheduleObject fail ")
 	}
 
 	return nil
@@ -146,11 +146,11 @@ func (s *SoWitnessScheduleObjectWrap) insertAllSortKeys(val *SoWitnessScheduleOb
 
 ////////////// SECTION LKeys delete/insert //////////////
 
-func (s *SoWitnessScheduleObjectWrap) RemoveWitnessScheduleObject() bool {
+func (s *SoBlockProducerScheduleObjectWrap) RemoveBlockProducerScheduleObject() bool {
 	if s.dba == nil {
 		return false
 	}
-	val := &SoWitnessScheduleObject{}
+	val := &SoBlockProducerScheduleObject{}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
 		return false
@@ -172,21 +172,21 @@ func (s *SoWitnessScheduleObjectWrap) RemoveWitnessScheduleObject() bool {
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
-func (s *SoWitnessScheduleObjectWrap) getMemKeyPrefix(fName string) uint32 {
+func (s *SoBlockProducerScheduleObjectWrap) getMemKeyPrefix(fName string) uint32 {
 	if fName == "CurrentShuffledWitness" {
-		return WitnessScheduleObjectCurrentShuffledWitnessCell
+		return BlockProducerScheduleObjectCurrentShuffledWitnessCell
 	}
 	if fName == "Id" {
-		return WitnessScheduleObjectIdCell
+		return BlockProducerScheduleObjectIdCell
 	}
 	if fName == "PubKey" {
-		return WitnessScheduleObjectPubKeyCell
+		return BlockProducerScheduleObjectPubKeyCell
 	}
 
 	return 0
 }
 
-func (s *SoWitnessScheduleObjectWrap) encodeMemKey(fName string) ([]byte, error) {
+func (s *SoBlockProducerScheduleObjectWrap) encodeMemKey(fName string) ([]byte, error) {
 	if len(fName) < 1 || s.mainKey == nil {
 		return nil, errors.New("field name or main key is empty")
 	}
@@ -205,7 +205,7 @@ func (s *SoWitnessScheduleObjectWrap) encodeMemKey(fName string) ([]byte, error)
 	return kope.PackList(list), nil
 }
 
-func (s *SoWitnessScheduleObjectWrap) saveAllMemKeys(tInfo *SoWitnessScheduleObject, br bool) error {
+func (s *SoBlockProducerScheduleObjectWrap) saveAllMemKeys(tInfo *SoBlockProducerScheduleObject, br bool) error {
 	if s.dba == nil {
 		return errors.New("save member Field fail , the db is nil")
 	}
@@ -243,7 +243,7 @@ func (s *SoWitnessScheduleObjectWrap) saveAllMemKeys(tInfo *SoWitnessScheduleObj
 	return err
 }
 
-func (s *SoWitnessScheduleObjectWrap) delAllMemKeys(br bool, tInfo *SoWitnessScheduleObject) error {
+func (s *SoBlockProducerScheduleObjectWrap) delAllMemKeys(br bool, tInfo *SoBlockProducerScheduleObject) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
@@ -267,7 +267,7 @@ func (s *SoWitnessScheduleObjectWrap) delAllMemKeys(br bool, tInfo *SoWitnessSch
 	return nil
 }
 
-func (s *SoWitnessScheduleObjectWrap) delMemKey(fName string) error {
+func (s *SoBlockProducerScheduleObjectWrap) delMemKey(fName string) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
@@ -282,14 +282,14 @@ func (s *SoWitnessScheduleObjectWrap) delMemKey(fName string) error {
 	return err
 }
 
-func (s *SoWitnessScheduleObjectWrap) saveMemKeyCurrentShuffledWitness(tInfo *SoWitnessScheduleObject) error {
+func (s *SoBlockProducerScheduleObjectWrap) saveMemKeyCurrentShuffledWitness(tInfo *SoBlockProducerScheduleObject) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
 	if tInfo == nil {
 		return errors.New("the data is nil")
 	}
-	val := SoMemWitnessScheduleObjectByCurrentShuffledWitness{}
+	val := SoMemBlockProducerScheduleObjectByCurrentShuffledWitness{}
 	val.CurrentShuffledWitness = tInfo.CurrentShuffledWitness
 	key, err := s.encodeMemKey("CurrentShuffledWitness")
 	if err != nil {
@@ -303,9 +303,9 @@ func (s *SoWitnessScheduleObjectWrap) saveMemKeyCurrentShuffledWitness(tInfo *So
 	return err
 }
 
-func (s *SoWitnessScheduleObjectWrap) GetCurrentShuffledWitness() []string {
+func (s *SoBlockProducerScheduleObjectWrap) GetCurrentShuffledWitness() []string {
 	res := true
-	msg := &SoMemWitnessScheduleObjectByCurrentShuffledWitness{}
+	msg := &SoMemBlockProducerScheduleObjectByCurrentShuffledWitness{}
 	if s.dba == nil {
 		res = false
 	} else {
@@ -332,7 +332,7 @@ func (s *SoWitnessScheduleObjectWrap) GetCurrentShuffledWitness() []string {
 	return msg.CurrentShuffledWitness
 }
 
-func (s *SoWitnessScheduleObjectWrap) MdCurrentShuffledWitness(p []string) bool {
+func (s *SoBlockProducerScheduleObjectWrap) MdCurrentShuffledWitness(p []string) bool {
 	if s.dba == nil {
 		return false
 	}
@@ -344,9 +344,9 @@ func (s *SoWitnessScheduleObjectWrap) MdCurrentShuffledWitness(p []string) bool 
 	if err != nil {
 		return false
 	}
-	ori := &SoMemWitnessScheduleObjectByCurrentShuffledWitness{}
+	ori := &SoMemBlockProducerScheduleObjectByCurrentShuffledWitness{}
 	err = proto.Unmarshal(buf, ori)
-	sa := &SoWitnessScheduleObject{}
+	sa := &SoBlockProducerScheduleObject{}
 	sa.Id = *s.mainKey
 	sa.CurrentShuffledWitness = ori.CurrentShuffledWitness
 
@@ -364,14 +364,14 @@ func (s *SoWitnessScheduleObjectWrap) MdCurrentShuffledWitness(p []string) bool 
 	return true
 }
 
-func (s *SoWitnessScheduleObjectWrap) saveMemKeyId(tInfo *SoWitnessScheduleObject) error {
+func (s *SoBlockProducerScheduleObjectWrap) saveMemKeyId(tInfo *SoBlockProducerScheduleObject) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
 	if tInfo == nil {
 		return errors.New("the data is nil")
 	}
-	val := SoMemWitnessScheduleObjectById{}
+	val := SoMemBlockProducerScheduleObjectById{}
 	val.Id = tInfo.Id
 	key, err := s.encodeMemKey("Id")
 	if err != nil {
@@ -385,9 +385,9 @@ func (s *SoWitnessScheduleObjectWrap) saveMemKeyId(tInfo *SoWitnessScheduleObjec
 	return err
 }
 
-func (s *SoWitnessScheduleObjectWrap) GetId() int32 {
+func (s *SoBlockProducerScheduleObjectWrap) GetId() int32 {
 	res := true
-	msg := &SoMemWitnessScheduleObjectById{}
+	msg := &SoMemBlockProducerScheduleObjectById{}
 	if s.dba == nil {
 		res = false
 	} else {
@@ -414,14 +414,14 @@ func (s *SoWitnessScheduleObjectWrap) GetId() int32 {
 	return msg.Id
 }
 
-func (s *SoWitnessScheduleObjectWrap) saveMemKeyPubKey(tInfo *SoWitnessScheduleObject) error {
+func (s *SoBlockProducerScheduleObjectWrap) saveMemKeyPubKey(tInfo *SoBlockProducerScheduleObject) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
 	if tInfo == nil {
 		return errors.New("the data is nil")
 	}
-	val := SoMemWitnessScheduleObjectByPubKey{}
+	val := SoMemBlockProducerScheduleObjectByPubKey{}
 	val.PubKey = tInfo.PubKey
 	key, err := s.encodeMemKey("PubKey")
 	if err != nil {
@@ -435,9 +435,9 @@ func (s *SoWitnessScheduleObjectWrap) saveMemKeyPubKey(tInfo *SoWitnessScheduleO
 	return err
 }
 
-func (s *SoWitnessScheduleObjectWrap) GetPubKey() []*prototype.PublicKeyType {
+func (s *SoBlockProducerScheduleObjectWrap) GetPubKey() []*prototype.PublicKeyType {
 	res := true
-	msg := &SoMemWitnessScheduleObjectByPubKey{}
+	msg := &SoMemBlockProducerScheduleObjectByPubKey{}
 	if s.dba == nil {
 		res = false
 	} else {
@@ -464,7 +464,7 @@ func (s *SoWitnessScheduleObjectWrap) GetPubKey() []*prototype.PublicKeyType {
 	return msg.PubKey
 }
 
-func (s *SoWitnessScheduleObjectWrap) MdPubKey(p []*prototype.PublicKeyType) bool {
+func (s *SoBlockProducerScheduleObjectWrap) MdPubKey(p []*prototype.PublicKeyType) bool {
 	if s.dba == nil {
 		return false
 	}
@@ -476,9 +476,9 @@ func (s *SoWitnessScheduleObjectWrap) MdPubKey(p []*prototype.PublicKeyType) boo
 	if err != nil {
 		return false
 	}
-	ori := &SoMemWitnessScheduleObjectByPubKey{}
+	ori := &SoMemBlockProducerScheduleObjectByPubKey{}
 	err = proto.Unmarshal(buf, ori)
-	sa := &SoWitnessScheduleObject{}
+	sa := &SoBlockProducerScheduleObject{}
 	sa.Id = *s.mainKey
 	sa.PubKey = ori.PubKey
 
@@ -498,7 +498,7 @@ func (s *SoWitnessScheduleObjectWrap) MdPubKey(p []*prototype.PublicKeyType) boo
 
 /////////////// SECTION Private function ////////////////
 
-func (s *SoWitnessScheduleObjectWrap) update(sa *SoWitnessScheduleObject) bool {
+func (s *SoBlockProducerScheduleObjectWrap) update(sa *SoBlockProducerScheduleObject) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
@@ -515,7 +515,7 @@ func (s *SoWitnessScheduleObjectWrap) update(sa *SoWitnessScheduleObject) bool {
 	return s.dba.Put(keyBuf, buf) == nil
 }
 
-func (s *SoWitnessScheduleObjectWrap) getWitnessScheduleObject() *SoWitnessScheduleObject {
+func (s *SoBlockProducerScheduleObjectWrap) getBlockProducerScheduleObject() *SoBlockProducerScheduleObject {
 	if s.dba == nil {
 		return nil
 	}
@@ -529,14 +529,14 @@ func (s *SoWitnessScheduleObjectWrap) getWitnessScheduleObject() *SoWitnessSched
 		return nil
 	}
 
-	res := &SoWitnessScheduleObject{}
+	res := &SoBlockProducerScheduleObject{}
 	if proto.Unmarshal(resBuf, res) != nil {
 		return nil
 	}
 	return res
 }
 
-func (s *SoWitnessScheduleObjectWrap) encodeMainKey() ([]byte, error) {
+func (s *SoBlockProducerScheduleObjectWrap) encodeMainKey() ([]byte, error) {
 	if s.mKeyBuf != nil {
 		return s.mKeyBuf, nil
 	}
@@ -562,7 +562,7 @@ func (s *SoWitnessScheduleObjectWrap) encodeMainKey() ([]byte, error) {
 
 ////////////// Unique Query delete/insert/query ///////////////
 
-func (s *SoWitnessScheduleObjectWrap) delAllUniKeys(br bool, val *SoWitnessScheduleObject) bool {
+func (s *SoBlockProducerScheduleObjectWrap) delAllUniKeys(br bool, val *SoBlockProducerScheduleObject) bool {
 	if s.dba == nil {
 		return false
 	}
@@ -578,7 +578,7 @@ func (s *SoWitnessScheduleObjectWrap) delAllUniKeys(br bool, val *SoWitnessSched
 	return res
 }
 
-func (s *SoWitnessScheduleObjectWrap) delUniKeysWithNames(names map[string]string, val *SoWitnessScheduleObject) bool {
+func (s *SoBlockProducerScheduleObjectWrap) delUniKeysWithNames(names map[string]string, val *SoBlockProducerScheduleObject) bool {
 	if s.dba == nil {
 		return false
 	}
@@ -592,12 +592,12 @@ func (s *SoWitnessScheduleObjectWrap) delUniKeysWithNames(names map[string]strin
 	return res
 }
 
-func (s *SoWitnessScheduleObjectWrap) insertAllUniKeys(val *SoWitnessScheduleObject) (map[string]string, error) {
+func (s *SoBlockProducerScheduleObjectWrap) insertAllUniKeys(val *SoBlockProducerScheduleObject) (map[string]string, error) {
 	if s.dba == nil {
 		return nil, errors.New("insert uniuqe Field fail,the db is nil ")
 	}
 	if val == nil {
-		return nil, errors.New("insert uniuqe Field fail,get the SoWitnessScheduleObject fail ")
+		return nil, errors.New("insert uniuqe Field fail,get the SoBlockProducerScheduleObject fail ")
 	}
 	sucFields := map[string]string{}
 	if !s.insertUniKeyId(val) {
@@ -608,11 +608,11 @@ func (s *SoWitnessScheduleObjectWrap) insertAllUniKeys(val *SoWitnessScheduleObj
 	return sucFields, nil
 }
 
-func (s *SoWitnessScheduleObjectWrap) delUniKeyId(sa *SoWitnessScheduleObject) bool {
+func (s *SoBlockProducerScheduleObjectWrap) delUniKeyId(sa *SoBlockProducerScheduleObject) bool {
 	if s.dba == nil {
 		return false
 	}
-	pre := WitnessScheduleObjectIdUniTable
+	pre := BlockProducerScheduleObjectIdUniTable
 	kList := []interface{}{pre}
 	if sa != nil {
 
@@ -627,7 +627,7 @@ func (s *SoWitnessScheduleObjectWrap) delUniKeyId(sa *SoWitnessScheduleObject) b
 		if err != nil {
 			return false
 		}
-		ori := &SoMemWitnessScheduleObjectById{}
+		ori := &SoMemBlockProducerScheduleObjectById{}
 		err = proto.Unmarshal(buf, ori)
 		if err != nil {
 			return false
@@ -643,11 +643,11 @@ func (s *SoWitnessScheduleObjectWrap) delUniKeyId(sa *SoWitnessScheduleObject) b
 	return s.dba.Delete(kBuf) == nil
 }
 
-func (s *SoWitnessScheduleObjectWrap) insertUniKeyId(sa *SoWitnessScheduleObject) bool {
+func (s *SoBlockProducerScheduleObjectWrap) insertUniKeyId(sa *SoBlockProducerScheduleObject) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
-	pre := WitnessScheduleObjectIdUniTable
+	pre := BlockProducerScheduleObjectIdUniTable
 	sub := sa.Id
 	kList := []interface{}{pre, sub}
 	kBuf, err := kope.EncodeSlice(kList)
@@ -659,7 +659,7 @@ func (s *SoWitnessScheduleObjectWrap) insertUniKeyId(sa *SoWitnessScheduleObject
 		//the unique key is already exist
 		return false
 	}
-	val := SoUniqueWitnessScheduleObjectById{}
+	val := SoUniqueBlockProducerScheduleObjectById{}
 	val.Id = sa.Id
 
 	buf, err := proto.Marshal(&val)
@@ -672,31 +672,31 @@ func (s *SoWitnessScheduleObjectWrap) insertUniKeyId(sa *SoWitnessScheduleObject
 
 }
 
-type UniWitnessScheduleObjectIdWrap struct {
+type UniBlockProducerScheduleObjectIdWrap struct {
 	Dba iservices.IDatabaseRW
 }
 
-func NewUniWitnessScheduleObjectIdWrap(db iservices.IDatabaseRW) *UniWitnessScheduleObjectIdWrap {
+func NewUniBlockProducerScheduleObjectIdWrap(db iservices.IDatabaseRW) *UniBlockProducerScheduleObjectIdWrap {
 	if db == nil {
 		return nil
 	}
-	wrap := UniWitnessScheduleObjectIdWrap{Dba: db}
+	wrap := UniBlockProducerScheduleObjectIdWrap{Dba: db}
 	return &wrap
 }
 
-func (s *UniWitnessScheduleObjectIdWrap) UniQueryId(start *int32) *SoWitnessScheduleObjectWrap {
+func (s *UniBlockProducerScheduleObjectIdWrap) UniQueryId(start *int32) *SoBlockProducerScheduleObjectWrap {
 	if start == nil || s.Dba == nil {
 		return nil
 	}
-	pre := WitnessScheduleObjectIdUniTable
+	pre := BlockProducerScheduleObjectIdUniTable
 	kList := []interface{}{pre, start}
 	bufStartkey, err := kope.EncodeSlice(kList)
 	val, err := s.Dba.Get(bufStartkey)
 	if err == nil {
-		res := &SoUniqueWitnessScheduleObjectById{}
+		res := &SoUniqueBlockProducerScheduleObjectById{}
 		rErr := proto.Unmarshal(val, res)
 		if rErr == nil {
-			wrap := NewSoWitnessScheduleObjectWrap(s.Dba, &res.Id)
+			wrap := NewSoBlockProducerScheduleObjectWrap(s.Dba, &res.Id)
 			return wrap
 		}
 	}

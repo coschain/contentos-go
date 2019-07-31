@@ -7,7 +7,7 @@ option go_package = "github.com/coschain/contentos-go/app/table";
 
 import "prototype/type.proto";
 
-message so_witness {
+message so_blockProducer {
 	prototype.account_name            owner                        =      1;
     prototype.time_point_sec          created_time                 =      2;
     string                            url                          =      3;
@@ -26,87 +26,87 @@ message so_witness {
 }
 
 
-message so_mem_witness_by_owner {
+message so_mem_blockProducer_by_owner {
 	prototype.account_name         	owner                    = 1;
 }
 
 
-message so_mem_witness_by_created_time {
+message so_mem_blockProducer_by_created_time {
 	prototype.time_point_sec       	created_time             = 1;
 }
 
 
-message so_mem_witness_by_url {
+message so_mem_blockProducer_by_url {
 	string                         	url                      = 1;
 }
 
 
-message so_mem_witness_by_vote_vest {
+message so_mem_blockProducer_by_vote_vest {
 	prototype.vest                 	vote_vest                = 1;
 }
 
 
-message so_mem_witness_by_signing_key {
+message so_mem_blockProducer_by_signing_key {
 	prototype.public_key_type      	signing_key              = 1;
 }
 
 
-message so_mem_witness_by_proposed_stamina_free {
+message so_mem_blockProducer_by_proposed_stamina_free {
 	uint64                         	proposed_stamina_free    = 1;
 }
 
 
-message so_mem_witness_by_active {
+message so_mem_blockProducer_by_active {
 	bool                           	active                   = 1;
 }
 
 
-message so_mem_witness_by_tps_expected {
+message so_mem_blockProducer_by_tps_expected {
 	uint64                         	tps_expected             = 1;
 }
 
 
-message so_mem_witness_by_account_create_fee {
+message so_mem_blockProducer_by_account_create_fee {
 	prototype.coin                 	account_create_fee       = 1;
 }
 
 
-message so_mem_witness_by_top_n_acquire_free_token {
+message so_mem_blockProducer_by_top_n_acquire_free_token {
 	uint32                         	top_n_acquire_free_token = 1;
 }
 
 
-message so_mem_witness_by_epoch_duration {
+message so_mem_blockProducer_by_epoch_duration {
 	uint64                         	epoch_duration           = 1;
 }
 
 
-message so_mem_witness_by_per_ticket_price {
+message so_mem_blockProducer_by_per_ticket_price {
 	prototype.coin                 	per_ticket_price         = 1;
 }
 
 
-message so_mem_witness_by_per_ticket_weight {
+message so_mem_blockProducer_by_per_ticket_weight {
 	uint64                         	per_ticket_weight        = 1;
 }
 
 
-message so_mem_witness_by_voter_count {
+message so_mem_blockProducer_by_voter_count {
 	uint64                         	voter_count              = 1;
 }
 
 
-message so_list_witness_by_owner {
+message so_list_blockProducer_by_owner {
 	prototype.account_name         	owner                    = 1;
 }
 
 
-message so_list_witness_by_vote_vest {
+message so_list_blockProducer_by_vote_vest {
 	prototype.vest                 	vote_vest                = 1;
 	prototype.account_name         	owner                    = 2;
 }
 
 
-message so_unique_witness_by_owner {
+message so_unique_blockProducer_by_owner {
 	prototype.account_name         	owner                    = 1;
 }
