@@ -1,0 +1,18 @@
+{
+  "version":"cosio::abi/1.0",
+  "types":[
+        {
+            "new_type_name":"team",
+            "type":"{no_args,int32}"
+        }
+  ],
+  "structs":[
+        {
+            "name":"no_args",
+            "base":"",
+            "fields":[]
+        }
+  ],
+  "actions":null,
+  "tables":null
+}

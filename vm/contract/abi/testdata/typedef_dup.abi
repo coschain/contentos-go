@@ -1,0 +1,16 @@
+{
+  "version":"cosio::abi/1.0",
+  "types":[
+        {
+            "new_type_name":"mytype",
+            "type":"int32"
+        },
+        {
+            "new_type_name":"mytype",
+            "type":"std::string"
+        }
+  ],
+  "structs":null,
+  "actions":null,
+  "tables":null
+}

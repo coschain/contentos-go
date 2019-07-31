@@ -1,0 +1,16 @@
+{
+  "version":"cosio::abi/1.0",
+  "types":[
+        {
+            "new_type_name":"myint",
+            "type":"myint2"
+        },
+        {
+            "new_type_name":"myint2",
+            "type":"myint"
+        }
+  ],
+  "structs":null,
+  "actions":null,
+  "tables":null
+}

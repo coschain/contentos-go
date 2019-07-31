@@ -1,0 +1,12 @@
+{
+  "version":"cosio::abi/1.0",
+  "types":null,
+  "structs":null,
+  "actions":[
+        {
+            "name":"hi",
+            "type":"std::string"
+        }
+  ],
+  "tables":null
+}

@@ -133,3 +133,74 @@ func TestUint64Json(t *testing.T) {
 		a.Equal(digits, string(data))
 	}
 }
+
+func unmarshalTestAbi(abiFile string) error {
+	data, _ := ioutil.ReadFile("testdata/" + abiFile)
+	_, err := UnmarshalABI(data)
+	return err
+}
+
+func TestInvalidAbis(t *testing.T) {
+	a := assert.New(t)
+
+	// version is a must
+	a.Error(unmarshalTestAbi("no_version.abi"))
+
+	// type of a map key is not comparable
+	a.Error(unmarshalTestAbi("map_key_noncmp.abi"))
+
+	// typedef: cyclic reference
+	a.Error(unmarshalTestAbi("typedef_cyclic.abi"))
+
+	// typedef: unknown old type
+	a.Error(unmarshalTestAbi("typedef_unknown_type.abi"))
+
+	// typedef: new type can't be an array nor a map
+	a.Error(unmarshalTestAbi("typedef_newtype_array.abi"))
+	a.Error(unmarshalTestAbi("typedef_newtype_map.abi"))
+
+	// struct: unknown member type
+	a.Error(unmarshalTestAbi("struct_member_unknown_type.abi"))
+
+	// struct: duplicate member names
+	a.Error(unmarshalTestAbi("struct_member_dup.abi"))
+
+	// struct: cyclic reference of member type
+	a.Error(unmarshalTestAbi("struct_member_type_cyclic.abi"))
+
+	// struct: unknown base type
+	a.Error(unmarshalTestAbi("struct_base_unknown_type.abi"))
+
+	// struct: non-inheritable base type
+	a.Error(unmarshalTestAbi("struct_base_non_inheritable.abi"))
+
+	// struct: cyclic reference of base type
+	a.Error(unmarshalTestAbi("struct_base_type_cyclic.abi"))
+
+	// method: unknown arg type
+	a.Error(unmarshalTestAbi("method_arg_unknown_type.abi"))
+
+	// method: arg type is not a struct
+	a.Error(unmarshalTestAbi("method_arg_non_struct.abi"))
+
+	// table: unknown record type
+	a.Error(unmarshalTestAbi("table_record_unknown_type.abi"))
+
+	// table: record type is not a struct
+	a.Error(unmarshalTestAbi("table_record_non_struct.abi"))
+
+	// table: primary key is not a record member
+	a.Error(unmarshalTestAbi("table_primary_unknown.abi"))
+
+	// table: primary key member is not comparable
+	a.Error(unmarshalTestAbi("table_primary_noncmp.abi"))
+
+	// table: secondary index is not a record member
+	a.Error(unmarshalTestAbi("table_secondary_unknown.abi"))
+
+	// table: secondary index member is not comparable
+	a.Error(unmarshalTestAbi("table_secondary_noncmp.abi"))
+
+	// duplicated typedef's: allowed but only the last one is taken
+	a.NoError(unmarshalTestAbi("typedef_dup.abi"))
+}

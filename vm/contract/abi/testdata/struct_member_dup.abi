@@ -1,0 +1,22 @@
+{
+  "version":"cosio::abi/1.0",
+  "types":null,
+  "structs":[
+        {
+            "name":"mystruct",
+            "base":"",
+            "fields":[
+                {
+                    "name":"name",
+                    "type":"std::string"
+                },
+                {
+                    "name":"name",
+                    "type":"int32"
+                }
+            ]
+        }
+  ],
+  "actions":null,
+  "tables":null
+}

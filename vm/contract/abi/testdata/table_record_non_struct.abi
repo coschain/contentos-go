@@ -1,0 +1,14 @@
+{
+  "version":"cosio::abi/1.0",
+  "types":null,
+  "structs":null,
+  "actions":null,
+  "tables":[
+        {
+            "name":"table_greetings",
+            "type":"int16",
+            "primary":"name",
+            "secondary":[]
+        }
+  ]
+}

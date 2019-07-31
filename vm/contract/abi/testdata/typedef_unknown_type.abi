@@ -1,0 +1,12 @@
+{
+  "version":"cosio::abi/1.0",
+  "types":[
+        {
+            "new_type_name":"mytype",
+            "type":"xxxxxxx"
+        }
+  ],
+  "structs":null,
+  "actions":null,
+  "tables":null
+}

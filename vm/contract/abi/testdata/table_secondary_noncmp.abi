@@ -1,0 +1,37 @@
+{
+  "version":"cosio::abi/1.0",
+  "types":null,
+  "structs":[
+        {
+            "name":"greeting",
+            "base":"",
+            "fields":[
+                {
+                    "name":"name",
+                    "type":"cosio::name"
+                },
+                {
+                    "name":"count",
+                    "type":"uint32"
+                },
+                {
+                    "name":"last_seen",
+                    "type":"uint64"
+                },
+                {
+                    "name":"phone",
+                    "type":"std::string[]"
+                }
+            ]
+        }
+  ],      
+  "actions":null,
+  "tables":[
+        {
+            "name":"table_greetings",
+            "type":"greeting",
+            "primary":"name",
+            "secondary":["count", "phone"]
+        }
+  ]
+}
