@@ -241,7 +241,7 @@ func voteBp(cmd *cobra.Command, args []string) {
 	}
 	bpVote_op := &prototype.BpVoteOperation{
 		Voter:   &prototype.AccountName{Value: voter},
-		Witness: &prototype.AccountName{Value: bp},
+		BlockProducer: &prototype.AccountName{Value: bp},
 		Cancel:  bpVoteCancel,
 	}
 

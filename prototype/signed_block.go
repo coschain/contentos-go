@@ -95,7 +95,7 @@ func (sb *SignedBlock) GetSignee() (interface{}, error) {
 
 func (sbh *SignedBlockHeader) GetSignee() (interface{}, error) {
 	hash := sbh.Header.Hash()
-	buf, err := secp256k1.RecoverPubkey(hash[:], sbh.WitnessSignature.Sig)
+	buf, err := secp256k1.RecoverPubkey(hash[:], sbh.BlockProducerSignature.Sig)
 	if err != nil {
 		return nil, errors.New("RecoverPubkey error")
 	}
@@ -127,7 +127,7 @@ func (sbh *SignedBlockHeader) Sign(secKey *PrivateKeyType) error {
 	if err != nil {
 		errors.New("secp256k1 sign error")
 	}
-	sbh.WitnessSignature.Sig = append(sbh.WitnessSignature.Sig, res...)
+	sbh.BlockProducerSignature.Sig = append(sbh.BlockProducerSignature.Sig, res...)
 	return nil
 }
 
@@ -140,7 +140,7 @@ func (sbh *SignedBlockHeader) Hash() (hash [Size]byte) {
 func (sbh *SignedBlockHeader) Number() uint64 {
 	var ret, prev common.BlockID
 	copy(prev.Data[:], sbh.Header.Previous.Hash[:32])
-	copy(ret.Data[:], sbh.WitnessSignature.Sig[:32])
+	copy(ret.Data[:], sbh.BlockProducerSignature.Sig[:32])
 	binary.LittleEndian.PutUint64(ret.Data[:8], prev.BlockNum()+1)
 	return binary.LittleEndian.Uint64(ret.Data[:8])
 }

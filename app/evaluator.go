@@ -598,16 +598,16 @@ func (ev *BpVoteEvaluator) Apply() {
 	voteCnt := voterAccount.GetBpVoteCount()
 	voterVests := voterAccount.GetVest()
 
-	bpAccountWrap := table.NewSoAccountWrap(ev.Database(), op.Witness)
+	bpAccountWrap := table.NewSoAccountWrap(ev.Database(), op.BlockProducer)
 	opAssert(bpAccountWrap.CheckExist(), "block producer account not exist ")
 
-	bpWrap := table.NewSoBlockProducerWrap(ev.Database(), op.Witness)
+	bpWrap := table.NewSoBlockProducerWrap(ev.Database(), op.BlockProducer)
 	opAssert(bpWrap.CheckExist(), "the account you want to vote is not a block producer")
 	bpVoteVestCnt := bpWrap.GetVoteVest()
 	bpVoterCount := bpWrap.GetVoterCount()
 
-	voterId := &prototype.BpVoterId{Voter: op.Voter, Witness: op.Witness}
-	witnessId := &prototype.BpWitnessId{Voter: op.Voter, Witness: op.Witness}
+	voterId := &prototype.BpVoterId{Voter: op.Voter, BlockProducer: op.BlockProducer}
+	witnessId := &prototype.BpBlockProducerId{Voter: op.Voter, BlockProducer: op.BlockProducer}
 	vidWrap := table.NewSoBlockProducerVoteWrap(ev.Database(), voterId)
 
 	if op.Cancel {
@@ -641,7 +641,7 @@ func (ev *BpVoteEvaluator) Apply() {
 		opAssertE(vidWrap.Create(func(t *table.SoBlockProducerVote) {
 			t.VoteTime = ev.GlobalProp().HeadBlockTime()
 			t.VoterId = voterId
-			t.WitnessId = witnessId
+			t.BlockProducerId = witnessId
 		}), "add vote record error")
 
 		// modify voter vote count
@@ -751,8 +751,8 @@ func updateWitnessVoteCount(dba iservices.IDatabaseRW, voter *prototype.AccountN
 	t2 = time.Now().Sub(getVoteCntStart)
 
 	sWrap := table.SBlockProducerVoteVoterIdWrap{dba}
-	start := &prototype.BpVoterId{Voter:voter, Witness:prototype.MinAccountName}
-	end := &prototype.BpVoterId{Voter:voter, Witness:prototype.MaxAccountName}
+	start := &prototype.BpVoterId{Voter:voter, BlockProducer:prototype.MinAccountName}
+	end := &prototype.BpVoterId{Voter:voter, BlockProducer:prototype.MaxAccountName}
 
 	var witnessList []*prototype.AccountName
 
@@ -760,9 +760,9 @@ func updateWitnessVoteCount(dba iservices.IDatabaseRW, voter *prototype.AccountN
 	sWrap.ForEachByOrder(start, end, nil, nil,
 		func(mVal *prototype.BpVoterId, sVal *prototype.BpVoterId, idx uint32) bool {
 			if mVal != nil && mVal.Voter.Value == voter.Value {
-				witnessWrap := table.NewSoBlockProducerWrap(dba, mVal.Witness)
+				witnessWrap := table.NewSoBlockProducerWrap(dba, mVal.BlockProducer)
 				if witnessWrap != nil && witnessWrap.CheckExist() {
-					witnessList = append(witnessList, mVal.Witness)
+					witnessList = append(witnessList, mVal.BlockProducer)
 				}
 			}
 			return true
@@ -1307,7 +1307,7 @@ func (ev *VoteByTicketEvaluator) Apply() {
 
 	//ev.GlobalProp().VoteByTicket(op.Account, postId, count)
 	props := ev.GlobalProp().GetProps()
-	currentWitness := props.CurrentWitness
+	currentWitness := props.CurrentBlockProducer
 	bpWrap := table.NewSoAccountWrap(ev.Database(), currentWitness)
 	if !bpWrap.CheckExist() {
 		panic(fmt.Sprintf("cannot find bp %s", currentWitness.Value))

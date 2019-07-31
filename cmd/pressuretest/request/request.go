@@ -767,7 +767,7 @@ func RegisterAndVoteBP(rpcClient grpcpb.ApiServiceClient, index int) error {
 
 	opBpVote := &prototype.BpVoteOperation{
 		Voter: prototype.NewAccountName(BPList[index].name),
-		Witness: prototype.NewAccountName(BPList[index].name),
+		BlockProducer: prototype.NewAccountName(BPList[index].name),
 		Cancel: false}
 
 	trx.Trx.AddOperation(opBpReg)
@@ -807,10 +807,10 @@ func RegisterAndVoteBP(rpcClient grpcpb.ApiServiceClient, index int) error {
 	return err
 }
 
-func getBPListOnChain(rpcClient grpcpb.ApiServiceClient) (bpList *grpcpb.GetWitnessListResponse, err error) {
-	req := &grpcpb.GetWitnessListByVoteCountRequest{}
+func getBPListOnChain(rpcClient grpcpb.ApiServiceClient) (bpList *grpcpb.GetBlockProducerListResponse, err error) {
+	req := &grpcpb.GetBlockProducerListByVoteCountRequest{}
 	req.Limit = uint32(len(BPList))
-	resp, err := rpcClient.GetWitnessListByVoteCount(context.Background(), req)
+	resp, err := rpcClient.GetBlockProducerListByVoteCount(context.Background(), req)
 	if err != nil {
 		return nil, err
 	}

@@ -126,7 +126,7 @@ func makeBpRegVoteTrx(cmd *cobra.Command, client grpcpb.ApiServiceClient, count 
 		},
 	}
 
-	opBpVote := &prototype.BpVoteOperation{Voter: prototype.NewAccountName(bpName), Witness: prototype.NewAccountName(bpName), Cancel: false}
+	opBpVote := &prototype.BpVoteOperation{Voter: prototype.NewAccountName(bpName), BlockProducer: prototype.NewAccountName(bpName), Cancel: false}
 
 	trx.Trx.AddOperation(opBpReg)
 	trx.Trx.AddOperation(opBpVote)
@@ -157,7 +157,7 @@ func createMNTAccountTrx(cmd *cobra.Command, client grpcpb.ApiServiceClient, cou
 		return nil, err
 	}
 
-	opCreatorBpVote := &prototype.BpVoteOperation{Voter: creator, Witness: creator, Cancel: false}
+	opCreatorBpVote := &prototype.BpVoteOperation{Voter: creator, BlockProducer: creator, Cancel: false}
 
 	trx.Trx.AddOperation(opCreatorBpVote)
 

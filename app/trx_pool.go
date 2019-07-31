@@ -213,9 +213,9 @@ func emptyHeader(signHeader *prototype.SignedBlockHeader) {
 	signHeader.Header = new(prototype.BlockHeader)
 	signHeader.Header.Previous = &prototype.Sha256{}
 	signHeader.Header.Timestamp = &prototype.TimePointSec{}
-	signHeader.Header.Witness = &prototype.AccountName{}
+	signHeader.Header.BlockProducer = &prototype.AccountName{}
 	signHeader.Header.TransactionMerkleRoot = &prototype.Sha256{}
-	signHeader.WitnessSignature = &prototype.SignatureType{}
+	signHeader.BlockProducerSignature = &prototype.SignatureType{}
 }
 
 func (c *TrxPool) GenerateAndApplyBlock(witness string, pre *prototype.Sha256, timestamp uint32,
@@ -366,12 +366,12 @@ func (c *TrxPool) generateBlockNoLock(witness string, pre *prototype.Sha256, tim
 	signBlock.SignedHeader.Header.Timestamp = &prototype.TimePointSec{UtcSeconds: timestamp}
 	id := signBlock.CalculateMerkleRoot()
 	signBlock.SignedHeader.Header.TransactionMerkleRoot = &prototype.Sha256{Hash: id.Data[:]}
-	signBlock.SignedHeader.Header.Witness = &prototype.AccountName{Value: witness}
-	signBlock.SignedHeader.WitnessSignature = &prototype.SignatureType{}
+	signBlock.SignedHeader.Header.BlockProducer = &prototype.AccountName{Value: witness}
+	signBlock.SignedHeader.BlockProducerSignature = &prototype.SignatureType{}
 	if (skip & prototype.Skip_block_signatures) == 0 {
 		_ = signBlock.SignedHeader.Sign(priKey)
 	} else {
-		signBlock.SignedHeader.WitnessSignature.Sig = make([]byte, 65)
+		signBlock.SignedHeader.BlockProducerSignature.Sig = make([]byte, 65)
 	}
 
 	if len(failedTrx) > 0 {
@@ -688,7 +688,7 @@ func (c *TrxPool) initGenesis() {
 	mustNoError(dgpWrap.Create(func(tInfo *table.SoGlobal) {
 		tInfo.Id = SingleId
 		tInfo.Props = &prototype.DynamicProperties{}
-		tInfo.Props.CurrentWitness = name
+		tInfo.Props.CurrentBlockProducer = name
 		tInfo.Props.Time = &prototype.TimePointSec{UtcSeconds: constants.GenesisTime}
 		tInfo.Props.HeadBlockId = &prototype.Sha256{Hash: make([]byte, 32)}
 		// @ recent_slots_filled
@@ -738,7 +738,7 @@ func (c *TrxPool) initGenesis() {
 	witnessScheduleWrap := table.NewSoBlockProducerScheduleObjectWrap(c.db, &SingleId)
 	mustNoError(witnessScheduleWrap.Create(func(tInfo *table.SoBlockProducerScheduleObject) {
 		tInfo.Id = SingleId
-		tInfo.CurrentShuffledWitness = append(tInfo.CurrentShuffledWitness, constants.COSInitMiner)
+		tInfo.CurrentShuffledBlockProducer = append(tInfo.CurrentShuffledBlockProducer, constants.COSInitMiner)
 	}), "CreateWitnessScheduleObject error")
 }
 
@@ -808,7 +808,7 @@ func (c *TrxPool) validateBlockHeader(blk *prototype.SignedBlock) {
 	}
 
 	// witness sig check
-	witnessName := blk.SignedHeader.Header.Witness
+	witnessName := blk.SignedHeader.Header.BlockProducer
 	witnessWrap := table.NewSoBlockProducerWrap(c.db, witnessName)
 	pubKey := witnessWrap.GetSigningKey()
 	res, err := blk.SignedHeader.ValidateSig(pubKey)
@@ -821,10 +821,10 @@ func (c *TrxPool) validateBlockHeader(blk *prototype.SignedBlock) {
 		bVer, bHash := common.UnpackBlockApplyHash(blk.SignedHeader.Header.PrevApplyHash)
 		if ver != bVer {
 			c.log.Warnf("BlockApplyHashWarn: version mismatch. block %d (by %s): %08x, me: %08x",
-				blk.SignedHeader.Number(), blk.SignedHeader.Header.Witness.Value, bVer, ver)
+				blk.SignedHeader.Number(), blk.SignedHeader.Header.BlockProducer.Value, bVer, ver)
 		} else if hash != bHash {
 			c.log.Errorf("BlockApplyHashError: block %d (by %s): %08x, me: %08x",
-				blk.SignedHeader.Number(), blk.SignedHeader.Header.Witness.Value, bHash, hash)
+				blk.SignedHeader.Number(), blk.SignedHeader.Header.BlockProducer.Value, bHash, hash)
 			panic("block apply hash not equal")
 		}
 	}
@@ -884,7 +884,7 @@ func (c *TrxPool) updateGlobalWitnessBoot(bpNameList []string) {
 		return
 	}
 	c.modifyGlobalDynamicData(func(dgpo *prototype.DynamicProperties) {
-		dgpo.WitnessBootCompleted = true
+		dgpo.BlockProducerBootCompleted = true
 		// start epoch
 		if dgpo.CurrentEpochStartBlock == 0 {
 			dgpo.CurrentEpochStartBlock = 1
@@ -981,7 +981,7 @@ func (c *TrxPool) updateGlobalProperties(blk *prototype.SignedBlock) {
 		dgpo.HeadBlockId = blockID
 		dgpo.HeadBlockPrefix = binary.BigEndian.Uint32(id.Data[8:12])
 		dgpo.Time = blk.SignedHeader.Header.Timestamp
-		dgpo.CurrentWitness = blk.SignedHeader.Header.Witness
+		dgpo.CurrentBlockProducer = blk.SignedHeader.Header.BlockProducer
 
 		trxCount := len(blk.Transactions)
 		dgpo.TotalTrxCnt += uint64(trxCount)
@@ -1072,13 +1072,13 @@ func (c *TrxPool) GetWitnessTopN(n uint32) ([]string, []*prototype.PublicKeyType
 
 func (c *TrxPool) SetShuffledWitness(names []string, keys []*prototype.PublicKeyType) {
 	witnessScheduleWrap := table.NewSoBlockProducerScheduleObjectWrap(c.db, &SingleId)
-	mustSuccess(witnessScheduleWrap.MdCurrentShuffledWitness(names), "SetWitness error")
+	mustSuccess(witnessScheduleWrap.MdCurrentShuffledBlockProducer(names), "SetWitness error")
 	mustSuccess(witnessScheduleWrap.MdPubKey(keys), "set witness pub key failed")
 }
 
 func (c *TrxPool) GetShuffledWitness() ([]string, []*prototype.PublicKeyType) {
 	witnessScheduleWrap := table.NewSoBlockProducerScheduleObjectWrap(c.db, &SingleId)
-	return witnessScheduleWrap.GetCurrentShuffledWitness(), witnessScheduleWrap.GetPubKey()
+	return witnessScheduleWrap.GetCurrentShuffledBlockProducer(), witnessScheduleWrap.GetPubKey()
 }
 
 func (c *TrxPool) PopBlock(num uint64) error {

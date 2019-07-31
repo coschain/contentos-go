@@ -92,7 +92,7 @@ func (e *Economist) Mint(trxObserver iservices.ITrxObserver) {
 	//blockCurrent := constants.PerBlockCurrent
 	//t0 := time.Now()
 	globalProps := e.dgp.GetProps()
-	if !globalProps.GetWitnessBootCompleted() {
+	if !globalProps.GetBlockProducerBootCompleted() {
 		return
 	}
 	ith := globalProps.GetIthYear()
@@ -139,7 +139,7 @@ func (e *Economist) Mint(trxObserver iservices.ITrxObserver) {
 	postDappRewards := dappReward - replyDappRewards
 
 
-	bpWrap, err := e.GetAccount(globalProps.CurrentWitness)
+	bpWrap, err := e.GetAccount(globalProps.CurrentBlockProducer)
 	if err != nil {
 		panic("Mint failed when get bp wrap")
 	}
@@ -150,8 +150,8 @@ func (e *Economist) Mint(trxObserver iservices.ITrxObserver) {
 	//bpWrap.MdVest(&prototype.Vest{Value: bpWrap.GetVest().Value + bpReward})
 	mustNoError(bpRewardVest.Add(bpWrap.GetVest()), "bpRewardVest overflow")
 	bpWrap.MdVest(bpRewardVest)
-	updateWitnessVoteCount(e.db, globalProps.CurrentWitness, oldVest, bpRewardVest)
-	trxObserver.AddOpState(iservices.Add, "mint", globalProps.CurrentWitness.Value, bpReward)
+	updateWitnessVoteCount(e.db, globalProps.CurrentBlockProducer, oldVest, bpRewardVest)
+	trxObserver.AddOpState(iservices.Add, "mint", globalProps.CurrentBlockProducer.Value, bpReward)
 
 	e.dgp.ModifyProps(func(props *prototype.DynamicProperties) {
 		mustNoError(props.PostRewards.Add(&prototype.Vest{Value: postReward}), "PostRewards overflow")
@@ -216,7 +216,7 @@ func (e *Economist) Distribute(trxObserver iservices.ITrxObserver) {
 func (e *Economist) Do(trxObserver iservices.ITrxObserver) {
 	e.decayGlobalVotePower()
 	globalProps := e.dgp.GetProps()
-	if !globalProps.GetWitnessBootCompleted() {
+	if !globalProps.GetBlockProducerBootCompleted() {
 		return
 	}
 	iterator := table.NewPostCashoutBlockNumWrap(e.db)
@@ -616,7 +616,7 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 
 func (e *Economist) PowerDown() {
 	globalProps := e.dgp.GetProps()
-	if !globalProps.GetWitnessBootCompleted() {
+	if !globalProps.GetBlockProducerBootCompleted() {
 		return
 	}
 	//timestamp := globalProps.Time.UtcSeconds

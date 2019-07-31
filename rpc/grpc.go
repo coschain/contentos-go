@@ -289,12 +289,12 @@ func (as *APIService) GetChainState(ctx context.Context, req *grpcpb.NonParamsRe
 	return ret, nil
 }
 
-func (as *APIService) GetWitnessList(ctx context.Context, req *grpcpb.GetWitnessListRequest) (*grpcpb.GetWitnessListResponse, error) {
+func (as *APIService) GetBlockProducerList(ctx context.Context, req *grpcpb.GetBlockProducerListRequest) (*grpcpb.GetBlockProducerListResponse, error) {
 	as.db.RLock()
 	defer as.db.RUnlock()
 
 	var (
-		witList []*grpcpb.WitnessResponse
+		witList []*grpcpb.BlockProducerResponse
 		limit   uint32
 	)
 
@@ -302,7 +302,7 @@ func (as *APIService) GetWitnessList(ctx context.Context, req *grpcpb.GetWitness
 	limit = checkLimit(req.GetLimit())
 	witOrderWrap.ForEachByOrder(req.GetStart(), nil, nil, nil,
 		func(mVal *prototype.AccountName, sVal *prototype.AccountName, idx uint32) bool {
-			witness := as.getWitnessResponseByAccountName(mVal)
+			witness := as.getBlockProducerResponseByAccountName(mVal)
 			if witness != nil {
 				witList = append(witList,witness)
 			}
@@ -311,7 +311,7 @@ func (as *APIService) GetWitnessList(ctx context.Context, req *grpcpb.GetWitness
 			}
 			return false
 		})
-	return &grpcpb.GetWitnessListResponse{WitnessList: witList}, nil
+	return &grpcpb.GetBlockProducerListResponse{BlockProducerList: witList}, nil
 
 }
 
@@ -489,7 +489,7 @@ func (as *APIService) GetBlockList(ctx context.Context, req *grpcpb.GetBlockList
 		blkInfo := &grpcpb.BlockInfo{}
 		blkInfo.Timestamp = b.SignedHeader.Header.Timestamp
 		blkInfo.BlockHeight = b.Id().BlockNum()
-		blkInfo.Witness = b.SignedHeader.Header.Witness
+		blkInfo.BlockProducer = b.SignedHeader.Header.BlockProducer
 		blkInfo.TrxCount = uint32(len(b.Transactions))
 		blkInfo.BlockId = &prototype.Sha256{}
 		blkInfo.BlockId.FromBlockID(b.Id())
@@ -905,7 +905,7 @@ func (as *APIService) getAccountResponseByName(name *prototype.AccountName, isNe
 
 		witWrap := table.NewSoBlockProducerWrap(as.db, accWrap.GetName())
 		if witWrap != nil && witWrap.CheckExist() {
-			acctInfo.Witness = &grpcpb.WitnessResponse{
+			acctInfo.BlockProducer = &grpcpb.BlockProducerResponse{
 				Owner:                 witWrap.GetOwner(),
 				CreatedTime:           witWrap.GetCreatedTime(),
 				Url:                   witWrap.GetUrl(),
@@ -1347,21 +1347,21 @@ func (as *APIService) GetContractListByTime(ctx context.Context, req *grpcpb.Get
     return  res,err
 }
 
-func (as *APIService) GetWitnessListByVoteCount(ctx context.Context, req *grpcpb.GetWitnessListByVoteCountRequest) (*grpcpb.GetWitnessListResponse,error){
+func (as *APIService) GetBlockProducerListByVoteCount(ctx context.Context, req *grpcpb.GetBlockProducerListByVoteCountRequest) (*grpcpb.GetBlockProducerListResponse,error){
 	as.db.RLock()
 	defer as.db.RUnlock()
 	var (
 		err error
-		witList []*grpcpb.WitnessResponse
+		witList []*grpcpb.BlockProducerResponse
 		limit   uint32
 		lastMainKey *prototype.AccountName
 		lastSubVal  *prototype.Vest
 	)
-	res := &grpcpb.GetWitnessListResponse{}
+	res := &grpcpb.GetBlockProducerListResponse{}
 	limit = checkLimit(req.Limit)
 	srtWrap := table.NewBlockProducerVoteVestWrap(as.db)
 	if srtWrap != nil {
-		lastWit := req.LastWitness
+		lastWit := req.LastBlockProducer
 		if lastWit != nil {
 			lastMainKey = &prototype.AccountName{Value:lastWit.Owner.Value}
 			lastSubVal = lastWit.VoteVest
@@ -1370,7 +1370,7 @@ func (as *APIService) GetWitnessListByVoteCount(ctx context.Context, req *grpcpb
 		err = srtWrap.ForEachByRevOrder(req.Start, req.End, lastMainKey,  lastSubVal,
 			func(mVal *prototype.AccountName, sVal *prototype.Vest, idx uint32) bool {
 				if mVal != nil {
-					witness := as.getWitnessResponseByAccountName(mVal)
+					witness := as.getBlockProducerResponseByAccountName(mVal)
 					if witness != nil {
 						witList = append(witList, witness)
 					}
@@ -1381,15 +1381,15 @@ func (as *APIService) GetWitnessListByVoteCount(ctx context.Context, req *grpcpb
 				return true
 			})
 	}
-    res.WitnessList = witList
+    res.BlockProducerList = witList
 	return res,err
 }
 
-func (as *APIService) getWitnessResponseByAccountName(acct *prototype.AccountName) *grpcpb.WitnessResponse {
+func (as *APIService) getBlockProducerResponseByAccountName(acct *prototype.AccountName) *grpcpb.BlockProducerResponse {
 	if acct != nil {
 		witWrap := table.NewSoBlockProducerWrap(as.db, acct)
 		if witWrap != nil && witWrap.CheckExist() {
-			witness := &grpcpb.WitnessResponse{
+			witness := &grpcpb.BlockProducerResponse{
 				Owner:                 witWrap.GetOwner(),
 				CreatedTime:           witWrap.GetCreatedTime(),
 				Url:                   witWrap.GetUrl(),

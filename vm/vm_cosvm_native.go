@@ -59,7 +59,7 @@ func (w *CosVMNative) CurrentTimestamp() uint64 {
 }
 
 func (w *CosVMNative) CurrentWitness() string {
-	return w.cosVM.props.CurrentWitness.Value
+	return w.cosVM.props.CurrentBlockProducer.Value
 }
 
 func (w *CosVMNative) GetBlockProducers() string {

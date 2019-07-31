@@ -264,10 +264,10 @@ func InitLastConductBPIndex(rpcClient grpcpb.ApiServiceClient) error {
 	for i:=1;i<=len(BPList);i++ {
 		bpNumSum += i
 	}
-	if len(bpListOnChain.WitnessList) != len(BPList) {
+	if len(bpListOnChain.BlockProducerList) != len(BPList) {
 		sum := 0
-		for i:=0;i<len(bpListOnChain.WitnessList);i++ {
-			bpNumStr := bpListOnChain.WitnessList[i].Owner.Value[9:]
+		for i:=0;i<len(bpListOnChain.BlockProducerList);i++ {
+			bpNumStr := bpListOnChain.BlockProducerList[i].Owner.Value[9:]
 			bpNum, err := strconv.Atoi(bpNumStr)
 			if err != nil {
 				return err

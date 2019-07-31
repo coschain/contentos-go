@@ -151,7 +151,7 @@ func conductBatch(cmd *cobra.Command, args []string) {
 
 			bpVote_op := &prototype.BpVoteOperation{
 				Voter:   &prototype.AccountName{Value: voterName},
-				Witness: &prototype.AccountName{Value: bpName},
+				BlockProducer: &prototype.AccountName{Value: bpName},
 				Cancel:  false,
 			}
 

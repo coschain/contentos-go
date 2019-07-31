@@ -89,14 +89,14 @@ func TestGPRCApi_GetFollowingListByName(t *testing.T) {
 	}
 }
 
-func TestGPRCApi_GetWitnessList(t *testing.T) {
-	req := &grpcpb.GetWitnessListRequest{Limit: 100}
-	resp := &grpcpb.GetWitnessListResponse{}
-	resp, err := asc.GetWitnessList(context.Background(), req)
+func TestGPRCApi_GetBlockProducerList(t *testing.T) {
+	req := &grpcpb.GetBlockProducerListRequest{Limit: 100}
+	resp := &grpcpb.GetBlockProducerListResponse{}
+	resp, err := asc.GetBlockProducerList(context.Background(), req)
 	if err != nil {
-		t.Errorf("GetWitnessList failed: %v", err)
+		t.Errorf("GetBlockProducerList failed: %v", err)
 	} else {
-		t.Logf("GetWitnessList detail: %v", resp.WitnessList)
+		t.Logf("GetBlockProducerList detail: %v", resp.WitnessList)
 	}
 }
 
@@ -435,7 +435,7 @@ func TestHTTPApi_GetAccountByName(t *testing.T) {
 	http_client("POST", "http://127.0.0.1:8080/v1/user/get_account_by_name", postValue)
 }
 
-func TestHTTPApi_GetWitnessList(t *testing.T) {
+func TestHTTPApi_GetBlockProducerList(t *testing.T) {
 	http_client("GET", "http://127.0.0.1:8080/v1/user/get_witness_list?page=1&size=5", "")
 }
 
@@ -539,23 +539,23 @@ func TestMockGRPCApi_GetFollowingListByName(t *testing.T) {
 	}
 }
 
-func TestMockGPRCApi_GetWitnessList(t *testing.T) {
+func TestMockGPRCApi_GetBlockProducerList(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	client := mock_grpcpb.NewMockApiServiceClient(ctrl)
 
 	{
-		req := &grpcpb.GetWitnessListRequest{}
-		resp := &grpcpb.GetWitnessListResponse{}
+		req := &grpcpb.GetBlockProducerListRequest{}
+		resp := &grpcpb.GetBlockProducerListResponse{}
 
-		expected := &grpcpb.GetWitnessListResponse{}
-		client.EXPECT().GetWitnessList(gomock.Any(), gomock.Any()).Return(expected, nil)
+		expected := &grpcpb.GetBlockProducerListResponse{}
+		client.EXPECT().GetBlockProducerList(gomock.Any(), gomock.Any()).Return(expected, nil)
 
-		resp, err := client.GetWitnessList(context.Background(), req)
+		resp, err := client.GetBlockProducerList(context.Background(), req)
 		if err != nil {
-			t.Logf("GetWitnessListByName failed: %x", err)
+			t.Logf("GetBlockProducerListByName failed: %x", err)
 		} else {
-			t.Logf("GetWitnessListByName detail: %v", resp.WitnessList)
+			t.Logf("GetBlockProducerListByName detail: %v", resp.WitnessList)
 		}
 	}
 }
@@ -639,7 +639,7 @@ service ApiService {
         };
     }
 
-    rpc GetWitnessList (GetWitnessListRequest) returns (GetWitnessListResponse) {
+    rpc GetBlockProducerList (GetBlockProducerListRequest) returns (GetBlockProducerListResponse) {
         option (google.api.http) = {
             get: "/v1/user/get_witness_list"
         };
