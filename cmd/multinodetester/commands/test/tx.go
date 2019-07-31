@@ -113,23 +113,47 @@ func CreateAcc(accName, accKey, creatorKey string, css iservices.IConsensus) err
 	return nil
 }
 
-func bpUnregistrationOP(name string) *prototype.BpEnableOperation {
-	bpUnregisterOp := &prototype.BpEnableOperation{
+func bpDisableOP(name string) *prototype.BpEnableOperation {
+	bpDisableOp := &prototype.BpEnableOperation{
 		Owner:           &prototype.AccountName{Value: name},
 		Cancel:          true,
 	}
 
-	return bpUnregisterOp
+	return bpDisableOp
 }
 
-func UnregesiterBP(name, sk string, css iservices.IConsensus) error {
+func DisableBP(name, sk string, css iservices.IConsensus) error {
 	privKey, err := prototype.PrivateKeyFromWIF(sk)
 	if err != nil {
-		fmt.Println("unregisterBP get priv key ", err)
+		fmt.Println("disableBP get priv key ", err)
 		return nil
 	}
 
-	op := bpUnregistrationOP(name)
+	op := bpDisableOP(name)
+	tx := tx(css, op, privKey)
+	err = css.PushTransactionToPending(tx)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func bpEnableOP(name string) *prototype.BpEnableOperation {
+	bpEnableOp := &prototype.BpEnableOperation{
+		Owner:           &prototype.AccountName{Value: name},
+	}
+
+	return bpEnableOp
+}
+
+func EnableBP(name, sk string, css iservices.IConsensus) error {
+	privKey, err := prototype.PrivateKeyFromWIF(sk)
+	if err != nil {
+		fmt.Println("enableBP get priv key ", err)
+		return nil
+	}
+
+	op := bpEnableOP(name)
 	tx := tx(css, op, privKey)
 	err = css.PushTransactionToPending(tx)
 	if err != nil {

@@ -34,19 +34,19 @@ func (m *Monitor) shuffle(names, sks []string, css iservices.IConsensus) {
 	m.RUnlock()
 
 	if val[names[0]] == false {
-		if err := RegesiterBP(names[0], sks[0], css); err != nil {
+		if err := EnableBP(names[0], sks[0], css); err != nil {
 			//panic(err)
 		}
 	}
 
 	for i := 1; i < size; i++ {
 		if (seed>>uint(i)&1) == 1 && val[names[i]] == false {
-			if err := RegesiterBP(names[i], sks[i], css); err != nil {
+			if err := EnableBP(names[i], sks[i], css); err != nil {
 				//panic(err)
 			}
 		}
 		if (seed>>uint(i)&1) == 0 && val[names[i]] == true {
-			if err := UnregesiterBP(names[i], sks[i], css); err != nil {
+			if err := DisableBP(names[i], sks[i], css); err != nil {
 				//panic(err)
 			}
 		}
