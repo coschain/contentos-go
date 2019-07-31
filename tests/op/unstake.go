@@ -213,7 +213,8 @@ func (tester *UnStakeTester) noStakeRecord(t *testing.T, d *Dandelion) {
 	name0 := tester.acc0.Name
 	name3 := "actor3"
 	name4 := "actor4"
-
+    a.Empty(d.Account(name3).CheckExist())
+	a.Empty(d.Account(name4).CheckExist())
 	acct3 := d.Account(name3)
 	priv3, _ := prototype.GenerateNewKey()
 	pub3, _ := priv3.PubKey()

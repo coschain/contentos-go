@@ -22,6 +22,8 @@ func (tester *AccountUpdateTester) Test(t *testing.T, d *Dandelion) {
 	t.Run("public key too short", d.Test(tester.pubKeyTooShort))
 	t.Run("public key too long", d.Test(tester.pubKeyTooLong))
 	t.Run("update duplicate public Key", d.Test(tester.duplicatePublicKey))
+	t.Run("new private key work", d.Test(tester.verifyNewPriKeyWork))
+	t.Run("old private key not work", d.Test(tester.verifyOldPriKeyNotWork))
 
 }
 
@@ -35,6 +37,8 @@ func (tester *AccountUpdateTester) normal(t *testing.T, d *Dandelion) {
 	newPub := tester.acc1.GetPubKey()
 	a.Equal(newPub.Data, pub.Data)
 	a.NotEqual(oldPub1.Data, newPub.Data)
+	//save new private key
+	d.PutAccount(tester.acc1.Name, priv)
 
 }
 
@@ -88,4 +92,53 @@ func (tester *AccountUpdateTester) duplicatePublicKey(t *testing.T, d *Dandelion
 	a.NoError(tester.acc0.SendTrx(AccountUpdate(tester.acc0.Name, pub2)))
 	a.NoError(d.ProduceBlocks(1))
 	a.Equal(oldPub0.Data, tester.acc0.GetPubKey().Data)
+}
+
+func (tester *AccountUpdateTester) verifyNewPriKeyWork(t *testing.T, d *Dandelion) {
+	a := assert.New(t)
+	name0 := tester.acc0.Name
+	name2 := tester.acc2.Name
+	priv, _ := prototype.GenerateNewKey()
+	pub, _ := priv.PubKey()
+	oldPub0 := tester.acc0.GetPubKey()
+	a.NoError(tester.acc0.SendTrx(AccountUpdate(name0, pub)))
+	a.NoError(d.ProduceBlocks(1))
+	newPub := tester.acc0.GetPubKey()
+	a.Equal(newPub.Data, pub.Data)
+	a.NotEqual(oldPub0.Data, newPub.Data)
+	//save new private key
+	d.PutAccount(name0, priv)
+	//transfer and use actor0's new new private key to sign to verify actor0's
+	// new private key work after updating public key
+	balance0 := tester.acc0.GetBalance().Value
+	balance2 := tester.acc2.GetBalance().Value
+	var amount uint64 = 10
+	a.NoError(tester.acc0.SendTrx(Transfer(name0, name2, amount, "")))
+	a.NoError(d.ProduceBlocks(1))
+    a.Equal(balance0-amount, tester.acc0.GetBalance().Value)
+	a.Equal(balance2+amount, tester.acc2.GetBalance().Value)
+}
+
+func (tester *AccountUpdateTester) verifyOldPriKeyNotWork(t *testing.T, d *Dandelion) {
+	a := assert.New(t)
+	name0 := tester.acc0.Name
+	name2 := tester.acc2.Name
+	priv, _ := prototype.GenerateNewKey()
+	pub, _ := priv.PubKey()
+	oldPub2 := tester.acc2.GetPubKey()
+	a.NoError(tester.acc2.SendTrx(AccountUpdate(name2, pub)))
+	a.NoError(d.ProduceBlocks(1))
+	newPub := tester.acc2.GetPubKey()
+	a.Equal(newPub.Data, pub.Data)
+	a.NotEqual(oldPub2.Data, newPub.Data)
+	//transfer and use actor2 old private key to sign to verify actor2's old private key
+	// not work after updating public key
+	balance0 := tester.acc0.GetBalance().Value
+	balance2 := tester.acc2.GetBalance().Value
+	var amount uint64 = 10
+	//old private key signature verification failed if use new public key, so transfer will fail
+	a.Error(tester.acc2.SendTrx(Transfer(name2, name0, amount, "")))
+	a.NoError(d.ProduceBlocks(1))
+	a.Equal(balance0, tester.acc0.GetBalance().Value)
+	a.Equal(balance2, tester.acc2.GetBalance().Value)
 }
