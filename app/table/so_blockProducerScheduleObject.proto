@@ -9,7 +9,7 @@ import "prototype/type.proto";
 
 message so_blockProducerScheduleObject {
 	int32                              id                              =      1;
-    repeated                      string                           current_shuffled_witness        =      2;
+    repeated                      string                           current_shuffled_block_producer        =      2;
     repeated                      prototype.public_key_type        pub_key                         =      3;
       
 }
@@ -20,8 +20,8 @@ message so_mem_blockProducerScheduleObject_by_id {
 }
 
 
-message so_mem_blockProducerScheduleObject_by_current_shuffled_witness {
-	repeated  	string                        	current_shuffled_witness    = 1;
+message so_mem_blockProducerScheduleObject_by_current_shuffled_block_producer {
+	repeated  	string                        	current_shuffled_block_producer    = 1;
 }
 
 

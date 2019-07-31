@@ -41,12 +41,12 @@ message voter_id{
 
 message bp_voter_id{
     account_name    voter   = 1;
-    account_name    witness = 2;
+    account_name    block_producer = 2;
 }
 
-message bp_witness_id{
+message bp_block_producer_id{
     account_name    voter   = 1;
-    account_name    witness = 2;
+    account_name    block_producer = 2;
 }
 
 message contract_id{

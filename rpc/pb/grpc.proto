@@ -32,7 +32,7 @@ service ApiService {
     rpc GetFollowCountByName (GetFollowCountByNameRequest) returns (GetFollowCountByNameResponse) {
     }
 
-    rpc GetWitnessList (GetWitnessListRequest) returns (GetWitnessListResponse) {
+    rpc GetBlockProducerList (GetBlockProducerListRequest) returns (GetBlockProducerListResponse) {
     }
 
     rpc GetPostListByCreated (GetPostListByCreatedRequest) returns (GetPostListByCreatedResponse) {
@@ -99,7 +99,7 @@ service ApiService {
     rpc GetContractListByTime(GetContractListByTimeRequest) returns (GetContractListResponse) {
     }
 
-    rpc GetWitnessListByVoteCount(GetWitnessListByVoteCountRequest) returns (GetWitnessListResponse) {
+    rpc GetBlockProducerListByVoteCount(GetBlockProducerListByVoteCountRequest) returns (GetBlockProducerListResponse) {
     }
 
     rpc GetPostListByVest(GetPostListByVestRequest) returns (GetPostListByVestResponse) {
@@ -175,7 +175,7 @@ message AccountInfo {
     prototype.vest                          vest            = 3;
     prototype.public_key_type               public_key      = 4;
     prototype.time_point_sec                created_time    = 5;
-    WitnessResponse                         witness         = 6;
+    BlockProducerResponse                   block_producer  = 6;
     uint32                                  post_count      = 7;
     uint32                                  follower_count    = 8;
     uint32                                  following_count   = 9;
@@ -244,7 +244,7 @@ message GetFollowCountByNameResponse {
     uint32      fing_cnt    = 2;
 }
 
-message WitnessResponse {
+message BlockProducerResponse {
     prototype.account_name             owner                           = 1;
     prototype.time_point_sec           created_time                    = 2;
     string                             url                             = 3;
@@ -261,13 +261,13 @@ message WitnessResponse {
     uint64                             voter_count                     = 14;
 }
 
-message GetWitnessListRequest {
+message GetBlockProducerListRequest {
     prototype.account_name      start = 1;
     uint32                      limit = 2;
 }
 
-message GetWitnessListResponse {
-    repeated WitnessResponse witness_list = 1;
+message GetBlockProducerListResponse {
+    repeated BlockProducerResponse block_producer_list = 1;
 }
 
 message PostResponse {
@@ -381,7 +381,7 @@ message BlockInfo {
     prototype.time_point_sec     timestamp  = 1;
     uint64                       block_height = 2 [jstype = JS_STRING];
     uint32                       trx_count   = 3;
-    prototype.account_name       witness     = 4;
+    prototype.account_name       block_producer   = 4;
     prototype.sha256             block_id    = 5;
     prototype.sha256             pre_id      = 6;
     uint32                       block_size  = 7;
@@ -589,10 +589,10 @@ message GetContractListResponse {
     repeated ContractInfo   contract_list = 1;
 }
 
-message GetWitnessListByVoteCountRequest {
+message GetBlockProducerListByVoteCountRequest {
     prototype.vest   start   = 1;
     prototype.vest   end     = 2;
-    WitnessResponse  last_witness = 3;
+    BlockProducerResponse  last_block_producer = 3;
     uint32           limit     = 4;
 }
 

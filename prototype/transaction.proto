@@ -82,14 +82,14 @@ message transaction_wrapper {
 message block_header{
     sha256 previous = 1;
     time_point_sec timestamp = 2;
-    account_name witness = 3;
+    account_name block_producer = 3;
     sha256 transaction_merkle_root = 4;
     uint64 prev_apply_hash = 5;
 }
 
 message signed_block_header{
     block_header header = 1;
-    signature_type witness_signature = 2;
+    signature_type block_producer_signature = 2;
 }
 
 message signed_block{

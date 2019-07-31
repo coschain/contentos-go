@@ -10,7 +10,7 @@ import "prototype/type.proto";
 
 message so_blockProducerVote {
 	prototype.bp_voter_id              voter_id       =      1;
-    prototype.bp_witness_id 								   witness_id     =      2;
+    prototype.bp_block_producer_id 								   block_producer_id     =      2;
     prototype.time_point_sec           vote_time      =      3;
       
 }
@@ -21,8 +21,8 @@ message so_mem_blockProducerVote_by_voter_id {
 }
 
 
-message so_mem_blockProducerVote_by_witness_id {
-	prototype.bp_witness_id 									witness_id = 1;
+message so_mem_blockProducerVote_by_block_producer_id {
+	prototype.bp_block_producer_id 									block_producer_id = 1;
 }
 
 

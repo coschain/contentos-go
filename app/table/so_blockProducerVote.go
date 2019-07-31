@@ -14,11 +14,11 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	BlockProducerVoteVoterIdTable    uint32 = 2479544534
-	BlockProducerVoteVoterIdUniTable uint32 = 3049307692
-	BlockProducerVoteVoteTimeCell    uint32 = 2928182257
-	BlockProducerVoteVoterIdCell     uint32 = 2550780346
-	BlockProducerVoteWitnessIdCell   uint32 = 4237225136
+	BlockProducerVoteVoterIdTable        uint32 = 2479544534
+	BlockProducerVoteVoterIdUniTable     uint32 = 3049307692
+	BlockProducerVoteBlockProducerIdCell uint32 = 3547734930
+	BlockProducerVoteVoteTimeCell        uint32 = 2928182257
+	BlockProducerVoteVoterIdCell         uint32 = 2550780346
 )
 
 ////////////// SECTION Wrap Define ///////////////
@@ -237,14 +237,14 @@ func (s *SoBlockProducerVoteWrap) RemoveBlockProducerVote() bool {
 
 ////////////// SECTION Members Get/Modify ///////////////
 func (s *SoBlockProducerVoteWrap) getMemKeyPrefix(fName string) uint32 {
+	if fName == "BlockProducerId" {
+		return BlockProducerVoteBlockProducerIdCell
+	}
 	if fName == "VoteTime" {
 		return BlockProducerVoteVoteTimeCell
 	}
 	if fName == "VoterId" {
 		return BlockProducerVoteVoterIdCell
-	}
-	if fName == "WitnessId" {
-		return BlockProducerVoteWitnessIdCell
 	}
 
 	return 0
@@ -279,6 +279,13 @@ func (s *SoBlockProducerVoteWrap) saveAllMemKeys(tInfo *SoBlockProducerVote, br 
 	}
 	var err error = nil
 	errDes := ""
+	if err = s.saveMemKeyBlockProducerId(tInfo); err != nil {
+		if br {
+			return err
+		} else {
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "BlockProducerId", err)
+		}
+	}
 	if err = s.saveMemKeyVoteTime(tInfo); err != nil {
 		if br {
 			return err
@@ -291,13 +298,6 @@ func (s *SoBlockProducerVoteWrap) saveAllMemKeys(tInfo *SoBlockProducerVote, br 
 			return err
 		} else {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "VoterId", err)
-		}
-	}
-	if err = s.saveMemKeyWitnessId(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "WitnessId", err)
 		}
 	}
 
@@ -344,6 +344,89 @@ func (s *SoBlockProducerVoteWrap) delMemKey(fName string) error {
 	}
 	err = s.dba.Delete(key)
 	return err
+}
+
+func (s *SoBlockProducerVoteWrap) saveMemKeyBlockProducerId(tInfo *SoBlockProducerVote) error {
+	if s.dba == nil {
+		return errors.New("the db is nil")
+	}
+	if tInfo == nil {
+		return errors.New("the data is nil")
+	}
+	val := SoMemBlockProducerVoteByBlockProducerId{}
+	val.BlockProducerId = tInfo.BlockProducerId
+	key, err := s.encodeMemKey("BlockProducerId")
+	if err != nil {
+		return err
+	}
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(key, buf)
+	return err
+}
+
+func (s *SoBlockProducerVoteWrap) GetBlockProducerId() *prototype.BpBlockProducerId {
+	res := true
+	msg := &SoMemBlockProducerVoteByBlockProducerId{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMemKey("BlockProducerId")
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.BlockProducerId
+			}
+		}
+	}
+	if !res {
+		return nil
+
+	}
+	return msg.BlockProducerId
+}
+
+func (s *SoBlockProducerVoteWrap) MdBlockProducerId(p *prototype.BpBlockProducerId) bool {
+	if s.dba == nil {
+		return false
+	}
+	key, err := s.encodeMemKey("BlockProducerId")
+	if err != nil {
+		return false
+	}
+	buf, err := s.dba.Get(key)
+	if err != nil {
+		return false
+	}
+	ori := &SoMemBlockProducerVoteByBlockProducerId{}
+	err = proto.Unmarshal(buf, ori)
+	sa := &SoBlockProducerVote{}
+	sa.VoterId = s.mainKey
+
+	sa.BlockProducerId = ori.BlockProducerId
+
+	ori.BlockProducerId = p
+	val, err := proto.Marshal(ori)
+	if err != nil {
+		return false
+	}
+	err = s.dba.Put(key, val)
+	if err != nil {
+		return false
+	}
+	sa.BlockProducerId = p
+
+	return true
 }
 
 func (s *SoBlockProducerVoteWrap) saveMemKeyVoteTime(tInfo *SoBlockProducerVote) error {
@@ -477,89 +560,6 @@ func (s *SoBlockProducerVoteWrap) GetVoterId() *prototype.BpVoterId {
 
 	}
 	return msg.VoterId
-}
-
-func (s *SoBlockProducerVoteWrap) saveMemKeyWitnessId(tInfo *SoBlockProducerVote) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemBlockProducerVoteByWitnessId{}
-	val.WitnessId = tInfo.WitnessId
-	key, err := s.encodeMemKey("WitnessId")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
-
-func (s *SoBlockProducerVoteWrap) GetWitnessId() *prototype.BpWitnessId {
-	res := true
-	msg := &SoMemBlockProducerVoteByWitnessId{}
-	if s.dba == nil {
-		res = false
-	} else {
-		key, err := s.encodeMemKey("WitnessId")
-		if err != nil {
-			res = false
-		} else {
-			buf, err := s.dba.Get(key)
-			if err != nil {
-				res = false
-			}
-			err = proto.Unmarshal(buf, msg)
-			if err != nil {
-				res = false
-			} else {
-				return msg.WitnessId
-			}
-		}
-	}
-	if !res {
-		return nil
-
-	}
-	return msg.WitnessId
-}
-
-func (s *SoBlockProducerVoteWrap) MdWitnessId(p *prototype.BpWitnessId) bool {
-	if s.dba == nil {
-		return false
-	}
-	key, err := s.encodeMemKey("WitnessId")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemBlockProducerVoteByWitnessId{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoBlockProducerVote{}
-	sa.VoterId = s.mainKey
-
-	sa.WitnessId = ori.WitnessId
-
-	ori.WitnessId = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.WitnessId = p
-
-	return true
 }
 
 ////////////// SECTION List Keys ///////////////

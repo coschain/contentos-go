@@ -63,7 +63,7 @@ message bp_unregister_operation{
 
 message bp_vote_operation{
     account_name voter = 1;
-    account_name witness = 2;
+    account_name block_producer = 2;
     bool cancel = 3;
 }
 

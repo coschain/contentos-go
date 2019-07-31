@@ -14,10 +14,10 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	BlockProducerScheduleObjectIdUniTable                 uint32 = 1798653281
-	BlockProducerScheduleObjectCurrentShuffledWitnessCell uint32 = 3661115421
-	BlockProducerScheduleObjectIdCell                     uint32 = 1857477157
-	BlockProducerScheduleObjectPubKeyCell                 uint32 = 562239348
+	BlockProducerScheduleObjectIdUniTable                       uint32 = 1798653281
+	BlockProducerScheduleObjectCurrentShuffledBlockProducerCell uint32 = 3160089807
+	BlockProducerScheduleObjectIdCell                           uint32 = 1857477157
+	BlockProducerScheduleObjectPubKeyCell                       uint32 = 562239348
 )
 
 ////////////// SECTION Wrap Define ///////////////
@@ -173,8 +173,8 @@ func (s *SoBlockProducerScheduleObjectWrap) RemoveBlockProducerScheduleObject() 
 
 ////////////// SECTION Members Get/Modify ///////////////
 func (s *SoBlockProducerScheduleObjectWrap) getMemKeyPrefix(fName string) uint32 {
-	if fName == "CurrentShuffledWitness" {
-		return BlockProducerScheduleObjectCurrentShuffledWitnessCell
+	if fName == "CurrentShuffledBlockProducer" {
+		return BlockProducerScheduleObjectCurrentShuffledBlockProducerCell
 	}
 	if fName == "Id" {
 		return BlockProducerScheduleObjectIdCell
@@ -215,11 +215,11 @@ func (s *SoBlockProducerScheduleObjectWrap) saveAllMemKeys(tInfo *SoBlockProduce
 	}
 	var err error = nil
 	errDes := ""
-	if err = s.saveMemKeyCurrentShuffledWitness(tInfo); err != nil {
+	if err = s.saveMemKeyCurrentShuffledBlockProducer(tInfo); err != nil {
 		if br {
 			return err
 		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "CurrentShuffledWitness", err)
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "CurrentShuffledBlockProducer", err)
 		}
 	}
 	if err = s.saveMemKeyId(tInfo); err != nil {
@@ -282,16 +282,16 @@ func (s *SoBlockProducerScheduleObjectWrap) delMemKey(fName string) error {
 	return err
 }
 
-func (s *SoBlockProducerScheduleObjectWrap) saveMemKeyCurrentShuffledWitness(tInfo *SoBlockProducerScheduleObject) error {
+func (s *SoBlockProducerScheduleObjectWrap) saveMemKeyCurrentShuffledBlockProducer(tInfo *SoBlockProducerScheduleObject) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
 	if tInfo == nil {
 		return errors.New("the data is nil")
 	}
-	val := SoMemBlockProducerScheduleObjectByCurrentShuffledWitness{}
-	val.CurrentShuffledWitness = tInfo.CurrentShuffledWitness
-	key, err := s.encodeMemKey("CurrentShuffledWitness")
+	val := SoMemBlockProducerScheduleObjectByCurrentShuffledBlockProducer{}
+	val.CurrentShuffledBlockProducer = tInfo.CurrentShuffledBlockProducer
+	key, err := s.encodeMemKey("CurrentShuffledBlockProducer")
 	if err != nil {
 		return err
 	}
@@ -303,13 +303,13 @@ func (s *SoBlockProducerScheduleObjectWrap) saveMemKeyCurrentShuffledWitness(tIn
 	return err
 }
 
-func (s *SoBlockProducerScheduleObjectWrap) GetCurrentShuffledWitness() []string {
+func (s *SoBlockProducerScheduleObjectWrap) GetCurrentShuffledBlockProducer() []string {
 	res := true
-	msg := &SoMemBlockProducerScheduleObjectByCurrentShuffledWitness{}
+	msg := &SoMemBlockProducerScheduleObjectByCurrentShuffledBlockProducer{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("CurrentShuffledWitness")
+		key, err := s.encodeMemKey("CurrentShuffledBlockProducer")
 		if err != nil {
 			res = false
 		} else {
@@ -321,7 +321,7 @@ func (s *SoBlockProducerScheduleObjectWrap) GetCurrentShuffledWitness() []string
 			if err != nil {
 				res = false
 			} else {
-				return msg.CurrentShuffledWitness
+				return msg.CurrentShuffledBlockProducer
 			}
 		}
 	}
@@ -329,14 +329,14 @@ func (s *SoBlockProducerScheduleObjectWrap) GetCurrentShuffledWitness() []string
 		var tmpValue []string
 		return tmpValue
 	}
-	return msg.CurrentShuffledWitness
+	return msg.CurrentShuffledBlockProducer
 }
 
-func (s *SoBlockProducerScheduleObjectWrap) MdCurrentShuffledWitness(p []string) bool {
+func (s *SoBlockProducerScheduleObjectWrap) MdCurrentShuffledBlockProducer(p []string) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("CurrentShuffledWitness")
+	key, err := s.encodeMemKey("CurrentShuffledBlockProducer")
 	if err != nil {
 		return false
 	}
@@ -344,13 +344,13 @@ func (s *SoBlockProducerScheduleObjectWrap) MdCurrentShuffledWitness(p []string)
 	if err != nil {
 		return false
 	}
-	ori := &SoMemBlockProducerScheduleObjectByCurrentShuffledWitness{}
+	ori := &SoMemBlockProducerScheduleObjectByCurrentShuffledBlockProducer{}
 	err = proto.Unmarshal(buf, ori)
 	sa := &SoBlockProducerScheduleObject{}
 	sa.Id = *s.mainKey
-	sa.CurrentShuffledWitness = ori.CurrentShuffledWitness
+	sa.CurrentShuffledBlockProducer = ori.CurrentShuffledBlockProducer
 
-	ori.CurrentShuffledWitness = p
+	ori.CurrentShuffledBlockProducer = p
 	val, err := proto.Marshal(ori)
 	if err != nil {
 		return false
@@ -359,7 +359,7 @@ func (s *SoBlockProducerScheduleObjectWrap) MdCurrentShuffledWitness(p []string)
 	if err != nil {
 		return false
 	}
-	sa.CurrentShuffledWitness = p
+	sa.CurrentShuffledBlockProducer = p
 
 	return true
 }
