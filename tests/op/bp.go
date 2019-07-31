@@ -92,7 +92,7 @@ func (tester *BpTest) bpVote(t *testing.T, d *Dandelion) {
 	witWrap := d.Witness(tester.acc0.Name)
 
 	// check bp's vote count and acc1's vote count
-	a.True(witWrap.GetVoteCount().Value > 0)
+	a.True(witWrap.GetVoteVest().Value > 0)
 	a.True(tester.acc1.GetBpVoteCount() == 1)
 }
 
@@ -105,7 +105,7 @@ func (tester *BpTest) bpUnVote(t *testing.T, d *Dandelion) {
 
 	// check bp's vote count and acc2's vote count
 	witWrap := d.Witness(tester.acc0.Name)
-	a.True(witWrap.GetVoteCount().Value > 0)
+	a.True(witWrap.GetVoteVest().Value > 0)
 	a.True(tester.acc2.GetBpVoteCount() == 1)
 
 	// acc2 unvote
@@ -123,7 +123,7 @@ func (tester *BpTest) bpVoteMultiTime(t *testing.T, d *Dandelion) {
 
 	// check acc2's vote count
 	witWrap := d.Witness(tester.acc0.Name)
-	a.True(witWrap.GetVoteCount().Value > 0)
+	a.True(witWrap.GetVoteVest().Value > 0)
 	a.True(tester.acc2.GetBpVoteCount() == 1)
 
 	// acc2 vote again for bp
