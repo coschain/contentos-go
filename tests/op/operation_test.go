@@ -16,10 +16,13 @@ func TestOperations(t *testing.T) {
 	t.Run("contract_deploy", dandelion.NewDandelionTest(new(ContractDeployTester).Test, 3))
 	t.Run("contract_limits", NewDandelionContractTest(new(ContractLimitsTester).Test, 1, "actor0.limits"))
 	t.Run("contract_lib", NewDandelionContractTest(new(ContractTester).Test, 2, "actor0.native_tester", "actor1.native_tester"))
-	t.Run("contract_gas", NewContractGasTest(123, 1380, 3110))
 	t.Run("create account", dandelion.NewDandelionTest(new(AccountCreateTester).Test, 3))
 	t.Run("convert vest", dandelion.NewDandelionTest(new(ConvertVestTester).Test, 5))
 	t.Run("update account", dandelion.NewDandelionTest(new(AccountUpdateTester).Test, 3))
 	t.Run("stake", dandelion.NewDandelionTest(new(StakeTester).Test, 3))
 	t.Run("unStake", dandelion.NewDandelionTest(new(UnStakeTester).Test, 3))
+}
+
+func TestContractGasUsage(t *testing.T) {
+	t.Run("contract_gas", NewContractGasTest(123, 1380, 3110))
 }
