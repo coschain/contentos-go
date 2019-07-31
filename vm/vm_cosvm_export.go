@@ -69,6 +69,16 @@ func e_getUserBalance(proc *exec.Process, ptr int32, len int32) int64 {
 	return int64(w.GetUserBalance(string(w.cosVM.read(proc, ptr, len, "getUserBalance()"))))
 }
 
+func e_userExist(proc *exec.Process, ptr int32, len int32) int32 {
+	w := proc.GetTag().(*CosVMNative)
+
+	if w.UserExist(string(w.cosVM.read(proc, ptr, len, "userExist()"))) {
+		return 1
+	} else {
+		return 0
+	}
+}
+
 func e_getContractBalance(proc *exec.Process, cPtr int32, cLen int32, nPtr int32, nLen int32) int64 {
 	w := proc.GetTag().(*CosVMNative)
 

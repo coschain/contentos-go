@@ -49,6 +49,7 @@ func (w *CosVM) initNativeFuncs() {
 	w.Register("print_uint", e_printUint64, 100)
 	w.Register("require_auth", e_requiredAuth, 200)
 	w.Register("get_user_balance", e_getUserBalance, 100)
+	w.Register("user_exist", e_userExist, 100)
 	w.Register("get_contract_balance", e_getContractBalance, 100)
 	w.Register("cos_assert", e_cosAssert, 100)
 	w.Register("abort", e_cosAbort, 100)

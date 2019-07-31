@@ -88,6 +88,11 @@ func (w *CosVMNative) GetUserBalance(name string) uint64 {
 	return acc.GetBalance().Value
 }
 
+func (w *CosVMNative) UserExist(name string) bool {
+	acc := table.NewSoAccountWrap(w.cosVM.db, &prototype.AccountName{Value: name})
+	return acc.CheckExist()
+}
+
 func (w *CosVMNative) GetContractBalance(contract string, name string) uint64 {
 	ctct := table.NewSoContractWrap(w.cosVM.db, &prototype.ContractId{Owner: &prototype.AccountName{Value: name}, Cname: contract})
 	value := ctct.GetBalance().Value
