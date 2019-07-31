@@ -162,8 +162,8 @@ func (d *Dandelion) GiftTicket(ticket *prototype.GiftTicketKeyType) *table.SoGif
 	return table.NewSoGiftTicketWrap(d.Database(), ticket)
 }
 
-func (d *Dandelion) Witness(owner string) *table.SoWitnessWrap {
-	return table.NewSoWitnessWrap(d.Database(), prototype.NewAccountName(owner))
+func (d *Dandelion) Witness(owner string) *table.SoBlockProducerWrap {
+	return table.NewSoBlockProducerWrap(d.Database(), prototype.NewAccountName(owner))
 }
 
 func (d *Dandelion) ExtFollowing(account string, following string) *table.SoExtFollowingWrap {
@@ -218,8 +218,8 @@ func (d *Dandelion) ExtPostCreated(postId uint64) *table.SoExtPostCreatedWrap {
 	return table.NewSoExtPostCreatedWrap(d.Database(), &postId)
 }
 
-func (d *Dandelion) WitnessVote(voter string, witness string) *table.SoWitnessVoteWrap {
-	return table.NewSoWitnessVoteWrap(d.Database(), &prototype.BpVoterId{
+func (d *Dandelion) WitnessVote(voter string, witness string) *table.SoBlockProducerVoteWrap {
+	return table.NewSoBlockProducerVoteWrap(d.Database(), &prototype.BpVoterId{
 		Voter: prototype.NewAccountName(voter),
 		Witness: prototype.NewAccountName(witness),
 	})

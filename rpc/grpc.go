@@ -298,7 +298,7 @@ func (as *APIService) GetWitnessList(ctx context.Context, req *grpcpb.GetWitness
 		limit   uint32
 	)
 
-	witOrderWrap := &table.SWitnessOwnerWrap{as.db}
+	witOrderWrap := &table.SBlockProducerOwnerWrap{as.db}
 	limit = checkLimit(req.GetLimit())
 	witOrderWrap.ForEachByOrder(req.GetStart(), nil, nil, nil,
 		func(mVal *prototype.AccountName, sVal *prototype.AccountName, idx uint32) bool {
@@ -903,7 +903,7 @@ func (as *APIService) getAccountResponseByName(name *prototype.AccountName, isNe
 		}
 		acctInfo.NextWithdrawTime = withdrawTime
 
-		witWrap := table.NewSoWitnessWrap(as.db, accWrap.GetName())
+		witWrap := table.NewSoBlockProducerWrap(as.db, accWrap.GetName())
 		if witWrap != nil && witWrap.CheckExist() {
 			acctInfo.Witness = &grpcpb.WitnessResponse{
 				Owner:                 witWrap.GetOwner(),
@@ -1359,7 +1359,7 @@ func (as *APIService) GetWitnessListByVoteCount(ctx context.Context, req *grpcpb
 	)
 	res := &grpcpb.GetWitnessListResponse{}
 	limit = checkLimit(req.Limit)
-	srtWrap := table.NewWitnessVoteVestWrap(as.db)
+	srtWrap := table.NewBlockProducerVoteVestWrap(as.db)
 	if srtWrap != nil {
 		lastWit := req.LastWitness
 		if lastWit != nil {
@@ -1387,7 +1387,7 @@ func (as *APIService) GetWitnessListByVoteCount(ctx context.Context, req *grpcpb
 
 func (as *APIService) getWitnessResponseByAccountName(acct *prototype.AccountName) *grpcpb.WitnessResponse {
 	if acct != nil {
-		witWrap := table.NewSoWitnessWrap(as.db, acct)
+		witWrap := table.NewSoBlockProducerWrap(as.db, acct)
 		if witWrap != nil && witWrap.CheckExist() {
 			witness := &grpcpb.WitnessResponse{
 				Owner:                 witWrap.GetOwner(),

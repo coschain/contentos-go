@@ -311,16 +311,16 @@ func TestController_GetWitnessTopN(t *testing.T) {
 	c := startController(db)
 
 	name := &prototype.AccountName{Value: "wit1"}
-	witnessWrap := table.NewSoWitnessWrap(db, name)
-	mustNoError(witnessWrap.Create(func(tInfo *table.SoWitness) {
+	witnessWrap := table.NewSoBlockProducerWrap(db, name)
+	mustNoError(witnessWrap.Create(func(tInfo *table.SoBlockProducer) {
 		tInfo.Owner = name
 		tInfo.CreatedTime = &prototype.TimePointSec{UtcSeconds: 0}
 		tInfo.SigningKey = &prototype.PublicKeyType{Data: []byte{1}}
 	}), "Witness Create Error")
 
 	name2 := &prototype.AccountName{Value: "wit2"}
-	witnessWrap2 := table.NewSoWitnessWrap(db, name2)
-	mustNoError(witnessWrap2.Create(func(tInfo *table.SoWitness) {
+	witnessWrap2 := table.NewSoBlockProducerWrap(db, name2)
+	mustNoError(witnessWrap2.Create(func(tInfo *table.SoBlockProducer) {
 		tInfo.Owner = name2
 		tInfo.CreatedTime = &prototype.TimePointSec{UtcSeconds: 0}
 		tInfo.SigningKey = &prototype.PublicKeyType{Data: []byte{2}}

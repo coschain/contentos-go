@@ -289,7 +289,7 @@ func (c *TrxPool) generateBlockNoLock(witness string, pre *prototype.Sha256, tim
 	pubkey, err := priKey.PubKey()
 	mustNoError(err, "get public key error")
 
-	witnessWrap := table.NewSoWitnessWrap(c.db, &prototype.AccountName{Value: witness})
+	witnessWrap := table.NewSoBlockProducerWrap(c.db, &prototype.AccountName{Value: witness})
 	mustSuccess(bytes.Equal(witnessWrap.GetSigningKey().Data[:], pubkey.Data[:]), "public key not equal")
 
 	// @ signHeader size is zero, must have some content
@@ -621,7 +621,7 @@ func (c *TrxPool) applyBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag
 
 func (c *TrxPool) ValidateAddress(name string, pubKey *prototype.PublicKeyType) bool {
 	account := &prototype.AccountName{Value: name}
-	witnessWrap := table.NewSoWitnessWrap(c.db, account)
+	witnessWrap := table.NewSoBlockProducerWrap(c.db, account)
 	if !witnessWrap.CheckExist() {
 		return false
 	}
@@ -666,8 +666,8 @@ func (c *TrxPool) initGenesis() {
 	}), "CreateAccount error")
 
 	// create witness_object
-	witnessWrap := table.NewSoWitnessWrap(c.db, name)
-	mustNoError(witnessWrap.Create(func(tInfo *table.SoWitness) {
+	witnessWrap := table.NewSoBlockProducerWrap(c.db, name)
+	mustNoError(witnessWrap.Create(func(tInfo *table.SoBlockProducer) {
 		tInfo.Owner = name
 		tInfo.CreatedTime = &prototype.TimePointSec{UtcSeconds: 0}
 		tInfo.SigningKey = pubKey
@@ -735,8 +735,8 @@ func (c *TrxPool) initGenesis() {
 	}
 
 	// create witness scheduler
-	witnessScheduleWrap := table.NewSoWitnessScheduleObjectWrap(c.db, &SingleId)
-	mustNoError(witnessScheduleWrap.Create(func(tInfo *table.SoWitnessScheduleObject) {
+	witnessScheduleWrap := table.NewSoBlockProducerScheduleObjectWrap(c.db, &SingleId)
+	mustNoError(witnessScheduleWrap.Create(func(tInfo *table.SoBlockProducerScheduleObject) {
 		tInfo.Id = SingleId
 		tInfo.CurrentShuffledWitness = append(tInfo.CurrentShuffledWitness, constants.COSInitMiner)
 	}), "CreateWitnessScheduleObject error")
@@ -809,7 +809,7 @@ func (c *TrxPool) validateBlockHeader(blk *prototype.SignedBlock) {
 
 	// witness sig check
 	witnessName := blk.SignedHeader.Header.Witness
-	witnessWrap := table.NewSoWitnessWrap(c.db, witnessName)
+	witnessWrap := table.NewSoBlockProducerWrap(c.db, witnessName)
 	pubKey := witnessWrap.GetSigningKey()
 	res, err := blk.SignedHeader.ValidateSig(pubKey)
 	if !res || err != nil {
@@ -905,7 +905,7 @@ func (c *TrxPool) updateGlobalResourceParam(bpNameList []string) {
 		ac := &prototype.AccountName{
 			Value: bpNameList[i],
 		}
-		witnessWrap := table.NewSoWitnessWrap(c.db, ac)
+		witnessWrap := table.NewSoBlockProducerWrap(c.db, ac)
 		if !witnessWrap.CheckExist() {
 			c.log.Fatalf("witness %v doesn't exist", bpNameList[i])
 		}
@@ -940,12 +940,12 @@ func (c *TrxPool) updateGlobalResourceParam(bpNameList []string) {
 
 func (c *TrxPool) deleteUnusedBp(bpNameList []string) {
 	// delete unActive bp
-	//revList := table.SWitnessVoteVestWrap{Dba: c.db}
+	//revList := table.SBlockProducerVoteVestWrap{Dba: c.db}
 	//var deletelist       []*prototype.AccountName
 	//
 	//_ = revList.ForEachByRevOrder(nil, nil,nil,nil, func(mVal *prototype.AccountName, sVal *prototype.Vest, idx uint32) bool {
 	//	if mVal != nil {
-	//		witnessWrap := table.NewSoWitnessWrap(c.db, mVal)
+	//		witnessWrap := table.NewSoBlockProducerWrap(c.db, mVal)
 	//		if witnessWrap.CheckExist() {
 	//			if !witnessWrap.GetActive() {
 	//				deletelist = append(deletelist, mVal)
@@ -956,7 +956,7 @@ func (c *TrxPool) deleteUnusedBp(bpNameList []string) {
 	//})
 	//
 	//for i:=0;i<len(deletelist);i++ {
-	//	witnessWrap := table.NewSoWitnessWrap(c.db, deletelist[i])
+	//	witnessWrap := table.NewSoBlockProducerWrap(c.db, deletelist[i])
 	//	mustSuccess(witnessWrap.RemoveWitness(), fmt.Sprintf("delete unregister bp %s error", deletelist[i].Value))
 	//}
 
@@ -965,7 +965,7 @@ func (c *TrxPool) deleteUnusedBp(bpNameList []string) {
 		ac := &prototype.AccountName{
 			Value: constants.COSInitMiner,
 		}
-		witnessWrap := table.NewSoWitnessWrap(c.db, ac)
+		witnessWrap := table.NewSoBlockProducerWrap(c.db, ac)
 		if witnessWrap.CheckExist() {
 			mustSuccess(witnessWrap.MdActive(false), fmt.Sprintf("disable bp %s error", constants.COSInitMiner))
 		}
@@ -1013,7 +1013,7 @@ func (c *TrxPool) GetSigningPubKey(witness string) *prototype.PublicKeyType {
 	ac := &prototype.AccountName{
 		Value: witness,
 	}
-	witnessWrap := table.NewSoWitnessWrap(c.db, ac)
+	witnessWrap := table.NewSoBlockProducerWrap(c.db, ac)
 	if !witnessWrap.CheckExist() {
 		return nil
 	}
@@ -1024,11 +1024,11 @@ func (c *TrxPool) GetWitnessTopN(n uint32) ([]string, []*prototype.PublicKeyType
 	var names            []string
 	var bpNames          []string
 	var keys             []*prototype.PublicKeyType
-	revList := table.SWitnessVoteVestWrap{Dba: c.db}
+	revList := table.SBlockProducerVoteVestWrap{Dba: c.db}
 	var bpCount uint32 = 0
 	_ = revList.ForEachByRevOrder(nil, nil,nil,nil, func(mVal *prototype.AccountName, sVal *prototype.Vest, idx uint32) bool {
 		if mVal != nil {
-			witnessWrap := table.NewSoWitnessWrap(c.db, mVal)
+			witnessWrap := table.NewSoBlockProducerWrap(c.db, mVal)
 			if witnessWrap.CheckExist() {
 				if witnessWrap.GetActive() {
 					bpCount++
@@ -1052,7 +1052,7 @@ func (c *TrxPool) GetWitnessTopN(n uint32) ([]string, []*prototype.PublicKeyType
 		ac := &prototype.AccountName{
 			Value: names[i],
 		}
-		witnessWrap := table.NewSoWitnessWrap(c.db, ac)
+		witnessWrap := table.NewSoBlockProducerWrap(c.db, ac)
 		if !witnessWrap.CheckExist() {
 			c.log.Fatalf("witness %v doesn't exist", names[i])
 		}
@@ -1071,13 +1071,13 @@ func (c *TrxPool) GetWitnessTopN(n uint32) ([]string, []*prototype.PublicKeyType
 }
 
 func (c *TrxPool) SetShuffledWitness(names []string, keys []*prototype.PublicKeyType) {
-	witnessScheduleWrap := table.NewSoWitnessScheduleObjectWrap(c.db, &SingleId)
+	witnessScheduleWrap := table.NewSoBlockProducerScheduleObjectWrap(c.db, &SingleId)
 	mustSuccess(witnessScheduleWrap.MdCurrentShuffledWitness(names), "SetWitness error")
 	mustSuccess(witnessScheduleWrap.MdPubKey(keys), "set witness pub key failed")
 }
 
 func (c *TrxPool) GetShuffledWitness() ([]string, []*prototype.PublicKeyType) {
-	witnessScheduleWrap := table.NewSoWitnessScheduleObjectWrap(c.db, &SingleId)
+	witnessScheduleWrap := table.NewSoBlockProducerScheduleObjectWrap(c.db, &SingleId)
 	return witnessScheduleWrap.GetCurrentShuffledWitness(), witnessScheduleWrap.GetPubKey()
 }
 

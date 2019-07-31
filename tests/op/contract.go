@@ -108,9 +108,9 @@ func (tester *ContractTester) chainInfo(t *testing.T, d *Dandelion) {
 }
 
 func (tester *ContractTester) blockProducers(d *Dandelion) (names []string) {
-	nameList := table.SWitnessOwnerWrap{Dba:d.Database()}
+	nameList := table.SBlockProducerOwnerWrap{Dba:d.Database()}
 	_ = nameList.ForEachByOrder(nil, nil, nil, nil, func(mVal *prototype.AccountName, sVal *prototype.AccountName, idx uint32) bool {
-		if table.NewSoWitnessWrap(d.Database(), mVal).GetActive() {
+		if table.NewSoBlockProducerWrap(d.Database(), mVal).GetActive() {
 			names = append(names, mVal.Value)
 		}
 		return true
