@@ -39,10 +39,11 @@ func (tester *BpTest) Test(t *testing.T, d *Dandelion) {
 
 	t.Run("regist", d.Test(tester.regist))
 	t.Run("dupRegist", d.Test(tester.dupRegist))
-	t.Run("unRegist", d.Test(tester.unRegist))
 	t.Run("bpVote", d.Test(tester.bpVote))
+	t.Run("bpUnVote", d.Test(tester.bpUnVote))
 	t.Run("bpVoteMultiTime", d.Test(tester.bpVoteMultiTime))
 	t.Run("bpUpdate", d.Test(tester.bpUpdate))
+	t.Run("unRegist", d.Test(tester.unRegist))
 }
 
 func (tester *BpTest) regist(t *testing.T, d *Dandelion) {
@@ -73,23 +74,38 @@ func (tester *BpTest) dupRegist(t *testing.T, d *Dandelion) {
 func (tester *BpTest) bpVote(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
 	a.True(tester.acc1.GetBpVoteCount() == 0)
-	a.NoError(tester.acc1.SendTrx(BpVote(tester.acc1.Name,tester.acc0.Name)))
+	a.NoError(tester.acc1.SendTrx(BpVote(tester.acc1.Name,tester.acc0.Name,false)))
 	a.NoError(d.ProduceBlocks(1))
 	witWrap := d.Witness(tester.acc0.Name)
 	a.True(witWrap.GetVoteCount().Value > 0)
 	a.True(tester.acc1.GetBpVoteCount() == 1)
 }
 
-func (tester *BpTest) bpVoteMultiTime(t *testing.T, d *Dandelion) {
+func (tester *BpTest) bpUnVote(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
 	a.True(tester.acc2.GetBpVoteCount() == 0)
-	a.NoError(tester.acc2.SendTrx(BpVote(tester.acc2.Name,tester.acc0.Name)))
+	a.NoError(tester.acc2.SendTrx(BpVote(tester.acc2.Name,tester.acc0.Name,false)))
 	a.NoError(d.ProduceBlocks(1))
 	witWrap := d.Witness(tester.acc0.Name)
 	a.True(witWrap.GetVoteCount().Value > 0)
 	a.True(tester.acc2.GetBpVoteCount() == 1)
 
-	a.NoError(tester.acc2.SendTrx(BpVote(tester.acc2.Name,tester.acc0.Name)))
+	// unvote
+	a.NoError(tester.acc2.SendTrx(BpVote(tester.acc2.Name,tester.acc0.Name,true)))
+	a.NoError(d.ProduceBlocks(1))
+	a.True(tester.acc2.GetBpVoteCount() == 0)
+}
+
+func (tester *BpTest) bpVoteMultiTime(t *testing.T, d *Dandelion) {
+	a := assert.New(t)
+	a.True(tester.acc2.GetBpVoteCount() == 0)
+	a.NoError(tester.acc2.SendTrx(BpVote(tester.acc2.Name,tester.acc0.Name,false)))
+	a.NoError(d.ProduceBlocks(1))
+	witWrap := d.Witness(tester.acc0.Name)
+	a.True(witWrap.GetVoteCount().Value > 0)
+	a.True(tester.acc2.GetBpVoteCount() == 1)
+
+	a.NoError(tester.acc2.SendTrx(BpVote(tester.acc2.Name,tester.acc0.Name,false)))
 	a.NoError(d.ProduceBlocks(1))
 	a.True(tester.acc2.GetBpVoteCount() == 1)
 }

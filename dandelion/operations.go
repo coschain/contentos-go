@@ -75,10 +75,11 @@ func BpUnregister(name string) *prototype.Operation {
 	})
 }
 
-func BpVote(voter, bp string) *prototype.Operation {
+func BpVote(voter, bp string, cancel bool) *prototype.Operation {
 	return prototype.GetPbOperation(&prototype.BpVoteOperation{
 		Voter: prototype.NewAccountName(voter),
 		Witness: prototype.NewAccountName(bp),
+		Cancel:cancel,
 	})
 }
 
