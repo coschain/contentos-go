@@ -25,7 +25,10 @@ var defaultProps = &prototype.ChainProperties{
 }
 
 func checkError(r* prototype.TransactionReceiptWithInfo) error {
-	if r == nil || r.Status != prototype.StatusSuccess {
+	if r == nil {
+		return errors.New("receipt is nil")
+	}
+	if r.Status != prototype.StatusSuccess {
 		return errors.New(r.ErrorInfo)
 	}
 	return nil
@@ -70,15 +73,15 @@ func (tester *BpTest) regist(t *testing.T, d *Dandelion) {
 func (tester *BpTest) dupRegist(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
 
-	// acc0 regist as bp
-	a.NoError(checkError(d.Account(tester.acc0.Name).TrxReceipt(BpRegister(tester.acc0.Name,"www.me.com","nothing",tester.acc0.GetPubKey(),defaultProps))))
-	witWrap := d.Witness(tester.acc0.Name)
+	// acc1 regist as bp
+	a.NoError(checkError(d.Account(tester.acc1.Name).TrxReceipt(BpRegister(tester.acc1.Name,"www.me.com","nothing",tester.acc1.GetPubKey(),defaultProps))))
+	witWrap := d.Witness(tester.acc1.Name)
 	a.True(witWrap.CheckExist())
 
-	// acc0 regist again, this time should failed
-	a.Error(checkError(d.Account(tester.acc0.Name).TrxReceipt(BpRegister(tester.acc0.Name,"www.you.com","nothing",tester.acc0.GetPubKey(),defaultProps))))
-	witWrapCheck := d.Witness(tester.acc0.Name)
-	// acc0's bp info should be in old
+	// acc1 regist again, this time should failed
+	a.Error(checkError(d.Account(tester.acc1.Name).TrxReceipt(BpRegister(tester.acc1.Name,"www.you.com","nothing",tester.acc1.GetPubKey(),defaultProps))))
+	witWrapCheck := d.Witness(tester.acc1.Name)
+	// acc1's bp info should be in old
 	a.True(witWrapCheck.GetUrl() == "www.me.com")
 }
 
@@ -86,10 +89,10 @@ func (tester *BpTest) bpVote(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
 	a.True(tester.acc1.GetBpVoteCount() == 0)
 
-	// acc1 vote for bp
-	a.NoError(checkError(d.Account(tester.acc1.Name).TrxReceipt(BpVote(tester.acc1.Name,tester.acc0.Name,false))))
+	// acc1 vote for bp acc1
+	a.NoError(checkError(d.Account(tester.acc1.Name).TrxReceipt(BpVote(tester.acc1.Name,tester.acc1.Name,false))))
 
-	witWrap := d.Witness(tester.acc0.Name)
+	witWrap := d.Witness(tester.acc1.Name)
 
 	// check bp's vote count and acc1's vote count
 	a.True(witWrap.GetVoteVest().Value > 0)
@@ -101,15 +104,15 @@ func (tester *BpTest) bpUnVote(t *testing.T, d *Dandelion) {
 	a.True(tester.acc2.GetBpVoteCount() == 0)
 
 	// acc2 vote for bp
-	a.NoError(checkError(d.Account(tester.acc2.Name).TrxReceipt(BpVote(tester.acc2.Name,tester.acc0.Name,false))))
+	a.NoError(checkError(d.Account(tester.acc2.Name).TrxReceipt(BpVote(tester.acc2.Name,tester.acc1.Name,false))))
 
 	// check bp's vote count and acc2's vote count
-	witWrap := d.Witness(tester.acc0.Name)
+	witWrap := d.Witness(tester.acc1.Name)
 	a.True(witWrap.GetVoteVest().Value > 0)
 	a.True(tester.acc2.GetBpVoteCount() == 1)
 
 	// acc2 unvote
-	a.NoError(checkError(d.Account(tester.acc2.Name).TrxReceipt(BpVote(tester.acc2.Name,tester.acc0.Name,true))))
+	a.NoError(checkError(d.Account(tester.acc2.Name).TrxReceipt(BpVote(tester.acc2.Name,tester.acc1.Name,true))))
 	// check acc2's vote count
 	a.True(tester.acc2.GetBpVoteCount() == 0)
 }
@@ -117,17 +120,19 @@ func (tester *BpTest) bpUnVote(t *testing.T, d *Dandelion) {
 func (tester *BpTest) bpVoteMultiTime(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
 	a.True(tester.acc2.GetBpVoteCount() == 0)
+	witWrap := d.Witness(tester.acc1.Name)
+	a.True(witWrap.CheckExist())
 
-	// acc2 vote for bp
-	a.NoError(checkError(d.Account(tester.acc2.Name).TrxReceipt(BpVote(tester.acc2.Name,tester.acc0.Name,false))))
+	// acc2 vote for bp acc1
+	a.NoError(checkError(d.Account(tester.acc2.Name).TrxReceipt(BpVote(tester.acc2.Name,tester.acc1.Name,false))))
 
 	// check acc2's vote count
-	witWrap := d.Witness(tester.acc0.Name)
-	a.True(witWrap.GetVoteVest().Value > 0)
+	witWrap2 := d.Witness(tester.acc1.Name)
+	a.True(witWrap2.GetVoteVest().Value > 0)
 	a.True(tester.acc2.GetBpVoteCount() == 1)
 
 	// acc2 vote again for bp
-	a.Error(checkError(d.Account(tester.acc2.Name).TrxReceipt(BpVote(tester.acc2.Name,tester.acc0.Name,false))))
+	a.Error(checkError(d.Account(tester.acc2.Name).TrxReceipt(BpVote(tester.acc2.Name,tester.acc1.Name,false))))
 	// acc2's vote count should stay original
 	a.True(tester.acc2.GetBpVoteCount() == 1)
 }
@@ -137,30 +142,30 @@ func (tester *BpTest) bpUpdate(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
 
 	// change staminaFree param
-	witWrap := d.Witness(tester.acc0.Name)
+	witWrap := d.Witness(tester.acc1.Name)
 	a.True(witWrap.GetProposedStaminaFree() == constants.DefaultStaminaFree)
 	defaultProps.StaminaFree = 1
 
-	// acc0 update bp property
-	a.NoError(checkError(d.Account(tester.acc0.Name).TrxReceipt(BpUpdate(tester.acc0.Name,defaultProps))))
+	// acc1 update bp property
+	a.NoError(checkError(d.Account(tester.acc1.Name).TrxReceipt(BpUpdate(tester.acc1.Name,defaultProps))))
 
 	// check stamina
-	witWrap2 := d.Witness(tester.acc0.Name)
+	witWrap2 := d.Witness(tester.acc1.Name)
 	a.True(witWrap2.GetProposedStaminaFree() == 1)
 }
 
 func (tester *BpTest) unRegist(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
-	witWrap := d.Witness(tester.acc0.Name)
+	witWrap := d.Witness(tester.acc1.Name)
 	a.True(witWrap.GetActive())
 
-	// acc0 unregist
-	a.NoError(checkError(d.Account(tester.acc0.Name).TrxReceipt(BpUnregister(tester.acc0.Name))))
+	// acc1 unregist
+	a.NoError(checkError(d.Account(tester.acc1.Name).TrxReceipt(BpUnregister(tester.acc1.Name))))
 
 	// check status
 	a.True(witWrap.CheckExist())
 	a.False(witWrap.GetActive())
 
 	// unregist again, should failed
-	a.Error(checkError(d.Account(tester.acc0.Name).TrxReceipt(BpUnregister(tester.acc0.Name))))
+	a.Error(checkError(d.Account(tester.acc1.Name).TrxReceipt(BpUnregister(tester.acc1.Name))))
 }
