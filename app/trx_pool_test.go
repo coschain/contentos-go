@@ -3,13 +3,21 @@ package app
 import (
 	"errors"
 	"fmt"
+	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
+	"github.com/coschain/contentos-go/db/storage"
 	"github.com/coschain/contentos-go/iservices"
+	"github.com/coschain/contentos-go/mylog"
+	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/golang/protobuf/proto"
 	"io/ioutil"
+	"math/rand"
+	"os"
+	"path/filepath"
+	"strconv"
 	"testing"
 	"time"
 )
@@ -23,6 +31,86 @@ const (
 	pubKeyTom      = "COS5E2vDnf245ydZBBUgQ8RkjNBzoKvGyr9kW4rfMMQcnkiD8JnEd"
 	priKeyTom      = "3u6RCpDUEEUmB9QsFMNKCfEY54WWtmcXvqyD2NcHCDzhuhrP8F"
 )
+
+const (
+	dbPath  = "./pbTool.db"
+	logPath = "./logs"
+)
+
+func startDB() iservices.IDatabaseService {
+	dir, _ := ioutil.TempDir("", "db")
+	db, err := storage.NewDatabase(filepath.Join(dir, strconv.FormatUint(rand.Uint64(), 16)))
+	if err != nil {
+		return nil
+	}
+	err = db.Start(nil)
+	if err != nil {
+		fmt.Print(err)
+		panic("start db error")
+	}
+	return db
+}
+
+func clearDB(db iservices.IDatabaseService) {
+	db.Close()
+	dir, _ := ioutil.TempDir("", "db")
+	os.RemoveAll(dir)
+}
+
+func startController(db iservices.IDatabaseService) *TrxPool {
+	log, err := mylog.NewMyLog(logPath, mylog.DebugLevel, 0)
+	mustNoError(err, "new log error")
+	ctx := makeCtx()
+	c, _ := NewController(ctx, log.Logger)
+	c.SetDB(db)
+	c.SetBus(EventBus.New())
+	c.Open()
+	c.SetShuffle(func(block common.ISignedBlock)(bool, []string) {
+		return false, []string{constants.COSInitMiner}
+	})
+	return c
+}
+
+var stopChan = make(chan int,1)
+var tick *time.Ticker
+
+func startGenerateBlock(c *TrxPool) {
+	pre := &prototype.Sha256{Hash: make([]byte, 32)}
+	var startTime uint32 = 0
+	pri, err := prototype.PrivateKeyFromWIF(constants.InitminerPrivKey)
+	if err != nil {
+		panic(err)
+	}
+	tick = time.NewTicker(1 * time.Second)
+	for {
+		select {
+		case <-stopChan:
+			return
+		case <-tick.C:
+			block,err := c.GenerateAndApplyBlock(constants.COSInitMiner,pre,startTime,pri,0)
+			if err != nil {
+				panic(err)
+			}
+			id := block.Id()
+			pre = &prototype.Sha256{Hash: id.Data[:]}
+			startTime++
+		}
+	}
+}
+
+func stopGenerateBlock() {
+	tick.Stop()
+	stopChan <- 1
+}
+
+func makeCtx() (*node.ServiceContext) {
+	var cfg = &node.Config{}
+	//cfg.ResourceCheck = true
+	ctx := &node.ServiceContext{}
+	ctx.ResetConfig(cfg)
+	ctx.ResetServices(nil)
+	return ctx
+}
 
 func addGlobalTime(db iservices.IDatabaseService, delta uint32) {
 	wrap := table.NewSoGlobalWrap(db, &constants.GlobalId)
@@ -144,7 +232,7 @@ func makeCreateAccountOP(accountName string, pubKey string) (*prototype.AccountC
 		Fee:            prototype.NewCoin(1),
 		Creator:        &prototype.AccountName{Value: constants.COSInitMiner},
 		NewAccountName: &prototype.AccountName{Value: accountName},
-		Owner:          pub,
+		PubKey:          pub,
 	}
 
 	return acop, nil
@@ -471,8 +559,8 @@ func Test_Stake_UnStake(t *testing.T) {
 	go startGenerateBlock(c)
 
 	wraper := table.NewSoAccountWrap(db, prototype.NewAccountName(constants.COSInitMiner))
-	if wraper.GetStakeVesting().Value != 0 {
-		t.Error("stake vesting error")
+	if wraper.GetStakeVest().Value != 0 {
+		t.Error("stake vest error")
 	}
 
 	stakeOp := &prototype.StakeOperation{
@@ -491,8 +579,8 @@ func Test_Stake_UnStake(t *testing.T) {
 		t.Error("PushTrx return status error:", invoice.Status)
 	}
 
-	if wraper.GetStakeVesting().Value != 100 {
-		t.Error("stake vesting error")
+	if wraper.GetStakeVest().Value != 100 {
+		t.Error("stake vest error")
 	}
 
 	// un stake
@@ -515,8 +603,8 @@ func Test_Stake_UnStake(t *testing.T) {
 		t.Error("PushTrx return status error:", invoice2.Status)
 	}
 
-	if wraper.GetStakeVesting().Value != 0 {
-		t.Error("stake vesting error")
+	if wraper.GetStakeVest().Value != 0 {
+		t.Error("stake vest error")
 	}
 
 	// stake wrong amount
@@ -564,8 +652,8 @@ func Test_StakeFreezeTime(t *testing.T) {
 	go startGenerateBlock(c)
 
 	wraper := table.NewSoAccountWrap(db, prototype.NewAccountName(constants.COSInitMiner))
-	if wraper.GetStakeVesting().Value != 0 {
-		t.Error("stake vesting error")
+	if wraper.GetStakeVest().Value != 0 {
+		t.Error("stake vest error")
 	}
 
 	stake(c, constants.COSInitMiner, constants.InitminerPrivKey, 100000)
@@ -634,7 +722,7 @@ func Test_Consume1(t *testing.T) {
 
 	bobName := &prototype.AccountName{Value: accountNameBob}
 	bobWrap := table.NewSoAccountWrap(db, bobName)
-	if bobWrap.GetStakeVesting().Value != value {
+	if bobWrap.GetStakeVest().Value != value {
 		t.Error("stake error")
 	}
 
@@ -686,7 +774,7 @@ func Test_Recover1(t *testing.T) {
 
 	bobName := &prototype.AccountName{Value: accountNameBob}
 	bobWrap := table.NewSoAccountWrap(db, bobName)
-	if bobWrap.GetStakeVesting().Value != value-1 {
+	if bobWrap.GetStakeVest().Value != value-1 {
 		t.Error("stake error")
 	}
 	useStamina := bobWrap.GetStaminaFree() + bobWrap.GetStamina()
@@ -913,7 +1001,7 @@ func Test_TrxSize(t *testing.T) {
 	trx9, _ := createSigTrx(c, constants.InitminerPrivKey, vote)
 	fmt.Println(proto.Size(trx9))
 
-	tranToV := &prototype.TransferToVestingOperation{From: prototype.NewAccountName("aaa"), To: prototype.NewAccountName("bbb"), Amount: prototype.NewCoin(100)}
+	tranToV := &prototype.TransferToVestOperation{From: prototype.NewAccountName("aaa"), To: prototype.NewAccountName("bbb"), Amount: prototype.NewCoin(100)}
 	trx10, _ := createSigTrx(c, constants.InitminerPrivKey, tranToV)
 	fmt.Println(proto.Size(trx10))
 

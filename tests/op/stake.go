@@ -29,21 +29,21 @@ func (tester *StakeTester) Test(t *testing.T, d *Dandelion) {
 func (tester *StakeTester) normal(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
 	balance0 := tester.acc0.GetBalance().Value
-	stakeVest1 := tester.acc1.GetStakeVesting().Value
+	stakeVest1 := tester.acc1.GetStakeVest().Value
 	a.NoError(tester.acc0.SendTrx(Stake(tester.acc0.Name, tester.acc1.Name, 100)))
 	a.NoError(d.ProduceBlocks(1))
 	a.Equal(balance0-100, tester.acc0.GetBalance().Value)
-	a.Equal(stakeVest1+100, tester.acc1.GetStakeVesting().Value)
+	a.Equal(stakeVest1+100, tester.acc1.GetStakeVest().Value)
 }
 
 func (tester *StakeTester) wrongSender(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
 	sender := d.Account("account1")
 	a.Empty(sender.CheckExist())
-	stakeVest2 := tester.acc2.GetStakeVesting().Value
+	stakeVest2 := tester.acc2.GetStakeVest().Value
 	a.Error(tester.acc0.SendTrx(Stake(sender.Name, tester.acc2.Name, 1)))
 	a.NoError(d.ProduceBlocks(1))
-	a.Equal(stakeVest2, tester.acc2.GetStakeVesting().Value)
+	a.Equal(stakeVest2, tester.acc2.GetStakeVest().Value)
 }
 
 
@@ -67,7 +67,7 @@ func (tester *StakeTester) wrongSenderAndReceiver(t *testing.T, d *Dandelion) {
 	a.Error(tester.acc2.SendTrx(Stake(sender.Name, receiver.Name, 10)))
 	a.NoError(d.ProduceBlocks(1))
 	a.Nil(sender.GetBalance())
-	a.Nil(receiver.GetStakeVesting())
+	a.Nil(receiver.GetStakeVest())
 
 }
 
@@ -75,10 +75,10 @@ func (tester *StakeTester) amountZero(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
 
 	balance0 := tester.acc0.GetBalance().Value
-	stakeVest2 := tester.acc2.GetStakeVesting().Value
+	stakeVest2 := tester.acc2.GetStakeVest().Value
 	a.Error(tester.acc1.SendTrx(Stake(tester.acc0.Name, tester.acc2.Name, 0)))
 	a.Equal(balance0, tester.acc0.GetBalance().Value)
-	a.Equal(stakeVest2, tester.acc2.GetStakeVesting().Value)
+	a.Equal(stakeVest2, tester.acc2.GetStakeVest().Value)
 
 }
 
@@ -86,11 +86,11 @@ func (tester *StakeTester) insufficientBalance(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
 
 	balance2 := tester.acc2.GetBalance().Value
-	stakeVest0 := tester.acc0.GetStakeVesting().Value
+	stakeVest0 := tester.acc0.GetStakeVest().Value
 	a.NoError(tester.acc2.SendTrx(Stake(tester.acc2.Name, tester.acc0.Name, math.MaxUint64)))
 	a.NoError(d.ProduceBlocks(1))
 	a.Equal(balance2, tester.acc2.GetBalance().Value)
-	a.Equal(stakeVest0, tester.acc0.GetStakeVesting().Value)
+	a.Equal(stakeVest0, tester.acc0.GetStakeVest().Value)
 
 }
 
@@ -102,12 +102,12 @@ func (tester *StakeTester) multipleStake(t *testing.T, d *Dandelion) {
 	for i := 0; i < 6; i++ {
 		balance0 := tester.acc0.GetBalance().Value
 		acct := acctList[i%listLen]
-		stakeVest := acct.GetStakeVesting().Value
+		stakeVest := acct.GetStakeVest().Value
 		amount := uint64(20*(i+1))
 		a.NoError(tester.acc0.SendTrx(Stake(tester.acc0.Name, acct.Name, amount)))
 		a.NoError(d.ProduceBlocks(1))
 		a.Equal(balance0-amount, tester.acc0.GetBalance().Value)
-		a.Equal(stakeVest+amount, acct.GetStakeVesting().Value)
+		a.Equal(stakeVest+amount, acct.GetStakeVest().Value)
 	}
 
 }

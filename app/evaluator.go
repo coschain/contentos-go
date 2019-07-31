@@ -89,10 +89,10 @@ type FollowEvaluator struct {
 	op  *prototype.FollowOperation
 }
 
-type TransferToVestingEvaluator struct {
+type TransferToVestEvaluator struct {
 	BaseEvaluator
 	BaseDelegate
-	op  *prototype.TransferToVestingOperation
+	op  *prototype.TransferToVestOperation
 }
 
 //type ClaimEvaluator struct {
@@ -107,10 +107,10 @@ type ReportEvaluator struct {
 	op  *prototype.ReportOperation
 }
 
-type ConvertVestingEvaluator struct {
+type ConvertVestEvaluator struct {
 	BaseEvaluator
 	BaseDelegate
-	op  *prototype.ConvertVestingOperation
+	op  *prototype.ConvertVestOperation
 }
 
 // I can cat out this awkward claimall operation until I can get value from rpc resp
@@ -192,8 +192,8 @@ func init() {
 	RegisterEvaluator((*prototype.VoteOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
 		return &VoteEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.VoteOperation)}
 	})
-	RegisterEvaluator((*prototype.TransferToVestingOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
-		return &TransferToVestingEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.TransferToVestingOperation)}
+	RegisterEvaluator((*prototype.TransferToVestOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
+		return &TransferToVestEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.TransferToVestOperation)}
 	})
 	RegisterEvaluator((*prototype.ContractDeployOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
 		return &ContractDeployEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.ContractDeployOperation)}
@@ -204,8 +204,8 @@ func init() {
 	RegisterEvaluator((*prototype.ReportOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
 		return &ReportEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.ReportOperation)}
 	})
-	RegisterEvaluator((*prototype.ConvertVestingOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
-		return &ConvertVestingEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.ConvertVestingOperation)}
+	RegisterEvaluator((*prototype.ConvertVestOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
+		return &ConvertVestEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.ConvertVestOperation)}
 	})
 	RegisterEvaluator((*prototype.StakeOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
 		return &StakeEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.StakeOperation)}
@@ -253,8 +253,8 @@ func (ev *AccountCreateEvaluator) Apply() {
 		tInfo.Creator = op.Creator
 		tInfo.CreatedTime = ev.GlobalProp().HeadBlockTime()
 		tInfo.Balance = prototype.NewCoin(0)
-		//tInfo.VestingShares = op.Fee.ToVest()
-		tInfo.VestingShares = accountCreateFee.ToVest()
+		//tInfo.Vest = op.Fee.ToVest()
+		tInfo.Vest = accountCreateFee.ToVest()
 		tInfo.LastPostTime = ev.GlobalProp().HeadBlockTime()
 		tInfo.LastVoteTime = ev.GlobalProp().HeadBlockTime()
 		tInfo.NextPowerdownBlockNum = math.MaxUint32
@@ -262,7 +262,7 @@ func (ev *AccountCreateEvaluator) Apply() {
 		tInfo.ToPowerdown = &prototype.Vest{Value: 0}
 		tInfo.HasPowerdown = &prototype.Vest{Value: 0}
 		tInfo.PubKey = op.PubKey
-		tInfo.StakeVesting = prototype.NewVest(0)
+		tInfo.StakeVest = prototype.NewVest(0)
 		tInfo.Reputation = constants.DefaultReputation
 		tInfo.ChargedTicket = 0
 	}), "duplicate create account object")
@@ -453,12 +453,12 @@ func (ev *VoteEvaluator) Apply() {
 
 	voterWrap.MdVotePower(currentVp - usedVp)
 	voterWrap.MdLastVoteTime(ev.GlobalProp().HeadBlockTime())
-	vesting := voterWrap.GetVestingShares().Value
+	vest := voterWrap.GetVest().Value
 	// after constants.PERCENT replaced by 1000, max value is 10000000000 * 1000000 * 1000 / 30
 	// 10000000000 * 1000000 * 1000 < 18446744073709552046 but 10000000000 * 1000000 > 9223372036854775807
 	// so can not using int64 here
-	//weightedVp := vesting * uint64(usedVp)
-	weightedVp := new(big.Int).SetUint64(vesting)
+	//weightedVp := vest * uint64(usedVp)
+	weightedVp := new(big.Int).SetUint64(vest)
 	weightedVp.Mul(weightedVp, new(big.Int).SetUint64(uint64(usedVp)))
 
 	// if voter's reputation is 0, she has no voting power.
@@ -511,7 +511,7 @@ func (ev *BpRegisterEvaluator) Apply() {
 	accountWrap := table.NewSoAccountWrap(ev.Database(), op.Owner)
 	opAssert(accountWrap.CheckExist(), "block producer account not exist")
 
-	accountBalance := accountWrap.GetVestingShares()
+	accountBalance := accountWrap.GetVest()
 	opAssert(accountBalance.Value >= constants.MinBpRegisterVest,
 		fmt.Sprintf("vest balance should greater than %d", constants.MinBpRegisterVest / constants.COSTokenDecimals))
 
@@ -542,7 +542,7 @@ func (ev *BpRegisterEvaluator) Apply() {
 		fmt.Sprintf("account create fee too high max value %d", constants.MaxAccountCreateFee))
 
 	topNAcquireFreeToken := op.Props.TopNAcquireFreeToken
-	opAssert(topNAcquireFreeToken <= constants.MaxTopN, fmt.Sprintf("top N vesting holders, the N is too big, " +
+	opAssert(topNAcquireFreeToken <= constants.MaxTopN, fmt.Sprintf("top N VEST holders, the N is too big, " +
 		"which should lower than %d", constants.MaxTopN))
 
 	epochDuration := op.Props.EpochDuration
@@ -596,7 +596,7 @@ func (ev *BpVoteEvaluator) Apply() {
 	voterAccount := table.NewSoAccountWrap(ev.Database(), op.Voter)
 	opAssert(voterAccount.CheckExist(), "voter account not exist")
 	voteCnt := voterAccount.GetBpVoteCount()
-	voterVests := voterAccount.GetVestingShares()
+	voterVests := voterAccount.GetVest()
 
 	bpAccountWrap := table.NewSoAccountWrap(ev.Database(), op.Witness)
 	opAssert(bpAccountWrap.CheckExist(), "block producer account not exist ")
@@ -677,7 +677,7 @@ func (ev *BpUpdateEvaluator) Apply() {
 		fmt.Sprintf("account create fee too high max value %d", constants.MaxAccountCreateFee))
 
 	topNAcquireFreeToken := op.TopNAcquireFreeToken
-	opAssert(topNAcquireFreeToken <= constants.MaxTopN, fmt.Sprintf("top N vesting holders, the N is too big, " +
+	opAssert(topNAcquireFreeToken <= constants.MaxTopN, fmt.Sprintf("top N VEST holders, the N is too big, " +
 		"which should lower than %d", constants.MaxTopN))
 
 	epochDuration := op.EpochDuration
@@ -711,7 +711,7 @@ func (ev *FollowEvaluator) Apply() {
 	opAssert( op.Account.Value != op.FAccount.Value, "can't follow yourself")
 }
 
-func (ev *TransferToVestingEvaluator) Apply() {
+func (ev *TransferToVestEvaluator) Apply() {
 	op := ev.op
 	ev.VMInjector().RecordStaminaFee(op.From.Value, constants.CommonOpStamina)
 
@@ -721,7 +721,7 @@ func (ev *TransferToVestingEvaluator) Apply() {
 	opAssert(tidWrap.CheckExist(), "to account do not exist")
 
 	fBalance := fidWrap.GetBalance()
-	tVests := tidWrap.GetVestingShares()
+	tVests := tidWrap.GetVest()
 	oldVest := prototype.NewVest(tVests.Value)
 	addVests := prototype.NewVest(op.Amount.Value)
 
@@ -729,7 +729,7 @@ func (ev *TransferToVestingEvaluator) Apply() {
 	opAssert(fidWrap.MdBalance(fBalance), "set from new balance error")
 
 	opAssertE(tVests.Add(addVests), "vests error")
-	opAssert(tidWrap.MdVestingShares(tVests), "set to new vests error")
+	opAssert(tidWrap.MdVest(tVests), "set to new vests error")
 
 	updateWitnessVoteCount(ev.Database(), op.To, oldVest, tVests)
 
@@ -783,14 +783,14 @@ func updateWitnessVoteCount(dba iservices.IDatabaseRW, voter *prototype.AccountN
 	return
 }
 
-func (ev *ConvertVestingEvaluator) Apply() {
+func (ev *ConvertVestEvaluator) Apply() {
 	op := ev.op
 	ev.VMInjector().RecordStaminaFee(op.From.Value, constants.CommonOpStamina)
 
 	accWrap := table.NewSoAccountWrap(ev.Database(), op.From)
 	opAssert(accWrap.CheckExist(), "account do not exist")
-	//opAssert(op.Amount.Value >= uint64(1e6), "At least 1 vesting should be converted")
-	opAssert(accWrap.GetVestingShares().Value >= op.Amount.Value, "vesting balance not enough")
+	//opAssert(op.Amount.Value >= uint64(1e6), "At least 1 VEST should be converted")
+	opAssert(accWrap.GetVest().Value >= op.Amount.Value, "VEST balance not enough")
 	globalProps := ev.GlobalProp().GetProps()
 	//timestamp := globalProps.Time.UtcSeconds
 	currentBlock := globalProps.HeadBlockNumber
@@ -1104,14 +1104,14 @@ func (ev *StakeEvaluator) Apply() {
 	opAssert(tidWrap.CheckExist(), "to account do not exist")
 
 	fBalance := fidWrap.GetBalance()
-	tVests := tidWrap.GetStakeVesting()
+	tVests := tidWrap.GetStakeVest()
 	addVests := prototype.NewVest(op.Amount.Value)
 
 	opAssertE(fBalance.Sub(op.Amount), "balance not enough")
 	opAssert(fidWrap.MdBalance(fBalance), "set from new balance error")
 
 	opAssertE(tVests.Add(addVests), "vests error")
-	opAssert(tidWrap.MdStakeVesting(tVests), "set to new vests error")
+	opAssert(tidWrap.MdStakeVest(tVests), "set to new vests error")
 
 	// unique stake record
 	recordWrap := table.NewSoStakeRecordWrap(ev.Database(), &prototype.StakeRecord{
@@ -1164,9 +1164,9 @@ func (ev *UnStakeEvaluator) Apply() {
 
 	value := op.Amount
 
-	vest := debtorWrap.GetStakeVesting()
-	opAssertE(vest.Sub(value.ToVest()), "vesting over flow.")
-	opAssert(debtorWrap.MdStakeVesting(vest), "modify vesting failed")
+	vest := debtorWrap.GetStakeVest()
+	opAssertE(vest.Sub(value.ToVest()), "stake vest over flow.")
+	opAssert(debtorWrap.MdStakeVest(vest), "modify stake vest failed")
 
 	fBalance := creditorWrap.GetBalance()
 	opAssertE(fBalance.Add(value), "Insufficient balance to transfer.")
@@ -1193,7 +1193,7 @@ func (ev *AcquireTicketEvaluator) Apply() {
 
 	ticketPrice := ev.GlobalProp().GetProps().PerTicketPrice
 	balance := account.GetBalance()
-	//oldVest := account.GetVestingShares()
+	//oldVest := account.GetVest()
 
 	fee := &prototype.Coin{Value: ticketPrice.Value}
 	opAssertE(fee.Mul(count), "mul ticket price with count overflow")
@@ -1332,11 +1332,11 @@ func (ev *VoteByTicketEvaluator) Apply() {
 	currentTicketsNum := chargedTicketsNum - count
 	ev.GlobalProp().UpdateTicketIncomeAndNum(currentIncome, currentTicketsNum)
 
-	bpVest := bpWrap.GetVestingShares()
-	oldVest := bpWrap.GetVestingShares()
+	bpVest := bpWrap.GetVest()
+	oldVest := bpWrap.GetVest()
 	// currently, all income will put into bp's wallet.
 	// it will be change.
 	mustNoError(bpVest.Add(equalValue), "add equal value to bp failed")
-	bpWrap.MdVestingShares(bpVest)
+	bpWrap.MdVest(bpVest)
 	updateWitnessVoteCount(ev.Database(), currentWitness, oldVest, bpVest)
 }

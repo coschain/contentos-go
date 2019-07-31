@@ -3,11 +3,11 @@ package prototype
 import "github.com/pkg/errors"
 
 
-func (m *TransferToVestingOperation) GetSigner(auths *map[string]bool) {
+func (m *TransferToVestOperation) GetSigner(auths *map[string]bool) {
 	(*auths)[m.From.Value] = true
 }
 
-func (m *TransferToVestingOperation) Validate() error {
+func (m *TransferToVestOperation) Validate() error {
 	if m == nil {
 		return ErrNpe
 	}
@@ -27,10 +27,10 @@ func (m *TransferToVestingOperation) Validate() error {
 	return nil
 }
 
-func (m *TransferToVestingOperation) GetAffectedProps(props *map[string]bool) {
+func (m *TransferToVestOperation) GetAffectedProps(props *map[string]bool) {
 	(*props)["*"] = true
 }
 
 func init() {
-	registerOperation("transfer_to_vesting", (*Operation_Op10)(nil), (*TransferToVestingOperation)(nil));
+	registerOperation("transfer_to_vest", (*Operation_Op10)(nil), (*TransferToVestOperation)(nil));
 }

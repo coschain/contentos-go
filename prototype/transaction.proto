@@ -19,13 +19,13 @@ message operation{
         reply_operation op7 = 7;
         follow_operation op8 = 8;
         vote_operation op9 = 9;
-        transfer_to_vesting_operation op10 = 10;
+        transfer_to_vest_operation op10 = 10;
         claim_operation op11 = 11;
         claim_all_operation op12 = 12;
         contract_deploy_operation op13 = 13;
         contract_apply_operation op14 = 14;
         report_operation op15 = 15;
-        convert_vesting_operation op16 = 16;
+        convert_vest_operation op16 = 16;
         stake_operation op17 = 17;
         un_stake_operation op18 = 18;
         bp_update_operation op19 = 19;

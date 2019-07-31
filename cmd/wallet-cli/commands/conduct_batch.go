@@ -202,7 +202,7 @@ func conductBatch(cmd *cobra.Command, args []string) {
 				PrivKey: fromAccountPriKeyStr,
 			}
 
-			transferv_op := &prototype.TransferToVestingOperation{
+			transferv_op := &prototype.TransferToVestOperation{
 				From:   &prototype.AccountName{Value: fromAccountName},
 				To:     &prototype.AccountName{Value: toAccountName},
 				Amount: prototype.NewCoin(uint64(amount)),

@@ -36,9 +36,9 @@ func (tester *BpTest) Test(t *testing.T, d *Dandelion) {
 	tester.acc1 = d.Account("actor1")
 	tester.acc2 = d.Account("actor2")
 	var ops []*prototype.Operation
-	ops = append(ops,TransferToVesting(constants.COSInitMiner, "actor0", constants.MinBpRegisterVest))
-	ops = append(ops,TransferToVesting(constants.COSInitMiner, "actor1", constants.MinBpRegisterVest))
-	ops = append(ops,TransferToVesting(constants.COSInitMiner, "actor2", constants.MinBpRegisterVest))
+	ops = append(ops,TransferToVest(constants.COSInitMiner, "actor0", constants.MinBpRegisterVest))
+	ops = append(ops,TransferToVest(constants.COSInitMiner, "actor1", constants.MinBpRegisterVest))
+	ops = append(ops,TransferToVest(constants.COSInitMiner, "actor2", constants.MinBpRegisterVest))
 
 	if err := checkError(d.Account(constants.COSInitMiner).TrxReceipt(ops...)); err != nil {
 		t.Error(err)

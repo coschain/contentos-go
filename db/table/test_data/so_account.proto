@@ -13,6 +13,6 @@ message so_account {
     prototype.account_name      creator          =      3;
     prototype.public_key_type   pub_key          =      4;
     prototype.coin              balance          =      5;
-    prototype.vest              vesting_shares      =      6;
+    prototype.vest              vest             =      6;
 
 }

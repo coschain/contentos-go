@@ -885,12 +885,12 @@ func (as *APIService) getAccountResponseByName(name *prototype.AccountName, isNe
 	if accWrap != nil && accWrap.CheckExist() {
 		acctInfo.AccountName = &prototype.AccountName{Value: accWrap.GetName().Value}
 		acctInfo.Coin = accWrap.GetBalance()
-		acctInfo.Vest = accWrap.GetVestingShares()
+		acctInfo.Vest = accWrap.GetVest()
 		acctInfo.CreatedTime = accWrap.GetCreatedTime()
 		acctInfo.PostCount = accWrap.GetPostCount()
 		acctInfo.TrxCount = accWrap.GetCreatedTrxCount()
 		acctInfo.VotePower = accWrap.GetVotePower()
-		acctInfo.StakeVest = accWrap.GetStakeVesting()
+		acctInfo.StakeVest = accWrap.GetStakeVest()
 		acctInfo.WithdrawRemains = accWrap.GetToPowerdown()
 		acctInfo.WithdrawEachTime = accWrap.GetEachPowerdownRate()
 		acctInfo.BpVoteCount = accWrap.GetBpVoteCount()
@@ -1471,7 +1471,7 @@ func (as *APIService) GetAccountListByVest(ctx context.Context, req *grpcpb.GetA
 	as.db.RLock()
 	defer as.db.RUnlock()
 
-	sortWrap := table.NewAccountVestingSharesWrap(as.db)
+	sortWrap := table.NewAccountVestWrap(as.db)
 	var list []*grpcpb.AccountResponse
 	res := &grpcpb.GetAccountListResponse{}
 	var err error

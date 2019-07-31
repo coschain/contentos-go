@@ -11,12 +11,12 @@ import (
 	"strconv"
 )
 
-var ConvertVestingCmd = func() *cobra.Command {
+var ConvertVestCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "convert_vesting",
-		Short:   "convert vesting to coin",
-		Long:    "convert vesting to coin, it takes 13 weeks to finish",
-		Example: "convert_vesting alice 500",
+		Use:     "convert_vest",
+		Short:   "convert VEST to COS",
+		Long:    "convert VEST to COS, it takes 13 weeks before finish",
+		Example: "convert_vest alice 500",
 		Args:    cobra.MinimumNArgs(2),
 		Run:     convert,
 	}
@@ -44,12 +44,12 @@ func convert(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	convert_vesting_op := &prototype.ConvertVestingOperation{
+	convert_vest_op := &prototype.ConvertVestOperation{
 		From:   &prototype.AccountName{Value: from},
 		Amount: prototype.NewVest(uint64(amount)),
 	}
 
-	signTx, err := utils.GenerateSignedTxAndValidate(cmd, []interface{}{convert_vesting_op}, fromAccount)
+	signTx, err := utils.GenerateSignedTxAndValidate(cmd, []interface{}{convert_vest_op}, fromAccount)
 	if err != nil {
 		fmt.Println(err)
 		return

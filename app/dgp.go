@@ -22,47 +22,47 @@ func (dgp *DynamicGlobalPropsRW) HeadBlockTime() *prototype.TimePointSec {
 func (dgp *DynamicGlobalPropsRW) TransferToVest(value *prototype.Coin) {
 	dgp.ModifyProps(func(dgpo *prototype.DynamicProperties) {
 		cos := dgpo.GetTotalCos()
-		vest := dgpo.GetTotalVestingShares()
+		vest := dgpo.GetTotalVest()
 		addVest := value.ToVest()
 
 		mustNoError(cos.Sub(value), "TotalCos overflow")
 		dgpo.TotalCos = cos
 
-		mustNoError(vest.Add(addVest), "TotalVestingShares overflow")
-		dgpo.TotalVestingShares = vest
+		mustNoError(vest.Add(addVest), "TotalVest overflow")
+		dgpo.TotalVest = vest
 	})
 }
 
 func (dgp *DynamicGlobalPropsRW) TransferFromVest(value *prototype.Vest) {
 	dgp.ModifyProps(func(dgpo *prototype.DynamicProperties) {
 		cos := dgpo.GetTotalCos()
-		vest := dgpo.GetTotalVestingShares()
+		vest := dgpo.GetTotalVest()
 		addCos := value.ToCoin()
 
 		mustNoError(cos.Add(addCos), "TotalCos overflow")
 		dgpo.TotalCos = cos
 
-		mustNoError(vest.Sub(value), "TotalVestingShares overflow")
-		dgpo.TotalVestingShares = vest
+		mustNoError(vest.Sub(value), "TotalVest overflow")
+		dgpo.TotalVest = vest
 	})
 }
 
 func (dgp *DynamicGlobalPropsRW) TransferToStakeVest(value *prototype.Coin) {
 	dgp.ModifyProps(func(dgpo *prototype.DynamicProperties) {
-		vest := dgpo.GetStakeVestingShares()
+		vest := dgpo.GetStakeVest()
 		addVest := value.ToVest()
 
-		mustNoError(vest.Add(addVest), "StakeVestingShares overflow")
-		dgpo.StakeVestingShares = vest
+		mustNoError(vest.Add(addVest), "StakeVest overflow")
+		dgpo.StakeVest = vest
 	})
 }
 
 func (dgp *DynamicGlobalPropsRW) TransferFromStakeVest(value *prototype.Vest) {
 	dgp.ModifyProps(func(dgpo *prototype.DynamicProperties) {
-		vest := dgpo.GetStakeVestingShares()
+		vest := dgpo.GetStakeVest()
 
-		mustNoError(vest.Sub(value), "UnStakeVestingShares overflow")
-		dgpo.StakeVestingShares = vest
+		mustNoError(vest.Sub(value), "UnStakeVest overflow")
+		dgpo.StakeVest = vest
 	})
 }
 

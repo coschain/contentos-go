@@ -16,7 +16,7 @@ import (
 var (
 	AccountCreatedTimeTable           uint32 = 2128286283
 	AccountBalanceTable               uint32 = 4012029019
-	AccountVestingSharesTable         uint32 = 3830877790
+	AccountVestTable                  uint32 = 2512254821
 	AccountBpVoteCountTable           uint32 = 2264397557
 	AccountPostCountTable             uint32 = 1518203339
 	AccountCreatedTrxCountTable       uint32 = 2604810499
@@ -42,13 +42,13 @@ var (
 	AccountPubKeyCell                 uint32 = 3179576368
 	AccountReputationCell             uint32 = 2291448152
 	AccountReputationMemoCell         uint32 = 3233494341
-	AccountStakeVestingCell           uint32 = 1603133992
+	AccountStakeVestCell              uint32 = 1887499886
 	AccountStaminaCell                uint32 = 674022235
 	AccountStaminaFreeCell            uint32 = 676517039
 	AccountStaminaFreeUseBlockCell    uint32 = 985510361
 	AccountStaminaUseBlockCell        uint32 = 3536676248
 	AccountToPowerdownCell            uint32 = 3115587115
-	AccountVestingSharesCell          uint32 = 57659323
+	AccountVestCell                   uint32 = 1502838271
 	AccountVotePowerCell              uint32 = 2246508735
 )
 
@@ -267,13 +267,13 @@ func (s *SoAccountWrap) insertSortKeyBalance(sa *SoAccount) bool {
 	return ordErr == nil
 }
 
-func (s *SoAccountWrap) delSortKeyVestingShares(sa *SoAccount) bool {
+func (s *SoAccountWrap) delSortKeyVest(sa *SoAccount) bool {
 	if s.dba == nil || s.mainKey == nil {
 		return false
 	}
-	val := SoListAccountByVestingShares{}
+	val := SoListAccountByVest{}
 	if sa == nil {
-		key, err := s.encodeMemKey("VestingShares")
+		key, err := s.encodeMemKey("Vest")
 		if err != nil {
 			return false
 		}
@@ -281,16 +281,16 @@ func (s *SoAccountWrap) delSortKeyVestingShares(sa *SoAccount) bool {
 		if err != nil {
 			return false
 		}
-		ori := &SoMemAccountByVestingShares{}
+		ori := &SoMemAccountByVest{}
 		err = proto.Unmarshal(buf, ori)
 		if err != nil {
 			return false
 		}
-		val.VestingShares = ori.VestingShares
+		val.Vest = ori.Vest
 		val.Name = s.mainKey
 
 	} else {
-		val.VestingShares = sa.VestingShares
+		val.Vest = sa.Vest
 		val.Name = sa.Name
 	}
 
@@ -302,13 +302,13 @@ func (s *SoAccountWrap) delSortKeyVestingShares(sa *SoAccount) bool {
 	return ordErr == nil
 }
 
-func (s *SoAccountWrap) insertSortKeyVestingShares(sa *SoAccount) bool {
+func (s *SoAccountWrap) insertSortKeyVest(sa *SoAccount) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
-	val := SoListAccountByVestingShares{}
+	val := SoListAccountByVest{}
 	val.Name = sa.Name
-	val.VestingShares = sa.VestingShares
+	val.Vest = sa.Vest
 	buf, err := proto.Marshal(&val)
 	if err != nil {
 		return false
@@ -556,7 +556,7 @@ func (s *SoAccountWrap) delAllSortKeys(br bool, val *SoAccount) bool {
 			res = false
 		}
 	}
-	if !s.delSortKeyVestingShares(val) {
+	if !s.delSortKeyVest(val) {
 		if br {
 			return false
 		} else {
@@ -608,8 +608,8 @@ func (s *SoAccountWrap) insertAllSortKeys(val *SoAccount) error {
 	if !s.insertSortKeyBalance(val) {
 		return errors.New("insert sort Field Balance fail while insert table ")
 	}
-	if !s.insertSortKeyVestingShares(val) {
-		return errors.New("insert sort Field VestingShares fail while insert table ")
+	if !s.insertSortKeyVest(val) {
+		return errors.New("insert sort Field Vest fail while insert table ")
 	}
 	if !s.insertSortKeyBpVoteCount(val) {
 		return errors.New("insert sort Field BpVoteCount fail while insert table ")
@@ -713,8 +713,8 @@ func (s *SoAccountWrap) getMemKeyPrefix(fName string) uint32 {
 	if fName == "ReputationMemo" {
 		return AccountReputationMemoCell
 	}
-	if fName == "StakeVesting" {
-		return AccountStakeVestingCell
+	if fName == "StakeVest" {
+		return AccountStakeVestCell
 	}
 	if fName == "Stamina" {
 		return AccountStaminaCell
@@ -731,8 +731,8 @@ func (s *SoAccountWrap) getMemKeyPrefix(fName string) uint32 {
 	if fName == "ToPowerdown" {
 		return AccountToPowerdownCell
 	}
-	if fName == "VestingShares" {
-		return AccountVestingSharesCell
+	if fName == "Vest" {
+		return AccountVestCell
 	}
 	if fName == "VotePower" {
 		return AccountVotePowerCell
@@ -903,11 +903,11 @@ func (s *SoAccountWrap) saveAllMemKeys(tInfo *SoAccount, br bool) error {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "ReputationMemo", err)
 		}
 	}
-	if err = s.saveMemKeyStakeVesting(tInfo); err != nil {
+	if err = s.saveMemKeyStakeVest(tInfo); err != nil {
 		if br {
 			return err
 		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "StakeVesting", err)
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "StakeVest", err)
 		}
 	}
 	if err = s.saveMemKeyStamina(tInfo); err != nil {
@@ -945,11 +945,11 @@ func (s *SoAccountWrap) saveAllMemKeys(tInfo *SoAccount, br bool) error {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "ToPowerdown", err)
 		}
 	}
-	if err = s.saveMemKeyVestingShares(tInfo); err != nil {
+	if err = s.saveMemKeyVest(tInfo); err != nil {
 		if br {
 			return err
 		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "VestingShares", err)
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Vest", err)
 		}
 	}
 	if err = s.saveMemKeyVotePower(tInfo); err != nil {
@@ -2606,16 +2606,16 @@ func (s *SoAccountWrap) MdReputationMemo(p string) bool {
 	return true
 }
 
-func (s *SoAccountWrap) saveMemKeyStakeVesting(tInfo *SoAccount) error {
+func (s *SoAccountWrap) saveMemKeyStakeVest(tInfo *SoAccount) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
 	if tInfo == nil {
 		return errors.New("the data is nil")
 	}
-	val := SoMemAccountByStakeVesting{}
-	val.StakeVesting = tInfo.StakeVesting
-	key, err := s.encodeMemKey("StakeVesting")
+	val := SoMemAccountByStakeVest{}
+	val.StakeVest = tInfo.StakeVest
+	key, err := s.encodeMemKey("StakeVest")
 	if err != nil {
 		return err
 	}
@@ -2627,13 +2627,13 @@ func (s *SoAccountWrap) saveMemKeyStakeVesting(tInfo *SoAccount) error {
 	return err
 }
 
-func (s *SoAccountWrap) GetStakeVesting() *prototype.Vest {
+func (s *SoAccountWrap) GetStakeVest() *prototype.Vest {
 	res := true
-	msg := &SoMemAccountByStakeVesting{}
+	msg := &SoMemAccountByStakeVest{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("StakeVesting")
+		key, err := s.encodeMemKey("StakeVest")
 		if err != nil {
 			res = false
 		} else {
@@ -2645,7 +2645,7 @@ func (s *SoAccountWrap) GetStakeVesting() *prototype.Vest {
 			if err != nil {
 				res = false
 			} else {
-				return msg.StakeVesting
+				return msg.StakeVest
 			}
 		}
 	}
@@ -2653,14 +2653,14 @@ func (s *SoAccountWrap) GetStakeVesting() *prototype.Vest {
 		return nil
 
 	}
-	return msg.StakeVesting
+	return msg.StakeVest
 }
 
-func (s *SoAccountWrap) MdStakeVesting(p *prototype.Vest) bool {
+func (s *SoAccountWrap) MdStakeVest(p *prototype.Vest) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("StakeVesting")
+	key, err := s.encodeMemKey("StakeVest")
 	if err != nil {
 		return false
 	}
@@ -2668,14 +2668,14 @@ func (s *SoAccountWrap) MdStakeVesting(p *prototype.Vest) bool {
 	if err != nil {
 		return false
 	}
-	ori := &SoMemAccountByStakeVesting{}
+	ori := &SoMemAccountByStakeVest{}
 	err = proto.Unmarshal(buf, ori)
 	sa := &SoAccount{}
 	sa.Name = s.mainKey
 
-	sa.StakeVesting = ori.StakeVesting
+	sa.StakeVest = ori.StakeVest
 
-	ori.StakeVesting = p
+	ori.StakeVest = p
 	val, err := proto.Marshal(ori)
 	if err != nil {
 		return false
@@ -2684,7 +2684,7 @@ func (s *SoAccountWrap) MdStakeVesting(p *prototype.Vest) bool {
 	if err != nil {
 		return false
 	}
-	sa.StakeVesting = p
+	sa.StakeVest = p
 
 	return true
 }
@@ -3104,16 +3104,16 @@ func (s *SoAccountWrap) MdToPowerdown(p *prototype.Vest) bool {
 	return true
 }
 
-func (s *SoAccountWrap) saveMemKeyVestingShares(tInfo *SoAccount) error {
+func (s *SoAccountWrap) saveMemKeyVest(tInfo *SoAccount) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
 	if tInfo == nil {
 		return errors.New("the data is nil")
 	}
-	val := SoMemAccountByVestingShares{}
-	val.VestingShares = tInfo.VestingShares
-	key, err := s.encodeMemKey("VestingShares")
+	val := SoMemAccountByVest{}
+	val.Vest = tInfo.Vest
+	key, err := s.encodeMemKey("Vest")
 	if err != nil {
 		return err
 	}
@@ -3125,13 +3125,13 @@ func (s *SoAccountWrap) saveMemKeyVestingShares(tInfo *SoAccount) error {
 	return err
 }
 
-func (s *SoAccountWrap) GetVestingShares() *prototype.Vest {
+func (s *SoAccountWrap) GetVest() *prototype.Vest {
 	res := true
-	msg := &SoMemAccountByVestingShares{}
+	msg := &SoMemAccountByVest{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("VestingShares")
+		key, err := s.encodeMemKey("Vest")
 		if err != nil {
 			res = false
 		} else {
@@ -3143,7 +3143,7 @@ func (s *SoAccountWrap) GetVestingShares() *prototype.Vest {
 			if err != nil {
 				res = false
 			} else {
-				return msg.VestingShares
+				return msg.Vest
 			}
 		}
 	}
@@ -3151,14 +3151,14 @@ func (s *SoAccountWrap) GetVestingShares() *prototype.Vest {
 		return nil
 
 	}
-	return msg.VestingShares
+	return msg.Vest
 }
 
-func (s *SoAccountWrap) MdVestingShares(p *prototype.Vest) bool {
+func (s *SoAccountWrap) MdVest(p *prototype.Vest) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("VestingShares")
+	key, err := s.encodeMemKey("Vest")
 	if err != nil {
 		return false
 	}
@@ -3166,17 +3166,17 @@ func (s *SoAccountWrap) MdVestingShares(p *prototype.Vest) bool {
 	if err != nil {
 		return false
 	}
-	ori := &SoMemAccountByVestingShares{}
+	ori := &SoMemAccountByVest{}
 	err = proto.Unmarshal(buf, ori)
 	sa := &SoAccount{}
 	sa.Name = s.mainKey
 
-	sa.VestingShares = ori.VestingShares
+	sa.Vest = ori.Vest
 
-	if !s.delSortKeyVestingShares(sa) {
+	if !s.delSortKeyVest(sa) {
 		return false
 	}
-	ori.VestingShares = p
+	ori.Vest = p
 	val, err := proto.Marshal(ori)
 	if err != nil {
 		return false
@@ -3185,9 +3185,9 @@ func (s *SoAccountWrap) MdVestingShares(p *prototype.Vest) bool {
 	if err != nil {
 		return false
 	}
-	sa.VestingShares = p
+	sa.Vest = p
 
-	if !s.insertSortKeyVestingShares(sa) {
+	if !s.insertSortKeyVest(sa) {
 		return false
 	}
 
@@ -3604,20 +3604,20 @@ func (s *SAccountBalanceWrap) ForEachByRevOrder(start *prototype.Coin, end *prot
 }
 
 ////////////// SECTION List Keys ///////////////
-type SAccountVestingSharesWrap struct {
+type SAccountVestWrap struct {
 	Dba iservices.IDatabaseRW
 }
 
-func NewAccountVestingSharesWrap(db iservices.IDatabaseRW) *SAccountVestingSharesWrap {
+func NewAccountVestWrap(db iservices.IDatabaseRW) *SAccountVestWrap {
 	if db == nil {
 		return nil
 	}
-	wrap := SAccountVestingSharesWrap{Dba: db}
+	wrap := SAccountVestWrap{Dba: db}
 	return &wrap
 }
 
-func (s *SAccountVestingSharesWrap) GetMainVal(val []byte) *prototype.AccountName {
-	res := &SoListAccountByVestingShares{}
+func (s *SAccountVestWrap) GetMainVal(val []byte) *prototype.AccountName {
+	res := &SoListAccountByVest{}
 	err := proto.Unmarshal(val, res)
 
 	if err != nil {
@@ -3627,21 +3627,21 @@ func (s *SAccountVestingSharesWrap) GetMainVal(val []byte) *prototype.AccountNam
 
 }
 
-func (s *SAccountVestingSharesWrap) GetSubVal(val []byte) *prototype.Vest {
-	res := &SoListAccountByVestingShares{}
+func (s *SAccountVestWrap) GetSubVal(val []byte) *prototype.Vest {
+	res := &SoListAccountByVest{}
 	err := proto.Unmarshal(val, res)
 	if err != nil {
 		return nil
 	}
-	return res.VestingShares
+	return res.Vest
 
 }
 
-func (m *SoListAccountByVestingShares) OpeEncode() ([]byte, error) {
-	pre := AccountVestingSharesTable
-	sub := m.VestingShares
+func (m *SoListAccountByVest) OpeEncode() ([]byte, error) {
+	pre := AccountVestTable
+	sub := m.Vest
 	if sub == nil {
-		return nil, errors.New("the pro VestingShares is nil")
+		return nil, errors.New("the pro Vest is nil")
 	}
 	sub1 := m.Name
 	if sub1 == nil {
@@ -3662,7 +3662,7 @@ func (m *SoListAccountByVestingShares) OpeEncode() ([]byte, error) {
 //lastMainKey: the main key of the last one of last page
 //lastSubVal: the value  of the last one of last page
 //
-func (s *SAccountVestingSharesWrap) ForEachByRevOrder(start *prototype.Vest, end *prototype.Vest, lastMainKey *prototype.AccountName,
+func (s *SAccountVestWrap) ForEachByRevOrder(start *prototype.Vest, end *prototype.Vest, lastMainKey *prototype.AccountName,
 	lastSubVal *prototype.Vest, f func(mVal *prototype.AccountName, sVal *prototype.Vest, idx uint32) bool) error {
 	if s.Dba == nil {
 		return errors.New("the db is nil")
@@ -3673,7 +3673,7 @@ func (s *SAccountVestingSharesWrap) ForEachByRevOrder(start *prototype.Vest, end
 	if f == nil {
 		return nil
 	}
-	pre := AccountVestingSharesTable
+	pre := AccountVestTable
 	skeyList := []interface{}{pre}
 	if start != nil {
 		skeyList = append(skeyList, start)

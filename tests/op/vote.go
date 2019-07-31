@@ -52,7 +52,7 @@ func (tester *VoteTester) normal(t *testing.T, d *Dandelion) {
 	a.NoError(tester.acc1.SendTrxAndProduceBlock(Vote(tester.acc1.Name, 1)))
 	currentVp := BLOCKS * 1000 / constants.VoteRegenerateTime
 	usedVp := (currentVp + constants.VoteLimitDuringRegenerate - 1) / constants.VoteLimitDuringRegenerate
-	a.Equal(strconv.FormatUint(uint64(usedVp) * tester.acc1.GetVestingShares().Value, 10), d.Post(1).GetWeightedVp())
+	a.Equal(strconv.FormatUint(uint64(usedVp) * tester.acc1.GetVest().Value, 10), d.Post(1).GetWeightedVp())
 }
 
 func (tester *VoteTester) revote(t *testing.T, d *Dandelion) {
@@ -82,7 +82,7 @@ func (tester *VoteTester) fullPower(t *testing.T, d *Dandelion)  {
 	a.NoError(tester.acc1.SendTrxAndProduceBlock(Vote(tester.acc1.Name, 1)))
 	currentVp := 1000
 	usedVp := (currentVp + constants.VoteLimitDuringRegenerate - 1) / constants.VoteLimitDuringRegenerate
-	a.Equal(strconv.FormatUint(uint64(usedVp) * tester.acc1.GetVestingShares().Value, 10), d.Post(1).GetWeightedVp())
+	a.Equal(strconv.FormatUint(uint64(usedVp) * tester.acc1.GetVest().Value, 10), d.Post(1).GetWeightedVp())
 	a.Equal(uint32(currentVp) - uint32(usedVp), d.Account(tester.acc1.Name).GetVotePower())
 }
 

@@ -10,20 +10,20 @@ import (
 	"github.com/coschain/contentos-go/rpc/pb"
 )
 
-var TransferVestingCmd = func() *cobra.Command {
+var TransferVestCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "transfer_vesting",
-		Short:   "convert cos to vesting",
-		Long:    "convert amounts of liquidity cos to vesting",
-		Example: "transfer_vesting alice alice 500.000000",
+		Use:     "transfer_vest",
+		Short:   "convert COS to VEST",
+		Long:    "convert amounts of liquidity COS to VEST",
+		Example: "transfer_vest alice alice 500.000000",
 		Args:    cobra.ExactArgs(3),
-		Run:     transferVesting,
+		Run:     transferVest,
 	}
 	utils.ProcessEstimate(cmd)
 	return cmd
 }
 
-func transferVesting(cmd *cobra.Command, args []string) {
+func transferVest(cmd *cobra.Command, args []string) {
 	defer func() {
 		utils.EstimateStamina = false
 	}()
@@ -44,7 +44,7 @@ func transferVesting(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	transferv_op := &prototype.TransferToVestingOperation{
+	transferv_op := &prototype.TransferToVestOperation{
 		From:   &prototype.AccountName{Value: from},
 		To:     &prototype.AccountName{Value: to},
 		Amount: prototype.NewCoin(amount),

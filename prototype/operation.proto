@@ -27,7 +27,7 @@ message transfer_operation{
     string memo = 4;
 }
 
-message transfer_to_vesting_operation{
+message transfer_to_vest_operation{
     account_name from = 1;
     account_name to = 2;
     coin amount = 3;
@@ -147,7 +147,7 @@ message report_operation {
     bool is_approved = 5;
 }
 
-message convert_vesting_operation {
+message convert_vest_operation {
     account_name from = 1;
     vest amount = 2;
 }

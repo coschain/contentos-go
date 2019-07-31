@@ -72,7 +72,7 @@ func transferCosToVestTrx(cmd *cobra.Command, client grpcpb.ApiServiceClient, co
 		return nil, err
 	}
 
-	transferv_op := &prototype.TransferToVestingOperation{
+	transferv_op := &prototype.TransferToVestOperation{
 		From:   &prototype.AccountName{Value: accountName},
 		To:     &prototype.AccountName{Value: accountName},
 		Amount: prototype.NewCoin(constants.MinBpRegisterVest),
@@ -322,7 +322,7 @@ func multinodetester(cmd *cobra.Command, args []string) {
 		if err != nil {
 			fmt.Println(err)
 		} else {
-			fmt.Println(fmt.Sprintf("transfer to vest Result: %v", resp))
+			fmt.Println(fmt.Sprintf("transfer to VEST Result: %v", resp))
 		}
 	}
 

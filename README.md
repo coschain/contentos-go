@@ -252,7 +252,7 @@ You can using some commands as below:
 * reply
 * transfer
 * unlock
-* transfer_vesting
+* transfer_vest
 * vote
 
 you can add `--help` or `help [command]` to get more detail infos.

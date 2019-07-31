@@ -238,7 +238,7 @@ func vest(rpcClient grpcpb.ApiServiceClient, fromAccount, toAccount  *wallet.Pri
 		amount = 1 + r.Intn(10)
 	}
 
-	transfer_op := &prototype.TransferToVestingOperation{
+	transfer_op := &prototype.TransferToVestOperation{
 		From:   &prototype.AccountName{Value: fromAccount.Name},
 		To:     &prototype.AccountName{Value: toAccount.Name},
 		Amount: prototype.NewCoin(uint64(amount)),
@@ -266,7 +266,7 @@ func vest(rpcClient grpcpb.ApiServiceClient, fromAccount, toAccount  *wallet.Pri
 				fmt.Println(err)
 				return err
 			}
-			fmt.Println(fmt.Sprintf("====== vest from:%v to:%v amount:%v",GlobalAccountLIst.arr[0].Name,fromAccount.Name,5))
+			fmt.Println(fmt.Sprintf("====== VEST from:%v to:%v amount:%v",GlobalAccountLIst.arr[0].Name,fromAccount.Name,5))
 			vest(rpcClient, fromAccount, toAccount, amount)
 			return nil
 		}
@@ -276,7 +276,7 @@ func vest(rpcClient grpcpb.ApiServiceClient, fromAccount, toAccount  *wallet.Pri
 		}
 
 		fmt.Println("Request command: ",
-			fmt.Sprintf("transfer vest %s %s %d", fromAccount.Name, toAccount.Name, amount),
+			fmt.Sprintf("transfer VEST %s %s %d", fromAccount.Name, toAccount.Name, amount),
 			" ",
 			fmt.Sprintf("Result: %v", resp))
 	}
@@ -582,7 +582,7 @@ func acquireTicket(rpcClient grpcpb.ApiServiceClient, fromAccount *wallet.PrivAc
 				fmt.Println(err)
 				return
 			}
-			fmt.Println(fmt.Sprintf("====== vest from:%v to:%v amount:%v",GlobalAccountLIst.arr[0].Name,fromAccount.Name,fromAccount, 10 * constants.COSTokenDecimals))
+			fmt.Println(fmt.Sprintf("====== VEST from:%v to:%v amount:%v",GlobalAccountLIst.arr[0].Name,fromAccount.Name,fromAccount, 10 * constants.COSTokenDecimals))
 			acquireTicket(rpcClient, fromAccount)
 			return
 		}

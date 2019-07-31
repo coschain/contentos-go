@@ -11,13 +11,13 @@ import (
 	"testing"
 )
 
-func TestTransferVesting(t *testing.T) {
+func TestTransferVest(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	client := mock_grpcpb.NewMockApiServiceClient(ctrl)
 	mywallet := mock_wallet.NewMockWallet(ctrl)
 	myassert := assert.New(t)
 	passwordReader := mock_utils.NewMockPasswordReader(ctrl)
-	cmd := TransferVestingCmd()
+	cmd := TransferVestCmd()
 	cmd.SetContext("wallet", mywallet)
 	cmd.SetContext("rpcclient", client)
 	cmd.SetContext("preader", passwordReader)
@@ -36,10 +36,10 @@ func TestTransferVesting(t *testing.T) {
 	resp := &grpcpb.BroadcastTrxResponse{Status: 1, Msg: "success"}
 	client.EXPECT().BroadcastTrx(gomock.Any(), gomock.Any()).Return(resp, nil).Do(func(context interface{}, req *grpcpb.BroadcastTrxRequest) {
 		op := req.Transaction.Trx.Operations[0]
-		transfer_vesting_op := op.GetOp10()
-		myassert.Equal(transfer_vesting_op.From.Value, "initminer")
-		myassert.Equal(transfer_vesting_op.To.Value, "initminer")
-		myassert.Equal(transfer_vesting_op.Amount.Value, uint64(500))
+		transfer_vest_op := op.GetOp10()
+		myassert.Equal(transfer_vest_op.From.Value, "initminer")
+		myassert.Equal(transfer_vest_op.To.Value, "initminer")
+		myassert.Equal(transfer_vest_op.Amount.Value, uint64(500))
 
 	})
 	_, err := cmd.ExecuteC()

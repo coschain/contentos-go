@@ -18,7 +18,7 @@ var TicketCmd = func() *cobra.Command {
 
 	acquireCmd := &cobra.Command{
 		Use:   "acquire",
-		Short: "acquire tickets using vesting",
+		Short: "acquire tickets using VEST",
 		Example: "ticket acquire [name] [count]",
 		Args:  cobra.ExactArgs(2),
 		Run:   acquireTicket,

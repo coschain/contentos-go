@@ -31,8 +31,8 @@ func AccountUpdate(name string, pubkey *prototype.PublicKeyType) *prototype.Oper
 	})
 }
 
-func TransferToVesting(from, to string, amount uint64) *prototype.Operation {
-	return prototype.GetPbOperation(&prototype.TransferToVestingOperation{
+func TransferToVest(from, to string, amount uint64) *prototype.Operation {
+	return prototype.GetPbOperation(&prototype.TransferToVestOperation{
 		From: prototype.NewAccountName(from),
 		To: prototype.NewAccountName(to),
 		Amount: prototype.NewCoin(amount),
@@ -177,8 +177,8 @@ func Report(reporter string, postId uint64, reason []prototype.ReportOperationTa
 	})
 }
 
-func ConvertVesting(name string, vests uint64) *prototype.Operation {
-	return prototype.GetPbOperation(&prototype.ConvertVestingOperation{
+func ConvertVest(name string, vests uint64) *prototype.Operation {
+	return prototype.GetPbOperation(&prototype.ConvertVestOperation{
 		From: prototype.NewAccountName(name),
 		Amount: prototype.NewVest(vests),
 	})

@@ -67,7 +67,7 @@ message dynamic_properties {
     prototype.time_point_sec     time                          =      6;
     prototype.account_name       current_witness               =      7;
     uint32                       tps                           =      9;
-    prototype.vest               total_vesting_shares          =      10;
+    prototype.vest               total_vest                    =      10;
     prototype.coin               current_supply                =      11;
     string post_weighted_vps = 13;
     prototype.vest     post_rewards = 14;
@@ -86,7 +86,7 @@ message dynamic_properties {
     prototype.vest      reply_rewards = 27;
     string reply_weighted_vps = 28;
     prototype.vest   reply_dapp_rewards = 29;
-    prototype.vest   stake_vesting_shares = 30;
+    prototype.vest   stake_vest = 30;
     bool  witness_boot_completed = 31;
     uint64 stamina_free = 32;
     uint64 tps_expected = 33;

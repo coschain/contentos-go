@@ -28,14 +28,14 @@ func TestEconomist_Mint(t *testing.T) {
 	//prop2 := dande.GetProps()
 	//myassert.Equal(prop2.PostRewards.Value, uint64(2397260))
 	//myassert.Equal(prop2.ReplyRewards.Value, uint64(479452))
-	//myassert.Equal(bp.GetVestingShares().Value, uint64(640270))
+	//myassert.Equal(bp.GetVest().Value, uint64(640270))
 	//eco.Mint()
 	//prop3 := dande.GetProps()
 	//myassert.Equal(prop3.PostRewards.Value, uint64(4794520))
 	//myassert.Equal(prop3.ReplyRewards.Value, uint64(958904))
 	////keeper2, _ := eco.GetRewardsKeeper()
 	////myassert.Equal(keeper2.Rewards["initminer"].Value, uint64(1278540))
-	//myassert.Equal(bp.GetVestingShares().Value, uint64(1279540))
+	//myassert.Equal(bp.GetVest().Value, uint64(1279540))
 }
 
 // import cycle here, comment economist in trx_pool first
@@ -84,6 +84,6 @@ func TestEconomist_Do(t *testing.T) {
 	////fmt.Println(postWrap.GetCashoutTime())
 	//eco.Do()
 	//author, _ := eco.GetAccount(&prototype.AccountName{Value: "kochiya"})
-	//myassert.Equal(author.GetVestingShares().Value, uint64(334))
+	//myassert.Equal(author.GetVest().Value, uint64(334))
 
 }

@@ -652,7 +652,7 @@ func (c *TrxPool) initGenesis() {
 		tInfo.Name = name
 		tInfo.CreatedTime = &prototype.TimePointSec{UtcSeconds: 0}
 		tInfo.Balance = prototype.NewCoin(constants.COSInitSupply)
-		tInfo.VestingShares = prototype.NewVest(0)
+		tInfo.Vest = prototype.NewVest(0)
 		tInfo.LastPostTime = &prototype.TimePointSec{UtcSeconds: 0}
 		tInfo.LastVoteTime = &prototype.TimePointSec{UtcSeconds: 0}
 		tInfo.NextPowerdownBlockNum = math.MaxUint32
@@ -660,7 +660,7 @@ func (c *TrxPool) initGenesis() {
 		tInfo.ToPowerdown = &prototype.Vest{Value: 0}
 		tInfo.HasPowerdown = &prototype.Vest{Value: 0}
 		tInfo.PubKey = pubKey
-		tInfo.StakeVesting = prototype.NewVest(0)
+		tInfo.StakeVest = prototype.NewVest(0)
 		tInfo.Reputation = constants.DefaultReputation
 		tInfo.ChargedTicket = 0
 	}), "CreateAccount error")
@@ -700,7 +700,7 @@ func (c *TrxPool) initGenesis() {
 		tInfo.Props.StaminaFree = constants.DefaultStaminaFree
 		tInfo.Props.TpsExpected = constants.DefaultTPSExpected
 		tInfo.Props.AccountCreateFee = prototype.NewCoin(constants.DefaultAccountCreateFee)
-		tInfo.Props.TotalVestingShares = prototype.NewVest(0)
+		tInfo.Props.TotalVest = prototype.NewVest(0)
 		tInfo.Props.PostRewards = prototype.NewVest(0)
 		tInfo.Props.ReplyRewards = prototype.NewVest(0)
 		//tInfo.Props.PostWeightedVps = "0"
@@ -714,7 +714,7 @@ func (c *TrxPool) initGenesis() {
 		tInfo.Props.PostDappRewards = prototype.NewVest(0)
 		tInfo.Props.ReplyDappRewards = prototype.NewVest(0)
 		tInfo.Props.VoterRewards = prototype.NewVest(0)
-		tInfo.Props.StakeVestingShares = prototype.NewVest(0)
+		tInfo.Props.StakeVest = prototype.NewVest(0)
 		tInfo.Props.OneDayStamina = constants.OneDayStamina
 		tInfo.Props.CurrentEpochStartBlock = 0
 		tInfo.Props.EpochDuration = constants.InitEpochDuration
@@ -745,47 +745,47 @@ func (c *TrxPool) initGenesis() {
 func (c *TrxPool) TransferToVest(value *prototype.Coin) {
 	c.modifyGlobalDynamicData(func(dgpo *prototype.DynamicProperties) {
 		cos := dgpo.GetTotalCos()
-		vest := dgpo.GetTotalVestingShares()
+		vest := dgpo.GetTotalVest()
 		addVest := value.ToVest()
 
 		mustNoError(cos.Sub(value), "TotalCos overflow")
 		dgpo.TotalCos = cos
 
-		mustNoError(vest.Add(addVest), "TotalVestingShares overflow")
-		dgpo.TotalVestingShares = vest
+		mustNoError(vest.Add(addVest), "TotalVest overflow")
+		dgpo.TotalVest = vest
 	})
 }
 
 func (c *TrxPool) TransferFromVest(value *prototype.Vest) {
 	c.modifyGlobalDynamicData(func(dgpo *prototype.DynamicProperties) {
 		cos := dgpo.GetTotalCos()
-		vest := dgpo.GetTotalVestingShares()
+		vest := dgpo.GetTotalVest()
 		addCos := value.ToCoin()
 
 		mustNoError(cos.Add(addCos), "TotalCos overflow")
 		dgpo.TotalCos = cos
 
-		mustNoError(vest.Sub(value), "TotalVestingShares overflow")
-		dgpo.TotalVestingShares = vest
+		mustNoError(vest.Sub(value), "TotalVest overflow")
+		dgpo.TotalVest = vest
 	})
 }
 
 func (c *TrxPool) TransferToStakeVest(value *prototype.Coin) {
 	c.modifyGlobalDynamicData(func(dgpo *prototype.DynamicProperties) {
-		vest := dgpo.GetStakeVestingShares()
+		vest := dgpo.GetStakeVest()
 		addVest := value.ToVest()
 
-		mustNoError(vest.Add(addVest), "StakeVestingShares overflow")
-		dgpo.StakeVestingShares = vest
+		mustNoError(vest.Add(addVest), "StakeVest overflow")
+		dgpo.StakeVest = vest
 	})
 }
 
 func (c *TrxPool) TransferFromStakeVest(value *prototype.Vest) {
 	c.modifyGlobalDynamicData(func(dgpo *prototype.DynamicProperties) {
-		vest := dgpo.GetStakeVestingShares()
+		vest := dgpo.GetStakeVest()
 
-		mustNoError(vest.Sub(value), "UnStakeVestingShares overflow")
-		dgpo.StakeVestingShares = vest
+		mustNoError(vest.Sub(value), "UnStakeVest overflow")
+		dgpo.StakeVest = vest
 	})
 }
 
@@ -1185,9 +1185,9 @@ func (c *TrxPool) calculateUserMaxStamina(db iservices.IDatabaseRW,name string) 
 	accountWrap := table.NewSoAccountWrap(db, &prototype.AccountName{Value:name})
 
 	oneDayStamina := dgpWrap.GetProps().GetOneDayStamina()
-	stakeVest := accountWrap.GetStakeVesting().Value
+	stakeVest := accountWrap.GetStakeVest().Value
 
-	allStakeVest := dgpWrap.GetProps().StakeVestingShares.Value
+	allStakeVest := dgpWrap.GetProps().StakeVest.Value
 	if allStakeVest == 0 {
 		return 0
 	}

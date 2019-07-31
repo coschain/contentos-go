@@ -3,7 +3,7 @@ prototype.account_name   ,name          ,1   ,1     ,0   ,0          ,prototype/
 prototype.time_point_sec ,created_time  ,0   ,0     ,1   ,1          ,prototype/type.proto
 prototype.account_name   ,creator       ,0   ,0     ,0   ,0          ,prototype/type.proto
 prototype.coin           ,balance       ,0   ,0     ,1   ,1          ,prototype/type.proto
-prototype.vest           ,vesting_shares,0   ,0     ,0   ,1          ,prototype/type.proto
+prototype.vest           ,vest ,0   ,0     ,0   ,1          ,prototype/type.proto
 uint32                   ,bp_vote_count ,0   ,0     ,1   ,0          ,
 prototype.time_point_sec ,last_vote_time ,0   ,0     ,0   ,0          ,prototype/type.proto
 prototype.time_point_sec ,last_post_time ,0   ,0     ,0   ,0          ,prototype/type.proto
@@ -19,7 +19,7 @@ uint64                   ,stamina        ,0  ,0    ,0    ,0          ,
 uint64                   ,stamina_use_block ,0   ,0   ,0   ,0         ,
 uint64                   ,stamina_free    ,0   ,0    ,0     ,0         ,
 uint64                   ,stamina_free_use_block ,0   ,0   ,0   ,0     ,
-prototype.vest           ,stake_vesting,0   ,0     ,0   ,0          ,prototype/type.proto
+prototype.vest           ,stake_vest,0   ,0     ,0   ,0          ,prototype/type.proto
 prototype.time_point_sec ,last_stake_time ,0   ,0     ,0   ,0          ,prototype/type.proto
 uint32                   ,reputation     ,0  ,0     ,0    ,0    ,
 string                   ,reputation_memo ,0  ,0     ,0    ,0    ,
