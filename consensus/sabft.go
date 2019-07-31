@@ -1141,14 +1141,11 @@ func (sabft *SABFT) ValidateProposal(data message.ProposedData) bool {
 	blockID := common.BlockID{
 		Data: data,
 	}
-	blockNum := blockID.BlockNum()
 
 	sabft.RLock()
 	defer sabft.RUnlock()
 
-	if b, err := sabft.ForkDB.FetchBlockFromMainBranch(blockNum); err != nil {
-		return false
-	} else if b.Id() != blockID {
+	if _, err := sabft.ForkDB.FetchBlock(blockID); err != nil {
 		return false
 	}
 

@@ -26,7 +26,7 @@ const (
 	MaxTransactionSize = 1024 * 256
 
 	MaxBlockSize           = 1024 * 1024 * 2
-	MaxUncommittedBlockNum = 2000
+	MaxUncommittedBlockNum = 100
 	MinBlockSize           = 115
 	MaxMarginStep = 10
 
