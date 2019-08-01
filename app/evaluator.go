@@ -608,7 +608,7 @@ func (ev *BpVoteEvaluator) Apply() {
 	bpVoterCount := bpWrap.GetVoterCount()
 
 	voterId := &prototype.BpVoterId{Voter: op.Voter, BlockProducer: op.BlockProducer}
-	witnessId := &prototype.BpBlockProducerId{Voter: op.Voter, BlockProducer: op.BlockProducer}
+	bpId := &prototype.BpBlockProducerId{Voter: op.Voter, BlockProducer: op.BlockProducer}
 	vidWrap := table.NewSoBlockProducerVoteWrap(ev.Database(), voterId)
 
 	if op.Cancel {
@@ -642,7 +642,7 @@ func (ev *BpVoteEvaluator) Apply() {
 		opAssertE(vidWrap.Create(func(t *table.SoBlockProducerVote) {
 			t.VoteTime = ev.GlobalProp().HeadBlockTime()
 			t.VoterId = voterId
-			t.BlockProducerId = witnessId
+			t.BlockProducerId = bpId
 		}), "add vote record error")
 
 		// modify voter vote count
@@ -755,7 +755,7 @@ func updateWitnessVoteCount(dba iservices.IDatabaseRW, voter *prototype.AccountN
 	start := &prototype.BpVoterId{Voter:voter, BlockProducer:prototype.MinAccountName}
 	end := &prototype.BpVoterId{Voter:voter, BlockProducer:prototype.MaxAccountName}
 
-	var witnessList []*prototype.AccountName
+	var bpList []*prototype.AccountName
 
 	startTime := time.Now()
 	sWrap.ForEachByOrder(start, end, nil, nil,
@@ -763,7 +763,7 @@ func updateWitnessVoteCount(dba iservices.IDatabaseRW, voter *prototype.AccountN
 			if mVal != nil && mVal.Voter.Value == voter.Value {
 				bpWrap := table.NewSoBlockProducerWrap(dba, mVal.BlockProducer)
 				if bpWrap != nil && bpWrap.CheckExist() {
-					witnessList = append(witnessList, mVal.BlockProducer)
+					bpList = append(bpList, mVal.BlockProducer)
 				}
 			}
 			return true
@@ -771,14 +771,14 @@ func updateWitnessVoteCount(dba iservices.IDatabaseRW, voter *prototype.AccountN
 	t1 = time.Now().Sub(startTime)
 
 	// update witness vote count
-	for i:=0;i<len(witnessList);i++ {
-		bpWrap := table.NewSoBlockProducerWrap(dba, witnessList[i])
+	for i:=0;i<len(bpList);i++ {
+		bpWrap := table.NewSoBlockProducerWrap(dba, bpList[i])
 		if bpWrap != nil && bpWrap.CheckExist() {
-			witnessVoteCnt := bpWrap.GetVoteVest()
-			opAssertE(witnessVoteCnt.Sub(oldVest), "Insufficient block producer vote count")
-			opAssertE(witnessVoteCnt.Add(newVest), "block producer vote count overflow")
+			bpVoteCnt := bpWrap.GetVoteVest()
+			opAssertE(bpVoteCnt.Sub(oldVest), "Insufficient block producer vote count")
+			opAssertE(bpVoteCnt.Add(newVest), "block producer vote count overflow")
 
-			opAssert(bpWrap.MdVoteVest(witnessVoteCnt), "update block producer vote count data error")
+			opAssert(bpWrap.MdVoteVest(bpVoteCnt), "update block producer vote count data error")
 		}
 	}
 	return
