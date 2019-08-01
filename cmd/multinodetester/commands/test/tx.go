@@ -55,7 +55,7 @@ func tx(css iservices.IConsensus, op interface{}, privKey *prototype.PrivateKeyT
 	return signTx
 }
 
-func RegesiterBP(name, sk string, css iservices.IConsensus) error {
+func RegisterBP(name, sk string, css iservices.IConsensus) error {
 	privKey, err := prototype.PrivateKeyFromWIF(sk)
 	if err != nil {
 		fmt.Println("registerBP get priv key ", err)

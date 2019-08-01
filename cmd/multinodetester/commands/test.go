@@ -137,6 +137,14 @@ func startNodes(cmd *cobra.Command, args []string) {
 	}
 	fmt.Printf("created %d accounts\n", cnt-1)
 
+	time.Sleep(2 * time.Second)
+	for i := 1; i < cnt; i++ {
+		if err = test.RegisterBP(names[i], sks[i], css); err != nil {
+			panic(err)
+		}
+	}
+	fmt.Printf("registered %d accounts\n", cnt-1)
+
 	comp := make([]*test.Components, len(nodes))
 	for i := 0; i < len(nodes); i++ {
 		comp[i] = &test.Components{}
