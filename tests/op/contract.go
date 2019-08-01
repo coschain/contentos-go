@@ -10,17 +10,34 @@ import (
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/stretchr/testify/assert"
 	"math"
+	rand2 "math/rand"
 	"testing"
+	"time"
 )
 
 type ContractTester struct {}
 
 func (tester *ContractTester) Test(t *testing.T, d *Dandelion) {
+	t.Run("basic", d.Test(tester.basic))
 	t.Run("sha256", d.Test(tester.sha256))
 	t.Run("contractInfo", d.Test(tester.contractInfo))
 	t.Run("requireAuth", d.Test(tester.requireAuth))
 	t.Run("chainInfo", d.Test(tester.chainInfo))
 	t.Run("transfer", d.Test(tester.transfer))
+	t.Run("table", d.Test(tester.table))
+	t.Run("print", d.Test(tester.print))
+}
+
+func (tester *ContractTester) basic(t *testing.T, d *Dandelion) {
+	a := assert.New(t)
+
+	a.NotNil(d.Account("actor1").TrxReceipt(ContractApply("actor1", "actor1", "native_tester", "is_contract_called_by_user", "[true]", 0)))
+	a.Nil(d.Account("actor1").TrxReceipt(ContractApply("actor0", "actor1", "native_tester", "is_contract_called_by_user", "[true]", 0)))
+	a.Nil(d.Account("actor1").TrxReceipt(ContractApply("xxxxxxx", "actor1", "native_tester", "is_contract_called_by_user", "[true]", 0)))
+
+	NoApply(t, d, "actor1: xxxxxxxx.native_tester.is_contract_called_by_user true")
+	NoApply(t, d, "actor1: actor1.xxxxxxxx.is_contract_called_by_user true")
+	NoApply(t, d, "actor1: actor1.native_tester.xxxxxxxx true")
 }
 
 func (tester *ContractTester) sha256(t *testing.T, d *Dandelion) {
@@ -196,4 +213,70 @@ func (tester *ContractTester) transferBetweenContractAndContract(t *testing.T, d
 
 	a.Equal(contractBalance0, d.Contract("actor0", "native_tester").GetBalance().Value)
 	a.Equal(contractBalance1, d.Contract("actor1", "native_tester").GetBalance().Value)
+}
+
+func (tester *ContractTester) table(t *testing.T, d *Dandelion) {
+	// query an empty table
+	ApplyError(t, d, fmt.Sprintf("actor1: actor1.native_tester.get_person %q", "Alice"))
+
+	// +Alice
+	ApplyNoError(t, d, fmt.Sprintf("actor1: actor1.native_tester.insert_person %q, %v, %d, %q", "Alice", false, 20, "New York"))
+
+	// +Alice again, error: duplicate primary key
+	ApplyError(t, d, fmt.Sprintf("actor1: actor1.native_tester.insert_person %q, %v, %d, %q", "Alice", false, 21, "Washington DC"))
+
+	// +Bob, +Charlie, +David
+	ApplyNoError(t, d, fmt.Sprintf("actor1: actor1.native_tester.insert_person %q, %v, %d, %q", "Bob", true, 22, "Washington DC"))
+	ApplyNoError(t, d, fmt.Sprintf("actor1: actor1.native_tester.insert_person %q, %v, %d, %q", "Charlie", true, 25, "Seattle"))
+	ApplyNoError(t, d, fmt.Sprintf("actor1: actor1.native_tester.insert_person %q, %v, %d, %q", "David", true, 18, "Toronto"))
+
+	// change Charlie's record
+	ApplyNoError(t, d, fmt.Sprintf("actor1: actor1.native_tester.update_person %q, %v, %d, %q", "Charlie", true, 30, "Shanghai"))
+
+	// change non-existing record
+	ApplyError(t, d, fmt.Sprintf("actor1: actor1.native_tester.update_person %q, %v, %d, %q", "Edward", true, 30, "Shanghai"))
+
+	// delete Bob
+	ApplyNoError(t, d, fmt.Sprintf("actor1: actor1.native_tester.delete_person %q", "Bob"))
+	ApplyError(t, d, fmt.Sprintf("actor1: actor1.native_tester.get_person %q", "Bob"))
+
+	// delete non-existing record: allowed, just no-op
+	ApplyNoError(t, d, fmt.Sprintf("actor1: actor1.native_tester.delete_person %q", "Edward"))
+
+	// get records
+	ApplyNoErrorWithConsole(t, d, fmt.Sprintf("actor1: actor1.native_tester.get_person %q", "Alice"), "Alice,false,20,New York")
+	ApplyNoErrorWithConsole(t, d, fmt.Sprintf("actor1: actor1.native_tester.get_person %q", "Charlie"), "Charlie,true,30,Shanghai")
+	ApplyNoErrorWithConsole(t, d, fmt.Sprintf("actor1: actor1.native_tester.get_person %q", "David"), "David,true,18,Toronto")
+
+	// actor0.native_tester reads person table of actor1.native_tester
+	ApplyNoErrorWithConsole(t, d, fmt.Sprintf("actor1: actor0.native_tester.get_person_external %q, %q, %q, %q", "actor1", "native_tester", "person", "Alice"), "Alice,false,20,New York")
+	ApplyNoErrorWithConsole(t, d, fmt.Sprintf("actor1: actor0.native_tester.get_person_external %q, %q, %q, %q", "actor1", "native_tester", "person", "Charlie"), "Charlie,true,30,Shanghai")
+	ApplyNoErrorWithConsole(t, d, fmt.Sprintf("actor1: actor0.native_tester.get_person_external %q, %q, %q, %q", "actor1", "native_tester", "person", "David"), "David,true,18,Toronto")
+}
+
+var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ\r\n\t\"'")
+
+func (tester *ContractTester) randStr(n int) string {
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letters[rand2.Intn(len(letters))]
+	}
+	return string(b)
+}
+
+func (tester *ContractTester) print(t *testing.T, d *Dandelion) {
+	rand2.Seed(time.Now().UnixNano())
+	for i := 0; i < 50; i++ {
+		s := tester.randStr(100)
+		ApplyNoErrorWithConsole(t, d, fmt.Sprintf("actor1: actor1.native_tester.print_str %q", s), s)
+	}
+	for i := 0; i < 50; i++ {
+		n := rand2.Int63()
+		ApplyNoErrorWithConsole(t, d, fmt.Sprintf("actor1: actor1.native_tester.print_int %d", n), fmt.Sprintf("%d", n))
+		ApplyNoErrorWithConsole(t, d, fmt.Sprintf("actor1: actor1.native_tester.print_int %d", -n), fmt.Sprintf("%d", -n))
+	}
+	for i := 0; i < 50; i++ {
+		n := rand2.Uint64()
+		ApplyNoErrorWithConsole(t, d, fmt.Sprintf("actor1: actor1.native_tester.print_uint %d", n), fmt.Sprintf("%d", n))
+	}
 }

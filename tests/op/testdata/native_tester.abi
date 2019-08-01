@@ -1,6 +1,18 @@
 {
     "actions": [
         {
+            "name": "print_str",
+            "type": "print_str"
+        },
+        {
+            "name": "print_uint",
+            "type": "print_uint"
+        },
+        {
+            "name": "print_int",
+            "type": "print_int"
+        },
+        {
             "name": "current_block_number",
             "type": "current_block_number"
         },
@@ -91,9 +103,81 @@
         {
             "name": "call_get_contract_sender_value",
             "type": "call_get_contract_sender_value"
+        },
+        {
+            "name": "insert_person",
+            "type": "insert_person"
+        },
+        {
+            "name": "update_person",
+            "type": "update_person"
+        },
+        {
+            "name": "delete_person",
+            "type": "delete_person"
+        },
+        {
+            "name": "get_person",
+            "type": "get_person"
+        },
+        {
+            "name": "get_person_external",
+            "type": "get_person_external"
         }
     ],
     "structs": [
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "name",
+                    "type": "std::string"
+                },
+                {
+                    "name": "gender",
+                    "type": "bool"
+                },
+                {
+                    "name": "age",
+                    "type": "uint32"
+                },
+                {
+                    "name": "address",
+                    "type": "std::string"
+                }
+            ],
+            "name": "person_record"
+        },
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "v",
+                    "type": "std::string"
+                }
+            ],
+            "name": "print_str"
+        },
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "v",
+                    "type": "uint64"
+                }
+            ],
+            "name": "print_uint"
+        },
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "v",
+                    "type": "int64"
+                }
+            ],
+            "name": "print_int"
+        },
         {
             "base": "",
             "fields": [
@@ -419,9 +503,105 @@
                 }
             ],
             "name": "call_get_contract_sender_value"
+        },
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "name",
+                    "type": "std::string"
+                },
+                {
+                    "name": "male",
+                    "type": "bool"
+                },
+                {
+                    "name": "age",
+                    "type": "uint32"
+                },
+                {
+                    "name": "address",
+                    "type": "std::string"
+                }
+            ],
+            "name": "insert_person"
+        },
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "name",
+                    "type": "std::string"
+                },
+                {
+                    "name": "male",
+                    "type": "bool"
+                },
+                {
+                    "name": "age",
+                    "type": "uint32"
+                },
+                {
+                    "name": "address",
+                    "type": "std::string"
+                }
+            ],
+            "name": "update_person"
+        },
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "name",
+                    "type": "std::string"
+                }
+            ],
+            "name": "delete_person"
+        },
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "name",
+                    "type": "std::string"
+                }
+            ],
+            "name": "get_person"
+        },
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "owner",
+                    "type": "std::string"
+                },
+                {
+                    "name": "contract",
+                    "type": "std::string"
+                },
+                {
+                    "name": "table",
+                    "type": "std::string"
+                },
+                {
+                    "name": "name",
+                    "type": "std::string"
+                }
+            ],
+            "name": "get_person_external"
         }
     ],
-    "tables": null,
+    "tables": [
+        {
+            "name": "person",
+            "primary": "name",
+            "secondary": [
+                "gender",
+                "age"
+            ],
+            "type": "person_record"
+        }
+    ],
     "types": null,
     "version": "contentos::abi-1.0"
 }

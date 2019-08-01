@@ -1,8 +1,30 @@
 #include <cosiolib/contract.hpp>
+#include <cosiolib/print.hpp>
+
+struct person_record {
+    std::string name;
+    bool gender;
+    uint32_t age;
+    std::string address;
+
+    COSIO_SERIALIZE(person_record, (name)(gender)(age)(address))
+};
 
 class native_tester : public cosio::contract {
 public:
     using cosio::contract::contract;
+
+    void print_str(const std::string& v) {
+        cosio::print(v);
+    }
+
+    void print_uint(uint64_t v) {
+        cosio::print(v);
+    }
+
+    void print_int(int64_t v) {
+        cosio::print(v);
+    }
 
     void current_block_number(uint64_t expected) {
         cosio::cosio_assert(cosio::current_block_number() == expected, "current_block_number");
@@ -96,6 +118,42 @@ public:
         cosio::execute_contract(cosio::name(other_owner, other_contract), "get_contract_sender_value", coins, coins);
     }
 
+public:
+    void insert_person(const std::string& name, bool male, uint32_t age, const std::string& address) {
+        person_table.insert([&](person_record& r) {
+            r.name = name;
+            r.gender = male;
+            r.age = age;
+            r.address = address;
+        });
+    }
+
+    void update_person(const std::string& name, bool male, uint32_t age, const std::string& address) {
+        person_table.update(name, [&](person_record& r) {
+            r.gender = male;
+            r.age = age;
+            r.address = address;
+        });
+    }
+
+    void delete_person(const std::string& name) {
+        person_table.remove(name);
+    }
+
+    void get_person(const std::string& name) {
+        auto r = person_table.get(name);
+        cosio::print_f("%,%,%,%", r.name, r.gender, r.age, r.address);
+    }
+
+    void get_person_external(const std::string& owner, const std::string& contract, const std::string& table, const std::string& name) {
+        external_person_table.bind(owner, contract, table);
+        auto r = external_person_table.get(name);
+        cosio::print_f("%,%,%,%", r.name, r.gender, r.age, r.address);
+    }
+
+private:
+    COSIO_DEFINE_NAMED_TABLE( person_table, "person", person_record, (name)(gender)(age) );
+    COSIO_UNBOUND_TABLE_EX( external_person_table, person_record, (name)(gender)(age));
 };
 
-COSIO_ABI(native_tester, (current_block_number)(current_timestamp)(current_block_producer)(block_producers)(sha256)(is_contract_called_by_user)(get_contract_caller)(get_contract_caller_contract)(get_contract_name)(get_contract_method)(get_contract_sender_value)(get_contract_balance)(get_user_balance)(require_auth)(require_auth_contract)(transfer_to_user)(transfer_to_contract)(call_is_contract_called_by_user)(call_get_contract_caller)(call_get_contract_caller_contract)(call_require_auth)(call_require_auth_contract)(call_get_contract_sender_value))
+COSIO_ABI(native_tester, (print_str)(print_uint)(print_int)(current_block_number)(current_timestamp)(current_block_producer)(block_producers)(sha256)(is_contract_called_by_user)(get_contract_caller)(get_contract_caller_contract)(get_contract_name)(get_contract_method)(get_contract_sender_value)(get_contract_balance)(get_user_balance)(require_auth)(require_auth_contract)(transfer_to_user)(transfer_to_contract)(call_is_contract_called_by_user)(call_get_contract_caller)(call_get_contract_caller_contract)(call_require_auth)(call_require_auth_contract)(call_get_contract_sender_value)(insert_person)(update_person)(delete_person)(get_person)(get_person_external))

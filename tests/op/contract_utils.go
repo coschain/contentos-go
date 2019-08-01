@@ -80,6 +80,28 @@ func ApplyNoError(t *testing.T, d *dandelion.Dandelion, call string) {
 	}, d, caller, owner, contract, method, params, amount)
 }
 
+func ApplyNoErrorWithConsole(t *testing.T, d *dandelion.Dandelion, call string, console string) {
+	caller, owner, contract, method, params, amount, err := extractCall(call)
+	if err != nil {
+		t.Fatal(err)
+	}
+	applyAndCheck(t, func(r *prototype.TransactionReceiptWithInfo) error {
+		if r == nil {
+			return errors.New("apply failed, receipt is nil")
+		}
+		if r.Status != prototype.StatusSuccess {
+			return fmt.Errorf("apply failed, receipt.status=%d, err=%s", r.Status, r.ErrorInfo)
+		}
+		if len(r.OpResults) < 1 {
+			return errors.New("no op results")
+		}
+		if r.OpResults[0].VmConsole != console {
+			return fmt.Errorf("unexpected vm console: %s, expected: %s", r.OpResults[0].VmConsole, console)
+		}
+		return nil
+	}, d, caller, owner, contract, method, params, amount)
+}
+
 func ApplyError(t *testing.T, d *dandelion.Dandelion, call string) {
 	caller, owner, contract, method, params, amount, err := extractCall(call)
 	if err != nil {
