@@ -248,15 +248,23 @@ func (tester *ContractTester) table(t *testing.T, d *Dandelion) {
 	// delete non-existing record: allowed, just no-op
 	ApplyNoError(t, d, fmt.Sprintf("actor1: actor1.native_tester.delete_person %q", "Edward"))
 
+	// +Mike
+	ApplyNoError(t, d, fmt.Sprintf("actor1: actor1.native_tester.insert_person %q, %v, %d, %q", "Mike", true, 16, "Paris"))
+
+	// change Mike's name to Alice, which is another existing record. it has same effect as: delete Mike & update Alice
+	ApplyNoError(t, d, fmt.Sprintf("actor1: actor1.native_tester.update_person %q, %q, %v, %d, %q", "Mike", "Alice", false, 19, "New York"))
+	ApplyError(t, d, fmt.Sprintf("actor1: actor1.native_tester.get_person %q", "Mike"))
+
 	// get records
-	ApplyNoErrorWithConsole(t, d, fmt.Sprintf("actor1: actor1.native_tester.get_person %q", "Alice"), "Alice,false,20,New York")
+	ApplyNoErrorWithConsole(t, d, fmt.Sprintf("actor1: actor1.native_tester.get_person %q", "Alice"), "Alice,false,19,New York")
 	ApplyNoErrorWithConsole(t, d, fmt.Sprintf("actor1: actor1.native_tester.get_person %q", "Zoe"), "Zoe,false,30,Shanghai")
 	ApplyNoErrorWithConsole(t, d, fmt.Sprintf("actor1: actor1.native_tester.get_person %q", "David"), "David,true,18,Toronto")
 
 	// actor0.native_tester reads person table of actor1.native_tester
-	ApplyNoErrorWithConsole(t, d, fmt.Sprintf("actor1: actor0.native_tester.get_person_external %q, %q, %q, %q", "actor1", "native_tester", "person", "Alice"), "Alice,false,20,New York")
+	ApplyNoErrorWithConsole(t, d, fmt.Sprintf("actor1: actor0.native_tester.get_person_external %q, %q, %q, %q", "actor1", "native_tester", "person", "Alice"), "Alice,false,19,New York")
 	ApplyNoErrorWithConsole(t, d, fmt.Sprintf("actor1: actor0.native_tester.get_person_external %q, %q, %q, %q", "actor1", "native_tester", "person", "Zoe"), "Zoe,false,30,Shanghai")
 	ApplyNoErrorWithConsole(t, d, fmt.Sprintf("actor1: actor0.native_tester.get_person_external %q, %q, %q, %q", "actor1", "native_tester", "person", "David"), "David,true,18,Toronto")
+	ApplyError(t, d, fmt.Sprintf("actor1: actor0.native_tester.get_person_external %q, %q, %q, %q", "actor1", "native_tester", "person", "Mike"))
 }
 
 var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ\r\n\t\"'")
