@@ -12,8 +12,8 @@ public:
         cosio::cosio_assert(cosio::current_timestamp() == expected, "current_timestamp");
     }
 
-    void current_witness(const std::string& expected) {
-        cosio::cosio_assert(cosio::current_witness() == expected, "current_witness");
+    void current_block_producer(const std::string& expected) {
+        cosio::cosio_assert(cosio::current_block_producer() == expected, "current_block_producer");
     }
 
     void block_producers(const std::vector<std::string>& expected) {
@@ -98,4 +98,4 @@ public:
 
 };
 
-COSIO_ABI(native_tester, (current_block_number)(current_timestamp)(current_witness)(block_producers)(sha256)(is_contract_called_by_user)(get_contract_caller)(get_contract_caller_contract)(get_contract_name)(get_contract_method)(get_contract_sender_value)(get_contract_balance)(get_user_balance)(require_auth)(require_auth_contract)(transfer_to_user)(transfer_to_contract)(call_is_contract_called_by_user)(call_get_contract_caller)(call_get_contract_caller_contract)(call_require_auth)(call_require_auth_contract)(call_get_contract_sender_value))
+COSIO_ABI(native_tester, (current_block_number)(current_timestamp)(current_block_producer)(block_producers)(sha256)(is_contract_called_by_user)(get_contract_caller)(get_contract_caller_contract)(get_contract_name)(get_contract_method)(get_contract_sender_value)(get_contract_balance)(get_user_balance)(require_auth)(require_auth_contract)(transfer_to_user)(transfer_to_contract)(call_is_contract_called_by_user)(call_get_contract_caller)(call_get_contract_caller_contract)(call_require_auth)(call_require_auth_contract)(call_get_contract_sender_value))

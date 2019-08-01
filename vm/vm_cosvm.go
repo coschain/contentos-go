@@ -43,7 +43,7 @@ func (w *CosVM) initNativeFuncs() {
 	w.Register("sha256", e_sha256, 500)
 	w.Register("current_block_number", e_currentBlockNumber, 100)
 	w.Register("current_timestamp", e_currentTimestamp, 100)
-	w.Register("current_witness", e_currentWitness, 150)
+	w.Register("current_block_producer", e_currentBlockProducer, 150)
 	w.Register("print_str", e_printString, 100)
 	w.Register("print_int", e_printInt64, 100)
 	w.Register("print_uint", e_printUint64, 100)

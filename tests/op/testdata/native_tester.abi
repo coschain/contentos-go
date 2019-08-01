@@ -9,8 +9,8 @@
             "type": "current_timestamp"
         },
         {
-            "name": "current_witness",
-            "type": "current_witness"
+            "name": "current_block_producer",
+            "type": "current_block_producer"
         },
         {
             "name": "block_producers",
@@ -122,7 +122,7 @@
                     "type": "std::string"
                 }
             ],
-            "name": "current_witness"
+            "name": "current_block_producer"
         },
         {
             "base": "",

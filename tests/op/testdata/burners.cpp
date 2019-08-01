@@ -9,8 +9,8 @@ static uint32_t current_timestamp(cosio::contract *c) {
     return cosio::current_timestamp();
 }
 
-static uint32_t current_witness(cosio::contract *c) {
-    return cosio::current_witness().size();
+static uint32_t current_block_producer(cosio::contract *c) {
+    return cosio::current_block_producer().size();
 }
 
 static uint32_t block_producers(cosio::contract *c) {
@@ -104,7 +104,7 @@ static uint32_t int_ops(cosio::contract *c) {
 uint32_t (*g_burners[])(cosio::contract *) = {
     current_block_number,
     current_timestamp,
-    current_witness,
+    current_block_producer,
     block_producers,
     sha256,
     is_contract_called_by_user,

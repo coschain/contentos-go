@@ -104,7 +104,7 @@ func (tester *ContractTester) requireAuth(t *testing.T, d *Dandelion) {
 func (tester *ContractTester) chainInfo(t *testing.T, d *Dandelion) {
 	ApplyNoError(t, d, fmt.Sprintf("actor1: actor1.native_tester.current_block_number %d", d.GlobalProps().HeadBlockNumber))
 	ApplyNoError(t, d, fmt.Sprintf("actor1: actor1.native_tester.current_timestamp %d", d.GlobalProps().Time.UtcSeconds))
-	ApplyNoError(t, d, fmt.Sprintf("actor1: actor1.native_tester.current_witness %q", d.GlobalProps().CurrentBlockProducer.Value))
+	ApplyNoError(t, d, fmt.Sprintf("actor1: actor1.native_tester.current_block_producer %q", d.GlobalProps().CurrentBlockProducer.Value))
 	ApplyNoError(t, d, fmt.Sprintf("actor1: actor1.native_tester.block_producers %s", StringsToJson(tester.blockProducers(d))))
 }
 

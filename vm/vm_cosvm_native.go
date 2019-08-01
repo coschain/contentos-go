@@ -18,7 +18,7 @@ import (
 //	Sha256(in []byte) [32]byte
 //	CurrentBlockNumber() uint64
 //	CurrentTimestamp() uint64
-//	CurrentWitness() string
+//	CurrentBlockProducer() string
 //	PrintString(str string)
 //	PrintUint32(value uint32)
 //	PrintUint64(value uint64)
@@ -58,7 +58,7 @@ func (w *CosVMNative) CurrentTimestamp() uint64 {
 	return uint64(w.cosVM.props.Time.UtcSeconds)
 }
 
-func (w *CosVMNative) CurrentWitness() string {
+func (w *CosVMNative) CurrentBlockProducer() string {
 	return w.cosVM.props.CurrentBlockProducer.Value
 }
 

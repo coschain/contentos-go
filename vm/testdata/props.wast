@@ -4,8 +4,8 @@
  (type $FUNCSIG$iii (func (param i32 i32) (result i32)))
  (type $FUNCSIG$vii (func (param i32 i32)))
  (import "env" "current_block_number" (func $current_block_number (result i64)))
+ (import "env" "current_block_producer" (func $current_block_producer (param i32 i32) (result i32)))
  (import "env" "current_timestamp" (func $current_timestamp (result i64)))
- (import "env" "current_witness" (func $current_witness (param i32 i32) (result i32)))
  (import "env" "print_str" (func $print_str (param i32 i32)))
  (import "env" "print_uint" (func $print_uint (param i32)))
  (table 0 anyfunc)
@@ -23,7 +23,7 @@
      (i32.load offset=4
       (i32.const 0)
      )
-     (i32.const 48)
+     (i32.const 32)
     )
    )
   )
@@ -37,46 +37,29 @@
     (call $current_timestamp)
    )
   )
-  (i32.store offset=12
-   (get_local $1)
-   (tee_local $0
-    (call $current_witness
-     (i32.add
-      (get_local $1)
-      (i32.const 16)
-     )
-     (i32.const 0)
-    )
-   )
-  )
   (drop
-   (call $current_witness
-    (i32.add
-     (get_local $1)
-     (i32.const 16)
+   (call $current_block_producer
+    (get_local $1)
+    (tee_local $0
+     (call $current_block_producer
+      (get_local $1)
+      (i32.const 0)
+     )
     )
-    (get_local $0)
    )
   )
   (call $print_uint
-   (i32.load offset=12
-    (get_local $1)
-   )
+   (get_local $0)
   )
   (call $print_str
-   (i32.add
-    (get_local $1)
-    (i32.const 16)
-   )
-   (i32.load offset=12
-    (get_local $1)
-   )
+   (get_local $1)
+   (get_local $0)
   )
   (i32.store offset=4
    (i32.const 0)
    (i32.add
     (get_local $1)
-    (i32.const 48)
+    (i32.const 32)
    )
   )
   (i32.const 0)

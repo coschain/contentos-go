@@ -27,10 +27,10 @@ func e_currentTimestamp(proc *exec.Process) int64 {
 	return int64(w.CurrentTimestamp())
 }
 
-func e_currentWitness(proc *exec.Process, pDst int32, dstSize int32) (length int32) {
+func e_currentBlockProducer(proc *exec.Process, pDst int32, dstSize int32) (length int32) {
 	w := proc.GetTag().(*CosVMNative)
 
-	return w.cosVM.write(proc, []byte(w.CurrentWitness()), pDst, dstSize, "currentWitness()")
+	return w.cosVM.write(proc, []byte(w.CurrentBlockProducer()), pDst, dstSize, "currentBlockProducer()")
 }
 
 func e_getBlockProducers(proc *exec.Process, pDst int32, dstSize int32) (length int32) {
