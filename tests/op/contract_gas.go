@@ -10,15 +10,15 @@ import (
 
 type ContractGasTester struct {
 	seed uint32
-	net, cpu uint64
+	cpu uint64
 }
 
-func NewContractGasTester(seed uint32, net, cpu uint64) *ContractGasTester {
-	return &ContractGasTester{ seed:seed, net:net, cpu:cpu }
+func NewContractGasTester(seed uint32, cpu uint64) *ContractGasTester {
+	return &ContractGasTester{ seed:seed, cpu:cpu }
 }
 
-func NewContractGasTest(seed uint32, net, cpu uint64) func(*testing.T) {
-	return NewDandelionContractTest(NewContractGasTester(seed, net, cpu).Test, 1, "actor0.gas_burner")
+func NewContractGasTest(seed uint32, cpu uint64) func(*testing.T) {
+	return NewDandelionContractTest(NewContractGasTester(seed, cpu).Test, 1, "actor0.gas_burner")
 }
 
 func (tester *ContractGasTester) Test(t *testing.T, d *Dandelion) {
@@ -35,5 +35,5 @@ func (tester *ContractGasTester) Test(t *testing.T, d *Dandelion) {
 }
 
 func (tester *ContractGasTester) check(t *testing.T, d *Dandelion) {
-	ApplyGas(t, d, tester.net, tester.cpu, fmt.Sprintf("actor0: actor0.gas_burner.burn %d", tester.seed))
+	ApplyGas(t, d, tester.cpu, fmt.Sprintf("actor0: actor0.gas_burner.burn %d", tester.seed))
 }

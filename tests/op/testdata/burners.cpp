@@ -79,7 +79,7 @@ static uint32_t print(cosio::contract *c) {
 }
 
 static uint32_t int_ops(cosio::contract *c) {
-    uint32_t r = cosio::current_timestamp();
+    uint32_t r = c->get_name().string().size();
     for (int i = 0; i < 16; i++) {
         int s = r & 7;
         switch(s) {

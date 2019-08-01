@@ -1,6 +1,7 @@
 package op
 
 import (
+	"fmt"
 	"github.com/coschain/contentos-go/dandelion"
 	"testing"
 )
@@ -24,5 +25,19 @@ func TestOperations(t *testing.T) {
 }
 
 func TestContractGasUsage(t *testing.T) {
-	t.Run("contract_gas", NewContractGasTest(123, 1380, 3110))
+	expected := map[uint32]uint64{
+		123: 3101,
+		127770551: 3038,
+		1737914878: 2555,
+		986162247: 3771,
+		2056263464: 2934,
+		586611393: 4026,
+		1866632795: 3068,
+		996229099: 3064,
+		1919593611: 2860,
+		2046711939: 3627,
+	}
+	for seed, cpu := range expected {
+		t.Run(fmt.Sprintf("contract_gas_%d", seed), NewContractGasTest(seed, cpu))
+	}
 }

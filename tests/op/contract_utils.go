@@ -6,6 +6,7 @@ import (
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/dandelion"
 	"github.com/coschain/contentos-go/prototype"
+	"github.com/gogo/protobuf/proto"
 	"io/ioutil"
 	"regexp"
 	"strconv"
@@ -108,23 +109,30 @@ func NoApply(t *testing.T, d *dandelion.Dandelion, call string) {
 	}, d, caller, owner, contract, method, params, amount)
 }
 
-func ApplyGas(t *testing.T, d *dandelion.Dandelion, net, cpu uint64, call string) {
+func ApplyGas(t *testing.T, d *dandelion.Dandelion, cpu uint64, call string) {
 	caller, owner, contract, method, params, amount, err := extractCall(call)
 	if err != nil {
 		t.Fatal(err)
 	}
-	applyAndCheck(t, func(r *prototype.TransactionReceiptWithInfo) error {
-		if r == nil {
-			return errors.New("apply failed, receipt is nil")
-		}
-		if r.Status != prototype.StatusSuccess {
-			return fmt.Errorf("apply failed, receipt.status=%d, err=%s", r.Status, r.ErrorInfo)
-		}
-		if r.NetUsage != net || r.CpuUsage != cpu {
-			return fmt.Errorf("apply resource usage mismatch, actual=(net:%d, cpu:%d), expected=(net:%d, cpu:%d)", r.NetUsage, r.CpuUsage, net, cpu)
-		}
-		return nil
-	}, d, caller, owner, contract, method, params, amount)
+	key := d.GetAccountKey(caller)
+	if key == nil {
+		t.Fatal(fmt.Errorf("unknown caller account %s", caller))
+	}
+	trx, r, err := d.SendTrxEx2(key, dandelion.ContractApply(caller, owner, contract, method, params, amount))
+	if err != nil {
+		t.Fatal(err)
+	}
+	trxData, _ := proto.Marshal(trx)
+	net := uint64(len(trxData)) * constants.NetConsumePointNum / constants.NetConsumePointDen
+	if r == nil {
+		t.Fatal(errors.New("apply failed, receipt is nil"))
+	}
+	if r.Status != prototype.StatusSuccess {
+		t.Fatal(fmt.Errorf("apply failed, receipt.status=%d, err=%s", r.Status, r.ErrorInfo))
+	}
+	if r.NetUsage != net || r.CpuUsage != cpu {
+		t.Fatal(fmt.Errorf("apply resource usage mismatch, actual=(net:%d, cpu:%d), expected=(net:%d, cpu:%d)", r.NetUsage, r.CpuUsage, net, cpu))
+	}
 }
 
 func StakeFund(d *dandelion.Dandelion, actors int) error {

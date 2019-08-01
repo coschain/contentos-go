@@ -146,6 +146,10 @@ func (d *DandelionCore) PutAccount(name string, key *prototype.PrivateKeyType) {
 	d.accounts[name] = key
 }
 
+func (d *DandelionCore) GetAccountKey(name string) *prototype.PrivateKeyType {
+	return d.accounts[name]
+}
+
 func (d *DandelionCore) produceBlock() (block *prototype.SignedBlock, err error) {
 	const skip = prototype.Skip_block_signatures
 	var blockId common.BlockID
@@ -232,20 +236,25 @@ func (d *DandelionCore) SendTrxByAccount(name string, operations...*prototype.Op
 	return d.SendTrx(key, operations...)
 }
 
-func (d *DandelionCore) SendTrxEx(privateKey *prototype.PrivateKeyType, operations...*prototype.Operation) (*prototype.TransactionReceiptWithInfo, error) {
+func (d *DandelionCore) SendTrxEx2(privateKey *prototype.PrivateKeyType, operations...*prototype.Operation) (*prototype.SignedTransaction, *prototype.TransactionReceiptWithInfo, error) {
 	trx, block, err := d.sendTrxAndProduceBlock(privateKey, operations...)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	for _, w := range block.Transactions {
 		if bytes.Compare(w.SigTrx.Signature.Sig, trx.Signature.Sig) != 0 {
 			continue
 		}
 		if r, ok := d.trxReceipts.Get(string(trx.Signature.Sig)); ok {
-			return r.(*prototype.TransactionReceiptWithInfo), nil
+			return trx, r.(*prototype.TransactionReceiptWithInfo), nil
 		}
 	}
-	return nil, errors.New("transaction not found in block")
+	return trx, nil, errors.New("transaction not found in block")
+}
+
+func (d *DandelionCore) SendTrxEx(privateKey *prototype.PrivateKeyType, operations...*prototype.Operation) (*prototype.TransactionReceiptWithInfo, error) {
+	_, r, err := d.SendTrxEx2(privateKey, operations...)
+	return r, err
 }
 
 func (d *DandelionCore) SendTrxByAccountEx(name string, operations...*prototype.Operation) (*prototype.TransactionReceiptWithInfo, error) {
