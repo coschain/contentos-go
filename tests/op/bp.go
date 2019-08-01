@@ -13,15 +13,19 @@ type BpTest struct {
 	acc0,acc1,acc2 *DandelionAccount
 }
 
-var defaultProps = &prototype.ChainProperties{
-	AccountCreationFee: prototype.NewCoin(1),
-	MaximumBlockSize:   1024 * 1024,
-	StaminaFree:        constants.DefaultStaminaFree,
-	TpsExpected:        constants.DefaultTPSExpected,
-	EpochDuration:      constants.InitEpochDuration,
-	TopNAcquireFreeToken: constants.InitTopN,
-	PerTicketPrice:     prototype.NewCoin(1000000),
-	PerTicketWeight:    constants.PerTicketWeight,
+var defaultProps *prototype.ChainProperties
+
+func resetProperties(p **prototype.ChainProperties) {
+	*p = &prototype.ChainProperties{
+		AccountCreationFee: prototype.NewCoin(1),
+		MaximumBlockSize:   1024 * 1024,
+		StaminaFree:        constants.DefaultStaminaFree,
+		TpsExpected:        constants.DefaultTPSExpected,
+		EpochDuration:      constants.InitEpochDuration,
+		TopNAcquireFreeToken: constants.InitTopN,
+		PerTicketPrice:     prototype.NewCoin(1000000),
+		PerTicketWeight:    constants.PerTicketWeight,
+	}
 }
 
 func checkError(r* prototype.TransactionReceiptWithInfo) error {
@@ -43,12 +47,18 @@ func (tester *BpTest) Test(t *testing.T, d *Dandelion) {
 	ops = append(ops,TransferToVest(constants.COSInitMiner, "actor1", constants.MinBpRegisterVest))
 	ops = append(ops,TransferToVest(constants.COSInitMiner, "actor2", constants.MinBpRegisterVest))
 
+	ops = append(ops,Stake(constants.COSInitMiner,"actor0",1))
+	ops = append(ops,Stake(constants.COSInitMiner,"actor1",1))
+	ops = append(ops,Stake(constants.COSInitMiner,"actor2",1))
+
 	if err := checkError(d.Account(constants.COSInitMiner).TrxReceipt(ops...)); err != nil {
 		t.Error(err)
 		return
 	}
+	resetProperties(&defaultProps)
 
 	t.Run("regist", d.Test(tester.regist))
+	t.Run("registInvalidParam", d.Test(tester.registInvalidParam))
 	t.Run("dupRegist", d.Test(tester.dupRegist))
 	t.Run("bpVote", d.Test(tester.bpVote))
 	t.Run("bpUnVote", d.Test(tester.bpUnVote))
@@ -68,6 +78,53 @@ func (tester *BpTest) regist(t *testing.T, d *Dandelion) {
 
 	// unregist acc0
 	a.NoError(checkError(d.Account(tester.acc0.Name).TrxReceipt(BpDisable(tester.acc0.Name))))
+}
+
+func (tester *BpTest) registInvalidParam(t *testing.T, d *Dandelion) {
+	a := assert.New(t)
+
+	newBpName := "newwitness"
+	// create a new account to be new bp
+	priv, _ := prototype.GenerateNewKey()
+	pub, _ := priv.PubKey()
+	a.NoError(checkError(d.Account(constants.COSInitMiner).TrxReceipt(AccountCreate(constants.COSInitMiner,newBpName,
+		pub,1,""))))
+
+	// new bp regist as bp, but he has no 10000 vesting, should failed
+	a.Error(checkError(d.Account(newBpName).TrxReceipt(BpRegister(newBpName,"","",pub,defaultProps))))
+
+	// now give new bp 10000 vesting
+	a.NoError(checkError(d.Account(constants.COSInitMiner).TrxReceipt(TransferToVest(constants.COSInitMiner,newBpName,constants.MinBpRegisterVest))))
+
+	// set invalid stamina, should failed
+	defaultProps.StaminaFree = constants.MaxStaminaFree + 1
+	a.Error(checkError(d.Account(newBpName).TrxReceipt(BpRegister(newBpName,"","",pub,defaultProps))))
+	defaultProps.StaminaFree = constants.MaxStaminaFree
+
+	// set invalid tps expected, should failed
+	defaultProps.TpsExpected = 0
+	a.Error(checkError(d.Account(newBpName).TrxReceipt(BpRegister(newBpName,"","",pub,defaultProps))))
+	defaultProps.TpsExpected = constants.MinTPSExpected
+
+	// set invalid account create fee, should failed
+	defaultProps.AccountCreationFee = prototype.NewCoin(0)
+	a.Error(checkError(d.Account(newBpName).TrxReceipt(BpRegister(newBpName,"","",pub,defaultProps))))
+	defaultProps.AccountCreationFee = prototype.NewCoin(constants.DefaultAccountCreateFee)
+
+	// set invalid topNFreeToken, should failed
+	defaultProps.TopNAcquireFreeToken = constants.MaxTopN + 1
+	a.Error(checkError(d.Account(newBpName).TrxReceipt(BpRegister(newBpName,"","",pub,defaultProps))))
+	defaultProps.TopNAcquireFreeToken = constants.MaxTopN
+
+	// set invalid ticket price, should failed
+	defaultProps.PerTicketPrice = prototype.NewCoin(0)
+	a.Error(checkError(d.Account(newBpName).TrxReceipt(BpRegister(newBpName,"","",pub,defaultProps))))
+	defaultProps.PerTicketPrice = prototype.NewCoin(constants.MinTicketPrice)
+
+	// acc0 should not appear in bp
+	witWrap := d.Witness(newBpName)
+	a.False(witWrap.CheckExist())
+	resetProperties(&defaultProps)
 }
 
 func (tester *BpTest) dupRegist(t *testing.T, d *Dandelion) {
