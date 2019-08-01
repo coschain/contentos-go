@@ -333,11 +333,8 @@ func (tester *BpTest) bpUpdateCheckDgp(t *testing.T, d *Dandelion) {
 	}
 
 	// produce some blocks wait shuffle happen to let bp's param take effective
-	tmpName2 := "abcdef"
-	for i := 0; i< 10 ;i++ {
-		tmpName := tmpName2 + fmt.Sprintf("%d",i)
-		newAccount(tmpName,t,d)
-	}
+	d.ProduceBlocks(10)
+
 	// should be median number
 	a.True(d.GlobalProps().TpsExpected == tpsStart + 21/2)
 }
