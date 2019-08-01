@@ -73,7 +73,7 @@ func (tester *BpTest) regist(t *testing.T, d *Dandelion) {
 	a.NoError(checkError(d.Account(tester.acc0.Name).TrxReceipt(BpRegister(tester.acc0.Name,"www.me.com","nothing",tester.acc0.GetPubKey(),defaultProps))))
 
 	// acc0 should appear in bp
-	witWrap := d.Witness(tester.acc0.Name)
+	witWrap := d.BlockProducer(tester.acc0.Name)
 	a.True(witWrap.CheckExist())
 
 	// unregist acc0
@@ -122,7 +122,7 @@ func (tester *BpTest) registInvalidParam(t *testing.T, d *Dandelion) {
 	defaultProps.PerTicketPrice = prototype.NewCoin(constants.MinTicketPrice)
 
 	// acc0 should not appear in bp
-	witWrap := d.Witness(newBpName)
+	witWrap := d.BlockProducer(newBpName)
 	a.False(witWrap.CheckExist())
 	resetProperties(&defaultProps)
 }
@@ -132,12 +132,12 @@ func (tester *BpTest) dupRegist(t *testing.T, d *Dandelion) {
 
 	// acc1 regist as bp
 	a.NoError(checkError(d.Account(tester.acc1.Name).TrxReceipt(BpRegister(tester.acc1.Name,"www.me.com","nothing",tester.acc1.GetPubKey(),defaultProps))))
-	witWrap := d.Witness(tester.acc1.Name)
+	witWrap := d.BlockProducer(tester.acc1.Name)
 	a.True(witWrap.CheckExist())
 
 	// acc1 regist again, this time should failed
 	a.Error(checkError(d.Account(tester.acc1.Name).TrxReceipt(BpRegister(tester.acc1.Name,"www.you.com","nothing",tester.acc1.GetPubKey(),defaultProps))))
-	witWrapCheck := d.Witness(tester.acc1.Name)
+	witWrapCheck := d.BlockProducer(tester.acc1.Name)
 	// acc1's bp info should be in old
 	a.True(witWrapCheck.GetUrl() == "www.me.com")
 }
@@ -149,7 +149,7 @@ func (tester *BpTest) bpVote(t *testing.T, d *Dandelion) {
 	// acc1 vote for bp acc1
 	a.NoError(checkError(d.Account(tester.acc1.Name).TrxReceipt(BpVote(tester.acc1.Name,tester.acc1.Name,false))))
 
-	witWrap := d.Witness(tester.acc1.Name)
+	witWrap := d.BlockProducer(tester.acc1.Name)
 
 	// check bp's vote count and acc1's vote count
 	a.True(witWrap.GetVoteVest().Value > 0)
@@ -164,7 +164,7 @@ func (tester *BpTest) bpUnVote(t *testing.T, d *Dandelion) {
 	a.NoError(checkError(d.Account(tester.acc2.Name).TrxReceipt(BpVote(tester.acc2.Name,tester.acc1.Name,false))))
 
 	// check bp's vote count and acc2's vote count
-	witWrap := d.Witness(tester.acc1.Name)
+	witWrap := d.BlockProducer(tester.acc1.Name)
 	a.True(witWrap.GetVoteVest().Value > 0)
 	a.True(tester.acc2.GetBpVoteCount() == 1)
 
@@ -177,14 +177,14 @@ func (tester *BpTest) bpUnVote(t *testing.T, d *Dandelion) {
 func (tester *BpTest) bpVoteMultiTime(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
 	a.True(tester.acc2.GetBpVoteCount() == 0)
-	witWrap := d.Witness(tester.acc1.Name)
+	witWrap := d.BlockProducer(tester.acc1.Name)
 	a.True(witWrap.CheckExist())
 
 	// acc2 vote for bp acc1
 	a.NoError(checkError(d.Account(tester.acc2.Name).TrxReceipt(BpVote(tester.acc2.Name,tester.acc1.Name,false))))
 
 	// check acc2's vote count
-	witWrap2 := d.Witness(tester.acc1.Name)
+	witWrap2 := d.BlockProducer(tester.acc1.Name)
 	a.True(witWrap2.GetVoteVest().Value > 0)
 	a.True(tester.acc2.GetBpVoteCount() == 1)
 
@@ -199,7 +199,7 @@ func (tester *BpTest) bpUpdate(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
 
 	// change staminaFree param
-	witWrap := d.Witness(tester.acc1.Name)
+	witWrap := d.BlockProducer(tester.acc1.Name)
 	a.True(witWrap.GetProposedStaminaFree() == constants.DefaultStaminaFree)
 	defaultProps.StaminaFree = 1
 
@@ -207,13 +207,13 @@ func (tester *BpTest) bpUpdate(t *testing.T, d *Dandelion) {
 	a.NoError(checkError(d.Account(tester.acc1.Name).TrxReceipt(BpUpdate(tester.acc1.Name,defaultProps))))
 
 	// check stamina
-	witWrap2 := d.Witness(tester.acc1.Name)
+	witWrap2 := d.BlockProducer(tester.acc1.Name)
 	a.True(witWrap2.GetProposedStaminaFree() == 1)
 }
 
 func (tester *BpTest) unRegist(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
-	witWrap := d.Witness(tester.acc1.Name)
+	witWrap := d.BlockProducer(tester.acc1.Name)
 	a.True(witWrap.GetActive())
 
 	// acc1 unregist

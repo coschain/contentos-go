@@ -207,7 +207,7 @@ func makeMultiNodeTeseterTrx(count int64, onlyCreate bool) (*prototype.SignedTra
 		return nil, err
 	}
 
-	opCreatorBpVote := &prototype.BpVoteOperation{Voter: creator, Witness: creator, Cancel: false}
+	opCreatorBpVote := &prototype.BpVoteOperation{Voter: creator, BlockProducer: creator, Cancel: false}
 
 	if !onlyCreate {
 		trx.Trx.AddOperation(opCreatorBpVote)
@@ -243,7 +243,7 @@ func makeMultiNodeTeseterTrx(count int64, onlyCreate bool) (*prototype.SignedTra
 			},
 		}
 
-		opBpVote := &prototype.BpVoteOperation{Voter: prototype.NewAccountName(bpName), Witness: prototype.NewAccountName(bpName), Cancel: false}
+		opBpVote := &prototype.BpVoteOperation{Voter: prototype.NewAccountName(bpName), BlockProducer: prototype.NewAccountName(bpName), Cancel: false}
 
 		if !onlyCreate {
 			trx.Trx.AddOperation(opBpReg)

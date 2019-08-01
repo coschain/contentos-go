@@ -681,7 +681,7 @@ func (c *TrxPool) initGenesis() {
 		tInfo.PerTicketPrice = prototype.NewCoin(constants.PerTicketPrice * constants.COSTokenDecimals)
 		tInfo.PerTicketWeight = constants.PerTicketWeight
 		tInfo.VoterCount = 0
-	}), "Witness Create Error")
+	}), "BlockProducer Create Error")
 
 	// create dynamic global properties
 	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)

@@ -26,8 +26,8 @@ func TestMsgPack(t *testing.T) {
 	sigBlk := new(prototype.SignedBlock)
 	sigBlkHdr := new(prototype.SignedBlockHeader)
 	sigBlkHdr.Header = new(prototype.BlockHeader)
-	sigBlkHdr.Header.Witness = new(prototype.AccountName)
-	sigBlkHdr.Header.Witness.Value = "alice"
+	sigBlkHdr.Header.BlockProducer = new(prototype.AccountName)
+	sigBlkHdr.Header.BlockProducer.Value = "alice"
 	sigBlk.SignedHeader = sigBlkHdr
 	msgBefore = NewSigBlkIdMsg(sigBlk)
 	processAndCheck(t)

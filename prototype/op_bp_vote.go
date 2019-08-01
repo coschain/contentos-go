@@ -15,7 +15,7 @@ func (m *BpVoteOperation) Validate() error {
 		return errors.WithMessage(err, "Voter error")
 	}
 	if err := m.BlockProducer.Validate(); err != nil {
-		return errors.WithMessage(err, "Witness error")
+		return errors.WithMessage(err, "BlockProducer error")
 	}
 
 	return nil

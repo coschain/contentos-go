@@ -162,7 +162,7 @@ func (d *Dandelion) GiftTicket(ticket *prototype.GiftTicketKeyType) *table.SoGif
 	return table.NewSoGiftTicketWrap(d.Database(), ticket)
 }
 
-func (d *Dandelion) Witness(owner string) *table.SoBlockProducerWrap {
+func (d *Dandelion) BlockProducer(owner string) *table.SoBlockProducerWrap {
 	return table.NewSoBlockProducerWrap(d.Database(), prototype.NewAccountName(owner))
 }
 
