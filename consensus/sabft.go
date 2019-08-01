@@ -214,7 +214,7 @@ func (sabft *SABFT) checkBFTRoutine() {
 }
 
 func (sabft *SABFT) restoreProducers() {
-	prods, _ := sabft.ctrl.GetShuffledWitness()
+	prods, _ := sabft.ctrl.GetShuffledBpList()
 	sabft.producers = sabft.makeProducers(prods)
 	sabft.log.Info("[SABFT] active producers: ", prods)
 }
@@ -239,7 +239,7 @@ func (sabft *SABFT) updateProducers(seed uint64, prods []string, pubKeys []*prot
 		validatorNames += sabft.producers[i].accountName + " "
 	}
 	sabft.log.Debug("[SABFT shuffle] active producers: ", validatorNames)
-	sabft.ctrl.SetShuffledWitness(prods, pubKeys)
+	sabft.ctrl.SetShuffledBpList(prods, pubKeys)
 
 	return prodNum
 }
@@ -364,7 +364,7 @@ func (sabft *SABFT) restoreDynasty() {
 		}
 		sabft.popBlock(lcNum + 1)
 
-		prods, pubKeys := sabft.ctrl.GetShuffledWitness()
+		prods, pubKeys := sabft.ctrl.GetShuffledBpList()
 		dyn := sabft.makeDynasty(lcNum, prods, pubKeys, sabft.localPrivKey)
 		sabft.addDynasty(dyn)
 		for i := range cache {

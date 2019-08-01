@@ -38,8 +38,8 @@ type ITrxPool interface {
 	GenerateBlock(bpName string, pre *prototype.Sha256, timestamp uint32, priKey *prototype.PrivateKeyType, skip prototype.SkipFlag) (*prototype.SignedBlock, error)
 	GetBlockProducerTopN(n uint32) ([]string, []*prototype.PublicKeyType)
 	GetSigningPubKey(bpName string) *prototype.PublicKeyType
-	SetShuffledWitness(names []string, keys []*prototype.PublicKeyType)
-	GetShuffledWitness() ([]string, []*prototype.PublicKeyType)
+	SetShuffledBpList(names []string, keys []*prototype.PublicKeyType)
+	GetShuffledBpList() ([]string, []*prototype.PublicKeyType)
 	SetShuffle(s common.ShuffleFunc)
 	// PopBlock() rollbacks the state db to the moment just before applying block @num.
 	PopBlock(num uint64) error

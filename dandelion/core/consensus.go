@@ -66,13 +66,13 @@ func (c *DummyConsensus) updateProducers(seed uint64, prods []string, pubKeys []
 		prods[i], prods[j] = prods[j], prods[i]
 		pubKeys[i], pubKeys[j] = pubKeys[j], pubKeys[i]
 	}
-	c.trxPool.SetShuffledWitness(prods, pubKeys)
+	c.trxPool.SetShuffledBpList(prods, pubKeys)
 	c.producers = prods
 	return prodNum
 }
 
 func (c *DummyConsensus) restoreProducers() {
-	prods, _ := c.trxPool.GetShuffledWitness()
+	prods, _ := c.trxPool.GetShuffledBpList()
 	c.producers = prods
 }
 

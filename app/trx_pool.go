@@ -1070,13 +1070,13 @@ func (c *TrxPool) GetBlockProducerTopN(n uint32) ([]string, []*prototype.PublicK
 	return bpNames, keys
 }
 
-func (c *TrxPool) SetShuffledWitness(names []string, keys []*prototype.PublicKeyType) {
+func (c *TrxPool) SetShuffledBpList(names []string, keys []*prototype.PublicKeyType) {
 	bpScheduleWrap := table.NewSoBlockProducerScheduleObjectWrap(c.db, &SingleId)
 	mustSuccess(bpScheduleWrap.MdCurrentShuffledBlockProducer(names), "SetWitness error")
 	mustSuccess(bpScheduleWrap.MdPubKey(keys), "set bp pub key failed")
 }
 
-func (c *TrxPool) GetShuffledWitness() ([]string, []*prototype.PublicKeyType) {
+func (c *TrxPool) GetShuffledBpList() ([]string, []*prototype.PublicKeyType) {
 	bpScheduleWrap := table.NewSoBlockProducerScheduleObjectWrap(c.db, &SingleId)
 	return bpScheduleWrap.GetCurrentShuffledBlockProducer(), bpScheduleWrap.GetPubKey()
 }

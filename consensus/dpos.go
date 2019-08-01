@@ -144,12 +144,12 @@ func (d *DPoS) shuffle(head common.ISignedBlock) (bool, []string) {
 
 	d.Producers = prods
 	d.log.Debug("[DPoS shuffle] active producers: ", d.Producers)
-	d.ctrl.SetShuffledWitness(prods, keys)
+	d.ctrl.SetShuffledBpList(prods, keys)
 	return true, prods
 }
 
 func (d *DPoS) restoreProducers() {
-	d.Producers, _ = d.ctrl.GetShuffledWitness()
+	d.Producers, _ = d.ctrl.GetShuffledBpList()
 }
 
 func (d *DPoS) ActiveProducers() []string {
