@@ -70,6 +70,7 @@ func (tester *BpTest) Test(t *testing.T, d *Dandelion) {
 	resetProperties(&defaultProps)
 
 	t.Run("regist", d.Test(tester.regist))
+	t.Run("dupEnable", d.Test(tester.dupEnable))
 	t.Run("registInvalidParam", d.Test(tester.registInvalidParam))
 	t.Run("dupRegist", d.Test(tester.dupRegist))
 	t.Run("bpVote", d.Test(tester.bpVote))
@@ -82,6 +83,7 @@ func (tester *BpTest) Test(t *testing.T, d *Dandelion) {
 	t.Run("bpEnableDisable", d.Test(tester.bpEnableDisable))
 	t.Run("unRegist", d.Test(tester.unRegist))
 	t.Run("bpUpdateCheckDgp",d.Test(tester.bpUpdateCheckDgp))
+	t.Run("bpUnVoteMultiTime", d.Test(tester.bpUnVoteMultiTime))
 }
 
 func (tester *BpTest) regist(t *testing.T, d *Dandelion) {
@@ -92,6 +94,21 @@ func (tester *BpTest) regist(t *testing.T, d *Dandelion) {
 	// acc0 should appear in bp
 	witWrap := d.BlockProducer(tester.acc0.Name)
 	a.True(witWrap.CheckExist())
+}
+
+func (tester *BpTest) dupEnable(t *testing.T, d *Dandelion) {
+	a := assert.New(t)
+	witWrap := d.BlockProducer(tester.acc0.Name)
+	a.True(witWrap.CheckExist())
+	// acc0 is bp and active
+	a.True(witWrap.GetActive())
+
+	// acc0 enable duplicate
+	a.Error(checkError(d.Account(tester.acc0.Name).TrxReceipt(BpEnable(tester.acc0.Name))))
+
+	// acc0 should appear in bp
+	a.True(witWrap.CheckExist())
+	a.True(witWrap.GetActive())
 }
 
 func (tester *BpTest) registInvalidParam(t *testing.T, d *Dandelion) {
@@ -323,4 +340,35 @@ func (tester *BpTest) bpUpdateCheckDgp(t *testing.T, d *Dandelion) {
 	}
 	// should be median number
 	a.True(d.GlobalProps().TpsExpected == tpsStart + 21/2)
+}
+
+func (tester *BpTest) bpUnVoteMultiTime(t *testing.T, d *Dandelion) {
+	a := assert.New(t)
+	bpName := "bpUnVoteMulti"
+	pri := newAccount(bpName,t,d)
+	pub,_ := pri.PubKey()
+	// give new bp 10000 vesting
+	a.NoError(checkError(d.Account(constants.COSInitMiner).TrxReceipt(TransferToVest(constants.COSInitMiner,bpName,constants.MinBpRegisterVest))))
+	// new account regist bp
+	a.NoError(checkError(d.Account(bpName).TrxReceipt(BpRegister(bpName,"","",pub,defaultProps))))
+
+	voter := "bpUnVoteMultiv"
+	newAccount(voter,t,d)
+	// voter vote for new account bp
+	a.NoError(checkError(d.Account(voter).TrxReceipt(BpVote(voter,bpName,false))))
+
+	// check voter's vote count
+	witWrap := d.BlockProducer(bpName)
+	a.True(witWrap.GetVoteVest().Value > 0)
+	a.True(d.Account(voter).GetBpVoteCount() == 1)
+
+	// voter vote cancel vote for bp
+	a.NoError(checkError(d.Account(voter).TrxReceipt(BpVote(voter,bpName,true))))
+	// bp's vote vest should be o
+	a.True(witWrap.GetVoteVest().Value == 0)
+	// voter's vote count should be 0
+	a.True(d.Account(voter).GetBpVoteCount() == 0)
+
+	// voter vote cancel vote again, should failed
+	a.Error(checkError(d.Account(voter).TrxReceipt(BpVote(voter,bpName,true))))
 }
