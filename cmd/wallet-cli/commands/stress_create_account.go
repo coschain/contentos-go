@@ -1,18 +1,17 @@
 package commands
 
-
 import (
 	"context"
 	"fmt"
 	"github.com/coschain/cobra"
 	"github.com/coschain/contentos-go/cmd/wallet-cli/commands/utils"
 	"github.com/coschain/contentos-go/cmd/wallet-cli/wallet"
+	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/rpc/pb"
 	"strconv"
 	"sync"
 	"sync/atomic"
-	"time"
 )
 
 var CntIdx uint64 = 0
@@ -55,9 +54,9 @@ func stressCreAccount(cmd *cobra.Command, args []string) {
 		tid := i
 		wg.Add(1)
 		go func(){
-			s := time.Now()
+			s := common.EasyTimer()
 			defer func() {
-				fmt.Println("stress create account cost: ", time.Now().Sub(s), ", thread-number: ", tid)
+				fmt.Println("stress create account cost: ", s, ", thread-number: ", tid)
 			}()
 			for index:=0; index < 1000; index ++ {
 				pubKeyStr, _, err := mywallet.GenerateNewKey()

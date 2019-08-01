@@ -737,18 +737,18 @@ func (ev *TransferToVestEvaluator) Apply() {
 }
 
 func updateBpVoteValue(dba iservices.IDatabaseRW, voter *prototype.AccountName, oldVest, newVest *prototype.Vest) (t1, t2 time.Duration){
-	getBpNameStart := time.Now()
+	getBpNameStart := common.EasyTimer()
 	uniqueVoterQueryWrap := table.UniBlockProducerVoteVoterNameWrap{Dba:dba}
 	bpId := uniqueVoterQueryWrap.UniQueryVoterName(voter)
 	if bpId == nil {
-		t1 = time.Now().Sub(getBpNameStart)
+		t1 = getBpNameStart.Elapsed()
 		return
 	}
 	bpName := bpId.GetBlockProducerId().BlockProducer
-	t1 = time.Now().Sub(getBpNameStart)
+	t1 = getBpNameStart.Elapsed()
 
 
-	startTime := time.Now()
+	startTime := common.EasyTimer()
 	bpWrap := table.NewSoBlockProducerWrap(dba, bpName)
 	if bpWrap != nil && bpWrap.CheckExist() {
 		bpVoteVestCnt := bpWrap.GetVoteVest()
@@ -757,7 +757,7 @@ func updateBpVoteValue(dba iservices.IDatabaseRW, voter *prototype.AccountName, 
 
 		opAssert(bpWrap.MdVoteVest(bpVoteVestCnt), "update block producer vote count data error")
 	}
-	t2 = time.Now().Sub(startTime)
+	t2 = startTime.Elapsed()
 
 	return
 }
