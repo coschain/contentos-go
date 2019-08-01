@@ -1190,7 +1190,7 @@ func (ev *AcquireTicketEvaluator) Apply() {
 		Type: 1,
 		From: "contentos",
 		To: op.Account.Value,
-		CreateBlock: ev.GlobalProp().GetProps().HeadBlockNumber,
+		CreateBlock: ev.GlobalProp().GetProps().HeadBlockNumber+1,
 	}
 
 	ticketWrap := table.NewSoGiftTicketWrap(ev.Database(), ticketKey)
