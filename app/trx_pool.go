@@ -389,7 +389,6 @@ func (c *TrxPool) generateBlockNoLock(bpName string, pre *prototype.Sha256, time
 		if len(bpNameList) > 0 {
 			c.updateGlobalBpBootMark(bpNameList)
 			c.updateGlobalResourceParam(bpNameList)
-			c.deleteUnusedBp(bpNameList)
 		}
 	}
 
@@ -571,7 +570,6 @@ func (c *TrxPool) applyBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag
 			if len(bpNameList) > 0 {
 				c.updateGlobalBpBootMark(bpNameList)
 				c.updateGlobalResourceParam(bpNameList)
-				c.deleteUnusedBp(bpNameList)
 			}
 		}
 
@@ -883,13 +881,28 @@ func (c *TrxPool) updateGlobalBpBootMark(bpNameList []string) {
 	if len(bpNameList) == 1 && bpNameList[0] == constants.COSInitMiner {
 		return
 	}
-	c.modifyGlobalDynamicData(func(dgpo *prototype.DynamicProperties) {
-		dgpo.BlockProducerBootCompleted = true
-		// start epoch
-		if dgpo.CurrentEpochStartBlock == 0 {
-			dgpo.CurrentEpochStartBlock = 1
+
+	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
+	if !dgpWrap.GetProps().BlockProducerBootCompleted {
+		// update global param
+		c.modifyGlobalDynamicData(func(dgpo *prototype.DynamicProperties) {
+			// update global BootCompleted
+			dgpo.BlockProducerBootCompleted = true
+			// start epoch
+			if dgpo.CurrentEpochStartBlock == 0 {
+				dgpo.CurrentEpochStartBlock = 1
+			}
+		})
+
+		// disable bp constants.COSInitMiner
+		ac := &prototype.AccountName{
+			Value: constants.COSInitMiner,
 		}
-	})
+		bpWrap := table.NewSoBlockProducerWrap(c.db, ac)
+		if bpWrap.CheckExist() {
+			mustSuccess(bpWrap.MdActive(false), fmt.Sprintf("disable bp %s error", constants.COSInitMiner))
+		}
+	}
 }
 
 func (c *TrxPool) updateGlobalResourceParam(bpNameList []string) {
@@ -936,40 +949,6 @@ func (c *TrxPool) updateGlobalResourceParam(bpNameList []string) {
 		dgpo.PerTicketPrice = prototype.NewCoin(perTicketPriceValue[len(perTicketPriceValue) / 2])
 		dgpo.PerTicketWeight = perTicketWeight[len(perTicketWeight) / 2]
 	})
-}
-
-func (c *TrxPool) deleteUnusedBp(bpNameList []string) {
-	// delete unActive bp
-	//revList := table.SBlockProducerVoteVestWrap{Dba: c.db}
-	//var deletelist       []*prototype.AccountName
-	//
-	//_ = revList.ForEachByRevOrder(nil, nil,nil,nil, func(mVal *prototype.AccountName, sVal *prototype.Vest, idx uint32) bool {
-	//	if mVal != nil {
-	//		bpWrap := table.NewSoBlockProducerWrap(c.db, mVal)
-	//		if bpWrap.CheckExist() {
-	//			if !bpWrap.GetActive() {
-	//				deletelist = append(deletelist, mVal)
-	//			}
-	//		}
-	//	}
-	//	return true
-	//})
-	//
-	//for i:=0;i<len(deletelist);i++ {
-	//	bpWrap := table.NewSoBlockProducerWrap(c.db, deletelist[i])
-	//	mustSuccess(bpWrap.RemoveWitness(), fmt.Sprintf("delete unregister bp %s error", deletelist[i].Value))
-	//}
-
-	// maybe disable bp constants.COSInitMiner
-	if len(bpNameList) > 1 || (len(bpNameList) == 1 && bpNameList[0] != constants.COSInitMiner) {
-		ac := &prototype.AccountName{
-			Value: constants.COSInitMiner,
-		}
-		bpWrap := table.NewSoBlockProducerWrap(c.db, ac)
-		if bpWrap.CheckExist() {
-			mustSuccess(bpWrap.MdActive(false), fmt.Sprintf("disable bp %s error", constants.COSInitMiner))
-		}
-	}
 }
 
 func (c *TrxPool) updateGlobalProperties(blk *prototype.SignedBlock) {
