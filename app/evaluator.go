@@ -1225,7 +1225,7 @@ func (ev *AcquireTicketEvaluator) Apply() {
 		tInfo.Ticket = ticketKey
 		tInfo.Count = count
 		tInfo.Denom = ev.GlobalProp().GetProps().GetPerTicketWeight()
-		tInfo.ExpireBlock = math.MaxUint32
+		tInfo.ExpireBlock = math.MaxUint64
 	})
 
 	props := ev.GlobalProp().GetProps()
