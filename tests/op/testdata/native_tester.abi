@@ -534,6 +534,10 @@
                     "type": "std::string"
                 },
                 {
+                    "name": "new_name",
+                    "type": "std::string"
+                },
+                {
                     "name": "male",
                     "type": "bool"
                 },

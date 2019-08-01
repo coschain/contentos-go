@@ -231,10 +231,15 @@ func (tester *ContractTester) table(t *testing.T, d *Dandelion) {
 	ApplyNoError(t, d, fmt.Sprintf("actor1: actor1.native_tester.insert_person %q, %v, %d, %q", "David", true, 18, "Toronto"))
 
 	// change Charlie's record
-	ApplyNoError(t, d, fmt.Sprintf("actor1: actor1.native_tester.update_person %q, %v, %d, %q", "Charlie", true, 30, "Shanghai"))
+	ApplyNoError(t, d, fmt.Sprintf("actor1: actor1.native_tester.update_person %q, %q, %v, %d, %q", "Charlie", "Charlie", true, 30, "Shanghai"))
+	// update primary key: change Charlie's name
+	ApplyNoError(t, d, fmt.Sprintf("actor1: actor1.native_tester.update_person %q, %q, %v, %d, %q", "Charlie", "Zoe", false, 30, "Shanghai"))
+	// no Charlie any more, he became Zoe
+	ApplyError(t, d, fmt.Sprintf("actor1: actor1.native_tester.get_person %q", "Charlie"))
+	ApplyNoError(t, d, fmt.Sprintf("actor1: actor1.native_tester.get_person %q", "Zoe"))
 
 	// change non-existing record
-	ApplyError(t, d, fmt.Sprintf("actor1: actor1.native_tester.update_person %q, %v, %d, %q", "Edward", true, 30, "Shanghai"))
+	ApplyError(t, d, fmt.Sprintf("actor1: actor1.native_tester.update_person %q, %q, %v, %d, %q", "Edward", "Edward", true, 30, "Shanghai"))
 
 	// delete Bob
 	ApplyNoError(t, d, fmt.Sprintf("actor1: actor1.native_tester.delete_person %q", "Bob"))
@@ -245,12 +250,12 @@ func (tester *ContractTester) table(t *testing.T, d *Dandelion) {
 
 	// get records
 	ApplyNoErrorWithConsole(t, d, fmt.Sprintf("actor1: actor1.native_tester.get_person %q", "Alice"), "Alice,false,20,New York")
-	ApplyNoErrorWithConsole(t, d, fmt.Sprintf("actor1: actor1.native_tester.get_person %q", "Charlie"), "Charlie,true,30,Shanghai")
+	ApplyNoErrorWithConsole(t, d, fmt.Sprintf("actor1: actor1.native_tester.get_person %q", "Zoe"), "Zoe,false,30,Shanghai")
 	ApplyNoErrorWithConsole(t, d, fmt.Sprintf("actor1: actor1.native_tester.get_person %q", "David"), "David,true,18,Toronto")
 
 	// actor0.native_tester reads person table of actor1.native_tester
 	ApplyNoErrorWithConsole(t, d, fmt.Sprintf("actor1: actor0.native_tester.get_person_external %q, %q, %q, %q", "actor1", "native_tester", "person", "Alice"), "Alice,false,20,New York")
-	ApplyNoErrorWithConsole(t, d, fmt.Sprintf("actor1: actor0.native_tester.get_person_external %q, %q, %q, %q", "actor1", "native_tester", "person", "Charlie"), "Charlie,true,30,Shanghai")
+	ApplyNoErrorWithConsole(t, d, fmt.Sprintf("actor1: actor0.native_tester.get_person_external %q, %q, %q, %q", "actor1", "native_tester", "person", "Zoe"), "Zoe,false,30,Shanghai")
 	ApplyNoErrorWithConsole(t, d, fmt.Sprintf("actor1: actor0.native_tester.get_person_external %q, %q, %q, %q", "actor1", "native_tester", "person", "David"), "David,true,18,Toronto")
 }
 

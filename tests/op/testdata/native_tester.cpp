@@ -128,8 +128,9 @@ public:
         });
     }
 
-    void update_person(const std::string& name, bool male, uint32_t age, const std::string& address) {
+    void update_person(const std::string& name, const std::string& new_name, bool male, uint32_t age, const std::string& address) {
         person_table.update(name, [&](person_record& r) {
+            r.name = new_name;
             r.gender = male;
             r.age = age;
             r.address = address;
