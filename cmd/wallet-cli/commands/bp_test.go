@@ -180,40 +180,6 @@ func TestBpRegisterWithBlockSize(t *testing.T) {
 	}
 }
 
-func TestBpUnRegister(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	myassert := assert.New(t)
-	client := mock_grpcpb.NewMockApiServiceClient(ctrl)
-	mywallet := mock_wallet.NewMockWallet(ctrl)
-	passwordReader := mock_utils.NewMockPasswordReader(ctrl)
-	cmd := BpCmd()
-	cmd.SetContext("wallet", mywallet)
-	cmd.SetContext("rpcclient", client)
-	cmd.SetContext("preader", passwordReader)
-	for _, child := range cmd.Commands() {
-		child.Context = cmd.Context
-	}
-	cmd.SetArgs([]string{"unregister", "initminer"})
-	priv_account := &wallet.PrivAccount{
-		Account: wallet.Account{
-			Name:   "initminer",
-			PubKey: "COS5JVLLcTPhq4Unr194JzWPDNSYGoMcam8yxnsjgRVo3Nb7ioyFW",
-		},
-		PrivKey: "4DjYx2KAGh1NP3dai7MZTLUBMMhMBPmwouKE8jhVSESywccpVZ",
-	}
-	mywallet.EXPECT().GetUnlockedAccount("initminer").Return(priv_account, true)
-	resp := &grpcpb.BroadcastTrxResponse{Status: 1, Msg: "success"}
-	client.EXPECT().BroadcastTrx(gomock.Any(), gomock.Any()).Return(resp, nil).Do(func(context interface{}, req *grpcpb.BroadcastTrxRequest) {
-		op := req.Transaction.Trx.Operations[0]
-		bp_op := op.GetOp4()
-		myassert.Equal(bp_op.Owner.Value, "initminer")
-	})
-	_, err := cmd.ExecuteC()
-	if err != nil {
-		t.Error(err)
-	}
-}
-
 func TestBpVoteWithoutFlags(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	myassert := assert.New(t)

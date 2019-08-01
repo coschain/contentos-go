@@ -42,8 +42,8 @@ const (
 	ACQUIRE_TICKET_CMD = "ticket acquire"
 	VOTE_BY_TICKET_CMD = "ticket vote"
 
-	INIT_ACCOUNT_LENGTH = 10
-	INIT_POSTID_LENGTH  = 10
+	INIT_ACCOUNT_LENGTH = 8
+	INIT_POSTID_LENGTH  = 8
 	MAX_ACCOUNT_NUM     = 10000000
 	MAX_POSTID_NUM      = 10000000  // 10 million
 )
@@ -158,14 +158,14 @@ func StartEachRoutine(index int) {
 			}
 			PostIdList.RUnlock()
 			postArticle(rpcClient, nil)
-		//case FOLLOW_CMD:
-		//	follow(rpcClient, nil, nil)
+		case FOLLOW_CMD:
+			follow(rpcClient, nil, nil)
 		case VOTE_CMD:
 			voteArticle(rpcClient, nil, 0)
-		//case REPLY_CMD:
-		//	replyArticle(rpcClient, nil, 0)
-		//case CONTRACT:
-		//	callContract(rpcClient, nil)
+		case REPLY_CMD:
+			replyArticle(rpcClient, nil, 0)
+		case CONTRACT:
+			callContract(rpcClient, nil)
 		case ACQUIRE_TICKET_CMD:
 			acquireTicket(rpcClient, nil)
 		case VOTE_BY_TICKET_CMD:
@@ -216,18 +216,18 @@ func StartBPRoutine(){
 		Mu.RUnlock()
 
 		if lastConductBPIndex == -1 {
-			// random unregister a bp
-			RandomUnRegisterBP(rpcClient)
+			// random disable a bp
+			RandomDisableBP(rpcClient)
 		} else {
-			// first register and vote last unregister bp
+			// first enable last disable bp
 			// if no error
-			// random unregister a new bp
-			err := RegisterAndVoteBP(rpcClient, lastConductBPIndex)
+			// random disable a new bp
+			err := EnableBP(rpcClient, lastConductBPIndex)
 			if err != nil {
-				fmt.Println("Register and vote BP error: ", err)
+				fmt.Println("Enable BP error: ", err)
 				continue
 			}
-			RandomUnRegisterBP(rpcClient)
+			RandomDisableBP(rpcClient)
 		}
 
 		time.Sleep(time.Duration(len(BPList) * constants.BlockProdRepetition) * time.Second)
@@ -267,12 +267,14 @@ func InitLastConductBPIndex(rpcClient grpcpb.ApiServiceClient) error {
 	if len(bpListOnChain.BlockProducerList) != len(BPList) {
 		sum := 0
 		for i:=0;i<len(bpListOnChain.BlockProducerList);i++ {
-			bpNumStr := bpListOnChain.BlockProducerList[i].Owner.Value[9:]
-			bpNum, err := strconv.Atoi(bpNumStr)
-			if err != nil {
-				return err
+			if bpListOnChain.BlockProducerList[i].Active {
+				bpNumStr := bpListOnChain.BlockProducerList[i].Owner.Value[9:]
+				bpNum, err := strconv.Atoi(bpNumStr)
+				if err != nil {
+					return err
+				}
+				sum += bpNum
 			}
-			sum += bpNum
 		}
 		lastConductBPIndex = bpNumSum - sum - 1
 	}

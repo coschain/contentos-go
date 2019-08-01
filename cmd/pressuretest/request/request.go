@@ -2,17 +2,16 @@ package request
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/coschain/contentos-go/cmd/wallet-cli/commands/utils"
 	"github.com/coschain/contentos-go/cmd/wallet-cli/wallet"
-	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/rpc/pb"
 	"math/rand"
 	"strings"
 	"time"
-	"errors"
 )
 
 var nameLib = "abcdefghijklmnopqrstuvwxyz01234567890"
@@ -700,7 +699,7 @@ func callContract(rpcClient grpcpb.ApiServiceClient, fromAccount  *wallet.PrivAc
 	return nil
 }
 
-func RandomUnRegisterBP(rpcClient grpcpb.ApiServiceClient) error {
+func RandomDisableBP(rpcClient grpcpb.ApiServiceClient) error {
 
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	index := r.Intn( len(BPList) )
@@ -710,11 +709,12 @@ func RandomUnRegisterBP(rpcClient grpcpb.ApiServiceClient) error {
 		PrivKey: BPList[index].priKeyStr,
 	}
 
-	bpUnregister_op := &prototype.BpUnregisterOperation{
+	bpDisable_op := &prototype.BpEnableOperation {
 		Owner: &prototype.AccountName{Value: BPList[index].name},
+		Cancel:true,
 	}
 
-	signTx, err := utils.GenerateSignedTxAndValidate2(rpcClient, []interface{}{bpUnregister_op}, bpAccount, ChainId)
+	signTx, err := utils.GenerateSignedTxAndValidate2(rpcClient, []interface{}{bpDisable_op}, bpAccount, ChainId)
 	if err != nil {
 		fmt.Println(err)
 		return err
@@ -729,69 +729,36 @@ func RandomUnRegisterBP(rpcClient grpcpb.ApiServiceClient) error {
 			stake(rpcClient, bpAccount, bpAccount,1)
 		}
 		fmt.Println("Request command: ",
-			fmt.Sprintf("unregister bp %s", BPList[index].name),
+			fmt.Sprintf("disable bp %s", BPList[index].name),
 			" ",
 			fmt.Sprintf("Result: %v", resp))
 	}
 	return err
 }
 
-func RegisterAndVoteBP(rpcClient grpcpb.ApiServiceClient, index int) error {
-	resp, _ := rpcClient.GetChainState( context.Background(), &grpcpb.NonParamsRequest{} )
-	refBlockPrefix := common.TaposRefBlockPrefix(resp.State.Dgpo.HeadBlockId.Hash)
-	refBlockNum := common.TaposRefBlockNum(resp.State.Dgpo.HeadBlockNumber)
-	tx := &prototype.Transaction{RefBlockNum: refBlockNum, RefBlockPrefix: refBlockPrefix, Expiration: &prototype.TimePointSec{UtcSeconds: resp.State.Dgpo.Time.UtcSeconds + 30}}
-	trx := &prototype.SignedTransaction{Trx: tx}
+func EnableBP(rpcClient grpcpb.ApiServiceClient, index int) error {
 
-	pubKey, err := prototype.PublicKeyFromWIF(BPList[index].pubKeyStr)
+	bpAccount := &wallet.PrivAccount{
+		Account: wallet.Account{Name: BPList[index].name, PubKey: BPList[index].pubKeyStr},
+		PrivKey: BPList[index].priKeyStr,
+	}
+
+	bpEnable_op := &prototype.BpEnableOperation {
+		Owner: &prototype.AccountName{Value: BPList[index].name},
+	}
+
+	signTx, err := utils.GenerateSignedTxAndValidate2(rpcClient, []interface{}{bpEnable_op}, bpAccount, ChainId)
 	if err != nil {
+		fmt.Println(err)
 		return err
 	}
-
-	opBpReg := &prototype.BpRegisterOperation{
-		Owner:           &prototype.AccountName{Value: BPList[index].name},
-		Url:             BPList[index].name,
-		Desc:            BPList[index].name,
-		BlockSigningKey: pubKey,
-		Props: &prototype.ChainProperties{
-			AccountCreationFee:    prototype.NewCoin(constants.DefaultAccountCreateFee),
-			MaximumBlockSize:      10 * 1024 * 1024,
-			StaminaFree:           constants.DefaultStaminaFree,
-			TpsExpected:           constants.DefaultTPSExpected,
-			EpochDuration:         constants.InitEpochDuration,
-			TopNAcquireFreeToken:  constants.InitTopN,
-			PerTicketPrice:        prototype.NewCoin(constants.PerTicketPrice * constants.COSTokenDecimals),
-			PerTicketWeight:       constants.PerTicketWeight,
-		},
-	}
-
-	opBpVote := &prototype.BpVoteOperation{
-		Voter: prototype.NewAccountName(BPList[index].name),
-		BlockProducer: prototype.NewAccountName(BPList[index].name),
-		Cancel: false}
-
-	trx.Trx.AddOperation(opBpReg)
-	trx.Trx.AddOperation(opBpVote)
-
-	keys, err := prototype.PrivateKeyFromWIF(BPList[index].priKeyStr)
-	if err != nil {
-		return err
-	}
-	res := trx.Sign(keys, ChainId)
-	trx.Signature = &prototype.SignatureType{Sig: res}
-
-	if err := trx.Validate(); err != nil {
-		return err
-	}
-
-	req := &grpcpb.BroadcastTrxRequest{Transaction: trx}
-	newresp, err := rpcClient.BroadcastTrx(context.Background(), req)
-
+	req := &grpcpb.BroadcastTrxRequest{Transaction: signTx}
+	resp, err := rpcClient.BroadcastTrx(context.Background(), req)
 	if err == nil {
-		if newresp.Invoice.Status == prototype.StatusSuccess {
+		if resp.Invoice.Status == prototype.StatusSuccess {
 			lastConductBPIndex = -1
 		}
-		if strings.Contains(newresp.Invoice.ErrorInfo,"net resource not enough") {
+		if strings.Contains(resp.Invoice.ErrorInfo,"net resource not enough") {
 			bpAccount := &wallet.PrivAccount{
 				Account: wallet.Account{Name: BPList[index].name, PubKey: BPList[index].pubKeyStr},
 				PrivKey: BPList[index].priKeyStr,
@@ -799,9 +766,9 @@ func RegisterAndVoteBP(rpcClient grpcpb.ApiServiceClient, index int) error {
 			stake(rpcClient, bpAccount, bpAccount,1)
 		}
 		fmt.Println("Request command: ",
-			fmt.Sprintf("register bp and vote himself %s", BPList[index].name),
+			fmt.Sprintf("enable bp %s", BPList[index].name),
 			" ",
-			fmt.Sprintf("Result: %v", newresp))
+			fmt.Sprintf("Result: %v", resp))
 	}
 
 	return err
