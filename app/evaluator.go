@@ -1281,7 +1281,7 @@ func (ev *VoteByTicketEvaluator) Apply() {
 		tInfo.Ticket = ticketKey
 		tInfo.Count = count
 		tInfo.Denom = ev.GlobalProp().GetProps().GetPerTicketWeight()
-		tInfo.ExpireBlock = math.MaxUint32
+		tInfo.ExpireBlock = math.MaxUint64
 	})
 
 	//ev.GlobalProp().VoteByTicket(op.Account, postId, count)
