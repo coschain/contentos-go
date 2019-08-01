@@ -35,14 +35,14 @@ const (
 
 	RpcPageSizeLimit = 100
 
-	MaxWitnessCount = 21
+	MaxBlockProducerCount = 21
 
 	PostInvalidId        = 0
 	PostMaxDepth         = 8
 	VpDecayTime = PostCashOutDelayBlock * 1.5
 
 
-	PerVoterCanVoteWitness   = 1
+	PerUserBpVoteLimit = 1
 
 	MaxAccountNameLength     = 16
 	MinAccountNameLength     = 6

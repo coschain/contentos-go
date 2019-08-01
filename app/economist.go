@@ -150,7 +150,7 @@ func (e *Economist) Mint(trxObserver iservices.ITrxObserver) {
 	//bpWrap.MdVest(&prototype.Vest{Value: bpWrap.GetVest().Value + bpReward})
 	mustNoError(bpRewardVest.Add(bpWrap.GetVest()), "bpRewardVest overflow")
 	bpWrap.MdVest(bpRewardVest)
-	updateWitnessVoteCount(e.db, globalProps.CurrentBlockProducer, oldVest, bpRewardVest)
+	updateBpVoteValue(e.db, globalProps.CurrentBlockProducer, oldVest, bpRewardVest)
 	trxObserver.AddOpState(iservices.Add, "mint", globalProps.CurrentBlockProducer.Value, bpReward)
 
 	e.dgp.ModifyProps(func(props *prototype.DynamicProperties) {
@@ -433,7 +433,7 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 				vestRewards := &prototype.Vest{Value: r}
 				mustNoError(vestRewards.Add(beneficiaryWrap.GetVest()), "Post Beneficiary VestRewards Overflow")
 				beneficiaryWrap.MdVest(vestRewards)
-				updateWitnessVoteCount(e.db, &prototype.AccountName{Value: name}, oldVest, vestRewards)
+				updateBpVoteValue(e.db, &prototype.AccountName{Value: name}, oldVest, vestRewards)
 				spentBeneficiaryReward += r
 				e.noticer.Publish(constants.NoticeCashout, name, post.GetPostId(), r, globalProps.GetHeadBlockNumber())
 				trxObserver.AddOpState(iservices.Add, "cashout", name , r)
@@ -453,8 +453,8 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 			mustNoError(vestRewards.Add(authorWrap.GetVest()), "Post VestRewards Overflow")
 			authorWrap.MdVest(vestRewards)
 			t := time.Now()
-			t1, t2 := updateWitnessVoteCount(e.db, &prototype.AccountName{Value: author}, oldVest, vestRewards)
-			e.log.Debugf("post cashout updateWitnessVoteCount: %v, foreach: %v, get: %v", time.Now().Sub(t), t1, t2)
+			t1, t2 := updateBpVoteValue(e.db, &prototype.AccountName{Value: author}, oldVest, vestRewards)
+			e.log.Debugf("post cashout updateBpVoteValue: %v, foreach: %v, get: %v", time.Now().Sub(t), t1, t2)
 		}
 		post.MdCashoutBlockNum(math.MaxUint32)
 		post.MdRewards(&prototype.Vest{Value: reward})
@@ -554,7 +554,7 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 				vestRewards := &prototype.Vest{Value: r}
 				mustNoError(vestRewards.Add(beneficiaryWrap.GetVest()), "Reply Beneficiary VestRewards Overflow")
 				beneficiaryWrap.MdVest(vestRewards)
-				updateWitnessVoteCount(e.db, &prototype.AccountName{Value: name}, oldVest, vestRewards)
+				updateBpVoteValue(e.db, &prototype.AccountName{Value: name}, oldVest, vestRewards)
 				spentBeneficiaryReward += r
 				e.noticer.Publish(constants.NoticeCashout, name, reply.GetPostId(), r, globalProps.GetHeadBlockNumber())
 				trxObserver.AddOpState(iservices.Add, "cashout", name, r)
@@ -574,8 +574,8 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 			mustNoError(vestRewards.Add(authorWrap.GetVest()), "Reply VestRewards Overflow")
 			authorWrap.MdVest(vestRewards)
 			t := time.Now()
-			t1, t2 := updateWitnessVoteCount(e.db, &prototype.AccountName{Value: author}, oldVest, vestRewards)
-			e.log.Debugf("reply cashout updateWitnessVoteCount: %v, foreach: %v, get: %v", time.Now().Sub(t), t1, t2)
+			t1, t2 := updateBpVoteValue(e.db, &prototype.AccountName{Value: author}, oldVest, vestRewards)
+			e.log.Debugf("reply cashout updateBpVoteValue: %v, foreach: %v, get: %v", time.Now().Sub(t), t1, t2)
 		}
 		reply.MdCashoutBlockNum(math.MaxUint32)
 		reply.MdRewards(&prototype.Vest{Value: reward})
@@ -651,7 +651,7 @@ func (e *Economist) PowerDown() {
 		hasPowerDown := accountWrap.GetHasPowerdown().Value + powerdownQuota
 		accountWrap.MdVest(&prototype.Vest{Value: vest})
 		newVest := accountWrap.GetVest()
-		updateWitnessVoteCount(e.db, accountName, oldVest, newVest)
+		updateBpVoteValue(e.db, accountName, oldVest, newVest)
 		accountWrap.MdBalance(&prototype.Coin{Value: balance})
 		accountWrap.MdHasPowerdown(&prototype.Vest{Value: hasPowerDown})
 		// update total cos and total vest shares

@@ -144,12 +144,12 @@ import initminer privateKey_of_initminer
 3.create 3 new accounts and use info command to get thier public keys and priviate keys.
 ```
 stake initminer initminer 1.000000
-create initminer witness1
-create initminer witness2
-create initminer witness3
-info witness1
-info witness2
-info witness3
+create initminer blockproducer1
+create initminer blockproducer2
+create initminer blockproducer3
+info blockproducer1
+info blockproducer2
+info blockproducer3
 ```
 
 4.edit other node's config.toml,change BootStrap to false,set LocalBpName and LocalBpPrivateKey that you
@@ -167,9 +167,9 @@ just created in step 3.
 6.use wallet again to regist 3 accounts as new bp
 ```
 unlock iniminer
-bp register witness1 witness1_publicKey
-bp register witness2 witness2_publicKey
-bp register witness3 witness3_publicKey
+bp register blockproducer1 blockproducer1_publicKey
+bp register blockproducer2 blockproducer2_publicKey
+bp register blockproducer3 blockproducer3_publicKey
 ```
 
 now job is finished.
@@ -196,12 +196,12 @@ import initminer privateKey_of_initminer
 3.create 3 new accounts and remember thier public keys and private keys.
 ```
 stake initminer initminer 1.000000
-create initminer witness1
-create initminer witness2
-create initminer witness3
-info witness1
-info witness2
-info witness3
+create initminer blockproducer1
+create initminer blockproducer2
+create initminer blockproducer3
+info blockproducer1
+info blockproducer2
+info blockproducer3
 ```
 
 4.do cosd init on other 3 machines,edit config.toml,change BootStrap to false,set LocalBpName and LocalBpPrivateKey that you
@@ -215,9 +215,9 @@ just created in step 3.
 6.use wallet again to regist 3 accounts as new bp
 ```
 unlock iniminer
-bp register witness1 witness1_publicKey
-bp register witness2 witness2_publicKey
-bp register witness3 witness3_publicKey
+bp register blockproducer1 blockproducer1_publicKey
+bp register blockproducer2 blockproducer2_publicKey
+bp register blockproducer3 blockproducer3_publicKey
 ```
 
 now job is finished.

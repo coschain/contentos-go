@@ -125,7 +125,7 @@ func (d *DPoS) shuffle(head common.ISignedBlock) (bool, []string) {
 
 	// When a produce round complete, it adds new producers,
 	// remove unqualified producers and shuffle the block-producing order
-	prods, keys := d.ctrl.GetBlockProducerTopN(constants.MaxWitnessCount)
+	prods, keys := d.ctrl.GetBlockProducerTopN(constants.MaxBlockProducerCount)
 	var seed uint64
 	if head != nil {
 		seed = head.Timestamp() << 32
@@ -175,7 +175,7 @@ func (d *DPoS) Start(node *node.Node) error {
 
 	// TODO: fuck!! this is fugly
 	var avatar []common.ISignedBlock
-	for i := 0; i < constants.MaxWitnessCount+1; i++ {
+	for i := 0; i < constants.MaxBlockProducerCount+1; i++ {
 		// deep copy hell
 		avatar = append(avatar, &prototype.SignedBlock{})
 	}
@@ -242,7 +242,7 @@ func (d *DPoS) scheduleProduce() bool {
 func (d *DPoS) testStart(path string) {
 	// TODO: fuck!! this is fugly
 	var avatar []common.ISignedBlock
-	for i := 0; i < constants.MaxWitnessCount+1; i++ {
+	for i := 0; i < constants.MaxBlockProducerCount+1; i++ {
 		// deep copy hell
 		avatar = append(avatar, &prototype.SignedBlock{})
 	}
@@ -508,7 +508,7 @@ func (d *DPoS) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 	lastCommitted := d.ForkDB.LastCommitted()
 	//d.log.Debug("last committed: ", lastCommitted.BlockNum())
 	var commitIdx uint64
-	if newHead.Id().BlockNum()-lastCommitted.BlockNum() > constants.MaxWitnessCount*2/3 {
+	if newHead.Id().BlockNum()-lastCommitted.BlockNum() > constants.MaxBlockProducerCount*2/3 {
 		if lastCommitted == common.EmptyBlockID {
 			commitIdx = 1
 		} else {

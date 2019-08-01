@@ -387,7 +387,7 @@ func (c *TrxPool) generateBlockNoLock(bpName string, pre *prototype.Sha256, time
 	ret, bpNameList := c.shuffle(signBlock)
 	if ret {
 		if len(bpNameList) > 0 {
-			c.updateGlobalWitnessBoot(bpNameList)
+			c.updateGlobalBpBootMark(bpNameList)
 			c.updateGlobalResourceParam(bpNameList)
 			c.deleteUnusedBp(bpNameList)
 		}
@@ -569,7 +569,7 @@ func (c *TrxPool) applyBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag
 		ret, bpNameList := c.shuffle(blk)
 		if ret {
 			if len(bpNameList) > 0 {
-				c.updateGlobalWitnessBoot(bpNameList)
+				c.updateGlobalBpBootMark(bpNameList)
 				c.updateGlobalResourceParam(bpNameList)
 				c.deleteUnusedBp(bpNameList)
 			}
@@ -739,7 +739,7 @@ func (c *TrxPool) initGenesis() {
 	mustNoError(bpScheduleWrap.Create(func(tInfo *table.SoBlockProducerScheduleObject) {
 		tInfo.Id = SingleId
 		tInfo.CurrentShuffledBlockProducer = append(tInfo.CurrentShuffledBlockProducer, constants.COSInitMiner)
-	}), "CreateWitnessScheduleObject error")
+	}), "CreateBpScheduleObject error")
 }
 
 func (c *TrxPool) TransferToVest(value *prototype.Coin) {
@@ -879,7 +879,7 @@ func (c *TrxPool) updateAvgTps(blk *prototype.SignedBlock) {
 	})
 }
 
-func (c *TrxPool) updateGlobalWitnessBoot(bpNameList []string) {
+func (c *TrxPool) updateGlobalBpBootMark(bpNameList []string) {
 	if len(bpNameList) == 1 && bpNameList[0] == constants.COSInitMiner {
 		return
 	}
@@ -1072,7 +1072,7 @@ func (c *TrxPool) GetBlockProducerTopN(n uint32) ([]string, []*prototype.PublicK
 
 func (c *TrxPool) SetShuffledBpList(names []string, keys []*prototype.PublicKeyType) {
 	bpScheduleWrap := table.NewSoBlockProducerScheduleObjectWrap(c.db, &SingleId)
-	mustSuccess(bpScheduleWrap.MdCurrentShuffledBlockProducer(names), "SetWitness error")
+	mustSuccess(bpScheduleWrap.MdCurrentShuffledBlockProducer(names), "set bp list error")
 	mustSuccess(bpScheduleWrap.MdPubKey(keys), "set bp pub key failed")
 }
 

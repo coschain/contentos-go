@@ -636,7 +636,7 @@ func (ev *BpVoteEvaluator) Apply() {
 		opAssert(!vidWrap.CheckExist(), "already vote to this bp, do not vote twice")
 
 		// check voter vote count, it should be less than the limit
-		opAssert(voteCnt < constants.PerVoterCanVoteWitness, "vote count exceeding")
+		opAssert(voteCnt < constants.PerUserBpVoteLimit, "vote count exceeding")
 
 		// add vote record
 		opAssertE(vidWrap.Create(func(t *table.SoBlockProducerVote) {
@@ -732,12 +732,12 @@ func (ev *TransferToVestEvaluator) Apply() {
 	opAssertE(tVests.Add(addVests), "vests error")
 	opAssert(tidWrap.MdVest(tVests), "set to new vests error")
 
-	updateWitnessVoteCount(ev.Database(), op.To, oldVest, tVests)
+	updateBpVoteValue(ev.Database(), op.To, oldVest, tVests)
 
 	ev.GlobalProp().TransferToVest(op.Amount)
 }
 
-func updateWitnessVoteCount(dba iservices.IDatabaseRW, voter *prototype.AccountName, oldVest, newVest *prototype.Vest) (t1, t2 time.Duration){
+func updateBpVoteValue(dba iservices.IDatabaseRW, voter *prototype.AccountName, oldVest, newVest *prototype.Vest) (t1, t2 time.Duration){
 	getVoteCntStart := time.Now()
 	voterAccount := table.NewSoAccountWrap(dba, voter)
 	if voterAccount == nil || !voterAccount.CheckExist() {
@@ -1205,7 +1205,7 @@ func (ev *AcquireTicketEvaluator) Apply() {
 
 	account.MdChargedTicket(account.GetChargedTicket() + uint32(count))
 
-	//updateWitnessVoteCount(ev.Database(), op.Account, oldVest, vest)
+	//updateBpVoteValue(ev.Database(), op.Account, oldVest, vest)
 
 	// record
 	ticketKey := &prototype.GiftTicketKeyType{
@@ -1339,5 +1339,5 @@ func (ev *VoteByTicketEvaluator) Apply() {
 	// it will be change.
 	mustNoError(bpVest.Add(equalValue), "add equal value to bp failed")
 	bpWrap.MdVest(bpVest)
-	updateWitnessVoteCount(ev.Database(), currentBp, oldVest, bpVest)
+	updateBpVoteValue(ev.Database(), currentBp, oldVest, bpVest)
 }
