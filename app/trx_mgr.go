@@ -11,7 +11,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"sync"
 	"sync/atomic"
-	"time"
 )
 
 // TrxCallback is the type of callback function reporting transaction process results.
@@ -304,7 +303,7 @@ func (m *TrxMgr) ReturnTrx(entries ...*TrxEntry) {
 // and an error is returned.
 func (m *TrxMgr) CheckBlockTrxs(b *prototype.SignedBlock) (entries []*TrxEntry, err error) {
 	m.log.Debugf("TRXMGR: CheckBlockTrxs begin %d", b.SignedHeader.Number())
-	t0 := time.Now()
+	t0 := common.EasyTimer()
 	if count := len(b.Transactions); count > 0 {
 		blockTime := b.SignedHeader.Header.Timestamp.UtcSeconds
 		errs := make([]error, count)
@@ -357,8 +356,7 @@ func (m *TrxMgr) CheckBlockTrxs(b *prototype.SignedBlock) (entries []*TrxEntry, 
 			err = fmt.Errorf("block %d trxs[%d] check failed: %s", b.SignedHeader.Number(), errIdx, errs[errIdx].Error())
 		}
 	}
-	t1 := time.Now()
-	m.log.Debugf("TRXMGR: CheckBlockTrxs end %d: #tx=%d, %v", b.SignedHeader.Number(), len(b.Transactions), t1.Sub(t0))
+	m.log.Debugf("TRXMGR: CheckBlockTrxs end %d: #tx=%d, %v", b.SignedHeader.Number(), len(b.Transactions), t0)
 	return
 }
 
@@ -406,25 +404,23 @@ func (m *TrxMgr) BlockApplied(b *prototype.SignedBlock) {
 // BlockCommitted *MUST* be called *AFTER* a block was successfully committed.
 func (m *TrxMgr) BlockCommitted(blockNum uint64) {
 	m.log.Debugf("TRXMGR: BlockCommitted begin %d", blockNum)
-	t0 := time.Now()
+	t0 := common.EasyTimer()
 	// plugin notifications
 	m.callPlugins(func(plugin ITrxMgrPlugin) {
 		plugin.BlockCommitted(blockNum)
 	})
-	t1 := time.Now()
-	m.log.Debugf("TRXMGR: BlockCommitted end %d: %v", blockNum, t1.Sub(t0))
+	m.log.Debugf("TRXMGR: BlockCommitted end %d: %v", blockNum, t0)
 }
 
 // BlockReverted *MUST* be called *AFTER* a block was successfully reverted.
 func (m *TrxMgr) BlockReverted(blockNum uint64) {
 	m.log.Debugf("TRXMGR: BlockReverted begin %d", blockNum)
-	t0 := time.Now()
+	t0 := common.EasyTimer()
 	// plugin notifications
 	m.callPlugins(func(plugin ITrxMgrPlugin) {
 		plugin.BlockReverted(blockNum)
 	})
-	t1 := time.Now()
-	m.log.Debugf("TRXMGR: BlockReverted end %d: %v", blockNum, t1.Sub(t0))
+	m.log.Debugf("TRXMGR: BlockReverted end %d: %v", blockNum, t0)
 }
 
 // addToWaiting adds given transaction entries to the waiting pool, and returns the actual number added.

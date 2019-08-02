@@ -39,14 +39,14 @@ message voter_id{
     uint64          post_id = 2;
 }
 
-message bp_voter_id{
-    account_name    voter   = 1;
-    account_name    block_producer = 2;
-}
+//message bp_voter_id{
+//    account_name    voter   = 1;
+//    account_name    block_producer = 2;
+//}
 
 message bp_block_producer_id{
-    account_name    voter   = 1;
-    account_name    block_producer = 2;
+    account_name    block_producer = 1;
+    account_name    voter   = 2;
 }
 
 message contract_id{

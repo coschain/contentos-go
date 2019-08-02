@@ -610,7 +610,7 @@ func (p *MsgHandler) IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 		copy(blkId.Data[:], msgdata.Value[0])
 
 		log.Info("[p2p] receive a broadcast_sigblk_id msg block number ", blkId.BlockNum())
-		start := time.Now()
+		start := common.EasyTimer()
 
 		if !ctrl.HasBlock(blkId) {
 			var reqmsg msgTypes.TransferMsg
@@ -622,7 +622,7 @@ func (p *MsgHandler) IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 
 			reqmsg.Msg = &msgTypes.TransferMsg_Msg2{Msg2: reqdata}
 
-			log.Infof("[p2p] send a request_sigblk_by_id msg block number %d cost time %v", blkId.BlockNum(), time.Now().Sub(start))
+			log.Infof("[p2p] send a request_sigblk_by_id msg block number %d cost time %v", blkId.BlockNum(), start)
 			err := p2p.Send(remotePeer, &reqmsg, false)
 			if err != nil {
 				log.Error("[p2p] send message error: ", err)
@@ -651,7 +651,7 @@ func (p *MsgHandler) IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 			}
 
 			log.Info("[p2p] receive a request_sigblk_by_id msg block number ", blkId.BlockNum())
-			start := time.Now()
+			start := common.EasyTimer()
 
 			IsigBlk, err := ctrl.FetchBlock(blkId)
 			if err != nil {
@@ -661,7 +661,7 @@ func (p *MsgHandler) IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 			sigBlk := IsigBlk.(*prototype.SignedBlock)
 
 			msg := msgpack.NewSigBlk(sigBlk, false)
-			log.Infof("[p2p] send a sigblk block number %d cost time %v", blkId.BlockNum(), time.Now().Sub(start))
+			log.Infof("[p2p] send a sigblk block number %d cost time %v", blkId.BlockNum(), start)
 			err = p2p.Send(remotePeer, msg, false)
 			if err != nil {
 				log.Error("[p2p] send message error: ", err)

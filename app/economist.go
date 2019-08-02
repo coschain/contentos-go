@@ -12,7 +12,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"math"
 	"math/big"
-	"time"
 )
 
 func Min(x, y uint64) uint64 {
@@ -224,12 +223,12 @@ func (e *Economist) Do(trxObserver iservices.ITrxObserver) {
 	end := globalProps.HeadBlockNumber
 	//postWeightedVps := globalProps.PostWeightedVps
 	//replyWeightedVps := globalProps.ReplyWeightedVps
-	t0 := time.Now()
+	t0 := common.EasyTimer()
 	err := iterator.ForEachByOrder(nil, &end, nil, nil, func(mVal *uint64, sVal *uint64, idx uint32) bool {
 		pids = append(pids, mVal)
 		return true
 	})
-	e.log.Debugf("Do iterator spent: %v", time.Now().Sub(t0))
+	e.log.Debugf("Do iterator spent: %v", t0)
 	if err != nil {
 		panic("economist do failed when iterator")
 	}
@@ -296,9 +295,9 @@ func (e *Economist) Do(trxObserver iservices.ITrxObserver) {
 
 		e.log.Debugf("cashout posts length: %d", len(posts))
 		if len(posts) > 0 {
-			t := time.Now()
+			t := common.EasyTimer()
 			e.postCashout(posts, rewards, dappRewards, trxObserver)
-			e.log.Debugf("cashout posts spend: %v", time.Now().Sub(t))
+			e.log.Debugf("cashout posts spend: %v", t)
 		}
 	}
 
@@ -319,9 +318,9 @@ func (e *Economist) Do(trxObserver iservices.ITrxObserver) {
 
 		e.log.Debugf("cashout replies length: %d", len(replies))
 		if len(replies) > 0 {
-			t := time.Now()
+			t := common.EasyTimer()
 			e.replyCashout(replies, rewards, dappRewards, trxObserver)
-			e.log.Debugf("cashout reply spend: %v", time.Now().Sub(t))
+			e.log.Debugf("cashout reply spend: %v", t)
 		}
 	}
 }
@@ -350,7 +349,7 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 	globalProps := e.dgp.GetProps()
 
 	//var vpAccumulator uint64 = 0
-	t0 := time.Now()
+	t0 := common.EasyTimer()
 	var vpAccumulator big.Int
 	for _, post := range posts {
 		if post.GetCopyright() == constants.CopyrightInfringement {
@@ -365,7 +364,7 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 		weightedVp := new(big.Int).Add(ISqrt(post.GetWeightedVp()), giftVp)
 		vpAccumulator.Add(&vpAccumulator, weightedVp)
 	}
-	e.log.Debugf("cashout post weight cashout spend: %v", time.Now().Sub(t0))
+	e.log.Debugf("cashout post weight cashout spend: %v", t0)
 	bigBlockRewards := new(big.Int).SetUint64(blockReward)
 	bigBlockDappReward := new(big.Int).SetUint64(blockDappReward)
 //	e.log.Debugf("current block post total vp:%d, global vp:%d", vpAccumulator, globalProps.PostWeightedVps)
@@ -378,7 +377,10 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 			e.log.Warnf("ignored post %v postCashout due to invalid copyright", post.GetPostId())
 			continue
 		}
-		tPost := time.Now()
+
+		postTiming := common.NewTiming()
+		postTiming.Begin()
+
 		author := post.GetAuthor().Value
 		var reward uint64 = 0
 		var beneficiaryReward uint64 = 0
@@ -402,7 +404,9 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 			spentPostReward += reward
 			spentDappReward += beneficiaryReward
 		}
-		tPostWeight := time.Now()
+
+		postTiming.Mark()
+
 		//e.voterCashout(post.GetPostId(), voterReward, post.GetWeightedVp(), innerRewards)
 		beneficiaries := post.GetBeneficiaries()
 		var spentBeneficiaryReward uint64 = 0
@@ -439,7 +443,9 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 				trxObserver.AddOpState(iservices.Add, "cashout", name , r)
 			}
 		}
-		tBeneficiary := time.Now()
+
+		postTiming.Mark()
+
 		if beneficiaryReward - spentBeneficiaryReward > 0 {
 			reward += beneficiaryReward - spentBeneficiaryReward
 		}
@@ -452,9 +458,9 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 			vestRewards := &prototype.Vest{Value: reward}
 			mustNoError(vestRewards.Add(authorWrap.GetVest()), "Post VestRewards Overflow")
 			authorWrap.MdVest(vestRewards)
-			t := time.Now()
+			t := common.EasyTimer()
 			t1, t2 := updateBpVoteValue(e.db, &prototype.AccountName{Value: author}, oldVest, vestRewards)
-			e.log.Debugf("post cashout updateBpVoteValue: %v, foreach: %v, get: %v", time.Now().Sub(t), t1, t2)
+			e.log.Debugf("post cashout updateBpVoteValue: %v, query: %v, update: %v", t, t1, t2)
 		}
 		post.MdCashoutBlockNum(math.MaxUint32)
 		post.MdRewards(&prototype.Vest{Value: reward})
@@ -463,9 +469,9 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 			e.noticer.Publish(constants.NoticeCashout, author, post.GetPostId(), reward, globalProps.GetHeadBlockNumber())
 			trxObserver.AddOpState(iservices.Add, "cashout", author, reward)
 		}
-		tCashout := time.Now()
-		e.log.Debugf("cashout postWeight: %v, beneficiary: %v, postCashout: %v", tPostWeight.Sub(tPost),
-			tBeneficiary.Sub(tPostWeight), tCashout.Sub(tBeneficiary))
+
+		postTiming.End()
+		e.log.Debugf("cashout (postWeight|beneficiary|postCashout): %v", postTiming.String())
 	}
 	e.dgp.ModifyProps(func(props *prototype.DynamicProperties) {
 		//props.PostRewards.Value -= spentPostReward
@@ -573,9 +579,9 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 			vestRewards := &prototype.Vest{Value: reward}
 			mustNoError(vestRewards.Add(authorWrap.GetVest()), "Reply VestRewards Overflow")
 			authorWrap.MdVest(vestRewards)
-			t := time.Now()
+			t := common.EasyTimer()
 			t1, t2 := updateBpVoteValue(e.db, &prototype.AccountName{Value: author}, oldVest, vestRewards)
-			e.log.Debugf("reply cashout updateBpVoteValue: %v, foreach: %v, get: %v", time.Now().Sub(t), t1, t2)
+			e.log.Debugf("reply cashout updateBpVoteValue: %v, query: %v, update: %v", t, t1, t2)
 		}
 		reply.MdCashoutBlockNum(math.MaxUint32)
 		reply.MdRewards(&prototype.Vest{Value: reward})

@@ -904,7 +904,7 @@ func (as *APIService) getAccountResponseByName(name *prototype.AccountName, isNe
 		acctInfo.NextWithdrawTime = withdrawTime
 
 		witWrap := table.NewSoBlockProducerWrap(as.db, accWrap.GetName())
-		if witWrap != nil && witWrap.CheckExist() {
+		if witWrap != nil && witWrap.CheckExist() && witWrap.GetActive() {
 			acctInfo.BlockProducer = &grpcpb.BlockProducerResponse{
 				Owner:                 witWrap.GetOwner(),
 				CreatedTime:           witWrap.GetCreatedTime(),

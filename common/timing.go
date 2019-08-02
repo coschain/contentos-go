@@ -117,3 +117,26 @@ func (t *Timing) SetPartial(partial time.Duration) {
 func (t *Timing) String() string {
 	return fmt.Sprintf("%v(%s)", t.root.duration(), t.root.String())
 }
+
+func (t *Timing) Duration() time.Duration {
+	return t.root.duration()
+}
+
+
+type EasyTiming time.Time
+
+func EasyTimer() EasyTiming {
+	return EasyTiming(time.Now())
+}
+
+func (t EasyTiming) Time() time.Time {
+	return time.Time(t)
+}
+
+func (t EasyTiming) Elapsed() time.Duration {
+	return time.Since(t.Time())
+}
+
+func (t EasyTiming) String() string {
+	return fmt.Sprintf("%v", t.Elapsed())
+}

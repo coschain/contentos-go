@@ -22,6 +22,7 @@ func TestOperations(t *testing.T) {
 	t.Run("update account", dandelion.NewDandelionTest(new(AccountUpdateTester).Test, 3))
 	t.Run("stake", dandelion.NewDandelionTest(new(StakeTester).Test, 3))
 	t.Run("unStake", dandelion.NewDandelionTest(new(UnStakeTester).Test, 3))
+	t.Run("ticket", dandelion.NewDandelionTest(new(TicketTester).Test, 3))
 }
 
 func TestContractGasUsage(t *testing.T) {

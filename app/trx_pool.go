@@ -221,18 +221,18 @@ func emptyHeader(signHeader *prototype.SignedBlockHeader) {
 func (c *TrxPool) GenerateAndApplyBlock(bpName string, pre *prototype.Sha256, timestamp uint32,
 	priKey *prototype.PrivateKeyType, skip prototype.SkipFlag) (*prototype.SignedBlock, error) {
 
-	s := time.Now()
+	s := common.EasyTimer()
 	blockChan := make(chan interface{})
 
 	go func() {
 		defer func() {
-			c.log.Debug("[trxpool] GenerateAndApplyBlock cost: ", time.Now().Sub(s))
+			c.log.Debug("[trxpool] GenerateAndApplyBlock cost: ", s)
 		}()
 
 		c.db.Lock()
 		defer c.db.Unlock()
 
-		newBlock, err := c.generateBlockNoLock(bpName, pre, timestamp, priKey, skip, s)
+		newBlock, err := c.generateBlockNoLock(bpName, pre, timestamp, priKey, skip, s.Time())
 		if err != nil {
 			blockChan <- err
 		} else {
@@ -258,11 +258,11 @@ func (c *TrxPool) GenerateAndApplyBlock(bpName string, pre *prototype.Sha256, ti
 func (c *TrxPool) GenerateBlock(bpName string, pre *prototype.Sha256, timestamp uint32,
 	priKey *prototype.PrivateKeyType, skip prototype.SkipFlag) (b *prototype.SignedBlock, e error) {
 
-	entryTime := time.Now()
+	entryTime := common.EasyTimer()
 	c.db.Lock()
 	defer c.db.Unlock()
 
-	return c.generateBlockNoLock(bpName, pre, timestamp, priKey, skip, entryTime)
+	return c.generateBlockNoLock(bpName, pre, timestamp, priKey, skip, entryTime.Time())
 }
 
 func (c *TrxPool) generateBlockNoLock(bpName string, pre *prototype.Sha256, timestamp uint32,
@@ -337,9 +337,9 @@ func (c *TrxPool) generateBlockNoLock(bpName string, pre *prototype.Sha256, time
 			break
 		}
 		trxs := c.tm.FetchTrx(timestamp, batchCount, sizeLimit)
-		t00 := time.Now()
+		t00 := common.EasyTimer()
 		ma.Apply(trxs)
-		applyTime += int64(time.Now().Sub(t00))
+		applyTime += int64(t00.Elapsed())
 		for _, entry := range trxs {
 			result := entry.GetTrxResult()
 			if result.Receipt.Status == prototype.StatusError {
@@ -387,9 +387,7 @@ func (c *TrxPool) generateBlockNoLock(bpName string, pre *prototype.Sha256, time
 	ret, bpNameList := c.shuffle(signBlock)
 	if ret {
 		if len(bpNameList) > 0 {
-			c.updateGlobalBpBootMark(bpNameList)
 			c.updateGlobalResourceParam(bpNameList)
-			c.deleteUnusedBp(bpNameList)
 		}
 	}
 
@@ -527,9 +525,9 @@ func (c *TrxPool) applyBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag
 			if d > batchCount {
 				d = batchCount
 			}
-			t00 := time.Now()
+			t00 := common.EasyTimer()
 			ma.Apply(entries[i:i+d])
-			applyTime += int64(time.Now().Sub(t00))
+			applyTime += int64(t00.Elapsed())
 			invoiceOK := true
 			for j := 0; j < d; j++ {
 				trxIdx := i + j
@@ -569,9 +567,8 @@ func (c *TrxPool) applyBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag
 		ret, bpNameList := c.shuffle(blk)
 		if ret {
 			if len(bpNameList) > 0 {
-				c.updateGlobalBpBootMark(bpNameList)
+			//	c.updateGlobalBpBootMark(bpNameList)
 				c.updateGlobalResourceParam(bpNameList)
-				c.deleteUnusedBp(bpNameList)
 			}
 		}
 
@@ -613,6 +610,7 @@ func (c *TrxPool) applyBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag
 
 	afterTiming.Mark()
 
+	c.updateGlobalBpBootMark()
 	c.notifyBlockApply(blk)
 
 	afterTiming.End()
@@ -879,17 +877,37 @@ func (c *TrxPool) updateAvgTps(blk *prototype.SignedBlock) {
 	})
 }
 
-func (c *TrxPool) updateGlobalBpBootMark(bpNameList []string) {
+func (c *TrxPool) updateGlobalBpBootMark() {
+	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
+	if !dgpWrap.GetProps().BlockProducerBootCompleted {
+		return
+	}
+
+	bpScheduleWrap := table.NewSoBlockProducerScheduleObjectWrap(c.db, &SingleId)
+	bpNameList := bpScheduleWrap.GetCurrentShuffledBlockProducer()
+
 	if len(bpNameList) == 1 && bpNameList[0] == constants.COSInitMiner {
 		return
 	}
+
+	// update global param
 	c.modifyGlobalDynamicData(func(dgpo *prototype.DynamicProperties) {
+		// update global BootCompleted
 		dgpo.BlockProducerBootCompleted = true
 		// start epoch
 		if dgpo.CurrentEpochStartBlock == 0 {
 			dgpo.CurrentEpochStartBlock = 1
 		}
 	})
+
+	// disable bp constants.COSInitMiner
+	ac := &prototype.AccountName{
+		Value: constants.COSInitMiner,
+	}
+	bpWrap := table.NewSoBlockProducerWrap(c.db, ac)
+	if bpWrap.CheckExist() {
+		mustSuccess(bpWrap.MdActive(false), fmt.Sprintf("disable bp %s error", constants.COSInitMiner))
+	}
 }
 
 func (c *TrxPool) updateGlobalResourceParam(bpNameList []string) {
@@ -936,40 +954,6 @@ func (c *TrxPool) updateGlobalResourceParam(bpNameList []string) {
 		dgpo.PerTicketPrice = prototype.NewCoin(perTicketPriceValue[len(perTicketPriceValue) / 2])
 		dgpo.PerTicketWeight = perTicketWeight[len(perTicketWeight) / 2]
 	})
-}
-
-func (c *TrxPool) deleteUnusedBp(bpNameList []string) {
-	// delete unActive bp
-	//revList := table.SBlockProducerVoteVestWrap{Dba: c.db}
-	//var deletelist       []*prototype.AccountName
-	//
-	//_ = revList.ForEachByRevOrder(nil, nil,nil,nil, func(mVal *prototype.AccountName, sVal *prototype.Vest, idx uint32) bool {
-	//	if mVal != nil {
-	//		bpWrap := table.NewSoBlockProducerWrap(c.db, mVal)
-	//		if bpWrap.CheckExist() {
-	//			if !bpWrap.GetActive() {
-	//				deletelist = append(deletelist, mVal)
-	//			}
-	//		}
-	//	}
-	//	return true
-	//})
-	//
-	//for i:=0;i<len(deletelist);i++ {
-	//	bpWrap := table.NewSoBlockProducerWrap(c.db, deletelist[i])
-	//	mustSuccess(bpWrap.RemoveWitness(), fmt.Sprintf("delete unregister bp %s error", deletelist[i].Value))
-	//}
-
-	// maybe disable bp constants.COSInitMiner
-	if len(bpNameList) > 1 || (len(bpNameList) == 1 && bpNameList[0] != constants.COSInitMiner) {
-		ac := &prototype.AccountName{
-			Value: constants.COSInitMiner,
-		}
-		bpWrap := table.NewSoBlockProducerWrap(c.db, ac)
-		if bpWrap.CheckExist() {
-			mustSuccess(bpWrap.MdActive(false), fmt.Sprintf("disable bp %s error", constants.COSInitMiner))
-		}
-	}
 }
 
 func (c *TrxPool) updateGlobalProperties(blk *prototype.SignedBlock) {
@@ -1096,11 +1080,11 @@ func (c *TrxPool) PopBlock(num uint64) error {
 }
 
 func (c *TrxPool) Commit(num uint64) {
-	s := time.Now()
+	s := common.EasyTimer()
 	c.db.Lock()
 	defer func() {
 		c.db.Unlock()
-		c.log.Debug("[trxpool] Commit cost: ", time.Now().Sub(s))
+		c.log.Debug("[trxpool] Commit cost: ", s)
 	}()
 	// this block can not be revert over, so it's irreversible
 	err := c.iceberg.FinalizeBlock(num)

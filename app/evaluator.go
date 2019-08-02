@@ -607,9 +607,8 @@ func (ev *BpVoteEvaluator) Apply() {
 	bpVoteVestCnt := bpWrap.GetVoteVest()
 	bpVoterCount := bpWrap.GetVoterCount()
 
-	voterId := &prototype.BpVoterId{Voter: op.Voter, BlockProducer: op.BlockProducer}
-	bpId := &prototype.BpBlockProducerId{Voter: op.Voter, BlockProducer: op.BlockProducer}
-	vidWrap := table.NewSoBlockProducerVoteWrap(ev.Database(), voterId)
+	bpId := &prototype.BpBlockProducerId{BlockProducer: op.BlockProducer, Voter: op.Voter}
+	vidWrap := table.NewSoBlockProducerVoteWrap(ev.Database(), bpId)
 
 	if op.Cancel {
 		// delete vote record
@@ -640,9 +639,9 @@ func (ev *BpVoteEvaluator) Apply() {
 
 		// add vote record
 		opAssertE(vidWrap.Create(func(t *table.SoBlockProducerVote) {
-			t.VoteTime = ev.GlobalProp().HeadBlockTime()
-			t.VoterId = voterId
 			t.BlockProducerId = bpId
+			t.VoterName = op.Voter
+			t.VoteTime = ev.GlobalProp().HeadBlockTime()
 		}), "add vote record error")
 
 		// modify voter vote count
@@ -738,49 +737,28 @@ func (ev *TransferToVestEvaluator) Apply() {
 }
 
 func updateBpVoteValue(dba iservices.IDatabaseRW, voter *prototype.AccountName, oldVest, newVest *prototype.Vest) (t1, t2 time.Duration){
-	getVoteCntStart := time.Now()
-	voterAccount := table.NewSoAccountWrap(dba, voter)
-	if voterAccount == nil || !voterAccount.CheckExist() {
-		t2 = time.Now().Sub(getVoteCntStart)
+	getBpNameStart := common.EasyTimer()
+	uniqueVoterQueryWrap := table.UniBlockProducerVoteVoterNameWrap{Dba:dba}
+	bpId := uniqueVoterQueryWrap.UniQueryVoterName(voter)
+	if bpId == nil {
+		t1 = getBpNameStart.Elapsed()
 		return
 	}
-	voteCnt := voterAccount.GetBpVoteCount()
-	if voteCnt == 0 {
-		t2 = time.Now().Sub(getVoteCntStart)
-		return
+	bpName := bpId.GetBlockProducerId().BlockProducer
+	t1 = getBpNameStart.Elapsed()
+
+
+	startTime := common.EasyTimer()
+	bpWrap := table.NewSoBlockProducerWrap(dba, bpName)
+	if bpWrap != nil && bpWrap.CheckExist() {
+		bpVoteVestCnt := bpWrap.GetVoteVest()
+		opAssertE(bpVoteVestCnt.Sub(oldVest), "Insufficient block producer vote count")
+		opAssertE(bpVoteVestCnt.Add(newVest), "block producer vote count overflow")
+
+		opAssert(bpWrap.MdVoteVest(bpVoteVestCnt), "update block producer vote count data error")
 	}
-	t2 = time.Now().Sub(getVoteCntStart)
+	t2 = startTime.Elapsed()
 
-	sWrap := table.SBlockProducerVoteVoterIdWrap{dba}
-	start := &prototype.BpVoterId{Voter:voter, BlockProducer:prototype.MinAccountName}
-	end := &prototype.BpVoterId{Voter:voter, BlockProducer:prototype.MaxAccountName}
-
-	var bpList []*prototype.AccountName
-
-	startTime := time.Now()
-	sWrap.ForEachByOrder(start, end, nil, nil,
-		func(mVal *prototype.BpVoterId, sVal *prototype.BpVoterId, idx uint32) bool {
-			if mVal != nil && mVal.Voter.Value == voter.Value {
-				bpWrap := table.NewSoBlockProducerWrap(dba, mVal.BlockProducer)
-				if bpWrap != nil && bpWrap.CheckExist() {
-					bpList = append(bpList, mVal.BlockProducer)
-				}
-			}
-			return true
-		})
-	t1 = time.Now().Sub(startTime)
-
-	// update witness vote count
-	for i:=0;i<len(bpList);i++ {
-		bpWrap := table.NewSoBlockProducerWrap(dba, bpList[i])
-		if bpWrap != nil && bpWrap.CheckExist() {
-			bpVoteCnt := bpWrap.GetVoteVest()
-			opAssertE(bpVoteCnt.Sub(oldVest), "Insufficient block producer vote count")
-			opAssertE(bpVoteCnt.Add(newVest), "block producer vote count overflow")
-
-			opAssert(bpWrap.MdVoteVest(bpVoteCnt), "update block producer vote count data error")
-		}
-	}
 	return
 }
 
@@ -1212,7 +1190,7 @@ func (ev *AcquireTicketEvaluator) Apply() {
 		Type: 1,
 		From: "contentos",
 		To: op.Account.Value,
-		CreateBlock: ev.GlobalProp().GetProps().HeadBlockNumber,
+		CreateBlock: ev.GlobalProp().GetProps().HeadBlockNumber+1,
 	}
 
 	ticketWrap := table.NewSoGiftTicketWrap(ev.Database(), ticketKey)
@@ -1303,7 +1281,7 @@ func (ev *VoteByTicketEvaluator) Apply() {
 		tInfo.Ticket = ticketKey
 		tInfo.Count = count
 		tInfo.Denom = ev.GlobalProp().GetProps().GetPerTicketWeight()
-		tInfo.ExpireBlock = math.MaxUint32
+		tInfo.ExpireBlock = math.MaxUint64
 	})
 
 	//ev.GlobalProp().VoteByTicket(op.Account, postId, count)

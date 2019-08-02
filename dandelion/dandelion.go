@@ -219,9 +219,9 @@ func (d *Dandelion) ExtPostCreated(postId uint64) *table.SoExtPostCreatedWrap {
 }
 
 func (d *Dandelion) BlockProducerVote(voter string, blockProducer string) *table.SoBlockProducerVoteWrap {
-	return table.NewSoBlockProducerVoteWrap(d.Database(), &prototype.BpVoterId{
-		Voter: prototype.NewAccountName(voter),
+	return table.NewSoBlockProducerVoteWrap(d.Database(), &prototype.BpBlockProducerId{
 		BlockProducer: prototype.NewAccountName(blockProducer),
+		Voter: prototype.NewAccountName(voter),
 	})
 }
 

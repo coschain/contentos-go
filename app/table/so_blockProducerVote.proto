@@ -5,37 +5,43 @@ package table;
 
 option go_package = "github.com/coschain/contentos-go/app/table";
 
-import "prototype/multi_id.proto";
 import "prototype/type.proto";
+import "prototype/multi_id.proto";
 
 message so_blockProducerVote {
-	prototype.bp_voter_id              voter_id       =      1;
-    prototype.bp_block_producer_id 								   block_producer_id     =      2;
-    prototype.time_point_sec           vote_time      =      3;
+	prototype.bp_block_producer_id 	   block_producer_id         =      1;
+    prototype.account_name       	   voter_name                =      2;
+    prototype.time_point_sec           vote_time                 =      3;
       
 }
 
 
-message so_mem_blockProducerVote_by_voter_id {
-	prototype.bp_voter_id           	voter_id   = 1;
+message so_mem_blockProducerVote_by_block_producer_id {
+	prototype.bp_block_producer_id 		block_producer_id     = 1;
 }
 
 
-message so_mem_blockProducerVote_by_block_producer_id {
-	prototype.bp_block_producer_id 									block_producer_id = 1;
+message so_mem_blockProducerVote_by_voter_name {
+	prototype.account_name       		voter_name            = 1;
 }
 
 
 message so_mem_blockProducerVote_by_vote_time {
-	prototype.time_point_sec        	vote_time  = 1;
+	prototype.time_point_sec        	vote_time             = 1;
 }
 
 
-message so_list_blockProducerVote_by_voter_id {
-	prototype.bp_voter_id           	voter_id   = 1;
+message so_list_blockProducerVote_by_block_producer_id {
+	prototype.bp_block_producer_id 		block_producer_id     = 1;
 }
 
 
-message so_unique_blockProducerVote_by_voter_id {
-	prototype.bp_voter_id           	voter_id   = 1;
+message so_unique_blockProducerVote_by_block_producer_id {
+	prototype.bp_block_producer_id 		block_producer_id     = 1;
+}
+
+
+message so_unique_blockProducerVote_by_voter_name {
+	prototype.account_name       		voter_name            = 1;
+	prototype.bp_block_producer_id 		block_producer_id     = 2;
 }
