@@ -387,7 +387,6 @@ func (c *TrxPool) generateBlockNoLock(bpName string, pre *prototype.Sha256, time
 	ret, bpNameList := c.shuffle(signBlock)
 	if ret {
 		if len(bpNameList) > 0 {
-			c.updateGlobalBpBootMark(bpNameList)
 			c.updateGlobalResourceParam(bpNameList)
 		}
 	}
@@ -568,7 +567,7 @@ func (c *TrxPool) applyBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag
 		ret, bpNameList := c.shuffle(blk)
 		if ret {
 			if len(bpNameList) > 0 {
-				c.updateGlobalBpBootMark(bpNameList)
+			//	c.updateGlobalBpBootMark(bpNameList)
 				c.updateGlobalResourceParam(bpNameList)
 			}
 		}
@@ -611,6 +610,7 @@ func (c *TrxPool) applyBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag
 
 	afterTiming.Mark()
 
+	c.updateGlobalBpBootMark()
 	c.notifyBlockApply(blk)
 
 	afterTiming.End()
@@ -877,31 +877,36 @@ func (c *TrxPool) updateAvgTps(blk *prototype.SignedBlock) {
 	})
 }
 
-func (c *TrxPool) updateGlobalBpBootMark(bpNameList []string) {
+func (c *TrxPool) updateGlobalBpBootMark() {
+	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
+	if !dgpWrap.GetProps().BlockProducerBootCompleted {
+		return
+	}
+
+	bpScheduleWrap := table.NewSoBlockProducerScheduleObjectWrap(c.db, &SingleId)
+	bpNameList := bpScheduleWrap.GetCurrentShuffledBlockProducer()
+
 	if len(bpNameList) == 1 && bpNameList[0] == constants.COSInitMiner {
 		return
 	}
 
-	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
-	if !dgpWrap.GetProps().BlockProducerBootCompleted {
-		// update global param
-		c.modifyGlobalDynamicData(func(dgpo *prototype.DynamicProperties) {
-			// update global BootCompleted
-			dgpo.BlockProducerBootCompleted = true
-			// start epoch
-			if dgpo.CurrentEpochStartBlock == 0 {
-				dgpo.CurrentEpochStartBlock = 1
-			}
-		})
+	// update global param
+	c.modifyGlobalDynamicData(func(dgpo *prototype.DynamicProperties) {
+		// update global BootCompleted
+		dgpo.BlockProducerBootCompleted = true
+		// start epoch
+		if dgpo.CurrentEpochStartBlock == 0 {
+			dgpo.CurrentEpochStartBlock = 1
+		}
+	})
 
-		// disable bp constants.COSInitMiner
-		ac := &prototype.AccountName{
-			Value: constants.COSInitMiner,
-		}
-		bpWrap := table.NewSoBlockProducerWrap(c.db, ac)
-		if bpWrap.CheckExist() {
-			mustSuccess(bpWrap.MdActive(false), fmt.Sprintf("disable bp %s error", constants.COSInitMiner))
-		}
+	// disable bp constants.COSInitMiner
+	ac := &prototype.AccountName{
+		Value: constants.COSInitMiner,
+	}
+	bpWrap := table.NewSoBlockProducerWrap(c.db, ac)
+	if bpWrap.CheckExist() {
+		mustSuccess(bpWrap.MdActive(false), fmt.Sprintf("disable bp %s error", constants.COSInitMiner))
 	}
 }
 
