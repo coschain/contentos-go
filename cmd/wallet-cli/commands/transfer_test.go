@@ -26,7 +26,7 @@ func TestTransfer(t *testing.T) {
 	for _, child := range cmd.Commands() {
 		child.Context = cmd.Context
 	}
-	cmd.SetArgs([]string{"initminer", "kochiya", "500"})
+	cmd.SetArgs([]string{"initminer", "kochiya", "0.000500"})
 	priv_account := &wallet.PrivAccount{
 		Account: wallet.Account{
 			Name:   "initminer",
@@ -35,6 +35,9 @@ func TestTransfer(t *testing.T) {
 		PrivKey: "4DjYx2KAGh1NP3dai7MZTLUBMMhMBPmwouKE8jhVSESywccpVZ",
 	}
 	mywallet.EXPECT().GetUnlockedAccount("initminer").Return(priv_account, true)
+
+	mock_utils.NeedChainState(client)
+
 	resp := &grpcpb.BroadcastTrxResponse{Status: 1, Msg: "success"}
 	client.EXPECT().BroadcastTrx(gomock.Any(), gomock.Any()).Return(resp, nil).Do(func(context interface{}, req *grpcpb.BroadcastTrxRequest) {
 		op := req.Transaction.Trx.Operations[0]
@@ -64,7 +67,7 @@ func TestTransferWithMemo(t *testing.T) {
 	for _, child := range cmd.Commands() {
 		child.Context = cmd.Context
 	}
-	cmd.SetArgs([]string{"initminer", "kochiya", "500", "hello"})
+	cmd.SetArgs([]string{"initminer", "kochiya", "0.000500", "hello"})
 	priv_account := &wallet.PrivAccount{
 		Account: wallet.Account{
 			Name:   "initminer",
@@ -73,6 +76,9 @@ func TestTransferWithMemo(t *testing.T) {
 		PrivKey: "4DjYx2KAGh1NP3dai7MZTLUBMMhMBPmwouKE8jhVSESywccpVZ",
 	}
 	mywallet.EXPECT().GetUnlockedAccount("initminer").Return(priv_account, true)
+
+	mock_utils.NeedChainState(client)
+
 	resp := &grpcpb.BroadcastTrxResponse{Status: 1, Msg: "success"}
 	client.EXPECT().BroadcastTrx(gomock.Any(), gomock.Any()).Return(resp, nil).Do(func(context interface{}, req *grpcpb.BroadcastTrxRequest) {
 		op := req.Transaction.Trx.Operations[0]

@@ -51,6 +51,9 @@ func GetChainState(client grpcpb.ApiServiceClient) (*grpcpb.ChainState, error) {
 	if err != nil {
 		return nil, err
 	}
+	if resp == nil {
+		return nil, errors.New("response == nil, err == nil")
+	}
 	return resp.State, nil
 }
 

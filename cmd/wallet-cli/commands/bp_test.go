@@ -34,6 +34,7 @@ func TestBpRegisterWithoutFlags(t *testing.T) {
 		PrivKey: "4DjYx2KAGh1NP3dai7MZTLUBMMhMBPmwouKE8jhVSESywccpVZ",
 	}
 	mywallet.EXPECT().GetUnlockedAccount("initminer").Return(priv_account, true)
+	mock_utils.NeedChainState(client)
 	resp := &grpcpb.BroadcastTrxResponse{Status: 1, Msg: "success"}
 	client.EXPECT().BroadcastTrx(gomock.Any(), gomock.Any()).Return(resp, nil)
 	_, err := cmd.ExecuteC()
@@ -65,6 +66,7 @@ func TestBpRegisterWithUrl(t *testing.T) {
 		PrivKey: "4DjYx2KAGh1NP3dai7MZTLUBMMhMBPmwouKE8jhVSESywccpVZ",
 	}
 	mywallet.EXPECT().GetUnlockedAccount("initminer").Return(priv_account, true)
+	mock_utils.NeedChainState(client)
 	resp := &grpcpb.BroadcastTrxResponse{Status: 1, Msg: "success"}
 	client.EXPECT().BroadcastTrx(gomock.Any(), gomock.Any()).Return(resp, nil).Do(func(context interface{}, req *grpcpb.BroadcastTrxRequest) {
 		op := req.Transaction.Trx.Operations[0]
@@ -101,6 +103,7 @@ func TestBpRegisterWithDesc(t *testing.T) {
 		PrivKey: "4DjYx2KAGh1NP3dai7MZTLUBMMhMBPmwouKE8jhVSESywccpVZ",
 	}
 	mywallet.EXPECT().GetUnlockedAccount("initminer").Return(priv_account, true)
+	mock_utils.NeedChainState(client)
 	resp := &grpcpb.BroadcastTrxResponse{Status: 1, Msg: "success"}
 	client.EXPECT().BroadcastTrx(gomock.Any(), gomock.Any()).Return(resp, nil).Do(func(context interface{}, req *grpcpb.BroadcastTrxRequest) {
 		op := req.Transaction.Trx.Operations[0]
@@ -137,6 +140,7 @@ func TestBpRegisterWithFee(t *testing.T) {
 		PrivKey: "4DjYx2KAGh1NP3dai7MZTLUBMMhMBPmwouKE8jhVSESywccpVZ",
 	}
 	mywallet.EXPECT().GetUnlockedAccount("initminer").Return(priv_account, true)
+	mock_utils.NeedChainState(client)
 	resp := &grpcpb.BroadcastTrxResponse{Status: 1, Msg: "success"}
 	client.EXPECT().BroadcastTrx(gomock.Any(), gomock.Any()).Return(resp, nil).Do(func(context interface{}, req *grpcpb.BroadcastTrxRequest) {
 		op := req.Transaction.Trx.Operations[0]
@@ -173,6 +177,7 @@ func TestBpRegisterWithBlockSize(t *testing.T) {
 		PrivKey: "4DjYx2KAGh1NP3dai7MZTLUBMMhMBPmwouKE8jhVSESywccpVZ",
 	}
 	mywallet.EXPECT().GetUnlockedAccount("initminer").Return(priv_account, true)
+	mock_utils.NeedChainState(client)
 	resp := &grpcpb.BroadcastTrxResponse{Status: 1, Msg: "success"}
 	client.EXPECT().BroadcastTrx(gomock.Any(), gomock.Any()).Return(resp, nil).Do(func(context interface{}, req *grpcpb.BroadcastTrxRequest) {
 		op := req.Transaction.Trx.Operations[0]
@@ -209,6 +214,7 @@ func TestBpVoteWithoutFlags(t *testing.T) {
 		PrivKey: "4DjYx2KAGh1NP3dai7MZTLUBMMhMBPmwouKE8jhVSESywccpVZ",
 	}
 	mywallet.EXPECT().GetUnlockedAccount("initminer").Return(priv_account, true)
+	mock_utils.NeedChainState(client)
 	resp := &grpcpb.BroadcastTrxResponse{Status: 1, Msg: "success"}
 	client.EXPECT().BroadcastTrx(gomock.Any(), gomock.Any()).Return(resp, nil).Do(func(context interface{}, req *grpcpb.BroadcastTrxRequest) {
 		op := req.Transaction.Trx.Operations[0]
@@ -244,6 +250,7 @@ func TestBpVoteCancel(t *testing.T) {
 		PrivKey: "4DjYx2KAGh1NP3dai7MZTLUBMMhMBPmwouKE8jhVSESywccpVZ",
 	}
 	mywallet.EXPECT().GetUnlockedAccount("initminer").Return(priv_account, true)
+	mock_utils.NeedChainState(client)
 	resp := &grpcpb.BroadcastTrxResponse{Status: 1, Msg: "success"}
 	client.EXPECT().BroadcastTrx(gomock.Any(), gomock.Any()).Return(resp, nil).Do(func(context interface{}, req *grpcpb.BroadcastTrxRequest) {
 		op := req.Transaction.Trx.Operations[0]
@@ -259,6 +266,7 @@ func TestBpVoteCancel(t *testing.T) {
 func TestBpVoteUnsetFlag(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	client := mock_grpcpb.NewMockApiServiceClient(ctrl)
+	mock_utils.NeedChainState(client)
 	mywallet := mock_wallet.NewMockWallet(ctrl)
 	myassert := assert.New(t)
 	passwordReader := mock_utils.NewMockPasswordReader(ctrl)

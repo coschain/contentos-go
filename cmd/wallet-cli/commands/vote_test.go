@@ -1,6 +1,7 @@
 package commands
 
 import (
+	mock_utils "github.com/coschain/contentos-go/cmd/wallet-cli/commands/utils/mock"
 	"github.com/coschain/contentos-go/cmd/wallet-cli/wallet"
 	"github.com/coschain/contentos-go/cmd/wallet-cli/wallet/mock"
 	"github.com/coschain/contentos-go/prototype"
@@ -32,6 +33,9 @@ func TestVote(t *testing.T) {
 		PrivKey: "4DjYx2KAGh1NP3dai7MZTLUBMMhMBPmwouKE8jhVSESywccpVZ",
 	}
 	mywallet.EXPECT().GetUnlockedAccount("initminer").Return(priv_account, true)
+
+	mock_utils.NeedChainState(client)
+
 	resp := &grpcpb.BroadcastTrxResponse{Status: 1, Msg: "success"}
 	client.EXPECT().BroadcastTrx(gomock.Any(), gomock.Any()).Return(resp, nil).Do(func(context interface{}, req *grpcpb.BroadcastTrxRequest) {
 		op := req.Transaction.Trx.Operations[0]

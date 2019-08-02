@@ -40,6 +40,7 @@ func TestCreateAccount(t *testing.T) {
 	wallet.EXPECT().Create("kochiya", gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 	passwordReader.EXPECT().ReadPassword(gomock.Any()).Return([]byte("123456"), nil)
 	cmd.SetArgs([]string{"initminer", "kochiya"})
+	mock_utils.NeedChainState(client)
 	resp := &grpcpb.BroadcastTrxResponse{Status: 1, Msg: "success"}
 	client.EXPECT().BroadcastTrx(gomock.Any(), gomock.Any()).Return(resp, nil).Do(func(context interface{}, req *grpcpb.BroadcastTrxRequest) {
 		op := req.Transaction.Trx.Operations[0]

@@ -36,6 +36,7 @@ func TestFollow(t *testing.T) {
 	}
 	mywallet.EXPECT().GetUnlockedAccount("initminer").Return(priv_account, true)
 	resp := &grpcpb.BroadcastTrxResponse{Status: 1, Msg: "success"}
+	mock_utils.NeedChainState(client)
 	client.EXPECT().BroadcastTrx(gomock.Any(), gomock.Any()).Return(resp, nil).Do(func(context interface{}, req *grpcpb.BroadcastTrxRequest) {
 		op := req.Transaction.Trx.Operations[0]
 		follow_op := op.GetOp8()
