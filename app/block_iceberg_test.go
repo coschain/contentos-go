@@ -29,6 +29,7 @@ func TestBlockIceberg(t *testing.T) {
 
 	logger := logrus.New()
 	logger.SetLevel(logrus.DebugLevel)
+	logger.SetOutput(ioutil.Discard)
 
 	// create instance based on an empty db
 	berg := NewBlockIceberg(db, logger, false)
