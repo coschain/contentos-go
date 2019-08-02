@@ -32,16 +32,16 @@ func (tester *TicketTester) Test(t *testing.T, d *Dandelion) {
 	resetProperties(&defaultProps)
 
 	t.Run("normal", d.Test(tester.normal))
-
+	t.Run("invalid", d.Test(tester.invalidOp))
 }
 
 func (tester *TicketTester) normal(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
 	balance0 := tester.acc0.GetBalance().Value
 
+	// buy ticket and check
 	op := AcquireTicket(tester.acc0.Name, 1)
 	a.NoError(tester.acc0.SendTrxAndProduceBlock(op)) // ##block 1
-
 	props := d.GlobalProps()
 	a.Equal(tester.acc0.GetBalance().Value+props.PerTicketPrice.Value, balance0)
 	a.Equal(props.TicketsIncome.Value, props.PerTicketPrice.Value)
@@ -56,13 +56,14 @@ func (tester *TicketTester) normal(t *testing.T, d *Dandelion) {
 	a.Empty(!ticketWrap.CheckExist())
 	a.Equal(tester.acc0.GetChargedTicket(), uint32(1))
 
+	// vote ticket and check
 	op = Post(1, tester.acc1.Name, "title", "content", []string{"1"}, make(map[string]int))
-	a.NoError(tester.acc1.SendTrx(op))
+	a.NoError(tester.acc1.SendTrxAndProduceBlock(op))  // ##block 2
+	props = d.GlobalProps()
 	op = VoteByTicket(tester.acc0.Name, 1, 1)
 	valOfTicket := &prototype.Vest{Value: props.TicketsIncome.Value/props.ChargedTicketsNum}
 	valOfTicket.Mul(1)
-	a.NoError(tester.acc0.SendTrxAndProduceBlock(op)) // ##block 2
-
+	a.NoError(tester.acc0.SendTrxAndProduceBlock(op)) // ##block 3
 	props = d.GlobalProps()
 	a.Equal(tester.acc0.GetChargedTicket(), uint32(0))
 	ticketKey = &prototype.GiftTicketKeyType{
@@ -79,16 +80,19 @@ func (tester *TicketTester) normal(t *testing.T, d *Dandelion) {
 func (tester *TicketTester) invalidOp(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
 	op := AcquireTicket(tester.acc0.Name, 0)
-	a.Error(tester.acc0.SendTrxAndProduceBlock(op))
+	a.Error(checkError(tester.acc0.TrxReceipt(op)))
+	d.ProduceBlocks(1)
 
-	op = AcquireTicket(tester.acc0.Name, constants.MaxTicketsPerTurn)
-	a.Error(tester.acc0.SendTrxAndProduceBlock(op))
+	op = AcquireTicket(tester.acc0.Name, constants.MaxTicketsPerTurn+1)
+	a.Error(checkError(tester.acc0.TrxReceipt(op)))
+	d.ProduceBlocks(1)
 
 	balance0 := tester.acc0.GetBalance().Value
 	op = TransferToVest(tester.acc0.Name, tester.acc0.Name, balance0)
-	a.NoError(tester.acc0.SendTrxAndProduceBlock(op))
+	a.NoError(checkError(tester.acc0.TrxReceipt(op)))
+	d.ProduceBlocks(1)
 
 	op = AcquireTicket(tester.acc0.Name, 1)
-	a.Error(tester.acc0.SendTrxAndProduceBlock(op))
-
+	a.Error(checkError(tester.acc0.TrxReceipt(op)))
+	d.ProduceBlocks(1)
 }
