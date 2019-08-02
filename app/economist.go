@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 	"github.com/asaskevich/EventBus"
+	"github.com/coschain/contentos-go/app/annual_mint"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
@@ -64,28 +65,7 @@ func (e *Economist) GetAccount(account *prototype.AccountName) (*table.SoAccount
 //	dgpWrap.ModifyProps(f)
 //}
 
-func (e *Economist) BaseBudget(ith uint32) uint64 {
-	if ith > 12 {
-		return 0
-	}
-	var remain uint64 = 0
-	// 56 == 35000 - 448 * 13 * 12 / 2
-	if ith == 12 {
-		remain = uint64(constants.TotalCurrency) * uint64(56) / 1000 / 100 * constants.BaseRate
-	}
-	return uint64(ith) * uint64(constants.TotalCurrency) * uint64(448) / 1000 / 100 * constants.BaseRate + remain
-}
 
-
-// InitialBonus does not be managed by chain
-func (e *Economist) CalculateBudget(ith uint32) uint64 {
-	return e.BaseBudget(ith)
-}
-
-func (e *Economist) CalculatePerBlockBudget(annalBudget uint64) uint64 {
-	//return annalBudget / (86400 / 3 * 365)
-	return annalBudget / (86400 / constants.BlockInterval * 365)
-}
 
 func (e *Economist) Mint(trxObserver iservices.ITrxObserver) {
 	//blockCurrent := constants.PerBlockCurrent
@@ -95,7 +75,7 @@ func (e *Economist) Mint(trxObserver iservices.ITrxObserver) {
 		return
 	}
 	ith := globalProps.GetIthYear()
-	annualBudget := e.CalculateBudget(ith)
+	annualBudget := annual_mint.CalculateBudget(ith)
 	// new year arrived
 	if globalProps.GetAnnualBudget().Value != annualBudget {
 		e.dgp.ModifyProps(func(props *prototype.DynamicProperties) {
@@ -105,7 +85,7 @@ func (e *Economist) Mint(trxObserver iservices.ITrxObserver) {
 		// reload props
 		globalProps = e.dgp.GetProps()
 	}
-	blockCurrent := e.CalculatePerBlockBudget(annualBudget)
+	blockCurrent := annual_mint.CalculatePerBlockBudget(annualBudget)
 	// prevent deficit
 	if globalProps.GetAnnualBudget().Value > globalProps.GetAnnualMinted().Value &&
 		globalProps.GetAnnualBudget().Value <= (globalProps.GetAnnualMinted().Value + blockCurrent) {
