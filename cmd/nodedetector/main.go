@@ -60,7 +60,9 @@ func main() {
 			clearProcessed()
 			fmt.Println("\n\n=========================================")
 			fmt.Println("Start a new round to scan the whole net")
-			fmt.Println("=========================================\n\n")
+			fmt.Println("=========================================")
+			fmt.Println()
+			fmt.Println()
 			nodeManager.AddToQuerylist(seedNodesList, false)
 		}
 	}
