@@ -1268,7 +1268,7 @@ func (ev *VoteByTicketEvaluator) Apply() {
 		Type: 1,
 		From: op.Account.Value,
 		To: strconv.FormatUint(postId, 10),
-		CreateBlock: ev.GlobalProp().GetProps().HeadBlockNumber,
+		CreateBlock: ev.GlobalProp().GetProps().HeadBlockNumber+1,
 	}
 	ticketWrap := table.NewSoGiftTicketWrap(ev.Database(), ticketKey)
 

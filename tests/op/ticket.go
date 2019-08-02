@@ -5,6 +5,7 @@ import (
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/stretchr/testify/assert"
+	"strconv"
 	"testing"
 
 	. "github.com/coschain/contentos-go/dandelion"
@@ -53,11 +54,41 @@ func (tester *TicketTester) normal(t *testing.T, d *Dandelion) {
 	}
 	ticketWrap := table.NewSoGiftTicketWrap(tester.acc0.D.Database(), ticketKey)
 	a.Empty(!ticketWrap.CheckExist())
+	a.Equal(tester.acc0.GetChargedTicket(), uint32(1))
 
-	op = Post(1, tester.acc0.Name, "title", "content", []string{"1"}, make(map[string]int))
-	a.NoError(tester.acc0.SendTrx(op))
+	op = Post(1, tester.acc1.Name, "title", "content", []string{"1"}, make(map[string]int))
+	a.NoError(tester.acc1.SendTrx(op))
 	op = VoteByTicket(tester.acc0.Name, 1, 1)
+	valOfTicket := &prototype.Vest{Value: props.TicketsIncome.Value/props.ChargedTicketsNum}
+	valOfTicket.Mul(1)
 	a.NoError(tester.acc0.SendTrxAndProduceBlock(op)) // ##block 2
 
 	props = d.GlobalProps()
+	a.Equal(tester.acc0.GetChargedTicket(), uint32(0))
+	ticketKey = &prototype.GiftTicketKeyType{
+		Type: 1,
+		From: tester.acc0.Name,
+		To: strconv.FormatUint(1, 10),
+		CreateBlock: props.HeadBlockNumber,
+	}
+	ticketWrap = table.NewSoGiftTicketWrap(tester.acc0.D.Database(), ticketKey)
+	a.Empty(!ticketWrap.CheckExist())
+	// TODO: check current bp properties
+}
+
+func (tester *TicketTester) invalidOp(t *testing.T, d *Dandelion) {
+	a := assert.New(t)
+	op := AcquireTicket(tester.acc0.Name, 0)
+	a.Error(tester.acc0.SendTrxAndProduceBlock(op))
+
+	op = AcquireTicket(tester.acc0.Name, constants.MaxTicketsPerTurn)
+	a.Error(tester.acc0.SendTrxAndProduceBlock(op))
+
+	balance0 := tester.acc0.GetBalance().Value
+	op = TransferToVest(tester.acc0.Name, tester.acc0.Name, balance0)
+	a.NoError(tester.acc0.SendTrxAndProduceBlock(op))
+
+	op = AcquireTicket(tester.acc0.Name, 1)
+	a.Error(tester.acc0.SendTrxAndProduceBlock(op))
+
 }
