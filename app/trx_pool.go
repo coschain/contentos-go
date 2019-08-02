@@ -879,7 +879,7 @@ func (c *TrxPool) updateAvgTps(blk *prototype.SignedBlock) {
 
 func (c *TrxPool) updateGlobalBpBootMark() {
 	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
-	if !dgpWrap.GetProps().BlockProducerBootCompleted {
+	if dgpWrap.GetProps().BlockProducerBootCompleted {
 		return
 	}
 
