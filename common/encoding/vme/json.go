@@ -60,6 +60,9 @@ func fromJsonValue(jval reflect.Value, typ reflect.Type) (interface{}, error) {
 				return nil, err
 			}
 			jval, jt = reflect.ValueOf(val), reflect.TypeOf(val)
+
+		default:
+			return nil, errors.New("vme-json: incompatible json.")
 		}
 	}
 

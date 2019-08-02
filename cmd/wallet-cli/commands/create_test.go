@@ -4,6 +4,7 @@ import (
 	"github.com/coschain/contentos-go/cmd/wallet-cli/commands/utils/mock"
 	wallet2 "github.com/coschain/contentos-go/cmd/wallet-cli/wallet"
 	"github.com/coschain/contentos-go/cmd/wallet-cli/wallet/mock"
+	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/rpc/mock_grpcpb"
 	"github.com/coschain/contentos-go/rpc/pb"
 	"github.com/golang/mock/gomock"
@@ -21,6 +22,7 @@ func TestCreateAccount(t *testing.T) {
 	cmd.SetContext("wallet", wallet)
 	cmd.SetContext("rpcclient", client)
 	cmd.SetContext("preader", passwordReader)
+	cmd.SetContext("chain_id", prototype.ChainId{})
 	for _, child := range cmd.Commands() {
 		child.Context = cmd.Context
 	}

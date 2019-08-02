@@ -19,6 +19,7 @@ func TestImportAccount(t *testing.T) {
 	cmd.SetContext("wallet", mywallet)
 	cmd.SetContext("rpcclient", client)
 	cmd.SetContext("preader", passwordReader)
+	cmd.SetContext("chain_id", prototype.ChainId{})
 	for _, child := range cmd.Commands() {
 		child.Context = cmd.Context
 	}

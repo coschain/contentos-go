@@ -180,31 +180,22 @@ func (idx *TableIndex) rowKey(indexedKey []byte) ([]byte, error) {
 func (idx *TableIndex) rowKeyScan(indexedKeyStart []byte, indexedKeyLimit []byte) ([][]byte, error) {
 	var (
 		rowKeys   [][]byte
-		k, v, rk  []byte
-		err       error
 		dbScanner storage.DatabaseScanner
 	)
 	dbScanner = idx.table.db
-	it := dbScanner.NewIterator(indexedKeyStart, indexedKeyLimit)
-	for it.Next() {
-		if k, err = it.Key(); err != nil {
-			return nil, err
-		}
-		if v, err = it.Value(); err != nil {
-			return nil, err
-		}
-		rk = nil
+	dbScanner.Iterate(indexedKeyStart, indexedKeyLimit, false, func(key, value []byte) bool {
+		var rk []byte
 		if idx.typ == Primary {
-			rk = k
+			rk = key
 		} else if idx.typ == Unique {
-			rk = v
+			rk = value
 		} else if idx.typ == Nonunique {
-			rk = kope.IndexedPrimaryKey(k)
+			rk = kope.IndexedPrimaryKey(key)
 		}
 		if len(rk) > 0 {
 			rowKeys = append(rowKeys, common.CopyBytes(rk))
 		}
-	}
-	dbScanner.DeleteIterator(it)
+		return true
+	})
 	return rowKeys, nil
 }

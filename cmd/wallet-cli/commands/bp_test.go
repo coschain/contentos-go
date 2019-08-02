@@ -4,6 +4,7 @@ import (
 	"github.com/coschain/contentos-go/cmd/wallet-cli/commands/utils/mock"
 	"github.com/coschain/contentos-go/cmd/wallet-cli/wallet"
 	"github.com/coschain/contentos-go/cmd/wallet-cli/wallet/mock"
+	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/rpc/mock_grpcpb"
 	"github.com/coschain/contentos-go/rpc/pb"
 	"github.com/golang/mock/gomock"
@@ -20,6 +21,7 @@ func TestBpRegisterWithoutFlags(t *testing.T) {
 	cmd.SetContext("wallet", mywallet)
 	cmd.SetContext("rpcclient", client)
 	cmd.SetContext("preader", passwordReader)
+	cmd.SetContext("chain_id", prototype.ChainId{})
 	for _, child := range cmd.Commands() {
 		child.Context = cmd.Context
 	}
@@ -50,6 +52,7 @@ func TestBpRegisterWithUrl(t *testing.T) {
 	cmd.SetContext("wallet", mywallet)
 	cmd.SetContext("rpcclient", client)
 	cmd.SetContext("preader", passwordReader)
+	cmd.SetContext("chain_id", prototype.ChainId{})
 	for _, child := range cmd.Commands() {
 		child.Context = cmd.Context
 	}
@@ -85,6 +88,7 @@ func TestBpRegisterWithDesc(t *testing.T) {
 	cmd.SetContext("wallet", mywallet)
 	cmd.SetContext("rpcclient", client)
 	cmd.SetContext("preader", passwordReader)
+	cmd.SetContext("chain_id", prototype.ChainId{})
 	for _, child := range cmd.Commands() {
 		child.Context = cmd.Context
 	}
@@ -120,6 +124,7 @@ func TestBpRegisterWithFee(t *testing.T) {
 	cmd.SetContext("wallet", mywallet)
 	cmd.SetContext("rpcclient", client)
 	cmd.SetContext("preader", passwordReader)
+	cmd.SetContext("chain_id", prototype.ChainId{})
 	for _, child := range cmd.Commands() {
 		child.Context = cmd.Context
 	}
@@ -155,6 +160,7 @@ func TestBpRegisterWithBlockSize(t *testing.T) {
 	cmd.SetContext("wallet", mywallet)
 	cmd.SetContext("rpcclient", client)
 	cmd.SetContext("preader", passwordReader)
+	cmd.SetContext("chain_id", prototype.ChainId{})
 	for _, child := range cmd.Commands() {
 		child.Context = cmd.Context
 	}
@@ -190,6 +196,7 @@ func TestBpVoteWithoutFlags(t *testing.T) {
 	cmd.SetContext("wallet", mywallet)
 	cmd.SetContext("rpcclient", client)
 	cmd.SetContext("preader", passwordReader)
+	cmd.SetContext("chain_id", prototype.ChainId{})
 	for _, child := range cmd.Commands() {
 		child.Context = cmd.Context
 	}
@@ -224,6 +231,7 @@ func TestBpVoteCancel(t *testing.T) {
 	cmd.SetContext("wallet", mywallet)
 	cmd.SetContext("rpcclient", client)
 	cmd.SetContext("preader", passwordReader)
+	cmd.SetContext("chain_id", prototype.ChainId{})
 	for _, child := range cmd.Commands() {
 		child.Context = cmd.Context
 	}
@@ -258,6 +266,7 @@ func TestBpVoteUnsetFlag(t *testing.T) {
 	cmd.SetContext("wallet", mywallet)
 	cmd.SetContext("rpcclient", client)
 	cmd.SetContext("preader", passwordReader)
+	cmd.SetContext("chain_id", prototype.ChainId{})
 	for _, child := range cmd.Commands() {
 		child.Context = cmd.Context
 	}

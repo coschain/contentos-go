@@ -279,7 +279,7 @@ func compress(file *os.File, prefix string, tw *tar.Writer) error {
 		}
 	} else {
 		if !info.Mode().IsRegular() {
-			logrus.Warnf("skip file %s coz it's irregular")
+			logrus.Warnf("skip file %s coz it's irregular", info.Name())
 			return nil
 		}
 		header, err := tar.FileInfoHeader(info, "")

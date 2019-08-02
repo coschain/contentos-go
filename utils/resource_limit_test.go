@@ -303,7 +303,7 @@ func TestDynamicStamina(t *testing.T) {
 		now++
 		trxsInWindowNew := calculateTpsEMA(trxsInWindow,trxsInBlock,preTime,now)
 		preTime = now
-		oneDayStaminaNew := updateDynamicOneDayStamina(oneDayStamina,trxsInWindowNew/constants.TpsWindowSize)
+		oneDayStaminaNew := updateDynamicOneDayStamina(oneDayStamina,trxsInWindowNew/constants.TpsWindowSize,1000)
 		fmt.Println("oneDayStamina:",oneDayStaminaNew,"trxs in window:",trxsInWindowNew," trxsInBlock:",trxsInBlock," block num:",now, " real tps:",trxsInWindowNew/constants.TpsWindowSize)
 		trxsInWindow = trxsInWindowNew
 		oneDayStamina = oneDayStaminaNew

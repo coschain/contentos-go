@@ -963,9 +963,9 @@ func Test_TrxSize(t *testing.T) {
 	trx3, _ := createSigTrx(c, constants.InitminerPrivKey, bpRegistOp)
 	fmt.Println(proto.Size(trx3))
 
-	bpUnReOp := &prototype.BpUnregisterOperation{Owner: prototype.NewAccountName("aaa")}
-	trx4, _ := createSigTrx(c, constants.InitminerPrivKey, bpUnReOp)
-	fmt.Println(proto.Size(trx4))
+	//bpUnReOp := &prototype.BpUnregisterOperation{Owner: prototype.NewAccountName("aaa")}
+	//trx4, _ := createSigTrx(c, constants.InitminerPrivKey, bpUnReOp)
+	//fmt.Println(proto.Size(trx4))
 
 	bpV := &prototype.BpVoteOperation{
 		Voter:   prototype.NewAccountName("aaa"),

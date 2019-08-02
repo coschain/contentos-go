@@ -581,7 +581,7 @@ func acquireTicket(rpcClient grpcpb.ApiServiceClient, fromAccount *wallet.PrivAc
 				fmt.Println(err)
 				return
 			}
-			fmt.Println(fmt.Sprintf("====== VEST from:%v to:%v amount:%v",GlobalAccountLIst.arr[0].Name,fromAccount.Name,fromAccount, 10 * constants.COSTokenDecimals))
+			fmt.Println(fmt.Sprintf("====== VEST from:%v to:%v amount:%v",GlobalAccountLIst.arr[0].Name,fromAccount.Name, 10 * constants.COSTokenDecimals))
 			acquireTicket(rpcClient, fromAccount)
 			return
 		}
@@ -692,7 +692,7 @@ func callContract(rpcClient grpcpb.ApiServiceClient, fromAccount  *wallet.PrivAc
 			stake(rpcClient,fromAccount,fromAccount,1)
 		}
 		fmt.Println("Request command: ",
-			fmt.Sprintf("callContract %s %s %d", fromAccount.Name),
+			fmt.Sprintf("callContract %s: %s %s %d", applyOp.Caller.Value, applyOp.Owner.Value, applyOp.Contract, applyOp.Amount.Value),
 			" ",
 			fmt.Sprintf("Result: %v", resp))
 	}
