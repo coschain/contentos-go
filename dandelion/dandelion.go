@@ -116,6 +116,10 @@ func (d *Dandelion) GlobalProps() *prototype.DynamicProperties {
 	return d.TrxPool().GetProps()
 }
 
+func (d *Dandelion) GetBlockProducerTopN(n uint32) ([]string, []*prototype.PublicKeyType) {
+	return d.TrxPool().GetBlockProducerTopN(n)
+}
+
 func (d *Dandelion) Account(name string) *DandelionAccount {
 	return NewDandelionAccount(name, d)
 }

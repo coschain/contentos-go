@@ -16,6 +16,7 @@ type BpTest struct {
 
 var defaultProps *prototype.ChainProperties
 
+// << start of helper function
 func resetProperties(p **prototype.ChainProperties) {
 	*p = &prototype.ChainProperties{
 		AccountCreationFee: prototype.NewCoin(1),
@@ -48,6 +49,19 @@ func checkError(r* prototype.TransactionReceiptWithInfo) error {
 	}
 	return nil
 }
+
+func makeBp(name string,t *testing.T,d *Dandelion) {
+	a := assert.New(t)
+	pri := newAccount(name,t,d)
+	pub,_ := pri.PubKey()
+
+	// give new bp 10000 vesting
+	a.NoError(checkError(d.Account(constants.COSInitMiner).TrxReceipt(TransferToVest(constants.COSInitMiner,name,constants.MinBpRegisterVest))))
+
+	a.NoError(checkError(d.Account(name).TrxReceipt(BpRegister(name,"","",pub,defaultProps))))
+}
+
+// >> end of helper function
 
 func (tester *BpTest) Test(t *testing.T, d *Dandelion) {
 	tester.acc0 = d.Account("actor0")
@@ -84,6 +98,7 @@ func (tester *BpTest) Test(t *testing.T, d *Dandelion) {
 	t.Run("unRegist", d.Test(tester.unRegist))
 	t.Run("bpUpdateCheckDgp",d.Test(tester.bpUpdateCheckDgp))
 	t.Run("bpUnVoteMultiTime", d.Test(tester.bpUnVoteMultiTime))
+	t.Run("bpSwitch", d.Test(tester.bpSwitch))
 }
 
 func (tester *BpTest) regist(t *testing.T, d *Dandelion) {
@@ -319,6 +334,7 @@ func (tester *BpTest) bpUpdateCheckDgp(t *testing.T, d *Dandelion) {
 	name := "blockproducer"
 	tps := uint64(constants.MinTPSExpected)
 	tpsStart := tps
+	// create 21 bp
 	for i:=0;i<21;i++ {
 		tmpName := name + fmt.Sprintf("%d",i)
 		pri := newAccount(tmpName,t,d)
@@ -368,4 +384,86 @@ func (tester *BpTest) bpUnVoteMultiTime(t *testing.T, d *Dandelion) {
 
 	// voter vote cancel vote again, should failed
 	a.Error(checkError(d.Account(voter).TrxReceipt(BpVote(voter,bpName,true))))
+}
+
+func (tester *BpTest) bpSwitch(t *testing.T, d *Dandelion) {
+	a := assert.New(t)
+
+	topN := uint32(21)
+	// get old bp list
+	bpArray,_ := d.GetBlockProducerTopN(topN)
+	oldBpMap := map[string]bool{}
+	a.True(uint32(len(bpArray)) == topN)
+	for _,bp := range bpArray{
+		oldBpMap[bp] = true
+	}
+
+	// we make 21 new bp, and intend to replace old bp
+	newBpMap := map[string]bool{}
+	newNames := []string{}
+	name := "newproducer"
+	for i:=0;i<21;i++ {
+		tmpName := name + fmt.Sprintf("%d",i)
+		makeBp(tmpName,t,d)
+		newNames = append(newNames,tmpName)
+		newBpMap[tmpName] = true
+	}
+
+	// create 42 new accounts to vote for new bp
+	voterName := "votergroup1"
+	for i:=0;i<21*2;i++ {
+		if i == 21 {
+			voterName = "votergroup2"
+		}
+		tmpName := voterName + fmt.Sprintf("%d",i)
+		newAccount(tmpName,t,d)
+		a.NoError(checkError(d.Account(tmpName).TrxReceipt(BpVote(tmpName,newNames[i%21],false))))
+	}
+
+	bpArray,_ = d.GetBlockProducerTopN(topN)
+	a.True(uint32(len(bpArray)) == topN)
+
+	for _,bp := range bpArray {
+		// new bp list should not contain old bp
+		a.False(oldBpMap[bp])
+	}
+
+	// we make another 21 new bp, these bps have no votes so they should not appear in producer list
+	newBpNoVoteMap := map[string]bool{}
+	nameBpNoVote := "withoutvote"
+	for i:=0;i<21;i++ {
+		tmpName := nameBpNoVote + fmt.Sprintf("%d",i)
+		makeBp(tmpName,t,d)
+		newBpNoVoteMap[tmpName] = true
+	}
+
+	// get 21 producer again
+	bpArray,_ = d.GetBlockProducerTopN(topN)
+	a.True(uint32(len(bpArray)) == topN)
+	for _,bp := range bpArray {
+		// these no vote bp should not appear in producers
+		a.False(newBpNoVoteMap[bp])
+	}
+
+	// make a bp that has many votes, should appear in first place of bp list
+	firstBpName := "ihavemanyvote"
+	makeBp(firstBpName,t,d)
+	voterName = "votergroup3"
+	for i:=0;i<21;i++ {
+		tmpName := voterName + fmt.Sprintf("%d",i)
+		newAccount(tmpName,t,d)
+		a.NoError(checkError(d.Account(tmpName).TrxReceipt(BpVote(tmpName,firstBpName,false))))
+	}
+	bpArray,_ = d.GetBlockProducerTopN(topN)
+	a.True(uint32(len(bpArray)) == topN)
+	// first place should be firstBpName
+	a.True(bpArray[0] == firstBpName)
+
+	// let firstBpName change to disable, then firstBpName should not appear in bp list
+	a.NoError(checkError(d.Account(firstBpName).TrxReceipt(BpDisable(firstBpName))))
+	bpArray,_ = d.GetBlockProducerTopN(topN)
+	a.True(uint32(len(bpArray)) == topN)
+	for _,bp := range bpArray {
+		a.True(bp != firstBpName)
+	}
 }
