@@ -959,6 +959,37 @@ func (as *APIService) getAccountResponseByName(name *prototype.AccountName, isNe
 	return acct
 }
 
+func (as *APIService) getBlockProducerResponseByName(name *prototype.AccountName, isNeedLock bool) *grpcpb.BlockProducerResponse {
+	if isNeedLock {
+		as.db.RLock()
+		defer as.db.RUnlock()
+	}
+	bpWrap := table.NewSoBlockProducerWrap(as.db, name)
+	bp := &grpcpb.BlockProducerResponse{}
+
+
+	if bpWrap != nil && bpWrap.CheckExist() {
+		bp.Owner                 = bpWrap.GetOwner()
+		bp.CreatedTime           = bpWrap.GetCreatedTime()
+		bp.Url                   = bpWrap.GetUrl()
+		bp.VoteVest              = bpWrap.GetVoteVest()
+		bp.SigningKey            = bpWrap.GetSigningKey()
+		bp.ProposedStaminaFree   = bpWrap.GetProposedStaminaFree()
+		bp.Active                = bpWrap.GetActive()
+		bp.TpsExpected           = bpWrap.GetTpsExpected()
+		bp.AccountCreateFee      = bpWrap.GetAccountCreateFee()
+		bp.TopNAcquireFreeToken  = bpWrap.GetTopNAcquireFreeToken()
+		bp.TicketFlushInterval   = bpWrap.GetEpochDuration()
+		bp.PerTicketPrice        = bpWrap.GetPerTicketPrice()
+		bp.PerTicketWeight       = bpWrap.GetPerTicketWeight()
+		bp.VoterCount            = bpWrap.GetVoterCount()
+	}else {
+		return nil
+	}
+
+	return bp
+}
+
 func (as *APIService) GetUserTrxListByTime(ctx context.Context, req *grpcpb.GetUserTrxListByTimeRequest) (*grpcpb.GetUserTrxListByTimeResponse, error) {
 	as.db.RLock()
 	defer as.db.RUnlock()
@@ -1502,4 +1533,17 @@ func (as *APIService) GetAccountListByVest(ctx context.Context, req *grpcpb.GetA
 	}
 	res.List = list
 	return res, err
+}
+
+func (as *APIService) GetBlockProducerByName(ctx context.Context, req *grpcpb.GetBlockProducerByNameRequest) (*grpcpb.BlockProducerResponse, error) {
+	as.db.RLock()
+	defer as.db.RUnlock()
+
+	acct := as.getBlockProducerResponseByName(req.GetBpName(),false)
+	if acct == nil {
+		return nil, errors.New("no bp information")
+	}
+
+	return acct, nil
+
 }

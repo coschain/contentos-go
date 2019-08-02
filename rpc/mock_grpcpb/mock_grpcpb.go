@@ -775,6 +775,26 @@ func (mr *MockApiServiceClientMockRecorder) GetAccountListByVest(ctx, in interfa
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccountListByVest", reflect.TypeOf((*MockApiServiceClient)(nil).GetAccountListByVest), varargs...)
 }
 
+// GetBlockProducerByName mocks base method
+func (m *MockApiServiceClient) GetBlockProducerByName(ctx context.Context, in *pb.GetBlockProducerByNameRequest, opts ...grpc.CallOption) (*pb.BlockProducerResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetBlockProducerByName", varargs...)
+	ret0, _ := ret[0].(*pb.BlockProducerResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetBlockProducerByName indicates an expected call of GetBlockProducerByName
+func (mr *MockApiServiceClientMockRecorder) GetBlockProducerByName(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockProducerByName", reflect.TypeOf((*MockApiServiceClient)(nil).GetBlockProducerByName), varargs...)
+}
+
 // MockApiServiceServer is a mock of ApiServiceServer interface
 type MockApiServiceServer struct {
 	ctrl     *gomock.Controller
@@ -1351,4 +1371,19 @@ func (m *MockApiServiceServer) GetAccountListByVest(arg0 context.Context, arg1 *
 func (mr *MockApiServiceServerMockRecorder) GetAccountListByVest(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccountListByVest", reflect.TypeOf((*MockApiServiceServer)(nil).GetAccountListByVest), arg0, arg1)
+}
+
+// GetBlockProducerByName mocks base method
+func (m *MockApiServiceServer) GetBlockProducerByName(arg0 context.Context, arg1 *pb.GetBlockProducerByNameRequest) (*pb.BlockProducerResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetBlockProducerByName", arg0, arg1)
+	ret0, _ := ret[0].(*pb.BlockProducerResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetBlockProducerByName indicates an expected call of GetBlockProducerByName
+func (mr *MockApiServiceServerMockRecorder) GetBlockProducerByName(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockProducerByName", reflect.TypeOf((*MockApiServiceServer)(nil).GetBlockProducerByName), arg0, arg1)
 }
