@@ -2,10 +2,9 @@ type                           ,pName                   ,mKey,unique,sort,revers
 prototype.account_name         ,owner                   ,1   ,1     ,1   ,0          ,prototype/type.proto
 prototype.time_point_sec       ,created_time            ,0   ,0     ,0   ,0          ,
 string                         ,url                     ,0   ,0     ,0   ,0          ,
-prototype.vest                 ,vote_vest               ,0   ,0     ,0   ,1          ,
+prototype.bp_vest_id           ,bp_vest                 ,0   ,0     ,0   ,1          ,prototype/multi_id.proto
 prototype.public_key_type      ,signing_key             ,0   ,0     ,0   ,0          ,
 uint64                         ,proposed_stamina_free   ,0   ,0     ,0   ,0          ,
-bool                           ,active                  ,0   ,0     ,0   ,0          ,
 uint64                         ,tps_expected            ,0   ,0     ,0   ,0          ,
 prototype.coin                 ,account_create_fee      ,0   ,0     ,0   ,0          ,
 uint32                         ,top_n_acquire_free_token,0   ,0     ,0   ,0          ,

@@ -313,7 +313,7 @@ func (p *TrxContext) ContractABI(owner, contract string) string {
 func (p *TrxContext) GetBlockProducers() (names []string) {
 	nameList := table.SBlockProducerOwnerWrap{Dba:p.db}
 	_ = nameList.ForEachByOrder(nil, nil, nil, nil, func(mVal *prototype.AccountName, sVal *prototype.AccountName, idx uint32) bool {
-		if table.NewSoBlockProducerWrap(p.db, mVal).GetActive() {
+		if table.NewSoBlockProducerWrap(p.db, mVal).GetBpVest().Active {
 			names = append(names, mVal.Value)
 		}
 		return true

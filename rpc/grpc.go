@@ -904,15 +904,14 @@ func (as *APIService) getAccountResponseByName(name *prototype.AccountName, isNe
 		acctInfo.NextWithdrawTime = withdrawTime
 
 		witWrap := table.NewSoBlockProducerWrap(as.db, accWrap.GetName())
-		if witWrap != nil && witWrap.CheckExist() && witWrap.GetActive() {
+		if witWrap != nil && witWrap.CheckExist() && witWrap.GetBpVest().Active {
 			acctInfo.BlockProducer = &grpcpb.BlockProducerResponse{
 				Owner:                 witWrap.GetOwner(),
 				CreatedTime:           witWrap.GetCreatedTime(),
 				Url:                   witWrap.GetUrl(),
-				VoteVest:              witWrap.GetVoteVest(),
+				BpVest:                witWrap.GetBpVest(),
 				SigningKey:            witWrap.GetSigningKey(),
 				ProposedStaminaFree:   witWrap.GetProposedStaminaFree(),
-				Active:                witWrap.GetActive(),
 				TpsExpected:           witWrap.GetTpsExpected(),
 				AccountCreateFee:      witWrap.GetAccountCreateFee(),
 				TopNAcquireFreeToken:  witWrap.GetTopNAcquireFreeToken(),
@@ -972,10 +971,9 @@ func (as *APIService) getBlockProducerResponseByName(name *prototype.AccountName
 		bp.Owner                 = bpWrap.GetOwner()
 		bp.CreatedTime           = bpWrap.GetCreatedTime()
 		bp.Url                   = bpWrap.GetUrl()
-		bp.VoteVest              = bpWrap.GetVoteVest()
+		bp.BpVest                = bpWrap.GetBpVest()
 		bp.SigningKey            = bpWrap.GetSigningKey()
 		bp.ProposedStaminaFree   = bpWrap.GetProposedStaminaFree()
-		bp.Active                = bpWrap.GetActive()
 		bp.TpsExpected           = bpWrap.GetTpsExpected()
 		bp.AccountCreateFee      = bpWrap.GetAccountCreateFee()
 		bp.TopNAcquireFreeToken  = bpWrap.GetTopNAcquireFreeToken()
@@ -1386,20 +1384,22 @@ func (as *APIService) GetBlockProducerListByVoteCount(ctx context.Context, req *
 		witList []*grpcpb.BlockProducerResponse
 		limit   uint32
 		lastMainKey *prototype.AccountName
-		lastSubVal  *prototype.Vest
+		lastSubVal  *prototype.BpVestId
 	)
 	res := &grpcpb.GetBlockProducerListResponse{}
 	limit = checkLimit(req.Limit)
-	srtWrap := table.NewBlockProducerVoteVestWrap(as.db)
+	srtWrap := table.NewBlockProducerBpVestWrap(as.db)
 	if srtWrap != nil {
 		lastWit := req.LastBlockProducer
 		if lastWit != nil {
 			lastMainKey = &prototype.AccountName{Value:lastWit.Owner.Value}
-			lastSubVal = lastWit.VoteVest
+			lastSubVal = lastWit.BpVest
 
 		}
-		err = srtWrap.ForEachByRevOrder(req.Start, req.End, lastMainKey,  lastSubVal,
-			func(mVal *prototype.AccountName, sVal *prototype.Vest, idx uint32) bool {
+		startKey := &prototype.BpVestId{Active:true, VoteVest:req.Start}
+		endKey := &prototype.BpVestId{Active:true, VoteVest:req.End}
+		err = srtWrap.ForEachByRevOrder(startKey, endKey, lastMainKey,  lastSubVal,
+			func(mVal *prototype.AccountName, sVal *prototype.BpVestId, idx uint32) bool {
 				if mVal != nil {
 					bp := as.getBlockProducerResponseByAccountName(mVal)
 					if bp != nil {
@@ -1424,10 +1424,9 @@ func (as *APIService) getBlockProducerResponseByAccountName(acct *prototype.Acco
 				Owner:                 witWrap.GetOwner(),
 				CreatedTime:           witWrap.GetCreatedTime(),
 				Url:                   witWrap.GetUrl(),
-				VoteVest:              witWrap.GetVoteVest(),
+				BpVest:                witWrap.GetBpVest(),
 				SigningKey:            witWrap.GetSigningKey(),
 				ProposedStaminaFree:   witWrap.GetProposedStaminaFree(),
-				Active:                witWrap.GetActive(),
 				TpsExpected:           witWrap.GetTpsExpected(),
 				VoterCount:            witWrap.GetVoterCount(),
 			}

@@ -15,10 +15,10 @@ import (
 ////////////// SECTION Prefix Mark ///////////////
 var (
 	BlockProducerOwnerTable               uint32 = 2440644301
-	BlockProducerVoteVestTable            uint32 = 2388095227
+	BlockProducerBpVestTable              uint32 = 3083635068
 	BlockProducerOwnerUniTable            uint32 = 404338461
 	BlockProducerAccountCreateFeeCell     uint32 = 1268209114
-	BlockProducerActiveCell               uint32 = 624900128
+	BlockProducerBpVestCell               uint32 = 721149257
 	BlockProducerCreatedTimeCell          uint32 = 3166890368
 	BlockProducerEpochDurationCell        uint32 = 3885317215
 	BlockProducerOwnerCell                uint32 = 1174716537
@@ -29,7 +29,6 @@ var (
 	BlockProducerTopNAcquireFreeTokenCell uint32 = 2170463993
 	BlockProducerTpsExpectedCell          uint32 = 164553831
 	BlockProducerUrlCell                  uint32 = 3629420187
-	BlockProducerVoteVestCell             uint32 = 2997983402
 	BlockProducerVoterCountCell           uint32 = 1302707693
 )
 
@@ -190,13 +189,13 @@ func (s *SoBlockProducerWrap) insertSortKeyOwner(sa *SoBlockProducer) bool {
 	return ordErr == nil
 }
 
-func (s *SoBlockProducerWrap) delSortKeyVoteVest(sa *SoBlockProducer) bool {
+func (s *SoBlockProducerWrap) delSortKeyBpVest(sa *SoBlockProducer) bool {
 	if s.dba == nil || s.mainKey == nil {
 		return false
 	}
-	val := SoListBlockProducerByVoteVest{}
+	val := SoListBlockProducerByBpVest{}
 	if sa == nil {
-		key, err := s.encodeMemKey("VoteVest")
+		key, err := s.encodeMemKey("BpVest")
 		if err != nil {
 			return false
 		}
@@ -204,16 +203,16 @@ func (s *SoBlockProducerWrap) delSortKeyVoteVest(sa *SoBlockProducer) bool {
 		if err != nil {
 			return false
 		}
-		ori := &SoMemBlockProducerByVoteVest{}
+		ori := &SoMemBlockProducerByBpVest{}
 		err = proto.Unmarshal(buf, ori)
 		if err != nil {
 			return false
 		}
-		val.VoteVest = ori.VoteVest
+		val.BpVest = ori.BpVest
 		val.Owner = s.mainKey
 
 	} else {
-		val.VoteVest = sa.VoteVest
+		val.BpVest = sa.BpVest
 		val.Owner = sa.Owner
 	}
 
@@ -225,13 +224,13 @@ func (s *SoBlockProducerWrap) delSortKeyVoteVest(sa *SoBlockProducer) bool {
 	return ordErr == nil
 }
 
-func (s *SoBlockProducerWrap) insertSortKeyVoteVest(sa *SoBlockProducer) bool {
+func (s *SoBlockProducerWrap) insertSortKeyBpVest(sa *SoBlockProducer) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
-	val := SoListBlockProducerByVoteVest{}
+	val := SoListBlockProducerByBpVest{}
 	val.Owner = sa.Owner
-	val.VoteVest = sa.VoteVest
+	val.BpVest = sa.BpVest
 	buf, err := proto.Marshal(&val)
 	if err != nil {
 		return false
@@ -256,7 +255,7 @@ func (s *SoBlockProducerWrap) delAllSortKeys(br bool, val *SoBlockProducer) bool
 			res = false
 		}
 	}
-	if !s.delSortKeyVoteVest(val) {
+	if !s.delSortKeyBpVest(val) {
 		if br {
 			return false
 		} else {
@@ -277,8 +276,8 @@ func (s *SoBlockProducerWrap) insertAllSortKeys(val *SoBlockProducer) error {
 	if !s.insertSortKeyOwner(val) {
 		return errors.New("insert sort Field Owner fail while insert table ")
 	}
-	if !s.insertSortKeyVoteVest(val) {
-		return errors.New("insert sort Field VoteVest fail while insert table ")
+	if !s.insertSortKeyBpVest(val) {
+		return errors.New("insert sort Field BpVest fail while insert table ")
 	}
 
 	return nil
@@ -316,8 +315,8 @@ func (s *SoBlockProducerWrap) getMemKeyPrefix(fName string) uint32 {
 	if fName == "AccountCreateFee" {
 		return BlockProducerAccountCreateFeeCell
 	}
-	if fName == "Active" {
-		return BlockProducerActiveCell
+	if fName == "BpVest" {
+		return BlockProducerBpVestCell
 	}
 	if fName == "CreatedTime" {
 		return BlockProducerCreatedTimeCell
@@ -348,9 +347,6 @@ func (s *SoBlockProducerWrap) getMemKeyPrefix(fName string) uint32 {
 	}
 	if fName == "Url" {
 		return BlockProducerUrlCell
-	}
-	if fName == "VoteVest" {
-		return BlockProducerVoteVestCell
 	}
 	if fName == "VoterCount" {
 		return BlockProducerVoterCountCell
@@ -395,11 +391,11 @@ func (s *SoBlockProducerWrap) saveAllMemKeys(tInfo *SoBlockProducer, br bool) er
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "AccountCreateFee", err)
 		}
 	}
-	if err = s.saveMemKeyActive(tInfo); err != nil {
+	if err = s.saveMemKeyBpVest(tInfo); err != nil {
 		if br {
 			return err
 		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Active", err)
+			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "BpVest", err)
 		}
 	}
 	if err = s.saveMemKeyCreatedTime(tInfo); err != nil {
@@ -470,13 +466,6 @@ func (s *SoBlockProducerWrap) saveAllMemKeys(tInfo *SoBlockProducer, br bool) er
 			return err
 		} else {
 			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Url", err)
-		}
-	}
-	if err = s.saveMemKeyVoteVest(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "VoteVest", err)
 		}
 	}
 	if err = s.saveMemKeyVoterCount(tInfo); err != nil {
@@ -615,16 +604,16 @@ func (s *SoBlockProducerWrap) MdAccountCreateFee(p *prototype.Coin) bool {
 	return true
 }
 
-func (s *SoBlockProducerWrap) saveMemKeyActive(tInfo *SoBlockProducer) error {
+func (s *SoBlockProducerWrap) saveMemKeyBpVest(tInfo *SoBlockProducer) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
 	if tInfo == nil {
 		return errors.New("the data is nil")
 	}
-	val := SoMemBlockProducerByActive{}
-	val.Active = tInfo.Active
-	key, err := s.encodeMemKey("Active")
+	val := SoMemBlockProducerByBpVest{}
+	val.BpVest = tInfo.BpVest
+	key, err := s.encodeMemKey("BpVest")
 	if err != nil {
 		return err
 	}
@@ -636,13 +625,13 @@ func (s *SoBlockProducerWrap) saveMemKeyActive(tInfo *SoBlockProducer) error {
 	return err
 }
 
-func (s *SoBlockProducerWrap) GetActive() bool {
+func (s *SoBlockProducerWrap) GetBpVest() *prototype.BpVestId {
 	res := true
-	msg := &SoMemBlockProducerByActive{}
+	msg := &SoMemBlockProducerByBpVest{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Active")
+		key, err := s.encodeMemKey("BpVest")
 		if err != nil {
 			res = false
 		} else {
@@ -654,22 +643,22 @@ func (s *SoBlockProducerWrap) GetActive() bool {
 			if err != nil {
 				res = false
 			} else {
-				return msg.Active
+				return msg.BpVest
 			}
 		}
 	}
 	if !res {
-		var tmpValue bool
-		return tmpValue
+		return nil
+
 	}
-	return msg.Active
+	return msg.BpVest
 }
 
-func (s *SoBlockProducerWrap) MdActive(p bool) bool {
+func (s *SoBlockProducerWrap) MdBpVest(p *prototype.BpVestId) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("Active")
+	key, err := s.encodeMemKey("BpVest")
 	if err != nil {
 		return false
 	}
@@ -677,14 +666,17 @@ func (s *SoBlockProducerWrap) MdActive(p bool) bool {
 	if err != nil {
 		return false
 	}
-	ori := &SoMemBlockProducerByActive{}
+	ori := &SoMemBlockProducerByBpVest{}
 	err = proto.Unmarshal(buf, ori)
 	sa := &SoBlockProducer{}
 	sa.Owner = s.mainKey
 
-	sa.Active = ori.Active
+	sa.BpVest = ori.BpVest
 
-	ori.Active = p
+	if !s.delSortKeyBpVest(sa) {
+		return false
+	}
+	ori.BpVest = p
 	val, err := proto.Marshal(ori)
 	if err != nil {
 		return false
@@ -693,7 +685,11 @@ func (s *SoBlockProducerWrap) MdActive(p bool) bool {
 	if err != nil {
 		return false
 	}
-	sa.Active = p
+	sa.BpVest = p
+
+	if !s.insertSortKeyBpVest(sa) {
+		return false
+	}
 
 	return true
 }
@@ -1495,96 +1491,6 @@ func (s *SoBlockProducerWrap) MdUrl(p string) bool {
 	return true
 }
 
-func (s *SoBlockProducerWrap) saveMemKeyVoteVest(tInfo *SoBlockProducer) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemBlockProducerByVoteVest{}
-	val.VoteVest = tInfo.VoteVest
-	key, err := s.encodeMemKey("VoteVest")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
-
-func (s *SoBlockProducerWrap) GetVoteVest() *prototype.Vest {
-	res := true
-	msg := &SoMemBlockProducerByVoteVest{}
-	if s.dba == nil {
-		res = false
-	} else {
-		key, err := s.encodeMemKey("VoteVest")
-		if err != nil {
-			res = false
-		} else {
-			buf, err := s.dba.Get(key)
-			if err != nil {
-				res = false
-			}
-			err = proto.Unmarshal(buf, msg)
-			if err != nil {
-				res = false
-			} else {
-				return msg.VoteVest
-			}
-		}
-	}
-	if !res {
-		return nil
-
-	}
-	return msg.VoteVest
-}
-
-func (s *SoBlockProducerWrap) MdVoteVest(p *prototype.Vest) bool {
-	if s.dba == nil {
-		return false
-	}
-	key, err := s.encodeMemKey("VoteVest")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemBlockProducerByVoteVest{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoBlockProducer{}
-	sa.Owner = s.mainKey
-
-	sa.VoteVest = ori.VoteVest
-
-	if !s.delSortKeyVoteVest(sa) {
-		return false
-	}
-	ori.VoteVest = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.VoteVest = p
-
-	if !s.insertSortKeyVoteVest(sa) {
-		return false
-	}
-
-	return true
-}
-
 func (s *SoBlockProducerWrap) saveMemKeyVoterCount(tInfo *SoBlockProducer) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
@@ -1778,20 +1684,20 @@ func (s *SBlockProducerOwnerWrap) ForEachByOrder(start *prototype.AccountName, e
 }
 
 ////////////// SECTION List Keys ///////////////
-type SBlockProducerVoteVestWrap struct {
+type SBlockProducerBpVestWrap struct {
 	Dba iservices.IDatabaseRW
 }
 
-func NewBlockProducerVoteVestWrap(db iservices.IDatabaseRW) *SBlockProducerVoteVestWrap {
+func NewBlockProducerBpVestWrap(db iservices.IDatabaseRW) *SBlockProducerBpVestWrap {
 	if db == nil {
 		return nil
 	}
-	wrap := SBlockProducerVoteVestWrap{Dba: db}
+	wrap := SBlockProducerBpVestWrap{Dba: db}
 	return &wrap
 }
 
-func (s *SBlockProducerVoteVestWrap) GetMainVal(val []byte) *prototype.AccountName {
-	res := &SoListBlockProducerByVoteVest{}
+func (s *SBlockProducerBpVestWrap) GetMainVal(val []byte) *prototype.AccountName {
+	res := &SoListBlockProducerByBpVest{}
 	err := proto.Unmarshal(val, res)
 
 	if err != nil {
@@ -1801,21 +1707,21 @@ func (s *SBlockProducerVoteVestWrap) GetMainVal(val []byte) *prototype.AccountNa
 
 }
 
-func (s *SBlockProducerVoteVestWrap) GetSubVal(val []byte) *prototype.Vest {
-	res := &SoListBlockProducerByVoteVest{}
+func (s *SBlockProducerBpVestWrap) GetSubVal(val []byte) *prototype.BpVestId {
+	res := &SoListBlockProducerByBpVest{}
 	err := proto.Unmarshal(val, res)
 	if err != nil {
 		return nil
 	}
-	return res.VoteVest
+	return res.BpVest
 
 }
 
-func (m *SoListBlockProducerByVoteVest) OpeEncode() ([]byte, error) {
-	pre := BlockProducerVoteVestTable
-	sub := m.VoteVest
+func (m *SoListBlockProducerByBpVest) OpeEncode() ([]byte, error) {
+	pre := BlockProducerBpVestTable
+	sub := m.BpVest
 	if sub == nil {
-		return nil, errors.New("the pro VoteVest is nil")
+		return nil, errors.New("the pro BpVest is nil")
 	}
 	sub1 := m.Owner
 	if sub1 == nil {
@@ -1836,8 +1742,8 @@ func (m *SoListBlockProducerByVoteVest) OpeEncode() ([]byte, error) {
 //lastMainKey: the main key of the last one of last page
 //lastSubVal: the value  of the last one of last page
 //
-func (s *SBlockProducerVoteVestWrap) ForEachByRevOrder(start *prototype.Vest, end *prototype.Vest, lastMainKey *prototype.AccountName,
-	lastSubVal *prototype.Vest, f func(mVal *prototype.AccountName, sVal *prototype.Vest, idx uint32) bool) error {
+func (s *SBlockProducerBpVestWrap) ForEachByRevOrder(start *prototype.BpVestId, end *prototype.BpVestId, lastMainKey *prototype.AccountName,
+	lastSubVal *prototype.BpVestId, f func(mVal *prototype.AccountName, sVal *prototype.BpVestId, idx uint32) bool) error {
 	if s.Dba == nil {
 		return errors.New("the db is nil")
 	}
@@ -1847,7 +1753,7 @@ func (s *SBlockProducerVoteVestWrap) ForEachByRevOrder(start *prototype.Vest, en
 	if f == nil {
 		return nil
 	}
-	pre := BlockProducerVoteVestTable
+	pre := BlockProducerBpVestTable
 	skeyList := []interface{}{pre}
 	if start != nil {
 		skeyList = append(skeyList, start)

@@ -669,11 +669,10 @@ func (c *TrxPool) initGenesis() {
 		tInfo.Owner = name
 		tInfo.CreatedTime = &prototype.TimePointSec{UtcSeconds: 0}
 		tInfo.SigningKey = pubKey
-		tInfo.Active = true
+		tInfo.BpVest = &prototype.BpVestId{Active:true, VoteVest:prototype.NewVest(0)}
 		tInfo.ProposedStaminaFree = constants.DefaultStaminaFree
 		tInfo.TpsExpected = constants.DefaultTPSExpected
 		tInfo.AccountCreateFee = prototype.NewCoin(constants.DefaultAccountCreateFee)
-		tInfo.VoteVest = prototype.NewVest(0)
 		tInfo.TopNAcquireFreeToken = constants.InitTopN
 		tInfo.EpochDuration = constants.InitEpochDuration
 		tInfo.PerTicketPrice = prototype.NewCoin(constants.PerTicketPrice * constants.COSTokenDecimals)
@@ -906,7 +905,9 @@ func (c *TrxPool) updateGlobalBpBootMark() {
 	}
 	bpWrap := table.NewSoBlockProducerWrap(c.db, ac)
 	if bpWrap.CheckExist() {
-		mustSuccess(bpWrap.MdActive(false), fmt.Sprintf("disable bp %s error", constants.COSInitMiner))
+		bpVoteVestCnt := bpWrap.GetBpVest().VoteVest
+		newBpVest := &prototype.BpVestId{Active:false, VoteVest:bpVoteVestCnt}
+		mustSuccess(bpWrap.MdBpVest(newBpVest), fmt.Sprintf("disable bp %s error", constants.COSInitMiner))
 	}
 }
 
@@ -1008,13 +1009,15 @@ func (c *TrxPool) GetBlockProducerTopN(n uint32) ([]string, []*prototype.PublicK
 	var names            []string
 	var bpNames          []string
 	var keys             []*prototype.PublicKeyType
-	revList := table.SBlockProducerVoteVestWrap{Dba: c.db}
+	revList := table.SBlockProducerBpVestWrap{Dba: c.db}
+	startKey := &prototype.BpVestId{Active:true, VoteVest:prototype.MaxVest}
+	endKey := &prototype.BpVestId{Active:true, VoteVest:prototype.MinVest}
 	var bpCount uint32 = 0
-	_ = revList.ForEachByRevOrder(nil, nil,nil,nil, func(mVal *prototype.AccountName, sVal *prototype.Vest, idx uint32) bool {
+	_ = revList.ForEachByRevOrder(startKey, endKey,nil,nil, func(mVal *prototype.AccountName, sVal *prototype.BpVestId, idx uint32) bool {
 		if mVal != nil {
 			bpWrap := table.NewSoBlockProducerWrap(c.db, mVal)
 			if bpWrap.CheckExist() {
-				if bpWrap.GetActive() {
+				if bpWrap.GetBpVest().Active {
 					bpCount++
 					names = append(names, mVal.Value)
 				}

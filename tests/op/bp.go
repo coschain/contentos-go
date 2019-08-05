@@ -163,7 +163,7 @@ func (tester *BpTest) bpVoteDup(t *testing.T, d *Dandelion) {
 
 	// check voter's vote count
 	witWrap2 := d.BlockProducer(bpName)
-	a.True(witWrap2.GetVoteVest().Value > 0)
+	a.True(witWrap2.GetBpVest().VoteVest.Value > 0)
 	a.True(d.Account(voter).GetBpVoteCount() == 1)
 
 	// voter vote again for bp
@@ -241,7 +241,7 @@ func (tester *BpTest) bpVote(t *testing.T, d *Dandelion) {
 
 	witWrap := d.BlockProducer(bpName)
 	// check bp's vote count and bpName's vote count
-	a.True(witWrap.GetVoteVest().Value > 0)
+	a.True(witWrap.GetBpVest().VoteVest.Value > 0)
 	a.True(d.Account(voteName).GetBpVoteCount() == 1)
 }
 
@@ -278,7 +278,7 @@ func (tester *BpTest) bpVoteDisableBp(t *testing.T, d *Dandelion) {
 	// bpName disable
 	a.NoError(checkError(d.Account(bpName).TrxReceipt(BpDisable(bpName))))
 	witWrap := d.BlockProducer(bpName)
-	a.False(witWrap.GetActive())
+	a.False(witWrap.GetBpVest().Active)
 
 	name := "bpVoteDisable"
 	newAccount(name,t,d)
@@ -300,7 +300,7 @@ func (tester *BpTest) bpUnVote(t *testing.T, d *Dandelion) {
 
 	// check bp's vote count and voter's vote count
 	witWrap := d.BlockProducer(bpName)
-	a.True(witWrap.GetVoteVest().Value > 0)
+	a.True(witWrap.GetBpVest().VoteVest.Value  > 0)
 	a.True(d.Account(voter).GetBpVoteCount() == 1)
 
 	// unvote
@@ -407,13 +407,13 @@ func (tester *BpTest) bpUnVoteDup(t *testing.T, d *Dandelion) {
 
 	// check voter's vote count
 	witWrap := d.BlockProducer(bpName)
-	a.True(witWrap.GetVoteVest().Value > 0)
+	a.True(witWrap.GetBpVest().VoteVest.Value  > 0)
 	a.True(d.Account(voter).GetBpVoteCount() == 1)
 
 	// voter vote cancel vote for bp
 	a.NoError(checkError(d.Account(voter).TrxReceipt(BpVote(voter,bpName,true))))
 	// bp's vote vest should be o
-	a.True(witWrap.GetVoteVest().Value == 0)
+	a.True(witWrap.GetBpVest().VoteVest.Value  == 0)
 	// voter's vote count should be 0
 	a.True(d.Account(voter).GetBpVoteCount() == 0)
 

@@ -6,22 +6,22 @@ package table;
 option go_package = "github.com/coschain/contentos-go/app/table";
 
 import "prototype/type.proto";
+import "prototype/multi_id.proto";
 
 message so_blockProducer {
 	prototype.account_name            owner                        =      1;
     prototype.time_point_sec          created_time                 =      2;
     string                            url                          =      3;
-    prototype.vest                    vote_vest                    =      4;
+    prototype.bp_vest_id              bp_vest                      =      4;
     prototype.public_key_type         signing_key                  =      5;
     uint64                            proposed_stamina_free        =      6;
-    bool                              active                       =      7;
-    uint64                            tps_expected                 =      8;
-    prototype.coin                    account_create_fee           =      9;
-    uint32                            top_n_acquire_free_token     =      10;
-    uint64                            epoch_duration               =      11;
-    prototype.coin                    per_ticket_price             =      12;
-    uint64                            per_ticket_weight            =      13;
-    uint64                            voter_count                  =      14;
+    uint64                            tps_expected                 =      7;
+    prototype.coin                    account_create_fee           =      8;
+    uint32                            top_n_acquire_free_token     =      9;
+    uint64                            epoch_duration               =      10;
+    prototype.coin                    per_ticket_price             =      11;
+    uint64                            per_ticket_weight            =      12;
+    uint64                            voter_count                  =      13;
       
 }
 
@@ -41,8 +41,8 @@ message so_mem_blockProducer_by_url {
 }
 
 
-message so_mem_blockProducer_by_vote_vest {
-	prototype.vest                 	vote_vest                = 1;
+message so_mem_blockProducer_by_bp_vest {
+	prototype.bp_vest_id           	bp_vest                  = 1;
 }
 
 
@@ -53,11 +53,6 @@ message so_mem_blockProducer_by_signing_key {
 
 message so_mem_blockProducer_by_proposed_stamina_free {
 	uint64                         	proposed_stamina_free    = 1;
-}
-
-
-message so_mem_blockProducer_by_active {
-	bool                           	active                   = 1;
 }
 
 
@@ -101,8 +96,8 @@ message so_list_blockProducer_by_owner {
 }
 
 
-message so_list_blockProducer_by_vote_vest {
-	prototype.vest                 	vote_vest                = 1;
+message so_list_blockProducer_by_bp_vest {
+	prototype.bp_vest_id           	bp_vest                  = 1;
 	prototype.account_name         	owner                    = 2;
 }
 

@@ -255,17 +255,16 @@ message BlockProducerResponse {
     prototype.account_name             owner                           = 1;
     prototype.time_point_sec           created_time                    = 2;
     string                             url                             = 3;
-    prototype.vest                     vote_vest                       = 4;
+    prototype.bp_vest_id               bp_vest                         = 4;
     prototype.public_key_type          signing_key                     = 5;
     uint64                             proposed_stamina_free           = 6;
-    bool                               active                          = 7;
-    uint64                             tps_expected                    = 8;
-    prototype.coin                     account_create_fee              = 9;
-    uint32                             top_n_acquire_free_token        = 10;
-    uint64                             ticket_flush_interval           = 11;
-    prototype.coin                     per_ticket_price                = 12;
-    uint64                             per_ticket_weight               = 13;
-    uint64                             voter_count                     = 14;
+    uint64                             tps_expected                    = 7;
+    prototype.coin                     account_create_fee              = 8;
+    uint32                             top_n_acquire_free_token        = 9;
+    uint64                             ticket_flush_interval           = 10;
+    prototype.coin                     per_ticket_price                = 11;
+    uint64                             per_ticket_weight               = 12;
+    uint64                             voter_count                     = 13;
 }
 
 message GetBlockProducerListRequest {

@@ -44,6 +44,11 @@ message voter_id{
 //    account_name    block_producer = 2;
 //}
 
+message bp_vest_id {
+    bool               active = 1;
+    prototype.vest     vote_vest = 2;
+}
+
 message bp_block_producer_id{
     account_name    block_producer = 1;
     account_name    voter   = 2;

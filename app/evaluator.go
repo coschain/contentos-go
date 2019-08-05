@@ -490,20 +490,6 @@ func (ev *VoteEvaluator) Apply() {
 	}
 }
 
-func (ev *BpRegisterEvaluator) BpInWhiteList(bpName string) bool {
-	switch bpName {
-	case "initminer1":
-		return true
-	case "initminer2":
-		return true
-	case "initminer3":
-		return true
-	case "initminer4":
-		return true
-	}
-	return false
-}
-
 func (ev *BpRegisterEvaluator) Apply() {
 	op := ev.op
 	ev.VMInjector().RecordStaminaFee(op.Owner.Value, constants.CommonOpStamina)
@@ -517,8 +503,6 @@ func (ev *BpRegisterEvaluator) Apply() {
 
 	bpWrap := table.NewSoBlockProducerWrap(ev.Database(), op.Owner)
 	opAssert(!bpWrap.CheckExist(), "you are already a block producer, do not register twice")
-
-	//opAssert(ev.BpInWhiteList(op.Owner.Value), "bp name not in white list")
 
 	opAssert(accountWrap.GetReputation() > constants.MinReputation,
 		fmt.Sprintf("reputation too low"))
@@ -554,17 +538,17 @@ func (ev *BpRegisterEvaluator) Apply() {
 		constants.MinTicketPrice))
 
 	perTicketWeight := op.Props.PerTicketWeight
+	bpVest := &prototype.BpVestId{Active:true, VoteVest:&prototype.Vest{Value: 0}}
 
 	opAssertE(bpWrap.Create(func(t *table.SoBlockProducer) {
 		t.Owner = op.Owner
 		t.CreatedTime = ev.GlobalProp().HeadBlockTime()
 		t.Url = op.Url
 		t.SigningKey = op.BlockSigningKey
-		t.Active = true
+		t.BpVest = bpVest
 		t.ProposedStaminaFree = staminaFree
 		t.TpsExpected = tpsExpected
 		t.AccountCreateFee = accountCreateFee
-		t.VoteVest = &prototype.Vest{Value: 0}
 		t.TopNAcquireFreeToken = topNAcquireFreeToken
 		t.EpochDuration = epochDuration
 		t.PerTicketPrice = perTicketPrice
@@ -582,11 +566,19 @@ func (ev *BpEnableEvaluator) Apply() {
 	opAssert(bpWrap.CheckExist(), "block producer do not exist")
 
 	if op.Cancel {
-		opAssert(bpWrap.GetActive(), "block producer has already been disabled")
-		opAssert(bpWrap.MdActive(false), "set block producer active error")
+		opAssert(bpWrap.GetBpVest().Active, "block producer has already been disabled")
+
+		bpVoteVest := bpWrap.GetBpVest().VoteVest
+		newBpVest := &prototype.BpVestId{Active:false, VoteVest:bpVoteVest}
+
+		opAssert(bpWrap.MdBpVest(newBpVest), "set block producer active error")
 	} else {
-		opAssert(!bpWrap.GetActive(), "block producer has already been enabled")
-		opAssert(bpWrap.MdActive(true), "set block producer active error")
+		opAssert(!bpWrap.GetBpVest().Active, "block producer has already been enabled")
+
+		bpVoteVest := bpWrap.GetBpVest().VoteVest
+		newBpVest := &prototype.BpVestId{Active:true, VoteVest:bpVoteVest}
+
+		opAssert(bpWrap.MdBpVest(newBpVest), "set block producer active error")
 	}
 }
 
@@ -604,7 +596,8 @@ func (ev *BpVoteEvaluator) Apply() {
 
 	bpWrap := table.NewSoBlockProducerWrap(ev.Database(), op.BlockProducer)
 	opAssert(bpWrap.CheckExist(), "the account you want to vote is not a block producer")
-	bpVoteVestCnt := bpWrap.GetVoteVest()
+	bpVoteVestCnt := bpWrap.GetBpVest().VoteVest
+	bpActive := bpWrap.GetBpVest().Active
 	bpVoterCount := bpWrap.GetVoterCount()
 
 	bpId := &prototype.BpBlockProducerId{BlockProducer: op.BlockProducer, Voter: op.Voter}
@@ -615,9 +608,10 @@ func (ev *BpVoteEvaluator) Apply() {
 		opAssert(vidWrap.CheckExist(), "vote record not exist")
 		opAssert(vidWrap.RemoveBlockProducerVote(), "remove vote record error")
 
-		// modify block producer vote vest
+		// modify block producer bp vest
 		opAssertE(bpVoteVestCnt.Sub(voterVests), "block producer data error")
-		opAssert(bpWrap.MdVoteVest(bpVoteVestCnt), "set block producer data error")
+		newBpVest := &prototype.BpVestId{Active:bpActive, VoteVest:bpVoteVestCnt}
+		opAssert(bpWrap.MdBpVest(newBpVest), "set block producer data error")
 
 		// modify block producer voter count
 		opAssert(bpVoterCount > 0, "block producer voter count should be greater than 0")
@@ -629,7 +623,7 @@ func (ev *BpVoteEvaluator) Apply() {
 
 	} else {
 		// block producer should be in active mode
-		opAssert(bpWrap.GetActive(), "block producer has been disabled")
+		opAssert(bpActive, "block producer has been disabled")
 
 		// check duplicate vote
 		opAssert(!vidWrap.CheckExist(), "already vote to this bp, do not vote twice")
@@ -647,9 +641,10 @@ func (ev *BpVoteEvaluator) Apply() {
 		// modify voter vote count
 		opAssert(voterAccount.MdBpVoteCount(voteCnt+1), "set voter data error")
 
-		// modify block producer vote vest and voter count
+		// modify block producer bp vest and voter count
 		opAssertE(bpVoteVestCnt.Add(voterVests), "block producer vote count overflow")
-		opAssert(bpWrap.MdVoteVest(bpVoteVestCnt), "set block producer data error")
+		newBpVest := &prototype.BpVestId{Active:bpActive, VoteVest:bpVoteVestCnt}
+		opAssert(bpWrap.MdBpVest(newBpVest), "set block producer data error")
 		opAssert(bpWrap.MdVoterCount(bpVoterCount+1), "set block producer voter count error")
 	}
 }
@@ -751,11 +746,13 @@ func updateBpVoteValue(dba iservices.IDatabaseRW, voter *prototype.AccountName, 
 	startTime := common.EasyTimer()
 	bpWrap := table.NewSoBlockProducerWrap(dba, bpName)
 	if bpWrap != nil && bpWrap.CheckExist() {
-		bpVoteVestCnt := bpWrap.GetVoteVest()
+		bpVoteVestCnt := bpWrap.GetBpVest().VoteVest
+		bpActive := bpWrap.GetBpVest().Active
 		opAssertE(bpVoteVestCnt.Sub(oldVest), "Insufficient block producer vote count")
 		opAssertE(bpVoteVestCnt.Add(newVest), "block producer vote count overflow")
 
-		opAssert(bpWrap.MdVoteVest(bpVoteVestCnt), "update block producer vote count data error")
+		newBpVest := &prototype.BpVestId{Active:bpActive, VoteVest:bpVoteVestCnt}
+		opAssert(bpWrap.MdBpVest(newBpVest), "update block producer vote count data error")
 	}
 	t2 = startTime.Elapsed()
 
