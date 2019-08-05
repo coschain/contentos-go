@@ -4,24 +4,12 @@ import (
 	"github.com/coschain/contentos-go/app/annual_mint"
 	"github.com/coschain/contentos-go/common/constants"
 	. "github.com/coschain/contentos-go/dandelion"
-	"github.com/coschain/contentos-go/prototype"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
 type MintTester struct {
 	acc0,acc1,acc2 *DandelionAccount
-}
-
-var mintProps = &prototype.ChainProperties{
-	AccountCreationFee: prototype.NewCoin(1),
-	MaximumBlockSize:   1024 * 1024,
-	StaminaFree:        constants.DefaultStaminaFree,
-	TpsExpected:        constants.DefaultTPSExpected,
-	EpochDuration:      constants.InitEpochDuration,
-	TopNAcquireFreeToken: constants.InitTopN,
-	PerTicketPrice:     prototype.NewCoin(1000000),
-	PerTicketWeight:    constants.PerTicketWeight,
 }
 
 func (tester *MintTester) Test(t *testing.T, d *Dandelion) {
@@ -89,11 +77,10 @@ func (tester *MintTester) yearSwitch(t *testing.T, d *Dandelion) {
 	a.Equal(props.HeadBlockNumber, (annualBudget - currentMinted) / blockCurrency + currentBlockNum)
 	a.Equal(props.GetIthYear(), ith)
 	a.NoError(d.ProduceBlocks(1))
+	// the last block of the year mint less than ordinary block as the whole year should be mint annualBudget
 	a.Equal(d.GlobalProps().GetIthYear(), ith + 1)
 	a.Equal(d.GlobalProps().GetAnnualMinted().Value, d.GlobalProps().GetAnnualBudget().Value)
 	a.NoError(d.ProduceBlocks(1))
 	a.Equal(d.GlobalProps().GetIthYear(), ith + 1)
 	a.Equal(d.GlobalProps().GetAnnualBudget().Value, annualBudget * 2)
 }
-
-
