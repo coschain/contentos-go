@@ -29,7 +29,6 @@ func (tester *TicketTester) Test(t *testing.T, d *Dandelion) {
 	ops = append(ops,Stake(constants.COSInitMiner,"actor1",1))
 	ops = append(ops,Stake(constants.COSInitMiner,"actor2",1))
 	a.NoError(checkError(d.Account(constants.COSInitMiner).TrxReceipt(ops...)))
-	resetProperties(&defaultProps)
 
 	t.Run("normal", d.Test(tester.normal))
 	t.Run("invalidAcquire", d.Test(tester.invalidAcquireOp))

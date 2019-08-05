@@ -14,9 +14,23 @@ type BpTest struct {
 	acc0,acc1,acc2 *DandelionAccount
 }
 
-var defaultProps *prototype.ChainProperties
+//var defaultProps *prototype.ChainProperties
 
 // << start of helper function
+
+func makeBPChainProperty() *prototype.ChainProperties {
+	return &prototype.ChainProperties{
+		AccountCreationFee: prototype.NewCoin(1),
+		MaximumBlockSize:   1024 * 1024,
+		StaminaFree:        constants.DefaultStaminaFree,
+		TpsExpected:        constants.DefaultTPSExpected,
+		EpochDuration:      constants.InitEpochDuration,
+		TopNAcquireFreeToken: constants.InitTopN,
+		PerTicketPrice:     prototype.NewCoin(1000000),
+		PerTicketWeight:    constants.PerTicketWeight,
+	}
+}
+
 func resetProperties(p **prototype.ChainProperties) {
 	*p = &prototype.ChainProperties{
 		AccountCreationFee: prototype.NewCoin(1),
@@ -58,7 +72,7 @@ func makeBp(name string,t *testing.T,d *Dandelion) {
 	// give new bp 10000 vesting
 	a.NoError(checkError(d.Account(constants.COSInitMiner).TrxReceipt(TransferToVest(constants.COSInitMiner,name,constants.MinBpRegisterVest))))
 
-	a.NoError(checkError(d.Account(name).TrxReceipt(BpRegister(name,"","",pub,defaultProps))))
+	a.NoError(checkError(d.Account(name).TrxReceipt(BpRegister(name,"","",pub,makeBPChainProperty()))))
 }
 
 func stakeToInitMiner(t *testing.T, d *Dandelion) {
@@ -68,13 +82,11 @@ func stakeToInitMiner(t *testing.T, d *Dandelion) {
 		t.Error(err)
 		return
 	}
-	resetProperties(&defaultProps)
 }
 
 // >> end of helper function
 
 func (tester *BpTest) TestNormal(t *testing.T, d *Dandelion) {
-	resetProperties(&defaultProps)
 
 	t.Run("regist", d.Test(tester.regist))
 	t.Run("registInvalidParam", d.Test(tester.registInvalidParam))
@@ -88,7 +100,6 @@ func (tester *BpTest) TestNormal(t *testing.T, d *Dandelion) {
 }
 
 func (tester *BpTest) TestDuplicate(t *testing.T, d *Dandelion) {
-	resetProperties(&defaultProps)
 
 	t.Run("enableDup", d.Test(tester.enableDup))
 	t.Run("registDup", d.Test(tester.registDup))
@@ -98,13 +109,11 @@ func (tester *BpTest) TestDuplicate(t *testing.T, d *Dandelion) {
 }
 
 func (tester *BpTest) TestGlobalProperty(t *testing.T, d *Dandelion) {
-	resetProperties(&defaultProps)
 	t.Run("bpUpdateCheckDgp", d.Test(tester.bpUpdateCheckDgp))
 }
 
 func (tester *BpTest) TestSwitch(t *testing.T, d *Dandelion) {
 	stakeToInitMiner(t,d)
-	resetProperties(&defaultProps)
 	t.Run("bpSwitch", d.Test(tester.bpSwitch))
 }
 
@@ -125,14 +134,16 @@ func (tester *BpTest) registDup(t *testing.T, d *Dandelion) {
 	pri := newAccount(bpName,t,d)
 	pub,_ := pri.PubKey()
 
+
+	props := makeBPChainProperty()
 	// regist as bp
 	a.NoError(checkError(d.Account(constants.COSInitMiner).TrxReceipt(TransferToVest(constants.COSInitMiner,bpName,constants.MinBpRegisterVest))))
-	a.NoError(checkError(d.Account(bpName).TrxReceipt(BpRegister(bpName,"www.me.com","nothing",pub,defaultProps))))
+	a.NoError(checkError(d.Account(bpName).TrxReceipt(BpRegister(bpName,"www.me.com","nothing",pub,props))))
 	witWrap := d.BlockProducer(bpName)
 	a.True(witWrap.CheckExist())
 
 	// regist again, this time should failed
-	a.Error(checkError(d.Account(bpName).TrxReceipt(BpRegister(bpName,"www.you.com","nothing",pub,defaultProps))))
+	a.Error(checkError(d.Account(bpName).TrxReceipt(BpRegister(bpName,"www.you.com","nothing",pub,props))))
 	witWrapCheck := d.BlockProducer(bpName)
 	// bp info should be in old
 	a.True(witWrapCheck.GetUrl() == "www.me.com")
@@ -180,41 +191,41 @@ func (tester *BpTest) registInvalidParam(t *testing.T, d *Dandelion) {
 	pri := newAccount(newBpName,t,d)
 	pub,_ := pri.PubKey()
 
+	props := makeBPChainProperty()
 	// new bp regist as bp, but he has no 10000 vesting, should failed
-	a.Error(checkError(d.Account(newBpName).TrxReceipt(BpRegister(newBpName,"","",pub,defaultProps))))
+	a.Error(checkError(d.Account(newBpName).TrxReceipt(BpRegister(newBpName,"","",pub,props))))
 
 	// now give new bp 10000 vesting
 	a.NoError(checkError(d.Account(constants.COSInitMiner).TrxReceipt(TransferToVest(constants.COSInitMiner,newBpName,constants.MinBpRegisterVest))))
 
 	// set invalid stamina, should failed
-	defaultProps.StaminaFree = constants.MaxStaminaFree + 1
-	a.Error(checkError(d.Account(newBpName).TrxReceipt(BpRegister(newBpName,"","",pub,defaultProps))))
-	defaultProps.StaminaFree = constants.MaxStaminaFree
+	props.StaminaFree = constants.MaxStaminaFree + 1
+	a.Error(checkError(d.Account(newBpName).TrxReceipt(BpRegister(newBpName,"","",pub,props))))
+	props.StaminaFree = constants.MaxStaminaFree
 
 	// set invalid tps expected, should failed
-	defaultProps.TpsExpected = 0
-	a.Error(checkError(d.Account(newBpName).TrxReceipt(BpRegister(newBpName,"","",pub,defaultProps))))
-	defaultProps.TpsExpected = constants.MinTPSExpected
+	props.TpsExpected = 0
+	a.Error(checkError(d.Account(newBpName).TrxReceipt(BpRegister(newBpName,"","",pub,props))))
+	props.TpsExpected = constants.MinTPSExpected
 
 	// set invalid account create fee, should failed
-	defaultProps.AccountCreationFee = prototype.NewCoin(0)
-	a.Error(checkError(d.Account(newBpName).TrxReceipt(BpRegister(newBpName,"","",pub,defaultProps))))
-	defaultProps.AccountCreationFee = prototype.NewCoin(constants.DefaultAccountCreateFee)
+	props.AccountCreationFee = prototype.NewCoin(0)
+	a.Error(checkError(d.Account(newBpName).TrxReceipt(BpRegister(newBpName,"","",pub,props))))
+	props.AccountCreationFee = prototype.NewCoin(constants.DefaultAccountCreateFee)
 
 	// set invalid topNFreeToken, should failed
-	defaultProps.TopNAcquireFreeToken = constants.MaxTopN + 1
-	a.Error(checkError(d.Account(newBpName).TrxReceipt(BpRegister(newBpName,"","",pub,defaultProps))))
-	defaultProps.TopNAcquireFreeToken = constants.MaxTopN
+	props.TopNAcquireFreeToken = constants.MaxTopN + 1
+	a.Error(checkError(d.Account(newBpName).TrxReceipt(BpRegister(newBpName,"","",pub,props))))
+	props.TopNAcquireFreeToken = constants.MaxTopN
 
 	// set invalid ticket price, should failed
-	defaultProps.PerTicketPrice = prototype.NewCoin(0)
-	a.Error(checkError(d.Account(newBpName).TrxReceipt(BpRegister(newBpName,"","",pub,defaultProps))))
-	defaultProps.PerTicketPrice = prototype.NewCoin(constants.MinTicketPrice)
+	props.PerTicketPrice = prototype.NewCoin(0)
+	a.Error(checkError(d.Account(newBpName).TrxReceipt(BpRegister(newBpName,"","",pub,props))))
+	props.PerTicketPrice = prototype.NewCoin(constants.MinTicketPrice)
 
 	// new account should not appear in bp
 	witWrap := d.BlockProducer(newBpName)
 	a.False(witWrap.CheckExist())
-	resetProperties(&defaultProps)
 }
 
 func (tester *BpTest) bpVote(t *testing.T, d *Dandelion) {
@@ -307,10 +318,12 @@ func (tester *BpTest) bpUpdate(t *testing.T, d *Dandelion) {
 	// change staminaFree param
 	witWrap := d.BlockProducer(bpName)
 	a.True(witWrap.GetProposedStaminaFree() == constants.DefaultStaminaFree)
-	defaultProps.StaminaFree = constants.MaxStaminaFree
+
+	props := makeBPChainProperty()
+	props.StaminaFree = constants.MaxStaminaFree
 
 	// bpName update bp property
-	a.NoError(checkError(d.Account(bpName).TrxReceipt(BpUpdate(bpName,defaultProps))))
+	a.NoError(checkError(d.Account(bpName).TrxReceipt(BpUpdate(bpName,props))))
 
 	// check stamina
 	witWrap2 := d.BlockProducer(bpName)
@@ -356,7 +369,7 @@ func (tester *BpTest) bpUpdateCheckDgp(t *testing.T, d *Dandelion) {
 	tps := uint64(constants.MinTPSExpected)
 	tpsStart := tps
 	// create 21 bp
-	for i:=0;i<21;i++ {
+	for i:=0;i<constants.MaxBlockProducerCount;i++ {
 		tmpName := name + fmt.Sprintf("%d",i)
 		pri := newAccount(tmpName,t,d)
 		pub,_ := pri.PubKey()
@@ -364,16 +377,17 @@ func (tester *BpTest) bpUpdateCheckDgp(t *testing.T, d *Dandelion) {
 		// give new bp 10000 vesting
 		a.NoError(checkError(d.Account(constants.COSInitMiner).TrxReceipt(TransferToVest(constants.COSInitMiner,tmpName,constants.MinBpRegisterVest))))
 
-		defaultProps.TpsExpected = tps
-		a.NoError(checkError(d.Account(tmpName).TrxReceipt(BpRegister(tmpName,"","",pub,defaultProps))))
+		props := makeBPChainProperty()
+		props.TpsExpected = tps
+		a.NoError(checkError(d.Account(tmpName).TrxReceipt(BpRegister(tmpName,"","",pub,props))))
 		tps++
 	}
 
 	// produce some blocks wait shuffle happen to let bp's param take effective
-	d.ProduceBlocks(10)
+	d.ProduceBlocks(constants.MaxBlockProducerCount)
 
 	// should be median number
-	a.True(d.GlobalProps().TpsExpected == tpsStart + 21/2)
+	a.True(d.GlobalProps().TpsExpected == tpsStart + constants.MaxBlockProducerCount/2)
 }
 
 func (tester *BpTest) bpUnVoteDup(t *testing.T, d *Dandelion) {
@@ -384,7 +398,7 @@ func (tester *BpTest) bpUnVoteDup(t *testing.T, d *Dandelion) {
 	// give new bp 10000 vesting
 	a.NoError(checkError(d.Account(constants.COSInitMiner).TrxReceipt(TransferToVest(constants.COSInitMiner,bpName,constants.MinBpRegisterVest))))
 	// new account regist bp
-	a.NoError(checkError(d.Account(bpName).TrxReceipt(BpRegister(bpName,"","",pub,defaultProps))))
+	a.NoError(checkError(d.Account(bpName).TrxReceipt(BpRegister(bpName,"","",pub,makeBPChainProperty()))))
 
 	voter := "bpUnVoteMultiv"
 	newAccount(voter,t,d)
@@ -422,7 +436,7 @@ func (tester *BpTest) bpSwitch(t *testing.T, d *Dandelion) {
 	newBpMap := map[string]bool{}
 	newNames := []string{}
 	name := "newproducer"
-	for i:=0;i<21;i++ {
+	for i:=0;i<constants.MaxBlockProducerCount;i++ {
 		tmpName := name + fmt.Sprintf("%d",i)
 		makeBp(tmpName,t,d)
 		newNames = append(newNames,tmpName)
@@ -431,8 +445,8 @@ func (tester *BpTest) bpSwitch(t *testing.T, d *Dandelion) {
 
 	// create 42 new accounts to vote for new bp
 	voterName := "votergroup1"
-	for i:=0;i<21*2;i++ {
-		if i == 21 {
+	for i:=0;i<constants.MaxBlockProducerCount*2;i++ {
+		if i == constants.MaxBlockProducerCount {
 			voterName = "votergroup2"
 		}
 		tmpName := voterName + fmt.Sprintf("%d",i)
@@ -451,7 +465,7 @@ func (tester *BpTest) bpSwitch(t *testing.T, d *Dandelion) {
 	// we make another 21 new bp, these bps have no votes so they should not appear in producer list
 	newBpNoVoteMap := map[string]bool{}
 	nameBpNoVote := "withoutvote"
-	for i:=0;i<21;i++ {
+	for i:=0;i<constants.MaxBlockProducerCount;i++ {
 		tmpName := nameBpNoVote + fmt.Sprintf("%d",i)
 		makeBp(tmpName,t,d)
 		newBpNoVoteMap[tmpName] = true
@@ -469,7 +483,7 @@ func (tester *BpTest) bpSwitch(t *testing.T, d *Dandelion) {
 	firstBpName := "ihavemanyvote"
 	makeBp(firstBpName,t,d)
 	voterName = "votergroup3"
-	for i:=0;i<21;i++ {
+	for i:=0;i<constants.MaxBlockProducerCount;i++ {
 		tmpName := voterName + fmt.Sprintf("%d",i)
 		newAccount(tmpName,t,d)
 		a.NoError(checkError(d.Account(tmpName).TrxReceipt(BpVote(tmpName,firstBpName,false))))
