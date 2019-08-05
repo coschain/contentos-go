@@ -32,7 +32,8 @@ func (tester *TicketTester) Test(t *testing.T, d *Dandelion) {
 	resetProperties(&defaultProps)
 
 	t.Run("normal", d.Test(tester.normal))
-	t.Run("invalid", d.Test(tester.invalidOp))
+	t.Run("invalidAcquire", d.Test(tester.invalidAcquireOp))
+	t.Run("invalidVote", d.Test(tester.invalidVoteOp))
 }
 
 func (tester *TicketTester) normal(t *testing.T, d *Dandelion) {
@@ -77,12 +78,15 @@ func (tester *TicketTester) normal(t *testing.T, d *Dandelion) {
 	// TODO: check current bp properties
 }
 
-func (tester *TicketTester) invalidOp(t *testing.T, d *Dandelion) {
+func (tester *TicketTester) invalidAcquireOp(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
+
+	// count = 0
 	op := AcquireTicket(tester.acc0.Name, 0)
 	a.Error(checkError(tester.acc0.TrxReceipt(op)))
 	d.ProduceBlocks(1)
 
+	// count exceeds max limit
 	op = AcquireTicket(tester.acc0.Name, constants.MaxTicketsPerTurn+1)
 	a.Error(checkError(tester.acc0.TrxReceipt(op)))
 	d.ProduceBlocks(1)
@@ -92,7 +96,48 @@ func (tester *TicketTester) invalidOp(t *testing.T, d *Dandelion) {
 	a.NoError(checkError(tester.acc0.TrxReceipt(op)))
 	d.ProduceBlocks(1)
 
+	// not enough fund
 	op = AcquireTicket(tester.acc0.Name, 1)
 	a.Error(checkError(tester.acc0.TrxReceipt(op)))
 	d.ProduceBlocks(1)
+}
+
+func (tester *TicketTester) invalidVoteOp(t *testing.T, d *Dandelion) {
+	a := assert.New(t)
+
+	op := AcquireTicket(tester.acc0.Name, 1)
+	a.NoError(tester.acc0.SendTrxAndProduceBlock(op)) // ##block 1
+	op = Post(1, tester.acc1.Name, "title", "content", []string{"1"}, make(map[string]int))
+	a.NoError(tester.acc1.SendTrxAndProduceBlock(op))  // ##block 2
+
+	// count = 0
+	op = VoteByTicket(tester.acc0.Name, 1, 0)
+	a.Error(checkError(tester.acc0.TrxReceipt(op)))
+
+	// count exceeds limit
+	op = VoteByTicket(tester.acc0.Name, 1, 2)
+	a.Error(checkError(tester.acc0.TrxReceipt(op)))
+
+	// vote for a non-existed post
+	op = VoteByTicket(tester.acc0.Name, 11, 1)
+	a.Error(checkError(tester.acc0.TrxReceipt(op)))
+}
+
+func (tester *TicketTester) freeTicket(t *testing.T, d *Dandelion) {
+	a := assert.New(t)
+
+	tester.acc1.D.ProduceBlocks(constants.MinEpochDuration)
+	props := d.GlobalProps()
+	freeTicketWrap := table.NewSoGiftTicketWrap(tester.acc1.D.Database(), &prototype.GiftTicketKeyType{
+		Type: 0,
+		From: "contentos",
+		To: tester.acc1.Name,
+		CreateBlock: props.GetCurrentEpochStartBlock(),
+	})
+	a.Empty(!freeTicketWrap.CheckExist())
+
+	op := Post(2, tester.acc0.Name, "title", "content", []string{"1"}, make(map[string]int))
+	a.NoError(tester.acc0.SendTrxAndProduceBlock(op))
+	op = VoteByTicket(tester.acc0.Name, 2, 1)
+	a.Error(checkError(tester.acc0.TrxReceipt(op)))
 }
