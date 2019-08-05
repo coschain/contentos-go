@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app"
+	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/common/eventloop"
@@ -273,4 +274,15 @@ func (d *DandelionCore) TrxReceipt(privateKey *prototype.PrivateKeyType, operati
 func (d *DandelionCore) TrxReceiptByAccount(name string, operations...*prototype.Operation) *prototype.TransactionReceiptWithInfo {
 	r, _ := d.SendTrxByAccountEx(name, operations...)
 	return r
+}
+
+func (d *DandelionCore) ModifyProps(modifier func(oldProps *prototype.DynamicProperties)) error {
+	chainId := int32(d.chainId.Value)
+	dgpWrap := table.NewSoGlobalWrap(d.Database(),  &chainId)
+	props := dgpWrap.GetProps()
+	modifier(props)
+	if ok := dgpWrap.MdProps(props); !ok {
+		return errors.New("modify props failed")
+	}
+	return nil
 }
