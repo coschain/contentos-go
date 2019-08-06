@@ -4,14 +4,6 @@ MULTINODETESTER = github.com/coschain/contentos-go/cmd/multinodetester
 DATABACKUP = github.com/coschain/contentos-go/cmd/databackup
 NODEDETECTOR = github.com/coschain/contentos-go/cmd/nodedetector
 PRESSURETEST = github.com/coschain/contentos-go/cmd/pressuretest
-COVPKG = $(go list ./... | grep -v -e "app/table\|totalcov\|tests\|mock" | tr '\n' ',')
-
-
-test:
-	@echo "--> Running go test"
-	@GO111MODULE=on go test -tags tests -coverpkg=$(COVPKG) -coverprofile=cc0.txt ./...
-	@echo "--> Total code coverage"
-	@GO111MODULE=on go run utils/totalcov/main.go . cc0.txt >coverage.txt
 
 build_all:
 	@echo "--> build all"
