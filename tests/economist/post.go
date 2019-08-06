@@ -114,7 +114,7 @@ func (tester *PostTester) normal(t *testing.T, d *Dandelion) {
 	const BLOCKS = 100
 	const VEST = 1000
 
-	a.NoError(tester.acc0.SendTrxAndProduceBlock(Post(1, tester.acc0.Name, "title", "content", []string{"1"}, make(map[string]int))))
+	a.NoError(tester.acc0.SendTrxAndProduceBlock(Post(1, tester.acc0.Name, "title", "content", []string{"1"}, nil)))
 	post1Block := d.GlobalProps().GetHeadBlockNumber() - 1
 	post1Cashout := post1Block + constants.PostCashOutDelayBlock
 	a.Equal(post1Cashout, d.Post(1).GetCashoutBlockNum())
@@ -143,7 +143,7 @@ func (tester *PostTester) cashout(t *testing.T, d *Dandelion) {
 	const BLOCKS = 100
 	const VEST = 1000
 
-	a.NoError(tester.acc0.SendTrxAndProduceBlock(Post(1, tester.acc0.Name, "title", "content", []string{"1"}, make(map[string]int))))
+	a.NoError(tester.acc0.SendTrxAndProduceBlock(Post(1, tester.acc0.Name, "title", "content", []string{"1"}, nil)))
 	post1Block := d.GlobalProps().GetHeadBlockNumber() - 1
 	post1Cashout := post1Block + constants.PostCashOutDelayBlock
 	a.Equal(post1Cashout, d.Post(1).GetCashoutBlockNum())
@@ -179,7 +179,7 @@ func (tester *PostTester) cashoutAfterOtherCashout(t *testing.T, d *Dandelion) {
 
 	const BLOCKS = 100
 
-	a.NoError(tester.acc0.SendTrxAndProduceBlock(Post(2, tester.acc0.Name, "title", "content", []string{"2"}, make(map[string]int))))
+	a.NoError(tester.acc0.SendTrxAndProduceBlock(Post(2, tester.acc0.Name, "title", "content", []string{"2"}, nil)))
 	post1Block := d.GlobalProps().GetHeadBlockNumber() - 1
 	post1Cashout := post1Block + constants.PostCashOutDelayBlock
 	a.Equal(post1Cashout, d.Post(2).GetCashoutBlockNum())
@@ -213,8 +213,8 @@ func (tester *PostTester) multiCashout(t *testing.T, d *Dandelion) {
 
 	const BLOCKS = 100
 
-	a.NoError(tester.acc0.SendTrx(Post(3, tester.acc0.Name, "title", "content", []string{"3"}, make(map[string]int))))
-	a.NoError(tester.acc1.SendTrx(Post(4, tester.acc1.Name, "title", "content", []string{"4"}, make(map[string]int))))
+	a.NoError(tester.acc0.SendTrx(Post(3, tester.acc0.Name, "title", "content", []string{"3"}, nil)))
+	a.NoError(tester.acc1.SendTrx(Post(4, tester.acc1.Name, "title", "content", []string{"4"}, nil)))
 	a.NoError(d.ProduceBlocks(1))
 
 	a.NoError(d.ProduceBlocks(BLOCKS))
@@ -266,7 +266,7 @@ func (tester *PostTester) hugeGlobalVp(t *testing.T, d *Dandelion) {
 		postWeightedVp := new(big.Int).Mul(maxUint64, factor)
 		props.PostWeightedVps = postWeightedVp.String()
 	})
-	a.NoError(tester.acc0.SendTrxAndProduceBlock(Post(1, tester.acc0.Name, "title", "content", []string{"1"}, make(map[string]int))))
+	a.NoError(tester.acc0.SendTrxAndProduceBlock(Post(1, tester.acc0.Name, "title", "content", []string{"1"}, nil)))
 	a.NoError(tester.acc0.SendTrx(TransferToVest(tester.acc0.Name, tester.acc0.Name, VEST)))
 
 	a.NoError(d.ProduceBlocks(BLOCKS))
@@ -308,7 +308,7 @@ func (tester *PostTester) zeroGlobalVp(t *testing.T, d *Dandelion) {
 		postWeightedVp := new(big.Int).SetUint64(0)
 		props.PostWeightedVps = postWeightedVp.String()
 	})
-	a.NoError(tester.acc0.SendTrxAndProduceBlock(Post(2, tester.acc0.Name, "title", "content", []string{"2"}, make(map[string]int))))
+	a.NoError(tester.acc0.SendTrxAndProduceBlock(Post(2, tester.acc0.Name, "title", "content", []string{"2"}, nil)))
 
 	a.NoError(d.ProduceBlocks(BLOCKS))
 	vest0 := d.Account(tester.acc0.Name).GetVest().Value
@@ -346,7 +346,7 @@ func (tester *PostTester) withTicket(t *testing.T, d *Dandelion) {
 	a.NoError(tester.acc0.SendTrxAndProduceBlock(TransferToVest(tester.acc0.Name, tester.acc0.Name, VEST)))
 	a.NoError(tester.acc0.SendTrxAndProduceBlock(AcquireTicket(tester.acc0.Name, 1)))
 
-	a.NoError(tester.acc0.SendTrxAndProduceBlock(Post(1, tester.acc0.Name, "title", "content", []string{"1"}, make(map[string]int))))
+	a.NoError(tester.acc0.SendTrxAndProduceBlock(Post(1, tester.acc0.Name, "title", "content", []string{"1"}, nil)))
 	a.NoError(tester.acc0.SendTrx(VoteByTicket(tester.acc0.Name, 1, 1)))
 
 	a.NoError(d.ProduceBlocks(BLOCKS))

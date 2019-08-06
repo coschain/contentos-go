@@ -51,7 +51,5 @@ func createPostOp (accName string) *prototype.Operation {
 	title := "test post"
 	content := "test article for op test"
 	tags := []string{"test"}
-	beneficiaries := make(map[string]int)
-
-	return Post(postId, accName, title, content, tags, beneficiaries)
+	return Post(postId, accName, title, content, tags, nil)
 }

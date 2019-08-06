@@ -41,7 +41,7 @@ func (tester *VoteTester) TestFullPower(t *testing.T, d *Dandelion) {
 
 func (tester *VoteTester) normal(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
-	a.NoError(tester.acc0.SendTrxAndProduceBlock(Post(1, tester.acc0.Name, "title", "content", []string{"1"}, make(map[string]int))))
+	a.NoError(tester.acc0.SendTrxAndProduceBlock(Post(1, tester.acc0.Name, "title", "content", []string{"1"}, nil)))
 	// the init status, vp bar equals 0, so the vote power is 10 * 0 == 0
 	a.NoError(tester.acc0.SendTrxAndProduceBlock(Vote(tester.acc0.Name, 1)))
 	a.Equal("0", d.Post(1).GetWeightedVp())
@@ -57,7 +57,7 @@ func (tester *VoteTester) normal(t *testing.T, d *Dandelion) {
 
 func (tester *VoteTester) revote(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
-	a.NoError(tester.acc0.SendTrxAndProduceBlock(Post(1, tester.acc0.Name, "title", "content", []string{"1"}, make(map[string]int))))
+	a.NoError(tester.acc0.SendTrxAndProduceBlock(Post(1, tester.acc0.Name, "title", "content", []string{"1"}, nil)))
 	a.NoError(tester.acc0.SendTrxAndProduceBlock(Vote(tester.acc0.Name, 1)))
 	a.Equal("0", d.Post(1).GetWeightedVp())
 	receipt, err := tester.acc0.SendTrxEx(Vote(tester.acc0.Name, 1))
@@ -78,7 +78,7 @@ func (tester *VoteTester) fullPower(t *testing.T, d *Dandelion)  {
 	// waiting vote power recover
 	BLOCKS := 10000
 	a.NoError(d.ProduceBlocks(BLOCKS))
-	a.NoError(tester.acc0.SendTrxAndProduceBlock(Post(1, tester.acc0.Name, "title", "content", []string{"1"}, make(map[string]int))))
+	a.NoError(tester.acc0.SendTrxAndProduceBlock(Post(1, tester.acc0.Name, "title", "content", []string{"1"}, nil)))
 	a.NoError(tester.acc1.SendTrxAndProduceBlock(Vote(tester.acc1.Name, 1)))
 	currentVp := 1000
 	usedVp := (currentVp + constants.VoteLimitDuringRegenerate - 1) / constants.VoteLimitDuringRegenerate

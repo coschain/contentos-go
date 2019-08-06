@@ -57,7 +57,7 @@ func (tester *TicketTester) normal(t *testing.T, d *Dandelion) {
 	a.Equal(tester.acc0.GetChargedTicket(), uint32(1))
 
 	// vote ticket and check
-	op = Post(1, tester.acc1.Name, "title", "content", []string{"1"}, make(map[string]int))
+	op = Post(1, tester.acc1.Name, "title", "content", []string{"1"}, nil)
 	a.NoError(tester.acc1.SendTrxAndProduceBlock(op))  // ##block 2
 	props = d.GlobalProps()
 	op = VoteByTicket(tester.acc0.Name, 1, 1)
@@ -106,7 +106,7 @@ func (tester *TicketTester) invalidVoteOp(t *testing.T, d *Dandelion) {
 
 	op := AcquireTicket(tester.acc0.Name, 1)
 	a.NoError(tester.acc0.SendTrxAndProduceBlock(op)) // ##block 1
-	op = Post(1, tester.acc1.Name, "title", "content", []string{"1"}, make(map[string]int))
+	op = Post(1, tester.acc1.Name, "title", "content", []string{"1"}, nil)
 	a.NoError(tester.acc1.SendTrxAndProduceBlock(op))  // ##block 2
 
 	// count = 0
@@ -135,7 +135,7 @@ func (tester *TicketTester) freeTicket(t *testing.T, d *Dandelion) {
 	})
 	a.Empty(!freeTicketWrap.CheckExist())
 
-	op := Post(2, tester.acc0.Name, "title", "content", []string{"1"}, make(map[string]int))
+	op := Post(2, tester.acc0.Name, "title", "content", []string{"1"}, nil)
 	a.NoError(tester.acc0.SendTrxAndProduceBlock(op))
 	op = VoteByTicket(tester.acc0.Name, 2, 1)
 	a.Error(checkError(tester.acc0.TrxReceipt(op)))
