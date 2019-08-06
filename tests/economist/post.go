@@ -354,9 +354,6 @@ func (tester *PostTester) withTicket(t *testing.T, d *Dandelion) {
 	a.NoError(tester.acc0.SendTrx(Vote(tester.acc0.Name, 1)))
 	a.NoError(d.ProduceBlocks(constants.PostCashOutDelayBlock - BLOCKS - 1))
 
-	// convert to uint64 to make test easier
-	// the mul result less than uint64.MAX
-
 	postWeight := ISqrt(d.Post(1).GetWeightedVp())
 	postWeight = new(big.Int).Add(postWeight, new(big.Int).SetUint64(1 * d.GlobalProps().GetPerTicketWeight()))
 	globalPostReward := new(big.Int).SetUint64(d.GlobalProps().GetPostRewards().Value)
