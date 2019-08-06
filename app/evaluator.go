@@ -334,7 +334,6 @@ func (ev *PostEvaluator) Apply() {
 		t.CashoutBlockNum = ev.GlobalProp().GetProps().HeadBlockNumber + constants.PostCashOutDelayBlock
 		t.Depth = 0
 		t.Children = 0
-		t.RootId = t.PostId
 		t.ParentId = 0
 		t.RootId = 0
 		t.Beneficiaries = op.Beneficiaries
