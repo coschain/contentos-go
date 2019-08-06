@@ -917,7 +917,6 @@ func (s *SoPostWrap) delAllSortKeys(br bool, val *SoPost) bool {
 		return false
 	}
 	res := true
-
 	if !s.delSortKeyCreated(val) {
 		if br {
 			return false
@@ -925,7 +924,6 @@ func (s *SoPostWrap) delAllSortKeys(br bool, val *SoPost) bool {
 			res = false
 		}
 	}
-
 	if !s.delSortKeyCashoutBlockNum(val) {
 		if br {
 			return false
@@ -933,7 +931,6 @@ func (s *SoPostWrap) delAllSortKeys(br bool, val *SoPost) bool {
 			res = false
 		}
 	}
-
 	if !s.delSortKeyRewards(val) {
 		if br {
 			return false
@@ -952,15 +949,12 @@ func (s *SoPostWrap) insertAllSortKeys(val *SoPost) error {
 	if val == nil {
 		return errors.New("insert sort Field fail,get the SoPost fail ")
 	}
-
 	if !s.insertSortKeyCreated(val) {
 		return errors.New("insert sort Field Created fail while insert table ")
 	}
-
 	if !s.insertSortKeyCashoutBlockNum(val) {
 		return errors.New("insert sort Field CashoutBlockNum fail while insert table ")
 	}
-
 	if !s.insertSortKeyRewards(val) {
 		return errors.New("insert sort Field Rewards fail while insert table ")
 	}

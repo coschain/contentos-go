@@ -467,7 +467,13 @@ func (s *SoVoteWrap) delAllSortKeys(br bool, val *SoVote) bool {
 		return false
 	}
 	res := true
-
+	if !s.delSortKeyVoter(val) {
+		if br {
+			return false
+		} else {
+			res = false
+		}
+	}
 	if !s.delSortKeyVoteTime(val) {
 		if br {
 			return false
@@ -475,7 +481,6 @@ func (s *SoVoteWrap) delAllSortKeys(br bool, val *SoVote) bool {
 			res = false
 		}
 	}
-
 	if !s.delSortKeyPostId(val) {
 		if br {
 			return false
@@ -494,11 +499,12 @@ func (s *SoVoteWrap) insertAllSortKeys(val *SoVote) error {
 	if val == nil {
 		return errors.New("insert sort Field fail,get the SoVote fail ")
 	}
-
+	if !s.insertSortKeyVoter(val) {
+		return errors.New("insert sort Field Voter fail while insert table ")
+	}
 	if !s.insertSortKeyVoteTime(val) {
 		return errors.New("insert sort Field VoteTime fail while insert table ")
 	}
-
 	if !s.insertSortKeyPostId(val) {
 		return errors.New("insert sort Field PostId fail while insert table ")
 	}

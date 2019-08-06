@@ -737,7 +737,13 @@ func (s *SoDemoWrap) delAllSortKeys(br bool, val *SoDemo) bool {
 		return false
 	}
 	res := true
-
+	if !s.delSortKeyOwner(val) {
+		if br {
+			return false
+		} else {
+			res = false
+		}
+	}
 	if !s.delSortKeyPostTime(val) {
 		if br {
 			return false
@@ -745,7 +751,6 @@ func (s *SoDemoWrap) delAllSortKeys(br bool, val *SoDemo) bool {
 			res = false
 		}
 	}
-
 	if !s.delSortKeyLikeCount(val) {
 		if br {
 			return false
@@ -753,7 +758,6 @@ func (s *SoDemoWrap) delAllSortKeys(br bool, val *SoDemo) bool {
 			res = false
 		}
 	}
-
 	if !s.delSortKeyIdx(val) {
 		if br {
 			return false
@@ -761,7 +765,6 @@ func (s *SoDemoWrap) delAllSortKeys(br bool, val *SoDemo) bool {
 			res = false
 		}
 	}
-
 	if !s.delSortKeyReplayCount(val) {
 		if br {
 			return false
@@ -769,7 +772,6 @@ func (s *SoDemoWrap) delAllSortKeys(br bool, val *SoDemo) bool {
 			res = false
 		}
 	}
-
 	if !s.delSortKeyTaglist(val) {
 		if br {
 			return false
@@ -788,23 +790,21 @@ func (s *SoDemoWrap) insertAllSortKeys(val *SoDemo) error {
 	if val == nil {
 		return errors.New("insert sort Field fail,get the SoDemo fail ")
 	}
-
+	if !s.insertSortKeyOwner(val) {
+		return errors.New("insert sort Field Owner fail while insert table ")
+	}
 	if !s.insertSortKeyPostTime(val) {
 		return errors.New("insert sort Field PostTime fail while insert table ")
 	}
-
 	if !s.insertSortKeyLikeCount(val) {
 		return errors.New("insert sort Field LikeCount fail while insert table ")
 	}
-
 	if !s.insertSortKeyIdx(val) {
 		return errors.New("insert sort Field Idx fail while insert table ")
 	}
-
 	if !s.insertSortKeyReplayCount(val) {
 		return errors.New("insert sort Field ReplayCount fail while insert table ")
 	}
-
 	if !s.insertSortKeyTaglist(val) {
 		return errors.New("insert sort Field Taglist fail while insert table ")
 	}

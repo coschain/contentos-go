@@ -540,7 +540,13 @@ func (s *SoExtTrxWrap) delAllSortKeys(br bool, val *SoExtTrx) bool {
 		return false
 	}
 	res := true
-
+	if !s.delSortKeyTrxId(val) {
+		if br {
+			return false
+		} else {
+			res = false
+		}
+	}
 	if !s.delSortKeyBlockHeight(val) {
 		if br {
 			return false
@@ -548,7 +554,6 @@ func (s *SoExtTrxWrap) delAllSortKeys(br bool, val *SoExtTrx) bool {
 			res = false
 		}
 	}
-
 	if !s.delSortKeyBlockTime(val) {
 		if br {
 			return false
@@ -556,7 +561,6 @@ func (s *SoExtTrxWrap) delAllSortKeys(br bool, val *SoExtTrx) bool {
 			res = false
 		}
 	}
-
 	if !s.delSortKeyTrxCreateOrder(val) {
 		if br {
 			return false
@@ -575,15 +579,15 @@ func (s *SoExtTrxWrap) insertAllSortKeys(val *SoExtTrx) error {
 	if val == nil {
 		return errors.New("insert sort Field fail,get the SoExtTrx fail ")
 	}
-
+	if !s.insertSortKeyTrxId(val) {
+		return errors.New("insert sort Field TrxId fail while insert table ")
+	}
 	if !s.insertSortKeyBlockHeight(val) {
 		return errors.New("insert sort Field BlockHeight fail while insert table ")
 	}
-
 	if !s.insertSortKeyBlockTime(val) {
 		return errors.New("insert sort Field BlockTime fail while insert table ")
 	}
-
 	if !s.insertSortKeyTrxCreateOrder(val) {
 		return errors.New("insert sort Field TrxCreateOrder fail while insert table ")
 	}

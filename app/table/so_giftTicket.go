@@ -394,7 +394,13 @@ func (s *SoGiftTicketWrap) delAllSortKeys(br bool, val *SoGiftTicket) bool {
 		return false
 	}
 	res := true
-
+	if !s.delSortKeyTicket(val) {
+		if br {
+			return false
+		} else {
+			res = false
+		}
+	}
 	if !s.delSortKeyCount(val) {
 		if br {
 			return false
@@ -413,7 +419,9 @@ func (s *SoGiftTicketWrap) insertAllSortKeys(val *SoGiftTicket) error {
 	if val == nil {
 		return errors.New("insert sort Field fail,get the SoGiftTicket fail ")
 	}
-
+	if !s.insertSortKeyTicket(val) {
+		return errors.New("insert sort Field Ticket fail while insert table ")
+	}
 	if !s.insertSortKeyCount(val) {
 		return errors.New("insert sort Field Count fail while insert table ")
 	}

@@ -301,7 +301,6 @@ func (s *SoExtUserPostWrap) delAllSortKeys(br bool, val *SoExtUserPost) bool {
 		return false
 	}
 	res := true
-
 	if !s.delSortKeyPostCreatedOrder(val) {
 		if br {
 			return false
@@ -320,7 +319,6 @@ func (s *SoExtUserPostWrap) insertAllSortKeys(val *SoExtUserPost) error {
 	if val == nil {
 		return errors.New("insert sort Field fail,get the SoExtUserPost fail ")
 	}
-
 	if !s.insertSortKeyPostCreatedOrder(val) {
 		return errors.New("insert sort Field PostCreatedOrder fail while insert table ")
 	}

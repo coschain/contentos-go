@@ -301,7 +301,6 @@ func (s *SoExtReplyCreatedWrap) delAllSortKeys(br bool, val *SoExtReplyCreated) 
 		return false
 	}
 	res := true
-
 	if !s.delSortKeyCreatedOrder(val) {
 		if br {
 			return false
@@ -320,7 +319,6 @@ func (s *SoExtReplyCreatedWrap) insertAllSortKeys(val *SoExtReplyCreated) error 
 	if val == nil {
 		return errors.New("insert sort Field fail,get the SoExtReplyCreated fail ")
 	}
-
 	if !s.insertSortKeyCreatedOrder(val) {
 		return errors.New("insert sort Field CreatedOrder fail while insert table ")
 	}

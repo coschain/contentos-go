@@ -650,7 +650,13 @@ func (s *SoBlockProducerWrap) delAllSortKeys(br bool, val *SoBlockProducer) bool
 		return false
 	}
 	res := true
-
+	if !s.delSortKeyOwner(val) {
+		if br {
+			return false
+		} else {
+			res = false
+		}
+	}
 	if !s.delSortKeyBpVest(val) {
 		if br {
 			return false
@@ -669,7 +675,9 @@ func (s *SoBlockProducerWrap) insertAllSortKeys(val *SoBlockProducer) error {
 	if val == nil {
 		return errors.New("insert sort Field fail,get the SoBlockProducer fail ")
 	}
-
+	if !s.insertSortKeyOwner(val) {
+		return errors.New("insert sort Field Owner fail while insert table ")
+	}
 	if !s.insertSortKeyBpVest(val) {
 		return errors.New("insert sort Field BpVest fail while insert table ")
 	}

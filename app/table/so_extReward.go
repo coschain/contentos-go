@@ -329,7 +329,6 @@ func (s *SoExtRewardWrap) delAllSortKeys(br bool, val *SoExtReward) bool {
 		return false
 	}
 	res := true
-
 	if !s.delSortKeyBlockHeight(val) {
 		if br {
 			return false
@@ -348,7 +347,6 @@ func (s *SoExtRewardWrap) insertAllSortKeys(val *SoExtReward) error {
 	if val == nil {
 		return errors.New("insert sort Field fail,get the SoExtReward fail ")
 	}
-
 	if !s.insertSortKeyBlockHeight(val) {
 		return errors.New("insert sort Field BlockHeight fail while insert table ")
 	}

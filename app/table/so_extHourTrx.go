@@ -338,7 +338,13 @@ func (s *SoExtHourTrxWrap) delAllSortKeys(br bool, val *SoExtHourTrx) bool {
 		return false
 	}
 	res := true
-
+	if !s.delSortKeyHour(val) {
+		if br {
+			return false
+		} else {
+			res = false
+		}
+	}
 	if !s.delSortKeyCount(val) {
 		if br {
 			return false
@@ -357,7 +363,9 @@ func (s *SoExtHourTrxWrap) insertAllSortKeys(val *SoExtHourTrx) error {
 	if val == nil {
 		return errors.New("insert sort Field fail,get the SoExtHourTrx fail ")
 	}
-
+	if !s.insertSortKeyHour(val) {
+		return errors.New("insert sort Field Hour fail while insert table ")
+	}
 	if !s.insertSortKeyCount(val) {
 		return errors.New("insert sort Field Count fail while insert table ")
 	}

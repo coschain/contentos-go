@@ -1264,7 +1264,6 @@ func (s *SoAccountWrap) delAllSortKeys(br bool, val *SoAccount) bool {
 		return false
 	}
 	res := true
-
 	if !s.delSortKeyCreatedTime(val) {
 		if br {
 			return false
@@ -1272,7 +1271,6 @@ func (s *SoAccountWrap) delAllSortKeys(br bool, val *SoAccount) bool {
 			res = false
 		}
 	}
-
 	if !s.delSortKeyBalance(val) {
 		if br {
 			return false
@@ -1280,7 +1278,6 @@ func (s *SoAccountWrap) delAllSortKeys(br bool, val *SoAccount) bool {
 			res = false
 		}
 	}
-
 	if !s.delSortKeyVest(val) {
 		if br {
 			return false
@@ -1288,7 +1285,6 @@ func (s *SoAccountWrap) delAllSortKeys(br bool, val *SoAccount) bool {
 			res = false
 		}
 	}
-
 	if !s.delSortKeyBpVoteCount(val) {
 		if br {
 			return false
@@ -1296,7 +1292,6 @@ func (s *SoAccountWrap) delAllSortKeys(br bool, val *SoAccount) bool {
 			res = false
 		}
 	}
-
 	if !s.delSortKeyPostCount(val) {
 		if br {
 			return false
@@ -1304,7 +1299,6 @@ func (s *SoAccountWrap) delAllSortKeys(br bool, val *SoAccount) bool {
 			res = false
 		}
 	}
-
 	if !s.delSortKeyCreatedTrxCount(val) {
 		if br {
 			return false
@@ -1312,7 +1306,6 @@ func (s *SoAccountWrap) delAllSortKeys(br bool, val *SoAccount) bool {
 			res = false
 		}
 	}
-
 	if !s.delSortKeyNextPowerdownBlockNum(val) {
 		if br {
 			return false
@@ -1331,31 +1324,24 @@ func (s *SoAccountWrap) insertAllSortKeys(val *SoAccount) error {
 	if val == nil {
 		return errors.New("insert sort Field fail,get the SoAccount fail ")
 	}
-
 	if !s.insertSortKeyCreatedTime(val) {
 		return errors.New("insert sort Field CreatedTime fail while insert table ")
 	}
-
 	if !s.insertSortKeyBalance(val) {
 		return errors.New("insert sort Field Balance fail while insert table ")
 	}
-
 	if !s.insertSortKeyVest(val) {
 		return errors.New("insert sort Field Vest fail while insert table ")
 	}
-
 	if !s.insertSortKeyBpVoteCount(val) {
 		return errors.New("insert sort Field BpVoteCount fail while insert table ")
 	}
-
 	if !s.insertSortKeyPostCount(val) {
 		return errors.New("insert sort Field PostCount fail while insert table ")
 	}
-
 	if !s.insertSortKeyCreatedTrxCount(val) {
 		return errors.New("insert sort Field CreatedTrxCount fail while insert table ")
 	}
-
 	if !s.insertSortKeyNextPowerdownBlockNum(val) {
 		return errors.New("insert sort Field NextPowerdownBlockNum fail while insert table ")
 	}

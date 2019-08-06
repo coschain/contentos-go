@@ -305,7 +305,6 @@ func (s *SoTransactionObjectWrap) delAllSortKeys(br bool, val *SoTransactionObje
 		return false
 	}
 	res := true
-
 	if !s.delSortKeyExpiration(val) {
 		if br {
 			return false
@@ -324,7 +323,6 @@ func (s *SoTransactionObjectWrap) insertAllSortKeys(val *SoTransactionObject) er
 	if val == nil {
 		return errors.New("insert sort Field fail,get the SoTransactionObject fail ")
 	}
-
 	if !s.insertSortKeyExpiration(val) {
 		return errors.New("insert sort Field Expiration fail while insert table ")
 	}

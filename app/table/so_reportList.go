@@ -352,7 +352,6 @@ func (s *SoReportListWrap) delAllSortKeys(br bool, val *SoReportList) bool {
 		return false
 	}
 	res := true
-
 	if !s.delSortKeyReportedTimes(val) {
 		if br {
 			return false
@@ -371,7 +370,6 @@ func (s *SoReportListWrap) insertAllSortKeys(val *SoReportList) error {
 	if val == nil {
 		return errors.New("insert sort Field fail,get the SoReportList fail ")
 	}
-
 	if !s.insertSortKeyReportedTimes(val) {
 		return errors.New("insert sort Field ReportedTimes fail while insert table ")
 	}

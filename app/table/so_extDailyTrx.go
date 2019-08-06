@@ -338,7 +338,13 @@ func (s *SoExtDailyTrxWrap) delAllSortKeys(br bool, val *SoExtDailyTrx) bool {
 		return false
 	}
 	res := true
-
+	if !s.delSortKeyDate(val) {
+		if br {
+			return false
+		} else {
+			res = false
+		}
+	}
 	if !s.delSortKeyCount(val) {
 		if br {
 			return false
@@ -357,7 +363,9 @@ func (s *SoExtDailyTrxWrap) insertAllSortKeys(val *SoExtDailyTrx) error {
 	if val == nil {
 		return errors.New("insert sort Field fail,get the SoExtDailyTrx fail ")
 	}
-
+	if !s.insertSortKeyDate(val) {
+		return errors.New("insert sort Field Date fail while insert table ")
+	}
 	if !s.insertSortKeyCount(val) {
 		return errors.New("insert sort Field Count fail while insert table ")
 	}

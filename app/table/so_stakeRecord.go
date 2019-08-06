@@ -398,7 +398,13 @@ func (s *SoStakeRecordWrap) delAllSortKeys(br bool, val *SoStakeRecord) bool {
 		return false
 	}
 	res := true
-
+	if !s.delSortKeyRecord(val) {
+		if br {
+			return false
+		} else {
+			res = false
+		}
+	}
 	if !s.delSortKeyRecordReverse(val) {
 		if br {
 			return false
@@ -417,7 +423,9 @@ func (s *SoStakeRecordWrap) insertAllSortKeys(val *SoStakeRecord) error {
 	if val == nil {
 		return errors.New("insert sort Field fail,get the SoStakeRecord fail ")
 	}
-
+	if !s.insertSortKeyRecord(val) {
+		return errors.New("insert sort Field Record fail while insert table ")
+	}
 	if !s.insertSortKeyRecordReverse(val) {
 		return errors.New("insert sort Field RecordReverse fail while insert table ")
 	}

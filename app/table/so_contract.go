@@ -570,7 +570,6 @@ func (s *SoContractWrap) delAllSortKeys(br bool, val *SoContract) bool {
 		return false
 	}
 	res := true
-
 	if !s.delSortKeyCreatedTime(val) {
 		if br {
 			return false
@@ -578,7 +577,6 @@ func (s *SoContractWrap) delAllSortKeys(br bool, val *SoContract) bool {
 			res = false
 		}
 	}
-
 	if !s.delSortKeyApplyCount(val) {
 		if br {
 			return false
@@ -597,11 +595,9 @@ func (s *SoContractWrap) insertAllSortKeys(val *SoContract) error {
 	if val == nil {
 		return errors.New("insert sort Field fail,get the SoContract fail ")
 	}
-
 	if !s.insertSortKeyCreatedTime(val) {
 		return errors.New("insert sort Field CreatedTime fail while insert table ")
 	}
-
 	if !s.insertSortKeyApplyCount(val) {
 		return errors.New("insert sort Field ApplyCount fail while insert table ")
 	}

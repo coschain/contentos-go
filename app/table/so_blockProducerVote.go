@@ -330,6 +330,13 @@ func (s *SoBlockProducerVoteWrap) delAllSortKeys(br bool, val *SoBlockProducerVo
 		return false
 	}
 	res := true
+	if !s.delSortKeyBlockProducerId(val) {
+		if br {
+			return false
+		} else {
+			res = false
+		}
+	}
 
 	return res
 }
@@ -340,6 +347,9 @@ func (s *SoBlockProducerVoteWrap) insertAllSortKeys(val *SoBlockProducerVote) er
 	}
 	if val == nil {
 		return errors.New("insert sort Field fail,get the SoBlockProducerVote fail ")
+	}
+	if !s.insertSortKeyBlockProducerId(val) {
+		return errors.New("insert sort Field BlockProducerId fail while insert table ")
 	}
 
 	return nil
