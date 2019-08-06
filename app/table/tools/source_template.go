@@ -255,6 +255,18 @@ func (s *So{{.ClsName}}Wrap) Modify(f func(tInfo *So{{.ClsName}})) error {
 
 }
 
+{{range $k1, $v1 := .MemberKeyMap -}}
+{{if ne $k1 $.MainKeyName}}
+
+func (s *So{{$.ClsName}}Wrap) Md{{$k1}}(p {{formatRTypeStr $v1.PType}}) bool {
+    err := s.Modify(func(r *So{{$.ClsName}}){
+        r.{{$k1}} = p
+    })
+    return err == nil
+}
+
+{{end}}
+{{end}}
 
 func (s *So{{$.ClsName}}Wrap) checkSortAndUniFieldValidity(curTable *So{{$.ClsName}}, fieldSli []string) error {
      if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
