@@ -30,6 +30,8 @@ type SoDemo struct {
 	ReplayCount          int64                   `protobuf:"varint,6,opt,name=replay_count,json=replayCount,proto3" json:"replay_count,omitempty"`
 	Content              string                  `protobuf:"bytes,7,opt,name=content,proto3" json:"content,omitempty"`
 	Taglist              []string                `protobuf:"bytes,8,rep,name=taglist,proto3" json:"taglist,omitempty"`
+	NickName             *prototype.AccountName  `protobuf:"bytes,9,opt,name=nick_name,json=nickName,proto3" json:"nick_name,omitempty"`
+	RegistTime           *prototype.TimePointSec `protobuf:"bytes,10,opt,name=regist_time,json=registTime,proto3" json:"regist_time,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                `json:"-"`
 	XXX_unrecognized     []byte                  `json:"-"`
 	XXX_sizecache        int32                   `json:"-"`
@@ -116,314 +118,16 @@ func (m *SoDemo) GetTaglist() []string {
 	return nil
 }
 
-type SoMemDemoByOwner struct {
-	Owner                *prototype.AccountName `protobuf:"bytes,1,opt,name=owner,proto3" json:"owner,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}               `json:"-"`
-	XXX_unrecognized     []byte                 `json:"-"`
-	XXX_sizecache        int32                  `json:"-"`
-}
-
-func (m *SoMemDemoByOwner) Reset()         { *m = SoMemDemoByOwner{} }
-func (m *SoMemDemoByOwner) String() string { return proto.CompactTextString(m) }
-func (*SoMemDemoByOwner) ProtoMessage()    {}
-func (*SoMemDemoByOwner) Descriptor() ([]byte, []int) {
-	return fileDescriptor_c9e5111d02436852, []int{1}
-}
-
-func (m *SoMemDemoByOwner) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_SoMemDemoByOwner.Unmarshal(m, b)
-}
-func (m *SoMemDemoByOwner) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_SoMemDemoByOwner.Marshal(b, m, deterministic)
-}
-func (m *SoMemDemoByOwner) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SoMemDemoByOwner.Merge(m, src)
-}
-func (m *SoMemDemoByOwner) XXX_Size() int {
-	return xxx_messageInfo_SoMemDemoByOwner.Size(m)
-}
-func (m *SoMemDemoByOwner) XXX_DiscardUnknown() {
-	xxx_messageInfo_SoMemDemoByOwner.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_SoMemDemoByOwner proto.InternalMessageInfo
-
-func (m *SoMemDemoByOwner) GetOwner() *prototype.AccountName {
+func (m *SoDemo) GetNickName() *prototype.AccountName {
 	if m != nil {
-		return m.Owner
+		return m.NickName
 	}
 	return nil
 }
 
-type SoMemDemoByPostTime struct {
-	PostTime             *prototype.TimePointSec `protobuf:"bytes,1,opt,name=post_time,json=postTime,proto3" json:"post_time,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}                `json:"-"`
-	XXX_unrecognized     []byte                  `json:"-"`
-	XXX_sizecache        int32                   `json:"-"`
-}
-
-func (m *SoMemDemoByPostTime) Reset()         { *m = SoMemDemoByPostTime{} }
-func (m *SoMemDemoByPostTime) String() string { return proto.CompactTextString(m) }
-func (*SoMemDemoByPostTime) ProtoMessage()    {}
-func (*SoMemDemoByPostTime) Descriptor() ([]byte, []int) {
-	return fileDescriptor_c9e5111d02436852, []int{2}
-}
-
-func (m *SoMemDemoByPostTime) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_SoMemDemoByPostTime.Unmarshal(m, b)
-}
-func (m *SoMemDemoByPostTime) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_SoMemDemoByPostTime.Marshal(b, m, deterministic)
-}
-func (m *SoMemDemoByPostTime) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SoMemDemoByPostTime.Merge(m, src)
-}
-func (m *SoMemDemoByPostTime) XXX_Size() int {
-	return xxx_messageInfo_SoMemDemoByPostTime.Size(m)
-}
-func (m *SoMemDemoByPostTime) XXX_DiscardUnknown() {
-	xxx_messageInfo_SoMemDemoByPostTime.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_SoMemDemoByPostTime proto.InternalMessageInfo
-
-func (m *SoMemDemoByPostTime) GetPostTime() *prototype.TimePointSec {
+func (m *SoDemo) GetRegistTime() *prototype.TimePointSec {
 	if m != nil {
-		return m.PostTime
-	}
-	return nil
-}
-
-type SoMemDemoByTitle struct {
-	Title                string   `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *SoMemDemoByTitle) Reset()         { *m = SoMemDemoByTitle{} }
-func (m *SoMemDemoByTitle) String() string { return proto.CompactTextString(m) }
-func (*SoMemDemoByTitle) ProtoMessage()    {}
-func (*SoMemDemoByTitle) Descriptor() ([]byte, []int) {
-	return fileDescriptor_c9e5111d02436852, []int{3}
-}
-
-func (m *SoMemDemoByTitle) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_SoMemDemoByTitle.Unmarshal(m, b)
-}
-func (m *SoMemDemoByTitle) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_SoMemDemoByTitle.Marshal(b, m, deterministic)
-}
-func (m *SoMemDemoByTitle) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SoMemDemoByTitle.Merge(m, src)
-}
-func (m *SoMemDemoByTitle) XXX_Size() int {
-	return xxx_messageInfo_SoMemDemoByTitle.Size(m)
-}
-func (m *SoMemDemoByTitle) XXX_DiscardUnknown() {
-	xxx_messageInfo_SoMemDemoByTitle.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_SoMemDemoByTitle proto.InternalMessageInfo
-
-func (m *SoMemDemoByTitle) GetTitle() string {
-	if m != nil {
-		return m.Title
-	}
-	return ""
-}
-
-type SoMemDemoByLikeCount struct {
-	LikeCount            int64    `protobuf:"varint,1,opt,name=like_count,json=likeCount,proto3" json:"like_count,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *SoMemDemoByLikeCount) Reset()         { *m = SoMemDemoByLikeCount{} }
-func (m *SoMemDemoByLikeCount) String() string { return proto.CompactTextString(m) }
-func (*SoMemDemoByLikeCount) ProtoMessage()    {}
-func (*SoMemDemoByLikeCount) Descriptor() ([]byte, []int) {
-	return fileDescriptor_c9e5111d02436852, []int{4}
-}
-
-func (m *SoMemDemoByLikeCount) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_SoMemDemoByLikeCount.Unmarshal(m, b)
-}
-func (m *SoMemDemoByLikeCount) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_SoMemDemoByLikeCount.Marshal(b, m, deterministic)
-}
-func (m *SoMemDemoByLikeCount) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SoMemDemoByLikeCount.Merge(m, src)
-}
-func (m *SoMemDemoByLikeCount) XXX_Size() int {
-	return xxx_messageInfo_SoMemDemoByLikeCount.Size(m)
-}
-func (m *SoMemDemoByLikeCount) XXX_DiscardUnknown() {
-	xxx_messageInfo_SoMemDemoByLikeCount.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_SoMemDemoByLikeCount proto.InternalMessageInfo
-
-func (m *SoMemDemoByLikeCount) GetLikeCount() int64 {
-	if m != nil {
-		return m.LikeCount
-	}
-	return 0
-}
-
-type SoMemDemoByIdx struct {
-	Idx                  int64    `protobuf:"varint,1,opt,name=idx,proto3" json:"idx,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *SoMemDemoByIdx) Reset()         { *m = SoMemDemoByIdx{} }
-func (m *SoMemDemoByIdx) String() string { return proto.CompactTextString(m) }
-func (*SoMemDemoByIdx) ProtoMessage()    {}
-func (*SoMemDemoByIdx) Descriptor() ([]byte, []int) {
-	return fileDescriptor_c9e5111d02436852, []int{5}
-}
-
-func (m *SoMemDemoByIdx) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_SoMemDemoByIdx.Unmarshal(m, b)
-}
-func (m *SoMemDemoByIdx) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_SoMemDemoByIdx.Marshal(b, m, deterministic)
-}
-func (m *SoMemDemoByIdx) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SoMemDemoByIdx.Merge(m, src)
-}
-func (m *SoMemDemoByIdx) XXX_Size() int {
-	return xxx_messageInfo_SoMemDemoByIdx.Size(m)
-}
-func (m *SoMemDemoByIdx) XXX_DiscardUnknown() {
-	xxx_messageInfo_SoMemDemoByIdx.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_SoMemDemoByIdx proto.InternalMessageInfo
-
-func (m *SoMemDemoByIdx) GetIdx() int64 {
-	if m != nil {
-		return m.Idx
-	}
-	return 0
-}
-
-type SoMemDemoByReplayCount struct {
-	ReplayCount          int64    `protobuf:"varint,1,opt,name=replay_count,json=replayCount,proto3" json:"replay_count,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *SoMemDemoByReplayCount) Reset()         { *m = SoMemDemoByReplayCount{} }
-func (m *SoMemDemoByReplayCount) String() string { return proto.CompactTextString(m) }
-func (*SoMemDemoByReplayCount) ProtoMessage()    {}
-func (*SoMemDemoByReplayCount) Descriptor() ([]byte, []int) {
-	return fileDescriptor_c9e5111d02436852, []int{6}
-}
-
-func (m *SoMemDemoByReplayCount) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_SoMemDemoByReplayCount.Unmarshal(m, b)
-}
-func (m *SoMemDemoByReplayCount) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_SoMemDemoByReplayCount.Marshal(b, m, deterministic)
-}
-func (m *SoMemDemoByReplayCount) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SoMemDemoByReplayCount.Merge(m, src)
-}
-func (m *SoMemDemoByReplayCount) XXX_Size() int {
-	return xxx_messageInfo_SoMemDemoByReplayCount.Size(m)
-}
-func (m *SoMemDemoByReplayCount) XXX_DiscardUnknown() {
-	xxx_messageInfo_SoMemDemoByReplayCount.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_SoMemDemoByReplayCount proto.InternalMessageInfo
-
-func (m *SoMemDemoByReplayCount) GetReplayCount() int64 {
-	if m != nil {
-		return m.ReplayCount
-	}
-	return 0
-}
-
-type SoMemDemoByContent struct {
-	Content              string   `protobuf:"bytes,1,opt,name=content,proto3" json:"content,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *SoMemDemoByContent) Reset()         { *m = SoMemDemoByContent{} }
-func (m *SoMemDemoByContent) String() string { return proto.CompactTextString(m) }
-func (*SoMemDemoByContent) ProtoMessage()    {}
-func (*SoMemDemoByContent) Descriptor() ([]byte, []int) {
-	return fileDescriptor_c9e5111d02436852, []int{7}
-}
-
-func (m *SoMemDemoByContent) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_SoMemDemoByContent.Unmarshal(m, b)
-}
-func (m *SoMemDemoByContent) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_SoMemDemoByContent.Marshal(b, m, deterministic)
-}
-func (m *SoMemDemoByContent) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SoMemDemoByContent.Merge(m, src)
-}
-func (m *SoMemDemoByContent) XXX_Size() int {
-	return xxx_messageInfo_SoMemDemoByContent.Size(m)
-}
-func (m *SoMemDemoByContent) XXX_DiscardUnknown() {
-	xxx_messageInfo_SoMemDemoByContent.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_SoMemDemoByContent proto.InternalMessageInfo
-
-func (m *SoMemDemoByContent) GetContent() string {
-	if m != nil {
-		return m.Content
-	}
-	return ""
-}
-
-type SoMemDemoByTaglist struct {
-	Taglist              []string `protobuf:"bytes,1,rep,name=taglist,proto3" json:"taglist,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *SoMemDemoByTaglist) Reset()         { *m = SoMemDemoByTaglist{} }
-func (m *SoMemDemoByTaglist) String() string { return proto.CompactTextString(m) }
-func (*SoMemDemoByTaglist) ProtoMessage()    {}
-func (*SoMemDemoByTaglist) Descriptor() ([]byte, []int) {
-	return fileDescriptor_c9e5111d02436852, []int{8}
-}
-
-func (m *SoMemDemoByTaglist) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_SoMemDemoByTaglist.Unmarshal(m, b)
-}
-func (m *SoMemDemoByTaglist) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_SoMemDemoByTaglist.Marshal(b, m, deterministic)
-}
-func (m *SoMemDemoByTaglist) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SoMemDemoByTaglist.Merge(m, src)
-}
-func (m *SoMemDemoByTaglist) XXX_Size() int {
-	return xxx_messageInfo_SoMemDemoByTaglist.Size(m)
-}
-func (m *SoMemDemoByTaglist) XXX_DiscardUnknown() {
-	xxx_messageInfo_SoMemDemoByTaglist.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_SoMemDemoByTaglist proto.InternalMessageInfo
-
-func (m *SoMemDemoByTaglist) GetTaglist() []string {
-	if m != nil {
-		return m.Taglist
+		return m.RegistTime
 	}
 	return nil
 }
@@ -439,7 +143,7 @@ func (m *SoListDemoByOwner) Reset()         { *m = SoListDemoByOwner{} }
 func (m *SoListDemoByOwner) String() string { return proto.CompactTextString(m) }
 func (*SoListDemoByOwner) ProtoMessage()    {}
 func (*SoListDemoByOwner) Descriptor() ([]byte, []int) {
-	return fileDescriptor_c9e5111d02436852, []int{9}
+	return fileDescriptor_c9e5111d02436852, []int{1}
 }
 
 func (m *SoListDemoByOwner) XXX_Unmarshal(b []byte) error {
@@ -479,7 +183,7 @@ func (m *SoListDemoByPostTime) Reset()         { *m = SoListDemoByPostTime{} }
 func (m *SoListDemoByPostTime) String() string { return proto.CompactTextString(m) }
 func (*SoListDemoByPostTime) ProtoMessage()    {}
 func (*SoListDemoByPostTime) Descriptor() ([]byte, []int) {
-	return fileDescriptor_c9e5111d02436852, []int{10}
+	return fileDescriptor_c9e5111d02436852, []int{2}
 }
 
 func (m *SoListDemoByPostTime) XXX_Unmarshal(b []byte) error {
@@ -526,7 +230,7 @@ func (m *SoListDemoByLikeCount) Reset()         { *m = SoListDemoByLikeCount{} }
 func (m *SoListDemoByLikeCount) String() string { return proto.CompactTextString(m) }
 func (*SoListDemoByLikeCount) ProtoMessage()    {}
 func (*SoListDemoByLikeCount) Descriptor() ([]byte, []int) {
-	return fileDescriptor_c9e5111d02436852, []int{11}
+	return fileDescriptor_c9e5111d02436852, []int{3}
 }
 
 func (m *SoListDemoByLikeCount) XXX_Unmarshal(b []byte) error {
@@ -573,7 +277,7 @@ func (m *SoListDemoByIdx) Reset()         { *m = SoListDemoByIdx{} }
 func (m *SoListDemoByIdx) String() string { return proto.CompactTextString(m) }
 func (*SoListDemoByIdx) ProtoMessage()    {}
 func (*SoListDemoByIdx) Descriptor() ([]byte, []int) {
-	return fileDescriptor_c9e5111d02436852, []int{12}
+	return fileDescriptor_c9e5111d02436852, []int{4}
 }
 
 func (m *SoListDemoByIdx) XXX_Unmarshal(b []byte) error {
@@ -620,7 +324,7 @@ func (m *SoListDemoByReplayCount) Reset()         { *m = SoListDemoByReplayCount
 func (m *SoListDemoByReplayCount) String() string { return proto.CompactTextString(m) }
 func (*SoListDemoByReplayCount) ProtoMessage()    {}
 func (*SoListDemoByReplayCount) Descriptor() ([]byte, []int) {
-	return fileDescriptor_c9e5111d02436852, []int{13}
+	return fileDescriptor_c9e5111d02436852, []int{5}
 }
 
 func (m *SoListDemoByReplayCount) XXX_Unmarshal(b []byte) error {
@@ -667,7 +371,7 @@ func (m *SoListDemoByTaglist) Reset()         { *m = SoListDemoByTaglist{} }
 func (m *SoListDemoByTaglist) String() string { return proto.CompactTextString(m) }
 func (*SoListDemoByTaglist) ProtoMessage()    {}
 func (*SoListDemoByTaglist) Descriptor() ([]byte, []int) {
-	return fileDescriptor_c9e5111d02436852, []int{14}
+	return fileDescriptor_c9e5111d02436852, []int{6}
 }
 
 func (m *SoListDemoByTaglist) XXX_Unmarshal(b []byte) error {
@@ -713,7 +417,7 @@ func (m *SoUniqueDemoByOwner) Reset()         { *m = SoUniqueDemoByOwner{} }
 func (m *SoUniqueDemoByOwner) String() string { return proto.CompactTextString(m) }
 func (*SoUniqueDemoByOwner) ProtoMessage()    {}
 func (*SoUniqueDemoByOwner) Descriptor() ([]byte, []int) {
-	return fileDescriptor_c9e5111d02436852, []int{15}
+	return fileDescriptor_c9e5111d02436852, []int{7}
 }
 
 func (m *SoUniqueDemoByOwner) XXX_Unmarshal(b []byte) error {
@@ -753,7 +457,7 @@ func (m *SoUniqueDemoByLikeCount) Reset()         { *m = SoUniqueDemoByLikeCount
 func (m *SoUniqueDemoByLikeCount) String() string { return proto.CompactTextString(m) }
 func (*SoUniqueDemoByLikeCount) ProtoMessage()    {}
 func (*SoUniqueDemoByLikeCount) Descriptor() ([]byte, []int) {
-	return fileDescriptor_c9e5111d02436852, []int{16}
+	return fileDescriptor_c9e5111d02436852, []int{8}
 }
 
 func (m *SoUniqueDemoByLikeCount) XXX_Unmarshal(b []byte) error {
@@ -800,7 +504,7 @@ func (m *SoUniqueDemoByIdx) Reset()         { *m = SoUniqueDemoByIdx{} }
 func (m *SoUniqueDemoByIdx) String() string { return proto.CompactTextString(m) }
 func (*SoUniqueDemoByIdx) ProtoMessage()    {}
 func (*SoUniqueDemoByIdx) Descriptor() ([]byte, []int) {
-	return fileDescriptor_c9e5111d02436852, []int{17}
+	return fileDescriptor_c9e5111d02436852, []int{9}
 }
 
 func (m *SoUniqueDemoByIdx) XXX_Unmarshal(b []byte) error {
@@ -835,16 +539,55 @@ func (m *SoUniqueDemoByIdx) GetOwner() *prototype.AccountName {
 	return nil
 }
 
+type SoUniqueDemoByNickName struct {
+	NickName             *prototype.AccountName `protobuf:"bytes,1,opt,name=nick_name,json=nickName,proto3" json:"nick_name,omitempty"`
+	Owner                *prototype.AccountName `protobuf:"bytes,2,opt,name=owner,proto3" json:"owner,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}               `json:"-"`
+	XXX_unrecognized     []byte                 `json:"-"`
+	XXX_sizecache        int32                  `json:"-"`
+}
+
+func (m *SoUniqueDemoByNickName) Reset()         { *m = SoUniqueDemoByNickName{} }
+func (m *SoUniqueDemoByNickName) String() string { return proto.CompactTextString(m) }
+func (*SoUniqueDemoByNickName) ProtoMessage()    {}
+func (*SoUniqueDemoByNickName) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c9e5111d02436852, []int{10}
+}
+
+func (m *SoUniqueDemoByNickName) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SoUniqueDemoByNickName.Unmarshal(m, b)
+}
+func (m *SoUniqueDemoByNickName) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SoUniqueDemoByNickName.Marshal(b, m, deterministic)
+}
+func (m *SoUniqueDemoByNickName) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SoUniqueDemoByNickName.Merge(m, src)
+}
+func (m *SoUniqueDemoByNickName) XXX_Size() int {
+	return xxx_messageInfo_SoUniqueDemoByNickName.Size(m)
+}
+func (m *SoUniqueDemoByNickName) XXX_DiscardUnknown() {
+	xxx_messageInfo_SoUniqueDemoByNickName.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SoUniqueDemoByNickName proto.InternalMessageInfo
+
+func (m *SoUniqueDemoByNickName) GetNickName() *prototype.AccountName {
+	if m != nil {
+		return m.NickName
+	}
+	return nil
+}
+
+func (m *SoUniqueDemoByNickName) GetOwner() *prototype.AccountName {
+	if m != nil {
+		return m.Owner
+	}
+	return nil
+}
+
 func init() {
 	proto.RegisterType((*SoDemo)(nil), "table.so_demo")
-	proto.RegisterType((*SoMemDemoByOwner)(nil), "table.so_mem_demo_by_owner")
-	proto.RegisterType((*SoMemDemoByPostTime)(nil), "table.so_mem_demo_by_post_time")
-	proto.RegisterType((*SoMemDemoByTitle)(nil), "table.so_mem_demo_by_title")
-	proto.RegisterType((*SoMemDemoByLikeCount)(nil), "table.so_mem_demo_by_like_count")
-	proto.RegisterType((*SoMemDemoByIdx)(nil), "table.so_mem_demo_by_idx")
-	proto.RegisterType((*SoMemDemoByReplayCount)(nil), "table.so_mem_demo_by_replay_count")
-	proto.RegisterType((*SoMemDemoByContent)(nil), "table.so_mem_demo_by_content")
-	proto.RegisterType((*SoMemDemoByTaglist)(nil), "table.so_mem_demo_by_taglist")
 	proto.RegisterType((*SoListDemoByOwner)(nil), "table.so_list_demo_by_owner")
 	proto.RegisterType((*SoListDemoByPostTime)(nil), "table.so_list_demo_by_post_time")
 	proto.RegisterType((*SoListDemoByLikeCount)(nil), "table.so_list_demo_by_like_count")
@@ -854,41 +597,40 @@ func init() {
 	proto.RegisterType((*SoUniqueDemoByOwner)(nil), "table.so_unique_demo_by_owner")
 	proto.RegisterType((*SoUniqueDemoByLikeCount)(nil), "table.so_unique_demo_by_like_count")
 	proto.RegisterType((*SoUniqueDemoByIdx)(nil), "table.so_unique_demo_by_idx")
+	proto.RegisterType((*SoUniqueDemoByNickName)(nil), "table.so_unique_demo_by_nick_name")
 }
 
 func init() { proto.RegisterFile("app/table/so_demo.proto", fileDescriptor_c9e5111d02436852) }
 
 var fileDescriptor_c9e5111d02436852 = []byte{
-	// 481 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x95, 0x41, 0x6f, 0xd3, 0x30,
-	0x14, 0xc7, 0xe5, 0x96, 0xae, 0xeb, 0x1b, 0x07, 0x64, 0x0a, 0xf5, 0x06, 0x48, 0xc5, 0x07, 0x54,
-	0xa1, 0xad, 0x91, 0x86, 0xc4, 0x81, 0x13, 0x02, 0x81, 0x38, 0x47, 0x08, 0x21, 0x2e, 0x56, 0x92,
-	0x59, 0x9d, 0x21, 0xb1, 0x4d, 0xed, 0x08, 0x7a, 0xe5, 0x03, 0xf0, 0x99, 0x91, 0x9d, 0x2c, 0x4b,
-	0xdc, 0x4a, 0x34, 0x2a, 0x5c, 0xaa, 0xf8, 0xf9, 0xbd, 0xf7, 0x7f, 0xfd, 0xff, 0x5e, 0x14, 0x98,
-	0x25, 0x5a, 0x47, 0x36, 0x49, 0x73, 0x1e, 0x19, 0xc5, 0xae, 0x78, 0xa1, 0x96, 0x7a, 0xad, 0xac,
-	0xc2, 0x23, 0x1f, 0x3c, 0x9b, 0xfa, 0x93, 0xdd, 0x68, 0x1e, 0xb9, 0x9f, 0xea, 0x92, 0xfe, 0x1e,
-	0xc0, 0xb8, 0x4e, 0xc7, 0x17, 0x30, 0x52, 0x3f, 0x24, 0x5f, 0x13, 0x34, 0x47, 0x8b, 0x93, 0xcb,
-	0xd9, 0xb2, 0xa9, 0x58, 0x26, 0x59, 0xa6, 0x4a, 0x69, 0x99, 0x4c, 0x0a, 0x1e, 0x57, 0x59, 0xf8,
-	0x25, 0x4c, 0xb4, 0x32, 0x96, 0x59, 0x51, 0x70, 0x32, 0xf0, 0x25, 0xa7, 0xad, 0x12, 0x17, 0x66,
-	0x5a, 0x09, 0x69, 0x99, 0xe1, 0x59, 0x7c, 0xec, 0x72, 0x3f, 0x8a, 0x82, 0xe3, 0x29, 0x8c, 0xac,
-	0xb0, 0x39, 0x27, 0xc3, 0x39, 0x5a, 0x4c, 0xe2, 0xea, 0x80, 0x9f, 0x00, 0xe4, 0xe2, 0x1b, 0x67,
-	0x5e, 0x87, 0xdc, 0x99, 0xa3, 0xc5, 0x30, 0x9e, 0xb8, 0xc8, 0x5b, 0x17, 0xc0, 0xf7, 0x60, 0x28,
-	0xae, 0x7e, 0x92, 0x91, 0x8f, 0xbb, 0x47, 0xfc, 0x14, 0xee, 0xae, 0xb9, 0xce, 0x93, 0x4d, 0x5d,
-	0x72, 0xe4, 0xaf, 0x4e, 0xaa, 0x58, 0x55, 0x44, 0x60, 0x9c, 0x29, 0x69, 0xb9, 0xb4, 0x64, 0xec,
-	0xb5, 0x6e, 0x8e, 0xee, 0xc6, 0x26, 0xab, 0x5c, 0x18, 0x4b, 0x8e, 0xe7, 0x43, 0x77, 0x53, 0x1f,
-	0xe9, 0x3b, 0x98, 0x1a, 0xc5, 0x0a, 0x5e, 0x78, 0x4f, 0x58, 0xba, 0x61, 0xd5, 0xbf, 0xed, 0x67,
-	0x0e, 0x8d, 0x81, 0x04, 0x6d, 0x1a, 0xaf, 0xba, 0xc6, 0xa1, 0xbd, 0x8d, 0xa3, 0xe7, 0x5b, 0xa3,
-	0x55, 0xd6, 0x35, 0x86, 0xa2, 0x96, 0xa1, 0xf4, 0x15, 0x9c, 0x06, 0xd9, 0xb7, 0xfe, 0x06, 0x6e,
-	0xa3, 0xc0, 0x6d, 0xfa, 0x0c, 0x70, 0x50, 0xeb, 0x1c, 0xaf, 0x19, 0xa0, 0x86, 0x01, 0x7d, 0x0d,
-	0x8f, 0x82, 0xbc, 0x36, 0x92, 0x2d, 0x44, 0x68, 0x0b, 0x11, 0xbd, 0x84, 0x87, 0x41, 0x87, 0x16,
-	0xa2, 0x1b, 0x78, 0xa8, 0x03, 0x6f, 0x47, 0x4d, 0x0d, 0xaf, 0x8d, 0x15, 0x75, 0xb1, 0xbe, 0x87,
-	0x07, 0x46, 0x31, 0xf7, 0x78, 0x18, 0xd7, 0x5f, 0xc8, 0xdb, 0xda, 0x69, 0x74, 0x30, 0xd9, 0xdb,
-	0x21, 0x06, 0x7b, 0x0d, 0xf1, 0x15, 0xce, 0xc2, 0x19, 0xf6, 0x66, 0xdb, 0x57, 0xeb, 0x13, 0xdc,
-	0x0f, 0xb5, 0x76, 0xee, 0x42, 0xdf, 0xbe, 0x1a, 0x1e, 0x87, 0x7d, 0x7b, 0xee, 0x4e, 0x5f, 0xc5,
-	0x14, 0x66, 0xa1, 0xe2, 0x5f, 0xf7, 0xa6, 0xaf, 0xc6, 0x07, 0xaf, 0x51, 0x4a, 0xf1, 0xbd, 0xe4,
-	0x87, 0x2d, 0x5a, 0xee, 0xfd, 0x09, 0x3a, 0xfd, 0x37, 0xca, 0x9f, 0xfd, 0xeb, 0x11, 0xa8, 0xfd,
-	0x0b, 0xce, 0x6f, 0xce, 0xbf, 0x3c, 0x5f, 0x09, 0x7b, 0x5d, 0xa6, 0xcb, 0x4c, 0x15, 0x51, 0xa6,
-	0x4c, 0x76, 0x9d, 0x08, 0x19, 0xd5, 0xef, 0xb2, 0x32, 0x17, 0x2b, 0x15, 0x35, 0x5f, 0xae, 0xf4,
-	0xc8, 0x37, 0x7b, 0xf1, 0x27, 0x00, 0x00, 0xff, 0xff, 0xb1, 0x88, 0x6c, 0x01, 0xcd, 0x06, 0x00,
-	0x00,
+	// 461 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x54, 0xcf, 0x8b, 0xd3, 0x40,
+	0x14, 0x66, 0x36, 0x76, 0xdb, 0xbc, 0x7a, 0x90, 0x71, 0xa5, 0xb3, 0xab, 0x42, 0xed, 0xa9, 0x88,
+	0xdb, 0x80, 0x8a, 0x07, 0x8f, 0x0a, 0xe2, 0xc9, 0x43, 0x10, 0x11, 0x2f, 0xc3, 0x64, 0x76, 0xc8,
+	0x8e, 0x9b, 0xcc, 0x8c, 0xc9, 0x04, 0xed, 0x4d, 0xf6, 0x2f, 0x97, 0x99, 0xa4, 0x69, 0x3b, 0x05,
+	0x6d, 0x50, 0x2f, 0xa5, 0xef, 0xe7, 0xf7, 0xf2, 0xbe, 0x6f, 0x1e, 0xcc, 0x98, 0x31, 0x89, 0x65,
+	0x59, 0x21, 0x92, 0x5a, 0xd3, 0x2b, 0x51, 0xea, 0x95, 0xa9, 0xb4, 0xd5, 0x78, 0xe4, 0x9d, 0x17,
+	0x67, 0xde, 0xb2, 0x6b, 0x23, 0x12, 0xf7, 0xd3, 0x06, 0x17, 0x3f, 0x23, 0x18, 0x77, 0xe9, 0xf8,
+	0x12, 0x46, 0xfa, 0xbb, 0x12, 0x15, 0x41, 0x73, 0xb4, 0x9c, 0x3e, 0x9f, 0xad, 0xfa, 0x8a, 0x15,
+	0xe3, 0x5c, 0x37, 0xca, 0x52, 0xc5, 0x4a, 0x91, 0xb6, 0x59, 0xf8, 0x15, 0xc4, 0x46, 0xd7, 0x96,
+	0x5a, 0x59, 0x0a, 0x72, 0xe2, 0x4b, 0xce, 0x77, 0x4a, 0x9c, 0x9b, 0x1a, 0x2d, 0x95, 0xa5, 0xb5,
+	0xe0, 0xe9, 0xc4, 0xe5, 0x7e, 0x94, 0xa5, 0xc0, 0x67, 0x30, 0xb2, 0xd2, 0x16, 0x82, 0x44, 0x73,
+	0xb4, 0x8c, 0xd3, 0xd6, 0xc0, 0x8f, 0x01, 0x0a, 0x79, 0x23, 0xa8, 0xc7, 0x21, 0x77, 0xe6, 0x68,
+	0x19, 0xa5, 0xb1, 0xf3, 0xbc, 0x75, 0x0e, 0x7c, 0x0f, 0x22, 0x79, 0xf5, 0x83, 0x8c, 0xbc, 0xdf,
+	0xfd, 0xc5, 0x4f, 0xe0, 0x6e, 0x25, 0x4c, 0xc1, 0xd6, 0x5d, 0xc9, 0xa9, 0x0f, 0x4d, 0x5b, 0x5f,
+	0x5b, 0x44, 0x60, 0xcc, 0xb5, 0xb2, 0x42, 0x59, 0x32, 0xf6, 0x58, 0x1b, 0xd3, 0x45, 0x2c, 0xcb,
+	0x0b, 0x59, 0x5b, 0x32, 0x99, 0x47, 0x2e, 0xd2, 0x99, 0xf8, 0x25, 0xc4, 0x4a, 0xf2, 0x1b, 0xff,
+	0xa5, 0x24, 0xfe, 0xfd, 0x22, 0x26, 0x2e, 0xf3, 0x03, 0x2b, 0x05, 0x7e, 0x0d, 0xd3, 0x4a, 0xe4,
+	0x72, 0xb3, 0x0d, 0xf8, 0xd3, 0x36, 0xa0, 0xcd, 0x76, 0xfb, 0x58, 0xbc, 0x83, 0x07, 0xb5, 0xa6,
+	0x0e, 0xdc, 0xd3, 0x40, 0xb3, 0x35, 0x6d, 0x17, 0x3c, 0x8c, 0x8f, 0xc5, 0x2d, 0x82, 0xf3, 0xb0,
+	0x51, 0x4f, 0xd0, 0x3e, 0x5b, 0xe8, 0x78, 0xb6, 0xfa, 0x21, 0x4e, 0x8e, 0x1a, 0xe2, 0x2b, 0x5c,
+	0x84, 0x33, 0x6c, 0x69, 0x0d, 0x48, 0x46, 0x21, 0xc9, 0x03, 0xb1, 0x3e, 0xc1, 0xfd, 0x10, 0xcb,
+	0x09, 0xa3, 0x93, 0x0a, 0xda, 0x4a, 0x65, 0x60, 0x5f, 0x03, 0x8f, 0xc2, 0xbe, 0xbb, 0x4a, 0x3b,
+	0x50, 0x1e, 0x3a, 0x54, 0xde, 0x40, 0xc4, 0x0c, 0x66, 0x21, 0xe2, 0x46, 0x8f, 0x3b, 0x4a, 0x45,
+	0xfb, 0x4a, 0x1d, 0x88, 0xf1, 0xde, 0x63, 0x34, 0x4a, 0x7e, 0x6b, 0xc4, 0xdf, 0x09, 0xad, 0xf0,
+	0xfb, 0x09, 0x3a, 0xfd, 0x37, 0x96, 0x3f, 0xfb, 0xe7, 0x11, 0xa0, 0xfd, 0x13, 0x9e, 0x6f, 0x11,
+	0x3c, 0x3c, 0x6c, 0xdd, 0xbf, 0xfe, 0xfd, 0x53, 0x80, 0x8e, 0x3d, 0x05, 0xc3, 0x86, 0x78, 0xf3,
+	0xec, 0xcb, 0xd3, 0x5c, 0xda, 0xeb, 0x26, 0x5b, 0x71, 0x5d, 0x26, 0x5c, 0xd7, 0xfc, 0x9a, 0x49,
+	0x95, 0x74, 0x87, 0x4a, 0xd7, 0x97, 0xb9, 0x4e, 0xfa, 0xcb, 0x9e, 0x9d, 0xfa, 0x66, 0x2f, 0x7e,
+	0x05, 0x00, 0x00, 0xff, 0xff, 0x7b, 0x1b, 0x56, 0x53, 0xed, 0x05, 0x00, 0x00,
 }

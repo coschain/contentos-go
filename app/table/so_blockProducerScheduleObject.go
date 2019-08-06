@@ -4,7 +4,6 @@ import (
 	"errors"
 	fmt "fmt"
 	"reflect"
-	"strings"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -14,26 +13,26 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	BlockProducerScheduleObjectIdUniTable                       uint32 = 1798653281
-	BlockProducerScheduleObjectCurrentShuffledBlockProducerCell uint32 = 3160089807
-	BlockProducerScheduleObjectIdCell                           uint32 = 1857477157
-	BlockProducerScheduleObjectPubKeyCell                       uint32 = 562239348
+	BlockProducerScheduleObjectIdUniTable uint32 = 1798653281
+
+	BlockProducerScheduleObjectIdRow uint32 = 3218627324
 )
 
 ////////////// SECTION Wrap Define ///////////////
 type SoBlockProducerScheduleObjectWrap struct {
-	dba      iservices.IDatabaseRW
-	mainKey  *int32
-	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf  []byte //the buffer after the main key is encoded with prefix
-	mBuf     []byte //the value after the main key is encoded
+	dba       iservices.IDatabaseRW
+	mainKey   *int32
+	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
+	mBuf      []byte //the value after the main key is encoded
+	mdFuncMap map[string]interface{}
 }
 
 func NewSoBlockProducerScheduleObjectWrap(dba iservices.IDatabaseRW, key *int32) *SoBlockProducerScheduleObjectWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoBlockProducerScheduleObjectWrap{dba, key, -1, nil, nil}
+	result := &SoBlockProducerScheduleObjectWrap{dba, key, -1, nil, nil, nil}
 	return result
 }
 
@@ -82,9 +81,13 @@ func (s *SoBlockProducerScheduleObjectWrap) Create(f func(tInfo *SoBlockProducer
 		return err
 
 	}
-	err = s.saveAllMemKeys(val, true)
+
+	buf, err := proto.Marshal(val)
 	if err != nil {
-		s.delAllMemKeys(false, val)
+		return err
+	}
+	err = s.dba.Put(keyBuf, buf)
+	if err != nil {
 		return err
 	}
 
@@ -92,7 +95,6 @@ func (s *SoBlockProducerScheduleObjectWrap) Create(f func(tInfo *SoBlockProducer
 	if err = s.insertAllSortKeys(val); err != nil {
 		s.delAllSortKeys(false, val)
 		s.dba.Delete(keyBuf)
-		s.delAllMemKeys(false, val)
 		return err
 	}
 
@@ -101,10 +103,10 @@ func (s *SoBlockProducerScheduleObjectWrap) Create(f func(tInfo *SoBlockProducer
 		s.delAllSortKeys(false, val)
 		s.delUniKeysWithNames(sucNames, val)
 		s.dba.Delete(keyBuf)
-		s.delAllMemKeys(false, val)
 		return err
 	}
 
+	s.mKeyFlag = 1
 	return nil
 }
 
@@ -120,6 +122,160 @@ func (s *SoBlockProducerScheduleObjectWrap) getMainKeyBuf() ([]byte, error) {
 		}
 	}
 	return s.mBuf, nil
+}
+
+func (s *SoBlockProducerScheduleObjectWrap) Modify(f func(tInfo *SoBlockProducerScheduleObject)) error {
+	if !s.CheckExist() {
+		return errors.New("the SoBlockProducerScheduleObject table does not exist. Please create a table first")
+	}
+	oriTable := s.getBlockProducerScheduleObject()
+	if oriTable == nil {
+		return errors.New("fail to get origin table SoBlockProducerScheduleObject")
+	}
+	curTable := *oriTable
+	f(&curTable)
+
+	//the main key is not support modify
+	if !reflect.DeepEqual(curTable.Id, oriTable.Id) {
+		return errors.New("primary key does not support modification")
+	}
+
+	fieldSli, err := s.getModifiedFields(oriTable, &curTable)
+	if err != nil {
+		return err
+	}
+
+	if fieldSli == nil || len(fieldSli) < 1 {
+		return nil
+	}
+
+	//check whether modify sort and unique field to nil
+	err = s.checkSortAndUniFieldValidity(&curTable, fieldSli)
+	if err != nil {
+		return err
+	}
+
+	//check unique
+	err = s.handleFieldMd(FieldMdHandleTypeCheck, &curTable, fieldSli)
+	if err != nil {
+		return err
+	}
+
+	//delete sort and unique key
+	err = s.handleFieldMd(FieldMdHandleTypeDel, oriTable, fieldSli)
+	if err != nil {
+		return err
+	}
+
+	//update table
+	err = s.updateBlockProducerScheduleObject(&curTable)
+	if err != nil {
+		return err
+	}
+
+	//insert sort and unique key
+	err = s.handleFieldMd(FieldMdHandleTypeInsert, &curTable, fieldSli)
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+func (s *SoBlockProducerScheduleObjectWrap) MdCurrentShuffledBlockProducer(p []string) bool {
+	err := s.Modify(func(r *SoBlockProducerScheduleObject) {
+		r.CurrentShuffledBlockProducer = p
+	})
+	return err == nil
+}
+
+func (s *SoBlockProducerScheduleObjectWrap) MdPubKey(p []*prototype.PublicKeyType) bool {
+	err := s.Modify(func(r *SoBlockProducerScheduleObject) {
+		r.PubKey = p
+	})
+	return err == nil
+}
+
+func (s *SoBlockProducerScheduleObjectWrap) checkSortAndUniFieldValidity(curTable *SoBlockProducerScheduleObject, fieldSli []string) error {
+	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
+		for _, fName := range fieldSli {
+			if len(fName) > 0 {
+
+			}
+		}
+	}
+	return nil
+}
+
+//Get all the modified fields in the table
+func (s *SoBlockProducerScheduleObjectWrap) getModifiedFields(oriTable *SoBlockProducerScheduleObject, curTable *SoBlockProducerScheduleObject) ([]string, error) {
+	if oriTable == nil {
+		return nil, errors.New("table info is nil, can't get modified fields")
+	}
+	var list []string
+
+	if !reflect.DeepEqual(oriTable.CurrentShuffledBlockProducer, curTable.CurrentShuffledBlockProducer) {
+		list = append(list, "CurrentShuffledBlockProducer")
+	}
+
+	if !reflect.DeepEqual(oriTable.PubKey, curTable.PubKey) {
+		list = append(list, "PubKey")
+	}
+
+	return list, nil
+}
+
+func (s *SoBlockProducerScheduleObjectWrap) handleFieldMd(t FieldMdHandleType, so *SoBlockProducerScheduleObject, fSli []string) error {
+	if so == nil {
+		return errors.New("fail to modify empty table")
+	}
+
+	//there is no field need to modify
+	if fSli == nil || len(fSli) < 1 {
+		return nil
+	}
+
+	errStr := ""
+	for _, fName := range fSli {
+
+		if fName == "CurrentShuffledBlockProducer" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldCurrentShuffledBlockProducer(so.CurrentShuffledBlockProducer, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldCurrentShuffledBlockProducer(so.CurrentShuffledBlockProducer, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldCurrentShuffledBlockProducer(so.CurrentShuffledBlockProducer, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "PubKey" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldPubKey(so.PubKey, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldPubKey(so.PubKey, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldPubKey(so.PubKey, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+	}
+
+	return nil
 }
 
 ////////////// SECTION LKeys delete/insert ///////////////
@@ -150,7 +306,6 @@ func (s *SoBlockProducerScheduleObjectWrap) RemoveBlockProducerScheduleObject() 
 	if s.dba == nil {
 		return false
 	}
-	val := &SoBlockProducerScheduleObject{}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
 		return false
@@ -161,7 +316,12 @@ func (s *SoBlockProducerScheduleObjectWrap) RemoveBlockProducerScheduleObject() 
 		return false
 	}
 
-	err := s.delAllMemKeys(true, val)
+	//delete table
+	key, err := s.encodeMainKey()
+	if err != nil {
+		return false
+	}
+	err = s.dba.Delete(key)
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
@@ -172,144 +332,14 @@ func (s *SoBlockProducerScheduleObjectWrap) RemoveBlockProducerScheduleObject() 
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
-func (s *SoBlockProducerScheduleObjectWrap) getMemKeyPrefix(fName string) uint32 {
-	if fName == "CurrentShuffledBlockProducer" {
-		return BlockProducerScheduleObjectCurrentShuffledBlockProducerCell
-	}
-	if fName == "Id" {
-		return BlockProducerScheduleObjectIdCell
-	}
-	if fName == "PubKey" {
-		return BlockProducerScheduleObjectPubKeyCell
-	}
-
-	return 0
-}
-
-func (s *SoBlockProducerScheduleObjectWrap) encodeMemKey(fName string) ([]byte, error) {
-	if len(fName) < 1 || s.mainKey == nil {
-		return nil, errors.New("field name or main key is empty")
-	}
-	pre := s.getMemKeyPrefix(fName)
-	preBuf, err := kope.Encode(pre)
-	if err != nil {
-		return nil, err
-	}
-	mBuf, err := s.getMainKeyBuf()
-	if err != nil {
-		return nil, err
-	}
-	list := make([][]byte, 2)
-	list[0] = preBuf
-	list[1] = mBuf
-	return kope.PackList(list), nil
-}
-
-func (s *SoBlockProducerScheduleObjectWrap) saveAllMemKeys(tInfo *SoBlockProducerScheduleObject, br bool) error {
-	if s.dba == nil {
-		return errors.New("save member Field fail , the db is nil")
-	}
-
-	if tInfo == nil {
-		return errors.New("save member Field fail , the data is nil ")
-	}
-	var err error = nil
-	errDes := ""
-	if err = s.saveMemKeyCurrentShuffledBlockProducer(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "CurrentShuffledBlockProducer", err)
-		}
-	}
-	if err = s.saveMemKeyId(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Id", err)
-		}
-	}
-	if err = s.saveMemKeyPubKey(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "PubKey", err)
-		}
-	}
-
-	if len(errDes) > 0 {
-		return errors.New(errDes)
-	}
-	return err
-}
-
-func (s *SoBlockProducerScheduleObjectWrap) delAllMemKeys(br bool, tInfo *SoBlockProducerScheduleObject) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	t := reflect.TypeOf(*tInfo)
-	errDesc := ""
-	for k := 0; k < t.NumField(); k++ {
-		name := t.Field(k).Name
-		if len(name) > 0 && !strings.HasPrefix(name, "XXX_") {
-			err := s.delMemKey(name)
-			if err != nil {
-				if br {
-					return err
-				}
-				errDesc += fmt.Sprintf("delete the Field %s fail,error is %s;\n", name, err)
-			}
-		}
-	}
-	if len(errDesc) > 0 {
-		return errors.New(errDesc)
-	}
-	return nil
-}
-
-func (s *SoBlockProducerScheduleObjectWrap) delMemKey(fName string) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if len(fName) <= 0 {
-		return errors.New("the field name is empty ")
-	}
-	key, err := s.encodeMemKey(fName)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Delete(key)
-	return err
-}
-
-func (s *SoBlockProducerScheduleObjectWrap) saveMemKeyCurrentShuffledBlockProducer(tInfo *SoBlockProducerScheduleObject) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemBlockProducerScheduleObjectByCurrentShuffledBlockProducer{}
-	val.CurrentShuffledBlockProducer = tInfo.CurrentShuffledBlockProducer
-	key, err := s.encodeMemKey("CurrentShuffledBlockProducer")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
 
 func (s *SoBlockProducerScheduleObjectWrap) GetCurrentShuffledBlockProducer() []string {
 	res := true
-	msg := &SoMemBlockProducerScheduleObjectByCurrentShuffledBlockProducer{}
+	msg := &SoBlockProducerScheduleObject{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("CurrentShuffledBlockProducer")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -332,66 +362,66 @@ func (s *SoBlockProducerScheduleObjectWrap) GetCurrentShuffledBlockProducer() []
 	return msg.CurrentShuffledBlockProducer
 }
 
-func (s *SoBlockProducerScheduleObjectWrap) MdCurrentShuffledBlockProducer(p []string) bool {
+func (s *SoBlockProducerScheduleObjectWrap) mdFieldCurrentShuffledBlockProducer(p []string, isCheck bool, isDel bool, isInsert bool,
+	so *SoBlockProducerScheduleObject) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("CurrentShuffledBlockProducer")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemBlockProducerScheduleObjectByCurrentShuffledBlockProducer{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoBlockProducerScheduleObject{}
-	sa.Id = *s.mainKey
-	sa.CurrentShuffledBlockProducer = ori.CurrentShuffledBlockProducer
 
-	ori.CurrentShuffledBlockProducer = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isCheck {
+		res := s.checkCurrentShuffledBlockProducerIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
+
+	if isDel {
+		res := s.delFieldCurrentShuffledBlockProducer(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldCurrentShuffledBlockProducer(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoBlockProducerScheduleObjectWrap) delFieldCurrentShuffledBlockProducer(so *SoBlockProducerScheduleObject) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.CurrentShuffledBlockProducer = p
 
 	return true
 }
 
-func (s *SoBlockProducerScheduleObjectWrap) saveMemKeyId(tInfo *SoBlockProducerScheduleObject) error {
+func (s *SoBlockProducerScheduleObjectWrap) insertFieldCurrentShuffledBlockProducer(so *SoBlockProducerScheduleObject) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoBlockProducerScheduleObjectWrap) checkCurrentShuffledBlockProducerIsMetMdCondition(p []string) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemBlockProducerScheduleObjectById{}
-	val.Id = tInfo.Id
-	key, err := s.encodeMemKey("Id")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoBlockProducerScheduleObjectWrap) GetId() int32 {
 	res := true
-	msg := &SoMemBlockProducerScheduleObjectById{}
+	msg := &SoBlockProducerScheduleObject{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Id")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -414,34 +444,13 @@ func (s *SoBlockProducerScheduleObjectWrap) GetId() int32 {
 	return msg.Id
 }
 
-func (s *SoBlockProducerScheduleObjectWrap) saveMemKeyPubKey(tInfo *SoBlockProducerScheduleObject) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemBlockProducerScheduleObjectByPubKey{}
-	val.PubKey = tInfo.PubKey
-	key, err := s.encodeMemKey("PubKey")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
-
 func (s *SoBlockProducerScheduleObjectWrap) GetPubKey() []*prototype.PublicKeyType {
 	res := true
-	msg := &SoMemBlockProducerScheduleObjectByPubKey{}
+	msg := &SoBlockProducerScheduleObject{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("PubKey")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -464,34 +473,55 @@ func (s *SoBlockProducerScheduleObjectWrap) GetPubKey() []*prototype.PublicKeyTy
 	return msg.PubKey
 }
 
-func (s *SoBlockProducerScheduleObjectWrap) MdPubKey(p []*prototype.PublicKeyType) bool {
+func (s *SoBlockProducerScheduleObjectWrap) mdFieldPubKey(p []*prototype.PublicKeyType, isCheck bool, isDel bool, isInsert bool,
+	so *SoBlockProducerScheduleObject) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("PubKey")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemBlockProducerScheduleObjectByPubKey{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoBlockProducerScheduleObject{}
-	sa.Id = *s.mainKey
-	sa.PubKey = ori.PubKey
 
-	ori.PubKey = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isCheck {
+		res := s.checkPubKeyIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
+
+	if isDel {
+		res := s.delFieldPubKey(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldPubKey(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoBlockProducerScheduleObjectWrap) delFieldPubKey(so *SoBlockProducerScheduleObject) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
+
+	return true
+}
+
+func (s *SoBlockProducerScheduleObjectWrap) insertFieldPubKey(so *SoBlockProducerScheduleObject) bool {
+	if s.dba == nil {
 		return false
 	}
-	sa.PubKey = p
+
+	return true
+}
+
+func (s *SoBlockProducerScheduleObjectWrap) checkPubKeyIsMetMdCondition(p []*prototype.PublicKeyType) bool {
+	if s.dba == nil {
+		return false
+	}
 
 	return true
 }
@@ -536,11 +566,38 @@ func (s *SoBlockProducerScheduleObjectWrap) getBlockProducerScheduleObject() *So
 	return res
 }
 
+func (s *SoBlockProducerScheduleObjectWrap) updateBlockProducerScheduleObject(so *SoBlockProducerScheduleObject) error {
+	if s.dba == nil {
+		return errors.New("update fail:the db is nil")
+	}
+
+	if so == nil {
+		return errors.New("update fail: the SoBlockProducerScheduleObject is nil")
+	}
+
+	key, err := s.encodeMainKey()
+	if err != nil {
+		return nil
+	}
+
+	buf, err := proto.Marshal(so)
+	if err != nil {
+		return err
+	}
+
+	err = s.dba.Put(key, buf)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *SoBlockProducerScheduleObjectWrap) encodeMainKey() ([]byte, error) {
 	if s.mKeyBuf != nil {
 		return s.mKeyBuf, nil
 	}
-	pre := s.getMemKeyPrefix("Id")
+	pre := BlockProducerScheduleObjectIdRow
 	sub := s.mainKey
 	if sub == nil {
 		return nil, errors.New("the mainKey is nil")
@@ -619,20 +676,8 @@ func (s *SoBlockProducerScheduleObjectWrap) delUniKeyId(sa *SoBlockProducerSched
 		sub := sa.Id
 		kList = append(kList, sub)
 	} else {
-		key, err := s.encodeMemKey("Id")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemBlockProducerScheduleObjectById{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		sub := ori.Id
+		sub := s.GetId()
+
 		kList = append(kList, sub)
 
 	}
@@ -647,6 +692,7 @@ func (s *SoBlockProducerScheduleObjectWrap) insertUniKeyId(sa *SoBlockProducerSc
 	if s.dba == nil || sa == nil {
 		return false
 	}
+
 	pre := BlockProducerScheduleObjectIdUniTable
 	sub := sa.Id
 	kList := []interface{}{pre, sub}

@@ -4,7 +4,6 @@ import (
 	"errors"
 	fmt "fmt"
 	"reflect"
-	"strings"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -15,24 +14,25 @@ import (
 ////////////// SECTION Prefix Mark ///////////////
 var (
 	GlobalIdUniTable uint32 = 155819495
-	GlobalIdCell     uint32 = 1911245461
-	GlobalPropsCell  uint32 = 30903401
+
+	GlobalIdRow uint32 = 952861743
 )
 
 ////////////// SECTION Wrap Define ///////////////
 type SoGlobalWrap struct {
-	dba      iservices.IDatabaseRW
-	mainKey  *int32
-	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf  []byte //the buffer after the main key is encoded with prefix
-	mBuf     []byte //the value after the main key is encoded
+	dba       iservices.IDatabaseRW
+	mainKey   *int32
+	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
+	mBuf      []byte //the value after the main key is encoded
+	mdFuncMap map[string]interface{}
 }
 
 func NewSoGlobalWrap(dba iservices.IDatabaseRW, key *int32) *SoGlobalWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoGlobalWrap{dba, key, -1, nil, nil}
+	result := &SoGlobalWrap{dba, key, -1, nil, nil, nil}
 	return result
 }
 
@@ -81,9 +81,13 @@ func (s *SoGlobalWrap) Create(f func(tInfo *SoGlobal)) error {
 		return err
 
 	}
-	err = s.saveAllMemKeys(val, true)
+
+	buf, err := proto.Marshal(val)
 	if err != nil {
-		s.delAllMemKeys(false, val)
+		return err
+	}
+	err = s.dba.Put(keyBuf, buf)
+	if err != nil {
 		return err
 	}
 
@@ -91,7 +95,6 @@ func (s *SoGlobalWrap) Create(f func(tInfo *SoGlobal)) error {
 	if err = s.insertAllSortKeys(val); err != nil {
 		s.delAllSortKeys(false, val)
 		s.dba.Delete(keyBuf)
-		s.delAllMemKeys(false, val)
 		return err
 	}
 
@@ -100,10 +103,10 @@ func (s *SoGlobalWrap) Create(f func(tInfo *SoGlobal)) error {
 		s.delAllSortKeys(false, val)
 		s.delUniKeysWithNames(sucNames, val)
 		s.dba.Delete(keyBuf)
-		s.delAllMemKeys(false, val)
 		return err
 	}
 
+	s.mKeyFlag = 1
 	return nil
 }
 
@@ -119,6 +122,132 @@ func (s *SoGlobalWrap) getMainKeyBuf() ([]byte, error) {
 		}
 	}
 	return s.mBuf, nil
+}
+
+func (s *SoGlobalWrap) Modify(f func(tInfo *SoGlobal)) error {
+	if !s.CheckExist() {
+		return errors.New("the SoGlobal table does not exist. Please create a table first")
+	}
+	oriTable := s.getGlobal()
+	if oriTable == nil {
+		return errors.New("fail to get origin table SoGlobal")
+	}
+	curTable := *oriTable
+	f(&curTable)
+
+	//the main key is not support modify
+	if !reflect.DeepEqual(curTable.Id, oriTable.Id) {
+		return errors.New("primary key does not support modification")
+	}
+
+	fieldSli, err := s.getModifiedFields(oriTable, &curTable)
+	if err != nil {
+		return err
+	}
+
+	if fieldSli == nil || len(fieldSli) < 1 {
+		return nil
+	}
+
+	//check whether modify sort and unique field to nil
+	err = s.checkSortAndUniFieldValidity(&curTable, fieldSli)
+	if err != nil {
+		return err
+	}
+
+	//check unique
+	err = s.handleFieldMd(FieldMdHandleTypeCheck, &curTable, fieldSli)
+	if err != nil {
+		return err
+	}
+
+	//delete sort and unique key
+	err = s.handleFieldMd(FieldMdHandleTypeDel, oriTable, fieldSli)
+	if err != nil {
+		return err
+	}
+
+	//update table
+	err = s.updateGlobal(&curTable)
+	if err != nil {
+		return err
+	}
+
+	//insert sort and unique key
+	err = s.handleFieldMd(FieldMdHandleTypeInsert, &curTable, fieldSli)
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+func (s *SoGlobalWrap) MdProps(p *prototype.DynamicProperties) bool {
+	err := s.Modify(func(r *SoGlobal) {
+		r.Props = p
+	})
+	return err == nil
+}
+
+func (s *SoGlobalWrap) checkSortAndUniFieldValidity(curTable *SoGlobal, fieldSli []string) error {
+	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
+		for _, fName := range fieldSli {
+			if len(fName) > 0 {
+
+			}
+		}
+	}
+	return nil
+}
+
+//Get all the modified fields in the table
+func (s *SoGlobalWrap) getModifiedFields(oriTable *SoGlobal, curTable *SoGlobal) ([]string, error) {
+	if oriTable == nil {
+		return nil, errors.New("table info is nil, can't get modified fields")
+	}
+	var list []string
+
+	if !reflect.DeepEqual(oriTable.Props, curTable.Props) {
+		list = append(list, "Props")
+	}
+
+	return list, nil
+}
+
+func (s *SoGlobalWrap) handleFieldMd(t FieldMdHandleType, so *SoGlobal, fSli []string) error {
+	if so == nil {
+		return errors.New("fail to modify empty table")
+	}
+
+	//there is no field need to modify
+	if fSli == nil || len(fSli) < 1 {
+		return nil
+	}
+
+	errStr := ""
+	for _, fName := range fSli {
+
+		if fName == "Props" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldProps(so.Props, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldProps(so.Props, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldProps(so.Props, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+	}
+
+	return nil
 }
 
 ////////////// SECTION LKeys delete/insert ///////////////
@@ -149,7 +278,6 @@ func (s *SoGlobalWrap) RemoveGlobal() bool {
 	if s.dba == nil {
 		return false
 	}
-	val := &SoGlobal{}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
 		return false
@@ -160,7 +288,12 @@ func (s *SoGlobalWrap) RemoveGlobal() bool {
 		return false
 	}
 
-	err := s.delAllMemKeys(true, val)
+	//delete table
+	key, err := s.encodeMainKey()
+	if err != nil {
+		return false
+	}
+	err = s.dba.Delete(key)
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
@@ -171,134 +304,14 @@ func (s *SoGlobalWrap) RemoveGlobal() bool {
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
-func (s *SoGlobalWrap) getMemKeyPrefix(fName string) uint32 {
-	if fName == "Id" {
-		return GlobalIdCell
-	}
-	if fName == "Props" {
-		return GlobalPropsCell
-	}
-
-	return 0
-}
-
-func (s *SoGlobalWrap) encodeMemKey(fName string) ([]byte, error) {
-	if len(fName) < 1 || s.mainKey == nil {
-		return nil, errors.New("field name or main key is empty")
-	}
-	pre := s.getMemKeyPrefix(fName)
-	preBuf, err := kope.Encode(pre)
-	if err != nil {
-		return nil, err
-	}
-	mBuf, err := s.getMainKeyBuf()
-	if err != nil {
-		return nil, err
-	}
-	list := make([][]byte, 2)
-	list[0] = preBuf
-	list[1] = mBuf
-	return kope.PackList(list), nil
-}
-
-func (s *SoGlobalWrap) saveAllMemKeys(tInfo *SoGlobal, br bool) error {
-	if s.dba == nil {
-		return errors.New("save member Field fail , the db is nil")
-	}
-
-	if tInfo == nil {
-		return errors.New("save member Field fail , the data is nil ")
-	}
-	var err error = nil
-	errDes := ""
-	if err = s.saveMemKeyId(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Id", err)
-		}
-	}
-	if err = s.saveMemKeyProps(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Props", err)
-		}
-	}
-
-	if len(errDes) > 0 {
-		return errors.New(errDes)
-	}
-	return err
-}
-
-func (s *SoGlobalWrap) delAllMemKeys(br bool, tInfo *SoGlobal) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	t := reflect.TypeOf(*tInfo)
-	errDesc := ""
-	for k := 0; k < t.NumField(); k++ {
-		name := t.Field(k).Name
-		if len(name) > 0 && !strings.HasPrefix(name, "XXX_") {
-			err := s.delMemKey(name)
-			if err != nil {
-				if br {
-					return err
-				}
-				errDesc += fmt.Sprintf("delete the Field %s fail,error is %s;\n", name, err)
-			}
-		}
-	}
-	if len(errDesc) > 0 {
-		return errors.New(errDesc)
-	}
-	return nil
-}
-
-func (s *SoGlobalWrap) delMemKey(fName string) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if len(fName) <= 0 {
-		return errors.New("the field name is empty ")
-	}
-	key, err := s.encodeMemKey(fName)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Delete(key)
-	return err
-}
-
-func (s *SoGlobalWrap) saveMemKeyId(tInfo *SoGlobal) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemGlobalById{}
-	val.Id = tInfo.Id
-	key, err := s.encodeMemKey("Id")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
 
 func (s *SoGlobalWrap) GetId() int32 {
 	res := true
-	msg := &SoMemGlobalById{}
+	msg := &SoGlobal{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Id")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -321,34 +334,13 @@ func (s *SoGlobalWrap) GetId() int32 {
 	return msg.Id
 }
 
-func (s *SoGlobalWrap) saveMemKeyProps(tInfo *SoGlobal) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemGlobalByProps{}
-	val.Props = tInfo.Props
-	key, err := s.encodeMemKey("Props")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
-
 func (s *SoGlobalWrap) GetProps() *prototype.DynamicProperties {
 	res := true
-	msg := &SoMemGlobalByProps{}
+	msg := &SoGlobal{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Props")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -371,34 +363,55 @@ func (s *SoGlobalWrap) GetProps() *prototype.DynamicProperties {
 	return msg.Props
 }
 
-func (s *SoGlobalWrap) MdProps(p *prototype.DynamicProperties) bool {
+func (s *SoGlobalWrap) mdFieldProps(p *prototype.DynamicProperties, isCheck bool, isDel bool, isInsert bool,
+	so *SoGlobal) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("Props")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemGlobalByProps{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoGlobal{}
-	sa.Id = *s.mainKey
-	sa.Props = ori.Props
 
-	ori.Props = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isCheck {
+		res := s.checkPropsIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
+
+	if isDel {
+		res := s.delFieldProps(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldProps(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoGlobalWrap) delFieldProps(so *SoGlobal) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
+
+	return true
+}
+
+func (s *SoGlobalWrap) insertFieldProps(so *SoGlobal) bool {
+	if s.dba == nil {
 		return false
 	}
-	sa.Props = p
+
+	return true
+}
+
+func (s *SoGlobalWrap) checkPropsIsMetMdCondition(p *prototype.DynamicProperties) bool {
+	if s.dba == nil {
+		return false
+	}
 
 	return true
 }
@@ -443,11 +456,38 @@ func (s *SoGlobalWrap) getGlobal() *SoGlobal {
 	return res
 }
 
+func (s *SoGlobalWrap) updateGlobal(so *SoGlobal) error {
+	if s.dba == nil {
+		return errors.New("update fail:the db is nil")
+	}
+
+	if so == nil {
+		return errors.New("update fail: the SoGlobal is nil")
+	}
+
+	key, err := s.encodeMainKey()
+	if err != nil {
+		return nil
+	}
+
+	buf, err := proto.Marshal(so)
+	if err != nil {
+		return err
+	}
+
+	err = s.dba.Put(key, buf)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *SoGlobalWrap) encodeMainKey() ([]byte, error) {
 	if s.mKeyBuf != nil {
 		return s.mKeyBuf, nil
 	}
-	pre := s.getMemKeyPrefix("Id")
+	pre := GlobalIdRow
 	sub := s.mainKey
 	if sub == nil {
 		return nil, errors.New("the mainKey is nil")
@@ -526,20 +566,8 @@ func (s *SoGlobalWrap) delUniKeyId(sa *SoGlobal) bool {
 		sub := sa.Id
 		kList = append(kList, sub)
 	} else {
-		key, err := s.encodeMemKey("Id")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemGlobalById{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		sub := ori.Id
+		sub := s.GetId()
+
 		kList = append(kList, sub)
 
 	}
@@ -554,6 +582,7 @@ func (s *SoGlobalWrap) insertUniKeyId(sa *SoGlobal) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
+
 	pre := GlobalIdUniTable
 	sub := sa.Id
 	kList := []interface{}{pre, sub}

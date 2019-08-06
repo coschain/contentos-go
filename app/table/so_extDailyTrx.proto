@@ -14,16 +14,6 @@ message so_extDailyTrx {
 }
 
 
-message so_mem_extDailyTrx_by_date {
-	prototype.time_point_sec       		date       = 1;
-}
-
-
-message so_mem_extDailyTrx_by_count {
-	uint64                   								count      = 1;
-}
-
-
 message so_list_extDailyTrx_by_date {
 	prototype.time_point_sec       		date       = 1;
 }

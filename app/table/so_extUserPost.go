@@ -4,7 +4,6 @@ import (
 	"errors"
 	fmt "fmt"
 	"reflect"
-	"strings"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -16,24 +15,25 @@ import (
 var (
 	ExtUserPostPostCreatedOrderTable uint32 = 555226009
 	ExtUserPostPostIdUniTable        uint32 = 2411654352
-	ExtUserPostPostCreatedOrderCell  uint32 = 4157191683
-	ExtUserPostPostIdCell            uint32 = 3675031809
+
+	ExtUserPostPostIdRow uint32 = 3578023745
 )
 
 ////////////// SECTION Wrap Define ///////////////
 type SoExtUserPostWrap struct {
-	dba      iservices.IDatabaseRW
-	mainKey  *uint64
-	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf  []byte //the buffer after the main key is encoded with prefix
-	mBuf     []byte //the value after the main key is encoded
+	dba       iservices.IDatabaseRW
+	mainKey   *uint64
+	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
+	mBuf      []byte //the value after the main key is encoded
+	mdFuncMap map[string]interface{}
 }
 
 func NewSoExtUserPostWrap(dba iservices.IDatabaseRW, key *uint64) *SoExtUserPostWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoExtUserPostWrap{dba, key, -1, nil, nil}
+	result := &SoExtUserPostWrap{dba, key, -1, nil, nil, nil}
 	return result
 }
 
@@ -82,9 +82,13 @@ func (s *SoExtUserPostWrap) Create(f func(tInfo *SoExtUserPost)) error {
 		return err
 
 	}
-	err = s.saveAllMemKeys(val, true)
+
+	buf, err := proto.Marshal(val)
 	if err != nil {
-		s.delAllMemKeys(false, val)
+		return err
+	}
+	err = s.dba.Put(keyBuf, buf)
+	if err != nil {
 		return err
 	}
 
@@ -92,7 +96,6 @@ func (s *SoExtUserPostWrap) Create(f func(tInfo *SoExtUserPost)) error {
 	if err = s.insertAllSortKeys(val); err != nil {
 		s.delAllSortKeys(false, val)
 		s.dba.Delete(keyBuf)
-		s.delAllMemKeys(false, val)
 		return err
 	}
 
@@ -101,10 +104,10 @@ func (s *SoExtUserPostWrap) Create(f func(tInfo *SoExtUserPost)) error {
 		s.delAllSortKeys(false, val)
 		s.delUniKeysWithNames(sucNames, val)
 		s.dba.Delete(keyBuf)
-		s.delAllMemKeys(false, val)
 		return err
 	}
 
+	s.mKeyFlag = 1
 	return nil
 }
 
@@ -122,6 +125,136 @@ func (s *SoExtUserPostWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
+func (s *SoExtUserPostWrap) Modify(f func(tInfo *SoExtUserPost)) error {
+	if !s.CheckExist() {
+		return errors.New("the SoExtUserPost table does not exist. Please create a table first")
+	}
+	oriTable := s.getExtUserPost()
+	if oriTable == nil {
+		return errors.New("fail to get origin table SoExtUserPost")
+	}
+	curTable := *oriTable
+	f(&curTable)
+
+	//the main key is not support modify
+	if !reflect.DeepEqual(curTable.PostId, oriTable.PostId) {
+		return errors.New("primary key does not support modification")
+	}
+
+	fieldSli, err := s.getModifiedFields(oriTable, &curTable)
+	if err != nil {
+		return err
+	}
+
+	if fieldSli == nil || len(fieldSli) < 1 {
+		return nil
+	}
+
+	//check whether modify sort and unique field to nil
+	err = s.checkSortAndUniFieldValidity(&curTable, fieldSli)
+	if err != nil {
+		return err
+	}
+
+	//check unique
+	err = s.handleFieldMd(FieldMdHandleTypeCheck, &curTable, fieldSli)
+	if err != nil {
+		return err
+	}
+
+	//delete sort and unique key
+	err = s.handleFieldMd(FieldMdHandleTypeDel, oriTable, fieldSli)
+	if err != nil {
+		return err
+	}
+
+	//update table
+	err = s.updateExtUserPost(&curTable)
+	if err != nil {
+		return err
+	}
+
+	//insert sort and unique key
+	err = s.handleFieldMd(FieldMdHandleTypeInsert, &curTable, fieldSli)
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+func (s *SoExtUserPostWrap) MdPostCreatedOrder(p *prototype.UserPostCreateOrder) bool {
+	err := s.Modify(func(r *SoExtUserPost) {
+		r.PostCreatedOrder = p
+	})
+	return err == nil
+}
+
+func (s *SoExtUserPostWrap) checkSortAndUniFieldValidity(curTable *SoExtUserPost, fieldSli []string) error {
+	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
+		for _, fName := range fieldSli {
+			if len(fName) > 0 {
+
+				if fName == "PostCreatedOrder" && curTable.PostCreatedOrder == nil {
+					return errors.New("sort field PostCreatedOrder can't be modified to nil")
+				}
+
+			}
+		}
+	}
+	return nil
+}
+
+//Get all the modified fields in the table
+func (s *SoExtUserPostWrap) getModifiedFields(oriTable *SoExtUserPost, curTable *SoExtUserPost) ([]string, error) {
+	if oriTable == nil {
+		return nil, errors.New("table info is nil, can't get modified fields")
+	}
+	var list []string
+
+	if !reflect.DeepEqual(oriTable.PostCreatedOrder, curTable.PostCreatedOrder) {
+		list = append(list, "PostCreatedOrder")
+	}
+
+	return list, nil
+}
+
+func (s *SoExtUserPostWrap) handleFieldMd(t FieldMdHandleType, so *SoExtUserPost, fSli []string) error {
+	if so == nil {
+		return errors.New("fail to modify empty table")
+	}
+
+	//there is no field need to modify
+	if fSli == nil || len(fSli) < 1 {
+		return nil
+	}
+
+	errStr := ""
+	for _, fName := range fSli {
+
+		if fName == "PostCreatedOrder" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldPostCreatedOrder(so.PostCreatedOrder, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldPostCreatedOrder(so.PostCreatedOrder, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldPostCreatedOrder(so.PostCreatedOrder, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+	}
+
+	return nil
+}
+
 ////////////// SECTION LKeys delete/insert ///////////////
 
 func (s *SoExtUserPostWrap) delSortKeyPostCreatedOrder(sa *SoExtUserPost) bool {
@@ -130,26 +263,12 @@ func (s *SoExtUserPostWrap) delSortKeyPostCreatedOrder(sa *SoExtUserPost) bool {
 	}
 	val := SoListExtUserPostByPostCreatedOrder{}
 	if sa == nil {
-		key, err := s.encodeMemKey("PostCreatedOrder")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemExtUserPostByPostCreatedOrder{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		val.PostCreatedOrder = ori.PostCreatedOrder
+		val.PostCreatedOrder = s.GetPostCreatedOrder()
 		val.PostId = *s.mainKey
 	} else {
 		val.PostCreatedOrder = sa.PostCreatedOrder
 		val.PostId = sa.PostId
 	}
-
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -182,6 +301,7 @@ func (s *SoExtUserPostWrap) delAllSortKeys(br bool, val *SoExtUserPost) bool {
 		return false
 	}
 	res := true
+
 	if !s.delSortKeyPostCreatedOrder(val) {
 		if br {
 			return false
@@ -200,6 +320,7 @@ func (s *SoExtUserPostWrap) insertAllSortKeys(val *SoExtUserPost) error {
 	if val == nil {
 		return errors.New("insert sort Field fail,get the SoExtUserPost fail ")
 	}
+
 	if !s.insertSortKeyPostCreatedOrder(val) {
 		return errors.New("insert sort Field PostCreatedOrder fail while insert table ")
 	}
@@ -213,7 +334,6 @@ func (s *SoExtUserPostWrap) RemoveExtUserPost() bool {
 	if s.dba == nil {
 		return false
 	}
-	val := &SoExtUserPost{}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
 		return false
@@ -224,7 +344,12 @@ func (s *SoExtUserPostWrap) RemoveExtUserPost() bool {
 		return false
 	}
 
-	err := s.delAllMemKeys(true, val)
+	//delete table
+	key, err := s.encodeMainKey()
+	if err != nil {
+		return false
+	}
+	err = s.dba.Delete(key)
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
@@ -235,134 +360,14 @@ func (s *SoExtUserPostWrap) RemoveExtUserPost() bool {
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
-func (s *SoExtUserPostWrap) getMemKeyPrefix(fName string) uint32 {
-	if fName == "PostCreatedOrder" {
-		return ExtUserPostPostCreatedOrderCell
-	}
-	if fName == "PostId" {
-		return ExtUserPostPostIdCell
-	}
-
-	return 0
-}
-
-func (s *SoExtUserPostWrap) encodeMemKey(fName string) ([]byte, error) {
-	if len(fName) < 1 || s.mainKey == nil {
-		return nil, errors.New("field name or main key is empty")
-	}
-	pre := s.getMemKeyPrefix(fName)
-	preBuf, err := kope.Encode(pre)
-	if err != nil {
-		return nil, err
-	}
-	mBuf, err := s.getMainKeyBuf()
-	if err != nil {
-		return nil, err
-	}
-	list := make([][]byte, 2)
-	list[0] = preBuf
-	list[1] = mBuf
-	return kope.PackList(list), nil
-}
-
-func (s *SoExtUserPostWrap) saveAllMemKeys(tInfo *SoExtUserPost, br bool) error {
-	if s.dba == nil {
-		return errors.New("save member Field fail , the db is nil")
-	}
-
-	if tInfo == nil {
-		return errors.New("save member Field fail , the data is nil ")
-	}
-	var err error = nil
-	errDes := ""
-	if err = s.saveMemKeyPostCreatedOrder(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "PostCreatedOrder", err)
-		}
-	}
-	if err = s.saveMemKeyPostId(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "PostId", err)
-		}
-	}
-
-	if len(errDes) > 0 {
-		return errors.New(errDes)
-	}
-	return err
-}
-
-func (s *SoExtUserPostWrap) delAllMemKeys(br bool, tInfo *SoExtUserPost) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	t := reflect.TypeOf(*tInfo)
-	errDesc := ""
-	for k := 0; k < t.NumField(); k++ {
-		name := t.Field(k).Name
-		if len(name) > 0 && !strings.HasPrefix(name, "XXX_") {
-			err := s.delMemKey(name)
-			if err != nil {
-				if br {
-					return err
-				}
-				errDesc += fmt.Sprintf("delete the Field %s fail,error is %s;\n", name, err)
-			}
-		}
-	}
-	if len(errDesc) > 0 {
-		return errors.New(errDesc)
-	}
-	return nil
-}
-
-func (s *SoExtUserPostWrap) delMemKey(fName string) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if len(fName) <= 0 {
-		return errors.New("the field name is empty ")
-	}
-	key, err := s.encodeMemKey(fName)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Delete(key)
-	return err
-}
-
-func (s *SoExtUserPostWrap) saveMemKeyPostCreatedOrder(tInfo *SoExtUserPost) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemExtUserPostByPostCreatedOrder{}
-	val.PostCreatedOrder = tInfo.PostCreatedOrder
-	key, err := s.encodeMemKey("PostCreatedOrder")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
 
 func (s *SoExtUserPostWrap) GetPostCreatedOrder() *prototype.UserPostCreateOrder {
 	res := true
-	msg := &SoMemExtUserPostByPostCreatedOrder{}
+	msg := &SoExtUserPost{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("PostCreatedOrder")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -385,73 +390,74 @@ func (s *SoExtUserPostWrap) GetPostCreatedOrder() *prototype.UserPostCreateOrder
 	return msg.PostCreatedOrder
 }
 
-func (s *SoExtUserPostWrap) MdPostCreatedOrder(p *prototype.UserPostCreateOrder) bool {
+func (s *SoExtUserPostWrap) mdFieldPostCreatedOrder(p *prototype.UserPostCreateOrder, isCheck bool, isDel bool, isInsert bool,
+	so *SoExtUserPost) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("PostCreatedOrder")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemExtUserPostByPostCreatedOrder{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoExtUserPost{}
-	sa.PostId = *s.mainKey
-	sa.PostCreatedOrder = ori.PostCreatedOrder
 
-	if !s.delSortKeyPostCreatedOrder(sa) {
-		return false
+	if isCheck {
+		res := s.checkPostCreatedOrderIsMetMdCondition(p)
+		if !res {
+			return false
+		}
 	}
-	ori.PostCreatedOrder = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.PostCreatedOrder = p
 
-	if !s.insertSortKeyPostCreatedOrder(sa) {
+	if isDel {
+		res := s.delFieldPostCreatedOrder(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldPostCreatedOrder(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoExtUserPostWrap) delFieldPostCreatedOrder(so *SoExtUserPost) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if !s.delSortKeyPostCreatedOrder(so) {
 		return false
 	}
 
 	return true
 }
 
-func (s *SoExtUserPostWrap) saveMemKeyPostId(tInfo *SoExtUserPost) error {
+func (s *SoExtUserPostWrap) insertFieldPostCreatedOrder(so *SoExtUserPost) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	if !s.insertSortKeyPostCreatedOrder(so) {
+		return false
 	}
-	val := SoMemExtUserPostByPostId{}
-	val.PostId = tInfo.PostId
-	key, err := s.encodeMemKey("PostId")
-	if err != nil {
-		return err
+
+	return true
+}
+
+func (s *SoExtUserPostWrap) checkPostCreatedOrderIsMetMdCondition(p *prototype.UserPostCreateOrder) bool {
+	if s.dba == nil {
+		return false
 	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoExtUserPostWrap) GetPostId() uint64 {
 	res := true
-	msg := &SoMemExtUserPostByPostId{}
+	msg := &SoExtUserPost{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("PostId")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -676,11 +682,38 @@ func (s *SoExtUserPostWrap) getExtUserPost() *SoExtUserPost {
 	return res
 }
 
+func (s *SoExtUserPostWrap) updateExtUserPost(so *SoExtUserPost) error {
+	if s.dba == nil {
+		return errors.New("update fail:the db is nil")
+	}
+
+	if so == nil {
+		return errors.New("update fail: the SoExtUserPost is nil")
+	}
+
+	key, err := s.encodeMainKey()
+	if err != nil {
+		return nil
+	}
+
+	buf, err := proto.Marshal(so)
+	if err != nil {
+		return err
+	}
+
+	err = s.dba.Put(key, buf)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *SoExtUserPostWrap) encodeMainKey() ([]byte, error) {
 	if s.mKeyBuf != nil {
 		return s.mKeyBuf, nil
 	}
-	pre := s.getMemKeyPrefix("PostId")
+	pre := ExtUserPostPostIdRow
 	sub := s.mainKey
 	if sub == nil {
 		return nil, errors.New("the mainKey is nil")
@@ -759,20 +792,8 @@ func (s *SoExtUserPostWrap) delUniKeyPostId(sa *SoExtUserPost) bool {
 		sub := sa.PostId
 		kList = append(kList, sub)
 	} else {
-		key, err := s.encodeMemKey("PostId")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemExtUserPostByPostId{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		sub := ori.PostId
+		sub := s.GetPostId()
+
 		kList = append(kList, sub)
 
 	}
@@ -787,6 +808,7 @@ func (s *SoExtUserPostWrap) insertUniKeyPostId(sa *SoExtUserPost) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
+
 	pre := ExtUserPostPostIdUniTable
 	sub := sa.PostId
 	kList := []interface{}{pre, sub}

@@ -4,7 +4,6 @@ import (
 	"errors"
 	fmt "fmt"
 	"reflect"
-	"strings"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -18,43 +17,25 @@ var (
 	PostCashoutBlockNumTable uint32 = 1826021466
 	PostRewardsTable         uint32 = 2325142906
 	PostPostIdUniTable       uint32 = 157486700
-	PostAuthorCell           uint32 = 1681275280
-	PostBeneficiariesCell    uint32 = 2794141504
-	PostBodyCell             uint32 = 395462793
-	PostCashoutBlockNumCell  uint32 = 2338008419
-	PostCategoryCell         uint32 = 2849013589
-	PostChildrenCell         uint32 = 3908796047
-	PostCopyrightCell        uint32 = 2903094549
-	PostCopyrightMemoCell    uint32 = 791964881
-	PostCreatedCell          uint32 = 4199172684
-	PostDappRewardsCell      uint32 = 3278808896
-	PostDepthCell            uint32 = 4080627723
-	PostLastPayoutCell       uint32 = 3845986349
-	PostParentIdCell         uint32 = 1393772380
-	PostPostIdCell           uint32 = 22700035
-	PostRewardsCell          uint32 = 2822376492
-	PostRootIdCell           uint32 = 784045146
-	PostTagsCell             uint32 = 828203383
-	PostTicketCell           uint32 = 2248685104
-	PostTitleCell            uint32 = 3943450465
-	PostVoteCntCell          uint32 = 2947124424
-	PostWeightedVpCell       uint32 = 502117977
+
+	PostPostIdRow uint32 = 3809844522
 )
 
 ////////////// SECTION Wrap Define ///////////////
 type SoPostWrap struct {
-	dba      iservices.IDatabaseRW
-	mainKey  *uint64
-	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf  []byte //the buffer after the main key is encoded with prefix
-	mBuf     []byte //the value after the main key is encoded
+	dba       iservices.IDatabaseRW
+	mainKey   *uint64
+	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
+	mBuf      []byte //the value after the main key is encoded
+	mdFuncMap map[string]interface{}
 }
 
 func NewSoPostWrap(dba iservices.IDatabaseRW, key *uint64) *SoPostWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoPostWrap{dba, key, -1, nil, nil}
+	result := &SoPostWrap{dba, key, -1, nil, nil, nil}
 	return result
 }
 
@@ -103,9 +84,13 @@ func (s *SoPostWrap) Create(f func(tInfo *SoPost)) error {
 		return err
 
 	}
-	err = s.saveAllMemKeys(val, true)
+
+	buf, err := proto.Marshal(val)
 	if err != nil {
-		s.delAllMemKeys(false, val)
+		return err
+	}
+	err = s.dba.Put(keyBuf, buf)
+	if err != nil {
 		return err
 	}
 
@@ -113,7 +98,6 @@ func (s *SoPostWrap) Create(f func(tInfo *SoPost)) error {
 	if err = s.insertAllSortKeys(val); err != nil {
 		s.delAllSortKeys(false, val)
 		s.dba.Delete(keyBuf)
-		s.delAllMemKeys(false, val)
 		return err
 	}
 
@@ -122,10 +106,10 @@ func (s *SoPostWrap) Create(f func(tInfo *SoPost)) error {
 		s.delAllSortKeys(false, val)
 		s.delUniKeysWithNames(sucNames, val)
 		s.dba.Delete(keyBuf)
-		s.delAllMemKeys(false, val)
 		return err
 	}
 
+	s.mKeyFlag = 1
 	return nil
 }
 
@@ -143,6 +127,672 @@ func (s *SoPostWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
+func (s *SoPostWrap) Modify(f func(tInfo *SoPost)) error {
+	if !s.CheckExist() {
+		return errors.New("the SoPost table does not exist. Please create a table first")
+	}
+	oriTable := s.getPost()
+	if oriTable == nil {
+		return errors.New("fail to get origin table SoPost")
+	}
+	curTable := *oriTable
+	f(&curTable)
+
+	//the main key is not support modify
+	if !reflect.DeepEqual(curTable.PostId, oriTable.PostId) {
+		return errors.New("primary key does not support modification")
+	}
+
+	fieldSli, err := s.getModifiedFields(oriTable, &curTable)
+	if err != nil {
+		return err
+	}
+
+	if fieldSli == nil || len(fieldSli) < 1 {
+		return nil
+	}
+
+	//check whether modify sort and unique field to nil
+	err = s.checkSortAndUniFieldValidity(&curTable, fieldSli)
+	if err != nil {
+		return err
+	}
+
+	//check unique
+	err = s.handleFieldMd(FieldMdHandleTypeCheck, &curTable, fieldSli)
+	if err != nil {
+		return err
+	}
+
+	//delete sort and unique key
+	err = s.handleFieldMd(FieldMdHandleTypeDel, oriTable, fieldSli)
+	if err != nil {
+		return err
+	}
+
+	//update table
+	err = s.updatePost(&curTable)
+	if err != nil {
+		return err
+	}
+
+	//insert sort and unique key
+	err = s.handleFieldMd(FieldMdHandleTypeInsert, &curTable, fieldSli)
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+func (s *SoPostWrap) MdAuthor(p *prototype.AccountName) bool {
+	err := s.Modify(func(r *SoPost) {
+		r.Author = p
+	})
+	return err == nil
+}
+
+func (s *SoPostWrap) MdBeneficiaries(p []*prototype.BeneficiaryRouteType) bool {
+	err := s.Modify(func(r *SoPost) {
+		r.Beneficiaries = p
+	})
+	return err == nil
+}
+
+func (s *SoPostWrap) MdBody(p string) bool {
+	err := s.Modify(func(r *SoPost) {
+		r.Body = p
+	})
+	return err == nil
+}
+
+func (s *SoPostWrap) MdCashoutBlockNum(p uint64) bool {
+	err := s.Modify(func(r *SoPost) {
+		r.CashoutBlockNum = p
+	})
+	return err == nil
+}
+
+func (s *SoPostWrap) MdCategory(p string) bool {
+	err := s.Modify(func(r *SoPost) {
+		r.Category = p
+	})
+	return err == nil
+}
+
+func (s *SoPostWrap) MdChildren(p uint32) bool {
+	err := s.Modify(func(r *SoPost) {
+		r.Children = p
+	})
+	return err == nil
+}
+
+func (s *SoPostWrap) MdCopyright(p uint32) bool {
+	err := s.Modify(func(r *SoPost) {
+		r.Copyright = p
+	})
+	return err == nil
+}
+
+func (s *SoPostWrap) MdCopyrightMemo(p string) bool {
+	err := s.Modify(func(r *SoPost) {
+		r.CopyrightMemo = p
+	})
+	return err == nil
+}
+
+func (s *SoPostWrap) MdCreated(p *prototype.TimePointSec) bool {
+	err := s.Modify(func(r *SoPost) {
+		r.Created = p
+	})
+	return err == nil
+}
+
+func (s *SoPostWrap) MdDappRewards(p *prototype.Vest) bool {
+	err := s.Modify(func(r *SoPost) {
+		r.DappRewards = p
+	})
+	return err == nil
+}
+
+func (s *SoPostWrap) MdDepth(p uint32) bool {
+	err := s.Modify(func(r *SoPost) {
+		r.Depth = p
+	})
+	return err == nil
+}
+
+func (s *SoPostWrap) MdLastPayout(p *prototype.TimePointSec) bool {
+	err := s.Modify(func(r *SoPost) {
+		r.LastPayout = p
+	})
+	return err == nil
+}
+
+func (s *SoPostWrap) MdParentId(p uint64) bool {
+	err := s.Modify(func(r *SoPost) {
+		r.ParentId = p
+	})
+	return err == nil
+}
+
+func (s *SoPostWrap) MdRewards(p *prototype.Vest) bool {
+	err := s.Modify(func(r *SoPost) {
+		r.Rewards = p
+	})
+	return err == nil
+}
+
+func (s *SoPostWrap) MdRootId(p uint64) bool {
+	err := s.Modify(func(r *SoPost) {
+		r.RootId = p
+	})
+	return err == nil
+}
+
+func (s *SoPostWrap) MdTags(p []string) bool {
+	err := s.Modify(func(r *SoPost) {
+		r.Tags = p
+	})
+	return err == nil
+}
+
+func (s *SoPostWrap) MdTicket(p uint32) bool {
+	err := s.Modify(func(r *SoPost) {
+		r.Ticket = p
+	})
+	return err == nil
+}
+
+func (s *SoPostWrap) MdTitle(p string) bool {
+	err := s.Modify(func(r *SoPost) {
+		r.Title = p
+	})
+	return err == nil
+}
+
+func (s *SoPostWrap) MdVoteCnt(p uint64) bool {
+	err := s.Modify(func(r *SoPost) {
+		r.VoteCnt = p
+	})
+	return err == nil
+}
+
+func (s *SoPostWrap) MdWeightedVp(p string) bool {
+	err := s.Modify(func(r *SoPost) {
+		r.WeightedVp = p
+	})
+	return err == nil
+}
+
+func (s *SoPostWrap) checkSortAndUniFieldValidity(curTable *SoPost, fieldSli []string) error {
+	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
+		for _, fName := range fieldSli {
+			if len(fName) > 0 {
+
+				if fName == "Created" && curTable.Created == nil {
+					return errors.New("sort field Created can't be modified to nil")
+				}
+
+				if fName == "Rewards" && curTable.Rewards == nil {
+					return errors.New("sort field Rewards can't be modified to nil")
+				}
+
+			}
+		}
+	}
+	return nil
+}
+
+//Get all the modified fields in the table
+func (s *SoPostWrap) getModifiedFields(oriTable *SoPost, curTable *SoPost) ([]string, error) {
+	if oriTable == nil {
+		return nil, errors.New("table info is nil, can't get modified fields")
+	}
+	var list []string
+
+	if !reflect.DeepEqual(oriTable.Author, curTable.Author) {
+		list = append(list, "Author")
+	}
+
+	if !reflect.DeepEqual(oriTable.Beneficiaries, curTable.Beneficiaries) {
+		list = append(list, "Beneficiaries")
+	}
+
+	if !reflect.DeepEqual(oriTable.Body, curTable.Body) {
+		list = append(list, "Body")
+	}
+
+	if !reflect.DeepEqual(oriTable.CashoutBlockNum, curTable.CashoutBlockNum) {
+		list = append(list, "CashoutBlockNum")
+	}
+
+	if !reflect.DeepEqual(oriTable.Category, curTable.Category) {
+		list = append(list, "Category")
+	}
+
+	if !reflect.DeepEqual(oriTable.Children, curTable.Children) {
+		list = append(list, "Children")
+	}
+
+	if !reflect.DeepEqual(oriTable.Copyright, curTable.Copyright) {
+		list = append(list, "Copyright")
+	}
+
+	if !reflect.DeepEqual(oriTable.CopyrightMemo, curTable.CopyrightMemo) {
+		list = append(list, "CopyrightMemo")
+	}
+
+	if !reflect.DeepEqual(oriTable.Created, curTable.Created) {
+		list = append(list, "Created")
+	}
+
+	if !reflect.DeepEqual(oriTable.DappRewards, curTable.DappRewards) {
+		list = append(list, "DappRewards")
+	}
+
+	if !reflect.DeepEqual(oriTable.Depth, curTable.Depth) {
+		list = append(list, "Depth")
+	}
+
+	if !reflect.DeepEqual(oriTable.LastPayout, curTable.LastPayout) {
+		list = append(list, "LastPayout")
+	}
+
+	if !reflect.DeepEqual(oriTable.ParentId, curTable.ParentId) {
+		list = append(list, "ParentId")
+	}
+
+	if !reflect.DeepEqual(oriTable.Rewards, curTable.Rewards) {
+		list = append(list, "Rewards")
+	}
+
+	if !reflect.DeepEqual(oriTable.RootId, curTable.RootId) {
+		list = append(list, "RootId")
+	}
+
+	if !reflect.DeepEqual(oriTable.Tags, curTable.Tags) {
+		list = append(list, "Tags")
+	}
+
+	if !reflect.DeepEqual(oriTable.Ticket, curTable.Ticket) {
+		list = append(list, "Ticket")
+	}
+
+	if !reflect.DeepEqual(oriTable.Title, curTable.Title) {
+		list = append(list, "Title")
+	}
+
+	if !reflect.DeepEqual(oriTable.VoteCnt, curTable.VoteCnt) {
+		list = append(list, "VoteCnt")
+	}
+
+	if !reflect.DeepEqual(oriTable.WeightedVp, curTable.WeightedVp) {
+		list = append(list, "WeightedVp")
+	}
+
+	return list, nil
+}
+
+func (s *SoPostWrap) handleFieldMd(t FieldMdHandleType, so *SoPost, fSli []string) error {
+	if so == nil {
+		return errors.New("fail to modify empty table")
+	}
+
+	//there is no field need to modify
+	if fSli == nil || len(fSli) < 1 {
+		return nil
+	}
+
+	errStr := ""
+	for _, fName := range fSli {
+
+		if fName == "Author" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldAuthor(so.Author, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldAuthor(so.Author, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldAuthor(so.Author, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "Beneficiaries" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldBeneficiaries(so.Beneficiaries, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldBeneficiaries(so.Beneficiaries, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldBeneficiaries(so.Beneficiaries, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "Body" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldBody(so.Body, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldBody(so.Body, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldBody(so.Body, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "CashoutBlockNum" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldCashoutBlockNum(so.CashoutBlockNum, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldCashoutBlockNum(so.CashoutBlockNum, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldCashoutBlockNum(so.CashoutBlockNum, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "Category" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldCategory(so.Category, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldCategory(so.Category, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldCategory(so.Category, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "Children" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldChildren(so.Children, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldChildren(so.Children, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldChildren(so.Children, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "Copyright" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldCopyright(so.Copyright, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldCopyright(so.Copyright, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldCopyright(so.Copyright, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "CopyrightMemo" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldCopyrightMemo(so.CopyrightMemo, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldCopyrightMemo(so.CopyrightMemo, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldCopyrightMemo(so.CopyrightMemo, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "Created" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldCreated(so.Created, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldCreated(so.Created, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldCreated(so.Created, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "DappRewards" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldDappRewards(so.DappRewards, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldDappRewards(so.DappRewards, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldDappRewards(so.DappRewards, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "Depth" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldDepth(so.Depth, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldDepth(so.Depth, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldDepth(so.Depth, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "LastPayout" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldLastPayout(so.LastPayout, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldLastPayout(so.LastPayout, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldLastPayout(so.LastPayout, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "ParentId" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldParentId(so.ParentId, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldParentId(so.ParentId, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldParentId(so.ParentId, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "Rewards" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldRewards(so.Rewards, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldRewards(so.Rewards, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldRewards(so.Rewards, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "RootId" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldRootId(so.RootId, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldRootId(so.RootId, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldRootId(so.RootId, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "Tags" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldTags(so.Tags, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldTags(so.Tags, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldTags(so.Tags, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "Ticket" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldTicket(so.Ticket, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldTicket(so.Ticket, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldTicket(so.Ticket, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "Title" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldTitle(so.Title, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldTitle(so.Title, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldTitle(so.Title, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "VoteCnt" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldVoteCnt(so.VoteCnt, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldVoteCnt(so.VoteCnt, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldVoteCnt(so.VoteCnt, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "WeightedVp" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldWeightedVp(so.WeightedVp, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldWeightedVp(so.WeightedVp, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldWeightedVp(so.WeightedVp, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+	}
+
+	return nil
+}
+
 ////////////// SECTION LKeys delete/insert ///////////////
 
 func (s *SoPostWrap) delSortKeyCreated(sa *SoPost) bool {
@@ -151,26 +801,12 @@ func (s *SoPostWrap) delSortKeyCreated(sa *SoPost) bool {
 	}
 	val := SoListPostByCreated{}
 	if sa == nil {
-		key, err := s.encodeMemKey("Created")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemPostByCreated{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		val.Created = ori.Created
+		val.Created = s.GetCreated()
 		val.PostId = *s.mainKey
 	} else {
 		val.Created = sa.Created
 		val.PostId = sa.PostId
 	}
-
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -204,26 +840,12 @@ func (s *SoPostWrap) delSortKeyCashoutBlockNum(sa *SoPost) bool {
 	}
 	val := SoListPostByCashoutBlockNum{}
 	if sa == nil {
-		key, err := s.encodeMemKey("CashoutBlockNum")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemPostByCashoutBlockNum{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		val.CashoutBlockNum = ori.CashoutBlockNum
+		val.CashoutBlockNum = s.GetCashoutBlockNum()
 		val.PostId = *s.mainKey
 	} else {
 		val.CashoutBlockNum = sa.CashoutBlockNum
 		val.PostId = sa.PostId
 	}
-
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -257,26 +879,12 @@ func (s *SoPostWrap) delSortKeyRewards(sa *SoPost) bool {
 	}
 	val := SoListPostByRewards{}
 	if sa == nil {
-		key, err := s.encodeMemKey("Rewards")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemPostByRewards{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		val.Rewards = ori.Rewards
+		val.Rewards = s.GetRewards()
 		val.PostId = *s.mainKey
 	} else {
 		val.Rewards = sa.Rewards
 		val.PostId = sa.PostId
 	}
-
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -309,6 +917,7 @@ func (s *SoPostWrap) delAllSortKeys(br bool, val *SoPost) bool {
 		return false
 	}
 	res := true
+
 	if !s.delSortKeyCreated(val) {
 		if br {
 			return false
@@ -316,6 +925,7 @@ func (s *SoPostWrap) delAllSortKeys(br bool, val *SoPost) bool {
 			res = false
 		}
 	}
+
 	if !s.delSortKeyCashoutBlockNum(val) {
 		if br {
 			return false
@@ -323,6 +933,7 @@ func (s *SoPostWrap) delAllSortKeys(br bool, val *SoPost) bool {
 			res = false
 		}
 	}
+
 	if !s.delSortKeyRewards(val) {
 		if br {
 			return false
@@ -341,12 +952,15 @@ func (s *SoPostWrap) insertAllSortKeys(val *SoPost) error {
 	if val == nil {
 		return errors.New("insert sort Field fail,get the SoPost fail ")
 	}
+
 	if !s.insertSortKeyCreated(val) {
 		return errors.New("insert sort Field Created fail while insert table ")
 	}
+
 	if !s.insertSortKeyCashoutBlockNum(val) {
 		return errors.New("insert sort Field CashoutBlockNum fail while insert table ")
 	}
+
 	if !s.insertSortKeyRewards(val) {
 		return errors.New("insert sort Field Rewards fail while insert table ")
 	}
@@ -360,7 +974,6 @@ func (s *SoPostWrap) RemovePost() bool {
 	if s.dba == nil {
 		return false
 	}
-	val := &SoPost{}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
 		return false
@@ -371,7 +984,12 @@ func (s *SoPostWrap) RemovePost() bool {
 		return false
 	}
 
-	err := s.delAllMemKeys(true, val)
+	//delete table
+	key, err := s.encodeMainKey()
+	if err != nil {
+		return false
+	}
+	err = s.dba.Delete(key)
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
@@ -382,324 +1000,14 @@ func (s *SoPostWrap) RemovePost() bool {
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
-func (s *SoPostWrap) getMemKeyPrefix(fName string) uint32 {
-	if fName == "Author" {
-		return PostAuthorCell
-	}
-	if fName == "Beneficiaries" {
-		return PostBeneficiariesCell
-	}
-	if fName == "Body" {
-		return PostBodyCell
-	}
-	if fName == "CashoutBlockNum" {
-		return PostCashoutBlockNumCell
-	}
-	if fName == "Category" {
-		return PostCategoryCell
-	}
-	if fName == "Children" {
-		return PostChildrenCell
-	}
-	if fName == "Copyright" {
-		return PostCopyrightCell
-	}
-	if fName == "CopyrightMemo" {
-		return PostCopyrightMemoCell
-	}
-	if fName == "Created" {
-		return PostCreatedCell
-	}
-	if fName == "DappRewards" {
-		return PostDappRewardsCell
-	}
-	if fName == "Depth" {
-		return PostDepthCell
-	}
-	if fName == "LastPayout" {
-		return PostLastPayoutCell
-	}
-	if fName == "ParentId" {
-		return PostParentIdCell
-	}
-	if fName == "PostId" {
-		return PostPostIdCell
-	}
-	if fName == "Rewards" {
-		return PostRewardsCell
-	}
-	if fName == "RootId" {
-		return PostRootIdCell
-	}
-	if fName == "Tags" {
-		return PostTagsCell
-	}
-	if fName == "Ticket" {
-		return PostTicketCell
-	}
-	if fName == "Title" {
-		return PostTitleCell
-	}
-	if fName == "VoteCnt" {
-		return PostVoteCntCell
-	}
-	if fName == "WeightedVp" {
-		return PostWeightedVpCell
-	}
-
-	return 0
-}
-
-func (s *SoPostWrap) encodeMemKey(fName string) ([]byte, error) {
-	if len(fName) < 1 || s.mainKey == nil {
-		return nil, errors.New("field name or main key is empty")
-	}
-	pre := s.getMemKeyPrefix(fName)
-	preBuf, err := kope.Encode(pre)
-	if err != nil {
-		return nil, err
-	}
-	mBuf, err := s.getMainKeyBuf()
-	if err != nil {
-		return nil, err
-	}
-	list := make([][]byte, 2)
-	list[0] = preBuf
-	list[1] = mBuf
-	return kope.PackList(list), nil
-}
-
-func (s *SoPostWrap) saveAllMemKeys(tInfo *SoPost, br bool) error {
-	if s.dba == nil {
-		return errors.New("save member Field fail , the db is nil")
-	}
-
-	if tInfo == nil {
-		return errors.New("save member Field fail , the data is nil ")
-	}
-	var err error = nil
-	errDes := ""
-	if err = s.saveMemKeyAuthor(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Author", err)
-		}
-	}
-	if err = s.saveMemKeyBeneficiaries(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Beneficiaries", err)
-		}
-	}
-	if err = s.saveMemKeyBody(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Body", err)
-		}
-	}
-	if err = s.saveMemKeyCashoutBlockNum(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "CashoutBlockNum", err)
-		}
-	}
-	if err = s.saveMemKeyCategory(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Category", err)
-		}
-	}
-	if err = s.saveMemKeyChildren(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Children", err)
-		}
-	}
-	if err = s.saveMemKeyCopyright(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Copyright", err)
-		}
-	}
-	if err = s.saveMemKeyCopyrightMemo(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "CopyrightMemo", err)
-		}
-	}
-	if err = s.saveMemKeyCreated(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Created", err)
-		}
-	}
-	if err = s.saveMemKeyDappRewards(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "DappRewards", err)
-		}
-	}
-	if err = s.saveMemKeyDepth(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Depth", err)
-		}
-	}
-	if err = s.saveMemKeyLastPayout(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "LastPayout", err)
-		}
-	}
-	if err = s.saveMemKeyParentId(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "ParentId", err)
-		}
-	}
-	if err = s.saveMemKeyPostId(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "PostId", err)
-		}
-	}
-	if err = s.saveMemKeyRewards(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Rewards", err)
-		}
-	}
-	if err = s.saveMemKeyRootId(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "RootId", err)
-		}
-	}
-	if err = s.saveMemKeyTags(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Tags", err)
-		}
-	}
-	if err = s.saveMemKeyTicket(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Ticket", err)
-		}
-	}
-	if err = s.saveMemKeyTitle(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Title", err)
-		}
-	}
-	if err = s.saveMemKeyVoteCnt(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "VoteCnt", err)
-		}
-	}
-	if err = s.saveMemKeyWeightedVp(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "WeightedVp", err)
-		}
-	}
-
-	if len(errDes) > 0 {
-		return errors.New(errDes)
-	}
-	return err
-}
-
-func (s *SoPostWrap) delAllMemKeys(br bool, tInfo *SoPost) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	t := reflect.TypeOf(*tInfo)
-	errDesc := ""
-	for k := 0; k < t.NumField(); k++ {
-		name := t.Field(k).Name
-		if len(name) > 0 && !strings.HasPrefix(name, "XXX_") {
-			err := s.delMemKey(name)
-			if err != nil {
-				if br {
-					return err
-				}
-				errDesc += fmt.Sprintf("delete the Field %s fail,error is %s;\n", name, err)
-			}
-		}
-	}
-	if len(errDesc) > 0 {
-		return errors.New(errDesc)
-	}
-	return nil
-}
-
-func (s *SoPostWrap) delMemKey(fName string) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if len(fName) <= 0 {
-		return errors.New("the field name is empty ")
-	}
-	key, err := s.encodeMemKey(fName)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Delete(key)
-	return err
-}
-
-func (s *SoPostWrap) saveMemKeyAuthor(tInfo *SoPost) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemPostByAuthor{}
-	val.Author = tInfo.Author
-	key, err := s.encodeMemKey("Author")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
 
 func (s *SoPostWrap) GetAuthor() *prototype.AccountName {
 	res := true
-	msg := &SoMemPostByAuthor{}
+	msg := &SoPost{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Author")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -722,66 +1030,66 @@ func (s *SoPostWrap) GetAuthor() *prototype.AccountName {
 	return msg.Author
 }
 
-func (s *SoPostWrap) MdAuthor(p *prototype.AccountName) bool {
+func (s *SoPostWrap) mdFieldAuthor(p *prototype.AccountName, isCheck bool, isDel bool, isInsert bool,
+	so *SoPost) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("Author")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemPostByAuthor{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoPost{}
-	sa.PostId = *s.mainKey
-	sa.Author = ori.Author
 
-	ori.Author = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isCheck {
+		res := s.checkAuthorIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
+
+	if isDel {
+		res := s.delFieldAuthor(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldAuthor(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoPostWrap) delFieldAuthor(so *SoPost) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.Author = p
 
 	return true
 }
 
-func (s *SoPostWrap) saveMemKeyBeneficiaries(tInfo *SoPost) error {
+func (s *SoPostWrap) insertFieldAuthor(so *SoPost) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoPostWrap) checkAuthorIsMetMdCondition(p *prototype.AccountName) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemPostByBeneficiaries{}
-	val.Beneficiaries = tInfo.Beneficiaries
-	key, err := s.encodeMemKey("Beneficiaries")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoPostWrap) GetBeneficiaries() []*prototype.BeneficiaryRouteType {
 	res := true
-	msg := &SoMemPostByBeneficiaries{}
+	msg := &SoPost{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Beneficiaries")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -804,66 +1112,66 @@ func (s *SoPostWrap) GetBeneficiaries() []*prototype.BeneficiaryRouteType {
 	return msg.Beneficiaries
 }
 
-func (s *SoPostWrap) MdBeneficiaries(p []*prototype.BeneficiaryRouteType) bool {
+func (s *SoPostWrap) mdFieldBeneficiaries(p []*prototype.BeneficiaryRouteType, isCheck bool, isDel bool, isInsert bool,
+	so *SoPost) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("Beneficiaries")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemPostByBeneficiaries{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoPost{}
-	sa.PostId = *s.mainKey
-	sa.Beneficiaries = ori.Beneficiaries
 
-	ori.Beneficiaries = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isCheck {
+		res := s.checkBeneficiariesIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
+
+	if isDel {
+		res := s.delFieldBeneficiaries(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldBeneficiaries(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoPostWrap) delFieldBeneficiaries(so *SoPost) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.Beneficiaries = p
 
 	return true
 }
 
-func (s *SoPostWrap) saveMemKeyBody(tInfo *SoPost) error {
+func (s *SoPostWrap) insertFieldBeneficiaries(so *SoPost) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoPostWrap) checkBeneficiariesIsMetMdCondition(p []*prototype.BeneficiaryRouteType) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemPostByBody{}
-	val.Body = tInfo.Body
-	key, err := s.encodeMemKey("Body")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoPostWrap) GetBody() string {
 	res := true
-	msg := &SoMemPostByBody{}
+	msg := &SoPost{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Body")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -886,66 +1194,66 @@ func (s *SoPostWrap) GetBody() string {
 	return msg.Body
 }
 
-func (s *SoPostWrap) MdBody(p string) bool {
+func (s *SoPostWrap) mdFieldBody(p string, isCheck bool, isDel bool, isInsert bool,
+	so *SoPost) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("Body")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemPostByBody{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoPost{}
-	sa.PostId = *s.mainKey
-	sa.Body = ori.Body
 
-	ori.Body = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isCheck {
+		res := s.checkBodyIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
+
+	if isDel {
+		res := s.delFieldBody(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldBody(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoPostWrap) delFieldBody(so *SoPost) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.Body = p
 
 	return true
 }
 
-func (s *SoPostWrap) saveMemKeyCashoutBlockNum(tInfo *SoPost) error {
+func (s *SoPostWrap) insertFieldBody(so *SoPost) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoPostWrap) checkBodyIsMetMdCondition(p string) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemPostByCashoutBlockNum{}
-	val.CashoutBlockNum = tInfo.CashoutBlockNum
-	key, err := s.encodeMemKey("CashoutBlockNum")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoPostWrap) GetCashoutBlockNum() uint64 {
 	res := true
-	msg := &SoMemPostByCashoutBlockNum{}
+	msg := &SoPost{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("CashoutBlockNum")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -968,73 +1276,74 @@ func (s *SoPostWrap) GetCashoutBlockNum() uint64 {
 	return msg.CashoutBlockNum
 }
 
-func (s *SoPostWrap) MdCashoutBlockNum(p uint64) bool {
+func (s *SoPostWrap) mdFieldCashoutBlockNum(p uint64, isCheck bool, isDel bool, isInsert bool,
+	so *SoPost) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("CashoutBlockNum")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemPostByCashoutBlockNum{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoPost{}
-	sa.PostId = *s.mainKey
-	sa.CashoutBlockNum = ori.CashoutBlockNum
 
-	if !s.delSortKeyCashoutBlockNum(sa) {
-		return false
+	if isCheck {
+		res := s.checkCashoutBlockNumIsMetMdCondition(p)
+		if !res {
+			return false
+		}
 	}
-	ori.CashoutBlockNum = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.CashoutBlockNum = p
 
-	if !s.insertSortKeyCashoutBlockNum(sa) {
+	if isDel {
+		res := s.delFieldCashoutBlockNum(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldCashoutBlockNum(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoPostWrap) delFieldCashoutBlockNum(so *SoPost) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if !s.delSortKeyCashoutBlockNum(so) {
 		return false
 	}
 
 	return true
 }
 
-func (s *SoPostWrap) saveMemKeyCategory(tInfo *SoPost) error {
+func (s *SoPostWrap) insertFieldCashoutBlockNum(so *SoPost) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	if !s.insertSortKeyCashoutBlockNum(so) {
+		return false
 	}
-	val := SoMemPostByCategory{}
-	val.Category = tInfo.Category
-	key, err := s.encodeMemKey("Category")
-	if err != nil {
-		return err
+
+	return true
+}
+
+func (s *SoPostWrap) checkCashoutBlockNumIsMetMdCondition(p uint64) bool {
+	if s.dba == nil {
+		return false
 	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoPostWrap) GetCategory() string {
 	res := true
-	msg := &SoMemPostByCategory{}
+	msg := &SoPost{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Category")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -1057,66 +1366,66 @@ func (s *SoPostWrap) GetCategory() string {
 	return msg.Category
 }
 
-func (s *SoPostWrap) MdCategory(p string) bool {
+func (s *SoPostWrap) mdFieldCategory(p string, isCheck bool, isDel bool, isInsert bool,
+	so *SoPost) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("Category")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemPostByCategory{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoPost{}
-	sa.PostId = *s.mainKey
-	sa.Category = ori.Category
 
-	ori.Category = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isCheck {
+		res := s.checkCategoryIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
+
+	if isDel {
+		res := s.delFieldCategory(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldCategory(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoPostWrap) delFieldCategory(so *SoPost) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.Category = p
 
 	return true
 }
 
-func (s *SoPostWrap) saveMemKeyChildren(tInfo *SoPost) error {
+func (s *SoPostWrap) insertFieldCategory(so *SoPost) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoPostWrap) checkCategoryIsMetMdCondition(p string) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemPostByChildren{}
-	val.Children = tInfo.Children
-	key, err := s.encodeMemKey("Children")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoPostWrap) GetChildren() uint32 {
 	res := true
-	msg := &SoMemPostByChildren{}
+	msg := &SoPost{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Children")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -1139,66 +1448,66 @@ func (s *SoPostWrap) GetChildren() uint32 {
 	return msg.Children
 }
 
-func (s *SoPostWrap) MdChildren(p uint32) bool {
+func (s *SoPostWrap) mdFieldChildren(p uint32, isCheck bool, isDel bool, isInsert bool,
+	so *SoPost) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("Children")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemPostByChildren{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoPost{}
-	sa.PostId = *s.mainKey
-	sa.Children = ori.Children
 
-	ori.Children = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isCheck {
+		res := s.checkChildrenIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
+
+	if isDel {
+		res := s.delFieldChildren(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldChildren(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoPostWrap) delFieldChildren(so *SoPost) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.Children = p
 
 	return true
 }
 
-func (s *SoPostWrap) saveMemKeyCopyright(tInfo *SoPost) error {
+func (s *SoPostWrap) insertFieldChildren(so *SoPost) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoPostWrap) checkChildrenIsMetMdCondition(p uint32) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemPostByCopyright{}
-	val.Copyright = tInfo.Copyright
-	key, err := s.encodeMemKey("Copyright")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoPostWrap) GetCopyright() uint32 {
 	res := true
-	msg := &SoMemPostByCopyright{}
+	msg := &SoPost{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Copyright")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -1221,66 +1530,66 @@ func (s *SoPostWrap) GetCopyright() uint32 {
 	return msg.Copyright
 }
 
-func (s *SoPostWrap) MdCopyright(p uint32) bool {
+func (s *SoPostWrap) mdFieldCopyright(p uint32, isCheck bool, isDel bool, isInsert bool,
+	so *SoPost) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("Copyright")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemPostByCopyright{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoPost{}
-	sa.PostId = *s.mainKey
-	sa.Copyright = ori.Copyright
 
-	ori.Copyright = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isCheck {
+		res := s.checkCopyrightIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
+
+	if isDel {
+		res := s.delFieldCopyright(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldCopyright(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoPostWrap) delFieldCopyright(so *SoPost) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.Copyright = p
 
 	return true
 }
 
-func (s *SoPostWrap) saveMemKeyCopyrightMemo(tInfo *SoPost) error {
+func (s *SoPostWrap) insertFieldCopyright(so *SoPost) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoPostWrap) checkCopyrightIsMetMdCondition(p uint32) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemPostByCopyrightMemo{}
-	val.CopyrightMemo = tInfo.CopyrightMemo
-	key, err := s.encodeMemKey("CopyrightMemo")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoPostWrap) GetCopyrightMemo() string {
 	res := true
-	msg := &SoMemPostByCopyrightMemo{}
+	msg := &SoPost{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("CopyrightMemo")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -1303,66 +1612,66 @@ func (s *SoPostWrap) GetCopyrightMemo() string {
 	return msg.CopyrightMemo
 }
 
-func (s *SoPostWrap) MdCopyrightMemo(p string) bool {
+func (s *SoPostWrap) mdFieldCopyrightMemo(p string, isCheck bool, isDel bool, isInsert bool,
+	so *SoPost) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("CopyrightMemo")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemPostByCopyrightMemo{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoPost{}
-	sa.PostId = *s.mainKey
-	sa.CopyrightMemo = ori.CopyrightMemo
 
-	ori.CopyrightMemo = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isCheck {
+		res := s.checkCopyrightMemoIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
+
+	if isDel {
+		res := s.delFieldCopyrightMemo(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldCopyrightMemo(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoPostWrap) delFieldCopyrightMemo(so *SoPost) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.CopyrightMemo = p
 
 	return true
 }
 
-func (s *SoPostWrap) saveMemKeyCreated(tInfo *SoPost) error {
+func (s *SoPostWrap) insertFieldCopyrightMemo(so *SoPost) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoPostWrap) checkCopyrightMemoIsMetMdCondition(p string) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemPostByCreated{}
-	val.Created = tInfo.Created
-	key, err := s.encodeMemKey("Created")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoPostWrap) GetCreated() *prototype.TimePointSec {
 	res := true
-	msg := &SoMemPostByCreated{}
+	msg := &SoPost{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Created")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -1385,73 +1694,74 @@ func (s *SoPostWrap) GetCreated() *prototype.TimePointSec {
 	return msg.Created
 }
 
-func (s *SoPostWrap) MdCreated(p *prototype.TimePointSec) bool {
+func (s *SoPostWrap) mdFieldCreated(p *prototype.TimePointSec, isCheck bool, isDel bool, isInsert bool,
+	so *SoPost) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("Created")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemPostByCreated{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoPost{}
-	sa.PostId = *s.mainKey
-	sa.Created = ori.Created
 
-	if !s.delSortKeyCreated(sa) {
-		return false
+	if isCheck {
+		res := s.checkCreatedIsMetMdCondition(p)
+		if !res {
+			return false
+		}
 	}
-	ori.Created = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.Created = p
 
-	if !s.insertSortKeyCreated(sa) {
+	if isDel {
+		res := s.delFieldCreated(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldCreated(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoPostWrap) delFieldCreated(so *SoPost) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if !s.delSortKeyCreated(so) {
 		return false
 	}
 
 	return true
 }
 
-func (s *SoPostWrap) saveMemKeyDappRewards(tInfo *SoPost) error {
+func (s *SoPostWrap) insertFieldCreated(so *SoPost) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	if !s.insertSortKeyCreated(so) {
+		return false
 	}
-	val := SoMemPostByDappRewards{}
-	val.DappRewards = tInfo.DappRewards
-	key, err := s.encodeMemKey("DappRewards")
-	if err != nil {
-		return err
+
+	return true
+}
+
+func (s *SoPostWrap) checkCreatedIsMetMdCondition(p *prototype.TimePointSec) bool {
+	if s.dba == nil {
+		return false
 	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoPostWrap) GetDappRewards() *prototype.Vest {
 	res := true
-	msg := &SoMemPostByDappRewards{}
+	msg := &SoPost{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("DappRewards")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -1474,66 +1784,66 @@ func (s *SoPostWrap) GetDappRewards() *prototype.Vest {
 	return msg.DappRewards
 }
 
-func (s *SoPostWrap) MdDappRewards(p *prototype.Vest) bool {
+func (s *SoPostWrap) mdFieldDappRewards(p *prototype.Vest, isCheck bool, isDel bool, isInsert bool,
+	so *SoPost) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("DappRewards")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemPostByDappRewards{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoPost{}
-	sa.PostId = *s.mainKey
-	sa.DappRewards = ori.DappRewards
 
-	ori.DappRewards = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isCheck {
+		res := s.checkDappRewardsIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
+
+	if isDel {
+		res := s.delFieldDappRewards(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldDappRewards(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoPostWrap) delFieldDappRewards(so *SoPost) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.DappRewards = p
 
 	return true
 }
 
-func (s *SoPostWrap) saveMemKeyDepth(tInfo *SoPost) error {
+func (s *SoPostWrap) insertFieldDappRewards(so *SoPost) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoPostWrap) checkDappRewardsIsMetMdCondition(p *prototype.Vest) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemPostByDepth{}
-	val.Depth = tInfo.Depth
-	key, err := s.encodeMemKey("Depth")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoPostWrap) GetDepth() uint32 {
 	res := true
-	msg := &SoMemPostByDepth{}
+	msg := &SoPost{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Depth")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -1556,66 +1866,66 @@ func (s *SoPostWrap) GetDepth() uint32 {
 	return msg.Depth
 }
 
-func (s *SoPostWrap) MdDepth(p uint32) bool {
+func (s *SoPostWrap) mdFieldDepth(p uint32, isCheck bool, isDel bool, isInsert bool,
+	so *SoPost) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("Depth")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemPostByDepth{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoPost{}
-	sa.PostId = *s.mainKey
-	sa.Depth = ori.Depth
 
-	ori.Depth = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isCheck {
+		res := s.checkDepthIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
+
+	if isDel {
+		res := s.delFieldDepth(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldDepth(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoPostWrap) delFieldDepth(so *SoPost) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.Depth = p
 
 	return true
 }
 
-func (s *SoPostWrap) saveMemKeyLastPayout(tInfo *SoPost) error {
+func (s *SoPostWrap) insertFieldDepth(so *SoPost) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoPostWrap) checkDepthIsMetMdCondition(p uint32) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemPostByLastPayout{}
-	val.LastPayout = tInfo.LastPayout
-	key, err := s.encodeMemKey("LastPayout")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoPostWrap) GetLastPayout() *prototype.TimePointSec {
 	res := true
-	msg := &SoMemPostByLastPayout{}
+	msg := &SoPost{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("LastPayout")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -1638,66 +1948,66 @@ func (s *SoPostWrap) GetLastPayout() *prototype.TimePointSec {
 	return msg.LastPayout
 }
 
-func (s *SoPostWrap) MdLastPayout(p *prototype.TimePointSec) bool {
+func (s *SoPostWrap) mdFieldLastPayout(p *prototype.TimePointSec, isCheck bool, isDel bool, isInsert bool,
+	so *SoPost) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("LastPayout")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemPostByLastPayout{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoPost{}
-	sa.PostId = *s.mainKey
-	sa.LastPayout = ori.LastPayout
 
-	ori.LastPayout = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isCheck {
+		res := s.checkLastPayoutIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
+
+	if isDel {
+		res := s.delFieldLastPayout(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldLastPayout(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoPostWrap) delFieldLastPayout(so *SoPost) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.LastPayout = p
 
 	return true
 }
 
-func (s *SoPostWrap) saveMemKeyParentId(tInfo *SoPost) error {
+func (s *SoPostWrap) insertFieldLastPayout(so *SoPost) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoPostWrap) checkLastPayoutIsMetMdCondition(p *prototype.TimePointSec) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemPostByParentId{}
-	val.ParentId = tInfo.ParentId
-	key, err := s.encodeMemKey("ParentId")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoPostWrap) GetParentId() uint64 {
 	res := true
-	msg := &SoMemPostByParentId{}
+	msg := &SoPost{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("ParentId")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -1720,66 +2030,66 @@ func (s *SoPostWrap) GetParentId() uint64 {
 	return msg.ParentId
 }
 
-func (s *SoPostWrap) MdParentId(p uint64) bool {
+func (s *SoPostWrap) mdFieldParentId(p uint64, isCheck bool, isDel bool, isInsert bool,
+	so *SoPost) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("ParentId")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemPostByParentId{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoPost{}
-	sa.PostId = *s.mainKey
-	sa.ParentId = ori.ParentId
 
-	ori.ParentId = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isCheck {
+		res := s.checkParentIdIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
+
+	if isDel {
+		res := s.delFieldParentId(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldParentId(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoPostWrap) delFieldParentId(so *SoPost) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.ParentId = p
 
 	return true
 }
 
-func (s *SoPostWrap) saveMemKeyPostId(tInfo *SoPost) error {
+func (s *SoPostWrap) insertFieldParentId(so *SoPost) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoPostWrap) checkParentIdIsMetMdCondition(p uint64) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemPostByPostId{}
-	val.PostId = tInfo.PostId
-	key, err := s.encodeMemKey("PostId")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoPostWrap) GetPostId() uint64 {
 	res := true
-	msg := &SoMemPostByPostId{}
+	msg := &SoPost{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("PostId")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -1802,34 +2112,13 @@ func (s *SoPostWrap) GetPostId() uint64 {
 	return msg.PostId
 }
 
-func (s *SoPostWrap) saveMemKeyRewards(tInfo *SoPost) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemPostByRewards{}
-	val.Rewards = tInfo.Rewards
-	key, err := s.encodeMemKey("Rewards")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
-
 func (s *SoPostWrap) GetRewards() *prototype.Vest {
 	res := true
-	msg := &SoMemPostByRewards{}
+	msg := &SoPost{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Rewards")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -1852,73 +2141,74 @@ func (s *SoPostWrap) GetRewards() *prototype.Vest {
 	return msg.Rewards
 }
 
-func (s *SoPostWrap) MdRewards(p *prototype.Vest) bool {
+func (s *SoPostWrap) mdFieldRewards(p *prototype.Vest, isCheck bool, isDel bool, isInsert bool,
+	so *SoPost) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("Rewards")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemPostByRewards{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoPost{}
-	sa.PostId = *s.mainKey
-	sa.Rewards = ori.Rewards
 
-	if !s.delSortKeyRewards(sa) {
-		return false
+	if isCheck {
+		res := s.checkRewardsIsMetMdCondition(p)
+		if !res {
+			return false
+		}
 	}
-	ori.Rewards = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.Rewards = p
 
-	if !s.insertSortKeyRewards(sa) {
+	if isDel {
+		res := s.delFieldRewards(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldRewards(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoPostWrap) delFieldRewards(so *SoPost) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if !s.delSortKeyRewards(so) {
 		return false
 	}
 
 	return true
 }
 
-func (s *SoPostWrap) saveMemKeyRootId(tInfo *SoPost) error {
+func (s *SoPostWrap) insertFieldRewards(so *SoPost) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	if !s.insertSortKeyRewards(so) {
+		return false
 	}
-	val := SoMemPostByRootId{}
-	val.RootId = tInfo.RootId
-	key, err := s.encodeMemKey("RootId")
-	if err != nil {
-		return err
+
+	return true
+}
+
+func (s *SoPostWrap) checkRewardsIsMetMdCondition(p *prototype.Vest) bool {
+	if s.dba == nil {
+		return false
 	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoPostWrap) GetRootId() uint64 {
 	res := true
-	msg := &SoMemPostByRootId{}
+	msg := &SoPost{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("RootId")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -1941,66 +2231,66 @@ func (s *SoPostWrap) GetRootId() uint64 {
 	return msg.RootId
 }
 
-func (s *SoPostWrap) MdRootId(p uint64) bool {
+func (s *SoPostWrap) mdFieldRootId(p uint64, isCheck bool, isDel bool, isInsert bool,
+	so *SoPost) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("RootId")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemPostByRootId{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoPost{}
-	sa.PostId = *s.mainKey
-	sa.RootId = ori.RootId
 
-	ori.RootId = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isCheck {
+		res := s.checkRootIdIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
+
+	if isDel {
+		res := s.delFieldRootId(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldRootId(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoPostWrap) delFieldRootId(so *SoPost) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.RootId = p
 
 	return true
 }
 
-func (s *SoPostWrap) saveMemKeyTags(tInfo *SoPost) error {
+func (s *SoPostWrap) insertFieldRootId(so *SoPost) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoPostWrap) checkRootIdIsMetMdCondition(p uint64) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemPostByTags{}
-	val.Tags = tInfo.Tags
-	key, err := s.encodeMemKey("Tags")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoPostWrap) GetTags() []string {
 	res := true
-	msg := &SoMemPostByTags{}
+	msg := &SoPost{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Tags")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -2023,66 +2313,66 @@ func (s *SoPostWrap) GetTags() []string {
 	return msg.Tags
 }
 
-func (s *SoPostWrap) MdTags(p []string) bool {
+func (s *SoPostWrap) mdFieldTags(p []string, isCheck bool, isDel bool, isInsert bool,
+	so *SoPost) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("Tags")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemPostByTags{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoPost{}
-	sa.PostId = *s.mainKey
-	sa.Tags = ori.Tags
 
-	ori.Tags = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isCheck {
+		res := s.checkTagsIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
+
+	if isDel {
+		res := s.delFieldTags(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldTags(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoPostWrap) delFieldTags(so *SoPost) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.Tags = p
 
 	return true
 }
 
-func (s *SoPostWrap) saveMemKeyTicket(tInfo *SoPost) error {
+func (s *SoPostWrap) insertFieldTags(so *SoPost) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoPostWrap) checkTagsIsMetMdCondition(p []string) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemPostByTicket{}
-	val.Ticket = tInfo.Ticket
-	key, err := s.encodeMemKey("Ticket")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoPostWrap) GetTicket() uint32 {
 	res := true
-	msg := &SoMemPostByTicket{}
+	msg := &SoPost{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Ticket")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -2105,66 +2395,66 @@ func (s *SoPostWrap) GetTicket() uint32 {
 	return msg.Ticket
 }
 
-func (s *SoPostWrap) MdTicket(p uint32) bool {
+func (s *SoPostWrap) mdFieldTicket(p uint32, isCheck bool, isDel bool, isInsert bool,
+	so *SoPost) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("Ticket")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemPostByTicket{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoPost{}
-	sa.PostId = *s.mainKey
-	sa.Ticket = ori.Ticket
 
-	ori.Ticket = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isCheck {
+		res := s.checkTicketIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
+
+	if isDel {
+		res := s.delFieldTicket(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldTicket(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoPostWrap) delFieldTicket(so *SoPost) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.Ticket = p
 
 	return true
 }
 
-func (s *SoPostWrap) saveMemKeyTitle(tInfo *SoPost) error {
+func (s *SoPostWrap) insertFieldTicket(so *SoPost) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoPostWrap) checkTicketIsMetMdCondition(p uint32) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemPostByTitle{}
-	val.Title = tInfo.Title
-	key, err := s.encodeMemKey("Title")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoPostWrap) GetTitle() string {
 	res := true
-	msg := &SoMemPostByTitle{}
+	msg := &SoPost{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Title")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -2187,66 +2477,66 @@ func (s *SoPostWrap) GetTitle() string {
 	return msg.Title
 }
 
-func (s *SoPostWrap) MdTitle(p string) bool {
+func (s *SoPostWrap) mdFieldTitle(p string, isCheck bool, isDel bool, isInsert bool,
+	so *SoPost) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("Title")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemPostByTitle{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoPost{}
-	sa.PostId = *s.mainKey
-	sa.Title = ori.Title
 
-	ori.Title = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isCheck {
+		res := s.checkTitleIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
+
+	if isDel {
+		res := s.delFieldTitle(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldTitle(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoPostWrap) delFieldTitle(so *SoPost) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.Title = p
 
 	return true
 }
 
-func (s *SoPostWrap) saveMemKeyVoteCnt(tInfo *SoPost) error {
+func (s *SoPostWrap) insertFieldTitle(so *SoPost) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoPostWrap) checkTitleIsMetMdCondition(p string) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemPostByVoteCnt{}
-	val.VoteCnt = tInfo.VoteCnt
-	key, err := s.encodeMemKey("VoteCnt")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoPostWrap) GetVoteCnt() uint64 {
 	res := true
-	msg := &SoMemPostByVoteCnt{}
+	msg := &SoPost{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("VoteCnt")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -2269,66 +2559,66 @@ func (s *SoPostWrap) GetVoteCnt() uint64 {
 	return msg.VoteCnt
 }
 
-func (s *SoPostWrap) MdVoteCnt(p uint64) bool {
+func (s *SoPostWrap) mdFieldVoteCnt(p uint64, isCheck bool, isDel bool, isInsert bool,
+	so *SoPost) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("VoteCnt")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemPostByVoteCnt{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoPost{}
-	sa.PostId = *s.mainKey
-	sa.VoteCnt = ori.VoteCnt
 
-	ori.VoteCnt = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isCheck {
+		res := s.checkVoteCntIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
+
+	if isDel {
+		res := s.delFieldVoteCnt(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldVoteCnt(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoPostWrap) delFieldVoteCnt(so *SoPost) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.VoteCnt = p
 
 	return true
 }
 
-func (s *SoPostWrap) saveMemKeyWeightedVp(tInfo *SoPost) error {
+func (s *SoPostWrap) insertFieldVoteCnt(so *SoPost) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoPostWrap) checkVoteCntIsMetMdCondition(p uint64) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemPostByWeightedVp{}
-	val.WeightedVp = tInfo.WeightedVp
-	key, err := s.encodeMemKey("WeightedVp")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoPostWrap) GetWeightedVp() string {
 	res := true
-	msg := &SoMemPostByWeightedVp{}
+	msg := &SoPost{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("WeightedVp")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -2351,34 +2641,55 @@ func (s *SoPostWrap) GetWeightedVp() string {
 	return msg.WeightedVp
 }
 
-func (s *SoPostWrap) MdWeightedVp(p string) bool {
+func (s *SoPostWrap) mdFieldWeightedVp(p string, isCheck bool, isDel bool, isInsert bool,
+	so *SoPost) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("WeightedVp")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemPostByWeightedVp{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoPost{}
-	sa.PostId = *s.mainKey
-	sa.WeightedVp = ori.WeightedVp
 
-	ori.WeightedVp = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isCheck {
+		res := s.checkWeightedVpIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
+
+	if isDel {
+		res := s.delFieldWeightedVp(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldWeightedVp(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoPostWrap) delFieldWeightedVp(so *SoPost) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
+
+	return true
+}
+
+func (s *SoPostWrap) insertFieldWeightedVp(so *SoPost) bool {
+	if s.dba == nil {
 		return false
 	}
-	sa.WeightedVp = p
+
+	return true
+}
+
+func (s *SoPostWrap) checkWeightedVpIsMetMdCondition(p string) bool {
+	if s.dba == nil {
+		return false
+	}
 
 	return true
 }
@@ -2793,11 +3104,38 @@ func (s *SoPostWrap) getPost() *SoPost {
 	return res
 }
 
+func (s *SoPostWrap) updatePost(so *SoPost) error {
+	if s.dba == nil {
+		return errors.New("update fail:the db is nil")
+	}
+
+	if so == nil {
+		return errors.New("update fail: the SoPost is nil")
+	}
+
+	key, err := s.encodeMainKey()
+	if err != nil {
+		return nil
+	}
+
+	buf, err := proto.Marshal(so)
+	if err != nil {
+		return err
+	}
+
+	err = s.dba.Put(key, buf)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *SoPostWrap) encodeMainKey() ([]byte, error) {
 	if s.mKeyBuf != nil {
 		return s.mKeyBuf, nil
 	}
-	pre := s.getMemKeyPrefix("PostId")
+	pre := PostPostIdRow
 	sub := s.mainKey
 	if sub == nil {
 		return nil, errors.New("the mainKey is nil")
@@ -2876,20 +3214,8 @@ func (s *SoPostWrap) delUniKeyPostId(sa *SoPost) bool {
 		sub := sa.PostId
 		kList = append(kList, sub)
 	} else {
-		key, err := s.encodeMemKey("PostId")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemPostByPostId{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		sub := ori.PostId
+		sub := s.GetPostId()
+
 		kList = append(kList, sub)
 
 	}
@@ -2904,6 +3230,7 @@ func (s *SoPostWrap) insertUniKeyPostId(sa *SoPost) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
+
 	pre := PostPostIdUniTable
 	sub := sa.PostId
 	kList := []interface{}{pre, sub}

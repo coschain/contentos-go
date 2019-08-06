@@ -23,56 +23,6 @@ message so_contract {
 }
 
 
-message so_mem_contract_by_id {
-	prototype.contract_id   	id           = 1;
-}
-
-
-message so_mem_contract_by_created_time {
-	prototype.time_point_sec	created_time = 1;
-}
-
-
-message so_mem_contract_by_abi {
-	string                  	abi          = 1;
-}
-
-
-message so_mem_contract_by_balance {
-	prototype.coin          	balance      = 1;
-}
-
-
-message so_mem_contract_by_code {
-	bytes                   	code         = 1;
-}
-
-
-message so_mem_contract_by_apply_count {
-	uint32                  	apply_count  = 1;
-}
-
-
-message so_mem_contract_by_upgradeable {
-	bool                    	upgradeable  = 1;
-}
-
-
-message so_mem_contract_by_hash {
-	prototype.sha256        	hash     		  = 1;
-}
-
-
-message so_mem_contract_by_url {
-	string                  	url          = 1;
-}
-
-
-message so_mem_contract_by_describe {
-	string                  	describe          = 1;
-}
-
-
 message so_list_contract_by_created_time {
 	prototype.time_point_sec	created_time = 1;
 	prototype.contract_id   	id           = 2;

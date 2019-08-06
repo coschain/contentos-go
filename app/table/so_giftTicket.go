@@ -4,7 +4,6 @@ import (
 	"errors"
 	fmt "fmt"
 	"reflect"
-	"strings"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -14,29 +13,28 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	GiftTicketTicketTable     uint32 = 1694240687
-	GiftTicketCountTable      uint32 = 3991811728
-	GiftTicketTicketUniTable  uint32 = 4012059461
-	GiftTicketCountCell       uint32 = 228272823
-	GiftTicketDenomCell       uint32 = 995079636
-	GiftTicketExpireBlockCell uint32 = 1076549812
-	GiftTicketTicketCell      uint32 = 3431593262
+	GiftTicketTicketTable    uint32 = 1694240687
+	GiftTicketCountTable     uint32 = 3991811728
+	GiftTicketTicketUniTable uint32 = 4012059461
+
+	GiftTicketTicketRow uint32 = 3884327903
 )
 
 ////////////// SECTION Wrap Define ///////////////
 type SoGiftTicketWrap struct {
-	dba      iservices.IDatabaseRW
-	mainKey  *prototype.GiftTicketKeyType
-	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf  []byte //the buffer after the main key is encoded with prefix
-	mBuf     []byte //the value after the main key is encoded
+	dba       iservices.IDatabaseRW
+	mainKey   *prototype.GiftTicketKeyType
+	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
+	mBuf      []byte //the value after the main key is encoded
+	mdFuncMap map[string]interface{}
 }
 
 func NewSoGiftTicketWrap(dba iservices.IDatabaseRW, key *prototype.GiftTicketKeyType) *SoGiftTicketWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoGiftTicketWrap{dba, key, -1, nil, nil}
+	result := &SoGiftTicketWrap{dba, key, -1, nil, nil, nil}
 	return result
 }
 
@@ -88,9 +86,13 @@ func (s *SoGiftTicketWrap) Create(f func(tInfo *SoGiftTicket)) error {
 		return err
 
 	}
-	err = s.saveAllMemKeys(val, true)
+
+	buf, err := proto.Marshal(val)
 	if err != nil {
-		s.delAllMemKeys(false, val)
+		return err
+	}
+	err = s.dba.Put(keyBuf, buf)
+	if err != nil {
 		return err
 	}
 
@@ -98,7 +100,6 @@ func (s *SoGiftTicketWrap) Create(f func(tInfo *SoGiftTicket)) error {
 	if err = s.insertAllSortKeys(val); err != nil {
 		s.delAllSortKeys(false, val)
 		s.dba.Delete(keyBuf)
-		s.delAllMemKeys(false, val)
 		return err
 	}
 
@@ -107,10 +108,10 @@ func (s *SoGiftTicketWrap) Create(f func(tInfo *SoGiftTicket)) error {
 		s.delAllSortKeys(false, val)
 		s.delUniKeysWithNames(sucNames, val)
 		s.dba.Delete(keyBuf)
-		s.delAllMemKeys(false, val)
 		return err
 	}
 
+	s.mKeyFlag = 1
 	return nil
 }
 
@@ -128,6 +129,188 @@ func (s *SoGiftTicketWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
+func (s *SoGiftTicketWrap) Modify(f func(tInfo *SoGiftTicket)) error {
+	if !s.CheckExist() {
+		return errors.New("the SoGiftTicket table does not exist. Please create a table first")
+	}
+	oriTable := s.getGiftTicket()
+	if oriTable == nil {
+		return errors.New("fail to get origin table SoGiftTicket")
+	}
+	curTable := *oriTable
+	f(&curTable)
+
+	//the main key is not support modify
+	if !reflect.DeepEqual(curTable.Ticket, oriTable.Ticket) {
+		return errors.New("primary key does not support modification")
+	}
+
+	fieldSli, err := s.getModifiedFields(oriTable, &curTable)
+	if err != nil {
+		return err
+	}
+
+	if fieldSli == nil || len(fieldSli) < 1 {
+		return nil
+	}
+
+	//check whether modify sort and unique field to nil
+	err = s.checkSortAndUniFieldValidity(&curTable, fieldSli)
+	if err != nil {
+		return err
+	}
+
+	//check unique
+	err = s.handleFieldMd(FieldMdHandleTypeCheck, &curTable, fieldSli)
+	if err != nil {
+		return err
+	}
+
+	//delete sort and unique key
+	err = s.handleFieldMd(FieldMdHandleTypeDel, oriTable, fieldSli)
+	if err != nil {
+		return err
+	}
+
+	//update table
+	err = s.updateGiftTicket(&curTable)
+	if err != nil {
+		return err
+	}
+
+	//insert sort and unique key
+	err = s.handleFieldMd(FieldMdHandleTypeInsert, &curTable, fieldSli)
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+func (s *SoGiftTicketWrap) MdCount(p uint64) bool {
+	err := s.Modify(func(r *SoGiftTicket) {
+		r.Count = p
+	})
+	return err == nil
+}
+
+func (s *SoGiftTicketWrap) MdDenom(p uint64) bool {
+	err := s.Modify(func(r *SoGiftTicket) {
+		r.Denom = p
+	})
+	return err == nil
+}
+
+func (s *SoGiftTicketWrap) MdExpireBlock(p uint64) bool {
+	err := s.Modify(func(r *SoGiftTicket) {
+		r.ExpireBlock = p
+	})
+	return err == nil
+}
+
+func (s *SoGiftTicketWrap) checkSortAndUniFieldValidity(curTable *SoGiftTicket, fieldSli []string) error {
+	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
+		for _, fName := range fieldSli {
+			if len(fName) > 0 {
+
+			}
+		}
+	}
+	return nil
+}
+
+//Get all the modified fields in the table
+func (s *SoGiftTicketWrap) getModifiedFields(oriTable *SoGiftTicket, curTable *SoGiftTicket) ([]string, error) {
+	if oriTable == nil {
+		return nil, errors.New("table info is nil, can't get modified fields")
+	}
+	var list []string
+
+	if !reflect.DeepEqual(oriTable.Count, curTable.Count) {
+		list = append(list, "Count")
+	}
+
+	if !reflect.DeepEqual(oriTable.Denom, curTable.Denom) {
+		list = append(list, "Denom")
+	}
+
+	if !reflect.DeepEqual(oriTable.ExpireBlock, curTable.ExpireBlock) {
+		list = append(list, "ExpireBlock")
+	}
+
+	return list, nil
+}
+
+func (s *SoGiftTicketWrap) handleFieldMd(t FieldMdHandleType, so *SoGiftTicket, fSli []string) error {
+	if so == nil {
+		return errors.New("fail to modify empty table")
+	}
+
+	//there is no field need to modify
+	if fSli == nil || len(fSli) < 1 {
+		return nil
+	}
+
+	errStr := ""
+	for _, fName := range fSli {
+
+		if fName == "Count" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldCount(so.Count, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldCount(so.Count, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldCount(so.Count, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "Denom" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldDenom(so.Denom, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldDenom(so.Denom, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldDenom(so.Denom, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "ExpireBlock" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldExpireBlock(so.ExpireBlock, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldExpireBlock(so.ExpireBlock, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldExpireBlock(so.ExpireBlock, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+	}
+
+	return nil
+}
+
 ////////////// SECTION LKeys delete/insert ///////////////
 
 func (s *SoGiftTicketWrap) delSortKeyTicket(sa *SoGiftTicket) bool {
@@ -136,24 +319,10 @@ func (s *SoGiftTicketWrap) delSortKeyTicket(sa *SoGiftTicket) bool {
 	}
 	val := SoListGiftTicketByTicket{}
 	if sa == nil {
-		key, err := s.encodeMemKey("Ticket")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemGiftTicketByTicket{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		val.Ticket = ori.Ticket
+		val.Ticket = s.GetTicket()
 	} else {
 		val.Ticket = sa.Ticket
 	}
-
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -186,27 +355,13 @@ func (s *SoGiftTicketWrap) delSortKeyCount(sa *SoGiftTicket) bool {
 	}
 	val := SoListGiftTicketByCount{}
 	if sa == nil {
-		key, err := s.encodeMemKey("Count")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemGiftTicketByCount{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		val.Count = ori.Count
+		val.Count = s.GetCount()
 		val.Ticket = s.mainKey
 
 	} else {
 		val.Count = sa.Count
 		val.Ticket = sa.Ticket
 	}
-
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -239,13 +394,7 @@ func (s *SoGiftTicketWrap) delAllSortKeys(br bool, val *SoGiftTicket) bool {
 		return false
 	}
 	res := true
-	if !s.delSortKeyTicket(val) {
-		if br {
-			return false
-		} else {
-			res = false
-		}
-	}
+
 	if !s.delSortKeyCount(val) {
 		if br {
 			return false
@@ -264,9 +413,7 @@ func (s *SoGiftTicketWrap) insertAllSortKeys(val *SoGiftTicket) error {
 	if val == nil {
 		return errors.New("insert sort Field fail,get the SoGiftTicket fail ")
 	}
-	if !s.insertSortKeyTicket(val) {
-		return errors.New("insert sort Field Ticket fail while insert table ")
-	}
+
 	if !s.insertSortKeyCount(val) {
 		return errors.New("insert sort Field Count fail while insert table ")
 	}
@@ -280,7 +427,6 @@ func (s *SoGiftTicketWrap) RemoveGiftTicket() bool {
 	if s.dba == nil {
 		return false
 	}
-	val := &SoGiftTicket{}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
 		return false
@@ -291,7 +437,12 @@ func (s *SoGiftTicketWrap) RemoveGiftTicket() bool {
 		return false
 	}
 
-	err := s.delAllMemKeys(true, val)
+	//delete table
+	key, err := s.encodeMainKey()
+	if err != nil {
+		return false
+	}
+	err = s.dba.Delete(key)
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
@@ -302,154 +453,14 @@ func (s *SoGiftTicketWrap) RemoveGiftTicket() bool {
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
-func (s *SoGiftTicketWrap) getMemKeyPrefix(fName string) uint32 {
-	if fName == "Count" {
-		return GiftTicketCountCell
-	}
-	if fName == "Denom" {
-		return GiftTicketDenomCell
-	}
-	if fName == "ExpireBlock" {
-		return GiftTicketExpireBlockCell
-	}
-	if fName == "Ticket" {
-		return GiftTicketTicketCell
-	}
-
-	return 0
-}
-
-func (s *SoGiftTicketWrap) encodeMemKey(fName string) ([]byte, error) {
-	if len(fName) < 1 || s.mainKey == nil {
-		return nil, errors.New("field name or main key is empty")
-	}
-	pre := s.getMemKeyPrefix(fName)
-	preBuf, err := kope.Encode(pre)
-	if err != nil {
-		return nil, err
-	}
-	mBuf, err := s.getMainKeyBuf()
-	if err != nil {
-		return nil, err
-	}
-	list := make([][]byte, 2)
-	list[0] = preBuf
-	list[1] = mBuf
-	return kope.PackList(list), nil
-}
-
-func (s *SoGiftTicketWrap) saveAllMemKeys(tInfo *SoGiftTicket, br bool) error {
-	if s.dba == nil {
-		return errors.New("save member Field fail , the db is nil")
-	}
-
-	if tInfo == nil {
-		return errors.New("save member Field fail , the data is nil ")
-	}
-	var err error = nil
-	errDes := ""
-	if err = s.saveMemKeyCount(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Count", err)
-		}
-	}
-	if err = s.saveMemKeyDenom(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Denom", err)
-		}
-	}
-	if err = s.saveMemKeyExpireBlock(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "ExpireBlock", err)
-		}
-	}
-	if err = s.saveMemKeyTicket(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Ticket", err)
-		}
-	}
-
-	if len(errDes) > 0 {
-		return errors.New(errDes)
-	}
-	return err
-}
-
-func (s *SoGiftTicketWrap) delAllMemKeys(br bool, tInfo *SoGiftTicket) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	t := reflect.TypeOf(*tInfo)
-	errDesc := ""
-	for k := 0; k < t.NumField(); k++ {
-		name := t.Field(k).Name
-		if len(name) > 0 && !strings.HasPrefix(name, "XXX_") {
-			err := s.delMemKey(name)
-			if err != nil {
-				if br {
-					return err
-				}
-				errDesc += fmt.Sprintf("delete the Field %s fail,error is %s;\n", name, err)
-			}
-		}
-	}
-	if len(errDesc) > 0 {
-		return errors.New(errDesc)
-	}
-	return nil
-}
-
-func (s *SoGiftTicketWrap) delMemKey(fName string) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if len(fName) <= 0 {
-		return errors.New("the field name is empty ")
-	}
-	key, err := s.encodeMemKey(fName)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Delete(key)
-	return err
-}
-
-func (s *SoGiftTicketWrap) saveMemKeyCount(tInfo *SoGiftTicket) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemGiftTicketByCount{}
-	val.Count = tInfo.Count
-	key, err := s.encodeMemKey("Count")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
 
 func (s *SoGiftTicketWrap) GetCount() uint64 {
 	res := true
-	msg := &SoMemGiftTicketByCount{}
+	msg := &SoGiftTicket{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Count")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -472,74 +483,74 @@ func (s *SoGiftTicketWrap) GetCount() uint64 {
 	return msg.Count
 }
 
-func (s *SoGiftTicketWrap) MdCount(p uint64) bool {
+func (s *SoGiftTicketWrap) mdFieldCount(p uint64, isCheck bool, isDel bool, isInsert bool,
+	so *SoGiftTicket) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("Count")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemGiftTicketByCount{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoGiftTicket{}
-	sa.Ticket = s.mainKey
 
-	sa.Count = ori.Count
+	if isCheck {
+		res := s.checkCountIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	if !s.delSortKeyCount(sa) {
-		return false
+	if isDel {
+		res := s.delFieldCount(so)
+		if !res {
+			return false
+		}
 	}
-	ori.Count = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.Count = p
 
-	if !s.insertSortKeyCount(sa) {
+	if isInsert {
+		res := s.insertFieldCount(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoGiftTicketWrap) delFieldCount(so *SoGiftTicket) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if !s.delSortKeyCount(so) {
 		return false
 	}
 
 	return true
 }
 
-func (s *SoGiftTicketWrap) saveMemKeyDenom(tInfo *SoGiftTicket) error {
+func (s *SoGiftTicketWrap) insertFieldCount(so *SoGiftTicket) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	if !s.insertSortKeyCount(so) {
+		return false
 	}
-	val := SoMemGiftTicketByDenom{}
-	val.Denom = tInfo.Denom
-	key, err := s.encodeMemKey("Denom")
-	if err != nil {
-		return err
+
+	return true
+}
+
+func (s *SoGiftTicketWrap) checkCountIsMetMdCondition(p uint64) bool {
+	if s.dba == nil {
+		return false
 	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoGiftTicketWrap) GetDenom() uint64 {
 	res := true
-	msg := &SoMemGiftTicketByDenom{}
+	msg := &SoGiftTicket{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Denom")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -562,67 +573,66 @@ func (s *SoGiftTicketWrap) GetDenom() uint64 {
 	return msg.Denom
 }
 
-func (s *SoGiftTicketWrap) MdDenom(p uint64) bool {
+func (s *SoGiftTicketWrap) mdFieldDenom(p uint64, isCheck bool, isDel bool, isInsert bool,
+	so *SoGiftTicket) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("Denom")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemGiftTicketByDenom{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoGiftTicket{}
-	sa.Ticket = s.mainKey
 
-	sa.Denom = ori.Denom
+	if isCheck {
+		res := s.checkDenomIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.Denom = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldDenom(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldDenom(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoGiftTicketWrap) delFieldDenom(so *SoGiftTicket) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.Denom = p
 
 	return true
 }
 
-func (s *SoGiftTicketWrap) saveMemKeyExpireBlock(tInfo *SoGiftTicket) error {
+func (s *SoGiftTicketWrap) insertFieldDenom(so *SoGiftTicket) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoGiftTicketWrap) checkDenomIsMetMdCondition(p uint64) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemGiftTicketByExpireBlock{}
-	val.ExpireBlock = tInfo.ExpireBlock
-	key, err := s.encodeMemKey("ExpireBlock")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoGiftTicketWrap) GetExpireBlock() uint64 {
 	res := true
-	msg := &SoMemGiftTicketByExpireBlock{}
+	msg := &SoGiftTicket{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("ExpireBlock")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -645,67 +655,66 @@ func (s *SoGiftTicketWrap) GetExpireBlock() uint64 {
 	return msg.ExpireBlock
 }
 
-func (s *SoGiftTicketWrap) MdExpireBlock(p uint64) bool {
+func (s *SoGiftTicketWrap) mdFieldExpireBlock(p uint64, isCheck bool, isDel bool, isInsert bool,
+	so *SoGiftTicket) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("ExpireBlock")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemGiftTicketByExpireBlock{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoGiftTicket{}
-	sa.Ticket = s.mainKey
 
-	sa.ExpireBlock = ori.ExpireBlock
+	if isCheck {
+		res := s.checkExpireBlockIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.ExpireBlock = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldExpireBlock(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldExpireBlock(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoGiftTicketWrap) delFieldExpireBlock(so *SoGiftTicket) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.ExpireBlock = p
 
 	return true
 }
 
-func (s *SoGiftTicketWrap) saveMemKeyTicket(tInfo *SoGiftTicket) error {
+func (s *SoGiftTicketWrap) insertFieldExpireBlock(so *SoGiftTicket) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoGiftTicketWrap) checkExpireBlockIsMetMdCondition(p uint64) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemGiftTicketByTicket{}
-	val.Ticket = tInfo.Ticket
-	key, err := s.encodeMemKey("Ticket")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoGiftTicketWrap) GetTicket() *prototype.GiftTicketKeyType {
 	res := true
-	msg := &SoMemGiftTicketByTicket{}
+	msg := &SoGiftTicket{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Ticket")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -1032,11 +1041,38 @@ func (s *SoGiftTicketWrap) getGiftTicket() *SoGiftTicket {
 	return res
 }
 
+func (s *SoGiftTicketWrap) updateGiftTicket(so *SoGiftTicket) error {
+	if s.dba == nil {
+		return errors.New("update fail:the db is nil")
+	}
+
+	if so == nil {
+		return errors.New("update fail: the SoGiftTicket is nil")
+	}
+
+	key, err := s.encodeMainKey()
+	if err != nil {
+		return nil
+	}
+
+	buf, err := proto.Marshal(so)
+	if err != nil {
+		return err
+	}
+
+	err = s.dba.Put(key, buf)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *SoGiftTicketWrap) encodeMainKey() ([]byte, error) {
 	if s.mKeyBuf != nil {
 		return s.mKeyBuf, nil
 	}
-	pre := s.getMemKeyPrefix("Ticket")
+	pre := GiftTicketTicketRow
 	sub := s.mainKey
 	if sub == nil {
 		return nil, errors.New("the mainKey is nil")
@@ -1111,7 +1147,6 @@ func (s *SoGiftTicketWrap) delUniKeyTicket(sa *SoGiftTicket) bool {
 	pre := GiftTicketTicketUniTable
 	kList := []interface{}{pre}
 	if sa != nil {
-
 		if sa.Ticket == nil {
 			return false
 		}
@@ -1119,20 +1154,11 @@ func (s *SoGiftTicketWrap) delUniKeyTicket(sa *SoGiftTicket) bool {
 		sub := sa.Ticket
 		kList = append(kList, sub)
 	} else {
-		key, err := s.encodeMemKey("Ticket")
-		if err != nil {
-			return false
+		sub := s.GetTicket()
+		if sub == nil {
+			return true
 		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemGiftTicketByTicket{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		sub := ori.Ticket
+
 		kList = append(kList, sub)
 
 	}
@@ -1147,6 +1173,7 @@ func (s *SoGiftTicketWrap) insertUniKeyTicket(sa *SoGiftTicket) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
+
 	pre := GiftTicketTicketUniTable
 	sub := sa.Ticket
 	kList := []interface{}{pre, sub}

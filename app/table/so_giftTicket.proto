@@ -16,26 +16,6 @@ message so_giftTicket {
 }
 
 
-message so_mem_giftTicket_by_ticket {
-	prototype.gift_ticket_key_type  	ticket     = 1;
-}
-
-
-message so_mem_giftTicket_by_denom {
-	uint64                   								denom      = 1;
-}
-
-
-message so_mem_giftTicket_by_count {
-	uint64                          	count      = 1;
-}
-
-
-message so_mem_giftTicket_by_expire_block {
-	uint64                          	expire_block = 1;
-}
-
-
 message so_list_giftTicket_by_ticket {
 	prototype.gift_ticket_key_type  	ticket     = 1;
 }

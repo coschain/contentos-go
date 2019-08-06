@@ -4,7 +4,6 @@ import (
 	"errors"
 	fmt "fmt"
 	"reflect"
-	"strings"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -17,24 +16,25 @@ var (
 	ExtHourTrxHourTable    uint32 = 2691214849
 	ExtHourTrxCountTable   uint32 = 1734812738
 	ExtHourTrxHourUniTable uint32 = 2092663070
-	ExtHourTrxCountCell    uint32 = 3779073196
-	ExtHourTrxHourCell     uint32 = 962782167
+
+	ExtHourTrxHourRow uint32 = 55872904
 )
 
 ////////////// SECTION Wrap Define ///////////////
 type SoExtHourTrxWrap struct {
-	dba      iservices.IDatabaseRW
-	mainKey  *prototype.TimePointSec
-	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf  []byte //the buffer after the main key is encoded with prefix
-	mBuf     []byte //the value after the main key is encoded
+	dba       iservices.IDatabaseRW
+	mainKey   *prototype.TimePointSec
+	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
+	mBuf      []byte //the value after the main key is encoded
+	mdFuncMap map[string]interface{}
 }
 
 func NewSoExtHourTrxWrap(dba iservices.IDatabaseRW, key *prototype.TimePointSec) *SoExtHourTrxWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoExtHourTrxWrap{dba, key, -1, nil, nil}
+	result := &SoExtHourTrxWrap{dba, key, -1, nil, nil, nil}
 	return result
 }
 
@@ -86,9 +86,13 @@ func (s *SoExtHourTrxWrap) Create(f func(tInfo *SoExtHourTrx)) error {
 		return err
 
 	}
-	err = s.saveAllMemKeys(val, true)
+
+	buf, err := proto.Marshal(val)
 	if err != nil {
-		s.delAllMemKeys(false, val)
+		return err
+	}
+	err = s.dba.Put(keyBuf, buf)
+	if err != nil {
 		return err
 	}
 
@@ -96,7 +100,6 @@ func (s *SoExtHourTrxWrap) Create(f func(tInfo *SoExtHourTrx)) error {
 	if err = s.insertAllSortKeys(val); err != nil {
 		s.delAllSortKeys(false, val)
 		s.dba.Delete(keyBuf)
-		s.delAllMemKeys(false, val)
 		return err
 	}
 
@@ -105,10 +108,10 @@ func (s *SoExtHourTrxWrap) Create(f func(tInfo *SoExtHourTrx)) error {
 		s.delAllSortKeys(false, val)
 		s.delUniKeysWithNames(sucNames, val)
 		s.dba.Delete(keyBuf)
-		s.delAllMemKeys(false, val)
 		return err
 	}
 
+	s.mKeyFlag = 1
 	return nil
 }
 
@@ -126,6 +129,132 @@ func (s *SoExtHourTrxWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
+func (s *SoExtHourTrxWrap) Modify(f func(tInfo *SoExtHourTrx)) error {
+	if !s.CheckExist() {
+		return errors.New("the SoExtHourTrx table does not exist. Please create a table first")
+	}
+	oriTable := s.getExtHourTrx()
+	if oriTable == nil {
+		return errors.New("fail to get origin table SoExtHourTrx")
+	}
+	curTable := *oriTable
+	f(&curTable)
+
+	//the main key is not support modify
+	if !reflect.DeepEqual(curTable.Hour, oriTable.Hour) {
+		return errors.New("primary key does not support modification")
+	}
+
+	fieldSli, err := s.getModifiedFields(oriTable, &curTable)
+	if err != nil {
+		return err
+	}
+
+	if fieldSli == nil || len(fieldSli) < 1 {
+		return nil
+	}
+
+	//check whether modify sort and unique field to nil
+	err = s.checkSortAndUniFieldValidity(&curTable, fieldSli)
+	if err != nil {
+		return err
+	}
+
+	//check unique
+	err = s.handleFieldMd(FieldMdHandleTypeCheck, &curTable, fieldSli)
+	if err != nil {
+		return err
+	}
+
+	//delete sort and unique key
+	err = s.handleFieldMd(FieldMdHandleTypeDel, oriTable, fieldSli)
+	if err != nil {
+		return err
+	}
+
+	//update table
+	err = s.updateExtHourTrx(&curTable)
+	if err != nil {
+		return err
+	}
+
+	//insert sort and unique key
+	err = s.handleFieldMd(FieldMdHandleTypeInsert, &curTable, fieldSli)
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+func (s *SoExtHourTrxWrap) MdCount(p uint64) bool {
+	err := s.Modify(func(r *SoExtHourTrx) {
+		r.Count = p
+	})
+	return err == nil
+}
+
+func (s *SoExtHourTrxWrap) checkSortAndUniFieldValidity(curTable *SoExtHourTrx, fieldSli []string) error {
+	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
+		for _, fName := range fieldSli {
+			if len(fName) > 0 {
+
+			}
+		}
+	}
+	return nil
+}
+
+//Get all the modified fields in the table
+func (s *SoExtHourTrxWrap) getModifiedFields(oriTable *SoExtHourTrx, curTable *SoExtHourTrx) ([]string, error) {
+	if oriTable == nil {
+		return nil, errors.New("table info is nil, can't get modified fields")
+	}
+	var list []string
+
+	if !reflect.DeepEqual(oriTable.Count, curTable.Count) {
+		list = append(list, "Count")
+	}
+
+	return list, nil
+}
+
+func (s *SoExtHourTrxWrap) handleFieldMd(t FieldMdHandleType, so *SoExtHourTrx, fSli []string) error {
+	if so == nil {
+		return errors.New("fail to modify empty table")
+	}
+
+	//there is no field need to modify
+	if fSli == nil || len(fSli) < 1 {
+		return nil
+	}
+
+	errStr := ""
+	for _, fName := range fSli {
+
+		if fName == "Count" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldCount(so.Count, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldCount(so.Count, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldCount(so.Count, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+	}
+
+	return nil
+}
+
 ////////////// SECTION LKeys delete/insert ///////////////
 
 func (s *SoExtHourTrxWrap) delSortKeyHour(sa *SoExtHourTrx) bool {
@@ -134,24 +263,10 @@ func (s *SoExtHourTrxWrap) delSortKeyHour(sa *SoExtHourTrx) bool {
 	}
 	val := SoListExtHourTrxByHour{}
 	if sa == nil {
-		key, err := s.encodeMemKey("Hour")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemExtHourTrxByHour{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		val.Hour = ori.Hour
+		val.Hour = s.GetHour()
 	} else {
 		val.Hour = sa.Hour
 	}
-
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -184,27 +299,13 @@ func (s *SoExtHourTrxWrap) delSortKeyCount(sa *SoExtHourTrx) bool {
 	}
 	val := SoListExtHourTrxByCount{}
 	if sa == nil {
-		key, err := s.encodeMemKey("Count")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemExtHourTrxByCount{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		val.Count = ori.Count
+		val.Count = s.GetCount()
 		val.Hour = s.mainKey
 
 	} else {
 		val.Count = sa.Count
 		val.Hour = sa.Hour
 	}
-
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -237,13 +338,7 @@ func (s *SoExtHourTrxWrap) delAllSortKeys(br bool, val *SoExtHourTrx) bool {
 		return false
 	}
 	res := true
-	if !s.delSortKeyHour(val) {
-		if br {
-			return false
-		} else {
-			res = false
-		}
-	}
+
 	if !s.delSortKeyCount(val) {
 		if br {
 			return false
@@ -262,9 +357,7 @@ func (s *SoExtHourTrxWrap) insertAllSortKeys(val *SoExtHourTrx) error {
 	if val == nil {
 		return errors.New("insert sort Field fail,get the SoExtHourTrx fail ")
 	}
-	if !s.insertSortKeyHour(val) {
-		return errors.New("insert sort Field Hour fail while insert table ")
-	}
+
 	if !s.insertSortKeyCount(val) {
 		return errors.New("insert sort Field Count fail while insert table ")
 	}
@@ -278,7 +371,6 @@ func (s *SoExtHourTrxWrap) RemoveExtHourTrx() bool {
 	if s.dba == nil {
 		return false
 	}
-	val := &SoExtHourTrx{}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
 		return false
@@ -289,7 +381,12 @@ func (s *SoExtHourTrxWrap) RemoveExtHourTrx() bool {
 		return false
 	}
 
-	err := s.delAllMemKeys(true, val)
+	//delete table
+	key, err := s.encodeMainKey()
+	if err != nil {
+		return false
+	}
+	err = s.dba.Delete(key)
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
@@ -300,134 +397,14 @@ func (s *SoExtHourTrxWrap) RemoveExtHourTrx() bool {
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
-func (s *SoExtHourTrxWrap) getMemKeyPrefix(fName string) uint32 {
-	if fName == "Count" {
-		return ExtHourTrxCountCell
-	}
-	if fName == "Hour" {
-		return ExtHourTrxHourCell
-	}
-
-	return 0
-}
-
-func (s *SoExtHourTrxWrap) encodeMemKey(fName string) ([]byte, error) {
-	if len(fName) < 1 || s.mainKey == nil {
-		return nil, errors.New("field name or main key is empty")
-	}
-	pre := s.getMemKeyPrefix(fName)
-	preBuf, err := kope.Encode(pre)
-	if err != nil {
-		return nil, err
-	}
-	mBuf, err := s.getMainKeyBuf()
-	if err != nil {
-		return nil, err
-	}
-	list := make([][]byte, 2)
-	list[0] = preBuf
-	list[1] = mBuf
-	return kope.PackList(list), nil
-}
-
-func (s *SoExtHourTrxWrap) saveAllMemKeys(tInfo *SoExtHourTrx, br bool) error {
-	if s.dba == nil {
-		return errors.New("save member Field fail , the db is nil")
-	}
-
-	if tInfo == nil {
-		return errors.New("save member Field fail , the data is nil ")
-	}
-	var err error = nil
-	errDes := ""
-	if err = s.saveMemKeyCount(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Count", err)
-		}
-	}
-	if err = s.saveMemKeyHour(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Hour", err)
-		}
-	}
-
-	if len(errDes) > 0 {
-		return errors.New(errDes)
-	}
-	return err
-}
-
-func (s *SoExtHourTrxWrap) delAllMemKeys(br bool, tInfo *SoExtHourTrx) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	t := reflect.TypeOf(*tInfo)
-	errDesc := ""
-	for k := 0; k < t.NumField(); k++ {
-		name := t.Field(k).Name
-		if len(name) > 0 && !strings.HasPrefix(name, "XXX_") {
-			err := s.delMemKey(name)
-			if err != nil {
-				if br {
-					return err
-				}
-				errDesc += fmt.Sprintf("delete the Field %s fail,error is %s;\n", name, err)
-			}
-		}
-	}
-	if len(errDesc) > 0 {
-		return errors.New(errDesc)
-	}
-	return nil
-}
-
-func (s *SoExtHourTrxWrap) delMemKey(fName string) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if len(fName) <= 0 {
-		return errors.New("the field name is empty ")
-	}
-	key, err := s.encodeMemKey(fName)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Delete(key)
-	return err
-}
-
-func (s *SoExtHourTrxWrap) saveMemKeyCount(tInfo *SoExtHourTrx) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemExtHourTrxByCount{}
-	val.Count = tInfo.Count
-	key, err := s.encodeMemKey("Count")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
 
 func (s *SoExtHourTrxWrap) GetCount() uint64 {
 	res := true
-	msg := &SoMemExtHourTrxByCount{}
+	msg := &SoExtHourTrx{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Count")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -450,74 +427,74 @@ func (s *SoExtHourTrxWrap) GetCount() uint64 {
 	return msg.Count
 }
 
-func (s *SoExtHourTrxWrap) MdCount(p uint64) bool {
+func (s *SoExtHourTrxWrap) mdFieldCount(p uint64, isCheck bool, isDel bool, isInsert bool,
+	so *SoExtHourTrx) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("Count")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemExtHourTrxByCount{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoExtHourTrx{}
-	sa.Hour = s.mainKey
 
-	sa.Count = ori.Count
+	if isCheck {
+		res := s.checkCountIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	if !s.delSortKeyCount(sa) {
-		return false
+	if isDel {
+		res := s.delFieldCount(so)
+		if !res {
+			return false
+		}
 	}
-	ori.Count = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.Count = p
 
-	if !s.insertSortKeyCount(sa) {
+	if isInsert {
+		res := s.insertFieldCount(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoExtHourTrxWrap) delFieldCount(so *SoExtHourTrx) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if !s.delSortKeyCount(so) {
 		return false
 	}
 
 	return true
 }
 
-func (s *SoExtHourTrxWrap) saveMemKeyHour(tInfo *SoExtHourTrx) error {
+func (s *SoExtHourTrxWrap) insertFieldCount(so *SoExtHourTrx) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	if !s.insertSortKeyCount(so) {
+		return false
 	}
-	val := SoMemExtHourTrxByHour{}
-	val.Hour = tInfo.Hour
-	key, err := s.encodeMemKey("Hour")
-	if err != nil {
-		return err
+
+	return true
+}
+
+func (s *SoExtHourTrxWrap) checkCountIsMetMdCondition(p uint64) bool {
+	if s.dba == nil {
+		return false
 	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoExtHourTrxWrap) GetHour() *prototype.TimePointSec {
 	res := true
-	msg := &SoMemExtHourTrxByHour{}
+	msg := &SoExtHourTrx{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Hour")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -796,11 +773,38 @@ func (s *SoExtHourTrxWrap) getExtHourTrx() *SoExtHourTrx {
 	return res
 }
 
+func (s *SoExtHourTrxWrap) updateExtHourTrx(so *SoExtHourTrx) error {
+	if s.dba == nil {
+		return errors.New("update fail:the db is nil")
+	}
+
+	if so == nil {
+		return errors.New("update fail: the SoExtHourTrx is nil")
+	}
+
+	key, err := s.encodeMainKey()
+	if err != nil {
+		return nil
+	}
+
+	buf, err := proto.Marshal(so)
+	if err != nil {
+		return err
+	}
+
+	err = s.dba.Put(key, buf)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *SoExtHourTrxWrap) encodeMainKey() ([]byte, error) {
 	if s.mKeyBuf != nil {
 		return s.mKeyBuf, nil
 	}
-	pre := s.getMemKeyPrefix("Hour")
+	pre := ExtHourTrxHourRow
 	sub := s.mainKey
 	if sub == nil {
 		return nil, errors.New("the mainKey is nil")
@@ -875,7 +879,6 @@ func (s *SoExtHourTrxWrap) delUniKeyHour(sa *SoExtHourTrx) bool {
 	pre := ExtHourTrxHourUniTable
 	kList := []interface{}{pre}
 	if sa != nil {
-
 		if sa.Hour == nil {
 			return false
 		}
@@ -883,20 +886,11 @@ func (s *SoExtHourTrxWrap) delUniKeyHour(sa *SoExtHourTrx) bool {
 		sub := sa.Hour
 		kList = append(kList, sub)
 	} else {
-		key, err := s.encodeMemKey("Hour")
-		if err != nil {
-			return false
+		sub := s.GetHour()
+		if sub == nil {
+			return true
 		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemExtHourTrxByHour{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		sub := ori.Hour
+
 		kList = append(kList, sub)
 
 	}
@@ -911,6 +905,7 @@ func (s *SoExtHourTrxWrap) insertUniKeyHour(sa *SoExtHourTrx) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
+
 	pre := ExtHourTrxHourUniTable
 	sub := sa.Hour
 	kList := []interface{}{pre, sub}

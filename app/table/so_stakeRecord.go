@@ -4,7 +4,6 @@ import (
 	"errors"
 	fmt "fmt"
 	"reflect"
-	"strings"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -17,26 +16,25 @@ var (
 	StakeRecordRecordTable        uint32 = 265171955
 	StakeRecordRecordReverseTable uint32 = 2606609996
 	StakeRecordRecordUniTable     uint32 = 832689285
-	StakeRecordLastStakeTimeCell  uint32 = 3228055551
-	StakeRecordRecordCell         uint32 = 2514771326
-	StakeRecordRecordReverseCell  uint32 = 1650091767
-	StakeRecordStakeAmountCell    uint32 = 906061269
+
+	StakeRecordRecordRow uint32 = 957572259
 )
 
 ////////////// SECTION Wrap Define ///////////////
 type SoStakeRecordWrap struct {
-	dba      iservices.IDatabaseRW
-	mainKey  *prototype.StakeRecord
-	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf  []byte //the buffer after the main key is encoded with prefix
-	mBuf     []byte //the value after the main key is encoded
+	dba       iservices.IDatabaseRW
+	mainKey   *prototype.StakeRecord
+	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
+	mBuf      []byte //the value after the main key is encoded
+	mdFuncMap map[string]interface{}
 }
 
 func NewSoStakeRecordWrap(dba iservices.IDatabaseRW, key *prototype.StakeRecord) *SoStakeRecordWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoStakeRecordWrap{dba, key, -1, nil, nil}
+	result := &SoStakeRecordWrap{dba, key, -1, nil, nil, nil}
 	return result
 }
 
@@ -88,9 +86,13 @@ func (s *SoStakeRecordWrap) Create(f func(tInfo *SoStakeRecord)) error {
 		return err
 
 	}
-	err = s.saveAllMemKeys(val, true)
+
+	buf, err := proto.Marshal(val)
 	if err != nil {
-		s.delAllMemKeys(false, val)
+		return err
+	}
+	err = s.dba.Put(keyBuf, buf)
+	if err != nil {
 		return err
 	}
 
@@ -98,7 +100,6 @@ func (s *SoStakeRecordWrap) Create(f func(tInfo *SoStakeRecord)) error {
 	if err = s.insertAllSortKeys(val); err != nil {
 		s.delAllSortKeys(false, val)
 		s.dba.Delete(keyBuf)
-		s.delAllMemKeys(false, val)
 		return err
 	}
 
@@ -107,10 +108,10 @@ func (s *SoStakeRecordWrap) Create(f func(tInfo *SoStakeRecord)) error {
 		s.delAllSortKeys(false, val)
 		s.delUniKeysWithNames(sucNames, val)
 		s.dba.Delete(keyBuf)
-		s.delAllMemKeys(false, val)
 		return err
 	}
 
+	s.mKeyFlag = 1
 	return nil
 }
 
@@ -128,6 +129,192 @@ func (s *SoStakeRecordWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
+func (s *SoStakeRecordWrap) Modify(f func(tInfo *SoStakeRecord)) error {
+	if !s.CheckExist() {
+		return errors.New("the SoStakeRecord table does not exist. Please create a table first")
+	}
+	oriTable := s.getStakeRecord()
+	if oriTable == nil {
+		return errors.New("fail to get origin table SoStakeRecord")
+	}
+	curTable := *oriTable
+	f(&curTable)
+
+	//the main key is not support modify
+	if !reflect.DeepEqual(curTable.Record, oriTable.Record) {
+		return errors.New("primary key does not support modification")
+	}
+
+	fieldSli, err := s.getModifiedFields(oriTable, &curTable)
+	if err != nil {
+		return err
+	}
+
+	if fieldSli == nil || len(fieldSli) < 1 {
+		return nil
+	}
+
+	//check whether modify sort and unique field to nil
+	err = s.checkSortAndUniFieldValidity(&curTable, fieldSli)
+	if err != nil {
+		return err
+	}
+
+	//check unique
+	err = s.handleFieldMd(FieldMdHandleTypeCheck, &curTable, fieldSli)
+	if err != nil {
+		return err
+	}
+
+	//delete sort and unique key
+	err = s.handleFieldMd(FieldMdHandleTypeDel, oriTable, fieldSli)
+	if err != nil {
+		return err
+	}
+
+	//update table
+	err = s.updateStakeRecord(&curTable)
+	if err != nil {
+		return err
+	}
+
+	//insert sort and unique key
+	err = s.handleFieldMd(FieldMdHandleTypeInsert, &curTable, fieldSli)
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+func (s *SoStakeRecordWrap) MdLastStakeTime(p *prototype.TimePointSec) bool {
+	err := s.Modify(func(r *SoStakeRecord) {
+		r.LastStakeTime = p
+	})
+	return err == nil
+}
+
+func (s *SoStakeRecordWrap) MdRecordReverse(p *prototype.StakeRecordReverse) bool {
+	err := s.Modify(func(r *SoStakeRecord) {
+		r.RecordReverse = p
+	})
+	return err == nil
+}
+
+func (s *SoStakeRecordWrap) MdStakeAmount(p *prototype.Vest) bool {
+	err := s.Modify(func(r *SoStakeRecord) {
+		r.StakeAmount = p
+	})
+	return err == nil
+}
+
+func (s *SoStakeRecordWrap) checkSortAndUniFieldValidity(curTable *SoStakeRecord, fieldSli []string) error {
+	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
+		for _, fName := range fieldSli {
+			if len(fName) > 0 {
+
+				if fName == "RecordReverse" && curTable.RecordReverse == nil {
+					return errors.New("sort field RecordReverse can't be modified to nil")
+				}
+
+			}
+		}
+	}
+	return nil
+}
+
+//Get all the modified fields in the table
+func (s *SoStakeRecordWrap) getModifiedFields(oriTable *SoStakeRecord, curTable *SoStakeRecord) ([]string, error) {
+	if oriTable == nil {
+		return nil, errors.New("table info is nil, can't get modified fields")
+	}
+	var list []string
+
+	if !reflect.DeepEqual(oriTable.LastStakeTime, curTable.LastStakeTime) {
+		list = append(list, "LastStakeTime")
+	}
+
+	if !reflect.DeepEqual(oriTable.RecordReverse, curTable.RecordReverse) {
+		list = append(list, "RecordReverse")
+	}
+
+	if !reflect.DeepEqual(oriTable.StakeAmount, curTable.StakeAmount) {
+		list = append(list, "StakeAmount")
+	}
+
+	return list, nil
+}
+
+func (s *SoStakeRecordWrap) handleFieldMd(t FieldMdHandleType, so *SoStakeRecord, fSli []string) error {
+	if so == nil {
+		return errors.New("fail to modify empty table")
+	}
+
+	//there is no field need to modify
+	if fSli == nil || len(fSli) < 1 {
+		return nil
+	}
+
+	errStr := ""
+	for _, fName := range fSli {
+
+		if fName == "LastStakeTime" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldLastStakeTime(so.LastStakeTime, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldLastStakeTime(so.LastStakeTime, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldLastStakeTime(so.LastStakeTime, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "RecordReverse" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldRecordReverse(so.RecordReverse, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldRecordReverse(so.RecordReverse, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldRecordReverse(so.RecordReverse, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "StakeAmount" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldStakeAmount(so.StakeAmount, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldStakeAmount(so.StakeAmount, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldStakeAmount(so.StakeAmount, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+	}
+
+	return nil
+}
+
 ////////////// SECTION LKeys delete/insert ///////////////
 
 func (s *SoStakeRecordWrap) delSortKeyRecord(sa *SoStakeRecord) bool {
@@ -136,24 +323,10 @@ func (s *SoStakeRecordWrap) delSortKeyRecord(sa *SoStakeRecord) bool {
 	}
 	val := SoListStakeRecordByRecord{}
 	if sa == nil {
-		key, err := s.encodeMemKey("Record")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemStakeRecordByRecord{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		val.Record = ori.Record
+		val.Record = s.GetRecord()
 	} else {
 		val.Record = sa.Record
 	}
-
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -186,27 +359,13 @@ func (s *SoStakeRecordWrap) delSortKeyRecordReverse(sa *SoStakeRecord) bool {
 	}
 	val := SoListStakeRecordByRecordReverse{}
 	if sa == nil {
-		key, err := s.encodeMemKey("RecordReverse")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemStakeRecordByRecordReverse{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		val.RecordReverse = ori.RecordReverse
+		val.RecordReverse = s.GetRecordReverse()
 		val.Record = s.mainKey
 
 	} else {
 		val.RecordReverse = sa.RecordReverse
 		val.Record = sa.Record
 	}
-
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -239,13 +398,7 @@ func (s *SoStakeRecordWrap) delAllSortKeys(br bool, val *SoStakeRecord) bool {
 		return false
 	}
 	res := true
-	if !s.delSortKeyRecord(val) {
-		if br {
-			return false
-		} else {
-			res = false
-		}
-	}
+
 	if !s.delSortKeyRecordReverse(val) {
 		if br {
 			return false
@@ -264,9 +417,7 @@ func (s *SoStakeRecordWrap) insertAllSortKeys(val *SoStakeRecord) error {
 	if val == nil {
 		return errors.New("insert sort Field fail,get the SoStakeRecord fail ")
 	}
-	if !s.insertSortKeyRecord(val) {
-		return errors.New("insert sort Field Record fail while insert table ")
-	}
+
 	if !s.insertSortKeyRecordReverse(val) {
 		return errors.New("insert sort Field RecordReverse fail while insert table ")
 	}
@@ -280,7 +431,6 @@ func (s *SoStakeRecordWrap) RemoveStakeRecord() bool {
 	if s.dba == nil {
 		return false
 	}
-	val := &SoStakeRecord{}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
 		return false
@@ -291,7 +441,12 @@ func (s *SoStakeRecordWrap) RemoveStakeRecord() bool {
 		return false
 	}
 
-	err := s.delAllMemKeys(true, val)
+	//delete table
+	key, err := s.encodeMainKey()
+	if err != nil {
+		return false
+	}
+	err = s.dba.Delete(key)
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
@@ -302,154 +457,14 @@ func (s *SoStakeRecordWrap) RemoveStakeRecord() bool {
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
-func (s *SoStakeRecordWrap) getMemKeyPrefix(fName string) uint32 {
-	if fName == "LastStakeTime" {
-		return StakeRecordLastStakeTimeCell
-	}
-	if fName == "Record" {
-		return StakeRecordRecordCell
-	}
-	if fName == "RecordReverse" {
-		return StakeRecordRecordReverseCell
-	}
-	if fName == "StakeAmount" {
-		return StakeRecordStakeAmountCell
-	}
-
-	return 0
-}
-
-func (s *SoStakeRecordWrap) encodeMemKey(fName string) ([]byte, error) {
-	if len(fName) < 1 || s.mainKey == nil {
-		return nil, errors.New("field name or main key is empty")
-	}
-	pre := s.getMemKeyPrefix(fName)
-	preBuf, err := kope.Encode(pre)
-	if err != nil {
-		return nil, err
-	}
-	mBuf, err := s.getMainKeyBuf()
-	if err != nil {
-		return nil, err
-	}
-	list := make([][]byte, 2)
-	list[0] = preBuf
-	list[1] = mBuf
-	return kope.PackList(list), nil
-}
-
-func (s *SoStakeRecordWrap) saveAllMemKeys(tInfo *SoStakeRecord, br bool) error {
-	if s.dba == nil {
-		return errors.New("save member Field fail , the db is nil")
-	}
-
-	if tInfo == nil {
-		return errors.New("save member Field fail , the data is nil ")
-	}
-	var err error = nil
-	errDes := ""
-	if err = s.saveMemKeyLastStakeTime(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "LastStakeTime", err)
-		}
-	}
-	if err = s.saveMemKeyRecord(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Record", err)
-		}
-	}
-	if err = s.saveMemKeyRecordReverse(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "RecordReverse", err)
-		}
-	}
-	if err = s.saveMemKeyStakeAmount(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "StakeAmount", err)
-		}
-	}
-
-	if len(errDes) > 0 {
-		return errors.New(errDes)
-	}
-	return err
-}
-
-func (s *SoStakeRecordWrap) delAllMemKeys(br bool, tInfo *SoStakeRecord) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	t := reflect.TypeOf(*tInfo)
-	errDesc := ""
-	for k := 0; k < t.NumField(); k++ {
-		name := t.Field(k).Name
-		if len(name) > 0 && !strings.HasPrefix(name, "XXX_") {
-			err := s.delMemKey(name)
-			if err != nil {
-				if br {
-					return err
-				}
-				errDesc += fmt.Sprintf("delete the Field %s fail,error is %s;\n", name, err)
-			}
-		}
-	}
-	if len(errDesc) > 0 {
-		return errors.New(errDesc)
-	}
-	return nil
-}
-
-func (s *SoStakeRecordWrap) delMemKey(fName string) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if len(fName) <= 0 {
-		return errors.New("the field name is empty ")
-	}
-	key, err := s.encodeMemKey(fName)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Delete(key)
-	return err
-}
-
-func (s *SoStakeRecordWrap) saveMemKeyLastStakeTime(tInfo *SoStakeRecord) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemStakeRecordByLastStakeTime{}
-	val.LastStakeTime = tInfo.LastStakeTime
-	key, err := s.encodeMemKey("LastStakeTime")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
 
 func (s *SoStakeRecordWrap) GetLastStakeTime() *prototype.TimePointSec {
 	res := true
-	msg := &SoMemStakeRecordByLastStakeTime{}
+	msg := &SoStakeRecord{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("LastStakeTime")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -472,67 +487,66 @@ func (s *SoStakeRecordWrap) GetLastStakeTime() *prototype.TimePointSec {
 	return msg.LastStakeTime
 }
 
-func (s *SoStakeRecordWrap) MdLastStakeTime(p *prototype.TimePointSec) bool {
+func (s *SoStakeRecordWrap) mdFieldLastStakeTime(p *prototype.TimePointSec, isCheck bool, isDel bool, isInsert bool,
+	so *SoStakeRecord) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("LastStakeTime")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemStakeRecordByLastStakeTime{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoStakeRecord{}
-	sa.Record = s.mainKey
 
-	sa.LastStakeTime = ori.LastStakeTime
+	if isCheck {
+		res := s.checkLastStakeTimeIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.LastStakeTime = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldLastStakeTime(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldLastStakeTime(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoStakeRecordWrap) delFieldLastStakeTime(so *SoStakeRecord) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.LastStakeTime = p
 
 	return true
 }
 
-func (s *SoStakeRecordWrap) saveMemKeyRecord(tInfo *SoStakeRecord) error {
+func (s *SoStakeRecordWrap) insertFieldLastStakeTime(so *SoStakeRecord) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoStakeRecordWrap) checkLastStakeTimeIsMetMdCondition(p *prototype.TimePointSec) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemStakeRecordByRecord{}
-	val.Record = tInfo.Record
-	key, err := s.encodeMemKey("Record")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoStakeRecordWrap) GetRecord() *prototype.StakeRecord {
 	res := true
-	msg := &SoMemStakeRecordByRecord{}
+	msg := &SoStakeRecord{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Record")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -555,34 +569,13 @@ func (s *SoStakeRecordWrap) GetRecord() *prototype.StakeRecord {
 	return msg.Record
 }
 
-func (s *SoStakeRecordWrap) saveMemKeyRecordReverse(tInfo *SoStakeRecord) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemStakeRecordByRecordReverse{}
-	val.RecordReverse = tInfo.RecordReverse
-	key, err := s.encodeMemKey("RecordReverse")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
-
 func (s *SoStakeRecordWrap) GetRecordReverse() *prototype.StakeRecordReverse {
 	res := true
-	msg := &SoMemStakeRecordByRecordReverse{}
+	msg := &SoStakeRecord{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("RecordReverse")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -605,74 +598,74 @@ func (s *SoStakeRecordWrap) GetRecordReverse() *prototype.StakeRecordReverse {
 	return msg.RecordReverse
 }
 
-func (s *SoStakeRecordWrap) MdRecordReverse(p *prototype.StakeRecordReverse) bool {
+func (s *SoStakeRecordWrap) mdFieldRecordReverse(p *prototype.StakeRecordReverse, isCheck bool, isDel bool, isInsert bool,
+	so *SoStakeRecord) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("RecordReverse")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemStakeRecordByRecordReverse{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoStakeRecord{}
-	sa.Record = s.mainKey
 
-	sa.RecordReverse = ori.RecordReverse
+	if isCheck {
+		res := s.checkRecordReverseIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	if !s.delSortKeyRecordReverse(sa) {
-		return false
+	if isDel {
+		res := s.delFieldRecordReverse(so)
+		if !res {
+			return false
+		}
 	}
-	ori.RecordReverse = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.RecordReverse = p
 
-	if !s.insertSortKeyRecordReverse(sa) {
+	if isInsert {
+		res := s.insertFieldRecordReverse(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoStakeRecordWrap) delFieldRecordReverse(so *SoStakeRecord) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if !s.delSortKeyRecordReverse(so) {
 		return false
 	}
 
 	return true
 }
 
-func (s *SoStakeRecordWrap) saveMemKeyStakeAmount(tInfo *SoStakeRecord) error {
+func (s *SoStakeRecordWrap) insertFieldRecordReverse(so *SoStakeRecord) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	if !s.insertSortKeyRecordReverse(so) {
+		return false
 	}
-	val := SoMemStakeRecordByStakeAmount{}
-	val.StakeAmount = tInfo.StakeAmount
-	key, err := s.encodeMemKey("StakeAmount")
-	if err != nil {
-		return err
+
+	return true
+}
+
+func (s *SoStakeRecordWrap) checkRecordReverseIsMetMdCondition(p *prototype.StakeRecordReverse) bool {
+	if s.dba == nil {
+		return false
 	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoStakeRecordWrap) GetStakeAmount() *prototype.Vest {
 	res := true
-	msg := &SoMemStakeRecordByStakeAmount{}
+	msg := &SoStakeRecord{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("StakeAmount")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -695,35 +688,55 @@ func (s *SoStakeRecordWrap) GetStakeAmount() *prototype.Vest {
 	return msg.StakeAmount
 }
 
-func (s *SoStakeRecordWrap) MdStakeAmount(p *prototype.Vest) bool {
+func (s *SoStakeRecordWrap) mdFieldStakeAmount(p *prototype.Vest, isCheck bool, isDel bool, isInsert bool,
+	so *SoStakeRecord) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("StakeAmount")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemStakeRecordByStakeAmount{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoStakeRecord{}
-	sa.Record = s.mainKey
 
-	sa.StakeAmount = ori.StakeAmount
+	if isCheck {
+		res := s.checkStakeAmountIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.StakeAmount = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldStakeAmount(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldStakeAmount(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoStakeRecordWrap) delFieldStakeAmount(so *SoStakeRecord) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
+
+	return true
+}
+
+func (s *SoStakeRecordWrap) insertFieldStakeAmount(so *SoStakeRecord) bool {
+	if s.dba == nil {
 		return false
 	}
-	sa.StakeAmount = p
+
+	return true
+}
+
+func (s *SoStakeRecordWrap) checkStakeAmountIsMetMdCondition(p *prototype.Vest) bool {
+	if s.dba == nil {
+		return false
+	}
 
 	return true
 }
@@ -986,11 +999,38 @@ func (s *SoStakeRecordWrap) getStakeRecord() *SoStakeRecord {
 	return res
 }
 
+func (s *SoStakeRecordWrap) updateStakeRecord(so *SoStakeRecord) error {
+	if s.dba == nil {
+		return errors.New("update fail:the db is nil")
+	}
+
+	if so == nil {
+		return errors.New("update fail: the SoStakeRecord is nil")
+	}
+
+	key, err := s.encodeMainKey()
+	if err != nil {
+		return nil
+	}
+
+	buf, err := proto.Marshal(so)
+	if err != nil {
+		return err
+	}
+
+	err = s.dba.Put(key, buf)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *SoStakeRecordWrap) encodeMainKey() ([]byte, error) {
 	if s.mKeyBuf != nil {
 		return s.mKeyBuf, nil
 	}
-	pre := s.getMemKeyPrefix("Record")
+	pre := StakeRecordRecordRow
 	sub := s.mainKey
 	if sub == nil {
 		return nil, errors.New("the mainKey is nil")
@@ -1065,7 +1105,6 @@ func (s *SoStakeRecordWrap) delUniKeyRecord(sa *SoStakeRecord) bool {
 	pre := StakeRecordRecordUniTable
 	kList := []interface{}{pre}
 	if sa != nil {
-
 		if sa.Record == nil {
 			return false
 		}
@@ -1073,20 +1112,11 @@ func (s *SoStakeRecordWrap) delUniKeyRecord(sa *SoStakeRecord) bool {
 		sub := sa.Record
 		kList = append(kList, sub)
 	} else {
-		key, err := s.encodeMemKey("Record")
-		if err != nil {
-			return false
+		sub := s.GetRecord()
+		if sub == nil {
+			return true
 		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemStakeRecordByRecord{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		sub := ori.Record
+
 		kList = append(kList, sub)
 
 	}
@@ -1101,6 +1131,7 @@ func (s *SoStakeRecordWrap) insertUniKeyRecord(sa *SoStakeRecord) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
+
 	pre := StakeRecordRecordUniTable
 	sub := sa.Record
 	kList := []interface{}{pre, sub}

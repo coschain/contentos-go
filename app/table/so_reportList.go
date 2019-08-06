@@ -4,7 +4,6 @@ import (
 	"errors"
 	fmt "fmt"
 	"reflect"
-	"strings"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -15,26 +14,25 @@ import (
 var (
 	ReportListReportedTimesTable uint32 = 4124045745
 	ReportListUuidUniTable       uint32 = 4051252686
-	ReportListIsArbitratedCell   uint32 = 380656159
-	ReportListReportedTimesCell  uint32 = 2602269792
-	ReportListTagsCell           uint32 = 661571911
-	ReportListUuidCell           uint32 = 2426362854
+
+	ReportListUuidRow uint32 = 1111682916
 )
 
 ////////////// SECTION Wrap Define ///////////////
 type SoReportListWrap struct {
-	dba      iservices.IDatabaseRW
-	mainKey  *uint64
-	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf  []byte //the buffer after the main key is encoded with prefix
-	mBuf     []byte //the value after the main key is encoded
+	dba       iservices.IDatabaseRW
+	mainKey   *uint64
+	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
+	mBuf      []byte //the value after the main key is encoded
+	mdFuncMap map[string]interface{}
 }
 
 func NewSoReportListWrap(dba iservices.IDatabaseRW, key *uint64) *SoReportListWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoReportListWrap{dba, key, -1, nil, nil}
+	result := &SoReportListWrap{dba, key, -1, nil, nil, nil}
 	return result
 }
 
@@ -83,9 +81,13 @@ func (s *SoReportListWrap) Create(f func(tInfo *SoReportList)) error {
 		return err
 
 	}
-	err = s.saveAllMemKeys(val, true)
+
+	buf, err := proto.Marshal(val)
 	if err != nil {
-		s.delAllMemKeys(false, val)
+		return err
+	}
+	err = s.dba.Put(keyBuf, buf)
+	if err != nil {
 		return err
 	}
 
@@ -93,7 +95,6 @@ func (s *SoReportListWrap) Create(f func(tInfo *SoReportList)) error {
 	if err = s.insertAllSortKeys(val); err != nil {
 		s.delAllSortKeys(false, val)
 		s.dba.Delete(keyBuf)
-		s.delAllMemKeys(false, val)
 		return err
 	}
 
@@ -102,10 +103,10 @@ func (s *SoReportListWrap) Create(f func(tInfo *SoReportList)) error {
 		s.delAllSortKeys(false, val)
 		s.delUniKeysWithNames(sucNames, val)
 		s.dba.Delete(keyBuf)
-		s.delAllMemKeys(false, val)
 		return err
 	}
 
+	s.mKeyFlag = 1
 	return nil
 }
 
@@ -123,6 +124,188 @@ func (s *SoReportListWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
+func (s *SoReportListWrap) Modify(f func(tInfo *SoReportList)) error {
+	if !s.CheckExist() {
+		return errors.New("the SoReportList table does not exist. Please create a table first")
+	}
+	oriTable := s.getReportList()
+	if oriTable == nil {
+		return errors.New("fail to get origin table SoReportList")
+	}
+	curTable := *oriTable
+	f(&curTable)
+
+	//the main key is not support modify
+	if !reflect.DeepEqual(curTable.Uuid, oriTable.Uuid) {
+		return errors.New("primary key does not support modification")
+	}
+
+	fieldSli, err := s.getModifiedFields(oriTable, &curTable)
+	if err != nil {
+		return err
+	}
+
+	if fieldSli == nil || len(fieldSli) < 1 {
+		return nil
+	}
+
+	//check whether modify sort and unique field to nil
+	err = s.checkSortAndUniFieldValidity(&curTable, fieldSli)
+	if err != nil {
+		return err
+	}
+
+	//check unique
+	err = s.handleFieldMd(FieldMdHandleTypeCheck, &curTable, fieldSli)
+	if err != nil {
+		return err
+	}
+
+	//delete sort and unique key
+	err = s.handleFieldMd(FieldMdHandleTypeDel, oriTable, fieldSli)
+	if err != nil {
+		return err
+	}
+
+	//update table
+	err = s.updateReportList(&curTable)
+	if err != nil {
+		return err
+	}
+
+	//insert sort and unique key
+	err = s.handleFieldMd(FieldMdHandleTypeInsert, &curTable, fieldSli)
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+func (s *SoReportListWrap) MdIsArbitrated(p bool) bool {
+	err := s.Modify(func(r *SoReportList) {
+		r.IsArbitrated = p
+	})
+	return err == nil
+}
+
+func (s *SoReportListWrap) MdReportedTimes(p uint32) bool {
+	err := s.Modify(func(r *SoReportList) {
+		r.ReportedTimes = p
+	})
+	return err == nil
+}
+
+func (s *SoReportListWrap) MdTags(p []int32) bool {
+	err := s.Modify(func(r *SoReportList) {
+		r.Tags = p
+	})
+	return err == nil
+}
+
+func (s *SoReportListWrap) checkSortAndUniFieldValidity(curTable *SoReportList, fieldSli []string) error {
+	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
+		for _, fName := range fieldSli {
+			if len(fName) > 0 {
+
+			}
+		}
+	}
+	return nil
+}
+
+//Get all the modified fields in the table
+func (s *SoReportListWrap) getModifiedFields(oriTable *SoReportList, curTable *SoReportList) ([]string, error) {
+	if oriTable == nil {
+		return nil, errors.New("table info is nil, can't get modified fields")
+	}
+	var list []string
+
+	if !reflect.DeepEqual(oriTable.IsArbitrated, curTable.IsArbitrated) {
+		list = append(list, "IsArbitrated")
+	}
+
+	if !reflect.DeepEqual(oriTable.ReportedTimes, curTable.ReportedTimes) {
+		list = append(list, "ReportedTimes")
+	}
+
+	if !reflect.DeepEqual(oriTable.Tags, curTable.Tags) {
+		list = append(list, "Tags")
+	}
+
+	return list, nil
+}
+
+func (s *SoReportListWrap) handleFieldMd(t FieldMdHandleType, so *SoReportList, fSli []string) error {
+	if so == nil {
+		return errors.New("fail to modify empty table")
+	}
+
+	//there is no field need to modify
+	if fSli == nil || len(fSli) < 1 {
+		return nil
+	}
+
+	errStr := ""
+	for _, fName := range fSli {
+
+		if fName == "IsArbitrated" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldIsArbitrated(so.IsArbitrated, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldIsArbitrated(so.IsArbitrated, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldIsArbitrated(so.IsArbitrated, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "ReportedTimes" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldReportedTimes(so.ReportedTimes, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldReportedTimes(so.ReportedTimes, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldReportedTimes(so.ReportedTimes, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "Tags" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldTags(so.Tags, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldTags(so.Tags, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldTags(so.Tags, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+	}
+
+	return nil
+}
+
 ////////////// SECTION LKeys delete/insert ///////////////
 
 func (s *SoReportListWrap) delSortKeyReportedTimes(sa *SoReportList) bool {
@@ -131,26 +314,12 @@ func (s *SoReportListWrap) delSortKeyReportedTimes(sa *SoReportList) bool {
 	}
 	val := SoListReportListByReportedTimes{}
 	if sa == nil {
-		key, err := s.encodeMemKey("ReportedTimes")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemReportListByReportedTimes{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		val.ReportedTimes = ori.ReportedTimes
+		val.ReportedTimes = s.GetReportedTimes()
 		val.Uuid = *s.mainKey
 	} else {
 		val.ReportedTimes = sa.ReportedTimes
 		val.Uuid = sa.Uuid
 	}
-
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -183,6 +352,7 @@ func (s *SoReportListWrap) delAllSortKeys(br bool, val *SoReportList) bool {
 		return false
 	}
 	res := true
+
 	if !s.delSortKeyReportedTimes(val) {
 		if br {
 			return false
@@ -201,6 +371,7 @@ func (s *SoReportListWrap) insertAllSortKeys(val *SoReportList) error {
 	if val == nil {
 		return errors.New("insert sort Field fail,get the SoReportList fail ")
 	}
+
 	if !s.insertSortKeyReportedTimes(val) {
 		return errors.New("insert sort Field ReportedTimes fail while insert table ")
 	}
@@ -214,7 +385,6 @@ func (s *SoReportListWrap) RemoveReportList() bool {
 	if s.dba == nil {
 		return false
 	}
-	val := &SoReportList{}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
 		return false
@@ -225,7 +395,12 @@ func (s *SoReportListWrap) RemoveReportList() bool {
 		return false
 	}
 
-	err := s.delAllMemKeys(true, val)
+	//delete table
+	key, err := s.encodeMainKey()
+	if err != nil {
+		return false
+	}
+	err = s.dba.Delete(key)
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
@@ -236,154 +411,14 @@ func (s *SoReportListWrap) RemoveReportList() bool {
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
-func (s *SoReportListWrap) getMemKeyPrefix(fName string) uint32 {
-	if fName == "IsArbitrated" {
-		return ReportListIsArbitratedCell
-	}
-	if fName == "ReportedTimes" {
-		return ReportListReportedTimesCell
-	}
-	if fName == "Tags" {
-		return ReportListTagsCell
-	}
-	if fName == "Uuid" {
-		return ReportListUuidCell
-	}
-
-	return 0
-}
-
-func (s *SoReportListWrap) encodeMemKey(fName string) ([]byte, error) {
-	if len(fName) < 1 || s.mainKey == nil {
-		return nil, errors.New("field name or main key is empty")
-	}
-	pre := s.getMemKeyPrefix(fName)
-	preBuf, err := kope.Encode(pre)
-	if err != nil {
-		return nil, err
-	}
-	mBuf, err := s.getMainKeyBuf()
-	if err != nil {
-		return nil, err
-	}
-	list := make([][]byte, 2)
-	list[0] = preBuf
-	list[1] = mBuf
-	return kope.PackList(list), nil
-}
-
-func (s *SoReportListWrap) saveAllMemKeys(tInfo *SoReportList, br bool) error {
-	if s.dba == nil {
-		return errors.New("save member Field fail , the db is nil")
-	}
-
-	if tInfo == nil {
-		return errors.New("save member Field fail , the data is nil ")
-	}
-	var err error = nil
-	errDes := ""
-	if err = s.saveMemKeyIsArbitrated(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "IsArbitrated", err)
-		}
-	}
-	if err = s.saveMemKeyReportedTimes(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "ReportedTimes", err)
-		}
-	}
-	if err = s.saveMemKeyTags(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Tags", err)
-		}
-	}
-	if err = s.saveMemKeyUuid(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Uuid", err)
-		}
-	}
-
-	if len(errDes) > 0 {
-		return errors.New(errDes)
-	}
-	return err
-}
-
-func (s *SoReportListWrap) delAllMemKeys(br bool, tInfo *SoReportList) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	t := reflect.TypeOf(*tInfo)
-	errDesc := ""
-	for k := 0; k < t.NumField(); k++ {
-		name := t.Field(k).Name
-		if len(name) > 0 && !strings.HasPrefix(name, "XXX_") {
-			err := s.delMemKey(name)
-			if err != nil {
-				if br {
-					return err
-				}
-				errDesc += fmt.Sprintf("delete the Field %s fail,error is %s;\n", name, err)
-			}
-		}
-	}
-	if len(errDesc) > 0 {
-		return errors.New(errDesc)
-	}
-	return nil
-}
-
-func (s *SoReportListWrap) delMemKey(fName string) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if len(fName) <= 0 {
-		return errors.New("the field name is empty ")
-	}
-	key, err := s.encodeMemKey(fName)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Delete(key)
-	return err
-}
-
-func (s *SoReportListWrap) saveMemKeyIsArbitrated(tInfo *SoReportList) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemReportListByIsArbitrated{}
-	val.IsArbitrated = tInfo.IsArbitrated
-	key, err := s.encodeMemKey("IsArbitrated")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
 
 func (s *SoReportListWrap) GetIsArbitrated() bool {
 	res := true
-	msg := &SoMemReportListByIsArbitrated{}
+	msg := &SoReportList{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("IsArbitrated")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -406,66 +441,66 @@ func (s *SoReportListWrap) GetIsArbitrated() bool {
 	return msg.IsArbitrated
 }
 
-func (s *SoReportListWrap) MdIsArbitrated(p bool) bool {
+func (s *SoReportListWrap) mdFieldIsArbitrated(p bool, isCheck bool, isDel bool, isInsert bool,
+	so *SoReportList) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("IsArbitrated")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemReportListByIsArbitrated{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoReportList{}
-	sa.Uuid = *s.mainKey
-	sa.IsArbitrated = ori.IsArbitrated
 
-	ori.IsArbitrated = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isCheck {
+		res := s.checkIsArbitratedIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
+
+	if isDel {
+		res := s.delFieldIsArbitrated(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldIsArbitrated(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoReportListWrap) delFieldIsArbitrated(so *SoReportList) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.IsArbitrated = p
 
 	return true
 }
 
-func (s *SoReportListWrap) saveMemKeyReportedTimes(tInfo *SoReportList) error {
+func (s *SoReportListWrap) insertFieldIsArbitrated(so *SoReportList) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoReportListWrap) checkIsArbitratedIsMetMdCondition(p bool) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemReportListByReportedTimes{}
-	val.ReportedTimes = tInfo.ReportedTimes
-	key, err := s.encodeMemKey("ReportedTimes")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoReportListWrap) GetReportedTimes() uint32 {
 	res := true
-	msg := &SoMemReportListByReportedTimes{}
+	msg := &SoReportList{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("ReportedTimes")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -488,73 +523,74 @@ func (s *SoReportListWrap) GetReportedTimes() uint32 {
 	return msg.ReportedTimes
 }
 
-func (s *SoReportListWrap) MdReportedTimes(p uint32) bool {
+func (s *SoReportListWrap) mdFieldReportedTimes(p uint32, isCheck bool, isDel bool, isInsert bool,
+	so *SoReportList) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("ReportedTimes")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemReportListByReportedTimes{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoReportList{}
-	sa.Uuid = *s.mainKey
-	sa.ReportedTimes = ori.ReportedTimes
 
-	if !s.delSortKeyReportedTimes(sa) {
-		return false
+	if isCheck {
+		res := s.checkReportedTimesIsMetMdCondition(p)
+		if !res {
+			return false
+		}
 	}
-	ori.ReportedTimes = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.ReportedTimes = p
 
-	if !s.insertSortKeyReportedTimes(sa) {
+	if isDel {
+		res := s.delFieldReportedTimes(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldReportedTimes(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoReportListWrap) delFieldReportedTimes(so *SoReportList) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if !s.delSortKeyReportedTimes(so) {
 		return false
 	}
 
 	return true
 }
 
-func (s *SoReportListWrap) saveMemKeyTags(tInfo *SoReportList) error {
+func (s *SoReportListWrap) insertFieldReportedTimes(so *SoReportList) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	if !s.insertSortKeyReportedTimes(so) {
+		return false
 	}
-	val := SoMemReportListByTags{}
-	val.Tags = tInfo.Tags
-	key, err := s.encodeMemKey("Tags")
-	if err != nil {
-		return err
+
+	return true
+}
+
+func (s *SoReportListWrap) checkReportedTimesIsMetMdCondition(p uint32) bool {
+	if s.dba == nil {
+		return false
 	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoReportListWrap) GetTags() []int32 {
 	res := true
-	msg := &SoMemReportListByTags{}
+	msg := &SoReportList{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Tags")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -577,66 +613,66 @@ func (s *SoReportListWrap) GetTags() []int32 {
 	return msg.Tags
 }
 
-func (s *SoReportListWrap) MdTags(p []int32) bool {
+func (s *SoReportListWrap) mdFieldTags(p []int32, isCheck bool, isDel bool, isInsert bool,
+	so *SoReportList) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("Tags")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemReportListByTags{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoReportList{}
-	sa.Uuid = *s.mainKey
-	sa.Tags = ori.Tags
 
-	ori.Tags = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isCheck {
+		res := s.checkTagsIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
+
+	if isDel {
+		res := s.delFieldTags(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldTags(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoReportListWrap) delFieldTags(so *SoReportList) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.Tags = p
 
 	return true
 }
 
-func (s *SoReportListWrap) saveMemKeyUuid(tInfo *SoReportList) error {
+func (s *SoReportListWrap) insertFieldTags(so *SoReportList) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoReportListWrap) checkTagsIsMetMdCondition(p []int32) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemReportListByUuid{}
-	val.Uuid = tInfo.Uuid
-	key, err := s.encodeMemKey("Uuid")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoReportListWrap) GetUuid() uint64 {
 	res := true
-	msg := &SoMemReportListByUuid{}
+	msg := &SoReportList{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Uuid")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -805,11 +841,38 @@ func (s *SoReportListWrap) getReportList() *SoReportList {
 	return res
 }
 
+func (s *SoReportListWrap) updateReportList(so *SoReportList) error {
+	if s.dba == nil {
+		return errors.New("update fail:the db is nil")
+	}
+
+	if so == nil {
+		return errors.New("update fail: the SoReportList is nil")
+	}
+
+	key, err := s.encodeMainKey()
+	if err != nil {
+		return nil
+	}
+
+	buf, err := proto.Marshal(so)
+	if err != nil {
+		return err
+	}
+
+	err = s.dba.Put(key, buf)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *SoReportListWrap) encodeMainKey() ([]byte, error) {
 	if s.mKeyBuf != nil {
 		return s.mKeyBuf, nil
 	}
-	pre := s.getMemKeyPrefix("Uuid")
+	pre := ReportListUuidRow
 	sub := s.mainKey
 	if sub == nil {
 		return nil, errors.New("the mainKey is nil")
@@ -888,20 +951,8 @@ func (s *SoReportListWrap) delUniKeyUuid(sa *SoReportList) bool {
 		sub := sa.Uuid
 		kList = append(kList, sub)
 	} else {
-		key, err := s.encodeMemKey("Uuid")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemReportListByUuid{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		sub := ori.Uuid
+		sub := s.GetUuid()
+
 		kList = append(kList, sub)
 
 	}
@@ -916,6 +967,7 @@ func (s *SoReportListWrap) insertUniKeyUuid(sa *SoReportList) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
+
 	pre := ReportListUuidUniTable
 	sub := sa.Uuid
 	kList := []interface{}{pre, sub}

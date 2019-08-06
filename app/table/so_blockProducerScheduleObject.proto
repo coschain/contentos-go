@@ -15,21 +15,6 @@ message so_blockProducerScheduleObject {
 }
 
 
-message so_mem_blockProducerScheduleObject_by_id {
-	int32                           	id                          = 1;
-}
-
-
-message so_mem_blockProducerScheduleObject_by_current_shuffled_block_producer {
-	repeated  	string                        	current_shuffled_block_producer    = 1;
-}
-
-
-message so_mem_blockProducerScheduleObject_by_pub_key {
-	repeated  	prototype.public_key_type     	pub_key                     = 1;
-}
-
-
 message so_unique_blockProducerScheduleObject_by_id {
 	int32                           	id                          = 1;
 }

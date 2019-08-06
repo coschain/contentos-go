@@ -84,162 +84,6 @@ func (m *SoExtFollowCount) GetUpdateTime() *prototype.TimePointSec {
 	return nil
 }
 
-type SoMemExtFollowCountByAccount struct {
-	Account              *prototype.AccountName `protobuf:"bytes,1,opt,name=account,proto3" json:"account,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}               `json:"-"`
-	XXX_unrecognized     []byte                 `json:"-"`
-	XXX_sizecache        int32                  `json:"-"`
-}
-
-func (m *SoMemExtFollowCountByAccount) Reset()         { *m = SoMemExtFollowCountByAccount{} }
-func (m *SoMemExtFollowCountByAccount) String() string { return proto.CompactTextString(m) }
-func (*SoMemExtFollowCountByAccount) ProtoMessage()    {}
-func (*SoMemExtFollowCountByAccount) Descriptor() ([]byte, []int) {
-	return fileDescriptor_30c3525aab04885f, []int{1}
-}
-
-func (m *SoMemExtFollowCountByAccount) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_SoMemExtFollowCountByAccount.Unmarshal(m, b)
-}
-func (m *SoMemExtFollowCountByAccount) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_SoMemExtFollowCountByAccount.Marshal(b, m, deterministic)
-}
-func (m *SoMemExtFollowCountByAccount) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SoMemExtFollowCountByAccount.Merge(m, src)
-}
-func (m *SoMemExtFollowCountByAccount) XXX_Size() int {
-	return xxx_messageInfo_SoMemExtFollowCountByAccount.Size(m)
-}
-func (m *SoMemExtFollowCountByAccount) XXX_DiscardUnknown() {
-	xxx_messageInfo_SoMemExtFollowCountByAccount.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_SoMemExtFollowCountByAccount proto.InternalMessageInfo
-
-func (m *SoMemExtFollowCountByAccount) GetAccount() *prototype.AccountName {
-	if m != nil {
-		return m.Account
-	}
-	return nil
-}
-
-type SoMemExtFollowCountByFollowerCnt struct {
-	FollowerCnt          uint32   `protobuf:"varint,1,opt,name=follower_cnt,json=followerCnt,proto3" json:"follower_cnt,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *SoMemExtFollowCountByFollowerCnt) Reset()         { *m = SoMemExtFollowCountByFollowerCnt{} }
-func (m *SoMemExtFollowCountByFollowerCnt) String() string { return proto.CompactTextString(m) }
-func (*SoMemExtFollowCountByFollowerCnt) ProtoMessage()    {}
-func (*SoMemExtFollowCountByFollowerCnt) Descriptor() ([]byte, []int) {
-	return fileDescriptor_30c3525aab04885f, []int{2}
-}
-
-func (m *SoMemExtFollowCountByFollowerCnt) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_SoMemExtFollowCountByFollowerCnt.Unmarshal(m, b)
-}
-func (m *SoMemExtFollowCountByFollowerCnt) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_SoMemExtFollowCountByFollowerCnt.Marshal(b, m, deterministic)
-}
-func (m *SoMemExtFollowCountByFollowerCnt) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SoMemExtFollowCountByFollowerCnt.Merge(m, src)
-}
-func (m *SoMemExtFollowCountByFollowerCnt) XXX_Size() int {
-	return xxx_messageInfo_SoMemExtFollowCountByFollowerCnt.Size(m)
-}
-func (m *SoMemExtFollowCountByFollowerCnt) XXX_DiscardUnknown() {
-	xxx_messageInfo_SoMemExtFollowCountByFollowerCnt.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_SoMemExtFollowCountByFollowerCnt proto.InternalMessageInfo
-
-func (m *SoMemExtFollowCountByFollowerCnt) GetFollowerCnt() uint32 {
-	if m != nil {
-		return m.FollowerCnt
-	}
-	return 0
-}
-
-type SoMemExtFollowCountByFollowingCnt struct {
-	FollowingCnt         uint32   `protobuf:"varint,1,opt,name=following_cnt,json=followingCnt,proto3" json:"following_cnt,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *SoMemExtFollowCountByFollowingCnt) Reset()         { *m = SoMemExtFollowCountByFollowingCnt{} }
-func (m *SoMemExtFollowCountByFollowingCnt) String() string { return proto.CompactTextString(m) }
-func (*SoMemExtFollowCountByFollowingCnt) ProtoMessage()    {}
-func (*SoMemExtFollowCountByFollowingCnt) Descriptor() ([]byte, []int) {
-	return fileDescriptor_30c3525aab04885f, []int{3}
-}
-
-func (m *SoMemExtFollowCountByFollowingCnt) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_SoMemExtFollowCountByFollowingCnt.Unmarshal(m, b)
-}
-func (m *SoMemExtFollowCountByFollowingCnt) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_SoMemExtFollowCountByFollowingCnt.Marshal(b, m, deterministic)
-}
-func (m *SoMemExtFollowCountByFollowingCnt) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SoMemExtFollowCountByFollowingCnt.Merge(m, src)
-}
-func (m *SoMemExtFollowCountByFollowingCnt) XXX_Size() int {
-	return xxx_messageInfo_SoMemExtFollowCountByFollowingCnt.Size(m)
-}
-func (m *SoMemExtFollowCountByFollowingCnt) XXX_DiscardUnknown() {
-	xxx_messageInfo_SoMemExtFollowCountByFollowingCnt.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_SoMemExtFollowCountByFollowingCnt proto.InternalMessageInfo
-
-func (m *SoMemExtFollowCountByFollowingCnt) GetFollowingCnt() uint32 {
-	if m != nil {
-		return m.FollowingCnt
-	}
-	return 0
-}
-
-type SoMemExtFollowCountByUpdateTime struct {
-	UpdateTime           *prototype.TimePointSec `protobuf:"bytes,1,opt,name=update_time,json=updateTime,proto3" json:"update_time,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}                `json:"-"`
-	XXX_unrecognized     []byte                  `json:"-"`
-	XXX_sizecache        int32                   `json:"-"`
-}
-
-func (m *SoMemExtFollowCountByUpdateTime) Reset()         { *m = SoMemExtFollowCountByUpdateTime{} }
-func (m *SoMemExtFollowCountByUpdateTime) String() string { return proto.CompactTextString(m) }
-func (*SoMemExtFollowCountByUpdateTime) ProtoMessage()    {}
-func (*SoMemExtFollowCountByUpdateTime) Descriptor() ([]byte, []int) {
-	return fileDescriptor_30c3525aab04885f, []int{4}
-}
-
-func (m *SoMemExtFollowCountByUpdateTime) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_SoMemExtFollowCountByUpdateTime.Unmarshal(m, b)
-}
-func (m *SoMemExtFollowCountByUpdateTime) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_SoMemExtFollowCountByUpdateTime.Marshal(b, m, deterministic)
-}
-func (m *SoMemExtFollowCountByUpdateTime) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SoMemExtFollowCountByUpdateTime.Merge(m, src)
-}
-func (m *SoMemExtFollowCountByUpdateTime) XXX_Size() int {
-	return xxx_messageInfo_SoMemExtFollowCountByUpdateTime.Size(m)
-}
-func (m *SoMemExtFollowCountByUpdateTime) XXX_DiscardUnknown() {
-	xxx_messageInfo_SoMemExtFollowCountByUpdateTime.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_SoMemExtFollowCountByUpdateTime proto.InternalMessageInfo
-
-func (m *SoMemExtFollowCountByUpdateTime) GetUpdateTime() *prototype.TimePointSec {
-	if m != nil {
-		return m.UpdateTime
-	}
-	return nil
-}
-
 type SoUniqueExtFollowCountByAccount struct {
 	Account              *prototype.AccountName `protobuf:"bytes,1,opt,name=account,proto3" json:"account,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}               `json:"-"`
@@ -251,7 +95,7 @@ func (m *SoUniqueExtFollowCountByAccount) Reset()         { *m = SoUniqueExtFoll
 func (m *SoUniqueExtFollowCountByAccount) String() string { return proto.CompactTextString(m) }
 func (*SoUniqueExtFollowCountByAccount) ProtoMessage()    {}
 func (*SoUniqueExtFollowCountByAccount) Descriptor() ([]byte, []int) {
-	return fileDescriptor_30c3525aab04885f, []int{5}
+	return fileDescriptor_30c3525aab04885f, []int{1}
 }
 
 func (m *SoUniqueExtFollowCountByAccount) XXX_Unmarshal(b []byte) error {
@@ -281,35 +125,28 @@ func (m *SoUniqueExtFollowCountByAccount) GetAccount() *prototype.AccountName {
 
 func init() {
 	proto.RegisterType((*SoExtFollowCount)(nil), "table.so_extFollowCount")
-	proto.RegisterType((*SoMemExtFollowCountByAccount)(nil), "table.so_mem_extFollowCount_by_account")
-	proto.RegisterType((*SoMemExtFollowCountByFollowerCnt)(nil), "table.so_mem_extFollowCount_by_follower_cnt")
-	proto.RegisterType((*SoMemExtFollowCountByFollowingCnt)(nil), "table.so_mem_extFollowCount_by_following_cnt")
-	proto.RegisterType((*SoMemExtFollowCountByUpdateTime)(nil), "table.so_mem_extFollowCount_by_update_time")
 	proto.RegisterType((*SoUniqueExtFollowCountByAccount)(nil), "table.so_unique_extFollowCount_by_account")
 }
 
 func init() { proto.RegisterFile("app/table/so_extFollowCount.proto", fileDescriptor_30c3525aab04885f) }
 
 var fileDescriptor_30c3525aab04885f = []byte{
-	// 313 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x92, 0x4d, 0x4b, 0x03, 0x31,
-	0x10, 0x86, 0x89, 0x9f, 0x30, 0x6d, 0x0f, 0x2e, 0x82, 0xd5, 0x53, 0xbb, 0x55, 0x29, 0xa2, 0xbb,
-	0xa8, 0x37, 0x8f, 0x16, 0x3c, 0x08, 0x5e, 0x8a, 0x82, 0x78, 0x09, 0xbb, 0x71, 0x6c, 0x03, 0x4d,
-	0x26, 0x36, 0xb3, 0x68, 0xff, 0xa2, 0xbf, 0x4a, 0x36, 0xfd, 0xa0, 0x74, 0x29, 0x52, 0xf0, 0x12,
-	0x32, 0x33, 0xef, 0xbc, 0x93, 0x79, 0x08, 0xb4, 0x33, 0xe7, 0x52, 0xce, 0xf2, 0x11, 0xa6, 0x9e,
-	0x24, 0x7e, 0xf3, 0x03, 0x8d, 0x46, 0xf4, 0xd5, 0xa3, 0xc2, 0x72, 0xe2, 0xc6, 0xc4, 0x14, 0xed,
-	0x86, 0xf2, 0xc9, 0x61, 0x88, 0x78, 0xe2, 0x30, 0x2d, 0x8f, 0x69, 0x31, 0xfe, 0x11, 0x70, 0x50,
-	0x69, 0x8c, 0xae, 0x61, 0x3f, 0x53, 0xaa, 0xbc, 0x36, 0x45, 0x4b, 0x74, 0x6b, 0x37, 0x47, 0xc9,
-	0xa2, 0x3b, 0x99, 0x55, 0xa4, 0xcd, 0x0c, 0xf6, 0xe7, 0xba, 0xa8, 0x0d, 0xf5, 0x8f, 0xe0, 0x80,
-	0x63, 0xa9, 0x2c, 0x37, 0xb7, 0x5a, 0xa2, 0xdb, 0xe8, 0xd7, 0xe6, 0xb9, 0x9e, 0xe5, 0xa8, 0x03,
-	0x8d, 0x69, 0xa8, 0xed, 0x20, 0x68, 0xb6, 0x83, 0xa6, 0xbe, 0x48, 0x96, 0xa2, 0x3b, 0xa8, 0x15,
-	0xee, 0x3d, 0x63, 0x94, 0xac, 0x0d, 0x36, 0x77, 0xc2, 0xf8, 0xe3, 0xa5, 0xf1, 0x65, 0x5a, 0x3a,
-	0xd2, 0x96, 0xa5, 0x47, 0xd5, 0x87, 0xa9, 0xfa, 0x59, 0x1b, 0x8c, 0x5f, 0xa0, 0xe5, 0x49, 0x1a,
-	0x34, 0x2b, 0xfb, 0xc8, 0x7c, 0x22, 0xe7, 0xef, 0xdc, 0x7c, 0xb5, 0xf8, 0x11, 0xce, 0xd6, 0xda,
-	0x2e, 0xef, 0x5c, 0x61, 0x20, 0x2a, 0x0c, 0xe2, 0x27, 0x38, 0xff, 0xc3, 0x6b, 0x06, 0xa7, 0x4a,
-	0x4b, 0x54, 0x69, 0xc5, 0x39, 0x9c, 0xae, 0xb5, 0x5b, 0xc2, 0xb8, 0x4a, 0x55, 0x6c, 0x42, 0xf5,
-	0x15, 0x3a, 0x9e, 0x64, 0x61, 0xf5, 0x67, 0x81, 0xff, 0x0a, 0xf6, 0xfe, 0xf2, 0xed, 0x62, 0xa0,
-	0x79, 0x58, 0xe4, 0x89, 0x22, 0x93, 0x2a, 0xf2, 0x6a, 0x98, 0x69, 0x9b, 0x2a, 0xb2, 0x8c, 0x96,
-	0xc9, 0x5f, 0x0d, 0x28, 0x5d, 0xfc, 0xef, 0x7c, 0x2f, 0xd8, 0xdd, 0xfe, 0x06, 0x00, 0x00, 0xff,
-	0xff, 0x74, 0x14, 0x3d, 0xce, 0xf3, 0x02, 0x00, 0x00,
+	// 262 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x91, 0x4d, 0x4b, 0xfc, 0x30,
+	0x10, 0xc6, 0xe9, 0xff, 0xef, 0x0b, 0xa4, 0xbb, 0x07, 0x8b, 0x60, 0xf5, 0xb4, 0x2f, 0x97, 0x45,
+	0xb4, 0x41, 0xbd, 0x79, 0x74, 0xc1, 0x0f, 0x50, 0x3c, 0x88, 0x97, 0x90, 0xc6, 0xb1, 0x1b, 0x68,
+	0x67, 0xe2, 0x66, 0x82, 0xee, 0x57, 0xf4, 0x53, 0x49, 0x53, 0x5b, 0x44, 0x4f, 0x5e, 0x42, 0xe6,
+	0x79, 0x7e, 0x33, 0x93, 0x87, 0x88, 0xb9, 0x76, 0x4e, 0xb2, 0xae, 0x1a, 0x90, 0x9e, 0x14, 0xbc,
+	0xf3, 0x3d, 0x35, 0x0d, 0xbd, 0xad, 0x29, 0x20, 0x17, 0x6e, 0x4b, 0x4c, 0xd9, 0x7e, 0xb4, 0xcf,
+	0x8e, 0x63, 0xc5, 0x3b, 0x07, 0xb2, 0x3b, 0x7a, 0x73, 0xf1, 0x91, 0x88, 0xa3, 0x5f, 0x8d, 0xd9,
+	0x95, 0x38, 0xd4, 0xc6, 0x74, 0xd7, 0x3c, 0x99, 0x25, 0xab, 0xf4, 0xfa, 0xa4, 0x18, 0xbb, 0x8b,
+	0x2f, 0x47, 0xa1, 0x6e, 0xa1, 0x1c, 0xb8, 0x6c, 0x2e, 0x26, 0x2f, 0x71, 0x02, 0x6c, 0x95, 0x41,
+	0xce, 0xff, 0xcd, 0x92, 0xd5, 0xb4, 0x4c, 0x07, 0x6d, 0x8d, 0x9c, 0x2d, 0xc5, 0xb4, 0x2f, 0x2d,
+	0xd6, 0x91, 0xf9, 0x1f, 0x99, 0xc9, 0x28, 0x76, 0xd0, 0xad, 0x48, 0x83, 0x7b, 0xd6, 0x0c, 0x8a,
+	0x6d, 0x0b, 0xf9, 0x5e, 0x5c, 0x7f, 0xfa, 0x6d, 0x7d, 0x27, 0x2b, 0x47, 0x16, 0x59, 0x79, 0x30,
+	0xa5, 0xe8, 0xe9, 0x07, 0xdb, 0xc2, 0xe2, 0x51, 0x2c, 0x3d, 0xa9, 0x80, 0xf6, 0x35, 0xc0, 0x8f,
+	0x48, 0xaa, 0xda, 0xa9, 0xe1, 0xa9, 0x7f, 0x4f, 0x77, 0x77, 0xf1, 0x74, 0x5e, 0x5b, 0xde, 0x84,
+	0xaa, 0x30, 0xd4, 0x4a, 0x43, 0xde, 0x6c, 0xb4, 0x45, 0x69, 0x08, 0x19, 0x90, 0xc9, 0x5f, 0xd6,
+	0x24, 0xc7, 0x9f, 0xa8, 0x0e, 0xe2, 0xb8, 0x9b, 0xcf, 0x00, 0x00, 0x00, 0xff, 0xff, 0x30, 0x5c,
+	0x4e, 0xd5, 0x9d, 0x01, 0x00, 0x00,
 }

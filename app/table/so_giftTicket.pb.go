@@ -84,162 +84,6 @@ func (m *SoGiftTicket) GetExpireBlock() uint64 {
 	return 0
 }
 
-type SoMemGiftTicketByTicket struct {
-	Ticket               *prototype.GiftTicketKeyType `protobuf:"bytes,1,opt,name=ticket,proto3" json:"ticket,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}                     `json:"-"`
-	XXX_unrecognized     []byte                       `json:"-"`
-	XXX_sizecache        int32                        `json:"-"`
-}
-
-func (m *SoMemGiftTicketByTicket) Reset()         { *m = SoMemGiftTicketByTicket{} }
-func (m *SoMemGiftTicketByTicket) String() string { return proto.CompactTextString(m) }
-func (*SoMemGiftTicketByTicket) ProtoMessage()    {}
-func (*SoMemGiftTicketByTicket) Descriptor() ([]byte, []int) {
-	return fileDescriptor_d65be634f7a5df25, []int{1}
-}
-
-func (m *SoMemGiftTicketByTicket) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_SoMemGiftTicketByTicket.Unmarshal(m, b)
-}
-func (m *SoMemGiftTicketByTicket) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_SoMemGiftTicketByTicket.Marshal(b, m, deterministic)
-}
-func (m *SoMemGiftTicketByTicket) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SoMemGiftTicketByTicket.Merge(m, src)
-}
-func (m *SoMemGiftTicketByTicket) XXX_Size() int {
-	return xxx_messageInfo_SoMemGiftTicketByTicket.Size(m)
-}
-func (m *SoMemGiftTicketByTicket) XXX_DiscardUnknown() {
-	xxx_messageInfo_SoMemGiftTicketByTicket.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_SoMemGiftTicketByTicket proto.InternalMessageInfo
-
-func (m *SoMemGiftTicketByTicket) GetTicket() *prototype.GiftTicketKeyType {
-	if m != nil {
-		return m.Ticket
-	}
-	return nil
-}
-
-type SoMemGiftTicketByDenom struct {
-	Denom                uint64   `protobuf:"varint,1,opt,name=denom,proto3" json:"denom,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *SoMemGiftTicketByDenom) Reset()         { *m = SoMemGiftTicketByDenom{} }
-func (m *SoMemGiftTicketByDenom) String() string { return proto.CompactTextString(m) }
-func (*SoMemGiftTicketByDenom) ProtoMessage()    {}
-func (*SoMemGiftTicketByDenom) Descriptor() ([]byte, []int) {
-	return fileDescriptor_d65be634f7a5df25, []int{2}
-}
-
-func (m *SoMemGiftTicketByDenom) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_SoMemGiftTicketByDenom.Unmarshal(m, b)
-}
-func (m *SoMemGiftTicketByDenom) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_SoMemGiftTicketByDenom.Marshal(b, m, deterministic)
-}
-func (m *SoMemGiftTicketByDenom) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SoMemGiftTicketByDenom.Merge(m, src)
-}
-func (m *SoMemGiftTicketByDenom) XXX_Size() int {
-	return xxx_messageInfo_SoMemGiftTicketByDenom.Size(m)
-}
-func (m *SoMemGiftTicketByDenom) XXX_DiscardUnknown() {
-	xxx_messageInfo_SoMemGiftTicketByDenom.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_SoMemGiftTicketByDenom proto.InternalMessageInfo
-
-func (m *SoMemGiftTicketByDenom) GetDenom() uint64 {
-	if m != nil {
-		return m.Denom
-	}
-	return 0
-}
-
-type SoMemGiftTicketByCount struct {
-	Count                uint64   `protobuf:"varint,1,opt,name=count,proto3" json:"count,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *SoMemGiftTicketByCount) Reset()         { *m = SoMemGiftTicketByCount{} }
-func (m *SoMemGiftTicketByCount) String() string { return proto.CompactTextString(m) }
-func (*SoMemGiftTicketByCount) ProtoMessage()    {}
-func (*SoMemGiftTicketByCount) Descriptor() ([]byte, []int) {
-	return fileDescriptor_d65be634f7a5df25, []int{3}
-}
-
-func (m *SoMemGiftTicketByCount) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_SoMemGiftTicketByCount.Unmarshal(m, b)
-}
-func (m *SoMemGiftTicketByCount) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_SoMemGiftTicketByCount.Marshal(b, m, deterministic)
-}
-func (m *SoMemGiftTicketByCount) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SoMemGiftTicketByCount.Merge(m, src)
-}
-func (m *SoMemGiftTicketByCount) XXX_Size() int {
-	return xxx_messageInfo_SoMemGiftTicketByCount.Size(m)
-}
-func (m *SoMemGiftTicketByCount) XXX_DiscardUnknown() {
-	xxx_messageInfo_SoMemGiftTicketByCount.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_SoMemGiftTicketByCount proto.InternalMessageInfo
-
-func (m *SoMemGiftTicketByCount) GetCount() uint64 {
-	if m != nil {
-		return m.Count
-	}
-	return 0
-}
-
-type SoMemGiftTicketByExpireBlock struct {
-	ExpireBlock          uint64   `protobuf:"varint,1,opt,name=expire_block,json=expireBlock,proto3" json:"expire_block,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *SoMemGiftTicketByExpireBlock) Reset()         { *m = SoMemGiftTicketByExpireBlock{} }
-func (m *SoMemGiftTicketByExpireBlock) String() string { return proto.CompactTextString(m) }
-func (*SoMemGiftTicketByExpireBlock) ProtoMessage()    {}
-func (*SoMemGiftTicketByExpireBlock) Descriptor() ([]byte, []int) {
-	return fileDescriptor_d65be634f7a5df25, []int{4}
-}
-
-func (m *SoMemGiftTicketByExpireBlock) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_SoMemGiftTicketByExpireBlock.Unmarshal(m, b)
-}
-func (m *SoMemGiftTicketByExpireBlock) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_SoMemGiftTicketByExpireBlock.Marshal(b, m, deterministic)
-}
-func (m *SoMemGiftTicketByExpireBlock) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SoMemGiftTicketByExpireBlock.Merge(m, src)
-}
-func (m *SoMemGiftTicketByExpireBlock) XXX_Size() int {
-	return xxx_messageInfo_SoMemGiftTicketByExpireBlock.Size(m)
-}
-func (m *SoMemGiftTicketByExpireBlock) XXX_DiscardUnknown() {
-	xxx_messageInfo_SoMemGiftTicketByExpireBlock.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_SoMemGiftTicketByExpireBlock proto.InternalMessageInfo
-
-func (m *SoMemGiftTicketByExpireBlock) GetExpireBlock() uint64 {
-	if m != nil {
-		return m.ExpireBlock
-	}
-	return 0
-}
-
 type SoListGiftTicketByTicket struct {
 	Ticket               *prototype.GiftTicketKeyType `protobuf:"bytes,1,opt,name=ticket,proto3" json:"ticket,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                     `json:"-"`
@@ -251,7 +95,7 @@ func (m *SoListGiftTicketByTicket) Reset()         { *m = SoListGiftTicketByTick
 func (m *SoListGiftTicketByTicket) String() string { return proto.CompactTextString(m) }
 func (*SoListGiftTicketByTicket) ProtoMessage()    {}
 func (*SoListGiftTicketByTicket) Descriptor() ([]byte, []int) {
-	return fileDescriptor_d65be634f7a5df25, []int{5}
+	return fileDescriptor_d65be634f7a5df25, []int{1}
 }
 
 func (m *SoListGiftTicketByTicket) XXX_Unmarshal(b []byte) error {
@@ -291,7 +135,7 @@ func (m *SoListGiftTicketByCount) Reset()         { *m = SoListGiftTicketByCount
 func (m *SoListGiftTicketByCount) String() string { return proto.CompactTextString(m) }
 func (*SoListGiftTicketByCount) ProtoMessage()    {}
 func (*SoListGiftTicketByCount) Descriptor() ([]byte, []int) {
-	return fileDescriptor_d65be634f7a5df25, []int{6}
+	return fileDescriptor_d65be634f7a5df25, []int{2}
 }
 
 func (m *SoListGiftTicketByCount) XXX_Unmarshal(b []byte) error {
@@ -337,7 +181,7 @@ func (m *SoUniqueGiftTicketByTicket) Reset()         { *m = SoUniqueGiftTicketBy
 func (m *SoUniqueGiftTicketByTicket) String() string { return proto.CompactTextString(m) }
 func (*SoUniqueGiftTicketByTicket) ProtoMessage()    {}
 func (*SoUniqueGiftTicketByTicket) Descriptor() ([]byte, []int) {
-	return fileDescriptor_d65be634f7a5df25, []int{7}
+	return fileDescriptor_d65be634f7a5df25, []int{3}
 }
 
 func (m *SoUniqueGiftTicketByTicket) XXX_Unmarshal(b []byte) error {
@@ -367,10 +211,6 @@ func (m *SoUniqueGiftTicketByTicket) GetTicket() *prototype.GiftTicketKeyType {
 
 func init() {
 	proto.RegisterType((*SoGiftTicket)(nil), "table.so_giftTicket")
-	proto.RegisterType((*SoMemGiftTicketByTicket)(nil), "table.so_mem_giftTicket_by_ticket")
-	proto.RegisterType((*SoMemGiftTicketByDenom)(nil), "table.so_mem_giftTicket_by_denom")
-	proto.RegisterType((*SoMemGiftTicketByCount)(nil), "table.so_mem_giftTicket_by_count")
-	proto.RegisterType((*SoMemGiftTicketByExpireBlock)(nil), "table.so_mem_giftTicket_by_expire_block")
 	proto.RegisterType((*SoListGiftTicketByTicket)(nil), "table.so_list_giftTicket_by_ticket")
 	proto.RegisterType((*SoListGiftTicketByCount)(nil), "table.so_list_giftTicket_by_count")
 	proto.RegisterType((*SoUniqueGiftTicketByTicket)(nil), "table.so_unique_giftTicket_by_ticket")
@@ -379,25 +219,22 @@ func init() {
 func init() { proto.RegisterFile("app/table/so_giftTicket.proto", fileDescriptor_d65be634f7a5df25) }
 
 var fileDescriptor_d65be634f7a5df25 = []byte{
-	// 305 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x93, 0x4d, 0x4b, 0xc3, 0x30,
-	0x18, 0xc7, 0xc9, 0xdc, 0x76, 0xc8, 0xf4, 0x52, 0x76, 0x28, 0xf3, 0x6d, 0xeb, 0x69, 0x88, 0x36,
-	0x30, 0x0f, 0xde, 0x77, 0xf0, 0x03, 0x0c, 0x51, 0xf4, 0x12, 0xd6, 0x18, 0xbb, 0xd0, 0x36, 0x4f,
-	0x5d, 0x9e, 0x82, 0xfd, 0x24, 0x7e, 0x5d, 0x69, 0x32, 0x4a, 0x64, 0x55, 0x50, 0x76, 0x29, 0x7d,
-	0xfe, 0xcf, 0xeb, 0xef, 0x0f, 0xa1, 0xe7, 0xeb, 0xb2, 0x64, 0xb8, 0x4e, 0x72, 0xc9, 0x0c, 0xf0,
-	0x54, 0xbd, 0xe1, 0x83, 0x12, 0x99, 0xc4, 0xb8, 0xdc, 0x02, 0x42, 0x30, 0xb0, 0xa9, 0xc9, 0xd8,
-	0x46, 0x58, 0x97, 0x92, 0x35, 0x1f, 0x97, 0x8c, 0x3e, 0x09, 0x3d, 0xf9, 0xd6, 0x14, 0xdc, 0xd1,
-	0x21, 0xda, 0xbf, 0x90, 0x4c, 0xc9, 0x7c, 0xb4, 0xb8, 0x8c, 0xdb, 0xc6, 0xb8, 0x29, 0xe3, 0x2e,
-	0xcb, 0x33, 0x59, 0xf3, 0x46, 0x5c, 0xed, 0xca, 0x83, 0x31, 0x1d, 0xbc, 0x4a, 0x0d, 0x45, 0xd8,
-	0x9b, 0x92, 0x79, 0x7f, 0xe5, 0x82, 0x46, 0x15, 0x50, 0x69, 0x0c, 0x8f, 0x9c, 0x6a, 0x83, 0x60,
-	0x46, 0x8f, 0xe5, 0x47, 0xa9, 0xb6, 0x92, 0x27, 0x39, 0x88, 0x2c, 0xec, 0xdb, 0xe4, 0xc8, 0x69,
-	0xcb, 0x46, 0x8a, 0x1e, 0xe9, 0xa9, 0x01, 0x5e, 0xc8, 0xc2, 0x3b, 0x8e, 0x27, 0xf5, 0x6e, 0xfd,
-	0xbf, 0xcf, 0x8c, 0x16, 0x74, 0xd2, 0x39, 0xb7, 0x3d, 0xd7, 0x41, 0x10, 0x0f, 0xe2, 0xc7, 0x1e,
-	0x07, 0xd3, 0x22, 0x12, 0x0f, 0x31, 0xba, 0xa7, 0xb3, 0xce, 0x1e, 0x9f, 0x7b, 0xcf, 0x07, 0xb2,
-	0xef, 0xc3, 0x13, 0x3d, 0x33, 0xc0, 0x73, 0x65, 0xf0, 0xc0, 0x46, 0xe4, 0xd6, 0xe0, 0x8e, 0xc1,
-	0xbf, 0x50, 0x79, 0xdb, 0x7a, 0x7f, 0xdb, 0xf6, 0x4c, 0x2f, 0x0c, 0xf0, 0x4a, 0xab, 0xf7, 0x4a,
-	0x1e, 0x16, 0x64, 0x79, 0xfd, 0x72, 0x95, 0x2a, 0xdc, 0x54, 0x49, 0x2c, 0xa0, 0x60, 0x02, 0x8c,
-	0xd8, 0xac, 0x95, 0x66, 0x02, 0x34, 0x4a, 0x8d, 0x60, 0x6e, 0x52, 0x60, 0xed, 0x13, 0x49, 0x86,
-	0x76, 0xea, 0xed, 0x57, 0x00, 0x00, 0x00, 0xff, 0xff, 0xb8, 0x36, 0xf6, 0xc5, 0x36, 0x03, 0x00,
-	0x00,
+	// 264 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x92, 0xcf, 0x4a, 0x03, 0x31,
+	0x10, 0xc6, 0x49, 0x6d, 0x7b, 0x48, 0xf5, 0xb2, 0xf4, 0xb0, 0xf8, 0xb7, 0xf6, 0x54, 0x44, 0x37,
+	0xa0, 0x07, 0xef, 0x7d, 0x84, 0x22, 0x88, 0x5e, 0xc2, 0x26, 0x8e, 0xdb, 0xb0, 0xdb, 0x4c, 0x6c,
+	0x66, 0xc1, 0x7d, 0x12, 0x5f, 0x57, 0x92, 0x94, 0xb5, 0x82, 0x17, 0xc5, 0x4b, 0xc8, 0x7c, 0xdf,
+	0xcc, 0x7c, 0xbf, 0x40, 0xf8, 0x59, 0xe9, 0x9c, 0xa0, 0x52, 0x35, 0x20, 0x3c, 0xca, 0xca, 0xbc,
+	0xd2, 0x83, 0xd1, 0x35, 0x50, 0xe1, 0xb6, 0x48, 0x98, 0x8d, 0xa2, 0x75, 0x3c, 0x8d, 0x15, 0x75,
+	0x0e, 0x44, 0x38, 0x92, 0x39, 0xff, 0x60, 0xfc, 0xe8, 0xdb, 0x50, 0x76, 0xcf, 0xc7, 0x14, 0x6f,
+	0x39, 0x9b, 0xb1, 0xc5, 0xe4, 0xf6, 0xa2, 0xe8, 0x07, 0x8b, 0xd0, 0x26, 0x93, 0x2b, 0x6b, 0xe8,
+	0x64, 0x10, 0x57, 0xbb, 0xf6, 0x6c, 0xca, 0x47, 0x2f, 0x60, 0x71, 0x93, 0x0f, 0x66, 0x6c, 0x31,
+	0x5c, 0xa5, 0x22, 0xa8, 0x1a, 0x5b, 0x4b, 0xf9, 0x41, 0x52, 0x63, 0x91, 0x5d, 0xf2, 0x43, 0x78,
+	0x77, 0x66, 0x0b, 0x52, 0x35, 0xa8, 0xeb, 0x7c, 0x18, 0xcd, 0x49, 0xd2, 0x96, 0x41, 0x9a, 0x3f,
+	0xf2, 0x53, 0x8f, 0xb2, 0x31, 0x9e, 0xf6, 0xe8, 0xa4, 0xea, 0x76, 0xf9, 0x7f, 0xe6, 0x9c, 0x37,
+	0xfc, 0xe4, 0xe7, 0xc5, 0x09, 0xad, 0x07, 0x66, 0xfb, 0xc0, 0x5f, 0x69, 0x83, 0xdf, 0xa5, 0x3d,
+	0xf1, 0x73, 0x8f, 0xb2, 0xb5, 0xe6, 0xad, 0x85, 0xff, 0x7d, 0xc8, 0xf2, 0xfa, 0xf9, 0xaa, 0x32,
+	0xb4, 0x6e, 0x55, 0xa1, 0x71, 0x23, 0x34, 0x7a, 0xbd, 0x2e, 0x8d, 0x15, 0x1a, 0x2d, 0x81, 0x25,
+	0xf4, 0x37, 0x15, 0x8a, 0xfe, 0x6b, 0xa8, 0x71, 0xdc, 0x7a, 0xf7, 0x19, 0x00, 0x00, 0xff, 0xff,
+	0xc1, 0x87, 0x8b, 0x27, 0x2e, 0x02, 0x00, 0x00,
 }

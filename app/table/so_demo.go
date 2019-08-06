@@ -4,7 +4,6 @@ import (
 	"errors"
 	fmt "fmt"
 	"reflect"
-	"strings"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -22,31 +21,27 @@ var (
 	DemoTaglistTable      uint32 = 918597048
 	DemoIdxUniTable       uint32 = 586852864
 	DemoLikeCountUniTable uint32 = 1853028069
+	DemoNickNameUniTable  uint32 = 3683699735
 	DemoOwnerUniTable     uint32 = 3607866294
-	DemoContentCell       uint32 = 2061030034
-	DemoIdxCell           uint32 = 3641077422
-	DemoLikeCountCell     uint32 = 474861792
-	DemoOwnerCell         uint32 = 663671025
-	DemoPostTimeCell      uint32 = 1304163047
-	DemoReplayCountCell   uint32 = 2336180827
-	DemoTaglistCell       uint32 = 2563363997
-	DemoTitleCell         uint32 = 1447818910
+
+	DemoOwnerRow uint32 = 4002792218
 )
 
 ////////////// SECTION Wrap Define ///////////////
 type SoDemoWrap struct {
-	dba      iservices.IDatabaseRW
-	mainKey  *prototype.AccountName
-	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf  []byte //the buffer after the main key is encoded with prefix
-	mBuf     []byte //the value after the main key is encoded
+	dba       iservices.IDatabaseRW
+	mainKey   *prototype.AccountName
+	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
+	mBuf      []byte //the value after the main key is encoded
+	mdFuncMap map[string]interface{}
 }
 
 func NewSoDemoWrap(dba iservices.IDatabaseRW, key *prototype.AccountName) *SoDemoWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoDemoWrap{dba, key, -1, nil, nil}
+	result := &SoDemoWrap{dba, key, -1, nil, nil, nil}
 	return result
 }
 
@@ -98,9 +93,13 @@ func (s *SoDemoWrap) Create(f func(tInfo *SoDemo)) error {
 		return err
 
 	}
-	err = s.saveAllMemKeys(val, true)
+
+	buf, err := proto.Marshal(val)
 	if err != nil {
-		s.delAllMemKeys(false, val)
+		return err
+	}
+	err = s.dba.Put(keyBuf, buf)
+	if err != nil {
 		return err
 	}
 
@@ -108,7 +107,6 @@ func (s *SoDemoWrap) Create(f func(tInfo *SoDemo)) error {
 	if err = s.insertAllSortKeys(val); err != nil {
 		s.delAllSortKeys(false, val)
 		s.dba.Delete(keyBuf)
-		s.delAllMemKeys(false, val)
 		return err
 	}
 
@@ -117,10 +115,10 @@ func (s *SoDemoWrap) Create(f func(tInfo *SoDemo)) error {
 		s.delAllSortKeys(false, val)
 		s.delUniKeysWithNames(sucNames, val)
 		s.dba.Delete(keyBuf)
-		s.delAllMemKeys(false, val)
 		return err
 	}
 
+	s.mKeyFlag = 1
 	return nil
 }
 
@@ -138,6 +136,364 @@ func (s *SoDemoWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
+func (s *SoDemoWrap) Modify(f func(tInfo *SoDemo)) error {
+	if !s.CheckExist() {
+		return errors.New("the SoDemo table does not exist. Please create a table first")
+	}
+	oriTable := s.getDemo()
+	if oriTable == nil {
+		return errors.New("fail to get origin table SoDemo")
+	}
+	curTable := *oriTable
+	f(&curTable)
+
+	//the main key is not support modify
+	if !reflect.DeepEqual(curTable.Owner, oriTable.Owner) {
+		return errors.New("primary key does not support modification")
+	}
+
+	fieldSli, err := s.getModifiedFields(oriTable, &curTable)
+	if err != nil {
+		return err
+	}
+
+	if fieldSli == nil || len(fieldSli) < 1 {
+		return nil
+	}
+
+	//check whether modify sort and unique field to nil
+	err = s.checkSortAndUniFieldValidity(&curTable, fieldSli)
+	if err != nil {
+		return err
+	}
+
+	//check unique
+	err = s.handleFieldMd(FieldMdHandleTypeCheck, &curTable, fieldSli)
+	if err != nil {
+		return err
+	}
+
+	//delete sort and unique key
+	err = s.handleFieldMd(FieldMdHandleTypeDel, oriTable, fieldSli)
+	if err != nil {
+		return err
+	}
+
+	//update table
+	err = s.updateDemo(&curTable)
+	if err != nil {
+		return err
+	}
+
+	//insert sort and unique key
+	err = s.handleFieldMd(FieldMdHandleTypeInsert, &curTable, fieldSli)
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+func (s *SoDemoWrap) MdContent(p string) bool {
+	err := s.Modify(func(r *SoDemo) {
+		r.Content = p
+	})
+	return err == nil
+}
+
+func (s *SoDemoWrap) MdIdx(p int64) bool {
+	err := s.Modify(func(r *SoDemo) {
+		r.Idx = p
+	})
+	return err == nil
+}
+
+func (s *SoDemoWrap) MdLikeCount(p int64) bool {
+	err := s.Modify(func(r *SoDemo) {
+		r.LikeCount = p
+	})
+	return err == nil
+}
+
+func (s *SoDemoWrap) MdNickName(p *prototype.AccountName) bool {
+	err := s.Modify(func(r *SoDemo) {
+		r.NickName = p
+	})
+	return err == nil
+}
+
+func (s *SoDemoWrap) MdPostTime(p *prototype.TimePointSec) bool {
+	err := s.Modify(func(r *SoDemo) {
+		r.PostTime = p
+	})
+	return err == nil
+}
+
+func (s *SoDemoWrap) MdRegistTime(p *prototype.TimePointSec) bool {
+	err := s.Modify(func(r *SoDemo) {
+		r.RegistTime = p
+	})
+	return err == nil
+}
+
+func (s *SoDemoWrap) MdReplayCount(p int64) bool {
+	err := s.Modify(func(r *SoDemo) {
+		r.ReplayCount = p
+	})
+	return err == nil
+}
+
+func (s *SoDemoWrap) MdTaglist(p []string) bool {
+	err := s.Modify(func(r *SoDemo) {
+		r.Taglist = p
+	})
+	return err == nil
+}
+
+func (s *SoDemoWrap) MdTitle(p string) bool {
+	err := s.Modify(func(r *SoDemo) {
+		r.Title = p
+	})
+	return err == nil
+}
+
+func (s *SoDemoWrap) checkSortAndUniFieldValidity(curTable *SoDemo, fieldSli []string) error {
+	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
+		for _, fName := range fieldSli {
+			if len(fName) > 0 {
+
+				if fName == "PostTime" && curTable.PostTime == nil {
+					return errors.New("sort field PostTime can't be modified to nil")
+				}
+
+				if fName == "NickName" && curTable.NickName == nil {
+					return errors.New("unique field NickName can't be modified to nil")
+				}
+
+			}
+		}
+	}
+	return nil
+}
+
+//Get all the modified fields in the table
+func (s *SoDemoWrap) getModifiedFields(oriTable *SoDemo, curTable *SoDemo) ([]string, error) {
+	if oriTable == nil {
+		return nil, errors.New("table info is nil, can't get modified fields")
+	}
+	var list []string
+
+	if !reflect.DeepEqual(oriTable.Content, curTable.Content) {
+		list = append(list, "Content")
+	}
+
+	if !reflect.DeepEqual(oriTable.Idx, curTable.Idx) {
+		list = append(list, "Idx")
+	}
+
+	if !reflect.DeepEqual(oriTable.LikeCount, curTable.LikeCount) {
+		list = append(list, "LikeCount")
+	}
+
+	if !reflect.DeepEqual(oriTable.NickName, curTable.NickName) {
+		list = append(list, "NickName")
+	}
+
+	if !reflect.DeepEqual(oriTable.PostTime, curTable.PostTime) {
+		list = append(list, "PostTime")
+	}
+
+	if !reflect.DeepEqual(oriTable.RegistTime, curTable.RegistTime) {
+		list = append(list, "RegistTime")
+	}
+
+	if !reflect.DeepEqual(oriTable.ReplayCount, curTable.ReplayCount) {
+		list = append(list, "ReplayCount")
+	}
+
+	if !reflect.DeepEqual(oriTable.Taglist, curTable.Taglist) {
+		list = append(list, "Taglist")
+	}
+
+	if !reflect.DeepEqual(oriTable.Title, curTable.Title) {
+		list = append(list, "Title")
+	}
+
+	return list, nil
+}
+
+func (s *SoDemoWrap) handleFieldMd(t FieldMdHandleType, so *SoDemo, fSli []string) error {
+	if so == nil {
+		return errors.New("fail to modify empty table")
+	}
+
+	//there is no field need to modify
+	if fSli == nil || len(fSli) < 1 {
+		return nil
+	}
+
+	errStr := ""
+	for _, fName := range fSli {
+
+		if fName == "Content" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldContent(so.Content, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldContent(so.Content, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldContent(so.Content, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "Idx" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldIdx(so.Idx, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldIdx(so.Idx, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldIdx(so.Idx, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "LikeCount" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldLikeCount(so.LikeCount, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldLikeCount(so.LikeCount, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldLikeCount(so.LikeCount, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "NickName" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldNickName(so.NickName, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldNickName(so.NickName, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldNickName(so.NickName, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "PostTime" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldPostTime(so.PostTime, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldPostTime(so.PostTime, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldPostTime(so.PostTime, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "RegistTime" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldRegistTime(so.RegistTime, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldRegistTime(so.RegistTime, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldRegistTime(so.RegistTime, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "ReplayCount" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldReplayCount(so.ReplayCount, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldReplayCount(so.ReplayCount, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldReplayCount(so.ReplayCount, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "Taglist" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldTaglist(so.Taglist, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldTaglist(so.Taglist, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldTaglist(so.Taglist, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "Title" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldTitle(so.Title, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldTitle(so.Title, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldTitle(so.Title, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+	}
+
+	return nil
+}
+
 ////////////// SECTION LKeys delete/insert ///////////////
 
 func (s *SoDemoWrap) delSortKeyOwner(sa *SoDemo) bool {
@@ -146,24 +502,10 @@ func (s *SoDemoWrap) delSortKeyOwner(sa *SoDemo) bool {
 	}
 	val := SoListDemoByOwner{}
 	if sa == nil {
-		key, err := s.encodeMemKey("Owner")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemDemoByOwner{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		val.Owner = ori.Owner
+		val.Owner = s.GetOwner()
 	} else {
 		val.Owner = sa.Owner
 	}
-
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -196,27 +538,13 @@ func (s *SoDemoWrap) delSortKeyPostTime(sa *SoDemo) bool {
 	}
 	val := SoListDemoByPostTime{}
 	if sa == nil {
-		key, err := s.encodeMemKey("PostTime")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemDemoByPostTime{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		val.PostTime = ori.PostTime
+		val.PostTime = s.GetPostTime()
 		val.Owner = s.mainKey
 
 	} else {
 		val.PostTime = sa.PostTime
 		val.Owner = sa.Owner
 	}
-
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -250,27 +578,13 @@ func (s *SoDemoWrap) delSortKeyLikeCount(sa *SoDemo) bool {
 	}
 	val := SoListDemoByLikeCount{}
 	if sa == nil {
-		key, err := s.encodeMemKey("LikeCount")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemDemoByLikeCount{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		val.LikeCount = ori.LikeCount
+		val.LikeCount = s.GetLikeCount()
 		val.Owner = s.mainKey
 
 	} else {
 		val.LikeCount = sa.LikeCount
 		val.Owner = sa.Owner
 	}
-
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -304,27 +618,13 @@ func (s *SoDemoWrap) delSortKeyIdx(sa *SoDemo) bool {
 	}
 	val := SoListDemoByIdx{}
 	if sa == nil {
-		key, err := s.encodeMemKey("Idx")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemDemoByIdx{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		val.Idx = ori.Idx
+		val.Idx = s.GetIdx()
 		val.Owner = s.mainKey
 
 	} else {
 		val.Idx = sa.Idx
 		val.Owner = sa.Owner
 	}
-
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -358,27 +658,13 @@ func (s *SoDemoWrap) delSortKeyReplayCount(sa *SoDemo) bool {
 	}
 	val := SoListDemoByReplayCount{}
 	if sa == nil {
-		key, err := s.encodeMemKey("ReplayCount")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemDemoByReplayCount{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		val.ReplayCount = ori.ReplayCount
+		val.ReplayCount = s.GetReplayCount()
 		val.Owner = s.mainKey
 
 	} else {
 		val.ReplayCount = sa.ReplayCount
 		val.Owner = sa.Owner
 	}
-
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -412,27 +698,13 @@ func (s *SoDemoWrap) delSortKeyTaglist(sa *SoDemo) bool {
 	}
 	val := SoListDemoByTaglist{}
 	if sa == nil {
-		key, err := s.encodeMemKey("Taglist")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemDemoByTaglist{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		val.Taglist = ori.Taglist
+		val.Taglist = s.GetTaglist()
 		val.Owner = s.mainKey
 
 	} else {
 		val.Taglist = sa.Taglist
 		val.Owner = sa.Owner
 	}
-
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -465,13 +737,7 @@ func (s *SoDemoWrap) delAllSortKeys(br bool, val *SoDemo) bool {
 		return false
 	}
 	res := true
-	if !s.delSortKeyOwner(val) {
-		if br {
-			return false
-		} else {
-			res = false
-		}
-	}
+
 	if !s.delSortKeyPostTime(val) {
 		if br {
 			return false
@@ -479,6 +745,7 @@ func (s *SoDemoWrap) delAllSortKeys(br bool, val *SoDemo) bool {
 			res = false
 		}
 	}
+
 	if !s.delSortKeyLikeCount(val) {
 		if br {
 			return false
@@ -486,6 +753,7 @@ func (s *SoDemoWrap) delAllSortKeys(br bool, val *SoDemo) bool {
 			res = false
 		}
 	}
+
 	if !s.delSortKeyIdx(val) {
 		if br {
 			return false
@@ -493,6 +761,7 @@ func (s *SoDemoWrap) delAllSortKeys(br bool, val *SoDemo) bool {
 			res = false
 		}
 	}
+
 	if !s.delSortKeyReplayCount(val) {
 		if br {
 			return false
@@ -500,6 +769,7 @@ func (s *SoDemoWrap) delAllSortKeys(br bool, val *SoDemo) bool {
 			res = false
 		}
 	}
+
 	if !s.delSortKeyTaglist(val) {
 		if br {
 			return false
@@ -518,21 +788,23 @@ func (s *SoDemoWrap) insertAllSortKeys(val *SoDemo) error {
 	if val == nil {
 		return errors.New("insert sort Field fail,get the SoDemo fail ")
 	}
-	if !s.insertSortKeyOwner(val) {
-		return errors.New("insert sort Field Owner fail while insert table ")
-	}
+
 	if !s.insertSortKeyPostTime(val) {
 		return errors.New("insert sort Field PostTime fail while insert table ")
 	}
+
 	if !s.insertSortKeyLikeCount(val) {
 		return errors.New("insert sort Field LikeCount fail while insert table ")
 	}
+
 	if !s.insertSortKeyIdx(val) {
 		return errors.New("insert sort Field Idx fail while insert table ")
 	}
+
 	if !s.insertSortKeyReplayCount(val) {
 		return errors.New("insert sort Field ReplayCount fail while insert table ")
 	}
+
 	if !s.insertSortKeyTaglist(val) {
 		return errors.New("insert sort Field Taglist fail while insert table ")
 	}
@@ -546,7 +818,6 @@ func (s *SoDemoWrap) RemoveDemo() bool {
 	if s.dba == nil {
 		return false
 	}
-	val := &SoDemo{}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
 		return false
@@ -557,7 +828,12 @@ func (s *SoDemoWrap) RemoveDemo() bool {
 		return false
 	}
 
-	err := s.delAllMemKeys(true, val)
+	//delete table
+	key, err := s.encodeMainKey()
+	if err != nil {
+		return false
+	}
+	err = s.dba.Delete(key)
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
@@ -568,194 +844,14 @@ func (s *SoDemoWrap) RemoveDemo() bool {
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
-func (s *SoDemoWrap) getMemKeyPrefix(fName string) uint32 {
-	if fName == "Content" {
-		return DemoContentCell
-	}
-	if fName == "Idx" {
-		return DemoIdxCell
-	}
-	if fName == "LikeCount" {
-		return DemoLikeCountCell
-	}
-	if fName == "Owner" {
-		return DemoOwnerCell
-	}
-	if fName == "PostTime" {
-		return DemoPostTimeCell
-	}
-	if fName == "ReplayCount" {
-		return DemoReplayCountCell
-	}
-	if fName == "Taglist" {
-		return DemoTaglistCell
-	}
-	if fName == "Title" {
-		return DemoTitleCell
-	}
-
-	return 0
-}
-
-func (s *SoDemoWrap) encodeMemKey(fName string) ([]byte, error) {
-	if len(fName) < 1 || s.mainKey == nil {
-		return nil, errors.New("field name or main key is empty")
-	}
-	pre := s.getMemKeyPrefix(fName)
-	preBuf, err := kope.Encode(pre)
-	if err != nil {
-		return nil, err
-	}
-	mBuf, err := s.getMainKeyBuf()
-	if err != nil {
-		return nil, err
-	}
-	list := make([][]byte, 2)
-	list[0] = preBuf
-	list[1] = mBuf
-	return kope.PackList(list), nil
-}
-
-func (s *SoDemoWrap) saveAllMemKeys(tInfo *SoDemo, br bool) error {
-	if s.dba == nil {
-		return errors.New("save member Field fail , the db is nil")
-	}
-
-	if tInfo == nil {
-		return errors.New("save member Field fail , the data is nil ")
-	}
-	var err error = nil
-	errDes := ""
-	if err = s.saveMemKeyContent(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Content", err)
-		}
-	}
-	if err = s.saveMemKeyIdx(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Idx", err)
-		}
-	}
-	if err = s.saveMemKeyLikeCount(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "LikeCount", err)
-		}
-	}
-	if err = s.saveMemKeyOwner(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Owner", err)
-		}
-	}
-	if err = s.saveMemKeyPostTime(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "PostTime", err)
-		}
-	}
-	if err = s.saveMemKeyReplayCount(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "ReplayCount", err)
-		}
-	}
-	if err = s.saveMemKeyTaglist(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Taglist", err)
-		}
-	}
-	if err = s.saveMemKeyTitle(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Title", err)
-		}
-	}
-
-	if len(errDes) > 0 {
-		return errors.New(errDes)
-	}
-	return err
-}
-
-func (s *SoDemoWrap) delAllMemKeys(br bool, tInfo *SoDemo) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	t := reflect.TypeOf(*tInfo)
-	errDesc := ""
-	for k := 0; k < t.NumField(); k++ {
-		name := t.Field(k).Name
-		if len(name) > 0 && !strings.HasPrefix(name, "XXX_") {
-			err := s.delMemKey(name)
-			if err != nil {
-				if br {
-					return err
-				}
-				errDesc += fmt.Sprintf("delete the Field %s fail,error is %s;\n", name, err)
-			}
-		}
-	}
-	if len(errDesc) > 0 {
-		return errors.New(errDesc)
-	}
-	return nil
-}
-
-func (s *SoDemoWrap) delMemKey(fName string) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if len(fName) <= 0 {
-		return errors.New("the field name is empty ")
-	}
-	key, err := s.encodeMemKey(fName)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Delete(key)
-	return err
-}
-
-func (s *SoDemoWrap) saveMemKeyContent(tInfo *SoDemo) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemDemoByContent{}
-	val.Content = tInfo.Content
-	key, err := s.encodeMemKey("Content")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
 
 func (s *SoDemoWrap) GetContent() string {
 	res := true
-	msg := &SoMemDemoByContent{}
+	msg := &SoDemo{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Content")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -778,67 +874,66 @@ func (s *SoDemoWrap) GetContent() string {
 	return msg.Content
 }
 
-func (s *SoDemoWrap) MdContent(p string) bool {
+func (s *SoDemoWrap) mdFieldContent(p string, isCheck bool, isDel bool, isInsert bool,
+	so *SoDemo) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("Content")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemDemoByContent{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoDemo{}
-	sa.Owner = s.mainKey
 
-	sa.Content = ori.Content
+	if isCheck {
+		res := s.checkContentIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.Content = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldContent(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldContent(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoDemoWrap) delFieldContent(so *SoDemo) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.Content = p
 
 	return true
 }
 
-func (s *SoDemoWrap) saveMemKeyIdx(tInfo *SoDemo) error {
+func (s *SoDemoWrap) insertFieldContent(so *SoDemo) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoDemoWrap) checkContentIsMetMdCondition(p string) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemDemoByIdx{}
-	val.Idx = tInfo.Idx
-	key, err := s.encodeMemKey("Idx")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoDemoWrap) GetIdx() int64 {
 	res := true
-	msg := &SoMemDemoByIdx{}
+	msg := &SoDemo{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Idx")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -861,24 +956,70 @@ func (s *SoDemoWrap) GetIdx() int64 {
 	return msg.Idx
 }
 
-func (s *SoDemoWrap) MdIdx(p int64) bool {
+func (s *SoDemoWrap) mdFieldIdx(p int64, isCheck bool, isDel bool, isInsert bool,
+	so *SoDemo) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("Idx")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemDemoByIdx{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoDemo{}
-	sa.Owner = s.mainKey
 
-	sa.Idx = ori.Idx
+	if isCheck {
+		res := s.checkIdxIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
+
+	if isDel {
+		res := s.delFieldIdx(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldIdx(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoDemoWrap) delFieldIdx(so *SoDemo) bool {
+	if s.dba == nil {
+		return false
+	}
+	if !s.delUniKeyIdx(so) {
+		return false
+	}
+
+	if !s.delSortKeyIdx(so) {
+		return false
+	}
+
+	return true
+}
+
+func (s *SoDemoWrap) insertFieldIdx(so *SoDemo) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if !s.insertSortKeyIdx(so) {
+		return false
+	}
+
+	if !s.insertUniKeyIdx(so) {
+		return false
+	}
+
+	return true
+}
+
+func (s *SoDemoWrap) checkIdxIsMetMdCondition(p int64) bool {
+	if s.dba == nil {
+		return false
+	}
 	//judge the unique value if is exist
 	uniWrap := UniDemoIdxWrap{}
 	uniWrap.Dba = s.dba
@@ -887,62 +1028,17 @@ func (s *SoDemoWrap) MdIdx(p int64) bool {
 		//the unique value to be modified is already exist
 		return false
 	}
-	if !s.delUniKeyIdx(sa) {
-		return false
-	}
 
-	if !s.delSortKeyIdx(sa) {
-		return false
-	}
-	ori.Idx = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.Idx = p
-
-	if !s.insertSortKeyIdx(sa) {
-		return false
-	}
-
-	if !s.insertUniKeyIdx(sa) {
-		return false
-	}
 	return true
-}
-
-func (s *SoDemoWrap) saveMemKeyLikeCount(tInfo *SoDemo) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemDemoByLikeCount{}
-	val.LikeCount = tInfo.LikeCount
-	key, err := s.encodeMemKey("LikeCount")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
 }
 
 func (s *SoDemoWrap) GetLikeCount() int64 {
 	res := true
-	msg := &SoMemDemoByLikeCount{}
+	msg := &SoDemo{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("LikeCount")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -965,24 +1061,72 @@ func (s *SoDemoWrap) GetLikeCount() int64 {
 	return msg.LikeCount
 }
 
-func (s *SoDemoWrap) MdLikeCount(p int64) bool {
+func (s *SoDemoWrap) mdFieldLikeCount(p int64, isCheck bool, isDel bool, isInsert bool,
+	so *SoDemo) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("LikeCount")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemDemoByLikeCount{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoDemo{}
-	sa.Owner = s.mainKey
 
-	sa.LikeCount = ori.LikeCount
+	if isCheck {
+		res := s.checkLikeCountIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
+
+	if isDel {
+		res := s.delFieldLikeCount(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldLikeCount(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoDemoWrap) delFieldLikeCount(so *SoDemo) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if !s.delUniKeyLikeCount(so) {
+		return false
+	}
+
+	if !s.delSortKeyLikeCount(so) {
+		return false
+	}
+
+	return true
+}
+
+func (s *SoDemoWrap) insertFieldLikeCount(so *SoDemo) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if !s.insertSortKeyLikeCount(so) {
+		return false
+	}
+
+	if !s.insertUniKeyLikeCount(so) {
+		return false
+	}
+
+	return true
+}
+
+func (s *SoDemoWrap) checkLikeCountIsMetMdCondition(p int64) bool {
+	if s.dba == nil {
+		return false
+	}
+
 	//judge the unique value if is exist
 	uniWrap := UniDemoLikeCountWrap{}
 	uniWrap.Dba = s.dba
@@ -991,62 +1135,117 @@ func (s *SoDemoWrap) MdLikeCount(p int64) bool {
 		//the unique value to be modified is already exist
 		return false
 	}
-	if !s.delUniKeyLikeCount(sa) {
+
+	return true
+}
+
+func (s *SoDemoWrap) GetNickName() *prototype.AccountName {
+	res := true
+	msg := &SoDemo{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMainKey()
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.NickName
+			}
+		}
+	}
+	if !res {
+		return nil
+
+	}
+	return msg.NickName
+}
+
+func (s *SoDemoWrap) mdFieldNickName(p *prototype.AccountName, isCheck bool, isDel bool, isInsert bool,
+	so *SoDemo) bool {
+	if s.dba == nil {
 		return false
 	}
 
-	if !s.delSortKeyLikeCount(sa) {
-		return false
-	}
-	ori.LikeCount = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.LikeCount = p
-
-	if !s.insertSortKeyLikeCount(sa) {
-		return false
+	if isCheck {
+		res := s.checkNickNameIsMetMdCondition(p)
+		if !res {
+			return false
+		}
 	}
 
-	if !s.insertUniKeyLikeCount(sa) {
-		return false
+	if isDel {
+		res := s.delFieldNickName(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldNickName(so)
+		if !res {
+			return false
+		}
 	}
 	return true
 }
 
-func (s *SoDemoWrap) saveMemKeyOwner(tInfo *SoDemo) error {
+func (s *SoDemoWrap) delFieldNickName(so *SoDemo) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	if !s.delUniKeyNickName(so) {
+		return false
 	}
-	val := SoMemDemoByOwner{}
-	val.Owner = tInfo.Owner
-	key, err := s.encodeMemKey("Owner")
-	if err != nil {
-		return err
+
+	return true
+}
+
+func (s *SoDemoWrap) insertFieldNickName(so *SoDemo) bool {
+	if s.dba == nil {
+		return false
 	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
+
+	if !s.insertUniKeyNickName(so) {
+		return false
 	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
+}
+
+func (s *SoDemoWrap) checkNickNameIsMetMdCondition(p *prototype.AccountName) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	//judge the unique value if is exist
+	uniWrap := UniDemoNickNameWrap{}
+	uniWrap.Dba = s.dba
+	res := uniWrap.UniQueryNickName(p)
+
+	if res != nil {
+		//the unique value to be modified is already exist
+		return false
+	}
+
+	return true
 }
 
 func (s *SoDemoWrap) GetOwner() *prototype.AccountName {
 	res := true
-	msg := &SoMemDemoByOwner{}
+	msg := &SoDemo{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Owner")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -1069,34 +1268,13 @@ func (s *SoDemoWrap) GetOwner() *prototype.AccountName {
 	return msg.Owner
 }
 
-func (s *SoDemoWrap) saveMemKeyPostTime(tInfo *SoDemo) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemDemoByPostTime{}
-	val.PostTime = tInfo.PostTime
-	key, err := s.encodeMemKey("PostTime")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
-
 func (s *SoDemoWrap) GetPostTime() *prototype.TimePointSec {
 	res := true
-	msg := &SoMemDemoByPostTime{}
+	msg := &SoDemo{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("PostTime")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -1119,74 +1297,156 @@ func (s *SoDemoWrap) GetPostTime() *prototype.TimePointSec {
 	return msg.PostTime
 }
 
-func (s *SoDemoWrap) MdPostTime(p *prototype.TimePointSec) bool {
+func (s *SoDemoWrap) mdFieldPostTime(p *prototype.TimePointSec, isCheck bool, isDel bool, isInsert bool,
+	so *SoDemo) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("PostTime")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemDemoByPostTime{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoDemo{}
-	sa.Owner = s.mainKey
 
-	sa.PostTime = ori.PostTime
+	if isCheck {
+		res := s.checkPostTimeIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	if !s.delSortKeyPostTime(sa) {
-		return false
+	if isDel {
+		res := s.delFieldPostTime(so)
+		if !res {
+			return false
+		}
 	}
-	ori.PostTime = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.PostTime = p
 
-	if !s.insertSortKeyPostTime(sa) {
+	if isInsert {
+		res := s.insertFieldPostTime(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoDemoWrap) delFieldPostTime(so *SoDemo) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if !s.delSortKeyPostTime(so) {
 		return false
 	}
 
 	return true
 }
 
-func (s *SoDemoWrap) saveMemKeyReplayCount(tInfo *SoDemo) error {
+func (s *SoDemoWrap) insertFieldPostTime(so *SoDemo) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	if !s.insertSortKeyPostTime(so) {
+		return false
 	}
-	val := SoMemDemoByReplayCount{}
-	val.ReplayCount = tInfo.ReplayCount
-	key, err := s.encodeMemKey("ReplayCount")
-	if err != nil {
-		return err
+
+	return true
+}
+
+func (s *SoDemoWrap) checkPostTimeIsMetMdCondition(p *prototype.TimePointSec) bool {
+	if s.dba == nil {
+		return false
 	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
+
+	return true
+}
+
+func (s *SoDemoWrap) GetRegistTime() *prototype.TimePointSec {
+	res := true
+	msg := &SoDemo{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMainKey()
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.RegistTime
+			}
+		}
 	}
-	err = s.dba.Put(key, buf)
-	return err
+	if !res {
+		return nil
+
+	}
+	return msg.RegistTime
+}
+
+func (s *SoDemoWrap) mdFieldRegistTime(p *prototype.TimePointSec, isCheck bool, isDel bool, isInsert bool,
+	so *SoDemo) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if isCheck {
+		res := s.checkRegistTimeIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
+
+	if isDel {
+		res := s.delFieldRegistTime(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldRegistTime(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoDemoWrap) delFieldRegistTime(so *SoDemo) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	return true
+}
+
+func (s *SoDemoWrap) insertFieldRegistTime(so *SoDemo) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	return true
+}
+
+func (s *SoDemoWrap) checkRegistTimeIsMetMdCondition(p *prototype.TimePointSec) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	return true
 }
 
 func (s *SoDemoWrap) GetReplayCount() int64 {
 	res := true
-	msg := &SoMemDemoByReplayCount{}
+	msg := &SoDemo{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("ReplayCount")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -1209,74 +1469,74 @@ func (s *SoDemoWrap) GetReplayCount() int64 {
 	return msg.ReplayCount
 }
 
-func (s *SoDemoWrap) MdReplayCount(p int64) bool {
+func (s *SoDemoWrap) mdFieldReplayCount(p int64, isCheck bool, isDel bool, isInsert bool,
+	so *SoDemo) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("ReplayCount")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemDemoByReplayCount{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoDemo{}
-	sa.Owner = s.mainKey
 
-	sa.ReplayCount = ori.ReplayCount
+	if isCheck {
+		res := s.checkReplayCountIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	if !s.delSortKeyReplayCount(sa) {
-		return false
+	if isDel {
+		res := s.delFieldReplayCount(so)
+		if !res {
+			return false
+		}
 	}
-	ori.ReplayCount = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.ReplayCount = p
 
-	if !s.insertSortKeyReplayCount(sa) {
+	if isInsert {
+		res := s.insertFieldReplayCount(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoDemoWrap) delFieldReplayCount(so *SoDemo) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if !s.delSortKeyReplayCount(so) {
 		return false
 	}
 
 	return true
 }
 
-func (s *SoDemoWrap) saveMemKeyTaglist(tInfo *SoDemo) error {
+func (s *SoDemoWrap) insertFieldReplayCount(so *SoDemo) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	if !s.insertSortKeyReplayCount(so) {
+		return false
 	}
-	val := SoMemDemoByTaglist{}
-	val.Taglist = tInfo.Taglist
-	key, err := s.encodeMemKey("Taglist")
-	if err != nil {
-		return err
+
+	return true
+}
+
+func (s *SoDemoWrap) checkReplayCountIsMetMdCondition(p int64) bool {
+	if s.dba == nil {
+		return false
 	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoDemoWrap) GetTaglist() []string {
 	res := true
-	msg := &SoMemDemoByTaglist{}
+	msg := &SoDemo{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Taglist")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -1299,74 +1559,74 @@ func (s *SoDemoWrap) GetTaglist() []string {
 	return msg.Taglist
 }
 
-func (s *SoDemoWrap) MdTaglist(p []string) bool {
+func (s *SoDemoWrap) mdFieldTaglist(p []string, isCheck bool, isDel bool, isInsert bool,
+	so *SoDemo) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("Taglist")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemDemoByTaglist{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoDemo{}
-	sa.Owner = s.mainKey
 
-	sa.Taglist = ori.Taglist
+	if isCheck {
+		res := s.checkTaglistIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	if !s.delSortKeyTaglist(sa) {
-		return false
+	if isDel {
+		res := s.delFieldTaglist(so)
+		if !res {
+			return false
+		}
 	}
-	ori.Taglist = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.Taglist = p
 
-	if !s.insertSortKeyTaglist(sa) {
+	if isInsert {
+		res := s.insertFieldTaglist(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoDemoWrap) delFieldTaglist(so *SoDemo) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if !s.delSortKeyTaglist(so) {
 		return false
 	}
 
 	return true
 }
 
-func (s *SoDemoWrap) saveMemKeyTitle(tInfo *SoDemo) error {
+func (s *SoDemoWrap) insertFieldTaglist(so *SoDemo) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	if !s.insertSortKeyTaglist(so) {
+		return false
 	}
-	val := SoMemDemoByTitle{}
-	val.Title = tInfo.Title
-	key, err := s.encodeMemKey("Title")
-	if err != nil {
-		return err
+
+	return true
+}
+
+func (s *SoDemoWrap) checkTaglistIsMetMdCondition(p []string) bool {
+	if s.dba == nil {
+		return false
 	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoDemoWrap) GetTitle() string {
 	res := true
-	msg := &SoMemDemoByTitle{}
+	msg := &SoDemo{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Title")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -1389,35 +1649,55 @@ func (s *SoDemoWrap) GetTitle() string {
 	return msg.Title
 }
 
-func (s *SoDemoWrap) MdTitle(p string) bool {
+func (s *SoDemoWrap) mdFieldTitle(p string, isCheck bool, isDel bool, isInsert bool,
+	so *SoDemo) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("Title")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemDemoByTitle{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoDemo{}
-	sa.Owner = s.mainKey
 
-	sa.Title = ori.Title
+	if isCheck {
+		res := s.checkTitleIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.Title = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldTitle(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldTitle(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoDemoWrap) delFieldTitle(so *SoDemo) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
+
+	return true
+}
+
+func (s *SoDemoWrap) insertFieldTitle(so *SoDemo) bool {
+	if s.dba == nil {
 		return false
 	}
-	sa.Title = p
+
+	return true
+}
+
+func (s *SoDemoWrap) checkTitleIsMetMdCondition(p string) bool {
+	if s.dba == nil {
+		return false
+	}
 
 	return true
 }
@@ -2144,11 +2424,38 @@ func (s *SoDemoWrap) getDemo() *SoDemo {
 	return res
 }
 
+func (s *SoDemoWrap) updateDemo(so *SoDemo) error {
+	if s.dba == nil {
+		return errors.New("update fail:the db is nil")
+	}
+
+	if so == nil {
+		return errors.New("update fail: the SoDemo is nil")
+	}
+
+	key, err := s.encodeMainKey()
+	if err != nil {
+		return nil
+	}
+
+	buf, err := proto.Marshal(so)
+	if err != nil {
+		return err
+	}
+
+	err = s.dba.Put(key, buf)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *SoDemoWrap) encodeMainKey() ([]byte, error) {
 	if s.mKeyBuf != nil {
 		return s.mKeyBuf, nil
 	}
-	pre := s.getMemKeyPrefix("Owner")
+	pre := DemoOwnerRow
 	sub := s.mainKey
 	if sub == nil {
 		return nil, errors.New("the mainKey is nil")
@@ -2189,6 +2496,13 @@ func (s *SoDemoWrap) delAllUniKeys(br bool, val *SoDemo) bool {
 			res = false
 		}
 	}
+	if !s.delUniKeyNickName(val) {
+		if br {
+			return false
+		} else {
+			res = false
+		}
+	}
 	if !s.delUniKeyOwner(val) {
 		if br {
 			return false
@@ -2212,6 +2526,11 @@ func (s *SoDemoWrap) delUniKeysWithNames(names map[string]string, val *SoDemo) b
 	}
 	if len(names["LikeCount"]) > 0 {
 		if !s.delUniKeyLikeCount(val) {
+			res = false
+		}
+	}
+	if len(names["NickName"]) > 0 {
+		if !s.delUniKeyNickName(val) {
 			res = false
 		}
 	}
@@ -2240,6 +2559,10 @@ func (s *SoDemoWrap) insertAllUniKeys(val *SoDemo) (map[string]string, error) {
 		return sucFields, errors.New("insert unique Field LikeCount fail while insert table ")
 	}
 	sucFields["LikeCount"] = "LikeCount"
+	if !s.insertUniKeyNickName(val) {
+		return sucFields, errors.New("insert unique Field NickName fail while insert table ")
+	}
+	sucFields["NickName"] = "NickName"
 	if !s.insertUniKeyOwner(val) {
 		return sucFields, errors.New("insert unique Field Owner fail while insert table ")
 	}
@@ -2259,20 +2582,8 @@ func (s *SoDemoWrap) delUniKeyIdx(sa *SoDemo) bool {
 		sub := sa.Idx
 		kList = append(kList, sub)
 	} else {
-		key, err := s.encodeMemKey("Idx")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemDemoByIdx{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		sub := ori.Idx
+		sub := s.GetIdx()
+
 		kList = append(kList, sub)
 
 	}
@@ -2287,6 +2598,7 @@ func (s *SoDemoWrap) insertUniKeyIdx(sa *SoDemo) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
+
 	pre := DemoIdxUniTable
 	sub := sa.Idx
 	kList := []interface{}{pre, sub}
@@ -2356,20 +2668,8 @@ func (s *SoDemoWrap) delUniKeyLikeCount(sa *SoDemo) bool {
 		sub := sa.LikeCount
 		kList = append(kList, sub)
 	} else {
-		key, err := s.encodeMemKey("LikeCount")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemDemoByLikeCount{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		sub := ori.LikeCount
+		sub := s.GetLikeCount()
+
 		kList = append(kList, sub)
 
 	}
@@ -2384,6 +2684,7 @@ func (s *SoDemoWrap) insertUniKeyLikeCount(sa *SoDemo) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
+
 	pre := DemoLikeCountUniTable
 	sub := sa.LikeCount
 	kList := []interface{}{pre, sub}
@@ -2442,6 +2743,98 @@ func (s *UniDemoLikeCountWrap) UniQueryLikeCount(start *int64) *SoDemoWrap {
 	return nil
 }
 
+func (s *SoDemoWrap) delUniKeyNickName(sa *SoDemo) bool {
+	if s.dba == nil {
+		return false
+	}
+	pre := DemoNickNameUniTable
+	kList := []interface{}{pre}
+	if sa != nil {
+		if sa.NickName == nil {
+			return false
+		}
+
+		sub := sa.NickName
+		kList = append(kList, sub)
+	} else {
+		sub := s.GetNickName()
+		if sub == nil {
+			return true
+		}
+
+		kList = append(kList, sub)
+
+	}
+	kBuf, err := kope.EncodeSlice(kList)
+	if err != nil {
+		return false
+	}
+	return s.dba.Delete(kBuf) == nil
+}
+
+func (s *SoDemoWrap) insertUniKeyNickName(sa *SoDemo) bool {
+	if s.dba == nil || sa == nil {
+		return false
+	}
+
+	pre := DemoNickNameUniTable
+	sub := sa.NickName
+	kList := []interface{}{pre, sub}
+	kBuf, err := kope.EncodeSlice(kList)
+	if err != nil {
+		return false
+	}
+	res, err := s.dba.Has(kBuf)
+	if err == nil && res == true {
+		//the unique key is already exist
+		return false
+	}
+	val := SoUniqueDemoByNickName{}
+	val.Owner = sa.Owner
+	val.NickName = sa.NickName
+
+	buf, err := proto.Marshal(&val)
+
+	if err != nil {
+		return false
+	}
+
+	return s.dba.Put(kBuf, buf) == nil
+
+}
+
+type UniDemoNickNameWrap struct {
+	Dba iservices.IDatabaseRW
+}
+
+func NewUniDemoNickNameWrap(db iservices.IDatabaseRW) *UniDemoNickNameWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := UniDemoNickNameWrap{Dba: db}
+	return &wrap
+}
+
+func (s *UniDemoNickNameWrap) UniQueryNickName(start *prototype.AccountName) *SoDemoWrap {
+	if start == nil || s.Dba == nil {
+		return nil
+	}
+	pre := DemoNickNameUniTable
+	kList := []interface{}{pre, start}
+	bufStartkey, err := kope.EncodeSlice(kList)
+	val, err := s.Dba.Get(bufStartkey)
+	if err == nil {
+		res := &SoUniqueDemoByNickName{}
+		rErr := proto.Unmarshal(val, res)
+		if rErr == nil {
+			wrap := NewSoDemoWrap(s.Dba, res.Owner)
+
+			return wrap
+		}
+	}
+	return nil
+}
+
 func (s *SoDemoWrap) delUniKeyOwner(sa *SoDemo) bool {
 	if s.dba == nil {
 		return false
@@ -2449,7 +2842,6 @@ func (s *SoDemoWrap) delUniKeyOwner(sa *SoDemo) bool {
 	pre := DemoOwnerUniTable
 	kList := []interface{}{pre}
 	if sa != nil {
-
 		if sa.Owner == nil {
 			return false
 		}
@@ -2457,20 +2849,11 @@ func (s *SoDemoWrap) delUniKeyOwner(sa *SoDemo) bool {
 		sub := sa.Owner
 		kList = append(kList, sub)
 	} else {
-		key, err := s.encodeMemKey("Owner")
-		if err != nil {
-			return false
+		sub := s.GetOwner()
+		if sub == nil {
+			return true
 		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemDemoByOwner{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		sub := ori.Owner
+
 		kList = append(kList, sub)
 
 	}
@@ -2485,6 +2868,7 @@ func (s *SoDemoWrap) insertUniKeyOwner(sa *SoDemo) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
+
 	pre := DemoOwnerUniTable
 	sub := sa.Owner
 	kList := []interface{}{pre, sub}

@@ -17,26 +17,6 @@ message so_stakeRecord {
 }
 
 
-message so_mem_stakeRecord_by_record {
-	prototype.stake_record    	record                      = 1;
-}
-
-
-message so_mem_stakeRecord_by_record_reverse {
-	prototype.stake_record_reverse    	record_reverse      = 1;
-}
-
-
-message so_mem_stakeRecord_by_stake_amount {
-	prototype.vest            	stake_amount                = 1;
-}
-
-
-message so_mem_stakeRecord_by_last_stake_time {
-	prototype.time_point_sec 	last_stake_time              = 1;
-}
-
-
 message so_list_stakeRecord_by_record {
 	prototype.stake_record    	record                      = 1;
 }

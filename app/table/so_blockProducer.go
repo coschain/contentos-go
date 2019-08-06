@@ -4,7 +4,6 @@ import (
 	"errors"
 	fmt "fmt"
 	"reflect"
-	"strings"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -14,38 +13,28 @@ import (
 
 ////////////// SECTION Prefix Mark ///////////////
 var (
-	BlockProducerOwnerTable               uint32 = 2440644301
-	BlockProducerBpVestTable              uint32 = 3083635068
-	BlockProducerOwnerUniTable            uint32 = 404338461
-	BlockProducerAccountCreateFeeCell     uint32 = 1268209114
-	BlockProducerBpVestCell               uint32 = 721149257
-	BlockProducerCreatedTimeCell          uint32 = 3166890368
-	BlockProducerEpochDurationCell        uint32 = 3885317215
-	BlockProducerOwnerCell                uint32 = 1174716537
-	BlockProducerPerTicketPriceCell       uint32 = 3920773511
-	BlockProducerPerTicketWeightCell      uint32 = 504810187
-	BlockProducerProposedStaminaFreeCell  uint32 = 2410170773
-	BlockProducerSigningKeyCell           uint32 = 609901110
-	BlockProducerTopNAcquireFreeTokenCell uint32 = 2170463993
-	BlockProducerTpsExpectedCell          uint32 = 164553831
-	BlockProducerUrlCell                  uint32 = 3629420187
-	BlockProducerVoterCountCell           uint32 = 1302707693
+	BlockProducerOwnerTable    uint32 = 2440644301
+	BlockProducerBpVestTable   uint32 = 3083635068
+	BlockProducerOwnerUniTable uint32 = 404338461
+
+	BlockProducerOwnerRow uint32 = 259692740
 )
 
 ////////////// SECTION Wrap Define ///////////////
 type SoBlockProducerWrap struct {
-	dba      iservices.IDatabaseRW
-	mainKey  *prototype.AccountName
-	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf  []byte //the buffer after the main key is encoded with prefix
-	mBuf     []byte //the value after the main key is encoded
+	dba       iservices.IDatabaseRW
+	mainKey   *prototype.AccountName
+	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
+	mBuf      []byte //the value after the main key is encoded
+	mdFuncMap map[string]interface{}
 }
 
 func NewSoBlockProducerWrap(dba iservices.IDatabaseRW, key *prototype.AccountName) *SoBlockProducerWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoBlockProducerWrap{dba, key, -1, nil, nil}
+	result := &SoBlockProducerWrap{dba, key, -1, nil, nil, nil}
 	return result
 }
 
@@ -97,9 +86,13 @@ func (s *SoBlockProducerWrap) Create(f func(tInfo *SoBlockProducer)) error {
 		return err
 
 	}
-	err = s.saveAllMemKeys(val, true)
+
+	buf, err := proto.Marshal(val)
 	if err != nil {
-		s.delAllMemKeys(false, val)
+		return err
+	}
+	err = s.dba.Put(keyBuf, buf)
+	if err != nil {
 		return err
 	}
 
@@ -107,7 +100,6 @@ func (s *SoBlockProducerWrap) Create(f func(tInfo *SoBlockProducer)) error {
 	if err = s.insertAllSortKeys(val); err != nil {
 		s.delAllSortKeys(false, val)
 		s.dba.Delete(keyBuf)
-		s.delAllMemKeys(false, val)
 		return err
 	}
 
@@ -116,10 +108,10 @@ func (s *SoBlockProducerWrap) Create(f func(tInfo *SoBlockProducer)) error {
 		s.delAllSortKeys(false, val)
 		s.delUniKeysWithNames(sucNames, val)
 		s.dba.Delete(keyBuf)
-		s.delAllMemKeys(false, val)
 		return err
 	}
 
+	s.mKeyFlag = 1
 	return nil
 }
 
@@ -137,6 +129,444 @@ func (s *SoBlockProducerWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
+func (s *SoBlockProducerWrap) Modify(f func(tInfo *SoBlockProducer)) error {
+	if !s.CheckExist() {
+		return errors.New("the SoBlockProducer table does not exist. Please create a table first")
+	}
+	oriTable := s.getBlockProducer()
+	if oriTable == nil {
+		return errors.New("fail to get origin table SoBlockProducer")
+	}
+	curTable := *oriTable
+	f(&curTable)
+
+	//the main key is not support modify
+	if !reflect.DeepEqual(curTable.Owner, oriTable.Owner) {
+		return errors.New("primary key does not support modification")
+	}
+
+	fieldSli, err := s.getModifiedFields(oriTable, &curTable)
+	if err != nil {
+		return err
+	}
+
+	if fieldSli == nil || len(fieldSli) < 1 {
+		return nil
+	}
+
+	//check whether modify sort and unique field to nil
+	err = s.checkSortAndUniFieldValidity(&curTable, fieldSli)
+	if err != nil {
+		return err
+	}
+
+	//check unique
+	err = s.handleFieldMd(FieldMdHandleTypeCheck, &curTable, fieldSli)
+	if err != nil {
+		return err
+	}
+
+	//delete sort and unique key
+	err = s.handleFieldMd(FieldMdHandleTypeDel, oriTable, fieldSli)
+	if err != nil {
+		return err
+	}
+
+	//update table
+	err = s.updateBlockProducer(&curTable)
+	if err != nil {
+		return err
+	}
+
+	//insert sort and unique key
+	err = s.handleFieldMd(FieldMdHandleTypeInsert, &curTable, fieldSli)
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+func (s *SoBlockProducerWrap) MdAccountCreateFee(p *prototype.Coin) bool {
+	err := s.Modify(func(r *SoBlockProducer) {
+		r.AccountCreateFee = p
+	})
+	return err == nil
+}
+
+func (s *SoBlockProducerWrap) MdBpVest(p *prototype.BpVestId) bool {
+	err := s.Modify(func(r *SoBlockProducer) {
+		r.BpVest = p
+	})
+	return err == nil
+}
+
+func (s *SoBlockProducerWrap) MdCreatedTime(p *prototype.TimePointSec) bool {
+	err := s.Modify(func(r *SoBlockProducer) {
+		r.CreatedTime = p
+	})
+	return err == nil
+}
+
+func (s *SoBlockProducerWrap) MdEpochDuration(p uint64) bool {
+	err := s.Modify(func(r *SoBlockProducer) {
+		r.EpochDuration = p
+	})
+	return err == nil
+}
+
+func (s *SoBlockProducerWrap) MdPerTicketPrice(p *prototype.Coin) bool {
+	err := s.Modify(func(r *SoBlockProducer) {
+		r.PerTicketPrice = p
+	})
+	return err == nil
+}
+
+func (s *SoBlockProducerWrap) MdPerTicketWeight(p uint64) bool {
+	err := s.Modify(func(r *SoBlockProducer) {
+		r.PerTicketWeight = p
+	})
+	return err == nil
+}
+
+func (s *SoBlockProducerWrap) MdProposedStaminaFree(p uint64) bool {
+	err := s.Modify(func(r *SoBlockProducer) {
+		r.ProposedStaminaFree = p
+	})
+	return err == nil
+}
+
+func (s *SoBlockProducerWrap) MdSigningKey(p *prototype.PublicKeyType) bool {
+	err := s.Modify(func(r *SoBlockProducer) {
+		r.SigningKey = p
+	})
+	return err == nil
+}
+
+func (s *SoBlockProducerWrap) MdTopNAcquireFreeToken(p uint32) bool {
+	err := s.Modify(func(r *SoBlockProducer) {
+		r.TopNAcquireFreeToken = p
+	})
+	return err == nil
+}
+
+func (s *SoBlockProducerWrap) MdTpsExpected(p uint64) bool {
+	err := s.Modify(func(r *SoBlockProducer) {
+		r.TpsExpected = p
+	})
+	return err == nil
+}
+
+func (s *SoBlockProducerWrap) MdUrl(p string) bool {
+	err := s.Modify(func(r *SoBlockProducer) {
+		r.Url = p
+	})
+	return err == nil
+}
+
+func (s *SoBlockProducerWrap) MdVoterCount(p uint64) bool {
+	err := s.Modify(func(r *SoBlockProducer) {
+		r.VoterCount = p
+	})
+	return err == nil
+}
+
+func (s *SoBlockProducerWrap) checkSortAndUniFieldValidity(curTable *SoBlockProducer, fieldSli []string) error {
+	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
+		for _, fName := range fieldSli {
+			if len(fName) > 0 {
+
+				if fName == "BpVest" && curTable.BpVest == nil {
+					return errors.New("sort field BpVest can't be modified to nil")
+				}
+
+			}
+		}
+	}
+	return nil
+}
+
+//Get all the modified fields in the table
+func (s *SoBlockProducerWrap) getModifiedFields(oriTable *SoBlockProducer, curTable *SoBlockProducer) ([]string, error) {
+	if oriTable == nil {
+		return nil, errors.New("table info is nil, can't get modified fields")
+	}
+	var list []string
+
+	if !reflect.DeepEqual(oriTable.AccountCreateFee, curTable.AccountCreateFee) {
+		list = append(list, "AccountCreateFee")
+	}
+
+	if !reflect.DeepEqual(oriTable.BpVest, curTable.BpVest) {
+		list = append(list, "BpVest")
+	}
+
+	if !reflect.DeepEqual(oriTable.CreatedTime, curTable.CreatedTime) {
+		list = append(list, "CreatedTime")
+	}
+
+	if !reflect.DeepEqual(oriTable.EpochDuration, curTable.EpochDuration) {
+		list = append(list, "EpochDuration")
+	}
+
+	if !reflect.DeepEqual(oriTable.PerTicketPrice, curTable.PerTicketPrice) {
+		list = append(list, "PerTicketPrice")
+	}
+
+	if !reflect.DeepEqual(oriTable.PerTicketWeight, curTable.PerTicketWeight) {
+		list = append(list, "PerTicketWeight")
+	}
+
+	if !reflect.DeepEqual(oriTable.ProposedStaminaFree, curTable.ProposedStaminaFree) {
+		list = append(list, "ProposedStaminaFree")
+	}
+
+	if !reflect.DeepEqual(oriTable.SigningKey, curTable.SigningKey) {
+		list = append(list, "SigningKey")
+	}
+
+	if !reflect.DeepEqual(oriTable.TopNAcquireFreeToken, curTable.TopNAcquireFreeToken) {
+		list = append(list, "TopNAcquireFreeToken")
+	}
+
+	if !reflect.DeepEqual(oriTable.TpsExpected, curTable.TpsExpected) {
+		list = append(list, "TpsExpected")
+	}
+
+	if !reflect.DeepEqual(oriTable.Url, curTable.Url) {
+		list = append(list, "Url")
+	}
+
+	if !reflect.DeepEqual(oriTable.VoterCount, curTable.VoterCount) {
+		list = append(list, "VoterCount")
+	}
+
+	return list, nil
+}
+
+func (s *SoBlockProducerWrap) handleFieldMd(t FieldMdHandleType, so *SoBlockProducer, fSli []string) error {
+	if so == nil {
+		return errors.New("fail to modify empty table")
+	}
+
+	//there is no field need to modify
+	if fSli == nil || len(fSli) < 1 {
+		return nil
+	}
+
+	errStr := ""
+	for _, fName := range fSli {
+
+		if fName == "AccountCreateFee" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldAccountCreateFee(so.AccountCreateFee, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldAccountCreateFee(so.AccountCreateFee, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldAccountCreateFee(so.AccountCreateFee, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "BpVest" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldBpVest(so.BpVest, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldBpVest(so.BpVest, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldBpVest(so.BpVest, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "CreatedTime" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldCreatedTime(so.CreatedTime, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldCreatedTime(so.CreatedTime, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldCreatedTime(so.CreatedTime, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "EpochDuration" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldEpochDuration(so.EpochDuration, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldEpochDuration(so.EpochDuration, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldEpochDuration(so.EpochDuration, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "PerTicketPrice" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldPerTicketPrice(so.PerTicketPrice, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldPerTicketPrice(so.PerTicketPrice, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldPerTicketPrice(so.PerTicketPrice, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "PerTicketWeight" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldPerTicketWeight(so.PerTicketWeight, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldPerTicketWeight(so.PerTicketWeight, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldPerTicketWeight(so.PerTicketWeight, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "ProposedStaminaFree" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldProposedStaminaFree(so.ProposedStaminaFree, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldProposedStaminaFree(so.ProposedStaminaFree, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldProposedStaminaFree(so.ProposedStaminaFree, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "SigningKey" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldSigningKey(so.SigningKey, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldSigningKey(so.SigningKey, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldSigningKey(so.SigningKey, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "TopNAcquireFreeToken" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldTopNAcquireFreeToken(so.TopNAcquireFreeToken, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldTopNAcquireFreeToken(so.TopNAcquireFreeToken, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldTopNAcquireFreeToken(so.TopNAcquireFreeToken, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "TpsExpected" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldTpsExpected(so.TpsExpected, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldTpsExpected(so.TpsExpected, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldTpsExpected(so.TpsExpected, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "Url" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldUrl(so.Url, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldUrl(so.Url, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldUrl(so.Url, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "VoterCount" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldVoterCount(so.VoterCount, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldVoterCount(so.VoterCount, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldVoterCount(so.VoterCount, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+	}
+
+	return nil
+}
+
 ////////////// SECTION LKeys delete/insert ///////////////
 
 func (s *SoBlockProducerWrap) delSortKeyOwner(sa *SoBlockProducer) bool {
@@ -145,24 +575,10 @@ func (s *SoBlockProducerWrap) delSortKeyOwner(sa *SoBlockProducer) bool {
 	}
 	val := SoListBlockProducerByOwner{}
 	if sa == nil {
-		key, err := s.encodeMemKey("Owner")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemBlockProducerByOwner{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		val.Owner = ori.Owner
+		val.Owner = s.GetOwner()
 	} else {
 		val.Owner = sa.Owner
 	}
-
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -195,27 +611,13 @@ func (s *SoBlockProducerWrap) delSortKeyBpVest(sa *SoBlockProducer) bool {
 	}
 	val := SoListBlockProducerByBpVest{}
 	if sa == nil {
-		key, err := s.encodeMemKey("BpVest")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemBlockProducerByBpVest{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		val.BpVest = ori.BpVest
+		val.BpVest = s.GetBpVest()
 		val.Owner = s.mainKey
 
 	} else {
 		val.BpVest = sa.BpVest
 		val.Owner = sa.Owner
 	}
-
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -248,13 +650,7 @@ func (s *SoBlockProducerWrap) delAllSortKeys(br bool, val *SoBlockProducer) bool
 		return false
 	}
 	res := true
-	if !s.delSortKeyOwner(val) {
-		if br {
-			return false
-		} else {
-			res = false
-		}
-	}
+
 	if !s.delSortKeyBpVest(val) {
 		if br {
 			return false
@@ -273,9 +669,7 @@ func (s *SoBlockProducerWrap) insertAllSortKeys(val *SoBlockProducer) error {
 	if val == nil {
 		return errors.New("insert sort Field fail,get the SoBlockProducer fail ")
 	}
-	if !s.insertSortKeyOwner(val) {
-		return errors.New("insert sort Field Owner fail while insert table ")
-	}
+
 	if !s.insertSortKeyBpVest(val) {
 		return errors.New("insert sort Field BpVest fail while insert table ")
 	}
@@ -289,7 +683,6 @@ func (s *SoBlockProducerWrap) RemoveBlockProducer() bool {
 	if s.dba == nil {
 		return false
 	}
-	val := &SoBlockProducer{}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
 		return false
@@ -300,7 +693,12 @@ func (s *SoBlockProducerWrap) RemoveBlockProducer() bool {
 		return false
 	}
 
-	err := s.delAllMemKeys(true, val)
+	//delete table
+	key, err := s.encodeMainKey()
+	if err != nil {
+		return false
+	}
+	err = s.dba.Delete(key)
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
@@ -311,244 +709,14 @@ func (s *SoBlockProducerWrap) RemoveBlockProducer() bool {
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
-func (s *SoBlockProducerWrap) getMemKeyPrefix(fName string) uint32 {
-	if fName == "AccountCreateFee" {
-		return BlockProducerAccountCreateFeeCell
-	}
-	if fName == "BpVest" {
-		return BlockProducerBpVestCell
-	}
-	if fName == "CreatedTime" {
-		return BlockProducerCreatedTimeCell
-	}
-	if fName == "EpochDuration" {
-		return BlockProducerEpochDurationCell
-	}
-	if fName == "Owner" {
-		return BlockProducerOwnerCell
-	}
-	if fName == "PerTicketPrice" {
-		return BlockProducerPerTicketPriceCell
-	}
-	if fName == "PerTicketWeight" {
-		return BlockProducerPerTicketWeightCell
-	}
-	if fName == "ProposedStaminaFree" {
-		return BlockProducerProposedStaminaFreeCell
-	}
-	if fName == "SigningKey" {
-		return BlockProducerSigningKeyCell
-	}
-	if fName == "TopNAcquireFreeToken" {
-		return BlockProducerTopNAcquireFreeTokenCell
-	}
-	if fName == "TpsExpected" {
-		return BlockProducerTpsExpectedCell
-	}
-	if fName == "Url" {
-		return BlockProducerUrlCell
-	}
-	if fName == "VoterCount" {
-		return BlockProducerVoterCountCell
-	}
-
-	return 0
-}
-
-func (s *SoBlockProducerWrap) encodeMemKey(fName string) ([]byte, error) {
-	if len(fName) < 1 || s.mainKey == nil {
-		return nil, errors.New("field name or main key is empty")
-	}
-	pre := s.getMemKeyPrefix(fName)
-	preBuf, err := kope.Encode(pre)
-	if err != nil {
-		return nil, err
-	}
-	mBuf, err := s.getMainKeyBuf()
-	if err != nil {
-		return nil, err
-	}
-	list := make([][]byte, 2)
-	list[0] = preBuf
-	list[1] = mBuf
-	return kope.PackList(list), nil
-}
-
-func (s *SoBlockProducerWrap) saveAllMemKeys(tInfo *SoBlockProducer, br bool) error {
-	if s.dba == nil {
-		return errors.New("save member Field fail , the db is nil")
-	}
-
-	if tInfo == nil {
-		return errors.New("save member Field fail , the data is nil ")
-	}
-	var err error = nil
-	errDes := ""
-	if err = s.saveMemKeyAccountCreateFee(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "AccountCreateFee", err)
-		}
-	}
-	if err = s.saveMemKeyBpVest(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "BpVest", err)
-		}
-	}
-	if err = s.saveMemKeyCreatedTime(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "CreatedTime", err)
-		}
-	}
-	if err = s.saveMemKeyEpochDuration(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "EpochDuration", err)
-		}
-	}
-	if err = s.saveMemKeyOwner(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Owner", err)
-		}
-	}
-	if err = s.saveMemKeyPerTicketPrice(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "PerTicketPrice", err)
-		}
-	}
-	if err = s.saveMemKeyPerTicketWeight(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "PerTicketWeight", err)
-		}
-	}
-	if err = s.saveMemKeyProposedStaminaFree(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "ProposedStaminaFree", err)
-		}
-	}
-	if err = s.saveMemKeySigningKey(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "SigningKey", err)
-		}
-	}
-	if err = s.saveMemKeyTopNAcquireFreeToken(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "TopNAcquireFreeToken", err)
-		}
-	}
-	if err = s.saveMemKeyTpsExpected(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "TpsExpected", err)
-		}
-	}
-	if err = s.saveMemKeyUrl(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Url", err)
-		}
-	}
-	if err = s.saveMemKeyVoterCount(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "VoterCount", err)
-		}
-	}
-
-	if len(errDes) > 0 {
-		return errors.New(errDes)
-	}
-	return err
-}
-
-func (s *SoBlockProducerWrap) delAllMemKeys(br bool, tInfo *SoBlockProducer) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	t := reflect.TypeOf(*tInfo)
-	errDesc := ""
-	for k := 0; k < t.NumField(); k++ {
-		name := t.Field(k).Name
-		if len(name) > 0 && !strings.HasPrefix(name, "XXX_") {
-			err := s.delMemKey(name)
-			if err != nil {
-				if br {
-					return err
-				}
-				errDesc += fmt.Sprintf("delete the Field %s fail,error is %s;\n", name, err)
-			}
-		}
-	}
-	if len(errDesc) > 0 {
-		return errors.New(errDesc)
-	}
-	return nil
-}
-
-func (s *SoBlockProducerWrap) delMemKey(fName string) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if len(fName) <= 0 {
-		return errors.New("the field name is empty ")
-	}
-	key, err := s.encodeMemKey(fName)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Delete(key)
-	return err
-}
-
-func (s *SoBlockProducerWrap) saveMemKeyAccountCreateFee(tInfo *SoBlockProducer) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemBlockProducerByAccountCreateFee{}
-	val.AccountCreateFee = tInfo.AccountCreateFee
-	key, err := s.encodeMemKey("AccountCreateFee")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
 
 func (s *SoBlockProducerWrap) GetAccountCreateFee() *prototype.Coin {
 	res := true
-	msg := &SoMemBlockProducerByAccountCreateFee{}
+	msg := &SoBlockProducer{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("AccountCreateFee")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -571,67 +739,66 @@ func (s *SoBlockProducerWrap) GetAccountCreateFee() *prototype.Coin {
 	return msg.AccountCreateFee
 }
 
-func (s *SoBlockProducerWrap) MdAccountCreateFee(p *prototype.Coin) bool {
+func (s *SoBlockProducerWrap) mdFieldAccountCreateFee(p *prototype.Coin, isCheck bool, isDel bool, isInsert bool,
+	so *SoBlockProducer) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("AccountCreateFee")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemBlockProducerByAccountCreateFee{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoBlockProducer{}
-	sa.Owner = s.mainKey
 
-	sa.AccountCreateFee = ori.AccountCreateFee
+	if isCheck {
+		res := s.checkAccountCreateFeeIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.AccountCreateFee = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldAccountCreateFee(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldAccountCreateFee(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoBlockProducerWrap) delFieldAccountCreateFee(so *SoBlockProducer) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.AccountCreateFee = p
 
 	return true
 }
 
-func (s *SoBlockProducerWrap) saveMemKeyBpVest(tInfo *SoBlockProducer) error {
+func (s *SoBlockProducerWrap) insertFieldAccountCreateFee(so *SoBlockProducer) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoBlockProducerWrap) checkAccountCreateFeeIsMetMdCondition(p *prototype.Coin) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemBlockProducerByBpVest{}
-	val.BpVest = tInfo.BpVest
-	key, err := s.encodeMemKey("BpVest")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoBlockProducerWrap) GetBpVest() *prototype.BpVestId {
 	res := true
-	msg := &SoMemBlockProducerByBpVest{}
+	msg := &SoBlockProducer{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("BpVest")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -654,74 +821,74 @@ func (s *SoBlockProducerWrap) GetBpVest() *prototype.BpVestId {
 	return msg.BpVest
 }
 
-func (s *SoBlockProducerWrap) MdBpVest(p *prototype.BpVestId) bool {
+func (s *SoBlockProducerWrap) mdFieldBpVest(p *prototype.BpVestId, isCheck bool, isDel bool, isInsert bool,
+	so *SoBlockProducer) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("BpVest")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemBlockProducerByBpVest{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoBlockProducer{}
-	sa.Owner = s.mainKey
 
-	sa.BpVest = ori.BpVest
+	if isCheck {
+		res := s.checkBpVestIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	if !s.delSortKeyBpVest(sa) {
-		return false
+	if isDel {
+		res := s.delFieldBpVest(so)
+		if !res {
+			return false
+		}
 	}
-	ori.BpVest = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.BpVest = p
 
-	if !s.insertSortKeyBpVest(sa) {
+	if isInsert {
+		res := s.insertFieldBpVest(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoBlockProducerWrap) delFieldBpVest(so *SoBlockProducer) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if !s.delSortKeyBpVest(so) {
 		return false
 	}
 
 	return true
 }
 
-func (s *SoBlockProducerWrap) saveMemKeyCreatedTime(tInfo *SoBlockProducer) error {
+func (s *SoBlockProducerWrap) insertFieldBpVest(so *SoBlockProducer) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	if !s.insertSortKeyBpVest(so) {
+		return false
 	}
-	val := SoMemBlockProducerByCreatedTime{}
-	val.CreatedTime = tInfo.CreatedTime
-	key, err := s.encodeMemKey("CreatedTime")
-	if err != nil {
-		return err
+
+	return true
+}
+
+func (s *SoBlockProducerWrap) checkBpVestIsMetMdCondition(p *prototype.BpVestId) bool {
+	if s.dba == nil {
+		return false
 	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoBlockProducerWrap) GetCreatedTime() *prototype.TimePointSec {
 	res := true
-	msg := &SoMemBlockProducerByCreatedTime{}
+	msg := &SoBlockProducer{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("CreatedTime")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -744,67 +911,66 @@ func (s *SoBlockProducerWrap) GetCreatedTime() *prototype.TimePointSec {
 	return msg.CreatedTime
 }
 
-func (s *SoBlockProducerWrap) MdCreatedTime(p *prototype.TimePointSec) bool {
+func (s *SoBlockProducerWrap) mdFieldCreatedTime(p *prototype.TimePointSec, isCheck bool, isDel bool, isInsert bool,
+	so *SoBlockProducer) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("CreatedTime")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemBlockProducerByCreatedTime{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoBlockProducer{}
-	sa.Owner = s.mainKey
 
-	sa.CreatedTime = ori.CreatedTime
+	if isCheck {
+		res := s.checkCreatedTimeIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.CreatedTime = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldCreatedTime(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldCreatedTime(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoBlockProducerWrap) delFieldCreatedTime(so *SoBlockProducer) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.CreatedTime = p
 
 	return true
 }
 
-func (s *SoBlockProducerWrap) saveMemKeyEpochDuration(tInfo *SoBlockProducer) error {
+func (s *SoBlockProducerWrap) insertFieldCreatedTime(so *SoBlockProducer) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoBlockProducerWrap) checkCreatedTimeIsMetMdCondition(p *prototype.TimePointSec) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemBlockProducerByEpochDuration{}
-	val.EpochDuration = tInfo.EpochDuration
-	key, err := s.encodeMemKey("EpochDuration")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoBlockProducerWrap) GetEpochDuration() uint64 {
 	res := true
-	msg := &SoMemBlockProducerByEpochDuration{}
+	msg := &SoBlockProducer{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("EpochDuration")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -827,67 +993,66 @@ func (s *SoBlockProducerWrap) GetEpochDuration() uint64 {
 	return msg.EpochDuration
 }
 
-func (s *SoBlockProducerWrap) MdEpochDuration(p uint64) bool {
+func (s *SoBlockProducerWrap) mdFieldEpochDuration(p uint64, isCheck bool, isDel bool, isInsert bool,
+	so *SoBlockProducer) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("EpochDuration")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemBlockProducerByEpochDuration{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoBlockProducer{}
-	sa.Owner = s.mainKey
 
-	sa.EpochDuration = ori.EpochDuration
+	if isCheck {
+		res := s.checkEpochDurationIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.EpochDuration = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldEpochDuration(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldEpochDuration(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoBlockProducerWrap) delFieldEpochDuration(so *SoBlockProducer) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.EpochDuration = p
 
 	return true
 }
 
-func (s *SoBlockProducerWrap) saveMemKeyOwner(tInfo *SoBlockProducer) error {
+func (s *SoBlockProducerWrap) insertFieldEpochDuration(so *SoBlockProducer) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoBlockProducerWrap) checkEpochDurationIsMetMdCondition(p uint64) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemBlockProducerByOwner{}
-	val.Owner = tInfo.Owner
-	key, err := s.encodeMemKey("Owner")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoBlockProducerWrap) GetOwner() *prototype.AccountName {
 	res := true
-	msg := &SoMemBlockProducerByOwner{}
+	msg := &SoBlockProducer{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Owner")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -910,34 +1075,13 @@ func (s *SoBlockProducerWrap) GetOwner() *prototype.AccountName {
 	return msg.Owner
 }
 
-func (s *SoBlockProducerWrap) saveMemKeyPerTicketPrice(tInfo *SoBlockProducer) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemBlockProducerByPerTicketPrice{}
-	val.PerTicketPrice = tInfo.PerTicketPrice
-	key, err := s.encodeMemKey("PerTicketPrice")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
-
 func (s *SoBlockProducerWrap) GetPerTicketPrice() *prototype.Coin {
 	res := true
-	msg := &SoMemBlockProducerByPerTicketPrice{}
+	msg := &SoBlockProducer{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("PerTicketPrice")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -960,67 +1104,66 @@ func (s *SoBlockProducerWrap) GetPerTicketPrice() *prototype.Coin {
 	return msg.PerTicketPrice
 }
 
-func (s *SoBlockProducerWrap) MdPerTicketPrice(p *prototype.Coin) bool {
+func (s *SoBlockProducerWrap) mdFieldPerTicketPrice(p *prototype.Coin, isCheck bool, isDel bool, isInsert bool,
+	so *SoBlockProducer) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("PerTicketPrice")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemBlockProducerByPerTicketPrice{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoBlockProducer{}
-	sa.Owner = s.mainKey
 
-	sa.PerTicketPrice = ori.PerTicketPrice
+	if isCheck {
+		res := s.checkPerTicketPriceIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.PerTicketPrice = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldPerTicketPrice(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldPerTicketPrice(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoBlockProducerWrap) delFieldPerTicketPrice(so *SoBlockProducer) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.PerTicketPrice = p
 
 	return true
 }
 
-func (s *SoBlockProducerWrap) saveMemKeyPerTicketWeight(tInfo *SoBlockProducer) error {
+func (s *SoBlockProducerWrap) insertFieldPerTicketPrice(so *SoBlockProducer) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoBlockProducerWrap) checkPerTicketPriceIsMetMdCondition(p *prototype.Coin) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemBlockProducerByPerTicketWeight{}
-	val.PerTicketWeight = tInfo.PerTicketWeight
-	key, err := s.encodeMemKey("PerTicketWeight")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoBlockProducerWrap) GetPerTicketWeight() uint64 {
 	res := true
-	msg := &SoMemBlockProducerByPerTicketWeight{}
+	msg := &SoBlockProducer{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("PerTicketWeight")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -1043,67 +1186,66 @@ func (s *SoBlockProducerWrap) GetPerTicketWeight() uint64 {
 	return msg.PerTicketWeight
 }
 
-func (s *SoBlockProducerWrap) MdPerTicketWeight(p uint64) bool {
+func (s *SoBlockProducerWrap) mdFieldPerTicketWeight(p uint64, isCheck bool, isDel bool, isInsert bool,
+	so *SoBlockProducer) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("PerTicketWeight")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemBlockProducerByPerTicketWeight{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoBlockProducer{}
-	sa.Owner = s.mainKey
 
-	sa.PerTicketWeight = ori.PerTicketWeight
+	if isCheck {
+		res := s.checkPerTicketWeightIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.PerTicketWeight = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldPerTicketWeight(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldPerTicketWeight(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoBlockProducerWrap) delFieldPerTicketWeight(so *SoBlockProducer) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.PerTicketWeight = p
 
 	return true
 }
 
-func (s *SoBlockProducerWrap) saveMemKeyProposedStaminaFree(tInfo *SoBlockProducer) error {
+func (s *SoBlockProducerWrap) insertFieldPerTicketWeight(so *SoBlockProducer) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoBlockProducerWrap) checkPerTicketWeightIsMetMdCondition(p uint64) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemBlockProducerByProposedStaminaFree{}
-	val.ProposedStaminaFree = tInfo.ProposedStaminaFree
-	key, err := s.encodeMemKey("ProposedStaminaFree")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoBlockProducerWrap) GetProposedStaminaFree() uint64 {
 	res := true
-	msg := &SoMemBlockProducerByProposedStaminaFree{}
+	msg := &SoBlockProducer{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("ProposedStaminaFree")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -1126,67 +1268,66 @@ func (s *SoBlockProducerWrap) GetProposedStaminaFree() uint64 {
 	return msg.ProposedStaminaFree
 }
 
-func (s *SoBlockProducerWrap) MdProposedStaminaFree(p uint64) bool {
+func (s *SoBlockProducerWrap) mdFieldProposedStaminaFree(p uint64, isCheck bool, isDel bool, isInsert bool,
+	so *SoBlockProducer) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("ProposedStaminaFree")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemBlockProducerByProposedStaminaFree{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoBlockProducer{}
-	sa.Owner = s.mainKey
 
-	sa.ProposedStaminaFree = ori.ProposedStaminaFree
+	if isCheck {
+		res := s.checkProposedStaminaFreeIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.ProposedStaminaFree = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldProposedStaminaFree(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldProposedStaminaFree(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoBlockProducerWrap) delFieldProposedStaminaFree(so *SoBlockProducer) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.ProposedStaminaFree = p
 
 	return true
 }
 
-func (s *SoBlockProducerWrap) saveMemKeySigningKey(tInfo *SoBlockProducer) error {
+func (s *SoBlockProducerWrap) insertFieldProposedStaminaFree(so *SoBlockProducer) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoBlockProducerWrap) checkProposedStaminaFreeIsMetMdCondition(p uint64) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemBlockProducerBySigningKey{}
-	val.SigningKey = tInfo.SigningKey
-	key, err := s.encodeMemKey("SigningKey")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoBlockProducerWrap) GetSigningKey() *prototype.PublicKeyType {
 	res := true
-	msg := &SoMemBlockProducerBySigningKey{}
+	msg := &SoBlockProducer{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("SigningKey")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -1209,67 +1350,66 @@ func (s *SoBlockProducerWrap) GetSigningKey() *prototype.PublicKeyType {
 	return msg.SigningKey
 }
 
-func (s *SoBlockProducerWrap) MdSigningKey(p *prototype.PublicKeyType) bool {
+func (s *SoBlockProducerWrap) mdFieldSigningKey(p *prototype.PublicKeyType, isCheck bool, isDel bool, isInsert bool,
+	so *SoBlockProducer) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("SigningKey")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemBlockProducerBySigningKey{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoBlockProducer{}
-	sa.Owner = s.mainKey
 
-	sa.SigningKey = ori.SigningKey
+	if isCheck {
+		res := s.checkSigningKeyIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.SigningKey = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldSigningKey(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldSigningKey(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoBlockProducerWrap) delFieldSigningKey(so *SoBlockProducer) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.SigningKey = p
 
 	return true
 }
 
-func (s *SoBlockProducerWrap) saveMemKeyTopNAcquireFreeToken(tInfo *SoBlockProducer) error {
+func (s *SoBlockProducerWrap) insertFieldSigningKey(so *SoBlockProducer) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoBlockProducerWrap) checkSigningKeyIsMetMdCondition(p *prototype.PublicKeyType) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemBlockProducerByTopNAcquireFreeToken{}
-	val.TopNAcquireFreeToken = tInfo.TopNAcquireFreeToken
-	key, err := s.encodeMemKey("TopNAcquireFreeToken")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoBlockProducerWrap) GetTopNAcquireFreeToken() uint32 {
 	res := true
-	msg := &SoMemBlockProducerByTopNAcquireFreeToken{}
+	msg := &SoBlockProducer{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("TopNAcquireFreeToken")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -1292,67 +1432,66 @@ func (s *SoBlockProducerWrap) GetTopNAcquireFreeToken() uint32 {
 	return msg.TopNAcquireFreeToken
 }
 
-func (s *SoBlockProducerWrap) MdTopNAcquireFreeToken(p uint32) bool {
+func (s *SoBlockProducerWrap) mdFieldTopNAcquireFreeToken(p uint32, isCheck bool, isDel bool, isInsert bool,
+	so *SoBlockProducer) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("TopNAcquireFreeToken")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemBlockProducerByTopNAcquireFreeToken{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoBlockProducer{}
-	sa.Owner = s.mainKey
 
-	sa.TopNAcquireFreeToken = ori.TopNAcquireFreeToken
+	if isCheck {
+		res := s.checkTopNAcquireFreeTokenIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.TopNAcquireFreeToken = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldTopNAcquireFreeToken(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldTopNAcquireFreeToken(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoBlockProducerWrap) delFieldTopNAcquireFreeToken(so *SoBlockProducer) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.TopNAcquireFreeToken = p
 
 	return true
 }
 
-func (s *SoBlockProducerWrap) saveMemKeyTpsExpected(tInfo *SoBlockProducer) error {
+func (s *SoBlockProducerWrap) insertFieldTopNAcquireFreeToken(so *SoBlockProducer) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoBlockProducerWrap) checkTopNAcquireFreeTokenIsMetMdCondition(p uint32) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemBlockProducerByTpsExpected{}
-	val.TpsExpected = tInfo.TpsExpected
-	key, err := s.encodeMemKey("TpsExpected")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoBlockProducerWrap) GetTpsExpected() uint64 {
 	res := true
-	msg := &SoMemBlockProducerByTpsExpected{}
+	msg := &SoBlockProducer{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("TpsExpected")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -1375,67 +1514,66 @@ func (s *SoBlockProducerWrap) GetTpsExpected() uint64 {
 	return msg.TpsExpected
 }
 
-func (s *SoBlockProducerWrap) MdTpsExpected(p uint64) bool {
+func (s *SoBlockProducerWrap) mdFieldTpsExpected(p uint64, isCheck bool, isDel bool, isInsert bool,
+	so *SoBlockProducer) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("TpsExpected")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemBlockProducerByTpsExpected{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoBlockProducer{}
-	sa.Owner = s.mainKey
 
-	sa.TpsExpected = ori.TpsExpected
+	if isCheck {
+		res := s.checkTpsExpectedIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.TpsExpected = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldTpsExpected(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldTpsExpected(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoBlockProducerWrap) delFieldTpsExpected(so *SoBlockProducer) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.TpsExpected = p
 
 	return true
 }
 
-func (s *SoBlockProducerWrap) saveMemKeyUrl(tInfo *SoBlockProducer) error {
+func (s *SoBlockProducerWrap) insertFieldTpsExpected(so *SoBlockProducer) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoBlockProducerWrap) checkTpsExpectedIsMetMdCondition(p uint64) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemBlockProducerByUrl{}
-	val.Url = tInfo.Url
-	key, err := s.encodeMemKey("Url")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoBlockProducerWrap) GetUrl() string {
 	res := true
-	msg := &SoMemBlockProducerByUrl{}
+	msg := &SoBlockProducer{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Url")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -1458,67 +1596,66 @@ func (s *SoBlockProducerWrap) GetUrl() string {
 	return msg.Url
 }
 
-func (s *SoBlockProducerWrap) MdUrl(p string) bool {
+func (s *SoBlockProducerWrap) mdFieldUrl(p string, isCheck bool, isDel bool, isInsert bool,
+	so *SoBlockProducer) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("Url")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemBlockProducerByUrl{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoBlockProducer{}
-	sa.Owner = s.mainKey
 
-	sa.Url = ori.Url
+	if isCheck {
+		res := s.checkUrlIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.Url = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldUrl(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldUrl(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoBlockProducerWrap) delFieldUrl(so *SoBlockProducer) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.Url = p
 
 	return true
 }
 
-func (s *SoBlockProducerWrap) saveMemKeyVoterCount(tInfo *SoBlockProducer) error {
+func (s *SoBlockProducerWrap) insertFieldUrl(so *SoBlockProducer) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoBlockProducerWrap) checkUrlIsMetMdCondition(p string) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemBlockProducerByVoterCount{}
-	val.VoterCount = tInfo.VoterCount
-	key, err := s.encodeMemKey("VoterCount")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoBlockProducerWrap) GetVoterCount() uint64 {
 	res := true
-	msg := &SoMemBlockProducerByVoterCount{}
+	msg := &SoBlockProducer{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("VoterCount")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -1541,35 +1678,55 @@ func (s *SoBlockProducerWrap) GetVoterCount() uint64 {
 	return msg.VoterCount
 }
 
-func (s *SoBlockProducerWrap) MdVoterCount(p uint64) bool {
+func (s *SoBlockProducerWrap) mdFieldVoterCount(p uint64, isCheck bool, isDel bool, isInsert bool,
+	so *SoBlockProducer) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("VoterCount")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemBlockProducerByVoterCount{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoBlockProducer{}
-	sa.Owner = s.mainKey
 
-	sa.VoterCount = ori.VoterCount
+	if isCheck {
+		res := s.checkVoterCountIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.VoterCount = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldVoterCount(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldVoterCount(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoBlockProducerWrap) delFieldVoterCount(so *SoBlockProducer) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
+
+	return true
+}
+
+func (s *SoBlockProducerWrap) insertFieldVoterCount(so *SoBlockProducer) bool {
+	if s.dba == nil {
 		return false
 	}
-	sa.VoterCount = p
+
+	return true
+}
+
+func (s *SoBlockProducerWrap) checkVoterCountIsMetMdCondition(p uint64) bool {
+	if s.dba == nil {
+		return false
+	}
 
 	return true
 }
@@ -1826,11 +1983,38 @@ func (s *SoBlockProducerWrap) getBlockProducer() *SoBlockProducer {
 	return res
 }
 
+func (s *SoBlockProducerWrap) updateBlockProducer(so *SoBlockProducer) error {
+	if s.dba == nil {
+		return errors.New("update fail:the db is nil")
+	}
+
+	if so == nil {
+		return errors.New("update fail: the SoBlockProducer is nil")
+	}
+
+	key, err := s.encodeMainKey()
+	if err != nil {
+		return nil
+	}
+
+	buf, err := proto.Marshal(so)
+	if err != nil {
+		return err
+	}
+
+	err = s.dba.Put(key, buf)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *SoBlockProducerWrap) encodeMainKey() ([]byte, error) {
 	if s.mKeyBuf != nil {
 		return s.mKeyBuf, nil
 	}
-	pre := s.getMemKeyPrefix("Owner")
+	pre := BlockProducerOwnerRow
 	sub := s.mainKey
 	if sub == nil {
 		return nil, errors.New("the mainKey is nil")
@@ -1905,7 +2089,6 @@ func (s *SoBlockProducerWrap) delUniKeyOwner(sa *SoBlockProducer) bool {
 	pre := BlockProducerOwnerUniTable
 	kList := []interface{}{pre}
 	if sa != nil {
-
 		if sa.Owner == nil {
 			return false
 		}
@@ -1913,20 +2096,11 @@ func (s *SoBlockProducerWrap) delUniKeyOwner(sa *SoBlockProducer) bool {
 		sub := sa.Owner
 		kList = append(kList, sub)
 	} else {
-		key, err := s.encodeMemKey("Owner")
-		if err != nil {
-			return false
+		sub := s.GetOwner()
+		if sub == nil {
+			return true
 		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemBlockProducerByOwner{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		sub := ori.Owner
+
 		kList = append(kList, sub)
 
 	}
@@ -1941,6 +2115,7 @@ func (s *SoBlockProducerWrap) insertUniKeyOwner(sa *SoBlockProducer) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
+
 	pre := BlockProducerOwnerUniTable
 	sub := sa.Owner
 	kList := []interface{}{pre, sub}

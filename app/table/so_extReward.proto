@@ -16,21 +16,6 @@ message so_extReward {
 }
 
 
-message so_mem_extReward_by_id {
-	prototype.reward_cashout_id 	id               = 1;
-}
-
-
-message so_mem_extReward_by_block_height {
-	uint64                      	block_height     = 1;
-}
-
-
-message so_mem_extReward_by_reward {
-	prototype.vest              	reward           = 1;
-}
-
-
 message so_list_extReward_by_block_height {
 	uint64                      	block_height     = 1;
 	prototype.reward_cashout_id 	id               = 2;

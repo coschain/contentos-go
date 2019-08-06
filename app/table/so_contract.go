@@ -4,7 +4,6 @@ import (
 	"errors"
 	fmt "fmt"
 	"reflect"
-	"strings"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -17,32 +16,25 @@ var (
 	ContractCreatedTimeTable uint32 = 1292005739
 	ContractApplyCountTable  uint32 = 2694332342
 	ContractIdUniTable       uint32 = 4175408872
-	ContractAbiCell          uint32 = 562884560
-	ContractApplyCountCell   uint32 = 3388167383
-	ContractBalanceCell      uint32 = 1230027001
-	ContractCodeCell         uint32 = 1267857519
-	ContractCreatedTimeCell  uint32 = 3946752343
-	ContractDescribeCell     uint32 = 2750522916
-	ContractHashCell         uint32 = 2693229046
-	ContractIdCell           uint32 = 1995418866
-	ContractUpgradeableCell  uint32 = 1417437618
-	ContractUrlCell          uint32 = 2032917222
+
+	ContractIdRow uint32 = 1374288427
 )
 
 ////////////// SECTION Wrap Define ///////////////
 type SoContractWrap struct {
-	dba      iservices.IDatabaseRW
-	mainKey  *prototype.ContractId
-	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf  []byte //the buffer after the main key is encoded with prefix
-	mBuf     []byte //the value after the main key is encoded
+	dba       iservices.IDatabaseRW
+	mainKey   *prototype.ContractId
+	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
+	mBuf      []byte //the value after the main key is encoded
+	mdFuncMap map[string]interface{}
 }
 
 func NewSoContractWrap(dba iservices.IDatabaseRW, key *prototype.ContractId) *SoContractWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoContractWrap{dba, key, -1, nil, nil}
+	result := &SoContractWrap{dba, key, -1, nil, nil, nil}
 	return result
 }
 
@@ -94,9 +86,13 @@ func (s *SoContractWrap) Create(f func(tInfo *SoContract)) error {
 		return err
 
 	}
-	err = s.saveAllMemKeys(val, true)
+
+	buf, err := proto.Marshal(val)
 	if err != nil {
-		s.delAllMemKeys(false, val)
+		return err
+	}
+	err = s.dba.Put(keyBuf, buf)
+	if err != nil {
 		return err
 	}
 
@@ -104,7 +100,6 @@ func (s *SoContractWrap) Create(f func(tInfo *SoContract)) error {
 	if err = s.insertAllSortKeys(val); err != nil {
 		s.delAllSortKeys(false, val)
 		s.dba.Delete(keyBuf)
-		s.delAllMemKeys(false, val)
 		return err
 	}
 
@@ -113,10 +108,10 @@ func (s *SoContractWrap) Create(f func(tInfo *SoContract)) error {
 		s.delAllSortKeys(false, val)
 		s.delUniKeysWithNames(sucNames, val)
 		s.dba.Delete(keyBuf)
-		s.delAllMemKeys(false, val)
 		return err
 	}
 
+	s.mKeyFlag = 1
 	return nil
 }
 
@@ -134,6 +129,360 @@ func (s *SoContractWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
+func (s *SoContractWrap) Modify(f func(tInfo *SoContract)) error {
+	if !s.CheckExist() {
+		return errors.New("the SoContract table does not exist. Please create a table first")
+	}
+	oriTable := s.getContract()
+	if oriTable == nil {
+		return errors.New("fail to get origin table SoContract")
+	}
+	curTable := *oriTable
+	f(&curTable)
+
+	//the main key is not support modify
+	if !reflect.DeepEqual(curTable.Id, oriTable.Id) {
+		return errors.New("primary key does not support modification")
+	}
+
+	fieldSli, err := s.getModifiedFields(oriTable, &curTable)
+	if err != nil {
+		return err
+	}
+
+	if fieldSli == nil || len(fieldSli) < 1 {
+		return nil
+	}
+
+	//check whether modify sort and unique field to nil
+	err = s.checkSortAndUniFieldValidity(&curTable, fieldSli)
+	if err != nil {
+		return err
+	}
+
+	//check unique
+	err = s.handleFieldMd(FieldMdHandleTypeCheck, &curTable, fieldSli)
+	if err != nil {
+		return err
+	}
+
+	//delete sort and unique key
+	err = s.handleFieldMd(FieldMdHandleTypeDel, oriTable, fieldSli)
+	if err != nil {
+		return err
+	}
+
+	//update table
+	err = s.updateContract(&curTable)
+	if err != nil {
+		return err
+	}
+
+	//insert sort and unique key
+	err = s.handleFieldMd(FieldMdHandleTypeInsert, &curTable, fieldSli)
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+func (s *SoContractWrap) MdAbi(p string) bool {
+	err := s.Modify(func(r *SoContract) {
+		r.Abi = p
+	})
+	return err == nil
+}
+
+func (s *SoContractWrap) MdApplyCount(p uint32) bool {
+	err := s.Modify(func(r *SoContract) {
+		r.ApplyCount = p
+	})
+	return err == nil
+}
+
+func (s *SoContractWrap) MdBalance(p *prototype.Coin) bool {
+	err := s.Modify(func(r *SoContract) {
+		r.Balance = p
+	})
+	return err == nil
+}
+
+func (s *SoContractWrap) MdCode(p []byte) bool {
+	err := s.Modify(func(r *SoContract) {
+		r.Code = p
+	})
+	return err == nil
+}
+
+func (s *SoContractWrap) MdCreatedTime(p *prototype.TimePointSec) bool {
+	err := s.Modify(func(r *SoContract) {
+		r.CreatedTime = p
+	})
+	return err == nil
+}
+
+func (s *SoContractWrap) MdDescribe(p string) bool {
+	err := s.Modify(func(r *SoContract) {
+		r.Describe = p
+	})
+	return err == nil
+}
+
+func (s *SoContractWrap) MdHash(p *prototype.Sha256) bool {
+	err := s.Modify(func(r *SoContract) {
+		r.Hash = p
+	})
+	return err == nil
+}
+
+func (s *SoContractWrap) MdUpgradeable(p bool) bool {
+	err := s.Modify(func(r *SoContract) {
+		r.Upgradeable = p
+	})
+	return err == nil
+}
+
+func (s *SoContractWrap) MdUrl(p string) bool {
+	err := s.Modify(func(r *SoContract) {
+		r.Url = p
+	})
+	return err == nil
+}
+
+func (s *SoContractWrap) checkSortAndUniFieldValidity(curTable *SoContract, fieldSli []string) error {
+	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
+		for _, fName := range fieldSli {
+			if len(fName) > 0 {
+
+				if fName == "CreatedTime" && curTable.CreatedTime == nil {
+					return errors.New("sort field CreatedTime can't be modified to nil")
+				}
+
+			}
+		}
+	}
+	return nil
+}
+
+//Get all the modified fields in the table
+func (s *SoContractWrap) getModifiedFields(oriTable *SoContract, curTable *SoContract) ([]string, error) {
+	if oriTable == nil {
+		return nil, errors.New("table info is nil, can't get modified fields")
+	}
+	var list []string
+
+	if !reflect.DeepEqual(oriTable.Abi, curTable.Abi) {
+		list = append(list, "Abi")
+	}
+
+	if !reflect.DeepEqual(oriTable.ApplyCount, curTable.ApplyCount) {
+		list = append(list, "ApplyCount")
+	}
+
+	if !reflect.DeepEqual(oriTable.Balance, curTable.Balance) {
+		list = append(list, "Balance")
+	}
+
+	if !reflect.DeepEqual(oriTable.Code, curTable.Code) {
+		list = append(list, "Code")
+	}
+
+	if !reflect.DeepEqual(oriTable.CreatedTime, curTable.CreatedTime) {
+		list = append(list, "CreatedTime")
+	}
+
+	if !reflect.DeepEqual(oriTable.Describe, curTable.Describe) {
+		list = append(list, "Describe")
+	}
+
+	if !reflect.DeepEqual(oriTable.Hash, curTable.Hash) {
+		list = append(list, "Hash")
+	}
+
+	if !reflect.DeepEqual(oriTable.Upgradeable, curTable.Upgradeable) {
+		list = append(list, "Upgradeable")
+	}
+
+	if !reflect.DeepEqual(oriTable.Url, curTable.Url) {
+		list = append(list, "Url")
+	}
+
+	return list, nil
+}
+
+func (s *SoContractWrap) handleFieldMd(t FieldMdHandleType, so *SoContract, fSli []string) error {
+	if so == nil {
+		return errors.New("fail to modify empty table")
+	}
+
+	//there is no field need to modify
+	if fSli == nil || len(fSli) < 1 {
+		return nil
+	}
+
+	errStr := ""
+	for _, fName := range fSli {
+
+		if fName == "Abi" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldAbi(so.Abi, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldAbi(so.Abi, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldAbi(so.Abi, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "ApplyCount" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldApplyCount(so.ApplyCount, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldApplyCount(so.ApplyCount, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldApplyCount(so.ApplyCount, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "Balance" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldBalance(so.Balance, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldBalance(so.Balance, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldBalance(so.Balance, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "Code" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldCode(so.Code, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldCode(so.Code, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldCode(so.Code, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "CreatedTime" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldCreatedTime(so.CreatedTime, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldCreatedTime(so.CreatedTime, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldCreatedTime(so.CreatedTime, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "Describe" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldDescribe(so.Describe, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldDescribe(so.Describe, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldDescribe(so.Describe, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "Hash" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldHash(so.Hash, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldHash(so.Hash, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldHash(so.Hash, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "Upgradeable" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldUpgradeable(so.Upgradeable, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldUpgradeable(so.Upgradeable, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldUpgradeable(so.Upgradeable, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "Url" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldUrl(so.Url, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldUrl(so.Url, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldUrl(so.Url, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+	}
+
+	return nil
+}
+
 ////////////// SECTION LKeys delete/insert ///////////////
 
 func (s *SoContractWrap) delSortKeyCreatedTime(sa *SoContract) bool {
@@ -142,27 +491,13 @@ func (s *SoContractWrap) delSortKeyCreatedTime(sa *SoContract) bool {
 	}
 	val := SoListContractByCreatedTime{}
 	if sa == nil {
-		key, err := s.encodeMemKey("CreatedTime")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemContractByCreatedTime{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		val.CreatedTime = ori.CreatedTime
+		val.CreatedTime = s.GetCreatedTime()
 		val.Id = s.mainKey
 
 	} else {
 		val.CreatedTime = sa.CreatedTime
 		val.Id = sa.Id
 	}
-
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -196,27 +531,13 @@ func (s *SoContractWrap) delSortKeyApplyCount(sa *SoContract) bool {
 	}
 	val := SoListContractByApplyCount{}
 	if sa == nil {
-		key, err := s.encodeMemKey("ApplyCount")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemContractByApplyCount{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		val.ApplyCount = ori.ApplyCount
+		val.ApplyCount = s.GetApplyCount()
 		val.Id = s.mainKey
 
 	} else {
 		val.ApplyCount = sa.ApplyCount
 		val.Id = sa.Id
 	}
-
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -249,6 +570,7 @@ func (s *SoContractWrap) delAllSortKeys(br bool, val *SoContract) bool {
 		return false
 	}
 	res := true
+
 	if !s.delSortKeyCreatedTime(val) {
 		if br {
 			return false
@@ -256,6 +578,7 @@ func (s *SoContractWrap) delAllSortKeys(br bool, val *SoContract) bool {
 			res = false
 		}
 	}
+
 	if !s.delSortKeyApplyCount(val) {
 		if br {
 			return false
@@ -274,9 +597,11 @@ func (s *SoContractWrap) insertAllSortKeys(val *SoContract) error {
 	if val == nil {
 		return errors.New("insert sort Field fail,get the SoContract fail ")
 	}
+
 	if !s.insertSortKeyCreatedTime(val) {
 		return errors.New("insert sort Field CreatedTime fail while insert table ")
 	}
+
 	if !s.insertSortKeyApplyCount(val) {
 		return errors.New("insert sort Field ApplyCount fail while insert table ")
 	}
@@ -290,7 +615,6 @@ func (s *SoContractWrap) RemoveContract() bool {
 	if s.dba == nil {
 		return false
 	}
-	val := &SoContract{}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
 		return false
@@ -301,7 +625,12 @@ func (s *SoContractWrap) RemoveContract() bool {
 		return false
 	}
 
-	err := s.delAllMemKeys(true, val)
+	//delete table
+	key, err := s.encodeMainKey()
+	if err != nil {
+		return false
+	}
+	err = s.dba.Delete(key)
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
@@ -312,214 +641,14 @@ func (s *SoContractWrap) RemoveContract() bool {
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
-func (s *SoContractWrap) getMemKeyPrefix(fName string) uint32 {
-	if fName == "Abi" {
-		return ContractAbiCell
-	}
-	if fName == "ApplyCount" {
-		return ContractApplyCountCell
-	}
-	if fName == "Balance" {
-		return ContractBalanceCell
-	}
-	if fName == "Code" {
-		return ContractCodeCell
-	}
-	if fName == "CreatedTime" {
-		return ContractCreatedTimeCell
-	}
-	if fName == "Describe" {
-		return ContractDescribeCell
-	}
-	if fName == "Hash" {
-		return ContractHashCell
-	}
-	if fName == "Id" {
-		return ContractIdCell
-	}
-	if fName == "Upgradeable" {
-		return ContractUpgradeableCell
-	}
-	if fName == "Url" {
-		return ContractUrlCell
-	}
-
-	return 0
-}
-
-func (s *SoContractWrap) encodeMemKey(fName string) ([]byte, error) {
-	if len(fName) < 1 || s.mainKey == nil {
-		return nil, errors.New("field name or main key is empty")
-	}
-	pre := s.getMemKeyPrefix(fName)
-	preBuf, err := kope.Encode(pre)
-	if err != nil {
-		return nil, err
-	}
-	mBuf, err := s.getMainKeyBuf()
-	if err != nil {
-		return nil, err
-	}
-	list := make([][]byte, 2)
-	list[0] = preBuf
-	list[1] = mBuf
-	return kope.PackList(list), nil
-}
-
-func (s *SoContractWrap) saveAllMemKeys(tInfo *SoContract, br bool) error {
-	if s.dba == nil {
-		return errors.New("save member Field fail , the db is nil")
-	}
-
-	if tInfo == nil {
-		return errors.New("save member Field fail , the data is nil ")
-	}
-	var err error = nil
-	errDes := ""
-	if err = s.saveMemKeyAbi(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Abi", err)
-		}
-	}
-	if err = s.saveMemKeyApplyCount(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "ApplyCount", err)
-		}
-	}
-	if err = s.saveMemKeyBalance(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Balance", err)
-		}
-	}
-	if err = s.saveMemKeyCode(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Code", err)
-		}
-	}
-	if err = s.saveMemKeyCreatedTime(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "CreatedTime", err)
-		}
-	}
-	if err = s.saveMemKeyDescribe(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Describe", err)
-		}
-	}
-	if err = s.saveMemKeyHash(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Hash", err)
-		}
-	}
-	if err = s.saveMemKeyId(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Id", err)
-		}
-	}
-	if err = s.saveMemKeyUpgradeable(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Upgradeable", err)
-		}
-	}
-	if err = s.saveMemKeyUrl(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Url", err)
-		}
-	}
-
-	if len(errDes) > 0 {
-		return errors.New(errDes)
-	}
-	return err
-}
-
-func (s *SoContractWrap) delAllMemKeys(br bool, tInfo *SoContract) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	t := reflect.TypeOf(*tInfo)
-	errDesc := ""
-	for k := 0; k < t.NumField(); k++ {
-		name := t.Field(k).Name
-		if len(name) > 0 && !strings.HasPrefix(name, "XXX_") {
-			err := s.delMemKey(name)
-			if err != nil {
-				if br {
-					return err
-				}
-				errDesc += fmt.Sprintf("delete the Field %s fail,error is %s;\n", name, err)
-			}
-		}
-	}
-	if len(errDesc) > 0 {
-		return errors.New(errDesc)
-	}
-	return nil
-}
-
-func (s *SoContractWrap) delMemKey(fName string) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if len(fName) <= 0 {
-		return errors.New("the field name is empty ")
-	}
-	key, err := s.encodeMemKey(fName)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Delete(key)
-	return err
-}
-
-func (s *SoContractWrap) saveMemKeyAbi(tInfo *SoContract) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemContractByAbi{}
-	val.Abi = tInfo.Abi
-	key, err := s.encodeMemKey("Abi")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
 
 func (s *SoContractWrap) GetAbi() string {
 	res := true
-	msg := &SoMemContractByAbi{}
+	msg := &SoContract{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Abi")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -542,67 +671,66 @@ func (s *SoContractWrap) GetAbi() string {
 	return msg.Abi
 }
 
-func (s *SoContractWrap) MdAbi(p string) bool {
+func (s *SoContractWrap) mdFieldAbi(p string, isCheck bool, isDel bool, isInsert bool,
+	so *SoContract) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("Abi")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemContractByAbi{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoContract{}
-	sa.Id = s.mainKey
 
-	sa.Abi = ori.Abi
+	if isCheck {
+		res := s.checkAbiIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.Abi = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldAbi(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldAbi(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoContractWrap) delFieldAbi(so *SoContract) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.Abi = p
 
 	return true
 }
 
-func (s *SoContractWrap) saveMemKeyApplyCount(tInfo *SoContract) error {
+func (s *SoContractWrap) insertFieldAbi(so *SoContract) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoContractWrap) checkAbiIsMetMdCondition(p string) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemContractByApplyCount{}
-	val.ApplyCount = tInfo.ApplyCount
-	key, err := s.encodeMemKey("ApplyCount")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoContractWrap) GetApplyCount() uint32 {
 	res := true
-	msg := &SoMemContractByApplyCount{}
+	msg := &SoContract{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("ApplyCount")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -625,74 +753,74 @@ func (s *SoContractWrap) GetApplyCount() uint32 {
 	return msg.ApplyCount
 }
 
-func (s *SoContractWrap) MdApplyCount(p uint32) bool {
+func (s *SoContractWrap) mdFieldApplyCount(p uint32, isCheck bool, isDel bool, isInsert bool,
+	so *SoContract) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("ApplyCount")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemContractByApplyCount{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoContract{}
-	sa.Id = s.mainKey
 
-	sa.ApplyCount = ori.ApplyCount
+	if isCheck {
+		res := s.checkApplyCountIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	if !s.delSortKeyApplyCount(sa) {
-		return false
+	if isDel {
+		res := s.delFieldApplyCount(so)
+		if !res {
+			return false
+		}
 	}
-	ori.ApplyCount = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.ApplyCount = p
 
-	if !s.insertSortKeyApplyCount(sa) {
+	if isInsert {
+		res := s.insertFieldApplyCount(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoContractWrap) delFieldApplyCount(so *SoContract) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if !s.delSortKeyApplyCount(so) {
 		return false
 	}
 
 	return true
 }
 
-func (s *SoContractWrap) saveMemKeyBalance(tInfo *SoContract) error {
+func (s *SoContractWrap) insertFieldApplyCount(so *SoContract) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	if !s.insertSortKeyApplyCount(so) {
+		return false
 	}
-	val := SoMemContractByBalance{}
-	val.Balance = tInfo.Balance
-	key, err := s.encodeMemKey("Balance")
-	if err != nil {
-		return err
+
+	return true
+}
+
+func (s *SoContractWrap) checkApplyCountIsMetMdCondition(p uint32) bool {
+	if s.dba == nil {
+		return false
 	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoContractWrap) GetBalance() *prototype.Coin {
 	res := true
-	msg := &SoMemContractByBalance{}
+	msg := &SoContract{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Balance")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -715,67 +843,66 @@ func (s *SoContractWrap) GetBalance() *prototype.Coin {
 	return msg.Balance
 }
 
-func (s *SoContractWrap) MdBalance(p *prototype.Coin) bool {
+func (s *SoContractWrap) mdFieldBalance(p *prototype.Coin, isCheck bool, isDel bool, isInsert bool,
+	so *SoContract) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("Balance")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemContractByBalance{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoContract{}
-	sa.Id = s.mainKey
 
-	sa.Balance = ori.Balance
+	if isCheck {
+		res := s.checkBalanceIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.Balance = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldBalance(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldBalance(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoContractWrap) delFieldBalance(so *SoContract) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.Balance = p
 
 	return true
 }
 
-func (s *SoContractWrap) saveMemKeyCode(tInfo *SoContract) error {
+func (s *SoContractWrap) insertFieldBalance(so *SoContract) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoContractWrap) checkBalanceIsMetMdCondition(p *prototype.Coin) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemContractByCode{}
-	val.Code = tInfo.Code
-	key, err := s.encodeMemKey("Code")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoContractWrap) GetCode() []byte {
 	res := true
-	msg := &SoMemContractByCode{}
+	msg := &SoContract{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Code")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -798,67 +925,66 @@ func (s *SoContractWrap) GetCode() []byte {
 	return msg.Code
 }
 
-func (s *SoContractWrap) MdCode(p []byte) bool {
+func (s *SoContractWrap) mdFieldCode(p []byte, isCheck bool, isDel bool, isInsert bool,
+	so *SoContract) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("Code")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemContractByCode{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoContract{}
-	sa.Id = s.mainKey
 
-	sa.Code = ori.Code
+	if isCheck {
+		res := s.checkCodeIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.Code = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldCode(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldCode(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoContractWrap) delFieldCode(so *SoContract) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.Code = p
 
 	return true
 }
 
-func (s *SoContractWrap) saveMemKeyCreatedTime(tInfo *SoContract) error {
+func (s *SoContractWrap) insertFieldCode(so *SoContract) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoContractWrap) checkCodeIsMetMdCondition(p []byte) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemContractByCreatedTime{}
-	val.CreatedTime = tInfo.CreatedTime
-	key, err := s.encodeMemKey("CreatedTime")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoContractWrap) GetCreatedTime() *prototype.TimePointSec {
 	res := true
-	msg := &SoMemContractByCreatedTime{}
+	msg := &SoContract{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("CreatedTime")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -881,74 +1007,74 @@ func (s *SoContractWrap) GetCreatedTime() *prototype.TimePointSec {
 	return msg.CreatedTime
 }
 
-func (s *SoContractWrap) MdCreatedTime(p *prototype.TimePointSec) bool {
+func (s *SoContractWrap) mdFieldCreatedTime(p *prototype.TimePointSec, isCheck bool, isDel bool, isInsert bool,
+	so *SoContract) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("CreatedTime")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemContractByCreatedTime{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoContract{}
-	sa.Id = s.mainKey
 
-	sa.CreatedTime = ori.CreatedTime
+	if isCheck {
+		res := s.checkCreatedTimeIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	if !s.delSortKeyCreatedTime(sa) {
-		return false
+	if isDel {
+		res := s.delFieldCreatedTime(so)
+		if !res {
+			return false
+		}
 	}
-	ori.CreatedTime = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.CreatedTime = p
 
-	if !s.insertSortKeyCreatedTime(sa) {
+	if isInsert {
+		res := s.insertFieldCreatedTime(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoContractWrap) delFieldCreatedTime(so *SoContract) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if !s.delSortKeyCreatedTime(so) {
 		return false
 	}
 
 	return true
 }
 
-func (s *SoContractWrap) saveMemKeyDescribe(tInfo *SoContract) error {
+func (s *SoContractWrap) insertFieldCreatedTime(so *SoContract) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	if !s.insertSortKeyCreatedTime(so) {
+		return false
 	}
-	val := SoMemContractByDescribe{}
-	val.Describe = tInfo.Describe
-	key, err := s.encodeMemKey("Describe")
-	if err != nil {
-		return err
+
+	return true
+}
+
+func (s *SoContractWrap) checkCreatedTimeIsMetMdCondition(p *prototype.TimePointSec) bool {
+	if s.dba == nil {
+		return false
 	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoContractWrap) GetDescribe() string {
 	res := true
-	msg := &SoMemContractByDescribe{}
+	msg := &SoContract{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Describe")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -971,67 +1097,66 @@ func (s *SoContractWrap) GetDescribe() string {
 	return msg.Describe
 }
 
-func (s *SoContractWrap) MdDescribe(p string) bool {
+func (s *SoContractWrap) mdFieldDescribe(p string, isCheck bool, isDel bool, isInsert bool,
+	so *SoContract) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("Describe")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemContractByDescribe{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoContract{}
-	sa.Id = s.mainKey
 
-	sa.Describe = ori.Describe
+	if isCheck {
+		res := s.checkDescribeIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.Describe = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldDescribe(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldDescribe(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoContractWrap) delFieldDescribe(so *SoContract) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.Describe = p
 
 	return true
 }
 
-func (s *SoContractWrap) saveMemKeyHash(tInfo *SoContract) error {
+func (s *SoContractWrap) insertFieldDescribe(so *SoContract) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoContractWrap) checkDescribeIsMetMdCondition(p string) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemContractByHash{}
-	val.Hash = tInfo.Hash
-	key, err := s.encodeMemKey("Hash")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoContractWrap) GetHash() *prototype.Sha256 {
 	res := true
-	msg := &SoMemContractByHash{}
+	msg := &SoContract{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Hash")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -1054,67 +1179,66 @@ func (s *SoContractWrap) GetHash() *prototype.Sha256 {
 	return msg.Hash
 }
 
-func (s *SoContractWrap) MdHash(p *prototype.Sha256) bool {
+func (s *SoContractWrap) mdFieldHash(p *prototype.Sha256, isCheck bool, isDel bool, isInsert bool,
+	so *SoContract) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("Hash")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemContractByHash{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoContract{}
-	sa.Id = s.mainKey
 
-	sa.Hash = ori.Hash
+	if isCheck {
+		res := s.checkHashIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.Hash = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldHash(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldHash(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoContractWrap) delFieldHash(so *SoContract) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.Hash = p
 
 	return true
 }
 
-func (s *SoContractWrap) saveMemKeyId(tInfo *SoContract) error {
+func (s *SoContractWrap) insertFieldHash(so *SoContract) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoContractWrap) checkHashIsMetMdCondition(p *prototype.Sha256) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemContractById{}
-	val.Id = tInfo.Id
-	key, err := s.encodeMemKey("Id")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoContractWrap) GetId() *prototype.ContractId {
 	res := true
-	msg := &SoMemContractById{}
+	msg := &SoContract{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Id")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -1137,34 +1261,13 @@ func (s *SoContractWrap) GetId() *prototype.ContractId {
 	return msg.Id
 }
 
-func (s *SoContractWrap) saveMemKeyUpgradeable(tInfo *SoContract) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemContractByUpgradeable{}
-	val.Upgradeable = tInfo.Upgradeable
-	key, err := s.encodeMemKey("Upgradeable")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
-
 func (s *SoContractWrap) GetUpgradeable() bool {
 	res := true
-	msg := &SoMemContractByUpgradeable{}
+	msg := &SoContract{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Upgradeable")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -1187,67 +1290,66 @@ func (s *SoContractWrap) GetUpgradeable() bool {
 	return msg.Upgradeable
 }
 
-func (s *SoContractWrap) MdUpgradeable(p bool) bool {
+func (s *SoContractWrap) mdFieldUpgradeable(p bool, isCheck bool, isDel bool, isInsert bool,
+	so *SoContract) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("Upgradeable")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemContractByUpgradeable{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoContract{}
-	sa.Id = s.mainKey
 
-	sa.Upgradeable = ori.Upgradeable
+	if isCheck {
+		res := s.checkUpgradeableIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.Upgradeable = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldUpgradeable(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldUpgradeable(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoContractWrap) delFieldUpgradeable(so *SoContract) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.Upgradeable = p
 
 	return true
 }
 
-func (s *SoContractWrap) saveMemKeyUrl(tInfo *SoContract) error {
+func (s *SoContractWrap) insertFieldUpgradeable(so *SoContract) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	return true
+}
+
+func (s *SoContractWrap) checkUpgradeableIsMetMdCondition(p bool) bool {
+	if s.dba == nil {
+		return false
 	}
-	val := SoMemContractByUrl{}
-	val.Url = tInfo.Url
-	key, err := s.encodeMemKey("Url")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoContractWrap) GetUrl() string {
 	res := true
-	msg := &SoMemContractByUrl{}
+	msg := &SoContract{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Url")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -1270,35 +1372,55 @@ func (s *SoContractWrap) GetUrl() string {
 	return msg.Url
 }
 
-func (s *SoContractWrap) MdUrl(p string) bool {
+func (s *SoContractWrap) mdFieldUrl(p string, isCheck bool, isDel bool, isInsert bool,
+	so *SoContract) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("Url")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemContractByUrl{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoContract{}
-	sa.Id = s.mainKey
 
-	sa.Url = ori.Url
+	if isCheck {
+		res := s.checkUrlIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.Url = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldUrl(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldUrl(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoContractWrap) delFieldUrl(so *SoContract) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
+
+	return true
+}
+
+func (s *SoContractWrap) insertFieldUrl(so *SoContract) bool {
+	if s.dba == nil {
 		return false
 	}
-	sa.Url = p
+
+	return true
+}
+
+func (s *SoContractWrap) checkUrlIsMetMdCondition(p string) bool {
+	if s.dba == nil {
+		return false
+	}
 
 	return true
 }
@@ -1613,11 +1735,38 @@ func (s *SoContractWrap) getContract() *SoContract {
 	return res
 }
 
+func (s *SoContractWrap) updateContract(so *SoContract) error {
+	if s.dba == nil {
+		return errors.New("update fail:the db is nil")
+	}
+
+	if so == nil {
+		return errors.New("update fail: the SoContract is nil")
+	}
+
+	key, err := s.encodeMainKey()
+	if err != nil {
+		return nil
+	}
+
+	buf, err := proto.Marshal(so)
+	if err != nil {
+		return err
+	}
+
+	err = s.dba.Put(key, buf)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *SoContractWrap) encodeMainKey() ([]byte, error) {
 	if s.mKeyBuf != nil {
 		return s.mKeyBuf, nil
 	}
-	pre := s.getMemKeyPrefix("Id")
+	pre := ContractIdRow
 	sub := s.mainKey
 	if sub == nil {
 		return nil, errors.New("the mainKey is nil")
@@ -1692,7 +1841,6 @@ func (s *SoContractWrap) delUniKeyId(sa *SoContract) bool {
 	pre := ContractIdUniTable
 	kList := []interface{}{pre}
 	if sa != nil {
-
 		if sa.Id == nil {
 			return false
 		}
@@ -1700,20 +1848,11 @@ func (s *SoContractWrap) delUniKeyId(sa *SoContract) bool {
 		sub := sa.Id
 		kList = append(kList, sub)
 	} else {
-		key, err := s.encodeMemKey("Id")
-		if err != nil {
-			return false
+		sub := s.GetId()
+		if sub == nil {
+			return true
 		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemContractById{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		sub := ori.Id
+
 		kList = append(kList, sub)
 
 	}
@@ -1728,6 +1867,7 @@ func (s *SoContractWrap) insertUniKeyId(sa *SoContract) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
+
 	pre := ContractIdUniTable
 	sub := sa.Id
 	kList := []interface{}{pre, sub}

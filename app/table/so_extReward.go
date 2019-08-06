@@ -4,7 +4,6 @@ import (
 	"errors"
 	fmt "fmt"
 	"reflect"
-	"strings"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -16,25 +15,25 @@ import (
 var (
 	ExtRewardBlockHeightTable uint32 = 82025141
 	ExtRewardIdUniTable       uint32 = 1999553764
-	ExtRewardBlockHeightCell  uint32 = 1670527665
-	ExtRewardIdCell           uint32 = 885470707
-	ExtRewardRewardCell       uint32 = 1285045296
+
+	ExtRewardIdRow uint32 = 3421017858
 )
 
 ////////////// SECTION Wrap Define ///////////////
 type SoExtRewardWrap struct {
-	dba      iservices.IDatabaseRW
-	mainKey  *prototype.RewardCashoutId
-	mKeyFlag int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf  []byte //the buffer after the main key is encoded with prefix
-	mBuf     []byte //the value after the main key is encoded
+	dba       iservices.IDatabaseRW
+	mainKey   *prototype.RewardCashoutId
+	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
+	mBuf      []byte //the value after the main key is encoded
+	mdFuncMap map[string]interface{}
 }
 
 func NewSoExtRewardWrap(dba iservices.IDatabaseRW, key *prototype.RewardCashoutId) *SoExtRewardWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoExtRewardWrap{dba, key, -1, nil, nil}
+	result := &SoExtRewardWrap{dba, key, -1, nil, nil, nil}
 	return result
 }
 
@@ -86,9 +85,13 @@ func (s *SoExtRewardWrap) Create(f func(tInfo *SoExtReward)) error {
 		return err
 
 	}
-	err = s.saveAllMemKeys(val, true)
+
+	buf, err := proto.Marshal(val)
 	if err != nil {
-		s.delAllMemKeys(false, val)
+		return err
+	}
+	err = s.dba.Put(keyBuf, buf)
+	if err != nil {
 		return err
 	}
 
@@ -96,7 +99,6 @@ func (s *SoExtRewardWrap) Create(f func(tInfo *SoExtReward)) error {
 	if err = s.insertAllSortKeys(val); err != nil {
 		s.delAllSortKeys(false, val)
 		s.dba.Delete(keyBuf)
-		s.delAllMemKeys(false, val)
 		return err
 	}
 
@@ -105,10 +107,10 @@ func (s *SoExtRewardWrap) Create(f func(tInfo *SoExtReward)) error {
 		s.delAllSortKeys(false, val)
 		s.delUniKeysWithNames(sucNames, val)
 		s.dba.Delete(keyBuf)
-		s.delAllMemKeys(false, val)
 		return err
 	}
 
+	s.mKeyFlag = 1
 	return nil
 }
 
@@ -126,6 +128,160 @@ func (s *SoExtRewardWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
+func (s *SoExtRewardWrap) Modify(f func(tInfo *SoExtReward)) error {
+	if !s.CheckExist() {
+		return errors.New("the SoExtReward table does not exist. Please create a table first")
+	}
+	oriTable := s.getExtReward()
+	if oriTable == nil {
+		return errors.New("fail to get origin table SoExtReward")
+	}
+	curTable := *oriTable
+	f(&curTable)
+
+	//the main key is not support modify
+	if !reflect.DeepEqual(curTable.Id, oriTable.Id) {
+		return errors.New("primary key does not support modification")
+	}
+
+	fieldSli, err := s.getModifiedFields(oriTable, &curTable)
+	if err != nil {
+		return err
+	}
+
+	if fieldSli == nil || len(fieldSli) < 1 {
+		return nil
+	}
+
+	//check whether modify sort and unique field to nil
+	err = s.checkSortAndUniFieldValidity(&curTable, fieldSli)
+	if err != nil {
+		return err
+	}
+
+	//check unique
+	err = s.handleFieldMd(FieldMdHandleTypeCheck, &curTable, fieldSli)
+	if err != nil {
+		return err
+	}
+
+	//delete sort and unique key
+	err = s.handleFieldMd(FieldMdHandleTypeDel, oriTable, fieldSli)
+	if err != nil {
+		return err
+	}
+
+	//update table
+	err = s.updateExtReward(&curTable)
+	if err != nil {
+		return err
+	}
+
+	//insert sort and unique key
+	err = s.handleFieldMd(FieldMdHandleTypeInsert, &curTable, fieldSli)
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+func (s *SoExtRewardWrap) MdBlockHeight(p uint64) bool {
+	err := s.Modify(func(r *SoExtReward) {
+		r.BlockHeight = p
+	})
+	return err == nil
+}
+
+func (s *SoExtRewardWrap) MdReward(p *prototype.Vest) bool {
+	err := s.Modify(func(r *SoExtReward) {
+		r.Reward = p
+	})
+	return err == nil
+}
+
+func (s *SoExtRewardWrap) checkSortAndUniFieldValidity(curTable *SoExtReward, fieldSli []string) error {
+	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
+		for _, fName := range fieldSli {
+			if len(fName) > 0 {
+
+			}
+		}
+	}
+	return nil
+}
+
+//Get all the modified fields in the table
+func (s *SoExtRewardWrap) getModifiedFields(oriTable *SoExtReward, curTable *SoExtReward) ([]string, error) {
+	if oriTable == nil {
+		return nil, errors.New("table info is nil, can't get modified fields")
+	}
+	var list []string
+
+	if !reflect.DeepEqual(oriTable.BlockHeight, curTable.BlockHeight) {
+		list = append(list, "BlockHeight")
+	}
+
+	if !reflect.DeepEqual(oriTable.Reward, curTable.Reward) {
+		list = append(list, "Reward")
+	}
+
+	return list, nil
+}
+
+func (s *SoExtRewardWrap) handleFieldMd(t FieldMdHandleType, so *SoExtReward, fSli []string) error {
+	if so == nil {
+		return errors.New("fail to modify empty table")
+	}
+
+	//there is no field need to modify
+	if fSli == nil || len(fSli) < 1 {
+		return nil
+	}
+
+	errStr := ""
+	for _, fName := range fSli {
+
+		if fName == "BlockHeight" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldBlockHeight(so.BlockHeight, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldBlockHeight(so.BlockHeight, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldBlockHeight(so.BlockHeight, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+		if fName == "Reward" {
+			res := true
+			if t == FieldMdHandleTypeCheck {
+				res = s.mdFieldReward(so.Reward, true, false, false, so)
+				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+			} else if t == FieldMdHandleTypeDel {
+				res = s.mdFieldReward(so.Reward, false, true, false, so)
+				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+			} else if t == FieldMdHandleTypeInsert {
+				res = s.mdFieldReward(so.Reward, false, false, true, so)
+				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+			}
+			if !res {
+				return errors.New(errStr)
+			}
+		}
+
+	}
+
+	return nil
+}
+
 ////////////// SECTION LKeys delete/insert ///////////////
 
 func (s *SoExtRewardWrap) delSortKeyBlockHeight(sa *SoExtReward) bool {
@@ -134,27 +290,13 @@ func (s *SoExtRewardWrap) delSortKeyBlockHeight(sa *SoExtReward) bool {
 	}
 	val := SoListExtRewardByBlockHeight{}
 	if sa == nil {
-		key, err := s.encodeMemKey("BlockHeight")
-		if err != nil {
-			return false
-		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemExtRewardByBlockHeight{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		val.BlockHeight = ori.BlockHeight
+		val.BlockHeight = s.GetBlockHeight()
 		val.Id = s.mainKey
 
 	} else {
 		val.BlockHeight = sa.BlockHeight
 		val.Id = sa.Id
 	}
-
 	subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -187,6 +329,7 @@ func (s *SoExtRewardWrap) delAllSortKeys(br bool, val *SoExtReward) bool {
 		return false
 	}
 	res := true
+
 	if !s.delSortKeyBlockHeight(val) {
 		if br {
 			return false
@@ -205,6 +348,7 @@ func (s *SoExtRewardWrap) insertAllSortKeys(val *SoExtReward) error {
 	if val == nil {
 		return errors.New("insert sort Field fail,get the SoExtReward fail ")
 	}
+
 	if !s.insertSortKeyBlockHeight(val) {
 		return errors.New("insert sort Field BlockHeight fail while insert table ")
 	}
@@ -218,7 +362,6 @@ func (s *SoExtRewardWrap) RemoveExtReward() bool {
 	if s.dba == nil {
 		return false
 	}
-	val := &SoExtReward{}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
 		return false
@@ -229,7 +372,12 @@ func (s *SoExtRewardWrap) RemoveExtReward() bool {
 		return false
 	}
 
-	err := s.delAllMemKeys(true, val)
+	//delete table
+	key, err := s.encodeMainKey()
+	if err != nil {
+		return false
+	}
+	err = s.dba.Delete(key)
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
@@ -240,144 +388,14 @@ func (s *SoExtRewardWrap) RemoveExtReward() bool {
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
-func (s *SoExtRewardWrap) getMemKeyPrefix(fName string) uint32 {
-	if fName == "BlockHeight" {
-		return ExtRewardBlockHeightCell
-	}
-	if fName == "Id" {
-		return ExtRewardIdCell
-	}
-	if fName == "Reward" {
-		return ExtRewardRewardCell
-	}
-
-	return 0
-}
-
-func (s *SoExtRewardWrap) encodeMemKey(fName string) ([]byte, error) {
-	if len(fName) < 1 || s.mainKey == nil {
-		return nil, errors.New("field name or main key is empty")
-	}
-	pre := s.getMemKeyPrefix(fName)
-	preBuf, err := kope.Encode(pre)
-	if err != nil {
-		return nil, err
-	}
-	mBuf, err := s.getMainKeyBuf()
-	if err != nil {
-		return nil, err
-	}
-	list := make([][]byte, 2)
-	list[0] = preBuf
-	list[1] = mBuf
-	return kope.PackList(list), nil
-}
-
-func (s *SoExtRewardWrap) saveAllMemKeys(tInfo *SoExtReward, br bool) error {
-	if s.dba == nil {
-		return errors.New("save member Field fail , the db is nil")
-	}
-
-	if tInfo == nil {
-		return errors.New("save member Field fail , the data is nil ")
-	}
-	var err error = nil
-	errDes := ""
-	if err = s.saveMemKeyBlockHeight(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "BlockHeight", err)
-		}
-	}
-	if err = s.saveMemKeyId(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Id", err)
-		}
-	}
-	if err = s.saveMemKeyReward(tInfo); err != nil {
-		if br {
-			return err
-		} else {
-			errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "Reward", err)
-		}
-	}
-
-	if len(errDes) > 0 {
-		return errors.New(errDes)
-	}
-	return err
-}
-
-func (s *SoExtRewardWrap) delAllMemKeys(br bool, tInfo *SoExtReward) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	t := reflect.TypeOf(*tInfo)
-	errDesc := ""
-	for k := 0; k < t.NumField(); k++ {
-		name := t.Field(k).Name
-		if len(name) > 0 && !strings.HasPrefix(name, "XXX_") {
-			err := s.delMemKey(name)
-			if err != nil {
-				if br {
-					return err
-				}
-				errDesc += fmt.Sprintf("delete the Field %s fail,error is %s;\n", name, err)
-			}
-		}
-	}
-	if len(errDesc) > 0 {
-		return errors.New(errDesc)
-	}
-	return nil
-}
-
-func (s *SoExtRewardWrap) delMemKey(fName string) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if len(fName) <= 0 {
-		return errors.New("the field name is empty ")
-	}
-	key, err := s.encodeMemKey(fName)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Delete(key)
-	return err
-}
-
-func (s *SoExtRewardWrap) saveMemKeyBlockHeight(tInfo *SoExtReward) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemExtRewardByBlockHeight{}
-	val.BlockHeight = tInfo.BlockHeight
-	key, err := s.encodeMemKey("BlockHeight")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
 
 func (s *SoExtRewardWrap) GetBlockHeight() uint64 {
 	res := true
-	msg := &SoMemExtRewardByBlockHeight{}
+	msg := &SoExtReward{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("BlockHeight")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -400,74 +418,74 @@ func (s *SoExtRewardWrap) GetBlockHeight() uint64 {
 	return msg.BlockHeight
 }
 
-func (s *SoExtRewardWrap) MdBlockHeight(p uint64) bool {
+func (s *SoExtRewardWrap) mdFieldBlockHeight(p uint64, isCheck bool, isDel bool, isInsert bool,
+	so *SoExtReward) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("BlockHeight")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemExtRewardByBlockHeight{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoExtReward{}
-	sa.Id = s.mainKey
 
-	sa.BlockHeight = ori.BlockHeight
+	if isCheck {
+		res := s.checkBlockHeightIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	if !s.delSortKeyBlockHeight(sa) {
-		return false
+	if isDel {
+		res := s.delFieldBlockHeight(so)
+		if !res {
+			return false
+		}
 	}
-	ori.BlockHeight = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key, val)
-	if err != nil {
-		return false
-	}
-	sa.BlockHeight = p
 
-	if !s.insertSortKeyBlockHeight(sa) {
+	if isInsert {
+		res := s.insertFieldBlockHeight(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoExtRewardWrap) delFieldBlockHeight(so *SoExtReward) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if !s.delSortKeyBlockHeight(so) {
 		return false
 	}
 
 	return true
 }
 
-func (s *SoExtRewardWrap) saveMemKeyId(tInfo *SoExtReward) error {
+func (s *SoExtRewardWrap) insertFieldBlockHeight(so *SoExtReward) bool {
 	if s.dba == nil {
-		return errors.New("the db is nil")
+		return false
 	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
+
+	if !s.insertSortKeyBlockHeight(so) {
+		return false
 	}
-	val := SoMemExtRewardById{}
-	val.Id = tInfo.Id
-	key, err := s.encodeMemKey("Id")
-	if err != nil {
-		return err
+
+	return true
+}
+
+func (s *SoExtRewardWrap) checkBlockHeightIsMetMdCondition(p uint64) bool {
+	if s.dba == nil {
+		return false
 	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
+
+	return true
 }
 
 func (s *SoExtRewardWrap) GetId() *prototype.RewardCashoutId {
 	res := true
-	msg := &SoMemExtRewardById{}
+	msg := &SoExtReward{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Id")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -490,34 +508,13 @@ func (s *SoExtRewardWrap) GetId() *prototype.RewardCashoutId {
 	return msg.Id
 }
 
-func (s *SoExtRewardWrap) saveMemKeyReward(tInfo *SoExtReward) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if tInfo == nil {
-		return errors.New("the data is nil")
-	}
-	val := SoMemExtRewardByReward{}
-	val.Reward = tInfo.Reward
-	key, err := s.encodeMemKey("Reward")
-	if err != nil {
-		return err
-	}
-	buf, err := proto.Marshal(&val)
-	if err != nil {
-		return err
-	}
-	err = s.dba.Put(key, buf)
-	return err
-}
-
 func (s *SoExtRewardWrap) GetReward() *prototype.Vest {
 	res := true
-	msg := &SoMemExtRewardByReward{}
+	msg := &SoExtReward{}
 	if s.dba == nil {
 		res = false
 	} else {
-		key, err := s.encodeMemKey("Reward")
+		key, err := s.encodeMainKey()
 		if err != nil {
 			res = false
 		} else {
@@ -540,35 +537,55 @@ func (s *SoExtRewardWrap) GetReward() *prototype.Vest {
 	return msg.Reward
 }
 
-func (s *SoExtRewardWrap) MdReward(p *prototype.Vest) bool {
+func (s *SoExtRewardWrap) mdFieldReward(p *prototype.Vest, isCheck bool, isDel bool, isInsert bool,
+	so *SoExtReward) bool {
 	if s.dba == nil {
 		return false
 	}
-	key, err := s.encodeMemKey("Reward")
-	if err != nil {
-		return false
-	}
-	buf, err := s.dba.Get(key)
-	if err != nil {
-		return false
-	}
-	ori := &SoMemExtRewardByReward{}
-	err = proto.Unmarshal(buf, ori)
-	sa := &SoExtReward{}
-	sa.Id = s.mainKey
 
-	sa.Reward = ori.Reward
+	if isCheck {
+		res := s.checkRewardIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
 
-	ori.Reward = p
-	val, err := proto.Marshal(ori)
-	if err != nil {
+	if isDel {
+		res := s.delFieldReward(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldReward(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoExtRewardWrap) delFieldReward(so *SoExtReward) bool {
+	if s.dba == nil {
 		return false
 	}
-	err = s.dba.Put(key, val)
-	if err != nil {
+
+	return true
+}
+
+func (s *SoExtRewardWrap) insertFieldReward(so *SoExtReward) bool {
+	if s.dba == nil {
 		return false
 	}
-	sa.Reward = p
+
+	return true
+}
+
+func (s *SoExtRewardWrap) checkRewardIsMetMdCondition(p *prototype.Vest) bool {
+	if s.dba == nil {
+		return false
+	}
 
 	return true
 }
@@ -774,11 +791,38 @@ func (s *SoExtRewardWrap) getExtReward() *SoExtReward {
 	return res
 }
 
+func (s *SoExtRewardWrap) updateExtReward(so *SoExtReward) error {
+	if s.dba == nil {
+		return errors.New("update fail:the db is nil")
+	}
+
+	if so == nil {
+		return errors.New("update fail: the SoExtReward is nil")
+	}
+
+	key, err := s.encodeMainKey()
+	if err != nil {
+		return nil
+	}
+
+	buf, err := proto.Marshal(so)
+	if err != nil {
+		return err
+	}
+
+	err = s.dba.Put(key, buf)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *SoExtRewardWrap) encodeMainKey() ([]byte, error) {
 	if s.mKeyBuf != nil {
 		return s.mKeyBuf, nil
 	}
-	pre := s.getMemKeyPrefix("Id")
+	pre := ExtRewardIdRow
 	sub := s.mainKey
 	if sub == nil {
 		return nil, errors.New("the mainKey is nil")
@@ -853,7 +897,6 @@ func (s *SoExtRewardWrap) delUniKeyId(sa *SoExtReward) bool {
 	pre := ExtRewardIdUniTable
 	kList := []interface{}{pre}
 	if sa != nil {
-
 		if sa.Id == nil {
 			return false
 		}
@@ -861,20 +904,11 @@ func (s *SoExtRewardWrap) delUniKeyId(sa *SoExtReward) bool {
 		sub := sa.Id
 		kList = append(kList, sub)
 	} else {
-		key, err := s.encodeMemKey("Id")
-		if err != nil {
-			return false
+		sub := s.GetId()
+		if sub == nil {
+			return true
 		}
-		buf, err := s.dba.Get(key)
-		if err != nil {
-			return false
-		}
-		ori := &SoMemExtRewardById{}
-		err = proto.Unmarshal(buf, ori)
-		if err != nil {
-			return false
-		}
-		sub := ori.Id
+
 		kList = append(kList, sub)
 
 	}
@@ -889,6 +923,7 @@ func (s *SoExtRewardWrap) insertUniKeyId(sa *SoExtReward) bool {
 	if s.dba == nil || sa == nil {
 		return false
 	}
+
 	pre := ExtRewardIdUniTable
 	sub := sa.Id
 	kList := []interface{}{pre, sub}
