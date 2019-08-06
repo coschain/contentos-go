@@ -9,6 +9,8 @@ func TestEconomist(t *testing.T) {
 	t.Run("mint", dandelion.NewDandelionTest(new(MintTester).Test, 3))
 	t.Run("post", dandelion.NewDandelionTest(new(PostTester).Test1, 3))
 	t.Run("post", dandelion.NewDandelionTest(new(PostTester).Test2, 3))
+	t.Run("post", dandelion.NewDandelionTest(new(PostTester).Test3, 3))
+	t.Run("post", dandelion.NewDandelionTest(new(PostTester).Test4, 3))
 }
 
 

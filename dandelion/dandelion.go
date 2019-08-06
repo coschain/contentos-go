@@ -239,3 +239,14 @@ func (d *Dandelion) ContractTables(owner, contract string) *table2.ContractTable
 		return table2.NewContractTables(owner, contract, abiInterface, d.Database())
 	}
 }
+
+func (d *Dandelion) ModifyProps(modifier func(oldProps *prototype.DynamicProperties)) error {
+	chainId := int32(1)
+	dgpWrap := table.NewSoGlobalWrap(d.Database(),  &chainId)
+	props := dgpWrap.GetProps()
+	modifier(props)
+	if ok := dgpWrap.MdProps(props); !ok {
+		return fmt.Errorf("modify global props failed")
+	}
+	return nil
+}
