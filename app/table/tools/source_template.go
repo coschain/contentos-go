@@ -17,7 +17,7 @@ var prefixMap = map[uint32]string{}
 
 type FieldType int
 const (
-	FieldTypeMem  FieldType = iota //common member field in the table
+	FieldTypeRow  FieldType = iota //common member field in the table
 	FieldTypeSort                  //a field which is supported sorting
 	FieldTypeUni                   //a field which is supported unique query
 )
@@ -73,7 +73,9 @@ var (
 	{{$.ClsName}}{{$k}}UniTable uint32 = {{$v.Prefix}}
     {{end -}}
     {{range $k, $v := .MemberKeyMap -}}
-    {{$.ClsName}}{{$k}}Cell uint32 = {{$v.Prefix}}
+    {{if eq $k $.MainKeyName}}
+    {{$.ClsName}}{{$k}}Row uint32 = {{$v.Prefix}}
+    {{end}}
     {{end -}}
 )
 
@@ -84,13 +86,14 @@ type So{{.ClsName}}Wrap struct {
     mKeyFlag    int //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
 	mKeyBuf     []byte //the buffer after the main key is encoded with prefix
 	mBuf        []byte //the value after the main key is encoded
+    mdFuncMap  map[string]interface{}
 }
 
 func NewSo{{.ClsName}}Wrap(dba iservices.IDatabaseRW, key *{{formatStr .MainKeyType}}) *So{{.ClsName}}Wrap{
 	if dba == nil || key == nil {
        return nil
     }
-    result := &So{{.ClsName}}Wrap{dba,key,-1,nil,nil}
+    result := &So{{.ClsName}}Wrap{dba,key,-1,nil,nil, nil}
 	return result
 }
 
@@ -145,18 +148,22 @@ func (s *So{{.ClsName}}Wrap) Create(f func(tInfo *So{{.ClsName}})) error {
        return err
 
 	}
-    err = s.saveAllMemKeys(val,true)
-    if err != nil {
-       s.delAllMemKeys(false,val)
-       return err
-    }
+        
+    buf,err := proto.Marshal(val)
+	if err != nil {
+		return err
+	}
+	err = s.dba.Put(keyBuf, buf)
+	if err != nil {
+		return err
+	}
+
 
     {{if ge  $.SListCount 0 -}}
 	// update srt list keys
 	if err = s.insertAllSortKeys(val); err != nil {
        s.delAllSortKeys(false,val)
        s.dba.Delete(keyBuf)
-       s.delAllMemKeys(false,val)
        return err
     }
     {{end}}
@@ -166,10 +173,10 @@ func (s *So{{.ClsName}}Wrap) Create(f func(tInfo *So{{.ClsName}})) error {
         s.delAllSortKeys(false,val)
         s.delUniKeysWithNames(sucNames,val)
         s.dba.Delete(keyBuf)
-        s.delAllMemKeys(false,val)
         return err
     }
     {{end}}
+    s.mKeyFlag = 1
 	return nil
 }
 
@@ -187,6 +194,160 @@ func (s *So{{.ClsName}}Wrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf,nil
 }
 
+func (s *So{{.ClsName}}Wrap) Modify(f func(tInfo *So{{.ClsName}})) error {
+    if !s.CheckExist() {
+		return errors.New("the So{{.ClsName}} table does not exist. Please create a table first")
+	}
+    oriTable := s.get{{.ClsName}}()
+	if oriTable == nil {
+		return errors.New("fail to get origin table So{{.ClsName}}")
+	}
+	curTable := *oriTable
+	f(&curTable)
+
+    //the main key is not support modify
+    if !reflect.DeepEqual(curTable.{{$.MainKeyName}}, oriTable.{{$.MainKeyName}}) {
+       return errors.New("primary key does not support modification")
+    }
+
+ 
+    fieldSli,err := s.getModifiedFields(oriTable, &curTable)
+    if err != nil {
+		return err
+	}
+ 
+    if fieldSli == nil || len(fieldSli) < 1 {
+		return nil
+	}
+
+    //check whether modify sort and unique field to nil
+    err = s.checkSortAndUniFieldValidity(&curTable, fieldSli)
+    if err != nil {
+       return err
+    }
+
+
+    //check unique 
+    err = s.handleFieldMd(FieldMdHandleTypeCheck, &curTable, fieldSli)
+    if err != nil {
+       return err
+    }
+      
+    //delete sort and unique key
+    err = s.handleFieldMd(FieldMdHandleTypeDel, oriTable, fieldSli)
+    if err != nil {
+       return err
+    }
+    
+    //update table
+    err = s.update{{.ClsName}}(&curTable)
+    if err != nil {
+       return err
+    }
+
+    //insert sort and unique key 
+    err = s.handleFieldMd(FieldMdHandleTypeInsert, &curTable, fieldSli)
+    if err != nil {
+       return err
+    }
+    
+    return nil
+
+}
+
+
+func (s *So{{$.ClsName}}Wrap) checkSortAndUniFieldValidity(curTable *So{{$.ClsName}}, fieldSli []string) error {
+     if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
+        for _,fName := range fieldSli {
+            if len(fName) > 0 {
+             {{range $k1, $v1 := .SortList}}
+            {{if ne $v1.PName $.MainKeyName}}
+             {{$baseType := (DetectBaseType $v1.PType) -}}
+	         {{if not $baseType -}} 
+             if fName == "{{$v1.PName}}" &&  curTable.{{$v1.PName}} == nil {
+                 return errors.New("sort field {{$v1.PName}} can't be modified to nil")
+             }
+             {{end}}
+
+            {{end}}
+            {{end}}
+
+            {{range $k2, $v2 := .UniqueFieldMap}}
+            {{if ne $v2.PName $.MainKeyName}}
+              {{$baseType := (DetectBaseType $v2.PType) -}}
+	          {{if not $baseType -}}
+              {{ $isSrt := checkIsContainField  $v2.PName $.LKeyWithType}} 
+              {{if eq $isSrt false }}
+              if fName == "{{$v2.PName}}" && curTable.{{$v2.PName}} == nil{
+                 return errors.New("unique field {{$v2.PName}} can't be modified to nil")
+              }
+              {{end}}
+              {{end}}
+             
+            {{end}}
+            {{end}}
+            }
+        }
+     }
+     return nil
+}
+
+//Get all the modified fields in the table
+func (s *So{{$.ClsName}}Wrap) getModifiedFields (oriTable *So{{$.ClsName}}, curTable *So{{$.ClsName}}) ([]string, error) {
+     if oriTable == nil  {
+       return nil,errors.New("table info is nil, can't get modified fields")
+	 }
+     var list []string
+     {{range $k1, $v1 := .MemberKeyMap}}
+     {{if ne $k1 $.MainKeyName}}
+     if !reflect.DeepEqual(oriTable.{{$k1}}, curTable.{{$k1}}) {
+		list = append(list, "{{$k1}}")
+	 }
+     {{end}}
+     {{end}}
+     return list,nil
+}
+
+func (s *So{{$.ClsName}}Wrap) handleFieldMd (t FieldMdHandleType, so *So{{.ClsName}}, fSli []string) error {
+     if so == nil {
+        return errors.New("fail to modify empty table")
+     }
+     
+     //there is no field need to modify
+     if fSli == nil || len(fSli) < 1 {
+        return nil
+     }
+
+
+     errStr := ""
+     for _,fName := range fSli {
+        {{range $k1, $v1 := .MemberKeyMap}}
+        {{if ne $k1 $.MainKeyName}}
+         if fName == "{{$k1}}" {
+             res := true
+            if t == FieldMdHandleTypeCheck {
+               res = s.mdField{{$k1}}(so.{{$k1}}, true, false, false, so)
+               errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
+            } else if t == FieldMdHandleTypeDel {
+               res = s.mdField{{$k1}}(so.{{$k1}}, false, true, false, so)
+               errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
+            } else if t == FieldMdHandleTypeInsert {
+               res = s.mdField{{$k1}}(so.{{$k1}}, false, false, true, so)
+               errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
+            } 
+            if !res {
+               return errors.New(errStr)
+            }
+         } 
+         {{end}}
+         {{end}}
+     }
+     
+     return nil
+}
+
+
+
 ////////////// SECTION LKeys delete/insert ///////////////
 {{range $k1, $v1 := .SortList}}
 func (s *So{{$.ClsName}}Wrap) delSortKey{{$v1.PName}}(sa *So{{$.ClsName}}) bool {
@@ -195,20 +356,7 @@ func (s *So{{$.ClsName}}Wrap) delSortKey{{$v1.PName}}(sa *So{{$.ClsName}}) bool 
     }
 	val := SoList{{$.ClsName}}By{{$v1.PName}}{}
     if sa == nil {
-       key,err := s.encodeMemKey("{{$v1.PName}}")
-       if err != nil {
-          return false
-       }
-       buf,err := s.dba.Get(key)
-       if err != nil {
-          return false
-       }
-       ori := &SoMem{{$.ClsName}}By{{$v1.PName}}{}
-       err = proto.Unmarshal(buf, ori)
-       if err != nil {
-          return false
-       }
-       val.{{$v1.PName}} = ori.{{$v1.PName}} 
+       val.{{$v1.PName}} = s.Get{{$v1.PName}}()
        {{if ne $.MainKeyName $v1.PName -}}
        {{ $baseType := (DetectBaseType $.MainKeyType) -}}
        {{- if $baseType -}} 
@@ -224,7 +372,6 @@ func (s *So{{$.ClsName}}Wrap) delSortKey{{$v1.PName}}(sa *So{{$.ClsName}}) bool 
        val.{{UperFirstChar $.MainKeyName}} = sa.{{UperFirstChar $.MainKeyName}}
        {{end -}}
     }
-	
     subBuf, err := val.OpeEncode()
 	if err != nil {
 		return false
@@ -264,6 +411,7 @@ func (s *So{{$.ClsName}}Wrap) delAllSortKeys(br bool, val *So{{.ClsName}}) bool 
     }
     res := true
     {{range $k, $v := .LKeys -}}
+    {{if ne $v $.MainKeyName}}
     if !s.delSortKey{{$v}}(val) {
         if br {
            return false
@@ -271,6 +419,7 @@ func (s *So{{$.ClsName}}Wrap) delAllSortKeys(br bool, val *So{{.ClsName}}) bool 
            res = false
         }
     }
+    {{end}}
 	{{end}}
     return res
 }
@@ -283,9 +432,11 @@ func (s *So{{$.ClsName}}Wrap)insertAllSortKeys(val *So{{$.ClsName}}) error {
 		return errors.New("insert sort Field fail,get the So{{.ClsName}} fail ")
 	}
     {{range $k, $v := .LKeys -}}
-	if !s.insertSortKey{{$v}}(val) {
+    {{if ne $v $.MainKeyName}}
+    if !s.insertSortKey{{$v}}(val) {
        return errors.New("insert sort Field {{$v}} fail while insert table ")
 	}
+    {{end}}
 	{{end}}    
     return nil
 }
@@ -297,7 +448,6 @@ func (s *So{{.ClsName}}Wrap) Remove{{.ClsName}}() bool {
     if s.dba == nil {
        return false
     }
-	val := &So{{.ClsName}}{}
     {{if ge  $.SListCount 0 -}}
     //delete sort list key
     if res := s.delAllSortKeys(true, nil); !res {
@@ -310,7 +460,13 @@ func (s *So{{.ClsName}}Wrap) Remove{{.ClsName}}() bool {
        return false
     }
     {{end}}
-    err := s.delAllMemKeys(true,val)
+
+    //delete table 
+    key,err := s.encodeMainKey()
+    if err != nil {
+       return false
+    }
+    err = s.dba.Delete(key)
     if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
@@ -321,130 +477,16 @@ func (s *So{{.ClsName}}Wrap) Remove{{.ClsName}}() bool {
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
-func (s *So{{.ClsName}}Wrap) getMemKeyPrefix(fName string) uint32 {
-     {{range $k,$v := .MemberKeyMap -}}
-     if fName == "{{$v.PName}}" {
-        return {{$.ClsName}}{{$v.PName}}Cell
-     }
-     {{end}}
-     return 0
-}
-
-func (s *So{{.ClsName}}Wrap) encodeMemKey(fName string) ([]byte,error) {
-	if len(fName) < 1 || s.mainKey == nil {
-		return nil,errors.New("field name or main key is empty")
-	}
-	pre := s.getMemKeyPrefix(fName)
-	preBuf,err := kope.Encode(pre)
-	if err != nil {
-		return nil,err
-	}
-	mBuf,err := s.getMainKeyBuf()
-	if err != nil {
-		return nil,err
-	}
-	list := make([][]byte,2)
-	list[0] = preBuf
-	list[1] = mBuf
-	return kope.PackList(list),nil
-}
-
-func (s *So{{$.ClsName}}Wrap) saveAllMemKeys(tInfo *So{{.ClsName}} ,br bool) error {
-     if s.dba == nil {
-       return errors.New("save member Field fail , the db is nil")
-     }
-     
-	if tInfo == nil {
-		return errors.New("save member Field fail , the data is nil ")
-	}
-    var err error = nil
-    errDes := ""
-    {{range $k, $v := .MemberKeyMap -}}
-	if err = s.saveMemKey{{$k}}(tInfo); err != nil {
-       if br {
-          return err
-       }else {
-          errDes += fmt.Sprintf("save the Field %s fail,error is %s;\n", "{{$k}}", err)
-       }
-	}
-	{{end}} 
-    if len(errDes) > 0 {
-       return errors.New(errDes)
-    }
-    return err
-}
-
-
-func (s *So{{$.ClsName}}Wrap) delAllMemKeys(br bool,tInfo *So{{.ClsName}}) error {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	t := reflect.TypeOf(*tInfo)
-	errDesc := ""
-	for k := 0; k < t.NumField(); k++ {
-		name := t.Field(k).Name
-		if len(name) > 0 && !strings.HasPrefix(name, "XXX_") {
-            err := s.delMemKey(name)
-            if err != nil {
-               if br {
-                  return err
-               }
-               errDesc += fmt.Sprintf("delete the Field %s fail,error is %s;\n",name,err)
-            }
-		}
-	}
-	if len(errDesc) > 0 {
-		return errors.New(errDesc)
-	}
-	return nil
-}
-
-func (s *So{{$.ClsName}}Wrap)delMemKey(fName string) error  {
-	if s.dba == nil {
-		return errors.New("the db is nil")
-	}
-	if len(fName) <= 0 {
-		return errors.New("the field name is empty ")
-	}
-    key,err := s.encodeMemKey(fName) 
-    if err != nil {
-    	return err
-	}
-    err = s.dba.Delete(key)
-    return err
-}
-
 
 {{range $k1, $v1 := .MemberKeyMap -}}
-func (s *So{{$.ClsName}}Wrap)saveMemKey{{$k1}}(tInfo *So{{$.ClsName}}) error {
-	 if s.dba == nil {
-	 	return errors.New("the db is nil")
-	 }
-	 if tInfo == nil {
-		 return errors.New("the data is nil")
-	 }
-	 val := SoMem{{$.ClsName}}By{{$k1}}{}
-	 val.{{$k1}} = tInfo.{{$k1}}
-	 key,err := s.encodeMemKey("{{$k1}}")
-	 if err != nil {
-		 return err
-	 }
-	 buf,err :=  proto.Marshal(&val)
-	 if err != nil {
-		 return err
-	 }
-	 err = s.dba.Put(key,buf)
-	 return err
-}
-
 
 func (s *So{{$.ClsName}}Wrap) Get{{$k1}}() {{formatRTypeStr $v1.PType}} {
    res := true
-   msg := &SoMem{{$.ClsName}}By{{$k1}}{}
+   msg := &So{{$.ClsName}}{}
    if s.dba == nil { 
       res = false
    }else {
-      key,err := s.encodeMemKey("{{$k1}}")
+      key,err := s.encodeMainKey()
       if err != nil {
          res = false
       }else { 
@@ -474,30 +516,84 @@ func (s *So{{$.ClsName}}Wrap) Get{{$k1}}() {{formatRTypeStr $v1.PType}} {
 }
 
 {{if ne $k1 $.MainKeyName}}
+func (s *So{{$.ClsName}}Wrap) mdField{{$k1}}(p {{formatRTypeStr $v1.PType}}, isCheck bool, isDel bool, isInsert bool, 
+ so *So{{$.ClsName}}) bool {
+	if s.dba == nil {
+		return false
+	}
+	
+	if isCheck {
+		res := s.check{{$k1}}IsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
+	
+	if isDel {
+		res := s.delField{{$k1}}(so)
+		if !res {
+			return false
+		}
+	}
+	
+	if isInsert {
+		res := s.insertField{{$k1}}(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
 
-func (s *So{{$.ClsName}}Wrap) Md{{$k1}}(p {{formatRTypeStr $v1.PType}}) bool {
-    if s.dba == nil {
-       return false
-    }
-    key,err := s.encodeMemKey("{{$k1}}")
-    if err != nil {
-       return false
-    }
-    buf,err := s.dba.Get(key)
-    if err != nil {
-       return false
-    }
-    ori := &SoMem{{$.ClsName}}By{{$k1}}{}
-    err = proto.Unmarshal(buf, ori)
-	sa := &So{{$.ClsName}}{}
-    {{ $type := (DetectBaseType $.MainKeyType) -}}
-    {{- if $type -}} 
-    sa.{{$.MainKeyName}} = *s.mainKey
-    {{- end -}}
-    {{ if not $type -}} 
-    sa.{{$.MainKeyName}} = s.mainKey
-    {{end }}
-    sa.{{$k1}} = ori.{{$k1}}
+func (s *So{{$.ClsName}}Wrap) delField{{$k1}}(so *So{{$.ClsName}}) bool {
+   if s.dba == nil {
+      return false
+   }
+   {{- range $k2, $v2 := $.UniqueFieldMap -}}
+   {{- if eq $k2 $k1 }}
+   if !s.delUniKey{{$k2}}(so) {
+		return false
+   }
+   {{end}}
+   {{end}}
+
+   {{range $k3, $v3 := $.LKeys -}}
+   {{if eq $v3 $k1 }}
+   if !s.delSortKey{{$k1}}(so) {
+      return false
+   }
+   {{- end -}}
+   {{end}}
+   
+   return true
+}
+
+func (s *So{{$.ClsName}}Wrap) insertField{{$k1}}(so *So{{$.ClsName}}) bool {
+	if s.dba == nil {
+		return false
+	}
+   {{range $k2, $v2 := $.LKeys -}}
+   {{if eq $v2 $k1}}
+   if !s.insertSortKey{{$k1}}(so) {
+		return false
+   }
+   {{end}}
+   {{end}}
+
+   {{- range $k3, $v3 := $.UniqueFieldMap}}
+		{{if eq $k3 $k1 }}
+   if !s.insertUniKey{{$k3}}(so) {
+		return false
+   }
+   {{- end -}}
+   {{end}}
+   return true
+}
+
+func (s *So{{$.ClsName}}Wrap) check{{$k1}}IsMetMdCondition(p {{formatRTypeStr $v1.PType}}) bool {
+	if s.dba == nil {
+		return false
+	}
     {{- range $k2, $v2 := $.UniqueFieldMap -}}
       {{- if eq $k2 $k1 }}
     //judge the unique value if is exist
@@ -514,44 +610,11 @@ func (s *So{{$.ClsName}}Wrap) Md{{$k1}}(p {{formatRTypeStr $v1.PType}}) bool {
 		//the unique value to be modified is already exist
 		return false
 	}
-	if !s.delUniKey{{$k2}}(sa) {
-		return false
-	}
-    {{end -}}
-	  {{end}}
-	{{range $k3, $v3 := $.LKeys -}}
-		{{if eq $v3 $k1 }}
-	if !s.delSortKey{{$k1}}(sa) {
-		return false
-	}
-		{{- end -}}
-	{{end}}
-	ori.{{$k1}} = p
-	val,err := proto.Marshal(ori)
-	if err != nil {
-		return false
-	}
-	err = s.dba.Put(key,val)
-	if err != nil {
-		return false
-	}
-    sa.{{$k1}} = p
-    {{range $k4, $v4 := $.LKeys -}}
-      {{ if eq $v4 $k1 }}
-    if !s.insertSortKey{{$k1}}(sa) {
-		return false
-    }
-       {{end -}}
-    {{end}}
-    {{- range $k5, $v5 := $.UniqueFieldMap -}}
-		{{if eq $k5 $k1 }}
-    if !s.insertUniKey{{$k5}}(sa) {
-		return false
-    }
-		{{- end -}}
-	{{end}}
+   {{end}}
+   {{end}}
 	return true
 }
+
 {{end}}
 {{end}}
 
@@ -779,11 +842,40 @@ func (s *So{{$.ClsName}}Wrap) get{{$.ClsName}}() *So{{$.ClsName}} {
 	return res
 }
 
+
+func (s *So{{$.ClsName}}Wrap) update{{$.ClsName}}(so *So{{$.ClsName}}) error {
+     if s.dba == nil {
+		return errors.New("update fail:the db is nil")
+	}
+	
+	if so == nil {
+		return errors.New("update fail: the So{{$.ClsName}} is nil")
+	}
+     
+     key, err := s.encodeMainKey()
+	if err != nil {
+		return nil
+	}
+	
+	buf,err := proto.Marshal(so)
+	if err != nil {
+		return err
+	}
+	
+	err = s.dba.Put(key, buf)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+
 func (s *So{{$.ClsName}}Wrap) encodeMainKey() ([]byte, error) {
     if s.mKeyBuf != nil {
 		return s.mKeyBuf,nil
 	}
-    pre := s.getMemKeyPrefix("{{.MainKeyName}}")
+    pre := {{$.ClsName}}{{.MainKeyName}}Row
     sub := s.mainKey
     if sub == nil {
        return nil,errors.New("the mainKey is nil")
@@ -866,7 +958,7 @@ func (s *So{{$.ClsName}}Wrap) delUniKey{{$k}}(sa *So{{$.ClsName}}) bool {
     kList := []interface{}{pre}
     if sa != nil {
        {{ $baseType := (DetectBaseType $v.PType) -}}
-       {{if not $baseType }} 
+       {{if not $baseType -}} 
        if sa.{{UperFirstChar $k}} == nil {
           return false
        }
@@ -874,20 +966,13 @@ func (s *So{{$.ClsName}}Wrap) delUniKey{{$k}}(sa *So{{$.ClsName}}) bool {
        sub := sa.{{UperFirstChar $k}}
        kList = append(kList,sub)
     }else {
-       key,err := s.encodeMemKey("{{$k}}")
-       if err != nil {
-          return false
+       sub := s.Get{{$k}}()
+       {{ $baseType := (DetectBaseType $v.PType) -}}
+       {{if not $baseType -}} 
+       if sub == nil {
+          return true
        }
-       buf,err := s.dba.Get(key)
-       if err != nil {
-          return false
-       }
-       ori := &SoMem{{$.ClsName}}By{{$k}}{}
-       err = proto.Unmarshal(buf, ori)
-       if err != nil {
-          return false
-       }
-       sub := ori.{{$k}}
+       {{end}}   
        kList = append(kList,sub)
        
     }
@@ -903,6 +988,7 @@ func (s *So{{$.ClsName}}Wrap) insertUniKey{{$k}}(sa *So{{$.ClsName}}) bool {
     if s.dba == nil || sa == nil{
        return false
     }
+
     pre := {{$.ClsName}}{{$k}}UniTable
     sub := sa.{{UperFirstChar $k}}
     kList := []interface{}{pre,sub}
@@ -982,6 +1068,7 @@ func (s *Uni{{$.ClsName}}{{$k}}Wrap) UniQuery{{$k}}(start *{{formatStr $v.PType}
 			"formatQueryParamStr": formatQueryParamStr,
 			"formatSliceType":     formatSliceType,
 			"getMapCount":         getMapCount,
+		    "checkIsContainField":  checkIsContainField,
 		}
 		t := template.New("go_template")
 		t = t.Funcs(funcMapUper)
@@ -1041,9 +1128,11 @@ func createParamsFromTableInfo(tInfo TableInfo) Params {
 		}
 		para.MemberKeyMap[fName] =  Field{
 			fName,
-		    fType,
-			getFieldPrefix(fName, tInfo.Name, FieldTypeMem),
+			fType,
+			getFieldPrefix(fName, tInfo.Name, FieldTypeRow),
 		}
+
+
 	}
 	para.SListCount = len(para.SortList)
 	return para
@@ -1064,8 +1153,8 @@ func getFieldPrefix(fName,tName string,fType FieldType) uint32 {
 		return 0
 	}
 	preStr := ""
-	if fType == FieldTypeMem {
-		preStr = tName + fName + "Cell"
+	if fType == FieldTypeRow {
+		preStr = tName + fName + "Row"
 	}else if fType == FieldTypeSort {
 		preStr = tName + fName + "Table"
 	}else if fType == FieldTypeUni {
@@ -1223,3 +1312,12 @@ func getMapCount(m interface{}) int {
 	return 0
 }
 
+func checkIsContainField(fName string, fMap map[string]string) bool {
+	if fMap != nil && len(fName) > 0 {
+		if _,ok := fMap[fName]; ok {
+			return true
+		}
+	}
+	return false
+
+}
