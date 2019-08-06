@@ -177,6 +177,9 @@ func (tester *AccountCreateTester) verifyValid(t *testing.T, d *Dandelion) {
 	a.Equal(balance0-10, tester.acc0.GetBalance().Value)
 	newAcct := d.Account(acctName)
 	a.NotEmpty(newAcct.CheckExist())
+	a.True(newAcct.GetBalance().Value == 0)
+	a.True(newAcct.GetVest().Value == 10)
+
 	d.PutAccount(acctName, priv)
     a.NoError(tester.acc0.SendTrx(Transfer(name0, acctName, 1000*constants.COSTokenDecimals, "")))
 	a.NoError(d.ProduceBlocks(1))
