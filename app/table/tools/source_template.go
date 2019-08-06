@@ -423,7 +423,6 @@ func (s *So{{$.ClsName}}Wrap) delAllSortKeys(br bool, val *So{{.ClsName}}) bool 
     }
     res := true
     {{range $k, $v := .LKeys -}}
-    {{if ne $v $.MainKeyName}}
     if !s.delSortKey{{$v}}(val) {
         if br {
            return false
@@ -431,7 +430,6 @@ func (s *So{{$.ClsName}}Wrap) delAllSortKeys(br bool, val *So{{.ClsName}}) bool 
            res = false
         }
     }
-    {{end}}
 	{{end}}
     return res
 }
@@ -444,11 +442,9 @@ func (s *So{{$.ClsName}}Wrap)insertAllSortKeys(val *So{{$.ClsName}}) error {
 		return errors.New("insert sort Field fail,get the So{{.ClsName}} fail ")
 	}
     {{range $k, $v := .LKeys -}}
-    {{if ne $v $.MainKeyName}}
     if !s.insertSortKey{{$v}}(val) {
        return errors.New("insert sort Field {{$v}} fail while insert table ")
 	}
-    {{end}}
 	{{end}}    
     return nil
 }
