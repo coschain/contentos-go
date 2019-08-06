@@ -345,7 +345,11 @@ func (ev *PostEvaluator) Apply() {
 		t.Copyright = constants.CopyrightUnkown
 	}), "create post error")
 
-	authorWrap.MdLastPostTime(ev.GlobalProp().HeadBlockTime())
+	//authorWrap.MdLastPostTime(ev.GlobalProp().HeadBlockTime())
+
+	mustNoError( authorWrap.Modify(func(tInfo *table.SoAccount) {
+		tInfo.LastPostTime = ev.GlobalProp().HeadBlockTime()
+	}), "")
 
 	ev.GlobalProp().ModifyProps(func(props *prototype.DynamicProperties) {
 		props.TotalPostCnt++
@@ -402,9 +406,18 @@ func (ev *ReplyEvaluator) Apply() {
 		t.Ticket = 0
 	}), "create reply error")
 
-	authorWrap.MdLastPostTime(ev.GlobalProp().HeadBlockTime())
+	//authorWrap.MdLastPostTime(ev.GlobalProp().HeadBlockTime())
+
+	mustNoError( authorWrap.Modify(func(tInfo *table.SoAccount) {
+		tInfo.LastPostTime = ev.GlobalProp().HeadBlockTime()
+	}), "")
+
 	// Modify Parent Object
-	opAssert(pidWrap.MdChildren(pidWrap.GetChildren()+1), "Modify Parent Children Error")
+	//opAssert(pidWrap.MdChildren(pidWrap.GetChildren()+1), "Modify Parent Children Error")
+
+	mustNoError( pidWrap.Modify(func(tInfo *table.SoPost) {
+		tInfo.Children ++
+	}), "")
 
 	//timestamp := ev.GlobalProp().HeadBlockTime().UtcSeconds + uint32(constants.PostCashOutDelayTime) - uint32(constants.GenesisTime)
 	//key := fmt.Sprintf("cashout:%d_%d", common.GetBucket(timestamp), op.Uuid)
@@ -450,8 +463,13 @@ func (ev *VoteEvaluator) Apply() {
 	}
 	usedVp := (currentVp + constants.VoteLimitDuringRegenerate - 1) / constants.VoteLimitDuringRegenerate
 
-	voterWrap.MdVotePower(currentVp - usedVp)
-	voterWrap.MdLastVoteTime(ev.GlobalProp().HeadBlockTime())
+	mustNoError( voterWrap.Modify(func(tInfo *table.SoAccount) {
+		tInfo.VotePower = currentVp - usedVp
+		tInfo.LastVoteTime = ev.GlobalProp().HeadBlockTime()
+	}), "")
+
+	//voterWrap.MdVotePower(currentVp - usedVp)
+	//voterWrap.MdLastVoteTime(ev.GlobalProp().HeadBlockTime())
 	vest := voterWrap.GetVest().Value
 	// after constants.PERCENT replaced by 1000, max value is 10000000000 * 1000000 * 1000 / 30
 	// 10000000000 * 1000000 * 1000 < 18446744073709552046 but 10000000000 * 1000000 > 9223372036854775807
@@ -475,7 +493,12 @@ func (ev *VoteEvaluator) Apply() {
 		// add new vp into global
 		//ev.GlobalProp().AddWeightedVP(weightedVp)
 		// update post's weighted vp
-		postWrap.MdWeightedVp(tvp.String())
+		//postWrap.MdWeightedVp(tvp.String())
+
+		mustNoError( postWrap.Modify(func(tInfo *table.SoPost) {
+			tInfo.WeightedVp = tvp.String()
+			tInfo.VoteCnt++
+		}), "")
 
 		opAssertE(voteWrap.Create(func(t *table.SoVote) {
 			t.Voter = &voterId
@@ -485,7 +508,7 @@ func (ev *VoteEvaluator) Apply() {
 			t.VoteTime = ev.GlobalProp().HeadBlockTime()
 		}), "create voter object error")
 
-		opAssert(postWrap.MdVoteCnt(postWrap.GetVoteCnt()+1), "set vote count error")
+		//opAssert(postWrap.MdVoteCnt(postWrap.GetVoteCnt()+1), "set vote count error")
 	}
 }
 
@@ -674,22 +697,33 @@ func (ev *BpUpdateEvaluator) Apply() {
 	opAssert(topNAcquireFreeToken <= constants.MaxTopN, fmt.Sprintf("top N VEST holders, the N is too big, " +
 		"which should lower than %d", constants.MaxTopN))
 
-	epochDuration := op.EpochDuration
+	//epochDuration := op.EpochDuration
 
 	perTicketPrice := op.PerTicketPrice
 	opAssert(perTicketPrice.Value >= constants.MinTicketPrice, fmt.Sprintf("the ticket price should greater than %d",
 		constants.MinTicketPrice))
 
-	perTicketWeight := op.PerTicketWeight
+	//perTicketWeight := op.PerTicketWeight
 
 	bpWrap := table.NewSoBlockProducerWrap(ev.Database(), op.Owner)
-	opAssert(bpWrap.MdProposedStaminaFree(staminaFree), "update bp proposed stamina free error")
-	opAssert(bpWrap.MdTpsExpected(tpsExpected), "update bp tps expected error")
-	opAssert(bpWrap.MdAccountCreateFee(accountCreateFee), "update account create fee error")
-	opAssert(bpWrap.MdTopNAcquireFreeToken(topNAcquireFreeToken), "update topna error")
-	opAssert(bpWrap.MdEpochDuration(epochDuration), "update epoch duration error")
-	opAssert(bpWrap.MdPerTicketPrice(perTicketPrice), "update per ticket price error")
-	opAssert(bpWrap.MdPerTicketWeight(perTicketWeight), "update per ticket weight error")
+	//opAssert(bpWrap.MdProposedStaminaFree(staminaFree), "update bp proposed stamina free error")
+	//opAssert(bpWrap.MdTpsExpected(tpsExpected), "update bp tps expected error")
+	//opAssert(bpWrap.MdAccountCreateFee(accountCreateFee), "update account create fee error")
+	//opAssert(bpWrap.MdTopNAcquireFreeToken(topNAcquireFreeToken), "update topna error")
+	//opAssert(bpWrap.MdEpochDuration(epochDuration), "update epoch duration error")
+	//opAssert(bpWrap.MdPerTicketPrice(perTicketPrice), "update per ticket price error")
+	//opAssert(bpWrap.MdPerTicketWeight(perTicketWeight), "update per ticket weight error")
+
+	mustNoError( bpWrap.Modify(func(tInfo *table.SoBlockProducer) {
+		tInfo.ProposedStaminaFree = op.ProposedStaminaFree
+		tInfo.TpsExpected = op.TpsExpected
+		tInfo.AccountCreateFee = op.AccountCreationFee
+		tInfo.TopNAcquireFreeToken = op.TopNAcquireFreeToken
+		tInfo.EpochDuration = op.EpochDuration
+		tInfo.PerTicketPrice = op.PerTicketPrice
+		tInfo.PerTicketWeight = op.PerTicketWeight
+	}), "")
+
 }
 
 func (ev *FollowEvaluator) Apply() {
@@ -771,10 +805,17 @@ func (ev *ConvertVestEvaluator) Apply() {
 	currentBlock := globalProps.HeadBlockNumber
 	eachRate := op.Amount.Value / (constants.ConvertWeeks - 1)
 	//accWrap.MdNextPowerdownTime(&prototype.TimePointSec{UtcSeconds: timestamp + constants.POWER_DOWN_INTERVAL})
-	accWrap.MdNextPowerdownBlockNum(currentBlock + constants.PowerDownBlockInterval)
-	accWrap.MdEachPowerdownRate(&prototype.Vest{Value: eachRate})
-	accWrap.MdHasPowerdown(&prototype.Vest{Value: 0})
-	accWrap.MdToPowerdown(op.Amount)
+	//accWrap.MdNextPowerdownBlockNum(currentBlock + constants.PowerDownBlockInterval)
+	//accWrap.MdEachPowerdownRate(&prototype.Vest{Value: eachRate})
+	//accWrap.MdHasPowerdown(&prototype.Vest{Value: 0})
+	//accWrap.MdToPowerdown(op.Amount)
+
+	mustNoError( accWrap.Modify(func(t *table.SoAccount) {
+		t.NextPowerdownBlockNum = currentBlock + constants.PowerDownBlockInterval
+		t.EachPowerdownRate = &prototype.Vest{Value: eachRate}
+		t.HasPowerdown = &prototype.Vest{Value: 0}
+		t.ToPowerdown = op.Amount
+	}), "power down update error")
 }
 
 type byTag []int32
@@ -906,10 +947,18 @@ func (ev *ContractDeployEvaluator) Apply() {
 	opAssertE(cosVM.Validate(), "validate code failed")
 
 	if scid.CheckExist() {
-		scid.MdAbi( abiString )
-		scid.MdCode( contractCode )
-		scid.MdUpgradeable( op.Upgradeable )
-		scid.MdHash( codeHash )
+		//scid.MdAbi( abiString )
+		//scid.MdCode( contractCode )
+		//scid.MdUpgradeable( op.Upgradeable )
+		//scid.MdHash( codeHash )
+
+		opAssertE( scid.Modify(func(tInfo *table.SoContract) {
+			tInfo.Abi = abiString
+			tInfo.Code = contractCode
+			tInfo.Upgradeable = op.Upgradeable
+			tInfo.Hash = codeHash
+		}), "update contract data error")
+
 	} else {
 		opAssertE(scid.Create(func(t *table.SoContract) {
 			t.Code = contractCode
