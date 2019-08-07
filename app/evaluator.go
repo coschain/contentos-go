@@ -243,7 +243,7 @@ func (ev *AccountCreateEvaluator) Apply() {
 
 	// sub creator's fee
 	originBalance := creatorWrap.GetBalance()
-	opAssertE(originBalance.Sub(accountCreateFee), "creator balance overflow")
+	originBalance.Sub(accountCreateFee)
 	opAssert(creatorWrap.MdBalance(originBalance), "")
 
 	// create account
@@ -300,10 +300,10 @@ func (ev *TransferEvaluator) Apply() {
 	fBalance := fromWrap.GetBalance()
 	tBalance := toWrap.GetBalance()
 
-	opAssertE(fBalance.Sub(op.Amount), "Insufficient balance to transfer.")
+	fBalance.Sub(op.Amount)
 	opAssert(fromWrap.MdBalance(fBalance), "")
 
-	opAssertE(tBalance.Add(op.Amount), "balance overflow")
+	tBalance.Add(op.Amount)
 	opAssert(toWrap.MdBalance(tBalance), "")
 
 	ev.TrxObserver().AddOpState(iservices.Replace, "balance", fromWrap.GetName().Value, fromWrap.GetBalance().Value)
@@ -631,7 +631,7 @@ func (ev *BpVoteEvaluator) Apply() {
 		opAssert(vidWrap.RemoveBlockProducerVote(), "remove vote record error")
 
 		// modify block producer bp vest
-		opAssertE(bpVoteVestCnt.Sub(voterVests), "block producer data error")
+		bpVoteVestCnt.Sub(voterVests)
 		newBpVest := &prototype.BpVestId{Active:bpActive, VoteVest:bpVoteVestCnt}
 		opAssert(bpWrap.MdBpVest(newBpVest), "set block producer data error")
 
@@ -664,7 +664,7 @@ func (ev *BpVoteEvaluator) Apply() {
 		opAssert(voterAccount.MdBpVoteCount(voteCnt+1), "set voter data error")
 
 		// modify block producer bp vest and voter count
-		opAssertE(bpVoteVestCnt.Add(voterVests), "block producer vote count overflow")
+		bpVoteVestCnt.Add(voterVests)
 		newBpVest := &prototype.BpVestId{Active:bpActive, VoteVest:bpVoteVestCnt}
 		opAssert(bpWrap.MdBpVest(newBpVest), "set block producer data error")
 		opAssert(bpWrap.MdVoterCount(bpVoterCount+1), "set block producer voter count error")
@@ -753,10 +753,10 @@ func (ev *TransferToVestEvaluator) Apply() {
 	oldVest := prototype.NewVest(tVests.Value)
 	addVests := prototype.NewVest(op.Amount.Value)
 
-	opAssertE(fBalance.Sub(op.Amount), "balance not enough")
+	fBalance.Sub(op.Amount)
 	opAssert(fidWrap.MdBalance(fBalance), "set from new balance error")
 
-	opAssertE(tVests.Add(addVests), "vests error")
+	tVests.Add(addVests)
 	opAssert(tidWrap.MdVest(tVests), "set to new vests error")
 
 	updateBpVoteValue(ev.Database(), op.To, oldVest, tVests)
@@ -781,8 +781,8 @@ func updateBpVoteValue(dba iservices.IDatabaseRW, voter *prototype.AccountName, 
 	if bpWrap != nil && bpWrap.CheckExist() {
 		bpVoteVestCnt := bpWrap.GetBpVest().VoteVest
 		bpActive := bpWrap.GetBpVest().Active
-		opAssertE(bpVoteVestCnt.Sub(oldVest), "Insufficient block producer vote count")
-		opAssertE(bpVoteVestCnt.Add(newVest), "block producer vote count overflow")
+		bpVoteVestCnt.Sub(oldVest)
+		bpVoteVestCnt.Add(newVest)
 
 		newBpVest := &prototype.BpVestId{Active:bpActive, VoteVest:bpVoteVestCnt}
 		opAssert(bpWrap.MdBpVest(newBpVest), "update block producer vote count data error")
@@ -1131,10 +1131,10 @@ func (ev *StakeEvaluator) Apply() {
 	tVests := tidWrap.GetStakeVest()
 	addVests := prototype.NewVest(op.Amount.Value)
 
-	opAssertE(fBalance.Sub(op.Amount), "balance not enough")
+	fBalance.Sub(op.Amount)
 	opAssert(fidWrap.MdBalance(fBalance), "set from new balance error")
 
-	opAssertE(tVests.Add(addVests), "vests error")
+	tVests.Add(addVests)
 	opAssert(tidWrap.MdStakeVest(tVests), "set to new vests error")
 
 	// unique stake record
@@ -1156,7 +1156,7 @@ func (ev *StakeEvaluator) Apply() {
 		}),"create stake record error")
 	} else {
 		oldVest := recordWrap.GetStakeAmount()
-		opAssertE(oldVest.Add(addVests), "add record vests error")
+		oldVest.Add(addVests)
 		opAssert(recordWrap.MdStakeAmount(oldVest),"set record new vest error")
 	}
 	headBlockTime := ev.GlobalProp().HeadBlockTime()
@@ -1189,16 +1189,16 @@ func (ev *UnStakeEvaluator) Apply() {
 	value := op.Amount
 
 	vest := debtorWrap.GetStakeVest()
-	opAssertE(vest.Sub(value.ToVest()), "stake vest over flow.")
+	vest.Sub(value.ToVest())
 	opAssert(debtorWrap.MdStakeVest(vest), "modify stake vest failed")
 
 	fBalance := creditorWrap.GetBalance()
-	opAssertE(fBalance.Add(value), "Insufficient balance to transfer.")
+	fBalance.Add(value)
 	opAssert(creditorWrap.MdBalance(fBalance), "modify balance failed")
 
 	// update stake record
 	oldVest := recordWrap.GetStakeAmount()
-	opAssertE(oldVest.Sub(value.ToVest()), "sub record vests error")
+	oldVest.Sub(value.ToVest())
 	opAssert(recordWrap.MdStakeAmount(oldVest),"set record new vest error")
 
 	ev.GlobalProp().TransferFromVest(value.ToVest())
@@ -1221,7 +1221,7 @@ func (ev *AcquireTicketEvaluator) Apply() {
 
 	fee := &prototype.Coin{Value: ticketPrice.Value}
 	opAssertE(fee.Mul(count), "mul ticket price with count overflow")
-	opAssertE(balance.Sub(fee), "Insufficient balance to acquire tickets")
+	balance.Sub(fee)
 	opAssert(account.MdBalance(balance), "modify balance failed")
 
 	opAssert(account.GetChargedTicket() + uint32(count) > account.GetChargedTicket(), "ticket count overflow")
@@ -1255,7 +1255,7 @@ func (ev *AcquireTicketEvaluator) Apply() {
 
 	currentIncome := props.GetTicketsIncome()
 	vestFee := fee.ToVest()
-	mustNoError(currentIncome.Add(vestFee), "TicketsIncome overflow")
+	currentIncome.Add(vestFee)
 
 	chargedTicketsNum := props.GetChargedTicketsNum()
 	currentTicketsNum := chargedTicketsNum + count
@@ -1347,7 +1347,7 @@ func (ev *VoteByTicketEvaluator) Apply() {
 		opAssertE(equalValue.Mul(count), "mul equal ticket value with count overflow")
 	}
 	currentIncome := props.GetTicketsIncome()
-	mustNoError(currentIncome.Sub(equalValue), "sub equal value from ticketfee failed")
+	currentIncome.Sub(equalValue)
 	//c.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
 	//	props.TicketsIncome = income
 	//	props.ChargedTicketsNum -= count
@@ -1360,7 +1360,7 @@ func (ev *VoteByTicketEvaluator) Apply() {
 	oldVest := bpWrap.GetVest()
 	// currently, all income will put into bp's wallet.
 	// it will be change.
-	mustNoError(bpVest.Add(equalValue), "add equal value to bp failed")
+	bpVest.Add(equalValue)
 	bpWrap.MdVest(bpVest)
 	updateBpVoteValue(ev.Database(), currentBp, oldVest, bpVest)
 }

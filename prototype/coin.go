@@ -17,21 +17,21 @@ func (m *Coin) NonZero() bool {
 	return m.Value != 0
 }
 
-func (m *Coin) Add(o *Coin) error {
+func (m *Coin) Add(o *Coin) *Coin {
 
-	if m.Value > o.Value+m.Value {
-		return ErrCoinOverflow
+	if m.Value > o.Value + m.Value {
+		panic(ErrCoinOverflow)
 	}
 	m.Value += o.Value
-	return nil
+	return m
 }
 
-func (m *Coin) Sub(o *Coin) error {
+func (m *Coin) Sub(o *Coin) *Coin {
 	if m.Value < o.Value {
-		return ErrCoinOverflow
+		panic(ErrCoinOverflow)
 	}
 	m.Value -= o.Value
-	return nil
+	return m
 }
 
 func (m *Coin) Mul(c uint64) error {

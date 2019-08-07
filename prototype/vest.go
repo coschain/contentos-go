@@ -13,21 +13,21 @@ func (m *Vest) OpeEncode() ([]byte, error) {
 	return kope.Encode(m.Value)
 }
 
-func (m *Vest) Add(o *Vest) error {
+func (m *Vest) Add(o *Vest) *Vest {
 
 	if m.Value > o.Value+m.Value {
-		return ErrVestOverflow
+		panic(ErrVestOverflow)
 	}
 	m.Value += o.Value
-	return nil
+	return m
 }
 
-func (m *Vest) Sub(o *Vest) error {
+func (m *Vest) Sub(o *Vest) *Vest {
 	if m.Value < o.Value {
-		return ErrVestOverflow
+		panic(ErrVestOverflow)
 	}
 	m.Value -= o.Value
-	return nil
+	return m
 }
 
 func (m *Vest) Mul(c uint64) error {

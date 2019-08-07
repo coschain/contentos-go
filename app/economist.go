@@ -127,19 +127,20 @@ func (e *Economist) Mint(trxObserver iservices.ITrxObserver) {
 	// add ticket fee to the bp
 	oldVest := bpWrap.GetVest()
 	//bpWrap.MdVest(&prototype.Vest{Value: bpWrap.GetVest().Value + bpReward})
-	mustNoError(bpRewardVest.Add(bpWrap.GetVest()), "bpRewardVest overflow")
+	bpRewardVest.Add(bpWrap.GetVest())
+	//mustNoError(bpRewardVest.Add(bpWrap.GetVest()), "bpRewardVest overflow")
 	bpWrap.MdVest(bpRewardVest)
 	updateBpVoteValue(e.db, globalProps.CurrentBlockProducer, oldVest, bpRewardVest)
 	trxObserver.AddOpState(iservices.Add, "mint", globalProps.CurrentBlockProducer.Value, bpReward)
 
 	e.dgp.ModifyProps(func(props *prototype.DynamicProperties) {
-		mustNoError(props.PostRewards.Add(&prototype.Vest{Value: postReward}), "PostRewards overflow")
-		mustNoError(props.ReplyRewards.Add(&prototype.Vest{Value: replyReward}), "ReplyRewards overflow")
-		mustNoError(props.PostDappRewards.Add(&prototype.Vest{Value: postDappRewards}), "PostDappRewards overflow")
-		mustNoError(props.ReplyDappRewards.Add(&prototype.Vest{Value: replyDappRewards}), "ReplyDappRewards overflow")
-		mustNoError(props.VoterRewards.Add(&prototype.Vest{Value: voterReward}), "VoterRewards overflow")
-		mustNoError(props.AnnualMinted.Add(&prototype.Vest{Value: blockCurrent}), "AnnualMinted overflow")
-		mustNoError(props.TotalVest.Add(&prototype.Vest{Value: blockCurrent}), "TotalVest overflow")
+		props.PostRewards.Add(&prototype.Vest{Value: postReward})
+		props.ReplyRewards.Add(&prototype.Vest{Value: replyReward})
+		props.PostDappRewards.Add(&prototype.Vest{Value: postDappRewards})
+		props.ReplyDappRewards.Add(&prototype.Vest{Value: replyDappRewards})
+		props.VoterRewards.Add(&prototype.Vest{Value: voterReward})
+		props.AnnualMinted.Add(&prototype.Vest{Value: blockCurrent})
+		props.TotalVest.Add(&prototype.Vest{Value: blockCurrent})
 	})
 }
 
@@ -415,7 +416,7 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 			} else {
 				oldVest := beneficiaryWrap.GetVest()
 				vestRewards := &prototype.Vest{Value: r}
-				mustNoError(vestRewards.Add(beneficiaryWrap.GetVest()), "Post Beneficiary VestRewards Overflow")
+				vestRewards.Add(beneficiaryWrap.GetVest())
 				beneficiaryWrap.MdVest(vestRewards)
 				updateBpVoteValue(e.db, &prototype.AccountName{Value: name}, oldVest, vestRewards)
 				spentBeneficiaryReward += r
@@ -436,7 +437,7 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 		} else {
 			oldVest := authorWrap.GetVest()
 			vestRewards := &prototype.Vest{Value: reward}
-			mustNoError(vestRewards.Add(authorWrap.GetVest()), "Post VestRewards Overflow")
+			vestRewards.Add(authorWrap.GetVest())
 			authorWrap.MdVest(vestRewards)
 			t := common.EasyTimer()
 			t1, t2 := updateBpVoteValue(e.db, &prototype.AccountName{Value: author}, oldVest, vestRewards)
@@ -456,8 +457,8 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 	e.dgp.ModifyProps(func(props *prototype.DynamicProperties) {
 		//props.PostRewards.Value -= spentPostReward
 		//props.PostDappRewards.Value -= spentDappReward
-		mustNoError(props.PostRewards.Sub(&prototype.Vest{Value: spentPostReward}), "Sub SpentPostReward overflow")
-		mustNoError(props.PostDappRewards.Sub(&prototype.Vest{Value: spentDappReward}), "Sub SpentDappReward overflow")
+		props.PostRewards.Sub(&prototype.Vest{Value: spentPostReward})
+		props.PostDappRewards.Sub(&prototype.Vest{Value: spentDappReward})
 	})
 }
 
@@ -538,7 +539,7 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 				//beneficiaryWrap.MdVest(&prototype.Vest{ Value: r + beneficiaryWrap.GetVest().Value})
 				oldVest := beneficiaryWrap.GetVest()
 				vestRewards := &prototype.Vest{Value: r}
-				mustNoError(vestRewards.Add(beneficiaryWrap.GetVest()), "Reply Beneficiary VestRewards Overflow")
+				vestRewards.Add(beneficiaryWrap.GetVest())
 				beneficiaryWrap.MdVest(vestRewards)
 				updateBpVoteValue(e.db, &prototype.AccountName{Value: name}, oldVest, vestRewards)
 				spentBeneficiaryReward += r
@@ -557,7 +558,7 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 			//authorWrap.MdVest(&prototype.Vest{ Value: reward + authorWrap.GetVest().Value })
 			oldVest := authorWrap.GetVest()
 			vestRewards := &prototype.Vest{Value: reward}
-			mustNoError(vestRewards.Add(authorWrap.GetVest()), "Reply VestRewards Overflow")
+			vestRewards.Add(authorWrap.GetVest())
 			authorWrap.MdVest(vestRewards)
 			t := common.EasyTimer()
 			t1, t2 := updateBpVoteValue(e.db, &prototype.AccountName{Value: author}, oldVest, vestRewards)
@@ -576,8 +577,8 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 	e.dgp.ModifyProps(func(props *prototype.DynamicProperties) {
 		//props.ReplyRewards.Value -= spentReplyReward
 		//props.ReplyDappRewards.Value -= spentDappReward
-		mustNoError(props.ReplyRewards.Sub(&prototype.Vest{Value: spentReplyReward}), "Sub SpentReplyReward overflow")
-		mustNoError(props.ReplyDappRewards.Sub(&prototype.Vest{Value: spentDappReward}), "Sub SpentDappReward overflow")
+		props.ReplyRewards.Sub(&prototype.Vest{Value: spentReplyReward})
+		props.ReplyDappRewards.Sub(&prototype.Vest{Value: spentDappReward})
 	})
 }
 
@@ -642,8 +643,8 @@ func (e *Economist) PowerDown() {
 		accountWrap.MdHasPowerdown(&prototype.Vest{Value: hasPowerDown})
 		// update total cos and total vest shares
 		e.dgp.ModifyProps(func(props *prototype.DynamicProperties) {
-			mustNoError(props.TotalCos.Add(&prototype.Coin{Value: powerdownQuota}), "PowerDownQuota Cos Overflow")
-			mustNoError(props.TotalVest.Sub(&prototype.Vest{Value: powerdownQuota}), "PowerDownQuota Vest Overflow")
+			props.TotalCos.Add(&prototype.Coin{Value: powerdownQuota})
+			props.TotalVest.Sub(&prototype.Vest{Value: powerdownQuota})
 			//props.TotalCos.Value += powerdownQuota
 			//props.TotalVest.Value -= powerdownQuota
 		})
