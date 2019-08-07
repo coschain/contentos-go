@@ -31,6 +31,6 @@ func (m *ReportOperation) GetAffectedProps(props *map[string]bool) {
 	(*props)["*"] = true
 }
 
-func init() {
-	registerOperation("report", (*Operation_Op15)(nil), (*ReportOperation)(nil));
-}
+//func init() {
+//	registerOperation("report", (*Operation_Op15)(nil), (*ReportOperation)(nil))
+//}
