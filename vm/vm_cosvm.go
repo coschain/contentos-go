@@ -14,9 +14,7 @@ import (
 	"reflect"
 )
 
-const (
-	maxReadLength int = 100
-)
+
 
 type CosVM struct {
 	nativeFuncName []string
@@ -40,54 +38,54 @@ func NewCosVM(ctx *vmcontext.Context, db iservices.IDatabaseRW, props *prototype
 }
 
 func (w *CosVM) initNativeFuncs() {
-	w.Register("sha256", e_sha256, 500)
-	w.Register("current_block_number", e_currentBlockNumber, 100)
-	w.Register("current_timestamp", e_currentTimestamp, 100)
-	w.Register("current_block_producer", e_currentBlockProducer, 150)
-	w.Register("print_str", e_printString, 100)
-	w.Register("print_int", e_printInt64, 100)
-	w.Register("print_uint", e_printUint64, 100)
-	w.Register("require_auth", e_requiredAuth, 200)
-	w.Register("get_user_balance", e_getUserBalance, 100)
-	w.Register("user_exist", e_userExist, 100)
-	w.Register("get_contract_balance", e_getContractBalance, 100)
-	w.Register("cos_assert", e_cosAssert, 100)
-	w.Register("abort", e_cosAbort, 100)
-	w.Register("read_contract_op_params", e_readContractOpParams, 100)
-	w.Register("read_contract_name", e_readContractName, 100)
-	w.Register("read_contract_method", e_readContractMethod, 100)
-	w.Register("read_contract_owner", e_readContractOwner, 100)
-	w.Register("read_contract_caller", e_readContractCaller, 100)
-	w.Register("read_contract_sender_value", e_readContractSenderValue, 100)
-	w.Register("contract_call", e_contractCall, 1000)
-	w.Register("contract_called_by_user", e_contractCalledByUser, 100)
-	w.Register("read_calling_contract_owner", e_readCallingContractOwner, 100)
-	w.Register("read_calling_contract_name", e_readCallingContractName, 100)
-	w.Register("transfer_to_user", e_contractTransferToUser, 800)
-	w.Register("transfer_to_contract", e_contractTransferToContract, 800)
-	w.Register("table_get_record", e_tableGetRecord, 800)
-	w.Register("table_new_record", e_tableNewRecord, 1200)
-	w.Register("table_update_record", e_tableUpdateRecord, 1200)
-	w.Register("table_delete_record", e_tableDeleteRecord, 1000)
-	w.Register("table_get_record_ex", e_tableGetRecordEx, 1500)
+	w.register("sha256", e_sha256, 500)
+	w.register("current_block_number", e_currentBlockNumber, 100)
+	w.register("current_timestamp", e_currentTimestamp, 100)
+	w.register("current_block_producer", e_currentBlockProducer, 150)
+	w.register("print_str", e_printString, 100)
+	w.register("print_int", e_printInt64, 100)
+	w.register("print_uint", e_printUint64, 100)
+	w.register("require_auth", e_requiredAuth, 200)
+	w.register("get_user_balance", e_getUserBalance, 100)
+	w.register("user_exist", e_userExist, 100)
+	w.register("get_contract_balance", e_getContractBalance, 100)
+	w.register("cos_assert", e_cosAssert, 100)
+	w.register("abort", e_cosAbort, 100)
+	w.register("read_contract_op_params", e_readContractOpParams, 100)
+	w.register("read_contract_name", e_readContractName, 100)
+	w.register("read_contract_method", e_readContractMethod, 100)
+	w.register("read_contract_owner", e_readContractOwner, 100)
+	w.register("read_contract_caller", e_readContractCaller, 100)
+	w.register("read_contract_sender_value", e_readContractSenderValue, 100)
+	w.register("contract_call", e_contractCall, 1000)
+	w.register("contract_called_by_user", e_contractCalledByUser, 100)
+	w.register("read_calling_contract_owner", e_readCallingContractOwner, 100)
+	w.register("read_calling_contract_name", e_readCallingContractName, 100)
+	w.register("transfer_to_user", e_contractTransferToUser, 800)
+	w.register("transfer_to_contract", e_contractTransferToContract, 800)
+	w.register("table_get_record", e_tableGetRecord, 800)
+	w.register("table_new_record", e_tableNewRecord, 1200)
+	w.register("table_update_record", e_tableUpdateRecord, 1200)
+	w.register("table_delete_record", e_tableDeleteRecord, 1000)
+	w.register("table_get_record_ex", e_tableGetRecordEx, 1500)
 
-	w.Register("get_block_producers", e_getBlockProducers, 500)
+	w.register("get_block_producers", e_getBlockProducers, 500)
 
-	w.Register("set_reputation_admin", e_setReputationAdmin, 0)
-	w.Register("get_reputation_admin", e_getReputationAdmin, 100)
-	w.Register("set_reputation", e_setReputation, 0)
+	w.register("set_reputation_admin", e_setReputationAdmin, 0)
+	w.register("get_reputation_admin", e_getReputationAdmin, 100)
+	w.register("set_reputation", e_setReputation, 0)
 
-	w.Register("set_copyright_admin", e_setCopyrightAdmin, 0)
-	w.Register("set_copyright", e_setCopyright, 0)
-	w.Register("set_freeze",e_freeze,0)
+	w.register("set_copyright_admin", e_setCopyrightAdmin, 0)
+	w.register("set_copyright", e_setCopyright, 0)
+	w.register("set_freeze",e_freeze,0)
 
 	// for memeory
-	w.Register("memcpy", e_memcpy, 100)
-	w.Register("memset", e_memset, 100)
-	w.Register("memmove", e_memmove, 100)
-	w.Register("memcmp", e_memcmp, 100)
+	w.register("memcpy", e_memcpy, 100)
+	w.register("memset", e_memset, 100)
+	w.register("memmove", e_memmove, 100)
+	w.register("memcmp", e_memcmp, 100)
 	// for io
-	w.Register("copy", e_copy, 100)
+	w.register("copy", e_copy, 100)
 
 }
 
@@ -164,10 +162,6 @@ func (w *CosVM) runEntry(entryName string) (ret uint32, err error) {
 	return
 }
 
-func (w *CosVM) RunMain() (ret uint32, err error) {
-	return w.runEntry("main")
-}
-
 func (w *CosVM) Run() (ret uint32, err error) {
 	return w.runEntry("apply")
 }
@@ -185,7 +179,7 @@ func (w *CosVM) Validate() error {
 	return err
 }
 
-func (w *CosVM) Register(funcName string, function interface{}, gas uint64) {
+func (w *CosVM) register(funcName string, function interface{}, gas uint64) {
 	rfunc := reflect.TypeOf(function)
 	if rfunc.Kind() != reflect.Func {
 		w.logger.Error(fmt.Sprintf("%s is not a function", funcName))
