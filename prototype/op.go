@@ -29,6 +29,10 @@ var (
 	sRegisteredOpsByWrapper = make(map[reflect.Type]opRegistry)
 )
 
+func RegisterNewOperation(name string, wrapperPtr interface{}, opPtr interface{}) {
+	registerOperation(name, wrapperPtr, opPtr)
+}
+
 func registerOperation(name string, wrapperPtr interface{}, opPtr interface{}) {
 	wrapperPtrType := reflect.TypeOf(wrapperPtr)
 	opPtrType := reflect.TypeOf(opPtr)
