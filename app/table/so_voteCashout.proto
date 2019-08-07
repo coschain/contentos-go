@@ -1,0 +1,19 @@
+
+syntax = "proto3";
+
+package table;
+
+option go_package = "github.com/coschain/contentos-go/app/table";
+
+import "prototype/multi_id.proto";
+
+message so_voteCashout {
+	uint64                      cashout_block         =      1;
+    repeated                      prototype.voter_id        voter_ids            =      2;
+      
+}
+
+
+message so_unique_voteCashout_by_cashout_block {
+	uint64                   	cashout_block     = 1;
+}
