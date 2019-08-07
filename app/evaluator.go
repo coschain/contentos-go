@@ -242,9 +242,12 @@ func (ev *AccountCreateEvaluator) Apply() {
 	opAssert(creatorWrap.GetBalance().Value >= accountCreateFee.Value, "Insufficient balance to create account.")
 
 	// sub creator's fee
-	originBalance := creatorWrap.GetBalance()
-	originBalance.Sub(accountCreateFee)
-	creatorWrap.SetBalance(originBalance)
+	//originBalance := creatorWrap.GetBalance()
+	//originBalance.Sub(accountCreateFee)
+	//creatorWrap.SetBalance(originBalance)
+	creatorWrap.Modify(func(tInfo *table.SoAccount) {
+		tInfo.Balance.Sub(accountCreateFee)
+	})
 
 	// create account
 	newAccountWrap := table.NewSoAccountWrap(ev.Database(), op.NewAccountName)
@@ -297,14 +300,20 @@ func (ev *TransferEvaluator) Apply() {
 
 	opAssert(op.From.Value != op.To.Value, "Transfer must between two different accounts")
 
-	fBalance := fromWrap.GetBalance()
-	tBalance := toWrap.GetBalance()
+	//fBalance := fromWrap.GetBalance()
+	//tBalance := toWrap.GetBalance()
 
-	fBalance.Sub(op.Amount)
-	fromWrap.SetBalance(fBalance)
+	//fBalance.Sub(op.Amount)
+	//fromWrap.SetBalance(fBalance)
+	fromWrap.Modify(func(tInfo *table.SoAccount) {
+		tInfo.Balance.Sub(op.Amount)
+	})
 
-	tBalance.Add(op.Amount)
-	toWrap.SetBalance(tBalance)
+	//tBalance.Add(op.Amount)
+	//toWrap.SetBalance(tBalance)
+	toWrap.Modify(func(tInfo *table.SoAccount) {
+		tInfo.Balance.Add(op.Amount)
+	})
 
 	ev.TrxObserver().AddOpState(iservices.Replace, "balance", fromWrap.GetName().Value, fromWrap.GetBalance().Value)
 	ev.TrxObserver().AddOpState(iservices.Replace, "balance", toWrap.GetName().Value, toWrap.GetBalance().Value)
@@ -748,16 +757,22 @@ func (ev *TransferToVestEvaluator) Apply() {
 
 	tidWrap.MustExist("to account do not exist")
 
-	fBalance := fidWrap.GetBalance()
+	//fBalance := fidWrap.GetBalance()
 	tVests := tidWrap.GetVest()
 	oldVest := prototype.NewVest(tVests.Value)
 	addVests := prototype.NewVest(op.Amount.Value)
 
-	fBalance.Sub(op.Amount)
-	fidWrap.SetBalance(fBalance)
+	//fBalance.Sub(op.Amount)
+	//fidWrap.SetBalance(fBalance)
+	fidWrap.Modify(func(tInfo *table.SoAccount) {
+		tInfo.Balance.Sub(op.Amount)
+	})
 
-	tVests.Add(addVests)
-	tidWrap.SetVest(tVests)
+	//tVests.Add(addVests)
+	//tidWrap.SetVest(tVests)
+	tidWrap.Modify(func(tInfo *table.SoAccount) {
+		tInfo.Vest.Add(addVests)
+	})
 
 	updateBpVoteValue(ev.Database(), op.To, oldVest, tVests)
 
@@ -1127,15 +1142,21 @@ func (ev *StakeEvaluator) Apply() {
 	fidWrap.MustExist("from account do not exist")
 	tidWrap.MustExist("to account do not exist")
 
-	fBalance := fidWrap.GetBalance()
-	tVests := tidWrap.GetStakeVest()
+	//fBalance := fidWrap.GetBalance()
+	//tVests := tidWrap.GetStakeVest()
 	addVests := prototype.NewVest(op.Amount.Value)
 
-	fBalance.Sub(op.Amount)
-	fidWrap.SetBalance(fBalance)
+	//fBalance.Sub(op.Amount)
+	//fidWrap.SetBalance(fBalance)
+	fidWrap.Modify(func(tInfo *table.SoAccount) {
+		tInfo.Balance.Sub(op.Amount)
+	})
 
-	tVests.Add(addVests)
-	tidWrap.SetStakeVest(tVests)
+	//tVests.Add(addVests)
+	//tidWrap.SetStakeVest(tVests)
+	tidWrap.Modify(func(tInfo *table.SoAccount) {
+		tInfo.StakeVest.Add(addVests)
+	})
 
 	// unique stake record
 	recordWrap := table.NewSoStakeRecordWrap(ev.Database(), &prototype.StakeRecord{
@@ -1155,9 +1176,12 @@ func (ev *StakeEvaluator) Apply() {
 			record.StakeAmount = prototype.NewVest(addVests.Value)
 		})
 	} else {
-		oldVest := recordWrap.GetStakeAmount()
-		oldVest.Add(addVests)
-		recordWrap.SetStakeAmount(oldVest)
+		//oldVest := recordWrap.GetStakeAmount()
+		//oldVest.Add(addVests)
+		//recordWrap.SetStakeAmount(oldVest)
+		recordWrap.Modify(func(tInfo *table.SoStakeRecord) {
+			tInfo.StakeAmount.Add(addVests)
+		})
 	}
 	headBlockTime := ev.GlobalProp().HeadBlockTime()
 	recordWrap.SetLastStakeTime(headBlockTime)
@@ -1186,17 +1210,26 @@ func (ev *UnStakeEvaluator) Apply() {
 
 	value := op.Amount
 
-	vest := debtorWrap.GetStakeVest()
-	vest.Sub(value.ToVest())
-	debtorWrap.SetStakeVest(vest)
+	//vest := debtorWrap.GetStakeVest()
+	//vest.Sub(value.ToVest())
+	//debtorWrap.SetStakeVest(vest)
+	debtorWrap.Modify(func(tInfo *table.SoAccount) {
+		tInfo.StakeVest.Sub(value.ToVest())
+	})
 
-	fBalance := creditorWrap.GetBalance()
-	fBalance.Add(value)
-	creditorWrap.SetBalance(fBalance)
+	//fBalance := creditorWrap.GetBalance()
+	//fBalance.Add(value)
+	//creditorWrap.SetBalance(fBalance)
+	creditorWrap.Modify(func(tInfo *table.SoAccount) {
+		tInfo.Balance.Add(value)
+	})
 
 	// update stake record
-	oldVest := recordWrap.GetStakeAmount()
-	oldVest.Sub(value.ToVest())
+	//oldVest := recordWrap.GetStakeAmount()
+	//oldVest.Sub(value.ToVest())
+	recordWrap.Modify(func(tInfo *table.SoStakeRecord) {
+		tInfo.StakeAmount.Sub(value.ToVest())
+	})
 
 	ev.GlobalProp().TransferFromVest(value.ToVest())
 	ev.GlobalProp().TransferFromStakeVest(value.ToVest())
@@ -1213,13 +1246,16 @@ func (ev *AcquireTicketEvaluator) Apply() {
 	opAssert(count <= constants.MaxTicketsPerTurn, fmt.Sprintf("at most %d ticket per turn", int(constants.MaxTicketsPerTurn)))
 
 	ticketPrice := ev.GlobalProp().GetProps().PerTicketPrice
-	balance := account.GetBalance()
+	//balance := account.GetBalance()
 	//oldVest := account.GetVest()
 
 	fee := &prototype.Coin{Value: ticketPrice.Value}
 	fee.Mul(count)
-	balance.Sub(fee)
-	account.SetBalance(balance)
+	//balance.Sub(fee)
+	//account.SetBalance(balance)
+	account.Modify(func(tInfo *table.SoAccount) {
+		tInfo.Balance.Sub(fee)
+	})
 
 	opAssert(account.GetChargedTicket() + uint32(count) > account.GetChargedTicket(), "ticket count overflow")
 

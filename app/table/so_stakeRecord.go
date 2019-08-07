@@ -159,15 +159,19 @@ func (s *SoStakeRecordWrap) modify(f func(tInfo *SoStakeRecord)) error {
 	if oriTable == nil {
 		return errors.New("fail to get origin table SoStakeRecord")
 	}
-	curTable := *oriTable
-	f(&curTable)
+
+	curTable := s.getStakeRecord()
+	if curTable == nil {
+		return errors.New("fail to create current table SoStakeRecord")
+	}
+	f(curTable)
 
 	//the main key is not support modify
 	if !reflect.DeepEqual(curTable.Record, oriTable.Record) {
 		return errors.New("primary key does not support modification")
 	}
 
-	fieldSli, err := s.getModifiedFields(oriTable, &curTable)
+	fieldSli, err := s.getModifiedFields(oriTable, curTable)
 	if err != nil {
 		return err
 	}
@@ -177,13 +181,13 @@ func (s *SoStakeRecordWrap) modify(f func(tInfo *SoStakeRecord)) error {
 	}
 
 	//check whether modify sort and unique field to nil
-	err = s.checkSortAndUniFieldValidity(&curTable, fieldSli)
+	err = s.checkSortAndUniFieldValidity(curTable, fieldSli)
 	if err != nil {
 		return err
 	}
 
 	//check unique
-	err = s.handleFieldMd(FieldMdHandleTypeCheck, &curTable, fieldSli)
+	err = s.handleFieldMd(FieldMdHandleTypeCheck, curTable, fieldSli)
 	if err != nil {
 		return err
 	}
@@ -195,13 +199,13 @@ func (s *SoStakeRecordWrap) modify(f func(tInfo *SoStakeRecord)) error {
 	}
 
 	//update table
-	err = s.updateStakeRecord(&curTable)
+	err = s.updateStakeRecord(curTable)
 	if err != nil {
 		return err
 	}
 
 	//insert sort and unique key
-	err = s.handleFieldMd(FieldMdHandleTypeInsert, &curTable, fieldSli)
+	err = s.handleFieldMd(FieldMdHandleTypeInsert, curTable, fieldSli)
 	if err != nil {
 		return err
 	}

@@ -157,15 +157,19 @@ func (s *SoExtFollowCountWrap) modify(f func(tInfo *SoExtFollowCount)) error {
 	if oriTable == nil {
 		return errors.New("fail to get origin table SoExtFollowCount")
 	}
-	curTable := *oriTable
-	f(&curTable)
+
+	curTable := s.getExtFollowCount()
+	if curTable == nil {
+		return errors.New("fail to create current table SoExtFollowCount")
+	}
+	f(curTable)
 
 	//the main key is not support modify
 	if !reflect.DeepEqual(curTable.Account, oriTable.Account) {
 		return errors.New("primary key does not support modification")
 	}
 
-	fieldSli, err := s.getModifiedFields(oriTable, &curTable)
+	fieldSli, err := s.getModifiedFields(oriTable, curTable)
 	if err != nil {
 		return err
 	}
@@ -175,13 +179,13 @@ func (s *SoExtFollowCountWrap) modify(f func(tInfo *SoExtFollowCount)) error {
 	}
 
 	//check whether modify sort and unique field to nil
-	err = s.checkSortAndUniFieldValidity(&curTable, fieldSli)
+	err = s.checkSortAndUniFieldValidity(curTable, fieldSli)
 	if err != nil {
 		return err
 	}
 
 	//check unique
-	err = s.handleFieldMd(FieldMdHandleTypeCheck, &curTable, fieldSli)
+	err = s.handleFieldMd(FieldMdHandleTypeCheck, curTable, fieldSli)
 	if err != nil {
 		return err
 	}
@@ -193,13 +197,13 @@ func (s *SoExtFollowCountWrap) modify(f func(tInfo *SoExtFollowCount)) error {
 	}
 
 	//update table
-	err = s.updateExtFollowCount(&curTable)
+	err = s.updateExtFollowCount(curTable)
 	if err != nil {
 		return err
 	}
 
 	//insert sort and unique key
-	err = s.handleFieldMd(FieldMdHandleTypeInsert, &curTable, fieldSli)
+	err = s.handleFieldMd(FieldMdHandleTypeInsert, curTable, fieldSli)
 	if err != nil {
 		return err
 	}

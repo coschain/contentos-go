@@ -159,15 +159,19 @@ func (s *SoBlockProducerWrap) modify(f func(tInfo *SoBlockProducer)) error {
 	if oriTable == nil {
 		return errors.New("fail to get origin table SoBlockProducer")
 	}
-	curTable := *oriTable
-	f(&curTable)
+
+	curTable := s.getBlockProducer()
+	if curTable == nil {
+		return errors.New("fail to create current table SoBlockProducer")
+	}
+	f(curTable)
 
 	//the main key is not support modify
 	if !reflect.DeepEqual(curTable.Owner, oriTable.Owner) {
 		return errors.New("primary key does not support modification")
 	}
 
-	fieldSli, err := s.getModifiedFields(oriTable, &curTable)
+	fieldSli, err := s.getModifiedFields(oriTable, curTable)
 	if err != nil {
 		return err
 	}
@@ -177,13 +181,13 @@ func (s *SoBlockProducerWrap) modify(f func(tInfo *SoBlockProducer)) error {
 	}
 
 	//check whether modify sort and unique field to nil
-	err = s.checkSortAndUniFieldValidity(&curTable, fieldSli)
+	err = s.checkSortAndUniFieldValidity(curTable, fieldSli)
 	if err != nil {
 		return err
 	}
 
 	//check unique
-	err = s.handleFieldMd(FieldMdHandleTypeCheck, &curTable, fieldSli)
+	err = s.handleFieldMd(FieldMdHandleTypeCheck, curTable, fieldSli)
 	if err != nil {
 		return err
 	}
@@ -195,13 +199,13 @@ func (s *SoBlockProducerWrap) modify(f func(tInfo *SoBlockProducer)) error {
 	}
 
 	//update table
-	err = s.updateBlockProducer(&curTable)
+	err = s.updateBlockProducer(curTable)
 	if err != nil {
 		return err
 	}
 
 	//insert sort and unique key
-	err = s.handleFieldMd(FieldMdHandleTypeInsert, &curTable, fieldSli)
+	err = s.handleFieldMd(FieldMdHandleTypeInsert, curTable, fieldSli)
 	if err != nil {
 		return err
 	}
