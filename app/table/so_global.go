@@ -64,16 +64,16 @@ func (s *SoGlobalWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoGlobalWrap) MustExist() *SoGlobalWrap {
+func (s *SoGlobalWrap) MustExist(errMsgs ...interface{}) *SoGlobalWrap {
 	if !s.CheckExist() {
-		panic(fmt.Errorf("SoGlobalWrap.MustExist: %v not found", s.mainKey))
+		panic(bindErrorInfo(fmt.Sprintf("SoGlobalWrap.MustExist: %v not found", s.mainKey), errMsgs...))
 	}
 	return s
 }
 
-func (s *SoGlobalWrap) MustNotExist() *SoGlobalWrap {
+func (s *SoGlobalWrap) MustNotExist(errMsgs ...interface{}) *SoGlobalWrap {
 	if s.CheckExist() {
-		panic(fmt.Errorf("SoGlobalWrap.MustNotExist: %v already exists", s.mainKey))
+		panic(bindErrorInfo(fmt.Sprintf("SoGlobalWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
 	}
 	return s
 }

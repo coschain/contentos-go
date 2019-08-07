@@ -64,16 +64,16 @@ func (s *SoReportListWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoReportListWrap) MustExist() *SoReportListWrap {
+func (s *SoReportListWrap) MustExist(errMsgs ...interface{}) *SoReportListWrap {
 	if !s.CheckExist() {
-		panic(fmt.Errorf("SoReportListWrap.MustExist: %v not found", s.mainKey))
+		panic(bindErrorInfo(fmt.Sprintf("SoReportListWrap.MustExist: %v not found", s.mainKey), errMsgs...))
 	}
 	return s
 }
 
-func (s *SoReportListWrap) MustNotExist() *SoReportListWrap {
+func (s *SoReportListWrap) MustNotExist(errMsgs ...interface{}) *SoReportListWrap {
 	if s.CheckExist() {
-		panic(fmt.Errorf("SoReportListWrap.MustNotExist: %v already exists", s.mainKey))
+		panic(bindErrorInfo(fmt.Sprintf("SoReportListWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
 	}
 	return s
 }

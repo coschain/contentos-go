@@ -66,16 +66,16 @@ func (s *SoExtDailyTrxWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoExtDailyTrxWrap) MustExist() *SoExtDailyTrxWrap {
+func (s *SoExtDailyTrxWrap) MustExist(errMsgs ...interface{}) *SoExtDailyTrxWrap {
 	if !s.CheckExist() {
-		panic(fmt.Errorf("SoExtDailyTrxWrap.MustExist: %v not found", s.mainKey))
+		panic(bindErrorInfo(fmt.Sprintf("SoExtDailyTrxWrap.MustExist: %v not found", s.mainKey), errMsgs...))
 	}
 	return s
 }
 
-func (s *SoExtDailyTrxWrap) MustNotExist() *SoExtDailyTrxWrap {
+func (s *SoExtDailyTrxWrap) MustNotExist(errMsgs ...interface{}) *SoExtDailyTrxWrap {
 	if s.CheckExist() {
-		panic(fmt.Errorf("SoExtDailyTrxWrap.MustNotExist: %v already exists", s.mainKey))
+		panic(bindErrorInfo(fmt.Sprintf("SoExtDailyTrxWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
 	}
 	return s
 }

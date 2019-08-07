@@ -73,16 +73,16 @@ func (s *SoDemoWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoDemoWrap) MustExist() *SoDemoWrap {
+func (s *SoDemoWrap) MustExist(errMsgs ...interface{}) *SoDemoWrap {
 	if !s.CheckExist() {
-		panic(fmt.Errorf("SoDemoWrap.MustExist: %v not found", s.mainKey))
+		panic(bindErrorInfo(fmt.Sprintf("SoDemoWrap.MustExist: %v not found", s.mainKey), errMsgs...))
 	}
 	return s
 }
 
-func (s *SoDemoWrap) MustNotExist() *SoDemoWrap {
+func (s *SoDemoWrap) MustNotExist(errMsgs ...interface{}) *SoDemoWrap {
 	if s.CheckExist() {
-		panic(fmt.Errorf("SoDemoWrap.MustNotExist: %v already exists", s.mainKey))
+		panic(bindErrorInfo(fmt.Sprintf("SoDemoWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
 	}
 	return s
 }

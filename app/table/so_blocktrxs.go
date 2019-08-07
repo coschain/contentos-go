@@ -63,16 +63,16 @@ func (s *SoBlocktrxsWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoBlocktrxsWrap) MustExist() *SoBlocktrxsWrap {
+func (s *SoBlocktrxsWrap) MustExist(errMsgs ...interface{}) *SoBlocktrxsWrap {
 	if !s.CheckExist() {
-		panic(fmt.Errorf("SoBlocktrxsWrap.MustExist: %v not found", s.mainKey))
+		panic(bindErrorInfo(fmt.Sprintf("SoBlocktrxsWrap.MustExist: %v not found", s.mainKey), errMsgs...))
 	}
 	return s
 }
 
-func (s *SoBlocktrxsWrap) MustNotExist() *SoBlocktrxsWrap {
+func (s *SoBlocktrxsWrap) MustNotExist(errMsgs ...interface{}) *SoBlocktrxsWrap {
 	if s.CheckExist() {
-		panic(fmt.Errorf("SoBlocktrxsWrap.MustNotExist: %v already exists", s.mainKey))
+		panic(bindErrorInfo(fmt.Sprintf("SoBlocktrxsWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
 	}
 	return s
 }

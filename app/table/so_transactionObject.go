@@ -65,16 +65,16 @@ func (s *SoTransactionObjectWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoTransactionObjectWrap) MustExist() *SoTransactionObjectWrap {
+func (s *SoTransactionObjectWrap) MustExist(errMsgs ...interface{}) *SoTransactionObjectWrap {
 	if !s.CheckExist() {
-		panic(fmt.Errorf("SoTransactionObjectWrap.MustExist: %v not found", s.mainKey))
+		panic(bindErrorInfo(fmt.Sprintf("SoTransactionObjectWrap.MustExist: %v not found", s.mainKey), errMsgs...))
 	}
 	return s
 }
 
-func (s *SoTransactionObjectWrap) MustNotExist() *SoTransactionObjectWrap {
+func (s *SoTransactionObjectWrap) MustNotExist(errMsgs ...interface{}) *SoTransactionObjectWrap {
 	if s.CheckExist() {
-		panic(fmt.Errorf("SoTransactionObjectWrap.MustNotExist: %v already exists", s.mainKey))
+		panic(bindErrorInfo(fmt.Sprintf("SoTransactionObjectWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
 	}
 	return s
 }

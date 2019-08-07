@@ -67,16 +67,16 @@ func (s *SoVoteWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoVoteWrap) MustExist() *SoVoteWrap {
+func (s *SoVoteWrap) MustExist(errMsgs ...interface{}) *SoVoteWrap {
 	if !s.CheckExist() {
-		panic(fmt.Errorf("SoVoteWrap.MustExist: %v not found", s.mainKey))
+		panic(bindErrorInfo(fmt.Sprintf("SoVoteWrap.MustExist: %v not found", s.mainKey), errMsgs...))
 	}
 	return s
 }
 
-func (s *SoVoteWrap) MustNotExist() *SoVoteWrap {
+func (s *SoVoteWrap) MustNotExist(errMsgs ...interface{}) *SoVoteWrap {
 	if s.CheckExist() {
-		panic(fmt.Errorf("SoVoteWrap.MustNotExist: %v already exists", s.mainKey))
+		panic(bindErrorInfo(fmt.Sprintf("SoVoteWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
 	}
 	return s
 }

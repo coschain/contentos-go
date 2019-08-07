@@ -66,16 +66,16 @@ func (s *SoBlockProducerWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoBlockProducerWrap) MustExist() *SoBlockProducerWrap {
+func (s *SoBlockProducerWrap) MustExist(errMsgs ...interface{}) *SoBlockProducerWrap {
 	if !s.CheckExist() {
-		panic(fmt.Errorf("SoBlockProducerWrap.MustExist: %v not found", s.mainKey))
+		panic(bindErrorInfo(fmt.Sprintf("SoBlockProducerWrap.MustExist: %v not found", s.mainKey), errMsgs...))
 	}
 	return s
 }
 
-func (s *SoBlockProducerWrap) MustNotExist() *SoBlockProducerWrap {
+func (s *SoBlockProducerWrap) MustNotExist(errMsgs ...interface{}) *SoBlockProducerWrap {
 	if s.CheckExist() {
-		panic(fmt.Errorf("SoBlockProducerWrap.MustNotExist: %v already exists", s.mainKey))
+		panic(bindErrorInfo(fmt.Sprintf("SoBlockProducerWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
 	}
 	return s
 }

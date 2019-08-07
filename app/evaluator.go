@@ -232,7 +232,7 @@ func (ev *AccountCreateEvaluator) Apply() {
 	ev.VMInjector().RecordStaminaFee(op.Creator.Value, constants.CommonOpStamina)
 	creatorWrap := table.NewSoAccountWrap(ev.Database(), op.Creator)
 
-	opAssert(creatorWrap.CheckExist(), "creator not exist ")
+	creatorWrap.MustExist("creator not exist")
 
 	dgpWrap := table.NewSoGlobalWrap(ev.Database(), &SingleId)
 	globalFee := dgpWrap.GetProps().AccountCreateFee
@@ -280,7 +280,7 @@ func (ev *AccountUpdateEvaluator) Apply() {
 	ev.VMInjector().RecordStaminaFee(op.Owner.Value, constants.CommonOpStamina)
 
 	updaterWrap := table.NewSoAccountWrap(ev.Database(), op.Owner)
-	opAssert(updaterWrap.CheckExist(), "update account not exist ")
+	updaterWrap.MustExist("update account not exist ")
 
 	updaterWrap.SetPubKey(op.PubKey)
 }
@@ -293,7 +293,7 @@ func (ev *TransferEvaluator) Apply() {
 	fromWrap := table.NewSoAccountWrap(ev.Database(), op.From)
 	toWrap := table.NewSoAccountWrap(ev.Database(), op.To)
 
-	opAssert(toWrap.CheckExist(), "To account do not exist ")
+	toWrap.MustExist("To account do not exist ")
 
 	opAssert(op.From.Value != op.To.Value, "Transfer must between two different accounts")
 
@@ -315,7 +315,7 @@ func (ev *PostEvaluator) Apply() {
 	ev.VMInjector().RecordStaminaFee(op.Owner.Value, constants.CommonOpStamina)
 
 	idWrap := table.NewSoPostWrap(ev.Database(), &op.Uuid)
-	opAssert(!idWrap.CheckExist(), "post uuid exist")
+	idWrap.MustNotExist("post uuid exist")
 
 	authorWrap := table.NewSoAccountWrap(ev.Database(), op.Owner)
 	elapsedSeconds := ev.GlobalProp().HeadBlockTime().UtcSeconds - authorWrap.GetLastPostTime().UtcSeconds
@@ -369,8 +369,8 @@ func (ev *ReplyEvaluator) Apply() {
 	cidWrap := table.NewSoPostWrap(ev.Database(), &op.Uuid)
 	pidWrap := table.NewSoPostWrap(ev.Database(), &op.ParentUuid)
 
-	opAssert(!cidWrap.CheckExist(), "post uuid exist")
-	opAssert(pidWrap.CheckExist(), "parent uuid do not exist")
+	cidWrap.MustNotExist("post uuid exist")
+	pidWrap.MustExist("parent uuid do not exist")
 
 	opAssert(pidWrap.GetDepth()+1 < constants.PostMaxDepth, "reply depth error")
 
@@ -439,8 +439,8 @@ func (ev *VoteEvaluator) Apply() {
 	voteWrap := table.NewSoVoteWrap(ev.Database(), &voterId)
 	postWrap := table.NewSoPostWrap(ev.Database(), &op.Idx)
 
-	opAssert(postWrap.CheckExist(), "post invalid")
-	opAssert(!voteWrap.CheckExist(), "vote info exist")
+	postWrap.MustExist("post invalid")
+	voteWrap.MustNotExist("vote info exist")
 
 	//votePostWrap := table.NewVotePostIdWrap(ev.Database())
 
@@ -517,14 +517,14 @@ func (ev *BpRegisterEvaluator) Apply() {
 	ev.VMInjector().RecordStaminaFee(op.Owner.Value, constants.CommonOpStamina)
 
 	accountWrap := table.NewSoAccountWrap(ev.Database(), op.Owner)
-	opAssert(accountWrap.CheckExist(), "block producer account not exist")
+	accountWrap.MustExist("block producer account not exist")
 
 	accountBalance := accountWrap.GetVest()
 	opAssert(accountBalance.Value >= constants.MinBpRegisterVest,
 		fmt.Sprintf("vest balance should greater than %d", constants.MinBpRegisterVest / constants.COSTokenDecimals))
 
 	bpWrap := table.NewSoBlockProducerWrap(ev.Database(), op.Owner)
-	opAssert(!bpWrap.CheckExist(), "you are already a block producer, do not register twice")
+	bpWrap.MustNotExist("you are already a block producer, do not register twice")
 
 	opAssert(accountWrap.GetReputation() > constants.MinReputation,
 		fmt.Sprintf("reputation too low"))
@@ -585,7 +585,7 @@ func (ev *BpEnableEvaluator) Apply() {
 	ev.VMInjector().RecordStaminaFee(op.Owner.Value, constants.CommonOpStamina)
 
 	bpWrap := table.NewSoBlockProducerWrap(ev.Database(), op.Owner)
-	opAssert(bpWrap.CheckExist(), "block producer do not exist")
+	bpWrap.MustExist("block producer do not exist")
 
 	if op.Cancel {
 		opAssert(bpWrap.GetBpVest().Active, "block producer has already been disabled")
@@ -609,15 +609,15 @@ func (ev *BpVoteEvaluator) Apply() {
 	ev.VMInjector().RecordStaminaFee(op.Voter.Value, constants.CommonOpStamina)
 
 	voterAccount := table.NewSoAccountWrap(ev.Database(), op.Voter)
-	opAssert(voterAccount.CheckExist(), "voter account not exist")
+	voterAccount.MustExist("voter account not exist")
 	voteCnt := voterAccount.GetBpVoteCount()
 	voterVests := voterAccount.GetVest()
 
 	bpAccountWrap := table.NewSoAccountWrap(ev.Database(), op.BlockProducer)
-	opAssert(bpAccountWrap.CheckExist(), "block producer account not exist ")
+	bpAccountWrap.MustExist("block producer account not exist ")
 
 	bpWrap := table.NewSoBlockProducerWrap(ev.Database(), op.BlockProducer)
-	opAssert(bpWrap.CheckExist(), "the account you want to vote is not a block producer")
+	bpWrap.MustExist("the account you want to vote is not a block producer")
 	bpVoteVestCnt := bpWrap.GetBpVest().VoteVest
 	bpActive := bpWrap.GetBpVest().Active
 	bpVoterCount := bpWrap.GetVoterCount()
@@ -627,7 +627,7 @@ func (ev *BpVoteEvaluator) Apply() {
 
 	if op.Cancel {
 		// delete vote record
-		opAssert(vidWrap.CheckExist(), "vote record not exist")
+		vidWrap.MustExist("vote record not exist")
 		vidWrap.RemoveBlockProducerVote()
 
 		// modify block producer bp vest
@@ -648,7 +648,7 @@ func (ev *BpVoteEvaluator) Apply() {
 		opAssert(bpActive, "block producer has been disabled")
 
 		// check duplicate vote
-		opAssert(!vidWrap.CheckExist(), "already vote to this bp, do not vote twice")
+		vidWrap.MustNotExist("already vote to this bp, do not vote twice")
 
 		// check voter vote count, it should be less than the limit
 		opAssert(voteCnt < constants.PerUserBpVoteLimit, "vote count exceeding")
@@ -731,10 +731,10 @@ func (ev *FollowEvaluator) Apply() {
 	ev.VMInjector().RecordStaminaFee(op.Account.Value, constants.CommonOpStamina)
 
 	acctWrap := table.NewSoAccountWrap(ev.Database(), op.Account)
-	opAssert(acctWrap.CheckExist(), "follow account do not exist ")
+	acctWrap.MustExist("follow account do not exist ")
 
 	acctWrap = table.NewSoAccountWrap(ev.Database(), op.FAccount)
-	opAssert(acctWrap.CheckExist(), "follow f_account do not exist ")
+	acctWrap.MustExist("follow f_account do not exist ")
 
 	opAssert( op.Account.Value != op.FAccount.Value, "can't follow yourself")
 }
@@ -746,7 +746,7 @@ func (ev *TransferToVestEvaluator) Apply() {
 	fidWrap := table.NewSoAccountWrap(ev.Database(), op.From)
 	tidWrap := table.NewSoAccountWrap(ev.Database(), op.To)
 
-	opAssert(tidWrap.CheckExist(), "to account do not exist")
+	tidWrap.MustExist("to account do not exist")
 
 	fBalance := fidWrap.GetBalance()
 	tVests := tidWrap.GetVest()
@@ -797,7 +797,7 @@ func (ev *ConvertVestEvaluator) Apply() {
 	ev.VMInjector().RecordStaminaFee(op.From.Value, constants.CommonOpStamina)
 
 	accWrap := table.NewSoAccountWrap(ev.Database(), op.From)
-	opAssert(accWrap.CheckExist(), "account do not exist")
+	accWrap.MustExist("account do not exist")
 	//opAssert(op.Amount.Value >= uint64(1e6), "At least 1 VEST should be converted")
 	opAssert(accWrap.GetVest().Value >= op.Amount.Value, "VEST balance not enough")
 	globalProps := ev.GlobalProp().GetProps()
@@ -872,10 +872,10 @@ func (ev *ReportEvaluator) Apply() {
 	op := ev.op
 	ev.VMInjector().RecordStaminaFee(op.Reporter.Value, constants.CommonOpStamina)
 	post := table.NewSoPostWrap(ev.Database(), &op.Reported)
-	opAssert(post.CheckExist(), "the reported post doesn't exist")
+	post.MustExist("the reported post doesn't exist")
 	report := table.NewSoReportListWrap(ev.Database(), &op.Reported)
 	if op.IsArbitration {
-		opAssert(report.CheckExist(), "cannot arbitrate a non-existed post")
+		report.MustExist("cannot arbitrate a non-existed post")
 		if op.IsApproved {
 			post.RemovePost()
 			report.RemoveReportList()
@@ -979,10 +979,10 @@ func (ev *ContractApplyEvaluator) Apply() {
 
 	cid := prototype.ContractId{Owner: op.Owner, Cname: op.Contract}
 	scid := table.NewSoContractWrap(ev.Database(), &cid)
-	opAssert(scid.CheckExist(), "contract name doesn't exist")
+	scid.MustExist("contract name doesn't exist")
 
 	acc := table.NewSoAccountWrap(ev.Database(), op.Caller)
-	opAssert(acc.CheckExist(), "account doesn't exist")
+	acc.MustExist("caller account doesn't exist")
 
 	balance := acc.GetBalance().Value
 
@@ -1062,13 +1062,13 @@ func (ev *InternalContractApplyEvaluator) Apply() {
 	op := ev.op
 
 	fromContract := table.NewSoContractWrap(ev.Database(), &prototype.ContractId{Owner: op.FromOwner, Cname: op.FromContract})
-	opAssert(fromContract.CheckExist(), "fromContract contract doesn't exist")
+	fromContract.MustExist("fromContract contract doesn't exist")
 
 	toContract := table.NewSoContractWrap(ev.Database(), &prototype.ContractId{Owner: op.ToOwner, Cname: op.ToContract})
-	opAssert(toContract.CheckExist(), "toContract contract doesn't exist")
+	toContract.MustExist("toContract contract doesn't exist")
 
 	caller := table.NewSoAccountWrap(ev.Database(), op.FromCaller)
-	opAssert(caller.CheckExist(), "caller account doesn't exist")
+	caller.MustExist("caller account doesn't exist")
 
 	opAssert(fromContract.GetBalance().Value >= op.Amount.Value, "fromContract balance less than transfer amount")
 
@@ -1124,8 +1124,8 @@ func (ev *StakeEvaluator) Apply() {
 	fidWrap := table.NewSoAccountWrap(ev.Database(), op.From)
 	tidWrap := table.NewSoAccountWrap(ev.Database(), op.To)
 
-	opAssert(fidWrap.CheckExist(), "from account do not exist")
-	opAssert(tidWrap.CheckExist(), "to account do not exist")
+	fidWrap.MustExist("from account do not exist")
+	tidWrap.MustExist("to account do not exist")
 
 	fBalance := fidWrap.GetBalance()
 	tVests := tidWrap.GetStakeVest()
@@ -1175,9 +1175,7 @@ func (ev *UnStakeEvaluator) Apply() {
 		To: op.Debtor,
 	})
 
-	if !recordWrap.CheckExist() {
-		opAssert(false,"stake record not exist")
-	}
+	recordWrap.MustExist("stake record not exist")
 
 	stakeTime := recordWrap.GetLastStakeTime()
 	headBlockTime := ev.GlobalProp().HeadBlockTime()
@@ -1239,10 +1237,7 @@ func (ev *AcquireTicketEvaluator) Apply() {
 	}
 
 	ticketWrap := table.NewSoGiftTicketWrap(ev.Database(), ticketKey)
-
-	if ticketWrap.CheckExist() {
-		panic("ticket record existed")
-	}
+	ticketWrap.MustNotExist("ticket record existed")
 
 	_ = ticketWrap.Create(func(tInfo *table.SoGiftTicket) {
 		tInfo.Ticket = ticketKey
@@ -1273,7 +1268,7 @@ func (ev *VoteByTicketEvaluator) Apply() {
 	count := op.Count
 
 	postWrap := table.NewSoPostWrap(ev.Database(), &op.Idx)
-	opAssert(postWrap.CheckExist(), "post does not exist")
+	postWrap.MustExist("post does not exist")
 
 	originTicketCount := postWrap.GetTicket()
 
@@ -1316,10 +1311,7 @@ func (ev *VoteByTicketEvaluator) Apply() {
 		CreateBlock: ev.GlobalProp().GetProps().HeadBlockNumber+1,
 	}
 	ticketWrap := table.NewSoGiftTicketWrap(ev.Database(), ticketKey)
-
-	if ticketWrap.CheckExist() {
-		panic("ticket record existed")
-	}
+	ticketWrap.MustNotExist("ticket record existed")
 
 	// record ticket vote action
 	_ = ticketWrap.Create(func(tInfo *table.SoGiftTicket) {
@@ -1333,9 +1325,7 @@ func (ev *VoteByTicketEvaluator) Apply() {
 	props := ev.GlobalProp().GetProps()
 	currentBp := props.CurrentBlockProducer
 	bpWrap := table.NewSoAccountWrap(ev.Database(), currentBp)
-	if !bpWrap.CheckExist() {
-		panic(fmt.Sprintf("cannot find bp %s", currentBp.Value))
-	}
+	bpWrap.MustExist(fmt.Sprintf("cannot find bp %s", currentBp.Value))
 
 	// the per ticket price may change,so replace the per ticket price by totalincome / ticketnum
 	opAssert(props.GetChargedTicketsNum() >= count, "should acquire tickets first")

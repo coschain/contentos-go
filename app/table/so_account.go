@@ -72,16 +72,16 @@ func (s *SoAccountWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoAccountWrap) MustExist() *SoAccountWrap {
+func (s *SoAccountWrap) MustExist(errMsgs ...interface{}) *SoAccountWrap {
 	if !s.CheckExist() {
-		panic(fmt.Errorf("SoAccountWrap.MustExist: %v not found", s.mainKey))
+		panic(bindErrorInfo(fmt.Sprintf("SoAccountWrap.MustExist: %v not found", s.mainKey), errMsgs...))
 	}
 	return s
 }
 
-func (s *SoAccountWrap) MustNotExist() *SoAccountWrap {
+func (s *SoAccountWrap) MustNotExist(errMsgs ...interface{}) *SoAccountWrap {
 	if s.CheckExist() {
-		panic(fmt.Errorf("SoAccountWrap.MustNotExist: %v already exists", s.mainKey))
+		panic(bindErrorInfo(fmt.Sprintf("SoAccountWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
 	}
 	return s
 }

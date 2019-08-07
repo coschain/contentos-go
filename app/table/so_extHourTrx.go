@@ -66,16 +66,16 @@ func (s *SoExtHourTrxWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoExtHourTrxWrap) MustExist() *SoExtHourTrxWrap {
+func (s *SoExtHourTrxWrap) MustExist(errMsgs ...interface{}) *SoExtHourTrxWrap {
 	if !s.CheckExist() {
-		panic(fmt.Errorf("SoExtHourTrxWrap.MustExist: %v not found", s.mainKey))
+		panic(bindErrorInfo(fmt.Sprintf("SoExtHourTrxWrap.MustExist: %v not found", s.mainKey), errMsgs...))
 	}
 	return s
 }
 
-func (s *SoExtHourTrxWrap) MustNotExist() *SoExtHourTrxWrap {
+func (s *SoExtHourTrxWrap) MustNotExist(errMsgs ...interface{}) *SoExtHourTrxWrap {
 	if s.CheckExist() {
-		panic(fmt.Errorf("SoExtHourTrxWrap.MustNotExist: %v already exists", s.mainKey))
+		panic(bindErrorInfo(fmt.Sprintf("SoExtHourTrxWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
 	}
 	return s
 }

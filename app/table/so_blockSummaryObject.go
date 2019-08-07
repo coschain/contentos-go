@@ -64,16 +64,16 @@ func (s *SoBlockSummaryObjectWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoBlockSummaryObjectWrap) MustExist() *SoBlockSummaryObjectWrap {
+func (s *SoBlockSummaryObjectWrap) MustExist(errMsgs ...interface{}) *SoBlockSummaryObjectWrap {
 	if !s.CheckExist() {
-		panic(fmt.Errorf("SoBlockSummaryObjectWrap.MustExist: %v not found", s.mainKey))
+		panic(bindErrorInfo(fmt.Sprintf("SoBlockSummaryObjectWrap.MustExist: %v not found", s.mainKey), errMsgs...))
 	}
 	return s
 }
 
-func (s *SoBlockSummaryObjectWrap) MustNotExist() *SoBlockSummaryObjectWrap {
+func (s *SoBlockSummaryObjectWrap) MustNotExist(errMsgs ...interface{}) *SoBlockSummaryObjectWrap {
 	if s.CheckExist() {
-		panic(fmt.Errorf("SoBlockSummaryObjectWrap.MustNotExist: %v already exists", s.mainKey))
+		panic(bindErrorInfo(fmt.Sprintf("SoBlockSummaryObjectWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
 	}
 	return s
 }

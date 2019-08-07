@@ -125,16 +125,16 @@ func (s *So{{.ClsName}}Wrap) CheckExist() bool {
 	return res
 }
 
-func (s *So{{.ClsName}}Wrap) MustExist() *So{{.ClsName}}Wrap {
+func (s *So{{.ClsName}}Wrap) MustExist(errMsgs...interface{}) *So{{.ClsName}}Wrap {
     if !s.CheckExist() {
-		panic(fmt.Errorf("So{{.ClsName}}Wrap.MustExist: %v not found", s.mainKey))
+		panic(bindErrorInfo(fmt.Sprintf("So{{.ClsName}}Wrap.MustExist: %v not found", s.mainKey), errMsgs...))
 	}
 	return s
 }
 
-func (s *So{{.ClsName}}Wrap) MustNotExist() *So{{.ClsName}}Wrap {
+func (s *So{{.ClsName}}Wrap) MustNotExist(errMsgs...interface{}) *So{{.ClsName}}Wrap {
     if s.CheckExist() {
-		panic(fmt.Errorf("So{{.ClsName}}Wrap.MustNotExist: %v already exists", s.mainKey))
+		panic(bindErrorInfo(fmt.Sprintf("So{{.ClsName}}Wrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
 	}
 	return s
 }

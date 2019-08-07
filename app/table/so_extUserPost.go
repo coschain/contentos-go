@@ -65,16 +65,16 @@ func (s *SoExtUserPostWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoExtUserPostWrap) MustExist() *SoExtUserPostWrap {
+func (s *SoExtUserPostWrap) MustExist(errMsgs ...interface{}) *SoExtUserPostWrap {
 	if !s.CheckExist() {
-		panic(fmt.Errorf("SoExtUserPostWrap.MustExist: %v not found", s.mainKey))
+		panic(bindErrorInfo(fmt.Sprintf("SoExtUserPostWrap.MustExist: %v not found", s.mainKey), errMsgs...))
 	}
 	return s
 }
 
-func (s *SoExtUserPostWrap) MustNotExist() *SoExtUserPostWrap {
+func (s *SoExtUserPostWrap) MustNotExist(errMsgs ...interface{}) *SoExtUserPostWrap {
 	if s.CheckExist() {
-		panic(fmt.Errorf("SoExtUserPostWrap.MustNotExist: %v already exists", s.mainKey))
+		panic(bindErrorInfo(fmt.Sprintf("SoExtUserPostWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
 	}
 	return s
 }

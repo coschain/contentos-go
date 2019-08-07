@@ -248,7 +248,7 @@ func (d *Dandelion) ModifyProps(modifier func(oldProps *prototype.DynamicPropert
 			err = errors.New(fmt.Sprint(e))
 		}
 	}()
-	
+
 	chainId := int32(constants.SingletonId)
 	dgpWrap := table.NewSoGlobalWrap(d.Database(),  &chainId)
 	props := dgpWrap.GetProps()

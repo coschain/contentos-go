@@ -64,16 +64,16 @@ func (s *SoBlockProducerScheduleObjectWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoBlockProducerScheduleObjectWrap) MustExist() *SoBlockProducerScheduleObjectWrap {
+func (s *SoBlockProducerScheduleObjectWrap) MustExist(errMsgs ...interface{}) *SoBlockProducerScheduleObjectWrap {
 	if !s.CheckExist() {
-		panic(fmt.Errorf("SoBlockProducerScheduleObjectWrap.MustExist: %v not found", s.mainKey))
+		panic(bindErrorInfo(fmt.Sprintf("SoBlockProducerScheduleObjectWrap.MustExist: %v not found", s.mainKey), errMsgs...))
 	}
 	return s
 }
 
-func (s *SoBlockProducerScheduleObjectWrap) MustNotExist() *SoBlockProducerScheduleObjectWrap {
+func (s *SoBlockProducerScheduleObjectWrap) MustNotExist(errMsgs ...interface{}) *SoBlockProducerScheduleObjectWrap {
 	if s.CheckExist() {
-		panic(fmt.Errorf("SoBlockProducerScheduleObjectWrap.MustNotExist: %v already exists", s.mainKey))
+		panic(bindErrorInfo(fmt.Sprintf("SoBlockProducerScheduleObjectWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
 	}
 	return s
 }

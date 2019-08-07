@@ -66,16 +66,16 @@ func (s *SoStakeRecordWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoStakeRecordWrap) MustExist() *SoStakeRecordWrap {
+func (s *SoStakeRecordWrap) MustExist(errMsgs ...interface{}) *SoStakeRecordWrap {
 	if !s.CheckExist() {
-		panic(fmt.Errorf("SoStakeRecordWrap.MustExist: %v not found", s.mainKey))
+		panic(bindErrorInfo(fmt.Sprintf("SoStakeRecordWrap.MustExist: %v not found", s.mainKey), errMsgs...))
 	}
 	return s
 }
 
-func (s *SoStakeRecordWrap) MustNotExist() *SoStakeRecordWrap {
+func (s *SoStakeRecordWrap) MustNotExist(errMsgs ...interface{}) *SoStakeRecordWrap {
 	if s.CheckExist() {
-		panic(fmt.Errorf("SoStakeRecordWrap.MustNotExist: %v already exists", s.mainKey))
+		panic(bindErrorInfo(fmt.Sprintf("SoStakeRecordWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
 	}
 	return s
 }

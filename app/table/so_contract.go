@@ -66,16 +66,16 @@ func (s *SoContractWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoContractWrap) MustExist() *SoContractWrap {
+func (s *SoContractWrap) MustExist(errMsgs ...interface{}) *SoContractWrap {
 	if !s.CheckExist() {
-		panic(fmt.Errorf("SoContractWrap.MustExist: %v not found", s.mainKey))
+		panic(bindErrorInfo(fmt.Sprintf("SoContractWrap.MustExist: %v not found", s.mainKey), errMsgs...))
 	}
 	return s
 }
 
-func (s *SoContractWrap) MustNotExist() *SoContractWrap {
+func (s *SoContractWrap) MustNotExist(errMsgs ...interface{}) *SoContractWrap {
 	if s.CheckExist() {
-		panic(fmt.Errorf("SoContractWrap.MustNotExist: %v already exists", s.mainKey))
+		panic(bindErrorInfo(fmt.Sprintf("SoContractWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
 	}
 	return s
 }

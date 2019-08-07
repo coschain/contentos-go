@@ -66,16 +66,16 @@ func (s *SoGiftTicketWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoGiftTicketWrap) MustExist() *SoGiftTicketWrap {
+func (s *SoGiftTicketWrap) MustExist(errMsgs ...interface{}) *SoGiftTicketWrap {
 	if !s.CheckExist() {
-		panic(fmt.Errorf("SoGiftTicketWrap.MustExist: %v not found", s.mainKey))
+		panic(bindErrorInfo(fmt.Sprintf("SoGiftTicketWrap.MustExist: %v not found", s.mainKey), errMsgs...))
 	}
 	return s
 }
 
-func (s *SoGiftTicketWrap) MustNotExist() *SoGiftTicketWrap {
+func (s *SoGiftTicketWrap) MustNotExist(errMsgs ...interface{}) *SoGiftTicketWrap {
 	if s.CheckExist() {
-		panic(fmt.Errorf("SoGiftTicketWrap.MustNotExist: %v already exists", s.mainKey))
+		panic(bindErrorInfo(fmt.Sprintf("SoGiftTicketWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
 	}
 	return s
 }

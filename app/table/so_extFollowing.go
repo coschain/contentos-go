@@ -65,16 +65,16 @@ func (s *SoExtFollowingWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoExtFollowingWrap) MustExist() *SoExtFollowingWrap {
+func (s *SoExtFollowingWrap) MustExist(errMsgs ...interface{}) *SoExtFollowingWrap {
 	if !s.CheckExist() {
-		panic(fmt.Errorf("SoExtFollowingWrap.MustExist: %v not found", s.mainKey))
+		panic(bindErrorInfo(fmt.Sprintf("SoExtFollowingWrap.MustExist: %v not found", s.mainKey), errMsgs...))
 	}
 	return s
 }
 
-func (s *SoExtFollowingWrap) MustNotExist() *SoExtFollowingWrap {
+func (s *SoExtFollowingWrap) MustNotExist(errMsgs ...interface{}) *SoExtFollowingWrap {
 	if s.CheckExist() {
-		panic(fmt.Errorf("SoExtFollowingWrap.MustNotExist: %v already exists", s.mainKey))
+		panic(bindErrorInfo(fmt.Sprintf("SoExtFollowingWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
 	}
 	return s
 }

@@ -988,7 +988,7 @@ func (c *TrxPool) createBlockSummary(blk *prototype.SignedBlock) {
 	blockNumSuffix := uint32(blockNum & 0x7ff)
 
 	blockSummaryWrap := table.NewSoBlockSummaryObjectWrap(c.db, &blockNumSuffix)
-	mustSuccess(blockSummaryWrap.CheckExist(), "can not get block summary object")
+	blockSummaryWrap.MustExist("can not get block summary object")
 	blockIDArray := blk.Id().Data
 	blockID := &prototype.Sha256{Hash: blockIDArray[:]}
 	blockSummaryWrap.SetBlockId(blockID)
