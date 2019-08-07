@@ -162,10 +162,17 @@ func Post(postId uint64, author, title, content string, tags []string, beneficia
 	})
 }
 
-func Reply(postId, parentId uint64, author, content string, beneficiaries map[string]int) *prototype.Operation {
+func Reply(postId, parentId uint64, author, content string, beneficiaries []map[string]int) *prototype.Operation {
 	var benefits []*prototype.BeneficiaryRouteType
-	if beneficiaries != nil {
-		for name, weight := range beneficiaries {
+	if len(beneficiaries) > 0 {
+		for _, e := range beneficiaries {
+			var (
+				name string
+				weight int
+			)
+			for name, weight = range e {
+				break
+			}
 			benefits = append(benefits, &prototype.BeneficiaryRouteType{
 				Name: prototype.NewAccountName(name),
 				Weight: uint32(weight),
