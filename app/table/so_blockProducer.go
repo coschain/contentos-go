@@ -2,7 +2,7 @@ package table
 
 import (
 	"errors"
-	fmt "fmt"
+	"fmt"
 	"reflect"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
@@ -66,7 +66,21 @@ func (s *SoBlockProducerWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoBlockProducerWrap) Create(f func(tInfo *SoBlockProducer)) error {
+func (s *SoBlockProducerWrap) MustExist(errMsgs ...interface{}) *SoBlockProducerWrap {
+	if !s.CheckExist() {
+		panic(bindErrorInfo(fmt.Sprintf("SoBlockProducerWrap.MustExist: %v not found", s.mainKey), errMsgs...))
+	}
+	return s
+}
+
+func (s *SoBlockProducerWrap) MustNotExist(errMsgs ...interface{}) *SoBlockProducerWrap {
+	if s.CheckExist() {
+		panic(bindErrorInfo(fmt.Sprintf("SoBlockProducerWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
+	}
+	return s
+}
+
+func (s *SoBlockProducerWrap) create(f func(tInfo *SoBlockProducer)) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
@@ -115,6 +129,14 @@ func (s *SoBlockProducerWrap) Create(f func(tInfo *SoBlockProducer)) error {
 	return nil
 }
 
+func (s *SoBlockProducerWrap) Create(f func(tInfo *SoBlockProducer), errArgs ...interface{}) *SoBlockProducerWrap {
+	err := s.create(f)
+	if err != nil {
+		panic(bindErrorInfo(fmt.Errorf("SoBlockProducerWrap.Create failed: %s", err.Error()), errArgs...))
+	}
+	return s
+}
+
 func (s *SoBlockProducerWrap) getMainKeyBuf() ([]byte, error) {
 	if s.mainKey == nil {
 		return nil, errors.New("the main key is nil")
@@ -129,7 +151,7 @@ func (s *SoBlockProducerWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
-func (s *SoBlockProducerWrap) Modify(f func(tInfo *SoBlockProducer)) error {
+func (s *SoBlockProducerWrap) modify(f func(tInfo *SoBlockProducer)) error {
 	if !s.CheckExist() {
 		return errors.New("the SoBlockProducer table does not exist. Please create a table first")
 	}
@@ -188,88 +210,132 @@ func (s *SoBlockProducerWrap) Modify(f func(tInfo *SoBlockProducer)) error {
 
 }
 
-func (s *SoBlockProducerWrap) MdAccountCreateFee(p *prototype.Coin) bool {
-	err := s.Modify(func(r *SoBlockProducer) {
+func (s *SoBlockProducerWrap) Modify(f func(tInfo *SoBlockProducer), errArgs ...interface{}) *SoBlockProducerWrap {
+	err := s.modify(f)
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoBlockProducerWrap.Modify failed: %s", err.Error()), errArgs...))
+	}
+	return s
+}
+
+func (s *SoBlockProducerWrap) SetAccountCreateFee(p *prototype.Coin, errArgs ...interface{}) *SoBlockProducerWrap {
+	err := s.modify(func(r *SoBlockProducer) {
 		r.AccountCreateFee = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoBlockProducerWrap.SetAccountCreateFee( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoBlockProducerWrap) MdBpVest(p *prototype.BpVestId) bool {
-	err := s.Modify(func(r *SoBlockProducer) {
+func (s *SoBlockProducerWrap) SetBpVest(p *prototype.BpVestId, errArgs ...interface{}) *SoBlockProducerWrap {
+	err := s.modify(func(r *SoBlockProducer) {
 		r.BpVest = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoBlockProducerWrap.SetBpVest( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoBlockProducerWrap) MdCreatedTime(p *prototype.TimePointSec) bool {
-	err := s.Modify(func(r *SoBlockProducer) {
+func (s *SoBlockProducerWrap) SetCreatedTime(p *prototype.TimePointSec, errArgs ...interface{}) *SoBlockProducerWrap {
+	err := s.modify(func(r *SoBlockProducer) {
 		r.CreatedTime = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoBlockProducerWrap.SetCreatedTime( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoBlockProducerWrap) MdEpochDuration(p uint64) bool {
-	err := s.Modify(func(r *SoBlockProducer) {
+func (s *SoBlockProducerWrap) SetEpochDuration(p uint64, errArgs ...interface{}) *SoBlockProducerWrap {
+	err := s.modify(func(r *SoBlockProducer) {
 		r.EpochDuration = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoBlockProducerWrap.SetEpochDuration( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoBlockProducerWrap) MdPerTicketPrice(p *prototype.Coin) bool {
-	err := s.Modify(func(r *SoBlockProducer) {
+func (s *SoBlockProducerWrap) SetPerTicketPrice(p *prototype.Coin, errArgs ...interface{}) *SoBlockProducerWrap {
+	err := s.modify(func(r *SoBlockProducer) {
 		r.PerTicketPrice = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoBlockProducerWrap.SetPerTicketPrice( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoBlockProducerWrap) MdPerTicketWeight(p uint64) bool {
-	err := s.Modify(func(r *SoBlockProducer) {
+func (s *SoBlockProducerWrap) SetPerTicketWeight(p uint64, errArgs ...interface{}) *SoBlockProducerWrap {
+	err := s.modify(func(r *SoBlockProducer) {
 		r.PerTicketWeight = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoBlockProducerWrap.SetPerTicketWeight( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoBlockProducerWrap) MdProposedStaminaFree(p uint64) bool {
-	err := s.Modify(func(r *SoBlockProducer) {
+func (s *SoBlockProducerWrap) SetProposedStaminaFree(p uint64, errArgs ...interface{}) *SoBlockProducerWrap {
+	err := s.modify(func(r *SoBlockProducer) {
 		r.ProposedStaminaFree = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoBlockProducerWrap.SetProposedStaminaFree( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoBlockProducerWrap) MdSigningKey(p *prototype.PublicKeyType) bool {
-	err := s.Modify(func(r *SoBlockProducer) {
+func (s *SoBlockProducerWrap) SetSigningKey(p *prototype.PublicKeyType, errArgs ...interface{}) *SoBlockProducerWrap {
+	err := s.modify(func(r *SoBlockProducer) {
 		r.SigningKey = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoBlockProducerWrap.SetSigningKey( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoBlockProducerWrap) MdTopNAcquireFreeToken(p uint32) bool {
-	err := s.Modify(func(r *SoBlockProducer) {
+func (s *SoBlockProducerWrap) SetTopNAcquireFreeToken(p uint32, errArgs ...interface{}) *SoBlockProducerWrap {
+	err := s.modify(func(r *SoBlockProducer) {
 		r.TopNAcquireFreeToken = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoBlockProducerWrap.SetTopNAcquireFreeToken( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoBlockProducerWrap) MdTpsExpected(p uint64) bool {
-	err := s.Modify(func(r *SoBlockProducer) {
+func (s *SoBlockProducerWrap) SetTpsExpected(p uint64, errArgs ...interface{}) *SoBlockProducerWrap {
+	err := s.modify(func(r *SoBlockProducer) {
 		r.TpsExpected = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoBlockProducerWrap.SetTpsExpected( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoBlockProducerWrap) MdUrl(p string) bool {
-	err := s.Modify(func(r *SoBlockProducer) {
+func (s *SoBlockProducerWrap) SetUrl(p string, errArgs ...interface{}) *SoBlockProducerWrap {
+	err := s.modify(func(r *SoBlockProducer) {
 		r.Url = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoBlockProducerWrap.SetUrl( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoBlockProducerWrap) MdVoterCount(p uint64) bool {
-	err := s.Modify(func(r *SoBlockProducer) {
+func (s *SoBlockProducerWrap) SetVoterCount(p uint64, errArgs ...interface{}) *SoBlockProducerWrap {
+	err := s.modify(func(r *SoBlockProducer) {
 		r.VoterCount = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoBlockProducerWrap.SetVoterCount( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
 func (s *SoBlockProducerWrap) checkSortAndUniFieldValidity(curTable *SoBlockProducer, fieldSli []string) error {
@@ -687,33 +753,41 @@ func (s *SoBlockProducerWrap) insertAllSortKeys(val *SoBlockProducer) error {
 
 ////////////// SECTION LKeys delete/insert //////////////
 
-func (s *SoBlockProducerWrap) RemoveBlockProducer() bool {
+func (s *SoBlockProducerWrap) removeBlockProducer() error {
 	if s.dba == nil {
-		return false
+		return errors.New("database is nil")
 	}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
-		return false
+		return errors.New("delAllSortKeys failed")
 	}
 
 	//delete unique list
 	if res := s.delAllUniKeys(true, nil); !res {
-		return false
+		return errors.New("delAllUniKeys failed")
 	}
 
 	//delete table
 	key, err := s.encodeMainKey()
 	if err != nil {
-		return false
+		return fmt.Errorf("encodeMainKey failed: %s", err.Error())
 	}
 	err = s.dba.Delete(key)
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
-		return true
+		return nil
 	} else {
-		return false
+		return fmt.Errorf("database.Delete failed: %s", err.Error())
 	}
+}
+
+func (s *SoBlockProducerWrap) RemoveBlockProducer(errMsgs ...interface{}) *SoBlockProducerWrap {
+	err := s.removeBlockProducer()
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoBlockProducerWrap.RemoveBlockProducer failed: %s", err.Error()), errMsgs...))
+	}
+	return s
 }
 
 ////////////// SECTION Members Get/Modify ///////////////

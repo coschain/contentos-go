@@ -118,14 +118,14 @@ func addGlobalTime(db iservices.IDatabaseService, delta uint32) {
 	wrap := table.NewSoGlobalWrap(db, &constants.GlobalId)
 	gp := wrap.GetProps()
 	gp.Time.UtcSeconds += delta
-	wrap.MdProps(gp)
+	wrap.SetProps(gp)
 }
 
 func addGlobalHeadNumer(db iservices.IDatabaseService, delta uint64) {
 	wrap := table.NewSoGlobalWrap(db, &constants.GlobalId)
 	gp := wrap.GetProps()
 	gp.HeadBlockNumber += delta
-	wrap.MdProps(gp)
+	wrap.SetProps(gp)
 }
 
 func createSigTrxTmp(c *TrxPool, priKey string, step uint32, ops ...interface{}) (*prototype.SignedTransaction, error) {

@@ -2,7 +2,7 @@ package table
 
 import (
 	"errors"
-	fmt "fmt"
+	"fmt"
 	"reflect"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
@@ -65,7 +65,21 @@ func (s *SoExtReplyCreatedWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoExtReplyCreatedWrap) Create(f func(tInfo *SoExtReplyCreated)) error {
+func (s *SoExtReplyCreatedWrap) MustExist(errMsgs ...interface{}) *SoExtReplyCreatedWrap {
+	if !s.CheckExist() {
+		panic(bindErrorInfo(fmt.Sprintf("SoExtReplyCreatedWrap.MustExist: %v not found", s.mainKey), errMsgs...))
+	}
+	return s
+}
+
+func (s *SoExtReplyCreatedWrap) MustNotExist(errMsgs ...interface{}) *SoExtReplyCreatedWrap {
+	if s.CheckExist() {
+		panic(bindErrorInfo(fmt.Sprintf("SoExtReplyCreatedWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
+	}
+	return s
+}
+
+func (s *SoExtReplyCreatedWrap) create(f func(tInfo *SoExtReplyCreated)) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
@@ -111,6 +125,14 @@ func (s *SoExtReplyCreatedWrap) Create(f func(tInfo *SoExtReplyCreated)) error {
 	return nil
 }
 
+func (s *SoExtReplyCreatedWrap) Create(f func(tInfo *SoExtReplyCreated), errArgs ...interface{}) *SoExtReplyCreatedWrap {
+	err := s.create(f)
+	if err != nil {
+		panic(bindErrorInfo(fmt.Errorf("SoExtReplyCreatedWrap.Create failed: %s", err.Error()), errArgs...))
+	}
+	return s
+}
+
 func (s *SoExtReplyCreatedWrap) getMainKeyBuf() ([]byte, error) {
 	if s.mainKey == nil {
 		return nil, errors.New("the main key is nil")
@@ -125,7 +147,7 @@ func (s *SoExtReplyCreatedWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
-func (s *SoExtReplyCreatedWrap) Modify(f func(tInfo *SoExtReplyCreated)) error {
+func (s *SoExtReplyCreatedWrap) modify(f func(tInfo *SoExtReplyCreated)) error {
 	if !s.CheckExist() {
 		return errors.New("the SoExtReplyCreated table does not exist. Please create a table first")
 	}
@@ -184,11 +206,22 @@ func (s *SoExtReplyCreatedWrap) Modify(f func(tInfo *SoExtReplyCreated)) error {
 
 }
 
-func (s *SoExtReplyCreatedWrap) MdCreatedOrder(p *prototype.ReplyCreatedOrder) bool {
-	err := s.Modify(func(r *SoExtReplyCreated) {
+func (s *SoExtReplyCreatedWrap) Modify(f func(tInfo *SoExtReplyCreated), errArgs ...interface{}) *SoExtReplyCreatedWrap {
+	err := s.modify(f)
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoExtReplyCreatedWrap.Modify failed: %s", err.Error()), errArgs...))
+	}
+	return s
+}
+
+func (s *SoExtReplyCreatedWrap) SetCreatedOrder(p *prototype.ReplyCreatedOrder, errArgs ...interface{}) *SoExtReplyCreatedWrap {
+	err := s.modify(func(r *SoExtReplyCreated) {
 		r.CreatedOrder = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoExtReplyCreatedWrap.SetCreatedOrder( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
 func (s *SoExtReplyCreatedWrap) checkSortAndUniFieldValidity(curTable *SoExtReplyCreated, fieldSli []string) error {
@@ -328,33 +361,41 @@ func (s *SoExtReplyCreatedWrap) insertAllSortKeys(val *SoExtReplyCreated) error 
 
 ////////////// SECTION LKeys delete/insert //////////////
 
-func (s *SoExtReplyCreatedWrap) RemoveExtReplyCreated() bool {
+func (s *SoExtReplyCreatedWrap) removeExtReplyCreated() error {
 	if s.dba == nil {
-		return false
+		return errors.New("database is nil")
 	}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
-		return false
+		return errors.New("delAllSortKeys failed")
 	}
 
 	//delete unique list
 	if res := s.delAllUniKeys(true, nil); !res {
-		return false
+		return errors.New("delAllUniKeys failed")
 	}
 
 	//delete table
 	key, err := s.encodeMainKey()
 	if err != nil {
-		return false
+		return fmt.Errorf("encodeMainKey failed: %s", err.Error())
 	}
 	err = s.dba.Delete(key)
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
-		return true
+		return nil
 	} else {
-		return false
+		return fmt.Errorf("database.Delete failed: %s", err.Error())
 	}
+}
+
+func (s *SoExtReplyCreatedWrap) RemoveExtReplyCreated(errMsgs ...interface{}) *SoExtReplyCreatedWrap {
+	err := s.removeExtReplyCreated()
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoExtReplyCreatedWrap.RemoveExtReplyCreated failed: %s", err.Error()), errMsgs...))
+	}
+	return s
 }
 
 ////////////// SECTION Members Get/Modify ///////////////

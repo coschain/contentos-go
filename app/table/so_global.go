@@ -2,7 +2,7 @@ package table
 
 import (
 	"errors"
-	fmt "fmt"
+	"fmt"
 	"reflect"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
@@ -64,7 +64,21 @@ func (s *SoGlobalWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoGlobalWrap) Create(f func(tInfo *SoGlobal)) error {
+func (s *SoGlobalWrap) MustExist(errMsgs ...interface{}) *SoGlobalWrap {
+	if !s.CheckExist() {
+		panic(bindErrorInfo(fmt.Sprintf("SoGlobalWrap.MustExist: %v not found", s.mainKey), errMsgs...))
+	}
+	return s
+}
+
+func (s *SoGlobalWrap) MustNotExist(errMsgs ...interface{}) *SoGlobalWrap {
+	if s.CheckExist() {
+		panic(bindErrorInfo(fmt.Sprintf("SoGlobalWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
+	}
+	return s
+}
+
+func (s *SoGlobalWrap) create(f func(tInfo *SoGlobal)) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
@@ -110,6 +124,14 @@ func (s *SoGlobalWrap) Create(f func(tInfo *SoGlobal)) error {
 	return nil
 }
 
+func (s *SoGlobalWrap) Create(f func(tInfo *SoGlobal), errArgs ...interface{}) *SoGlobalWrap {
+	err := s.create(f)
+	if err != nil {
+		panic(bindErrorInfo(fmt.Errorf("SoGlobalWrap.Create failed: %s", err.Error()), errArgs...))
+	}
+	return s
+}
+
 func (s *SoGlobalWrap) getMainKeyBuf() ([]byte, error) {
 	if s.mainKey == nil {
 		return nil, errors.New("the main key is nil")
@@ -124,7 +146,7 @@ func (s *SoGlobalWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
-func (s *SoGlobalWrap) Modify(f func(tInfo *SoGlobal)) error {
+func (s *SoGlobalWrap) modify(f func(tInfo *SoGlobal)) error {
 	if !s.CheckExist() {
 		return errors.New("the SoGlobal table does not exist. Please create a table first")
 	}
@@ -183,11 +205,22 @@ func (s *SoGlobalWrap) Modify(f func(tInfo *SoGlobal)) error {
 
 }
 
-func (s *SoGlobalWrap) MdProps(p *prototype.DynamicProperties) bool {
-	err := s.Modify(func(r *SoGlobal) {
+func (s *SoGlobalWrap) Modify(f func(tInfo *SoGlobal), errArgs ...interface{}) *SoGlobalWrap {
+	err := s.modify(f)
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoGlobalWrap.Modify failed: %s", err.Error()), errArgs...))
+	}
+	return s
+}
+
+func (s *SoGlobalWrap) SetProps(p *prototype.DynamicProperties, errArgs ...interface{}) *SoGlobalWrap {
+	err := s.modify(func(r *SoGlobal) {
 		r.Props = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoGlobalWrap.SetProps( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
 func (s *SoGlobalWrap) checkSortAndUniFieldValidity(curTable *SoGlobal, fieldSli []string) error {
@@ -274,33 +307,41 @@ func (s *SoGlobalWrap) insertAllSortKeys(val *SoGlobal) error {
 
 ////////////// SECTION LKeys delete/insert //////////////
 
-func (s *SoGlobalWrap) RemoveGlobal() bool {
+func (s *SoGlobalWrap) removeGlobal() error {
 	if s.dba == nil {
-		return false
+		return errors.New("database is nil")
 	}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
-		return false
+		return errors.New("delAllSortKeys failed")
 	}
 
 	//delete unique list
 	if res := s.delAllUniKeys(true, nil); !res {
-		return false
+		return errors.New("delAllUniKeys failed")
 	}
 
 	//delete table
 	key, err := s.encodeMainKey()
 	if err != nil {
-		return false
+		return fmt.Errorf("encodeMainKey failed: %s", err.Error())
 	}
 	err = s.dba.Delete(key)
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
-		return true
+		return nil
 	} else {
-		return false
+		return fmt.Errorf("database.Delete failed: %s", err.Error())
 	}
+}
+
+func (s *SoGlobalWrap) RemoveGlobal(errMsgs ...interface{}) *SoGlobalWrap {
+	err := s.removeGlobal()
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoGlobalWrap.RemoveGlobal failed: %s", err.Error()), errMsgs...))
+	}
+	return s
 }
 
 ////////////// SECTION Members Get/Modify ///////////////

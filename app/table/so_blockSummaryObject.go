@@ -2,7 +2,7 @@ package table
 
 import (
 	"errors"
-	fmt "fmt"
+	"fmt"
 	"reflect"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
@@ -64,7 +64,21 @@ func (s *SoBlockSummaryObjectWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoBlockSummaryObjectWrap) Create(f func(tInfo *SoBlockSummaryObject)) error {
+func (s *SoBlockSummaryObjectWrap) MustExist(errMsgs ...interface{}) *SoBlockSummaryObjectWrap {
+	if !s.CheckExist() {
+		panic(bindErrorInfo(fmt.Sprintf("SoBlockSummaryObjectWrap.MustExist: %v not found", s.mainKey), errMsgs...))
+	}
+	return s
+}
+
+func (s *SoBlockSummaryObjectWrap) MustNotExist(errMsgs ...interface{}) *SoBlockSummaryObjectWrap {
+	if s.CheckExist() {
+		panic(bindErrorInfo(fmt.Sprintf("SoBlockSummaryObjectWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
+	}
+	return s
+}
+
+func (s *SoBlockSummaryObjectWrap) create(f func(tInfo *SoBlockSummaryObject)) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
@@ -110,6 +124,14 @@ func (s *SoBlockSummaryObjectWrap) Create(f func(tInfo *SoBlockSummaryObject)) e
 	return nil
 }
 
+func (s *SoBlockSummaryObjectWrap) Create(f func(tInfo *SoBlockSummaryObject), errArgs ...interface{}) *SoBlockSummaryObjectWrap {
+	err := s.create(f)
+	if err != nil {
+		panic(bindErrorInfo(fmt.Errorf("SoBlockSummaryObjectWrap.Create failed: %s", err.Error()), errArgs...))
+	}
+	return s
+}
+
 func (s *SoBlockSummaryObjectWrap) getMainKeyBuf() ([]byte, error) {
 	if s.mainKey == nil {
 		return nil, errors.New("the main key is nil")
@@ -124,7 +146,7 @@ func (s *SoBlockSummaryObjectWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
-func (s *SoBlockSummaryObjectWrap) Modify(f func(tInfo *SoBlockSummaryObject)) error {
+func (s *SoBlockSummaryObjectWrap) modify(f func(tInfo *SoBlockSummaryObject)) error {
 	if !s.CheckExist() {
 		return errors.New("the SoBlockSummaryObject table does not exist. Please create a table first")
 	}
@@ -183,11 +205,22 @@ func (s *SoBlockSummaryObjectWrap) Modify(f func(tInfo *SoBlockSummaryObject)) e
 
 }
 
-func (s *SoBlockSummaryObjectWrap) MdBlockId(p *prototype.Sha256) bool {
-	err := s.Modify(func(r *SoBlockSummaryObject) {
+func (s *SoBlockSummaryObjectWrap) Modify(f func(tInfo *SoBlockSummaryObject), errArgs ...interface{}) *SoBlockSummaryObjectWrap {
+	err := s.modify(f)
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoBlockSummaryObjectWrap.Modify failed: %s", err.Error()), errArgs...))
+	}
+	return s
+}
+
+func (s *SoBlockSummaryObjectWrap) SetBlockId(p *prototype.Sha256, errArgs ...interface{}) *SoBlockSummaryObjectWrap {
+	err := s.modify(func(r *SoBlockSummaryObject) {
 		r.BlockId = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoBlockSummaryObjectWrap.SetBlockId( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
 func (s *SoBlockSummaryObjectWrap) checkSortAndUniFieldValidity(curTable *SoBlockSummaryObject, fieldSli []string) error {
@@ -274,33 +307,41 @@ func (s *SoBlockSummaryObjectWrap) insertAllSortKeys(val *SoBlockSummaryObject) 
 
 ////////////// SECTION LKeys delete/insert //////////////
 
-func (s *SoBlockSummaryObjectWrap) RemoveBlockSummaryObject() bool {
+func (s *SoBlockSummaryObjectWrap) removeBlockSummaryObject() error {
 	if s.dba == nil {
-		return false
+		return errors.New("database is nil")
 	}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
-		return false
+		return errors.New("delAllSortKeys failed")
 	}
 
 	//delete unique list
 	if res := s.delAllUniKeys(true, nil); !res {
-		return false
+		return errors.New("delAllUniKeys failed")
 	}
 
 	//delete table
 	key, err := s.encodeMainKey()
 	if err != nil {
-		return false
+		return fmt.Errorf("encodeMainKey failed: %s", err.Error())
 	}
 	err = s.dba.Delete(key)
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
-		return true
+		return nil
 	} else {
-		return false
+		return fmt.Errorf("database.Delete failed: %s", err.Error())
 	}
+}
+
+func (s *SoBlockSummaryObjectWrap) RemoveBlockSummaryObject(errMsgs ...interface{}) *SoBlockSummaryObjectWrap {
+	err := s.removeBlockSummaryObject()
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoBlockSummaryObjectWrap.RemoveBlockSummaryObject failed: %s", err.Error()), errMsgs...))
+	}
+	return s
 }
 
 ////////////// SECTION Members Get/Modify ///////////////

@@ -2,7 +2,7 @@ package table
 
 import (
 	"errors"
-	fmt "fmt"
+	"fmt"
 	"reflect"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
@@ -66,7 +66,21 @@ func (s *SoStakeRecordWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoStakeRecordWrap) Create(f func(tInfo *SoStakeRecord)) error {
+func (s *SoStakeRecordWrap) MustExist(errMsgs ...interface{}) *SoStakeRecordWrap {
+	if !s.CheckExist() {
+		panic(bindErrorInfo(fmt.Sprintf("SoStakeRecordWrap.MustExist: %v not found", s.mainKey), errMsgs...))
+	}
+	return s
+}
+
+func (s *SoStakeRecordWrap) MustNotExist(errMsgs ...interface{}) *SoStakeRecordWrap {
+	if s.CheckExist() {
+		panic(bindErrorInfo(fmt.Sprintf("SoStakeRecordWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
+	}
+	return s
+}
+
+func (s *SoStakeRecordWrap) create(f func(tInfo *SoStakeRecord)) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
@@ -115,6 +129,14 @@ func (s *SoStakeRecordWrap) Create(f func(tInfo *SoStakeRecord)) error {
 	return nil
 }
 
+func (s *SoStakeRecordWrap) Create(f func(tInfo *SoStakeRecord), errArgs ...interface{}) *SoStakeRecordWrap {
+	err := s.create(f)
+	if err != nil {
+		panic(bindErrorInfo(fmt.Errorf("SoStakeRecordWrap.Create failed: %s", err.Error()), errArgs...))
+	}
+	return s
+}
+
 func (s *SoStakeRecordWrap) getMainKeyBuf() ([]byte, error) {
 	if s.mainKey == nil {
 		return nil, errors.New("the main key is nil")
@@ -129,7 +151,7 @@ func (s *SoStakeRecordWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
-func (s *SoStakeRecordWrap) Modify(f func(tInfo *SoStakeRecord)) error {
+func (s *SoStakeRecordWrap) modify(f func(tInfo *SoStakeRecord)) error {
 	if !s.CheckExist() {
 		return errors.New("the SoStakeRecord table does not exist. Please create a table first")
 	}
@@ -188,25 +210,42 @@ func (s *SoStakeRecordWrap) Modify(f func(tInfo *SoStakeRecord)) error {
 
 }
 
-func (s *SoStakeRecordWrap) MdLastStakeTime(p *prototype.TimePointSec) bool {
-	err := s.Modify(func(r *SoStakeRecord) {
+func (s *SoStakeRecordWrap) Modify(f func(tInfo *SoStakeRecord), errArgs ...interface{}) *SoStakeRecordWrap {
+	err := s.modify(f)
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoStakeRecordWrap.Modify failed: %s", err.Error()), errArgs...))
+	}
+	return s
+}
+
+func (s *SoStakeRecordWrap) SetLastStakeTime(p *prototype.TimePointSec, errArgs ...interface{}) *SoStakeRecordWrap {
+	err := s.modify(func(r *SoStakeRecord) {
 		r.LastStakeTime = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoStakeRecordWrap.SetLastStakeTime( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoStakeRecordWrap) MdRecordReverse(p *prototype.StakeRecordReverse) bool {
-	err := s.Modify(func(r *SoStakeRecord) {
+func (s *SoStakeRecordWrap) SetRecordReverse(p *prototype.StakeRecordReverse, errArgs ...interface{}) *SoStakeRecordWrap {
+	err := s.modify(func(r *SoStakeRecord) {
 		r.RecordReverse = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoStakeRecordWrap.SetRecordReverse( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoStakeRecordWrap) MdStakeAmount(p *prototype.Vest) bool {
-	err := s.Modify(func(r *SoStakeRecord) {
+func (s *SoStakeRecordWrap) SetStakeAmount(p *prototype.Vest, errArgs ...interface{}) *SoStakeRecordWrap {
+	err := s.modify(func(r *SoStakeRecord) {
 		r.StakeAmount = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoStakeRecordWrap.SetStakeAmount( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
 func (s *SoStakeRecordWrap) checkSortAndUniFieldValidity(curTable *SoStakeRecord, fieldSli []string) error {
@@ -435,33 +474,41 @@ func (s *SoStakeRecordWrap) insertAllSortKeys(val *SoStakeRecord) error {
 
 ////////////// SECTION LKeys delete/insert //////////////
 
-func (s *SoStakeRecordWrap) RemoveStakeRecord() bool {
+func (s *SoStakeRecordWrap) removeStakeRecord() error {
 	if s.dba == nil {
-		return false
+		return errors.New("database is nil")
 	}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
-		return false
+		return errors.New("delAllSortKeys failed")
 	}
 
 	//delete unique list
 	if res := s.delAllUniKeys(true, nil); !res {
-		return false
+		return errors.New("delAllUniKeys failed")
 	}
 
 	//delete table
 	key, err := s.encodeMainKey()
 	if err != nil {
-		return false
+		return fmt.Errorf("encodeMainKey failed: %s", err.Error())
 	}
 	err = s.dba.Delete(key)
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
-		return true
+		return nil
 	} else {
-		return false
+		return fmt.Errorf("database.Delete failed: %s", err.Error())
 	}
+}
+
+func (s *SoStakeRecordWrap) RemoveStakeRecord(errMsgs ...interface{}) *SoStakeRecordWrap {
+	err := s.removeStakeRecord()
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoStakeRecordWrap.RemoveStakeRecord failed: %s", err.Error()), errMsgs...))
+	}
+	return s
 }
 
 ////////////// SECTION Members Get/Modify ///////////////

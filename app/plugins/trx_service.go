@@ -67,7 +67,7 @@ func (t *TrxService) handleAddTrxNotification(blk *prototype.SignedBlock) {
 				})
 			} else {
 				curCnt := wrap.GetCount()
-				wrap.MdCount(curCnt + count)
+				wrap.SetCount(curCnt + count)
 			}
 		}
 		hourwrap := table.NewSoExtHourTrxWrap(t.db, &prototype.TimePointSec{UtcSeconds: hourIndex})
@@ -79,7 +79,7 @@ func (t *TrxService) handleAddTrxNotification(blk *prototype.SignedBlock) {
 				})
 			} else {
 				curCnt := hourwrap.GetCount()
-				hourwrap.MdCount(curCnt + count)
+				hourwrap.SetCount(curCnt + count)
 			}
 		}
 
@@ -111,7 +111,7 @@ func (t *TrxService) handleAddTrxNotification(blk *prototype.SignedBlock) {
 						acctWrap := table.NewSoAccountWrap(t.db,creAcct)
 						if acctWrap != nil && acctWrap.CheckExist() {
 							curCnt := acctWrap.GetCreatedTrxCount()
-							acctWrap.MdCreatedTrxCount(curCnt+1)
+							acctWrap.SetCreatedTrxCount(curCnt+1)
 						}
 					}
 				}

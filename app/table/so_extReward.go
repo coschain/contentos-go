@@ -2,7 +2,7 @@ package table
 
 import (
 	"errors"
-	fmt "fmt"
+	"fmt"
 	"reflect"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
@@ -65,7 +65,21 @@ func (s *SoExtRewardWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoExtRewardWrap) Create(f func(tInfo *SoExtReward)) error {
+func (s *SoExtRewardWrap) MustExist(errMsgs ...interface{}) *SoExtRewardWrap {
+	if !s.CheckExist() {
+		panic(bindErrorInfo(fmt.Sprintf("SoExtRewardWrap.MustExist: %v not found", s.mainKey), errMsgs...))
+	}
+	return s
+}
+
+func (s *SoExtRewardWrap) MustNotExist(errMsgs ...interface{}) *SoExtRewardWrap {
+	if s.CheckExist() {
+		panic(bindErrorInfo(fmt.Sprintf("SoExtRewardWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
+	}
+	return s
+}
+
+func (s *SoExtRewardWrap) create(f func(tInfo *SoExtReward)) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
@@ -114,6 +128,14 @@ func (s *SoExtRewardWrap) Create(f func(tInfo *SoExtReward)) error {
 	return nil
 }
 
+func (s *SoExtRewardWrap) Create(f func(tInfo *SoExtReward), errArgs ...interface{}) *SoExtRewardWrap {
+	err := s.create(f)
+	if err != nil {
+		panic(bindErrorInfo(fmt.Errorf("SoExtRewardWrap.Create failed: %s", err.Error()), errArgs...))
+	}
+	return s
+}
+
 func (s *SoExtRewardWrap) getMainKeyBuf() ([]byte, error) {
 	if s.mainKey == nil {
 		return nil, errors.New("the main key is nil")
@@ -128,7 +150,7 @@ func (s *SoExtRewardWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
-func (s *SoExtRewardWrap) Modify(f func(tInfo *SoExtReward)) error {
+func (s *SoExtRewardWrap) modify(f func(tInfo *SoExtReward)) error {
 	if !s.CheckExist() {
 		return errors.New("the SoExtReward table does not exist. Please create a table first")
 	}
@@ -187,18 +209,32 @@ func (s *SoExtRewardWrap) Modify(f func(tInfo *SoExtReward)) error {
 
 }
 
-func (s *SoExtRewardWrap) MdBlockHeight(p uint64) bool {
-	err := s.Modify(func(r *SoExtReward) {
-		r.BlockHeight = p
-	})
-	return err == nil
+func (s *SoExtRewardWrap) Modify(f func(tInfo *SoExtReward), errArgs ...interface{}) *SoExtRewardWrap {
+	err := s.modify(f)
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoExtRewardWrap.Modify failed: %s", err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoExtRewardWrap) MdReward(p *prototype.Vest) bool {
-	err := s.Modify(func(r *SoExtReward) {
+func (s *SoExtRewardWrap) SetBlockHeight(p uint64, errArgs ...interface{}) *SoExtRewardWrap {
+	err := s.modify(func(r *SoExtReward) {
+		r.BlockHeight = p
+	})
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoExtRewardWrap.SetBlockHeight( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
+}
+
+func (s *SoExtRewardWrap) SetReward(p *prototype.Vest, errArgs ...interface{}) *SoExtRewardWrap {
+	err := s.modify(func(r *SoExtReward) {
 		r.Reward = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoExtRewardWrap.SetReward( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
 func (s *SoExtRewardWrap) checkSortAndUniFieldValidity(curTable *SoExtReward, fieldSli []string) error {
@@ -356,33 +392,41 @@ func (s *SoExtRewardWrap) insertAllSortKeys(val *SoExtReward) error {
 
 ////////////// SECTION LKeys delete/insert //////////////
 
-func (s *SoExtRewardWrap) RemoveExtReward() bool {
+func (s *SoExtRewardWrap) removeExtReward() error {
 	if s.dba == nil {
-		return false
+		return errors.New("database is nil")
 	}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
-		return false
+		return errors.New("delAllSortKeys failed")
 	}
 
 	//delete unique list
 	if res := s.delAllUniKeys(true, nil); !res {
-		return false
+		return errors.New("delAllUniKeys failed")
 	}
 
 	//delete table
 	key, err := s.encodeMainKey()
 	if err != nil {
-		return false
+		return fmt.Errorf("encodeMainKey failed: %s", err.Error())
 	}
 	err = s.dba.Delete(key)
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
-		return true
+		return nil
 	} else {
-		return false
+		return fmt.Errorf("database.Delete failed: %s", err.Error())
 	}
+}
+
+func (s *SoExtRewardWrap) RemoveExtReward(errMsgs ...interface{}) *SoExtRewardWrap {
+	err := s.removeExtReward()
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoExtRewardWrap.RemoveExtReward failed: %s", err.Error()), errMsgs...))
+	}
+	return s
 }
 
 ////////////// SECTION Members Get/Modify ///////////////

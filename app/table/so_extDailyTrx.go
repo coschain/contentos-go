@@ -2,7 +2,7 @@ package table
 
 import (
 	"errors"
-	fmt "fmt"
+	"fmt"
 	"reflect"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
@@ -66,7 +66,21 @@ func (s *SoExtDailyTrxWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoExtDailyTrxWrap) Create(f func(tInfo *SoExtDailyTrx)) error {
+func (s *SoExtDailyTrxWrap) MustExist(errMsgs ...interface{}) *SoExtDailyTrxWrap {
+	if !s.CheckExist() {
+		panic(bindErrorInfo(fmt.Sprintf("SoExtDailyTrxWrap.MustExist: %v not found", s.mainKey), errMsgs...))
+	}
+	return s
+}
+
+func (s *SoExtDailyTrxWrap) MustNotExist(errMsgs ...interface{}) *SoExtDailyTrxWrap {
+	if s.CheckExist() {
+		panic(bindErrorInfo(fmt.Sprintf("SoExtDailyTrxWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
+	}
+	return s
+}
+
+func (s *SoExtDailyTrxWrap) create(f func(tInfo *SoExtDailyTrx)) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
@@ -115,6 +129,14 @@ func (s *SoExtDailyTrxWrap) Create(f func(tInfo *SoExtDailyTrx)) error {
 	return nil
 }
 
+func (s *SoExtDailyTrxWrap) Create(f func(tInfo *SoExtDailyTrx), errArgs ...interface{}) *SoExtDailyTrxWrap {
+	err := s.create(f)
+	if err != nil {
+		panic(bindErrorInfo(fmt.Errorf("SoExtDailyTrxWrap.Create failed: %s", err.Error()), errArgs...))
+	}
+	return s
+}
+
 func (s *SoExtDailyTrxWrap) getMainKeyBuf() ([]byte, error) {
 	if s.mainKey == nil {
 		return nil, errors.New("the main key is nil")
@@ -129,7 +151,7 @@ func (s *SoExtDailyTrxWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
-func (s *SoExtDailyTrxWrap) Modify(f func(tInfo *SoExtDailyTrx)) error {
+func (s *SoExtDailyTrxWrap) modify(f func(tInfo *SoExtDailyTrx)) error {
 	if !s.CheckExist() {
 		return errors.New("the SoExtDailyTrx table does not exist. Please create a table first")
 	}
@@ -188,11 +210,22 @@ func (s *SoExtDailyTrxWrap) Modify(f func(tInfo *SoExtDailyTrx)) error {
 
 }
 
-func (s *SoExtDailyTrxWrap) MdCount(p uint64) bool {
-	err := s.Modify(func(r *SoExtDailyTrx) {
+func (s *SoExtDailyTrxWrap) Modify(f func(tInfo *SoExtDailyTrx), errArgs ...interface{}) *SoExtDailyTrxWrap {
+	err := s.modify(f)
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoExtDailyTrxWrap.Modify failed: %s", err.Error()), errArgs...))
+	}
+	return s
+}
+
+func (s *SoExtDailyTrxWrap) SetCount(p uint64, errArgs ...interface{}) *SoExtDailyTrxWrap {
+	err := s.modify(func(r *SoExtDailyTrx) {
 		r.Count = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoExtDailyTrxWrap.SetCount( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
 func (s *SoExtDailyTrxWrap) checkSortAndUniFieldValidity(curTable *SoExtDailyTrx, fieldSli []string) error {
@@ -375,33 +408,41 @@ func (s *SoExtDailyTrxWrap) insertAllSortKeys(val *SoExtDailyTrx) error {
 
 ////////////// SECTION LKeys delete/insert //////////////
 
-func (s *SoExtDailyTrxWrap) RemoveExtDailyTrx() bool {
+func (s *SoExtDailyTrxWrap) removeExtDailyTrx() error {
 	if s.dba == nil {
-		return false
+		return errors.New("database is nil")
 	}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
-		return false
+		return errors.New("delAllSortKeys failed")
 	}
 
 	//delete unique list
 	if res := s.delAllUniKeys(true, nil); !res {
-		return false
+		return errors.New("delAllUniKeys failed")
 	}
 
 	//delete table
 	key, err := s.encodeMainKey()
 	if err != nil {
-		return false
+		return fmt.Errorf("encodeMainKey failed: %s", err.Error())
 	}
 	err = s.dba.Delete(key)
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
-		return true
+		return nil
 	} else {
-		return false
+		return fmt.Errorf("database.Delete failed: %s", err.Error())
 	}
+}
+
+func (s *SoExtDailyTrxWrap) RemoveExtDailyTrx(errMsgs ...interface{}) *SoExtDailyTrxWrap {
+	err := s.removeExtDailyTrx()
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoExtDailyTrxWrap.RemoveExtDailyTrx failed: %s", err.Error()), errMsgs...))
+	}
+	return s
 }
 
 ////////////// SECTION Members Get/Modify ///////////////

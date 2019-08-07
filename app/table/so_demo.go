@@ -2,7 +2,7 @@ package table
 
 import (
 	"errors"
-	fmt "fmt"
+	"fmt"
 	"reflect"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
@@ -73,7 +73,21 @@ func (s *SoDemoWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoDemoWrap) Create(f func(tInfo *SoDemo)) error {
+func (s *SoDemoWrap) MustExist(errMsgs ...interface{}) *SoDemoWrap {
+	if !s.CheckExist() {
+		panic(bindErrorInfo(fmt.Sprintf("SoDemoWrap.MustExist: %v not found", s.mainKey), errMsgs...))
+	}
+	return s
+}
+
+func (s *SoDemoWrap) MustNotExist(errMsgs ...interface{}) *SoDemoWrap {
+	if s.CheckExist() {
+		panic(bindErrorInfo(fmt.Sprintf("SoDemoWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
+	}
+	return s
+}
+
+func (s *SoDemoWrap) create(f func(tInfo *SoDemo)) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
@@ -122,6 +136,14 @@ func (s *SoDemoWrap) Create(f func(tInfo *SoDemo)) error {
 	return nil
 }
 
+func (s *SoDemoWrap) Create(f func(tInfo *SoDemo), errArgs ...interface{}) *SoDemoWrap {
+	err := s.create(f)
+	if err != nil {
+		panic(bindErrorInfo(fmt.Errorf("SoDemoWrap.Create failed: %s", err.Error()), errArgs...))
+	}
+	return s
+}
+
 func (s *SoDemoWrap) getMainKeyBuf() ([]byte, error) {
 	if s.mainKey == nil {
 		return nil, errors.New("the main key is nil")
@@ -136,7 +158,7 @@ func (s *SoDemoWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
-func (s *SoDemoWrap) Modify(f func(tInfo *SoDemo)) error {
+func (s *SoDemoWrap) modify(f func(tInfo *SoDemo)) error {
 	if !s.CheckExist() {
 		return errors.New("the SoDemo table does not exist. Please create a table first")
 	}
@@ -195,67 +217,102 @@ func (s *SoDemoWrap) Modify(f func(tInfo *SoDemo)) error {
 
 }
 
-func (s *SoDemoWrap) MdContent(p string) bool {
-	err := s.Modify(func(r *SoDemo) {
+func (s *SoDemoWrap) Modify(f func(tInfo *SoDemo), errArgs ...interface{}) *SoDemoWrap {
+	err := s.modify(f)
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoDemoWrap.Modify failed: %s", err.Error()), errArgs...))
+	}
+	return s
+}
+
+func (s *SoDemoWrap) SetContent(p string, errArgs ...interface{}) *SoDemoWrap {
+	err := s.modify(func(r *SoDemo) {
 		r.Content = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoDemoWrap.SetContent( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoDemoWrap) MdIdx(p int64) bool {
-	err := s.Modify(func(r *SoDemo) {
+func (s *SoDemoWrap) SetIdx(p int64, errArgs ...interface{}) *SoDemoWrap {
+	err := s.modify(func(r *SoDemo) {
 		r.Idx = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoDemoWrap.SetIdx( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoDemoWrap) MdLikeCount(p int64) bool {
-	err := s.Modify(func(r *SoDemo) {
+func (s *SoDemoWrap) SetLikeCount(p int64, errArgs ...interface{}) *SoDemoWrap {
+	err := s.modify(func(r *SoDemo) {
 		r.LikeCount = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoDemoWrap.SetLikeCount( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoDemoWrap) MdNickName(p *prototype.AccountName) bool {
-	err := s.Modify(func(r *SoDemo) {
+func (s *SoDemoWrap) SetNickName(p *prototype.AccountName, errArgs ...interface{}) *SoDemoWrap {
+	err := s.modify(func(r *SoDemo) {
 		r.NickName = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoDemoWrap.SetNickName( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoDemoWrap) MdPostTime(p *prototype.TimePointSec) bool {
-	err := s.Modify(func(r *SoDemo) {
+func (s *SoDemoWrap) SetPostTime(p *prototype.TimePointSec, errArgs ...interface{}) *SoDemoWrap {
+	err := s.modify(func(r *SoDemo) {
 		r.PostTime = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoDemoWrap.SetPostTime( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoDemoWrap) MdRegistTime(p *prototype.TimePointSec) bool {
-	err := s.Modify(func(r *SoDemo) {
+func (s *SoDemoWrap) SetRegistTime(p *prototype.TimePointSec, errArgs ...interface{}) *SoDemoWrap {
+	err := s.modify(func(r *SoDemo) {
 		r.RegistTime = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoDemoWrap.SetRegistTime( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoDemoWrap) MdReplayCount(p int64) bool {
-	err := s.Modify(func(r *SoDemo) {
+func (s *SoDemoWrap) SetReplayCount(p int64, errArgs ...interface{}) *SoDemoWrap {
+	err := s.modify(func(r *SoDemo) {
 		r.ReplayCount = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoDemoWrap.SetReplayCount( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoDemoWrap) MdTaglist(p []string) bool {
-	err := s.Modify(func(r *SoDemo) {
+func (s *SoDemoWrap) SetTaglist(p []string, errArgs ...interface{}) *SoDemoWrap {
+	err := s.modify(func(r *SoDemo) {
 		r.Taglist = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoDemoWrap.SetTaglist( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoDemoWrap) MdTitle(p string) bool {
-	err := s.Modify(func(r *SoDemo) {
+func (s *SoDemoWrap) SetTitle(p string, errArgs ...interface{}) *SoDemoWrap {
+	err := s.modify(func(r *SoDemo) {
 		r.Title = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoDemoWrap.SetTitle( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
 func (s *SoDemoWrap) checkSortAndUniFieldValidity(curTable *SoDemo, fieldSli []string) error {
@@ -814,33 +871,41 @@ func (s *SoDemoWrap) insertAllSortKeys(val *SoDemo) error {
 
 ////////////// SECTION LKeys delete/insert //////////////
 
-func (s *SoDemoWrap) RemoveDemo() bool {
+func (s *SoDemoWrap) removeDemo() error {
 	if s.dba == nil {
-		return false
+		return errors.New("database is nil")
 	}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
-		return false
+		return errors.New("delAllSortKeys failed")
 	}
 
 	//delete unique list
 	if res := s.delAllUniKeys(true, nil); !res {
-		return false
+		return errors.New("delAllUniKeys failed")
 	}
 
 	//delete table
 	key, err := s.encodeMainKey()
 	if err != nil {
-		return false
+		return fmt.Errorf("encodeMainKey failed: %s", err.Error())
 	}
 	err = s.dba.Delete(key)
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
-		return true
+		return nil
 	} else {
-		return false
+		return fmt.Errorf("database.Delete failed: %s", err.Error())
 	}
+}
+
+func (s *SoDemoWrap) RemoveDemo(errMsgs ...interface{}) *SoDemoWrap {
+	err := s.removeDemo()
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoDemoWrap.RemoveDemo failed: %s", err.Error()), errMsgs...))
+	}
+	return s
 }
 
 ////////////// SECTION Members Get/Modify ///////////////

@@ -646,7 +646,7 @@ func (c *TrxPool) initGenesis() {
 	pubKey, _ := prototype.PublicKeyFromWIF(constants.InitminerPubKey)
 	name := &prototype.AccountName{Value: constants.COSInitMiner}
 	newAccountWrap := table.NewSoAccountWrap(c.db, name)
-	mustNoError(newAccountWrap.Create(func(tInfo *table.SoAccount) {
+	newAccountWrap.Create(func(tInfo *table.SoAccount) {
 		tInfo.Name = name
 		tInfo.CreatedTime = &prototype.TimePointSec{UtcSeconds: 0}
 		tInfo.Balance = prototype.NewCoin(constants.COSInitSupply)
@@ -661,11 +661,11 @@ func (c *TrxPool) initGenesis() {
 		tInfo.StakeVest = prototype.NewVest(0)
 		tInfo.Reputation = constants.DefaultReputation
 		tInfo.ChargedTicket = 0
-	}), "CreateAccount error")
+	})
 
 	// create block_producer_object
 	bpWrap := table.NewSoBlockProducerWrap(c.db, name)
-	mustNoError(bpWrap.Create(func(tInfo *table.SoBlockProducer) {
+	bpWrap.Create(func(tInfo *table.SoBlockProducer) {
 		tInfo.Owner = name
 		tInfo.CreatedTime = &prototype.TimePointSec{UtcSeconds: 0}
 		tInfo.SigningKey = pubKey
@@ -678,11 +678,11 @@ func (c *TrxPool) initGenesis() {
 		tInfo.PerTicketPrice = prototype.NewCoin(constants.PerTicketPrice * constants.COSTokenDecimals)
 		tInfo.PerTicketWeight = constants.PerTicketWeight
 		tInfo.VoterCount = 0
-	}), "BlockProducer Create Error")
+	})
 
 	// create dynamic global properties
 	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
-	mustNoError(dgpWrap.Create(func(tInfo *table.SoGlobal) {
+	dgpWrap.Create(func(tInfo *table.SoGlobal) {
 		tInfo.Id = SingleId
 		tInfo.Props = &prototype.DynamicProperties{}
 		tInfo.Props.CurrentBlockProducer = name
@@ -720,23 +720,23 @@ func (c *TrxPool) initGenesis() {
 		tInfo.Props.PerTicketWeight = constants.PerTicketWeight
 		tInfo.Props.TicketsIncome = prototype.NewVest(0)
 		tInfo.Props.ChargedTicketsNum = 0
-	}), "CreateDynamicGlobalProperties error")
+	})
 
 	// create block summary buffer 2048
 	for i := uint32(0); i < 0x800; i++ {
 		wrap := table.NewSoBlockSummaryObjectWrap(c.db, &i)
-		mustNoError(wrap.Create(func(tInfo *table.SoBlockSummaryObject) {
+		wrap.Create(func(tInfo *table.SoBlockSummaryObject) {
 			tInfo.Id = i
 			tInfo.BlockId = &prototype.Sha256{Hash: make([]byte, 32)}
-		}), "CreateBlockSummaryObject error")
+		})
 	}
 
 	// create block producer scheduler
 	bpScheduleWrap := table.NewSoBlockProducerScheduleObjectWrap(c.db, &SingleId)
-	mustNoError(bpScheduleWrap.Create(func(tInfo *table.SoBlockProducerScheduleObject) {
+	bpScheduleWrap.Create(func(tInfo *table.SoBlockProducerScheduleObject) {
 		tInfo.Id = SingleId
 		tInfo.CurrentShuffledBlockProducer = append(tInfo.CurrentShuffledBlockProducer, constants.COSInitMiner)
-	}), "CreateBpScheduleObject error")
+	})
 }
 
 func (c *TrxPool) TransferToVest(value *prototype.Coin) {
@@ -823,7 +823,7 @@ func (c *TrxPool) headBlockNum() uint64 {
 
 func (c *TrxPool) updateGlobalDataToDB(dgpo *prototype.DynamicProperties) {
 	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
-	mustSuccess(dgpWrap.MdProps(dgpo), "")
+	dgpWrap.SetProps(dgpo)
 }
 
 func (c *TrxPool) modifyGlobalDynamicData(f func(props *prototype.DynamicProperties)) {
@@ -832,7 +832,7 @@ func (c *TrxPool) modifyGlobalDynamicData(f func(props *prototype.DynamicPropert
 
 	f(props)
 
-	mustSuccess(dgpWrap.MdProps(props), "")
+	dgpWrap.SetProps(props)
 }
 
 func (c *TrxPool) ModifyProps(modifier func(oldProps *prototype.DynamicProperties)) {
@@ -886,7 +886,7 @@ func (c *TrxPool) updateGlobalBpBootMark() {
 	if bpWrap.CheckExist() {
 		bpVoteVestCnt := bpWrap.GetBpVest().VoteVest
 		newBpVest := &prototype.BpVestId{Active:false, VoteVest:bpVoteVestCnt}
-		mustSuccess(bpWrap.MdBpVest(newBpVest), fmt.Sprintf("disable bp %s error", constants.COSInitMiner))
+		bpWrap.SetBpVest(newBpVest, fmt.Sprintf("disable bp %s error", constants.COSInitMiner))
 	}
 }
 
@@ -967,10 +967,10 @@ func (c *TrxPool) createBlockSummary(blk *prototype.SignedBlock) {
 	blockNumSuffix := uint32(blockNum & 0x7ff)
 
 	blockSummaryWrap := table.NewSoBlockSummaryObjectWrap(c.db, &blockNumSuffix)
-	mustSuccess(blockSummaryWrap.CheckExist(), "can not get block summary object")
+	blockSummaryWrap.MustExist("can not get block summary object")
 	blockIDArray := blk.Id().Data
 	blockID := &prototype.Sha256{Hash: blockIDArray[:]}
-	mustSuccess(blockSummaryWrap.MdBlockId(blockID), "update block summary object error")
+	blockSummaryWrap.SetBlockId(blockID)
 }
 
 func (c *TrxPool) GetSigningPubKey(bpName string) *prototype.PublicKeyType {
@@ -1038,8 +1038,8 @@ func (c *TrxPool) GetBlockProducerTopN(n uint32) ([]string, []*prototype.PublicK
 
 func (c *TrxPool) SetShuffledBpList(names []string, keys []*prototype.PublicKeyType) {
 	bpScheduleWrap := table.NewSoBlockProducerScheduleObjectWrap(c.db, &SingleId)
-	mustSuccess(bpScheduleWrap.MdCurrentShuffledBlockProducer(names), "set bp list error")
-	mustSuccess(bpScheduleWrap.MdPubKey(keys), "set bp pub key failed")
+	bpScheduleWrap.SetCurrentShuffledBlockProducer(names)
+	bpScheduleWrap.SetPubKey(keys)
 }
 
 func (c *TrxPool) GetShuffledBpList() ([]string, []*prototype.PublicKeyType) {

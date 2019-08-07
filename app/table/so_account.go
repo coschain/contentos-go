@@ -2,7 +2,7 @@ package table
 
 import (
 	"errors"
-	fmt "fmt"
+	"fmt"
 	"reflect"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
@@ -72,7 +72,21 @@ func (s *SoAccountWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoAccountWrap) Create(f func(tInfo *SoAccount)) error {
+func (s *SoAccountWrap) MustExist(errMsgs ...interface{}) *SoAccountWrap {
+	if !s.CheckExist() {
+		panic(bindErrorInfo(fmt.Sprintf("SoAccountWrap.MustExist: %v not found", s.mainKey), errMsgs...))
+	}
+	return s
+}
+
+func (s *SoAccountWrap) MustNotExist(errMsgs ...interface{}) *SoAccountWrap {
+	if s.CheckExist() {
+		panic(bindErrorInfo(fmt.Sprintf("SoAccountWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
+	}
+	return s
+}
+
+func (s *SoAccountWrap) create(f func(tInfo *SoAccount)) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
@@ -121,6 +135,14 @@ func (s *SoAccountWrap) Create(f func(tInfo *SoAccount)) error {
 	return nil
 }
 
+func (s *SoAccountWrap) Create(f func(tInfo *SoAccount), errArgs ...interface{}) *SoAccountWrap {
+	err := s.create(f)
+	if err != nil {
+		panic(bindErrorInfo(fmt.Errorf("SoAccountWrap.Create failed: %s", err.Error()), errArgs...))
+	}
+	return s
+}
+
 func (s *SoAccountWrap) getMainKeyBuf() ([]byte, error) {
 	if s.mainKey == nil {
 		return nil, errors.New("the main key is nil")
@@ -135,7 +157,7 @@ func (s *SoAccountWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
-func (s *SoAccountWrap) Modify(f func(tInfo *SoAccount)) error {
+func (s *SoAccountWrap) modify(f func(tInfo *SoAccount)) error {
 	if !s.CheckExist() {
 		return errors.New("the SoAccount table does not exist. Please create a table first")
 	}
@@ -194,186 +216,272 @@ func (s *SoAccountWrap) Modify(f func(tInfo *SoAccount)) error {
 
 }
 
-func (s *SoAccountWrap) MdBalance(p *prototype.Coin) bool {
-	err := s.Modify(func(r *SoAccount) {
+func (s *SoAccountWrap) Modify(f func(tInfo *SoAccount), errArgs ...interface{}) *SoAccountWrap {
+	err := s.modify(f)
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoAccountWrap.Modify failed: %s", err.Error()), errArgs...))
+	}
+	return s
+}
+
+func (s *SoAccountWrap) SetBalance(p *prototype.Coin, errArgs ...interface{}) *SoAccountWrap {
+	err := s.modify(func(r *SoAccount) {
 		r.Balance = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoAccountWrap.SetBalance( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoAccountWrap) MdBpVoteCount(p uint32) bool {
-	err := s.Modify(func(r *SoAccount) {
+func (s *SoAccountWrap) SetBpVoteCount(p uint32, errArgs ...interface{}) *SoAccountWrap {
+	err := s.modify(func(r *SoAccount) {
 		r.BpVoteCount = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoAccountWrap.SetBpVoteCount( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoAccountWrap) MdChargedTicket(p uint32) bool {
-	err := s.Modify(func(r *SoAccount) {
+func (s *SoAccountWrap) SetChargedTicket(p uint32, errArgs ...interface{}) *SoAccountWrap {
+	err := s.modify(func(r *SoAccount) {
 		r.ChargedTicket = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoAccountWrap.SetChargedTicket( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoAccountWrap) MdCreatedTime(p *prototype.TimePointSec) bool {
-	err := s.Modify(func(r *SoAccount) {
+func (s *SoAccountWrap) SetCreatedTime(p *prototype.TimePointSec, errArgs ...interface{}) *SoAccountWrap {
+	err := s.modify(func(r *SoAccount) {
 		r.CreatedTime = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoAccountWrap.SetCreatedTime( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoAccountWrap) MdCreatedTrxCount(p uint32) bool {
-	err := s.Modify(func(r *SoAccount) {
+func (s *SoAccountWrap) SetCreatedTrxCount(p uint32, errArgs ...interface{}) *SoAccountWrap {
+	err := s.modify(func(r *SoAccount) {
 		r.CreatedTrxCount = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoAccountWrap.SetCreatedTrxCount( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoAccountWrap) MdCreator(p *prototype.AccountName) bool {
-	err := s.Modify(func(r *SoAccount) {
+func (s *SoAccountWrap) SetCreator(p *prototype.AccountName, errArgs ...interface{}) *SoAccountWrap {
+	err := s.modify(func(r *SoAccount) {
 		r.Creator = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoAccountWrap.SetCreator( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoAccountWrap) MdEachPowerdownRate(p *prototype.Vest) bool {
-	err := s.Modify(func(r *SoAccount) {
+func (s *SoAccountWrap) SetEachPowerdownRate(p *prototype.Vest, errArgs ...interface{}) *SoAccountWrap {
+	err := s.modify(func(r *SoAccount) {
 		r.EachPowerdownRate = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoAccountWrap.SetEachPowerdownRate( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoAccountWrap) MdFreeze(p uint32) bool {
-	err := s.Modify(func(r *SoAccount) {
+func (s *SoAccountWrap) SetFreeze(p uint32, errArgs ...interface{}) *SoAccountWrap {
+	err := s.modify(func(r *SoAccount) {
 		r.Freeze = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoAccountWrap.SetFreeze( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoAccountWrap) MdFreezeMemo(p string) bool {
-	err := s.Modify(func(r *SoAccount) {
+func (s *SoAccountWrap) SetFreezeMemo(p string, errArgs ...interface{}) *SoAccountWrap {
+	err := s.modify(func(r *SoAccount) {
 		r.FreezeMemo = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoAccountWrap.SetFreezeMemo( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoAccountWrap) MdHasPowerdown(p *prototype.Vest) bool {
-	err := s.Modify(func(r *SoAccount) {
+func (s *SoAccountWrap) SetHasPowerdown(p *prototype.Vest, errArgs ...interface{}) *SoAccountWrap {
+	err := s.modify(func(r *SoAccount) {
 		r.HasPowerdown = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoAccountWrap.SetHasPowerdown( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoAccountWrap) MdLastPostTime(p *prototype.TimePointSec) bool {
-	err := s.Modify(func(r *SoAccount) {
+func (s *SoAccountWrap) SetLastPostTime(p *prototype.TimePointSec, errArgs ...interface{}) *SoAccountWrap {
+	err := s.modify(func(r *SoAccount) {
 		r.LastPostTime = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoAccountWrap.SetLastPostTime( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoAccountWrap) MdLastStakeTime(p *prototype.TimePointSec) bool {
-	err := s.Modify(func(r *SoAccount) {
+func (s *SoAccountWrap) SetLastStakeTime(p *prototype.TimePointSec, errArgs ...interface{}) *SoAccountWrap {
+	err := s.modify(func(r *SoAccount) {
 		r.LastStakeTime = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoAccountWrap.SetLastStakeTime( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoAccountWrap) MdLastVoteTime(p *prototype.TimePointSec) bool {
-	err := s.Modify(func(r *SoAccount) {
+func (s *SoAccountWrap) SetLastVoteTime(p *prototype.TimePointSec, errArgs ...interface{}) *SoAccountWrap {
+	err := s.modify(func(r *SoAccount) {
 		r.LastVoteTime = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoAccountWrap.SetLastVoteTime( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoAccountWrap) MdNextPowerdownBlockNum(p uint64) bool {
-	err := s.Modify(func(r *SoAccount) {
+func (s *SoAccountWrap) SetNextPowerdownBlockNum(p uint64, errArgs ...interface{}) *SoAccountWrap {
+	err := s.modify(func(r *SoAccount) {
 		r.NextPowerdownBlockNum = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoAccountWrap.SetNextPowerdownBlockNum( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoAccountWrap) MdPostCount(p uint32) bool {
-	err := s.Modify(func(r *SoAccount) {
+func (s *SoAccountWrap) SetPostCount(p uint32, errArgs ...interface{}) *SoAccountWrap {
+	err := s.modify(func(r *SoAccount) {
 		r.PostCount = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoAccountWrap.SetPostCount( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoAccountWrap) MdPubKey(p *prototype.PublicKeyType) bool {
-	err := s.Modify(func(r *SoAccount) {
+func (s *SoAccountWrap) SetPubKey(p *prototype.PublicKeyType, errArgs ...interface{}) *SoAccountWrap {
+	err := s.modify(func(r *SoAccount) {
 		r.PubKey = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoAccountWrap.SetPubKey( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoAccountWrap) MdReputation(p uint32) bool {
-	err := s.Modify(func(r *SoAccount) {
+func (s *SoAccountWrap) SetReputation(p uint32, errArgs ...interface{}) *SoAccountWrap {
+	err := s.modify(func(r *SoAccount) {
 		r.Reputation = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoAccountWrap.SetReputation( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoAccountWrap) MdReputationMemo(p string) bool {
-	err := s.Modify(func(r *SoAccount) {
+func (s *SoAccountWrap) SetReputationMemo(p string, errArgs ...interface{}) *SoAccountWrap {
+	err := s.modify(func(r *SoAccount) {
 		r.ReputationMemo = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoAccountWrap.SetReputationMemo( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoAccountWrap) MdStakeVest(p *prototype.Vest) bool {
-	err := s.Modify(func(r *SoAccount) {
+func (s *SoAccountWrap) SetStakeVest(p *prototype.Vest, errArgs ...interface{}) *SoAccountWrap {
+	err := s.modify(func(r *SoAccount) {
 		r.StakeVest = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoAccountWrap.SetStakeVest( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoAccountWrap) MdStamina(p uint64) bool {
-	err := s.Modify(func(r *SoAccount) {
+func (s *SoAccountWrap) SetStamina(p uint64, errArgs ...interface{}) *SoAccountWrap {
+	err := s.modify(func(r *SoAccount) {
 		r.Stamina = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoAccountWrap.SetStamina( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoAccountWrap) MdStaminaFree(p uint64) bool {
-	err := s.Modify(func(r *SoAccount) {
+func (s *SoAccountWrap) SetStaminaFree(p uint64, errArgs ...interface{}) *SoAccountWrap {
+	err := s.modify(func(r *SoAccount) {
 		r.StaminaFree = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoAccountWrap.SetStaminaFree( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoAccountWrap) MdStaminaFreeUseBlock(p uint64) bool {
-	err := s.Modify(func(r *SoAccount) {
+func (s *SoAccountWrap) SetStaminaFreeUseBlock(p uint64, errArgs ...interface{}) *SoAccountWrap {
+	err := s.modify(func(r *SoAccount) {
 		r.StaminaFreeUseBlock = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoAccountWrap.SetStaminaFreeUseBlock( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoAccountWrap) MdStaminaUseBlock(p uint64) bool {
-	err := s.Modify(func(r *SoAccount) {
+func (s *SoAccountWrap) SetStaminaUseBlock(p uint64, errArgs ...interface{}) *SoAccountWrap {
+	err := s.modify(func(r *SoAccount) {
 		r.StaminaUseBlock = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoAccountWrap.SetStaminaUseBlock( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoAccountWrap) MdToPowerdown(p *prototype.Vest) bool {
-	err := s.Modify(func(r *SoAccount) {
+func (s *SoAccountWrap) SetToPowerdown(p *prototype.Vest, errArgs ...interface{}) *SoAccountWrap {
+	err := s.modify(func(r *SoAccount) {
 		r.ToPowerdown = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoAccountWrap.SetToPowerdown( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoAccountWrap) MdVest(p *prototype.Vest) bool {
-	err := s.Modify(func(r *SoAccount) {
+func (s *SoAccountWrap) SetVest(p *prototype.Vest, errArgs ...interface{}) *SoAccountWrap {
+	err := s.modify(func(r *SoAccount) {
 		r.Vest = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoAccountWrap.SetVest( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoAccountWrap) MdVotePower(p uint32) bool {
-	err := s.Modify(func(r *SoAccount) {
+func (s *SoAccountWrap) SetVotePower(p uint32, errArgs ...interface{}) *SoAccountWrap {
+	err := s.modify(func(r *SoAccount) {
 		r.VotePower = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoAccountWrap.SetVotePower( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
 func (s *SoAccountWrap) checkSortAndUniFieldValidity(curTable *SoAccount, fieldSli []string) error {
@@ -1351,33 +1459,41 @@ func (s *SoAccountWrap) insertAllSortKeys(val *SoAccount) error {
 
 ////////////// SECTION LKeys delete/insert //////////////
 
-func (s *SoAccountWrap) RemoveAccount() bool {
+func (s *SoAccountWrap) removeAccount() error {
 	if s.dba == nil {
-		return false
+		return errors.New("database is nil")
 	}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
-		return false
+		return errors.New("delAllSortKeys failed")
 	}
 
 	//delete unique list
 	if res := s.delAllUniKeys(true, nil); !res {
-		return false
+		return errors.New("delAllUniKeys failed")
 	}
 
 	//delete table
 	key, err := s.encodeMainKey()
 	if err != nil {
-		return false
+		return fmt.Errorf("encodeMainKey failed: %s", err.Error())
 	}
 	err = s.dba.Delete(key)
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
-		return true
+		return nil
 	} else {
-		return false
+		return fmt.Errorf("database.Delete failed: %s", err.Error())
 	}
+}
+
+func (s *SoAccountWrap) RemoveAccount(errMsgs ...interface{}) *SoAccountWrap {
+	err := s.removeAccount()
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoAccountWrap.RemoveAccount failed: %s", err.Error()), errMsgs...))
+	}
+	return s
 }
 
 ////////////// SECTION Members Get/Modify ///////////////

@@ -126,10 +126,11 @@ func (e *Economist) Mint(trxObserver iservices.ITrxObserver) {
 	bpRewardVest := &prototype.Vest{Value: bpReward}
 	// add ticket fee to the bp
 	oldVest := bpWrap.GetVest()
-	//bpWrap.MdVest(&prototype.Vest{Value: bpWrap.GetVest().Value + bpReward})
+
+	//bpWrap.SetVest(&prototype.Vest{Value: bpWrap.GetVest().Value + bpReward})
 	bpRewardVest.Add(bpWrap.GetVest())
-	//mustNoError(bpRewardVest.Add(bpWrap.GetVest()), "bpRewardVest overflow")
-	bpWrap.MdVest(bpRewardVest)
+	bpWrap.SetVest(bpRewardVest)
+
 	updateBpVoteValue(e.db, globalProps.CurrentBlockProducer, oldVest, bpRewardVest)
 	trxObserver.AddOpState(iservices.Add, "mint", globalProps.CurrentBlockProducer.Value, bpReward)
 
@@ -177,9 +178,9 @@ func (e *Economist) Distribute(trxObserver iservices.ITrxObserver) {
 		wrap := table.NewSoGiftTicketWrap(e.db, key)
 		// impossible
 		if wrap.CheckExist() {
-			wrap.MdExpireBlock(current + globalProps.GetEpochDuration())
+			wrap.SetExpireBlock(current + globalProps.GetEpochDuration())
 		} else {
-			err = wrap.Create(func(tInfo *table.SoGiftTicket) {
+			wrap.Create(func(tInfo *table.SoGiftTicket) {
 				tInfo.Ticket = key
 				tInfo.Denom = globalProps.PerTicketWeight
 				tInfo.Count = 1
@@ -354,7 +355,7 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 	//var spentVoterReward uint64 = 0
 	for _, post := range posts {
 		if post.GetCopyright() == constants.CopyrightInfringement {
-			post.MdCashoutBlockNum(math.MaxUint32)
+			post.SetCashoutBlockNum(math.MaxUint32)
 			e.log.Warnf("ignored post %v postCashout due to invalid copyright", post.GetPostId())
 			continue
 		}
@@ -417,7 +418,7 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 				oldVest := beneficiaryWrap.GetVest()
 				vestRewards := &prototype.Vest{Value: r}
 				vestRewards.Add(beneficiaryWrap.GetVest())
-				beneficiaryWrap.MdVest(vestRewards)
+				beneficiaryWrap.SetVest(vestRewards)
 				updateBpVoteValue(e.db, &prototype.AccountName{Value: name}, oldVest, vestRewards)
 				spentBeneficiaryReward += r
 				e.noticer.Publish(constants.NoticeCashout, name, post.GetPostId(), r, globalProps.GetHeadBlockNumber())
@@ -438,14 +439,15 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, blockReward uint64, b
 			oldVest := authorWrap.GetVest()
 			vestRewards := &prototype.Vest{Value: reward}
 			vestRewards.Add(authorWrap.GetVest())
-			authorWrap.MdVest(vestRewards)
+			authorWrap.SetVest(vestRewards)
+
 			t := common.EasyTimer()
 			t1, t2 := updateBpVoteValue(e.db, &prototype.AccountName{Value: author}, oldVest, vestRewards)
 			e.log.Debugf("post cashout updateBpVoteValue: %v, query: %v, update: %v", t, t1, t2)
 		}
-		post.MdCashoutBlockNum(math.MaxUint32)
-		post.MdRewards(&prototype.Vest{Value: reward})
-		post.MdDappRewards(&prototype.Vest{Value: beneficiaryReward})
+		post.SetCashoutBlockNum(math.MaxUint32)
+		post.SetRewards(&prototype.Vest{Value: reward})
+		post.SetDappRewards(&prototype.Vest{Value: beneficiaryReward})
 		if reward > 0 {
 			e.noticer.Publish(constants.NoticeCashout, author, post.GetPostId(), reward, globalProps.GetHeadBlockNumber())
 			trxObserver.AddOpState(iservices.Add, "cashout", author, reward)
@@ -489,7 +491,7 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 	//var spentVoterReward uint64 = 0
 	for _, reply := range replies {
 		if reply.GetCopyright() == constants.CopyrightInfringement {
-			reply.MdCashoutBlockNum(math.MaxUint32)
+			reply.SetCashoutBlockNum(math.MaxUint32)
 			e.log.Warnf("ignored reply %v replyCashout due to invalid copyright", reply.GetPostId())
 			continue
 		}
@@ -536,11 +538,11 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 				e.log.Debugf("ignored beneficiary %s due to bad reputation", name)
 				continue
 			} else {
-				//beneficiaryWrap.MdVest(&prototype.Vest{ Value: r + beneficiaryWrap.GetVest().Value})
+				//beneficiaryWrap.SetVest(&prototype.Vest{ Value: r + beneficiaryWrap.GetVest().Value})
 				oldVest := beneficiaryWrap.GetVest()
 				vestRewards := &prototype.Vest{Value: r}
 				vestRewards.Add(beneficiaryWrap.GetVest())
-				beneficiaryWrap.MdVest(vestRewards)
+				beneficiaryWrap.SetVest(vestRewards)
 				updateBpVoteValue(e.db, &prototype.AccountName{Value: name}, oldVest, vestRewards)
 				spentBeneficiaryReward += r
 				e.noticer.Publish(constants.NoticeCashout, name, reply.GetPostId(), r, globalProps.GetHeadBlockNumber())
@@ -555,18 +557,18 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 			e.log.Debugf("reply cashout get account %s failed", author)
 			continue
 		} else {
-			//authorWrap.MdVest(&prototype.Vest{ Value: reward + authorWrap.GetVest().Value })
+			//authorWrap.SetVest(&prototype.Vest{ Value: reward + authorWrap.GetVest().Value })
 			oldVest := authorWrap.GetVest()
 			vestRewards := &prototype.Vest{Value: reward}
 			vestRewards.Add(authorWrap.GetVest())
-			authorWrap.MdVest(vestRewards)
+			authorWrap.SetVest(vestRewards)
 			t := common.EasyTimer()
 			t1, t2 := updateBpVoteValue(e.db, &prototype.AccountName{Value: author}, oldVest, vestRewards)
 			e.log.Debugf("reply cashout updateBpVoteValue: %v, query: %v, update: %v", t, t1, t2)
 		}
-		reply.MdCashoutBlockNum(math.MaxUint32)
-		reply.MdRewards(&prototype.Vest{Value: reward})
-		reply.MdDappRewards(&prototype.Vest{Value: beneficiaryReward})
+		reply.SetCashoutBlockNum(math.MaxUint32)
+		reply.SetRewards(&prototype.Vest{Value: reward})
+		reply.SetDappRewards(&prototype.Vest{Value: beneficiaryReward})
 		if reward > 0 {
 			e.noticer.Publish(constants.NoticeCashout, author, reply.GetPostId(), reward, globalProps.GetHeadBlockNumber())
 			trxObserver.AddOpState(iservices.Add, "cashout", author, reward)
@@ -597,7 +599,7 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, blockReward uint64
 //		voter := voterId.Voter.Value
 //		reward := totalReward * vp / totalVp
 //		voterWrap, _ := e.GetAccount(&prototype.AccountName{Value: voter})
-//		voterWrap.MdVest(&prototype.Vest{Value: reward + voterWrap.GetVest().Value})
+//		voterWrap.SetVest(&prototype.Vest{Value: reward + voterWrap.GetVest().Value})
 //	}
 //}
 
@@ -636,11 +638,11 @@ func (e *Economist) PowerDown() {
 		vest := accountWrap.GetVest().Value - powerdownQuota
 		balance := accountWrap.GetBalance().Value + powerdownQuota
 		hasPowerDown := accountWrap.GetHasPowerdown().Value + powerdownQuota
-		accountWrap.MdVest(&prototype.Vest{Value: vest})
+		accountWrap.SetVest(&prototype.Vest{Value: vest})
 		newVest := accountWrap.GetVest()
 		updateBpVoteValue(e.db, accountName, oldVest, newVest)
-		accountWrap.MdBalance(&prototype.Coin{Value: balance})
-		accountWrap.MdHasPowerdown(&prototype.Vest{Value: hasPowerDown})
+		accountWrap.SetBalance(&prototype.Coin{Value: balance})
+		accountWrap.SetHasPowerdown(&prototype.Vest{Value: hasPowerDown})
 		// update total cos and total vest shares
 		e.dgp.ModifyProps(func(props *prototype.DynamicProperties) {
 			props.TotalCos.Add(&prototype.Coin{Value: powerdownQuota})
@@ -649,10 +651,10 @@ func (e *Economist) PowerDown() {
 			//props.TotalVest.Value -= powerdownQuota
 		})
 		if accountWrap.GetHasPowerdown().Value >= accountWrap.GetToPowerdown().Value || accountWrap.GetVest().Value == 0 {
-			accountWrap.MdEachPowerdownRate(&prototype.Vest{Value: 0})
-			accountWrap.MdNextPowerdownBlockNum(math.MaxUint32)
+			accountWrap.SetEachPowerdownRate(&prototype.Vest{Value: 0})
+			accountWrap.SetNextPowerdownBlockNum(math.MaxUint32)
 		} else {
-			accountWrap.MdNextPowerdownBlockNum(current + constants.PowerDownBlockInterval)
+			accountWrap.SetNextPowerdownBlockNum(current + constants.PowerDownBlockInterval)
 		}
 	}
 	timing.End()

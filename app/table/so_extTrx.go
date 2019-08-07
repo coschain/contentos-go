@@ -2,7 +2,7 @@ package table
 
 import (
 	"errors"
-	fmt "fmt"
+	"fmt"
 	"reflect"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
@@ -68,7 +68,21 @@ func (s *SoExtTrxWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoExtTrxWrap) Create(f func(tInfo *SoExtTrx)) error {
+func (s *SoExtTrxWrap) MustExist(errMsgs ...interface{}) *SoExtTrxWrap {
+	if !s.CheckExist() {
+		panic(bindErrorInfo(fmt.Sprintf("SoExtTrxWrap.MustExist: %v not found", s.mainKey), errMsgs...))
+	}
+	return s
+}
+
+func (s *SoExtTrxWrap) MustNotExist(errMsgs ...interface{}) *SoExtTrxWrap {
+	if s.CheckExist() {
+		panic(bindErrorInfo(fmt.Sprintf("SoExtTrxWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
+	}
+	return s
+}
+
+func (s *SoExtTrxWrap) create(f func(tInfo *SoExtTrx)) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
@@ -117,6 +131,14 @@ func (s *SoExtTrxWrap) Create(f func(tInfo *SoExtTrx)) error {
 	return nil
 }
 
+func (s *SoExtTrxWrap) Create(f func(tInfo *SoExtTrx), errArgs ...interface{}) *SoExtTrxWrap {
+	err := s.create(f)
+	if err != nil {
+		panic(bindErrorInfo(fmt.Errorf("SoExtTrxWrap.Create failed: %s", err.Error()), errArgs...))
+	}
+	return s
+}
+
 func (s *SoExtTrxWrap) getMainKeyBuf() ([]byte, error) {
 	if s.mainKey == nil {
 		return nil, errors.New("the main key is nil")
@@ -131,7 +153,7 @@ func (s *SoExtTrxWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
-func (s *SoExtTrxWrap) Modify(f func(tInfo *SoExtTrx)) error {
+func (s *SoExtTrxWrap) modify(f func(tInfo *SoExtTrx)) error {
 	if !s.CheckExist() {
 		return errors.New("the SoExtTrx table does not exist. Please create a table first")
 	}
@@ -190,39 +212,62 @@ func (s *SoExtTrxWrap) Modify(f func(tInfo *SoExtTrx)) error {
 
 }
 
-func (s *SoExtTrxWrap) MdBlockHeight(p uint64) bool {
-	err := s.Modify(func(r *SoExtTrx) {
+func (s *SoExtTrxWrap) Modify(f func(tInfo *SoExtTrx), errArgs ...interface{}) *SoExtTrxWrap {
+	err := s.modify(f)
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoExtTrxWrap.Modify failed: %s", err.Error()), errArgs...))
+	}
+	return s
+}
+
+func (s *SoExtTrxWrap) SetBlockHeight(p uint64, errArgs ...interface{}) *SoExtTrxWrap {
+	err := s.modify(func(r *SoExtTrx) {
 		r.BlockHeight = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoExtTrxWrap.SetBlockHeight( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoExtTrxWrap) MdBlockId(p *prototype.Sha256) bool {
-	err := s.Modify(func(r *SoExtTrx) {
+func (s *SoExtTrxWrap) SetBlockId(p *prototype.Sha256, errArgs ...interface{}) *SoExtTrxWrap {
+	err := s.modify(func(r *SoExtTrx) {
 		r.BlockId = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoExtTrxWrap.SetBlockId( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoExtTrxWrap) MdBlockTime(p *prototype.TimePointSec) bool {
-	err := s.Modify(func(r *SoExtTrx) {
+func (s *SoExtTrxWrap) SetBlockTime(p *prototype.TimePointSec, errArgs ...interface{}) *SoExtTrxWrap {
+	err := s.modify(func(r *SoExtTrx) {
 		r.BlockTime = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoExtTrxWrap.SetBlockTime( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoExtTrxWrap) MdTrxCreateOrder(p *prototype.UserTrxCreateOrder) bool {
-	err := s.Modify(func(r *SoExtTrx) {
+func (s *SoExtTrxWrap) SetTrxCreateOrder(p *prototype.UserTrxCreateOrder, errArgs ...interface{}) *SoExtTrxWrap {
+	err := s.modify(func(r *SoExtTrx) {
 		r.TrxCreateOrder = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoExtTrxWrap.SetTrxCreateOrder( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoExtTrxWrap) MdTrxWrap(p *prototype.TransactionWrapper) bool {
-	err := s.Modify(func(r *SoExtTrx) {
+func (s *SoExtTrxWrap) SetTrxWrap(p *prototype.TransactionWrapper, errArgs ...interface{}) *SoExtTrxWrap {
+	err := s.modify(func(r *SoExtTrx) {
 		r.TrxWrap = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoExtTrxWrap.SetTrxWrap( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
 func (s *SoExtTrxWrap) checkSortAndUniFieldValidity(curTable *SoExtTrx, fieldSli []string) error {
@@ -597,33 +642,41 @@ func (s *SoExtTrxWrap) insertAllSortKeys(val *SoExtTrx) error {
 
 ////////////// SECTION LKeys delete/insert //////////////
 
-func (s *SoExtTrxWrap) RemoveExtTrx() bool {
+func (s *SoExtTrxWrap) removeExtTrx() error {
 	if s.dba == nil {
-		return false
+		return errors.New("database is nil")
 	}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
-		return false
+		return errors.New("delAllSortKeys failed")
 	}
 
 	//delete unique list
 	if res := s.delAllUniKeys(true, nil); !res {
-		return false
+		return errors.New("delAllUniKeys failed")
 	}
 
 	//delete table
 	key, err := s.encodeMainKey()
 	if err != nil {
-		return false
+		return fmt.Errorf("encodeMainKey failed: %s", err.Error())
 	}
 	err = s.dba.Delete(key)
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
-		return true
+		return nil
 	} else {
-		return false
+		return fmt.Errorf("database.Delete failed: %s", err.Error())
 	}
+}
+
+func (s *SoExtTrxWrap) RemoveExtTrx(errMsgs ...interface{}) *SoExtTrxWrap {
+	err := s.removeExtTrx()
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoExtTrxWrap.RemoveExtTrx failed: %s", err.Error()), errMsgs...))
+	}
+	return s
 }
 
 ////////////// SECTION Members Get/Modify ///////////////

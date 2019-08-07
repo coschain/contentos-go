@@ -138,8 +138,8 @@ func (p *FollowService) executeFollowOperation(op *prototype.FollowOperation) {
 			})
 
 			//if fingCntWrap.CheckExist() {
-			//	fingCntWrap.MdFollowingCnt(fingCnt + 1)
-			//	ferCntWrap.MdFollowerCnt(ferCnt + 1)
+			//	fingCntWrap.SetFollowingCnt(fingCnt + 1)
+			//	ferCntWrap.SetFollowerCnt(ferCnt + 1)
 			//	fmt.Printf("the account is %v ,follower count is %v, following count " +
 			//		"is %v \n",ferCntWrap.GetAccount(),ferCntWrap.GetFollowerCnt(),ferCntWrap.GetFollowingCnt())
 			//} else {
@@ -157,7 +157,7 @@ func (p *FollowService) executeFollowOperation(op *prototype.FollowOperation) {
 			//}
 
 			if fingCntWrap.CheckExist() {
-				fingCntWrap.MdFollowingCnt(fingCnt + 1)
+				fingCntWrap.SetFollowingCnt(fingCnt + 1)
 			}else {
 				fingCntWrap.Create(func(fCnt *table.SoExtFollowCount) {
 					fCnt.Account = &prototype.AccountName{Value: op.Account.Value}
@@ -167,7 +167,7 @@ func (p *FollowService) executeFollowOperation(op *prototype.FollowOperation) {
 			}
 
 			if ferCntWrap.CheckExist() {
-				ferCntWrap.MdFollowerCnt(ferCnt + 1)
+				ferCntWrap.SetFollowerCnt(ferCnt + 1)
 			}else {
 				ferCntWrap.Create(func(fCnt *table.SoExtFollowCount) {
 					fCnt.Account = &prototype.AccountName{Value: op.FAccount.Value}
@@ -182,8 +182,8 @@ func (p *FollowService) executeFollowOperation(op *prototype.FollowOperation) {
 			fingWrap.RemoveExtFollowing()
 			ferWrap.RemoveExtFollower()
 
-			fingCntWrap.MdFollowingCnt(fingCnt - 1)
-			ferCntWrap.MdFollowerCnt(ferCnt - 1)
+			fingCntWrap.SetFollowingCnt(fingCnt - 1)
+			ferCntWrap.SetFollowerCnt(ferCnt - 1)
 		}
 	}
 }

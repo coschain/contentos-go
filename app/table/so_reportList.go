@@ -2,7 +2,7 @@ package table
 
 import (
 	"errors"
-	fmt "fmt"
+	"fmt"
 	"reflect"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
@@ -64,7 +64,21 @@ func (s *SoReportListWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoReportListWrap) Create(f func(tInfo *SoReportList)) error {
+func (s *SoReportListWrap) MustExist(errMsgs ...interface{}) *SoReportListWrap {
+	if !s.CheckExist() {
+		panic(bindErrorInfo(fmt.Sprintf("SoReportListWrap.MustExist: %v not found", s.mainKey), errMsgs...))
+	}
+	return s
+}
+
+func (s *SoReportListWrap) MustNotExist(errMsgs ...interface{}) *SoReportListWrap {
+	if s.CheckExist() {
+		panic(bindErrorInfo(fmt.Sprintf("SoReportListWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
+	}
+	return s
+}
+
+func (s *SoReportListWrap) create(f func(tInfo *SoReportList)) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
@@ -110,6 +124,14 @@ func (s *SoReportListWrap) Create(f func(tInfo *SoReportList)) error {
 	return nil
 }
 
+func (s *SoReportListWrap) Create(f func(tInfo *SoReportList), errArgs ...interface{}) *SoReportListWrap {
+	err := s.create(f)
+	if err != nil {
+		panic(bindErrorInfo(fmt.Errorf("SoReportListWrap.Create failed: %s", err.Error()), errArgs...))
+	}
+	return s
+}
+
 func (s *SoReportListWrap) getMainKeyBuf() ([]byte, error) {
 	if s.mainKey == nil {
 		return nil, errors.New("the main key is nil")
@@ -124,7 +146,7 @@ func (s *SoReportListWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
-func (s *SoReportListWrap) Modify(f func(tInfo *SoReportList)) error {
+func (s *SoReportListWrap) modify(f func(tInfo *SoReportList)) error {
 	if !s.CheckExist() {
 		return errors.New("the SoReportList table does not exist. Please create a table first")
 	}
@@ -183,25 +205,42 @@ func (s *SoReportListWrap) Modify(f func(tInfo *SoReportList)) error {
 
 }
 
-func (s *SoReportListWrap) MdIsArbitrated(p bool) bool {
-	err := s.Modify(func(r *SoReportList) {
+func (s *SoReportListWrap) Modify(f func(tInfo *SoReportList), errArgs ...interface{}) *SoReportListWrap {
+	err := s.modify(f)
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoReportListWrap.Modify failed: %s", err.Error()), errArgs...))
+	}
+	return s
+}
+
+func (s *SoReportListWrap) SetIsArbitrated(p bool, errArgs ...interface{}) *SoReportListWrap {
+	err := s.modify(func(r *SoReportList) {
 		r.IsArbitrated = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoReportListWrap.SetIsArbitrated( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoReportListWrap) MdReportedTimes(p uint32) bool {
-	err := s.Modify(func(r *SoReportList) {
+func (s *SoReportListWrap) SetReportedTimes(p uint32, errArgs ...interface{}) *SoReportListWrap {
+	err := s.modify(func(r *SoReportList) {
 		r.ReportedTimes = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoReportListWrap.SetReportedTimes( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoReportListWrap) MdTags(p []int32) bool {
-	err := s.Modify(func(r *SoReportList) {
+func (s *SoReportListWrap) SetTags(p []int32, errArgs ...interface{}) *SoReportListWrap {
+	err := s.modify(func(r *SoReportList) {
 		r.Tags = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoReportListWrap.SetTags( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
 func (s *SoReportListWrap) checkSortAndUniFieldValidity(curTable *SoReportList, fieldSli []string) error {
@@ -379,33 +418,41 @@ func (s *SoReportListWrap) insertAllSortKeys(val *SoReportList) error {
 
 ////////////// SECTION LKeys delete/insert //////////////
 
-func (s *SoReportListWrap) RemoveReportList() bool {
+func (s *SoReportListWrap) removeReportList() error {
 	if s.dba == nil {
-		return false
+		return errors.New("database is nil")
 	}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
-		return false
+		return errors.New("delAllSortKeys failed")
 	}
 
 	//delete unique list
 	if res := s.delAllUniKeys(true, nil); !res {
-		return false
+		return errors.New("delAllUniKeys failed")
 	}
 
 	//delete table
 	key, err := s.encodeMainKey()
 	if err != nil {
-		return false
+		return fmt.Errorf("encodeMainKey failed: %s", err.Error())
 	}
 	err = s.dba.Delete(key)
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
-		return true
+		return nil
 	} else {
-		return false
+		return fmt.Errorf("database.Delete failed: %s", err.Error())
 	}
+}
+
+func (s *SoReportListWrap) RemoveReportList(errMsgs ...interface{}) *SoReportListWrap {
+	err := s.removeReportList()
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoReportListWrap.RemoveReportList failed: %s", err.Error()), errMsgs...))
+	}
+	return s
 }
 
 ////////////// SECTION Members Get/Modify ///////////////

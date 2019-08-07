@@ -1,6 +1,7 @@
 package dandelion
 
 import (
+	"errors"
 	"fmt"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common/constants"
@@ -240,13 +241,18 @@ func (d *Dandelion) ContractTables(owner, contract string) *table2.ContractTable
 	}
 }
 
-func (d *Dandelion) ModifyProps(modifier func(oldProps *prototype.DynamicProperties)) error {
-	chainId := int32(1)
+func (d *Dandelion) ModifyProps(modifier func(oldProps *prototype.DynamicProperties)) (err error) {
+	defer func() {
+		e := recover()
+		if e != nil && err == nil {
+			err = errors.New(fmt.Sprint(e))
+		}
+	}()
+
+	chainId := int32(constants.SingletonId)
 	dgpWrap := table.NewSoGlobalWrap(d.Database(),  &chainId)
 	props := dgpWrap.GetProps()
 	modifier(props)
-	if ok := dgpWrap.MdProps(props); !ok {
-		return fmt.Errorf("modify global props failed")
-	}
-	return nil
+	dgpWrap.SetProps(props, "modify global props failed")
+	return
 }

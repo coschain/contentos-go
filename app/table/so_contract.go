@@ -2,7 +2,7 @@ package table
 
 import (
 	"errors"
-	fmt "fmt"
+	"fmt"
 	"reflect"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
@@ -66,7 +66,21 @@ func (s *SoContractWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoContractWrap) Create(f func(tInfo *SoContract)) error {
+func (s *SoContractWrap) MustExist(errMsgs ...interface{}) *SoContractWrap {
+	if !s.CheckExist() {
+		panic(bindErrorInfo(fmt.Sprintf("SoContractWrap.MustExist: %v not found", s.mainKey), errMsgs...))
+	}
+	return s
+}
+
+func (s *SoContractWrap) MustNotExist(errMsgs ...interface{}) *SoContractWrap {
+	if s.CheckExist() {
+		panic(bindErrorInfo(fmt.Sprintf("SoContractWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
+	}
+	return s
+}
+
+func (s *SoContractWrap) create(f func(tInfo *SoContract)) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
@@ -115,6 +129,14 @@ func (s *SoContractWrap) Create(f func(tInfo *SoContract)) error {
 	return nil
 }
 
+func (s *SoContractWrap) Create(f func(tInfo *SoContract), errArgs ...interface{}) *SoContractWrap {
+	err := s.create(f)
+	if err != nil {
+		panic(bindErrorInfo(fmt.Errorf("SoContractWrap.Create failed: %s", err.Error()), errArgs...))
+	}
+	return s
+}
+
 func (s *SoContractWrap) getMainKeyBuf() ([]byte, error) {
 	if s.mainKey == nil {
 		return nil, errors.New("the main key is nil")
@@ -129,7 +151,7 @@ func (s *SoContractWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
-func (s *SoContractWrap) Modify(f func(tInfo *SoContract)) error {
+func (s *SoContractWrap) modify(f func(tInfo *SoContract)) error {
 	if !s.CheckExist() {
 		return errors.New("the SoContract table does not exist. Please create a table first")
 	}
@@ -188,67 +210,102 @@ func (s *SoContractWrap) Modify(f func(tInfo *SoContract)) error {
 
 }
 
-func (s *SoContractWrap) MdAbi(p string) bool {
-	err := s.Modify(func(r *SoContract) {
+func (s *SoContractWrap) Modify(f func(tInfo *SoContract), errArgs ...interface{}) *SoContractWrap {
+	err := s.modify(f)
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoContractWrap.Modify failed: %s", err.Error()), errArgs...))
+	}
+	return s
+}
+
+func (s *SoContractWrap) SetAbi(p string, errArgs ...interface{}) *SoContractWrap {
+	err := s.modify(func(r *SoContract) {
 		r.Abi = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoContractWrap.SetAbi( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoContractWrap) MdApplyCount(p uint32) bool {
-	err := s.Modify(func(r *SoContract) {
+func (s *SoContractWrap) SetApplyCount(p uint32, errArgs ...interface{}) *SoContractWrap {
+	err := s.modify(func(r *SoContract) {
 		r.ApplyCount = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoContractWrap.SetApplyCount( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoContractWrap) MdBalance(p *prototype.Coin) bool {
-	err := s.Modify(func(r *SoContract) {
+func (s *SoContractWrap) SetBalance(p *prototype.Coin, errArgs ...interface{}) *SoContractWrap {
+	err := s.modify(func(r *SoContract) {
 		r.Balance = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoContractWrap.SetBalance( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoContractWrap) MdCode(p []byte) bool {
-	err := s.Modify(func(r *SoContract) {
+func (s *SoContractWrap) SetCode(p []byte, errArgs ...interface{}) *SoContractWrap {
+	err := s.modify(func(r *SoContract) {
 		r.Code = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoContractWrap.SetCode( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoContractWrap) MdCreatedTime(p *prototype.TimePointSec) bool {
-	err := s.Modify(func(r *SoContract) {
+func (s *SoContractWrap) SetCreatedTime(p *prototype.TimePointSec, errArgs ...interface{}) *SoContractWrap {
+	err := s.modify(func(r *SoContract) {
 		r.CreatedTime = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoContractWrap.SetCreatedTime( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoContractWrap) MdDescribe(p string) bool {
-	err := s.Modify(func(r *SoContract) {
+func (s *SoContractWrap) SetDescribe(p string, errArgs ...interface{}) *SoContractWrap {
+	err := s.modify(func(r *SoContract) {
 		r.Describe = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoContractWrap.SetDescribe( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoContractWrap) MdHash(p *prototype.Sha256) bool {
-	err := s.Modify(func(r *SoContract) {
+func (s *SoContractWrap) SetHash(p *prototype.Sha256, errArgs ...interface{}) *SoContractWrap {
+	err := s.modify(func(r *SoContract) {
 		r.Hash = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoContractWrap.SetHash( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoContractWrap) MdUpgradeable(p bool) bool {
-	err := s.Modify(func(r *SoContract) {
+func (s *SoContractWrap) SetUpgradeable(p bool, errArgs ...interface{}) *SoContractWrap {
+	err := s.modify(func(r *SoContract) {
 		r.Upgradeable = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoContractWrap.SetUpgradeable( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
-func (s *SoContractWrap) MdUrl(p string) bool {
-	err := s.Modify(func(r *SoContract) {
+func (s *SoContractWrap) SetUrl(p string, errArgs ...interface{}) *SoContractWrap {
+	err := s.modify(func(r *SoContract) {
 		r.Url = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoContractWrap.SetUrl( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
 func (s *SoContractWrap) checkSortAndUniFieldValidity(curTable *SoContract, fieldSli []string) error {
@@ -607,33 +664,41 @@ func (s *SoContractWrap) insertAllSortKeys(val *SoContract) error {
 
 ////////////// SECTION LKeys delete/insert //////////////
 
-func (s *SoContractWrap) RemoveContract() bool {
+func (s *SoContractWrap) removeContract() error {
 	if s.dba == nil {
-		return false
+		return errors.New("database is nil")
 	}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
-		return false
+		return errors.New("delAllSortKeys failed")
 	}
 
 	//delete unique list
 	if res := s.delAllUniKeys(true, nil); !res {
-		return false
+		return errors.New("delAllUniKeys failed")
 	}
 
 	//delete table
 	key, err := s.encodeMainKey()
 	if err != nil {
-		return false
+		return fmt.Errorf("encodeMainKey failed: %s", err.Error())
 	}
 	err = s.dba.Delete(key)
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
-		return true
+		return nil
 	} else {
-		return false
+		return fmt.Errorf("database.Delete failed: %s", err.Error())
 	}
+}
+
+func (s *SoContractWrap) RemoveContract(errMsgs ...interface{}) *SoContractWrap {
+	err := s.removeContract()
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoContractWrap.RemoveContract failed: %s", err.Error()), errMsgs...))
+	}
+	return s
 }
 
 ////////////// SECTION Members Get/Modify ///////////////

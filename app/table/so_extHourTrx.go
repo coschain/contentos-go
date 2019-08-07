@@ -2,7 +2,7 @@ package table
 
 import (
 	"errors"
-	fmt "fmt"
+	"fmt"
 	"reflect"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
@@ -66,7 +66,21 @@ func (s *SoExtHourTrxWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoExtHourTrxWrap) Create(f func(tInfo *SoExtHourTrx)) error {
+func (s *SoExtHourTrxWrap) MustExist(errMsgs ...interface{}) *SoExtHourTrxWrap {
+	if !s.CheckExist() {
+		panic(bindErrorInfo(fmt.Sprintf("SoExtHourTrxWrap.MustExist: %v not found", s.mainKey), errMsgs...))
+	}
+	return s
+}
+
+func (s *SoExtHourTrxWrap) MustNotExist(errMsgs ...interface{}) *SoExtHourTrxWrap {
+	if s.CheckExist() {
+		panic(bindErrorInfo(fmt.Sprintf("SoExtHourTrxWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
+	}
+	return s
+}
+
+func (s *SoExtHourTrxWrap) create(f func(tInfo *SoExtHourTrx)) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
@@ -115,6 +129,14 @@ func (s *SoExtHourTrxWrap) Create(f func(tInfo *SoExtHourTrx)) error {
 	return nil
 }
 
+func (s *SoExtHourTrxWrap) Create(f func(tInfo *SoExtHourTrx), errArgs ...interface{}) *SoExtHourTrxWrap {
+	err := s.create(f)
+	if err != nil {
+		panic(bindErrorInfo(fmt.Errorf("SoExtHourTrxWrap.Create failed: %s", err.Error()), errArgs...))
+	}
+	return s
+}
+
 func (s *SoExtHourTrxWrap) getMainKeyBuf() ([]byte, error) {
 	if s.mainKey == nil {
 		return nil, errors.New("the main key is nil")
@@ -129,7 +151,7 @@ func (s *SoExtHourTrxWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
-func (s *SoExtHourTrxWrap) Modify(f func(tInfo *SoExtHourTrx)) error {
+func (s *SoExtHourTrxWrap) modify(f func(tInfo *SoExtHourTrx)) error {
 	if !s.CheckExist() {
 		return errors.New("the SoExtHourTrx table does not exist. Please create a table first")
 	}
@@ -188,11 +210,22 @@ func (s *SoExtHourTrxWrap) Modify(f func(tInfo *SoExtHourTrx)) error {
 
 }
 
-func (s *SoExtHourTrxWrap) MdCount(p uint64) bool {
-	err := s.Modify(func(r *SoExtHourTrx) {
+func (s *SoExtHourTrxWrap) Modify(f func(tInfo *SoExtHourTrx), errArgs ...interface{}) *SoExtHourTrxWrap {
+	err := s.modify(f)
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoExtHourTrxWrap.Modify failed: %s", err.Error()), errArgs...))
+	}
+	return s
+}
+
+func (s *SoExtHourTrxWrap) SetCount(p uint64, errArgs ...interface{}) *SoExtHourTrxWrap {
+	err := s.modify(func(r *SoExtHourTrx) {
 		r.Count = p
 	})
-	return err == nil
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoExtHourTrxWrap.SetCount( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
 }
 
 func (s *SoExtHourTrxWrap) checkSortAndUniFieldValidity(curTable *SoExtHourTrx, fieldSli []string) error {
@@ -375,33 +408,41 @@ func (s *SoExtHourTrxWrap) insertAllSortKeys(val *SoExtHourTrx) error {
 
 ////////////// SECTION LKeys delete/insert //////////////
 
-func (s *SoExtHourTrxWrap) RemoveExtHourTrx() bool {
+func (s *SoExtHourTrxWrap) removeExtHourTrx() error {
 	if s.dba == nil {
-		return false
+		return errors.New("database is nil")
 	}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
-		return false
+		return errors.New("delAllSortKeys failed")
 	}
 
 	//delete unique list
 	if res := s.delAllUniKeys(true, nil); !res {
-		return false
+		return errors.New("delAllUniKeys failed")
 	}
 
 	//delete table
 	key, err := s.encodeMainKey()
 	if err != nil {
-		return false
+		return fmt.Errorf("encodeMainKey failed: %s", err.Error())
 	}
 	err = s.dba.Delete(key)
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
-		return true
+		return nil
 	} else {
-		return false
+		return fmt.Errorf("database.Delete failed: %s", err.Error())
 	}
+}
+
+func (s *SoExtHourTrxWrap) RemoveExtHourTrx(errMsgs ...interface{}) *SoExtHourTrxWrap {
+	err := s.removeExtHourTrx()
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoExtHourTrxWrap.RemoveExtHourTrx failed: %s", err.Error()), errMsgs...))
+	}
+	return s
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
