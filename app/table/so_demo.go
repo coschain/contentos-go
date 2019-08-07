@@ -195,63 +195,63 @@ func (s *SoDemoWrap) Modify(f func(tInfo *SoDemo)) error {
 
 }
 
-func (s *SoDemoWrap) MdContent(p string) bool {
+func (s *SoDemoWrap) SetContent(p string) bool {
 	err := s.Modify(func(r *SoDemo) {
 		r.Content = p
 	})
 	return err == nil
 }
 
-func (s *SoDemoWrap) MdIdx(p int64) bool {
+func (s *SoDemoWrap) SetIdx(p int64) bool {
 	err := s.Modify(func(r *SoDemo) {
 		r.Idx = p
 	})
 	return err == nil
 }
 
-func (s *SoDemoWrap) MdLikeCount(p int64) bool {
+func (s *SoDemoWrap) SetLikeCount(p int64) bool {
 	err := s.Modify(func(r *SoDemo) {
 		r.LikeCount = p
 	})
 	return err == nil
 }
 
-func (s *SoDemoWrap) MdNickName(p *prototype.AccountName) bool {
+func (s *SoDemoWrap) SetNickName(p *prototype.AccountName) bool {
 	err := s.Modify(func(r *SoDemo) {
 		r.NickName = p
 	})
 	return err == nil
 }
 
-func (s *SoDemoWrap) MdPostTime(p *prototype.TimePointSec) bool {
+func (s *SoDemoWrap) SetPostTime(p *prototype.TimePointSec) bool {
 	err := s.Modify(func(r *SoDemo) {
 		r.PostTime = p
 	})
 	return err == nil
 }
 
-func (s *SoDemoWrap) MdRegistTime(p *prototype.TimePointSec) bool {
+func (s *SoDemoWrap) SetRegistTime(p *prototype.TimePointSec) bool {
 	err := s.Modify(func(r *SoDemo) {
 		r.RegistTime = p
 	})
 	return err == nil
 }
 
-func (s *SoDemoWrap) MdReplayCount(p int64) bool {
+func (s *SoDemoWrap) SetReplayCount(p int64) bool {
 	err := s.Modify(func(r *SoDemo) {
 		r.ReplayCount = p
 	})
 	return err == nil
 }
 
-func (s *SoDemoWrap) MdTaglist(p []string) bool {
+func (s *SoDemoWrap) SetTaglist(p []string) bool {
 	err := s.Modify(func(r *SoDemo) {
 		r.Taglist = p
 	})
 	return err == nil
 }
 
-func (s *SoDemoWrap) MdTitle(p string) bool {
+func (s *SoDemoWrap) SetTitle(p string) bool {
 	err := s.Modify(func(r *SoDemo) {
 		r.Title = p
 	})

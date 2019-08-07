@@ -190,35 +190,35 @@ func (s *SoExtTrxWrap) Modify(f func(tInfo *SoExtTrx)) error {
 
 }
 
-func (s *SoExtTrxWrap) MdBlockHeight(p uint64) bool {
+func (s *SoExtTrxWrap) SetBlockHeight(p uint64) bool {
 	err := s.Modify(func(r *SoExtTrx) {
 		r.BlockHeight = p
 	})
 	return err == nil
 }
 
-func (s *SoExtTrxWrap) MdBlockId(p *prototype.Sha256) bool {
+func (s *SoExtTrxWrap) SetBlockId(p *prototype.Sha256) bool {
 	err := s.Modify(func(r *SoExtTrx) {
 		r.BlockId = p
 	})
 	return err == nil
 }
 
-func (s *SoExtTrxWrap) MdBlockTime(p *prototype.TimePointSec) bool {
+func (s *SoExtTrxWrap) SetBlockTime(p *prototype.TimePointSec) bool {
 	err := s.Modify(func(r *SoExtTrx) {
 		r.BlockTime = p
 	})
 	return err == nil
 }
 
-func (s *SoExtTrxWrap) MdTrxCreateOrder(p *prototype.UserTrxCreateOrder) bool {
+func (s *SoExtTrxWrap) SetTrxCreateOrder(p *prototype.UserTrxCreateOrder) bool {
 	err := s.Modify(func(r *SoExtTrx) {
 		r.TrxCreateOrder = p
 	})
 	return err == nil
 }
 
-func (s *SoExtTrxWrap) MdTrxWrap(p *prototype.TransactionWrapper) bool {
+func (s *SoExtTrxWrap) SetTrxWrap(p *prototype.TransactionWrapper) bool {
 	err := s.Modify(func(r *SoExtTrx) {
 		r.TrxWrap = p
 	})

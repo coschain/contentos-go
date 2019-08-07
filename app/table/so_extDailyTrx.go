@@ -188,7 +188,7 @@ func (s *SoExtDailyTrxWrap) Modify(f func(tInfo *SoExtDailyTrx)) error {
 
 }
 
-func (s *SoExtDailyTrxWrap) MdCount(p uint64) bool {
+func (s *SoExtDailyTrxWrap) SetCount(p uint64) bool {
 	err := s.Modify(func(r *SoExtDailyTrx) {
 		r.Count = p
 	})

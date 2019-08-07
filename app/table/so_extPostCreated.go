@@ -184,7 +184,7 @@ func (s *SoExtPostCreatedWrap) Modify(f func(tInfo *SoExtPostCreated)) error {
 
 }
 
-func (s *SoExtPostCreatedWrap) MdCreatedOrder(p *prototype.PostCreatedOrder) bool {
+func (s *SoExtPostCreatedWrap) SetCreatedOrder(p *prototype.PostCreatedOrder) bool {
 	err := s.Modify(func(r *SoExtPostCreated) {
 		r.CreatedOrder = p
 	})

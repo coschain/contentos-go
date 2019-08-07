@@ -186,21 +186,21 @@ func (s *SoExtFollowCountWrap) Modify(f func(tInfo *SoExtFollowCount)) error {
 
 }
 
-func (s *SoExtFollowCountWrap) MdFollowerCnt(p uint32) bool {
+func (s *SoExtFollowCountWrap) SetFollowerCnt(p uint32) bool {
 	err := s.Modify(func(r *SoExtFollowCount) {
 		r.FollowerCnt = p
 	})
 	return err == nil
 }
 
-func (s *SoExtFollowCountWrap) MdFollowingCnt(p uint32) bool {
+func (s *SoExtFollowCountWrap) SetFollowingCnt(p uint32) bool {
 	err := s.Modify(func(r *SoExtFollowCount) {
 		r.FollowingCnt = p
 	})
 	return err == nil
 }
 
-func (s *SoExtFollowCountWrap) MdUpdateTime(p *prototype.TimePointSec) bool {
+func (s *SoExtFollowCountWrap) SetUpdateTime(p *prototype.TimePointSec) bool {
 	err := s.Modify(func(r *SoExtFollowCount) {
 		r.UpdateTime = p
 	})

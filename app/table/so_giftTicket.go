@@ -188,21 +188,21 @@ func (s *SoGiftTicketWrap) Modify(f func(tInfo *SoGiftTicket)) error {
 
 }
 
-func (s *SoGiftTicketWrap) MdCount(p uint64) bool {
+func (s *SoGiftTicketWrap) SetCount(p uint64) bool {
 	err := s.Modify(func(r *SoGiftTicket) {
 		r.Count = p
 	})
 	return err == nil
 }
 
-func (s *SoGiftTicketWrap) MdDenom(p uint64) bool {
+func (s *SoGiftTicketWrap) SetDenom(p uint64) bool {
 	err := s.Modify(func(r *SoGiftTicket) {
 		r.Denom = p
 	})
 	return err == nil
 }
 
-func (s *SoGiftTicketWrap) MdExpireBlock(p uint64) bool {
+func (s *SoGiftTicketWrap) SetExpireBlock(p uint64) bool {
 	err := s.Modify(func(r *SoGiftTicket) {
 		r.ExpireBlock = p
 	})

@@ -245,7 +245,7 @@ func (d *Dandelion) ModifyProps(modifier func(oldProps *prototype.DynamicPropert
 	dgpWrap := table.NewSoGlobalWrap(d.Database(),  &chainId)
 	props := dgpWrap.GetProps()
 	modifier(props)
-	if ok := dgpWrap.MdProps(props); !ok {
+	if ok := dgpWrap.SetProps(props); !ok {
 		return fmt.Errorf("modify global props failed")
 	}
 	return nil

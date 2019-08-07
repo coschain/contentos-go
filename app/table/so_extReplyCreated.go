@@ -184,7 +184,7 @@ func (s *SoExtReplyCreatedWrap) Modify(f func(tInfo *SoExtReplyCreated)) error {
 
 }
 
-func (s *SoExtReplyCreatedWrap) MdCreatedOrder(p *prototype.ReplyCreatedOrder) bool {
+func (s *SoExtReplyCreatedWrap) SetCreatedOrder(p *prototype.ReplyCreatedOrder) bool {
 	err := s.Modify(func(r *SoExtReplyCreated) {
 		r.CreatedOrder = p
 	})

@@ -107,11 +107,11 @@ func (p *TrxContext) deductStamina(db iservices.IDatabaseRW,m map[string]*resour
 			_,freeLeft := p.resourceLimiter.GetFreeLeft(freeStaminaMaxByBp,accountWrap.GetStaminaFree(), accountWrap.GetStaminaFreeUseBlock(), now)
 
 			paid += freeLeft
-			accountWrap.MdStaminaFree(freeStaminaMaxByBp)
-			accountWrap.MdStaminaFreeUseBlock(now)
+			accountWrap.SetStaminaFree(freeStaminaMaxByBp)
+			accountWrap.SetStaminaFreeUseBlock(now)
 		} else {
-			accountWrap.MdStaminaFree(newFreeStamina)
-			accountWrap.MdStaminaFreeUseBlock(now)
+			accountWrap.SetStaminaFree(newFreeStamina)
+			accountWrap.SetStaminaFreeUseBlock(now)
 			paid = staminaUse
 			// free resource already enough
 			m[caller].realCost = paid
@@ -126,11 +126,11 @@ func (p *TrxContext) deductStamina(db iservices.IDatabaseRW,m map[string]*resour
 			// never failed ?
 			_,stakeLeft := p.resourceLimiter.GetStakeLeft(accountWrap.GetStamina(), accountWrap.GetStaminaUseBlock(), now, maxStamina)
 			paid += stakeLeft
-			accountWrap.MdStamina(maxStamina)
-			accountWrap.MdStaminaUseBlock(now)
+			accountWrap.SetStamina(maxStamina)
+			accountWrap.SetStaminaUseBlock(now)
 		} else {
-			accountWrap.MdStamina(newStamina)
-			accountWrap.MdStaminaUseBlock(now)
+			accountWrap.SetStamina(newStamina)
+			accountWrap.SetStaminaUseBlock(now)
 			paid += left
 		}
 		m[caller].realCost = paid
@@ -236,7 +236,7 @@ func (p *TrxContext) DeductStamina(caller string, spent uint64) {
 	if balance < spent {
 		panic(fmt.Sprintf("Endanger deduction Operation: %s, %d", caller, spent))
 	}
-	acc.MdBalance(&prototype.Coin{Value: balance - spent})
+	acc.SetBalance(&prototype.Coin{Value: balance - spent})
 	return
 }
 
@@ -250,8 +250,8 @@ func (p *TrxContext) TransferFromContractToUser(contract, owner, to string, amou
 	}
 	acc := table.NewSoAccountWrap(p.db, &prototype.AccountName{Value: to})
 
-	c.MdBalance(&prototype.Coin{Value: c.GetBalance().Value - amount})
-	acc.MdBalance(&prototype.Coin{Value: acc.GetBalance().Value + amount})
+	c.SetBalance(&prototype.Coin{Value: c.GetBalance().Value - amount})
+	acc.SetBalance(&prototype.Coin{Value: acc.GetBalance().Value + amount})
 	return
 }
 
@@ -265,8 +265,8 @@ func (p *TrxContext) TransferFromUserToContract(from, contract, owner string, am
 		panic(fmt.Sprintf("Endanger Transfer Operation: %s, %s, %s, %d", contract, owner, from, amount))
 	}
 	c := table.NewSoContractWrap(p.db, &prototype.ContractId{Owner: &prototype.AccountName{Value: owner}, Cname: contract})
-	c.MdBalance(&prototype.Coin{Value: c.GetBalance().Value + amount})
-	acc.MdBalance(&prototype.Coin{Value: acc.GetBalance().Value - amount})
+	c.SetBalance(&prototype.Coin{Value: c.GetBalance().Value + amount})
+	acc.SetBalance(&prototype.Coin{Value: acc.GetBalance().Value - amount})
 	return
 }
 
@@ -281,8 +281,8 @@ func (p *TrxContext) TransferFromContractToContract(fromContract, fromOwner, toC
 		panic(fmt.Sprintf("Insufficient balance of contract: %s.%s, %d < %d", fromOwner, fromContract, fromBalance, amount))
 	}
 	toBalance := to.GetBalance().Value
-	from.MdBalance(&prototype.Coin{Value: fromBalance - amount})
-	to.MdBalance(&prototype.Coin{Value: toBalance + amount})
+	from.SetBalance(&prototype.Coin{Value: fromBalance - amount})
+	to.SetBalance(&prototype.Coin{Value: toBalance + amount})
 }
 
 func (p *TrxContext) ContractCall(caller, fromOwner, fromContract, fromMethod, toOwner, toContract, toMethod string, params []byte, coins, remainGas uint64, preVm *exec.VM) {

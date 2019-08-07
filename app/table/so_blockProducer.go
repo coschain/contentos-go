@@ -188,84 +188,84 @@ func (s *SoBlockProducerWrap) Modify(f func(tInfo *SoBlockProducer)) error {
 
 }
 
-func (s *SoBlockProducerWrap) MdAccountCreateFee(p *prototype.Coin) bool {
+func (s *SoBlockProducerWrap) SetAccountCreateFee(p *prototype.Coin) bool {
 	err := s.Modify(func(r *SoBlockProducer) {
 		r.AccountCreateFee = p
 	})
 	return err == nil
 }
 
-func (s *SoBlockProducerWrap) MdBpVest(p *prototype.BpVestId) bool {
+func (s *SoBlockProducerWrap) SetBpVest(p *prototype.BpVestId) bool {
 	err := s.Modify(func(r *SoBlockProducer) {
 		r.BpVest = p
 	})
 	return err == nil
 }
 
-func (s *SoBlockProducerWrap) MdCreatedTime(p *prototype.TimePointSec) bool {
+func (s *SoBlockProducerWrap) SetCreatedTime(p *prototype.TimePointSec) bool {
 	err := s.Modify(func(r *SoBlockProducer) {
 		r.CreatedTime = p
 	})
 	return err == nil
 }
 
-func (s *SoBlockProducerWrap) MdEpochDuration(p uint64) bool {
+func (s *SoBlockProducerWrap) SetEpochDuration(p uint64) bool {
 	err := s.Modify(func(r *SoBlockProducer) {
 		r.EpochDuration = p
 	})
 	return err == nil
 }
 
-func (s *SoBlockProducerWrap) MdPerTicketPrice(p *prototype.Coin) bool {
+func (s *SoBlockProducerWrap) SetPerTicketPrice(p *prototype.Coin) bool {
 	err := s.Modify(func(r *SoBlockProducer) {
 		r.PerTicketPrice = p
 	})
 	return err == nil
 }
 
-func (s *SoBlockProducerWrap) MdPerTicketWeight(p uint64) bool {
+func (s *SoBlockProducerWrap) SetPerTicketWeight(p uint64) bool {
 	err := s.Modify(func(r *SoBlockProducer) {
 		r.PerTicketWeight = p
 	})
 	return err == nil
 }
 
-func (s *SoBlockProducerWrap) MdProposedStaminaFree(p uint64) bool {
+func (s *SoBlockProducerWrap) SetProposedStaminaFree(p uint64) bool {
 	err := s.Modify(func(r *SoBlockProducer) {
 		r.ProposedStaminaFree = p
 	})
 	return err == nil
 }
 
-func (s *SoBlockProducerWrap) MdSigningKey(p *prototype.PublicKeyType) bool {
+func (s *SoBlockProducerWrap) SetSigningKey(p *prototype.PublicKeyType) bool {
 	err := s.Modify(func(r *SoBlockProducer) {
 		r.SigningKey = p
 	})
 	return err == nil
 }
 
-func (s *SoBlockProducerWrap) MdTopNAcquireFreeToken(p uint32) bool {
+func (s *SoBlockProducerWrap) SetTopNAcquireFreeToken(p uint32) bool {
 	err := s.Modify(func(r *SoBlockProducer) {
 		r.TopNAcquireFreeToken = p
 	})
 	return err == nil
 }
 
-func (s *SoBlockProducerWrap) MdTpsExpected(p uint64) bool {
+func (s *SoBlockProducerWrap) SetTpsExpected(p uint64) bool {
 	err := s.Modify(func(r *SoBlockProducer) {
 		r.TpsExpected = p
 	})
 	return err == nil
 }
 
-func (s *SoBlockProducerWrap) MdUrl(p string) bool {
+func (s *SoBlockProducerWrap) SetUrl(p string) bool {
 	err := s.Modify(func(r *SoBlockProducer) {
 		r.Url = p
 	})
 	return err == nil
 }
 
-func (s *SoBlockProducerWrap) MdVoterCount(p uint64) bool {
+func (s *SoBlockProducerWrap) SetVoterCount(p uint64) bool {
 	err := s.Modify(func(r *SoBlockProducer) {
 		r.VoterCount = p
 	})

@@ -188,21 +188,21 @@ func (s *SoStakeRecordWrap) Modify(f func(tInfo *SoStakeRecord)) error {
 
 }
 
-func (s *SoStakeRecordWrap) MdLastStakeTime(p *prototype.TimePointSec) bool {
+func (s *SoStakeRecordWrap) SetLastStakeTime(p *prototype.TimePointSec) bool {
 	err := s.Modify(func(r *SoStakeRecord) {
 		r.LastStakeTime = p
 	})
 	return err == nil
 }
 
-func (s *SoStakeRecordWrap) MdRecordReverse(p *prototype.StakeRecordReverse) bool {
+func (s *SoStakeRecordWrap) SetRecordReverse(p *prototype.StakeRecordReverse) bool {
 	err := s.Modify(func(r *SoStakeRecord) {
 		r.RecordReverse = p
 	})
 	return err == nil
 }
 
-func (s *SoStakeRecordWrap) MdStakeAmount(p *prototype.Vest) bool {
+func (s *SoStakeRecordWrap) SetStakeAmount(p *prototype.Vest) bool {
 	err := s.Modify(func(r *SoStakeRecord) {
 		r.StakeAmount = p
 	})

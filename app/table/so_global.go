@@ -183,7 +183,7 @@ func (s *SoGlobalWrap) Modify(f func(tInfo *SoGlobal)) error {
 
 }
 
-func (s *SoGlobalWrap) MdProps(p *prototype.DynamicProperties) bool {
+func (s *SoGlobalWrap) SetProps(p *prototype.DynamicProperties) bool {
 	err := s.Modify(func(r *SoGlobal) {
 		r.Props = p
 	})

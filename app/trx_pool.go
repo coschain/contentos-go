@@ -844,7 +844,7 @@ func (c *TrxPool) headBlockNum() uint64 {
 
 func (c *TrxPool) updateGlobalDataToDB(dgpo *prototype.DynamicProperties) {
 	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
-	mustSuccess(dgpWrap.MdProps(dgpo), "")
+	mustSuccess(dgpWrap.SetProps(dgpo), "")
 }
 
 func (c *TrxPool) modifyGlobalDynamicData(f func(props *prototype.DynamicProperties)) {
@@ -853,7 +853,7 @@ func (c *TrxPool) modifyGlobalDynamicData(f func(props *prototype.DynamicPropert
 
 	f(props)
 
-	mustSuccess(dgpWrap.MdProps(props), "")
+	mustSuccess(dgpWrap.SetProps(props), "")
 }
 
 func (c *TrxPool) ModifyProps(modifier func(oldProps *prototype.DynamicProperties)) {
@@ -907,7 +907,7 @@ func (c *TrxPool) updateGlobalBpBootMark() {
 	if bpWrap.CheckExist() {
 		bpVoteVestCnt := bpWrap.GetBpVest().VoteVest
 		newBpVest := &prototype.BpVestId{Active:false, VoteVest:bpVoteVestCnt}
-		mustSuccess(bpWrap.MdBpVest(newBpVest), fmt.Sprintf("disable bp %s error", constants.COSInitMiner))
+		mustSuccess(bpWrap.SetBpVest(newBpVest), fmt.Sprintf("disable bp %s error", constants.COSInitMiner))
 	}
 }
 
@@ -991,7 +991,7 @@ func (c *TrxPool) createBlockSummary(blk *prototype.SignedBlock) {
 	mustSuccess(blockSummaryWrap.CheckExist(), "can not get block summary object")
 	blockIDArray := blk.Id().Data
 	blockID := &prototype.Sha256{Hash: blockIDArray[:]}
-	mustSuccess(blockSummaryWrap.MdBlockId(blockID), "update block summary object error")
+	mustSuccess(blockSummaryWrap.SetBlockId(blockID), "update block summary object error")
 }
 
 func (c *TrxPool) GetSigningPubKey(bpName string) *prototype.PublicKeyType {
@@ -1059,8 +1059,8 @@ func (c *TrxPool) GetBlockProducerTopN(n uint32) ([]string, []*prototype.PublicK
 
 func (c *TrxPool) SetShuffledBpList(names []string, keys []*prototype.PublicKeyType) {
 	bpScheduleWrap := table.NewSoBlockProducerScheduleObjectWrap(c.db, &SingleId)
-	mustSuccess(bpScheduleWrap.MdCurrentShuffledBlockProducer(names), "set bp list error")
-	mustSuccess(bpScheduleWrap.MdPubKey(keys), "set bp pub key failed")
+	mustSuccess(bpScheduleWrap.SetCurrentShuffledBlockProducer(names), "set bp list error")
+	mustSuccess(bpScheduleWrap.SetPubKey(keys), "set bp pub key failed")
 }
 
 func (c *TrxPool) GetShuffledBpList() ([]string, []*prototype.PublicKeyType) {

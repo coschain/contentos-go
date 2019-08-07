@@ -183,7 +183,7 @@ func (s *SoBlockSummaryObjectWrap) Modify(f func(tInfo *SoBlockSummaryObject)) e
 
 }
 
-func (s *SoBlockSummaryObjectWrap) MdBlockId(p *prototype.Sha256) bool {
+func (s *SoBlockSummaryObjectWrap) SetBlockId(p *prototype.Sha256) bool {
 	err := s.Modify(func(r *SoBlockSummaryObject) {
 		r.BlockId = p
 	})

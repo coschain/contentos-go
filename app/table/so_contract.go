@@ -188,63 +188,63 @@ func (s *SoContractWrap) Modify(f func(tInfo *SoContract)) error {
 
 }
 
-func (s *SoContractWrap) MdAbi(p string) bool {
+func (s *SoContractWrap) SetAbi(p string) bool {
 	err := s.Modify(func(r *SoContract) {
 		r.Abi = p
 	})
 	return err == nil
 }
 
-func (s *SoContractWrap) MdApplyCount(p uint32) bool {
+func (s *SoContractWrap) SetApplyCount(p uint32) bool {
 	err := s.Modify(func(r *SoContract) {
 		r.ApplyCount = p
 	})
 	return err == nil
 }
 
-func (s *SoContractWrap) MdBalance(p *prototype.Coin) bool {
+func (s *SoContractWrap) SetBalance(p *prototype.Coin) bool {
 	err := s.Modify(func(r *SoContract) {
 		r.Balance = p
 	})
 	return err == nil
 }
 
-func (s *SoContractWrap) MdCode(p []byte) bool {
+func (s *SoContractWrap) SetCode(p []byte) bool {
 	err := s.Modify(func(r *SoContract) {
 		r.Code = p
 	})
 	return err == nil
 }
 
-func (s *SoContractWrap) MdCreatedTime(p *prototype.TimePointSec) bool {
+func (s *SoContractWrap) SetCreatedTime(p *prototype.TimePointSec) bool {
 	err := s.Modify(func(r *SoContract) {
 		r.CreatedTime = p
 	})
 	return err == nil
 }
 
-func (s *SoContractWrap) MdDescribe(p string) bool {
+func (s *SoContractWrap) SetDescribe(p string) bool {
 	err := s.Modify(func(r *SoContract) {
 		r.Describe = p
 	})
 	return err == nil
 }
 
-func (s *SoContractWrap) MdHash(p *prototype.Sha256) bool {
+func (s *SoContractWrap) SetHash(p *prototype.Sha256) bool {
 	err := s.Modify(func(r *SoContract) {
 		r.Hash = p
 	})
 	return err == nil
 }
 
-func (s *SoContractWrap) MdUpgradeable(p bool) bool {
+func (s *SoContractWrap) SetUpgradeable(p bool) bool {
 	err := s.Modify(func(r *SoContract) {
 		r.Upgradeable = p
 	})
 	return err == nil
 }
 
-func (s *SoContractWrap) MdUrl(p string) bool {
+func (s *SoContractWrap) SetUrl(p string) bool {
 	err := s.Modify(func(r *SoContract) {
 		r.Url = p
 	})

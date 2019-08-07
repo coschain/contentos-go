@@ -183,14 +183,14 @@ func (s *SoBlockProducerScheduleObjectWrap) Modify(f func(tInfo *SoBlockProducer
 
 }
 
-func (s *SoBlockProducerScheduleObjectWrap) MdCurrentShuffledBlockProducer(p []string) bool {
+func (s *SoBlockProducerScheduleObjectWrap) SetCurrentShuffledBlockProducer(p []string) bool {
 	err := s.Modify(func(r *SoBlockProducerScheduleObject) {
 		r.CurrentShuffledBlockProducer = p
 	})
 	return err == nil
 }
 
-func (s *SoBlockProducerScheduleObjectWrap) MdPubKey(p []*prototype.PublicKeyType) bool {
+func (s *SoBlockProducerScheduleObjectWrap) SetPubKey(p []*prototype.PublicKeyType) bool {
 	err := s.Modify(func(r *SoBlockProducerScheduleObject) {
 		r.PubKey = p
 	})

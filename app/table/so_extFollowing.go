@@ -187,7 +187,7 @@ func (s *SoExtFollowingWrap) Modify(f func(tInfo *SoExtFollowing)) error {
 
 }
 
-func (s *SoExtFollowingWrap) MdFollowingCreatedOrder(p *prototype.FollowingCreatedOrder) bool {
+func (s *SoExtFollowingWrap) SetFollowingCreatedOrder(p *prototype.FollowingCreatedOrder) bool {
 	err := s.Modify(func(r *SoExtFollowing) {
 		r.FollowingCreatedOrder = p
 	})

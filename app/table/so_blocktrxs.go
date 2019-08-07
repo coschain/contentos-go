@@ -182,7 +182,7 @@ func (s *SoBlocktrxsWrap) Modify(f func(tInfo *SoBlocktrxs)) error {
 
 }
 
-func (s *SoBlocktrxsWrap) MdTrxs(p []byte) bool {
+func (s *SoBlocktrxsWrap) SetTrxs(p []byte) bool {
 	err := s.Modify(func(r *SoBlocktrxs) {
 		r.Trxs = p
 	})

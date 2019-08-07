@@ -187,7 +187,7 @@ func (s *SoTransactionObjectWrap) Modify(f func(tInfo *SoTransactionObject)) err
 
 }
 
-func (s *SoTransactionObjectWrap) MdExpiration(p *prototype.TimePointSec) bool {
+func (s *SoTransactionObjectWrap) SetExpiration(p *prototype.TimePointSec) bool {
 	err := s.Modify(func(r *SoTransactionObject) {
 		r.Expiration = p
 	})

@@ -183,21 +183,21 @@ func (s *SoReportListWrap) Modify(f func(tInfo *SoReportList)) error {
 
 }
 
-func (s *SoReportListWrap) MdIsArbitrated(p bool) bool {
+func (s *SoReportListWrap) SetIsArbitrated(p bool) bool {
 	err := s.Modify(func(r *SoReportList) {
 		r.IsArbitrated = p
 	})
 	return err == nil
 }
 
-func (s *SoReportListWrap) MdReportedTimes(p uint32) bool {
+func (s *SoReportListWrap) SetReportedTimes(p uint32) bool {
 	err := s.Modify(func(r *SoReportList) {
 		r.ReportedTimes = p
 	})
 	return err == nil
 }
 
-func (s *SoReportListWrap) MdTags(p []int32) bool {
+func (s *SoReportListWrap) SetTags(p []int32) bool {
 	err := s.Modify(func(r *SoReportList) {
 		r.Tags = p
 	})

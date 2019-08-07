@@ -244,7 +244,7 @@ func (ev *AccountCreateEvaluator) Apply() {
 	// sub creator's fee
 	originBalance := creatorWrap.GetBalance()
 	opAssertE(originBalance.Sub(accountCreateFee), "creator balance overflow")
-	opAssert(creatorWrap.MdBalance(originBalance), "")
+	opAssert(creatorWrap.SetBalance(originBalance), "")
 
 	// create account
 	newAccountWrap := table.NewSoAccountWrap(ev.Database(), op.NewAccountName)
@@ -282,7 +282,7 @@ func (ev *AccountUpdateEvaluator) Apply() {
 	updaterWrap := table.NewSoAccountWrap(ev.Database(), op.Owner)
 	opAssert(updaterWrap.CheckExist(), "update account not exist ")
 
-	opAssert(updaterWrap.MdPubKey(op.PubKey), "failed to update account public key")
+	opAssert(updaterWrap.SetPubKey(op.PubKey), "failed to update account public key")
 }
 
 func (ev *TransferEvaluator) Apply() {
@@ -301,10 +301,10 @@ func (ev *TransferEvaluator) Apply() {
 	tBalance := toWrap.GetBalance()
 
 	opAssertE(fBalance.Sub(op.Amount), "Insufficient balance to transfer.")
-	opAssert(fromWrap.MdBalance(fBalance), "")
+	opAssert(fromWrap.SetBalance(fBalance), "")
 
 	opAssertE(tBalance.Add(op.Amount), "balance overflow")
-	opAssert(toWrap.MdBalance(tBalance), "")
+	opAssert(toWrap.SetBalance(tBalance), "")
 
 	ev.TrxObserver().AddOpState(iservices.Replace, "balance", fromWrap.GetName().Value, fromWrap.GetBalance().Value)
 	ev.TrxObserver().AddOpState(iservices.Replace, "balance", toWrap.GetName().Value, toWrap.GetBalance().Value)
@@ -345,7 +345,7 @@ func (ev *PostEvaluator) Apply() {
 		t.Copyright = constants.CopyrightUnkown
 	}), "create post error")
 
-	//authorWrap.MdLastPostTime(ev.GlobalProp().HeadBlockTime())
+	//authorWrap.SetLastPostTime(ev.GlobalProp().HeadBlockTime())
 
 	mustNoError( authorWrap.Modify(func(tInfo *table.SoAccount) {
 		tInfo.LastPostTime = ev.GlobalProp().HeadBlockTime()
@@ -406,14 +406,14 @@ func (ev *ReplyEvaluator) Apply() {
 		t.Ticket = 0
 	}), "create reply error")
 
-	//authorWrap.MdLastPostTime(ev.GlobalProp().HeadBlockTime())
+	//authorWrap.SetLastPostTime(ev.GlobalProp().HeadBlockTime())
 
 	mustNoError( authorWrap.Modify(func(tInfo *table.SoAccount) {
 		tInfo.LastPostTime = ev.GlobalProp().HeadBlockTime()
 	}), "")
 
 	// Modify Parent Object
-	//opAssert(pidWrap.MdChildren(pidWrap.GetChildren()+1), "Modify Parent Children Error")
+	//opAssert(pidWrap.SetChildren(pidWrap.GetChildren()+1), "Modify Parent Children Error")
 
 	mustNoError( pidWrap.Modify(func(tInfo *table.SoPost) {
 		tInfo.Children ++
@@ -468,8 +468,8 @@ func (ev *VoteEvaluator) Apply() {
 		tInfo.LastVoteTime = ev.GlobalProp().HeadBlockTime()
 	}), "")
 
-	//voterWrap.MdVotePower(currentVp - usedVp)
-	//voterWrap.MdLastVoteTime(ev.GlobalProp().HeadBlockTime())
+	//voterWrap.SetVotePower(currentVp - usedVp)
+	//voterWrap.SetLastVoteTime(ev.GlobalProp().HeadBlockTime())
 	vest := voterWrap.GetVest().Value
 	// after constants.PERCENT replaced by 1000, max value is 10000000000 * 1000000 * 1000 / 30
 	// 10000000000 * 1000000 * 1000 < 18446744073709552046 but 10000000000 * 1000000 > 9223372036854775807
@@ -493,7 +493,7 @@ func (ev *VoteEvaluator) Apply() {
 		// add new vp into global
 		//ev.GlobalProp().AddWeightedVP(weightedVp)
 		// update post's weighted vp
-		//postWrap.MdWeightedVp(tvp.String())
+		//postWrap.SetWeightedVp(tvp.String())
 
 		mustNoError( postWrap.Modify(func(tInfo *table.SoPost) {
 			tInfo.WeightedVp = tvp.String()
@@ -508,7 +508,7 @@ func (ev *VoteEvaluator) Apply() {
 			t.VoteTime = ev.GlobalProp().HeadBlockTime()
 		}), "create voter object error")
 
-		//opAssert(postWrap.MdVoteCnt(postWrap.GetVoteCnt()+1), "set vote count error")
+		//opAssert(postWrap.SetVoteCnt(postWrap.GetVoteCnt()+1), "set vote count error")
 	}
 }
 
@@ -593,14 +593,14 @@ func (ev *BpEnableEvaluator) Apply() {
 		bpVoteVest := bpWrap.GetBpVest().VoteVest
 		newBpVest := &prototype.BpVestId{Active:false, VoteVest:bpVoteVest}
 
-		opAssert(bpWrap.MdBpVest(newBpVest), "set block producer active error")
+		opAssert(bpWrap.SetBpVest(newBpVest), "set block producer active error")
 	} else {
 		opAssert(!bpWrap.GetBpVest().Active, "block producer has already been enabled")
 
 		bpVoteVest := bpWrap.GetBpVest().VoteVest
 		newBpVest := &prototype.BpVestId{Active:true, VoteVest:bpVoteVest}
 
-		opAssert(bpWrap.MdBpVest(newBpVest), "set block producer active error")
+		opAssert(bpWrap.SetBpVest(newBpVest), "set block producer active error")
 	}
 }
 
@@ -633,15 +633,15 @@ func (ev *BpVoteEvaluator) Apply() {
 		// modify block producer bp vest
 		opAssertE(bpVoteVestCnt.Sub(voterVests), "block producer data error")
 		newBpVest := &prototype.BpVestId{Active:bpActive, VoteVest:bpVoteVestCnt}
-		opAssert(bpWrap.MdBpVest(newBpVest), "set block producer data error")
+		opAssert(bpWrap.SetBpVest(newBpVest), "set block producer data error")
 
 		// modify block producer voter count
 		opAssert(bpVoterCount > 0, "block producer voter count should be greater than 0")
-		opAssert(bpWrap.MdVoterCount(bpVoterCount-1), "set block producer voter count error")
+		opAssert(bpWrap.SetVoterCount(bpVoterCount-1), "set block producer voter count error")
 
 		// modify voter bp_vote_count
 		opAssert(voteCnt > 0, "vote count must not be 0")
-		opAssert(voterAccount.MdBpVoteCount(voteCnt-1), "set voter data error")
+		opAssert(voterAccount.SetBpVoteCount(voteCnt-1), "set voter data error")
 
 	} else {
 		// block producer should be in active mode
@@ -661,13 +661,13 @@ func (ev *BpVoteEvaluator) Apply() {
 		}), "add vote record error")
 
 		// modify voter vote count
-		opAssert(voterAccount.MdBpVoteCount(voteCnt+1), "set voter data error")
+		opAssert(voterAccount.SetBpVoteCount(voteCnt+1), "set voter data error")
 
 		// modify block producer bp vest and voter count
 		opAssertE(bpVoteVestCnt.Add(voterVests), "block producer vote count overflow")
 		newBpVest := &prototype.BpVestId{Active:bpActive, VoteVest:bpVoteVestCnt}
-		opAssert(bpWrap.MdBpVest(newBpVest), "set block producer data error")
-		opAssert(bpWrap.MdVoterCount(bpVoterCount+1), "set block producer voter count error")
+		opAssert(bpWrap.SetBpVest(newBpVest), "set block producer data error")
+		opAssert(bpWrap.SetVoterCount(bpVoterCount+1), "set block producer voter count error")
 	}
 }
 
@@ -706,13 +706,13 @@ func (ev *BpUpdateEvaluator) Apply() {
 	//perTicketWeight := op.PerTicketWeight
 
 	bpWrap := table.NewSoBlockProducerWrap(ev.Database(), op.Owner)
-	//opAssert(bpWrap.MdProposedStaminaFree(staminaFree), "update bp proposed stamina free error")
-	//opAssert(bpWrap.MdTpsExpected(tpsExpected), "update bp tps expected error")
-	//opAssert(bpWrap.MdAccountCreateFee(accountCreateFee), "update account create fee error")
-	//opAssert(bpWrap.MdTopNAcquireFreeToken(topNAcquireFreeToken), "update topna error")
-	//opAssert(bpWrap.MdEpochDuration(epochDuration), "update epoch duration error")
-	//opAssert(bpWrap.MdPerTicketPrice(perTicketPrice), "update per ticket price error")
-	//opAssert(bpWrap.MdPerTicketWeight(perTicketWeight), "update per ticket weight error")
+	//opAssert(bpWrap.SetProposedStaminaFree(staminaFree), "update bp proposed stamina free error")
+	//opAssert(bpWrap.SetTpsExpected(tpsExpected), "update bp tps expected error")
+	//opAssert(bpWrap.SetAccountCreateFee(accountCreateFee), "update account create fee error")
+	//opAssert(bpWrap.SetTopNAcquireFreeToken(topNAcquireFreeToken), "update topna error")
+	//opAssert(bpWrap.SetEpochDuration(epochDuration), "update epoch duration error")
+	//opAssert(bpWrap.SetPerTicketPrice(perTicketPrice), "update per ticket price error")
+	//opAssert(bpWrap.SetPerTicketWeight(perTicketWeight), "update per ticket weight error")
 
 	mustNoError( bpWrap.Modify(func(tInfo *table.SoBlockProducer) {
 		tInfo.ProposedStaminaFree = op.ProposedStaminaFree
@@ -754,10 +754,10 @@ func (ev *TransferToVestEvaluator) Apply() {
 	addVests := prototype.NewVest(op.Amount.Value)
 
 	opAssertE(fBalance.Sub(op.Amount), "balance not enough")
-	opAssert(fidWrap.MdBalance(fBalance), "set from new balance error")
+	opAssert(fidWrap.SetBalance(fBalance), "set from new balance error")
 
 	opAssertE(tVests.Add(addVests), "vests error")
-	opAssert(tidWrap.MdVest(tVests), "set to new vests error")
+	opAssert(tidWrap.SetVest(tVests), "set to new vests error")
 
 	updateBpVoteValue(ev.Database(), op.To, oldVest, tVests)
 
@@ -785,7 +785,7 @@ func updateBpVoteValue(dba iservices.IDatabaseRW, voter *prototype.AccountName, 
 		opAssertE(bpVoteVestCnt.Add(newVest), "block producer vote count overflow")
 
 		newBpVest := &prototype.BpVestId{Active:bpActive, VoteVest:bpVoteVestCnt}
-		opAssert(bpWrap.MdBpVest(newBpVest), "update block producer vote count data error")
+		opAssert(bpWrap.SetBpVest(newBpVest), "update block producer vote count data error")
 	}
 	t2 = startTime.Elapsed()
 
@@ -805,10 +805,10 @@ func (ev *ConvertVestEvaluator) Apply() {
 	currentBlock := globalProps.HeadBlockNumber
 	eachRate := op.Amount.Value / (constants.ConvertWeeks - 1)
 	//accWrap.MdNextPowerdownTime(&prototype.TimePointSec{UtcSeconds: timestamp + constants.POWER_DOWN_INTERVAL})
-	//accWrap.MdNextPowerdownBlockNum(currentBlock + constants.PowerDownBlockInterval)
-	//accWrap.MdEachPowerdownRate(&prototype.Vest{Value: eachRate})
-	//accWrap.MdHasPowerdown(&prototype.Vest{Value: 0})
-	//accWrap.MdToPowerdown(op.Amount)
+	//accWrap.SetNextPowerdownBlockNum(currentBlock + constants.PowerDownBlockInterval)
+	//accWrap.SetEachPowerdownRate(&prototype.Vest{Value: eachRate})
+	//accWrap.SetHasPowerdown(&prototype.Vest{Value: 0})
+	//accWrap.SetToPowerdown(op.Amount)
 
 	mustNoError( accWrap.Modify(func(t *table.SoAccount) {
 		t.NextPowerdownBlockNum = currentBlock + constants.PowerDownBlockInterval
@@ -882,16 +882,16 @@ func (ev *ReportEvaluator) Apply() {
 			return
 		}
 
-		report.MdIsArbitrated(true)
+		report.SetIsArbitrated(true)
 	} else {
 		if report.CheckExist() {
 			if report.GetIsArbitrated() {
 				opAssert(false, "cannot report a legal post")
 			}
-			report.MdReportedTimes(report.GetReportedTimes() + 1)
+			report.SetReportedTimes(report.GetReportedTimes() + 1)
 			existedTags := report.GetTags()
 			newTags := op.ReportTag
-			report.MdTags(mergeTags(existedTags, newTags))
+			report.SetTags(mergeTags(existedTags, newTags))
 			return
 		}
 
@@ -947,10 +947,10 @@ func (ev *ContractDeployEvaluator) Apply() {
 	opAssertE(cosVM.Validate(), "validate code failed")
 
 	if scid.CheckExist() {
-		//scid.MdAbi( abiString )
-		//scid.MdCode( contractCode )
-		//scid.MdUpgradeable( op.Upgradeable )
-		//scid.MdHash( codeHash )
+		//scid.SetAbi( abiString )
+		//scid.SetCode( contractCode )
+		//scid.SetUpgradeable( op.Upgradeable )
+		//scid.SetHash( codeHash )
 
 		opAssertE( scid.Modify(func(tInfo *table.SoContract) {
 			tInfo.Abi = abiString
@@ -1054,7 +1054,7 @@ func (ev *ContractApplyEvaluator) Apply() {
 		opAssertE(err, "execute vm error")
 	}
 	applyCnt := scid.GetApplyCount()
-	opAssert(scid.MdApplyCount(applyCnt+1), "modify applycount failed")
+	opAssert(scid.SetApplyCount(applyCnt+1), "modify applycount failed")
 
 }
 
@@ -1132,10 +1132,10 @@ func (ev *StakeEvaluator) Apply() {
 	addVests := prototype.NewVest(op.Amount.Value)
 
 	opAssertE(fBalance.Sub(op.Amount), "balance not enough")
-	opAssert(fidWrap.MdBalance(fBalance), "set from new balance error")
+	opAssert(fidWrap.SetBalance(fBalance), "set from new balance error")
 
 	opAssertE(tVests.Add(addVests), "vests error")
-	opAssert(tidWrap.MdStakeVest(tVests), "set to new vests error")
+	opAssert(tidWrap.SetStakeVest(tVests), "set to new vests error")
 
 	// unique stake record
 	recordWrap := table.NewSoStakeRecordWrap(ev.Database(), &prototype.StakeRecord{
@@ -1157,10 +1157,10 @@ func (ev *StakeEvaluator) Apply() {
 	} else {
 		oldVest := recordWrap.GetStakeAmount()
 		opAssertE(oldVest.Add(addVests), "add record vests error")
-		opAssert(recordWrap.MdStakeAmount(oldVest),"set record new vest error")
+		opAssert(recordWrap.SetStakeAmount(oldVest),"set record new vest error")
 	}
 	headBlockTime := ev.GlobalProp().HeadBlockTime()
-	recordWrap.MdLastStakeTime(headBlockTime)
+	recordWrap.SetLastStakeTime(headBlockTime)
 
 	ev.GlobalProp().TransferToVest(op.Amount)
 	ev.GlobalProp().TransferToStakeVest(op.Amount)
@@ -1190,16 +1190,16 @@ func (ev *UnStakeEvaluator) Apply() {
 
 	vest := debtorWrap.GetStakeVest()
 	opAssertE(vest.Sub(value.ToVest()), "stake vest over flow.")
-	opAssert(debtorWrap.MdStakeVest(vest), "modify stake vest failed")
+	opAssert(debtorWrap.SetStakeVest(vest), "modify stake vest failed")
 
 	fBalance := creditorWrap.GetBalance()
 	opAssertE(fBalance.Add(value), "Insufficient balance to transfer.")
-	opAssert(creditorWrap.MdBalance(fBalance), "modify balance failed")
+	opAssert(creditorWrap.SetBalance(fBalance), "modify balance failed")
 
 	// update stake record
 	oldVest := recordWrap.GetStakeAmount()
 	opAssertE(oldVest.Sub(value.ToVest()), "sub record vests error")
-	opAssert(recordWrap.MdStakeAmount(oldVest),"set record new vest error")
+	opAssert(recordWrap.SetStakeAmount(oldVest),"set record new vest error")
 
 	ev.GlobalProp().TransferFromVest(value.ToVest())
 	ev.GlobalProp().TransferFromStakeVest(value.ToVest())
@@ -1222,11 +1222,11 @@ func (ev *AcquireTicketEvaluator) Apply() {
 	fee := &prototype.Coin{Value: ticketPrice.Value}
 	opAssertE(fee.Mul(count), "mul ticket price with count overflow")
 	opAssertE(balance.Sub(fee), "Insufficient balance to acquire tickets")
-	opAssert(account.MdBalance(balance), "modify balance failed")
+	opAssert(account.SetBalance(balance), "modify balance failed")
 
 	opAssert(account.GetChargedTicket() + uint32(count) > account.GetChargedTicket(), "ticket count overflow")
 
-	account.MdChargedTicket(account.GetChargedTicket() + uint32(count))
+	account.SetChargedTicket(account.GetChargedTicket() + uint32(count))
 
 	//updateBpVoteValue(ev.Database(), op.Account, oldVest, vest)
 
@@ -1299,13 +1299,13 @@ func (ev *VoteByTicketEvaluator) Apply() {
 		// spend free ticket first
 		count = count - 1
 		opAssert(account.GetChargedTicket() >= uint32(count), "insufficient ticket to vote")
-		account.MdChargedTicket(account.GetChargedTicket() - uint32(count))
+		account.SetChargedTicket(account.GetChargedTicket() - uint32(count))
 		freeTicketWrap.RemoveGiftTicket()
-		postWrap.MdTicket(originTicketCount + uint32(count + 1) * factor)
+		postWrap.SetTicket(originTicketCount + uint32(count + 1) * factor)
 	} else {
 		opAssert(account.GetChargedTicket() >= uint32(count), "insufficient ticket to vote")
-		account.MdChargedTicket(account.GetChargedTicket() - uint32(count))
-		postWrap.MdTicket(originTicketCount + uint32(count) * factor)
+		account.SetChargedTicket(account.GetChargedTicket() - uint32(count))
+		postWrap.SetTicket(originTicketCount + uint32(count) * factor)
 	}
 
 	// record
@@ -1361,6 +1361,6 @@ func (ev *VoteByTicketEvaluator) Apply() {
 	// currently, all income will put into bp's wallet.
 	// it will be change.
 	mustNoError(bpVest.Add(equalValue), "add equal value to bp failed")
-	bpWrap.MdVest(bpVest)
+	bpWrap.SetVest(bpVest)
 	updateBpVoteValue(ev.Database(), currentBp, oldVest, bpVest)
 }

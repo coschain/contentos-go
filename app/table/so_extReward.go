@@ -187,14 +187,14 @@ func (s *SoExtRewardWrap) Modify(f func(tInfo *SoExtReward)) error {
 
 }
 
-func (s *SoExtRewardWrap) MdBlockHeight(p uint64) bool {
+func (s *SoExtRewardWrap) SetBlockHeight(p uint64) bool {
 	err := s.Modify(func(r *SoExtReward) {
 		r.BlockHeight = p
 	})
 	return err == nil
 }
 
-func (s *SoExtRewardWrap) MdReward(p *prototype.Vest) bool {
+func (s *SoExtRewardWrap) SetReward(p *prototype.Vest) bool {
 	err := s.Modify(func(r *SoExtReward) {
 		r.Reward = p
 	})

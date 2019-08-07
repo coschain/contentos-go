@@ -188,14 +188,14 @@ func (s *SoBlockProducerVoteWrap) Modify(f func(tInfo *SoBlockProducerVote)) err
 
 }
 
-func (s *SoBlockProducerVoteWrap) MdVoteTime(p *prototype.TimePointSec) bool {
+func (s *SoBlockProducerVoteWrap) SetVoteTime(p *prototype.TimePointSec) bool {
 	err := s.Modify(func(r *SoBlockProducerVote) {
 		r.VoteTime = p
 	})
 	return err == nil
 }
 
-func (s *SoBlockProducerVoteWrap) MdVoterName(p *prototype.AccountName) bool {
+func (s *SoBlockProducerVoteWrap) SetVoterName(p *prototype.AccountName) bool {
 	err := s.Modify(func(r *SoBlockProducerVote) {
 		r.VoterName = p
 	})

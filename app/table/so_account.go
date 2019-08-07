@@ -194,182 +194,182 @@ func (s *SoAccountWrap) Modify(f func(tInfo *SoAccount)) error {
 
 }
 
-func (s *SoAccountWrap) MdBalance(p *prototype.Coin) bool {
+func (s *SoAccountWrap) SetBalance(p *prototype.Coin) bool {
 	err := s.Modify(func(r *SoAccount) {
 		r.Balance = p
 	})
 	return err == nil
 }
 
-func (s *SoAccountWrap) MdBpVoteCount(p uint32) bool {
+func (s *SoAccountWrap) SetBpVoteCount(p uint32) bool {
 	err := s.Modify(func(r *SoAccount) {
 		r.BpVoteCount = p
 	})
 	return err == nil
 }
 
-func (s *SoAccountWrap) MdChargedTicket(p uint32) bool {
+func (s *SoAccountWrap) SetChargedTicket(p uint32) bool {
 	err := s.Modify(func(r *SoAccount) {
 		r.ChargedTicket = p
 	})
 	return err == nil
 }
 
-func (s *SoAccountWrap) MdCreatedTime(p *prototype.TimePointSec) bool {
+func (s *SoAccountWrap) SetCreatedTime(p *prototype.TimePointSec) bool {
 	err := s.Modify(func(r *SoAccount) {
 		r.CreatedTime = p
 	})
 	return err == nil
 }
 
-func (s *SoAccountWrap) MdCreatedTrxCount(p uint32) bool {
+func (s *SoAccountWrap) SetCreatedTrxCount(p uint32) bool {
 	err := s.Modify(func(r *SoAccount) {
 		r.CreatedTrxCount = p
 	})
 	return err == nil
 }
 
-func (s *SoAccountWrap) MdCreator(p *prototype.AccountName) bool {
+func (s *SoAccountWrap) SetCreator(p *prototype.AccountName) bool {
 	err := s.Modify(func(r *SoAccount) {
 		r.Creator = p
 	})
 	return err == nil
 }
 
-func (s *SoAccountWrap) MdEachPowerdownRate(p *prototype.Vest) bool {
+func (s *SoAccountWrap) SetEachPowerdownRate(p *prototype.Vest) bool {
 	err := s.Modify(func(r *SoAccount) {
 		r.EachPowerdownRate = p
 	})
 	return err == nil
 }
 
-func (s *SoAccountWrap) MdFreeze(p uint32) bool {
+func (s *SoAccountWrap) SetFreeze(p uint32) bool {
 	err := s.Modify(func(r *SoAccount) {
 		r.Freeze = p
 	})
 	return err == nil
 }
 
-func (s *SoAccountWrap) MdFreezeMemo(p string) bool {
+func (s *SoAccountWrap) SetFreezeMemo(p string) bool {
 	err := s.Modify(func(r *SoAccount) {
 		r.FreezeMemo = p
 	})
 	return err == nil
 }
 
-func (s *SoAccountWrap) MdHasPowerdown(p *prototype.Vest) bool {
+func (s *SoAccountWrap) SetHasPowerdown(p *prototype.Vest) bool {
 	err := s.Modify(func(r *SoAccount) {
 		r.HasPowerdown = p
 	})
 	return err == nil
 }
 
-func (s *SoAccountWrap) MdLastPostTime(p *prototype.TimePointSec) bool {
+func (s *SoAccountWrap) SetLastPostTime(p *prototype.TimePointSec) bool {
 	err := s.Modify(func(r *SoAccount) {
 		r.LastPostTime = p
 	})
 	return err == nil
 }
 
-func (s *SoAccountWrap) MdLastStakeTime(p *prototype.TimePointSec) bool {
+func (s *SoAccountWrap) SetLastStakeTime(p *prototype.TimePointSec) bool {
 	err := s.Modify(func(r *SoAccount) {
 		r.LastStakeTime = p
 	})
 	return err == nil
 }
 
-func (s *SoAccountWrap) MdLastVoteTime(p *prototype.TimePointSec) bool {
+func (s *SoAccountWrap) SetLastVoteTime(p *prototype.TimePointSec) bool {
 	err := s.Modify(func(r *SoAccount) {
 		r.LastVoteTime = p
 	})
 	return err == nil
 }
 
-func (s *SoAccountWrap) MdNextPowerdownBlockNum(p uint64) bool {
+func (s *SoAccountWrap) SetNextPowerdownBlockNum(p uint64) bool {
 	err := s.Modify(func(r *SoAccount) {
 		r.NextPowerdownBlockNum = p
 	})
 	return err == nil
 }
 
-func (s *SoAccountWrap) MdPostCount(p uint32) bool {
+func (s *SoAccountWrap) SetPostCount(p uint32) bool {
 	err := s.Modify(func(r *SoAccount) {
 		r.PostCount = p
 	})
 	return err == nil
 }
 
-func (s *SoAccountWrap) MdPubKey(p *prototype.PublicKeyType) bool {
+func (s *SoAccountWrap) SetPubKey(p *prototype.PublicKeyType) bool {
 	err := s.Modify(func(r *SoAccount) {
 		r.PubKey = p
 	})
 	return err == nil
 }
 
-func (s *SoAccountWrap) MdReputation(p uint32) bool {
+func (s *SoAccountWrap) SetReputation(p uint32) bool {
 	err := s.Modify(func(r *SoAccount) {
 		r.Reputation = p
 	})
 	return err == nil
 }
 
-func (s *SoAccountWrap) MdReputationMemo(p string) bool {
+func (s *SoAccountWrap) SetReputationMemo(p string) bool {
 	err := s.Modify(func(r *SoAccount) {
 		r.ReputationMemo = p
 	})
 	return err == nil
 }
 
-func (s *SoAccountWrap) MdStakeVest(p *prototype.Vest) bool {
+func (s *SoAccountWrap) SetStakeVest(p *prototype.Vest) bool {
 	err := s.Modify(func(r *SoAccount) {
 		r.StakeVest = p
 	})
 	return err == nil
 }
 
-func (s *SoAccountWrap) MdStamina(p uint64) bool {
+func (s *SoAccountWrap) SetStamina(p uint64) bool {
 	err := s.Modify(func(r *SoAccount) {
 		r.Stamina = p
 	})
 	return err == nil
 }
 
-func (s *SoAccountWrap) MdStaminaFree(p uint64) bool {
+func (s *SoAccountWrap) SetStaminaFree(p uint64) bool {
 	err := s.Modify(func(r *SoAccount) {
 		r.StaminaFree = p
 	})
 	return err == nil
 }
 
-func (s *SoAccountWrap) MdStaminaFreeUseBlock(p uint64) bool {
+func (s *SoAccountWrap) SetStaminaFreeUseBlock(p uint64) bool {
 	err := s.Modify(func(r *SoAccount) {
 		r.StaminaFreeUseBlock = p
 	})
 	return err == nil
 }
 
-func (s *SoAccountWrap) MdStaminaUseBlock(p uint64) bool {
+func (s *SoAccountWrap) SetStaminaUseBlock(p uint64) bool {
 	err := s.Modify(func(r *SoAccount) {
 		r.StaminaUseBlock = p
 	})
 	return err == nil
 }
 
-func (s *SoAccountWrap) MdToPowerdown(p *prototype.Vest) bool {
+func (s *SoAccountWrap) SetToPowerdown(p *prototype.Vest) bool {
 	err := s.Modify(func(r *SoAccount) {
 		r.ToPowerdown = p
 	})
 	return err == nil
 }
 
-func (s *SoAccountWrap) MdVest(p *prototype.Vest) bool {
+func (s *SoAccountWrap) SetVest(p *prototype.Vest) bool {
 	err := s.Modify(func(r *SoAccount) {
 		r.Vest = p
 	})
 	return err == nil
 }
 
-func (s *SoAccountWrap) MdVotePower(p uint32) bool {
+func (s *SoAccountWrap) SetVotePower(p uint32) bool {
 	err := s.Modify(func(r *SoAccount) {
 		r.VotePower = p
 	})

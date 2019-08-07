@@ -189,28 +189,28 @@ func (s *SoVoteWrap) Modify(f func(tInfo *SoVote)) error {
 
 }
 
-func (s *SoVoteWrap) MdPostId(p uint64) bool {
+func (s *SoVoteWrap) SetPostId(p uint64) bool {
 	err := s.Modify(func(r *SoVote) {
 		r.PostId = p
 	})
 	return err == nil
 }
 
-func (s *SoVoteWrap) MdUpvote(p bool) bool {
+func (s *SoVoteWrap) SetUpvote(p bool) bool {
 	err := s.Modify(func(r *SoVote) {
 		r.Upvote = p
 	})
 	return err == nil
 }
 
-func (s *SoVoteWrap) MdVoteTime(p *prototype.TimePointSec) bool {
+func (s *SoVoteWrap) SetVoteTime(p *prototype.TimePointSec) bool {
 	err := s.Modify(func(r *SoVote) {
 		r.VoteTime = p
 	})
 	return err == nil
 }
 
-func (s *SoVoteWrap) MdWeightedVp(p string) bool {
+func (s *SoVoteWrap) SetWeightedVp(p string) bool {
 	err := s.Modify(func(r *SoVote) {
 		r.WeightedVp = p
 	})
