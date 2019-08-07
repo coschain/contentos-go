@@ -110,6 +110,6 @@ func createReplyOp (accName string, parentId uint64) *prototype.Operation {
 
 func createReplyOpWithId (accName string, postId, parentId uint64) *prototype.Operation {
 	content := "test article for op test"
-	beneficiaries := make(map[string]int)
+	beneficiaries := make([]map[string]int, 0)
 	return Reply(postId, parentId, accName, content, beneficiaries)
 }

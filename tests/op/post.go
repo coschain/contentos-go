@@ -17,6 +17,7 @@ func (tester *PostTest) Test(t *testing.T, d *Dandelion) {
 
 	t.Run("normal", d.Test(tester.normal))
 	t.Run("noExistAccountPost", d.Test(tester.noExistAccountPost))
+	t.Run("duplicatePostId", d.Test(tester.duplicatePostId))
 }
 
 func (tester *PostTest) normal(t *testing.T, d *Dandelion) {
@@ -31,6 +32,15 @@ func (tester *PostTest) noExistAccountPost(t *testing.T, d *Dandelion) {
 
 	postOp := createPostOp(accName)
 	a.Error( checkError( d.Account(accName).TrxReceipt(postOp) ) )
+}
+
+func (tester *PostTest) duplicatePostId(t *testing.T, d *Dandelion) {
+	a := assert.New(t)
+
+	postId := doNormalPost(t, d, tester.acc0.Name)
+
+	postOp := createPostOpWithId(tester.acc0.Name, "test post", postId)
+	a.Error( checkError( d.Account(tester.acc0.Name).TrxReceipt(postOp) ) )
 }
 
 func doNormalPost(t *testing.T, d *Dandelion, name string) uint64 {
