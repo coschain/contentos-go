@@ -64,7 +64,21 @@ func (s *SoBlockProducerScheduleObjectWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoBlockProducerScheduleObjectWrap) Create(f func(tInfo *SoBlockProducerScheduleObject)) error {
+func (s *SoBlockProducerScheduleObjectWrap) MustExist() *SoBlockProducerScheduleObjectWrap {
+	if !s.CheckExist() {
+		panic(fmt.Errorf("SoBlockProducerScheduleObjectWrap.MustExist: %v not found", s.mainKey))
+	}
+	return s
+}
+
+func (s *SoBlockProducerScheduleObjectWrap) MustNotExist() *SoBlockProducerScheduleObjectWrap {
+	if s.CheckExist() {
+		panic(fmt.Errorf("SoBlockProducerScheduleObjectWrap.MustNotExist: %v already exists", s.mainKey))
+	}
+	return s
+}
+
+func (s *SoBlockProducerScheduleObjectWrap) create(f func(tInfo *SoBlockProducerScheduleObject)) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
@@ -110,6 +124,14 @@ func (s *SoBlockProducerScheduleObjectWrap) Create(f func(tInfo *SoBlockProducer
 	return nil
 }
 
+func (s *SoBlockProducerScheduleObjectWrap) Create(f func(tInfo *SoBlockProducerScheduleObject)) *SoBlockProducerScheduleObjectWrap {
+	err := s.create(f)
+	if err != nil {
+		panic(fmt.Errorf("SoBlockProducerScheduleObjectWrap.Create failed: %s", err.Error()))
+	}
+	return s
+}
+
 func (s *SoBlockProducerScheduleObjectWrap) getMainKeyBuf() ([]byte, error) {
 	if s.mainKey == nil {
 		return nil, errors.New("the main key is nil")
@@ -124,7 +146,7 @@ func (s *SoBlockProducerScheduleObjectWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
-func (s *SoBlockProducerScheduleObjectWrap) Modify(f func(tInfo *SoBlockProducerScheduleObject)) error {
+func (s *SoBlockProducerScheduleObjectWrap) modify(f func(tInfo *SoBlockProducerScheduleObject)) error {
 	if !s.CheckExist() {
 		return errors.New("the SoBlockProducerScheduleObject table does not exist. Please create a table first")
 	}
@@ -183,18 +205,32 @@ func (s *SoBlockProducerScheduleObjectWrap) Modify(f func(tInfo *SoBlockProducer
 
 }
 
-func (s *SoBlockProducerScheduleObjectWrap) SetCurrentShuffledBlockProducer(p []string) bool {
-	err := s.Modify(func(r *SoBlockProducerScheduleObject) {
-		r.CurrentShuffledBlockProducer = p
-	})
-	return err == nil
+func (s *SoBlockProducerScheduleObjectWrap) Modify(f func(tInfo *SoBlockProducerScheduleObject)) *SoBlockProducerScheduleObjectWrap {
+	err := s.modify(f)
+	if err != nil {
+		panic(fmt.Errorf("SoBlockProducerScheduleObjectWrap.Modify failed: %s", err.Error()))
+	}
+	return s
 }
 
-func (s *SoBlockProducerScheduleObjectWrap) SetPubKey(p []*prototype.PublicKeyType) bool {
-	err := s.Modify(func(r *SoBlockProducerScheduleObject) {
+func (s *SoBlockProducerScheduleObjectWrap) SetCurrentShuffledBlockProducer(p []string) *SoBlockProducerScheduleObjectWrap {
+	err := s.modify(func(r *SoBlockProducerScheduleObject) {
+		r.CurrentShuffledBlockProducer = p
+	})
+	if err != nil {
+		panic(fmt.Errorf("SoBlockProducerScheduleObjectWrap.SetCurrentShuffledBlockProducer( %v ) failed: %s", p, err.Error()))
+	}
+	return s
+}
+
+func (s *SoBlockProducerScheduleObjectWrap) SetPubKey(p []*prototype.PublicKeyType) *SoBlockProducerScheduleObjectWrap {
+	err := s.modify(func(r *SoBlockProducerScheduleObject) {
 		r.PubKey = p
 	})
-	return err == nil
+	if err != nil {
+		panic(fmt.Errorf("SoBlockProducerScheduleObjectWrap.SetPubKey( %v ) failed: %s", p, err.Error()))
+	}
+	return s
 }
 
 func (s *SoBlockProducerScheduleObjectWrap) checkSortAndUniFieldValidity(curTable *SoBlockProducerScheduleObject, fieldSli []string) error {
@@ -302,33 +338,41 @@ func (s *SoBlockProducerScheduleObjectWrap) insertAllSortKeys(val *SoBlockProduc
 
 ////////////// SECTION LKeys delete/insert //////////////
 
-func (s *SoBlockProducerScheduleObjectWrap) RemoveBlockProducerScheduleObject() bool {
+func (s *SoBlockProducerScheduleObjectWrap) removeBlockProducerScheduleObject() error {
 	if s.dba == nil {
-		return false
+		return errors.New("database is nil")
 	}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
-		return false
+		return errors.New("delAllSortKeys failed")
 	}
 
 	//delete unique list
 	if res := s.delAllUniKeys(true, nil); !res {
-		return false
+		return errors.New("delAllUniKeys failed")
 	}
 
 	//delete table
 	key, err := s.encodeMainKey()
 	if err != nil {
-		return false
+		return fmt.Errorf("encodeMainKey failed: %s", err.Error())
 	}
 	err = s.dba.Delete(key)
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
-		return true
+		return nil
 	} else {
-		return false
+		return fmt.Errorf("database.Delete failed: %s", err.Error())
 	}
+}
+
+func (s *SoBlockProducerScheduleObjectWrap) RemoveBlockProducerScheduleObject() *SoBlockProducerScheduleObjectWrap {
+	err := s.removeBlockProducerScheduleObject()
+	if err != nil {
+		panic(fmt.Errorf("SoBlockProducerScheduleObjectWrap.RemoveBlockProducerScheduleObject failed: %s", err.Error()))
+	}
+	return s
 }
 
 ////////////// SECTION Members Get/Modify ///////////////

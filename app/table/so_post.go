@@ -67,7 +67,21 @@ func (s *SoPostWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoPostWrap) Create(f func(tInfo *SoPost)) error {
+func (s *SoPostWrap) MustExist() *SoPostWrap {
+	if !s.CheckExist() {
+		panic(fmt.Errorf("SoPostWrap.MustExist: %v not found", s.mainKey))
+	}
+	return s
+}
+
+func (s *SoPostWrap) MustNotExist() *SoPostWrap {
+	if s.CheckExist() {
+		panic(fmt.Errorf("SoPostWrap.MustNotExist: %v already exists", s.mainKey))
+	}
+	return s
+}
+
+func (s *SoPostWrap) create(f func(tInfo *SoPost)) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
@@ -113,6 +127,14 @@ func (s *SoPostWrap) Create(f func(tInfo *SoPost)) error {
 	return nil
 }
 
+func (s *SoPostWrap) Create(f func(tInfo *SoPost)) *SoPostWrap {
+	err := s.create(f)
+	if err != nil {
+		panic(fmt.Errorf("SoPostWrap.Create failed: %s", err.Error()))
+	}
+	return s
+}
+
 func (s *SoPostWrap) getMainKeyBuf() ([]byte, error) {
 	if s.mainKey == nil {
 		return nil, errors.New("the main key is nil")
@@ -127,7 +149,7 @@ func (s *SoPostWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
-func (s *SoPostWrap) Modify(f func(tInfo *SoPost)) error {
+func (s *SoPostWrap) modify(f func(tInfo *SoPost)) error {
 	if !s.CheckExist() {
 		return errors.New("the SoPost table does not exist. Please create a table first")
 	}
@@ -186,144 +208,212 @@ func (s *SoPostWrap) Modify(f func(tInfo *SoPost)) error {
 
 }
 
-func (s *SoPostWrap) SetAuthor(p *prototype.AccountName) bool {
-	err := s.Modify(func(r *SoPost) {
+func (s *SoPostWrap) Modify(f func(tInfo *SoPost)) *SoPostWrap {
+	err := s.modify(f)
+	if err != nil {
+		panic(fmt.Errorf("SoPostWrap.Modify failed: %s", err.Error()))
+	}
+	return s
+}
+
+func (s *SoPostWrap) SetAuthor(p *prototype.AccountName) *SoPostWrap {
+	err := s.modify(func(r *SoPost) {
 		r.Author = p
 	})
-	return err == nil
+	if err != nil {
+		panic(fmt.Errorf("SoPostWrap.SetAuthor( %v ) failed: %s", p, err.Error()))
+	}
+	return s
 }
 
-func (s *SoPostWrap) SetBeneficiaries(p []*prototype.BeneficiaryRouteType) bool {
-	err := s.Modify(func(r *SoPost) {
+func (s *SoPostWrap) SetBeneficiaries(p []*prototype.BeneficiaryRouteType) *SoPostWrap {
+	err := s.modify(func(r *SoPost) {
 		r.Beneficiaries = p
 	})
-	return err == nil
+	if err != nil {
+		panic(fmt.Errorf("SoPostWrap.SetBeneficiaries( %v ) failed: %s", p, err.Error()))
+	}
+	return s
 }
 
-func (s *SoPostWrap) SetBody(p string) bool {
-	err := s.Modify(func(r *SoPost) {
+func (s *SoPostWrap) SetBody(p string) *SoPostWrap {
+	err := s.modify(func(r *SoPost) {
 		r.Body = p
 	})
-	return err == nil
+	if err != nil {
+		panic(fmt.Errorf("SoPostWrap.SetBody( %v ) failed: %s", p, err.Error()))
+	}
+	return s
 }
 
-func (s *SoPostWrap) SetCashoutBlockNum(p uint64) bool {
-	err := s.Modify(func(r *SoPost) {
+func (s *SoPostWrap) SetCashoutBlockNum(p uint64) *SoPostWrap {
+	err := s.modify(func(r *SoPost) {
 		r.CashoutBlockNum = p
 	})
-	return err == nil
+	if err != nil {
+		panic(fmt.Errorf("SoPostWrap.SetCashoutBlockNum( %v ) failed: %s", p, err.Error()))
+	}
+	return s
 }
 
-func (s *SoPostWrap) SetCategory(p string) bool {
-	err := s.Modify(func(r *SoPost) {
+func (s *SoPostWrap) SetCategory(p string) *SoPostWrap {
+	err := s.modify(func(r *SoPost) {
 		r.Category = p
 	})
-	return err == nil
+	if err != nil {
+		panic(fmt.Errorf("SoPostWrap.SetCategory( %v ) failed: %s", p, err.Error()))
+	}
+	return s
 }
 
-func (s *SoPostWrap) SetChildren(p uint32) bool {
-	err := s.Modify(func(r *SoPost) {
+func (s *SoPostWrap) SetChildren(p uint32) *SoPostWrap {
+	err := s.modify(func(r *SoPost) {
 		r.Children = p
 	})
-	return err == nil
+	if err != nil {
+		panic(fmt.Errorf("SoPostWrap.SetChildren( %v ) failed: %s", p, err.Error()))
+	}
+	return s
 }
 
-func (s *SoPostWrap) SetCopyright(p uint32) bool {
-	err := s.Modify(func(r *SoPost) {
+func (s *SoPostWrap) SetCopyright(p uint32) *SoPostWrap {
+	err := s.modify(func(r *SoPost) {
 		r.Copyright = p
 	})
-	return err == nil
+	if err != nil {
+		panic(fmt.Errorf("SoPostWrap.SetCopyright( %v ) failed: %s", p, err.Error()))
+	}
+	return s
 }
 
-func (s *SoPostWrap) SetCopyrightMemo(p string) bool {
-	err := s.Modify(func(r *SoPost) {
+func (s *SoPostWrap) SetCopyrightMemo(p string) *SoPostWrap {
+	err := s.modify(func(r *SoPost) {
 		r.CopyrightMemo = p
 	})
-	return err == nil
+	if err != nil {
+		panic(fmt.Errorf("SoPostWrap.SetCopyrightMemo( %v ) failed: %s", p, err.Error()))
+	}
+	return s
 }
 
-func (s *SoPostWrap) SetCreated(p *prototype.TimePointSec) bool {
-	err := s.Modify(func(r *SoPost) {
+func (s *SoPostWrap) SetCreated(p *prototype.TimePointSec) *SoPostWrap {
+	err := s.modify(func(r *SoPost) {
 		r.Created = p
 	})
-	return err == nil
+	if err != nil {
+		panic(fmt.Errorf("SoPostWrap.SetCreated( %v ) failed: %s", p, err.Error()))
+	}
+	return s
 }
 
-func (s *SoPostWrap) SetDappRewards(p *prototype.Vest) bool {
-	err := s.Modify(func(r *SoPost) {
+func (s *SoPostWrap) SetDappRewards(p *prototype.Vest) *SoPostWrap {
+	err := s.modify(func(r *SoPost) {
 		r.DappRewards = p
 	})
-	return err == nil
+	if err != nil {
+		panic(fmt.Errorf("SoPostWrap.SetDappRewards( %v ) failed: %s", p, err.Error()))
+	}
+	return s
 }
 
-func (s *SoPostWrap) SetDepth(p uint32) bool {
-	err := s.Modify(func(r *SoPost) {
+func (s *SoPostWrap) SetDepth(p uint32) *SoPostWrap {
+	err := s.modify(func(r *SoPost) {
 		r.Depth = p
 	})
-	return err == nil
+	if err != nil {
+		panic(fmt.Errorf("SoPostWrap.SetDepth( %v ) failed: %s", p, err.Error()))
+	}
+	return s
 }
 
-func (s *SoPostWrap) SetLastPayout(p *prototype.TimePointSec) bool {
-	err := s.Modify(func(r *SoPost) {
+func (s *SoPostWrap) SetLastPayout(p *prototype.TimePointSec) *SoPostWrap {
+	err := s.modify(func(r *SoPost) {
 		r.LastPayout = p
 	})
-	return err == nil
+	if err != nil {
+		panic(fmt.Errorf("SoPostWrap.SetLastPayout( %v ) failed: %s", p, err.Error()))
+	}
+	return s
 }
 
-func (s *SoPostWrap) SetParentId(p uint64) bool {
-	err := s.Modify(func(r *SoPost) {
+func (s *SoPostWrap) SetParentId(p uint64) *SoPostWrap {
+	err := s.modify(func(r *SoPost) {
 		r.ParentId = p
 	})
-	return err == nil
+	if err != nil {
+		panic(fmt.Errorf("SoPostWrap.SetParentId( %v ) failed: %s", p, err.Error()))
+	}
+	return s
 }
 
-func (s *SoPostWrap) SetRewards(p *prototype.Vest) bool {
-	err := s.Modify(func(r *SoPost) {
+func (s *SoPostWrap) SetRewards(p *prototype.Vest) *SoPostWrap {
+	err := s.modify(func(r *SoPost) {
 		r.Rewards = p
 	})
-	return err == nil
+	if err != nil {
+		panic(fmt.Errorf("SoPostWrap.SetRewards( %v ) failed: %s", p, err.Error()))
+	}
+	return s
 }
 
-func (s *SoPostWrap) SetRootId(p uint64) bool {
-	err := s.Modify(func(r *SoPost) {
+func (s *SoPostWrap) SetRootId(p uint64) *SoPostWrap {
+	err := s.modify(func(r *SoPost) {
 		r.RootId = p
 	})
-	return err == nil
+	if err != nil {
+		panic(fmt.Errorf("SoPostWrap.SetRootId( %v ) failed: %s", p, err.Error()))
+	}
+	return s
 }
 
-func (s *SoPostWrap) SetTags(p []string) bool {
-	err := s.Modify(func(r *SoPost) {
+func (s *SoPostWrap) SetTags(p []string) *SoPostWrap {
+	err := s.modify(func(r *SoPost) {
 		r.Tags = p
 	})
-	return err == nil
+	if err != nil {
+		panic(fmt.Errorf("SoPostWrap.SetTags( %v ) failed: %s", p, err.Error()))
+	}
+	return s
 }
 
-func (s *SoPostWrap) SetTicket(p uint32) bool {
-	err := s.Modify(func(r *SoPost) {
+func (s *SoPostWrap) SetTicket(p uint32) *SoPostWrap {
+	err := s.modify(func(r *SoPost) {
 		r.Ticket = p
 	})
-	return err == nil
+	if err != nil {
+		panic(fmt.Errorf("SoPostWrap.SetTicket( %v ) failed: %s", p, err.Error()))
+	}
+	return s
 }
 
-func (s *SoPostWrap) SetTitle(p string) bool {
-	err := s.Modify(func(r *SoPost) {
+func (s *SoPostWrap) SetTitle(p string) *SoPostWrap {
+	err := s.modify(func(r *SoPost) {
 		r.Title = p
 	})
-	return err == nil
+	if err != nil {
+		panic(fmt.Errorf("SoPostWrap.SetTitle( %v ) failed: %s", p, err.Error()))
+	}
+	return s
 }
 
-func (s *SoPostWrap) SetVoteCnt(p uint64) bool {
-	err := s.Modify(func(r *SoPost) {
+func (s *SoPostWrap) SetVoteCnt(p uint64) *SoPostWrap {
+	err := s.modify(func(r *SoPost) {
 		r.VoteCnt = p
 	})
-	return err == nil
+	if err != nil {
+		panic(fmt.Errorf("SoPostWrap.SetVoteCnt( %v ) failed: %s", p, err.Error()))
+	}
+	return s
 }
 
-func (s *SoPostWrap) SetWeightedVp(p string) bool {
-	err := s.Modify(func(r *SoPost) {
+func (s *SoPostWrap) SetWeightedVp(p string) *SoPostWrap {
+	err := s.modify(func(r *SoPost) {
 		r.WeightedVp = p
 	})
-	return err == nil
+	if err != nil {
+		panic(fmt.Errorf("SoPostWrap.SetWeightedVp( %v ) failed: %s", p, err.Error()))
+	}
+	return s
 }
 
 func (s *SoPostWrap) checkSortAndUniFieldValidity(curTable *SoPost, fieldSli []string) error {
@@ -964,33 +1054,41 @@ func (s *SoPostWrap) insertAllSortKeys(val *SoPost) error {
 
 ////////////// SECTION LKeys delete/insert //////////////
 
-func (s *SoPostWrap) RemovePost() bool {
+func (s *SoPostWrap) removePost() error {
 	if s.dba == nil {
-		return false
+		return errors.New("database is nil")
 	}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
-		return false
+		return errors.New("delAllSortKeys failed")
 	}
 
 	//delete unique list
 	if res := s.delAllUniKeys(true, nil); !res {
-		return false
+		return errors.New("delAllUniKeys failed")
 	}
 
 	//delete table
 	key, err := s.encodeMainKey()
 	if err != nil {
-		return false
+		return fmt.Errorf("encodeMainKey failed: %s", err.Error())
 	}
 	err = s.dba.Delete(key)
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
-		return true
+		return nil
 	} else {
-		return false
+		return fmt.Errorf("database.Delete failed: %s", err.Error())
 	}
+}
+
+func (s *SoPostWrap) RemovePost() *SoPostWrap {
+	err := s.removePost()
+	if err != nil {
+		panic(fmt.Errorf("SoPostWrap.RemovePost failed: %s", err.Error()))
+	}
+	return s
 }
 
 ////////////// SECTION Members Get/Modify ///////////////

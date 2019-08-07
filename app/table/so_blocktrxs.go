@@ -63,7 +63,21 @@ func (s *SoBlocktrxsWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoBlocktrxsWrap) Create(f func(tInfo *SoBlocktrxs)) error {
+func (s *SoBlocktrxsWrap) MustExist() *SoBlocktrxsWrap {
+	if !s.CheckExist() {
+		panic(fmt.Errorf("SoBlocktrxsWrap.MustExist: %v not found", s.mainKey))
+	}
+	return s
+}
+
+func (s *SoBlocktrxsWrap) MustNotExist() *SoBlocktrxsWrap {
+	if s.CheckExist() {
+		panic(fmt.Errorf("SoBlocktrxsWrap.MustNotExist: %v already exists", s.mainKey))
+	}
+	return s
+}
+
+func (s *SoBlocktrxsWrap) create(f func(tInfo *SoBlocktrxs)) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
@@ -109,6 +123,14 @@ func (s *SoBlocktrxsWrap) Create(f func(tInfo *SoBlocktrxs)) error {
 	return nil
 }
 
+func (s *SoBlocktrxsWrap) Create(f func(tInfo *SoBlocktrxs)) *SoBlocktrxsWrap {
+	err := s.create(f)
+	if err != nil {
+		panic(fmt.Errorf("SoBlocktrxsWrap.Create failed: %s", err.Error()))
+	}
+	return s
+}
+
 func (s *SoBlocktrxsWrap) getMainKeyBuf() ([]byte, error) {
 	if s.mainKey == nil {
 		return nil, errors.New("the main key is nil")
@@ -123,7 +145,7 @@ func (s *SoBlocktrxsWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
-func (s *SoBlocktrxsWrap) Modify(f func(tInfo *SoBlocktrxs)) error {
+func (s *SoBlocktrxsWrap) modify(f func(tInfo *SoBlocktrxs)) error {
 	if !s.CheckExist() {
 		return errors.New("the SoBlocktrxs table does not exist. Please create a table first")
 	}
@@ -182,11 +204,22 @@ func (s *SoBlocktrxsWrap) Modify(f func(tInfo *SoBlocktrxs)) error {
 
 }
 
-func (s *SoBlocktrxsWrap) SetTrxs(p []byte) bool {
-	err := s.Modify(func(r *SoBlocktrxs) {
+func (s *SoBlocktrxsWrap) Modify(f func(tInfo *SoBlocktrxs)) *SoBlocktrxsWrap {
+	err := s.modify(f)
+	if err != nil {
+		panic(fmt.Errorf("SoBlocktrxsWrap.Modify failed: %s", err.Error()))
+	}
+	return s
+}
+
+func (s *SoBlocktrxsWrap) SetTrxs(p []byte) *SoBlocktrxsWrap {
+	err := s.modify(func(r *SoBlocktrxs) {
 		r.Trxs = p
 	})
-	return err == nil
+	if err != nil {
+		panic(fmt.Errorf("SoBlocktrxsWrap.SetTrxs( %v ) failed: %s", p, err.Error()))
+	}
+	return s
 }
 
 func (s *SoBlocktrxsWrap) checkSortAndUniFieldValidity(curTable *SoBlocktrxs, fieldSli []string) error {
@@ -273,33 +306,41 @@ func (s *SoBlocktrxsWrap) insertAllSortKeys(val *SoBlocktrxs) error {
 
 ////////////// SECTION LKeys delete/insert //////////////
 
-func (s *SoBlocktrxsWrap) RemoveBlocktrxs() bool {
+func (s *SoBlocktrxsWrap) removeBlocktrxs() error {
 	if s.dba == nil {
-		return false
+		return errors.New("database is nil")
 	}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
-		return false
+		return errors.New("delAllSortKeys failed")
 	}
 
 	//delete unique list
 	if res := s.delAllUniKeys(true, nil); !res {
-		return false
+		return errors.New("delAllUniKeys failed")
 	}
 
 	//delete table
 	key, err := s.encodeMainKey()
 	if err != nil {
-		return false
+		return fmt.Errorf("encodeMainKey failed: %s", err.Error())
 	}
 	err = s.dba.Delete(key)
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
-		return true
+		return nil
 	} else {
-		return false
+		return fmt.Errorf("database.Delete failed: %s", err.Error())
 	}
+}
+
+func (s *SoBlocktrxsWrap) RemoveBlocktrxs() *SoBlocktrxsWrap {
+	err := s.removeBlocktrxs()
+	if err != nil {
+		panic(fmt.Errorf("SoBlocktrxsWrap.RemoveBlocktrxs failed: %s", err.Error()))
+	}
+	return s
 }
 
 ////////////// SECTION Members Get/Modify ///////////////

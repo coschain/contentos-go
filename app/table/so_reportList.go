@@ -64,7 +64,21 @@ func (s *SoReportListWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoReportListWrap) Create(f func(tInfo *SoReportList)) error {
+func (s *SoReportListWrap) MustExist() *SoReportListWrap {
+	if !s.CheckExist() {
+		panic(fmt.Errorf("SoReportListWrap.MustExist: %v not found", s.mainKey))
+	}
+	return s
+}
+
+func (s *SoReportListWrap) MustNotExist() *SoReportListWrap {
+	if s.CheckExist() {
+		panic(fmt.Errorf("SoReportListWrap.MustNotExist: %v already exists", s.mainKey))
+	}
+	return s
+}
+
+func (s *SoReportListWrap) create(f func(tInfo *SoReportList)) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
@@ -110,6 +124,14 @@ func (s *SoReportListWrap) Create(f func(tInfo *SoReportList)) error {
 	return nil
 }
 
+func (s *SoReportListWrap) Create(f func(tInfo *SoReportList)) *SoReportListWrap {
+	err := s.create(f)
+	if err != nil {
+		panic(fmt.Errorf("SoReportListWrap.Create failed: %s", err.Error()))
+	}
+	return s
+}
+
 func (s *SoReportListWrap) getMainKeyBuf() ([]byte, error) {
 	if s.mainKey == nil {
 		return nil, errors.New("the main key is nil")
@@ -124,7 +146,7 @@ func (s *SoReportListWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
-func (s *SoReportListWrap) Modify(f func(tInfo *SoReportList)) error {
+func (s *SoReportListWrap) modify(f func(tInfo *SoReportList)) error {
 	if !s.CheckExist() {
 		return errors.New("the SoReportList table does not exist. Please create a table first")
 	}
@@ -183,25 +205,42 @@ func (s *SoReportListWrap) Modify(f func(tInfo *SoReportList)) error {
 
 }
 
-func (s *SoReportListWrap) SetIsArbitrated(p bool) bool {
-	err := s.Modify(func(r *SoReportList) {
+func (s *SoReportListWrap) Modify(f func(tInfo *SoReportList)) *SoReportListWrap {
+	err := s.modify(f)
+	if err != nil {
+		panic(fmt.Errorf("SoReportListWrap.Modify failed: %s", err.Error()))
+	}
+	return s
+}
+
+func (s *SoReportListWrap) SetIsArbitrated(p bool) *SoReportListWrap {
+	err := s.modify(func(r *SoReportList) {
 		r.IsArbitrated = p
 	})
-	return err == nil
+	if err != nil {
+		panic(fmt.Errorf("SoReportListWrap.SetIsArbitrated( %v ) failed: %s", p, err.Error()))
+	}
+	return s
 }
 
-func (s *SoReportListWrap) SetReportedTimes(p uint32) bool {
-	err := s.Modify(func(r *SoReportList) {
+func (s *SoReportListWrap) SetReportedTimes(p uint32) *SoReportListWrap {
+	err := s.modify(func(r *SoReportList) {
 		r.ReportedTimes = p
 	})
-	return err == nil
+	if err != nil {
+		panic(fmt.Errorf("SoReportListWrap.SetReportedTimes( %v ) failed: %s", p, err.Error()))
+	}
+	return s
 }
 
-func (s *SoReportListWrap) SetTags(p []int32) bool {
-	err := s.Modify(func(r *SoReportList) {
+func (s *SoReportListWrap) SetTags(p []int32) *SoReportListWrap {
+	err := s.modify(func(r *SoReportList) {
 		r.Tags = p
 	})
-	return err == nil
+	if err != nil {
+		panic(fmt.Errorf("SoReportListWrap.SetTags( %v ) failed: %s", p, err.Error()))
+	}
+	return s
 }
 
 func (s *SoReportListWrap) checkSortAndUniFieldValidity(curTable *SoReportList, fieldSli []string) error {
@@ -379,33 +418,41 @@ func (s *SoReportListWrap) insertAllSortKeys(val *SoReportList) error {
 
 ////////////// SECTION LKeys delete/insert //////////////
 
-func (s *SoReportListWrap) RemoveReportList() bool {
+func (s *SoReportListWrap) removeReportList() error {
 	if s.dba == nil {
-		return false
+		return errors.New("database is nil")
 	}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
-		return false
+		return errors.New("delAllSortKeys failed")
 	}
 
 	//delete unique list
 	if res := s.delAllUniKeys(true, nil); !res {
-		return false
+		return errors.New("delAllUniKeys failed")
 	}
 
 	//delete table
 	key, err := s.encodeMainKey()
 	if err != nil {
-		return false
+		return fmt.Errorf("encodeMainKey failed: %s", err.Error())
 	}
 	err = s.dba.Delete(key)
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
-		return true
+		return nil
 	} else {
-		return false
+		return fmt.Errorf("database.Delete failed: %s", err.Error())
 	}
+}
+
+func (s *SoReportListWrap) RemoveReportList() *SoReportListWrap {
+	err := s.removeReportList()
+	if err != nil {
+		panic(fmt.Errorf("SoReportListWrap.RemoveReportList failed: %s", err.Error()))
+	}
+	return s
 }
 
 ////////////// SECTION Members Get/Modify ///////////////

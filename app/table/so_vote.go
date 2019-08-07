@@ -67,7 +67,21 @@ func (s *SoVoteWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoVoteWrap) Create(f func(tInfo *SoVote)) error {
+func (s *SoVoteWrap) MustExist() *SoVoteWrap {
+	if !s.CheckExist() {
+		panic(fmt.Errorf("SoVoteWrap.MustExist: %v not found", s.mainKey))
+	}
+	return s
+}
+
+func (s *SoVoteWrap) MustNotExist() *SoVoteWrap {
+	if s.CheckExist() {
+		panic(fmt.Errorf("SoVoteWrap.MustNotExist: %v already exists", s.mainKey))
+	}
+	return s
+}
+
+func (s *SoVoteWrap) create(f func(tInfo *SoVote)) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
@@ -116,6 +130,14 @@ func (s *SoVoteWrap) Create(f func(tInfo *SoVote)) error {
 	return nil
 }
 
+func (s *SoVoteWrap) Create(f func(tInfo *SoVote)) *SoVoteWrap {
+	err := s.create(f)
+	if err != nil {
+		panic(fmt.Errorf("SoVoteWrap.Create failed: %s", err.Error()))
+	}
+	return s
+}
+
 func (s *SoVoteWrap) getMainKeyBuf() ([]byte, error) {
 	if s.mainKey == nil {
 		return nil, errors.New("the main key is nil")
@@ -130,7 +152,7 @@ func (s *SoVoteWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
-func (s *SoVoteWrap) Modify(f func(tInfo *SoVote)) error {
+func (s *SoVoteWrap) modify(f func(tInfo *SoVote)) error {
 	if !s.CheckExist() {
 		return errors.New("the SoVote table does not exist. Please create a table first")
 	}
@@ -189,32 +211,52 @@ func (s *SoVoteWrap) Modify(f func(tInfo *SoVote)) error {
 
 }
 
-func (s *SoVoteWrap) SetPostId(p uint64) bool {
-	err := s.Modify(func(r *SoVote) {
+func (s *SoVoteWrap) Modify(f func(tInfo *SoVote)) *SoVoteWrap {
+	err := s.modify(f)
+	if err != nil {
+		panic(fmt.Errorf("SoVoteWrap.Modify failed: %s", err.Error()))
+	}
+	return s
+}
+
+func (s *SoVoteWrap) SetPostId(p uint64) *SoVoteWrap {
+	err := s.modify(func(r *SoVote) {
 		r.PostId = p
 	})
-	return err == nil
+	if err != nil {
+		panic(fmt.Errorf("SoVoteWrap.SetPostId( %v ) failed: %s", p, err.Error()))
+	}
+	return s
 }
 
-func (s *SoVoteWrap) SetUpvote(p bool) bool {
-	err := s.Modify(func(r *SoVote) {
+func (s *SoVoteWrap) SetUpvote(p bool) *SoVoteWrap {
+	err := s.modify(func(r *SoVote) {
 		r.Upvote = p
 	})
-	return err == nil
+	if err != nil {
+		panic(fmt.Errorf("SoVoteWrap.SetUpvote( %v ) failed: %s", p, err.Error()))
+	}
+	return s
 }
 
-func (s *SoVoteWrap) SetVoteTime(p *prototype.TimePointSec) bool {
-	err := s.Modify(func(r *SoVote) {
+func (s *SoVoteWrap) SetVoteTime(p *prototype.TimePointSec) *SoVoteWrap {
+	err := s.modify(func(r *SoVote) {
 		r.VoteTime = p
 	})
-	return err == nil
+	if err != nil {
+		panic(fmt.Errorf("SoVoteWrap.SetVoteTime( %v ) failed: %s", p, err.Error()))
+	}
+	return s
 }
 
-func (s *SoVoteWrap) SetWeightedVp(p string) bool {
-	err := s.Modify(func(r *SoVote) {
+func (s *SoVoteWrap) SetWeightedVp(p string) *SoVoteWrap {
+	err := s.modify(func(r *SoVote) {
 		r.WeightedVp = p
 	})
-	return err == nil
+	if err != nil {
+		panic(fmt.Errorf("SoVoteWrap.SetWeightedVp( %v ) failed: %s", p, err.Error()))
+	}
+	return s
 }
 
 func (s *SoVoteWrap) checkSortAndUniFieldValidity(curTable *SoVote, fieldSli []string) error {
@@ -514,33 +556,41 @@ func (s *SoVoteWrap) insertAllSortKeys(val *SoVote) error {
 
 ////////////// SECTION LKeys delete/insert //////////////
 
-func (s *SoVoteWrap) RemoveVote() bool {
+func (s *SoVoteWrap) removeVote() error {
 	if s.dba == nil {
-		return false
+		return errors.New("database is nil")
 	}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
-		return false
+		return errors.New("delAllSortKeys failed")
 	}
 
 	//delete unique list
 	if res := s.delAllUniKeys(true, nil); !res {
-		return false
+		return errors.New("delAllUniKeys failed")
 	}
 
 	//delete table
 	key, err := s.encodeMainKey()
 	if err != nil {
-		return false
+		return fmt.Errorf("encodeMainKey failed: %s", err.Error())
 	}
 	err = s.dba.Delete(key)
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
-		return true
+		return nil
 	} else {
-		return false
+		return fmt.Errorf("database.Delete failed: %s", err.Error())
 	}
+}
+
+func (s *SoVoteWrap) RemoveVote() *SoVoteWrap {
+	err := s.removeVote()
+	if err != nil {
+		panic(fmt.Errorf("SoVoteWrap.RemoveVote failed: %s", err.Error()))
+	}
+	return s
 }
 
 ////////////// SECTION Members Get/Modify ///////////////

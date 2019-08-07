@@ -65,7 +65,21 @@ func (s *SoTransactionObjectWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoTransactionObjectWrap) Create(f func(tInfo *SoTransactionObject)) error {
+func (s *SoTransactionObjectWrap) MustExist() *SoTransactionObjectWrap {
+	if !s.CheckExist() {
+		panic(fmt.Errorf("SoTransactionObjectWrap.MustExist: %v not found", s.mainKey))
+	}
+	return s
+}
+
+func (s *SoTransactionObjectWrap) MustNotExist() *SoTransactionObjectWrap {
+	if s.CheckExist() {
+		panic(fmt.Errorf("SoTransactionObjectWrap.MustNotExist: %v already exists", s.mainKey))
+	}
+	return s
+}
+
+func (s *SoTransactionObjectWrap) create(f func(tInfo *SoTransactionObject)) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
@@ -114,6 +128,14 @@ func (s *SoTransactionObjectWrap) Create(f func(tInfo *SoTransactionObject)) err
 	return nil
 }
 
+func (s *SoTransactionObjectWrap) Create(f func(tInfo *SoTransactionObject)) *SoTransactionObjectWrap {
+	err := s.create(f)
+	if err != nil {
+		panic(fmt.Errorf("SoTransactionObjectWrap.Create failed: %s", err.Error()))
+	}
+	return s
+}
+
 func (s *SoTransactionObjectWrap) getMainKeyBuf() ([]byte, error) {
 	if s.mainKey == nil {
 		return nil, errors.New("the main key is nil")
@@ -128,7 +150,7 @@ func (s *SoTransactionObjectWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
-func (s *SoTransactionObjectWrap) Modify(f func(tInfo *SoTransactionObject)) error {
+func (s *SoTransactionObjectWrap) modify(f func(tInfo *SoTransactionObject)) error {
 	if !s.CheckExist() {
 		return errors.New("the SoTransactionObject table does not exist. Please create a table first")
 	}
@@ -187,11 +209,22 @@ func (s *SoTransactionObjectWrap) Modify(f func(tInfo *SoTransactionObject)) err
 
 }
 
-func (s *SoTransactionObjectWrap) SetExpiration(p *prototype.TimePointSec) bool {
-	err := s.Modify(func(r *SoTransactionObject) {
+func (s *SoTransactionObjectWrap) Modify(f func(tInfo *SoTransactionObject)) *SoTransactionObjectWrap {
+	err := s.modify(f)
+	if err != nil {
+		panic(fmt.Errorf("SoTransactionObjectWrap.Modify failed: %s", err.Error()))
+	}
+	return s
+}
+
+func (s *SoTransactionObjectWrap) SetExpiration(p *prototype.TimePointSec) *SoTransactionObjectWrap {
+	err := s.modify(func(r *SoTransactionObject) {
 		r.Expiration = p
 	})
-	return err == nil
+	if err != nil {
+		panic(fmt.Errorf("SoTransactionObjectWrap.SetExpiration( %v ) failed: %s", p, err.Error()))
+	}
+	return s
 }
 
 func (s *SoTransactionObjectWrap) checkSortAndUniFieldValidity(curTable *SoTransactionObject, fieldSli []string) error {
@@ -332,33 +365,41 @@ func (s *SoTransactionObjectWrap) insertAllSortKeys(val *SoTransactionObject) er
 
 ////////////// SECTION LKeys delete/insert //////////////
 
-func (s *SoTransactionObjectWrap) RemoveTransactionObject() bool {
+func (s *SoTransactionObjectWrap) removeTransactionObject() error {
 	if s.dba == nil {
-		return false
+		return errors.New("database is nil")
 	}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
-		return false
+		return errors.New("delAllSortKeys failed")
 	}
 
 	//delete unique list
 	if res := s.delAllUniKeys(true, nil); !res {
-		return false
+		return errors.New("delAllUniKeys failed")
 	}
 
 	//delete table
 	key, err := s.encodeMainKey()
 	if err != nil {
-		return false
+		return fmt.Errorf("encodeMainKey failed: %s", err.Error())
 	}
 	err = s.dba.Delete(key)
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
-		return true
+		return nil
 	} else {
-		return false
+		return fmt.Errorf("database.Delete failed: %s", err.Error())
 	}
+}
+
+func (s *SoTransactionObjectWrap) RemoveTransactionObject() *SoTransactionObjectWrap {
+	err := s.removeTransactionObject()
+	if err != nil {
+		panic(fmt.Errorf("SoTransactionObjectWrap.RemoveTransactionObject failed: %s", err.Error()))
+	}
+	return s
 }
 
 ////////////// SECTION Members Get/Modify ///////////////

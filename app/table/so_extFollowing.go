@@ -65,7 +65,21 @@ func (s *SoExtFollowingWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoExtFollowingWrap) Create(f func(tInfo *SoExtFollowing)) error {
+func (s *SoExtFollowingWrap) MustExist() *SoExtFollowingWrap {
+	if !s.CheckExist() {
+		panic(fmt.Errorf("SoExtFollowingWrap.MustExist: %v not found", s.mainKey))
+	}
+	return s
+}
+
+func (s *SoExtFollowingWrap) MustNotExist() *SoExtFollowingWrap {
+	if s.CheckExist() {
+		panic(fmt.Errorf("SoExtFollowingWrap.MustNotExist: %v already exists", s.mainKey))
+	}
+	return s
+}
+
+func (s *SoExtFollowingWrap) create(f func(tInfo *SoExtFollowing)) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
@@ -114,6 +128,14 @@ func (s *SoExtFollowingWrap) Create(f func(tInfo *SoExtFollowing)) error {
 	return nil
 }
 
+func (s *SoExtFollowingWrap) Create(f func(tInfo *SoExtFollowing)) *SoExtFollowingWrap {
+	err := s.create(f)
+	if err != nil {
+		panic(fmt.Errorf("SoExtFollowingWrap.Create failed: %s", err.Error()))
+	}
+	return s
+}
+
 func (s *SoExtFollowingWrap) getMainKeyBuf() ([]byte, error) {
 	if s.mainKey == nil {
 		return nil, errors.New("the main key is nil")
@@ -128,7 +150,7 @@ func (s *SoExtFollowingWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
-func (s *SoExtFollowingWrap) Modify(f func(tInfo *SoExtFollowing)) error {
+func (s *SoExtFollowingWrap) modify(f func(tInfo *SoExtFollowing)) error {
 	if !s.CheckExist() {
 		return errors.New("the SoExtFollowing table does not exist. Please create a table first")
 	}
@@ -187,11 +209,22 @@ func (s *SoExtFollowingWrap) Modify(f func(tInfo *SoExtFollowing)) error {
 
 }
 
-func (s *SoExtFollowingWrap) SetFollowingCreatedOrder(p *prototype.FollowingCreatedOrder) bool {
-	err := s.Modify(func(r *SoExtFollowing) {
+func (s *SoExtFollowingWrap) Modify(f func(tInfo *SoExtFollowing)) *SoExtFollowingWrap {
+	err := s.modify(f)
+	if err != nil {
+		panic(fmt.Errorf("SoExtFollowingWrap.Modify failed: %s", err.Error()))
+	}
+	return s
+}
+
+func (s *SoExtFollowingWrap) SetFollowingCreatedOrder(p *prototype.FollowingCreatedOrder) *SoExtFollowingWrap {
+	err := s.modify(func(r *SoExtFollowing) {
 		r.FollowingCreatedOrder = p
 	})
-	return err == nil
+	if err != nil {
+		panic(fmt.Errorf("SoExtFollowingWrap.SetFollowingCreatedOrder( %v ) failed: %s", p, err.Error()))
+	}
+	return s
 }
 
 func (s *SoExtFollowingWrap) checkSortAndUniFieldValidity(curTable *SoExtFollowing, fieldSli []string) error {
@@ -332,33 +365,41 @@ func (s *SoExtFollowingWrap) insertAllSortKeys(val *SoExtFollowing) error {
 
 ////////////// SECTION LKeys delete/insert //////////////
 
-func (s *SoExtFollowingWrap) RemoveExtFollowing() bool {
+func (s *SoExtFollowingWrap) removeExtFollowing() error {
 	if s.dba == nil {
-		return false
+		return errors.New("database is nil")
 	}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
-		return false
+		return errors.New("delAllSortKeys failed")
 	}
 
 	//delete unique list
 	if res := s.delAllUniKeys(true, nil); !res {
-		return false
+		return errors.New("delAllUniKeys failed")
 	}
 
 	//delete table
 	key, err := s.encodeMainKey()
 	if err != nil {
-		return false
+		return fmt.Errorf("encodeMainKey failed: %s", err.Error())
 	}
 	err = s.dba.Delete(key)
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
-		return true
+		return nil
 	} else {
-		return false
+		return fmt.Errorf("database.Delete failed: %s", err.Error())
 	}
+}
+
+func (s *SoExtFollowingWrap) RemoveExtFollowing() *SoExtFollowingWrap {
+	err := s.removeExtFollowing()
+	if err != nil {
+		panic(fmt.Errorf("SoExtFollowingWrap.RemoveExtFollowing failed: %s", err.Error()))
+	}
+	return s
 }
 
 ////////////// SECTION Members Get/Modify ///////////////

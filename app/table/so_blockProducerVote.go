@@ -66,7 +66,21 @@ func (s *SoBlockProducerVoteWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoBlockProducerVoteWrap) Create(f func(tInfo *SoBlockProducerVote)) error {
+func (s *SoBlockProducerVoteWrap) MustExist() *SoBlockProducerVoteWrap {
+	if !s.CheckExist() {
+		panic(fmt.Errorf("SoBlockProducerVoteWrap.MustExist: %v not found", s.mainKey))
+	}
+	return s
+}
+
+func (s *SoBlockProducerVoteWrap) MustNotExist() *SoBlockProducerVoteWrap {
+	if s.CheckExist() {
+		panic(fmt.Errorf("SoBlockProducerVoteWrap.MustNotExist: %v already exists", s.mainKey))
+	}
+	return s
+}
+
+func (s *SoBlockProducerVoteWrap) create(f func(tInfo *SoBlockProducerVote)) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
@@ -115,6 +129,14 @@ func (s *SoBlockProducerVoteWrap) Create(f func(tInfo *SoBlockProducerVote)) err
 	return nil
 }
 
+func (s *SoBlockProducerVoteWrap) Create(f func(tInfo *SoBlockProducerVote)) *SoBlockProducerVoteWrap {
+	err := s.create(f)
+	if err != nil {
+		panic(fmt.Errorf("SoBlockProducerVoteWrap.Create failed: %s", err.Error()))
+	}
+	return s
+}
+
 func (s *SoBlockProducerVoteWrap) getMainKeyBuf() ([]byte, error) {
 	if s.mainKey == nil {
 		return nil, errors.New("the main key is nil")
@@ -129,7 +151,7 @@ func (s *SoBlockProducerVoteWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
-func (s *SoBlockProducerVoteWrap) Modify(f func(tInfo *SoBlockProducerVote)) error {
+func (s *SoBlockProducerVoteWrap) modify(f func(tInfo *SoBlockProducerVote)) error {
 	if !s.CheckExist() {
 		return errors.New("the SoBlockProducerVote table does not exist. Please create a table first")
 	}
@@ -188,18 +210,32 @@ func (s *SoBlockProducerVoteWrap) Modify(f func(tInfo *SoBlockProducerVote)) err
 
 }
 
-func (s *SoBlockProducerVoteWrap) SetVoteTime(p *prototype.TimePointSec) bool {
-	err := s.Modify(func(r *SoBlockProducerVote) {
-		r.VoteTime = p
-	})
-	return err == nil
+func (s *SoBlockProducerVoteWrap) Modify(f func(tInfo *SoBlockProducerVote)) *SoBlockProducerVoteWrap {
+	err := s.modify(f)
+	if err != nil {
+		panic(fmt.Errorf("SoBlockProducerVoteWrap.Modify failed: %s", err.Error()))
+	}
+	return s
 }
 
-func (s *SoBlockProducerVoteWrap) SetVoterName(p *prototype.AccountName) bool {
-	err := s.Modify(func(r *SoBlockProducerVote) {
+func (s *SoBlockProducerVoteWrap) SetVoteTime(p *prototype.TimePointSec) *SoBlockProducerVoteWrap {
+	err := s.modify(func(r *SoBlockProducerVote) {
+		r.VoteTime = p
+	})
+	if err != nil {
+		panic(fmt.Errorf("SoBlockProducerVoteWrap.SetVoteTime( %v ) failed: %s", p, err.Error()))
+	}
+	return s
+}
+
+func (s *SoBlockProducerVoteWrap) SetVoterName(p *prototype.AccountName) *SoBlockProducerVoteWrap {
+	err := s.modify(func(r *SoBlockProducerVote) {
 		r.VoterName = p
 	})
-	return err == nil
+	if err != nil {
+		panic(fmt.Errorf("SoBlockProducerVoteWrap.SetVoterName( %v ) failed: %s", p, err.Error()))
+	}
+	return s
 }
 
 func (s *SoBlockProducerVoteWrap) checkSortAndUniFieldValidity(curTable *SoBlockProducerVote, fieldSli []string) error {
@@ -357,33 +393,41 @@ func (s *SoBlockProducerVoteWrap) insertAllSortKeys(val *SoBlockProducerVote) er
 
 ////////////// SECTION LKeys delete/insert //////////////
 
-func (s *SoBlockProducerVoteWrap) RemoveBlockProducerVote() bool {
+func (s *SoBlockProducerVoteWrap) removeBlockProducerVote() error {
 	if s.dba == nil {
-		return false
+		return errors.New("database is nil")
 	}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
-		return false
+		return errors.New("delAllSortKeys failed")
 	}
 
 	//delete unique list
 	if res := s.delAllUniKeys(true, nil); !res {
-		return false
+		return errors.New("delAllUniKeys failed")
 	}
 
 	//delete table
 	key, err := s.encodeMainKey()
 	if err != nil {
-		return false
+		return fmt.Errorf("encodeMainKey failed: %s", err.Error())
 	}
 	err = s.dba.Delete(key)
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
-		return true
+		return nil
 	} else {
-		return false
+		return fmt.Errorf("database.Delete failed: %s", err.Error())
 	}
+}
+
+func (s *SoBlockProducerVoteWrap) RemoveBlockProducerVote() *SoBlockProducerVoteWrap {
+	err := s.removeBlockProducerVote()
+	if err != nil {
+		panic(fmt.Errorf("SoBlockProducerVoteWrap.RemoveBlockProducerVote failed: %s", err.Error()))
+	}
+	return s
 }
 
 ////////////// SECTION Members Get/Modify ///////////////

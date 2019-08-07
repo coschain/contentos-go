@@ -65,7 +65,21 @@ func (s *SoExtPostCreatedWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoExtPostCreatedWrap) Create(f func(tInfo *SoExtPostCreated)) error {
+func (s *SoExtPostCreatedWrap) MustExist() *SoExtPostCreatedWrap {
+	if !s.CheckExist() {
+		panic(fmt.Errorf("SoExtPostCreatedWrap.MustExist: %v not found", s.mainKey))
+	}
+	return s
+}
+
+func (s *SoExtPostCreatedWrap) MustNotExist() *SoExtPostCreatedWrap {
+	if s.CheckExist() {
+		panic(fmt.Errorf("SoExtPostCreatedWrap.MustNotExist: %v already exists", s.mainKey))
+	}
+	return s
+}
+
+func (s *SoExtPostCreatedWrap) create(f func(tInfo *SoExtPostCreated)) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
@@ -111,6 +125,14 @@ func (s *SoExtPostCreatedWrap) Create(f func(tInfo *SoExtPostCreated)) error {
 	return nil
 }
 
+func (s *SoExtPostCreatedWrap) Create(f func(tInfo *SoExtPostCreated)) *SoExtPostCreatedWrap {
+	err := s.create(f)
+	if err != nil {
+		panic(fmt.Errorf("SoExtPostCreatedWrap.Create failed: %s", err.Error()))
+	}
+	return s
+}
+
 func (s *SoExtPostCreatedWrap) getMainKeyBuf() ([]byte, error) {
 	if s.mainKey == nil {
 		return nil, errors.New("the main key is nil")
@@ -125,7 +147,7 @@ func (s *SoExtPostCreatedWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
-func (s *SoExtPostCreatedWrap) Modify(f func(tInfo *SoExtPostCreated)) error {
+func (s *SoExtPostCreatedWrap) modify(f func(tInfo *SoExtPostCreated)) error {
 	if !s.CheckExist() {
 		return errors.New("the SoExtPostCreated table does not exist. Please create a table first")
 	}
@@ -184,11 +206,22 @@ func (s *SoExtPostCreatedWrap) Modify(f func(tInfo *SoExtPostCreated)) error {
 
 }
 
-func (s *SoExtPostCreatedWrap) SetCreatedOrder(p *prototype.PostCreatedOrder) bool {
-	err := s.Modify(func(r *SoExtPostCreated) {
+func (s *SoExtPostCreatedWrap) Modify(f func(tInfo *SoExtPostCreated)) *SoExtPostCreatedWrap {
+	err := s.modify(f)
+	if err != nil {
+		panic(fmt.Errorf("SoExtPostCreatedWrap.Modify failed: %s", err.Error()))
+	}
+	return s
+}
+
+func (s *SoExtPostCreatedWrap) SetCreatedOrder(p *prototype.PostCreatedOrder) *SoExtPostCreatedWrap {
+	err := s.modify(func(r *SoExtPostCreated) {
 		r.CreatedOrder = p
 	})
-	return err == nil
+	if err != nil {
+		panic(fmt.Errorf("SoExtPostCreatedWrap.SetCreatedOrder( %v ) failed: %s", p, err.Error()))
+	}
+	return s
 }
 
 func (s *SoExtPostCreatedWrap) checkSortAndUniFieldValidity(curTable *SoExtPostCreated, fieldSli []string) error {
@@ -328,33 +361,41 @@ func (s *SoExtPostCreatedWrap) insertAllSortKeys(val *SoExtPostCreated) error {
 
 ////////////// SECTION LKeys delete/insert //////////////
 
-func (s *SoExtPostCreatedWrap) RemoveExtPostCreated() bool {
+func (s *SoExtPostCreatedWrap) removeExtPostCreated() error {
 	if s.dba == nil {
-		return false
+		return errors.New("database is nil")
 	}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
-		return false
+		return errors.New("delAllSortKeys failed")
 	}
 
 	//delete unique list
 	if res := s.delAllUniKeys(true, nil); !res {
-		return false
+		return errors.New("delAllUniKeys failed")
 	}
 
 	//delete table
 	key, err := s.encodeMainKey()
 	if err != nil {
-		return false
+		return fmt.Errorf("encodeMainKey failed: %s", err.Error())
 	}
 	err = s.dba.Delete(key)
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
-		return true
+		return nil
 	} else {
-		return false
+		return fmt.Errorf("database.Delete failed: %s", err.Error())
 	}
+}
+
+func (s *SoExtPostCreatedWrap) RemoveExtPostCreated() *SoExtPostCreatedWrap {
+	err := s.removeExtPostCreated()
+	if err != nil {
+		panic(fmt.Errorf("SoExtPostCreatedWrap.RemoveExtPostCreated failed: %s", err.Error()))
+	}
+	return s
 }
 
 ////////////// SECTION Members Get/Modify ///////////////

@@ -66,7 +66,21 @@ func (s *SoGiftTicketWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoGiftTicketWrap) Create(f func(tInfo *SoGiftTicket)) error {
+func (s *SoGiftTicketWrap) MustExist() *SoGiftTicketWrap {
+	if !s.CheckExist() {
+		panic(fmt.Errorf("SoGiftTicketWrap.MustExist: %v not found", s.mainKey))
+	}
+	return s
+}
+
+func (s *SoGiftTicketWrap) MustNotExist() *SoGiftTicketWrap {
+	if s.CheckExist() {
+		panic(fmt.Errorf("SoGiftTicketWrap.MustNotExist: %v already exists", s.mainKey))
+	}
+	return s
+}
+
+func (s *SoGiftTicketWrap) create(f func(tInfo *SoGiftTicket)) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
@@ -115,6 +129,14 @@ func (s *SoGiftTicketWrap) Create(f func(tInfo *SoGiftTicket)) error {
 	return nil
 }
 
+func (s *SoGiftTicketWrap) Create(f func(tInfo *SoGiftTicket)) *SoGiftTicketWrap {
+	err := s.create(f)
+	if err != nil {
+		panic(fmt.Errorf("SoGiftTicketWrap.Create failed: %s", err.Error()))
+	}
+	return s
+}
+
 func (s *SoGiftTicketWrap) getMainKeyBuf() ([]byte, error) {
 	if s.mainKey == nil {
 		return nil, errors.New("the main key is nil")
@@ -129,7 +151,7 @@ func (s *SoGiftTicketWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
-func (s *SoGiftTicketWrap) Modify(f func(tInfo *SoGiftTicket)) error {
+func (s *SoGiftTicketWrap) modify(f func(tInfo *SoGiftTicket)) error {
 	if !s.CheckExist() {
 		return errors.New("the SoGiftTicket table does not exist. Please create a table first")
 	}
@@ -188,25 +210,42 @@ func (s *SoGiftTicketWrap) Modify(f func(tInfo *SoGiftTicket)) error {
 
 }
 
-func (s *SoGiftTicketWrap) SetCount(p uint64) bool {
-	err := s.Modify(func(r *SoGiftTicket) {
+func (s *SoGiftTicketWrap) Modify(f func(tInfo *SoGiftTicket)) *SoGiftTicketWrap {
+	err := s.modify(f)
+	if err != nil {
+		panic(fmt.Errorf("SoGiftTicketWrap.Modify failed: %s", err.Error()))
+	}
+	return s
+}
+
+func (s *SoGiftTicketWrap) SetCount(p uint64) *SoGiftTicketWrap {
+	err := s.modify(func(r *SoGiftTicket) {
 		r.Count = p
 	})
-	return err == nil
+	if err != nil {
+		panic(fmt.Errorf("SoGiftTicketWrap.SetCount( %v ) failed: %s", p, err.Error()))
+	}
+	return s
 }
 
-func (s *SoGiftTicketWrap) SetDenom(p uint64) bool {
-	err := s.Modify(func(r *SoGiftTicket) {
+func (s *SoGiftTicketWrap) SetDenom(p uint64) *SoGiftTicketWrap {
+	err := s.modify(func(r *SoGiftTicket) {
 		r.Denom = p
 	})
-	return err == nil
+	if err != nil {
+		panic(fmt.Errorf("SoGiftTicketWrap.SetDenom( %v ) failed: %s", p, err.Error()))
+	}
+	return s
 }
 
-func (s *SoGiftTicketWrap) SetExpireBlock(p uint64) bool {
-	err := s.Modify(func(r *SoGiftTicket) {
+func (s *SoGiftTicketWrap) SetExpireBlock(p uint64) *SoGiftTicketWrap {
+	err := s.modify(func(r *SoGiftTicket) {
 		r.ExpireBlock = p
 	})
-	return err == nil
+	if err != nil {
+		panic(fmt.Errorf("SoGiftTicketWrap.SetExpireBlock( %v ) failed: %s", p, err.Error()))
+	}
+	return s
 }
 
 func (s *SoGiftTicketWrap) checkSortAndUniFieldValidity(curTable *SoGiftTicket, fieldSli []string) error {
@@ -431,33 +470,41 @@ func (s *SoGiftTicketWrap) insertAllSortKeys(val *SoGiftTicket) error {
 
 ////////////// SECTION LKeys delete/insert //////////////
 
-func (s *SoGiftTicketWrap) RemoveGiftTicket() bool {
+func (s *SoGiftTicketWrap) removeGiftTicket() error {
 	if s.dba == nil {
-		return false
+		return errors.New("database is nil")
 	}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
-		return false
+		return errors.New("delAllSortKeys failed")
 	}
 
 	//delete unique list
 	if res := s.delAllUniKeys(true, nil); !res {
-		return false
+		return errors.New("delAllUniKeys failed")
 	}
 
 	//delete table
 	key, err := s.encodeMainKey()
 	if err != nil {
-		return false
+		return fmt.Errorf("encodeMainKey failed: %s", err.Error())
 	}
 	err = s.dba.Delete(key)
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
-		return true
+		return nil
 	} else {
-		return false
+		return fmt.Errorf("database.Delete failed: %s", err.Error())
 	}
+}
+
+func (s *SoGiftTicketWrap) RemoveGiftTicket() *SoGiftTicketWrap {
+	err := s.removeGiftTicket()
+	if err != nil {
+		panic(fmt.Errorf("SoGiftTicketWrap.RemoveGiftTicket failed: %s", err.Error()))
+	}
+	return s
 }
 
 ////////////// SECTION Members Get/Modify ///////////////

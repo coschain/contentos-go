@@ -65,7 +65,21 @@ func (s *SoExtUserPostWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoExtUserPostWrap) Create(f func(tInfo *SoExtUserPost)) error {
+func (s *SoExtUserPostWrap) MustExist() *SoExtUserPostWrap {
+	if !s.CheckExist() {
+		panic(fmt.Errorf("SoExtUserPostWrap.MustExist: %v not found", s.mainKey))
+	}
+	return s
+}
+
+func (s *SoExtUserPostWrap) MustNotExist() *SoExtUserPostWrap {
+	if s.CheckExist() {
+		panic(fmt.Errorf("SoExtUserPostWrap.MustNotExist: %v already exists", s.mainKey))
+	}
+	return s
+}
+
+func (s *SoExtUserPostWrap) create(f func(tInfo *SoExtUserPost)) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
@@ -111,6 +125,14 @@ func (s *SoExtUserPostWrap) Create(f func(tInfo *SoExtUserPost)) error {
 	return nil
 }
 
+func (s *SoExtUserPostWrap) Create(f func(tInfo *SoExtUserPost)) *SoExtUserPostWrap {
+	err := s.create(f)
+	if err != nil {
+		panic(fmt.Errorf("SoExtUserPostWrap.Create failed: %s", err.Error()))
+	}
+	return s
+}
+
 func (s *SoExtUserPostWrap) getMainKeyBuf() ([]byte, error) {
 	if s.mainKey == nil {
 		return nil, errors.New("the main key is nil")
@@ -125,7 +147,7 @@ func (s *SoExtUserPostWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
-func (s *SoExtUserPostWrap) Modify(f func(tInfo *SoExtUserPost)) error {
+func (s *SoExtUserPostWrap) modify(f func(tInfo *SoExtUserPost)) error {
 	if !s.CheckExist() {
 		return errors.New("the SoExtUserPost table does not exist. Please create a table first")
 	}
@@ -184,11 +206,22 @@ func (s *SoExtUserPostWrap) Modify(f func(tInfo *SoExtUserPost)) error {
 
 }
 
-func (s *SoExtUserPostWrap) SetPostCreatedOrder(p *prototype.UserPostCreateOrder) bool {
-	err := s.Modify(func(r *SoExtUserPost) {
+func (s *SoExtUserPostWrap) Modify(f func(tInfo *SoExtUserPost)) *SoExtUserPostWrap {
+	err := s.modify(f)
+	if err != nil {
+		panic(fmt.Errorf("SoExtUserPostWrap.Modify failed: %s", err.Error()))
+	}
+	return s
+}
+
+func (s *SoExtUserPostWrap) SetPostCreatedOrder(p *prototype.UserPostCreateOrder) *SoExtUserPostWrap {
+	err := s.modify(func(r *SoExtUserPost) {
 		r.PostCreatedOrder = p
 	})
-	return err == nil
+	if err != nil {
+		panic(fmt.Errorf("SoExtUserPostWrap.SetPostCreatedOrder( %v ) failed: %s", p, err.Error()))
+	}
+	return s
 }
 
 func (s *SoExtUserPostWrap) checkSortAndUniFieldValidity(curTable *SoExtUserPost, fieldSli []string) error {
@@ -328,33 +361,41 @@ func (s *SoExtUserPostWrap) insertAllSortKeys(val *SoExtUserPost) error {
 
 ////////////// SECTION LKeys delete/insert //////////////
 
-func (s *SoExtUserPostWrap) RemoveExtUserPost() bool {
+func (s *SoExtUserPostWrap) removeExtUserPost() error {
 	if s.dba == nil {
-		return false
+		return errors.New("database is nil")
 	}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
-		return false
+		return errors.New("delAllSortKeys failed")
 	}
 
 	//delete unique list
 	if res := s.delAllUniKeys(true, nil); !res {
-		return false
+		return errors.New("delAllUniKeys failed")
 	}
 
 	//delete table
 	key, err := s.encodeMainKey()
 	if err != nil {
-		return false
+		return fmt.Errorf("encodeMainKey failed: %s", err.Error())
 	}
 	err = s.dba.Delete(key)
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
-		return true
+		return nil
 	} else {
-		return false
+		return fmt.Errorf("database.Delete failed: %s", err.Error())
 	}
+}
+
+func (s *SoExtUserPostWrap) RemoveExtUserPost() *SoExtUserPostWrap {
+	err := s.removeExtUserPost()
+	if err != nil {
+		panic(fmt.Errorf("SoExtUserPostWrap.RemoveExtUserPost failed: %s", err.Error()))
+	}
+	return s
 }
 
 ////////////// SECTION Members Get/Modify ///////////////

@@ -64,7 +64,21 @@ func (s *SoExtFollowCountWrap) CheckExist() bool {
 	return res
 }
 
-func (s *SoExtFollowCountWrap) Create(f func(tInfo *SoExtFollowCount)) error {
+func (s *SoExtFollowCountWrap) MustExist() *SoExtFollowCountWrap {
+	if !s.CheckExist() {
+		panic(fmt.Errorf("SoExtFollowCountWrap.MustExist: %v not found", s.mainKey))
+	}
+	return s
+}
+
+func (s *SoExtFollowCountWrap) MustNotExist() *SoExtFollowCountWrap {
+	if s.CheckExist() {
+		panic(fmt.Errorf("SoExtFollowCountWrap.MustNotExist: %v already exists", s.mainKey))
+	}
+	return s
+}
+
+func (s *SoExtFollowCountWrap) create(f func(tInfo *SoExtFollowCount)) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
 	}
@@ -113,6 +127,14 @@ func (s *SoExtFollowCountWrap) Create(f func(tInfo *SoExtFollowCount)) error {
 	return nil
 }
 
+func (s *SoExtFollowCountWrap) Create(f func(tInfo *SoExtFollowCount)) *SoExtFollowCountWrap {
+	err := s.create(f)
+	if err != nil {
+		panic(fmt.Errorf("SoExtFollowCountWrap.Create failed: %s", err.Error()))
+	}
+	return s
+}
+
 func (s *SoExtFollowCountWrap) getMainKeyBuf() ([]byte, error) {
 	if s.mainKey == nil {
 		return nil, errors.New("the main key is nil")
@@ -127,7 +149,7 @@ func (s *SoExtFollowCountWrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf, nil
 }
 
-func (s *SoExtFollowCountWrap) Modify(f func(tInfo *SoExtFollowCount)) error {
+func (s *SoExtFollowCountWrap) modify(f func(tInfo *SoExtFollowCount)) error {
 	if !s.CheckExist() {
 		return errors.New("the SoExtFollowCount table does not exist. Please create a table first")
 	}
@@ -186,25 +208,42 @@ func (s *SoExtFollowCountWrap) Modify(f func(tInfo *SoExtFollowCount)) error {
 
 }
 
-func (s *SoExtFollowCountWrap) SetFollowerCnt(p uint32) bool {
-	err := s.Modify(func(r *SoExtFollowCount) {
+func (s *SoExtFollowCountWrap) Modify(f func(tInfo *SoExtFollowCount)) *SoExtFollowCountWrap {
+	err := s.modify(f)
+	if err != nil {
+		panic(fmt.Errorf("SoExtFollowCountWrap.Modify failed: %s", err.Error()))
+	}
+	return s
+}
+
+func (s *SoExtFollowCountWrap) SetFollowerCnt(p uint32) *SoExtFollowCountWrap {
+	err := s.modify(func(r *SoExtFollowCount) {
 		r.FollowerCnt = p
 	})
-	return err == nil
+	if err != nil {
+		panic(fmt.Errorf("SoExtFollowCountWrap.SetFollowerCnt( %v ) failed: %s", p, err.Error()))
+	}
+	return s
 }
 
-func (s *SoExtFollowCountWrap) SetFollowingCnt(p uint32) bool {
-	err := s.Modify(func(r *SoExtFollowCount) {
+func (s *SoExtFollowCountWrap) SetFollowingCnt(p uint32) *SoExtFollowCountWrap {
+	err := s.modify(func(r *SoExtFollowCount) {
 		r.FollowingCnt = p
 	})
-	return err == nil
+	if err != nil {
+		panic(fmt.Errorf("SoExtFollowCountWrap.SetFollowingCnt( %v ) failed: %s", p, err.Error()))
+	}
+	return s
 }
 
-func (s *SoExtFollowCountWrap) SetUpdateTime(p *prototype.TimePointSec) bool {
-	err := s.Modify(func(r *SoExtFollowCount) {
+func (s *SoExtFollowCountWrap) SetUpdateTime(p *prototype.TimePointSec) *SoExtFollowCountWrap {
+	err := s.modify(func(r *SoExtFollowCount) {
 		r.UpdateTime = p
 	})
-	return err == nil
+	if err != nil {
+		panic(fmt.Errorf("SoExtFollowCountWrap.SetUpdateTime( %v ) failed: %s", p, err.Error()))
+	}
+	return s
 }
 
 func (s *SoExtFollowCountWrap) checkSortAndUniFieldValidity(curTable *SoExtFollowCount, fieldSli []string) error {
@@ -333,33 +372,41 @@ func (s *SoExtFollowCountWrap) insertAllSortKeys(val *SoExtFollowCount) error {
 
 ////////////// SECTION LKeys delete/insert //////////////
 
-func (s *SoExtFollowCountWrap) RemoveExtFollowCount() bool {
+func (s *SoExtFollowCountWrap) removeExtFollowCount() error {
 	if s.dba == nil {
-		return false
+		return errors.New("database is nil")
 	}
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
-		return false
+		return errors.New("delAllSortKeys failed")
 	}
 
 	//delete unique list
 	if res := s.delAllUniKeys(true, nil); !res {
-		return false
+		return errors.New("delAllUniKeys failed")
 	}
 
 	//delete table
 	key, err := s.encodeMainKey()
 	if err != nil {
-		return false
+		return fmt.Errorf("encodeMainKey failed: %s", err.Error())
 	}
 	err = s.dba.Delete(key)
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
-		return true
+		return nil
 	} else {
-		return false
+		return fmt.Errorf("database.Delete failed: %s", err.Error())
 	}
+}
+
+func (s *SoExtFollowCountWrap) RemoveExtFollowCount() *SoExtFollowCountWrap {
+	err := s.removeExtFollowCount()
+	if err != nil {
+		panic(fmt.Errorf("SoExtFollowCountWrap.RemoveExtFollowCount failed: %s", err.Error()))
+	}
+	return s
 }
 
 ////////////// SECTION Members Get/Modify ///////////////

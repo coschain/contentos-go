@@ -125,7 +125,21 @@ func (s *So{{.ClsName}}Wrap) CheckExist() bool {
 	return res
 }
 
-func (s *So{{.ClsName}}Wrap) Create(f func(tInfo *So{{.ClsName}})) error {
+func (s *So{{.ClsName}}Wrap) MustExist() *So{{.ClsName}}Wrap {
+    if !s.CheckExist() {
+		panic(fmt.Errorf("So{{.ClsName}}Wrap.MustExist: %v not found", s.mainKey))
+	}
+	return s
+}
+
+func (s *So{{.ClsName}}Wrap) MustNotExist() *So{{.ClsName}}Wrap {
+    if s.CheckExist() {
+		panic(fmt.Errorf("So{{.ClsName}}Wrap.MustNotExist: %v already exists", s.mainKey))
+	}
+	return s
+}
+
+func (s *So{{.ClsName}}Wrap) create(f func(tInfo *So{{.ClsName}})) error {
     if s.dba == nil {
        return errors.New("the db is nil")
     }
@@ -180,6 +194,14 @@ func (s *So{{.ClsName}}Wrap) Create(f func(tInfo *So{{.ClsName}})) error {
 	return nil
 }
 
+func (s *So{{.ClsName}}Wrap) Create(f func(tInfo *So{{.ClsName}})) *So{{.ClsName}}Wrap {
+	err := s.create(f)
+	if err != nil {
+		panic(fmt.Errorf("So{{.ClsName}}Wrap.Create failed: %s", err.Error()))
+	}
+	return s
+}
+
 func (s *So{{.ClsName}}Wrap) getMainKeyBuf() ([]byte, error) {
 	if s.mainKey == nil {
 		return nil,errors.New("the main key is nil")
@@ -194,7 +216,7 @@ func (s *So{{.ClsName}}Wrap) getMainKeyBuf() ([]byte, error) {
 	return s.mBuf,nil
 }
 
-func (s *So{{.ClsName}}Wrap) Modify(f func(tInfo *So{{.ClsName}})) error {
+func (s *So{{.ClsName}}Wrap) modify(f func(tInfo *So{{.ClsName}})) error {
     if !s.CheckExist() {
 		return errors.New("the So{{.ClsName}} table does not exist. Please create a table first")
 	}
@@ -255,14 +277,25 @@ func (s *So{{.ClsName}}Wrap) Modify(f func(tInfo *So{{.ClsName}})) error {
 
 }
 
+func (s *So{{.ClsName}}Wrap) Modify(f func(tInfo *So{{.ClsName}})) *So{{.ClsName}}Wrap {
+    err := s.modify(f)
+	if err != nil {
+		panic(fmt.Errorf("So{{.ClsName}}Wrap.Modify failed: %s", err.Error()))
+	}
+    return s
+}
+
 {{range $k1, $v1 := .MemberKeyMap -}}
 {{if ne $k1 $.MainKeyName}}
 
-func (s *So{{$.ClsName}}Wrap) Set{{$k1}}(p {{formatRTypeStr $v1.PType}}) bool {
-    err := s.Modify(func(r *So{{$.ClsName}}){
+func (s *So{{$.ClsName}}Wrap) Set{{$k1}}(p {{formatRTypeStr $v1.PType}}) *So{{$.ClsName}}Wrap {
+    err := s.modify(func(r *So{{$.ClsName}}){
         r.{{$k1}} = p
     })
-    return err == nil
+	if err != nil {
+		panic(fmt.Errorf("So{{$.ClsName}}Wrap.Set{{$k1}}( %v ) failed: %s", p, err.Error()))
+	}
+    return s
 }
 
 {{end}}
@@ -452,36 +485,44 @@ func (s *So{{$.ClsName}}Wrap)insertAllSortKeys(val *So{{$.ClsName}}) error {
 
 ////////////// SECTION LKeys delete/insert //////////////
 
-func (s *So{{.ClsName}}Wrap) Remove{{.ClsName}}() bool {
+func (s *So{{.ClsName}}Wrap) remove{{.ClsName}}() error {
     if s.dba == nil {
-       return false
+        return errors.New("database is nil")
     }
     {{if ge  $.SListCount 0 -}}
     //delete sort list key
     if res := s.delAllSortKeys(true, nil); !res {
-       return false
+		return errors.New("delAllSortKeys failed")
     }
     {{end}}
     {{if ge (getMapCount .UniqueFieldMap) 0 -}}
     //delete unique list
     if res := s.delAllUniKeys(true,nil);  !res {
-       return false
+		return errors.New("delAllUniKeys failed")
     }
     {{end}}
 
     //delete table 
     key,err := s.encodeMainKey()
     if err != nil {
-       return false
+		return fmt.Errorf("encodeMainKey failed: %s", err.Error())
     }
     err = s.dba.Delete(key)
     if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
-		return true
+		return nil
 	}else{
-		return false
+		return fmt.Errorf("database.Delete failed: %s", err.Error())
 	}
+}
+
+func (s *So{{.ClsName}}Wrap) Remove{{.ClsName}}() *So{{.ClsName}}Wrap {
+	err := s.remove{{.ClsName}}()
+	if err != nil {
+		panic(fmt.Errorf("So{{.ClsName}}Wrap.Remove{{.ClsName}} failed: %s", err.Error()))
+	}
+	return s
 }
 
 ////////////// SECTION Members Get/Modify ///////////////
