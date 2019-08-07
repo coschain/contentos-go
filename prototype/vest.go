@@ -16,7 +16,7 @@ func (m *Vest) OpeEncode() ([]byte, error) {
 func (m *Vest) Add(o *Vest) *Vest {
 
 	if m.Value > o.Value+m.Value {
-		panic(ErrVestOverflow)
+		panic(fmt.Sprintf("Vest Add Overflow: %v, %v", m.Value, o.Value))
 	}
 	m.Value += o.Value
 	return m
@@ -24,21 +24,21 @@ func (m *Vest) Add(o *Vest) *Vest {
 
 func (m *Vest) Sub(o *Vest) *Vest {
 	if m.Value < o.Value {
-		panic(ErrVestOverflow)
+		panic(fmt.Sprintf("Vest Sub Overflow: %v, %v", m.Value, o.Value))
 	}
 	m.Value -= o.Value
 	return m
 }
 
-func (m *Vest) Mul(c uint64) error {
+func (m *Vest) Mul(c uint64) *Vest {
 	if m.Value == 0 {
-		return nil
+		return m
 	}
 	if math.MaxUint64 / m.Value < c {
-		return ErrCoinOverflow
+		panic(fmt.Sprintf("Vest Mul Overflow: %v, %v", m.Value, c))
 	}
 	m.Value *= c
-	return nil
+	return m
 }
 
 func (m *Vest) ToCoin() *Coin {

@@ -20,7 +20,7 @@ func (m *Coin) NonZero() bool {
 func (m *Coin) Add(o *Coin) *Coin {
 
 	if m.Value > o.Value + m.Value {
-		panic(ErrCoinOverflow)
+		panic(fmt.Sprintf("Coin Add Overflow: %v, %v", m.Value, o.Value))
 	}
 	m.Value += o.Value
 	return m
@@ -28,21 +28,21 @@ func (m *Coin) Add(o *Coin) *Coin {
 
 func (m *Coin) Sub(o *Coin) *Coin {
 	if m.Value < o.Value {
-		panic(ErrCoinOverflow)
+		panic(fmt.Sprintf("Coin Sub Overflow: %v, %v", m.Value, o.Value))
 	}
 	m.Value -= o.Value
 	return m
 }
 
-func (m *Coin) Mul(c uint64) error {
+func (m *Coin) Mul(c uint64) *Coin {
 	if m.Value == 0 {
-		return nil
+		return m
 	}
 	if math.MaxUint64 / m.Value < c {
-		return ErrCoinOverflow
+		panic(fmt.Sprintf("Coin Mul Overflow: %v, %v", m.Value, c))
 	}
 	m.Value *= c
-	return nil
+	return m
 }
 
 func (m *Coin) ToString() string {

@@ -1220,7 +1220,7 @@ func (ev *AcquireTicketEvaluator) Apply() {
 	//oldVest := account.GetVest()
 
 	fee := &prototype.Coin{Value: ticketPrice.Value}
-	opAssertE(fee.Mul(count), "mul ticket price with count overflow")
+	fee.Mul(count)
 	balance.Sub(fee)
 	opAssert(account.MdBalance(balance), "modify balance failed")
 
@@ -1344,7 +1344,7 @@ func (ev *VoteByTicketEvaluator) Apply() {
 		equalValue = &prototype.Vest{Value: 0}
 	} else {
 		equalValue = &prototype.Vest{Value: props.GetTicketsIncome().Value / props.GetChargedTicketsNum()}
-		opAssertE(equalValue.Mul(count), "mul equal ticket value with count overflow")
+		equalValue.Mul(count)
 	}
 	currentIncome := props.GetTicketsIncome()
 	currentIncome.Sub(equalValue)
