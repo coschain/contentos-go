@@ -46,6 +46,8 @@ func (tester *ReplyTest) noExistAccountReply(t *testing.T, d *Dandelion) {
 	// no exist account reply
 	replyOp := createReplyOp(noExistAccountName, parentId)
 	a.Error( checkError( d.Account(noExistAccountName).TrxReceipt(replyOp) ) )
+	replyWrap := d.Post(replyOp.GetOp7().GetUuid())
+	a.False(replyWrap.CheckExist())
 }
 
 func (tester *ReplyTest) duplicateReplyId(t *testing.T, d *Dandelion) {
@@ -67,6 +69,8 @@ func (tester *ReplyTest) parentIdNoExist(t *testing.T, d *Dandelion) {
 
 	replyOp := createReplyOp(tester.acc1.Name, 123)
 	a.Error( checkError( d.Account(tester.acc1.Name).TrxReceipt(replyOp) ) )
+	replyWrap := d.Post(replyOp.GetOp7().GetUuid())
+	a.False(replyWrap.CheckExist())
 }
 
 func (tester *ReplyTest) replyDepthOverflow(t *testing.T, d *Dandelion) {
@@ -85,22 +89,56 @@ func (tester *ReplyTest) replyDepthOverflow(t *testing.T, d *Dandelion) {
 	a.Error( checkError( d.Account(tester.acc1.Name).TrxReceipt(replyOp) ) )
 
 	// reply article, should no error
-	replyOp1 := createReplyOp(tester.acc1.Name, rootId)
-	a.NoError( checkError( d.Account(tester.acc1.Name).TrxReceipt(replyOp1) ) )
+	doNormalReply(t, d, tester.acc1.Name, rootId)
 
-	replyOp2 := createReplyOp(tester.acc2.Name, rootId)
-	a.NoError( checkError( d.Account(tester.acc2.Name).TrxReceipt(replyOp2) ) )
+	// other account reply, should no error
+	doNormalReply(t, d, tester.acc2.Name, rootId)
 }
 
 func doNormalReply(t *testing.T, d *Dandelion, name string, parentId uint64) uint64 {
 	a := assert.New(t)
 
+	headBlockNumber := d.GlobalProps().HeadBlockNumber
+	headBlockTime := d.GlobalProps().Time
+	postWrap := d.Post(parentId)
+	children := postWrap.GetChildren()
+	var rootId uint64
+	if postWrap.GetRootId() == 0 {
+		rootId = postWrap.GetPostId()
+	} else {
+		rootId = postWrap.GetRootId()
+	}
+
 	replyOp := createReplyOp(name, parentId)
 	a.NoError( checkError( d.Account(name).TrxReceipt(replyOp) ) )
-	replyWrap := d.Post(replyOp.GetOp7().GetUuid())
-	a.True(replyWrap.CheckExist())
 
-	return replyOp.GetOp7().GetUuid()
+	rawOp := replyOp.GetOp7()
+	replyWrap := d.Post(rawOp.GetUuid())
+	a.True(replyWrap.CheckExist())
+	a.Equal(replyWrap.GetPostId(), rawOp.Uuid)
+	a.Nil(replyWrap.GetTags())
+	a.Equal(replyWrap.GetTitle(), "")
+	a.Equal(replyWrap.GetAuthor().Value, rawOp.Owner.Value)
+	a.Equal(replyWrap.GetBody(), rawOp.Content)
+	a.Equal(replyWrap.GetCreated().UtcSeconds, headBlockTime.UtcSeconds)
+	a.Equal(replyWrap.GetCashoutBlockNum(), headBlockNumber + constants.PostCashOutDelayBlock)
+	a.Equal(replyWrap.GetDepth(), postWrap.GetDepth()+1)
+	a.Equal(replyWrap.GetChildren(), uint32(0))
+	a.Equal(replyWrap.GetRootId(), rootId)
+	a.Equal(replyWrap.GetParentId(), rawOp.ParentUuid)
+	a.Equal(replyWrap.GetWeightedVp(), "0")
+	a.Equal(replyWrap.GetVoteCnt(), uint64(0))
+	a.Equal(replyWrap.GetBeneficiaries(), rawOp.Beneficiaries)
+	a.Equal(replyWrap.GetRewards().Value, uint64(0))
+	a.Equal(replyWrap.GetDappRewards().Value, uint64(0))
+	a.Equal(replyWrap.GetTicket(), uint32(0))
+
+	authorWrap := d.Account(name).SoAccountWrap
+	a.Equal(authorWrap.GetLastPostTime().UtcSeconds, headBlockTime.UtcSeconds)
+
+	a.Equal(postWrap.GetChildren(), children+1)
+
+	return rawOp.GetUuid()
 }
 
 func createReplyOp (accName string, parentId uint64) *prototype.Operation {
