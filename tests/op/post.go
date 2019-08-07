@@ -20,13 +20,7 @@ func (tester *PostTest) Test(t *testing.T, d *Dandelion) {
 }
 
 func (tester *PostTest) normal(t *testing.T, d *Dandelion) {
-	a := assert.New(t)
-
-	postOp := createPostOp(tester.acc0.Name)
-	a.NoError( checkError( d.Account(tester.acc0.Name).TrxReceipt(postOp) ) )
-
-	postWrap := d.Post(postOp.GetOp6().Uuid)
-	a.True(postWrap.CheckExist())
+	doNormalPost(t, d, tester.acc0.Name)
 }
 
 func (tester *PostTest) noExistAccountPost(t *testing.T, d *Dandelion) {
@@ -39,6 +33,18 @@ func (tester *PostTest) noExistAccountPost(t *testing.T, d *Dandelion) {
 	a.Error( checkError( d.Account(accName).TrxReceipt(postOp) ) )
 }
 
+func doNormalPost(t *testing.T, d *Dandelion, name string) uint64 {
+	a := assert.New(t)
+
+	postOp := createPostOp(name)
+	a.NoError( checkError( d.Account(name).TrxReceipt(postOp) ) )
+
+	postWrap := d.Post(postOp.GetOp6().GetUuid())
+	a.True(postWrap.CheckExist())
+
+	return postOp.GetOp6().GetUuid()
+}
+
 func createNoExistAccount (accName string, d *Dandelion) {
 	priv, _ := prototype.GenerateNewKey()
 	d.PutAccount(accName,priv)
@@ -47,6 +53,10 @@ func createNoExistAccount (accName string, d *Dandelion) {
 func createPostOp (accName string) *prototype.Operation {
 	title := "test post"
 	postId := utils.GenerateUUID(accName + title)
+	return createPostOpWithId(accName, title, postId)
+}
+
+func createPostOpWithId (accName, title string, postId uint64) *prototype.Operation {
 	content := "test article for op test"
 	tags := []string{"test"}
 	return Post(postId, accName, title, content, tags, nil)
