@@ -2,7 +2,7 @@ package table
 
 import (
 	"errors"
-	fmt "fmt"
+	"fmt"
 	"reflect"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
@@ -128,10 +128,10 @@ func (s *SoExtRewardWrap) create(f func(tInfo *SoExtReward)) error {
 	return nil
 }
 
-func (s *SoExtRewardWrap) Create(f func(tInfo *SoExtReward)) *SoExtRewardWrap {
+func (s *SoExtRewardWrap) Create(f func(tInfo *SoExtReward), errArgs ...interface{}) *SoExtRewardWrap {
 	err := s.create(f)
 	if err != nil {
-		panic(fmt.Errorf("SoExtRewardWrap.Create failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Errorf("SoExtRewardWrap.Create failed: %s", err.Error()), errArgs...))
 	}
 	return s
 }
@@ -209,30 +209,30 @@ func (s *SoExtRewardWrap) modify(f func(tInfo *SoExtReward)) error {
 
 }
 
-func (s *SoExtRewardWrap) Modify(f func(tInfo *SoExtReward)) *SoExtRewardWrap {
+func (s *SoExtRewardWrap) Modify(f func(tInfo *SoExtReward), errArgs ...interface{}) *SoExtRewardWrap {
 	err := s.modify(f)
 	if err != nil {
-		panic(fmt.Errorf("SoExtRewardWrap.Modify failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoExtRewardWrap.Modify failed: %s", err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoExtRewardWrap) SetBlockHeight(p uint64) *SoExtRewardWrap {
+func (s *SoExtRewardWrap) SetBlockHeight(p uint64, errArgs ...interface{}) *SoExtRewardWrap {
 	err := s.modify(func(r *SoExtReward) {
 		r.BlockHeight = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoExtRewardWrap.SetBlockHeight( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoExtRewardWrap.SetBlockHeight( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoExtRewardWrap) SetReward(p *prototype.Vest) *SoExtRewardWrap {
+func (s *SoExtRewardWrap) SetReward(p *prototype.Vest, errArgs ...interface{}) *SoExtRewardWrap {
 	err := s.modify(func(r *SoExtReward) {
 		r.Reward = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoExtRewardWrap.SetReward( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoExtRewardWrap.SetReward( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
@@ -421,10 +421,10 @@ func (s *SoExtRewardWrap) removeExtReward() error {
 	}
 }
 
-func (s *SoExtRewardWrap) RemoveExtReward() *SoExtRewardWrap {
+func (s *SoExtRewardWrap) RemoveExtReward(errMsgs ...interface{}) *SoExtRewardWrap {
 	err := s.removeExtReward()
 	if err != nil {
-		panic(fmt.Errorf("SoExtRewardWrap.RemoveExtReward failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoExtRewardWrap.RemoveExtReward failed: %s", err.Error()), errMsgs...))
 	}
 	return s
 }

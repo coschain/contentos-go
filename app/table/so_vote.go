@@ -2,7 +2,7 @@ package table
 
 import (
 	"errors"
-	fmt "fmt"
+	"fmt"
 	"reflect"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
@@ -130,10 +130,10 @@ func (s *SoVoteWrap) create(f func(tInfo *SoVote)) error {
 	return nil
 }
 
-func (s *SoVoteWrap) Create(f func(tInfo *SoVote)) *SoVoteWrap {
+func (s *SoVoteWrap) Create(f func(tInfo *SoVote), errArgs ...interface{}) *SoVoteWrap {
 	err := s.create(f)
 	if err != nil {
-		panic(fmt.Errorf("SoVoteWrap.Create failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Errorf("SoVoteWrap.Create failed: %s", err.Error()), errArgs...))
 	}
 	return s
 }
@@ -211,50 +211,50 @@ func (s *SoVoteWrap) modify(f func(tInfo *SoVote)) error {
 
 }
 
-func (s *SoVoteWrap) Modify(f func(tInfo *SoVote)) *SoVoteWrap {
+func (s *SoVoteWrap) Modify(f func(tInfo *SoVote), errArgs ...interface{}) *SoVoteWrap {
 	err := s.modify(f)
 	if err != nil {
-		panic(fmt.Errorf("SoVoteWrap.Modify failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoVoteWrap.Modify failed: %s", err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoVoteWrap) SetPostId(p uint64) *SoVoteWrap {
+func (s *SoVoteWrap) SetPostId(p uint64, errArgs ...interface{}) *SoVoteWrap {
 	err := s.modify(func(r *SoVote) {
 		r.PostId = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoVoteWrap.SetPostId( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoVoteWrap.SetPostId( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoVoteWrap) SetUpvote(p bool) *SoVoteWrap {
+func (s *SoVoteWrap) SetUpvote(p bool, errArgs ...interface{}) *SoVoteWrap {
 	err := s.modify(func(r *SoVote) {
 		r.Upvote = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoVoteWrap.SetUpvote( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoVoteWrap.SetUpvote( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoVoteWrap) SetVoteTime(p *prototype.TimePointSec) *SoVoteWrap {
+func (s *SoVoteWrap) SetVoteTime(p *prototype.TimePointSec, errArgs ...interface{}) *SoVoteWrap {
 	err := s.modify(func(r *SoVote) {
 		r.VoteTime = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoVoteWrap.SetVoteTime( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoVoteWrap.SetVoteTime( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoVoteWrap) SetWeightedVp(p string) *SoVoteWrap {
+func (s *SoVoteWrap) SetWeightedVp(p string, errArgs ...interface{}) *SoVoteWrap {
 	err := s.modify(func(r *SoVote) {
 		r.WeightedVp = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoVoteWrap.SetWeightedVp( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoVoteWrap.SetWeightedVp( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
@@ -585,10 +585,10 @@ func (s *SoVoteWrap) removeVote() error {
 	}
 }
 
-func (s *SoVoteWrap) RemoveVote() *SoVoteWrap {
+func (s *SoVoteWrap) RemoveVote(errMsgs ...interface{}) *SoVoteWrap {
 	err := s.removeVote()
 	if err != nil {
-		panic(fmt.Errorf("SoVoteWrap.RemoveVote failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoVoteWrap.RemoveVote failed: %s", err.Error()), errMsgs...))
 	}
 	return s
 }

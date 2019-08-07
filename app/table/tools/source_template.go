@@ -194,10 +194,10 @@ func (s *So{{.ClsName}}Wrap) create(f func(tInfo *So{{.ClsName}})) error {
 	return nil
 }
 
-func (s *So{{.ClsName}}Wrap) Create(f func(tInfo *So{{.ClsName}})) *So{{.ClsName}}Wrap {
+func (s *So{{.ClsName}}Wrap) Create(f func(tInfo *So{{.ClsName}}), errArgs...interface{}) *So{{.ClsName}}Wrap {
 	err := s.create(f)
 	if err != nil {
-		panic(fmt.Errorf("So{{.ClsName}}Wrap.Create failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Errorf("So{{.ClsName}}Wrap.Create failed: %s", err.Error()), errArgs...))
 	}
 	return s
 }
@@ -277,10 +277,10 @@ func (s *So{{.ClsName}}Wrap) modify(f func(tInfo *So{{.ClsName}})) error {
 
 }
 
-func (s *So{{.ClsName}}Wrap) Modify(f func(tInfo *So{{.ClsName}})) *So{{.ClsName}}Wrap {
+func (s *So{{.ClsName}}Wrap) Modify(f func(tInfo *So{{.ClsName}}), errArgs...interface{}) *So{{.ClsName}}Wrap {
     err := s.modify(f)
 	if err != nil {
-		panic(fmt.Errorf("So{{.ClsName}}Wrap.Modify failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("So{{.ClsName}}Wrap.Modify failed: %s", err.Error()), errArgs...))
 	}
     return s
 }
@@ -288,12 +288,12 @@ func (s *So{{.ClsName}}Wrap) Modify(f func(tInfo *So{{.ClsName}})) *So{{.ClsName
 {{range $k1, $v1 := .MemberKeyMap -}}
 {{if ne $k1 $.MainKeyName}}
 
-func (s *So{{$.ClsName}}Wrap) Set{{$k1}}(p {{formatRTypeStr $v1.PType}}) *So{{$.ClsName}}Wrap {
+func (s *So{{$.ClsName}}Wrap) Set{{$k1}}(p {{formatRTypeStr $v1.PType}}, errArgs...interface{}) *So{{$.ClsName}}Wrap {
     err := s.modify(func(r *So{{$.ClsName}}){
         r.{{$k1}} = p
     })
 	if err != nil {
-		panic(fmt.Errorf("So{{$.ClsName}}Wrap.Set{{$k1}}( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("So{{$.ClsName}}Wrap.Set{{$k1}}( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
     return s
 }
@@ -517,10 +517,10 @@ func (s *So{{.ClsName}}Wrap) remove{{.ClsName}}() error {
 	}
 }
 
-func (s *So{{.ClsName}}Wrap) Remove{{.ClsName}}() *So{{.ClsName}}Wrap {
+func (s *So{{.ClsName}}Wrap) Remove{{.ClsName}}(errMsgs...interface{}) *So{{.ClsName}}Wrap {
 	err := s.remove{{.ClsName}}()
 	if err != nil {
-		panic(fmt.Errorf("So{{.ClsName}}Wrap.Remove{{.ClsName}} failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("So{{.ClsName}}Wrap.Remove{{.ClsName}} failed: %s", err.Error()), errMsgs...))
 	}
 	return s
 }

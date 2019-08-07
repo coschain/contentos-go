@@ -2,7 +2,7 @@ package table
 
 import (
 	"errors"
-	fmt "fmt"
+	"fmt"
 	"reflect"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
@@ -128,10 +128,10 @@ func (s *SoTransactionObjectWrap) create(f func(tInfo *SoTransactionObject)) err
 	return nil
 }
 
-func (s *SoTransactionObjectWrap) Create(f func(tInfo *SoTransactionObject)) *SoTransactionObjectWrap {
+func (s *SoTransactionObjectWrap) Create(f func(tInfo *SoTransactionObject), errArgs ...interface{}) *SoTransactionObjectWrap {
 	err := s.create(f)
 	if err != nil {
-		panic(fmt.Errorf("SoTransactionObjectWrap.Create failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Errorf("SoTransactionObjectWrap.Create failed: %s", err.Error()), errArgs...))
 	}
 	return s
 }
@@ -209,20 +209,20 @@ func (s *SoTransactionObjectWrap) modify(f func(tInfo *SoTransactionObject)) err
 
 }
 
-func (s *SoTransactionObjectWrap) Modify(f func(tInfo *SoTransactionObject)) *SoTransactionObjectWrap {
+func (s *SoTransactionObjectWrap) Modify(f func(tInfo *SoTransactionObject), errArgs ...interface{}) *SoTransactionObjectWrap {
 	err := s.modify(f)
 	if err != nil {
-		panic(fmt.Errorf("SoTransactionObjectWrap.Modify failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoTransactionObjectWrap.Modify failed: %s", err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoTransactionObjectWrap) SetExpiration(p *prototype.TimePointSec) *SoTransactionObjectWrap {
+func (s *SoTransactionObjectWrap) SetExpiration(p *prototype.TimePointSec, errArgs ...interface{}) *SoTransactionObjectWrap {
 	err := s.modify(func(r *SoTransactionObject) {
 		r.Expiration = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoTransactionObjectWrap.SetExpiration( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoTransactionObjectWrap.SetExpiration( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
@@ -394,10 +394,10 @@ func (s *SoTransactionObjectWrap) removeTransactionObject() error {
 	}
 }
 
-func (s *SoTransactionObjectWrap) RemoveTransactionObject() *SoTransactionObjectWrap {
+func (s *SoTransactionObjectWrap) RemoveTransactionObject(errMsgs ...interface{}) *SoTransactionObjectWrap {
 	err := s.removeTransactionObject()
 	if err != nil {
-		panic(fmt.Errorf("SoTransactionObjectWrap.RemoveTransactionObject failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoTransactionObjectWrap.RemoveTransactionObject failed: %s", err.Error()), errMsgs...))
 	}
 	return s
 }

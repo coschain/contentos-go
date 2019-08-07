@@ -252,7 +252,7 @@ func (w *CosVMNative) SetReputationAdmin(name string) {
 	singleId := int32(constants.SingletonId)
 	props := *w.cosVM.props
 	props.ReputationAdmin = prototype.NewAccountName(name)
-	w.CosAssert(table.NewSoGlobalWrap(w.cosVM.db, &singleId).SetProps(&props), "failed to set reputation admin")
+	table.NewSoGlobalWrap(w.cosVM.db, &singleId).SetProps(&props, "failed to set reputation admin")
 	w.cosVM.props.ReputationAdmin = props.ReputationAdmin
 }
 
@@ -260,7 +260,7 @@ func (w *CosVMNative) SetCopyrightAdmin(name string) {
 	singleId := int32(constants.SingletonId)
 	props := *w.cosVM.props
 	props.CopyrightAdmin = prototype.NewAccountName(name)
-	w.CosAssert(table.NewSoGlobalWrap(w.cosVM.db, &singleId).SetProps(&props), "failed to set copyright admin")
+	table.NewSoGlobalWrap(w.cosVM.db, &singleId).SetProps(&props, "failed to set copyright admin")
 	w.cosVM.props.CopyrightAdmin = props.CopyrightAdmin
 }
 
@@ -273,8 +273,8 @@ func (w *CosVMNative) GetCopyrightAdmin() (name string) {
 
 func (w *CosVMNative) SetUserCopyright(postId uint64, value uint32, memo string) {
 	post := table.NewSoPostWrap(w.cosVM.db, &postId)
-	w.CosAssert(post.SetCopyright(value), fmt.Sprintf("failed to modify copyright of %d", postId))
-	w.CosAssert(post.SetCopyrightMemo(memo), fmt.Sprintf("failed to modify copyright memo of %d", postId))
+	post.SetCopyright(value, fmt.Sprintf("failed to modify copyright of %d", postId)).
+		SetCopyrightMemo(memo, fmt.Sprintf("failed to modify copyright memo of %d", postId))
 }
 
 func (w *CosVMNative) GetReputationAdmin() (name string) {
@@ -286,14 +286,14 @@ func (w *CosVMNative) GetReputationAdmin() (name string) {
 
 func (w *CosVMNative) SetUserReputation(name string, value uint32, memo string) {
 	account := table.NewSoAccountWrap(w.cosVM.db, prototype.NewAccountName(name))
-	w.CosAssert(account.SetReputation(value), fmt.Sprintf("failed to modify reputation of %s", name))
-	w.CosAssert(account.SetReputationMemo(memo), fmt.Sprintf("failed to modify reputation memo of %s", name))
+	account.SetReputation(value, fmt.Sprintf("failed to modify reputation of %s", name)).
+		SetReputationMemo(memo, fmt.Sprintf("failed to modify reputation memo of %s", name))
 }
 
 func (w *CosVMNative) SetUserFreeze(name string, value uint32, memo string) {
 	account := table.NewSoAccountWrap(w.cosVM.db, prototype.NewAccountName(name))
-	w.CosAssert(account.SetFreeze(value), fmt.Sprintf("failed to modify freeze of %s", name))
-	w.CosAssert(account.SetFreezeMemo(memo), fmt.Sprintf("failed to modify freeze memo of %s", name))
+	account.SetFreeze(value, fmt.Sprintf("failed to modify freeze of %s", name)).
+		SetFreezeMemo(memo, fmt.Sprintf("failed to modify freeze memo of %s", name))
 	if value != 0 {
 		w.cosVM.ctx.Injector.DiscardAccountCache(name)
 	}

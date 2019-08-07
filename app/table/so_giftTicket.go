@@ -2,7 +2,7 @@ package table
 
 import (
 	"errors"
-	fmt "fmt"
+	"fmt"
 	"reflect"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
@@ -129,10 +129,10 @@ func (s *SoGiftTicketWrap) create(f func(tInfo *SoGiftTicket)) error {
 	return nil
 }
 
-func (s *SoGiftTicketWrap) Create(f func(tInfo *SoGiftTicket)) *SoGiftTicketWrap {
+func (s *SoGiftTicketWrap) Create(f func(tInfo *SoGiftTicket), errArgs ...interface{}) *SoGiftTicketWrap {
 	err := s.create(f)
 	if err != nil {
-		panic(fmt.Errorf("SoGiftTicketWrap.Create failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Errorf("SoGiftTicketWrap.Create failed: %s", err.Error()), errArgs...))
 	}
 	return s
 }
@@ -210,40 +210,40 @@ func (s *SoGiftTicketWrap) modify(f func(tInfo *SoGiftTicket)) error {
 
 }
 
-func (s *SoGiftTicketWrap) Modify(f func(tInfo *SoGiftTicket)) *SoGiftTicketWrap {
+func (s *SoGiftTicketWrap) Modify(f func(tInfo *SoGiftTicket), errArgs ...interface{}) *SoGiftTicketWrap {
 	err := s.modify(f)
 	if err != nil {
-		panic(fmt.Errorf("SoGiftTicketWrap.Modify failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoGiftTicketWrap.Modify failed: %s", err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoGiftTicketWrap) SetCount(p uint64) *SoGiftTicketWrap {
+func (s *SoGiftTicketWrap) SetCount(p uint64, errArgs ...interface{}) *SoGiftTicketWrap {
 	err := s.modify(func(r *SoGiftTicket) {
 		r.Count = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoGiftTicketWrap.SetCount( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoGiftTicketWrap.SetCount( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoGiftTicketWrap) SetDenom(p uint64) *SoGiftTicketWrap {
+func (s *SoGiftTicketWrap) SetDenom(p uint64, errArgs ...interface{}) *SoGiftTicketWrap {
 	err := s.modify(func(r *SoGiftTicket) {
 		r.Denom = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoGiftTicketWrap.SetDenom( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoGiftTicketWrap.SetDenom( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoGiftTicketWrap) SetExpireBlock(p uint64) *SoGiftTicketWrap {
+func (s *SoGiftTicketWrap) SetExpireBlock(p uint64, errArgs ...interface{}) *SoGiftTicketWrap {
 	err := s.modify(func(r *SoGiftTicket) {
 		r.ExpireBlock = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoGiftTicketWrap.SetExpireBlock( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoGiftTicketWrap.SetExpireBlock( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
@@ -499,10 +499,10 @@ func (s *SoGiftTicketWrap) removeGiftTicket() error {
 	}
 }
 
-func (s *SoGiftTicketWrap) RemoveGiftTicket() *SoGiftTicketWrap {
+func (s *SoGiftTicketWrap) RemoveGiftTicket(errMsgs ...interface{}) *SoGiftTicketWrap {
 	err := s.removeGiftTicket()
 	if err != nil {
-		panic(fmt.Errorf("SoGiftTicketWrap.RemoveGiftTicket failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoGiftTicketWrap.RemoveGiftTicket failed: %s", err.Error()), errMsgs...))
 	}
 	return s
 }

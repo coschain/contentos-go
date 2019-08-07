@@ -2,7 +2,7 @@ package table
 
 import (
 	"errors"
-	fmt "fmt"
+	"fmt"
 	"reflect"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
@@ -129,10 +129,10 @@ func (s *SoExtDailyTrxWrap) create(f func(tInfo *SoExtDailyTrx)) error {
 	return nil
 }
 
-func (s *SoExtDailyTrxWrap) Create(f func(tInfo *SoExtDailyTrx)) *SoExtDailyTrxWrap {
+func (s *SoExtDailyTrxWrap) Create(f func(tInfo *SoExtDailyTrx), errArgs ...interface{}) *SoExtDailyTrxWrap {
 	err := s.create(f)
 	if err != nil {
-		panic(fmt.Errorf("SoExtDailyTrxWrap.Create failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Errorf("SoExtDailyTrxWrap.Create failed: %s", err.Error()), errArgs...))
 	}
 	return s
 }
@@ -210,20 +210,20 @@ func (s *SoExtDailyTrxWrap) modify(f func(tInfo *SoExtDailyTrx)) error {
 
 }
 
-func (s *SoExtDailyTrxWrap) Modify(f func(tInfo *SoExtDailyTrx)) *SoExtDailyTrxWrap {
+func (s *SoExtDailyTrxWrap) Modify(f func(tInfo *SoExtDailyTrx), errArgs ...interface{}) *SoExtDailyTrxWrap {
 	err := s.modify(f)
 	if err != nil {
-		panic(fmt.Errorf("SoExtDailyTrxWrap.Modify failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoExtDailyTrxWrap.Modify failed: %s", err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoExtDailyTrxWrap) SetCount(p uint64) *SoExtDailyTrxWrap {
+func (s *SoExtDailyTrxWrap) SetCount(p uint64, errArgs ...interface{}) *SoExtDailyTrxWrap {
 	err := s.modify(func(r *SoExtDailyTrx) {
 		r.Count = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoExtDailyTrxWrap.SetCount( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoExtDailyTrxWrap.SetCount( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
@@ -437,10 +437,10 @@ func (s *SoExtDailyTrxWrap) removeExtDailyTrx() error {
 	}
 }
 
-func (s *SoExtDailyTrxWrap) RemoveExtDailyTrx() *SoExtDailyTrxWrap {
+func (s *SoExtDailyTrxWrap) RemoveExtDailyTrx(errMsgs ...interface{}) *SoExtDailyTrxWrap {
 	err := s.removeExtDailyTrx()
 	if err != nil {
-		panic(fmt.Errorf("SoExtDailyTrxWrap.RemoveExtDailyTrx failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoExtDailyTrxWrap.RemoveExtDailyTrx failed: %s", err.Error()), errMsgs...))
 	}
 	return s
 }

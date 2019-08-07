@@ -2,7 +2,7 @@ package table
 
 import (
 	"errors"
-	fmt "fmt"
+	"fmt"
 	"reflect"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
@@ -127,10 +127,10 @@ func (s *SoExtFollowCountWrap) create(f func(tInfo *SoExtFollowCount)) error {
 	return nil
 }
 
-func (s *SoExtFollowCountWrap) Create(f func(tInfo *SoExtFollowCount)) *SoExtFollowCountWrap {
+func (s *SoExtFollowCountWrap) Create(f func(tInfo *SoExtFollowCount), errArgs ...interface{}) *SoExtFollowCountWrap {
 	err := s.create(f)
 	if err != nil {
-		panic(fmt.Errorf("SoExtFollowCountWrap.Create failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Errorf("SoExtFollowCountWrap.Create failed: %s", err.Error()), errArgs...))
 	}
 	return s
 }
@@ -208,40 +208,40 @@ func (s *SoExtFollowCountWrap) modify(f func(tInfo *SoExtFollowCount)) error {
 
 }
 
-func (s *SoExtFollowCountWrap) Modify(f func(tInfo *SoExtFollowCount)) *SoExtFollowCountWrap {
+func (s *SoExtFollowCountWrap) Modify(f func(tInfo *SoExtFollowCount), errArgs ...interface{}) *SoExtFollowCountWrap {
 	err := s.modify(f)
 	if err != nil {
-		panic(fmt.Errorf("SoExtFollowCountWrap.Modify failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoExtFollowCountWrap.Modify failed: %s", err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoExtFollowCountWrap) SetFollowerCnt(p uint32) *SoExtFollowCountWrap {
+func (s *SoExtFollowCountWrap) SetFollowerCnt(p uint32, errArgs ...interface{}) *SoExtFollowCountWrap {
 	err := s.modify(func(r *SoExtFollowCount) {
 		r.FollowerCnt = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoExtFollowCountWrap.SetFollowerCnt( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoExtFollowCountWrap.SetFollowerCnt( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoExtFollowCountWrap) SetFollowingCnt(p uint32) *SoExtFollowCountWrap {
+func (s *SoExtFollowCountWrap) SetFollowingCnt(p uint32, errArgs ...interface{}) *SoExtFollowCountWrap {
 	err := s.modify(func(r *SoExtFollowCount) {
 		r.FollowingCnt = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoExtFollowCountWrap.SetFollowingCnt( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoExtFollowCountWrap.SetFollowingCnt( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoExtFollowCountWrap) SetUpdateTime(p *prototype.TimePointSec) *SoExtFollowCountWrap {
+func (s *SoExtFollowCountWrap) SetUpdateTime(p *prototype.TimePointSec, errArgs ...interface{}) *SoExtFollowCountWrap {
 	err := s.modify(func(r *SoExtFollowCount) {
 		r.UpdateTime = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoExtFollowCountWrap.SetUpdateTime( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoExtFollowCountWrap.SetUpdateTime( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
@@ -401,10 +401,10 @@ func (s *SoExtFollowCountWrap) removeExtFollowCount() error {
 	}
 }
 
-func (s *SoExtFollowCountWrap) RemoveExtFollowCount() *SoExtFollowCountWrap {
+func (s *SoExtFollowCountWrap) RemoveExtFollowCount(errMsgs ...interface{}) *SoExtFollowCountWrap {
 	err := s.removeExtFollowCount()
 	if err != nil {
-		panic(fmt.Errorf("SoExtFollowCountWrap.RemoveExtFollowCount failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoExtFollowCountWrap.RemoveExtFollowCount failed: %s", err.Error()), errMsgs...))
 	}
 	return s
 }

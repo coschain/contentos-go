@@ -2,7 +2,7 @@ package table
 
 import (
 	"errors"
-	fmt "fmt"
+	"fmt"
 	"reflect"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
@@ -124,10 +124,10 @@ func (s *SoReportListWrap) create(f func(tInfo *SoReportList)) error {
 	return nil
 }
 
-func (s *SoReportListWrap) Create(f func(tInfo *SoReportList)) *SoReportListWrap {
+func (s *SoReportListWrap) Create(f func(tInfo *SoReportList), errArgs ...interface{}) *SoReportListWrap {
 	err := s.create(f)
 	if err != nil {
-		panic(fmt.Errorf("SoReportListWrap.Create failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Errorf("SoReportListWrap.Create failed: %s", err.Error()), errArgs...))
 	}
 	return s
 }
@@ -205,40 +205,40 @@ func (s *SoReportListWrap) modify(f func(tInfo *SoReportList)) error {
 
 }
 
-func (s *SoReportListWrap) Modify(f func(tInfo *SoReportList)) *SoReportListWrap {
+func (s *SoReportListWrap) Modify(f func(tInfo *SoReportList), errArgs ...interface{}) *SoReportListWrap {
 	err := s.modify(f)
 	if err != nil {
-		panic(fmt.Errorf("SoReportListWrap.Modify failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoReportListWrap.Modify failed: %s", err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoReportListWrap) SetIsArbitrated(p bool) *SoReportListWrap {
+func (s *SoReportListWrap) SetIsArbitrated(p bool, errArgs ...interface{}) *SoReportListWrap {
 	err := s.modify(func(r *SoReportList) {
 		r.IsArbitrated = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoReportListWrap.SetIsArbitrated( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoReportListWrap.SetIsArbitrated( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoReportListWrap) SetReportedTimes(p uint32) *SoReportListWrap {
+func (s *SoReportListWrap) SetReportedTimes(p uint32, errArgs ...interface{}) *SoReportListWrap {
 	err := s.modify(func(r *SoReportList) {
 		r.ReportedTimes = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoReportListWrap.SetReportedTimes( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoReportListWrap.SetReportedTimes( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoReportListWrap) SetTags(p []int32) *SoReportListWrap {
+func (s *SoReportListWrap) SetTags(p []int32, errArgs ...interface{}) *SoReportListWrap {
 	err := s.modify(func(r *SoReportList) {
 		r.Tags = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoReportListWrap.SetTags( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoReportListWrap.SetTags( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
@@ -447,10 +447,10 @@ func (s *SoReportListWrap) removeReportList() error {
 	}
 }
 
-func (s *SoReportListWrap) RemoveReportList() *SoReportListWrap {
+func (s *SoReportListWrap) RemoveReportList(errMsgs ...interface{}) *SoReportListWrap {
 	err := s.removeReportList()
 	if err != nil {
-		panic(fmt.Errorf("SoReportListWrap.RemoveReportList failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoReportListWrap.RemoveReportList failed: %s", err.Error()), errMsgs...))
 	}
 	return s
 }

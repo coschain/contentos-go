@@ -2,7 +2,7 @@ package table
 
 import (
 	"errors"
-	fmt "fmt"
+	"fmt"
 	"reflect"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
@@ -128,10 +128,10 @@ func (s *SoExtFollowingWrap) create(f func(tInfo *SoExtFollowing)) error {
 	return nil
 }
 
-func (s *SoExtFollowingWrap) Create(f func(tInfo *SoExtFollowing)) *SoExtFollowingWrap {
+func (s *SoExtFollowingWrap) Create(f func(tInfo *SoExtFollowing), errArgs ...interface{}) *SoExtFollowingWrap {
 	err := s.create(f)
 	if err != nil {
-		panic(fmt.Errorf("SoExtFollowingWrap.Create failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Errorf("SoExtFollowingWrap.Create failed: %s", err.Error()), errArgs...))
 	}
 	return s
 }
@@ -209,20 +209,20 @@ func (s *SoExtFollowingWrap) modify(f func(tInfo *SoExtFollowing)) error {
 
 }
 
-func (s *SoExtFollowingWrap) Modify(f func(tInfo *SoExtFollowing)) *SoExtFollowingWrap {
+func (s *SoExtFollowingWrap) Modify(f func(tInfo *SoExtFollowing), errArgs ...interface{}) *SoExtFollowingWrap {
 	err := s.modify(f)
 	if err != nil {
-		panic(fmt.Errorf("SoExtFollowingWrap.Modify failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoExtFollowingWrap.Modify failed: %s", err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoExtFollowingWrap) SetFollowingCreatedOrder(p *prototype.FollowingCreatedOrder) *SoExtFollowingWrap {
+func (s *SoExtFollowingWrap) SetFollowingCreatedOrder(p *prototype.FollowingCreatedOrder, errArgs ...interface{}) *SoExtFollowingWrap {
 	err := s.modify(func(r *SoExtFollowing) {
 		r.FollowingCreatedOrder = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoExtFollowingWrap.SetFollowingCreatedOrder( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoExtFollowingWrap.SetFollowingCreatedOrder( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
@@ -394,10 +394,10 @@ func (s *SoExtFollowingWrap) removeExtFollowing() error {
 	}
 }
 
-func (s *SoExtFollowingWrap) RemoveExtFollowing() *SoExtFollowingWrap {
+func (s *SoExtFollowingWrap) RemoveExtFollowing(errMsgs ...interface{}) *SoExtFollowingWrap {
 	err := s.removeExtFollowing()
 	if err != nil {
-		panic(fmt.Errorf("SoExtFollowingWrap.RemoveExtFollowing failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoExtFollowingWrap.RemoveExtFollowing failed: %s", err.Error()), errMsgs...))
 	}
 	return s
 }

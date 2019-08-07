@@ -2,7 +2,7 @@ package table
 
 import (
 	"errors"
-	fmt "fmt"
+	"fmt"
 	"reflect"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
@@ -131,10 +131,10 @@ func (s *SoExtTrxWrap) create(f func(tInfo *SoExtTrx)) error {
 	return nil
 }
 
-func (s *SoExtTrxWrap) Create(f func(tInfo *SoExtTrx)) *SoExtTrxWrap {
+func (s *SoExtTrxWrap) Create(f func(tInfo *SoExtTrx), errArgs ...interface{}) *SoExtTrxWrap {
 	err := s.create(f)
 	if err != nil {
-		panic(fmt.Errorf("SoExtTrxWrap.Create failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Errorf("SoExtTrxWrap.Create failed: %s", err.Error()), errArgs...))
 	}
 	return s
 }
@@ -212,60 +212,60 @@ func (s *SoExtTrxWrap) modify(f func(tInfo *SoExtTrx)) error {
 
 }
 
-func (s *SoExtTrxWrap) Modify(f func(tInfo *SoExtTrx)) *SoExtTrxWrap {
+func (s *SoExtTrxWrap) Modify(f func(tInfo *SoExtTrx), errArgs ...interface{}) *SoExtTrxWrap {
 	err := s.modify(f)
 	if err != nil {
-		panic(fmt.Errorf("SoExtTrxWrap.Modify failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoExtTrxWrap.Modify failed: %s", err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoExtTrxWrap) SetBlockHeight(p uint64) *SoExtTrxWrap {
+func (s *SoExtTrxWrap) SetBlockHeight(p uint64, errArgs ...interface{}) *SoExtTrxWrap {
 	err := s.modify(func(r *SoExtTrx) {
 		r.BlockHeight = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoExtTrxWrap.SetBlockHeight( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoExtTrxWrap.SetBlockHeight( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoExtTrxWrap) SetBlockId(p *prototype.Sha256) *SoExtTrxWrap {
+func (s *SoExtTrxWrap) SetBlockId(p *prototype.Sha256, errArgs ...interface{}) *SoExtTrxWrap {
 	err := s.modify(func(r *SoExtTrx) {
 		r.BlockId = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoExtTrxWrap.SetBlockId( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoExtTrxWrap.SetBlockId( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoExtTrxWrap) SetBlockTime(p *prototype.TimePointSec) *SoExtTrxWrap {
+func (s *SoExtTrxWrap) SetBlockTime(p *prototype.TimePointSec, errArgs ...interface{}) *SoExtTrxWrap {
 	err := s.modify(func(r *SoExtTrx) {
 		r.BlockTime = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoExtTrxWrap.SetBlockTime( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoExtTrxWrap.SetBlockTime( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoExtTrxWrap) SetTrxCreateOrder(p *prototype.UserTrxCreateOrder) *SoExtTrxWrap {
+func (s *SoExtTrxWrap) SetTrxCreateOrder(p *prototype.UserTrxCreateOrder, errArgs ...interface{}) *SoExtTrxWrap {
 	err := s.modify(func(r *SoExtTrx) {
 		r.TrxCreateOrder = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoExtTrxWrap.SetTrxCreateOrder( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoExtTrxWrap.SetTrxCreateOrder( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoExtTrxWrap) SetTrxWrap(p *prototype.TransactionWrapper) *SoExtTrxWrap {
+func (s *SoExtTrxWrap) SetTrxWrap(p *prototype.TransactionWrapper, errArgs ...interface{}) *SoExtTrxWrap {
 	err := s.modify(func(r *SoExtTrx) {
 		r.TrxWrap = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoExtTrxWrap.SetTrxWrap( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoExtTrxWrap.SetTrxWrap( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
@@ -671,10 +671,10 @@ func (s *SoExtTrxWrap) removeExtTrx() error {
 	}
 }
 
-func (s *SoExtTrxWrap) RemoveExtTrx() *SoExtTrxWrap {
+func (s *SoExtTrxWrap) RemoveExtTrx(errMsgs ...interface{}) *SoExtTrxWrap {
 	err := s.removeExtTrx()
 	if err != nil {
-		panic(fmt.Errorf("SoExtTrxWrap.RemoveExtTrx failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoExtTrxWrap.RemoveExtTrx failed: %s", err.Error()), errMsgs...))
 	}
 	return s
 }

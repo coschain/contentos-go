@@ -2,7 +2,7 @@ package table
 
 import (
 	"errors"
-	fmt "fmt"
+	"fmt"
 	"reflect"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
@@ -125,10 +125,10 @@ func (s *SoExtUserPostWrap) create(f func(tInfo *SoExtUserPost)) error {
 	return nil
 }
 
-func (s *SoExtUserPostWrap) Create(f func(tInfo *SoExtUserPost)) *SoExtUserPostWrap {
+func (s *SoExtUserPostWrap) Create(f func(tInfo *SoExtUserPost), errArgs ...interface{}) *SoExtUserPostWrap {
 	err := s.create(f)
 	if err != nil {
-		panic(fmt.Errorf("SoExtUserPostWrap.Create failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Errorf("SoExtUserPostWrap.Create failed: %s", err.Error()), errArgs...))
 	}
 	return s
 }
@@ -206,20 +206,20 @@ func (s *SoExtUserPostWrap) modify(f func(tInfo *SoExtUserPost)) error {
 
 }
 
-func (s *SoExtUserPostWrap) Modify(f func(tInfo *SoExtUserPost)) *SoExtUserPostWrap {
+func (s *SoExtUserPostWrap) Modify(f func(tInfo *SoExtUserPost), errArgs ...interface{}) *SoExtUserPostWrap {
 	err := s.modify(f)
 	if err != nil {
-		panic(fmt.Errorf("SoExtUserPostWrap.Modify failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoExtUserPostWrap.Modify failed: %s", err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoExtUserPostWrap) SetPostCreatedOrder(p *prototype.UserPostCreateOrder) *SoExtUserPostWrap {
+func (s *SoExtUserPostWrap) SetPostCreatedOrder(p *prototype.UserPostCreateOrder, errArgs ...interface{}) *SoExtUserPostWrap {
 	err := s.modify(func(r *SoExtUserPost) {
 		r.PostCreatedOrder = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoExtUserPostWrap.SetPostCreatedOrder( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoExtUserPostWrap.SetPostCreatedOrder( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
@@ -390,10 +390,10 @@ func (s *SoExtUserPostWrap) removeExtUserPost() error {
 	}
 }
 
-func (s *SoExtUserPostWrap) RemoveExtUserPost() *SoExtUserPostWrap {
+func (s *SoExtUserPostWrap) RemoveExtUserPost(errMsgs ...interface{}) *SoExtUserPostWrap {
 	err := s.removeExtUserPost()
 	if err != nil {
-		panic(fmt.Errorf("SoExtUserPostWrap.RemoveExtUserPost failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoExtUserPostWrap.RemoveExtUserPost failed: %s", err.Error()), errMsgs...))
 	}
 	return s
 }

@@ -2,7 +2,7 @@ package table
 
 import (
 	"errors"
-	fmt "fmt"
+	"fmt"
 	"reflect"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
@@ -123,10 +123,10 @@ func (s *SoBlocktrxsWrap) create(f func(tInfo *SoBlocktrxs)) error {
 	return nil
 }
 
-func (s *SoBlocktrxsWrap) Create(f func(tInfo *SoBlocktrxs)) *SoBlocktrxsWrap {
+func (s *SoBlocktrxsWrap) Create(f func(tInfo *SoBlocktrxs), errArgs ...interface{}) *SoBlocktrxsWrap {
 	err := s.create(f)
 	if err != nil {
-		panic(fmt.Errorf("SoBlocktrxsWrap.Create failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Errorf("SoBlocktrxsWrap.Create failed: %s", err.Error()), errArgs...))
 	}
 	return s
 }
@@ -204,20 +204,20 @@ func (s *SoBlocktrxsWrap) modify(f func(tInfo *SoBlocktrxs)) error {
 
 }
 
-func (s *SoBlocktrxsWrap) Modify(f func(tInfo *SoBlocktrxs)) *SoBlocktrxsWrap {
+func (s *SoBlocktrxsWrap) Modify(f func(tInfo *SoBlocktrxs), errArgs ...interface{}) *SoBlocktrxsWrap {
 	err := s.modify(f)
 	if err != nil {
-		panic(fmt.Errorf("SoBlocktrxsWrap.Modify failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoBlocktrxsWrap.Modify failed: %s", err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoBlocktrxsWrap) SetTrxs(p []byte) *SoBlocktrxsWrap {
+func (s *SoBlocktrxsWrap) SetTrxs(p []byte, errArgs ...interface{}) *SoBlocktrxsWrap {
 	err := s.modify(func(r *SoBlocktrxs) {
 		r.Trxs = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoBlocktrxsWrap.SetTrxs( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoBlocktrxsWrap.SetTrxs( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
@@ -335,10 +335,10 @@ func (s *SoBlocktrxsWrap) removeBlocktrxs() error {
 	}
 }
 
-func (s *SoBlocktrxsWrap) RemoveBlocktrxs() *SoBlocktrxsWrap {
+func (s *SoBlocktrxsWrap) RemoveBlocktrxs(errMsgs ...interface{}) *SoBlocktrxsWrap {
 	err := s.removeBlocktrxs()
 	if err != nil {
-		panic(fmt.Errorf("SoBlocktrxsWrap.RemoveBlocktrxs failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoBlocktrxsWrap.RemoveBlocktrxs failed: %s", err.Error()), errMsgs...))
 	}
 	return s
 }

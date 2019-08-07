@@ -2,7 +2,7 @@ package table
 
 import (
 	"errors"
-	fmt "fmt"
+	"fmt"
 	"reflect"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
@@ -127,10 +127,10 @@ func (s *SoPostWrap) create(f func(tInfo *SoPost)) error {
 	return nil
 }
 
-func (s *SoPostWrap) Create(f func(tInfo *SoPost)) *SoPostWrap {
+func (s *SoPostWrap) Create(f func(tInfo *SoPost), errArgs ...interface{}) *SoPostWrap {
 	err := s.create(f)
 	if err != nil {
-		panic(fmt.Errorf("SoPostWrap.Create failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Errorf("SoPostWrap.Create failed: %s", err.Error()), errArgs...))
 	}
 	return s
 }
@@ -208,210 +208,210 @@ func (s *SoPostWrap) modify(f func(tInfo *SoPost)) error {
 
 }
 
-func (s *SoPostWrap) Modify(f func(tInfo *SoPost)) *SoPostWrap {
+func (s *SoPostWrap) Modify(f func(tInfo *SoPost), errArgs ...interface{}) *SoPostWrap {
 	err := s.modify(f)
 	if err != nil {
-		panic(fmt.Errorf("SoPostWrap.Modify failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoPostWrap.Modify failed: %s", err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoPostWrap) SetAuthor(p *prototype.AccountName) *SoPostWrap {
+func (s *SoPostWrap) SetAuthor(p *prototype.AccountName, errArgs ...interface{}) *SoPostWrap {
 	err := s.modify(func(r *SoPost) {
 		r.Author = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoPostWrap.SetAuthor( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoPostWrap.SetAuthor( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoPostWrap) SetBeneficiaries(p []*prototype.BeneficiaryRouteType) *SoPostWrap {
+func (s *SoPostWrap) SetBeneficiaries(p []*prototype.BeneficiaryRouteType, errArgs ...interface{}) *SoPostWrap {
 	err := s.modify(func(r *SoPost) {
 		r.Beneficiaries = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoPostWrap.SetBeneficiaries( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoPostWrap.SetBeneficiaries( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoPostWrap) SetBody(p string) *SoPostWrap {
+func (s *SoPostWrap) SetBody(p string, errArgs ...interface{}) *SoPostWrap {
 	err := s.modify(func(r *SoPost) {
 		r.Body = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoPostWrap.SetBody( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoPostWrap.SetBody( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoPostWrap) SetCashoutBlockNum(p uint64) *SoPostWrap {
+func (s *SoPostWrap) SetCashoutBlockNum(p uint64, errArgs ...interface{}) *SoPostWrap {
 	err := s.modify(func(r *SoPost) {
 		r.CashoutBlockNum = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoPostWrap.SetCashoutBlockNum( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoPostWrap.SetCashoutBlockNum( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoPostWrap) SetCategory(p string) *SoPostWrap {
+func (s *SoPostWrap) SetCategory(p string, errArgs ...interface{}) *SoPostWrap {
 	err := s.modify(func(r *SoPost) {
 		r.Category = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoPostWrap.SetCategory( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoPostWrap.SetCategory( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoPostWrap) SetChildren(p uint32) *SoPostWrap {
+func (s *SoPostWrap) SetChildren(p uint32, errArgs ...interface{}) *SoPostWrap {
 	err := s.modify(func(r *SoPost) {
 		r.Children = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoPostWrap.SetChildren( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoPostWrap.SetChildren( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoPostWrap) SetCopyright(p uint32) *SoPostWrap {
+func (s *SoPostWrap) SetCopyright(p uint32, errArgs ...interface{}) *SoPostWrap {
 	err := s.modify(func(r *SoPost) {
 		r.Copyright = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoPostWrap.SetCopyright( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoPostWrap.SetCopyright( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoPostWrap) SetCopyrightMemo(p string) *SoPostWrap {
+func (s *SoPostWrap) SetCopyrightMemo(p string, errArgs ...interface{}) *SoPostWrap {
 	err := s.modify(func(r *SoPost) {
 		r.CopyrightMemo = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoPostWrap.SetCopyrightMemo( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoPostWrap.SetCopyrightMemo( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoPostWrap) SetCreated(p *prototype.TimePointSec) *SoPostWrap {
+func (s *SoPostWrap) SetCreated(p *prototype.TimePointSec, errArgs ...interface{}) *SoPostWrap {
 	err := s.modify(func(r *SoPost) {
 		r.Created = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoPostWrap.SetCreated( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoPostWrap.SetCreated( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoPostWrap) SetDappRewards(p *prototype.Vest) *SoPostWrap {
+func (s *SoPostWrap) SetDappRewards(p *prototype.Vest, errArgs ...interface{}) *SoPostWrap {
 	err := s.modify(func(r *SoPost) {
 		r.DappRewards = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoPostWrap.SetDappRewards( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoPostWrap.SetDappRewards( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoPostWrap) SetDepth(p uint32) *SoPostWrap {
+func (s *SoPostWrap) SetDepth(p uint32, errArgs ...interface{}) *SoPostWrap {
 	err := s.modify(func(r *SoPost) {
 		r.Depth = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoPostWrap.SetDepth( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoPostWrap.SetDepth( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoPostWrap) SetLastPayout(p *prototype.TimePointSec) *SoPostWrap {
+func (s *SoPostWrap) SetLastPayout(p *prototype.TimePointSec, errArgs ...interface{}) *SoPostWrap {
 	err := s.modify(func(r *SoPost) {
 		r.LastPayout = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoPostWrap.SetLastPayout( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoPostWrap.SetLastPayout( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoPostWrap) SetParentId(p uint64) *SoPostWrap {
+func (s *SoPostWrap) SetParentId(p uint64, errArgs ...interface{}) *SoPostWrap {
 	err := s.modify(func(r *SoPost) {
 		r.ParentId = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoPostWrap.SetParentId( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoPostWrap.SetParentId( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoPostWrap) SetRewards(p *prototype.Vest) *SoPostWrap {
+func (s *SoPostWrap) SetRewards(p *prototype.Vest, errArgs ...interface{}) *SoPostWrap {
 	err := s.modify(func(r *SoPost) {
 		r.Rewards = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoPostWrap.SetRewards( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoPostWrap.SetRewards( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoPostWrap) SetRootId(p uint64) *SoPostWrap {
+func (s *SoPostWrap) SetRootId(p uint64, errArgs ...interface{}) *SoPostWrap {
 	err := s.modify(func(r *SoPost) {
 		r.RootId = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoPostWrap.SetRootId( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoPostWrap.SetRootId( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoPostWrap) SetTags(p []string) *SoPostWrap {
+func (s *SoPostWrap) SetTags(p []string, errArgs ...interface{}) *SoPostWrap {
 	err := s.modify(func(r *SoPost) {
 		r.Tags = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoPostWrap.SetTags( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoPostWrap.SetTags( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoPostWrap) SetTicket(p uint32) *SoPostWrap {
+func (s *SoPostWrap) SetTicket(p uint32, errArgs ...interface{}) *SoPostWrap {
 	err := s.modify(func(r *SoPost) {
 		r.Ticket = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoPostWrap.SetTicket( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoPostWrap.SetTicket( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoPostWrap) SetTitle(p string) *SoPostWrap {
+func (s *SoPostWrap) SetTitle(p string, errArgs ...interface{}) *SoPostWrap {
 	err := s.modify(func(r *SoPost) {
 		r.Title = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoPostWrap.SetTitle( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoPostWrap.SetTitle( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoPostWrap) SetVoteCnt(p uint64) *SoPostWrap {
+func (s *SoPostWrap) SetVoteCnt(p uint64, errArgs ...interface{}) *SoPostWrap {
 	err := s.modify(func(r *SoPost) {
 		r.VoteCnt = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoPostWrap.SetVoteCnt( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoPostWrap.SetVoteCnt( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoPostWrap) SetWeightedVp(p string) *SoPostWrap {
+func (s *SoPostWrap) SetWeightedVp(p string, errArgs ...interface{}) *SoPostWrap {
 	err := s.modify(func(r *SoPost) {
 		r.WeightedVp = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoPostWrap.SetWeightedVp( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoPostWrap.SetWeightedVp( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
@@ -1083,10 +1083,10 @@ func (s *SoPostWrap) removePost() error {
 	}
 }
 
-func (s *SoPostWrap) RemovePost() *SoPostWrap {
+func (s *SoPostWrap) RemovePost(errMsgs ...interface{}) *SoPostWrap {
 	err := s.removePost()
 	if err != nil {
-		panic(fmt.Errorf("SoPostWrap.RemovePost failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoPostWrap.RemovePost failed: %s", err.Error()), errMsgs...))
 	}
 	return s
 }

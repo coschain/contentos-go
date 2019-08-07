@@ -1,6 +1,7 @@
 package table
 
 import (
+	"fmt"
 	"strings"
 	"unicode"
 )
@@ -32,4 +33,15 @@ func UpperFirstChar(str string) string {
 		return string(unicode.ToUpper(v)) + str[i+1:]
 	}
 	return str
+}
+
+func bindErrorInfo(what interface{}, customs...interface{}) error {
+	customMsg := ""
+	if len(customs) > 0 {
+		customMsg = fmt.Sprint(customs...)
+	}
+	if len(customMsg) > 0 {
+		customMsg += ": "
+	}
+	return fmt.Errorf("%s%v", customMsg, what)
 }

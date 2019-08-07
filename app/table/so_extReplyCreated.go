@@ -2,7 +2,7 @@ package table
 
 import (
 	"errors"
-	fmt "fmt"
+	"fmt"
 	"reflect"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
@@ -125,10 +125,10 @@ func (s *SoExtReplyCreatedWrap) create(f func(tInfo *SoExtReplyCreated)) error {
 	return nil
 }
 
-func (s *SoExtReplyCreatedWrap) Create(f func(tInfo *SoExtReplyCreated)) *SoExtReplyCreatedWrap {
+func (s *SoExtReplyCreatedWrap) Create(f func(tInfo *SoExtReplyCreated), errArgs ...interface{}) *SoExtReplyCreatedWrap {
 	err := s.create(f)
 	if err != nil {
-		panic(fmt.Errorf("SoExtReplyCreatedWrap.Create failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Errorf("SoExtReplyCreatedWrap.Create failed: %s", err.Error()), errArgs...))
 	}
 	return s
 }
@@ -206,20 +206,20 @@ func (s *SoExtReplyCreatedWrap) modify(f func(tInfo *SoExtReplyCreated)) error {
 
 }
 
-func (s *SoExtReplyCreatedWrap) Modify(f func(tInfo *SoExtReplyCreated)) *SoExtReplyCreatedWrap {
+func (s *SoExtReplyCreatedWrap) Modify(f func(tInfo *SoExtReplyCreated), errArgs ...interface{}) *SoExtReplyCreatedWrap {
 	err := s.modify(f)
 	if err != nil {
-		panic(fmt.Errorf("SoExtReplyCreatedWrap.Modify failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoExtReplyCreatedWrap.Modify failed: %s", err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoExtReplyCreatedWrap) SetCreatedOrder(p *prototype.ReplyCreatedOrder) *SoExtReplyCreatedWrap {
+func (s *SoExtReplyCreatedWrap) SetCreatedOrder(p *prototype.ReplyCreatedOrder, errArgs ...interface{}) *SoExtReplyCreatedWrap {
 	err := s.modify(func(r *SoExtReplyCreated) {
 		r.CreatedOrder = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoExtReplyCreatedWrap.SetCreatedOrder( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoExtReplyCreatedWrap.SetCreatedOrder( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
@@ -390,10 +390,10 @@ func (s *SoExtReplyCreatedWrap) removeExtReplyCreated() error {
 	}
 }
 
-func (s *SoExtReplyCreatedWrap) RemoveExtReplyCreated() *SoExtReplyCreatedWrap {
+func (s *SoExtReplyCreatedWrap) RemoveExtReplyCreated(errMsgs ...interface{}) *SoExtReplyCreatedWrap {
 	err := s.removeExtReplyCreated()
 	if err != nil {
-		panic(fmt.Errorf("SoExtReplyCreatedWrap.RemoveExtReplyCreated failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoExtReplyCreatedWrap.RemoveExtReplyCreated failed: %s", err.Error()), errMsgs...))
 	}
 	return s
 }

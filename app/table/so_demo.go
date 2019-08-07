@@ -2,7 +2,7 @@ package table
 
 import (
 	"errors"
-	fmt "fmt"
+	"fmt"
 	"reflect"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
@@ -136,10 +136,10 @@ func (s *SoDemoWrap) create(f func(tInfo *SoDemo)) error {
 	return nil
 }
 
-func (s *SoDemoWrap) Create(f func(tInfo *SoDemo)) *SoDemoWrap {
+func (s *SoDemoWrap) Create(f func(tInfo *SoDemo), errArgs ...interface{}) *SoDemoWrap {
 	err := s.create(f)
 	if err != nil {
-		panic(fmt.Errorf("SoDemoWrap.Create failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Errorf("SoDemoWrap.Create failed: %s", err.Error()), errArgs...))
 	}
 	return s
 }
@@ -217,100 +217,100 @@ func (s *SoDemoWrap) modify(f func(tInfo *SoDemo)) error {
 
 }
 
-func (s *SoDemoWrap) Modify(f func(tInfo *SoDemo)) *SoDemoWrap {
+func (s *SoDemoWrap) Modify(f func(tInfo *SoDemo), errArgs ...interface{}) *SoDemoWrap {
 	err := s.modify(f)
 	if err != nil {
-		panic(fmt.Errorf("SoDemoWrap.Modify failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoDemoWrap.Modify failed: %s", err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoDemoWrap) SetContent(p string) *SoDemoWrap {
+func (s *SoDemoWrap) SetContent(p string, errArgs ...interface{}) *SoDemoWrap {
 	err := s.modify(func(r *SoDemo) {
 		r.Content = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoDemoWrap.SetContent( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoDemoWrap.SetContent( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoDemoWrap) SetIdx(p int64) *SoDemoWrap {
+func (s *SoDemoWrap) SetIdx(p int64, errArgs ...interface{}) *SoDemoWrap {
 	err := s.modify(func(r *SoDemo) {
 		r.Idx = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoDemoWrap.SetIdx( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoDemoWrap.SetIdx( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoDemoWrap) SetLikeCount(p int64) *SoDemoWrap {
+func (s *SoDemoWrap) SetLikeCount(p int64, errArgs ...interface{}) *SoDemoWrap {
 	err := s.modify(func(r *SoDemo) {
 		r.LikeCount = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoDemoWrap.SetLikeCount( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoDemoWrap.SetLikeCount( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoDemoWrap) SetNickName(p *prototype.AccountName) *SoDemoWrap {
+func (s *SoDemoWrap) SetNickName(p *prototype.AccountName, errArgs ...interface{}) *SoDemoWrap {
 	err := s.modify(func(r *SoDemo) {
 		r.NickName = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoDemoWrap.SetNickName( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoDemoWrap.SetNickName( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoDemoWrap) SetPostTime(p *prototype.TimePointSec) *SoDemoWrap {
+func (s *SoDemoWrap) SetPostTime(p *prototype.TimePointSec, errArgs ...interface{}) *SoDemoWrap {
 	err := s.modify(func(r *SoDemo) {
 		r.PostTime = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoDemoWrap.SetPostTime( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoDemoWrap.SetPostTime( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoDemoWrap) SetRegistTime(p *prototype.TimePointSec) *SoDemoWrap {
+func (s *SoDemoWrap) SetRegistTime(p *prototype.TimePointSec, errArgs ...interface{}) *SoDemoWrap {
 	err := s.modify(func(r *SoDemo) {
 		r.RegistTime = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoDemoWrap.SetRegistTime( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoDemoWrap.SetRegistTime( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoDemoWrap) SetReplayCount(p int64) *SoDemoWrap {
+func (s *SoDemoWrap) SetReplayCount(p int64, errArgs ...interface{}) *SoDemoWrap {
 	err := s.modify(func(r *SoDemo) {
 		r.ReplayCount = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoDemoWrap.SetReplayCount( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoDemoWrap.SetReplayCount( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoDemoWrap) SetTaglist(p []string) *SoDemoWrap {
+func (s *SoDemoWrap) SetTaglist(p []string, errArgs ...interface{}) *SoDemoWrap {
 	err := s.modify(func(r *SoDemo) {
 		r.Taglist = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoDemoWrap.SetTaglist( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoDemoWrap.SetTaglist( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoDemoWrap) SetTitle(p string) *SoDemoWrap {
+func (s *SoDemoWrap) SetTitle(p string, errArgs ...interface{}) *SoDemoWrap {
 	err := s.modify(func(r *SoDemo) {
 		r.Title = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoDemoWrap.SetTitle( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoDemoWrap.SetTitle( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
@@ -900,10 +900,10 @@ func (s *SoDemoWrap) removeDemo() error {
 	}
 }
 
-func (s *SoDemoWrap) RemoveDemo() *SoDemoWrap {
+func (s *SoDemoWrap) RemoveDemo(errMsgs ...interface{}) *SoDemoWrap {
 	err := s.removeDemo()
 	if err != nil {
-		panic(fmt.Errorf("SoDemoWrap.RemoveDemo failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoDemoWrap.RemoveDemo failed: %s", err.Error()), errMsgs...))
 	}
 	return s
 }

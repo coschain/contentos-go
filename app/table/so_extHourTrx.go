@@ -2,7 +2,7 @@ package table
 
 import (
 	"errors"
-	fmt "fmt"
+	"fmt"
 	"reflect"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
@@ -129,10 +129,10 @@ func (s *SoExtHourTrxWrap) create(f func(tInfo *SoExtHourTrx)) error {
 	return nil
 }
 
-func (s *SoExtHourTrxWrap) Create(f func(tInfo *SoExtHourTrx)) *SoExtHourTrxWrap {
+func (s *SoExtHourTrxWrap) Create(f func(tInfo *SoExtHourTrx), errArgs ...interface{}) *SoExtHourTrxWrap {
 	err := s.create(f)
 	if err != nil {
-		panic(fmt.Errorf("SoExtHourTrxWrap.Create failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Errorf("SoExtHourTrxWrap.Create failed: %s", err.Error()), errArgs...))
 	}
 	return s
 }
@@ -210,20 +210,20 @@ func (s *SoExtHourTrxWrap) modify(f func(tInfo *SoExtHourTrx)) error {
 
 }
 
-func (s *SoExtHourTrxWrap) Modify(f func(tInfo *SoExtHourTrx)) *SoExtHourTrxWrap {
+func (s *SoExtHourTrxWrap) Modify(f func(tInfo *SoExtHourTrx), errArgs ...interface{}) *SoExtHourTrxWrap {
 	err := s.modify(f)
 	if err != nil {
-		panic(fmt.Errorf("SoExtHourTrxWrap.Modify failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoExtHourTrxWrap.Modify failed: %s", err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoExtHourTrxWrap) SetCount(p uint64) *SoExtHourTrxWrap {
+func (s *SoExtHourTrxWrap) SetCount(p uint64, errArgs ...interface{}) *SoExtHourTrxWrap {
 	err := s.modify(func(r *SoExtHourTrx) {
 		r.Count = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoExtHourTrxWrap.SetCount( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoExtHourTrxWrap.SetCount( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
@@ -437,10 +437,10 @@ func (s *SoExtHourTrxWrap) removeExtHourTrx() error {
 	}
 }
 
-func (s *SoExtHourTrxWrap) RemoveExtHourTrx() *SoExtHourTrxWrap {
+func (s *SoExtHourTrxWrap) RemoveExtHourTrx(errMsgs ...interface{}) *SoExtHourTrxWrap {
 	err := s.removeExtHourTrx()
 	if err != nil {
-		panic(fmt.Errorf("SoExtHourTrxWrap.RemoveExtHourTrx failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoExtHourTrxWrap.RemoveExtHourTrx failed: %s", err.Error()), errMsgs...))
 	}
 	return s
 }

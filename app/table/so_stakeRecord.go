@@ -2,7 +2,7 @@ package table
 
 import (
 	"errors"
-	fmt "fmt"
+	"fmt"
 	"reflect"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
@@ -129,10 +129,10 @@ func (s *SoStakeRecordWrap) create(f func(tInfo *SoStakeRecord)) error {
 	return nil
 }
 
-func (s *SoStakeRecordWrap) Create(f func(tInfo *SoStakeRecord)) *SoStakeRecordWrap {
+func (s *SoStakeRecordWrap) Create(f func(tInfo *SoStakeRecord), errArgs ...interface{}) *SoStakeRecordWrap {
 	err := s.create(f)
 	if err != nil {
-		panic(fmt.Errorf("SoStakeRecordWrap.Create failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Errorf("SoStakeRecordWrap.Create failed: %s", err.Error()), errArgs...))
 	}
 	return s
 }
@@ -210,40 +210,40 @@ func (s *SoStakeRecordWrap) modify(f func(tInfo *SoStakeRecord)) error {
 
 }
 
-func (s *SoStakeRecordWrap) Modify(f func(tInfo *SoStakeRecord)) *SoStakeRecordWrap {
+func (s *SoStakeRecordWrap) Modify(f func(tInfo *SoStakeRecord), errArgs ...interface{}) *SoStakeRecordWrap {
 	err := s.modify(f)
 	if err != nil {
-		panic(fmt.Errorf("SoStakeRecordWrap.Modify failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoStakeRecordWrap.Modify failed: %s", err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoStakeRecordWrap) SetLastStakeTime(p *prototype.TimePointSec) *SoStakeRecordWrap {
+func (s *SoStakeRecordWrap) SetLastStakeTime(p *prototype.TimePointSec, errArgs ...interface{}) *SoStakeRecordWrap {
 	err := s.modify(func(r *SoStakeRecord) {
 		r.LastStakeTime = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoStakeRecordWrap.SetLastStakeTime( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoStakeRecordWrap.SetLastStakeTime( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoStakeRecordWrap) SetRecordReverse(p *prototype.StakeRecordReverse) *SoStakeRecordWrap {
+func (s *SoStakeRecordWrap) SetRecordReverse(p *prototype.StakeRecordReverse, errArgs ...interface{}) *SoStakeRecordWrap {
 	err := s.modify(func(r *SoStakeRecord) {
 		r.RecordReverse = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoStakeRecordWrap.SetRecordReverse( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoStakeRecordWrap.SetRecordReverse( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoStakeRecordWrap) SetStakeAmount(p *prototype.Vest) *SoStakeRecordWrap {
+func (s *SoStakeRecordWrap) SetStakeAmount(p *prototype.Vest, errArgs ...interface{}) *SoStakeRecordWrap {
 	err := s.modify(func(r *SoStakeRecord) {
 		r.StakeAmount = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoStakeRecordWrap.SetStakeAmount( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoStakeRecordWrap.SetStakeAmount( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
@@ -503,10 +503,10 @@ func (s *SoStakeRecordWrap) removeStakeRecord() error {
 	}
 }
 
-func (s *SoStakeRecordWrap) RemoveStakeRecord() *SoStakeRecordWrap {
+func (s *SoStakeRecordWrap) RemoveStakeRecord(errMsgs ...interface{}) *SoStakeRecordWrap {
 	err := s.removeStakeRecord()
 	if err != nil {
-		panic(fmt.Errorf("SoStakeRecordWrap.RemoveStakeRecord failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoStakeRecordWrap.RemoveStakeRecord failed: %s", err.Error()), errMsgs...))
 	}
 	return s
 }

@@ -2,7 +2,7 @@ package table
 
 import (
 	"errors"
-	fmt "fmt"
+	"fmt"
 	"reflect"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
@@ -129,10 +129,10 @@ func (s *SoBlockProducerVoteWrap) create(f func(tInfo *SoBlockProducerVote)) err
 	return nil
 }
 
-func (s *SoBlockProducerVoteWrap) Create(f func(tInfo *SoBlockProducerVote)) *SoBlockProducerVoteWrap {
+func (s *SoBlockProducerVoteWrap) Create(f func(tInfo *SoBlockProducerVote), errArgs ...interface{}) *SoBlockProducerVoteWrap {
 	err := s.create(f)
 	if err != nil {
-		panic(fmt.Errorf("SoBlockProducerVoteWrap.Create failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Errorf("SoBlockProducerVoteWrap.Create failed: %s", err.Error()), errArgs...))
 	}
 	return s
 }
@@ -210,30 +210,30 @@ func (s *SoBlockProducerVoteWrap) modify(f func(tInfo *SoBlockProducerVote)) err
 
 }
 
-func (s *SoBlockProducerVoteWrap) Modify(f func(tInfo *SoBlockProducerVote)) *SoBlockProducerVoteWrap {
+func (s *SoBlockProducerVoteWrap) Modify(f func(tInfo *SoBlockProducerVote), errArgs ...interface{}) *SoBlockProducerVoteWrap {
 	err := s.modify(f)
 	if err != nil {
-		panic(fmt.Errorf("SoBlockProducerVoteWrap.Modify failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoBlockProducerVoteWrap.Modify failed: %s", err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoBlockProducerVoteWrap) SetVoteTime(p *prototype.TimePointSec) *SoBlockProducerVoteWrap {
+func (s *SoBlockProducerVoteWrap) SetVoteTime(p *prototype.TimePointSec, errArgs ...interface{}) *SoBlockProducerVoteWrap {
 	err := s.modify(func(r *SoBlockProducerVote) {
 		r.VoteTime = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoBlockProducerVoteWrap.SetVoteTime( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoBlockProducerVoteWrap.SetVoteTime( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoBlockProducerVoteWrap) SetVoterName(p *prototype.AccountName) *SoBlockProducerVoteWrap {
+func (s *SoBlockProducerVoteWrap) SetVoterName(p *prototype.AccountName, errArgs ...interface{}) *SoBlockProducerVoteWrap {
 	err := s.modify(func(r *SoBlockProducerVote) {
 		r.VoterName = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoBlockProducerVoteWrap.SetVoterName( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoBlockProducerVoteWrap.SetVoterName( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
@@ -422,10 +422,10 @@ func (s *SoBlockProducerVoteWrap) removeBlockProducerVote() error {
 	}
 }
 
-func (s *SoBlockProducerVoteWrap) RemoveBlockProducerVote() *SoBlockProducerVoteWrap {
+func (s *SoBlockProducerVoteWrap) RemoveBlockProducerVote(errMsgs ...interface{}) *SoBlockProducerVoteWrap {
 	err := s.removeBlockProducerVote()
 	if err != nil {
-		panic(fmt.Errorf("SoBlockProducerVoteWrap.RemoveBlockProducerVote failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoBlockProducerVoteWrap.RemoveBlockProducerVote failed: %s", err.Error()), errMsgs...))
 	}
 	return s
 }

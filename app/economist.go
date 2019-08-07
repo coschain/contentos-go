@@ -178,7 +178,7 @@ func (e *Economist) Distribute(trxObserver iservices.ITrxObserver) {
 		if wrap.CheckExist() {
 			wrap.SetExpireBlock(current + globalProps.GetEpochDuration())
 		} else {
-			err = wrap.Create(func(tInfo *table.SoGiftTicket) {
+			wrap.Create(func(tInfo *table.SoGiftTicket) {
 				tInfo.Ticket = key
 				tInfo.Denom = globalProps.PerTicketWeight
 				tInfo.Count = 1

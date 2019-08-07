@@ -2,7 +2,7 @@ package table
 
 import (
 	"errors"
-	fmt "fmt"
+	"fmt"
 	"reflect"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
@@ -124,10 +124,10 @@ func (s *SoBlockProducerScheduleObjectWrap) create(f func(tInfo *SoBlockProducer
 	return nil
 }
 
-func (s *SoBlockProducerScheduleObjectWrap) Create(f func(tInfo *SoBlockProducerScheduleObject)) *SoBlockProducerScheduleObjectWrap {
+func (s *SoBlockProducerScheduleObjectWrap) Create(f func(tInfo *SoBlockProducerScheduleObject), errArgs ...interface{}) *SoBlockProducerScheduleObjectWrap {
 	err := s.create(f)
 	if err != nil {
-		panic(fmt.Errorf("SoBlockProducerScheduleObjectWrap.Create failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Errorf("SoBlockProducerScheduleObjectWrap.Create failed: %s", err.Error()), errArgs...))
 	}
 	return s
 }
@@ -205,30 +205,30 @@ func (s *SoBlockProducerScheduleObjectWrap) modify(f func(tInfo *SoBlockProducer
 
 }
 
-func (s *SoBlockProducerScheduleObjectWrap) Modify(f func(tInfo *SoBlockProducerScheduleObject)) *SoBlockProducerScheduleObjectWrap {
+func (s *SoBlockProducerScheduleObjectWrap) Modify(f func(tInfo *SoBlockProducerScheduleObject), errArgs ...interface{}) *SoBlockProducerScheduleObjectWrap {
 	err := s.modify(f)
 	if err != nil {
-		panic(fmt.Errorf("SoBlockProducerScheduleObjectWrap.Modify failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoBlockProducerScheduleObjectWrap.Modify failed: %s", err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoBlockProducerScheduleObjectWrap) SetCurrentShuffledBlockProducer(p []string) *SoBlockProducerScheduleObjectWrap {
+func (s *SoBlockProducerScheduleObjectWrap) SetCurrentShuffledBlockProducer(p []string, errArgs ...interface{}) *SoBlockProducerScheduleObjectWrap {
 	err := s.modify(func(r *SoBlockProducerScheduleObject) {
 		r.CurrentShuffledBlockProducer = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoBlockProducerScheduleObjectWrap.SetCurrentShuffledBlockProducer( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoBlockProducerScheduleObjectWrap.SetCurrentShuffledBlockProducer( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoBlockProducerScheduleObjectWrap) SetPubKey(p []*prototype.PublicKeyType) *SoBlockProducerScheduleObjectWrap {
+func (s *SoBlockProducerScheduleObjectWrap) SetPubKey(p []*prototype.PublicKeyType, errArgs ...interface{}) *SoBlockProducerScheduleObjectWrap {
 	err := s.modify(func(r *SoBlockProducerScheduleObject) {
 		r.PubKey = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoBlockProducerScheduleObjectWrap.SetPubKey( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoBlockProducerScheduleObjectWrap.SetPubKey( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
@@ -367,10 +367,10 @@ func (s *SoBlockProducerScheduleObjectWrap) removeBlockProducerScheduleObject() 
 	}
 }
 
-func (s *SoBlockProducerScheduleObjectWrap) RemoveBlockProducerScheduleObject() *SoBlockProducerScheduleObjectWrap {
+func (s *SoBlockProducerScheduleObjectWrap) RemoveBlockProducerScheduleObject(errMsgs ...interface{}) *SoBlockProducerScheduleObjectWrap {
 	err := s.removeBlockProducerScheduleObject()
 	if err != nil {
-		panic(fmt.Errorf("SoBlockProducerScheduleObjectWrap.RemoveBlockProducerScheduleObject failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoBlockProducerScheduleObjectWrap.RemoveBlockProducerScheduleObject failed: %s", err.Error()), errMsgs...))
 	}
 	return s
 }

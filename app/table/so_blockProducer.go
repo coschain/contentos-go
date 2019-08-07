@@ -2,7 +2,7 @@ package table
 
 import (
 	"errors"
-	fmt "fmt"
+	"fmt"
 	"reflect"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
@@ -129,10 +129,10 @@ func (s *SoBlockProducerWrap) create(f func(tInfo *SoBlockProducer)) error {
 	return nil
 }
 
-func (s *SoBlockProducerWrap) Create(f func(tInfo *SoBlockProducer)) *SoBlockProducerWrap {
+func (s *SoBlockProducerWrap) Create(f func(tInfo *SoBlockProducer), errArgs ...interface{}) *SoBlockProducerWrap {
 	err := s.create(f)
 	if err != nil {
-		panic(fmt.Errorf("SoBlockProducerWrap.Create failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Errorf("SoBlockProducerWrap.Create failed: %s", err.Error()), errArgs...))
 	}
 	return s
 }
@@ -210,130 +210,130 @@ func (s *SoBlockProducerWrap) modify(f func(tInfo *SoBlockProducer)) error {
 
 }
 
-func (s *SoBlockProducerWrap) Modify(f func(tInfo *SoBlockProducer)) *SoBlockProducerWrap {
+func (s *SoBlockProducerWrap) Modify(f func(tInfo *SoBlockProducer), errArgs ...interface{}) *SoBlockProducerWrap {
 	err := s.modify(f)
 	if err != nil {
-		panic(fmt.Errorf("SoBlockProducerWrap.Modify failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoBlockProducerWrap.Modify failed: %s", err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoBlockProducerWrap) SetAccountCreateFee(p *prototype.Coin) *SoBlockProducerWrap {
+func (s *SoBlockProducerWrap) SetAccountCreateFee(p *prototype.Coin, errArgs ...interface{}) *SoBlockProducerWrap {
 	err := s.modify(func(r *SoBlockProducer) {
 		r.AccountCreateFee = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoBlockProducerWrap.SetAccountCreateFee( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoBlockProducerWrap.SetAccountCreateFee( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoBlockProducerWrap) SetBpVest(p *prototype.BpVestId) *SoBlockProducerWrap {
+func (s *SoBlockProducerWrap) SetBpVest(p *prototype.BpVestId, errArgs ...interface{}) *SoBlockProducerWrap {
 	err := s.modify(func(r *SoBlockProducer) {
 		r.BpVest = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoBlockProducerWrap.SetBpVest( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoBlockProducerWrap.SetBpVest( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoBlockProducerWrap) SetCreatedTime(p *prototype.TimePointSec) *SoBlockProducerWrap {
+func (s *SoBlockProducerWrap) SetCreatedTime(p *prototype.TimePointSec, errArgs ...interface{}) *SoBlockProducerWrap {
 	err := s.modify(func(r *SoBlockProducer) {
 		r.CreatedTime = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoBlockProducerWrap.SetCreatedTime( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoBlockProducerWrap.SetCreatedTime( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoBlockProducerWrap) SetEpochDuration(p uint64) *SoBlockProducerWrap {
+func (s *SoBlockProducerWrap) SetEpochDuration(p uint64, errArgs ...interface{}) *SoBlockProducerWrap {
 	err := s.modify(func(r *SoBlockProducer) {
 		r.EpochDuration = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoBlockProducerWrap.SetEpochDuration( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoBlockProducerWrap.SetEpochDuration( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoBlockProducerWrap) SetPerTicketPrice(p *prototype.Coin) *SoBlockProducerWrap {
+func (s *SoBlockProducerWrap) SetPerTicketPrice(p *prototype.Coin, errArgs ...interface{}) *SoBlockProducerWrap {
 	err := s.modify(func(r *SoBlockProducer) {
 		r.PerTicketPrice = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoBlockProducerWrap.SetPerTicketPrice( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoBlockProducerWrap.SetPerTicketPrice( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoBlockProducerWrap) SetPerTicketWeight(p uint64) *SoBlockProducerWrap {
+func (s *SoBlockProducerWrap) SetPerTicketWeight(p uint64, errArgs ...interface{}) *SoBlockProducerWrap {
 	err := s.modify(func(r *SoBlockProducer) {
 		r.PerTicketWeight = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoBlockProducerWrap.SetPerTicketWeight( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoBlockProducerWrap.SetPerTicketWeight( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoBlockProducerWrap) SetProposedStaminaFree(p uint64) *SoBlockProducerWrap {
+func (s *SoBlockProducerWrap) SetProposedStaminaFree(p uint64, errArgs ...interface{}) *SoBlockProducerWrap {
 	err := s.modify(func(r *SoBlockProducer) {
 		r.ProposedStaminaFree = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoBlockProducerWrap.SetProposedStaminaFree( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoBlockProducerWrap.SetProposedStaminaFree( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoBlockProducerWrap) SetSigningKey(p *prototype.PublicKeyType) *SoBlockProducerWrap {
+func (s *SoBlockProducerWrap) SetSigningKey(p *prototype.PublicKeyType, errArgs ...interface{}) *SoBlockProducerWrap {
 	err := s.modify(func(r *SoBlockProducer) {
 		r.SigningKey = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoBlockProducerWrap.SetSigningKey( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoBlockProducerWrap.SetSigningKey( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoBlockProducerWrap) SetTopNAcquireFreeToken(p uint32) *SoBlockProducerWrap {
+func (s *SoBlockProducerWrap) SetTopNAcquireFreeToken(p uint32, errArgs ...interface{}) *SoBlockProducerWrap {
 	err := s.modify(func(r *SoBlockProducer) {
 		r.TopNAcquireFreeToken = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoBlockProducerWrap.SetTopNAcquireFreeToken( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoBlockProducerWrap.SetTopNAcquireFreeToken( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoBlockProducerWrap) SetTpsExpected(p uint64) *SoBlockProducerWrap {
+func (s *SoBlockProducerWrap) SetTpsExpected(p uint64, errArgs ...interface{}) *SoBlockProducerWrap {
 	err := s.modify(func(r *SoBlockProducer) {
 		r.TpsExpected = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoBlockProducerWrap.SetTpsExpected( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoBlockProducerWrap.SetTpsExpected( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoBlockProducerWrap) SetUrl(p string) *SoBlockProducerWrap {
+func (s *SoBlockProducerWrap) SetUrl(p string, errArgs ...interface{}) *SoBlockProducerWrap {
 	err := s.modify(func(r *SoBlockProducer) {
 		r.Url = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoBlockProducerWrap.SetUrl( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoBlockProducerWrap.SetUrl( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoBlockProducerWrap) SetVoterCount(p uint64) *SoBlockProducerWrap {
+func (s *SoBlockProducerWrap) SetVoterCount(p uint64, errArgs ...interface{}) *SoBlockProducerWrap {
 	err := s.modify(func(r *SoBlockProducer) {
 		r.VoterCount = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoBlockProducerWrap.SetVoterCount( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoBlockProducerWrap.SetVoterCount( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
@@ -782,10 +782,10 @@ func (s *SoBlockProducerWrap) removeBlockProducer() error {
 	}
 }
 
-func (s *SoBlockProducerWrap) RemoveBlockProducer() *SoBlockProducerWrap {
+func (s *SoBlockProducerWrap) RemoveBlockProducer(errMsgs ...interface{}) *SoBlockProducerWrap {
 	err := s.removeBlockProducer()
 	if err != nil {
-		panic(fmt.Errorf("SoBlockProducerWrap.RemoveBlockProducer failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoBlockProducerWrap.RemoveBlockProducer failed: %s", err.Error()), errMsgs...))
 	}
 	return s
 }

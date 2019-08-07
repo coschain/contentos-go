@@ -2,7 +2,7 @@ package table
 
 import (
 	"errors"
-	fmt "fmt"
+	"fmt"
 	"reflect"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
@@ -124,10 +124,10 @@ func (s *SoGlobalWrap) create(f func(tInfo *SoGlobal)) error {
 	return nil
 }
 
-func (s *SoGlobalWrap) Create(f func(tInfo *SoGlobal)) *SoGlobalWrap {
+func (s *SoGlobalWrap) Create(f func(tInfo *SoGlobal), errArgs ...interface{}) *SoGlobalWrap {
 	err := s.create(f)
 	if err != nil {
-		panic(fmt.Errorf("SoGlobalWrap.Create failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Errorf("SoGlobalWrap.Create failed: %s", err.Error()), errArgs...))
 	}
 	return s
 }
@@ -205,20 +205,20 @@ func (s *SoGlobalWrap) modify(f func(tInfo *SoGlobal)) error {
 
 }
 
-func (s *SoGlobalWrap) Modify(f func(tInfo *SoGlobal)) *SoGlobalWrap {
+func (s *SoGlobalWrap) Modify(f func(tInfo *SoGlobal), errArgs ...interface{}) *SoGlobalWrap {
 	err := s.modify(f)
 	if err != nil {
-		panic(fmt.Errorf("SoGlobalWrap.Modify failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoGlobalWrap.Modify failed: %s", err.Error()), errArgs...))
 	}
 	return s
 }
 
-func (s *SoGlobalWrap) SetProps(p *prototype.DynamicProperties) *SoGlobalWrap {
+func (s *SoGlobalWrap) SetProps(p *prototype.DynamicProperties, errArgs ...interface{}) *SoGlobalWrap {
 	err := s.modify(func(r *SoGlobal) {
 		r.Props = p
 	})
 	if err != nil {
-		panic(fmt.Errorf("SoGlobalWrap.SetProps( %v ) failed: %s", p, err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoGlobalWrap.SetProps( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
@@ -336,10 +336,10 @@ func (s *SoGlobalWrap) removeGlobal() error {
 	}
 }
 
-func (s *SoGlobalWrap) RemoveGlobal() *SoGlobalWrap {
+func (s *SoGlobalWrap) RemoveGlobal(errMsgs ...interface{}) *SoGlobalWrap {
 	err := s.removeGlobal()
 	if err != nil {
-		panic(fmt.Errorf("SoGlobalWrap.RemoveGlobal failed: %s", err.Error()))
+		panic(bindErrorInfo(fmt.Sprintf("SoGlobalWrap.RemoveGlobal failed: %s", err.Error()), errMsgs...))
 	}
 	return s
 }

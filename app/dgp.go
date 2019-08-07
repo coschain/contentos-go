@@ -71,7 +71,7 @@ func (dgp *DynamicGlobalPropsRW) ModifyProps(modifier func(oldProps *prototype.D
 	dgpWrap := table.NewSoGlobalWrap(dgp.db, &SingleId)
 	props := dgpWrap.GetProps()
 	modifier(props)
-	mustSuccess(dgpWrap.SetProps(props), "")
+	dgpWrap.SetProps(props)
 }
 
 func (dgp *DynamicGlobalPropsRW) UpdateTicketIncomeAndNum(income *prototype.Vest, count uint64) {
