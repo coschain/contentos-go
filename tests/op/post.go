@@ -1,12 +1,11 @@
 package op
 
 import (
+	"github.com/coschain/contentos-go/cmd/wallet-cli/commands/utils"
 	. "github.com/coschain/contentos-go/dandelion"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/stretchr/testify/assert"
-	"math/rand"
 	"testing"
-	"time"
 )
 
 type PostTest struct {
@@ -46,9 +45,8 @@ func createNoExistAccount (accName string, d *Dandelion) {
 }
 
 func createPostOp (accName string) *prototype.Operation {
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	postId := r.Uint64()
 	title := "test post"
+	postId := utils.GenerateUUID(accName + title)
 	content := "test article for op test"
 	tags := []string{"test"}
 	return Post(postId, accName, title, content, tags, nil)
