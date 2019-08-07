@@ -31,9 +31,6 @@ func (tester *UnStakeTester) Test(t *testing.T, d *Dandelion) {
 
 }
 
-func (tester *UnStakeTester) notStaked(t *testing.T, d *Dandelion) {
-
-}
 
 
 func (tester *UnStakeTester) normal(t *testing.T, d *Dandelion) {

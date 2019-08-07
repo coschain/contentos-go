@@ -1,0 +1,129 @@
+{
+    "actions": [
+        {
+            "name": "setcopyright",
+            "type": "setcopyright"
+        },
+        {
+            "name": "setcopyrights",
+            "type": "setcopyrights"
+        },
+        {
+            "name": "proposal",
+            "type": "proposal"
+        },
+        {
+            "name": "vote",
+            "type": "vote"
+        }
+    ],
+    "structs": [
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "int32"
+                }
+            ],
+            "name": "singleton_record"
+        },
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "name",
+                    "type": "std::string"
+                },
+                {
+                    "name": "haveVoted",
+                    "type": "bool"
+                }
+            ],
+            "name": "voter"
+        },
+        {
+            "base": "cosio::singleton_record",
+            "fields": [
+                {
+                    "name": "admin",
+                    "type": "std::string"
+                },
+                {
+                    "name": "agree",
+                    "type": "uint32"
+                },
+                {
+                    "name": "begin_block",
+                    "type": "uint64"
+                },
+                {
+                    "name": "producers",
+                    "type": "voter[]"
+                }
+            ],
+            "name": "item"
+        },
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "postid",
+                    "type": "uint64"
+                },
+                {
+                    "name": "copyright",
+                    "type": "int32"
+                },
+                {
+                    "name": "memo",
+                    "type": "std::string"
+                }
+            ],
+            "name": "setcopyright"
+        },
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "postids",
+                    "type": "uint64[]"
+                },
+                {
+                    "name": "copyrights",
+                    "type": "int32[]"
+                },
+                {
+                    "name": "memos",
+                    "type": "std::string[]"
+                }
+            ],
+            "name": "setcopyrights"
+        },
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "user",
+                    "type": "std::string"
+                }
+            ],
+            "name": "proposal"
+        },
+        {
+            "base": "",
+            "fields": null,
+            "name": "vote"
+        }
+    ],
+    "tables": [
+        {
+            "name": "electionbox",
+            "primary": "id",
+            "secondary": [],
+            "type": "item"
+        }
+    ],
+    "types": null,
+    "version": "contentos::abi-1.0"
+}

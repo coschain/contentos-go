@@ -260,7 +260,7 @@ func e_setCopyright(proc *exec.Process, postIds, postIdsLen, copyrights, copyrig
 	memoSize := w.cosVM.read(proc, memoSizes, memoSizeLen, "setCopyright().memoSizes")
 
 	count := int(postIdsLen / 8)
-	w.CosAssert(postIdsLen == copyrightsLen && postIdsLen == memoPtrLen && postIdsLen == memoSizeLen, "setCopyright(): illegal parameters")
+	w.CosAssert(postIdsLen == copyrightsLen*2 && postIdsLen == memoPtrLen*2 && postIdsLen == memoSizeLen*2, "setCopyright(): illegal parameters")
 
 	for i := 0; i < count; i++ {
 		offset := i * 8

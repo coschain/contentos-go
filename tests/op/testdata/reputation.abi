@@ -1,0 +1,129 @@
+{
+    "actions": [
+        {
+            "name": "setrep",
+            "type": "setrep"
+        },
+        {
+            "name": "setreps",
+            "type": "setreps"
+        },
+        {
+            "name": "proposal",
+            "type": "proposal"
+        },
+        {
+            "name": "vote",
+            "type": "vote"
+        }
+    ],
+    "structs": [
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "int32"
+                }
+            ],
+            "name": "singleton_record"
+        },
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "name",
+                    "type": "std::string"
+                },
+                {
+                    "name": "haveVoted",
+                    "type": "bool"
+                }
+            ],
+            "name": "voter"
+        },
+        {
+            "base": "cosio::singleton_record",
+            "fields": [
+                {
+                    "name": "admin",
+                    "type": "std::string"
+                },
+                {
+                    "name": "agree",
+                    "type": "uint32"
+                },
+                {
+                    "name": "begin_block",
+                    "type": "uint64"
+                },
+                {
+                    "name": "producers",
+                    "type": "voter[]"
+                }
+            ],
+            "name": "item"
+        },
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "name",
+                    "type": "std::string"
+                },
+                {
+                    "name": "reputation",
+                    "type": "int32"
+                },
+                {
+                    "name": "memo",
+                    "type": "std::string"
+                }
+            ],
+            "name": "setrep"
+        },
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "names",
+                    "type": "std::string[]"
+                },
+                {
+                    "name": "reputations",
+                    "type": "int32[]"
+                },
+                {
+                    "name": "memos",
+                    "type": "std::string[]"
+                }
+            ],
+            "name": "setreps"
+        },
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "user",
+                    "type": "std::string"
+                }
+            ],
+            "name": "proposal"
+        },
+        {
+            "base": "",
+            "fields": null,
+            "name": "vote"
+        }
+    ],
+    "tables": [
+        {
+            "name": "electionbox",
+            "primary": "id",
+            "secondary": [],
+            "type": "item"
+        }
+    ],
+    "types": null,
+    "version": "contentos::abi-1.0"
+}

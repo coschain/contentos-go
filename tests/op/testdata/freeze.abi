@@ -1,0 +1,122 @@
+{
+    "actions": [
+        {
+            "name": "proposalfreeze",
+            "type": "proposalfreeze"
+        },
+        {
+            "name": "vote",
+            "type": "vote"
+        }
+    ],
+    "structs": [
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "name",
+                    "type": "std::string"
+                },
+                {
+                    "name": "haveVoted",
+                    "type": "bool"
+                }
+            ],
+            "name": "voter"
+        },
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint32"
+                },
+                {
+                    "name": "op",
+                    "type": "uint32"
+                },
+                {
+                    "name": "agree",
+                    "type": "uint32"
+                },
+                {
+                    "name": "accounts",
+                    "type": "std::string[]"
+                },
+                {
+                    "name": "memos",
+                    "type": "std::string[]"
+                },
+                {
+                    "name": "producers",
+                    "type": "voter[]"
+                }
+            ],
+            "name": "freezeinfo"
+        },
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "int32"
+                }
+            ],
+            "name": "singleton_record"
+        },
+        {
+            "base": "cosio::singleton_record",
+            "fields": [
+                {
+                    "name": "proposal_id",
+                    "type": "uint32"
+                }
+            ],
+            "name": "idinfo"
+        },
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "accounts",
+                    "type": "std::string[]"
+                },
+                {
+                    "name": "op",
+                    "type": "int32"
+                },
+                {
+                    "name": "memos",
+                    "type": "std::string[]"
+                }
+            ],
+            "name": "proposalfreeze"
+        },
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint32"
+                }
+            ],
+            "name": "vote"
+        }
+    ],
+    "tables": [
+        {
+            "name": "freezetable",
+            "primary": "id",
+            "secondary": [],
+            "type": "freezeinfo"
+        },
+        {
+            "name": "proposalid",
+            "primary": "id",
+            "secondary": [],
+            "type": "idinfo"
+        }
+    ],
+    "types": null,
+    "version": "contentos::abi-1.0"
+}
