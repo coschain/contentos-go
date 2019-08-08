@@ -1,6 +1,10 @@
 package hardfork
 
-import "github.com/coschain/contentos-go/prototype"
+import (
+	"sort"
+)
+
+var HF *HardFork
 
 type Action func(...interface{})
 type ActionName string
@@ -25,38 +29,60 @@ func (as *ActionSet) AddAction(name ActionName, a Action) *ActionSet {
 }
 
 type HardFork struct {
-	hardForks      []*ActionSet
+	hardForks      map[uint64]*ActionSet
 	currentActions *ActionSet
+
 	currentIdx  uint64
+	checkpoints []uint64
 }
 
 func NewHardFork() *HardFork {
 	ret := &HardFork{
-		hardForks: make([]*ActionSet, 0),
+		hardForks: make(map[uint64]*ActionSet),
 		currentActions: NewActionSet(0, false),
 		currentIdx: 0,
+		checkpoints: make([]uint64, 0),
 	}
-	ret.hardForks = append(ret.hardForks, NewActionSet(0, false))
 	return ret
 }
 
 func (hf *HardFork) Apply(height uint64) {
-	if height <= hf.hardForks[hf.currentIdx].hardForkHeight || hf.currentIdx == uint64(len(hf.hardForks)) {
+	if len(hf.checkpoints) != len(hf.hardForks) {
+		hf.checkpoints = append(hf.checkpoints, 0)
+		for k := range hf.hardForks {
+			hf.checkpoints = append(hf.checkpoints, k)
+		}
+		sort.Slice(hf.checkpoints, func(i, j int) bool {
+			return hf.checkpoints[i] < hf.checkpoints[j]
+		})
+	}
+
+	if height <= hf.checkpoints[hf.currentIdx] || hf.currentIdx == uint64(len(hf.hardForks)) {
 		return
 	}
 	for {
-		if hf.hardForks[hf.currentIdx+1].hardForkHeight > height {
+		if hf.checkpoints[hf.currentIdx+1] > height {
 			return
 		}
-		for k, v := range hf.hardForks[hf.currentIdx+1].actions {
-			if k == "new_op" {
+		for k, v := range hf.hardForks[hf.checkpoints[hf.currentIdx+1]].actions {
+			if k == NewOP {
 				v()
 				continue
 			} else {
 				hf.currentActions.actions[k] = v
 			}
 		}
+		hf.currentIdx++
 	}
+}
+
+func (hf *HardFork) RegisterAction(height uint64, name ActionName, action Action) {
+	as, exist := hf.hardForks[height]
+	if !exist {
+		as = NewActionSet(height, false)
+		hf.hardForks[height] = as
+	}
+	as.actions[name] = action
 }
 
 func (hf *HardFork) CurrentAction(name ActionName) Action {
@@ -67,19 +93,11 @@ func (hf *HardFork) CurrentAction(name ActionName) Action {
 	}
 }
 
-func (hf *HardFork) new(height uint64, replay bool) *ActionSet {
-	as := NewActionSet(height, replay)
-	hf.hardForks = append(hf.hardForks, as)
-	return as
+func (hf *HardFork) String() string {
+	return ""
 }
 
-func (hf *HardFork) init() {
-	hf.new(10, false).AddAction("hello", hello_10)
 
-	hf.new(20, false).AddAction("hello", hello_20).
-									AddAction("byebye", byebye_20)
-
-	hf.new(30, false).AddAction("new_op", func(args ...interface{}){
-		prototype.RegisterNewOperation("report", (*prototype.Operation_Op15)(nil), (*prototype.ReportOperation)(nil))
-	})
+func init() {
+	HF = NewHardFork()
 }

@@ -1,6 +1,9 @@
 package prototype
 
-import "github.com/pkg/errors"
+import (
+	"github.com/coschain/contentos-go/hardfork"
+	"github.com/pkg/errors"
+)
 
 
 func (m *ReportOperation) GetSigner(auths *map[string]bool) {
@@ -31,6 +34,8 @@ func (m *ReportOperation) GetAffectedProps(props *map[string]bool) {
 	(*props)["*"] = true
 }
 
-//func init() {
-//	registerOperation("report", (*Operation_Op15)(nil), (*ReportOperation)(nil))
-//}
+func init() {
+	hardfork.HF.RegisterAction(10, hardfork.NewOP, func(i ...interface{}) {
+		registerOperation("report", (*Operation_Op15)(nil), (*ReportOperation)(nil))
+	})
+}

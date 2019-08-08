@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/coschain/contentos-go/hardfork"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/vm/context"
@@ -77,7 +78,6 @@ func (w *CosVM) initNativeFuncs() {
 
 	w.register("set_copyright_admin", e_setCopyrightAdmin, 0)
 	w.register("set_copyright", e_setCopyright, 0)
-	w.register("set_freeze",e_freeze,0)
 
 	// for memeory
 	w.register("memcpy", e_memcpy, 100)
@@ -87,6 +87,9 @@ func (w *CosVM) initNativeFuncs() {
 	// for io
 	w.register("copy", e_copy, 100)
 
+	hardfork.HF.RegisterAction(100, hardfork.NewVMNativeFunc, func(i ...interface{}) {
+		w.register("set_freeze",e_freeze,0)
+	})
 }
 
 func (w *CosVM) readModule() (*wasm.Module, error) {

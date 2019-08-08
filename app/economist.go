@@ -7,6 +7,7 @@ import (
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
+	"github.com/coschain/contentos-go/hardfork"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/pkg/errors"
@@ -16,6 +17,7 @@ import (
 )
 
 func Min(x, y uint64) uint64 {
+	hardfork.HF.CurrentAction(hardfork.Uint64MIN)
 	if x < y {
 		return x
 	} else {
@@ -659,4 +661,9 @@ func (e *Economist) PowerDown() {
 	}
 	timing.End()
 	e.log.Debugf("powerdown: %s", timing.String())
+}
+
+func init() {
+	hardfork.HF.RegisterAction(10, hardfork.Uint64MIN, func(i ...interface{}) {})
+	hardfork.HF.RegisterAction(100, hardfork.Uint64MIN, func(i ...interface{}) {})
 }
