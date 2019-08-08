@@ -38,16 +38,16 @@ type HardFork struct {
 
 func NewHardFork() *HardFork {
 	ret := &HardFork{
-		hardForks: make(map[uint64]*ActionSet),
+		hardForks:      make(map[uint64]*ActionSet),
 		currentActions: NewActionSet(0, false),
-		currentIdx: 0,
-		checkpoints: make([]uint64, 0),
+		currentIdx:     0,
+		checkpoints:    make([]uint64, 0),
 	}
 	return ret
 }
 
 func (hf *HardFork) Apply(height uint64) {
-	if len(hf.checkpoints) != len(hf.hardForks) {
+	if len(hf.checkpoints) != len(hf.hardForks)+1 {
 		hf.checkpoints = append(hf.checkpoints, 0)
 		for k := range hf.hardForks {
 			hf.checkpoints = append(hf.checkpoints, k)
@@ -96,7 +96,6 @@ func (hf *HardFork) CurrentAction(name ActionName) Action {
 func (hf *HardFork) String() string {
 	return ""
 }
-
 
 func init() {
 	HF = NewHardFork()
