@@ -1244,7 +1244,7 @@ func (c *TrxPool) ShareTicketBonus() (err error) {
 	})
 
 	share := prototype.NewVest(bonus.Value / uint64(bpCount))
-	firstShare := bonus.Sub(share.Mul(uint64(bpCount - 1)))
+	firstShare := prototype.NewVest(bonus.Value - share.Value * uint64(bpCount - 1))
 	for i, name := range bpNames {
 		amount := share
 		if i == 0 {
@@ -1257,7 +1257,7 @@ func (c *TrxPool) ShareTicketBonus() (err error) {
 		bp := table.NewSoAccountWrap(c.db, accountName)
 		bp.MustExist(fmt.Sprintf("block producer account %s not found", name))
 		oldVest := bp.GetVest()
-		newVest := oldVest.Add(amount)
+		newVest := prototype.NewVest(oldVest.Value).Add(amount)
 		bp.SetVest(newVest)
 		updateBpVoteValue(c.db, accountName, oldVest, newVest)
 	}
