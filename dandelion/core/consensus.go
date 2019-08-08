@@ -42,6 +42,9 @@ func (c *DummyConsensus) shuffle(head common.ISignedBlock) (bool, []string) {
 		blockNum/constants.BlockProdRepetition%uint64(len(c.producers)) != 0 {
 		return false, []string{}
 	}
+
+	c.trxPool.PreShuffle()
+
 	prods, pubKeys := c.trxPool.GetBlockProducerTopN(constants.MaxBlockProducerCount)
 
 	var seed uint64

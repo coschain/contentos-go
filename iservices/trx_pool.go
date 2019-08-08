@@ -41,6 +41,8 @@ type ITrxPool interface {
 	SetShuffledBpList(names []string, keys []*prototype.PublicKeyType)
 	GetShuffledBpList() ([]string, []*prototype.PublicKeyType)
 	SetShuffle(s common.ShuffleFunc)
+	// PreShuffle() must be called to notify ITrxPool that block producers shuffle is about to happen
+	PreShuffle()
 	// PopBlock() rollbacks the state db to the moment just before applying block @num.
 	PopBlock(num uint64) error
 	// Commit() finalizes block @num.

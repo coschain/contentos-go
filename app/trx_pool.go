@@ -1215,3 +1215,8 @@ func (c *TrxPool) GetFreeTicketCount(name *prototype.AccountName) uint32 {
 func (c *TrxPool) DiscardAccountCache(name string) {
 	c.tm.DiscardAccountCache(name)
 }
+
+//
+func (c *TrxPool) PreShuffle() {
+
+}

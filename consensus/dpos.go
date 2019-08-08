@@ -123,6 +123,8 @@ func (d *DPoS) shuffle(head common.ISignedBlock) (bool, []string) {
 		return false, []string{}
 	}
 
+	d.ctrl.PreShuffle()
+
 	// When a produce round complete, it adds new producers,
 	// remove unqualified producers and shuffle the block-producing order
 	prods, keys := d.ctrl.GetBlockProducerTopN(constants.MaxBlockProducerCount)
