@@ -1381,11 +1381,9 @@ func (ev *VoteByTicketEvaluator) Apply() {
 	currentTicketsNum := chargedTicketsNum - count
 	ev.GlobalProp().UpdateTicketIncomeAndNum(currentIncome, currentTicketsNum)
 
-	bpVest := bpWrap.GetVest()
-	oldVest := bpWrap.GetVest()
-	// currently, all income will put into bp's wallet.
-	// it will be change.
-	bpVest.Add(equalValue)
-	bpWrap.SetVest(bpVest)
-	updateBpVoteValue(ev.Database(), currentBp, oldVest, bpVest)
+	if equalValue.Value > 0 {
+		ev.GlobalProp().ModifyProps(func(prop *prototype.DynamicProperties) {
+			prop.TicketsBpBonus = prop.TicketsBpBonus.Add(equalValue)
+		})
+	}
 }

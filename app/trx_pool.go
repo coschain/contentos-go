@@ -720,6 +720,7 @@ func (c *TrxPool) initGenesis() {
 		tInfo.Props.PerTicketWeight = constants.PerTicketWeight
 		tInfo.Props.TicketsIncome = prototype.NewVest(0)
 		tInfo.Props.ChargedTicketsNum = 0
+		tInfo.Props.TicketsBpBonus = prototype.NewVest(0)
 	})
 
 	// create block summary buffer 2048
@@ -1216,7 +1217,49 @@ func (c *TrxPool) DiscardAccountCache(name string) {
 	c.tm.DiscardAccountCache(name)
 }
 
-//
-func (c *TrxPool) PreShuffle() {
+func (c *TrxPool) PreShuffle() error {
+	return c.ShareTicketBonus()
+}
 
+func (c *TrxPool) ShareTicketBonus() (err error) {
+	defer func() {
+		if e := recover(); e != nil && err == nil {
+			err = errors.New(fmt.Sprintf("ShareTicketBonus: %v", e))
+		}
+	}()
+
+	bonus := c.GetProps().GetTicketsBpBonus()
+	if bonus.Value == 0 {
+		return
+	}
+	bpNames, _ := c.GetShuffledBpList()
+	bpCount := len(bpNames)
+	if bpCount == 0 {
+		err = errors.New("ShareTicketBonus: no block producer found")
+		return
+	}
+
+	c.ModifyProps(func(prop *prototype.DynamicProperties) {
+		prop.TicketsBpBonus = prototype.NewVest(0)
+	})
+
+	share := prototype.NewVest(bonus.Value / uint64(bpCount))
+	firstShare := bonus.Sub(share.Mul(uint64(bpCount - 1)))
+	for i, name := range bpNames {
+		amount := share
+		if i == 0 {
+			amount = firstShare
+		}
+		if amount.Value == 0 {
+			continue
+		}
+		accountName := prototype.NewAccountName(name)
+		bp := table.NewSoAccountWrap(c.db, accountName)
+		bp.MustExist(fmt.Sprintf("block producer account %s not found", name))
+		oldVest := bp.GetVest()
+		newVest := oldVest.Add(amount)
+		bp.SetVest(newVest)
+		updateBpVoteValue(c.db, accountName, oldVest, newVest)
+	}
+	return
 }

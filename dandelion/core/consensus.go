@@ -43,7 +43,7 @@ func (c *DummyConsensus) shuffle(head common.ISignedBlock) (bool, []string) {
 		return false, []string{}
 	}
 
-	c.trxPool.PreShuffle()
+	_ = c.trxPool.PreShuffle()
 
 	prods, pubKeys := c.trxPool.GetBlockProducerTopN(constants.MaxBlockProducerCount)
 
