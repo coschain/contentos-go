@@ -1,0 +1,73 @@
+syntax = "proto3";
+option go_package = "github.com/coschain/contentos-go/tests/proto3";
+
+// version 1
+
+message block_header_v1 {
+    uint32 magic = 1;
+}
+
+message person_record_v1 {
+    string name = 1;
+    bool   gender = 2;
+    uint32 age = 3;
+}
+
+message book_record_v1 {
+    string isdn = 1;
+    string title = 2;
+    string author = 3;
+}
+
+message block_record_v1 {
+    oneof record{
+        person_record_v1 person = 1;
+        book_record_v1 book = 2;
+    }
+}
+
+message block_v1 {
+    block_header_v1 header = 1;
+    repeated block_record_v1 records = 2;
+}
+
+// version 2
+
+message block_header_v2 {
+    uint32 magic = 1;
+    uint64 timestamp = 2;   // new in v2
+}
+
+message person_record_v2 {
+    string name = 1;
+    bool   gender = 2;
+    uint32 age = 3;
+    string address = 4;     // new in v2
+}
+
+message book_record_v2 {
+    string isdn = 1;
+    string title = 2;
+    string author = 3;
+}
+
+message car_record_v2 {
+    string brand = 1;
+    string color = 2;
+    uint32 power = 3;
+}
+
+// new in v2
+message block_record_v2 {
+    oneof record{
+        person_record_v2 person = 1;
+        book_record_v2 book = 2;
+        car_record_v2 car = 3;
+    }
+}
+
+message block_v2 {
+    block_header_v2 header = 1;
+    repeated block_record_v2 records = 2;
+    bytes signature = 3;    // new in v2
+}
