@@ -134,6 +134,7 @@ const (
 	// 2 * 1e9
 	InitPostWeightedVps = "2000000000"
 	InitReplyWeightedVps = "2000000000"
+	InitVoteWeightedVps = "0"
 )
 
 var GlobalId int32 = 1

@@ -67,11 +67,17 @@ func (tester *PostTester) Test4(t *testing.T, d *Dandelion) {
 	t.Run("with ticket", d.Test(tester.withTicket))
 }
 
-func ISqrt(n string) *big.Int {
+//func ISqrt(n string) *big.Int {
+//	bigInt := new(big.Int)
+//	value, _ := bigInt.SetString(n, 10)
+//	sqrt := bigInt.Sqrt(value)
+//	return sqrt
+//}
+
+func StringToBigInt(n string) *big.Int {
 	bigInt := new(big.Int)
 	value, _ := bigInt.SetString(n, 10)
-	sqrt := bigInt.Sqrt(value)
-	return sqrt
+	return value
 }
 
 func perBlockPostReward(d *Dandelion) uint64 {
@@ -157,7 +163,7 @@ func (tester *PostTester) cashout(t *testing.T, d *Dandelion) {
 
 	// convert to uint64 to make test easier
 	// the mul result less than uint64.MAX
-	postWeight := ISqrt(d.Post(1).GetWeightedVp()).Uint64()
+	postWeight := StringToBigInt(d.Post(1).GetWeightedVp()).Uint64()
 	globalPostReward := new(big.Int).SetUint64(d.GlobalProps().GetPostRewards().Value).Uint64()
 	globalPostDappReward := new(big.Int).SetUint64(d.GlobalProps().GetPostDappRewards().Value).Uint64()
 	bigTotalPostWeight, _ := new(big.Int).SetString(d.GlobalProps().GetPostWeightedVps(), 10)
@@ -191,7 +197,7 @@ func (tester *PostTester) cashoutAfterOtherCashout(t *testing.T, d *Dandelion) {
 
 	// convert to uint64 to make test easier
 	// the mul result less than uint64.MAX
-	postWeight := ISqrt(d.Post(2).GetWeightedVp()).Uint64()
+	postWeight := StringToBigInt(d.Post(2).GetWeightedVp()).Uint64()
 	globalPostReward := new(big.Int).SetUint64(d.GlobalProps().GetPostRewards().Value).Uint64()
 	globalPostDappReward := new(big.Int).SetUint64(d.GlobalProps().GetPostDappRewards().Value).Uint64()
 	bigTotalPostWeight, _ := new(big.Int).SetString(d.GlobalProps().GetPostWeightedVps(), 10)
@@ -226,8 +232,8 @@ func (tester *PostTester) multiCashout(t *testing.T, d *Dandelion) {
 
 	// convert to uint64 to make test easier
 	// the mul result less than uint64.MAX
-	post3Weight :=  ISqrt(d.Post(3).GetWeightedVp()).Uint64()
-	post4Weight :=  ISqrt(d.Post(4).GetWeightedVp()).Uint64()
+	post3Weight :=  StringToBigInt(d.Post(3).GetWeightedVp()).Uint64()
+	post4Weight :=  StringToBigInt(d.Post(4).GetWeightedVp()).Uint64()
 
 	globalPostReward := new(big.Int).SetUint64(d.GlobalProps().GetPostRewards().Value).Uint64()
 	globalPostDappReward := new(big.Int).SetUint64(d.GlobalProps().GetPostDappRewards().Value).Uint64()
@@ -277,7 +283,7 @@ func (tester *PostTester) hugeGlobalVp(t *testing.T, d *Dandelion) {
 	// convert to uint64 to make test easier
 	// the mul result less than uint64.MAX
 
-	postWeight := ISqrt(d.Post(1).GetWeightedVp())
+	postWeight := StringToBigInt(d.Post(1).GetWeightedVp())
 	globalPostReward := new(big.Int).SetUint64(d.GlobalProps().GetPostRewards().Value)
 	globalPostDappReward := new(big.Int).SetUint64(d.GlobalProps().GetPostDappRewards().Value)
 	bigTotalPostWeight, _ := new(big.Int).SetString(d.GlobalProps().GetPostWeightedVps(), 10)
@@ -315,7 +321,7 @@ func (tester *PostTester) zeroGlobalVp(t *testing.T, d *Dandelion) {
 	a.NoError(tester.acc0.SendTrx(Vote(tester.acc0.Name, 2)))
 	a.NoError(d.ProduceBlocks(constants.PostCashOutDelayBlock - BLOCKS - 1))
 
-	postWeight := ISqrt(d.Post(2).GetWeightedVp())
+	postWeight := StringToBigInt(d.Post(2).GetWeightedVp())
 	globalPostReward := new(big.Int).SetUint64(d.GlobalProps().GetPostRewards().Value)
 	globalPostDappReward := new(big.Int).SetUint64(d.GlobalProps().GetPostDappRewards().Value)
 	bigTotalPostWeight, _ := new(big.Int).SetString(d.GlobalProps().GetPostWeightedVps(), 10)
@@ -354,7 +360,7 @@ func (tester *PostTester) withTicket(t *testing.T, d *Dandelion) {
 	a.NoError(tester.acc0.SendTrx(Vote(tester.acc0.Name, 1)))
 	a.NoError(d.ProduceBlocks(constants.PostCashOutDelayBlock - BLOCKS - 1))
 
-	postWeight := ISqrt(d.Post(1).GetWeightedVp())
+	postWeight := StringToBigInt(d.Post(1).GetWeightedVp())
 	postWeight = new(big.Int).Add(postWeight, new(big.Int).SetUint64(1 * d.GlobalProps().GetPerTicketWeight()))
 	globalPostReward := new(big.Int).SetUint64(d.GlobalProps().GetPostRewards().Value)
 	globalPostDappReward := new(big.Int).SetUint64(d.GlobalProps().GetPostDappRewards().Value)

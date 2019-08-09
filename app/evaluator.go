@@ -265,6 +265,7 @@ func (ev *AccountCreateEvaluator) Apply() {
 		tInfo.StakeVest = prototype.NewVest(0)
 		tInfo.Reputation = constants.DefaultReputation
 		tInfo.ChargedTicket = 0
+		//tInfo.VotePower = 1000
 	})
 
 	// sub dynamic glaobal properties's total fee
@@ -442,17 +443,6 @@ func (ev *VoteEvaluator) Apply() {
 	postWrap.MustExist("post invalid")
 	voteWrap.MustNotExist("vote info exist")
 
-	//votePostWrap := table.NewVotePostIdWrap(ev.Database())
-
-	//for voteIter := votePostWrap.QueryListByOrder(&op.Idx, nil); voteIter.Valid(); voteIter.Next() {
-	//	voterId := votePostWrap.GetMainVal(voteIter)
-	//	if voterId.Voter.Value == op.Voter.Value {
-	//		opAssertE(errors.New("Vote Error"), "vote to a same post")
-	//	}
-	//}
-
-	// 10000 have chance to overflow
-	// 1000 always ok
 	regeneratedPower := 1000 * elapsedSeconds / constants.VoteRegenerateTime
 	var currentVp uint32
 	votePower := voterWrap.GetVotePower() + regeneratedPower
@@ -477,10 +467,11 @@ func (ev *VoteEvaluator) Apply() {
 	//weightedVp := vest * uint64(usedVp)
 	weightedVp := new(big.Int).SetUint64(vest)
 	weightedVp.Mul(weightedVp, new(big.Int).SetUint64(uint64(usedVp)))
+	weightedVp.Sqrt(weightedVp)
 
 	// if voter's reputation is 0, she has no voting power.
 	if voterWrap.GetReputation() == constants.MinReputation {
-		weightedVp.SetInt64(0)
+		weightedVp.SetUint64(0)
 	}
 
 	if postWrap.GetCashoutBlockNum() > ev.GlobalProp().GetProps().HeadBlockNumber {
@@ -489,11 +480,6 @@ func (ev *VoteEvaluator) Apply() {
 		//wvp.SetUint64(weightedVp)
 		lvp.SetString(lastVp, 10)
 		tvp.Add(weightedVp, &lvp)
-		//votePower := tvp.
-		// add new vp into global
-		//ev.GlobalProp().AddWeightedVP(weightedVp)
-		// update post's weighted vp
-		//postWrap.SetWeightedVp(tvp.String())
 
 		postWrap.Modify(func(tInfo *table.SoPost) {
 			tInfo.WeightedVp = tvp.String()
@@ -508,7 +494,20 @@ func (ev *VoteEvaluator) Apply() {
 			t.VoteTime = ev.GlobalProp().HeadBlockTime()
 		})
 
-		//opAssert(postWrap.SetVoteCnt(postWrap.GetVoteCnt()+1), "set vote count error")
+		// add vote into cashout table
+		voteCashoutBlockHeight := ev.GlobalProp().GetProps().HeadBlockNumber + constants.VoteCashOutDelayBlock
+		voteCashoutWrap := table.NewSoVoteCashoutWrap(ev.Database(), &voteCashoutBlockHeight)
+
+		if voteCashoutWrap.CheckExist() {
+			voterIds := voteCashoutWrap.GetVoterIds()
+			voterIds = append(voterIds, &voterId)
+			voteCashoutWrap.SetVoterIds(voterIds)
+		} else {
+			voteCashoutWrap.Create(func(tInfo *table.SoVoteCashout) {
+				tInfo.CashoutBlock = voteCashoutBlockHeight
+				tInfo.VoterIds = []*prototype.VoterId{&voterId}
+			})
+		}
 	}
 }
 

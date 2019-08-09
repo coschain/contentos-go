@@ -720,6 +720,7 @@ func (c *TrxPool) initGenesis() {
 		tInfo.Props.PerTicketWeight = constants.PerTicketWeight
 		tInfo.Props.TicketsIncome = prototype.NewVest(0)
 		tInfo.Props.ChargedTicketsNum = 0
+		tInfo.Props.VoteWeightedVps = constants.InitVoteWeightedVps
 	})
 
 	// create block summary buffer 2048
