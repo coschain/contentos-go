@@ -337,7 +337,6 @@ func (e *Economist) Do(trxObserver iservices.ITrxObserver) {
 }
 
 
-
 func (e *Economist) decayGlobalVotePower() {
 	e.dgp.ModifyProps(func(props *prototype.DynamicProperties) {
 		postWeightedVps := StringToBigInt(props.PostWeightedVps)
