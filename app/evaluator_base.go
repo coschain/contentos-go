@@ -3,6 +3,7 @@ package app
 import (
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
+	"github.com/coschain/contentos-go/vm"
 	"github.com/coschain/contentos-go/vm/injector"
 	"github.com/sirupsen/logrus"
 )
@@ -31,6 +32,7 @@ type ApplyDelegate interface {
 	VMInjector() vminjector.Injector
 	TrxObserver() iservices.ITrxObserver
 	Logger() *logrus.Logger
+	NativeFuncs() *vm.NativeFuncs
 }
 
 type BaseDelegate struct {
@@ -55,6 +57,10 @@ func (d *BaseDelegate) TrxObserver() iservices.ITrxObserver {
 
 func (d *BaseDelegate) Logger() *logrus.Logger {
 	return d.delegate.Logger()
+}
+
+func (d *BaseDelegate) NativeFuncs() *vm.NativeFuncs {
+	return d.delegate.NativeFuncs()
 }
 
 type BaseEvaluator interface {

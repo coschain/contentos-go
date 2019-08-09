@@ -2,6 +2,7 @@ package commands
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"github.com/coschain/cobra"
 	"github.com/coschain/contentos-go/cmd/wallet-cli/commands/utils"
@@ -9,15 +10,14 @@ import (
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/prototype"
-	"github.com/coschain/contentos-go/rpc/pb"
 	"github.com/coschain/contentos-go/rpc"
+	"github.com/coschain/contentos-go/rpc/pb"
 	"github.com/coschain/contentos-go/vm"
 	"github.com/coschain/contentos-go/vm/context"
 	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
-	"context"
 )
 
 var BatchCmd = func() *cobra.Command {
@@ -238,7 +238,7 @@ func conductBatch(cmd *cobra.Command, args []string) {
 			}
 
 			ctx := vmcontext.Context{Code: code}
-			cosVM := vm.NewCosVM(&ctx, nil, nil, nil)
+			cosVM := vm.NewCosVM(vm.NewNativeFuncs(nil), &ctx, nil, nil, nil)
 			err = cosVM.Validate()
 			if err != nil {
 				fmt.Println("Validate local code error:", err)

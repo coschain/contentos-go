@@ -959,7 +959,7 @@ func (ev *ContractDeployEvaluator) Apply() {
 
 	vmCtx := vmcontext.NewContextFromDeployOp(op, contractCode, abiString, nil)
 
-	cosVM := vm.NewCosVM(vmCtx, nil, nil, nil)
+	cosVM := vm.NewCosVM(ev.BaseDelegate.NativeFuncs(), vmCtx, nil, nil, nil)
 
 	opAssertE(cosVM.Validate(), "validate code failed")
 
@@ -1057,7 +1057,7 @@ func (ev *ContractApplyEvaluator) Apply() {
 		vmCtx.Injector.TransferFromUserToContract(op.Caller.Value, op.Contract, op.Owner.Value, op.Amount.Value)
 	}
 
-	cosVM := vm.NewCosVM(vmCtx, ev.Database(), ev.GlobalProp().GetProps(), ev.Logger())
+	cosVM := vm.NewCosVM(ev.BaseDelegate.NativeFuncs(), vmCtx, ev.Database(), ev.GlobalProp().GetProps(), ev.Logger())
 
 	ret, err := cosVM.Run()
 	spentGas := cosVM.SpentGas()
@@ -1119,7 +1119,7 @@ func (ev *InternalContractApplyEvaluator) Apply() {
 		vmCtx.Injector.TransferFromContractToContract(op.FromContract, op.FromOwner.Value, op.ToContract, op.ToOwner.Value, op.Amount.Value)
 	}
 
-	cosVM := vm.NewCosVM(vmCtx, ev.Database(), ev.GlobalProp().GetProps(), ev.Logger())
+	cosVM := vm.NewCosVM(ev.BaseDelegate.NativeFuncs(), vmCtx, ev.Database(), ev.GlobalProp().GetProps(), ev.Logger())
 	//ev.Database().BeginTransaction()
 	ret, err := cosVM.Run()
 	spentGas := cosVM.SpentGas()

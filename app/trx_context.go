@@ -7,6 +7,7 @@ import (
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/utils"
+	"github.com/coschain/contentos-go/vm"
 	"github.com/coschain/contentos-go/vm/cache"
 	"github.com/coschain/contentos-go/vm/injector"
 	"github.com/go-interpreter/wagon/exec"
@@ -353,4 +354,8 @@ func (p *TrxContext) Logger() *logrus.Logger {
 
 func (p *TrxContext) VmCache() *vmcache.VmCache {
 	return p.control.vmCache
+}
+
+func (p *TrxContext) NativeFuncs() *vm.NativeFuncs {
+	return p.control.VMNativeFuncs
 }
