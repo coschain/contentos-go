@@ -6,8 +6,11 @@ import (
 
 var HF *HardFork
 
-type Action func(...interface{})
+type Action func(...interface{})interface{}
 type ActionName string
+
+type OperationDeleter func()
+type VMNativeFuncDeleter func()
 
 type ActionSet struct {
 	hardForkHeight uint64
@@ -76,6 +79,30 @@ func (hf *HardFork) Apply(height uint64) {
 	}
 }
 
+func (hf *HardFork) RollBack(height uint64) {
+	if hf.checkpoints[hf.currentIdx] < height {
+		return
+	}
+
+	for hf.checkpoints[hf.currentIdx] >= height {
+		for k, v := range hf.hardForks[hf.checkpoints[hf.currentIdx]].actions {
+			if k == NewOP {
+				// delete this op
+				v().(OperationDeleter)()
+			} else if k == NewVMNativeFunc {
+				// remove this native function
+				v().(VMNativeFuncDeleter)()
+			} else {
+				// for general actions, if:
+				// 1. this action has a earlier version in prev hardfork, just replace
+				// 2. replace with empty function
+				// TODO:
+			}
+		}
+
+	}
+}
+
 func (hf *HardFork) RegisterAction(height uint64, name ActionName, action Action) {
 	as, exist := hf.hardForks[height]
 	if !exist {
@@ -87,7 +114,9 @@ func (hf *HardFork) RegisterAction(height uint64, name ActionName, action Action
 
 func (hf *HardFork) CurrentAction(name ActionName) Action {
 	if a, exist := hf.currentActions.actions[name]; !exist {
-		return func(...interface{}) {}
+		return func(...interface{})interface{} {
+			return nil
+		}
 	} else {
 		return a
 	}

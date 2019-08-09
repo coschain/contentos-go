@@ -648,6 +648,6 @@ func (e *Economist) PowerDown() {
 }
 
 func init() {
-	hardfork.HF.RegisterAction(10, hardfork.Uint64MIN, func(i ...interface{}) {})
-	hardfork.HF.RegisterAction(100, hardfork.Uint64MIN, func(i ...interface{}) {})
+	hardfork.HF.RegisterAction(10, hardfork.Uint64MIN, func(i ...interface{})interface{}{return nil})
+	hardfork.HF.RegisterAction(100, hardfork.Uint64MIN, func(i ...interface{})interface{}{return nil})
 }

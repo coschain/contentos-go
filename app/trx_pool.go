@@ -11,6 +11,7 @@ import (
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/common/eventloop"
 	selfmath "github.com/coschain/contentos-go/common/math"
+	"github.com/coschain/contentos-go/hardfork"
 	"github.com/coschain/contentos-go/utils"
 	"github.com/coschain/contentos-go/vm"
 	"github.com/coschain/contentos-go/vm/cache"
@@ -176,6 +177,7 @@ func (c *TrxPool) PushBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag)
 }
 
 func (c *TrxPool) pushBlockNoLock(blk *prototype.SignedBlock, skip prototype.SkipFlag) (err error) {
+	hardfork.HF.Apply(blk.Id().BlockNum())
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -315,6 +317,9 @@ func (c *TrxPool) generateBlockNoLock(bpName string, pre *prototype.Sha256, time
 	mustSuccess(blkNum == prevNum, fmt.Sprintf("head mismatch. can't produce #%d coz statedb head is #%d", prevNum + 1, blkNum))
 	
 	blkNum++
+
+	hardfork.HF.Apply(blkNum)
+
 	c.log.Debugf("ICEBERG: BeginBlock %d", blkNum)
 	_ = c.iceberg.BeginBlock(blkNum)
 	c.stateObserver.BeginBlock(blkNum)
@@ -1062,6 +1067,7 @@ func (c *TrxPool) PopBlock(num uint64) error {
 	}
 
 	c.tm.BlockReverted(num)
+	hardfork.HF.RollBack(num)
 
 	return err
 }
