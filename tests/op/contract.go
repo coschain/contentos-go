@@ -199,16 +199,30 @@ func (tester *ContractTester) transferBetweenContractAndContract(t *testing.T, d
 	ApplyNoError(t, d, fmt.Sprintf("actor1: actor1.native_tester.get_contract_balance %q, %q, %d", "actor1", "native_tester", contractBalance1 - 123))
 	contractBalance0 += 123
 	contractBalance1 -= 123
+	ApplyNoError(t, d, fmt.Sprintf("actor1: actor1.native_tester.transfer_to_contract %q, %q, %d", "actor0", "native_tester", 456))
+	ApplyNoError(t, d, fmt.Sprintf("actor1: actor1.native_tester.get_contract_balance %q, %q, %d", "actor0", "native_tester", contractBalance0 + 456))
+	ApplyNoError(t, d, fmt.Sprintf("actor1: actor1.native_tester.get_contract_balance %q, %q, %d", "actor1", "native_tester", contractBalance1 - 456))
+	contractBalance0 += 456
+	contractBalance1 -= 456
 
 	// contract -> contract: too much
 	ApplyError(t, d, fmt.Sprintf("actor1: actor1.native_tester.call_get_contract_sender_value %q, %q, %d", "actor0", "native_tester", contractBalance1 + 1))
 	ApplyError(t, d, fmt.Sprintf("actor1: actor1.native_tester.call_get_contract_sender_value %q, %q, %d", "actor0", "native_tester", uint64(math.MaxUint64)))
+	ApplyError(t, d, fmt.Sprintf("actor1: actor1.native_tester.transfer_to_contract %q, %q, %d", "actor0", "native_tester", contractBalance1 + 1))
+	ApplyError(t, d, fmt.Sprintf("actor1: actor1.native_tester.transfer_to_contract %q, %q, %d", "actor0", "native_tester", uint64(math.MaxUint64)))
 
 	// contract -> unknown contract
 	ApplyError(t, d, fmt.Sprintf("actor1: actor1.native_tester.call_get_contract_sender_value %q, %q, %d", "xxxxxxx", "native_tester", 10))
+	ApplyError(t, d, fmt.Sprintf("actor1: actor1.native_tester.transfer_to_contract %q, %q, %d", "xxxxxxx", "native_tester", 10))
 
 	// contract -> self
 	ApplyNoError(t, d, fmt.Sprintf("actor1: actor1.native_tester.call_get_contract_sender_value %q, %q, %d", "actor1", "native_tester", 123))
+	ApplyNoError(t, d, fmt.Sprintf("actor1: actor1.native_tester.transfer_to_contract %q, %q, %d", "actor1", "native_tester", 123))
+	// when a contract transfers to itself, it's a nop.
+	// transfer amount is completely ignored without any validation, so that no error pops even if the amount is illegal.
+	ApplyNoError(t, d, fmt.Sprintf("actor1: actor1.native_tester.transfer_to_contract %q, %q, %d", "actor1", "native_tester", contractBalance1 + 1))
+	ApplyNoError(t, d, fmt.Sprintf("actor1: actor1.native_tester.transfer_to_contract %q, %q, %d", "actor1", "native_tester", uint64(math.MaxUint64)))
+	// contract balance must remain the same after self-transfer
 	ApplyNoError(t, d, fmt.Sprintf("actor1: actor1.native_tester.get_contract_balance %q, %q, %d", "actor1", "native_tester", contractBalance1))
 
 	a.Equal(contractBalance0, d.Contract("actor0", "native_tester").GetBalance().Value)
