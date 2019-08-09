@@ -35,6 +35,7 @@ type DandelionCore struct {
 	prevHash *prototype.Sha256
 	accounts map[string]*prototype.PrivateKeyType
 	trxReceipts *lru.Cache
+	beforePreshuffle, afterPreshuffle map[string]func()
 }
 
 func NewDandelionCore(logger *logrus.Logger) *DandelionCore {
@@ -74,6 +75,8 @@ func NewDandelionCore(logger *logrus.Logger) *DandelionCore {
 		prevHash: &prototype.Sha256{ Hash: make([]byte, 32) },
 		accounts: make(map[string]*prototype.PrivateKeyType),
 		trxReceipts: receiptCache,
+		beforePreshuffle: make(map[string]func()),
+		afterPreshuffle: make(map[string]func()),
 	}
 
 	initminerKey, _ := prototype.PrivateKeyFromWIF(constants.InitminerPrivKey)
@@ -102,6 +105,8 @@ func (d *DandelionCore) Start() (err error) {
 		err = d.ProduceBlocks(1)
 		if err == nil {
 			_ = d.node.EvBus.Subscribe(constants.NoticeTrxApplied, d.trxApplied)
+			_ = d.node.EvBus.Subscribe(BeforePreShuffleEvent, d.beforePreShuffle)
+			_ = d.node.EvBus.Subscribe(AfterPreShuffleEvent, d.afterPreShuffle)
 		}
 	}
 	return
@@ -110,6 +115,8 @@ func (d *DandelionCore) Start() (err error) {
 func (d *DandelionCore) Stop() error {
 	defer d.cleanup()
 	_ = d.node.EvBus.Unsubscribe(constants.NoticeTrxApplied, d.trxApplied)
+	_ = d.node.EvBus.Unsubscribe(BeforePreShuffleEvent, d.beforePreShuffle)
+	_ = d.node.EvBus.Unsubscribe(AfterPreShuffleEvent, d.afterPreShuffle)
 	return d.node.Stop()
 }
 
@@ -277,4 +284,38 @@ func (d *DandelionCore) TrxReceiptByAccount(name string, operations...*prototype
 
 func (d *DandelionCore) ChainId() prototype.ChainId {
 	return d.chainId
+}
+
+func (d *DandelionCore) beforePreShuffle() {
+	for _, f := range d.beforePreshuffle {
+		f()
+	}
+}
+
+func (d *DandelionCore) afterPreShuffle() {
+	for _, f := range d.afterPreshuffle {
+		f()
+	}
+}
+
+func (d *DandelionCore) SubscribePreShuffle(beforeOrAfter bool, f interface{}) {
+	if cb, ok := f.(func()); ok {
+		k := fmt.Sprintf("%v", f)
+		if beforeOrAfter {
+			d.beforePreshuffle[k] = cb
+		} else {
+			d.afterPreshuffle[k] = cb
+		}
+	}
+}
+
+func (d *DandelionCore) UnsubscribePreShuffle(beforeOrAfter bool, f interface{}) {
+	if _, ok := f.(func()); ok {
+		k := fmt.Sprintf("%v", f)
+		if beforeOrAfter {
+			delete(d.beforePreshuffle, k)
+		} else {
+			delete(d.afterPreshuffle, k)
+		}
+	}
 }

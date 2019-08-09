@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/iservices"
@@ -10,9 +11,12 @@ import (
 )
 
 const DummyConsensusName = "dandelion.DummyConsensus"
+const BeforePreShuffleEvent = "dandelion.DummyConsensus.Event.BeforePreShuffle"
+const AfterPreShuffleEvent = "dandelion.DummyConsensus.Event.AfterPreShuffle"
 
 type DummyConsensus struct {
 	ctx *node.ServiceContext
+	evBus EventBus.Bus
 	trxPool iservices.ITrxPool
 	producers []string
 }
@@ -27,6 +31,7 @@ func (c *DummyConsensus) Start(node *node.Node) error {
 	} else {
 		c.trxPool = trxpool.(iservices.ITrxPool)
 	}
+	c.evBus = node.EvBus
 	c.trxPool.SetShuffle(c.shuffle)
 	c.restoreProducers()
 	return nil
@@ -43,7 +48,9 @@ func (c *DummyConsensus) shuffle(head common.ISignedBlock) (bool, []string) {
 		return false, []string{}
 	}
 
+	c.evBus.Publish(BeforePreShuffleEvent)
 	_ = c.trxPool.PreShuffle()
+	c.evBus.Publish(AfterPreShuffleEvent)
 
 	prods, pubKeys := c.trxPool.GetBlockProducerTopN(constants.MaxBlockProducerCount)
 
