@@ -74,7 +74,7 @@ func deploy(cmd *cobra.Command, args []string) {
 	}
 
 	ctx := vmcontext.Context{Code: code}
-	cosVM := vm.NewCosVM(&ctx, nil, nil, nil)
+	cosVM := vm.NewCosVM(vm.NewNativeFuncs(nil), &ctx, nil, nil, nil)
 	err = cosVM.Validate()
 	if err != nil {
 		fmt.Println("Validate local code error:", err)

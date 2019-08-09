@@ -13,6 +13,7 @@ import (
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/common/eventloop"
 	"github.com/coschain/contentos-go/utils"
+	"github.com/coschain/contentos-go/vm"
 	"github.com/coschain/contentos-go/vm/cache"
 	"math"
 	"math/big"
@@ -51,6 +52,7 @@ type TrxPool struct {
 	enableBAH bool
 
 	vmCache *vmcache.VmCache
+	VMNativeFuncs *vm.NativeFuncs
 }
 
 func (c *TrxPool) getDb() (iservices.IDatabaseService, error) {
@@ -85,7 +87,14 @@ func NewController(ctx *node.ServiceContext, lg *logrus.Logger) (*TrxPool, error
 		lg = logrus.New()
 		lg.SetOutput(ioutil.Discard)
 	}
-	return &TrxPool{ctx: ctx, log: lg, enableBAH:false, vmCache:vmcache.NewVmCache()}, nil
+	tp := &TrxPool{
+		ctx: ctx,
+		log: lg,
+		enableBAH:false,
+		vmCache:vmcache.NewVmCache(),
+		VMNativeFuncs: vm.NewNativeFuncs(lg),
+	}
+	return tp, nil
 }
 
 func (c *TrxPool) Start(node *node.Node) error {
