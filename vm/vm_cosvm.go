@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	//"github.com/coschain/contentos-go/hardfork"
+	"github.com/coschain/contentos-go/hardfork"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/vm/context"
@@ -87,35 +87,40 @@ func (nf *NativeFuncs) initNativeFuncs() {
 	nf.Register("copy", e_copy, 100)
 	nf.Register("set_freeze",e_freeze,0)
 
-	//hardfork.HF.RegisterAction(100, hardfork.NewVMNativeFunc, func(i ...interface{}) {
-	//	nf.Register("set_freeze",e_freeze,0)
-	//})
+	hardfork.HF.RegisterAction(100, hardfork.NewVMNativeFunc, func(i ...interface{})interface{} {
+		return nf.Register("set_freeze",e_freeze,0)
+	})
 }
 
-func (nf *NativeFuncs) Register(funcName string, function interface{}, gas uint64) {
+func (nf *NativeFuncs) Register(funcName string, function interface{}, gas uint64) func() {
+	deleter := func(){}
 	rfunc := reflect.TypeOf(function)
 	if rfunc.Kind() != reflect.Func {
 		nf.logger.Error(fmt.Sprintf("%s is not a function", funcName))
-		return
+		return deleter
 	}
 	// func should be func(proc *exec.Process, ... interface{})
 	if rfunc.NumIn() < 1 {
 		nf.logger.Error(fmt.Sprintf("function signature of %s is wrong", funcName))
-		return
+		return deleter
 	}
 	funcSig, err := nf.exactFuncSig(rfunc)
 	if err != nil {
 		nf.logger.Error("exactFuncSig error:", funcName, err)
-		return
+		return deleter
 	}
 	f := wasm.Function{Sig: &funcSig, Host: reflect.ValueOf(function), Body: &wasm.FunctionBody{}, Gas: gas}
 	nf.nativeFuncName = append(nf.nativeFuncName, funcName)
 	nf.nativeFuncSigs = append(nf.nativeFuncSigs, funcSig)
 	nf.nativeFuncs = append(nf.nativeFuncs, f)
-}
 
-func (nf *NativeFuncs) Unregister(funcName string) {
-
+	deleter = func() {
+		l := len(nf.nativeFuncName)
+		nf.nativeFuncName = nf.nativeFuncName[:l-1]
+		nf.nativeFuncSigs = nf.nativeFuncSigs[:l-1]
+		nf.nativeFuncs = nf.nativeFuncs[:l-1]
+	}
+	return deleter
 }
 
 func (nf *NativeFuncs) exactFuncSig(p reflect.Type) (wasm.FunctionSig, error) {
