@@ -240,9 +240,16 @@ func init() {
 }
 
 func EnableNewEvaluatorAndOperation(name string, wrapperPtr interface{}, opPtr interface{}, evalCreator EvaluatorCreator) func() {
-	f := prototype.RegisterNewOperation("report", wrapperPtr, opPtr)
-	RegisterEvaluator(opPtr, evalCreator)
-	return f
+	deleter := func(){}
+	if prototype.OperationExisted(opPtr) {
+		deleter = func() {
+			prototype.UnregisterNewOperation(name)
+		}
+	} else {
+		prototype.RegisterNewOperation(name, wrapperPtr, opPtr)
+		RegisterEvaluator(opPtr, evalCreator)
+	}
+	return deleter
 }
 
 func (ev *AccountCreateEvaluator) Apply() {

@@ -29,18 +29,16 @@ var (
 	sRegisteredOpsByWrapper = make(map[reflect.Type]opRegistry)
 )
 
-func RegisterNewOperation(name string, wrapperPtr interface{}, opPtr interface{}) func() {
-	f := func() {
-		UnregisterNewOperation(name)
-	}
+func RegisterNewOperation(name string, wrapperPtr interface{}, opPtr interface{}) {
+	registerOperation(name, wrapperPtr, opPtr)
+}
 
+func OperationExisted(opPtr interface{}) bool {
 	opPtrType := reflect.TypeOf(opPtr)
 	if _, exist := sRegisteredOps[opPtrType]; exist {
-		return f
+		return true
 	}
-
-	registerOperation(name, wrapperPtr, opPtr)
-	return f
+	return false
 }
 
 func UnregisterNewOperation(name string) {
