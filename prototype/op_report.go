@@ -1,7 +1,6 @@
 package prototype
 
 import (
-	"github.com/coschain/contentos-go/hardfork"
 	"github.com/pkg/errors"
 )
 
@@ -31,11 +30,4 @@ func (m *ReportOperation) Validate() error {
 
 func (m *ReportOperation) GetAffectedProps(props *map[string]bool) {
 	(*props)["*"] = true
-}
-
-func init() {
-	hardfork.HF.RegisterAction(1, hardfork.NewOP, func(i ...interface{})interface{} {
-		return RegisterNewOperation("report", (*Operation_Op15)(nil), (*ReportOperation)(nil))
-	})
-	//registerOperation("report", (*Operation_Op15)(nil), (*ReportOperation)(nil))
 }

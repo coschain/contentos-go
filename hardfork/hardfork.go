@@ -68,7 +68,7 @@ func (hf *HardFork) Apply(height uint64) {
 			return
 		}
 		for k, v := range hf.hardForks[hf.checkpoints[hf.currentIdx+1]].actions {
-			if k == NewOP {
+			if k == NewOP || k == NewVMNativeFunc {
 				v()
 				continue
 			} else {
@@ -94,12 +94,20 @@ func (hf *HardFork) RollBack(height uint64) {
 				v().(VMNativeFuncDeleter)()
 			} else {
 				// for general actions, if:
-				// 1. this action has a earlier version in prev hardfork, just replace
+				// 1. this action has a earlier version in prev hardfork, just replace. Otherwise,
 				// 2. replace with empty function
-				// TODO:
+				hf.currentActions.actions[k] = func(i ...interface{}) interface{} {
+					return nil
+				}
+				for i := uint64(1); i<hf.currentIdx; i++{
+					if f, exist := hf.hardForks[hf.checkpoints[hf.currentIdx-i]].actions[k]; exist {
+						hf.currentActions.actions[k] = f
+						break
+					}
+				}
 			}
+			hf.currentIdx--
 		}
-
 	}
 }
 

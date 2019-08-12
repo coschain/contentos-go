@@ -7,6 +7,7 @@ import (
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/common/encoding/vme"
+	"github.com/coschain/contentos-go/hardfork"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/vm"
@@ -30,69 +31,69 @@ func mustSuccess(b bool, val string) {
 type AccountCreateEvaluator struct {
 	BaseEvaluator
 	BaseDelegate
-	op  *prototype.AccountCreateOperation
+	op *prototype.AccountCreateOperation
 }
 
 type AccountUpdateEvaluator struct {
 	BaseEvaluator
 	BaseDelegate
-	op  *prototype.AccountUpdateOperation
+	op *prototype.AccountUpdateOperation
 }
 
 type TransferEvaluator struct {
 	BaseEvaluator
 	BaseDelegate
-	op  *prototype.TransferOperation
+	op *prototype.TransferOperation
 }
 
 type PostEvaluator struct {
 	BaseEvaluator
 	BaseDelegate
-	op  *prototype.PostOperation
+	op *prototype.PostOperation
 }
 type ReplyEvaluator struct {
 	BaseEvaluator
 	BaseDelegate
-	op  *prototype.ReplyOperation
+	op *prototype.ReplyOperation
 }
 type VoteEvaluator struct {
 	BaseEvaluator
 	BaseDelegate
-	op  *prototype.VoteOperation
+	op *prototype.VoteOperation
 }
 type BpRegisterEvaluator struct {
 	BaseEvaluator
 	BaseDelegate
-	op  *prototype.BpRegisterOperation
+	op *prototype.BpRegisterOperation
 }
 type BpEnableEvaluator struct {
 	BaseEvaluator
 	BaseDelegate
-	op  *prototype.BpEnableOperation
+	op *prototype.BpEnableOperation
 }
 
 type BpUpdateEvaluator struct {
 	BaseEvaluator
 	BaseDelegate
-	op  *prototype.BpUpdateOperation
+	op *prototype.BpUpdateOperation
 }
 
 type BpVoteEvaluator struct {
 	BaseEvaluator
 	BaseDelegate
-	op  *prototype.BpVoteOperation
+	op *prototype.BpVoteOperation
 }
 
 type FollowEvaluator struct {
 	BaseEvaluator
 	BaseDelegate
-	op  *prototype.FollowOperation
+	op *prototype.FollowOperation
 }
 
 type TransferToVestEvaluator struct {
 	BaseEvaluator
 	BaseDelegate
-	op  *prototype.TransferToVestOperation
+	op *prototype.TransferToVestOperation
 }
 
 //type ClaimEvaluator struct {
@@ -104,13 +105,13 @@ type TransferToVestEvaluator struct {
 type ReportEvaluator struct {
 	BaseEvaluator
 	BaseDelegate
-	op  *prototype.ReportOperation
+	op *prototype.ReportOperation
 }
 
 type ConvertVestEvaluator struct {
 	BaseEvaluator
 	BaseDelegate
-	op  *prototype.ConvertVestOperation
+	op *prototype.ConvertVestOperation
 }
 
 // I can cat out this awkward claimall operation until I can get value from rpc resp
@@ -123,33 +124,33 @@ type ConvertVestEvaluator struct {
 type ContractDeployEvaluator struct {
 	BaseEvaluator
 	BaseDelegate
-	op  *prototype.ContractDeployOperation
+	op *prototype.ContractDeployOperation
 }
 
 type ContractApplyEvaluator struct {
 	BaseEvaluator
 	BaseDelegate
-	op  *prototype.ContractApplyOperation
+	op *prototype.ContractApplyOperation
 }
 
 type InternalContractApplyEvaluator struct {
 	BaseEvaluator
 	BaseDelegate
-	op  *prototype.InternalContractApplyOperation
+	op        *prototype.InternalContractApplyOperation
 	remainGas uint64
-	preVm *exec.VM
+	preVm     *exec.VM
 }
 
 type StakeEvaluator struct {
 	BaseEvaluator
 	BaseDelegate
-	op  *prototype.StakeOperation
+	op *prototype.StakeOperation
 }
 
 type UnStakeEvaluator struct {
 	BaseEvaluator
 	BaseDelegate
-	op  *prototype.UnStakeOperation
+	op *prototype.UnStakeOperation
 }
 
 type AcquireTicketEvaluator struct {
@@ -166,65 +167,82 @@ type VoteByTicketEvaluator struct {
 
 func init() {
 	RegisterEvaluator((*prototype.AccountCreateOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
-		return &AccountCreateEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.AccountCreateOperation)}
+		return &AccountCreateEvaluator{BaseDelegate: BaseDelegate{delegate: delegate}, op: op.(*prototype.AccountCreateOperation)}
 	})
 	RegisterEvaluator((*prototype.TransferOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
-		return &TransferEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.TransferOperation)}
+		return &TransferEvaluator{BaseDelegate: BaseDelegate{delegate: delegate}, op: op.(*prototype.TransferOperation)}
 	})
 	RegisterEvaluator((*prototype.BpRegisterOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
-		return &BpRegisterEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.BpRegisterOperation)}
+		return &BpRegisterEvaluator{BaseDelegate: BaseDelegate{delegate: delegate}, op: op.(*prototype.BpRegisterOperation)}
 	})
 	RegisterEvaluator((*prototype.BpEnableOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
-		return &BpEnableEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.BpEnableOperation)}
+		return &BpEnableEvaluator{BaseDelegate: BaseDelegate{delegate: delegate}, op: op.(*prototype.BpEnableOperation)}
 	})
 	RegisterEvaluator((*prototype.BpVoteOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
-		return &BpVoteEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.BpVoteOperation)}
+		return &BpVoteEvaluator{BaseDelegate: BaseDelegate{delegate: delegate}, op: op.(*prototype.BpVoteOperation)}
 	})
 	RegisterEvaluator((*prototype.PostOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
-		return &PostEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.PostOperation)}
+		return &PostEvaluator{BaseDelegate: BaseDelegate{delegate: delegate}, op: op.(*prototype.PostOperation)}
 	})
 	RegisterEvaluator((*prototype.ReplyOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
-		return &ReplyEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.ReplyOperation)}
+		return &ReplyEvaluator{BaseDelegate: BaseDelegate{delegate: delegate}, op: op.(*prototype.ReplyOperation)}
 	})
 	RegisterEvaluator((*prototype.FollowOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
-		return &FollowEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.FollowOperation)}
+		return &FollowEvaluator{BaseDelegate: BaseDelegate{delegate: delegate}, op: op.(*prototype.FollowOperation)}
 	})
 	RegisterEvaluator((*prototype.VoteOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
-		return &VoteEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.VoteOperation)}
+		return &VoteEvaluator{BaseDelegate: BaseDelegate{delegate: delegate}, op: op.(*prototype.VoteOperation)}
 	})
 	RegisterEvaluator((*prototype.TransferToVestOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
-		return &TransferToVestEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.TransferToVestOperation)}
+		return &TransferToVestEvaluator{BaseDelegate: BaseDelegate{delegate: delegate}, op: op.(*prototype.TransferToVestOperation)}
 	})
 	RegisterEvaluator((*prototype.ContractDeployOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
-		return &ContractDeployEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.ContractDeployOperation)}
+		return &ContractDeployEvaluator{BaseDelegate: BaseDelegate{delegate: delegate}, op: op.(*prototype.ContractDeployOperation)}
 	})
 	RegisterEvaluator((*prototype.ContractApplyOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
-		return &ContractApplyEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.ContractApplyOperation)}
+		return &ContractApplyEvaluator{BaseDelegate: BaseDelegate{delegate: delegate}, op: op.(*prototype.ContractApplyOperation)}
 	})
-	RegisterEvaluator((*prototype.ReportOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
-		return &ReportEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.ReportOperation)}
-	})
+	//RegisterEvaluator((*prototype.ReportOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
+	//	return &ReportEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.ReportOperation)}
+	//})
 	RegisterEvaluator((*prototype.ConvertVestOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
-		return &ConvertVestEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.ConvertVestOperation)}
+		return &ConvertVestEvaluator{BaseDelegate: BaseDelegate{delegate: delegate}, op: op.(*prototype.ConvertVestOperation)}
 	})
 	RegisterEvaluator((*prototype.StakeOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
-		return &StakeEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.StakeOperation)}
+		return &StakeEvaluator{BaseDelegate: BaseDelegate{delegate: delegate}, op: op.(*prototype.StakeOperation)}
 	})
 	RegisterEvaluator((*prototype.UnStakeOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
-		return &UnStakeEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.UnStakeOperation)}
+		return &UnStakeEvaluator{BaseDelegate: BaseDelegate{delegate: delegate}, op: op.(*prototype.UnStakeOperation)}
 	})
 	RegisterEvaluator((*prototype.BpUpdateOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
-		return &BpUpdateEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.BpUpdateOperation)}
+		return &BpUpdateEvaluator{BaseDelegate: BaseDelegate{delegate: delegate}, op: op.(*prototype.BpUpdateOperation)}
 	})
 	RegisterEvaluator((*prototype.AccountUpdateOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
-		return &AccountUpdateEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.AccountUpdateOperation)}
+		return &AccountUpdateEvaluator{BaseDelegate: BaseDelegate{delegate: delegate}, op: op.(*prototype.AccountUpdateOperation)}
 	})
 	RegisterEvaluator((*prototype.AcquireTicketOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
-		return &AcquireTicketEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.AcquireTicketOperation)}
+		return &AcquireTicketEvaluator{BaseDelegate: BaseDelegate{delegate: delegate}, op: op.(*prototype.AcquireTicketOperation)}
 	})
 	RegisterEvaluator((*prototype.VoteByTicketOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
-		return &VoteByTicketEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.VoteByTicketOperation)}
+		return &VoteByTicketEvaluator{BaseDelegate: BaseDelegate{delegate: delegate}, op: op.(*prototype.VoteByTicketOperation)}
 	})
+
+	hardfork.HF.RegisterAction(1, hardfork.NewOP, func(i ...interface{}) interface{} {
+		return EnableNewEvaluatorAndOperation(
+			"report",
+			(*prototype.Operation_Op15)(nil),
+			(*prototype.ReportOperation)(nil),
+			func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
+				return &ReportEvaluator{BaseDelegate: BaseDelegate{delegate: delegate}, op: op.(*prototype.ReportOperation)}
+			},
+		)
+	})
+}
+
+func EnableNewEvaluatorAndOperation(name string, wrapperPtr interface{}, opPtr interface{}, evalCreator EvaluatorCreator) func() {
+	f := prototype.RegisterNewOperation("report", wrapperPtr, opPtr)
+	RegisterEvaluator(opPtr, evalCreator)
+	return f
 }
 
 func (ev *AccountCreateEvaluator) Apply() {
@@ -416,7 +434,7 @@ func (ev *ReplyEvaluator) Apply() {
 	//opAssert(pidWrap.SetChildren(pidWrap.GetChildren()+1), "Modify Parent Children Error")
 
 	pidWrap.Modify(func(tInfo *table.SoPost) {
-		tInfo.Children ++
+		tInfo.Children++
 	})
 
 	//timestamp := ev.GlobalProp().HeadBlockTime().UtcSeconds + uint32(constants.PostCashOutDelayTime) - uint32(constants.GenesisTime)
@@ -456,7 +474,7 @@ func (ev *VoteEvaluator) Apply() {
 	regeneratedPower := 1000 * elapsedSeconds / constants.VoteRegenerateTime
 	var currentVp uint32
 	votePower := voterWrap.GetVotePower() + regeneratedPower
-	if votePower > 1000{
+	if votePower > 1000 {
 		currentVp = 1000
 	} else {
 		currentVp = votePower
@@ -521,7 +539,7 @@ func (ev *BpRegisterEvaluator) Apply() {
 
 	accountBalance := accountWrap.GetVest()
 	opAssert(accountBalance.Value >= constants.MinBpRegisterVest,
-		fmt.Sprintf("vest balance should greater than %d", constants.MinBpRegisterVest / constants.COSTokenDecimals))
+		fmt.Sprintf("vest balance should greater than %d", constants.MinBpRegisterVest/constants.COSTokenDecimals))
 
 	bpWrap := table.NewSoBlockProducerWrap(ev.Database(), op.Owner)
 	bpWrap.MustNotExist("you are already a block producer, do not register twice")
@@ -548,7 +566,7 @@ func (ev *BpRegisterEvaluator) Apply() {
 		fmt.Sprintf("account create fee too high max value %d", constants.MaxAccountCreateFee))
 
 	topNAcquireFreeToken := op.Props.TopNAcquireFreeToken
-	opAssert(topNAcquireFreeToken <= constants.MaxTopN, fmt.Sprintf("top N VEST holders, the N is too big, " +
+	opAssert(topNAcquireFreeToken <= constants.MaxTopN, fmt.Sprintf("top N VEST holders, the N is too big, "+
 		"which should lower than %d", constants.MaxTopN))
 
 	epochDuration := op.Props.EpochDuration
@@ -560,7 +578,7 @@ func (ev *BpRegisterEvaluator) Apply() {
 		constants.MinTicketPrice))
 
 	perTicketWeight := op.Props.PerTicketWeight
-	bpVest := &prototype.BpVestId{Active:true, VoteVest:&prototype.Vest{Value: 0}}
+	bpVest := &prototype.BpVestId{Active: true, VoteVest: &prototype.Vest{Value: 0}}
 
 	bpWrap.Create(func(t *table.SoBlockProducer) {
 		t.Owner = op.Owner
@@ -591,14 +609,14 @@ func (ev *BpEnableEvaluator) Apply() {
 		opAssert(bpWrap.GetBpVest().Active, "block producer has already been disabled")
 
 		bpVoteVest := bpWrap.GetBpVest().VoteVest
-		newBpVest := &prototype.BpVestId{Active:false, VoteVest:bpVoteVest}
+		newBpVest := &prototype.BpVestId{Active: false, VoteVest: bpVoteVest}
 
 		bpWrap.SetBpVest(newBpVest)
 	} else {
 		opAssert(!bpWrap.GetBpVest().Active, "block producer has already been enabled")
 
 		bpVoteVest := bpWrap.GetBpVest().VoteVest
-		newBpVest := &prototype.BpVestId{Active:true, VoteVest:bpVoteVest}
+		newBpVest := &prototype.BpVestId{Active: true, VoteVest: bpVoteVest}
 
 		bpWrap.SetBpVest(newBpVest)
 	}
@@ -632,16 +650,16 @@ func (ev *BpVoteEvaluator) Apply() {
 
 		// modify block producer bp vest
 		bpVoteVestCnt.Sub(voterVests)
-		newBpVest := &prototype.BpVestId{Active:bpActive, VoteVest:bpVoteVestCnt}
+		newBpVest := &prototype.BpVestId{Active: bpActive, VoteVest: bpVoteVestCnt}
 		bpWrap.SetBpVest(newBpVest)
 
 		// modify block producer voter count
 		opAssert(bpVoterCount > 0, "block producer voter count should be greater than 0")
-		bpWrap.SetVoterCount(bpVoterCount-1)
+		bpWrap.SetVoterCount(bpVoterCount - 1)
 
 		// modify voter bp_vote_count
 		opAssert(voteCnt > 0, "vote count must not be 0")
-		voterAccount.SetBpVoteCount(voteCnt-1)
+		voterAccount.SetBpVoteCount(voteCnt - 1)
 
 	} else {
 		// block producer should be in active mode
@@ -661,13 +679,13 @@ func (ev *BpVoteEvaluator) Apply() {
 		})
 
 		// modify voter vote count
-		voterAccount.SetBpVoteCount(voteCnt+1)
+		voterAccount.SetBpVoteCount(voteCnt + 1)
 
 		// modify block producer bp vest and voter count
 		bpVoteVestCnt.Add(voterVests)
-		newBpVest := &prototype.BpVestId{Active:bpActive, VoteVest:bpVoteVestCnt}
+		newBpVest := &prototype.BpVestId{Active: bpActive, VoteVest: bpVoteVestCnt}
 		bpWrap.SetBpVest(newBpVest)
-		bpWrap.SetVoterCount(bpVoterCount+1)
+		bpWrap.SetVoterCount(bpVoterCount + 1)
 	}
 }
 
@@ -694,7 +712,7 @@ func (ev *BpUpdateEvaluator) Apply() {
 		fmt.Sprintf("account create fee too high max value %d", constants.MaxAccountCreateFee))
 
 	topNAcquireFreeToken := op.TopNAcquireFreeToken
-	opAssert(topNAcquireFreeToken <= constants.MaxTopN, fmt.Sprintf("top N VEST holders, the N is too big, " +
+	opAssert(topNAcquireFreeToken <= constants.MaxTopN, fmt.Sprintf("top N VEST holders, the N is too big, "+
 		"which should lower than %d", constants.MaxTopN))
 
 	//epochDuration := op.EpochDuration
@@ -736,7 +754,7 @@ func (ev *FollowEvaluator) Apply() {
 	acctWrap = table.NewSoAccountWrap(ev.Database(), op.FAccount)
 	acctWrap.MustExist("follow f_account do not exist ")
 
-	opAssert( op.Account.Value != op.FAccount.Value, "can't follow yourself")
+	opAssert(op.Account.Value != op.FAccount.Value, "can't follow yourself")
 }
 
 func (ev *TransferToVestEvaluator) Apply() {
@@ -764,9 +782,9 @@ func (ev *TransferToVestEvaluator) Apply() {
 	ev.GlobalProp().TransferToVest(op.Amount)
 }
 
-func updateBpVoteValue(dba iservices.IDatabaseRW, voter *prototype.AccountName, oldVest, newVest *prototype.Vest) (t1, t2 time.Duration){
+func updateBpVoteValue(dba iservices.IDatabaseRW, voter *prototype.AccountName, oldVest, newVest *prototype.Vest) (t1, t2 time.Duration) {
 	getBpNameStart := common.EasyTimer()
-	uniqueVoterQueryWrap := table.UniBlockProducerVoteVoterNameWrap{Dba:dba}
+	uniqueVoterQueryWrap := table.UniBlockProducerVoteVoterNameWrap{Dba: dba}
 	bpId := uniqueVoterQueryWrap.UniQueryVoterName(voter)
 	if bpId == nil {
 		t1 = getBpNameStart.Elapsed()
@@ -774,7 +792,6 @@ func updateBpVoteValue(dba iservices.IDatabaseRW, voter *prototype.AccountName, 
 	}
 	bpName := bpId.GetBlockProducerId().BlockProducer
 	t1 = getBpNameStart.Elapsed()
-
 
 	startTime := common.EasyTimer()
 	bpWrap := table.NewSoBlockProducerWrap(dba, bpName)
@@ -784,7 +801,7 @@ func updateBpVoteValue(dba iservices.IDatabaseRW, voter *prototype.AccountName, 
 		bpVoteVestCnt.Sub(oldVest)
 		bpVoteVestCnt.Add(newVest)
 
-		newBpVest := &prototype.BpVestId{Active:bpActive, VoteVest:bpVoteVestCnt}
+		newBpVest := &prototype.BpVestId{Active: bpActive, VoteVest: bpVoteVestCnt}
 		bpWrap.SetBpVest(newBpVest)
 	}
 	t2 = startTime.Elapsed()
@@ -914,24 +931,24 @@ func (ev *ContractDeployEvaluator) Apply() {
 	// code and abi decompression
 	var (
 		contractCode, contractAbi []byte
-		err error
+		err                       error
 	)
 	if contractCode, err = common.Decompress(op.Code); err != nil {
-		opAssertE(err, "contract code decompression failed");
+		opAssertE(err, "contract code decompression failed")
 	}
 	if contractAbi, err = common.Decompress(op.Abi); err != nil {
-		opAssertE(err, "contract abi decompression failed");
+		opAssertE(err, "contract abi decompression failed")
 	}
 
 	ev.VMInjector().RecordStaminaFee(op.Owner.Value, constants.CommonOpStamina)
 
-	cid 		:= prototype.ContractId{Owner: op.Owner, Cname: op.Contract}
-	scid 		:= table.NewSoContractWrap(ev.Database(), &cid)
-	checkSum 	:= sha256.Sum256(contractCode)
-	codeHash    := &prototype.Sha256{ Hash:checkSum[:] }
+	cid := prototype.ContractId{Owner: op.Owner, Cname: op.Contract}
+	scid := table.NewSoContractWrap(ev.Database(), &cid)
+	checkSum := sha256.Sum256(contractCode)
+	codeHash := &prototype.Sha256{Hash: checkSum[:]}
 	if scid.CheckExist() {
-		opAssert( scid.GetUpgradeable(), "contract can not upgrade")
-		opAssert( !scid.GetHash().Equal( codeHash ), "code hash can not be equal")
+		opAssert(scid.GetUpgradeable(), "contract can not upgrade")
+		opAssert(!scid.GetHash().Equal(codeHash), "code hash can not be equal")
 	}
 
 	_, err = abi.UnmarshalABI(contractAbi)
@@ -1028,9 +1045,9 @@ func (ev *ContractApplyEvaluator) Apply() {
 		vmCtx.Gas = remainGas
 	}
 	// turn off gas limit
-//	if !ev.GlobalProp().ctx.Config().ResourceCheck  {
-//		vmCtx.Gas = constants.OneDayStamina * constants.CpuConsumePointDen
-//	}
+	//	if !ev.GlobalProp().ctx.Config().ResourceCheck  {
+	//		vmCtx.Gas = constants.OneDayStamina * constants.CpuConsumePointDen
+	//	}
 
 	// should be active ?
 	//defer func() {
@@ -1054,7 +1071,7 @@ func (ev *ContractApplyEvaluator) Apply() {
 		opAssertE(err, "execute vm error")
 	}
 	applyCnt := scid.GetApplyCount()
-	scid.SetApplyCount(applyCnt+1)
+	scid.SetApplyCount(applyCnt + 1)
 
 }
 
@@ -1139,18 +1156,18 @@ func (ev *StakeEvaluator) Apply() {
 
 	// unique stake record
 	recordWrap := table.NewSoStakeRecordWrap(ev.Database(), &prototype.StakeRecord{
-		From:   op.From,
-		To: op.To,
+		From: op.From,
+		To:   op.To,
 	})
 	if !recordWrap.CheckExist() {
 		recordWrap.Create(func(record *table.SoStakeRecord) {
 			record.Record = &prototype.StakeRecord{
-				From:   &prototype.AccountName{Value: op.From.Value},
-				To: &prototype.AccountName{Value: op.To.Value},
+				From: &prototype.AccountName{Value: op.From.Value},
+				To:   &prototype.AccountName{Value: op.To.Value},
 			}
 			record.RecordReverse = &prototype.StakeRecordReverse{
-				To:&prototype.AccountName{Value: op.To.Value},
-				From:   &prototype.AccountName{Value: op.From.Value},
+				To:   &prototype.AccountName{Value: op.To.Value},
+				From: &prototype.AccountName{Value: op.From.Value},
 			}
 			record.StakeAmount = prototype.NewVest(addVests.Value)
 		})
@@ -1171,8 +1188,8 @@ func (ev *UnStakeEvaluator) Apply() {
 	ev.VMInjector().RecordStaminaFee(op.Creditor.Value, constants.CommonOpStamina)
 
 	recordWrap := table.NewSoStakeRecordWrap(ev.Database(), &prototype.StakeRecord{
-		From:   op.Creditor,
-		To: op.Debtor,
+		From: op.Creditor,
+		To:   op.Debtor,
 	})
 
 	recordWrap.MustExist("stake record not exist")
@@ -1221,7 +1238,7 @@ func (ev *AcquireTicketEvaluator) Apply() {
 	balance.Sub(fee)
 	account.SetBalance(balance)
 
-	opAssert(account.GetChargedTicket() + uint32(count) > account.GetChargedTicket(), "ticket count overflow")
+	opAssert(account.GetChargedTicket()+uint32(count) > account.GetChargedTicket(), "ticket count overflow")
 
 	account.SetChargedTicket(account.GetChargedTicket() + uint32(count))
 
@@ -1229,10 +1246,10 @@ func (ev *AcquireTicketEvaluator) Apply() {
 
 	// record
 	ticketKey := &prototype.GiftTicketKeyType{
-		Type: 1,
-		From: "contentos",
-		To: op.Account.Value,
-		CreateBlock: ev.GlobalProp().GetProps().HeadBlockNumber+1,
+		Type:        1,
+		From:        "contentos",
+		To:          op.Account.Value,
+		CreateBlock: ev.GlobalProp().GetProps().HeadBlockNumber + 1,
 	}
 
 	ticketWrap := table.NewSoGiftTicketWrap(ev.Database(), ticketKey)
@@ -1273,9 +1290,9 @@ func (ev *VoteByTicketEvaluator) Apply() {
 
 	// free ticket ?
 	freeTicketWrap := table.NewSoGiftTicketWrap(ev.Database(), &prototype.GiftTicketKeyType{
-		Type: 0,
-		From: "contentos",
-		To: op.Account.Value,
+		Type:        0,
+		From:        "contentos",
+		To:          op.Account.Value,
 		CreateBlock: ev.GlobalProp().GetProps().GetCurrentEpochStartBlock(),
 	})
 	if freeTicketWrap.CheckExist() {
@@ -1295,19 +1312,19 @@ func (ev *VoteByTicketEvaluator) Apply() {
 		opAssert(account.GetChargedTicket() >= uint32(count), "insufficient ticket to vote")
 		account.SetChargedTicket(account.GetChargedTicket() - uint32(count))
 		freeTicketWrap.RemoveGiftTicket()
-		postWrap.SetTicket(originTicketCount + uint32(count + 1) * factor)
+		postWrap.SetTicket(originTicketCount + uint32(count+1)*factor)
 	} else {
 		opAssert(account.GetChargedTicket() >= uint32(count), "insufficient ticket to vote")
 		account.SetChargedTicket(account.GetChargedTicket() - uint32(count))
-		postWrap.SetTicket(originTicketCount + uint32(count) * factor)
+		postWrap.SetTicket(originTicketCount + uint32(count)*factor)
 	}
 
 	// record
 	ticketKey := &prototype.GiftTicketKeyType{
-		Type: 1,
-		From: op.Account.Value,
-		To: strconv.FormatUint(postId, 10),
-		CreateBlock: ev.GlobalProp().GetProps().HeadBlockNumber+1,
+		Type:        1,
+		From:        op.Account.Value,
+		To:          strconv.FormatUint(postId, 10),
+		CreateBlock: ev.GlobalProp().GetProps().HeadBlockNumber + 1,
 	}
 	ticketWrap := table.NewSoGiftTicketWrap(ev.Database(), ticketKey)
 	ticketWrap.MustNotExist("ticket record existed")
