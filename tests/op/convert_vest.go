@@ -64,7 +64,7 @@ func (tester *ConvertVestTester) normal(t *testing.T, d *Dandelion) {
 	a.Equal(balance0 + TRANSFER, d.Account(tester.acc0.Name).GetBalance().Value)
 	a.Equal(vest0 - TRANSFER, d.Account(tester.acc0.Name).GetVest().Value)
 	a.Equal(uint64(0), d.Account(tester.acc0.Name).GetEachPowerdownRate().Value)
-	a.Equal(uint64(math.MaxUint32), d.Account(tester.acc0.Name).GetNextPowerdownBlockNum())
+	a.Equal(uint64(math.MaxUint64), d.Account(tester.acc0.Name).GetNextPowerdownBlockNum())
 }
 
 func (tester *ConvertVestTester) Reset(t *testing.T, d *Dandelion) {

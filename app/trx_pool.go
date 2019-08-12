@@ -653,7 +653,7 @@ func (c *TrxPool) initGenesis() {
 		tInfo.Vest = prototype.NewVest(0)
 		tInfo.LastPostTime = &prototype.TimePointSec{UtcSeconds: 0}
 		tInfo.LastVoteTime = &prototype.TimePointSec{UtcSeconds: 0}
-		tInfo.NextPowerdownBlockNum = math.MaxUint32
+		tInfo.NextPowerdownBlockNum = math.MaxUint64
 		tInfo.EachPowerdownRate = &prototype.Vest{Value: 0}
 		tInfo.ToPowerdown = &prototype.Vest{Value: 0}
 		tInfo.HasPowerdown = &prototype.Vest{Value: 0}

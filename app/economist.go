@@ -366,7 +366,7 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, bigBlockRewards *big.
 	//var spentVoterReward uint64 = 0
 	for _, post := range posts {
 		if post.GetCopyright() == constants.CopyrightInfringement {
-			post.SetCashoutBlockNum(math.MaxUint32)
+			post.SetCashoutBlockNum(math.MaxUint64)
 			e.log.Warnf("ignored post %v postCashout due to invalid copyright", post.GetPostId())
 			continue
 		}
@@ -446,7 +446,7 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, bigBlockRewards *big.
 			t1, t2 := updateBpVoteValue(e.db, &prototype.AccountName{Value: author}, oldVest, vestRewards)
 			e.log.Debugf("post cashout updateBpVoteValue: %v, query: %v, update: %v", t, t1, t2)
 		}
-		post.SetCashoutBlockNum(math.MaxUint32)
+		post.SetCashoutBlockNum(math.MaxUint64)
 		post.SetRewards(&prototype.Vest{Value: reward})
 		post.SetDappRewards(&prototype.Vest{Value: beneficiaryReward})
 		if reward > 0 {
@@ -473,7 +473,7 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, bigBlockRewards *b
 	//var spentVoterReward uint64 = 0
 	for _, reply := range replies {
 		if reply.GetCopyright() == constants.CopyrightInfringement {
-			reply.SetCashoutBlockNum(math.MaxUint32)
+			reply.SetCashoutBlockNum(math.MaxUint64)
 			e.log.Warnf("ignored reply %v replyCashout due to invalid copyright", reply.GetPostId())
 			continue
 		}
@@ -542,7 +542,7 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, bigBlockRewards *b
 			t1, t2 := updateBpVoteValue(e.db, &prototype.AccountName{Value: author}, oldVest, vestRewards)
 			e.log.Debugf("reply cashout updateBpVoteValue: %v, query: %v, update: %v", t, t1, t2)
 		}
-		reply.SetCashoutBlockNum(math.MaxUint32)
+		reply.SetCashoutBlockNum(math.MaxUint64)
 		reply.SetRewards(&prototype.Vest{Value: reward})
 		reply.SetDappRewards(&prototype.Vest{Value: beneficiaryReward})
 		if reward > 0 {
@@ -630,7 +630,7 @@ func (e *Economist) PowerDown() {
 		})
 		if accountWrap.GetHasPowerdown().Value >= accountWrap.GetToPowerdown().Value || accountWrap.GetVest().Value == 0 {
 			accountWrap.SetEachPowerdownRate(&prototype.Vest{Value: 0})
-			accountWrap.SetNextPowerdownBlockNum(math.MaxUint32)
+			accountWrap.SetNextPowerdownBlockNum(math.MaxUint64)
 		} else {
 			accountWrap.SetNextPowerdownBlockNum(current + constants.PowerDownBlockInterval)
 		}

@@ -898,7 +898,7 @@ func (as *APIService) getAccountResponseByName(name *prototype.AccountName, isNe
 		currentTime := gp.GetTime()
 		nextWithdrawBlock := accWrap.GetNextPowerdownBlockNum()
 		withdrawTime := &prototype.TimePointSec{UtcSeconds: 0}
-		if nextWithdrawBlock >= currentBlockNum && nextWithdrawBlock != math.MaxUint32 {
+		if nextWithdrawBlock >= currentBlockNum && nextWithdrawBlock != math.MaxUint64 {
 			withdrawTime = &prototype.TimePointSec{UtcSeconds: uint32(nextWithdrawBlock - currentBlockNum) + currentTime.UtcSeconds}
 		}
 		acctInfo.NextWithdrawTime = withdrawTime

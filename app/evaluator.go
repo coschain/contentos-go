@@ -260,7 +260,7 @@ func (ev *AccountCreateEvaluator) Apply() {
 		tInfo.Vest = accountCreateFee.ToVest()
 		tInfo.LastPostTime = ev.GlobalProp().HeadBlockTime()
 		tInfo.LastVoteTime = ev.GlobalProp().HeadBlockTime()
-		tInfo.NextPowerdownBlockNum = math.MaxUint32
+		tInfo.NextPowerdownBlockNum = math.MaxUint64
 		tInfo.EachPowerdownRate = &prototype.Vest{Value: 0}
 		tInfo.ToPowerdown = &prototype.Vest{Value: 0}
 		tInfo.HasPowerdown = &prototype.Vest{Value: 0}
