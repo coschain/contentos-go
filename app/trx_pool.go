@@ -295,9 +295,6 @@ func (c *TrxPool) generateBlockNoLock(bpName string, pre *prototype.Sha256, time
 	//signHeader := &prototype.SignedBlockHeader{}
 	//emptyHeader(signHeader)
 
-	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
-	maxBlockSize := dgpWrap.GetProps().MaximumBlockSize
-
 	signBlock := &prototype.SignedBlock{}
 	signBlock.SignedHeader = &prototype.SignedBlockHeader{}
 	signBlock.SignedHeader.Header = &prototype.BlockHeader{}
@@ -328,7 +325,7 @@ func (c *TrxPool) generateBlockNoLock(bpName string, pre *prototype.Sha256, time
 	timing.Mark()
 
 	applyTime := int64(0)
-	sizeLimit := int(maxBlockSize)
+	sizeLimit := constants.MaxBlockSize
 	var failedTrx []*TrxEntry
 	for {
 		if isFinish {
@@ -502,7 +499,7 @@ func (c *TrxPool) applyBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag
 		c.validateBlockHeader(blk)
 
 		blockSize := proto.Size(blk)
-		mustSuccess(uint32(blockSize) <= c.GetProps().GetMaximumBlockSize() + constants.MaxBlockSizeTolerance, "Block size is too big")
+		mustSuccess(uint32(blockSize) <= constants.MaxBlockSize + constants.MaxBlockSizeTolerance, "Block size is too big")
 
 		if uint32(blockSize) < constants.MinBlockSize {
 		}
@@ -691,7 +688,6 @@ func (c *TrxPool) initGenesis() {
 		// @ recent_slots_filled
 		// @ participation_count
 		tInfo.Props.TotalCos = prototype.NewCoin(constants.COSInitSupply)
-		tInfo.Props.MaximumBlockSize = constants.MaxBlockSize
 		tInfo.Props.TotalUserCnt = 1
 		tInfo.Props.StaminaFree = constants.DefaultStaminaFree
 		tInfo.Props.TpsExpected = constants.DefaultTPSExpected
