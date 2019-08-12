@@ -17,6 +17,7 @@ func TestEconomist(t *testing.T) {
 	t.Run("reply", dandelion.NewDandelionTest(new(ReplyTester).Test3, 3))
 	t.Run("reply", dandelion.NewDandelionTest(new(ReplyTester).Test4, 3))
 	t.Run("reply dapp", dandelion.NewDandelionTest(new(ReplyDappTester).Test, 5))
+	t.Run("vote", dandelion.NewDandelionTest(new(VoteTester).Test, 5))
 }
 
 

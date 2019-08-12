@@ -268,6 +268,7 @@ func (ev *AccountCreateEvaluator) Apply() {
 		tInfo.StakeVest = prototype.NewVest(0)
 		tInfo.Reputation = constants.DefaultReputation
 		tInfo.ChargedTicket = 0
+		tInfo.VotePower = 1000
 	})
 
 	// sub dynamic glaobal properties's total fee
@@ -451,26 +452,20 @@ func (ev *VoteEvaluator) Apply() {
 	postWrap.MustExist("post invalid")
 	voteWrap.MustNotExist("vote info exist")
 
-	//votePostWrap := table.NewVotePostIdWrap(ev.Database())
-
-	//for voteIter := votePostWrap.QueryListByOrder(&op.Idx, nil); voteIter.Valid(); voteIter.Next() {
-	//	voterId := votePostWrap.GetMainVal(voteIter)
-	//	if voterId.Voter.Value == op.Voter.Value {
-	//		opAssertE(errors.New("Vote Error"), "vote to a same post")
-	//	}
-	//}
-
-	// 10000 have chance to overflow
-	// 1000 always ok
-	regeneratedPower := 1000 * elapsedSeconds / constants.VoteRegenerateTime
+	regeneratedPower := constants.FullVP * elapsedSeconds / constants.VoteRegenerateTime
 	var currentVp uint32
 	votePower := voterWrap.GetVotePower() + regeneratedPower
-	if votePower > 1000{
-		currentVp = 1000
+	if votePower > constants.FullVP {
+		currentVp = constants.FullVP
 	} else {
 		currentVp = votePower
 	}
-	usedVp := (currentVp + constants.VoteLimitDuringRegenerate - 1) / constants.VoteLimitDuringRegenerate
+	//usedVp := (currentVp + constants.VoteLimitDuringRegenerate - 1) / constants.VoteLimitDuringRegenerate
+	var usedVp uint32
+	usedVp = uint32(constants.FullVP / constants.VPMarks)
+	if currentVp < usedVp {
+		usedVp = 0
+	}
 
 	voterWrap.Modify(func(tInfo *table.SoAccount) {
 		tInfo.VotePower = currentVp - usedVp
@@ -485,11 +480,12 @@ func (ev *VoteEvaluator) Apply() {
 	// so can not using int64 here
 	//weightedVp := vest * uint64(usedVp)
 	weightedVp := new(big.Int).SetUint64(vest)
+	weightedVp.Sqrt(weightedVp)
 	weightedVp.Mul(weightedVp, new(big.Int).SetUint64(uint64(usedVp)))
 
 	// if voter's reputation is 0, she has no voting power.
 	if voterWrap.GetReputation() == constants.MinReputation {
-		weightedVp.SetInt64(0)
+		weightedVp.SetUint64(0)
 	}
 
 	if postWrap.GetCashoutBlockNum() > ev.GlobalProp().GetProps().HeadBlockNumber {
@@ -498,11 +494,6 @@ func (ev *VoteEvaluator) Apply() {
 		//wvp.SetUint64(weightedVp)
 		lvp.SetString(lastVp, 10)
 		tvp.Add(weightedVp, &lvp)
-		//votePower := tvp.
-		// add new vp into global
-		//ev.GlobalProp().AddWeightedVP(weightedVp)
-		// update post's weighted vp
-		//postWrap.SetWeightedVp(tvp.String())
 
 		postWrap.Modify(func(tInfo *table.SoPost) {
 			tInfo.WeightedVp = tvp.String()
@@ -517,7 +508,20 @@ func (ev *VoteEvaluator) Apply() {
 			t.VoteTime = ev.GlobalProp().HeadBlockTime()
 		})
 
-		//opAssert(postWrap.SetVoteCnt(postWrap.GetVoteCnt()+1), "set vote count error")
+		// add vote into cashout table
+		voteCashoutBlockHeight := ev.GlobalProp().GetProps().HeadBlockNumber + constants.VoteCashOutDelayBlock
+		voteCashoutWrap := table.NewSoVoteCashoutWrap(ev.Database(), &voteCashoutBlockHeight)
+
+		if voteCashoutWrap.CheckExist() {
+			voterIds := voteCashoutWrap.GetVoterIds()
+			voterIds = append(voterIds, &voterId)
+			voteCashoutWrap.SetVoterIds(voterIds)
+		} else {
+			voteCashoutWrap.Create(func(tInfo *table.SoVoteCashout) {
+				tInfo.CashoutBlock = voteCashoutBlockHeight
+				tInfo.VoterIds = []*prototype.VoterId{&voterId}
+			})
+		}
 	}
 }
 
@@ -814,7 +818,7 @@ func (ev *ConvertVestEvaluator) Apply() {
 	accWrap := table.NewSoAccountWrap(ev.Database(), op.From)
 	accWrap.MustExist("account do not exist")
 	//opAssert(op.Amount.Value >= uint64(1e6), "At least 1 VEST should be converted")
-	opAssert(accWrap.GetVest().Value >= op.Amount.Value, "VEST balance not enough")
+	opAssert(accWrap.GetVest().Value - uint64(constants.MinAccountCreateFee) >= op.Amount.Value, "VEST balance not enough")
 	globalProps := ev.GlobalProp().GetProps()
 	//timestamp := globalProps.Time.UtcSeconds
 	currentBlock := globalProps.HeadBlockNumber

@@ -104,6 +104,7 @@ message dynamic_properties {
     uint64             charged_tickets_num = 45;
     prototype.account_name    copyright_admin = 46;
     prototype.vest     tickets_bp_bonus = 47;
+    string vote_weighted_vps = 48;
 }
 
 message beneficiary_route_type{

@@ -661,6 +661,7 @@ func (c *TrxPool) initGenesis() {
 		tInfo.StakeVest = prototype.NewVest(0)
 		tInfo.Reputation = constants.DefaultReputation
 		tInfo.ChargedTicket = 0
+		tInfo.VotePower = 1000
 	})
 
 	// create block_producer_object
@@ -721,6 +722,7 @@ func (c *TrxPool) initGenesis() {
 		tInfo.Props.TicketsIncome = prototype.NewVest(0)
 		tInfo.Props.ChargedTicketsNum = 0
 		tInfo.Props.TicketsBpBonus = prototype.NewVest(0)
+		tInfo.Props.VoteWeightedVps = constants.InitVoteWeightedVps
 	})
 
 	// create block summary buffer 2048
