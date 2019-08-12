@@ -503,7 +503,7 @@ func (c *TrxPool) applyBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag
 		c.validateBlockHeader(blk)
 
 		blockSize := proto.Size(blk)
-		mustSuccess(uint32(blockSize) <= c.GetProps().GetMaximumBlockSize(), "Block size is too big")
+		mustSuccess(uint32(blockSize) <= c.GetProps().GetMaximumBlockSize() + constants.MaxBlockSizeTolerance, "Block size is too big")
 
 		if uint32(blockSize) < constants.MinBlockSize {
 		}
