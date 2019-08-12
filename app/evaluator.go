@@ -265,7 +265,7 @@ func (ev *AccountCreateEvaluator) Apply() {
 		tInfo.StakeVest = prototype.NewVest(0)
 		tInfo.Reputation = constants.DefaultReputation
 		tInfo.ChargedTicket = 0
-		//tInfo.VotePower = 1000
+		tInfo.VotePower = 1000
 	})
 
 	// sub dynamic glaobal properties's total fee
@@ -443,15 +443,20 @@ func (ev *VoteEvaluator) Apply() {
 	postWrap.MustExist("post invalid")
 	voteWrap.MustNotExist("vote info exist")
 
-	regeneratedPower := 1000 * elapsedSeconds / constants.VoteRegenerateTime
+	regeneratedPower := constants.FullVP * elapsedSeconds / constants.VoteRegenerateTime
 	var currentVp uint32
 	votePower := voterWrap.GetVotePower() + regeneratedPower
-	if votePower > 1000{
-		currentVp = 1000
+	if votePower > constants.FullVP {
+		currentVp = constants.FullVP
 	} else {
 		currentVp = votePower
 	}
-	usedVp := (currentVp + constants.VoteLimitDuringRegenerate - 1) / constants.VoteLimitDuringRegenerate
+	//usedVp := (currentVp + constants.VoteLimitDuringRegenerate - 1) / constants.VoteLimitDuringRegenerate
+	var usedVp uint32
+	usedVp = uint32(constants.FullVP / constants.VPMarks)
+	if currentVp < usedVp {
+		usedVp = 0
+	}
 
 	voterWrap.Modify(func(tInfo *table.SoAccount) {
 		tInfo.VotePower = currentVp - usedVp
@@ -466,8 +471,8 @@ func (ev *VoteEvaluator) Apply() {
 	// so can not using int64 here
 	//weightedVp := vest * uint64(usedVp)
 	weightedVp := new(big.Int).SetUint64(vest)
-	weightedVp.Mul(weightedVp, new(big.Int).SetUint64(uint64(usedVp)))
 	weightedVp.Sqrt(weightedVp)
+	weightedVp.Mul(weightedVp, new(big.Int).SetUint64(uint64(usedVp)))
 
 	// if voter's reputation is 0, she has no voting power.
 	if voterWrap.GetReputation() == constants.MinReputation {
@@ -798,7 +803,7 @@ func (ev *ConvertVestEvaluator) Apply() {
 	accWrap := table.NewSoAccountWrap(ev.Database(), op.From)
 	accWrap.MustExist("account do not exist")
 	//opAssert(op.Amount.Value >= uint64(1e6), "At least 1 VEST should be converted")
-	opAssert(accWrap.GetVest().Value >= op.Amount.Value, "VEST balance not enough")
+	opAssert(accWrap.GetVest().Value - uint64(constants.MinAccountCreateFee) >= op.Amount.Value, "VEST balance not enough")
 	globalProps := ev.GlobalProp().GetProps()
 	//timestamp := globalProps.Time.UtcSeconds
 	currentBlock := globalProps.HeadBlockNumber
