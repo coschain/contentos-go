@@ -10,6 +10,6 @@ const (
 	MinEpochDuration 		= 60*60*24
 
 	StakeFreezeTime      	= 60*60*24
-
+	WindowSize           = 60 * 60 * 24
 )
 

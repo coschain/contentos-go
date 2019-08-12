@@ -268,29 +268,31 @@ func (tester *StakeTester) regain(t *testing.T, d *Dandelion) {
 	tester.mdFreeStamina(t, d, newFreeStamina)
 	consumeStamina := tester.multipleTransfer(t, d, acctName,2)
 	newAcct := d.Account(acctName)
-
 	consumeFree := newAcct.GetStaminaFree()
 	consumeStake := newAcct.GetStamina()
-
 
 	_,_,maxStakeStamina,leftStakeStamina := getUserStamina(acctName, d)
 	if consumeStamina <= newFreeStamina {
 		a.Equal(maxStakeStamina, leftStakeStamina)
 	}
 
-
-	newBlkCnt := constants.WindowSize/80
+	newBlkCnt := 100
+	if constants.WindowSize < 1000 {
+		newBlkCnt = constants.WindowSize/2
+	}
 	a.Condition(func() (success bool) {
 		return newBlkCnt < constants.WindowSize
 	})
+
+
 	//calculate new consume after regain
-	newConsumeFree := tester.calNewConsume(consumeFree, uint64(newBlkCnt), constants.WindowSize)
-	newConsumeStake := tester.calNewConsume(consumeStake, uint64(newBlkCnt), constants.WindowSize)
+	newConsumeFree := tester.calNewConsume(consumeFree, uint64(newBlkCnt) , constants.WindowSize)
+	newConsumeStake := tester.calNewConsume(consumeStake,uint64(newBlkCnt), constants.WindowSize)
 
 	a.NoError(d.ProduceBlocks(newBlkCnt))
+
 	regainFree := getStaminaRegain(acctName, FREE, d)
 	regainStake := getStaminaRegain(acctName, STAKE, d)
-
 	//total consume = regain + current consume
 	a.Equal(consumeFree-regainFree, newConsumeFree)
 	a.Equal(consumeStake-regainStake, newConsumeStake)
