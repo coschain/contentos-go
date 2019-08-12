@@ -2,16 +2,15 @@ package app
 
 import (
 	"bytes"
-	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common"
-	selfmath "github.com/coschain/contentos-go/common/math"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/common/eventloop"
+	selfmath "github.com/coschain/contentos-go/common/math"
 	"github.com/coschain/contentos-go/utils"
 	"github.com/coschain/contentos-go/vm/cache"
 	"math"
@@ -691,7 +690,6 @@ func (c *TrxPool) initGenesis() {
 		tInfo.Props.HeadBlockId = &prototype.Sha256{Hash: make([]byte, 32)}
 		// @ recent_slots_filled
 		// @ participation_count
-		tInfo.Props.CurrentSupply = prototype.NewCoin(constants.COSInitSupply)
 		tInfo.Props.TotalCos = prototype.NewCoin(constants.COSInitSupply)
 		tInfo.Props.MaximumBlockSize = constants.MaxBlockSize
 		tInfo.Props.TotalUserCnt = 1
@@ -946,7 +944,6 @@ func (c *TrxPool) updateGlobalProperties(blk *prototype.SignedBlock) {
 	c.modifyGlobalDynamicData(func(dgpo *prototype.DynamicProperties) {
 		dgpo.HeadBlockNumber = blk.Id().BlockNum()
 		dgpo.HeadBlockId = blockID
-		dgpo.HeadBlockPrefix = binary.BigEndian.Uint32(id.Data[8:12])
 		dgpo.Time = blk.SignedHeader.Header.Timestamp
 		dgpo.CurrentBlockProducer = blk.SignedHeader.Header.BlockProducer
 
