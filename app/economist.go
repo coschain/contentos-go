@@ -25,9 +25,13 @@ func Min(x, y uint64) uint64 {
 }
 
 func ProportionAlgorithm(numerator *big.Int, denominator *big.Int, total *big.Int) *big.Int {
-	numeratorMul := new(big.Int).Mul(numerator, total)
-	result := new(big.Int).Div(numeratorMul, denominator)
-	return result
+	if denominator.Cmp(new(big.Int).SetUint64(0)) == 0 {
+		return new(big.Int).SetUint64(0)
+	} else {
+		numeratorMul := new(big.Int).Mul(numerator, total)
+		result := new(big.Int).Div(numeratorMul, denominator)
+		return result
+	}
 }
 
 func StringToBigInt(n string) *big.Int {
