@@ -45,6 +45,8 @@ func (tester *UnStakeTester) normal(t *testing.T, d *Dandelion) {
 	a.NoError(d.ProduceBlocks(1))
 	a.Equal(balance0-stakeAmount, tester.acc0.GetBalance().Value)
 	a.Equal(stakeVest1+stakeAmount, tester.acc1.GetStakeVest().Value)
+	_,_,maxStakeStamina,leftStakeStamina := getUserStamina(name1, d)
+	a.Equal(maxStakeStamina, leftStakeStamina)
 	//unStake
 	//can only unStake after the stakeFreezeTime time
 	a.NoError(d.ProduceBlocks(constants.StakeFreezeTime + 5))
@@ -55,6 +57,10 @@ func (tester *UnStakeTester) normal(t *testing.T, d *Dandelion) {
 	a.NoError(d.ProduceBlocks(1))
 	a.Equal(curBalance0+unStakeAmount, tester.acc0.GetBalance().Value)
 	a.Equal(curStakeVest1-unStakeAmount, tester.acc1.GetStakeVest().Value)
+
+	_,_,maxStakeStamina,curStakeStamina := getUserStamina(name1, d)
+	a.Equal(maxStakeStamina, curStakeStamina)
+	a.NotEqual(curStakeStamina, leftStakeStamina)
 }
 
 

@@ -256,3 +256,7 @@ func (d *Dandelion) ModifyProps(modifier func(oldProps *prototype.DynamicPropert
 	dgpWrap.SetProps(props, "modify global props failed")
 	return
 }
+
+func (d *Dandelion) CalculateUserMaxStamina(name string) uint64 {
+	return d.TrxPool().CalculateUserMaxStamina(d.Database(), name)
+}
