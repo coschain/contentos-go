@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"math"
 	"math/big"
-	"strconv"
 	"testing"
 )
 
@@ -78,6 +77,16 @@ func StringToBigInt(n string) *big.Int {
 	bigInt := new(big.Int)
 	value, _ := bigInt.SetString(n, 10)
 	return value
+}
+
+func ProportionAlgorithm(numerator *big.Int, denominator *big.Int, total *big.Int) *big.Int {
+	if denominator.Cmp(new(big.Int).SetUint64(0)) == 0 {
+		return new(big.Int).SetUint64(0)
+	} else {
+		numeratorMul := new(big.Int).Mul(numerator, total)
+		result := new(big.Int).Div(numeratorMul, denominator)
+		return result
+	}
 }
 
 func perBlockPostReward(d *Dandelion) uint64 {
@@ -161,23 +170,28 @@ func (tester *PostTester) cashout(t *testing.T, d *Dandelion) {
 	a.NoError(tester.acc0.SendTrx(Vote(tester.acc0.Name, 1)))
 	a.NoError(d.ProduceBlocks(constants.PostCashOutDelayBlock - BLOCKS - 1))
 
-	// convert to uint64 to make test easier
-	// the mul result less than uint64.MAX
-	postWeight := StringToBigInt(d.Post(1).GetWeightedVp()).Uint64()
-	globalPostReward := new(big.Int).SetUint64(d.GlobalProps().GetPostRewards().Value).Uint64()
-	globalPostDappReward := new(big.Int).SetUint64(d.GlobalProps().GetPostDappRewards().Value).Uint64()
+	postWeight := StringToBigInt(d.Post(1).GetWeightedVp())
+	globalPostReward := new(big.Int).SetUint64(d.GlobalProps().GetPostRewards().Value)
+	globalPostDappReward := new(big.Int).SetUint64(d.GlobalProps().GetPostDappRewards().Value)
 	bigTotalPostWeight, _ := new(big.Int).SetString(d.GlobalProps().GetPostWeightedVps(), 10)
-	totalPostWeight := bigTotalPostWeight.Uint64()
-	exceptNextBlockPostWeightedVps := decay(totalPostWeight) + postWeight
-	exceptPostReward := postWeight * (globalPostReward + perBlockPostReward(d)) / exceptNextBlockPostWeightedVps
-	exceptPostDappReward := postWeight * (globalPostDappReward + perBlockPostDappReward(d)) / exceptNextBlockPostWeightedVps
-	reward := exceptPostReward + exceptPostDappReward
+	decayedPostWeight := bigDecay(bigTotalPostWeight)
+	exceptNextBlockPostWeightedVps := decayedPostWeight.Add(decayedPostWeight, postWeight)
+	bigGlobalPostReward := globalPostReward.Add(globalPostReward, new(big.Int).SetUint64(perBlockPostReward(d)))
+	bigGlobalPostDappReward := globalPostDappReward.Add(globalPostDappReward, new(big.Int).SetUint64(perBlockPostDappReward(d)))
+	pr1 := new(big.Int).Mul(postWeight, bigGlobalPostReward)
+	exceptPostReward := new(big.Int).Div(pr1, exceptNextBlockPostWeightedVps)
+	pr2 := new(big.Int).Mul(postWeight, bigGlobalPostDappReward)
+	exceptPostDappReward := new(big.Int).Div(pr2, exceptNextBlockPostWeightedVps)
+
+	reward := new(big.Int).Add(exceptPostReward, exceptPostDappReward).Uint64()
 
 	a.NoError(d.ProduceBlocks(1))
-	a.Equal(d.GlobalProps().GetPostWeightedVps(), strconv.FormatUint(exceptNextBlockPostWeightedVps, 10))
+	a.Equal(d.GlobalProps().GetPostWeightedVps(), exceptNextBlockPostWeightedVps.String())
 	vest1 := d.Account(tester.acc0.Name).GetVest().Value
 	realReward := vest1 - vest0
 	a.Equal(reward, realReward)
+	// make all post/test has been cashouted
+	a.NoError(d.ProduceBlocks(constants.PostCashOutDelayBlock))
 }
 
 func (tester *PostTester) cashoutAfterOtherCashout(t *testing.T, d *Dandelion) {
@@ -192,26 +206,30 @@ func (tester *PostTester) cashoutAfterOtherCashout(t *testing.T, d *Dandelion) {
 
 	a.NoError(d.ProduceBlocks(BLOCKS))
 	vest0 := d.Account(tester.acc0.Name).GetVest().Value
-	a.NoError(tester.acc0.SendTrx(Vote(tester.acc0.Name, 2)))
+	a.NoError(tester.acc1.SendTrx(Vote(tester.acc1.Name, 2)))
 	a.NoError(d.ProduceBlocks(constants.PostCashOutDelayBlock - BLOCKS - 1))
 
-	// convert to uint64 to make test easier
-	// the mul result less than uint64.MAX
-	postWeight := StringToBigInt(d.Post(2).GetWeightedVp()).Uint64()
-	globalPostReward := new(big.Int).SetUint64(d.GlobalProps().GetPostRewards().Value).Uint64()
-	globalPostDappReward := new(big.Int).SetUint64(d.GlobalProps().GetPostDappRewards().Value).Uint64()
+	postWeight := StringToBigInt(d.Post(2).GetWeightedVp())
+	globalPostReward := new(big.Int).SetUint64(d.GlobalProps().GetPostRewards().Value)
+	globalPostDappReward := new(big.Int).SetUint64(d.GlobalProps().GetPostDappRewards().Value)
 	bigTotalPostWeight, _ := new(big.Int).SetString(d.GlobalProps().GetPostWeightedVps(), 10)
-	totalPostWeight := bigTotalPostWeight.Uint64()
-	exceptNextBlockPostWeightedVps := decay(totalPostWeight) + postWeight
-	exceptPostReward := postWeight * (globalPostReward + perBlockPostReward(d)) / exceptNextBlockPostWeightedVps
-	exceptPostDappReward := postWeight * (globalPostDappReward + perBlockPostDappReward(d)) / exceptNextBlockPostWeightedVps
-	reward := exceptPostReward + exceptPostDappReward
+	decayedPostWeight := bigDecay(bigTotalPostWeight)
+	exceptNextBlockPostWeightedVps := decayedPostWeight.Add(decayedPostWeight, postWeight)
+	bigGlobalPostReward := globalPostReward.Add(globalPostReward, new(big.Int).SetUint64(perBlockPostReward(d)))
+	bigGlobalPostDappReward := globalPostDappReward.Add(globalPostDappReward, new(big.Int).SetUint64(perBlockPostDappReward(d)))
+	pr1 := new(big.Int).Mul(postWeight, bigGlobalPostReward)
+	exceptPostReward := new(big.Int).Div(pr1, exceptNextBlockPostWeightedVps)
+	pr2 := new(big.Int).Mul(postWeight, bigGlobalPostDappReward)
+	exceptPostDappReward := new(big.Int).Div(pr2, exceptNextBlockPostWeightedVps)
+	reward := new(big.Int).Add(exceptPostReward, exceptPostDappReward).Uint64()
 
 	a.NoError(d.ProduceBlocks(1))
-	a.Equal(d.GlobalProps().GetPostWeightedVps(), strconv.FormatUint(exceptNextBlockPostWeightedVps, 10))
+	a.Equal(d.GlobalProps().GetPostWeightedVps(), exceptNextBlockPostWeightedVps.String())
 	vest1 := d.Account(tester.acc0.Name).GetVest().Value
 	realReward := vest1 - vest0
 	a.Equal(reward, realReward)
+	// make all post/test has been cashouted
+	a.NoError(d.ProduceBlocks(constants.PostCashOutDelayBlock))
 }
 
 func (tester *PostTester) multiCashout(t *testing.T, d *Dandelion) {
@@ -232,32 +250,39 @@ func (tester *PostTester) multiCashout(t *testing.T, d *Dandelion) {
 
 	// convert to uint64 to make test easier
 	// the mul result less than uint64.MAX
-	post3Weight :=  StringToBigInt(d.Post(3).GetWeightedVp()).Uint64()
-	post4Weight :=  StringToBigInt(d.Post(4).GetWeightedVp()).Uint64()
+	post3Weight :=  StringToBigInt(d.Post(3).GetWeightedVp())
+	post4Weight :=  StringToBigInt(d.Post(4).GetWeightedVp())
+	postsWeight := new(big.Int).Add(post3Weight, post4Weight)
 
-	globalPostReward := new(big.Int).SetUint64(d.GlobalProps().GetPostRewards().Value).Uint64()
-	globalPostDappReward := new(big.Int).SetUint64(d.GlobalProps().GetPostDappRewards().Value).Uint64()
+	globalPostReward := new(big.Int).SetUint64(d.GlobalProps().GetPostRewards().Value)
+	globalPostDappReward := new(big.Int).SetUint64(d.GlobalProps().GetPostDappRewards().Value)
 	bigTotalPostWeight, _ := new(big.Int).SetString(d.GlobalProps().GetPostWeightedVps(), 10)
-	totalPostWeight := bigTotalPostWeight.Uint64()
 
-	exceptNextBlockPostWeightedVps := decay(totalPostWeight) + post3Weight + post4Weight
-	sumPostReward := (post3Weight + post4Weight) * (globalPostReward + perBlockPostReward(d)) / exceptNextBlockPostWeightedVps
-	post3Reward := post3Weight * sumPostReward / (post3Weight + post4Weight)
-	post4Reward := post4Weight * sumPostReward / (post3Weight + post4Weight)
-	sumPostDappReward := (post3Weight + post4Weight) * (globalPostDappReward + perBlockPostDappReward(d)) / exceptNextBlockPostWeightedVps
-	post3DappReward := post3Weight * sumPostDappReward / (post3Weight + post4Weight)
-	post4DappReward := post4Weight * sumPostDappReward / (post3Weight + post4Weight)
-	reward3 := post3Reward + post3DappReward
-	reward4 := post4Reward + post4DappReward
+	decayedPostWeight := bigDecay(bigTotalPostWeight)
+	exceptNextBlockPostWeightedVps := decayedPostWeight.Add(decayedPostWeight, postsWeight)
+	bigGlobalPostReward := globalPostReward.Add(globalPostReward, new(big.Int).SetUint64(perBlockPostReward(d)))
+	bigGlobalPostDappReward := globalPostDappReward.Add(globalPostDappReward, new(big.Int).SetUint64(perBlockPostDappReward(d)))
+	pr1 := new(big.Int).Mul(postsWeight, bigGlobalPostReward)
+	exceptPostReward := new(big.Int).Div(pr1, exceptNextBlockPostWeightedVps)
+	post3Reward := ProportionAlgorithm(post3Weight, postsWeight, exceptPostReward)
+	post4Reward := ProportionAlgorithm(post4Weight, postsWeight, exceptPostReward)
+	pr2 := new(big.Int).Mul(postsWeight, bigGlobalPostDappReward)
+	exceptPostDappReward := new(big.Int).Div(pr2, exceptNextBlockPostWeightedVps)
+	post3DappReward := ProportionAlgorithm(post3Weight, postsWeight, exceptPostDappReward)
+	post4DappReward := ProportionAlgorithm(post4Weight, postsWeight, exceptPostDappReward)
+	reward3 := post3Reward.Uint64() + post3DappReward.Uint64()
+	reward4 := post4Reward.Uint64() + post4DappReward.Uint64()
 
 	a.NoError(d.ProduceBlocks(1))
-	a.Equal(d.GlobalProps().GetPostWeightedVps(), strconv.FormatUint(exceptNextBlockPostWeightedVps, 10))
+	a.Equal(d.GlobalProps().GetPostWeightedVps(), exceptNextBlockPostWeightedVps.String())
 	vestnew3 := d.Account(tester.acc0.Name).GetVest().Value
 	vestnew4 := d.Account(tester.acc1.Name).GetVest().Value
 	real3Reward := vestnew3 - vestold3
 	real4Reward := vestnew4 - vestold4
 	a.Equal(reward3, real3Reward)
 	a.Equal(reward4, real4Reward)
+	// make all post/test has been cashouted
+	a.NoError(d.ProduceBlocks(constants.PostCashOutDelayBlock))
 }
 
 func (tester *PostTester) hugeGlobalVp(t *testing.T, d *Dandelion) {
@@ -280,9 +305,6 @@ func (tester *PostTester) hugeGlobalVp(t *testing.T, d *Dandelion) {
 	a.NoError(tester.acc0.SendTrx(Vote(tester.acc0.Name, 1)))
 	a.NoError(d.ProduceBlocks(constants.PostCashOutDelayBlock - BLOCKS - 1))
 
-	// convert to uint64 to make test easier
-	// the mul result less than uint64.MAX
-
 	postWeight := StringToBigInt(d.Post(1).GetWeightedVp())
 	globalPostReward := new(big.Int).SetUint64(d.GlobalProps().GetPostRewards().Value)
 	globalPostDappReward := new(big.Int).SetUint64(d.GlobalProps().GetPostDappRewards().Value)
@@ -303,6 +325,8 @@ func (tester *PostTester) hugeGlobalVp(t *testing.T, d *Dandelion) {
 	vest1 := d.Account(tester.acc0.Name).GetVest().Value
 	realReward := vest1 - vest0
 	a.Equal(reward.Uint64(), realReward)
+	// make all post/test has been cashouted
+	a.NoError(d.ProduceBlocks(constants.PostCashOutDelayBlock))
 }
 
 func (tester *PostTester) zeroGlobalVp(t *testing.T, d *Dandelion) {
@@ -341,6 +365,8 @@ func (tester *PostTester) zeroGlobalVp(t *testing.T, d *Dandelion) {
 	vest1 := d.Account(tester.acc0.Name).GetVest().Value
 	realReward := vest1 - vest0
 	a.Equal(reward.Uint64(), realReward)
+	// make all post/test has been cashouted
+	a.NoError(d.ProduceBlocks(constants.PostCashOutDelayBlock))
 }
 
 func (tester *PostTester) withTicket(t *testing.T, d *Dandelion) {
