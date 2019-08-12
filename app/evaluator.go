@@ -1294,7 +1294,9 @@ func (ev *AcquireTicketEvaluator) Apply() {
 	chargedTicketsNum := props.GetChargedTicketsNum()
 	currentTicketsNum := chargedTicketsNum + count
 	ev.GlobalProp().UpdateTicketIncomeAndNum(currentIncome, currentTicketsNum)
-
+	ev.GlobalProp().ModifyProps(func(dprop *prototype.DynamicProperties) {
+		dprop.TotalCos = dprop.TotalCos.Sub(fee)
+	})
 }
 
 func (ev *VoteByTicketEvaluator) Apply() {
@@ -1388,6 +1390,7 @@ func (ev *VoteByTicketEvaluator) Apply() {
 	if equalValue.Value > 0 {
 		ev.GlobalProp().ModifyProps(func(prop *prototype.DynamicProperties) {
 			prop.TicketsBpBonus = prop.TicketsBpBonus.Add(equalValue)
+			prop.TotalVest = prop.TotalVest.Add(equalValue)
 		})
 	}
 }
