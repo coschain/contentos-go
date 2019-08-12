@@ -17,7 +17,7 @@ import (
 )
 
 func Min(x, y uint64) uint64 {
-	hardfork.HF.CurrentAction(hardfork.Uint64MIN)
+	hardfork.HF.CurrentAction(hardfork.Uint64MIN)()
 	if x < y {
 		return x
 	} else {
