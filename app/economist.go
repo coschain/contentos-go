@@ -336,8 +336,10 @@ func (e *Economist) Do(trxObserver iservices.ITrxObserver) {
 		props.VoteWeightedVps = globalVoteWeightedVps.String()
 	})
 	// should assert globalVoteWeightedVps > 0
-	currentBlockVoteReward := ProportionAlgorithm(&voteWeightedVpsAccumulator, globalVoteWeightedVps, bigGlobalVoteRewards)
-	e.voteCashout(votes, currentBlockVoteReward, &voteWeightedVpsAccumulator, trxObserver)
+	if globalVoteWeightedVps.Cmp(new(big.Int).SetInt64(0)) > 0 {
+		currentBlockVoteReward := ProportionAlgorithm(&voteWeightedVpsAccumulator, globalVoteWeightedVps, bigGlobalVoteRewards)
+		e.voteCashout(votes, currentBlockVoteReward, &voteWeightedVpsAccumulator, trxObserver)
+	}
 }
 
 
