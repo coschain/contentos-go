@@ -121,16 +121,31 @@ All posts and comments uploaded exactly 7 days ago will be rewarded. Each post�
 
 Transfer from COS to VESTS is called power up and power down vice versa. Power up is instant while power down takes about 13 weeks to complete. Multiple power down inside an account at the same time is not allow.
 
-## 4. Resource consumption
+## 4. Reputation
 
-### 4.1 resource type 
+A reputation system is introduced to regulate users' behaviour. If economic rule is to be the only restraint and incentive, some users will produce as many contents of poor quality as possible to get reward. The reputation system works as follows:
+
+1. Each account's reputation value is set to 100 as default when it's created
+2. All block producers elects a single reputation administrator who has the authority to manage other users' reputation value
+3. If administrator finds an user has any malicious deeds, set the user's reputation value to 0
+4. An user with 0 reputation value cannot get any reward
+
+## 5. Copyright
+A copyright system is introduced to prevent infringement acts：
+
+1. All block producers elects a single copyright administrator
+2. If a user carries out infringement acts, say the user plagiarizes other people's contents, the administrator will mark the post so that it gets no rewards.
+
+## 6. Resource consumption
+
+### 6.1 resource type
 
 Network resource: Broadcasting a transaction consumes network resources, which is calculated by the size of the transaction.
 
 CPU resource: When an action in smart contract is invoked, CPU resource is consumed.
 
-### 4.2 fee
-To simplify the fee calculation of network and CPU resource consumption, the above resource type is converted to stamina. 
+### 6.2 fee
+To simplify the fee calculation of network and CPU resource consumption, the above resource type is converted to stamina.
 
 If user’s stamina is insufficient for network resource consumption of the transaction he/she sent, the transaction will be discarded without deducting stamina.
 
@@ -138,20 +153,20 @@ If the transaction is invalid, stamina will be deducted.
 
 If stamina is insufficient for the CPU resource consumption, the transaction will not be executed. However the rest of the user’s stamina is costed.
 
-### 4.3 how to get stamina
+### 6.3 how to get stamina
 Free stamina: each user has a certain amount of stamina that will be regenerated daily.
-Stake COS: if a user needs more stamina, he/she can stake COS to get more VEST. The more VEST a user has, the more extra stamina the user gets. Specifically, the usage and regeneration of stamina in Contentos is calculated using Exponential Weighted Moving Average 
+Stake COS: if a user needs more stamina, he/she can stake COS to get more VEST. The more VEST a user has, the more extra stamina the user gets. Specifically, the usage and regeneration of stamina in Contentos is calculated using Exponential Weighted Moving Average
 
-Exponential Weighted Moving Average: 
-At time $t$，the moving average： $V_t=\beta V_{t-1}+(1-\beta)\theta_{t}$   $t=1,2,3,...n$  ， $V_t$ is the potential moving average at time $t$ .  $\theta_{t}$ is the actual value at time $t$ . $\beta$ is the weight. 
+Exponential Weighted Moving Average:
+At time $t$，the moving average： $V_t=\beta V_{t-1}+(1-\beta)\theta_{t}$   $t=1,2,3,...n$  ， $V_t$ is the potential moving average at time $t$ .  $\theta_{t}$ is the actual value at time $t$ . $\beta$ is the weight.
 
-## 5. Account system
-### 5.1 account name
+## 7. Account system
+### 7.1 account name
 Account name is the unique identification of an account in Contentos. It contains 6~16 characters, each character has to be a lower case letter or a digit number.
-### 5.2
+### 7.2
 Contentos uses digital signature to check authority. Each user has a pair of pub/priv key. Users must sign their messages with their private key and the receivers use public key to verify the authenticities of the messages.
 
-## 6. Storage service
+## 8. Storage service
 Contentos uses LevelDB to store data. The performance is as follows:
 ##### initial dataset = 100,000
 
@@ -184,24 +199,25 @@ Contentos uses LevelDB to store data. The performance is as follows:
 
 A high-performance, highly available database service is implemented based on LevelDB and mem cache. It provides transactional supports and fast roll back mechanism.
 
-## 7.Smart contract and virtual machine
+## 9.Smart contract and virtual machine
 The smart contracts in Contentos currently can only be written in C/C++ language. WebAssembly is the virtual machine on which these smart contracts run.
-### 7.1 supported actions
+### 9.1 supported actions
 Smart contracts developed by users will be compiled into WASM byte codes which can be deployed on the blockchain. A series of APIs are provided to make the contract development eaiser. It provides similar features to ERC20 standards. Also the APIs allows the contract developers to post an article, comment or get statistics they care about. Smart contracts can be updated online so that developer can hotfix bugs or add new features.
-### 7.2 limitations
+### 9.2 limitations
 The running time of a contract together with the CPU, RAM, bandwidth resources it can use is limited to maintain the stableness of the system.
-### 7.3 security
+### 9.3 security
 Smart contracts are running in a sandbox called webassembly. The security model of WebAssembly has two important goals: (1) protect users from buggy or malicious modules, and (2) provide developers with useful primitives and mitigations for developing safe applications, within the constraints of (1). Meanwhile, Contentos will also conduct a authority validation and resource check before and during the execution of a smart contract.
 
-## 8. Smart contract API
+## 10. Smart contract API
 Contentos provides plenty of APIs to enable dAPP developer to write contracts with advanced features, which include but not limited to:
 * any low-level operations like read/write from/to blockchian
 * high-level operations like post articles or comment
 * cross-contracts interactions
 
-## 9. Smart contract template
+## 11. Smart contract template
 To make smart contract development and deployment much easier, a new feature call smart contract template is provided in Contentos. Users can propose a template, once adopted, other users with no programming skills can also develop and develop their own contracts using the template.
 
-## 10. Plugin
-A plugin mechanism is implemented in Contentos so that users can develop their own plugin to add new functionalities. Currently, `TrxSqlService , StateLogService , DailyStatService ` are provided for statistics purposes. 
+## 12. Plugin
+A plugin mechanism is implemented in Contentos so that users can develop their own plugin to add new functionalities. Currently, `TrxSqlService , StateLogService , DailyStatService ` are provided for statistics purposes.
+
 
