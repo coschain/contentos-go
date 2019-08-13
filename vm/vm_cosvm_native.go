@@ -288,6 +288,16 @@ func (w *CosVMNative) SetUserReputation(name string, value uint32, memo string) 
 	account := table.NewSoAccountWrap(w.cosVM.db, prototype.NewAccountName(name))
 	account.SetReputation(value, fmt.Sprintf("failed to modify reputation of %s", name)).
 		SetReputationMemo(memo, fmt.Sprintf("failed to modify reputation memo of %s", name))
+
+	// if this account is bp and reputation come to constants.MinReputation, disable it
+	if value == constants.MinReputation {
+		bp := table.NewSoBlockProducerWrap(w.cosVM.db, prototype.NewAccountName(name))
+		if bp != nil && bp.CheckExist() && bp.GetBpVest().Active {
+			bpVest := bp.GetBpVest().VoteVest
+			newBpVest := &prototype.BpVestId{Active:false, VoteVest:bpVest}
+			bp.SetBpVest(newBpVest)
+		}
+	}
 }
 
 func (w *CosVMNative) SetUserFreeze(name string, value uint32, memo string) {

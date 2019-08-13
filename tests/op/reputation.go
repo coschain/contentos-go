@@ -208,7 +208,17 @@ func (tester *ReputationTester) regBpWithMinRep(t *testing.T, d *Dandelion) {
 func (tester *ReputationTester) minReputationCashout(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
 
+	//bp register
+	a.NoError(RegisterBp([]*DandelionAccount{tester.acc7}, d))
+	bpWrap := d.BlockProducer(tester.acc7.Name)
+	a.True(bpWrap.CheckExist())
+	a.True(bpWrap.GetBpVest().Active)
+	oldBpVest := bpWrap.GetBpVest().VoteVest.Value
+
 	modWithMinReputation(t, d, tester.acc7)
+
+	a.False(bpWrap.GetBpVest().Active)
+	a.Equal(oldBpVest, bpWrap.GetBpVest().VoteVest.Value)
 
 	title := "title7"
 	content := "content7"
