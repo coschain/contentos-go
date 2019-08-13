@@ -1194,20 +1194,6 @@ func (c *TrxPool) CheckNetForRPC(name string, db iservices.IDatabaseRW, sizeInBy
 	}
 }
 
-func (c *TrxPool) GetFreeTicketCount(name *prototype.AccountName) uint32 {
-	freeTicketWrap := table.NewSoGiftTicketWrap(c.db, &prototype.GiftTicketKeyType{
-		Type: 0,
-		From: "contentos",
-		To: name.Value,
-		CreateBlock: c.GetProps().GetCurrentEpochStartBlock(),
-	})
-	if freeTicketWrap.CheckExist() {
-		return 1
-	} else {
-		return 0
-	}
-}
-
 func (c *TrxPool) DiscardAccountCache(name string) {
 	c.tm.DiscardAccountCache(name)
 }

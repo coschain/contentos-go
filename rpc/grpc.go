@@ -869,6 +869,22 @@ func (as *APIService) GetPostListByName(ctx context.Context, req *grpcpb.GetPost
 	return res, err
 }
 
+func (as *APIService) getFreeTicketCount(name *prototype.AccountName) uint32 {
+	wrapper := table.NewSoGlobalWrap(as.db, &constants.GlobalId)
+	props := wrapper.GetProps()
+	freeTicketWrap := table.NewSoGiftTicketWrap(as.db, &prototype.GiftTicketKeyType{
+		Type: 0,
+		From: "contentos",
+		To: name.Value,
+		CreateBlock: props.GetCurrentEpochStartBlock(),
+	})
+	if freeTicketWrap.CheckExist() {
+		return 1
+	} else {
+		return 0
+	}
+}
+
 func (as *APIService) getAccountResponseByName(name *prototype.AccountName, isNeedLock bool) *grpcpb.AccountResponse {
 	if isNeedLock {
 		as.db.RLock()
@@ -942,7 +958,7 @@ func (as *APIService) getAccountResponseByName(name *prototype.AccountName, isNe
 		acctInfo.Reputation = accWrap.GetReputation()
 		acctInfo.ReputationMemo = accWrap.GetReputationMemo()
 
-		acctInfo.FreeTicket = as.pool.GetFreeTicketCount(name)
+		acctInfo.FreeTicket = as.getFreeTicketCount(name)
 		acctInfo.ChargedTicket = accWrap.GetChargedTicket()
 
 		acctInfo.Freeze = accWrap.GetFreeze()
