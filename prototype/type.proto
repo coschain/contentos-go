@@ -50,7 +50,6 @@ message gift_ticket_key_type {
 
 message chain_properties{
     coin account_creation_fee = 1;
-    uint32 maximum_block_size = 2;
     uint64 stamina_free       = 3;
     uint64 tps_expected       = 4;
     uint32 top_n_acquire_free_token = 5;

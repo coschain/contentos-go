@@ -116,7 +116,6 @@ func makeBpRegVoteTrx(cmd *cobra.Command, client grpcpb.ApiServiceClient, count 
 		BlockSigningKey: pubKey,
 		Props: &prototype.ChainProperties{
 			AccountCreationFee: prototype.NewCoin(constants.DefaultAccountCreateFee),
-			MaximumBlockSize:   10 * 1024 * 1024,
 			StaminaFree:        constants.DefaultStaminaFree,
 			TpsExpected:        constants.DefaultTPSExpected,
 			TopNAcquireFreeToken: constants.InitTopN,

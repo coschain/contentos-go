@@ -21,7 +21,6 @@ const (
 var bpUrlFlag string
 var bpDescFlag string
 var bpCreateAccountFee string
-var bpBlockSize uint32
 var bpVoteCancel bool
 var bpEnableCancel bool
 var proposedStaminaFree uint64
@@ -50,7 +49,6 @@ var BpCmd = func() *cobra.Command {
 	registerCmd.Flags().StringVarP(&bpUrlFlag, "url", "u", "", `bp register alice --url "http://example.com"`)
 	registerCmd.Flags().StringVarP(&bpDescFlag, "desc", "d", "", `bp register alice --desc "Hello World"`)
 	registerCmd.Flags().StringVarP(&bpCreateAccountFee, "fee", "f", utils.MinimumCos, `bp register alice --fee 1.000000`)
-	registerCmd.Flags().Uint32VarP(&bpBlockSize, "blocksize", "b", 1024*1024, `bp register alice --blocksize 1024`)
 	registerCmd.Flags().Uint64VarP(&proposedStaminaFree, "stamina_free", "s", constants.DefaultStaminaFree, `bp register alice --stamina_free 1`)
 	registerCmd.Flags().Uint64VarP(&tpsExpected, "tps", "t", constants.DefaultTPSExpected, `bp register alice --tps 1`)
 	registerCmd.Flags().Uint64VarP(&bpEpochDuration, "epoch_duration", "", constants.InitEpochDuration, `bp register alice --epoch_duration 1000000`)
@@ -117,7 +115,6 @@ func registerBP(cmd *cobra.Command, args []string) {
 		// it's hard to assign default value from cobra.command
 		// so I have to do it manually
 		bpCreateAccountFee = utils.MinimumCos
-		bpBlockSize = 1024 * 1024
 		bpUrlFlag = ""
 		bpDescFlag = ""
 		proposedStaminaFree = constants.DefaultStaminaFree
@@ -164,7 +161,6 @@ func registerBP(cmd *cobra.Command, args []string) {
 		BlockSigningKey: pubKey,
 		Props: &prototype.ChainProperties{
 			AccountCreationFee: prototype.NewCoin(fee),
-			MaximumBlockSize:   bpBlockSize,
 			StaminaFree:        proposedStaminaFree,
 			TpsExpected:        tpsExpected,
 			EpochDuration:      bpEpochDuration,
@@ -369,55 +365,55 @@ func getBpInformation(rpcClient grpcpb.ApiServiceClient, name string) (*grpcpb.B
 
 func checkAndUpdateOpParam(op *prototype.BpUpdateOperation, infoOnChain *grpcpb.BlockProducerResponse) error {
 	if bpUpdateStaminaFree == bpUpdateInvalidUint64 {
-		op.ProposedStaminaFree = infoOnChain.ProposedStaminaFree
+		op.Props.StaminaFree = infoOnChain.ProposedStaminaFree
 	} else {
-		op.ProposedStaminaFree = bpUpdateStaminaFree
+		op.Props.StaminaFree = bpUpdateStaminaFree
 	}
 
 	if bpUpdateTpsExpected == bpUpdateInvalidUint64 {
-		op.TpsExpected = infoOnChain.TpsExpected
+		op.Props.TpsExpected = infoOnChain.TpsExpected
 	} else {
-		op.TpsExpected = bpUpdateTpsExpected
+		op.Props.TpsExpected = bpUpdateTpsExpected
 	}
 
 	if bpEpochDuration == bpUpdateInvalidUint64 {
-		op.EpochDuration = infoOnChain.TicketFlushInterval
+		op.Props.EpochDuration = infoOnChain.TicketFlushInterval
 	} else {
-		op.EpochDuration = bpEpochDuration
+		op.Props.EpochDuration = bpEpochDuration
 	}
 
 	if bpTopN == bpUpdateInvalidUint32 {
-		op.TopNAcquireFreeToken = infoOnChain.TopNAcquireFreeToken
+		op.Props.TopNAcquireFreeToken = infoOnChain.TopNAcquireFreeToken
 	} else {
-		op.TopNAcquireFreeToken = bpTopN
+		op.Props.TopNAcquireFreeToken = bpTopN
 	}
 
 	if bpPerTicketWeight == bpUpdateInvalidUint64 {
-		op.PerTicketWeight = infoOnChain.PerTicketWeight
+		op.Props.PerTicketWeight = infoOnChain.PerTicketWeight
 	} else {
-		op.PerTicketWeight = bpPerTicketWeight
+		op.Props.PerTicketWeight = bpPerTicketWeight
 	}
 
 	if bpUpdateCreateAccountFee == bpUpdateInvalidString {
-		op.AccountCreationFee = infoOnChain.AccountCreateFee
+		op.Props.AccountCreationFee = infoOnChain.AccountCreateFee
 	} else {
 		fee,err := utils.ParseCos(bpUpdateCreateAccountFee)
 		if err != nil {
 			fmt.Println(err)
 			return err
 		}
-		op.AccountCreationFee = prototype.NewCoin(fee)
+		op.Props.AccountCreationFee = prototype.NewCoin(fee)
 	}
 
 	if bpPerTicketPrice == bpUpdateInvalidString {
-		op.PerTicketPrice = infoOnChain.PerTicketPrice
+		op.Props.PerTicketPrice = infoOnChain.PerTicketPrice
 	} else {
 		ticketPrice, err := utils.ParseCos(bpPerTicketPrice)
 		if err != nil {
 			fmt.Println(err)
 			return err
 		}
-		op.PerTicketPrice = prototype.NewCoin(ticketPrice)
+		op.Props.PerTicketPrice = prototype.NewCoin(ticketPrice)
 	}
 
 	return nil

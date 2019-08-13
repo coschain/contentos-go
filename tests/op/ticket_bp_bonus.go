@@ -102,7 +102,6 @@ func (tester *TicketBpBonusTester) newBlockProducers() {
 	bpInitminer := tester.d.BlockProducer(constants.COSInitMiner)
 	chainProp := &prototype.ChainProperties{
 		AccountCreationFee:   bpInitminer.GetAccountCreateFee(),
-		MaximumBlockSize:     constants.MaxBlockSize,
 		StaminaFree:          bpInitminer.GetProposedStaminaFree(),
 		TpsExpected:          bpInitminer.GetTpsExpected(),
 		TopNAcquireFreeToken: bpInitminer.GetTopNAcquireFreeToken(),

@@ -955,7 +955,7 @@ func Test_TrxSize(t *testing.T) {
 	fmt.Println(proto.Size(trx2))
 
 	pub, _ := prototype.PublicKeyFromWIF(pubKeyBob)
-	cp := &prototype.ChainProperties{AccountCreationFee: prototype.NewCoin(100), MaximumBlockSize: 100}
+	cp := &prototype.ChainProperties{AccountCreationFee: prototype.NewCoin(100)}
 	bpRegistOp := &prototype.BpRegisterOperation{
 		Owner:           prototype.NewAccountName("aaa"),
 		Url:             "www.google.com",

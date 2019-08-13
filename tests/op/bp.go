@@ -21,7 +21,6 @@ type BpTest struct {
 func makeBPChainProperty() *prototype.ChainProperties {
 	return &prototype.ChainProperties{
 		AccountCreationFee: prototype.NewCoin(1),
-		MaximumBlockSize:   1024 * 1024,
 		StaminaFree:        constants.DefaultStaminaFree,
 		TpsExpected:        constants.DefaultTPSExpected,
 		EpochDuration:      constants.InitEpochDuration,
@@ -34,7 +33,6 @@ func makeBPChainProperty() *prototype.ChainProperties {
 func resetProperties(p **prototype.ChainProperties) {
 	*p = &prototype.ChainProperties{
 		AccountCreationFee: prototype.NewCoin(1),
-		MaximumBlockSize:   1024 * 1024,
 		StaminaFree:        constants.DefaultStaminaFree,
 		TpsExpected:        constants.DefaultTPSExpected,
 		EpochDuration:      constants.InitEpochDuration,

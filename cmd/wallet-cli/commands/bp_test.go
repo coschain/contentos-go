@@ -168,7 +168,7 @@ func TestBpRegisterWithBlockSize(t *testing.T) {
 	for _, child := range cmd.Commands() {
 		child.Context = cmd.Context
 	}
-	cmd.SetArgs([]string{"register", "initminer", "COS5JVLLcTPhq4Unr194JzWPDNSYGoMcam8yxnsjgRVo3Nb7ioyFW", "--blocksize", "1000"})
+	cmd.SetArgs([]string{"register", "initminer", "COS5JVLLcTPhq4Unr194JzWPDNSYGoMcam8yxnsjgRVo3Nb7ioyFW"})
 	priv_account := &wallet.PrivAccount{
 		Account: wallet.Account{
 			Name:   "initminer",
@@ -183,7 +183,6 @@ func TestBpRegisterWithBlockSize(t *testing.T) {
 		op := req.Transaction.Trx.Operations[0]
 		bp_op := op.GetOp3()
 		myassert.Equal(bp_op.Owner.Value, "initminer")
-		myassert.Equal(bp_op.Props.MaximumBlockSize, uint32(1000))
 	})
 	_, err := cmd.ExecuteC()
 	if err != nil {

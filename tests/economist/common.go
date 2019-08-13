@@ -7,7 +7,6 @@ import (
 
 var mintProps = &prototype.ChainProperties{
 	AccountCreationFee: prototype.NewCoin(1),
-	MaximumBlockSize:   1024 * 1024,
 	StaminaFree:        constants.DefaultStaminaFree,
 	TpsExpected:        constants.DefaultTPSExpected,
 	EpochDuration:      constants.InitEpochDuration,

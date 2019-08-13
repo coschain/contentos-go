@@ -688,31 +688,31 @@ func (ev *BpUpdateEvaluator) Apply() {
 	op := ev.op
 	ev.VMInjector().RecordStaminaFee(op.Owner.Value, constants.CommonOpStamina)
 
-	staminaFree := op.ProposedStaminaFree
+	staminaFree := op.Props.StaminaFree
 	opAssert(staminaFree >= constants.MinStaminaFree,
 		fmt.Sprintf("proposed stamina free too low min value %d", constants.MinStaminaFree))
 	opAssert(staminaFree <= constants.MaxStaminaFree,
 		fmt.Sprintf("proposed stamina free too high max value %d", constants.MaxStaminaFree))
 
-	tpsExpected := op.TpsExpected
+	tpsExpected := op.Props.TpsExpected
 	opAssert(tpsExpected >= constants.MinTPSExpected,
 		fmt.Sprintf("expected tps too low min value %d", constants.MinTPSExpected))
 	opAssert(tpsExpected <= constants.MaxTPSExpected,
 		fmt.Sprintf("expected tps too high max value %d", constants.MaxTPSExpected))
 
-	accountCreateFee := op.AccountCreationFee
+	accountCreateFee := op.Props.AccountCreationFee
 	opAssert(accountCreateFee.Value >= constants.MinAccountCreateFee,
 		fmt.Sprintf("account create fee too low min value %d", constants.MinAccountCreateFee))
 	opAssert(accountCreateFee.Value <= constants.MaxAccountCreateFee,
 		fmt.Sprintf("account create fee too high max value %d", constants.MaxAccountCreateFee))
 
-	topNAcquireFreeToken := op.TopNAcquireFreeToken
+	topNAcquireFreeToken := op.Props.TopNAcquireFreeToken
 	opAssert(topNAcquireFreeToken <= constants.MaxTopN, fmt.Sprintf("top N VEST holders, the N is too big, " +
 		"which should lower than %d", constants.MaxTopN))
 
 	//epochDuration := op.EpochDuration
 
-	perTicketPrice := op.PerTicketPrice
+	perTicketPrice := op.Props.PerTicketPrice
 	opAssert(perTicketPrice.Value >= constants.MinTicketPrice, fmt.Sprintf("the ticket price should greater than %d",
 		constants.MinTicketPrice))
 
@@ -728,13 +728,13 @@ func (ev *BpUpdateEvaluator) Apply() {
 	//opAssert(bpWrap.SetPerTicketWeight(perTicketWeight), "update per ticket weight error")
 
 	bpWrap.Modify(func(tInfo *table.SoBlockProducer) {
-		tInfo.ProposedStaminaFree = op.ProposedStaminaFree
-		tInfo.TpsExpected = op.TpsExpected
-		tInfo.AccountCreateFee = op.AccountCreationFee
-		tInfo.TopNAcquireFreeToken = op.TopNAcquireFreeToken
-		tInfo.EpochDuration = op.EpochDuration
-		tInfo.PerTicketPrice = op.PerTicketPrice
-		tInfo.PerTicketWeight = op.PerTicketWeight
+		tInfo.ProposedStaminaFree = op.Props.StaminaFree
+		tInfo.TpsExpected = op.Props.TpsExpected
+		tInfo.AccountCreateFee = op.Props.AccountCreationFee
+		tInfo.TopNAcquireFreeToken = op.Props.TopNAcquireFreeToken
+		tInfo.EpochDuration = op.Props.EpochDuration
+		tInfo.PerTicketPrice = op.Props.PerTicketPrice
+		tInfo.PerTicketWeight = op.Props.PerTicketWeight
 	})
 
 }

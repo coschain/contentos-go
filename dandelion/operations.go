@@ -59,13 +59,7 @@ func BpRegister(name, url, desc string, signingKey *prototype.PublicKeyType, pro
 func BpUpdate(name string, props *prototype.ChainProperties) *prototype.Operation {
 	return prototype.GetPbOperation(&prototype.BpUpdateOperation{
 		Owner: prototype.NewAccountName(name),
-		ProposedStaminaFree: props.StaminaFree,
-		TpsExpected: props.TpsExpected,
-		AccountCreationFee: props.AccountCreationFee,
-		TopNAcquireFreeToken: props.TopNAcquireFreeToken,
-		EpochDuration: props.EpochDuration,
-		PerTicketPrice: props.PerTicketPrice,
-		PerTicketWeight: props.PerTicketWeight,
+		Props: props,
 	})
 }
 

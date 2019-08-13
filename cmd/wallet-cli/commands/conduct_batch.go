@@ -123,7 +123,6 @@ func conductBatch(cmd *cobra.Command, args []string) {
 				BlockSigningKey: pubkey,
 				Props: &prototype.ChainProperties{
 					AccountCreationFee:    prototype.NewCoin(fee),
-					MaximumBlockSize:      bpBlockSize,
 					StaminaFree:           constants.DefaultStaminaFree,
 					TpsExpected:           constants.DefaultTPSExpected,
 					EpochDuration:         constants.InitEpochDuration,
